@@ -240,49 +240,49 @@ bool GameStats::Decode(const std::string& theBytes)
 {
 	if ((theBytes.size() < 4) || (memcmp(theBytes.data(), kMagic, 4) != 0))
 		return false;
-	Reader r(theBytes);
-	r.mPos = 4;
-	GameStats s;
-	int* aScalars[] = {&s.mMoves, &s.mSwapsBack, &s.mInvalidKept, &s.mInvalidPoints, &s.mHints, &s.mHintPoints, &s.mUndos,
-		&s.mUndoPoints, &s.mTicks, &s.mTwists, &s.mSlides, &s.mOtherPoints, &s.mSpecialsMade, &s.mSpecialsSetOff,
-		&s.mGoldCovered};
+	Reader aReader(theBytes);
+	aReader.mPos = 4;
+	GameStats aStats;
+	int* aScalars[] = {&aStats.mMoves, &aStats.mSwapsBack, &aStats.mInvalidKept, &aStats.mInvalidPoints, &aStats.mHints, &aStats.mHintPoints, &aStats.mUndos,
+		&aStats.mUndoPoints, &aStats.mTicks, &aStats.mTwists, &aStats.mSlides, &aStats.mOtherPoints, &aStats.mSpecialsMade, &aStats.mSpecialsSetOff,
+		&aStats.mGoldCovered};
 	for (int* aValue : aScalars)
-		*aValue = r.Int();
+		*aValue = aReader.Int();
 	for (int i = 0; i < 3; i++)
 	{
-		s.mRuns[i] = r.Int();
-		s.mRunPoints[i] = r.Int();
+		aStats.mRuns[i] = aReader.Int();
+		aStats.mRunPoints[i] = aReader.Int();
 	}
-	int aColors = r.Count(1);
+	int aColors = aReader.Count(1);
 	for (int i = 0; i < aColors; i++)
 	{
-		int aGems = r.Int();
+		int aGems = aReader.Int();
 		if (i < MAX_COLORS)
-			s.mGems[i] = aGems;
+			aStats.mGems[i] = aGems;
 	}
-	s.mCascades.resize(r.Count(1));
-	for (int& aCount : s.mCascades)
-		aCount = r.Int();
-	s.mLevels.resize(r.Count(4));
-	for (Level& aLevel : s.mLevels)
+	aStats.mCascades.resize(aReader.Count(1));
+	for (int& aCount : aStats.mCascades)
+		aCount = aReader.Int();
+	aStats.mLevels.resize(aReader.Count(4));
+	for (Level& aLevel : aStats.mLevels)
 	{
-		aLevel.mLevel = r.Int();
-		aLevel.mPoints = r.Int();
-		aLevel.mTicks = r.Int();
-		aLevel.mMoves = r.Int();
+		aLevel.mLevel = aReader.Int();
+		aLevel.mPoints = aReader.Int();
+		aLevel.mTicks = aReader.Int();
+		aLevel.mMoves = aReader.Int();
 	}
-	s.mTimeline.resize(r.Count(2));
-	for (Point& aPoint : s.mTimeline)
+	aStats.mTimeline.resize(aReader.Count(2));
+	for (Point& aPoint : aStats.mTimeline)
 	{
-		aPoint.mTick = r.Int();
-		aPoint.mScore = r.Int();
+		aPoint.mTick = aReader.Int();
+		aPoint.mScore = aReader.Int();
 	}
-	s.mLevelUpTicks.resize(r.Count(1));
-	for (int& aTick : s.mLevelUpTicks)
-		aTick = r.Int();
-	s.mFromResume = r.Int() != 0;
-	if (!r.mOk || (r.mPos != theBytes.size()))
+	aStats.mLevelUpTicks.resize(aReader.Count(1));
+	for (int& aTick : aStats.mLevelUpTicks)
+		aTick = aReader.Int();
+	aStats.mFromResume = aReader.Int() != 0;
+	if (!aReader.mOk || (aReader.mPos != theBytes.size()))
 		return false;
-	*this = s;
+	*this = aStats;
 	return true;
 }

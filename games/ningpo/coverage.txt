@@ -1,0 +1,104 @@
+# tools/coverage.py's settings for Ning Po Mahjong Deluxe (docs/COVERAGE.md).
+export re/ningpo/gh/functions.jsonl
+src games/ningpo/src
+src games/ningpo/engine
+# The game's own code, which the port translates (docs/README.md, "The binary"): the game and Pyrogon's PG framework
+# (0x401010 to the framework's last function), the H layer under it, and the window procedure, which the linker put
+# among the libraries. The rest of the exe is the C runtime (0x418380..0x422af4), Lua 4 (from 0x429010), the Ogg Vorbis
+# decoder and its glue, minizip and zlib, the IJG JPEG library and DirectX's GUIDs.
+game 00401010-00417b10
+game 00422b10-00428fb0
+game 00433290-00433837
+# Game code the port leaves out on purpose.
+none 0040c890 WinMain: the platform layer's main starts the game (src/main.cpp)
+none 00405cd0 NingPo::checkRegistration: registration code (docs/README.md, "Left out"); origrun's patch answers it
+none 0040edb0 PGApp::checkRegistration: registration code
+# Found by the coverage check of 2026-11-08 (IDENTICAL_PLAY.md, "Coverage check"): the framework's mechanisms the port does
+# differently (the cvars in a Lua table, its object list and dialog stack, the H layer's window, DirectSound, DirectInput
+# and ZIP reader, which the host and the platform replace), the trial's code, and what the compiler makes on its own.
+none 0040eae0 sprite cursor: drawn clipped to a dirty rectangle; Ning Po's cursor sprite is null and the port draws none
+none 0040df90 sprite cursor: the cvar that says whether to draw it
+none 00407be0 HObject's class descriptor (slot 0 of every control's vtable): the port's classes need none
+none 00401010-00401020 global NingPo object: the port makes the app in main, no static constructor or exit hook
+none 00401060 vector constructor iterator: MSVC compiler helper for arrays of objects
+none 00401300 vector constructor iterator: MSVC compiler helper for arrays of objects
+none 00401a30 sprite cursor: Ning Po's cursor sprite is null, the port draws none
+none 00405d70 trial play limit: the trial's play count limit from the registry; trial and registration code is out of the port
+none 00407aa0 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 004087f0 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 00408920 CRect constructor: PGRect is a plain struct in the port
+none 00409e50 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 0040a170 trial play limit: the trial's play count limit from the registry; trial and registration code is out of the port
+none 0040a920 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 0040aed0 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 0040ba10 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 0040bc30 slider constructors: SoundSlider and MusicSlider have implicit constructors in the port
+none 0040bca0 slider constructors: SoundSlider and MusicSlider have implicit constructors in the port
+none 0040c910 PGSoundManager constructor: member initialisers in the port
+none 0040c9a0 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 0040d350-0040d360 square root tables: tables of the original software mixer; the port uses the platform mixer
+none 0040db40 sprite cursor: Ning Po's cursor sprite is null, the port draws none
+none 0040fe20 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 00410a10 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 00411420-00411430 open dialog list: the stack of open dialogs (0x4c1d60) is gDialogStack, a std::vector
+none 004133b0 HRegistry constructor and destructor: the port's HRegistry has no members
+none 004133f0 HRegistry constructor and destructor: the port's HRegistry has no members
+none 00413790-00413849 critical section: the original's lock object for its audio thread; the port mixes on the platform mixer
+none 00413922 command line cvars: the original parsed the command line into cvars and kept it in globals; the port's options are the host's
+none 00413a16-00413a42 HCvarManager setup: the cvar manager's constructor, cleanup and init made the Lua table; the port keeps a map
+none 00413beb-00413cd7 command line cvars: the original parsed the command line into cvars and kept it in globals; the port's options are the host's
+none 00413d2a stubs: thunks that return their argument
+none 00413fd0 stubs: thunks that return their argument
+none 00413ffd message box helper: the message pump behind PGAlert and PGMessageBox; the port shows the text through the host
+none 00414168 GetUserNameA: the host's UserName()
+none 004141b0-00414280 cvar store in Lua: the cvars live in a Lua table (m_pLua); the port keeps a std::map in HCvarManager
+none 004142f0-00414470 cvar store in Lua: the cvars live in a Lua table (m_pLua); the port keeps a std::map in HCvarManager
+none 004144a0 cvar store in Lua: the cvars live in a Lua table (m_pLua); the port keeps a std::map in HCvarManager
+none 004144f0-00414510 HObject base: the framework object base with ids; the port's classes need none
+none 004145f0-00414700 HObjectList: the framework's linked list of objects; the port uses std containers
+none 004147b0-00414970 HObjectList: the framework's linked list of objects; the port uses std containers
+none 004149b0-004149c0 HObjectList: the framework's linked list of objects; the port uses std containers
+none 00414a10 open dialog list: the stack of open dialogs (0x4c1d60) is gDialogStack, a std::vector
+none 00414a70 open dialog list: the stack of open dialogs (0x4c1d60) is gDialogStack, a std::vector
+none 00414ab0-00414b40 open dialog list: the stack of open dialogs (0x4c1d60) is gDialogStack, a std::vector
+none 00415d50-00416020 big numbers: a big integer class and its table of small primes, used by the registration key check, which the port leaves out
+none 00416090 big numbers: a big integer class and its table of small primes, used by the registration key check, which the port leaves out
+none 00416200 big numbers: a big integer class and its table of small primes, used by the registration key check, which the port leaves out
+none 00416290 big numbers: a big integer class and its table of small primes, used by the registration key check, which the port leaves out
+none 00422b80 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 004234c0 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 00423eb0-00423ec0 HSurface size getters: the port reads mWidth and mHeight
+none 004240a0 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 004240f0-00424320 window and DIB setup: the window, its class and the DIB section of the back buffer; the host owns the window and the port keeps a vector
+none 00424480-00424520 window and DIB setup: the window, its class and the DIB section of the back buffer; the host owns the window and the port keeps a vector
+none 00424bc0 window and DIB setup: the window, its class and the DIB section of the back buffer; the host owns the window and the port keeps a vector
+none 00424e4b-00424e6d audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 00424ec2-00424eda audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 00424fbd audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 00425296-00425311 audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 004253ed-00425630 audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 00425720-00425a00 audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 00425ec0 critical section: the original's lock object for its audio thread; the port mixes on the platform mixer
+none 00425f60 critical section: the original's lock object for its audio thread; the port mixes on the platform mixer
+none 00425fb0-00426010 audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 00426190-004263e0 audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 00426410-00426430 audio H layer: DirectSound mixer, buffers, streams and Ogg stream classes; the platform mixer replaces them
+none 004268e0 HObjectList: the framework's linked list of objects; the port uses std containers
+none 00426920 HObjectList: the framework's linked list of objects; the port uses std containers
+none 00426d10-00426e80 input trace: formats the key names for the trace and journal files, which the port leaves out
+none 00427670-00427680 ZIP file system: the archive reader (HZIPFileSystem and HZIPFile over minizip); the port reads the archive through the platform
+none 004279f0-00427a70 ZIP file system: the archive reader (HZIPFileSystem and HZIPFile over minizip); the port reads the archive through the platform
+none 00427af0-00427bf0 ZIP file system: the archive reader (HZIPFileSystem and HZIPFile over minizip); the port reads the archive through the platform
+none 00427c30-00427c70 ZIP file system: the archive reader (HZIPFileSystem and HZIPFile over minizip); the port reads the archive through the platform
+none 00427cc0 ZIP file system: the archive reader (HZIPFileSystem and HZIPFile over minizip); the port reads the archive through the platform
+none 00427d40 ZIP file system: the archive reader (HZIPFileSystem and HZIPFile over minizip); the port reads the archive through the platform
+none 00427f20-00427f40 ZIP file system: the archive reader (HZIPFileSystem and HZIPFile over minizip); the port reads the archive through the platform
+none 004282c0 implicit destructors: destructors and scalar deleting destructors the compiler makes for the classes; the port's members destroy themselves
+none 00428b40-00428c00 DirectInput device: HWin32InputDevice over DirectInput; the host posts the events
+none 00428c40-00428d00 DirectInput device: HWin32InputDevice over DirectInput; the host posts the events
+none 00428d20-00428dc0 DirectInput device: HWin32InputDevice over DirectInput; the host posts the events
+none 00428df0 DirectInput device: HWin32InputDevice over DirectInput; the host posts the events
+none 00428e20-00428eb0 cvar store in Lua: the cvars live in a Lua table (m_pLua); the port keeps a std::map in HCvarManager
+none 00428f20-00428f60 cvar store in Lua: the cvars live in a Lua table (m_pLua); the port keeps a std::map in HCvarManager
+none 00428fb0 cvar store in Lua: the cvars live in a Lua table (m_pLua); the port keeps a std::map in HCvarManager
+none 00433802-00433837 window and DIB setup: the window, its class and the DIB section of the back buffer; the host owns the window and the port keeps a vector

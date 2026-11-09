@@ -30,7 +30,7 @@ void GameConfig::LoadFromRules(const GameRules& theRules)
 	mLongLengthBonus = aTunables.mLongLengthBonus;
 	mExcellentFactor = aTunables.mExcellentFactor;
 	mHintPenalty = aTunables.mHintPenalty;
-	// The gem sheet has 7 colours. FillBoard rerolls a gem until it makes no 3-in-a-row; the two gems to
+	// The gem sheet has 7 colours. NewBoard rerolls a gem until it makes no 3-in-a-row; the two gems to
 	// its left and the two below can rule out two colours, so it needs at least 3 or it can loop forever.
 	// port(variant): up to 12 (GameRules::MAX_GEM_COLORS): the gem sheet gets the rows it lacks
 	// (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2, WinDMApp::EnsureGemColors); engines before 5 played 7 at most.

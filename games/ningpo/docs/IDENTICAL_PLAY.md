@@ -3,10 +3,12 @@
 This is the report on comparing the port with the original `Ningpo.exe`. Phase one, the game's logic, was finished on
 2026-11-03: with the same input, a series of games plays out the same in both programs, update for update. That means
 the same deals and shuffles, the same matches, hints, undos and penalties, the same clock, the same endings and the
-same best times. One change came out of it, listed below. Phase two (screens, sound, focus and the web build) is
-under way, from 2026-11-08. The original, the native port and the web build have been compared screen by screen, and
-the port has been played through with real input in both builds. The sound comparison is still to come; it waits on
-origrun (see "Phase two" below).
+same best times. One change came out of it, listed below. Phase two (screens, sound, focus and the web build) was
+done on 2026-11-08. The original, the native port and the web build were compared screen by screen, and the port was
+played through with real input in both builds. The sound matches the original's from the start to the deal. After
+that, origrun's sound stand-in stops the original's mixer, so the later sounds are not compared (see "Phase two" and
+"Oddities" below). There are no fix candidates, so there is no fixes mod. The performance numbers are under
+"Performance".
 
 ## What was compared, and how
 
@@ -121,11 +123,15 @@ build, listed below. A run on the page needs a clean profile. The page's profile
 deletes both first (reported to the coordinator).
 
 **Real input.** `tools/realplay/drive.py` plays the native port with real SDL input under rundesk, through the live
-channel (`-commands`, `-realinput`). It plays the tour above and then whole games on the port's own bot (`move`): two
-games windowed, and three in full screen (Alt+Enter). Each game ends in the no-moves dialog or won, then the name,
-the best times and the title. Every run ends with RESULT ok. `tools/web/tour.js` plays the same tour and two games
-on the page with DOM events alone. It passes with no error (full screen needs a real user gesture in the browser, so
-the page's run is windowed).
+channel (`-commands`, `-realinput`). It plays from the launch through the tutorial's screens (the title's arrows, the
+options and their best times, both pages of the rules) and then whole games on the port's own bot (`move`): two games
+windowed, and three in full screen (Alt+Enter). Ning Po has one mode, so that is every mode. Each game ends in the
+no-moves dialog or won, then the name, the best times and the title. `tools/web/tour.js` plays the same on the page
+with DOM events alone, with `fast=1`, and with `scale=2` (the canvas drawn at 1280x960) in place of full screen,
+which the Browser pane cannot enter. Both were run again on the final build, after the trunk's fixes to the test kit
+and to the framework's handling of real input (2026-11-08): every native run ended RESULT ok, and the page's run
+passed with no error. The web build's 26 shots, taken again on that build, still match the native port's: 24 exactly,
+and the 2 faint ones in the glow of the lit tiles, as above.
 
 **Focus.** A loss of the focus pauses the game in both builds, and a click on the board after it comes back resumes
 it. On the page, a press within 150 ms of the focus coming back is taken as the click that activates the page and
@@ -149,22 +155,37 @@ The gate holds each shot until no function of the display that writes the back b
 flip (0x423500), which only copies the buffer to the window. Each shot is held at the port's update, counted from
 the first click.
 
-The original's sound is still to be compared. With origrun's sound stand-in, its music streamer stops the virtual
-clock once a game is dealt (below).
+**Sound.** The original mixes its sounds itself into one DirectSound buffer (HMixer, embedded in the static app at
+0x475550 + 0x6930), so origrun's stand-in sees only one stream, and its log names no sound. `tools/sound/orig.sh`
+runs the tour on the host instead, on origrun's real clock with the silent stand-in (no sound reached the speakers:
+its RESULT line), and it watches the first word of voices 0 to 3, the sample's pointer. The mixer sets that pointer
+when a sound starts and clears it when the sound has played. The port logs each sound it starts in a test run, with
+its voice and the game's event time (`SOUND` lines, from `pg::Host::SoundStarted`). `tools/sound/cmp.py` lines the
+two up. A pointer takes the name of the port's sound at the same place in the order, and must keep it after that.
+
+From the first click to the deal, all 16 sounds match by name and order, within 5 ms of each other: the start
+button, the options, their best times and Done, the rules, the title's arrows (nm_click.wav, the others
+nm_guiclick.wav), the deal, the hint, and pause and resume. The first click's sound is 38 ms apart only because the script's mark comes
+after it. The voices match too, until the deal. From there on the original never frees a voice: the stand-in's log
+shows the game writing its buffer every 25 ms until the deal and never after. Its hint, pause and resume take voices
+1, 2 and 3 where the port, whose voices are free again, takes voice 0. With all four watched voices taken, the
+original's later sounds (the matches, the end) cannot be seen, so they are not compared (under "Oddities").
 
 **Changes in phase two.** JPEGs now decode through libjpeg 6b (`Platform::LoadImageFromMemory`), the library the
 original links, so they come out as its pixels did; the frozen baseline was refrozen after it, with play unchanged.
 The trial's code and the options' button to the publisher's site came out (docs/README.md,
 "Left out"); Done takes that button's row, and the frame of the emptied bottom row is painted out. The standard test
-commands came in, with `move` from the game's own move finder, and `redraw` for the page's shots. Neither changes
-play: `tools/check.sh ningpo` still matches the frozen baseline.
+commands came in, with `move` from the game's own move finder, and `redraw` for the page's shots. The loading
+screen's hidden thanks for registering went with the trial's code (79b2c3f3). In a test run the port logs each sound it
+starts (`SOUND` lines, for `tools/sound/cmp.py`). None of these changes play: `tools/check.sh ningpo` still matches the frozen baseline.
 
 | Difference | Cause | What the port does now | Commit |
 |---|---|---|---|
 | On the web, with `-fast`, a dialog came up hundreds of updates after the click that opened it, so the page's shots showed the screen before. | The port's web loop (`NingPoApp::RunFramework`) stepped the framework until a frame was drawn. With `-fast` nothing is ever not due, and a still screen draws nothing, so the game's code read its events only every 1000 steps. Natively the loop returns to the game once its wait is over. | The web loop also returns once the game's wait is over, and it calls the test page's frame hook, which this blocking loop never reached. | 0fdbf211 |
 
-**The fixes mod.** None of the original's bugs has turned up in either phase, so the mod has no toggle yet. Ning Po
-stays in `BYOPOP_WEB_NO_MODS` until the first fix candidate is found.
+**The fixes mod.** Fix candidates: none. Neither phase turned up a bug of the original or a wait that only costs the
+player time, and neither did a read of the game's code for the usual places (`GAME_NOTES.md`, "Fix candidates", lists
+what was checked). So there is no fixes mod, and Ning Po stays in `BYOPOP_WEB_NO_MODS`.
 
 ## Oddities that were not fixed, and why
 
@@ -176,8 +197,20 @@ None in the game. Two things belong to the test harness:
   and the run went the port's way when it ran again. `case.sh` reruns such a run once and says so in its output;
   `<run log>.stray` keeps the stray log. The cause was not looked for: the same script plays the same way in every
   other run.
-- With origrun's working sound stand-in the original hangs once its title music starts (above). It is reported to
-  the coordinator; phase two needs it fixed to compare the sound.
+- With origrun's working sound stand-in, the original's mixer stops once a game is dealt. On the virtual clock that
+  stalls the run, which is why the screen tour runs with no device. On the real clock the game plays on, but it
+  writes its DirectSound buffer no more and never frees a voice again, so the sounds after the deal cannot be
+  compared (above). Comparing them would take finding what the mixer waits on after the deal. Its feed is in the
+  H layer's mixing code (around 0x424d15, which Ghidra splits into fragments), and the likeliest cause is a play
+  cursor or a notification the stand-in does not give it once the board's music starts. origrun would need that
+  fixed. Then orig.sh would watch all eight voices. About an hour went into it, so it stops here
+  (`docs/ORIGRUN.md` is the coordinator's).
+
+## Performance
+
+The original and the port were measured back to back on the same tour: the loading, the peak memory and the processor
+time over 30 s of play. The numbers, and how they were taken, are in `GAME_NOTES.md`, "Performance". In short, the port
+loads in about half the original's time, holds about 23 MB more, and uses less than half the processor time.
 
 ## The deviations that remain
 
@@ -213,6 +246,41 @@ games/ningpo/tools/identical/case.sh layouts build/identical/scripts/layouts.txt
 ```bash
 games/ningpo/tools/identical/xsave.sh
 ```
+
+Phase two's runs, from a tour folder that `tour.py` writes (`build/ph2/tour` here; the shots of the original run only in
+Windows Sandbox, the sound and the performance on the host):
+
+```bash
+python games/ningpo/tools/shots/tour.py build/ph2/tour
+```
+
+```bash
+games/ningpo/tools/shots/port.sh build/ph2/tour
+```
+
+```bash
+games/ningpo/tools/shots/orig.sh build/ph2/tour
+```
+
+```bash
+games/ningpo/tools/sound/orig.sh build/ph2/tour
+```
+
+```bash
+python games/ningpo/tools/sound/cmp.py build/ph2/tour
+```
+
+```bash
+games/ningpo/tools/perf/perf.sh build/ph2/tour 3
+```
+
+```bash
+build/native/rundesk.exe python games/ningpo/tools/realplay/drive.py build/ph2/drive-f --fullscreen --games 3
+```
+
+The sound comparison reads `port.log` from the native run (`port.sh`); its three differences are the voices from the
+deal on, as above. The page's tours open through
+`tools/webtest/serve.py` (the `webtest-player` preview) as `tools/web/tour.js` and `tools/web/shots.js` say.
 
 A case takes from one to three minutes and runs one game process at a time. Its files are in `build/identical/<case>/`
 (`cmp.txt` is the comparison). The seeds are cheat7 7, won39 39, mouse23 23 and layouts 11.

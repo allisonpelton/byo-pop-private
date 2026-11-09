@@ -288,6 +288,7 @@ void TextInput_Clear(TextInput* theInput)
 	theInput->caseMode = 0;
 }
 
+// 0x42c3b0
 void TextInput_Init(TextInput* theInput, Image* theSurface, Image* theBackground, Font* theFont, int theMaxLength,
 	char theColourCode, int l, int t, int r, int b)
 {

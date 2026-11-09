@@ -30,6 +30,7 @@
 #include <audiopolicy.h>
 #include <stdio.h>
 #include <stdint.h>
+#include "coverage.h"
 
 static FILE*       gLog;
 static CRITICAL_SECTION gLogLock;
@@ -619,7 +620,7 @@ HRESULT WINAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, void** ppv)
 
 BOOL WINAPI DllMain(HINSTANCE h, DWORD reason, LPVOID r)
 {
-	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); log_init(); vclock_install(h); mute_start(); }
-	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); vclock_detach(); }
+	if (reason == DLL_PROCESS_ATTACH) { DisableThreadLibraryCalls(h); coverage_install(); log_init(); vclock_install(h); mute_start(); }
+	else if (reason == DLL_PROCESS_DETACH) { log_status_summary(); vclock_detach(); coverage_detach(); }
 	return TRUE;
 }

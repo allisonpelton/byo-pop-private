@@ -9,7 +9,7 @@
 //   - NewGame and ShowHighScoreWidget, which a board calls when its game ends (after New Game's fall, at the
 //     game-over screen), end the replay being watched (WatchController::OnBoardEnd), else set the end flags
 //     below;
-//   - SetTimedMode sets the mode only (there are no mode buttons), KillDialog and ShowInstructionsDialog do
+//   - SetTimedMode sets the mode only (there are no mode buttons), KillDialog and DoInstructionDialogette do
 //     nothing (the instructions dialog is not modal: it never pauses a board);
 //   - files are kept in memory (SexyAppBase::mFiles);
 //   - UpdateFrames is one frame: the replay player's step (WatchController::BeforeFrame), as at the start of

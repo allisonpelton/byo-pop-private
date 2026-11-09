@@ -59,11 +59,11 @@ void List_DeleteNode(Panel* thePanel);                           // 0x4125c0's d
 struct Beam;
 
 // An enemy (0x110 bytes, 0x405070 constructs one). The game file's enemy tags make a level's enemies, and outside
-// a level the defaults (gEnemyDefs) that random boards copy. kind +0x08: 0 roller, 1 burst_roller, 2 spin_roller,
-// 3 turn_roller, 4 bump_roller, 5 snake_shooter, 7 line_walker, 8 scurry_walker, 9 smart_walker, 10 cannon_walker,
-// 0xb laser_walker, 0xf frog, 0x10 teleporter_roller, 0x11 jellyfish_roller, 0x13 crab_walker, 0x14 turtle_walker,
-// 0x15 lobster_walker, and the shots: 6 a snake shooter's snake, 0xc a cannon ball, 0xd a laser shot; state +0x0c:
-// 0 appearing, 1 and 2 dying, 3 about
+// a level the defaults (gEnemyDefs) that random boards copy. kind +0x08 (Enemy_FromXml's tags, Enemy_Update's switch):
+// 0 frog, 1 burst_roller, 2 bump_roller, 3 jellyfish_roller, 4 spin_roller, 5 teleporter_roller, 6 turn_roller,
+// 7 lobster_walker, 8 scurry_walker, 9 turtle_walker, 10 laser_walker, 0xb cannon_walker, 0xc crab_walker,
+// 0x10 line_walker, 0x11 roller, 0x12 snake_shooter, 0x14 smart_walker, and the shots: 0xd a cannon ball, 0xe a laser
+// shot, 0x13 a snake shooter's snake; state +0x0c: 0 appearing, 1 and 2 dying, 3 about
 struct Enemy : Obj
 {
 	Animation* leftAnim;       // +0xb0
@@ -394,6 +394,8 @@ void Panel_Draw(Panel* thePanel, int theAll);                    // 0x4184e0
 void Panel_Update(Panel* thePanel);                              // 0x418470
 void Shooter_Insert(List<Shooter>* theList);                     // 0x410740
 Shooter* Shooter_Init(Shooter* theShooter);                      // 0x41da80
+void Shooter_Destroy(Shooter* theShooter);                       // 0x412360
+void List_DeleteNode(Shooter* theShooter);                       // 0x412540's delete
 void Shooter_Setup(Shooter* theShooter);                         // 0x41b570
 void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag); // 0x41b340
 int Shooter_Update(Shooter* theShooter);                         // 0x41e740

@@ -921,6 +921,7 @@ static bool onPath(int theColumn, int theRow)
 	return aFound;
 }
 
+// 0x41f4b0, the getter of the last active time, is read inline as gLastActiveTime here and in the game's other draws
 // 0x410f90: the board: the book's title, the chapter and the score, the board's edges, the cells and the tiles
 void GameScreen::drawBoard()
 {

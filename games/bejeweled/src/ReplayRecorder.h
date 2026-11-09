@@ -87,7 +87,7 @@ public:
 	// True the first time only: the first sidecar this board writes replaces the one there is, whose game
 	// is kept first (Board::WriteSaveSidecar)
 	bool			FirstSidecar();
-	// A sidecar's game that was saved, whose save goes away (the resume was declined: DeleteSaveGame without
+	// A sidecar's game that was saved, whose save goes away (the resume was declined: DeleteSavedGame without
 	// a LOAD; or this board's first save replaces it), becomes a finished replay
 	void			KeepSidecarGame(const std::string& theSidecar, const std::string& theSave);
 

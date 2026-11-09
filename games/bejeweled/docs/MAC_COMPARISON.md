@@ -28,7 +28,8 @@ framework's, and they matched the original's in the comparison).
 ## Names that differ
 
 The port kept its own names where it had named a function before the Mac build was looked at. The Mac's, with the port's
-and the Windows address:
+of that time and the Windows address (the readability pass of 2026-11-08 gave these functions the Mac's names,
+`GAME_NOTES.md` section 20):
 
 | Mac | port | Windows |
 |---|---|---|

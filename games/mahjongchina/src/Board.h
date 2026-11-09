@@ -178,6 +178,7 @@ public:
 	// 0x40acb0: an error box when the layout does not load
 	void LoadLayout();
 	// 0x40ad70
+	// 0x402520 inlined here: the copy of the layout's name (+0x20)
 	std::string GetLayoutName() { return mLayout.mName; }
 	// 0x40ada0
 	void ClearHints();

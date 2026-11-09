@@ -1,0 +1,29 @@
+# tools/coverage.py's settings for Bonnie's Bookstore Deluxe (docs/COVERAGE.md).
+export re/bonnies/gh/functions.jsonl
+src games/bonnies/game
+src games/bonnies/engine
+src games/bonnies/src
+# The game's own code, which the port translates (docs/ENGINE.md, "The binary's layout"): the game (0x401000..0x41d600)
+# and New Crayon's engine under it (to 0x42f6f6). The rest of the exe is the import thunks, the C runtime and the static
+# initializers with their atexit destructors.
+game 00401000-0042f6d0
+# Game code the port leaves out on purpose, found by the coverage check of 2026-11-08 (GAME_NOTES.md, "Coverage check").
+none 0041d6c0-0041d920 the engine's string class: the port's Str is std::string (engine/Str.h)
+none 0041da50-0041da60 the engine's string class: the port's Str is std::string (engine/Str.h)
+none 0041df80 the engine's string class: the port's Str is std::string (engine/Str.h)
+none 0041e010 the engine's string class: the port's Str is std::string (engine/Str.h)
+none 0041f570-0041f590 operator new and delete: the C++ runtime's
+none 0041f390-0041f3b0 swaps of an int and of a char: std::swap in the port
+none 0041f5d0 the engine's log: empty in the release build, so the port has none
+none 00401130 the exit's log line: it only writes to the empty log (0x41f5d0)
+none 00420630 the window messages SDL passes on (a change of display mode): the port's host sends none (engine/Events.cpp)
+none 004010e0 implicit destructors: destructors the compiler makes for the classes; the port's members destroy themselves
+none 00401620 implicit destructors: destructors the compiler makes for the classes; the port's members destroy themselves
+none 00402b20 implicit destructors: destructors the compiler makes for the classes; the port's members destroy themselves
+none 0040ccd0-0040cd70 the high score entry's implicit constructor and destructors: the port's members construct and destroy themselves
+none 0040dd70 implicit destructors: destructors the compiler makes for the classes; the port's members destroy themselves
+none 0042a640 a font's implicit constructor: the port's members construct themselves
+none 0042af90 implicit destructors: destructors the compiler makes for the classes; the port's members destroy themselves
+none 0042f5b0-0042f600 the key state made at start and freed at the end, never used (engine/Platform.cpp)
+none 00419340-004197c0 the registration panel (RegisterPanel, its vtable 0x458844): registration code, taken out (DEVIATIONS.md)
+none 0042a480 the registration key's check: registration code, taken out (DEVIATIONS.md)

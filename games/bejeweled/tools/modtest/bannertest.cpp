@@ -1,4 +1,4 @@
-// Renders a properties string with the banner font the way Board::ShowText does (white text into a
+// Renders a properties string with the banner font the way Board::DoBouncyText does (white text into a
 // MemoryImage sized StringWidth x GetHeight, baseline at the ascent), using the configured mods.
 //   bannertest <gamedir> <modsdir> <userdir> <string id> <out.png> [crossbar]
 // "crossbar" applies the mods-in-use G crossbar (games/bejeweled/src/ModIndicators.cpp) to the font.

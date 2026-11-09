@@ -326,11 +326,15 @@ void MahjongWidget::KeyChar(SexyChar theChar)
 		jb::gApp->mManager.Char(aChar, 1, 0);
 }
 
-// WM_KEYDOWN (the framework's key codes are the virtual keys)
+// 0x42fa00: WM_KEYDOWN (the framework's key codes are the virtual keys). Escape leaves full screen before the key goes on.
 void MahjongWidget::KeyDown(KeyCode theKey)
 {
 	if (gApp->mGameStarted && !gApp->mGameEnded)
+	{
+		if (theKey == KEYCODE_ESCAPE && jb::gFullScreen)
+			jb::gApp->mManager.SetFullScreen(false, true);
 		jb::gApp->mManager.Key((int)theKey, 1, 0);
+	}
 }
 
 void MahjongWidget::MouseMove(int x, int y)
@@ -424,6 +428,7 @@ MahjongApp::~MahjongApp()
 	delete mGame;
 }
 
+// 0x426850 inlined here: the exe's file version for the logo screen (the block after LoadGameTexts)
 void MahjongApp::Init()
 {
 	SexyAppBase::Init();
@@ -437,6 +442,25 @@ void MahjongApp::Init()
 		return;
 	}
 	mahjongjapan::LoadGameTexts(aFolder);
+	// 0x426850: the exe's file version as "v.A.B.C.D" (VS_FIXEDFILEINFO's dwFileVersionMS and LS), which the logo screen
+	// shows at its lower right; the original asks Windows, the port reads the exe's version resource
+	{
+		std::vector<mahjongjapan::PeResources::Key> aNames = gHost.mExe.Names(16);
+		uint32_t aSize = 0;
+		const uint8_t* aInfo = aNames.empty() ? nullptr : gHost.mExe.Find(16, aNames[0], &aSize);
+		for (uint32_t i = 0; aInfo != nullptr && i + 16 <= aSize; i++)
+		{
+			if (aInfo[i] == 0xbd && aInfo[i + 1] == 0x04 && aInfo[i + 2] == 0xef && aInfo[i + 3] == 0xfe)
+			{
+				uint32_t aMS = aInfo[i + 8] | aInfo[i + 9] << 8 | aInfo[i + 10] << 16 | (uint32_t)aInfo[i + 11] << 24;
+				uint32_t aLS = aInfo[i + 12] | aInfo[i + 13] << 8 | aInfo[i + 14] << 16 | (uint32_t)aInfo[i + 15] << 24;
+				char aText[48];
+				snprintf(aText, sizeof(aText), "v.%u.%u.%u.%u", aMS >> 16, aMS & 0xffff, aLS >> 16, aLS & 0xffff);
+				jb::gVersion = aText;
+				break;
+			}
+		}
+	}
 	jb::SetHost(&gHost);
 	// the two logo screens hold the player back 2 s each with nothing loaded meanwhile, so the port starts at the main menu
 	// (the loading rule, CLAUDE.md "Making a port"); -logos keeps the original's start, for runs compared with it and the suite

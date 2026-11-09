@@ -1,0 +1,38 @@
+# tools/coverage.py's settings for Noah's Ark Deluxe (docs/COVERAGE.md).
+export re/noahsark/gh/functions.jsonl
+src games/noahsark/src
+# The game's own code, 0x401000 to the end of TutorialDialog (GAME_NOTES.md, section 1): Board, the dialogs, the screens and
+# NoahApp. The framework (the 2002 SexyApp, from Widget at 0x421d60), the C runtime and the libraries follow.
+game 00401000-00420d10
+# Game code the port leaves out on purpose: the registration code (GAME_NOTES.md, section 9).
+none 0041e480-0041e770 RegisterDialog (its nine functions): the registration dialog, registration code removed with the rest of it
+none 00418f70 the registered dialog's creator ("You have already registered"): registration code
+none 00419290 the registration number check's failure dialog: registration code
+# Compiler-made scalar deleting destructors (30 bytes each: run the class's destructor, then operator delete). The port's
+# classes have a C++ destructor and the compiler makes the deleting one.
+none 00401310 Board's scalar deleting destructor: compiler-made, calls Board's destructor and then operator delete
+none 00411080 DifficultyDialog's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+none 004116a0 HighScoreDialog's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+none 00411e00 HighScoreWidget's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+none 00414340 IntroWidget's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+none 00415160 NextLevelWidget's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+none 0041cc20 OptionsDialog's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+none 0041d9b0 RecordScoreDialog's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+none 0041fbd0 TitleScreen's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+none 00420960 TutorialDialog's scalar deleting destructor: compiler-made, calls its destructor and then operator delete
+# Overrides that only call the base class, and the framework's own default method: the port's classes inherit them.
+none 004060b0 ButtonListener's default first slot: only passes the id on to the second slot, which does nothing; the port's ButtonListener (framework) has the same forward
+none 00411280 DifficultyDialog's Draw override: only calls Dialog's Draw, which the port's dialog inherits
+none 00414e90-00414eb0 IntroWidget's AddedToManager, RemovedFromManager and Resize overrides: each only calls Widget's own, which the port's class inherits
+# The original's C++ library, instantiated for its types (MSVC 6 std::string, std::vector, std::list and std::map): the port
+# uses its own standard library.
+none 004020b0 the buffer release of a piece's std::vector (path nodes): std::vector does it in the port
+none 00410350-00410bf0 std::string, std::vector and std::list member functions instantiated for the game's types (copy, assign, grow, insert, erase, fill)
+none 004137f0-00413d40 std::string member functions and operators instantiated for the game (erase, assign, unshare, max_size, concatenation)
+none 0041b1e0-0041c1b0 std::list clear, std::string compare and the std::map (red-black tree) functions for a map of strings: insert, erase, find, clear
+none 0041ea30-0041f790 the std::map (red-black tree) functions for a second map of strings: construct, destroy, insert, erase, find, iterator step
+# Start-up glue of the global NoahApp object, made by the compiler and the C runtime.
+none 00411350 static initializer of the global NoahApp object: calls NoahApp's constructor; the port's main makes the app with new
+none 00411360 registers the global NoahApp object's destruction with atexit; the port's main deletes the app itself
+# An original mechanism the port does differently on purpose.
+none 0041d3b0 the Options dialog's check box handler: when a box is cleared on a display where the framework found that windowed mode cannot be restored (flag +0x231), it shows the no windowed mode message and ticks full screen again; the port's SDL window can always switch to windowed (SwitchScreenMode)

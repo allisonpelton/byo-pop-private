@@ -678,6 +678,7 @@ int HighScoresScreen::handleEvent(Event* theEvent)
 
 static int gLogoLoaded;           // 0x4791b4: the app's resources are loaded
 static int gLogoSkip;             // 0x4791b8: a click or key hurries the logos
+bool gSkipLogos = false;
 static int gLogoFade = 0x96;      // 0x473e50: a logo's fade, in ms
 static int gPopCapTime = 0x5dc;   // 0x473e54: PopCap's logo shows this long
 static int gDistributorTime = 0x5dc;  // 0x473e58
@@ -785,6 +786,15 @@ void LogoScreen::draw()
 		fillRect(0.0f, 0.0f, 1.0f, 1.0f, 0xffffffff);
 		return;
 	}
+	// port (site): "Always skip start-up logos": white until the update has loaded, then on to the menu
+	if (gSkipLogos)
+	{
+		fillRect(0.0f, 0.0f, 1.0f, 1.0f, 0xffffffff);
+		Screen::draw();
+		if (mDone != 0)
+			gBonnies->setState(2, 1, 0);
+		return;
+	}
 	if (mEarly != 0)
 	{
 		// The distributor's logo first, when Portal.cfg asks for it
@@ -890,6 +900,19 @@ void LogoScreen::update()
 		gDistributorTime = 600;
 	}
 	Screen::update();
+	// port (site): "Always skip start-up logos" (game/Start.h): the resources load on the first update, as they would once the
+	// logo is shown, and the screen is done, as the last logo's own end leaves it (draw: setState(2)); no logo is drawn and
+	// no jingle plays. The logos draw no random numbers, and what they set is read by this screen only.
+	if (gSkipLogos)
+	{
+		if (gLogoLoaded == 0)
+		{
+			gLogoLoaded = 1;
+			gBonnies->loadResources();
+		}
+		mDone = 1;
+		return;
+	}
 	if (mEarly != 0)
 		return;
 	if (mLastUpdate == 0)
@@ -1100,7 +1123,7 @@ static void panelButtonImage(Button* theButton, int theFrame)
 	theButton->setDownImage(Str(lit(0x458708)), theFrame + 2);
 }
 
-// 0x4173c0
+// 0x4173c0, with its tail at 0x41756b (the name saved and the options written), which the export splits off
 int NamePanel::handleEvent(Event* theEvent)
 {
 	int aResult = 0;
@@ -1458,7 +1481,7 @@ void OptionsMenu::draw()
 	}
 }
 
-// 0x4184a0
+// 0x4184a0 (0x417b20, a sound played at full volume and pitch, is inline in the sound slider's case)
 int OptionsMenu::handleEvent(Event* theEvent)
 {
 	if (mLoaded == 0)

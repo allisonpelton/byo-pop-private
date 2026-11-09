@@ -86,13 +86,21 @@ public:
 	void RemoveHover(Object* theObject) { ListRemove(mHovers, theObject); }
 	void AddClick(Object* theObject) { ListAdd(mClicks, theObject); }
 	void RemoveClick(Object* theObject) { ListRemove(mClicks, theObject); }
+	// 0x42a400 inlined here: the add to the move list (+0x50)
 	void AddMove(Object* theObject) { ListAdd(mMoves, theObject); }
+	// 0x42a410 inlined here: the removal from the move list (+0x50)
 	void RemoveMove(Object* theObject) { ListRemove(mMoves, theObject); }
+	// 0x42a460 inlined here: the add to the key list (+0x54)
 	void AddKey(Object* theObject) { ListAdd(mKeys, theObject); }
+	// 0x42a470 inlined here: the removal from the key list (+0x54)
 	void RemoveKey(Object* theObject) { ListRemove(mKeys, theObject); }
+	// 0x42a4c0 inlined here: the add to the character list (+0x58)
 	void AddChar(Object* theObject) { ListAdd(mChars, theObject); }
+	// 0x42a4d0 inlined here: the removal from the character list (+0x58)
 	void RemoveChar(Object* theObject) { ListRemove(mChars, theObject); }
+	// 0x42a520 inlined here: the add to the updaters (+0x5c)
 	void AddUpdater(Object* theObject) { ListAdd(mUpdaters, theObject); }
+	// 0x42a530 inlined here: the removal from the updaters (+0x5c)
 	void RemoveUpdater(Object* theObject) { ListRemove(mUpdaters, theObject); }
 	// 0x42c060
 	void AddAnimator(Layer* theLayer) { ListAdd(mAnimators, theLayer); }

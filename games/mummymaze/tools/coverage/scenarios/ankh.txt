@@ -1,0 +1,10 @@
+# the Ankh in the side panel asked what it is
+99 title
+1000 click 185 376
+1300 shot board
+1310 click 115 345
+1500 shot ankh
+1510 shot ankhask
+1600 click 320 277
+1700 shot after
+1800 quit

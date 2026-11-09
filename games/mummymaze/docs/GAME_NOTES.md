@@ -270,3 +270,160 @@ which is the busy machine: the processor time of a run follows what the other se
 from the loopback server and imports them into its test profile on every load, while the player on the site reads a folder it has
 already imported; the Browser pane is often hidden here, and a hidden pane paces its frames itself instead of the game. A figure from that page
 would not be the site's, so none is given; it needs a visible browser on the deployed site.
+
+### The performance pass (2026-11-09)
+
+**What the profile showed.** Timers around the steps of the start (taken out again) and a flat sampling profile of the port's start
+(`games/bejeweled/tools/profile/cpuprof.py`, under rundesk) put the time to the title at about 0.7 s on this machine: `SexyApp::Init`
+300 to 350 ms, all of it in `MakeWindow` (the SDL window and the D3D11 device, shared code); the pictures a good part of the rest (246
+GIFs, 90 to 106 ms in the stb GIF decoder, and the JPEGs, about 30 ms); the file reads about 30 ms; the sounds' decoding in the loading
+thread; the GPU driver 11 to 13 % of the samples. The profile of the scripted minute was not read for the game's own code: the minute
+uses about 2 s of processor time for 60 s of play, so there is little to win.
+
+**What changed (all in the game's own files).** The port decodes a picture when the game first asks for it, and a sound when it first
+plays it, where the original decodes all 246 pictures in `Init` and all 25 sounds in its loading thread (0x41dd60). `MummyApp::mImages`
+is an `ImageTable`, a member whose `operator[]` returns the picture and decodes it through `LoadImage` (0x41db90) the first time; the
+sounds go through `MummyApp::PlaySample`, which calls `LoadSoundOnce` first (`SexyAppBase::PlaySample` is the only way the game plays
+a sound, and the sound manager takes the volume per instance, so a late load changes nothing). The loading thread still builds the
+fonts and the light mask, and counts the sounds as done at once, so the title's bar and the update that ends loading are the same.
+Two deviations, neither visible in a shipped copy: a picture that is not in the game's folder is told at its first use (the same popup,
+then the end of the game) instead of at the start, and a sound that is not there stays silent where the original ended the game.
+The `DIALOG_RESET_TIPS` case (see "Coverage check") was also taken out. `tools/profile/perf.py` takes `PORT_EXE` (another exe to
+measure, the frozen baseline), and `tools/identical/soundcmp.py` reads the sound log's load lines in the form the framework now writes.
+
+**What stayed the same.** The sound log of the classic game under autoplay (`BYOPOP_SOUNDLOG`), the autoplay's log, and every suite
+of `tools/check.sh mummymaze` (the frozen baseline identical, against main's libjpeg-refrozen copy) match before and after.
+
+**Numbers.** Two rounds back to back on this machine, three runs each (the machine 0.26 to 0.47 busy, 2 other game processes), the
+time from the creation of the process to the title's play link:
+
+| | Frozen baseline | Lazy |
+|---|---|---|
+| Time to the title, round 1 | 0.86, 0.76, 0.75 s (median 0.76) | 0.46, 0.44, 0.42 s (median 0.44) |
+| Time to the title, round 2 | 0.70, 0.65, 0.66 s (median 0.66) | 0.38, 0.39, 0.38 s (median 0.38) |
+| Working set and private bytes at the title | 71.5 and 71.3 MB | 37.5 and 37.2 MB |
+| Peak private bytes over the scripted minute | 85.2 MB | 57.8 to 58.2 MB |
+| A whole game under `-fast` (12155 updates, seed 21, four runs each, alternating) | 0.72 to 1.31 s | 0.54 to 0.95 s |
+
+The processor time of the scripted minute did not change: on a quiet machine (0.27 busy) 2.12 s for the baseline against 2.20 s for the
+lazy build (99.8 and 100.0 updates a second); an earlier pair on a busier machine (0.30 and 0.49 busy) read 1.55 s and 3.22 s, which is the
+machine, as the 1.55 to 2.12 s of the baseline itself shows, and not a cost of the change (the pictures that a minute uses are
+decoded in its first updates, a small part of what the start no longer decodes). The pictures and sounds a game never meets are never decoded: memory
+at the title is half of what it was (the original's 58 to 60 MB of private bytes there, measured above, is now above the port's 37), and the
+peak of the minute is 27 MB lower.
+
+**Not done, and why.** The 300 to 350 ms in `MakeWindow` is the framework's (SDL's window and the D3D11 device): a spec to the
+coordinator. The stb GIF decoder is shared too; a faster GIF decode would speed every game's start and every first use here. The game's
+own code was not profiled further: a scripted minute uses about 2 s of processor time for 60 s of play. The web build's load was
+not measured (see above); it builds (`tools/check.sh build-web:mummymaze` passes) but was not run, so the lazy decode was not
+timed there.
+
+## Coverage check (2026-11-08)
+
+The whole coverage check of the game (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions
+ran, in 23 runs on the host (`tools/coverage/run_all.sh`, `gap_all.sh`, `gap.sh` and `prep.sh`; the hits in
+`build/coverage/mummymaze/hits/`), one game process at a time:
+
+- the ten phase-two scenarios (adv, c6, d1, d2, d3, dark, focus, hs1, s1, tut), on the virtual clock;
+- six runs of the port bot's games (`prep.sh` turns the port's log into the original's input): two classic games (classic21,
+  classic8; the second ends in Abandon Hope, with the name box and the table), the game that starts in pyramid 3 (tips), the
+  tutorial, an adventure, and the late game (a saved game in the last chamber of the last pyramid, played on to the victory
+  screen, the name box and the table);
+- six runs for what those miss (`tools/coverage/scenarios/` and `gap.sh`): the Ankh asked what it is; the options (the switches
+  and the Tutorial button's question); five saved adventures (the list, Delete Game, the free slot, the name box with Enter,
+  a name with a comma, a name in use, an accepted one, then the intro and the map); the classic game with Enter in the high
+  score's name box in place of its OK (rank); a saved adventure of a version the game does not know ("Bad Save Game File");
+  and a sweep along the options' sliders;
+- one run on the real clock (the sound code the virtual clock skips).
+
+The bots' runs end with the game exiting; the others end at origrun's timeout, having played their whole script.
+`games/mummymaze/coverage.txt` sets the game's own code as 0x401000 to 0x42d5b0 (the rest of the exe is the framework from
+0x42d5c0, the C runtime and the libraries): 411 functions, of which the runs reached 365.
+
+**Reached in the original with no counterpart in the port: 119 after the first ten runs, 139 after sixteen, 0 at the end.**
+
+- **Left out on purpose: 104 `none` lines in coverage.txt (102 when the check ended, and the two below), each with its reason.** What the compiler makes (the atexit
+  registrations of static objects, the deleting destructors, the std::string, std::list and std::map helpers it placed in the
+  game's range), the framework's `WinMain` start (0x412e40 is the port's `main`), the Dialog constructor at 0x42d5b0, the
+  debug-file streams, and overrides that only call their base class.
+- **Placed: 49 addresses.** Functions the port translates in another shape got their address in the comment above the
+  function that holds them: the destructors of the screens and dialogs (the port frees the same members), the fragments the
+  export split off a function (0x418390 is the twinkles' loop at the end of `WorldMap::Update`, 0x42a280 the end of
+  `SidePanel::Update`, 0x41ca70 the Tutorial button's question inside `OptionsDialog::ButtonDepress`), the two lists that
+  `SolveRec` looks through (0x404f60, 0x405010), the high score screen's rank, its children's add and remove and its resize
+  (0x402d40 is the victory screen's own, which also adds the link to the Internet score list, now gone), and the messages of
+  a bad name and a name in use (0x41f730, 0x41f8f0), which the port makes with `DoMessage` in place. The message of a bad
+  saved game (0x41f0d0) was inline in `WorldMap`'s constructor; it is now `MummyApp::ShowBadSaveMessage`, as in the original,
+  because the tool does not see that constructor as a definition (see the specs below).
+- **Missing logic found and translated: eight differences**, six found by reading the function a run reached and two by
+  comparing the pictures of the saved adventures' run:
+  1. A new adventure's name is refused only when it is empty or holds a comma (0x41ffb0), although the message says "letters
+     and numbers"; the port refused anything but letters and digits.
+  2. The test for a name in use (0x41fff0) compares exactly: `Bob` and `bob` can both be used. The port ignored case.
+  3. Enter in the new adventure's name box does nothing (its listener at 0x401c90 is empty); the port's answered OK. (The
+     high score's name box does answer OK, 0x428450; the run with Enter reached it.)
+  4. A press on a button of the game's panel (0x403430) makes no sound; the port played the click.
+  5. A press on any button of the options, saved adventures, delete-adventure and tip dialogs plays the click (0x426b50,
+     0x412d80), and the footer button's press reaches the app, which clicks too; the port clicked on release only.
+  6. The Delete Game button of the saved adventures' dialog is there only when all five slots hold a game (the flag at
+     0x401000 is cleared by each free slot); the port showed it when any did. The dialog is also 50 pixels shorter without it.
+  7. The header of the saved adventures', delete and new adventure dialogs is black (0x41b800, 0x41bb10, 0x41bcc0 set it); the
+     port gave them the brown of the other dialogs.
+  8. The Adventure Mode message that follows a new game's name has a fixed height, 0x15e (0x4201e0), and the congratulations
+     message of the map 0x136 (0x41bcc0); the port used the preferred height, 7 pixels more for the first (the second was
+     read from the export and has no picture).
+
+  The edits are small and in the port's own files. After them the saved adventures' run, played through both games, matches
+  picture for picture: six pairs match and four differ only faintly (in three, the top row of the header text of the name box, 236
+  pixels by at most 33 levels, which shotdiff does not count as visible; in the map, a twinkle at 12 levels).
+- **Open: none.**
+
+**Defined in the port, never reached: 64 after the first ten runs, 0 at the end.** The extra runs reached the rest (the
+sliders' dialog code, the saved adventures' and delete dialogs, the Ankh question, the bad save message, the tips' close,
+Enter in the high score box, the in-use message). The last was `OptionsDialog::SliderVal` (0x426a30): the sweep along the
+sliders pressed at every thumb but the slider's own mouse-down (0x43dbd0) never ran, because p2.py wrote its `down` without the
+point and origrun posts a bare `down` at (0, 0). With the point (`at N down x y`, after a `move` an update earlier) the press
+reaches the slider, and the sweep reached 0x43dbd0 and SliderVal. The port's function was also read against the export and
+matches it line by line (music, effects, and the speed in three steps with the slider put back on its step).
+
+**Candidates for taking out unneeded code (decided 2026-11-09).** No play of the original reaches these:
+
+- the `DIALOG_RESET_TIPS` case in `MummyApp::ButtonDepress` (MummyFlow.cpp): the original has the question of a "Reset Tips"
+  button on the options dialog (0x41cdf0, called from 0x426b70) and no play of it reaches the question; the port has no such button.
+  **Taken out** with its `DIALOG_RESET_TIPS` id; 0x41cdf0 got a `none` line in coverage.txt.
+- the "No Windowed Mode" message (0x426b20 asks it, 0x41fab0 makes it): shown when the framework found no windowed display mode,
+  a flag the host never sets. The port never had either (nothing to take out); 0x41fab0 got a `none` line.
+
+**Never reached and not defined in the port: 46.** The larger ones are removed code: registration (0x41ec00 "Already
+Registered", 0x41ef10 "Registration Invalid", 0x4284a0 the key check, 0x428e70 the register page and the small functions around
+it, 0x428aa0 to 0x42a4b0), the Internet score list and the score upload (0x41f470 "Submit Score", 0x415e50, 0x41ac00 and the
+helpers it calls at 0x421030 to 0x421ac0), "High Score" at 0x41f290 (the message when the score file cannot be written, called
+from two functions the runs did run), the Reset Tips question and the No Windowed Mode message above. The rest are small (3 to
+279 bytes), with no caller in the export or only the removed code above; none sits on a path that a run reached.
+
+**Specs for the coordinator (tools/coverage.py and others).**
+
+- The tool does not see the 16 functions that sit in gaps between the export's entries, nor three addresses the port cites that
+  are not function entries (0x408567, 0x42beb0, 0x42beef); it needs support for extra function entries.
+- It does not read `.inc` files; the address of a function defined there is placed above its caller instead (0x403450,
+  above `DrawTutorialText`).
+- A definition whose initializer list runs over more than twelve lines is not seen as one (`is_definition` reads twelve lines
+  for the `{`): the comment above `WorldMap::WorldMap` counted as a mention.
+- Framework: the original's widget manager is the old one and gives no keyboard focus back when a modal dialog is removed;
+  after "Name Invalid" over the new adventure's name box the player must click the box again, in the port the box keeps its
+  focus. Not a difference of the game's own code; left as it is.
+- origrun: `key` posts a key-down and key-up only (no character message), so Enter and Backspace work in this game's edit
+  boxes (they take them from the key-down); `down` and `up` with no point post at (0, 0), which the sliders' first sweep took
+  for a press that never reached the slider (the tool's own, fixed in p2.py).
+
+**Tools of the check.** `tools/identical/p2.py` gained `down` and `up` (one edge of the left button, sent with its point); `p2.sh` takes
+`SAVES=<folder>` (saved adventures put into both games' user folders, for the saved adventures' run).
+
+**Baseline.** After the edits `tools/check.sh mummymaze` passes: every result as before and the frozen baseline identical, against
+main's baseline refrozen with the libjpeg decoder. (The session's earlier copy of the baseline was the one from before libjpeg and
+differed from the port in 19 shots by at most 3 levels, with or without these edits; the pictures the edits change, the adventure
+dialogs, are not in the frozen runs.)
+
+**What it cost.** The runs are short; most of the elapsed time went to waiting for room under the three-process limit. One
+Sonnet agent sorted the first 119 functions; this session read the export for each verdict it took over, for each of the
+differences above, and for the comparison of the saved adventures' pictures.

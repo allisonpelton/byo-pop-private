@@ -22,14 +22,17 @@ echo "toolchain: $tc"
 
 CFLAGS="-O2 -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function"
 
-echo "building dsound.dll (the sound stand-in, which also carries the virtual clock, the scripted cursor and the message-box hook) ..."
-"$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/vclock.c" "$here/cursor.c" "$here/msgbox.c" "$here/dsound_proxy.def" \
+echo "building dsound.dll (the sound stand-in, which also carries the virtual clock, the scripted cursor, the message-box hook and the coverage recorder) ..."
+"$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/vclock.c" "$here/cursor.c" "$here/msgbox.c" "$here/coverage.c" "$here/dsound_proxy.def" \
   -Wl,--enable-stdcall-fixup -lole32 -lwinmm -luser32
 
 echo "building origrun.exe ..."
 "$CC" $CFLAGS -o "$out/origrun.exe" "$here/origrun.c" \
   -lole32 -loleaut32 -luuid -lwinmm -lgdi32 -luser32 -ladvapi32 -lshell32 -lbcrypt -lnetapi32 -lwtsapi32 -luserenv -liphlpapi
 
+echo "building covtest.exe (check.sh's test of --coverage) ..."
+"$CC" $CFLAGS -o "$out/covtest.exe" "$here/covtest.c" -Wl,--dynamicbase
+
 cp -f "$here/games.tsv" "$out/games.tsv"
 echo "built:"
-ls -la "$out"/origrun.exe "$out"/dsound.dll
+ls -la "$out"/origrun.exe "$out"/dsound.dll "$out"/covtest.exe

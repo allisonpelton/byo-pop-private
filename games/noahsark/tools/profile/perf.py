@@ -199,7 +199,8 @@ def script_span(path):
 
 def port_exe():
     root = os.getcwd()
-    return (os.path.join(root, 'build', 'native', 'noahsark.exe'), os.path.join(root, 'assets', 'noahsark'))
+    exe = os.environ.get('PORT_EXE') or os.path.join(root, 'build', 'native', 'noahsark.exe')   # PORT_EXE: another build, such as the one before a speed-up
+    return (exe, os.path.join(root, 'assets', 'noahsark'))
 
 
 def port_load(out, runs):

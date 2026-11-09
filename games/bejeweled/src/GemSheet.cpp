@@ -46,26 +46,26 @@ double Clamp01(double theValue)
 }
 
 // r, g, b, l and s 0..1, h in degrees
-void RgbToHls(double r, double g, double b, double* h, double* l, double* s)
+void RgbToHls(double theRed, double g, double theBlue, double* theHue, double* theLightness, double* theSaturation)
 {
-	double aMax = std::max(r, std::max(g, b));
-	double aMin = std::min(r, std::min(g, b));
-	*l = (aMax + aMin) / 2;
+	double aMax = std::max(theRed, std::max(g, theBlue));
+	double aMin = std::min(theRed, std::min(g, theBlue));
+	*theLightness = (aMax + aMin) / 2;
 	if (aMax == aMin)
 	{
-		*h = 0;
-		*s = 0;
+		*theHue = 0;
+		*theSaturation = 0;
 		return;
 	}
 	double d = aMax - aMin;
-	*s = (*l <= 0.5) ? d / (aMax + aMin) : d / (2 - aMax - aMin);
-	if (aMax == r)
-		*h = (g - b) / d + ((g < b) ? 6 : 0);
+	*theSaturation = (*theLightness <= 0.5) ? d / (aMax + aMin) : d / (2 - aMax - aMin);
+	if (aMax == theRed)
+		*theHue = (g - theBlue) / d + ((g < theBlue) ? 6 : 0);
 	else if (aMax == g)
-		*h = (b - r) / d + 2;
+		*theHue = (theBlue - theRed) / d + 2;
 	else
-		*h = (r - g) / d + 4;
-	*h *= 60;
+		*theHue = (theRed - g) / d + 4;
+	*theHue *= 60;
 }
 
 double HueChannel(double p, double q, double t)
@@ -80,11 +80,11 @@ double HueChannel(double p, double q, double t)
 	return p;
 }
 
-void HlsToRgb(double h, double l, double s, double* r, double* g, double* b)
+void HlsToRgb(double h, double l, double s, double* r, double* g, double* theBlue)
 {
 	if (s <= 0)
 	{
-		*r = *g = *b = l;
+		*r = *g = *theBlue = l;
 		return;
 	}
 	double q = (l < 0.5) ? l * (1 + s) : l + s - l * s;
@@ -92,7 +92,7 @@ void HlsToRgb(double h, double l, double s, double* r, double* g, double* b)
 	double t = h / 360;
 	*r = HueChannel(p, q, t + 1.0 / 3);
 	*g = HueChannel(p, q, t);
-	*b = HueChannel(p, q, t - 1.0 / 3);
+	*theBlue = HueChannel(p, q, t - 1.0 / 3);
 }
 
 uint32_t Recolour(uint32_t thePixel, const GemSheet::RowLook& theLook)
@@ -100,27 +100,27 @@ uint32_t Recolour(uint32_t thePixel, const GemSheet::RowLook& theLook)
 	uint32_t anAlpha = thePixel & 0xFF000000;
 	if (anAlpha == 0)
 		return 0;
-	double r = ((thePixel >> 16) & 0xFF) / 255.0;
+	double aRed = ((thePixel >> 16) & 0xFF) / 255.0;
 	double g = ((thePixel >> 8) & 0xFF) / 255.0;
-	double b = (thePixel & 0xFF) / 255.0;
-	double h, l, s;
+	double aBlue = (thePixel & 0xFF) / 255.0;
+	double aHue, l, s;
 	if (theLook.mTinted)
 	{
 		// The base's shading as lightness, darkened so the white gem's bright body takes the colour; its highlights stay
-		double aLuminance = 0.299 * r + 0.587 * g + 0.114 * b;
-		h = theLook.mTintHue;
+		double aLuminance = 0.299 * aRed + 0.587 * g + 0.114 * aBlue;
+		aHue = theLook.mTintHue;
 		s = theLook.mTintSaturation;
 		l = Clamp01(std::pow(aLuminance, 1.6) + theLook.mTintLightness - 0.5);
 	}
 	else
-		RgbToHls(r, g, b, &h, &l, &s);
-	h = std::fmod(h + theLook.mHue, 360.0);
-	if (h < 0)
-		h += 360;
+		RgbToHls(aRed, g, aBlue, &aHue, &l, &s);
+	aHue = std::fmod(aHue + theLook.mHue, 360.0);
+	if (aHue < 0)
+		aHue += 360;
 	s = Clamp01(s * theLook.mSaturation);
 	l = Clamp01(l + theLook.mLightness);
-	HlsToRgb(h, l, s, &r, &g, &b);
-	return anAlpha | ((uint32_t) (r * 255 + 0.5) << 16) | ((uint32_t) (g * 255 + 0.5) << 8) | (uint32_t) (b * 255 + 0.5);
+	HlsToRgb(aHue, l, s, &aRed, &g, &aBlue);
+	return anAlpha | ((uint32_t) (aRed * 255 + 0.5) << 16) | ((uint32_t) (g * 255 + 0.5) << 8) | (uint32_t) (aBlue * 255 + 0.5);
 }
 
 // x and y relative to the glyph's centre, in radii

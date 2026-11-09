@@ -69,4 +69,133 @@ played at +0x28 and the tiles left at +0x2c. The other values in the file are th
 The trial's code is in the same exe, behind `checkRegistration` (0x40edb0): the "full version only" layouts and tile
 sets refused at a new board (0x404c90), the count of games played against a maximum (the registry's `InstallFlags`),
 the loading screen's progress bar stopped at a quarter, a buy button among the controls, a register button in the
-options and a page asking to buy at exit. The port plays as registered and leaves all of it out.
+options and a page asking to buy at exit. The loading screen also carries a thanks for registering
+(`demo_menu_thanks_np.tga`), loaded and placed but never shown. The port plays as registered and leaves all of it out,
+the thanks included (the user, 2026-11-08: a thanks for registering is part of the registration code). No text of the
+game's tables is shown only to a registered copy.
+
+## Fix candidates
+
+None. The fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod") takes a bug of the original or a wait that only costs the
+player time, and both phases of the identical-play pass and a read of the game's code for the usual places found
+neither. What was checked:
+
+- Waits. The game has no timed screen: the loading screen ends with its button, the end screens and the best times
+  with a click, and loading has no wait of its own (`PGApp::loadAssets` loads everything in one go). The no-moves
+  fade and the tiles' highlights take a fraction of a second and do not hold the player.
+- The clock. Every dialog (options, rules, best times, the questions, no moves) stops the game's clock while it is
+  open, and so does losing the focus, so none of them costs the player time on the best times.
+- Dead boards. The shuffle deals again until the board has a move, so it never leaves one without; running out of
+  moves is offered as the no-moves question, by design.
+- The cheat (Backspace, q, Backspace) turns pause off while it is on. That is the cheat's own rule, not a bug.
+- The exit question shows the restart question's picture (`restart_areyousure.jpg`); the archive has no picture for
+  exit, so there is nothing of the original's to show instead, and a new picture would be new art.
+- The layouts (`.nml`) are read as strings without a terminating zero; the port gives the buffer one (a memory read
+  past the end, with no effect seen in the original), listed with the deviations.
+- The mixer has 8 voices, and a sound started while all 8 play is dropped. With the game's few, short sounds that
+  does not happen in play.
+
+## Performance (2026-11-08)
+
+The original and the port, measured back to back on this machine (Windows 11) in real time, from fresh settings, for
+the final merge (`build/slots/news.md`, 2026-11-08), by `tools/perf/perf.sh`. Before each run it waited until at most
+one other game process was running on the machine (other sessions' tests), so each was measured beside one other game
+at most. Each run is one process from its creation to its exit, sampled every 50 ms
+(`games/bejeweled/tools/profile/perfmin.py`). The play is the screen tour of the identical-play pass: the title, the
+options, the rules, the arrows, a deal, hint, show moves, pause, a loss of the focus, the cheat's 74 matches, no moves,
+the name and the best times (65 s). The processor and memory figures in the window are for 20 s to 50 s of the
+process's life, the game and the matches. The original ran under origrun on its real clock with no sound device
+(`--sound nodriver`, as in the screen tour): with origrun's sound stand-in its mixer spins from the deal on and takes
+more than a core (113 % in three runs, `IDENTICAL_PLAY.md`, "Oddities"), which is no measure of the game. The port
+ran natively under rundesk without `-fast`, with SDL's silent audio driver, so it still mixes its sounds.
+
+| | original (3 runs) | port (3 runs) |
+|---|---|---|
+| Launch to the start screen, real time | 0.82 s median (0.78 to 1.03) | 0.36 s median (0.26 to 0.58), 5 runs of their own |
+| Peak working set | 39.1 MB median (38.8 to 39.4) | 62.1 MB median (53.9 to 62.2) |
+| Peak private bytes | 21.4 MB median (21.2 to 22.9) | 54.2 MB median (52.4 to 54.5) |
+| Processor time in the window | 14.9 % of one core (13.7 to 17.2) | 6.3 % of one core (6.2 to 7.4) |
+| Processor time, whole run | 5.8 s median (5.5 to 6.2) of 62.8 s | 2.9 s median (2.8 to 4.3) of 68.7 s |
+| Threads | up to 17 (DirectDraw's and the system's) | up to 50 (SDL's and the system's) |
+
+The loading time is read from the samples the same way for both (`tools/perf/perfload.py`): Ning Po loads everything
+before its start screen takes a click and then waits for events, so the load is over at the first sample after which
+the process uses less than a tenth of a core for a second. In the tour runs the port's first readings came late on a
+busy machine (the first sample two seconds after the process started, in one run), so its loading time is taken from
+five runs that only launch and quit (`-realinput` with a quit at update 500). On the web, with `fast=1`, the start
+screen took 282 ms from `t.start()` in the tour's run (`tools/web/tour.js`); the page's loading of the game's files
+before that was not measured, since the test page reads them from the test server rather than from the player's own
+folder.
+
+The port holds about 23 MB more at its peak than the original and uses less than half its processor time. Why was
+not examined; both are for the performance pass (`docs/COORDINATION.md`).
+
+## Coverage check (2026-11-08)
+
+The first whole coverage check of a game (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's
+functions ran, in seven runs on the host (`tools/coverage/run.sh`, the hits in `build/coverage/ningpo/hits/`):
+
+- the four identical-play cases (cheat7, won39, mouse23, layouts), on the virtual clock with no sound device, each
+  about 900 functions;
+- the screen tour on the real clock with the silent sound stand-in, so that the mixer's code runs (904);
+- two short runs (`tools/coverage/extra1.txt`, `extra2.txt`): a tile selected and then a hint (`isVisible`), the
+  right click that drops the selection, the options' autohint, the best times' next and previous and their clear
+  question answered no and then yes, and closing the window from play and from the title (925 and 822).
+
+Every run but the tour ended with the game exiting normally; the tour ends at origrun's timeout. Closing the window
+ends the original at once, from the title and from play: it asks no question.
+
+`games/ningpo/coverage.txt` sets the game's own code as three ranges: the game and Pyrogon's PG framework
+(0x401010-0x417b10), the H layer (0x422b10-0x428fb0) and the window procedure (0x433290). The rest of the exe is the C
+runtime, Lua 4, the Ogg Vorbis decoder, minizip and zlib, and the IJG JPEG library. The game's own code has 815
+functions, and the runs reached 574 of them.
+
+**Reached in the original with no counterpart in the port: 272 at first, 1 at the end.**
+
+- **The tool: 32.** `tools/coverage.py` did not count a constructor or destructor declared in its class, a
+  declaration over several lines, or a declaration with a default argument or an inline body. The spec went to the
+  coordinator, who fixed it on main (9d12ecc5).
+- **Placed: 54.** Functions the port translates inline or in another shape (the loaders' small objects, the
+  registry's key, the display's teardown, the PyTime helpers, the six title arrows' click handlers) got their address
+  in the comment above the function that holds them. These were comment edits only, and play is unchanged:
+  `tools/check.sh ningpo` still matches the frozen baseline.
+- **Left out on purpose: 185, as `none` lines in coverage.txt, each with its reason** (beside the three it started with: `WinMain` and the two registration checks). The mechanisms the port does
+  another way: the cvars kept in a Lua table, the framework's object list and its stack of open dialogs, the
+  command line parsed into cvars, and the H layer's window, DirectSound mixer and streams, DirectInput device and ZIP
+  reader, which the host and the platform replace. Also the trial's code (the count of games played, and the big
+  numbers of the registration key's check), the sprite cursor (Ning Po's is empty), and what the compiler makes on
+  its own (implicit destructors, vector constructor iterators, stubs).
+- **No missing game logic was found.**
+- **One stays open.** 0x40e840 is a 7-byte getter of the field at +0x410 of the object whose constructor is
+  0x40e300 (vtable 0x463144, an HObject). It is reached only through that vtable, and which port class it belongs to
+  was not found.
+
+**Defined in the port, never reached: 28 at first.** The extra runs reached four of them: the right click, the hint's
+`isVisible`, the question dialog's setup and the best times' `fillRows`. Of the rest:
+
+- **Read again against the export.** `drawFaded` and `drawNoMatch` are reached only by a hint for a selected tile
+  that has no free match. They match the export, including the alpha's scale of 255 (the constant at 0x462384).
+  `toggleFullscreen` was not run, since the original would change the machine's display mode; the port's version is
+  its own (the host switches the window, a listed deviation).
+- **Code only an error reaches, which stays.** `PGAlert`.
+- **Candidates for taking out unneeded code: 22.** No play of the original reaches these, and they were not removed
+  now:
+  - `NingPo::~NingPo`: the original exits without running its global's destructor; the port needs its own.
+  - The dialog items' default virtuals that nothing calls: `draw`, `canFocus` (twice), `getName`, `getUserData` and
+    `setUserData`, and two more at 0x412580 and 0x412900.
+  - `PGApp::removeControl`.
+  - `PGSprite::create` from an image, and `PGSprite::clone` with `HDisplay::copySurface`.
+  - The framework message dialog's timeout.
+  - `PGRandom::nextFloat`.
+  - The registry function 0x4136d0.
+  - `HCvarManager::setVariableString`, called only by the registration check.
+  - `HDisplay`'s draw of a surface at a point (0x4231f0, 0x423000 and 0x423140), its `setBlendFlag` and `clear`.
+  - The PNG loader (0x428590, 0x428070): the archive holds no PNG.
+
+**Never reached and not defined in the port: 213.** These are mostly the trial's code, the framework's trace,
+journal, demo and DirectInput code, and parts of the H layer the game never calls. None looked like something the
+runs should have reached.
+
+**What it cost.** The seven runs took about 15 minutes of machine time, one game process at a time. One Sonnet agent
+placed and sorted the 253 functions in 7.5 minutes and 178,000 tokens. This session read the export, wrote the runs
+and checked the agent's work over about two hours; its own tokens were not counted.
