@@ -50,7 +50,7 @@ installed copy (for example from Steam):
 | [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Plays identical; phase two largely done (a few comparisons open); registration out | 2026-10-26 | | $204 | | | $204 |
 | [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Plays identical; registration and More Games out, no fix candidates; phase two's last differences open | 2026-10-26 | | $251 | | | $251 |
 | [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Plays identical through the first chapter and the mini-games, on Bookworm Adventures' engine; the later chapters and phase two next | 2026-10-26 | | $271 | | | $271 |
-| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Identical; logos and links out, fixes mod, coverage check and performance pass done; the readability pass next | 2026-11-01 | 1 | $304 | | | $304 |
+| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Identical; logos and links out, fixes mod, coverage check and performance pass done; taking out the code it does not need next | 2026-11-01 | 1 | $304 | | | $304 |
 | [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | As Ancient Japan, from its port (whose row holds most of its cost) | 2026-11-01 | 1 | $4 | | | $4 |
 | [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Identical, on New Crayon's engine; fixes mod and coverage check done; the performance pass next | 2026-11-01 | 1 | $230 | | | $230 |
 | [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Identical, in 2D and in 3D, with PopAnim; registration out, fixes mod and readability pass (the standards' second test) done; the coverage check next | 2026-11-02 | 1 | $1,294 | | $6 | $1,300 |
