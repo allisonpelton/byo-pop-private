@@ -2699,7 +2699,11 @@ under `build/origrun-bin/origrun.exe` with `--sound stub` and no virtual clock.
 
 Bejeweled was the pilot of the readability pass: the rules are `docs/CODE_STANDARDS.md`, written while applying them here,
 and `tools/namecheck.py games/bejeweled` checks the ones a tool can check (no findings; the exceptions, each with its reason,
-are in `games/bejeweled/namecheck.txt`). Nothing the port does changed: the frozen baselines and the whole oracle say so.
+are in `games/bejeweled/namecheck.txt`). Nothing the port does changed: the whole oracle, three ways, is ALL IDENTICAL
+(443 cases by default and with `-forcevariant`, 293 in the novariants build), the verifier's tests pass, and the code-drawn
+art, which the oracle does not reach, dumps byte for byte as before (densities 2 and 4, five gem styles and palettes).
+`TitleScreen::Resize` (0x4d4118), which the coverage pilot found with no counterpart, places only the register link after
+`Widget::Resize`, so it has a `none` line in `coverage.txt`.
 
 **Names from the Mac build.** The functions `MAC_COMPARISON.md` lists under "Names that differ" now carry the Mac's names,
 with the names built on them: `HasMatch` is `HasSet`, `ProcessMatches` `FindSets`, `StartSwap` `SwapPieces`, `UpdateSwap`
