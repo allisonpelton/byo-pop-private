@@ -43,3 +43,31 @@ none 00420140 WinBMApp::OpenURL: the game opens no address
 none 00420a30 WinBMApp::ConfirmCheckForUpdates: the update check, out with the Options dialog's button for it
 none 00420c50 WinBMApp::DoUpdateCheck: the update check
 none 00412c60 HighScoreWidget::InternetSubmitDone: the online high-score submission, never part of the registered Steam game
+# Found when the runs of the menus and the saved game came in: the Options dialog's vector code, and library code and exception
+# funclets that no run reaches and the port has no counterpart for.
+none 00416460 std::vector<pointer>::_Insert_n (the Options dialog's lists): MSVC 7.0's vector code
+none 00415710 std::copy_backward of pointers: MSVC 7.0's vector code, used by _Insert_n
+none 004158f0 std::vector::_Xlen: throws length_error, MSVC 7.0's vector code
+none 00418270 std::map<string, string>: leftmost node of a subtree
+none 00418290 std::map<string, string>: rightmost node of a subtree
+none 00418370 std::map<string, string>: the iterator's step to the next node
+none 00418f60 std::map<string, string>: copies a subtree
+none 00419010 std::map<string, string>: copy constructor body
+none 004190a0 std::map<string, string>: copy constructor (the register page's parameters, SexyApp::OpenRegisterPage)
+none 00419130 std::map<string, string>: clear
+none 00421820 std::list/map node unlink, called only from exception cleanup
+none 004026c5 exception funclet (catch block of the compiler's tables): only a thrown exception reaches it
+none 0040275d exception funclet (catch block)
+none 00407173 exception funclet (catch block of Board::LoadGame's vector inserts)
+none 0040717f exception funclet (catch block of Board::LoadGame's vector inserts)
+none 00407419 exception funclet (catch block of Board::LoadGame's vector inserts)
+none 00407425 exception funclet (catch block of Board::LoadGame's vector inserts)
+none 00407596 exception funclet (catch block)
+none 004165f3 exception funclet (catch block of the Options dialog's vector insert)
+none 004165ff exception funclet (catch block of the Options dialog's vector insert)
+none 00418e7e exception funclet (catch block of the map code)
+none 00418ff5 exception funclet (catch block of the map code)
+none 00419115 exception funclet (catch block of the map code)
+# The two deleting destructors no run reaches (the port has them as a comment on the destructor, not as code).
+none 00414ee0 MoneyDialog::scalar_deleting_dtor: MoneyDialog is only the base of the Options, scores, credits and record-score dialogs, never created itself
+none 0041c9d0 WinBMApp::scalar_deleting_dtor: the app is a global object that is never deleted
