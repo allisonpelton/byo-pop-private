@@ -1048,12 +1048,20 @@ var ByopopMusic = (function () {
         setState("idle");
       }, function () { scanned = false; say(T("music.lcd_error"), T("music.failed")); });
     }
+    // the player shown: read the games' music then (the user, 2026-11-09: "Music seems to have vanished in my browser"). The
+    // tab's panel is hidden until its tab is chosen (a narrow screen); Desktop 95 lifts the panel into a window whatever its
+    // hidden attribute says (web/skins.js), so the window opening (its class) or the player's own box counts too
     var panel = root.closest("[role=tabpanel]") || root;
-    // the tunes are read when the panel is first shown: its window opened on the desktop (Desktop 95 lifts the panel into a window
-    // whatever its hidden attribute says, web/skins.js), or the tab chosen on a narrow screen
-    function shown() { return !panel.hidden || (panel.classList.contains("d95-win") && !panel.classList.contains("d95-closed")); }
+    function shown() {
+      return !panel.hidden || (panel.classList.contains("d95-win") && !panel.classList.contains("d95-closed")) || root.getClientRects().length > 0;
+    }
     if (shown()) scan();
-    else new MutationObserver(function (records, obs) { if (shown()) { obs.disconnect(); scan(); } }).observe(panel, { attributes: true, attributeFilter: ["hidden", "class"] });
+    else {
+      var watch = new MutationObserver(function () { if (shown()) { watch.disconnect(); if (seen) seen.disconnect(); scan(); } });
+      watch.observe(panel, { attributes: true, attributeFilter: ["hidden", "class"] });
+      var seen = window.ResizeObserver ? new ResizeObserver(function () { if (shown()) { seen.disconnect(); watch.disconnect(); scan(); } }) : null;
+      if (seen) seen.observe(root);
+    }
     // for tests: the state, the tunes, and how far the decoder has rendered the tune (it moves only as the worklet plays)
     return { state: function () { return state; }, tunes: function () { return tunes.slice(); },
       position: function () { return source ? source.position() : 0; }, elapsed: function () { return elapsed(); },

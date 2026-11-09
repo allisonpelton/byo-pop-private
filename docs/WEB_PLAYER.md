@@ -1585,13 +1585,14 @@ same: a browser never runs a worklet whose output goes nowhere, and the tune wou
 
 ### The soundboard
 
-A demo for BookWorm (the user, 2026-11-09: a soundboard with the games' sounds, readable names or quotes, to decide whether every
-game gets one): Desktop 95's Sounds window, on the listing's desktop beside Music, with its own icon and an entry in the Pop menu
+Begun as a demo for BookWorm (the user, 2026-11-09: a soundboard with the games' sounds, readable names or quotes), and wanted for
+every game ("Soundboards are really fun to use, and I will want them for every game"): Desktop 95's Sounds window, on the listing's desktop beside Music, with its own icon and an entry in the Pop menu
 (`web/sounds.js`; the other skins do not have it). It plays the sound effects of the games the player added, from those games'
 own files in this browser, read with the music player's read-only reader, so the site ships no sound and sends nothing anywhere.
 Which files a game has, in which group box, under what name and when the game plays each is in `web/soundboards.js`, by the
 game's id; a game with no entry there, or none of whose files are here, is not listed. Names are plain and our own: a voice line
-is the word or two said, in quotes, as its file name gives it, and a sound the game never plays says so. The when-lines come
+is its words, in quotes, which a file name gives only in part (the user hears and corrects them: BookWorm's lex_welcome says
+"Welcome to BookWorm!", and bonusword is Lex's "Bonus!"), a sound the game never plays says so, and a silent file is left out. The when-lines come
 from the port's own calls of each sound, never from the game's text. The window is a row of tools (a drop-down of the games once
 two are listed, Stop, which silences everything playing, and Music's speaker and volume, kept as `byopop-sounds-mute` and
 `byopop-sounds-volume`), the buttons in their group boxes, the only part that scrolls and reflows as the window is resized, and a

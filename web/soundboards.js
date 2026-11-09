@@ -3,16 +3,19 @@
 // game's folder as the import writes it, matched without regard to case.
 //   groups  [{name, sounds: [[path, name, when], ...]}, ...]: the window's group boxes, in order, each with its buttons in order
 //           path  the file
-//           name  the button's label: a plain name of our own; a voice line is the word or two said, in quotes, as its file
-//                 name gives it; a sound the game never plays says so
+//           name  the button's label: a plain name of our own; a voice line is its words, in quotes (a file name gives
+//                 only part of a line until someone corrects it by ear); a sound the game never plays says so; a
+//                 silent file is left out
 //           when  the tooltip's second line: when the game plays it, found in the port's source (every PlaySample of the
 //                 sound), never a passage of the game's text
-// BookWorm's 46 files are its sound table (games/bookworm/src/BookWormApp.cpp, gSoundNames; Res.h, SoundId), every file of
-// sounds/. Four are never played: bad, blank, gameovertone and up9 (the rising notes stop at up8).
+// BookWorm's 45 are its sound table (games/bookworm/src/BookWormApp.cpp, gSoundNames; Res.h, SoundId), every file of
+// sounds/ but blank.au, which is silent and never played. Three are never played: bad, gameovertone and up9 (the rising
+// notes stop at up8). The user corrected two labels by ear on 2026-11-09: lex_welcome says "Welcome to BookWorm!" and
+// bonusword is Lex saying "Bonus!".
 var ByopopSoundboards = {
   bookworm: { groups: [
     { name: "Lex", sounds: [
-      ["sounds/lex_welcome.ogg", "\"Welcome!\"", "The game menu, once a run"],
+      ["sounds/lex_welcome.ogg", "\"Welcome to BookWorm!\"", "The game menu, once a run"],
       ["sounds/lex_go.ogg", "\"Go!\"", "A Classic game starts (half the time)"],
       ["sounds/lex_letsgo.ogg", "\"Let's go!\"", "A Classic game starts (half the time)"],
       ["sounds/lex_getready.ogg", "\"Get ready!\"", "An Action game or level starts"],
@@ -22,6 +25,7 @@ var ByopopSoundboards = {
       ["sounds/lex_lookout.ogg", "\"Look out!\"", "A fire tile reaches the bottom row (one of four)"],
       ["sounds/lex_watchout.ogg", "\"Watch out!\"", "A fire tile reaches the bottom row (one of four)"],
       ["sounds/lex_levelup.ogg", "\"Level up!\"", "A level is complete"],
+      ["sounds/bonusword.ogg", "\"Bonus!\"", "The bonus word is spelled"],
       ["sounds/lex_burp.ogg", "Burp", "Lex has eaten a word with two or more fire tiles"]
     ] },
     { name: "Lex's praise", sounds: [
@@ -39,7 +43,6 @@ var ByopopSoundboards = {
       ["sounds/buzzer.ogg", "Buzzer", "Not a word, or a scramble refused"],
       ["sounds/wordcomplete.ogg", "Word scored", "A word is scored; an Action level's time bonus"],
       ["sounds/redtilecleared.ogg", "Fire word scored", "A word with a fire tile in it is scored"],
-      ["sounds/bonusword.ogg", "Bonus word", "The bonus word is spelled"],
       ["sounds/chomp.ogg", "Chomp", "Lex eats a tile of the word"],
       ["sounds/bad.ogg", "Bad (unused)", "Never played"]
     ] },
@@ -68,8 +71,7 @@ var ByopopSoundboards = {
     ] },
     { name: "Menus", sounds: [
       ["sounds/buttonclick.ogg", "Click", "A button is pressed"],
-      ["sounds/goldtile.ogg", "Volume test", "The Options' sound effects slider is let go"],
-      ["sounds/blank.au", "Blank (unused)", "Never played"]
+      ["sounds/goldtile.ogg", "Volume test", "The Options' sound effects slider is let go"]
     ] }
   ] }
 };
