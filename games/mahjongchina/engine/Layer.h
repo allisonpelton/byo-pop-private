@@ -60,8 +60,6 @@ public:
 	// 0x420a30, 0x420a40
 	void SetOpaque(bool theOn) { mOpaque = theOn; }
 	bool IsOpaque() const { return mOpaque; }
-	// 0x420a50: an image of Resource.dll into the table
-	void PreloadImage(int theImageId);
 	// 0x420a60, 0x42a3b0
 	void AddCmdListener(Object* theObject) { ListAdd(mCmdListeners, theObject); }
 	void RemoveCmdListener(Object* theObject) { ListRemove(mCmdListeners, theObject); }

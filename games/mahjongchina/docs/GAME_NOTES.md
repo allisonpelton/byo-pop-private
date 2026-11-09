@@ -221,7 +221,7 @@ click, the player list's scroll arrow, and the error box) and five that Japan's 
 `Deal::DealAny` and `DealOne` (the solver giving up on a deal: Japan's shuffle in the no-moves box reached it, China's
 did not).
 
-**Candidates for taking out unneeded code: 18**, the same as Japan's U rows that China has (none was removed):
+**Candidates for taking out unneeded code: 18**, the same as Japan's U rows that China has (taken out or kept as Japan's are, in the section "Code the port does not need" below):
 the deleting destructors of `Dialog`, `SavedGame`, `MahjongGame`, `Deal`, `Layout`, `User` and `PlayerList`;
 `Object::SetVisibleByParent`, `GetDirty` and `SetDirty`; `Font::LoadKeyed`, `DrawWrapped`, `SetTabStops` and
 `GetTabWidth`; and `Animation::Stop`, `Hold`, `StepLoop` and `StepPingPong`. The reasons are in Japan's notes.
@@ -237,3 +237,26 @@ the original ran them. This is the weakest part of China's check, and a map made
 round; 400 s each for the two classic games' second runs), at most three game processes at a time. The sorting and the re-read were Japan's work (two Sonnet agents; tokens not counted),
 reused through the map; China's own work was `pairgaps.py`, the 146 `none` lines, the classic game's deal, and the runs
 of the stages and the ending.
+
+## Code the port does not need (2026-11-09)
+
+The survey and the table are Ancient Japan's (its section of this name: the six scans, each removal with its address and
+reason, what was looked at and kept, the proof). The engine is one at the same addresses and the sources match line for
+line apart from the game's own data, so every removal there was made here the same way: the registry strings and
+`GetCmdInt`, `Layer::PreloadImage`, `Manager::OnSize` and `Redraw` with the flags and the global they left unused, the keyed
+fonts (the `theKind` parameter of every font call), the tab stops and the dialog text kinds 2 to 4 (all 57 `AddText` calls
+of China pass kind 0 or 1 and no stops), the dialog text's delay and fade, its subtitle, the button's overlay, the
+`Animation` modes, `Stop`, `Hold` and the keyed draw, and the members nothing writes (`mAttachmentsUnder`, `mClassName`,
+`mDesktopBits`, `mNoWidthCheck`, `mHeld` and the rest).
+
+What the scans found here, on the 39 object files and the 38 sources of the native build: after the removals 182 functions
+with no relocation, none whose name appears only at its declaration and its definition; the compiler warnings of the
+list in Japan's section give 996 unused parameters (the virtual hooks' signatures) and nothing else; every one of the 84
+constants is used; and the only `_WIN32` blocks are the memory report of the test commands and `main.cpp`'s search for the
+Game Collection's install. The 18 U rows of the coverage check are taken out or kept as Japan's are (its "Looked at and
+kept"). The test hooks are the same 1,300 lines as Japan's.
+
+**Proof.** Both native and web builds pass. `tools/check.sh mahjongchina` after the removals: 178 layouts dealt with none
+failed, 31 pairs, the three screens as frozen, a rerun identical. The screen tour of Japan's `tools/tour/` (it runs
+either game) against the exe built before the removals: 20 screenshots, all byte for byte the same (16 distinct images),
+and the before exe's rerun the same too.

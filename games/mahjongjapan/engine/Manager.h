@@ -30,9 +30,7 @@ public:
 	int mPeriod = 0;                 // +0x08 ms per frame
 	bool mPaused = true;             // +0x0c
 	bool mRunning = false;           // +0x0d
-	bool mSuspended = false;         // +0x0e
 	int mPauseCount = 0;             // +0x10
-	bool mMinimized = false;         // +0x14
 	uint32_t mStart = 0;             // +0x18 the clock's start (moved on by the time paused)
 	uint32_t mPauseStart = 0;        // +0x1c
 	uint32_t mLastPresent = 0;       // +0x20
@@ -68,7 +66,6 @@ public:
 	bool mFadeSkip = false;          // +0xd4
 	int mWaitCount = 0;              // +0xd8 (nothing raises it; see 0x42c8d0)
 	int mCursor = 0;                 // +0xe0 the software cursor's kind
-	bool mCursorDirty = true;        // +0xe4
 
 	// 0x42a0d0
 	Manager();
@@ -169,10 +166,6 @@ public:
 	void Frame();
 	// 0x42be10
 	void Update(int theClock, uint32_t theDelta);
-	// 0x42c090: WM_SIZE
-	void OnSize(int theType);
-	// 0x42c0f0
-	void Redraw();
 	// 0x42c110, 0x42c140
 	void Pause(bool thePause);
 	void PauseClock(bool thePause);
@@ -208,7 +201,7 @@ public:
 	void DrawImageKeyed(int theX, int theY, Image* theImage, uint32_t theKey, const Rect* theSrc, int theScaleX,
 		int theScaleY, int theAlpha, Rect& theOut);
 	void GetImageInfo(int theId, ImageInfo& theInfo);
-	Font* GetFont(int theImageId, int theTextId, int theKind, Module theModule);
+	Font* GetFont(int theImageId, int theTextId, Module theModule);
 	// 0x42c890: capture on, or off (with the capture's OnRelease)
 	void SetCapture(Object* theObject, bool theOn);
 	// 0x42c8d0

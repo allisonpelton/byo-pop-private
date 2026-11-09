@@ -143,30 +143,9 @@ public:
 		return gApp->RegistryReadInteger(RegName(theSection, theName), &theValue);
 	}
 
-	bool RegReadString(const char* theSection, const char* theName, bool theMachine, std::string& theValue) override
-	{
-		return gApp->RegistryReadString(RegName(theSection, theName), &theValue);
-	}
-
 	bool RegWriteInt(const char* theSection, const char* theName, int theValue) override
 	{
 		return gApp->RegistryWriteInteger(RegName(theSection, theName), theValue);
-	}
-
-	bool RegWriteString(const char* theSection, const char* theName, const char* theValue) override
-	{
-		return gApp->RegistryWriteString(RegName(theSection, theName), theValue);
-	}
-
-	bool RegDeleteValue(const char* theSection, const char* theName) override
-	{
-		gApp->RegistryEraseValue(RegName(theSection, theName));
-		return true;
-	}
-
-	bool RegDeleteKey(const char* theSection) override
-	{
-		return gApp->RegistryEraseKey(theSection != nullptr ? theSection : "");
 	}
 
 	std::string CommandLine() override

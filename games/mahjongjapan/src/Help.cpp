@@ -32,7 +32,7 @@ void HelpExample::Init()
 		aName = aName + 1;
 		i = i - 1;
 	} while (i != 0);
-	mFont = jb::GetDllFont(0x133, 0x132, -1);
+	mFont = jb::GetDllFont(0x133, 0x132);
 }
 
 // 0x40ebf0 (the points example draws text 0x5e in three places and 0x67 in one, as the original does)
@@ -173,27 +173,27 @@ void HelpFree::ShowPage()
 	{
 	case 0:
 		SetTitle(0x45);
-		AddText(0x44, 1, 0x32, 0x50, false, nullptr, 0);
+		AddText(0x44, 1, 0x32, 0x50, false);
 		mExample->mExample = 1;
 		break;
 	case 1:
 		SetTitle(0x5c);
-		AddText(0x5b, 1, 0x28, 0x50, false, nullptr, 0);
+		AddText(0x5b, 1, 0x28, 0x50, false);
 		mExample->mExample = 2;
 		break;
 	case 2:
 		SetTitle(0x49);
-		AddText(0x48, 1, 0x2d, 0x55, false, nullptr, 0);
+		AddText(0x48, 1, 0x2d, 0x55, false);
 		mExample->mExample = 0;
 		break;
 	case 3:
 		SetTitle(0x47);
-		AddText(0x46, 1, 0x2d, 0x55, false, nullptr, 0);
+		AddText(0x46, 1, 0x2d, 0x55, false);
 		mExample->mExample = 0;
 		break;
 	case 4:
 		SetTitle(0x4b);
-		AddText(0x4a, 1, 0x32, 0x55, false, nullptr, 0);
+		AddText(0x4a, 1, 0x32, 0x55, false);
 		mExample->mExample = 0;
 	}
 	mPrevious->SetEnabled(mPage != 0);
@@ -258,37 +258,37 @@ void HelpEscape::ShowPage()
 	{
 	case 0:
 		SetTitle(0x56);
-		AddText(0x54, 1, 0xa0, 0x5f, false, nullptr, 0);
-		AddText(0x55, 1, 0x32, 0xd2, false, nullptr, 0);
+		AddText(0x54, 1, 0xa0, 0x5f, false);
+		AddText(0x55, 1, 0x32, 0xd2, false);
 		mExample->mExample = 3;
 		break;
 	case 1:
 		SetTitle(0x5a);
-		AddText(0x59, 1, 0x32, 0x50, false, nullptr, 0);
+		AddText(0x59, 1, 0x32, 0x50, false);
 		mExample->mExample = 4;
 		break;
 	case 2:
 		SetTitle(0x5c);
-		AddText(0x5b, 1, 0x28, 0x50, false, nullptr, 0);
+		AddText(0x5b, 1, 0x28, 0x50, false);
 		mExample->mExample = 5;
 		break;
 	case 3:
 		SetTitle(0x53);
-		AddText(0x4d, 1, 0x32, 0x55, false, nullptr, 0);
-		AddText(0x4e, 1, 0x9b, 0x87, false, nullptr, 0);
-		AddText(0x4f, 1, 0x9b, 0xf0, false, nullptr, 0);
+		AddText(0x4d, 1, 0x32, 0x55, false);
+		AddText(0x4e, 1, 0x9b, 0x87, false);
+		AddText(0x4f, 1, 0x9b, 0xf0, false);
 		mExample->mExample = 6;
 		break;
 	case 4:
 		SetTitle(0x53);
-		AddText(0x50, 1, 0x7d, 0x5f, false, nullptr, 0);
-		AddText(0x51, 1, 0x7d, 0xd2, false, nullptr, 0);
-		AddText(0x52, 1, 0x37, 0x136, false, nullptr, 0);
+		AddText(0x50, 1, 0x7d, 0x5f, false);
+		AddText(0x51, 1, 0x7d, 0xd2, false);
+		AddText(0x52, 1, 0x37, 0x136, false);
 		mExample->mExample = 7;
 		break;
 	case 5:
 		SetTitle(0x58);
-		AddText(0x57, 1, 0x32, 100, false, nullptr, 0);
+		AddText(0x57, 1, 0x32, 100, false);
 		mExample->mExample = 0;
 	}
 	mPrevious->SetEnabled(mPage != 0);
@@ -362,22 +362,22 @@ void HelpMenu::ShowPage()
 	{
 	case 0:
 		SetTitle(99);
-		AddText(0x62, 0, 0x28, 0x50, false, nullptr, 0);
+		AddText(0x62, 0, 0x28, 0x50, false);
 		mPicture->mPicture = 1;
 		break;
 	case 1:
 		SetTitle(0x60);
-		AddText(0x5f, 0, 0x28, 0x50, false, nullptr, 0);
+		AddText(0x5f, 0, 0x28, 0x50, false);
 		mPicture->mPicture = 2;
 		break;
 	case 2:
 		SetTitle(0x66);
-		AddText(100, 1, 0x32, 0x55, false, nullptr, 0);
+		AddText(100, 1, 0x32, 0x55, false);
 		mPicture->mPicture = 0;
 		break;
 	case 3:
 		SetTitle(0x66);
-		AddText(0x65, 1, 0x32, 0x55, false, nullptr, 0);
+		AddText(0x65, 1, 0x32, 0x55, false);
 		mPicture->mPicture = 0;
 	}
 	mPrevious->SetEnabled(mPage != 0);
