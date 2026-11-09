@@ -62,7 +62,6 @@ public:
 	virtual void		ButtonPress(int theId) override;                                // 0x40d7f0
 	virtual void		ButtonDepress(int theId) override;                              // 0x40e34b
 	virtual void		SliderVal(int theId, double theVal) override;                   // 0x40d789
-	virtual void		CheckboxChecked(int theId, bool checked) override;              // 0x40d7c2
 
 	using Widget::Resize;
 	using Dialog2004::ButtonPress;

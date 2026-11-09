@@ -12,7 +12,7 @@ for l in open(sys.argv[1]):
     m = re.match(r'\s*([\d.]+)\s+buffer (\d+) play\s+(\w+)', l)
     if m: op.append((float(m.group(1)), int(m.group(2))))
 for l in open(sys.argv[2]):
-    m = re.match(r'0 load (\d+) (\S+) frames=(\d+) rate=(\d+) ch=(\d+)', l)
+    m = re.match(r'\d+ load (\d+) (\S+) frames=(\d+) rate=(\d+) ch=(\d+)', l)
     if m: pl[int(m.group(1))] = (m.group(2), int(m.group(3)) * int(m.group(5)) * 2, int(m.group(4)))
     m = re.match(r'(\d+) play (\d+) #', l)
     if m: pp.append((int(m.group(1)), pl[int(m.group(2))][0]))

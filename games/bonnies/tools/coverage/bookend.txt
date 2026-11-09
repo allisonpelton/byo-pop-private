@@ -1,0 +1,51 @@
+# Bonnie's original, a coverage run (tools/coverage/run.sh) on a save the port made (SAVEDIR, tools/realmove.py with
+# BB_STOP=levelend BB_LEVEL=4): a classic game one word from the end of chapter 4, the first book's last; the word
+# (IDEALLESS, the port's bot's) ends the book: its end, the publisher's letter, the next book's story and board (where the
+# clicks at 745 565 press Scramble).
+waitshot logo 20000
+wait 6000
+click 180 306
+wait 2500
+click 460 330
+wait 4000
+click 20 300
+wait 200
+click 663 319
+wait 200
+click 617 296
+wait 200
+click 617 342
+wait 200
+click 571 319
+wait 200
+click 525 342
+wait 200
+click 525 296
+wait 200
+click 479 319
+wait 200
+click 479 365
+wait 200
+click 525 388
+wait 200
+click 452 560
+wait 200
+wait 6000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+wait 10000
+quit

@@ -1,0 +1,6 @@
+# The window closed at the selector.
+at 10 focus regain
+at 1000 move 308 451
+at 1000 click 308 451
+at 1500 move 1 1
+quit

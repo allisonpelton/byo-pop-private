@@ -262,6 +262,21 @@
         { "from": "users/*/savegame_*.dat", "to": "users/*/savegame_*.dat", "what": "a player's game in progress" }
       ]
     },
+    "astropop": {
+      "folder": "AstroPop Deluxe",
+      "steam": "AstroPop Deluxe",
+      "note": "AstroPop keeps each player's file (users/data<n>.usr) in its game folder and a part of the player's settings in the registry under PopCap\\AstroPop\\Users; the game reads both, so both come over.",
+      "registry": {
+        "key": "PopCap\\AstroPop",
+        "hives": ["vs", "hklm", "hkcu"],
+        "sets": ["base", "app"],
+        "values": ["Users\\LastUser=sz", "Users\\LastUserNum=dword", "Users\\*\\13=sz", "Users\\*\\#=dword"]
+      },
+      "files": [
+        { "from": "users/data#.usr", "to": "users/data#.usr", "what": "a player" },
+        { "from": "users/datahs.usr", "to": "users/datahs.usr", "what": "the hall of fame" }
+      ]
+    },
     "bejeweled2": {
       "folder": "Bejeweled 2 Deluxe",
       "steam": "Bejeweled 2 Deluxe",

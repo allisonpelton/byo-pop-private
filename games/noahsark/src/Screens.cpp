@@ -45,6 +45,7 @@ TitleScreen::TitleScreen(NoahApp* theApp) :
 	mHasTransparencies = false;
 }
 
+// 0x41fbf0: the destructor deletes the play link (the original also deletes its register link, which the port does not have)
 TitleScreen::~TitleScreen()
 {
 	delete mPlayLink;
@@ -90,7 +91,7 @@ void TitleScreen::Update()
 // 0x41fc70
 void TitleScreen::Draw(Graphics* g)
 {
-	Image** anImages = mApp->mImages;
+	ImageTable& anImages = mApp->mImages;
 	g->DrawImage(anImages[IMAGE_TITLE], 0, 0);
 	Image* aBar = anImages[IMAGE_TITLEBAR];
 	g->DrawImage(aBar, 0x99, 0x174, Rect(0, 0, (int) (mProgress * aBar->mWidth), aBar->mHeight));
@@ -303,6 +304,7 @@ NextLevelWidget::NextLevelWidget(NoahApp* theApp) :
 	mApp->PlaySample(SOUND_LEVELUPVOICE);
 }
 
+// 0x415180: the destructor deletes the link and the panel's picture
 NextLevelWidget::~NextLevelWidget()
 {
 	delete mNextLink;
@@ -369,7 +371,7 @@ void NextLevelWidget::Draw(Graphics* g)
 	mBackground = new MemoryImage(mApp);
 	mBackground->Create(mWidth, mHeight);
 	Graphics ig(mBackground);
-	Image** anImages = mApp->mImages;
+	ImageTable& anImages = mApp->mImages;
 	ig.DrawImage(anImages[IMAGE_FRAME], 0, 0);
 	DrawImageBox2003(&ig, Rect(0, 0, 0x1d8, 0x1d7), anImages[IMAGE_DIALOG]);
 
@@ -472,8 +474,11 @@ HighScoreWidget::HighScoreWidget(NoahApp* theApp) :
 	Load();
 }
 
+// 0x411e20: the original writes hiscores.dat here, when the widget goes (AddScore only changes the list). The port also saves in
+// AddScore, since the web build never destroys the widget at a tab's close.
 HighScoreWidget::~HighScoreWidget()
 {
+	Save();
 	delete mMenuLink;
 }
 

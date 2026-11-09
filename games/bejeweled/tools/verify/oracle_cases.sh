@@ -34,7 +34,7 @@
 #                      times the multiplier 2): the score goes past the int range, INT_MIN as on x86; the reference and
 #                      its recording (mods/stage4/overflow_rec, with the replays mod)
 #   highlevel_load, rec_highlevel  save_states' vortex snapshot at level 10000 (craft_replays.py level), resumed:
-#                      SetupLevel's mLevelPoints for level 10001 is past the int range; the recording's sidecar holds
+#                      SetupLevelData's mLevelPoints for level 10001 is past the int range; the recording's sidecar holds
 #                      the save (LDSV)
 # The verifier is the candidate build's (bejeweled_verify.exe next to the candidate exe, else build/native's); the
 # wasm side is build/web's (bejeweled_verify.wasm, bejeweled.js) and emsdk's Node ($NODE overrides it). Neither

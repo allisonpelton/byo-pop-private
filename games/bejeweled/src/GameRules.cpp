@@ -647,124 +647,124 @@ int EnumIndex(const FieldDef& theField, const std::string& theName)
 	return -1;
 }
 
-void EncodeValue(const FieldDef& theField, const GameRules& theRules, ByteWriter& w)
+void EncodeValue(const FieldDef& theField, const GameRules& theRules, ByteWriter& theWriter)
 {
 	switch (theField.mKind)
 	{
 	case KIND_INT:
-		w.I32(FieldRef<int>(theField, theRules));
+		theWriter.I32(FieldRef<int>(theField, theRules));
 		break;
 	case KIND_BOOL:
-		w.U8(FieldRef<bool>(theField, theRules) ? 1 : 0);
+		theWriter.U8(FieldRef<bool>(theField, theRules) ? 1 : 0);
 		break;
 	case KIND_DOUBLE:
-		w.F64(FieldRef<double>(theField, theRules));
+		theWriter.F64(FieldRef<double>(theField, theRules));
 		break;
 	case KIND_ENUM:
 	{
 		int anIndex = GetEnum(theField, theRules);
-		w.Str(((anIndex >= 0) && (anIndex < theField.mNameCount)) ? theField.mNames[anIndex] : "");
+		theWriter.Str(((anIndex >= 0) && (anIndex < theField.mNameCount)) ? theField.mNames[anIndex] : "");
 		break;
 	}
 	case KIND_INT_LIST:
 	{
 		const std::vector<int>& aList = FieldRef<std::vector<int> >(theField, theRules);
-		w.U16((int) aList.size());
+		theWriter.U16((int) aList.size());
 		for (size_t i = 0; i < aList.size(); i++)
-			w.I32(aList[i]);
+			theWriter.I32(aList[i]);
 		break;
 	}
 	case KIND_MASK:
-		w.Strings(FieldRef<std::vector<std::string> >(theField, theRules));
+		theWriter.Strings(FieldRef<std::vector<std::string> >(theField, theRules));
 		break;
 	case KIND_LEVELS:
 	{
 		const std::vector<LevelShape>& aLevels = FieldRef<std::vector<LevelShape> >(theField, theRules);
-		w.U16((int) aLevels.size());
+		theWriter.U16((int) aLevels.size());
 		for (size_t i = 0; i < aLevels.size(); i++)
 		{
-			w.I32(aLevels[i].mCols);
-			w.I32(aLevels[i].mRows);
-			w.Strings(aLevels[i].mMask);
+			theWriter.I32(aLevels[i].mCols);
+			theWriter.I32(aLevels[i].mRows);
+			theWriter.Strings(aLevels[i].mMask);
 		}
 		break;
 	}
 	case KIND_TIME_LIMIT:
 	{
 		const TimeLimit& aLimit = FieldRef<TimeLimit>(theField, theRules);
-		w.U8(aLimit.mEnabled ? 1 : 0);
+		theWriter.U8(aLimit.mEnabled ? 1 : 0);
 		if (aLimit.mEnabled)
 		{
-			w.I32(aLimit.mBase);
-			w.I32(aLimit.mPerLevel);
-			w.I32(aLimit.mMin);
+			theWriter.I32(aLimit.mBase);
+			theWriter.I32(aLimit.mPerLevel);
+			theWriter.I32(aLimit.mMin);
 		}
 		break;
 	}
 	case KIND_SHAPES:
 	{
 		const std::map<std::string, ShapePattern>& aShapes = FieldRef<std::map<std::string, ShapePattern> >(theField, theRules);
-		w.U16((int) aShapes.size());
+		theWriter.U16((int) aShapes.size());
 		for (std::map<std::string, ShapePattern>::const_iterator it = aShapes.begin(); it != aShapes.end(); ++it)
 		{
-			w.Str(it->first);
-			w.Str(it->second.mPreset);
-			w.U16((int) it->second.mCells.size());
+			theWriter.Str(it->first);
+			theWriter.Str(it->second.mPreset);
+			theWriter.U16((int) it->second.mCells.size());
 			for (size_t i = 0; i < it->second.mCells.size(); i++)
 			{
-				w.I32(it->second.mCells[i].first);
-				w.I32(it->second.mCells[i].second);
+				theWriter.I32(it->second.mCells[i].first);
+				theWriter.I32(it->second.mCells[i].second);
 			}
-			w.U8(it->second.mRotations ? 1 : 0);
-			w.U8(it->second.mMirror ? 1 : 0);
+			theWriter.U8(it->second.mRotations ? 1 : 0);
+			theWriter.U8(it->second.mMirror ? 1 : 0);
 		}
 		break;
 	}
 	case KIND_BONUS:
 	{
 		const std::map<std::string, int>& aBonus = FieldRef<std::map<std::string, int> >(theField, theRules);
-		w.U16((int) aBonus.size());
+		theWriter.U16((int) aBonus.size());
 		for (std::map<std::string, int>::const_iterator it = aBonus.begin(); it != aBonus.end(); ++it)
 		{
-			w.Str(it->first);
-			w.I32(it->second);
+			theWriter.Str(it->first);
+			theWriter.I32(it->second);
 		}
 		break;
 	}
 	case KIND_SPECIAL:
 	{
 		const SpecialRule& aSpecial = FieldRef<SpecialRule>(theField, theRules);
-		w.U8(aSpecial.mEnabled ? 1 : 0);
+		theWriter.U8(aSpecial.mEnabled ? 1 : 0);
 		if (aSpecial.mEnabled)
 		{
-			w.Strings(aSpecial.mCreatedBy);
-			w.I32(aSpecial.mRadius);
-			w.I32(aSpecial.mPoints);
+			theWriter.Strings(aSpecial.mCreatedBy);
+			theWriter.I32(aSpecial.mRadius);
+			theWriter.I32(aSpecial.mPoints);
 		}
 		break;
 	}
 	case KIND_MOVE_TYPES:
-		w.U8(FieldRef<int>(theField, theRules));
+		theWriter.U8(FieldRef<int>(theField, theRules));
 		break;
 	}
 }
 
-bool DecodeValue(const FieldDef& theField, GameRules& theRules, ByteReader& r)
+bool DecodeValue(const FieldDef& theField, GameRules& theRules, ByteReader& theReader)
 {
 	switch (theField.mKind)
 	{
 	case KIND_INT:
-		FieldRef<int>(theField, theRules) = r.I32();
+		FieldRef<int>(theField, theRules) = theReader.I32();
 		break;
 	case KIND_BOOL:
-		FieldRef<bool>(theField, theRules) = r.U8() != 0;
+		FieldRef<bool>(theField, theRules) = theReader.U8() != 0;
 		break;
 	case KIND_DOUBLE:
-		FieldRef<double>(theField, theRules) = r.F64();
+		FieldRef<double>(theField, theRules) = theReader.F64();
 		break;
 	case KIND_ENUM:
 	{
-		int anIndex = EnumIndex(theField, r.Str());
+		int anIndex = EnumIndex(theField, theReader.Str());
 		if (anIndex < 0)
 			return false;
 		SetEnum(theField, theRules, anIndex);
@@ -774,25 +774,25 @@ bool DecodeValue(const FieldDef& theField, GameRules& theRules, ByteReader& r)
 	{
 		std::vector<int>& aList = FieldRef<std::vector<int> >(theField, theRules);
 		aList.clear();
-		int aCount = r.U16();
-		for (int i = 0; (i < aCount) && !r.mFailed; i++)
-			aList.push_back(r.I32());
+		int aCount = theReader.U16();
+		for (int i = 0; (i < aCount) && !theReader.mFailed; i++)
+			aList.push_back(theReader.I32());
 		break;
 	}
 	case KIND_MASK:
-		FieldRef<std::vector<std::string> >(theField, theRules) = r.Strings();
+		FieldRef<std::vector<std::string> >(theField, theRules) = theReader.Strings();
 		break;
 	case KIND_LEVELS:
 	{
 		std::vector<LevelShape>& aLevels = FieldRef<std::vector<LevelShape> >(theField, theRules);
 		aLevels.clear();
-		int aCount = r.U16();
-		for (int i = 0; (i < aCount) && !r.mFailed; i++)
+		int aCount = theReader.U16();
+		for (int i = 0; (i < aCount) && !theReader.mFailed; i++)
 		{
 			LevelShape aLevel;
-			aLevel.mCols = r.I32();
-			aLevel.mRows = r.I32();
-			aLevel.mMask = r.Strings();
+			aLevel.mCols = theReader.I32();
+			aLevel.mRows = theReader.I32();
+			aLevel.mMask = theReader.Strings();
 			aLevels.push_back(aLevel);
 		}
 		break;
@@ -801,12 +801,12 @@ bool DecodeValue(const FieldDef& theField, GameRules& theRules, ByteReader& r)
 	{
 		TimeLimit& aLimit = FieldRef<TimeLimit>(theField, theRules);
 		aLimit = TimeLimit();
-		aLimit.mEnabled = r.U8() != 0;
+		aLimit.mEnabled = theReader.U8() != 0;
 		if (aLimit.mEnabled)
 		{
-			aLimit.mBase = r.I32();
-			aLimit.mPerLevel = r.I32();
-			aLimit.mMin = r.I32();
+			aLimit.mBase = theReader.I32();
+			aLimit.mPerLevel = theReader.I32();
+			aLimit.mMin = theReader.I32();
 		}
 		break;
 	}
@@ -814,20 +814,20 @@ bool DecodeValue(const FieldDef& theField, GameRules& theRules, ByteReader& r)
 	{
 		std::map<std::string, ShapePattern>& aShapes = FieldRef<std::map<std::string, ShapePattern> >(theField, theRules);
 		aShapes.clear();
-		int aCount = r.U16();
-		for (int i = 0; (i < aCount) && !r.mFailed; i++)
+		int aCount = theReader.U16();
+		for (int i = 0; (i < aCount) && !theReader.mFailed; i++)
 		{
-			std::string anId = r.Str();
+			std::string anId = theReader.Str();
 			ShapePattern aShape;
-			aShape.mPreset = r.Str();
-			int aCells = r.U16();
-			for (int j = 0; (j < aCells) && !r.mFailed; j++)
+			aShape.mPreset = theReader.Str();
+			int aCells = theReader.U16();
+			for (int j = 0; (j < aCells) && !theReader.mFailed; j++)
 			{
-				int x = r.I32();
-				aShape.mCells.push_back(std::make_pair(x, r.I32()));
+				int x = theReader.I32();
+				aShape.mCells.push_back(std::make_pair(x, theReader.I32()));
 			}
-			aShape.mRotations = r.U8() != 0;
-			aShape.mMirror = r.U8() != 0;
+			aShape.mRotations = theReader.U8() != 0;
+			aShape.mMirror = theReader.U8() != 0;
 			aShapes[anId] = aShape;
 		}
 		break;
@@ -836,11 +836,11 @@ bool DecodeValue(const FieldDef& theField, GameRules& theRules, ByteReader& r)
 	{
 		std::map<std::string, int>& aBonus = FieldRef<std::map<std::string, int> >(theField, theRules);
 		aBonus.clear();
-		int aCount = r.U16();
-		for (int i = 0; (i < aCount) && !r.mFailed; i++)
+		int aCount = theReader.U16();
+		for (int i = 0; (i < aCount) && !theReader.mFailed; i++)
 		{
-			std::string anId = r.Str();
-			aBonus[anId] = r.I32();
+			std::string anId = theReader.Str();
+			aBonus[anId] = theReader.I32();
 		}
 		break;
 	}
@@ -848,22 +848,22 @@ bool DecodeValue(const FieldDef& theField, GameRules& theRules, ByteReader& r)
 	{
 		SpecialRule& aSpecial = FieldRef<SpecialRule>(theField, theRules);
 		aSpecial = SpecialRule();
-		aSpecial.mEnabled = r.U8() != 0;
+		aSpecial.mEnabled = theReader.U8() != 0;
 		if (aSpecial.mEnabled)
 		{
-			aSpecial.mCreatedBy = r.Strings();
-			aSpecial.mRadius = r.I32();
-			aSpecial.mPoints = r.I32();
+			aSpecial.mCreatedBy = theReader.Strings();
+			aSpecial.mRadius = theReader.I32();
+			aSpecial.mPoints = theReader.I32();
 		}
 		break;
 	}
 	case KIND_MOVE_TYPES:
-		FieldRef<int>(theField, theRules) = r.U8();
+		FieldRef<int>(theField, theRules) = theReader.U8();
 		break;
 	default:
 		return false;
 	}
-	return !r.mFailed;
+	return !theReader.mFailed;
 }
 
 std::string EncodeField(const FieldDef& theField, const GameRules& theRules)
@@ -1380,18 +1380,18 @@ bool ParseStrict(const FieldDef& theField, const JsonValue& theValue, GameRules&
 	{
 	case KIND_INT:
 	{
-		int n;
-		if (!ReadInt(theValue, &n))
+		int aValue;
+		if (!ReadInt(theValue, &aValue))
 			return theLog.Error(aKey + " must be " + RangeText(theField.mMin, theField.mMax));
-		if ((n < theField.mMin) || (n > theField.mMax))
+		if ((aValue < theField.mMin) || (aValue > theField.mMax))
 		{
 			if (!(theField.mFlags & FLAG_CLAMP))
 				return theLog.Error(aKey + " must be " + RangeText(theField.mMin, theField.mMax));
-			int aClamped = std::max(theField.mMin, std::min(theField.mMax, n));
-			theLog.Warning(aKey + " " + IntText(n) + " clamped to " + IntText(aClamped));
-			n = aClamped;
+			int aClamped = std::max(theField.mMin, std::min(theField.mMax, aValue));
+			theLog.Warning(aKey + " " + IntText(aValue) + " clamped to " + IntText(aClamped));
+			aValue = aClamped;
 		}
-		FieldRef<int>(theField, theRules) = n;
+		FieldRef<int>(theField, theRules) = aValue;
 		return true;
 	}
 	case KIND_BOOL:
@@ -1855,9 +1855,9 @@ void MergeViews(const std::vector<ModView>& theViews, const std::vector<bool>& t
 	}
 
 	// Leaves, and the keyed objects per id
-	for (int f = 0; f < NUM_FIELDS; f++)
+	for (int aFieldIndex = 0; aFieldIndex < NUM_FIELDS; aFieldIndex++)
 	{
-		const FieldDef& aField = gFields[f];
+		const FieldDef& aField = gFields[aFieldIndex];
 		if (aField.mGroup != GROUP_NONE)
 			continue;
 
@@ -1920,7 +1920,7 @@ void MergeViews(const std::vector<ModView>& theViews, const std::vector<bool>& t
 					aMerged.mMatch.mShapes[it->first] = aSource.mMatch.mShapes.find(it->first)->second;
 				else
 					aMerged.mMatch.mBonus[it->first] = aSource.mMatch.mBonus.find(it->first)->second;
-				theResult.mContributors[f].insert(it->second);
+				theResult.mContributors[aFieldIndex].insert(it->second);
 				theResult.mProvenance[std::string(aField.mKey) + "." + it->first] = {theViews[it->second].mId};
 			}
 			continue;
@@ -1929,17 +1929,17 @@ void MergeViews(const std::vector<ModView>& theViews, const std::vector<bool>& t
 		int aWinner = -1;
 		for (int i = aCount - 1; (i >= 0) && (aWinner < 0); i--)
 		{
-			if (theActive[i] && theViews[i].mSet[f])
+			if (theActive[i] && theViews[i].mSet[aFieldIndex])
 				aWinner = i;
 		}
 		if (aWinner < 0)
 			continue;
 		CopyField(aField, aMerged, theViews[aWinner].mRules);
-		theResult.mContributors[f].insert(aWinner);
+		theResult.mContributors[aFieldIndex].insert(aWinner);
 		theResult.mProvenance[aField.mKey] = {theViews[aWinner].mId};
 		for (int i = aWinner - 1; i >= 0; i--)
 		{
-			if (theActive[i] && theViews[i].mSet[f] && (EncodeField(aField, theViews[i].mRules) != EncodeField(aField, theViews[aWinner].mRules)))
+			if (theActive[i] && theViews[i].mSet[aFieldIndex] && (EncodeField(aField, theViews[i].mRules) != EncodeField(aField, theViews[aWinner].mRules)))
 				theResult.mWarnings.push_back({theViews[aWinner].mId, std::string(aField.mKey) + " overrides " + theViews[i].mId});
 		}
 	}
@@ -2057,46 +2057,46 @@ GameRules OnOriginalBoard(const GameRules& theRules)
 std::string GameRules::Canonical() const
 {
 	GameRules aDefaults = DefaultsFor(*this);
-	ByteWriter w;
-	w.U16(RULES_VERSION);
+	ByteWriter aWriter;
+	aWriter.U16(RULES_VERSION);
 	for (int f = 0; f < NUM_FIELDS; f++)
 	{
 		std::string aValue = EncodeField(gFields[f], *this);
 		if (aValue == EncodeField(gFields[f], aDefaults))
 			continue;
-		w.U16(gFields[f].mId);
-		w.U8(gFields[f].mKind);
-		w.mBytes += aValue;
+		aWriter.U16(gFields[f].mId);
+		aWriter.U8(gFields[f].mKind);
+		aWriter.mBytes += aValue;
 	}
-	w.U16(0);
-	w.I32(mDiff.mNormalPointsBase);
-	w.F64(mDiff.mNormalPointsPerLevel);
-	w.F64(mDiff.mNormalMultBase);
-	w.F64(mDiff.mNormalMultPerLevel);
-	w.I32(mDiff.mTimedPointsBase);
-	w.F64(mDiff.mTimedPointsPerLevel);
-	w.F64(mDiff.mTimedMultBase);
-	w.F64(mDiff.mTimedMultPerLevel);
-	w.F64(mDiff.mTimeDrainBase);
-	w.F64(mDiff.mTimeDrainPerLevel);
-	w.F64(mDiff.mTimeDrainAccelBase);
-	w.F64(mDiff.mTimeDrainAccelPerLevel);
-	return w.mBytes;
+	aWriter.U16(0);
+	aWriter.I32(mDiff.mNormalPointsBase);
+	aWriter.F64(mDiff.mNormalPointsPerLevel);
+	aWriter.F64(mDiff.mNormalMultBase);
+	aWriter.F64(mDiff.mNormalMultPerLevel);
+	aWriter.I32(mDiff.mTimedPointsBase);
+	aWriter.F64(mDiff.mTimedPointsPerLevel);
+	aWriter.F64(mDiff.mTimedMultBase);
+	aWriter.F64(mDiff.mTimedMultPerLevel);
+	aWriter.F64(mDiff.mTimeDrainBase);
+	aWriter.F64(mDiff.mTimeDrainPerLevel);
+	aWriter.F64(mDiff.mTimeDrainAccelBase);
+	aWriter.F64(mDiff.mTimeDrainAccelPerLevel);
+	return aWriter.mBytes;
 }
 
 bool GameRules::FromCanonical(const std::string& theBytes, std::string* theError)
 {
 	GameRules aRules = OpenDefaults();
-	ByteReader r(theBytes);
+	ByteReader aReader(theBytes);
 	std::string anError;
-	int aVersion = r.U16();
+	int aVersion = aReader.U16();
 	if (aVersion != RULES_VERSION)
 		anError = "rules version " + IntText(aVersion) + " is not " + IntText(RULES_VERSION);
 	int aLastIndex = -1;
 	while (anError.empty())
 	{
-		int anId = r.U16();
-		if (r.mFailed)
+		int anId = aReader.U16();
+		if (aReader.mFailed)
 		{
 			anError = "truncated";
 			break;
@@ -2113,29 +2113,29 @@ bool GameRules::FromCanonical(const std::string& theBytes, std::string* theError
 			anError = "unknown field id " + IntText(anId);
 		else if (aField <= aLastIndex)
 			anError = "field " + std::string(gFields[aField].mKey) + " out of order";
-		else if (r.U8() != gFields[aField].mKind)
+		else if (aReader.U8() != gFields[aField].mKind)
 			anError = "field " + std::string(gFields[aField].mKey) + " has the wrong type";
-		else if (!DecodeValue(gFields[aField], aRules, r))
+		else if (!DecodeValue(gFields[aField], aRules, aReader))
 			anError = "field " + std::string(gFields[aField].mKey) + " is malformed";
 		aLastIndex = aField;
 	}
 	if (anError.empty())
 	{
-		aRules.mDiff.mNormalPointsBase = r.I32();
-		aRules.mDiff.mNormalPointsPerLevel = r.F64();
-		aRules.mDiff.mNormalMultBase = r.F64();
-		aRules.mDiff.mNormalMultPerLevel = r.F64();
-		aRules.mDiff.mTimedPointsBase = r.I32();
-		aRules.mDiff.mTimedPointsPerLevel = r.F64();
-		aRules.mDiff.mTimedMultBase = r.F64();
-		aRules.mDiff.mTimedMultPerLevel = r.F64();
-		aRules.mDiff.mTimeDrainBase = r.F64();
-		aRules.mDiff.mTimeDrainPerLevel = r.F64();
-		aRules.mDiff.mTimeDrainAccelBase = r.F64();
-		aRules.mDiff.mTimeDrainAccelPerLevel = r.F64();
-		if (r.mFailed)
+		aRules.mDiff.mNormalPointsBase = aReader.I32();
+		aRules.mDiff.mNormalPointsPerLevel = aReader.F64();
+		aRules.mDiff.mNormalMultBase = aReader.F64();
+		aRules.mDiff.mNormalMultPerLevel = aReader.F64();
+		aRules.mDiff.mTimedPointsBase = aReader.I32();
+		aRules.mDiff.mTimedPointsPerLevel = aReader.F64();
+		aRules.mDiff.mTimedMultBase = aReader.F64();
+		aRules.mDiff.mTimedMultPerLevel = aReader.F64();
+		aRules.mDiff.mTimeDrainBase = aReader.F64();
+		aRules.mDiff.mTimeDrainPerLevel = aReader.F64();
+		aRules.mDiff.mTimeDrainAccelBase = aReader.F64();
+		aRules.mDiff.mTimeDrainAccelPerLevel = aReader.F64();
+		if (aReader.mFailed)
 			anError = "truncated diff.txt values";
-		else if (!r.AtEnd())
+		else if (!aReader.AtEnd())
 			anError = "trailing bytes";
 	}
 	if (!anError.empty())
@@ -2315,7 +2315,7 @@ int GameRules::FillMinimum() const
 	}
 	std::vector<CellList> aPatterns(aPatternSet.begin(), aPatternSet.end());
 
-	// The fill orders in use (FillBoardVariant): down fills bottom-up, up top-down, alternate both ways
+	// The fill orders in use (NewBoardVariant): down fills bottom-up, up top-down, alternate both ways
 	bool anOrders[2] = {mBoard.mGravity != GRAVITY_UP, mBoard.mGravity != GRAVITY_DOWN};
 	int aMost = 0;
 	for (int aPass = 0; aPass < ShapeCount() * 2; aPass++)
@@ -2552,16 +2552,16 @@ static void SetJsonPath(JsonValue& theObject, const std::string& thePath, const 
 bool GameRules::CheckRecorded(std::string* theError) const
 {
 	std::string anError;
-	// The diff.txt values. SetupLevel: mPointMultiplier = multPerLevel * L + multBase, mLevelPoints =
+	// The diff.txt values. SetupLevelData: mPointMultiplier = multPerLevel * L + multBase, mLevelPoints =
 	// (int)((pointsPerLevel * L + pointsBase) * mPointMultiplier), and Update divides by mLevelPoints. With both
 	// bases above 0, their product at least 1 and both steps at least 0, every level L >= 0 gets at least 1 (the
 	// same doubles at L = 0, larger ones after; past the int range the conversion gives INT_MIN, never 0)
-	const DiffValues& d = mDiff;
+	const DiffValues& aDiff = mDiff;
 	const double aValues[12] =
 	{
-		(double) d.mNormalPointsBase, d.mNormalPointsPerLevel, d.mNormalMultBase, d.mNormalMultPerLevel,
-		(double) d.mTimedPointsBase, d.mTimedPointsPerLevel, d.mTimedMultBase, d.mTimedMultPerLevel,
-		d.mTimeDrainBase, d.mTimeDrainPerLevel, d.mTimeDrainAccelBase, d.mTimeDrainAccelPerLevel
+		(double) aDiff.mNormalPointsBase, aDiff.mNormalPointsPerLevel, aDiff.mNormalMultBase, aDiff.mNormalMultPerLevel,
+		(double) aDiff.mTimedPointsBase, aDiff.mTimedPointsPerLevel, aDiff.mTimedMultBase, aDiff.mTimedMultPerLevel,
+		aDiff.mTimeDrainBase, aDiff.mTimeDrainPerLevel, aDiff.mTimeDrainAccelBase, aDiff.mTimeDrainAccelPerLevel
 	};
 	for (int i = 0; (i < 12) && anError.empty(); i++)
 	{
@@ -2570,11 +2570,11 @@ bool GameRules::CheckRecorded(std::string* theError) const
 	}
 	for (int aMode = 0; (aMode < 2) && anError.empty(); aMode++)
 	{
-		int aBase = (aMode == 0) ? d.mNormalPointsBase : d.mTimedPointsBase;
-		double aPerLevel = (aMode == 0) ? d.mNormalPointsPerLevel : d.mTimedPointsPerLevel;
-		double aMultBase = (aMode == 0) ? d.mNormalMultBase : d.mTimedMultBase;
-		double aMultPerLevel = (aMode == 0) ? d.mNormalMultPerLevel : d.mTimedMultPerLevel;
-		double aLevelZero = (aPerLevel * 0.0 + aBase) * (aMultPerLevel * 0.0 + aMultBase); // SetupLevel's doubles
+		int aBase = (aMode == 0) ? aDiff.mNormalPointsBase : aDiff.mTimedPointsBase;
+		double aPerLevel = (aMode == 0) ? aDiff.mNormalPointsPerLevel : aDiff.mTimedPointsPerLevel;
+		double aMultBase = (aMode == 0) ? aDiff.mNormalMultBase : aDiff.mTimedMultBase;
+		double aMultPerLevel = (aMode == 0) ? aDiff.mNormalMultPerLevel : aDiff.mTimedMultPerLevel;
+		double aLevelZero = (aPerLevel * 0.0 + aBase) * (aMultPerLevel * 0.0 + aMultBase); // SetupLevelData's doubles
 		if ((aBase < 1) || !(aPerLevel >= 0.0) || !(aMultBase > 0.0) || !(aMultPerLevel >= 0.0) || !(aLevelZero >= 1.0))
 			anError = std::string("diff.txt's ") + ((aMode == 0) ? "normal" : "timed") + " points and multiplier make a level of no points " +
 				"(the bases must be above 0 with a product of at least 1, the steps per level at least 0)";

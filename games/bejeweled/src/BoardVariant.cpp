@@ -1,24 +1,21 @@
 // port(variant): Board members for code mods (games/bejeweled/docs/CODE_MODS_DESIGN.md 2.3). Not part of
-// the original game. Stage 1 (9.2): the rules snapshot, the layout and the variant flags. The layout is the
-// original 8x8 whatever the rules say, and no translated function reads the flags yet, so every board plays
-// as the original; later stages switch the generalised paths on.
-// Stage 2: the board's RNG (6.2). A seed the player chose, any rule, or the seeds.perGame feature gives
-// the board its own MTRand, which Board::Rand draws from; every other board draws from the global stream
-// as the original does. Stage 2b: the board serial and the resumed mark the LiveSplit observer reads (4.15).
-// Stage 3: replays (6.3-6.5). The recorder and playback members, the RNG start a recording begins with,
-// the sidecar next to the save (7.3) that keeps a recording and a board's own RNG across a resume, and the
-// scratch board StateCodec's round trip restores into. Stage 3b: the playback board a replay player
-// (WatchController) makes, with its own MTRand from the segment's RNG start, and the RNG its LOAD goes on with.
-// Stage 5: allow invalid moves and the noMoves rule (4.1): a swap that made no match stays (KeepInvalidMove), a
-// board that settles without a move does what its mode's noMoves rule says (OnNoMovesVariant), and the moves
-// that stood are counted. A variant board saves the v2 save (BoardSave.cpp), whose RNGS chunk keeps its RNG, so
-// it leaves no RNG sidecar.
-// Stage 6: undo (4.12, 6.7): a stack of StateCodec UNDO snapshots taken before each move, and the undo that
-// restores the newest one (TakeUndoSnapshot ... Undo).
-// Stage 7: board sizes and shapes (4.3, section 5): the layout of the rules' level 0 (InitVariant); the shape code
-// itself is in BoardShape.cpp and BoardDrawVariant.cpp. And a fix for a mod's scoring tunables: the displayed
-// score closes a large gap fast (RollScoreFast).
-
+// the original game. Under the original rules every flag is false and every board plays as the original.
+// - The rules snapshot, the layout and the variant flags (InitVariant, 9.2); the layout is the rules' level 0
+//   (section 5), whose shape code is in BoardShape.cpp and BoardDrawVariant.cpp.
+// - The board's RNG (6.2). A seed the player chose, any rule, or the seeds.perGame feature gives the board its
+//   own MTRand, which Board::Rand draws from; every other board draws from the global stream as the original does.
+// - The board serial and the resumed mark the LiveSplit observer reads (4.15).
+// - Replays (6.3-6.5): the recorder and playback members, the RNG start a recording begins with, the sidecar next
+//   to the save (7.3) that keeps a recording and a board's own RNG across a resume, and the scratch board
+//   StateCodec's round trip restores into; the playback board a replay player (WatchController) makes, with its
+//   own MTRand from the segment's RNG start, and the RNG its LOAD goes on with.
+// - Invalid moves and the noMoves rule (4.1): a swap that made no match stays (KeepInvalidMove), a board that
+//   settles without a move does what its mode's noMoves rule says (OnNoMovesVariant), and the moves that stood
+//   are counted. A variant board writes the v2 save (BoardSave.cpp), whose RNGS chunk keeps its RNG, so it
+//   leaves no RNG sidecar.
+// - Undo (4.12, 6.7): a stack of StateCodec UNDO snapshots taken before each move, and the undo that restores the
+//   newest one (TakeUndoSnapshot ... Undo).
+// - A fix for a mod's scoring tunables: the displayed score closes a large gap fast (RollScoreFast).
 #include "Board.h"
 #include "GameConfig.h"
 #include "WinDMApp.h"
@@ -37,14 +34,14 @@ using namespace Sexy;
 // The boards made in this process, for the LiveSplit observer (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.15)
 static uint32_t sBoardSerial = 0;
 
-// Called first in the constructor (0x4cb5bc), before SetupLevel and FillBoard use the layout and the RNG
+// Called first in the constructor (0x4cb5bc), before SetupLevelData and NewBoard use the layout and the RNG
 void Board::InitVariant(WinDMApp* theApp)
 {
 	mRules = gGameConfig.mRules;
 	// The LiveSplit observer's bookkeeping, in every build (BEJ_NO_VARIANTS too)
 	mBoardSerial = ++sBoardSerial;
 	mResumed = false;
-	// The board shape rules (board.cols/rows/mask/levels, stage 7): level 0's shape, which SetupLevel then draws.
+	// The board shape rules (board.cols/rows/mask/levels, stage 7): level 0's shape, which SetupLevelData then draws.
 	// BEJ_NO_VARIANTS plays every rule set on the original 8x8
 #ifndef BEJ_NO_VARIANTS
 	mLayout = mRules.LayoutForLevel(0);
@@ -208,7 +205,7 @@ Board::Board(WinDMApp* theApp, ScratchBoardTag)
 	mGameOverCountdown = 0;
 	mLongestCascade = 0;
 	mBestMoveScore = 0;
-	mUnused218 = 0;
+	mClearedAtMoveStart = 0;
 	mMoveScore = 0;
 	mMoveScoreTimer = 0;
 	mMoveScoreAlpha = 0.0;
@@ -221,7 +218,7 @@ Board::Board(WinDMApp* theApp, ScratchBoardTag)
 	mPointsFont = theApp->mAlphaDigitsFont;
 	mScoreFont = theApp->mScoreFont;
 	mStatsDisabled = false;
-	mUnused264 = 0;
+	mSavedZero = 0;
 	mLevelStartScore = 0;
 	mLevelTargetScore = 0;
 	mLevelPoints = 0;
@@ -281,7 +278,7 @@ Board::Board(WinDMApp* theApp, ScratchBoardTag)
 
 // A seed the player chose stays pending until a game on it is played
 // (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, the user's decision of 2026-10-18): the board that got it
-// uses it up with its first swap that makes a match (UpdateSwap, 0x4cd84f, where mIsNewGame is cleared) or
+// uses it up with its first swap that makes a match (UpdateSwapping, 0x4cd84f, where mIsNewGame is cleared) or
 // its game over (GameOver, 0x4c9b47; not the one RequestNewGame starts, which clears mTakesPendingSeed
 // first). Until then every board that replaces it gets the seed again: the second of the double NewGame in
 // TitleScreenIsFinished, a mode switch, New Game. A board that resumed a save (GameLoadedVariant) never
@@ -296,7 +293,7 @@ void Board::UsePendingSeed()
 }
 
 // A move stood, where mIsNewGame is cleared (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10): a swap that made a
-// match (UpdateSwap, 0x4cd84f), or a kept invalid move that counts as a move (KeepInvalidMove). The game has
+// match (UpdateSwapping, 0x4cd84f), or a kept invalid move that counts as a move (KeepInvalidMove). The game has
 // started, so it uses up a seed the player chose, and the move counts (the v2 save's MOVE chunk).
 void Board::OnMoveMade()
 {
@@ -306,9 +303,9 @@ void Board::OnMoveMade()
 	OnArrowMove(); // stage 18: its settle steps the arrows (BoardArrows.cpp)
 }
 
-// UpdateSwap (0x4cd84f) with moves.allowInvalid: the swap made no match and stays (4.1). The two gems are in
+// UpdateSwapping (0x4cd84f) with moves.allowInvalid: the swap made no match and stays (4.1). The two gems are in
 // their new cells already. Instead of the swap back: the swap pieces go, moves.invalidPenalty is taken as
-// DoHint takes the hint penalty (times the multiplier, the score floored at 0; in timed mode the bar shows it,
+// TryShowHint takes the hint penalty (times the multiplier, the score floored at 0; in timed mode the bar shows it,
 // so it costs time there), bad2 plays as for a swap back, and with moves.invalidCountsAsMove the game has
 // started (mIsNewGame cleared: a quit saves it, a mode switch asks first) like after a match: the move counts and
 // a seed the player chose is used up. The swap took its 36 ticks like any swap (the timed drain runs in them, as
@@ -330,7 +327,7 @@ void Board::KeepInvalidMove()
 		Piece*& aLeft = mBoard[mTutorialRow][mTutorialCol];
 		Piece*& aRight = mBoard[mTutorialRow][mTutorialCol2];
 		std::swap(aLeft, aRight);
-		bool isStillMove = HasMatch();
+		bool isStillMove = HasSet();
 		std::swap(aLeft, aRight);
 		if (!isStillMove)
 		{
@@ -369,14 +366,14 @@ void Board::OnNoMovesVariant()
 	switch (mRules.NoMovesFor(mTimedMode))
 	{
 	case GameRules::NOMOVES_CONTINUE:
-		ShowText(mApp->GetString("NO_MATCHES_LEFT", _S("NO MATCHES!")), 400);
+		DoBouncyText(mApp->GetString("NO_MATCHES_LEFT", _S("NO MATCHES!")), 400);
 		mState = STATE_PLAYING;
 		break;
 	case GameRules::NOMOVES_FALL_OUT:
 		mState = STATE_FALL_OUT;
 		break;
 	default:
-		ShowText(mApp->GetString("NO_MOVES"), 400);
+		DoBouncyText(mApp->GetString("NO_MOVES"), 400);
 		GameOver(200);
 		break;
 	}
@@ -384,7 +381,7 @@ void Board::OnNoMovesVariant()
 
 // A board that plays without a move: only a noMoves "continue" board (OnNoMovesVariant), which needs
 // moves.allowInvalid; under the original rules STATE_PLAYING always has a move (UpdateFalling). There Hint has
-// nothing to show: ShowHint (0x4cb475) gives none, so DoHint takes no penalty for it, and the idle glow
+// nothing to show: ShowHint (0x4cb475) gives none, so TryShowHint takes no penalty for it, and the idle glow
 // (Update, 0x4cdabc) does not invite one. A replay's HINT on such a board is one ShowHint would not give
 // (WatchController). False at once on every other board, and in any other state (FindMove needs the full,
 // settled board of STATE_PLAYING).
@@ -418,7 +415,7 @@ static void MoveTypesText(const GameRules& theRules, std::string* theSuffix, Sex
 		*thePhrase += ((i == 0) ? _S("") : (i + 1 == aParts.size()) ? _S(" or ") : _S(", ")) + aParts[i];
 }
 
-// The quick instructions (WinDMApp::ShowInstructionsDialog, 2.6): INSTRUCTIONDIALOG; with twists or slides (stage
+// The quick instructions (WinDMApp::DoInstructionDialogette, 2.6): INSTRUCTIONDIALOG; with twists or slides (stage
 // 10) INSTRUCTIONDIALOG_ and the move types (MoveTypesText); else with a gravity rule (4.16)
 // INSTRUCTIONDIALOG_TWILIGHT ("alternate") or _GRAVITY_UP. The engine's English defaults; a mod's strings override
 // them.
@@ -439,7 +436,7 @@ SexyString Board::InstructionsText()
 	return mApp->GetString("INSTRUCTIONDIALOG");
 }
 
-// Help (WinDMApp::ShowFullInstructionsDialog) with a gravity rule (4.16): the first paragraph of theText (the
+// Help (WinDMApp::DoFullInstructions) with a gravity rule (4.16): the first paragraph of theText (the
 // game's FULL_INSTRUCTIONS2, whose first paragraph has new gems drop in from above) gives way to
 // FULL_INSTRUCTIONS_TWILIGHT or _GRAVITY_UP, of about its length, so the dialog keeps its size; the other
 // paragraphs stay. With twists or slides (stage 10) it is FULL_INSTRUCTIONS_ and the move types (MoveTypesText),
@@ -718,7 +715,7 @@ void Board::KeepSidecarGame()
 			std::string((const char*) aSave.GetDataPtr(), (size_t) aSave.GetDataLen()));
 }
 
-// DeleteSaveGame (0x4cd130): the sidecar goes with the save. When the player declined the resume, a
+// DeleteSavedGame (0x4cd130): the sidecar goes with the save. When the player declined the resume, a
 // recorded game in it ended by being saved: it is kept as a finished replay first. So is one the resume did not
 // go on with (ReplayRecorder::OnLoad: other rules, or an engine whose replays of these rules this one cannot
 // continue): the new replay holds only the loaded save (LDSV), and the moves before it are not lost.
@@ -730,10 +727,10 @@ void Board::DeleteSaveSidecar()
 }
 
 // Undo (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7; stage 6). A board whose rules enable undo keeps
-// StateCodec's UNDO encoding of itself from before each move, newest last, at most undo.depth of them: StartSwap
+// StateCodec's UNDO encoding of itself from before each move, newest last, at most undo.depth of them: SwapPieces
 // (0x4c9ff8) takes one after its adjacency check, in STATE_PLAYING, where every gem is at rest; a swap that goes
-// back takes its own back (UpdateSwap, 0x4cd84f), a kept invalid move keeps it; the vortex empties the stack
-// (StartBlackHole, 0x4ca58d), so an undo never crosses a level; a save holds none, so a resumed game starts
+// back takes its own back (UpdateSwapping, 0x4cd84f), a kept invalid move keeps it; the vortex empties the stack
+// (DoWhirlpool, 0x4ca58d), so an undo never crosses a level; a save holds none, so a resumed game starts
 // without (GameLoadedVariant).
 void Board::TakeUndoSnapshot()
 {
@@ -822,7 +819,7 @@ bool Board::RequestUndo()
 // and kept invalid moves, the time (the drain, a gold level's time left) only with undo.restoreTime, and the RNG unless undo.restoreRng is false (with it the same
 // move again refills the same way: an undo is no reroll). Kept: the board tick, the pauses, the play time, the undos
 // taken and whether the board still holds the seed the player chose (a match used it up). Then undo.penalty times
-// the multiplier comes off the score, as DoHint takes the hint penalty; the selection, the popups, the gold's shine,
+// the multiplier comes off the score, as TryShowHint takes the hint penalty; the selection, the popups, the gold's shine,
 // the move score and the hint glow go; the banner says UNDO.
 void Board::Undo()
 {
@@ -884,7 +881,7 @@ void Board::Undo()
 		mStats->OnUndone(mStatsUndo.back(), aScoreBefore - mScore);
 		mStatsUndo.pop_back();
 	}
-	ShowText(mApp->GetString("UNDO", _S("UNDO")), 150); // 75 ticks in, 75 out (ColorizeText)
+	DoBouncyText(mApp->GetString("UNDO", _S("UNDO")), 150); // 75 ticks in, 75 out (ColorizeText)
 	MarkDirty();
 }
 
@@ -908,7 +905,7 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 
 	// The tutorial looks for a horizontal 3-run swap to the right in rows 4..6, columns 1..6, and its text is about
 	// rows of three: it is off on a board without such cells, with runs of another length or with diagonals (stage 9),
-	// and on a board with moves other than swaps (stage 10): its arrows show a swap, and FillBoardWithMove's board
+	// and on a board with moves other than swaps (stage 10): its arrows show a swap, and NewBoardWithMove's board
 	// has a move of the rules' types
 	bool canTutorial = (aFirst.mCols >= 8) && (aFirst.mRows >= 7);
 	for (int aRow = 4; (aRow <= 6) && canTutorial; aRow++)
@@ -958,8 +955,8 @@ void Board::RollScoreFast()
 // ---- the fixes mod (features.fixes; docs/MOD_ROADMAP.md "The fixes mod"; GAME_NOTES.md "Fix candidates") ----
 
 // fixes.selection. The original keeps a selected gem selected when the board is refilled under it (timed mode, a board with no
-// move left: UpdateFallOut ends in FillBoard, which drops every gem of the grid, the selected one too). The next click then
-// swaps that gem, which is no longer on the board, with the gem it targets: StartSwap puts it back into the grid and loses the
+// move left: UpdateBoardDropping ends in NewBoard, which drops every gem of the grid, the selected one too). The next click then
+// swaps that gem, which is no longer on the board, with the gem it targets: SwapPieces puts it back into the grid and loses the
 // gem that stood there. With the fix the click finds nothing selected and selects what it hits, as it does after any other
 // refill. Only input is changed (a replay records the deselect and plays back the same with the fix off).
 bool Board::DropStaleSelection()

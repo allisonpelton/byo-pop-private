@@ -5,6 +5,7 @@
    for every game's modules are libopenmpt's subsongs), or ranges of its orders where a game plays it so (Bonnie's Bookstore's
    OXM). It also decodes Ogg Vorbis with stb_vorbis, for a browser whose decodeAudioData cannot. No game code and no game files
    are in it. */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <emscripten.h>
@@ -136,3 +137,119 @@ EMSCRIPTEN_KEEPALIVE int bm_render(bm_module* b, int rate, int frames, float* ou
    100) as the gain it plays at, and FMOD 3's XM pre-amp */
 EMSCRIPTEN_KEEPALIVE double bm_level_bass_amplify(int amp) { return ByopopBassAmplifyGain(amp); }
 EMSCRIPTEN_KEEPALIVE double bm_level_fmod3_xm(void) { return BYOPOP_FMOD3_XM_GAIN; }
+
+/* ---------- the music player's tracker view and seek bar (web/music.js; the user, 2026-11-08) ---------- */
+/* Where the decoder is, into out[0..4]: the pattern, its row, the pattern's rows, the module's channels, the order. The player
+   asks only while its tracker view is shown, between slices of what it renders, so a closed view costs nothing. */
+EMSCRIPTEN_KEEPALIVE void bm_view(bm_module* b, int* out) {
+  if (b->mpt) {
+    int pattern = openmpt_module_get_current_pattern(b->mpt);
+    out[0] = pattern;
+    out[1] = openmpt_module_get_current_row(b->mpt);
+    out[2] = openmpt_module_get_pattern_num_rows(b->mpt, pattern);
+    out[3] = openmpt_module_get_num_channels(b->mpt);
+    out[4] = openmpt_module_get_current_order(b->mpt);
+    return;
+  }
+  struct xmp_frame_info fi;
+  xmp_get_frame_info(b->xmp, &fi);
+  out[0] = fi.pattern;
+  out[1] = fi.row;
+  out[2] = fi.num_rows;
+  out[3] = info(b).mod->chn;
+  out[4] = fi.pos;
+}
+
+/* Which channels play a note anywhere in the module: out[c] is 1 for each that does, 0 for one that never does (up to max
+   channels); returns the module's channels. The tracker view leaves the silent ones out. Read once a tune, when its view is first
+   drawn. */
+EMSCRIPTEN_KEEPALIVE int bm_used(bm_module* b, unsigned char* out, int max) {
+  if (b->mpt) {
+    int channels = openmpt_module_get_num_channels(b->mpt), patterns = openmpt_module_get_num_patterns(b->mpt);
+    for (int c = 0; c < channels && c < max; c++) out[c] = 0;
+    for (int p = 0; p < patterns; p++) {
+      int rows = openmpt_module_get_pattern_num_rows(b->mpt, p);
+      for (int r = 0; r < rows; r++)
+        for (int c = 0; c < channels && c < max; c++) {
+          if (out[c]) continue;
+          uint8_t note = openmpt_module_get_pattern_row_channel_command(b->mpt, p, r, c, OPENMPT_MODULE_COMMAND_NOTE);
+          if (note >= 1 && note <= 120) out[c] = 1;
+        }
+    }
+    return channels;
+  }
+  struct xmp_module* mod = info(b).mod;
+  for (int c = 0; c < mod->chn && c < max; c++) out[c] = 0;
+  for (int p = 0; p < mod->pat; p++) {
+    if (!mod->xxp[p]) continue;
+    for (int c = 0; c < mod->chn && c < max; c++) {
+      const struct xmp_track* t = mod->xxt[mod->xxp[p]->index[c]];
+      if (out[c] || !t) continue;
+      for (int r = 0; r < t->rows; r++) if (t->event[r].note >= 1 && t->event[r].note <= 120) { out[c] = 1; break; }
+    }
+  }
+  return mod->chn;
+}
+
+/* One row of a pattern as text, its channels' cells separated by '|' (libopenmpt's own notation for its modules; for libxmp-lite's
+   the note, instrument, volume and effect as a tracker shows them, the effect as libxmp-lite's own type in hex). The text lives
+   until the next call. */
+static char row_text[64 * 24 + 1];
+static void xmp_cell(const struct xmp_event* e, char* s) {
+  static const char* names[12] = { "C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-" };
+  char note[4] = "...", ins[3] = "..", vol[4] = "...", fx[5] = "....";
+  if (e->note == XMP_KEY_OFF) strcpy(note, "===");
+  else if (e->note == XMP_KEY_CUT) strcpy(note, "^^^");
+  else if (e->note == XMP_KEY_FADE) strcpy(note, "~~~");
+  else if (e->note > 0 && e->note <= 120) { int n = e->note - 1; note[0] = names[n % 12][0]; note[1] = names[n % 12][1]; note[2] = (char)('0' + n / 12); }
+  if (e->ins) { ins[0] = "0123456789ABCDEF"[(e->ins >> 4) & 15]; ins[1] = "0123456789ABCDEF"[e->ins & 15]; }
+  if (e->vol) { int v = e->vol - 1; vol[0] = 'v'; vol[1] = (char)('0' + (v / 10) % 10); vol[2] = (char)('0' + v % 10); }
+  if (e->fxt || e->fxp) {
+    static const char hex[] = "0123456789ABCDEF";
+    fx[0] = hex[(e->fxt >> 4) & 15]; fx[1] = hex[e->fxt & 15]; fx[2] = hex[(e->fxp >> 4) & 15]; fx[3] = hex[e->fxp & 15];
+  }
+  sprintf(s, "%s %s %s %s", note, ins, vol, fx);
+}
+EMSCRIPTEN_KEEPALIVE const char* bm_row_text(bm_module* b, int pattern, int row) {
+  size_t at = 0;
+  row_text[0] = 0;
+  if (b->mpt) {
+    int channels = openmpt_module_get_num_channels(b->mpt);
+    for (int c = 0; c < channels; c++) {
+      const char* cell = openmpt_module_format_pattern_row_channel(b->mpt, pattern, row, c, 0, 1);
+      size_t n = cell ? strlen(cell) : 0;
+      if (at + n + 2 >= sizeof row_text) { if (cell) openmpt_free_string(cell); break; }
+      if (c) row_text[at++] = '|';
+      if (n) memcpy(row_text + at, cell, n);
+      at += n;
+      row_text[at] = 0;
+      if (cell) openmpt_free_string(cell);
+    }
+    return row_text;
+  }
+  struct xmp_module* mod = info(b).mod;
+  if (pattern < 0 || pattern >= mod->pat || !mod->xxp[pattern]) return row_text;
+  for (int c = 0; c < mod->chn; c++) {
+    char cell[24];
+    const struct xmp_track* t = mod->xxt[mod->xxp[pattern]->index[c]];
+    static const struct xmp_event none;
+    xmp_cell(t && row < t->rows ? &t->event[row] : &none, cell);
+    size_t n = strlen(cell);
+    if (at + n + 2 >= sizeof row_text) break;
+    if (c) row_text[at++] = '|';
+    memcpy(row_text + at, cell, n);
+    at += n;
+    row_text[at] = 0;
+  }
+  return row_text;
+}
+
+/* Plays on from seconds into the selected subsong (the seek bar), the decoder at rate; the position it reached (libxmp-lite goes
+   to the frame nearest it) */
+EMSCRIPTEN_KEEPALIVE double bm_seek(bm_module* b, int rate, double seconds) {
+  if (b->mpt) return openmpt_module_set_position_seconds(b->mpt, seconds);
+  if (rate != b->rate) { xmp_end_player(b->xmp); xmp_start(b, rate); }
+  b->ended = 0;
+  xmp_seek_time_frame(b->xmp, (int)(seconds * 1000));
+  return bm_position(b);
+}

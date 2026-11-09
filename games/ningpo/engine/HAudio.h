@@ -78,6 +78,7 @@ public:
 	// 0x40c9e0
 	void freeAll();
 	// 0x40cb00: the sound, decoded and kept the first time
+	// 0x40cd70 Ogg and 0x40cef0 WAV decoding (platform), with their loader constructors 0x40cd30, 0x40cd40, 0x40cd50, 0x40ceb0
 	bool load(const char* theName, std::shared_ptr<Platform::SoundData>* theData);
 	// 0x40cc10
 	bool isPlaying(const char* theName);

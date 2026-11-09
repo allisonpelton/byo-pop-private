@@ -72,13 +72,13 @@ void Board::DrawVariant(Graphics* g)
 
 				if (mVariant.mArrows && DrawArrowGem(&aBoardG, aPiece, (int)aPiece->mX, (int)aPiece->mY)) // an arrow gem (stage 18, BoardArrowsDraw.cpp)
 					continue;
-				int aSrcX = aPiece->mSpinFrame * 52 + 2;
-				int aSrcY = aPiece->mColor * 104;
+				int aSrcX = aPiece->mSpinFrame * GEMSHEET_PITCH + 2;
+				int aSrcY = aPiece->mColor * GEMSHEET_COLOR_HEIGHT;
 				if ((aPiece->mGlowing) && (aPiece->mSpinFrame == 0) && (!aPiece->mDying))
 				{
 					Image* aGemSheet = mApp->mImages[IMAGE_GEMSHEET];
 					DDImage* aGlowImage = mApp->CreateCrossfadeImage(aGemSheet, Rect(aSrcX, aSrcY, GEM_SIZE, GEM_SIZE),
-						aGemSheet, Rect(aPiece->mGlowFrame * 52 + aSrcX, aSrcY + 52, GEM_SIZE, GEM_SIZE), aPiece->mGlowAlpha);
+						aGemSheet, Rect(aPiece->mGlowFrame * GEMSHEET_PITCH + aSrcX, aSrcY + GEMSHEET_PITCH, GEM_SIZE, GEM_SIZE), aPiece->mGlowAlpha);
 					aBoardG.DrawImage(aGlowImage, (int)aPiece->mX, (int)aPiece->mY);
 					delete aGlowImage;
 				}
@@ -118,7 +118,7 @@ void Board::DrawVariant(Graphics* g)
 				{
 					int aModFrame = (aPiece->mSparkleFrame - 24) % 14;
 					if (aModFrame >= 0)
-						DrawSparkle(&aScaledG, aSparkleImage, aModFrame, (int)(aPiece->mX + 24.0), (int)(aPiece->mY + 6.0));
+						DrawSparkle(&aScaledG, aSparkleImage, aModFrame, (int)(aPiece->mX + GEM_HALF), (int)(aPiece->mY + 6.0));
 				}
 			}
 		}
@@ -136,7 +136,7 @@ void Board::DrawVariant(Graphics* g)
 		for (int i = 0; i < 3; i++)
 		{
 			if (aCursorPieces[i] != NULL)
-				aScaledG.DrawImage(mApp->mImages[IMAGE_TARGET], (int)(aCursorPieces[i]->mX - 2.0), (int)(aCursorPieces[i]->mY - 2.0), Rect((mCursorFrame % 6) * 52, 0, 52, 52));
+				aScaledG.DrawImage(mApp->mImages[IMAGE_TARGET], (int)(aCursorPieces[i]->mX - 2.0), (int)(aCursorPieces[i]->mY - 2.0), Rect((mCursorFrame % 6) * CURSOR_FRAME_SIZE, 0, CURSOR_FRAME_SIZE, CURSOR_FRAME_SIZE));
 		}
 		if (mVariant.mMoves)
 			DrawMovesOver(&aScaledG);

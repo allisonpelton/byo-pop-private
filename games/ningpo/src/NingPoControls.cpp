@@ -267,6 +267,7 @@ public:
 	void (NingPo::*mCycle)(int);
 	int mStep;
 
+	// 0x407ac0, 0x407af0, 0x407b20, 0x407b50, 0x407b80, 0x407bb0 are the six arrows' click handlers (onClick below)
 	CycleArrow(void (NingPo::*theCycle)(int), int theStep) : StateArrow(STATE_TITLE), mCycle(theCycle), mStep(theStep) {}
 
 	void onClick() override

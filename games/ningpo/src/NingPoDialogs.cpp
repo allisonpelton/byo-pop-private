@@ -224,10 +224,8 @@ public:
 	PGSprite mBackgroundSprite;  // +0x44
 	PGSprite mClick;             // +0x98
 	PGSprite mPartner;           // +0x140
-	PGSprite mThanks;            // +0x194
 	PGSprite mProgressSprite;    // +0x1e8
 	PGSprite mClickLit;          // +0x23c
-	PGDialogButton mThanksItem;  // +0x2e4 hidden: a picture
 	PGDialogButton mPartnerItem; // +0x428 hidden: a picture
 	PGDialogImage mProgress;     // +0x56c
 	PGDialogButton mClickItem;   // +0xc08
@@ -258,7 +256,7 @@ public:
 	}
 };
 
-// 0x40a1a0
+// 0x40a1a0; port: the thanks for registering (demo_menu_thanks_np.tga, a hidden picture) is left out with the trial
 void StartupDialog::setup(pg::HDisplay* theDisplay, const pg::HFileSystem* theFileSystem)
 {
 	mBackgroundSprite.load(theDisplay, theFileSystem, "loading_np.jpg");
@@ -268,12 +266,9 @@ void StartupDialog::setup(pg::HDisplay* theDisplay, const pg::HFileSystem* theFi
 	mClickLit.load(theDisplay, theFileSystem, "demo_menu_click_lit_np.tga");
 	mProgressSprite.load(theDisplay, theFileSystem, "progress_np.tga");
 	mPartner.load(theDisplay, theFileSystem, "loading_partner_np.jpg");
-	mThanks.load(theDisplay, theFileSystem, "demo_menu_thanks_np.tga");
 
 	PGPoint aPos = {(aRect.right - mClick.width()) / 2, 0x19f};
 	mClickItem.setPosition(&aPos);
-	aPos = {(aRect.right - mThanks.width()) / 2, 0xfd};
-	mThanksItem.setPosition(&aPos);
 	aPos = {0x78, 0x150};
 	mProgress.setPosition(&aPos);
 	mProgress.setSprite(&mProgressSprite);
@@ -286,13 +281,10 @@ void StartupDialog::setup(pg::HDisplay* theDisplay, const pg::HFileSystem* theFi
 		mPartnerItem.setSprites(&mPartner, &mPartner, &mPartner);
 		mPartnerItem.setVisible(false);
 	}
-	mThanksItem.setSprites(&mThanks, &mThanks, &mThanks);
-	mThanksItem.setVisible(false);
 
 	aPos = {0, 0};
 	setPosition(&aPos);
 	addItem(&mPartnerItem);
-	addItem(&mThanksItem);
 	addItem(&mProgress);
 	addItem(&mClickItem);
 	setBackground(&mBackgroundSprite);
@@ -656,7 +648,6 @@ bool NingPo::startupDialog()
 	aDialog.mBackgroundSprite.release();
 	aDialog.mClick.release();
 	aDialog.mClickLit.release();
-	aDialog.mThanks.release();
 	aDialog.mPartner.release();
 	aDialog.mProgressSprite.release();
 	aDialog.removeAll();

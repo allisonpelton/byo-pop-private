@@ -41,35 +41,35 @@ static void PrintVariantMoves(Board* theBoard)
 	theBoard->FindVariantMoves(&aMoves);
 	for (size_t i = 0; i < aMoves.size(); i++)
 	{
-		const MoveSet::Found& f = aMoves[i];
-		const MoveSet::Move& m = f.mMove;
-		if (m.mType == GameRules::MOVE_SWAP)
+		const MoveSet::Found& aFound = aMoves[i];
+		const MoveSet::Move& aMove = aFound.mMove;
+		if (aMove.mType == GameRules::MOVE_SWAP)
 		{
-			int aClick[2][2] = {{theBoard->GetColX(m.mA) + 24, theBoard->GetRowY(m.mB) + 24}, {theBoard->GetColX(m.mC) + 24, theBoard->GetRowY(m.mD) + 24}};
+			int aClick[2][2] = {{theBoard->GetColX(aMove.mA) + 24, theBoard->GetRowY(aMove.mB) + 24}, {theBoard->GetColX(aMove.mC) + 24, theBoard->GetRowY(aMove.mD) + 24}};
 			aScreen(aClick[0]);
 			aScreen(aClick[1]);
-			printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", (int) i, m.mA, m.mB, m.mC, m.mD,
+			printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", (int) i, aMove.mA, aMove.mB, aMove.mC, aMove.mD,
 				aClick[0][0], aClick[0][1], aClick[1][0], aClick[1][1]);
 		}
-		else if (m.mType == GameRules::MOVE_TWIST)
+		else if (aMove.mType == GameRules::MOVE_TWIST)
 		{
-			int aClick[2] = {theBoard->GetColX(m.mA + 1) - 1, theBoard->GetRowY(m.mB + 1) - 1};
+			int aClick[2] = {theBoard->GetColX(aMove.mA + 1) - 1, theBoard->GetRowY(aMove.mB + 1) - 1};
 			aScreen(aClick);
-			printf("TRACE   move %d: twist (%d,%d) %s lands (%d,%d) from (%d,%d) %s %d %d\n", (int) i, m.mA, m.mB, (m.mC > 0) ? "cw" : "ccw",
-				f.mTo.first, f.mTo.second, f.mFrom.first, f.mFrom.second, (m.mC > 0) ? "click" : "rclick", aClick[0], aClick[1]);
+			printf("TRACE   move %d: twist (%d,%d) %s lands (%d,%d) from (%d,%d) %s %d %d\n", (int) i, aMove.mA, aMove.mB, (aMove.mC > 0) ? "cw" : "ccw",
+				aFound.mTo.first, aFound.mTo.second, aFound.mFrom.first, aFound.mFrom.second, (aMove.mC > 0) ? "click" : "rclick", aClick[0], aClick[1]);
 		}
 		else
 		{
-			bool isRow = (m.mA == MoveSet::AXIS_ROW);
-			bool isBack = (m.mD - m.mE < m.mE);
-			int aFrom = isBack ? m.mC + m.mD - 1 : m.mC;
-			int aTo = isBack ? aFrom - (m.mD - m.mE) : aFrom + m.mE;
-			int aDrag[2][2] = {{theBoard->GetColX(isRow ? aFrom : m.mB) + 24, theBoard->GetRowY(isRow ? m.mB : aFrom) + 24},
-				{theBoard->GetColX(isRow ? aTo : m.mB) + 24, theBoard->GetRowY(isRow ? m.mB : aTo) + 24}};
+			bool isRow = (aMove.mA == MoveSet::AXIS_ROW);
+			bool isBack = (aMove.mD - aMove.mE < aMove.mE);
+			int aFrom = isBack ? aMove.mC + aMove.mD - 1 : aMove.mC;
+			int aTo = isBack ? aFrom - (aMove.mD - aMove.mE) : aFrom + aMove.mE;
+			int aDrag[2][2] = {{theBoard->GetColX(isRow ? aFrom : aMove.mB) + 24, theBoard->GetRowY(isRow ? aMove.mB : aFrom) + 24},
+				{theBoard->GetColX(isRow ? aTo : aMove.mB) + 24, theBoard->GetRowY(isRow ? aMove.mB : aTo) + 24}};
 			aScreen(aDrag[0]);
 			aScreen(aDrag[1]);
 			printf("TRACE   move %d: slide %s %d from %d length %d by %d lands (%d,%d) from (%d,%d) drag %d %d to %d %d\n", (int) i,
-				isRow ? "row" : "col", m.mB, m.mC, m.mD, m.mE, f.mTo.first, f.mTo.second, f.mFrom.first, f.mFrom.second,
+				isRow ? "row" : "col", aMove.mB, aMove.mC, aMove.mD, aMove.mE, aFound.mTo.first, aFound.mTo.second, aFound.mFrom.first, aFound.mFrom.second,
 				aDrag[0][0], aDrag[0][1], aDrag[1][0], aDrag[1][1]);
 		}
 	}

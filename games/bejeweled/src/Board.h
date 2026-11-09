@@ -36,16 +36,16 @@ class ReplayRecorder;
 // Board::mState (+0x194)
 enum BoardState
 {
-	STATE_FALLING = 0,          // gems drop into place; when settled: ProcessMatches / no-moves check (UpdateFalling)
+	STATE_FALLING = 0,          // gems drop into place; when settled: FindSets / no-moves check (UpdateFalling)
 	STATE_PLAYING = 1,          // waiting for input
-	STATE_SWAPPING = 2,         // swap animation (UpdateSwap)
-	STATE_SWAPPING_BACK = 3,    // illegal swap returning (UpdateSwap)
+	STATE_SWAPPING = 2,         // swap animation (UpdateSwapping)
+	STATE_SWAPPING_BACK = 3,    // illegal swap returning (UpdateSwapping)
 	STATE_CLEARING = 4,         // matched gems shrink, then the columns refill (UpdateClearing)
-	STATE_GAME_OVER = 5,        // shake for mGameOverCountdown ticks, then explode and fall (UpdateGameOver)
+	STATE_GAME_OVER = 5,        // shake for mGameOverCountdown ticks, then explode and fall (UpdateGameOverAnim)
 	STATE_GAME_OVER_DONE = 6,   // HighScoreWidget shown; nothing updates
-	STATE_BLACK_HOLE = 7,       // level complete: gems spiral into the vortex (UpdateBlackHole)
-	STATE_LEVEL_WIPE = 8,       // new background wiped in 3 px/tick, then FillBoard (UpdateLevelWipe)
-	STATE_FALL_OUT = 9,         // timed mode, no moves: the board falls out and is refilled (UpdateFallOut)
+	STATE_BLACK_HOLE = 7,       // level complete: gems spiral into the vortex (UpdateWhirlpool)
+	STATE_LEVEL_WIPE = 8,       // new background wiped in 3 px/tick, then NewBoard (UpdateLevelTransition)
+	STATE_FALL_OUT = 9,         // timed mode, no moves: the board falls out and is refilled (UpdateBoardDropping)
 	// port(variant): the move rules' twists and slides (stage 10, BoardMoves.cpp), never under the original rules
 	STATE_TWISTING = 10,        // a 2x2 block turns (UpdateTwist)
 	STATE_TWISTING_BACK = 11,   // a twist that made no group turns back
@@ -61,8 +61,15 @@ struct ScorePopup
 	int		mX;              // +0x00 center x = average run x + 24
 	int		mY;              // +0x04 y = average run y + 16; -1 every 3 ticks while > ascent/2 + 2
 	int		mLife;           // +0x08 110 at creation, -1/tick, erased at <= 0; alpha = min(255, mLife*255/18)
-	int		mUnused;         // +0x0c always -1, never read (probably a color)
+	int		mAlwaysMinusOne; // +0x0c -1 at creation, never read
 	int		mPoints;         // +0x10 drawn with "%d"
+
+	enum
+	{
+		OFFSET_X = 24,       // from the run's average gem corner to the popup's centre
+		OFFSET_Y = 16,
+		START_LIFE = 110     // mLife at creation, in ticks
+	};
 };
 
 // Background tile tints, indexed [level % 4][tile A/B][r,g,b]  (@0x5064f0; both tiles are identical)
@@ -80,12 +87,7 @@ inline constexpr int gMatchBaseScores[9] = {10, 20, 30, 40, 60, 80, 110, 160, 21
 
 // port(variant): which generalised code paths a board takes (games/bejeweled/docs/CODE_MODS_DESIGN.md 2.2).
 // Computed once by Board::InitVariant from the rules snapshot; every flag is false for the original rules
-// and for tunables-only mods. Read since stage 5: mAny (the v2 save, the variant trace line), mInvalid
-// (UpdateSwap keeps a swap that made no match) and mNoMoves (UpdateFalling's no-moves branch); since stage 6
-// mUndo (the undo snapshots, keys and orb); since stage 7 mShape (the fill, the refill, the checkerboard and
-// the level shapes, BoardShape.cpp), mScaled (input in logical space), mDraw (DrawVariant,
-// BoardDrawVariant.cpp) and mNoTutorial (a fill with a move instead of the tutorial loop); since stage 7c (4.16)
-// mGravity, mFall and mChecker; since stage 7b (4.14) mDirt; the other variant paths arrive in later stages.
+// and for tunables-only mods. Each flag's comment says what reads it.
 struct VariantFlags
 {
 	bool mAny = false;          // any rule differs from default: v2 save, variant trace lines
@@ -93,18 +95,18 @@ struct VariantFlags
 	bool mShape = false;        // not a full 8x8: size, mask or per-level shapes
 	bool mScaled = false;       // logical extent D > 406, so the view scales (5.1)
 	bool mDraw = false;         // DrawVariant: mShape || specials || gold || non-swap moves || mNoTutorial
-	bool mMatch = false;        // ProcessMatchesVariant / HasMatchVariant: patterns, minRun != 3, specials, gold
-	bool mSearch = false;       // FindMoveVariant / DoHintVariant: patterns, minRun != 3, non-swap move types
+	bool mMatch = false;        // FindSetsVariant / HasSetVariant: patterns, minRun != 3, specials, gold
+	bool mSearch = false;       // FindMoveVariant / TryShowHintVariant: patterns, minRun != 3, non-swap move types
 	bool mMoves = false;        // twist / slide in the move set: the variant input layer
-	bool mInvalid = false;      // moves.allowInvalid
-	bool mNoMoves = false;      // a noMoves rule other than the original (normal: game over, timed: fall out)
+	bool mInvalid = false;      // moves.allowInvalid: UpdateSwapping keeps a swap that made no set
+	bool mNoMoves = false;      // a noMoves rule other than the original (normal: game over, timed: fall out): UpdateFalling's no-moves branch
 	bool mNoTutorial = false;   // the tutorial move (rows 4..6, cols 1..6, horizontal 3-run) cannot apply
 	bool mSpecials = false;
 	bool mGold = false;
-	bool mUndo = false;
+	bool mUndo = false;         // the undo snapshots, keys and orb
 	bool mGravity = false;      // board.gravity.direction not "down": the flip, the GetPieceAt guard (with GravityUp)
-	bool mFall = false;         // mShape || mGravity || fallAccel != 180: FallPiecesVariant, RefillMasked, FillBoardVariant, the end falls
-	bool mChecker = false;      // mShape || look.backdrop "twilight": DrawVariantChecker for SetupLevel's tiles
+	bool mFall = false;         // mShape || mGravity || fallAccel != 180: FallPiecesVariant, RefillMasked, NewBoardVariant, the end falls
+	bool mChecker = false;      // mShape || look.backdrop "twilight": DrawVariantChecker for SetupLevelData's tiles
 	bool mDirt = false;         // a level's mask has dirt (4.14): RefillDiagonal, layers off next to scored runs, the dirt art
 	bool mArrows = false;       // arrows.enabled (4.20): new arrows and their steps at a move's settle, the arrow art
 };
@@ -118,6 +120,10 @@ public:
 		BOARD_ROWS = 8,
 		NUM_GEM_COLORS = 7,
 		GEM_SIZE = 49,              // gem hit box / sprite size (double 49.0 @0x506560)
+		GEM_HALF = 24,              // from a gem's top-left corner to its centre (GEM_SIZE / 2)
+		GEMSHEET_PITCH = 52,        // the step from one frame of the gem sheet to the next, across and down
+		GEMSHEET_COLOR_HEIGHT = 104, // a colour's two rows in the gem sheet: the spin, then the glow (+GEMSHEET_PITCH)
+		CURSOR_FRAME_SIZE = 52,     // a frame of the target cursor (IMAGE_TARGET), 6 frames across
 		CELL_SIZE = 51,             // grid pitch
 		BOARD_X = 203,              // GetColX(0)
 		BOARD_Y = 16,               // GetRowY(0)
@@ -143,7 +149,7 @@ public:
 	Piece*			mBoard[MAX_ROWS][MAX_COLS]; // +0x094 grid [row][col] (original index row*8+col), NULL = empty; ends at +0x193
 	int				mState;                 // +0x194 BoardState
 	bool			mTimedMode;             // +0x198 time-trial board (ctor arg = app->mTimedMode)
-	SoundInstance*	mWhirlpoolSound;        // +0x19c looping whirlpool1 instance (StartBlackHole); released at the end of the wipe / in ~Board
+	SoundInstance*	mWhirlpoolSound;        // +0x19c looping whirlpool1 instance (DoWhirlpool); released at the end of the wipe / in ~Board
 	bool			mIsNewGame;             // +0x1a0 ctor true; cleared by the first swap that makes a match. While set: no save on exit, mode switch without confirmation
 	Piece*			mSelectedPiece;         // +0x1a4 selected gem (target cursor + spin) or NULL
 	int				mCursorFrame;           // +0x1a8 target1 cursor frame counter (++ every 8 ticks while selected; frame = %6)
@@ -173,7 +179,7 @@ public:
 	int				mGameOverCountdown;     // +0x20c shake ticks left in state 5 (GameOver arg)
 	int				mLongestCascade;        // +0x210 max mCascadeCount at settle (HighScoreWidget LONGEST CASCADE)
 	int				mBestMoveScore;         // +0x214 max mMoveScore at settle (HighScoreWidget BEST SINGLE MOVE)
-	int				mUnused218;             // +0x218 only ever zeroed (ctor, first run of a move)
+	int				mClearedAtMoveStart;    // +0x218 zeroed by the ctor and by a move's first scored run; never read
 	int				mMoveScore;             // +0x21c points of the current move incl. cascades, drawn as "+%d"
 	int				mMoveScoreTimer;        // +0x220 "+N" display countdown = (int)clamp(mMoveScore/mult*3, 300, 1200)
 	// +0x224 (padding)
@@ -188,7 +194,7 @@ public:
 	ImageFont*		mPointsFont;            // +0x258 = app->mAlphaDigitsFont (alphadigits4), measures the popups
 	ImageFont*		mScoreFont;             // +0x25c = app->mScoreFont (scorefont1), measures the score
 	bool			mStatsDisabled;         // +0x260 skips longest-cascade/best-move tracking; saved, never set to true
-	int				mUnused264;             // +0x264 ctor 0, saved/loaded, otherwise unused
+	int				mSavedZero;             // +0x264 0 from the ctor on; saved and loaded, never otherwise read
 	int				mLevelStartScore;       // +0x268 score at the start of the level (bar lower bound)
 	int				mLevelTargetScore;      // +0x26c score that completes the level (= mLevelStartScore + mLevelPoints)
 	int				mLevelPoints;           // +0x270 points needed for this level
@@ -205,12 +211,12 @@ public:
 	bool			mMouseDown;             // +0x2a8 button held (MouseDown .. MouseUp)
 	int				mInputDelay;            // +0x2ac Unpause sets 10; MouseDown ignored while > 0
 	DDImage*		mBackgroundImage;       // +0x2b0 640x480 displayed background
-	DDImage*		mNextBackgroundImage;   // +0x2b4 640x480 next level's background (SetupLevel)
+	DDImage*		mNextBackgroundImage;   // +0x2b4 640x480 next level's background (SetupLevelData)
 	bool			mBackgroundChanged;     // +0x2b8 written only (dead)
 	MemoryImage*	mTextImage;             // +0x2bc banner text rendered white with overfont2
 	MemoryImage*	mTextColorImage;        // +0x2c0 rainbow sine-waved copy (height + 48), rebuilt by ColorizeText each Draw
 	bool			mShowingText;           // +0x2c4 banner active
-	SexyString		mUnusedString;          // +0x2c8 constructed/destroyed only
+	// +0x2c8 a SexyString the original constructs and destroys and never uses: left out
 	// +0x2e4 (padding)
 	double			mTextPhase;             // +0x2e8 banner sine phase, +0.07/tick
 	int				mTextDuration;          // +0x2f0 banner total ticks
@@ -223,7 +229,7 @@ public:
 	bool			mLevelTextShown;        // +0x310 set when the LEVEL banner is shown; saved, never read
 	// +0x311..+0x317 (padding, sizeof 0x318)
 
-	// port: pieces dropped from the grid without being deleted. FillBoard abandons the old board and a
+	// port: pieces dropped from the grid without being deleted. NewBoard abandons the old board and a
 	// swap with a stale selection overwrites a grid cell; the original leaks those pieces, which must
 	// stay valid because mSelectedPiece can still point at one. Owned here and freed in ~Board.
 	std::vector<Piece*> mOrphanedPieces;
@@ -266,8 +272,8 @@ public:
 	BoardLayout		mLayout;                // current level's layout (8x8: origin 203/16, D 406, bottom 480)
 	int				mCols;                  // == mLayout.mCols; 8
 	int				mRows;                  // == mLayout.mRows; 8
-	// Stage 7 (games/bejeweled/docs/CODE_MODS_DESIGN.md 5.3): the layout of the level SetupLevel set up, which
-	// UpdateBlackHole applies after its deletion loop (ApplyPendingLayout); equal to mLayout between ticks
+	// Stage 7 (games/bejeweled/docs/CODE_MODS_DESIGN.md 5.3): the layout of the level SetupLevelData set up, which
+	// UpdateWhirlpool applies after its deletion loop (ApplyPendingLayout); equal to mLayout between ticks
 	BoardLayout		mPendingLayout;
 	int				mLevelShape;            // index into the rules' board.levels: mLevel % their count (0 without levels)
 	// A mod's scoring tunables (GameRules::ScoringTunablesChanged): the displayed score closes a large gap fast
@@ -359,66 +365,66 @@ public:
 	int				GetRowY(int theRow);                            // 0x4c9b37 theRow*51 + 16 (port(variant): + mLayout.mOriginY)
 	void			GameOver(int theShakeTicks);                    // 0x4c9b47
 	void			RequestNewGame();                               // 0x4c9bab GameOver(50) + mNewGamePending
-	bool			IsGameInProgress();                             // 0x4c9bbe !mIsNewGame && state != 5 && state != 6
+	bool			IsInProgress();                             // 0x4c9bbe !mIsNewGame && state != 5 && state != 6
 	void			Pause(bool theUserPause);                       // 0x4c9bda
 	void			Unpause(bool theUserPause);                     // 0x4c9c2d
 	Piece*			GetPieceAt(int theX, int theY);                 // 0x4c9c7c
-	bool			HasMatch();                                     // 0x4c9cf5
-	int				GetPanForX(int theX);                           // 0x4c9d94 (port(variant): a member, for the board width)
+	bool			HasSet();                                     // 0x4c9cf5
+	int				GetPanPosition(int theX);                           // 0x4c9d94 (port(variant): a member, for the board width)
 	bool			FindMove(int* theMove, int theMoveNum, bool horizontal, bool vertical); // 0x4c9dda theMove = {col,row,col2,row2} or NULL
 	virtual void	MouseMove(int x, int y);                        // 0x4c9fd0 Widget slot 52
 	virtual void	MouseLeave();                                   // 0x4c9fe9 Widget slot 51
-	void			StartSwap(Piece* thePiece1, Piece* thePiece2);  // 0x4c9ff8
+	void			SwapPieces(Piece* thePiece1, Piece* thePiece2);  // 0x4c9ff8
 	void			GetBoardSize(int* theWidth, int* theHeight);    // 0x4ca13e (406, 406) (port(variant): a member)
 	void			GetBoardCenter(int* theX, int* theY);           // 0x4ca179 (406, 219) (port(variant): a member)
-	void			ShowText(const SexyString& theText, int theDuration); // 0x4ca1c8
+	void			DoBouncyText(const SexyString& theText, int theDuration); // 0x4ca1c8
 	void			ColorizeText();                                 // 0x4ca36e
-	void			StartBlackHole();                               // 0x4ca58d
+	void			DoWhirlpool();                               // 0x4ca58d
 	virtual void	MouseDown(int x, int y, int theClickCount);     // 0x4ca6b0 Widget slot 54
 	virtual void	MouseUp(int x, int y, int theClickCount);       // 0x4ca8b7 Widget slot 56
 	virtual void	MouseDrag(int x, int y);                        // 0x4ca8c1 Widget slot 58
 	virtual void	KeyChar(SexyChar theChar);                      // 0x4ca9d3 Widget slot 47
 	void			UpdateClearing();                               // 0x4ca9ed state 4
-	void			UpdateGameOver();                               // 0x4cab82 state 5
-	void			DoHint();                                       // 0x4cad2f
-	void			SetupLevel();                                   // 0x4cae29 background + diff.txt level parameters
-	void			FillBoard();                                    // 0x4cb182
-	void			UpdateLevelWipe();                              // 0x4cb284 state 8
-	void			UpdateFallOut();                                // 0x4cb3bf state 9
+	void			UpdateGameOverAnim();                               // 0x4cab82 state 5
+	void			TryShowHint();                                       // 0x4cad2f
+	void			SetupLevelData();                                   // 0x4cae29 background + diff.txt level parameters
+	void			NewBoard();                                    // 0x4cb182
+	void			UpdateLevelTransition();                              // 0x4cb284 state 8
+	void			UpdateBoardDropping();                                // 0x4cb3bf state 9
 	void			ShowHint();                                     // 0x4cb475 button 15
 
 	Board(WinDMApp* theApp, bool timedMode);                        // 0x4cb5bc
 	enum ScratchBoardTag { SCRATCH_BOARD };
 	Board(WinDMApp* theApp, ScratchBoardTag);                       // port(variant): a target for StateCodec's round trip: nothing drawn, loaded, saved or shown
-	void			UpdateBlackHole();                              // 0x4cb931 state 7
+	void			UpdateWhirlpool();                              // 0x4cb931 state 7
 	virtual void	Draw(Graphics* g);                              // 0x4cbc70 Widget slot 26
-	bool			SaveGameExists();                               // 0x4cca37
+	bool			HasSavedGame();                               // 0x4cca37
 	bool			LoadGame();                                     // 0x4cca98
 	bool			SaveGame();                                     // 0x4ccdfe
 	void			SaveGameSnapshot(Buffer* theBuffer);            // port: what SaveGame() would write, live game untouched
 	void			WriteSaveGame(Buffer* theBuffer, int thePlaySeconds, int theState); // port: the body of 0x4ccdfe
 	std::string		GetSaveGameFileName() const { return mSaveGameFileName; } // port: "userdata\\savegame.dat", scoped for gameplay mods (port(mods): the board's own)
 	static std::string ScopedSaveGameFileName();                    // port(mods): that name under the current score key
-	bool			DeleteSaveGame();                               // 0x4cd130
+	bool			DeleteSavedGame();                               // 0x4cd130
 	virtual ~Board();                                               // 0x4cd1ba (scalar deleting dtor 0x4ce430)
-	bool			ProcessMatches();                               // 0x4cd287
+	bool			FindSets();                               // 0x4cd287
 	void			UpdateFalling();                                // 0x4cd687 state 0
-	void			UpdateSwap();                                   // 0x4cd84f states 2, 3
+	void			UpdateSwapping();                                   // 0x4cd84f states 2, 3
 	virtual void	Update();                                       // 0x4cdabc Widget slot 22
 
 	// port(variant): code mods (BoardVariant.cpp)
 	void			InitVariant(WinDMApp* theApp);                  // first in the ctor (before mApp is set): rules, layout, flags, RNG, sound pitch
 	static VariantFlags ComputeVariantFlags(const GameRules& theRules, const GameFeatures& theFeatures);
 	void			UsePendingSeed();                               // a matching swap or a game over of a board that holds the pending seed
-	void			OnMoveMade();                                   // a move stood (UpdateSwap's match, a kept invalid move): it counts, the pending seed is used up
-	void			KeepInvalidMove();                              // UpdateSwap: a swap that made no match stays (moves.allowInvalid, 4.1)
+	void			OnMoveMade();                                   // a move stood (UpdateSwapping's match, a kept invalid move): it counts, the pending seed is used up
+	void			KeepInvalidMove();                              // UpdateSwapping: a swap that made no match stays (moves.allowInvalid, 4.1)
 	void			OnNoMovesVariant();                             // UpdateFalling: settled without a move, the noMoves rule decides (4.1)
 	bool			NoHintVariant();                                // a board playing without a move (noMoves "continue"): no hint, no hint glow
-	SexyString		InstructionsText();                             // ShowInstructionsDialog's text: the rules' own (2.6; gravity, 4.16)
-	SexyString		FullInstructionsText(const SexyString& theText); // ShowFullInstructionsDialog: Help's text under the rules (gravity, 4.16)
+	SexyString		InstructionsText();                             // DoInstructionDialogette's text: the rules' own (2.6; gravity, 4.16)
+	SexyString		FullInstructionsText(const SexyString& theText); // DoFullInstructions: Help's text under the rules (gravity, 4.16)
 	// Undo (stage 6, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7; BoardVariant.cpp)
-	void			TakeUndoSnapshot();                             // StartSwap: the board before the move (in STATE_PLAYING)
-	void			PopUndoSnapshot();                              // UpdateSwap: the swap went back, so does its snapshot
+	void			TakeUndoSnapshot();                             // SwapPieces: the board before the move (in STATE_PLAYING)
+	void			PopUndoSnapshot();                              // UpdateSwapping: the swap went back, so does its snapshot
 	bool			CanUndo() const;                                // the UNDO gate, which playback checks again (WatchController)
 	int				UndosLeft() const;                              // undo.max minus the undos taken; -1 without a limit
 	static bool		IsUndoKey(SexyChar theChar);                    // z, u, Backspace
@@ -440,7 +446,7 @@ public:
 	// The sidecar of the save (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.3): savegame.bjr next to savegame.dat
 	std::string		GetSidecarFileName() const;
 	void			WriteSaveSidecar(const Buffer& theSave);       // SaveGame: the SAVE event and the sidecar, or no sidecar
-	void			DeleteSaveSidecar();                            // DeleteSaveGame: the sidecar goes with the save
+	void			DeleteSaveSidecar();                            // DeleteSavedGame: the sidecar goes with the save
 	void			KeepSidecarGame();                              // the recorded game of the sidecar there is, kept as a finished replay
 	std::string		SidecarSnapshot(const std::string& theSave);   // the sidecar a shutdown would leave with theSave ("" for none)
 	void			AddStatsToSidecar(std::string* theSidecar, const std::string& theSave); // port(variant): the STAT record (GameStats.h)
@@ -449,11 +455,11 @@ public:
 	bool			SetPlaybackRng(const Replay::RngState& theRng); // a playback LOAD: the RNG the recorded board went on with (RNGS)
 	Replay::EndInfo	GetEndInfo(int theReason, const MTRand* theRng = NULL); // the END record of the game as it is now
 	// Shapes (stage 7, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3, section 5; BoardShape.cpp)
-	void			FillBoardVariant();                             // FillBoard on a shape board: holes skipped, rerolls capped
+	void			NewBoardVariant();                             // NewBoard on a shape board: holes skipped, rerolls capped
 	void			RefillMasked();                                 // UpdateClearing's refill over each column's cells
-	void			FillBoardWithMove();                            // the constructor's fill when the tutorial move cannot apply
-	void			DrawVariantChecker(Graphics* g, Image* theTileA, Image* theTileB); // SetupLevel's tiles for its level's shape
-	void			ApplyPendingLayout();                           // UpdateBlackHole, after the deletion loop: the new level's shape
+	void			NewBoardWithMove();                            // the constructor's fill when the tutorial move cannot apply
+	void			DrawVariantChecker(Graphics* g, Image* theTileA, Image* theTileB); // SetupLevelData's tiles for its level's shape
+	void			ApplyPendingLayout();                           // UpdateWhirlpool, after the deletion loop: the new level's shape
 	void			SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape); // ReadVariantHeader: the save's shape
 	void			RebuildLoadedBackground();                      // GameLoadedVariant: the background of the loaded level and shape
 	void			DrawVariant(Graphics* g);                       // Draw for mDraw boards (BoardDrawVariant.cpp)
@@ -461,25 +467,25 @@ public:
 	bool			GravityUp() const;                              // gems rise now: "up", or "alternate" after an even number of flips
 	void			FallPiecesVariant(int* theLandedCount, int* theLandedXSum, bool* isSettled); // UpdateFalling's loop: direction, fallAccel
 	void			OnGravitySettle();                              // UpdateFalling: a settle without a match; "alternate" flips if it reached PLAYING
-	void			UpdateFallOutVariant();                         // UpdateFallOut's fall in the gravity direction
-	bool			GameOverFallVariant();                          // UpdateGameOver's fall in the gravity direction: true when every gem is gone
+	void			UpdateBoardDroppingVariant();                         // UpdateBoardDropping's fall in the gravity direction
+	bool			GameOverFallVariant();                          // UpdateGameOverAnim's fall in the gravity direction: true when every gem is gone
 	// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14; BoardShape.cpp, BoardDrawVariant.cpp)
 	void			RefillDiagonal();                               // UpdateClearing's refill with dirt: segments, then diagonal slides
 	bool			RefillSegmentsPass();                           // RefillDiagonal: one pass over every column's segments; true if a gem moved or spawned
 	bool			SlideDiagonal();                                // RefillDiagonal: one gem into an unreachable cell; false when none can go
-	void			ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, int theEndRow, int theColor); // ProcessMatches: one layer off each dirt cell next to the run
+	void			ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, int theEndRow, int theColor); // FindSets: one layer off each dirt cell next to the run
 	void			ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCells); // ... next to any group's cells
 	void			ClearDirtCells(const std::vector<std::pair<int, int> >& theCells); // stage 11: ... in a blast's reach
 	void			ClearDirtLayers(const bool (*theCells)[BoardLayout::MAX_COLS]); // ... a layer off each marked cell (row-major)
 	// Match rules (stage 9, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7; BoardMatch.cpp)
 	void			FillColorGrid(MatchFinder::ColorGrid* theGrid) const; // each cell's colour, NO_GEM for none
-	bool			HasMatchVariant();                              // HasMatch under the match rules
+	bool			HasSetVariant();                              // HasSet under the match rules
 	bool			FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool vertical); // FindMove under the match and move rules: {to col, to row, from col, from row}
-	bool			ProcessMatchesVariant();                        // ProcessMatches under the match rules
-	void			ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX); // ProcessMatchesVariant: one group's points
+	bool			FindSetsVariant();                        // FindSets under the match rules
+	void			ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX); // FindSetsVariant: one group's points
 	void			AddMoveScore(int thePoints);                     // ScoreGroup and ScoreBlast: the move's score, EXCELLENT, the score timer
 	// Flame and lightning gems (stage 11, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8; BoardSpecials.cpp)
-	void			ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups); // ProcessMatchesVariant: the specials made, the blasts
+	void			ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups); // FindSetsVariant: the specials made, the blasts
 	void			MovedCells(std::vector<MatchFinder::Cell>* theCells); // the cells the move in its own resolve put gems into
 	void			ScoreBlast(const Specials::Blast& theBlast);     // ResolveSpecials: one blast's gems, points, dirt and effect
 	void			PlaySpecialSound(int theKind, int thePan);      // sounds/flame or sounds/lightning, else the original's explode or firecrackle
@@ -489,9 +495,9 @@ public:
 	bool			CountsForGold(int theCol, int theRow) const;    // a cell of the goal: a gem cell, or dirt with gold.countDirt
 	int				GoldGoal() const;                               // the cells of the goal
 	int				GoldLeft() const;                               // ... not gold yet
-	void			GildCells(const std::vector<MatchFinder::Cell>& theCells); // ProcessMatchesVariant and ScoreBlast: gem cells turn gold
+	void			GildCells(const std::vector<MatchFinder::Cell>& theCells); // FindSetsVariant and ScoreBlast: gem cells turn gold
 	int				GoldLimitTicks() const;                         // the level's time limit for the mode (0: none)
-	void			SetupLevelGold();                               // SetupLevel: no gold, the level's time
+	void			SetupLevelDataGold();                               // SetupLevelData: no gold, the level's time
 	void			UpdateGoldGoal();                               // Update's level block on a gold board: the time, the level's end, TIME_UP
 	int				GoldBarTarget() const;                          // Update: the bar's width, the gold so far or the time left
 	bool			GoldTimed() const { return mGoldTickLimit > 0; }
@@ -509,7 +515,7 @@ public:
 	void			ClearArrow(Piece* thePiece);                    // a matched or blasted arrow: the bonus, the count
 	static int		TurnArrow(int theArrow, int theQuarters);       // arrows.turn: a Piece::mArrow a quarter turn on (1 clockwise)
 	int				ArrowExitEdges(const ArrowStep& theStep) const; // the ARROW_EDGE_* bits a step leaves the board by
-	void			ClearMatchedArrows();                           // ProcessMatchesVariant found groups: each dying arrow
+	void			ClearMatchedArrows();                           // FindSetsVariant found groups: each dying arrow
 	bool			DrawArrowGem(Graphics* g, Piece* thePiece, int theX, int theY); // an arrow's picture instead of its gem (false: not an arrow)
 	void			DrawArrowWarnings(Graphics* g);                 // DrawVariant: an arrow one step from its edge pulses, the edge glows
 	bool			ApplyDirtLayers(const std::vector<uint8_t>& theLayers, std::string* theWhy); // a save's or snapshot's layers onto the level's mask

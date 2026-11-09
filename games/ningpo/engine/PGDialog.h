@@ -33,6 +33,7 @@ public:
 	PGPoint mPosition;      // +0x12c relative to the dialog (but for images)
 
 	PGDialogItem();         // 0x411f50
+	// 0x412d70
 	virtual ~PGDialogItem() {}
 
 	bool isVisible() const { return mVisible; }               // 0x408950 (slot 0x20)

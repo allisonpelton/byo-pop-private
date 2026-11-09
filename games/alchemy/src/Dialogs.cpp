@@ -132,7 +132,8 @@ OptionsDialog::OptionsDialog(AlchemyApp* theApp) :
 	mSfxSlider = new Slider2004(mApp->mImages[IMAGE_SLIDER], mApp->mImages[IMAGE_SLIDERGEM], 1, this);
 	mSfxSlider->SetValue(mApp->GetSfxVolume());
 
-	// both boxes have the id 0 (CheckboxChecked does not tell them apart)
+	// both boxes have the id 0; the dialog is their listener because a Checkbox takes one (the original's CheckboxChecked, 0x40d7c2, only
+	// raised the colour-depth question, which is left out: GAME_NOTES section 5)
 	mFullscreenBox = new Checkbox(mApp->mImages[IMAGE_UNCHECKED], mApp->mImages[IMAGE_CHECKED], 0, this);
 	mFullscreenBox->SetChecked(!mApp->mIsWindowed, true);
 	mCursorsBox = new Checkbox(mApp->mImages[IMAGE_UNCHECKED], mApp->mImages[IMAGE_CHECKED], 0, this);
@@ -259,19 +260,6 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 		mApp->SetSfxVolume(theVal);
 }
 
-// 0x40d7c2: a box that is cleared while the game is forced to full screen (a desktop of too few colours) is an error, and
-// full screen is checked again. Both boxes have the id 0, so either of them does it.
-void OptionsDialog::CheckboxChecked(int theId, bool checked)
-{
-	(void) theId;
-	if (!checked && mApp->mForceFullscreen)
-	{
-		mApp->DoDialog(DIALOG_COLOR_DEPTH, true, mApp->GetString("COLOR_DEPTH_ERROR1"), mApp->GetString("COLOR_DEPTH_ERROR2"),
-			mApp->GetString("COLOR_DEPTH_ERROR3"), BUTTONS_FOOTER);
-		mFullscreenBox->SetChecked(true, true);
-	}
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // NameEntryDialog
 
@@ -351,6 +339,7 @@ static void DrawNameBox(Graphics* g, Image* theBox, const Rect& theRect)
 }
 
 // 0x40eed1: the box of the name (4 pixels more on each side than the edit widget) and the prompt over it
+// (the original makes the box with Rect::Inflate, 0x40ecd8, and its result is copied by 0x40eb64)
 void NameEntryDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);

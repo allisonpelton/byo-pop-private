@@ -16,6 +16,9 @@ void loadLetterOdds();
 void loadBooks();
 // BonniesApp.h: 0x401000 WinMain's game
 int bonniesMain();
+// port (site): the site's "Always skip start-up logos" (Byopop::SiteSkipLogos, natively -skiplogos; the host sets it before
+// bonniesMain): the logo screen loads the resources and goes on to the menu, silently, as its own end would
+extern bool gSkipLogos;
 
 // port (test runs): the board, the hint the game shows, the level and the buttons on screen, as text for
 // tools/realplay.py (GameScreen.cpp); the host writes it only in a test run whose BONNIES_STATE names a file

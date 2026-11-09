@@ -28,6 +28,7 @@
 #include "Checkbox.h"
 #include "Dialog.h"
 #include "Dialogs.h"
+#include "MemReport.h"
 #include "HighScores.h"
 #include "HyperlinkWidget.h"
 #include "Piece.h"
@@ -104,7 +105,7 @@ Dialog* TopDialog(AlchemyApp* theApp, const char** theName)
 	{
 		{DIALOG_NAME_ENTRY, "name"}, {DIALOG_LOAD_GAME, "load"}, {DIALOG_HINT, "hint"}, {DIALOG_QUIT, "quit"},
 		{DIALOG_NEW_GAME, "newgame"}, {DIALOG_SKILL, "skill"}, {DIALOG_TUTORIAL, "tutorial"}, {DIALOG_OPTIONS, "options"},
-		{DIALOG_HIGH_SCORES, "alltime"}, {DIALOG_COLOR_DEPTH, "colordepth"}
+		{DIALOG_HIGH_SCORES, "alltime"}
 	};
 	for (size_t i = 0; i < sizeof(kDialogs) / sizeof(kDialogs[0]); i++)
 	{
@@ -548,6 +549,17 @@ bool AlchemyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			CrtSRand((unsigned int) atoi(anArg.c_str()));
 			Ok(aLine);
 		}
+		return true;
+	}
+	// memreport <file>: what the game holds in memory by owner (testhooks/MemReport.h), for the performance pass
+	if (aName == "memreport")
+	{
+		if (theCommand.mArgs.empty())
+			Error(aLine, "memreport <file>");
+		else if (!WriteMemReport(this, theCommand.mArgs))
+			Error(aLine, "cannot write " + theCommand.mArgs);
+		else
+			Ok(aLine);
 		return true;
 	}
 	if (aName == "move")

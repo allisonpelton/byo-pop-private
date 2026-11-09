@@ -26,14 +26,16 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   origrun is silent by default (rundesk silences only SDL): its stand-in also serves the DirectSound a copy asks COM
   for (BASS in Alchemy, Pixelus and Rocket Mania) and mutes the copy's audio sessions as it loads, so nothing reaches
   the speakers, and a run's RESULT line says `SOUND LEAK` if anything did. A copy keeps the stand-in its last run
-  placed, so a worktree merges the trunk (2026-11-03 or later) and rebuilds origrun before running originals. The user allows sound and changed saves ("You are welcome
-  to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
+  placed, so a worktree merges the trunk (2026-11-09 or later, for the stand-in's last-input hook, a
+  precaution against a SexyAppFramework original's idle check) and rebuilds origrun before running originals. The user allows
+  sound and changed saves ("You are welcome to run the originals with sound on and mess with my save data", 2026-10-31; the saves they care about are backed
   up), and any change to PopCap games' own registry values without restoring them ("You can mess with the registry
   entries for PopCap games all you like. I promise.", 2026-11-01); the rest of the registry stays untouched. origrun
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
   waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
-  2026-11-03), and its MessageBox and MessageBeep calls so that a message box is answered without showing or sounding
-  ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
+  2026-11-03), its GetKeyState so that scripted Shift and Ctrl presses register and its GetLastInputInfo so that it
+  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), and its MessageBox and MessageBeep calls
+  so that a message box is answered without showing or sounding ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
   private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
   and its MessageBeep calls with no sound, unless `--msgbox show` (a box then rings, as do boxes called through
@@ -167,7 +169,7 @@ Every call re-reads the whole context, so what costs is context times calls, and
   game is tested as Bejeweled is: its deviations listed in its notes, each without a visible effect; every RNG draw
   kept in its order; a frozen baseline of the port with a regression check that proves later fixes and mods leave
   unmodded play unchanged. Every memory leak of the original is fixed: memory the original still uses after "leaking"
-  it (Bejeweled's FillBoard orphans) is freed after its last possible use. Autoplay, script commands and runs under
+  it (Bejeweled's NewBoard orphans) is freed after its last possible use. Autoplay, script commands and runs under
   Node never pass through the real input path, so before its final merge a session also plays the game with real mouse
   and key events only: through the page in the Browser pane (`?silent=1`, requestAnimationFrame shimmed while hidden)
   and through the window natively under rundesk (posted input, as visrun does), from launch through the tutorial and a
@@ -219,9 +221,14 @@ Every call re-reads the whole context, so what costs is context times calls, and
   game (Bejeweled Twist) then takes them before every other game does ("Rules look good to start, but I'd want them
   tested on a more complex game before moving forward with them for EVERY game", 2026-11-08), and every other game
   takes its pass once the user approves them after that. The pass leaves no unknown or unnamed variable, field, parameter, global or
-  constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port then go one at a
-  time, each in full, readability pass included, before the next begins ("for the remaining games, I want to tackle
-  them in full one-at-a-time"). **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to
+  constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port start after those
+  passes, each taken all the way through, readability pass included: the easier ones side by side again and the harder
+  ones from Chuzzle on two at a time after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning
+  the user had put every one of them in sequence, so that wasteful token use would show sooner, and dropped it the
+  same day: "We'll nix the one-at-a-time rule then. The idea behind it was it'd allow inefficient token usage to be
+  spotted sooner, overall saving time, but now we have a much better idea of procedure"; of the harder ones: "When
+  we get to it, see if running two-by-two causes issues. If not, continue with two".
+  **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to
   go through every phase except modding before a game can be considered done and ready for the live site, and just
   publish whatever games are ready by the end of December. I'm in no hurry to get games out in a less-than-stellar
   state." A game is done, and may go on the live site, only once it has been through all of them: the user's faults,

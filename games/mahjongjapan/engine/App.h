@@ -98,7 +98,9 @@ inline bool IsAccelerated() { return gHardwareAccel; }
 
 // 0x4249e0: the exe's folder; 0x429e20, 0x429e40: the data folders
 inline const std::string& GetExeFolder() { return gExeFolder; }
+// 0x4249f0 inlined here: the user folder's getter (it copies the string of 0x429e20)
 inline const std::string& GetUserFolder() { return gUserFolder; }
+// 0x424a10 inlined here: the shared folder's getter (it copies the string of 0x429e40)
 inline const std::string& GetCommonFolder() { return gCommonFolder; }
 
 } // namespace jb

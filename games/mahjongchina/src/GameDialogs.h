@@ -88,7 +88,7 @@ public:
 	bool OnCommand(int theCmd) override;  // 0x407a20
 };
 
-// 0x408270 (vtable 0x51ba5c, 0xac bytes): the level won's scroll of the next level's text, which fades in after
+// 0x408020 (vtable 0x51ba5c, 0xac bytes): the level won's scroll of the next level's text, which fades in after
 // 0.6 s. China's: Japan's scroll also held the time, the score, the bests and the records
 class LevelDoneScroll : public jb::Object
 {
@@ -100,17 +100,17 @@ public:
 	int mAlpha = 0;                    // +0xa4
 	int mLines = 0;                    // +0xa8 of the next level's text
 
-	// 0x408270
+	// 0x408020
 	explicit LevelDoneScroll(const char* theNextTitle) : mNextTitle(theNextTitle) {}
-	// 0x4082f0, 0x408310
+	// 0x408150, 0x408170
 	~LevelDoneScroll() override {}
 
-	void Draw() override;    // 0x408380
-	void Init() override;    // 0x408410
-	bool Update() override;  // 0x408470
+	void Draw() override;    // 0x408270
+	void Init() override;    // 0x4084e0
+	bool Update() override;  // 0x4085f0
 };
 
-// 0x407f10 (vtable 0x51ba30, 0x70 bytes): the escape's level won, a dialog with the time and the score. China's:
+// 0x407cd0 (vtable 0x51ba30, 0x70 bytes): the escape's level won, a dialog with the time and the score. China's:
 // Japan's was a layer of its own with the bests and the records on the scroll
 class LevelDone : public Dialog
 {
@@ -119,13 +119,13 @@ public:
 	std::string mScore;      // +0x5c
 	std::string mNextTitle;  // +0x64
 
-	// 0x407f10
+	// 0x407cd0
 	LevelDone(int theTime, int theScore, const char* theNextTitle);
-	// 0x407fd0
+	// 0x407e40
 	~LevelDone() override {}
 
-	void Create() override;               // 0x408040
-	bool OnCommand(int theCmd) override;  // 0x408240
+	void Create() override;               // 0x407ee0
+	bool OnCommand(int theCmd) override;  // 0x407ff0
 };
 
 // 0x408ba0 (vtable 0x51cba4, 0xec bytes): a tip's picture: the image 0x3f the special tiles with their names, 0x172 a

@@ -13,33 +13,85 @@
 # The terms (web/terms.html) and the licences are not here: they stay word for word as written.
 
 
-# ---- Everywhere: the theme button (web/theme.js)
+# ---- Desktop 95, the site's look (web/skins.js)
 
-theme.button = Dark theme
-theme.to_light = Use the light theme
-theme.to_dark = Use the dark theme
-skin.plain = Plain
-skin.demo = Demo Disc
-skin.demo.about = Sky-blue gloss and gel buttons, after the free-demo sites of the early 2000s.
-skin.d95 = Desktop 95
-skin.d95.about = Grey windows on a teal desktop: every part of the site is a window you can move.
-skin.soda = Soda Fountain
-skin.soda.about = An awning, a chrome counter and a board for your bottle caps.
-skin.pick.title = Pick a look for the site
-skin.pick.text = Each comes in a light and a dark version and changes only the page around the games.
-skin.pick.plain = No thanks, keep it plain
-skin.pick.later = You can change it any time in Settings.
 skin.wiz.title = byo-pop Setup: {game}
-skin.wiz.bottling = Bottling {game}
 skin.wiz.licence = Licence
 skin.wiz.folder = Your folder
 skin.wiz.copying = Copying
 skin.wiz.finish = Finish
-skin.desk.controls = Controls
 skin.desk.icons = Desktop
 skin.desk.open = Open {window}
 skin.desk.close = Close {window}
 skin.desk.minimize = Minimize {window}
+# Desktop 95 in one page (web/deskapps.js): a game window's menu, its Close, the message box when too many games are open, a text
+# that could not be read
+library.title = Library
+library.play = Play
+library.filter = Filter
+library.col.name = Name
+library.col.status = Status
+library.col.time = Play time
+library.col.last = Last played
+library.col.year = Year
+library.status.ready = Ready
+library.status.files = Needs your files
+library.status.soon = Coming soon
+library.status.unsold = No longer sold
+library.count = {n} game | {n} games
+library.sorted = Sorted by {col}, {dir}
+library.asc = ascending
+library.desc = descending
+library.menu.play = Play
+library.menu.files = Add files
+library.menu.fav_add = Add to favourites
+library.menu.fav_remove = Remove from favourites
+library.menu.props = Properties
+library.props.title = {game} Properties
+library.props.released = Released
+library.props.plays = Plays
+library.props.win95 = Windows 95
+library.props.yes = Yes
+library.props.no = No
+library.ok = OK
+settings.gamesopen.label = Games open in
+settings.gamesopen.hint = In Desktop 95, the window that the Pop menu's Games and a closed game open.
+settings.gamesize.label = Game window size
+settings.gamesize.one = 1x
+settings.gamesize.fit = Largest that fits
+settings.gamesize.hint = The size a game's window opens at when no size is chosen in its View menu: the game's own size, or the largest whole multiple of it that fits the desktop.
+skin.apps.game_menu = Game
+skin.apps.terms = Terms, copyright and licenses
+skin.apps.close = Close
+skin.apps.ok = OK
+skin.apps.limit_title = Too many games
+skin.apps.limit = {n} games are open. Close one first.
+skin.apps.limit_one = A game is open. Close it first.
+skin.apps.unreadable = This file could not be read.
+skin.apps.view_menu = View
+skin.apps.options_menu = Options
+skin.apps.help_menu = Help
+skin.apps.about = About {game}
+skin.apps.empty = (Empty)
+skin.apps.fit = Fit window
+skin.apps.scale = {n}x
+skin.apps.scan_off = No scanlines
+skin.apps.scan_light = Light scanlines
+skin.apps.scan_strong = Strong scanlines
+skin.apps.filter_none = No colour filter
+# the title bar's "?" of a Settings section's window (Windows 95's What's This?)
+skin.desk.whatsthis = What’s This? ({window})
+skin.desk.maximize = Maximize {window}
+skin.desk.restore = Restore {window}
+# A window's control menu (its title bar's icon): the button's name, then its entries
+skin.desk.menu = Control menu: {window}
+skin.desk.m.minimize = Minimize
+skin.desk.m.maximize = Maximize
+skin.desk.m.restore = Restore
+skin.desk.m.close = Close
+skin.desk.m.size = {n}x ({w} x {h})
+# Desktop 95's keys, said once in About
+skin.desk.keys = Keys: Tab moves within a window, F6 between the windows, the icons and the task bar.
 # Desktop 95's task bar (web/skins.js): its name for a screen reader, the Pop button, the band down the Pop menu's side, and its entries
 skin.taskbar = Task bar
 skin.pop = Pop
@@ -47,6 +99,12 @@ skin.pop.band = byo-pop
 skin.pop.games = Games
 skin.pop.nogames = No games here yet
 skin.pop.listing = Back to all games
+# On a game page: the game's full screen (as the game window's maximize button)
+skin.pop.full = Full screen
+# the game window's sizes, whole multiples of the game's own in device pixels (its control menu, the Pop menu's Game size)
+skin.pop.size = Game size
+# The first entry in the list of Settings' sections beside the Pop menu's Settings: the Settings folder itself
+skin.pop.allsettings = All settings
 # A favourite game's desktop icon: its name for a screen reader ({game}: the game's title), and its menu
 skin.fav.icon = {game}, favourite
 skin.fav.open = Open
@@ -54,10 +112,10 @@ skin.fav.remove = Remove from favourites
 skin.fav.menu = {game}
 skin.desk.games = All games
 skin.desk.about = About
-settings.skin.label = Skin
-settings.skin.hint = The site's look around the game. The game itself never changes.
-settings.ambient.label = Ambient light
-settings.ambient.hint = In the dark Demo Disc and Soda Fountain, the game's colours glow softly around it.
+settings.win95only.label = Windows 95 games only
+settings.win95only.hint = In Desktop 95, list only the games whose original ran on Windows 95, as its readme says. Games already open stay open. Other skins list every game.
+skin.win95.hidden = {count} hidden
+skin.win95.hidden_title = Not made for Windows 95 (Settings, Look: Windows 95 games only)
 settings.perf.label = Performance panel
 settings.perf.hint = Frame times, memory, graphics and sound readings beside the game. It only reads: the game plays the same.
 settings.scanlines.label = Scanlines
@@ -102,13 +160,13 @@ controls.press = Press a key…
 controls.pad = Gamepad
 controls.pad.none = No gamepad button
 controls.reset = Reset to the game's keys
-controls.note = A key you choose stands for the game's key, and the game's own key still works. Dashed keys are yours.
+controls.note = Dashed keys are yours; the game’s own keys still work.
 controls.display.left = Left click
 controls.display.right = Right click
 controls.display.middle = Middle click
 controls.touch.label = The game's keys
 perf.title = Performance
-perf.note = Readings only, each second. The main thread is the page's one thread: its share is not the computer's CPU use.
+perf.note = Each second. Main thread: this page’s share, not the whole CPU.
 perf.waiting = Waiting for the first second of readings.
 perf.na = not available here
 perf.no_timer = not offered by this browser
@@ -186,13 +244,9 @@ index.bin.no = Cancel
 index.fav.name = Favourite: {game}
 index.fav.on = Remove from favourites
 index.fav.off = Add to favourites
-index.tabs.label = Players, saves, music and settings
-index.tabs.players = Players
-index.tabs.saves = Saves
+index.tabs.label = Settings and music
 index.tabs.music = Music
 index.tabs.settings = Settings
-index.players.heading = Players
-index.saves.heading = Saves
 index.music.heading = Music
 index.settings.heading = Settings
 index.players.unavailable = The players are not available.
@@ -208,7 +262,6 @@ index.tile.label_year = {name}, {year}, {state}
 # How much a game was played here: {n} plays, {time} like "2 h 15 min"
 index.played = {n} play · {time} | {n} plays · {time}
 index.played_last = Last played {date}
-index.cap.plays = {n} play | {n} plays
 # every player's counts under a game's name, from the site's play counter: "2 playing now · 1234 plays"
 index.counts.plays = {n} play | {n} plays
 index.counts.live = {n} playing now
@@ -237,6 +290,9 @@ index.footer.about = byo-pop is an unofficial, non-commercial project, not affil
   website does not accept donations.
 index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Money, Alchemy and Dynomite! are
   registered trademarks of Electronic Arts Inc. in the United States.
+index.footer.music_html = The Music player plays the music from the game files you added, in this browser, with
+  <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
+  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)
@@ -249,8 +305,7 @@ index.jungle.about = Games decompiled by other projects, coming later
 jungle.title = Jungle Juice · byo-pop
 jungle.logo_alt = byo-pop, back to the games
 jungle.heading = Jungle Juice
-jungle.intro = Jungle Juice will hold games decompiled by other projects, to play here with your own copy of each
-  game's files, as you do the games on the front page. Nothing is here yet.
+jungle.intro = Games decompiled by other projects, played here with your own copy. Coming later.
 jungle.back = Back to the games
 
 
@@ -271,9 +326,8 @@ copyright.player.no_files = The player includes no game files. To play, you impo
 copyright.player.reimplements = Its program reimplements the original game's behaviour so that it runs in a
   browser, on a port of the PopCap Games Framework.
 copyright.terms.heading = Terms
-copyright.terms.intro = Before loading game files, you must agree to the terms.
+copyright.terms.intro = Agreed before loading a game’s files.
 copyright.licenses.heading = Software licenses
-copyright.licenses.intro = Other licenses for software used by the player are available below.
 
 
 # ---- The listing's cards (cmake/ByopopWeb.cmake)
@@ -307,7 +361,7 @@ buy.where = Where to buy {title} digitally, as of {date}: {links}.
 # the words for the system that the page runs on. {app} and {depot} are Steam's numbers for the game, {mac_dir} and
 # {linux_dir} the folder Steam keeps the files in.
 steam.heading_html = On a <span class="os-mac">Mac</span><span class="os-linux">Linux computer</span>?
-steam.intro = This port of {title} is built on the Steam release for Windows. If you own the game on Steam, you can still download the Windows files:
+steam.intro = {title} here is built on its Steam release for Windows. Owners can still download its files:
 steam.step1_html = Open the Steam console: <a href="steam://open/console">open in Steam</a>, or paste <code
   class="pick">steam://open/console</code> into the address bar.
 steam.step2_html = Type <code class="pick">download_depot {app} {depot}</code> and press <span
@@ -349,6 +403,7 @@ game.status.stopped = The game stopped
 game.status.closing = Closing the game…
 game.status.restarting = Restarting…
 game.status.closed = Game closed
+# Desktop 95's game window's title after the game's name ("Bejeweled - 2 mods"): the mods that run
 game.status.mods_off = Mods off for this run
 game.status.mods_none = No mods active
 game.status.mods_active = {n} mod active | {n} mods active
@@ -376,7 +431,7 @@ game.import.zip = Choose .zip
 game.import.cancel = Cancel
 game.import.progress = Copying the game files
 game.import.not_started = Not started
-game.import.note = Files are stored in the browser. Nothing is uploaded.
+game.import.note = Stays in this browser. Nothing is uploaded.
 # {names} the packs being unpacked, separated by commas
 game.import.unpacking = Unpacking {names}…
 # {done} of {total} files copied so far
@@ -393,7 +448,6 @@ game.import.copied = Copied {count} files.
 game.import.error_missing = Partially copied. Some files are missing: {markers}.
 
 game.start.title = Ready
-game.start.desc = Click to start.
 game.start.rescue = The game did not finish starting last time. If a mod stops it from starting, play once
   without mods, then turn that mod off in the mod menu (F2) or remove it in the Mods tab.
 game.start.play = Play
@@ -401,7 +455,7 @@ game.start.nomods = Play without mods
 
 game.busy.title = Already open
 # {name} is the game's short name
-game.busy.desc_html = <span id="busy-name">{name}</span> is already running in another tab or window. Close it to continue here.
+game.busy.desc_html = <span id="busy-name">{name}</span> is running in another tab. Close it to play here.
 
 game.exit.title = Thanks for playing
 game.exit.saving = Saving…
@@ -428,7 +482,7 @@ game.files.close = Close
 game.files.reimport = Import again
 game.files.forget = Forget game files
 game.files.continue = Continue
-game.files.saves_note = Saves (high scores, the game in progress and settings) are stored in the browser.
+game.files.saves_note = Saves stay in this browser.
 game.files.summary = {count} game files are stored in this browser.
 game.files.none = No game files are stored yet.
 game.files.missing = {n} game file was missing; placeholders stand in for them: | {n} game files were missing;
@@ -464,10 +518,20 @@ settings.off = Off
 # {default} is the "Game default" text above
 settings.about = Site-wide settings. {default} to use per-game settings.
 settings.about_live = Site-wide settings. {default} to use per-game settings.
-settings.group.players = Players
-settings.group.sound = Sound
-settings.group.display = Display
-settings.group.page = Page
+# The settings' sections: the name of their row of tabs (and of Desktop 95's folder of their icons), each section's name, and
+# the name of a section's icon in the folder ({name}: the section's)
+settings.sections = Sections
+settings.section.players = Players
+settings.section.saves = Saves
+settings.section.sound = Sound
+settings.section.look = Appearance
+settings.section.overlays = On screen
+settings.section.input = Input
+settings.section.start = Starting
+settings.section.game = Game
+settings.section.page = Page
+settings.section.chat = Chat options
+settings.section.open = {name} settings
 settings.profile.label = Player names
 settings.profile.fill = High scores only
 settings.profile.create = High scores and profiles
@@ -522,10 +586,9 @@ settings.scope.legend = Change the settings for
 settings.scope.all = All games (site-wide)
 settings.scope.game = This game only
 # {name} is the game's name
-settings.scope.game_note = These values are for {name} only. “Same as all games” follows the site-wide value.
+settings.scope.game_note = For {name} only.
 settings.scope.this_game = this game
-settings.scope.own_note = This game has its own value for {n} setting, marked below. | This game has its
-  own value for {n} settings, marked below.
+settings.scope.own_note = {n} setting of its own, marked. | {n} settings of its own, marked.
 # {value} is what the site-wide setting is now, or the game's own value
 settings.inherit = Same as all games ({value})
 settings.own = This game has its own: {value}.
@@ -579,8 +642,8 @@ size.mb = {value} MB
 
 # ---- Saves: backup and restore (web/saves.js)
 
-saves.about = Your saves are kept only in the browser. Download a .zip for safekeeping or transfer.
-saves.kept = The browser may clear your saves if your drive runs low on space.
+saves.about = Stored in: this browser
+saves.kept = The browser may clear the saves when the drive is low.
 saves.list.title = In the browser
 # One game in the list: {title} then this, where {parts} is its save files and replays, {backup} the next string or nothing
 saves.list.rest = : {parts}{backup}.
@@ -687,36 +750,32 @@ saves.err.open_tab = {title} is open in another tab or window.
 # ---- Saves: import from an installed game (web/saveimport.js)
 
 saveimport.title = Import from an installed game
-saveimport.about = Bring the saves, high scores and settings of a game installed on this computer. Nothing is
-  uploaded or changed on your computer.
-saveimport.game_label = Game to import from:
+saveimport.about = Nothing leaves this computer.
+saveimport.game_label = Game:
 saveimport.choose_game = Choose a game…
-# {title} is the game's title
-saveimport.where = {title}: where the original keeps its saves
-# {step} is the number of the step
-saveimport.step.files = Step {step}. Find the folder with the save files.
-saveimport.step.registry = Step {step}. Export the game’s settings and scores from the registry.
-saveimport.step.choose = Step {step}. Choose them here.
+# the wizard: its buttons and its pages' headings
+saveimport.back = < Back
+saveimport.next = Next >
+saveimport.cancel = Cancel
+saveimport.page.game = Choose the game
+saveimport.page.files = Save files
+saveimport.page.registry = Export the registry values
+saveimport.page.regs = Choose the .reg files
+saveimport.page.review = Import
+# the registry page's one line, and the tooltip of its commands (with saveimport.order_*)
+saveimport.registry.line = In Command Prompt, in a folder you can write to such as Documents:
+saveimport.registry.not_found = They only read. “Key not found” only means the game did not use that place.
+# where to look for the save folder: a name, and the path's tooltip; the paths are made in web/saveimport.js
+saveimport.loc.install = Install folder
+saveimport.loc.install_tip = Or C:\Program Files\PopCap Games, or wherever you installed it.
+saveimport.loc.steam = Steam
+saveimport.loc.steam_tip = In your Steam library.
+saveimport.loc.vs = VirtualStore
+saveimport.loc.vs_tip = Where Windows keeps what a game in Program Files wrote when not run as administrator. If it exists, choose it as the second folder.
+saveimport.loc.appdata = All users
+saveimport.loc.appdata_tip = ProgramData is hidden: type the path in File Explorer’s address bar.
 # {what} says what a file holds (from the table of games)
-saveimport.file_what = : {what}.
-saveimport.places = These are paths inside the folder that holds them. Look in these places, and choose the
-  folder in which the paths above are found:
-# Places to look; {folder}, {steam} and {appdata} are folder names from the table of games
-saveimport.place.install_html = The game’s install folder: <code>C:\Program Files (x86)\PopCap
-  Games\{folder}</code> or <code>C:\Program Files\PopCap Games\{folder}</code>, or wherever you installed it.
-saveimport.place.steam_html = A Steam install: <code>steamapps\common\{steam}</code> in your Steam library (a
-  Steam folder can be written to, so the saves are there).
-saveimport.place.virtualstore_html = An install in Program Files that was not run as administrator: Windows
-  keeps the files the game wrote in a private copy, <code>%LOCALAPPDATA%\VirtualStore\Program Files
-  (x86)\PopCap Games\{folder}</code> (or <code>...\VirtualStore\Program Files\PopCap Games\{folder}</code>).
-  Type %LOCALAPPDATA% in File Explorer’s address bar to get there. If that folder exists, choose it as the
-  second folder below; its files are the ones the game used.
-saveimport.place.appdata_html = A game that keeps its files for all users: <code>C:\ProgramData\PopCap
-  Games\{appdata}</code> (ProgramData is hidden in File Explorer; type the path in the address bar).
-saveimport.registry.intro = Open a Command Prompt or PowerShell window in a folder you can write to (your
-  Documents folder, for example) and run these commands. No administrator rights are needed, and they only
-  read the registry: each writes a .reg file. A command that says the key was not found just means the game
-  did not use that place.
+saveimport.file_what = : {what}
 saveimport.copy = Copy
 # {hive} names a part of the registry, {file} the .reg file the command writes
 saveimport.copy_label = Copy the command for {hive}, {file}
@@ -727,25 +786,21 @@ saveimport.copied_command = the command for {hive}
 saveimport.copied_all = all {count} commands
 saveimport.copy_failed = Could not copy; select the text and copy it.
 # {order} lists the parts of the registry, joined with ", then" (the word "then" is the next string)
-saveimport.order_one = Where the same value is in more than one file, the page uses {order}, value by value.
-  On a 32-bit Windows leave out “WOW6432Node\”.
-saveimport.order_many = Where the same value is in more than one file, the page uses {order} (what the game
-  itself would read first), value by value. On a 32-bit Windows leave out “WOW6432Node\”.
+saveimport.order_one = Order: {order}. 32-bit Windows: leave out “WOW6432Node\”.
+saveimport.order_many = Order: {order}, as the game reads them. 32-bit Windows: leave out “WOW6432Node\”.
 saveimport.then = then
 saveimport.and = and
 saveimport.takes = What the page takes from the original
 saveimport.takes_registry = Registry values ({key}): {names}.
 saveimport.takes_file = File {from}: {what}.
 saveimport.takes_skip = Left alone, {from}: {why}.
-saveimport.choose = Choose what to import
-saveimport.folder1.label = Folder with the save files:
-saveimport.folder1.hint = Your browser asks to “upload” the folder’s files; they stay on this computer, and
-  only the save files in the list are read.
-saveimport.folder2.label = Second folder (optional), such as the VirtualStore copy:
-saveimport.folder2.hint = Its files are used in preference to the first folder’s.
-saveimport.regs.label = Registry files (.reg):
-saveimport.regs.hint = All of the .reg files the commands wrote.
-saveimport.choose_first = Choose the folder and the .reg files to see what would be imported.
+saveimport.folder1.label = Save folder:
+saveimport.folder1.hint = Only the save files listed are read; nothing leaves this computer.
+saveimport.folder2.label = Second folder (optional):
+saveimport.folder2.hint = Such as the VirtualStore copy. Its files win over the first folder’s.
+saveimport.regs.label = .reg files:
+saveimport.regs.hint = Every .reg file the commands wrote.
+saveimport.choose_first = Nothing chosen yet: go Back and choose the folder or the .reg files.
 saveimport.reading = Reading what you chose…
 
 # Counts
@@ -824,8 +879,6 @@ saveimport.skipped_file = {path}: {why}.
 saveimport.ignored = {n} other file in the folder is not a save and was not read. | {n} other files in the
   folder are not a save and were not read.
 saveimport.plan.yes = Import
-saveimport.plan.no = Cancel
-saveimport.plan.close = Close
 saveimport.warn.no_locks = This browser cannot tell whether a game is open (it has no Web Locks), so it does
   not import. Use a current browser.
 saveimport.warn.open = Close {title} first: a game that is open could overwrite what is imported.
@@ -914,18 +967,10 @@ players.flag.would_be = would be “{name}”: the game’s rules change the nam
 # After a game's name in the table: {flags} are the notes above, separated by semicolons
 players.flags = — {flags}
 
-# What the Player names setting is across the games. {n} games, or all of them; {verb} for a setting this page does not know
-players.mode.games = The games ask for names as they always did.
-players.mode.note = Player names: {parts}.
-players.mode.link = Player names in Settings
-players.mode.game_all = all {n} games asks as the original does | all {n} games ask as the original does
-players.mode.game_some = {n} game asks as the original does | {n} games ask as the original does
-players.mode.fill_all = all {n} games fills in the name | all {n} games fill in the name
-players.mode.fill_some = {n} game fills in the name | {n} games fill in the name
-players.mode.create_all = all {n} games uses the player | all {n} games use the player
-players.mode.create_some = {n} game uses the player | {n} games use the player
-players.mode.other_all = all {n} games {verb}
-players.mode.other_some = {n} game {verb} | {n} games {verb}
+# What the Player names setting is across the games, as values, while they differ: {parts} the values, separated by commas; a
+# part is a value of the setting (or one this page does not know, as it is) and {n} the games that have it
+players.mode.note = Player names: {parts}
+players.mode.part = {mode} ({n})
 
 # ---- The players inside the games
 players.in_games = In the games
@@ -1010,13 +1055,15 @@ chat.save = Save
 chat.cancel = Cancel
 chat.name_failed = That name was not kept.
 chat.signin = Sign in with Discord
+# the Sign in button's tooltip while it is disabled
 chat.signin_note = Not available yet.
-chat.signin_said = Signing in with Discord is not available yet.
 chat.connecting = Connecting…
 chat.unreachable = The chat is not reachable.
 chat.unreachable_start = The chat is not reachable.
 chat.show = Show the chat
 chat.hide = Hide the chat
+# the test chat's tag, and its tooltip
+chat.test = TEST
 chat.note = Test chat: the messages are made up and stay in this browser. Nothing is sent anywhere.
 
 # The line between the days of messages: {weekday}, {day}, {month} and {year} make {date}
@@ -1049,8 +1096,7 @@ chat.words.failed = The message was not sent.
 
 # ---- The Mods panel (web/modpanel.js)
 
-mods.intro = Turn mods on or off, change their order and their settings in the game's mod menu: press F2, or
-  click Mods, while the game runs.
+mods.intro = F2 or Mods in the game: turn on or off, order, settings.
 mods.add_folder = Add mod folder
 mods.add_folder_title = A mod's folder, or a folder of mods: every folder in it with a mod.json is added
 mods.add_zip = Add mod .zip
@@ -1150,23 +1196,49 @@ add.bin.forgotten = {title}'s files are forgotten.
 add.bin.failed = The files could not be forgotten.
 
 # The music player (web/music.js): the listing page's Music tab
-music.about_html = The music of the games you added, played from their files in this browser. Nothing is sent anywhere.
-  Played with <a href="licenses/libopenmpt.txt">libopenmpt</a>.
 music.unavailable = The music player is not available.
 music.none = None of the games you added has music the player can play yet.
 music.reading = Reading the games' music…
-music.loading_tune = Loading {tune} ({game})…
 music.unsupported = This browser cannot play the music (it has no AudioWorklet).
 music.failed = The music could not be played.
 music.play = Play
 music.pause = Pause
 music.next = Next
-music.loop = Repeat the tune
+music.previous = Previous
+music.stop = Stop
+music.seek = Position in the tune
+music.position = {elapsed} of {total}
+music.tracker_at = ORD {order}  PAT {pattern}  ROW {row}/{rows}
+# the channels shown of those with notes, when some are scrolled off
+music.tracker_ch = CH {first}-{last}/{count}
+music.mute = Mute
+music.vis_spectrum = Spectrum (click for the tracker)
+music.vis_tracker = Tracker (click to turn off)
+music.vis_off = No view (click for the spectrum)
+music.lcd_reading = Reading…
+music.lcd_none = No music
+music.lcd_error = Error
+music.loop = Repeat
 music.volume = Volume
-music.now = Playing {tune} ({game})
-music.paused = Paused: {tune} ({game})
-music.stopped = Choose a tune, or press Play.
-music.silent = (silent)
+# The splitter under the Music player (a separator): its name, as a tooltip and for screen readers, and its value, the rows the
+# display shows
+music.split = Display height
+music.split_rows = {n} rows
 music.tune_part = {file}, part {n}
 music.duration = {min}:{sec}
 music.album = Games on this site
+
+# The soundboard (web/sounds.js): Desktop 95's Sounds window; the buttons' names are in web/soundboards.js
+sounds.title = Sounds
+sounds.game = Game
+sounds.stop = Stop
+sounds.mute = Mute
+sounds.volume = Volume
+sounds.count = {n} sound | {n} sounds
+sounds.st_reading = Reading…
+sounds.reading = Reading the games' sounds…
+sounds.st_none = No sounds
+sounds.none = None of the games you added has sounds the board can play yet.
+sounds.st_error = Error
+sounds.failed = The sounds could not be read.
+sounds.bad_file = This file could not be played.

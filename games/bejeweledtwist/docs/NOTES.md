@@ -449,6 +449,17 @@ same seed, script and shots, in the Browser pane) matches the native port's from
 levels per channel; before that its main menu shows the site's player name and its buttons' labels sooner, because
 the site makes the player rather than the autoplay.
 
+The level-up's take-off in 3D was compared with the original on 2026-11-08, after the user found it wrong. The original ran once more on the user's visible desktop through visrun, for this comparison only (the user's answer, relayed by the coordinator on 2026-11-08: "Yes, run it"), for about a minute and a quarter: a patched copy under build/ with origrun's sound stand-in taken out and the cursor-test patch undone, its window kept on top for the run, shots by PrintWindow of its own window only, no input at all beyond the game's own `-autoplay`, and the game's registry key and users folders backed up and put back. It shot the seeded autoplay game's first level-up from update 2700 (every 13 updates or so, as fast as PrintWindow could take a 3D window) and logged the hyperspace's state. The original plays the same game as the port, its first level ending 843 to 852 updates later, the 844 the port's menu comes sooner ("Deviations", loading), so the two were lined up by the jump: the original's states changed at 3590 to 3661 (1 to 2), 3902 to 3979 (2 to 3), 4324 to 4430 (3 to 4) and 4430 to 4514 (4 to 5), the port's at 2767, 3097, 3563 and 3597, each within the original's bounds 845 to 852 updates later. During the take-off (state 2, while +0x15b is set) the old level's picture leaves on a glass cube, its outer pass an additive rainbow case, carried by +0x5d8 times 2.1 to the right, -1.3 down and -2.7 away from the camera (0x7127f1 to 0x712849, whose three products are pushed z first). The port had them as x -1.3, y -2.7 and z 2.1, so the cube came towards the camera and passed through it, and its rainbow case filled the screen as white slabs. Fixed, the take-off, the flight and the landing match the original's frames; the tube's white flash at the start and the end of the jump is the original's too. check.sh's Twist suite freezes the 3D take-off at 2780, 2900, 2940, 2980 and 3020 (the same hashes on every run; the build before the fix gives other hashes for all five). In 2D the same day the original ran seeded in the sandbox (origrun, shots every 5 updates from 2900 to 4500) and was compared by shotdiff with the port's shots 843 updates earlier, the offset at which every frame of the take-off, the jump and the new board's drop matched the port's best (`takeoff2d`): what remains is a frame's lead or lag in a slide here and there, and the gem souls, which swirl on paths of their own, since their CurvedVal is timed by the app's update count since launch, which the loading deviation shifts; the game itself, its boards and the meter's take-off and landing, is the same.
+
+The picture froze for the user on the web (2026-11-09: a flame gem set off in Classic with a bomb on the board and a
+tip up; the sound and the menu went on, and nothing more was drawn but the bombs' haze). The cause was in the shared
+GPU2D: the device begins a scene by itself when VizManager::Draw sets the target and clears the depth before the
+frame's first draw, and GPU2D's state cache caught up with that scene only at its next PreDraw. VizManager turns depth
+writing on for its FillRect of the board's rectangle in that gap, the catch-up put "off" back in the cache while the
+device kept it on, and turning it off was then skipped as no change: the depth test stayed on, against a depth buffer
+nothing cleared, for every later draw of the frame and of each frame after. The native build has the same device and cache. The caches now catch up before they are read (GPU2D::FollowScene). `gem <row> <col> flame` and live.py's
+`flame` step set flame gems off with a real twist to show it.
+
 ## Deviations
 
 Each is a change without a visible effect in play, but for the first.
@@ -924,7 +935,9 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
 - `seed`: ERROR, as the game draws from several generators; `-seed=<n>` seeds them at the start.
 - Twist's own, beside the standard set: `shutdownsaves <dir>` writes what a page going away would keep (GetShutdownSaves,
   below under "Saving on the way out") into `<dir>`, each file by its name, and answers `SHUTDOWNSAVES <names>`, so a test
-  compares it with what a quit writes.
+  compares it with what a quit writes. `gem <row> <col> flame` makes the gem there a flame gem at once (the piece's own
+  MakePower, as a match of four does, without the board's stats; ERROR with no gem there or a busy board), so a driver
+  sets flame gems off with a real twist (realplay/live.py's `flame` step).
 
 ## Saving on the way out
 

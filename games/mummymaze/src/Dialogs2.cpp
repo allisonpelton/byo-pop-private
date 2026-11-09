@@ -75,6 +75,7 @@ OptionsDialog::OptionsDialog(MummyApp* theApp) :
 	mAnkhCheckbox->SetChecked(mApp->mShowAnkh, false);
 }
 
+// 0x425e10
 OptionsDialog::~OptionsDialog()
 {
 	delete mTutorialButton;
@@ -113,6 +114,7 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 
 // 0x426190: two rows of buttons above the footer button, then the sliders and the switches (without the Register and the web
 // page buttons, the Tutorial and Scores buttons share the first row and the Credits button takes the second)
+// 0x4261f0, 0x426240
 void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
@@ -169,7 +171,14 @@ void OptionsDialog::Draw(Graphics* g)
 		g->DrawString(GT(aTexts[i]), (aBoxes[i]->mX - mX) + 0x28, (aBoxes[i]->mY - mY) + 0x15);
 }
 
-// 0x426b70: the dialog's own buttons (the footer button is the app's: ButtonDepress(2005))
+// 0x426b50: every press of a button of the dialog clicks; the footer button's also reaches the app, which clicks too
+void OptionsDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_CLICK);
+}
+
+// 0x426b70, 0x41ca70 (its question for the Tutorial button): the dialog's own buttons (the footer button is the app's: ButtonDepress(2005))
 void OptionsDialog::ButtonDepress(int theId)
 {
 	Dialog2004::ButtonDepress(theId);
@@ -295,11 +304,19 @@ TipDialog::TipDialog(MummyApp* theApp, int theWhich) :
 	mCheckbox = new Checkbox(aUnchecked, aChecked, 0, this);
 }
 
+// 0x42bb00 (its deleting form 0x42bae0); the two pictures of the check box are freed here, and are not in the original
 TipDialog::~TipDialog()
 {
 	delete mCheckbox;
 	delete mCheckedImage;
 	delete mUncheckedImage;
+}
+
+// 0x412d80
+void TipDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_CLICK);
 }
 
 // 0x42bba0

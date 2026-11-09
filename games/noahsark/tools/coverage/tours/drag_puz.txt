@@ -1,0 +1,34 @@
+# Drags in the puzzle mode (GAME_NOTES.md, "Coverage check"): the original's Board::MouseDrag (0x40f710) and the port's, each press, move and
+# release at an update of its own (origrun's moves carry the held button's flag since 865a602e). The board of the easy game with seed 1 is
+# the port's too (row y0 is 2 5 0 5 6 0 5 6 6, row y1 4 6 2 3 6 0 4 2 4, y2 1 0 3 5 1 2 3 5 5); a cell (x, y) is at pixel (203 + 50x, 41 + 50y).
+# "state" lines are for the port's script only (all.sh drops them from the original's).
+301 click 320 456
+360 click 198 296
+381 click 320 195
+420 click 330 335
+700 click 400 240
+# the get-ready click also picks the animal under it (4,4): a click outside the board puts it back
+720 click 100 240
+730 state
+# 1. press on (0,0) (a 2), drag onto the neighbour (1,0) (a 5): the two swap at once, no match, so they swap back; a move while the swap
+# runs returns early; a move after it with nothing selected and the drag going on returns (mDragging)
+740 move 203 41
+742 down 203 41
+744 move 253 41
+745 state
+746 move 255 41
+800 move 260 41
+802 up 260 41
+803 state
+# 2. press on (0,2) (a 1), drag two cells away (2,2): the pick is dropped; on to (1,2) with nothing picked and no drag going: the
+# animal there is picked by the drag; down to (1,3): the two swap
+900 move 203 141
+902 down 203 141
+904 move 303 141
+906 move 253 141
+908 move 253 191
+909 state
+910 up 253 191
+950 state
+1100 state
+1200 move 1 1

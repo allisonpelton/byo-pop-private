@@ -948,7 +948,7 @@ void BonniesApp::update()
 		setState(mNextState, 0, 0);
 }
 
-// 0x403e90
+// 0x403e90 (0x40e250, which always answers 1, is inline at its end)
 int BonniesApp::handleEvent(Event* theEvent)
 {
 	switch (theEvent->mType)
