@@ -62,6 +62,13 @@ Each of these has no visible effect on play unless the entry says so.
   of a piece filters with the picture's own edge, where Direct3D's wrap filters with the opposite edge: at most one pixel of
   a seam, not yet compared with the original's.
 
+- **The port never calls `Done3dTesting`.** The original's `DDInterface::Init` calls it (vtable +0x15c) once its 3D test is
+  over, and on a machine without acceleration the app then drops to 640 by 480 (`HighResolution` 0). The port's display decides 3D
+  by the SDL renderer it got (accelerated or software) and the app keeps the 1024 by 768 size either way, so a software-only
+  machine plays at 1024 by 768 where the original plays at 640 by 480. A test that wants the original's 2D size (the phase-one
+  comparison, which runs the original on rundesk's desktop, where it has no 3D) sets `HighResolution=dword:0` in the registry file
+  and `SDL_RENDER_DRIVER=software` (`Driver(is3d=False)`).
+
 ## Test commands
 
 The standard commands of `docs/TEST_COMMANDS.md` are in `src/TestCommands.cpp` (`WinDMApp::HandleTestCommand`, reached from
@@ -80,9 +87,18 @@ on the message's button, once the dialog has stopped sliding; in the puzzle mode
 valid one of the puzzle's own solution file (`FindPuzzleValidMoves`, the moves the hint shows). `goto options`, `goto help` and
 `goto highscores` take the same latch to the menu (closing whatever is open the way its own button does) and then open the
 options dialog, the How To Play screen or the high scores; the credits are no screen of their own (they roll after the last
-level of Classic) and answer an error. Not yet: `set` for other keys. `tools/playbymove/playbymove.py` plays every mode but the puzzle
-ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/realplay/soak.py` is a first driver that plays the
-bot's moves as real input from the title on (the name typed, the dialogs clicked).
+level of Classic) and answer an error. `state` also carries what a driver clicks: `widgets` (the middle of the title's play link,
+the menu's mode buttons and secret button, the high scores' back button, in game pixels; `[0,0]` before the menu has laid them out),
+`secret` (whether the menu's secret button is toggled on) and `user` (whether a player exists; `unlock all` with one also lays the
+menu out again, so the secret button shows) and `updates` (the app's update count, which is what origrun's update counter is in the
+original, so a recorded input can be given to the original at the same update). `-trace` (with `-commands`) prints a line for every
+change of four values of the board, in the form of origrun's `--watch` lines (`watch 1: 0 -> 30 at update 1015`; "-" while there is no
+board): the score, the level, `mState` and the index of the board's random generator (`MTRand::mti`; the original's `[[0x67ccd8]+0xe68]`
+plus 0x15e20, 0x15e4, 0x170c and 0x15e0). `games/bejeweled2/tools/origcmp/` is the phase-one comparison with the original: `record.py`
+plays a mode with real input in true 2D (below) and writes every input with its update, `to_origrun.py` turns that into an origrun
+script, `run_original.sh` runs the original on origrun's virtual clock with the same seed and those four watches, and `compare.py`
+lines the two lists of changes up. Not yet: `set` for other keys. `tools/playbymove/playbymove.py` plays every mode but the puzzle
+ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/realplay/full.py` is the real-input driver (its header says how it runs; `soak.py` is its first version).
 
 ## Oddities (skipped, not chased)
 
@@ -98,6 +114,23 @@ bot's moves as real input from the title on (the name typed, the dialogs clicked
   freed gems of the squares that are not made yet. Their memory holds what the allocator left there. The port clears
   the pointers (those squares read as empty); whether the original's HasSet ever counted a stale gem, and so drew one
   more colour, is for the identical-play comparison of a level change to show.
+- **AddAlphaSparkle's pixel test reads the original's 640 by 480 scaled images** (0x5a7bfb): in the 2D game it looks for a solid
+  pixel of the picture it is given (up to 100 tries, each a `Rand()`), and the picture it reads is the 640 by 480 copy that
+  the original makes of every gem image when it starts at that size. The port keeps one set of 1024 by 768 images and scales
+  on the screen, so the pixels it finds are not the original's and the global generator then draws a different number of
+  numbers. The comparison with the original's 2D game therefore runs with `nosparkle` (a test command; the original's copy is
+  patched the same way, `build/origrun/bej2_nosparkle.txt` holds the seed patch and the AddAlphaSparkle patch) and compares
+  everything else. In the 3D game both sides read the same 1024 by 768 images and need no such step.
+- **Hyperspace::Update2d's star lines depend on the screen's width** (0x5c7532): each new line takes `Rand() % mWidth`, so a jump
+  at 640 by 480 (the original without 3D) draws different numbers than the port's 2D at 1024 by 768 scaled down. The 2D
+  comparison is made up to the first jump; the 3D comparison (both at 1024 by 768) goes through them.
+- **A click on a dialog reaches the 3D original one update after the port's** (not a bug of either): in the original's 3D loop the
+  board resumes its ticks one update after a dialog's button was clicked, where the port resumes at once. The comparison tool
+  gives the original those inputs one update earlier (`to_origrun.py --dialog-shift -1`, `run_mode.sh` does it with `HIRES=1`; the Escape key that closes a hint dialog is the exception: it reaches the board's resume at the same update as the port's, and a shifted one resumes it an update early, which moved the carried-over flame gem's pick by one draw of the global generator),
+  and the watch lines of the 3D original then fall one update after the port's (its loop) with the same values in the same order.
+- **The original's first run after another one sometimes never creates a board** (seen a few times, in 2D and 3D alike, as a
+  state watch that stays at its title value); a second run is as the first should have been. `run_original.sh` runs again
+  when a log has no board.
 - **The tunnel's triangles are drawn with tx = 1.0**: the original's wrapper passes a byte that stands for "blend" to the
   argument that moves the vertices in x, so every vertex is one pixel to the right. The port repeats it.
 

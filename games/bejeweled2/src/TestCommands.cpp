@@ -5,6 +5,8 @@
 // DoMainMenu, the board's own GameOver). The game's notes list them (GAME_NOTES.md, "Test commands").
 
 #include "WinDMApp.h"
+#include <climits>
+#include <SDL.h>
 #include "Board.h"
 #include "Piece.h"
 #include "MainMenu.h"
@@ -12,6 +14,7 @@
 #include "Profile.h"
 #include "UserDialogs.h"
 #include "HelpScreen.h"
+#include "HyperlinkWidget.h"
 #include "GalaxyParser.h"
 #include "PuzzleStateOverlay.h"
 #include "HighScoreWidget.h"
@@ -120,6 +123,52 @@ static void UnlockAll(Profile* theProfile)
 		theProfile->mModeLevel[3] = 280;
 }
 
+bool gTestNoSparkle = false;  // set by the test command nosparkle (BoardEffects.cpp)
+
+// -trace (a test flag): the same four values that origrun's --watch reads in the original (docs/ORIGRUN.md), in the same lines
+// ("watch 1: 0 -> 10 at update 312"), so tools/origcmp pairs them value by value: 1 the board's score, 2 its level, 3 its state
+// and 4 the position in its generator's state vector, each "-" while there is no board. Logged in the update in which a value
+// differs from the last one logged, with the update count the framework keeps (+0x484 in the original).
+void WinDMApp::TraceUpdate()
+{
+	static const int WATCHES = 8;
+	static int sLast[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN};  // INT_MIN: no board
+	static bool sFirst = true;
+	int aValue[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN};
+	if (mBoard != NULL)
+	{
+		uint32_t aState[624];
+		int anIndex = 0;
+		mBoard->mRand.GetState(aState, &anIndex);
+		aValue[0] = mBoard->mScore;
+		aValue[1] = mBoard->mLevel;
+		aValue[2] = mBoard->mState;
+		aValue[3] = anIndex;
+		// watches 6 to 8 are for debugging (compare.py --pair 2=6 and so on, with WATCHES=... for the original): the board's +0x1730,
+		// +0x1714 and +0x1768
+		aValue[5] = mBoard->mDropDelay;
+		aValue[6] = mBoard->mScreenState;
+		aValue[7] = mBoard->m1768;
+	}
+	{
+		// watch 5: the global generator's index, which the original's [0x67cf50 + 0x9c0] is (the draws of Rand())
+		uint32_t aState[624];
+		int anIndex = 0;
+		GetRandMTState(aState, &anIndex);
+		aValue[4] = anIndex;
+	}
+	for (int i = 0; i < WATCHES; i++)
+	{
+		if (!sFirst && aValue[i] == sLast[i])
+			continue;
+		std::string anOld = sFirst ? "?" : (sLast[i] == INT_MIN ? "-" : StrFormat("%d", sLast[i]));
+		std::string aNew = aValue[i] == INT_MIN ? "-" : StrFormat("%d", aValue[i]);
+		SDL_Log("watch %d: %s -> %s at update %d", i + 1, anOld.c_str(), aNew.c_str(), mUpdateCount);
+		sLast[i] = aValue[i];
+	}
+	sFirst = false;
+}
+
 // what mTestGoto holds besides a mode (0 to 8)
 enum { TEST_GOTO_OPTIONS = -2, TEST_GOTO_HELP = -3, TEST_GOTO_HIGHSCORES = -4 };
 
@@ -195,12 +244,21 @@ void WinDMApp::TestAdvanceGoto()
 	}
 }
 
+// "name":[x,y]: the middle of a visible widget, in game pixels (what a driver clicks)
+static void AddWidgetPos(std::string& theList, const char* theName, Widget* theWidget)
+{
+	if (theWidget == NULL || !theWidget->mVisible)
+		return;
+	theList += StrFormat("%s\"%s\":[%d,%d]", theList.empty() ? "" : ",", theName, theWidget->mX + theWidget->mWidth / 2,
+		theWidget->mY + theWidget->mHeight / 2);
+}
+
 bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
 	const std::string& anArgs = theCommand.mArgs;
 	if (aCommand != "state" && aCommand != "goto" && aCommand != "level" && aCommand != "unlock" && aCommand != "set" &&
-		aCommand != "win" && aCommand != "lose" && aCommand != "seed" && aCommand != "move")
+		aCommand != "win" && aCommand != "lose" && aCommand != "seed" && aCommand != "move" && aCommand != "nosparkle")
 		return false;
 
 	std::string aScreen = TestScreen();
@@ -209,7 +267,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 
 	if (aCommand == "state")
 	{
-		std::string aLine = "STATE {\"screen\":\"" + aScreen + "\"";
+		std::string aLine = "STATE {\"screen\":\"" + aScreen + "\"" + StrFormat(",\"updates\":%d", mUpdateCount);
 		if (mMainMenu != NULL)
 			aLine += StrFormat(",\"menu\":%d", (int)mMainMenu->mState);
 		std::string aDialogs;
@@ -232,7 +290,52 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			}
 			aLine += ",\"buttons\":{" + aButtons + "}";
 		}
+		// the widgets of the screen in front that a click reaches (not those of a dialog: "buttons" above): the title's play
+		// link, the menu's buttons, the board's buttons
+		if (mDialogMap.empty())
+		{
+			std::string aWidgets;
+			if (mTitleScreen != NULL)
+				AddWidgetPos(aWidgets, "play", mTitleScreen->mPlayLink);
+			else if (aScreen == "highscores" && mHighScoreWidget != NULL)
+			{
+				// back to the menu (or the game), and play again (or reset the scores when it was opened from the menu)
+				AddWidgetPos(aWidgets, "back", mHighScoreWidget->mBackButton);
+				AddWidgetPos(aWidgets, "again", mHighScoreWidget->mActionButton);
+			}
+			else if (aBoard != NULL && aScreen == "game")
+			{
+				AddWidgetPos(aWidgets, "menu", aBoard->mMenuButton);
+				AddWidgetPos(aWidgets, "hint", aBoard->mHintButton);
+				AddWidgetPos(aWidgets, "third", aBoard->mThirdButton);
+				AddWidgetPos(aWidgets, "tutorial1", aBoard->mTutorialButton1);
+				AddWidgetPos(aWidgets, "tutorial2", aBoard->mTutorialButton2);
+				AddWidgetPos(aWidgets, "playagain", aBoard->mPlayAgainButton);
+				AddWidgetPos(aWidgets, "mainmenu", aBoard->mMainMenuButton);
+			}
+			else if (aScreen == "menu" && mMainMenu != NULL)
+			{
+				AddWidgetPos(aWidgets, "classic", mMainMenu->mClassicButton);
+				AddWidgetPos(aWidgets, "action", mMainMenu->mActionButton);
+				AddWidgetPos(aWidgets, "puzzle", mMainMenu->mPuzzleButton);
+				AddWidgetPos(aWidgets, "endless", mMainMenu->mEndlessButton);
+				AddWidgetPos(aWidgets, "secret", mMainMenu->mSecretButton);
+				AddWidgetPos(aWidgets, "options", mMainMenu->mOptionsButton);
+				AddWidgetPos(aWidgets, "scores", mMainMenu->mScoresButton);
+				AddWidgetPos(aWidgets, "quit", mMainMenu->mQuitButton);
+				AddWidgetPos(aWidgets, "user", mMainMenu->mUserLink);
+			}
+			if (!aWidgets.empty())
+				aLine += ",\"widgets\":{" + aWidgets + "}";
+			// whether the menu's secret button is on (a mode button then starts its secret mode)
+			if (aScreen == "menu" && mMainMenu != NULL && mMainMenu->mSecretButton != NULL)
+				aLine += mMainMenu->mSecretButton->mSelected ? ",\"secret\":true" : ",\"secret\":false";
+			// whether the menu has a player yet (the new player's dialog opens a while after the menu)
+			if (aScreen == "menu")
+				aLine += (mProfile != NULL && !mProfile->mName.empty()) ? ",\"user\":true" : ",\"user\":false";
+		}
 		aLine += mIsWindowed ? ",\"windowed\":true" : ",\"windowed\":false";
+		aLine += Is3DAccelerated() ? ",\"is3d\":true" : ",\"is3d\":false";
 		aLine += mHasFocus ? ",\"focus\":true" : ",\"focus\":false";
 		if (aBoard != NULL)
 		{
@@ -263,10 +366,32 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				aRows += "\"";
 			}
 			aLine += ",\"board\":[" + aRows + "]";
+			// the gems with the flame flag (+0x70), a row a string: f for a flame gem, . for the others
+			std::string aFlames;
+			for (int aRow = 0; aRow < 8; aRow++)
+			{
+				aFlames += aRow == 0 ? "\"" : ",\"";
+				for (int aCol = 0; aCol < 8; aCol++)
+				{
+					Piece* aPiece = aBoard->mBoard[aRow][aCol];
+					aFlames += (aPiece != NULL && aPiece->m70) ? 'f' : '.';
+				}
+				aFlames += "\"";
+			}
+			aLine += ",\"flames\":[" + aFlames + "]";
 		}
 		else
 			aLine += StrFormat(",\"modeid\":%d", mGameMode);
 		Reply(aLine + "}");
+		return true;
+	}
+
+	// nosparkle: Board::AddAlphaSparkle returns at once (origcmp patches the original the same way, so that the 640 by 480 scaled
+	// image that its pixel test reads, which the port does not have, does not decide how many generator values the sweep uses)
+	if (aCommand == "nosparkle")
+	{
+		gTestNoSparkle = true;
+		ReplyOK(theCommand);
 		return true;
 	}
 
@@ -297,6 +422,12 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		UnlockAll(mProfile);
+		// the menu shows the secret button (and the secret modes' pictures) as it does after a change of profile
+		if (mMainMenu != NULL)
+		{
+			mMainMenu->SyncProfile();
+			mMainMenu->ResizeComponents();
+		}
 		ReplyOK(theCommand);
 		return true;
 	}

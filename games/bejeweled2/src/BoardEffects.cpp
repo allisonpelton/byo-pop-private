@@ -219,7 +219,7 @@ void Board::ExplodeAt(int theCol, int theRow)
 		for (int k = 0; k < 15; k++)
 		{
 			anAcc += aShardInc;
-			if (anAcc > 1.0f)
+			if (anAcc >= 1.0f)
 			{
 				anAcc -= 1.0f;
 				double aD = (double)k;
@@ -258,7 +258,7 @@ void Board::ExplodeAt(int theCol, int theRow)
 		for (int k = 0; k < 0x12; k++)
 		{
 			anAcc += aShardInc;
-			if (anAcc > 1.0f)
+			if (anAcc >= 1.0f)
 			{
 				anAcc -= 1.0f;
 				double aD = (double)k;
@@ -286,7 +286,7 @@ void Board::ExplodeAt(int theCol, int theRow)
 		for (int k = 0; k < 0x50; k++)
 		{
 			anEffectAcc += anExplodeInc;
-			if (anEffectAcc > 1.0f)
+			if (anEffectAcc >= 1.0f)
 			{
 				anEffectAcc -= 1.0f;
 				Effect* e = AllocEffect();
@@ -693,7 +693,7 @@ void Board::UpdateEffects()
 		else
 		{
 			w.mProgress = w.mGrowStep + w.mProgress;
-			if (w.mProgress > 1.0f)
+			if (w.mProgress >= 1.0f)
 			{
 				w.mProgress = 1.0f;
 				w.mGrowing = false;
@@ -702,9 +702,13 @@ void Board::UpdateEffects()
 	}
 }
 
+extern bool gTestNoSparkle;  // TestCommands.cpp: the test command nosparkle
+
 // 0x5a7bfb: a spark on a solid pixel of the picture (up to 100 tries to find one)
 void Board::AddAlphaSparkle(int theX, int theY, MemoryImage* theImage, int theWidth, int theHeight)
 {
+	if (gTestNoSparkle)
+		return;
 	if (theWidth == 0)
 		theWidth = theImage->GetWidth();
 	if (theHeight == 0)
