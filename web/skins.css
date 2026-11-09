@@ -961,3 +961,5 @@ html.d95-desk .lib-win button:focus-visible, html.d95-desk .lib-win input:focus-
 .lib-props-row button { min-width: 72px; }
 /* narrow: the window maximized, as every window there; Last played and Year give way */
 html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year { display: none; }
+/* a link to one of our pages opens a window on Desktop 95's one page, not a tab (web/deskapps.js): its "opens in a new tab" goes */
+html.d95-desk .newtab { display: none; }

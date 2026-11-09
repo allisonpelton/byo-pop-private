@@ -124,7 +124,7 @@ var ByopopLibrary = (function () {
         var tr = make("tr", "lib-row lib-s-" + g.status);
         tr.setAttribute("role", "row"); tr.setAttribute("aria-selected", "false");
         var name = make("td", "lib-c-name");
-        name.setAttribute("role", "gridcell"); name.tabIndex = -1;
+        name.setAttribute("role", "rowheader"); name.tabIndex = -1;
         var ic = make("i", "lib-icon");
         ic.setAttribute("aria-hidden", "true");
         if (g.icon) { var im = make("img"); im.alt = ""; im.draggable = false; im.src = g.icon; ic.appendChild(im); }

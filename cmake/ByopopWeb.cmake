@@ -1099,7 +1099,7 @@ function(byopop_web_index)
     string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\" data-win95=\"${win95}\"${unsold_attr}>"
       "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
       "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
-      "<span class=\"name\">${title}</span>${year_html}</a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")
+      "<span class=\"name\">${title}</span>${year_html}<span class=\"own\" aria-hidden=\"true\"></span></a><div class=\"ownrow\"></div>${buy_html}</li>")
     list(APPEND tiles "${tile}")
     math(EXPR count "${count} + 1")
   endforeach()
