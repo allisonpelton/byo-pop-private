@@ -104,6 +104,8 @@ public:
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
+	virtual void		ButtonPress(int theId) override;      // 0x403430: the empty listener function
+	using ScrollScreen::ButtonPress;
 };
 
 // 0x414290: the parchment with the game-over text that comes down over the high scores and goes up again

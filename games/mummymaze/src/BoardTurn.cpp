@@ -496,6 +496,7 @@ void Board::UpdateScorpion()
 }
 
 // 0x4067f0
+// 0x406f00
 void Board::Update()
 {
 	if (mApp->mWorldMap != NULL)
@@ -842,6 +843,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	MoveSound(e->mTargetX);
 }
 
+// 0x4112a0
 void Board::ButtonPress(int theId)
 {
 	(void) theId;
@@ -849,6 +851,7 @@ void Board::ButtonPress(int theId)
 }
 
 // 0x4112b0: the tutorial's buttons and the link after a level
+// 0x411300
 void Board::ButtonDepress(int theId)
 {
 	switch (theId)

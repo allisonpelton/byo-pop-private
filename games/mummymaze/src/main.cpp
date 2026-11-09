@@ -90,6 +90,7 @@ static std::string FindGameDir()
 }
 #endif
 
+// 0x412e40
 int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");

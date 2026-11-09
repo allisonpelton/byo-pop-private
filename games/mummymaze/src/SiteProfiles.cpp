@@ -161,7 +161,8 @@ public:
 	virtual int MaxPlayers() { return 5; }
 
 private:
-	// The slot of the adventure called that, whatever the case (the OK's stricmp), or -1
+	// The slot of the adventure called that, whatever the case (the site's own rule: the game's OK compares the names
+	// exactly, 0x41fff0, so Bob and bob can both be saved in it), or -1
 	int SlotOf(const std::string& theName)
 	{
 		for (int i = 0; i < 5; i++)
