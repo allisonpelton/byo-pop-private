@@ -112,5 +112,6 @@ comment. A game that finds missing logic translates it from the export and runs 
 
 Functions only: a function is reached or not, with no count of calls and no lines or branches inside it. The exe's own
 code only, not the game's DLLs. Not inside Windows Sandbox yet, so a game whose comparisons run there (Bejeweled's do)
-takes its coverage runs on the host, where origrun posts input and takes no shots. A comparison of the framework's own
+takes its coverage runs on the host, where origrun posts input and takes no shots (it refuses a script with shots
+there), so a coverage script's click positions come from the port's own screenshots. A comparison of the framework's own
 coverage across games is not part of it.
