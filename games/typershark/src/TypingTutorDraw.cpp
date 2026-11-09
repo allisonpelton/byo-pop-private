@@ -4,7 +4,8 @@
 //
 // Quirk of the original that is kept: in the typing state the lines before and after the line being typed are placed by their
 // index in the task, not by their place among the four shown (only the line being typed is), so from the fifth line of a task
-// on, when mFirstLine is above 0, they are drawn that many lines too low.
+// on, when mFirstLine is above 0, they are drawn that many lines too low. No lesson shows it: the longest task has five lines, so
+// the line being typed is the only one drawn once mFirstLine is above 0 (section 10 of the game notes).
 // Deviation (port:): the key labels around the fingers are drawn without the "^rrggbb^" colour codes of WriteString2004, as
 // the original does (it switches the framework's colour codes off around them); the port's WriteString2004 has no such switch.
 

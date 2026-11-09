@@ -3,6 +3,7 @@
 #include "Graphics.h"
 #include "Image.h"
 #include "MTRand.h"
+#include "Fixes.h"
 
 using namespace Sexy;
 
@@ -12,7 +13,8 @@ using namespace Sexy;
 // of the bit, but the draw is kept
 BackgroundFish::BackgroundFish(WinWSApp* theApp) :
 	mApp(theApp),
-	mImage(NULL)
+	mImage(NULL),
+	mFollower(false)
 {
 	mNumFrames = 20;
 	mVelY = 0.0;
@@ -59,10 +61,11 @@ BackgroundFish::BackgroundFish(WinWSApp* theApp) :
 // is put left of the screen by the frame width up to twice that, and a random amount (below the frame height) above or
 // below the template. The original computes the x as -(random % width + width) in unsigned arithmetic and converts that
 // to a double, which gives a number near 4.29e9 (the board then removes the fish at its first tick, as it is right of
-// the screen); kept
+// the screen); kept, and mended by the fixes mod's "schools" toggle (mods/fixes/mod.json)
 BackgroundFish::BackgroundFish(WinWSApp* theApp, BackgroundFish* theTemplate) :
 	mApp(theApp),
-	mImage(NULL)
+	mImage(NULL),
+	mFollower(true)
 {
 	mNumFrames = 20;
 	mVelY = theTemplate->mVelY;
@@ -72,8 +75,12 @@ BackgroundFish::BackgroundFish(WinWSApp* theApp, BackgroundFish* theTemplate) :
 	mY = theTemplate->mY;
 	unsigned int aWidth = (unsigned int)mFrameWidth;
 	mImage = theTemplate->mImage;
-	unsigned int aX = 0u - ((unsigned int)gGameRand->NextNoAssert() % aWidth + aWidth);
-	mX = (double)aX;
+	unsigned int anOffset = (unsigned int)gGameRand->NextNoAssert() % aWidth + aWidth;
+	unsigned int aX = 0u - anOffset;
+	if (FixEnabled("schools"))
+		mX = -(double)anOffset;		// fixes mod: a follower swims in behind its leader
+	else
+		mX = (double)aX;
 	if (((unsigned int)gGameRand->NextNoAssert() & 1) == 0)
 	{
 		unsigned int aDY = (unsigned int)gGameRand->NextNoAssert() % (unsigned int)mFrameHeight;

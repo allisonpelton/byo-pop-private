@@ -7,13 +7,16 @@
 // picture is never used); the shift test does not list { } _ and |, which are typed with shift, so they light their key but
 // not the shift key; the characters \ _ and | get no finger and no ring, while { and } get the finger of [ and ]; the tab and
 // the other control characters light nothing. The tables are the original's own (two jump tables over the characters, the
-// same for a letter in either case).
+// same for a letter in either case). The fixes mod's "tutorKeyboard" toggle mends them: the 8 key lights its own picture, the
+// braces and the underscore light the shift key, and the underscore gets the right little finger and its ring (the lessons hold
+// no bar or backslash).
 
 #include "TypingTutor.h"
 #include "WinWSApp.h"
 #include "GameText.h"
 #include "Image.h"
 #include "Res.h"
+#include "Fixes.h"
 
 using namespace Sexy;
 
@@ -75,11 +78,14 @@ void TypingTutor::SetupHighlight()
 	ResetFingers();
 
 	char aChar = mExpectedChar;
-	if (((((((aChar < 'A') || ('Z' < aChar)) && (aChar != '~')) && ((aChar != '!') && (aChar != '@'))) &&
+	bool aMend = FixEnabled("tutorKeyboard");
+	// the fix: { } and _ are typed with shift too, so they take the right hand's branch of the switch below
+	bool aShiftedSymbol = aMend && (aChar == '{' || aChar == '}' || aChar == '_');
+	if (!aShiftedSymbol && (((((((aChar < 'A') || ('Z' < aChar)) && (aChar != '~')) && ((aChar != '!') && (aChar != '@'))) &&
 		((aChar != '#') && ((aChar != '$') && (aChar != '%')))) && (aChar != '^')) &&
 		(((((aChar != '&') && (aChar != '*')) && (aChar != '(')) &&
 		(((aChar != ')') && (aChar != '+')) && ((aChar != '<') && ((aChar != '>') && (aChar != ':'))))) &&
-		((aChar != '"') && (aChar != '?'))))
+		((aChar != '"') && (aChar != '?')))))
 	{
 		mShift = 0;
 	}
@@ -160,7 +166,13 @@ void TypingTutor::SetupHighlight()
 		aLabel = std::string(1, mExpectedChar);
 		break;
 	default:
-		// the control characters other than the new line, and the characters \ _ |: no finger
+		// the control characters other than the new line, and the characters backslash, _ and |: no finger (the fix gives _ the right
+		// little finger)
+		if (aMend && aKey == '_')
+		{
+			aFinger = 8;
+			aLabel = std::string(1, mExpectedChar);
+		}
 		break;
 	}
 	if (aFinger != -1)
@@ -222,7 +234,7 @@ void TypingTutor::SetupHighlight()
 		anY = 171;
 		break;
 	case '*': case '8':
-		anImage = IMAGE_GLO_9;
+		anImage = aMend ? IMAGE_GLO_8 : IMAGE_GLO_9;
 		anX = 237;
 		anY = 171;
 		break;
