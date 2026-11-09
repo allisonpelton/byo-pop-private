@@ -1530,6 +1530,7 @@ static int  parse_vk(const char*);
 // (UpdateAppStep), and each millisecond of hold is time its clock runs on. A held click now holds the game for
 // about 0.04 ms instead of 60.
 static int gInputHeld = 0;
+static WPARAM gButtonsHeld = 0;   // MK_LBUTTON and MK_RBUTTON while a down edge has had no up: a move then carries them, as Windows' do, so a down, moves and an up on updates of their own make a drag
 static void input_gap(DWORD ms){ if (!gInputHeld && !vc_is_held()) Sleep(ms); }   // a game held on the virtual clock reads them all in order too
 static void exec_at(const char* inner)
 {
@@ -1559,7 +1560,7 @@ static void exec_at(const char* inner)
 	else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,1); }
 	else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hw,parse_vk(v)); }
 	else if (ieq(cmd,"text")){ post_text(hw,rest); }
-	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); } }
+	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,gButtonsHeld,xy(x,y)); } }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }
 	else if (ieq(cmd,"keydown")||ieq(cmd,"keyup")||ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge (kdown/kup: the same), so that a press can span updates (a game that polls its key state, or clears a key when it is let go, loses a down and up read in one update)
 		char v[32]; if(sscanf(rest,"%31s",v)==1) { int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
@@ -1570,8 +1571,9 @@ static void exec_at(const char* inner)
 		int r=cmd[0]=='r'||cmd[0]=='R', down=ieq(cmd+r,"down");
 		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
 		if (n==2) cursor_note(hw,x,y);
-		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,0,lp); PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,r?MK_RBUTTON:MK_LBUTTON,lp); }
-		else PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,0,lp);
+		WPARAM bit=r?MK_RBUTTON:MK_LBUTTON;
+		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp); gButtonsHeld|=bit; PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,gButtonsHeld,lp); }
+		else { gButtonsHeld&=~bit; PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,gButtonsHeld,lp); }
 	}
 	else logline("at: cannot do '%s' at an update",cmd);
 	gInputHeld = 0;
@@ -1813,7 +1815,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		}
 		HWND hwnd = resolve_window(0,NULL);   // the live main window of any of our processes, fresh each command
 		if (!hwnd && !ieq(cmd,"quit")) { logline("(%s) no live window -- skipping",cmd); continue; }
-		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hwnd,x,y); PostMessageA(hwnd,WM_MOUSEMOVE,0,xy(x,y)); } }
+		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hwnd,x,y); PostMessageA(hwnd,WM_MOUSEMOVE,gButtonsHeld,xy(x,y)); } }
 		else if (ieq(cmd,"click")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hwnd,x,y,0); }
 		else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hwnd,x,y,1); }
 		else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hwnd,parse_vk(v)); }
