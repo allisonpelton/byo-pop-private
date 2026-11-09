@@ -97,6 +97,7 @@ static bool gGaveUp = false;
 static std::mt19937 gOrder;
 static bool gShuffle = false;
 static bool gClassic = false;  // MJ_CLASSIC: a classic game is won when no tile is left
+static bool gDeadEnd = false;  // MJ_DEADEND (with MJ_CLASSIC): the first play that leaves tiles and no pair, for the no-moves box
 
 static void Apply(Layout& theLayout, Move& theMove)
 {
@@ -188,6 +189,8 @@ static bool AllTaken()
 
 static bool SolveFrom(Layout& theLayout)
 {
+	if (gDeadEnd && AllTaken())
+		return false;
 	if (gClassic ? AllTaken() : (!gMoves.empty() && gMoves.back().mFirst->mKind == 0x2b))
 		return true;
 	std::string aKey;
@@ -250,6 +253,8 @@ static bool SolveFrom(Layout& theLayout)
 				anAdd(a, b);
 		}
 	}
+	if (gDeadEnd && aMoves.empty())
+		return true;
 	if (gShuffle)
 		std::shuffle(aMoves.begin(), aMoves.end(), gOrder);
 	std::stable_sort(aMoves.begin(), aMoves.end(),
@@ -321,6 +326,7 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 		aLayout.UpdateFree();
 	}
 	gClassic = getenv("MJ_CLASSIC") != nullptr;
+	gDeadEnd = gClassic && getenv("MJ_DEADEND") != nullptr;
 	if (theDeal)
 	{
 		// As Board::Start (0x40ae60) deals a stage's blank tiles: with the stage's seed, from the player's file

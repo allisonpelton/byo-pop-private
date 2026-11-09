@@ -190,7 +190,8 @@ and uses this much of a core to draw 800x600 in software was not examined; both 
 ## Coverage check (2026-11-08)
 
 The first whole coverage check of Ancient Japan (`docs/COVERAGE.md`, "A game's whole check"). origrun's `--coverage`
-recorded which of the original's functions ran, in 16 runs on the host (`games/mahjongjapan/tools/coverage/run.sh`
+recorded which of the original's functions ran, in 27 runs on the host (16 on 2026-11-08, 11 more on 2026-11-09 for the
+plays the first round could not make) (`games/mahjongjapan/tools/coverage/run.sh`
 stages a copy and runs it under rundesk; `mkscript.py` writes the scripts; the hits are in
 `build/coverage/mahjongjapan/hits/`). The adventure's and the classic game's runs used origrun's virtual clock (no
 waiting); the tour, the players, Esc, resume and end-box runs and the first stage's second run (`adv-1-real`) ran on
@@ -214,6 +215,35 @@ start and none made a sound.
 
 Every other run ended with the game exiting normally.
 
+**The second round** (2026-11-09) used what origrun gained for this game, which has no update counter: `down`, `up`,
+`rdown` and `rup` as plain script lines (a `wait` between them holds a press, and a `move` in between is a drag),
+`dclick`, and the characters `text` posts. Each is a run of its own:
+
+- **`drags`**: a press, a short drag and a release at every 12 pixels along the options dialog's two volume sliders (the
+  thumb is wherever the saved volume put it). It needs a player first: on a first run every menu button but Quit asks
+  for a name.
+- **`nameedit`**: the new-player box of a first run. A click in the name box, the typed name, a drag over part of it,
+  a double click on a word, Home, End, the arrows, Delete and Backspace, OK with the name cleared (the message) and OK
+  with a name, clicked (the other runs press Enter).
+- **`nameclip`**: the same with Ctrl+C, Ctrl+V and Ctrl+X, which this game reads as the characters 3, 0x16 and 0x18
+  (`TextEdit::OnChar`), so `text` sends them. They reach the host's clipboard, so `build/coverage/clip-run.sh` saves
+  its text formats first (plain text and HTML; it refuses a clipboard with an image or files in it, which it did
+  twice), sets "Zeta Eta" for the paste, and puts the saved formats back; the round trip was checked identical.
+  Ctrl+Z is the character 0x1a, which ends a script file read in text mode, so Undo is not sent (a spec for origrun).
+- **`dclicks`**: a double click on a layout preview of the classic list (it starts the game), Tab, a right click and a
+  right button press and release on the board, a double click on a picture of the in-game menu's backgrounds box and
+  one on the styles box (the state command gives no usable place for its pictures: a grid of double clicks over its
+  middle), the click on the menu's free part (it closes the menu), and a double click on the board.
+- **`classiclist`**: the classic list with its cached sheets moved away (`build/coverage/cache-run.sh`; the files are
+  `0` and `9` in the shared folder under ProgramData, put back after the run, the one the paging made removed), so each
+  page is built a preview at a time and saved; **`resumeno`**: Play on a layout with a saved game, the question answered
+  No.
+- **`nomoves0`, `nomoves1`, `nomoves2`**: a classic game of the pinned deal played into a dead end (the port's solver
+  with `MJ_DEADEND`: 71 pairs and two tiles that do not match), the no-moves box, and one of its three choices (undo,
+  shuffle, start again) and OK.
+- **`classicplay2`**: the classic game again, with Enter 3 s after the last pair (`Board::SkipFlyOff` turned out to be
+  for the adventure's fly-off only, `mEscaping`), and **`skipfly`**: the first stage with Enter during its fly-off.
+
 **The deal of the classic game is checked, not assumed.** A classic game seeds its deal from `GetTickCount` (Board::SetLayout
 0x40aa40 and Board::Start 0x40ae60), which no script can pin. origrun's `--seed` with `--patches` (`docs/ORIGRUN.md`,
 "Patching the copy") replaces the two calls in the copy with the seed 12345. The saved game of that run holds the deal
@@ -223,7 +253,7 @@ the deal, in order) as well as for the adventure's stages.
 
 `games/mahjongjapan/coverage.txt` sets the game's own code as two ranges, 0x401000-0x4175b0 (the game) and
 0x41e240-0x4319e0 (the engine layer), 1280 functions; the rest of the exe is the C
-runtime and the libraries. The runs reached 1085 of the 1280, the port defines 1039, and 261 are listed as left out.
+runtime and the libraries. The runs reached 1156 of the 1280, the port defines 1039, and 261 are listed as left out.
 
 **Reached in the original with no counterpart in the port: 140 at first, 0 at the end.** Sorted by one Sonnet agent
 and checked by this session:
@@ -246,8 +276,8 @@ and checked by this session:
 **Never reached and not defined in the port: 52 at first, 0 at the end.** All 52 went the same ways (compiler-made,
 platform, or placed), and two of them turned out to have a port function that no run reached.
 
-**Defined in the port, never reached: 126 after the sorting, 110 after the classic game.** One Sonnet agent read all
-126 again against the export (the decompile that shows `this`, the vtables and the callers): 124 match, and two
+**Defined in the port, never reached: 126 after the sorting, 110 after the classic game, 46 at the end.** One Sonnet agent
+read all 126 again against the export (the decompile that shows `this`, the vtables and the callers): 124 match, and two
 differed, both now fixed:
 
 - **0x42a340, `Layer::AppActive`.** The port returned the display's own flag (`Manager::IsAppActive`, a field nothing
@@ -258,26 +288,28 @@ differed, both now fixed:
   that; renaming it is left for the readability pass.
 - **0x42ed70, `Image::SaveBmp`.** The port left the header's size-of-image field (offset 34) zero; the original
   writes the pixel data's size. The bitmap of every classic list page sheet and of a saved screen differed by those
-  four bytes. `Put32(34, aSize)` now writes it.
+  four bytes. `Put32(34, aSize)` now writes it. (The original's own sheets in the shared folder have that field set;
+  the second round's `classiclist` run wrote new ones with the same header and text file, and different pixels where
+  the saved games' thumbnails differ.)
 
-Of the 126 rows the agent judged 105 reachable by some play the runs did not make (R) and 21 not reachable by any
-play of the original (U). The classic game then reached 16 of the R rows (the result box, the next layout, the
-resume answers). The 110 still unreached:
+Of the 126 rows the agent judged 105 reachable by some play the runs had not made (R) and 21 reachable by none (U).
+The classic game reached 16 of the R rows, and the second round 64 more (the sliders, the name box, the double clicks,
+the Ctrl characters, the no-moves box and its three choices, the list built from scratch, the question answered No,
+and the right click). Nothing the runs reached differed from the port in the agent's reading, so the plays confirm
+that those paths run in the original; what they do is compared by the identical-play pass. The 46 still unreached, 25
+R and 21 U:
 
-- **Plays no run could make, on the posted-input path.** A held press (a drag of a volume slider's thumb, a drag in
-  the name box, the manager's mouse move during a drag: `Slider::OnDrag` and the rest, 0x430a30-0x430ab0, 0x420150,
-  0x420190, 0x42bb10; origrun posts `down` and `up` only at an update of the game's counter, and this game has none), a
-  double click or a right double click (0x4020a0, 0x401250, 0x4159f0, 0x42b6e0, 0x42b9b0, 0x420560, 0x40ffa0), a
-  key with a modifier (Ctrl+C, X, V, Z and Ctrl+Insert in the name box: 0x428840-0x428b70, 0x42c550, 0x42c5c0), and
-  Shift+Tab (0x4211f0).
-- **Plays not made.** Right click on the board (the tip box: 0x404ba0, 0x404ec0, 0x40c1b0, 0x42b910, 0x42ba70), the
-  no-moves box and its three buttons (a deal that leaves no pair: 0x409d90-0x40a090, 0x405530-0x405580, 0x40b650,
-  0x414fd0), OK or Cancel clicked in the new-player box (the runs press Enter), OK with an empty name, the
-  player list's scroll arrows, a click in the name box, the styles and backgrounds boxes' OK and double clicks, the
-  options' hardware-acceleration, full-screen and wide-screen toggles, minimize and restore, the classic list
-  built from scratch (no cached sheet), a deal the solver gives up on, a saved game with a wild-linked tile, and Enter
-  during the fly-off after a level. None of them is reached by the original's play without a run for it, and each was
-  read against the export: they match.
+- **Needs a play origrun cannot send.** Ctrl+Z (0x428a40; the character 0x1a ends the script), Shift+Tab and the
+  Shift and Ctrl branches of the name box's keys (0x4211f0, and inside `TextEdit::OnKeyDown`, where function-level
+  coverage cannot see them): the original reads Shift and Ctrl with `GetKeyState` (0x42c660), which a posted key
+  does not set. A right double click (0x42b9b0): there is no command for it.
+- **Changes the machine's display, left alone.** Full screen, wide screen, hardware acceleration and the 3D test
+  (0x42c220, 0x42c2a0, 0x42c190, 0x421370, 0x42a340), and minimize and restore (0x42c090, 0x42c110, 0x42c140).
+- **Not yet made.** The tip box of a right click on a special tile (0x404ba0, 0x404ec0: the escape adventure's), undo,
+  save and load of a move that involves a wild-linked tile (0x40d460, 0x40d510, 0x415770, 0x415790), the double click on
+  the adventure map (0x40ffa0: it needs a player with progress and the place of a level's marker), the player list's
+  scroll arrow (0x4271f0: it needs more players than fit), and `Layer::SetFocus` from a click in the name box
+  (0x421280).
 - **Code only an error reaches.** The error box (0x412110-0x412240) for a layout resource that fails to load.
 
 **Candidates for taking out unneeded code: 21 (the U rows).** None was removed. Taking any of them out changes no
@@ -297,13 +329,15 @@ play of the original.
 `Layer::FocusNext` and `FocusPrev` (0x421160, 0x4211f0) run on any Tab but their bodies past the size test never run in
 the original either, since no layer holds two focus objects.
 
-**Open items.**
+**Open items.** The 25 R rows above that can still be run: the escape adventure's right click, wild links and map double
+click, and the player list's scroll arrow. For origrun: the character 0x1a in a script (a `char <code>` command, or
+escapes in `text`) and a right double click. The Shift and Ctrl key state (`GetKeyState`, 0x42c660) is what the name
+box's selection and clipboard keys and Shift+Tab read; hooking it needs the user's OK, and the function-level report
+cannot tell whether those branches ran.
 
-- The plays above, if the user wants every R row run: they need origrun to hold a button across updates (a
-  sequence of `down`, `move` and `up` that does not depend on an update counter), a modifier key, and a double click.
-
-**What it cost.** The 16 runs took about 22 minutes of machine time, at most three game processes at a time (400 s of
-it the classic game's second run, which ended at its timeout). Two Sonnet agents did the sorting of 192 functions and
+**What it cost.** The 27 runs took about 50 minutes of machine time (22 for the first 16, 27 for the 11 of the second
+round), at most three game processes at a time (400 s each for the two classic games' second runs, which ended at their
+timeouts). Two Sonnet agents did the sorting of 192 functions and
 the re-read of 126; their tokens and this session's were not counted. Most of the session's time went to the
 scripts: finding the places on each screen, solving the stages for the adventure's clicks, and getting a classic game
 to its end with a pinned seed.
