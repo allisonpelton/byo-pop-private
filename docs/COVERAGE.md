@@ -123,4 +123,6 @@ Functions only: a function is reached or not, with no count of calls and no line
 code only, not the game's DLLs. Not inside Windows Sandbox yet, so a game whose comparisons run there (Bejeweled's do)
 takes its coverage runs on the host, where origrun posts input and takes no shots (it refuses a script with shots
 there), so a coverage script's click positions come from the port's own screenshots. A comparison of the framework's own
-coverage across games is not part of it.
+coverage across games is not part of it. Only the export's functions are watched: code that Ghidra left
+without a function (Mummy Maze had 16 such functions in gaps of its export) is never listed, so a game session that finds one
+defines it in the export, or names it in its notes. The sources read are .cpp, .c, .h, .hpp, .inl and .inc files.

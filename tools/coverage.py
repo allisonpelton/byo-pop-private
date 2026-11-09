@@ -21,7 +21,7 @@ ADDR = re.compile(r'\b0x([0-9a-fA-F]{5,8})\b')
 FUNC_DEF = re.compile(r"^(?!\s)(?!(?:if|for|while|switch|return|else|do|case|default|namespace|class|struct|enum|"
                       r"union|typedef|using|template|public|private|protected|#)\b)"
                       r"[\w:<>,*&~ \[\]]*?\b((?:\w+::)*~?\w+|operator\s*\S+)\s*\(")
-SOURCES = ('.cpp', '.c', '.h', '.hpp', '.inl')
+SOURCES = ('.cpp', '.c', '.h', '.hpp', '.inl', '.inc')
 
 
 def die(msg):
@@ -93,7 +93,7 @@ def load_export(cfg):
 def is_definition(lines, index):
     """A definition: its parameter list closes and a '{' (or ': init') follows before any ';'."""
     text = ''
-    for k in range(index, min(index + 12, len(lines))):
+    for k in range(index, min(index + 80, len(lines))):   # 80: a constructor's initializer list can be long
         text += lines[k] + '\n'
         brace, semi = text.find('{'), text.find(';')
         if brace >= 0 and (semi < 0 or brace < semi):
