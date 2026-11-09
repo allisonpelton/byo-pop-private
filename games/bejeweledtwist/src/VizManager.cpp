@@ -51,6 +51,7 @@ Visualizer::Visualizer(WinTwistApp* theApp) : mApp(theApp)
 
 Visualizer::~Visualizer() = default;
 
+// 0x6a9ed6: the grid rectangle in pixels, inline here
 void Visualizer::DrawImage(Graphics* g, Image* theImage)
 {
 	int anImageWidth = theImage->mWidth;

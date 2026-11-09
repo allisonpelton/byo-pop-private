@@ -170,6 +170,7 @@ RedBars::~RedBars()
 	DeleteVizImage(IMAGE_FIRESTAR_ID);
 }
 
+// 0x67a154: the record constructor (eight fields), inline here
 void RedBars::Draw(Graphics* g)
 {
 	(void)g;

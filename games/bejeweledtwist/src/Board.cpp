@@ -66,6 +66,13 @@ const Color kGemColorTable[7] = {Color(255, 32, 32), Color(255, 255, 255), Color
 }  // namespace
 
 // The plain fields come from their declarations' defaults; this keeps the order of everything else
+// 0x6a3fff: resets +0x214 and +0x220, inline here
+// 0x6a634f: resets the quick-move count and gap, inline here
+// 0x6a697d: returns 30000, inline here
+// 0x6a69f0: clears +0x2234, 0x150 bytes, inline here
+// 0x6ab455: counts the set entries of a list, inline here
+// 0x6b8c49: a lookup in the piece map, inline here
+// 0x75fc8a: clears +0xc74, 0x150 bytes, inline here
 Board::Board(WinTwistApp* theApp, int theMode, int theFlags, int theChallengeCategory)
 {
 	mApp = theApp;
@@ -381,6 +388,8 @@ void Board::RemovePiece(Piece* thePiece, bool theDelete)
 		delete thePiece;  // 0x6a54ac
 }
 
+// 0x6a3ff4: sets the +0x21f8 field to 100, inline here
+// 0x6f3869: the backdrop file check (inline here)
 void Board::NewLevel()
 {
 	mReplayPodDue = false;
@@ -682,6 +691,8 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	}
 }
 
+// 0x6a404e: releases the +0x1488 object, inline here
+// 0x6ee282: a helper of the dialog button handler, inline here
 void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	if (mApp->mMusicInterface != nullptr) {
@@ -1026,6 +1037,7 @@ void ReadFourBytes(void* theData, const std::string& theBytes)
 
 }  // namespace
 
+// 0x6aefc8: reads the two saved values, inline here
 bool Board::LoadGame(Buffer& theBuffer)
 {
 	int anOldLevel = mLevel;
@@ -1700,6 +1712,9 @@ void Board::PlayPieceSound(Piece* thePiece, int theSoundId, float thePitch, floa
 		mApp->PlaySoundEx(theSoundId, GetPan(Ftol(thePiece->mX)), thePitch, theVolume, theTrack, true);
 }
 
+// 0x6a38db: writes one byte to the save buffer, inline here
+// 0x6a6584: writes the grid cells, inline here
+// 0x6af04f: writes the saved values, inline here
 void Board::SaveGame(Buffer* theBuffer, bool theReplays)
 {
 	// (the original logs "SaveGame starts" to the debugger)

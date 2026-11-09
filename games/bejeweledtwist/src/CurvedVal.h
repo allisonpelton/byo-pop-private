@@ -76,7 +76,7 @@ public:
 private:
 	bool CheckCurveChange();                                              // 0x6ecb4a
 	bool CheckClamping();                                                 // 0x6ecb9b
-	void ParseDataString(const std::string& theString);                  // 0x6ec600
+	void ParseDataString(const std::string& theString);                  // 0x6ec600, 0x6ebc29: the curve's constructor, inline here
 };
 
 // The original makes its Direct3D device (0x6193b0, flags 0x140) without D3DCREATE_FPU_PRESERVE, so while 3D mode runs

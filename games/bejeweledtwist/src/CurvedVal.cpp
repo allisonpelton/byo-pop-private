@@ -29,6 +29,7 @@ double X87(double theValue)
 // 0x45dbf0 (StringToDouble): a number of a curve string, its digits summed on the x87 (the fraction's place value starts
 // at 0.1 and is divided by 10 for each digit), so with Direct3D each step rounds to a float: "0.002" reads as
 // 0.001999999862 there; 0 when the text is not a plain decimal number
+// 0x6e96e6: its interpolation helper, inline here
 double CurveNumber(const std::string& theString)
 {
 	double aValue = 0.0;
