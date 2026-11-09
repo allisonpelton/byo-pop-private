@@ -53,6 +53,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   write `.saf` archives correctly (the format is in `docs/POPCAP_GAMES_SURVEY.md`, "Talismania Deluxe"), keeps its
   author's credit and license, and pushes the working version to the fork. That fork is the one place outside the
   coordinator's snapshots that a session pushes to; byo-pop itself is never pushed by a game session.
+- **origrun and the framework as projects of their own (the user, 2026-11-08):** "Note publishing origrun and the
+  framework on SDL2 + wasm as a task to tackle at any point after the decomps are complete." Each becomes a repository
+  of its own with its own README. origrun (`tools/origrun`, with rundesk) is the harness for running a 2000s Windows game
+  invisibly, silently and on a virtual clock, with scripted input, watched values and function coverage. It needs its
+  SexyApp-era assumptions said plainly, its fixed paths to the repo and rundesk made options, and its protection
+  handling left out, as `.publishignore` does now. The framework (`framework/` and `platform/`) is SexyAppFramework on
+  SDL2 natively and in WebAssembly, published under PopCap's framework licence (`framework/LICENSE.txt`) with nothing
+  taken from a game. Not before every decomp is complete; any time after that.
 - Before each publish the coordinator checks the trunk for game files and game text.
 
 ## Which games, in what order
