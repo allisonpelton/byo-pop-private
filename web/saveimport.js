@@ -513,7 +513,9 @@ var ByopopSaveImport = (function () {
       if (e.registry) {
         step++;
         help.appendChild(make("p", "si-step", ByopopStrings.t("saveimport.step.registry", {step: step})));
-        help.appendChild(make("p", "", ByopopStrings.t("saveimport.registry.intro")));
+        var steps = make("ol", "si-substeps");
+        ["s1", "s2", "s3"].forEach(function (k) { steps.appendChild(make("li", "", ByopopStrings.t("saveimport.registry." + k))); });
+        help.appendChild(steps);
         var cmds = commands(chosen), box2 = make("div", "si-cmds");
         cmds.forEach(function (c) {
           var row = make("div", "si-cmd");

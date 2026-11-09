@@ -729,6 +729,15 @@ every slider.
 7. **Evoke, don't copy.** Real players of the time (CD players, media players, module players) guide layout and density, but
    no real program's artwork, logo, name or skin is copied: our own drawing throughout.
 
+The rest of the site took the rules on 2026-11-08, in one pass. Each setting's explanation sits behind a small "?" beside its
+label (shown while it is hovered or focused, pinned by a click, closed by Esc, and linked to the control by `aria-describedby`),
+and its row is a line in a list, not a card; the line under a label holds only live markers (applies at the next start, this
+game's own value). The notes in the Saves, Controls, Performance, Mods and game files windows are terse facts; the game's start
+card has its title and Play, no "Click to start."; the licences page has no introduction. Two exceptions are kept whole: the
+terms (its text unchanged; the card leads with the agreement, so the full text scrolls below it) and the chat's note (the
+user asked for it). Text a player needs to act stays, as short numbered steps: the save import's registry step is a list of
+three.
+
 ### Skins
 
 The user chose three of the directions as selectable skins (2026-11-07: "Offer A, B, and C as selectable skins... D feels too
@@ -1015,8 +1024,8 @@ games stay identical to their originals. A choice is `"game"` (the default), `"o
 does not know are kept when it writes. Every read and write is in a try/catch: with storage blocked the pages behave as if
 nothing was set, and the controls say a setting was not kept.
 
-The settings, by their field in the item, with the wording of their controls (each has a short hint under it that says what
-it is for, in `FIELDS` in `web/settings.js`):
+The settings, by their field in the item, with the wording of their controls (each has a short hint behind its "?" that says
+what it is for, in `FIELDS` in `web/settings.js`):
 
 - `startVolume` (a switch), `startMusic` and `startSound` (levels, 50 until moved): **Set the starting volume**, a checkbox
   with a "?" button beside it, and when it is ticked two sliders, **Music** and **Sound**, each from 0 to 100 with its number

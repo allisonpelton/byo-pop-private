@@ -320,7 +320,14 @@ var ByopopPlayers = (function () {
         var lg = make("legend", "", g.title);
         fs.appendChild(lg);
         var hint = (rec.kind === "scores" ? ByopopStrings.t("players.game.scores") + " " : "") + (rec.rules ? ByopopStrings.t("players.game.rules", {rules: rec.rules}) : "");
-        if (hint) fs.appendChild(make("p", "pl-hint", hint));
+        // a game's naming rules: the legend's tooltip, and for screen readers the fieldset's description (values, not sentences)
+        if (hint) {
+          lg.title = hint;
+          var rules = make("p", "visually-hidden", hint);
+          rules.id = nextId("pl-r");
+          fs.setAttribute("aria-describedby", rules.id);
+          fs.appendChild(rules);
+        }
         if (queued.length) {
           fs.appendChild(make("p", "pl-pending", ByopopStrings.t("players.game.pending", {n: queued.length, title: g.title})));
         }

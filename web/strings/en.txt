@@ -120,13 +120,13 @@ controls.press = Press a key…
 controls.pad = Gamepad
 controls.pad.none = No gamepad button
 controls.reset = Reset to the game's keys
-controls.note = A key you choose stands for the game's key, and the game's own key still works. Dashed keys are yours.
+controls.note = Dashed keys are yours; the game’s own keys still work.
 controls.display.left = Left click
 controls.display.right = Right click
 controls.display.middle = Middle click
 controls.touch.label = The game's keys
 perf.title = Performance
-perf.note = Readings only, each second. The main thread is the page's one thread: its share is not the computer's CPU use.
+perf.note = Each second. Main thread: this page’s share, not the whole CPU.
 perf.waiting = Waiting for the first second of readings.
 perf.na = not available here
 perf.no_timer = not offered by this browser
@@ -270,8 +270,7 @@ index.jungle.about = Games decompiled by other projects, coming later
 jungle.title = Jungle Juice · byo-pop
 jungle.logo_alt = byo-pop, back to the games
 jungle.heading = Jungle Juice
-jungle.intro = Jungle Juice will hold games decompiled by other projects, to play here with your own copy of each
-  game's files, as you do the games on the front page. Nothing is here yet.
+jungle.intro = Games decompiled by other projects, played here with your own copy. Coming later.
 jungle.back = Back to the games
 
 
@@ -292,9 +291,8 @@ copyright.player.no_files = The player includes no game files. To play, you impo
 copyright.player.reimplements = Its program reimplements the original game's behaviour so that it runs in a
   browser, on a port of the PopCap Games Framework.
 copyright.terms.heading = Terms
-copyright.terms.intro = Before loading game files, you must agree to the terms.
+copyright.terms.intro = Agreed before loading a game’s files.
 copyright.licenses.heading = Software licenses
-copyright.licenses.intro = Other licenses for software used by the player are available below.
 
 
 # ---- The listing's cards (cmake/ByopopWeb.cmake)
@@ -328,7 +326,7 @@ buy.where = Where to buy {title} digitally, as of {date}: {links}.
 # the words for the system that the page runs on. {app} and {depot} are Steam's numbers for the game, {mac_dir} and
 # {linux_dir} the folder Steam keeps the files in.
 steam.heading_html = On a <span class="os-mac">Mac</span><span class="os-linux">Linux computer</span>?
-steam.intro = This port of {title} is built on the Steam release for Windows. If you own the game on Steam, you can still download the Windows files:
+steam.intro = {title} here is built on its Steam release for Windows. Owners can still download its files:
 steam.step1_html = Open the Steam console: <a href="steam://open/console">open in Steam</a>, or paste <code
   class="pick">steam://open/console</code> into the address bar.
 steam.step2_html = Type <code class="pick">download_depot {app} {depot}</code> and press <span
@@ -401,7 +399,7 @@ game.import.zip = Choose .zip
 game.import.cancel = Cancel
 game.import.progress = Copying the game files
 game.import.not_started = Not started
-game.import.note = Files are stored in the browser. Nothing is uploaded.
+game.import.note = Stays in this browser. Nothing is uploaded.
 # {names} the packs being unpacked, separated by commas
 game.import.unpacking = Unpacking {names}…
 # {done} of {total} files copied so far
@@ -418,7 +416,6 @@ game.import.copied = Copied {count} files.
 game.import.error_missing = Partially copied. Some files are missing: {markers}.
 
 game.start.title = Ready
-game.start.desc = Click to start.
 game.start.rescue = The game did not finish starting last time. If a mod stops it from starting, play once
   without mods, then turn that mod off in the mod menu (F2) or remove it in the Mods tab.
 game.start.play = Play
@@ -426,7 +423,7 @@ game.start.nomods = Play without mods
 
 game.busy.title = Already open
 # {name} is the game's short name
-game.busy.desc_html = <span id="busy-name">{name}</span> is already running in another tab or window. Close it to continue here.
+game.busy.desc_html = <span id="busy-name">{name}</span> is running in another tab. Close it to play here.
 
 game.exit.title = Thanks for playing
 game.exit.saving = Saving…
@@ -453,7 +450,7 @@ game.files.close = Close
 game.files.reimport = Import again
 game.files.forget = Forget game files
 game.files.continue = Continue
-game.files.saves_note = Saves (high scores, the game in progress and settings) are stored in the browser.
+game.files.saves_note = Saves stay in this browser.
 game.files.summary = {count} game files are stored in this browser.
 game.files.none = No game files are stored yet.
 game.files.missing = {n} game file was missing; placeholders stand in for them: | {n} game files were missing;
@@ -556,10 +553,9 @@ settings.scope.legend = Change the settings for
 settings.scope.all = All games (site-wide)
 settings.scope.game = This game only
 # {name} is the game's name
-settings.scope.game_note = These values are for {name} only. “Same as all games” follows the site-wide value.
+settings.scope.game_note = For {name} only.
 settings.scope.this_game = this game
-settings.scope.own_note = This game has its own value for {n} setting, marked below. | This game has its
-  own value for {n} settings, marked below.
+settings.scope.own_note = {n} setting of its own, marked. | {n} settings of its own, marked.
 # {value} is what the site-wide setting is now, or the game's own value
 settings.inherit = Same as all games ({value})
 settings.own = This game has its own: {value}.
@@ -613,8 +609,8 @@ size.mb = {value} MB
 
 # ---- Saves: backup and restore (web/saves.js)
 
-saves.about = Your saves are kept only in the browser. Download a .zip for safekeeping or transfer.
-saves.kept = The browser may clear your saves if your drive runs low on space.
+saves.about = Stored in this browser only.
+saves.kept = The browser may clear them when the drive is low: back them up.
 saves.list.title = In the browser
 # One game in the list: {title} then this, where {parts} is its save files and replays, {backup} the next string or nothing
 saves.list.rest = : {parts}{backup}.
@@ -721,8 +717,7 @@ saves.err.open_tab = {title} is open in another tab or window.
 # ---- Saves: import from an installed game (web/saveimport.js)
 
 saveimport.title = Import from an installed game
-saveimport.about = Bring the saves, high scores and settings of a game installed on this computer. Nothing is
-  uploaded or changed on your computer.
+saveimport.about = From a game installed on this computer. Nothing is uploaded or changed.
 saveimport.game_label = Game to import from:
 saveimport.choose_game = Choose a game…
 # {title} is the game's title
@@ -730,11 +725,14 @@ saveimport.where = {title}: where the original keeps its saves
 # {step} is the number of the step
 saveimport.step.files = Step {step}. Find the folder with the save files.
 saveimport.step.registry = Step {step}. Export the game’s settings and scores from the registry.
+# the registry step's own steps, shown as a numbered list
+saveimport.registry.s1 = Open Command Prompt or PowerShell in a folder you can write to, such as Documents.
+saveimport.registry.s2 = Run the commands below. Each writes a .reg file; they only read, and need no administrator rights.
+saveimport.registry.s3 = “Key not found” only means the game did not use that place.
 saveimport.step.choose = Step {step}. Choose them here.
 # {what} says what a file holds (from the table of games)
 saveimport.file_what = : {what}.
-saveimport.places = These are paths inside the folder that holds them. Look in these places, and choose the
-  folder in which the paths above are found:
+saveimport.places = Look in:
 # Places to look; {folder}, {steam} and {appdata} are folder names from the table of games
 saveimport.place.install_html = The game’s install folder: <code>C:\Program Files (x86)\PopCap
   Games\{folder}</code> or <code>C:\Program Files\PopCap Games\{folder}</code>, or wherever you installed it.
@@ -747,10 +745,6 @@ saveimport.place.virtualstore_html = An install in Program Files that was not ru
   second folder below; its files are the ones the game used.
 saveimport.place.appdata_html = A game that keeps its files for all users: <code>C:\ProgramData\PopCap
   Games\{appdata}</code> (ProgramData is hidden in File Explorer; type the path in the address bar).
-saveimport.registry.intro = Open a Command Prompt or PowerShell window in a folder you can write to (your
-  Documents folder, for example) and run these commands. No administrator rights are needed, and they only
-  read the registry: each writes a .reg file. A command that says the key was not found just means the game
-  did not use that place.
 saveimport.copy = Copy
 # {hive} names a part of the registry, {file} the .reg file the command writes
 saveimport.copy_label = Copy the command for {hive}, {file}
@@ -761,10 +755,8 @@ saveimport.copied_command = the command for {hive}
 saveimport.copied_all = all {count} commands
 saveimport.copy_failed = Could not copy; select the text and copy it.
 # {order} lists the parts of the registry, joined with ", then" (the word "then" is the next string)
-saveimport.order_one = Where the same value is in more than one file, the page uses {order}, value by value.
-  On a 32-bit Windows leave out “WOW6432Node\”.
-saveimport.order_many = Where the same value is in more than one file, the page uses {order} (what the game
-  itself would read first), value by value. On a 32-bit Windows leave out “WOW6432Node\”.
+saveimport.order_one = Order: {order}. 32-bit Windows: leave out “WOW6432Node\”.
+saveimport.order_many = Order: {order}, as the game reads them. 32-bit Windows: leave out “WOW6432Node\”.
 saveimport.then = then
 saveimport.and = and
 saveimport.takes = What the page takes from the original
@@ -773,12 +765,11 @@ saveimport.takes_file = File {from}: {what}.
 saveimport.takes_skip = Left alone, {from}: {why}.
 saveimport.choose = Choose what to import
 saveimport.folder1.label = Folder with the save files:
-saveimport.folder1.hint = Your browser asks to “upload” the folder’s files; they stay on this computer, and
-  only the save files in the list are read.
+saveimport.folder1.hint = Only the save files listed are read; nothing leaves this computer.
 saveimport.folder2.label = Second folder (optional), such as the VirtualStore copy:
-saveimport.folder2.hint = Its files are used in preference to the first folder’s.
+saveimport.folder2.hint = Its files win over the first folder’s.
 saveimport.regs.label = Registry files (.reg):
-saveimport.regs.hint = All of the .reg files the commands wrote.
+saveimport.regs.hint = Every .reg file the commands wrote.
 saveimport.choose_first = Choose the folder and the .reg files to see what would be imported.
 saveimport.reading = Reading what you chose…
 
@@ -949,7 +940,7 @@ players.flag.would_be = would be “{name}”: the game’s rules change the nam
 players.flags = — {flags}
 
 # What the Player names setting is across the games. {n} games, or all of them; {verb} for a setting this page does not know
-players.mode.games = The games ask for names as they always did.
+players.mode.games = Player names: each game’s own.
 players.mode.note = Player names: {parts}.
 players.mode.link = Player names in Settings
 players.mode.game_all = all {n} games asks as the original does | all {n} games ask as the original does
@@ -1083,8 +1074,7 @@ chat.words.failed = The message was not sent.
 
 # ---- The Mods panel (web/modpanel.js)
 
-mods.intro = Turn mods on or off, change their order and their settings in the game's mod menu: press F2, or
-  click Mods, while the game runs.
+mods.intro = F2 or Mods in the game: turn on or off, order, settings.
 mods.add_folder = Add mod folder
 mods.add_folder_title = A mod's folder, or a folder of mods: every folder in it with a mod.json is added
 mods.add_zip = Add mod .zip
