@@ -1015,7 +1015,9 @@ The recorder sees only what runs after the stand-in loads, and a game that takes
 copy's exe one more import, the stand-in's `DirectSoundCreate`, in a section of its own (`.orcov`): Windows then loads
 the stand-in with the exe's other DLLs, before the game's first instruction. The exe keeps its unpatched bytes beside
 it (`.origrun-unpatched`) and the next run puts them back, as with the patch list (`--patches`); an exe that imports
-`dsound.dll` already is left alone. The run log says what was done, and its last line gives the number of functions
+`dsound.dll` already is left alone. The new section header needs 40 free bytes after the section table; where they hold
+something else (Mahjong Escape keeps its copyright text there), origrun moves the PE headers and the section table up
+over the DOS stub, which the loader never reads, and fixes `e_lfanew`. The run log says what was done, and its last line gives the number of functions
 reached and whether the game ended normally (the hits file's closing line).
 
 Each line of the hits file is `<address> <order> <thread id>`, in the order the functions were first reached; lines
@@ -1023,7 +1025,8 @@ that start with `#` are the recorder's own (how many functions it watched, how m
 exe's code and were left out, and the closing line). Limits: the exe's own functions only (not the game's DLLs, such as
 `bass.dll`); a function is reached or not, with no count of calls and no lines or branches; code that reads its own bytes
 (a checksum of the exe) would see the breakpoints; not inside Windows Sandbox yet. `tools/origrun/covtest.sh` (in
-check.sh's origrun suite) runs it on `covtest.exe`, a program with no window and no sound, built for ASLR.
+check.sh's origrun suite) runs it on `covtest.exe`, a program with no window and no sound, built for ASLR, once as built
+and once with text after its section table (`tools/origrun/fillslack.py`).
 
 ## Hardware acceleration (3D mode)
 
