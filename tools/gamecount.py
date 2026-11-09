@@ -18,7 +18,7 @@ TOOLS = {"rundesk.exe", "origrun.exe", "cmake.exe", "ninja.exe", "clang.exe", "c
          "grep.exe", "sed.exe", "awk.exe", "cat.exe", "cp.exe", "tee.exe", "make.exe", "emcc.exe", "wasm-ld.exe"}
 NODE_GAME = ("wasmrun", "onegame", "play.js", "tour.js", "bejeweled_verify", "driver")
 
-PS = ("Get-CimInstance Win32_Process | Select-Object ProcessId,Name,ExecutablePath,CommandLine | "
+PS = ("Get-CimInstance Win32_Process | Select-Object ProcessId,Name,ExecutablePath,CommandLine,ThreadCount | "
       "ConvertTo-Json -Compress")
 
 
@@ -30,6 +30,10 @@ def main():
     procs = json.loads(out or "[]")
     games = []
     for p in procs:
+        # a process that has exited stays listed, with no threads, while another process holds a handle to it
+        # (Noah's Ark, 2026-11-09: an orphaned run counted after it was stopped); it holds no slot
+        if p.get("ThreadCount") == 0:
+            continue
         name = (p.get("Name") or "").lower()
         path = (p.get("ExecutablePath") or "").lower().replace("/", "\\")
         cmd = (p.get("CommandLine") or "").lower()
