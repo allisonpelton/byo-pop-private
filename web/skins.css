@@ -165,6 +165,21 @@
 :root[data-skin="d95"] .games > li:not([data-files="yes"]) :is(.name, .year, .own) { color: #4d4d4d; text-shadow: 1px 1px 0 var(--sk-hi); }
 :root[data-skin="d95"] .games > li.soon { background: transparent; opacity: 1; box-shadow: none; outline: 1px dotted var(--sk-lo); outline-offset: -3px; }
 :root[data-skin="d95"] .games > li.soon .badge { filter: grayscale(1) contrast(.7); opacity: .55; }
+/* A game's window while the game makes it (web/shell.html, game-loading): not shown, its task bar button there, and the 1995
+   hourglass (our own drawing) over the page */
+html.d95-desk.game-loading .stage-wrap.d95-win { visibility: hidden; }
+html.d95-desk.game-loading, html.d95-desk.game-loading * { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2226%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M10%206h12v4l-4%205v2l4%205v4H10v-4l4-5v-2l-4-5z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M12%208h8v1.5l-4%204.5-4-4.5z%22%20fill%3D%22%23000080%22%2F%3E%3Cpath%20d%3D%22M15.5%2018h1l3.5%204v2h-8v-2z%22%20fill%3D%22%23000080%22%2F%3E%3C%2Fsvg%3E") 16 16, wait !important; }
+/* B's games have no caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95 skin. I'd prefer bare initials
+   for missing games, and the plain favicon otherwise."): a game whose files are here shows its exe's own icon at its size, plainly;
+   any other its initials on a plain white square icon, black-edged with a grey shadow, in the 16-colour palette; no cap, no
+   studies, no flip or wobble (web/capanim.js leaves B out too) */
+:root[data-skin="d95"] .badge:not(#\#) { -webkit-mask: none; mask: none; background: none; box-shadow: none; filter: none; opacity: 1;
+  transform: none; animation: none; text-shadow: none; }
+:root[data-skin="d95"] .badge:not(.has-icon):not(#\#) { width: 32px; height: 32px; margin: 20px; background: #ffffff; color: #000080;
+  border: 1px solid #000000; box-shadow: 2px 2px 0 #808080; font: 700 13px/1 var(--font-ui); letter-spacing: 0; box-sizing: border-box; }
+:root[data-skin="d95"] .games > li.soon .badge:not(.has-icon):not(#\#) { color: #808080; border-color: #808080; box-shadow: none; }
+:root[data-skin="d95"] .badge.has-icon:not(#\#) img { opacity: 1; z-index: auto; }
+:root[data-skin="d95"] .badge.has-icon:not(#\#) .badge-initials, :root[data-skin="d95"] .badge .cap-x:not(#\#) { display: none; }
 :root[data-skin="d95"] .tabs [role=tab][aria-selected=true] { background: var(--panel); color: var(--fg);
   box-shadow: inset 1px 1px var(--sk-hi), inset -1px 0 var(--sk-dk), inset -2px 0 var(--sk-lo); border: 0; }
 /* title bars: the panels', the chat's */
@@ -288,6 +303,13 @@ html.d95-desk .chat.d95-win h2 button { margin: 0; }
 /* the panels: windows at the right, as high as their contents */
 html.d95-desk .panel.d95-win { width: min(440px, calc(100vw - 32px)); bottom: auto; right: auto; max-height: calc(100vh - 80px); overflow: hidden; }
 html.d95-desk .panel.d95-win:not(#\#) > header { padding: 0 2px 0 4px; }
+/* a panel's Close on its title bar is the same X close box as every window's (its word stays its accessible name) */
+html.d95-desk .panel.d95-win:not(#\#) > header > [data-close] { width: 16px; height: 14px; min-height: 0; padding: 0; flex: none; position: relative;
+  font-size: 0; color: var(--fg); margin-left: auto; }
+html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]::before, html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]::after {
+  content: ""; position: absolute; left: 3px; right: 4px; top: 5px; height: 2px; background: currentColor; transform: rotate(45deg); }
+html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]::after { transform: rotate(-45deg); }
+html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]:active::before, html.d95-desk .panel.d95-win:not(#\#) > header > [data-close]:active::after { top: 6px; left: 4px; right: 3px; }
 html.d95-desk .panel.d95-win > .body { min-height: 0; }
 /* the listing: the games in one window and the page's notes in another, the logo on the desktop clear of the icons */
 html.d95-desk .site-header { margin-left: max(100px, calc((100% - 960px) / 2)); }
@@ -649,6 +671,23 @@ html.d95-desk .d95-mx { width: 16px; height: 14px; padding: 0; flex: none; posit
 html.d95-desk .d95-mx::after { content: ""; position: absolute; left: 3px; top: 2px; width: 7px; height: 6px; border: 1px solid var(--sk-dk); border-top-width: 2px; }
 html.d95-desk .d95-mx:active::after { transform: translate(1px, 1px); }
 html.d95-desk .d95-mn + .d95-mx { margin-left: -2px; }
+/* the game alone in full screen (web/shell.html, fitFullscreen): its canvas at the size worked out, centred on black */
+html.d95-desk .stage:fullscreen { background: #000000 !important; display: flex !important; align-items: center; justify-content: center; }
+/* the game alone has the keys: no focus frame round it */
+html.d95-desk .stage:fullscreen > canvas#canvas:focus-visible { outline: none; }
+html.d95-desk .stage:fullscreen > canvas#canvas { flex: none; width: var(--fs-w, 100%) !important; height: var(--fs-h, 100%) !important;
+  padding: 0 !important; image-rendering: pixelated; }
+/* a menu's ticked choice (the game window's sizes): the 1995 dot before it */
+html.d95-desk .d95-radio { position: relative; }
+/* a menu with ticked choices keeps a gutter for the dot before every entry, as 1995's menus did */
+html.d95-desk .d95-menu:has(.d95-radio) > .d95-item:not(#\#) { padding-left: 22px; }
+html.d95-desk .d95-radio[aria-checked=true]:not(#\#)::before { content: ""; position: absolute; left: 8px; top: 50%; width: 6px; height: 6px; margin-top: -3px;
+  border-radius: 50% !important; background: currentColor; }
+/* the game window's resize corner, in its status bar's corner: three pairs of diagonal lines, highlight and shadow */
+.d95-grip { display: none; }
+html.d95-desk .stage-wrap.d95-win > .d95-grip { display: block; position: absolute; right: 3px; bottom: 3px; width: 13px; height: 13px; cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 0 46%, var(--sk-hi) 46% 52%, var(--sk-lo) 52% 62%, transparent 62% 66%, var(--sk-hi) 66% 72%,
+    var(--sk-lo) 72% 82%, transparent 82% 86%, var(--sk-hi) 86% 92%, var(--sk-lo) 92%); touch-action: none; }
 /* the control menu's button: the title bar's small icon at its left (the site's cap) */
 html.d95-desk .d95-sys { width: 16px; height: 16px; padding: 0; flex: none; background: transparent; box-shadow: none; border: 0; margin: 0 -2px 0 -2px; }
 html.d95-desk .d95-sys:active { box-shadow: none; }

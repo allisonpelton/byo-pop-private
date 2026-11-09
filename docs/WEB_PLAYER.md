@@ -255,7 +255,11 @@ keep them.
 **The footer** is the page's last row, across its width (the user, 2026-11-07: "a true footer"): the game's copyright notice
 in one sentence, its `COPYRIGHT` up to "All rights reserved." (the trademark lines are on the page the link opens), then a
 **Full terms →** link, which opens the game's copyright page (`<game>-copyright.html`, next to the game) in a new tab. The
-markup is `web/footer.html` (the build puts the notice at `@BYOPOP_NOTICE@`) and its style `web/footer.css`.
+markup is `web/footer.html` (the build puts the notice at `@BYOPOP_NOTICE@`) and its style `web/footer.css`. Every link to the site's own
+licence texts (`licenses/`), terms and copyright pages, in every skin, opens a new tab with `target="_blank"` and
+`rel="noopener"` (the user, 2026-11-08: "libopenmpt in the music pane doesn't open in a new tab"), so a game or the music
+never stops for one; tools/linkstest.js (in check.sh's unit-web) fails on any that does not, in the pages, the scripts, the
+site's text and the built pages.
 
 **The copyright page** is made from `web/copyright.html`. It has the game's copyright notice, a statement that
 the player is unofficial, non-commercial and comes with none of the game's files, and the license of every
@@ -754,6 +758,11 @@ Plain a 64 px box. The record keeps two of the exe's images, the one nearest 48 
 (`small`, "" when the exe has none smaller); of these the page takes the smallest that is at least the box's size in device
 pixels, else the largest, crops it to its visible pixels (many icons have empty space on one side) and draws it at the
 screen's own pixels: smaller with smoothing, larger only a whole number of times, pixel for pixel, centred on whole pixels.
+Desktop 95 has no caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95 skin. I'd prefer bare initials
+for missing games, and the plain favicon otherwise."): a game whose files are here shows its exe's icon plainly, at full strength
+in the same 32 px box, and any other its initials on a plain white square icon with a black edge and a grey shadow, in the
+16-colour palette; no cap, no studies, no flip on hover, and the opener's animation does not run (web/capanim.js,
+`canAnimate`), so an added game's icon changes at once.
 A record from before `small` was kept gets it the next time the game's page opens, where the game stores its exe.
 In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
 its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps").
@@ -784,7 +793,26 @@ button, its control menu's Close, and Alt+F4 where the browser lets the page hav
 the panels' actions, its saves written (closeGameThen), the page's play time is kept as on any way out, and the listing opens
 with All games open and in front (sessionStorage `byopop-desk-open`); no question is asked beyond the page's own. Minimizing
 it keeps the game running on the task bar. The game window is always pixel-perfect: one canvas pixel for each game pixel, or the largest
-whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Where the windows are, and whether the
+whole multiple that fits (sizeStage), and its picture starts on a whole device pixel. Its size is the player's too (the user,
+2026-11-08: "95 skin needs a way to size up the game window by an integer multiple. Big Money is very hard to see on my 4K
+monitor"): its control menu lists the whole multiples of the game's size in device pixels whose window fits on the desktop
+("2x (1280 x 960)"), the chosen one dotted, and so does the Pop menu's Game size; its resize corner, at the bottom right of
+its status bar, snaps to them as it is dragged. The choice is kept for each game (localStorage `byopop-d95-scale`), and a
+choice that no longer fits (a smaller window, a game of another size) gives way to the largest that fits beside the icons.
+While the game starts its window is not shown, its task bar button already there and the 1995 hourglass over the page (the user,
+2026-11-08: "While a game loads with a non-standard window size, it shows the standard window size as black. Hide the window
+until the game is actually loaded"): from the start until the game has made its window (onGameScreen, which every game's
+framework calls from MakeWindow) and two frames have been drawn in it, half a second where a hidden page draws none, or the game
+has ended or stopped, and never longer than 20 seconds. In the other skins the stage is hidden the same way, with the
+`progress` cursor. The game gets the focus once it is shown, unless the player has put it elsewhere meanwhile.
+**Full screen in Desktop 95.** The game window's maximize button, its control menu's Maximize, the Pop menu's Full screen and
+the game's own Full screen option put the game alone in full screen (the framework offers the game's request to the page first,
+`sexyapp_page_fullscreen` in framework/SexyAppBase.cpp, and the page takes it in Desktop 95 as its maximize: SDL's own full screen
+would make the canvas the full-screen element at the screen's size; the game's option follows the page as the player leaves): the largest whole multiple of its size in device pixels that fits the screen, or, when not even
+one does, as large as fits at its own shape, centred on black (web/shell.html, `fitFullscreen`; web/skins.css). F11 is the
+browser's own there (the user, 2026-11-08: "Full screen issue seems to be the difference between using the in-game full screen
+and pressing F11"): the whole desktop fills the screen and the game's window stays a window; the game still never gets the key.
+Leaving full screen puts every window back where it was, as their places are kept in pixels. Where the windows are, and whether the
 game window is closed, is kept for each game in the localStorage item `byopop-desk`. Each game keeps its own page, so a game's
 address still opens that game. The listing is its own desktop: the games in one window, each of the tabs under them (Settings,
 Players, Saves, Music) in a window of its own, and the page's notes in another, each dragged, closed and opened from its icon
@@ -1556,13 +1584,14 @@ TipTop moves its focus with Tab and Shift+Tab. No game uses **F6**, which in bro
 regions, so F6 takes the focus from the canvas to the next control on the page (the chat, the footer link, or the open panel) and Shift+F6 to the one
 before it (the Fullscreen button), as Tab and Shift+Tab would; the game never sees either key. The chat does the same: F6 typed in it moves the focus
 on, to the control after the chat, and Shift+F6 to the one before it, and nothing typed in it reaches the game, which takes keys only from its canvas. The canvas is named "<game>, game" (`role="application"`,
-so that a screen reader passes its keys on) and described by "The game now has your keyboard. To leave it, press F6 (or Shift+F6 to go back).",
-which is also shown on the stage while the keyboard has put the focus there, until the first key goes to the game. Keys held when the focus leaves
+so that a screen reader passes its keys on) and described by "Keyboard captured by game. Use F6 to leave, Shift-F6 to re-enter." (`game.canvas_hint`),
+which is also shown, in small muted type at the end of the bar and never over the game (2026-11-08), while the keyboard has put the focus there, until the first key goes to the game;
+Desktop 95's desktop never shows it, as F6 leaves every window there and its About says so. Keys held when the focus leaves
 the canvas are let go in the game (a keyup is sent for each), as SDL only does that when the whole window loses the focus. F2 is the game's key to
 open its mod menu: typed on the bar, or with nothing focused, it is passed on to the canvas, and typed in a panel it closes the panel, as before.
 
 **F11** is the Fullscreen button, wherever the focus is (the user, 2026-11-02: F11 "should make all games go full screen in the
-browser"), and F11 again leaves full screen, as Esc does. The page stops the browser's own F11, which would put the whole page in full screen,
+browser"), and F11 again leaves full screen, as Esc does; in Desktop 95's desktop it is the browser's own instead (above). The page stops the browser's own F11, which would put the whole page in full screen,
 only when it can put the stage there itself (`document.fullscreenEnabled`); then a listener on the document, which sees the key before the
 canvas, keeps it from the game. Of the games only TipTop has an F11 of its own (`App::HandleKeys`, its windowed and full screen switch); in the
 browser it would ask SDL for full screen outside a click, which browsers refuse, so the page's is the one that works. TipTop's Options checkbox
