@@ -196,6 +196,9 @@
 :root[data-skin="d95"] .si-pre:not(#\#) { border: 0; border-radius: 0; background: var(--sk-well);
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 :root[data-skin="d95"] .pl-confirm.si-confirm:not(#\#) { border: 0; border-radius: 0; padding: 0; background: none; margin: 0 0 8px; }
+/* Saves' storage as its status bar: a sunken panel held at the window's foot */
+:root[data-skin="d95"] .sv-where:not(#\#) { position: sticky; bottom: -8px; margin: 12px -8px -8px; padding: 2px 6px; font-size: 12px; color: var(--fg);
+  background: var(--panel); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), 0 -2px 0 var(--panel); }
 /* the current player: its name in bold beside its checked button, as Windows 95 marked the one in use; the word stays for
    screen readers */
 :root[data-skin="d95"] .pl-current { font-weight: normal; }
@@ -619,7 +622,7 @@ html.d95-desk .d95-icon-panel-mods > i::after { background: var(--accent); clip-
 /* B: a window with a title bar, the wizard's picture at the left, a chunked progress bar */
 :root[data-skin="d95"] .card { background: var(--panel); border: 0; border-radius: 0; padding: 18px;
   box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
-:root[data-skin="d95"] .wiz-card { padding: 3px 14px 14px 3px; }
+:root[data-skin="d95"] .wiz-card { padding: 3px 14px 14px 3px; min-width: min(340px, 100%); min-height: 190px; box-sizing: border-box; }
 :root[data-skin="d95"] .wiz-card > .wiz-head { background: var(--sk-title); color: var(--sk-title-fg); margin-right: -11px; padding: 3px 6px; }
 :root[data-skin="d95"] .wiz-steps { display: none; }
 :root[data-skin="d95"] .wiz-card > .wiz-art { background: linear-gradient(var(--bg), color-mix(in srgb, var(--bg) 60%, #000)); left: 11px; top: 11px; bottom: 11px; width: 96px;
@@ -844,3 +847,57 @@ html.d95-desk .d95-icon:focus-visible > span:last-child { background: var(--acce
 html.d95-desk .d95-task:focus-visible > span { outline: 1px dotted var(--sk-dk); outline-offset: 1px; }
 html.d95-desk .d95-pop:focus-visible > span { outline: 1px dotted var(--sk-dk); outline-offset: 1px; }
 html.d95-desk .d95-keys { margin-top: 8px; }
+
+/* ======================= Desktop 95 in one page (web/deskapps.js; docs/WEB_PLAYER.md, "Desktop 95 in one page") ======================= */
+/* a page leaving for the desktop (web/skins.js, onePage): nothing of it is drawn meanwhile */
+html.d95-leaving body { visibility: hidden; }
+/* a window holding another page: its menu bar (a game's), and the page or the text filling the rest */
+/* off the desktop (another skin chosen while windows were open): out of sight while their pages close, still drawing, so a game
+   finishes its own way out */
+html:not(.d95-desk) .d95-app { position: fixed; left: -10000px; top: 0; width: 640px; height: 480px; visibility: hidden; }
+html.d95-desk .d95-app { display: flex; flex-direction: column; padding: 3px; overflow: hidden; }
+html.d95-desk .d95-app-game { width: 680px; height: 590px; }
+html.d95-desk .d95-app-page { width: 640px; height: 480px; }
+html.d95-desk .d95-app-txt { width: 600px; height: 440px; }
+html.d95-desk .d95-app-client { flex: 1 1 auto; min-height: 0; display: flex; margin-top: 2px;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); padding: 2px; }
+html.d95-desk .d95-app-frame { flex: 1 1 auto; width: 100%; height: 100%; border: 0; display: block; background: #808080; }
+html.d95-desk .d95-app-text { flex: 1 1 auto; margin: 0; padding: 4px 6px; overflow: auto; background: #ffffff; color: #000000;
+  font: 13px/1.35 "Courier New", Courier, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+html.d95-desk .d95-app-text:focus-visible { outline: 1px dotted #000000; outline-offset: -3px; }
+/* a game's menu bar: words on the window's face, the open one in navy */
+html.d95-desk .d95-menubar { display: flex; flex: none; padding: 1px 0; }
+html.d95-desk .d95-menubar-item:not(#\#) { background: none; box-shadow: none; border: 0; padding: 1px 7px; min-height: 0; color: #000000; }
+html.d95-desk .d95-menubar-item:not(#\#)[aria-expanded=true], html.d95-desk .d95-menubar-item:not(#\#):hover { background: #000080; color: #ffffff; }
+html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #000000; outline-offset: -2px; }
+/* a message box: a small window in the middle, its icon, its text and OK */
+.d95-msgbox { padding: 3px; border: 0; background: var(--panel, #c0c0c0); color: #000000; min-width: 260px; max-width: min(420px, calc(100vw - 32px));
+  box-shadow: inset -1px -1px #000000, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff; font: 13px "MS Sans Serif", Tahoma, sans-serif; }
+.d95-msgbox::backdrop { background: transparent; }
+.d95-msgbox-tb { display: flex; align-items: center; padding: 2px 4px; background: linear-gradient(90deg, #000080, #1084d0); color: #ffffff; font-weight: bold; }
+.d95-msgbox-body { display: flex; align-items: center; gap: 14px; padding: 16px 14px 8px; }
+.d95-msgbox-body p { margin: 0; }
+.d95-msgbox-icon { flex: none; width: 32px; height: 32px; position: relative; }
+.d95-msgbox-icon::before { content: ""; position: absolute; inset: 1px 0 0; background: #ffff00; clip-path: polygon(50% 0, 100% 96%, 0 96%); }
+.d95-msgbox-icon::after { content: "!"; position: absolute; inset: 9px 0 0; text-align: center; font: bold 18px/1 Arial, sans-serif; color: #000000; }
+.d95-msgbox-row { display: flex; justify-content: center; padding: 6px 0 10px; }
+.d95-msgbox-row button { min-width: 75px; padding: 3px 10px; background: #c0c0c0; color: #000000; border: 0; border-radius: 0;
+  box-shadow: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; outline: 1px solid #000000; }
+.d95-msgbox-row button:focus-visible { outline: 1px solid #000000; box-shadow: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf, inset 0 0 0 4px #c0c0c0, inset 0 0 0 5px #000000; }
+/* a page inside one of those windows (?embed=1): no desktop of its own; a game's window fills it, the frame and title being the
+   desktop's; a document is a plain page on the window's face, without the site's header or the way back */
+html.d95-embed[data-skin="d95"] body { background: #808080; }
+html.d95-embed[data-skin="d95"] body:has(> main > h1) { background: var(--panel); }
+html.d95-embed.d95-desk .stage-wrap.d95-win { left: 0 !important; top: 0 !important; right: 0; bottom: 0; width: auto !important; height: auto !important;
+  max-width: none !important; max-height: none !important; }
+html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-tb, html.d95-embed.d95-desk .stage-wrap .d95-grip { display: none; }
+html.d95-embed .byopop-footer, html.d95-embed body > header, html.d95-embed main > .back { display: none !important; }
+/* a narrow screen (under 760 px): one window at a time fills the screen above the task bar, maximized, the task bar switching */
+html.d95-narrow.d95-desk .d95-win:not(.d95-closed):not(.d95-min) { left: 0 !important; top: 0 !important; width: 100vw !important; height: calc(100dvh - 28px) !important;
+  max-width: none !important; max-height: none !important; }
+html.d95-narrow.d95-desk .d95-win .d95-rz { display: none; }
+/* a document window's icon: a small white page with a folded corner and lines */
+html.d95-desk .d95-sys-doc { display: block; width: 12px; height: 14px; margin: 1px 2px; background: #ffffff; position: relative;
+  box-shadow: inset 0 0 0 1px #000000; clip-path: polygon(0 0, 70% 0, 100% 28%, 100% 100%, 0 100%); }
+html.d95-desk .d95-sys-doc::after { content: ""; position: absolute; left: 3px; right: 3px; top: 6px; height: 5px;
+  background: repeating-linear-gradient(#000080 0 1px, transparent 1px 2px); }

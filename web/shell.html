@@ -451,6 +451,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // staged assets and keeps everything in a test profile of its own (PERSIST and the Web Lock end in "-test"), apart from the
   // player's; without it, the page's own files and saves, as on the full page. Plays are not counted and the chat never starts.
   var PLAYER_ONLY = new URLSearchParams(location.search).get("player") === "1" && ByopopTerms.devHost(location);
+  // the page in a game's window on Desktop 95's one page (web/deskapps.js, ?embed=1): the game and its own windows, the
+  // desktop's window frame around them
+  var EMBED = !!(window.ByopopSkin && ByopopSkin.EMBED);
+  function desktopApps() { try { return EMBED && window.parent.ByopopApps ? window.parent.ByopopApps : null; } catch (e) { return null; } }
   var TEST_PROFILE = PLAYER_ONLY && new URLSearchParams(location.search).has("assets");
   // what web/testkit.js may ask of the page (null on every other page): needFiles(), args(), ready()
   var testHooks = PLAYER_ONLY ? {} : null;
@@ -641,8 +645,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     else if (setting("pixelPerfect") === "on" || desktop) {
       var dpr = window.devicePixelRatio || 1, n = Math.max(1, Math.round(dpr));
       var roomW = (document.documentElement.clientWidth || window.innerWidth) - 24, roomH = window.innerHeight - 90;
-      // Desktop 95's game window (web/skins.js): the icons at the left, the controls above it, its own title bar
-      if (desktop) { roomW -= 120; roomH -= 60; }
+      // Desktop 95's game window (web/skins.js): the icons at the left, the controls above it, its own title bar; in a window of
+      // the one page, the window's frame and its status bar
+      if (desktop && EMBED) { roomW = (document.documentElement.clientWidth || window.innerWidth) - 8; roomH = window.innerHeight - 30; }
+      else if (desktop) { roomW -= 120; roomH -= 60; }
       // a multiple chosen for this game, while its window still fits
       var pick = desktop ? chosenScale() : 0;
       if (pick && deskScales().some(function (x) { return x.n === pick; })) w = gameScreen.w * pick / dpr;
@@ -654,6 +660,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       if (!w && desktop) w = gameScreen.w / dpr;
     }
     if (w) s.style.setProperty("--pp-w", w + "px"); else s.style.removeProperty("--pp-w");
+    // a game's window on the one page takes the size of its game (web/deskapps.js, fit): the stage, the status bar and the frame
+    var P = desktop && w ? desktopApps() : null;
+    if (P) try { P.fit(window, Math.ceil(w) + 8, Math.ceil(w * gameScreen.h / gameScreen.w) + 34); } catch (e) {}
     document.documentElement.classList.toggle("pixel-perfect", !!w);
     if (chat) chat.layout();
     if (desktop) try { ByopopSkin.desk.layout(); } catch (e) {}
@@ -1583,7 +1592,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function deskTitle() {
     if (!window.ByopopSkin || !ByopopSkin.desk.isOn()) return;
     var n = modsRunning(), name = $("brand-name").textContent;
-    ByopopSkin.desk.setTitle("game", n ? name + " - " + ByopopStrings.t("game.title.mods", { n: n }) : name);
+    var title = n ? name + " - " + ByopopStrings.t("game.title.mods", { n: n }) : name;
+    ByopopSkin.desk.setTitle("game", title);
+    var P = desktopApps();
+    if (P) try { P.title(window, title); } catch (e) {}
   }
   // The parts of the bar that go elsewhere on the desktop, and back without it: the status line in the game window's status
   // bar, the theme button in Settings' Appearance (a placeholder marks where each was)
@@ -1622,6 +1634,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // the game window's Close: the game closes as it does for the panels' actions (its saves written), then the listing,
   // where All games opens (sessionStorage "byopop-desk-open", web/index.html)
   function closeProgram() {
+    // in a window of the one page: the game's own close with its saves, then the window goes (web/deskapps.js)
+    var P = desktopApps();
+    if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }); return; }
     try { sessionStorage.setItem("byopop-desk-open", "games"); } catch (e) {}
     closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); });
   }
@@ -2158,6 +2173,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   placeChat();
   sizeStage();
   if (PAGE.init) PAGE.init();
+  // what the desktop around a game's window calls (web/deskapps.js): Close
+  if (EMBED) window.ByopopEmbed = { close: closeProgram };
   // what web/testkit.js reads and calls on the player-only page; nothing on any other page
   if (PLAYER_ONLY) window.ByopopShell = {
     hooks: testHooks, PAGE: PAGE, PERSIST: PERSIST, GAME: GAME, USER: USER, testProfile: TEST_PROFILE,

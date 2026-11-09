@@ -879,6 +879,32 @@ the window scrolls its contents (the listing's windows, About) a thin sunken edg
 stands inside it. The rule sits above the skin's own rules for the same elements off the desktop, which had put a padded box
 between the frame and the title bar.
 
+**Desktop 95 in one page.** With Desktop 95 chosen the whole site is one page, the listing's desktop (the coordinator,
+2026-11-08): every page of ours opens there as a window, with its own title, task bar button and, for a game, an entry under
+the Pop menu's Games (web/deskapps.js, `ByopopApps`). A game, its copyright page (the full terms and the licences) and any other
+page of ours are their own pages in a frame (`?embed=1`: the page draws no desktop of its own, no task bar, no icons, no header
+or footer, and keeps its window places under `embed:<page>`); a licence text is fetched into the window as plain text. A link
+to one of our pages opens its window instead, on the desktop and inside a window's page alike; a link to another site still
+opens a tab. The address follows the window in front: opening one pushes its page's address, bringing another to the front
+replaces it, and the state lists the windows open, so Back and Forward close and reopen windows and never leave the page; a
+reload brings back the window that was in front, and the address of any page of ours, opened in its own tab with Desktop 95
+chosen, shows the desktop with that page's window open (skins.js goes to `?open=<page>`, and the page's address is put back).
+`?desk=0` keeps a page as it is, and the player-only page (`?player=1`) never moves. Leaving Desktop 95 on such an address
+loads that page itself; the other skins are unchanged.
+
+Up to three games run at once, each in its own window (the frames are separate pages, so each game has its own module, its
+own saves and its own chat, play time and mod count in its title); a fourth brings up a Windows 95 message box naming the
+limit. The window in front has the focus, given to its game when it comes to the front by its title bar, its task bar button
+or the Pop menu, and the other games lose it exactly as a page does: their frames get the window blur the framework listens
+for (`EmscriptenFocusCallback`), so each does what it does when its page loses the focus; a minimized
+window is never in front. A game window's menu bar has Game: the game's own windows (chat, game files, controls, mods), the
+game's terms, copyright and licences, Full screen (its maximize: the frame alone in full screen) and Close with Alt+F4. Close
+is the game's own way out, its saves written first (closeGameThen), then the window goes. A game window takes its game's size
+in device pixels with its frame and status bar, as far as the desktop has room. `?silent=1` passes to every frame. Under 760
+pixels wide one window shows at a time, maximized, the task bar switching between them, and only one game can be open.
+Measured in the pane with Big Money, Alchemy and Twist: the games' wasm memory is 53, 30 and 284 MB, and the page's JavaScript
+heap 14 MB with one or two of them and 100 MB with Twist's images loaded as well.
+
 **The task bar.** Along the desktop's bottom edge (the user, 2026-11-08: "Add a task bar to the bottom with a start menu,
 replacing "Start" with "Pop""): the Pop button at the left, with the site's cap beside the word, then a button for each open
 window (the front one pressed in: a click brings a window to the front, or minimizes the one in front, and a minimized window
