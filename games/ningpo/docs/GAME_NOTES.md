@@ -155,11 +155,11 @@ functions, and the runs reached 574 of them.
 - **The tool: 32.** `tools/coverage.py` did not count a constructor or destructor declared in its class, a
   declaration over several lines, or a declaration with a default argument or an inline body. The spec went to the
   coordinator, who fixed it on main (9d12ecc5).
-- **Placed: 52.** Functions the port translates inline or in another shape (the loaders' small objects, the
+- **Placed: 54.** Functions the port translates inline or in another shape (the loaders' small objects, the
   registry's key, the display's teardown, the PyTime helpers, the six title arrows' click handlers) got their address
   in the comment above the function that holds them. These were comment edits only, and play is unchanged:
   `tools/check.sh ningpo` still matches the frozen baseline.
-- **Left out on purpose: 187, as `none` lines in coverage.txt, each with its reason.** The mechanisms the port does
+- **Left out on purpose: 185, as `none` lines in coverage.txt, each with its reason** (beside the three it started with: `WinMain` and the two registration checks). The mechanisms the port does
   another way: the cvars kept in a Lua table, the framework's object list and its stack of open dialogs, the
   command line parsed into cvars, and the H layer's window, DirectSound mixer and streams, DirectInput device and ZIP
   reader, which the host and the platform replace. Also the trial's code (the count of games played, and the big
