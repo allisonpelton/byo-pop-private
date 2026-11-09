@@ -28,6 +28,7 @@
 #include "Checkbox.h"
 #include "Dialog.h"
 #include "Dialogs.h"
+#include "MemReport.h"
 #include "HighScores.h"
 #include "HyperlinkWidget.h"
 #include "Piece.h"
@@ -548,6 +549,17 @@ bool AlchemyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			CrtSRand((unsigned int) atoi(anArg.c_str()));
 			Ok(aLine);
 		}
+		return true;
+	}
+	// memreport <file>: what the game holds in memory by owner (testhooks/MemReport.h), for the performance pass
+	if (aName == "memreport")
+	{
+		if (theCommand.mArgs.empty())
+			Error(aLine, "memreport <file>");
+		else if (!WriteMemReport(this, theCommand.mArgs))
+			Error(aLine, "cannot write " + theCommand.mArgs);
+		else
+			Ok(aLine);
 		return true;
 	}
 	if (aName == "move")
