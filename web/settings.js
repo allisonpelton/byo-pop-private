@@ -50,6 +50,7 @@ var ByopopSettings = (function () {
     skin: { values: ["plain", "demo", "d95", "soda"], def: "unset" },
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     ambient: { values: SWITCH, def: "on" },
+    gamesOpen: { values: ["games", "library"], def: "games" },  // Desktop 95: the window the games' entries open (web/skins.js)
     win95Only: { values: SWITCH, def: "off" },       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)          // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
@@ -227,6 +228,8 @@ var ByopopSettings = (function () {
       hint: T("settings.skin.hint") },
     { name: "ambient", label: T("settings.ambient.label"), hint: T("settings.ambient.hint") },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
+    { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
+      hint: T("settings.gamesopen.hint") },
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
       hint: T("settings.scanlines.hint") },
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],

@@ -1422,6 +1422,28 @@ folder is restored whole or not at all, with a directory entry for every missing
 from the manifest. The page then tells what it wrote and sends a `storage` event to its own sections so that the settings and players
 show the restored values.
 
+### The Library
+
+Desktop 95's other window of the games, on the listing's desktop (web/library.js; the coordinator, 2026-11-08): a grid that
+evokes a game client of 2004 in a look of its own (olive and khaki, flat panels with 1-pixel bevels, small Tahoma, an
+amber-olive selection, square buttons and its own title bar, web/skins.css `.lib-*`), named for no real program and with no
+real program's art. Each game is a row: its 16-pixel icon (the one from the player's files, else its cap's colour and
+initials) and name, its status (Ready, Needs your files, Coming soon, No longer sold), its play time, the day it was last
+played and its year. A click on a column's header sorts by it, a second click the other way, the choice kept in localStorage
+`byopop-library-sort`; ties go by name, and the sort is announced and set as `aria-sort` on the header. A double-click or Enter
+plays the selected game (its window on the one page, web/deskapps.js), as does the Play button above the grid; the Filter box
+beside it narrows the rows to the names that hold its text, and the status bar counts them. A row's menu (a right click, the
+menu key or Shift+F10) has Play, Add files (the game's window, whose setup asks for them), Add to or Remove from favourites,
+Properties (a sheet of the game's values: name, status, release date, plays, play time, last played, Windows 95) and the
+card's buy links, which open a tab. The grid is one tab stop, its selected row's first cell: the arrows, Home and End, Page
+Up and Down move the selection, and typing the first letters of a name goes to it; Tab moves between the Play button, the
+Filter box, the column headers and the grid, and F6 between the desktop's windows. It is a real grid (`role="grid"`, rows
+with `aria-selected`, column headers). Everything comes from the listing's own cards (their files check, favourite and buy
+links) and from ByopopPlay, so the two windows always agree; the rows are read again when the window comes to the front and
+when a card changes. Its icon stands beside All games', and the Pop menu has it beside Games. The setting "Games open in"
+(Look, Desktop 95 only; All games by default) chooses the window that the first entry of the Pop menu's Games and a closed
+game's return open. Under 760 pixels the window is maximized like the rest, without the Last played and Year columns.
+
 ### The music player
 
 The listing page's fourth tab, Music (`web/music.js`, the user's request of 2026-11-07), plays the music of the games the player
