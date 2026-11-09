@@ -23,13 +23,6 @@
 
 using namespace Sexy;
 
-// 0x410ee0: removes a widget from the screen and has the app delete it when it is safe
-void AlchemyApp::RemoveWidgetAndDelete(Widget* theWidget)
-{
-	mWidgetManager->RemoveWidget(theWidget);
-	SafeDeleteWidget(theWidget);
-}
-
 // 0x4010fc: only tests that the file opens
 bool AlchemyApp::HasSavedGame()
 {
@@ -271,11 +264,6 @@ void AlchemyApp::ButtonDepress(int theId)
 			KillDialog(DIALOG_NEW_GAME);
 			mTutorialMode = false;
 			ShowSelector();
-			break;
-		case DIALOG_SKILL:
-			KillDialog(DIALOG_SKILL);
-			SetSkillLevel(mPendingSkill);
-			StartGame();
 			break;
 		case DIALOG_QUIT:
 			KillDialog(DIALOG_QUIT);
