@@ -1035,5 +1035,8 @@ var ByopopMusic = (function () {
       seek: function (s) { seekTo(s); }, minHeight: windowLeast, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; } };
   }
 
-  return { init: init, patternRe: patternRe };
+  // (the Sounds window, web/sounds.js, reads the games' files with the same read-only reader, draws its Stop and speaker with the
+  // same pictures, and falls back on the same stb_vorbis decoder)
+  return { init: init, patternRe: patternRe, glyph: glyph, decoder: decoder, stbOgg: stbOgg,
+    files: { open: openExisting, list: gameFiles, read: readFile } };
 })();

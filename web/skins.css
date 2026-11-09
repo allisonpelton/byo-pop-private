@@ -951,6 +951,28 @@ html.d95-desk .d95-sys-doc { display: block; width: 12px; height: 14px; margin: 
 html.d95-desk .d95-sys-doc::after { content: ""; position: absolute; left: 3px; right: 3px; top: 6px; height: 5px;
   background: repeating-linear-gradient(#000080 0 1px, transparent 1px 2px); }
 
+/* ---------- The soundboard (web/sounds.js): Desktop 95's Sounds window, on the listing's desktop only ----------
+   A row of tools (the games' drop-down, Stop, the speaker and the volume, the speaker and Stop as Music's square buttons), the
+   sounds as raised push buttons in etched group boxes, in the thin sunken edge of the part that scrolls, and a status bar. */
+#sounds { display: none; }
+html.d95-desk #sounds.sb-win:not(.d95-closed):not(.d95-min) { display: flex; }
+html.d95-desk .sb-win { flex-direction: column; width: min(560px, calc(100vw - 140px)); height: 440px; overflow: hidden; }
+html.d95-desk .sb-bar { flex: none; display: flex; align-items: center; gap: 4px; padding: 1px 2px 4px; }
+html.d95-desk .sb-gap { flex: 1 1 auto; }
+html.d95-desk .sb-game:not(#\#) { flex: 0 1 200px; min-width: 60px; }
+html.d95-desk .sb-tool:not(#\#) { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 25px; height: 22px;
+  min-width: 0; min-height: 0; padding: 0; color: #000; }
+html.d95-desk .sb-mute[aria-pressed="true"]:not(#\#) { background: var(--sk-mid); }
+html.d95-desk .sb-vol:not(#\#) { flex: 0 1 90px; width: 90px; min-width: 40px; }
+html.d95-desk .sb-grid { padding: 0 6px 8px; }
+html.d95-desk .sb-group:not(#\#) { margin: 4px 0 0; padding: 3px 6px 7px; min-width: 0; border: 1px solid; border-color: var(--sk-lo) var(--sk-hi) var(--sk-hi) var(--sk-lo);
+  box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }
+html.d95-desk .sb-legend { margin-left: 4px; padding: 0 3px; background: var(--panel); }
+html.d95-desk .sb-row { display: flex; flex-wrap: wrap; gap: 4px; }
+html.d95-desk .sb-btn:not(#\#) { flex: none; width: 116px; height: 23px; min-width: 0; min-height: 0; padding: 0 6px; color: #000; font: inherit; }
+html.d95-desk .sb-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html.d95-desk .sb-status { flex: none; margin-top: 2px; padding: 1px 4px; min-height: 16px; font-size: 12px; line-height: 16px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
 /* ---------- The Library (web/library.js): Desktop 95's grid of the games, in a 2004 game client's look of our own ----------
    Olive and khaki, flat panels edged by 1-pixel bevels, small Tahoma, an amber-olive selection, square buttons and its own
    title bar. It exists only on the listing's desktop. */
