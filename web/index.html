@@ -65,6 +65,15 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .soon .name { color: var(--muted); }
 .soon .badge { filter: saturate(0.35); box-shadow: none; }
 .own-soon { font-weight: 600; }
+/* a port still in progress opened on a development host (web/localsoon.js): the Coming soon look, a link, and this computer's
+   icon beside "Coming soon" (a monitor on its stand, drawn here) */
+.games > li.soon-local { background: var(--bg); border-style: dashed; }
+.soon-local .name { color: var(--muted); }
+.soon-local .badge { filter: saturate(0.35); box-shadow: none; }
+.soon-local-sign { display: inline-block; position: relative; width: 14px; height: 13px; margin-left: 6px; vertical-align: -2px; }
+.soon-local-sign::before { content: ""; position: absolute; left: 0; top: 0; width: 14px; height: 9px; box-sizing: border-box;
+  border: 2px solid currentColor; background: #008080; }
+.soon-local-sign::after { content: ""; position: absolute; left: 3px; top: 10px; width: 8px; height: 3px; background: currentColor; }
 .tile {
   flex: 1; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px;
   padding: 16px 8px 6px; color: inherit; text-decoration: none; text-align: center; border-radius: var(--radius) var(--radius) 0 0;
@@ -298,6 +307,9 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-tracker { height: 100%; overflow: hidden; }
 .mu-spectrum[hidden], .mu-tracker[hidden] { display: none; }
 .mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
+/* the game the views follow (web/music.js, "Following a game"): a tag over the view's top right corner */
+.mu-follow { position: absolute; top: 0; right: 0; max-width: 50%; padding: 0 3px; font-size: 10px; line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #c9b8ff; color: #0b0a10; }
+.mu-follow[hidden] { display: none; }
 .mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
 .mu-tracker { display: flex; flex-direction: column; }
 .mu-tracker-rows { flex: 1 1 auto; min-height: 0; }
@@ -466,6 +478,10 @@ footer a { color: var(--accent); }
   <ul class="games" aria-labelledby="games-title">
 <!-- byopop:games -->
   </ul>
+  <!-- the ports still in progress whose pages this build made open from their Coming soon tiles on a development host only, before
+       anything reads the tiles (web/localsoon.js) -->
+  <script src="localsoon.js"></script>
+  <script>try { ByopopLocalSoon.apply(document, location, ByopopTerms.devHost, ByopopStrings.t("index.soon_local")); } catch (e) {}</script>
   <!-- Jungle Juice, the page for other projects' decompilations (web/jungle/index.html; the user, 2026-11-04: "the front page will
        link to it after the game tiles") -->
   <a class="jungle-link" href="jungle/"><span class="jungle-name">{{index.jungle.name}}</span> <span class="jungle-about">{{index.jungle.about}}</span></a>
@@ -523,6 +539,8 @@ footer a { color: var(--accent); }
 <script src="other-games.js"></script>
 <script src="terms-games.js"></script>
 <script src="addgames.js"></script>
+<!-- the Setup window: Desktop 95's wizard for adding many games at once, a new face on addgames.js's import -->
+<script src="setup.js"></script>
 <script src="library.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
@@ -1220,6 +1238,8 @@ try {
     });
     // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
     if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
+    // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
+    if (window.ByopopSetup) ByopopSetup.attach(d, function (left, vw) { return [Math.max(left, Math.round((vw - 560) / 2)), top() + 40]; });
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>
     if (siteSettingsView) siteSettingsView.sections.forEach(function (r, i) {
       d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,

@@ -4,6 +4,7 @@
 
 #include <libopenmpt/libopenmpt.h>
 #include <libopenmpt/libopenmpt_ext.h>
+#include <string>
 #include <SDL.h>
 #include <cmath>
 #include <cstring>
@@ -128,6 +129,66 @@ public:
 		}
 		return true;
 	}
+
+#ifdef __EMSCRIPTEN__
+	bool GetView(int theOut[5]) override
+	{
+		int aPattern = openmpt_module_get_current_pattern(mModule);
+		theOut[0] = aPattern;
+		theOut[1] = openmpt_module_get_current_row(mModule);
+		theOut[2] = openmpt_module_get_pattern_num_rows(mModule, aPattern);
+		theOut[3] = openmpt_module_get_num_channels(mModule);
+		theOut[4] = openmpt_module_get_current_order(mModule);
+		return true;
+	}
+
+	std::string GetRowText(int thePattern, int theRow) override
+	{
+		std::string aText;
+		int aChannels = openmpt_module_get_num_channels(mModule);
+		for (int c = 0; c < aChannels; c++)
+		{
+			const char* aCell = openmpt_module_format_pattern_row_channel(mModule, thePattern, theRow, c, 0, 1);
+			if (c)
+				aText += '|';
+			if (aCell)
+			{
+				aText += aCell;
+				openmpt_free_string(aCell);
+			}
+		}
+		return aText;
+	}
+
+	int GetUsedChannels(unsigned char* theOut, int theMax) override
+	{
+		int aChannels = openmpt_module_get_num_channels(mModule), aPatterns = openmpt_module_get_num_patterns(mModule);
+		for (int c = 0; c < aChannels && c < theMax; c++)
+			theOut[c] = 0;
+		for (int p = 0; p < aPatterns; p++)
+		{
+			int aRows = openmpt_module_get_pattern_num_rows(mModule, p);
+			for (int r = 0; r < aRows; r++)
+				for (int c = 0; c < aChannels && c < theMax; c++)
+				{
+					if (theOut[c])
+						continue;
+					uint8_t aNote = openmpt_module_get_pattern_row_channel_command(mModule, p, r, c, OPENMPT_MODULE_COMMAND_NOTE);
+					if (aNote >= 1 && aNote <= 120)
+						theOut[c] = 1;
+				}
+		}
+		return aChannels;
+	}
+
+	std::string GetTitle() override
+	{
+		const char* aTitle = openmpt_module_get_metadata(mModule, "title");
+		std::string aText = aTitle ? aTitle : "";
+		openmpt_free_string(aTitle);
+		return aText;
+	}
+#endif
 
 private:
 	void ApplyChannelVolume(int theChannel)

@@ -43,6 +43,19 @@ public:
 	// every channel when the player cannot tell.
 	virtual int GetChannelVolume(int theChannel) { return -1; }
 	virtual void SetChannelVolume(int theChannel, int theVolume) {}
+#ifdef __EMSCRIPTEN__
+	// What the site's Music window shows of the module a game plays (docs/WEB_PLAYER.md, "Following a game"; Mixer's
+	// byopop_music_* exports). Web only, and asked only while that window follows the game. A player that cannot tell
+	// returns false, "" and 0: the window then shows the game's spectrum only.
+	// Where the player is: the pattern, the row, the pattern's rows, the module's channels and the order.
+	virtual bool GetView(int theOut[5]) { return false; }
+	// One row of a pattern, its channels' cells separated by '|' (libopenmpt's notation, as the window's own decoder gives it).
+	virtual std::string GetRowText(int thePattern, int theRow) { return std::string(); }
+	// Which channels play a note anywhere in the module: theOut[c] 1 or 0, up to theMax; returns the module's channels.
+	virtual int GetUsedChannels(unsigned char* theOut, int theMax) { return 0; }
+	// The module's own title, "" when it has none.
+	virtual std::string GetTitle() { return std::string(); }
+#endif
 };
 
 typedef bool (*ModuleDetector)(const std::vector<uint8_t>& theFile);
@@ -130,6 +143,15 @@ public:
 	void SetSongTempo(int theSong, int theBPM);
 	int GetSongChannelVolume(int theSong, int theChannel);
 	void SetSongChannelVolume(int theSong, int theChannel, int theVolume);
+#ifdef __EMSCRIPTEN__
+	// The site's Music window following the game (docs/WEB_PLAYER.md, "Following a game"; Audio.cpp's byopop_music_*). The
+	// song it shows: the loudest one playing (its handle, 0 for none), and as JSON where it is ({"song", "kind": "module" or
+	// "stream", and for a module "pattern", "row", "rows", "channels", "order", "title"}); a row's cells; the channels used.
+	int WebFollowedSong();
+	std::string WebSongView(int theSong);
+	std::string WebSongRow(int theSong, int thePattern, int theRow);
+	std::string WebSongUsed(int theSong);
+#endif
 
 #ifdef __EMSCRIPTEN__
 	// On the web the page's starting volume (web/settings.js, docs/WEB_PLAYER.md, "Site settings") reaches a game with no

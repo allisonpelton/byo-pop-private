@@ -337,6 +337,8 @@ index.tile.name_year = {title}, {year}
 index.soon = Coming soon
 # {label} is the game's title, and its year when it has one
 index.soon_label = {label}, coming soon
+# the tooltip of the icon on a coming-soon card whose port opens on this development computer only (web/localsoon.js)
+index.soon_local = This computer only
 # Links to the stores that sell a game, on its card. {store} is a store's name; {title} the game's.
 # A store whose name ends in "app" (the EA app) takes "the".
 store.buy_on = Buy on {store}
@@ -1194,6 +1196,36 @@ add.bin.none = No game has its files here.
 add.bin.forgetting = Forgetting…
 add.bin.forgotten = {title}'s files are forgotten.
 add.bin.failed = The files could not be forgotten.
+
+# The Setup window (web/setup.js): Desktop 95's wizard for adding many games at once. Values and short steps only.
+setup.title = byo-pop Setup
+# the Pop menu's entry that opens it
+setup.pop = Add Games
+setup.page.games = Your games
+setup.page.licence = Licence: {title}
+setup.page.copying = Copying
+setup.page.finish = Finish
+setup.drop = Drop game folders or .zip files here
+setup.browse = Browse…
+# the list of what was dropped, for screen readers
+setup.found = Found
+setup.reading = Reading…
+setup.ready = Ready
+# the row of a drop that could not be read at all
+setup.dropped = Dropped files
+setup.back = < Back
+setup.next = Next >
+setup.cancel = Cancel
+setup.finish = Finish
+# a game's result: a value, its reason in the tooltip
+setup.result.installed = Installed
+setup.result.already = Already here
+setup.result.unsupported = Not a supported game
+setup.result.skipped = Skipped
+setup.result.error = Error {code}
+setup.cancelled = Setup was cancelled before this game began.
+# read out when Finish is shown
+setup.summary = Installed {installed} of {total}
 
 # The music player (web/music.js): the listing page's Music tab
 music.unavailable = The music player is not available.

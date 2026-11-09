@@ -113,6 +113,7 @@ var ByopopApps = (function () {
     var el = document.createElement("section");
     el.className = "d95-app d95-app-" + kind;
     var title = g ? g.title : pathOf(key).split("/").filter(Boolean).pop() || key;
+    app.title = title;
     // a game's menu bar, as a Windows 95 program's (the user, 2026-11-09: "don't hide everything under "Game""): Game, View,
     // Options and Help (barMenus), each with its access key, the first letter underlined (Alt and the letter, menuKey)
     if (kind === "game") {
@@ -400,7 +401,15 @@ var ByopopApps = (function () {
     for (var i = apps.length - 1; i >= 0; i--) if (apps[i].kind === "game") return apps[i].game;
     return "";
   }
-  return { open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame,
+  // the game window in front, for the Music window's views (web/music.js, "Following a game"): the game window last made active,
+  // while it is open and not minimized; its page and its game's title, or null
+  function frontFrame() {
+    var a = lastGame && apps.indexOf(lastGame) >= 0 ? lastGame : null;
+    if (!a || !a.el || a.el.classList.contains("d95-min") || a.el.classList.contains("d95-closed")) return null;
+    var w = inner(a);
+    return w ? { win: w, title: a.title || "" } : null;
+  }
+  return { open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)
