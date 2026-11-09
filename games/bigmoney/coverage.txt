@@ -1,0 +1,45 @@
+# tools/coverage.py's settings for Big Money Deluxe (docs/COVERAGE.md).
+export re/bigmoney/ghidra/functions.jsonl
+src games/bigmoney/src
+# The game's own code (GAME_NOTES.md, the scope line): 0x401000 to FUN_00421820, the last function before the framework
+# (Sexy::WidgetContainer::MarkDirty, 0x421830). The rest of the exe is SexyAppFramework 1.2, the C runtime and the libraries.
+game 00401000-00421820
+# Game code the port leaves out on purpose.
+none 0041b670 WinMain: the platform layer's main starts the game (src/main.cpp)
+# Found by the first report (GAME_NOTES.md, "Coverage check"): the 19 functions the runs reached that the port has no function for are
+# the compiler's and MSVC 7.0's library code, instantiated among the game's own functions because the linker placed them there.
+none 00401ae0 ButtonListener::ButtonPress(id, clickCount): the framework's ButtonListener forwards it to ButtonPress(id) (framework/ButtonListener.h)
+none 00401cb0 CRect::CRect(int, int, int, int): constructor of a rectangle; the port's Rect is the framework's
+none 00401d00 operator delete thunk: C++ runtime
+none 00412cb0 std::string::append(string, pos, count): MSVC 7.0's string code; the port uses the host's std::string
+none 00412da0 std::string::append(const char *, count): MSVC 7.0's string code
+none 004156e0 std::uninitialized_copy of pointers: MSVC 7.0's vector code
+none 00415740 std::uninitialized_fill_n of pointers: MSVC 7.0's vector code
+none 004182b0 std::map<string, string>: tree rotation, MSVC 7.0's map code (used by the framework's string maps, instantiated here)
+none 00418310 std::map<string, string>: tree rotation
+none 004183f0 std::map<string, string>: head node allocation
+none 00418430 std::map<string, string>: destroys a node's pair of strings
+none 004184a0 std::map<string, string>: copies a pair of strings
+none 004188a0 std::map<string, string>: erases a subtree
+none 00418e00 std::map<string, string>: makes a node
+none 00418ea0 std::map<string, string>: erase of a range
+none 0041c200 std::string == const char *: MSVC 7.0's string code
+none 0041c5f0 std::string::substr: MSVC 7.0's string code
+none 0041c630 std::list::_Incsize check before an insert (WinBMApp::MakeButton): MSVC 7.0's list code
+none 0041c6e0 operator+(const char *, string): MSVC 7.0's string code
+# Registration, update-check and URL code, taken out of the port on 2026-11-08 (GAME_NOTES.md, Part 6): the runs never reach it.
+none 00417e80-00418240 RegisterDialog: registration code, removed with the rest of it
+none 004183d0 RegisterDialog::scalar_deleting_dtor: registration code
+none 004188e0 RegisterDialog::RegisterDialog: registration code
+none 00419160 RegisterDialog::ButtonDepress: registration code
+none 0041bf80 WinBMApp::URLOpenSucceeded: the "opening your browser" dialog, out with the buttons that lead out of the game
+none 0041cd60 WinBMApp::ShowRegisterDialog: registration code
+none 0041d090 WinBMApp::ShowInvalidCodeDialog: registration code
+none 0041d2e0 WinBMApp::ShowOneLevelOnlyDialog: the shareware limit of one level, registration code
+none 0041d4c0 WinBMApp::ShowNextLevelLockedDialog: the shareware limit of the next level, registration code
+none 0041d6a0 WinBMApp::ShowRegisterToRecordScoreDialog: registration code
+none 0041fe80 WinBMApp::URLOpenFailed: the failed-to-open-a-page notice, out with the buttons that lead out of the game
+none 00420140 WinBMApp::OpenURL: the game opens no address
+none 00420a30 WinBMApp::ConfirmCheckForUpdates: the update check, out with the Options dialog's button for it
+none 00420c50 WinBMApp::DoUpdateCheck: the update check
+none 00412c60 HighScoreWidget::InternetSubmitDone: the online high-score submission, never part of the registered Steam game
