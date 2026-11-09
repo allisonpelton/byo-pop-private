@@ -98,3 +98,77 @@ slow menu (12.4 s) had appeared, so that run idled through its minute (2.1 s of 
 **Not measured: the web build's load.** The only place to time a page is the Browser pane, which is hidden. There a
 page's frames and timers run only through the test shims, so no load time taken there would mean anything. The web
 build's play was checked instead (`IDENTICAL_PLAY.md`).
+
+## Coverage check (2026-11-08)
+
+The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran, in nine
+runs on the host (`tools/coverage/run.sh`: the original on its real clock with the silent sound stand-in, so that FMOD's
+code runs, its seed pinned as the port's `-seed=1`, in one copy that keeps its saves from run to run; the hits in
+`build/coverage/bonnies/hits/`). Every run ended with the game exiting normally, and none made a sound.
+
+- The identical-play scripts: the tour (`tools/origrun/tour.txt`, 869 functions), the action game over its saves
+  (787), the resumed classic game (736) and the logos with the menu (700).
+- `tools/coverage/extra1.txt` (866): the player dialog (New, Delete answered No and then Yes, Accept), the main
+  menu's options with both sliders clicked, a new classic game over the action one with Scramble and a wait for the
+  game's own hint, the high scores' page arrow, Back To Game, and the window closed on the board.
+- `tools/coverage/logos.txt` (656): a click on each logo.
+- Three runs on saves the port made, since the original's boards by the clock cannot be planned: the port's own
+  driver (`tools/realmove.py`, with `BB_STOP`, and `BB_LEVEL` for the `level` test command) played to the moment and
+  closed the window, which saves the game, and wrote down the word its bot would play next. The original resumed each
+  save, whose board it loads exactly as the port's: `lastturn.txt` (742), a classic game at one turn left, resigned
+  through the Resign button that takes Scramble's place, to the game's end; `levelend.txt` (794), the word that fills a
+  chapter's last cell, through the chapter's end, the story's page and the next chapter's board; and `bookend.txt`
+  (807), the same at the end of chapter 4, the first book's last, through the book's end, the publisher's letter and
+  the next book.
+
+The full screen checkbox was left unclicked, since the original would change the machine's display mode. The positions
+of the clicks came from the port's screenshots of the same screens; origrun takes no shots on the host.
+
+`games/bonnies/coverage.txt` sets the game's own code as one range, the game and New Crayon's engine
+(0x401000-0x42f6d0; `ENGINE.md`, "The binary's layout"). The rest of the exe is the import thunks, the C runtime and
+the static initializers. The game's own code has 566 functions, and the runs reached 499 of them.
+
+**Reached in the original with no counterpart in the port: 35 at first, then 1 more from the extra runs, 0 at the end.**
+
+- **Placed: 7.** Three are the tails of functions that the export splits off at a jump into their middle (0x404c02 of
+  `Dictionary::isWord`, 0x41756b of `NamePanel::handleEvent`, 0x42f35b of `Pak::contains`). Four are small functions the
+  port has inline: 0x40e250 (always 1), 0x41f5b0 (a fill of 32-bit words, in `fillRect`), 0x41f4b0 (the getter of the
+  last active time) and 0x417b20 (a sound at full volume, in the options' slider). These were comment edits only:
+  `tools/check.sh bonnies` still matches the frozen baseline.
+- **Left out on purpose: 30 functions, as `none` lines with their reasons.** The engine's string class (the port's `Str` is
+  `std::string`), operator new and delete, two swaps, the log function that is empty in the release build and the
+  exit's line to it, the handler of the window messages SDL passes on (the host sends none), and implicit constructors
+  and destructors. The registration panel and its key check, taken out earlier and never reached, have `none` lines too.
+- **No missing game logic was found.**
+
+**Defined in the port, never reached: about 100 at first, 56 at the end.** The extra runs reached the player list and
+its list box, Scramble and `shuffle`, the game's hint, the end of a game and `HighScores::add`, a level's and a book's
+end with the book end screen, the next level's start, and the logo's click. One Sonnet agent read the 42 of the rest
+that hold logic against the export.
+
+- **Read again: 38 match.** Among them the interstitial screen (shown only when Portal.cfg names one), the super-wild
+  tile's sparkle, the tutorial hints' other branches (`Book::text`, `pathKind`, `replace`), `HighScores::save` (a
+  score that enters the table), the level dialog's `showLevel`, the checkbox, the slider's drag, the list box's
+  scroll, the clipboard in a text field, the Print Screen key's event, the window's move and its default place.
+- **One difference, now listed.** `drawLine` returns where the original divides by zero (a line along y whose ends
+  round to one row), which would crash the original; no play reaches it (`DEVIATIONS.md`, "Faults of the original
+  that break play").
+- **Three could not be settled from the export**, since its decompiler hides values on the floating-point stack:
+  `sparkleTile`'s rounding of its count in one branch (the port adds 0.5 before truncating), `playStream`'s volume
+  factors and `framesPerSecond`'s average. The disassembly would settle them; `playStream` and `framesPerSecond` were
+  never reached (the music player streams only a track that is not a module, and the frame counter draws only while
+  `mShowFPS` is set), and `sparkleTile`'s branch only for a super-wild tile.
+- **Code only an error reaches, which stays.** `systemMessageBox` and the application's `messageBox`.
+- **Candidates for taking out unneeded code: 17.** No play of the original reaches these, and they were not removed
+  now: the platform base class's defaults that the application overrides, as the only platform object
+  (`getWindowPos`, the four `messageBox` layouts, `Platform::messageBox`, `isRunning`, `getSoundVolume`, `windowMoved`,
+  `menuCommand`); `App::isModal`, a slot nothing calls; `BonniesApp::menuCommand`, the window menu's commands (SDL's
+  window has no menu); `openURL`, whose only callers were the registration panel's links; `Widget::setImage`, a slot
+  nothing calls; and the `Picture` widget's destructor, `init` and `draw`, a widget the game never makes.
+
+**Never reached and not defined in the port: 12, besides those left out.** The application's four message box layouts
+(overridden slots), the registration panel's code, the stream-music branch of the music player and the original's wait
+loop, which the host replaces.
+
+**What it cost.** The nine runs took about 25 minutes of machine time, one game process at a time, and the port's three
+saves and its probe screenshots a few more. The agent took 3.4 minutes and 135,000 tokens.

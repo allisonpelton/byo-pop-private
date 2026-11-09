@@ -1,0 +1,49 @@
+wait 1500
+click 320 425
+wait 2001
+click 340 440
+wait 1501
+click 186 54
+wait 301
+click 50 265
+wait 301
+rclick 400 300
+wait 301
+click 186 54
+wait 301
+rclick 186 54
+wait 301
+click 50 185
+wait 301
+click 571 229
+wait 301
+click 571 229
+wait 301
+click 282 289
+wait 301
+click 479 84
+wait 301
+click 479 84
+wait 301
+click 286 84
+wait 301
+click 289 436
+wait 301
+click 457 360
+wait 301
+click 289 436
+wait 301
+click 308 363
+wait 301
+click 480 437
+wait 301
+click 387 416
+wait 301
+quit
+wait 1001
+click 465 330
+wait 1001
+quit
+wait 1001
+click 316 333
+wait 3000

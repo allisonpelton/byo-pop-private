@@ -96,6 +96,7 @@ public:
 	// The text on the clipboard (Ctrl+V)
 	virtual std::string ClipboardText() = 0;
 	// The name of the user's account, empty when there is none (0x414168, GetUserNameA): the name entry's default
+	// 0x414168 GetUserNameA
 	virtual std::string UserName() = 0;
 	// The screen mode the game asks for
 	virtual void SetFullscreen(bool theFullscreen) = 0;
@@ -107,13 +108,16 @@ void SetHost(Host* theHost);
 Host* GetHost();
 
 // 0x40d2fa PGLog, 0x40d2c1 PGAlert, 0x40d289 PGMessageBox (flags dropped: the port only shows the text)
+// 0x41419d OutputDebugString, 0x40d40a the console: the host's Log
 void PGLog(const char* theFormat, ...);
 void PGAlert(const char* theFormat, ...);
 void PGMessageBox(unsigned int theFlags, const char* theCaption, const char* theFormat, ...);
 
 // 0x41415f HTimeGetTime
+// 0x40d456 PyTime::get
 uint32_t HTimeGetTime();
 // 0x40d3f0 HSin: the sine of an angle in degrees (the x87's fsin, in its precision)
+// 0x40d3d0 (degrees to radians, inside HSin)
 double HSin(float theDegrees);
 // 0x414192: Sleep()
 void HSleep(uint32_t theMs);
@@ -127,6 +131,7 @@ int HStricmp(const char* a, const char* b);
 int HSnprintf(char* theBuf, int theSize, const char* theFormat, ...);
 
 // 0x40d47b PyTime::sub; 0x40d45c: the difference, 0 when it does not fit 32 bits
+// 0x40d49e PyTime::sub into a result
 inline int64_t PyTimeSub(PyTime a, PyTime b) { return a - b; }
 int PyTimeDelta(PyTime a, PyTime b);
 
@@ -137,6 +142,7 @@ public:
 	PGRect mRects[512];
 	int mCount;
 
+	// 0x413d35
 	HRectList() : mCount(0) {}
 	void add(int theTop, int theLeft, int theBottom, int theRight);  // 0x413d3f
 	void add(const PGRect& theRect) { add(theRect.top, theRect.left, theRect.bottom, theRect.right); }  // 0x413ed6

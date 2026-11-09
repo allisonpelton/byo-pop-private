@@ -126,11 +126,29 @@ def split_line(line, in_block):
     return ''.join(code), ' '.join(com), in_block
 
 
-# A function declared or defined on one line, indented or not: a return type (or virtual, static ...) before the name,
-# so that a call (no type before it) or an assignment is not one.
+# A function declared or defined, indented or not: a return type (or virtual, static ...) before the name, so that a
+# call (no type before it) or an assignment is not one. Default arguments may follow ('=' after the '(').
 DECL = re.compile(r"^\s*(?:(?:virtual|static|inline|explicit|friend|extern)\s+)*"
                   r"(?!(?:return|new|delete|throw|else|case|goto|if|while|for|switch|do|sizeof)\b)"
-                  r"[\w:<>,*&]+(?:\s+[\w:<>,*&]+)*?\s*[\s*&]\s*((?:\w+::)*~?\w+|operator\s*\S+)\s*\([^=]*$")
+                  r"[\w:<>,*&]+(?:\s+[\w:<>,*&]+)*?\s*[\s*&]\s*((?:\w+::)*~?\w+|operator\s*\S+)\s*\(.*$")
+# A constructor or destructor declared in its class (no return type): counted only when the name is the class's own
+# and the line is at the class's own scope, so that a call statement in a function body is not one (Ning Po's spec,
+# 2026-11-08).
+CTOR = re.compile(r"^\s*(?:(?:virtual|explicit|inline)\s+)*(~?\w+)\s*\(.*$")
+# The head of a class or struct (not a forward declaration): its name is the last word before ':' or '{'.
+CLASS_HEAD = re.compile(r"^\s*(?:class|struct)\s+([^:{;()]*)")
+# The end of a declaration: the parameter list closed, with no body; a pure virtual, deleted or defaulted function has
+# no code of its own in the original.
+DECL_END = re.compile(r"\)\s*(?:const\s*)?(?:override\s*)?;\s*$")
+
+
+def declaration_end(codes, index):
+    """The line where the declaration starting at index ends (the first with ';' or '{', up to 7 lines on), when it
+    ends as a declaration does, else None."""
+    for k in range(index, min(index + 8, len(codes))):
+        if ';' in codes[k] or '{' in codes[k]:
+            return k if DECL_END.search(codes[k]) else None
+    return None
 
 
 def port_sites(cfg, fns):
@@ -160,13 +178,32 @@ def port_sites(cfg, fns):
                 codes.append(code)
                 comments.append(com)
             used = set()
+            depth, classes, pending = 0, [], None   # classes: (name, the brace depth inside its body)
             for i, line in enumerate(lines):
-                m = FUNC_DEF.match(line) if is_definition(lines, i) else None
+                own = classes[-1][0] if classes and depth == classes[-1][1] else None
+                defined = is_definition(lines, i)
+                m = FUNC_DEF.match(line) if defined else None
                 if not m:
                     d = DECL.match(codes[i])
-                    tail = codes[i].rstrip()
-                    if d and (tail.endswith(';') or '{' in tail or is_definition(lines, i)):
+                    if not d and own:
+                        c = CTOR.match(codes[i])
+                        d = c if c and c.group(1).lstrip('~') == own else None
+                    if d and (defined or declaration_end(codes, i) is not None):
                         m = d
+                code = codes[i]
+                h = CLASS_HEAD.match(code)
+                if h and not code.rstrip().endswith(';') and '(' not in code and h.group(1).split():
+                    pending = h.group(1).split()[-1]
+                for ch in code:
+                    if ch == '{':
+                        depth += 1
+                        if pending:
+                            classes.append((pending, depth))
+                            pending = None
+                    elif ch == '}':
+                        if classes and depth == classes[-1][1]:
+                            classes.pop()
+                        depth -= 1
                 if not m:
                     continue
                 block = [i]   # the comment on the line itself counts too
@@ -247,7 +284,7 @@ def report(game, hit_paths, out):
     reached = [a for a in game_fns if a in hits]
     with_def = [a for a in game_fns if has_def(a)]
     gaps = [a for a in reached if not has_def(a) and a not in left_out]
-    unreached_defs = [a for a in with_def if a not in hits]
+    unreached_defs = [a for a in with_def if a not in hits and a not in left_out]
     neither = [a for a in game_fns if a not in hits and not has_def(a) and a not in left_out]
 
     w = out.write
@@ -255,10 +292,11 @@ def report(game, hit_paths, out):
     w('Made by `tools/coverage.py report %s` on %s from %d run%s, against the export `%s` and the sources in %s.\n\n' % (
         game, datetime.date.today().isoformat(), len(runs), '' if len(runs) == 1 else 's', cfg['export'],
         ', '.join('`%s`' % s for s in cfg['src'])))
-    w('| Run | Functions reached | Ended normally |\n|---|---:|---|\n')
+    w('| Run | Functions reached | How it ended |\n|---|---:|---|\n')
     for p, n, ended, watched in runs:
         w('| `%s` | %d%s | %s |\n' % (os.path.relpath(p, REPO).replace('\\', '/'), n,
-                                      ' of %d watched' % watched if watched else '', 'yes' if ended else 'no'))
+                                      ' of %d watched' % watched if watched else '',
+                                      'the game exited' if ended else 'origrun stopped it (a timeout), or it crashed'))
     span_txt = ', '.join('%08x-%08x' % s for s in cfg['game']) if cfg['game'] else 'the whole exe'
     w('\nThe game\'s own code (%s) has %d functions. The runs reached %d of them, the port defines %d, and %d are '
       'left out on purpose (`games/%s/coverage.txt`).\n\n' % (span_txt, len(game_fns), len(reached), len(with_def),

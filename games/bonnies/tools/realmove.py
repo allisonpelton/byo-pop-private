@@ -26,6 +26,8 @@ def run():
     sep = sys.argv.index('--')
     out = os.path.abspath(sys.argv[1])
     fullscreen = 'fullscreen' in sys.argv[2:sep]
+    stop = os.environ.get('BB_STOP', '')
+    goto_level, level_sent = int(os.environ.get('BB_LEVEL', '0')), False
     os.makedirs(out, exist_ok=True)
     empty, commands = os.path.join(out, 'empty.txt'), os.path.join(out, 'commands.txt')
     state_path, game_log = os.path.join(out, 'state.txt'), os.path.join(out, 'game.log')
@@ -238,6 +240,27 @@ def run():
             else:
                 time.sleep(0.5)
             continue
+        # BB_STOP (the coverage check's saves, tools/coverage/run.sh): instead of this word, close the window, which
+        # saves the game in progress, and write the word's clicks to <out>/stop.json for a run of the original on that
+        # save. "lastturn" sets the turns to one first (after the tutorial's words); "levelend" waits for a word that
+        # fills every cell still to fill.
+        # BB_LEVEL=<n>: after the tutorial's words, the test command "level <n>" ends the level as won and goes on to
+        # level n, through its story page
+        if goto_level and not level_sent and m['kind'] == 'word' and result['words'] >= 3 and not (st['balloon'] and st['balloon'][0]):
+            send('level %d' % goto_level)
+            log('level %d' % goto_level)
+            level_sent = True
+            time.sleep(1)
+            continue
+        if stop and m['kind'] == 'word' and result['words'] >= 3 and j['level'] >= max(goto_level, 1) and not (st['balloon'] and st['balloon'][0]) and (
+                stop == 'lastturn' or
+                len(set(m['cells']) & set(j.get('unfilled', []))) >= j['fill'] - j['filled']):
+            if stop == 'lastturn':
+                send('set moves 1')
+            with open(os.path.join(out, 'stop.json'), 'w', encoding='utf-8') as f:
+                json.dump({'move': m, 'state': jstate()}, f)
+            log('stop (%s) before %s at level %s' % (stop, m['word'], j['level']))
+            break
         last_word, refused = m['word'], [j.get(k) for k in ('score', 'moves', 'board')]
         log('%s %s at level %s (score %s, moves %s, filled %s of %s)' % (m['kind'], m['word'], j['level'], j['score'],
                                                                        j['moves'], j['filled'], j['fill']))

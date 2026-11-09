@@ -123,6 +123,7 @@ public:
 };
 
 // The display the host shows (the one created last)
+// 0x413d10 sets it
 HDisplay* GetScreenDisplay();
 
 } // namespace pg

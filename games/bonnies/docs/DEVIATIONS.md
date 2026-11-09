@@ -158,3 +158,7 @@ Fixed in the port itself (the user, 2026-11-07); the faults that only change how
 - **Deleting a player.** The players panel's Delete (0x4189b0) builds the save's path with a string the original never
   sets (0x47a1ec) in place of ".gam", so it removes nothing and the player stays in the list. The port removes the
   saved game by the path `playerSaveExists` (0x4023a0) checks.
+- **A line along y with no height.** `drawLine` (0x4275c0) divides by the line's height in pixels when it steps along
+  y; the original divides by zero when the two ends round to the same row, which crashes it. The port returns there
+  instead. Its only caller is the checkbox's tick (`CheckBox::draw`, 0x42d7a0), whose strokes are diagonal, so no play
+  of either reaches it (found by the coverage check, `GAME_NOTES.md`).

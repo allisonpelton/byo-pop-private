@@ -18,6 +18,6 @@ for ((l = 0; l < 18; l++)); do for ((r = 0; r < 8; r++)); do
 done; done
 "$ORIGRUN" --exe "$(win "$OG_GAME/Ningpo.exe")" --run "$(basename "$OG_STAGE")" --script "$(win "$PWD/$D/sound-orig.txt")" \
 	--clock real --cursor scripted --counter 0x47be70 --update-ms 1 --sound "${ORIG_SOUND:-stub}" --seed 7 \
-	--patches tools/origrun/patches/ningpo.txt --timeout "$T" \
+	--patches tools/origrun/patches/ningpo.txt --timeout "$T" ${COVERAGE:+--coverage "$COVERAGE"} \
 	--watch 0x47be90 --watch 0x47beb8 --watch 0x47bee0 --watch 0x47bf08 --watch-max 4000 > "$D/sound-orig.log" 2>&1
 grep -E "RESULT|SOUND LEAK" "$D/sound-orig.log" | tail -3; grep -c "watch " "$D/sound-orig.log"

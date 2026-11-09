@@ -53,6 +53,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   write `.saf` archives correctly (the format is in `docs/POPCAP_GAMES_SURVEY.md`, "Talismania Deluxe"), keeps its
   author's credit and license, and pushes the working version to the fork. That fork is the one place outside the
   coordinator's snapshots that a session pushes to; byo-pop itself is never pushed by a game session.
+- **origrun and the framework as projects of their own (the user, 2026-11-08):** "Note publishing origrun and the
+  framework on SDL2 + wasm as a task to tackle at any point after the decomps are complete." Each becomes a repository
+  of its own with its own README. origrun (`tools/origrun`, with rundesk) is the harness for running a 2000s Windows game
+  invisibly, silently and on a virtual clock, with scripted input, watched values and function coverage. It needs its
+  SexyApp-era assumptions said plainly, its fixed paths to the repo and rundesk made options, and its protection
+  handling left out, as `.publishignore` does now. The framework (`framework/` and `platform/`) is SexyAppFramework on
+  SDL2 natively and in WebAssembly, published under PopCap's framework licence (`framework/LICENSE.txt`) with nothing
+  taken from a game. Not before every decomp is complete; any time after that.
 - Before each publish the coordinator checks the trunk for game files and game text.
 
 ## Which games, in what order
@@ -225,11 +233,20 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   code rebuilt with the original compiler reproduces the exe's instructions, and our ports are built by clang and
   Emscripten on a portable framework, with SDL in place of DirectX and the leaks fixed, so its scores would be noise.
   What it would catch that our comparisons miss is a slip in code no comparison run reaches: options, rare branches,
-  error paths. So each game gets a coverage check once it plays identical:
-  which of the original's functions its comparison runs reach (origrun would record it), and for each function in our
-  Ghidra export, whether the port has its counterpart, named by its address (today the ports name few: Bejeweled 154
-  distinct addresses, Twist 204). A function the runs never reach is read against the export or given a run that
-  reaches it. The coordinator builds the tool in `tools/` and tries it on one game first.
+  error paths. So each game gets a coverage check once it plays identical: which of the original's functions its
+  comparison runs reach (origrun would record it), and for each function in our Ghidra export, whether the port has its
+  counterpart, named by its address (today the ports name few: Bejeweled 154 distinct addresses, Twist 204). A function
+  the runs never reach is read against the export or given a run that reaches it. The tool came on 2026-11-08
+  (`docs/COVERAGE.md`: origrun's `--coverage` and `tools/coverage.py`). Its pilot, a minute of Bejeweled's original,
+  recorded 1739 of the exe's 5900 functions and 60 of its 152 game functions, and found one the port has no counterpart
+  for; one short run proves the tool, not the method, so Ning Po takes the first whole check (every run its comparisons
+  make and short runs for what they miss, each gap judged, the cost noted), and the other games take theirs after it, at
+  their place in each game's order (below). Ning Po's found no missing logic: of 272 functions reached with no
+  counterpart, 32 were the tool's (fixed), 54 had their addresses placed and 185 became `none` lines, in about 15
+  minutes of machine time (`docs/COVERAGE.md`, "A game's whole check"). The same evening (2026-11-08) Noah's Ark, Mummy
+  Maze, Bonnie's, the two Mahjong Escapes, Alchemy, Atomica, Big Money and Water Bugs took theirs; Cosmic Bugs, TipTop,
+  Pixelus, BookWorm, Word Harmony, Rocket Mania, Dynomite, Seven Seas and the two Bookworm Adventures follow as slots
+  free, and Bejeweled and Twist take theirs after their readability passes.
 - **A performance pass before the readability pass (the user, 2026-11-03):** "Slot in performance passes for the games
   before readability passes. There's got to be a few things to speed up in most games." It comes after the coverage
   check. First each original and its native port are measured over the same scripted play, on a quiet machine (no

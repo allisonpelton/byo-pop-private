@@ -1,0 +1,46 @@
+# Bonnie's original, a coverage run (tools/coverage/run.sh) on a save the port made (SAVEDIR, tools/realmove.py with
+# BB_STOP=levelend): a classic game one word from its chapter's end, resumed from the menu; the word (RANKERS, the port's
+# bot's) fills the last cell, then the chapter's end, the story's page and the next chapter's board with its balloon.
+waitshot logo 20000
+wait 6000
+click 180 306
+wait 2500
+click 460 330
+wait 4000
+click 20 300
+wait 200
+click 433 391
+wait 200
+click 433 345
+wait 200
+click 479 322
+wait 200
+click 479 276
+wait 200
+click 479 230
+wait 200
+click 479 183
+wait 200
+click 525 160
+wait 200
+click 452 560
+wait 200
+wait 6000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+wait 20000
+quit

@@ -170,6 +170,7 @@ static bool HasExtension(const char* theName, const char* theExt)
 }
 
 // 0x428180
+// 0x428140, 0x428170, 0x428280, 0x428290, 0x4282b0 and 0x428950 are the loader objects' constructor, getters and release
 bool LoadImage(const HFileSystem* theFileSystem, const char* theName, HImage& theImage)
 {
 	int aKind = 0;
@@ -192,6 +193,7 @@ bool LoadImage(const HFileSystem* theFileSystem, const char* theName, HImage& th
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Surfaces
 
+// 0x423e80
 HSurface::~HSurface()
 {
 	// 0x423e80
@@ -202,6 +204,7 @@ HSurface::~HSurface()
 // 0x424810: a 32-bit image is dithered down to 15 bits with a 2x2 ordered dither (0, 2 / 3, 1 added to each
 // channel's top 7 bits); a pixel that is not opaque, or of the key colour (255, 0, 255), gives the surface an alpha
 // plane (the key colour's alpha 0). A 16-bit image's pixels are repacked, its key colour 0x7c1f transparent.
+// 0x427fd0 and 0x428010 read a pixel of the image
 HSurface* HDisplay::createSurface(const HImage& theImage)
 {
 	HSurface* aSurface = new HSurface();
