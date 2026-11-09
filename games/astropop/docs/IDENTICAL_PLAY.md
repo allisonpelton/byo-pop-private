@@ -39,19 +39,21 @@ difference).
 
 Each row is one comparison with the final build: identical in all four watches over the whole game.
 
-| game | seed | moves asked or played | last update | end of the game |
+| game | seed | moves played | last update | end of the game |
 |---|---|---|---|---|
-| classic | 2 | 60 | 8433 | level 1, 12440 points |
+| classic | 2 | 60 (the limit) | 8433 | level 1, 12440 points |
 | classic | 3 | 37 | 7929 | no move left (game over), 13580 points |
-| classic | 1 | 100 | 10962 | through the first warp, level 2, 104330 points |
-| classic | 7 | 200 | 15308 | through two warps and the story of level 3, 224810 points |
-| classic | 11 | 221 | 16080 | level 3 and a bonus round, 297790 points |
-| survival | 1 | 60 | 8604 | no move left, 44210 points |
-| survival | 3 | 60 | 8627 (last input) | no move left |
+| classic | 1 | 100 (the limit) | 10962 | through the first warp, level 2, 104330 points |
+| classic | 7 | 200 (the limit) | 15308 | through two warps and the story of level 3, 224810 points |
+| classic | 11 | 221 | 16080 | level 3 and a bonus round, no move left, 297790 points |
+| survival | 1 | 57 | 8604 | no move left, 44210 points |
+| survival | 3 | 60 (the limit) | 8647 | 77600 points |
 | survival | 4 | 100 | 9970 | no move left, 105650 points |
 | survival | 5 | 152 | 12268 | no move left, 223110 points |
-| survival | 12 | 600 asked | 9685 (last input) | no move left |
+| survival | 12 | 81 | 9769 | no move left, 153060 points |
 | survival | 14 | 57 | 8690 | no move left, 95220 points |
+
+All eleven were run on the build that carries every change below (merged with the trunk of 2026-11-09), and each came out identical.
 
 Open: classic, seed 13, 600 moves (see "Still open").
 
