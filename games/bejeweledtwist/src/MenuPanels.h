@@ -49,9 +49,9 @@ public:
 
 	// A row of a list (0x30 bytes), copied from the app's high scores
 	struct Row {
-		bool mUnknown0 = false;   // +0x00
-		float mUnknown4 = 1.0f;   // +0x04
-		float mUnknown8 = 0;      // +0x08
+		bool mIsFilled = false;   // +0x00: true for a score copied in, never read
+		float mRowAlpha = 1.0f;   // +0x04: 1 for a copied row, 0 for a new one until it moves up; never read
+		float mRowShift = 0;      // +0x08: 0, never read
 		SexyString mName;         // +0x0c
 		int mLevel = 0;           // +0x28
 		int mScore = 0;           // +0x2c
@@ -63,10 +63,10 @@ public:
 	bool mMouseDown = false;           // +0x158: between a press and its release (not read)
 	int mState = 0;                    // +0x15c: 0 shown; 1 to 3 a new score goes into its list
 	float mStateTimer = 0;             // +0x160
-	float mUnknown164 = 5.0f;          // +0x164
+	float mHoldTime = 5.0f;            // +0x164: 5, set by the constructor, never read
 	WinTwistApp* mApp;                 // +0x170
 	int mShown = -99;                  // +0x174: the category shown (mCategory, once the old one has faded out)
-	bool mUnknown178 = false;          // +0x178
+	bool mIsPaused = false;            // +0x178: false, set by the constructor, never read
 	CurvedVal mRowSlide;               // +0x180: the rows make room for the new score
 	int mNewRow = -1;                  // +0x1f0: the new score's row, -1 none
 	int mNewPlace = 0;                 // +0x1f4: the new score's place in its list (mNewRow moves up to it)
@@ -74,8 +74,8 @@ public:
 	Color mLastRowColor;               // +0x1fc: the tenth row's name colour, for the name that falls off the list
 	int mRevealed = -1;                // +0x20c: the rows up to this one show
 	float mFlash = 0;                  // +0x210: the glow of the row that just showed
-	float mUnknown214 = 0;             // +0x214: 1 until a replay board's scores first slide away, then falls
-	float mUnknown218 = 0;             // +0x218: a replay board under the scores waits for it to run out (from 2)
+	float mReplaySlide = 0;            // +0x214: 1 until a replay board's scores first slide away, then falls
+	float mReplayWait = 0;             // +0x218: a replay board under the scores waits for it to run out (from 2)
 	std::vector<Row> mRows[2];         // +0x21c: the two lists
 	std::vector<TwistButton*> mReplayButtons;  // +0x23c: the stats page's
 	EffectsManager* mFXManager;        // +0x24c
@@ -136,14 +136,14 @@ public:
 
 	Image* mDialogImage;             // +0x150: IMAGE_HOWTOPLAY_HELPDIALOG
 	bool mMouseDown = false;         // +0x154: between a press and its release (not read)
-	int mUnknown158 = 0;             // +0x158
-	int mUnknown15C = 0;             // +0x15c
-	float mUnknown160 = 5.0f;        // +0x160
+	int mPageStart = 0;              // +0x158: 0, set by the constructor, never read
+	int mPageCount = 0;              // +0x15c: 0, set by the constructor, never read
+	float mHoldTime = 5.0f;          // +0x160: 5, set by the constructor, never read
 	WinTwistApp* mApp;               // +0x16c
-	bool mUnknown170 = false;        // +0x170
+	bool mIsPaused = false;          // +0x170: false, set by the constructor, never read
 	EffectsManager* mFXManager;      // +0x174
 	PopAnim* mAnim;                  // +0x178: the page's animation
-	bool mUnknown17C = false;        // +0x17c
+	bool mIsAnimDone = false;        // +0x17c: false, set by the constructor, never read
 	int mPage = 0;                   // +0x180: the help page
 	TwistButton* mPrevButton;        // +0x184: over a game only
 	TwistButton* mNextButton;        // +0x188
@@ -312,16 +312,16 @@ public:
 		int mFullHeight = 0;       // +0x08: the bar's height above mMinHeight at mValue
 		int mHeight = 0;           // +0x0c: as shown
 		SexyString mLabel;         // +0x10
-		int mUnknown2C = 0;        // +0x2c: the same as mMult
+		int mMultCopy = 0;         // +0x2c: the same as mMult, never read
 		int mMult = 0;             // +0x30: drawn as "x%d" at the bar's foot (another stat)
 		int mImageId = 0;          // +0x34: the bar's image, by id
 		Color mColor;              // +0x38: the number's
-		bool mUnknown48 = true;    // +0x48
+		bool mIsShown = true;      // +0x48: true once the bar is set up, never read
 	};
 
 	Image* mDialog = nullptr;      // +0x14c: IMAGE_FINALSTATSUI_DIALOGBOX
 	int mState = 0;                // +0x150: 0 dropping in, 1 counting, 2 dropping away (then mClicked)
-	float mUnknown154 = 0;         // +0x154: 2 once it is in (nothing reads it)
+	float mArrivedMark = 0;        // +0x154: 2 once it is in (nothing reads it)
 	float mReplayFade = 0;         // +0x158: IMAGE_FINALSTATSUI_REPLAY while a replay starts and ends
 	CurvedVal mDrop;               // +0x160: mY as a share of the window's height
 	int mMouseX = 0;               // +0x1d0 (nothing reads it)
@@ -334,7 +334,7 @@ public:
 	int mBiggestValue = 0;         // +0x348
 	int mStep = 0;                 // +0x34c: a round hundredth of mBiggestValue, added each update while counting
 	int mPercent = 0;              // +0x350: the bars' share of the score
-	float mUnknown354 = 0;         // +0x354: the replay's delay before it fades out
+	float mReplayFadeDelay = 0;    // +0x354: the replay's delay before it fades out
 	int mStats[84] = {};           // +0x358: a copy of the app's stats (+0xc74)
 	TwistButton* mReplayButtons[3] = {};  // +0x4a8
 	TwistButton* mContinueButton = nullptr;  // +0x4b4

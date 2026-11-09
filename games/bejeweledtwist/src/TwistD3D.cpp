@@ -22,27 +22,27 @@ TwistShader* Sexy::gTwistShaders[TWISTSHADER_COUNT] = {};
 ///////////////////////////////////////////////////////////////////////////////
 // Matrices
 
-GPUMatrix Sexy::WorldMatrixOf(const Transform3D& t)
+GPUMatrix Sexy::WorldMatrixOf(const Transform3D& theTransform)
 {
 	// 0x4c1940: each rotation row times its scale, the place in the last row
-	GPUMatrix m;
-	m.m[0][0] = t.mRot.m[0] * t.mScale.x;
-	m.m[0][1] = t.mRot.m[1] * t.mScale.x;
-	m.m[0][2] = t.mRot.m[2] * t.mScale.x;
-	m.m[0][3] = 0.0f;
-	m.m[1][0] = t.mRot.m[3] * t.mScale.y;
-	m.m[1][1] = t.mRot.m[4] * t.mScale.y;
-	m.m[1][2] = t.mRot.m[5] * t.mScale.y;
-	m.m[1][3] = 0.0f;
-	m.m[2][0] = t.mRot.m[6] * t.mScale.z;
-	m.m[2][1] = t.mRot.m[7] * t.mScale.z;
-	m.m[2][2] = t.mRot.m[8] * t.mScale.z;
-	m.m[2][3] = 0.0f;
-	m.m[3][0] = t.mPos.x;
-	m.m[3][1] = t.mPos.y;
-	m.m[3][2] = t.mPos.z;
-	m.m[3][3] = 1.0f;
-	return m;
+	GPUMatrix aMatrix;
+	aMatrix.m[0][0] = theTransform.mRot.m[0] * theTransform.mScale.x;
+	aMatrix.m[0][1] = theTransform.mRot.m[1] * theTransform.mScale.x;
+	aMatrix.m[0][2] = theTransform.mRot.m[2] * theTransform.mScale.x;
+	aMatrix.m[0][3] = 0.0f;
+	aMatrix.m[1][0] = theTransform.mRot.m[3] * theTransform.mScale.y;
+	aMatrix.m[1][1] = theTransform.mRot.m[4] * theTransform.mScale.y;
+	aMatrix.m[1][2] = theTransform.mRot.m[5] * theTransform.mScale.y;
+	aMatrix.m[1][3] = 0.0f;
+	aMatrix.m[2][0] = theTransform.mRot.m[6] * theTransform.mScale.z;
+	aMatrix.m[2][1] = theTransform.mRot.m[7] * theTransform.mScale.z;
+	aMatrix.m[2][2] = theTransform.mRot.m[8] * theTransform.mScale.z;
+	aMatrix.m[2][3] = 0.0f;
+	aMatrix.m[3][0] = theTransform.mPos.x;
+	aMatrix.m[3][1] = theTransform.mPos.y;
+	aMatrix.m[3][2] = theTransform.mPos.z;
+	aMatrix.m[3][3] = 1.0f;
+	return aMatrix;
 }
 
 GPUMatrix Sexy::ViewMatrixOf(const Transform3D& t)
@@ -50,25 +50,25 @@ GPUMatrix Sexy::ViewMatrixOf(const Transform3D& t)
 	// 0x4c17e0: the rotation's transpose divided by the scale, and the place turned back, in the original's order
 	float nx = -t.mPos.x, ny = -t.mPos.y, nz = -t.mPos.z;
 	float sx = 1.0f / t.mScale.x, sy = 1.0f / t.mScale.y, sz = 1.0f / t.mScale.z;
-	const float* r = t.mRot.m;
-	GPUMatrix m;
-	m.m[0][0] = sx * r[0];
-	m.m[0][1] = sy * r[3];
-	m.m[0][2] = sz * r[6];
-	m.m[0][3] = 0.0f;
-	m.m[1][0] = r[1] * sx;
-	m.m[1][1] = r[4] * sy;
-	m.m[1][2] = r[7] * sz;
-	m.m[1][3] = 0.0f;
-	m.m[2][0] = sx * r[2];
-	m.m[2][1] = sy * r[5];
-	m.m[2][2] = sz * r[8];
-	m.m[2][3] = 0.0f;
-	m.m[3][0] = ny * r[1] * sx + nx * sx * r[0] + nz * sx * r[2];
-	m.m[3][1] = nz * sy * r[5] + ny * r[4] * sy + nx * sy * r[3];
-	m.m[3][2] = nx * sz * r[6] + r[7] * sz * ny + sz * r[8] * nz;
-	m.m[3][3] = 1.0f;
-	return m;
+	const float* aRot = t.mRot.m;
+	GPUMatrix aMatrix;
+	aMatrix.m[0][0] = sx * aRot[0];
+	aMatrix.m[0][1] = sy * aRot[3];
+	aMatrix.m[0][2] = sz * aRot[6];
+	aMatrix.m[0][3] = 0.0f;
+	aMatrix.m[1][0] = aRot[1] * sx;
+	aMatrix.m[1][1] = aRot[4] * sy;
+	aMatrix.m[1][2] = aRot[7] * sz;
+	aMatrix.m[1][3] = 0.0f;
+	aMatrix.m[2][0] = sx * aRot[2];
+	aMatrix.m[2][1] = sy * aRot[5];
+	aMatrix.m[2][2] = sz * aRot[8];
+	aMatrix.m[2][3] = 0.0f;
+	aMatrix.m[3][0] = ny * aRot[1] * sx + nx * sx * aRot[0] + nz * sx * aRot[2];
+	aMatrix.m[3][1] = nz * sy * aRot[5] + ny * aRot[4] * sy + nx * sy * aRot[3];
+	aMatrix.m[3][2] = nx * sz * aRot[6] + aRot[7] * sz * ny + sz * aRot[8] * nz;
+	aMatrix.m[3][3] = 1.0f;
+	return aMatrix;
 }
 
 GPUMatrix Sexy::ProjectionMatrixOf(const PerspectiveCamera& theCamera)
@@ -84,6 +84,7 @@ GPUMatrix Sexy::ProjectionMatrixOf(const PerspectiveCamera& theCamera)
 	return m;
 }
 
+// port: a matrix turned to the row order the port's device takes
 static GPUMatrix Transposed(const GPUMatrix& theMatrix)
 {
 	GPUMatrix m;
@@ -107,6 +108,7 @@ static GPUColorValue ColorValueOf(const Color& theColor, float theScale)
 ///////////////////////////////////////////////////////////////////////////////
 // D3DObject
 
+// 0x4bdb10 (the deleting destructor, its vtable's slot 0)
 D3DObject::~D3DObject()
 {
 	if (gD3DInterface == nullptr)
@@ -195,6 +197,7 @@ void WorldGraphicsListener::Remove()
 ///////////////////////////////////////////////////////////////////////////////
 // TwistD3D
 
+// port: the 3D interface over the framework's device and GPU2D (the original's D3D9Interface is the framework's)
 TwistD3D::TwistD3D(GPUInterface* theDevice, GPU2D* the2D)
 {
 	mDevice = theDevice;
@@ -202,6 +205,7 @@ TwistD3D::TwistD3D(GPUInterface* theDevice, GPU2D* the2D)
 	mWorld = mView = mProjection = GPUMatrix::Identity();
 }
 
+// port: frees the pooled targets and the shaders
 TwistD3D::~TwistD3D()
 {
 	// port: the original keeps its pooled targets to the end
@@ -296,38 +300,38 @@ bool TwistD3D::LoadObject(D3DObject* theObject)
 	PFILE* aFile = p_fopen(theObject->mFileName.c_str(), "rb");
 	if (aFile == nullptr)
 		return false;
-	P3DReader r;
+	P3DReader aReader;
 	p_fseek(aFile, 0, SEEK_END);
 	long aSize = p_ftell(aFile);
 	p_fseek(aFile, 0, SEEK_SET);
 	if (aSize > 0) {
-		r.mData.resize((size_t)aSize);
-		p_fread(r.mData.data(), 1, (size_t)aSize, aFile);
+		aReader.mData.resize((size_t)aSize);
+		p_fread(aReader.mData.data(), 1, (size_t)aSize, aFile);
 	}
 	p_fclose(aFile);
-	if (r.U32() != 0x3dbeef00)
+	if (aReader.U32() != 0x3dbeef00)
 		return false;
-	unsigned long aVersion = r.U32();
+	unsigned long aVersion = aReader.U32();
 	theObject->mMeshes.clear();
 	D3DObjectListener* aListener = theObject->mListener;
 	if (aListener != nullptr)
 		aListener->LoadBegin(theObject);
 	std::string aDir = GetFileDir(theObject->mFileName, true);
-	int aFrameCount = r.U16();
-	for (int f = 0; f < aFrameCount && !r.mFailed; f++) {
-		std::string aFrameName = r.String();
-		int aMeshCount = r.U16();
-		for (int i = 0; i < aMeshCount && !r.mFailed; i++) {
-			if (aVersion >= 2 && r.U8() == 0)
+	int aFrameCount = aReader.U16();
+	for (int f = 0; f < aFrameCount && !aReader.mFailed; f++) {
+		std::string aFrameName = aReader.String();
+		int aMeshCount = aReader.U16();
+		for (int i = 0; i < aMeshCount && !aReader.mFailed; i++) {
+			if (aVersion >= 2 && aReader.U8() == 0)
 				continue;
 			theObject->mMeshes.push_back(D3DMesh());
 			D3DMesh& aMesh = theObject->mMeshes.back();
 			aMesh.mFrameName = aFrameName;
-			aMesh.mName = r.String();
-			int aPropertyCount = r.U16();
-			for (int k = 0; k < aPropertyCount && !r.mFailed; k++) {
-				std::string aKey = r.String();
-				std::string aValue = r.String();
+			aMesh.mName = aReader.String();
+			int aPropertyCount = aReader.U16();
+			for (int k = 0; k < aPropertyCount && !aReader.mFailed; k++) {
+				std::string aKey = aReader.String();
+				std::string aValue = aReader.String();
 				aMesh.mProperties[aKey] = aValue;
 				if (aListener != nullptr)
 					aListener->LoadProperty(theObject, aFrameName, aMesh.mName, aKey, aValue);
@@ -336,13 +340,13 @@ bool TwistD3D::LoadObject(D3DObject* theObject)
 			// load there, the meshes read so far kept
 			static const char* const kKeys[2] = {"texture0.fileName", "bump.fileName"};
 			bool aMissing = false;
-			for (int t = 0; t < 2; t++) {
-				std::map<std::string, std::string>::iterator anItr = aMesh.mProperties.find(kKeys[t]);
+			for (int aTriangle = 0; aTriangle < 2; aTriangle++) {
+				std::map<std::string, std::string>::iterator anItr = aMesh.mProperties.find(kKeys[aTriangle]);
 				if (anItr == aMesh.mProperties.end() || anItr->second.empty())
 					continue;
 				SharedImageRef anImage;
 				if (aListener != nullptr)
-					anImage = aListener->LoadTexture(theObject, aFrameName, aMesh.mName, kKeys[t], anItr->second);
+					anImage = aListener->LoadTexture(theObject, aFrameName, aMesh.mName, kKeys[aTriangle], anItr->second);
 				if ((Image*)anImage == nullptr)
 					anImage = gSexyAppBase->GetSharedImage(aDir + anItr->second, "", nullptr);
 				MemoryImage* aMemoryImage = (MemoryImage*)anImage;
@@ -350,24 +354,24 @@ bool TwistD3D::LoadObject(D3DObject* theObject)
 					aMissing = true;
 					break;
 				}
-				aMemoryImage->mD3DFlags |= (t == 0) ? 0x81 : 0x01;
-				(t == 0 ? aMesh.mTexture : aMesh.mBump) = anImage;
+				aMemoryImage->mD3DFlags |= (aTriangle == 0) ? 0x81 : 0x01;
+				(aTriangle == 0 ? aMesh.mTexture : aMesh.mBump) = anImage;
 			}
 			if (aMissing) {
 				SDL_Log("TwistD3D: %s: a texture of %s is missing", theObject->mFileName.c_str(), aMesh.mName.c_str());
 				return true;
 			}
-			r.U16();
-			aMesh.mFVF = r.U32();
+			aReader.U16();
+			aMesh.mFVF = aReader.U32();
 			aMesh.mStride = 0x24;
-			aMesh.mVertexCount = r.U16();
+			aMesh.mVertexCount = aReader.U16();
 			aMesh.mVertices.resize((size_t)aMesh.mVertexCount * 0x24);
 			if (aMesh.mVertexCount > 0)
-				r.Bytes(aMesh.mVertices.data(), aMesh.mVertices.size());
-			aMesh.mIndexCount = r.U16() * 3;
+				aReader.Bytes(aMesh.mVertices.data(), aMesh.mVertices.size());
+			aMesh.mIndexCount = aReader.U16() * 3;
 			aMesh.mIndices.resize((size_t)aMesh.mIndexCount);
 			if (aMesh.mIndexCount > 0)
-				r.Bytes(aMesh.mIndices.data(), aMesh.mIndices.size() * 2);
+				aReader.Bytes(aMesh.mIndices.data(), aMesh.mIndices.size() * 2);
 		}
 	}
 	return true;
@@ -396,6 +400,7 @@ void TwistD3D::DrawTrianglesTexStrip(Image* theTexture, const TriVertex theVerti
 }
 
 // A vertex's size for an FVF (D3D9's rule for the parts Twist uses)
+// port: a vertex's size for an FVF, as Direct3D 9 works it out
 static int StrideOf(unsigned long theFVF)
 {
 	int aSize = 0;

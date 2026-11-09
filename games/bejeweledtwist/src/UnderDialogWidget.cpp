@@ -104,8 +104,8 @@ void UnderDialogWidget::DrawPaused(Graphics* g)
 {
 	// The pause text (string BOARD_PAUSED in FONT_INCREDIBLE, gold, faded with mDialogDim) over a board that is paused
 	// (+0x1570), not between games (+0x160) or in a jump (+0x200c), with neither the options nor a dialog up
-	if (gBoard == nullptr || gApp->mOptionsDialog != nullptr || gBoard->mUnknown1570 == 0 || gApp->mDialogList.size() != 0 ||
-		gBoard->mUnknown160 != 0 || gBoard->mHyperspace != nullptr)
+	if (gBoard == nullptr || gApp->mOptionsDialog != nullptr || gBoard->mPauseCount == 0 || gApp->mDialogList.size() != 0 ||
+		gBoard->mPlayState != 0 || gBoard->mHyperspace != nullptr)
 		return;
 	SexyString aText = gApp->GetString("BOARD_PAUSED", _S(""));
 	g->SetFont(FONT_INCREDIBLE);
@@ -113,7 +113,7 @@ void UnderDialogWidget::DrawPaused(Graphics* g)
 		return;
 	// the board's middle, or the screen's while the board is busy, hidden (+0x3924 at 0) or kept (+0x37c4)
 	int aX, aY;
-	if (!gBoard->mUnknown37C4 && !gBoard->IsBusy() && gBoard->mUnknown3924 != 0.0f) {
+	if (!gBoard->mIsReplay && !gBoard->IsBusy() && gBoard->mBoardFade != 0.0f) {
 		gBoard->GetCenter(&aX, &aY);
 	} else {
 		aX = mWidth / 2;

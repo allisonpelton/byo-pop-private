@@ -80,23 +80,23 @@ HighScoresPanel::HighScoresPanel(Menu* theMenu)
 	mMenu = theMenu;
 	mClip = false;
 	mApp = theMenu->mApp;
-	mUnknownB0 = IMAGE_MAINMENU_SCORESDIALOG_ID;
+	mImageId = IMAGE_MAINMENU_SCORESDIALOG_ID;
 	mDialogImage = GetImageById(IMAGE_MAINMENU_SCORESDIALOG_ID);
 	mRevealTimer = 0;
 	mVoiceDelay = 0;
 	mState = 0;
 	mMouseDown = false;
 	Resize(0, GetImageOffsetY(IMAGE_MAINMENU_SCORESDIALOG_ID), mDialogImage->mWidth, mDialogImage->mHeight);
-	mUnknown164 = 5.0f;
-	mUnknown178 = false;
+	mHoldTime = 5.0f;
+	mIsPaused = false;
 	mCategory = -99;
 	mShown = -99;
 	SetCategory(1, true);
 	ResetNewRow();
 	mFXManager = new EffectsManager();
 	mStateTimer = 0;
-	mUnknown214 = 0;
-	mUnknown218 = 0;
+	mReplaySlide = 0;
+	mReplayWait = 0;
 	mFade.SetConstant(1.0);
 	mFading = false;
 	// The two lists from the app's twenty high scores, ten each
@@ -106,9 +106,9 @@ HighScoresPanel::HighScoresPanel(Menu* theMenu)
 		int aCount = 10;
 		do {
 			Row aRow;
-			aRow.mUnknown0 = true;
-			aRow.mUnknown4 = 1.0f;
-			aRow.mUnknown8 = 0;
+			aRow.mIsFilled = true;
+			aRow.mRowAlpha = 1.0f;
+			aRow.mRowShift = 0;
 			const WinTwistApp::HighScore& aScore = mMenu->mApp->mHighScores[anIndex / 0x24];
 			aRow.mName = aScore.mName;
 			aRow.mLevel = aScore.mLevel;
@@ -311,12 +311,12 @@ void HighScoresPanel::Update()
 					} while (aChar < (int)aScoreText.length());
 				}
 			} else {
-				Row aTemp = aRows[mNewRow];
+				Row aMovedRow = aRows[mNewRow];
 				aRows[mNewRow] = aRows[mNewRow - 1];
-				aRows[mNewRow - 1] = aTemp;
+				aRows[mNewRow - 1] = aMovedRow;
 			}
 			mNewRow--;
-			aRows[mNewRow].mUnknown4 = 1.0f;
+			aRows[mNewRow].mRowAlpha = 1.0f;
 			if (mNewRow == mNewPlace) {
 				Gates* aGates = mApp->mGates;
 				aGates->mOptionsButton->SetGlowOn(true);
@@ -337,24 +337,24 @@ void HighScoresPanel::Update()
 	// A board under the scores (a replay) slides up out of the screen with the panel
 	WinTwistApp* anApp = mApp;
 	Board* aBoard = anApp->mBoard;
-	if (aBoard != nullptr && aBoard->mUnknown37C4) {
+	if (aBoard != nullptr && aBoard->mIsReplay) {
 		if (mMenu->mPanel != 2)
-			mUnknown218 = 0;
-		aBoard->mUnknown37EC = (float)Ftol((double)gApp->mScale * 0.0);
+			mReplayWait = 0;
+		aBoard->mBoardOffsetX = (float)Ftol((double)gApp->mScale * 0.0);
 		int aOffsetY = Ftol((double)gApp->mScale * 75.0);
-		anApp->mBoard->mUnknown37F0 = (float)((double)aOffsetY + (double)mMenu->mY * 2.5);
+		anApp->mBoard->mBoardOffsetY = (float)((double)aOffsetY + (double)mMenu->mY * 2.5);
 		aBoard = mApp->mBoard;
-		if ((aBoard->mUnknown3921 && 0 < aBoard->mUnknown3444) || mUnknown218 != 2.0f) {
-			mUnknown218 = (float)((double)mUnknown218 - 0.01);
-			if (mUnknown218 <= 0.0f) {
+		if ((aBoard->mReplayWaiting && 0 < aBoard->mRecordedFrames) || mReplayWait != 2.0f) {
+			mReplayWait = (float)((double)mReplayWait - 0.01);
+			if (mReplayWait <= 0.0f) {
 				int aButton = 0;
 				while (aButton < (int)mReplayButtons.size()) {
 					mReplayButtons[aButton]->SetDisabled(false);
 					aButton++;
 				}
-				if (mUnknown214 == 1.0f && mMenu->mPanel == 2)
+				if (mReplaySlide == 1.0f && mMenu->mPanel == 2)
 					mMenu->SetPan(0, -gApp->mHeight, false);
-				mUnknown214 = (float)((double)mUnknown214 - 0.02);
+				mReplaySlide = (float)((double)mReplaySlide - 0.02);
 				if (mMenu->mY == -gApp->mHeight) {
 					mApp->mWidgetManager->RemoveWidget(mApp->mBoard);
 					delete mApp->mBoard;
@@ -377,9 +377,9 @@ void HighScoresPanel::StartNewScore(int theCategory, int thePlace, const SexyStr
 	aScore.mScore = theScore;
 	int aList = WinTwistApp::ScoreList(theCategory);
 	Row aRow;
-	aRow.mUnknown0 = true;
-	aRow.mUnknown4 = 0;
-	aRow.mUnknown8 = 0;
+	aRow.mIsFilled = true;
+	aRow.mRowAlpha = 0;
+	aRow.mRowShift = 0;
 	aRow.mName = aScore.mName;
 	aRow.mLevel = aScore.mLevel;
 	aRow.mScore = aScore.mScore;
@@ -692,23 +692,23 @@ void HighScoresPanel::ButtonDepress(int theId)
 			Board* aBoard = new Board(mApp, Board::MODE_CLASSIC, 8, 0);
 			aBoard->Resize(0, 0, mApp->mWidth, mApp->mHeight);
 			mApp->mBoard = aBoard;
-			aBoard->mUnknown37C4 = true;
+			aBoard->mIsReplay = true;
 			mApp->mWidgetManager->AddWidget(aBoard);
 			aBoard->ReadConfig(true);
-			aBoard->mUnknown2224 = 1.0f;
+			aBoard->mAlertGlow = 1.0f;
 			aBoard->Update();
 			aBoard->ShowTube(true, mApp->Is3DAccelerated());
-			aBoard->mUnknown21A2 = false;
-			aBoard->SetScore(aBoard->mUnknown168, false);
-			aBoard->mUnknown268C = 0.4f;
-			aBoard->mUnknown1378 = 1;
+			aBoard->mGameLoaded = false;
+			aBoard->SetScore(aBoard->mScore, false);
+			aBoard->mBoardZoom = 0.4f;
+			aBoard->mStartState = 1;
 			aGame.mData.SeekFront();
 			aBoard->mShakeY = 0;
 			aBoard->mShakeX = 0;
-			aBoard->StartReplay(aGame.mData, aGame.mUnknown20, aGame.mUnknown24, false);
+			aBoard->StartReplay(aGame.mData, aGame.mReplayStart, aGame.mReplayEnd, false);
 			if (gD3DInterface == nullptr) {
 				aBoard->mBoardX = mApp->mWidth;
-				aBoard->mUnknown37C8 = 100;
+				aBoard->mReplaySlideWait = 100;
 			} else {
 				// with Direct3D the gems and the effects run 25 updates ahead instead
 				for (int anUpdate = 25; anUpdate != 0; anUpdate--) {
@@ -720,14 +720,14 @@ void HighScoresPanel::ButtonDepress(int theId)
 					aBoard->mFXManager2->Update();
 				}
 			}
-			aBoard->mUnknown20E4 = 0;
+			aBoard->mClearedOnHyperspaceStart = 0;
 			aBoard->mModeFlags = 8;
-			aBoard->mUnknown20E0 = 0;
-			aBoard->mUnknown2590 = aBoard->GetGridRight();
-			aBoard->mUnknown2224 = 1.0f;
+			aBoard->mTubeOffsetX = 0;
+			aBoard->mBarWidth = aBoard->GetGridRight();
+			aBoard->mAlertGlow = 1.0f;
 			aBoard->SetVisible(true);
-			mUnknown218 = 2.0f;
-			mUnknown214 = 1.0f;
+			mReplayWait = 2.0f;
+			mReplaySlide = 1.0f;
 			aBoard->LayoutTube();
 		}
 	}
@@ -736,7 +736,7 @@ void HighScoresPanel::ButtonDepress(int theId)
 void HighScoresPanel::SetCategory(int theCategory, bool theNow)
 {
 	if (mShown != theCategory || theNow || (mCategory != -1 && mCategory != theCategory)) {
-		mUnknown218 = 0;
+		mReplayWait = 0;
 		mCategory = theCategory;
 		StartFade();
 		if (!theNow) {
@@ -914,18 +914,18 @@ HelpPanel::HelpPanel(WinTwistApp* theApp)
 	mApp = theApp;
 	TwistButton* aButton = nullptr;
 	mClip = false;
-	mUnknownB0 = IMAGE_HOWTOPLAY_HELPDIALOG_ID;
+	mImageId = IMAGE_HOWTOPLAY_HELPDIALOG_ID;
 	mDialogImage = GetImageById(IMAGE_HOWTOPLAY_HELPDIALOG_ID);
-	mUnknown158 = 0;
+	mPageStart = 0;
 	mMouseDown = false;
 	int aSize = Ftol((double)gApp->mScale * 1000.0);
 	Resize(0, 0, aSize, aSize);
-	mUnknown160 = 5.0f;
-	mUnknown170 = false;
+	mHoldTime = 5.0f;
+	mIsPaused = false;
 	mFXManager = new EffectsManager();
-	mUnknown15C = 0;
+	mPageCount = 0;
 	mClip = false;
-	mUnknown17C = false;
+	mIsAnimDone = false;
 	mAnim = nullptr;
 	MakeAnim();
 	if (mApp->mBoard == nullptr) {
@@ -983,7 +983,7 @@ void HelpPanel::Update()
 			mWidgetManager->RemoveBaseModal(this);
 			mParent->RemoveWidget(this);
 			mApp->SafeDeleteWidget(this);
-			mApp->mUnknownF44 = nullptr;
+			mApp->mHelpPanel = nullptr;
 		} else {
 			AddWidget(mAnim);
 		}
@@ -1016,8 +1016,8 @@ void HelpPanel::Draw(Graphics* g)
 	Image* aDialogImage = mDialogImage;
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, Ftol((double)mAlpha * 255.0)));
-	int aY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(mUnknownB0));
-	int aX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(mUnknownB0));
+	int aY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(mImageId));
+	int aX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(mImageId));
 	g->DrawImage(aDialogImage, aX, aY);
 	g->SetFont(FONT_MENU_TINY);
 	g->SetColor(Color(255, 255, 255));
@@ -1123,7 +1123,7 @@ ProfilePanel::ProfilePanel(Menu* theMenu)
 {
 	mMenu = theMenu;
 	mApp = theMenu->mApp;
-	mUnknownB0 = IMAGE_MAINMENU_PROFILEDIALOG_ID;
+	mImageId = IMAGE_MAINMENU_PROFILEDIALOG_ID;
 	mDialogImage = GetImageById(IMAGE_MAINMENU_PROFILEDIALOG_ID);
 	int aWidth = mDialogImage->mWidth;
 	int aHeight = mDialogImage->mHeight;
@@ -1166,9 +1166,9 @@ void ProfilePanel::AddedToManager(WidgetManager* theWidgetManager)
 	int aX = Ftol((double)aScale * 155.0);
 	mList->Resize(aX, aY, aWidth, aHeight);
 	AddWidget(mList);
-	PlaceButton(mCreateButton, mUnknownB0, aScale);
+	PlaceButton(mCreateButton, mImageId, aScale);
 	AddWidget(mCreateButton);
-	PlaceButton(mDeleteButton, mUnknownB0, aScale);
+	PlaceButton(mDeleteButton, mImageId, aScale);
 	AddWidget(mDeleteButton);
 	mRefresh = true;
 }
@@ -1339,20 +1339,20 @@ void ProfilePanel::ShowNewUser()
 NewUserPanel::NewUserPanel(ButtonListener* theButtonListener, EditListener* theEditListener, bool canCancel)
 {
 	mEditListener = theEditListener;
-	mUnknownB0 = IMAGE_MAINMENU_NEWUSERDIALOG_ID;
+	mImageId = IMAGE_MAINMENU_NEWUSERDIALOG_ID;
 	float aScale = (float)gApp->mArtRes / 1200.0f;
 	TwistButton* aButton = new TwistButton(BUTTON_OK, IMAGE_MAINMENU_OKBUTTON, theButtonListener);
-	PlaceButton(aButton, mUnknownB0, aScale);
+	PlaceButton(aButton, mImageId, aScale);
 	AddWidget(aButton);
 	if (!canCancel) {
-		int aWidth = GetImageById(mUnknownB0)->mWidth;
+		int aWidth = GetImageById(mImageId)->mWidth;
 		aButton->mX = aWidth / 2 - aButton->mButtonImage->GetCelWidth() / 2;
 	} else {
 		aButton = new TwistButton(BUTTON_CANCEL, IMAGE_MAINMENU_CANCELBUTTON, theButtonListener);
-		PlaceButton(aButton, mUnknownB0, aScale);
+		PlaceButton(aButton, mImageId, aScale);
 		AddWidget(aButton);
 	}
-	Image* anImage = GetImageById(mUnknownB0);
+	Image* anImage = GetImageById(mImageId);
 	Resize(0, 0, anImage->mWidth, anImage->mHeight);
 }
 
@@ -1415,7 +1415,7 @@ void NewUserPanel::Update()
 
 void NewUserPanel::Draw(Graphics* g)
 {
-	g->DrawImage(GetImageById(mUnknownB0), 0, 0);
+	g->DrawImage(GetImageById(mImageId), 0, 0);
 }
 
 void NewUserPanel::DrawAll(ModalFlags* theFlags, Graphics* g)
@@ -1464,12 +1464,12 @@ SexyString OptionsText(unsigned int theId, unsigned int theDefault)
 OptionsPanel::OptionsPanel(WinTwistApp* theApp)
 {
 	mApp = theApp;
-	mUnknownB0 = IMAGE_MAINMENU_OPTIONSDIALOG_ID;
+	mImageId = IMAGE_MAINMENU_OPTIONSDIALOG_ID;
 	float aScale = (float)((double)theApp->mArtRes / 1200.0);
 	// A button at its place in resources.xml, relative to the dialog's
 	auto aPlace = [&](Widget* theWidget, int thePlaceId, int theWidth, int theHeight) {
-		int aY = Ftol((double)(GetImageOffsetY(thePlaceId) - GetImageOffsetY(mUnknownB0)) * (double)aScale);
-		int aX = Ftol((double)(GetImageOffsetX(thePlaceId) - GetImageOffsetX(mUnknownB0)) * (double)aScale);
+		int aY = Ftol((double)(GetImageOffsetY(thePlaceId) - GetImageOffsetY(mImageId)) * (double)aScale);
+		int aX = Ftol((double)(GetImageOffsetX(thePlaceId) - GetImageOffsetX(mImageId)) * (double)aScale);
 		theWidget->Resize(aX, aY, theWidth, theHeight);
 	};
 
@@ -1547,11 +1547,11 @@ OptionsPanel::OptionsPanel(WinTwistApp* theApp)
 		} while (i < ResCount());
 	}
 
-	Image* aDialogImage = GetImageById(mUnknownB0);
+	Image* aDialogImage = GetImageById(mImageId);
 	int aHeight = Ftol((double)aDialogImage->mHeight * (double)1.1f);
 	int aWidth = aDialogImage->mWidth;
-	int aY = Ftol((double)GetImageOffsetY(mUnknownB0) * (double)aScale);
-	int aX = Ftol((double)GetImageOffsetX(mUnknownB0) * (double)aScale);
+	int aY = Ftol((double)GetImageOffsetY(mImageId) * (double)aScale);
+	int aX = Ftol((double)GetImageOffsetX(mImageId) * (double)aScale);
 	Resize(aX, aY, aWidth, aHeight);
 	mSettingBoxes = false;
 }
@@ -1643,12 +1643,12 @@ void OptionsPanel::Draw(Graphics* g)
 	Rect anOldClip = g->mClipRect;
 	if (gD3DInterface != nullptr)
 		g->mClipRect = Rect(-1000, -1000, 5000, 5000);  // with Direct3D the clip is opened wide
-	g->DrawImage(GetImageById(mUnknownB0), 0, 0);
+	g->DrawImage(GetImageById(mImageId), 0, 0);
 	if (gApp->mBoard != nullptr) {
 		// the bar of the game's buttons, the large one with three
 		int aBarId = IMAGE_MAINMENU_OPTIONDIALOGBAR_ID + (mRestartButton != nullptr ? 1 : 0);
-		int aY = Ftol((double)(GetImageOffsetY(aBarId) - GetImageOffsetY(mUnknownB0)) * (double)mApp->mScale);
-		int aX = Ftol((double)(GetImageOffsetX(aBarId) - GetImageOffsetX(mUnknownB0)) * (double)mApp->mScale);
+		int aY = Ftol((double)(GetImageOffsetY(aBarId) - GetImageOffsetY(mImageId)) * (double)mApp->mScale);
+		int aX = Ftol((double)(GetImageOffsetX(aBarId) - GetImageOffsetX(mImageId)) * (double)mApp->mScale);
 		g->DrawImage(GetImageById(aBarId), aX, aY);
 	}
 	g->mClipRect = anOldClip;
@@ -1879,7 +1879,7 @@ TwistCheckbox* OptionsPanel::MakeCheckbox(int thePlaceId, int theId)
 {
 	Image* anImage = IMAGE_MAINMENU_RADIOBUTTONCUSTOMCURSORS;
 	TwistCheckbox* aCheckbox = new TwistCheckbox(anImage, anImage, theId, this);
-	int aDialogId = mUnknownB0;
+	int aDialogId = mImageId;
 	float aScale = mApp->mScale;
 	int aY = Ftol((double)(GetImageOffsetY(thePlaceId) - GetImageOffsetY(aDialogId)) * (double)aScale);
 	int aX = Ftol((double)(GetImageOffsetX(thePlaceId) - GetImageOffsetX(aDialogId)) * (double)aScale);
@@ -1988,16 +1988,16 @@ EndStats::EndStats(WinTwistApp* theApp)
 	mClip = false;
 	for (int i = 0; i < 4; i++) {
 		Bar& aBar = mBars[i];
-		aBar.mValue = mApp->mUnknownC74[kBarStats[i]];
+		aBar.mValue = mApp->mStats[kBarStats[i]];
 		aBar.mShown = 0;
-		aBar.mMult = mApp->mUnknownC74[kMultStats[i]];
-		aBar.mUnknown2C = aBar.mMult;
+		aBar.mMult = mApp->mStats[kMultStats[i]];
+		aBar.mMultCopy = aBar.mMult;
 		aBar.mHeight = mMinHeight;
 		aBar.mFullHeight = mMinHeight;
 		aBar.mColor = kBarColors[i];
 		aBar.mLabel = mApp->GetString(StrFormat(GTS(0x7e207c).c_str(), i));
 		aBar.mImageId = kBarImages[i];
-		aBar.mUnknown48 = true;
+		aBar.mIsShown = true;
 		if (mBiggestValue < aBar.mValue) {
 			mBiggestValue = aBar.mValue;
 			mBiggest = i;
@@ -2026,7 +2026,7 @@ EndStats::EndStats(WinTwistApp* theApp)
 		}
 		mStep = aStep;
 	}
-	unsigned int aScore = (unsigned int)mApp->mUnknownC74[73];
+	unsigned int aScore = (unsigned int)mApp->mStats[73];
 	if (aScore == 0)
 		mPercent = 0;
 	else
@@ -2047,7 +2047,7 @@ EndStats::EndStats(WinTwistApp* theApp)
 	}
 	for (int i = 0; i < 3; i++) {
 		// a button by each replay the game kept
-		if (!mApp->mUnknownFA0[i].mBuffer.mData.empty()) {
+		if (!mApp->mBestMoves[i].mBuffer.mData.empty()) {
 			aButton = new TwistButton(i + 1, IMAGE_FINALSTATSUI_VIEWREPLAYBTN, this);
 			mReplayButtons[i] = aButton;
 			aButton->mWidth = aButton->mButtonImage->GetCelWidth();
@@ -2060,9 +2060,9 @@ EndStats::EndStats(WinTwistApp* theApp)
 	}
 	mColorCycle.mSpeed = 0.25f;
 	for (int i = 0; i < 84; i++)
-		mStats[i] = mApp->mUnknownC74[i];
+		mStats[i] = mApp->mStats[i];
 	for (int i = 0; i < 3; i++)
-		mReplayCRCs[i] = mApp->mUnknownFA0[i].mBuffer.GetCRC32(0);
+		mReplayCRCs[i] = mApp->mBestMoves[i].mBuffer.GetCRC32(0);
 }
 
 EndStats::~EndStats()
@@ -2093,12 +2093,12 @@ void EndStats::Update()
 		// A replay plays on its board under the stats: once its move is over and the delay has run out it fades and
 		// goes, and the buttons work again
 		Board* aBoard = mApp->mBoard;
-		aBoard->mUnknown37EC = (float)Ftol((double)gApp->mScale * 50.0);
-		mApp->mBoard->mUnknown37F0 = (float)Ftol((double)gApp->mScale * 450.0);
+		aBoard->mBoardOffsetX = (float)Ftol((double)gApp->mScale * 50.0);
+		mApp->mBoard->mBoardOffsetY = (float)Ftol((double)gApp->mScale * 450.0);
 		aBoard = mApp->mBoard;
-		if (aBoard->mUnknown3921 && 0 < aBoard->mUnknown3444) {
-			float aDelay = (float)((double)mUnknown354 - 0.009999999776482582);
-			mUnknown354 = aDelay;
+		if (aBoard->mReplayWaiting && 0 < aBoard->mRecordedFrames) {
+			float aDelay = (float)((double)mReplayFadeDelay - 0.009999999776482582);
+			mReplayFadeDelay = aDelay;
 			if (aDelay <= 0.0f) {
 				float aFade = (float)((double)mReplayFade - 0.019999999552965164);
 				mReplayFade = aFade;
@@ -2128,7 +2128,7 @@ void EndStats::Update()
 	mY = Ftol(mDrop.GetOutVal() * (double)mApp->mHeight);
 	if (mState == 0) {
 		if (mDrop.HasBeenTriggered()) {
-			mUnknown154 = 2.0f;
+			mArrivedMark = 2.0f;
 			mState = 1;
 			if (-1 < mApp->mAutoPlayMode)
 				ButtonDepress(0);
@@ -2198,7 +2198,7 @@ void EndStats::Draw(Graphics* g)
 	if (mApp->mLastGameMode == 3)
 		aStr = mApp->GetString(GTS(0x7e22c0));
 	else
-		aStr = StrFormat(mApp->GetString(GTS(0x7e22d0)).c_str(), mApp->mUnknownF70);
+		aStr = StrFormat(mApp->GetString(GTS(0x7e22d0)).c_str(), mApp->mNewScoreLevel);
 	g->SetFont(FONT_DIALOG_BUTTONS);
 	g->SetColor(Color(255, 0, 255));
 	int aY = Ftol((double)mApp->mScale * 180.0);
@@ -2245,15 +2245,15 @@ void EndStats::Draw(Graphics* g)
 	// The replays' scores
 	aLineY = (float)((double)aLineY + (double)(float)((double)mApp->mScale * 69.0));
 	g->SetColor(Color(0, 255, 0xd8));
-	aStr = CommaSeperate(mApp->mUnknownFA0[0].mUnknown28);
+	aStr = CommaSeperate(mApp->mBestMoves[0].mBest);
 	g->DrawString(aStr, Ftol((double)mApp->mScale * 625.0), Ftol((double)aLineY));
 	aLineY = (float)((double)aLineY + (double)(float)((double)mApp->mScale * 43.0));
 	g->SetColor(Color(0, 255, 0xd8));
-	aStr = CommaSeperate(mApp->mUnknownFA0[1].mUnknown28);
+	aStr = CommaSeperate(mApp->mBestMoves[1].mBest);
 	g->DrawString(aStr, Ftol((double)mApp->mScale * 625.0), Ftol((double)aLineY));
 	aLineY = (float)((double)aLineY + (double)(float)((double)mApp->mScale * 43.0));
 	g->SetColor(Color(0, 255, 0x4e));
-	aStr = CommaSeperate(mApp->mUnknownFA0[2].mUnknown28);
+	aStr = CommaSeperate(mApp->mBestMoves[2].mBest);
 	g->DrawString(aStr, Ftol((double)mApp->mScale * 625.0), Ftol((double)aLineY));
 
 	aStr = StrFormat(mApp->GetString(GTS(0x7e2230)).c_str(), mPercent);
@@ -2365,33 +2365,33 @@ void EndStats::ButtonDepress(int theId)
 		Board* aBoard = new Board(mApp, gApp->mLastGameMode, 8, 0);
 		aBoard->Resize(0, 0, mApp->mWidth, mApp->mHeight);
 		mApp->mBoard = aBoard;
-		aBoard->mUnknown37C4 = true;
+		aBoard->mIsReplay = true;
 		mApp->mWidgetManager->AddWidget(aBoard);
 		aBoard->ReadConfig(true);
-		aBoard->mUnknown2224 = 1.0f;
+		aBoard->mAlertGlow = 1.0f;
 		aBoard->Update();
 		aBoard->ShowTube(true, true);
-		WinTwistApp::UnknownFA0& aGame = mApp->mUnknownFA0[theId - 1];
-		aBoard->mUnknown21A2 = false;
-		aBoard->SetScore(aBoard->mUnknown168, false);
-		aBoard->mUnknown1378 = 1;
-		aBoard->mUnknown268C = 0.4f;
+		WinTwistApp::BestMove& aGame = mApp->mBestMoves[theId - 1];
+		aBoard->mGameLoaded = false;
+		aBoard->SetScore(aBoard->mScore, false);
+		aBoard->mStartState = 1;
+		aBoard->mBoardZoom = 0.4f;
 		aGame.mBuffer.SeekFront();
 		aBoard->mShakeY = 0;
 		aBoard->mShakeX = 0;
-		aBoard->StartReplay(aGame.mBuffer, aGame.mUnknown20, aGame.mUnknown24, false);
-		aBoard->mUnknown20E4 = 0;
-		aBoard->mUnknown20E0 = 0;
+		aBoard->StartReplay(aGame.mBuffer, aGame.mReplayStart, aGame.mReplayEnd, false);
+		aBoard->mClearedOnHyperspaceStart = 0;
+		aBoard->mTubeOffsetX = 0;
 		aBoard->mModeFlags = 8;
-		aBoard->mUnknown2590 = aBoard->GetGridRight();
-		aBoard->mUnknown2224 = 1.0f;
+		aBoard->mBarWidth = aBoard->GetGridRight();
+		aBoard->mAlertGlow = 1.0f;
 		aBoard->SetVisible(false);
-		mUnknown354 = 1.5f;
+		mReplayFadeDelay = 1.5f;
 		mReplayFade = 0;
 		if (gD3DInterface == nullptr) {
-			aBoard->mUnknown37C8 = 100;
-			aBoard->StartUnknown3880();
-			aBoard->mUnknown25A6 = true;
+			aBoard->mReplaySlideWait = 100;
+			aBoard->StartTubeSlide();
+			aBoard->mShownBeforeStart = true;
 		} else {
 			// with Direct3D the gems and the effects run 25 updates ahead instead
 			for (int anUpdate = 25; anUpdate != 0; anUpdate--) {

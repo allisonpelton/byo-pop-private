@@ -2,7 +2,7 @@
 // the current player, whose stats, settings and games in progress are in users\<name>\profile.dat. A name that is
 // not a valid file name is stored under a folder name with '_' for its odd characters (0x733e9a).
 //
-// The fields keep the original's offsets in their comments; those whose meaning is not yet known are named by them.
+// The fields keep the original's offsets in their comments.
 #pragma once
 
 #include "Buffer.h"
@@ -16,12 +16,12 @@ namespace Sexy {
 
 class Profile {
 public:
-	// The replay of a best move (0x2c bytes; HighScoresPanel::ButtonDepress plays it)
+                                      // The replay of a best move (0x2c bytes; HighScoresPanel::ButtonDepress plays it)
 	struct SavedGame {
-		Buffer mData;      // +0x00
-		int mUnknown20;    // +0x20: saved as a short
-		int mUnknown24;    // +0x24: saved as a short
-		int mBest;         // +0x28: the best move's score, gems or cascade (the high scores' stats page)
+		Buffer mData;                 // +0x00
+		int mReplayStart;             // +0x20: the board's replay position (+0x23a4) when the move was made, saved as a short
+		int mReplayEnd;               // +0x24: the board's replay position (+0x23a8) when the move was made, saved as a short
+		int mBest;                    // +0x28: the best move's score, gems or cascade (the high scores' stats page)
 
 		void Read(const Buffer& theBuffer);   // 0x6a3156
 		void Write(Buffer& theBuffer) const;  // 0x6a3192
@@ -29,56 +29,54 @@ public:
 
 	std::vector<SexyString> mNames;   // +0x00 (first at +0x04): every player, in users.dat's order
 	SexyString mName;                 // +0x10: the current player
-	std::map<int, int> mMap2C;        // +0x2c: emptied when a player is loaded (its use is not yet known)
-	std::string mString38;            // +0x38
 	bool mIsNew = false;              // +0x54: made this session, not loaded
-	int mUnknown58 = 0;               // +0x58
-	int mUnknown5C[6] = {};           // +0x5c
-	int mUnknown74 = 0;               // +0x74
-	int mUnknown78 = 0;               // +0x78
-	std::vector<bool> mBools80;       // +0x80
-	int mUnknown8C = 0;               // +0x8c
+	int mFirstGameTime = 0;           // +0x58: saved and loaded, never used otherwise
+	int mBestScores[6] = {};          // +0x5c: the best score of each mode (classic, blitz, puzzle; zen takes its last)
+	int mHighestScore = 0;            // +0x74: the highest score of any game that counts
+	int mTotalLevelsDelta = 0;        // +0x78: a running total over games, added from the board counter at +0x14ec
+	std::vector<bool> mSavedBools;    // +0x80: a list of bools, saved and loaded; the board counts the true ones, and nothing reads that
+	int mTotalPowerGems = 0;          // +0x8c: a running total over games, added from the board counter at +0x1e8
 	int mBestChain = 0;               // +0x90: the stats page's best chain
-	int mUnknown94 = 0;               // +0x94
-	int mUnknown98 = 0;               // +0x98
+	int mTotalFlames = 0;             // +0x94: a running total over games (not puzzles); 10 sets achievement bit 1
+	int mTotalElectros = 0;           // +0x98: a running total over games (not puzzles); 5 sets achievement bit 2
 	bool mCustomCursors = false;      // +0x9c: the app's custom cursors (SetCustomCursorsEnabled)
 	SavedGame mSavedGames[3];         // +0xa0: the replays of the best moves (the stats page's buttons)
-	int mUnknown124 = 0;              // +0x124
-	int mUnknown128[6] = {};          // +0x128
-	int mUnknown140[6] = {};          // +0x140
+	int mPuzzlesSolved = 0;           // +0x124: saved and loaded, never used otherwise
+	int mBestLevels[6] = {};          // +0x128: the highest level reached in each mode
+	int mGamesByMode[6] = {};         // +0x140: the games started in each mode
 	int mTotalPoints = 0;             // +0x158: every game's points (the stats page)
 	int mGemsCleared = 0;             // +0x15c
-	int mUnknown160 = 0;              // +0x160
-	int mUnknown164 = 0;              // +0x164
+	int mRankPoints = 0;              // +0x160: the points that make up the rank
+	int mAchievementBits = 0;         // +0x164: achievement bits, set as a game earns them
 	int mGamesPlayed = 0;             // +0x168
-	int mUnknown16C = 0;              // +0x16c
-	unsigned char mBits170[0x40] = {};  // +0x170: 512 flags, the first in each byte's top bit
-	bool mUnknown1B0 = false;         // +0x1b0
-	bool mUnknown1B1 = false;         // +0x1b1
-	int mUnknown1B4[10] = {};         // +0x1b4
-	int mUnknown1DC = 0;              // +0x1dc
-	unsigned int mFlags1E0 = 0;       // +0x1e0
-	unsigned int mFlags1E4 = 0;       // +0x1e4
-	unsigned int mFlags1E8 = 0;       // +0x1e8
+	int mStartingRank = 0;            // +0x16c: 2 for a new player; saved and loaded, never used otherwise
+	unsigned char mSavedBits[0x40] = {}; // +0x170: 512 bits, saved and loaded, the first in each byte's top bit; nothing reads them
+	bool mShowReminder = false;       // +0x1b0: a flag the app clears when it starts a game (the board does not read it)
+	bool mBeforeFirstMove = false;    // +0x1b1
+	int mSavedLongs[10] = {};         // +0x1b4: ten saved and loaded values, never used otherwise
+	int mLastModePlayed = 0;          // +0x1dc: saved and loaded, never used otherwise
+	unsigned int mGemTypesUnlocked = 0; // +0x1e0: the gem types opened, a bit each (3 lightning, 4 flame, 6 ice, 7 angel)
+	unsigned int mTipsSeen = 0;       // +0x1e4: the tips seen, a bit each, the tip's kind its bit (0 flame, 14 the basics, 17 the jump offer)
+	unsigned int mModesUnlocked = 0;  // +0x1e8: the game modes open to the player, a bit per mode
 	int mRank = 0;                    // +0x1ec: the rank (Ranks.h; -1 a new player's)
-	int mUnknown1F0 = 0;              // +0x1f0
-	std::vector<int> mInts1F4;        // +0x1f4: saved as shorts
-	std::vector<int> mInts204;        // +0x204: as many as mInts1F4
-	int mUnknown214 = 0;              // +0x214: the category of the challenge met last (SetChallengeDone)
-	int mUnknown218 = 0;              // +0x218
+	int mReplayCount = 0;             // +0x1f0: counts the replays begun; the board takes the count as its id
+	std::vector<int> mChallengeStages; // +0x1f4: each challenge category's stage, from 1 (0 closed); saved as shorts
+	std::vector<int> mChallengeBests; // +0x204: each challenge category's best score, as many as mChallengeStages
+	int mLastChallengeCategory = 0;   // +0x214: the category of the challenge met last (SetChallengeDone)
+	int mModesSeenBits = 0;           // +0x218: a bit for each mode the player has picked
 
-	// The challenge categories' stage (from 1; 0 for a closed category) and best score; the lists grow to reach theCategory
+                                      // The challenge categories' stage (from 1; 0 for a closed category) and best score; the lists grow to reach theCategory
 	void GrowChallengeLists(int theCategory);
 	int GetChallengeStage(int theCategory);          // 0x73497f
 	bool IsChallengeCategoryOpen(int theCategory);   // 0x7349fc
 	void OpenChallengeCategory(int theCategory);     // 0x734a14: stage 1 unless it has got further
-	// 0x733afc: theNumber of theCategory is met, so its stage is the next one; mUnknown214 gets the category
+                                      // 0x733afc: theNumber of theCategory is met, so its stage is the next one; mLastChallengeCategory gets the category
 	void SetChallengeDone(int theCategory, int theNumber);
 
 	Profile();   // 0x734ef5
 	~Profile();  // 0x734da6
 
-	// 0x735a09: reads users\users.dat into the list, checking each player's file; a player whose file does not load is
+                                      // 0x735a09: reads users\users.dat into the list, checking each player's file; a player whose file does not load is
 	// dropped (and its folder deleted). theLastName gets the name of the player who played last.
 	void LoadUsers(SexyString* theLastName);
 	void SaveUsers();                               // 0x733f07
@@ -99,15 +97,15 @@ public:
 
 	static std::string GetUserFolder(const SexyString& theName);  // 0x73400c: "<app data>users\<file name>"
 
-	bool GetFlag1E0(int theBit) const { return (mFlags1E0 & (1u << (theBit & 31))) != 0; }
-	void SetFlag1E0(int theBit, bool on);           // 0x7337f8
-	bool GetFlag1E4(int theBit) const { return (mFlags1E4 & (1u << (theBit & 31))) != 0; }  // 0x733897
-	void SetFlag1E4(int theBit, bool on);           // 0x7338b6
-	bool GetBit170(int theBit) const;               // 0x733838
-	// 0x73378b: the mode is open to the player (mFlags1E8's bit); blitz never in an unregistered copy
+	bool IsGemTypeUnlocked(int theBit) const { return (mGemTypesUnlocked & (1u << (theBit & 31))) != 0; }
+	void SetGemTypeUnlocked(int theBit, bool on);           // 0x7337f8
+	bool HasSeenTip(int theBit) const { return (mTipsSeen & (1u << (theBit & 31))) != 0; }  // 0x733897
+	void SetTipSeen(int theBit, bool on);           // 0x7338b6
+	bool GetSavedBit(int theBit) const;               // 0x733838
+                                      // 0x73378b: the mode is open to the player (mModesUnlocked's bit); blitz never in an unregistered copy
 	bool IsModeUnlocked(int theMode) const;
-	void UnlockMode(int theMode) { mFlags1E8 |= 1u << (theMode & 31); }  // 0x7337c2
-	void SetBit170(int theBit);                     // 0x73386e
+	void UnlockMode(int theMode) { mModesUnlocked |= 1u << (theMode & 31); }  // 0x7337c2
+	void SetSavedBit(int theBit);                     // 0x73386e
 };
 
 }  // namespace Sexy

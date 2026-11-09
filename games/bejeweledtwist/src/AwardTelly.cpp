@@ -25,7 +25,7 @@ AwardTelly::AwardTelly()
 {
 	mFXManager = new EffectsManager();
 	mFXManager2 = new EffectsManager();
-	mUnknown2B8 = 0;
+	mFadeIn = 0;
 	mKind = 0;
 	mState = 0;
 	mButton = nullptr;
@@ -146,9 +146,9 @@ void AwardTelly::ShowTrophy(Challenge* theChallenge, bool theFlag)
 	// and the best, up to 15
 	int aBonus = theChallenge->mNumber * 3 + 2;
 	if ((theChallenge->mFlags & Challenge::FLAG_NIGHTMODE) != 0 && theChallenge->mBestScore != 0) {
-		int aScore = gBoard->mUnknown2634;
-		if (gBoard->mUnknown2634 < gBoard->mUnknown2638)
-			aScore = gBoard->mUnknown2638;
+		int aScore = gBoard->mChallengeBest;
+		if (gBoard->mChallengeBest < gBoard->mChallengeCount)
+			aScore = gBoard->mChallengeCount;
 		float aFrac = (float)((double)(aScore - theChallenge->mLowScore) /
 			((double)theChallenge->mBestScore - (double)theChallenge->mLowScore));
 		if (0.0f < aFrac)
@@ -159,12 +159,12 @@ void AwardTelly::ShowTrophy(Challenge* theChallenge, bool theFlag)
 		aBonus = Ftol(aScaled);
 	}
 	int aY = Ftol((double)mHeight * 0.2750000059604645);
-	mRankBonus = new RankBonusWidget(gApp->mProfile->mUnknown160, aBonus, mWidth / 2, aY);
+	mRankBonus = new RankBonusWidget(gApp->mProfile->mRankPoints, aBonus, mWidth / 2, aY);
 	mRankBonus->Resize(0, 0, gApp->mWidth, gApp->mHeight);
 	mRankBonus->mZOrder = mZOrder + 1;
 	gApp->mWidgetManager->AddWidget(mRankBonus);
 	mTrophy = theChallenge;
-	mUnknown2CC = theFlag;
+	mIsNightTrophy = theFlag;
 	mState = 4;
 	mKind = 1;
 	mTrophyIn.SetCurve(GTS(0x7dbbd4));
@@ -178,16 +178,16 @@ void AwardTelly::Update()
 		static_cast<ButtonListener*>(this)->ButtonDepress(0);
 	mFXManager->Update();
 	if (mState < 3) {
-		double aShow = (double)mUnknown2B8 + 0.019999999552965164;
+		double aShow = (double)mFadeIn + 0.019999999552965164;
 		if (1.0 < aShow)
 			aShow = 1.0;
-		mUnknown2B8 = (float)aShow;
+		mFadeIn = (float)aShow;
 	}
 	if (mState == 1) {
-		double aShow = (double)mUnknown2B8 - 0.019999999552965164;
+		double aShow = (double)mFadeIn - 0.019999999552965164;
 		if (aShow < 0.0)
 			aShow = 0.0;
-		mUnknown2B8 = (float)aShow;
+		mFadeIn = (float)aShow;
 	}
 	mChange.IncInVal();
 	if (mButton != nullptr && mNewTextAlpha.CheckInThreshold(0.4000999927520752))
@@ -224,7 +224,7 @@ void AwardTelly::Update()
 		break;
 	case 3:
 		if (!mShow.IncInVal()) {
-			if (mUnknownCA) {
+			if (mRemoveWhenDone) {
 				mParent->RemoveWidget(this);
 				gApp->SafeDeleteWidget(this);
 			}

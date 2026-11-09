@@ -13,10 +13,8 @@
 
 using namespace Sexy;
 
-FlyingText::FlyingText(int theKind, Image* theImage, int theX, int theY, float theUnused, int theSoundId,
-	float theDelay)
+FlyingText::FlyingText(int theKind, Image* theImage, int theX, int theY, int theSoundId, float theDelay)
 {
-	(void)theUnused;
 	mKind = theKind;
 	mSoundId = theSoundId;
 	mTextImage = theImage;

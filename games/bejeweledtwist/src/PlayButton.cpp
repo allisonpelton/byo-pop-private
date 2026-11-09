@@ -203,8 +203,8 @@ void PlayButton::Draw(Graphics* g)
 			float aScaleX = (float)(mAppear.GetOutVal() * anImageX);
 			aTransform.Scale(aScaleX, aScaleY);
 			g->DrawImageTransform(mImage, aTransform, aSrcRect, (float)(mWidth / 2), (float)(mHeight / 2));
-			double anAppear2b = mAppear.GetOutVal();
-			anImageAlpha = mGlow * anAppear2b * mAlpha.GetOutVal();
+			double aGlowAppear = mAppear.GetOutVal();
+			anImageAlpha = mGlow * aGlowAppear * mAlpha.GetOutVal();
 			aCel += 2;
 		} while (aCel <= 2);
 	}

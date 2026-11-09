@@ -20,9 +20,9 @@ public:
 	std::vector<Point> mSparklePoints;   // +0x14c: the title's bright, opaque pixels
 	float mAlpha = 1.0f;                 // +0x15c
 	int mLogoTop = 0;                    // +0x160: the title's top edge where it was last drawn
-	float mFade168 = 0;                  // +0x168: rises to 1 once the title is down, then starts mFade170
-	float mFade16C = 0;                  // +0x16c: rises to 1 once the title is down
-	float mFade170 = 0;                  // +0x170: falls from 1 (these three are not read in 2D)
+	float mFlashRise = 0;                  // +0x168: rises to 1 once the title is down, then starts mFlashFall
+	float mSettleFade = 0;                  // +0x16c: rises to 1 once the title is down
+	float mFlashFall = 0;                  // +0x170: falls from 1 (these three are not read in 2D)
 	CurvedVal mTrademarkAlpha;           // +0x178
 	float mLogoScale = 1.0f;             // +0x1f0: the title's size with Direct3D
 	Image* mLogoImage;                   // +0x1f4

@@ -63,10 +63,10 @@ TextImage::TextImage(Font* theFont, const SexyString& theText, int thePadX, int 
 GameOverShow::GameOverShow(Board* theBoard)
 {
 	mBoard = theBoard;
-	mUnknown168 = false;
+	mIsHidden = false;
 	mClip = false;
 	Resize(0, 0, gApp->mWidth, gApp->mHeight);
-	mUnknown154 = 6.2831854820251465f + 6.2831854820251465f;
+	mTurnLimit = 6.2831854820251465f + 6.2831854820251465f;
 	mText = new TextImage(FONT_INCREDIBLE, gApp->GetString(GTS(0x7e2764), GT(0x7e2750)), 0, 0, 0, 0, nullptr);
 	mFXManager = new EffectsManager();
 	mScaleCurve.SetCurve(GTS(0x7e2724));
@@ -101,7 +101,7 @@ void GameOverShow::Update()
 
 void GameOverShow::Draw(Graphics* g)
 {
-	if (mBoard->mUnknown23F4 || 2 <= mUnknown164)
+	if (mBoard->mTipShowingAtJump || 2 <= mHideState)
 		return;
 	g->SetColorizeImages(true);
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);

@@ -124,6 +124,7 @@ struct PEImage
 
 }
 
+// port: reads the game's texts from the player's own exe (GameText.h)
 bool Sexy::LoadGameTexts()
 {
 	std::map<unsigned int, SexyString>& aTexts = Texts();
@@ -161,14 +162,14 @@ bool Sexy::LoadGameTexts()
 		{
 			for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
 			{
-				const GameTextEntry& e = gGameTextEntries[anId];
-				size_t anOffset = anImage.Offset(e.mVA);
-				if (e.mData)
+				const GameTextEntry& anEntry = gGameTextEntries[anId];
+				size_t anOffset = anImage.Offset(anEntry.mVA);
+				if (anEntry.mData)
 				{
-					if ((anOffset != 0) && (anOffset + e.mLength <= aData.size()) &&
-						(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
+					if ((anOffset != 0) && (anOffset + anEntry.mLength <= aData.size()) &&
+						(TextHash((const char*) &aData[anOffset], anEntry.mLength) == anEntry.mHash))
 					{
-						Blocks()[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+						Blocks()[anEntry.mVA].assign((const char*) &aData[anOffset], anEntry.mLength);
 						aMatched++;
 					}
 					else
@@ -177,20 +178,20 @@ bool Sexy::LoadGameTexts()
 					}
 					continue;
 				}
-				size_t anEnd = anOffset + e.mLength + (e.mWide ? 1 : 0);
-				if ((anOffset != 0) && (anEnd < aData.size()) && (aData[anOffset + e.mLength] == 0) &&
-					(!e.mWide || aData[anEnd] == 0) &&
-					(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
+				size_t anEnd = anOffset + anEntry.mLength + (anEntry.mWide ? 1 : 0);
+				if ((anOffset != 0) && (anEnd < aData.size()) && (aData[anOffset + anEntry.mLength] == 0) &&
+					(!anEntry.mWide || aData[anEnd] == 0) &&
+					(TextHash((const char*) &aData[anOffset], anEntry.mLength) == anEntry.mHash))
 				{
-					if (e.mWide)
+					if (anEntry.mWide)
 					{
 						std::wstring aWide;
-						for (size_t i = 0; i < e.mLength; i += 2)
+						for (size_t i = 0; i < anEntry.mLength; i += 2)
 							aWide += (wchar_t) (aData[anOffset + i] | (aData[anOffset + i + 1] << 8));
-						aTexts[e.mVA] = WStringToSexyString(aWide);
+						aTexts[anEntry.mVA] = WStringToSexyString(aWide);
 					}
 					else
-						aTexts[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+						aTexts[anEntry.mVA].assign((const char*) &aData[anOffset], anEntry.mLength);
 					aMatched++;
 				}
 				else
@@ -226,6 +227,7 @@ bool Sexy::LoadGameTexts()
 	return aMatched > 0;
 }
 
+// port: the text the original keeps at theVA
 const SexyString& Sexy::GameText(unsigned int theVA)
 {
 	static const SexyString sEmpty;
@@ -241,6 +243,7 @@ const SexyString& Sexy::GameText(unsigned int theVA)
 	return anItr->second;
 }
 
+// port: GameText as a narrow string
 const std::string& Sexy::GameTextA(unsigned int theVA)
 {
 	static std::map<unsigned int, std::string> sNarrow;
@@ -250,6 +253,7 @@ const std::string& Sexy::GameTextA(unsigned int theVA)
 	return anItr->second;
 }
 
+// port: a number from a table of the original's data at theVA
 int Sexy::GameInt(unsigned int theVA)
 {
 	std::map<unsigned int, std::string>& aBlocks = Blocks();

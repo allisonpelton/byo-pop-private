@@ -35,8 +35,8 @@ public:
 	CurvedVal mInnerGlow;         // +0x310: the glow of the inner rings
 	TopGate* mTop;                // +0x380
 	BottomGate* mBottom;          // +0x384
-	int mUnknown390 = 0;          // +0x390
-	float mUnknown394 = 0;        // +0x394: 0.85 whenever the halves stand still
+	int mOpenCount = 0;           // +0x390: set to 0 by the constructor, never read
+	float mRestFraction = 0;      // +0x394: 0.85 whenever the halves stand still (never read)
 	int mTopY = 0;                // +0x398: the top half's y when closed
 	int mBottomY = 0;             // +0x39c
 	float mOffset;                // +0x3a0: how far the halves are apart
