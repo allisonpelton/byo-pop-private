@@ -122,8 +122,8 @@ ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/
   patched the same way, `build/origrun/bej2_nosparkle.txt` holds the seed patch and the AddAlphaSparkle patch) and compares
   everything else. In the 3D game both sides read the same 1024 by 768 images and need no such step.
 - **Hyperspace::Update2d's star lines depend on the screen's width** (0x5c7532): each new line takes `Rand() % mWidth`, so a jump
-  at 640 by 480 (the original without 3D) draws different numbers than the port's 2D at 1024 by 768 scaled down. The 2D
-  comparison is made up to the first jump; the 3D comparison (both at 1024 by 768) goes through them.
+  at 640 by 480 (the original without 3D) draws different numbers than the port's 2D at 1024 by 768 scaled down. No 2D run
+  has shown a difference from it so far; the 3D game (both at 1024 by 768) needs no such care.
 - **A click on a dialog reaches the 3D original one update after the port's** (not a bug of either): in the original's 3D loop the
   board resumes its ticks one update after a dialog's button was clicked, where the port resumes at once. The comparison tool
   gives the original those inputs one update earlier (`to_origrun.py --dialog-shift -1`, `run_mode.sh` does it with `HIRES=1`; the Escape key that closes a hint dialog is the exception: it reaches the board's resume at the same update as the port's, and a shifted one resumes it an update early, which moved the carried-over flame gem's pick by one draw of the global generator),
