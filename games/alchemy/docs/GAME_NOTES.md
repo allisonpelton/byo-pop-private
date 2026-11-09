@@ -471,12 +471,12 @@ hooks. The overrides of `SexyAppBase`'s hooks (`ShutdownHook`, `GetShutdownSaves
 file that nothing in the port reads (CONFIRM_SKILL_CHANGE1 and 2, COLOR_DEPTH_ERROR1 to 3, CONFIRM_UPDATE1 and 2 and the
 registration texts) are the game's data, not ours to edit.
 
-**Doubtful, for the user.**
+**Doubtful, and how each was settled (the coordinator, 2026-11-09).**
 - *The test hooks in the shipped game.* `src/testhooks/` (about 1,550 lines: the test commands, `-autoplay`, the bot, `memreport`) is
-  compiled into the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`). Taking it out of the
-  shipped build would need a build switch that the tests then turn on; nothing in the game depends on it.
+  compiled into the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`). They stay: the suites and
+  the frozen baseline run the very executable the site serves, and the rule is only that a test command is reachable from a test.
 - *Shared code.* `mForceFullscreen` and the registration members of `SexyApp` are the framework's (section 5); whether the
-  framework still needs them is the coordinator's, as a spec.
+  framework still needs them is the coordinator's, who has them in the queue.
 
 **Proof.** `tools/check.sh build alchemy` after the removals: the build passes and the suite's baseline is identical (strategic 12206,
 time trial 14641, the tutorial, the saved game, the rerun). The suite plays the game's logic, so the pictures were checked as well,
