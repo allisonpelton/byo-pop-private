@@ -7,9 +7,12 @@
 //     keys. Only the active window's game has the focus, so the others get the focus loss they get when a page loses it.
 //   - another page of ours (a game's copyright and licences, the terms): its page in a frame, scrolling with the skin's bars.
 //   - a licence text (licenses/*.txt): the text itself in the window.
-// Links to other sites still open a tab. The address follows the active window (pushState for a window the player opens,
-// replaceState as the active one changes), Back and Forward close or reopen windows without leaving the page, and any of
-// those addresses opened on its own comes back here with its window open (web/skins.js, onePage). Other skins keep their pages.
+// Links to other sites still open a tab. The address is always the site's root (the user, 2026-11-09: "What we're developing
+// now is a SPA, and the url bar should never need to show any path other than root"), with only the test parameters the page
+// was opened with (?silent=1, ?assets=): the windows open live in history.state, a new entry (pushState) for a window the
+// player opens and the same entry (replaceState) as the active one changes or a window closes, so Back and Forward close or
+// reopen windows without leaving the page and a reload opens them again. An old address of one of the pages, opened on its
+// own, comes here as ?open=<page> (web/skins.js, onePage), which opens its window and goes back to the root.
 var ByopopApps = (function () {
   "use strict";
   var SKIN = window.ByopopSkin, desk = SKIN && SKIN.desk, SITE = SKIN && SKIN.SITE;
@@ -55,15 +58,11 @@ var ByopopApps = (function () {
     if (SILENT) u.searchParams.set("silent", "1");
     return u.href;
   }
-  // the address a window has in the bar: its own, with ?silent=1 kept (a reload of a test run stays silent)
-  function addressOf(key) {
-    if (!key) return SITE + (SILENT ? "?silent=1" : "");
-    // a page in a folder (a licence text): the listing's address naming it, as the page's own address would move the
-    // document's base, and every relative link and later load of the listing with it
-    if (pathOf(key).indexOf("/") >= 0) return SITE + "?open=" + encodeURIComponent(key) + (SILENT ? "&silent=1" : "");
-    var u = new URL(key, SITE);
-    if (SILENT) u.searchParams.set("silent", "1");
-    return u.href;
+  // the address in the bar, whatever window is open: the site's root, with the test parameters kept (a reload of a test run
+  // stays silent)
+  function rootAddress() {
+    var t = SKIN && SKIN.testQuery ? SKIN.testQuery() : (SILENT ? "silent=1" : "");
+    return SITE + (t ? "?" + t : "");
   }
   function byKey(key) { for (var i = 0; i < apps.length; i++) if (apps[i].key === key) return apps[i]; return null; }
   function byId(id) { for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i]; return null; }
@@ -78,7 +77,7 @@ var ByopopApps = (function () {
   function write(push) {
     if (restoring) return;
     var st = state();
-    try { history[push ? "pushState" : "replaceState"](st, "", addressOf(st.active)); } catch (e) {}
+    try { history[push ? "pushState" : "replaceState"](st, "", rootAddress()); } catch (e) {}
   }
 
   // ---- a Windows 95 message box (the fourth game) ----
@@ -358,25 +357,24 @@ var ByopopApps = (function () {
     if ((a.getAttribute("href") || "").charAt(0) === "#" || a.hasAttribute("download")) return;
     if (open(a.href, "push")) ev.preventDefault();
   });
-  // leaving Desktop 95 on another page's address: that page, as the other skins have it
-  window.addEventListener("byopop-skin", function (ev) {
-    if (!ev.detail || ev.detail.skin === "d95") return;
-    var key = relOf(location.href), kind = key && kindOf(key);
-    if (kind && kind !== "index") { location.reload(); return; }
-    // a licence text (?open=, addressOf) is a tab of its own in the other skins: the listing, where its link is
-    if (Q.get("open") !== null || /[?&]open=/.test(location.search)) { try { history.replaceState(null, "", addressOf(null)); } catch (e) {} }
-    // staying on the listing: the windows' pages close as their Close closes them (a game's saves first)
-    apps.slice().forEach(closeApp);
-  });
-  // the first state, and the page this address named (?open=, from web/skins.js onePage)
+  // the first state: the windows a reload finds in history.state, open again, and the page an old address named (?open=, from
+  // web/skins.js onePage); then the root's address
   function start() {
-    var want = Q.get("open");
-    // the desktop is not here after all (another skin chosen meanwhile): the page itself
-    if (!on()) { if (want !== null && relOf(new URL(want, SITE).href) !== null) location.replace(new URL(want, SITE).href); return; }
+    var want = Q.get("open"), st = history.state;
+    if (!on()) return;
+    if (st && st.d95 && st.open && st.open.length) {
+      restoring = true;
+      try {
+        st.open.forEach(function (k) { if (!byKey(k)) open(SITE + k, "none"); });
+        var act = st.active && byKey(st.active);
+        if (act) desk.openWin(act.id);
+      } finally { restoring = false; }
+    }
     if (want !== null) {
-      try { history.replaceState(state(), "", addressOf(null)); } catch (e) {}
-      if (!open(SITE + want, "replace")) location.replace(new URL(want, SITE).href);
-    } else write(false);
+      try { history.replaceState(state(), "", rootAddress()); } catch (e) {}
+      open(SITE + want, "replace");
+    }
+    write(false);
   }
   if (document.readyState === "complete") setTimeout(start, 0); else window.addEventListener("load", function () { setTimeout(start, 0); });
 
@@ -389,5 +387,7 @@ var ByopopApps = (function () {
   }
   return { open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
-    count: function () { return apps.length; } };
+    count: function () { return apps.length; },
+    // the address back to the root (a link to #settings and the like, web/index.html)
+    settle: function () { if (on()) write(false); } };
 })();

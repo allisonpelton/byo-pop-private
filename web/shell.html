@@ -7,9 +7,8 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
-     drawn (web/theme.js) -->
-<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script><script src="terms.js"></script>
+<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js) and its logo drawn inline (web/logo.js) -->
+<script src="strings.js"></script><script src="logo.js"></script><script src="terms.js"></script>
 <!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
 <script src="cursors.js"></script>
 <style>
@@ -18,7 +17,7 @@
    own). The game's parts come from its games/<game>/web folder: page.js (its settings, below), page.css (its colours
    and brand mark) and page.html (its own panels), put in at the byopop:game-js, byopop:game-css and
    byopop:game-panels markers by byopop_web_game() (cmake/ByopopWeb.cmake). The base palette: an amethyst accent on a
-   dark velvet tray; the light theme is a pale tray. */
+   pale tray. */
 :root {
   --bg: #eceaf2;
   --panel: #ffffff;
@@ -36,18 +35,6 @@
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", monospace;
   --radius: 10px;
   color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #14111d; --panel: #1f1a2c; --panel-2: #272136; --fg: #ece8f6; --muted: #a59fbb;
-    --line: #3a3350; --accent: #a383ff; --accent-fg: #14111d; --gem-ruby: #ff6b86; --ok: #4fd39a; --warn: #f0b252;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #14111d; --panel: #1f1a2c; --panel-2: #272136; --fg: #ece8f6; --muted: #a59fbb;
-  --line: #3a3350; --accent: #a383ff; --accent-fg: #14111d; --gem-ruby: #ff6b86; --ok: #4fd39a; --warn: #f0b252;
-  color-scheme: dark;
 }
 [hidden] { display: none !important; }  /* .overlay/.panel set display, which would override the attribute */
 /* Text for screen readers only; and the "Skip to game" link, which shows at the top left while it has the focus
@@ -74,20 +61,12 @@ body {
 }
 .brand { font-weight: 700; letter-spacing: 0.02em; display: flex; align-items: center; gap: 8px; }
 .brand h1 { margin: 0; font: inherit; letter-spacing: inherit; }  /* the game's name is the page's heading */
-/* the site's logo (web/brand: one file per theme), then the game's mark and name */
+/* the site's logo (web/brand), then the game's mark and name */
 .brand .site { display: flex; padding-right: 12px; border-right: 1px solid var(--line); color: inherit; text-decoration: none; }
-/* the logo is the link to the listing page of all games (index.html, "./"); its name, "byo-pop, all games", is the light
-   logo's alt, so in a dark theme that logo stays in the page, out of sight, as the link's name */
+/* the logo is the link to the listing page of all games (index.html, "./"); its name, "byo-pop, all games", is the logo's alt */
 .brand .site:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 .brand .site img { height: 22px; width: auto; }
 .brand .logo-light { display: block; }
-.brand .logo-dark { display: none; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .brand .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  :root:not([data-theme="light"]) .brand .logo-dark { display: block; }
-}
-:root[data-theme="dark"] .brand .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-:root[data-theme="dark"] .brand .logo-dark { display: block; }
 /* the game's mark before its name: page.css draws its own */
 .brand .mark { width: 12px; height: 12px; background: var(--accent); border-radius: 2px; }
 /* the game's own icon in place of the mark once its files are here (showIcon) */
@@ -254,13 +233,13 @@ html.player-only .stage-wrap { place-items: start; padding: 0; }
 html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 /* byopop:game-css */
 </style>
-<!-- the site's skins (web/skins.js sets <html data-skin>; docs/WEB_PLAYER.md, "Skins") -->
+<!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
 <link rel="stylesheet" href="skins.css"><script src="skins.js"></script>
 </head>
 <body>
 <a class="skip" id="skip-game" href="#canvas">{{game.skip}}</a>
 <header class="bar">
-  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="{{game.logo_alt}}" width="72" height="22" draggable="false"><img class="logo-dark" src="logo-dark.svg" alt="" width="72" height="22" draggable="false"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" draggable="false" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
+  <div class="brand"><a class="site" href="./"><img class="logo-light" src="logo.svg" alt="{{game.logo_alt}}" width="72" height="22" draggable="false"></a><span class="mark" aria-hidden="true"></span><img id="brand-icon" class="game-icon" alt="" width="20" height="20" draggable="false" hidden><h1 id="brand-name">@BYOPOP_TITLE@</h1></div>
   <span class="status" id="status" role="status">{{game.status.starting}}</span>
   <span class="key-hint" id="key-hint" aria-hidden="true">{{game.canvas_hint}}</span>
   <!-- shown once the game's files are here, and never for a game whose port loads no mods (boot(), MODS_SUPPORTED) -->
@@ -272,7 +251,6 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
        tooltip say which (showSound) -->
   <button id="btn-sound" class="icon-btn" type="button" aria-pressed="true" aria-label="{{game.sound.on}}" title="{{game.sound.on}}"><svg class="snd snd-vec" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="snd-spk" d="M3.5 9.5h3.8L12 5.2v13.6L7.3 14.5H3.5z"/><g class="snd-on"><path d="M15.2 9.2a4 4 0 0 1 0 5.6"/><path d="M17.9 6.5a7.8 7.8 0 0 1 0 11"/></g><g class="snd-off"><path d="M15.5 9.5l5 5M20.5 9.5l-5 5"/></g></svg><svg class="snd snd-px" viewBox="0 0 16 16" aria-hidden="true" focusable="false" shape-rendering="crispEdges"><rect x='1' y='6' width='3' height='4'/><rect x='4' y='5' width='1' height='6'/><rect x='5' y='4' width='1' height='8'/><rect x='6' y='3' width='1' height='10'/><rect x='7' y='2' width='1' height='12'/><g class="snd-on"><rect x='9' y='6' width='1' height='4'/><rect x='11' y='4' width='1' height='1'/><rect x='12' y='5' width='1' height='6'/><rect x='11' y='11' width='1' height='1'/><rect x='13' y='3' width='1' height='1'/><rect x='14' y='4' width='1' height='8'/><rect x='13' y='12' width='1' height='1'/></g><g class="snd-off"><rect x='10' y='5' width='1' height='1'/><rect x='14' y='5' width='1' height='1'/><rect x='11' y='6' width='1' height='1'/><rect x='13' y='6' width='1' height='1'/><rect x='12' y='7' width='1' height='1'/><rect x='12' y='7' width='1' height='1'/><rect x='13' y='8' width='1' height='1'/><rect x='11' y='8' width='1' height='1'/><rect x='14' y='9' width='1' height='1'/><rect x='10' y='9' width='1' height='1'/></g></svg></button>
   <button id="btn-full" type="button">{{game.btn.full}}</button>
-  <button id="btn-theme" type="button" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
 </header>
 <!-- The mod menu inside the game reads out what has the focus here (Module.onModMenuFocus, web/modpanel.js) -->
 <div class="sr-only" id="menu-live" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -299,7 +277,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 
     <div class="overlay" id="import-overlay" hidden>
       <div class="card" id="import-card" role="dialog" aria-labelledby="import-title" aria-describedby="import-about" tabindex="-1">
-        <!-- the game's cap, its badge on the listing page: the opener takes it off once the files are in (web/capanim.js) -->
+        <!-- the game's cap, its badge on the listing page: it comes off once the files are in -->
         <div class="page-cap" id="page-cap" aria-hidden="true" style="--tile: @BYOPOP_CAP_COLOUR@">@BYOPOP_CAP_INITIALS@</div>
         <h2 id="import-title">{{game.import.title}}</h2>
         <p id="import-about"></p>
@@ -397,7 +375,6 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 <script src="exeicon.js"></script>
 <script src="gameimport.js"></script>
 <script src="other-games.js"></script>
-<script src="capanim.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
 <script src="playcount.js"></script>
@@ -469,7 +446,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     document.documentElement.classList.add("player-only");
     document.write('<script src="testkit.js"><\/script>');
   }
-  // the game's own skin, where its settings give it one (web/skins.js); none on the player-only page
+  // the page names its game (its desktop is kept by it) and draws in Desktop 95, or plain on the player-only page (web/skins.js)
   try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
   // the performance panel (web/perf.js), when the site setting is on; it waits for the page to be drawn
   try { document.addEventListener("DOMContentLoaded", function () { ByopopPerf.setGame(PAGE.id); }); } catch (e) {}
@@ -1511,12 +1488,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     $("btn-import-cancel").disabled = true;
     promise.then(importGame).then(function (ok) {
       if (!ok) return;
-      // the opener takes the cap off, then the game boots
-      var cap = $("page-cap");
-      function off() { cap.hidden = true; }
-      var popped;
-      try { popped = ByopopCapAnim.pop(cap, { away: true, after: off }); } catch (e) { off(); popped = Promise.resolve(); }
-      return popped.then(function () { $("import-overlay").hidden = true; boot(); });
+      // the cap comes off, then the game boots
+      $("page-cap").hidden = true;
+      $("import-overlay").hidden = true;
+      boot();
     }).catch(function (e) { importMessage(e.message, true); })
       .then(function () {
         importing = false;
@@ -1701,14 +1676,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     var P = desktopApps();
     if (P) try { P.title(window, title); } catch (e) {}
   }
-  // The parts of the bar that go elsewhere on the desktop, and back without it: the status line in the game window's status
-  // bar, the theme button in Settings' Appearance (a placeholder marks where each was)
-  var statusHome = null, themeHome = null, statusBar = null, themeRow = null;
+  // The part of the bar that goes elsewhere on the desktop, and back without it: the status line in the game window's status
+  // bar (a placeholder marks where it was)
+  var statusHome = null, statusBar = null;
   function deskParts() {
     var on = !!(window.ByopopSkin && ByopopSkin.desk.isOn());
-    var st = $("status"), th = $("btn-theme");
+    var st = $("status");
     if (!statusHome) { statusHome = document.createComment("status line"); st.parentNode.insertBefore(statusHome, st); }
-    if (!themeHome) { themeHome = document.createComment("theme button"); th.parentNode.insertBefore(themeHome, th); }
     if (!statusBar) {
       statusBar = document.createElement("div");
       statusBar.className = "d95-statusbar";
@@ -1716,22 +1690,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     }
     if (on) {
       if (st.parentNode !== statusBar) statusBar.appendChild(st);
-      var look = settingsView && settingsView.sections && settingsView.sections.filter(function (r) { return r.id === "look"; })[0];
-      if (look) {
-        if (!themeRow) {
-          themeRow = document.createElement("div");
-          themeRow.className = "bps-row d95-theme-row";
-          var l = document.createElement("span"); l.className = "d95-theme-label"; l.textContent = ByopopStrings.t("game.theme.label");
-          themeRow.appendChild(l);
-        }
-        var body = look.el.querySelector(".d95-body") || look.el;
-        if (themeRow.parentNode !== body) body.appendChild(themeRow);
-        if (th.parentNode !== themeRow) themeRow.appendChild(th);
-      }
     } else {
       if (statusHome.parentNode && st.parentNode !== statusHome.parentNode) statusHome.parentNode.insertBefore(st, statusHome.nextSibling);
-      if (themeHome.parentNode && th.parentNode !== themeHome.parentNode) themeHome.parentNode.insertBefore(th, themeHome.nextSibling);
-      if (themeRow && themeRow.parentNode) themeRow.parentNode.removeChild(themeRow);
     }
     deskTitle();
   }
@@ -2265,7 +2225,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       // window to be their own windows as appropriate ... That tools window probably doesn't need to exist at all"): the game's
       // name and its mods are its window's title ("Bejeweled - 2 mods"), the status line its status bar, the bar's panels
       // (Mods, Game files, Settings, ...) windows of their own with their icons, the sound switch in the tray, full screen the
-      // window's maximize button (and its control menu's and the Pop menu's entry), the theme in Settings' Appearance. The
+      // window's maximize button (and its control menu's and the Pop menu's entry). The
       // window's Close closes the program (the user, 2026-11-08: "Closing the game window ought to go back to the home
       // page/bring back All games"): the game's own close with its saves, as the page's other ways out, then the listing with
       // All games open.

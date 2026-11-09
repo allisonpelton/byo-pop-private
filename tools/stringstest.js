@@ -6,7 +6,7 @@
 //     "area.name" whose area is one of en.txt's (a key picked by a ternary or held in a table), files like "index.html"
 //     aside;
 //   - every key of en.txt is used somewhere. This is approximate: any quoted literal that is a key counts as a use, a
-//     prefix ("players.mode." + name) counts for every key under it, and theme.* are exempt; a key that only looks used
+//     prefix ("players.mode." + name) counts for every key under it; a key that only looks used
 //     passes, a key used nowhere at all does not;
 //   - no {{key}} inside a script (the build fills markup only), and a "_html" key is only used as markup;
 //   - every {placeholder} a script passes is in the string, and every placeholder of a string is passed;
@@ -128,9 +128,7 @@ function scan(text, file) {
 }
 // the games' pages are not converted, but a page may read a site key through the shell's text
 for (const k of Object.keys(used)) check(k in table, "'" + k + "' (" + used[k][0] + ") is not in en.txt");
-// theme.* are read by the theme script and the footer, which name them in other ways
 for (const k of keys) {
-  if (/^theme\./.test(k)) continue;
   if (!(k in used)) for (const [p, file] of prefixes) if (k.indexOf(p) === 0) note(k, file);
   check(k in used, "en.txt:" + lines[k] + ": '" + k + "' is not used");
 }

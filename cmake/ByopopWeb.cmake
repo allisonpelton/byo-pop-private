@@ -38,7 +38,7 @@ get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/f
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopOthers.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
-set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg cap.svg opener.svg)
+set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.svg)
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
 # settings", "The listing page"): one file that the listing page and every game page load. web/profiles.js keeps the site's
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
@@ -51,7 +51,7 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
 # web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
-set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settingsicons.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js skins.css perf.js view.js controldata.js controls.js clips.js)
+set(BYOPOP_WEB_SHARED_JS logo.js cursors.js settingsicons.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js skins.css perf.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -715,7 +715,7 @@ function(byopop_web_shell var target pagedir)
   byopop_json_string(terms_json "${terms}\n${buy_html}")
   set_property(GLOBAL PROPERTY BYOPOP_WEB_terms_${target} "{\"version\": \"${terms_version}\", \"html\": ${terms_json}}")
   string(REPLACE "@BYOPOP_TITLE@" "${arg_TITLE}" page "${page}")
-  # the game's cap over its import card (web/capanim.js): its badge, as on the listing page
+  # the game's cap over its import card: its badge, as on the listing page
   byopop_web_badge(${target} "${arg_TITLE}" cap_initials cap_colour)
   # escaped as the listing's are: the initials are the cap's text, the colour sits in its style attribute
   foreach(field cap_initials cap_colour)
@@ -1195,7 +1195,7 @@ endfunction()
 
 # byopop_web_jungle(): writes Jungle Juice, the site's page for other projects' decompilations (docs/WEB_PLAYER.md, "Jungle
 # Juice"; the user, 2026-11-04): every page of web/jungle/ into build/web/jungle/, its {{key}} markers filled from the site's
-# text. Its pages reach the site's shared files (the logo, theme.js, strings.js) one folder up.
+# text. Its pages reach the site's shared files (the logo, strings.js) one folder up.
 function(byopop_web_jungle)
   get_filename_component(source "${BYOPOP_WEB_BRAND_DIR}/../jungle" ABSOLUTE)
   file(GLOB pages RELATIVE ${source} CONFIGURE_DEPENDS ${source}/*.html)

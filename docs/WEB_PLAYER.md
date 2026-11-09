@@ -258,7 +258,7 @@ keep them.
 in one sentence, its `COPYRIGHT` up to "All rights reserved." (the trademark lines are on the page the link opens), then a
 **Full terms →** link, which opens the game's copyright page (`<game>-copyright.html`, next to the game) in a new tab. The
 markup is `web/footer.html` (the build puts the notice at `@BYOPOP_NOTICE@`) and its style `web/footer.css`. Every link to the site's own
-licence texts (`licenses/`), terms and copyright pages, in every skin, opens a new tab with `target="_blank"` and
+licence texts (`licenses/`), terms and copyright pages, opens a new tab with `target="_blank"` and
 `rel="noopener"` (the user, 2026-11-08: "libopenmpt in the music pane doesn't open in a new tab"), so a game or the music
 never stops for one; tools/linkstest.js (in check.sh's unit-web) fails on any that does not, in the pages, the scripts, the
 site's text and the built pages.
@@ -505,7 +505,7 @@ features, as there are none.
 the EA app" (a store whose name ends in "app" takes "the"), which opens in a new tab (`target="_blank" rel="noopener noreferrer"`;
 the user, 2026-11-09: "The buy links should always open in a new tab") and whose accessible name has the game and says so ("Buy
 on Steam, Big Money (opens in a new tab)"). Every store link of the site is such a plain link, never a script's `window.open`,
-which a popup blocker may stop: the cards' (and the coming-soon tiles') in every skin, the Library's menu entries (links in the
+which a popup blocker may stop: the cards' (and the coming-soon tiles'), the Library's menu entries (links in the
 menu, web/skins.js popMenu `href`), the game pages' and copyright pages' buy note and the terms card's. `byopop_web_index()` writes them at build time from the same data as the game pages'
 buy note, `BYOPOP_BUY_<target>` in `cmake/ByopopStores.cmake` (a check date, then each store's name and page), so the two
 cannot disagree; a game with no store shows nothing. The links are in the same list item as the game's link but not inside
@@ -540,27 +540,12 @@ back into view.
 its initials on its colour, is cut to a crown cap's outline seen from above (`web/brand/cap.svg`, our own drawing: a circle with 21
 rounded crimps, used as the badge's CSS `mask`), with the cap's skirt and the ring of its top drawn darker by a radial gradient over
 the colour, which keeps the white initials' contrast. The game's own icon, once its files are here, takes the cap's place (no
-mask). The opener takes the caps off when games are added ("The cap and the opener", below).
+mask). Desktop 95 draws no caps on the listing: its icons are plain ("The games' icons" under "Desktop 95"); the cap stays the
+site's own sign, on the Pop button, the setup wizard and a game page's import card.
 
-**The cap and the opener.** The user's test notes: "Make the game pages have a bottle cap on top that is removed when you upload
-your files via an animation using the bottle opener. Implement this on the front page too if possible. When uploading multiple
-games' files at once, have the bottle opener fall from the top of the screen onto the grid of games, flipping the caps for games
-that are now playable, revealing their logo on the other side." (the go-ahead, 2026-11-03). `web/capanim.js` draws it with the Web
-Animations API on copies of the cap laid over the page (`position: fixed`), so the cap itself is never changed by it, and the
-opener is `web/brand/opener.svg`, the mark's opener without its tile (our own drawing). `pop(cap)`: the opener slides in from
-the right, its slot on the cap's edge, and levers the cap up; on a game page (`away`) the cap then spins up and off, and on the
-listing page it settles and flips over to show the game's icon (or its face again where there is no icon). `drop(caps)`: the
-opener falls from the top of the window onto the middle of the caps that can be seen, bounces, and the caps flip over one after
-another, the nearest first. Both take an `after` step in which the page draws the new state (the listing's `check()`, which then
-shows the icons), before the copies go, so the old cap never shows again in between.
-
-A game page's cap is its badge from the listing page (the same `BYOPOP_WEB_BADGES` row, through `byopop_web_badge()` in
-`cmake/ByopopWeb.cmake`), sitting on the import card's top edge; once an import has finished the opener takes it off, then the page
-boots. On the listing page the queue of adds (`web/addgames.js`) keeps the games added while it runs and opens them together once
-it is empty: one game is popped, several are dropped on, and the cards are checked again at the end of it. A hidden page (no
-animation frames), a browser without the Web Animations API and a cap out of sight skip the animation, and a player who asked for
-less motion (`prefers-reduced-motion`) gets a short fade instead; every step also ends on a timer, so a page hidden partway never
-waits for frames that do not come.
+**The cap and the opener.** The opener's animation, levering a game's cap off when its files were added (the user's test
+notes, 2026-11-03), ran only in the other skins and went with them on 2026-11-09 (`web/capanim.js` and `web/brand/opener.svg`
+are gone): a game page's cap comes off at once when the import ends, and an added game's icon on the listing changes at once.
 
 **The recycle bin.** The user, 2026-11-03: "Add a recycle bin to the front page that the game's cap can be dragged into to forget
 its files." The bin is the button beside "Add games", with the bin's icon and named "Forget a game's files". The cap of a game whose files are here is draggable (`draggable="true"`,
@@ -605,12 +590,12 @@ one line for each exe and writes no icon) and against synthetic exes made for ev
 Jungle Juice is the site's second page, which will hold games decompiled by other projects (the user, 2026-11-04: "Prepare a
 second page on the website, "Jungle Juice", that will eventually hold third-party decomps. All its pages will go under
 /jungle, and the front page will link to it after the game tiles."). For now it is a placeholder: `web/jungle/index.html`, in
-the listing page's look (its colour tokens, the logo, the theme button and the footer's first and last lines), says in a line
+the listing page's look (its colour tokens, the logo and the footer's first and last lines, in Desktop 95's window), says in a line
 what the page will hold and links back to the front page. It has no third-party content and no links out yet.
 
 Every Jungle Juice page lives in `web/jungle/`, and `byopop_web_jungle()` in `cmake/ByopopWeb.cmake` writes each `*.html` there
 into `build/web/jungle/`, its `{{key}}` markers filled from the site's text (`jungle.*` in `web/strings/en.txt`), so the site
-serves them under `/jungle/`. They reach the site's shared files one folder up (`../strings.js`, `../theme.js`, `../logo.js`,
+serves them under `/jungle/`. They reach the site's shared files one folder up (`../strings.js`, `../skins.css`, `../skins.js`, `../logo.js`,
 `../logo.svg`, the icons). The listing page links to `jungle/` in a card under the game tiles (`.jungle-link`).
 `tools/stringstest.js` and `tools/a11ycheck.js` check these pages with the others.
 
@@ -688,7 +673,7 @@ code ("No references" in `CLAUDE.md` binds every port), and a project whose stat
 checked against the user's own copies, and `tools/gameimporttest.js` sorts folders of them beside the site's games. Jungle Juice
 (above) will host other projects' decompilations; once it does, these links can point there.
 
-### The site's look: rules for skins
+### The site's look: rules
 
 The user asked for original site designs that evoke the games' era and its web, with selectable skins (2026-11-07). The
 directions proposed so far, each as a listing, a game page and the import as a setup wizard, with studies for the bottle-cap
@@ -732,7 +717,7 @@ every slider.
 5. **Credits and explanations go to About** and the licences page, never dropped.
 6. **Density and hierarchy of real software:** small type, tight spacing, the controls grouped in one row, one display; no
    uniform cards, pill buttons or generous padding unless the skin's own style calls for them. Desktop 95 follows Windows 95's
-   conventions; Soda Fountain is a compact player of its own design.
+   conventions.
 7. **Evoke, don't copy.** Real players of the time (CD players, media players, module players) guide layout and density, but
    no real program's artwork, logo, name or skin is copied: our own drawing throughout.
 
@@ -741,8 +726,8 @@ label (shown while it is hovered or focused, pinned by a click, closed by Esc, a
 and its row is a line in a list, not a card; the line under a label holds only live markers (applies at the next start, this
 game's own value). The notes in the Saves, Controls, Performance, Mods and game files windows are terse facts; the game's start
 card has its title and Play, no "Click to start."; the licences page has no introduction. Two exceptions are kept whole: the
-terms (its text unchanged; the card leads with the agreement, so the full text scrolls below it) and the chat's note (the
-user asked for it). Text a player needs to act stays, as short steps: the save import is a wizard (`web/saveimport.js`), one
+terms (its text unchanged; the card leads with the agreement, so the full text scrolls below it) and the chat's note,
+which became a value on 2026-11-09 (below, "The chat"). Text a player needs to act stays, as short steps: the save import is a wizard (`web/saveimport.js`), one
 step a page (a heading, its fields, at most one short line) with Back, Next and Cancel, the facts a field needs in its tooltip
 and its description, and the registry commands with their Copy buttons on their own page.
 
@@ -750,82 +735,45 @@ Desktop 95 keeps to what Windows 95 drew (the coordinator, 2026-11-08). Every bu
 text, and a destructive one is marked by its confirmation, not by a colour. The current player is in bold beside its checked
 button, with no pill. A Settings section's window has one "?" in its title bar (What's This?), not one a row: it turns the
 pointer into an arrow with a question mark, and the next click on a control shows its tip there instead of working the control;
-F1 on a focused control shows the same tip in every skin, and the text stays the control's description for screen readers.
+F1 on a focused control shows the same tip, and the text stays the control's description for screen readers.
 
-### Skins
+### Desktop 95
 
-The user chose three of the directions as selectable skins (2026-11-07: "Offer A, B, and C as selectable skins... D feels too
-generic"): A **Demo Disc**, B **Desktop 95** and C **Soda Fountain**. A and C each have a light and a dark version, the dark
-one from its own era rather than inverted colours: A's midnight gloss, C's after hours with neon (the design page's "After
-dark" section has each with its verdict). B has a light version only (the user, 2026-11-07, of the dark versions: "Only A and
-C"): in a dark theme it stays light, and its pages do not show the theme button. `web/skins.js` sets
-`<html data-skin="demo" | "d95" | "soda">` in each page's `<head>`, before the body is drawn, and `web/skins.css` holds the looks.
-**Plain**, the site's look without a skin, is the fourth choice. The skins restyle the listing page and the game pages; the
-other pages (the terms, the licences, a game's copyright page) keep the plain look.
+Desktop 95 is the site's look, an affectionate parody of the 1995 desktop. It was one of three skins, with Demo Disc and Soda
+Fountain and the plain look besides, until the user kept Desktop 95 alone on 2026-11-09 ("drop the alt skins, including the
+plain one"); the light and dark theme, the ambient light and the first visit's skin card went with them. `web/skins.js` sets
+`<html data-skin="d95">` in each page's `<head>`, before the body is drawn, and `web/skins.css` holds the look. The player-only
+page (`?player=1`) alone has none: it keeps the page's own plain styles, for the sessions' exact shots. A player's stored
+`skin` or `ambient` (in `byopop-settings`, site-wide or a game's own) is dropped when the settings are read
+(web/settings.js, `GONE_KEYS`), and the theme's `byopop-theme` item when skins.js loads, so a stored Demo Disc, Soda or Plain
+simply opens Desktop 95. Every page is drawn in it, the copyright page, the licences and Jungle Juice too, each inside its
+window on the desktop (an embedded page's body takes the window's face, below).
 
-The choice is the site setting `skin` (web/settings.js, the Appearance section), so it is kept with the other settings, a game may
-have its own like any other setting, and Settings changes it at any time, at once. Until the player chose one it is "unset":
-the first page of the site they open shows a card with the three, and closing it without a choice keeps Plain, chosen, so the
-card is asked once. It shows on every host, development hosts included (the user, 2026-11-08: "I'd still like the skin selector
-to be the first thing that pops up when you load the site for the first time"), on whatever page is opened first, and before
-anything else there: it is a modal dialog, so the terms card, the setup wizard and Desktop 95's windows wait under it. It never
-shows under `?silent=1` (which every test run carries) or `?skins=0`, nor on the player-only page, which has no skin;
-`?skins=1` shows it even after a choice.
+How it is written: it sets the pages' own colour variables (`--bg`, `--panel`, `--panel-2`, `--fg`, `--muted`, `--line`,
+`--accent`, `--accent-fg`, `--font-ui`, `--radius`) and its own `--sk-*` ones, and stays light whatever the browser's own
+colour scheme. Period fonts are named and never shipped: the 1995 desktop's sans serif, then Tahoma.
 
-How a skin is written: each one sets the pages' own colour variables (`--bg`, `--panel`, `--panel-2`, `--fg`, `--muted`,
-`--line`, `--accent`, `--accent-fg`, `--font-ui`, `--radius`) and its own `--sk-*` ones, once for light and once for dark in the
-pages' two dark forms (web/theme.js); the rules after them only read variables, so each is written once for both themes. In
-the dark A only the top bar and the box headings shine, its panels flat smoked glass; the dark C keeps its neon to the sign and
-the awning, with soft edges elsewhere (the verdicts).
+**The setup wizard.** A game page's three cards before play, the terms, the import and Ready, are the pages of a setup wizard
+(`ByopopSkin.wizard`, called by web/shell.html): a title bar ("byo-pop Setup: <game>"), the steps Licence, Your folder, Copying
+and Finish (the import card is Copying while its progress bar moves), and an art column at the left. The cards keep their
+contents, buttons and rules: the terms card is the licence page (the user, 2026-11-07: "Yes, as the licence page") and keeps
+everything in "The terms", development hosts and the test key included. The wizard's parts are hidden from assistive technology
+(the cards read as they are) and are not drawn on the player-only page.
 
-**Ambient light.** On a game page in the dark A and C the game's picture glows out around the stage, as on the design page:
-`web/skins.js` copies the game's canvas into a 16 by 12 canvas right after a frame the game drew (the framework's frame hook,
-`Module.byopopTestFrame`, while the WebGL picture is still there), at most every half second, and two such canvases,
-scaled a quarter beyond the stage, blurred far and cross-faded, sit behind it inside the stage's box (html.sk-ambient). With
-reduced motion a sample is taken every 8 seconds at most and switched without a fade. The light versions have none, since
-on a light page a glow reads as a smudge, and neither has B. The site setting "Ambient light" (`ambient`, on by default, the
-Appearance section) turns it off; while it is off, or in a light theme, no sample is taken.
-Period fonts are named and never shipped (Verdana for A; the 1995 desktop's sans serif, then Tahoma, for B; Cooper Black, then
-Bookman and Georgia, for C's signs).
+**The games' icons.** Desktop 95 has no bottle caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95
+skin. I'd prefer bare initials for missing games, and the plain favicon otherwise."): a game whose files are here shows its own
+icon, read out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn, and any other its initials
+on a plain white square icon with a black edge and a grey shadow, in the 16-colour palette; an added game's icon changes at
+once. The icon is fitted to a 32 px box (`fitIcon` in web/index.html; the user, 2026-11-08: "The logos overlaid on the caps need
+work so they fit properly and are better centered"). The record keeps two of the exe's images, the one nearest 48 to 64 px
+(`icon`) and the one nearest 32 px (`small`, "" when the exe has none smaller); of these the page takes the smallest that is at
+least the box's size in device pixels, else the largest, crops it to its visible pixels (many icons have empty space on one
+side) and draws it at the screen's own pixels: smaller with smoothing, larger only a whole number of times, pixel for pixel,
+centred on whole pixels. A record from before `small` was kept gets it the next time the game's page opens, where the game
+stores its exe. The cap animation of the other skins (the opener levering a game's cap off, web/capanim.js) and the cap's
+studies went with them.
 
-**The setup wizard.** In a skin, a game page's three cards before play, the terms, the import and Ready, are the pages of a setup
-wizard (`ByopopSkin.wizard`, called by web/shell.html): a title bar ("byo-pop Setup: <game>", in C "Bottling <game>"), the steps
-Licence, Your folder, Copying and Finish with the current one marked (the import card is Copying while its progress bar moves),
-and an art column at the left with the game's cap (on the import card its own cap, which the opener still takes off) or, in C, a
-bottle that fills with the copy and is full at Finish. The cards keep their contents, buttons and rules: the terms card is the
-licence page (the user, 2026-11-07: "Yes, as the licence page") and keeps everything in "The terms", development hosts and the
-test key included. The wizard's parts are always in the page, hidden from assistive technology (the cards read as they are)
-and drawn only in a skin, so changing the skin needs no script.
-
-**The cap board.** In a skin the listing's caps stay caps: a game whose files are here keeps its initials, with its own icon
-faint under them (the user, 2026-11-07: "Add the game's icon so it shows semi-faint under the game's initials"), the icon read
-out of the player's own exe at the import (web/exeicon.js) and never shipped or redrawn; Plain shows the icon alone, as before.
-The icon is fitted to the cap (`fitIcon` in web/index.html; the user, 2026-11-08: "The logos overlaid on the caps need work so
-they fit properly and are better centered"): in a skin inside the cap's flat face, a 32 px box within the crimped rim, and in
-Plain a 64 px box. The record keeps two of the exe's images, the one nearest 48 to 64 px (`icon`) and the one nearest 32 px
-(`small`, "" when the exe has none smaller); of these the page takes the smallest that is at least the box's size in device
-pixels, else the largest, crops it to its visible pixels (many icons have empty space on one side) and draws it at the
-screen's own pixels: smaller with smoothing, larger only a whole number of times, pixel for pixel, centred on whole pixels.
-Desktop 95 has no caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95 skin. I'd prefer bare initials
-for missing games, and the plain favicon otherwise."): a game whose files are here shows its exe's icon plainly, at full strength
-in the same 32 px box, and any other its initials on a plain white square icon with a black edge and a grey shadow, in the
-16-colour palette; no cap, no studies, no flip on hover, and the opener's animation does not run (web/capanim.js,
-`canAnimate`), so an added game's icon changes at once.
-A record from before `small` was kept gets it the next time the game's page opens, where the game stores its exe.
-In C the listing is the board itself, felt in a wooden frame with a hole for every game, and a cap sits in a game's hole once
-its files are here. The gold cap of the studies is left out (the user: "I'd skip the gold caps").
-The other studies are on the cap of a game whose files are here, in every skin, from what this browser already keeps
-(`capStudies` in web/index.html; drawn by web/skins.css, hidden from assistive technology since the card says the same). **The
-record under the cap**: on hover or the card's focus the cap turns over to its liner, with the plays, the play time and the
-last day played (ByopopPlay). A best score would need, for each game, where its saves keep it, and is not shown. **The print
-of the copy**: the year the copy's exe was linked (`ByopopExeIcon.built`, its PE header's time stamp, read with the icon and
-kept in the record as `built`) against the game's release year: a year stamp on the rim when it was built in the first year, a
-ring for a later re-release (two years on or more), and nothing between. No store is named. **Wear from play**: a scratch at
-10 hours, a dent and a tilt at 40, patina at 100. **The date under the crimp**: the day this copy came in (`opened` in the
-record, set when a new copy is marked and kept while it is there), short, on the rim; a record from before it was kept has
-none until the files are added again.
-
-**Desktop 95's windows.** In B a game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The game, the
+**Desktop 95's windows.** A game's page is one desktop (web/skins.js, `ByopopSkin.desk`; html.d95-desk). The game, the
 chat and every panel (Settings, Game files, Mods and the game's own) are
 windows dragged by their title bars, or moved 8 pixels at a time with Alt and the arrows while the focus is in a title bar. A
 column of icons at the left opens each one again; a panel's icon presses the panel's own button on the page's bar. The bar
@@ -835,7 +783,7 @@ the status bar, and the task bar's buttons take the name too); the status line i
 game window's status bar, in a sunken panel along its bottom; the panels are their own windows, as many open at once as wanted, each closed by its own Close (or Esc in it), and
 a click on the game leaves them open (elsewhere one panel shows at a time and a click on the game closes it); the sound switch is in the
 tray; full screen is the game window's maximize button, an entry of its control menu (its title bar's icon:
-Minimize, Maximize, Close) and of the Pop menu; and the theme button is in Settings' Appearance. The game window's Close (its
+Minimize, Maximize, Close) and of the Pop menu. The game window's Close (its
 button, its control menu's Close; no Alt+F4, which Windows gives the browser's window and never the page) closes the program (the user,
 2026-11-08: "Closing the game window ought to go back to the home page/bring back All games"): the game closes as it does for
 the panels' actions, its saves written (closeGameThen), the page's play time is kept as on any way out, and the listing opens
@@ -858,8 +806,12 @@ never paints it at its first size first (the user, 2026-11-08: "Twist's window s
 loading. It then disappeared before finally reappearing when the game had started"). In Desktop 95 the window is not
 shown before the game has drawn in it at all: the setup wizard's cards (the terms, the import, Ready) stand on the desktop by
 themselves, with the window's task bar button, so pressing Play never shows the window at its first size before the game's
-(game-unmade on `<html>`). In the other skins the stage is hidden
+(game-unmade on `<html>`). Under 760 pixels wide the stage is hidden
 the same way, with the `progress` cursor. The game gets the focus once it is shown, unless the player has put it elsewhere meanwhile.
+**Restore.** While a window is maximized its maximize button is Restore, drawn as 1995's two overlapping windows, its name
+"Restore <window>" and its control menu's entry Restore (web/skins.js `showMaxed`, watching the window's `d95-maxed` class).
+A task bar button makes its window the active one, with the focus inside it, as the 1995 task bar did.
+
 **Full screen in Desktop 95.** The game window's maximize button, its control menu's Maximize, the Pop menu's Full screen and
 the game's own Full screen option put the game alone in full screen (the framework offers the game's request to the page first,
 `sexyapp_page_fullscreen` in framework/SexyAppBase.cpp, and the page takes it in Desktop 95 as its maximize: SDL's own full screen
@@ -890,19 +842,34 @@ the window scrolls its contents (the listing's windows, About) a thin sunken edg
 stands inside it. The rule sits above the skin's own rules for the same elements off the desktop, which had put a padded box
 between the frame and the title bar.
 
-**Desktop 95 in one page.** With Desktop 95 chosen the whole site is one page, the listing's desktop (the coordinator,
-2026-11-08): every page of ours opens there as a window, with its own title, task bar button and, for a game, an entry under
+**Desktop 95 in one page.** The whole site is one page, the listing's desktop (the coordinator, 2026-11-08): every page of ours opens there as a window, with its own title, task bar button and, for a game, an entry under
 the Pop menu's Games (web/deskapps.js, `ByopopApps`). A game, its copyright page (the full terms and the licences) and any other
 page of ours are their own pages in a frame (`?embed=1`: the page draws no desktop of its own, no task bar, no icons, no header
 or footer, and keeps its window places under `embed:<page>`); a licence text is fetched into the window as plain text. A link
 to one of our pages opens its window instead, on the desktop and inside a window's page alike; a link to another site still
-opens a tab. The address follows the window in front: opening one pushes its page's address, bringing another to the front
-replaces it (a licence text, in a folder of its own, is `?open=<page>` instead, as its own address would move the
-listing's base for every relative link and later load), and the state lists the windows open, so Back and Forward close and reopen windows and never leave the page; a
-reload brings back the window that was in front, and the address of any page of ours, opened in its own tab with Desktop 95
-chosen, shows the desktop with that page's window open (skins.js goes to `?open=<page>`, and the page's address is put back).
-`?desk=0` keeps a page as it is, and the player-only page (`?player=1`) never moves. Leaving Desktop 95 on such an address
-loads that page itself; the other skins are unchanged.
+opens a tab.
+
+The address bar shows only the site's root (the user, 2026-11-09: "What we're developing now is a SPA, and the url bar should
+never need to show any path other than root"): its base as served (`/` on the local server, the base folder wherever the site
+is hosted), with no file name, page path, fragment or `?open=`, whatever window is open, in front or closed. The windows live in
+`history.state` (`{d95: true, open: [the pages' addresses from the site's folder], active}`, web/deskapps.js): opening a
+window pushes a new entry with the same root address, bringing another to the front or closing one replaces the entry, so
+Back and Forward close and reopen windows and never leave the page, and a reload, whose `history.state` survives, opens those
+windows again (a game's page starts afresh in its window). The listing's own windows (All games, Settings and its sections,
+Music, the Library, the chat, About) are kept where the player left them, open or closed, by the desktop's layout
+(`byopop-desk`). A link to `#settings`, `#music` or `#settings-<section>` (and the old `#players` and `#saves`) opens that
+window and leaves the address alone, and one typed into the address is opened and taken off again. An old address of a page
+of ours, a bookmark or a link someone shared (a game's page, its copyright page, a licence text, Jungle Juice, any
+`?open=`), opened in its own tab, goes to the root with `?open=<page>` (web/skins.js onePage), where the desktop opens that
+page's window and replaces the address with the root. The tab's title stays the site's. A frame's own page
+(`?embed=1`) is never in the address bar and keeps its own address.
+
+The test parameters are the exception, and stay in the address they were opened with: `?silent=1` and `?assets=` stay on the
+root, through a reload and every window, and `?silent=1` passes to every frame. A game's own page opened with `?silent=1`,
+`?player=1` or `?assets=` (`<game>.html?silent=1`, as the sessions' drivers and tools open it: Bejeweled Twist's webperf.js,
+Bonnie's paneplay.js, the pane tests in CLAUDE.md) stays that page, with no move to the desktop: on its own desktop, its canvas
+in the game window and its status line (ending in "silent") in that window's status bar. `?desk=0`, which kept a page as it
+was, is gone with the other skins: nothing used it.
 
 Up to three games run at once, each in its own window (the frames are separate pages, so each game has its own module, its
 own saves, play time and the mods it runs in its status bar); a fourth brings up a Windows 95 message box naming the
@@ -963,8 +930,8 @@ alone. No entry imitates the real menu's words, and nothing in it is a system di
 
 **Favourites.** Every game's card on the listing has a star button (the user, 2026-11-08: "User should be able to save some
 games as their favorites. In other skins, with a star icon, and on Windows 95, a desktop icon specifically for that game"), a
-coming-soon game's too: an outline while the game is not a favourite, filled while it is, each skin's own drawing (Desktop 95's
-pixel by pixel on a small raised button). Its name is "Favourite: <game>" and its state `aria-pressed`. The favourites are kept
+coming-soon game's too: an outline while the game is not a favourite, filled while it is, drawn pixel by pixel on a small
+raised button. Its name is "Favourite: <game>" and its state `aria-pressed`. The favourites are kept
 in this browser in the settings' own item, `byopop-settings`, as its field `favourites` (`ByopopSettings.favourites`,
 `setFavourite`, web/settings.js): a list of {id, title, tag, colour, page}, so that a game page can draw them without the
 listing, and the save backup and its restore carry them with the settings. A coming-soon game's id is "soon-" and its title's
@@ -982,7 +949,7 @@ in a comment above the row, and no readme text. The build puts it on each tile a
 (`chat-games.js`) as `win95`. With the setting on (`html.d95-win95only`, `web/skins.js`'s win95Sync), All games hides the other
 games and shows the count above them as a value ("4 hidden", the reason in its tooltip), the favourites' icons of those games go (the favourites stay), and the Pop menu's
 Games lists only the others, with the count as its last, greyed entry. An unknown game is hidden too. A game page already open
-stays open. The other skins list every game. Six games are unknown: Cosmic Bugs, Water Bugs, Gyromancer and both Mahjong
+stays open. Six games are unknown: Cosmic Bugs, Water Bugs, Gyromancer and both Mahjong
 games have no readme that says, and no copy of Feeding Frenzy is here; all six came out after TipTop. A game released before the
 last one whose readme names Windows 95 (TipTop, 2002-12-12) counts as yes whatever its readme says (the user, 2026-11-08:
 "Anything released before the last game that did support Windows 95, we'll assume supported 95"): Bejeweled, Alchemy, Dynomite
@@ -1010,7 +977,7 @@ some games use it; F6 leaves it. Every focused control is marked: the dotted rec
 or option button's label, a tab, a link or a list's item; an icon's name in navy with the dotted rectangle; a menu's entry in
 its navy bar. About says it in one line: Tab within a window, F6 between windows.
 
-**What is selected and dragged.** In every skin the game's canvas and its stage start no text selection and no drag (the user,
+**What is selected and dragged.** The game's canvas and its stage start no text selection and no drag (the user,
 2026-11-08: "A lot of elements on Windows 95 need to be made unselectable so that I'm not dragging around the canvas contents as
 if it were an image"), and the page's own images (caps, icons, logos) are not picked up; a card over the stage keeps its text,
 and the game's own drags, its focus, touch and right click are its pointer events, which this leaves alone. In Desktop 95 the
@@ -1018,24 +985,17 @@ chrome takes no selection, as in 1995 (one rule on the page, web/skins.css): tit
 buttons, tabs, labels and status bars, so a double click on a title bar or an icon selects nothing; what is there to be read or
 copied keeps it: text fields, the chat's messages, the notes and About, the terms, the settings' explanations.
 
-On a screen under 760 pixels wide, or in another skin, the page is laid out as usual, with its footer. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
-title, ...})`. The parody keeps to the rules of the skins: everything drawn here, system fonts by name, no real logos, icons
+On a screen under 760 pixels wide a game's own page is laid out as usual, with its footer. The performance and controls panels, when they come, are added as windows with `ByopopSkin.desk.add(element, {id,
+title, ...})`. The parody keeps to the rules of the look: everything drawn here, system fonts by name, no real logos, icons
 or sounds, and no imitation system prompts.
 
 ### Light and dark
 
-The user, 2026-11-03: "add a light/dark mode toggle with sun/moon icons that overrides browser settings". Every page (the
-listing, each game's page and its copyright page) follows the browser's `prefers-color-scheme` until the player presses the
-theme button at the right of its header or tool bar: a moon in the light theme, a sun in the dark one (our own line drawings),
-a switch named "Dark theme" that is pressed in the dark theme. The choice sets `<html data-theme="light">` or `"dark"`, and
-every dark rule of the pages (`web/index.html`, `web/shell.html`, `web/copyright.html`, `web/settings.js`, `web/chat.js` and
-each game's `page.css`) is written twice for it: `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) ... }`
-and `:root[data-theme="dark"] ...`. `web/theme.js` holds it: loaded in each page's `<head>`, it sets the attribute before the
-page is drawn, fills every button marked `data-theme-toggle`, and follows the choice made on another tab of the site. The
-choice is one localStorage item for the whole site, `byopop-theme`, kept only while it differs from the browser's: pressing the
-button back to the browser's theme removes it, and so does the browser changing to the chosen theme, so there is no separate
-"follow the browser" setting. With storage blocked the choice lasts for that page only. The games' own screens are not
-changed by it.
+The light and dark theme (the user, 2026-11-03), its button and `web/theme.js`, went with the other skins on 2026-11-09:
+Desktop 95 has no dark version, so every page is light whatever the browser's `prefers-color-scheme`, and the pages' own dark
+rules are gone (`web/index.html`, `web/shell.html`, `web/copyright.html`, Jungle Juice, `web/settings.js`, `web/chat.js`,
+`web/logo.js`, `web/skins.css`). A stored `byopop-theme` is removed when a page loads. The games' own `page.css` files still
+carry dark rules, which nothing on the site needs now; they are the game sessions' to take out.
 
 ### The fixes mod on the site
 
@@ -1283,6 +1243,12 @@ page sets `history.scrollRestoration` to `manual` (else a reload, as Play again 
 where it was scrolled to, the chat in view), and Home, End, PageUp and PageDown typed on the canvas are cancelled for the browser, which
 would scroll the page to the chat with them (SDL cancels the arrows, Tab, Backspace, the function keys, Ctrl keys and Space, not
 these); the game still gets them. Nothing on the page moves the focus into the chat by itself.
+
+The chat's header shows facts as values, not sentences (the coordinator, 2026-11-09): a TEST tag (`chat.test`, an `abbr`
+whose tooltip and accessible description are the old note, `info.note`, that the messages are made up and nothing is sent
+anywhere), and a Sign in button that is disabled, its tooltip saying sign-in is not available yet (`chat.signin_note`). The
+Player names section's line about modes shows only when the games differ: "Player names:" and each mode with the number of
+games that use it (`players.mode.note`, `players.mode.part`), hidden while every game uses the same one.
 
 ### Player profiles
 
@@ -1563,10 +1529,7 @@ height the player leaves, so a taller window shows more of it and a shorter one 
 window keeps the player, the splitter and three of the list's rows: its least height (`minHeight` of the window, which
 web/skins.js's resizing asks, from music.js's `minHeight`), and the splitter gives the display only as many rows as leave the
 list those three. A dragged edge also stops at the desktop's own edges, so the window's bottom never goes under the task bar.
-In the skins where Music is a tab of the page, the playlist is at most what the browser's window leaves under the player
-(`--mu-player-h`, set by music.js), with a floor of three rows, and scrolls inside; the display there takes only as many rows
-as leave the player and three rows of the list in the browser's window, so the player is always in view while the list
-scrolls. Both are worked out again when the browser's window or the panel changes size (a `resize` listener and a
+It is worked out again when the browser's window or the panel changes size (a `resize` listener and a
 ResizeObserver; a hidden pane runs no ResizeObserver, so a test there fires `resize` after showing the panel). The rows asked
 for are kept, so a larger window gives them back.
 
@@ -1591,7 +1554,15 @@ spectrum's peaks yellow, the tracker's row in the selection's navy), the buttons
 in, and the playlist is a white list box with the navy selection. tools/musictest.js (unit-web) checks the decoder's view, rows
 and seek on a small ProTracker module it makes, and on a staged MO3 when there is one. The Media Session API gets the
 tune's name, the game as the artist and the game's icon, and its play, pause, next, previous and stop handlers, so the keyboard's
-media keys and the system's media controls drive the player. At `?silent=1` the volume's GainNode reaches the speakers only through a
+media keys and the system's media controls drive the player.
+
+Closing the Music window stops the music (the user, 2026-11-09: "Music should quit playing if the window is closed"): its
+Close button, its control menu's Close and its task bar button's Close all go through the desktop's one close
+(`afterClose`, web/index.html), which calls `ByopopMusicPanel.shutdown()`. That stops the tune, disconnects the worklet, the
+analyser and the gain, closes the AudioContext, frees the decoder's module and its view buffer, and takes the Media Session's
+handlers and metadata away, so nothing is left rendering or answering the media keys. Minimizing keeps it playing. Reopened, the
+window shows the player stopped with the last tune chosen, and Play loads the decoder again. `ByopopMusicPanel.held()` tells a
+test what is still held (the context's state, the node, the decoder, the media handlers). At `?silent=1` the volume's GainNode reaches the speakers only through a
 second gain of 0, so they get exact zeros (the display shows nothing of it). The graph has to reach the destination all the
 same: a browser never runs a worklet whose output goes nowhere, and the tune would stand still.
 
@@ -1778,7 +1749,7 @@ canvas (only while a game runs: before that and after it closes it is out of the
 panels, the footer link. The focus ring is a 2 px `:focus-visible` outline in the accent colour on every control; the canvas has a white ring
 inside the stage and an accent ring around it, so one of them shows over any picture. A panel's button has `aria-expanded` and `aria-controls`
 (the Mods button has neither while a game runs, when it opens the game's own mod menu instead, and says so with `aria-describedby`), the Sound button
-is an icon, a speaker with waves while the sound is on and crossed out while it is off, each skin's own drawing (the user,
+is an icon, a speaker with waves while the sound is on and crossed out while it is off, Desktop 95's own drawing (the user,
 2026-11-08: "On all skins, replace the Sound: on/off button with an icon"); it is `aria-pressed` (pressed: the sound is on),
 and its name and tooltip say "Sound on" or "Sound off". Opening a panel moves the focus into it. **Esc** closes it from wherever the focus is on the
 page, and so does **Close**, and with the keyboard the focus goes back to the button that opened the panel (or to the canvas when the game's
@@ -1870,7 +1841,7 @@ fills in (`size.kb 2.0`, `chat.day.today chat.day.date ...`), so a test sees whi
 Translations are not made yet. The plan (the user, the same day: "could at least have LLM translations for languages that
 PopCap games have been released in"): a copy of the file for each language (`de.txt` and so on, the same keys), from which
 the build makes a set of pages for that language (`index.de.html`, `bejeweled.de.html`) with `<html lang>` set, so that a
-page is drawn in its language from the start; a language menu beside the theme button, and the browser's language on a first
+page is drawn in its language from the start; a language menu in Settings, and the browser's language on a first
 visit. The languages of PopCap's releases on Steam are French, German, Italian and Spanish (Gyromancer also Japanese).
 
 ## Steam on a Mac or Linux
@@ -1900,9 +1871,8 @@ both page templates link them. A web host serves them with the pages.
 | `favicon.svg` | The mark: a bottle opener (chrome head, red handle) on a sky-blue tile. It is the tab icon in browsers that take SVG icons. |
 | `favicon.ico` | The mark at 16, 32 and 48 px, for browsers without SVG icons. |
 | `apple-touch-icon.png` | 180 px, opaque, for home screens (iOS rounds the corners itself). |
-| `logo.svg`, `logo-dark.svg` | The wordmark "byo-pop", whose hyphen is the bottle opener, its head toward "pop", and whose "o" in "pop" is a red crown cap (the user, 2026-11-03, instead of the mark beside the wordmark: "Use the version with head toward pop"). One file for light backgrounds, one for dark. `web/logo.js` puts logo.svg's drawing inline in their place on the listing page, the game pages and the copyright page, its "byo" in the theme's ink (`--bp-logo-ink`), so that on mouseover (or the link's focus) the opener nudges toward "pop" and levers twice, as if to open the cap, which stays on ("animate the logo so on mouseover the bottle opener moves as if to open the cap (without actually opening it)"); not with `prefers-reduced-motion`. Where logo.svg cannot be read the two images stay, and the top bar shows the one that matches the page's theme, before the game's mark and name, and it is a link to the listing page (`./`, relative, so it works on any host and path); the link's name, "byo-pop, all games", is the light logo's alt, which a dark theme keeps in the page, out of sight, for that. Leaving through the link is leaving the page like any other: the game saves on `beforeunload` and the backup is written (`SexyAppBase::PageGoingAway`), and "ask before leaving" (Site settings) asks. The copyright page shows the logo at the top. |
+| `logo.svg` | The wordmark "byo-pop", whose hyphen is the bottle opener, its head toward "pop", and whose "o" in "pop" is a red crown cap (the user, 2026-11-03, instead of the mark beside the wordmark: "Use the version with head toward pop"). `web/logo.js` puts its drawing inline in the image's place on the listing page, the game pages and the copyright page, its "byo" in `--bp-logo-ink` (white on the desktop's teal), so that on mouseover (or the link's focus) the opener nudges toward "pop" and levers twice, as if to open the cap, which stays on ("animate the logo so on mouseover the bottle opener moves as if to open the cap (without actually opening it)"); not with `prefers-reduced-motion`. Where logo.svg cannot be read the image stays, before the game's mark and name, and it is a link to the listing page (`./`, relative, so it works on any host and path); the link's name, "byo-pop, all games", is the logo's alt. Leaving through the link is leaving the page like any other: the game saves on `beforeunload` and the backup is written (`SexyAppBase::PageGoingAway`), and "ask before leaving" (Site settings) asks. The copyright page shows the logo at the top. |
 | `cap.svg` | A crown cap's outline seen from above, 21 rounded crimps: the mask that cuts a game's badge to a cap. |
-| `opener.svg` | The mark's opener without its tile, head up, for the cap animation (`web/capanim.js`). |
 
 - **Colours.** The colours are taken from PopCap's classic logo: its red (#ED1C24), sky blue and chrome. The shapes
   and lettering are byo-pop's own, and none of PopCap's are copied. The outline is the dark blue #12304A.

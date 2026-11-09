@@ -7,9 +7,8 @@
 <link rel="icon" href="../favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
-<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
-     drawn (web/theme.js), and the logo drawn inline (web/logo.js) -->
-<script src="../strings.js"></script><script src="../theme.js"></script><script src="../logo.js"></script>
+<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js) and its logo drawn inline (web/logo.js) -->
+<script src="../strings.js"></script><script src="../logo.js"></script>
 <style>
 /* Jungle Juice (docs/WEB_PLAYER.md, "Jungle Juice"): the site's second page, which will hold decompilations made by other
    projects; every page of it lives under /jungle (web/jungle/, written into build/web/jungle/ by byopop_web_jungle() in
@@ -25,17 +24,6 @@
   --radius: 10px;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
-    color-scheme: dark;
-  }
-}
-/* the theme the player chose with the theme button (web/theme.js) */
-:root[data-theme="dark"] {
-  --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
-  color-scheme: dark;
-}
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui); }
 /* The focus ring is always visible for the keyboard, and a player who asks for no motion gets none (the logo's lever) */
 a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -49,16 +37,6 @@ main, .site-header, footer {
 .site-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 24px; }
 .site-header a { display: block; border-radius: var(--radius); }
 .site-header img { display: block; max-width: 100%; height: auto; }
-.site-header .logo-dark { display: none; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  :root:not([data-theme="light"]) .site-header .logo-dark { display: block; }
-}
-:root[data-theme="dark"] .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-:root[data-theme="dark"] .site-header .logo-dark { display: block; }
-.theme-btn { margin-left: auto; width: 40px; height: 34px; padding: 0; color: var(--muted); background: var(--panel);
-  border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
-.theme-btn:hover { color: var(--fg); border-color: var(--accent); }
 main { padding-block: 0 32px; }
 .placeholder {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px;
@@ -71,11 +49,12 @@ footer { padding-block: 0 32px; color: var(--muted); font-size: 12.5px; }
 footer p { margin: 0 0 8px; }
 footer a { color: var(--accent); }
 </style>
+<!-- the site's look, Desktop 95, after the page's own style (web/skins.js, web/skins.css): in its window on the desktop -->
+<link rel="stylesheet" href="../skins.css"><script src="../skins.js"></script>
 </head>
 <body>
 <header class="site-header">
-  <a href="../"><img class="logo-light" src="../logo.svg" alt="{{jungle.logo_alt}}" width="210" height="64"><img class="logo-dark" src="../logo-dark.svg" alt="" width="210" height="64"></a>
-  <button type="button" class="theme-btn" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
+  <a href="../"><img class="logo-light" src="../logo.svg" alt="{{jungle.logo_alt}}" width="210" height="64"></a>
 </header>
 <main>
   <section class="placeholder" aria-labelledby="jungle-title">
