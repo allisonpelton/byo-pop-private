@@ -309,10 +309,14 @@ var ByopopApps = (function () {
   }
   // the size a game wants (its screen at one pixel for each of the device's, and its window's frame and status bar): the window
   // takes it the first time, as far as the desktop has room
-  // (force: the player chose a scale, which sizes the window again even to a size it had before)
-  function fit(win, w, h, force) {
+  // (force: size the window again even to a size it had before; chosen: the player chose the scale, which restores a
+  // maximized window first)
+  function fit(win, w, h, force, chosen) {
     var a = byWin(win);
-    if (!a || narrow() || a.el.classList.contains("d95-maxed") || (!force && a.fitted && a.fitted[0] === w && a.fitted[1] === h)) return;
+    if (!a || narrow()) return;
+    // a size the player chose restores a maximized window first (its place comes back), as Windows did
+    if (chosen && a.el.classList.contains("d95-maxed")) maximize(a);
+    if (a.el.classList.contains("d95-maxed") || (!force && a.fitted && a.fitted[0] === w && a.fitted[1] === h)) return;
     a.fitted = [w, h];
     var inner = a.frame || a.el.querySelector(".d95-app-client");
     var cw = a.el.offsetWidth - inner.clientWidth, ch = a.el.offsetHeight - inner.clientHeight;

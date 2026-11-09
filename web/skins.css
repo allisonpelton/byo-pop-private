@@ -80,7 +80,7 @@
 :root[data-skin="d95"] ::-webkit-scrollbar-corner { background: #c0c0c0; }
 /* the scroll bars' arrow buttons. Chrome matches a scroll bar button's pseudo-classes (:vertical, :decrement, :single-button)
    only in a selector with no ancestor part, so the skin sizes the buttons under its own :root and gives their pictures as
-   custom properties, which rules without an ancestor part (harmless in the other skins, which define none) put on each
+   custom properties, which rules without an ancestor part put on each
    button; one button at each end, as Windows 95 had */
 :root[data-skin="d95"] ::-webkit-scrollbar-button { display: block; width: 16px; height: 16px; background-repeat: no-repeat; }
 :root[data-skin="d95"] {
@@ -387,6 +387,13 @@ html.d95-desk .panel.d95-win > .body { min-height: 0; }
 html.d95-desk .site-header { margin-left: max(100px, calc((100% - 960px) / 2)); }
 html.d95-desk main.d95-win { width: min(960px, calc(100vw - 140px)); margin: 0; }
 html.d95-desk main.d95-win .d95-body { padding: 10px 13px 16px; }
+/* only the tiles scroll (the user, 2026-11-09: "The sort options in the all games window should always be visible. Only the tiles
+   should scroll"): the toolbar, the panels it opens and the Jungle Juice link stay put, and the list scrolls in their midst with
+   its own drawn scroll bar (web/index.html, scroll: ".games"), as Music's playlist does */
+html.d95-desk main.d95-win .d95-body.d95-body { display: flex; flex-direction: column; overflow: clip; padding-bottom: 8px; }
+html.d95-desk main.d95-win .d95-body.d95-body + .d95-vbar { display: none; }
+html.d95-desk main.d95-win .d95-body > :not(.d95-client) { flex: none; }
+html.d95-desk main.d95-win .d95-body > .d95-client { flex: 1 1 auto; min-height: 80px; margin-bottom: 8px; }
 html.d95-desk body > footer.d95-win { width: min(640px, calc(100vw - 140px)); color: var(--fg); }
 html.d95-desk body > footer.d95-win .d95-body { padding: 4px 9px 6px; }
 /* the listing's tabs as windows of their own: no tab strip, every tab's window drawn however the tabs stood */
@@ -727,7 +734,7 @@ html.d95-desk .d95-sys-doc::after { content: ""; position: absolute; left: 3px; 
 /* ---------- The soundboard (web/sounds.js): Desktop 95's Sounds window, on the listing's desktop only ----------
    A row of tools (the games' drop-down, Stop, the speaker and the volume, the speaker and Stop as Music's square buttons), the
    sounds as raised push buttons in etched group boxes, in the thin sunken edge of the part that scrolls, and a status bar. */
-#sounds { display: none; }
+#sounds { display: none; }   /* off the desktop (a screen under 760 pixels wide) it has no place */
 html.d95-desk #sounds.sb-win:not(.d95-closed):not(.d95-min) { display: flex; }
 html.d95-desk .sb-win { flex-direction: column; width: min(560px, calc(100vw - 140px)); height: 440px; overflow: hidden; }
 html.d95-desk .sb-bar { flex: none; display: flex; align-items: center; gap: 4px; padding: 1px 2px 4px; }

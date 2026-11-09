@@ -369,7 +369,9 @@ function checkContrast(doc, report, kind) {
   var css = styleText(doc);
   var th = themes(cssRules(css));
   var checked = 0, set = PAIRS[kind] || PAIRS.copyright;
-  ["light", "dark"].forEach(function (name) {
+  // the light theme only: the site has had one light look since 2026-11-09, and the game pages pin it (data-theme="light" on
+  // web/shell.html's <html>), so the dark rules a game's page.css still has never apply
+  ["light"].forEach(function (name) {
     var t = th[name];
     function val(k) { return k.charAt(0) === "#" ? k : (t[k] || null); }
     set.text.forEach(function (p) {

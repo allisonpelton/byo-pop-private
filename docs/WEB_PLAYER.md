@@ -891,11 +891,16 @@ window losing the focus to the frame); on Escape; and when its window is minimiz
 the front (web/skins.js closeAllMenus).
 
 The window's client area is the game on black with the status bar along its bottom edge, and the game is at a whole multiple
-of its size in device pixels (web/shell.html embedWidth): the one chosen in View, or with Fit window (the default) the largest
+of its size in device pixels (web/shell.html embedWidth): the one chosen in View; when none is chosen, what the Game window size
+setting in Appearance says (`gameSize`, site-wide or a game's own): 1x by default (the user, 2026-11-09, of games opening at
+3x and 4x on a 4K screen) or "Largest that fits" (the user, the same day: "Add a setting for games to default to the largest
+integer multiple that fits"), which a window takes at once when the setting changes; or with Fit window the largest
 that fits the window, however the player sizes it (its edges, its maximize button, which fills the desktop above the task
 bar and gives the window back its place on a second press). The window takes its game's size when it opens: the chosen
-multiple, or the largest the desktop has room for. View lists the multiples to two past the largest the desktop has room for
-(at least 4x), the ones without room greyed; picking one that the window is too small for sizes the window to fit it, and the
+multiple (at first the Game window size setting's), or with Fit window the largest the desktop has room for. View lists the multiples to two past the largest the desktop has room for
+(at least 4x), the ones without room greyed; picking one sizes the window to it, smaller as well as larger, and restores a
+maximized window first (the user, 2026-11-09, of 1x leaving a large window around a small game: "Not what I expected the 1x
+button to do"), and the
 status bar shows the multiple as a value ("2x"). The choice is kept for each game (localStorage `byopop-d95-scale`, 0 for Fit
 window). Full screen (View's, or the game's own option) puts the window's frame in full screen, and the page in it
 draws its stage alone there (`html.fs-frame`, frameFull), as a game's own page does: the game at the largest whole multiple of
@@ -1562,7 +1567,19 @@ Close button, its control menu's Close and its task bar button's Close all go th
 analyser and the gain, closes the AudioContext, frees the decoder's module and its view buffer, and takes the Media Session's
 handlers and metadata away, so nothing is left rendering or answering the media keys. Minimizing keeps it playing. Reopened, the
 window shows the player stopped with the last tune chosen, and Play loads the decoder again. `ByopopMusicPanel.held()` tells a
-test what is still held (the context's state, the node, the decoder, the media handlers). At `?silent=1` the volume's GainNode reaches the speakers only through a
+test what is still held (the context's state, the node, the decoder, the media handlers).
+
+The tunes are read the first time the window opens (web/music.js `shown`: the panel lifted into an open window, or its tab
+chosen on a narrow screen). Until 2026-11-09 they were read only when the panel's `hidden` attribute went, which on the desktop
+happened only if the Music tab had last been chosen in another skin, so on a fresh profile the window stayed at 0:00 with no
+tunes.
+
+**The Sounds window** (web/sounds.js, its table of the games' sounds in web/soundboards.js; the user asked for a soundboard
+demo for BookWorm, 2026-11-09) sits on the listing's desktop after Music, closed at first: the games' drop-down, Stop, the
+speaker and the volume, and the sounds as push buttons in group boxes. It reads the games' files with Music's read-only reader
+and decodes with Music's decoders. It reads the games when it opens, and closing it stops what plays and drops the decoded
+sounds and its audio context (a minimized window keeps them). `#sounds` opens it and leaves the address at the root, as
+`#music` does. Under 760 pixels wide, with no desktop, it is not shown. At `?silent=1` the volume's GainNode reaches the speakers only through a
 second gain of 0, so they get exact zeros (the display shows nothing of it). The graph has to reach the destination all the
 same: a browser never runs a worklet whose output goes nowhere, and the tune would stand still.
 

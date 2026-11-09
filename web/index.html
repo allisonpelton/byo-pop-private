@@ -1118,7 +1118,11 @@ try {
   var saved = null;
   try { saved = localStorage.getItem(KEY); } catch (e) {}
   if (!fromHash() && byPanel(saved)) choose(byPanel(saved), false);
-  window.addEventListener("hashchange", function () { fromHash(); try { if (window.ByopopApps) ByopopApps.settle(); } catch (e) {} });
+  // (#sounds, the Sounds window's, is not a tab: the desktop opens it; settle takes the hash off the address again)
+  window.addEventListener("hashchange", function () {
+    if (location.hash === "#sounds") { try { ByopopSkin.desk.show("sounds"); } catch (e) {} } else fromHash();
+    try { if (window.ByopopApps) ByopopApps.settle(); } catch (e) {}
+  });
   // a link to the tab that is already in the address (the hash does not change): the tab all the same, and the focus on it
   document.addEventListener("click", function (ev) {
     var a = ev.target.closest && ev.target.closest('a[href^="#"]');
@@ -1200,7 +1204,7 @@ try {
     var d = ByopopSkin.desk, head = document.querySelector(".site-header");
     function top() { return head ? head.offsetTop + head.offsetHeight + 4 : 12; }
     d.add(document.querySelector("main"), { id: "games", title: ByopopStrings.t("skin.desk.games"), closable: true, body: true,
-      at: function (left) { return [left, top()]; } });
+      scroll: ".games", at: function (left) { return [left, top()]; } });
     // the Library (web/library.js): the games as a grid, closed at first, its icon beside All games'
     if (window.ByopopLibrary) ByopopLibrary.attach(d, function (left, vw) { return [Math.max(left, Math.min(left + 60, vw - 640)), top() + 40]; });
     ["settings", "music"].forEach(function (id, i) {

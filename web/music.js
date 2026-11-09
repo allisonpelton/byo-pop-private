@@ -321,7 +321,7 @@ var ByopopMusic = (function () {
     tracker.setAttribute("aria-hidden", "true");
     var trackerAt = make("div", "mu-tracker-at"), trackerRows = make("pre", "mu-tracker-rows");
     // a scroll bar under the rows when the channels do not all fit, drawn here (arrows, a track and its thumb; the browser's own
-    // bar draws no arrows in every skin): it moves the view by whole channels and follows nothing on its own. A click on it is the
+    // bar draws no arrows): it moves the view by whole channels and follows nothing on its own. A click on it is the
     // bar's, not the display's (which would go to the next view); the keyboard's way is Left and Right on the display.
     var trackerScroll = make("div", "mu-hbar"), hbLeft = make("span", "mu-hb-left"), hbTrack = make("span", "mu-hb-track"),
         hbThumb = make("span", "mu-hb-thumb"), hbRight = make("span", "mu-hb-right");
@@ -1048,10 +1048,12 @@ var ByopopMusic = (function () {
         setState("idle");
       }, function () { scanned = false; say(T("music.lcd_error"), T("music.failed")); });
     }
-    // the tab's panel shown: read the games' music then (the panel is hidden until its tab is chosen)
     var panel = root.closest("[role=tabpanel]") || root;
-    if (!panel.hidden) scan();
-    else new MutationObserver(function (records, obs) { if (!panel.hidden) { obs.disconnect(); scan(); } }).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+    // the tunes are read when the panel is first shown: its window opened on the desktop (Desktop 95 lifts the panel into a window
+    // whatever its hidden attribute says, web/skins.js), or the tab chosen on a narrow screen
+    function shown() { return !panel.hidden || (panel.classList.contains("d95-win") && !panel.classList.contains("d95-closed")); }
+    if (shown()) scan();
+    else new MutationObserver(function (records, obs) { if (shown()) { obs.disconnect(); scan(); } }).observe(panel, { attributes: true, attributeFilter: ["hidden", "class"] });
     // for tests: the state, the tunes, and how far the decoder has rendered the tune (it moves only as the worklet plays)
     return { state: function () { return state; }, tunes: function () { return tunes.slice(); },
       position: function () { return source ? source.position() : 0; }, elapsed: function () { return elapsed(); },

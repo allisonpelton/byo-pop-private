@@ -50,7 +50,8 @@ var ByopopSettings = (function () {
     profile: { values: ["game", "fill", "create"], def: "game" },  // fill: names start with the site's player; create: and the player is made and chosen
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     gamesOpen: { values: ["games", "library"], def: "games" },  // Desktop 95: the window the games' entries open (web/skins.js)
-    win95Only: { values: SWITCH, def: "off" },       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
+    win95Only: { values: SWITCH, def: "off" },
+    gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
     colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid"], def: "none" },
@@ -238,6 +239,8 @@ var ByopopSettings = (function () {
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
     { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
       hint: T("settings.gamesopen.hint") },
+    { name: "gameSize", label: T("settings.gamesize.label"), options: [["one", T("settings.gamesize.one")], ["fit", T("settings.gamesize.fit")]],
+      hint: T("settings.gamesize.hint") },
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
       hint: T("settings.scanlines.hint") },
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],

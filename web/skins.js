@@ -124,7 +124,7 @@ var ByopopSkin = (function () {
   // own addresses. Where each window is, and which are closed, is kept for each game (the item "byopop-desk", by the page's id);
   // a panel's open or closed state stays the page's own. The game window always shows one canvas pixel for each of the game's
   // pixels, or an exact multiple (web/shell.html, sizeStage), and its picture starts on a whole device pixel. On a screen too
-  // narrow for windows (under DESK_MIN pixels), or in another skin, the page is laid out as usual. More windows (the performance
+  // narrow for windows (under DESK_MIN pixels) the page is laid out as usual. More windows (the performance
   // panel, the controls panel) are added with desk.add.
   // The desktop itself never scrolls (the user, 2026-11-08: "The whole window shouldn't be scrollable ... any scrolling happening
   // only within each window"): every window is at most as large as the browser's window above the task bar, and scrolls its own

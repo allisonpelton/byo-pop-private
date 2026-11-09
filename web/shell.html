@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en" class="game-loading game-unmade">
+<!-- data-theme="light": the site has one light look (2026-11-09), so the dark rules a game's page.css still has never apply -->
+<html lang="en" class="game-loading game-unmade" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -580,11 +581,17 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // Desktop 95's game window at a whole multiple of the game's size in device pixels (the user, 2026-11-08: "95 skin needs a way
   // to size up the game window by an integer multiple. Big Money is very hard to see on my 4K monitor"): the multiples whose
   // window fits on the desktop (deskScales), chosen from the window's control menu, the Pop menu or its resize corner, and kept
-  // for each game (localStorage byopop-d95-scale: {game: n}). With none chosen, or the chosen one no longer fitting, the
-  // largest that fits beside the icons, as before.
+  // for each game (localStorage byopop-d95-scale: {game: n}, 0 for "Fit window"). With none chosen, the Game window size
+  // setting (gameSize): 1x, the game's own size, as a Windows program did and by default (the user, 2026-11-09, of games opening
+  // at 3x and 4x on a 4K screen), or "fit", the largest that fits (the user: "Add a setting for games to default to the largest
+  // integer multiple that fits"); with the chosen one no longer fitting, or "Fit window", the largest that fits.
   var SCALE_KEY = "byopop-d95-scale";
   function chosenScale() {
-    try { var o = JSON.parse(localStorage.getItem(SCALE_KEY) || "{}"); var n = o && o[PAGE.id]; return n >= 1 ? Math.floor(n) : 0; } catch (e) { return 0; }
+    try {
+      var o = JSON.parse(localStorage.getItem(SCALE_KEY) || "{}"), n = o && typeof o === "object" ? o[PAGE.id] : undefined;
+      if (n === undefined || n === null) return setting("gameSize") === "fit" ? 0 : 1;
+      return n >= 1 ? Math.floor(n) : 0;
+    } catch (e) { return setting("gameSize") === "fit" ? 0 : 1; }
   }
   function chooseScale(n) {
     try {
@@ -594,12 +601,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       localStorage.setItem(SCALE_KEY, JSON.stringify(o));
     } catch (e) {}
     sizeStage();
-    // in a window of the one page, a scale the window is too small for sizes the window to fit it, as far as the desktop has
-    // room, as a Windows program's did; "Fit window" (0) leaves the window as it is
+    // in a window of the one page, a chosen scale sizes the window to it, smaller as well as larger (the user, 2026-11-09, of 1x
+    // in a large window: "Not what I expected the 1x button to do"), as far as the desktop has room, and a maximized window is
+    // restored to take it, as a Windows program's View sizes did; "Fit window" (0) leaves the window as it is
     if (EMBED && n > 0) {
-      var P = desktopApps(), s = $("stage"), area = s && s.parentNode;
-      if (P && area && (s.offsetWidth > area.clientWidth || s.offsetHeight > area.clientHeight))
-        try { P.fit(window, s.offsetWidth, s.offsetHeight + statusBarHeight(), true); } catch (e) {}
+      var P = desktopApps(), s = $("stage");
+      if (P && s) try { P.fit(window, s.offsetWidth, s.offsetHeight + statusBarHeight(), true, true); } catch (e) {}
     }
     // SDL sizes the canvas's pixels only on the window's resize event (as onGameScreen): without one the game stayed 640 x 480
     // pixels stretched to the new size until the page was reloaded
@@ -657,7 +664,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   window.addEventListener("resize", sizeStage);
   // ---- a game's window on Desktop 95's one page (EMBED; web/deskapps.js) ----
   // Its client area is the game on black with the status bar along the bottom (web/skins.css), and the game is at a whole
-  // multiple of its size in device pixels: the one chosen in the View menu, or with "Fit window" (the default, 0) the largest
+  // multiple of its size in device pixels: the one chosen in the View menu, 1x when none is chosen, or with "Fit window" (0) the largest
   // that fits the window, whatever size the player gives it (the user, 2026-11-09: "Not what I expect to happen on resize").
   // The window takes its game's size the first time and when the game changes its size: the chosen multiple, or the largest
   // that the desktop has room for (embedFit).
@@ -2089,6 +2096,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     else if (name === "showChat") { if (chat) chat.setVisible(value !== "off"); }
     else if (name === "chatPlace") placeChat();
     else if (name === "pixelPerfect") sizeStage();
+    // the default window size: a game with no size of its own chosen takes it now, its window sized to it
+    else if (name === "gameSize") { embedFitted = ""; sizeStage(); }
     // confirmLeave is read when the page is left
   }
 
