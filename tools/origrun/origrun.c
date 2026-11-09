@@ -3346,11 +3346,16 @@ static void stop_sandbox(const char* why)
 	gSandboxId[0]=0;
 }
 static BOOL WINAPI sandbox_ctrl(DWORD type){ stop_sandbox("origrun was interrupted"); return FALSE; }
-// The GUIDs wsb printed after the last "---- wsb <header>" line in gWsbLog: how many, and the last one in id.
+// The GUIDs wsb printed after the last "---- wsb <header>" line in gWsbLog: how many, and the last one in id. The log
+// keeps every run's wsb output, so only its last 64 KB are read: the newest header is there (reading the first 64 KB
+// found an old run's header once the log passed that size, AstroPop 2026-11-09).
 static int wsb_guids(const char* header, char* id, int cap)
 {
-	FILE* f=fopen(gWsbLog,"r"); if (!f) return 0;
-	static char text[65536]; size_t n=fread(text,1,sizeof(text)-1,f); fclose(f); text[n]=0;
+	FILE* f=fopen(gWsbLog,"rb"); if (!f) return 0;
+	static char text[65536];
+	long size=(fseek(f,0,SEEK_END)==0) ? ftell(f) : -1;
+	if (size>(long)(sizeof(text)-1)) fseek(f,size-(long)(sizeof(text)-1),SEEK_SET); else fseek(f,0,SEEK_SET);
+	size_t n=fread(text,1,sizeof(text)-1,f); fclose(f); text[n]=0;
 	char hd[64]; wsprintfA(hd,"---- wsb %s",header);
 	char* q=NULL; for (char* h=text; (h=strstr(h,hd))!=NULL; h++) q=h;
 	if (!q) return 0;
