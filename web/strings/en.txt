@@ -1197,6 +1197,8 @@ music.stop = Stop
 music.seek = Position in the tune
 music.position = {elapsed} of {total}
 music.tracker_at = ORD {order}  PAT {pattern}  ROW {row}/{rows}
+# the channels shown of those with notes, when some are scrolled off
+music.tracker_ch = CH {first}-{last}/{count}
 music.mute = Mute
 music.vis_spectrum = Spectrum (click for the tracker)
 music.vis_tracker = Tracker (click to turn off)
