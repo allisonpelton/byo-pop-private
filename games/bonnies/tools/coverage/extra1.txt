@@ -1,0 +1,92 @@
+# Bonnie's original, a coverage run (tools/coverage/run.sh) on the saves the tour, action, resume and sound runs leave
+# (the player te with an action game in progress): the player dialog (New "ab", Delete answered No and then Yes,
+# Accept), the main menu's options with both sliders clicked, a new classic game over the action one with Scramble and
+# a wait for the game's own hint, the high scores' page arrow, Back To Game, and the window closed on the board.
+# Positions are the port's (its screenshots), in the 800x600 client area.
+waitshot logo 20000
+wait 6000
+shot menu
+click 678 167
+wait 1500
+shot players
+click 335 392
+wait 1500
+key 0x41
+wait 100
+key 0x42
+wait 300
+key 0x0d
+wait 2500
+click 678 167
+wait 1500
+shot players2
+click 400 219
+wait 300
+click 462 392
+wait 1500
+shot delete
+click 520 416
+wait 1500
+click 400 180
+wait 300
+click 462 392
+wait 1500
+click 393 416
+wait 1500
+shot deleted
+click 400 180
+wait 300
+click 335 441
+wait 2000
+click 205 415
+wait 2000
+shot options
+click 450 156
+wait 500
+click 470 197
+wait 500
+click 397 412
+wait 1500
+click 180 306
+wait 3000
+shot replace
+click 458 380
+wait 3000
+click 460 280
+wait 4000
+click 745 565
+wait 3500
+click 745 565
+wait 3500
+click 745 565
+wait 3500
+click 745 565
+wait 3500
+click 745 565
+wait 4000
+shot board
+click 400 300
+wait 2500
+click 693 560
+wait 3000
+shot scrambled
+wait 25000
+shot hint
+click 70 548
+wait 2000
+click 335 382
+wait 2500
+shot highscores
+click 591 48
+wait 1500
+shot highscores2
+click 591 48
+wait 1500
+click 400 560
+wait 3000
+click 70 548
+wait 2000
+click 397 439
+wait 2000
+shot back
+quit
