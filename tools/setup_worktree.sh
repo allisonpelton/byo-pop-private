@@ -59,6 +59,17 @@ for d in "$MAIN"/re/*/bin/ "$MAIN"/re/*/mac/ "$MAIN"/re/*/*/mac/; do
 	[ -d "$d" ] && copy_dir "${p%/}"
 done
 [ "$CACHE" = 1 ] && copy_dir build/oracle-cache
+# origrun's per-game configs and patch lists (docs/ORIGRUN.md): git-ignored, each file copied only when the worktree lacks it
+n=0
+for f in "$MAIN"/tools/origrun/*.cfg "$MAIN"/tools/origrun/patches/*.txt; do
+	[ -f "$f" ] || continue
+	p="${f#"$MAIN"/}"
+	[ -e "$TARGET/$p" ] && continue
+	mkdir -p "$(dirname "$TARGET/$p")"
+	cp "$f" "$TARGET/$p"
+	n=$((n + 1))
+done
+[ "$n" -gt 0 ] && copied+=("$n origrun configs and patch lists")
 # the site's test key (docs/WEB_PLAYER.md, "The terms"): the web build reads it, agents read it for their test URLs
 copy_dir secrets
 
