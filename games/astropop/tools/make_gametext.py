@@ -25,7 +25,7 @@ CODE_RANGES = ((0x401000, 0x48b000),)
 # sidebar texts, the helper's speech bubbles, the help pages ...) lie between these addresses
 # (the names of the high scores that the game starts with: its start-up code, 0x558040, builds them; two short lines of the
 # credits)
-EXTRA = [0x5639b4, 0x5639b8, 0x5639c0, 0x5639c4, 0x5639cc, 0x5639d4, 0x5639dc, 0x564c58, 0x564d98,
+EXTRA = [0x565000, 0x5639b4, 0x5639b8, 0x5639c0, 0x5639c4, 0x5639cc, 0x5639d4, 0x5639dc, 0x564c58, 0x564d98,
          0x56c388, 0x56c360, 0x56c320, 0x56c2f0, 0x56c2cc, 0x56c2b8, 0x56c28c, 0x56c260, 0x56c23c, 0x56c218, 0x56c1e0,
          0x56b758, 0x56b4c0, 0x56b4e0,
          # the names of the upgrades (the table of Board::GetUpgradeText)
@@ -75,6 +75,15 @@ def main():
 
     d = open(args.exe, "rb").read()
     rows = set(EXTRA)
+    # the texts of the story screens (their addresses are listed by make_storytext.py)
+    inc = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src', 'StoryText.inc')
+    if os.path.exists(inc):
+        for line in open(inc, encoding='utf-8'):
+            if line.startswith('//'):
+                continue
+            for h in re.findall(r'0x([0-9a-f]{8})\)', line):
+                if int(h, 16):
+                    rows.add(int(h, 16))
     for line in open(args.strings, encoding="utf-8", errors="replace"):
         j = json.loads(line)
         if j["type"] != "string":

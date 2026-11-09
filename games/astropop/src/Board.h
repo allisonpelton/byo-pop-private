@@ -33,6 +33,8 @@ class AstroButton;
 class Checkbox;
 class SoundInstance;
 class Graphics;
+class StoryScreen;
+struct StoryEntry;
 
 // 0x4b83f0 and 0x4b8430: the game's own DrawImageCel (BoardDraw.cpp)
 void DrawCel(Graphics* g, Image* theImage, int theX, int theY, int theCel);
@@ -358,6 +360,7 @@ public:
 	std::vector<LaserRec>	m290;// +0x290 the beams of the mode 2 bonus (at most 6)
 	std::vector<Particle*>	m2a0;// +0x2a0 the falling sparks of the energy mode
 	std::vector<HintBox*>	m2b0;// +0x2b0 the hint boxes
+	std::vector<StoryEntry*>	m2c0;// +0x2c0 the stories of the pilot (BuildStoryText): two pages each
 	std::vector<DemoStep>	m2d0;// +0x2d0 the demo's steps
 	Widget*	m2e0 = NULL;// +0x2e0
 	Widget*	m2e4 = NULL;// +0x2e4
@@ -410,7 +413,7 @@ public:
 	XcfFile*	m748 = NULL;// +0x748 the file of the bonus round (bonus<n>.xcf)
 	AstroButton*	m74c = NULL;// +0x74c the theme button (id 0xfa2)
 	Checkbox*	m750 = NULL;// +0x750 the theme checkbox (id 0xfa3)
-	int	m754 = 0;// +0x754 ?
+	StoryScreen*	m754 = NULL;// +0x754 the story screen (OpenStoryScreen)
 	Buffer	m758;// +0x758 the replay recording (RecordStep)
 	LevelUpText*	m778 = NULL;// +0x778 the level-up picture
 	ScrollLayer	m77c;// +0x77c the scenery layer
@@ -754,7 +757,7 @@ public:
 	void			SetupLevel1Rules();                             // 0x47f3d0
 	void			AdvanceLevel(bool theSave);                     // 0x441980
 	void			LoadDemo();                                     // 0x470130
-	void			BuildStoryText();                               // 0x47a940 (not translated yet)
+	void			BuildStoryText();                               // 0x47a940 (BoardStory.cpp)
 
 	// ---- the small helpers (BoardCore.cpp)
 	void			UpdateAnimCounters();                           // 0x433500
@@ -818,7 +821,9 @@ public:
 	int				GetUpgradeSetting();                            // 0x4330a0: the profile setting that this level's upgrade counts (-1 with no table)
 	std::string		GetUpgradeText();                               // 0x441850: the words that name this level's upgrade
 	void			Fn4335e0();                                     // 0x4335e0: the field is waiting to be cleared (m19fc = 1000)
-	bool			Fn468e70();                                     // 0x468e70: the upgrade screen of the level (true when one opens)
+	bool			OpenStoryScreen();                              // 0x468e70: the story screen of the level (true when one opens)
+	void			LoadStoryPages();                               // 0x45ef90: the pictures of the stories of the level
+	void			CloseStory();                                   // 0x469030: the story screen is done, the level starts
 	void			UpdateStreaks();                                // 0x439650
 	void			AddTopRow();                                    // 0x46e420
 	bool			HasMarkOfType(int theType);                     // 0x438a90

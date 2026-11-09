@@ -16,6 +16,7 @@
 #include "Image.h"
 #include "Res.h"
 #include "SexyAppBase.h"
+#include "StoryScreen.h"
 #include "UserProfile.h"
 #include "WidgetManager.h"
 
@@ -109,7 +110,8 @@ void Board::RemovedFromManager(WidgetManager* theManager)
 {
 	Widget::RemovedFromManager(theManager);
 
-	// (the widget at +0x754 is never assigned)
+	if (m754 != NULL)
+		theManager->RemoveWidget(m754);
 	if (!m1c0.empty() && m1c0[0] != NULL)
 		theManager->RemoveWidget(m1c0[0]);
 	if (m2e0 != NULL)

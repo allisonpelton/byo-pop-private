@@ -574,7 +574,9 @@ void AstroPopApp::PlayComboPing(int thePitch)
 	}
 }
 
-// 0x42c910: the thirty bonus levels data\bonus<n>.xcf are read and their signatures checked (xcf parser: to come)
+// 0x42c910: the thirty bonus level files data\bonus<n>.xcf are read and their signatures checked. The port leaves the check
+// out (docs/GAME_NOTES.md, 5): the Board reads the file of a bonus round itself when the round starts (m748), and the
+// loading screen's progress counts the step.
 bool AstroPopApp::LoadBonusLevels()
 {
 	mCompletedLoadingThreadTasks += 0x20;

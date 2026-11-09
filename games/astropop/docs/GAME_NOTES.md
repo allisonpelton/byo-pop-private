@@ -47,20 +47,30 @@ address (`GT(0x...)`) and read from the player's own exe.
 
 | Class / file | Original | State |
 |---|---|---|
-| `AstroPopApp` | ctor 0x427ee0, Init 0x42f170, loading thread 0x42cda0, music 0x408b90 | done up to the title; ButtonDepress hub 0x431ac0 only for the title's button (id 2200 -> OnClickToPlay 0x4319b0) |
+| `AstroPopApp` | ctor 0x427ee0, Init 0x42f170, loading thread 0x42cda0, music 0x408b90, hub 0x431ac0 | done (the screens it opens are in AppScreens, AppHall, AppHub, AppUsers, AppRank, AppDialogs, AppGame) |
 | `LoaderScreen` | 0x436310 family | done (slides, progress, click-to-play button) |
 | `UserProfile` | ctor 0x42dc60, Load 0x42eca0, Save 0x4276b0, InitNew 0x429510, ResetGame 0x424540 | done (numbered settings 0..0x73) |
 | `FrameAnim` | 0x40-byte counter 0x424370 / Update 0x40e130 | done (header only) |
 | `AstroButton` | 0x454c10, sizeof 0x1f0 | done (three animations, glow, tints, hit mask, hover sound) |
 | `XcfFile` | 0x427d80, Parse 0x42a5d0 | done, no signature check, no key-name check |
-| `MainMenu` | 0x454ee0, sizeof 0xd8 | done except the flying-ships screen (class 0x434ac0, shown after a hidden hover sequence) |
-| startup flow | 0x4319b0 -> LoadDescriptor 0x42c150 -> SelectStartUser 0x4300c0 -> ShowMainMenu 0x411490 | done; the dialogs it opens are stubs that log "not translated" |
-| Board | ctor 0x480020 (sizeof 0x1c0c), vtable 0x566a30 (47 slots), listener 0x566980 | not started |
-| custom dialogs | builder 0x411ba0 / 0x409080, base ctors 0x482140 0x489c60 ..., vtables 0x56a9e4 .. 0x56b8b8 | not started |
-| CharSelector | 0x4556c0 | not started |
+| `MainMenu` | 0x454ee0, sizeof 0xd8 | done; the flying-ships screen (`ShipsScreen`, class 0x434ac0, `CloseGoScreen`) too |
+| `Board` | ctor 0x480020 (sizeof 0x1c0c), vtable 0x566a30 (47 slots), listener 0x566980 | done (Board*.cpp: field, bricks, ships, power-ups, effects, bonus rounds, warp, end, replay recording, hints, test bot) |
+| custom dialogs | builder 0x411ba0 / 0x409080, base ctors 0x482140 0x489c60 ... | done (`AstroDialog`, `ListDialog`, `HelpDialog`, `CheckpointDialog`, `PowerDialog`, upgrade box) |
+| `CharSelector` | 0x4556c0 | done (the registration locks are left out) |
+| `HallOfFame`, `CreditsScreen`, `FullScreenHelp` | 0x4288a0 family, credits, help | done |
+| `StoryScreen`, `StoryPage` | ctor 0x4567d0, Update 0x469140, Draw 0x447400, `Board::BuildStoryText` 0x47a940, `OpenStoryScreen` 0x468e70, `LoadStoryPages` 0x45ef90, `CloseStory` 0x469030 | done (the texts of the stories are listed by address in `StoryText.inc`, made by `tools/make_storytext.py`) |
+| test commands | `testhooks/TestCommands.cpp`, bot in `BoardBot.cpp` | done (see 3b) |
 
 The game's own classes are few (about 20 vtables, listed by `re/astropop/vtables.txt`); the Board is one class whose members
 hold the vectors of every kind of object, so most of the code is Board methods.
+
+### 3b. Test commands
+
+`state`, `goto menu|classic [level [pilot]]|survival [pilot]`, `level`, `seed`, `unlock all`, `win`, `lose`, `move` (the
+port's bot, `BoardBot.cpp`) and `set score|level|stage|charge|stories`. `set charge` charges the pilot's weapon and
+`set stories` makes the profile hold every story as seen (the finale then follows story 9 of any pilot); both exist only
+in the test hooks (docs/TEST_COMMANDS.md lists the standard ones). A game starts with the full-screen help up: a script
+clicks Continue (320,440) first.
 
 ## 4. Reading notes
 
@@ -108,11 +118,20 @@ offsets are relative to it (add 0xc for the object's own offsets).
 
 ## 5. Left out of the port (registration, links, statistics)
 
+- Registration (the registered path is the only one): the trial and nag code, the register screen, the update check, the
+  link to the publisher's site, the Options screen's REGISTER and update buttons, the registration locks of the pilot
+  selector, and what a registered copy shows. The code reads the profile's flags as the registered game's.
 - The "More Games" button (id 0xfad, button index 4 of the selector). Its panel is part of the selector's background
   image, so with the button gone the picture still shows it; the gap is to be closed by drawing the neighbouring panels over
-  it (check with shotdiff). Its sound, rectangle and highlight stay in the tables.
-- The page counter calls on the ResourceManager (0x48f860 / 0x48f8a0: "Init", "MoreGames"): PopCap's ad statistics.
+  it (check with shotdiff). Its sound, rectangle and highlight stay in the tables. The main menu's hidden hover sequence
+  (see 8) used that button as its first step.
+- The page counter calls on the ResourceManager (0x48f860 / 0x48f8a0: "Init", "MoreGames", the story pages and the end
+  scene): PopCap's ad statistics. Also the clock reset the original makes after a load (0x4ce790), the trace logs and the
+  demo's marker calls (`DemoAddMarker`).
 - The signature checks of the .xcf files (error 5 "Authentication failed ...").
+- The bonus-file check of `LoadBonusLevels` (0x42c910: the thirty files are read and their signatures checked while the
+  loading screen runs; the Board reads the file of a bonus round itself when the round starts).
+- The registry-writable check at start and the box about the windowed colour depth.
 
 ## 6. Deviations from the original
 
@@ -121,6 +140,26 @@ offsets are relative to it (add 0xc for the object's own offsets).
   same values).
 - The original's Rand() for the selector's rising particles is the game's generator (`MTRand::NextNoAssert`, 0x5a4e28);
   the port draws them from `Rand()` in the same order (3D mode only).
+- The tunable-constants table (0x4f1e40, a lookup of numbers by name) is replaced by its default values.
+- `StartLoopSound` stops a loop with `Stop()` and starts it with `Play(false, false)`.
+- `PointerTrail::Step` on the warp stars is left out (the original steps a trail that nothing reads).
+- The Particle's `Draw` is not virtual in the port.
+- The announcement text of a dialog is a `std::string` and `AstroDialog::GetPreferredHeight` measures with a `Graphics`
+  that has no image.
+- The end page does not read the profile name (a value the original does not use); the default case of the survival
+  bonus' text is not translated.
+- The hub of `AstroPopApp` guards `mBoard` against NULL where the original does not.
+- A list dialog keeps its line colours in step with its lines.
+- The pilot hint takes the spot it found (`DismissHint`) instead of searching again.
+- `AnyMoveLeft` counts in vectors sized 16 with an 8-entry histogram.
+- The story screen shows the finale only after the last story of a pilot when the profile has seen 33 stories, as the
+  original; its "next" button strip is freed after the three buttons are copied from it, and when the pictures of a
+  story cannot be loaded the game ends with the resource error box without setting the loading-failed flag.
+- The `radar` attribute error box and the 3000-picture search box of `LoadStoryPages` cannot happen with the shipped
+  descriptors and are not translated (the search stops at the last picture instead).
+- Memory leaks fixed: the credits screen's picture strip, the story screen's button strip, the three pictures of the supa
+  weapon box (freed by the box), the hall of fame's personal draw with no user (guarded).
+- Test-only: the `move` bot, `set charge` and `set stories` (see 3b).
 
 ## 7. Fix candidates (original bugs and waits, kept in the port, for the fixes mod)
 
@@ -129,12 +168,12 @@ None found yet.
 ## 8. Oddities (not chased)
 
 - The selector's hidden hover sequence (Classic, Survival, Hall of Fame, Options... in order, then Quit) starts the screen
-  of ships flying off; not translated yet (class 0x434ac0).
+  of ships flying off (`ShipsScreen`, translated); with the More Games button gone the sequence's first step is missing,
+  so the screen cannot be reached until the sequence is decided.
 
 ## 9. Next steps
 
-1. Board: the vectors, the descriptor values it reads, level loading (0x4663f0), the bricks, ships, power-ups, the effects.
-2. The dialog family (new player, select player, options, quit, continue) and the ButtonDepress hub's other ids.
-3. CharSelector, Hall of Fame, high scores, story/help screens, the flying-ships screen.
-4. Standard test commands (`goto`, `level`, `win`, `lose`, `set`, `seed`, `move` with the port's bot), `tools/check.sh
-   astropop`, the frozen baseline, the web build; then the identical-play pass and the fixes mod.
+1. The web build and its registrations (page.js, stores, profiles, saveimport, controls, sound tracks), the origrun row.
+2. The identical-play pass, both phases, with `games/astropop/docs/IDENTICAL_PLAY.md`; real-input driver play.
+3. The frozen baseline `build/baseline-astropop`, the fixes mod (or "none"), the performance numbers.
+4. Close the gap of the removed More Games button; the app's destructor does not delete its screens (as the original's).

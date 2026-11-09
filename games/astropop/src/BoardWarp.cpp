@@ -271,7 +271,7 @@ bool Board::Fn46a810()
 					m77c.mNext[1] = 0;
 					m77c.mNext[2] = 640.0f;
 					m77c.mNext[3] = 0;
-					if (Fn468e70())
+					if (OpenStoryScreen())
 						return true;
 					mApp->PlaySample(SOUND_GET_READY);
 					LoadLevel(true);

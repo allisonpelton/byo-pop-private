@@ -224,9 +224,20 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			mBoard->mField193C = aValue;
 		else if (aName == "charge")
 			mBoard->m1bd8 = mBoard->m1bdc;      // the weapon of the pilot is charged (the value is not read)
+		else if (aName == "stories")
+		{
+			// the player has seen all the stories of the four pilots (the profile's counts, 0x4b .. 0x4e: the last story of
+			// a pilot is then followed by the finale), so a test can reach it
+			EnsureUser(this);
+			mUser->SetInt(0x4b, 9);
+			mUser->SetInt(0x4c, 8);
+			mUser->SetInt(0x4d, 8);
+			mUser->SetInt(0x4e, 8);
+			mUser->Save();
+		}
 		else
 		{
-			ReplyError(theCommand, "set takes score, level, stage or charge");
+			ReplyError(theCommand, "set takes score, level, stage, charge or stories");
 			return true;
 		}
 		ReplyOK(theCommand);

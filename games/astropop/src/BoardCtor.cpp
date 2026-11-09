@@ -16,6 +16,7 @@
 #include "Res.h"
 #include "ResourceManager.h"
 #include "SoundInstance.h"
+#include "StoryScreen.h"
 #include "UserProfile.h"
 
 using namespace Sexy;
@@ -601,7 +602,8 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 
 // 0x477b90 (the scalar deleting wrapper at 0x47a910). What the original does not delete: the pictures of the
 // resources, the bricks of the lists (ClearField does that), the members it clears and frees in place. The members at
-// +0x2c0 (a vector of pairs) and +0x754 (an object) are never set by anything, so their deletes are left out.
+// +0x2c0 (the stories: a vector of pairs of pages) it deletes after the klaxon, and +0x754 (the story screen) before the
+// buttons of the end of a game.
 Board::~Board()
 {
 	if (m6e4 != NULL)
@@ -617,6 +619,14 @@ Board::~Board()
 		if (aKlaxon->IsPlaying())
 			aKlaxon->Stop();
 	}
+
+	for (size_t i = 0; i < m2c0.size(); i++)
+	{
+		delete m2c0[i]->mPageA;
+		delete m2c0[i]->mPageB;
+		delete m2c0[i];
+	}
+	m2c0.clear();
 
 	if (m778 != NULL)
 	{
@@ -663,6 +673,7 @@ Board::~Board()
 		delete aButton->mOverImage;
 		delete aButton->mDownImage;
 	}
+	delete m754;
 	delete m2e8;
 	delete m2e4;
 
