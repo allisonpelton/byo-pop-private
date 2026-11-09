@@ -406,6 +406,8 @@ footer a { color: var(--accent); }
       </div>
     </fieldset>
     <!-- Games no store sells any more (data-unsold) are hidden unless this is ticked or their files are here (the script below) -->
+    <!-- Desktop 95's "Windows 95 games only": how many games it hides (web/skins.js) -->
+    <p class="win95-count" id="win95-count" role="status" hidden></p>
     <label class="show-unsold" id="show-unsold-label" hidden><input type="checkbox" id="show-unsold" aria-label="{{index.unsold}}"> {{index.unsold}}</label>
     <div class="toolbar-actions">
       <button type="button" class="add-games" id="add-games" hidden>{{index.add.button}}</button>

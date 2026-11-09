@@ -57,6 +57,7 @@ var ByopopSkin = (function () {
 
   // ---------- the card on the first visit ----------
   function T(k) { try { return ByopopStrings.t(k); } catch (e) { return k; } }
+  function Tv(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
   var STYLE =
     ".skin-pick { max-width: min(760px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); box-shadow: 0 20px 60px rgba(0,0,0,.4); }\n" +
     ".skin-pick::backdrop { background: rgba(10, 8, 16, .55); }\n" +
@@ -722,7 +723,16 @@ var ByopopSkin = (function () {
         sub.textContent = "";
         var games = playable();
         if (!games.length) { var none = item(T("skin.pop.nogames"), null); none.setAttribute("aria-disabled", "true"); sub.appendChild(none); }
-        games.forEach(function (g) { sub.appendChild(item(g.title, null, { href: g.page })); });
+        var shown = games.filter(function (g) { return !win95Hides(g.id); });
+        shown.forEach(function (g) { sub.appendChild(item(g.title, null, { href: g.page })); });
+        if (games.length > shown.length) {
+          var n = games.length - shown.length;
+          var hid = item(Tv("skin.win95.hidden", { count: n }), null);
+          hid.setAttribute("aria-disabled", "true");
+          hid.title = T("skin.win95.hidden_title");
+          if (!shown.length) sub.textContent = "";
+          sub.appendChild(hid);
+        }
       }
       function fill() {
         list.textContent = "";
@@ -917,6 +927,7 @@ var ByopopSkin = (function () {
     var favMenu = null;
     function favIcons() {
       if (!icons) return;
+      win95Sync();
       var list = [];
       try { list = window.ByopopSettings && ByopopSettings.favourites ? ByopopSettings.favourites() : []; } catch (e) {}
       var rec = {};
@@ -925,6 +936,7 @@ var ByopopSkin = (function () {
       list.forEach(function (g) {
         var b = document.createElement("button");
         b.type = "button"; b.className = "d95-icon d95-fav";
+        b.setAttribute("data-win95", win95Of(g.id));
         b.setAttribute("aria-label", T2("skin.fav.icon", { game: g.title }));
         b.setAttribute("aria-haspopup", "menu");
         var pic = document.createElement("i"); pic.setAttribute("aria-hidden", "true");
@@ -1176,6 +1188,46 @@ var ByopopSkin = (function () {
       (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN;
   }
   function deskSync() { if (document.body) desk.setOn(deskWanted()); }
+
+  // ---------- Windows 95 games only ----------
+  // Desktop 95's setting "Windows 95 games only" (the user, 2026-11-08: an "immersion" toggle that "will only list the games that
+  // actually supported Windows 95"): with it on, and only in Desktop 95, the lists show only the games whose original supported
+  // Windows 95 (cmake/ByopopWeb.cmake's BYOPOP_WEB_WIN95, as each tile's data-win95 and the chat's table's win95): All games
+  // (html.d95-win95only, web/skins.css), the favourites' icons, and the Pop menu's Games, each list saying how many it hides. An
+  // unknown game is hidden too. A game page already open stays as it is.
+  function win95Of(id) {
+    var games = window.ByopopGames || [];
+    for (var i = 0; i < games.length; i++) if (games[i].id === id) return games[i].win95 || "unknown";
+    var a = document.querySelector('a.tile[data-game="' + String(id).replace(/[^A-Za-z0-9_-]/g, "") + '"]'), li = a && a.closest("li");
+    return (li && li.getAttribute("data-win95")) || "unknown";
+  }
+  function win95On() { return root.getAttribute("data-skin") === "d95" && readItem().win95Only === "on"; }
+  function win95Hides(id) { return win95On() && win95Of(id) !== "yes"; }
+  function win95Sync() {
+    var on = win95On();
+    root.classList.toggle("d95-win95only", on);
+    var count = document.getElementById("win95-count");
+    if (!count) return;
+    var n = on ? Array.prototype.filter.call(document.querySelectorAll(".games > li[data-win95]"), function (li) {
+      // a game the listing already hides (no longer sold, its files not added) is not counted
+      return li.getAttribute("data-win95") !== "yes" && !li.hidden && !li.matches(".games.hide-unsold > li[data-unsold]:not([data-files=yes])");
+    }).length : 0;
+    count.hidden = !n;
+    count.textContent = n ? Tv("skin.win95.hidden", { count: n }) : "";
+    count.title = T("skin.win95.hidden_title");
+  }
+  window.addEventListener("byopop-setting", function (ev) { if (ev.detail && (ev.detail.name === "win95Only" || ev.detail.name === "skin")) win95Sync(); });
+  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) win95Sync(); });
+  // the listing's own filter (no longer sold games shown or not) changes what the count leaves out
+  function win95Watch() {
+    win95Sync();
+    var games = document.querySelector(".games");
+    if (!window.MutationObserver) return;
+    if (games) new MutationObserver(win95Sync).observe(games, { attributes: true, attributeFilter: ["class"] });
+    // and the skin: the setting's event comes before the page's data-skin follows it
+    new MutationObserver(win95Sync).observe(root, { attributes: true, attributeFilter: ["data-skin"] });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", win95Watch); else win95Watch();
 
   // ---------- ambient light ----------
   // On a game page in the dark Demo Disc and Soda Fountain (B has no dark version), the game's picture glows out around the stage:
