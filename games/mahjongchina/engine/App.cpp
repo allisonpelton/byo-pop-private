@@ -195,6 +195,7 @@ bool App::Quit()
 }
 
 // 0x426060
+// 0x4296f0 inlined here: AppBase's own Init, which only returns true (the end of this one)
 bool App::Init()
 {
 	mCmdLine = GetHost()->CommandLine();

@@ -161,6 +161,11 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   since a game's window can be slow to appear while it tries to phone home).
 - `key <vk>` — a virtual-key press (decimal or `0x..`).
 - `text <chars...>` — type the rest of the line.
+- `down x y` / `up x y` (`rdown` / `rup` for the right button), `keydown <vk>` / `keyup <vk>`, `dclick x y` — one
+  edge of a button or key, or a double click (down, up, `WM_LBUTTONDBLCLK`, up), posted now. They are the same as at an
+  `at` line (below) and are for a game with no update counter (Mahjong Escape): a `wait` between the edges makes a held
+  press, and moves in between make a drag. A held key changes no key state the game reads with `GetKeyState` or
+  `GetAsyncKeyState` (Ctrl+C as `keydown 17`, `key 67`, `keyup 17` works only in a game that reads its messages).
 - `focus lose` / `focus regain` — post the deactivate/activate messages a window gets when it loses and
   regains the focus (`WM_ACTIVATEAPP`, `WM_ACTIVATE`, `WM_KILLFOCUS`/`WM_SETFOCUS`).
 - `shot <name>` — capture the window to `shots/<name>.png` now.
@@ -184,7 +189,7 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   of them is refused at the start, and each one is refused (logged) should it run on the host anyway. In the
   sandbox `hwmove` lights no hover on a SAF game (Seven Seas, 2026-11-01): use a posted `move` for hover there.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
-  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `keydown`/`keyup` for one edge of a key (`kdown`/`kup` are the same; a game that polls its key state, or clears a key
+  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `dclick`, `keydown`/`keyup` for one edge of a key (`kdown`/`kup` are the same; a game that polls its key state, or clears a key
   when it is let go, loses a `key`'s down and up in one update), `down`/`up` or `rdown`/`rup` for one edge of the left or
   right button, or `burst`), then resume it; `quit` is not among them (origrun logs that it cannot do it at an update), so a
   script that ends on its own puts a plain `quit` line after its last `at` line. A `move` while a `down` has had no `up`

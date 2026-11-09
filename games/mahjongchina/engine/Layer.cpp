@@ -36,7 +36,7 @@ void Layer::DestroyObjects()
 // 0x420a20
 bool Layer::AppActive()
 {
-	return mManager->IsAppActive();
+	return mManager->GetActive();
 }
 
 // 0x420a50
