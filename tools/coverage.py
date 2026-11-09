@@ -22,6 +22,7 @@ FUNC_DEF = re.compile(r"^(?!\s)(?!(?:if|for|while|switch|return|else|do|case|def
                       r"union|typedef|using|template|public|private|protected|#)\b)"
                       r"[\w:<>,*&~ \[\]]*?\b((?:\w+::)*~?\w+|operator\s*\S+)\s*\(")
 SOURCES = ('.cpp', '.c', '.h', '.hpp', '.inl', '.inc')
+TEMPLATE_HEAD = re.compile(r'\s*template\s*<[^;{]*$')
 
 
 def die(msg):
@@ -243,6 +244,9 @@ def port_sites(cfg, fns):
                     continue
                 block = [i]   # the comment on the line itself counts too
                 j = i - 1
+                while j >= 0 and TEMPLATE_HEAD.match(codes[j]):   # a template's head is part of the declaration
+                    block.append(j)
+                    j -= 1
                 while j >= 0 and not codes[j].strip() and comments[j].strip():
                     block.append(j)
                     j -= 1
@@ -265,20 +269,31 @@ def port_sites(cfg, fns):
 def read_hits(paths):
     hits, runs = {}, []
     for p in paths:
-        n, ended, watched = 0, False, None
+        n, ended, watched, code, stopped = 0, False, None, None, False
         for line in open(p, encoding='utf-8', errors='replace'):
             line = line.strip()
             if line.startswith('#'):
                 ended = ended or 'ended normally' in line
                 m = re.search(r'(\d+) functions watched', line)
                 watched = int(m.group(1)) if m else watched
+                m = re.search(r'exited with code 0x([0-9A-Fa-f]{8})', line)   # origrun's line, since 2026-11-09
+                code = int(m.group(1), 16) if m else code
+                stopped = stopped or 'stopped the game at its timeout' in line
                 continue
             if not line:
                 continue
             a = int(line.split()[0], 16)
             n += 1
             hits[a] = hits.get(a, 0) + 1
-        runs.append((p, n, ended, watched))
+        if ended:
+            how = 'the game exited'
+        elif code is not None:
+            how = 'it crashed (0x%08X)' % code if code >= 0xC0000000 else 'the game exited with code %d' % code
+        elif stopped:
+            how = 'origrun stopped it (a timeout)'
+        else:   # a hits file from before origrun said how a run ended
+            how = 'origrun stopped it (a timeout), or it crashed'
+        runs.append((p, n, how, watched))
     return hits, runs
 
 
@@ -328,10 +343,9 @@ def report(game, hit_paths, out):
         game, datetime.date.today().isoformat(), len(runs), '' if len(runs) == 1 else 's', cfg['export'],
         ', '.join('`%s`' % s for s in cfg['src'])))
     w('| Run | Functions reached | How it ended |\n|---|---:|---|\n')
-    for p, n, ended, watched in runs:
+    for p, n, how, watched in runs:
         w('| `%s` | %d%s | %s |\n' % (os.path.relpath(p, REPO).replace('\\', '/'), n,
-                                      ' of %d watched' % watched if watched else '',
-                                      'the game exited' if ended else 'origrun stopped it (a timeout), or it crashed'))
+                                      ' of %d watched' % watched if watched else '', how))
     span_txt = ', '.join('%08x-%08x' % s for s in cfg['game']) if cfg['game'] else 'the whole exe'
     w('\nThe game\'s own code (%s) has %d functions. The runs reached %d of them, the port defines %d, and %d are '
       'left out on purpose (`games/%s/coverage.txt`).\n\n' % (span_txt, len(game_fns), len(reached), len(with_def),

@@ -2976,12 +2976,17 @@ static int coverage_import(const char* exe)
 	free(b); free(nb);
 	return ok;
 }
+// How the run ended, added to the hits file for tools/coverage.py's "How it ended" (a crash's exit code, or the timeout).
+static char gCoverageEnd[96];
 // The run log's line for the hits file: how many functions the run reached, and whether the game ended normally.
 static void coverage_summary(void)
 {
 	if (!gCoverageList[0]) return;
 	FILE* f=fopen(gCoverageOut,"r");
 	if (!f) { logline("--coverage: no hits file (%s): the game never loaded the stand-in", gCoverageOut); return; }
+	fclose(f);
+	if (gCoverageEnd[0] && (f=fopen(gCoverageOut,"a"))) { fputs(gCoverageEnd,f); fclose(f); }
+	if (!(f=fopen(gCoverageOut,"r"))) return;
 	char line[512]; int hits=0, ended=0;
 	while (fgets(line,sizeof(line),f)) { if (line[0]=='#') { if (strstr(line,"ended normally")) ended=1; } else if (line[0]>' ') hits++; }
 	fclose(f);
@@ -3055,9 +3060,11 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	if (wait_game(L,timeout)) {
 		logline("timeout (%ds) -- ending the run (the job kills the game and its children)",timeout);
 		end_game(L);
+		lstrcpynA(gCoverageEnd,"# coverage: origrun stopped the game at its timeout\n",sizeof(gCoverageEnd));
 	} else {
 		DWORD ec=0; GetExitCodeProcess(L->proc,&ec);
 		logline("game exited (its process's exit code 0x%08lX)",(unsigned long)ec);
+		wsprintfA(gCoverageEnd,"# coverage: the game's process exited with code 0x%08lX\n",(unsigned long)ec);
 	}
 
 	InterlockedExchange(&gStop,1);
