@@ -315,15 +315,17 @@ var ByopopSkin = (function () {
           if (edge.indexOf("w") >= 0) nw = st.w - dx;
           if (edge.indexOf("s") >= 0) nh = st.h + dy;
           if (edge.indexOf("n") >= 0) nh = st.h - dy;
-          nw = Math.max(RZ_MIN.w, Math.min(r.w - 8, nw));
-          // a window may ask for more than RZ_MIN (o.minHeight: Music keeps its player and three of its list's rows)
-          var least = RZ_MIN.h;
+          // a window may ask for more than RZ_MIN (o.minHeight: Music keeps its player and three of its list's rows; o.minWidth
+          // and o.minHeight: a game's window is never smaller than its game, web/deskapps.js)
+          var leastW = RZ_MIN.w, least = RZ_MIN.h;
+          if (w.minWidth) try { leastW = Math.max(leastW, w.minWidth() || 0); } catch (err) {}
           if (w.minHeight) try { least = Math.max(least, w.minHeight() || 0); } catch (err) {}
+          nw = Math.max(Math.min(leastW, r.w - 8), Math.min(r.w - 8, nw));
           nh = Math.max(Math.min(least, r.h - 8), Math.min(r.h - 8, nh));
           // and the edge dragged stays on the desktop: the bottom above the task bar, the right inside the screen, the top and the
           // left at 0 at most
           if (edge.indexOf("s") >= 0) nh = Math.max(Math.min(least, r.h - st.y), Math.min(nh, r.h - st.y));
-          if (edge.indexOf("e") >= 0) nw = Math.min(nw, Math.max(RZ_MIN.w, r.w - st.x));
+          if (edge.indexOf("e") >= 0) nw = Math.max(Math.min(leastW, r.w - st.x), Math.min(nw, r.w - st.x));
           if (edge.indexOf("n") >= 0) nh = Math.min(nh, st.y + st.h);
           if (edge.indexOf("w") >= 0) nw = Math.min(nw, st.x + st.w);
           // the left and top edges move the window as it grows the other way
@@ -393,7 +395,7 @@ var ByopopSkin = (function () {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
       var w = { focusIn: o.focusIn || null, el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
                 button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, afterClose: o.afterClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
-                minHeight: o.minHeight || null };
+                minHeight: o.minHeight || null, minWidth: o.minWidth || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
@@ -1264,7 +1266,21 @@ var ByopopSkin = (function () {
              show: function (id) { var w = find(id); if (w && on) show(w); return !!(w && on); },
              minimize: function (id) { var w = find(id); if (w && on) setMin(w, true); },
              setTitle: function (id, title) { var w = find(id); if (w) setTitle(w, title); },
-             place: function (id) { var w = find(id); if (w && on) place(w, true); } };
+             place: function (id) { var w = find(id); if (w && on) place(w, true); },
+             // a window (its id or its element) taller by up to dh pixels, down to the desktop's bottom edge (Music's splitter,
+             // web/music.js): what it grew
+             grow: function (id, dh) {
+               var w = typeof id === "string" ? find(id) : wins.filter(function (x) { return x.el === id; })[0];
+               if (!w || !on || w.closed || w.min || !(dh > 0)) return 0;
+               var h = w.el.offsetHeight, most = room().h - w.y - h;
+               var by = Math.max(0, Math.min(Math.ceil(dh), most));
+               if (!by) return 0;
+               sizeTo(w, w.el.offsetWidth, h + by);
+               w.placed = true;
+               place(w);
+               save();
+               return by;
+             } };
   })();
   // a game page (one with a workspace) or the listing (its games' heading) in Desktop 95, wide enough for windows
   function deskWanted() {

@@ -896,7 +896,9 @@ setting in Appearance says (`gameSize`, site-wide or a game's own): 1x by defaul
 3x and 4x on a 4K screen) or "Largest that fits" (the user, the same day: "Add a setting for games to default to the largest
 integer multiple that fits"), which a window takes at once when the setting changes; or with Fit window the largest
 that fits the window, however the player sizes it (its edges, its maximize button, which fills the desktop above the task
-bar and gives the window back its place on a second press). The window takes its game's size when it opens: the chosen
+bar and gives the window back its place on a second press). Its edges never drag it smaller than its game (the user,
+2026-11-09: "Don't allow a window to be dragged smaller than the game inside it"): the game at the chosen multiple, or at 1x
+with Fit window, and its status bar (web/shell.html `ByopopEmbed.least`, web/deskapps.js). The window takes its game's size when it opens: the chosen
 multiple (at first the Game window size setting's), or with Fit window the largest the desktop has room for. View lists the multiples to two past the largest the desktop has room for
 (at least 4x), the ones without room greyed; picking one sizes the window to it, smaller as well as larger, and restores a
 maximized window first (the user, 2026-11-09, of 1x leaving a large window around a small game: "Not what I expected the 1x
@@ -1533,7 +1535,10 @@ playlist scrolls inside it with the window's drawn scroll bar (the `scroll: ".mu
 height the player leaves, so a taller window shows more of it and a shorter one takes the height from the list first. The
 window keeps the player, the splitter and three of the list's rows: its least height (`minHeight` of the window, which
 web/skins.js's resizing asks, from music.js's `minHeight`), and the splitter gives the display only as many rows as leave the
-list those three. A dragged edge also stops at the desktop's own edges, so the window's bottom never goes under the task bar.
+list those three in the window as it is. Rows asked past that, by a drag of the splitter or its keys, grow the window downward
+by what they need (the user, 2026-11-09: "Doesn't seem like I'm able to expand the tracker view to add more rows"), as far as
+the desktop's bottom edge and then 64 rows (`ByopopSkin.desk.grow`); fewer rows give the height back to the list and never
+shrink the window. A dragged edge also stops at the desktop's own edges, so the window's bottom never goes under the task bar.
 It is worked out again when the browser's window or the panel changes size (a `resize` listener and a
 ResizeObserver; a hidden pane runs no ResizeObserver, so a test there fires `resize` after showing the panel). The rows asked
 for are kept, so a larger window gives them back.
@@ -1542,7 +1547,10 @@ The view is the display's lower half, and a click on it (or Enter or Space) goes
 then nothing, as players of the time cycled their visualisations. **Spectrum**: 24 bars from 40 Hz to 16 kHz, spaced as the ear
 hears them, each with a peak that falls back (a Web Audio AnalyserNode, put between the worklet and the volume only while the
 spectrum is shown, so the bars are the tune's own whatever the volume, and still move at `?silent=1`). **Tracker**, for a module's
-tune: a terse header in tracker style ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard, it in the middle, each channel's cell
+tune: a terse header in tracker style ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard, it in the middle while the view can scroll to it (the view
+never leaves the pattern: at its start the view sits at row 0 and the highlight moves down, near its end the last row stays at
+the bottom, and a display with room for the whole pattern does not scroll at all, the rows below it left empty; the user,
+2026-11-09: "it should never scroll empty lines into the top or bottom"), each channel's cell
 as libopenmpt writes it (`openmpt_module_format_pattern_row_channel`) or, for libxmp-lite's modules, its note, instrument, volume
 and effect (the effect as libxmp-lite's own type, in hex). Only the channels that play a note somewhere in the module are shown
 (`bm_used`, read once a tune; the user, 2026-11-08: "the window isn't wide enough for all the tracker instruments"), each cell

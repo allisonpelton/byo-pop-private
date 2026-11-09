@@ -404,11 +404,22 @@ var ByopopMusic = (function () {
       if (!win || !inWindow()) return 0;
       return win.offsetHeight - listBox().clientHeight + listLeast();
     }
-    function setRows(n, keep) {
+    // grow: the player asked for the rows (the splitter or its keys): a window too short for them and LIST_ROWS of the list grows
+    // downward by the difference, as far as the desktop's bottom edge (the user, 2026-11-09: "Doesn't seem like I'm able to
+    // expand the tracker view to add more rows"); fewer rows give the height back to the list and never shrink the window
+    function setRows(n, keep, grow) {
       n = Math.max(ROWS_MIN, Math.min(ROWS_MAX, Math.round(n)));
       if (inWindow()) {
-        // as many as leave the list its rows in the window as it is
         root.style.setProperty("--mu-rows", String(n));
+        var win = root.closest(".d95-win");
+        // (the list has a floor of its own, so the display can overflow it: the window grows a step at a time, at least a row,
+        // until the list has its rows or the window meets the desktop's bottom edge)
+        for (var guard = 0; grow && win && guard < 200 && listBox().clientHeight < listLeast(); guard++) {
+          var by = 0;
+          try { by = ByopopSkin.desk.grow(win, Math.max(ROW_PX, listLeast() - listBox().clientHeight)); } catch (e) {}
+          if (!by) break;
+        }
+        // as many as leave the list its rows in the window as it is
         while (n > ROWS_MIN && listBox().clientHeight < listLeast()) { n--; root.style.setProperty("--mu-rows", String(n)); }
       }
       var changed = n !== rows;
@@ -429,7 +440,7 @@ var ByopopMusic = (function () {
     });
     split.addEventListener("pointermove", function (ev) {
       if (!splitDrag || ev.pointerId !== splitDrag.id) return;
-      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / ROW_PX), false);
+      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / ROW_PX), false, true);
     });
     function endSplit(ev) {
       if (!splitDrag || ev.pointerId !== splitDrag.id) return;
@@ -442,7 +453,7 @@ var ByopopMusic = (function () {
       var to = { ArrowDown: rows + 1, ArrowUp: rows - 1, PageDown: rows + 5, PageUp: rows - 5, Home: ROWS_MIN, End: ROWS_MAX }[ev.key];
       if (to === undefined || ev.altKey || ev.ctrlKey || ev.metaKey) return;
       ev.preventDefault();
-      setRows(to, true);
+      setRows(to, true, true);
     });
 
     var list = make("div", "mu-list");
@@ -846,8 +857,14 @@ var ByopopMusic = (function () {
       trackerAt.textContent = at;
       var showing = used.slice(firstChannel, firstChannel + shown);
       trackerRows.textContent = "";
+      // the view stays inside the pattern (the user, 2026-11-09: "it should never scroll empty lines into the top or bottom"): the
+      // heard row in the middle only while the view can scroll to it, so at the pattern's start the view sits at row 0 and the
+      // highlight moves down to the middle, and near its end the last row stays at the bottom while the highlight moves down to
+      // it; a display with room for the whole pattern does not scroll at all ("it shouldn't scroll at all, but just move the
+      // cursor down"), the rows below the pattern left empty. A new pattern starts at its own row 0, so it shows from its top.
       var above = Math.floor((rows - 1) / 2);
-      for (var r = mark[2] - above; r < mark[2] - above + rows; r++) {
+      var top = Math.max(0, Math.min(mark[2] - above, mark[3] - rows));
+      for (var r = top; r < top + rows; r++) {
         var line = make("span", r === mark[2] ? "mu-row mu-row-now" : "mu-row");
         if (r >= 0 && r < mark[3]) {
           var row = rowOf(mark[1], r).split("|");

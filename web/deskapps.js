@@ -160,6 +160,10 @@ var ByopopApps = (function () {
     desk.add(el, { id: id, title: title, closable: true, menu: true, menuIcon: icon, noIcon: true,
       onClose: function () { closeApp(app); },
       maximize: kind === "game" ? function () { maximize(app); } : null,
+      // a game's window is never dragged smaller than its game (the user, 2026-11-09: "Don't allow a window to be dragged smaller
+      // than the game inside it"): the game at the multiple it is drawn at (1x with Fit window), its status bar and the frame
+      minWidth: kind === "game" ? function () { return least(app).w; } : null,
+      minHeight: kind === "game" ? function () { return least(app).h; } : null,
       at: function (left) { return [left + 40 + (n % 6) * 26, 20 + (n % 6) * 26]; },
       scroll: kind === "txt" ? app.text : null,
       focusIn: function (back) { focusApp(app, back); } });
@@ -167,6 +171,13 @@ var ByopopApps = (function () {
     return app;
   }
   function inner(app) { try { return app.frame && app.frame.contentWindow; } catch (e) { return null; } }
+  // the smallest a game's window may be: what its page needs (web/shell.html ByopopEmbed.least) and the window's own frame
+  function least(app) {
+    var w = inner(app), need = null;
+    try { need = w && w.ByopopEmbed && w.ByopopEmbed.least(); } catch (e) {}
+    if (!need || !app.frame) return { w: 0, h: 0 };
+    return { w: Math.ceil(need.w + app.el.offsetWidth - app.frame.clientWidth), h: Math.ceil(need.h + app.el.offsetHeight - app.frame.clientHeight) };
+  }
   // The menus: Game (what acts on the game: its files, its controls, Close), View (its scales, full screen, the view options
   // and the chat), Options (mods, the game's settings) and Help (the terms, copyright and licences; About). The page in the
   // window gives its own parts (ByopopEmbed.menus, web/shell.html); the desktop adds what is its own.

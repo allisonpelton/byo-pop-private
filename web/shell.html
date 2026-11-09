@@ -2274,7 +2274,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   sizeStage();
   if (PAGE.init) PAGE.init();
   // what the desktop around a game's window calls (web/deskapps.js): Close
-  if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout };
+  // least: the smallest the frame may be, the game at its chosen multiple (1x with Fit window, which shrinks it to fit) and the
+  // status bar, in CSS pixels (web/deskapps.js keeps the window's resizing to it)
+  function embedLeast() {
+    var dpr = window.devicePixelRatio || 1, n = chosenScale() || 1;
+    return { w: gameScreen.w * n / dpr, h: gameScreen.h * n / dpr + statusBarHeight() };
+  }
+  if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout, least: embedLeast };
   // what web/testkit.js reads and calls on the player-only page; nothing on any other page
   if (PLAYER_ONLY) window.ByopopShell = {
     hooks: testHooks, PAGE: PAGE, PERSIST: PERSIST, GAME: GAME, USER: USER, testProfile: TEST_PROFILE,
