@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="game-loading game-unmade">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -553,6 +553,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     clearTimeout(loadingTimer);
     loadingTimer = on ? setTimeout(function () { gameWindowLoading(false); }, 20000) : 0;
     document.documentElement.classList.toggle("game-loading", !!on);
+    // Desktop 95 shows the game's window only once the game has drawn in it, or has ended or stopped: until then the setup
+    // wizard's cards stand on the desktop by themselves (web/skins.css, game-unmade)
+    if (!on && gameState !== "waiting" && gameState !== "boot") document.documentElement.classList.remove("game-unmade");
     try { if (window.ByopopCursors) ByopopCursors.busy("game-window", !!on); } catch (e) {}
     // a hidden canvas takes no focus: once it is shown, the game gets the focus the start gave it, unless the player has put it
     // somewhere since
@@ -566,6 +569,16 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     requestAnimationFrame(function () { requestAnimationFrame(show); });
     setTimeout(show, 500);
   }
+  // The window is hidden from the page's first paint too (game-loading on <html>), so a page that starts its game by itself
+  // (the site's "Start the game when its page opens", the restart of the game's own menu) never paints it at its first size
+  // with the Ready card before the game's frames (the user, 2026-11-08: "Twist's window still briefly appear in the small size
+  // before loading. It then disappeared before finally reappearing when the game had started"). Shown here once the page
+  // has settled on waiting for the player (the Ready, import or terms card); a game that starts goes on hidden to its frames.
+  function gameWindowSettled() {
+    if (gameState === "waiting" || gameState === "boot") gameWindowLoading(false);
+  }
+  // the same 20 seconds at most from the first paint
+  if (document.documentElement.classList.contains("game-loading")) gameWindowLoading(true);
 
   // The game's own screen size, as it makes its window (onGameScreen); 640 x 480, most games' size, until it says
   var gameScreen = { w: 640, h: 480 };
@@ -1025,6 +1038,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     return termsAgreed;
   }
   function showTerms() {
+    gameWindowSettled();
     $("start-overlay").hidden = $("import-overlay").hidden = true;
     $("terms-agree").checked = false;  // a reload may bring back the box's last state
     $("btn-terms").disabled = true;
@@ -1313,9 +1327,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     if (autostart && (noMods || !failed)) { startGame(true, noMods); return; }
     // The Game files panel's "Import again" closed the game for this
     if (session.takeImport()) { showImport(); return; }
-    showReady();
-    if (testHooks && testHooks.ready) { testHooks.ready(); return; }
-    startOnOpen();
+    showReady(true);
+    if (testHooks && testHooks.ready) { gameWindowSettled(); testHooks.ready(); return; }
+    startOnOpen(gameWindowSettled);
   }
   // The site setting "Start the game when its page opens": from the Ready card straight into the game when the browser lets
   // the page play sound without a click or key. Chrome and Edge do after a click on a page of this site that led here (the
@@ -1323,26 +1337,32 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // navigator.getAutoplayPolicy; elsewhere a new AudioContext's resume() settles at once only when sound is allowed. Not
   // after a start that did not finish (the rescue is on the card), with "Full screen at start" (only a click may ask for
   // it) or with ?silent=1 (the tests press Play), and not once a panel is open or the card is gone.
-  function startOnOpen() {
-    if (setting("autoStart") !== "on" || setting("fullscreen") === "on" || pageSilent() || !$("start-rescue").hidden) return;
+  // done() once it has decided, after the start when it started (gameWindowSettled shows the Ready card's window if not)
+  function startOnOpen(done) {
+    var told = false;
+    function decided() { if (!told) { told = true; if (done) done(); } }
+    if (setting("autoStart") !== "on" || setting("fullscreen") === "on" || pageSilent() || !$("start-rescue").hidden) { decided(); return; }
     function go() { if (gameState === "waiting" && !$("start-overlay").hidden && !anyPanelOpen()) startGame("sound", false); }
     try {
-      if (navigator.getAutoplayPolicy) { if (navigator.getAutoplayPolicy("audiocontext") === "allowed") go(); return; }
+      if (navigator.getAutoplayPolicy) { if (navigator.getAutoplayPolicy("audiocontext") === "allowed") go(); decided(); return; }
       var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
+      if (!AC) { decided(); return; }
       var ctx = new AC(), settled = false;
       var finish = function (allowed) {
         if (settled) return;
         settled = true;
         try { ctx.close().catch(function () {}); } catch (e) {}
         if (allowed) go();
+        decided();
       };
       if (ctx.state === "running") { finish(true); return; }
       ctx.resume().then(function () { finish(ctx.state === "running"); }, function () { finish(false); });
       setTimeout(function () { finish(false); }, 300);
-    } catch (e) {}
+    } catch (e) { decided(); }
   }
-  function showReady() {
+  // pending: the page may still start the game by itself (startOnOpen), so its window stays hidden until that is decided
+  function showReady(pending) {
+    if (!pending) gameWindowSettled();
     var failed = session.lastStartFailed() && panel.enabledCount() > 0;
     setStatus(ByopopStrings.t(failed ? "game.status.last_failed" : "game.status.ready"));
     $("start-rescue").hidden = $("btn-start-nomods").hidden = !failed;
@@ -1353,6 +1373,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // game starts: once it has, "Import again" closes it and shows this in a new page.
   function showImport() {
     if (!hasAgreed()) { showTerms(); return; }
+    gameWindowSettled();
     $("start-overlay").hidden = true;
     $("btn-import-cancel").hidden = !hasGameFiles();
     $("page-cap").hidden = false;

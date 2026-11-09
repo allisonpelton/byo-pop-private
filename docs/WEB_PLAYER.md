@@ -173,7 +173,9 @@ need to start each game again. Games whose sets look the same share one entry na
 Big Money" (the user, 2026-11-04: entries that look the same are one entry, and differences nobody can see do not split
 one). Two sets look the same when their pointers and their hands do: laid on each other by their hot spots (or with one moved a
 pixel), the pictures are no more than two pixels apart in size and differ nowhere by more than 40 of 255 in any colour drawn over
-white and over black, and the frames match (`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The dragging cursor, the circle-slash and the
+white and over black, but for a stray few pixels up to 64 off (at most 1 in 50 of the pixels that show, and at least 2: Twist's
+hand, as the JPEG 2000 decoder gives it, has 4 of 419 pixels 47 off Alchemy's, which had kept Twist apart; the user, 2026-11-08:
+"The Twist cursor set is still shown separately from the other games in the list"), and the frames match (`setsAlike` in `web/cursors.js`, on pictures the page decodes once each). The dragging cursor, the circle-slash and the
 wait cursor are pictured but not compared: Bejeweled's dragging cursor is an open hand without the shadow, since its mask is a
 smaller image than its picture and the game, like the original, leaves a mask of another size out, and the user wants Bejeweled
 with the others ("One-line fix it is, then", 2026-11-04). The games that use PopCap's usual cursors make two entries: Atomica and
@@ -803,8 +805,15 @@ While the game starts its window is not shown, its task bar button already there
 2026-11-08: "While a game loads with a non-standard window size, it shows the standard window size as black. Hide the window
 until the game is actually loaded"): from the start until the game has made its window (onGameScreen, which every game's
 framework calls from MakeWindow) and two frames have been drawn in it, half a second where a hidden page draws none, or the game
-has ended or stopped, and never longer than 20 seconds. In the other skins the stage is hidden the same way, with the
-`progress` cursor. The game gets the focus once it is shown, unless the player has put it elsewhere meanwhile.
+has ended or stopped, and never longer than 20 seconds. It is hidden from the page's first paint too (game-loading on `<html>`
+in the page itself), and shown before the game only once the page settles on waiting for the player (the Ready, import or terms
+card), so a page that starts its game by itself (the setting "Start the game when its page opens", the game's own restart)
+never paints it at its first size first (the user, 2026-11-08: "Twist's window still briefly appear in the small size before
+loading. It then disappeared before finally reappearing when the game had started"). In Desktop 95 the window is not
+shown before the game has drawn in it at all: the setup wizard's cards (the terms, the import, Ready) stand on the desktop by
+themselves, with the window's task bar button, so pressing Play never shows the window at its first size before the game's
+(game-unmade on `<html>`). In the other skins the stage is hidden
+the same way, with the `progress` cursor. The game gets the focus once it is shown, unless the player has put it elsewhere meanwhile.
 **Full screen in Desktop 95.** The game window's maximize button, its control menu's Maximize, the Pop menu's Full screen and
 the game's own Full screen option put the game alone in full screen (the framework offers the game's request to the page first,
 `sexyapp_page_fullscreen` in framework/SexyAppBase.cpp, and the page takes it in Desktop 95 as its maximize: SDL's own full screen
@@ -819,7 +828,12 @@ Players, Saves, Music) in a window of its own, and the page's notes in another, 
 like a game page's, and kept under "index"; the games' window and the notes are open at first, the tabs' windows closed until
 their icons or a link to #settings and the like open them. The desktop never scrolls (the user, 2026-11-08: "The whole window
 shouldn't be scrollable"): every window is at most the size of the browser's window above the task bar and scrolls its own
-contents, and it is moved to fit on the screen when it opens and when the browser's window changes size. Every window has
+contents, and it is moved to fit on the screen when it opens and when the browser's window changes size. Every window but the
+game's is resized by its edges and corners, as in 1995 (the user, 2026-11-08: "Non-game windows should be resizable"): a band
+4 pixels wide inside the frame along each edge and a square at each corner, from 200 x 120 up to the room above the task bar;
+its contents scroll or reflow in it, and the size is kept with its place. Music opens 420 pixels high (600 wide, as the tabs' windows are), about a 1995 media
+player's size, with its list scrolling inside (the user, 2026-11-08: "Music window is too tall"). The game's window keeps its
+whole multiples (below). Every window has
 the 1995 frame (the user, 2026-11-08: "This border needs to be fixed"): a 2-pixel bevel as the window's own edge, 2 pixels of
 the grey face, the title bar 18 pixels high across the whole inner width, 2 more pixels of face, then the client area; where
 the window scrolls its contents (the listing's windows, About) a thin sunken edge marks the client area and its scroll bar

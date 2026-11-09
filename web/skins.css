@@ -168,6 +168,11 @@
 /* A game's window while the game makes it (web/shell.html, game-loading): not shown, its task bar button there, and the 1995
    hourglass (our own drawing) over the page */
 html.d95-desk.game-loading .stage-wrap.d95-win { visibility: hidden; }
+/* and before the game has made it at all (game-unmade): the setup wizard's card stands on the desktop by itself, so the window is
+   never painted at its first size and then again at the game's (the user, 2026-11-08: "Twist's window still briefly appear in the
+   small size before loading. It then disappeared before finally reappearing when the game had started") */
+html.d95-desk.game-unmade .stage-wrap.d95-win { visibility: hidden; }
+html.d95-desk.game-unmade:not(.game-loading) .stage-wrap.d95-win .overlay:not([hidden]) > .card { visibility: visible; }
 html.d95-desk.game-loading, html.d95-desk.game-loading * { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2226%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M10%206h12v4l-4%205v2l4%205v4H10v-4l4-5v-2l-4-5z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M12%208h8v1.5l-4%204.5-4-4.5z%22%20fill%3D%22%23000080%22%2F%3E%3Cpath%20d%3D%22M15.5%2018h1l3.5%204v2h-8v-2z%22%20fill%3D%22%23000080%22%2F%3E%3C%2Fsvg%3E") 16 16, wait !important; }
 /* B's games have no caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95 skin. I'd prefer bare initials
    for missing games, and the plain favicon otherwise."): a game whose files are here shows its exe's own icon at its size, plainly;
@@ -275,6 +280,22 @@ html.d95-desk .d95-sb-track { flex: 1 1 auto; min-height: 0; position: relative;
 html.d95-desk .d95-sb-track.d95-down { background: repeating-conic-gradient(#000000 0 25%, #808080 0 50%) 0 0 / 2px 2px; }
 html.d95-desk .d95-sb-thumb { position: absolute; left: 0; right: 0; top: 0; background: #c0c0c0; box-shadow: inset -1px -1px #000000, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff; }
 html.d95-desk .d95-win.d95-closed, html.d95-desk .d95-win.d95-min { display: none !important; }
+/* a window's edges and corners, which resize it (web/skins.js, resizable): inside its frame, over its 2 px of padding */
+.d95-rz { display: none; }
+html.d95-desk .d95-win > .d95-rz { display: block; position: absolute; z-index: 5; touch-action: none; }
+html.d95-desk .d95-win > .d95-rz-n { top: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+html.d95-desk .d95-win > .d95-rz-s { bottom: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+html.d95-desk .d95-win > .d95-rz-e { right: 0; top: 8px; bottom: 8px; width: 4px; cursor: ew-resize; }
+html.d95-desk .d95-win > .d95-rz-w { left: 0; top: 8px; bottom: 8px; width: 4px; cursor: ew-resize; }
+html.d95-desk .d95-win > .d95-rz-nw { top: 0; left: 0; width: 8px; height: 4px; cursor: nwse-resize; }
+html.d95-desk .d95-win > .d95-rz-ne { top: 0; right: 0; width: 8px; height: 4px; cursor: nesw-resize; }
+html.d95-desk .d95-win > .d95-rz-sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+html.d95-desk .d95-win > .d95-rz-se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+/* a window given a size keeps it: its contents scroll in it (a sized window's own min and max come from web/skins.js) */
+html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
+/* Music's first size, about a 1995 media player's with its list scrolling inside (the user, 2026-11-08: "Music window is too
+   tall. I can barely see it all in 4k"); never taller than the room above the task bar (web/skins.js, place) */
+html.d95-desk .d95-win[data-d95-id="tab-music"] { height: 420px; }
 html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
   padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
 html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
