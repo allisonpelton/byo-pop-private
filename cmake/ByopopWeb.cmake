@@ -50,7 +50,8 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # byopop_web_index() from the same BYOPOP_WEB_BADGES and the same titles as the listing page's tiles, so the chat keeps no list of
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
-set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js skins.css perf.js view.js controldata.js controls.js clips.js)
+# web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
+set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settingsicons.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js skins.css perf.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
@@ -89,7 +90,7 @@ set(BYOPOP_WEB_UPCOMING
 # The games whose ports load no mods yet (their pages' modsIntro says so): their pages show no Mods button (the user,
 # 2026-11-03: "Don't show a mods button for games with no mod support"; web/shell.html's MODS_SUPPORTED). A port that starts
 # loading mods leaves this list.
-set(BYOPOP_WEB_NO_MODS bonnies ningpo)
+set(BYOPOP_WEB_NO_MODS ningpo)
 # The fixes mod (docs/MOD_ROADMAP.md, "The fixes mod"; docs/WEB_PLAYER.md, "The fixes mod on the site"): a game's
 # games/<game>/mods/fixes is shipped beside its page as <game>-fixes/, and the page installs it on, unless the game is in
 # BYOPOP_WEB_NO_MODS. BYOPOP_WEB_TEST_FIXES names one game that has no fixes mod of its own to ship tools/webtest/fixes as

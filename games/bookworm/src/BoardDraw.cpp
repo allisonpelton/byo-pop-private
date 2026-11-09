@@ -184,9 +184,11 @@ void Board::DrawScore(Graphics* g)
 	{
 		// The heated overlay. Quirk: the glow (at most 0.5 here) is truncated to an int before the
 		// multiply, so the alpha is always 0 and the overlay never shows. Kept (it draws nothing).
+		// port(mod): the fixes mod's "scoreGlow" multiplies first, so the score glows as it rises
 		g->SetFont(mApp->mFonts[FONT_GOLDSCOREHEATED]);
 		double aGlow = (mScoreGlow < 0.5) ? mScoreGlow : 0.5;
-		g->SetColor(Color(255, 255, 255, (int)aGlow * 255));
+		int anAlpha = FixEnabled("scoreGlow") ? (int)(aGlow * 255.0) : (int)aGlow * 255;
+		g->SetColor(Color(255, 255, 255, anAlpha));
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		g->DrawString(aText, aX, 0x1f);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);

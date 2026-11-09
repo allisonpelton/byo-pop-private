@@ -1,0 +1,21 @@
+# tools/coverage.py's settings for Bejeweled Deluxe (docs/COVERAGE.md).
+export re/bejeweled/game/functions.jsonl
+src games/bejeweled/src
+# The game's own code, from its first function to WinDMApp's last, as re/bejeweled/game/game_region.txt lists it;
+# the rest of the exe is the framework, the C runtime and the libraries.
+game 004c9a94-004d82d2
+# Game code the port leaves out on purpose (the pilot of 2026-11-08 found these; the Bejeweled session owns this list).
+none 004d2c19-004d35b5 RegisterDialog: registration code, removed with the rest of it
+none 004d5272 WinDMApp::ShowRegisterDialog: registration code
+none 004d5386 WinDMApp::ShowRegistrationInvalidDialog: registration code
+none 004d5486 WinDMApp::ShowRegisterToRecordScoreDialog: registration code
+none 004d5cdf WinDMApp::ShowRegisterNagDialog: registration code (not ported, WinDMApp.cpp says)
+none 004d68da WinDMApp::DoUpdateCheck: the online update check, which leads out of the game
+none 004d4592 WinDMApp::URLOpenSucceeded: opening a web page, which leads out of the game
+none 004d4e97 WinDMApp::URLOpenFailed: opening a web page, which leads out of the game
+none 004d5077 WinDMApp::OpenURL: opening a web page, which leads out of the game
+none 004d43cc WinMain: the platform layer's main starts the game (src/main.cpp)
+none 004d1221 SliderListener's empty default: the framework's header has it
+none 004d1224 an empty listener default (returns 8 bytes of arguments): the framework's header has it
+none 004d2723 EditListener's default (allows every character): the framework's header has it
+none 004d298e TRect<int>::Inflate: the framework's template

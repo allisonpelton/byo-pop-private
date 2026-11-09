@@ -11,6 +11,7 @@
 
 namespace Sexy {
 
+class AudioCapture;
 class Board;
 class D3DObject;
 class Credits;
@@ -177,11 +178,16 @@ public:
 	void DialogThirdButtonDepress(int theDialogId) override;  // 0x75f94f
 	// port (tests): newgame <mode>, a new game of that mode at once, as the mode menu would start it
 	bool HandleScriptCommand(const ScriptCommand& theCommand) override;
+	// port (web): what Shutdown would write now, the game's save and the profile, for a page that goes away
+	void GetShutdownSaves(std::vector<ShutdownSave>* theSaves) override;
 	// port: the standard test commands (TestCommands.cpp, docs/TEST_COMMANDS.md): state, goto, level, unlock, set, win,
 	// lose, seed
 	bool HandleTestCommand(const ScriptCommand& theCommand);
 	std::string TestScreen();
 	void UpdateTestGoto();
+	// port (tests): -audiocapture=<file.wav>, the game's sound and music as a WAV, 1/100 s per update (AudioCapture.h)
+	std::string mAudioCaptureFileName;
+	Sexy::AudioCapture* mAudioCapture = nullptr;
 	int mTestGotoMode = -1;  // port (tests): "goto <mode>" pressed Play; the mode's button is pressed once the select opens
 	// 0x76350c: -autoplay[=classic|zen|blitz], and the original's other test switches
 	void HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override;

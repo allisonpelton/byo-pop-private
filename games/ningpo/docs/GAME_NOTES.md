@@ -69,4 +69,63 @@ played at +0x28 and the tiles left at +0x2c. The other values in the file are th
 The trial's code is in the same exe, behind `checkRegistration` (0x40edb0): the "full version only" layouts and tile
 sets refused at a new board (0x404c90), the count of games played against a maximum (the registry's `InstallFlags`),
 the loading screen's progress bar stopped at a quarter, a buy button among the controls, a register button in the
-options and a page asking to buy at exit. The port plays as registered and leaves all of it out.
+options and a page asking to buy at exit. The loading screen also carries a thanks for registering
+(`demo_menu_thanks_np.tga`), loaded and placed but never shown. The port plays as registered and leaves all of it out,
+the thanks included (the user, 2026-11-08: a thanks for registering is part of the registration code). No text of the
+game's tables is shown only to a registered copy.
+
+## Fix candidates
+
+None. The fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod") takes a bug of the original or a wait that only costs the
+player time, and both phases of the identical-play pass and a read of the game's code for the usual places found
+neither. What was checked:
+
+- Waits. The game has no timed screen: the loading screen ends with its button, the end screens and the best times
+  with a click, and loading has no wait of its own (`PGApp::loadAssets` loads everything in one go). The no-moves
+  fade and the tiles' highlights take a fraction of a second and do not hold the player.
+- The clock. Every dialog (options, rules, best times, the questions, no moves) stops the game's clock while it is
+  open, and so does losing the focus, so none of them costs the player time on the best times.
+- Dead boards. The shuffle deals again until the board has a move, so it never leaves one without; running out of
+  moves is offered as the no-moves question, by design.
+- The cheat (Backspace, q, Backspace) turns pause off while it is on. That is the cheat's own rule, not a bug.
+- The exit question shows the restart question's picture (`restart_areyousure.jpg`); the archive has no picture for
+  exit, so there is nothing of the original's to show instead, and a new picture would be new art.
+- The layouts (`.nml`) are read as strings without a terminating zero; the port gives the buffer one (a memory read
+  past the end, with no effect seen in the original), listed with the deviations.
+- The mixer has 8 voices, and a sound started while all 8 play is dropped. With the game's few, short sounds that
+  does not happen in play.
+
+## Performance (2026-11-08)
+
+The original and the port, measured back to back on this machine (Windows 11) in real time, from fresh settings, for
+the final merge (`build/slots/news.md`, 2026-11-08), by `tools/perf/perf.sh`. Before each run it waited until at most
+one other game process was running on the machine (other sessions' tests), so each was measured beside one other game
+at most. Each run is one process from its creation to its exit, sampled every 50 ms
+(`games/bejeweled/tools/profile/perfmin.py`). The play is the screen tour of the identical-play pass: the title, the
+options, the rules, the arrows, a deal, hint, show moves, pause, a loss of the focus, the cheat's 74 matches, no moves,
+the name and the best times (65 s). The processor and memory figures in the window are for 20 s to 50 s of the
+process's life, the game and the matches. The original ran under origrun on its real clock with no sound device
+(`--sound nodriver`, as in the screen tour): with origrun's sound stand-in its mixer spins from the deal on and takes
+more than a core (113 % in three runs, `IDENTICAL_PLAY.md`, "Oddities"), which is no measure of the game. The port
+ran natively under rundesk without `-fast`, with SDL's silent audio driver, so it still mixes its sounds.
+
+| | original (3 runs) | port (3 runs) |
+|---|---|---|
+| Launch to the start screen, real time | 0.82 s median (0.78 to 1.03) | 0.36 s median (0.26 to 0.58), 5 runs of their own |
+| Peak working set | 39.1 MB median (38.8 to 39.4) | 62.1 MB median (53.9 to 62.2) |
+| Peak private bytes | 21.4 MB median (21.2 to 22.9) | 54.2 MB median (52.4 to 54.5) |
+| Processor time in the window | 14.9 % of one core (13.7 to 17.2) | 6.3 % of one core (6.2 to 7.4) |
+| Processor time, whole run | 5.8 s median (5.5 to 6.2) of 62.8 s | 2.9 s median (2.8 to 4.3) of 68.7 s |
+| Threads | up to 17 (DirectDraw's and the system's) | up to 50 (SDL's and the system's) |
+
+The loading time is read from the samples the same way for both (`tools/perf/perfload.py`): Ning Po loads everything
+before its start screen takes a click and then waits for events, so the load is over at the first sample after which
+the process uses less than a tenth of a core for a second. In the tour runs the port's first readings came late on a
+busy machine (the first sample two seconds after the process started, in one run), so its loading time is taken from
+five runs that only launch and quit (`-realinput` with a quit at update 500). On the web, with `fast=1`, the start
+screen took 282 ms from `t.start()` in the tour's run (`tools/web/tour.js`); the page's loading of the game's files
+before that was not measured, since the test page reads them from the test server rather than from the player's own
+folder.
+
+The port holds about 23 MB more at its peak than the original and uses less than half its processor time. Why was
+not examined; both are for the performance pass (`docs/COORDINATION.md`).

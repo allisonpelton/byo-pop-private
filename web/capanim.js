@@ -60,6 +60,7 @@ var ByopopCapAnim = (function () {
   }
   function opener(l, width) {
     var img = document.createElement("img");
+    img.draggable = false;
     img.className = "bpa-opener";
     img.src = OPENER;
     img.alt = "";

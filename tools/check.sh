@@ -22,7 +22,8 @@
 #                (the music player's FFT against BASS 2.3's on the same tones); and soundtest (sounds kept as 16-bit at
 #                their own rate, voices against the old stereo-float pipeline); and shotdiff's selftest (tools/shotdiff:
 #                the screenshot comparison on synthetic pictures, its pages and its marks server); and geomtest
-#                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and
+#                (framework/DisplayGeometry: letterbox, render scale, window mapping and cursor, against a table); and wraptest
+#                (framework/TriangleWrap: DrawTrianglesTex's texture wrap, triangles cut at whole-number u and v); and
 #                fwtest -realinput=tools/fwtest/realinput.txt with -fast and in real time, with no game files (real SDL
 #                events through HandleEvent and the widget manager, docs/REAL_INPUT.md); and tools/fwtest/commands.sh
 #                (the live -commands channel driven as a driver drives it, with -script's dispatch and with -realinput's);
@@ -48,7 +49,8 @@
 #                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
 #                lighting, game shaders, buffers, precompiled programs, the null device), exact pixels (seconds)
 #   origrun      tools/origrun/build.sh into build/logs/check/origrun-bin (not into build/origrun-bin, whose origrun.exe
-#                may be running): that the host and its sound stand-in still compile (seconds); not in `all`
+#                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
+#                (tools/origrun/covtest.sh; seconds); not in `all`
 #   verify      Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -128,13 +130,19 @@
 #                minute)
 #   bejeweledtwist Bejeweled Twist's autoplay in 2D, seeded: a Classic game to update 5156 and a Blitz game to its
 #                end and the high scores, with the same screens as frozen, a Classic rerun, and
-#                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one (about a minute)
+#                build/baseline-bejeweledtwist/bejeweledtwist.exe's when there is one; the 3D Classic game's first
+#                level-up take-off as frozen; a Classic game left twice, its save for a page that goes away the same as
+#                a quit's, and resumed; every sound decoded as Tremor decodes it (about two minutes)
+#   bejeweled2   Bejeweled 2 Deluxe played by the port's own bot (tools/playbymove, -hold, seeded, a new player with every
+#                mode unlocked) in each of its nine modes: the transcript of every state and move, and the end screen, must be
+#                the frozen ones; an Action rerun is identical, and so are the games played by
+#                build/baseline-bejeweled2/bejeweled2.exe when there is one (two minutes, four with the baseline)
 #   astropop     AstroPop's bot through tools/playbymove (real input, -hold): a classic game from level 1, one from level 4 and a
 #                survival game, 120 moves each, and a rerun of the first with the same transcript, and
 #                build/baseline-astropop/astropop.exe's when there is one (about a minute)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist astropop; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -163,7 +171,7 @@
 #                  build-web and unit-web (seconds when only the listing page changed, but a change to web/modpanel.js,
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
 #   tools/<x>/**   shotdiff: unit. gputest: build gpu. modmenutest: modmenu. origrun: origrun. The web test scripts
-#                  (tools/*.js, paktest): unit-web. fwtest, geomtest, jp2test, songpostest, soundtest, spectrumtest, build.sh,
+#                  (tools/*.js, paktest): unit-web. fwtest, geomtest, wraptest, jp2test, songpostest, soundtest, spectrumtest, build.sh,
 #                  check.sh, rundesk: build unit. modsettingstest, jpegtest and fixtures: build unit, build-web:<test> and
 #                  unit-web. Anything else under tools/, and any file not named here: build
 #   framework/**, platform/**, third_party/**, CMakeLists.txt, the other cmake/**: without --inert, every suite, as `all`.
@@ -224,8 +232,15 @@ MJC_SHOTS="f2b7b7dc8d4e bd92440741aa 93e5cc9037c3"  # the first 12 hex digits of
 DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 BT_CLASSIC="88e59f1eea61 291f70580d89 dd8e6206d1bf 0bc138035904"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
 BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
+BT_TAKEOFF="47403df7d011 ad4911ad47f5 8897f35d0a74 663d148b1243 0248d7e39673"  # the 3D Classic game's level-up take-off at 2780, 2900, 2940, 2980 and 3020: the tube becoming the ship and the old board's cube leaving to the right and away (checked against the original on the user's desktop, 2026-11-08)
 BT_MENU="640866e0b565 da8353fcb954"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone):
 # the port only (its loader moved on to the original's hand-over, 2026-11-08), so not against the older baseline
+# Bejeweled 2 Deluxe: per mode, the first 12 hex digits of the sha256 of the bot's transcript (every state and move, tools/playbymove's
+# driver.txt without its screenshot line) and of its end screen, for the steps in BJ2_STEPS: the frozen baseline (Twilight's end screen
+# refrozen 2026-11-08 with the Hyperspace tunnel's texture wrap: that screen is in the tunnel; the transcripts did not change)
+declare -A BJ2_PLAYS=([classic]="d645dd282cee:0b21fd763248" [action]="b0fd7f27a100:950c77b82a20" [puzzle]="27f63cd9bdc5:2529e1429b25" [endless]="6430c39c792d:6c7b27839583" [twilight]="16f79f616a23:8059d707c87c" [hyper]="c621bb4ee398:fcdbbae9607a" [cognito]="223aa7e53ba1:db4f92024a35" [finity]="d1579f7fdf24:d9680fc31501" [hidden]="e131248f891b:7afbbb32f140")
+declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
+BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -234,7 +249,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist astropop)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop)
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
@@ -248,7 +263,7 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [astropop]=60 [oracle]=1080)
+	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [oracle]=1080)
 declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
@@ -336,7 +351,7 @@ classify() {  # <path>: chooses the suites a changed file needs
 				jpegtest/*)  # also built for the web, where unit-web runs it under Node (the error paths are longjmp there)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p"; pick unit-web "$AREA" "$p"
 					note build-web "$AREA" "$p"; web_add jpegtest ;;
-				fwtest/*|geomtest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh)
+				fwtest/*|geomtest/*|wraptest/*|jp2test/*|songpostest/*|soundtest/*|spectrumtest/*|rundesk/*|playbymove/*|build.sh|check.sh)
 					pick build "$AREA" "$p"; pick unit "$AREA" "$p" ;;
 				*/*) pick build "$AREA" "$p" ;;  # smoke, ghidra_scripts and the rest: nothing runs them, but a build shows a broken tree
 				*.js|*.mjs) pick unit-web "$AREA" "$p" ;;  # a11ycheck.js, chattest.js and the other web test scripts
@@ -396,7 +411,7 @@ web_est() {  # <target,target...>: sets EST_S to a rough time for building only 
 	for t in ${1//,/ }; do
 		case "$t" in
 			sexy*) libs=1 ;;
-			bejeweled|bejeweledtwist|bookwormadv|bookwormadv2) EST_S=$((EST_S + 120)) ;;
+			bejeweled|bejeweledtwist|bejeweled2|bookwormadv|bookwormadv2) EST_S=$((EST_S + 120)) ;;
 			rulestest|bejeweled_verify|modsettingstest|jpegtest) EST_S=$((EST_S + 20)) ;;
 			*) EST_S=$((EST_S + 45)) ;;
 		esac
@@ -618,6 +633,10 @@ suite_unit() {
 	# framework/DisplayGeometry (letterbox, render scale, window mapping, cursor) against a table from DDInterface's code
 	(cd build/native && timeout 60 ./geomtest.exe) > "$1.geo" 2>&1 || st=1
 	j="$(lastof "$1.geo" 'geometry: [0-9]+ cases, [0-9]+ checks, [0-9]+ failed')"
+	# framework/TriangleWrap (DrawTrianglesTex's texture wrap): every piece in one cell, the pieces cover the triangle once, u and v kept modulo 1
+	local wr
+	(cd build/native && timeout 60 ./wraptest.exe) > "$1.wrp" 2>&1 || st=1
+	wr="$(lastof "$1.wrp" 'wraptest: [0-9]+ checks, [0-9]+ failed')"
 	# -realinput (docs/REAL_INPUT.md): real SDL events pushed into SDL's queue reach fwtest's board through HandleEvent,
 	# the window mapping and the widget manager, with -fast and in real time; a line it could not play fails it too
 	local k r
@@ -649,11 +668,11 @@ suite_unit() {
 	local jp
 	(cd build/native && timeout 60 ./jpegtest.exe) > "$1.jpg" 2>&1 || st=1
 	jp="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
+	cat "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.rifast" "$1.rireal" \
+	rm -f "$1.mst" "$1.fw" "$1.ph" "$1.jp2" "$1.sp" "$1.fft" "$1.snd" "$1.sdf" "$1.geo" "$1.wrp" "$1.rifast" "$1.rireal" \
 		"$1.cmscript.log" "$1.cmscript" "$1.cmrealinput.log" "$1.cmrealinput" "$1.pm1" "$1.pm2" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $k; $l; $pm; $jp"
+	SUMMARY="$a; $b; $c; $d; $e; $f; $g; $h; $i; $j; $wr; $k; $l; $pm; $jp"
 	return $st
 }
 
@@ -727,8 +746,13 @@ suite_gpu() {
 
 suite_origrun() {  # the host and its sound stand-in compile (into a folder of this run: origrun.exe may be running)
 	ORIGRUN_OUT="$W/$OUT/origrun-bin" tools/origrun/build.sh > "$1" 2>&1
-	local st=$?
-	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile"; else SUMMARY="$(grep -m 1 -E 'error|not found' "$1" | cut -c1-160)"; fi
+	local st=$? cov="the coverage test needs build/native/rundesk.exe"
+	# --coverage from end to end on covtest.exe, a program with no window and no sound (not a game)
+	if [ $st -eq 0 ] && [ -x build/native/rundesk.exe ]; then
+		tools/origrun/covtest.sh "$W/$OUT/origrun-bin" "$W/$OUT/covtest" >> "$1" 2>&1 || st=1
+		cov="$(lastof "$1" 'coverage:')"
+	fi
+	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile; $cov"; else SUMMARY="$(grep -m 1 -E 'error|not found|FAIL' "$1" | cut -c1-160)"; fi
 	return $st
 }
 
@@ -1950,27 +1974,52 @@ suite_mahjongchina() {
 	return $st
 }
 
-twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game (-nod3d9: 3D is the default); prints its screens' hashes
+twist_game() {  # <name> <exe> <autoplay mode> <last update> <updates...>: a seeded 2D autoplay game (-nod3d9: 3D is the default; TWIST_MODE=-3d for 3D); prints its screens' hashes
 	local d="$OUT/bejeweledtwist/$1" exe="$2" mode="$3" last="$4" n
 	shift 4
 	rm -rf "$d"; mkdir -p "$d/shots" "$d/user"
 	printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/user/registry.ini"
 	{ for n in "$@"; do echo "$n screenshot $d/shots/$n.png"; done; echo "$last quit"; } > "$d/script.txt"
 	# autoplay clicks only the board and the mode select, never a link
-	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" -nod3d9 -fast -seed=1234 -autoplay="$mode" \
+	timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$d/user" "${TWIST_MODE:--nod3d9}" -fast -seed=1234 -autoplay="$mode" \
 		-script="$d/script.txt" > "$d/stdout.txt" 2> "$d/stderr.txt"
 	for n in "$@"; do sha256sum "$d/shots/$n.png" 2>/dev/null | cut -c1-12; done | paste -sd" " -
 }
 
+twist_save() {  # <exe>: a seeded Classic game left at level 3, mid-twist (1777) and at rest (2611): what a page that goes away keeps
+	# (the test command shutdownsaves, GetShutdownSaves) must be what a quit writes, and the next start goes on with the game
+	# (-userdir absolute: Twist's own names begin with the app data folder, which a relative -userdir puts inside itself)
+	local d="$OUT/bejeweledtwist/save" exe="$1" n f r=""
+	rm -rf "$d"
+	for n in 1777 2611; do
+		mkdir -p "$d/$n/user" "$d/$n/kept"
+		printf '[SOFTWARE\\Steam\\BejeweledTwist]\nScreenMode=dword:0\nArtRes=dword:768\n' > "$d/$n/user/registry.ini"
+		printf '1200 level 3\n%d shutdownsaves %s\n%d quit\n' $n "$d/$n/kept" $n > "$d/$n/script.txt"
+		timeout 300 "$exe" -gamedir=assets/bejeweledtwist -userdir="$W/$d/$n/user" -nod3d9 -fast -seed=1234 -autoplay=1 -script="$d/$n/script.txt" > "$d/$n/stdout.txt" 2>&1
+		for f in savegame_classic.dat profile.dat; do
+			cmp -s "$d/$n/kept/$f" "$d/$n/user/users/TWISTBOT/$f" || r="$r $n:$f"
+		done
+	done
+	# the game left at rest goes on from the board before its last twist, as the original's quit saves it
+	printf '300 loadgame 1\n900 state\n901 quit\n' > "$d/resume.txt"
+	timeout 120 "$exe" -gamedir=assets/bejeweledtwist -userdir="$W/$d/2611/user" -nod3d9 -fast -seed=1234 -script="$d/resume.txt" > "$d/resume.txt.out" 2>&1
+	grep -q '"screen":"game".*"mode":"classic","level":3,"score":2800,"moves":3,"progress":\[714,3300\]' "$d/resume.txt.out" || r="$r resume"
+	echo "${r:-ok}"
+}
+
 suite_bejeweledtwist() {
-	local st=0 c b r sh bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
+	local st=0 c b r m t sh sv bl="" exe="$W/build/native/bejeweledtwist.exe" base="$W/build/baseline-bejeweledtwist/bejeweledtwist.exe"
 	need_assets bejeweledtwist || return 1
 	c="$(twist_game classic "$exe" 1 5166 656 2156 3656 5156)"
 	b="$(twist_game blitz "$exe" blitz 8166 2656 5156 7156 7606 8156)"
 	r="$(twist_game classic2 "$exe" 1 5166 656 2156 3656 5156)"
 	m="$(twist_game menu "$exe" 1 170 60 160)"
-	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; } > "$1"
-	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
+	t="$(TWIST_MODE=-3d twist_game takeoff "$exe" 1 3021 2780 2900 2940 2980 3020)"
+	local dec="sounds decode as Tremor's"
+	"$W/build/native/bjt_sounddecode.exe" --compare "$W"/assets/bejeweledtwist/sounds/*.ogg > "$1.decode" 2>&1 || { dec="SOUNDS DECODE DIFFERENTLY"; st=1; }
+	sv="$(twist_save "$exe")"
+	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "3D take-off: $t"; echo "save: $sv"; } > "$1"
+	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ] && [ "$t" = "$BT_TAKEOFF" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
 	if [ -n "$c" ] && [ "$c" = "$r" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
 	# the frozen baseline (build/baseline-bejeweledtwist/, a copy of the port with its DLLs made when it was last
 	# checked against the original): the same games must give the same screens
@@ -1982,8 +2031,46 @@ suite_bejeweledtwist() {
 			bl="; BASELINE DIFFERS"; st=1
 		fi
 	fi
-	SUMMARY="the start's menu, Classic to 5156 and Blitz to its high scores, 11 screens; $r; $sh$bl"
-	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU')"
+	if [ "$sv" = ok ]; then sv="a page's save as a quit's, resumed"; else sv="SAVE DIFFERS ($sv)"; st=1; fi
+	SUMMARY="the start's menu, Classic to 5156, Blitz to its high scores and the 3D level-up's take-off, 16 screens; $r; $sh$bl; $sv; $dec"
+	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$BT_CLASSIC', blitz '$BT_BLITZ', menu '$BT_MENU', 3D take-off '$BT_TAKEOFF')"
+	return $st
+}
+
+bej2_play() {  # <name> <exe> <mode>: the port's bot plays a mode from a new player (tools/playbymove: -hold, -fast, seeded); prints "<transcript hash>:<end screen hash>"
+	local d="$OUT/bejeweled2/$1" exe="$2" mode="$3" t s
+	rm -rf "$d"; mkdir -p "$d/user"
+	python tools/playbymove/playbymove.py --dir "$W/$d" --steps "${BJ2_STEPS[$mode]}" --first "unlock all" --first "goto $mode" --timeout 120 		--shot "$W/$d/end.png" "$exe" "-gamedir=$W/assets/bejeweled2" "-userdir=$W/$d/user" -seed=1 > "$d/summary.txt" 2>&1
+	t="$(grep -v screenshot "$d/driver.txt" 2>/dev/null | sha256sum | cut -c1-12)"
+	s="$(sha256sum "$d/end.png" 2>/dev/null | cut -c1-12)"
+	echo "$t:$s"
+}
+
+suite_bejeweled2() {
+	local st=0 m g r bl="" bad="" badbase="" exe="$W/build/native/bejeweled2.exe" base="$W/build/baseline-bejeweled2/bejeweled2.exe"
+	declare -A got=()
+	need_assets bejeweled2 || return 1
+	: > "$1"
+	for m in $BJ2_MODES; do
+		got[$m]="$(bej2_play "$m" "$exe" "$m")"
+		echo "$m: ${got[$m]}" >> "$1"
+		[ "${got[$m]}" = "${BJ2_PLAYS[$m]}" ] || bad="$bad $m"
+	done
+	r="$(bej2_play action2 "$exe" action)"
+	echo "action rerun: $r" >> "$1"
+	# the frozen baseline (build/baseline-bejeweled2/, a copy of the port with its DLLs made when it was last checked against the
+	# original): the same games must give the same transcripts and screens
+	if [ -f "$base" ]; then
+		for m in $BJ2_MODES; do
+			g="$(bej2_play "base-$m" "$base" "$m")"
+			echo "baseline $m: $g" >> "$1"
+			[ "$g" = "${got[$m]}" ] || badbase="$badbase $m"
+		done
+		if [ -z "$badbase" ]; then bl="; baseline identical"; else bl="; BASELINE DIFFERS in$badbase"; st=1; fi
+	fi
+	if [ -z "$bad" ]; then g="games as frozen"; else g="GAMES CHANGED in$bad"; st=1; fi
+	if [ "$r" = "${got[action]}" ]; then r="rerun identical"; else r="RERUN DIFFERS"; st=1; fi
+	SUMMARY="the bot's games in the nine modes, $r; $g$bl"
 	return $st
 }
 

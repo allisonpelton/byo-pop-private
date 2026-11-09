@@ -1,0 +1,5 @@
+/* Bejeweled 2's look on the shared page (web/shell.html): the logo's blue, with a gem's amber for the brand mark */
+:root { --accent: #2a5db0; --gem: #e0a31c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #6fa0ec; } }
+:root[data-theme="dark"] { --accent: #6fa0ec; }
+.brand .mark { width: 12px; height: 12px; background: var(--gem); transform: rotate(45deg); box-shadow: 0 0 0 2px var(--accent); }

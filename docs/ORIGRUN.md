@@ -119,6 +119,9 @@ Options:
   it is on screen) instead of answering them in the stand-in with no window and no sound, which every run with the
   stand-in does by default (`--msgbox hook`). For a phase-two comparison that photographs a box; turn the speakers off
   for it. See "Message boxes and beeps (hooked)".
+- `--coverage <list>` — write each function of the list (from `tools/coverage.py list`) that the copy reaches to
+  `build/origrun/<run>/coverage.txt`, for the coverage check (`docs/COVERAGE.md`). On the host only, with the stand-in
+  (refused with `--sound real` and `--sandbox`). See "Coverage (`--coverage`)".
 - `--patches <file>` — a patch list to apply to the copy (see "Patching the copy"). Defaults to
   `tools/origrun/patches/<game>.txt` if present. `--no-patches` runs the copy unpatched.
 - `--seed <N>` — a value substituted for the `{seed}` token in a patch, to pin the original's RNG so its boards
@@ -191,7 +194,7 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   the same for a key, with a `keydown` at `N` and a `keyup` at `N+k`. `at` does not
   take the `hw*` commands: in the sandbox the game runs in session 0, which desktop input does not reach anyway
   (`GetCursorPos` reads 0,0 whatever `SetCursorPos` did; for a game that reads the cursor, see "The scripted cursor").
-- `mark` � reads the update counter now; `at +<N> <command...>` then waits for the counter to reach N past that value.
+- `mark` — reads the update counter now; `at +<N> <command...>` then waits for the counter to reach N past that value.
   For a counter that does not start at 0, such as an event time on the virtual clock, which starts at the real time
   (Ning Po: a `wait` to the first input, the input, `mark`, then `at +N` lines at the port's updates from there).
 - `msgbox <button> <text...>` — when a message box whose caption or text contains `<text>` appears, click the
@@ -994,6 +997,33 @@ OK with no window; the game then ran on to the script's `quit`.
 - A hooked box takes no time, where a shown one stayed up at least 300 ms before the watch clicked it, and the game's
   windows get no messages from a box's modal loop. A game that asks again until it gets another answer (a Retry box)
   asks at full speed; a `msgbox` rule that picks the way out ends it.
+
+## Coverage (`--coverage`)
+
+`--coverage <list>` records which of the original's functions a run reaches, for the coverage check
+(`docs/COVERAGE.md`; `tools/coverage.py` writes the list and reads the hits). The recorder is in the stand-in
+(`coverage.c`). As it loads, the first byte of every listed function in the exe's executable sections becomes INT3, and
+a vectored exception handler takes each such breakpoint the first time it runs: it appends the address to
+`build/origrun/<run>/coverage.txt` at once (so a run that is killed keeps what it had), puts the byte back and lets the
+function run from its first instruction. A function costs one exception at most and runs unchanged after its first
+call. Nothing in Windows is hooked: the breakpoints are in the game's own code, so this needs no OK beyond the hooks
+above. The list holds addresses as the exe's file has them; an exe that Windows moves (ASLR, which none of the originals
+uses) has them moved too, and the hits are written back at the file's addresses.
+
+The recorder sees only what runs after the stand-in loads, and a game that takes DirectSound through COM, BASS or
+`LoadLibrary` loads it only when it first wants sound, after its startup code. So for a coverage run origrun gives the
+copy's exe one more import, the stand-in's `DirectSoundCreate`, in a section of its own (`.orcov`): Windows then loads
+the stand-in with the exe's other DLLs, before the game's first instruction. The exe keeps its unpatched bytes beside
+it (`.origrun-unpatched`) and the next run puts them back, as with the patch list (`--patches`); an exe that imports
+`dsound.dll` already is left alone. The run log says what was done, and its last line gives the number of functions
+reached and whether the game ended normally (the hits file's closing line).
+
+Each line of the hits file is `<address> <order> <thread id>`, in the order the functions were first reached; lines
+that start with `#` are the recorder's own (how many functions it watched, how many listed addresses lay outside the
+exe's code and were left out, and the closing line). Limits: the exe's own functions only (not the game's DLLs, such as
+`bass.dll`); a function is reached or not, with no count of calls and no lines or branches; code that reads its own bytes
+(a checksum of the exe) would see the breakpoints; not inside Windows Sandbox yet. `tools/origrun/covtest.sh` (in
+check.sh's origrun suite) runs it on `covtest.exe`, a program with no window and no sound, built for ASLR.
 
 ## Hardware acceleration (3D mode)
 

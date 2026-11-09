@@ -1,11 +1,13 @@
 // The port's host for Bonnie's Bookstore (see BonniesHost.h): bonnies::Host over the framework and the platform layer.
 
 #include "BonniesHost.h"
+#include "ModFeatures.h"
 #include "../game/Start.h"
 #include "../engine/Host.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
+#include "WebSettings.h"
 #include "platform/Audio.h"
 #include "platform/ImageLoader.h"
 #include "platform/MusicLevels.h"
@@ -28,6 +30,17 @@ EM_ASYNC_JS(void, bonnies_sleep, (int theMs), {
 	await new Promise(function(theResolve) { (Module['bonniesSetTimeout'] || setTimeout)(theResolve, theMs); });
 });
 #endif
+
+// port (mod): the fixes mod's "steadyClock" is on (BonniesHostApp::DoMainLoop)
+static bool gSteadyClock = false;
+
+// The clock the game reads and its sleeps run to: the framework's (real time, or the updates' in a -fast run), or with
+// "steadyClock" the updates' in real time
+static uint32_t GameClock();
+// pumpEvents calls since the framework last ran: with "steadyClock" a game loop that spins on pumpEvents and the clock (the
+// engine's waitUntil when 3 ms or less are left) would wait for good, so after kSpin of them the framework runs one update
+static int gSpin = 0;
+static const int kSpin = 1000;
 
 using namespace Sexy;
 
@@ -173,7 +186,10 @@ public:
 
 	uint32_t getTicks() override
 	{
-		return gHostApp->GetClockTime();
+		// port (mod): the fixes mod's "steadyClock": the game's clock runs on the framework's updates, 10 ms each, not on
+		// the machine's, so the same seed and the same input play the same game on every run (a -fast run is steady
+		// already: its clock is the updates')
+		return GameClock();
 	}
 
 	// a test run (hidden, on rundesk's desktop) has the focus, as the user's window would, until a script's "focus 0";
@@ -219,10 +235,20 @@ public:
 	// pump runs it once
 	void pumpEvents() override
 	{
-		if ((int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100 ||
-			(gHostApp->mFastMode && (gHostApp->mScriptNoFocus ||
-			(!gHostApp->mRealInputFileName.empty() && !gHostApp->mHasFocus))))
+		// (with "steadyClock" as in a -fast run: the framework runs only in the game's sleeps, never at a moment the
+		// machine's clock picks, so the updates a frame spans stay the same)
+		bool aSteady = gHostApp->mFastMode || gSteadyClock;
+		if ((!aSteady && (int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100) ||
+			(aSteady && (gHostApp->mScriptNoFocus || (!gHostApp->mRealInputFileName.empty() && !gHostApp->mHasFocus))))
 			gHostApp->RunFramework(0);
+		else if (gSteadyClock && ++gSpin >= kSpin)
+		{
+			// (at most half a second of real time, for a framework that does not update, paused or minimized)
+			int aCount = gHostApp->mUpdateCount;
+			uint32_t aGiveUp = SDL_GetTicks() + 500;
+			while (gHostApp->mUpdateCount == aCount && !gHostApp->mShutdown && (int)(SDL_GetTicks() - aGiveUp) < 0)
+				gHostApp->RunFramework(0);
+		}
 	}
 
 	void enableKeyRepeat(int theDelay, int theInterval) override
@@ -1092,6 +1118,8 @@ void BonniesHostApp::DoMainLoop()
 	{
 		bonnies::loadLetterOdds();
 		bonnies::loadBooks();
+		gSteadyClock = !mFastMode && bonnies::FixOn("steadyClock");
+		bonnies::gSkipLogos = Byopop::SiteSkipLogos();
 		mGameRunning = true;
 		bonnies::bonniesMain();
 		mGameRunning = false;
@@ -1106,9 +1134,18 @@ void BonniesHostApp::DoMainLoop()
 	SexyAppBase::DoMainLoop();
 }
 
+static uint32_t GameClock()
+{
+	// (once the framework is shut down no update comes, so the game's last waits as it quits run on the machine's clock)
+	if (gSteadyClock && !gHostApp->mShutdown)
+		return 1000 + (uint32_t)gHostApp->mUpdateCount * (uint32_t)gHostApp->mFrameTime;
+	return gHostApp->GetClockTime();
+}
+
 void BonniesHostApp::RunFramework(int theMs)
 {
-	DWORD anEnd = GetClockTime() + (DWORD)theMs;
+	// the game's clock: with "steadyClock" a sleep lasts whole updates, so a frame of the game always spans as many
+	DWORD anEnd = GameClock() + (DWORD)theMs;
 	do
 	{
 		// the framework was shut down (a script's quit): the game is asked to quit, as the close button does
@@ -1136,7 +1173,8 @@ void BonniesHostApp::RunFramework(int theMs)
 		UpdateAppStep(nullptr);
 #endif
 		mLastFrameworkRun = GetClockTime();
-	} while ((int)(GetClockTime() - anEnd) < 0);
+		gSpin = 0;
+	} while ((int)(GameClock() - anEnd) < 0);
 }
 
 // WM_CLOSE: SDL_QUIT goes to the game, which asks or quits

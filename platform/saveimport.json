@@ -276,6 +276,23 @@
         { "from": "users/data#.usr", "to": "users/data#.usr", "what": "a player" },
         { "from": "users/datahs.usr", "to": "users/datahs.usr", "what": "the hall of fame" }
       ]
+    },
+    "bejeweled2": {
+      "folder": "Bejeweled 2 Deluxe",
+      "steam": "Bejeweled 2 Deluxe",
+      "appdata": "Bejeweled2",
+      "note": "The Steam edition keeps its players in C:\\ProgramData\\Steam\\Bejeweled2 (choose that folder) and its settings under HKEY_CURRENT_USER\\Software\\Steam\\Bejeweled2, the key this port reads too; a copy that keeps its settings elsewhere only brings its players and scores.",
+      "registry": {
+        "key": "Steam\\Bejeweled2",
+        "hives": ["hkcu", "vs", "hklm"],
+        "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "LastProfileName=sz", "HighResolution=dword", "AlwaysUpdate=dword", "GameMode=dword", "ModeSeconds#=dword"]
+      },
+      "files": [
+        { "from": "users/hiscores.dat", "to": "users/hiscores.dat", "what": "the high scores" },
+        { "from": "users/*/profile.dat", "to": "users/*/profile.dat", "what": "a player" },
+        { "from": "users/*/*.sav", "to": "users/*/*.sav", "what": "a player's games in progress, one for each mode" }
+      ]
     }
   }
 }

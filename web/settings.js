@@ -210,45 +210,52 @@ var ByopopSettings = (function () {
     accel3dSupport = !context(undefined) ? "none" : context({ failIfMajorPerformanceCaveat: true }) ? "hardware" : "software";
     return accel3dSupport;
   }
+  // The settings in their sections (the user, 2026-11-08: "Settings should be split into sections with icons so the window
+  // isn't so massive"): each section a handful of settings under a plain name, shown one at a time behind a row of icon
+  // tabs, and in Desktop 95 each its own small window opened from the Settings folder's icons (web/skins.js).
   var FIELDS = [
-    { group: T("settings.group.players") },
+    { section: "players" },
     { name: "profile", label: T("settings.profile.label"), options: [["game", GAME_DEFAULT], ["fill", T("settings.profile.fill")], ["create", T("settings.profile.create")]], start: true,
       hint: T("settings.profile.hint") },
-    { group: T("settings.group.sound") },
+    { section: "sound" },
     { name: "startVolume", kind: "volume", label: T("settings.startvolume.label"),
       hint: T("settings.startvolume.hint"),
       help: T("settings.startvolume.help") },
-    { group: T("settings.group.display") },
+    { section: "look" },
     { name: "skin", label: T("settings.skin.label"), options: [["plain", T("skin.plain")], ["demo", T("skin.demo")], ["d95", T("skin.d95")], ["soda", T("skin.soda")]],
       hint: T("settings.skin.hint") },
     { name: "ambient", label: T("settings.ambient.label"), hint: T("settings.ambient.hint") },
-    { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
       hint: T("settings.scanlines.hint") },
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
       ["sepia", T("settings.colorfilter.sepia")], ["warm", T("settings.colorfilter.warm")], ["contrast", T("settings.colorfilter.contrast")], ["vivid", T("settings.colorfilter.vivid")]],
       hint: T("settings.colorfilter.hint") },
+    { section: "overlays" },
+    { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
     { name: "runTimer", label: T("settings.runtimer.label"), hint: T("settings.runtimer.hint") },
     { name: "inputDisplay", label: T("settings.inputdisplay.label"), hint: T("settings.inputdisplay.hint") },
+    { name: "clips", label: T("settings.clips.label"), hint: T("settings.clips.hint") },
+    { section: "input" },
     { name: "touchKeys", label: T("settings.touchkeys.label"), options: [["auto", T("settings.touchkeys.auto")], ["on", T("settings.on")], ["off", T("settings.off")]],
       hint: T("settings.touchkeys.hint") },
     { name: "gamepad", label: T("settings.gamepad.label"), hint: T("settings.gamepad.hint") },
-    { name: "clips", label: T("settings.clips.label"), hint: T("settings.clips.hint") },
-    { name: "skipLogos", label: T("settings.skiplogos.label"), start: true, hint: T("settings.skiplogos.hint") },
-    { name: "skipTutorials", label: T("settings.skiptutorials.label"), hint: T("settings.skiptutorials.hint") },
-    { name: "speed", label: T("settings.speed.label"), options: [["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
-      ["1.25", "1¼×"], ["1.5", "1½×"], ["2", "2×"]], hint: T("settings.speed.hint") },
-    { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
-      hint: T("settings.fullscreen.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],
       hint: T("settings.cursors.hint") },
+    { section: "start" },
+    { name: "autoStart", label: T("settings.autostart.label"),
+      hint: T("settings.autostart.hint") },
+    { name: "skipLogos", label: T("settings.skiplogos.label"), start: true, hint: T("settings.skiplogos.hint") },
+    { name: "skipTutorials", label: T("settings.skiptutorials.label"), hint: T("settings.skiptutorials.hint") },
+    { name: "fullscreen", label: T("settings.fullscreen.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.fullscreen.on")], ["off", T("settings.fullscreen.off")]], start: true,
+      hint: T("settings.fullscreen.hint") },
+    { section: "game" },
+    { name: "speed", label: T("settings.speed.label"), options: [["0.5", "½×"], ["0.75", "¾×"], ["1", T("settings.speed.normal")],
+      ["1.25", "1¼×"], ["1.5", "1½×"], ["2", "2×"]], hint: T("settings.speed.hint") },
     { name: "accel3d", label: T("settings.accel3d.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.accel3d.on")], ["off", T("settings.accel3d.off")]], start: true,
       games: ACCEL3D_GAMES, hint: T("settings.accel3d.hint"), help: T("settings.accel3d.help") },
     { name: "pixelPerfect", label: T("settings.pixelperfect.label"),
       hint: T("settings.pixelperfect.hint") },
-    { group: T("settings.group.page") },
-    { name: "autoStart", label: T("settings.autostart.label"),
-      hint: T("settings.autostart.hint") },
+    { section: "page" },
     { name: "wakeLock", label: T("settings.wakelock.label"),
       hint: T("settings.wakelock.hint") },
     { name: "confirmLeave", label: T("settings.confirmleave.label"),
@@ -257,16 +264,29 @@ var ByopopSettings = (function () {
       hint: T("settings.pausehidden.hint") },
     { name: "quitHome", label: T("settings.quithome.label"),
       hint: T("settings.quithome.hint") },
+    { section: "chat" },
     { name: "showChat", label: T("settings.showchat.label"),
       hint: T("settings.showchat.hint") },
     { name: "chatPlace", label: T("settings.chatplace.label"), options: [["edge", T("settings.chatplace.edge")], ["game", T("settings.chatplace.game")]],
       hint: T("settings.chatplace.hint") }
   ];
+  var SECTIONS = FIELDS.filter(function (f) { return f.section; }).map(function (f) { return f.section; });
   var STYLE =
     ".bps { display: grid; gap: 8px; }\n" +
     ".bps p { margin: 0; }\n" +
     ".bps-about, .bps-hint, .bps-msg { color: var(--muted); font-size: 13px; }\n" +
     ".bps-group { margin: 12px 0 0; font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }\n" +
+    // the sections' tabs: a row of small icons with their names, the shown one filled in; one section at a time
+    ".bps-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 0 8px; border-bottom: 1px solid var(--line); }\n" +
+    ".bps-tab { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 1px solid var(--line); border-radius: 8px;\n" +
+    "  background: transparent; color: var(--fg); font: inherit; font-size: 13px; cursor: pointer; }\n" +
+    ".bps-tab:hover { border-color: var(--accent); }\n" +
+    ".bps-tab[aria-selected=true] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg, #fff); }\n" +
+    ".bps-tab-pic, .bps-tab-pic svg { display: block; width: 16px; height: 16px; }\n" +
+    ".bps-sec { display: grid; gap: 8px; }\n" +
+    ".bps-sec[hidden] { display: none; }\n" +
+    ".bps-sec > .bps-group { margin-top: 2px; }\n" +
+    ".bps-folder { display: none; }\n" +
     ".bps-scope { margin: 0; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; display: flex; flex-wrap: wrap; gap: 4px 18px; }\n" +
     ".bps-scope legend { padding: 0 6px; font-size: 13px; font-weight: 600; }\n" +
     ".bps-scope label { display: flex; align-items: center; gap: 6px; cursor: pointer; }\n" +
@@ -420,6 +440,79 @@ var ByopopSettings = (function () {
     }
 
     var scopeNote = null;
+    // the sections: a row of icon tabs above them, one shown at a time; and, for Desktop 95's desktop, the folder of their
+    // icons (shown only there, web/skins.css), whose icon opens the section's own window (opts.openSection)
+    var tabs = make("div", "bps-tabs"), folder = make("div", "bps-folder"), sections = [], sectionOf = {}, target = container;
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-label", T("settings.sections"));
+    folder.setAttribute("role", "group");
+    folder.setAttribute("aria-label", T("settings.sections"));
+    var tabBase = "bps-" + (++idCount);
+    SECTIONS.forEach(function (id) {
+      var name = T("settings.section." + id), icons = window.ByopopSettingsIcons && ByopopSettingsIcons[id];
+      var tab = make("button", "bps-tab"), sec = make("section", "bps-sec");
+      tab.type = "button"; tab.id = tabBase + "-tab-" + id;
+      tab.setAttribute("role", "tab"); tab.setAttribute("aria-controls", tabBase + "-" + id);
+      var pic = make("span", "bps-tab-pic");
+      pic.setAttribute("aria-hidden", "true");
+      if (icons) pic.innerHTML = icons.small;
+      tab.appendChild(pic); tab.appendChild(make("span", "bps-tab-name", name));
+      tab.addEventListener("click", function () { select(id, false); });
+      tabs.appendChild(tab);
+      sec.id = tabBase + "-" + id;
+      sec.setAttribute("role", "tabpanel"); sec.setAttribute("aria-labelledby", tab.id);
+      sec.setAttribute("data-section", id);
+      sec.appendChild(make("h3", "bps-group", name));
+      // its icon in the folder: a click selects it, a double click, Enter or Space opens its window
+      var ic = make("button", "bps-icon");
+      ic.type = "button";
+      ic.setAttribute("aria-label", T("settings.section.open", { name: name }));
+      var big = make("span", "bps-icon-pic");
+      big.setAttribute("aria-hidden", "true");
+      if (icons) big.innerHTML = icons.big;
+      ic.appendChild(big); ic.appendChild(make("span", "bps-icon-name", name));
+      function open() { if (opts.openSection) opts.openSection(id); }
+      ic.addEventListener("dblclick", open);
+      ic.addEventListener("click", function (ev) { if (ev.detail === 0) open(); });
+      folder.appendChild(ic);
+      var rec = { id: id, name: name, tab: tab, el: sec, icon: ic, small: icons ? icons.small : "", big: icons ? icons.big : "" };
+      sections.push(rec); sectionOf[id] = rec;
+    });
+    // the tabs from the keyboard: the arrows, Home and End move and show (one tab stop for the row)
+    tabs.addEventListener("keydown", function (ev) {
+      var i = sections.map(function (r) { return r.tab; }).indexOf(document.activeElement), n = sections.length, j = -1;
+      if (i < 0) return;
+      if (ev.key === "ArrowRight" || ev.key === "ArrowDown") j = (i + 1) % n;
+      else if (ev.key === "ArrowLeft" || ev.key === "ArrowUp") j = (i - 1 + n) % n;
+      else if (ev.key === "Home") j = 0;
+      else if (ev.key === "End") j = n - 1;
+      if (j < 0) return;
+      ev.preventDefault();
+      select(sections[j].id, true);
+    });
+    // the folder's icons from the keyboard: the arrows move between them
+    folder.addEventListener("keydown", function (ev) {
+      var list = sections.map(function (r) { return r.icon; }), i = list.indexOf(document.activeElement);
+      if (i < 0) return;
+      var j = ev.key === "ArrowRight" || ev.key === "ArrowDown" ? Math.min(list.length - 1, i + 1) : ev.key === "ArrowLeft" || ev.key === "ArrowUp" ? Math.max(0, i - 1)
+        : ev.key === "Home" ? 0 : ev.key === "End" ? list.length - 1 : -1;
+      if (j < 0) return;
+      ev.preventDefault(); list[j].focus();
+    });
+    var current = null;
+    function select(id, focus) {
+      if (!sectionOf[id]) return;
+      current = id;
+      sections.forEach(function (r) {
+        var on = r.id === id;
+        r.tab.setAttribute("aria-selected", on ? "true" : "false");
+        r.tab.tabIndex = on ? 0 : -1;
+        r.el.hidden = !on;
+      });
+      if (focus) sectionOf[id].tab.focus();
+      if (opts.onSection) try { opts.onSection(id); } catch (e) {}
+    }
+
     if (gameId) {
       var fs = make("fieldset", "bps-scope");
       fs.appendChild(make("legend", "", T("settings.scope.legend")));
@@ -581,11 +674,13 @@ var ByopopSettings = (function () {
       row.appendChild(line); row.appendChild(ctl); row.appendChild(pop); row.appendChild(hint); row.appendChild(c.group);
       wireHelp(help, pop, row);
       controls[f.name] = c;
-      container.appendChild(row);
+      target.appendChild(row);
     }
 
+    container.appendChild(tabs);
+    container.appendChild(folder);
     FIELDS.forEach(function (f) {
-      if (f.group) { container.appendChild(make("h3", "bps-group", f.group)); return; }
+      if (f.section) { target = sectionOf[f.section].el; container.appendChild(target); return; }
       if (f.kind === "volume") { buildVolume(f); return; }
       // a setting only some games read is left out of the other games' pages
       if (f.games && gameId && f.games.indexOf(gameId) < 0) return;
@@ -657,7 +752,7 @@ var ByopopSettings = (function () {
         row.appendChild(support);
         c.select.setAttribute("aria-describedby", c.select.getAttribute("aria-describedby") + " " + support.id);
       }
-      container.appendChild(row);
+      target.appendChild(row);
       if (f.name === "profile" && opts.playerNote) {
         var note = make("p", "bps-hint");
         note.setAttribute("data-player-note", "1");
@@ -675,6 +770,9 @@ var ByopopSettings = (function () {
     });
     container.appendChild(msg);
     container.appendChild(err);
+    // a part of the page's own put into a section (the site's mouse pointer, web/cursors.js, into Input)
+    if (opts.extra) Object.keys(opts.extra).forEach(function (id) { if (sectionOf[id] && opts.extra[id]) sectionOf[id].el.appendChild(opts.extra[id]); });
+    select(opts.section && sectionOf[opts.section] ? opts.section : SECTIONS[0], false);
     // how many settings this game has a value of its own for (the starting volume is one)
     function ownCount() {
       return overrides(gameId).filter(function (n) { return n !== "startMusic" && n !== "startSound"; }).length;
@@ -694,7 +792,7 @@ var ByopopSettings = (function () {
     refresh();
     // another tab changed them (the listing page, while a game runs here)
     window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null || ev.key === "byopop-profiles") refresh(); });
-    return { refresh: refresh };
+    return { refresh: refresh, sections: sections, select: select, current: function () { return current; } };
   }
 
   // The player's favourite games (the user, 2026-11-08: "User should be able to save some games as their favorites"): the field

@@ -139,6 +139,9 @@ public:
 	void					Draw(Graphics* g);      // the tag of the hint the selection shows
 	const SolverWord*		ShownHint() const;      // that hint, null when the selection is none
 	static bool				BoardAtRest(Board* theBoard);
+	// port: the first hint the solver would give for theBoard as it is (the standard test command "move",
+	// testhooks/Commands.cpp); false when the board spells no word. Changes nothing.
+	static bool				FirstHint(Board* theBoard, SolverWord* theHint);
 	// The mod "widescreen"'s side panel lists mHints: made again once the board rests after a change, and a
 	// click on one selects it (Tab then goes on from it)
 	bool					IsCurrent() const;      // mHints were made for the board as it is

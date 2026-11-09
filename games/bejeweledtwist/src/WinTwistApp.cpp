@@ -67,6 +67,7 @@ EM_JS(int, bjt_webgl2_support, (), {
 #include "Widget.h"
 #include "WidgetManager.h"
 #include "X86Math.h"
+#include "AudioCapture.h"
 
 #include <SDL.h>
 
@@ -159,6 +160,7 @@ WinTwistApp::WinTwistApp()
 
 WinTwistApp::~WinTwistApp()
 {
+	delete mAudioCapture;   // port (tests): -audiocapture
 	if (mLoaderScreen != nullptr) {
 		mWidgetManager->RemoveWidget(mLoaderScreen);
 		delete mLoaderScreen;
@@ -401,6 +403,8 @@ void WinTwistApp::CreateMainMenu()
 
 void WinTwistApp::Shutdown()
 {
+	if (mAudioCapture != nullptr)
+		mAudioCapture->Finish();   // port (tests): the mixer's lock released before the audio device closes
 	if (mShutdown)
 		return;
 	// port: the original first ends a background thread (+0x8e0) and adds the session's minutes to the time played
@@ -962,6 +966,11 @@ void WinTwistApp::UpdateFrames()
 		mCredits = nullptr;
 	}
 	SexyApp::UpdateFrames();
+	// port (tests): -audiocapture
+	if (!mAudioCaptureFileName.empty() && mAudioCapture == nullptr)
+		mAudioCapture = new AudioCapture(mAudioCaptureFileName);
+	if (mAudioCapture != nullptr)
+		mAudioCapture->Update();
 	if (mTestGotoMode != -1)
 		UpdateTestGoto();
 	// The tracked sounds: the ended ones are released, the others follow mSfxVolumeScale
@@ -1205,7 +1214,46 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		mAutoPlayMode = -1;
 		return true;
 	}
+	// "shutdownsaves <dir>" writes what a page going away would keep (GetShutdownSaves), each file by its own name into
+	// <dir>, so a test can compare it with what a quit writes
+	if (theCommand.mCommand == "shutdownsaves") {
+		std::vector<ShutdownSave> aSaves;
+		GetShutdownSaves(&aSaves);
+		std::string aNames;
+		for (const ShutdownSave& aSave : aSaves) {
+			size_t aSlash = aSave.mFileName.find_last_of("\\/");
+			std::string aName = aSave.mFileName.substr(aSlash == std::string::npos ? 0 : aSlash + 1);
+			FILE* aFile = fopen((theCommand.mArgs + "/" + aName).c_str(), "wb");
+			if (aFile != nullptr) {
+				fwrite(aSave.mData.data(), 1, aSave.mData.size(), aFile);
+				fclose(aFile);
+			}
+			aNames += " " + aName;
+		}
+		SDL_Log("SHUTDOWNSAVES%s", aNames.c_str());
+		return true;
+	}
 	return HandleTestCommand(theCommand);
+}
+
+void WinTwistApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
+{
+	// as Shutdown: a board it removes saves its game (Board::RemovedFromManager), then the profile is saved. The names go
+	// relative to the user directory, as the hook takes them: the app's own begin with GetAppDataFolder(), which on the web
+	// is the user directory's absolute path, and the backup leaves out a name outside "userdata/"
+	std::string aFolder = GetAppDataFolder();
+	auto Relative = [&](const std::string& theName) {
+		return theName.compare(0, aFolder.size(), aFolder) == 0 ? theName.substr(aFolder.size()) : theName;
+	};
+	Buffer aBuffer;
+	int aMode = 0;
+	if (mBoard != nullptr && mBoard->CanSaveOnQuit() && mBoard->GetQuitSave(&aBuffer, &aMode))
+		theSaves->push_back({Relative(GetSaveName(aMode, mBoard->mUnknown2674)),
+							 std::string((const char*)aBuffer.GetDataPtr(), (size_t)aBuffer.GetDataLen())});
+	Buffer aProfile;
+	std::string aPath;
+	if (mProfile != nullptr && mProfile->GetSaveData(&aPath, &aProfile))
+		theSaves->push_back({Relative(aPath), std::string((const char*)aProfile.GetDataPtr(), (size_t)aProfile.GetDataLen())});
 }
 
 void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
@@ -1214,6 +1262,10 @@ void WinTwistApp::HandleCmdLineParam(const std::string& theParamName, const std:
 	if (theParamName == "-3d") {
 		mUse3D = true;
 		mUse3DSwitch = 1;
+		return;
+	}
+	if (theParamName == "-audiocapture") {
+		mAudioCaptureFileName = theParamValue;
 		return;
 	}
 	if (theParamName == "-nod3d9" || theParamName == "-noacceleration") {

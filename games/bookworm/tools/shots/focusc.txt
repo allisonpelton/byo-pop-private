@@ -1,0 +1,87 @@
+# focus in Classic: classic.txt to its tenth word, the window losing and regaining the focus in play
+32 click 360 401
+66 text Autoplay Bot
+66 key RETURN
+115 click 526 99
+195 click 359 443
+315 click 558 141
+330 click 556 88
+338 click 483 68
+353 click 440 107
+361 click 369 131
+372 click 440 160
+378 click 477 139
+389 click 485 125
+500 click 368 360
+505 click 375 309
+517 click 323 336
+525 click 308 311
+591 click 370 227
+595 click 420 200
+605 click 442 255
+618 click 481 299
+627 click 424 322
+637 click 373 340
+650 click 439 373
+662 click 378 401
+669 click 313 451
+677 click 61 120
+1055 screenshot classic-levelup1
+1118 click 417 410
+1141 click 542 107
+1155 click 555 147
+1161 click 616 168
+1173 click 599 237
+1183 click 605 307
+1188 click 593 361
+1194 click 590 346
+1267 screenshot dialog1-bonustile
+1267 click 449 247
+1350 click 424 107
+1354 click 500 134
+1365 click 489 195
+1374 click 534 202
+1388 click 547 266
+1399 click 598 306
+1409 click 138 119
+1502 click 382 82
+1514 click 320 90
+1525 click 248 117
+1537 click 255 129
+1635 click 483 132
+1650 click 445 149
+1660 click 483 168
+1669 click 482 195
+1778 down 553 106
+1779 move 567 117
+1783 move 598 116
+1787 move 605 169
+1793 move 536 214
+1799 move 490 178
+1801 move 461 194
+1804 move 425 197
+1808 move 375 234
+1814 move 422 279
+1818 up 437 277
+2196 screenshot classic-levelup2
+2244 click 368 425
+2294 click 362 350
+2305 click 320 333
+2317 click 259 285
+2342 click 160 116
+2396 click 615 171
+2403 click 605 124
+2407 click 555 94
+2415 click 534 92
+2416 screenshot classic-word10
+2522 click 332 90
+2528 click 304 146
+2540 click 258 192
+2440 focus lose
+2445 screenshot fc-lost
+2480 screenshot fc-lost-later
+2490 focus regain
+2495 screenshot fc-back
+2515 screenshot fc-back-later
+2600 screenshot fc-after
+2650 quit

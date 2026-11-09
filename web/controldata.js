@@ -46,6 +46,15 @@ var ByopopControlData = {
     { does: "Pause or resume", how: "Press any key" }
   ],
 
+  // src/BoardInput.cpp Board::MouseDown (a click, a right click, a click while the game is paused), Board::MouseDrag; the board's
+  // Board::KeyChar (src/BoardCheats.cpp) takes only typed cheat words
+  bejeweled2: [
+    { does: "Swap two gems", how: "Click a gem, then one next to it" },
+    { does: "Swap by dragging", how: "Drag a gem onto a neighbour" },
+    { does: "Let go of the gem you picked", how: "Right click" },
+    { does: "Resume a paused game", how: "Click" }
+  ],
+
   // src/BoardTwist.cpp Board::KeyDown (Pause/Escape, Return/Space, arrows), Board::MouseDown
   bejeweledtwist: [
     { does: "Twist four gems", how: "Click between four gems" },
