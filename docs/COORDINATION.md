@@ -299,7 +299,14 @@ were fixed (34e6da1, a6547b9). The chat
   still done when asked. Desktop 95's pixelated text waits for a pixel font drawn for the project (the user, 2026-11-08: "Draw our own
   later"): every Windows install still has the bitmap MS Sans Serif (`sserife.fon`), but browsers draw only TrueType and
   OpenType, so the skin's "MS Sans Serif" comes out as the smooth Microsoft Sans Serif, and Microsoft's font itself is
-  never shipped.
+  never shipped. New site work is built and checked in Desktop 95 only, and the other skins only have to keep working (the
+  user, 2026-11-09: "I've basically completely lost interest in the skins that aren't Windows 95. Don't need to remove
+  the other ones yet"). An XP look, and perhaps Vista's, waits until the site works as the user wants it (the user,
+  2026-11-09: "it would be once all the site functionality is exactly as I want it"): each a second style of the same
+  desktop, as XP's own Display settings offered the XP style or the Classic one for the same windows. The desktop's
+  behaviour is first parted from the 95 look (the code tests for "d95" where it means the desktop), then each style
+  is its own paint, controls and icons of our own drawing; Vista's glass is measured against the frame time of games in
+  other windows. The coordinator's guess on 2026-11-09: $30-60 for the parting, $100-150 for XP, $150-200 for Vista.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays
