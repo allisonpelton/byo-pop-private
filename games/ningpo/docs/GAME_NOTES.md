@@ -129,3 +129,73 @@ folder.
 
 The port holds about 23 MB more at its peak than the original and uses less than half its processor time. Why was
 not examined; both are for the performance pass (`docs/COORDINATION.md`).
+
+## Coverage check (2026-11-08)
+
+The first whole coverage check of a game (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's
+functions ran, in seven runs on the host (`tools/coverage/run.sh`, the hits in `build/coverage/ningpo/hits/`):
+
+- the four identical-play cases (cheat7, won39, mouse23, layouts), on the virtual clock with no sound device, each
+  about 900 functions;
+- the screen tour on the real clock with the silent sound stand-in, so that the mixer's code runs (904);
+- two short runs (`tools/coverage/extra1.txt`, `extra2.txt`): a tile selected and then a hint (`isVisible`), the
+  right click that drops the selection, the options' autohint, the best times' next and previous and their clear
+  question answered no and then yes, and closing the window from play and from the title (925 and 822).
+
+Every run but the tour ended with the game exiting normally; the tour ends at origrun's timeout. Closing the window
+ends the original at once, from the title and from play: it asks no question.
+
+`games/ningpo/coverage.txt` sets the game's own code as three ranges: the game and Pyrogon's PG framework
+(0x401010-0x417b10), the H layer (0x422b10-0x428fb0) and the window procedure (0x433290). The rest of the exe is the C
+runtime, Lua 4, the Ogg Vorbis decoder, minizip and zlib, and the IJG JPEG library. The game's own code has 815
+functions, and the runs reached 574 of them.
+
+**Reached in the original with no counterpart in the port: 272 at first, 1 at the end.**
+
+- **The tool: 32.** `tools/coverage.py` did not count a constructor or destructor declared in its class, a
+  declaration over several lines, or a declaration with a default argument or an inline body. The spec went to the
+  coordinator, who fixed it on main (9d12ecc5).
+- **Placed: 54.** Functions the port translates inline or in another shape (the loaders' small objects, the
+  registry's key, the display's teardown, the PyTime helpers, the six title arrows' click handlers) got their address
+  in the comment above the function that holds them. These were comment edits only, and play is unchanged:
+  `tools/check.sh ningpo` still matches the frozen baseline.
+- **Left out on purpose: 185, as `none` lines in coverage.txt, each with its reason** (beside the three it started with: `WinMain` and the two registration checks). The mechanisms the port does
+  another way: the cvars kept in a Lua table, the framework's object list and its stack of open dialogs, the
+  command line parsed into cvars, and the H layer's window, DirectSound mixer and streams, DirectInput device and ZIP
+  reader, which the host and the platform replace. Also the trial's code (the count of games played, and the big
+  numbers of the registration key's check), the sprite cursor (Ning Po's is empty), and what the compiler makes on
+  its own (implicit destructors, vector constructor iterators, stubs).
+- **No missing game logic was found.**
+- **One stays open.** 0x40e840 is a 7-byte getter of the field at +0x410 of the object whose constructor is
+  0x40e300 (vtable 0x463144, an HObject). It is reached only through that vtable, and which port class it belongs to
+  was not found.
+
+**Defined in the port, never reached: 28 at first.** The extra runs reached four of them: the right click, the hint's
+`isVisible`, the question dialog's setup and the best times' `fillRows`. Of the rest:
+
+- **Read again against the export.** `drawFaded` and `drawNoMatch` are reached only by a hint for a selected tile
+  that has no free match. They match the export, including the alpha's scale of 255 (the constant at 0x462384).
+  `toggleFullscreen` was not run, since the original would change the machine's display mode; the port's version is
+  its own (the host switches the window, a listed deviation).
+- **Code only an error reaches, which stays.** `PGAlert`.
+- **Candidates for taking out unneeded code: 22.** No play of the original reaches these, and they were not removed
+  now:
+  - `NingPo::~NingPo`: the original exits without running its global's destructor; the port needs its own.
+  - The dialog items' default virtuals that nothing calls: `draw`, `canFocus` (twice), `getName`, `getUserData` and
+    `setUserData`, and two more at 0x412580 and 0x412900.
+  - `PGApp::removeControl`.
+  - `PGSprite::create` from an image, and `PGSprite::clone` with `HDisplay::copySurface`.
+  - The framework message dialog's timeout.
+  - `PGRandom::nextFloat`.
+  - The registry function 0x4136d0.
+  - `HCvarManager::setVariableString`, called only by the registration check.
+  - `HDisplay`'s draw of a surface at a point (0x4231f0, 0x423000 and 0x423140), its `setBlendFlag` and `clear`.
+  - The PNG loader (0x428590, 0x428070): the archive holds no PNG.
+
+**Never reached and not defined in the port: 213.** These are mostly the trial's code, the framework's trace,
+journal, demo and DirectInput code, and parts of the H layer the game never calls. None looked like something the
+runs should have reached.
+
+**What it cost.** The seven runs took about 15 minutes of machine time, one game process at a time. One Sonnet agent
+placed and sorted the 253 functions in 7.5 minutes and 178,000 tokens. This session read the export, wrote the runs
+and checked the agent's work over about two hours; its own tokens were not counted.

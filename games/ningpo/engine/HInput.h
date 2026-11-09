@@ -39,6 +39,7 @@ private:
 
 // The input the host posts to (0x413d24: the app's)
 HInput* GetInput();
+// 0x413d1a
 void SetInput(HInput* theInput);
 
 } // namespace pg

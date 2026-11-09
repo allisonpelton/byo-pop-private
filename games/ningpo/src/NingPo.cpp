@@ -72,6 +72,7 @@ static const uint32_t DEFAULT_NAMES[NUM_BEST_TIMES] =
 #define NOBODY GT(0x467a24)
 
 // 0x4010a0
+// 0x409e60 BestTime constructor (the best times set to "nobody")
 NingPo::NingPo()
 {
 	gNingPo = this;
@@ -838,6 +839,7 @@ void NingPo::toTitle(bool theAsk)
 }
 
 // 0x404c90: a new board (the trial refused its last layouts and tile sets here)
+// 0x402c20 (slot 0xcc) clears the time paused
 bool NingPo::newGame()
 {
 	restartMusic();
@@ -1181,6 +1183,7 @@ void NingPo::setPaused(bool thePaused)
 }
 
 // 0x407f10
+// 0x409e60 BestTime constructor
 void NingPo::resetBestTimes(int theLayout)
 {
 	BestTime* aTime = mBestTimes[theLayout];

@@ -53,8 +53,10 @@ class HRegistry
 {
 public:
 	// 0x4134b0 (slot 0)
+	// 0x413400 makes the key
 	bool open(const char* theCompany, const char* theProduct) { (void)theCompany; (void)theProduct; return true; }
 	// 0x413510 (slot 4)
+	// 0x413490 closes the key
 	bool close() { return true; }
 	// 0x413640 (slot 8): a string value
 	bool readString(const char* theName, char* theBuf, int theSize);
@@ -119,10 +121,14 @@ public:
 	// slot 0x24: true keeps the loop going without events; false (Ning Po's, 0x405c60) waits for them
 	virtual bool isRealtime() { return true; }
 	// slot 0x30 (0x40e040 PGApp::init)
+	// 0x40dfb0 PGApp::registerCvars is part of init (the cvars it registers)
 	virtual bool init(const char* theCmdLine, const char* theResourceDir);
 	// slot 0x34 (0x40e430 PGApp::shutdown)
+	// 0x40dbd0 and 0x423600 free the display, 0x40dc40 the input, 0x40e6f0 the audio stream, 0x4240c0 the display's destructor
+	// 0x40dd30 shut the sound
 	virtual void shutdown();
 	// slot 0x38 (0x40e4f0): the controls, the archive and the cvars freed
+	// 0x40e990 deletes the controls
 	virtual void cleanup();
 	// slot 0x5c: true quits
 	virtual bool handleEvent(const PGEvent* theEvent) = 0;
@@ -144,12 +150,14 @@ public:
 	// 0x40dea0 PGApp::invalidateAll
 	void invalidateAll();
 	// 0x40ded0 PGApp::renderDirty
+	// 0x427d00 (slot 0x70) does nothing
 	void renderDirty(bool theUnderDialog);
 	// 0x40df50 PGApp::canDraw (slot 0x6c)
 	bool canDraw() const;
 	// 0x40df70 PGApp::endFrame: the display flipped and the dirty rectangles forgotten
 	void endFrame();
 	// 0x40ed70 PGApp::presentDirty (slot 0x10): the sprite cursor drawn in each dirty rectangle; port: none
+	// port: the original drew its sprite cursor here (left out, coverage.txt)
 	void presentDirty() {}
 
 	// 0x40e940 (slot 0x54)
@@ -160,6 +168,7 @@ public:
 	// 0x40d690 PGApp::getTime (slot 0xc8): the time spent paused, the pause going on included
 	PyTime getTime() const;
 	// 0x40d710 PGApp::beginPause (slot 0xc0)
+	// 0x40d43b (the HNop test shared with endPause)
 	void beginPause();
 	// 0x40d770 PGApp::endPause (slot 0xc4)
 	void endPause();
@@ -167,10 +176,13 @@ public:
 	bool isPaused() const { return mPauseCount > 0; }
 
 	// 0x40e350 (slot 0xb8): the archive mounted
+	// 0x4279a0 mounts the archive, 0x427350 tells an archive from a folder
 	bool openResourceFile(const char* theName);
 	// 0x40e320 (slot 0xbc)
 	void closeResourceFile();
 	// 0x40ecc0 (slot 0x8c): the display, the input and the sound
+	// 0x40db70 makes the display (0x423ff0, constructors 0x424050 and 0x422b10), 0x40dc70 and 0x40e650 the audio
+	// 0x40dc00 made the DirectInput device
 	bool initDevices(bool theFullscreen, int theWidth, int theHeight, int theChannels, int theBits, int theRate);
 
 	// 0x40e590 (slot 0x90): the music read into memory and opened as a stream that loops from theLoopStart
@@ -194,6 +206,7 @@ public:
 	int messageDialog(int theX, int theY, int theTimeout, const char* theBackground, const char* theOk,
 		const char* theOkLit, const char* theCancel, const char* theCancelLit);
 	// 0x40fe90 (slot 0x44): pages shown one at a time, with buttons to close and to go back and forth
+	// 0x4100e0 lays the slideshow out
 	bool slideshow(int theX, int theY, const char* theClose, const char* theCloseLit, const char* theNext,
 		const char* theNextLit, const char* thePrev, const char* thePrevLit, const char** thePages, int theCount);
 
