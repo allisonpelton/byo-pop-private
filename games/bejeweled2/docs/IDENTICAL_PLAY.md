@@ -26,15 +26,15 @@ given the same clicks at the same updates and has to make the same moves out of 
 
 | Mode | 3D game | 2D game, 640 by 480 |
 | --- | --- | --- |
-| Classic | 40 moves, 2 levels, identical | see below |
-| Action | 40 moves, 3 levels, identical; then idle through the end of the time (20 moves, 9000 idle updates) identical | see below |
-| Puzzle | 40 moves of the first puzzle, identical | see below |
+| Classic | 40 moves, 2 levels, identical | 40 moves, 2 levels (score 1020), identical |
+| Action | 40 moves, 3 levels, identical; then idle through the end of the time (20 moves, 9000 idle updates) identical | 40 moves, 3 levels (score 19950), identical |
+| Puzzle | 40 moves of the first puzzle, identical | 40 moves of the first puzzle, identical |
 | Endless | 40 moves, 25 levels (score 56350), identical | 40 moves, 27 levels, identical (with `nosparkle`, below) |
-| Twilight | 40 moves, 2 levels, identical; idle for 9000 updates identical | see below |
-| Hyper | 40 moves, 7 levels (score 254700), identical; 20 moves and then idle through game over and 700 updates more, identical | see below |
-| Cognito | 40 moves, 2 levels, identical | see below |
+| Twilight | 40 moves, 2 levels, identical; idle for 9000 updates identical | 38 moves, 2 levels (score 972), through game over, identical |
+| Hyper | 40 moves, 7 levels (score 254700), identical; 20 moves and then idle through game over and 700 updates more, identical | 40 moves, 9 levels (score 395750), identical |
+| Cognito | 40 moves, 2 levels, identical | 40 moves, 2 levels (score 1805), identical |
 | Finity | 19 moves, 16 levels, through game over, identical (the score runs past what 32 bits hold, in the original and the port alike) | 14 moves, 13 levels, through game over, identical |
-| Hidden mode | 40 moves, 2 levels (score 940), identical | see below |
+| Hidden mode | 40 moves, 2 levels (score 940), identical | not compared: the original never started the mode in the runs made (see below) |
 
 ## What the pass changed in the port
 
@@ -66,7 +66,9 @@ game). Bejeweled 2's `Done3dTesting` is never called by the port (a deviation al
 
 ## Not yet covered
 
-The 2D game with the fix (classic, action, puzzle, twilight, hyper, cognito and the hidden mode) is being run again and will be
-entered above; all six were identical to the original before the fix. Long games of the modes that end only when the board
+The 2D game with the fix was run again in every mode but the hidden one, and all of them are identical to the original (the table); the
+hidden mode at 640 by 480 was not: in the runs made the original never started the mode (its board only came after a stray click
+of the driver, at update 2252), which the 3D game, given the same circle and the same welcome message, did not do; the cause was
+not found, and what the port does there was not checked against the original. Long games of the modes that end only when the board
 has no move (Classic's real ending), a puzzle pack beyond its first puzzles, a saved game resumed, and the web build under Node were
 not played. Phase two is not begun.
