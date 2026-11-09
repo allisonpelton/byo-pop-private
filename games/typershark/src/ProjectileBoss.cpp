@@ -70,6 +70,9 @@ ProjectileBoss::~ProjectileBoss()
 			delete mShots[i];
 	}
 	mShots.clear();
+	for (size_t i = 0; i < mFinishedShots.size(); i++)
+		delete mFinishedShots[i];
+	mFinishedShots.clear();
 	mApp->mWidgetManager->RemoveWidget(mTimer);
 	delete mTimer;	// port: the original does not free the timer (a leak)
 }
@@ -111,6 +114,8 @@ void ProjectileBoss::Update()
 		mShots[i]->Update();
 		if (HandleShot(mShots[i]))
 		{
+			// leak fix (the original leaks the shot, 0x40b360): it is kept for the board, whose target may still be it
+			mFinishedShots.push_back(mShots[i]);
 			mShots.erase(mShots.begin() + i);
 			i--;
 		}

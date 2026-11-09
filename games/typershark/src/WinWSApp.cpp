@@ -304,6 +304,10 @@ WinWSApp::~WinWSApp()
 		delete mStatsCloseButton;
 	}
 
+	// leak fix (the original leaks the game generator, made in Init and never deleted): everything that draws from it is gone by now
+	delete gGameRand;
+	gGameRand = NULL;
+
 	// (0x42fd10 erases mLongWords, 0x431510 / 0x429780 / 0x427000 destroy mWordLists, mThemes and the name lists: in the port
 	// the members' destructors do it)
 }

@@ -7,6 +7,7 @@
 // original reads the virtual-base offset. The original's inlined vector<T*>::erase loop ("copy the tail down by one") is
 // std::vector::erase, and the deleting-destructor call through the GameObject part is a plain delete.
 
+#include <algorithm>
 #include "Board.h"
 #include "Enemy.h"
 #include "Shark.h"
@@ -630,7 +631,11 @@ bool Board::HandleBossEvents(Enemy* theEnemy)
 					mApp->RemoveLetter(aWord[0]);
 
 					if (mTarget != NULL)
+					{
+						// the shot is on the retired list too (see Board::Update): it is freed here, so it must not be freed again
+						mRetired.erase(std::remove(mRetired.begin(), mRetired.end(), mTarget), mRetired.end());
 						delete mTarget;
+					}
 					mTarget = NULL;
 					mTyped = "";
 					mTypeTimer->Reset();

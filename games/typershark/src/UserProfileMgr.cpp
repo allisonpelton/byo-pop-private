@@ -314,7 +314,9 @@ void UserProfileMgr::DeregisterUserProfile(const std::string& theName)
 }
 
 // 0x420c60: the profile takes the place of the one with the same name, or goes to the end of the list. The profile it
-// replaces is not freed (as in the original).
+// replaces is freed. leak fix (the original leaks this, 0x2c8 bytes and the profile's pairs for each replacement): nothing
+// else points to the old profile when this is called (both callers, the select dialog's OK for a profile whose file did not
+// load and ShowMapScreen with no current user, have just lost their mUser to a failed LoadUser or never had one).
 void UserProfileMgr::SaveUser(UserProfile* theProfile)
 {
 	std::list<UserProfile*>::iterator anItr = mUsers.begin();
@@ -322,6 +324,8 @@ void UserProfileMgr::SaveUser(UserProfile* theProfile)
 	{
 		if ((*anItr)->GetName() == theProfile->GetName())
 		{
+			if (*anItr != theProfile)
+				delete *anItr;
 			*anItr = theProfile;
 			return;
 		}

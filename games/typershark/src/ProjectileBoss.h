@@ -35,6 +35,7 @@ class LessonManager;
 class ProjectileBoss : public Enemy
 {
 public:
+	std::vector<Projectile*> mFinishedShots;	// port (leak fix, docs/LEAKS.md): the shots the boss has let go (HandleShot said true); the original drops them without deleting. Update leaves them here for the board, which takes them (Board::Update) so that it can free them with the board; the destructor frees any it still holds
 	std::vector<Projectile*> mShots;			// +0xe8 (the allocator at +0xe8, the pointers at +0xec, +0xf0, +0xf4) the shots in flight, owned: the destructor deletes each
 	WSTimer*				mTimer;					// +0xf8 new in the constructor, paused (SetDisabled(true)), added to the widget manager; times the pauses in states 6 and 7
 	double					mFireInterval;			// +0x100 milliseconds between two volleys (the boss record's 0x40, 1000.0 in the abyss mode); not read by this class

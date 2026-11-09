@@ -25,6 +25,8 @@
 #include "RedShark.h"
 #include "Clam.h"
 #include "BonusCreature.h"
+#include "ProjectileBoss.h"
+#include "Projectile.h"
 #include "Bubble.h"
 #include "BonusText.h"
 #include "BackgroundFish.h"
@@ -969,9 +971,11 @@ void Board::Update()
 						}
 						else
 						{
-							// a bonus creature that has left through the top is taken off the list (the original does not delete it)
+							// a bonus creature that has left through the top is taken off the list. leak fix (the original leaks it, 0x45c140):
+							// the board keeps it with the retired creatures and frees it with the board, since mTarget may still point to it
 							if ((double)(-aCreature->GetFrameHeight()) >= aCreature->mY)
 							{
+								mRetired.push_back(aCreature);
 								mBonusCreatures.erase(mBonusCreatures.begin() + i);
 								aCount = aCount - 1;
 								i--;
@@ -1157,6 +1161,11 @@ void Board::Update()
 	if (mBoss != NULL)
 	{
 		mBoss->Update();
+		// leak fix (see ProjectileBoss::Update): the shots the boss has let go are kept with the retired creatures
+		ProjectileBoss* aShotBoss = static_cast<ProjectileBoss*>(mBoss);
+		for (size_t i = 0; i < aShotBoss->mFinishedShots.size(); i++)
+			mRetired.push_back(aShotBoss->mFinishedShots[i]);
+		aShotBoss->mFinishedShots.clear();
 		HandleBossEvents(mBoss);
 	}
 

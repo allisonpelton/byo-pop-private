@@ -16,6 +16,13 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/WinWSApp.cpp)
   if(NOT MSVC)
     target_compile_options(typershark PRIVATE -Wall -Wno-unused-private-field)
   endif()
+  # Leak counting (src/testhooks/LeakCount.cpp, docs/LEAKS.md): only the scratch build asks for it, cmake -DTS_LEAKCOUNT=ON
+  if(TS_LEAKCOUNT AND NOT EMSCRIPTEN)
+    target_compile_definitions(typershark PRIVATE TS_LEAKCOUNT)
+    target_compile_options(typershark PRIVATE -fno-omit-frame-pointer -gline-tables-only)
+    # static C++ library (libc++.dll's own operator new would not meet the counter's), the C allocation functions wrapped
+    target_link_options(typershark PRIVATE -static -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=free)
+  endif()
   if(EMSCRIPTEN)
     byopop_web_game(typershark TITLE "Typer Shark"
       COPYRIGHT "Typer Shark! Deluxe © 2003, 2004 PopCap Games, Inc. All rights reserved." LICENSES libopenmpt)

@@ -26,6 +26,8 @@
 #include "TypingTutor.h"
 #include "OptionsDialog.h"
 #include "NewUserDialog.h"
+#include "SelectUserDialog.h"
+#include "DeleteUserDialog.h"
 #include "UserProfile.h"
 #include "UserProfileMgr.h"
 #include "WSTimer.h"
@@ -41,6 +43,10 @@
 #include <string>
 
 using namespace Sexy;
+
+#ifdef TS_LEAKCOUNT
+namespace Sexy { void LeakCountReport(const char* theTag, bool theSites); }	// LeakCount.cpp
+#endif
 
 namespace
 {
@@ -212,6 +218,73 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		Reply(BotMoveToJson(ChooseMove(TestTakeSnapshot(app))));
 		return true;
 	}
+
+#ifdef TS_LEAKCOUNT
+	// leak <tag> [sites]: the scratch leak-counting build only (LeakCount.cpp): prints "LEAK <tag> live=..." and, with sites,
+	// writes the live blocks by allocation site to leak_<tag>.sites
+	if (aCommand == "leak")
+	{
+		LeakCountReport(aFirst.empty() ? "x" : aFirst.c_str(), aRest == "sites");
+		return true;
+	}
+
+	// the user flows of the leak scenarios, which have no screen coordinates to click: the same handlers a click reaches
+	//   press <id>                       the app's ButtonDepress
+	//   dyes <dialog id> | dno <id>      the dialog's yes / no button (the dialog's own ButtonDepress, which calls the app's)
+	//   dlist <dialog id> <line> [n]     a click (n = 1, 2) on a line of the select-user or delete-user dialog's list
+	//   dname <text>                     the text of the new-user dialog's edit box
+	if (aCommand == "press")
+	{
+		int anId;
+		if (!ParseInt(aFirst, &anId))
+			anId = (int) strtol(aFirst.c_str(), NULL, 0);
+		ButtonDepress(anId);
+		Reply("OK press " + anArgs);
+		return true;
+	}
+	if (aCommand == "dyes" || aCommand == "dno")
+	{
+		Dialog* aDialog = GetDialog((int) strtol(aFirst.c_str(), NULL, 0));
+		if (aDialog == NULL)
+		{
+			ReplyError(theCommand, "no such dialog");
+			return true;
+		}
+		aDialog->ButtonDepress(aDialog->mId + (aCommand == "dyes" ? 2000 : 3000));
+		Reply("OK " + aCommand + " " + anArgs);
+		return true;
+	}
+	if (aCommand == "dlist")
+	{
+		int aDialogId = (int) strtol(aFirst.c_str(), NULL, 0);
+		size_t aSecond = aRest.find(' ');
+		int aLine = (int) strtol(aRest.substr(0, aSecond).c_str(), NULL, 0);
+		int aClicks = aSecond == std::string::npos ? 1 : (int) strtol(aRest.substr(aSecond + 1).c_str(), NULL, 0);
+		if (aDialogId == DIALOG_SELECT_USER && GetDialog(aDialogId) != NULL)
+			((SelectUserDialog*) GetDialog(aDialogId))->ListClicked(0, aLine, aClicks);
+		else if (aDialogId == DIALOG_DELETE_USER && GetDialog(aDialogId) != NULL)
+			((DeleteUserDialog*) GetDialog(aDialogId))->ListClicked(0, aLine, aClicks);
+		else
+		{
+			ReplyError(theCommand, "no such dialog");
+			return true;
+		}
+		Reply("OK dlist " + anArgs);
+		return true;
+	}
+	if (aCommand == "dname")
+	{
+		NewUserDialog* aDialog = dynamic_cast<NewUserDialog*>(GetDialog(DIALOG_NEW_USER));
+		if (aDialog == NULL)
+		{
+			ReplyError(theCommand, "no new-user dialog");
+			return true;
+		}
+		aDialog->mNameEdit->mString = anArgs;
+		Reply("OK dname " + anArgs);
+		return true;
+	}
+#endif
 
 	if (aCommand == "seed")
 	{

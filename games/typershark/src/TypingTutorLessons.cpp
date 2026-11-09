@@ -144,6 +144,8 @@ TutorLesson* TutorLessons::NextLesson()
 		if (p_feof(aFile))
 		{
 			p_fclose(aFile);					// port: the original never closes the file
+			if (inTask)
+				delete aTask;					// leak fix (the original leaks this): the last task was never closed, so it is in no lesson
 			if (!mLessons.empty() && ((unsigned int) mCurrent < mLessons.size()))
 				mLessons[mCurrent]->mUserState = mApp->mUser->mField94[mCurrent];
 			if (mLessons.empty())
@@ -249,6 +251,11 @@ TutorLesson* TutorLessons::NextLesson()
 						}
 						else if (aTag == GT(0x0052c92c))				// <TASK>
 						{
+							// leak fix (the original leaks this, 0x429930 assigns local_30 without a look at the old task): a task
+							// that was never closed with a line of its own </TASK> (lesson 4 has two, where the </TASK> follows a
+							// <TEXT> on the same line) has not been added to the lesson, and nothing else points to it
+							if (inTask)
+								delete aTask;
 							inTask = true;
 							aTask = new TutorExercise();				// 0x420c10
 							aTask->mCurText = 0;

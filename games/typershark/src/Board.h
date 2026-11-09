@@ -150,6 +150,7 @@ public:
 	std::vector<Bubble*>	mBubbles;				// +0xda4 AddBubble
 	std::vector<BonusText*>	mBonusTexts;			// +0xdb4 AddBonusText
 	std::vector<Enemy*>		mBonusCreatures;		// +0xdc4 the BonusCreature creatures (enemy record type 11)
+	std::vector<Enemy*>		mRetired;				// port (leak fix, docs/LEAKS.md): the creatures the original takes off a list without deleting (a bonus creature that left through the top, a boss shot that is over); owned, freed with the board, since mTarget may still point to one
 	std::vector<BackgroundFish*>	mBackgroundFish;	// +0xdd4 the fish that swim behind the sharks
 	std::string				mTyped;					// +0xde4 (0x1c bytes) the letters typed so far on mTarget
 	Enemy*					mTarget;				// +0xe00 the creature the typed letters belong to (0 when none)

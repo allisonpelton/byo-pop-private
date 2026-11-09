@@ -268,6 +268,12 @@ Board::~Board()
 	if (mBoss != NULL)
 		delete mBoss;
 
+	// leak fix (the original leaks these: 0x45c140 and 0x40b360 take a creature off its list without deleting it): the retired
+	// creatures are freed after the boss, the last that could use them, and after mTarget, which may point to one
+	for (unsigned int i = 0; i < mRetired.size(); i++)
+		delete mRetired[i];
+	mRetired.clear();
+
 	if (mPauseTimer != NULL)
 		delete mPauseTimer;
 	if (mRatingTimer != NULL)
