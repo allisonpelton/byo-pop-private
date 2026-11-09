@@ -2021,7 +2021,10 @@ suite_bejeweledtwist() {
 	m="$(twist_game menu "$exe" 1 170 60 160)"
 	t="$(TWIST_MODE=-3d twist_game takeoff "$exe" 1 3021 2780 2900 2940 2980 3020)"
 	local dec="sounds decode as Tremor's"
-	"$W/build/native/bjt_sounddecode.exe" --compare "$W"/assets/bejeweledtwist/sounds/*.ogg > "$1.decode" 2>&1 || { dec="SOUNDS DECODE DIFFERENTLY"; st=1; }
+	# the decode tool links the framework's stb_vorbis: build it here, since a session that builds only its game's target
+	# keeps a copy from before a change to the decoder (seconds when it is up to date)
+	if ! TARGET=bjt_sounddecode tools/build.sh native > "$1.decbuild" 2>&1; then dec="BJT_SOUNDDECODE DOES NOT BUILD"; st=1
+	elif ! "$W/build/native/bjt_sounddecode.exe" --compare "$W"/assets/bejeweledtwist/sounds/*.ogg > "$1.decode" 2>&1; then dec="SOUNDS DECODE DIFFERENTLY"; st=1; fi
 	sv="$(twist_save "$exe")"
 	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "3D take-off: $t"; echo "save: $sv"; } > "$1"
 	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ] && [ "$t" = "$BT_TAKEOFF" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi
