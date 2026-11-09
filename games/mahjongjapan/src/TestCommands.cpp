@@ -251,17 +251,6 @@ jb::Layer* ScreenLayer()
 	return nullptr;
 }
 
-template <class T>
-T* FindLayer()
-{
-	if (jb::gManager == nullptr)
-		return nullptr;
-	for (size_t i = jb::gManager->mLayers.size(); 0 < i; i--)
-		if (T* aLayer = dynamic_cast<T*>(jb::gManager->mLayers[i - 1]))
-			return aLayer;
-	return nullptr;
-}
-
 PlayLayer* ActivePlay()
 {
 	for (size_t i = jb::gManager->mLayers.size(); 0 < i; i--)

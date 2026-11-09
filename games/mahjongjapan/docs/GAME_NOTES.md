@@ -404,8 +404,10 @@ R and 21 U:
   (0x421280).
 - **Code only an error reaches.** The error box (0x412110-0x412240) for a layout resource that fails to load.
 
-**Candidates for taking out unneeded code: 21 (the U rows).** None was removed. Taking any of them out changes no
-play of the original.
+**Candidates for taking out unneeded code: 21 (the U rows).** Taking any of them out changes no play of the
+original. The section "Code the port does not need" below took out those the port can do without (`Font::LoadKeyed`,
+`DrawWrapped`, `SetTabStops` and `GetTabWidth`, `Animation::Stop`, `Hold`, `StepLoop` and `StepPingPong`, `GetDirty` and
+`SetDirty` with the overlay branch) and says why it kept the others.
 
 - The deleting destructors of `Dialog`, `SavedGame`, `Deal`, `Layout`, `User`, `PlayerList` and `MahjongGame`
   (0x404c00, 0x40a3a0, 0x4134d0, 0x414510, 0x415f10, 0x4164c0, 0x424a60): the classes are members, stack objects or
@@ -432,3 +434,79 @@ timeouts). Two Sonnet agents did the sorting of 192 functions and
 the re-read of 126; their tokens and this session's were not counted. Most of the session's time went to the
 scripts: finding the places on each screen, solving the stages for the adventure's clicks, and getting a classic game
 to its end with a pinned seed.
+
+## Code the port does not need (2026-11-09)
+
+The last finishing item before the readability pass (`docs/COORDINATION.md`: "figure out what code does not need to be
+present in the decomps"), done as Alchemy's section 10 and Bejeweled's section 22 do it. Registration and the buttons
+that lead out were already out. The survey covers `engine/` and `src/` (the test hooks, `TestCommands.cpp` and `Bot.cpp`,
+which tests need, apart) by six scans:
+
+1. **Functions.** The 39 object files of the native build, every defined function against every relocation in all of them
+   (`llvm-nm --defined-only`, `llvm-objdump -r`): 191 had no reference. The aliased forms of constructors and the deleting
+   destructors are the compiler's, and the default virtuals are the interface; every other name was searched in the
+   sources, and all but six are called, inlined by the compiler or reached by a virtual table. The six with no caller at all
+   are in the table. After the removals the scan lists 182, and no name appears only at its declaration and its definition.
+2. **Compiler warnings.** All 38 sources with `-Wall -Wextra -Wunused -Wunused-member-function -Wunused-private-field
+   -Wunused-template -Wunused-macros -Wunreachable-code -Wunused-const-variable`: besides unused parameters (994, the
+   signatures of virtual hooks and handlers) the one finding was the unused template `FindLayer` of the test commands.
+3. **Members.** Every `m...` member of the headers by whether any code reads it, and by whether any code writes it other than
+   in its initialiser (a member nothing writes is a constant, and the branch it decides is dead; containers and structs that
+   are filled through helper functions were checked by hand): the ones in the table, apart from five that the application
+   sets once for the framework (below).
+4. **Constants.** The 84 enumerators, `#define`s and `const`s by use: all are used.
+5. **Pictures and sounds.** The port has none of its own. The game's pictures, fonts and sounds are its files, loaded by
+   id from Resource.dll or the exe when the code asks, so there is no list that an id could be missing from.
+6. **Windows leftovers, switched-off code.** `_WIN32` appears in `memreport`'s process counters (a test) and in `main.cpp`'s
+   search for the Game Collection's install (which a Windows player of the unpacked game needs); no `#if 0`, no `TODO`.
+
+The coverage check's 21 U rows (the section above) were the other starting point. Most were taken out; the ones that stay
+are below. The removals, which are the same in Ancient China (the engine is one, at the same addresses):
+
+| What | Why it is not needed | Verdict |
+|---|---|---|
+| `AppBase::RegGetString` (0x429230), `RegSetString` (0x4293c0), `GetCmdInt` (0x429b90), and `Host`'s string and deletion registry calls (`RegReadString`, `RegWriteString`, `RegDeleteValue`, `RegDeleteKey`, with `MahjongApp`'s) | no caller: every setting of the game is a DWORD (`RegGetInt`, `RegGetBool`, `RegSetInt`, `RegSetBool` stay) and no command line word takes a number | removed |
+| `Layer::PreloadImage` (0x420a50) | no caller: the screens preload through `Manager::PreloadDllImage` | removed |
+| `Manager::OnSize` (0x42c090), `Redraw` (0x42c0f0), `gManagerAlive` (0x5d8e9e), and the members `mCursorDirty`, `mMinimized`, `mSuspended` | the window's size and paint messages belong to the framework in the port: nothing calls the two functions (`OnSize` was the only code to set `mMinimized`), nothing reads the global or `mCursorDirty`, and nothing sets `mSuspended` | removed, with the `!mSuspended` of `Manager::Frame` and the desktop's depth test of `SetFullScreen` (`0xf < mDesktopBits`, always true for the 32 it starts with; `Display::mDesktopBits` too) |
+| `SliderBar::mValue`, `PlayerButton::mTextWidth` (+0xa0, +0xf4: written, never read; the `GetWidth` call that filled the second had no effect), `AppBase::mClassName`, the `FindLayer` template of the test commands | never read or never used | removed |
+| `Font::LoadKeyed` (0x423bd0), the keyed branch of `Font::DrawLeft`, `Font::mKey` and `mKeyed`, and the `theKind` parameter of `Display::GetFont`, `Manager::GetFont`, `GetExeFont` and `GetDllFont` | every font of the game is loaded with -1, an image with alpha (36 calls in the engine and the sources) | removed |
+| tab stops: `Font::SetTabStops` (0x4248b0), `GetTabWidth` (0x4248f0), `Font::mTabCount`, `mTabs`, the dialog text's `mTabs` and `mTabCount`, and the last two parameters of `DialogFrame::AddText` and `Dialog::AddText` | all 54 calls pass none, so no font ever has a stop and a tab character has the width 0, which `Font::GetWidth`, `FitCount` and `DrawLeft` now say directly | removed |
+| dialog text kinds 2, 3 and 4 (wrapped, wrapped centred, right-aligned) and `Font::DrawWrapped` (0x424420, kind 2's only user) | no `AddText` call passes a kind other than 0 (centred lines) or 1 (lines) | removed |
+| the dialog text's delay and fade-in (`Text::mDelay`, `mFade`, `mFadeTime`, `DialogFrame::mAnimating`, the loop of `DialogFrame::Update` that counted them down) and the dialog's subtitle (`mSubtitle` and its draw) | nothing sets any of them: `AddText` zeroed the delay and the fade, `mAnimating` is never raised and the subtitle never given | removed |
+| the button's overlay picture (`Button::mOverlay`, `mOverlayX`, `mOverlayY`, and the branch of `Button::Draw`) and `Object::GetDirty`, `SetDirty` (0x41ff50, 0x41ff70) that only that branch used | nothing sets an overlay | removed |
+| `Animation::Stop` (0x4257d0), `Hold` (0x4257e0), `StepLoop` (0x425a50), `StepPingPong` (0x425a70), the empty `Step` and `AfterDraw` hooks, the modes 0 to 2 (`mMode`) with their switch, `mHeld`, `mStopAtEnd`, `mKeyed` and `mKey` (the keyed draw), `mRepeatDelay` and `mRepeatCycles` (the branch of `EndCycle` that waits and starts again), `mDrawStopped`, and `Attachment::Hold` | the only two animations are the main menu's, `Setup` (mode 3) with infinite cycles; nothing stops, holds, repeats or keys one, and no class derives from `Animation` | removed |
+| `Object::mAttachmentsUnder` and the draw order it chose | never set: an object is drawn before its attachments | removed |
+| `TextEdit::mNoWidthCheck` | never set: the width check of `TextEdit::Fits` always runs | removed |
+
+About 420 lines go from each game (the changed files are the same 33 in both). A removal changed no draw of a random
+number, no state and no saved byte: nothing that writes a save or answers a test command used a removed member (the
+build would stop).
+
+**Looked at and kept.** The deleting destructors of `Dialog`, `SavedGame`, `Deal`, `Layout`, `User`, `PlayerList` and
+`MahjongGame` (0x404c00 and the rest) and the aliased constructor forms are the compiler's, not source. The default
+virtuals 0x4204a0, 0x4204d0 and 0x4209e0 are the empty hooks of the base class: the interface that the screens override.
+`Object::SetVisibleByParent` (0x41ef30, with the child loop of `Object::SetVisible`) runs when an object with children is
+shown or hidden (the slider bar's slider and the list box's arrows are children): no play of the original did it, but
+what shows or hides such an object is the game's own flow, so the code stays. `Layer::FocusNext` and `FocusPrev` (0x421160, 0x4211f0) run on any
+Tab. A tab character in a text is data, so the branch that gives it a width stays. `Animation::EndCycle`'s counting of cycles
+and `SetDelay`'s random delay are what `Setup`'s parameters mean, though the menu passes -1 and 0. The unused parameters
+of the virtual hooks and handlers (`theX`, `theY`, `theFlags`, `theScan`...) are the original's signatures.
+`PeResources::Key::operator<` is the `std::map`'s order for the resource directory. `mProdName`, `mReadFromRegistry`,
+`mRegKey`, `mUploadAsIs` and `mWantsFocus` are set once in `MahjongApp` for the framework and read there.
+The two `_WIN32` blocks and the `__EMSCRIPTEN__` ones are the port's own.
+
+**Doubtful, for the user.** The test hooks (`TestCommands.cpp`, `Bot.cpp` and `Bot.h`, about 1,300 lines) are compiled into
+the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`); taking them out of the shipped
+build would need a build switch that the tests then turn on, and nothing in the game depends on them. The framework's
+`mUploadAsIs` and the registration members of `SexyApp` are shared code, the coordinator's.
+
+**Proof.** Both ports build (native and web). `tools/check.sh mahjongjapan mahjongchina` after the removals: Japan 222
+layouts dealt with none failed, 20 pairs, the three screens as frozen, a rerun identical; China 178 layouts, 31 pairs, the
+three screens as frozen, a rerun identical. That suite plays a board and the map, so the screens it does not reach were
+compared with a control: the exes built before the removals, and the screen tour of `tools/tour/` (`tour.sh` runs one
+script on one exe, `compare.sh` a "before" folder against `build/native` and the before exe against a second run of itself):
+20 screenshots of each game, under `-fast` on the virtual clock: the main menu at three times (the swinging animations), the
+hovered button, the player name box as typed and as edited, the map, options, help, the classic list, the quit question, a
+board with the hover and the pause box, the escape stage and the map again. All 20 of each game are byte for byte the
+same (16 distinct images each), and the before exe's own rerun is the same too. The scans, run again on both games after
+the removals, find no further dead function, member or constant.

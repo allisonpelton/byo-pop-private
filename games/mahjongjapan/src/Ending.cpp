@@ -44,8 +44,8 @@ void EndPicture::Draw()
 void EndPicture::Init()
 {
 	mTitle = jb::FormatDll(0x96, gUser.mName.c_str());
-	mTitleFont = jb::GetDllFont(0xd2, 0xd3, -1);
-	mFont = jb::GetDllFont(0xd5, 0xd4, -1);
+	mTitleFont = jb::GetDllFont(0xd2, 0xd3);
+	mFont = jb::GetDllFont(0xd5, 0xd4);
 	int aPos = 0;
 	std::string aText = jb::LoadDllString(0x68);
 	std::string* aLine = mLines;

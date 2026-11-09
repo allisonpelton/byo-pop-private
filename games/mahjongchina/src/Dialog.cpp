@@ -510,9 +510,6 @@ void DialogFrame::Draw()
 	if (!mTitle.empty())
 		mTitleFont->DrawLinesCentred(this, mLeft, 0x32, mTitle.c_str(), mRight - mLeft,
 			mTitleFont->GetLineHeight() - 5, 100, 100, 0xff);
-	if (!mSubtitle.empty())
-		mSubtitleFont->DrawLinesCentred(this, mLeft, 0x46, mSubtitle.c_str(), mRight - mLeft,
-			mSubtitleFont->GetLineHeight() - 5, 100, 100, 0xff);
 	i = 0;
 	if (0 < mTextCount)
 	{
@@ -524,34 +521,16 @@ void DialogFrame::Draw()
 				aFont = mTextFont;
 			else
 				aFont = mAltFont;
-			if (aText->mDelay < 1)
+			switch (aText->mKind)
 			{
-				if (0 < aText->mTabCount)
-					aFont->SetTabStops(aText->mTabs, aText->mTabCount);
-				int anAlpha = 0xff;
-				if (0 < aText->mFade)
-					anAlpha = 0xff - (aText->mFade * 0xff) / aText->mFadeTime;
-				switch (aText->mKind)
-				{
-				case 0:
-					aFont->DrawLinesCentred(this, mLeft, aText->mY, aText->mText.c_str(), mRight - mLeft,
-						aFont->GetLineHeight() - 1, 100, 100, anAlpha);
-					break;
-				case 1:
-					aFont->DrawLines(this, aText->mX, aText->mY, aText->mText.c_str(), aFont->GetLineHeight() - 1,
-						100, 100, anAlpha);
-					break;
-				case 2:
-					aFont->DrawWrapped(this, aText->mX, aText->mY, (mRight - aText->mX) - 10,
-						(mBottom - aText->mY) - 10, aText->mText.c_str(), aFont->GetLineHeight() - 1, false, anAlpha);
-					break;
-				case 3:
-					aFont->DrawWrappedCentred(this, aText->mX + mLeft, aText->mY, (mRight + aText->mX * -2) - mLeft,
-						(mBottom - aText->mY) - 10, aText->mText.c_str(), aFont->GetLineHeight() - 1, false, anAlpha);
-					break;
-				case 4:
-					aFont->DrawRight(this, aText->mX, aText->mY, aText->mText.c_str(), 100, 100, anAlpha);
-				}
+			case 0:
+				aFont->DrawLinesCentred(this, mLeft, aText->mY, aText->mText.c_str(), mRight - mLeft,
+					aFont->GetLineHeight() - 1, 100, 100, 0xff);
+				break;
+			case 1:
+				aFont->DrawLines(this, aText->mX, aText->mY, aText->mText.c_str(), aFont->GetLineHeight() - 1,
+					100, 100, 0xff);
+				break;
 			}
 			i = i + 1;
 			aText = aText + 1;
@@ -569,13 +548,13 @@ void DialogFrame::Draw()
 // 0x4045e0
 void DialogFrame::Init()
 {
-	mSubtitleFont = GetDllFont(0x11c, 0x11b, -1);
-	mTitleFont = GetDllFont(0x11e, 0x11d, -1);
-	mTextFont = GetDllFont(0x122, 0x121, -1);
-	mAltFont = GetDllFont(0x133, 0x132, -1);
+	mSubtitleFont = GetDllFont(0x11c, 0x11b);
+	mTitleFont = GetDllFont(0x11e, 0x11d);
+	mTextFont = GetDllFont(0x122, 0x121);
+	mAltFont = GetDllFont(0x133, 0x132);
 }
 
-// 0x404650: the message's time (its first update starts it), then the texts' delays and fades
+// 0x404650: the message's time (its first update starts it)
 bool DialogFrame::Update()
 {
 	if (0 < mMessageSeconds)
@@ -592,36 +571,6 @@ bool DialogFrame::Update()
 			mMessageSeconds = 0;
 			return true;
 		}
-	}
-	bool aChanged = false;
-	if (mAnimating)
-	{
-		int i = 0;
-		if (0 < mTextCount)
-		{
-			Text* aText = mTexts;
-			do
-			{
-				if (aText->mDelay < 1)
-				{
-					if (0 < aText->mFade)
-					{
-						aText->mFade = aText->mFade - GetDelta();
-						aChanged = true;
-					}
-				}
-				else
-				{
-					aText->mDelay = aText->mDelay - GetDelta();
-					aChanged = true;
-				}
-				i = i + 1;
-				aText = aText + 1;
-			} while (i < mTextCount);
-			if (aChanged)
-				return true;
-		}
-		mAnimating = false;
 	}
 	return mAlwaysUpdate;
 }
@@ -658,8 +607,7 @@ void DialogFrame::SetEdges(const int* theLeft, const int* theRight, const int* t
 }
 
 // 0x4047e0
-void DialogFrame::AddText(const char* theText, int theKind, int theX, int theY, bool theAltFont, const int* theTabs,
-	int theTabCount)
+void DialogFrame::AddText(const char* theText, int theKind, int theX, int theY, bool theAltFont)
 {
 	Text& aText = mTexts[mTextCount];
 	aText.mX = theX;
@@ -667,19 +615,6 @@ void DialogFrame::AddText(const char* theText, int theKind, int theX, int theY, 
 	aText.mText = theText;
 	aText.mAltFont = theAltFont;
 	aText.mKind = theKind;
-	aText.mTabCount = theTabCount;
-	int i = 0;
-	if (0 < theTabCount)
-	{
-		do
-		{
-			aText.mTabs[i] = *theTabs;
-			theTabs = theTabs + 1;
-			i = i + 1;
-		} while (i < theTabCount);
-	}
-	aText.mDelay = 0;
-	aText.mFade = 0;
 	mTextCount = mTextCount + 1;
 }
 
@@ -864,11 +799,10 @@ void Dialog::SetTitle(int theStringId)
 }
 
 // 0x404d70
-void Dialog::AddText(int theStringId, int theKind, int theX, int theY, bool theAltFont, const int* theTabs,
-	int theTabCount)
+void Dialog::AddText(int theStringId, int theKind, int theX, int theY, bool theAltFont)
 {
 	std::string aText = LoadDllString(theStringId);
-	mFrame->AddText(aText.c_str(), theKind, theX, theY, theAltFont, theTabs, theTabCount);
+	mFrame->AddText(aText.c_str(), theKind, theX, theY, theAltFont);
 }
 
 // 0x404e30

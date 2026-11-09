@@ -64,8 +64,6 @@ class Font
 {
 public:
 	int mImage = 0;           // +0x04 an image id of the manager's table
-	bool mKeyed = false;      // +0x08
-	uint32_t mKey = 0;        // +0x0c
 	int* mWidths = nullptr;   // +0x10 GetWidths' buffer
 	int mWidthsSize = 0;      // +0x14
 	CharMap* mMap = nullptr;  // +0x18
@@ -73,8 +71,6 @@ public:
 	int mAscent = 0;          // +0x20
 	int mSpacing = 0;         // +0x24
 	int mSpaceWidth = 0;      // +0x28
-	int mTabCount = 0;        // +0x2c
-	int mTabs[10] = {};       // +0x30
 
 	// 0x4238f0
 	Font() {}
@@ -85,8 +81,6 @@ public:
 	int GetLineHeight() const { return mLineHeight; }
 	// 0x423970
 	bool Load(int theImage, int theTextId, Module theModule);
-	// 0x423bd0
-	bool LoadKeyed(int theImage, int theTextId, uint32_t theKey, Module theModule);
 	// 0x423c00: the width of a text at theScale percent (0 past 2000 characters)
 	int GetWidth(const char* theText, int theScale);
 	// 0x423cc0
@@ -111,19 +105,13 @@ public:
 		int theScaleY, int theAlpha);
 	void DrawLinesCentred(Object* theObject, int theX, int theY, const char* theText, int theWidth,
 		int theLineStep, int theScaleX, int theScaleY, int theAlpha);
-	// 0x424420, 0x424460: wrapped at word ends to theWidth, no lower than theMaxHeight; the number of lines, which
+	// 0x424460: wrapped at word ends to theWidth, no lower than theMaxHeight; the number of lines, which
 	// theMeasureOnly counts without drawing
-	int DrawWrapped(Object* theObject, int theX, int theY, int theWidth, int theMaxHeight, const char* theText,
-		int theLineStep, bool theMeasureOnly, int theAlpha);
 	int DrawWrappedCentred(Object* theObject, int theX, int theY, int theWidth, int theMaxHeight,
 		const char* theText, int theLineStep, bool theMeasureOnly, int theAlpha);
 	// 0x4244a0
 	int DrawWrappedWorker(Object* theObject, int theX, int theY, int theWidth, int theMaxHeight,
 		const char* theText, int theLineStep, bool theMeasureOnly, int theAlpha, bool theCentred);
-	// 0x4248b0: at most 10
-	void SetTabStops(const int* theStops, int theCount);
-	// 0x4248f0: the distance to the next tab stop, or 0
-	int GetTabWidth(int thePos);
 
 	// 0x424760: the word from theStart (after its leading spaces) to a ".,:; " it ends with; the position after it,
 	// or -1 at the end
