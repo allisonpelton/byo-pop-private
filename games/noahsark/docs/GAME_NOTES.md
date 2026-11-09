@@ -208,3 +208,98 @@ the registry reader at 0x42d229 is `KEY_READ` instead of read and write: with on
 stayed 0 and the title showed no link, and it became 1 once the open asked for read access only (the open for read and write
 presumably failed without elevation; not checked). With the three, the title shows its link at update 104.
 <!-- /private -->
+
+## 11. Coverage check (2026-11-08)
+
+The coverage check of `docs/COVERAGE.md`, the second game's whole one after Ning Po's. origrun's `--coverage` recorded which of the
+original's functions ran in 13 runs on the host (`tools/coverage/run.sh` starts a run, `all.sh` is the list of them; the hits are in
+`build/coverage/noahsark/hits/`). Twelve were on the virtual clock with no sound device, the thirteenth on the real clock with the
+silent stand-in, and every one of them ended with the game exiting:
+
+- the identical-play cases: an easy and a hard action game (`act_e`, `act_h`), strategy (`str_e`, `str_h`) and puzzle (`puz_e`, `puz_m`),
+  each played by the port's bot and replayed in the original as clicks (`tools/origrun_replay.py`);
+- two games lost on purpose (`lose_act`, `lose_str`: the bot stops moving at update 800, the water comes up and the game over screen
+  follows) and two that end in a ranked score, so that the name entry and the high score list run (`rank_act`, `rank_puz`: the bot
+  plays on to a score the table keeps; `REPLAY_TEXT_DELAY=3` types the name three updates later in the original, which takes the name
+  one update later than the port);
+- the Stampede (`stamp`): a Stampede is never started by a menu, so the run loads a saved game of it (`SAVE=` in `run_original.sh`
+  stages a save file as the copy's `data/savegame.dat`) and plays the three levels out;
+- the dialogs tour (`dialogs`): both sliders, the hint box, Help (which closes Options in the original: see below), High Scores and
+  Credits from Options, the quit question from play and from the menu answered no and then yes, Continue, a lost and regained
+  focus, then the strategy and puzzle intros;
+- the real-clock tour (`rt`): a played minute of an action game on the real clock, for the sound code.
+
+`games/noahsark/coverage.txt` sets the game's own code as one range, 0x401000-0x420d10 (Board, the dialogs, the screens, NoahApp and
+the compiler's copies of the standard library): 258 functions. The rest of the exe is the 2002 SexyApp framework (from Widget at
+0x421d60), the C runtime and the libraries. The first report, from ten of the runs, had the runs reach 205 of the 258 and the port
+define 142 of them; the last one, from all 13, has them reach 218 and the port define 169.
+
+**Reached in the original with no counterpart in the port: 79 at first, 0 at the end.**
+
+- **Placed: 24.** Functions the port translates inline or in another shape got their address in the comment above the function that
+  holds them: the destructors and manager hooks of the dialogs and widgets (`AddedToManager`, `RemovedFromManager`, `Resize`,
+  `GetPreferredHeight`), the clearing of the fish and bubbles inside `NewLevel`, the combo flags in `ConnectPair`, `WinMain` in
+  `main`, `UpdateFrames`, `LostFocus`, and the nine-patch box draw that the original has twice (0x4126d0 and 0x416160, byte for byte)
+  and the port holds once as `DrawImageBox2003`. Comments only.
+- **Left out on purpose: 53 at first, as `none` lines in coverage.txt with their reasons** (the later runs added a few more; 78 functions
+  are left out in all, the registration dialog's nine among them): the registration dialog and its two helpers (taken out, section 9);
+  the ten compiler-made scalar deleting destructors; the framework's default overrides, which the port's classes inherit; the
+  original's own `std::string`, `std::vector`, `std::list` and `std::map` instantiations (MSVC 6), which the port's standard library
+  replaces; the global NoahApp object's start-up and exit glue (the port's `main` makes and deletes the app); and 0x41d3b0, the Options
+  check boxes' handler for a display on which windowed mode cannot be restored (the port's SDL window can always switch back).
+- **Missing: three, all translated.**
+  - **Help in the Options dialog closes Options first** (the original's Help button reaches the mode intro's creator): it applies the
+    full screen and hint boxes, closes the dialog and then shows the intro for the current mode. The port's `ShowModeIntroDialog` left
+    Options open under the intro, so the click chain of the dialogs tour (Help, OK, Options, High Scores...) went another way. Now the
+    same, at the top of `ShowModeIntroDialog`.
+  - **A game in progress is saved when the app is destroyed** (`NoahApp`'s destructor, 0x4169e0). The original's destructor runs at the
+    end of `WinMain`, so closing the window during a game saves it and the menu then offers Continue. The port's `~NoahApp` deleted
+    the board unsaved (`SaveGame` already returns early on the game over screen). Now it saves first, as the original does.
+  - **`HighScoreWidget`'s destructor writes hiscores.dat** (0x411e20). The original's `AddScore` does not save: the file is written
+    when the widget is destroyed, on leaving the screen or at exit, and it creates the file when none exists. The port's `AddScore`
+    saved at once and its destructor only deleted the link. The destructor now saves too; the `Save()` in `AddScore` stays, for the web
+    build, which never deletes the app. The table in memory and in the file after a recorded score is the same either way.
+- **Left open: none.**
+
+**Defined in the port, never reached: 5 at the end** (the later runs and the placed addresses cleared the rest):
+
+- **`Board::MouseDrag` (0x40f710): rewritten.** The re-read found six slips against the export. In puzzle mode a drag from the picked
+  animal onto a neighbour swaps the two at once in the original; the port ignored the drag, so the player had to release and click the
+  neighbour. The link drag left the animal dragged from selected where the original selects the one dragged onto, played no sound,
+  neither took the hint away nor noted the time of the move, and let a path that `BuildTrail` fails to make stop the link. All six are
+  now as the original, and the puzzle swap is one helper (`Board::PuzzleSwap`) for the click and the drag. origrun has no drag command,
+  so the original never ran it: the port's was checked by `tools/coverage/dragtest.py`, which plays the port's menu with the bot and
+  then sends real `down`, `move` and `up` events at the board. A drag onto the right-hand neighbour swaps the two kinds and puts the
+  board in the swap phase, and a drag two cells away swaps nothing. The suite and the frozen baseline are unchanged (the clicks and the
+  bot do not drag).
+- **`OptionsDialog::SliderVal` (0x41d370):** needs the same drag, on a slider. It matches the export (the music volume for slider 0,
+  the effects' for slider 1).
+- **`Board::AbandonPair` (0x4067e0) and `Board::TriggerNoMoves` (0x4074c0):** reached only by a board with no pair left, which none of
+  the 13 runs came to. Both were read again line by line against the export and match, including the points taken, the water's move and
+  the sample played.
+- **Candidate for taking out unneeded code: `Board::RefillPuzzle` (0x4061d0) and the puzzle branch of `Board::EnsureMoves`
+  (BoardLevel.cpp, near line 445).** The original's only caller of `EnsureMoves` is the new level code, which calls it only for modes
+  other than puzzle (4) and Stampede (5), so the branch that calls `RefillPuzzle` never runs in either. The port has the same guard.
+  Not removed now. (The read also found that the port moves a falling animal up by swapping two pointers where the original makes a
+  new piece and deletes the old one, and sets `mY` of both cells, which the original does not: it cannot matter while the code is
+  unreached.)
+
+**Tool specs for the coordinator.** origrun needs a `drag x1 y1 x2 y2` command (a press, moves to the end and a release, each a posted
+event on its own update) so that `Board::MouseDrag` and a slider's drag can be reached in the original. The host takes no screenshots,
+so the original's Options dialog, which is taller than the port's drawing suggested, had to be measured in Windows Sandbox
+(`SANDBOX=1 tools/run_original.sh`) before the clicks of the dialogs tour landed.
+
+**Other differences found while reading, none with a visible effect and none changed:**
+
+- The original's `Board` destructor leaks the elements of the texts and sparkles vectors and calls `InitGrid` at the end, which allocates
+  90 pieces that nothing frees; the port's `~Board` frees more (the leaks of the original are fixed in the port).
+- 0x402de0 (clear the fish) ends with a call of Widget's ninth slot (the 2002 dirty-rectangle drawing's flag) with 0, and the fish's
+  creator 0x408df0 with 1; the port has no such flag and calls `MarkDirty()` instead.
+- `OptionsDialog::SetColor` (0x41cd40) colours five buttons in the original and three in the port (the Register and Web buttons are gone,
+  section 9). `~TitleScreen` deletes the "register now" link too.
+- `NoahApp::UpdateFrames` (0x418c00) sets a flag at +0x450 that nothing reads.
+- `Board.h` had the fish vector at +0xd94; it is at +0xda4 in the original (the one at +0xd94 is never used). Comment corrected.
+
+**Cost.** The original ran for about 20 minutes of machine time all together, and the wait for room (at most 3 game processes on the
+machine) took more than that. Sonnet agents sorted the first report's 79 rows (17 minutes, 338k tokens) and read the five port
+functions again (10 minutes, 217k tokens); the rest was this session's, with a few sandbox runs for the Options layout.
