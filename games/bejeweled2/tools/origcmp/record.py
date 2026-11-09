@@ -45,12 +45,16 @@ def main():
     ap.add_argument('--mode', default='classic')
     ap.add_argument('--moves', type=int, default=60)
     ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--play-at', type=int, default=345, help='the update of the title play click: the first at which the original takes one (its title has loaded at 319)')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     d = Recorder(a.exe, a.gamedir, a.userdir, a.out, True, ['-seed=%d' % a.seed, '-trace'], windowed=True, is3d=False, hold=True)
     rc = 1
     try:
         full.until(d, lambda s: s['screen'] in ('title', 'dialog', 'menu'), 'the title', 180)
+        s = d.state()
+        if s['updates'] < a.play_at - 1:
+            d.ok('wait %d' % (a.play_at - 1 - s['updates']))  # the original and the port then get every input at the same update
         full.to_menu(d)
         play = d.events[0][0]
         if a.mode in full.SECRET:

@@ -2,8 +2,8 @@
 
     python games/bejeweled2/tools/origcmp/to_origrun.py events.json script.txt [--delta N] [--tail N]
 
-The port's input at update U is given to the original at update U + delta, where delta puts the title's play click at the
-original's first update that takes a click (its title loads at update 319; the port's was recorded at 325). The cursor is the
+The port's input at update U is given to the original at update U + delta (0: record.py waits for the original's first update that
+takes a click, its title having loaded at 319, before it clicks play). The cursor is the
 script's own (origrun --cursor scripted): a `move` before a click puts the original's mouse where the port's was.
 The script ends `tail` updates after the last event with a quit.
 """
@@ -11,10 +11,12 @@ import argparse
 import json
 
 
-def convert(events, delta, tail):
+def convert(events, delta, tail, until=None):
     lines = []
     last = 0
     for u, cmd in events['events']:
+        if until is not None and u > until:
+            break
         at = u + delta
         last = max(last, at)
         w = cmd.split()
@@ -46,12 +48,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('events')
     ap.add_argument('script')
-    ap.add_argument('--delta', type=int, default=None, help='original update - port update (default: the play click at 345)')
+    ap.add_argument('--delta', type=int, default=None, help='original update - port update (default 0: record.py puts the play click at 345)')
     ap.add_argument('--tail', type=int, default=60)
+    ap.add_argument('--until', type=int, default=None, help='only the inputs up to this port update')
     a = ap.parse_args()
     ev = json.load(open(a.events))
-    delta = a.delta if a.delta is not None else 345 - ev['play']
-    lines = ['# from %s, delta %d' % (a.events, delta)] + convert(ev, delta, a.tail)
+    delta = a.delta if a.delta is not None else 0
+    lines = ['# from %s, delta %d' % (a.events, delta)] + convert(ev, delta, a.tail, a.until)
     with open(a.script, 'w') as f:
         f.write('\n'.join(lines) + '\n')
     print('%d lines, delta %d, last update %d' % (len(lines), delta, ev['last'] + delta))

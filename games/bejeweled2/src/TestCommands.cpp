@@ -129,9 +129,10 @@ static void UnlockAll(Profile* theProfile)
 // differs from the last one logged, with the update count the framework keeps (+0x484 in the original).
 void WinDMApp::TraceUpdate()
 {
-	static int sLast[4] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN};  // INT_MIN: no board
+	static const int WATCHES = 5;
+	static int sLast[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN};  // INT_MIN: no board
 	static bool sFirst = true;
-	int aValue[4] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN};
+	int aValue[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN};
 	if (mBoard != NULL)
 	{
 		uint32_t aState[624];
@@ -142,7 +143,14 @@ void WinDMApp::TraceUpdate()
 		aValue[2] = mBoard->mState;
 		aValue[3] = anIndex;
 	}
-	for (int i = 0; i < 4; i++)
+	{
+		// watch 5: the global generator's index, which the original's [0x67cf50 + 0x9c0] is (the draws of Rand())
+		uint32_t aState[624];
+		int anIndex = 0;
+		GetRandMTState(aState, &anIndex);
+		aValue[4] = anIndex;
+	}
+	for (int i = 0; i < WATCHES; i++)
 	{
 		if (!sFirst && aValue[i] == sLast[i])
 			continue;

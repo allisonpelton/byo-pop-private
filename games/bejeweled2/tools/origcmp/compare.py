@@ -47,15 +47,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('original')
     ap.add_argument('port')
-    ap.add_argument('--delta', type=int, default=20)
+    ap.add_argument('--delta', type=int, default=0)
     ap.add_argument('--show', type=int, default=3)
+    ap.add_argument('--last', type=int, default=None, help='ignore the changes after this update (the end of the port recording: the original script runs on a little longer)')
+    ap.add_argument('--pair', default='', help="w=p: the original's watch w is the port's watch p (2=5: the global generator's index, W2=0x67d910)")
     a = ap.parse_args()
     o, p = read(a.original), read(a.port)
+    pair = {1: 1, 2: 2, 3: 3, 4: 4}
+    if a.pair:
+        pair[int(a.pair.split('=')[0])] = int(a.pair.split('=')[1])
     bad = 0
     for w in (1, 2, 3, 4):
         # skip changes into and out of "no board": compare from the first value that is a number on both sides
-        po = [(u, norm(x), norm(y)) for u, x, y in o.get(w, []) if norm(y) not in ('-', '?')]
-        pp = [(u + a.delta, norm(x), norm(y)) for u, x, y in p.get(w, []) if norm(y) not in ('-', '?')]
+        po = [(u, norm(x), norm(y)) for u, x, y in o.get(w, []) if 1 <= u <= (a.last or 1 << 30) and norm(y) not in ('-', '?')]
+        pp = [(u + a.delta, norm(x), norm(y)) for u, x, y in p.get(pair[w], []) if 1 <= u <= (a.last or 1 << 30) - a.delta and norm(y) not in ('-', '?')]
         n = min(len(po), len(pp))
         same = 0
         first = None

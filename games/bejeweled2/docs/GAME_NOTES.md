@@ -62,6 +62,13 @@ Each of these has no visible effect on play unless the entry says so.
   of a piece filters with the picture's own edge, where Direct3D's wrap filters with the opposite edge: at most one pixel of
   a seam, not yet compared with the original's.
 
+- **The port never calls `Done3dTesting`.** The original's `DDInterface::Init` calls it (vtable +0x15c) once its 3D test is
+  over, and on a machine without acceleration the app then drops to 640 by 480 (`HighResolution` 0). The port's display decides 3D
+  by the SDL renderer it got (accelerated or software) and the app keeps the 1024 by 768 size either way, so a software-only
+  machine plays at 1024 by 768 where the original plays at 640 by 480. A test that wants the original's 2D size (the phase-one
+  comparison, which runs the original on rundesk's desktop, where it has no 3D) sets `HighResolution=dword:0` in the registry file
+  and `SDL_RENDER_DRIVER=software` (`Driver(is3d=False)`).
+
 ## Test commands
 
 The standard commands of `docs/TEST_COMMANDS.md` are in `src/TestCommands.cpp` (`WinDMApp::HandleTestCommand`, reached from
@@ -83,7 +90,14 @@ options dialog, the How To Play screen or the high scores; the credits are no sc
 level of Classic) and answer an error. `state` also carries what a driver clicks: `widgets` (the middle of the title's play link,
 the menu's mode buttons and secret button, the high scores' back button, in game pixels; `[0,0]` before the menu has laid them out),
 `secret` (whether the menu's secret button is toggled on) and `user` (whether a player exists; `unlock all` with one also lays the
-menu out again, so the secret button shows). Not yet: `set` for other keys. `tools/playbymove/playbymove.py` plays every mode but the puzzle
+menu out again, so the secret button shows) and `updates` (the app's update count, which is what origrun's update counter is in the
+original, so a recorded input can be given to the original at the same update). `-trace` (with `-commands`) prints a line for every
+change of four values of the board, in the form of origrun's `--watch` lines (`watch 1: 0 -> 30 at update 1015`; "-" while there is no
+board): the score, the level, `mState` and the index of the board's random generator (`MTRand::mti`; the original's `[[0x67ccd8]+0xe68]`
+plus 0x15e20, 0x15e4, 0x170c and 0x15e0). `games/bejeweled2/tools/origcmp/` is the phase-one comparison with the original: `record.py`
+plays a mode with real input in true 2D (below) and writes every input with its update, `to_origrun.py` turns that into an origrun
+script, `run_original.sh` runs the original on origrun's virtual clock with the same seed and those four watches, and `compare.py`
+lines the two lists of changes up. Not yet: `set` for other keys. `tools/playbymove/playbymove.py` plays every mode but the puzzle
 ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/realplay/full.py` is the real-input driver (its header says how it runs; `soak.py` is its first version).
 
 ## Oddities (skipped, not chased)
