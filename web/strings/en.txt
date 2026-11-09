@@ -1223,3 +1223,18 @@ music.split_rows = {n} rows
 music.tune_part = {file}, part {n}
 music.duration = {min}:{sec}
 music.album = Games on this site
+
+# The soundboard (web/sounds.js): Desktop 95's Sounds window; the buttons' names are in web/soundboards.js
+sounds.title = Sounds
+sounds.game = Game
+sounds.stop = Stop
+sounds.mute = Mute
+sounds.volume = Volume
+sounds.count = {n} sound | {n} sounds
+sounds.st_reading = Reading…
+sounds.reading = Reading the games' sounds…
+sounds.st_none = No sounds
+sounds.none = None of the games you added has sounds the board can play yet.
+sounds.st_error = Error
+sounds.failed = The sounds could not be read.
+sounds.bad_file = This file could not be played.

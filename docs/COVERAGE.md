@@ -63,7 +63,8 @@ edition has and this one lacks, a pair the table missed, or an address inside a 
 
 The ports write the original's address in the comment block just above each function they translate (`// 0x4cb5bc`), and
 often beside a declaration in a header (`void DrawEditBox(...);  // 0x4d2857`). An address in the comment block above a
-definition or a declaration, or in the comment on its own line, makes that function a counterpart. A declaration may run
+definition or a declaration, or in the comment on its own line, makes that function a counterpart; a `template <...>`
+line between the comment and the function is part of the declaration (Water Bugs, 2026-11-09). A declaration may run
 over several lines and have default arguments, and a constructor or destructor declared in its class counts (its name
 the class's own, at the class's own scope), while a call statement in a function body never does. An address in any
 other comment is a mention: code that cites the function without being it. An address inside a function, not at its
@@ -73,8 +74,9 @@ it.
 
 ## Reading the report
 
-The report opens with the runs (how many functions each reached, and whether the game exited by itself or origrun
-stopped it at a timeout; a run that origrun stops has still played the script it was given) and the counts for the game
+The report opens with the runs (how many functions each reached, and whether the game exited by itself, crashed, with its
+exit code, or was stopped by origrun at a timeout, from the line origrun adds to the hits file since 2026-11-09; a run that
+origrun stops has still played the script it was given) and the counts for the game
 code. Then three lists:
 
 - **Reached in the original, with no definition in the port.** The work: each is code the original ran that the port

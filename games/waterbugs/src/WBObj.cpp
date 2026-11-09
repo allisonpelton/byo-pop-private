@@ -50,6 +50,7 @@ void Obj_Init(Obj* theObj)
 	theObj->exploSound = -1;
 }
 
+// 0x419c00 (the same destructor again, for the nodes of another list)
 void Obj_Destroy(Obj* theObj)
 {
 	List_Clear(&theObj->children);

@@ -510,6 +510,9 @@ footer a { color: var(--accent); }
 <script src="saves.js"></script>
 <script src="soundtracks.js"></script>
 <script src="music.js"></script>
+<!-- the soundboard: Desktop 95's Sounds window (web/sounds.js) and its table of the games' sounds (web/soundboards.js) -->
+<script src="soundboards.js"></script>
+<script src="sounds.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
      import rules and each listed game's page.js (import-games.js, written by the build) -->
 <script>var Module = {};</script>
@@ -1211,6 +1214,8 @@ try {
         afterClose: id === "music" ? function () { if (window.ByopopMusicPanel && ByopopMusicPanel.shutdown) ByopopMusicPanel.shutdown(); } : null,
         pic: tab.querySelector("svg"), at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
     });
+    // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
+    if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>
     if (siteSettingsView) siteSettingsView.sections.forEach(function (r, i) {
       d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,
@@ -1259,6 +1264,7 @@ try {
     ByopopSkin.deskSync();
     // the page opened at #settings and the like: that tab's window (the tabs' script ran before these windows were added)
     if (/^#(settings|music)$/.test(location.hash)) d.show("tab-" + location.hash.slice(1));
+    if (location.hash === "#sounds") d.show("sounds");
     // a game's window closed on its page: All games open and in front (web/shell.html, closeProgram)
     var want = null;
     try { want = sessionStorage.getItem("byopop-desk-open"); sessionStorage.removeItem("byopop-desk-open"); } catch (e) {}

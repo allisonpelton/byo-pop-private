@@ -771,10 +771,10 @@ var ByopopSkin = (function () {
         }
         if (listing) {
           win("library");
-          settings("tab-settings"); win("tab-music"); win("chat");
+          settings("tab-settings"); win("tab-music"); win("sounds"); win("chat");
         } else {
           settings("panel-settings");
-          [["music", "index.tabs.music"]].forEach(function (m) {
+          [["music", "index.tabs.music"], ["sounds", "sounds.title"]].forEach(function (m) {
             list.appendChild(item(T(m[1]), null, { href: "./#" + m[0] }));
           });
           list.appendChild(rule());
