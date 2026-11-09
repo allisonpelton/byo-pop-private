@@ -25,7 +25,7 @@ SmokeTraveller::SmokeTraveller(const Color& theColor, int theFromX, int theFromY
 	mAdditive = true;
 	if (gApp->mProfile->mGamesPlayed == 0) {
 		// In the first game the smoke hurries once the good twists (stat 0x21 less the bad ones, 0x22) pass 13
-		float aHurry = (float)((gApp->mUnknownC74[0x21] - gApp->mUnknownC74[0x22]) - 13) * 0.0625f;
+		float aHurry = (float)((gApp->mStats[0x21] - gApp->mStats[0x22]) - 13) * 0.0625f;
 		float aClamped = aHurry;
 		if (aHurry <= 0.0f)
 			aClamped = 0.0f;
@@ -55,7 +55,7 @@ SmokeTraveller::SmokeTraveller(const Color& theColor, int theFromX, int theFromY
 SmokeTraveller::~SmokeTraveller()
 {
 	if (!mNoPoints) {
-		gBoard->SetScore(gBoard->mUnknown168 + mPoints, false);
+		gBoard->SetScore(gBoard->mScore + mPoints, false);
 		gBoard->AddChainStep();
 	}
 	if (mBurst) {
@@ -114,7 +114,7 @@ void SmokeTraveller::EmitSmoke()
 {
 	EffectsManager* aManager = gBoard->mFXManager;
 	Effect* anEffect = aManager->AllocEffect(0);
-	anEffect->mOverlay = gBoard->mUnknown268C == 1.0f;
+	anEffect->mOverlay = gBoard->mBoardZoom == 1.0f;
 	anEffect->mX = (mToX - mFromX) * mProgress + mFromX;
 	anEffect->mY = (mToY - mFromY) * mProgress + mFromY;
 	anEffect->mAngle = (float)(RandSigned() * 3.1415927410125732);

@@ -49,7 +49,7 @@ public:
 		FLAG_BADGEM = 0x4000         // "badgem": a colour's gems must not break (mBadGem)
 	};
 
-	SexyString mUnknown0;                  // +0x00 (a narrow string; never set)
+	SexyString mNarrowName;                // +0x00 (a narrow string; never set, never read)
 	SexyString mDescription;               // +0x1c
 	SexyString mDoneDescription;           // +0x38: the text once it is met; '#' is where a number goes
 	SexyString mCountTitle;                // +0x54
@@ -59,8 +59,8 @@ public:
 	int mMoveGoal = 0;                     // +0x88: the Moves rule's value
 	int mCategory = 0;                     // +0x8c: its category's index
 	int mNumber = 0;                       // +0x90: the number in its category, from 1
-	int mUnknown94 = 0;                    // +0x94
-	std::vector<int> mUnknown98;           // +0x98
+	int mSortKey = 0;                      // +0x94: never set, never read
+	std::vector<int> mRuleIndexes;         // +0x98: never filled, never read
 	std::vector<int> mPattern;             // +0xa8: the colours a pattern asks for, in order (RWGYVOB)
 	int mProgress = 0;                     // +0xb8: the pattern's matches so far
 	SexyString mConfig;                    // +0xbc: the properties file the challenge plays under

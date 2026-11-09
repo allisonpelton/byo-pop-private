@@ -22,15 +22,15 @@ using namespace Sexy;
 
 void Board::SettleTurn()
 {
-	mUnknown20C4 = mUnknown20C0;
-	if (IsBusy() || mUnknown149C.size() != 0 || mUnknown21D8)
+	mCursorTurnBase = mCursorTurnNow;
+	if (IsBusy() || mElectroStrikes.size() != 0 || mHintShowing)
 		return;
 	CheckTips();
 	ShowNextTip();
 	CheckLevelDone();
-	mUnknown15C = 0;
+	mInputLock = 0;
 	// The original writes "Move FOUND at" the move, or "NO MOVE FOUND", to the debugger
-	FindMove(&mUnknown201C, &mUnknown2020, false);
+	FindMove(&mBestMoveRow, &mBestMoveCol, false);
 	if (mGameMode == MODE_CHALLENGE) {
 		if (mChallenge != 0)
 			CheckGoal(false);
@@ -44,60 +44,60 @@ void Board::SettleTurn()
 		mGoodTube->mText = aText;
 	}
 	// The gems that cannot move, and the special ones among them
-	mUnknown2018 = 0;
-	mUnknown2180 = 0;
-	mUnknown2184 = 0;
+	mMatchesInTurn = 0;
+	mFrozenGemCount = 0;
+	mFrozenSpecialCount = 0;
 	for (int aRow = 0; aRow < mRows; aRow++) {
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = GetPieceAt(aRow, aCol);
 			if (aPiece == nullptr)
 				continue;
 			if (!aPiece->IsFlagSet(Piece::FLAG_BOMB) && !aPiece->IsFlagSet(Piece::FLAG_DEVIL) &&
-				!aPiece->IsFlagSet(Piece::FLAG_1)) {
+				!aPiece->IsFlagSet(Piece::FLAG_DROPPER)) {
 				if (CanMove(aPiece))
 					continue;
 			} else {
-				mUnknown2184++;
+				mFrozenSpecialCount++;
 			}
-			mUnknown2180++;
+			mFrozenGemCount++;
 		}
 	}
-	if (mUnknown21D8 || mUnknown21DA || mUnknown21D9 || !mUnknown25A4 || mUnknown248 != 0.0f ||
-		mUnknown149C.size() != 0)
+	if (mHintShowing || mSettling || mTwisting || !mHintsReady || mFruitBlast != 0.0f ||
+		mElectroStrikes.size() != 0)
 		return;
-	if (!mUnknown214) {
-		if (mUnknown265C != 4) {
-			bool aFirst = mUnknown1390;
-			if (mUnknown2584 != nullptr)
-				mUnknown2584->MoveDone();
+	if (!mFruitDue) {
+		if (mBonusStage != 4) {
+			bool aFirst = mBeforeFirstTwist;
+			if (mTutorial != nullptr)
+				mTutorial->MoveDone();
 			EndTurn();
-			if (!aFirst && !mUnknown21A2) {
-				mUnknown1FB8++;
+			if (!aFirst && !mGameLoaded) {
+				mTurnCount++;
 				AddStat(0x21, 1);
-				if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr && !mUnknown21A2) {
+				if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr && !mGameLoaded) {
 					mApp->mChallengeInfo->EndMove(mChallenge);
 					CheckGoal(true);
 				}
 			}
 		}
 	} else {
-		mUnknown214 = false;
+		mFruitDue = false;
 		// The multiplier went past its top (SetLevelSteps) or a fruit dance ended: a fruit (AwardFruit), and steps
 		// past 151 (at most 14) go on top of the steps of the levels below the board's
 		AwardFruit(-1, -1);
-		if (152 <= mUnknown224) {
-			int aSteps = mUnknown224 - 151;
+		if (152 <= mLevelStepCount) {
+			int aSteps = mLevelStepCount - 151;
 			if (14 < aSteps)
 				aSteps = 14;
-			mUnknown224 = aSteps;
+			mLevelStepCount = aSteps;
 			int aLevel = 1;
-			if (1 < mUnknown21D0) {
+			if (1 < mStepLevel) {
 				do {
-					mUnknown224 += GetLevelSteps(aLevel);
+					mLevelStepCount += GetLevelSteps(aLevel);
 					aLevel++;
-				} while (aLevel < mUnknown21D0);
+				} while (aLevel < mStepLevel);
 			}
-			SetLevelSteps(mUnknown224);
+			SetLevelSteps(mLevelStepCount);
 		}
 	}
 }
@@ -105,7 +105,7 @@ void Board::SettleTurn()
 void Board::AwardFruit(int theRow, int theCol)
 {
 	// The fruits' colours go round the seven
-	int aColor = mUnknown218 % 7;
+	int aColor = mFruitsAwarded % 7;
 	Piece* aPiece;
 	if (theRow < 0) {
 		// A bomb's or a locked gem's place if there is one (whatever its colour), else the first plain gem of the
@@ -113,7 +113,7 @@ void Board::AwardFruit(int theRow, int theCol)
 		int aCount = mCols * mRows;
 		aPiece = FindHintPiece();
 		if (aPiece == nullptr) {
-			int anIndex = Rand85B970() % aCount;
+			int anIndex = BoardRand() % aCount;
 			int aTried = 0;
 			if (0 < aCount) {
 				do {
@@ -136,8 +136,8 @@ void Board::AwardFruit(int theRow, int theCol)
 	// Else up to 100 cells at random, any plain gem
 	int aTry = 0;
 	while (aPiece == nullptr) {
-		int aCol = Rand85B970() % mCols;
-		int aRow = Rand85B970() % mRows;
+		int aCol = BoardRand() % mCols;
+		int aRow = BoardRand() % mRows;
 		aPiece = GetPieceAt(aRow, aCol);
 		if (aPiece != nullptr && (aPiece->mBlasted || aPiece->mBreaking || aPiece->mFlags != 0))
 			aPiece = nullptr;
@@ -146,36 +146,36 @@ void Board::AwardFruit(int theRow, int theCol)
 			return;
 	}
 	FruitAwardScreen* aScreen = new FruitAwardScreen(this);
-	if (mUnknown265C == 4) {
+	if (mBonusStage == 4) {
 		// The fruit dance is on: the fruits leave from the tube's bottom
 		aScreen->mFromY = Ftol((double)mGoodTube->mHeight * 0.8500000238418579 + (double)mGoodTube->mY);
 	}
 	mGoodTube->mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
 	aScreen->SetPiece(aPiece->mId);
-	mUnknown23DC.push_back(aScreen);
-	mUnknown218++;
+	mPendingDialogs.push_back(aScreen);
+	mFruitsAwarded++;
 }
 
 void Board::QueueTip(int theKind, Piece* thePiece)
 {
-	if (mUnknown37C4)
+	if (mIsReplay)
 		return;
 	// The first gem of each kind; a kind already waiting keeps its gem
-	mUnknown256C.insert(std::make_pair(theKind, thePiece == nullptr ? 0 : thePiece->mId));
+	mWaitingTips.insert(std::make_pair(theKind, thePiece == nullptr ? 0 : thePiece->mId));
 }
 
 void Board::ShowNextTip()
 {
-	if (mUnknown265C == 4 || mUnknown248 != 0.0f || mUnknown256C.empty() || mUnknown23F5)
+	if (mBonusStage == 4 || mFruitBlast != 0.0f || mWaitingTips.empty() || mTipShowing)
 		return;
 	// The first waiting tip, by its kind, and the gem it points at
-	std::map<int, int>::iterator aTip = mUnknown256C.begin();
+	std::map<int, int>::iterator aTip = mWaitingTips.begin();
 	int aKind = aTip->first;
 	int anId = aTip->second;
-	mUnknown256C.erase(aTip);
+	mWaitingTips.erase(aTip);
 	if (0 <= mApp->mAutoPlayMode) {
 		// -autoplay sees every tip at once
-		mApp->mProfile->SetFlag1E4(aKind, true);
+		mApp->mProfile->SetTipSeen(aKind, true);
 		return;
 	}
 	Piece* aPiece = GetPieceById(anId);
@@ -202,10 +202,10 @@ void Board::ShowNextTip()
 	if (aName.empty() || (aPiece == nullptr && anId != 0))
 		return;
 
-	mUnknown34E8 = aKind;
-	mUnknown23F5 = true;
+	mTipKind = aKind;
+	mTipShowing = true;
 	// (the original prints "[RUNNING SCRIPT" and the name with OutputDebugString)
-	if (mUnknown254C.GetDataLen() == 0) {
+	if (mTipScript.GetDataLen() == 0) {
 		// The script's lines, a line each (blank lines skipped, and a last line without an end of line)
 		Buffer aFile;
 		if (gApp->ReadBufferFromFile("properties/tutorial.txt", &aFile, true)) {
@@ -214,7 +214,7 @@ void Board::ShowNextTip()
 				if (aChar == '\n' || aChar == '\r') {
 					aLine = Trim(aLine);  // 0x45d880
 					if (!aLine.empty())
-						mUnknown254C.WriteString(aLine);
+						mTipScript.WriteString(aLine);
 					aLine.clear();
 				} else {
 					aLine += (SexyChar)aChar;
@@ -222,21 +222,21 @@ void Board::ShowNextTip()
 			}
 		}
 	}
-	mUnknown254C.SeekFront();
-	mUnknown2584 = new Tutorial(this, aPiece, aName.c_str(), &mUnknown254C);
-	mUnknown2584->Resize(0, 0, mWidth, mHeight);
-	mUnknown2584->mKind = aKind;
-	mUnknown23DC.push_back(mUnknown2584);
+	mTipScript.SeekFront();
+	mTutorial = new Tutorial(this, aPiece, aName.c_str(), &mTipScript);
+	mTutorial->Resize(0, 0, mWidth, mHeight);
+	mTutorial->mKind = aKind;
+	mPendingDialogs.push_back(mTutorial);
 }
 
 void Board::ShowTube(bool theShow, bool theInstant)
 {
 	if (theShow) {
 		mGoodTube->UpdateImages();
-		if (!mUnknown2041) {
-			mUnknown25A6 = true;
-			if (mUnknown21D9) {
-				mUnknown21D9 = false;
+		if (!mLevelStarted) {
+			mShownBeforeStart = true;
+			if (mTwisting) {
+				mTwisting = false;
 				LoadGame(mSaveBuffer);
 			}
 		}
@@ -244,15 +244,15 @@ void Board::ShowTube(bool theShow, bool theInstant)
 		int aHeight = mGoodTube->GetTubeHeight();
 		int aWidth = mGoodTube->GetTubeWidth();
 		aSpace -= gBoard->mGoodTube->GetTubeWidth();
-		mGoodTube->Resize(Ftol((double)(aSpace / 3) - (double)mUnknown20E0), 0, aWidth, aHeight);
+		mGoodTube->Resize(Ftol((double)(aSpace / 3) - (double)mTubeOffsetX), 0, aWidth, aHeight);
 	}
-	mUnknown2041 = theShow;
+	mLevelStarted = theShow;
 	if (theShow) {
 		mGoodTube->mVisible = true;
 		if (theInstant)
 			mGoodTube->mX = 0;
 		else
-			StartUnknown3880();
+			StartTubeSlide();
 	} else {
 		mGoodTube->mVisible = false;
 		if (theInstant)
@@ -262,54 +262,54 @@ void Board::ShowTube(bool theShow, bool theInstant)
 
 void Board::CloseTip()
 {
-	Tutorial* aTip = mUnknown2584;
+	Tutorial* aTip = mTutorial;
 	if (aTip != nullptr) {
 		if (aTip->mMarkSeen)
-			mApp->mProfile->SetFlag1E4(aTip->mKind, true);
-		if (mUnknown2584->mKind == 0xe) {
-			mUnknown3904 = false;
-			if (gApp->mUnknownF85) {
-				mApp->EraseFile(mApp->GetSaveName(mGameMode, mUnknown2674));
-				mUnknown36B0 = true;
+			mApp->mProfile->SetTipSeen(aTip->mKind, true);
+		if (mTutorial->mKind == 0xe) {
+			mReplayPodDue = false;
+			if (gApp->mStartClassicAtOnce) {
+				mApp->EraseFile(mApp->GetSaveName(mGameMode, mChallengeCategory));
+				mGameOver = true;
 			} else {
 				mGoodTube->SetShown(true);
-				mGoodTube->SetUnknown14D(true);
-				mUnknown14F8 = 0;
-				mUnknown168 = 0;
-				mUnknown818 = 0;
-				mUnknown224 = 0;
+				mGoodTube->SetLevelSoundOn(true);
+				mShownScore = 0;
+				mScore = 0;
+				mChainLinks = 0;
+				mLevelStepCount = 0;
 				SetLevelSteps(0);
 			}
-			mUnknown3918 = mApp->mProfile->mFlags1E0;
-			mUnknown3914 = mApp->mProfile->mFlags1E4;
+			mUnlockFlags = mApp->mProfile->mGemTypesUnlocked;
+			mSeenFlags = mApp->mProfile->mTipsSeen;
 			mApp->mProfile->mRank = 0;
 			mApp->mProfile->Save();
 		}
 		// (the board's dialog queue deletes it)
-		mUnknown2584 = nullptr;
+		mTutorial = nullptr;
 	}
-	mUnknown145C = 1.0f;
-	mUnknown21A0 = false;
-	mUnknown1C88 = 1.0f;
-	mUnknown1C90 = false;
-	mUnknown1C8C = 1.0f;
+	mTwistSpeedScale = 1.0f;
+	mClicksIgnored = false;
+	mSpeedTarget = 1.0f;
+	mFallHeld = false;
+	mSpeedNow = 1.0f;
 	mApp->mWidgetManager->SetFocus(this);
-	if (mUnknown23F5 && ((mUnknown3914 >> 0xe) & 1) == 0) {
-		mApp->mProfile->SetFlag1E4(0xe, true);
+	if (mTipShowing && ((mSeenFlags >> 0xe) & 1) == 0) {
+		mApp->mProfile->SetTipSeen(0xe, true);
 		// 0x75fc8a
-		if (mApp->mBoard == nullptr || !mApp->mBoard->mUnknown37C4)
-			std::memset(mApp->mUnknownC74, 0, sizeof(mApp->mUnknownC74));
-		std::memset(mUnknown2234, 0, sizeof(mUnknown2234));  // 0x6a69f0
+		if (mApp->mBoard == nullptr || !mApp->mBoard->mIsReplay)
+			std::memset(mApp->mStats, 0, sizeof(mApp->mStats));
+		std::memset(mGameStats, 0, sizeof(mGameStats));  // 0x6a69f0
 		ReadConfig(true);
 		gApp->mProfile->Save();
 	}
-	mUnknown3914 = mApp->mProfile->mFlags1E4;
-	mUnknown23F5 = false;
+	mSeenFlags = mApp->mProfile->mTipsSeen;
+	mTipShowing = false;
 }
 
 bool Board::CheckTips()
 {
-	if (mUnknown23F5)
+	if (mTipShowing)
 		return true;
 	if (IsBusy() || mGameMode == MODE_BLITZ)
 		return false;
@@ -332,10 +332,10 @@ bool Board::CheckTips()
 				aBomb = aPiece;
 				if (aPiece->mBombCount == 0)
 					aBombAtZero = true;
-			} else if (aPiece->IsFlagSet(Piece::FLAG_1)) {
+			} else if (aPiece->IsFlagSet(Piece::FLAG_DROPPER)) {
 				aKind1 = aPiece;
 			} else if (aPiece->IsFlagSet(Piece::FLAG_LOCKED)) {
-				if (aPiece->IsFlagSet(Piece::FLAG_12))
+				if (aPiece->IsFlagSet(Piece::FLAG_DOOM))
 					aDevil = aPiece;
 				else
 					aLocked = aPiece;
@@ -359,35 +359,35 @@ bool Board::CheckTips()
 		return false;
 	// Each tip once, unless the profile has seen it (its bit in +0x3914)
 	bool aShown = false;
-	if (aBomb != nullptr && (mUnknown3914 >> 9 & 1) == 0) {
+	if (aBomb != nullptr && (mSeenFlags >> 9 & 1) == 0) {
 		QueueTip(9, aBomb);
 		aShown = true;
 	}
-	if (aFruit != nullptr && (mUnknown3914 >> 6 & 1) == 0) {
+	if (aFruit != nullptr && (mSeenFlags >> 6 & 1) == 0) {
 		QueueTip(6, aFruit);
 		aShown = true;
 	}
-	if (aKind1 != nullptr && (mUnknown3914 >> 3 & 1) == 0) {
+	if (aKind1 != nullptr && (mSeenFlags >> 3 & 1) == 0) {
 		QueueTip(3, nullptr);
 		aShown = true;
 	}
-	if (aDevil != nullptr && (mUnknown3914 >> 5 & 1) == 0)
+	if (aDevil != nullptr && (mSeenFlags >> 5 & 1) == 0)
 		QueueTip(5, aDevil);
-	if (aLocked != nullptr && (mUnknown3914 >> 4 & 1) == 0)
+	if (aLocked != nullptr && (mSeenFlags >> 4 & 1) == 0)
 		QueueTip(4, aLocked);
-	if (anElectro != nullptr && (mUnknown3914 >> 1 & 1) == 0) {
+	if (anElectro != nullptr && (mSeenFlags >> 1 & 1) == 0) {
 		QueueTip(1, anElectro);
 		aShown = true;
 	}
-	if (aPower != nullptr && (mUnknown3914 & 1) == 0) {
+	if (aPower != nullptr && (mSeenFlags & 1) == 0) {
 		QueueTip(0, aPower);
 		aShown = true;
 	}
-	if (aCoal != nullptr && (mUnknown3914 >> 7 & 1) == 0) {
+	if (aCoal != nullptr && (mSeenFlags >> 7 & 1) == 0) {
 		QueueTip(7, aCoal);
 		aShown = true;
 	}
-	if (anElectroPower != nullptr && (mUnknown3914 >> 0x12 & 1) == 0) {
+	if (anElectroPower != nullptr && (mSeenFlags >> 0x12 & 1) == 0) {
 		QueueTip(0x12, anElectroPower);
 		aShown = true;
 	}
@@ -407,12 +407,12 @@ bool Board::DropFlaggedGems()
 				Piece* aPiece = GetPieceAt(aRow, aCol);
 				if (aPiece == nullptr)
 					continue;
-				if (aPiece->IsFlagSet(Piece::FLAG_1) && !aPiece->mUnknown51C && !aPiece->mBreaking) {
+				if (aPiece->IsFlagSet(Piece::FLAG_DROPPER) && !aPiece->mIsKept && !aPiece->mBreaking) {
 					Piece* aBelow = GetPieceAtXY(Ftol(aPiece->mX), Ftol((double)gGemHeight + (double)aPiece->mY));
 					if (aBelow != nullptr && aBelow->mPendingDX == 0.0f && aBelow->mPendingDY == 0.0f &&
 						!aBelow->mBreaking) {
 						// The gem drops onto the one below (a 0x34-byte object, 0x6f4985, into +0x21e4, updated by
-						// 0x6f465f). Never reached: no gem ever has FLAG_1 (SetFlag(1) is called only by 0x6c2490, which
+						// 0x6f465f). Never reached: no gem ever has FLAG_DROPPER (SetFlag(FLAG_DROPPER) is called only by 0x6c2490, which
 						// only that update calls; otherwise the flag is only kept, copied by a soul or loaded)
 						NotPorted("Board::DropFlaggedGems: the drop (0x6f4985)");
 						aDropped = true;
@@ -423,10 +423,10 @@ bool Board::DropFlaggedGems()
 						EndGame(true);
 					}
 					aPiece->mBlasted = true;
-					aPiece->mUnknown116 = true;
+					aPiece->mFruitCounted = true;
 					break;
 				}
-				aPiece->mUnknown51C = false;
+				aPiece->mIsKept = false;
 			}
 			aCol++;
 		} while (aCol < mCols);
@@ -436,99 +436,99 @@ bool Board::DropFlaggedGems()
 
 void Board::EndTurn()
 {
-	if (mUnknown37C4 || mUnknown2629)
-		mUnknown3920 = true;
-	mUnknown3918 = mApp->mProfile->mFlags1E0;
-	mUnknown3914 = mApp->mProfile->mFlags1E4;
-	if (!mUnknown1C6D) {
-		int aMoves = mUnknown1E8 - mUnknown1EC;
-		if (aMoves < mUnknown234)
-			aMoves = mUnknown234;
-		mUnknown234 = aMoves;
-		mUnknown2016 = false;
+	if (mIsReplay || mReplayPlaying)
+		mReplayMoveReady = true;
+	mUnlockFlags = mApp->mProfile->mGemTypesUnlocked;
+	mSeenFlags = mApp->mProfile->mTipsSeen;
+	if (!mMatchAtOnce) {
+		int aMoves = mGemsBroken - mGemsBrokenAtTurnStart;
+		if (aMoves < mMostMovesInLevel)
+			aMoves = mMostMovesInLevel;
+		mMostMovesInLevel = aMoves;
+		mMatchCheckDue = false;
 	}
 	for (int aRow = 0; aRow < mRows; aRow++) {
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = GetPieceAt(aRow, aCol);
 			if (aPiece != nullptr) {
-				int aLeft = aPiece->mUnknown4FC;
+				int aLeft = aPiece->mLockState;
 				if (1 < aLeft) {
 					aPiece->mLockFlash = 1.0f;
-					aPiece->mUnknown4FC = aLeft - 1;
+					aPiece->mLockState = aLeft - 1;
 				}
-				aPiece->mUnknown538 = 0;
-				aPiece->mUnknown537 = false;
+				aPiece->mStrikeDelay = 0;
+				aPiece->mHasBurst = false;
 			}
 		}
 	}
 	if (mCoalMax != 0) {
-		if (mUnknown2234[74] == 0) {
-			int aCoal = mUnknown1F64;
-			mUnknown1F68++;
-			if ((aCoal + 2) * 50 < mUnknown1F68) {
-				mUnknown1F68 = 0;
+		if (mGameStats[74] == 0) {
+			int aCoal = mCoalLevel;
+			mCoalDecayCount++;
+			if ((aCoal + 2) * 50 < mCoalDecayCount) {
+				mCoalDecayCount = 0;
 				if (0 < aCoal)
-					mUnknown1F64 = aCoal - 1;
+					mCoalLevel = aCoal - 1;
 			}
 		} else {
-			int aCoal = mUnknown1F64;
-			if (aCoal < mUnknown2234[74])
-				aCoal = mUnknown2234[74];
-			mUnknown1F68 = 0;
-			mUnknown1F64 = aCoal;
+			int aCoal = mCoalLevel;
+			if (aCoal < mGameStats[74])
+				aCoal = mGameStats[74];
+			mCoalDecayCount = 0;
+			mCoalLevel = aCoal;
 		}
 	}
 	if (CountDownCounters())
 		return;
 	if (!CheckTips()) {
-		if (mUnknown1FB8 != mUnknown1FC4)
-			mUnknown1FC4 = mUnknown1FB8;
+		if (mTurnCount != mTurnSettled)
+			mTurnSettled = mTurnCount;
 	}
 	ResetFruitCount();
-	if (mUnknown2668) {
+	if (mGoalCheckDue) {
 		CheckGoal(true);
-		mUnknown2668 = false;
+		mGoalCheckDue = false;
 	}
-	if (mUnknown160 != 1) {
-		int aMoves = mUnknown1E8 - mUnknown1EC;
+	if (mPlayState != 1) {
+		int aMoves = mGemsBroken - mGemsBrokenAtTurnStart;
 		UpdateRecords();
-		if (20 < aMoves || 3 < mUnknown1508 || mUnknown262A)
-			mUnknown3904 = true;
+		if (20 < aMoves || 3 < mChainLength || mFruitBrokeThisTurn)
+			mReplayPodDue = true;
 	}
-	if (mUnknown2629) {
-		if (mUnknown2584 == nullptr && !mUnknown37C4)
-			mUnknown3904 = true;
-		if (mUnknown2629) {
+	if (mReplayPlaying) {
+		if (mTutorial == nullptr && !mIsReplay)
+			mReplayPodDue = true;
+		if (mReplayPlaying) {
 			mWidgetFlagsMod.mRemoveFlags &= ~WIDGETFLAGS_ALLOW_MOUSE;
-			mUnknown2629 = false;
+			mReplayPlaying = false;
 		}
 	}
 	if (mSparkBlock < 1) {
-		if (mUnknown1C79 && mUnknown2190 != mUnknown1FB8) {
-			mUnknown2190 = mUnknown1FB8;
+		if (mTurnSoundsOn && mTurnOfLastSound != mTurnCount) {
+			mTurnOfLastSound = mTurnCount;
 			DropFlaggedGems();
 		}
 	} else {
 		mSparkBlock--;
 		if (mSparkBlock == 0) {
 			for (int i = 0; i < 2; i++) {
-				if (mUnknown21C4[i] != nullptr) {
-					mUnknown21C4[i]->Stop();
-					mUnknown21C4[i]->Release();
-					mUnknown21C4[i] = nullptr;
+				if (mGlowSounds[i] != nullptr) {
+					mGlowSounds[i]->Stop();
+					mGlowSounds[i]->Release();
+					mGlowSounds[i] = nullptr;
 				}
 			}
 		}
 	}
 	if (!IsGameOverPending()) {
-		if (-1 < mUnknown1C64) {
-			UnlockMode(mUnknown1C64);  // 0x6b40b5
-			mUnknown1C64 = -1;
+		if (-1 < mModeToUnlock) {
+			UnlockMode(mModeToUnlock);  // 0x6b40b5
+			mModeToUnlock = -1;
 		}
 		CheckCombos();
-		mUnknown1390 = false;
-		mUnknown21A2 = false;
-		if (mGameMode != MODE_CHALLENGE && (mGameMode == MODE_BLITZ || 1 < mUnknown158) && mBonusColors.size() == 0)
+		mBeforeFirstTwist = false;
+		mGameLoaded = false;
+		if (mGameMode != MODE_CHALLENGE && (mGameMode == MODE_BLITZ || 1 < mLevel) && mBonusColors.size() == 0)
 			StartBonusChallenge(-1);
 	}
 }
@@ -537,69 +537,69 @@ void Board::UpdateRecords()
 {
 	// 0x6bcd96: the session's (the app's) and the player's (the profile's) best gems in a move, move's points and
 	// cascade, each with the game as the level started for its replay; a challenge's count only for the session
-	if (mUnknown158 == 0 || mUnknown37C4 || mUnknown2629)
+	if (mLevel == 0 || mIsReplay || mReplayPlaying)
 		return;
 	bool aForProfile = mGameMode != MODE_CHALLENGE;
 	Profile* aProfile = mApp->mProfile;
-	int aGems = mUnknown1F8;
-	if (mApp->mUnknownFA0[0].mUnknown28 < aGems) {
-		mApp->mUnknownFA0[0].mBuffer = mSaveBuffer;
-		mApp->mUnknownFA0[0].mUnknown20 = mUnknown23A4;
-		mApp->mUnknownFA0[0].mUnknown24 = mUnknown23A8;
-		mApp->mUnknownFA0[0].mUnknown28 = aGems;
-		mUnknown390C = aGems;
+	int aGems = mLevelGemCount;
+	if (mApp->mBestMoves[0].mBest < aGems) {
+		mApp->mBestMoves[0].mBuffer = mSaveBuffer;
+		mApp->mBestMoves[0].mReplayStart = mReplayStartFrame;
+		mApp->mBestMoves[0].mReplayEnd = mReplayEndFrame;
+		mApp->mBestMoves[0].mBest = aGems;
+		mBestMoveGems = aGems;
 	}
 	if (aForProfile && aProfile->mSavedGames[0].mBest < aGems) {
 		aProfile->mSavedGames[0].mData = mSaveBuffer;
-		aProfile->mSavedGames[0].mUnknown20 = mUnknown23A4;
-		aProfile->mSavedGames[0].mUnknown24 = mUnknown23A8;
+		aProfile->mSavedGames[0].mReplayStart = mReplayStartFrame;
+		aProfile->mSavedGames[0].mReplayEnd = mReplayEndFrame;
 		aProfile->mSavedGames[0].mBest = aGems;
 	}
 	// the move's points, with the geodes still in flight
 	int aPoints = 0;
-	for (unsigned int i = 0; i < mUnknown14AC.size(); i++)  // 0x6bcd96
-		aPoints += mUnknown14AC[i]->mPoints * mUnknown21D0 * mUnknown2580 * mModeMultiplier;
-	aPoints = mUnknown168 - mUnknown16C + aPoints;
-	if (mApp->mUnknownFA0[2].mUnknown28 < aPoints) {
-		mUnknown3910 = aPoints;
-		mApp->mUnknownFA0[2].mBuffer = mSaveBuffer;
-		mApp->mUnknownFA0[2].mUnknown20 = mUnknown23A4;
-		mApp->mUnknownFA0[2].mUnknown24 = mUnknown23A8;
-		mApp->mUnknownFA0[2].mUnknown28 = aPoints;
+	for (unsigned int i = 0; i < mGeodes.size(); i++)  // 0x6bcd96
+		aPoints += mGeodes[i]->mPoints * mStepLevel * mMatchSetCount * mModeMultiplier;
+	aPoints = mScore - mScoreAtTurnStart + aPoints;
+	if (mApp->mBestMoves[2].mBest < aPoints) {
+		mBestMovePoints = aPoints;
+		mApp->mBestMoves[2].mBuffer = mSaveBuffer;
+		mApp->mBestMoves[2].mReplayStart = mReplayStartFrame;
+		mApp->mBestMoves[2].mReplayEnd = mReplayEndFrame;
+		mApp->mBestMoves[2].mBest = aPoints;
 	}
 	if (aForProfile && aProfile->mSavedGames[2].mBest < aPoints) {
 		aProfile->mSavedGames[2].mData = mSaveBuffer;
-		aProfile->mSavedGames[2].mUnknown20 = mUnknown23A4;
-		aProfile->mSavedGames[2].mUnknown24 = mUnknown23A8;
+		aProfile->mSavedGames[2].mReplayStart = mReplayStartFrame;
+		aProfile->mSavedGames[2].mReplayEnd = mReplayEndFrame;
 		aProfile->mSavedGames[2].mBest = aPoints;
 	}
-	if (mApp->mUnknownFA0[1].mUnknown28 < mUnknown1508) {
-		mUnknown3908 = mUnknown1508;
-		mApp->mUnknownFA0[1].mBuffer = mSaveBuffer;
-		mApp->mUnknownFA0[1].mUnknown20 = mUnknown23A4;
-		mApp->mUnknownFA0[1].mUnknown24 = mUnknown23A8;
-		mApp->mUnknownFA0[1].mUnknown28 = mUnknown1508;
+	if (mApp->mBestMoves[1].mBest < mChainLength) {
+		mBestMoveChain = mChainLength;
+		mApp->mBestMoves[1].mBuffer = mSaveBuffer;
+		mApp->mBestMoves[1].mReplayStart = mReplayStartFrame;
+		mApp->mBestMoves[1].mReplayEnd = mReplayEndFrame;
+		mApp->mBestMoves[1].mBest = mChainLength;
 	}
-	if (aForProfile && aProfile->mSavedGames[1].mBest < mUnknown1508) {
-		mUnknown2234[(0x22e4 - 0x2234) / 4] = mUnknown1508;
+	if (aForProfile && aProfile->mSavedGames[1].mBest < mChainLength) {
+		mGameStats[(0x22e4 - 0x2234) / 4] = mChainLength;
 		aProfile->mSavedGames[1].mData = mSaveBuffer;
-		aProfile->mSavedGames[1].mUnknown20 = mUnknown23A4;
-		aProfile->mSavedGames[1].mUnknown24 = mUnknown23A8;
-		aProfile->mSavedGames[1].mBest = mUnknown1508;
+		aProfile->mSavedGames[1].mReplayStart = mReplayStartFrame;
+		aProfile->mSavedGames[1].mReplayEnd = mReplayEndFrame;
+		aProfile->mSavedGames[1].mBest = mChainLength;
 	}
-	if (mUnknown238 < mUnknown1508)
-		mUnknown238 = mUnknown1508;
+	if (mLongestChain < mChainLength)
+		mLongestChain = mChainLength;
 }
 
 bool Board::IsGameOverPending()
 {
-	if (mUnknown36B0)
+	if (mGameOver)
 		return true;
 	if (mGameMode < MODE_CHALLENGE || MODE_BLITZ < mGameMode) {
 		// The music is in danger while +0x262c is below 6
 		CustomBassMusicInterface* aMusic = mApp->mTwistMusic;
 		if (aMusic != nullptr)
-			aMusic->SetState(mUnknown262C < 6 ? 1 : 0);
+			aMusic->SetState(mLowestBombCount < 6 ? 1 : 0);
 	}
 	return false;
 }
@@ -614,79 +614,79 @@ const int gPraiseImages[6] = {721, 676, 580, 725, 759, 763};   // 0x7dbf18
 
 void Board::CheckCombos()
 {
-	bool aDemo = mUnknown37C4;
-	mUnknown2228 = 0;
+	bool aDemo = mIsReplay;
+	mChainShine = 0;
 	bool aShow = !CheckLevelDone() && !aDemo;
-	if (mGameMode == MODE_BLITZ && mUnknown3458 <= (1000 / mApp->mFrameTime) * 10)
+	if (mGameMode == MODE_BLITZ && mBlitzStartTime <= (1000 / mApp->mFrameTime) * 10)
 		aShow = false;
 	int aRating = GetTurnRating();
 	int aLevel = 5;
-	if (mUnknown1F80 < 5) {
+	if (mLastPraiseLevel < 5) {
 		do {
 			if (gPraiseRatings[aLevel] <= aRating) {
-				if (0 < aLevel && !mUnknown37C4)
-					mUnknown3904 = true;
+				if (0 < aLevel && !mIsReplay)
+					mReplayPodDue = true;
 				if (aShow)
 					ShowPraise(aLevel);
 				return;
 			}
 			aLevel--;
-		} while (mUnknown1F80 < aLevel);
+		} while (mLastPraiseLevel < aLevel);
 	}
 }
 
 int Board::GetTurnRating()
 {
-	mUnknown3804 = 0;
-	int aPart = mUnknown2234[74] * 2 - 1;
+	mTurnRating = 0;
+	int aPart = mGameStats[74] * 2 - 1;
 	if (aPart < 0)
 		aPart = 0;
-	mUnknown3804 = aPart;
+	mTurnRating = aPart;
 	float aCascades;
-	if (0.0f <= (float)std::pow((double)(float)(mUnknown1508 - 1), (double)1.5f))  // 0x670a49
-		aCascades = (float)std::pow((double)(float)(mUnknown1508 - 1), (double)1.5f);
+	if (0.0f <= (float)std::pow((double)(float)(mChainLength - 1), (double)1.5f))  // 0x670a49
+		aCascades = (float)std::pow((double)(float)(mChainLength - 1), (double)1.5f);
 	else
 		aCascades = 0;
-	mUnknown3804 += Ftol((double)aCascades);
-	aPart = mUnknown2234[64] * 2 - 1;
+	mTurnRating += Ftol((double)aCascades);
+	aPart = mGameStats[64] * 2 - 1;
 	if (aPart < 0)
 		aPart = 0;
-	int aSum = mUnknown3804 + aPart;
-	int aPart2 = mUnknown2234[65] * 2 - 1;
-	mUnknown3804 = aSum;
+	int aSum = mTurnRating + aPart;
+	int aPart2 = mGameStats[65] * 2 - 1;
+	mTurnRating = aSum;
 	if (aPart2 < 0)
 		aPart2 = 0;
-	int aPart3 = mUnknown2234[20] * 2 - 1;
-	mUnknown3804 = mUnknown2234[69] * mUnknown2234[69] + mUnknown2234[72] + mUnknown2234[71] + mUnknown2234[21] + aSum +
+	int aPart3 = mGameStats[20] * 2 - 1;
+	mTurnRating = mGameStats[69] * mGameStats[69] + mGameStats[72] + mGameStats[71] + mGameStats[21] + aSum +
 		aPart2;
 	if (aPart3 < 0)
 		aPart3 = 0;
-	mUnknown3804 += aPart3;
-	aPart = mUnknown2234[28] * 8 - 40;
+	mTurnRating += aPart3;
+	aPart = mGameStats[28] * 8 - 40;
 	if (aPart < 0)
 		aPart = 0;
-	mUnknown3804 += aPart;
-	mUnknown3804 += Ftol(std::pow((double)mUnknown1F8 / 15.0, 1.5));
-	return mUnknown3804;
+	mTurnRating += aPart;
+	mTurnRating += Ftol(std::pow((double)mLevelGemCount / 15.0, 1.5));
+	return mTurnRating;
 }
 
 void Board::ShowPraise(int theLevel)
 {
-	if (mGameMode == MODE_CHALLENGE || mUnknown21A3 || IsBusy())
+	if (mGameMode == MODE_CHALLENGE || mLevelDone || IsBusy())
 		return;
 	if (mApp->mUnmanagedSound != nullptr) {
 		// another voice is still speaking: UpdateGame shows it once that has faded
-		mUnknown1F84 = theLevel;
+		mPendingPraise = theLevel;
 		return;
 	}
 	int aSound = gPraiseSounds[theLevel];
-	mUnknown222C = mUpdateCnt;
-	mUnknown1F80 = theLevel;
+	mPraiseUpdate = mUpdateCnt;
+	mLastPraiseLevel = theLevel;
 	int anUp = Ftol((double)gApp->mScale * 250.0);
 	int aY = GetRowY(0) + (mRows * gGemHeight / 2 - anUp);
 	int aX = GetColX(0) + mCols * gGemWidth / 2;
 	FlyingText* aText =
-		new FlyingText(0, GetImageById(gPraiseImages[theLevel]), aX, aY, 1.0f, GetSoundById(aSound), 0.0f);
+		new FlyingText(0, GetImageById(gPraiseImages[theLevel]), aX, aY, GetSoundById(aSound), 0.0f);
 	aText->mQueued = false;
 	mFlyingTexts.push_back(aText);
 	// (the original also notes the update count for each praise, 0x85a9d0, which nothing reads)
@@ -706,11 +706,11 @@ void Board::ShowZenJump(int theMode)
 {
 	// 0x6a615b: once for each player (the profile's flag 0x11); the mode select it puts up is the board's dialog
 	mApp->PlaySample(SOUND_MENU_SLIDE);
-	mApp->mProfile->SetFlag1E4(0x11, true);
+	mApp->mProfile->SetTipSeen(0x11, true);
 	mApp->mProfile->Save();
-	mUnknown20D0 = false;
+	mCursorShown = false;
 	mApp->ShowModeSelect(theMode);
-	mUnknown2208 = static_cast<TwistWidget*>(mApp->mUnknownF24);
+	mShownDialog = static_cast<TwistWidget*>(mApp->mMandalaWidget);
 }
 
 void Board::AskQuit()
@@ -757,29 +757,29 @@ void Board::DialogButtonDepress(int theDialogId, int theButtonId)
 	if (theDialogId == 1) {
 		mApp->KillDialog(1);
 		if (!mApp->mLoadingThreadCompleted) {
-			if (mUnknown2584 != nullptr)  // (the original does not look)
-				mUnknown2584->mState = 0x10;
+			if (mTutorial != nullptr)  // (the original does not look)
+				mTutorial->mState = 0x10;
 		} else {
-			Tutorial* aTip = mUnknown2584;
+			Tutorial* aTip = mTutorial;
 			if (aTip != nullptr) {
-				if (mUnknown2208 == aTip)
-					mUnknown2208 = nullptr;
+				if (mShownDialog == aTip)
+					mShownDialog = nullptr;
 				if (aTip->mKind == 0xe) {
 					mApp->mProfile->MarkTutorialDone();
-					mUnknown3918 = mApp->mProfile->mFlags1E0;
-					mUnknown3914 = mApp->mProfile->mFlags1E4;
+					mUnlockFlags = mApp->mProfile->mGemTypesUnlocked;
+					mSeenFlags = mApp->mProfile->mTipsSeen;
 				}
 				aTip->mWidgetManager->RemoveWidget(aTip);
-				mUnknown830.SetInVal(0.0);
+				mTipSlide.SetInVal(0.0);
 				mApp->SafeDeleteWidget(aTip);
-				mUnknown2584 = nullptr;
+				mTutorial = nullptr;
 			}
 			if (theButtonId == 1000) {
 				if (mApp->mOptionsDialog != nullptr)
 					mApp->FinishOptionsDialog(false);
 				if (mGameMode == MODE_ZEN)
 					UpdateStats();
-				mUnknown34EC = 1;
+				mEndPending = 1;
 				if (mApp->mMusicInterface != nullptr) {
 					// port: the original keeps BASS's position in the music playing (0x6ee282) here (+0x37dc); nothing
 					// reads it back, so the port keeps 0 (as in RemovedFromManager)
@@ -790,8 +790,8 @@ void Board::DialogButtonDepress(int theDialogId, int theButtonId)
 		if (theButtonId == 4) {
 			ShowMenu();
 		} else if (theButtonId == 0x3e9) {
-			if (!mUnknown23F5) {
-				mApp->mProfile->mUnknown1B1 = false;
+			if (!mTipShowing) {
+				mApp->mProfile->mBeforeFirstMove = false;
 				mApp->mProfile->Save();
 			} else {
 				CloseTip();

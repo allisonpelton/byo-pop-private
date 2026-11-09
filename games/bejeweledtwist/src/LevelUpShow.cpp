@@ -20,10 +20,10 @@ using namespace Sexy;
 LevelUpShow::LevelUpShow(Board* theBoard)
 {
 	mBoard = theBoard;
-	mUnknown16C = false;
+	mIsHidden = false;
 	mClip = false;
 	Resize(0, 0, gApp->mWidth, gApp->mHeight);
-	mUnknown158 = 6.2831854820251465f + 6.2831854820251465f;
+	mTurnLimit = 6.2831854820251465f + 6.2831854820251465f;
 	mLevelImage = IMAGE_LEVELCOMPLETE_LEVEL;
 	mCompleteImage = IMAGE_LEVELCOMPLETE_COMPLETE;
 	mFXManager = new EffectsManager();
@@ -40,7 +40,7 @@ LevelUpShow::LevelUpShow(Board* theBoard)
 
 	// The level's number, its digits a space apart except next to a 1
 	Font* aFont = FONT_LEVEL_NUMBER;
-	SexyString aDigits = StrFormat(GTC(0x80da2c), gBoard->mUnknown158);
+	SexyString aDigits = StrFormat(GTC(0x80da2c), gBoard->mLevel);
 	SexyString aText;
 	for (int i = 0; i < (int)aDigits.size(); i++) {
 		if (i != 0 && aDigits[i - 1] != '1' && aDigits[i] != '1')
@@ -100,7 +100,7 @@ void LevelUpShow::Update()
 		}
 	}
 	if (mUpdateCnt == 200 && mBoard->mGameMode == Board::MODE_CLASSIC &&
-		9 < mBoard->mUnknown158) {
+		9 < mBoard->mLevel) {
 		mBoard->UnlockMode(3);  // 0x6b40b5
 	}
 	MarkDirty();
@@ -108,7 +108,7 @@ void LevelUpShow::Update()
 
 void LevelUpShow::Draw(Graphics* g)
 {
-	if (mBoard->mUnknown23F4 || 2 <= mState)
+	if (mBoard->mTipShowingAtJump || 2 <= mState)
 		return;
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255));

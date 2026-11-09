@@ -76,7 +76,7 @@ RankBonusWidget::RankBonusWidget(int thePoints, int theBonus, int theX, int theY
 	mPoints = thePoints;
 	mTelly = nullptr;
 	mTotal = mBonus + thePoints;
-	mUnknown1C4 = 0;
+	mStarsAdded = 0;
 	mBar = IMAGE_RANKBAR_LEVELUP;
 	mClip = false;
 	mRank = gApp->mProfile->mRank;
@@ -84,7 +84,7 @@ RankBonusWidget::RankBonusWidget(int thePoints, int theBonus, int theX, int theY
 	int aFilled = mSlots;
 	if (thePoints - gApp->mRanks->GetPoints(mRank) <= aFilled)
 		aFilled = thePoints - gApp->mRanks->GetPoints(mRank);
-	mUnknown470 = 0;
+	mPulseLeft = 0;
 	mFilled = aFilled;
 	mFocus = aFilled;
 	mTarget = mBonus + aFilled;
@@ -136,7 +136,7 @@ RankBonusWidget::RankBonusWidget(int thePoints, int theBonus, int theX, int theY
 		} while (i < (unsigned int)mBonus);
 	}
 	mFocusX = mWidth / 2;
-	gApp->mProfile->mUnknown160 += theBonus;
+	gApp->mProfile->mRankPoints += theBonus;
 	mMouseVisible = false;
 }
 
@@ -179,8 +179,8 @@ void RankBonusWidget::Reset()
 	mVel = 3.0f;
 	mFadeIn = 0;
 	mFadeIn2 = 1.0f;
-	mUnknown1B4 = 1.0f;
-	mUnknown158 = 0;
+	mBarScale = 1.0f;
+	mIsFinished = 0;
 	mState = 0;
 	if (aStep < 1)
 		aStep = 1;
@@ -205,7 +205,7 @@ void RankBonusWidget::RankUp()
 	aTelly->ShowRank(gApp->mProfile->mRank);
 	mTelly = aTelly;
 	if (gBoard != nullptr && gBoard->mHyperspace != nullptr)
-		gBoard->mHyperspace->mFlag15E = true;
+		gBoard->mHyperspace->mHoldsJump = true;
 	AddWidget(mTelly);
 }
 
@@ -286,14 +286,14 @@ void RankBonusWidget::UpdateFades()
 void RankBonusWidget::Update()
 {
 	TwistWidget::Update();
-	if (gBoard == nullptr || gBoard->mUnknown26AC == nullptr) {
+	if (gBoard == nullptr || gBoard->mLevelUpShow == nullptr) {
 		double aScale = (double)mScale + 0.009999999776482582;
 		if (1.0 < aScale)
 			aScale = 1.0;
 		mScale = (float)aScale;
 	} else {
 		// The level's end: the LevelUpShow's zoom
-		double aScale = static_cast<LevelUpShow*>(gBoard->mUnknown26AC)->mScaleCurve.GetOutVal() * 1.0499999523162842;
+		double aScale = static_cast<LevelUpShow*>(gBoard->mLevelUpShow)->mScaleCurve.GetOutVal() * 1.0499999523162842;
 		if (1.0 < aScale)
 			aScale = 1.0;
 		mScale = (float)aScale;
@@ -333,7 +333,7 @@ void RankBonusWidget::Update()
 							mPillars.SetCurve(GTS(0x7ea158));
 							mSlide.SetCurve(GTS(0x7ea12c));
 							mGlow.SetCurve(GTS(0x7ea0f4));
-							mUnknown390.SetCurve(GTS(0x7e0bb0));
+							mStarFade.SetCurve(GTS(0x7e0bb0));
 							mFade.SetCurve(GTS(0x7e0bb0));
 							gApp->PlaySample(SOUND_LIGHTBAR_BLINK);
 						}
@@ -385,8 +385,8 @@ void RankBonusWidget::Update()
 						i++;
 					} while (i < (int)mStars.size());
 				}
-				mUnknown474 = 3.0f;
-				mUnknown470 = 1.0f;
+				mPulseLength = 3.0f;
+				mPulseLeft = 1.0f;
 			} else if (!mSlide.IsInitialized()) {
 				mState++;
 				mTimer = gBoard != nullptr ? 1.75f : 1.0f;
@@ -395,7 +395,7 @@ void RankBonusWidget::Update()
 		break;
 	case 2:
 		mScale = 1.0f;
-		mUnknown1A0 = true;
+		mIsWaiting = true;
 		mTimer = (float)((double)mTimer - 0.009999999776482582);
 		if (!(0.0f < mTimer))
 			mState = 5;
@@ -417,14 +417,14 @@ void RankBonusWidget::Update()
 		mVel = (float)((double)mVel + 0.20000000298023224);
 		if (mTelly != nullptr && mTelly->mButton != nullptr)
 			mTelly->mButton->mY += Ftol(mBarY) - aWas;
-		float aLeft = (float)((double)mUnknown470 - 0.019999999552965164);
-		mUnknown470 = aLeft;
+		float aLeft = (float)((double)mPulseLeft - 0.019999999552965164);
+		mPulseLeft = aLeft;
 		if (!(0.0f < aLeft))
-			mUnknown470 = 0;
-		if ((float)mHeight <= mBarY && !(0.0f < mUnknown470)) {
-			mUnknown470 = 0;
+			mPulseLeft = 0;
+		if ((float)mHeight <= mBarY && !(0.0f < mPulseLeft)) {
+			mPulseLeft = 0;
 			if (gBoard != nullptr && gBoard->mHyperspace != nullptr)
-				gBoard->mHyperspace->mFlag15E = false;
+				gBoard->mHyperspace->mHoldsJump = false;
 			if (mTelly == nullptr || mTelly->mClicked)
 				mClicked = true;
 		}
@@ -441,7 +441,7 @@ void RankBonusWidget::Draw(Graphics* g)
 {
 	if (mTelly != nullptr) {
 		int aPriority = 0x7fffffff;
-		if (gBoard != nullptr && gBoard->mUnknown498.GetOutVal() != 0.0)
+		if (gBoard != nullptr && gBoard->mBannerShow.GetOutVal() != 0.0)
 			aPriority = 50;
 		mWidgetManager->FlushDeferredOverlayWidgets(aPriority);
 	}

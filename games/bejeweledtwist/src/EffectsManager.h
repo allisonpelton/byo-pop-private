@@ -40,7 +40,7 @@ public:
 	float mGravity = 0;           // +0x28: added to mDY each update
 	int mFrame = 0;               // +0x2c: the image's cel
 	float mDelay = 0;             // +0x30
-	float mUnknown38 = 0;         // +0x38: the shards' damping of their velocity
+	float mVelocityDamping = 0;   // +0x38: the shards' damping of their velocity
 	float mAlpha = 1.0f;          // +0x3c
 	float mDAlpha = -0.01f;       // +0x40
 	float mMaxAlpha = 1.0f;       // +0x44
@@ -52,8 +52,8 @@ public:
 	Color mColor2;                // +0x68
 	float mAngle = 0;             // +0x78
 	float mDAngle = 0;            // +0x7c
-	float mUnknown80 = 0;         // +0x80
-	float mUnknown84 = 0;         // +0x84
+	float mPhase = 0;             // +0x80: set to 0 for the type 6 effects, never read
+	float mSizeJitter = 0;        // +0x84: a random 0.5 to 1.25 set for one type, never read
 	Image* mImage = nullptr;      // +0x88
 	int mUpdateDiv = 1;           // +0x8c: moves by a 1/mUpdateDiv of its velocity, changes every mUpdateDiv updates
 	bool mIsCyclingColor = false; // +0x90: the hue turns
@@ -61,10 +61,10 @@ public:
 	bool mIsAdditive = false;     // +0x98
 	// +0x9c to +0xa8: type 26's speed below which it fades, that fade and its damping; the shards' two tumbling
 	// angles and their turns
-	float mUnknown9C = 0;         // +0x9c
-	float mUnknownA0 = 0;         // +0xa0
-	float mUnknownA4 = 0;         // +0xa4
-	float mUnknownA8 = 0;         // +0xa8
+	float mBlend = 0;             // +0x9c: type 10's blend from the old turn rate to the new, 0 to 1; the shards' first tumbling angle
+	float mRateFrom = 0;          // +0xa0: type 10's turn rate it blends from; the shards' second tumbling angle; type 26's fade
+	float mRateTo = 0;            // +0xa4: type 10's turn rate it blends to; the shards' damping of velocity; type 26's speed below which it fades
+	float mTumbleTurn = 0;        // +0xa8: the shards' turn of the tumbling angles an update
 	int mFlags = 0;               // +0xb0
 	bool mDeleteMe = false;       // +0xb4
 	EffectsManager* mFXManager = nullptr;  // +0xb8
@@ -80,7 +80,7 @@ public:
 // A heat wave (Direct3D only): a ring of distortion that spreads from a point (0x40 bytes in the manager's tree at
 // +0x94, made by 0x6f5a46, added by 0x6f9efe, aged by 0x6f8792, drawn by 0x6f7ab4)
 struct HeatWave {
-	int mUnknown00 = 0;           // +0x00
+	int mKind = 0;                // +0x00: set to 0 when made, never read
 	double mX = 0;                // +0x08
 	double mY = 0;                // +0x10
 	double mEndX = 0;             // +0x18: where the ring ends (0x6f7ab4 moves its box by progress times it)
@@ -97,12 +97,12 @@ public:
 	// The effects ordered by their type, each type in the order they were added
 	std::multimap<int, Effect*> mEffects;  // +0x88
 	std::list<HeatWave> mHeatWaves;        // +0x94 (a tree of them in the original, all alike in order of adding)
-	bool mUnknownA0 = false;               // +0xa0: drawn under the board's transform (0x6f7a45)
-	bool mUnknownA1 = false;               // +0xa1: the depth test goes off first (0x6f6451)
+	bool mDrawnUnderBoardTransform = false;  // +0xa0: drawn under the board's transform (0x6f7a45)
+	bool mDepthTestOffFirst = false;       // +0xa1: the depth test goes off first (0x6f6451)
 	bool mIs3D = false;                    // +0xa3: the last update ran with Direct3D
-	bool mUnknownB4 = false;               // +0xb4: set once a heat wave has been drawn (0x6f80a4)
-	bool mUnknownB5 = false;               // +0xb5
-	bool mUnknownB6 = false;               // +0xb6: set by the board's constructor for the first manager, read by nothing
+	bool mHeightImageUsed = false;         // +0xb4: set once a heat wave has been drawn (0x6f80a4)
+	bool mHazeMarked = false;              // +0xb5: the bombs' haze is marked for the distortion pass; cleared once it ran
+	bool mIsFirstManager = false;          // +0xb6: set by the board's constructor for the first manager, read by nothing
 	DDImage* mHeightImage = nullptr;       // +0xb0: the heat waves' height image (a half-size target), 0 in 2D mode
 	TargetHold mHeightHold;                // port: the pool's hold of it (the original's is a hidden global, never released)
 	float mAlpha = 1.0f;                   // +0xb8: every effect's opacity is multiplied by it

@@ -19,12 +19,12 @@ public:
 	bool mMouseOver = false;     // +0xac
 	bool mNoticeClicks = false;  // +0xad: a click sets mClicked
 	bool mFrozen = false;        // +0xae: Update does nothing
-	int mUnknownB0 = -1;         // +0xb0
+	int mImageId = -1;           // +0xb0: the id of the dialog's picture (IMAGE_..._ID), -1 for none
 	Image* mImage = nullptr;     // +0xb4: drawn at 0, 0 in mImageColor
 	Color mImageColor;           // +0xb8
-	bool mUnknownC8 = false;     // +0xc8
+	bool mHoldsBoard = false;    // +0xc8: a dialog that has it set keeps the board from showing the next one; never set by the port
 	bool mClicked = false;       // +0xc9
-	bool mUnknownCA = false;     // +0xca
+	bool mRemoveWhenDone = false;  // +0xca: the widget removes and deletes itself when its show ends
 	bool mFlushOverlays = false; // +0xcb: DrawAll first draws the manager's deferred overlays
 	bool mZooming = false;       // +0xcc: mZoom runs
 	bool mZoomIn2D = false;      // +0xcd: without it 2D mode skips the zoom

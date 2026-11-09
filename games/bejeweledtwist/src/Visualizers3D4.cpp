@@ -53,13 +53,13 @@ Gears::Gears(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mCount = 0;
 	mAngleA = 0.0f;
-	mUnknown3C = 0;
+	mFirstGearTurn = 0;
 	mAngleB = 0.0f;
-	mUnknown38 = 1;
+	mAngleZero = 1;
 	mGear = LoadVizImage(IMAGE_GEAR_ID);
 	mGearBlur = LoadVizImage(IMAGE_GEAR_BLUR_ID);
 	mBackground = LoadVizImage(IMAGE_GEARS_BG_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 // 0x673949
@@ -99,7 +99,7 @@ void Gears::Update()
 	mCount++;
 	float aPhase = (float)((double)(float)(mCount % 0x5dc) / 1500.0);
 	aPhase = (float)((double)aPhase + (double)aPhase);
-	mAngleA = (float)((double)(float)mUnknown38 * 0.0 / ((double)aPhase + 1.0) + 0.001f + (double)mAngleA);
+	mAngleA = (float)((double)(float)mAngleZero * 0.0 / ((double)aPhase + 1.0) + 0.001f + (double)mAngleA);
 	aPhase = (float)((double)aPhase * 3.1415927f);
 	float aSin = sinf(aPhase);  // 0x401b70
 	mAngleB = (float)(((double)aSin * 0.0 - 0.0005f) + (double)mAngleB);
@@ -165,7 +165,7 @@ void Gears::Draw(Graphics* g)
 	float aScale = (float)((double)(float)gApp->mWidth * 0.95f * 0.0009765625 *
 		((double)aPhase * 0.0 * ((double)aPhase + 1.0) + 1.4f));
 	g->SetColorizeImages(true);
-	DrawGear(g, aScale, (float)(gApp->mWidth / 2), (float)(gApp->mHeight / 2), mAngleA, 0.0f, mUnknown3C);
+	DrawGear(g, aScale, (float)(gApp->mWidth / 2), (float)(gApp->mHeight / 2), mAngleA, 0.0f, mFirstGearTurn);
 	g->SetDrawMode(0);
 	g->PushState();
 	g->SetColorizeImages(true);
@@ -281,8 +281,8 @@ Slipstream::Point::Point()
 		aWidth = gApp->mWidth;
 		mZ = (float)(CrtRand() % aWidth - aWidth / 2);
 		mAngle = 0.0f;
-		mUnknown0C = 0.0f;
-		mUnknown10 = 0;
+		mStripAngle = 0.0f;
+		mExtent = 0;
 		float aDX = fabsf(mX);
 		float aDY = fabsf(mY);
 		if (100.0 <= (double)aDY + (double)aDX)
@@ -293,22 +293,22 @@ Slipstream::Point::Point()
 // 0x67b8f4: IMAGE_SLIPSTREAM_POINTY, IMAGE_JELLYTRAIL_TEXTURE and IMAGE_SLIPSTREAM_BG
 Slipstream::Slipstream(WinTwistApp* theApp) : Visualizer(theApp)
 {
-	mUnknown2C = 6.0f;
-	mUnknown3C = 9.0f;
-	mUnknown40 = 4.0f;
-	mUnknown30 = 0xf;
-	mUnknown44 = 20.0f;
-	mUnknown34 = 0x28;
-	mUnknown38 = 300;
-	mUnknown48 = 6.0f;
-	mUnknown4C = 40.0f;
-	mUnknown50 = 4.0f;
-	mUnknown54 = 0.0f;
-	mUnknown58 = 0.0f;
+	mStripWidth = 6.0f;
+	mShrinkAmount = 9.0f;
+	mInnerWidth = 4.0f;
+	mStripLength = 0xf;
+	mOuterWidth = 20.0f;
+	mShrinkStart = 0x28;
+	mShrinkEnd = 300;
+	mInnerLength = 6.0f;
+	mOuterLength = 40.0f;
+	mMinSpeed = 4.0f;
+	mDriftX = 0.0f;
+	mDriftY = 0.0f;
 	mPointy = LoadVizImage(IMAGE_SLIPSTREAM_POINTY_ID);
 	mTrail = LoadVizImage(IMAGE_JELLYTRAIL_TEXTURE_ID);
 	mBackground = LoadVizImage(IMAGE_SLIPSTREAM_BG_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 // 0x67b561: the images, then every point
@@ -440,25 +440,25 @@ void Slipstream::Update()
 void Slipstream::MakeStripVertices(Point* thePoint, TriVertex* theVertices)
 {
 	float aShrink = 0.0f;
-	if (mUnknown34 < thePoint->mUnknown10)
-		aShrink = (float)((double)(float)(thePoint->mUnknown10 - mUnknown34) * (double)mUnknown3C /
-			(double)(mUnknown38 - mUnknown34));
-	thePoint->mUnknown18 = 20.0f;
+	if (mShrinkStart < thePoint->mExtent)
+		aShrink = (float)((double)(float)(thePoint->mExtent - mShrinkStart) * (double)mShrinkAmount /
+			(double)(mShrinkEnd - mShrinkStart));
+	thePoint->mStripSize = 20.0f;
 	float aSize = (float)((double)thePoint->mSize - (double)aShrink);
 	thePoint->mFlag = aSize <= 0.0f;
 	if (thePoint->mFlag)
 		aSize = 0.0f;
 	thePoint->mScreenX = Ftol((double)(gApp->mWidth / 2) + (double)thePoint->mX);
 	thePoint->mScreenY = Ftol((double)(gApp->mHeight / 2) + (double)thePoint->mY);
-	thePoint->mUnknown2C = 0;
-	thePoint->mUnknown30 = 1;
-	int aX = thePoint->mScreenX + thePoint->mUnknown34 * thePoint->mUnknown2C;
-	int aY = thePoint->mScreenY + thePoint->mUnknown38 * thePoint->mUnknown30;
+	thePoint->mAcrossX = 0;
+	thePoint->mAcrossY = 1;
+	int aX = thePoint->mScreenX + thePoint->mSpanX * thePoint->mAcrossX;
+	int aY = thePoint->mScreenY + thePoint->mSpanY * thePoint->mAcrossY;
 	int aSizeInt = Ftol((double)aSize);
-	float aXs[4] = {(float)(aX - thePoint->mUnknown2C * aSizeInt), (float)aX, (float)aX,
-		(float)(thePoint->mUnknown2C * aSizeInt + aX)};
-	float aYs[4] = {(float)(aY - thePoint->mUnknown30 * aSizeInt), (float)aY, (float)aY,
-		(float)(thePoint->mUnknown30 * aSizeInt + aY)};
+	float aXs[4] = {(float)(aX - thePoint->mAcrossX * aSizeInt), (float)aX, (float)aX,
+		(float)(thePoint->mAcrossX * aSizeInt + aX)};
+	float aYs[4] = {(float)(aY - thePoint->mAcrossY * aSizeInt), (float)aY, (float)aY,
+		(float)(thePoint->mAcrossY * aSizeInt + aY)};
 	for (int i = 0; i < 4; i++) {
 		theVertices[i].x = aXs[i];
 		theVertices[i].y = aYs[i];

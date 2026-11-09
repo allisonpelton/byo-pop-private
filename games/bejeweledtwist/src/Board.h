@@ -1,6 +1,6 @@
 // Sexy::Board (about 0x3940 bytes, vtable 0x7dd0d4 with 71 slots; 0x6a3d7b-0x6d6899): the game itself. Being
-// ported (docs/NOTES.md, "The board"); its fields are named by their offset in the original's object until their use
-// is known, and come in as the code that uses them does.
+// ported (docs/NOTES.md, "The board"); each field's comment starts with its offset in the original's object, and the
+// fields come in as the code that uses them does.
 #pragma once
 
 #include "PopAnim.h"
@@ -55,13 +55,13 @@ struct Geode {
 	float mLife = 0;             // +0x10: 0.45 while it flies; it lands when this is 0 or less
 	float mSpin[8] = {-3.1415927f, -3.1415927f, -3.1415927f, -3.1415927f,
 		-3.1415927f, -3.1415927f, -3.1415927f, -3.1415927f};  // +0x14: the angles of its eight arms
-	CurvedVal mUnknown38;        // +0x38: the arms' turn (linked to +0xb8)
+	CurvedVal mArmTurn;          // +0x38: the arms' turn (linked to +0xb8)
 	int mPoints = 0;             // +0xa8
 	int mDelay = 0;              // +0xac: updates until it starts
-	int mUnknownB0 = 0;          // +0xb0
+	int mLandCount = 0;          // +0xb0: set to 0 by the constructor, never read
 	int mIndex = 0;              // +0xb4: the order it was made in (a pitch for its landing sound)
-	CurvedVal mUnknownB8;        // +0xb8: its flight
-	CurvedVal mUnknown128;       // +0x128: its brightness (linked to +0xb8)
+	CurvedVal mFlight;           // +0xb8: its flight
+	CurvedVal mBrightness;       // +0x128: its brightness (linked to +0xb8)
 };
 
 // 0x10 bytes (0x74c8c8) at the board's +0x211c: a developer's stepper through the board (0x74db1b, run by UpdateGame
@@ -69,9 +69,9 @@ struct Geode {
 // whatever the allocator left.
 struct BoardStepper {
 	WinTwistApp* mApp;       // +0x00
-	int mUnknown4 = 0;       // +0x04: the board, as 0x74db1b reads it
-	int mUnknown8 = 0;       // +0x08
-	int mUnknownC = 0;       // +0x0c
+	int mBoard = 0;          // +0x04: the board, as 0x74db1b reads it
+	int mStepState = 0;      // +0x08: never set by the original, a developer stepper's state
+	int mStepCount = 0;      // +0x0c: never set by the original, a developer stepper's count
 	explicit BoardStepper(WinTwistApp* theApp) : mApp(theApp) {}  // 0x74c8c8
 };
 
@@ -91,17 +91,17 @@ struct LevelValue {
 	int mTurnsBetweenChange = 0;    // +0x30
 	bool mTurnBased = false;        // +0x34
 	double mChancePow = 0;          // +0x38
-	double mUnknown40 = 1.0;        // +0x40
-	double mUnknown48 = 1.0;        // +0x48
-	bool mUnknown50 = false;        // +0x50
-	bool mUnknown51 = false;        // +0x51: Read leaves mValue alone
+	double mChanceScale = 1.0;      // +0x40: multiplies the chance Roll works out (1.0 from Read)
+	double mDistanceScale = 1.0;    // +0x48: multiplies the share of the count already used up in Roll (1.0 from Read)
+	bool mIsDue = false;            // +0x50: set once Roll says it comes now; saved with mValue
+	bool mKeepSavedValue = false;   // +0x51: Read leaves mValue alone
 
 	void Read(const char* theName);  // 0x74ec7d
 	int GetCount();                  // 0x74ea57: mBase, mChange, mMin, mMax
 	int GetValue();                  // 0x74e9e8: mValueBase, mValueChange, mValueMin, mValueMax
-	void Restart() { mValue = GetCount(); mUnknown50 = false; }  // 0x74eac6
+	void Restart() { mValue = GetCount(); mIsDue = false; }  // 0x74eac6
 	void RestartAtLevel();           // 0x74ead6: Restart when mFirstLevel is the board's level
-	bool Roll();                     // 0x74eb38: one turn down; whether it comes now, by chance (Rand85B970)
+	bool Roll();                     // 0x74eb38: one turn down; whether it comes now, by chance (BoardRand)
 	bool ShouldAppear();             // 0x74ec45: from mFirstLevel on, whether it comes now
 	bool NextTurn();                 // 0x74ec17: from mFirstLevel on, a turn-based one rolls; whether it is due
 };
@@ -112,12 +112,12 @@ struct MatchInfo {
 	int mRow = -1;                  // +0x4
 	int mCol = -1;                  // +0x8
 	int mCount = 0;                 // +0xc: its gems
-	bool mUnknown10 = true;         // +0x10
+	bool mIsFresh = true;           // +0x10: true after Reset, never read
 	int mColor = -1;                // +0x14
 	std::vector<int> mIds;          // +0x18: its gems' ids
 	int mSerial = 0;                // +0x28: from gMatchInfoCount
-	int mUnknown2C = 0;             // +0x2c
-	bool mUnknown30 = false;        // +0x30
+	int mPoints = 0;                // +0x2c: the points the match scores, shown over it
+	bool mWasScored = false;        // +0x30: false after Reset, never read
 
 	MatchInfo();
 	void Reset();
@@ -130,17 +130,17 @@ public:
 	// The game modes (+0x20c)
 	enum { MODE_CASUAL = 0, MODE_CLASSIC = 1, MODE_CHALLENGE = 2, MODE_BLITZ = 3, MODE_ZEN = 4, MODE_PUZZLE = 5 };
 
-	int mUnknown158 = 0;               // +0x158: the level (LevelValue)
+	int mLevel = 0;                    // +0x158: the level (LevelValue)
 	int mGameMode = 0;                 // +0x20c
 	int mModeFlags = 0;                // +0x210: 8 for a replay
 	WinTwistApp* mApp = nullptr;       // +0x954
 	Image* mPuzzleImage = nullptr;     // +0x1320: the puzzle's picture (mode 5), cut into the gems
-	bool mUnknown1324 = false;         // +0x1324
+	bool mPuzzleSolved = false;        // +0x1324: a puzzle is solved (hints and cursor are off in a puzzle while it is set)
 	int mRows = 0;                     // +0x1330
 	int mCols = 0;                     // +0x1334
 	Piece** mGrid = nullptr;           // +0x1338: mRows x mCols, row by row
 	// +0x149c: the electro gems' strikes (the class at 0x71eb9e, not yet ported); ClearBoard deletes them
-	std::vector<void*> mUnknown149C;
+	std::vector<void*> mElectroStrikes;
 	std::vector<Piece*> mBombList;     // +0x14bc: bombs about to go off, drawn over the board (Piece::DrawFront)
 	struct HazeRect { float mLeft, mTop, mRight, mBottom; };
 	std::vector<HazeRect> mHazeRects;  // +0x14cc: the rectangles over the bombs' cells the distortion drawing (0x6f7ab4) takes
@@ -149,610 +149,556 @@ public:
 	float mPieceAlpha = 1.0f;          // +0x1640
 	EffectsManager* mFXManager = nullptr;  // +0x1648
 	EffectsManager* mFXManager2 = nullptr; // +0x164c
-	int mUnknown15B4 = 0;              // +0x15b4: the mouse, over the board
-	int mUnknown15B8 = 0;              // +0x15b8
+	int mBoardMouseX = 0;              // +0x15b4: the mouse, over the board (x)
+	int mBoardMouseY = 0;              // +0x15b8: the mouse, over the board (y)
 	// The config's level values (0x6c6469 reads them)
 	LevelValue mLockGem;               // +0x1ca0
 	LevelValue mSkulls;                // +0x1cf8
 	LevelValue mCounter;               // +0x1d50
 	LevelValue mBadGemsOnBoardMax;     // +0x1da8
-	LevelValue mUnknown1E00;           // +0x1e00
+	LevelValue mSavedOnlyLevelSetting;  // +0x1e00: a LevelValue between the bad-gem maximum and the level-up points; only saved and loaded (never read)
 	LevelValue mLevelUpPoints;         // +0x1e58
 	LevelValue mDevil;                 // +0x1eb0: a doom gem's count
 	LevelValue mCoalGem;               // +0x1f08
-	int mUnknown1F78 = 0;              // +0x1f78
-	bool mUnknown1BF2 = false;         // +0x1bf2: coal is drawn as snackers
+	int mBombGemCount = 0;             // +0x1f78: the bomb gems on the board, counted each update while the state is 0; Piece uses it to time a bomb's sparks
+	bool mCoalAsSnackers = false;      // +0x1bf2: coal is drawn as snackers
 	Image* mShineImage = nullptr;      // +0x1c54
-	int mUnknown1C5C = 0;              // +0x1c5c
-	int mUnknown1C58 = 0;              // +0x1c58
-	float mUnknown2038 = 0;            // +0x2038
-	int mUnknown20DC = 0;              // +0x20dc
-	float mUnknown2108 = 0;            // +0x2108
+	int mBlastChainCount = 0;          // +0x1c5c: the blasts chained in this turn (0 when a twist starts); it adds to the heat wave's strength
+	int mBurstSize = 0;                // +0x1c58: 25 when a twist starts; the size of the bursts at the gems
+	float mTwistGlow = 0;              // +0x2038: 1 when a twist ends, falls by 0.02 an update
+	int mLevelUpTilePhase = 0;         // +0x20dc: the level-up's tiles: 0 none, 1 turning over in rings, 2 waiting (set while the next level is made and filled)
+	float mJumpFillWait = 0;           // +0x2108: the level jump's count down, 7.9 at its start, 0.01 less an update; no gems fill while above 0
 	int mSparkBlock = 0;               // +0x21ac: no sparks while above 0
-	float mUnknown21B0 = 0;         // +0x21b0
+	float mBlueFlash = 0;           // +0x21b0: a blue flash over the board, alpha out of 255
 	bool mDebugPieces = false;         // +0x21db: each piece shows its row and column
-	float mUnknown23EC = 0;            // +0x23ec
-	bool mUnknown23F5 = false;         // +0x23f5
+	float mMatchFlash = 0;             // +0x23ec: set to 1 by a match; the flash falls from there
+	bool mTipShowing = false;          // +0x23f5: a tip's script or dialog is up (ShowNextTip sets it, the tip's end clears it)
 	// +0x2584: the tutorial being run (Tutorial.h), which can point at a piece (its +0x1a4)
-	Tutorial* mUnknown2584 = nullptr;
-	bool mUnknown25A4 = false;         // +0x25a4
-	float mUnknown268C = 1.0f;         // +0x268c
+	Tutorial* mTutorial = nullptr;
+	bool mHintsReady = false;          // +0x25a4: the hint can be shown (cleared when a match is made)
+	float mBoardZoom = 1.0f;           // +0x268c
 	float mShakeX = 0;                 // +0x2690
 	float mShakeY = 0;                 // +0x2694
-	bool mUnknown37C4 = false;         // +0x37c4
-	bool mUnknown37F8 = false;         // +0x37f8: no sounds or marks for the gems made (loading a game)
-	bool mUnknown3904 = false;         // +0x3904
-	float mUnknown380C = 0;            // +0x380c
-	int mUnknown3804 = 0;              // +0x3804: the turn's rating (0x6a5179)
-	float mUnknown3924 = 1.0f;         // +0x3924
+	bool mIsReplay = false;            // +0x37c4: the board plays a replay
+	bool mQuietFill = false;           // +0x37f8: no sounds or marks for the gems made (loading a game)
+	bool mReplayPodDue = false;        // +0x3904: the replay pod is to be shown once nothing else is up (UpdateGame shows it and clears this)
+	float mNextLevelWait = 0;          // +0x380c: the wait before the next level starts, 0.01 less an update; the rank bar must be ready
+	int mTurnRating = 0;               // +0x3804: the turn rating (0x6a5179)
+	float mBoardFade = 1.0f;           // +0x3924: the board brightness, 0 or 1
 	int mBoardX = 0;                   // +0x3474: the grid's left edge
-	// The rest of the fields the constructor (0x6c4df9) sets, named by their offset until their use is known
-	int mUnknown15C = 0;                    // +0x15c
-	int mUnknown160 = 0;                    // +0x160
-	int mUnknown168 = 0;                    // +0x168: the score
-	int mUnknown16C = 0;                    // +0x16c
-	int mUnknown170 = 0;                    // +0x170
-	int mUnknown1E8 = 0;                    // +0x1e8
-	int mUnknown1EC = 0;                    // +0x1ec
-	int mUnknown1F0 = 0;                    // +0x1f0
-	int mUnknown1F4 = 0;                    // +0x1f4
-	int mUnknown1F8 = 0;                    // +0x1f8
-	int mUnknown1FC = 0;                    // +0x1fc
-	int mUnknown200 = 0;                    // +0x200
-	int mUnknown204 = 1;                    // +0x204
-	int mUnknown218 = 0;                    // +0x218: fruits awarded (AwardFruit: their colours go round the seven)
-	int mUnknown21C = 0;                    // +0x21c: only saved and loaded
-	int mUnknown224 = 0;                    // +0x224
-	int mUnknown234 = 0;                    // +0x234: the most moves in a level
-	int mUnknown22C = 0;                    // +0x22c: fruits broken (nothing reads it)
-	float mUnknown248 = 0;                  // +0x248: the fruit's blast, 0 to 1 (0 none; UpdateUnknown248)
-	bool mUnknown24C = false;               // +0x24c: a fruit broke with no lock or bomb on the board (nothing reads it)
-	float mUnknown230 = 0;                  // +0x230: up 0.01 each update while +0x15c is 0
-	int mUnknown250 = -1;                   // +0x250: the broken fruit's column
-	int mUnknown254 = -1;                   // +0x254: and row
-	int mUnknown258 = -1;                   // +0x258: and id
-	CurvedVal mUnknown260;                  // +0x260: the blast's rings' size, by their progress
-	CurvedVal mUnknown2D0;                  // +0x2d0: their opacity
-	CurvedVal mUnknown340;                  // +0x340: the fruit's glow's opacity, by the blast's progress
-	CurvedVal mUnknown3B0;                  // +0x3b0: the fruit's and its glow's scale
-	int mUnknown420 = 0;                    // +0x420: and colour
-	CurvedVal mUnknown428;                  // +0x428: the mode-unlock banner's stripe (0x6b40b5)
-	CurvedVal mUnknown498;                  // +0x498: set by 0x6b40b5; while it is not 0 the banner is drawn and the
+	// The rest of the fields the constructor (0x6c4df9) sets
+	int mInputLock = 0;                     // +0x15c: while above 0 the cursor does not move and no twist starts; only ever 0 once play has begun (saved)
+	int mPlayState = 0;                     // +0x160: the board's state: 0 play, 1 a replay's rewind, 3 and 4 waits, 5 the level's start, 7 the level-up's blast, 8 the puzzle's fill
+	int mScore = 0;                         // +0x168: the score
+	int mScoreAtTurnStart = 0;              // +0x16c: the score when the turn began (the turn's points are +0x168 minus it)
+	int mProgressGainAtTurnStart = 0;       // +0x170: +0x14fc as the twist began (never read)
+	int mGemsBroken = 0;                    // +0x1e8: the gems broken in the game (counted by BreakPiece; saved)
+	int mGemsBrokenAtTurnStart = 0;         // +0x1ec: +0x1e8 when the turn began; the difference is the turn's gems
+	int mGemsCleared = 0;                   // +0x1f0: the gems cleared by matches in the game (saved)
+	int mGemsClearedAtTurnStart = 0;        // +0x1f4: +0x1f0 when the turn began (never read)
+	int mLevelGemCount = 0;                 // +0x1f8: the gems counted for the big count popup (0 at a new game)
+	int mGameGemCount = 0;                  // +0x1fc: the gems counted in the game (saved); with +0x1f8 it grows when a gem is first broken
+	int mLevelProgress = 0;                 // +0x200: the points gained toward the level-up (saved)
+	int mLevelProgressGoal = 1;             // +0x204: the points that finish the level (the level-up points, 500 at most in some modes)
+	int mFruitsAwarded = 0;                 // +0x218: fruits awarded (AwardFruit: their colours go round the seven)
+	int mSavedOnlyValue = 0;                // +0x21c: only saved and loaded
+	int mLevelStepCount = 0;                // +0x224: the steps made so far; GetLevelFor turns them into a level (saved)
+	int mMostMovesInLevel = 0;              // +0x234: the most moves in a level
+	int mFruitsBroken = 0;                  // +0x22c: fruits broken (nothing reads it)
+	float mFruitBlast = 0;                  // +0x248: the fruit blast, 0 to 1 (0 none; UpdateFruitBlast)
+	bool mFruitBrokeFree = false;           // +0x24c: a fruit broke with no lock or bomb on the board (nothing reads it)
+	float mPlaySeconds = 0;                 // +0x230: up 0.01 each update while +0x15c is 0 (saved as text)
+	int mFruitCol = -1;                     // +0x250: the broken fruit column
+	int mFruitRow = -1;                     // +0x254: the broken fruit row
+	int mFruitId = -1;                      // +0x258: the broken fruit id
+	CurvedVal mBlastRingSize;               // +0x260: the blast rings size, by their progress
+	CurvedVal mBlastRingAlpha;              // +0x2d0: the blast rings opacity
+	CurvedVal mFruitGlowAlpha;              // +0x340: the fruit glow opacity, by the blast progress
+	CurvedVal mFruitBlastScale;             // +0x3b0: the fruit and its glow scale
+	int mFruitColor = 0;                    // +0x420: the broken fruit colour
+	CurvedVal mBannerStripe;                // +0x428: the mode-unlock banner stripe (0x6b40b5)
+	CurvedVal mBannerShow;                  // +0x498: set by 0x6b40b5; while it is not 0 the mode-unlock banner is drawn and the rank bar draws the overlays above priority 50 under it
 	                                        // rank bar draws the overlays above priority 50 under it
-	CurvedVal mUnknown508;                  // +0x508: the banner's mode picture
-	CurvedVal mUnknown578;                  // +0x578: its glow
-	CurvedVal mUnknown5E8;                  // +0x5e8: its sheen's colour
-	CurvedVal mUnknown658;                  // +0x658: its sheen's place along the width
-	int mUnknown6C8 = 0;                    // +0x6c8: the mode unlocked last (2 is the challenge)
-	bool mUnknown6CC = false;               // +0x6cc: the tooltip is up (UpdateToolTips, DrawOverlay)
-	int mUnknown6D0 = 0;                    // +0x6d0: the updates the mouse has stayed over the same text
-	SexyString mUnknown6D4;                 // +0x6d4: the tooltip's title
-	SexyString mUnknown6F0;                 // +0x6f0: its text
-	int mUnknown70C = 0;                    // +0x70c: its x (the place of the gem or the tube's part)
-	int mUnknown710 = 0;                    // +0x710: its y
-	int mUnknown714 = 0;                    // +0x714: its width
-	CurvedVal mUnknown718;                  // +0x718: the arrow's slide
-	CurvedVal mUnknown788;                  // +0x788: its fade
-	SexyString mUnknown7F8;                 // +0x7f8: the text the mouse is over now
-	int mUnknown814 = 0;                    // +0x814
-	int mUnknown818 = 0;                    // +0x818
-	int mUnknown82C = 0;                    // +0x82c: the tip shown, from the profile's count
-	CurvedVal mUnknown830;                  // +0x830: the tip's slide
-	SexyString mUnknown8A0;                 // +0x8a0: the tip's text
-	float mUnknown8C0 = 0;                  // +0x8c0: the tip's x
-	float mUnknown8BC = 0;                  // +0x8bc: the tip's wait before it slides back
-	int mUnknown131C = -1;                  // +0x131c
-	int mUnknown132C = 1;                   // +0x132c
+	CurvedVal mBannerModePicture;           // +0x508: the banner mode picture
+	CurvedVal mBannerGlow;                  // +0x578: the banner glow
+	CurvedVal mBannerSheenColor;            // +0x5e8: the banner sheen colour
+	CurvedVal mBannerSheenPos;              // +0x658: the banner sheen place along the width
+	int mUnlockedMode = 0;                  // +0x6c8: the mode unlocked last (2 is the challenge)
+	bool mTooltipUp = false;                // +0x6cc: the tooltip is up (UpdateToolTips, DrawOverlay)
+	int mTooltipHoverCount = 0;             // +0x6d0: the updates the mouse has stayed over the same text
+	SexyString mTooltipTitle;               // +0x6d4: the tooltip's title
+	SexyString mTooltipText;                // +0x6f0: the tooltip's text
+	int mTooltipX = 0;                      // +0x70c: the tooltip's x (the place of the gem or the tube's part)
+	int mTooltipY = 0;                      // +0x710: and y
+	int mTooltipWidth = 0;                  // +0x714: and width
+	CurvedVal mTooltipArrowSlide;           // +0x718: the tooltip's arrow's slide
+	CurvedVal mTooltipFade;                 // +0x788: the tooltip's fade
+	SexyString mTooltipHoverText;           // +0x7f8: the text the mouse is over now
+	int mSlowDownWait = 0;                  // +0x814: updates left of a slow-down while a tip about power and electro gems shows; the game's speed eases to 0.4 for its last 30
+	int mChainLinks = 0;                    // +0x818: the chain's links so far in this level (saved); 0 when a level begins
+	int mTipIndex = 0;                      // +0x82c: the tip shown, from the profile's count
+	CurvedVal mTipSlide;                    // +0x830: the tip's slide
+	SexyString mTipText;                    // +0x8a0: the tip's text
+	float mTipX = 0;                        // +0x8c0: the tip's x
+	float mTipSlideBackWait = 0;            // +0x8bc: the tip's wait before it slides back
 	// +0x135c: a value per cell (AllocGrid)
-	Piece** mUnknown135C = nullptr;  // the grid kept while a turn is tried (0x6a3b00 and 0x6a3b26)
+	Piece** mSavedGrid = nullptr;    // +0x135c: a copy of the grid kept while a turn is tried (0x6a3b00 and 0x6a3b26)
 	// +0x1360: a record per cell (0x44 bytes, 0x6a38a7), row by row
 	struct Cell {
-		bool mUnknown0 = false;
-		float mUnknown4 = 0;
+		bool mSavedState = false;
+		float mFade = 0;
 		int mRow = 0;              // +0x8
 		int mCol = 0;              // +0xc
-		bool mUnknown10 = false;
+		bool mHoldsFixedGem = false;
 		Color mColor = Color(0, 0, 0, 0);  // +0x14: Color() with its alpha then cleared
-		float mUnknown24 = 0;
-		float mUnknown28 = 0;
-		bool mUnknown2C = false;
-		float mUnknown30;          // +0x30: not set by the constructor; the tile's turn, 1 down to 0 (UpdateLevelUp)
-		bool mUnknown34 = false;
-		int mUnknown38 = 0;
-		float mUnknown3C = 0;
-		float mUnknown40 = 0;
+		float mLightPulse = 0;
+		float mLightGlow = 0;
+		bool mLevelUpStarted = false;
+		float mLevelUpTurn;        // +0x30: not set by the constructor; the tile's turn, 1 down to 0 (UpdateLevelUp)
+		bool mIsMarked = false;
+		int mMarkTick = 0;
+		float mMarkGlow = 0;
+		float mHintFlash = 0;
 	};
 	Cell* mCells = nullptr;
-	int* mUnknown1370 = nullptr;            // +0x1370: a value per column (ReadConfig)
-	bool mUnknown1374 = false;              // +0x1374
-	int mUnknown1378 = 3;                   // +0x1378
-	bool mUnknown137C = false;              // +0x137c
-	bool mUnknown137D = false; // +0x137d
-	bool mUnknown137E = false;              // +0x137e
-	bool mUnknown137F = false;              // +0x137f
-	bool mUnknown1380 = false;              // +0x1380
-	bool mUnknown1381 = false;              // +0x1381
-	bool mUnknown1382 = false;              // +0x1382
-	bool mUnknown1383 = false;              // +0x1383
-	bool mUnknown1384 = false;              // +0x1384
-	int mUnknown1388 = 0;                   // +0x1388
+	int* mColumnBreakTime = nullptr;        // +0x1370: the update count at which a gem last broke in each column
+	int mStartState = 3;                    // +0x1378: 3 at first, 0 or 2 while the start's fade (+0x13b0) runs, 1 once play may begin
+	bool mStatsAdded = false;               // +0x137c: the game's totals have been added to the profile (UpdateRecords does it once)
+	bool mIsBlitzGame = false;  // +0x137d: set for a blitz game; its seconds go to the blitz total of the app
+	bool mIsUnscoredMode = false;           // +0x137e: never set; if it were, the game would not raise the profile's best score and its seconds would go to a fourth total
+	bool mDebugColorOff = false;            // +0x137f: never set; draws without the hue-cycling debug colour when set
+	bool mEditorNoMatches = false;          // +0x1382: never set; FindMatches finds nothing when set, and the editor's first label (yellow) shows
+	bool mEditorGreenLabel = false;         // +0x1383: never set; the editor's green label shows when set
+	bool mShowEditorLabels = false;         // +0x1384: never set; the level editor's labels show when set
 	SoundInstance* mRewindSound = nullptr;  // +0x138c: SOUND_REWIND, looping while a replay rewinds
-	bool mUnknown1390 = true;               // +0x1390
-	int mUnknown1394 = 0;                   // +0x1394
-	bool mUnknown1398 = false;              // +0x1398
-	Widget* mUnknown139C = nullptr;                   // +0x139c
-	int mUnknown13A0 = 0;                   // +0x13a0
-	int mUnknown13A4 = 0;                   // +0x13a4
-	bool mUnknown13A8 = true;               // +0x13a8
-	CurvedVal mUnknown8C8;                  // +0x8c8: runs every update (twice in zen)
-	CurvedVal mUnknown2898;                 // +0x2898: runs every update
-	CurvedVal mUnknown36C0;                 // +0x36c0: while it runs, +0x37a0 fades
-	CurvedVal mUnknown3730;                 // +0x3730: while it runs, +0x37a4 fades
-	CurvedVal mUnknown3478;                 // +0x3478: the grid's slide to its place
-	CurvedVal mUnknown3810;                 // +0x3810: the new level's (0x6d090f)
-	CurvedVal mUnknown3880;                 // +0x3880: set by 0x6b681d
-	CurvedVal mUnknown34F0;                 // +0x34f0: set when a turn ends (0x6b8bca)
-	CurvedVal mUnknown13B0;                 // +0x13b0: set to 0 by StartLevel
+	bool mBeforeFirstTwist = true;          // +0x1390: true until the game's first twist (set again by a new game); no save is kept and no level ends while it is set
+	int mFallDelay = 0;                     // +0x1394: updates left before FallPieces lets the gems fall again
+	bool mClearBacklogDue = false;          // +0x1398: the next draw clears the update backlog (set at the end of a level jump)
+	Widget* mCornerWidget = nullptr;                  // +0x139c: a widget resized to the lower right each update; never set, so always null
+	CurvedVal mZenExtraCurve;               // +0x8c8: stepped every update, twice in zen; nothing reads it (never read)
+	CurvedVal mAngryBombFade;               // +0x2898: the angry bomb over a gem: its opacity (set when a puzzle is lost in the wheel spin)
+	CurvedVal mCascadePopupScale;           // +0x36c0: the cascade popup's shadow scale; while it runs, +0x37a0 fades
+	CurvedVal mCountPopupScale;             // +0x3730: the count popup's shadow scale; while it runs, +0x37a4 fades
+	CurvedVal mGridSlide;                   // +0x3478: the grid's slide to its place
+	CurvedVal mLevelSlideIn;                // +0x3810: the new level's slide in from the right (0x6d090f)
+	CurvedVal mTubeSlide;                   // +0x3880: the tube's slide out and back, started by 0x6b681d
+	CurvedVal mGoScale;                     // +0x34f0: the "GO" picture's scale and fade, started when a turn ends (0x6b8bca)
+	CurvedVal mStartFade;                   // +0x13b0: the level start's fade, set to 0 by StartLevel; it runs while +0x1378 is 0 or 2
 	// +0x27b8 and the five linked to it: the nuke at the end of a game (EndGame)
-	CurvedVal mUnknown27B8;                 // +0x27b8
-	CurvedVal mUnknown2828;                 // +0x2828
-	CurvedVal mUnknown26D8;                 // +0x26d8
-	CurvedVal mUnknown2748;                 // +0x2748
-	CurvedVal mUnknown2908;                 // +0x2908
-	CurvedVal mUnknown2978;                 // +0x2978
+	CurvedVal mNukeProgress;                // +0x27b8: the nuke's progress; also scales the nuke's cloud (the end of a game, EndGame)
+	CurvedVal mNukeCloudAlpha;              // +0x2828: the nuke cloud's opacity
+	CurvedVal mNukeNovaScale;               // +0x26d8: the nova's scale, and the blast's reach
+	CurvedVal mNukeNovaAlpha;               // +0x2748: the nova's opacity
+	CurvedVal mNukeGemZoom;                 // +0x2908: the zoom of the gem that set the nuke off
+	CurvedVal mNukeTubeShake;               // +0x2978: how far the tube is turned and moved during the nuke
 	SexyTransform2D mTransform;             // +0x29e8: DrawAll's scale and offsets, pushed to the device in 3D mode (0x44f320 clears it)
-	bool mUnknown1420 = false;              // +0x1420
-	float mUnknown1424 = 0;                 // +0x1424: the glint's run, 0 to 1
-	float mUnknown1428 = 0;                 // +0x1428
-	float mUnknown142C = 0;                 // +0x142c
-	std::deque<TwistWidget*> mUnknown23DC;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
+	bool mGlintRunning = false;             // +0x1420: a glint is running over the board
+	float mGlintPlace = 0;                  // +0x1424: the glint's run, 0 to 1
+	float mDimAmount = 0;                   // +0x1428: counts down 0.06 an update to 0; nothing sets it above 0
+	float mDimRecovery = 0;                 // +0x142c: up 0.06 an update to 1 while +0x15c is 0 (never read)
+	std::deque<TwistWidget*> mPendingDialogs;  // +0x23dc: the dialogs waiting to come up (0x6a6e36 its size)
 	std::vector<FlyingText*> mFlyingTexts;  // +0x1f98: the praise and other words over the board (0x6a6d18 its size)
-	std::vector<GemSoul*> mUnknown26B0;     // +0x26b0: the souls of the last level's special gems (0x6a6eaa its size)
+	std::vector<GemSoul*> mLevelSouls;      // +0x26b0: the souls of the last level's special gems (0x6a6eaa its size)
 	// +0x1650: lights over the gems (0x2c bytes each), added by UpdateGame
 	struct Light {
 		float mX = 0;
 		float mY = 0;
-		float mUnknown8 = 0;
-		float mUnknownC = 0;
-		float mUnknown10 = 0;
-		float mUnknown14 = 0;
-		bool mUnknown18 = false;
-		float mUnknown1C = 0;
-		float mUnknown20 = 0;
+		float mSize = 0;
+		float mFalloff = 0;
+		float mLevel = 0;
+		float mStrength = 0;
+		bool mRising = false;
+		float mRiseRate = 0;
+		float mFadeRate = 0;
 		Piece* mPiece = nullptr;  // +0x24: the gem it follows, or none
 		int mPieceId = -1;        // +0x28
 	};
-	std::vector<Light> mUnknown1650;
-	std::vector<Shockwave*> mUnknown1660;   // +0x1660: the waves that shake the gems (0x6af497)
-	std::vector<Traveller*> mUnknown2170;   // +0x2170: the points' smoke on its way to the tube (0x6af0e2)
-	int mUnknown203C = 0;                   // +0x203c: the puzzle fill's wait
+	std::vector<Light> mLights;
+	std::vector<Shockwave*> mShockwaves;    // +0x1660: the waves that shake the gems (0x6af497)
+	std::vector<Traveller*> mSmokeTravellers;  // +0x2170: the points' smoke on its way to the tube (0x6af0e2)
+	int mPuzzleFillWait = 0;                // +0x203c: the puzzle fill's wait, counted down each update
 	// +0x21e4: objects of a class with its update at 0x6f465f (not yet ported)
-	std::vector<void*> mUnknown21E4;
-	std::vector<Piece*> mUnknown20F4;       // +0x20f4: the gems the twist turns (SnapPiecesX moves them too)
-	Piece* mUnknown1430 = nullptr;          // +0x1430: a piece RemovePiece forgets
-	int mUnknown1434 = 0;                   // +0x1434
-	bool mUnknown1438 = false;              // +0x1438
-	int mUnknown143C = 0;                   // +0x143c
-	int mUnknown1440 = 1;                   // +0x1440
-	int mUnknown1444 = -1;                  // +0x1444
-	int mUnknown1448 = -1;                  // +0x1448
-	int mUnknown144C = -1;                  // +0x144c
-	float mUnknown1450 = 1.0f;              // +0x1450
-	float mUnknown1454 = 0;                   // +0x1454
-	float mUnknown1458 = 0;                 // +0x1458: the twist's step, in degrees an update
-	float mUnknown145C = 1.0f;              // +0x145c
-	int mUnknown1460 = 0;                   // +0x1460
-	int mUnknown1464 = 0;                   // +0x1464: only saved and loaded
-	int mUnknown1468 = 0;                   // +0x1468: only saved and loaded
-	int mUnknown146C = 0;                   // +0x146c
-	int mUnknown1470 = 0;                   // +0x1470
+	std::vector<void*> mDroppers;
+	std::vector<Piece*> mTwistPieces;       // +0x20f4: the gems the twist turns (SnapPiecesX moves them too)
+	Piece* mCursorPiece = nullptr;          // +0x1430: the gem under the cursor (RemovePiece forgets it)
+	int mCursorPieceTicks = 0;              // +0x1434: counts every 8th update while the cursor has a gem (never read)
+	bool mWaitDialogUp = false;             // +0x1438: dialog 40 is up; the next match's end closes it
+	float mCursorMoveGlow = 1.0f;           // +0x1450: set to 1 when the cursor moves to another cell (never read)
+	float mTwistAngle = 0;                    // +0x1454: the twist's angle in degrees, 0 to 90 (saved)
+	float mTwistStep = 0;                   // +0x1458: the twist's step, in degrees an update
+	float mTwistSpeedScale = 1.0f;          // +0x145c: scales the twist's speed (1; the tutorial can set it)
+	int mSavedOnlyFirst = 0;                // +0x1464: the first of two ints saved after the twist's step; only saved and loaded
+	int mSavedOnlySecond = 0;               // +0x1468: the second of two ints saved after the twist's step; only saved and loaded
+	int mUpdatesPlayed = 0;                 // +0x1470: the updates the board has run (100 to a second of play)
 	// (+0x1474: the trial's limit dialog, registration code, left out)
-	bool mUnknown1478 = false;              // +0x1478
-	int mUnknown1488 = 0;                   // +0x1488
-	int mUnknown14DC = 0;                   // +0x14dc
-	int mUnknown14E0 = 0;                   // +0x14e0
-	int mUnknown14E4 = 0;                   // +0x14e4
-	int mUnknown14E8 = 0;                   // +0x14e8
-	int mUnknown14EC = 0;                   // +0x14ec
-	int mUnknown14F0 = 0;                   // +0x14f0
-	int mUnknown14F4 = 0;                   // +0x14f4
-	int mUnknown14F8 = 0;                   // +0x14f8
-	int mUnknown14FC = 0;                   // +0x14fc
-	int mUnknown1500 = 0;                   // +0x1500
-	int mUnknown1504 = 0;                   // +0x1504
-	int mUnknown1508 = 0;                   // +0x1508
-	bool mUnknown150C = true;               // +0x150c
-	int mUnknown1510 = 0;                   // +0x1510
-	int mUnknown1514 = 0;                   // +0x1514
-	float mUnknown1518 = 0;                 // +0x1518: the shake's size
-	float mUnknown151C = 0;                 // +0x151c: the shake, fading to 0
-	int mUnknown1520 = 0;                   // +0x1520
-	int mUnknown1524 = 0;                   // +0x1524
-	int mUnknown1528 = 0;                   // +0x1528: power gems the burst sets off (never, see BurstAt)
-	bool mUnknown152C = false;              // +0x152c
-	int mUnknown1530 = 0;                   // +0x1530
-	int mUnknown1534 = 0;                   // +0x1534
-	int mUnknown1538 = 0;                   // +0x1538
-	int mUnknown153C = 0;                   // +0x153c
-	int mUnknown1540 = 0;                   // +0x1540
-	int mUnknown1544 = 0;                   // +0x1544
-	int mUnknown1548 = 0;                   // +0x1548
-	double mUnknown1550 = 0;                // +0x1550
-	bool mUnknown1558 = true;               // +0x1558
-	bool mUnknown1559 = true;               // +0x1559
-	bool mUnknown155A = false;              // +0x155a
-	int mUnknown155C = -1;                  // +0x155c
-	int mUnknown1560 = -1;                  // +0x1560
-	int mUnknown1564 = -1;                  // +0x1564
-	int mUnknown1568 = -1;                  // +0x1568
-	bool mUnknown156C = false;              // +0x156c
-	int mUnknown1570 = 0;                   // +0x1570
-	int mUnknown1574 = 0;                   // +0x1574
-	int mUnknown1580 = 0;                   // +0x1580
-	bool mUnknown15A8 = false;              // +0x15a8
-	int mUnknown15AC = 23;                  // +0x15ac
-	bool mUnknown15B0 = false;              // +0x15b0
-	int mUnknown15BC = 0;                   // +0x15bc: -autoplay's click
-	int mUnknown15C0 = 0;                   // +0x15c0
-	int mUnknown15C4 = 0;                   // +0x15c4: the update count of -autoplay's click, 0 with none
-	int mUnknown15C8 = 0;                   // +0x15c8: the last click on the board
-	int mUnknown15CC = 0;                   // +0x15cc
-	bool mUnknown15D0 = false;              // +0x15d0
-	bool mUnknown15D1 = false;              // +0x15d1: +0x15d0 of the update before
-	int mUnknown15D4 = 0;                   // +0x15d4
-	bool mUnknown15D8 = false;              // +0x15d8
-	int mUnknown15DC = 0;                   // +0x15dc
-	bool mUnknown15EC = false;              // +0x15ec
-	int mUnknown15F4 = 0;                   // +0x15f4
-	bool mUnknown15FC = true;               // +0x15fc
-	bool mUnknown15FD = false;              // +0x15fd
-	int mUnknown1604 = 0;                   // +0x1604
-	int mUnknown1610 = 0;                   // +0x1610
-	float mUnknown1614 = 0;                 // +0x1614
-	double mUnknown1618 = 0;                // +0x1618
-	double mUnknown1620 = 0;                // +0x1620
-	double mUnknown1628 = 0;                // +0x1628
-	bool mUnknown1638 = false;              // +0x1638
-	bool mUnknown1644 = false;              // +0x1644
-	int mUnknown1670 = 0;                   // +0x1670
-	int mUnknown1BEC = 0;                   // +0x1bec
-	bool mUnknown1BF0 = false;              // +0x1bf0
-	bool mUnknown1BF1 = false;              // +0x1bf1
-	int mUnknown1BF4 = 7;                   // +0x1bf4
-	int mUnknown1C00 = 0;                   // +0x1c00
-	int mUnknown1C04 = 0;                   // +0x1c04
-	int mUnknown1C08 = 0;                   // +0x1c08
-	int mUnknown1C0C = 0;                   // +0x1c0c
-	int mUnknown1C10 = 0;                   // +0x1c10
-	int mUnknown1C14 = 0;                   // +0x1c14
-	int mUnknown1C18 = 0;                   // +0x1c18
-	int mUnknown1C1C = 0;                   // +0x1c1c
-	int mUnknown1C20 = 0;                   // +0x1c20
-	int mUnknown1C24 = 0;                   // +0x1c24
-	int mUnknown1C28 = 0;                   // +0x1c28
-	int mUnknown1C34 = 0;                   // +0x1c34
-	float mUnknown1C38 = 1.0f;              // +0x1c38
-	int mUnknown1C3C = 0;                   // +0x1c3c
-	bool mUnknown1C40 = false;              // +0x1c40
-	bool mUnknown1C41 = true;               // +0x1c41
-	bool mUnknown1C42 = false;              // +0x1c42
-	float mUnknown1C48 = 0;                   // +0x1c48
-	int mUnknown1C4C = 0;                   // +0x1c4c
-	int mUnknown1C50 = 0;                   // +0x1c50
-	int mUnknown1C64 = -1;                  // +0x1c64
-	int mUnknown1C74 = 0;                   // +0x1c74
-	float mUnknown1C84 = 0;                   // +0x1c84
-	float mUnknown1C88 = 1.0f;              // +0x1c88
-	float mUnknown1C8C = 1.0f;              // +0x1c8c
-	bool mUnknown1C90 = false;              // +0x1c90
-	bool mUnknown1C98 = false;              // +0x1c98: IceGemsAllowed
-	int mUnknown1F64 = 0;                   // +0x1f64
-	int mUnknown1F68 = 0;                   // +0x1f68
-	int mUnknown1F74 = 0;                   // +0x1f74
-	int mUnknown1F7C = 0;                   // +0x1f7c
-	int mUnknown1F80 = -1;                  // +0x1f80
-	int mUnknown1F84 = -1;                  // +0x1f84
+	bool mClearSparksDue = false;           // +0x1478: the next draw clears the spark starts and the hit counts
+	int mReplacedGems = 0;                  // +0x1488: the gems that state 2 puts back on the board; the constructor sets 0 and nothing else writes it
+	int mPlayStartCount = 0;                // +0x14dc: the update count when play (re)started after a pause; hundredths of a second since it add to +0x14e8
+	int mLastTimerCount = 0;                // +0x14e0: the update count at the last play-time check
+	int mSecondProgress = 0;                // +0x14e4: the updates counted toward the next second of play (a second is 1000 / frame time); a timed challenge adds it to its clock
+	int mSecondsBeforePause = 0;            // +0x14e8: the seconds played before the last pause
+	int mSecondsPlayed = 0;                 // +0x14ec: the seconds played in the game so far
+	int mSecondsAddedToProfile = 0;         // +0x14f0: +0x14ec as it was when the profile's time total was last added to
+	int mUpdatesSinceCascade = 0;           // +0x14f4: counted each update while the state is 0; 0 at each cascade and each twist (saved)
+	int mShownScore = 0;                    // +0x14f8: the score on show, rolling up to +0x168
+	int mProgressGain = 0;                  // +0x14fc: the progress points gained from matches, added with +0x200 (saved)
+	int mGemsBrokenAtLastProfileSave = 0;   // +0x1500: +0x1e8 at the last time the profile's gem total was added to
+	int mClearedAtGameEnd = 0;              // +0x1504: set to 0 when a game ends (never read)
+	int mChainLength = 0;                   // +0x1508: the cascades of this turn (0 at its start); sizes the shockwave and the points
+	bool mCascadePointsOn = true;           // +0x150c: cascades after the first score (true once the tips are on: profile flag 14); false before
+	int mLastLandSound = 0;                 // +0x1510: the update count of the last gem-landing sound; they are at least 10 updates apart
+	int mFallLimit = 0;                     // +0x1514: set to 50 each update before the gems fall (never read)
+	float mShakeSize = 0;                   // +0x1518: the shake's size
+	float mShakeAmount = 0;                 // +0x151c: the shake, fading to 0
+	int mShakeOffsetX = 0;                  // +0x1520: this update's shake offset in x
+	int mShakeOffsetY = 0;                  // +0x1524: this update's shake offset in y
+	int mBurstPowerGems = 0;                // +0x1528: the power gems a burst reached; they set the size of the shake
+	bool mBurstSoundDue = false;            // +0x152c: a burst began; the next update plays SOUND_BOMB_EXPLODE and clears it
+	int mAchievementOneCount = 0;           // +0x1530: a count nothing increases; the difference to +0x1534 is added to the profile's counter that gives achievement bit 1 at 10
+	int mAchievementOneCounted = 0;         // +0x1534: +0x1530 as it was when it was last added to the profile
+	int mAchievementTwoCount = 0;           // +0x1538: a count nothing increases; the difference to +0x153c is added to the profile's counter that gives achievement bit 2 at 5
+	int mAchievementTwoCounted = 0;         // +0x153c: +0x1538 as it was when it was last added to the profile
+	int mTurnPoints = 0;                    // +0x1544: the points added in this turn, 0 at its start; the progress points follow a curve of it
+	bool mTwistTried = true;                // +0x1558: set when a twist is tried (never read)
+	bool mFirstLevelHints = true;           // +0x1559: the first levels' hints are on (true at a new game, false after the hyperspace of level 2)
+	int mPauseCount = 0;                    // +0x1570: how many times the board is paused (Pause and Unpause)
+	int mPauseShownCount = 0;               // +0x1574: how many of those pauses show the pause picture
+	bool mBoardHidden = false;              // +0x15b0: never set; the board's gems are not drawn while set
+	int mAutoClickX = 0;                    // +0x15bc: -autoplay's click, x
+	int mAutoClickY = 0;                    // +0x15c0: -autoplay's click, y
+	int mAutoClickTime = 0;                 // +0x15c4: the update count of -autoplay's click, 0 with none
+	int mLastClickX = 0;                    // +0x15c8: the last click on the board, x (never read)
+	int mLastClickY = 0;                    // +0x15cc: and y (never read)
+	bool mClickedThisUpdate = false;        // +0x15d0: a click began a twist since the last update
+	bool mClickedLastUpdate = false;        // +0x15d1: +0x15d0 of the update before (never read)
+	int mClickBlockUpdates = 0;             // +0x15d4: updates left in which clicks do not count after an unpause; 1 on an unpause, the tube takes the mouse again at 0
+	bool mFinishingTwist = false;           // +0x15d8: true while a twist is finished or turned back (never read)
+	int mBoardImage = 0;                    // +0x15dc: an image of the whole board drawn instead of it; the constructor sets 0 and nothing else writes it
+	bool mOverlayRedrawDue = true;          // +0x15fc: set at the end of a jump and a game, cleared by the next draw (never read)
+	float mJumpScroll = 0;                  // +0x1614: scrolls down 0.1 an update (plus 5 when it wraps) while +0x1618 is above 0 (never read)
+	double mJumpActive = 0;                 // +0x1618: 1 when a hyperspace jump is taken, 0 when it or a game ends
+	double mJumpDistance = 0;               // +0x1620: falls by +0x1628 each update while +0x1618 is above 0 (never read)
+	double mJumpSpeed = 0;                  // +0x1628: up 0.0005 each update while +0x1618 is above 0
+	bool mJumpEnded = false;                // +0x1638: set to false when a game ends (never read)
+	bool mNoDialogsOpen = false;            // +0x1644: the app has no dialog open, as of the last update (never read)
+	bool mRainEffect = false;               // +0x1bf0: never set; when set, half the updates start a falling effect (effect 0x15) at a random x
+	int mColorCount = 7;                    // +0x1bf4: the gem colours FillInBlanks picks from; never set after the constructor
+	int mCursorX = 0;                       // +0x1c00: the cursor's x (its left edge)
+	int mCursorY = 0;                       // +0x1c04: the cursor's y (its top edge)
+	int mCursorWidth = 0;                   // +0x1c08: the cursor's width
+	int mCursorHeight = 0;                  // +0x1c0c: the cursor's height
+	int mHoverCol = 0;                      // +0x1c10: the column under the cursor at the last update
+	int mHoverRow = 0;                      // +0x1c14: the row under the cursor at the last update
+	int mCursorRestCount = 0;               // +0x1c18: the updates the cursor has stayed on one cell; its bob follows
+	int mClickCursorX = 0;                  // +0x1c1c: the cursor's x when the last twist began (never read)
+	int mClickCursorY = 0;                  // +0x1c20: and y (never read)
+	int mClickCursorWidth = 0;              // +0x1c24: and width (never read)
+	int mClickCursorHeight = 0;             // +0x1c28: and height (never read)
+	int mCursorEaseSpeed = 0;               // +0x1c34: the speed of the cursor's ease
+	float mCursorEaseProgress = 1.0f;       // +0x1c38: 0 to 1, up 0.25 an update after the cursor jumps to a cell; the ease is quickest at the middle
+	int mCursorMoveCount = 0;               // +0x1c3c: the update count of the last time the cursor moved onto a new cell
+	bool mTwistMatches = false;             // +0x1c40: a twist at the cursor would make a match (TestTwist, after each cursor move)
+	bool mTwistBlocked = true;              // +0x1c41: the cursor's twist is not allowed (CannotTwist)
+	bool mTurnStartedWithMatch = false;     // +0x1c42: +0x1c40 as the turn began
+	float mHintFade = 0;                      // +0x1c48: counts down 0.01 an update to 0; nothing sets it above 0
+	int mModeToUnlock = -1;                 // +0x1c64: the mode the turn's end unlocks (UnlockMode), -1 for none
+	float mSpeedAccum = 0;                    // +0x1c84: the updates owed by the game speed's fraction, carried between frames
+	float mSpeedTarget = 1.0f;              // +0x1c88: the speed the game runs at, which +0x1c8c eases to (1 after a tip)
+	float mSpeedNow = 1.0f;                 // +0x1c8c: the speed the game runs at now; below 0 the twist is made at once
+	bool mFallHeld = false;                 // +0x1c90: the gems do not fall while set (set at the end of a level jump, cleared when play goes on)
+	bool mIceGemsAllowed = false;           // +0x1c98: the app's IceGemsAllowed setting
+	int mCoalLevel = 0;                     // +0x1f64: the most coal gems seen at once, decaying (saved); it limits the coal FillInBlanks makes
+	int mCoalDecayCount = 0;                // +0x1f68: the turns toward the next decay of +0x1f64 (saved)
+	int mPowerGemCount = 0;                 // +0x1f74: the power gems on the board, counted each update while the state is 0 (never read)
+	int mElectroGemCount = 0;               // +0x1f7c: the electro gems on the board, counted each update while the state is 0 (never read)
+	int mLastPraiseLevel = -1;              // +0x1f80: the praise shown last (-1 at each twist)
+	int mPendingPraise = -1;                // +0x1f84: a praise level waiting for another voice to fade, -1 for none
 	Image* mBackdrop = nullptr;             // +0x1fa8: imagesackdrops	wist-back<n>.png, which the game does not have
-	float mUnknown1FAC = 0;                   // +0x1fac
-	float mUnknown1FB0 = 0;                   // +0x1fb0
-	int mUnknown1FB8 = 0;                   // +0x1fb8
-	int mUnknown1FC4 = 0;                   // +0x1fc4
-	int mUnknown1FC8 = 0;                   // +0x1fc8
-	int mUnknown1FE8 = 0;                   // +0x1fe8: the matched gems' mean x (FindMatches)
-	int mUnknown1FEC = 0;                   // +0x1fec: and y
-	int mUnknown1FF0 = 0;                   // +0x1ff0: their count
-	bool mUnknown1FF4 = false;              // +0x1ff4
-	bool mUnknown1FF5 = false;              // +0x1ff5
-	int mUnknown1FF8 = 0;                   // +0x1ff8
-	int mUnknown1FFC = 0;                   // +0x1ffc
-	int mUnknown2000 = 0;                   // +0x2000
-	bool mUnknown2004 = false;              // +0x2004
-	int mUnknown2008 = 0;                   // +0x2008
+	float mCursorFadeIn = 0;                  // +0x1fac: the cursor's opacity, up 0.01 an update to 1
+	float mCursorTurn = 0;                    // +0x1fb0: the cursor's turning angle, kept inside one circle
+	int mTurnCount = 0;                     // +0x1fb8: the turns (twists) made in the game (saved)
+	int mTurnSettled = 0;                   // +0x1fc4: +0x1fb8 when the board last settled (saved)
+	int mMatchCenterX = 0;                  // +0x1fe8: the matched gems' mean x (FindMatches)
+	int mMatchCenterY = 0;                  // +0x1fec: and y
+	int mMatchGemCount = 0;                 // +0x1ff0: their count
+	bool mEndsWhenIdle = false;             // +0x1ff4: never set; when set, +0x1ff5 follows once no dialog waits
+	bool mGameOverShown = false;            // +0x1ff5: the game's end has been shown; the board stops updating and is not drawn
+	int mSparkleStep = 0;                   // +0x1ff8: 0 to 7, up every 16 updates
+	int mGameOverTicks = 0;                 // +0x1ffc: the updates of the nuke's shake in UpdateGameOver, from 0x41
+	int mGameOverShakeTicks = 0;            // +0x2000: counts once +0x1ffc is above 0x46; the shake runs for 199
+	bool mCounterHintDue = false;           // +0x2004: a counter gem was just made; the hint comes after 3 seconds
+	int mMatchDelay = 0;                    // +0x2008: the updates left until MatchAfterMove runs after a twist (10 at its end)
 	Hyperspace* mHyperspace = nullptr;      // +0x200c: the space behind the board, during a jump
-	int mUnknown2010 = 0;                   // +0x2010
-	bool mUnknown2014 = false;              // +0x2014
-	bool mUnknown2015 = false;              // +0x2015
-	bool mUnknown2016 = false;              // +0x2016
-	int mUnknown2018 = 0;                   // +0x2018
-	int mUnknown201C = -1;                  // +0x201c
-	int mUnknown2020 = -1;                  // +0x2020
-	bool mUnknown2030 = false;              // +0x2030
-	int mUnknown2034 = 0;                   // +0x2034
-	bool mUnknown2040 = true;               // +0x2040
-	bool mUnknown2041 = true;               // +0x2041
-	bool mUnknown2042 = true;               // +0x2042
-	bool mUnknown2043 = true;               // +0x2043
-	bool mUnknown2054 = false;              // +0x2054
-	float mUnknown2058[24] = {};            // +0x2058: 24 glows that run round (UpdateGlows)
-	float mUnknown20B8 = 0;                   // +0x20b8
-	int mUnknown20BC = -1;                  // +0x20bc
-	float mUnknown20C0 = 0;                 // +0x20c0: the cursor's turn while twisting
-	float mUnknown20C4 = 0;                 // +0x20c4
-	float mUnknown20C8 = 0;                   // +0x20c8
-	float mUnknown20CC = 0;                   // +0x20cc
-	bool mUnknown20D0 = true;               // +0x20d0
-	float mUnknown20D4 = 0;                 // +0x20d4
-	bool mUnknown20D8 = false;              // +0x20d8
-	int mUnknown20E4 = 0;                   // +0x20e4
-	float mUnknown20E8 = 0.1f;              // +0x20e8
-	float mUnknown20EC = 0;                 // +0x20ec: holds the progress bar back
-	bool mUnknown210C = false;              // +0x210c
-	int mUnknown2110 = 0;                   // +0x2110
-	int mUnknown2114 = 0;                   // +0x2114
-	float mUnknown2118 = 3.0f;              // +0x2118
-	std::vector<std::pair<int, int>> mUnknown2120;  // +0x2120: the cursor's cells that cannot turn (row, column)
-	bool mUnknown2130 = false;              // +0x2130
-	float mUnknown2150 = 0;                   // +0x2150
-	int mUnknown2154 = 0;                   // +0x2154
-	int mUnknown2158 = 0;                   // +0x2158
-	int mUnknown215C = -1;                  // +0x215c
-	int mUnknown2160 = 1;                   // +0x2160
-	float mUnknown2164 = 0;                   // +0x2164
-	int mUnknown2168 = 0;                   // +0x2168
-	bool mUnknown216C = false;              // +0x216c
-	int mUnknown2188 = 0;                   // +0x2188
-	bool mUnknown218C = false;              // +0x218c
-	bool mUnknown2198 = false;              // +0x2198: the locks may count down (0x6aa0b7)
-	bool mUnknown2199 = false;              // +0x2199
-	int mUnknown219C = 0;                   // +0x219c
-	bool mUnknown21A0 = false;              // +0x21a0
-	bool mUnknown21A2 = false;              // +0x21a2
-	bool mUnknown21A3 = false;              // +0x21a3
-	Widget* mUnknown21A8 = nullptr;                   // +0x21a8
-	SoundInstance* mUnknown21C4[2] = {};    // +0x21c4: never set; UpdateGlows stops them in turn
-	int mUnknown21CC = 0;                   // +0x21cc
-	int mUnknown21D0 = 1;                   // +0x21d0
+	int mLowestCounter = 0;                 // +0x2010: the lowest count left on a counter gem on the board
+	bool mGlowGrowing = false;              // +0x2014: never set; the update's glow step is +0.005 when set, -0.005 otherwise
+	bool mTwistClockwise = false;           // +0x2015: the twist turns the gems clockwise (a quarter turn one way or the other)
+	bool mMatchCheckDue = false;            // +0x2016: a twist ended and MatchAfterMove has not yet run
+	int mMatchesInTurn = 0;                 // +0x2018: the matches made in this turn, 0 at its start
+	int mBestMoveRow = -1;                  // +0x201c: the row of the move FindMove found at the last turn's end
+	int mBestMoveCol = -1;                  // +0x2020: and its column
+	bool mEditorMode = false;               // +0x2030: never set; when set the level editor's text shows and the cursor is off
+	bool mHyperspaceClicked = true;         // +0x2040: set when the hyperspace is clicked away (never read)
+	bool mLevelStarted = true;              // +0x2041: the level is under way (set when it starts, saved); points count and the gauge fills only then
+	bool mLevelPrepared = true;             // +0x2042: set when the level's board is made (never read)
+	bool mBoardShown = true;                // +0x2043: the board and its back are drawn
+	bool mPuzzleBoardMade = false;          // +0x2054: set when the puzzle's board is made
+	float mGlowRing[24] = {};               // +0x2058: 24 glows that run round (UpdateGlows)
+	float mRingBurst = 0;                     // +0x20b8: a ring that grows and fades, 1 down to 0 by 0.01 an update
+	int mGlowStep = -1;                     // +0x20bc: the glow of +0x2058 lit now, 0 to 23
+	float mCursorTurnNow = 0;               // +0x20c0: the cursor's turn while twisting
+	float mCursorTurnBase = 0;              // +0x20c4: the cursor's turn when the last turn began
+	float mTwistTrailFade = 0;                // +0x20c8: 1 while a twist is turning, then down 0.01 an update to 0
+	float mCursorAlpha = 0;                   // +0x20cc: the cursor's opacity, 0 to 1; the board's glows also scale by it
+	bool mCursorShown = true;               // +0x20d0: the cursor is shown (set by the first click or move)
+	float mCursorTwistFade = 0;             // +0x20d4: the twisting cursor's opacity, up 0.05 while a twist turns
+	bool mCursorOnGrid = false;             // +0x20d8: the cursor is inside the grid
+	int mClearedOnHyperspaceStart = 0;      // +0x20e4: set to 0 at the start of a jump, a start and a restart from the menu (never read)
+	float mBoardGlowSize = 0.1f;            // +0x20e8: never set; the board's glow is drawn while above 0.001
+	float mProgressHold = 0;                // +0x20ec: holds the progress bar back: 4 when a jump is taken in the first level, down 0.01 an update
+	bool mInstantTwist = false;             // +0x210c: twists are made at once, 90 degrees a step
+	std::vector<std::pair<int, int>> mUnturnableCells;  // +0x2120: the cursor's cells that cannot turn (row, column)
+	bool mTurnEndSoundDue = false;          // +0x2130: set when a twist begins; the turn's end plays its sound once
+	float mWhiteFlash = 0;                    // +0x2150: a white fill over the board, its opacity, down 0.01 an update
+	int mMusicTrack = 0;                    // +0x2154: the in-game track playing, as an index counted from track 100
+	int mChainFlashSet = -1;                // +0x215c: set to -1 when a chain's flash begins (never read)
+	int mChainFlashKind = 1;                // +0x2160: set to 1 when a chain's flash begins (never read)
+	float mChainFlash = 0;                    // +0x2164: 1 when a chain adds up, down 0.01 an update (never read)
+	bool mChainAdded = false;               // +0x216c: true when a chain was added in this turn (never read)
+	bool mColorGemBroke = false;            // +0x218c: a gem of a plain colour broke in this turn (never read)
+	bool mBombsMayCountDown = false;        // +0x2198: the locks and counters may count down (true as a twist starts, cleared once CountDownBombs has run) (0x6aa0b7)
+	bool mFallMatchDue = false;             // +0x2199: a gem was seen falling; MatchAfterMove runs when all are still
+	int mLandingBlock = 0;                  // +0x219c: never set; the landing check waits while above 0
+	bool mClicksIgnored = false;            // +0x21a0: never set; clicks do not start twists when set
+	bool mGameLoaded = false;               // +0x21a2: set when a saved game finishes loading; cleared by a jump or a new start
+	bool mLevelDone = false;                // +0x21a3: the level's goal is met and the level's end is under way
+	Widget* mExtraWidget = nullptr;                   // +0x21a8: never set; a widget updated and drawn over the board when present
+	SoundInstance* mGlowSounds[2] = {};     // +0x21c4: never set; UpdateGlows stops them in turn
+	int mGlowSoundIndex = 0;                // +0x21cc: which of the two +0x21c4 sounds is next (0 or 1)
+	int mStepLevel = 1;                     // +0x21d0: the level the steps count has reached, 1 to 10 (saved); it multiplies points
 	int mModeMultiplier = 1;                // +0x21d4
-	bool mUnknown21D8 = false;              // +0x21d8
-	bool mUnknown21D9 = false;              // +0x21d9
-	bool mUnknown21DA = false;              // +0x21da
-	int mUnknown21DC = 0;                   // +0x21dc
-	int mUnknown21F4 = -1;                  // +0x21f4
-	bool mUnknown2200 = false;              // +0x2200
-	TwistWidget* mUnknown2208 = nullptr;    // +0x2208: the dialog over the board (from the queue at +0x23dc)
-	float mUnknown2228 = 0;                 // +0x2228: 0.5 with each chain
-	int mUnknown222C = 0;                   // +0x222c
-	int mUnknown2234[84] = {};              // +0x2234
+	bool mHintShowing = false;              // +0x21d8: a first-level hint is showing
+	bool mTwisting = false;                 // +0x21d9: a twist is turning the gems
+	bool mSettling = false;                 // +0x21da: a match was made and the gems have not yet dropped and filled (saved)
+	int mWheelSpinCount = 0;                // +0x21dc: how many times the wheel has been spun (saved)
+	int mFirstMatchColor = -1;              // +0x21f4: the colour of the turn's first match, -1 at its start
+	bool mSkipMouseClick = false;           // +0x2200: the next mouse click is skipped (the original's debug text calls it mSkipMouseClick)
+	TwistWidget* mShownDialog = nullptr;    // +0x2208: the dialog over the board (taken from the queue at +0x23dc)
+	float mChainShine = 0;                  // +0x2228: 0.5 with each chain, 0 when a praise is worked out
+	int mPraiseUpdate = 0;                  // +0x222c: the update count at the last praise
+	int mGameStats[84] = {};                // +0x2234: the game's own statistic counters (AddStat), also kept by the app
 	Buffer mSaveBuffer;                     // +0x2384: the game as StartLevel saved it (0x6b0d91)
-	Buffer mUnknown23B4;                    // +0x23b4
-	int mUnknown23A4 = -1;                  // +0x23a4
-	int mUnknown23A8 = -1;                  // +0x23a8
-	int mUnknown23AC = 0;                   // +0x23ac
-	int mUnknown23B0 = 0;                   // +0x23b0
-	int mUnknown23D4 = 0;                   // +0x23d4
-	float mUnknown23F0 = 0.01f;             // +0x23f0
-	bool mUnknown23F4 = false;              // +0x23f4
-	float mUnknown23F8 = 0;                 // +0x23f8: the tutorial arrow's fade
-	float mUnknown23FC = 0;                 // +0x23fc: the cursor's glow
-	int mUnknown2400 = -10000;              // +0x2400
-	int mUnknown2404 = -10000;              // +0x2404
-	std::vector<int> mUnknown2408[20];      // +0x2408: the tutorial's gems for each column, the next at the back
-	int mUnknown2548 = -1;                  // +0x2548
-	Buffer mUnknown254C;                    // +0x254c: the tutorial script's lines (properties/tutorial.txt, read by ShowNextTip)
-	std::map<int, int> mUnknown256C;        // +0x256c: the tips waiting for their dialog, by kind, with a gem's id
-	int mUnknown2578 = 0;                   // +0x2578
-	int mUnknown257C = 0;                   // +0x257c
-	int mUnknown2580 = 1;                   // +0x2580
-	bool mUnknown25A5 = false;              // +0x25a5
-	bool mUnknown25A6 = false;              // +0x25a6
-	int mUnknown25A8 = 0;                   // +0x25a8
-	int mUnknown25C8 = 0;                   // +0x25c8
-	int mUnknown25CC = 0;                   // +0x25cc
-	float mUnknown25D0 = 0;                 // +0x25d0: the wait for a hint, in seconds
-	float mUnknown25D4 = 0;                 // +0x25d4: the hint's sparkles' turn
-	int mUnknown25D8 = -1;                  // +0x25d8: the hint's row (FindMove)
-	int mUnknown25DC = -1;                  // +0x25dc: the hint's column
+	Buffer mReplaySave;                     // +0x23b4: the game saved at the replay's start (ReplayWidget saves and restores)
+	int mReplayStartFrame = -1;             // +0x23a4: the first frame of the last turn's recording
+	int mReplayEndFrame = -1;               // +0x23a8: the last frame of the last turn's recording
+	int mSavedRankPoints = 0;               // +0x23ac: the profile's rank points as a turn began (ReplayWidget puts them back)
+	int mSavedRank = 0;                     // +0x23b0: the profile's rank as a turn began (ReplayWidget puts it back)
+	int mClearedAtStart = 0;                // +0x23d4: set to 0 when a game starts (never read)
+	float mMatchFlashDecay = 0.01f;         // +0x23f0: how fast +0x23ec falls in a twist; 0.015 once a match is seen
+	bool mTipShowingAtJump = false;         // +0x23f4: +0x23f5 as the level jump began (the end shows read it)
+	float mTipArrowFade = 0;                // +0x23f8: the tutorial arrow's fade
+	float mCursorGlow = 0;                  // +0x23fc: the cursor's glow
+	int mTipCol = -10000;                   // +0x2400: the column the tip points the cursor at, -1 for none
+	int mTipRow = -10000;                   // +0x2404: and the row, -1 for none
+	std::vector<int> mTipGemsByColumn[20];  // +0x2408: the tutorial's gems for each column, the next at the back
+	int mTipBombCount = -1;                 // +0x2548: the count a new gem gets while a tip shows (the tutorial sets it, 15 at first)
+	Buffer mTipScript;                      // +0x254c: the tutorial script's lines (properties/tutorial.txt, read by ShowNextTip)
+	std::map<int, int> mWaitingTips;        // +0x256c: the tips waiting for their dialog, by kind, with a gem's id
+	int mReturnDialogWait = 0;              // +0x2578: updates until the "returning to game" dialog after the zen jump (400)
+	int mZenJumpWait = 0;                   // +0x257c: updates until the zen jump begins
+	int mMatchSetCount = 1;                 // +0x2580: the sets in the match being scored (2 for a double set)
+	bool mBoardSettled = false;             // +0x25a5: nothing is moving or waiting: set each update from the other states
+	bool mShownBeforeStart = false;         // +0x25a6: set when the tube is shown before the level has started
+	int mSettledUpdates = 0;                // +0x25a8: counts the updates the board is settled and not frozen
+	int mHintState = 0;                     // +0x25c8: 0 no hint, 1 the hint is being shown
+	int mHintsShown = 0;                    // +0x25cc: the hints shown in this turn
+	float mHintWait = 0;                    // +0x25d0: the wait for a hint, in seconds
+	float mHintSparkleTurn = 0;             // +0x25d4: the hint's sparkles' turn
+	int mHintRow = -1;                      // +0x25d8: the hint's row (FindMove)
+	int mHintCol = -1;                      // +0x25dc: the hint's column
 	ReplayWidget* mReplayPod = nullptr;     // +0x2624: the pod with the replay button (ShowReplayPod)
-	bool mUnknown2628 = false;              // +0x2628: the level's end took the pod down; the rank bar's end shows it again
-	bool mUnknown2629 = false;              // +0x2629: a replay plays (StartReplay to the move's end)
-	bool mUnknown262A = false;              // +0x262a
-	int mUnknown262C = -1;                  // +0x262c
+	bool mReplayPodDown = false;            // +0x2628: the level's end took the pod down; the rank bar's end shows it again
+	bool mReplayPlaying = false;            // +0x2629: a replay plays (StartReplay to the move's end)
+	bool mFruitBrokeThisTurn = false;       // +0x262a: a fruit's blast began in this turn (0 at its start); it also marks the turn as worth a replay
+	int mLowestBombCount = -1;              // +0x262c: the lowest count left on a bomb or devil gem on the board, 100 with none
 	Challenge* mChallenge = nullptr;        // +0x2630: the challenge being played (mode 2), the app's ChallengeInfo owns it
-	int mUnknown2634 = 0;                   // +0x2634
-	int mUnknown2638 = 0;                   // +0x2638
-	int mUnknown263C = 0;                   // +0x263c
-	int mUnknown2640 = 0;                   // +0x2640
-	int mUnknown265C = 0;                   // +0x265c: a fruit broke (1 or 2), its bonus challenge (3), met: the fruit dance (4), missed (5)
-	int mUnknown2660 = 0;                   // +0x2660
-	int mUnknown2664 = 0;                   // +0x2664
-	bool mUnknown2669 = false;              // +0x2669
-	bool mUnknown266A = false;              // +0x266a
-	int mUnknown2678 = 0;                   // +0x2678
-	PopAnim* mUnknown267C = nullptr;        // +0x267c: the fruit dance (fruitdance.pam)
-	int mUnknown2680 = 0;                   // +0x2680: its updates, to 2200
-	int mUnknown2684 = 0;                   // +0x2684: its "small" points so far (PopAnimCommand)
-	int mUnknown2688 = 0;                   // +0x2688: its "large" points
-	bool mUnknown2698 = true;               // +0x2698
-	int mUnknown269C = 0;                   // +0x269c
-	TwistWidget* mUnknown26A0 = nullptr;                   // +0x26a0
-	float mUnknown26A4 = 0;                 // +0x26a4: 0.01 when a soul leaves (UpdateJump)
-	int mUnknown26A8 = 0;                   // +0x26a8: the jump between levels (UpdateJump): 1 the show, 2 the rows, 4, 0
-	TwistWidget* mUnknown26AC = nullptr;                   // +0x26ac: the LevelUpShow (ShowLevelUp)
-	int mUnknown26C0 = 0;                   // +0x26c0: the row falling off next (end state 3)
-	float mUnknown26C4 = 0;                 // +0x26c4: the end states' wait
-	int mUnknown26C8 = 0;                   // +0x26c8: the end of the game's state (UpdateGameOver), 1 from EndGame
-	Piece* mUnknown26CC = nullptr;          // +0x26cc: the gem that ended the game (a counter at zero)
-	TwistWidget* mUnknown26D0 = nullptr;                   // +0x26d0
-	int mUnknown3444 = 0;                   // +0x3444
-	int mUnknown3448 = 0;                   // +0x3448
-	int mUnknown344C = 0;                   // +0x344c
-	int mUnknown3450 = 0;                   // +0x3450
-	float mUnknown3454 = 0;                   // +0x3454
-	float mUnknown345C = 0;                 // +0x345c
-	float mUnknown3460 = 8.0f;              // +0x3460
-	TextImage* mUnknown3464 = nullptr;      // +0x3464: blitz's FINAL SCORE (SetEndState 4)
-	TextImage* mUnknown3468 = nullptr;      // +0x3468: and its score
-	float mUnknown346C = 0;                 // +0x346c: their fade (end states 4 to 8)
-	float mUnknown3470 = 0;                 // +0x3470: end state 4's wait
-	int mUnknown34E8 = 0;                   // +0x34e8
-	int mUnknown34EC = 0;                   // +0x34ec
-	int mUnknown3560[84] = {};              // +0x3560
-	bool mUnknown36B0 = false;              // +0x36b0
-	bool mUnknown36B1 = true;               // +0x36b1
-	int mUnknown36B4 = 0;                   // +0x36b4
-	int mUnknown36B8 = 0;                   // +0x36b8
-	float mUnknown37A0 = 0;                   // +0x37a0
-	float mUnknown37A4 = 0;                   // +0x37a4
-	float mUnknown37A8 = 0;                   // +0x37a8
-	float mUnknown37AC = 0;                   // +0x37ac
-	bool mUnknown37B0 = true; // +0x37b0
-	bool mUnknown37B1 = true; // +0x37b1
-	int mUnknown37B4 = 15;                  // +0x37b4
-	int mUnknown37C8 = 0;                   // +0x37c8
-	float mUnknown37EC = 0;                 // +0x37ec
-	float mUnknown37F0 = 0;                 // +0x37f0
-	float mUnknown37F4 = 0;                   // +0x37f4
-	float mUnknown1630 = 0;                   // +0x1630: the wait to the next ring of tiles
-	int mUnknown1634 = 0;                     // +0x1634: the ring's distance from the middle
-	int mUnknown37FC = 0;                   // +0x37fc
-	TwistWidget* mUnknown3808 = nullptr;                   // +0x3808
-	TextImage* mUnknown38F0 = nullptr;      // +0x38f0: blitz's minute mark, the front of its warning (drawn black)
-	TextImage* mUnknown38F4 = nullptr;      // +0x38f4: the same, the glow behind it
-	float mUnknown38F8 = 0;                   // +0x38f8
-	float mUnknown38FC = 0;                   // +0x38fc
-	float mUnknown3900 = 0;                   // +0x3900
-	bool mUnknown3905 = false;              // +0x3905
-	int mUnknown3908 = 0;                   // +0x3908
-	int mUnknown390C = 0;                   // +0x390c
-	int mUnknown3910 = 0;                   // +0x3910
-	int mUnknown3914 = 0;                   // +0x3914
-	int mUnknown3918 = 0;                   // +0x3918
-	float mUnknown391C = 0;                   // +0x391c
-	bool mUnknown3920 = false;              // +0x3920
-	bool mUnknown3921 = false;              // +0x3921
-	int mUnknown3928 = 0;                   // +0x3928
-	int mUnknown392C = 0;                   // +0x392c
-	bool mUnknown3930 = false;              // +0x3930
-	int mUnknown3934 = 0;                   // +0x3934
+	int mChallengeBest = 0;                 // +0x2634: the best of the challenge's counted stat in this game (saved)
+	int mChallengeCount = 0;                // +0x2638: the stat the challenge counts (saved)
+	int mBlitzSecondsShown = 0;             // +0x263c: the seconds left as last shown by the timed challenge
+	int mBonusChallengesMet = 0;            // +0x2640: the bonus challenges met in the game (saved); it adds to the next one's points
+	int mBonusStage = 0;                    // +0x265c: a fruit broke (1 or 2), its bonus challenge (3), met: the fruit dance (4), missed (5)
+	int mBonusMatched = 0;                  // +0x2660: the bonus challenge's gems matched so far (saved)
+	int mBonusMatchedMark = 0;              // +0x2664: the matched count at which the fruit's count may start again, -1 at the bonus challenge's start
+	bool mChallengeMet = false;             // +0x2669: the challenge's goal is reached and waits for the board to settle
+	bool mChallengeOver = false;            // +0x266a: the challenge is over; the last check keeps the stats
+	int mChallengeNumber = 0;               // +0x2678: the challenge's number within its category
+	PopAnim* mFruitDance = nullptr;         // +0x267c: the fruit dance (fruitdance.pam)
+	int mFruitDanceUpdates = 0;             // +0x2680: its updates, to 2200
+	int mFruitDanceSmallPoints = 0;         // +0x2684: its "small" points so far (PopAnimCommand)
+	int mFruitDanceLargePoints = 0;         // +0x2688: its "large" points
+	bool mTubeAboveMiddle = true;           // +0x2698: the progress bar's end is above the grid's middle
+	int mBonusLevel = 0;                    // +0x269c: the rank bonus the level's end gives (GetBonusLevel)
+	TwistWidget* mRankBonusWidget = nullptr;               // +0x26a0: the rank bar (RankBonusWidget) shown at the level's end
+	float mSoulFade = 0;                    // +0x26a4: 0.01 when a soul leaves (UpdateJump), 0 at the level's start (never read)
+	int mJumpStage = 0;                     // +0x26a8: the jump between levels (UpdateJump): 1 the show, 2 the rows, 4, 0
+	TwistWidget* mLevelUpShow = nullptr;                   // +0x26ac: the LevelUpShow (ShowLevelUp)
+	int mGameOverRow = 0;                   // +0x26c0: the row falling off next (end state 3)
+	float mEndStateWait = 0;                // +0x26c4: the end states' wait
+	int mEndState = 0;                      // +0x26c8: the end of the game's state (UpdateGameOver), 1 from EndGame
+	Piece* mEndingPiece = nullptr;          // +0x26cc: the gem that ended the game (a counter at zero)
+	TwistWidget* mGameOverShow = nullptr;                  // +0x26d0: the game-over show (GameOverShow) over the board
+	int mRecordedFrames = 0;                // +0x3444: the frames recorded for the last move's replay (0 at a twist's start)
+	int mRewindFrame = 0;                   // +0x3448: the frame a replay's rewind has reached, counting down
+	int mOverflowLevelCount = 0;            // +0x344c: how many times the steps passed twice the last level's size
+	int mGeodeBonusCount = 0;               // +0x3450: the geodes made in this turn; each adds 50 more points to the next (250 at most)
+	float mGeodeFlash = 0;                    // +0x3454: 1 when geodes are made, down 0.005 an update
+	float mStateWait = 0;                   // +0x345c: the wait of states 4 and 5, down 0.01 an update
+	float mNukeZoom = 8.0f;                 // +0x3460: the zoom of the nuke's view, 8 at the end of the game and down by 0.1 an update
+	TextImage* mFinalScoreLabel = nullptr;  // +0x3464: blitz's FINAL SCORE (SetEndState 4)
+	TextImage* mFinalScoreText = nullptr;   // +0x3468: and its score
+	float mFinalScoreFade = 0;              // +0x346c: their fade (end states 4 to 8)
+	float mFinalScoreWait = 0;              // +0x3470: end state 4's wait
+	int mTipKind = 0;                       // +0x34e8: the kind of the tip shown (its profile flag is cleared if the tutorial is left)
+	int mEndPending = 0;                    // +0x34ec: 1 once the game's end waits for the dialog or show to finish
+	int mGemCounts[84] = {};                // +0x3560: how many gems of each kind the board has now (CountGems)
+	bool mGameOver = false;                 // +0x36b0: the game is over (set once; a challenge met also sets it)
+	bool mEndedByNuke = true;               // +0x36b1: the game ended with the nuke
+	int mCountPopupCount = 0;               // +0x36b4: the gem count the popup shows
+	int mCascadePopupCount = 0;             // +0x36b8: the cascade length the popup shows
+	float mCascadePopupShadow = 0;            // +0x37a0: the cascade popup's shadow opacity, 1 when it starts
+	float mCountPopupShadow = 0;              // +0x37a4: the count popup's shadow opacity, 1 when it starts
+	float mCascadePopupFade = 0;              // +0x37a8: the cascade popup's opacity, down 0.01 an update
+	float mCountPopupFade = 0;                // +0x37ac: the count popup's opacity, down 0.01 an update
+	bool mCountPopupOn = true;  // +0x37b0: the count popup may show (not in the challenge)
+	bool mCascadePopupOn = true;  // +0x37b1: the cascade popup may show (not in the challenge)
+	int mCountPopupMin = 15;                // +0x37b4: the count popup shows from this many gems (15)
+	int mReplaySlideWait = 0;               // +0x37c8: updates a replay waits before the board slides away (100 when it begins)
+	float mBoardOffsetX = 0;                // +0x37ec: the board's drawing offset in x
+	float mBoardOffsetY = 0;                // +0x37f0: and in y
+	float mSettleWait = 0;                    // +0x37f4: the wait after the board settles before the turn ends (0.15 on a level-up, 1.5 for the next level)
+	float mTileRingWait = 0;                  // +0x1630: the wait to the next ring of tiles
+	int mTileRingDistance = 0;                // +0x1634: the ring's distance from the middle
+	int mLastSoulLandUpdate = 0;            // +0x37fc: the update count of the last gem-soul landing sound
+	TwistWidget* mHeldDialog = nullptr;                    // +0x3808: never set; a dialog that holds the level jump while the board is busy
+	TextImage* mMinuteWarningFront = nullptr;  // +0x38f0: blitz's minute mark, the front of its warning (drawn black)
+	TextImage* mMinuteWarningGlow = nullptr;  // +0x38f4: the same, the glow behind it
+	float mMinuteWarningAlpha = 0;            // +0x38f8: the opacity of blitz's minute warning
+	float mMinuteWarningRed = 0;              // +0x38fc: the warning's red level
+	float mMinuteWarningWait = 0;             // +0x3900: the warning's wait, 5 when it starts, down 0.01 an update
+	bool mGeodesPending = false;            // +0x3905: geodes are flying; the replay pod waits until they are gone
+	int mBestMoveChain = 0;                 // +0x3908: the chain of the best move so far (saved)
+	int mBestMoveGems = 0;                  // +0x390c: the gems of the best move so far (saved)
+	int mBestMovePoints = 0;                // +0x3910: the points of the best move so far (saved)
+	int mSeenFlags = 0;                     // +0x3914: the profile's flags +0x1e4 (tips and hints seen) as kept for the game (saved)
+	int mUnlockFlags = 0;                   // +0x3918: the profile's flags +0x1e0 as kept for the game (saved)
+	float mReplayStaticFade = 0;              // +0x391c: the opacity of the static-space picture behind a replay, up to 1 and back to 0
+	bool mReplayMoveReady = false;          // +0x3920: the turn made a move worth a replay (a long chain, many gems or a high score)
+	bool mReplayWaiting = false;            // +0x3921: +0x3920 and the board is settled, with the score shown; the replay may start
+	int mMusicPositionLow = 0;              // +0x3928: the low half of the music's saved position (saved; PlayMusic is given it)
+	int mMusicPositionHigh = 0;             // +0x392c: the high half of the music's saved position (saved)
+	bool mEndedByDevil = false;             // +0x3930: the gem that ended the game was a devil gem; it picks the game-over sound
 	// The fields the constructor sets from other values
-	int mUnknown154 = 0;                    // +0x154
-	bool mUnknown214 = false;               // +0x214: a fruit is due once the board settles (AwardFruit)
-	float mUnknown220 = 1.0f;               // +0x220
-	int mUnknown1328 = 0;                   // +0x1328: how many of the player's +0x80 flags are set
-	float mUnknown133C[8] = {};               // +0x133c
-	Font* mUnknown1578 = nullptr;           // +0x1578
-	Font* mUnknown157C = nullptr;           // +0x157c
-	int mUnknown1584 = 0;                   // +0x1584
-	int mUnknown1588 = 0;                   // +0x1588
-	MemoryImage* mUnknown15F0 = nullptr;    // +0x15f0: 42x42
+	int mTwistSpeedGrade = 0;               // +0x154: 1 in the challenge, else 0 (saved in the header); it adds to the twist's speed
+	bool mFruitDue = false;                 // +0x214: a fruit is due once the board settles (AwardFruit)
+	float mSavedOnlyFraction = 1.0f;        // +0x220: 1 at first, saved as ten-thousandths; nothing reads it
+	int mSavedBoolsSet = 0;                   // +0x1328: how many of the profile's mSavedBools are true; never read
+	float mColumnLift[8] = {};                // +0x133c: a lift for each column's gems, set by a break and eased back to 0 each update
+	Font* mScoreFont = nullptr;             // +0x1578: FONT_SCORE, set by the constructor (never read)
+	Font* mScoreFontCopy = nullptr;         // +0x157c: FONT_SCORE again, set by the constructor (never read)
+	MemoryImage* mSquareImage = nullptr;    // +0x15f0: a 42x42 memory image the constructor makes (never drawn into or read)
 	// +0x1674: a 7x7 table over a cell, 14 apart from 0 to 84
 	struct CellPoint {
 		float mX, mY;      // +0x0, +0x4
 		float mU, mV;      // +0x8: mX / 84 / 40, +0xc: mY / 84
 		float mAngle;      // +0x10: from the middle (42, 42), plus 6.28318
 		float mDist;       // +0x14: from the middle
-		float mUnknown18;  // +0x18: 1
+		float mScale;      // +0x18: the point's pulse scale
 	};
 	CellPoint mCellPoints[49] = {};
-	float mUnknown1C2C = 0;                 // +0x1c2c: the app's middle
-	float mUnknown1C30 = 0;                 // +0x1c30
-	Color mUnknown1F88;                     // +0x1f88: filled over the board while its alpha (+0x1f94) counts down
-	int mUnknown1FBC = 0;                   // +0x1fbc
-	int mUnknown1FC0 = 0;                   // +0x1fc0
-	float mUnknown20E0 = 0;                 // +0x20e0
-	BoardStepper* mUnknown211C = nullptr;   // +0x211c (0x74c8c8; freed by the destructor at 0x6bf0bb)
-	int mUnknown2190 = 0;                   // +0x2190
+	float mEasedCursorX = 0;                // +0x1c2c: the cursor drawn, x, easing to +0x1c00
+	float mEasedCursorY = 0;                // +0x1c30: the cursor drawn, y, easing to +0x1c04
+	Color mFillColor;                       // +0x1f88: filled over the board while its alpha (+0x1f94) counts down
+	int mTurnCountedForStats = 0;           // +0x1fbc: +0x1fb8 when the turn's stats were counted
+	int mTurnCountedForSpeed = 0;           // +0x1fc0: +0x1fb8 when the turn's speed bonus was last decided
+	float mTubeOffsetX = 0;                 // +0x20e0: the tube's offset in x: half the app's width less an image's offset (menus set it to 0)
+	BoardStepper* mStepper = nullptr;       // +0x211c: the BoardStepper (0x74c8c8; freed by the destructor at 0x6bf0bb)
+	int mTurnOfLastSound = 0;               // +0x2190: +0x1fb8 when the turn's sound was last played
 	GoodTube* mGoodTube = nullptr;          // +0x2194: the tube at the side
 	EffectsManager* mFXManager3 = nullptr;  // +0x21b8
-	float mUnknown21BC = 0;                 // +0x21bc
-	float mUnknown21C0 = 0;                 // +0x21c0
-	int mUnknown21E0 = 0;                   // +0x21e0: 1 to 5, mostly 2
+	float mGlowSoundWait = 0;               // +0x21bc: random wait before the next glow sound, down 0.01 an update
+	float mGlowSoundRepeat = 0;             // +0x21c0: the wait of the glow's repeat, 4 when it runs out
+	int mIntroRoll = 0;                     // +0x21e0: 1 to 5, mostly 2 (3 in the first game); a roll below 3 sends a first classic game to the zen jump
 	PointsManager* mPointsManager = nullptr;  // +0x21fc: the points that float up
-	float mUnknown2220 = 0;                 // +0x2220: only LoadGame's end of a hyperspace sets it (to 0)
-	float mUnknown2224 = 0;                 // +0x2224
-	float mUnknown23D8 = 0;                 // +0x23d8
+	float mJumpLoadFade = 0;                // +0x2220: only LoadGame's end of a hyperspace sets it (to 0); never read
+	float mAlertGlow = 0;                   // +0x2224: 0.2 when a low count shows, fading 0.015 an update
+	float mMoveBlockWait = 0;               // +0x23d8: while above 0 (down 0.01 an update) the board is not ready for moves
 	Image* mGridBarTop = nullptr;           // +0x2588
 	Image* mGridBarBot = nullptr;           // +0x258c
-	int mUnknown25AC = 0;                   // +0x25ac: the gap before the last quick move
-	int mUnknown25B0 = 0;                   // +0x25b0: +0x25a8 at the last quick move
-	int mUnknown25B4 = 0;                   // +0x25b4
-	std::vector<int> mUnknown25B8;          // +0x25b8: the gems of the move FindMove found
-	MatchInfo mUnknown25E0;                 // +0x25e0: FindMove's match for each cell
-	std::vector<MatchInfo> mUnknown2614;    // +0x2614: the matches made
-	int mUnknown2644 = 0;                   // +0x2644
+	int mQuickMoveGap = 0;                  // +0x25ac: the gap before the last quick move
+	int mQuickMoveTime = 0;                 // +0x25b0: +0x25a8 at the last quick move
+	int mQuickMoveCount = 0;                // +0x25b4: the quick moves made one after another (0 resets); every 6 raise the speed bonus
+	std::vector<int> mHintGems;             // +0x25b8: the gems of the move FindMove found
+	MatchInfo mMoveMatchInfo;               // +0x25e0: FindMove's match for each cell
+	std::vector<MatchInfo> mTurnMatches;    // +0x2614: the matches made
+	int mBonusGemCount = 0;                 // +0x2644: the gems the bonus challenge asks for (saved)
 	int mBonusChallengeMinGems = 0;         // +0x266c
-	int mUnknown2674 = 0;                   // +0x2674: the challenge's number (mode 2)
-	int mUnknown3458 = 0;                   // +0x3458: blitz's 30000
-	std::map<int, int> mUnknown37B8;        // +0x37b8
+	int mChallengeCategory = 0;             // +0x2674: the challenge's category (mode 2), -1 with none; part of the save's name
+	int mBlitzStartTime = 0;                // +0x3458: blitz's 30000 (hundredths of a second), the time the tube is set to
+	std::map<int, int> mSpecialKindBySerial;        // +0x37b8: the kind of special gem (-0x68 to -0x65) each new serial stands for
 	MTRand mRand;                           // +0x958: seeded from Rand()
-	MTRand mUnknown2A80;                    // +0x2a80: seeded from the update count while +0x2629 is set
+	MTRand mReplayRand;                     // +0x2a80: the random generator for the replay's rewind lines, seeded from the update count while +0x2629 is set
 	// Read by ReadConfig (0x6c6469)
-	int mUnknown1BFC = 0;                   // +0x1bfc
-	bool mUnknown1BF8 = false;              // +0x1bf8
-	int mUnknown1C68 = 0;                   // +0x1c68
-	bool mUnknown1C6C = false;              // +0x1c6c
-	bool mUnknown1C6D = false;              // +0x1c6d
-	bool mUnknown1C6E = false;              // +0x1c6e
-	bool mUnknown1C6F = false;              // +0x1c6f
-	bool mUnknown1C70 = false;              // +0x1c70
-	bool mUnknown1C71 = false;              // +0x1c71
-	bool mUnknown1C78 = false;              // +0x1c78
-	bool mUnknown1C79 = false;              // +0x1c79
-	bool mUnknown1C7A = false;              // +0x1c7a
-	bool mUnknown1C7B = false;              // +0x1c7b
+	int mGemColorCount = 0;                 // +0x1bfc: 7, set by ReadConfig (never read)
+	bool mBadTwistsAllowed = false;         // +0x1bf8: true; a twist that makes no match does not set the move back at once
+	int mMatchLength = 0;                   // +0x1c68: the gems in a row that make a match (3; ReadConfig)
+	bool mBombsCanMove = false;             // +0x1c6c: bomb gems may be twisted (true; ReadConfig)
+	bool mMatchAtOnce = false;              // +0x1c6d: false; when set MatchAfterMove runs at once after a twist
+	bool mCountersOn = false;               // +0x1c6e: counters may be added to gems (true; ReadConfig)
+	bool mDelayMatchAfterMove = false;      // +0x1c6f: false; when set MatchAfterMove waits 10 updates after a twist
+	bool mTwistOverEmpty = false;           // +0x1c71: false; with +0x2054, twists may reach empty cells
+	bool mDropperGemsMove = false;            // +0x1c78: gems with FLAG_DROPPER may be twisted (true; ReadConfig)
+	bool mTurnSoundsOn = false;             // +0x1c79: true; the turn's end plays its sound once per turn
+	bool mLockedGemsBusy = false;           // +0x1c7b: false; when set FLAG_DROPPER and locked gems are made busy after a twist
 	int mLaserGemCascades = 0;              // +0x1c80
 	int mFruitFirstLevel = 0;               // +0x1c94
 	int mAmnestyGemCount = 0;               // +0x1c9c
 	int mCoalMax = 0;                       // +0x1f60
-	bool mUnknown1FB4 = false;              // +0x1fb4
 	int mBonusRoundLevelGap = 0;            // +0x2104
-	bool mUnknown2138 = false;              // +0x2138
-	std::vector<int> mUnknown2140;          // +0x2140: cleared by FindMatches
+	bool mFruitsBlast = false;              // +0x2138: false; when set fruit gems are blasted with the breaking gems
+	std::vector<int> mMatchIds;             // +0x2140: cleared by FindMatches
 	int mTimeFreezeMatchCount = 0;          // +0x21b4
 	int mBonusChallengeMaxGems = 0;         // +0x2670
 	int mMaxLocksOnScreen = 0;              // +0x3800
-	std::vector<Geode*> mUnknown14AC;       // +0x14ac: the geodes in flight (the original frees them with free(), skipping their destructors)
-	int mUnknown2180 = 0;                   // +0x2180
-	int mUnknown2184 = 0;                   // +0x2184
-	int mUnknown2204 = 0;                   // +0x2204
+	std::vector<Geode*> mGeodes;            // +0x14ac: the geodes in flight (the original frees them with free(), skipping their destructors)
+	int mFrozenGemCount = 0;                // +0x2180: the gems that cannot move (counted at a turn's end)
+	int mFrozenSpecialCount = 0;            // +0x2184: the bombs, devils and FLAG_DROPPER gems among them
+	int mLevelsFinished = 0;                // +0x2204: counts the levels finished while +0x2201 is set (never read)
 	// Set by NewLevel (0x6bf659) and the level's progress
-	bool mUnknown164 = false;               // +0x164
-	int mUnknown208 = 0;                    // +0x208
-	int mUnknown228[2] = {};                // +0x228: [0] the level's longest chain
-	int mUnknown238 = 0;                    // +0x238
-	int mUnknown23C = 0;                    // +0x23c: the twists made in the level
-	int mUnknown240 = 0;                    // +0x240: the twists that made no match
-	int mUnknown244 = 0;                    // +0x244: the chains made
-	int mUnknown1C44 = 0;                   // +0x1c44
-	bool mUnknown1F6C = false;              // +0x1f6c
-	int mUnknown1F70 = 0;                   // +0x1f70: the level modulo 7
-	float mUnknown20F0 = 0;                   // +0x20f0
-	float mUnknown2134 = 1.0f;              // +0x2134
-	bool mUnknown21A1 = false;              // +0x21a1: past the first level
-	int mUnknown21F8 = 0;                   // +0x21f8: 100 at a level's start (0x6a3ff4)
-	bool mUnknown2201 = false;              // +0x2201
-	int mUnknown2590 = 0;                   // +0x2590: the grid's width and a quarter of a cell (0x6a49a3)
-	float mUnknown2594 = 1.0f;              // +0x2594
-	float mUnknown25A0 = 0;                 // +0x25a0: the progress bar's glow
-	float mUnknown2598 = 1.0f;              // +0x2598
-	float mUnknown259C = 1.0f;              // +0x259c
+	bool mClearedOnNewLevel = false;        // +0x164: false at each new level, saved; never read
+	int mLevelStartScore = 0;               // +0x208: the score when the level began (saved)
+	int mLevelRecords[2] = {};              // +0x228: [0] the level's longest chain, [1] zeroed with it; both saved
+	int mLongestChain = 0;                  // +0x238: the longest chain (+0x1508) of the game (saved)
+	int mTwistsMade = 0;                    // +0x23c: the twists made in the level
+	int mBadTwists = 0;                     // +0x240: the twists that made no match
+	int mChainsMade = 0;                    // +0x244: the chains made
+	int mCounterFlash = 0;                  // +0x1c44: 255 when the counters count down, 2 less each update
+	bool mDevilChecked = false;             // +0x1f6c: the level's devil gem has been made (saved); false at a new level
+	int mLevelColor = 0;                    // +0x1f70: the level modulo 7 (saved)
+	float mScoreRollGlow = 0;                 // +0x20f0: 1 when the shown score rolls, down 0.02 an update
+	bool mCountersAllowed = false;          // +0x21a1: counter gems may be added (CanAddCounter): past the first level and within the amnesty count
+	int mLevelStartMark = 0;                // +0x21f8: 100 at a level's start (0x6a3ff4); saved and never read
+	bool mLevelCounts = false;              // +0x2201: true at a new level; cleared when the steps run on
+	int mBarWidth = 0;                      // +0x2590: the grid's width and a quarter of a cell (0x6a49a3); the width of the bars over and under it
+	float mBarEndY = 1.0f;                  // +0x2594: the progress bar's end in y; it follows the grid's middle
+	float mBarGlow = 0;                     // +0x25a0: the progress bar's glow
+	float mBarTopAlpha = 1.0f;              // +0x2598: the opacity of the bar over the grid
+	float mBarBottomAlpha = 1.0f;           // +0x259c: the opacity of the bar under the grid
 	std::vector<int> mBonusColors;          // +0x2648: the bonus challenge's colours (0x6bbfe4)
-	int mUnknown2658 = 0;                   // +0x2658: the bonus challenge's points
-	bool mUnknown2668 = false;              // +0x2668
-	CurvedVal mUnknown178;                  // +0x178: classic's progress curve (UpdateProgress)
+	int mBonusPoints = 0;                   // +0x2658: the bonus challenge's points (saved)
+	bool mGoalCheckDue = false;             // +0x2668: true as a twist starts; the turn's end checks the goal once
+	CurvedVal mProgressCurve;               // +0x178: classic's progress curve (UpdateProgress)
 	std::vector<SexyString> mTips;          // +0x81c: properties\tips.txt, a line each
 
-	Board(WinTwistApp* theApp, int theMode, int theFlags, int theUnknown);  // 0x6c4df9
+	Board(WinTwistApp* theApp, int theMode, int theFlags, int theChallengeCategory);  // 0x6c4df9
 	~Board() override;
 
 	void LoadConfig();                           // 0x6b2b77
@@ -771,7 +717,7 @@ public:
 	// 0x6bd78e: the tube, whether the level is done and classic's curve; theNoCheck skips 0x6bbbc2
 	void UpdateProgress(bool theNoCheck);
 	bool CheckLevelDone();                       // 0x6ab195
-	int GetBonusLevel(int theLevel) { return mGameMode == 4 ? mUnknown204 / 2000 : theLevel; }  // 0x6a6618
+	int GetBonusLevel(int theLevel) { return mGameMode == 4 ? mLevelProgressGoal / 2000 : theLevel; }  // 0x6a6618
 	void StartBonusChallenge(int theExcludeColor);  // 0x6bbfe4: the colours of the next bonus challenge
 	// 0x6ba5b4: a fruit for the gem at theRow, theCol, or (theRow below 0) a gem picked for it: the award screen
 	// (FruitAwardScreen) joins the dialog queue
@@ -787,9 +733,9 @@ public:
 	// 0x6c8e99: the game saved in theBuffer; false for none (port: the reading of a save is not ported yet)
 	bool LoadGame(Buffer& theBuffer);
 	// 0x6a6529: a save's version, and from version 60 its mode, flags, +0x154 and level; false for an older or empty one
-	static bool ReadSaveHeader(Buffer& theBuffer, int* theVersion, int* theMode, int* theFlags, int* theUnknown154,
+	static bool ReadSaveHeader(Buffer& theBuffer, int* theVersion, int* theMode, int* theFlags, int* theTwistSpeedGrade,
 		int* theLevel);
-	void SetScore(int theScore, bool theUnknown14F8);  // 0x6bd840
+	void SetScore(int theScore, bool theAtOnce);  // 0x6bd840
 	// 0x6a5fa3: the board takes theHyperspace (a new one if null) and sets up the jump into the game
 	void TakeHyperspace(Hyperspace* theHyperspace);
 	// 0x6c77b1: after StartGame: the config again, the basics tutorial or the puzzle's board, the save and the tube
@@ -816,9 +762,9 @@ public:
 	void MouseDown(int x, int y, int theBtnNum, int theClickCount) override;  // 0x6c7232
 	void MouseUp(int x, int y, int theClickCount) override;      // 0x6a52c1
 	void MouseDrag(int x, int y) override;                       // 0x6a52cb
-	void MouseWheel(int theDelta) override;
-	void KeyDown(KeyCode theKey) override;
-	void WarpToCursor();  // 0x6a45da: the mouse pointer onto the cursor's gem while +0x1430 holds a piece                       // 0x6ca439: pause, the wheel, the cursor's keys                      // 0x6a52d7
+	void MouseWheel(int theDelta) override;                      // 0x6a52d7
+	void KeyDown(KeyCode theKey) override;                       // 0x6ca439: pause, the wheel, the cursor's keys
+	void WarpToCursor();  // 0x6a45da: the mouse pointer onto the cursor's gem while +0x1430 holds a piece
 	void UpdateCursor(int x, int y);                             // 0x6bdbd9 (slot 70, the board's own)
 	void StartTwist(bool theInstant, int theX, int theY);        // 0x6c6e56
 	void SetupTwist(int theX, int theY);                         // 0x6bb171: the four gems at +0x20f4
@@ -844,9 +790,9 @@ public:
 	// up to mMaxLocksOnScreen) and a doom gem may appear (mDevil, or always in a constant-doom challenge)
 	void NextTurnGems();
 	void PreLockPiece(Piece* thePiece);          // 0x6ace4d: two turns to its lock, with SOUND_GEM_PRELOCK
-	float RandUnit();                            // 0x6a3477: -1 to 1 in steps of 1/5000, from Rand85B970
+	float RandUnit();                            // 0x6a3477: -1 to 1 in steps of 1/5000, from BoardRand
 	bool HasChallengeFlag(int theFlag);          // the challenge's flags (+0x2630's +0x80) in a challenge
-	void CountGems();                            // 0x6a56a5: the gems on the board by kind, into mUnknown3560
+	void CountGems();                            // 0x6a56a5: the gems on the board by kind, into mGemCounts
 	void MakeCounter(Piece* thePiece);           // 0x6a50a9: a bomb with the level's counter
 	void MakeCoal(Piece* thePiece);              // 0x6a5074
 	void SaveGame(Buffer* theBuffer, bool theReplays);  // 0x6b0d91: theReplays adds the app's three at +0xfa0
@@ -855,14 +801,14 @@ public:
 	void MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset, bool thePower, bool theElectro);
 	void MakePowerGem(Piece* thePiece, float theDelay);    // 0x6a5019
 	void MakeElectroGem(Piece* thePiece, float theDelay);  // 0x6a4ef8
-	void Make6Gem(Piece* thePiece, float theDelay);        // 0x6a4f72
+	void MakeIceGem(Piece* thePiece, float theDelay);        // 0x6a4f72
 	void MakeFruitGem(Piece* thePiece);          // 0x6c23bd
 	void ClearHitCounts();                       // 0x6a4560
 	void ClearSparkStarts();                     // 0x6a5f12
 	void StartSparks(Piece* thePiece);           // 0x6a453b
 	// 0x6bf983: the points of a match, popped up at theX, theY in theColor; returns their floater (or null)
-	Points* AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
-		bool theUnknown2, bool theFirst, bool theUnknown3);
+	Points* AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theAddsProgress,
+		bool theMultiplyBySets, bool theFirst, bool theByLevel);
 	void ShowCountPopup();                       // 0x6b3ffc
 	void UnlockMode(int theMode);                // 0x6b40b5: the mode opens, with a banner
 	bool CheckGoal(bool theFlag);                // 0x6b3432: the challenge's goal, or the tube's bonus challenge being met
@@ -874,8 +820,8 @@ public:
 	void SpeedBonus();
 	void ShowSpeedText(int theLevel);            // 0x6bc3e3: the banner and its sound
 	void Refill();                               // 0x6c755e: once the matched gems have gone
-	void StartUnknown3880();                     // 0x6b681d
-	void StartUnknown34F0();                     // 0x6b8bca: a turn ends
+	void StartTubeSlide();                     // 0x6b681d
+	void StartGo();                     // 0x6b8bca: a turn ends
 	// 0x6b66d2: a challenge's music: a timed one's (300, or 308 for three minutes) at once, else after a fade the
 	// turn-based track 305 (a Moves goal) or 306
 	void PlayChallengeMusic();
@@ -892,13 +838,13 @@ public:
 	void UpdateLevelUp();                         // 0x6c6905
 	int GetGridRight();                          // 0x6a49a3
 	float GetGridMidY();                         // 0x6a49cf
-	void UpdateUnknown248();                     // 0x6c4466: the fruit's blast: its rings break the gems of its colour
+	void UpdateFruitBlast();                     // 0x6c4466: the fruit's blast: its rings break the gems of its colour
 	void UpdateHint();                           // 0x6aff84
 	void ShowHint();                             // 0x6c32cf
 	void UpdateToolTips();                       // part of 0x6d090f
 	void ShowReplayPod();                        // 0x6ab48d: the pod with the replay button rises (not in blitz)
-	void SetUnknown3924(float theValue);         // 0x6a6a07: the board's brightness; rising from 0 it shows the gems
-	void ApplyUnknown3924();                     // 0x6a69a8: every gem's alpha to it
+	void SetBoardFade(float theValue);         // 0x6a6a07: the board's brightness; rising from 0 it shows the gems
+	void ApplyBoardFade();                     // 0x6a69a8: every gem's alpha to it
 	void RetargetTravellers();                   // 0x6a9f1d
 	void FinishLevelUp();                         // 0x6bab49: the change between levels is over
 	void SettleTurn();                            // 0x6c2f69: the board at rest: the next move and the turn's end
@@ -913,7 +859,7 @@ public:
 	void ShowZenJump(int theMode);
 	void AskQuit();                               // 0x6b38f3: dialog 1, by the game mode, heard by this board
 	void DialogButtonDepress(int theDialogId, int theButtonId) override;  // 0x6c8632: dialogs 1 and 0x28
-	bool DropFlaggedGems();                      // 0x6bb7e3: the lowest FLAG_1 gem of each column sinks a row
+	bool DropFlaggedGems();                      // 0x6bb7e3: the lowest FLAG_DROPPER gem of each column sinks a row
 	void EndTurn();                               // 0x6be49c
 	void UpdateRecords();                         // 0x6bcd96: the game's best move, cascade and score
 	bool IsGameOverPending();                     // 0x6a5626
@@ -925,9 +871,9 @@ public:
 	void ShowLevelUp();                           // 0x6a66d5: the LevelUpShow, with its voice
 	void UpdateJump();                            // UpdateGame's part (0x6d090f) while +0x2108 runs: the level's end
 	void ClearShockwaves();                       // 0x6b02ea
-	void EndJump(bool theUnused);                 // 0x6baaa7: the board after the jump between levels
-	bool UpdateUnknown1660();                     // 0x6af497
-	bool UpdateUnknown2170();                     // 0x6af0e2
+	void EndJump();                               // 0x6baaa7: the board after the jump between levels
+	bool UpdateShockwaves();                     // 0x6af497
+	bool UpdateSmokeAndGrowth();                     // 0x6af0e2
 	void CheckSettled();                          // 0x6c7659
 	bool SettlePieces();                          // 0x6c812f: true once every gem is at rest
 	void UpdateStrikes();                         // 0x6c87d2: the electro gems' strikes (+0x149c)
@@ -959,7 +905,7 @@ public:
 	void DrawTutorialCursor(Graphics* g);
 	void DrawSelector(Graphics* g, bool theRing);  // 0x6aa6d1: the twist cursor, its ring or its spiral
 	void AddLight(float theX, float theY, float theSize, float theFalloff, float theStrength, Piece* theSkip,
-		bool theSkipFlag4);                         // 0x6a5c60
+		bool theSkipPower);                         // 0x6a5c60
 	// 0x6a6ad0: blitz, or a challenge with the timed flag
 	bool IsTimed() { return mGameMode == MODE_BLITZ || HasChallengeFlag(2); }
 	void Update() override;                      // 0x6d6899: the game's updates for this frame, at its speed
@@ -972,7 +918,7 @@ public:
 
 	Piece* GetPieceAt(int theRow, int theCol);   // 0x6a40c7
 	Piece* GetPieceById(int theId);              // 0x6aff38
-	bool AnyCellUnknown34();                     // 0x6a478b
+	bool AnyCellMarked();                     // 0x6a478b
 	Piece* FindHintPiece();                      // 0x6a42b4
 	void AddPieceId(int theId, Piece* thePiece); // 0x6b8c20
 	void RemovePieceId(int theId);               // 0x6b677b
@@ -981,7 +927,7 @@ public:
 	// port (web): the save RemovedFromManager would write if the board went now (into theSave, with the mode whose file
 	// it is), without changing the board; false where it would write none. A page that goes away never removes it.
 	bool GetQuitSave(Buffer* theSave, int* theMode);
-	// port (web): where SaveGame put each save without the replays in mSaveBuffer and mUnknown23B4, in bytes, so that
+	// port (web): where SaveGame put each save without the replays in mSaveBuffer and mReplaySave, in bytes, so that
 	// GetQuitSave can give what LoadGame of one followed by SaveGame with the replays writes
 	struct SaveRange {
 		const Buffer* mBuffer;
@@ -991,11 +937,11 @@ public:
 	std::vector<SaveRange> mSaveRanges;
 	void ResaveAsLoaded(const uchar* theSave, Buffer* theOut);
 	void WriteReplays(Buffer* theBuffer);  // SaveGame's flag and the app's three replays
-	bool CanSaveOnQuit() { return !mUnknown1390 && mUnknown160 != 6 && mUnknown160 != 7 && mGameMode != MODE_CHALLENGE; }
+	bool CanSaveOnQuit() { return !mBeforeFirstTwist && mPlayState != 6 && mPlayState != 7 && mGameMode != MODE_CHALLENGE; }
 	// 0x6a32ca
-	bool IsBusy() { return 0.0f < mUnknown2108 || 0 < mUnknown20DC || 0.0f < mUnknown380C; }
+	bool IsBusy() { return 0.0f < mJumpFillWait || 0 < mLevelUpTilePhase || 0.0f < mNextLevelWait; }
 	// port: the piece the dialog at +0x2584 points at, once it is ported
-	int GetPointedPieceId() { return mUnknown2584 != nullptr ? mUnknown2584->mPointedPieceId : -1; }
+	int GetPointedPieceId() { return mTutorial != nullptr ? mTutorial->mPointedPieceId : -1; }
 	Piece* GetPieceAtXY(int theX, int theY);     // 0x6a4121
 	static int GetLevelSteps(int theLevel);      // 0x70205f: the chain steps a multiplier level takes
 	int GetLevelFor(int* theLeft);               // 0x6a4383: the level +0x224's steps reach, and the steps over
@@ -1041,8 +987,8 @@ public:
 	// 0x6a4b7c: the gems above and around thePiece jump away from it
 	void LiftAround(Piece* thePiece, float theStrength);
 	// 0x6a6962: one more gem set off in a chain of blasts, each worth twice the last (to 100)
-	void AddBlastChain() { mUnknown1C5C++; mUnknown1C58 = mUnknown1C58 * 2 <= 100 ? mUnknown1C58 * 2 : 100; }
-	bool GetUnknown23F5() { return mUnknown23F5; }     // 0x6a639a
+	void AddBlastChain() { mBlastChainCount++; mBurstSize = mBurstSize * 2 <= 100 ? mBurstSize * 2 : 100; }
+	bool IsTipShowing() { return mTipShowing; }     // 0x6a639a
 	int GetBoardX() { return mBoardX; }                // 0x6a47d9
 	int GetColX(int theCol) { return GetBoardX() + gGemWidth * theCol; }  // 0x6a4819
 	int GetPan(int theX);                              // 0x6a9ccd: -800 to 800 across the grid
@@ -1053,8 +999,8 @@ public:
 // DAT_0085aef4: the board while there is one
 extern Board* gBoard;
 extern int gSettleCount;  // 0x84e88c: how often the board has come to rest
-extern MTRand gUnknown85B970;  // 0x85b970: a generator of its own, seeded from the time by each new board
-int Rand85B970();  // 0x6a3447
+extern MTRand gBoardRand;  // 0x85b970: a generator of its own, seeded from the time by each new board
+int BoardRand();  // 0x6a3447
 // 0x85af08: each colour's tint, copied by the board's constructor from the table at 0x85c378 (seven of them; the last
 // three stay Color(), opaque black)
 extern Color gGemColors[10];

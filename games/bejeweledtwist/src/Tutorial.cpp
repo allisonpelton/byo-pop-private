@@ -55,9 +55,9 @@ Tutorial::Tutorial(Board* theBoard, Piece* thePiece, const char* theName, Buffer
 {
 	mBoard = theBoard;
 	mLines = theLines;
-	theBoard->mUnknown2548 = 0xf;
+	theBoard->mTipBombCount = 0xf;
 	mState = 0;
-	mUnknown210 = true;
+	mWaitsForPlayer = true;
 	if (theName != nullptr)
 		mGotoLabel = theName;
 	mPointedPieceId = thePiece != nullptr ? thePiece->mId : -1;
@@ -155,13 +155,13 @@ void Tutorial::DialogButtonDepress(int theDialogId, int theButtonId)
 		mState = STATE_NONE;
 	} else if (theButtonId == 1001) {
 		// The replay button: the tip is not marked seen, and the move is played again
-		mBoard->mApp->mProfile->SetFlag1E4(mBoard->mUnknown34E8, false);
+		mBoard->mApp->mProfile->SetTipSeen(mBoard->mTipKind, false);
 		mMarkSeen = false;
 		mState = STATE_NONE;
-		mBoard->SaveGame(&mBoard->mUnknown23B4, false);
-		mBoard->mUnknown3904 = false;
+		mBoard->SaveGame(&mBoard->mReplaySave, false);
+		mBoard->mReplayPodDue = false;
 		// the move is rewound and made again (the exe takes the global board here, the same one)
-		gBoard->StartReplay(gBoard->mSaveBuffer, gBoard->mUnknown23A4, gBoard->mUnknown23A8, true);
+		gBoard->StartReplay(gBoard->mSaveBuffer, gBoard->mReplayStartFrame, gBoard->mReplayEndFrame, true);
 	}
 }
 
@@ -250,26 +250,26 @@ void Tutorial::CheckWait()
 		bool aDone = false;
 		switch (mState) {
 		case STATE_POINTS:
-			aDone = (unsigned int)mStateArg <= (unsigned int)aBoard->mUnknown168;
+			aDone = (unsigned int)mStateArg <= (unsigned int)aBoard->mScore;
 			break;
 		case STATE_MATCHES:
-			if ((unsigned int)aBoard->mApp->mUnknownC74[41] < (unsigned int)mStateArg)
+			if ((unsigned int)aBoard->mApp->mStats[41] < (unsigned int)mStateArg)
 				return;
 			mState = STATE_MATCHES_DONE;
 			return;
 		case STATE_COUNTERGEMS:
-			aDone = (unsigned int)mStateArg <= (unsigned int)aBoard->mApp->mUnknownC74[71];
+			aDone = (unsigned int)mStateArg <= (unsigned int)aBoard->mApp->mStats[71];
 			break;
 		case STATE_READY:
-			aDone = !aBoard->IsBusy() && aBoard->mUnknown15C == 0 &&
-				aBoard->mApp->mWidgetManager->mFocusWidget == aBoard && aBoard->mUnknown149C.empty() &&
-				!aBoard->mUnknown21DA && !aBoard->mUnknown21D8 && aBoard->mUnknown25A4;
+			aDone = !aBoard->IsBusy() && aBoard->mInputLock == 0 &&
+				aBoard->mApp->mWidgetManager->mFocusWidget == aBoard && aBoard->mElectroStrikes.empty() &&
+				!aBoard->mSettling && !aBoard->mHintShowing && aBoard->mHintsReady;
 			break;
 		case STATE_MOVE:
 			if (!mMoveDone)
 				return;
-			aBoard->mUnknown2400 = -10000;
-			aBoard->mUnknown2404 = -10000;
+			aBoard->mTipCol = -10000;
+			aBoard->mTipRow = -10000;
 			mMoveDone = false;
 			aDone = true;
 			break;
@@ -277,27 +277,27 @@ void Tutorial::CheckWait()
 			aDone = mDialog == nullptr;
 			break;
 		case STATE_US:
-			aDone = (unsigned int)mStateArg <= (unsigned int)aBoard->mApp->mUnknownC74[21];
+			aDone = (unsigned int)mStateArg <= (unsigned int)aBoard->mApp->mStats[21];
 			break;
 		case STATE_LIGHTNINGGEMS:
-			aDone = (unsigned int)mStateArg <= (unsigned int)aBoard->mApp->mUnknownC74[20];
+			aDone = (unsigned int)mStateArg <= (unsigned int)aBoard->mApp->mStats[20];
 			break;
 		case STATE_MULTIPLIER:
-			aDone = mStateArg <= aBoard->mUnknown21D0;
+			aDone = mStateArg <= aBoard->mStepLevel;
 			break;
 		case STATE_PRELOAD:
 		case STATE_SHARDS:
 			return;
 		case STATE_LEVELUP:
 			aDone = aBoard->IsBusy() ||
-				(aBoard->mUnknown21A3 && aBoard->mUnknown25A4 && !aBoard->mUnknown21D8 && !aBoard->mUnknown21DA);
+				(aBoard->mLevelDone && aBoard->mHintsReady && !aBoard->mHintShowing && !aBoard->mSettling);
 			break;
 		case STATE_SECONDS:
 			mTimer = (float)((double)mTimer + (double)0.01f);
 			aDone = (double)mStateArg <= (double)mTimer * 100.0;
 			break;
 		case STATE_MATCHES_DONE:
-			aDone = aBoard->mUnknown25A4;
+			aDone = aBoard->mHintsReady;
 			break;
 		case STATE_TUBE:
 			gApp->mYieldMainThread = true;
@@ -305,13 +305,13 @@ void Tutorial::CheckWait()
 			if (!gApp->mTubeLoaded)
 				return;
 			gApp->mYieldMainThread = false;
-			mUnknown210 = false;
+			mWaitsForPlayer = false;
 			mBoard->ShowTube(true, false);
 			aDone = true;
 			break;
 		case STATE_MENU:
 			gApp->mYieldMainThread = true;
-			mUnknown210 = true;
+			mWaitsForPlayer = true;
 			mTimer = (float)((double)mTimer + (double)0.01f);
 			if (!gApp->mLoadingThreadCompleted)
 				return;
@@ -325,7 +325,7 @@ void Tutorial::CheckWait()
 			return;
 		mState = STATE_NONE;
 		mHint.clear();
-		mUnknown1C4 = 0;
+		mWaitKind = 0;
 		aBoard->EvaluateCursor(nullptr);
 	}
 
@@ -406,7 +406,7 @@ bool Tutorial::RunScript()
 		if (!mGotoLabel.empty())
 			continue;
 
-		mUnknown210 = false;
+		mWaitsForPlayer = false;
 		const std::string& aCommand = aWords[0];
 		if (Is(aCommand, "end")) {
 			return false;
@@ -458,7 +458,7 @@ bool Tutorial::RunScript()
 				mDialog->LayoutButtons();
 			}
 			mMouseVisible = !aNoButtons;
-			mUnknown210 = !aNoButtons;
+			mWaitsForPlayer = !aNoButtons;
 			int aWidth = gGemWidth * 7;
 			mDialog->mButtonBottom = Ftol((double)gApp->mScale * 48.0);
 			int aInset = Ftol((double)gApp->mScale * 40.0);
@@ -595,12 +595,12 @@ bool Tutorial::RunScript()
 				} else if (Is(aWords[2], "rank")) {
 					aBoard->mGoodTube->SetShown(false);
 				} else if (Is(aWords[2], "chains")) {
-					aBoard->mGoodTube->SetUnknown14D(false);
+					aBoard->mGoodTube->SetLevelSoundOn(false);
 				}
 			} else if (Is(Word(aWords, 1), "show")) {
 				mTimer = 0;
 				mState = STATE_TUBE;
-				mUnknown210 = true;
+				mWaitsForPlayer = true;
 				if (aWords.size() < 3) {
 					for (int aRow = 0; aRow < aBoard->mRows; aRow++) {
 						for (int aCol = 0; aCol < aBoard->mCols; aCol++) {
@@ -614,7 +614,7 @@ bool Tutorial::RunScript()
 				} else if (Is(aWords[2], "rank")) {
 					aBoard->mGoodTube->SetShown(true);
 				} else if (Is(aWords[2], "chains")) {
-					aBoard->mGoodTube->SetUnknown14D(true);
+					aBoard->mGoodTube->SetLevelSoundOn(true);
 				}
 			}
 		} else if (Is(aCommand, "loadboard")) {
@@ -633,7 +633,7 @@ bool Tutorial::RunScript()
 					unsigned int aChar = (unsigned char)aRowText[i];
 					if (!isalpha((int)aChar)) {
 						int aValue = (int)((unsigned int)aGem << 4 | (aChar - '0'));
-						aBoard->mUnknown2408[aColumn].push_back(aValue);
+						aBoard->mTipGemsByColumn[aColumn].push_back(aValue);
 						aGem = 0;
 						aColumn++;
 					} else {
@@ -647,20 +647,20 @@ bool Tutorial::RunScript()
 			}
 		} else if (Is(aCommand, "matchdelay")) {
 			if (aWords.size() < 2) {
-				aBoard->mUnknown23EC = 0;
+				aBoard->mMatchFlash = 0;
 			} else {
-				sscanf(aWords[1].c_str(), "%f", &aBoard->mUnknown23EC);
+				sscanf(aWords[1].c_str(), "%f", &aBoard->mMatchFlash);
 			}
 		} else if (Is(aCommand, "forcemove")) {
 			if (aWords.size() < 2) {
-				aBoard->mUnknown2404 = -10000;
-				aBoard->mUnknown2400 = -10000;
+				aBoard->mTipRow = -10000;
+				aBoard->mTipCol = -10000;
 			} else {
 				int aRow = 0, aCol = 0;
 				sscanf(aWords[1].c_str(), "%d,%d", &aRow, &aCol);
 				aRow--;
 				aCol--;
-				if (aBoard->mUnknown23EC != 0.0f) {
+				if (aBoard->mMatchFlash != 0.0f) {
 					// Find the matches the move would make, flag their gems, and put the board back
 					Buffer aSaved;
 					aBoard->SaveGame(&aSaved, false);
@@ -669,25 +669,25 @@ bool Tutorial::RunScript()
 					for (int aTestRow = 0; aTestRow < aBoard->mRows; aTestRow++) {
 						for (int aTestCol = 0; aTestCol < aBoard->mCols; aTestCol++) {
 							Piece* aPiece = aBoard->GetPieceAt(aTestRow, aTestCol);
-							if (aPiece != nullptr && aPiece->mUnknownEC)
-								aPiece->mUnknown14 = 1.0f;
+							if (aPiece != nullptr && aPiece->mHasSparkle)
+								aPiece->mTurnAmount = 1.0f;
 						}
 					}
 					aBoard->ClearSparkStarts();
 					aBoard->LoadGame(aSaved);
 				}
-				aBoard->mUnknown2400 = aCol;
-				aBoard->mUnknown2404 = aRow;
+				aBoard->mTipCol = aCol;
+				aBoard->mTipRow = aRow;
 				mState = STATE_MOVE;
 				mMoveDone = false;
 				// 0x75fc8a
-				if (gApp->mBoard == nullptr || !gApp->mBoard->mUnknown37C4)
-					std::memset(gApp->mUnknownC74, 0, sizeof(gApp->mUnknownC74));
+				if (gApp->mBoard == nullptr || !gApp->mBoard->mIsReplay)
+					std::memset(gApp->mStats, 0, sizeof(gApp->mStats));
 				aBoard->EvaluateCursor(nullptr);
 			}
 		} else if (Is(aCommand, "swapspeed")) {
 			if (1 < aWords.size())
-				sscanf(aWords[1].c_str(), "%f", &aBoard->mUnknown145C);
+				sscanf(aWords[1].c_str(), "%f", &aBoard->mTwistSpeedScale);
 		} else if (Is(aCommand, "waitfor")) {
 			if (aWords.size() < 2)
 				continue;
@@ -695,7 +695,7 @@ bool Tutorial::RunScript()
 				mState = STATE_READY;
 			} else if (Is(aWords[1], "levelup")) {
 				mState = STATE_LEVELUP;
-				mStateArg = aBoard->mUnknown158 + 1;
+				mStateArg = aBoard->mLevel + 1;
 			} else if (Is(aWords[1], "preload")) {
 				mState = STATE_PRELOAD;
 			} else if (Is(aWords[1], "tube")) {
@@ -707,7 +707,7 @@ bool Tutorial::RunScript()
 					mState = STATE_POINTS;
 				} else if (Is(aWhat, "matches")) {
 					mState = STATE_MATCHES;
-					mStateArg = atoi(aWords[1].c_str()) + aBoard->mApp->mUnknownC74[41];
+					mStateArg = atoi(aWords[1].c_str()) + aBoard->mApp->mStats[41];
 					return true;
 				} else if (Is(aWhat, "countergems")) {
 					mState = STATE_COUNTERGEMS;
@@ -723,7 +723,7 @@ bool Tutorial::RunScript()
 					mState = STATE_SECONDS;
 					mStateArg = Ftol(atof(aWords[1].c_str()) * 100.0);
 					mTimer = 0;
-					mUnknown210 = true;
+					mWaitsForPlayer = true;
 					return true;
 				} else {
 					return true;
@@ -733,10 +733,10 @@ bool Tutorial::RunScript()
 			return true;
 		} else if (Is(aCommand, "levelup")) {
 			if (1 < aWords.size())
-				aBoard->mUnknown158 = atoi(aWords[1].c_str());
+				aBoard->mLevel = atoi(aWords[1].c_str());
 			// 0x6a63a1(level + 1): +0x200 = +0x204, level = (level + 1) - 1 and +0x21a3 set
-			aBoard->mUnknown200 = aBoard->mUnknown204;
-			aBoard->mUnknown21A3 = true;
+			aBoard->mLevelProgress = aBoard->mLevelProgressGoal;
+			aBoard->mLevelDone = true;
 			mState = STATE_PRELOAD;
 		} else if (Is(aCommand, "rankup")) {
 			mState = STATE_READY;
@@ -776,22 +776,22 @@ bool Tutorial::RunScript()
 				mPointAngle = kPi;
 			}
 		} else if (Is(aCommand, "tubegoal")) {
-			aBoard->mUnknown204 = atoi(Word(aWords, 1).c_str());
+			aBoard->mLevelProgressGoal = atoi(Word(aWords, 1).c_str());
 		} else if (Is(aCommand, "countergem")) {
-			aBoard->mUnknown2548 = atoi(Word(aWords, 1).c_str());
+			aBoard->mTipBombCount = atoi(Word(aWords, 1).c_str());
 		} else if (Is(aCommand, "unlock")) {
 			if (aWords.size() < 2)
 				continue;
 			Profile* aProfile = aBoard->mApp->mProfile;
 			const std::string& aWhat = aWords[1];
 			if (Is(aWhat, "flamegem"))
-				aProfile->SetFlag1E0(4, true);
+				aProfile->SetGemTypeUnlocked(4, true);
 			else if (Is(aWhat, "lightninggem"))
-				aProfile->SetFlag1E0(3, true);
+				aProfile->SetGemTypeUnlocked(3, true);
 			else if (Is(aWhat, "icegem"))
-				aProfile->SetFlag1E0(6, true);
+				aProfile->SetGemTypeUnlocked(6, true);
 			else if (Is(aWhat, "angelgem"))
-				aProfile->SetFlag1E0(7, true);
+				aProfile->SetGemTypeUnlocked(7, true);
 			else if (Is(aWhat, "classic"))
 				aProfile->UnlockMode(1);
 			else if (Is(aWhat, "zen"))
@@ -806,12 +806,12 @@ bool Tutorial::RunScript()
 			aBoard->AwardFruit(aA - 1, aB - 1);
 		} else if (Is(aCommand, "points")) {
 			aBoard->SetScore(atoi(Word(aWords, 1).c_str()), false);
-			aBoard->mUnknown14F8 = aBoard->mUnknown168;
-			aBoard->mUnknown200 = aBoard->mUnknown14F8;
-			if (aBoard->mUnknown168 == 0)
+			aBoard->mShownScore = aBoard->mScore;
+			aBoard->mLevelProgress = aBoard->mShownScore;
+			if (aBoard->mScore == 0)
 				aBoard->SetLevelSteps(0);
 		} else if (Is(aCommand, "level")) {
-			aBoard->mUnknown158 = atoi(Word(aWords, 1).c_str());
+			aBoard->mLevel = atoi(Word(aWords, 1).c_str());
 		} else if (Is(aCommand, "title")) {
 			// (the original also copies the word without its backslashes into a string it drops)
 			delete mTitleImage;
@@ -891,13 +891,13 @@ void Tutorial::Draw(Graphics* g)
 		if (aPiece != nullptr) {
 			aHoleX = Ftol((double)(float)(gGemWidth / 2) + (double)aPiece->mX);
 			aHoleY = Ftol((double)(float)(gGemHeight / 2) + (double)aPiece->mY);
-			if (aPiece->IsFlagSet(10))
+			if (aPiece->IsFlagSet(Piece::FLAG_COAL))
 				aDark = (float)((double)aAlphaF * (double)0.85f);
 		} else {
 			aHoleX = mBoard->GetColX(mPointCol) + gGemWidth / 2;
 			aHoleY = mBoard->GetRowY(mPointRow) + gGemHeight / 2;
 		}
-		if (mBoard->mUnknown267C == nullptr) {
+		if (mBoard->mFruitDance == nullptr) {
 			float aSize = (float)(3.0 - ((double)aAlphaF - 1.0) * 2.0);
 			WheelSpin::DrawHole(g, aHoleX, aHoleY, aDark, aSize);
 		}

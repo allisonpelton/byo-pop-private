@@ -341,10 +341,10 @@ void VizJellyBlob::Blob::Update()
 void VizJellyBlob::Blob::BuildMesh(std::vector<TriVertex>& theVertices, float theOffsetX, float theOffsetY, float theScale)
 {
 	int aCount = (int)mTriangles.size();
-	int t = 0;
+	int aTime = 0;
 	if (0 < aCount) {
 		do {
-			const Triangle& aTriangle = mTriangles[t];
+			const Triangle& aTriangle = mTriangles[aTime];
 			int k = 0;
 			do {
 				const Cell* aCell = aTriangle.mCells[k];
@@ -353,8 +353,8 @@ void VizJellyBlob::Blob::BuildMesh(std::vector<TriVertex>& theVertices, float th
 				theVertices.push_back(TriVertex(aX, aY, aCell->mU, aCell->mV));  // 0x67fa2f
 				k++;
 			} while (k < 3);
-			t++;
-		} while (t < aCount);
+			aTime++;
+		} while (aTime < aCount);
 	}
 }
 

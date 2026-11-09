@@ -63,6 +63,16 @@ def xml_groups(path):
     return groups
 
 
+# Each group's Extract function in the exe, as ExtractResourcesByName (0x748fef) calls them
+EXTRACT_ADDRESSES = {'2DOnly': 0x73eae6, 'Dynamic': 0x73eb2e, 'LoadScreenNonRelease': 0x73ef19,
+                     'LoadingThread': 0x74406e, 'NonResize': 0x7475db, 'Sounds': 0x7478c1, 'Tube': 0x74858e,
+                     'Viz': 0x74879d}
+
+
+def address_of(theGroup):
+    return '  // 0x%x' % EXTRACT_ADDRESSES[theGroup] if theGroup in EXTRACT_ADDRESSES else ''
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--exe', default=os.path.join(ROOT, 'assets', 'bejeweledtwist', 'bejeweledtwist.exe'))
@@ -176,7 +186,7 @@ def main():
     done = set()
     for g, items in groups:
         h.append('// %s' % g)
-        h.append('bool Extract%sResources(ResourceManager* theManager);' % g)
+        h.append('bool Extract%sResources(ResourceManager* theManager);%s' % (g, address_of(g)))
         names = [rid for _, rid in items]
         if g == 'LoadScreenNonRelease':
             names += [rid for rid in ids if kind[rid] == 'Shader']
@@ -185,7 +195,7 @@ def main():
                 done.add(rid)
                 h.append('extern %s %s;' % (KINDS[kind[rid]], rid))
         h.append('')
-        c += ['bool Sexy::Extract%sResources(ResourceManager* theManager)' % g, '{', '\ttry {']
+        c += ['bool Sexy::Extract%sResources(ResourceManager* theManager)%s' % (g, address_of(g)), '{', '\ttry {']
         for k, rid in items:
             c.append('\t\t%s = %s(theManager, %s_ID, "%s");' % (rid, GETTER[k], rid, rid))
         if g == 'LoadScreenNonRelease':

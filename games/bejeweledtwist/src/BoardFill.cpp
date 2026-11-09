@@ -18,6 +18,7 @@ using namespace Sexy;
 
 int Sexy::gMatchInfoCount = 0;
 
+// port: a match's record as FindMatches (0x6cd468) starts each one, numbered in the order made
 MatchInfo::MatchInfo()
 {
 	mIds.clear();
@@ -25,6 +26,7 @@ MatchInfo::MatchInfo()
 	Reset();
 }
 
+// port: part of MatchInfo's constructor: no cell, colour or kind yet
 void MatchInfo::Reset()
 {
 	mCol = -1;
@@ -32,9 +34,9 @@ void MatchInfo::Reset()
 	mColor = -1;
 	mKind = 0;
 	mCount = 0;
-	mUnknown10 = true;
-	mUnknown2C = 0;
-	mUnknown30 = false;
+	mIsFresh = true;
+	mPoints = 0;
+	mWasScored = false;
 	mIds.clear();
 }
 
@@ -43,45 +45,46 @@ bool LevelValue::Roll()
 	int aCount = GetCount();
 	mValue--;
 	if (mChancePow == 0.0) {
-		mUnknown50 = mValue < 1;
+		mIsDue = mValue < 1;
 	} else {
-		double aDistPct = ((double)(aCount - mValue) / (double)aCount) * mUnknown48;
+		double aDistPct = ((double)(aCount - mValue) / (double)aCount) * mDistanceScale;
 		double aChance = pow(aDistPct, mChancePow);
-		int aRoll = Rand85B970() % 1000000;
+		int aRoll = BoardRand() % 1000000;
 		// The original also writes the roll to the debugger ("timing info expired")
-		if ((double)aRoll / 1000000.0 < mUnknown40 * aChance)
-			mUnknown50 = true;
+		if ((double)aRoll / 1000000.0 < mChanceScale * aChance)
+			mIsDue = true;
 	}
-	return mUnknown50;
+	return mIsDue;
 }
 
 bool LevelValue::ShouldAppear()
 {
-	if (mFirstLevel <= gBoard->mUnknown158 && -1 < mFirstLevel) {
-		if (mUnknown50)
+	if (mFirstLevel <= gBoard->mLevel && -1 < mFirstLevel) {
+		if (mIsDue)
 			return true;
 		if (!mTurnBased)
 			Roll();
-		return mUnknown50;
+		return mIsDue;
 	}
 	return false;
 }
 
 bool LevelValue::NextTurn()
 {
-	if (mFirstLevel <= gBoard->mUnknown158 && -1 < mFirstLevel) {
+	if (mFirstLevel <= gBoard->mLevel && -1 < mFirstLevel) {
 		if (mTurnBased)
 			Roll();
-		return mUnknown50;
+		return mIsDue;
 	}
 	return false;
 }
 
 bool Board::CanAddCounter()
 {
-	return mGameMode != MODE_ZEN && mUnknown21A1 && !IsSparkBlocked() && mUnknown1508 < 2;
+	return mGameMode != MODE_ZEN && mCountersAllowed && !IsSparkBlocked() && mChainLength < 2;
 }
 
+// port: the test of a challenge's flag that the original makes inline where each flag matters
 bool Board::HasChallengeFlag(int theFlag)
 {
 	if (mGameMode != MODE_CHALLENGE || mChallenge == nullptr)
@@ -93,22 +96,22 @@ bool Board::HasChallengeFlag(int theFlag)
 // the electro gems, the fruit, the coal, the rest by colour
 void Board::CountGems()
 {
-	std::memset(mUnknown3560, 0, sizeof(mUnknown3560));
+	std::memset(mGemCounts, 0, sizeof(mGemCounts));
 	for (int aRow = 0; aRow < mRows; aRow++) {
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = GetPieceAt(aRow, aCol);
 			if (aPiece == nullptr)
 				continue;
 			if (aPiece->IsFlagSet(Piece::FLAG_POWER))
-				mUnknown3560[0x15]++;
+				mGemCounts[0x15]++;
 			else if (aPiece->IsFlagSet(Piece::FLAG_ELECTRO))
-				mUnknown3560[0x14]++;
+				mGemCounts[0x14]++;
 			else if (aPiece->IsFlagSet(Piece::FLAG_FRUIT))
-				mUnknown3560[0x18]++;
+				mGemCounts[0x18]++;
 			if (aPiece->IsFlagSet(Piece::FLAG_COAL))
-				mUnknown3560[0x4a]++;
+				mGemCounts[0x4a]++;
 			else
-				mUnknown3560[0x4b + aPiece->mColor]++;
+				mGemCounts[0x4b + aPiece->mColor]++;
 		}
 	}
 }
@@ -133,19 +136,19 @@ void Board::MakeCoal(Piece* thePiece)
 
 void Board::SaveGrid()
 {
-	memcpy(mUnknown135C, mGrid, mCols * mRows * sizeof(Piece*));
+	memcpy(mSavedGrid, mGrid, mCols * mRows * sizeof(Piece*));
 }
 
 void Board::RestoreGrid()
 {
-	memcpy(mGrid, mUnknown135C, mCols * mRows * sizeof(Piece*));
+	memcpy(mGrid, mSavedGrid, mCols * mRows * sizeof(Piece*));
 }
 
 void Board::ClearCellHints()
 {
 	int aCount = mCols * mRows;
 	for (int i = 0; i < aCount; i++)
-		mCells[i].mUnknown34 = false;
+		mCells[i].mIsMarked = false;
 }
 
 bool Board::MatchAt(int theCol, int theRow, MatchInfo* theInfo)
@@ -171,7 +174,7 @@ bool Board::MatchAt(int theCol, int theRow, MatchInfo* theInfo)
 		aCount++;
 		aLast++;
 	}
-	if (mUnknown1C68 <= aCount) {
+	if (mMatchLength <= aCount) {
 		if (theInfo != nullptr) {
 			theInfo->mCol = theCol;
 			theInfo->mRow = theRow;
@@ -201,7 +204,7 @@ bool Board::MatchAt(int theCol, int theRow, MatchInfo* theInfo)
 			aRow++;
 		} while (aRow < mRows);
 	}
-	if (mUnknown1C68 <= aCount) {
+	if (mMatchLength <= aCount) {
 		if (theInfo != nullptr) {
 			theInfo->mCol = theCol;
 			theInfo->mRow = theRow;
@@ -213,7 +216,7 @@ bool Board::MatchAt(int theCol, int theRow, MatchInfo* theInfo)
 	}
 	// The square: the four gems at its corners the colour of the one in its middle (with the profile's bit 6 and
 	// +0x1c98)
-	if ((mUnknown3918 >> 6 & 1) != 0 && mUnknown1C98 && theCol != 0 && theRow != 0) {
+	if ((mUnlockFlags >> 6 & 1) != 0 && mIceGemsAllowed && theCol != 0 && theRow != 0) {
 		bool aSquare = true;
 		for (int aDRow = -1; aDRow < 2; aDRow += 2) {
 			for (int aDCol = -1; aDCol < 2; aDCol += 2) {
@@ -264,7 +267,7 @@ bool Board::TestTwist(bool theTest, MatchInfo* theInfo)
 				if (aFound)
 					break;
 				Piece* aPiece = GetPieceAt(aRow, aCol);
-				if (aPiece == mUnknown1430) {
+				if (aPiece == mCursorPiece) {
 					aPieces.push_back(aPiece);
 					aPieces.push_back(GetPieceAt(aRow, aCol + 1));
 					aPieces.push_back(GetPieceAt(aRow + 1, aCol));
@@ -281,8 +284,8 @@ bool Board::TestTwist(bool theTest, MatchInfo* theInfo)
 			for (unsigned int i = 0; i < aPieces.size(); i++) {
 				Piece* aPiece = aPieces[i];
 				// The original reads a missing gem's flags here (a crash) when +0x2054 or +0x1c71 lets a gap turn
-				if ((aPiece == nullptr && !mUnknown2054 && !mUnknown1C71) ||
-					(!mUnknown1C6C && aPiece != nullptr && aPiece->IsFlagSet(Piece::FLAG_BOMB))) {
+				if ((aPiece == nullptr && !mPuzzleBoardMade && !mTwistOverEmpty) ||
+					(!mBombsCanMove && aPiece != nullptr && aPiece->IsFlagSet(Piece::FLAG_BOMB))) {
 					aCanTurn = false;
 					break;
 				}
@@ -299,14 +302,14 @@ bool Board::TestTwist(bool theTest, MatchInfo* theInfo)
 
 bool Board::CannotTwist(bool theCheck)
 {
-	mUnknown2120.clear();
+	mUnturnableCells.clear();
 	if (!theCheck)
 		return true;
-	int aRow = GetRowAt(mUnknown1C04);
-	int aCol = GetColAt(mUnknown1C00);
+	int aRow = GetRowAt(mCursorY);
+	int aCol = GetColAt(mCursorX);
 	if (aRow < 0 || mRows - 1 <= aRow || aCol < 0 || aCol == mCols - 1 ||
-		(GetUnknown23F5() && ((-1 < mUnknown2404 && (mUnknown2404 != aRow || mUnknown2400 != aCol)) ||
-							  ((mUnknown2208 != nullptr || mUnknown23DC.size() != 0) && mUnknown2208 != mUnknown2584))))
+		(IsTipShowing() && ((-1 < mTipRow && (mTipRow != aRow || mTipCol != aCol)) ||
+							  ((mShownDialog != nullptr || mPendingDialogs.size() != 0) && mShownDialog != mTutorial))))
 		return true;
 	std::pair<int, int> aCells[4] = {std::make_pair(aRow, aCol), std::make_pair(aRow, aCol + 1),
 		std::make_pair(aRow + 1, aCol), std::make_pair(aRow + 1, aCol + 1)};
@@ -318,12 +321,12 @@ bool Board::CannotTwist(bool theCheck)
 		bool aCanMove;
 		if (aPieces[i] == nullptr) {
 			// A gap turns only with +0x2054 and +0x1c71
-			aCanMove = mUnknown2054 && mUnknown1C71;
+			aCanMove = mPuzzleBoardMade && mTwistOverEmpty;
 		} else {
 			aCanMove = CanMove(aPieces[i]);
 		}
 		if (!aCanMove) {
-			mUnknown2120.push_back(aCells[i]);
+			mUnturnableCells.push_back(aCells[i]);
 			aBlocked = true;
 		}
 	}
@@ -336,53 +339,53 @@ void Board::EvaluateCursor(MatchInfo* theInfo)
 	MatchInfo anInfo;
 	if (theInfo == nullptr)
 		theInfo = &anInfo;
-	mUnknown1C40 = TestTwist(true, theInfo);
-	mUnknown1C41 = CannotTwist(true);
-	if (!mUnknown1559 || 2 <= mUnknown158 || !mUnknown25A4 || mUnknown21D8 || !mApp->mShowHints)
+	mTwistMatches = TestTwist(true, theInfo);
+	mTwistBlocked = CannotTwist(true);
+	if (!mFirstLevelHints || 2 <= mLevel || !mHintsReady || mHintShowing || !mApp->mShowHints)
 		return;
-	if (mUnknown2584 != nullptr) {
-		int aState = mUnknown2584->mState;
+	if (mTutorial != nullptr) {
+		int aState = mTutorial->mState;
 		if (aState != Tutorial::STATE_NONE && aState != Tutorial::STATE_MATCHES && aState != Tutorial::STATE_LEVELUP)
 			return;
 	}
-	if (-1 < mUnknown2400) {
-		if (mUnknown2400 != GetColAt(mUnknown1C00))
+	if (-1 < mTipCol) {
+		if (mTipCol != GetColAt(mCursorX))
 			return;
-		if (mUnknown2404 != GetRowAt(mUnknown1C04))
+		if (mTipRow != GetRowAt(mCursorY))
 			return;
 	}
 	// The gems of the match the turn would make are marked
 	for (int i = 0; i < (int)theInfo->mIds.size(); i++) {
 		Piece* aPiece = GetPieceById(theInfo->mIds[i]);
 		if (aPiece != nullptr)
-			mCells[mCols * aPiece->mRow + aPiece->mCol].mUnknown34 = true;
+			mCells[mCols * aPiece->mRow + aPiece->mCol].mIsMarked = true;
 	}
 }
 
 void Board::MoveCursor(int theRow, int theCol, bool theQuiet, MatchInfo* theInfo)
 {
-	int anOldX = mUnknown1C00;
-	int anOldY = mUnknown1C04;
+	int anOldX = mCursorX;
+	int anOldY = mCursorY;
 	SetCursor(theRow, theCol);
-	if ((mUnknown1C00 != anOldX || mUnknown1C04 != anOldY) && !theQuiet && mUnknown1C00 == mUnknown2400 &&
-		mUnknown1C04 == mUnknown2404)
+	if ((mCursorX != anOldX || mCursorY != anOldY) && !theQuiet && mCursorX == mTipCol &&
+		mCursorY == mTipRow)
 		mApp->PlaySample(SOUND_TUTORIAL_SNAP);
 	Piece* aPiece = GetPieceAt(theRow, theCol);
-	if (aPiece != mUnknown1430)
-		mUnknown1430 = aPiece;
+	if (aPiece != mCursorPiece)
+		mCursorPiece = aPiece;
 	EvaluateCursor(theInfo);
-	if (mUnknown20D8 && !theQuiet && mUnknown20D0 && (mUnknown2584 == nullptr || !mUnknown2584->mMouseVisible)) {
-		bool aSameCell = GetColAt(Ftol((double)mUnknown1C2C)) == GetColAt(mUnknown1C00) &&
-						 GetRowAt(Ftol((double)mUnknown1C30)) == GetRowAt(mUnknown1C04);
-		if (!aSameCell && 2 < mUpdateCnt - mUnknown1C3C) {
+	if (mCursorOnGrid && !theQuiet && mCursorShown && (mTutorial == nullptr || !mTutorial->mMouseVisible)) {
+		bool aSameCell = GetColAt(Ftol((double)mEasedCursorX)) == GetColAt(mCursorX) &&
+						 GetRowAt(Ftol((double)mEasedCursorY)) == GetRowAt(mCursorY);
+		if (!aSameCell && 2 < mUpdateCnt - mCursorMoveCount) {
 			// A trail of rings from where the cursor is drawn to where it now is
 			int i = 0;
 			do {
 				i++;
 				float aPos = (float)((double)i * 0.25);
-				float aX = (float)((double)mUnknown1C00 * (double)aPos + (double)mUnknown1C2C * (1.0 - (double)aPos) +
+				float aX = (float)((double)mCursorX * (double)aPos + (double)mEasedCursorX * (1.0 - (double)aPos) +
 								   (double)gGemWidth);
-				float aY = (float)((double)mUnknown1C04 * (double)aPos + (1.0 - (double)aPos) * (double)mUnknown1C30 +
+				float aY = (float)((double)mCursorY * (double)aPos + (1.0 - (double)aPos) * (double)mEasedCursorY +
 								   (double)gGemHeight);
 				Effect* anEffect = mFXManager->AllocEffect(0x29);
 				anEffect->mX = aX;
@@ -391,12 +394,12 @@ void Board::MoveCursor(int theRow, int theCol, bool theQuiet, MatchInfo* theInfo
 				anEffect->mImage = IMAGE_CURSOR_RING;
 				mFXManager->AddEffect(anEffect);
 			} while (i < 3);
-			mUnknown1C3C = mUpdateCnt;
+			mCursorMoveCount = mUpdateCnt;
 		}
 	}
-	mUnknown1C38 = 1.0f;
-	mUnknown20D8 = GetColX(0) <= mUnknown1C00 && mUnknown1C00 < GetColX(mCols - 1) && GetRowY(0) <= mUnknown1C04 &&
-				   mUnknown1C04 < GetRowY(mRows - 1);
+	mCursorEaseProgress = 1.0f;
+	mCursorOnGrid = GetColX(0) <= mCursorX && mCursorX < GetColX(mCols - 1) && GetRowY(0) <= mCursorY &&
+				   mCursorY < GetRowY(mRows - 1);
 	EaseCursor();
 }
 
@@ -405,13 +408,13 @@ bool Board::FindMove(int* theRow, int* theCol, bool theAny)
 	int aRow = 0;
 	bool aFound = false;
 	bool aBombFound = false;
-	int aCursorX = mUnknown1C00;
-	int aCursorY = mUnknown1C04;
+	int aCursorX = mCursorX;
+	int aCursorY = mCursorY;
 	*theCol = -1;
 	*theRow = -1;
 	// (below the tutorial's dialog)
-	if (mUnknown2584 != nullptr && mUnknown2584->mDialog != nullptr)
-		aRow = GetRowAt(mUnknown2584->mDialog->mY + mUnknown2584->mDialog->mHeight) + 2;
+	if (mTutorial != nullptr && mTutorial->mDialog != nullptr)
+		aRow = GetRowAt(mTutorial->mDialog->mY + mTutorial->mDialog->mHeight) + 2;
 	for (;;) {
 		if (mRows - 1 <= aRow || aBombFound) {
 			MoveCursor(GetRowAt(aCursorY), GetColAt(aCursorX), true, nullptr);
@@ -420,10 +423,10 @@ bool Board::FindMove(int* theRow, int* theCol, bool theAny)
 		int aCol = 0;
 		if (mCols != 1 && -1 < mCols - 1) {
 			do {
-				mUnknown25E0.Reset();
-				MoveCursor(aRow, aCol, true, &mUnknown25E0);
-				if (!mUnknown1C41) {
-					if (!mUnknown1C40) {
+				mMoveMatchInfo.Reset();
+				MoveCursor(aRow, aCol, true, &mMoveMatchInfo);
+				if (!mTwistBlocked) {
+					if (!mTwistMatches) {
 						// A turn that makes no match
 						if (theAny) {
 							*theRow = aRow;
@@ -433,8 +436,8 @@ bool Board::FindMove(int* theRow, int* theCol, bool theAny)
 					} else if (!theAny) {
 						// A turn that makes a match; one with a bomb in it wins at once
 						bool aBomb = false;
-						for (unsigned int i = 0; i < mUnknown25E0.mIds.size(); i++) {
-							Piece* aPiece = GetPieceById(mUnknown25E0.mIds[i]);
+						for (unsigned int i = 0; i < mMoveMatchInfo.mIds.size(); i++) {
+							Piece* aPiece = GetPieceById(mMoveMatchInfo.mIds[i]);
 							if (aPiece != nullptr && aPiece->IsFlagSet(Piece::FLAG_BOMB))
 								aBomb = true;
 						}
@@ -442,9 +445,9 @@ bool Board::FindMove(int* theRow, int* theCol, bool theAny)
 							*theRow = aRow;
 							*theCol = aCol;
 							aFound = true;
-							mUnknown25B8.clear();
-							for (unsigned int i = 0; i < mUnknown25E0.mIds.size(); i++)
-								mUnknown25B8.push_back(mUnknown25E0.mIds[i]);
+							mHintGems.clear();
+							for (unsigned int i = 0; i < mMoveMatchInfo.mIds.size(); i++)
+								mHintGems.push_back(mMoveMatchInfo.mIds[i]);
 							if (aBomb) {
 								aBombFound = true;
 								break;
@@ -467,7 +470,7 @@ int Board::FillPieces(bool theAtOnce)
 		aCounterTries = 0;
 	int aNewCount = 0;
 	int aCoalLimit = 0;
-	mUnknown21A1 = mUnknown1E8 - mUnknown1EC < mAmnestyGemCount;
+	mCountersAllowed = mGemsBroken - mGemsBrokenAtTurnStart < mAmnestyGemCount;
 	int aCoalCount = 0;
 	bool aHasDevil = false;
 	for (int aRow = 0; aRow < mRows; aRow++) {
@@ -476,18 +479,18 @@ int Board::FillPieces(bool theAtOnce)
 			if (aPiece != nullptr) {
 				if (aPiece->IsFlagSet(Piece::FLAG_COAL))
 					aCoalCount++;
-				if (aPiece->IsFlagSet(Piece::FLAG_DEVIL) || aPiece->IsFlagSet(Piece::FLAG_12))
+				if (aPiece->IsFlagSet(Piece::FLAG_DEVIL) || aPiece->IsFlagSet(Piece::FLAG_DOOM))
 					aHasDevil = true;
 			}
 		}
 	}
 	if (mCoalMax != 0)
-		aCoalLimit = mUnknown1F64 + 1;
+		aCoalLimit = mCoalLevel + 1;
 	if (HasChallengeFlag(0x100)) {
 		// port: a challenge whose bombs come one at a time puts the next one on a random empty cell (mRand); it comes
 		// with the challenges
 	}
-	int aColors = mUnknown1BF4;
+	int aColors = mColorCount;
 	int aTry = 0;
 	int aMaxTries = 30;
 	bool aCounterMade = false;
@@ -507,7 +510,7 @@ int Board::FillPieces(bool theAtOnce)
 		int aCounterIndex = 0;
 		if (!aFilled.empty()) {
 			// Try again: the gems of the last pass go, and the counter goes on one of the new ones
-			aCounterIndex = Rand85B970() % (int)aFilled.size();
+			aCounterIndex = BoardRand() % (int)aFilled.size();
 			for (unsigned int i = 0; !aFilled.empty() && i < aFilled.size(); i++) {
 				int aRow = aFilled[i].first;
 				int aCol = aFilled[i].second;
@@ -519,20 +522,20 @@ int Board::FillPieces(bool theAtOnce)
 			aFilled.clear();
 		}
 		for (int aCol = 0; aCol < mCols; aCol++) {
-			std::vector<int>& aTutorialGems = mUnknown2408[aCol];
+			std::vector<int>& aTutorialGems = mTipGemsByColumn[aCol];
 			int aRow = mRows;
 			while (--aRow > -1) {
 				Piece* aPiece = GetPieceAt(aRow, aCol);
-				if (aPiece == nullptr && mUnknown2108 == 0.0f) {
+				if (aPiece == nullptr && mJumpFillWait == 0.0f) {
 					if (aTry == 0) {
-						if (mGameMode == MODE_CHALLENGE || mGameMode == MODE_BLITZ || (mUnknown3914 & 1) != 0)
+						if (mGameMode == MODE_CHALLENGE || mGameMode == MODE_BLITZ || (mSeenFlags & 1) != 0)
 							aCoal = aCoal | mCoalGem.ShouldAppear();
-						if (aCounters && mUnknown1C6E && mCounter.ShouldAppear() && !aCounterMade) {
+						if (aCounters && mCountersOn && mCounter.ShouldAppear() && !aCounterMade) {
 							aCounterMade = true;
-							if ((mUnknown3914 >> 9 & 1) == 0) {
+							if ((mSeenFlags >> 9 & 1) == 0) {
 								aCounterNow = true;
-								mUnknown25D0 = 2.0f;
-								mUnknown2004 = true;
+								mHintWait = 2.0f;
+								mCounterHintDue = true;
 								aMaxTries = 100;
 							}
 							aCounterIndex = aNewIndex;
@@ -543,24 +546,24 @@ int Board::FillPieces(bool theAtOnce)
 					aNewCount++;
 					mGrid[mCols * aRow + aCol] = aPiece;
 					aPiece->mX = (float)GetColX(aCol);
-					if (mUnknown3924 == 0.0f)
-						aPiece->mUnknown535 = false;
+					if (mBoardFade == 0.0f)
+						aPiece->mIsLive = false;
 					// Above the gems still falling in its column, a random gap apart
 					int anAbove = mRows;
 					while (--anAbove > -1) {
 						Piece* anOther = GetPieceAt(anAbove, aCol);
-						if (anOther != nullptr && anOther != aPiece && anOther->mUnknown536) {
-							int aGap = Ftol((double)gApp->mScale * (double)(Rand85B970() % 30 + 50));
+						if (anOther != nullptr && anOther != aPiece && anOther->mIsCounted) {
+							int aGap = Ftol((double)gApp->mScale * (double)(BoardRand() % 30 + 50));
 							float aY;
 							if ((double)anOther->mY - (double)gGemHeight - (double)aGap <= (double)aPiece->mY) {
-								aGap = Ftol((double)gApp->mScale * (double)(Rand85B970() % 30 + 50));
+								aGap = Ftol((double)gApp->mScale * (double)(BoardRand() % 30 + 50));
 								aY = (float)((double)anOther->mY - (double)gGemHeight - (double)aGap);
 							} else {
 								aY = aPiece->mY;
 							}
 							aPiece->mY = aY;
 							if (aY < anOther->mY)
-								aPiece->mUnknown34 = anOther->mUnknown34;
+								aPiece->mFallSpeed = anOther->mFallSpeed;
 						}
 					}
 					float aTop = (float)-gGemHeight;
@@ -568,19 +571,19 @@ int Board::FillPieces(bool theAtOnce)
 						aPiece->mY = aTop;
 					aPiece->mCol = aCol;
 					aPiece->mRow = aRow;
-					if (mUnknown210C)
+					if (mInstantTwist)
 						aPiece->mY = (float)GetRowY(aRow);
-					aPiece->mUnknown34 = (float)((double)gApp->mScale + (double)mUnknown133C[aCol]);
-					int aColor = Rand85B970() % aColors;
+					aPiece->mFallSpeed = (float)((double)gApp->mScale + (double)mColumnLift[aCol]);
+					int aColor = BoardRand() % aColors;
 					// (the original reads the devil gems' count here and drops it)
-					bool aCounter = aCounters && mUnknown1C6E;
+					bool aCounter = aCounters && mCountersOn;
 					bool aMakeCoal = aCoal;
 					if (aCoal && aCoalLimit != 0 && aCoalLimit <= aCoalCount) {
 						aMakeCoal = false;
 						mCoalGem.Restart();
 					}
 					bool aTutorialBomb = false;
-					if (GetUnknown23F5()) {
+					if (IsTipShowing()) {
 						// The tutorial's gems, set by its script, from the back of each column's list
 						if (aTutorialGems.size() != 0) {
 							aColor = aTutorialGems.back();
@@ -597,14 +600,14 @@ int Board::FillPieces(bool theAtOnce)
 								aCounters = true;
 								aCounter = true;
 							} else if (aKind == 11) {
-								aPiece->SetFlag(11, true);
+								aPiece->SetFlag(Piece::FLAG_TUTORIAL_MARK, true);
 							}
 						}
 					}
 					if (aCounter && (aTutorialBomb || aCounterMade) && aCounterIndex == aNewIndex) {
 						MakeCounter(aPiece);
-						if (GetUnknown23F5() && -1 < mUnknown2548)
-							aPiece->mBombCount = mUnknown2548;
+						if (IsTipShowing() && -1 < mTipBombCount)
+							aPiece->mBombCount = mTipBombCount;
 						aCounterPlaced = true;
 						aMakeCoal = false;
 					}
@@ -619,7 +622,7 @@ int Board::FillPieces(bool theAtOnce)
 					aPiece->mOrigColor = aColor;
 				}
 				if (!theAtOnce) {
-					mUnknown21D8 = true;
+					mHintShowing = true;
 				} else if (aPiece != nullptr) {
 					// (the original has no check: with +0x2108 set a gap stays and it reads through null)
 					aPiece->mY = (float)GetRowY(aPiece->mRow);
@@ -669,7 +672,7 @@ int Board::FillPieces(bool theAtOnce)
 				for (int aCol = 0; aCol < mCols; aCol++) {
 					Piece* aPiece = GetPieceAt(aRow, aCol);
 					if (aPiece != nullptr && aPiece->mFlags == 0 && aPiece->mY <= (float)-gGemHeight)
-						aPiece->mColor = Rand85B970() % aColors;
+						aPiece->mColor = BoardRand() % aColors;
 				}
 			}
 			if (!FindMove(&aMoveRow, &aMoveCol, false))
@@ -685,7 +688,7 @@ int Board::FillPieces(bool theAtOnce)
 				for (int aCol = 0; aCol < mCols; aCol++) {
 					Piece* aPiece = GetPieceAt(aRow, aCol);
 					if (aPiece != nullptr && aPiece->mY <= (float)-gGemHeight && MatchAt(aCol, aRow, nullptr)) {
-						aPiece->mColor = Rand85B970() % aColors;
+						aPiece->mColor = BoardRand() % aColors;
 						aChanged = true;
 					}
 				}
@@ -706,17 +709,17 @@ int Board::FillInBlanks(bool theAtOnce)
 {
 	if (mGameMode == MODE_PUZZLE)
 		return 0;
-	mUnknown3918 = mApp->mProfile->mFlags1E0;
-	mUnknown3914 = mApp->mProfile->mFlags1E4;
+	mUnlockFlags = mApp->mProfile->mGemTypesUnlocked;
+	mSeenFlags = mApp->mProfile->mTipsSeen;
 	int aResult = FillPieces(theAtOnce);
 	// A new board that already meets the challenge's goal is cleared and filled again
-	while (mGameMode == MODE_CHALLENGE && mUnknown1390 && mChallenge != nullptr &&
+	while (mGameMode == MODE_CHALLENGE && mBeforeFirstTwist && mChallenge != nullptr &&
 		   mApp->mChallengeInfo->Check(mChallenge, nullptr, false) == 1) {
 		ClearBoard();
 		mApp->mChallengeInfo->mResult = 0;
 		aResult = FillPieces(theAtOnce);
 	}
-	if (!mUnknown2629 && !mUnknown37C4 && mSaveBuffer.mDataBitSize == 0)
+	if (!mReplayPlaying && !mIsReplay && mSaveBuffer.mDataBitSize == 0)
 		SaveGame(&mSaveBuffer, false);
 	return aResult;
 }

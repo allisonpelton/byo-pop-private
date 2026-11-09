@@ -1132,12 +1132,12 @@ ResourceId GetIdByFont(Font* theFont);        // 0x73e699
 ResourceId GetIdBySound(int theSound);        // 0x73e6a2
 
 // 2DOnly
-bool Extract2DOnlyResources(ResourceManager* theManager);
+bool Extract2DOnlyResources(ResourceManager* theManager);  // 0x73eae6
 extern Image* IMAGE_PLANET;
 extern Image* IMAGE_STATIC_SPACE;
 
 // Dynamic
-bool ExtractDynamicResources(ResourceManager* theManager);
+bool ExtractDynamicResources(ResourceManager* theManager);  // 0x73eb2e
 extern Font* FONT_600_BEACHHOUSE86;
 extern Font* FONT_600_BOMBPOP3;
 extern Font* FONT_600_CONTINUUMBOLD20;
@@ -1186,7 +1186,7 @@ extern Font* FONT_HUMANST9BOLD;
 extern Font* FONT_HUMANSTBOLD19;
 
 // LoadScreenNonRelease
-bool ExtractLoadScreenNonReleaseResources(ResourceManager* theManager);
+bool ExtractLoadScreenNonReleaseResources(ResourceManager* theManager);  // 0x73ef19
 extern Image* IMAGE_CURSOR_DRAGGING;
 extern Image* IMAGE_CURSOR_HAND;
 extern Image* IMAGE_CURSOR_POINTER;
@@ -1236,7 +1236,7 @@ extern int SHADER_CUBE_V_FINAL;
 extern int SHADER_RAINBOW_CUBE_V_FINAL;
 
 // LoadingThread
-bool ExtractLoadingThreadResources(ResourceManager* theManager);
+bool ExtractLoadingThreadResources(ResourceManager* theManager);  // 0x74406e
 extern Image* IMAGE_INGAMEUI_GRIDBAR_BOT;
 extern Image* IMAGE_INGAMEUI_GRIDBAR_BOTGLOW;
 extern Image* IMAGE_INGAMEUI_GRIDBAR_TOP;
@@ -1947,7 +1947,7 @@ extern Font* FONT_SCORE_SMALL;
 extern Font* FONT_DIALOG_BUTTONS;
 
 // NonResize
-bool ExtractNonResizeResources(ResourceManager* theManager);
+bool ExtractNonResizeResources(ResourceManager* theManager);  // 0x7475db
 extern Image* IMAGE_CLOUD_ARSENAL;
 extern Image* IMAGE_CLOUD_BONANZA;
 extern Image* IMAGE_CLOUD_CHAIN_GANG;
@@ -1987,7 +1987,7 @@ extern Image* IMAGE_TEX_WARPCONE;
 extern Image* IMAGE_TUBESPARKLES;
 
 // Sounds
-bool ExtractSoundsResources(ResourceManager* theManager);
+bool ExtractSoundsResources(ResourceManager* theManager);  // 0x7478c1
 extern int SOUND_PURR;
 extern int SOUND_VOICE_ONE;
 extern int SOUND_VOICE_TWO;
@@ -2125,7 +2125,7 @@ extern int SOUND_ZENTRANSITION2;
 extern int SOUND_ZENTRANSITION3;
 
 // Tube
-bool ExtractTubeResources(ResourceManager* theManager);
+bool ExtractTubeResources(ResourceManager* theManager);  // 0x74858e
 extern Image* IMAGE_INGAMEUI_TUBE_GLASS;
 extern Image* IMAGE_INGAMEUI_TUBE_FILL_TEXTURE1;
 extern Image* IMAGE_INGAMEUI_TUBE_BOTTOM;
@@ -2153,7 +2153,7 @@ extern Font* FONT_SCOREGLOW;
 extern Font* FONT_FLOATERS;
 
 // Viz
-bool ExtractVizResources(ResourceManager* theManager);
+bool ExtractVizResources(ResourceManager* theManager);  // 0x74879d
 extern Image* IMAGE_ZENDROP1;
 extern Image* IMAGE_ZENDROP2;
 extern Image* IMAGE_ZENDROP3;
