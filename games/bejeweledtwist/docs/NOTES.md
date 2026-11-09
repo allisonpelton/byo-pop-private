@@ -653,7 +653,13 @@ nothing reads but which keep the draws in order.
 **Comments** that named an old field now name the new one, and the class comments that said fields were still named by
 offset are gone.
 
-**The proof.** PROOF_PENDING
+**The proof.** The 1026 table renames left the object code of all 81 units the same instruction for instruction
+(llvm-objdump before and after). Everything after them, the hand renames and the removals that change layouts, rests on
+check.sh's Twist suite (2026-11-09, with the flame-gem fix merged): the start's menu, a seeded Classic game to update
+5156, a Blitz game to its high scores and the 3D level-up's take-off, 16 screens, all as frozen; a rerun identical; the
+frozen baseline exe's run identical; a page's save the same as a quit's, and resumed. namecheck finds nothing (13 uses
+allowed with their reasons in namecheck.txt); the native and web builds are clean but for a warning that was there
+before the pass.
 
 ## The challenge's flow on the board
 
