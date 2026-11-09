@@ -1,0 +1,3 @@
+export re/atomica/gh/functions.jsonl
+src games/atomica/src
+game 00401000-00435ff0

@@ -168,7 +168,7 @@ void AtomicaApp::ReadFromRegistry()
 		mShowTips = aValue != 1;
 }
 
-// the command line: -autoplay=<seed> -autoplaymode=strategy|action -autoplaygames=N -autoplaycap=N -autoplaylog=<file>
+// the command line: -autoplay=<seed> -autoplaymode=strategy|action -autoplayexpert=0|1 -autoplaygames=N -autoplaycap=N -autoplaylog=<file>
 // -autoplayshots=<prefix>
 void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
@@ -180,6 +180,8 @@ void AtomicaApp::HandleCmdLineParam(const std::string& theParamName, const std::
 	}
 	else if (theParamName == "-autoplaymode")
 		mAutoplayMode = (theParamValue == "action") ? 1 : 0;
+	else if (theParamName == "-autoplayexpert")
+		mExpertMode = atoi(theParamValue.c_str());   // the bot then clicks the menu's expert button
 	else if (theParamName == "-autoplaygames")
 		mAutoplayGames = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaycap")
