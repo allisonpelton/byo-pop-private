@@ -39,7 +39,8 @@ std::string RedShark::GetWord3()
 }
 
 // 0x40b600: BlackShark::TypeLetter with a third word: when mWord is finished the second word is taken, when that is
-// empty the third one; with both empty the word is cleared and the creature lets go of its target
+// empty the third one; with both empty the word is cleared and the creature lets go of its target. The word taken is
+// emptied (the export drops that assignment, see BlackShark::TypeLetter)
 void RedShark::TypeLetter()
 {
 	mNumTyped++;
@@ -61,11 +62,13 @@ void RedShark::TypeLetter()
 			}
 			mWord = mWord3;
 			mNumTyped = 0;
+			mWord3 = "";		// used up, as the code at 0x40b850 does (the export leaves the line out)
 		}
 		else
 		{
 			mWord = mWord2;
 			mNumTyped = 0;
+			mWord2 = "";		// used up, as the code at 0x40b711 does (the export leaves the line out)
 		}
 	}
 	mTyped = mWord.substr(0, mNumTyped);

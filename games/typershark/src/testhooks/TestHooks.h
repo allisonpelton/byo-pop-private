@@ -44,4 +44,7 @@ std::string TestStateJson(WinWSApp* theApp);
 // the line of -statelog for the current update (StateLog.cpp), "" when there is no board
 std::string TestStateLogLine(WinWSApp* theApp);
 
+// the -typist option (Typist.cpp): the bot's input for the next update, written down as -script lines; nothing without the option
+void TestTypistStep(WinWSApp* theApp);
+
 }

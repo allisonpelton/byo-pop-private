@@ -12,6 +12,7 @@
 #include "Player.h"
 #include "LessonManager.h"
 #include "WSTimer.h"
+#include "TypingTutor.h"
 #include "Common.h"
 
 #include <cstdio>
@@ -60,18 +61,28 @@ std::string Sexy::TestStateLogLine(WinWSApp* app)
 			aCounts[3]++;
 		else if (c.mList == "boss")
 			aCounts[4]++;
-		aList += StrFormat(" %s:%s@%.2f,%.2f,%d", c.mKind.c_str(), c.mWord.c_str(), c.mX, c.mY, c.mState);
+		aList += StrFormat(" %s:%s@%.6f,%.6f,%d,%d", c.mKind.c_str(), c.mWord.c_str(), c.mX, c.mY, c.mState, c.mTyped);
 	}
 	int aLevel = app->mLessonManager != NULL ? app->mLessonManager->mLevel : -2;
-	return StrFormat("u=%d lvl=%d score=%d time=%d sharks=%d piranhas=%d clams=%d bonus=%d boss=%d typed=%d lives=%d |%s", app->mUpdateCount,
+	uint32_t aRandState[MTRAND_N];
+	int aRandIndex = 0;
+	gGameRand->GetState(aRandState, &aRandIndex);
+	// the fields after `lives` are what phase 1 of the identical-play pass reads out of the original's memory to compare
+	// (games/typershark/tools/phase1): the board's own update count, its score (the depth in an abyss game), the game timer's
+	// three raw values, the pause and hint flags, the typed letters, the dive, the diver's state and EMP charge
+	return StrFormat("u=%d lvl=%d score=%d time=%d sharks=%d piranhas=%d clams=%d bonus=%d boss=%d typed=%d lives=%d bupd=%d bscore=%d "
+		"tcnt=%d tstart=%d tpaused=%d paused=%d hint=%d ty=%s dive=%.6f dstate=%d emp=%.6f rng=%d gameover=%d sw=%s swp=%d |%s", app->mUpdateCount,
 		aLevel, b->mPlayer->mScore, b->mGameTimer->Elapsed(), aCounts[0], aCounts[1], aCounts[2], aCounts[3], aCounts[4] > 0 ? 1 : 0,
-		(int) b->mTyped.size(), b->mPlayer->mField110, aList.c_str());
+		(int) b->mTyped.size(), b->mPlayer->mField110, b->mUpdateCount, b->mScore, b->mGameTimer->mUpdateCnt, b->mGameTimer->mStart,
+		b->mGameTimer->mPausedTotal, b->mPaused ? 1 : 0, app->mHintDialog != NULL ? 1 : 0, b->mTyped.c_str(), b->mDivePos,
+		b->mPlayer->mState, b->mPlayer->mEmpCharge, aRandIndex, b->mGameOverDialog != NULL ? 1 : 0, b->mString0f10.c_str(), b->mField0f2c, aList.c_str());
 }
 
 // the framework's update, then (with -statelog) the line for this update
 bool WinWSApp::DoUpdateFrames()
 {
 	bool aResult = SexyApp::DoUpdateFrames();
+	TestTypistStep(this);
 	if (gStateLogMode == 0)
 		return aResult;
 
@@ -106,7 +117,26 @@ bool WinWSApp::DoUpdateFrames()
 		if (++gStateLogLines % 100 == 0)
 			fflush(gStateLogFile);
 	}
-	else if (gStateLogDirty)
+	else
+	{
+		// no board: only the game generator's index, to see what the menus and dialogs draw
+		uint32_t aRandState[MTRAND_N];
+		int aRandIndex = -1;
+		if (gGameRand != NULL)
+			gGameRand->GetState(aRandState, &aRandIndex);
+		// and the typing tutor, when there is one: its lesson, state, task, the keys typed so far and the key that is next
+		std::string aTutor;
+		if (mTypingTutor != NULL)
+		{
+			TypingTutor* t = mTypingTutor;
+			aTutor = StrFormat(" tut=1 tles=%d tst=%d ttask=%d terr=%d tclean=%d tcorr=%d trwpm=%d tawpm=%d tsec=%d tacc=%d texp=%d tleft=%d "
+				"tfirst=%d tcre=%d tpause=%d", t->mLessons != NULL ? t->mLessons->mCurrent : -9, t->mState, t->mTask, t->mErrors,
+				t->mCleanKeys, t->mCorrectKeys, t->mRawWPM, t->mAdjustedWPM, t->mSeconds, t->mAccuracy,
+				(int) (unsigned char) t->mExpectedChar, t->mTimeLeft, t->mFirstLine, (int) t->mCreatures.size(), t->mPauseCount);
+		}
+		fprintf(gStateLogFile, "u=%d noboard=1 rng=%d%s |\n", mUpdateCount, aRandIndex, aTutor.c_str());
+	}
+	if (mBoard == NULL && gStateLogDirty)
 	{
 		fflush(gStateLogFile);		// a game is over: what it logged is on disk
 		gStateLogDirty = false;

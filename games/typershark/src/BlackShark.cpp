@@ -114,8 +114,9 @@ void BlackShark::SetState(int theState)
 }
 
 // 0x409fb0: Enemy::TypeLetter (0x40a5b0) with a second word. When the last letter is typed the points of the word are
-// kept (mField54) and event 1 pushed; a second word then becomes the word and typing starts again at its first letter,
-// without one the word is cleared and the creature lets go of its target
+// kept (mField54) and event 1 pushed; a second word then becomes the word (and is emptied: the Ghidra export drops that
+// assignment) and typing starts again at its first letter, without one the word is cleared and the creature lets go of its
+// target. Found in phase 1 of the identical-play pass: without the emptying a shark's word came back for ever.
 void BlackShark::TypeLetter()
 {
 	mNumTyped++;
@@ -135,6 +136,7 @@ void BlackShark::TypeLetter()
 		}
 		mWord = mWord2;
 		mNumTyped = 0;
+		mWord2 = "";		// the second word is used up (the export shows no such line; the code at 0x40a0b0 assigns the empty string to it)
 	}
 	mTyped = mWord.substr(0, mNumTyped);
 	mRemaining = mWord.substr(mNumTyped, mWord.size());

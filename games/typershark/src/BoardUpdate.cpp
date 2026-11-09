@@ -897,8 +897,8 @@ void Board::Update()
 			}
 			else
 			{
-				// no ocean floor (endless): every 100 feet of depth the lesson goes on to the next level
-				if (mScore / 100 > mField1c0 / 100 && mFlag0f80)
+				// no ocean floor (endless): every 200 feet of depth the lesson goes on to the next level (0x45c140: score / 200)
+				if (mScore / 200 > mField1c0 / 200 && mFlag0f80)
 				{
 					mField1c0 = mScore;
 					mLessonManager->NextLevel();
