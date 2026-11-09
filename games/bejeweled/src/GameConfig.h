@@ -20,8 +20,8 @@
 // port(variant): the tunables are now part of GameRules (GameRules.h), which also holds the code-mod
 // rules ("rules" in mod.json: a superset of "tunables") and the data\diff.txt values. Load() merges the
 // enabled mods' tunables and rules into mRules, then LoadFromRules() copies the tunables into the
-// members below, which the translated code reads. The rules beyond the tunables do not change play yet
-// (games/bejeweled/docs/CODE_MODS_DESIGN.md 9.2, stage 1). Split: GameConfig.cpp is framework-free
+// members below, which the translated code reads; the rules beyond the tunables reach a board through its
+// snapshot (Board::InitVariant). Split: GameConfig.cpp is framework-free
 // (SetValue, LoadFromRules); GameConfigMods.cpp reads ModManager and the user dir (Load, ScopedFileName).
 
 #include "GameRules.h"

@@ -132,11 +132,11 @@ static_assert(sizeof(LiveSplitBlockV1) == LIVESPLIT_SIZE_V1, "LiveSplit layout 1
 // layoutVersion, size) is checked by whoever reads the block and not repeated. maskVolatile prints "*"
 // for self, qpc and qpcFrequency (the address changes with ASLR, the clock with the machine), so the
 // game's log is deterministic.
-inline int FormatLiveSplitBlock(const LiveSplitBlockV1& b, bool maskVolatile, char* theBuffer, size_t theSize)
+inline int FormatLiveSplitBlock(const LiveSplitBlockV1& theBlock, bool maskVolatile, char* theBuffer, size_t theSize)
 {
 	char aRules[65];
 	for (int i = 0; i < 32; i++)
-		snprintf(aRules + 2 * i, 3, "%02x", (unsigned) b.rulesId[i]);
+		snprintf(aRules + 2 * i, 3, "%02x", (unsigned) theBlock.rulesId[i]);
 	char aSelf[16];
 	char aQpc[24];
 	char aQpcFrequency[24];
@@ -148,18 +148,18 @@ inline int FormatLiveSplitBlock(const LiveSplitBlockV1& b, bool maskVolatile, ch
 	}
 	else
 	{
-		snprintf(aSelf, sizeof(aSelf), "%08x", (unsigned) b.self);
-		snprintf(aQpc, sizeof(aQpc), "%llu", (unsigned long long) b.qpc);
-		snprintf(aQpcFrequency, sizeof(aQpcFrequency), "%llu", (unsigned long long) b.qpcFrequency);
+		snprintf(aSelf, sizeof(aSelf), "%08x", (unsigned) theBlock.self);
+		snprintf(aQpc, sizeof(aQpc), "%llu", (unsigned long long) theBlock.qpc);
+		snprintf(aQpcFrequency, sizeof(aQpcFrequency), "%llu", (unsigned long long) theBlock.qpcFrequency);
 	}
 	return snprintf(theBuffer, theSize,
 		"seq=%u active=%u updates=%u flags=%02x board=%u go=%u/%u lc=%u/%u over=%u/%u deaths=%u,%u,%u,%u "
 		"tick=%d state=%d level=%d dlevel=%d dscore=%d score=%d blc=%d gotick=%d dsmax=%d rules=%s self=%s qpc=%s qpcf=%s",
-		(unsigned) b.seq, (unsigned) b.active, (unsigned) b.updates, (unsigned) b.flags, (unsigned) b.boardSerial,
-		(unsigned) b.goCount, (unsigned) b.goSerial, (unsigned) b.levelClears, (unsigned) b.levelClearSerial,
-		(unsigned) b.gameOvers, (unsigned) b.gameOverSerial, (unsigned) b.deathsNoMoves, (unsigned) b.deathsTimeUp,
-		(unsigned) b.deathsNewGame, (unsigned) b.deathsOther, (int) b.tick, (int) b.state, (int) b.level, (int) b.displayLevel,
-		(int) b.displayScore, (int) b.score, (int) b.boardLevelClears, (int) b.goTick, (int) b.displayScoreMax, aRules, aSelf,
+		(unsigned) theBlock.seq, (unsigned) theBlock.active, (unsigned) theBlock.updates, (unsigned) theBlock.flags, (unsigned) theBlock.boardSerial,
+		(unsigned) theBlock.goCount, (unsigned) theBlock.goSerial, (unsigned) theBlock.levelClears, (unsigned) theBlock.levelClearSerial,
+		(unsigned) theBlock.gameOvers, (unsigned) theBlock.gameOverSerial, (unsigned) theBlock.deathsNoMoves, (unsigned) theBlock.deathsTimeUp,
+		(unsigned) theBlock.deathsNewGame, (unsigned) theBlock.deathsOther, (int) theBlock.tick, (int) theBlock.state, (int) theBlock.level, (int) theBlock.displayLevel,
+		(int) theBlock.displayScore, (int) theBlock.score, (int) theBlock.boardLevelClears, (int) theBlock.goTick, (int) theBlock.displayScoreMax, aRules, aSelf,
 		aQpc, aQpcFrequency);
 }
 

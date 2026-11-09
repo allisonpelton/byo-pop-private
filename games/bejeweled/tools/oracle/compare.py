@@ -62,7 +62,7 @@ What "identical" means, per case and baseline side:
                 hiscores*.dat equal, or equal once the two day-number fields are masked, and only if each
                               file's two fields agree and the two sides' days are 1 or 2 apart (a run
                               across midnight or a year end): each of the two mode blocks starts with an
-                              int32 day (HighScoreWidget::GetDayNumber, tm_year * 366 + tm_yday), at offset
+                              int32 day (HighScoreWidget::GetDayNum, tm_year * 366 + tm_yday), at offset
                               0 and at offset 4 + the size of mode 0's six records (each record: u16 name
                               length n, n name bytes, int32 score, int32 checksum = 10 + n bytes). A run
                               compare.sh took from its cache (cached.txt: made-day, restored-day) was made
@@ -303,7 +303,7 @@ import bjr  # noqa: E402  (games/bejeweled/tools/bjr.py: the .bjr reader)
 STATE_NAMES = ["falling", "playing", "swapping", "swapping back", "clearing", "game over", "game over done",
                "vortex", "level wipe", "fall out"]
 EVENT_STATES = {5: "game_over", 6: "game_over_done", 7: "vortex", 8: "level_wipe", 9: "fall_out"}
-REFILL_STATES = (0, 2, 4, 8, 9)  # a board goes on falling, or refills, from these (UpdateClearing, FillBoard; stage 5: a
+REFILL_STATES = (0, 2, 4, 8, 9)  # a board goes on falling, or refills, from these (UpdateClearing, NewBoard; stage 5: a
                                  # kept swap falls from swapping, Board::KeepInvalidMove)
 HOOK_FILES = ("hash.txt", "autoplay.txt")
 RUN_FILES = ("script.txt", "stdout.txt", "stderr.txt", "exit.txt", "modsdir-changed.txt", "retried.txt", "cached.txt")
@@ -520,7 +520,7 @@ def compare_png(a, b):
     return "%d pixels differ in (%d,%d)-(%d,%d)" % (count, x0, y0, x1, y1)
 
 
-# The options dialog (WinDMApp::ShowOptionsDialog: x 234, y 50, 348 x 290): the port took the original's "more games" link
+# The options dialog (WinDMApp::DoOptions: x 234, y 50, 348 x 290): the port took the original's "more games" link
 # out (the user's rule of 2026-11-07, GAME_NOTES.md section 18) and moved the row of Help and High Scores 12 px down, while
 # the frozen baseline exes still have the link. The shots that show the dialog may therefore differ from the baselines',
 # inside that box and nowhere else.
@@ -890,7 +890,7 @@ class MTRand:
 
 
 def model_has_match(grid):
-    """Board::HasMatch (0x4c9cf5): a run of 3 in a row or a column; None is an empty cell"""
+    """Board::HasSet (0x4c9cf5): a run of 3 in a row or a column; None is an empty cell"""
     for lines in (grid, list(zip(*grid))):
         for line in lines:
             color, count = -1, 0
@@ -929,7 +929,7 @@ def model_tutorial_move(grid):
 
 
 def model_first_board(seed, colors=7):
-    """The grid Board::Board (0x4cb5bc) leaves with the board's own MTRand(seed): FillBoard (0x4cb182; per
+    """The grid Board::Board (0x4cb5bc) leaves with the board's own MTRand(seed): NewBoard (0x4cb182; per
     cell, bottom row first: a %240 draw for the start height, then colours until there is no match) until
     the board has the tutorial move. Rows of colour indices."""
     rng = MTRand(seed)
@@ -983,7 +983,7 @@ def trace_settles(stdout):
 
 def hash_board_starts(run):
     """The updates at which the run's hash.txt shows a new board: the state becomes falling (Board::Board
-    ends in FillBoard) straight from one no board refills from (REFILL_STATES): none, playing, swapping back,
+    ends in NewBoard) straight from one no board refills from (REFILL_STATES): none, playing, swapping back,
     game over (New Game), game over done (play again) or vortex. Not swapping (stage 5: a kept swap falls from
     it); a board a mode switch makes mid-swap is told by its mode (trace_boards). Empty without hash.txt."""
     path = os.path.join(run, "hash.txt")
@@ -2503,7 +2503,7 @@ def variant_check(r, cand, run, flags, label):
         if m:
             stale.append((int(m.group(1)), int(m.group(2)), int(m.group(3))))
     # stage 6: the settles moves were made from, newest last (an undo goes back to the last one; a vortex empties
-    # it, as StartBlackHole empties the undo stack), the settle the last undo took back (the next move again: the
+    # it, as DoWhirlpool empties the undo stack), the settle the last undo took back (the next move again: the
     # same refill, "redo", or another one, "rerolled") and the undo steps seen
     history, undone, undo_steps, redo, rerolled = [], None, 0, 0, 0
     for s0, s1 in zip(settles, settles[1:]):

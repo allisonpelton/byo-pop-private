@@ -256,7 +256,7 @@ int					CountMoves(const Segment& theSegment);
 // can start theFile on a theCols x theRows board: this engine's ABI (any from FIRST_ENGINE_ABI for a replay of
 // the original rules, isOriginalRules: their simulation never changes) and a RULE record; one segment at least;
 // every segment in mode 0 or 1, from a seed other than 0 or a global-stream state, user-seeded only with a
-// seed; only the commands this build's game makes (UNDO since stage 6; no TWIST or SLIDE yet), their arguments in
+// seed; only the commands this build's game makes, their arguments in
 // range (cells of the board, TARGET -1 -1, pause flags 0/1, 1..MAX_XRAND outside draws, save kinds, int
 // positions); in every segment after the first, and only with its RNGS (and in the first only with its
 // LDSV), one LOAD at tick 0, whose bytes are the segment's LDSV (a save CheckSave takes) or the SAVE that

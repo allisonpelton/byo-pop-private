@@ -399,7 +399,7 @@ prepare_run() {
 	if [ -n "$from" ]; then
 		cp -r "$OUT/$side/$from/user" "$dir/user"
 		# the user dir of a run from the cache, made on another day: the hiscores days a run of today would
-		# have left (HighScoreWidget::LoadHighScores keeps "today's" score only on the day it was saved)
+		# have left (HighScoreWidget::ReadFromFile keeps "today's" score only on the day it was saved)
 		if [ -f "$OUT/$side/$from/cached.txt" ]; then
 			local days
 			days=$(awk -F= '$1 == "made-day" { m = $2 } $1 == "restored-day" { r = $2 } END { print r - m }' \
@@ -457,7 +457,7 @@ exec_run() {
 
 # The cache (see the top): cache_key prints the key of the prepared run, cache_restore <key> replaces the
 # prepared run directory with the cached run, cache_store <key> keeps the finished one
-daynum() { local d; d=$(date '+%Y %j'); set -- $d; echo $((($1 - 1900) * 366 + 10#$2 - 1)); }  # GetDayNumber
+daynum() { local d; d=$(date '+%Y %j'); set -- $d; echo $((($1 - 1900) * 366 + 10#$2 - 1)); }  # GetDayNum
 cache_key() {
 	local modsdir
 	case "$R_MODSDIR" in

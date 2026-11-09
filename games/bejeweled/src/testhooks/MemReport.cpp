@@ -1,3 +1,5 @@
+// port: the "memreport" script command (MemReport.h).
+
 #include "MemReport.h"
 #include "SexyAppBase.h"
 #include "MemoryImage.h"
