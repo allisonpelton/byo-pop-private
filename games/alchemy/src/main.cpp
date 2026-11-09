@@ -91,6 +91,7 @@ static std::string FindGameDir()
 }
 #endif
 
+// 0x410b8c: the original's WinMain keeps the instance and runs the global app: Init (0x412d69), Start, Shutdown
 int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
