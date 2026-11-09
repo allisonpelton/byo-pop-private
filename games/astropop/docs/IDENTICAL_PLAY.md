@@ -55,7 +55,7 @@ Each row is one comparison with the final build: identical in all four watches o
 
 All eleven were run on the build that carries every change below (merged with the trunk of 2026-11-09), and each came out identical.
 
-Open: classic, seed 13, 600 moves (see "Still open").
+Not identical: classic, seed 13, 600 moves (see "Oddities skipped").
 
 ## The changes the pass made
 
@@ -80,15 +80,13 @@ two levels and the story screens (a game used to stand still at the first warp).
 
 ## Oddities skipped
 
-None from this phase. The original's loading on Windows 11 (GAME_NOTES, "Oddities") is worked around in the staged copy and not
-chased.
-
-## Still open
-
-Classic, seed 13, 600 moves: the port's bot stops scoring at update 15579 (18 bricks stay on the board and no row comes for the
-rest of the 10000 updates it plays), and at update 20512 the port takes a brick in the hand where the original does not (its
-generator does not move). The state before that is not known to differ: every draw up to that update agrees. Found after the
-merge request for the first set of fixes; it is the next thing to look at.
+Two. The original's loading on Windows 11 (GAME_NOTES, "Oddities") is worked around in the staged copy and not chased. And
+classic, seed 13, 600 moves: from update 15579 the bot's take-and-fire loop stands still on 18 bricks in both games, and at
+update 20512 the original's game generator stops moving for good while the port's keeps drawing 246 numbers for every hand brick, as
+the original did for the 170 rounds before (the hand brick is built, its particles exist, no draw happens). The investigation
+found the exact update, the generator's pointer and first word unchanged, the hand brick's fields as in the earlier rounds and
+the framework's generator code as in the port; the cause was not found within the hour, and it is written under "Oddities" in
+GAME_NOTES with what it would take. Reproduce it with `games/astropop/tools/origcmp/run_mode.sh classic 600 13`.
 
 ## Deviations that remain
 
