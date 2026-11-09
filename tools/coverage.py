@@ -292,10 +292,11 @@ def report(game, hit_paths, out):
     w('Made by `tools/coverage.py report %s` on %s from %d run%s, against the export `%s` and the sources in %s.\n\n' % (
         game, datetime.date.today().isoformat(), len(runs), '' if len(runs) == 1 else 's', cfg['export'],
         ', '.join('`%s`' % s for s in cfg['src'])))
-    w('| Run | Functions reached | Ended normally |\n|---|---:|---|\n')
+    w('| Run | Functions reached | How it ended |\n|---|---:|---|\n')
     for p, n, ended, watched in runs:
         w('| `%s` | %d%s | %s |\n' % (os.path.relpath(p, REPO).replace('\\', '/'), n,
-                                      ' of %d watched' % watched if watched else '', 'yes' if ended else 'no'))
+                                      ' of %d watched' % watched if watched else '',
+                                      'the game exited' if ended else 'origrun stopped it (a timeout), or it crashed'))
     span_txt = ', '.join('%08x-%08x' % s for s in cfg['game']) if cfg['game'] else 'the whole exe'
     w('\nThe game\'s own code (%s) has %d functions. The runs reached %d of them, the port defines %d, and %d are '
       'left out on purpose (`games/%s/coverage.txt`).\n\n' % (span_txt, len(game_fns), len(reached), len(with_def),

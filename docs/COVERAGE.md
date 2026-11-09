@@ -66,8 +66,9 @@ it.
 
 ## Reading the report
 
-The report opens with the runs (how many functions each reached, and whether its game ended normally) and the counts
-for the game code. Then three lists:
+The report opens with the runs (how many functions each reached, and whether the game exited by itself or origrun
+stopped it at a timeout; a run that origrun stops has still played the script it was given) and the counts for the game
+code. Then three lists:
 
 - **Reached in the original, with no definition in the port.** The work: each is code the original ran that the port
   has no function for. Translated inline somewhere: give its address in the comment above the function that holds it.
