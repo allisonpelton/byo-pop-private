@@ -32,15 +32,17 @@ if [ -n "$WATCHES" ]; then
 else
   W=(--watch "$B+0x15e20" --watch "${W2:-$B+0x15e4}" --watch "$B+0x170c" --watch "$B+0x15e0")
 fi
-# A run that never reaches a board (no value on the state watch) is a flake of the copy, not a difference of the game: it happened to the
+# A run that never reaches a board (no value on the state watch), or only late, is a flake of the copy, not a difference of the game: it happened to the
 # first run after another one, in 2D and 3D alike, and a second run is as the first should have been. Retried up to twice.
 for try in 1 2 3; do
   setup_state
   build/origrun-bin/origrun.exe --game bejeweled2 --run bej2 --exe "$PWD/build/origrun/bej2/game/Bejeweled2Game.exe"     --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" $ORIGRUN_ARGS "${W[@]}" --script "$script" > "$log" 2>&1
   rc=$?
   [ -n "$WATCHES" ] && exit $rc
-  grep -qE 'watch 3: .* -> [0-9]+ at update' "$log" && exit $rc
-  echo "run_original.sh: no board in the run ($try), trying again" >&2
+  # BOARD_BY=<update>: the board must be there by then (run_mode.sh: the mode's click + 100); a secret mode's board came at update 4796 in one run
+  first=$(grep -E 'watch 3: .* -> [0-9]+ at update' "$log" | head -1 | sed -E 's/.*at update ([0-9]+)$/\1/')
+  [ -n "$first" ] && { [ -z "$BOARD_BY" ] || [ "$first" -le "$BOARD_BY" ]; } && exit $rc
+  echo "run_original.sh: no board in time in the run ($try; first at '$first'), trying again" >&2
   sleep 5
 done
 exit $rc

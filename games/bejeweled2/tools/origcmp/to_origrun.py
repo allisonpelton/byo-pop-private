@@ -40,7 +40,8 @@ def convert(events, delta, tail, until=None, shifts=None, after=None, dialog_shi
             lines.append('at %d %s %d %d' % (at, 'down' if w[0] == 'down' else 'up', int(w[2]), int(w[3])))
         else:
             raise SystemExit('cannot give the original ' + cmd)
-    lines.append('at %d mark' % (last + tail))  # origrun cannot quit at an update: wait for it, then quit
+    end = last + tail if tail is not None else max(last, events['last'] + delta) + 5
+    lines.append('at %d mark' % end)  # origrun cannot quit at an update: wait for it, then quit
     lines.append('quit')
     return lines
 
@@ -53,15 +54,16 @@ def main():
     ap.add_argument('--shift', action='append', default=[], metavar='U=D', help='give the input recorded at port update U to the original D updates later (the board-creating click in the 3D game: the original handles it at once and the port one update later)')
     ap.add_argument('--after', default=None, metavar='U=D', help='give every input recorded after port update U to the original D updates later (the 3D game: the board is created at the same update, and its later inputs reach it one update away)')
     ap.add_argument('--dialog-shift', type=int, default=0, help='give every mouse input that reaches a dialog (marked by record.py; the key Escape that closes a hint dialog is not delayed) to the original this many updates later: -1 in the 3D game, where it takes a click on a dialog one update later than the port (the board then resumes its ticks one update late)')
-    ap.add_argument('--tail', type=int, default=60)
+    ap.add_argument('--tail', type=int, default=None, help="updates the original runs on after the last input (default: until the update at which the port's recording ended, so the endings are compared too)")
     ap.add_argument('--until', type=int, default=None, help='only the inputs up to this port update')
     a = ap.parse_args()
     ev = json.load(open(a.events))
     delta = a.delta if a.delta is not None else 0
-    lines = ['# from %s, delta %d' % (a.events, delta)] + convert(ev, delta, a.tail, a.until, dict((int(x.split('=')[0]), int(x.split('=')[1])) for x in a.shift), after=(int(a.after.split('=')[0]), int(a.after.split('=')[1])) if a.after else None, dialog_shift=a.dialog_shift)
+    tail = a.tail if a.tail is not None else None
+    lines = ['# from %s, delta %d' % (a.events, delta)] + convert(ev, delta, tail, a.until, dict((int(x.split('=')[0]), int(x.split('=')[1])) for x in a.shift), after=(int(a.after.split('=')[0]), int(a.after.split('=')[1])) if a.after else None, dialog_shift=a.dialog_shift)
     with open(a.script, 'w') as f:
         f.write('\n'.join(lines) + '\n')
-    print('%d lines, delta %d, last update %d' % (len(lines), delta, ev['last'] + delta))
+    print('%d lines, delta %d, last update %s' % (len(lines), delta, lines[-2].split()[1]))
 
 
 if __name__ == '__main__':
