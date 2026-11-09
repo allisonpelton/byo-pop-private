@@ -102,7 +102,7 @@ def main():
     n = 0
     mods = []
     while p.poll() is None and time.time() - t0 < seconds:
-        if n % 2000 == 500:
+        if n % 200 == 50:   # often enough that a run of under a second still has its modules named
             mods = modules(hp) or mods
         if n % 200 == 0:
             for tid in threads(p.pid):
