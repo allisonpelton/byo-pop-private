@@ -9,6 +9,7 @@
 #include "MainMenu.h"
 #include "GameText.h"
 #include "NewUserDialog.h"
+#include "SiteProfiles.h"
 #include "UserProfile.h"
 #include "WidgetManager.h"
 #include <SDL.h>
@@ -96,6 +97,9 @@ void AstroPopApp::NewUserOk()
 			ShowLowMessageDialog("ERROR", GT(0x563678));
 		ValidateUser();
 		ListUsers();
+#ifdef __EMSCRIPTEN__
+		SiteProfilesChanged(this);	// the web page's players (framework/WebProfiles.h): a player was made
+#endif
 
 		if (aListDialog != NULL)
 		{
@@ -276,6 +280,9 @@ void AstroPopApp::DeleteUser(bool theConfirmed)
 	delete mUser;
 	mUser = NULL;
 	ListUsers();
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(this);	// the web page's players (framework/WebProfiles.h): a player was deleted
+#endif
 
 	if (mUserNames.empty())
 	{

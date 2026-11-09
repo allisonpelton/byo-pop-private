@@ -1,0 +1,5 @@
+/* AstroPop Deluxe's look on the shared page (web/shell.html): the blue of its badge, a small ship for the brand mark */
+:root { --accent: #2a3fa0; --ship: #d8362a; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --accent: #8f9ff0; } }
+:root[data-theme="dark"] { --accent: #8f9ff0; }
+.brand .mark { width: 14px; height: 14px; background: var(--ship); clip-path: polygon(50% 0, 100% 100%, 50% 75%, 0 100%); }

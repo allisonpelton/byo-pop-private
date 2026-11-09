@@ -103,10 +103,10 @@ void AstroPopApp::LoadHighScores()
 	}
 
 	if (mOldScoresDeleted)
-		EraseFile("users\datahs.usr");
+		EraseFile("users\\datahs.usr");
 
 	Buffer aBuffer;
-	if (!ReadBufferFromFile("users\datahs.usr", &aBuffer, false))
+	if (!ReadBufferFromFile("users\\datahs.usr", &aBuffer, false))
 		return;
 
 	// the name of the product and its version come first

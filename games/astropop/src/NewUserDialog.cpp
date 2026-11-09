@@ -9,6 +9,7 @@
 #include "MemoryImage.h"
 #include "WidgetManager.h"
 #include "Res.h"
+#include "SiteProfiles.h"
 
 using namespace Sexy;
 
@@ -20,6 +21,9 @@ NewUserDialog::NewUserDialog() :
 	mEdit->SetFont(GetFontById(0xb0), GetFontById(0x120));
 	mEdit->mMaxPixels = 0x131;
 	mEdit->mMaxChars = 0x18;
+#ifdef __EMSCRIPTEN__
+	SiteFillUserName(mEdit);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
+#endif
 
 	MemoryImage* anInsetImage = NULL;
 	MemoryImage* aButtonImage = NULL;
