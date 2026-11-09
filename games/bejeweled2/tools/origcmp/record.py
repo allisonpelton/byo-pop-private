@@ -32,8 +32,10 @@ class Recorder(Driver):
 
     def ok(self, line):
         if line.split()[0] in INPUT_VERBS:
-            u = self.state()['updates']
-            self.events.append([u + 1, line])
+            s = self.state()
+            # a third item, 1, marks an input that reaches a dialog: the original's 3D game takes such a click one update later than the
+            # port does (to_origrun.py --dialog-shift)
+            self.events.append([s['updates'] + 1, line] + ([1] if s.get('dialogs') else []))
         super().ok(line)
 
 
