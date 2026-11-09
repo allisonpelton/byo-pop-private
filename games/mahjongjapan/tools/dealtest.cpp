@@ -49,11 +49,7 @@ public:
 		return (theModule == jb::Module::Dll ? mDll : mExe).LoadString((uint32_t)theId, theText);
 	}
 	bool RegReadInt(const char*, const char*, bool, int&) override { return false; }
-	bool RegReadString(const char*, const char*, bool, std::string&) override { return false; }
 	bool RegWriteInt(const char*, const char*, int) override { return false; }
-	bool RegWriteString(const char*, const char*, const char*) override { return false; }
-	bool RegDeleteValue(const char*, const char*) override { return false; }
-	bool RegDeleteKey(const char*) override { return false; }
 	std::string CommandLine() override { return ""; }
 	std::string FolderPath(int) override { return ""; }
 	std::string ExeFolder() override { return ""; }
