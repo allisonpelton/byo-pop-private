@@ -54,13 +54,15 @@ code that the port leaves out on purpose, with the reason: registration code, bu
 
 ## How the port's counterparts are found
 
-The ports write the original's address in the comment block just above each function they translate (`// 0x4cb5bc`),
-and often beside a declaration in a header (`void DrawEditBox(...);  // 0x4d2857`). An address in the comment block above
-a definition or a declaration, or in the comment on its own line, makes that function a counterpart. An address in any
+The ports write the original's address in the comment block just above each function they translate (`// 0x4cb5bc`), and
+often beside a declaration in a header (`void DrawEditBox(...);  // 0x4d2857`). An address in the comment block above a
+definition or a declaration, or in the comment on its own line, makes that function a counterpart. A declaration may run
+over several lines and have default arguments, and a constructor or destructor declared in its class counts (its name
+the class's own, at the class's own scope), while a call statement in a function body never does. An address in any
 other comment is a mention: code that cites the function without being it. An address inside a function, not at its
 entry, counts for the function that holds it, as a mention. The report counts a function as ported only with a
-counterpart, so a function translated inline into another needs its address in the comment above the function that
-holds it.
+counterpart, so a function translated inline into another needs its address in the comment above the function that holds
+it.
 
 ## Reading the report
 
