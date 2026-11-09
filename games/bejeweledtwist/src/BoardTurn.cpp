@@ -533,6 +533,7 @@ void Board::EndTurn()
 	}
 }
 
+// 0x6a42ad: the getter of mStepLevel (+0x21d0), inline here
 void Board::UpdateRecords()
 {
 	// 0x6bcd96: the session's (the app's) and the player's (the profile's) best gems in a move, move's points and

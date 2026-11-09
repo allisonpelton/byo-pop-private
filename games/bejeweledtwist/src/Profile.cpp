@@ -73,6 +73,7 @@ Profile::Profile()
 
 Profile::~Profile() = default;
 
+// 0x733e9a: the user folder scan, inline here
 std::string Profile::GetUserFolder(const SexyString& theName)
 {
 	// 0x733e9a: the name as a file name

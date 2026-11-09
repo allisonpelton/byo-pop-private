@@ -72,7 +72,7 @@ public:
 		float theX, float theY, bool theUseFloat);
 
 private:
-	GraphicsOperation* AddOperation(Graphics* g, int theType);  // 0x70da92
+	GraphicsOperation* AddOperation(Graphics* g, int theType);  // 0x70da92, 0x70d262: the operation record's constructor, inline here
 };
 
 extern GraphicsRecorder* gGraphicsRecorder;  // 0x85d6f8

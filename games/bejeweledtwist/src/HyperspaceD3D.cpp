@@ -106,6 +106,7 @@ void ScaleBy(Transform3D& theTransform, float theX, float theY, float theZ)
 
 // 0x68fa70 (0x71008e puts the result into the first): theThis.compose(theParam): theThis's place carried through
 // theParam, the turns multiplied in that order
+// 0x68f4c3: the transform's constructor from a place, a turn and a scale, inline here
 Transform3D Compose(const Transform3D& theThis, const Transform3D& theParam)
 {
 	Transform3D aResult;
@@ -1526,6 +1527,7 @@ Vec3 Mat4TransformPoint(const GPUMatrix& theMatrix, const Vec3& thePoint)
 
 }  // namespace
 
+// 0x70ff99: a vector copy, inline here
 void Hyperspace::UpdateWorld3D()
 {
 	// the crystals' spin (0x716e31)
@@ -1648,6 +1650,7 @@ void Hyperspace::PlaceShip()
 	mShipPlace.mRot = SlerpMat3(mShipPlace.mRot, aFar.mRot, (float)mCameraSlerp.GetOutVal(), false);
 }
 
+// 0x714ea9: the list insert, inline here
 void Hyperspace::PlaceSaucer()
 {
 	// 0x7158f8: the saucer (+0xac8) on its own path (b08, b78 and be8), turned along it like the ship

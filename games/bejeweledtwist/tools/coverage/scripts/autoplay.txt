@@ -1,0 +1,3 @@
+# the game plays by itself (-autoplay); origrun stops it at its timeout
+wait 3000000
+quit

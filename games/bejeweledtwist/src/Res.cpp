@@ -3459,6 +3459,8 @@ bool Sexy::ExtractDynamicResources(ResourceManager* theManager)  // 0x73eb2e
 	return true;
 }
 
+// 0x73e6ab: a resource id lookup, inline here
+// 0x73e6ea: a resource id lookup, inline here
 bool Sexy::ExtractLoadScreenNonReleaseResources(ResourceManager* theManager)  // 0x73ef19
 {
 	try {

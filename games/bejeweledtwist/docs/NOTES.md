@@ -1240,3 +1240,87 @@ for updates. Hardware 3D at 4x and 6x falls further than SwiftShader 3D. Its cau
 What it means: on an N100-class machine with any GPU, both modes should play smoothly. On a Celeron-class machine 2D
 is playable at around 40 frames a second. 3D drops to under 20 frames a second, though the game itself keeps nearly
 full speed. A browser without the graphics card already starts in 2D (the game's own choice, above in "3D mode").
+
+## Coverage check (2026-11-09)
+
+The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in nine runs
+on the host (the prepared copy `build/origrun/bjtlvl/game`, the virtual clock, seed 1234, 2D at the 768 art, the scripted
+cursor; `games/bejeweledtwist/tools/coverage/run.sh` runs one, its scripts beside it, the hits in
+`build/coverage/bejeweledtwist/hits/`). The host takes no screenshots, so the menu runs were laid out from the port's screens
+(the same 800x600 places) and checked by what they reached:
+
+- `-autoplay` Classic (120 s), Zen (200 s) and Blitz (240 s and 600 s) on the virtual clock, and Classic for 90 s on the real
+  clock with the silent stand-in, for the music and sound code (it reached nothing the others had not).
+- `menus.txt`: the high scores with the personal stats and both lists, the options with three boxes ticked and unticked, How to
+  Play paged forward and back, Change User and its Continue, the focus lost and regained, and the quit question.
+- `challenge.txt`: Play, Challenge, the first planet (its challenge starts at once) and 25 twists at random corners, then the
+  tube's Menu.
+- `newplayer.txt`: a new player made through Change User, the credits (the mode buttons entered in the order of the easter egg,
+  "The credits" above) and their Continue, and that player's tutorial with its first forced twist and random twists after it.
+- `ingame.txt`: Classic with twists, Escape twice, the focus lost and back, an idle stretch, the tube's Menu with Back to Game,
+  Main Menu answered No and then Yes (the save), Classic again with Continue on the saved game, Main Menu and Yes, then Blitz
+  twisted at random.
+
+The players live in the user's own `C:\ProgramData\Steam\BejeweledTwist\users` (the user allows changes to the saves); the
+folder was copied before the runs that make or save a player and put back after them. The registry's ScreenMode and ArtRes were
+set for the runs and the user's values put back afterwards.
+
+`games/bejeweledtwist/coverage.txt` sets the game's own code as 0x66fb6d-0x768fad (the libraries the linker put first end below
+it; the C++ library starts at 0x768fcf). The report counts 7183 functions there; the nine runs reached 2530.
+
+| | after the first runs | at the end |
+|---|---:|---:|
+| game functions reached | 2327 (five runs) | 2530 |
+| reached in the original, no counterpart in the port | 1524 (six runs) | 0 |
+| defined in the port, never reached | 474 (six runs) | 418 |
+| `none` lines | 0 | 1488 |
+
+**Reached with no counterpart: 1524, then 0.** One Sonnet agent sorted them from the export. Most are library code in the
+game's range that the export has no names for: the C++ library's template instances (containers, strings, iterators of the
+game's own types, often one helper repeated for twenty or more types), the compiler's unwind funclets, the vectors of the
+credits' lines, two constructors the port replaces by member initialisers, the platform's window procedure and the framework's
+debug information overlay; each is a `none` line with its reason. Also `none`: the registration code (the PopDRMComm wrapper,
+the trial badge), PopCap's QA stats dump (a .csv on their own network share), and the DirectSound buffer loader, which the
+framework's sound manager stands in for. 80 were done inline in a port function and now have their address in the comment above
+it (comment edits only). Five were missing from the port, and are translated now:
+
+- `Board::LostFocus` and `Board::GotFocus` (0x6a663b, 0x6a6686): whenever the board loses the focus, to a dialog or a panel
+  over it as well as to another window, Blitz's music pauses, and it resumes when the board has the focus back unless the board
+  is paused more than once. (The skip flag LostFocus also sets is only ever cleared.)
+- `WinTwistApp::ModalOpen` and `ModalClose` (0x761359, 0x75f4da): a modal dialog over a game pauses the board, the pause shown
+  (the board hidden) in Blitz for the game's own questions (ids below 0x28), and its closing unpauses it. Before, the board went
+  on under the quit question, Blitz's clock included.
+- `RankBadge::Update` (0x70cbfa): while the mouse is over the rank badge in the tube's head, the tube's tip shows "RANK n" and
+  the rank's name, then how far the player is to the next rank, then nothing, each for 200 updates. +0x150 is a float timer and
+  +0x154 the page, which the port had as two unread ints. Checked in the port only: the original's sandbox has a new player,
+  whose first game is the tutorial's, with no tube.
+- `Board::KeyChar` (0x6b3217): the last 24 letters typed while the mouse is off the grid; SNACKERS switches coal to its
+  snackers look and back, NORMAL stops the rain effect and sets the game's speed back to 1. NORMAL's other branch, which asks
+  the app for a change of screen mode, needs a flag (+0x1bf1) that only the constructor writes, and is left out.
+
+**Defined in the port, never reached: 474, then 418.** 260 are the 3D renderer (Visualizers3D*.cpp and HyperspaceD3D.cpp):
+coverage cannot record inside the sandbox yet, and 3D runs only there, but these were compared with the original by their screens
+and their generators' states ("3D mode" above). The other 158 were read again against the export by an agent, the larger ones
+first. Four differences came out of it, three of them real and fixed now: `Board::BurstAt` (0x6baed1) converted the speed times
+the cosine and sine after rounding the product to float, where the original converts the FPU's product; `FruitShockwave`'s
+constructor (0x74b94e) rounded the distance times 2.5 to float before using it, where the original rounds the whole sum once;
+and `CustomBassMusicInterface::AddTrack` (0x6eec7a) made each channel with its dirty flag clear where the original sets it. The
+fourth, the challenge planet's tip printing its number with 0x45dfb0, is not one: 0x45dfb0 groups the digits by the C++ locale,
+which in the "C" locale is no grouping, as the port's `%d` gives. The rest match the export: the 74 smallest read one by one by a second agent (`Board::RandUnit`, 0x6a3477, by its disassembly, which the export's decompile gets wrong), the larger ones by the first, whose record for them is its summary rather than a note for each line, and UpdateGameOver's row-fall loop, which the export's decompile leaves out, not compared at all. Most of the 158 need play that a blind script does
+not reach: a game with no moves left (UpdateGameOver, GameOverShow: the original's Blitz autoplay never ends its game, even in
+600 s), the fruit gems' shockwave, the replays from the stats, Zen's jumps, the idle hint, the help dialog from a game, the mouse
+wheel, deleting a player. Two cannot be reached in the original at all: the VizManager's key function (0x758034, no caller) and
+the base Traveller's Update and Draw (no plain Traveller is made). They stay, as a few lines each.
+
+**Neither reached nor defined: 5723.** Most are library template instances no run took and the export's unnamed code around
+them; nothing in the runs points at game logic among them that a run should have reached.
+
+The bejeweledtwist suite passes after the changes (screens as frozen, baseline identical): its runs open no dialog over a game,
+change no focus in a game, type nothing and fire no fruit shockwave, so none of the fixes touches them.
+
+**Open.** For the tool (sent to the coordinator): coverage inside Windows Sandbox, so that the 3D code, and runs that need
+shots, can be recorded. The rank badge's tip against the original, once a sandbox run can start with a player past the
+tutorial.
+
+**Cost.** About 30 minutes of game processes (the nine runs, one at a time, beside the port's screen runs), three agents' sorting
+and reading (about a million tokens between them), and the session's own work.
