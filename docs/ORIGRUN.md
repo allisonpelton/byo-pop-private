@@ -186,7 +186,10 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
   (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `keydown`/`keyup` for one edge of a key (`kdown`/`kup` are the same; a game that polls its key state, or clears a key
   when it is let go, loses a `key`'s down and up in one update), `down`/`up` or `rdown`/`rup` for one edge of the left or
-  right button, or `burst`), then resume it. Lands on the exact update
+  right button, or `burst`), then resume it; `quit` is not among them (origrun logs that it cannot do it at an update), so a
+  script that ends on its own puts a plain `quit` line after its last `at` line. A `move` while a `down` has had no `up`
+  carries that button's flag (MK_LBUTTON, MK_RBUTTON), as Windows' moves do, so a drag is a `down`, one or more `move`s and
+  an `up`, each at an update of its own. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
   the same game update rather than the same wall-clock time. A held game reads all the posted messages before its
   next update, so `at N click x y` gives it the down and the up in the same update, which some games lose; `at N

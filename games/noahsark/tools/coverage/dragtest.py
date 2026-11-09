@@ -1,5 +1,6 @@
-"""The port's puzzle drag, by real input (the coverage check, GAME_NOTES.md "Coverage check"): origrun has no drag command, so
-the original's Board::MouseDrag (0x40f710) is checked by reading it, and the port's by this run.
+"""The port's puzzle drag, by real input (the coverage check, GAME_NOTES.md "Coverage check"). The original's Board::MouseDrag (0x40f710)
+is run by tours/drag_puz.txt and drag_act.txt (origrun's down, moves and up at updates of their own); the port's, through the real-input
+path, by this run.
 
     build/native/rundesk.exe python games/noahsark/tools/coverage/dragtest.py --exe <abs exe> --gamedir <abs> --userdir <abs> --out <dir>
 

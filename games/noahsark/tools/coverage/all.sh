@@ -15,11 +15,11 @@ bot() {   # bot <name> <mode> <diff> <cap> [quit update]: the bot's game, then i
 }
 tour() {  # tour <name>: a tour from tours/<name>.txt
 	python -I games/noahsark/tools/tour.py "$C/tours/$1.txt" "$S/tour_$1" > /dev/null
-	grep -v ' shot ' "$S/tour_$1/orig.txt" > "$S/$1.orig.txt"
+	grep -v -e ' shot ' -e ' state ' "$S/tour_$1/orig.txt" > "$S/$1.orig.txt"
 	log "$(bash $C/run.sh "$1" "$S/$1.orig.txt" 1 2>&1 | tail -1)"
 }
 export REPLAY_TEXT_DELAY=3   # the name entry is typed 3 updates later in the original than in the port (docs/IDENTICAL_PLAY.md)
-RUNS="${*:-act_e str_e puz_e act_h str_h puz_m lose_act lose_str rank_act rank_puz stamp dialogs rt}"
+RUNS="${*:-act_e str_e puz_e act_h str_h puz_m lose_act lose_str rank_act rank_puz stamp dialogs rt drag_puz drag_act}"
 for r in $RUNS; do
 	case "$r" in
 	act_e)    bot act_e action 0 17400 ;;
@@ -34,6 +34,10 @@ for r in $RUNS; do
 	rank_puz) STOP=3000 bot rank_puz puzzle 0 40000 12800 ;;
 	stamp)    log "$(bash $C/stamp.sh 2>&1 | tail -1)" ;;
 	dialogs)  tour dialogs ;;
+	# the drags (origrun's moves carry the held button since 865a602e): the board's cells and what the drag does to them, in the puzzle; the link,
+	# in the action mode, and the Options sliders (the tours' own comments)
+	drag_puz) WATCHES='[[0x4d125c]+0x408]+0x310|[[0x4d125c]+0x408]+0x308|[[[0x4d125c]+0x408]+0x5c]+0x18|[[[0x4d125c]+0x408]+0x80]+0x18' tour drag_puz ;;
+	drag_act) WATCHES='[[0x4d125c]+0x408]+0x310|[[0x4d125c]+0x408]+0x308|[[0x4d125c]+0x408]+0xdec|[0x4d125c]+0x474' tour drag_act ;;
 	rt)       # the real clock and the silent stand-in, so that the sound code runs (75 s)
 		cp build/nt/perf/orig.txt "$S/rt.orig.txt"
 		log "$(bash $C/run.sh rt "$S/rt.orig.txt" 1 --clock real --timeout 300 2>&1 | tail -1)" ;;
