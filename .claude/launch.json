@@ -174,6 +174,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/webtest/serve.py", "--port", "18798"],
       "port": 18798
+    },
+    {
+      "name": "pagecheck-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18780"],
+      "port": 18780
     }
   ]
 }

@@ -85,6 +85,8 @@ function is `byopop_test_command(line)`: it returns 1 when the line is queued an
 no command in the line, too many waiting), and the line runs inside the next update, so a page that holds the game's
 updates steps one to run it. The answers are the ordinary log lines, which SDL's log starts with `INFO: `. The channel has one
 command of its own, `wait <n>`: the lines after it wait n updates, and it answers `OK wait <n>` when they are up. The
+framework also answers `pointer`, here and in `-script`, with `POINTER {"x":..,"y":..,"in":true|false}`: the mouse as the
+widgets last saw it, in game pixels (the page check's resize line, `docs/WEB_PLAYER.md`, "The page check"). The
 full description is with `-script`'s in `framework/SexyAppBase.h`.
 
 ## The native loop

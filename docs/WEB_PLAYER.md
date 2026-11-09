@@ -2118,7 +2118,7 @@ Its parameters:
 | `hold=1` | the game waits for `byopop.test.start()`, so that a test can wipe or seed the profile first; otherwise it starts as soon as it is ready. A driver then runs once the files are in, before the game starts, and starts it itself; `?driver=move` starts it at once |
 | `silent=0` | sound on (the user's speakers: only when the user says so) |
 | `realfocus=1` | the browser's own blur and focus events reach the game, besides the kit's `blur()` and `focus()` (below) |
-| `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
+| `driver=<path>` | a session's driver script, `games/<game>/tools/<path>.js` in the repo, or a shared one, `tools/web/<name>.js` (the server serves those, and nothing else of the repo, at `/__repo/`), run once the game is ready (below) |
 | `run=<id>` | the folder of `byopop.test.shot(name)`'s files under `build/webshots/` (default "default") |
 | `seed=N`, `placeholders=1` | as on the full page |
 
@@ -2151,7 +2151,10 @@ depends on the frames.
 - **input** at game coordinates, as the DOM's own events on the canvas, which Emscripten and SDL take on a player's path:
   `move(x, y)`, `down(x, y, button)`, `up(x, y, button)`, `click(x, y, button)` (down and up on separate frames), `drag(x0, y0,
   x1, y1, steps)`, `wheel(x, y, dy)`, `key(name, mods)`, `keyDown`, `keyUp` and `type(text)`. Keys are named as the DOM names
-  them ("Enter", "Escape", "ArrowLeft", " ", "a", "F1"), with the keyCode and code a browser gives them.
+  them ("Enter", "Escape", "ArrowLeft", " ", "a", "F1"), with the keyCode and code a browser gives them. `keyCheck(name,
+  mods, element)` sends a press at once (down, its keypress where it types a character, up) to the canvas or the element given
+  and resolves with which of them the page cancelled, `{key, down, press, up}` (`press` null without one): the browser acts on
+  a key only when the page did not cancel it.
 - **time**: `updates()` is the framework's update count; `pause()` holds the game between two updates (it is still drawn and
   its input still arrives, but no update runs), `step(n)` runs n more and holds again, `resume()` lets it go, `wait(n)` waits for
   n updates holding nothing, and `frame()` for the next drawn frame. The hold is `byopop_hold_updates_at` in
@@ -2248,6 +2251,58 @@ board clears, `MOVE null` only means "not yet": it waits 5 updates and asks agai
 "no move", "busy" or "error: <message>", and `state` the last state read. `playByMove({steps})` runs the same loop from a driver of a
 session's own. It needs the build's `byopop_test_command` and a port that answers `move`; the MOVE fields are agreed with the
 shared session, whose native tool plays the same moves.
+
+**Shared drivers.** A driver in `tools/web/` serves every game: `?driver=tools/web/<name>.js` runs it bare, and a game's own
+driver runs it with that game's table by `return await t.run("tools/web/<name>.js", {...})`, the table arriving as `args`.
+
+### The page check
+
+`tools/web/pagecheck.js` checks how a game's page behaves as a browser page, which no comparison with the original reaches
+(the user, 2026-11-09: "Most of the described tests sound like things that could be automated at least somewhat"; what is
+left to a player is the browser itself, Firefox first). Every game takes it in its real-input pass, through a table of its
+own in `games/<game>/tools/web/pagecheck.js` (Bejeweled's and Alchemy's were the first), opened as
+
+    <game>.html?player=1&assets=1&hold=1&fast=1&silent=1&driver=games/<game>/tools/web/pagecheck.js&run=pagecheck
+
+with `tools/webtest/serve.py` serving it (the launch configuration `pagecheck-webtest`, port 18780). It wipes the test
+profile, starts the game, sends the table's `start` commands once the first screen is up and waits for play, then runs its
+checks and reloads the page, as a player's F5 would. So it ends in two halves: `await byopop.test.driver` resolves with
+`{reloading: true}` from the first, and once the page is back, the same call resolves with the result, `{pass, fail, info,
+results}`, each line `{check, result, detail}` with `result` "pass", "FAIL" or "info". The checks:
+
+- **Focus.** The page is hidden and shown again mid-play (`blur({hidden: true})`, 200 updates, `focus()`, 200 more), and
+  the state keys that changed while it was hidden, and after, must be the ones the native build changes when its window
+  loses and regains the focus. `tools/web/pagecheck_native.py` gives that answer with the same start (`--first` for each
+  start command, `--title-move` for `titleMove`, which plays the bot's move while a title refuses `goto`) and prints the
+  line for the table's `focus` field. Bejeweled pauses
+  (`paused` and its `tick` change while hidden, its time bar does not); Alchemy goes inactive and mutes.
+- **Keys.** With the game focused, the page must cancel Tab, Backspace, Space, the arrows, Page Up and Down, Home and End,
+  and the table's `keys`, so that the browser moves no focus and scrolls nothing, and `'` and `/`, which open Firefox's quick
+  find when the page lets their keypress through. Which browser keys it takes while the game has the focus (F5, F11, F12,
+  F7, Alt, Ctrl+R, Ctrl+F, Ctrl+L) is a line of information. And nothing typed into a text field outside the game is
+  cancelled: SDL listens on the canvas alone (`SDL_EMSCRIPTEN_KEYBOARD_ELEMENT`), and this proves it.
+- **Resize.** The canvas is drawn at 1.5, 0.75, 2 and 1 times its size, as a resized window or full screen draws it, and
+  the mouse moved to the table's `point`; the framework's `pointer` command (`docs/TEST_COMMANDS.md`) must answer that same
+  game pixel, give or take one.
+- **Pages.** The same game opened again in an iframe, as in a second tab, must wait for the first (the shell's Web Lock,
+  "one copy at a time") and run no update, and the first must still answer. The first game is held meanwhile, since a
+  second page can take a minute to load in a hidden pane and a timed game would run out.
+- **Reload.** The bot first makes the table's `moves`, so that a game is in progress. Every save file the test profile
+  held before the reload must come back with the same bytes, read before the game starts and again once it has; a file
+  may change when the page's backup restores the version a quit would have written (the registry,
+  `platform/WebPersist.cpp`), or when the table's `reloadChanges` names it. And every save the backup holds once the
+  page has gone, the game in progress among them, must be in the profile once the game has started (Bejeweled's and
+  Alchemy's `savegame.dat`). `afterReload` adds a check of the game's own.
+
+The run needs `hold=1` and `assets=`, and stops with an error without them. Errors caught on the page are a line of each
+half. A run takes about three minutes in a hidden pane, most of it loading the game's files twice; read
+`byopop.test.result` between calls rather than awaiting the driver across the reload.
+
+Its first runs (2026-11-09), Bejeweled in timed mode and Alchemy's strategic game, passed every line. The information line
+was the same for both: while the game has the focus, the page cancels F5, F11, F12, F7, Ctrl+R, Ctrl+F and Ctrl+L (SDL
+cancels the function and Ctrl keys, as the shell's note on `PAGE_SCROLL_KEYS` says) and leaves Alt alone. So F5 and
+Ctrl+R reload nothing while the game has the focus, until the player clicks outside it or presses F6; whether a browser
+still keeps F11 or F12 for itself is the browser's choice, which only a player's own browser shows.
 
 ## Sound
 
