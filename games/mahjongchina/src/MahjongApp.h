@@ -42,7 +42,6 @@ class MahjongWidget : public Widget
 {
 public:
 	MemoryImage* mScreenImage;
-	std::vector<uint32_t> mScreen;  // the engine's last present
 	bool mScreenChanged;
 	int mButtons;                   // MK_LBUTTON 1, MK_RBUTTON 2, MK_MBUTTON 0x10
 

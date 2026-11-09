@@ -1,6 +1,7 @@
 #include "Blit.h"
 
 #include <cstdlib>
+#include <cstring>
 
 namespace jb
 {
@@ -125,20 +126,37 @@ void OverRow(const uint8_t* theSrc, const uint8_t* theUnder, uint8_t* theDst, in
 	}
 	else if (0 < theWidth * 4)
 	{
+		// port: a pixel a step, and the two kinds of pixel that make up nearly all of an image skip the sums, with the
+		// bytes the sums give: an opaque source pixel (alpha 0xff: the under pixel counts for 0, and its alpha is
+		// 0xff + 0) is the source pixel, and a source pixel of zeros (Div255(x * 0xff) is x for every byte) leaves the
+		// under pixel
 		do
 		{
-			uint32_t anAlpha = theSrc[i + 3];
-			uint32_t anUnderAlpha = theUnder[i + 3];
-			int c = 0;
-			do
+			uint32_t aSrcPixel;
+			memcpy(&aSrcPixel, theSrc + i, 4);
+			uint32_t anAlpha = aSrcPixel >> 24;
+			if (anAlpha == 0xff)
+				memcpy(theDst + i, &aSrcPixel, 4);
+			else if (aSrcPixel == 0)
 			{
-				uint32_t anUnder = theUnder[i + c] * (0xff - anAlpha);
-				int aSum = (int)(theSrc[i + c] + Div255(anUnder));
-				theDst[i + c] = 0xff < aSum ? 0xff : (uint8_t)aSum;
-				c = c + 1;
-			} while (c < 3);
-			uint32_t aRest = anUnderAlpha * (0xff - anAlpha);
-			theDst[i + 3] = (uint8_t)(anAlpha + Div255(aRest));
+				uint32_t anUnderPixel;
+				memcpy(&anUnderPixel, theUnder + i, 4);
+				memcpy(theDst + i, &anUnderPixel, 4);
+			}
+			else
+			{
+				uint32_t anUnderAlpha = theUnder[i + 3];
+				int c = 0;
+				do
+				{
+					uint32_t anUnder = theUnder[i + c] * (0xff - anAlpha);
+					int aSum = (int)(theSrc[i + c] + Div255(anUnder));
+					theDst[i + c] = 0xff < aSum ? 0xff : (uint8_t)aSum;
+					c = c + 1;
+				} while (c < 3);
+				uint32_t aRest = anUnderAlpha * (0xff - anAlpha);
+				theDst[i + 3] = (uint8_t)(anAlpha + Div255(aRest));
+			}
 			i = i + 4;
 		} while (i < theWidth * 4);
 	}
@@ -197,11 +215,14 @@ int CopyRgb(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst, int theDstP
 					int i = 0;
 					if (0 < aBytes)
 					{
+						// port: a pixel a step (the alpha byte of the destination stays)
 						do
 						{
-							theDst[i] = theSrc[i];
-							theDst[i + 1] = theSrc[i + 1];
-							theDst[i + 2] = theSrc[i + 2];
+							uint32_t aSrcPixel, aDstPixel;
+							memcpy(&aSrcPixel, theSrc + i, 4);
+							memcpy(&aDstPixel, theDst + i, 4);
+							aDstPixel = (aDstPixel & 0xff000000u) | (aSrcPixel & 0x00ffffffu);
+							memcpy(theDst + i, &aDstPixel, 4);
 							i = i + 4;
 						} while (i < aBytes);
 					}
@@ -392,11 +413,14 @@ int SetRgb(const uint8_t* theValue, uint8_t* theDst, int theDstPitch, int theWid
 				int i = 0;
 				if (0 < theWidth * 4)
 				{
+					// port: a pixel a step (the alpha byte of the destination stays)
+					uint32_t aValue = (uint32_t)theValue[0] | ((uint32_t)theValue[1] << 8) | ((uint32_t)theValue[2] << 16);
 					do
 					{
-						theDst[i] = theValue[0];
-						theDst[i + 1] = theValue[1];
-						theDst[i + 2] = theValue[2];
+						uint32_t aDstPixel;
+						memcpy(&aDstPixel, theDst + i, 4);
+						aDstPixel = (aDstPixel & 0xff000000u) | aValue;
+						memcpy(theDst + i, &aDstPixel, 4);
 						i = i + 4;
 					} while (i < theWidth * 4);
 				}
