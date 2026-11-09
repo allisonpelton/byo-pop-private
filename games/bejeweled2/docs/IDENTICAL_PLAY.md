@@ -22,6 +22,13 @@ the software renderer. The secret modes start from a player made by `make_profil
 bot is the port's own (`move` of the test commands), so each run's moves are those a bot makes on the port's boards; the original is
 given the same clicks at the same updates and has to make the same moves out of them.
 
+The web build was checked under Node (`origcmp/web_check.sh`, which runs `games/bejeweled/tools/verify/wasmrun.js game`): the recording
+of a 640 by 480 run is turned into a `-commands` file (`to_commands.py`: the inputs of the recording with a `wait` for each gap, so
+that no driver is needed), and the same file is played by the native exe and by `build/web/bejeweled2.js`, held and uncapped with the
+recording's seed. The three `-trace` lists (the recording's, the native replay's and the wasm's) are then compared whole. Node has no 3D
+device, so the web build plays the 2D game there (the page's own 3D game, `is3d`, is the one the real-input matrix of phase two will
+play in the browser).
+
 ## What was found to be identical
 
 | Mode | 3D game | 2D game, 640 by 480 |
@@ -35,6 +42,11 @@ given the same clicks at the same updates and has to make the same moves out of 
 | Cognito | 40 moves, 2 levels, identical | 40 moves, 2 levels (score 1805), identical |
 | Finity | 19 moves, 16 levels, through game over, identical (the score runs past what 32 bits hold, in the original and the port alike) | 14 moves, 13 levels, through game over, identical |
 | Hidden mode | 40 moves, 2 levels (score 940), identical | not compared: the original never started the mode in the runs made (see below) |
+
+The web build under Node played all nine modes of the 640 by 480 recordings (the ones compared with the original above, a seed of
+909, 40 moves each, Twilight through game over, Finity through its ending) with a trace identical to the native exe's, line for
+line (the board's score, level, state and generator position, the global generator's position and the three other watches of
+`-trace`: 4,976 lines for Puzzle up to 56,692 for Endless), and the native replay's trace is the recording's.
 
 ## What the pass changed in the port
 
@@ -52,8 +64,9 @@ Nothing else of the game changed in this phase; the other commits of the pass ar
 
 These are listed under "Oddities" in `GAME_NOTES.md` with how to see each one.
 
-The 2D comparison runs with `nosparkle`, which makes `Board::AddAlphaSparkle` return at once in both games (a patch in the original's
-copy, a test command in the port): its pixel test reads the 640 by 480 scaled copies of the gem images that the original makes when it
+The 2D runs of Endless and Finity were compared with `nosparkle`, which makes `Board::AddAlphaSparkle` return at once in both games (a
+patch in the original's copy, a test command in the port); the other 2D runs, shorter, ran without it and were identical too. The
+reason is that the function's pixel test reads the 640 by 480 scaled copies of the gem images that the original makes when it
 starts at that size, and the port keeps one set of 1024 by 768 images and scales on the screen, so the pixels it finds, and so the
 numbers it draws, differ. The 3D game needs no such step and was compared without it. `Hyperspace::Update2d` draws one number per star
 line from `Rand() % mWidth`, and the width is 640 in the original at 640 by 480 and 1024 in the port's 2D (scaled down), so a 2D game in
@@ -70,5 +83,5 @@ The 2D game with the fix was run again in every mode but the hidden one, and all
 hidden mode at 640 by 480 was not: in the runs made the original never started the mode (its board only came after a stray click
 of the driver, at update 2252), which the 3D game, given the same circle and the same welcome message, did not do; the cause was
 not found, and what the port does there was not checked against the original. Long games of the modes that end only when the board
-has no move (Classic's real ending), a puzzle pack beyond its first puzzles, a saved game resumed, and the web build under Node were
-not played. Phase two is not begun.
+has no move (Classic's real ending), a puzzle pack beyond its first puzzles and a saved game resumed were not played; the web
+build was checked under Node in 2D only (the page's 3D game in the Browser pane is phase two's). Phase two is not begun.
