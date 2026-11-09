@@ -120,7 +120,7 @@ Options:
 - `--cursor scripted` / `--cursor real` — the copy's `GetCursorPos` returns the last mouse position the script
   posted, or Windows' cursor (the default), for a game that reads the cursor after posted input (Bejeweled Twist's
   board). With or without `--clock virtual`; refused with `--sound real`. See "The scripted cursor".
-- `--keys scripted` / `--keys real` � the copy's `GetKeyState` returns the key and mouse-button state the script's
+- `--keys scripted` / `--keys real` — the copy's `GetKeyState` returns the key and mouse-button state the script's
   posted edges left, or Windows' (the default), for a game that asks whether Shift or Ctrl is down while it handles a
   key (Mahjong Escape). Refused with `--sound real`. See "The scripted keys".
 - `--msgbox show` — show the copy's message boxes as before (each plays its sound, and the dialog watch answers it once
@@ -821,7 +821,10 @@ started (its start address lies in the exe; threads of BASS, FMOD, DirectX and W
 a quarter of a core, the main thread's waits that would be skipped take their real time, and still move the clock by
 their timeouts. The clock's log says when this starts and stops ("the exe's other threads work"). It is a heuristic: a
 loader that waits on the disk without using the processor is not seen. `ORIGRUN_CLOCK_GUARD=0` in origrun's
-environment turns it off.
+environment turns it off. Where the guard misses a loader, gate the script's first input on the game's own loaded flag
+instead: `--counter` may name any value that changes once loading is done, and `at N` waits for it. Bejeweled's coverage
+runs (2026-11-09) clicked Play before its title had loaded until they gave `--counter 0x53ba60` (the app's loaded flag
+as the third byte of that word, so it reads 16777216 once set) and began the script with `at 16777216`.
 
 **In step with origrun.** Through a block both share, origrun holds the game's main thread at a wait: `at N` arms a
 barrier at which the main thread stops as it enters its first wait once the counter has reached `N`, and while held it
