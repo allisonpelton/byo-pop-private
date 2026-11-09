@@ -263,6 +263,10 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   need not wait for the pass to speed up its own port (the user, 2026-11-08: "Sessions should be allowed to improve
   performance early on so they can test with -fast and run even faster"): a speed-up that makes its `-fast` runs
   quicker may come at any time, under these rules, and is listed in its notes with the numbers.
+  Shared costs found so far, waiting to be fixed once for every game: SDL_RenderPresent takes 69% of Alchemy's main
+  thread, a driver cost per presented frame under every renderer (Alchemy, 2026-11-09); SexyApp::Init's window and
+  graphics device take 250–310 ms of Noah's Ark's 0.6 s start (Noah's Ark, 2026-11-09). Creating the device on
+  another thread is ruled out (no threads); showing the window before the device is made only moves the wait.
 - **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to go through every phase
   except modding before a game can be considered done and ready for the live site, and just publish whatever games are
   ready by the end of December. I'm in no hurry to get games out in a less-than-stellar state." A game is done only once
