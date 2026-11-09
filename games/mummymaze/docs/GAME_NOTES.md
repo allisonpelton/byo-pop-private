@@ -371,6 +371,11 @@ from two functions the runs did run), the Reset Tips question and the No Windowe
 **Tools of the check.** `tools/identical/p2.py` gained `down` and `up` (one edge of the left button); `p2.sh` takes
 `SAVES=<folder>` (saved adventures put into both games' user folders, for the saved adventures' run).
 
+**Baseline.** After the edits `tools/check.sh mummymaze` passes: every result as before and the frozen baseline identical, against
+main's baseline refrozen with the libjpeg decoder. (The session's earlier copy of the baseline was the one from before libjpeg and
+differed from the port in 19 shots by at most 3 levels, with or without these edits; the pictures the edits change, the adventure
+dialogs, are not in the frozen runs.)
+
 **What it cost.** The runs are short; most of the elapsed time went to waiting for room under the three-process limit. One
 Sonnet agent sorted the first 119 functions; this session read the export for each verdict it took over, for each of the
 differences above, and for the comparison of the saved adventures' pictures.
