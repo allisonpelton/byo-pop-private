@@ -269,8 +269,18 @@ public:
 		MahjongWidget* aWidget = gApp->mWidget;
 		if (aWidget == nullptr)
 			return;
+		// port: one pass from the engine's buffer into the widget's image. The screen is opaque: the buffer's alpha
+		// bytes are not its pixels' alpha (the engine's drawing leaves them as they are).
+		MemoryImage* anImage = aWidget->mScreenImage;
+		ulong* aBits = anImage->GetBits();
 		for (int y = 0; y < 600; y++)
-			memcpy(&aWidget->mScreen[y * 800], thePixels + y * thePitch, 800 * 4);
+		{
+			const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+			ulong* aDst = aBits + y * 800;
+			for (int x = 0; x < 800; x++)
+				aDst[x] = 0xff000000 | (aSrc[x] & 0xffffff);
+		}
+		anImage->BitsChanged();
 		aWidget->mScreenChanged = true;
 	}
 };
@@ -286,7 +296,13 @@ MahjongWidget::MahjongWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(800, 600);
-	mScreen.assign(800 * 600, 0);
+	// port: opaque, so that the framework need not look through the 480000 pixels for alpha after each present
+	mScreenImage->SetImageMode(false, false);
+	// and its alpha bytes are all 0xff (Present), so the framework need not premultiply it pixel by pixel to upload it
+	mScreenImage->mUploadAsIs = true;
+	ulong* aBits = mScreenImage->GetBits();
+	for (int i = 0; i < 800 * 600; i++)
+		aBits[i] = 0xff000000;
 	mScreenChanged = true;
 	mButtons = 0;
 	mWantsFocus = true;
@@ -307,14 +323,7 @@ void MahjongWidget::Update()
 
 void MahjongWidget::Draw(Graphics* g)
 {
-	if (mScreenChanged)
-	{
-		ulong* aBits = mScreenImage->GetBits();
-		for (int i = 0; i < 800 * 600; i++)
-			aBits[i] = 0xff000000 | (mScreen[i] & 0xffffff);
-		mScreenImage->BitsChanged();
-		mScreenChanged = false;
-	}
+	mScreenChanged = false;
 	g->DrawImage(mScreenImage, 0, 0);
 }
 

@@ -170,7 +170,13 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
 - `clickready <x> <y> [timeout_ms]` — wait for the window to exist, then click (use it for the first click,
   since a game's window can be slow to appear while it tries to phone home).
 - `key <vk>` — a virtual-key press (decimal or `0x..`).
-- `text <chars...>` — type the rest of the line.
+- `text <chars...>` — type the rest of the line, all of it after the one space that follows `text`, spaces included
+  (`text  ` types a space). Each character is a `WM_CHAR` alone; a game that reads a key as its key down takes `key`.
+- `waitfor <expr> <op> <value> [<timeout_ms>]` — holds the script until the memory expression (the `--watch` grammar)
+  reads so, `op` one of `==`, `!=`, `<`, `<=`, `>`, `>=`, the value decimal or `0x` hex; 60 s by default, logged either
+  way. The game runs free meanwhile, on the virtual clock too: a gate on the game's own state for the first input,
+  where an update count is a guess (an original's loading thread runs on the wall clock while its updates run on the
+  virtual one; Typer Shark, 2026-11-09). A `mark` after it lets `at +N` count from there.
 - `char <code>` — one `WM_CHAR` of that code (decimal or `0x..`), for a control character a script line cannot hold
   (Ctrl+Z, 0x1a, ends a script file, which is read in text mode).
 - `down x y` / `up x y` (`rdown` / `rup` for the right button), `keydown <vk>` / `keyup <vk>`, `dclick x y` (`rdclick`

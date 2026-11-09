@@ -35,6 +35,7 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `win`, `lose` | ends the current level or game now, as a win or a loss, through the game's own ending |
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
 | `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
+| `memreport <file>` | optional, for the performance pass: writes what the game holds in memory by owner (images, sounds, music, the process's working set and private bytes) to the file (Alchemy, the Mahjong Escapes) |
 
 A move's `input` steps, played in order (Twist's and Alchemy's drivers set the form, 2026-11-07): `{"move":[x,y]}` moves
 the pointer there (a hover: a piece that hangs from the pointer needs one before its click), `{"click":[x,y]}` clicks

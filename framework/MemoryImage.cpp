@@ -185,6 +185,7 @@ MemoryImage::MemoryImage(const MemoryImage& theMemoryImage) :
 {
 	InitHD();
 	mRotateRowsByImageWidth = false;	// a copy is a plain image, as Init leaves one
+	mUploadAsIs = false;
 
 	bool deleteBits = false;
 
@@ -313,6 +314,7 @@ void MemoryImage::Init()
 	mPurgeBits = false;
 	mWantPal = false;
 	mRotateRowsByImageWidth = false;
+	mUploadAsIs = false;
 
 	mApp->AddMemoryImage(this);
 }

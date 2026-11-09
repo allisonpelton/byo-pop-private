@@ -69,24 +69,47 @@ describes each of them; this section says what differs here.
   regained, Quit; and again in full screen. The web driver (`mahjongjapan/tools/web/realplay.js`, taken by the China page
   too) plays the same through the DOM's events.
 
-## Performance (2026-11-08)
+## Performance (2026-11-09)
 
-Measured as Japan's (`games/mahjongjapan/docs/GAME_NOTES.md`, "Performance"): the port only, windowed, in real time, with no
-mods, three runs of the minute of play of `tools/check.sh mahjongchina` (the menu, a new player, Dynasty Adventure stage 1 won
-by the solver's clicks, back to the map: 74 s), the processor time in the window 20 s to 50 s.
+The performance pass, made once for both games (`games/mahjongjapan/docs/GAME_NOTES.md`, "Performance", describes the method, the
+profile and each change; the code is the same, so the changes are the same files: `engine/Blit.cpp`, `src/MahjongApp.cpp`,
+`src/TestCommands.cpp`, and the shared `MemoryImage::mUploadAsIs`, which this port sets on the screen image too). Measured as
+Japan's: the minute of play of `tools/check.sh mahjongchina` (the menu, a new player, Dynasty Adventure stage 1 won by the
+solver's clicks, back to the map), the processor time in the window 20 s to 50 s, runs made in turn, the original through
+origrun (3 runs), the port before and after the pass (5 runs each, alternating, the last batch of the pass).
 
-| | port (3 runs) |
-|---|---|
-| Launch to the main menu, real time (`tools/realplay/perfload.py`, 5 runs) | 1.29 s median (1.23 to 1.35); with the original's start (`-logos`, 3 runs) 7.70 s (7.69 to 7.78) |
-| Peak working set | 172.3 MB median (172.1 to 180.9) |
-| Peak private bytes | 170.9 MB median (170.4 to 172.5) |
-| Processor time in the window | 5.0 s of 29.9 s: 16.7 % of one core (16.1 to 22.1 %) |
-| Processor time, whole run | 10.9 s median (10.7 to 14.0) of 74.4 s |
-| Processes and threads | 1 process, 42 to 50 threads |
+| | original (3 runs) | port before the pass (5 runs) | port after the pass (5 runs) |
+|---|---|---|---|
+| Processor time in the window | 1.7 % of one core (1.3 to 6.2) | 10.4 % (6.6 to 11.8) | 7.3 % (2.4 to 9.2) |
+| Processor time, whole run | 1.5 s (1.3 to 3.2) | 6.3 s (5.7 to 7.9) | 5.0 s (2.8 to 5.9) |
+| Peak working set | 46.6 MB | 114 MB | 112 MB |
+| Peak private bytes | 30.7 MB | 106 MB | 104 MB |
+| Launch to the main menu, real time (`tools/realplay/perfload.py`, 5 runs of 2026-11-08) | | 1.29 s median (1.23 to 1.35); with the original's start (`-logos`) 7.70 s | not touched by the pass |
 
-The original was not measured, for Japan's reasons: its exe runs only inside Windows Sandbox under `tools/origrun`, and a run on
-the host would play its music on the speakers. Its two logos and the black before them hold the menu back about 6.5 s (0x42f650 in Japan): the
-port takes 7.7 s to the menu with `-logos` and 1.3 s without.
+The runs swing with the load of the machine, China's more than Japan's: the ranges of the two port columns overlap, so the
+direction (about 30 % less processor time in the window, 20 % over the whole run) is the medians', not each run's. Earlier
+batches (the window): 15.9 % before and 14.0 % after the blit and Present changes; in a second batch 8.1 % for those and
+11.7 % with the upload change added, a difference the ranges (4.2 to 18.1 and 5.3 to 16.5) do not support. The original's
+second run (6.2 %, against 1.3 and 1.7 %) is an outlier of the same kind. Where the time goes is Japan's: the engine's drawing, the copy to the widget and the
+texture upload in the game's thread, and `SDL_RenderPresent`, the driver's.
+
+**Memory.** Before any game file is read the process holds 52.3 MB (the framework, SDL and the video driver: shared). At the
+end of the play it holds 102.5 MB private: the engine's images (9.4 MB of decoded bits and 12.1 MB of 32-bit copies, 82
+images), 5.1 MB of sounds (19) and, from the menu on, the two MO3 modules the menu loads (ids 335 and 339), the rest, about
+24 MB. The original keeps 31 MB. `memreport <file>` (a test command, only from a test) writes these figures.
+
+**On the web** (`tools/profile/webperf.js`, as Japan's):
+
+| | before | after |
+|---|---|---|
+| Main menu: game's time per frame, its share of the thread | 0.89 ms, 4.1 % | 0.53 ms, 2.6 % |
+| Adventure map | 4.28 ms, 17.1 % | 3.05 ms, 13.2 % |
+| Board, nothing moving | 0.03 ms, 0.2 % | 0.03 ms, 0.1 % |
+| Board, ten pairs by the bot | 5.96 ms, 22.2 % | 2.35 ms, 13.1 % |
+| Wasm heap (as it had grown), and the bytes malloc has handed out, at the end | 84.3 MB, 68.4 MB | 70.3 MB, 66.3 MB |
+
+The bytes handed out are 2 MB fewer (the vector that went); the heap's own size depends on where its growth steps fell. What is
+left is Japan's list.
 
 ## Coverage check (2026-11-08)
 
@@ -184,8 +207,14 @@ unreached until the last runs: `advF` (the last stages and the ending) reached t
 third. The second round reached the rows of the sliders, the name box and its clipboard keys, the double clicks, the
 right click, the no-moves box, the list built from scratch and the question answered No.
 
-The 46 still unreached are Japan's 25 R rows' counterparts (Japan's notes list them: Ctrl+Z, Shift+Tab, a right double
-click, the display toggles, minimize and restore, the escape adventure's right click, wild links, the map double
+**The third round** (2026-11-09) is Japan's `modkeys` and `rdclicks` (`GAME=mahjongchina`, origrun's `--keys scripted --clock
+virtual`: the Shift and Ctrl state, `char 0x1a` and `rdclick`; Japan's notes say what each sends). The logs say 90 and 50 key and
+button edges posted, "1 game process patched GetKeyState", 60 and 94 answers with the scripted state and 26 from Windows
+before the first. They reached `Manager`'s right double click (0x421970), `Layer::FocusPrev` (0x4239b0) and Ctrl+Z's
+handler (0x4324e0); `rdclicks` ended at its 300 s timeout, as in Japan.
+
+The 43 still unreached (46 before the third round) are Japan's 22 R rows' counterparts (Japan's notes list them: the display
+toggles, minimize and restore, the escape adventure's right click, wild links, the map double
 click, the player list's scroll arrow, and the error box) and five that Japan's runs reached and China's did not:
 `Board::SkipFlyOff` with `Layout::TakeKinds` and `TakeSpecials` (Enter during the first stage's fly-off did not reach
 `Board::OnChar` in China's `skipfly` and `skipfly2`, with 3 s and 6 s waits; the reason was not found), and

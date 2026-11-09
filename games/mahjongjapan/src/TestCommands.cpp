@@ -20,7 +20,9 @@
 #include "Bot.h"
 #include "Board.h"
 #include "Dialog.h"
+#include "Display.h"
 #include "Globals.h"
+#include "Image.h"
 #include "Layer.h"
 #include "LayoutSelect.h"
 #include "MahjongApp.h"
@@ -30,13 +32,22 @@
 #include "Object.h"
 #include "PlayLayer.h"
 #include "Players.h"
+#include "Sound.h"
 #include "User.h"
 
+#include "platform/Audio.h"
+
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <typeinfo>
 #include <vector>
+
+#ifdef _WIN32
+extern "C" __declspec(dllimport) int __stdcall K32GetProcessMemoryInfo(void* theProcess, void* theCounters, unsigned long theSize);
+extern "C" __declspec(dllimport) void* __stdcall GetCurrentProcess(void);
+#endif
 
 using namespace Sexy;
 using namespace mahjongjapan;
@@ -83,6 +94,78 @@ void ReplyOK(const std::string& theCommand)
 void ReplyError(const std::string& theCommand, const std::string& theReason)
 {
 	Reply("ERROR " + theCommand + ": " + theReason);
+}
+
+// port: memreport <file>, for the performance pass: what the engine holds in memory, by image and by sound. An image keeps its
+// DIB (its own bytes only when it decoded them: a BMP resource's are the resource's) and, once drawn, the 32-bit copy.
+void WriteMemReport(const std::string& thePath)
+{
+	FILE* aFile = fopen(thePath.c_str(), "w");
+	if (aFile == nullptr)
+		return;
+	struct Row
+	{
+		int mId;
+		const jb::Image* mImage;
+		size_t mOwned, mPixels;
+	};
+	std::vector<Row> aRows;
+	size_t anOwned = 0, aPixels = 0;
+	auto aAdd = [&](int theId, const jb::Image* theImage)
+	{
+		size_t anOwn = theImage->mOwnsBits ? (size_t)theImage->mPitch * theImage->mHeight : 0;
+		size_t aPix = theImage->mPixels != nullptr ? (size_t)theImage->mPixelPitch * theImage->mHeight : 0;
+		aRows.push_back({theId, theImage, anOwn, aPix});
+		anOwned += anOwn;
+		aPixels += aPix;
+	};
+	jb::Display* aDisplay = jb::gManager->mDisplay;
+	for (const auto& anEntry : aDisplay->mImages)
+		if (anEntry.second != nullptr)
+			aAdd(anEntry.first, anEntry.second);
+	size_t aCached = aRows.size();
+	for (const jb::Image* anImage : aDisplay->mCreated)
+		aAdd(-1, anImage);
+	std::sort(aRows.begin(), aRows.end(), [](const Row& a, const Row& b) { return a.mOwned + a.mPixels > b.mOwned + b.mPixels; });
+	fprintf(aFile, "images: %zu cached by id, %zu made to draw into; decoded bits %.2f MB, 32-bit copies %.2f MB\n", aCached,
+		aRows.size() - aCached, anOwned / 1048576.0, aPixels / 1048576.0);
+	for (const Row& aRow : aRows)
+		fprintf(aFile, "  image %d: %dx%d, %d-bit, own bits %zu, 32-bit copy %zu\n", aRow.mId, aRow.mImage->mWidth,
+			aRow.mImage->mHeight, aRow.mImage->mBitCount, aRow.mOwned, aRow.mPixels);
+	size_t aSamples = 0;
+	size_t aCount = 0;
+	jb::Sound* aSound = jb::gManager->mSound;
+	if (aSound != nullptr)
+		for (const auto& anEntry : aSound->mSamples)
+			if (anEntry.second != nullptr && anEntry.second->mData)
+			{
+				aSamples += anEntry.second->mData->Bytes();
+				aCount++;
+				fprintf(aFile, "  sound %d: %zu frames, %d channels, %d Hz, %zu bytes\n", anEntry.first,
+					anEntry.second->mData->mFrames, anEntry.second->mData->mChannels, anEntry.second->mData->mRate,
+					anEntry.second->mData->Bytes());
+			}
+	fprintf(aFile, "sounds: %zu, %.2f MB\n", aCount, aSamples / 1048576.0);
+#ifdef _WIN32
+	struct ProcessCounters
+	{
+		unsigned long mSize, mPageFaults;
+		size_t mPeakWorkingSet, mWorkingSet, mQuotaPeakPaged, mQuotaPaged, mQuotaPeakNonPaged, mQuotaNonPaged, mPagefile,
+			mPeakPagefile, mPrivate;
+	} aCounters = {};
+	aCounters.mSize = sizeof(aCounters);
+	if (K32GetProcessMemoryInfo(GetCurrentProcess(), &aCounters, sizeof(aCounters)))
+		fprintf(aFile, "process: working set %.1f MB, private %.1f MB\n", aCounters.mWorkingSet / 1048576.0,
+			aCounters.mPrivate / 1048576.0);
+#endif
+	if (aSound != nullptr)
+	{
+		fprintf(aFile, "music loaded:");
+		for (const auto& anEntry : aSound->mMusics)
+			fprintf(aFile, " %d", anEntry.first);
+		fprintf(aFile, "\n");
+	}
+	fclose(aFile);
 }
 
 std::string Num(int theValue)
@@ -457,7 +540,8 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	const std::string& aCommand = theCommand.mCommand;
 	const std::string& anArgs = theCommand.mArgs;
 	bool aKnown = aCommand == "state" || aCommand == "move" || aCommand == "goto" || aCommand == "level" ||
-		aCommand == "unlock" || aCommand == "set" || aCommand == "win" || aCommand == "lose" || aCommand == "seed";
+		aCommand == "unlock" || aCommand == "set" || aCommand == "win" || aCommand == "lose" || aCommand == "seed" ||
+		aCommand == "memreport";
 	if (!aKnown)
 		return false;
 	std::string aText = CommandText(theCommand);
@@ -469,6 +553,12 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (aCommand == "state")
 	{
 		Reply("STATE " + StateJson());
+		return true;
+	}
+	if (aCommand == "memreport")
+	{
+		WriteMemReport(anArgs);
+		ReplyOK(aText);
 		return true;
 	}
 	if (aCommand == "move")

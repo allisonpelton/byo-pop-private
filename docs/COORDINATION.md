@@ -273,6 +273,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   Bejeweled's profiles agree (2026-11-09): a -fast game spends 85-90% of its cycles presenting, in the driver and
   making the device, imagehlp's 5% among them (wintrust loads it for the driver's signature check when the device is
   made); the framework also keeps every image's pixels after upload, 19 MB of Bejeweled's 55 MB (the original: 36 MB).
+  Mahjong Escape's pass (2026-11-09) adds: SDL_RenderPresent swings 0.4-2.2 G cycles a minute between plays of one
+  build (the driver spinning, the GPU shared), so only alternating runs compare; the whole-screen SDL_UpdateTexture of
+  a software-drawn game still costs about 1 G cycles a minute (a partial update or a streaming texture would cut it);
+  every game's process holds about 54 MB before it reads a game file; libopenmpt decodes a module whole (51 MB of
+  Ancient Japan's 146 MB private), where a streaming render would hold one buffer; and the engine keeps each image's
+  decoded bits beside its 32-bit copy. For profiles, tools/profile/callprof.py puts 86% of samples in ntdll whatever
+  the thread does; per-thread cycle counters (QueryThreadCycleTime) are the way (games/mahjongjapan GAME_NOTES,
+  "Performance").
 - **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to go through every phase
   except modding before a game can be considered done and ready for the live site, and just publish whatever games are
   ready by the end of December. I'm in no hurry to get games out in a less-than-stellar state." A game is done only once
