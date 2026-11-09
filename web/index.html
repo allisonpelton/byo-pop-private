@@ -358,7 +358,22 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 #music .mu-tune[aria-current] .mu-num, #music .mu-tune[aria-current] .mu-time { color: inherit; }
 /* The import from an installed game (web/saveimport.js) */
 #saves select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
-.si-help h4 { margin: 12px 0 8px; font-size: 14px; font-weight: 600; }
+/* the import's wizard (web/saveimport.js): its picture (drawn only by Desktop 95, web/skins.css), one page at a time, and
+   Back, Next and Cancel at its foot */
+.si-wiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 8px 0; }
+.si-art { display: none; }
+.si-page[hidden] { display: none; }
+.si-page { min-width: 0; min-height: 180px; }
+.si-page-title { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.si-page-title:focus { outline: none; }
+/* the last page names itself by the plan's own heading once there is one */
+.si-page:has(> .si-confirm:not([hidden]) > h4) > .si-page-title { display: none; }
+.si-line { font-size: 13px; margin: 0 0 10px; }
+.si-places { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 10px; margin: 8px 0 12px; font-size: 13px; }
+.si-places dd { margin: 0; overflow-wrap: anywhere; }
+.si-cmd-all { display: flex; justify-content: flex-end; }
+.si-nav { display: flex; justify-content: flex-end; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.si-nav button + button + button { margin-left: 8px; }
 .si-help, .si-pickers { margin: 8px 0; }
 .si-help p, .si-help li { font-size: 13px; }
 .si-help code, .si-confirm code { font-size: 12px; overflow-wrap: anywhere; }
@@ -1250,7 +1265,7 @@ try {
     });
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>
     if (siteSettingsView) siteSettingsView.sections.forEach(function (r, i) {
-      d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true,
+      d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,
         at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, top() + 60 + (i % 5) * 24]; } });
     });
     d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,

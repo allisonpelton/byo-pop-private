@@ -262,6 +262,42 @@ var ByopopSkin = (function () {
       tasks();
     }
     // a window's Close: its own (o.onClose: the game's window closes the program), else it goes off the desktop to its icon
+    // the What's This? mode (the title bar's "?"): one at a time, ended by the next click anywhere, by Esc or by the "?" again
+    var whatsOn = null;
+    function whatsThis(button) {
+      var was = whatsOn;
+      endWhats();
+      if (was === button) return;
+      whatsOn = button;
+      button.setAttribute("aria-pressed", "true");
+      document.documentElement.classList.add("d95-whats");
+      document.addEventListener("pointerdown", whatsDown, true);
+      document.addEventListener("keydown", whatsKey, true);
+    }
+    function endWhats() {
+      if (!whatsOn) return;
+      whatsOn.setAttribute("aria-pressed", "false");
+      whatsOn = null;
+      document.documentElement.classList.remove("d95-whats");
+      document.removeEventListener("pointerdown", whatsDown, true);
+      document.removeEventListener("keydown", whatsKey, true);
+    }
+    // the click that asks: nothing under it works (not its press, nor the click after it); a click on the "?" itself is the
+    // button's own, which ends the mode
+    function swallow(ev) { ev.preventDefault(); ev.stopPropagation(); }
+    function whatsDown(ev) {
+      if (whatsOn && whatsOn.contains(ev.target)) return;
+      swallow(ev);
+      var target = ev.target, x = ev.clientX, y = ev.clientY;
+      endWhats();
+      ["mousedown", "mouseup", "click", "focus"].forEach(function (n) {
+        var once = function (e) { swallow(e); document.removeEventListener(n, once, true); };
+        document.addEventListener(n, once, true);
+        setTimeout(function () { document.removeEventListener(n, once, true); }, 600);
+      });
+      try { target.dispatchEvent(new CustomEvent("byopop-whatsthis", { bubbles: true, detail: { x: x, y: y } })); } catch (e) {}
+    }
+    function whatsKey(ev) { if (ev.key === "Escape") { swallow(ev); endWhats(); } }
     function closeWin(w) { if (w.onClose) w.onClose(); else setClosed(w, true); }
     // a window's control menu, from its title bar's icon or Alt+Space
     function controlMenu(w, from, x, y) {
@@ -413,6 +449,16 @@ var ByopopSkin = (function () {
         t.className = "d95-tb-text";
         t.textContent = o.title;
         handle.appendChild(t);
+        // What's This? (o.whatsThis: a Settings section's window): Windows 95's "?" beside the window's other buttons. A press
+        // turns the pointer into an arrow with a question mark; the next click on a control asks the page for its tip (the event
+        // "byopop-whatsthis" on what was clicked, with where) instead of working the control, and ends the mode, as Esc does
+        if (o.whatsThis) {
+          var hlp = document.createElement("button");
+          hlp.type = "button"; hlp.className = "d95-hlp"; hlp.setAttribute("aria-label", TW("skin.desk.whatsthis", o.title));
+          hlp.setAttribute("aria-pressed", "false");
+          hlp.addEventListener("click", function () { whatsThis(hlp); });
+          handle.appendChild(hlp);
+        }
         if (o.closable) {
           var mn = document.createElement("button");
           mn.type = "button"; mn.className = "d95-mn"; mn.setAttribute("aria-label", TW("skin.desk.minimize", o.title));
