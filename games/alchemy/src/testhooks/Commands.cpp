@@ -105,7 +105,7 @@ Dialog* TopDialog(AlchemyApp* theApp, const char** theName)
 	{
 		{DIALOG_NAME_ENTRY, "name"}, {DIALOG_LOAD_GAME, "load"}, {DIALOG_HINT, "hint"}, {DIALOG_QUIT, "quit"},
 		{DIALOG_NEW_GAME, "newgame"}, {DIALOG_SKILL, "skill"}, {DIALOG_TUTORIAL, "tutorial"}, {DIALOG_OPTIONS, "options"},
-		{DIALOG_HIGH_SCORES, "alltime"}, {DIALOG_COLOR_DEPTH, "colordepth"}
+		{DIALOG_HIGH_SCORES, "alltime"}
 	};
 	for (size_t i = 0; i < sizeof(kDialogs) / sizeof(kDialogs[0]); i++)
 	{
