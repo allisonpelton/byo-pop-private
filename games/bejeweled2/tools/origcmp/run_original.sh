@@ -2,6 +2,7 @@
 # Runs the original (a copy staged under build/origrun/bej2) through origrun on the virtual clock with the pinned seed, scripted
 # input and the four board watches, once there is room for another game process (CLAUDE.md: at most 3 at a time).
 #   run_original.sh <script.txt> <log> [seed] [timeout]
+# ORIGRUN_ARGS="--dgvoodoo E:/retools/dgVoodoo2_87_5 --3d on" adds origrun options (the 3D, 1024 by 768 original).
 # WATCHES="expr expr ..." replaces all four watches (no spaces inside an expression).
 # W2=0x67d910 reads the global generator's index in the place of the level (the port's watch 5).
 # Watches: the board's score, level, state and generator index (the port's -trace prints the same four).
@@ -17,6 +18,8 @@ done
 if [ -z "$KEEP_STATE" ]; then
   rm -rf /c/ProgramData/Steam/Bejeweled2/users
   reg delete 'HKCU\Software\Steam\Bejeweled2' //f > /dev/null 2>&1
+  # windowed, as the port's driver asks for: under dgVoodoo2 the first run would otherwise be full screen and take no posted click
+  reg add 'HKCU\Software\Steam\Bejeweled2' //v ScreenMode //t REG_DWORD //d 0 //f > /dev/null 2>&1
 fi
 B='[[0x67ccd8]+0xe68]'
 W=()
@@ -25,4 +28,4 @@ if [ -n "$WATCHES" ]; then
 else
   W=(--watch "$B+0x15e20" --watch "${W2:-$B+0x15e4}" --watch "$B+0x170c" --watch "$B+0x15e0")
 fi
-exec build/origrun-bin/origrun.exe --game bejeweled2 --run bej2 --exe "$PWD/build/origrun/bej2/game/Bejeweled2Game.exe"   --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" "${W[@]}" --script "$script" > "$log" 2>&1
+exec build/origrun-bin/origrun.exe --game bejeweled2 --run bej2 --exe "$PWD/build/origrun/bej2/game/Bejeweled2Game.exe"   --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" $ORIGRUN_ARGS "${W[@]}" --script "$script" > "$log" 2>&1

@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 import full  # noqa: E402
 from driver_base import Driver  # noqa: E402
 
+full.KEY_HINTS = True  # the port's 640 by 480 layout of the hint dialogs is not the original's: close them with the key, which no layout changes
 INPUT_VERBS = ('move', 'click', 'down', 'up', 'key', 'type')
 
 
@@ -45,10 +46,11 @@ def main():
     ap.add_argument('--mode', default='classic')
     ap.add_argument('--moves', type=int, default=60)
     ap.add_argument('--seed', type=int, default=1)
+    ap.add_argument('--lowres', action='store_true', help='true 2D at 640x480 (what the original does without 3D) instead of 1024x768')
     ap.add_argument('--play-at', type=int, default=345, help='the update of the title play click: the first at which the original takes one (its title has loaded at 319)')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
-    d = Recorder(a.exe, a.gamedir, a.userdir, a.out, True, ['-seed=%d' % a.seed, '-trace'], windowed=True, is3d=False, hold=True)
+    d = Recorder(a.exe, a.gamedir, a.userdir, a.out, True, ['-seed=%d' % a.seed, '-trace'], windowed=True, is3d=False if a.lowres else None, hold=True)
     rc = 1
     try:
         full.until(d, lambda s: s['screen'] in ('title', 'dialog', 'menu'), 'the title', 180)

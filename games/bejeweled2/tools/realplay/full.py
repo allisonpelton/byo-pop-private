@@ -45,6 +45,8 @@ def until(d, pred, what, timeout=120, step=0.02):
 
 
 _last_button = [None]
+KEY_HINTS = False  # set by origcmp/record.py: the one-time hint dialogs (25, 26, 38, 39) are closed with Escape, not by a click on a button
+HINT_DIALOGS = (25, 26, 38, 39)
 
 
 def handle_dialog(d, s):
@@ -57,7 +59,9 @@ def handle_dialog(d, s):
         d.key('Return')
     else:
         m = d.bot_move()
-        if m is not None and m.get('kind') in ('dialog', 'wait'):
+        if m is not None and m.get('kind') == 'dialog' and KEY_HINTS and top in HINT_DIALOGS:
+            d.key('Escape')  # origcmp: the one-time hints are closed by the key, since the port at 640 by 480 lays them out as the 1024 layout scaled
+        elif m is not None and m.get('kind') in ('dialog', 'wait'):
             d.play_input(m['input'])  # the click on its button, or a wait while it slides in or out
         elif m is None and s.get('buttons'):
             b = s['buttons'].get('yes') or s['buttons'].get('no')

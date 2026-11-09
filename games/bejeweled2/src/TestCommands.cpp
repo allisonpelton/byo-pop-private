@@ -129,10 +129,10 @@ static void UnlockAll(Profile* theProfile)
 // differs from the last one logged, with the update count the framework keeps (+0x484 in the original).
 void WinDMApp::TraceUpdate()
 {
-	static const int WATCHES = 5;
-	static int sLast[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN};  // INT_MIN: no board
+	static const int WATCHES = 8;
+	static int sLast[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN};  // INT_MIN: no board
 	static bool sFirst = true;
-	int aValue[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN};
+	int aValue[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN, INT_MIN};
 	if (mBoard != NULL)
 	{
 		uint32_t aState[624];
@@ -142,6 +142,11 @@ void WinDMApp::TraceUpdate()
 		aValue[1] = mBoard->mLevel;
 		aValue[2] = mBoard->mState;
 		aValue[3] = anIndex;
+		// watches 6 to 8 are for debugging (compare.py --pair 2=6 and so on, with WATCHES=... for the original): the board's +0x1730,
+		// +0x1714 and +0x1768
+		aValue[5] = mBoard->mDropDelay;
+		aValue[6] = mBoard->mScreenState;
+		aValue[7] = mBoard->m1768;
 	}
 	{
 		// watch 5: the global generator's index, which the original's [0x67cf50 + 0x9c0] is (the draws of Rand())

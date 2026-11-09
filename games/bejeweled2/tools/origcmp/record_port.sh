@@ -9,4 +9,4 @@ for i in $(seq 1 120); do
 done
 rm -rf "$out.user"
 exec python games/bejeweled2/tools/origcmp/record.py --exe build/native/bejeweled2.exe --userdir "$out.user" \
-  --out "$out" --mode "$mode" --moves "$moves" --seed "$seed" ${PLAY_AT:+--play-at $PLAY_AT}
+  --out "$out" --mode "$mode" --moves "$moves" --seed "$seed" ${PLAY_AT:+--play-at $PLAY_AT} ${LOWRES:+--lowres}

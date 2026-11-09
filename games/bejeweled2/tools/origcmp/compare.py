@@ -32,7 +32,8 @@ def norm(v):
     if v in ('-', '?'):
         return v
     try:
-        return str(int(v, 0))
+        n = int(v, 0)
+        return str(n - (1 << 32) if n >= 1 << 31 else n)  # the watch reads 32 bits unsigned; the port prints an int
     except ValueError:
         return v
 
@@ -43,6 +44,19 @@ def trim(seq, from_update):
     return [c for c in seq if c[0] >= from_update]
 
 
+def settle(seq):
+    """The original's watch is read inside its update as well as between updates, so it can see a value that the update changes again
+    (a state that goes 0, 1, 16 within one update); the port's trace sees only the end of an update. Keep the last value of each update,
+    and leave out a change that ends where it began."""
+    out = []
+    for u, x, y in seq:
+        if out and out[-1][0] == u:
+            out[-1] = (u, out[-1][1], y)
+        else:
+            out.append((u, x, y))
+    return [c for c in out if c[1] != c[2]]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('original')
@@ -50,17 +64,18 @@ def main():
     ap.add_argument('--delta', type=int, default=0)
     ap.add_argument('--show', type=int, default=3)
     ap.add_argument('--last', type=int, default=None, help='ignore the changes after this update (the end of the port recording: the original script runs on a little longer)')
-    ap.add_argument('--pair', default='', help="w=p: the original's watch w is the port's watch p (2=5: the global generator's index, W2=0x67d910)")
+    ap.add_argument('--pair', default='', help="w=p[,w=p...]: the original's watch w is the port's watch p (2=5: the global generator's index, W2=0x67d910; 1=7,2=8,4=6: WATCHES with the board's +0x1714, +0x1768 and +0x1730)")
     a = ap.parse_args()
     o, p = read(a.original), read(a.port)
     pair = {1: 1, 2: 2, 3: 3, 4: 4}
-    if a.pair:
-        pair[int(a.pair.split('=')[0])] = int(a.pair.split('=')[1])
+    for one in filter(None, a.pair.split(',')):
+        pair[int(one.split('=')[0])] = int(one.split('=')[1])
     bad = 0
     for w in (1, 2, 3, 4):
         # skip changes into and out of "no board": compare from the first value that is a number on both sides
         po = [(u, norm(x), norm(y)) for u, x, y in o.get(w, []) if 1 <= u <= (a.last or 1 << 30) and norm(y) not in ('-', '?')]
         pp = [(u + a.delta, norm(x), norm(y)) for u, x, y in p.get(pair[w], []) if 1 <= u <= (a.last or 1 << 30) - a.delta and norm(y) not in ('-', '?')]
+        po, pp = settle(po), settle(pp)
         n = min(len(po), len(pp))
         same = 0
         first = None
