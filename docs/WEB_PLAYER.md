@@ -889,6 +889,18 @@ cap with its initials, and its name. A double-click, Enter or Space opens the ga
 key or Shift+F10) opens it or takes it out of the favourites, and the icon goes. In the Pop menu's Games the favourites come
 first.
 
+**Windows 95 games only.** A setting in Look, off unless chosen and heeded only in Desktop 95 (the user, 2026-11-08: an
+"immersion" toggle "that will only list the games that actually supported Windows 95. That info is in the README for most
+games"), lists only the games whose original supported Windows 95. Which did is `BYOPOP_WEB_WIN95` in `cmake/ByopopWeb.cmake`:
+yes, no or unknown for each finished and coming game, with the game's own file that says so (its readme's system requirements)
+in a comment above the row, and no readme text. The build puts it on each tile as `data-win95` and in the chat's table
+(`chat-games.js`) as `win95`. With the setting on (`html.d95-win95only`, `web/skins.js`'s win95Sync), All games hides the other
+games and shows the count above them as a value ("4 hidden", the reason in its tooltip), the favourites' icons of those games go (the favourites stay), and the Pop menu's
+Games lists only the others, with the count as its last, greyed entry. An unknown game is hidden too. A game page already open
+stays open. The other skins list every game. Six games are unknown: Cosmic Bugs, Water Bugs, Gyromancer and both Mahjong
+games have no readme that says, and no copy of Feeding Frenzy is here. Most of the "no" rows rest on the Steam releases' readmes
+(Windows 98 or later), which may not be what the first release said.
+
 **Desktop 95's controls.** The skin draws its controls as the 1995 desktop did (the user, 2026-11-08: "the dropdowns, check
 boxes, and selectors should be redesigned to look more like authentic Windows 95. Rounded corners are very un-95"): white
 sunken fields, a drop-down's raised grey button with its black triangle, a check box's black tick, an option button's black
