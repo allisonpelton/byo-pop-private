@@ -118,9 +118,9 @@ void Board::UpdateAnimCounters()
 
 	if (0.0f <= m1bf8)
 	{
-		double aSum = (double) m1bfc + (double) m1bf8;
-		m1bf8 = (float) aSum;
-		if (5.0 <= aSum)
+		float aSum = m1bfc + m1bf8;
+		m1bf8 = aSum;
+		if (5.0f <= aSum)
 		{
 			m1bf8 = 5.0f;
 			m1bfc = -m1bfc;
@@ -292,13 +292,13 @@ void Board::UpdateRamp()
 
 		const RampRecord& aNext = m280[aIndex];
 		const RampRecord& aPrev = m280[aIndex > 0 ? aIndex - 1 : 0];
-		double aFrac = (double) m19b4 / (double) aNext.mTime;
+		float aFrac = (float) m19b4 / (float) aNext.mTime;
 
-		m1be8 = (float) ((double) aPrev.mF5 - ((double) aPrev.mF5 - (double) aNext.mF5) * aFrac);
-		m1bec = (float) (((double) aNext.mF4 - (double) aPrev.mF4) * aFrac + (double) aPrev.mF4);
-		m19cc = (int) ((double) aPrev.mV1 - (double) (aPrev.mV1 - aNext.mV1) * aFrac);
-		mDropTicks = (int) ((double) aPrev.mV3 - (double) (aPrev.mV3 - aNext.mV3) * aFrac);
-		m1ac4 = (int) ((double) (aPrev.mV2 - aNext.mV2) * aFrac + (double) aPrev.mV2);
+		m1be8 = aPrev.mF5 - (aPrev.mF5 - aNext.mF5) * aFrac;
+		m1bec = (aNext.mF4 - aPrev.mF4) * aFrac + aPrev.mF4;
+		m19cc = (int) ((float) aPrev.mV1 - (float) (aPrev.mV1 - aNext.mV1) * aFrac);
+		mDropTicks = (int) ((float) aPrev.mV3 - (float) (aPrev.mV3 - aNext.mV3) * aFrac);
+		m1ac4 = (int) ((float) (aPrev.mV2 - aNext.mV2) * aFrac + (float) aPrev.mV2);
 	}
 
 	if (m19b4 >= 6000)

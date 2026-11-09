@@ -389,7 +389,6 @@ public:
 	FrameAnim	m420;// +0x420
 	FrameAnim	mAnim460;// +0x460
 	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
-	bool	m4c8 = false;// +0x4c8 ?
 	FrameAnim	mAnim4e0;// +0x4e0
 	FrameAnim	mAnim520;// +0x520
 	FrameAnim	mAnim560;// +0x560 ?

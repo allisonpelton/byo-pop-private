@@ -9,6 +9,7 @@
 #include "Brick.h"
 #include "Compat2004.h"
 #include "FullScreenHelp.h"
+#include "StoryScreen.h"
 
 #include <cstdio>
 #include <string>
@@ -196,6 +197,23 @@ std::string Board::BotMove()
 	if (m8dc && m2e0 != NULL && m2e0->mVisible)
 		return "{\"kind\":\"demo\",\"updates\":10," +
 			   Steps(StrFormat("{\"click\":[%d,%d]}", m2e0->mX + m2e0->mWidth / 2, m2e0->mY + m2e0->mHeight / 2)) + "}";
+
+	// the story that comes before a level: a click brings all of it in, then its button takes it away
+	if (m754 != NULL)
+	{
+		AstroButton* aStoryButton = m754->mButton;
+		if (aStoryButton == NULL)
+			return WaitMove();
+		if (!aStoryButton->mVisible)
+			return "{\"kind\":\"story\",\"updates\":10," + Steps("{\"click\":[320,200]}") + "}";
+		return "{\"kind\":\"story\",\"updates\":10," +
+			   Steps(StrFormat("{\"click\":[%d,%d]}", aStoryButton->mX + aStoryButton->mWidth / 2, aStoryButton->mY + aStoryButton->mHeight / 2)) + "}";
+	}
+
+	// the warp screen between two levels waits for a click on its first panel (the next level) once the screen is up
+	if (m8ef && m1a60 == 1 && m7e8 >= 0 && !m8f4)
+		return "{\"kind\":\"gate\",\"updates\":10," +
+			   Steps(StrFormat("{\"click\":[%d,%d]}", m1a70 + 0x3c, 0xe1 + 0x14)) + "}";
 
 	if (BotBusy())
 		return WaitMove();

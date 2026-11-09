@@ -4,13 +4,13 @@
 
 The port's input at update U is given to the original at update U + delta (0 by default: record.py puts the title click where the
 original takes one). The mouse is the script's own (origrun --cursor scripted): a `move` before a click puts the original's
-mouse where the port's was. The script ends `tail` updates after the last event with a quit.
+mouse where the port's was. The script ends `tail` updates after the last event (or at the update where the port's run ended, if that is later) with a quit.
 """
 import argparse
 import json
 
 
-def convert(events, delta, tail, until=None):
+def convert(events, delta, tail, until=None, end=0):
     lines = []
     last = 0
     i = 0
@@ -41,7 +41,8 @@ def convert(events, delta, tail, until=None):
             lines.append('at %d %s %d %d' % (at, w[0], int(w[2]), int(w[3])))
         else:
             raise SystemExit('cannot give the original ' + cmd)
-    lines.append('at %d mark' % (last + tail))  # origrun cannot quit at an update: wait for it, then quit
+    # the original plays at least to the update where the port's run ended (end), else the comparison would cover a stretch it never played
+    lines.append('at %d mark' % max(last + tail, end))  # origrun cannot quit at an update: wait for it, then quit
     lines.append('quit')
     return lines
 
@@ -55,7 +56,7 @@ def main():
     ap.add_argument('--until', type=int, default=None, help='only the inputs up to this port update')
     a = ap.parse_args()
     ev = json.load(open(a.events))
-    lines = ['# from %s, delta %d' % (a.events, a.delta)] + convert(ev['events'], a.delta, a.tail, a.until)
+    lines = ['# from %s, delta %d' % (a.events, a.delta)] + convert(ev['events'], a.delta, a.tail, a.until, ev['last'] + a.delta)
     with open(a.script, 'w') as f:
         f.write('\n'.join(lines) + '\n')
     print('%d lines, delta %d, last update %d' % (len(lines), a.delta, ev['last'] + a.delta))

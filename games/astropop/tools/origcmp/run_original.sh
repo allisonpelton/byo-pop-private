@@ -12,14 +12,16 @@
 #   1 the board's score  2 its level  3 the game generator's position  4 Rand()'s position
 # WATCHES="expr expr ..." replaces all four (no spaces inside an expression), e.g. the app's loading flags and screens:
 #   [0x5dc220]+0x50c (loading started/completed bytes) [0x5dc220]+0x644 (main menu) [0x5dc220]+0x628 (board) [0x5dc220]+0x690 (user)
+#
+# The original loads on a thread of its own, in real time, while its counter runs on the virtual clock; on a busy machine the title
+# is not yet loaded at the script's first click, and a click before that is lost: the run then never gets a board. A run that
+# shows no board (no line of the log matches NEED, "watch 2: - -> " by default: the level watch's first value; set NEED for other
+# WATCHES, or NEED=none for no check) is made again, up to TRIES times (5 by default).
 script=$1; log=$2; seed=${3:-1}; timeout=${4:-600}
 run=${RUN:-apc}
+tries=${TRIES:-5}
+need=${NEED:-'watch 2: - -> '}
 cd "$(dirname "$0")/../../../.." || exit 2
-for i in $(seq 1 120); do
-  python tools/gamecount.py --limit 3 > /dev/null && break
-  sleep 15
-done
-[ -z "$KEEP_STATE" ] && rm -f build/origrun/$run/game/users/*
 B='[[0x5dc220]+0x628]'
 W=()
 if [ -n "$WATCHES" ]; then
@@ -28,9 +30,29 @@ else
   W=(--watch "$B+0x1974" --watch "$B+0x1940" --watch "[0x5a4e28]+0x9c0" --watch 0x5a6858)
 fi
 SBX=--sandbox; [ -n "$ORIG_HOST" ] && SBX=
-build/origrun-bin/origrun.exe --game astropop --run "$run" --exe "$PWD/build/origrun/$run/game/AstroPopGame.exe" \
-  --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" $SBX $ORIGRUN_ARGS \
-  "${W[@]}" --script "$script" > "$log" 2>&1
-st=$?
-[ -n "$SBX" ] && cat build/origrun/$run/logs/origrun-sandbox.log >> "$log"
+st=0
+for try in $(seq 1 "$tries"); do
+  for i in $(seq 1 120); do
+    python tools/gamecount.py --limit 3 > /dev/null && break
+    sleep 15
+  done
+  [ -z "$KEEP_STATE" ] && rm -f build/origrun/$run/game/users/*
+  build/origrun-bin/origrun.exe --game astropop --run "$run" --exe "$PWD/build/origrun/$run/game/AstroPopGame.exe" \
+    --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" --watch-max "${WATCH_MAX:-400000}" $SBX $ORIGRUN_ARGS \
+    "${W[@]}" --script "$script" > "$log" 2>&1
+  st=$?
+  [ -n "$SBX" ] && cat build/origrun/$run/logs/origrun-sandbox.log >> "$log"
+  # a step the original did not reach within 30 s of real time (the machine was busy) was done at an earlier counter: the run is no
+  # comparison of the script, so it is made again (SLOW_OK=1 keeps it)
+  # (the last step of the script, the mark that ends it, may be out of reach for the same reason: the port's bot waited a long
+  # time on a screen it could not leave; the original has shown the same game by then)
+  lastat=$(grep -o '^at [0-9]*' "$script" | tail -1 | cut -d" " -f2)
+  if [ -z "$SLOW_OK" ] && grep "not reached within" "$log" | grep -qv "counter $lastat "; then
+    echo "run_original.sh: try $try of $tries: the original was too slow for a step of the script (\"not reached within\" in the log); again" >&2
+    continue
+  fi
+  [ "$need" = none ] && break
+  grep -q -- "$need" "$log" && break
+  echo "run_original.sh: try $try of $tries showed no board (no line matches '$need'); the click on the title probably came before the game had loaded" >&2
+done
 exit $st

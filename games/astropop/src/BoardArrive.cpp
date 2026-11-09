@@ -247,7 +247,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 				if (mf8.empty() && !AnyMoveLeft(NULL))
 				{
 					if (m19fc < 0x3d)
-						m19d8 = (int) ((long double) m19cc + (long double) m930 * 20.0L);
+						m19d8 = (int) ((float) m19cc + m930 * 20.0f);
 					else
 						m19fc = 0x3c;
 				}
@@ -333,7 +333,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		if (mf8.empty() && !AnyMoveLeft(NULL))
 		{
 			if (m19fc < 0x3d)
-				m19d8 = (int) ((long double) m19cc + (long double) m930 * 20.0L);
+				m19d8 = (int) ((float) m19cc + m930 * 20.0f);
 			else
 				m19fc = 0x3c;
 		}

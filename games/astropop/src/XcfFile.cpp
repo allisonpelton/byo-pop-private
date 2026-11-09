@@ -250,7 +250,11 @@ XcfFile::Section* XcfFile::FindValueSection(const std::string& thePath, std::str
 			}
 		}
 		if (aFound == NULL)
+		{
+			if (i == 0 && !anAbsolute && aSection != NULL && Upper(aSection->mName) == aParts[i])
+				continue;     // a relative path may start with the name of the cursor's own section (the bonus levels' LEVEL\ROWn\Brickn)
 			return NULL;
+		}
 		aSection = aFound;
 	}
 	return aSection;
