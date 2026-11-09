@@ -702,9 +702,13 @@ void Board::UpdateEffects()
 	}
 }
 
+extern bool gTestNoSparkle;  // TestCommands.cpp: the test command nosparkle
+
 // 0x5a7bfb: a spark on a solid pixel of the picture (up to 100 tries to find one)
 void Board::AddAlphaSparkle(int theX, int theY, MemoryImage* theImage, int theWidth, int theHeight)
 {
+	if (gTestNoSparkle)
+		return;
 	if (theWidth == 0)
 		theWidth = theImage->GetWidth();
 	if (theHeight == 0)

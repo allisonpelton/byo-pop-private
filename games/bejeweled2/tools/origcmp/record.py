@@ -47,6 +47,7 @@ def main():
     ap.add_argument('--moves', type=int, default=60)
     ap.add_argument('--seed', type=int, default=1)
     ap.add_argument('--lowres', action='store_true', help='true 2D at 640x480 (what the original does without 3D) instead of 1024x768')
+    ap.add_argument('--nosparkle', action='store_true', help="send the test command nosparkle (Board::AddAlphaSparkle returns at once, as the original's patched copy does): the port has no 640 by 480 scaled images for its pixel test")
     ap.add_argument('--play-at', type=int, default=345, help='the update of the title play click: the first at which the original takes one (its title has loaded at 319)')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
@@ -54,6 +55,8 @@ def main():
     rc = 1
     try:
         full.until(d, lambda s: s['screen'] in ('title', 'dialog', 'menu'), 'the title', 180)
+        if a.nosparkle:
+            d.ok('nosparkle')
         s = d.state()
         if s['updates'] < a.play_at - 1:
             d.ok('wait %d' % (a.play_at - 1 - s['updates']))  # the original and the port then get every input at the same update

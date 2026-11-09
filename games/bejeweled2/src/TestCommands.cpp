@@ -123,6 +123,8 @@ static void UnlockAll(Profile* theProfile)
 		theProfile->mModeLevel[3] = 280;
 }
 
+bool gTestNoSparkle = false;  // set by the test command nosparkle (BoardEffects.cpp)
+
 // -trace (a test flag): the same four values that origrun's --watch reads in the original (docs/ORIGRUN.md), in the same lines
 // ("watch 1: 0 -> 10 at update 312"), so tools/origcmp pairs them value by value: 1 the board's score, 2 its level, 3 its state
 // and 4 the position in its generator's state vector, each "-" while there is no board. Logged in the update in which a value
@@ -256,7 +258,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 	const std::string& aCommand = theCommand.mCommand;
 	const std::string& anArgs = theCommand.mArgs;
 	if (aCommand != "state" && aCommand != "goto" && aCommand != "level" && aCommand != "unlock" && aCommand != "set" &&
-		aCommand != "win" && aCommand != "lose" && aCommand != "seed" && aCommand != "move")
+		aCommand != "win" && aCommand != "lose" && aCommand != "seed" && aCommand != "move" && aCommand != "nosparkle")
 		return false;
 
 	std::string aScreen = TestScreen();
@@ -333,6 +335,7 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				aLine += (mProfile != NULL && !mProfile->mName.empty()) ? ",\"user\":true" : ",\"user\":false";
 		}
 		aLine += mIsWindowed ? ",\"windowed\":true" : ",\"windowed\":false";
+		aLine += Is3DAccelerated() ? ",\"is3d\":true" : ",\"is3d\":false";
 		aLine += mHasFocus ? ",\"focus\":true" : ",\"focus\":false";
 		if (aBoard != NULL)
 		{
@@ -363,10 +366,32 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 				aRows += "\"";
 			}
 			aLine += ",\"board\":[" + aRows + "]";
+			// the gems with the flame flag (+0x70), a row a string: f for a flame gem, . for the others
+			std::string aFlames;
+			for (int aRow = 0; aRow < 8; aRow++)
+			{
+				aFlames += aRow == 0 ? "\"" : ",\"";
+				for (int aCol = 0; aCol < 8; aCol++)
+				{
+					Piece* aPiece = aBoard->mBoard[aRow][aCol];
+					aFlames += (aPiece != NULL && aPiece->m70) ? 'f' : '.';
+				}
+				aFlames += "\"";
+			}
+			aLine += ",\"flames\":[" + aFlames + "]";
 		}
 		else
 			aLine += StrFormat(",\"modeid\":%d", mGameMode);
 		Reply(aLine + "}");
+		return true;
+	}
+
+	// nosparkle: Board::AddAlphaSparkle returns at once (origcmp patches the original the same way, so that the 640 by 480 scaled
+	// image that its pixel test reads, which the port does not have, does not decide how many generator values the sweep uses)
+	if (aCommand == "nosparkle")
+	{
+		gTestNoSparkle = true;
+		ReplyOK(theCommand);
 		return true;
 	}
 

@@ -20,6 +20,8 @@ if [ -z "$KEEP_STATE" ]; then
   reg delete 'HKCU\Software\Steam\Bejeweled2' //f > /dev/null 2>&1
   # windowed, as the port's driver asks for: under dgVoodoo2 the first run would otherwise be full screen and take no posted click
   reg add 'HKCU\Software\Steam\Bejeweled2' //v ScreenMode //t REG_DWORD //d 0 //f > /dev/null 2>&1
+  # PROFILE=<folder of make_profile.py>: the player with the secret modes unlocked is there already
+  if [ -n "$PROFILE" ]; then mkdir -p /c/ProgramData/Steam/Bejeweled2 && cp -r "$PROFILE/users" /c/ProgramData/Steam/Bejeweled2/users; fi
 fi
 B='[[0x67ccd8]+0xe68]'
 W=()
