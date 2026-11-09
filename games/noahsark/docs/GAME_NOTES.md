@@ -263,7 +263,15 @@ spread is the machine's, not a difference of the change); peak private bytes in 
 7401 updates, five pairs, the framework's own "Seconds" figure) took a median of 1.57 s before and 1.34 s after, inside the
 spread of the runs (1.28 to 1.75 s before, 1.10 to 1.77 s after).
 
-WEBNUMBERS
+**Numbers, web build under Node.** The Browser pane is hidden and runs no animation frames, so the web build was timed as in the
+other ports: `tools/profile/webpairs.sh` plays a whole autoplay action game with `-fast` under `wasmrun.js game` (Node's WebAssembly,
+no canvas, no audio device), the earlier sources' wasm and this pass's in turn, three times each. The framework's own "Resource
+Loading Time" line (the app's creation to the sounds done, in the web build's file system) was 415, 287 and 256 ms before and
+84, 126 and 67 ms after (medians 287 and 84 ms). It is Node's load, not a browser's: a browser also fetches and decodes the
+files, which the lazy loading moves to the first use, so the wait before the title shortens by at least this much. The three
+games are identical in their autoplay logs (the same updates, the same scores: level 4 done at update 17369, score 6074), before and
+after. The wall time of a whole game, 17.4, 21.0 and 37.7 s before and 19.9, 60.9 and 32.0 s after, says nothing about the change:
+the machine's other runs moved it by a factor of three between runs, and the same work is done in both.
 
 **Spec for the coordinator (shared code, not done here).** About 0.3 s of the port's 0.6 s start is `SexyApp::Init`: creating the window
 and the graphics device (250 to 310 ms in the profile). A start that shows the window at once and creates the device after it, or
