@@ -191,6 +191,11 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   the same for a key, with a `keydown` at `N` and a `keyup` at `N+k`. `at` does not
   take the `hw*` commands: in the sandbox the game runs in session 0, which desktop input does not reach anyway
   (`GetCursorPos` reads 0,0 whatever `SetCursorPos` did; for a game that reads the cursor, see "The scripted cursor").
+- `at <N> peek <expr> [<expr>...]` â€” logs the ints that the expressions read (the `--watch` grammar: `[0xPTR]+0xOFF`, nested brackets) as one
+  line, `peek u=<counter> <expr>=<value> ...` (signed; `-` where an expression cannot be read). On the virtual clock the game stands at
+  the update the `at` waited for, so the values belong to exactly that update: a state log of the original, one line per update
+  of a stretch with as many `at N peek` lines, to set beside a port's own state log (`--watch` polls and misses changes between
+  two polls). It needs no window and changes nothing.
 - `mark` — reads the update counter now; `at +<N> <command...>` then waits for the counter to reach N past that value.
   For a counter that does not start at 0, such as an event time on the virtual clock, which starts at the real time
   (Ning Po: a `wait` to the first input, the input, `mark`, then `at +N` lines at the port's updates from there).
