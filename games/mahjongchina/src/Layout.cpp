@@ -611,6 +611,7 @@ int Layout::GetCounts(int* theCounts)
 }
 
 // 0x415110: the LAYOUTS resource of the module the app keeps at +0x30 (Resource.dll)
+// 0x424960 inlined here: the getter of that module (jb::Module::Dll)
 bool Layout::Load(int theId)
 {
 	jb::Stream aStream;
