@@ -102,31 +102,6 @@ Path& Path::LineTo(double x, double y)
 	return *this;
 }
 
-Path& Path::QuadTo(double cx, double cy, double x, double y)
-{
-	Vec2 p0 = mContours.empty() ? Vec2(x, y) : mContours.back().back();
-	int n = std::max(4, (int) (std::hypot(cx - p0.x, cy - p0.y) + std::hypot(x - cx, y - cy)) / 2);
-	for (int i = 1; i <= n; i++)
-	{
-		double t = i / (double) n, u = 1 - t;
-		LineTo(u * u * p0.x + 2 * u * t * cx + t * t * x, u * u * p0.y + 2 * u * t * cy + t * t * y);
-	}
-	return *this;
-}
-
-Path& Path::CubicTo(double c1x, double c1y, double c2x, double c2y, double x, double y)
-{
-	Vec2 p0 = mContours.empty() ? Vec2(x, y) : mContours.back().back();
-	int n = std::max(6, (int) (std::hypot(c1x - p0.x, c1y - p0.y) + std::hypot(c2x - c1x, c2y - c1y) + std::hypot(x - c2x, y - c2y)) / 2);
-	for (int i = 1; i <= n; i++)
-	{
-		double t = i / (double) n, u = 1 - t;
-		double a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
-		LineTo(a * p0.x + b * c1x + c * c2x + d * x, a * p0.y + b * c1y + c * c2y + d * y);
-	}
-	return *this;
-}
-
 Path& Path::ArcTo(double cx, double cy, double rx, double ry, double a0, double a1)
 {
 	double aSpan = std::fabs(a1 - a0) * kPi / 180.0;
@@ -425,13 +400,6 @@ Mask& Mask::StrokePath(const Path& thePath, double theWidth)
 	return *this;
 }
 
-Mask& Mask::Union(const Mask& o)
-{
-	for (size_t i = 0; i < mA.size(); i++)
-		mA[i] = std::max(mA[i], o.mA[i]);
-	return *this;
-}
-
 Mask& Mask::Intersect(const Mask& o)
 {
 	for (size_t i = 0; i < mA.size(); i++)
@@ -450,13 +418,6 @@ Mask& Mask::Invert()
 {
 	for (size_t i = 0; i < mA.size(); i++)
 		mA[i] = 1.0f - mA[i];
-	return *this;
-}
-
-Mask& Mask::Scale(float theFactor)
-{
-	for (size_t i = 0; i < mA.size(); i++)
-		mA[i] = Clamp01(mA[i] * theFactor);
 	return *this;
 }
 
@@ -621,32 +582,6 @@ static std::vector<double> Edt(const std::vector<char>& theTarget, int theWidth,
 // Coverage this close to 0 or 1 is not an edge (a blur's far tail, rounding)
 static const float kEdge = 1e-3f;
 
-std::vector<float> Mask::Distance() const
-{
-	size_t n = mA.size();
-	std::vector<char> anIn(n), anOut(n);
-	for (size_t i = 0; i < n; i++)
-	{
-		anIn[i] = mA[i] >= 0.5f;
-		anOut[i] = !anIn[i];
-	}
-	std::vector<double> aToIn = Edt(anIn, mPW, mPH);
-	std::vector<double> aToOut = Edt(anOut, mPW, mPH);
-	std::vector<float> aDist(n);
-	for (size_t i = 0; i < n; i++)
-	{
-		double d;
-		if ((mA[i] > kEdge) && (mA[i] < 1.0f - kEdge))
-			d = 0.5 - mA[i];                                   // an edge pixel: its coverage places the edge
-		else if (anIn[i])
-			d = -(std::sqrt(aToOut[i]) - 0.5);
-		else
-			d = std::sqrt(aToIn[i]) - 0.5;
-		aDist[i] = (float) (d / mScale);
-	}
-	return aDist;
-}
-
 Mask Mask::Grown(double theRadius) const
 {
 	Mask aMask(mW, mH, mScale);
@@ -659,7 +594,7 @@ Mask Mask::Grown(double theRadius) const
 	float aScale = (float) mScale;
 	for (size_t i = 0; i < n; i++)
 	{
-		// the signed distance (Distance) where this side needs it; the other side is wholly in or out
+		// the signed distance to the edge where this side needs it; the other side is wholly in or out
 		double d;
 		if ((mA[i] > kEdge) && (mA[i] < 1.0f - kEdge))
 			d = 0.5 - mA[i];
@@ -669,15 +604,6 @@ Mask Mask::Grown(double theRadius) const
 			d = (mA[i] < 0.5f) ? 1e9 : -(std::sqrt(aSquared[i]) - 0.5);
 		aMask.mA[i] = Clamp01((float) (theRadius * aScale - d) + 0.5f);
 	}
-	return aMask;
-}
-
-Mask Mask::Inner(double theWidth) const
-{
-	Mask aMask(mW, mH, mScale);
-	std::vector<float> aDist = Distance();
-	for (size_t i = 0; i < aDist.size(); i++)
-		aMask.mA[i] = Clamp01((float) (-aDist[i] / theWidth)) * mA[i];
 	return aMask;
 }
 
@@ -809,24 +735,6 @@ Canvas& Canvas::Shadow(const Mask& theMask, double theDX, double theDY, double t
 	Mask aMask = theMask;
 	aMask.Blur(theBlur).Shift(theDX, theDY);
 	return Fill(aMask, theColor, 1, theBlend);
-}
-
-Mask Canvas::AlphaMask() const
-{
-	Mask aMask = NewMask();
-	for (size_t i = 0; i < aMask.mA.size(); i++)
-		aMask.mA[i] = mPx[i * 4 + 3];
-	return aMask;
-}
-
-void Canvas::MultiplyAlpha(const Mask& theMask)
-{
-	for (size_t i = 0; i < theMask.mA.size(); i++)
-	{
-		float k = theMask.mA[i];
-		for (int c = 0; c < 4; c++)
-			mPx[i * 4 + c] *= k;
-	}
 }
 
 uint32_t PackArgb(float r, float g, float b, float a)
