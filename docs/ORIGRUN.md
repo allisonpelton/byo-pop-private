@@ -29,9 +29,11 @@ user answered "Yes, hook it". Asked the same day whether origrun may hook a copy
 so that a message box is answered without appearing and neither plays its sound on the user's speakers, the user
 answered "Yes, hook them". Asked on 2026-11-09 whether origrun may hook a copy's GetKeyState so that scripted Shift and
 Ctrl presses register (Mahjong Escape reads Shift and Ctrl with GetKeyState while it handles a key, and a posted key
-sets no key state), the user answered "Yes, hook it". Those OKs cover the clock's reads and waits, GetCursorPos,
-GetKeyState, MessageBox and MessageBeep only: any other hook of a Windows function inside a copy still needs the user's
-OK first.
+sets no key state), the user answered "Yes, hook it". Asked the same day whether origrun may hook a copy's
+GetLastInputInfo so that originals keep drawing while the user is away (a SexyAppFramework original stops drawing once
+the machine has had no input for the screensaver's timeout), the user answered "Yes, hook it". Those OKs cover the
+clock's reads and waits, GetCursorPos, GetKeyState, GetLastInputInfo, MessageBox and MessageBeep only: any other hook of
+a Windows function inside a copy still needs the user's OK first.
 
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
@@ -976,6 +978,31 @@ let go on one after, as a real player's are: `at 500 keydown 16`, `at 501 key 9`
   first), and `hwkey` and `hwclick` go through Windows' own input, not the block.
 - The hook lives in the stand-in, as the cursor's does: a copy that never loads it never gets it (a coverage run loads
   it, since the exe then imports it), and imports bound late are not patched.
+
+## The last-input hook (always on)
+
+A SexyAppFramework original asks Windows once a second whether a screensaver is set and how long its timeout is
+(`SystemParametersInfo`), and when the machine's last keyboard or mouse input was (`GetLastInputInfo`, which counts input
+anywhere on the machine). Once that input is older than the timeout it sets a flag, and its `DrawDirtyStuff` then draws
+nothing until input comes again (Alchemy, 2026-11-09: the routine at 0x462a60 sets the byte 0x54d7ec that 0x46cb46
+tests). rundesk's private desktop makes no difference. So every original run made while the user was away from the
+machine for about ten minutes (overnight runs included) drew a frame now and then instead of on every update: its
+screenshots showed a stale frame, and its CPU and draw counts read low (Alchemy's "the port uses five times the
+original's CPU" came from that). On the virtual clock it was worse: the copy's GetTickCount starts at Windows' and runs
+ahead of it, so a run past ten virtual minutes stopped drawing even while the user typed. Fifteen originals' exes import
+`GetLastInputInfo` (Alchemy, AstroPop, Banana Bugs, Bejeweled 1, 2, 3 and Twist, Big Money, Bookworm Adventures, Hammer
+Heads, Heavy Weapon, Typer Shark, Venice, Zuma's Revenge); any other game that reads it gets the same answer.
+
+Since 2026-11-09 the stand-in answers every copy's `GetLastInputInfo` itself (`tools/origrun/vclock.c`,
+`H_GetLastInputInfo`; the user's OK above), in every run that loads it, with no option: the last input is always now, on
+the copy's own clock (the virtual one when it is on, read without moving it). The framework finds the function with
+`GetProcAddress` (Windows 95's user32 has none), which no import patch reaches, so the stand-in puts a jump to its own
+function at the start of user32's `GetLastInputInfo`, in the copy's process only; its import is patched as well. A call
+with no structure or a wrong `cbSize` fails with `ERROR_INVALID_PARAMETER`. The stand-in's log has each process's count
+of calls answered. A copy that
+never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not hooked, and its
+draws still stop while the machine is idle: run those while the user is at the machine, or patch the copy's jump as
+Alchemy's notes describe.
 
 ## Message boxes and beeps (hooked)
 

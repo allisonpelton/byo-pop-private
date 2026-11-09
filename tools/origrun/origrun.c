@@ -4162,8 +4162,11 @@ static void msgbox_create(void)
 static void clock_env(void)
 {
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
+	// Always: the stand-in's GetLastInputInfo says the last input is now, so an original that stops drawing once the
+	// machine is idle for the screensaver's timeout keeps drawing (docs/ORIGRUN.md, "The last-input hook")
+	SetEnvironmentVariableA("ORIGRUN_LASTINPUT","now");
 	if (gMsgboxHook==0) logline("--msgbox show: message boxes are shown as before; the dialog watch answers them once they are on screen, after their sound");
 	if (!gClockVirtual && !gCursorScripted && !gKeysScripted && gMsgboxHook<=0) return;
 	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
