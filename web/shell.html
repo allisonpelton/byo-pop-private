@@ -2145,7 +2145,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       // its own on the desktop); the settings are drawn now, so that their windows are there
       ensureSettings();
       if (settingsView && settingsView.sections) settingsView.sections.forEach(function (r, i) {
-        d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true,
+        d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,
           at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, 90 + (i % 5) * 24]; } });
       });
       window.addEventListener("byopop-desk", sizeStage);

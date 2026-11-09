@@ -319,6 +319,7 @@ var ByopopSettings = (function () {
     ".bps-row .bps-pop { grid-column: 1 / -1; margin: 4px 0 2px; padding: 8px 12px; background: var(--bg); color: var(--fg);\n" +
     "  border: 1px solid var(--accent); border-radius: 8px; font-size: 13px; }\n" +
     ".bps-row .bps-pop[hidden] { display: none; }\n" +
+    ".bps-row .bps-pop.bps-tip { position: fixed; z-index: 2147483000; margin: 0; max-width: 280px; box-shadow: 2px 2px 6px rgba(0,0,0,.35); }\n" +
     ".bps-levels { grid-column: 1 / -1; display: grid; gap: 8px; margin: 6px 0 0; padding: 0; border: 0; min-width: 0; }\n" +
     ".bps-levels[hidden] { display: none; }\n" +
     ".bps-level { display: grid; grid-template-columns: 3.6em minmax(0, 1fr) 5.2em; gap: 10px; align-items: center; }\n" +
@@ -393,6 +394,47 @@ var ByopopSettings = (function () {
     });
     sync();
   }
+
+  // A row's explanation as a tip at a point (What's This? in Desktop 95's title bar, or F1 on a focused control, in any skin): it
+  // floats there over the window and goes at the next press, key or scroll anywhere. The same text stays the control's
+  // description (aria-describedby) whether or not it shows.
+  var tipShown = null;
+  function hideTip() {
+    if (!tipShown) return;
+    tipShown.classList.remove("bps-tip");
+    tipShown.hidden = true;
+    tipShown.style.left = tipShown.style.top = "";
+    tipShown = null;
+    ["pointerdown", "keydown", "scroll", "resize"].forEach(function (n) { window.removeEventListener(n, hideTip, true); });
+  }
+  function showTip(pop, x, y) {
+    hideTip();
+    tipShown = pop;
+    pop.hidden = false;
+    pop.classList.add("bps-tip");
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    pop.style.left = Math.max(4, Math.min(x, window.innerWidth - w - 4)) + "px";
+    pop.style.top = Math.max(4, Math.min(y, window.innerHeight - h - 4)) + "px";
+    setTimeout(function () { ["pointerdown", "keydown", "scroll", "resize"].forEach(function (n) { window.addEventListener(n, hideTip, true); }); }, 0);
+  }
+  function wireTips(container) {
+    function popOf(el) { var row = el && el.closest && el.closest(".bps-row"); return row && row.querySelector(".bps-pop"); }
+    container.addEventListener("byopop-whatsthis", function (ev) {
+      var pop = popOf(ev.target);
+      if (pop && pop.textContent) showTip(pop, ev.detail.x + 4, ev.detail.y + 8);
+    });
+    container.addEventListener("keydown", function (ev) {
+      if (ev.key !== "F1") return;
+      var pop = popOf(document.activeElement);
+      if (!pop || !pop.textContent) return;
+      ev.preventDefault();
+      if (tipShown === pop) { hideTip(); return; }
+      var r = document.activeElement.getBoundingClientRect();
+      showTip(pop, r.left, r.bottom + 4);
+    });
+  }
+  // on the document: a section's window may be lifted out of the container onto the desktop
+  if (typeof document !== "undefined" && document.addEventListener) wireTips(document);
 
   // Builds the settings into container (and replaces what it held). The controls save as they change.
   //   live        the container is in a game's page: a setting that only applies when a game starts says so

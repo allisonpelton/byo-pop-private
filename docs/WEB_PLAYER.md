@@ -735,8 +735,15 @@ and its row is a line in a list, not a card; the line under a label holds only l
 game's own value). The notes in the Saves, Controls, Performance, Mods and game files windows are terse facts; the game's start
 card has its title and Play, no "Click to start."; the licences page has no introduction. Two exceptions are kept whole: the
 terms (its text unchanged; the card leads with the agreement, so the full text scrolls below it) and the chat's note (the
-user asked for it). Text a player needs to act stays, as short numbered steps: the save import's registry step is a list of
-three.
+user asked for it). Text a player needs to act stays, as short steps: the save import is a wizard (`web/saveimport.js`), one
+step a page (a heading, its fields, at most one short line) with Back, Next and Cancel, the facts a field needs in its tooltip
+and its description, and the registry commands with their Copy buttons on their own page.
+
+Desktop 95 keeps to what Windows 95 drew (the coordinator, 2026-11-08). Every button is the skin's grey bevelled one with black
+text, and a destructive one is marked by its confirmation, not by a colour. The current player is in bold beside its checked
+button, with no pill. A Settings section's window has one "?" in its title bar (What's This?), not one a row: it turns the
+pointer into an arrow with a question mark, and the next click on a control shows its tip there instead of working the control;
+F1 on a focused control shows the same tip in every skin, and the text stays the control's description for screen readers.
 
 ### Skins
 
@@ -1026,8 +1033,8 @@ games stay identical to their originals. A choice is `"game"` (the default), `"o
 does not know are kept when it writes. Every read and write is in a try/catch: with storage blocked the pages behave as if
 nothing was set, and the controls say a setting was not kept.
 
-The settings, by their field in the item, with the wording of their controls (each has a short hint behind its "?" that says
-what it is for, in `FIELDS` in `web/settings.js`):
+The settings, by their field in the item, with the wording of their controls (each has a short hint, behind its "?" or, in Desktop
+95, What's This? and F1, that says what it is for, in `FIELDS` in `web/settings.js`):
 
 - `startVolume` (a switch), `startMusic` and `startSound` (levels, 50 until moved): **Set the starting volume**, a checkbox
   with a "?" button beside it, and when it is ticked two sliders, **Music** and **Sound**, each from 0 to 100 with its number

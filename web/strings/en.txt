@@ -39,6 +39,8 @@ skin.desk.icons = Desktop
 skin.desk.open = Open {window}
 skin.desk.close = Close {window}
 skin.desk.minimize = Minimize {window}
+# the title bar's "?" of a Settings section's window (Windows 95's What's This?)
+skin.desk.whatsthis = What’s This? ({window})
 skin.desk.maximize = Maximize {window}
 # A window's control menu (its title bar's icon, or Alt+Space): the button's name, then its entries
 skin.desk.menu = Control menu: {window}
@@ -717,34 +719,32 @@ saves.err.open_tab = {title} is open in another tab or window.
 # ---- Saves: import from an installed game (web/saveimport.js)
 
 saveimport.title = Import from an installed game
-saveimport.about = From a game installed on this computer. Nothing is uploaded or changed.
-saveimport.game_label = Game to import from:
+saveimport.about = Nothing leaves this computer.
+saveimport.game_label = Game:
 saveimport.choose_game = Choose a game…
-# {title} is the game's title
-saveimport.where = {title}: where the original keeps its saves
-# {step} is the number of the step
-saveimport.step.files = Step {step}. Find the folder with the save files.
-saveimport.step.registry = Step {step}. Export the game’s settings and scores from the registry.
-# the registry step's own steps, shown as a numbered list
-saveimport.registry.s1 = Open Command Prompt or PowerShell in a folder you can write to, such as Documents.
-saveimport.registry.s2 = Run the commands below. Each writes a .reg file; they only read, and need no administrator rights.
-saveimport.registry.s3 = “Key not found” only means the game did not use that place.
-saveimport.step.choose = Step {step}. Choose them here.
+# the wizard: its buttons and its pages' headings
+saveimport.back = < Back
+saveimport.next = Next >
+saveimport.cancel = Cancel
+saveimport.page.game = Choose the game
+saveimport.page.files = Save files
+saveimport.page.registry = Export the registry values
+saveimport.page.regs = Choose the .reg files
+saveimport.page.review = Import
+# the registry page's one line, and the tooltip of its commands (with saveimport.order_*)
+saveimport.registry.line = In Command Prompt, in a folder you can write to such as Documents:
+saveimport.registry.not_found = They only read. “Key not found” only means the game did not use that place.
+# where to look for the save folder: a name, and the path's tooltip; the paths are made in web/saveimport.js
+saveimport.loc.install = Install folder
+saveimport.loc.install_tip = Or C:\Program Files\PopCap Games, or wherever you installed it.
+saveimport.loc.steam = Steam
+saveimport.loc.steam_tip = In your Steam library.
+saveimport.loc.vs = VirtualStore
+saveimport.loc.vs_tip = Where Windows keeps what a game in Program Files wrote when not run as administrator. If it exists, choose it as the second folder.
+saveimport.loc.appdata = All users
+saveimport.loc.appdata_tip = ProgramData is hidden: type the path in File Explorer’s address bar.
 # {what} says what a file holds (from the table of games)
-saveimport.file_what = : {what}.
-saveimport.places = Look in:
-# Places to look; {folder}, {steam} and {appdata} are folder names from the table of games
-saveimport.place.install_html = The game’s install folder: <code>C:\Program Files (x86)\PopCap
-  Games\{folder}</code> or <code>C:\Program Files\PopCap Games\{folder}</code>, or wherever you installed it.
-saveimport.place.steam_html = A Steam install: <code>steamapps\common\{steam}</code> in your Steam library (a
-  Steam folder can be written to, so the saves are there).
-saveimport.place.virtualstore_html = An install in Program Files that was not run as administrator: Windows
-  keeps the files the game wrote in a private copy, <code>%LOCALAPPDATA%\VirtualStore\Program Files
-  (x86)\PopCap Games\{folder}</code> (or <code>...\VirtualStore\Program Files\PopCap Games\{folder}</code>).
-  Type %LOCALAPPDATA% in File Explorer’s address bar to get there. If that folder exists, choose it as the
-  second folder below; its files are the ones the game used.
-saveimport.place.appdata_html = A game that keeps its files for all users: <code>C:\ProgramData\PopCap
-  Games\{appdata}</code> (ProgramData is hidden in File Explorer; type the path in the address bar).
+saveimport.file_what = : {what}
 saveimport.copy = Copy
 # {hive} names a part of the registry, {file} the .reg file the command writes
 saveimport.copy_label = Copy the command for {hive}, {file}
@@ -763,14 +763,13 @@ saveimport.takes = What the page takes from the original
 saveimport.takes_registry = Registry values ({key}): {names}.
 saveimport.takes_file = File {from}: {what}.
 saveimport.takes_skip = Left alone, {from}: {why}.
-saveimport.choose = Choose what to import
-saveimport.folder1.label = Folder with the save files:
+saveimport.folder1.label = Save folder:
 saveimport.folder1.hint = Only the save files listed are read; nothing leaves this computer.
-saveimport.folder2.label = Second folder (optional), such as the VirtualStore copy:
-saveimport.folder2.hint = Its files win over the first folder’s.
-saveimport.regs.label = Registry files (.reg):
+saveimport.folder2.label = Second folder (optional):
+saveimport.folder2.hint = Such as the VirtualStore copy. Its files win over the first folder’s.
+saveimport.regs.label = .reg files:
 saveimport.regs.hint = Every .reg file the commands wrote.
-saveimport.choose_first = Choose the folder and the .reg files to see what would be imported.
+saveimport.choose_first = Nothing chosen yet: go Back and choose the folder or the .reg files.
 saveimport.reading = Reading what you chose…
 
 # Counts
@@ -849,8 +848,6 @@ saveimport.skipped_file = {path}: {why}.
 saveimport.ignored = {n} other file in the folder is not a save and was not read. | {n} other files in the
   folder are not a save and were not read.
 saveimport.plan.yes = Import
-saveimport.plan.no = Cancel
-saveimport.plan.close = Close
 saveimport.warn.no_locks = This browser cannot tell whether a game is open (it has no Web Locks), so it does
   not import. Use a current browser.
 saveimport.warn.open = Close {title} first: a game that is open could overwrite what is imported.

@@ -418,8 +418,30 @@ var ByopopSaveImport = (function () {
     list.forEach(function (g) { byId[g.id] = g; });
     if (!list.length) return;
 
+    // A wizard, as Windows 95's (the user, 2026-11-08: "values, not sentences"): the picture at the left, one step a page (a
+    // heading, the fields it needs, at most one short line), and Back, Next and Cancel. The pages: the game; its save folders
+    // (when it keeps files); the registry commands and then the .reg files (when it keeps values there); what would be imported,
+    // where Next is Import. A fact a field needs is its tooltip and its description.
     root.appendChild(make("h3", "", ByopopStrings.t("saveimport.title")));
-    root.appendChild(make("p", "pl-about", ByopopStrings.t("saveimport.about")));
+    var wiz = make("div", "si-wiz");
+    var art = make("div", "si-art");
+    art.setAttribute("aria-hidden", "true");
+    art.appendChild(make("i", "si-art-disk"));
+    var pagesEl = make("div", "si-pages");
+    wiz.appendChild(art); wiz.appendChild(pagesEl);
+    root.appendChild(wiz);
+
+    function page(title) {
+      var pg = make("section", "si-page");
+      var h = make("h4", "si-page-title", title);
+      h.id = nextId("si-page");
+      pg.setAttribute("aria-labelledby", h.id);
+      pg.appendChild(h);
+      pg.hidden = true;
+      return pg;
+    }
+    var gamePage = page(ByopopStrings.t("saveimport.page.game"));
+    gamePage.appendChild(make("p", "si-line", ByopopStrings.t("saveimport.about")));
     var form = make("div", "pl-form");
     var selId = "si-game";
     var selLabel = make("label", "", ByopopStrings.t("saveimport.game_label"));
@@ -431,16 +453,47 @@ var ByopopSaveImport = (function () {
     sel.appendChild(first);
     list.forEach(function (g) { var o = make("option", "", g.title); o.value = g.id; sel.appendChild(o); });
     form.appendChild(selLabel); form.appendChild(sel);
-    root.appendChild(form);
+    gamePage.appendChild(form);
+    gamePage.hidden = false;
+    pagesEl.appendChild(gamePage);
 
+    // the pages a game's entry needs after the first, made when the game is chosen
     var help = make("div", "si-help");
-    help.hidden = true;
     var pickers = make("div", "si-pickers");
-    pickers.hidden = true;
-    var report = make("div", "si-report");
+    var reviewPage = page(ByopopStrings.t("saveimport.page.review"));
     var box = make("div", "pl-confirm sv-confirm si-confirm");
     box.hidden = true;
-    root.appendChild(help); root.appendChild(pickers); root.appendChild(box); root.appendChild(report);
+    var takes = make("div", "si-takes");
+    reviewPage.appendChild(box); reviewPage.appendChild(takes);
+    pagesEl.appendChild(help); pagesEl.appendChild(pickers); pagesEl.appendChild(reviewPage);
+    var pages = [gamePage], at = 0;
+
+    var nav = make("div", "si-nav");
+    function navButton(key) { var b = make("button", "", ByopopStrings.t(key)); b.type = "button"; nav.appendChild(b); return b; }
+    var backBtn = navButton("saveimport.back"), nextBtn = navButton("saveimport.next"), cancelBtn = navButton("saveimport.cancel");
+    root.appendChild(nav);
+    var report = make("div", "si-report");
+    root.appendChild(report);
+
+    function onReview() { return pages[at] === reviewPage; }
+    function syncNav() {
+      backBtn.disabled = at === 0 || ctx.isBusy();
+      nextBtn.textContent = ByopopStrings.t(onReview() ? "saveimport.plan.yes" : "saveimport.next");
+      nextBtn.disabled = ctx.isBusy() || (at === 0 && !chosen) || (onReview() && !(plan && plan.todo && !plan.blocked));
+      cancelBtn.disabled = ctx.isBusy();
+    }
+    function go(n) {
+      pages[at].hidden = true;
+      at = Math.max(0, Math.min(n, pages.length - 1));
+      pages[at].hidden = false;
+      if (onReview()) refresh();
+      syncNav();
+      var h = pages[at].querySelector(".si-page-title");
+      if (h) { h.tabIndex = -1; h.focus(); }
+    }
+    backBtn.addEventListener("click", function () { go(at - 1); });
+    nextBtn.addEventListener("click", function () { if (onReview()) doImport(); else go(at + 1); });
+    cancelBtn.addEventListener("click", function () { cancel(); });
 
     var chosen = null;          // the game's id
     var picks = { folder1: [], folder2: [], regs: [] };    // what the player chose: File lists
@@ -454,6 +507,7 @@ var ByopopSaveImport = (function () {
     function resetPlan() {
       plan = null; box.hidden = true; box.textContent = "";
       ["role", "aria-labelledby", "aria-describedby"].forEach(function (a) { box.removeAttribute(a); });
+      syncNav();
     }
 
     sel.addEventListener("change", function () {
@@ -462,6 +516,7 @@ var ByopopSaveImport = (function () {
       resetPlan();
       report.textContent = "";
       renderHelp();
+      syncNav();
     });
 
     function copyText(text, what) {
@@ -481,41 +536,67 @@ var ByopopSaveImport = (function () {
       done(false);
     }
 
+    // a fact as a field's tooltip and its description, for screen readers too
+    function tipFor(el, text) {
+      el.title = text;
+      var d = make("span", "visually-hidden", text);
+      d.id = nextId("si-tip");
+      el.setAttribute("aria-describedby", ((el.getAttribute("aria-describedby") || "") + " " + d.id).trim());
+      el.parentNode.appendChild(d);
+    }
     function renderHelp() {
-      help.textContent = ""; pickers.textContent = "";
-      if (!chosen) { help.hidden = true; pickers.hidden = true; return; }
-      var g = byId[chosen], e = gameEntry(chosen);
-      help.hidden = false; pickers.hidden = false;
-      var h = make("h4", "", ByopopStrings.t("saveimport.where", {title: g.title}));
-      help.appendChild(h);
-      if (e.note) help.appendChild(make("p", "", e.note));
-      var step = 0;
+      help.textContent = ""; pickers.textContent = ""; takes.textContent = "";
+      pages.slice(1).forEach(function (pg) { if (pg !== reviewPage && pg.parentNode) pg.parentNode.removeChild(pg); });
+      pages = [gamePage];
+      at = 0; gamePage.hidden = false; reviewPage.hidden = true;
+      if (!chosen) { syncNav(); return; }
+      var e = gameEntry(chosen);
+      function picker(pg, id, label, accept, multiple, dir, key, tip) {
+        var row = make("div", "si-row");
+        var lab = make("label", "", label);
+        lab.htmlFor = id;
+        var inp = make("input");
+        inp.type = "file"; inp.id = id;
+        if (accept) inp.accept = accept;
+        if (multiple) inp.multiple = true;
+        if (dir) { inp.setAttribute("webkitdirectory", ""); inp.setAttribute("directory", ""); }
+        row.appendChild(lab); row.appendChild(inp);
+        pg.appendChild(row);
+        if (tip) tipFor(inp, tip);
+        inp.addEventListener("change", function () { picks[key] = Array.prototype.slice.call(inp.files || []); refresh(); });
+        return inp;
+      }
+      // the save folders: the files the game keeps, where to look (each place a path, what it is in its tooltip), the two fields
       if (e.files && e.files.length) {
-        step++;
-        help.appendChild(make("p", "si-step", ByopopStrings.t("saveimport.step.files", {step: step})));
-        var ul = make("ul", "sv-list");
+        var fp = page(ByopopStrings.t("saveimport.page.files"));
+        var ul = make("ul", "sv-list si-files");
         e.files.forEach(function (f) {
           var li = make("li");
           li.appendChild(make("code", "", f.from.replace(/\//g, "\\")));
           li.appendChild(document.createTextNode(ByopopStrings.t("saveimport.file_what", {what: f.what})));
           ul.appendChild(li);
         });
-        help.appendChild(ul);
-        help.appendChild(make("p", "", ByopopStrings.t("saveimport.places")));
-        var places = make("ul", "sv-list");
-        function place(html) { var li = make("li"); li.innerHTML = html; places.appendChild(li); }
-        place(ByopopStrings.html("saveimport.place.install_html", {folder: e.folder}));
-        if (e.steam) place(ByopopStrings.html("saveimport.place.steam_html", {steam: e.steam}));
-        place(ByopopStrings.html("saveimport.place.virtualstore_html", {folder: e.folder}));
-        if (e.appdata) place(ByopopStrings.html("saveimport.place.appdata_html", {appdata: e.appdata}));
-        help.appendChild(places);
+        fp.appendChild(ul);
+        var places = make("dl", "si-places");
+        function place(key, path) {
+          var dt = make("dt", "", ByopopStrings.t("saveimport.loc." + key)), dd = make("dd");
+          dd.appendChild(make("code", "", path));
+          places.appendChild(dt); places.appendChild(dd);
+          tipFor(dd, ByopopStrings.t("saveimport.loc." + key + "_tip"));
+        }
+        fp.appendChild(places);
+        place("install", "C:\\Program Files (x86)\\PopCap Games\\" + e.folder);
+        if (e.steam) place("steam", "steamapps\\common\\" + e.steam);
+        place("vs", "%LOCALAPPDATA%\\VirtualStore\\Program Files (x86)\\PopCap Games\\" + e.folder);
+        if (e.appdata) place("appdata", "C:\\ProgramData\\PopCap Games\\" + e.appdata);
+        picker(fp, "si-folder1", ByopopStrings.t("saveimport.folder1.label"), null, false, true, "folder1", ByopopStrings.t("saveimport.folder1.hint"));
+        picker(fp, "si-folder2", ByopopStrings.t("saveimport.folder2.label"), null, false, true, "folder2", ByopopStrings.t("saveimport.folder2.hint"));
+        help.appendChild(fp); pages.push(fp);
       }
+      // the registry: the commands, each with its Copy, then a page for the files they wrote
       if (e.registry) {
-        step++;
-        help.appendChild(make("p", "si-step", ByopopStrings.t("saveimport.step.registry", {step: step})));
-        var steps = make("ol", "si-substeps");
-        ["s1", "s2", "s3"].forEach(function (k) { steps.appendChild(make("li", "", ByopopStrings.t("saveimport.registry." + k))); });
-        help.appendChild(steps);
+        var rp = page(ByopopStrings.t("saveimport.page.registry"));
+        rp.appendChild(make("p", "si-line", ByopopStrings.t("saveimport.registry.line")));
         var cmds = commands(chosen), box2 = make("div", "si-cmds");
         cmds.forEach(function (c) {
           var row = make("div", "si-cmd");
@@ -528,17 +609,23 @@ var ByopopSaveImport = (function () {
           row.appendChild(pre); row.appendChild(btn);
           box2.appendChild(row);
         });
-        help.appendChild(box2);
+        rp.appendChild(box2);
         var all = make("button", "", ByopopStrings.t("saveimport.copy_all"));
         all.type = "button";
         all.addEventListener("click", function () { copyText(cmds.map(function (c) { return c.text; }).join("\r\n"), ByopopStrings.t("saveimport.copied_all", {count: cmds.length})); });
-        help.appendChild(all);
+        var allRow = make("div", "si-cmd-all");
+        allRow.appendChild(all);
+        rp.appendChild(allRow);
         var order = e.registry.hives.map(function (hv) { return HIVE_NAMES[hv]; });
-        help.appendChild(make("p", "pl-hint", ByopopStrings.t(order.length > 1 ? "saveimport.order_many" : "saveimport.order_one",
-          {order: order.join(", " + ByopopStrings.t("saveimport.then") + " ")})));
+        tipFor(box2, [ByopopStrings.t(order.length > 1 ? "saveimport.order_many" : "saveimport.order_one",
+          {order: order.join(", " + ByopopStrings.t("saveimport.then") + " ")}), ByopopStrings.t("saveimport.registry.not_found")].join(" "));
+        help.appendChild(rp); pages.push(rp);
+        var gp = page(ByopopStrings.t("saveimport.page.regs"));
+        picker(gp, "si-regs", ByopopStrings.t("saveimport.regs.label"), ".reg,text/plain", true, false, "regs", ByopopStrings.t("saveimport.regs.hint"));
+        pickers.appendChild(gp); pages.push(gp);
       }
-      step++;
-      help.appendChild(make("p", "si-step", ByopopStrings.t("saveimport.step.choose", {step: step})));
+      pages.push(reviewPage);
+      // what the page takes from the original, folded away on the last page
       var tk = make("details", "pl-details");
       tk.appendChild(make("summary", "", ByopopStrings.t("saveimport.takes")));
       var tul = make("ul", "sv-list");
@@ -549,32 +636,8 @@ var ByopopSaveImport = (function () {
       (e.files || []).forEach(function (f) { tul.appendChild(make("li", "", ByopopStrings.t("saveimport.takes_file", {from: f.from.replace(/\//g, "\\"), what: f.what}))); });
       (e.skipFiles || []).forEach(function (f) { tul.appendChild(make("li", "", ByopopStrings.t("saveimport.takes_skip", {from: f.from.replace(/\//g, "\\"), why: f.why}))); });
       tk.appendChild(tul);
-      help.appendChild(tk);
-
-      // the pickers
-      var fs = make("fieldset", "si-fields");
-      fs.appendChild(make("legend", "", ByopopStrings.t("saveimport.choose")));
-      function picker(id, label, accept, multiple, dir, key, hint) {
-        var row = make("div", "si-row");
-        var lab = make("label", "", label);
-        lab.htmlFor = id;
-        var inp = make("input");
-        inp.type = "file"; inp.id = id;
-        if (accept) inp.accept = accept;
-        if (multiple) inp.multiple = true;
-        if (dir) { inp.setAttribute("webkitdirectory", ""); inp.setAttribute("directory", ""); }
-        if (hint) { var hid = id + "-hint"; var hp = make("span", "pl-hint", hint); hp.id = hid; inp.setAttribute("aria-describedby", hid); row.appendChild(lab); row.appendChild(inp); row.appendChild(hp); }
-        else { row.appendChild(lab); row.appendChild(inp); }
-        inp.addEventListener("change", function () { picks[key] = Array.prototype.slice.call(inp.files || []); refresh(); });
-        fs.appendChild(row);
-        return inp;
-      }
-      if (e.files && e.files.length) {
-        picker("si-folder1", ByopopStrings.t("saveimport.folder1.label"), null, false, true, "folder1", ByopopStrings.t("saveimport.folder1.hint"));
-        picker("si-folder2", ByopopStrings.t("saveimport.folder2.label"), null, false, true, "folder2", ByopopStrings.t("saveimport.folder2.hint"));
-      }
-      if (e.registry) picker("si-regs", ByopopStrings.t("saveimport.regs.label"), ".reg,text/plain", true, false, "regs", ByopopStrings.t("saveimport.regs.hint"));
-      pickers.appendChild(fs);
+      takes.appendChild(tk);
+      syncNav();
     }
 
     // ----- reading the choices -----
@@ -590,7 +653,10 @@ var ByopopSaveImport = (function () {
       resetPlan();
       report.textContent = "";
       if (!chosen) return;
-      if (!picks.folder1.length && !picks.folder2.length && !picks.regs.length) { ctx.say(ByopopStrings.t("saveimport.choose_first")); return; }
+      if (!picks.folder1.length && !picks.folder2.length && !picks.regs.length) {
+        if (onReview()) { box.hidden = false; box.appendChild(make("p", "si-line", ByopopStrings.t("saveimport.choose_first"))); }
+        return;
+      }
       var my = ++token;
       ctx.say(ByopopStrings.t("saveimport.reading"));
       build().then(function (p) {
@@ -729,28 +795,27 @@ var ByopopSaveImport = (function () {
         }
         if (plan.files.ignored) box.appendChild(make("p", "pl-hint", ByopopStrings.t("saveimport.ignored", {n: plan.files.ignored})));
       }
-      var act = make("div", "pl-actions");
-      var yes = make("button", "pl-danger", ByopopStrings.t("saveimport.plan.yes"));
-      yes.type = "button";
-      yes.disabled = !todo;
-      var no = make("button", "", ByopopStrings.t(todo ? "saveimport.plan.no" : "saveimport.plan.close"));
-      no.type = "button";
-      act.appendChild(yes); act.appendChild(no);
+      plan.todo = todo;
       var warn = make("p", "pl-error");
       box.appendChild(warn);
-      box.appendChild(act);
-      yes.addEventListener("click", function () { doImport(); });
-      no.addEventListener("click", cancel);
       // a game that is open could write over what is imported
       ctx.openGames().then(function (open) {
-        if (open === null) { warn.textContent = ByopopStrings.t("saveimport.warn.no_locks"); yes.disabled = true; }
-        else if (open.indexOf(g.id) >= 0) { warn.textContent = ByopopStrings.t("saveimport.warn.open", {title: g.title}); yes.disabled = true; }
+        if (open === null) { warn.textContent = ByopopStrings.t("saveimport.warn.no_locks"); if (plan) plan.blocked = true; }
+        else if (open.indexOf(g.id) >= 0) { warn.textContent = ByopopStrings.t("saveimport.warn.open", {title: g.title}); if (plan) plan.blocked = true; }
+        syncNav();
       });
+      syncNav();
       ctx.say(ByopopStrings.t("saveimport.plan.said", {title: g.title}));
-      (yes.disabled ? no : yes).focus();
     }
     function shortValue(v) { return v === null ? "" : v.length > 40 ? v.slice(0, 40) + "…" : v; }
-    function cancel() { resetPlan(); ctx.say(ByopopStrings.t("saveimport.nothing")); sel.focus(); }
+    // Cancel: back to the first page with no game chosen
+    function cancel() {
+      resetPlan();
+      sel.value = ""; chosen = null; picks = { folder1: [], folder2: [], regs: [] };
+      renderHelp();
+      ctx.say(ByopopStrings.t("saveimport.nothing"));
+      sel.focus();
+    }
     box.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !ctx.isBusy()) cancel(); });
 
     // ----- the write -----
@@ -799,6 +864,7 @@ var ByopopSaveImport = (function () {
         ctx.say(ByopopStrings.t("saveimport.done.said", counts));
         picks = { folder1: [], folder2: [], regs: [] };
         renderHelp();
+        syncNav();
         return ctx.refresh();
       }).catch(function (er) { resetPlan(); ctx.say(ByopopStrings.t("saveimport.failed", {error: er && er.message ? er.message : er}), true); }).then(function () {
         ctx.setBusy(false);
@@ -809,7 +875,8 @@ var ByopopSaveImport = (function () {
     ctx.addControls([sel]);
     ctx.onBusy(function (b) {
       sel.disabled = b;
-      Array.prototype.forEach.call(root.querySelectorAll(".si-fields input, .si-confirm button"), function (el) { el.disabled = b; });
+      Array.prototype.forEach.call(root.querySelectorAll(".si-page input"), function (el) { el.disabled = b; });
+      syncNav();
     });
     return { refresh: refresh };
   }

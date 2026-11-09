@@ -168,6 +168,39 @@
    time: black text on pale yellow in a thin black edge */
 :root[data-skin="d95"] .bps-help:not(#\#) { border-radius: 0; background: var(--panel); color: var(--fg); }
 :root[data-skin="d95"] .bps-row .bps-pop:not(#\#) { background: #ffffe1; color: #000; border: 1px solid #000; border-radius: 0; padding: 2px 4px; margin: 2px 0 4px; }
+/* Players, Saves and Music give their buttons the page's own look (index.html, "#players button"): in Desktop 95 every one is
+   the skin's grey bevelled button with black text, the title bar's included; a destructive one is marked by its confirmation,
+   not by a colour */
+:root[data-skin="d95"] :is(#players, #saves, #music) button:not(.mu-tune):not(#\#) { background: var(--panel); color: #000000; border: 0; border-radius: 0; }
+:root[data-skin="d95"] :is(#players, #saves) button:not(.d95-mn):not(.d95-mx):not(.d95-x):not(#\#) { padding: 3px 10px; min-width: 75px; }
+:root[data-skin="d95"] .adding button.bin-yes:not(#\#) { color: #000000; }
+:root[data-skin="d95"] :is(#players, #saves, #music) button:not(#\#):disabled { opacity: 1; color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
+:root[data-skin="d95"] :is(#players, #saves, #music) :is(.d95-mn, .d95-mx, .d95-x):not(#\#) { padding: 0; }
+/* no empty band at the top of Players or Saves: the status line (a live region, kept in the page) takes no room while it says
+   nothing, and the first heading sits at the window's top */
+:root[data-skin="d95"] .pl-status:empty:not(#\#) { min-height: 0; margin: 0; }
+:root[data-skin="d95"] #players-body > h3:first-of-type { margin-top: 0; }
+/* the save import as Windows 95's wizard: the picture panel at the left (a sky over a floppy disk going into a drive), the
+   pages beside it, and an etched line over Back, Next and Cancel */
+:root[data-skin="d95"] .si-wiz { grid-template-columns: 112px minmax(0, 1fr); gap: 14px; }
+:root[data-skin="d95"] .si-art { display: block; position: relative; min-height: 220px;
+  background: linear-gradient(#008080, #004040); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
+:root[data-skin="d95"] .si-art-disk { position: absolute; left: 30px; top: 60px; width: 52px; height: 52px; background: #202020;
+  box-shadow: 2px 2px 0 #000000; }
+:root[data-skin="d95"] .si-art-disk::before { content: ""; position: absolute; left: 14px; top: 0; width: 24px; height: 16px; background: #c0c0c0;
+  box-shadow: inset 6px 0 0 #c0c0c0, inset 14px 0 0 #808080; }
+:root[data-skin="d95"] .si-art-disk::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 24px; background: #ffffff;
+  box-shadow: inset 0 4px 0 #ffffff, inset 0 5px 0 #000080, inset 0 10px 0 #ffffff, inset 0 11px 0 #000080; }
+:root[data-skin="d95"] .si-page-title { font-weight: bold; font-size: 13px; }
+:root[data-skin="d95"] .si-nav:not(#\#) { border-top: 1px solid var(--sk-lo); box-shadow: inset 0 1px var(--sk-hi); }
+:root[data-skin="d95"] .si-pre:not(#\#) { border: 0; border-radius: 0; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .pl-confirm.si-confirm:not(#\#) { border: 0; border-radius: 0; padding: 0; background: none; margin: 0 0 8px; }
+/* the current player: its name in bold beside its checked button, as Windows 95 marked the one in use; the word stays for
+   screen readers */
+:root[data-skin="d95"] .pl-current { font-weight: normal; }
+:root[data-skin="d95"] .pl-current:has(input:checked) .pl-name, :root[data-skin="d95"] li:has(> .pl-badge) > label { font-weight: bold; }
+:root[data-skin="d95"] .pl-badge { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 :root[data-skin="d95"] button.primary { outline: 1px solid var(--sk-dk); outline-offset: -1px; background: var(--panel); color: var(--fg); }
 /* the listing: the desktop with its logo, and the page's content in one window */
 :root[data-skin="d95"] .site-header { color: var(--sk-desk-fg); }
@@ -356,6 +389,16 @@ html.d95-dragging, html.d95-dragging * { -webkit-user-select: none !important; u
 html.d95-desk .d95-mn { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; }
 html.d95-desk .d95-mn::after { content: ""; position: absolute; left: 4px; top: 8px; width: 6px; height: 2px; background: var(--sk-dk); }
 html.d95-desk .d95-mn:active::after { transform: translate(1px, 1px); }
+/* What's This? (web/skins.js, o.whatsThis): the title bar's "?" in a Settings section's window, beside its other buttons; while
+   it is pressed the pointer is Windows 95's arrow with a question mark, and the next click shows that control's tip */
+html.d95-desk .d95-hlp { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; color: #000000; }
+html.d95-desk .d95-hlp::after { content: "?"; position: absolute; inset: 0; font: bold 11px/14px Arial, sans-serif; text-align: center; }
+html.d95-desk .d95-hlp:active::after, html.d95-desk .d95-hlp[aria-pressed=true]::after { transform: translate(1px, 1px); }
+html.d95-desk .d95-hlp + .d95-mn { margin-left: 2px; }
+html.d95-whats, html.d95-whats * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' shape-rendering='crispEdges'%3E%3Cpath d='M0.5 0.5v16l4-4 3 7 2-1-3-7h5z' fill='%23fff' stroke='%23000'/%3E%3Ctext x='12' y='26' font-family='Arial' font-weight='bold' font-size='14' fill='%23000' stroke='%23fff' stroke-width='3' paint-order='stroke'%3E%3F%3C/text%3E%3C/svg%3E") 0 0, help !important; }
+/* one "?" a window, in its title bar, so none on the rows; the explanation stays each control's description, and F1 on a
+   focused control shows its tip */
+:root[data-skin="d95"] .bps-help:not(#\#) { display: none; }
 /* the close button: an X drawn with two strokes */
 html.d95-desk .d95-x { width: 16px; height: 14px; padding: 0; flex: none; position: relative; color: var(--fg); }
 html.d95-desk .d95-x::before, html.d95-desk .d95-x::after { content: ""; position: absolute; left: 3px; right: 4px; top: 5px; height: 2px;
