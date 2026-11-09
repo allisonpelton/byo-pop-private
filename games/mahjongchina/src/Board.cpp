@@ -495,7 +495,7 @@ void Board::Measure()
 		aTile = mLayout.Next();
 	}
 	mOffX = ((aLeft - aRight) + 800) / 2 - aLeft;
-	// China drops Japan's -5 here (China 0x40b650)
+	// China drops Japan's -5 here
 	mOffY = ((aTop - aBottom) + 0x1c4) / 2 - aTop;
 }
 

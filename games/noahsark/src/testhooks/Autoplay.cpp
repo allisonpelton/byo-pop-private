@@ -9,6 +9,8 @@
 //   -autoplaydiff=0|4|8   the difficulty (easy, medium, hard)
 //   -autoplaygames=N      play N games, then quit
 //   -autoplaycap=N        quit after N updates in any case
+//   -autoplaystop=N       the bot makes no more moves after update N (the run goes on: the flood, the game over and the name entry
+//                         it answers still happen)
 //   -autoplaymenu         the bot does not start games: a -script clicks through the menus and the bot plays the
 //                         games it starts (its clicks are in the log, for replay in the original)
 //   -autoplaylog=<file>   the log
@@ -143,6 +145,8 @@ void NoahApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 		mAutoplayGames = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaycap")
 		mAutoplayCap = atoi(theParamValue.c_str());
+	else if (theParamName == "-autoplaystop")
+		mAutoplayStop = atoi(theParamValue.c_str());
 	else if (theParamName == "-autoplaylog")
 		mAutoplayLog = theParamValue;
 	else if (theParamName == "-autoplaymenu")
@@ -368,6 +372,8 @@ void NoahApp::AutoplayUpdate()
 		return;
 	if (!BotBoardSettled(b))
 		return;
+	if ((mAutoplayStop > 0) && (s->mTick > mAutoplayStop))
+		return;                     // the bot has stopped moving (a game it leaves alone is lost); the run goes on
 
 	// the bot's move (Bot.cpp, which the test command "move" gives a driver too); its clicks are logged, so that the
 	// original can replay them

@@ -363,9 +363,10 @@ front page"), narrower when the window is. Its heading, "Games", is there for sc
 (the user, 2026-11-03: "remove Games from the front page header"). `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
-option is off). Below the tiles it has three tabs: Players (`#players`; "Player profiles", below), which `web/players.js` builds
-from the records in `web/profiles.js`, Saves (`#saves`; "Save backup" and "Importing saves from an installed game", below) and Settings (`#settings`; "Site settings", below), which `web/settings.js`
-draws (see "The tabs", below); the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
+option is off). Below the tiles it has two tabs: Settings (`#settings`; "Site settings", below), which `web/settings.js` draws,
+and Music. Players ("Player profiles", below), which `web/players.js` builds from the records in `web/profiles.js`, and Saves
+("Save backup" and "Importing saves from an installed game", below) are sections of Settings, the first two (the user,
+2026-11-09: "Fold players and saves into the settings menu"; see "The tabs", below); the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
 for the listing page's own: `players.js`, `saves.js` and `saveimport.js`, with the table `platform/saveimport.json` written beside them as `saveimport-table.js`).
 
 **Coming soon.** The user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say
@@ -430,8 +431,11 @@ people, a floppy disk, a gear), named by its `aria-label` and with the name as i
 (`tabindex="0"`) and hidden while another tab is chosen. Only the chosen tab is in the tab order (`aria-selected="true"`, the others
 `tabindex="-1"`); Left and Right move along the tabs, wrapping round, and show each one's panel at once, Home and End go to the first
 and the last, and Tab goes on into the panel. Each panel keeps an `<h2>` with the tab's name, out of sight, for the page's outline. A
-link to `#players`, `#saves` or `#settings` chooses that tab, whether it is followed here (the Players tab's "Player names in Settings")
-or opens the page (a game's Settings panel's "Manage players"); a click on such a link in the page also puts the focus on the tab,
+link to `#settings` or `#music` chooses that tab, and `#settings-<section>` Settings at that section (on Desktop 95, the section's
+window), whether it is followed here or opens the page (a game's Settings panel's "Manage players", `#settings-players`). The
+addresses of the tabs Players and Saves were, `#players` and `#saves`, land on those sections of Settings (`settingsHash` in
+web/index.html), as do `?open=` addresses that carry them. A section with nothing in it is not shown: a game's Settings panel has
+Players (its player-name setting) but no Saves. A click on such a link in the page also puts the focus on the tab,
 whether or not its hash was already in the address. A tab the player chooses (a click or the keys) goes into the address with
 `history.replaceState`, which adds no history entry, so that a reload keeps it, and it is kept in localStorage under
 `byopop-listing-tab` (the panel's id), read and written inside `try`, for the next visit; Players is the first. `tools/a11ycheck.js` takes the roving tabindex for what it is: every tab must
@@ -498,8 +502,11 @@ that getting the files back means opening the game (a link) and loading them aga
 features, as there are none.
 
 **Where to buy.** A game that can still be bought has a small link for each store under its label, "Buy on Steam" or "Buy on
-the EA app" (a store whose name ends in "app" takes "the"), with `rel="noopener"` and an accessible name that includes the
-game ("Buy Big Money on Steam"). `byopop_web_index()` writes them at build time from the same data as the game pages'
+the EA app" (a store whose name ends in "app" takes "the"), which opens in a new tab (`target="_blank" rel="noopener noreferrer"`;
+the user, 2026-11-09: "The buy links should always open in a new tab") and whose accessible name has the game and says so ("Buy
+on Steam, Big Money (opens in a new tab)"). Every store link of the site is such a plain link, never a script's `window.open`,
+which a popup blocker may stop: the cards' (and the coming-soon tiles') in every skin, the Library's menu entries (links in the
+menu, web/skins.js popMenu `href`), the game pages' and copyright pages' buy note and the terms card's. `byopop_web_index()` writes them at build time from the same data as the game pages'
 buy note, `BYOPOP_BUY_<target>` in `cmake/ByopopStores.cmake` (a check date, then each store's name and page), so the two
 cannot disagree; a game with no store shows nothing. The links are in the same list item as the game's link but not inside
 it, in a `.buyrow` beside it, as a link cannot hold a link.
@@ -729,6 +736,22 @@ every slider.
 7. **Evoke, don't copy.** Real players of the time (CD players, media players, module players) guide layout and density, but
    no real program's artwork, logo, name or skin is copied: our own drawing throughout.
 
+The rest of the site took the rules on 2026-11-08, in one pass. Each setting's explanation sits behind a small "?" beside its
+label (shown while it is hovered or focused, pinned by a click, closed by Esc, and linked to the control by `aria-describedby`),
+and its row is a line in a list, not a card; the line under a label holds only live markers (applies at the next start, this
+game's own value). The notes in the Saves, Controls, Performance, Mods and game files windows are terse facts; the game's start
+card has its title and Play, no "Click to start."; the licences page has no introduction. Two exceptions are kept whole: the
+terms (its text unchanged; the card leads with the agreement, so the full text scrolls below it) and the chat's note (the
+user asked for it). Text a player needs to act stays, as short steps: the save import is a wizard (`web/saveimport.js`), one
+step a page (a heading, its fields, at most one short line) with Back, Next and Cancel, the facts a field needs in its tooltip
+and its description, and the registry commands with their Copy buttons on their own page.
+
+Desktop 95 keeps to what Windows 95 drew (the coordinator, 2026-11-08). Every button is the skin's grey bevelled one with black
+text, and a destructive one is marked by its confirmation, not by a colour. The current player is in bold beside its checked
+button, with no pill. A Settings section's window has one "?" in its title bar (What's This?), not one a row: it turns the
+pointer into an arrow with a question mark, and the next click on a control shows its tip there instead of working the control;
+F1 on a focused control shows the same tip in every skin, and the text stays the control's description for screen readers.
+
 ### Skins
 
 The user chose three of the directions as selectable skins (2026-11-07: "Offer A, B, and C as selectable skins... D feels too
@@ -807,13 +830,13 @@ chat and every panel (Settings, Game files, Mods and the game's own) are
 windows dragged by their title bars, or moved 8 pixels at a time with Alt and the arrows while the focus is in a title bar. A
 column of icons at the left opens each one again; a panel's icon presses the panel's own button on the page's bar. The bar
 itself is no window there (the user, 2026-11-08: "That tools window probably doesn't need to exist at all"): the game's name is
-its window's title, with the mods that run in the 1995 manner of "App - Document" ("Bejeweled - 2 mods", just "Bejeweled" with
-none: the count the status line gives at the start, or while the game is closed the mods that are on); the status line is the
+its window's title, alone, as a 1995 program's title is its name (the coordinator, 2026-11-08; the mods that run are counted in
+the status bar, and the task bar's buttons take the name too); the status line is the
 game window's status bar, in a sunken panel along its bottom; the panels are their own windows, as many open at once as wanted, each closed by its own Close (or Esc in it), and
 a click on the game leaves them open (elsewhere one panel shows at a time and a click on the game closes it); the sound switch is in the
-tray; full screen is the game window's maximize button, an entry of its control menu (its title bar's icon, or Alt+Space:
+tray; full screen is the game window's maximize button, an entry of its control menu (its title bar's icon:
 Minimize, Maximize, Close) and of the Pop menu; and the theme button is in Settings' Appearance. The game window's Close (its
-button, its control menu's Close, and Alt+F4 where the browser lets the page have it) closes the program (the user,
+button, its control menu's Close; no Alt+F4, which Windows gives the browser's window and never the page) closes the program (the user,
 2026-11-08: "Closing the game window ought to go back to the home page/bring back All games"): the game closes as it does for
 the panels' actions, its saves written (closeGameThen), the page's play time is kept as on any way out, and the listing opens
 with All games open and in front (sessionStorage `byopop-desk-open`); no question is asked beyond the page's own. Minimizing
@@ -853,7 +876,11 @@ their icons or a link to #settings and the like open them. The desktop never scr
 shouldn't be scrollable"): every window is at most the size of the browser's window above the task bar and scrolls its own
 contents, and it is moved to fit on the screen when it opens and when the browser's window changes size. Every window but the
 game's is resized by its edges and corners, as in 1995 (the user, 2026-11-08: "Non-game windows should be resizable"): a band
-4 pixels wide inside the frame along each edge and a square at each corner, from 200 x 120 up to the room above the task bar;
+5 pixels wide along each edge, from the frame's outer edge in (the window clips its contents at its border with `overflow: clip`
+and a 2-pixel `overflow-clip-margin`, so the bevel itself is part of it), and 12 pixels along each side at each corner, from
+200 x 120 up to the room above the task bar. Over them the cursor is 1995's resize cursor for that edge (the user,
+2026-11-09: "The windows should use a resize cursor on the edges"), a black double arrow edged in white drawn in web/skins.css,
+up and down, across or diagonal, over a site cursor set too; a maximized window has no edges to resize;
 its contents scroll or reflow in it, and the size is kept with its place. Music opens 420 pixels high (600 wide, as the tabs' windows are), about a 1995 media
 player's size, with its list scrolling inside (the user, 2026-11-08: "Music window is too tall"). The game's window keeps its
 whole multiples (below). Every window has
@@ -862,6 +889,64 @@ the grey face, the title bar 18 pixels high across the whole inner width, 2 more
 the window scrolls its contents (the listing's windows, About) a thin sunken edge marks the client area and its scroll bar
 stands inside it. The rule sits above the skin's own rules for the same elements off the desktop, which had put a padded box
 between the frame and the title bar.
+
+**Desktop 95 in one page.** With Desktop 95 chosen the whole site is one page, the listing's desktop (the coordinator,
+2026-11-08): every page of ours opens there as a window, with its own title, task bar button and, for a game, an entry under
+the Pop menu's Games (web/deskapps.js, `ByopopApps`). A game, its copyright page (the full terms and the licences) and any other
+page of ours are their own pages in a frame (`?embed=1`: the page draws no desktop of its own, no task bar, no icons, no header
+or footer, and keeps its window places under `embed:<page>`); a licence text is fetched into the window as plain text. A link
+to one of our pages opens its window instead, on the desktop and inside a window's page alike; a link to another site still
+opens a tab. The address follows the window in front: opening one pushes its page's address, bringing another to the front
+replaces it (a licence text, in a folder of its own, is `?open=<page>` instead, as its own address would move the
+listing's base for every relative link and later load), and the state lists the windows open, so Back and Forward close and reopen windows and never leave the page; a
+reload brings back the window that was in front, and the address of any page of ours, opened in its own tab with Desktop 95
+chosen, shows the desktop with that page's window open (skins.js goes to `?open=<page>`, and the page's address is put back).
+`?desk=0` keeps a page as it is, and the player-only page (`?player=1`) never moves. Leaving Desktop 95 on such an address
+loads that page itself; the other skins are unchanged.
+
+Up to three games run at once, each in its own window (the frames are separate pages, so each game has its own module, its
+own saves, play time and the mods it runs in its status bar); a fourth brings up a Windows 95 message box naming the
+limit. The window in front has the focus, given to its game when it comes to the front by its title bar, its task bar button
+or the Pop menu, and the other games lose it exactly as a page does: their frames get the window blur the framework listens
+for (`EmscriptenFocusCallback`), so each does what it does when its page loses the focus; a minimized
+window is never in front. A favourite's desktop icon and its menu open the game's window too. A game window has the menu bar of a Windows 95 program (the user, 2026-11-09: "don't hide everything under "Game""): Game
+(Game files, Controls and any window of the game's own; Close), View (Fit window and the whole multiples of the game's size;
+the scanlines, the colour filter, the run timer and the input display, set for that game as its Settings would; Full screen;
+the chat), Options (Mods, Settings) and Help (the terms, copyright and licences; an About box with the game's name and the
+copyright lines of its readme). Each menu has its access key, the first letter underlined: Alt and the letter opens it,
+from the desktop or while the game has the keys, the left and right arrows go to the menu beside it, and Escape gives the keys
+back to the game. No menu shows a key the page does not get: Alt+F4 closes the browser's window and Alt+Space opens its
+window menu on Windows, so neither is handled (the user, 2026-11-09: "Alt-F4 captured by browser").
+Every menu of the desktop (the Pop menu and its lists, a window's menu bar menus and control menu, the context menus, What's
+This?) closes as Windows' did (the user, 2026-11-09: "The dropdown doesn't disappear properly when clicking out of it"): on a
+press anywhere outside it, which still does what it does, in a game's frame too (the page sees no press there, only its own
+window losing the focus to the frame); on Escape; and when its window is minimized, closed or goes, or another window comes to
+the front (web/skins.js closeAllMenus).
+
+The window's client area is the game on black with the status bar along its bottom edge, and the game is at a whole multiple
+of its size in device pixels (web/shell.html embedWidth): the one chosen in View, or with Fit window (the default) the largest
+that fits the window, however the player sizes it (its edges, its maximize button, which fills the desktop above the task
+bar and gives the window back its place on a second press). The window takes its game's size when it opens: the chosen
+multiple, or the largest the desktop has room for. View lists the multiples to two past the largest the desktop has room for
+(at least 4x), the ones without room greyed; picking one that the window is too small for sizes the window to fit it, and the
+status bar shows the multiple as a value ("2x"). The choice is kept for each game (localStorage `byopop-d95-scale`, 0 for Fit
+window). Full screen (View's, or the game's own option) puts the window's frame in full screen, and the page in it
+draws its stage alone there (`html.fs-frame`, frameFull), as a game's own page does: the game at the largest whole multiple of
+its size that fits, centred on black, with no frame, menu bar or status bar. Esc or the game's own option leaves it, and the
+window is as it was; F11 stays the browser's, as on the desktop.
+
+The chat is one window of the desktop for every game (the user, 2026-11-09: "Let's just have a single chat window instead of
+waiting for it to load with each game"), with its icon, its Pop menu entry and its task bar button. It is built when it first
+opens and runs on while games open and close; a game's page in a window starts none of its own. It comes up behind the first
+game the page opens (unless "Show chat" is off) and is in front only when the player brings it there. It stands at the
+desktop's right edge, 300 by 480 pixels, and a game's window opens at the left, so the two sit side by side from 1280 pixels wide
+with a game of 800 by 600 or less. What the player sends is tagged with the game in front, or the newest game open (`ByopopApps.frontGame`),
+and with none while no game is open. Close
+is the game's own way out, its saves written first (closeGameThen), then the window goes. A game window takes its game's size
+in device pixels with its frame and status bar, as far as the desktop has room. `?silent=1` passes to every frame. Under 760
+pixels wide one window shows at a time, maximized, the task bar switching between them, and only one game can be open.
+Measured in the pane with Big Money, Alchemy and Twist: the games' wasm memory is 53, 30 and 284 MB, and the page's JavaScript
+heap 14 MB with one or two of them and 100 MB with Twist's images loaded as well.
 
 **The task bar.** Along the desktop's bottom edge (the user, 2026-11-08: "Add a task bar to the bottom with a start menu,
 replacing "Start" with "Pop""): the Pop button at the left, with the site's cap beside the word, then a button for each open
@@ -898,8 +983,10 @@ in a comment above the row, and no readme text. The build puts it on each tile a
 games and shows the count above them as a value ("4 hidden", the reason in its tooltip), the favourites' icons of those games go (the favourites stay), and the Pop menu's
 Games lists only the others, with the count as its last, greyed entry. An unknown game is hidden too. A game page already open
 stays open. The other skins list every game. Six games are unknown: Cosmic Bugs, Water Bugs, Gyromancer and both Mahjong
-games have no readme that says, and no copy of Feeding Frenzy is here. Most of the "no" rows rest on the Steam releases' readmes
-(Windows 98 or later), which may not be what the first release said.
+games have no readme that says, and no copy of Feeding Frenzy is here; all six came out after TipTop. A game released before the
+last one whose readme names Windows 95 (TipTop, 2002-12-12) counts as yes whatever its readme says (the user, 2026-11-08:
+"Anything released before the last game that did support Windows 95, we'll assume supported 95"): Bejeweled, Alchemy, Dynomite
+and Big Money, whose readmes found are of later releases (Windows 98 or later). Ten are yes, 24 no.
 
 **Desktop 95's controls.** The skin draws its controls as the 1995 desktop did (the user, 2026-11-08: "the dropdowns, check
 boxes, and selectors should be redesigned to look more like authentic Windows 95. Rounded corners are very un-95"): white
@@ -1015,8 +1102,8 @@ games stay identical to their originals. A choice is `"game"` (the default), `"o
 does not know are kept when it writes. Every read and write is in a try/catch: with storage blocked the pages behave as if
 nothing was set, and the controls say a setting was not kept.
 
-The settings, by their field in the item, with the wording of their controls (each has a short hint under it that says what
-it is for, in `FIELDS` in `web/settings.js`):
+The settings, by their field in the item, with the wording of their controls (each has a short hint, behind its "?" or, in Desktop
+95, What's This? and F1, that says what it is for, in `FIELDS` in `web/settings.js`):
 
 - `startVolume` (a switch), `startMusic` and `startSound` (levels, 50 until moved): **Set the starting volume**, a checkbox
   with a "?" button beside it, and when it is ticked two sliders, **Music** and **Sound**, each from 0 to 100 with its number
@@ -1377,6 +1464,29 @@ folder is restored whole or not at all, with a directory entry for every missing
 from the manifest. The page then tells what it wrote and sends a `storage` event to its own sections so that the settings and players
 show the restored values.
 
+### The Library
+
+Desktop 95's other window of the games, on the listing's desktop (web/library.js; the coordinator, 2026-11-08): a grid that
+evokes a game client of 2004 in a look of its own (olive and khaki, flat panels with 1-pixel bevels, small Tahoma, an
+amber-olive selection, square buttons and its own title bar, web/skins.css `.lib-*`), named for no real program and with no
+real program's art. Each game is a row: its 16-pixel icon (the one from the player's files, else its cap's colour and
+initials) and name, its status (Ready, Needs your files, Coming soon, No longer sold), its play time, the day it was last
+played and its year. A click on a column's header sorts by it, a second click the other way, the choice kept in localStorage
+`byopop-library-sort`; ties go by name, and the sort is announced and set as `aria-sort` on the header. A double-click or Enter
+plays the selected game (its window on the one page, web/deskapps.js), as does the Play button above the grid; the Filter box
+beside it narrows the rows to the names that hold its text, and the status bar counts them. A row's menu (a right click, the
+menu key or Shift+F10) has Play, Add files (the game's window, whose setup asks for them), Add to or Remove from favourites,
+Properties (a sheet of the game's values: name, status, release date, plays, play time, last played, Windows 95) and the
+card's buy links, which open a new tab. The grid is one tab stop, its selected row's first cell: the arrows, Home and End, Page
+Up and Down move the selection, and typing the first letters of a name goes to it; Tab moves between the Play button, the
+Filter box, the column headers and the grid, and F6 between the desktop's windows. It is a real grid (`role="grid"`, rows
+with `aria-selected`, each named by its game's cell, a row header, and column headers with `aria-sort`).
+Everything comes from the listing's own cards (their files check, favourite and buy
+links) and from ByopopPlay, so the two windows always agree; the rows are read again when the window comes to the front and
+when a card changes. Its icon stands beside All games', and the Pop menu has it beside Games. The setting "Games open in"
+(Look, Desktop 95 only; All games by default) chooses the window that the first entry of the Pop menu's Games and a closed
+game's return open. Under 760 pixels the window is maximized like the rest, without the Last played and Year columns.
+
 ### The music player
 
 The listing page's fourth tab, Music (`web/music.js`, the user's request of 2026-11-07), plays the music of the games the player
@@ -1439,14 +1549,41 @@ selection. Repeat, mute, the volume and the view are kept in `localStorage` (`by
 `byopop-music-volume`, `byopop-music-vis`). Where the music comes from and the libopenmpt and libxmp-lite credits are in the
 listing's About (its footer), with links to their licences.
 
+**The display's height** (the user, 2026-11-09: "increase how many rows show in the tracker") is set by a splitter between
+the player and the playlist: dragging it gives the display whole tracker rows more or fewer, from 5 to 64, and the arrow keys
+on it one row (Page Up and Down five, Home and End the least and the most). The spectrum takes the same height. It has no
+words: the resize cursor (Desktop 95's own), and its name as a tooltip and for screen readers ("Display height", a
+`role="separator"` whose `aria-valuenow` is the rows). The rows are kept for this browser (localStorage `byopop-music-rows`,
+read and written in try/catch).
+
+**Only the playlist scrolls** (the user, 2026-11-09: "only the list of songs should scroll within the music menu, so that the
+tracker/spectral analyzer and controls are always visible"). In Desktop 95 the Music window's body never scrolls: the
+playlist scrolls inside it with the window's drawn scroll bar (the `scroll: ".mu-list"` option of the window) and takes the
+height the player leaves, so a taller window shows more of it and a shorter one takes the height from the list first. The
+window keeps the player, the splitter and three of the list's rows: its least height (`minHeight` of the window, which
+web/skins.js's resizing asks, from music.js's `minHeight`), and the splitter gives the display only as many rows as leave the
+list those three. A dragged edge also stops at the desktop's own edges, so the window's bottom never goes under the task bar.
+In the skins where Music is a tab of the page, the playlist is at most what the browser's window leaves under the player
+(`--mu-player-h`, set by music.js), with a floor of three rows, and scrolls inside; the display there takes only as many rows
+as leave the player and three rows of the list in the browser's window, so the player is always in view while the list
+scrolls. Both are worked out again when the browser's window or the panel changes size (a `resize` listener and a
+ResizeObserver; a hidden pane runs no ResizeObserver, so a test there fires `resize` after showing the panel). The rows asked
+for are kept, so a larger window gives them back.
+
 The view is the display's lower half, and a click on it (or Enter or Space) goes to the next: the spectrum, then the tracker,
 then nothing, as players of the time cycled their visualisations. **Spectrum**: 24 bars from 40 Hz to 16 kHz, spaced as the ear
 hears them, each with a peak that falls back (a Web Audio AnalyserNode, put between the worklet and the volume only while the
 spectrum is shown, so the bars are the tune's own whatever the volume, and still move at `?silent=1`). **Tracker**, for a module's
-tune: a terse header in tracker style ("ORD 07  PAT 06  ROW 16/64") and the five rows around the one heard, each channel's cell
+tune: a terse header in tracker style ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard, it in the middle, each channel's cell
 as libopenmpt writes it (`openmpt_module_format_pattern_row_channel`) or, for libxmp-lite's modules, its note, instrument, volume
-and effect (the effect as libxmp-lite's own type, in hex). An Ogg tune has no patterns, so with the tracker chosen it shows the
-spectrum. While the tracker is shown and the player is on the screen, the decoder renders in slices of 512 frames and notes its
+and effect (the effect as libxmp-lite's own type, in hex). Only the channels that play a note somewhere in the module are shown
+(`bm_used`, read once a tune; the user, 2026-11-08: "the window isn't wide enough for all the tracker instruments"), each cell
+whole: the full cell while every such channel fits with it, otherwise a tracker's narrow view of note and instrument, and as
+many whole columns as the view's width holds, measured in the rows' own font. When some still do not fit, the header adds
+"CH 1-12/37" and a scroll bar drawn by the player sits under the rows (Windows 95's in Desktop 95, a thin one in the display's
+colours elsewhere; the browser's own bar draws no arrows in Chrome): its arrows move a channel, its track a page, its thumb
+drags, Left and Right on the display do the same, and it follows nothing on its own. The player is as wide as its window or
+panel, so widening it shows more channels. An Ogg tune has no patterns, so with the tracker chosen it shows the spectrum. While the tracker is shown and the player is on the screen, the decoder renders in slices of 512 frames and notes its
 pattern and row before each, so the view shows the row of the slice being heard; otherwise it renders as before and is never
 asked, so a closed view or window costs nothing. A frame's look at the clock and the views runs only while a tune plays (and
 while the spectrum's bars fall back after it). In Desktop 95 the display is black with green figures in a sunken edge (the

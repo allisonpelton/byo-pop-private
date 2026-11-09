@@ -31,7 +31,8 @@ using namespace Sexy;
 MummyApp* Sexy::gApp = NULL;
 
 // 0x419bb0
-MummyApp::MummyApp()
+MummyApp::MummyApp() :
+	mImages(this)
 {
 	gApp = this;
 	mProdName = "MummyMaze";
@@ -41,7 +42,8 @@ MummyApp::MummyApp()
 	mWidth = GAME_WIDTH;
 	mHeight = GAME_HEIGHT;
 
-	mImages = NULL;
+	for (int i = 0; i < NUM_SOUNDS; i++)
+		mSoundTried[i] = false;
 	mFont1 = NULL;
 	mScoreFont = NULL;
 	mHeaderFont = NULL;
@@ -112,22 +114,45 @@ MummyApp::~MummyApp()
 	delete mHeaderFont;
 	delete mBiggestFont;
 	delete mPyramidFont;
-	if (mImages != NULL)
-		delete[] mImages;
+}
+
+ImageTable::ImageTable(MummyApp* theApp) :
+	mApp(theApp)
+{
+	for (int i = 0; i < NUM_IMAGES; i++)
+		mImages[i] = NULL;
+}
+
+Image* ImageTable::Load(int theId)
+{
+	Image* anImage = mApp->LoadImage(theId);
+	if (anImage == NULL)
+	{
+		// port: a picture that is not there is told at its first use, not at start; a blank one stands in while the game ends
+		static MemoryImage* aBlank = NULL;
+		if (aBlank == NULL)
+		{
+			aBlank = new MemoryImage();
+			aBlank->Create(1, 1);
+		}
+		return aBlank;
+	}
+	mImages[theId] = anImage;
+	return anImage;
 }
 
 // 0x41db90: images\<name>
-bool MummyApp::LoadImage(int theImageId)
+Image* MummyApp::LoadImage(int theImageId)
 {
 	std::string aPath = std::string("images\\") + gImageNames[theImageId];
-	mImages[theImageId] = GetImage(aPath);
-	if (mImages[theImageId] == NULL)
+	Image* anImage = GetImage(aPath);
+	if (anImage == NULL)
 	{
 		Popup("Failed to load " + aPath);
 		mLoadingFailed = true;
-		return false;
+		Shutdown();
 	}
-	return true;
+	return anImage;
 }
 
 // 0x41e200
@@ -141,16 +166,8 @@ void MummyApp::Init()
 	LoadGameTexts();
 	LoadGameLevels();
 
-	mImages = new Image*[NUM_IMAGES];
-	for (int i = 0; i < NUM_IMAGES; i++)
-	{
-		mImages[i] = NULL;
-		if (!LoadImage(i))
-		{
-			Shutdown();
-			return;
-		}
-	}
+	// the original decodes every picture here; mImages decodes each when it is first asked for (a picture that is not there
+	// is told then: a popup and the end of the game)
 	mFont1 = new ImageFont(mImages[IMAGE_FONT1], "data\\font1.txt");
 	mHeaderFont = new ImageFont(mImages[IMAGE_HEADERFONT], "data\\headerfont.txt");
 	mBiggestFont = new ImageFont(mImages[IMAGE_BIGGESTFONT], "data\\biggestfont.txt");
@@ -171,26 +188,35 @@ void MummyApp::Init()
 	mMusicSlot = 0;
 }
 
-// 0x41dd60: the sounds (the loading bar counts them), the score and pyramid fonts, then the light mask
+// port: a sound is decoded when it is first played; the original decodes all of them in its loading thread (0x41dd60), a
+// fifth of the load. One that is not there stays silent. The one MP3 (pummel) needs a decoder the platform has not got yet:
+// that sound stays silent.
+void MummyApp::LoadSoundOnce(int theSoundNum)
+{
+	if (theSoundNum < 0 || theSoundNum >= NUM_SOUNDS || mSoundTried[theSoundNum] || mSoundManager == NULL)
+		return;
+	mSoundTried[theSoundNum] = true;
+	mSoundManager->LoadSound(theSoundNum, std::string("sounds\\") + gSoundNames[theSoundNum]);
+}
+
+void MummyApp::PlaySample(int theSoundNum)
+{
+	LoadSoundOnce(theSoundNum);
+	SexyApp::PlaySample(theSoundNum);
+}
+
+void MummyApp::PlaySample(int theSoundNum, int thePan)
+{
+	LoadSoundOnce(theSoundNum);
+	SexyApp::PlaySample(theSoundNum, thePan);
+}
+
+// 0x41dd60: the sounds (the loading bar counts them: their files are decoded at their first play, see LoadSoundOnce), the
+// score and pyramid fonts, then the light mask
 void MummyApp::LoadingThreadProc()
 {
 	mNumLoadingThreadTasks = NUM_LOADING_TASKS;
-	for (int i = 0; i < NUM_SOUNDS; i++)
-	{
-		if (!mSoundManager->LoadSound(i, std::string("sounds\\") + gSoundNames[i]))
-		{
-			// The one MP3 (pummel) needs a decoder the platform has not got yet: that sound stays silent
-			if (i == SOUND_PUMMEL)
-			{
-				mCompletedLoadingThreadTasks++;
-				continue;
-			}
-			Popup(std::string("Failed to load sounds\\") + gSoundNames[i]);
-			mLoadingFailed = true;
-			return;
-		}
-		mCompletedLoadingThreadTasks++;
-	}
+	mCompletedLoadingThreadTasks += NUM_SOUNDS;
 	mCompletedLoadingThreadTasks++;
 	mScoreFont = new ImageFont(mImages[IMAGE_SCOREFONT], "data\\scorefont.txt");
 	mPyramidFont = new ImageFont(mImages[IMAGE_PYRAMIDFONT], "data\\pyramidfont.txt");

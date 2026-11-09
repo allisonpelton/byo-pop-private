@@ -14,6 +14,9 @@
 namespace Sexy
 {
 
+// WinNoah.exe's game code has two copies of this drawing for the dialog picture: 0x4126d0 (the game-over screen's box)
+// and 0x416160 (the level-up panel's box). Each translates the graphics to a position and draws the same pieces the
+// same way, so the port calls this function for both.
 inline void DrawImageBox2003(Graphics* g, const Rect& theDest, Image* theImage)
 {
 	int cw = theImage->GetWidth() / 3;

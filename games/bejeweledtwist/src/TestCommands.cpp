@@ -550,10 +550,30 @@ bool WinTwistApp::HandleTestCommand(const ScriptCommand& theCommand)
 	}
 
 	// The rest act on a game
-	if (aCommand != "level" && aCommand != "set" && aCommand != "win" && aCommand != "lose")
+	if (aCommand != "level" && aCommand != "set" && aCommand != "win" && aCommand != "lose" && aCommand != "gem")
 		return false;
 	if (aBoard == nullptr) {
 		ReplyError(theCommand, "no game is on");
+		return true;
+	}
+
+	if (aCommand == "gem") {
+		// gem <row> <col> flame: the gem there becomes a flame gem at once, as a match of four makes one (the piece's
+		// own MakePower, without the board's stats), so a driver can set one off with a real twist
+		int aRow = -1, aCol = -1;
+		char aKind[16] = {};
+		if (std::sscanf(anArgs.c_str(), "%d %d %15s", &aRow, &aCol, aKind) != 3 || std::string(aKind) != "flame") {
+			ReplyError(theCommand, "gem <row> <col> flame");
+			return true;
+		}
+		Piece* aPiece = aRow >= 0 && aRow < aBoard->mRows && aCol >= 0 && aCol < aBoard->mCols ?
+			aBoard->GetPieceAt(aRow, aCol) : nullptr;
+		if (aPiece == nullptr || aBoard->IsBusy()) {
+			ReplyError(theCommand, "no gem there, or the board is busy");
+			return true;
+		}
+		aPiece->MakePower(0.0f);
+		ReplyOK(theCommand);
 		return true;
 	}
 	bool aLevels = aBoard->mGameMode == Board::MODE_CLASSIC || aBoard->mGameMode == Board::MODE_ZEN;

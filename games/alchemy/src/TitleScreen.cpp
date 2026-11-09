@@ -23,6 +23,7 @@ TitleScreen::TitleScreen(AlchemyApp* theApp)
 	mPlayLink->mLabel = theApp->GetString("CLICK_HERE_TO_PLAY");
 }
 
+// 0x41022c: deletes the links (the original's other one is the registration link, which the port does not have)
 TitleScreen::~TitleScreen()
 {
 	delete mPlayLink;

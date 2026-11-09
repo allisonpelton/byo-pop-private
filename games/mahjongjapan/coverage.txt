@@ -1,0 +1,89 @@
+# tools/coverage.py's settings for Mahjong Escape: Ancient Japan (docs/COVERAGE.md).
+export re/mahjongjapan/gh/functions.jsonl
+src games/mahjongjapan/src
+src games/mahjongjapan/engine
+# The game's own code, which the port translates (engine docs, "The binary"): the game (0x401000..0x417680) and Jolly Bear's
+# engine (0x41e240..0x431a70, the object tree, layers, manager, widgets, and the classes on the device: image, font map,
+# CRC32, logo, window). The rest of the exe is the C runtime (0x417680..0x41e240), the device (the display and the sound
+# object, 0x431a70..0x438000, which the platform replaces), libjpeg and the PNG decoder (0x438000..0x447000), the software
+# blitters (0x447000..0x514000) and more runtime and STL (0x514000..).
+game 00401000-004175b0
+game 0041e240-004319e0
+# Game code the port leaves out on purpose.
+none 00421600-00422020 std::basic_string internals of MSVC 6: the port uses std::string
+none 00422310-004238f0 CString (an MFC-style string): the port uses std::string
+none 00430b50-004319e0 the crash handler (error log and dump): the port leaves it out
+# Compiler- and runtime-made code (static initializers, deleting destructors, STL and CString helpers, forwarding wrappers) and what the
+# platform replaces (the window and its procedure, the message loop, the registry, folders, the cursor, message boxes, the blitter
+# choice, the Direct3D path, the buttons that lead out of the game), found by sorting the first coverage report.
+none 00402680-00402690 static initializer of a global CString (run by the CRT) or its atexit registration: the port's globals are std::string
+none 00403bb0 constructor of one element of a CString array (run by the vector constructor iterator): the port's members are std::string
+none 0040aca0 thunk to the CString destructor, run when a list erases its strings: the port uses std::string
+none 0040f4b0-0040f4c0 static initializer of the global player list gPlayers (constructor 0x416490) or its atexit registration: the C++ runtime constructs the port's global
+none 0040f500-0040f510 static initializer of the global User gUser (constructor 0x415eb0) or its atexit registration: the C++ runtime constructs the port's global
+none 004104f0 constructor of one element of a CString array (run by the vector constructor iterator): the port's members are std::string
+none 004134c0 Deal's constructor (sets its vtable only): the port's members are initialized in place
+none 00416a10 thunk to the CString destructor, run when a list erases its strings: the port uses std::string
+none 0041e2f0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 0041eab0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 0041ece0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00420750 STL helper (_Construct, uninitialized_copy, uninitialized_fill_n of 4-byte elements): the port uses std::vector
+none 00420770-00420780 RegionRect's constructors (a clip rect with no next link): the port's struct initializes in place
+none 004208b0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00421380-004215c0 static wrapper that forwards one call to the manager, the app, the display or a stream: the port calls the target directly
+none 00422050 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 004222b0-004222e0 STL helper (_Construct, uninitialized_copy, uninitialized_fill_n of 4-byte elements): the port uses std::vector
+none 00423910 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00424930-00424940 static initializer of the game's app object (constructor 0x424a30) or its atexit registration: MahjongApp::Init creates MahjongGame (src/MahjongApp.cpp)
+none 00424970 reads the PartnerURL registry value for the main menu's partner link button: removed with the buttons that lead out of the game
+none 004249b0-004249d0 static wrapper that forwards one call to the manager, the app, the display or a stream: the port calls the target directly
+none 00424b10 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00424d70 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00425310 static wrapper that forwards one call to the manager, the app, the display or a stream: the port calls the target directly
+none 00425440 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 004256a0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00425ba0-00425cd0 LinkButton, the main menu's logo links to web sites: removed with the buttons that lead out of the game (docs/DEVIATIONS.md)
+none 00425d10-00425e60 static initializer of a global CString (run by the CRT) or its atexit registration: the port's globals are std::string
+none 00425ef0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00425fb0 the message loop (GetMessage, PeekMessage, WM_QUIT): the framework's main loop calls MahjongApp::RunFrame (src/MahjongApp.cpp)
+none 00426950 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00426b70 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 00427710 std::vector insert of n copies of a 4-byte element (MSVC 6 library): the port uses std::vector
+none 00428de0-00429020 static initializer of a global CString (run by the CRT) or its atexit registration: the port's globals are std::string
+none 00429050 WinMain: main() in src/main.cpp and MahjongApp::Init replace it
+none 00429130 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 004294c0-004295e0 registry key open and create under Software/JollyBear: Host::Reg* on the framework's registry replaces it (src/MahjongApp.cpp)
+none 00429710 AppBase's default message loop (GetMessage, then Exit): the framework's main loop replaces it
+none 00429780 registers the window class: the framework's SDL window replaces it
+none 00429b30 base name of the exe's path (GetModuleFileName): SetupNames names the exe MahjongEscapeAJ directly (engine/App.cpp)
+none 00429db0 Windows version test (NT, XP) for the folder and security calls: not needed
+none 00429e60 SHGetFolderPath for a CSIDL, creating the folders: Host::FolderPath and the framework's VFS replace it (src/MahjongApp.cpp)
+none 00429ff0-0042a0a0 folder creation with a world-access security descriptor (CreateDirectory, ConvertStringSecurityDescriptor, LocalFree): the framework's VFS creates the folders
+none 0042a210 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 0042c070 keeps the DirectDraw display's window position when the window moves: the platform replaces the display
+none 0042c660 mouse buttons, Shift and Ctrl by GetKeyState: Host::InputFlags (MahjongApp::InputFlags, src/MahjongApp.cpp)
+none 0042c740-0042c750 static wrapper that forwards one call to the manager, the app, the display or a stream: the port calls the target directly
+none 0042c9a0-0042cb10 software cursor of the accelerated display and the pointer's position in the window (GetCursorPos): the host's cursor and Host::GetMousePos replace it (engine/Manager.cpp, 0x42a820)
+none 0042cc00 software cursor of the accelerated display and the pointer's position in the window (GetCursorPos): the host's cursor and Host::GetMousePos replace it (engine/Manager.cpp, 0x42a820)
+none 0042cc50 std::vector buffer release run from exception unwinding: the port's std::vector does it
+none 0042cc90 empty function (a trivial destructor or a default virtual): nothing to translate
+none 0042cde0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 0042ce50 destructor of the image's base class (restores its vtable), run from exception unwinding: nothing to translate
+none 0042ce60 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 0042e3d0-0042e750 Direct3D path of the image (texture tiles +0x24, textured quads): only the software display is ported (engine/Image.h)
+none 0042eed0 constructor of the Attachment base (sets its vtable only): the port's class initializes in place
+none 0042eee0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 0042ef10 constructor of a character map's kerning record: the port's struct is filled in place
+none 0042f050 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 0042f990 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
+none 0042f9b0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
+none 0042f9d0-0042f9e0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
+none 0042fa40 Alt+Enter toggles full screen: the framework's Alt+Enter handling calls MahjongApp::SwitchScreenMode (src/MahjongApp.cpp)
+none 0042fa70-0042fcf0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
+none 0042fdd0-0042fea0 CPUID check that picks the MMX or SSE blitters: the port's blit library is plain C++ (engine/Blit.cpp)
+none 0042ff00-0042ff10 static initializer of the crash handler object or its atexit registration: the crash handler is left out
+none 0042ff30-004307b2 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
+none 00430860-00430940 MessageBoxA with a text or a string id: Host::MessageBox (src/MahjongApp.cpp)
+none 00430990 SetCursor with the window's cursor: Host::SetCursor (src/MahjongApp.cpp)
+none 004309b0-004309e0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
+none 00430a40 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it

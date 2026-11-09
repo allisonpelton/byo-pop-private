@@ -47,6 +47,24 @@ function protracker() {
   const viewBuf = M._malloc(20);
   function view(m) { M._bm_view(m, viewBuf); const v = M.HEAP32.subarray(viewBuf >> 2, (viewBuf >> 2) + 5); return { pattern: v[0], row: v[1], rows: v[2], channels: v[3], order: v[4] }; }
   function rowText(m, p, r) { return M.UTF8ToString(M._bm_row_text(m, p, r)); }
+  // bm_used's channels, and the same found from the rows' text: a channel with a note (A-G, then - or #, then an octave) anywhere
+  function used(m) {
+    const buf = M._malloc(256), n = M._bm_used(m, buf, 256), list = [];
+    for (let c = 0; c < n; c++) if (M.HEAPU8[buf + c]) list.push(c);
+    M._free(buf);
+    return list;
+  }
+  function usedByText(m) {
+    const found = new Set();
+    for (let p = 0; p < 256; p++) {
+      for (let r = 0; r < 256; r++) {
+        const t = rowText(m, p, r);
+        if (!t) break;
+        t.split("|").forEach((cell, c) => { if (/^[A-G][-#]\d/.test(cell)) found.add(c); });
+      }
+    }
+    return [...found].sort((a, b) => a - b);
+  }
   const RATE = 48000, out = M._malloc(RATE * 8);
   function render(m, seconds) { let n = Math.round(seconds * RATE), got = 0; while (n > 0) { const k = Math.min(n, RATE); const g = M._bm_render(m, RATE, k, out); got += g; if (g < k) break; n -= k; } return got; }
 
@@ -74,6 +92,7 @@ function protracker() {
   check("mod: seeks back", Math.abs(at - 1.0) < 0.05 && view(m).order === 0, [at, view(m)]);
   check("mod: plays on after a seek", render(m, 0.5) === RATE / 2);
   check("mod: a row out of range is empty", rowText(m, 9, 0) === "", rowText(m, 9, 0));
+  check("mod: the channels with notes", JSON.stringify(used(m)) === JSON.stringify(usedByText(m)) && used(m).length > 0, [used(m), usedByText(m)]);
   M._bm_free(m);
 
   // ---------- libopenmpt: a game's MO3, when the staged files are there ----------
@@ -100,6 +119,7 @@ function protracker() {
     check("mo3: the view at the start", v.row === 0 && v.rows > 0 && v.channels > 0, v);
     row = rowText(t, v.pattern, 0).split("|");
     check("mo3: a cell a channel", row.length === v.channels, [row.length, v.channels]);
+    check("mo3: the channels with notes", JSON.stringify(used(t)) === JSON.stringify(usedByText(t)) && used(t).length > 0, [used(t), usedByText(t)]);
     const len = M._bm_duration(t), half = Math.min(len / 2, 30);
     at = M._bm_seek(t, RATE, half);
     check("mo3: seeks", Math.abs(at - half) < 0.5 && Math.abs(M._bm_position(t) - half) < 0.5, [at, half]);

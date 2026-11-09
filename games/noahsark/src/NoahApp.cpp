@@ -89,6 +89,7 @@ NoahApp::NoahApp()
 	mAutoplayDiff = 0;
 	mAutoplayGames = 1;
 	mAutoplayCap = 200000;
+	mAutoplayStop = 0;
 	mAutoplayMenu = false;
 	mTestGotoMode = 0;
 	mTestGotoDiff = 0;
@@ -100,8 +101,13 @@ NoahApp::NoahApp()
 	mResyncState = NULL;
 }
 
+// 0x4169e0: the original's app is a global that is destroyed when the process ends, and its destructor saves a game still in
+// progress first (a board and no game-over screen), so closing the window mid-game leaves a saved game for Continue. The web
+// build never destroys the app (a closed tab runs no code), so it keeps no such save.
 NoahApp::~NoahApp()
 {
+	if ((mBoard != NULL) && (mHighScoreWidget == NULL))
+		mBoard->SaveGame();
 	if (mBoard != NULL)
 	{
 		mWidgetManager->RemoveWidget(mBoard);
@@ -237,6 +243,8 @@ void NoahApp::ButtonPress(int theId)
 	PlaySample(SOUND_CLICK);
 }
 
+// 0x418c00: the original's override runs the base class's frame update and then, once the loading thread has finished,
+// sets a flag of its own (+0x450) that nothing reads, so the port has no such field.
 // the menu music goes on while the game's plays are not on: the intro of the game song leads into its loop
 void NoahApp::UpdateFrames()
 {
@@ -265,6 +273,7 @@ void NoahApp::PlayGameMusic()
 	mMainSongLooping = false;
 }
 
+// 0x41abf0: slot 53 of the original (the focus is lost): its base class's empty function, then the board is redrawn
 void NoahApp::LostFocus()
 {
 	SexyApp::LostFocus();
@@ -536,6 +545,19 @@ void NoahApp::ShowNewGameDialog(int theGameMode)
 // 0x419650: how to play in the current mode (a dialog the player closes to start)
 void NoahApp::ShowModeIntroDialog(int theMode)
 {
+	// Help in the Options dialog: the original closes the dialog first, taking its settings as DONE does (the Help is not
+	// opened over it, and the Options dialog is gone when the Help is closed)
+	OptionsDialog* anOptions = (OptionsDialog*) GetDialog(DIALOG_OPTIONS);
+	if (anOptions != NULL)
+	{
+		bool aWindowed = !anOptions->mFullscreenCheckbox->IsChecked();
+		if (mIsWindowed != aWindowed)
+			SwitchScreenMode(aWindowed);
+		mShowHints = anOptions->mHintsCheckbox->IsChecked();
+		if (!mShowHints && (mBoard != NULL))
+			mBoard->ClearHint();
+		KillDialog(DIALOG_OPTIONS);
+	}
 	SexyString aHeader, aLines;
 	int aX = 0x5a, aY = 0x37, aW = 0x1cc, aH = 0x186;
 	switch (theMode)

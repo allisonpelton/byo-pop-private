@@ -56,7 +56,7 @@ set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settingsicons.js
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
 # game's page.js, which byopop_web_index() writes), copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js)
+set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js deskapps.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -112,7 +112,10 @@ set(BYOPOP_WEB_BADGES
 # Desktop 95's "Windows 95 games only" setting lists only the games that "actually supported Windows 95. That info is in the
 # README for most games"). Each row has, in the comment above it, the file of the game's own that says so (its readme's system
 # requirements); only the fact is kept here, never the readme's text. A game without a row is unknown, and an unknown game is
-# hidden while the setting is on. A row whose value is not yes, no or unknown is a configure error.
+# hidden while the setting is on. A game released before the last one whose readme names Windows 95 (TipTop, 2002-12-12 in
+# BYOPOP_WEB_RELEASED) is yes whatever its readme says (the user, 2026-11-08: "Anything released before the last game that did
+# support Windows 95, we'll assume supported 95"), as the readmes found for those are mostly of later re-releases. A row whose
+# value is not yes, no or unknown is a configure error.
 set(BYOPOP_WEB_WIN95
   # re/_installers/AtomicaSetup/files/Atomica Deluxe/readme.txt
   "atomica|yes"
@@ -126,8 +129,8 @@ set(BYOPOP_WEB_WIN95
   "sevenseas|yes"
   # re/_installers/WinNingPo_setup/Data/Filez/readme.txt
   "ningpo|yes"
-  # re/_installers/AlchemySetup-en/files/Alchemy Deluxe/readme.html (98+)
-  "alchemy|no"
+  # released 2001-08-29, before TipTop, so yes by the rule above (re/_installers/AlchemySetup-en/files/Alchemy Deluxe/readme.html says 98+)
+  "alchemy|yes"
   # re/_installers/BonniesBookstoreSetup/files/Bonnie's Bookstore Deluxe/readme.html (98+)
   "bonnies|no"
   # re/_installers/PixelusSetup/files/Pixelus Deluxe/readme.html (98+)
@@ -138,16 +141,16 @@ set(BYOPOP_WEB_WIN95
   "wordharmony|no"
   # re/_installers/BananaBugsSetup/files/Banana Bugs/readme.html (XP SP2+)
   "bananabugs|no"
-  # the Steam copy, Bejeweled Deluxe/readme.html (98+); only the Steam release's readme was found, and the 2001 original may differ
-  "bejeweled|no"
+  # released 2001-05-30, before TipTop, so yes by the rule above (the Steam copy's Bejeweled Deluxe/readme.html says 98+)
+  "bejeweled|yes"
   # the Steam copy, Bejeweled 2 Deluxe/readme.html (98+)
   "bejeweled2|no"
   # the Steam copy, Bejeweled 3/readme.html (XP SP2+)
   "bejeweled3|no"
   # the PopCap Games install, Bejeweled Twist/readme.html (XP+)
   "bejeweledtwist|no"
-  # the Steam copy, Big Money Deluxe/readme.html (98+)
-  "bigmoney|no"
+  # released 2002-06-04, before TipTop, so yes by the rule above (the Steam copy's Big Money Deluxe/readme.html says 98+)
+  "bigmoney|yes"
   # the Steam copy, BookWorm Deluxe/readme.html (2000+)
   "bookworm|no"
   # the PopCap Games install, Bookworm Adventures Deluxe/readme.html (2000+)
@@ -156,8 +159,8 @@ set(BYOPOP_WEB_WIN95
   "bookwormadv2|no"
   # the Steam copy, AstroPop Deluxe/readme.html (98+)
   "astropop|no"
-  # the Steam copy, Dynomite Deluxe/readme.html (98+)
-  "dynomite|no"
+  # released 2002-01-25, before TipTop, so yes by the rule above (the Steam copy's Dynomite Deluxe/readme.html says 98+)
+  "dynomite|yes"
   # the Steam copy, Rocket Mania Deluxe/readme.html (98+)
   "rocketmania|no"
   # the Steam copy, Heavy Weapon Deluxe/readme.html (98+)
@@ -1055,7 +1058,10 @@ function(byopop_web_index)
           byopop_web_string(buy_text store.buy_on store "${store}")
           byopop_web_string(buy_label store.buy_label store "${store}" title "${title}")
         endif()
-        string(APPEND buy_html "<a href=\"${url}\" rel=\"noopener\" aria-label=\"${buy_label}\">${buy_text}</a>")
+        # every store link opens in a new tab, as a plain link a popup blocker leaves alone (the user, 2026-11-09: "The buy links
+        # should always open in a new tab"), and its name says so
+        byopop_web_string(buy_new_tab site.new_tab)
+        string(APPEND buy_html "<a href=\"${url}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"${buy_label} ${buy_new_tab}\">${buy_text}</a>")
       endwhile()
       if(NOT buy_html STREQUAL "" AND soon)
         set(buy_html "<div class=\"buyrow\">${buy_html}</div>")
@@ -1096,7 +1102,7 @@ function(byopop_web_index)
     string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\" data-win95=\"${win95}\"${unsold_attr}>"
       "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
       "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
-      "<span class=\"name\">${title}</span>${year_html}</a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")
+      "<span class=\"name\">${title}</span>${year_html}<span class=\"own\" aria-hidden=\"true\"></span></a><div class=\"ownrow\"></div>${buy_html}</li>")
     list(APPEND tiles "${tile}")
     math(EXPR count "${count} + 1")
   endforeach()

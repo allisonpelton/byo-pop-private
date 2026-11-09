@@ -166,6 +166,8 @@ canvas#canvas:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; 
    does the import card, which the Steam steps for a Mac or Linux make taller) */
 #terms-overlay, #import-overlay { overflow: auto; place-items: safe center; }
 .card.terms-card { max-width: 600px; }
+.terms-agreebar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.terms-agreebar .agree { flex: 1 1 16em; margin: 0; }
 .terms {
   max-height: 15em; overflow: auto; display: grid; gap: 10px; padding: 12px 14px; font-size: 13px;
   background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
@@ -285,12 +287,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     <div class="overlay" id="terms-overlay" hidden>
       <div class="card terms-card" id="terms-card" role="dialog" aria-modal="true" aria-labelledby="terms-title" tabindex="-1">
         <h2 id="terms-title">{{game.terms.title}}</h2>
+        <!-- the agreement first, the full text (unchanged) scrolling below it -->
+        <div class="terms-agreebar"><label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> {{game.terms.agree}}</label>
+        <button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button></div>
         <div class="terms" tabindex="0" role="region" aria-label="{{game.terms.region}}">
 <!-- byopop:terms -->
         </div>
 <!-- byopop:buy -->
-        <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> {{game.terms.agree}}</label>
-        <div class="row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button></div>
       </div>
     </div>
 
@@ -315,9 +318,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     </div>
 
     <div class="overlay" id="start-overlay" hidden>
-      <div class="card" id="start-card" role="dialog" aria-labelledby="start-title" aria-describedby="start-desc" tabindex="-1">
+      <div class="card" id="start-card" role="dialog" aria-labelledby="start-title" tabindex="-1">
         <h2 id="start-title">{{game.start.title}}</h2>
-        <p id="start-desc">{{game.start.desc}}</p>
         <p id="start-rescue" hidden>{{game.start.rescue}}</p>
         <div class="row"><button class="primary" id="btn-start" type="button">{{game.start.play}}</button>
           <button id="btn-start-nomods" type="button" hidden>{{game.start.nomods}}</button></div>
@@ -449,6 +451,17 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // staged assets and keeps everything in a test profile of its own (PERSIST and the Web Lock end in "-test"), apart from the
   // player's; without it, the page's own files and saves, as on the full page. Plays are not counted and the chat never starts.
   var PLAYER_ONLY = new URLSearchParams(location.search).get("player") === "1" && ByopopTerms.devHost(location);
+  // the page in a game's window on Desktop 95's one page (web/deskapps.js, ?embed=1): the game and its own windows, the
+  // desktop's window frame around them
+  var EMBED = !!(window.ByopopSkin && ByopopSkin.EMBED);
+  // its client area: the stage in a box of its own, which centres it on black and scrolls when the game is larger (web/skins.css)
+  if (EMBED) (function () {
+    var s = document.getElementById("stage");
+    if (!s || s.parentNode.classList.contains("stage-area")) return;
+    var a = document.createElement("div"); a.className = "stage-area";
+    s.parentNode.insertBefore(a, s); a.appendChild(s);
+  })();
+  function desktopApps() { try { return EMBED && window.parent.ByopopApps ? window.parent.ByopopApps : null; } catch (e) { return null; } }
   var TEST_PROFILE = PLAYER_ONLY && new URLSearchParams(location.search).has("assets");
   // what web/testkit.js may ask of the page (null on every other page): needFiles(), args(), ready()
   var testHooks = PLAYER_ONLY ? {} : null;
@@ -519,7 +532,6 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function web() { return Module.byopop; }
   var session = null;  // web().Session
   var panel = null;    // web().ModPanel
-  var runMods = 0;     // the mods the game started with (Desktop 95's game window shows them in its title)
   // The game's life in this page, one state at a time. It runs once in a page: after it closes, only a reload starts it again.
   //   waiting   not started yet: the Ready card, the import, the terms card
   //   starting  runGame is setting it up; an error before the game's main is called goes back to waiting (startGame)
@@ -605,6 +617,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       localStorage.setItem(SCALE_KEY, JSON.stringify(o));
     } catch (e) {}
     sizeStage();
+    // in a window of the one page, a scale the window is too small for sizes the window to fit it, as far as the desktop has
+    // room, as a Windows program's did; "Fit window" (0) leaves the window as it is
+    if (EMBED && n > 0) {
+      var P = desktopApps(), s = $("stage"), area = s && s.parentNode;
+      if (P && area && (s.offsetWidth > area.clientWidth || s.offsetHeight > area.clientHeight))
+        try { P.fit(window, s.offsetWidth, s.offsetHeight + statusBarHeight(), true); } catch (e) {}
+    }
     // SDL sizes the canvas's pixels only on the window's resize event (as onGameScreen): without one the game stayed 640 x 480
     // pixels stretched to the new size until the page was reloaded
     Promise.resolve().then(function () { window.dispatchEvent(new Event("resize")); });
@@ -636,6 +655,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     var desktop = document.documentElement.classList.contains("d95-desk");
     // the player-only page: one canvas pixel for each game pixel, always (exact shots, docs/WEB_PLAYER.md)
     if (PLAYER_ONLY) w = gameScreen.w / (window.devicePixelRatio || 1);
+    else if (desktop && EMBED) w = embedWidth();
     else if (setting("pixelPerfect") === "on" || desktop) {
       var dpr = window.devicePixelRatio || 1, n = Math.max(1, Math.round(dpr));
       var roomW = (document.documentElement.clientWidth || window.innerWidth) - 24, roomH = window.innerHeight - 90;
@@ -652,11 +672,113 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       if (!w && desktop) w = gameScreen.w / dpr;
     }
     if (w) s.style.setProperty("--pp-w", w + "px"); else s.style.removeProperty("--pp-w");
+    if (desktop && EMBED && w) embedFit(w);
     document.documentElement.classList.toggle("pixel-perfect", !!w);
     if (chat) chat.layout();
     if (desktop) try { ByopopSkin.desk.layout(); } catch (e) {}
   }
   window.addEventListener("resize", sizeStage);
+  // ---- a game's window on Desktop 95's one page (EMBED; web/deskapps.js) ----
+  // Its client area is the game on black with the status bar along the bottom (web/skins.css), and the game is at a whole
+  // multiple of its size in device pixels: the one chosen in the View menu, or with "Fit window" (the default, 0) the largest
+  // that fits the window, whatever size the player gives it (the user, 2026-11-09: "Not what I expect to happen on resize").
+  // The window takes its game's size the first time and when the game changes its size: the chosen multiple, or the largest
+  // that the desktop has room for (embedFit).
+  var embedFitted = "";
+  function statusBarHeight() { return statusBar && statusBar.offsetHeight ? statusBar.offsetHeight : 22; }
+  function embedRoom() {
+    var P = desktopApps(), r = null;
+    try { r = P && P.room(window); } catch (e) {}
+    return r ? { w: r.w, h: r.h - statusBarHeight() } : null;
+  }
+  function embedWidth() {
+    var dpr = window.devicePixelRatio || 1, pick = chosenScale();
+    if (pick) return gameScreen.w * pick / dpr;
+    var area = $("stage").parentNode, aw = area.clientWidth, ah = area.clientHeight;
+    // the first time, the room the desktop has: the window takes that size (embedFit)
+    if (embedFitted !== gameScreen.w + "x" + gameScreen.h || !aw || !ah) { var r = embedRoom(); if (r) { aw = r.w; ah = r.h; } }
+    for (var n = 16; n >= 1; n--) if (gameScreen.w * n / dpr <= aw && gameScreen.h * n / dpr <= ah) return gameScreen.w * n / dpr;
+    return gameScreen.w / dpr;
+  }
+  function embedFit(w) {
+    var key = gameScreen.w + "x" + gameScreen.h, h = w * gameScreen.h / gameScreen.w;
+    if (embedFitted !== key) {
+      embedFitted = key;
+      var P = desktopApps();
+      if (P) try { P.fit(window, Math.ceil(w), Math.ceil(h) + statusBarHeight(), true); } catch (e) {}
+    }
+    // the scale in the status bar, as a value
+    if (statusBar) {
+      var sc = statusBar.querySelector(".d95-scale");
+      if (!sc) { sc = document.createElement("span"); sc.className = "d95-scale"; statusBar.appendChild(sc); }
+      sc.textContent = ByopopStrings.t("skin.apps.scale", { n: currentScale() });
+    }
+  }
+  function currentScale() { var s = $("stage"); return s && s.offsetWidth ? Math.max(1, Math.round(s.getBoundingClientRect().width * (window.devicePixelRatio || 1) / gameScreen.w)) : 1; }
+  // the scales the View menu offers: each whole multiple, greyed when the desktop has no room for it, and two past the largest
+  // that fits (at least to 4x)
+  function embedScales() {
+    var dpr = window.devicePixelRatio || 1, r = embedRoom(), fits = 1, out = [];
+    for (var n = 1; n <= 16; n++) if (r && gameScreen.w * n / dpr <= r.w && gameScreen.h * n / dpr <= r.h) fits = n;
+    for (var k = 1; k <= Math.min(16, Math.max(4, fits + 2)); k++)
+      out.push({ n: k, fits: k <= fits, label: ByopopStrings.t("skin.desk.m.size", { n: k, w: gameScreen.w * k, h: gameScreen.h * k }) });
+    return out;
+  }
+  // a view setting chosen in the View menu: this game's own (web/settings.js), as the Settings window sets it for a game
+  function setView(name, value) {
+    try { ByopopSettings.set(name, value, PAGE.id); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("byopop-setting", { detail: { name: name } })); } catch (e) {}
+  }
+  // the parts of the window's menus that are this page's (web/deskapps.js barMenus adds Close, Full screen, the chat, the terms)
+  function embedMenus() {
+    var T = function (k, o) { return ByopopStrings.t(k, o); };
+    function panel(id) {
+      var p = $(id), b = PANEL_BUTTONS[id];
+      if (!p || (b && b.hidden)) return null;
+      return { label: b ? b.textContent : (p.getAttribute("data-button") || p.querySelector("h2").textContent), fn: function () { ByopopSkin.desk.openWin(id); } };
+    }
+    var game = [], options = [], view = [];
+    // Game: the game's files, its controls and any window of the game's own (page.html)
+    PANELS.forEach(function (id) {
+      if (id === "panel-mods" || id === "panel-settings") return;
+      var e = panel(id);
+      if (e) game.push(e);
+    });
+    ["panel-mods", "panel-settings"].forEach(function (id) { var e = panel(id); if (e) options.push(e); });
+    var pick = chosenScale(), cur = currentScale();
+    view.push({ label: T("skin.apps.fit"), checked: !pick, fn: function () { chooseScale(0); } });
+    embedScales().forEach(function (s) {
+      view.push({ label: s.label, checked: !!pick && s.n === cur, disabled: !s.fits, fn: function () { chooseScale(s.n); } });
+    });
+    view.push({ rule: true });
+    var scan = setting("scanlines") || "off";
+    [["off", "skin.apps.scan_off"], ["light", "skin.apps.scan_light"], ["strong", "skin.apps.scan_strong"]].forEach(function (c) {
+      view.push({ label: T(c[1]), checked: scan === c[0], fn: function () { setView("scanlines", c[0]); } });
+    });
+    view.push({ rule: true });
+    var filt = setting("colorFilter") || "none";
+    [["none", "skin.apps.filter_none"], ["grey", "settings.colorfilter.grey"], ["sepia", "settings.colorfilter.sepia"],
+     ["warm", "settings.colorfilter.warm"], ["contrast", "settings.colorfilter.contrast"], ["vivid", "settings.colorfilter.vivid"]].forEach(function (c) {
+      view.push({ label: T(c[1]), checked: filt === c[0], fn: function () { setView("colorFilter", c[0]); } });
+    });
+    view.push({ rule: true });
+    [["runTimer", "settings.runtimer.label"], ["inputDisplay", "settings.inputdisplay.label"]].forEach(function (c) {
+      var onNow = setting(c[0]) === "on";
+      view.push({ label: T(c[1]), ticked: onNow, fn: function () { setView(c[0], onNow ? "off" : "on"); } });
+    });
+    return { game: game, view: view, options: options };
+  }
+  // Help's About box: the game's name and the copyright and trademark lines of its readme (the page's footer)
+  function embedAbout() {
+    var notice = document.querySelector(".byopop-footer p");
+    return { title: $("brand-name").textContent, text: $("brand-name").textContent + (notice ? "\n\n" + notice.textContent.trim() : "") };
+  }
+  // Alt and a menu's letter while the game (or anything in this page) has the keys: the window's menu, never the game's key
+  if (EMBED) document.addEventListener("keydown", function (ev) {
+    if (!ev.altKey || ev.ctrlKey || ev.metaKey) return;
+    var P = desktopApps();
+    try { if (P && P.menuKey(window, ev)) { ev.preventDefault(); ev.stopImmediatePropagation(); } } catch (e) {}
+  }, true);
 
   // The tab keeps the page's own title. SDL's web backend writes a window's title to document.title as the game makes its
   // window (the framework's mTitle, the original's own name) or changes it (Bonnie's caption), and the site names
@@ -709,11 +831,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     // whether the page still holds it, as the player leaves it with Esc and a browser may refuse it.
     onGameFullscreen: function (full) {
       if (!deskOn()) return false;
-      if (full) { if (document.fullscreenElement !== $("stage")) goFullscreen(); }
-      else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+      if (full) { if (!stageFull()) goFullscreen(); }
+      else leaveFullscreen();
       return true;
     },
-    gameFullscreenState: function () { return document.fullscreenElement === $("stage") || stageFsAsked; },
+    gameFullscreenState: function () { return stageFull() || stageFsAsked; },
     // -placeholders: a game file the game did not find got a stand-in (listed in the Game files panel)
     onMissingFile: function (path) { missingFiles.push(path); setStatus(statusText); showMissingFiles(); },
     // Called by the game after it quits (the tab can't close itself): silence it, wait for the save
@@ -1103,7 +1225,6 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     var seed = pageSeed();
     var seedText = (seed > 0) ? " · " + ByopopStrings.t("game.status.seed", {seed: seed}) : (seed < 0) ? " · " + ByopopStrings.t("game.status.seed_ignored") : "";
     var modsText = noMods ? ByopopStrings.t("game.status.mods_off") : enabled ? ByopopStrings.t("game.status.mods_active", {n: enabled}) : ByopopStrings.t("game.status.mods_none");
-    runMods = noMods ? 0 : enabled;
     var run = {
       args: ["-gamedir=" + GAME, "-userdir=" + USER, "-modsdir=" + MODS].concat(PAGE.replays ? ["-replaydir=" + REPLAYS] : [])
         .concat((seed > 0) ? ["-gameseed=" + seed] : []),
@@ -1462,7 +1583,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function openPanel(id) {
     // The panels are outside the stage: in fullscreen (the game's own "Add or remove mods") they could not be
     // seen, yet would take the keys and the next click
-    if (id && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+    if (id) leaveFullscreen();
     if (id && PAGE.shown) PAGE.shown(id);
     if (id && !anyPanelOpen()) {
       var a = document.activeElement;
@@ -1572,16 +1693,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     openPanel("panel-settings");
   });
   // ---------- Desktop 95's game window (web/skins.js, ByopopSkin.desk) ----------
-  // Its title: the game's name, and the mods that run (or will at the next start) in the 1995 manner of "App - Document"
-  function modsRunning() {
-    if (!panel || !MODS_SUPPORTED) return 0;
-    if (gameRunning()) return runMods;
-    try { return panel.enabledCount(); } catch (e) { return 0; }
-  }
+  // Its title: the game's name alone, as a 1995 program's window has it (the mods that run are in its status bar)
   function deskTitle() {
     if (!window.ByopopSkin || !ByopopSkin.desk.isOn()) return;
-    var n = modsRunning(), name = $("brand-name").textContent;
-    ByopopSkin.desk.setTitle("game", n ? name + " - " + ByopopStrings.t("game.title.mods", { n: n }) : name);
+    var title = $("brand-name").textContent;
+    ByopopSkin.desk.setTitle("game", title);
+    var P = desktopApps();
+    if (P) try { P.title(window, title); } catch (e) {}
   }
   // The parts of the bar that go elsewhere on the desktop, and back without it: the status line in the game window's status
   // bar, the theme button in Settings' Appearance (a placeholder marks where each was)
@@ -1620,6 +1738,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // the game window's Close: the game closes as it does for the panels' actions (its saves written), then the listing,
   // where All games opens (sessionStorage "byopop-desk-open", web/index.html)
   function closeProgram() {
+    // in a window of the one page: the game's own close with its saves, then the window goes (web/deskapps.js)
+    var P = desktopApps();
+    if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }); return; }
     try { sessionStorage.setItem("byopop-desk-open", "games"); } catch (e) {}
     closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); });
   }
@@ -1681,8 +1802,23 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   });
   // a request for the stage's full screen not yet answered (gameFullscreenState)
   var stageFsAsked = false;
+  // In a game's window on the one page (EMBED) the full screen is the window's frame, held by the desktop's page: the frame
+  // alone fills the screen, and this page draws its stage alone in it (html.fs-frame, web/skins.css), as the stage's own full
+  // screen does on a page of its own. The desktop's maximize and its menus put the frame in full screen themselves
+  // (web/deskapps.js); the game's own option and the Fullscreen button here ask for it the same way.
+  function frameFull() {
+    try { return EMBED && !!window.frameElement && window.parent.document.fullscreenElement === window.frameElement; } catch (e) { return false; }
+  }
+  function stageFull() { return document.fullscreenElement === $("stage") || frameFull(); }
+  function leaveFullscreen() {
+    try {
+      if (frameFull()) { window.parent.document.exitFullscreen().catch(function () {}); return; }
+    } catch (e) {}
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+  }
   function goFullscreen() {
     var el = $("stage");
+    try { if (EMBED && window.frameElement && window.frameElement.requestFullscreen) el = window.frameElement; } catch (e) {}
     // the panels are outside the stage: one left open would stay behind it, as for the game's own full screen (openPanel)
     closePanels("quiet");
     var answered = function () { stageFsAsked = false; };
@@ -1698,7 +1834,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // back, as the windows keep their places
   function fitFullscreen() {
     var s = $("stage");
-    if (!deskOn() || document.fullscreenElement !== s) { s.style.removeProperty("--fs-w"); s.style.removeProperty("--fs-h"); return; }
+    document.documentElement.classList.toggle("fs-frame", frameFull());
+    if (!deskOn() || !stageFull()) { s.style.removeProperty("--fs-w"); s.style.removeProperty("--fs-h"); return; }
     var dpr = window.devicePixelRatio || 1, aw = window.innerWidth, ah = window.innerHeight, w = 0, h = 0;
     for (var n = 16; n >= 1 && !w; n--) {
       if (gameScreen.w * n / dpr <= aw && gameScreen.h * n / dpr <= ah) { w = gameScreen.w * n / dpr; h = gameScreen.h * n / dpr; }
@@ -1707,12 +1844,20 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     s.style.setProperty("--fs-w", w + "px");
     s.style.setProperty("--fs-h", h + "px");
   }
-  document.addEventListener("fullscreenchange", function () {
+  var wasFull = false;
+  function onFullscreenChange() {
+    var full = stageFull();
+    // the panels are outside the stage, and the keys go to the game, however the full screen was asked for (goFullscreen)
+    if (full && !wasFull) { closePanels("quiet"); if (gameRunning()) $("canvas").focus(); }
+    wasFull = full;
     fitFullscreen();
     // SDL sizes the canvas on the window's resize: the new box first, then the resize that makes it measure it (as onGameScreen)
     Promise.resolve().then(function () { window.dispatchEvent(new Event("resize")); });
-  });
-  window.addEventListener("resize", function () { if (document.fullscreenElement === $("stage")) fitFullscreen(); });
+  }
+  document.addEventListener("fullscreenchange", onFullscreenChange);
+  // the frame's full screen is the desktop page's: its change is told there
+  if (EMBED) try { window.parent.document.addEventListener("fullscreenchange", onFullscreenChange); } catch (e) {}
+  window.addEventListener("resize", function () { if (stageFull() || document.documentElement.classList.contains("fs-frame")) fitFullscreen(); });
   // F11 is the Fullscreen button, and F11 again (or Esc, the browser's own) leaves full screen (the user, 2026-11-02: "F11
   // should make all games go full screen in the browser"). The browser's F11 would put the whole page in full screen, so it is
   // stopped, but only when the page can do it itself. This listener is the first to see the key (the document, capturing), so
@@ -1725,11 +1870,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function onFullscreenKey(e) {
     if (e.key !== "F11" || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
     if (!document.fullscreenEnabled || !$("stage").requestFullscreen) return;
-    if (deskOn() && !document.fullscreenElement) { e.stopImmediatePropagation(); return; }
+    if (deskOn() && !stageFull()) { e.stopImmediatePropagation(); return; }
     e.preventDefault();
     e.stopImmediatePropagation();
     if (e.type !== "keydown" || e.repeat) return;
-    if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen().catch(function () {}); }
+    if (stageFull()) leaveFullscreen();
     else goFullscreen();
   }
   document.addEventListener("keydown", onFullscreenKey, true);
@@ -2084,8 +2229,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   }
   // The chat starts with the game (the user, 2026-11-03: "Don't load the chat until the game has launched"): start() calls this
   // once, so a page waiting for its files or for Play shows no chat
+  // In a game's window on Desktop 95's one page (EMBED) the desktop has the chat, one window for every game (web/index.html):
+  // the page starts none of its own
   function startChat() {
-    if (chat || PLAYER_ONLY || typeof ByopopChat === "undefined") return;
+    if (chat || PLAYER_ONLY || EMBED || typeof ByopopChat === "undefined") return;
     try {
       // ByopopGames is the site's table of games (chat-games.js, which cmake/ByopopWeb.cmake writes beside the pages); without
       // the file the chat draws no game tags. The messages this page sends carry this page's game, PAGE.id.
@@ -2127,8 +2274,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       sysIcon.className = "d95-sys-cap"; sysIcon.setAttribute("aria-hidden", "true");
       d.add($("main"), { id: "game", title: gameName, snap: $("canvas"), closable: true, menu: true, menuIcon: sysIcon,
         maximize: goFullscreen, onClose: closeProgram, sizes: deskSizes, at: function (left) { return [left, 12]; } });
-      // the chat's collapser minimizes it to the task bar on the desktop (web/skins.js, minimize)
-      d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"), minimize: ".chat-chevron", scroll: ".bpc-log",
+      // the chat's collapser minimizes it to the task bar on the desktop (web/skins.js, minimize); in a game's window on the one
+      // page there is none (startChat)
+      if (!EMBED) d.add($("chat"), { id: "chat", title: $("chat-title").textContent, handle: $("chat-title"), minimize: ".chat-chevron", scroll: ".bpc-log",
         at: function (left, vw) { var g = d.find("game"); return g ? [Math.min(g.x + g.el.offsetWidth + 12, vw - 312), g.y] : [left, 12]; } });
       PANELS.forEach(function (id) {
         var p = $(id), wid = id;
@@ -2143,7 +2291,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       // its own on the desktop); the settings are drawn now, so that their windows are there
       ensureSettings();
       if (settingsView && settingsView.sections) settingsView.sections.forEach(function (r, i) {
-        d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true,
+        d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,
           at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, 90 + (i % 5) * 24]; } });
       });
       window.addEventListener("byopop-desk", sizeStage);
@@ -2156,6 +2304,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   placeChat();
   sizeStage();
   if (PAGE.init) PAGE.init();
+  // what the desktop around a game's window calls (web/deskapps.js): Close
+  if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout };
   // what web/testkit.js reads and calls on the player-only page; nothing on any other page
   if (PLAYER_ONLY) window.ByopopShell = {
     hooks: testHooks, PAGE: PAGE, PERSIST: PERSIST, GAME: GAME, USER: USER, testProfile: TEST_PROFILE,

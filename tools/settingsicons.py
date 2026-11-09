@@ -50,6 +50,19 @@ def players(n):
     return im
 
 
+def saves(n):
+    im, d = canvas(n)
+    # a floppy disk: its shutter at the top, its label below
+    poly(d, n, [(3, 3), (26, 3), (29, 6), (29, 29), (3, 29)], NAVY)
+    box(d, n, 9, 3, 23, 12, SILVER)
+    box(d, n, 18, 5, 21, 10, NAVY, NAVY)
+    box(d, n, 7, 17, 25, 29, WHITE)
+    if n >= 32:
+        line(d, n, [(10, 21), (22, 21)], GREY)
+        line(d, n, [(10, 24), (19, 24)], GREY)
+    return im
+
+
 def sound(n):
     im, d = canvas(n)
     box(d, n, 3, 11, 10, 21, SILVER)
@@ -154,7 +167,7 @@ def chat(n):
     return im
 
 
-ICONS = [("players", players), ("sound", sound), ("look", look), ("overlays", overlays), ("input", inputs),
+ICONS = [("players", players), ("saves", saves), ("sound", sound), ("look", look), ("overlays", overlays), ("input", inputs),
          ("start", start), ("game", game), ("page", page), ("chat", chat)]
 
 

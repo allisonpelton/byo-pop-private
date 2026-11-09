@@ -46,6 +46,7 @@ DifficultyDialog::DifficultyDialog(NoahApp* theApp) :
 	mHardButton->mLabel = GT(0x004943f8);
 }
 
+// 0x4110a0: the destructor deletes the three buttons
 DifficultyDialog::~DifficultyDialog()
 {
 	delete mEasyButton;
@@ -53,6 +54,7 @@ DifficultyDialog::~DifficultyDialog()
 	delete mHardButton;
 }
 
+// 0x411140
 void DifficultyDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
@@ -61,6 +63,7 @@ void DifficultyDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mHardButton);
 }
 
+// 0x411180
 void DifficultyDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -80,6 +83,7 @@ void DifficultyDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mHardButton->Resize(aX, mY + 0xb9, aWidth, 0x28);
 }
 
+// 0x411130: slot 47 of the original, a function that only returns 0x140
 int DifficultyDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
@@ -135,6 +139,7 @@ int HighScoreDialog::GetPreferredHeight(int theWidth)
 	return 0x12c;                                       // 0x411730
 }
 
+// 0x4116c0: the destructor deletes the dialog's list widget
 HighScoreDialog::~HighScoreDialog()
 {
 	delete mScores;
@@ -190,11 +195,13 @@ RecordScoreDialog::RecordScoreDialog(NoahApp* theApp, const std::string& thePlac
 	mNameEdit->SetColor(EditWidget::COLOR_HILITE_TEXT, Color(0xff, 0xff, 0xff));
 }
 
+// 0x41d9d0: the destructor deletes the edit widget
 RecordScoreDialog::~RecordScoreDialog()
 {
 	delete mNameEdit;
 }
 
+// 0x41da40: the edit widget is added and takes the focus
 void RecordScoreDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
@@ -208,6 +215,7 @@ void RecordScoreDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mNameEdit);
 }
 
+// 0x41da70
 void RecordScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
@@ -312,6 +320,8 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	mHintsCheckbox->SetChecked(mApp->mShowHints, false);
 }
 
+// 0x41cc40: the destructor deletes the buttons, the two sliders and the two check boxes (the original also deletes its
+// Register and Web buttons, which the port does not have)
 OptionsDialog::~OptionsDialog()
 {
 	delete mHelpButton;
@@ -323,6 +333,7 @@ OptionsDialog::~OptionsDialog()
 	delete mHintsCheckbox;
 }
 
+// 0x41cdc0
 void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
@@ -335,6 +346,7 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mHintsCheckbox);
 }
 
+// 0x41ce60
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -370,6 +382,7 @@ int OptionsDialog::GetPreferredHeight(int theWidth)
 	return 0x18c;                                       // 0x4209f0 gives 0x1b6; less the row of the Web button
 }
 
+// 0x41cd40: slot 7 of the original: the button text colour (index 3) also goes to its buttons
 void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 {
 	Dialog2004::SetColor(theIdx, theColor);
@@ -462,6 +475,7 @@ TutorialDialog::TutorialDialog(NoahApp* theApp) :
 	mAgainCheckbox->SetChecked(false, false);
 }
 
+// 0x420980: the destructor deletes the check box
 TutorialDialog::~TutorialDialog()
 {
 	delete mAgainCheckbox;
@@ -474,6 +488,7 @@ void TutorialDialog::ButtonPress(int theId)
 	mApp->ButtonPress(0);
 }
 
+// 0x420a00
 void TutorialDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);

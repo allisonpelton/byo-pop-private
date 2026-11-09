@@ -259,8 +259,8 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 		mApp->SetSfxVolume(theVal);
 }
 
-// 0x40d7c2: a box that is cleared while the game is forced to full screen (a desktop of too few colours) is an error, and
-// full screen is checked again. Both boxes have the id 0, so either of them does it.
+// 0x40d7c2, and 0x413942 (DoColorDepthExplination, the DoDialog below): a box that is cleared while the game is forced to full
+// screen (a desktop of too few colours) is an error, and full screen is checked again. Both boxes have the id 0, so either of them does it.
 void OptionsDialog::CheckboxChecked(int theId, bool checked)
 {
 	(void) theId;
@@ -351,6 +351,7 @@ static void DrawNameBox(Graphics* g, Image* theBox, const Rect& theRect)
 }
 
 // 0x40eed1: the box of the name (4 pixels more on each side than the edit widget) and the prompt over it
+// (the original makes the box with Rect::Inflate, 0x40ecd8, and its result is copied by 0x40eb64)
 void NameEntryDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);

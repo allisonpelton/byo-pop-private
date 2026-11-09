@@ -82,6 +82,7 @@ void Board::StepScorpion(ChaseState& s)
 }
 
 // 0x405580 (theRecord: record the shortest solution in mSolution) and 0x411a90 (otherwise: only find out whether there is one)
+// 0x404f60 (the visited list), 0x405010 (the best solution's list: below, where the index is looked up)
 void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath, int theDX, int theDY, bool theRecord)
 {
 	if (theRecord)
