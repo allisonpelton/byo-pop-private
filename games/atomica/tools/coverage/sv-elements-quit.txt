@@ -1,0 +1,15 @@
+# save: elements
+# The elements' saved game continued and quit at once, saved again with the five element atoms on the field (the element atoms' own part of
+# the saved game).
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+2620 click 500 312
+2700 click 305 127
+2800 click 495 312
+2900 move 72 464
+2910 click 72 464
+3000 move 386 283
+3010 click 386 283
+end 3300

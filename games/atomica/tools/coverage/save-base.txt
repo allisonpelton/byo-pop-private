@@ -1,0 +1,18 @@
+# The game that mksave.py takes its field from: the port plays to level 4 of the strategy kind (the "level" test command, docs/TEST_COMMANDS.md)
+# and saves and quits from it; make-saves.sh runs this in the port (-script) and crafts every saved game of the sv-*.txt scenarios from the file.
+1500 move 320 445
+1510 click 320 445
+2300 move 316 104
+2310 click 316 104
+2764 click 300 192
+2771 click 240 315
+2775 click 390 265
+2876 click 246 318
+2880 click 495 317
+2900 level 4
+3340 click 305 258
+3620 move 72 464
+3630 click 72 464
+3700 move 386 283
+3710 click 386 283
+end 3900

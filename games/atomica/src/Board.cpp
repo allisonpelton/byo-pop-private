@@ -162,7 +162,7 @@ void Meter::Load(FILE* f)
 // ---------------------------------------------------------------------------------------------------------
 // Board
 
-// 0x432c20
+// 0x432c20 / 0x41ffa0
 Board::Board(AtomicaApp* theApp) :
 	mApp(theApp),
 	mGrid(NULL),
@@ -277,7 +277,7 @@ Board::~Board()
 		mApp->mBoard = NULL;
 }
 
-// 0x431b50: a game starts
+// 0x431b50 / 0x41ffa0: a game starts
 void Board::Start()
 {
 	if (mGrid != NULL)

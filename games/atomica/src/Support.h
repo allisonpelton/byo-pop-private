@@ -35,7 +35,7 @@ public:
 	KeyFunc				mKey;			// the int field the sorted list orders by (+0x10: its offset), NULL: not sorted
 	int					mSortMode;		// +0x14: 1 ascending, otherwise descending
 
-	PtrList() : mCursor(0), mKey(NULL), mSortMode(0) {}
+	PtrList() : mCursor(0), mKey(NULL), mSortMode(0) {}	// 0x4259a0
 
 	int		Size() const { return (int) mItems.size(); }
 	void	Reset() { mCursor = 0; }					// 0x425c00
@@ -169,7 +169,7 @@ public:
 	int			mHeight;		// +0x14
 	Rect		mSrc;			// +0x18 the part of the image a draw takes
 
-	Sprite() : mImage(NULL), mOwnsImage(true), mWidth(0), mHeight(0) {}
+	Sprite() : mImage(NULL), mOwnsImage(true), mWidth(0), mHeight(0) {}	// 0x429680
 	~Sprite();
 	void		SetImage(Image* theImage);	// 0x429610: the whole image
 	unsigned int* GetBits();				// 0x429650
@@ -177,7 +177,7 @@ public:
 
 	// 0x4014c0: top left at x, y
 	void		Draw(Graphics* g, int theX, int theY);
-	// 0x4014f0: centred on x, y
+	// 0x4014f0 / 0x401530: centred on x, y (the second one is given the position as a pair)
 	void		DrawCentered(Graphics* g, int theX, int theY);
 	// 0x401570: centred on the float position x, y (0x4015.. adds one half before it truncates)
 	void		DrawCenteredF(Graphics* g, float theX, float theY);
@@ -194,7 +194,7 @@ public:
 	bool					mLoadFailed;	// +0x24
 	Graphics*				mGraphics;		// +0x20 (set by 0x429960, which no draw ever reads)
 
-	SpriteMgr(AtomicaApp* theApp) : mApp(theApp), mLoadFailed(false), mGraphics(NULL) {}
+	SpriteMgr(AtomicaApp* theApp) : mApp(theApp), mLoadFailed(false), mGraphics(NULL) {}	// 0x429830
 	~SpriteMgr();
 
 	Sprite*		Load(const std::string& theName);						// 0x429c60: images\<name>, or a popup and NULL

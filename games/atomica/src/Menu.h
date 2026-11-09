@@ -23,6 +23,7 @@ class MainMenu : public Widget, public ButtonListener
 {
 public:
 	AtomicaApp*		mApp;				// +0x74
+	Sprite*			mDoorSheet;			// +0x301c (of the app in the original)
 	Sprite*			mDoorLeft;			// +0x3020 (of the app in the original)
 	Sprite*			mDoorRight;			// +0x3024
 	Sprite*			mPanel;				// +0x3028
@@ -55,7 +56,7 @@ public:
 	ButtonWidget*	mBtn[8];			// the buttons by id 0 to 7 (4 only with a saved game)
 	PtrList<Widget>	mButtons;			// +0x5c
 
-	MainMenu(AtomicaApp* theApp, bool theGameOver);	// 0x4198e0
+	MainMenu(AtomicaApp* theApp, bool theGameOver);	// 0x4198e0 / 0x419760
 	virtual ~MainMenu();
 
 	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;		// 0x431d20
@@ -78,6 +79,7 @@ class HighScoresBox : public Widget, public ButtonListener
 {
 public:
 	AtomicaApp*		mApp;				// +0x5c
+	Sprite*			mDoorSheet;
 	Sprite*			mDoorLeft;
 	Sprite*			mDoorRight;
 	Sprite*			mPanel;

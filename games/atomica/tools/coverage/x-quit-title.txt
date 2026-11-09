@@ -1,0 +1,2 @@
+# coverage run: close the window on the title screen (the run's last line, the origrun quit, closes it), no input before
+end 1800
