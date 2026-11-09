@@ -590,4 +590,6 @@ dialogs and screens other than the options dialog were not read for waits or fau
 
 ## 11. Performance
 
-To be measured by the coordinator (2026-11-09).
+Not measured yet: the performance pass is this game's own, later in its order of work (the coordinator, 2026-11-09), after the identical-play
+pass. It will model on `games/alchemy/tools/profile/perf.py` and Alchemy's "Performance" section: loading seconds, original and port;
+peak working set and private bytes, CPU time and the number of game processes over a scripted minute.
