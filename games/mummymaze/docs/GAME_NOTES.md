@@ -291,7 +291,7 @@ ran, in 23 runs on the host (`tools/coverage/run_all.sh`, `gap_all.sh`, `gap.sh`
 
 The bots' runs end with the game exiting; the others end at origrun's timeout, having played their whole script.
 `games/mummymaze/coverage.txt` sets the game's own code as 0x401000 to 0x42d5b0 (the rest of the exe is the framework from
-0x42d5c0, the C runtime and the libraries): 411 functions, of which the runs reached 364.
+0x42d5c0, the C runtime and the libraries): 411 functions, of which the runs reached 365.
 
 **Reached in the original with no counterpart in the port: 119 after the first ten runs, 139 after sixteen, 0 at the end.**
 
@@ -331,12 +331,13 @@ The bots' runs end with the game exiting; the others end at origrun's timeout, h
   pixels by at most 33 levels, which shotdiff does not count as visible; in the map, a twinkle at 12 levels).
 - **Open: none.**
 
-**Defined in the port, never reached: 64 after the first ten runs, 1 at the end.** The extra runs reached the rest (the
+**Defined in the port, never reached: 64 after the first ten runs, 0 at the end.** The extra runs reached the rest (the
 sliders' dialog code, the saved adventures' and delete dialogs, the Ankh question, the bad save message, the tips' close,
-Enter in the high score box, the in-use message). `OptionsDialog::SliderVal` (0x426a30) was not reached: the slider's own
-mouse-down (0x43dbd0) never ran in the original although its mouse-move did, whatever x the press was sent at (the sweep covers
-the whole track), so origrun's `down` edge does not seem to reach it; the cause was not found. The port's function was read again
-against the export and matches it line by line (music, effects, and the speed in three steps with the slider put back on its step).
+Enter in the high score box, the in-use message). The last was `OptionsDialog::SliderVal` (0x426a30): the sweep along the
+sliders pressed at every thumb but the slider's own mouse-down (0x43dbd0) never ran, because p2.py wrote its `down` without the
+point and origrun posts a bare `down` at (0, 0). With the point (`at N down x y`, after a `move` an update earlier) the press
+reaches the slider, and the sweep reached 0x43dbd0 and SliderVal. The port's function was also read against the export and
+matches it line by line (music, effects, and the speed in three steps with the slider put back on its step).
 
 **Candidates for taking out unneeded code.** No play of the original reaches these; none was removed now:
 
@@ -365,10 +366,10 @@ from two functions the runs did run), the Reset Tips question and the No Windowe
   after "Name Invalid" over the new adventure's name box the player must click the box again, in the port the box keeps its
   focus. Not a difference of the game's own code; left as it is.
 - origrun: `key` posts a key-down and key-up only (no character message), so Enter and Backspace work in this game's edit
-  boxes (they take them from the key-down); `down` and `up` post one edge of the left button, and a press on a slider never
-  reached its mouse-down.
+  boxes (they take them from the key-down); `down` and `up` with no point post at (0, 0), which the sliders' first sweep took
+  for a press that never reached the slider (the tool's own, fixed in p2.py).
 
-**Tools of the check.** `tools/identical/p2.py` gained `down` and `up` (one edge of the left button); `p2.sh` takes
+**Tools of the check.** `tools/identical/p2.py` gained `down` and `up` (one edge of the left button, sent with its point); `p2.sh` takes
 `SAVES=<folder>` (saved adventures put into both games' user folders, for the saved adventures' run).
 
 **Baseline.** After the edits `tools/check.sh mummymaze` passes: every result as before and the frozen baseline identical, against
