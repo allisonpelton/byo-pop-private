@@ -172,9 +172,9 @@ def main():
             open(script, 'w').write('wait 14000\nquit\n')
         else:
             open(script, 'w').write(open(os.path.abspath(extra)).read())
-        # The patch list is always given: with `--run alch` origrun looks for tools/origrun/patches/alch.txt, finds none and
-        # applies no patch, so `--seed 11` pinned nothing and the bot's script played another game than the port's (the first pass's
-        # original runs, GAME_NOTES section 8). PERF_ORIG_PATCHES names another list (with the same seed line).
+        # The patch list is always given: origrun takes its default list by the game's name (--game), which --exe does not give, so
+        # without --patches no patch was applied, `--seed 11` pinned nothing and the bot's script played another game than the port's
+        # (the first pass's original runs, GAME_NOTES section 8). PERF_ORIG_PATCHES names another list (with the same seed line).
         patches = os.environ.get('PERF_ORIG_PATCHES') or os.path.join(ROOT, 'tools', 'origrun', 'patches', 'alchemy.txt')
         if not os.path.exists(patches):
             sys.exit('no patch list %s (tools/identical/setup.sh writes it): the original would run with an unpinned seed' % patches)

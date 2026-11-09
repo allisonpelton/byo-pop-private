@@ -204,8 +204,8 @@ sessions' games ran meanwhile, so the processor times move by a few seconds from
 **The first pass's processor figure was wrong, and the performance pass found why (2026-11-09).** The first measurement put the
 original at 1.4 to 1.6 s of processor time for the scripted minute and the port at about 6 s, and this section said the port used
 "about five times" the original's. The fault was in the original's runs, not in either game: `perf.py` started origrun with
-`--run alch --seed 11` and no `--patches`, origrun looks for its default patch list by the run's name
-(`tools/origrun/patches/alch.txt`, while the list is `alchemy.txt`), found none and applied no patch, so `--seed 11` pinned nothing
+`--exe ... --run alch --seed 11` and no `--patches`; origrun takes its default patch list
+(`tools/origrun/patches/alchemy.txt`) by the game's name, which `--game alchemy` gives and `--exe` does not, so it applied no patch and `--seed 11` pinned nothing
 (the run's log says "RNG seed to pin: 11" all the same). The original dealt its own boards, the bot's script (moves chosen for the
 port's seed-11 boards, played as mouse clicks) met no move on most of them, and the copy sat drawing now and then: 549 to 565
 draws in 6,451 updates (its draw counter, the app's +0x4bc) instead of on nearly every update. The same script with the list given
