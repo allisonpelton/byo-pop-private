@@ -78,7 +78,9 @@ robocopy C:\Users\Administrator\Documents\claude\byo-pop E:\backups\byo-pop /MIR
 ```
 
 It leaves out the sessions' worktrees (their commits are in `.git`, and their ignored files are mostly copies of the
-main checkout's) and follows no junction. `/MIR` makes the copy match the checkout, so a file deleted here goes from
+main checkout's) and follows no junction. A git-ignored file a session makes that is not a copy (a game's origrun
+config, its test patch list) belongs in the main checkout, or it goes with the worktree: Bejeweled's identical-play
+config and seed patch list were lost that way (found 2026-11-09). `/MIR` makes the copy match the checkout, so a file deleted here goes from
 the copy at the next run too: it is a mirror, not a history.
 
 <!-- /private -->
