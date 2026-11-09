@@ -72,6 +72,7 @@ unsigned long GPU2D::GetSamplerState(int theStage, int theType) const
 void GPU2D::SetCachedState(int theKind, int theStage, int theType, unsigned long theValue)
 {
 	// 0x623380: a state never set reads as 0xffffffff
+	FollowScene();
 	long long aKey = StateKey(theKind, theStage, theType);
 	std::map<long long, unsigned long>::iterator anItr = mStates.find(aKey);
 	unsigned long aCurrent = (anItr != mStates.end()) ? anItr->second : 0xffffffff;
@@ -177,7 +178,12 @@ bool GPU2D::PreDraw()
 {
 	if (!mDevice->BeginSceneIfNeeded())
 		return false;
+	FollowScene();
+	return true;
+}
 
+void GPU2D::FollowScene()
+{
 	int aSceneCount = mDevice->GetSceneCount();
 	if (aSceneCount != mSceneCount)
 	{
@@ -192,7 +198,6 @@ bool GPU2D::PreDraw()
 			mStates[StateKey(aKind, aSet.mStage, aSet.mType)] = aSet.mValue;
 		}
 	}
-	return true;
 }
 
 void GPU2D::EndScene()
@@ -293,6 +298,7 @@ void GPU2D::ApplyDrawMode(int theDrawMode)
 void GPU2D::SetLinearFilter(bool theLinear)
 {
 	// 0x61c9b0: MAG, MIN, MIP, through the sampler cache
+	FollowScene();
 	int aFilter = theLinear ? 1 : 0;
 	if (aFilter == mFilter)
 		return;
