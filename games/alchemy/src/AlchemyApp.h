@@ -43,7 +43,6 @@ enum DialogId
 	DIALOG_NAME_ENTRY = 7,      // ENTER_YOUR_NAME for a high score
 	DIALOG_HIGH_SCORES = 0xb,   // the all-time table
 	DIALOG_TUTORIAL = 0xc,      // CONFIRM_TUTORIAL1/2
-	DIALOG_COLOR_DEPTH = 8,     // the full screen switch failed: the display's colour depth
 	DIALOG_LOAD_GAME = 0x10     // CONFIRM_LOAD1/2: yes starts a game and loads the saved one
 };
 

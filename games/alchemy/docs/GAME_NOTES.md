@@ -130,7 +130,7 @@ and the update-check dialog at 0x476210); those are the shared code's, not the g
 
 The port's own checks, made 2026-11-08, that nothing it loads is used only by those functions: a search of `src/` and of
 the `properties` ids it reads for the strings and the registry values above finds none (the one that remained, `LastInternetScoreName`, is out now;
-`COLOR_DEPTH_ERROR` is not on the list: it is the colour-depth question of 0x413942, which the port has). Of the pictures,
+`COLOR_DEPTH_ERROR` is not on the list: it is the colour-depth question of 0x413942, which is out too since 2026-11-09, below). Of the pictures,
 `trialversion` (the title's "buy" overlay, which was loaded and never drawn) and, by the pictures' places in the original's
 image array, `hiscorebox` and `hiscorebtn` (read only by the register dialog and the internet-score dialog) were still
 loaded; all three are gone from the image list and from `Res.h` (63 images, 9 loaded by the title's start-up, and 99 loading
@@ -143,6 +143,15 @@ the Board effect the first paragraph of this section calls never triggered, the 
 the one that covers the board (`Board::Draw` draws the cover instead of the tiles, and the pause text when no dialog is up): any key press toggles it in every mode
 (`KeyChar`), and a dialog raises it in the time trial (`AlchemyApp::ModalOpen` passes the mode). They stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
 once, with no pacing), so the rule on fast loading changes nothing here.
+
+**The colour-depth question (taken out 2026-11-09).** `DoColorDepthExplination` (0x413942) is a dialog (id 8, the strings
+COLOR_DEPTH_ERROR1 to 3 as header, text and footer, a footer button) that the options dialog's check box handler (0x40d7c2)
+raises when a check box is cleared while the app's `mForceFullscreen` (+0x30f) is set, and after it the full-screen box is
+checked again. That flag is the framework's, which sets it only to false: it was meant for a desktop without enough colours, and
+nothing in a port raises it, so the question could not come up. It is out of the port: `OptionsDialog::CheckboxChecked`, the
+`DIALOG_COLOR_DEPTH` id and its name in the `state` command are gone, and the dialog stays the listener of its two boxes only
+because a `Checkbox` takes one. The three strings are in the game's own `properties` file, which is not ours to edit; the port no
+longer reads them. `mForceFullscreen` is `SexyAppBase`'s, shared with the other games, and stays.
 
 ## 6. The standard test commands
 
@@ -378,8 +387,8 @@ command, which gives the positions of a dialog's buttons: the quit question with
 so its buttons are at y 284 instead of 204. Tours 6 and 7 click at y 204 and missed it, which went unnoticed because the port's
 script ends with `quit` anyway; the tours were left as they are, and the extra runs click the right place. In a game the button
 at (32, 421) is the hint button; the help screen is reached through the options dialog (a link at (318, 237)).
-The one left is `DoColorDepthExplination` (0x413942; in the port, the `DoDialog` call inside `OptionsDialog::CheckboxChecked`,
-0x40d7c2). The export has no function at 0x40d7c2, so the report lists no caller for it. The question appears when a check box is
+The one left was `DoColorDepthExplination` (0x413942; in the port, the `DoDialog` call inside `OptionsDialog::CheckboxChecked`,
+0x40d7c2), which is out of the port now (section 5). The export has no function at 0x40d7c2, so the report lists no caller for it. The question appears when a check box is
 cleared while the app's `mForceFullscreen` (+0x30f) is set, which the framework does on a desktop without enough colours. The
 host's desktop has them, so no run reached it. The port's version was read again against the export and matches: dialog 8, the
 strings COLOR_DEPTH_ERROR1 to 3 as header, text and footer, the footer button mode, then the full-screen box checked again. A
@@ -400,11 +409,12 @@ global vector (0x516080, through `vector<string>::operator=` at 0x407dc4); the p
 names (`ComputeRank`). `Board` has an `std::ostringstream` member at +0xa84, built in 0x407ebe and destroyed through 0x401001, and
 a `vector<pair<int,int>>` at +0xe50, that nothing uses. The port has neither.
 
-**Candidates for taking out unneeded code.** The colour-depth question and the flag that raises it (the body of
-`OptionsDialog::CheckboxChecked`, `DIALOG_COLOR_DEPTH`, `mForceFullscreen` and the three strings): the port's display always has
-the colours, and nothing in a port sets the flag. Nothing was removed.
+**Unneeded code taken out (2026-11-09).** The colour-depth question and the handler that raised it (the body of
+`OptionsDialog::CheckboxChecked`, `DIALOG_COLOR_DEPTH` and its `state` name): the port's display always has the colours, and
+nothing in a port sets the flag (section 5). The frozen baseline stays identical. `mForceFullscreen` and the three strings are
+not the game's to remove (the framework's field; the game's own `properties` file).
 
-**Open items.** The colour-depth question has no run that reaches it (above). Nothing else.
+**Open items.** None.
 
 **What it cost.** The 21 runs took about 45 minutes of one game process at a time, most of it waiting for room: other sessions'
 games kept the machine at three to six processes. Two things went wrong on the way and were redone. The first set of runs of the
