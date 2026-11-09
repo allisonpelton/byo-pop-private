@@ -152,7 +152,7 @@ def main():
     cf = os.path.join(out, 'commands.txt')
     reader = None
     if kind == 'port':
-        args = [EXE, '-userdir=' + user, '-seed=11']
+        args = [EXE, '-userdir=' + user, '-seed=11'] + os.environ.get('PERF_PORT_ARGS', '').split()
         if what == 'load':
             open(cf, 'w').close()
             args += ['-commands=' + cf]
@@ -173,13 +173,14 @@ def main():
         else:
             open(script, 'w').write(open(os.path.abspath(extra)).read())
         args = [ORIGRUN, '--exe', OG_GAME, '--run', 'alch', '--script', script, '--clock', 'real', '--counter', '0x516570',
-                '--update-ms', '10', '--seed', '11', '--timeout', '200']
+                '--update-ms', '10', '--seed', '11', '--timeout', '200'] + (['--patches', os.environ['PERF_ORIG_PATCHES']] if os.environ.get('PERF_ORIG_PATCHES') else [])
         p = subprocess.Popen(args, cwd=ROOT, stdout=open(os.path.join(out, 'origrun.log'), 'w'), stderr=subprocess.STDOUT)
         game = None
     t_wall0 = time.time()
     h = None
     created = None
     samples, counts = [], []
+    dump, dumps = None, []
     first_input = None
     loaded_at = None
     peak_ws = peak_priv = 0
@@ -216,6 +217,9 @@ def main():
             if t - last_count >= 5.0:
                 last_count = t
                 counts.append(game_processes())
+                if kind == 'orig':    # the app object's dwords from +0x480, to find the framework's counters (the draw count among them)
+                    dump = rd(h, 0x5160b0 + 0x480, 0x100) or dump
+                    dumps.append((round(now_ft() - created, 1), dump.hex() if dump else None))
             if first_input is None:
                 if kind == 'orig':
                     app = 0x5160b0                       # the app is a global object there, not a pointer
@@ -262,7 +266,7 @@ def main():
                peak_working_set_mb=peak_ws / MB, peak_private_mb=peak_priv / MB, cpu_total_s=cpu_last,
                game_processes=dict(samples=counts, min=min(counts) if counts else None, max=max(counts) if counts else None,
                                    mean=round(sum(counts) / len(counts), 1) if counts else None),
-               samples=samples)
+               samples=samples, app_dumps=dumps)
     # the processor time of the last 60 s of the run (the scripted minute), and of the part before it
     if samples:
         tend = samples[-1][0]
@@ -273,7 +277,7 @@ def main():
         res['cpu_last_minute_s'] = round(samples[-1][3] - c0, 3)
         res['mean_working_set_last_minute_mb'] = round(sum(s[1] for s in samples if s[0] > tmin) / max(1, len([s for s in samples if s[0] > tmin])) / MB, 1)
     json.dump(res, open(os.path.join(out, 'perf.json'), 'w'))
-    short = {k: v for k, v in res.items() if k != 'samples'}
+    short = {k: v for k, v in res.items() if k not in ('samples', 'app_dumps')}
     print(json.dumps(short))
 
 
