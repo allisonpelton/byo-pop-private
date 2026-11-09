@@ -112,7 +112,10 @@ set(BYOPOP_WEB_BADGES
 # Desktop 95's "Windows 95 games only" setting lists only the games that "actually supported Windows 95. That info is in the
 # README for most games"). Each row has, in the comment above it, the file of the game's own that says so (its readme's system
 # requirements); only the fact is kept here, never the readme's text. A game without a row is unknown, and an unknown game is
-# hidden while the setting is on. A row whose value is not yes, no or unknown is a configure error.
+# hidden while the setting is on. A game released before the last one whose readme names Windows 95 (TipTop, 2002-12-12 in
+# BYOPOP_WEB_RELEASED) is yes whatever its readme says (the user, 2026-11-08: "Anything released before the last game that did
+# support Windows 95, we'll assume supported 95"), as the readmes found for those are mostly of later re-releases. A row whose
+# value is not yes, no or unknown is a configure error.
 set(BYOPOP_WEB_WIN95
   # re/_installers/AtomicaSetup/files/Atomica Deluxe/readme.txt
   "atomica|yes"
@@ -126,8 +129,8 @@ set(BYOPOP_WEB_WIN95
   "sevenseas|yes"
   # re/_installers/WinNingPo_setup/Data/Filez/readme.txt
   "ningpo|yes"
-  # re/_installers/AlchemySetup-en/files/Alchemy Deluxe/readme.html (98+)
-  "alchemy|no"
+  # released 2001-08-29, before TipTop, so yes by the rule above (re/_installers/AlchemySetup-en/files/Alchemy Deluxe/readme.html says 98+)
+  "alchemy|yes"
   # re/_installers/BonniesBookstoreSetup/files/Bonnie's Bookstore Deluxe/readme.html (98+)
   "bonnies|no"
   # re/_installers/PixelusSetup/files/Pixelus Deluxe/readme.html (98+)
@@ -138,16 +141,16 @@ set(BYOPOP_WEB_WIN95
   "wordharmony|no"
   # re/_installers/BananaBugsSetup/files/Banana Bugs/readme.html (XP SP2+)
   "bananabugs|no"
-  # the Steam copy, Bejeweled Deluxe/readme.html (98+); only the Steam release's readme was found, and the 2001 original may differ
-  "bejeweled|no"
+  # released 2001-05-30, before TipTop, so yes by the rule above (the Steam copy's Bejeweled Deluxe/readme.html says 98+)
+  "bejeweled|yes"
   # the Steam copy, Bejeweled 2 Deluxe/readme.html (98+)
   "bejeweled2|no"
   # the Steam copy, Bejeweled 3/readme.html (XP SP2+)
   "bejeweled3|no"
   # the PopCap Games install, Bejeweled Twist/readme.html (XP+)
   "bejeweledtwist|no"
-  # the Steam copy, Big Money Deluxe/readme.html (98+)
-  "bigmoney|no"
+  # released 2002-06-04, before TipTop, so yes by the rule above (the Steam copy's Big Money Deluxe/readme.html says 98+)
+  "bigmoney|yes"
   # the Steam copy, BookWorm Deluxe/readme.html (2000+)
   "bookworm|no"
   # the PopCap Games install, Bookworm Adventures Deluxe/readme.html (2000+)
@@ -156,8 +159,8 @@ set(BYOPOP_WEB_WIN95
   "bookwormadv2|no"
   # the Steam copy, AstroPop Deluxe/readme.html (98+)
   "astropop|no"
-  # the Steam copy, Dynomite Deluxe/readme.html (98+)
-  "dynomite|no"
+  # released 2002-01-25, before TipTop, so yes by the rule above (the Steam copy's Dynomite Deluxe/readme.html says 98+)
+  "dynomite|yes"
   # the Steam copy, Rocket Mania Deluxe/readme.html (98+)
   "rocketmania|no"
   # the Steam copy, Heavy Weapon Deluxe/readme.html (98+)

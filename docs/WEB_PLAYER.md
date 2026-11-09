@@ -898,8 +898,10 @@ in a comment above the row, and no readme text. The build puts it on each tile a
 games and shows the count above them as a value ("4 hidden", the reason in its tooltip), the favourites' icons of those games go (the favourites stay), and the Pop menu's
 Games lists only the others, with the count as its last, greyed entry. An unknown game is hidden too. A game page already open
 stays open. The other skins list every game. Six games are unknown: Cosmic Bugs, Water Bugs, Gyromancer and both Mahjong
-games have no readme that says, and no copy of Feeding Frenzy is here. Most of the "no" rows rest on the Steam releases' readmes
-(Windows 98 or later), which may not be what the first release said.
+games have no readme that says, and no copy of Feeding Frenzy is here; all six came out after TipTop. A game released before the
+last one whose readme names Windows 95 (TipTop, 2002-12-12) counts as yes whatever its readme says (the user, 2026-11-08:
+"Anything released before the last game that did support Windows 95, we'll assume supported 95"): Bejeweled, Alchemy, Dynomite
+and Big Money, whose readmes found are of later releases (Windows 98 or later). Ten are yes, 24 no.
 
 **Desktop 95's controls.** The skin draws its controls as the 1995 desktop did (the user, 2026-11-08: "the dropdowns, check
 boxes, and selectors should be redesigned to look more like authentic Windows 95. Rounded corners are very un-95"): white
