@@ -2840,6 +2840,117 @@ static int game_args_ok(const char* v, int spaces)
 typedef struct { HANDLE proc, thread, job; } Launched;
 // rundesk given: the host's way, the game on rundesk's hidden desktop (rundesk's job ends it). rundesk NULL: inside
 // the sandbox, the game on the sandbox's own WinSta0\Default, in a job of origrun's that ends it and its children.
+// ------------------------------------------------------------------------------------- --coverage
+// The recorder lives in the stand-in (coverage.c), which a game that takes DirectSound through COM, BASS or LoadLibrary
+// loads only when it first wants sound. So for a coverage run the copy's exe gets one more import, the stand-in's
+// DirectSoundCreate, in a section of its own (.orcov): Windows then loads the stand-in with the exe's other DLLs,
+// before the game's first instruction. The exe keeps its unpatched bytes beside it (.origrun-unpatched) and the next
+// run puts them back, as with the patch list. An exe that imports dsound.dll already is left alone.
+static char gCoverageList[MAX_PATH];   // --coverage: the address list (absolute path)
+static char gCoverageOut[MAX_PATH];    // the hits, <run>\coverage.txt
+static DWORD align_up(DWORD v, DWORD a) { return a ? (v + a - 1) / a * a : v; }
+static DWORD pe_rva_to_off(IMAGE_NT_HEADERS32* nt, DWORD rva)
+{
+	IMAGE_SECTION_HEADER* s=IMAGE_FIRST_SECTION(nt);
+	for (int i=0;i<nt->FileHeader.NumberOfSections;i++) {
+		DWORD size = s[i].Misc.VirtualSize > s[i].SizeOfRawData ? s[i].Misc.VirtualSize : s[i].SizeOfRawData;
+		if (rva>=s[i].VirtualAddress && rva<s[i].VirtualAddress+size && rva-s[i].VirtualAddress<s[i].SizeOfRawData)
+			return rva-s[i].VirtualAddress+s[i].PointerToRawData;
+	}
+	return 0;
+}
+static int coverage_import(const char* exe)
+{
+	size_t len=0; unsigned char* b=read_file(exe,&len);
+	if (!b) { logline("--coverage: cannot read %s", exe); return 0; }
+	IMAGE_DOS_HEADER* dos=(IMAGE_DOS_HEADER*)b;
+	IMAGE_NT_HEADERS32* nt = (len>=sizeof(*dos) && dos->e_magic==IMAGE_DOS_SIGNATURE && (size_t)dos->e_lfanew+sizeof(IMAGE_NT_HEADERS32)<=len)
+		? (IMAGE_NT_HEADERS32*)(b+dos->e_lfanew) : NULL;
+	if (!nt || nt->Signature!=IMAGE_NT_SIGNATURE || nt->OptionalHeader.Magic!=IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
+		logline("--coverage: %s is not a 32-bit PE (a wrapped exe must be carved first, games.tsv)", exe); free(b); return 0;
+	}
+	IMAGE_DATA_DIRECTORY* dd=nt->OptionalHeader.DataDirectory;
+	DWORD impOff = dd[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress ? pe_rva_to_off(nt,dd[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress) : 0;
+	int n=0;
+	if (impOff) {
+		IMAGE_IMPORT_DESCRIPTOR* d=(IMAGE_IMPORT_DESCRIPTOR*)(b+impOff);
+		for (;;n++) {
+			if ((size_t)((unsigned char*)&d[n+1]-b)>len) { logline("--coverage: the import table of %s runs past the file", exe); free(b); return 0; }
+			if (d[n].Name==0 && d[n].FirstThunk==0) break;
+			DWORD no=pe_rva_to_off(nt,d[n].Name);
+			if (no && no<len && memchr(b+no,0,len-no) && ieq((const char*)b+no,"dsound.dll")) {
+				logline("--coverage: %s imports dsound.dll already, so the recorder loads with it", exe); free(b); return 1;
+			}
+			if (d[n].TimeDateStamp && !d[n].OriginalFirstThunk) { logline("--coverage: %s has bound imports without names; not changed", exe); free(b); return 0; }
+		}
+	}
+	IMAGE_SECTION_HEADER* sec=IMAGE_FIRST_SECTION(nt);
+	int ns=nt->FileHeader.NumberOfSections;
+	DWORD hdrEnd=(DWORD)((unsigned char*)&sec[ns+1]-b);
+	DWORD firstRaw=0xFFFFFFFF, vEnd=0;
+	for (int i=0;i<ns;i++) {
+		if (sec[i].PointerToRawData && sec[i].PointerToRawData<firstRaw) firstRaw=sec[i].PointerToRawData;
+		DWORD size = sec[i].Misc.VirtualSize > sec[i].SizeOfRawData ? sec[i].Misc.VirtualSize : sec[i].SizeOfRawData;
+		DWORD e=sec[i].VirtualAddress+align_up(size,nt->OptionalHeader.SectionAlignment);
+		if (e>vEnd) vEnd=e;
+	}
+	int room = hdrEnd<=nt->OptionalHeader.SizeOfHeaders && hdrEnd<=firstRaw && hdrEnd<=len;
+	for (unsigned char* q=(unsigned char*)&sec[ns]; room && q<b+hdrEnd; q++) if (*q) room=0;
+	if (!room) { logline("--coverage: no room in %s for another section header; not changed", exe); free(b); return 0; }
+
+	static const char kFunc[]="DirectSoundCreate", kDll[]="dsound.dll";
+	DWORD fa=nt->OptionalHeader.FileAlignment, sa=nt->OptionalHeader.SectionAlignment;
+	DWORD newRva=align_up(vEnd,sa), newOff=align_up((DWORD)len,fa);
+	DWORD descSize=(DWORD)(n+2)*sizeof(IMAGE_IMPORT_DESCRIPTOR);   // the old ones, the stand-in's and the closing one
+	DWORD intAt=descSize, iatAt=intAt+8, hintAt=iatAt+8, nameAt=(hintAt+2+sizeof(kFunc)+1)&~1u;
+	DWORD used=nameAt+sizeof(kDll), rawSize=align_up(used,fa);
+	unsigned char* nb=(unsigned char*)calloc(1,newOff+rawSize);
+	if (!nb) { free(b); return 0; }
+	memcpy(nb,b,len);
+	nt=(IMAGE_NT_HEADERS32*)(nb+dos->e_lfanew); sec=IMAGE_FIRST_SECTION(nt); dd=nt->OptionalHeader.DataDirectory;
+	unsigned char* p=nb+newOff;
+	IMAGE_IMPORT_DESCRIPTOR* nd=(IMAGE_IMPORT_DESCRIPTOR*)p;
+	if (n) memcpy(nd,nb+impOff,n*sizeof(IMAGE_IMPORT_DESCRIPTOR));
+	int bound=0;
+	for (int i=0;i<n;i++) if (nd[i].TimeDateStamp) { nd[i].TimeDateStamp=0; nd[i].ForwarderChain=0; bound=1; }   // resolved from their names again
+	nd[n].OriginalFirstThunk=newRva+intAt; nd[n].Name=newRva+nameAt; nd[n].FirstThunk=newRva+iatAt;
+	*(DWORD*)(p+intAt)=newRva+hintAt; *(DWORD*)(p+iatAt)=newRva+hintAt;
+	memcpy(p+hintAt+2,kFunc,sizeof(kFunc)); memcpy(p+nameAt,kDll,sizeof(kDll));
+	IMAGE_SECTION_HEADER* s=&sec[ns];
+	memcpy(s->Name,".orcov",6);
+	s->Misc.VirtualSize=used; s->VirtualAddress=newRva; s->SizeOfRawData=rawSize; s->PointerToRawData=newOff;
+	s->Characteristics=IMAGE_SCN_CNT_INITIALIZED_DATA|IMAGE_SCN_MEM_READ|IMAGE_SCN_MEM_WRITE;
+	nt->FileHeader.NumberOfSections++;
+	nt->OptionalHeader.SizeOfImage=align_up(newRva+used,sa);
+	nt->OptionalHeader.SizeOfInitializedData+=rawSize;
+	nt->OptionalHeader.CheckSum=0;
+	dd[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress=newRva; dd[IMAGE_DIRECTORY_ENTRY_IMPORT].Size=(DWORD)(n+1)*sizeof(IMAGE_IMPORT_DESCRIPTOR);
+	if (bound || dd[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress) { dd[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].VirtualAddress=0; dd[IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT].Size=0; }
+
+	char bak[MAX_PATH]; wsprintfA(bak,"%s.origrun-unpatched",exe);
+	int ok = file_exists(bak) || CopyFileA(exe,bak,TRUE);
+	HANDLE h = ok ? CreateFileA(exe,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL) : INVALID_HANDLE_VALUE;
+	DWORD w=0;
+	ok = h!=INVALID_HANDLE_VALUE && WriteFile(h,nb,newOff+rawSize,&w,NULL) && w==newOff+rawSize;
+	if (h!=INVALID_HANDLE_VALUE) CloseHandle(h);
+	if (ok) logline("--coverage: %s now imports the stand-in's DirectSoundCreate (section .orcov), so the recorder is in place before the game's first instruction; the next run puts the exe back%s",
+		exe, bound ? " (its bound imports are resolved again)" : "");
+	else logline("--coverage: could not write %s (err %lu)", exe, GetLastError());
+	free(b); free(nb);
+	return ok;
+}
+// The run log's line for the hits file: how many functions the run reached, and whether the game ended normally.
+static void coverage_summary(void)
+{
+	if (!gCoverageList[0]) return;
+	FILE* f=fopen(gCoverageOut,"r");
+	if (!f) { logline("--coverage: no hits file (%s): the game never loaded the stand-in", gCoverageOut); return; }
+	char line[512]; int hits=0, ended=0;
+	while (fgets(line,sizeof(line),f)) { if (line[0]=='#') { if (strstr(line,"ended normally")) ended=1; } else if (line[0]>' ') hits++; }
+	fclose(f);
+	logline("--coverage: %d functions reached, in %s%s", hits, gCoverageOut, ended ? "" : " (the game did not end normally; the file holds what it reached until then)");
+}
+
 static int launch_game(const char* rundesk, Launched* L)
 {
 	ZeroMemory(L,sizeof(*L));
@@ -4227,6 +4338,7 @@ int main(int argc, char** argv)
 			if (ieq(v,"show")) gMsgboxHook=0; else if (ieq(v,"hook")) gMsgboxHook=1;
 			else { fprintf(stderr,"--msgbox takes show or hook, not %s\n",v); return 2; }
 		}
+		else if (ieq(argv[i],"--coverage")&&i+1<argc) { if (!GetFullPathNameA(argv[++i],MAX_PATH,gCoverageList,NULL)) gCoverageList[0]=0; }
 		else if (ieq(argv[i],"--copy-only")) copyOnly=1;
 		else if (ieq(argv[i],"--fresh")) fresh=1;
 		else if (ieq(argv[i],"--stage-root")&&i+1<argc) stageRoot=argv[++i];
@@ -4258,6 +4370,11 @@ int main(int argc, char** argv)
 		fprintf(stderr, "origrun: --cursor scripted lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
 		return 2;
 	}
+	if (gCoverageList[0] && (ieq(sound,"real") || sandboxHost)) {
+		fprintf(stderr, "origrun: --coverage lives in the sound stand-in on the host: not with --sound real or --sandbox\n");
+		return 2;
+	}
+	if (gCoverageList[0] && !file_exists(gCoverageList)) { fprintf(stderr, "origrun: --coverage: no address list %s\n", gCoverageList); return 2; }
 	if (!game && !exe && !sandboxProbe) die("need --game <name> or --exe <path>");
 	if (timeout>3600) timeout=3600;   // an hour; a run past about 4 minutes goes in its session's background, never in a subagent
 	if (!sandboxHost && !copyOnly && script_needs_sandbox(script)) {
@@ -4457,12 +4574,21 @@ int main(int argc, char** argv)
 		if (gMsgboxHook>0) { logline("--sound real: no message-box hook either (it lives in the stand-in): the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
 	}
 
+	if (gCoverageList[0] && (!gStandIn || !coverage_import(gExePath))) { logline("--coverage: the recorder cannot be put in place; the run stops"); return 2; }
+
 	// --sandbox: everything is staged; the run itself, its registry and its shots happen inside Windows Sandbox.
 	if (sandboxHost) return sandbox_host_run(selfDir, script, timeout, sound, key3d, sandboxVgpu, sandboxWait, 0);
 
 	// Environment the stand-in reads, inherited through rundesk.
 	SetEnvironmentVariableA("ORIGRUN_DIR",gRunDir);
 	SetEnvironmentVariableA("ORIGRUN_SOUND", wantSilent ? sound : "real");
+	if (gCoverageList[0]) {
+		joinp(gCoverageOut,gRunDir,"coverage.txt");
+		DeleteFileA(gCoverageOut);
+		SetEnvironmentVariableA("ORIGRUN_COVERAGE",gCoverageList);
+		SetEnvironmentVariableA("ORIGRUN_COVERAGE_OUT",gCoverageOut);
+		logline("--coverage: the stand-in watches the functions %s lists and writes each one the game reaches to %s", gCoverageList, gCoverageOut);
+	} else { SetEnvironmentVariableA("ORIGRUN_COVERAGE",NULL); SetEnvironmentVariableA("ORIGRUN_COVERAGE_OUT",NULL); }
 	if (script) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
 
@@ -4481,7 +4607,9 @@ int main(int argc, char** argv)
 	// Launch: rundesk.exe "<copied exe>"   (CWD = game folder, so the game finds its data)
 	Launched L;
 	if (!launch_game(rundesk,&L)) return 2;
-	return watch_run(&L, script, timeout, key3d, hadPrev3d, prev3d, &prevTest3d, logs, logpath);
+	int rc = watch_run(&L, script, timeout, key3d, hadPrev3d, prev3d, &prevTest3d, logs, logpath);
+	coverage_summary();
+	return rc;
 }
 
 // ------------------------------------------------------------------------------------- games.tsv lookup
