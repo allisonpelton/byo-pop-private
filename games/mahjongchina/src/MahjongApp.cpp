@@ -298,6 +298,8 @@ MahjongWidget::MahjongWidget()
 	mScreenImage->Create(800, 600);
 	// port: opaque, so that the framework need not look through the 480000 pixels for alpha after each present
 	mScreenImage->SetImageMode(false, false);
+	// and its alpha bytes are all 0xff (Present), so the framework need not premultiply it pixel by pixel to upload it
+	mScreenImage->mUploadAsIs = true;
 	ulong* aBits = mScreenImage->GetBits();
 	for (int i = 0; i < 800 * 600; i++)
 		aBits[i] = 0xff000000;
