@@ -1025,10 +1025,18 @@ var ByopopMusic = (function () {
         setState("idle");
       }, function () { scanned = false; say(T("music.lcd_error"), T("music.failed")); });
     }
-    // the tab's panel shown: read the games' music then (the panel is hidden until its tab is chosen)
+    // the player shown: read the games' music then. The tab's panel is hidden until its tab is chosen; Desktop 95's Music
+    // window shows the player while the panel keeps its hidden attribute, so the player's own box counts too (the user,
+    // 2026-11-09: "Music seems to have vanished in my browser")
     var panel = root.closest("[role=tabpanel]") || root;
-    if (!panel.hidden) scan();
-    else new MutationObserver(function (records, obs) { if (!panel.hidden) { obs.disconnect(); scan(); } }).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+    if (!panel.hidden || root.getClientRects().length > 0) scan();
+    else {
+      new MutationObserver(function (records, obs) { if (!panel.hidden) { obs.disconnect(); scan(); } }).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+      if (window.ResizeObserver) {
+        var seen = new ResizeObserver(function () { if (root.getClientRects().length > 0) { seen.disconnect(); scan(); } });
+        seen.observe(root);
+      }
+    }
     // for tests: the state, the tunes, and how far the decoder has rendered the tune (it moves only as the worklet plays)
     return { state: function () { return state; }, tunes: function () { return tunes.slice(); },
       position: function () { return source ? source.position() : 0; }, elapsed: function () { return elapsed(); },
