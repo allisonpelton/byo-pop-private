@@ -455,6 +455,7 @@ def main():
     ap.add_argument('--keys', default=','.join(KEYS))
     ap.add_argument('--rec-only', action='store_true', help='only record the typist run and summarize it (summ.py)')
     ap.add_argument('--skip-orig', action='store_true', help='reuse the last original state (tag.orig.json)')
+    ap.add_argument('--hash-only', action='store_true', help='only run the port (TSEXE) and print a hash of its state log (tools/regress.py)')
     a = ap.parse_args()
     spec = importlib.util.spec_from_file_location('scen', a.scenario)
     sc = importlib.util.module_from_spec(spec)
@@ -465,6 +466,24 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     fixture = getattr(sc, 'FIXTURE', 'users-clean')
     steps = sc.STEPS
+    if a.hash_only:
+        # the port alone: the typist run (or the plain scripted run) and the hash of its state log, for the regression check
+        if getattr(sc, 'TYPIST', None) is not None:
+            record_typist(sc.STEPS, tag, a.seed, sc.TYPIST, hi, getattr(sc, 'PORT_USERFIX', 'port-clean'))
+            sl = os.path.join(OUT, tag + '.rec.sl')
+        else:
+            sl = run_port(port_script(sc.STEPS, [f'{hi + 5} quit'] + list(getattr(sc, 'PORT_EXTRA', []))), tag, a.seed,
+                          getattr(sc, 'PORT_USERFIX', 'port-clean'), getattr(sc, 'PORT_ARGS', []))
+        import hashlib
+        h = hashlib.sha256()
+        n = 0
+        last = ''
+        for line in open(sl, 'rb'):
+            h.update(line)
+            n += 1
+            last = line
+        print('HASH', h.hexdigest()[:32], 'lines', n, 'last', last.decode('latin-1').strip()[:70])
+        return
     if getattr(sc, 'TYPIST', None) is not None:
         steps = record_typist(sc.STEPS, tag, a.seed, sc.TYPIST, hi, getattr(sc, 'PORT_USERFIX', 'port-clean'))
         open(os.path.join(OUT, tag + '.steps.json'), 'w').write(json.dumps(steps))
