@@ -23,14 +23,14 @@ public:
 	int mCounter = 0;                // +0x160: updates in state 2 (the button blinks after 300)
 	int mRank = 0;                   // +0x164
 	CurvedVal mShow;                 // +0x168: in, and back out (its rate turned round)
-	CurvedVal mUnknown1D8;           // +0x1d8
+	CurvedVal mTrophyShow;           // +0x1d8: a curve nothing reads (never read)
 	CurvedVal mAlpha;                // +0x248: of everything
-	float mUnknown2B8 = 0;           // +0x2b8: up to 1 while it comes in
+	float mFadeIn = 0;               // +0x2b8: up to 1 while it comes in
 	EffectsManager* mFXManager;      // +0x2bc: drawn under it
 	EffectsManager* mFXManager2;     // +0x2c0: a child widget
 	Challenge* mTrophy = nullptr;    // +0x2c4: the challenge met
 	RankBonusWidget* mRankBonus = nullptr;  // +0x2c8: the trophy's rank bar
-	bool mUnknown2CC = false;        // +0x2cc: ShowTrophy's flag (1 for a night challenge)
+	bool mIsNightTrophy = false;     // +0x2cc: ShowTrophy's flag (1 for a night challenge)
 	int mBadge = 0;                  // +0x2d0: the new rank's badge (rank / 5)
 	int mOldBadge = 0;               // +0x2d4
 	int mMark = 0;                   // +0x2d8: and its mark (rank % 10)

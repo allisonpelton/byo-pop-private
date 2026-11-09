@@ -4,6 +4,7 @@
 using namespace Sexy;
 
 // The highest-priority enabled mod that names feature theName (null without one)
+// port(mods): the highest-priority enabled mod that names a feature
 static const Platform::ModInfo* FindFeatureMod(const char* theName)
 {
 	for (const Platform::ModInfo* aMod : Platform::ModManager::Get().GetEnabledMods()) {
@@ -13,6 +14,7 @@ static const Platform::ModInfo* FindFeatureMod(const char* theName)
 	return nullptr;
 }
 
+// port(mods): whether an enabled mod has the feature
 bool Sexy::ModFeatureEnabled(const char* theName)
 {
 	const Platform::ModInfo* aMod = FindFeatureMod(theName);
@@ -22,6 +24,7 @@ bool Sexy::ModFeatureEnabled(const char* theName)
 	return aValue.IsObject() || aValue.AsBool(false);
 }
 
+// port(mods): a mod feature's setting
 bool Sexy::ModFeatureBool(const char* theFeature, const char* theSetting, bool theDefault)
 {
 	const Platform::ModInfo* aMod = FindFeatureMod(theFeature);

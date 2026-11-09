@@ -63,7 +63,7 @@ public:
 	int mDialogY = -1;                // +0x1a0
 	int mPointedPieceId = -1;         // +0x1a4: the gem the arrow and the hole follow
 	std::string mHint;                // +0x1a8: the big text over the board
-	int mUnknown1C4 = 0;              // +0x1c4: cleared when a wait ends (never read)
+	int mWaitKind = 0;                // +0x1c4: cleared when a wait ends (never read)
 	bool mKeepDialog = false;         // +0x1c9: the last textbox had no buttons, so the dialog stays across waits
 	std::string mGotoLabel;           // +0x1cc: set by the script's name, then by goto: lines skipped until its ":label"
 	float mTimer = 0;                 // +0x1e8
@@ -76,7 +76,7 @@ public:
 	float mTitleY = 0;                // +0x204
 	float mTitleHold = 0;             // +0x208
 	float mTitleAlpha = 0;            // +0x20c
-	bool mUnknown210 = true;          // +0x210: read by the board: a textbox with buttons, or a tube or seconds wait, is up
+	bool mWaitsForPlayer = true;      // +0x210: read by the board: a textbox with buttons, or a tube or seconds wait, is up
 	bool mFinished = false;           // +0x211: the script has ended
 	int mKind = 0;                    // +0x214: the tip's kind (set by ShowNextTip)
 	Board* mBoard = nullptr;          // +0x218

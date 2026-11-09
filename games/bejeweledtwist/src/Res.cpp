@@ -3393,7 +3393,7 @@ ResourceId Sexy::GetIdByImage(Image* theImage) { return GetIdByVariant((intptr_t
 ResourceId Sexy::GetIdByFont(Font* theFont) { return GetIdByVariant((intptr_t)theFont); }
 ResourceId Sexy::GetIdBySound(int theSound) { return GetIdByVariant(theSound); }
 
-bool Sexy::Extract2DOnlyResources(ResourceManager* theManager)
+bool Sexy::Extract2DOnlyResources(ResourceManager* theManager)  // 0x73eae6
 {
 	try {
 		IMAGE_PLANET = GetImageThrow(theManager, IMAGE_PLANET_ID, "IMAGE_PLANET");
@@ -3404,7 +3404,7 @@ bool Sexy::Extract2DOnlyResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractDynamicResources(ResourceManager* theManager)
+bool Sexy::ExtractDynamicResources(ResourceManager* theManager)  // 0x73eb2e
 {
 	try {
 		FONT_600_BEACHHOUSE86 = GetFontThrow(theManager, FONT_600_BEACHHOUSE86_ID, "FONT_600_BEACHHOUSE86");
@@ -3459,7 +3459,7 @@ bool Sexy::ExtractDynamicResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractLoadScreenNonReleaseResources(ResourceManager* theManager)
+bool Sexy::ExtractLoadScreenNonReleaseResources(ResourceManager* theManager)  // 0x73ef19
 {
 	try {
 		IMAGE_CURSOR_DRAGGING = GetImageThrow(theManager, IMAGE_CURSOR_DRAGGING_ID, "IMAGE_CURSOR_DRAGGING");
@@ -3496,7 +3496,7 @@ bool Sexy::ExtractLoadScreenNonReleaseResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractLoadingThreadResources(ResourceManager* theManager)
+bool Sexy::ExtractLoadingThreadResources(ResourceManager* theManager)  // 0x74406e
 {
 	try {
 		IMAGE_INGAMEUI_GRIDBAR_BOT = GetImageThrow(theManager, IMAGE_INGAMEUI_GRIDBAR_BOT_ID, "IMAGE_INGAMEUI_GRIDBAR_BOT");
@@ -4213,7 +4213,7 @@ bool Sexy::ExtractLoadingThreadResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractNonResizeResources(ResourceManager* theManager)
+bool Sexy::ExtractNonResizeResources(ResourceManager* theManager)  // 0x7475db
 {
 	try {
 		IMAGE_CLOUD_ARSENAL = GetImageThrow(theManager, IMAGE_CLOUD_ARSENAL_ID, "IMAGE_CLOUD_ARSENAL");
@@ -4259,7 +4259,7 @@ bool Sexy::ExtractNonResizeResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractSoundsResources(ResourceManager* theManager)
+bool Sexy::ExtractSoundsResources(ResourceManager* theManager)  // 0x7478c1
 {
 	try {
 		SOUND_PURR = GetSoundThrow(theManager, SOUND_PURR_ID, "SOUND_PURR");
@@ -4403,7 +4403,7 @@ bool Sexy::ExtractSoundsResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractTubeResources(ResourceManager* theManager)
+bool Sexy::ExtractTubeResources(ResourceManager* theManager)  // 0x74858e
 {
 	try {
 		IMAGE_INGAMEUI_TUBE_GLASS = GetImageThrow(theManager, IMAGE_INGAMEUI_TUBE_GLASS_ID, "IMAGE_INGAMEUI_TUBE_GLASS");
@@ -4437,7 +4437,7 @@ bool Sexy::ExtractTubeResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractVizResources(ResourceManager* theManager)
+bool Sexy::ExtractVizResources(ResourceManager* theManager)  // 0x74879d
 {
 	try {
 		IMAGE_ZENDROP1 = GetImageThrow(theManager, IMAGE_ZENDROP1_ID, "IMAGE_ZENDROP1");

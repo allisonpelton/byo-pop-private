@@ -33,6 +33,7 @@ static float ClampF(float theValue, float theLow, float theHigh)
 }
 
 // the colours' blend that the visualizers do by hand: theFrom to theTo by theFraction, a channel at a time, truncated
+// part of VizRainbowGlyphs::Draw (0x68dd18): one channel of the colours' blend
 static int BlendChannel(int theFrom, int theTo, float theFraction)
 {
 	return Ftol((double)(theTo - theFrom) * (double)theFraction + (double)theFrom);
@@ -44,11 +45,11 @@ static int BlendChannel(int theFrom, int theTo, float theFraction)
 // 0x68daa6: four of the game's Rand
 VizRainbowGlyphs::Glyph::Glyph()
 {
-	mUnknown18 = 0;
+	mFlipCount = 0;
 	mX = RandSigned();
 	mY = RandSigned();
-	mRand10 = RandSigned();
-	mRand14 = RandSigned();
+	mThirdDraw = RandSigned();
+	mFourthDraw = RandSigned();
 	mLife = 1.0f;
 }
 
@@ -57,7 +58,7 @@ VizRainbowGlyphs::VizRainbowGlyphs(WinTwistApp* theApp) : Visualizer(theApp)
 	mBackground = LoadVizImage(IMAGE_AZTEC_BG_ID);
 	mStrip = LoadVizImage(IMAGE_AZTEC_STRIP_ID);
 	mDrawWidth = theApp->mWidth;
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 	mDrawHeight = theApp->mHeight;
 }
 
@@ -91,16 +92,16 @@ void VizRainbowGlyphs::Update()
 	mCount++;
 	if (mCount % 2 != 0)
 		return;
-	int anOffset1 = 0;
-	int anOffset2 = 0;
+	int aPhaseX = 0;
+	int aPhaseY = 0;
 	int aPoint = 0;
 	do {
 		std::vector<Glyph*>& aGlyphs = mColumns[aPoint];
 		// where the point is: round the screen on two sines of different speeds (its height scales x, its width y)
-		float aSinArg = (float)((double)mCount * 0.0010000000474974513 + (double)anOffset1);
+		float aSinArg = (float)((double)mCount * 0.0010000000474974513 + (double)aPhaseX);
 		float aSin = sinf(aSinArg);
 		float aX = (float)((double)mApp->mHeight * 0.7099999785423279 * (double)aSin);
-		float aCosArg = (float)((double)mCount * 0.001500000013038516 + (double)anOffset2);
+		float aCosArg = (float)((double)mCount * 0.001500000013038516 + (double)aPhaseY);
 		float aCos = cosf(aCosArg);
 		float aY = (float)((double)mApp->mWidth * 0.7099999785423279 * (double)aCos);
 		if (mCount == 0) {
@@ -147,12 +148,12 @@ void VizRainbowGlyphs::Update()
 				anIndex++;
 			} while (anIndex < (int)aGlyphs.size());
 		}
-		anOffset1 += 1000;
-		anOffset2 += 0x5dc;
+		aPhaseX += 1000;
+		aPhaseY += 0x5dc;
 		mPrevX[aPoint] = aX;
 		mPrevY[aPoint] = aY;
 		aPoint++;
-	} while (anOffset1 < 16000);
+	} while (aPhaseX < 16000);
 }
 
 void VizRainbowGlyphs::Draw(Graphics* g)
@@ -287,6 +288,7 @@ static float AtomU(int theCount, float a, float b)
 	return ClampF((float)(aSum * 0.05000000074505806 * ((double)aBreath * 0.5 + 1.0) + ((double)a * 0.8999999761581421 + 0.5)), 0.0f, 1.0f);
 }
 
+// part of SubAtomic::DrawMesh (0x67cc9d): a vertex's swimming v coordinate
 static float AtomV(int theCount, float a, float b)
 {
 	a = (float)((double)a - 0.5);
@@ -311,7 +313,7 @@ SubAtomic::Electron::Electron()
 	mCenterX = (float)((double)RandSigned() + (double)mX);
 	mCenterY = (float)((double)RandSigned() + (double)mY);
 	mSpeed = 250.0f;
-	mUnknown20 = 1.0f;
+	mSplitScale = 1.0f;
 	mTurn = 1.0f;
 	mSign = (float)(0.5 + (double)fabsf(RandSigned()) * 0.5);
 	mCountdown = CrtRand() % 100 + 0x96;
@@ -322,7 +324,7 @@ SubAtomic::SubAtomic(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mSprite = LoadVizImage(IMAGE_SUBATOMIC_BLUR_ID);
 	mBackground = LoadVizImage(IMAGE_SUBATOMIC_BG_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 SubAtomic::~SubAtomic()
@@ -374,7 +376,7 @@ void SubAtomic::Update()
 				aNew->mCenterX = anElectron->mCenterX;
 				aNew->mCenterY = anElectron->mCenterY;
 				aNew->mSpeed = anElectron->mSpeed;
-				aNew->mUnknown20 = anElectron->mUnknown20;
+				aNew->mSplitScale = anElectron->mSplitScale;
 				aNew->mSign = (float)((double)anElectron->mSign * -1.0);
 				int aRand = CrtRand();
 				aDX = (float)((double)aDX * -1.0);
@@ -611,9 +613,9 @@ void TurnZ(CubeVec& theVec, float theAngle)
 Cubes::Cubes(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mCount = 0;
-	mUnknown2C = 0.0f;
-	mUnknown28 = 0.0f;
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mSecondGrowth = 0.0f;
+	mFirstGrowth = 0.0f;
+	mBrightness = 0.2f;  // 0x3e4ccccd
 	mImage = LoadVizImage(IMAGE_BORDERED_SQUARE_ID);
 }
 
@@ -625,8 +627,8 @@ Cubes::~Cubes()
 void Cubes::Update()
 {
 	mCount++;
-	mUnknown2C = (float)((double)mUnknown2C + 0.02500000037252903);
-	mUnknown28 = (float)((double)mUnknown28 + 0.03500000014901161);
+	mSecondGrowth = (float)((double)mSecondGrowth + 0.02500000037252903);
+	mFirstGrowth = (float)((double)mFirstGrowth + 0.03500000014901161);
 }
 
 void Cubes::Draw(Graphics* g)

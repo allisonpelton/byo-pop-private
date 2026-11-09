@@ -53,9 +53,9 @@ public:
 	int mY;                          // +0x004
 	int mCount = 0;                  // +0x008: updates
 	int mColor;                      // +0x00c: the gem's colour
-	int mUnknown10 = 1;              // +0x010
+	int mIsStarted = 1;              // +0x010: set to 1 by the constructor, never read
 	int mKind;                       // +0x014: 0 a row and a column, 1 three of each (a power electro gem)
-	float mUnknown18 = 0;            // +0x018
+	float mSpreadAngle = 0;          // +0x018: set to 0 by the constructor, never read
 	float mFade = 1.0f;              // +0x01c: down by 0.25 each step once the strike has nothing left to light
 	int mPieceId;                    // +0x020: the electro gem's
 	int mStep = 0;                   // +0x024: how far the lightning has spread, in cells
@@ -67,7 +67,7 @@ public:
 	CurvedVal mNovaAlpha;            // +0x0c0: linked to mNovaScale
 	CurvedVal mNukeScale;            // +0x130
 	CurvedVal mNukeAlpha;            // +0x1a0: linked to mNukeScale
-	float mUnknown210 = 1.0f;        // +0x210: down to 0 by 0.01 an update
+	float mLinger = 1.0f;            // +0x210: down to 0 by 0.01 an update; nothing reads it
 
 	explicit ElectroStrike(Piece* thePiece);
 	~ElectroStrike();

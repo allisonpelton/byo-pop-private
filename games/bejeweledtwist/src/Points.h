@@ -23,14 +23,14 @@ public:
 	float mVY = 0;                   // +0xc: upward, slowing as it nears the top
 	bool mStopHigh = true;           // +0x10: it stops 75 (scaled) from the top
 	int mFading = 0;                 // +0x14
-	int mUnknown18 = 0;              // +0x18: the points times +0x2580, summed over a chain
-	int mUnknown1C = 0;              // +0x1c: the same scaled by the multiplier's 0.45th power
+	int mChainSum = 0;               // +0x18: the points times +0x2580, summed over a chain
+	int mChainScaled = 0;            // +0x1c: the same scaled by the multiplier's 0.45th power
 	WinTwistApp* mApp = nullptr;     // +0x28
 	float mLife = 1.0f;              // +0x2c: falls by 0.01 an update; at 0 it fades
 	SexyString mText;                // +0x30
 	Font* mFont = nullptr;           // +0x4c
-	int mUnknown50 = 0;              // +0x50
-	int mUnknown54[5] = {};          // +0x54
+	int mFontHeight = 0;             // +0x50: 0, set by the constructor, never read
+	int mLayerOffsets[5] = {};       // +0x54: five zeros set by the constructor, never read
 	int mLayers = 0;                 // +0x68: see Points.cpp
 	int mDelay = 0;                  // +0x6c: updates before it shows
 	float mScale = 0;                // +0x70
@@ -39,7 +39,7 @@ public:
 	float mDamping = 0;              // +0x7c
 	float mSpring = 0;               // +0x80
 	ColorCycle mCycles[5];           // +0x84: the font's layers' colours
-	bool mUnknown188 = false;        // +0x188
+	bool mUseLastLayerCycle = false;  // +0x188: the last layer takes its colour from its cycle (false for every points text the port makes)
 	int mUpdates = 0;                // +0x18c
 	Color mColor;                    // +0x190
 	float mPhase = 0;                // +0x1a0: turns by 0.03 of a circle an update (not drawn)
@@ -50,9 +50,10 @@ public:
 	bool mDrawn = false;             // +0x1b4
 	bool mDone = false;              // +0x1b5: the manager deletes it
 
-	// 0x732ce7: theKind 0 to 2 give the second and third layers colours of their own; the board's floaters pass -1
+	// 0x732ce7: theKind 0 to 2 give the second and third layers colours of their own; the board's floaters pass -1. The original's
+	// also takes an int after theLife (0 from its one caller) and never reads it: left out
 	Points(WinTwistApp* theApp, Font* theFont, const SexyString& theText, int theX, int theY, float theLife,
-		int theUnknown, const Color& theColor, int theKind);
+		const Color& theColor, int theKind);
 	virtual ~Points() {}             // 0x732927
 	virtual void Update();           // 0x731d06
 	virtual void Draw(Graphics* g);  // 0x7319fa

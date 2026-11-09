@@ -256,7 +256,7 @@ void WinTwistApp::Init()
 	// 0x7653a1: unless partner.xml's MarketingMode is "LevelLock" (Steam's copy), +0x759 and +0x758 are set: a full
 	// version whose Blitz is earned by play. With LevelLock +0x758 is the wrapper's check (0x73321a) and the mode
 	// select opens Blitz at once for a registered copy; the port counts as registered.
-	mUnknown759 = GetString("MarketingMode", _S("")) != _S("LevelLock");
+	mIsNotLevelLock = GetString("MarketingMode", _S("")) != _S("LevelLock");
 	LoadProperties("properties/config.xml", true, false);
 	LoadResourceManifest();
 	LoadGameTexts();
@@ -409,12 +409,12 @@ void WinTwistApp::Shutdown()
 		return;
 	// port: the original first ends a background thread (+0x8e0) and adds the session's minutes to the time played
 	// (+0x75c; the "MaxTime" property chooses the clock); they come with the stats
-	if (mUnknownF24 != nullptr) {
-		if (mBoard != nullptr && mBoard->mUnknown2208 == mUnknownF24)
-			mBoard->mUnknown2208 = nullptr;
-		mWidgetManager->RemoveWidget(mUnknownF24);
-		delete mUnknownF24;
-		mUnknownF24 = nullptr;
+	if (mMandalaWidget != nullptr) {
+		if (mBoard != nullptr && mBoard->mShownDialog == mMandalaWidget)
+			mBoard->mShownDialog = nullptr;
+		mWidgetManager->RemoveWidget(mMandalaWidget);
+		delete mMandalaWidget;
+		mMandalaWidget = nullptr;
 	}
 	// A game that may be saved goes now, which saves it (Board::RemovedFromManager)
 	if (mBoard != nullptr && mBoard->CanSaveOnQuit()) {
@@ -497,7 +497,7 @@ void WinTwistApp::WriteToRegistry()
 	RegistryWriteBoolean("CustomCursors", mCustomCursorsEnabled);
 	RegistryWriteBoolean("ShowHints", mShowHints);
 	RegistryWriteBoolean("DoViz", mDoViz);
-	RegistryWriteInteger("VizSpeed", Ftol(mVizManager->mUnknown1B0 * 100.0));
+	RegistryWriteInteger("VizSpeed", Ftol(mVizManager->mSwitchTime * 100.0));
 }
 
 void WinTwistApp::ReadFromRegistry()
@@ -612,11 +612,13 @@ bool WinTwistApp::DisplayInitFailed(int theResult)
 	return true;
 }
 
+// port: the window an SDL OpenGL device needs in 3D mode
 uint32_t WinTwistApp::GetExtraWindowFlags()
 {
 	return mUse3D ? SDL_WINDOW_OPENGL : SexyApp::GetExtraWindowFlags();
 }
 
+// port: the framework's hook after the display is made
 void WinTwistApp::PostDDInterfaceInitHook()
 {
 	SexyApp::PostDDInterfaceInitHook();
@@ -683,9 +685,9 @@ void WinTwistApp::ShowOptionsDialog()
 	float aScale = (float)((double)mArtRes / 1200.0);
 	OptionsPanel* aPanel = new OptionsPanel(this);
 	mOptionsDialog = aPanel;
-	int aWidth = GetImageById(aPanel->mUnknownB0)->mWidth;
-	int aHeight = GetImageById(aPanel->mUnknownB0)->mHeight;
-	int aY = Ftol((double)GetImageOffsetY(aPanel->mUnknownB0) * (double)aScale);
+	int aWidth = GetImageById(aPanel->mImageId)->mWidth;
+	int aHeight = GetImageById(aPanel->mImageId)->mHeight;
+	int aY = Ftol((double)GetImageOffsetY(aPanel->mImageId) * (double)aScale);
 	aPanel->Resize(mWidth / 2 - aWidth / 2, aY, aWidth, aHeight);
 	aPanel->mZOrder = mBoard == nullptr ? 10 : mBoard->mZOrder + 1;
 	if (aPanel->mZOrder < 11)
@@ -709,13 +711,13 @@ void WinTwistApp::ShowCredits()
 void WinTwistApp::ShowHelpDialog()
 {
 	// 0x75f82d
-	if (mUnknownF44 != nullptr)
+	if (mHelpPanel != nullptr)
 		return;
 	HelpPanel* aPanel = new HelpPanel(this);
-	mUnknownF44 = aPanel;
+	mHelpPanel = aPanel;
 	int aWidth = Ftol((double)mScale * 1000.0);
 	int aY = Ftol((double)mScale * 100.0);
-	aPanel->Resize(mWidth / 2 - aWidth / 2, aY, aWidth, GetImageById(aPanel->mUnknownB0)->mHeight);
+	aPanel->Resize(mWidth / 2 - aWidth / 2, aY, aWidth, GetImageById(aPanel->mImageId)->mHeight);
 	aPanel->mZOrder = mBoard == nullptr ? 10 : mBoard->mZOrder + 1;
 	if (aPanel->mZOrder < 11)
 		aPanel->mZOrder = 10;
@@ -769,7 +771,7 @@ MenuButtonWidget* WinTwistApp::MakeMenuButton(Image* theImage, Image* theCover, 
 void WinTwistApp::StartMainMenu()
 {
 	// With -record the original starts recording here (app +0xc42)
-	if (mUnknownF85) {
+	if (mStartClassicAtOnce) {
 		// A classic game at once, as TWISTBOT: 0x760492(1, true, false) comes with the board
 		mProfile->Create(GT(0x7da118));
 		SDL_Log("WinTwistApp::StartMainMenu: starting a game at once is not ported yet");
@@ -835,11 +837,12 @@ void WinTwistApp::ShowMainMenu(bool theEndStats, bool theChallenges, float theDe
 	}
 	mWidgetManager->SetFocus(mMainMenu);
 	AddHighScore();  // 0x764f9c
-	mUnknownF85 = false;
+	mStartClassicAtOnce = false;
 	if (mWidgetManager->mFocusWidget == nullptr)
 		mWidgetManager->SetFocus(mMainMenu);
 }
 
+// port: the menu's Play button, for the loader's hand-over
 PlayButton* WinTwistApp::GetMainMenuPlayButton()
 {
 	return mMainMenu != nullptr ? mMainMenu->mPlayButton : nullptr;
@@ -946,7 +949,7 @@ void WinTwistApp::GotFocus()
 {
 	if (mBoard != nullptr)
 		mBoard->Unpause(mBoard->IsTimed());
-	mUnknownF1C = false;
+	mPausedByFocusLoss = false;
 }
 
 void WinTwistApp::LostFocus()
@@ -954,7 +957,7 @@ void WinTwistApp::LostFocus()
 	if (mBoard != nullptr)
 		mBoard->Pause(mBoard->IsTimed());
 	if (mLoadingThreadDone)
-		mUnknownF1C = true;
+		mPausedByFocusLoss = true;
 }
 
 void WinTwistApp::UpdateFrames()
@@ -996,15 +999,15 @@ void WinTwistApp::UpdateFrames()
 		mResourceManager->DeleteResources("LoadScreen");
 	}
 	// The board's game is over: back to the main menu, with the game's stats when it ended (not when it was left)
-	if (mBoard != nullptr && mBoard->mUnknown1FF5) {
-		bool anEnded = mBoard->mUnknown36B0;
+	if (mBoard != nullptr && mBoard->mGameOverShown) {
+		bool anEnded = mBoard->mGameOver;
 		Hyperspace* aSpace = mBoard->mHyperspace;
 		if (aSpace != nullptr) {
 			mHyperspace = aSpace;
 			aSpace->mState = 0;
-			aSpace->mFlag155 = false;
+			aSpace->mDrawsOwnBackground = false;
 			aSpace->mIs3D = false;
-			aSpace->mFlag158 = false;
+			aSpace->mDrawsTravellers = false;
 			mBoard->mHyperspace = nullptr;
 		}
 		DeleteBoard();
@@ -1031,8 +1034,8 @@ void WinTwistApp::UpdateFrames()
 		}
 	}
 	// The screen darkens behind the dialogs and the options, and while the board is paused for the player to see
-	if (mDialogMap.size() == 0 && mUnknownF44 == nullptr && mOptionsDialog == nullptr &&
-		(mBoard == nullptr || mBoard->mUnknown1574 == 0)) {
+	if (mDialogMap.size() == 0 && mHelpPanel == nullptr && mOptionsDialog == nullptr &&
+		(mBoard == nullptr || mBoard->mPauseShownCount == 0)) {
 		float aDim = (float)(mDialogDim - 0.03);
 		if (aDim < 0.0f)
 			aDim = 0.0f;
@@ -1047,8 +1050,8 @@ void WinTwistApp::UpdateFrames()
 		if (!mUnderDialog->mVisible) {
 			if (mDialogMap.size() != 0) {
 				mWidgetManager->PutBehind(mUnderDialog, mDialogList.back());
-			} else if (mOptionsDialog != nullptr || mUnknownF44 != nullptr) {
-				mWidgetManager->PutBehind(mUnderDialog, mOptionsDialog != nullptr ? mOptionsDialog : mUnknownF44);
+			} else if (mOptionsDialog != nullptr || mHelpPanel != nullptr) {
+				mWidgetManager->PutBehind(mUnderDialog, mOptionsDialog != nullptr ? mOptionsDialog : mHelpPanel);
 			}
 			if (mFXManager != nullptr)
 				mWidgetManager->PutBehind(mFXManager, mUnderDialog);
@@ -1088,14 +1091,14 @@ int WinTwistApp::CheckForHighScore(int theGameMode, SexyString theName, int theL
 		// (and a line for the debugger with the mode, place, name, level and score)
 		mMainMenu->SetNewHighScore(aPlace, theName, theLevel, theScore);
 	}
-	mUnknownF68 = aPlace;
+	mNewScorePlace = aPlace;
 	return aPlace;
 }
 
 void WinTwistApp::AddHighScore()
 {
 	int aList = ScoreList(mLastGameMode);
-	int aPlace = mUnknownF68;
+	int aPlace = mNewScorePlace;
 	if (-1 < aPlace && aPlace < 10 && -1 < aList) {
 		int i = 8;
 		if (aPlace < 9) {
@@ -1107,9 +1110,9 @@ void WinTwistApp::AddHighScore()
 			} while (aPlace <= i);
 		}
 		HighScore& aNew = mHighScores[aList * 10 + aPlace];
-		aNew.mLevel = mUnknownF70;
+		aNew.mLevel = mNewScoreLevel;
 		aNew.mName = mProfile->mName;
-		aNew.mScore = mUnknownF6C;
+		aNew.mScore = mNewScorePoints;
 		SaveScores();
 	}
 }
@@ -1175,10 +1178,10 @@ void WinTwistApp::NewGame(int theMode, bool thePlayPressed, int theChallenge)
 	mWidgetManager->AddWidget(mVizManager);
 	mVizManager->mSpeed = 1.0;
 	mVizManager->mPaused = false;
-	for (UnknownFA0& aSlot : mUnknownFA0) {
-		aSlot.mUnknown20 = -1;
-		aSlot.mUnknown24 = -1;
-		aSlot.mUnknown28 = 0;
+	for (BestMove& aSlot : mBestMoves) {
+		aSlot.mReplayStart = -1;
+		aSlot.mReplayEnd = -1;
+		aSlot.mBest = 0;
 		aSlot.mBuffer.Clear();
 	}
 	mBoard = new Board(this, theMode, 0, theChallenge);
@@ -1188,7 +1191,7 @@ void WinTwistApp::NewGame(int theMode, bool thePlayPressed, int theChallenge)
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	if (mHyperspace == nullptr) {
 		mBoard->mGoodTube->mVisible = true;
-	} else if (!mUnknownF85) {
+	} else if (!mStartClassicAtOnce) {
 		mWidgetManager->RemoveWidget(mHyperspace);
 		mBoard->TakeHyperspace(mHyperspace);
 		mHyperspace = nullptr;
@@ -1248,7 +1251,7 @@ void WinTwistApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 	Buffer aBuffer;
 	int aMode = 0;
 	if (mBoard != nullptr && mBoard->CanSaveOnQuit() && mBoard->GetQuitSave(&aBuffer, &aMode))
-		theSaves->push_back({Relative(GetSaveName(aMode, mBoard->mUnknown2674)),
+		theSaves->push_back({Relative(GetSaveName(aMode, mBoard->mChallengeCategory)),
 							 std::string((const char*)aBuffer.GetDataPtr(), (size_t)aBuffer.GetDataLen())});
 	Buffer aProfile;
 	std::string aPath;
@@ -1310,7 +1313,7 @@ void WinTwistApp::ShowModeSelect(int theMode)
 	int aHeight = Ftol((double)mScale * 1200.0);
 	aMandala->Resize(mWidth / 2 - aWidth / 2, mHeight / 2 - aHeight / 2, aWidth, aHeight);
 	mWidgetManager->AddWidget(aMandala);
-	mUnknownF24 = aMandala;
+	mMandalaWidget = aMandala;
 	mWidgetManager->PutBehind(aMandala, mMainMenu);
 }
 
@@ -1441,7 +1444,7 @@ void WinTwistApp::DialogButtonDepress(int theDialogId, int theButtonId)
 		// board's tip closed
 		GetDialog(0x28);
 		if (theButtonId != Dialog::ID_CANCEL) {
-			mProfile->mUnknown1B0 = false;
+			mProfile->mShowReminder = false;
 			mProfile->Save();
 			mBoard->CloseTip();
 		}
@@ -1564,7 +1567,7 @@ void WinTwistApp::PlaySoundAt(int theSoundId, int theX, float thePitch, float th
 void WinTwistApp::Mute(bool autoMute)
 {
 	SexyAppBase::Mute(autoMute);
-	if (gBoard != nullptr && gBoard->mUnknown267C != nullptr) {
+	if (gBoard != nullptr && gBoard->mFruitDance != nullptr) {
 		// port: the original reads the music interface and the track without a check; the port has none without
 		// sound
 		if (mTwistMusic != nullptr) {
@@ -1578,7 +1581,7 @@ void WinTwistApp::Mute(bool autoMute)
 void WinTwistApp::Unmute(bool autoMute)
 {
 	SexyAppBase::Unmute(autoMute);
-	if (gBoard != nullptr && gBoard->mUnknown267C != nullptr) {
+	if (gBoard != nullptr && gBoard->mFruitDance != nullptr) {
 		// (the same)
 		if (mTwistMusic != nullptr) {
 			mTwistMusic->SetVolume(mSfxVolume < mMusicVolume ? mMusicVolume : mSfxVolume);

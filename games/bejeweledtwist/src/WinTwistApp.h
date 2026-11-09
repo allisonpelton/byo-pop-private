@@ -1,5 +1,5 @@
-// Sexy::WinTwistApp (vtable 0x7f433c, 111 slots; 0x75e900-0x768d00): Bejeweled Twist's app. Its fields are named
-// here by their offsets in the original's object; the framework's own fields are SexyAppBase's.
+// Sexy::WinTwistApp (vtable 0x7f433c, 111 slots; 0x75e900-0x768d00): Bejeweled Twist's app. Its fields' comments
+// start with their offsets in the original's object; the framework's own fields are SexyAppBase's.
 #pragma once
 
 #include "Buffer.h"
@@ -50,10 +50,10 @@ public:
 	bool mTubeLoaded = false;           // +0xf8c: the Tube group (0x763092)
 	bool mLoadingThreadDone = false;    // +0x7f1: LoadingThreadProc loaded everything
 	int mLoadMode = 0;                  // +0xf18: 1 skips the Sounds group, 2 loads only it (never set: always 0)
-	bool mFlag764 = false;              // +0x764: set by the loader while mFlag784 is (meaning not yet known)
-	bool mFlag784 = false;              // +0x784: (meaning not yet known; the loader's other buttons depend on it)
+	bool mLoaderGoSeen = false;         // +0x764: set by the loader while mLoaderGo is; never read
+	bool mLoaderGo = false;             // +0x784: the loader's other buttons depend on it; nothing in the port sets it
 	Board* mBoard = nullptr;            // +0x7e4: the board while a game is on
-	bool mUnknown8D8 = false;           // +0x8d8: cleared with the dialog 40
+	bool mWaitDialogActive = false;     // +0x8d8: cleared with the wait dialog (id 40)
 	// +0x7f4: each colour's gem drawn ahead at 7 sizes, from 1.375 times a cell (size 0) down to 0.625 in eighths
 	// (size 3 is the cell), centred in 1.5 cells; a gem breaking up shrinks through them. +0x7f8: each colour's bomb
 	// at half size. Made by MakeGemImages, null until then.
@@ -88,28 +88,28 @@ public:
 	// sets it too, and a board started with it set starts afresh instead of from its save (0x6c9d0b)
 	bool mPlayPressed = false;
 	int mLastGameMode = 0;              // +0xf64: the high scores to show after a game
-	int mUnknownF68 = 0;                // +0xf68: the board sets -1 (but not for a replay)
-	int mUnknownF6C = 0;                // +0xf6c
-	int mUnknownF70 = 0;                // +0xf70
-	int mUnknown75C = 0;                // +0x75c: counts the games ended
-	int mUnknown780 = 0;                // +0x780: counts the board's updates
-	int mUnknown7D4 = 0;                // +0x7d4: seconds played (UpdateStats), and the next three by kind of game
-	int mUnknown7D8 = 0;                // +0x7d8
-	int mUnknown7DC = 0;                // +0x7dc: in puzzles
-	int mUnknown7E0 = 0;                // +0x7e0
-	int mUnknownC74[84] = {};           // +0xc74: cleared by a new board (0x75fc8a) unless the old one has +0x37c4
+	int mNewScorePlace = 0;             // +0xf68: the place of the last game's high score; the board sets -1 (but not for a replay)
+	int mNewScorePoints = 0;            // +0xf6c: the last game's score, for the high score list
+	int mNewScoreLevel = 0;             // +0xf70: the last game's level, for the high score list
+	int mGamesEnded = 0;                // +0x75c: counts the games ended
+	int mBoardUpdates = 0;              // +0x780: counts the board's updates
+	int mSecondsOrdinary = 0;           // +0x7d4: seconds played in a game with neither of the board's flags +0x137d and +0x137e (UpdateStats)
+	int mSecondsInFirstSpecial = 0;     // +0x7d8: seconds played in a game with the board flag +0x137d
+	int mSecondsPuzzle = 0;             // +0x7dc: in puzzles
+	int mSecondsInSecondSpecial = 0;    // +0x7e0: seconds played in a game with the board flag +0x137e
+	int mStats[84] = {};                // +0xc74: the app's counters (the stats page's copy); cleared by a new board (0x75fc8a) unless the old one has +0x37c4
 	// (+0x758, the framework's: whether the copy is registered (Init 0x7653a1). The port plays as the registered
 	// original does, and every branch of an unregistered copy is registration code, left out.)
-	bool mUnknown759 = false;           // +0x759 (the framework's): set unless partner.xml's MarketingMode is LevelLock (Init)
+	bool mIsNotLevelLock = false;       // +0x759 (the framework's): set unless partner.xml's MarketingMode is LevelLock (Init)
 	// +0xfa0: three of them (0x2c bytes each), cleared by every new game (0x760492), saved with the game (0x6a3192)
-	struct UnknownFA0 {
+	struct BestMove {
 		Buffer mBuffer;
-		int mUnknown20 = -1;  // +0x20 (saved as a short)
-		int mUnknown24 = -1;  // +0x24 (saved as a short)
-		int mUnknown28 = 0;   // +0x28
+		int mReplayStart = -1;  // +0x20 (saved as a short): the board's replay position (+0x23a4) when the move was made
+		int mReplayEnd = -1;  // +0x24 (saved as a short): the board's replay position (+0x23a8) when the move was made
+		int mBest = 0;        // +0x28: the best move's score, gems or cascade
 	};
-	UnknownFA0 mUnknownFA0[3];
-	bool mUnknownF85 = false;           // +0xf85: StartMainMenu starts a classic game at once
+	BestMove mBestMoves[3];
+	bool mStartClassicAtOnce = false;   // +0xf85: StartMainMenu starts a classic game at once
 	int mAutoPlayMode = -1;             // +0x1044: -autoplay's game (1 classic, 3 blitz, 4 zen), -1 none
 	// port: this run draws through the GPU (GPUDisplay), as the original does with Direct3D: unless "Is3D" off, -nod3d9
 	// or -noacceleration ask for 2D, or the display cannot do 3D (DisplayInitFailed)
@@ -130,14 +130,14 @@ public:
 	D3DObject* mPlanetObjects[2] = {};         // +0x850
 	D3DObject* mPlanetRingsObject = nullptr;   // +0x858
 	D3DObject* mWarpConeObject = nullptr;      // +0x85c
-	bool mUnknownF1C = false;           // +0xf1c: the game was paused by losing the focus (0x75f51e)
-	Widget* mUnknownF24 = nullptr;      // +0xf24: a 0x420-byte widget over everything (0x7243b1)
+	bool mPausedByFocusLoss = false;    // +0xf1c: the game was paused by losing the focus (0x75f51e)
+	Widget* mMandalaWidget = nullptr;   // +0xf24: the mode-select screen (a Mandala), over everything (0x7243b1)
 	EffectsManager* mFXManager = nullptr;  // +0xf78: the effects over the whole screen
 	UnderDialogWidget* mUnderDialog = nullptr;  // +0xf7c: darkens the screen behind the dialogs
 	float mDialogDim = 0;               // +0xf90: how dark mUnderDialog is, 0 to 1
 	Credits* mCredits = nullptr;        // +0xf94: the credits while they are up (ShowCredits)
 	Widget* mOptionsDialog = nullptr;   // +0xf40: the options while they are up (comes with the options)
-	Widget* mUnknownF44 = nullptr;      // +0xf44: another widget the screen darkens behind (not yet known)
+	Widget* mHelpPanel = nullptr;       // +0xf44: the how-to-play panel the screen darkens behind
 	bool mShowHints = true;             // +0xf8e: the options' hints box (registry ShowHints)
 	bool mDoViz = true;                 // +0xf86: the options' visualizers box (registry DoViz)
 	bool mSoundsOff = false;            // +0x928: no sound effects (set elsewhere, not yet read)

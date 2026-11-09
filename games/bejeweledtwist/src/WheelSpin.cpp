@@ -47,7 +47,7 @@ int ArtY(int theId)
 WheelSpin::WheelSpin(Board* theBoard, Piece* thePiece)
 	: mBoard(theBoard), mPiece(thePiece)
 {
-	mRand.SRand(Rand85B970());
+	mRand.SRand(BoardRand());
 	mSiren = gApp->mSoundManager->GetSoundInstance(SOUND_SIREN);
 	mSirenVolume.SetCurve(GTS(0x7f2ff4));
 	mCache = nullptr;
@@ -57,35 +57,35 @@ WheelSpin::WheelSpin(Board* theBoard, Piece* thePiece)
 		mSiren->Play(true, false);
 	}
 	mPaused = false;
-	mUnknownC28 = nullptr;
+	mSecondSiren = nullptr;
 	mFXManager = new EffectsManager();
-	mFXManager->mUnknownA0 = true;  // +0xa0, set in both modes (drawn under the board's transform, 0x6f7a45)
+	mFXManager->mDrawnUnderBoardTransform = true;  // +0xa0, set in both modes (drawn under the board's transform, 0x6f7a45)
 	mGemScale = 1.0f;
 	mPiece->mJustMade = 0;
 	mPiece->mDevilGlow = 0;
-	mPiece->mUnknown108 = 0;
-	mPiece->mUnknown2F6 = true;
+	mPiece->mBombPhase = 0;
+	mPiece->mIsDrawn = true;
 	mLeftArm = IMAGE_DEFUSER_LEFTARM;
 	mRightArm = IMAGE_DEFUSER_RIGHTARM;
-	mUnknownD2C = -mLeftArm->mWidth;
-	mUnknownD30 = mBoard->mWidth;
-	int aSpun = mBoard->mUnknown21DC;
+	mLeftArmX = -mLeftArm->mWidth;
+	mRightArmX = mBoard->mWidth;
+	int aSpun = mBoard->mWheelSpinCount;
 	float aShare = 0.85f;
 	if ((float)(aSpun < 0 ? 0 : aSpun) * 0.15 + 0.15 <= 0.85)
 		aShare = (float)((float)(aSpun < 0 ? 0 : aSpun) * 0.15 + 0.15);
-	mUnknown1B4 = aShare;
-	aShare = (float)((float)(mBoard->mUnknown21DC + 1) * 0.15 + 0.15);
+	mSkullShareBefore = aShare;
+	aShare = (float)((float)(mBoard->mWheelSpinCount + 1) * 0.15 + 0.15);
 	if (0.85 < aShare)
 		aShare = 0.85f;
-	mUnknown1B8 = aShare;
-	mLose = mBoard->mUnknown21E0 - 1 <= 0;
+	mSkullShareAfter = aShare;
+	mLose = mBoard->mIntroRoll - 1 <= 0;
 	// The original says "FTL" or "FTW" with OutputDebugString
 	mSkulls = 0;
-	mUnknown18C = (float)(((double)fabsf(RandSigned()) * 0.012 + 0.04) * (double)kTwoPi);
+	mRandomTurn = (float)(((double)fabsf(RandSigned()) * 0.012 + 0.04) * (double)kTwoPi);
 	// A skull for each wheel spun before, the bomb's colour in the other slots (each half of the wheel the same)
 	for (int i = 0; i < 4; i++) {
 		int aSlot;
-		if (i < mBoard->mUnknown21DC) {
+		if (i < mBoard->mWheelSpinCount) {
 			aSlot = -1;
 			mSkulls = i + 1;
 		} else {
@@ -108,23 +108,23 @@ WheelSpin::WheelSpin(Board* theBoard, Piece* thePiece)
 	mSlots[mSkulls] = mSlots[(mSkulls + 4) & 7];
 	mPickedSlot = 0;
 	mOppositeSlot = 0;
-	mUnknownD64 = false;
+	mHasStopped = false;
 	mCounter = 0;
 	mAngle = (float)((float)mSkulls * kTwoPi * 0.125 - (double)kTwoPi * 0.35);  // (set again below)
-	mUnknown1D0 = 1.0f;
-	mUnknown1CC = 0;
+	mHoleDarkness = 1.0f;
+	mDimAmount = 0;
 	mArms = 0;
-	mUnknown254 = 0;
-	mUnknown25C = 0;
-	mUnknownD70 = 1.0f;
-	mUnknown258 = 2.0f;
+	mSkullRise = 0;
+	mSkullFade = 0;
+	mHoleScale = 1.0f;
+	mSkullGrow = 2.0f;
 	for (int i = 0; i < 8; i++) {
 		mSkullAdded[i] = false;
-		mUnknownC54[i] = true;
-		mUnknownC5C[i] = 0;
-		mUnknownC7C[i] = 1.0f;
+		mSlotLit[i] = true;
+		mSlotFlash[i] = 0;
+		mSlotScale[i] = 1.0f;
 	}
-	mAngle = (float)((float)-mBoard->mUnknown21DC * 3.1415927f * 0.125);
+	mAngle = (float)((float)-mBoard->mWheelSpinCount * 3.1415927f * 0.125);
 	Resize(0, 0, gApp->mWidth, gApp->mHeight);
 	mButton = new TwistButton(0, IMAGE_DEFUSER_CLICKTOSTOP, this);
 	mButton->mDeferDraw = true;
@@ -133,7 +133,7 @@ WheelSpin::WheelSpin(Board* theBoard, Piece* thePiece)
 	AddWidget(mButton);
 	mArrive.SetCurve(GTS(0x7f2fbc));
 	mOpen.SetCurve(GTS(0x7f2fa0), &mArrive);
-	mUnknownDF8.SetCurve(GTS(0x7f2f80), &mArrive);
+	mButtonDrop.SetCurve(GTS(0x7f2f80), &mArrive);
 	mGlow.SetCurve(GTS(0x7f2f60), &mArrive);
 	mUnfold.SetCurve(GTS(0x7f2f44), &mArrive);
 	mWheelAlpha.SetCurve(GTS(0x7f2f28), &mArrive);
@@ -146,8 +146,8 @@ WheelSpin::~WheelSpin()
 {
 	gWheelSpin = nullptr;
 	gApp->mProfile->Save();
-	if (mUnknownC28 != nullptr)
-		mUnknownC28->Release();
+	if (mSecondSiren != nullptr)
+		mSecondSiren->Release();
 	if (mSiren != nullptr)
 		mSiren->Release();
 	delete mFXManager;
@@ -166,18 +166,18 @@ void WheelSpin::Resize(int theX, int theY, int theWidth, int theHeight)
 void WheelSpin::Reset()
 {
 	mTickDelay = 0;
-	mUnknownD78 = 1.0f;
+	mAlertFade = 1.0f;
 	mTicks = 0;
 	mState = 0;
-	mUnknown164 = 0;
+	mIntroProgress = 0;
 	mZoomIn.SetCurve(GTS(0x7f3014));
 	mSpeed = 0;
-	mUnknownD74 = 0;
-	mUnknownD58 = 4.0f;
-	mUnknown168 = 0;
-	mUnknown16C = false;
+	mAlertRise = 0;
+	mArmSpeed = 4.0f;
+	mSpinCount = 0;
+	mHasSpun = false;
 	mCenterX = mWidth / 2;
-	mUnknownD68 = 1.0f;
+	mSpinPulse = 1.0f;
 	mCenterY = 0;
 	// The shift that brings the bomb's middle to the window's
 	mPanX = (float)(mWidth / 2 - mPiece->mCol * gGemWidth - gGemWidth / 2 - mBoard->GetColX(0));
@@ -197,9 +197,9 @@ void WheelSpin::AddedToManager(WidgetManager* theWidgetManager)
 void WheelSpin::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	TwistWidget::RemovedFromManager(theWidgetManager);
-	mBoard->mUnknown21E0--;
-	mBoard->mUnknown21DC++;
-	gApp->mUnknownC74[52]++;  // app +0xd44: wheels spun
+	mBoard->mIntroRoll--;
+	mBoard->mWheelSpinCount++;
+	gApp->mStats[52]++;  // app +0xd44: wheels spun
 	if (mPaused) {
 		mBoard->Unpause(false);
 		mPaused = true;  // (sic: the original sets it again, not clears it)
@@ -252,17 +252,17 @@ void WheelSpin::Update()
 {
 	TwistWidget::Update();
 	if (mState < 12) {
-		float aRise = mUnknown164 + 0.02f;
+		float aRise = mIntroProgress + 0.02f;
 		if (1.0f < aRise)
 			aRise = 1.0f;
-		mUnknown164 = aRise;
+		mIntroProgress = aRise;
 		if (mPiece != nullptr && 1.0f <= mPiece->mDrawScale) {
-			mPiece->mUnknown29C *= 0.25f;
+			mPiece->mAura *= 0.25f;
 			mPiece->Update();
 		}
 	}
 	mArrive.IncInVal();
-	mPiece->mUnknown29C = (float)mGlow.GetOutVal();
+	mPiece->mAura = (float)mGlow.GetOutVal();
 	mPiece->Update();
 	if (7 < mState && mState != 15 && mResult == 13) {
 		// Sparks fly from the bomb that is about to go off
@@ -273,7 +273,7 @@ void WheelSpin::Update()
 			Effect* aSpark = mPiece->AddSpark(true, aSpeed,
 				(float)((double)aDir * 3.1415927410125732 * 0.5 + 0.7853981852531433));
 			mFXManager->AddEffect(aSpark);
-			if (mBoard->mUnknown268C < 1.2f && RandFloat() < 0.3f) {
+			if (mBoard->mBoardZoom < 1.2f && RandFloat() < 0.3f) {
 				Effect* anEffect = mFXManager->AllocEffect(0);
 				anEffect->mImage = IMAGE_ANGRYPARTICLE;
 				anEffect->mIsAdditive = true;
@@ -282,10 +282,10 @@ void WheelSpin::Update()
 				anEffect->mDX = (float)(((double)RandSigned() * 0.10000000149011612 + 0.5) * (double)aSpark->mDX);
 				anEffect->mDY = (float)(((double)RandSigned() * 0.10000000149011612 + 0.5) * (double)aSpark->mDY);
 				anEffect->mGravity = 0;
-				anEffect->mUnknown9C = (float)((double)RandSigned() * (double)kTwoPi);
-				anEffect->mUnknownA0 = (float)((double)RandSigned() * (double)kTwoPi);
-				anEffect->mUnknownA4 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
-				anEffect->mUnknownA8 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+				anEffect->mBlend = (float)((double)RandSigned() * (double)kTwoPi);
+				anEffect->mRateFrom = (float)((double)RandSigned() * (double)kTwoPi);
+				anEffect->mRateTo = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+				anEffect->mTumbleTurn = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
 				anEffect->mAlpha = 1.0f;
 				double aFade = (double)fabsf(RandSigned());
 				anEffect->mDAlpha = (float)((aFade + aFade + 4.0) * -0.003);
@@ -301,13 +301,13 @@ void WheelSpin::Update()
 	if (mSiren != nullptr)
 		mSiren->SetVolume(mSirenVolume.GetOutVal());
 	int anOffY = Ftol((double)gApp->mScale * (double)GetImageOffsetY(IMAGE_DEFUSER_CLICKTOSTOP_ID));
-	double aDrop = mUnknownDF8.GetOutVal();
+	double aDrop = mButtonDrop.GetOutVal();
 	int aDropBy = Ftol((double)gApp->mScale * 500.0);
 	int anArtX = Ftol((double)gApp->mScale * 1920.0);
 	int anOffX = Ftol((double)gApp->mScale * (double)GetImageOffsetX(IMAGE_DEFUSER_CLICKTOSTOP_ID));
 	mButton->Resize((gApp->mWidth - anArtX) / 2 + anOffX, Ftol((double)aDropBy * aDrop + (double)anOffY),
 		IMAGE_DEFUSER_CLICKTOSTOP->GetCelWidth(), IMAGE_DEFUSER_CLICKTOSTOP->GetCelHeight());
-	mPiece->mUnknown2F6 = false;
+	mPiece->mIsDrawn = false;
 	MarkDirty();
 }
 
@@ -318,18 +318,18 @@ void WheelSpin::UpdateState()
 	if (mSimulating)
 		mCounter = 0;
 	for (int i = 0; i < 8; i++) {
-		float aFall = mUnknownC5C[i] - 0.04f;
-		if (mUnknownC5C[i] - 0.04f < 0.0f)
+		float aFall = mSlotFlash[i] - 0.04f;
+		if (mSlotFlash[i] - 0.04f < 0.0f)
 			aFall = 0.0f;
-		mUnknownC5C[i] = aFall;
+		mSlotFlash[i] = aFall;
 	}
 	if (mState == 5 || mState == 6) {
-		double aRise = (double)mUnknownD74 + 0.019999999552965164;
-		mUnknownD74 = (float)(1.0 < aRise ? 1.0 : aRise);
+		double aRise = (double)mAlertRise + 0.019999999552965164;
+		mAlertRise = (float)(1.0 < aRise ? 1.0 : aRise);
 	}
 	if (mState < 7 && 4 < mState) {
-		double aRise = (double)mUnknown25C + 0.019999999552965164;
-		mUnknown25C = (float)(1.0 < aRise ? 1.0 : aRise);
+		double aRise = (double)mSkullFade + 0.019999999552965164;
+		mSkullFade = (float)(1.0 < aRise ? 1.0 : aRise);
 	}
 	float aSegment = (float)Ftol((double)mAngle / (0.125 * (double)kTwoPi));
 	switch (mState) {
@@ -338,7 +338,7 @@ void WheelSpin::UpdateState()
 		if (!mZoomIn.IncInVal())
 			mState++;
 		float aZoom = (float)sin(mZoomIn.GetOutVal() * 3.141592653589793 * 0.5);
-		mBoard->mUnknown268C = (float)((double)aZoom * 0.5 + 1.0);
+		mBoard->mBoardZoom = (float)((double)aZoom * 0.5 + 1.0);
 		mBoard->mShakeX = mPanX * aZoom;
 		mBoard->mShakeY = mPanY * aZoom;
 		break;
@@ -350,21 +350,21 @@ void WheelSpin::UpdateState()
 		}
 		break;
 	case 2: {
-		double aFall = (double)mUnknown258 - 0.014999999664723873;
+		double aFall = (double)mSkullGrow - 0.014999999664723873;
 		float aNew = (float)(aFall < 1.0 ? 1.0 : aFall);
-		mUnknown258 = aNew;
-		float aRise = (float)((double)mUnknown254 + 0.019999999552965164);
-		mUnknown254 = aRise;
+		mSkullGrow = aNew;
+		float aRise = (float)((double)mSkullRise + 0.019999999552965164);
+		mSkullRise = aRise;
 		if (1.0f <= aRise)
-			mUnknown254 = 1.0f;
+			mSkullRise = 1.0f;
 		if (aNew == 1.0f) {
 			int aSkulls = mSkulls;
 			if (aSkulls < 3) {
 				// This spin's skull goes on the wheel
 				mState = 3;
 				float anAngle = (float)((double)aSkulls * 0.7853981852531433 + (double)mAngle);
-				mUnknownD50 = anAngle;
-				mUnknownD4C = (float)((double)anAngle - 0.7853981852531433);
+				mSkullAngle = anAngle;
+				mSkullStartAngle = (float)((double)anAngle - 0.7853981852531433);
 				mSlots[aSkulls + 4] = -1;
 				mSlots[mSkulls] = -1;
 				mSkullAdded[mSkulls + 4] = true;
@@ -398,7 +398,7 @@ void WheelSpin::UpdateState()
 		// fall through
 	case 5: {
 		// It spins, faster, until the button stops it (at once with -autoplay or on the board's +0x2629)
-		mUnknownD68 = fabsf((float)sin((double)(mUpdateCnt % 300) / 300.0 * (double)kTwoPi));
+		mSpinPulse = fabsf((float)sin((double)(mUpdateCnt % 300) / 300.0 * (double)kTwoPi));
 		float aSpeed = (float)((double)kTwoPi * 8.5e-05 + (double)mSpeed);
 		if ((double)kTwoPi * 0.015 < (double)aSpeed)
 			aSpeed = (float)((double)kTwoPi * 0.015);
@@ -406,7 +406,7 @@ void WheelSpin::UpdateState()
 		float aReady = (float)((double)kTwoPi * 0.012);
 		if (aReady <= aSpeed) {
 			mButton->SetDisabled(false);
-			if (!mSimulating && (gApp->mAutoPlayMode >= 0 || mBoard->mUnknown2629))
+			if (!mSimulating && (gApp->mAutoPlayMode >= 0 || mBoard->mReplayPlaying))
 				ButtonDepress(0);
 		}
 		float anAngle = mSpeed + mAngle;
@@ -443,7 +443,7 @@ void WheelSpin::UpdateState()
 		mAngle = anAngle;
 		if (kTwoPi <= anAngle)
 			mAngle = anAngle - kTwoPi;
-		mUnknownD64 = true;
+		mHasStopped = true;
 		if (mCoast <= 0.0f) {
 			float aRate = mSpeed <= 0.01f ? 8e-05f : 0.0003f;
 			mSpeed = mSpeed - mBrake * aRate;
@@ -518,9 +518,9 @@ void WheelSpin::UpdateState()
 			mSlots[mPickedSlot] = -2;
 			mSlots[mOppositeSlot] = -2;
 			gApp->PlaySample(SOUND_X_LOSE);
-			mUnknownD5C = 1.0f;
+			mLossFlash = 1.0f;
 			mCounter = 200;
-			mUnknownD60 = 1.0f;
+			mLossGlow = 1.0f;
 		} else {
 			mZoomIn.SetCurve(GTS(0x7f3190));
 			mState = 9;
@@ -541,15 +541,15 @@ void WheelSpin::UpdateState()
 	case 9: {
 		// Won: the bomb's halves close in and it wobbles
 		aSparkle = true;
-		double aFade = (double)mUnknown254 - 0.019999999552965164;
+		double aFade = (double)mSkullRise - 0.019999999552965164;
 		float aNew = (float)(aFade < 0.0 ? 0.0 : aFade);
-		mUnknown254 = aNew;
-		aFade = (double)mUnknown25C - 0.019999999552965164;
-		mUnknown25C = (float)(aFade < 0.0 ? 0.0 : aFade);
-		mUnknownD78 = aNew;
-		mUnknownD74 = aNew;
+		mSkullRise = aNew;
+		aFade = (double)mSkullFade - 0.019999999552965164;
+		mSkullFade = (float)(aFade < 0.0 ? 0.0 : aFade);
+		mAlertFade = aNew;
+		mAlertRise = aNew;
 		if (aNew == 0.0f) {
-			int aWidth = Ftol((double)mBoard->mUnknown268C * (double)gGemWidth);
+			int aWidth = Ftol((double)mBoard->mBoardZoom * (double)gGemWidth);
 			float anOld = mGemGap;
 			float aGap = mGemGap - 2.0f;
 			mGemGap = aGap;
@@ -590,7 +590,7 @@ void WheelSpin::UpdateState()
 		if (mCounter < 1) {
 			mArrive.SetCurve(GTS(0x7f30c8));
 			mOpen.SetCurve(GTS(0x7f30ac), &mArrive);
-			mUnknownDF8.SetCurve(GTS(0x7f3090), &mArrive);
+			mButtonDrop.SetCurve(GTS(0x7f3090), &mArrive);
 			mAlert.SetCurve(GTS(0x7f3074), &mArrive);
 			mUnfold.SetCurve(GTS(0x7f305c), &mArrive);
 			mWheelAlpha.SetCurve(GTS(0x7f3040), &mArrive);
@@ -612,14 +612,14 @@ void WheelSpin::UpdateState()
 		mArms = aClose;
 		bool aDone = !mZoomIn.IncInVal();
 		float aZoom = (float)mZoomIn.GetOutVal();
-		mBoard->mUnknown268C = (float)((double)aZoom * 0.5 + 1.0);
+		mBoard->mBoardZoom = (float)((double)aZoom * 0.5 + 1.0);
 		float aPan = 0.0f;
 		if (0.0f < aZoom)
 			aPan = aZoom * aZoom;
 		mBoard->mShakeX = mPanX * aPan;
 		mBoard->mShakeY = mPanY * aPan;
 		if (aDone) {
-			mBoard->mUnknown26CC = mPiece;
+			mBoard->mEndingPiece = mPiece;
 			if (mResult == 13) {
 				mBoard->EndGame(true);
 				mCounter = 50;
@@ -640,7 +640,7 @@ void WheelSpin::UpdateState()
 		mSkullScale.SetCurve(GTS(0x7f3144));
 		mSkullColor.SetCurve(GTS(0x7f3128), &mSkullScale);
 		mGlow.SetCurve(GTS(0x7f310c), &mSkullScale);
-		mBoard->mUnknown2898.SetCurve(GTS(0x7f30e8));
+		mBoard->mAngryBombFade.SetCurve(GTS(0x7f30e8));
 		mState = 11;
 		mCounter = 150;
 		break;
@@ -651,7 +651,7 @@ void WheelSpin::UpdateState()
 			Piece* aPiece = gBoard->mGrid[i];
 			if (aPiece == nullptr)
 				continue;
-			aPiece->mCurve1A0.IncInVal();
+			aPiece->mCountSizeCurve.IncInVal();
 			if (mCounter == 0) {
 				aPiece->mJustMade = 0;
 				aPiece->mDevilGlow = 0;
@@ -678,7 +678,7 @@ void WheelSpin::UpdateState()
 					aPiece->MakeCountImage();
 					aPiece->mDevilGlow = 1.0f;
 					aPiece->mJustMade = 1;
-					aPiece->mCurve1A0.SetCurve(GTS(0x7dd424));
+					aPiece->mCountSizeCurve.SetCurve(GTS(0x7dd424));
 				}
 			}
 			if (anAny) {
@@ -703,14 +703,14 @@ void WheelSpin::UpdateState()
 			float aClose = (float)sin((double)mArms * 3.1415927f * 0.5);
 			float aMid = (float)(mWidth / 2);
 			float aLeft = (float)mLeftArm->mWidth;
-			mUnknownD2C = Ftol((((double)aMid - (double)aLeft * 0.12999999523162842) - (double)aLeft) -
+			mLeftArmX = Ftol((((double)aMid - (double)aLeft * 0.12999999523162842) - (double)aLeft) -
 				(double)aLeft * (1.0 - (double)aClose));
 			float aRight = (float)mRightArm->mWidth;
-			mUnknownD30 = Ftol(0.12999999523162842 * (double)aRight + (double)aMid +
+			mRightArmX = Ftol(0.12999999523162842 * (double)aRight + (double)aMid +
 				(double)aRight * (1.0 - (double)aClose));
 		}
-		mUnknownD24 = Ftol((double)mLeftArm->mWidth * 0.7350000143051147 + (double)mUnknownD2C);
-		mUnknownD28 = Ftol((double)mRightArm->mWidth * 0.2680000066757202 + (double)mUnknownD30);
+		mLeftArmEdge = Ftol((double)mLeftArm->mWidth * 0.7350000143051147 + (double)mLeftArmX);
+		mRightArmEdge = Ftol((double)mRightArm->mWidth * 0.2680000066757202 + (double)mRightArmX);
 	}
 done:
 	if (aSparkle && (mUpdateCnt % 2) == 0) {
@@ -814,7 +814,7 @@ void WheelSpin::MakeCache()
 	int aMidY = mHeight / 2;
 	float aSize = (float)(1.0 / ((1.0 - anOpen) * 3.5 + 0.35));
 	float aMidX = (float)(mWidth / 2);
-	float aDark = (float)((double)mUnknown1D0 * 200.0 / 255.0);
+	float aDark = (float)((double)mHoleDarkness * 200.0 / 255.0);
 	DrawHole(&aG, Ftol((double)aMidX), Ftol((double)(float)aMidY), aDark, aSize);
 	aG.SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	aG.SetColor(Color(255, 255, 255, Ftol(mAlert.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
@@ -852,7 +852,7 @@ void WheelSpin::MakeCache()
 	aSlide = Ftol((double)gApp->mScale * 1500.0);
 	aRightG.DrawImage(IMAGE_DEFUSER_RIGHTARM, Ftol((double)anArtLeft + (double)aSlide * anArrive + (double)anOffX),
 		anY);
-	int aBottomArmY = Ftol((double)Ftol((double)gApp->mScale * 500.0) * mUnknownDF8.GetOutVal() +
+	int aBottomArmY = Ftol((double)Ftol((double)gApp->mScale * 500.0) * mButtonDrop.GetOutVal() +
 		(double)ArtY(IMAGE_DEFUSER_BOTTOMARM_ID));
 	aG.DrawImage(IMAGE_DEFUSER_BOTTOMARM, ArtX(IMAGE_DEFUSER_BOTTOMARM_ID), aBottomArmY);
 	// (DirectDraw's lock and unlock of the surface; and the music visualiser is hidden too)
@@ -885,7 +885,7 @@ void WheelSpin::DrawOverlay(Graphics* g, int thePriority)
 	float aMidX = (float)(mWidth / 2);
 	float aMidYF = (float)aMidY;
 	if (mCache == nullptr && mOpen.GetOutVal() != 0.0) {
-		float aDark = (float)((double)mUnknown1D0 * 200.0 / 255.0);
+		float aDark = (float)((double)mHoleDarkness * 200.0 / 255.0);
 		DrawHole(g, Ftol((double)aMidX), Ftol((double)aMidYF), aDark, aSize);
 	}
 	double anAlpha = mWheelAlpha.GetOutVal() * 5.0;
@@ -1031,7 +1031,7 @@ void WheelSpin::DrawOverlay(Graphics* g, int thePriority)
 		if (mCache == nullptr) {
 			int aDrop = Ftol((double)gApp->mScale * 500.0);
 			anArmG.DrawImage(IMAGE_DEFUSER_BOTTOMARM, ArtX(IMAGE_DEFUSER_BOTTOMARM_ID),
-				Ftol((double)aDrop * mUnknownDF8.GetOutVal() + (double)ArtY(IMAGE_DEFUSER_BOTTOMARM_ID)));
+				Ftol((double)aDrop * mButtonDrop.GetOutVal() + (double)ArtY(IMAGE_DEFUSER_BOTTOMARM_ID)));
 		}
 
 		if (mArrive.GetOutVal() == 0.0) {
@@ -1069,7 +1069,7 @@ void WheelSpin::DrawOverlay(Graphics* g, int thePriority)
 					} else {
 						// The picked gem, the bomb's colour, as it wobbles
 						anAngle = (float)((double)anAngle - 0.7853981852531433);
-						float aGemScale = mBoard->mUnknown268C * mGemScale;
+						float aGemScale = mBoard->mBoardZoom * mGemScale;
 						aTransform.Reset();
 						double aTurn = (double)anAngle + 0.3799999952316284;
 						aTransform.RotateRad((float)-aTurn);
@@ -1109,7 +1109,7 @@ void WheelSpin::DrawOverlay(Graphics* g, int thePriority)
 				g->DrawImage(IMAGE_DEFUSER_SELECTOVERLAY, ArtX(IMAGE_DEFUSER_SELECTOVERLAY_ID),
 					ArtY(IMAGE_DEFUSER_SELECTOVERLAY_ID));
 		}
-		if (!mPiece->mUnknown2F6) {
+		if (!mPiece->mIsDrawn) {
 			// The bomb itself, over the wheel at the board's zoom (and its wobble)
 			if (0.1 < (double)mGemScale) {
 				g->PushState();

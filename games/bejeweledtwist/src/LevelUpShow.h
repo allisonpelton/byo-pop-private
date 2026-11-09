@@ -18,23 +18,23 @@ class LevelUpShow : public TwistWidget {
 public:
 	Image* mLevelImage;              // +0x148: IMAGE_LEVELCOMPLETE_LEVEL
 	Image* mCompleteImage;           // +0x14c: IMAGE_LEVELCOMPLETE_COMPLETE
-	float mUnknown150 = 1.0f;        // +0x150
-	float mUnknown154 = 1.0f;        // +0x154
-	float mUnknown158 = 0;           // +0x158: 4 pi
-	float mUnknown15C = 0.75f;       // +0x15c
-	float mUnknown160 = 0;           // +0x160
-	float mUnknown164 = 0.75f;       // +0x164
+	float mStartScaleX = 1.0f;       // +0x150: 1, set by the constructor, never read
+	float mStartScaleY = 1.0f;       // +0x154: 1, set by the constructor, never read
+	float mTurnLimit = 0;            // +0x158: 4 pi, set by the constructor, never read
+	float mFirstShrink = 0.75f;      // +0x15c: 0.75, set by the constructor, never read
+	float mShrinkProgress = 0;       // +0x160: 0, set by the constructor, never read
+	float mSecondShrink = 0.75f;     // +0x164: 0.75, set by the constructor, never read
 	int mState = 0;                  // +0x168: from 2 on it is not drawn, and the number shrinks away (never set)
-	bool mUnknown16C = false;        // +0x16c
+	bool mIsHidden = false;          // +0x16c: false, set by the constructor, never read
 	EffectsManager* mFXManager;      // +0x170: added to the widget manager with the show (nothing uses it)
 	ColorCycle mCycle;               // +0x174
 	Board* mBoard;                   // +0x1a8
-	float mUnknown1B4 = 0.4f;        // +0x1b4
-	int mUnknown1B8 = 0;             // +0x1b8
+	float mFadeFraction = 0.4f;      // +0x1b4: 0.4, set by the constructor, never read
+	int mPhaseCount = 0;             // +0x1b8: 0, set by the constructor, never read
 	// +0x1bc: an empty vector of pointers
-	float mUnknown1CC = 0;           // +0x1cc
-	float mUnknown1D0 = 0;           // +0x1d0
-	float mUnknown1D4 = 0;           // +0x1d4
+	float mShiftX = 0;               // +0x1cc: 0, set by the constructor, never read
+	float mShiftY = 0;               // +0x1d0: 0, set by the constructor, never read
+	float mShiftTurn = 0;            // +0x1d4: 0, set by the constructor, never read
 	CurvedVal mScaleCurve;           // +0x1e0: the pictures' scale, and four times it less a half their alpha
 	CurvedVal mHeightCurve;          // +0x250: their height on the screen, linked to mScaleCurve
 	float mNumberScale = 0.8f;       // +0x2c0: the number's scale against the pictures'

@@ -28,23 +28,23 @@ public:
 class GameOverShow : public TwistWidget {
 public:
 	TextImage* mText = nullptr;      // +0x148
-	float mUnknown14C = 1.0f;        // +0x14c
-	float mUnknown150 = 1.0f;        // +0x150
-	float mUnknown154 = 0;           // +0x154: 4 pi
-	float mUnknown158 = 0.75f;       // +0x158
-	float mUnknown15C = 0;           // +0x15c
-	float mUnknown160 = 0.75f;       // +0x160
-	int mUnknown164 = 0;             // +0x164: from 2 on it is not drawn (never set)
-	bool mUnknown168 = false;        // +0x168
+	float mStartScaleX = 1.0f;       // +0x14c: 1, set by the constructor, never read
+	float mStartScaleY = 1.0f;       // +0x150: 1, set by the constructor, never read
+	float mTurnLimit = 0;            // +0x154: 4 pi, set by the constructor, never read
+	float mFirstShrink = 0.75f;      // +0x158: 0.75, set by the constructor, never read
+	float mShrinkProgress = 0;       // +0x15c: 0, set by the constructor, never read
+	float mSecondShrink = 0.75f;     // +0x160: 0.75, set by the constructor, never read
+	int mHideState = 0;              // +0x164: from 2 on it is not drawn (never set)
+	bool mIsHidden = false;          // +0x168: false, set by the constructor, never read
 	EffectsManager* mFXManager;      // +0x16c: added to the widget manager with the show (nothing uses it)
 	ColorCycle mCycle;               // +0x170
 	Board* mBoard;                   // +0x1a4
-	float mUnknown1B0 = 0.4f;        // +0x1b0
-	int mUnknown1B4 = 0;             // +0x1b4
+	float mFadeFraction = 0.4f;      // +0x1b0: 0.4, set by the constructor, never read
+	int mPhaseCount = 0;             // +0x1b4: 0, set by the constructor, never read
 	// +0x1b8: an empty vector of pointers
-	float mUnknown1C8 = 0;           // +0x1c8
-	float mUnknown1CC = 0;           // +0x1cc
-	float mUnknown1D0 = 0;           // +0x1d0
+	float mShiftX = 0;               // +0x1c8: 0, set by the constructor, never read
+	float mShiftY = 0;               // +0x1cc: 0, set by the constructor, never read
+	float mShiftTurn = 0;            // +0x1d0: 0, set by the constructor, never read
 	CurvedVal mScaleCurve;           // +0x1d8: the text's scale, and four times it less a half its alpha
 	CurvedVal mHeightCurve;          // +0x248: its height on the screen, linked to mScaleCurve
 

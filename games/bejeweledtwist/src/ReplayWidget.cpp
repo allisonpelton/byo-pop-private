@@ -77,15 +77,15 @@ void ReplayWidget::Update()
 			mVisible = false;
 		}
 	}
-	if (0.0f < mUnknown150) {
-		mUnknown150 = (float)((double)mUnknown150 - 0.009999999776482582);
+	if (0.0f < mBobWait) {
+		mBobWait = (float)((double)mBobWait - 0.009999999776482582);
 	} else {
-		float aNext = (float)((double)mUnknown154 + 0.029999999329447746);
-		mUnknown154 = aNext;
+		float aNext = (float)((double)mBobPhase + 0.029999999329447746);
+		mBobPhase = aNext;
 		if (1.0f <= aNext) {
-			mUnknown154 = 0;
-			mUnknown158 = (mUnknown158 + 1) % 2;
-			mUnknown150 = 1.0f;
+			mBobPhase = 0;
+			mBobSide = (mBobSide + 1) % 2;
+			mBobWait = 1.0f;
 		}
 	}
 }
@@ -126,22 +126,22 @@ void ReplayWidget::ButtonDepress(int)
 	// The move again: the game now is kept for when the board is left (+0x23b4), and the rank and +0x160 go back to
 	// what they were before the move
 	gApp->PlaySample(SOUND_BUTTONPRESS1);
-	gBoard->SaveGame(&gBoard->mUnknown23B4, false);
-	gApp->mProfile->mRank = gBoard->mUnknown23B0;
-	gApp->mProfile->mUnknown160 = gBoard->mUnknown23AC;
-	gBoard->StartReplay(gBoard->mSaveBuffer, gBoard->mUnknown23A4, gBoard->mUnknown23A8, true);
+	gBoard->SaveGame(&gBoard->mReplaySave, false);
+	gApp->mProfile->mRank = gBoard->mSavedRank;
+	gApp->mProfile->mRankPoints = gBoard->mSavedRankPoints;
+	gBoard->StartReplay(gBoard->mSaveBuffer, gBoard->mReplayStartFrame, gBoard->mReplayEndFrame, true);
 	mVisible = false;
 }
 
 void ReplayWidget::Show()
 {
 	Board* aBoard = gBoard;
-	if (mPopped || aBoard->mUnknown23F5)
+	if (mPopped || aBoard->mTipShowing)
 		return;
 	int aX;
 	int aY;
 	aBoard->GetCenter(&aX, &aY);
-	if (aBoard->mUnknown3924 == 0.0f)
+	if (aBoard->mBoardFade == 0.0f)
 		aX = aBoard->mWidth / 2;
 	mX = aX - mWidth / 2;
 	gApp->PlaySample(SOUND_REPLAY_POPUP);
