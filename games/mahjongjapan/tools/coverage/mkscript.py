@@ -16,6 +16,7 @@ import sys
 GAME = os.environ.get('GAME', 'mahjongjapan')    # or mahjongchina: the same code, other art, so other places
 
 out = []
+SKIP_FLYOFF = False    # the adventure's `--skip`: Enter during the fly-off after the last pair
 
 
 def emit(*words):
@@ -90,6 +91,9 @@ def stage(sol, st, limit=None):
             wait(2000)   # a special tile's flights last longer
     if limit is not None:
         return    # a probe: the first moves only
+    if SKIP_FLYOFF:
+        wait(3000)
+        key(VK_RETURN, after=300)    # Enter while the tiles fly off skips it (Board::SkipFlyOff, adventure levels only)
     wait(15000 + 300 * ntiles)    # the tiles left fly off one by one at the end
     click(*LEVEL_DONE_OK, after=7500)
 
@@ -324,8 +328,8 @@ def end_box():
     click(*MENU_QUIT, after=3000)
 
 
-def classic_moves(sol):
-    return [l.split() for l in open(os.path.join(sol, 'classic.txt')) if l[0].isdigit() or l[0] == '-']
+def classic_moves(sol, name='classic.txt'):
+    return [l.split() for l in open(os.path.join(sol, name)) if l[0].isdigit() or l[0] == '-']
 
 
 def classic_start(resume):
@@ -365,6 +369,8 @@ def classic_play(sol, count):
     classic_start(True)
     moves = classic_moves(sol)[count:]
     classic_pairs(moves)
+    wait(3000)
+    key(VK_RETURN, after=300)    # Enter while the tiles fly off skips it (Board::SkipFlyOff)
     wait(20000 + 300 * 2 * len(moves))    # the tiles left fly off, then the result box
     click(*RESULT_AGAIN, after=3000)
     click(*B_MENU, after=900)
@@ -374,6 +380,149 @@ def classic_play(sol, count):
 
 
 RESULT_AGAIN = (402, 275)
+# the no-moves box (NoMovesBox: Dialog(0xda, 0xa5) is its place) has three choices, undo, shuffle and start again, and OK
+NOMOVES_CHOICE = [(278, 235), (278, 265), (278, 295)]
+NOMOVES_OK = (384, 340)
+
+# The plays that need a held button, a double click or a Ctrl letter (docs/ORIGRUN.md, "Script commands": down, up, dclick
+# and text; the game reads Ctrl+C, V, X and Z from the characters 3, 0x16, 0x18 and 0x1a, not from the key state, but a
+# script file read in text mode ends at 0x1a, so Ctrl+Z is not sent). The positions are the port's `state` command's.
+NEW_OK = (354, 335)               # the first-run new-player box's OK; its name box is 83 left of it and 47 above, 270 wide
+OPT_SLIDER_ROWS = (177, 207)      # the music and sound slider rows
+BACKGROUND_CELLS = [(182, 293), (382, 293), (582, 293), (182, 414), (382, 414), (582, 414)]    # centres of the picture cells
+BOX_OK, BOX_CANCEL = (430, 436), (310, 436)
+TILE_CELLS = [(326, 350), (466, 350), (606, 350), (326, 487), (466, 487), (606, 487)]    # the styles box's, from its state
+TILE_OK = (432, 432)
+
+
+def drag(x1, y1, x2, y2, steps=3, hold=120):
+    """A press at (x1, y1), moves along the way to (x2, y2), a release there"""
+    emit('move', x1, y1)
+    wait(150)
+    emit('down', x1, y1)
+    wait(hold)
+    for i in range(1, steps + 1):
+        emit('move', x1 + (x2 - x1) * i // steps, y1 + (y2 - y1) * i // steps)
+        wait(hold)
+    emit('up', x2, y2)
+    wait(300)
+
+
+def dclick(x, y, after=600):
+    emit('move', x, y)
+    wait(150)
+    emit('dclick', x, y)
+    wait(after)
+
+
+def rclick(x, y, after=400):
+    emit('move', x, y)
+    wait(150)
+    emit('rclick', x, y)
+    wait(after)
+
+
+def name_box():
+    return NEW_OK[0] - 83 + 30, NEW_OK[1] - 47 + 11
+
+
+def drags():
+    """The options dialog's two sliders: a press, a short drag and a release at every 12 pixels along each track (the
+    thumb is wherever the saved volume put it, and each drag moves it)"""
+    new_player('Drg')
+    click(*MAP_MENU, after=900)
+    click(*QUIT_OK, after=2500)
+    click(*MENU_OPTIONS, after=900)
+    for y in OPT_SLIDER_ROWS:
+        for x in range(280, 540, 12):
+            drag(x, y, x + 8, y, steps=2, hold=80)
+    click(*OPT_OK[True], after=700)
+    click(*MENU_QUIT, after=3000)
+
+
+def name_edit(clip=False):
+    """The new-player box of a first run: a click in the name box, the typed name, a drag over part of it, a double click on
+    a word, copy, cut, paste with the Ctrl characters, Home, End and the arrows, OK with the name cleared (the message), OK
+    with a name (the button, where the other runs press Enter)"""
+    bx, by = name_box()
+    click(*MENU_ADVENTURE, after=1500)
+    click(bx, by, after=300)
+    emit('text', 'Alpha Beta Gamma')
+    wait(300)
+    drag(bx - 20, by, bx + 10, by, steps=3, hold=100)    # the press starts left of the text and selects the first letters
+    click(bx + 20, by, after=300)
+    dclick(bx + 20, by, after=400)    # a word
+    if clip:    # these reach the host's clipboard: only in a run that guards it (clip-run.sh)
+        emit('text', chr(3))    # Ctrl+C
+        wait(300)
+        click(bx + 200, by, after=300)
+        emit('text', chr(22))    # Ctrl+V, from the clipboard the run put there
+        wait(300)
+        dclick(bx + 20, by, after=400)
+        emit('text', chr(24))    # Ctrl+X
+        wait(300)
+    for vk in (36, 35, 37, 39, 46, 8):    # Home, End, left, right, Delete, Backspace
+        key(vk, after=200)
+    drag(bx + 90, by, bx + 10, by, steps=3, hold=100)
+    key(46, after=300)
+    key(35, after=200)    # End: the cursor is at the text's end for the Backspaces
+    for _ in range(20):
+        key(8, after=60)
+    click(NEW_OK[0] + 30, NEW_OK[1] + 14, after=2500)    # OK with no name: the message
+    emit('text', 'Ab')
+    wait(300)
+    click(NEW_OK[0] + 30, NEW_OK[1] + 14, after=6000)    # OK with a name: to the map
+    click(*MAP_MENU, after=900)
+    click(*QUIT_OK, after=2500)
+    click(*MENU_QUIT, after=3000)
+
+
+def double_clicks():
+    """A new player, then the classic list: a double click on a layout's preview starts it; on the board a right click, the
+    Tab key and a double click; the in-game menu's backgrounds and styles boxes, a double click on a picture in each, and a
+    click on the menu's free part; then the adventure's map and a double click on it"""
+    new_player('Dbl')
+    click(*MAP_MENU, after=900)
+    click(*QUIT_OK, after=2500)
+    click(*MENU_CLASSIC, after=2000)
+    key(9, after=300)    # Tab: the layer's focus list
+    dclick(*SLOTS[4], after=3000)
+    click(*TIP_OK, after=1500)
+    rclick(400, 300)
+    rclick(300, 250)
+    key(9, after=300)
+    emit('move', 300, 300)
+    wait(150)
+    emit('rdown', 300, 300)
+    wait(150)
+    emit('rup', 300, 300)
+    wait(400)
+    dclick(400, 300, after=500)
+    click(*B_MENU, after=700)
+    click(*GM_BACKGROUNDS, after=700)
+    dclick(*BACKGROUND_CELLS[1], after=1200)    # picks the picture and applies it
+    click(*B_MENU, after=700)
+    click(*GM_BACKGROUNDS, after=700)
+    click(*BACKGROUND_CELLS[3], after=300)
+    click(*BOX_OK, after=900)
+    click(*B_MENU, after=700)
+    click(*GM_TILES, after=700)
+    # the styles box's pictures sit where the port's `state` does not say (its positions are in the box's own frame): a double
+    # click on a grid of points over its middle; the first that lands on a picture picks it and closes the box
+    for y in range(180, 391, 35):
+        for x in range(230, 631, 50):
+            dclick(x, y, after=250)
+    wait(1000)
+    click(*B_MENU, after=700)
+    click(*GM_TILES, after=700)
+    click(*TILE_CELLS[4], after=300)
+    click(*TILE_OK, after=900)
+    click(*B_MENU, after=700)
+    click(548, 470, after=700)    # the free part of the in-game menu: it closes
+    click(*B_MENU, after=700)
+    click(*GM_MAIN, after=900)
+    click(*YES, after=3000)
+    click(*MENU_QUIT, after=3000)
 
 
 if GAME == 'mahjongchina':
@@ -390,6 +539,48 @@ if GAME == 'mahjongchina':
     CL_PREV, CL_NEXT, CL_PLAY = (133, 550), (665, 550), (491, 571)
     B_FREE, B_UNDO, B_HINT, B_SHUFFLE, B_MENU, B_PAUSE = (228, 563), (317, 566), (514, 566), (607, 566), (736, 547), (736, 582)
     E_UNDO, E_HINT, E_SHUFFLE, E_MENU, E_PAUSE = (317, 566), (514, 566), (607, 566), (736, 547), (736, 582)
+
+
+def no_moves(sol, choice):
+    """A classic game of the pinned deal played into a dead end (the port's solver with MJ_DEADEND: tiles left and no pair), the
+    box that offers undo, shuffle and start again, and one of the three chosen"""
+    new_player('Nm')
+    click(*MAP_MENU, after=900)
+    click(*QUIT_OK, after=2500)
+    classic_start(False)
+    classic_pairs(classic_moves(sol, 'deadend.txt'))
+    wait(8000)
+    click(*NOMOVES_CHOICE[choice], after=400)
+    click(*NOMOVES_OK, after=6000)
+    click(*B_MENU, after=900)
+    click(*GM_MAIN, after=900)
+    click(*YES, after=3000)
+    click(*MENU_QUIT, after=3000)
+
+
+def classic_list():
+    """The classic list with its cached sheets removed (the run's wrapper moves them): each page is built one preview per
+    update, then saved"""
+    new_player('Lst')
+    click(*MAP_MENU, after=900)
+    click(*QUIT_OK, after=2500)
+    click(*MENU_CLASSIC, after=6000)
+    click(*CL_NEXT, after=6000)
+    click(*CL_NEXT, after=6000)
+    click(*CL_PREV, after=6000)
+
+
+def resume_no():
+    """A player with a saved classic game (PLAYER): Play on its layout, the question answered No (starts it fresh)"""
+    click(*MENU_CLASSIC, after=2000)
+    click(*SLOTS[4], after=500)
+    click(*CL_PLAY, after=1500)
+    click(*RESUME_NO, after=4000)
+    click(*TIP_OK, after=1500)
+    click(*B_MENU, after=900)
+    click(*GM_MAIN, after=900)
+    click(*YES, after=3000)
+    click(*MENU_QUIT, after=3000)
 
 
 def main():
@@ -412,6 +603,18 @@ def main():
         wait(1000)
         emit('quit')
         print('\n'.join(out))
+        return
+    if kind == 'nomoves':
+        no_moves(sys.argv[2], int(sys.argv[3]))
+        print(chr(10).join(out))
+        return
+    if kind in ('classiclist', 'resumeno'):
+        {'classiclist': classic_list, 'resumeno': resume_no}[kind]()
+        print(chr(10).join(out))
+        return
+    if kind in ('drags', 'nameedit', 'nameclip', 'dclicks'):
+        {'drags': drags, 'nameedit': name_edit, 'nameclip': lambda: name_edit(True), 'dclicks': double_clicks}[kind]()
+        print(chr(10).join(out))
         return
     if kind == 'classicsave':
         classic_save(sys.argv[2], int(sys.argv[3]))
@@ -437,6 +640,9 @@ def main():
         else:
             click(*MENU_ADVENTURE, after=6000)    # the saved player's map
         limit = int(sys.argv[sys.argv.index('--moves') + 1]) if '--moves' in sys.argv else None
+        if '--skip' in sys.argv:
+            global SKIP_FLYOFF
+            SKIP_FLYOFF = True
         for st in range(first, last + 1):
             stage(sol, st, limit)
         if '--ending' in sys.argv:

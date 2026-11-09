@@ -92,7 +92,8 @@ port takes 7.7 s to the menu with `-logos` and 1.3 s without.
 
 The first whole coverage check of Ancient China (`docs/COVERAGE.md`, "A game's whole check"), made after Ancient Japan's
 (`games/mahjongjapan/docs/GAME_NOTES.md`, same title), whose runs, scripts and settings it reuses. origrun's `--coverage`
-recorded which of the original's functions ran, in 12 runs on the host (`games/mahjongjapan/tools/coverage/run.sh` and
+recorded which of the original's functions ran, in 24 runs on the host (12 on 2026-11-08, 12 more on 2026-11-09 for the
+plays the first round could not make) (`games/mahjongjapan/tools/coverage/run.sh` and
 `mkscript.py`, which write and start both games' runs; China's places are a block in `mkscript.py`; the hits are in
 `build/coverage/mahjongchina/hits/`). The adventure's and the classic game's runs used origrun's virtual clock; the
 tour, players, Esc, resume and ending runs ran on the real clock with the silent sound stand-in. Every audio session was
@@ -101,9 +102,11 @@ muted from its start and none made a sound.
 - **The screen tour**, **players**, **Esc in every state** (`escprobe`), **the resume question**, and **the ending**
   (`chinaend`: China's map has a button that shows the ending again, and its restart box).
 - **The escape adventure**: the stages before 46 in four runs (`advA` to `advD`) and stages 46 to 52 with the ending in
-  `advF`, the clicks of every stage from the port's solver. **Stage 11 was not played**: the solver gave up on its deal
-  twice within its limits (160 tiles, a quarter of them fours). It is an ordinary stage with no start tip, so its code
-  is what the other stages run; it stays an open item.
+  `advF`, the clicks of every stage from the port's solver. **Stage 11 was not played**: `dealtest --stage 11`, the
+  solver that also records the tips each move brings (which the script clicks away), gave up on its deal twice within its
+  limits (160 tiles, a quarter of them fours). The port's bot does solve it, in 38 moves (it keeps the keys for the locks
+  that hold the goal tiles), but the tips of that order of moves were not worked out. It is an ordinary stage with no
+  start tip, so its code is what the other stages run; it stays an open item.
 - **A whole classic game** on layout 441 (144 tiles), as in Japan: `classicsave` starts it with the deal's seed
   pinned (origrun's `--seed` and `--patches` replace the two `GetTickCount` calls of Board::SetLayout and Board::Start in
   the copy with 12345), makes four moves and leaves by the in-game menu, which saves it; `classicplay` resumes the
@@ -116,8 +119,18 @@ in kind. China's default share of fours is 25 percent (0x19, `User` at +0x18), n
 board differed in 139 tiles, which is how the difference was found, and the first classic runs played the wrong deal's
 moves.
 
+**The second round** (2026-11-09) is Japan's, run again on China's places (the same scripts, `mkscript.py` with China's
+block; Japan's notes say what each does): `drags`, `nameedit`, `nameclip` (Ctrl+C, V and X as the characters 3, 0x16
+and 0x18, with the clipboard saved and put back by `build/coverage/clip-run.sh`; the first attempts were refused
+because the clipboard held an image and then HTML, before the guard kept the HTML), `dclicks`, `classiclist` (the cached
+sheets moved away by `build/coverage/cache-run.sh`), `nomoves0` to `nomoves2` (a dead-end play of the pinned deal, 64
+pairs and 16 tiles left, with each of the box's three choices), `resumeno`, `classicplay2` and `skipfly`/`skipfly2`.
+The first `dclicks` run ended at once with a DirectX error from the game's own start (887600E1, the sound device
+busy); the rerun was fine. The dialogs sit at the same places as in Japan (the state command shows the same tile-set
+box and new-player box), so the same coordinates serve.
+
 `games/mahjongchina/coverage.txt` sets the game's own code as two ranges, 0x401000-0x4171f0 and 0x41dea0-0x4374f0, 1274
-functions. The runs reached 1050 of them, the port defines 985, and 354 are listed as left out on purpose.
+functions. The runs reached 1099 of them, the port defines 985, and 354 are listed as left out on purpose.
 
 **The port's comments carry Japan's addresses.** The port was made from Japan's, so the comment above a function says
 where Japan's exe has it, not China's. `tools/coverage.py` reads them through `re/mahjongchina/compare/addrmap.tsv`
@@ -156,9 +169,10 @@ sorted for Japan, and their China addresses are the 110 `none` lines translated 
 returns false (0x401040) and a scalar deleting destructor (0x432870), are `none` lines; the rest are the same sorts
 as above.
 
-**Defined in the port, never reached: 92.** Every one is a function whose Japan counterpart (through the inverse map)
-was read again against the export in Japan's check (74 R rows, reachable by a play the runs did not make, and 18 U rows,
-reachable by none); all matched but two, which China had as well and now has fixed, like Japan:
+**Defined in the port, never reached: 92 after the first round, 46 at the end.** Every one is a function whose Japan
+counterpart (through the inverse map) was read again against the export in Japan's check (28 R rows, reachable by a play
+the runs have not made, and 18 U rows, reachable by none). All matched but two, which China had as well and now has
+fixed, like Japan:
 
 - **0x42a340, `Layer::AppActive`** returned the display's flag where the original asks the manager's active flag, so
   the pause box a game shows when it starts with the window inactive never appeared. `Layer::AppActive` now returns
@@ -167,11 +181,16 @@ reachable by none); all matched but two, which China had as well and now has fix
 
 The China-only functions (the map's ending button, `MapView::OnTimer`, `OnLButtonDown`, `MapLayer::ShowEnd`) were
 unreached until the last runs: `advF` (the last stages and the ending) reached two, and the classic game's second run the
-third. The plays that none of the runs made are Japan's list: a held press (a drag of a
-volume slider, of the name box), a double click, a modifier key (Ctrl+C, X, V, Z), Shift+Tab, the right click on the
-board, the no-moves box with its three buttons, OK and Cancel clicked in the new-player box, the player list's scroll
-arrows, the styles and backgrounds boxes, the display options, minimize and restore, the classic list built from scratch,
-a deal that the solver gives up on, and a saved game with a wild-linked tile.
+third. The second round reached the rows of the sliders, the name box and its clipboard keys, the double clicks, the
+right click, the no-moves box, the list built from scratch and the question answered No.
+
+The 46 still unreached are Japan's 25 R rows' counterparts (Japan's notes list them: Ctrl+Z, Shift+Tab, a right double
+click, the display toggles, minimize and restore, the escape adventure's right click, wild links, the map double
+click, the player list's scroll arrow, and the error box) and five that Japan's runs reached and China's did not:
+`Board::SkipFlyOff` with `Layout::TakeKinds` and `TakeSpecials` (Enter during the first stage's fly-off did not reach
+`Board::OnChar` in China's `skipfly` and `skipfly2`, with 3 s and 6 s waits; the reason was not found), and
+`Deal::DealAny` and `DealOne` (the solver giving up on a deal: Japan's shuffle in the no-moves box reached it, China's
+did not).
 
 **Candidates for taking out unneeded code: 18**, the same as Japan's U rows that China has (none was removed):
 the deleting destructors of `Dialog`, `SavedGame`, `MahjongGame`, `Deal`, `Layout`, `User` and `PlayerList`;
@@ -183,9 +202,9 @@ partner for it: 95 of them are functions of Japan's exe (most of them of 16 byte
 list operations of the splash, the display and the manager) and 52 point inside a function. The report cannot say whether
 the original ran them. This is the weakest part of China's check, and a map made by a better pairing would shrink it.
 
-**Open items.** Stage 11's play; the plays above; and the 147 unmapped addresses.
+**Open items.** Stage 11's play; the 28 R rows above; and the 147 unmapped addresses.
 
-**What it cost.** The 12 runs took about 30 minutes of machine time (400 s of it the classic game's second run), at most
-three game processes at a time. The sorting and the re-read were Japan's work (two Sonnet agents; tokens not counted),
+**What it cost.** The 24 runs took about 57 minutes of machine time (30 for the first 12, 27 for the 12 of the second
+round; 400 s each for the two classic games' second runs), at most three game processes at a time. The sorting and the re-read were Japan's work (two Sonnet agents; tokens not counted),
 reused through the map; China's own work was `pairgaps.py`, the 146 `none` lines, the classic game's deal, and the runs
 of the stages and the ending.
