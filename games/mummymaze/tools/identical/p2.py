@@ -9,7 +9,7 @@ A scenario is one command per line, `<port update> <command> [args]` in the port
   shot <name>          a screenshot of both, at that update
   title                a click on the title's play link (the original's is always at update 1500: its load takes longer)
 Updates are the port's; the original's are those plus OFFSET (2301: the original's first menu link click at 2400 is the
-port's at 99). Commands: click x y, move x y, key N, keydown N, keyup N, char C, focus lose|regain, quit.
+port's at 99). Commands: click x y, move x y, down x y, up x y (a drag), key N, keydown N, keyup N, char C, focus lose|regain, quit.
 A `key N` is held for one update (down at U, up at U+1, as the port's bot does; the original gets `kdown` and `kup` then).
 """
 import sys
@@ -44,6 +44,11 @@ def make(scn, name, outdir):
             if c == 'click':
                 orig.append((u + OFFSET - 1, 'move %s %s' % (x, y)))
             orig.append((u + OFFSET, '%s %s %s' % (c, x, y)))
+        elif c in ('down', 'up'):          # one edge of the left button, at the point (a slider's drag is down, moves, up)
+            x, y = a.split()
+            port.append((u, '%s %s %s' % (c, x, y)))
+            orig.append((u + OFFSET - 1, 'move %s %s' % (x, y)))
+            orig.append((u + OFFSET, c))
         elif c == 'key':
             port.append((u, 'keydown %s' % a))
             port.append((u + 1, 'keyup %s' % a))

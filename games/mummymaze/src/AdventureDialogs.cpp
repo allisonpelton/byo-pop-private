@@ -36,26 +36,28 @@ AdventureSlotsDialog::AdventureSlotsDialog(MummyApp* theApp) :
 	SetButtonFont(mApp->mFont1);
 	SetHeaderFont(mApp->mHeaderFont);
 	SetLinesFont(mApp->mFont1);
-	bool aAny = false;
+	bool aAllUsed = true;
 	for (int i = 0; i < 5; i++)
 	{
 		mSlots[i] = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], i, this);
 		mSlots[i]->SetFont(mApp->mFont1);
 		mSlots[i]->mLabel = SlotLabel(mApp, i);
-		if (mApp->AdventureExists(i))
-			aAny = true;
+		if (!mApp->AdventureExists(i))
+			aAllUsed = false;
 	}
 	mDeleteButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 5, this);
 	mDeleteButton->SetFont(mApp->mFont1);
 	mDeleteButton->mLabel = GT(0x0048d1a0);
 	mDeleteButton->SetColor(0, Color(0, 0, 0));
-	if (!aAny)
+	// the Delete Game button is there only when every slot holds a game (the original clears its flag at each free slot)
+	if (!aAllUsed)
 	{
 		mHasDelete = false;
 		mDeleteButton->SetVisible(false);
 	}
 }
 
+// 0x401620 (its deleting form 0x401600)
 AdventureSlotsDialog::~AdventureSlotsDialog()
 {
 	for (int i = 0; i < 5; i++)
@@ -98,6 +100,13 @@ int AdventureSlotsDialog::GetPreferredHeight(int theWidth)
 	return 0x190 + (mHasDelete ? 0x32 : 0);
 }
 
+// 0x412d80: every press of a button of the dialog clicks (the three dialogs share the one function)
+void AdventureSlotsDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_CLICK);
+}
+
 // 0x4017f0: a slot is played, the last button asks which game to delete, the footer button (Cancel) only closes
 void AdventureSlotsDialog::ButtonDepress(int theId)
 {
@@ -130,6 +139,7 @@ DeleteAdventureDialog::DeleteAdventureDialog(MummyApp* theApp) :
 	}
 }
 
+// 0x412c10 (its deleting form 0x412bf0)
 DeleteAdventureDialog::~DeleteAdventureDialog()
 {
 	for (int i = 0; i < 5; i++)
@@ -168,6 +178,13 @@ int DeleteAdventureDialog::GetPreferredHeight(int theWidth)
 	return 0x190;
 }
 
+// 0x412d80
+void DeleteAdventureDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_CLICK);
+}
+
 // 0x412da0
 void DeleteAdventureDialog::ButtonDepress(int theId)
 {
@@ -195,6 +212,7 @@ NewAdventureDialog::NewAdventureDialog(MummyApp* theApp) :
 #endif
 }
 
+// 0x422090
 NewAdventureDialog::~NewAdventureDialog()
 {
 	delete mNameEdit;
@@ -236,10 +254,10 @@ void NewAdventureDialog::Draw(Graphics* g)
 	DrawNameBox(g, mApp->mImages[IMAGE_EDITBOX], (mNameEdit->mX - mX) - 4, (mNameEdit->mY - mY) - 4, mNameEdit->mWidth + 8);
 }
 
-// Enter in the box starts the adventure (the footer button's answer)
+// 0x401c90: Enter in the box does nothing (RecordScoreDialog's 0x428450 answers OK; this dialog's listener slot is the
+// empty function)
 void NewAdventureDialog::EditWidgetText(int theId, const SexyString& theString)
 {
 	(void) theId;
 	(void) theString;
-	mApp->ButtonDepress(mId + 2000);
 }

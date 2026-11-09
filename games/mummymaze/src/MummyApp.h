@@ -195,6 +195,7 @@ public:
 	void					ShowAdventureSlots();                   // 0x41b800
 	void					ShowNewAdventure();
 	void					ShowDeleteAdventure();                  // 0x41bb10
+	void					ShowBadSaveMessage();                   // 0x41f0d0
 	void					DeleteAdventure(int theSlot);           // 0x41bc80
 	void					CreateAdventure(int theSlot, const SexyString& theName);   // 0x4201e0 case 0x7db
 	bool					AdventureExists(int theSlot);
@@ -207,7 +208,8 @@ public:
 	void					ShowVictory();                          // 0x41e890
 	bool					LoadClassic();                          // 0x41c600
 	bool					ClassicSaveExists();
-	void					DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW);
+	void					DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW,
+											int theH = -1);
 };
 
 extern MummyApp* gApp;

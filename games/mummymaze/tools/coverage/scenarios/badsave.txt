@@ -1,0 +1,10 @@
+# a saved adventure of a version the game does not know (adv0.sav with its version 3 instead of 2, the only save in the user
+# folder): the list of one, the slot played, and the message "Bad Save Game File" (the coverage check's gap run, docs/COVERAGE.md)
+99 title
+1000 click 185 426
+1200 shot slots
+1210 click 320 135
+1400 shot bad
+1410 click 320 300
+1600 shot after
+1700 quit

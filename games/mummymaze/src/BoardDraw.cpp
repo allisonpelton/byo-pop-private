@@ -109,6 +109,8 @@ void Board::DrawSolving(int x, int y, int w, int h, Graphics* g)
 // Part 1: The Basics", chosen by the game mode: 0x491e28, 0x491e44, 0x491e60) into a local string and never draws it
 // (the function has one text write, in font 1, and does not touch the header font): the box has no title. Both width
 // tests (under 0x35c, under 200) measure the step's text.
+// 0x403450: the texts of the 67 steps, which the original copies into a std::string array at start-up; here they are
+// kTutorialText (TutorialMazes.inc), the addresses of the same strings in the exe
 void Board::DrawTutorialText(int x, int y, int w, int h, Graphics* g)
 {
 	if (mState != STATE_READY)

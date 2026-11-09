@@ -162,6 +162,7 @@ Board::Board(MummyApp* theApp) :
 	SeedMTRand2004(mRand, (aHigh << 16) | (aLow & 0xffff));
 }
 
+// 0x404570
 Board::~Board()
 {
 	delete mExplorer;

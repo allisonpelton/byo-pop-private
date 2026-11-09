@@ -75,12 +75,14 @@ LevelCompleteScreen::LevelCompleteScreen(MummyApp* theApp) :
 	mApp->RemoveBoard();
 }
 
+// 0x4229b0
 LevelCompleteScreen::~LevelCompleteScreen()
 {
 	delete mNextLink;
 	delete mMapLink;
 }
 
+// 0x424ea0
 void LevelCompleteScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -88,6 +90,7 @@ void LevelCompleteScreen::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mMapLink);
 }
 
+// 0x424ed0
 void LevelCompleteScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -317,18 +320,22 @@ HighScoreScreen::~HighScoreScreen()
 	Save();
 }
 
+// 0x414d80 (the original adds a second link, to the Internet score list, which is out)
 void HighScoreScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mMenuLink);
 }
 
+// 0x414db0
 void HighScoreScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mMenuLink);
 }
 
+// 0x415ab0, 0x402d40 (the victory screen's own: the same, and it places the Internet link above the menu link
+// when the game is not the adventure; that link is out)
 void HighScoreScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
@@ -343,6 +350,7 @@ void HighScoreScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 static const unsigned kDefaultNames[5] = {0x0048d218, 0x0048d210, 0x0048d208, 0x0048d200, 0x0048d1f8};
 static const int kDefaultScores[5] = {1000, 900, 800, 700, 500};
 
+// 0x402220
 void HighScoreScreen::Load()
 {
 	for (int i = 0; i < 5; i++)
@@ -399,6 +407,7 @@ void HighScoreScreen::Save()
 	Platform::WriteUserFileAtomic("hiscores.dat", aData);
 }
 
+// 0x414d50
 int HighScoreScreen::RankOf(int theScore)
 {
 	for (int i = 0; i < 5; i++)
