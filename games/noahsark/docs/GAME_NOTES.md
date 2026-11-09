@@ -212,8 +212,8 @@ presumably failed without elevation; not checked). With the three, the title sho
 ## 11. Coverage check (2026-11-08)
 
 The coverage check of `docs/COVERAGE.md`, the second game's whole one after Ning Po's. origrun's `--coverage` recorded which of the
-original's functions ran in 13 runs on the host (`tools/coverage/run.sh` starts a run, `all.sh` is the list of them; the hits are in
-`build/coverage/noahsark/hits/`). Twelve were on the virtual clock with no sound device, the thirteenth on the real clock with the
+original's functions ran in 15 runs on the host (`tools/coverage/run.sh` starts a run, `all.sh` is the list of them; the hits are in
+`build/coverage/noahsark/hits/`). Fourteen were on the virtual clock with no sound device, one on the real clock with the
 silent stand-in, and every one of them ended with the game exiting:
 
 - the identical-play cases: an easy and a hard action game (`act_e`, `act_h`), strategy (`str_e`, `str_h`) and puzzle (`puz_e`, `puz_m`),
@@ -227,12 +227,18 @@ silent stand-in, and every one of them ended with the game exiting:
 - the dialogs tour (`dialogs`): both sliders, the hint box, Help (which closes Options in the original: see below), High Scores and
   Credits from Options, the quit question from play and from the menu answered no and then yes, Continue, a lost and regained
   focus, then the strategy and puzzle intros;
-- the real-clock tour (`rt`): a played minute of an action game on the real clock, for the sound code.
+- the real-clock tour (`rt`): a played minute of an action game on the real clock, for the sound code;
+- the drags (`drag_puz`, `drag_act`; `tours/drag_puz.txt`, `tours/drag_act.txt`), added after the first thirteen, once origrun's moves
+  carried the held button's flag (865a602e): a `down`, moves and an `up`, each at an update of its own. In the puzzle: a drag onto a
+  neighbour (the swap, and the swap back), a move during the swap, a drag two cells away that drops the pick, then a drag that picks the
+  animal it reaches and goes on to swap it. In the action mode: a link dragged from (0,1) to (0,0), a move inside the cell, back onto
+  the first animal (the link taken back), on to (0,2) (linked again), onto another kind and onto an animal it cannot reach (nothing), and
+  the release (the pair joined); then the Options sliders, each pressed at its thumb and dragged to the left.
 
 `games/noahsark/coverage.txt` sets the game's own code as one range, 0x401000-0x420d10 (Board, the dialogs, the screens, NoahApp and
 the compiler's copies of the standard library): 258 functions. The rest of the exe is the 2002 SexyApp framework (from Widget at
 0x421d60), the C runtime and the libraries. The first report, from ten of the runs, had the runs reach 205 of the 258 and the port
-define 142 of them; the last one, from all 13, has them reach 218 and the port define 169.
+define 142 of them; the last one, from all 15, has them reach 221 and the port define 169.
 
 **Reached in the original with no counterpart in the port: 79 at first, 0 at the end.**
 
@@ -261,21 +267,33 @@ define 142 of them; the last one, from all 13, has them reach 218 and the port d
     build, which never deletes the app. The table in memory and in the file after a recorded score is the same either way.
 - **Left open: none.**
 
-**Defined in the port, never reached: 5 at the end** (the later runs and the placed addresses cleared the rest):
+**Defined in the port, never reached: 3 at the end** (the later runs and the placed addresses cleared the rest):
 
-- **`Board::MouseDrag` (0x40f710): rewritten.** The re-read found six slips against the export. In puzzle mode a drag from the picked
-  animal onto a neighbour swaps the two at once in the original; the port ignored the drag, so the player had to release and click the
-  neighbour. The link drag left the animal dragged from selected where the original selects the one dragged onto, played no sound,
-  neither took the hint away nor noted the time of the move, and let a path that `BuildTrail` fails to make stop the link. All six are
-  now as the original, and the puzzle swap is one helper (`Board::PuzzleSwap`) for the click and the drag. origrun has no drag command,
-  so the original never ran it: the port's was checked by `tools/coverage/dragtest.py`, which plays the port's menu with the bot and
-  then sends real `down`, `move` and `up` events at the board. A drag onto the right-hand neighbour swaps the two kinds and puts the
-  board in the swap phase, and a drag two cells away swaps nothing. The suite and the frozen baseline are unchanged (the clicks and the
-  bot do not drag).
-- **`OptionsDialog::SliderVal` (0x41d370):** needs the same drag, on a slider. It matches the export (the music volume for slider 0,
-  the effects' for slider 1).
+- **`Board::MouseDrag` (0x40f710): rewritten, and now run in the original.** The re-read found six slips against the export. In puzzle
+  mode a drag from the picked animal onto a neighbour swaps the two at once in the original; the port ignored the drag, so the player had
+  to release and click the neighbour. The link drag left the animal dragged from selected where the original selects the one dragged
+  onto, played no sound, neither took the hint away nor noted the time of the move, and let a path that `BuildTrail` fails to make stop
+  the link. All six are now as the original, and the puzzle swap is one helper (`Board::PuzzleSwap`) for the click and the drag. The
+  suite and the frozen baseline are unchanged (the clicks and the bot do not drag). `drag_puz` and `drag_act` reached 0x40f710 and
+  0x40f3a0 (the two statements that note the mouse position, placed above `MouseDrag`), and the same scripts played in the port
+  (`-script`, the same updates; the port's `state` shows the board, the phase and the score at the updates asked for, not the selection
+  or the link) agree with what the original's watched values show: the puzzle's swap comes the update after the move
+  (the two cells' kinds trade at counter 746 in the original), the swap back follows 25 updates later and the board plays again 26
+  after that; the pick dropped by the move two cells away, the animal picked by the next move and the swap with the one below it come
+  at the same updates; the link takes the animal dragged onto as the selected one, the move inside its cell changes nothing, the move
+  back onto the first animal empties the link and selects the first again, the move on to (0,2) links from it, the other kind and the
+  unreachable animal change nothing, and the release joins the pair (the score 0 to 10, the board's two cells gone) in both. Before the
+  rewrite the port did none of the puzzle drag. `tools/coverage/dragtest.py` also drags the port's board with real `down`, `move` and
+  `up` events through the real-input path (a swap, and nothing for a drag two cells away). Two things the first try of the scripts
+  showed: the get-ready click picks the animal under it in both, so the tours click outside the board to put it back before dragging;
+  and a press on the board with an animal picked drops the pick (the click path's second step), which is the original's too.
+- **`OptionsDialog::SliderVal` (0x41d370): reached by `drag_act`**, which presses each slider at its thumb (the thumbs are near the
+  right end: the music's at about (517,113), the effects' at (517,145)) and drags it to the left. The original calls it, and it
+  matches the export (the music volume for slider 0, the effects' for slider 1). The port's own slider is the framework's, shared with
+  every game; its dialog is laid out differently from the original's (21 px lower, 42 px shorter), so the original's tour is not
+  replayed in it.
 - **`Board::AbandonPair` (0x4067e0) and `Board::TriggerNoMoves` (0x4074c0):** reached only by a board with no pair left, which none of
-  the 13 runs came to. Both were read again line by line against the export and match, including the points taken, the water's move and
+  the 15 runs came to. Both were read again line by line against the export and match, including the points taken, the water's move and
   the sample played.
 - **Candidate for taking out unneeded code: `Board::RefillPuzzle` (0x4061d0) and the puzzle branch of `Board::EnsureMoves`
   (BoardLevel.cpp, near line 445).** The original's only caller of `EnsureMoves` is the new level code, which calls it only for modes
@@ -284,10 +302,10 @@ define 142 of them; the last one, from all 13, has them reach 218 and the port d
   new piece and deletes the old one, and sets `mY` of both cells, which the original does not: it cannot matter while the code is
   unreached.)
 
-**Tool specs for the coordinator.** origrun needs a `drag x1 y1 x2 y2` command (a press, moves to the end and a release, each a posted
-event on its own update) so that `Board::MouseDrag` and a slider's drag can be reached in the original. The host takes no screenshots,
-so the original's Options dialog, which is taller than the port's drawing suggested, had to be measured in Windows Sandbox
-(`SANDBOX=1 tools/run_original.sh`) before the clicks of the dialogs tour landed.
+**Tool specs for the coordinator.** None left. The first version of this section asked for a `drag` command; origrun's `down`, `move` and
+`up` at updates of their own do it once its moves carry the held button's flag (865a602e), and that is what the two drag runs use. The
+host takes no screenshots, so the original's Options dialog, which is taller than the port's drawing suggested, had to be measured in
+Windows Sandbox (`SANDBOX=1 tools/run_original.sh`) before the clicks of the dialogs tour landed.
 
 **Other differences found while reading, none with a visible effect and none changed:**
 
