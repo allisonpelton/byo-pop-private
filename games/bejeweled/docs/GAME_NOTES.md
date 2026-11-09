@@ -2788,7 +2788,11 @@ afterwards, byte for byte.
 
 One run failed at its start, with the original's "Failed to initialize DirectDraw" (`DDERR_NOEXCLUSIVEMODE`) answered by
 the stand-in, and passed when run again. `tools/origrun/bejeweled.cfg` and the seed patch, which the identical-play runs
-used, are no longer on this machine. Coverage needs neither, because run.sh gives the counter itself.
+used, are no longer on this machine: they lived only in a worktree since removed. Coverage needs neither, because run.sh
+gives the counter itself. **To rebuild before the next Sandbox comparison:** both, from what `IDENTICAL_PLAY.md`
+records (the app static 0x53b570, its update count 0x53b9f4, the input gate's ranges in `UpdateAppStep` 0x44c900 and
+`Process` 0x44c340, and the seed patch at 0x44e9a1), placed in the main checkout's `tools/origrun`, still git-ignored, so
+the E: backup copies them.
 
 `games/bejeweled/coverage.txt` sets the game code as one range, 0x4c9a94-0x4d82d2, with 152 functions. 24 of them are
 left out on purpose:
