@@ -8,7 +8,7 @@ import difflib
 ALIGN = '-align' in sys.argv
 port_loads, port_plays = {}, []
 for l in open(sys.argv[1]):
-    m = re.match(r'0 load (\d+) (\S+) frames=(\d+) rate=(\d+) ch=(\d+)', l)
+    m = re.match(r'\d+ load (\d+) (\S+) frames=(\d+) rate=(\d+) ch=(\d+)', l)
     if m:
         port_loads[int(m.group(1))] = (m.group(2), int(m.group(3)) * int(m.group(5)) * 2, int(m.group(4)))
     m = re.match(r'(\d+) play (\d+) #\d+ vol=(-?\d+) pan=(-?\d+) pitch=([\d.]+)', l)
