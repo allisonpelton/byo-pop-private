@@ -1058,7 +1058,10 @@ function(byopop_web_index)
           byopop_web_string(buy_text store.buy_on store "${store}")
           byopop_web_string(buy_label store.buy_label store "${store}" title "${title}")
         endif()
-        string(APPEND buy_html "<a href=\"${url}\" rel=\"noopener\" aria-label=\"${buy_label}\">${buy_text}</a>")
+        # every store link opens in a new tab, as a plain link a popup blocker leaves alone (the user, 2026-11-09: "The buy links
+        # should always open in a new tab"), and its name says so
+        byopop_web_string(buy_new_tab site.new_tab)
+        string(APPEND buy_html "<a href=\"${url}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"${buy_label} ${buy_new_tab}\">${buy_text}</a>")
       endwhile()
       if(NOT buy_html STREQUAL "" AND soon)
         set(buy_html "<div class=\"buyrow\">${buy_html}</div>")

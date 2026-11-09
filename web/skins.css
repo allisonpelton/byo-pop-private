@@ -335,17 +335,29 @@ html.d95-desk .d95-sb-track { flex: 1 1 auto; min-height: 0; position: relative;
 html.d95-desk .d95-sb-track.d95-down { background: repeating-conic-gradient(#000000 0 25%, #808080 0 50%) 0 0 / 2px 2px; }
 html.d95-desk .d95-sb-thumb { position: absolute; left: 0; right: 0; top: 0; background: #c0c0c0; box-shadow: inset -1px -1px #000000, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff; }
 html.d95-desk .d95-win.d95-closed, html.d95-desk .d95-win.d95-min { display: none !important; }
-/* a window's edges and corners, which resize it (web/skins.js, resizable): inside its frame, over its 2 px of padding */
+/* a window's edges and corners, which resize it (web/skins.js, resizable): its frame from the outer edge, 2 px of border and 2 of
+   padding, and a pixel inside it; the corners reach 12 px along each side, as 1995's did */
 .d95-rz { display: none; }
 html.d95-desk .d95-win > .d95-rz { display: block; position: absolute; z-index: 5; touch-action: none; }
-html.d95-desk .d95-win > .d95-rz-n { top: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
-html.d95-desk .d95-win > .d95-rz-s { bottom: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
-html.d95-desk .d95-win > .d95-rz-e { right: 0; top: 8px; bottom: 8px; width: 4px; cursor: ew-resize; }
-html.d95-desk .d95-win > .d95-rz-w { left: 0; top: 8px; bottom: 8px; width: 4px; cursor: ew-resize; }
-html.d95-desk .d95-win > .d95-rz-nw { top: 0; left: 0; width: 8px; height: 4px; cursor: nwse-resize; }
-html.d95-desk .d95-win > .d95-rz-ne { top: 0; right: 0; width: 8px; height: 4px; cursor: nesw-resize; }
-html.d95-desk .d95-win > .d95-rz-sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
-html.d95-desk .d95-win > .d95-rz-se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+/* a window clips its contents at its border's outer edge, not inside it (overflow: hidden did), so that the edges' 2 px of border
+   show the resize cursor too and a press there resizes; nothing scrolls the window itself */
+html.d95-desk .d95-win.d95-win:has(> .d95-rz) { overflow: clip; overflow-clip-margin: 2px; }
+html.d95-desk .d95-win > .d95-rz-n { top: -2px; left: 10px; right: 10px; height: 5px; cursor: ns-resize; }
+html.d95-desk .d95-win > .d95-rz-s { bottom: -2px; left: 10px; right: 10px; height: 5px; cursor: ns-resize; }
+html.d95-desk .d95-win > .d95-rz-e { right: -2px; top: 10px; bottom: 10px; width: 5px; cursor: ew-resize; }
+html.d95-desk .d95-win > .d95-rz-w { left: -2px; top: 10px; bottom: 10px; width: 5px; cursor: ew-resize; }
+html.d95-desk .d95-win > .d95-rz-nw { top: -2px; left: -2px; width: 12px; height: 5px; cursor: nwse-resize; }
+html.d95-desk .d95-win > .d95-rz-ne { top: -2px; right: -2px; width: 12px; height: 5px; cursor: nesw-resize; }
+html.d95-desk .d95-win > .d95-rz-sw { bottom: -2px; left: -2px; width: 12px; height: 12px; cursor: nesw-resize; }
+html.d95-desk .d95-win > .d95-rz-se { bottom: -2px; right: -2px; width: 12px; height: 12px; cursor: nwse-resize; }
+/* the resize cursors of 1995 (the user, 2026-11-09: "The windows should use a resize cursor on the edges"): a black double arrow
+   edged in white, up and down, across or diagonal, drawn here as the skin's busy and What's This? cursors are; they win over a
+   site cursor set (web/cursors.js), which has no resize cursor, and none shows on a maximized window, which no edge resizes */
+html.d95-desk .d95-win > .d95-rz-n, html.d95-desk .d95-win > .d95-rz-s, :root[data-skin="d95"] .mu-split { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(0 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ns-resize !important; }
+html.d95-desk .d95-win > .d95-rz-e, html.d95-desk .d95-win > .d95-rz-w { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(90 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, ew-resize !important; }
+html.d95-desk .d95-win > .d95-rz-nw, html.d95-desk .d95-win > .d95-rz-se, html.d95-desk .stage-wrap.d95-win > .d95-grip { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(-45 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nwse-resize !important; }
+html.d95-desk .d95-win > .d95-rz-ne, html.d95-desk .d95-win > .d95-rz-sw { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Cpolygon points='16.5,3.5 22.5,9.5 18.5,9.5 18.5,23.5 22.5,23.5 16.5,29.5 10.5,23.5 14.5,23.5 14.5,9.5 10.5,9.5' transform='rotate(45 16.5 16.5)' fill='#000' stroke='#fff' stroke-width='1'/%3E%3C/svg%3E") 16 16, nesw-resize !important; }
+html.d95-desk .d95-win.d95-maxed > .d95-rz { display: none; }
 /* a window given a size keeps it: its contents scroll in it (a sized window's own min and max come from web/skins.js) */
 html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
 /* Music's first size, about a 1995 media player's with its list scrolling inside (the user, 2026-11-08: "Music window is too
@@ -369,7 +381,17 @@ html.d95-win95only .games > li[data-win95]:not([data-win95="yes"]), html.d95-win
 :root[data-skin="d95"] .mu-hb-track { margin: 0; border: 0; opacity: 1; background: repeating-conic-gradient(#c0c0c0 0 25%, #ffffff 0 50%) 0 0 / 2px 2px; }
 :root[data-skin="d95"] .mu-hb-thumb { top: 0; bottom: 0; opacity: 1; background: #c0c0c0;
   box-shadow: inset -1px -1px #000000, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff; }
-:root[data-skin="d95"] .mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: 88px; }
+:root[data-skin="d95"] .mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(28px + var(--mu-rows, 5) * 12px); }
+/* the Music window: the playlist takes what the player and the splitter leave, so a taller window shows more of it */
+html.d95-desk #music.d95-win .d95-body.d95-body { display: flex; flex-direction: column; overflow: clip; }
+html.d95-desk #music.d95-win .d95-body.d95-body + .d95-vbar { display: none; }
+html.d95-desk #music.d95-win .mu-list { max-height: none; }
+html.d95-desk #music.d95-win .mu { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+html.d95-desk #music.d95-win .mu > :not(.d95-client) { flex: none; }
+html.d95-desk #music.d95-win .mu > .d95-client { flex: 1 1 auto; min-height: 60px; }
+/* the splitter: a raised bar, as a window's split of the time */
+:root[data-skin="d95"] .mu-split { height: 6px; margin: 2px 0 4px; background: var(--panel); box-shadow: inset 1px 1px var(--sk-hi), inset -1px -1px var(--sk-lo); }
+:root[data-skin="d95"] .mu-split::before { content: none; }
 :root[data-skin="d95"] .mu-hb-left { background-image: var(--d95-sb-left); }
 :root[data-skin="d95"] .mu-hb-left.mu-down { background-image: var(--d95-sb-left-pressed); }
 :root[data-skin="d95"] .mu-hb-right { background-image: var(--d95-sb-right); }

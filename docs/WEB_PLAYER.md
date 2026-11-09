@@ -363,9 +363,10 @@ front page"), narrower when the window is. Its heading, "Games", is there for sc
 (the user, 2026-11-03: "remove Games from the front page header"). `byopop_web_index()` in `cmake/ByopopWeb.cmake` makes it from `web/index.html` at configure time, after every
 game has been added. Which games it shows is the `BYOPOP_WEB_FINISHED` list in that file: the coordinator adds a game
 there at its final merge, and a name in it with no web page stops the configure (unless the game's `BUILD_<TARGET>`
-option is off). Below the tiles it has three tabs: Players (`#players`; "Player profiles", below), which `web/players.js` builds
-from the records in `web/profiles.js`, Saves (`#saves`; "Save backup" and "Importing saves from an installed game", below) and Settings (`#settings`; "Site settings", below), which `web/settings.js`
-draws (see "The tabs", below); the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
+option is off). Below the tiles it has two tabs: Settings (`#settings`; "Site settings", below), which `web/settings.js` draws,
+and Music. Players ("Player profiles", below), which `web/players.js` builds from the records in `web/profiles.js`, and Saves
+("Save backup" and "Importing saves from an installed game", below) are sections of Settings, the first two (the user,
+2026-11-09: "Fold players and saves into the settings menu"; see "The tabs", below); the build copies those files next to the pages (`BYOPOP_WEB_SHARED_JS` for the ones every page loads, `BYOPOP_WEB_INDEX_JS`
 for the listing page's own: `players.js`, `saves.js` and `saveimport.js`, with the table `platform/saveimport.json` written beside them as `saveimport-table.js`).
 
 **Coming soon.** The user, 2026-11-02: "Add tiles for the upcoming games to the site and have them display disabled and say
@@ -430,8 +431,11 @@ people, a floppy disk, a gear), named by its `aria-label` and with the name as i
 (`tabindex="0"`) and hidden while another tab is chosen. Only the chosen tab is in the tab order (`aria-selected="true"`, the others
 `tabindex="-1"`); Left and Right move along the tabs, wrapping round, and show each one's panel at once, Home and End go to the first
 and the last, and Tab goes on into the panel. Each panel keeps an `<h2>` with the tab's name, out of sight, for the page's outline. A
-link to `#players`, `#saves` or `#settings` chooses that tab, whether it is followed here (the Players tab's "Player names in Settings")
-or opens the page (a game's Settings panel's "Manage players"); a click on such a link in the page also puts the focus on the tab,
+link to `#settings` or `#music` chooses that tab, and `#settings-<section>` Settings at that section (on Desktop 95, the section's
+window), whether it is followed here or opens the page (a game's Settings panel's "Manage players", `#settings-players`). The
+addresses of the tabs Players and Saves were, `#players` and `#saves`, land on those sections of Settings (`settingsHash` in
+web/index.html), as do `?open=` addresses that carry them. A section with nothing in it is not shown: a game's Settings panel has
+Players (its player-name setting) but no Saves. A click on such a link in the page also puts the focus on the tab,
 whether or not its hash was already in the address. A tab the player chooses (a click or the keys) goes into the address with
 `history.replaceState`, which adds no history entry, so that a reload keeps it, and it is kept in localStorage under
 `byopop-listing-tab` (the panel's id), read and written inside `try`, for the next visit; Players is the first. `tools/a11ycheck.js` takes the roving tabindex for what it is: every tab must
@@ -498,8 +502,11 @@ that getting the files back means opening the game (a link) and loading them aga
 features, as there are none.
 
 **Where to buy.** A game that can still be bought has a small link for each store under its label, "Buy on Steam" or "Buy on
-the EA app" (a store whose name ends in "app" takes "the"), with `rel="noopener"` and an accessible name that includes the
-game ("Buy Big Money on Steam"). `byopop_web_index()` writes them at build time from the same data as the game pages'
+the EA app" (a store whose name ends in "app" takes "the"), which opens in a new tab (`target="_blank" rel="noopener noreferrer"`;
+the user, 2026-11-09: "The buy links should always open in a new tab") and whose accessible name has the game and says so ("Buy
+on Steam, Big Money (opens in a new tab)"). Every store link of the site is such a plain link, never a script's `window.open`,
+which a popup blocker may stop: the cards' (and the coming-soon tiles') in every skin, the Library's menu entries (links in the
+menu, web/skins.js popMenu `href`), the game pages' and copyright pages' buy note and the terms card's. `byopop_web_index()` writes them at build time from the same data as the game pages'
 buy note, `BYOPOP_BUY_<target>` in `cmake/ByopopStores.cmake` (a check date, then each store's name and page), so the two
 cannot disagree; a game with no store shows nothing. The links are in the same list item as the game's link but not inside
 it, in a `.buyrow` beside it, as a link cannot hold a link.
@@ -869,7 +876,11 @@ their icons or a link to #settings and the like open them. The desktop never scr
 shouldn't be scrollable"): every window is at most the size of the browser's window above the task bar and scrolls its own
 contents, and it is moved to fit on the screen when it opens and when the browser's window changes size. Every window but the
 game's is resized by its edges and corners, as in 1995 (the user, 2026-11-08: "Non-game windows should be resizable"): a band
-4 pixels wide inside the frame along each edge and a square at each corner, from 200 x 120 up to the room above the task bar;
+5 pixels wide along each edge, from the frame's outer edge in (the window clips its contents at its border with `overflow: clip`
+and a 2-pixel `overflow-clip-margin`, so the bevel itself is part of it), and 12 pixels along each side at each corner, from
+200 x 120 up to the room above the task bar. Over them the cursor is 1995's resize cursor for that edge (the user,
+2026-11-09: "The windows should use a resize cursor on the edges"), a black double arrow edged in white drawn in web/skins.css,
+up and down, across or diagonal, over a site cursor set too; a maximized window has no edges to resize;
 its contents scroll or reflow in it, and the size is kept with its place. Music opens 420 pixels high (600 wide, as the tabs' windows are), about a 1995 media
 player's size, with its list scrolling inside (the user, 2026-11-08: "Music window is too tall"). The game's window keeps its
 whole multiples (below). Every window has
@@ -906,6 +917,11 @@ copyright lines of its readme). Each menu has its access key, the first letter u
 from the desktop or while the game has the keys, the left and right arrows go to the menu beside it, and Escape gives the keys
 back to the game. No menu shows a key the page does not get: Alt+F4 closes the browser's window and Alt+Space opens its
 window menu on Windows, so neither is handled (the user, 2026-11-09: "Alt-F4 captured by browser").
+Every menu of the desktop (the Pop menu and its lists, a window's menu bar menus and control menu, the context menus, What's
+This?) closes as Windows' did (the user, 2026-11-09: "The dropdown doesn't disappear properly when clicking out of it"): on a
+press anywhere outside it, which still does what it does, in a game's frame too (the page sees no press there, only its own
+window losing the focus to the frame); on Escape; and when its window is minimized, closed or goes, or another window comes to
+the front (web/skins.js closeAllMenus).
 
 The window's client area is the game on black with the status bar along its bottom edge, and the game is at a whole multiple
 of its size in device pixels (web/shell.html embedWidth): the one chosen in View, or with Fit window (the default) the largest
@@ -1461,7 +1477,7 @@ plays the selected game (its window on the one page, web/deskapps.js), as does t
 beside it narrows the rows to the names that hold its text, and the status bar counts them. A row's menu (a right click, the
 menu key or Shift+F10) has Play, Add files (the game's window, whose setup asks for them), Add to or Remove from favourites,
 Properties (a sheet of the game's values: name, status, release date, plays, play time, last played, Windows 95) and the
-card's buy links, which open a tab. The grid is one tab stop, its selected row's first cell: the arrows, Home and End, Page
+card's buy links, which open a new tab. The grid is one tab stop, its selected row's first cell: the arrows, Home and End, Page
 Up and Down move the selection, and typing the first letters of a name goes to it; Tab moves between the Play button, the
 Filter box, the column headers and the grid, and F6 between the desktop's windows. It is a real grid (`role="grid"`, rows
 with `aria-selected`, each named by its game's cell, a row header, and column headers with `aria-sort`).
@@ -1533,11 +1549,32 @@ selection. Repeat, mute, the volume and the view are kept in `localStorage` (`by
 `byopop-music-volume`, `byopop-music-vis`). Where the music comes from and the libopenmpt and libxmp-lite credits are in the
 listing's About (its footer), with links to their licences.
 
+**The display's height** (the user, 2026-11-09: "increase how many rows show in the tracker") is set by a splitter between
+the player and the playlist: dragging it gives the display whole tracker rows more or fewer, from 5 to 64, and the arrow keys
+on it one row (Page Up and Down five, Home and End the least and the most). The spectrum takes the same height. It has no
+words: the resize cursor (Desktop 95's own), and its name as a tooltip and for screen readers ("Display height", a
+`role="separator"` whose `aria-valuenow` is the rows). The rows are kept for this browser (localStorage `byopop-music-rows`,
+read and written in try/catch).
+
+**Only the playlist scrolls** (the user, 2026-11-09: "only the list of songs should scroll within the music menu, so that the
+tracker/spectral analyzer and controls are always visible"). In Desktop 95 the Music window's body never scrolls: the
+playlist scrolls inside it with the window's drawn scroll bar (the `scroll: ".mu-list"` option of the window) and takes the
+height the player leaves, so a taller window shows more of it and a shorter one takes the height from the list first. The
+window keeps the player, the splitter and three of the list's rows: its least height (`minHeight` of the window, which
+web/skins.js's resizing asks, from music.js's `minHeight`), and the splitter gives the display only as many rows as leave the
+list those three. A dragged edge also stops at the desktop's own edges, so the window's bottom never goes under the task bar.
+In the skins where Music is a tab of the page, the playlist is at most what the browser's window leaves under the player
+(`--mu-player-h`, set by music.js), with a floor of three rows, and scrolls inside; the display there takes only as many rows
+as leave the player and three rows of the list in the browser's window, so the player is always in view while the list
+scrolls. Both are worked out again when the browser's window or the panel changes size (a `resize` listener and a
+ResizeObserver; a hidden pane runs no ResizeObserver, so a test there fires `resize` after showing the panel). The rows asked
+for are kept, so a larger window gives them back.
+
 The view is the display's lower half, and a click on it (or Enter or Space) goes to the next: the spectrum, then the tracker,
 then nothing, as players of the time cycled their visualisations. **Spectrum**: 24 bars from 40 Hz to 16 kHz, spaced as the ear
 hears them, each with a peak that falls back (a Web Audio AnalyserNode, put between the worklet and the volume only while the
 spectrum is shown, so the bars are the tune's own whatever the volume, and still move at `?silent=1`). **Tracker**, for a module's
-tune: a terse header in tracker style ("ORD 07  PAT 06  ROW 16/64") and the five rows around the one heard, each channel's cell
+tune: a terse header in tracker style ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard, it in the middle, each channel's cell
 as libopenmpt writes it (`openmpt_module_format_pattern_row_channel`) or, for libxmp-lite's modules, its note, instrument, volume
 and effect (the effect as libxmp-lite's own type, in hex). Only the channels that play a note somewhere in the module are shown
 (`bm_used`, read once a tune; the user, 2026-11-08: "the window isn't wide enough for all the tracker instruments"), each cell

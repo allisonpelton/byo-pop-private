@@ -276,17 +276,15 @@ var ByopopPlayers = (function () {
       var parts = Object.keys(modes);
       modeNote.textContent = "";
       if (parts.length === 1 && parts[0] === "game") {
-        modeNote.appendChild(document.createTextNode(ByopopStrings.t("players.mode.games") + " "));
+        modeNote.appendChild(document.createTextNode(ByopopStrings.t("players.mode.games")));
       } else {
         modeNote.appendChild(document.createTextNode(ByopopStrings.t("players.mode.note", {parts: parts.map(function (m) {
           // a mode this page does not know is named as it is
           var known = m === "game" || m === "fill" || m === "create";
           return ByopopStrings.t("players.mode." + (known ? m : "other") + (modes[m] === n ? "_all" : "_some"), {n: modes[m], verb: m});
-        }).join(", ")}) + " "));
+        }).join(", ")})));
       }
-      var a = make("a", "", ByopopStrings.t("players.mode.link"));
-      a.href = "#settings";
-      modeNote.appendChild(a);
+      // (the setting itself is just above, in the same Players section of Settings: no link to it)
     }
 
     addForm.addEventListener("submit", function (ev) {

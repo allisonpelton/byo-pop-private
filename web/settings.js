@@ -216,9 +216,13 @@ var ByopopSettings = (function () {
   // isn't so massive"): each section a handful of settings under a plain name, shown one at a time behind a row of icon
   // tabs, and in Desktop 95 each its own small window opened from the Settings folder's icons (web/skins.js).
   var FIELDS = [
+    // Players and Saves (the user, 2026-11-09: "Fold players and saves into the settings menu"): on the listing page the players'
+    // list and the saves' backup are put into these sections (opts.extra); a section left empty, as Saves on a game's page, is
+    // not shown
     { section: "players" },
     { name: "profile", label: T("settings.profile.label"), options: [["game", GAME_DEFAULT], ["fill", T("settings.profile.fill")], ["create", T("settings.profile.create")]], start: true,
       hint: T("settings.profile.hint") },
+    { section: "saves" },
     { section: "sound" },
     { name: "startVolume", kind: "volume", label: T("settings.startvolume.label"),
       hint: T("settings.startvolume.hint"),
@@ -808,7 +812,7 @@ var ByopopSettings = (function () {
         note.appendChild(make("span", "bps-note-text"));
         note.appendChild(document.createTextNode(" "));
         var link = make("a", "", T("settings.manage_players"));
-        link.href = "./#players";
+        link.href = "./#settings-players";
         link.target = "_blank";
         link.rel = "noopener";
         link.appendChild(make("span", "bps-sr", " " + T("site.new_tab")));
@@ -821,7 +825,14 @@ var ByopopSettings = (function () {
     container.appendChild(err);
     // a part of the page's own put into a section (the site's mouse pointer, web/cursors.js, into Input)
     if (opts.extra) Object.keys(opts.extra).forEach(function (id) { if (sectionOf[id] && opts.extra[id]) sectionOf[id].el.appendChild(opts.extra[id]); });
-    select(opts.section && sectionOf[opts.section] ? opts.section : SECTIONS[0], false);
+    sections = sections.filter(function (r) {
+      if (r.el.children.length > 1) return true;
+      tabs.removeChild(r.tab); folder.removeChild(r.icon);
+      if (r.el.parentNode) r.el.parentNode.removeChild(r.el);
+      delete sectionOf[r.id];
+      return false;
+    });
+    select(opts.section && sectionOf[opts.section] ? opts.section : sections[0].id, false);
     // how many settings this game has a value of its own for (the starting volume is one)
     function ownCount() {
       return overrides(gameId).filter(function (n) { return n !== "startMusic" && n !== "startSound"; }).length;

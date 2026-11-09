@@ -200,7 +200,7 @@ var ByopopLibrary = (function () {
       ];
       if (g.buy.length) {
         entries.push({ rule: true });
-        g.buy.forEach(function (a) { entries.push({ label: a.textContent.trim(), fn: function () { window.open(a.href, "_blank", "noopener"); } }); });
+        g.buy.forEach(function (a) { entries.push({ label: a.textContent.trim(), href: a.href }); });
       }
       ByopopSkin.desk.menu(r.cell, entries, x, y, g.title);
     }

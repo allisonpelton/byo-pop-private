@@ -323,7 +323,7 @@ var ByopopSkin = (function () {
       try { target.dispatchEvent(new CustomEvent("byopop-whatsthis", { bubbles: true, detail: { x: x, y: y } })); } catch (e) {}
     }
     function whatsKey(ev) { if (ev.key === "Escape") { swallow(ev); endWhats(); } }
-    function closeWin(w) { if (w.onClose) w.onClose(); else setClosed(w, true); }
+    function closeWin(w) { closeAllMenus(); if (w.onClose) w.onClose(); else setClosed(w, true); }
     // a window's control menu, from its title bar's icon
     function controlMenu(w, from, x, y) {
       var entries = [{ label: T("skin.desk.m.minimize"), fn: function () { setMin(w, true); } }];
@@ -355,6 +355,7 @@ var ByopopSkin = (function () {
     }
     // minimized: out of sight, its button on the task bar, which brings it back where it was
     function setMin(w, m) {
+      if (m) closeAllMenus();
       w.min = !!m;
       w.el.classList.toggle("d95-min", w.min);
       if (!w.min) { raise(w); place(w, true); }
@@ -393,7 +394,16 @@ var ByopopSkin = (function () {
           if (edge.indexOf("s") >= 0) nh = st.h + dy;
           if (edge.indexOf("n") >= 0) nh = st.h - dy;
           nw = Math.max(RZ_MIN.w, Math.min(r.w - 8, nw));
-          nh = Math.max(RZ_MIN.h, Math.min(r.h - 8, nh));
+          // a window may ask for more than RZ_MIN (o.minHeight: Music keeps its player and three of its list's rows)
+          var least = RZ_MIN.h;
+          if (w.minHeight) try { least = Math.max(least, w.minHeight() || 0); } catch (err) {}
+          nh = Math.max(Math.min(least, r.h - 8), Math.min(r.h - 8, nh));
+          // and the edge dragged stays on the desktop: the bottom above the task bar, the right inside the screen, the top and the
+          // left at 0 at most
+          if (edge.indexOf("s") >= 0) nh = Math.max(Math.min(least, r.h - st.y), Math.min(nh, r.h - st.y));
+          if (edge.indexOf("e") >= 0) nw = Math.min(nw, Math.max(RZ_MIN.w, r.w - st.x));
+          if (edge.indexOf("n") >= 0) nh = Math.min(nh, st.y + st.h);
+          if (edge.indexOf("w") >= 0) nw = Math.min(nw, st.x + st.w);
           // the left and top edges move the window as it grows the other way
           w.x = edge.indexOf("w") >= 0 ? st.x + st.w - nw : st.x;
           w.y = edge.indexOf("n") >= 0 ? st.y + st.h - nh : st.y;
@@ -460,7 +470,8 @@ var ByopopSkin = (function () {
     function add(el, o) {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
       var w = { focusIn: o.focusIn || null, el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
-                button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null };
+                button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
+                minHeight: o.minHeight || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
@@ -836,10 +847,10 @@ var ByopopSkin = (function () {
         }
         if (listing) {
           win("library");
-          settings("tab-settings"); win("tab-players"); win("tab-saves"); win("tab-music"); win("chat");
+          settings("tab-settings"); win("tab-music"); win("chat");
         } else {
           settings("panel-settings");
-          [["players", "index.tabs.players"], ["saves", "index.tabs.saves"], ["music", "index.tabs.music"]].forEach(function (m) {
+          [["music", "index.tabs.music"]].forEach(function (m) {
             list.appendChild(item(T(m[1]), null, { href: "./#" + m[0] }));
           });
           list.appendChild(rule());
@@ -1064,15 +1075,19 @@ var ByopopSkin = (function () {
       m.className = "d95-menu d95-ctx"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", label || "");
       entries.forEach(function (en) {
         if (en.rule) { var r = document.createElement("div"); r.className = "d95-rule"; r.setAttribute("role", "separator"); m.appendChild(r); return; }
-        var b = document.createElement("button");
-        b.type = "button"; b.className = "d95-item" + (en.bold ? " d95-default" : ""); b.tabIndex = -1;
+        // an entry with an address (a store's page) is a link that opens in a new tab, never a script's window.open, which a
+        // popup blocker may stop; its name says it opens in a new tab
+        var b = document.createElement(en.href ? "a" : "button");
+        if (en.href) { b.href = en.href; b.target = "_blank"; b.rel = "noopener noreferrer"; b.setAttribute("aria-label", en.label + " " + ByopopStrings.t("site.new_tab")); }
+        else b.type = "button";
+        b.className = "d95-item" + (en.bold ? " d95-default" : ""); b.tabIndex = -1;
         b.setAttribute("role", en.checked !== undefined ? "menuitemradio" : en.ticked !== undefined ? "menuitemcheckbox" : "menuitem");
         if (en.checked !== undefined) { b.setAttribute("aria-checked", en.checked ? "true" : "false"); b.classList.add("d95-radio"); }
         if (en.ticked !== undefined) { b.setAttribute("aria-checked", en.ticked ? "true" : "false"); b.classList.add("d95-tick"); }
         var s = document.createElement("span"); s.textContent = en.label; b.appendChild(s);
         if (en.key) { var k = document.createElement("span"); k.className = "d95-key"; k.textContent = en.key; b.appendChild(k); b.setAttribute("aria-keyshortcuts", en.key); }
         if (en.disabled) b.setAttribute("aria-disabled", "true");
-        b.addEventListener("click", function () { if (en.disabled) return; closeFavMenu(true); en.fn(); });
+        b.addEventListener("click", function () { if (en.disabled) return; closeFavMenu(true); if (en.fn) en.fn(); });
         m.appendChild(b);
       });
       document.body.appendChild(m);
@@ -1101,6 +1116,19 @@ var ByopopSkin = (function () {
       items[0].focus();
     }
     document.addEventListener("pointerdown", function (ev) { if (favMenu && !favMenu.el.contains(ev.target)) closeFavMenu(false); }, true);
+    // Every menu (the Pop menu and its lists, a window's menus, the context menus, What's This?) closes as Windows' did (the
+    // user, 2026-11-09: "The dropdown doesn't disappear properly when clicking out of it"): on a press outside it, which still
+    // does what it does; on Esc; when its window is minimized, closed or goes, or another window comes to the front. A press in
+    // a game's frame never reaches this page: the page's window loses the focus to the frame instead (its blur).
+    function closeAllMenus() {
+      if (taskbar) try { taskbar.close(); } catch (e) {}
+      closeFavMenu(false);
+      endWhats();
+    }
+    window.addEventListener("blur", function () { if (on) closeAllMenus(); });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && on && (favMenu || whatsOn || document.querySelector(".d95-pop:not([hidden]), .d95-menu:not([hidden]):not(.d95-ctx)"))) closeAllMenus();
+    });
     // a lifted window: onto the desktop, or back where it was
     function lift(w, up) {
       if (!w.home) return;
@@ -1159,6 +1187,9 @@ var ByopopSkin = (function () {
     var active = null;
     function activate(w) {
       if (active === w) return;
+      // another window to the front: the open menus close, as Windows' did (the task bar's or the desktop's focus is no window,
+      // and leaves the Pop menu open)
+      if (w) closeAllMenus();
       if (active) active.el.classList.remove("d95-active");
       active = w;
       if (w) { w.el.classList.add("d95-active"); if (String(w.el.style.zIndex) !== String(top)) raise(w); }
@@ -1279,6 +1310,7 @@ var ByopopSkin = (function () {
     function remove(id) {
       var w = find(id);
       if (!w) return;
+      closeAllMenus();
       if (active === w) activate(null);
       wins.splice(wins.indexOf(w), 1);
       if (w.el.parentNode) w.el.parentNode.removeChild(w.el);
@@ -1301,7 +1333,7 @@ var ByopopSkin = (function () {
              openWin: function (id) { var w = find(id); if (!w || !on) return; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); },
              list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
              menu: function (from, entries, x, y, label, opts) { popMenu(from, entries, x, y, label, opts); },
-             closeMenus: function () { if (taskbar) taskbar.close(); closeFavMenu(false); },
+             closeMenus: closeAllMenus,
              raise: function (id) { var w = find(id); if (w && on) raise(w); },
              show: function (id) { var w = find(id); if (w && on) show(w); return !!(w && on); },
              minimize: function (id) { var w = find(id); if (w && on) setMin(w, true); },
