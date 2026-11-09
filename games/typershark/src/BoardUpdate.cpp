@@ -2,11 +2,9 @@
 // loops) call (job B1). Update moves the diver down the ocean, ages the popups and timers, spawns waves, updates every
 // creature list through its event loop (BoardEvents.cpp), and decides when the diver is eaten (PlayerEaten).
 //
-// Not translated (BOARD.md, part 4): registration, trial and unlock code. The app is treated as registered.
-// Left out of Update: the call at 0x45c18d to the app's trial play-time accounting (0x41d9d0), and the block at
-// 0x45ca88 to 0x45cb0f that stops an unregistered abyss game at mMaxUnregAbyssDepth (Board +0x150): it saves the game,
-// shows a message built from text 0x531648 with the depth through 0x41c1c0, and pauses the game. Outbound code (links to
-// the web, More Games, Buy): none in these functions; the continue link (id 300, mContinueLink) only returns to the map.
+// Left out of Update (registration, removed): the call at 0x45c18d to the app's trial play-time accounting (0x41d9d0), and the
+// block at 0x45ca88 to 0x45cb0f that stopped an unregistered abyss game at a depth limit (Board +0x150). The continue link
+// (id 300, mContinueLink) only returns to the map.
 //
 // The lists hold the Enemy part of each creature (Board.h); a Shark, Piranha or the black and red shark variants are
 // reached with dynamic_cast, the way the original reads the virtual-base offset. The original's inlined
@@ -501,7 +499,6 @@ void Board::Update()
 	if (mPaused)
 		return;
 	Widget::Update();
-	// 0x45c18d: the original calls the app's play-time accounting of the trial (0x41d9d0) here; left out (registration)
 
 	if (mFirstUpdate)
 	{
@@ -753,9 +750,6 @@ void Board::Update()
 				}
 				aMarkerIdx++;
 			}
-
-			// 0x45ca88 to 0x45cb0f: in an abyss game of an unregistered copy that has reached mMaxUnregAbyssDepth the original
-			// saves the game, shows a message (0x531648) and pauses; registration code, left out
 
 			// the ruler is kept 15 labels long: new ones are made after the last, a label "- N" for every 20 and a plain "-"
 			// for every 4 (the port does not read the last of an empty list, which the original would)

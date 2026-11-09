@@ -15,7 +15,7 @@
 //
 // Not translated: the STL instantiations of std::map<int, MapNode*> (insert/operator[] 0x41ded0, erase 0x44cfd0, tree walk
 // 0x442330, destructor 0x4530b0), of the three vectors (push_back 0x4511c0, 0x44cd30, 0x421380, insert 0x41e410,
-// copy 0x494750) and of std::string (assign 0x406da0, substr 0x406cb0). The class has no registration or outbound code.
+// copy 0x494750) and of std::string (assign 0x406da0, substr 0x406cb0).
 
 #include "Widget.h"
 #include "HyperlinkWidget.h"	// the callers (XWidget) reach mContinueLink

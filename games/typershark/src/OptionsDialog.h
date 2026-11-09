@@ -10,11 +10,8 @@
 // vftable 0x52dd50 (+0x114), sizeof 0x154 (operator new in 0x414150), constructor 0x43bf10, destructor body 0x4384f0
 // (deleting destructor 0x439150). The class has its own app pointer at +0x118 (it is not a MoneyDialog).
 //
-// Not ported (the retail partner.xml has NoReg true and NumOptionsLinks 0, so the original builds none of these either):
-// the Register button (id 1, +0x128, made only when the app is not registered and the property NoReg is false; it would
-// open the register dialog, 0x414020) and the partner link button (id 2, +0x12c, made when NumOptionsLinks is above 0;
-// "Visit PopCap.com", it opens a web page). The Credits button takes the whole row in Resize, as in the original when
-// +0x12c is empty.
+// The original also had a Register button (id 1, +0x128) and a partner link button (id 2, +0x12c) that shared the Credits
+// button's row: removed (registration, links out of the game). The Credits button takes the whole row in Resize.
 
 #include "compat2004/Compat2004.h"
 #include "SliderListener.h"
@@ -36,7 +33,7 @@ class OptionsDialog : public Dialog2004, public SliderListener, public CheckboxL
 public:
 	enum
 	{
-		CREDITS_BUTTON_ID = 4,					// (the Register button's id is 1 and the link button's 2: not ported)
+		CREDITS_BUTTON_ID = 4,
 		HARDWARE_CHECKBOX_ID = 0x51615,			// the other check boxes have id 0
 		MUSIC_SLIDER_ID = 0,
 		SFX_SLIDER_ID = 1
@@ -47,7 +44,7 @@ public:
 	Slider2004*				mMusicSlider;			// +0x11c id 0, value app->GetMusicVolume()
 	SoundSlider*			mSfxSlider;				// +0x120 id 1, value app->GetSfxVolume(); releasing it plays sample 8
 	DialogButton*			mField124;				// +0x124 never assigned by the original (a button its code still adds, removes and recolours: probably a removed help button)
-	// +0x128 the Register button and +0x12c the partner link button: not ported (see above)
+	// +0x128 the Register button and +0x12c the partner link button: removed (see above)
 	DialogButton*			mCreditsButton;			// +0x130 id 4, label text 0x52e890
 	MemoryImage*			mCheckedImage;			// +0x134 24 x 25: the right half of IMAGE_CHECKED
 	MemoryImage*			mUncheckedImage;		// +0x138 24 x 25: the left half of IMAGE_CHECKED

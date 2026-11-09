@@ -2,9 +2,6 @@
 // screens) and the helpers that only it (and a few event loops) call (job B2): the bonus formulas, the typing speed, the next
 // rank goal, the rank title, the wave effect of the water.
 //
-// Not translated (BOARD.md, part 4): registration, trial and unlock code. The app is treated as registered. Draw has none.
-// Outbound code (links to the web, More Games, Buy): none in these functions.
-//
 // Draw's order of calls is the original's: the smoothers, the sea, the sky strip, the lists of creatures in the order the
 // original draws them, then the pop-ups, the status text, the level and treasure screens, the pause and the fades. The
 // wavy water has three paths as in the original: the plain picture (a slow machine, or a black-ish fade), the picture drawn

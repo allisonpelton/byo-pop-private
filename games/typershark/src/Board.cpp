@@ -1,12 +1,9 @@
 // Board.cpp: the Board's constructor and destructor and the Widget overrides (job B2): what it makes, what it adds to the
 // widget manager, and the two small queries the status bar asks.
 //
-// Not translated (BOARD.md, part 4): registration, trial and unlock code. The app is treated as registered.
-// Left out of the constructor (0x4544b0): the registry read at 0x454681 to 0x4546a1 (the app's RegistryReadInteger, 0x4af960,
-// of "MaxUnregAbyssDepth", string 0x530b8c, default 600) that sets Board +0x150; mMaxUnregAbyssDepth stays declared so the
-// offsets stay the original's, and the constructor sets it to 0. Outbound code (links to the web, More Games, Buy): none in
-// these functions; the link widget that AddedToManager makes (id 300, mContinueLink) is the "press space bar to continue"
-// button of the treasure screen and only returns to the map.
+// Left out of the constructor (0x4544b0): the registry read at 0x454681 to 0x4546a1 that set Board +0x150 (the abyss depth
+// limit of an unregistered copy). The link widget that AddedToManager makes (id 300, mContinueLink) is the "press space bar
+// to continue" button of the treasure screen and only returns to the map.
 //
 // What the original leaves unset is set here (marked `port:`): mGameOverDialog, mDiverSpeed, mLessonManager, mStats,
 // mTreasureImage, mOceanDepth and mContinueLink, which other functions set before they read them, and the two ints of the
@@ -59,8 +56,6 @@ Board::Board(WinWSApp* theApp)
 	mDrawCount = 0;
 	mUpdateCount = 0;
 	mField060 = 0;
-	// 0x454656: the registry read of MaxUnregAbyssDepth is not ported
-	mMaxUnregAbyssDepth = 0;
 	mFlag0d28 = false;
 	mField0d2c = -1;
 	mFastCPU = mApp->mFastCPU;

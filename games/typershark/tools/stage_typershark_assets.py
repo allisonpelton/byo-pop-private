@@ -27,6 +27,10 @@ DEFAULT_INSTALLS = [
 # (the port plays music itself), the uninstaller, readme/licence, the properties signature, and the player's own data.
 DIRS = ["images", "data", "sounds", "music", "properties"]
 FILES = ["WinTS.exe"]
+# Pictures only the original's registration code used (the register dialog's picture, the title screen's stamps and its register
+# and continue buttons): the port has none of that code, so they are not staged (a picture's alpha mask, _name.gif, goes with it).
+SKIP_IMAGES = {"register", "stamp_registered", "stamp_trial", "title_register", "title_register_over", "title_continue",
+               "title_continue_over"}
 REQUIRED = ["wints.exe", "data/twords.txt", "data/easy-cfg.xml", "images/titlescreen.jpg", "music/wordshar.mo3",
             "properties/partner.xml"]
 
@@ -65,6 +69,8 @@ def main():
             for f in files:
                 low = f.lower()
                 if low.endswith(".sig"):
+                    continue
+                if rel == "images" and os.path.splitext(low)[0].lstrip("_") in SKIP_IMAGES:
                     continue
                 shutil.copy2(os.path.join(root, f), os.path.join(out, rel, low))
                 count += 1

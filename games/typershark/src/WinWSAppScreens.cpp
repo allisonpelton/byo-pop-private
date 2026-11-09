@@ -128,9 +128,6 @@ bool WinWSApp::HintsEnabled()
 	return false;
 }
 
-// 0x414020: the register dialog (id 600; "Register" / trial nag) is not ported. The original also pauses the board
-// for it and counts it in mOpenDialogCount.
-
 // 0x414150: the options dialog (dialog 0x30a), over the board it pauses
 void WinWSApp::ShowOptions()
 {
@@ -245,7 +242,6 @@ void WinWSApp::ShowMenuScreen()
 {
 	if (mMenuScreen == NULL)
 	{
-		mRegisterDialog = NULL;         // +0x620 (the register dialog is not ported; the original clears it here)
 		mOpenDialogCount = 0;
 
 		mMenuScreen = new MenuScreen(this);     // 0x4436e0
@@ -354,7 +350,7 @@ void WinWSApp::ShowMessageDialog(std::string theHeader, std::string theLines, st
 
 	int aCenterY = mHeight / 2;
 	aDialog->Resize(mWidth / 2 - aWidth / 2, aCenterY - aHeight / 2, aWidth, aHeight);
-	if ((mBoard != NULL) && (mRegisterDialog == NULL))
+	if (mBoard != NULL)
 		mBoard->SetPaused(true);        // 0x442100
 	AddDialog(DIALOG_MESSAGE, aDialog);
 	mWidgetManager->SetFocus(aDialog);
@@ -409,7 +405,7 @@ void WinWSApp::ShowConfirmDialog(std::string theHeader, std::string theLines, st
 
 	int aCenterY = mHeight / 2;
 	aDialog->Resize(mWidth / 2 - aWidth / 2, aCenterY - aHeight / 2, aWidth, aHeight);
-	if ((mBoard != NULL) && (mRegisterDialog == NULL))
+	if (mBoard != NULL)
 		mBoard->SetPaused(true);        // 0x442100
 	AddDialog(DIALOG_MESSAGE, aDialog);
 	mWidgetManager->SetFocus(aDialog);
@@ -515,9 +511,7 @@ void WinWSApp::ShowLevelIntro()
 		if (mBoard->mScore != 0)     // +0x1c4
 			return;
 
-		// the registered game's text (0x52b5e8): the progress is saved every 400 ft; the unregistered text (0x52b528)
-		// is not ported
-		aText = StrFormat(GTC(0x0052b5e8), 400);
+		aText = StrFormat(GTC(0x0052b5e8), 400);     // the progress is saved every 400 ft
 	}
 
 	ShowHintDialog(aText, GT(0x0052b520));
@@ -594,7 +588,6 @@ void WinWSApp::StartBoard()
 	aLevel = mMapScreen->mLevel;
 	if ((aLevel == 2) || ((aLevel > 5) && (aLevel < 8)))
 	{
-		// 0x41d870 not ported: the trial limit (register prompt) of levels 2, 6 and 7
 		WriteToRegistry();                      // slot 18
 	}
 
@@ -612,11 +605,8 @@ void WinWSApp::StartBoard()
 	mWidgetManager->SetFocus(mBoard);
 }
 
-// Not ported (registration, trial and update code):
-// 0x41b030 / 0x41b230: the update check dialogs (LoadingThreadCompleted would start them)
-// 0x41c1c0: the register dialog (id 0x9e5, "images\register")
-// 0x41d870, 0x41d9d0, 0x41da80: the trial limits (MaxPlays, MaxTime) and their prompts
-// 0x414020: the register dialog (id 600)
+// Left out (registration, trial and update code, removed): 0x414020 and 0x41c1c0 (the register dialogs), 0x41b030 and
+// 0x41b230 (the update check dialogs), 0x41d870, 0x41d9d0 and 0x41da80 (the trial limits and their prompts).
 
 // Not translated here (user profile, lesson and configuration code of the other jobs; most are called only from
 // ButtonDepress 0x431630): 0x42a870 (back to the menu: resets the game state), 0x42ee10 and 0x42f3c0 (start a game:

@@ -2,8 +2,6 @@
 // (GetStats, StartGame, SetFastCPU), to save the profile (SaveProgress), to pause (SetPaused), to start a level or an
 // abyss game (SetLessonManager, SetDepth), and the two small makers of the effects (AddBubble, AddBonusText).
 //
-// Not translated here: nothing in these nine functions tests registration; they contain no outbound code.
-//
 // The three small helpers of the profile's statistics records (0x413de0, 0x413e30, 0x413e80; the export names them
 // UserProfile members) are file-static functions of this file: only SaveProgress calls them. Their record is
 // mGroups[group].mRecords[record].mField, a run of twelve ints in which each helper owns four (the last value, the best, the

@@ -10,12 +10,8 @@
 // new HighScoreScreen(this), Resize to the window, AddWidget. The screen reads the tables only when it draws.
 // Original: class Sexy::HighScoreScreen : public Widget, vftable 0x52b0c4, sizeof 100. It has no constructor of its own:
 // WinWSApp::ShowHighScoreScreen (0x41bbd0) builds it inline (operator new(100), Widget::Widget, the vftable, the app at
-// +0x5c and its user manager at +0x58, the flag at +0x60 cleared). It has no destructor of its own either (slot 0 is the
-// Widget deleting destructor, 0x482d00).
-//
-// Not ported (registration): Update (0x4470c0, slot 17) calls Widget::Update and, for a game that is not registered, once
-// (the flag at +0x60) shows the register dialog with the text "Register the game now to record your high scores!"
-// (0x41c1c0); the flag is not kept. The port has Widget::Update only.
+// +0x5c and its user manager at +0x58). It has no destructor of its own either (slot 0 is the Widget deleting destructor,
+// 0x482d00). Its Update (0x4470c0, slot 17) only showed the register prompt of an unregistered copy: removed (registration).
 
 #include "Widget.h"
 #include <string>
@@ -32,7 +28,7 @@ class HighScoreScreen : public Widget
 public:
 	UserProfileMgr*			mProfileMgr;	// +0x58 the app's user manager, whose two tables the screen draws
 	WinWSApp*				mApp;			// +0x5c constructor argument
-	// +0x60 bool: the registration prompt has been shown (not ported)
+	// +0x60 bool: the register prompt has been shown: removed (registration)
 
 public:
 	HighScoreScreen(WinWSApp* theApp);								// the inline constructor of 0x41bbd0

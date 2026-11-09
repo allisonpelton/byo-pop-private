@@ -170,10 +170,10 @@ Also unnamed inside embedded objects: `Smoother::mField38` and `FrameSmoother::m
 There is one. `mMaxUnregAbyssDepth` (+0x150) is read from the registry value `MaxUnregAbyssDepth` (default 600) by the
 constructor and used in one place, `Update` (0x45c140), in the middle of the function: when the lesson is an
 abyss game (`LessonManager` +0xa5), no dialog is open (app +0x688 below 1), the app's byte at +0x470 is clear and the score has
-reached the limit, the Board calls `SaveProgress(true, false)`, builds the message ("in the unregistered version you can only
-dive up to N feet", string at 0x531648), shows it in a dialog through app 0x41c1c0 and calls `SetPaused(true)`. B1 leaves the whole
-block out, and B2 leaves out the constructor's registry read (the field stays declared so the offsets stay the original's;
-the constructor sets it to 0). Nothing else in the 53 functions tests registration. The
+reached the limit, the Board calls `SaveProgress(true, false)`, builds the message (the depth limit of the unregistered
+version, string at 0x531648), shows it in a dialog through app 0x41c1c0 and calls `SetPaused(true)`. B1 left the whole
+block out, and B2 the constructor's registry read; the field is removed from the port (job R1, registration removal: no
+member, no write, no comment but the offset trail in Board.h). Nothing else in the 53 functions tests registration. The
 "HINT" boxes (the Shark Zapper hint in Update and the boss warnings in `SpawnWave`) are tutorial text, not registration:
 they stay.
 

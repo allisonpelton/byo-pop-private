@@ -4,7 +4,7 @@
 // Board.h: the game screen of Typer Shark: the sea, the diver, the sharks and piranhas with their words, the clams, the
 // bonus creatures, the bosses, the score and the keyboard. It is the biggest class of the game (53 member functions, about
 // 56 KB of code); games/typershark/docs/BOARD.md has the map of the methods, the split into translation jobs, the fields
-// whose role is unknown, the registration field and the event codes the event loops handle.
+// whose role is unknown and the event codes the event loops handle.
 // Original: class Sexy::Board : public Widget (the only base; the 2004 Widget is 0x58 bytes), vftable 0x5309a4 (47 slots),
 // sizeof 0xf98 (WinWSApp makes it with operator new(0xf98) and the constructor 0x4544b0). Every field comment gives the
 // offset in the original's object, which the port's layout does not follow (its Widget, std::string, std::vector and
@@ -12,7 +12,6 @@
 // The lists of creatures hold the Enemy part of each creature (the original keeps the Enemy part at offset 0 of Shark,
 // Piranha, Clam and BonusCreature; the Board casts a Shark or Piranha with dynamic_cast, see ENTITIES.md). The embedded
 // helper objects (Smoother, BgLayer, RatingPopup, DepthMarker) are the original's anonymous structs, named by their role.
-// Registration code is not translated: the field at +0x150 and the test of it in Update are left out (BOARD.md, part 4).
 
 #include "Widget.h"
 #include "WinWSApp.h"		// AppStats
@@ -114,7 +113,7 @@ public:
 	int						mUpdateCount;			// +0x64 ++ at the start of every Update, before the paused return
 	Smoother				mSmoothers[2];			// +0x68 one for each BgLayer (0x50 bytes each, to +0x108)
 	FrameSmoother			mFrameSmoother;			// +0x108 for the RatingPopup's mY (0x48 bytes, to +0x150)
-	int						mMaxUnregAbyssDepth;	// +0x150 REGISTRATION: registry value "MaxUnregAbyssDepth", default 600; Update stops an unregistered abyss game at this depth (left out of the port)
+	// +0x150 MaxUnregAbyssDepth, the abyss depth limit of an unregistered copy: removed (registration)
 	int						mWavePhase1;				// +0x154 ++ every other tick (constructor 0)
 	int						mWavePhase2;				// +0x158 ++ every fourth tick (constructor 0)
 	double					mWaveAmp;				// +0x160 the strength of the waves (4.0 to 5.0, moves by 0.004 every other tick; 440330 and 441ac0 use it twice over)

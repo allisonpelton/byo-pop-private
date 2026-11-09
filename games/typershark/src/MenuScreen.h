@@ -12,8 +12,6 @@
 // joins the manager and freed with it.
 // Original: class Sexy::MenuScreen : public Widget, vftable 0x52f04c, constructor 0x4436e0, destructor body 0x4410f0
 // (deleting 0x441e70, slot 0), sizeof 0x80 (the last field is at +0x78).
-//
-// The menu has no register, "More Games" or other button that leads out of the game: all eight ids are the game's own.
 
 #include "Widget.h"
 

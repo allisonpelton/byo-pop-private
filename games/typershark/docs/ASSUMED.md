@@ -43,7 +43,7 @@ back; `WriteDataToDisk` stores `mField1ec` where `LoadDataFromDisk` reads `mFiel
 returns false; `SaveUser` does not free the profile it replaces.
 
 ## Screens, widgets, dialogs (jobs S1, W1, D1, D2, T1)
-- MenuScreen(WinWSApp*) (0x4436e0); TitleScreen(WinWSApp*), `AddControls()` (0x448f40), `mPlayButton` (+0x78);
+- MenuScreen(WinWSApp*) (0x4436e0); TitleScreen(WinWSApp*), `AddControls()` (0x448f40) (its `mPlayButton` was removed with the registration code, job R1);
   HighScoreScreen(WinWSApp*) (its +0x58 is set to the app's mProfileMgr).
 - W1 done (StatusBar, TabbedWidget, TabPanel, TutorialPanel, AdventurePanel, AbyssPanel, StatsScreen; headers are the contract). Profile
   renames: mField68 `mBestTreasureWords`, mField6c `mGemsFound`, mField84 `mSecretsFound`, mField22c `mGamesCompleted`.

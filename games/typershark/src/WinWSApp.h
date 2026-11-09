@@ -77,7 +77,6 @@ enum WinWSDialogId
 	DIALOG_DELETE_USER = 0x44f,         // DeleteUserDialog "DELETE WHO?" (0x43dcb0), made by 0x4267d0
 	DIALOG_STATS_CLOSE = 0x450,         // the Close button of the stats screen (0x41b9e0)
 	DIALOG_ABYSS_MODE = 0x451,          // AbyssModeDialog "CONTINUE?" (0x43e7a0), made by 0x4129a0
-	DIALOG_REGISTER = 600,              // not ported (RegisterDialog, 0x414020)
 	DIALOG_HIGHSCORE_CLOSE = 0xccf,     // the "Close This Screen" button of the high score screen (0x41bbd0)
 	DIALOG_GAME_OVER = 0x16062          // GameOverDialog (0x43adb0)
 };
@@ -101,7 +100,7 @@ public:
 	// ---- data from +0x618 ----
 	KeyDialog*				mMessageDialog;         // +0x618 the plain message dialog (id 500) of 0x41bd80 / 0x41c4f0
 	Dialog*					mDialog61c;             // +0x61c set and cleared by ButtonDepress (0x431630)
-	Dialog*					mRegisterDialog;        // +0x620 not ported (0x414020 makes it)
+	// +0x620 the register dialog: removed (registration)
 	HintDialog*				mHintDialog;            // +0x624 the hint box (id 0x3f3) of 0x41c8c0; ButtonDepress reads it
 	MenuScreen*				mMenuScreen;            // +0x628 (0x41d5c0)
 	MapScreen*				mMapScreen;             // +0x62c the map of the levels (ctor 0x458d10, sizeof 0x238; 0x426440 makes it hidden, its +0x228 is the chosen level)
@@ -109,7 +108,7 @@ public:
 	Board*					mBoard;                 // +0x634 the game board; every game screen reads it
 	HighScoreScreen*		mHighScoreScreen;       // +0x638 (0x41bbd0)
 	StatsScreen*			mStatsScreen;           // +0x63c (0x41b9e0)
-	int						mMaxPlays;              // +0x640 registry "MaxPlays" (trial limit; not ported, stays 0)
+	// +0x640 MaxPlays, the trial limit: removed (registration)
 	DialogButton*			mHighScoreCloseButton;  // +0x644 "Close This Screen" (0x41bbd0)
 	std::vector<int>		mPausedMusic;           // +0x648 (pad), +0x64c..+0x654 the songs LostFocus paused (0x426920)
 	MusicInterface*			mMusic;                 // +0x658 the app's own module music interface (a second one besides SexyAppBase::mMusicInterface)
@@ -118,18 +117,16 @@ public:
 	// +0x664 / +0x668: the letters the random-letter generator (0x41b4e0) has handed out
 	int						mUsedUpperCount;        // +0x664 how many of them are A..Z
 	int						mUsedLetterCount;       // +0x668 how many in all
-	int						mPlayTimeTicks;         // +0x66c MaxTime accounting (0x41d910, 0x41d9d0; not ported)
+	// +0x66c the trial's play time, +0x672 the update check due and +0x673 a trial flag: removed (registration)
 	bool					mFlag670;               // +0x670 ctor 0
 	bool					mFlag671;               // +0x671 ctor 0
-	bool					mShouldCheckForUpdate;  // +0x672 LoadingThreadProc (0x435560): the update check; not ported, stays false
-	bool					mFlag673;               // +0x673 trial flag (0x41d9d0, 0x41da80; not ported)
 	DeleteUserDialog*		mDeleteUserDialog;      // +0x674 (0x4267d0)
 	int						mMusicSlot;             // +0x678 which of the two songs plays (ChangeMusic 0x414350); ctor 1
 	int						mMusicOrder;            // +0x67c the module order playing (ChangeMusic); ctor -1
 	int						mAbyssDepth;            // +0x680 ctor 0; the depth an abyss game starts at (a multiple of 400; ButtonDepress, SetDepth)
 	bool					mFlag684;               // +0x684 ctor 0; read by 0x42a870 / 0x42ee10
 	bool					mFlag685;               // +0x685 ctor 0; read by 0x42a870 / 0x42ee10
-	int						mOpenDialogCount;       // +0x688 dialogs open over the board (0x414020 / 0x414150 add one, the dialogs take it off)
+	int						mOpenDialogCount;       // +0x688 dialogs open over the board (0x414150 adds one, the dialogs take it off)
 	bool					mFlag68c;               // +0x68c ctor 0
 	bool					mFlag68d;               // +0x68d ctor 0
 	int						mDifficulty;            // +0x690 ctor 0; the difficulty button (0 easy .. 4 xtreme; 600 + id), -1 in an abyss game; LoadConfig reads it
@@ -196,7 +193,7 @@ public:
 	bool					mFastCPU;               // +0x8ec LoadingThreadProc: PerfTimer::GetCPUSpeed() >= 695 (MHz); effects are cut down on slow machines
 	bool					mHintsAllowed;          // +0x8ed ctor 1; read by 0x412d70 / 0x41c8c0 / 0x43d6b0 (the hint boxes may show)
 	Image**					mImages;                // +0x8f0 one per ImageId (operator new(0x3e0) = 248 pointers)
-	Image*					mRegisterImage;         // +0x8f4 images\register: not ported (stays NULL)
+	// +0x8f4 the register picture: removed (registration)
 	bool					mFlag8f8;               // +0x8f8 ctor 1; Init clears it when the current user has a flag (+0x1dc) set
 	int						mField8fc;              // +0x8fc ctor-less; read by 0x426c60, 0x429450, 0x42a870, 0x42ee10, ButtonDepress
 	int						mField900;              // +0x900 same readers (and the board 0x44fe30)
@@ -216,7 +213,6 @@ public:
 	virtual void			InitPropertiesHook() override;                          // port: loads properties/texts.xml and the game texts
 	virtual void			Init() override;                                        // 0x428500 slot 16
 	virtual void			LoadingThreadProc() override;                           // 0x435560 slot 17
-	virtual void			LoadingThreadCompleted() override;                      // 0x420130 slot 13
 	virtual void			UpdateFrames() override;                                // 0x4127a0 slot 7
 	virtual void			SetMusicVolume(double theVolume) override;              // 0x4127c0 slot 47
 	virtual void			ButtonPress(int theId) override;                        // 0x412820 slot 3
@@ -228,7 +224,6 @@ public:
 	virtual void			GotFocus() override;                                    // 0x426a10 slot 62
 	virtual void			LostFocus() override;                                   // 0x4269e0 slot 63
 	virtual MusicInterface*	CreateMusicInterface() override;                        // port: the module music interface (BASS in the original)
-	// 0x41d910 slot 33 (Shutdown) only counted the MaxTime trial minutes: not ported, SexyApp::Shutdown runs
 
 	// ---- test hooks (src/testhooks/; docs/TEST_COMMANDS.md): reached only from a test's -script / -commands lines and the
 	// -statelog option, never by a normal run ----

@@ -5,7 +5,7 @@
 // Not translated:
 //   0x4ad5f0   the demo recording trace, called at the top of most of these methods (the texts are the method names; the
 //              ones of 0x427440 and 0x41a1b0 also log the size of the high score buffer)
-//   0x41f1d0   the test of the byte at app+0x470 (registered), taken as true
+//   0x41f1d0   the test of the byte at app+0x470 (registered): removed (registration)
 //   the standard-library instances of the original, replaced by std::list, std::vector and std::string: 0x4ad0d0,
 //   0x4adde0, 0x464ce0, 0x4153e0, 0x420240 (the list of profiles), 0x414e70 (destroys a vector of strings), 0x421260
 //   (copies one), 0x416620 / 0x413ad0 (SexyString upper-case and equality: LoadUser's compare is written out below)
@@ -530,7 +530,6 @@ void UserProfileMgr::WriteUserProfileToRegistry(UserProfile* theProfile, bool th
 	{
 		theProfile->WriteDataToDisk(!theRecordScore);
 
-		// 0x41f1d0 tests the byte at app+0x470 (registered) here and skips the rest when it is clear; taken as set
 		if (theRecordScore)
 		{
 			if (theProfile->mLastMode == -1)

@@ -1,8 +1,6 @@
 // BoardKeys.cpp: the keyboard side of the Board (job B3): the key handler, the test of one creature against a typed letter,
 // and the banner message that the typing answers with.
 //
-// Not translated here: nothing in these three functions tests registration; they contain no outbound code.
-//
 // The draws of random numbers all come from the game's MTRand (the original's 0x463a10 on the object at 0x565384).
 // KeyChar reads the creatures of the lists through their Enemy part, as the other Board files do (Board.h).
 

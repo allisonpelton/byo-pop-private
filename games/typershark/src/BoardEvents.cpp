@@ -3,8 +3,6 @@
 // when it removed the creature from its list and deleted it (the creature is then gone: Update does not advance its index),
 // false when the queue ran empty.
 //
-// Not translated here (BOARD.md, part 4): nothing in these five functions tests registration; they contain no outbound code.
-//
 // The lists hold the Enemy part of each creature (Board.h); a Shark or Piranha is reached with dynamic_cast, the way the
 // original reads the virtual-base offset. The original's inlined vector<T*>::erase loop ("copy the tail down by one") is
 // std::vector::erase, and the deleting-destructor call through the GameObject part is a plain delete.

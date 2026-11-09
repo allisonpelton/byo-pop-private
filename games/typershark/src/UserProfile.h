@@ -12,7 +12,7 @@
 //
 // Not ported (left out as the brief says):
 //   0x4ad5f0   the demo recording trace called at the top of 0x416ed0 and 0x4172f0 (and of the manager's methods)
-//   0x41f1d0   the test of app+0x470 (registered), taken as true
+//   0x41f1d0   the test of app+0x470 (registered): removed (registration)
 //   STL instances and string helpers of the original, replaced by the standard library: 0x4201a0 (copy of a
 //   vector<StatRecord>), 0x4213f0 (its push_back), 0x413760 / 0x413790 / 0x41de70 / 0x420300 / 0x41e110 (its helpers),
 //   0x414d20 (its clear), 0x421310 (vector<T*>::push_back), 0x421380 (vector<int>::push_back), 0x4172b0 and 0x4163e0

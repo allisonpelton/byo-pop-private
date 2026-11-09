@@ -2,8 +2,8 @@
 // TypingTutorDraw.cpp, the keyboard highlight in TypingTutorKeys.cpp, the lesson list and its XML reader in
 // TypingTutorLessons.cpp). See TypingTutor.h for what the widget is.
 //
-// Not ported: the trial limit in ButtonDepress case 0x58 (the registry value MaxUnregTutorialLessons, the "register today"
-// message and 0x41c1c0) and the call to 0x41d9d0 at the top of Update (the MaxTime play-time count of an unregistered game).
+// Left out (registration, removed): the trial limit in ButtonDepress's next-lesson case (the original's MaxUnregTutorialLessons
+// test and its register prompt, 0x41c1c0) and the call to 0x41d9d0 at the top of Update (the trial's play-time count).
 //
 // Quirks of the original that are kept: Update's creature loop has a branch for a creature above y = 160 in state 1 that the
 // loop (which only runs outside state 1) never takes; KeyChar takes a CR, LF or Space typed at the first or the last character
@@ -344,7 +344,6 @@ void TypingTutor::Update()
 	Widget::Update();
 	if (mPauseCount == 0)
 	{
-		// 0x41d9d0 not ported: the MaxTime play-time count of an unregistered game
 		if (mState == 1)
 		{
 			if (mErrorTimer->Elapsed() >= 400)
@@ -751,8 +750,6 @@ void TypingTutor::ButtonDepress(int theId)
 {
 	if (theId == NEXT_BUTTON_ID)
 	{
-		// the original first tests the registration here: an unregistered user (the registry value MaxUnregTutorialLessons,
-		// default 1) may go to no lesson past the first, and is told to register: not ported, this is the registered path
 		mPrevButton->mVisible = true;
 		GoToNextLesson();
 		return;

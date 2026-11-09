@@ -13,16 +13,12 @@
 using namespace Sexy;
 
 // The constructor is the inline part of WinWSApp::ShowHighScoreScreen (0x41bbd0, WinWSAppScreens.cpp): Widget, then the
-// user manager (+0x58) and the app (+0x5c). The original also clears the flag at +0x60 (the registration prompt, not ported)
+// user manager (+0x58) and the app (+0x5c)
 HighScoreScreen::HighScoreScreen(WinWSApp* theApp)
 {
 	mProfileMgr = theApp->mProfileMgr;
 	mApp = theApp;
 }
-
-// 0x4470c0 slot 17 not ported: Widget::Update, then for a game that is not registered (+0x470 of the app clear) and with
-// the flag at +0x60 clear: the flag is set and the register dialog 0x41c1c0 is shown with the text 0x52f948. The port is
-// registered, so Widget::Update is all that is left
 
 // 0x447140: see the header. The sample text is built again for each test in the original, which is why it is read again
 // here; the font that measures the name is the one passed in, the one that measures the sample is always the app's Rockwell 13

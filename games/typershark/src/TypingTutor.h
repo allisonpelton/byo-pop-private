@@ -18,8 +18,6 @@
 // (the level table of a game, another class), so the port calls it TutorLessons, and its lesson TutorLesson, its task
 // TutorExercise and the small drawing record of a finger, key label or key glow TutorSprite (0x28 bytes).
 //
-// Not ported: the trial limits (ButtonDepress's MaxUnregTutorialLessons test with its "register today" message, the call to
-// 0x41d9d0 in Update). The tutor has no button that leaves the game, so nothing is closed up.
 // The std::vector / std::string / std::map instantiations of the export (0x4422f0, 0x4512a0, 0x4512e0, 0x451310, 0x451515,
 // 0x4515cf, 0x4516c0, 0x44cc70, 0x44cecf, 0x44d090, 0x44d0e0, 0x44d120, 0x44d1a2, 0x44462e, 0x4445b0, 0x444550, 0x450c70,
 // 0x450ca0, 0x454440, 0x441a70, 0x4433e0, 0x45c0b0) are the standard containers here.

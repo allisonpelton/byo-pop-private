@@ -68,7 +68,6 @@ WinWSApp::WinWSApp()
 
 	mMessageDialog = NULL;
 	mDialog61c = NULL;
-	mRegisterDialog = NULL;
 	mHintDialog = NULL;
 	mMenuScreen = NULL;
 	mMapScreen = NULL;
@@ -76,18 +75,14 @@ WinWSApp::WinWSApp()
 	mBoard = NULL;
 	mHighScoreScreen = NULL;
 	mStatsScreen = NULL;
-	mMaxPlays = 0;
 	mHighScoreCloseButton = NULL;
 	mMusic = NULL;
 	mLessonManager = NULL;
 	mFlag660 = false;
 	mUsedUpperCount = 0;
 	mUsedLetterCount = 0;
-	mPlayTimeTicks = 0;
 	mFlag670 = false;
 	mFlag671 = false;
-	mShouldCheckForUpdate = false;
-	mFlag673 = false;
 	mDeleteUserDialog = NULL;
 	mMusicSlot = 1;
 	mMusicOrder = -1;
@@ -146,7 +141,6 @@ WinWSApp::WinWSApp()
 	mFastCPU = false;
 	mHintsAllowed = true;
 	mImages = NULL;
-	mRegisterImage = NULL;
 	mFlag8f8 = true;
 	mField8fc = 0;
 	mField900 = 0;
@@ -254,8 +248,6 @@ WinWSApp::~WinWSApp()
 	if (mLessonManager != NULL)
 		delete mLessonManager;      // 0x421c50, then free()
 	mLessonManager = NULL;
-
-	delete mRegisterImage;      // not ported: stays NULL
 
 	if (mSoundInstance0 != NULL)
 		mSoundInstance0->Release();
@@ -392,13 +384,9 @@ void WinWSApp::Init()
 		return;
 	}
 
-	// 0x428500 not ported: mMaxPlays = GetInteger("MaxPlays", 5) (the trial limit)
-
 	// the module music interface (BassMusicInterface(mHWnd) in the original), apart from SexyAppBase's own
 	mMusic = CreateMusicInterface();
 	mMusic->SetVolume(mMusicVolume);
-
-	// 0x428500 not ported: mRegisterImage = GetImage("images\\register") ("Error loading register.jpg")
 
 	mTitleScreen = new TitleScreen(this);
 	mTitleScreen->Resize(0, 0, mWidth, mHeight);
@@ -582,22 +570,7 @@ void WinWSApp::LoadingThreadProc()
 	mCompletedLoadingThreadTasks++;
 	mTitleScreen->MarkDirty();
 
-	// 0x4aae30 ShouldCheckForUpdate not ported (DontUpdate): mShouldCheckForUpdate stays false
-	mShouldCheckForUpdate = false;
-	if (mIsRegistered && !mShouldCheckForUpdate)
-		ButtonDepress(0x191);   // the registered game goes straight on (0x191: the title screen's play button)
-	else
-	{
-		// the unregistered / update-check case shows the title screen's button (not reached: partner.xml NoReg)
-		mTitleScreen->mPlayButton->SetDisabled(false);
-		mTitleScreen->mPlayButton->SetVisible(true);
-	}
-}
-
-// 0x420130 slot 13: the original starts the update check when the loading thread found one due
-void WinWSApp::LoadingThreadCompleted()
-{
-	// 0x420130 -> 0x41b030 not ported: the update check (mShouldCheckForUpdate is never set)
+	ButtonDepress(0x191);   // the game goes straight on (0x191: what the title screen's continue button would press)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -652,10 +625,6 @@ void WinWSApp::WriteToRegistry()
 	SexyApp::WriteToRegistry();
 	mMuteCount = aMuteCount;
 }
-
-// 0x41d910 slot 33 (Shutdown): not ported: it added the minutes played to the registry's MaxTime (the trial
-// timer: `if (GetInteger("MaxTime", 0) > 0) mTimesExecuted-style counter += mPlayTimeTicks / 6000`) and ran
-// SexyApp::Shutdown, which is all the port does.
 
 // 0x4269e0 slot 63: the music pauses and the board with it
 void WinWSApp::LostFocus()

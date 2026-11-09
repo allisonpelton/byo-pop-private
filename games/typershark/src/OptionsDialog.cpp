@@ -14,12 +14,7 @@
 
 using namespace Sexy;
 
-// Not translated (the scalar deleting destructor of this class 0x439150, a thunk of 0x4384f0). Left out because the retail
-// partner.xml makes the original skip them too: the Register button (id 1; made only when the app is not registered and
-// the property NoReg, read as a boolean with the default false, is false; its label is the property RegBtnText with the
-// default text 0x52e8c8; its click calls 0x414020, the register dialog), the partner link button (id 2; made when the
-// integer property NumOptionsLinks is above 0; label text 0x52e898, its click opens the address at 0x52ea98 through the
-// app's OpenURL) and every use of them (their AddWidget, RemoveWidget, delete, SetColor and their rows in Resize).
+// Not translated: the scalar deleting destructor of this class (0x439150, a thunk of 0x4384f0).
 
 // 0x43bf10: Dialog first, with the footer button only (mode 3) and the header, no lines. The controls are sized by
 // Resize; the creator (WinWSApp::ShowOptions 0x414150) sizes the dialog.
@@ -44,8 +39,6 @@ OptionsDialog::OptionsDialog(WinWSApp* theApp) :
 	SetHeaderFont(mApp->mFontRockwell13Bold);
 	SetLinesFont(mApp->mFontRockwell13);
 	mContentInsets = Insets(0x28, 0x14, 0x28, 0x28);
-
-	// The Register button (+0x128) and the partner link button (+0x12c) go here in the original: not ported (see above)
 
 	mCreditsButton = new DialogButton(theApp->mImages[IMAGE_DBUTTON], CREDITS_BUTTON_ID, this);
 	mCreditsButton->SetFont(mApp->mFontRockwell13);
@@ -129,10 +122,9 @@ int OptionsDialog::GetPreferredHeight(int theWidth)
 	return 0x1b6;
 }
 
-// 0x438660 slot 7. Quirk: the button text colour (index 3) goes to the Credits button (and the two buttons not ported)
-// as index 3 of the button's own colours, not as its label colour (0); the dialog's own SetColor(0, black) in the
-// constructor does not reach them. The original passes the literal 3 (the first control gets the argument itself, which
-// is the same).
+// 0x438660 slot 7. Quirk: the button text colour (index 3) goes to the Credits button as index 3 of the button's own
+// colours, not as its label colour (0); the dialog's own SetColor(0, black) in the constructor does not reach it. The
+// original passes the literal 3 (the first control gets the argument itself, which is the same).
 void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 {
 	Dialog2004::SetColor(theIdx, theColor);
@@ -175,8 +167,7 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // 0x438860 slot 13. Screen coordinates. The footer button is at the bottom as Dialog::Resize placed it; the Credits
-// button 42 pixels above its top edge, over the whole content width (the Register and link buttons would share the row
-// with it: not ported).
+// button 42 pixels above its top edge, over the whole content width.
 void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
@@ -184,7 +175,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aContentWidth = (mWidth - mContentInsets.mRight) - mContentInsets.mLeft;
 	int aButtonWidth = (aContentWidth - 6) / 2;
 
-	// no link button: the row is two buttons wide and the Credits button takes all of it
+	// the row is two buttons wide and the Credits button takes all of it
 	aButtonWidth = aButtonWidth * 2 + 6;
 	mCreditsButton->Resize(mContentInsets.mLeft + mX, mYesButton->mY - 0x2a, aButtonWidth, 0x24);
 
@@ -263,8 +254,7 @@ void OptionsDialog::CheckboxChecked(int theId, bool checked)
 
 // 0x43cd90 ButtonListener (+0x58) slot 4. The base first (the footer button's click goes to the app, which applies the
 // boxes and kills this dialog). Then the Credits button opens the credits box (dialog 0x30c, one OK button; the app's
-// handler of that button, 0xadc, kills it). The Register button (id 1) and the link button (id 2) would be handled here:
-// not ported.
+// handler of that button, 0xadc, kills it).
 void OptionsDialog::ButtonDepress(int theId)
 {
 	Dialog2004::ButtonDepress(theId);

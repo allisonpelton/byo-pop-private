@@ -2,8 +2,7 @@
 // records, PlaceEnemies and PlaceBonusCreatures spread the new ones over the screen, AddPiranha is the penalty piranha that
 // a typo in a piranha wave sends.
 //
-// Not translated here: nothing in these four functions tests registration; they contain no outbound code. The two hint boxes
-// that SpawnWave shows before a boss (ShowHintDialog) stay.
+// SpawnWave shows the two hint boxes before a boss (ShowHintDialog).
 //
 // The lists hold the Enemy part of each creature (Board.h). The original's SpawnWave keeps a creature in one local per kind
 // and converts it to the part it needs at the places where the code below names the class. The original's second argument of

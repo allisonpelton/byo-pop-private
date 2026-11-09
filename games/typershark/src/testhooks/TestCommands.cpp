@@ -100,7 +100,7 @@ bool ClearToMenu(WinWSApp* app, std::string* theError)
 	}
 	CloseDialogs(app);
 	if (app->mTitleScreen != NULL)
-		app->ButtonDepress(TitleScreen::PLAY_BUTTON_ID);
+		app->ButtonDepress(TitleScreen::CONTINUE_ID);
 	if (app->mStatsScreen != NULL)
 		app->ButtonDepress(DIALOG_STATS_CLOSE);
 	if (app->mHighScoreScreen != NULL)
@@ -250,13 +250,11 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 					SafeDeleteWidget(mMapScreen);
 					mMapScreen = NULL;
 				}
-				// as Init makes it, with the play button the loading screen shows once the data is in
+				// as Init makes it
 				mTitleScreen = new TitleScreen(this);
 				mTitleScreen->Resize(0, 0, mWidth, mHeight);
 				mTitleScreen->AddControls();
 				mWidgetManager->AddWidget(mTitleScreen);
-				mTitleScreen->mPlayButton->SetDisabled(false);
-				mTitleScreen->mPlayButton->SetVisible(true);
 				mTitleScreen->MarkDirty();
 			}
 			Reply("OK goto title");

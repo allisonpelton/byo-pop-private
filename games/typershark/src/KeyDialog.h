@@ -4,7 +4,7 @@
 // KeyDialog.cpp: the game's plain message box (dialog 500, made by WinWSApp::ShowMessageDialog and ShowConfirmDialog) and
 // the base of DifficultyDialog. A Dialog that also answers the keyboard: with mCloseOnKey off any key closes it, with it
 // on only the keys in the two lists press its buttons (the "cancel" keys press the no button, the "ok" keys the yes
-// button). The class has nothing to do with the registration key (the RegisterDialog's key check is not ported).
+// button).
 // Original: class Sexy::KeyDialog : public Dialog, vftable 0x52ec4c (52 slots, slot 20 KeyChar), ButtonListener vftable
 // 0x52ec30 (+0x58), sizeof 0x138, constructor 0x43ec30, destructor body 0x43a2d0 (deleting destructor 0x43ecf0).
 

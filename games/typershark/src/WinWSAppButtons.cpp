@@ -2,16 +2,9 @@
 // button of the game's screens and every dialog button (ids 2000 + dialog id for yes/ok, 3000 + dialog id for no/cancel,
 // Dialog2004) comes here.
 //
-// Not translated (registration, trial and update code; the port behaves as a registered game):
-//  - 0x11b3, 0x159b: buttons of the update dialog 0x9e3 (0x41b230 starts the update check dialogs); 0x38c4, 0x3cac,
-//    0x5fd4: buttons of the update dialogs 0x30f4 and 0x9e4 (0x38c4 also asks InternetManager::GetUpdateURL and opens it).
-//  - 0x190 (the Register button), 0x11b5 and 0x159d (yes and no of the trial-limit dialog 0x9e5, 0x41c1c0), 0xa28 and
-//    0xe10 (yes and no of the register dialog 600, 0x414020): they open or close the register dialogs, which the port
-//    does not have. (0xadc is no register button: it is the OK button of the credits dialog 0x30c, translated below.)
-//  - 0x41da80 (the trial-limit test, "You have played for more than %d minutes. Please register ...") in the cases of
-//    0x64, 0x65, 0x66, 0x67 and 0x6a: it is false for a registered game. 0x41d870 (the play counter of a trial) in 0x9c4.
-//    0xc9: the text of the unregistered game ("In the registered version, your progress is saved every %d feet").
-// No id of this handler opens a web page except 0x38c4 (More Games has no id here).
+// Left out (registration, trial and update code, removed): the original's ids 0x190 (Register), 0x11b3, 0x11b5, 0x159b,
+// 0x159d, 0x38c4 (the update dialogs' buttons, which also opened the update URL), 0x3cac, 0x5fd4, 0xa28 and 0xe10, and its
+// trial-limit tests (0x41da80, 0x41d870) in the cases of 0x64, 0x65, 0x66, 0x67, 0x6a and 0x9c4. No id of this handler leads out.
 //
 // The fields of the other classes are named after their offsets (mFieldXXX, mFlagXXX) until their groups name them.
 
@@ -106,10 +99,9 @@ void WinWSApp::ButtonDepress(int theId)
 		}
 		else
 		{
-			// 0x41da80(2): the trial limit, not ported
 			mDifficulty = -1;
 			mAbyssDepth = (mUser->mBestDepth / 400) * 400;
-			if (mAbyssDepth >= 400)       // and the game is registered (this[0x470]: always, in the port)
+			if (mAbyssDepth >= 400)
 			{
 				ShowAbyssModeDialog();      // 0x4129a0
 				return;
@@ -124,7 +116,6 @@ void WinWSApp::ButtonDepress(int theId)
 	{
 		mFlag8d8 = true;
 		mFlag8d9 = false;
-		// 0x41da80(1): the trial limit, not ported
 		int aSavedLevel = mUser->mField1c0;
 		if ((aSavedLevel >= 1) && (aSavedLevel <= 0x23))
 		{
@@ -242,7 +233,7 @@ void WinWSApp::ButtonDepress(int theId)
 		mBoard->KeyChar(0xd);       // slot 20: the board's Enter key
 		return;
 
-	case 0x191:     // the title screen's play button
+	case 0x191:     // the end of the loading screen (the original's continue button of the title screen)
 		ShowMapScreen();            // 0x426440
 		return;
 
@@ -434,7 +425,6 @@ void WinWSApp::ButtonDepress(int theId)
 				mField90c = mUser->mField1d8;
 				mField904 = mUser->mField1d0;
 				mFlag8f8 = false;
-				// 0x41d870 not ported: the play counter of a trial
 				WriteToRegistry();      // slot 18
 				CreateBoard();         // 0x42f3c0
 				mBoard->StartGame(*mStats);     // 0x440130 (the 0x30-byte block by value)
@@ -488,13 +478,13 @@ void WinWSApp::ButtonDepress(int theId)
 		mFlag684 = true;
 		mFlag685 = false;
 		mFlag68c = false;
-		if ((mDifficulty == -1) && (mRegisterDialog == NULL) && (mOptionsDialog == NULL))
+		if ((mDifficulty == -1) && (mOptionsDialog == NULL))
 		{
 			CreateBoard();                     // 0x42f3c0
 			mBoard->SetDepth(mAbyssDepth);        // 0x452cf0
 			return;
 		}
-		if ((mBoard != NULL) && (mBoard->mVisible) && (mRegisterDialog == NULL))
+		if ((mBoard != NULL) && (mBoard->mVisible))
 		{
 			mBoard->SetPaused(false);
 			mWidgetManager->SetFocus(mBoard);
@@ -582,7 +572,6 @@ void WinWSApp::ButtonDepress(int theId)
 		}
 		else
 		{
-			// the registered game's text (0x52d0f0); the unregistered text (0x52d078) is not ported
 			aText = StrFormat(GTC(0x0052d0f0), 400);
 		}
 		ShowConfirmDialog(GT(0x0052cf90), aText, "", true, GT(0x0052d1f8), GT(0x0052d1fc));    // "CONFIRM", "YES", "NO"
@@ -603,7 +592,6 @@ void WinWSApp::ButtonDepress(int theId)
 		bool aWindowed = !mOptionsDialog->mFullScreenCheckbox->IsChecked();     // +0x140: the full screen check box
 		bool a3D = mOptionsDialog->m3DCheckbox->IsChecked();                    // +0x150: the 3D acceleration check box
 		mOpenDialogCount = 0;
-		mRegisterDialog = NULL;
 		if ((aWindowed) && (mForceFullscreen))      // this[0x307]
 			ShowNoWindowedModeMessage();            // 0x41d030
 		else
@@ -702,7 +690,6 @@ void WinWSApp::ButtonDepress(int theId)
 		return;
 
 	case 0x66:      // the typing tutor
-		// 0x41da80(3): the trial limit, not ported
 		mTypingTutor = new TypingTutor(this);       // 0x460b30 (sizeof 0x264)
 		mTypingTutor->Resize(0, 0, mWidth, mHeight);
 		mTypingTutor->mVisible = true;
@@ -714,12 +701,10 @@ void WinWSApp::ButtonDepress(int theId)
 		return;
 
 	case 0x6a:      // the statistics button
-		// 0x41da80(4): the trial limit, not ported
 		ShowStatsScreen(0);     // 0x41b9e0
 		return;
 
 	case 0x67:      // the high scores button
-		// 0x41da80(5): the trial limit, not ported
 		mFlag8d8 = false;
 		mFlag8d9 = true;
 		ShowHighScoreScreen();  // 0x41bbd0

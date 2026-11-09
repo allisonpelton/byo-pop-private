@@ -2,8 +2,6 @@
 // and destruction, the Widget overrides that are not Draw or Update, and the choice of a level. Draw is in
 // MapScreenDraw.cpp, Update in MapScreenUpdate.cpp (three files because the whole class is over 1000 lines).
 //
-// Left out (the brief): nothing of the class is registration code or an outbound button. The screen has no such calls.
-//
 // Quirks of the original, kept (for the game notes):
 //  - ResetScroll (0x441030) sets both scroll targets from the width difference (app width - map picture width), where
 //    Draw's final-panel test (0x447cd3) compares mScrollY with the height difference; Update drives mScrollY to the width
