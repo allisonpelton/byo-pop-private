@@ -17,6 +17,9 @@ The checks (each one a rule of docs/CODE_STANDARDS.md):
   unknown   a name that says it is unknown: mUnknown, mUnk, unk_10, aUnk2, mUnnamed
   standin   a generic word with a number or an offset in place of a name: mUnused218, mPad04, mField1c, mValue2,
             aInt3, gData5064f0, mTemp, mDummy, mUnusedImagesA (a number that means something, as in mSwapPiece1 and 2, is not one)
+  offset    a name that ends in its offset or address in place of the rest of its name: mScale288, mFlags1E4,
+            mCamera144C, Rand85B970, Record1C (three or more upper-case hex characters with a digit among them, or two
+            with a hex letter; 2D and 3D, lower-case tails and short numbers such as mSwapPiece1 or aCos36 are not)
   comment   a comment that puts "unknown" in place of a name: "purpose unknown", "unknown field", "??", "no idea",
             "TODO: name"
   short     a one-letter variable or parameter still used more than 10 lines after it is declared (short-span), outside
@@ -25,7 +28,9 @@ The checks (each one a rule of docs/CODE_STANDARDS.md):
             screen, as in a lambda's parameters or a three-line helper
   addr      a function definition with neither an address (0x4cb182) nor a port marker ("port:", "port(...)") in
             its comment, so that the coverage check can pair every function with the export; a file whose first
-            comment carries the port marker holds only the port's own functions
+            comment carries the port marker holds only the port's own functions. An address or marker on the
+            function's declaration in a header that is checked too (its class's declaration, in the comment on its
+            lines or the comment block just above) counts as well, as it does for the coverage check
 
 The config (games/<game>/namecheck.txt) holds one rule a line, each ending in " -- <reason>"; a rule without a
 reason is an error, so every exception says why it is there:
@@ -50,6 +55,22 @@ STANDIN_WORDS = ("Unused|Pad|Padding|Field|Data|Value|Val|Var|Int|Float|Double|F
 # a prefix (m, g, s, k, a, an, the, or nothing) and a generic word with a number, a hex offset or nothing after it
 STANDIN = re.compile(r"^(?:m|g|s|k|a|an|the)?_?(?:%s)_?(?:0x)?[0-9A-Fa-f]*[0-9][0-9A-Fa-f]*$" % STANDIN_WORDS)
 STANDIN_BARE = re.compile(r"^(?:m|g|s|a|an|the)(?:Temp|Tmp|Dummy|Foo|Blah|Stuff|Thing|Misc|Unused(?:[A-Z]\w*)?)$")
+# a word, then an offset or an address of upper-case hex in place of the rest of the name (not "2D" or "3D")
+OFFSET = re.compile(r"^(?:(?:m|g|s|k|a|an|the)[A-Z]|[A-Z])\w*?[a-z_]((?:0x)?[0-9A-F]{2,8})$")
+
+
+def is_offset_name(name):
+    m = OFFSET.match(name)
+    if not m or name.isupper():
+        return False
+    tail = m.group(1).replace("0x", "")
+    # 2D and 3D; a year, as in the framework's Dialog2004; a float suffix, as in Atan2F
+    if not re.search(r"[0-9]", tail) or re.search(r"[0-9]D$", tail) or re.fullmatch(r"(?:19|20)[0-9]{2}", tail) or \
+            re.fullmatch(r"[0-9]F", tail):
+        return False
+    return len(tail) >= 3 or re.search(r"[A-CEF]", tail) is not None
+
+
 COMMENT = re.compile(r"(?i)(?:\b(?:purpose|meaning|use|role|function|type)\s+(?:is\s+)?(?:unknown|unclear|not known)\b|"
                      r"\bunknown\s+(?:purpose|meaning|use|role|field|member|value|flag|variable|param(?:eter)?|"
                      r"global|static|data|offset|struct|thing)\b|"
@@ -202,6 +223,8 @@ def check_file(path, rel, cfg, findings, skipped):
             report("unknown", number, name, "a name that says it is unknown")
         elif STANDIN.match(name) or STANDIN_BARE.match(name):
             report("standin", number, name, "a generic word or a number in place of a name")
+        elif is_offset_name(name):
+            report("offset", number, name, "an offset or address in place of the rest of a name")
 
     for number, body in comments:
         m = COMMENT.search(body)
@@ -248,12 +271,77 @@ def check_file(path, rel, cfg, findings, skipped):
                         block += by_line.get(k + 1, [])
                         k -= 1
                     joined = " ".join(block)
-                    if not ADDR.search(joined) and not PORT_MARK.search(joined):
+                    declared = getattr(cfg, "declared", set())
+                    # the header's key is the innermost class and the name (Inner::Name for Outer::Inner::Name); a
+                    # name under a namespace alone (Sexy::Name) matches a free function's declaration
+                    parts = name.split("::")
+                    in_header = name in declared or (len(parts) > 2 and "::".join(parts[-2:]) in declared) or \
+                        (len(parts) == 2 and parts[0] in getattr(cfg, "namespaces", set()) and parts[1] in declared)
+                    if not ADDR.search(joined) and not PORT_MARK.search(joined) and not in_header:
                         report("addr", number, name, "a function without an address or a port marker above it")
         depth += codeline.count("{") - codeline.count("}")
         if depth < 0:
             depth = 0
     return
+
+
+CLASS_HEAD = re.compile(r"^\s*(?:template\s*<[^>]*>\s*)?(?:class|struct)\s+(?:\w+\s+)*?(\w+)\s*(?:final\s*)?(?::[^;{]*)?$|"
+                        r"^\s*(?:template\s*<[^>]*>\s*)?(?:class|struct)\s+(?:\w+\s+)*?(\w+)\s*(?:final\s*)?(?::[^;{]*)?\{")
+DECL_NAME = re.compile(r"(?:^|[\s*&:])(~?\w+|operator\s*[^\s(]+)\s*\(")
+
+
+def declared_addresses(path):
+    """Qualified names (Class::Name, or Name outside a class) whose declaration in this header carries an address or the
+    port marker: in the comment on the declaration's lines or in the comment block just above it."""
+    text = open(path, encoding="utf-8", errors="replace").read()
+    code, comments = strip(text)
+    lines = code.split("\n")
+    raw = text.split("\n")
+    by_line = {}
+    for number, body in comments:
+        by_line.setdefault(number, []).append(body)
+    found = set()
+    stack = []          # (class name, depth inside its braces)
+    depth = 0
+    pending = None
+    index = 0
+    while index < len(lines):
+        codeline = lines[index]
+        m = CLASS_HEAD.match(codeline)
+        if m and not codeline.rstrip().endswith(";"):
+            pending = m.group(1) or m.group(2)
+        in_scope = (stack and depth == stack[-1][1]) or (not stack)
+        start_depth = depth
+        d = DECL_NAME.search(codeline) if in_scope and pending is None else None
+        end = index
+        if d and not re.match(r"^\s*(?:return|if|for|while|switch|#|typedef|using|static_assert)\b", codeline):
+            # the statement runs to its ';' or '{'
+            while end < len(lines) - 1 and ";" not in lines[end] and "{" not in lines[end]:
+                end += 1
+            block = []
+            for k in range(index, end + 1):
+                block += by_line.get(k + 1, [])
+            k = index - 1
+            while k >= 0 and raw[k].strip().startswith("//"):
+                block += by_line.get(k + 1, [])
+                k -= 1
+            joined = " ".join(block)
+            if ADDR.search(joined) or PORT_MARK.search(joined):
+                name = d.group(1).replace(" ", "")
+                found.add("%s::%s" % (stack[-1][0], name) if stack else name)
+        for k in range(index, end + 1):
+            for ch in lines[k]:
+                if ch == "{":
+                    depth += 1
+                    if pending:
+                        stack.append((pending, depth))
+                        pending = None
+                elif ch == "}":
+                    if stack and stack[-1][1] == depth:
+                        stack.pop()
+                    depth = max(depth - 1, 0)
+        index = end + 1
+    return found
 
 
 def scope_span(lines, index, column, letter):
@@ -315,6 +403,9 @@ SELFTEST = [
     ("int mUnused218; char mPad04[3]; int mValue2; int aDummy; Image* mUnusedImagesA;\n",
      ["standin mUnused218", "standin mPad04", "standin mValue2", "standin aDummy", "standin mUnusedImagesA"]),
     ("int mSwapPiece1; int mX0; int mPadBeforeX; int mClearedAtMoveStart;\n", []),
+    ("float mScale288; int mFlags1E4; Camera mCamera144C; int Rand85B970(); struct Record1C;\n",
+     ["offset mScale288", "offset mFlags1E4", "offset mCamera144C", "offset Rand85B970", "offset Record1C"]),
+    ("bool mIs3D; Viz2D* mViz; float aCos36; int Clamp01(); int mPiece2; TwistD3D* mD3D;\n", []),
     ('const char* aText = "unknown field id mUnused218 local_1c";\n', []),
     ("int mFlags; // +0x218 purpose unknown\nint mCount; // the number of unknown keys\n", ["comment purpose unknown"]),
     ("// 0x401000\nvoid F()\n{\n\tint q = 0;\n" + "\tq++;\n" * 12 + "}\n", ["short q"]),
@@ -375,6 +466,15 @@ def main():
 
     findings, skipped = [], []
     count = 0
+    cfg.declared = set()
+    cfg.namespaces = set()
+    for path in walk(targets):
+        if path.endswith((".h", ".hpp")):
+            cfg.declared |= declared_addresses(path)
+        try:
+            cfg.namespaces |= set(re.findall(r"\bnamespace\s+(\w+)", open(path, encoding="utf-8", errors="replace").read()))
+        except OSError:
+            pass
     for path in walk(targets):
         rel = os.path.relpath(path, root).replace("\\", "/")
         if base and rel.startswith("src/"):
