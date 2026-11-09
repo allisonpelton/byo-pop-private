@@ -82,7 +82,7 @@ var ByopopApps = (function () {
   }
 
   // ---- a Windows 95 message box (the fourth game) ----
-  function messageBox(title, text) {
+  function messageBox(title, text, plain) {
     var d = document.createElement("dialog");
     d.className = "d95-msgbox";
     d.setAttribute("aria-labelledby", "d95-msgbox-title"); d.setAttribute("aria-describedby", "d95-msgbox-text");
@@ -92,7 +92,9 @@ var ByopopApps = (function () {
     var body = document.createElement("div"); body.className = "d95-msgbox-body";
     var icon = document.createElement("i"); icon.className = "d95-msgbox-icon"; icon.setAttribute("aria-hidden", "true");
     var p = document.createElement("p"); p.id = "d95-msgbox-text"; p.textContent = text;
-    body.appendChild(icon); body.appendChild(p);
+    // an About box: the game's lines as they are, without the warning sign
+    if (plain) { p.style.whiteSpace = "pre-line"; d.classList.add("d95-msgbox-about"); } else body.appendChild(icon);
+    body.appendChild(p);
     var ok = document.createElement("button"); ok.type = "button"; ok.textContent = T("skin.apps.ok");
     var row = document.createElement("div"); row.className = "d95-msgbox-row"; row.appendChild(ok);
     d.appendChild(tb); d.appendChild(body); d.appendChild(row);
@@ -108,17 +110,26 @@ var ByopopApps = (function () {
   // ---- a window ----
   function make(key, kind) {
     var id = "app-" + (++seq), g = kind === "game" ? games()[pathOf(key)] : null;
-    var app = { id: id, key: key, kind: kind, frame: null, el: null };
+    var app = { id: id, key: key, kind: kind, frame: null, el: null, game: g ? g.id : "" };
     var el = document.createElement("section");
     el.className = "d95-app d95-app-" + kind;
     var title = g ? g.title : pathOf(key).split("/").filter(Boolean).pop() || key;
-    // a game's menu bar: its own windows (Mods, Game files, Settings, Controls, Chat), full screen, Close
+    // a game's menu bar, as a Windows 95 program's (the user, 2026-11-09: "don't hide everything under "Game""): Game, View,
+    // Options and Help (barMenus), each with its access key, the first letter underlined (Alt and the letter, menuKey)
     if (kind === "game") {
       var bar = document.createElement("div"); bar.className = "d95-menubar"; bar.setAttribute("role", "menubar");
-      var gm = document.createElement("button"); gm.type = "button"; gm.className = "d95-menubar-item"; gm.setAttribute("role", "menuitem");
-      gm.setAttribute("aria-haspopup", "menu"); gm.textContent = T("skin.apps.game_menu");
-      gm.addEventListener("click", function () { var r = gm.getBoundingClientRect(); desk.menu(gm, gameMenu(app), r.left, r.bottom, title); });
-      bar.appendChild(gm);
+      app.bar = [];
+      BAR.forEach(function (m, i) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "d95-menubar-item"; b.setAttribute("role", "menuitem");
+        b.setAttribute("aria-haspopup", "menu"); b.tabIndex = i ? -1 : 0;
+        var name = T(m.key), u = document.createElement("u");
+        u.textContent = name.charAt(0);
+        b.appendChild(u); b.appendChild(document.createTextNode(name.slice(1)));
+        b.setAttribute("aria-keyshortcuts", "Alt+" + name.charAt(0).toUpperCase());
+        app.bar.push({ el: b, letter: name.charAt(0).toLowerCase() });
+        b.addEventListener("click", function () { openBar(app, i); });
+        bar.appendChild(b);
+      });
       el.appendChild(bar);
     }
     var client = document.createElement("div"); client.className = "d95-app-client";
@@ -149,7 +160,7 @@ var ByopopApps = (function () {
     icon.className = kind === "game" ? "d95-sys-cap" : "d95-sys-doc"; icon.setAttribute("aria-hidden", "true");
     desk.add(el, { id: id, title: title, closable: true, menu: true, menuIcon: icon, noIcon: true,
       onClose: function () { closeApp(app); },
-      maximize: kind === "game" ? function () { try { app.frame.requestFullscreen(); } catch (e) {} } : null,
+      maximize: kind === "game" ? function () { maximize(app); } : null,
       at: function (left) { return [left + 40 + (n % 6) * 26, 20 + (n % 6) * 26]; },
       scroll: kind === "txt" ? app.text : null,
       focusIn: function (back) { focusApp(app, back); } });
@@ -157,23 +168,74 @@ var ByopopApps = (function () {
     return app;
   }
   function inner(app) { try { return app.frame && app.frame.contentWindow; } catch (e) { return null; } }
-  function gameMenu(app) {
-    var w = inner(app), list = [];
-    try {
-      w.ByopopSkin.desk.list().forEach(function (x) {
-        if (x.id === "game" || /^set-/.test(x.id) || x.id === "about") return;
-        list.push({ label: x.title, fn: function () { w.ByopopSkin.desk.openWin(x.id); } });
-      });
-    } catch (e) {}
-    if (list.length) list.push({ rule: true });
-    // the game's terms, copyright and licenses (its page's footer links to them, and a window shows no footer)
-    var terms = null;
+  // The menus: Game (what acts on the game: its files, its controls, Close), View (its scales, full screen, the view options
+  // and the chat), Options (mods, the game's settings) and Help (the terms, copyright and licences; About). The page in the
+  // window gives its own parts (ByopopEmbed.menus, web/shell.html); the desktop adds what is its own.
+  var BAR = [{ key: "skin.apps.game_menu", part: "game" }, { key: "skin.apps.view_menu", part: "view" },
+             { key: "skin.apps.options_menu", part: "options" }, { key: "skin.apps.help_menu", part: "help" }];
+  function barMenus(app) {
+    var w = inner(app), own = {};
+    try { own = w.ByopopEmbed.menus() || {}; } catch (e) {}
+    function part(name) { return (own[name] || []).slice(); }
+    var game = part("game");
+    if (game.length) game.push({ rule: true });
+    // Close shows no key: Alt+F4 never reaches a page, as Windows closes the browser's window with it (the user, 2026-11-09)
+    game.push({ label: T("skin.apps.close"), fn: function () { closeApp(app); } });
+    var view = part("view");
+    if (view.length) view.push({ rule: true });
+    view.push({ label: T("skin.pop.full"), fn: function () { fullScreen(app); } });
+    // the desktop's one chat window (web/index.html), which follows the game in front
+    if (desk.find("chat")) view.push({ label: desk.find("chat").el.getAttribute("data-d95-title"), fn: function () { desk.openWin("chat"); } });
+    var options = part("options");
+    // the game's terms, copyright and licenses (its page's footer links to them, and a window shows no footer), and About
+    var help = [], terms = null;
     try { terms = w.document.querySelector("a[href$='-copyright.html']"); } catch (e) {}
-    if (terms) list.push({ label: T("skin.apps.terms"), fn: function () { open(terms.href, "push"); } });
-    list.push({ label: T("skin.pop.full"), fn: function () { try { app.frame.requestFullscreen(); } catch (e) {} } });
-    list.push({ rule: true });
-    list.push({ label: T("skin.apps.close"), key: "Alt+F4", fn: function () { closeApp(app); } });
-    return list;
+    if (terms) help.push({ label: T("skin.apps.terms"), fn: function () { open(terms.href, "push"); } });
+    var about = null;
+    try { about = w.ByopopEmbed.about(); } catch (e) {}
+    if (about) {
+      if (help.length) help.push({ rule: true });
+      help.push({ label: T("skin.apps.about", { game: about.title }), fn: function () { messageBox(T("skin.apps.about", { game: about.title }), about.text, true); } });
+    }
+    return { game: game, view: view, options: options, help: help };
+  }
+  function openBar(app, i) {
+    var m = BAR[i], b = app.bar[i].el, r = b.getBoundingClientRect();
+    var list = barMenus(app)[m.part];
+    if (!list.length) list = [{ label: T("skin.apps.empty"), disabled: true, fn: function () {} }];
+    app.bar.forEach(function (x, k) { x.el.classList.toggle("d95-open", k === i); });
+    desk.menu(b, list, r.left, r.bottom, T(m.key), {
+      side: function (dir) { openBar(app, (i + dir + BAR.length) % BAR.length); },
+      // closed with nothing chosen (Escape): the keys go back to the game, as a program's went back to its document
+      done: function () {
+        app.bar.forEach(function (x) { x.el.classList.remove("d95-open"); });
+        setTimeout(function () {
+          if (app.bar.some(function (x) { return x.el === document.activeElement; }) && !document.querySelector(".d95-menu.d95-ctx")) focusApp(app);
+        }, 0);
+      }
+    });
+  }
+  // Alt and a menu's letter, from the desktop or from the page in the window (which gets the keys while its game has them)
+  function menuKey(win, ev) {
+    var a = win ? byWin(win) : byId(desk.active());
+    if (!a || !a.bar || !ev.altKey || ev.ctrlKey || ev.metaKey || !ev.key || ev.key.length !== 1) return false;
+    var k = ev.key.toLowerCase();
+    for (var i = 0; i < a.bar.length; i++) if (a.bar[i].letter === k) { openBar(a, i); return true; }
+    return false;
+  }
+  document.addEventListener("keydown", function (ev) {
+    if (on() && !ev.defaultPrevented && menuKey(null, ev)) { ev.preventDefault(); ev.stopPropagation(); }
+  }, true);
+  // the game alone in full screen: the window's frame, which the page in it draws as its stage alone (web/shell.html frameFull)
+  function fullScreen(app) { try { app.frame.requestFullscreen(); } catch (e) {} }
+  // the window's maximize: the whole desktop above the task bar, and back (the page in it scales its game to fit, web/shell.html)
+  function maximize(app) {
+    var m = !app.el.classList.contains("d95-maxed"), w = desk.find(app.id);
+    // its place, which the desktop would otherwise move to fit a window as wide as itself, comes back with it
+    if (m && w) app.restoreAt = [w.x, w.y, w.placed];
+    app.el.classList.toggle("d95-maxed", m);
+    if (!m && w && app.restoreAt) { w.x = app.restoreAt[0]; w.y = app.restoreAt[1]; w.placed = app.restoreAt[2]; }
+    desk.place(app.id);
   }
   function focusApp(app, back) {
     if (app.text) { app.text.focus(); return; }
@@ -199,6 +261,7 @@ var ByopopApps = (function () {
     var i = apps.indexOf(app);
     if (i < 0) return;
     apps.splice(i, 1);
+    if (lastGame === app) lastGame = null;
     desk.remove(app.id);
     write(false);
   }
@@ -236,11 +299,21 @@ var ByopopApps = (function () {
   function f6(win, back) { var a = byWin(win); if (a) desk.f6From(a.id, back); }
   function closed(win) { var a = byWin(win); if (a) drop(a); }
   function title(win, text) { var a = byWin(win); if (a && text) { desk.setTitle(a.id, text); if (a.frame) a.frame.title = text; } }
+  // the largest size a window's page can have on the desktop, above the task bar (the scales its View menu offers)
+  function room(win) {
+    var a = byWin(win);
+    if (!a) return null;
+    var inner = a.frame || a.el.querySelector(".d95-app-client");
+    var cw = a.el.offsetWidth - inner.clientWidth, ch = a.el.offsetHeight - inner.clientHeight;
+    var bar = document.querySelector(".d95-taskbar");
+    return { w: (document.documentElement.clientWidth || window.innerWidth) - 16 - cw, h: window.innerHeight - (bar ? bar.offsetHeight : 28) - 8 - ch };
+  }
   // the size a game wants (its screen at one pixel for each of the device's, and its window's frame and status bar): the window
   // takes it the first time, as far as the desktop has room
-  function fit(win, w, h) {
+  // (force: the player chose a scale, which sizes the window again even to a size it had before)
+  function fit(win, w, h, force) {
     var a = byWin(win);
-    if (!a || narrow() || (a.fitted && a.fitted[0] === w && a.fitted[1] === h)) return;
+    if (!a || narrow() || a.el.classList.contains("d95-maxed") || (!force && a.fitted && a.fitted[0] === w && a.fitted[1] === h)) return;
     a.fitted = [w, h];
     var inner = a.frame || a.el.querySelector(".d95-app-client");
     var cw = a.el.offsetWidth - inner.clientWidth, ch = a.el.offsetHeight - inner.clientHeight;
@@ -258,6 +331,7 @@ var ByopopApps = (function () {
     // a window made active by its title bar, its task bar button or the Pop menu takes the focus, as a window did in Windows:
     // the page in its frame (a game: its game), once the press that made it active has done with the focus
     var app = byId(ev.detail && ev.detail.id);
+    if (app && app.kind === "game") lastGame = app;
     if (app) setTimeout(function () {
       if (desk.active() !== app.id) return;
       var at = document.activeElement;
@@ -306,5 +380,14 @@ var ByopopApps = (function () {
   }
   if (document.readyState === "complete") setTimeout(start, 0); else window.addEventListener("load", function () { setTimeout(start, 0); });
 
-  return { open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, count: function () { return apps.length; } };
+  // The game the chat speaks from (web/index.html): the game window last in front, else the newest game still open, else none
+  var lastGame = null;
+  function frontGame() {
+    if (lastGame && apps.indexOf(lastGame) >= 0) return lastGame.game;
+    for (var i = apps.length - 1; i >= 0; i--) if (apps[i].kind === "game") return apps[i].game;
+    return "";
+  }
+  return { open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame,
+    menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
+    count: function () { return apps.length; } };
 })();

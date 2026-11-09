@@ -827,9 +827,9 @@ its window's title, alone, as a 1995 program's title is its name (the coordinato
 the status bar, and the task bar's buttons take the name too); the status line is the
 game window's status bar, in a sunken panel along its bottom; the panels are their own windows, as many open at once as wanted, each closed by its own Close (or Esc in it), and
 a click on the game leaves them open (elsewhere one panel shows at a time and a click on the game closes it); the sound switch is in the
-tray; full screen is the game window's maximize button, an entry of its control menu (its title bar's icon, or Alt+Space:
+tray; full screen is the game window's maximize button, an entry of its control menu (its title bar's icon:
 Minimize, Maximize, Close) and of the Pop menu; and the theme button is in Settings' Appearance. The game window's Close (its
-button, its control menu's Close, and Alt+F4 where the browser lets the page have it) closes the program (the user,
+button, its control menu's Close; no Alt+F4, which Windows gives the browser's window and never the page) closes the program (the user,
 2026-11-08: "Closing the game window ought to go back to the home page/bring back All games"): the game closes as it does for
 the panels' actions, its saves written (closeGameThen), the page's play time is kept as on any way out, and the listing opens
 with All games open and in front (sessionStorage `byopop-desk-open`); no question is asked beyond the page's own. Minimizing
@@ -894,12 +894,38 @@ chosen, shows the desktop with that page's window open (skins.js goes to `?open=
 loads that page itself; the other skins are unchanged.
 
 Up to three games run at once, each in its own window (the frames are separate pages, so each game has its own module, its
-own saves and its own chat, play time and the mods it runs in its status bar); a fourth brings up a Windows 95 message box naming the
+own saves, play time and the mods it runs in its status bar); a fourth brings up a Windows 95 message box naming the
 limit. The window in front has the focus, given to its game when it comes to the front by its title bar, its task bar button
 or the Pop menu, and the other games lose it exactly as a page does: their frames get the window blur the framework listens
 for (`EmscriptenFocusCallback`), so each does what it does when its page loses the focus; a minimized
-window is never in front. A favourite's desktop icon and its menu open the game's window too. A game window's menu bar has Game: the game's own windows (chat, game files, controls, mods), the
-game's terms, copyright and licences, Full screen (its maximize: the frame alone in full screen) and Close with Alt+F4. Close
+window is never in front. A favourite's desktop icon and its menu open the game's window too. A game window has the menu bar of a Windows 95 program (the user, 2026-11-09: "don't hide everything under "Game""): Game
+(Game files, Controls and any window of the game's own; Close), View (Fit window and the whole multiples of the game's size;
+the scanlines, the colour filter, the run timer and the input display, set for that game as its Settings would; Full screen;
+the chat), Options (Mods, Settings) and Help (the terms, copyright and licences; an About box with the game's name and the
+copyright lines of its readme). Each menu has its access key, the first letter underlined: Alt and the letter opens it,
+from the desktop or while the game has the keys, the left and right arrows go to the menu beside it, and Escape gives the keys
+back to the game. No menu shows a key the page does not get: Alt+F4 closes the browser's window and Alt+Space opens its
+window menu on Windows, so neither is handled (the user, 2026-11-09: "Alt-F4 captured by browser").
+
+The window's client area is the game on black with the status bar along its bottom edge, and the game is at a whole multiple
+of its size in device pixels (web/shell.html embedWidth): the one chosen in View, or with Fit window (the default) the largest
+that fits the window, however the player sizes it (its edges, its maximize button, which fills the desktop above the task
+bar and gives the window back its place on a second press). The window takes its game's size when it opens: the chosen
+multiple, or the largest the desktop has room for. View lists the multiples to two past the largest the desktop has room for
+(at least 4x), the ones without room greyed; picking one that the window is too small for sizes the window to fit it, and the
+status bar shows the multiple as a value ("2x"). The choice is kept for each game (localStorage `byopop-d95-scale`, 0 for Fit
+window). Full screen (View's, or the game's own option) puts the window's frame in full screen, and the page in it
+draws its stage alone there (`html.fs-frame`, frameFull), as a game's own page does: the game at the largest whole multiple of
+its size that fits, centred on black, with no frame, menu bar or status bar. Esc or the game's own option leaves it, and the
+window is as it was; F11 stays the browser's, as on the desktop.
+
+The chat is one window of the desktop for every game (the user, 2026-11-09: "Let's just have a single chat window instead of
+waiting for it to load with each game"), with its icon, its Pop menu entry and its task bar button. It is built when it first
+opens and runs on while games open and close; a game's page in a window starts none of its own. It comes up behind the first
+game the page opens (unless "Show chat" is off) and is in front only when the player brings it there. It stands at the
+desktop's right edge, 300 by 480 pixels, and a game's window opens at the left, so the two sit side by side from 1280 pixels wide
+with a game of 800 by 600 or less. What the player sends is tagged with the game in front, or the newest game open (`ByopopApps.frontGame`),
+and with none while no game is open. Close
 is the game's own way out, its saves written first (closeGameThen), then the window goes. A game window takes its game's size
 in device pixels with its frame and status bar, as far as the desktop has room. `?silent=1` passes to every frame. Under 760
 pixels wide one window shows at a time, maximized, the task bar switching between them, and only one game can be open.

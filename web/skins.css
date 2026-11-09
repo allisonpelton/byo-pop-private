@@ -795,10 +795,23 @@ html.d95-desk .stage:fullscreen { background: #000000 !important; display: flex 
 html.d95-desk .stage:fullscreen > canvas#canvas:focus-visible { outline: none; }
 html.d95-desk .stage:fullscreen > canvas#canvas { flex: none; width: var(--fs-w, 100%) !important; height: var(--fs-h, 100%) !important;
   padding: 0 !important; image-rendering: pixelated; }
+/* the same in a game's window on the one page, whose frame is in full screen (web/shell.html, frameFull): the stage alone over
+   the window's menu and status bars */
+html.fs-frame.d95-desk .stage { position: fixed !important; inset: 0 !important; z-index: 2147483647; margin: 0 !important; border: 0 !important;
+  width: 100vw !important; height: 100vh !important; aspect-ratio: auto !important; max-width: none !important; max-height: none !important;
+  background: #000000 !important; display: flex !important; align-items: center;
+  justify-content: center; }
+html.fs-frame.d95-desk .stage > canvas#canvas:focus-visible { outline: none; }
+html.fs-frame.d95-desk .stage > canvas#canvas { flex: none; width: var(--fs-w, 100%) !important; height: var(--fs-h, 100%) !important;
+  padding: 0 !important; image-rendering: pixelated; }
 /* a menu's ticked choice (the game window's sizes): the 1995 dot before it */
 html.d95-desk .d95-radio { position: relative; }
 /* a menu with ticked choices keeps a gutter for the dot before every entry, as 1995's menus did */
-html.d95-desk .d95-menu:has(.d95-radio) > .d95-item:not(#\#) { padding-left: 22px; }
+html.d95-desk .d95-menu:has(.d95-radio) > .d95-item:not(#\#), html.d95-desk .d95-menu.d95-has-ticks > .d95-item:not(#\#) { padding-left: 22px; }
+/* an on or off entry (a game window's View: the run timer): the 1995 tick before it while on */
+html.d95-desk .d95-tick { position: relative; }
+html.d95-desk .d95-tick[aria-checked=true]:not(#\#)::before { content: ""; position: absolute; left: 8px; top: 50%; width: 3px; height: 7px; margin-top: -6px;
+  border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 html.d95-desk .d95-radio[aria-checked=true]:not(#\#)::before { content: ""; position: absolute; left: 8px; top: 50%; width: 6px; height: 6px; margin-top: -3px;
   border-radius: 50% !important; background: currentColor; }
 /* the game window's resize corner, in its status bar's corner: three pairs of diagonal lines, highlight and shadow */
@@ -868,7 +881,14 @@ html.d95-desk .d95-app-text:focus-visible { outline: 1px dotted #000000; outline
 /* a game's menu bar: words on the window's face, the open one in navy */
 html.d95-desk .d95-menubar { display: flex; flex: none; padding: 1px 0; }
 html.d95-desk .d95-menubar-item:not(#\#) { background: none; box-shadow: none; border: 0; padding: 1px 7px; min-height: 0; color: #000000; }
-html.d95-desk .d95-menubar-item:not(#\#)[aria-expanded=true], html.d95-desk .d95-menubar-item:not(#\#):hover { background: #000080; color: #ffffff; }
+html.d95-desk .d95-menubar-item:not(#\#)[aria-expanded=true], html.d95-desk .d95-menubar-item:not(#\#).d95-open,
+html.d95-desk .d95-menubar-item:not(#\#):hover { background: #000080; color: #ffffff; }
+html.d95-desk .d95-menubar-item u { text-decoration-thickness: 1px; text-underline-offset: 2px; }
+/* a game's window maximized (web/deskapps.js maximize): the desktop above the task bar */
+html.d95-desk .d95-app.d95-maxed:not(.d95-closed):not(.d95-min) { left: 0 !important; top: 0 !important; width: 100vw !important;
+  height: calc(100dvh - 28px) !important; max-width: none !important; max-height: none !important; }
+/* an About box: no warning sign, its lines left as they are */
+.d95-msgbox.d95-msgbox-about .d95-msgbox-body { padding-left: 16px; }
 html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #000000; outline-offset: -2px; }
 /* a message box: a small window in the middle, its icon, its text and OK */
 .d95-msgbox { padding: 3px; border: 0; background: var(--panel, #c0c0c0); color: #000000; min-width: 260px; max-width: min(420px, calc(100vw - 32px));
@@ -891,6 +911,13 @@ html.d95-embed[data-skin="d95"] body:has(> main > h1) { background: var(--panel)
 html.d95-embed.d95-desk .stage-wrap.d95-win { left: 0 !important; top: 0 !important; right: 0; bottom: 0; width: auto !important; height: auto !important;
   max-width: none !important; max-height: none !important; }
 html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-tb, html.d95-embed.d95-desk .stage-wrap .d95-grip { display: none; }
+/* its client area: the game at its scale (web/shell.html sizeStage), centred on black, whatever size the window is given; the
+   status bar along the window's bottom edge (the user, 2026-11-09: "Not what I expect to happen on resize") */
+html.d95-embed.d95-desk .stage-wrap.d95-win { display: grid !important; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr);
+  padding: 0 !important; border: 0 !important; box-shadow: none !important; background: #000000; overflow: hidden; }
+html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area { grid-row: 1; overflow: auto; display: grid; place-items: center; min-height: 0; }
+html.d95-embed.d95-desk .stage-wrap.d95-win > .stage-area > .stage { margin: 0; }
+html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-statusbar { grid-row: 2; margin: 0; padding: 2px; background: var(--panel); }
 html.d95-embed .byopop-footer, html.d95-embed body > header, html.d95-embed main > .back { display: none !important; }
 /* a narrow screen (under 760 px): one window at a time fills the screen above the task bar, maximized, the task bar switching */
 html.d95-narrow.d95-desk .d95-win:not(.d95-closed):not(.d95-min) { left: 0 !important; top: 0 !important; width: 100vw !important; height: calc(100dvh - 28px) !important;

@@ -79,10 +79,21 @@ skin.apps.limit_title = Too many games
 skin.apps.limit = {n} games are open. Close one first.
 skin.apps.limit_one = A game is open. Close it first.
 skin.apps.unreadable = This file could not be read.
+skin.apps.view_menu = View
+skin.apps.options_menu = Options
+skin.apps.help_menu = Help
+skin.apps.about = About {game}
+skin.apps.empty = (Empty)
+skin.apps.fit = Fit window
+skin.apps.scale = {n}x
+skin.apps.scan_off = No scanlines
+skin.apps.scan_light = Light scanlines
+skin.apps.scan_strong = Strong scanlines
+skin.apps.filter_none = No colour filter
 # the title bar's "?" of a Settings section's window (Windows 95's What's This?)
 skin.desk.whatsthis = What’s This? ({window})
 skin.desk.maximize = Maximize {window}
-# A window's control menu (its title bar's icon, or Alt+Space): the button's name, then its entries
+# A window's control menu (its title bar's icon): the button's name, then its entries
 skin.desk.menu = Control menu: {window}
 skin.desk.m.minimize = Minimize
 skin.desk.m.maximize = Maximize

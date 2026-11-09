@@ -256,6 +256,12 @@ a.tile + .ownrow:not(:has(.why)) { min-height: 0; }
 .pl-current { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .pl-current input, .pl-names input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
 .pl-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+/* The chat (web/chat.js draws its insides): one window of Desktop 95's desktop for every game, and nothing in the other skins.
+   Its own heading gives way to the window's title bar. */
+#chat { display: flex; flex-direction: column; min-height: 0; overflow: hidden; box-sizing: border-box; }
+html:not(.d95-desk) #chat { display: none !important; }
+#chat > h2 { display: none; }
+#chat .chat-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 #players button, #saves button, #music button {
   font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
 }
@@ -518,6 +524,12 @@ footer a { color: var(--accent); }
     <div id="site-cursor" class="site-cursor-choice"></div>
   </section>
 </main>
+<!-- The chat (web/chat.js; docs/CHAT_DESIGN.md): one window of Desktop 95's desktop for every game; hidden until the script
+     has drawn it, and never shown in the other skins -->
+<aside class="chat" id="chat" hidden aria-labelledby="chat-title">
+  <h2 id="chat-title"><button type="button" data-chat-toggle aria-expanded="true" aria-controls="chat-body"><span class="chat-chevron" aria-hidden="true"></span>{{game.chat.title}}<span class="chat-unread" data-chat-unread hidden></span></button></h2>
+  <div class="chat-body" id="chat-body" data-chat-body></div>
+</aside>
 <footer>
   <p>{{index.footer.about}}</p>
   <p>{{index.footer.trademarks}}</p>
@@ -546,6 +558,8 @@ footer a { color: var(--accent); }
 <script src="terms-games.js"></script>
 <script src="addgames.js"></script>
 <script src="library.js"></script>
+<script src="chat-games.js"></script>
+<script src="chat.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 // (its sections: a row of tabs; in Desktop 95 the folder's icons each open the section's own window, below. The site's
@@ -1275,6 +1289,44 @@ try {
       d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,
         at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, top() + 60 + (i % 5) * 24]; } });
     });
+    // The chat: one window for every game (the user, 2026-11-09: "Let's just have a single chat window instead of waiting for
+    // it to load with each game"), built when it first opens and kept running while games open and close. It sits at the
+    // desktop's right edge, 300 pixels wide, so a game's window at the left and the chat are side by side from 1280 pixels
+    // wide; it comes up with the first game the page opens (unless "Show chat" is off) behind that game's window, and in
+    // front only when the player brings it there. What the player sends is tagged with the game in front (ByopopApps.frontGame),
+    // or with none while no game is open.
+    var chatEl = document.getElementById("chat"), chat = null, chatShown = false;
+    function startChat() {
+      if (chat || !window.ByopopChat) return;
+      try {
+        chat = ByopopChat.mount(chatEl, { visible: true,
+          game: function () { try { return window.ByopopApps ? ByopopApps.frontGame() : ""; } catch (e) { return ""; } },
+          games: typeof ByopopGames !== "undefined" ? ByopopGames : [],
+          iconOf: function (id) {
+            var r = typeof ByopopGameFiles !== "undefined" ? ByopopGameFiles.all()[id] : null;
+            return r && ByopopGameFiles.present(r) && r.icon ? r.icon : "";
+          } });
+        // its collapser has no part in a window that minimizes: open, whatever a game's page left
+        if (chatEl.classList.contains("chat-collapsed")) chat.setCollapsed(false);
+      } catch (e) { console.warn("the chat could not start", e); }
+    }
+    if (chatEl && window.ByopopChat) {
+      var chatPic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      chatPic.setAttribute("viewBox", "0 0 24 24"); chatPic.setAttribute("class", "tab-icon");
+      chatPic.innerHTML = '<path d="M4 5h16v11H9l-4 4v-4H4z"/>';
+      d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true, pic: chatPic,
+        scroll: ".bpc-log", at: function (left, vw) { return [Math.max(left, vw - 312), top()]; } });
+      window.addEventListener("byopop-desk-active", function (ev) {
+        var id = ev.detail && ev.detail.id;
+        if (id === "chat") { startChat(); return; }
+        // a game's window: the chat comes up behind it, the first time
+        if (chatShown || !id || !/^app-/.test(id) || !window.ByopopApps || !ByopopApps.frontGame()) return;
+        chatShown = true;
+        var showChat = "on"; try { showChat = ByopopSettings.get("showChat"); } catch (e) {}
+        if (showChat === "off" || !d.find("chat").closed) return;
+        setTimeout(function () { d.openWin("chat"); d.openWin(id); }, 0);
+      });
+    }
     d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,
       at: function (left, vw) { return [Math.max(left, vw - 500), top() + 220]; } });
     ByopopSkin.deskSync();
