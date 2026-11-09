@@ -1,0 +1,28 @@
+# the options of a classic game: the sliders dragged, the switches, the Tutorial button's question (the coverage check's
+# gap run; docs/COVERAGE.md)
+99 title
+1000 click 185 376
+1300 click 74 247
+1500 shot options
+1510 down 539 108
+1520 move 450 108
+1530 move 400 108
+1540 up 400 108
+1550 down 539 140
+1560 move 480 140
+1570 up 480 140
+1580 down 320 172
+1590 move 450 172
+1600 move 590 172
+1610 up 590 172
+1650 shot sliders
+1700 click 218 270
+1720 click 375 232
+1740 click 375 270
+1800 click 320 313
+1900 shot tutorialask
+1950 click 383 237
+2000 shot answered
+2050 click 320 402
+2150 shot done
+2200 quit

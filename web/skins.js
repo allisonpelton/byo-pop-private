@@ -17,6 +17,14 @@ var ByopopSkin = (function () {
   var ALL = SKINS.concat(["plain"]);
   var root = document.documentElement;
   var pageGame = null;  // a game page's id (setGame): its own value wins over the site-wide one
+  // Desktop 95 in one page (docs/WEB_PLAYER.md, "Desktop 95 in one page"): a page of ours inside one of the desktop's windows
+  // (web/deskapps.js) is loaded with ?embed=1. It draws no desktop of its own (no task bar, no icons), hands its links to the
+  // desktop, and tells it when it is clicked or focused. SITE is the site's folder, where the listing is.
+  var Q = new URLSearchParams(location.search);
+  var EMBED = Q.get("embed") === "1" && window.parent !== window;
+  if (EMBED) root.classList.add("d95-embed");
+  var SITE = (function () { try { return new URL(".", document.currentScript.src).href; } catch (e) { return null; } })();
+  function parentApps() { try { return EMBED && window.parent.ByopopApps ? window.parent.ByopopApps : null; } catch (e) { return null; } }
 
   function readItem() {
     try {
@@ -55,8 +63,25 @@ var ByopopSkin = (function () {
   }
   function setGame(id) { pageGame = id || null; apply(); }
 
+  // Any page of ours opened in its own tab with Desktop 95 chosen goes to the desktop with that page's window open (a link
+  // someone shared, a reload, a bookmark): the listing, with ?open= naming the page, which puts the page's address back
+  // (web/deskapps.js). Not the player-only page (?player=1, no skin), nor a page in one of the desktop's windows; ?desk=0 keeps
+  // the page as it is.
+  function onePage() {
+    if (EMBED || !SITE || window.top !== window || Q.get("player") === "1" || Q.get("desk") === "0" || chosen() !== "d95") return false;
+    var here = location.href.split("#")[0];
+    if (here.indexOf(SITE) !== 0) return false;
+    var rel = here.slice(SITE.length), path = rel.split("?")[0];
+    if (path === "" || path === "index.html") return false;
+    root.classList.add("d95-leaving");
+    location.replace(SITE + "?open=" + encodeURIComponent(rel + location.hash) + (Q.get("silent") === "1" ? "&silent=1" : ""));
+    return true;
+  }
+  var LEAVING = onePage();
+
   // ---------- the card on the first visit ----------
   function T(k) { try { return ByopopStrings.t(k); } catch (e) { return k; } }
+  function Tv(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
   var STYLE =
     ".skin-pick { max-width: min(760px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--fg); box-shadow: 0 20px 60px rgba(0,0,0,.4); }\n" +
     ".skin-pick::backdrop { background: rgba(10, 8, 16, .55); }\n" +
@@ -84,7 +109,7 @@ var ByopopSkin = (function () {
   var CARDS = [["demo", "skin.demo", "skin.demo.about"], ["d95", "skin.d95", "skin.d95.about"], ["soda", "skin.soda", "skin.soda.about"]];
   function askOnce() {
     if ((chosen() !== null && new URLSearchParams(location.search).get("skins") !== "1") || typeof HTMLDialogElement === "undefined") return;
-    if (root.classList.contains("player-only")) return;
+    if (root.classList.contains("player-only") || EMBED || LEAVING) return;
     // on every host, development hosts too (the user, 2026-11-08: "I'd still like the skin selector to be the first thing that
     // pops up when you load the site for the first time"); never under ?silent=1 (every test run carries it) or ?skins=0, and
     // ?skins=1 asks even when a skin was chosen. It is modal, so it comes first: the page under it (the terms card, the setup
@@ -207,12 +232,17 @@ var ByopopSkin = (function () {
       try { var o = JSON.parse(window.localStorage.getItem(DESK_KEY) || "{}"); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
       catch (e) { return {}; }
     }
-    // a game page's layout is kept under its id, the listing's under "index"
-    function pageKey() { return pageGame || "index"; }
+    // a game page's layout is kept under its id, the listing's under "index", a page in one of the one page's windows apart
+    // ("embed:" and its id: there its game's window fills the frame)
+    function pageKey() { return (EMBED ? "embed:" : "") + (pageGame || "index"); }
     function saved() { var o = store(), k = pageKey(); return (o[k] && typeof o[k] === "object") ? o[k] : {}; }
     function save() {
       var o = store(), mine = {};
-      wins.forEach(function (w) { if (w.placed || w.min) mine[w.id] = { x: w.x, y: w.y, closed: !!w.closed, min: !!w.min, placed: !!w.placed }; });
+      wins.forEach(function (w) {
+        if (!w.placed && !w.min) return;
+        mine[w.id] = { x: w.x, y: w.y, closed: !!w.closed, min: !!w.min, placed: !!w.placed };
+        if (w.w && w.h) { mine[w.id].w = w.w; mine[w.id].h = w.h; }
+      });
       o[pageKey()] = mine;
       try { window.localStorage.setItem(DESK_KEY, JSON.stringify(o)); } catch (e) {}
     }
@@ -257,6 +287,42 @@ var ByopopSkin = (function () {
       tasks();
     }
     // a window's Close: its own (o.onClose: the game's window closes the program), else it goes off the desktop to its icon
+    // the What's This? mode (the title bar's "?"): one at a time, ended by the next click anywhere, by Esc or by the "?" again
+    var whatsOn = null;
+    function whatsThis(button) {
+      var was = whatsOn;
+      endWhats();
+      if (was === button) return;
+      whatsOn = button;
+      button.setAttribute("aria-pressed", "true");
+      document.documentElement.classList.add("d95-whats");
+      document.addEventListener("pointerdown", whatsDown, true);
+      document.addEventListener("keydown", whatsKey, true);
+    }
+    function endWhats() {
+      if (!whatsOn) return;
+      whatsOn.setAttribute("aria-pressed", "false");
+      whatsOn = null;
+      document.documentElement.classList.remove("d95-whats");
+      document.removeEventListener("pointerdown", whatsDown, true);
+      document.removeEventListener("keydown", whatsKey, true);
+    }
+    // the click that asks: nothing under it works (not its press, nor the click after it); a click on the "?" itself is the
+    // button's own, which ends the mode
+    function swallow(ev) { ev.preventDefault(); ev.stopPropagation(); }
+    function whatsDown(ev) {
+      if (whatsOn && whatsOn.contains(ev.target)) return;
+      swallow(ev);
+      var target = ev.target, x = ev.clientX, y = ev.clientY;
+      endWhats();
+      ["mousedown", "mouseup", "click", "focus"].forEach(function (n) {
+        var once = function (e) { swallow(e); document.removeEventListener(n, once, true); };
+        document.addEventListener(n, once, true);
+        setTimeout(function () { document.removeEventListener(n, once, true); }, 600);
+      });
+      try { target.dispatchEvent(new CustomEvent("byopop-whatsthis", { bubbles: true, detail: { x: x, y: y } })); } catch (e) {}
+    }
+    function whatsKey(ev) { if (ev.key === "Escape") { swallow(ev); endWhats(); } }
     function closeWin(w) { if (w.onClose) w.onClose(); else setClosed(w, true); }
     // a window's control menu, from its title bar's icon or Alt+Space
     function controlMenu(w, from, x, y) {
@@ -293,6 +359,56 @@ var ByopopSkin = (function () {
       if (!w.min) { raise(w); place(w, true); }
       save();
       tasks();
+    }
+    // ---- a window's size (the user, 2026-11-08: "Non-game windows should be resizable") ----
+    // Every window but the game's (whose sizes are whole multiples, o.sizes) is resized by its edges and corners as in 1995: a
+    // band along each edge and a square at each corner, inside its frame, that a press drags. The size goes from the smallest
+    // that keeps its controls usable (RZ_MIN) to the room above the task bar; its contents scroll or reflow in it. The size is
+    // kept with the window's place (byopop-desk), and goes off with the desktop.
+    var RZ_EDGES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"], RZ_MIN = { w: 200, h: 120 };
+    function sizeTo(w, width, height) {
+      w.w = Math.round(width); w.h = Math.round(height);
+      w.el.style.width = w.w + "px"; w.el.style.height = w.h + "px";
+    }
+    function resizable(w) {
+      RZ_EDGES.forEach(function (edge) {
+        var h = document.createElement("span");
+        h.className = "d95-rz d95-rz-" + edge; h.setAttribute("aria-hidden", "true");
+        w.el.appendChild(h);
+        var st = null;
+        h.addEventListener("pointerdown", function (ev) {
+          if (!on || ev.button !== 0) return;
+          ev.preventDefault(); ev.stopPropagation();
+          raise(w);
+          st = { px: ev.clientX, py: ev.clientY, x: w.x, y: w.y, w: w.el.offsetWidth, h: w.el.offsetHeight, id: ev.pointerId };
+          try { h.setPointerCapture(ev.pointerId); } catch (err) {}
+          document.documentElement.classList.add("d95-dragging");
+        });
+        h.addEventListener("pointermove", function (ev) {
+          if (!st || ev.pointerId !== st.id) return;
+          var dx = ev.clientX - st.px, dy = ev.clientY - st.py, r = room(), nw = st.w, nh = st.h;
+          if (edge.indexOf("e") >= 0) nw = st.w + dx;
+          if (edge.indexOf("w") >= 0) nw = st.w - dx;
+          if (edge.indexOf("s") >= 0) nh = st.h + dy;
+          if (edge.indexOf("n") >= 0) nh = st.h - dy;
+          nw = Math.max(RZ_MIN.w, Math.min(r.w - 8, nw));
+          nh = Math.max(RZ_MIN.h, Math.min(r.h - 8, nh));
+          // the left and top edges move the window as it grows the other way
+          w.x = edge.indexOf("w") >= 0 ? st.x + st.w - nw : st.x;
+          w.y = edge.indexOf("n") >= 0 ? st.y + st.h - nh : st.y;
+          sizeTo(w, nw, nh);
+          place(w);
+        });
+        var end = function (ev) {
+          if (!st || ev.pointerId !== st.id) return;
+          st = null;
+          document.documentElement.classList.remove("d95-dragging");
+          w.placed = true;
+          save();
+        };
+        h.addEventListener("pointerup", end);
+        h.addEventListener("pointercancel", end);
+      });
     }
     function drag(w, handle) {
       var start = null, moved = false;
@@ -342,11 +458,12 @@ var ByopopSkin = (function () {
     // click on the title bar does nothing: the chat's collapser) }
     function add(el, o) {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
-      var w = { el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
+      var w = { focusIn: o.focusIn || null, el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
                 button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
+      el.setAttribute("data-d95-id", o.id);
       var handle = o.handle;
       if (!handle) {
         handle = document.createElement("div");
@@ -357,6 +474,16 @@ var ByopopSkin = (function () {
         t.className = "d95-tb-text";
         t.textContent = o.title;
         handle.appendChild(t);
+        // What's This? (o.whatsThis: a Settings section's window): Windows 95's "?" beside the window's other buttons. A press
+        // turns the pointer into an arrow with a question mark; the next click on a control asks the page for its tip (the event
+        // "byopop-whatsthis" on what was clicked, with where) instead of working the control, and ends the mode, as Esc does
+        if (o.whatsThis) {
+          var hlp = document.createElement("button");
+          hlp.type = "button"; hlp.className = "d95-hlp"; hlp.setAttribute("aria-label", TW("skin.desk.whatsthis", o.title));
+          hlp.setAttribute("aria-pressed", "false");
+          hlp.addEventListener("click", function () { whatsThis(hlp); });
+          handle.appendChild(hlp);
+        }
         if (o.closable) {
           var mn = document.createElement("button");
           mn.type = "button"; mn.className = "d95-mn"; mn.setAttribute("aria-label", TW("skin.desk.minimize", o.title));
@@ -419,6 +546,7 @@ var ByopopSkin = (function () {
         };
       }
       drag(w, handle);
+      if (!o.sizes) resizable(w);
       // the game's window: a resize corner at its bottom right, which snaps to its whole-multiple sizes (o.sizes) as it is dragged
       if (o.sizes) {
         var grip = document.createElement("span");
@@ -452,6 +580,7 @@ var ByopopSkin = (function () {
       el.addEventListener("pointerdown", function () { if (on) raise(w); }, true);
       var s = saved()[o.id];
       if (s && isFinite(s.x) && isFinite(s.y)) { w.x = s.x; w.y = s.y; w.placed = s.placed !== false; w.closed = !!s.closed && !!o.closable; w.min = !!s.min && !w.closed; }
+      if (!o.sizes && s && s.w > 0 && s.h > 0) { w.w = Math.round(s.w); w.h = Math.round(s.h); if (on) sizeTo(w, w.w, w.h); }
       // a window its page opens with the focus in it (a panel's button) is the active one, and one it closes hands that to the
       // window in front
       if (window.MutationObserver) new MutationObserver(function () {
@@ -663,9 +792,24 @@ var ByopopSkin = (function () {
       }
       function fillSub() {
         sub.textContent = "";
+        // the games' window the setting "Games open in" names (All games or the Library, web/library.js): on the listing, first
+        var gw = document.getElementById("games-title") && find(gamesWindow());
+        if (gw) {
+          sub.appendChild(item(gw.el.getAttribute("data-d95-title") || gw.id, closeThen(function () { if (gw.min) setMin(gw, false); show(gw); })));
+          sub.appendChild(rule());
+        }
         var games = playable();
         if (!games.length) { var none = item(T("skin.pop.nogames"), null); none.setAttribute("aria-disabled", "true"); sub.appendChild(none); }
-        games.forEach(function (g) { sub.appendChild(item(g.title, null, { href: g.page })); });
+        var shown = games.filter(function (g) { return !win95Hides(g.id); });
+        shown.forEach(function (g) { sub.appendChild(item(g.title, null, { href: g.page })); });
+        if (games.length > shown.length) {
+          var n = games.length - shown.length;
+          var hid = item(Tv("skin.win95.hidden", { count: n }), null);
+          hid.setAttribute("aria-disabled", "true");
+          hid.title = T("skin.win95.hidden_title");
+          if (!shown.length) sub.textContent = "";
+          sub.appendChild(hid);
+        }
       }
       function fill() {
         list.textContent = "";
@@ -695,6 +839,7 @@ var ByopopSkin = (function () {
           } }));
         }
         if (listing) {
+          win("library");
           settings("tab-settings"); win("tab-players"); win("tab-saves"); win("tab-music");
         } else {
           settings("panel-settings");
@@ -849,7 +994,7 @@ var ByopopSkin = (function () {
         }
         if (want) taskList();
       }
-      return { el: bar, turn: turn, tasks: taskList };
+      return { el: bar, turn: turn, tasks: taskList, close: function () { close(false); } };
     }
     // ---- favourites' icons (the user, 2026-11-08: "on Windows 95, a desktop icon specifically for that game") ----
     // Each favourite game (ByopopSettings.favourites, web/settings.js) has an icon after the windows' in the column: its own icon
@@ -860,6 +1005,7 @@ var ByopopSkin = (function () {
     var favMenu = null;
     function favIcons() {
       if (!icons) return;
+      win95Sync();
       var list = [];
       try { list = window.ByopopSettings && ByopopSettings.favourites ? ByopopSettings.favourites() : []; } catch (e) {}
       var rec = {};
@@ -868,6 +1014,7 @@ var ByopopSkin = (function () {
       list.forEach(function (g) {
         var b = document.createElement("button");
         b.type = "button"; b.className = "d95-icon d95-fav";
+        b.setAttribute("data-win95", win95Of(g.id));
         b.setAttribute("aria-label", T2("skin.fav.icon", { game: g.title }));
         b.setAttribute("aria-haspopup", "menu");
         var pic = document.createElement("i"); pic.setAttribute("aria-hidden", "true");
@@ -877,7 +1024,7 @@ var ByopopSkin = (function () {
         else { pic.className = "d95-fav-cap"; pic.style.setProperty("--tile", g.colour || "#808080"); var t = document.createElement("span"); t.textContent = g.tag; pic.appendChild(t); }
         var name = document.createElement("span"); name.textContent = g.title;
         b.appendChild(pic); b.appendChild(name);
-        function go() { if (g.page) location.href = g.page; }
+        function go() { openPage(g.page); }
         b.addEventListener("dblclick", go);
         b.addEventListener("click", function (ev) { if (ev.detail === 0) go(); });
         b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); openFavMenu(b, g, ev.clientX, ev.clientY); });
@@ -887,6 +1034,12 @@ var ByopopSkin = (function () {
         icons.appendChild(b);
       });
     }
+    // a game's page: its window on the one page (web/deskapps.js), else the page itself
+    function openPage(page) {
+      if (!page) return;
+      try { if (window.ByopopApps && ByopopApps.open(new URL(page, SITE || location.href).href, "push")) return; } catch (e) {}
+      location.href = page;
+    }
     function T2(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
     function closeFavMenu(back) {
       if (!favMenu) return;
@@ -895,7 +1048,7 @@ var ByopopSkin = (function () {
       if (back && m.from && m.from.parentNode) m.from.focus();
     }
     function openFavMenu(from, g, x, y) {
-      popMenu(from, [{ label: T2("skin.fav.open"), bold: true, disabled: !g.page, fn: function () { if (g.page) location.href = g.page; } },
+      popMenu(from, [{ label: T2("skin.fav.open"), bold: true, disabled: !g.page, fn: function () { openPage(g.page); } },
                      { label: T2("skin.fav.remove"), fn: function () {
                        try { ByopopSettings.setFavourite(g, false); } catch (e) {}
                        // its icon is gone: the focus on the column's first icon
@@ -1001,9 +1154,11 @@ var ByopopSkin = (function () {
       if (active) active.el.classList.remove("d95-active");
       active = w;
       if (w) { w.el.classList.add("d95-active"); if (String(w.el.style.zIndex) !== String(top)) raise(w); }
+      try { window.dispatchEvent(new CustomEvent("byopop-desk-active", { detail: { id: w ? w.id : null } })); } catch (e) {}
     }
     function focusPane(pane, back) {
       var w = winOf(pane);
+      if (w && w.focusIn) { activate(w); w.focusIn(back); return; }
       if (w) {
         activate(w);
         // the game's window: the game itself while it runs
@@ -1031,6 +1186,12 @@ var ByopopSkin = (function () {
         if (!list.length) return;
         ev.preventDefault(); ev.stopImmediatePropagation();
         var i = list.indexOf(paneOf(a));
+        var P = parentApps();
+        if (P && i >= 0 && (ev.shiftKey ? i === 0 : i === list.length - 1)) {
+          ev.preventDefault(); ev.stopImmediatePropagation();
+          try { P.f6(window, ev.shiftKey); } catch (e) {}
+          return;
+        }
         var next = list[i < 0 ? (ev.shiftKey ? list.length - 1 : 0) : (i + (ev.shiftKey ? list.length - 1 : 1)) % list.length];
         focusPane(next, false);
         return;
@@ -1078,10 +1239,10 @@ var ByopopSkin = (function () {
       if (want === on) { if (on) { layout(); if (!active) activate(frontmost()); } return; }
       on = want;
       root.classList.toggle("d95-desk", on);
-      if (on && !taskbar) taskbar = makeTaskbar();
+      if (on && !taskbar && !EMBED) taskbar = makeTaskbar();
       if (taskbar) taskbar.turn(on);
       if (on) wins.forEach(function (w) { if (w.unfold) w.unfold(); });
-      if (on && !icons) {
+      if (on && !icons && !EMBED) {
         icons = document.createElement("nav");
         icons.className = "d95-icons";
         icons.setAttribute("aria-label", T("skin.desk.icons"));
@@ -1093,7 +1254,8 @@ var ByopopSkin = (function () {
       }
       // out of the desktop the page lays itself out: the windows' places go, and are put back when it comes again
       wins.forEach(function (w) { lift(w, on); });
-      if (!on) wins.forEach(function (w) { ["left", "top", "z-index", "max-width", "max-height"].forEach(function (p) { w.el.style.removeProperty(p); }); });
+      if (!on) wins.forEach(function (w) { ["left", "top", "z-index", "max-width", "max-height", "width", "height"].forEach(function (p) { w.el.style.removeProperty(p); }); });
+      else wins.forEach(function (w) { if (w.w && w.h) sizeTo(w, w.w, w.h); });
       try { window.dispatchEvent(new CustomEvent("byopop-desk", { detail: { on: on } })); } catch (e) {}
       if (on) layout();
       // the keys, said once: a line in About
@@ -1105,7 +1267,33 @@ var ByopopSkin = (function () {
       activate(on ? frontmost() : null);
     }
     window.addEventListener("resize", function () { if (on) layout(); });
-    return { add: add, setOn: setOn, layout: layout, find: find, isOn: function () { return on; },
+    // a window of another page taken off the desktop (web/deskapps.js)
+    function remove(id) {
+      var w = find(id);
+      if (!w) return;
+      if (active === w) activate(null);
+      wins.splice(wins.indexOf(w), 1);
+      if (w.el.parentNode) w.el.parentNode.removeChild(w.el);
+      tasks();
+      if (on) activate(frontmost());
+    }
+    return { add: add, setOn: setOn, layout: layout, find: find, isOn: function () { return on; }, remove: remove,
+             active: function () { return active ? active.id : null; },
+             activate: function (id) { var w = find(id); if (w && on && active !== w) activate(w); },
+             // the focus into this page from the desktop it is in (F6): its first pane, or its last going back
+             enter: function (back) { var p = panes(); if (p.length) focusPane(back ? p[p.length - 1] : p[0], back); },
+             // F6 from a window's page, past its own panes: the desktop's pane after (or before) that window
+             f6From: function (id, back) {
+               var w = find(id), list = panes();
+               if (!w || !list.length) return;
+               var i = list.indexOf(w.el);
+               focusPane(list[(i + (back ? list.length - 1 : 1) + list.length) % list.length], back);
+             },
+             // a window as the Pop menu opens it
+             openWin: function (id) { var w = find(id); if (!w || !on) return; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); },
+             list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
+             menu: function (from, entries, x, y, label) { popMenu(from, entries, x, y, label); },
+             closeMenus: function () { if (taskbar) taskbar.close(); closeFavMenu(false); },
              raise: function (id) { var w = find(id); if (w && on) raise(w); },
              show: function (id) { var w = find(id); if (w && on) show(w); return !!(w && on); },
              minimize: function (id) { var w = find(id); if (w && on) setMin(w, true); },
@@ -1114,10 +1302,56 @@ var ByopopSkin = (function () {
   })();
   // a game page (one with a workspace) or the listing (its games' heading) in Desktop 95, wide enough for windows
   function deskWanted() {
-    return root.getAttribute("data-skin") === "d95" && !!(document.getElementById("workspace") || document.getElementById("games-title")) &&
-      (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN;
+    var listing = !!document.getElementById("games-title");
+    return root.getAttribute("data-skin") === "d95" && !!(document.getElementById("workspace") || listing) &&
+      (EMBED || listing || (document.documentElement.clientWidth || window.innerWidth) >= DESK_MIN);
   }
-  function deskSync() { if (document.body) desk.setOn(deskWanted()); }
+  function deskSync() {
+    root.classList.toggle("d95-narrow", !EMBED && (document.documentElement.clientWidth || window.innerWidth) < DESK_MIN);
+    if (document.body) desk.setOn(deskWanted());
+  }
+
+  // ---------- Windows 95 games only ----------
+  // Desktop 95's setting "Windows 95 games only" (the user, 2026-11-08: an "immersion" toggle that "will only list the games that
+  // actually supported Windows 95"): with it on, and only in Desktop 95, the lists show only the games whose original supported
+  // Windows 95 (cmake/ByopopWeb.cmake's BYOPOP_WEB_WIN95, as each tile's data-win95 and the chat's table's win95): All games
+  // (html.d95-win95only, web/skins.css), the favourites' icons, and the Pop menu's Games, each list saying how many it hides. An
+  // unknown game is hidden too. A game page already open stays as it is.
+  function win95Of(id) {
+    var games = window.ByopopGames || [];
+    for (var i = 0; i < games.length; i++) if (games[i].id === id) return games[i].win95 || "unknown";
+    var a = document.querySelector('a.tile[data-game="' + String(id).replace(/[^A-Za-z0-9_-]/g, "") + '"]'), li = a && a.closest("li");
+    return (li && li.getAttribute("data-win95")) || "unknown";
+  }
+  // which window the games' entries open (the setting "Games open in", Desktop 95 only): All games or the Library
+  function gamesWindow() { return readItem().gamesOpen === "library" ? "library" : "games"; }
+  function win95On() { return root.getAttribute("data-skin") === "d95" && readItem().win95Only === "on"; }
+  function win95Hides(id) { return win95On() && win95Of(id) !== "yes"; }
+  function win95Sync() {
+    var on = win95On();
+    root.classList.toggle("d95-win95only", on);
+    var count = document.getElementById("win95-count");
+    if (!count) return;
+    var n = on ? Array.prototype.filter.call(document.querySelectorAll(".games > li[data-win95]"), function (li) {
+      // a game the listing already hides (no longer sold, its files not added) is not counted
+      return li.getAttribute("data-win95") !== "yes" && !li.hidden && !li.matches(".games.hide-unsold > li[data-unsold]:not([data-files=yes])");
+    }).length : 0;
+    count.hidden = !n;
+    count.textContent = n ? Tv("skin.win95.hidden", { count: n }) : "";
+    count.title = T("skin.win95.hidden_title");
+  }
+  window.addEventListener("byopop-setting", function (ev) { if (ev.detail && (ev.detail.name === "win95Only" || ev.detail.name === "skin")) win95Sync(); });
+  window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) win95Sync(); });
+  // the listing's own filter (no longer sold games shown or not) changes what the count leaves out
+  function win95Watch() {
+    win95Sync();
+    var games = document.querySelector(".games");
+    if (!window.MutationObserver) return;
+    if (games) new MutationObserver(win95Sync).observe(games, { attributes: true, attributeFilter: ["class"] });
+    // and the skin: the setting's event comes before the page's data-skin follows it
+    new MutationObserver(win95Sync).observe(root, { attributes: true, attributeFilter: ["data-skin"] });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", win95Watch); else win95Watch();
 
   // ---------- ambient light ----------
   // On a game page in the dark Demo Disc and Soda Fountain (B has no dark version), the game's picture glows out around the stage:
@@ -1218,6 +1452,17 @@ var ByopopSkin = (function () {
     if (t.tagName === "IMG" || (t.closest(".stage") && !t.closest(".overlay"))) ev.preventDefault();
   }
   document.addEventListener("dragstart", noDrag, true);
+  if (EMBED) {
+    document.addEventListener("click", function (ev) {
+      var a = ev.target && ev.target.closest && ev.target.closest("a[href]"), P = parentApps();
+      if (!a || !P || ev.defaultPrevented || ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
+      if ((a.getAttribute("href") || "").charAt(0) === "#" || a.hasAttribute("download")) return;
+      if (P.open(a.href, "push")) ev.preventDefault();
+    });
+    ["pointerdown", "focusin"].forEach(function (n) {
+      document.addEventListener(n, function () { var P = parentApps(); if (P) try { P.activated(window); } catch (e) {} }, true);
+    });
+  }
   document.addEventListener("selectstart", function (ev) { var t = ev.target; if (t && t.nodeType !== 1) t = t.parentNode; if (t && t.closest && t.closest(".stage") && !t.closest(".overlay")) ev.preventDefault(); }, true);
-  return { SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync, ambient: ambient };
+  return { gamesWindow: gamesWindow, EMBED: EMBED, SITE: SITE, SKINS: SKINS, current: current, choose: choose, setGame: setGame, apply: apply, wizard: wizard, desk: desk, deskSync: deskSync, ambient: ambient };
 })();

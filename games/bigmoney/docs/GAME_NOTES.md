@@ -31,6 +31,7 @@ Contents:
 - [Part 4: Screens (title, selector, help, credits)](#part-4-screens-title-selector-help-credits)
 - [Part 5: High scores and options](#part-5-high-scores-and-options)
 - [Part 6: The port's test commands, fixes, removals and drivers](#part-6-the-ports-test-commands-fixes-removals-and-drivers)
+- [Coverage check (2026-11-08)](#coverage-check-2026-11-08)
 
 ---
 
@@ -4407,3 +4408,69 @@ Game processes of other sessions meanwhile (start and end of the run): 7 and 4, 
 for the port's. The port starts about twice as fast as the original and uses about 40 % less processor time in play, and its memory
 is the other way round: the working set is twice the original's and its private bytes three times (124 MB against 42 MB). Why was not
 looked into; it is a figure for the performance pass.
+
+
+## Coverage check (2026-11-08)
+
+The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in 17 runs on the host
+(`tools/coverage/run.sh`, `all.sh` and `extra.sh`; the hits in `build/coverage/bigmoney/hits/`, git-ignored).
+
+- **The nine games of the identical-play pass** (`origcmp/game.sh`'s way: the port's bot plays, the original gets its input through
+  `fromport.py`): Action skills 1 to 3 (seeds 1, 7 and 2), Strategy skills 1 to 3 (seeds 3, 8 and 4, the last of two games) and Puzzle
+  skills 1 to 3 (seeds 5, 9 and 6, two games for skill 2), each about 1,550 to 1,650 functions. They reach everything a game plays: the
+  three modes' boards and selectors, levels won and lost, bags, bombs, the overflow countdown, game overs, the name of a high score.
+- **The menus tour** (`tools/coverage/menus.txt`, `origcmp/tours/menus.txt` without its shot lines, which origrun refuses on the host):
+  the Options dialog with its music slider, the scores, the credits, the help screen with the focus lost and regained, the new-game
+  and quit questions, and the selector sliding in over a board.
+- **Two saved-game runs** (`cont-yes.txt`, `cont-no.txt`, with the `savegame.dat` that the first Action run left when its window was
+  closed in the middle of a game): the "continue your last game?" question answered Yes (the load, then clicks across the board) and No.
+- **Quits** (`quit-title.txt`, `quit-selector.txt`; a board's quit is the first Action run's end), and **an Action game nobody plays**
+  (`idle-action.txt`: the stack rises to the top and the game is over).
+- **Two runs on the real clock** with origrun's silent stand-in (`ORIG_CLOCK=real`): the menus tour and the first Action game. They
+  reached no function the virtual-clock runs had not, but for one in the first Action game that the others reach too
+  (`Board::ShowHintAt`); the stand-in serves the DirectSound the game asks for in every run, so the sound code ran in all of them.
+
+Every run ended with the game exiting normally, by its own `quit`. `games/bigmoney/coverage.txt` sets the game's own code as
+0x401000-0x421820, which ends at the last function before the framework (`Sexy::WidgetContainer::MarkDirty`, 0x421830); the rest of
+the exe is SexyAppFramework 1.2, the C runtime and the libraries. That code has 269 functions (the C++ library's templates and the
+compiler's deleting destructors left aside), and the 17 runs reached 223 of them. The 46 that no run reaches are the left-out ones
+below: 67 are left out on purpose, 21 of them reached.
+
+**Reached in the original with no counterpart in the port: 19 at first (nine runs), 0 at the end.** The Options dialog's vector insert,
+which the menus tour reached, made it 20. All were the compiler's and MSVC 7.0's library code, instantiated among the game's own
+functions because the linker put them there, and are `none` lines with their reasons: the framework's `ButtonListener::ButtonPress`
+forwarder (`framework/ButtonListener.h` has the same one), a rectangle constructor, an operator delete thunk, `std::string` appends,
+`==`, `substr` and `operator+`, `std::list`'s size check in `WinBMApp::MakeButton`, vector pointer copies and fills and `_Insert_n`, and
+the `std::map<string, string>` code of the framework's string maps (rotations, node and pair copies, erase). No source file was
+changed and no missing game logic was found; the frozen baseline is the same as before (`tools/check.sh bigmoney`: game 1 over,
+score 66646).
+
+**Defined in the port, never reached: 42 at first, 2 at the end.** The first nine runs missed what they never ask for, and each gap
+was closed by a run:
+
+| Gap | Closed by |
+|---|---|
+| `Board::LoadGame`, `ReadPiece` | the saved game answered Yes |
+| `DeleteSaveGame` (called for both answers) | the saved game answered Yes and No |
+| the Options, credits and scores dialogs (constructors, `Draw`, `Resize`, `ButtonDepress`, sliders and checkbox, destructors), `ShowOptionsDialog`, `ShowCreditsDialog`, `ShowHighScoreDialog`, `ConfirmQuit`, `ConfirmNewGame`, `GotFocus`, `LostFocus`, `NewDialog`, `ModalOpen`, `ModalClose`, `WinBMApp::ButtonPress` (34 in all) | the menus tour (the last four also by the saved-game runs' dialogs) |
+| `Board::Freeze`, `RemovePointsWidgets`, `GameSelector::SlideIn` | the menus tour's "new game": the selector slides over the board |
+
+The two left are the compiler's deleting destructors of `MoneyDialog`, which is only the base of the Options, scores, credits and
+record-score dialogs and is never created itself, and of `WinBMApp`, a global object that is never deleted: no play of the original
+reaches them and the port has them only as a comment on the destructor. They are `none` lines (the report still lists them, since the
+port names their addresses). Nothing in the port is a candidate for taking out because of this check.
+
+**Never reached and not defined in the port: 45 at first, 0 at the end.** The registration, update-check and URL code that the
+port left out on 2026-11-08 (the register dialog and its helpers, the shareware dialogs for one level and a locked next level, the
+"opening your browser" dialogs, `OpenURL`, the update check, and the online score submission), the map code behind the register page's
+parameters, and twelve exception funclets (catch blocks of the compiler's tables) are `none` lines. No run should have reached any of
+them. Part 6 ("Registration and the buttons that lead out of the game") lists what was taken out.
+
+**Open:** nothing. The Options dialog's checkboxes (full screen, 3D) were not clicked in these runs, since the original would change
+the display mode, and the port's version of full screen is a listed deviation of its own; `OptionsDialog::CheckboxChecked` and
+`ButtonDepress` were reached by the menus tour. The framework's sound code lies outside the game code and is not compared.
+
+**What it cost.** The 17 runs took roughly 30 minutes of machine time (estimated from the end times), one game process at a time; the first
+nine waited for room for most of an hour. No agent was used: the 19 functions were identified from their decompilation by this session. A spec for the tool
+goes to the coordinator: the report lists a function the port defines under "Defined in the port, never reached" even when a `none`
+line leaves it out.

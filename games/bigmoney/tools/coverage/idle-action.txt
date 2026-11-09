@@ -1,0 +1,16 @@
+# An Action game, skill 1, that nobody plays: the title, the selector's Action and skill buttons, its start and the help
+# screen's start button (as the bot's clicks), then no click until the stack has risen to the top (the danger hint, the overflow
+# countdown) and the game is over; the window closes at update 14000.
+at 10 focus regain
+at 1000 move 308 451
+at 1000 click 308 451
+at 1100 move 255 190
+at 1100 click 255 190
+at 1140 move 258 385
+at 1140 click 258 385
+at 1180 move 400 448
+at 1180 click 400 448
+at 1245 move 406 424
+at 1245 click 406 424
+at 14000 move 1 1
+quit

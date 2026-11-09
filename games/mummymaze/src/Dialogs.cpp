@@ -59,6 +59,7 @@ RecordScoreDialog::RecordScoreDialog(MummyApp* theApp, const SexyString& theLine
 #endif
 }
 
+// 0x428010 (its deleting form 0x427ff0)
 RecordScoreDialog::~RecordScoreDialog()
 {
 	delete mNameEdit;

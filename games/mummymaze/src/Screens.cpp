@@ -40,6 +40,7 @@ TitleScreen::TitleScreen(MummyApp* theApp) :
 	mPlayLink->mLabel = GT(0x00495510);
 }
 
+// 0x42aa80
 TitleScreen::~TitleScreen()
 {
 	delete mPlayLink;
@@ -148,10 +149,12 @@ ScrollScreen::ScrollScreen(MummyApp* theApp) :
 	mDoFinger = true;
 }
 
+// 0x42b3f0
 ScrollScreen::~ScrollScreen()
 {
 }
 
+// 0x416e80
 void ScrollScreen::ButtonPress(int theId)
 {
 	(void) theId;
@@ -286,6 +289,7 @@ MainMenu::MainMenu(MummyApp* theApp, int theEntry) :
 	}
 }
 
+// 0x416b90
 MainMenu::~MainMenu()
 {
 	for (int i = 0; i < 4; i++)
@@ -403,12 +407,21 @@ GamePanel::GamePanel(MummyApp* theApp) :
 	SetVisible(true);
 }
 
+// 0x4136a0 (its deleting form 0x413680)
 GamePanel::~GamePanel()
 {
 	for (int i = 0; i < 4; i++)
 		delete mLinks[i];
 }
 
+// 0x403430: a press on a link of the panel makes no sound (the main menu and the other screens click: 0x416e80); the
+// links' releases choose
+void GamePanel::ButtonPress(int theId)
+{
+	(void) theId;
+}
+
+// 0x4138d0
 void GamePanel::AddedToManager(WidgetManager* theWidgetManager)
 {
 	ScrollScreen::AddedToManager(theWidgetManager);
@@ -416,6 +429,7 @@ void GamePanel::AddedToManager(WidgetManager* theWidgetManager)
 		theWidgetManager->AddWidget(mLinks[i]);
 }
 
+// 0x413910
 void GamePanel::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	ScrollScreen::RemovedFromManager(theWidgetManager);
@@ -546,6 +560,7 @@ SidePanel::SidePanel(MummyApp* theApp) :
 }
 
 // (the original's buttons own the pictures that CopyImage made for them; here they are deleted with the button)
+// 0x4296f0
 SidePanel::~SidePanel()
 {
 	for (int i = 0; i < 5; i++)
@@ -572,7 +587,7 @@ void SidePanel::RemovedFromManager(WidgetManager* theWidgetManager)
 		theWidgetManager->RemoveWidget(mButtons[i]);
 }
 
-// 0x42a170
+// 0x42a170 (and 0x42a280, its last piece)
 void SidePanel::Update()
 {
 	Widget::Update();

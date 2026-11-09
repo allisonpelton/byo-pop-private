@@ -56,7 +56,7 @@ set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settingsicons.js
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
 # game's page.js, which byopop_web_index() writes), copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js)
+set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js deskapps.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -108,6 +108,86 @@ set(BYOPOP_WEB_BADGES
   "bejeweled2|BJ2|#a02a2a" "astropop|AP|#2a3fa0" "typershark|TS|#1d6a7a" "pizzafrenzy|PF|#a33a1a" "igglepop|IP|#8a238a"
   "feedingfrenzy|FF|#1d6e8e" "chuzzle|CH|#9a3c6e" "feedingfrenzy2|FF2|#16707a" "peggle|PG|#2f6f2f" "pegglenights|PN|#3a2f8a"
   "bejeweled3|BJ3|#6e2370" "bananabugs|BN|#7a6a12" "gyromancer|GY|#4a4a8e" "zumasrevenge|ZR|#2a7a46" "talismania|TA|#8a4a1e")
+# Whether each finished or upcoming game's original supported Windows 95, <target>|<yes, no or unknown> (the user, 2026-11-08:
+# Desktop 95's "Windows 95 games only" setting lists only the games that "actually supported Windows 95. That info is in the
+# README for most games"). Each row has, in the comment above it, the file of the game's own that says so (its readme's system
+# requirements); only the fact is kept here, never the readme's text. A game without a row is unknown, and an unknown game is
+# hidden while the setting is on. A game released before the last one whose readme names Windows 95 (TipTop, 2002-12-12 in
+# BYOPOP_WEB_RELEASED) is yes whatever its readme says (the user, 2026-11-08: "Anything released before the last game that did
+# support Windows 95, we'll assume supported 95"), as the readmes found for those are mostly of later re-releases. A row whose
+# value is not yes, no or unknown is a configure error.
+set(BYOPOP_WEB_WIN95
+  # re/_installers/AtomicaSetup/files/Atomica Deluxe/readme.txt
+  "atomica|yes"
+  # re/_installers/MummyMazeSetup/files/Mummy Maze Deluxe/readme.txt
+  "mummymaze|yes"
+  # re/_installers/TipTopSetup/files/TipTop Deluxe/Readme.txt
+  "tiptop|yes"
+  # re/_installers/WinNoah_setup/files/Noah's Ark Deluxe/readme.txt
+  "noahsark|yes"
+  # re/_installers/WinSevenSeas_setup/files/Seven Seas Deluxe/readme.txt
+  "sevenseas|yes"
+  # re/_installers/WinNingPo_setup/Data/Filez/readme.txt
+  "ningpo|yes"
+  # released 2001-08-29, before TipTop, so yes by the rule above (re/_installers/AlchemySetup-en/files/Alchemy Deluxe/readme.html says 98+)
+  "alchemy|yes"
+  # re/_installers/BonniesBookstoreSetup/files/Bonnie's Bookstore Deluxe/readme.html (98+)
+  "bonnies|no"
+  # re/_installers/PixelusSetup/files/Pixelus Deluxe/readme.html (98+)
+  "pixelus|no"
+  # re/_installers/VeniceSetup/files/Venice Deluxe/readme.html (98+)
+  "venice|no"
+  # re/_installers/WordHarmonySetup/files/WordHarmony/readme.html (98+)
+  "wordharmony|no"
+  # re/_installers/BananaBugsSetup/files/Banana Bugs/readme.html (XP SP2+)
+  "bananabugs|no"
+  # released 2001-05-30, before TipTop, so yes by the rule above (the Steam copy's Bejeweled Deluxe/readme.html says 98+)
+  "bejeweled|yes"
+  # the Steam copy, Bejeweled 2 Deluxe/readme.html (98+)
+  "bejeweled2|no"
+  # the Steam copy, Bejeweled 3/readme.html (XP SP2+)
+  "bejeweled3|no"
+  # the PopCap Games install, Bejeweled Twist/readme.html (XP+)
+  "bejeweledtwist|no"
+  # released 2002-06-04, before TipTop, so yes by the rule above (the Steam copy's Big Money Deluxe/readme.html says 98+)
+  "bigmoney|yes"
+  # the Steam copy, BookWorm Deluxe/readme.html (2000+)
+  "bookworm|no"
+  # the PopCap Games install, Bookworm Adventures Deluxe/readme.html (2000+)
+  "bookwormadv|no"
+  # the Steam copy, Bookworm Adventures Volume 2/readme.html (XP+)
+  "bookwormadv2|no"
+  # the Steam copy, AstroPop Deluxe/readme.html (98+)
+  "astropop|no"
+  # released 2002-01-25, before TipTop, so yes by the rule above (the Steam copy's Dynomite Deluxe/readme.html says 98+)
+  "dynomite|yes"
+  # the Steam copy, Rocket Mania Deluxe/readme.html (98+)
+  "rocketmania|no"
+  # the Steam copy, Heavy Weapon Deluxe/readme.html (98+)
+  "heavyweapon|no"
+  # the Steam copy, Hammer Heads Deluxe/readme.html (98+)
+  "hammerheads|no"
+  # the Steam copy, Typer Shark Deluxe/readme.html (98+)
+  "typershark|no"
+  # the Steam copy, Pizza Frenzy/readme.html (98+)
+  "pizzafrenzy|no"
+  # the Steam copy, Iggle Pop Deluxe/readme.html (98+)
+  "igglepop|no"
+  # the Steam copy, Feeding Frenzy 2 Deluxe/readme.html (98+)
+  "feedingfrenzy2|no"
+  # the Steam copy, Chuzzle Deluxe/readme.html (98+)
+  "chuzzle|no"
+  # the Steam copy, Peggle Deluxe/readme.html (2000+)
+  "peggle|no"
+  # the Steam copy, Peggle Nights/readme.html (2000+)
+  "pegglenights|no"
+  # the Steam copy, Talismania Deluxe/readme.html (98+)
+  "talismania|no"
+  # the Steam copy, Zuma's Revenge/readme.html (XP+)
+  "zumasrevenge|no"
+  # no readme of their own says (cosmicbugs, waterbugs, gyromancer, mahjongjapan, mahjongchina) or no copy is here (feedingfrenzy):
+  # unknown, by having no row
+)
 # When each finished or upcoming game was first released, <target>|<date> with the date as YYYY, YYYY-MM or YYYY-MM-DD, as exact as the
 # sources allow (the user, 2026-10-27: the listing page can sort by release date, docs/WEB_PLAYER.md, "The listing page"). It is
 # the first release of the Windows edition that the site plays, the Deluxe download where there is one, not a web, Java or
@@ -902,6 +982,18 @@ function(byopop_web_index)
         list(GET fields 1 released)
       endif()
     endforeach()
+    # whether its original supported Windows 95 (BYOPOP_WEB_WIN95): data-win95 on the tile and win95 in the chat's table
+    set(win95 "unknown")
+    foreach(row ${BYOPOP_WEB_WIN95})
+      string(REPLACE "|" ";" fields "${row}")
+      list(GET fields 0 row_target)
+      if(row_target STREQUAL target)
+        list(GET fields 1 win95)
+      endif()
+    endforeach()
+    if(NOT win95 MATCHES "^(yes|no|unknown)$")
+      message(FATAL_ERROR "BYOPOP_WEB_WIN95 (cmake/ByopopWeb.cmake) gives ${target} \"${win95}\", which is not yes, no or unknown")
+    endif()
     set(year "")
     if(released STREQUAL "")
       message(WARNING "byo-pop: ${target} has no release date in BYOPOP_WEB_RELEASED (cmake/ByopopWeb.cmake): the listing page "
@@ -924,7 +1016,7 @@ function(byopop_web_index)
       get_property(game_terms GLOBAL PROPERTY BYOPOP_WEB_terms_${target})
       string(APPEND terms_games "${chat_separator}  \"${game_id}\": ${game_terms}")
       string(APPEND chat_games "${chat_separator}  {\"id\": \"${game_id}\", \"page\": \"${target}.html\", \"tag\": \"${chat_initials}\", "
-        "\"title\": \"${chat_title}\", \"colour\": \"${colour}\"}")
+        "\"title\": \"${chat_title}\", \"colour\": \"${colour}\", \"win95\": \"${win95}\"}")
       set(chat_separator ",\n")
       # the game's import rules for a folder dropped on the listing page (web/gameimport.js): its page.js, run in a function of
       # its own that returns its PAGE (the file only declares things, and none of its functions is called)
@@ -996,7 +1088,7 @@ function(byopop_web_index)
       endif()
       byopop_web_string(soon_aria index.soon_label label "${soon_label}")
       byopop_web_string(soon_text index.soon)
-      string(CONCAT tile "    <li class=\"game soon\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\"${unsold_attr}>"
+      string(CONCAT tile "    <li class=\"game soon\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\" data-win95=\"${win95}\"${unsold_attr}>"
         "<div class=\"tile\" role=\"group\" aria-label=\"${soon_aria}\">"
         "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
         "<span class=\"name\">${title}</span>${year_html}</div><div class=\"ownrow\"><span class=\"own own-soon\" aria-hidden=\"true\">${soon_text}</span></div>${buy_html}</li>")
@@ -1004,10 +1096,10 @@ function(byopop_web_index)
       math(EXPR soon_count "${soon_count} + 1")
       continue()
     endif()
-    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\"${unsold_attr}>"
+    string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\" data-win95=\"${win95}\"${unsold_attr}>"
       "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
       "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
-      "<span class=\"name\">${title}</span>${year_html}</a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")
+      "<span class=\"name\">${title}</span>${year_html}<span class=\"own\" aria-hidden=\"true\"></span></a><div class=\"ownrow\"></div>${buy_html}</li>")
     list(APPEND tiles "${tile}")
     math(EXPR count "${count} + 1")
   endforeach()
@@ -1023,6 +1115,7 @@ function(byopop_web_index)
   endforeach()
   # the music player's licence (web/music.js links it): libopenmpt's, as openmpt.wasm is built from it
   configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libopenmpt.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libopenmpt.txt COPYONLY)
+  configure_file(${BYOPOP_WEB_BRAND_DIR}/../licenses/libxmp-lite.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/licenses/libxmp-lite.txt COPYONLY)
   byopop_web_strings_js()
   byopop_web_counter_js()
   byopop_web_terms_js()
@@ -1119,7 +1212,7 @@ if(EMSCRIPTEN)
   target_compile_options(byopop_openmpt PRIVATE -O2)
   target_link_options(byopop_openmpt PRIVATE -O2 "-sMODULARIZE=1" "-sEXPORT_NAME=ByopopOpenMPT" "-sALLOW_MEMORY_GROWTH=1"
     "-sENVIRONMENT=web,node" "--no-entry" "-sEXPORTED_FUNCTIONS=_malloc,_free"
-    "-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32,HEAP16,HEAP32")
+    "-sEXPORTED_RUNTIME_METHODS=HEAPU8,HEAPF32,HEAP16,HEAP32,UTF8ToString")
   # (a deferred call runs at the end of this directory, the top level, after every game's byopop_web_game())
   get_filename_component(BYOPOP_WEB_BRAND_DIR "${CMAKE_CURRENT_LIST_DIR}/../web/brand" ABSOLUTE)
   cmake_language(DEFER CALL byopop_web_index)

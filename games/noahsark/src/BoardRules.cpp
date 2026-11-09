@@ -352,7 +352,8 @@ void Board::UpdateSparkles()
 }
 
 // 0x407600: the pair in mLink has been joined: score it (a run of the same kind scores a combo and lowers the
-// water), and let both walk towards each other along their paths
+// // water), and let both walk towards each other along their paths. The assignments to mComboShownAt and mComboShown
+// are the original's small setter, 0x407440.
 void Board::ConnectPair()
 {
 	// the original returns only for an empty link (a vector of 0 bytes), not for a single animal

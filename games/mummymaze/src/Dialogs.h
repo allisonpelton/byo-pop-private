@@ -61,8 +61,10 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x401710
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x401750
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x4016b0
+	virtual void		ButtonPress(int theId) override;                                    // 0x412d80
 	virtual void		ButtonDepress(int theId) override;                                  // 0x4017f0
 	using Widget::Resize;
+	using Dialog2004::ButtonPress;
 };
 
 // 0x412750: the saved adventures again, to pick the one to delete
@@ -80,8 +82,10 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x412cd0
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x412d00
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x412c90
+	virtual void		ButtonPress(int theId) override;                                    // 0x412d80
 	virtual void		ButtonDepress(int theId) override;                                  // 0x412da0
 	using Widget::Resize;
+	using Dialog2004::ButtonPress;
 };
 
 // 0x421db0: the name of a new adventure
@@ -133,9 +137,11 @@ public:
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x425f50
 	virtual void		Draw(Graphics* g) override;                                         // 0x4263c0
 	virtual void		SetColor(int theIdx, const Color& theColor) override;               // 0x425f60
+	virtual void		ButtonPress(int theId) override;                                    // 0x426b50
 	virtual void		ButtonDepress(int theId) override;                                  // 0x426b70
 	virtual void		SliderVal(int theId, double theVal) override;                       // 0x426a30
 	using Widget::Resize;
+	using Dialog2004::ButtonPress;
 };
 
 // 0x42b720: a tip: the first time a new kind of danger is in a maze, with a box to not see it again
@@ -156,8 +162,10 @@ public:
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x42bbd0
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x42bc00
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x42bb80
+	virtual void		ButtonPress(int theId) override;                                    // 0x412d80
 	virtual void		Draw(Graphics* g) override;                                         // 0x42bc50
 	using Widget::Resize;
+	using Dialog2004::ButtonPress;
 };
 
 // 0x413c30: the high scores, as a dialog of the options

@@ -1,0 +1,4 @@
+# The window closed at the title, as soon as the play link is up.
+at 10 focus regain
+at 1100 move 1 1
+quit

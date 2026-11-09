@@ -33,7 +33,7 @@
 //   REPLAY <file>: cannot play: <why>
 // At the end the last board stays on screen. -replayquit quits then (the CLI and the oracle); otherwise the app
 // shows REPLAY END (WinDMApp::OnWatchEnded), whose Back, like New Game or a mode button, Esc and a new watch, ends
-// the watch (WinDMApp::EndWatch): the mode is restored and NewGame + ConfirmLoadGame offer the saved game, as 4.11
+// the watch (WinDMApp::EndWatch): the mode is restored and NewGame + TryConfirmLoad offer the saved game, as 4.11
 // says (the buttons do the same while it plays). The watch holds while a modal dialog is open.
 
 #include "Replay.h"

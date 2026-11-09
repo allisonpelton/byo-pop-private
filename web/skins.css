@@ -139,16 +139,71 @@
 :root[data-skin="d95"] ::-webkit-scrollbar-thumb { background: #c0c0c0; border: 1px solid; border-color: #dfdfdf #000000 #000000 #dfdfdf;
   box-shadow: inset 1px 1px #ffffff, inset -1px -1px #808080; }
 :root[data-skin="d95"] ::-webkit-scrollbar-corner { background: #c0c0c0; }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button { display: block; width: 16px; height: 16px; background-repeat: no-repeat; }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button:vertical:decrement { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect width='15' height='15' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='13' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23c0c0c0'/%3E%3Crect x='4' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button:vertical:decrement:active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23c0c0c0'/%3E%3Crect x='5' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='11' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button:vertical:increment { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect width='15' height='15' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='13' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23c0c0c0'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button:vertical:increment:active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23c0c0c0'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='11' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button:horizontal:decrement { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect width='15' height='15' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='13' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23c0c0c0'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button:horizontal:decrement:active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23c0c0c0'/%3E%3Crect x='10' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='11' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button:horizontal:increment { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect width='15' height='15' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='13' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23c0c0c0'/%3E%3Crect x='6' y='4' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); }
-:root[data-skin="d95"] ::-webkit-scrollbar-button:single-button:horizontal:increment:active { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23c0c0c0'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='11' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%23000'/%3E%3C/svg%3E"); }
+/* the scroll bars' arrow buttons. Chrome matches a scroll bar button's pseudo-classes (:vertical, :decrement, :single-button)
+   only in a selector with no ancestor part, so the skin sizes the buttons under its own :root and gives their pictures as
+   custom properties, which rules without an ancestor part (harmless in the other skins, which define none) put on each
+   button; one button at each end, as Windows 95 had */
+:root[data-skin="d95"] ::-webkit-scrollbar-button { display: block; width: 16px; height: 16px; background-repeat: no-repeat; }
+:root[data-skin="d95"] {
+  --d95-sb-up: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect width='15' height='15' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='13' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23c0c0c0'/%3E%3Crect x='4' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d95-sb-up-pressed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23c0c0c0'/%3E%3Crect x='5' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='11' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d95-sb-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect width='15' height='15' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='13' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23c0c0c0'/%3E%3Crect x='4' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d95-sb-down-pressed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23c0c0c0'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='11' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d95-sb-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect width='15' height='15' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='13' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23c0c0c0'/%3E%3Crect x='9' y='4' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d95-sb-left-pressed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23c0c0c0'/%3E%3Crect x='10' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='11' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d95-sb-right: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect width='15' height='15' fill='%23fff'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23808080'/%3E%3Crect x='1' y='1' width='13' height='13' fill='%23dfdfdf'/%3E%3Crect x='2' y='2' width='12' height='12' fill='%23c0c0c0'/%3E%3Crect x='6' y='4' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='6' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+  --d95-sb-right-pressed: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%23808080'/%3E%3Crect x='1' y='1' width='14' height='14' fill='%23c0c0c0'/%3E%3Crect x='7' y='5' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='7' y='11' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='6' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='8' y='10' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='8' width='1' height='1' fill='%23000'/%3E%3Crect x='9' y='9' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='8' width='1' height='1' fill='%23000'/%3E%3C/svg%3E");
+}
+::-webkit-scrollbar-button:vertical:decrement { background-image: var(--d95-sb-up); }
+::-webkit-scrollbar-button:vertical:decrement:active { background-image: var(--d95-sb-up-pressed); }
+::-webkit-scrollbar-button:vertical:increment { background-image: var(--d95-sb-down); }
+::-webkit-scrollbar-button:vertical:increment:active { background-image: var(--d95-sb-down-pressed); }
+::-webkit-scrollbar-button:horizontal:decrement { background-image: var(--d95-sb-left); }
+::-webkit-scrollbar-button:horizontal:decrement:active { background-image: var(--d95-sb-left-pressed); }
+::-webkit-scrollbar-button:horizontal:increment { background-image: var(--d95-sb-right); }
+::-webkit-scrollbar-button:horizontal:increment:active { background-image: var(--d95-sb-right-pressed); }
+::-webkit-scrollbar-button:start:increment, ::-webkit-scrollbar-button:end:decrement { display: none; }
 @supports not selector(::-webkit-scrollbar) { :root[data-skin="d95"] * { scrollbar-color: #c0c0c0 #dfdfdf; } }
+/* a setting's "?" stays a raised square that is pressed in while its explanation shows, and the explanation is a tooltip of the
+   time: black text on pale yellow in a thin black edge */
+:root[data-skin="d95"] .bps-help:not(#\#) { border-radius: 0; background: var(--panel); color: var(--fg); }
+:root[data-skin="d95"] .bps-row .bps-pop:not(#\#) { background: #ffffe1; color: #000; border: 1px solid #000; border-radius: 0; padding: 2px 4px; margin: 2px 0 4px; }
+/* Players, Saves and Music give their buttons the page's own look (index.html, "#players button"): in Desktop 95 every one is
+   the skin's grey bevelled button with black text, the title bar's included; a destructive one is marked by its confirmation,
+   not by a colour */
+:root[data-skin="d95"] :is(#players, #saves, #music) button:not(.mu-tune):not(#\#) { background: var(--panel); color: #000000; border: 0; border-radius: 0; }
+:root[data-skin="d95"] :is(#players, #saves) button:not(.d95-mn):not(.d95-mx):not(.d95-x):not(#\#) { padding: 3px 10px; min-width: 75px; }
+:root[data-skin="d95"] .adding button.bin-yes:not(#\#) { color: #000000; }
+:root[data-skin="d95"] :is(#players, #saves, #music) button:not(#\#):disabled { opacity: 1; color: var(--sk-lo); text-shadow: 1px 1px 0 var(--sk-hi); }
+:root[data-skin="d95"] :is(#players, #saves, #music) :is(.d95-mn, .d95-mx, .d95-x):not(#\#) { padding: 0; }
+/* no empty band at the top of Players or Saves: the status line (a live region, kept in the page) takes no room while it says
+   nothing, and the first heading sits at the window's top */
+:root[data-skin="d95"] .pl-status:empty:not(#\#) { min-height: 0; margin: 0; }
+:root[data-skin="d95"] #players-body > h3:first-of-type { margin-top: 0; }
+/* the save import as Windows 95's wizard: the picture panel at the left (a sky over a floppy disk going into a drive), the
+   pages beside it, and an etched line over Back, Next and Cancel */
+:root[data-skin="d95"] .si-wiz { grid-template-columns: 112px minmax(0, 1fr); gap: 14px; }
+:root[data-skin="d95"] .si-art { display: block; position: relative; min-height: 220px;
+  background: linear-gradient(#008080, #004040); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); }
+:root[data-skin="d95"] .si-art-disk { position: absolute; left: 30px; top: 60px; width: 52px; height: 52px; background: #202020;
+  box-shadow: 2px 2px 0 #000000; }
+:root[data-skin="d95"] .si-art-disk::before { content: ""; position: absolute; left: 14px; top: 0; width: 24px; height: 16px; background: #c0c0c0;
+  box-shadow: inset 6px 0 0 #c0c0c0, inset 14px 0 0 #808080; }
+:root[data-skin="d95"] .si-art-disk::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 24px; background: #ffffff;
+  box-shadow: inset 0 4px 0 #ffffff, inset 0 5px 0 #000080, inset 0 10px 0 #ffffff, inset 0 11px 0 #000080; }
+:root[data-skin="d95"] .si-page-title { font-weight: bold; font-size: 13px; }
+:root[data-skin="d95"] .si-nav:not(#\#) { border-top: 1px solid var(--sk-lo); box-shadow: inset 0 1px var(--sk-hi); }
+:root[data-skin="d95"] .si-pre:not(#\#) { border: 0; border-radius: 0; background: var(--sk-well);
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .pl-confirm.si-confirm:not(#\#) { border: 0; border-radius: 0; padding: 0; background: none; margin: 0 0 8px; }
+/* Saves' storage as its status bar: a sunken panel held at the window's foot */
+:root[data-skin="d95"] .sv-where:not(#\#) { position: sticky; bottom: -8px; margin: 12px -8px -8px; padding: 2px 6px; font-size: 12px; color: var(--fg);
+  background: var(--panel); box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), 0 -2px 0 var(--panel); }
+/* the current player: its name in bold beside its checked button, as Windows 95 marked the one in use; the word stays for
+   screen readers */
+:root[data-skin="d95"] .pl-current { font-weight: normal; }
+:root[data-skin="d95"] .pl-current:has(input:checked) .pl-name, :root[data-skin="d95"] li:has(> .pl-badge) > label { font-weight: bold; }
+:root[data-skin="d95"] .pl-badge { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 :root[data-skin="d95"] button.primary { outline: 1px solid var(--sk-dk); outline-offset: -1px; background: var(--panel); color: var(--fg); }
 /* the listing: the desktop with its logo, and the page's content in one window */
 :root[data-skin="d95"] .site-header { color: var(--sk-desk-fg); }
@@ -168,6 +223,11 @@
 /* A game's window while the game makes it (web/shell.html, game-loading): not shown, its task bar button there, and the 1995
    hourglass (our own drawing) over the page */
 html.d95-desk.game-loading .stage-wrap.d95-win { visibility: hidden; }
+/* and before the game has made it at all (game-unmade): the setup wizard's card stands on the desktop by itself, so the window is
+   never painted at its first size and then again at the game's (the user, 2026-11-08: "Twist's window still briefly appear in the
+   small size before loading. It then disappeared before finally reappearing when the game had started") */
+html.d95-desk.game-unmade .stage-wrap.d95-win { visibility: hidden; }
+html.d95-desk.game-unmade:not(.game-loading) .stage-wrap.d95-win .overlay:not([hidden]) > .card { visibility: visible; }
 html.d95-desk.game-loading, html.d95-desk.game-loading * { cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%2226%22%20width%3D%2216%22%20height%3D%223%22%20fill%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M10%206h12v4l-4%205v2l4%205v4H10v-4l4-5v-2l-4-5z%22%20fill%3D%22%23fff%22%20stroke%3D%22%23000%22%2F%3E%3Cpath%20d%3D%22M12%208h8v1.5l-4%204.5-4-4.5z%22%20fill%3D%22%23000080%22%2F%3E%3Cpath%20d%3D%22M15.5%2018h1l3.5%204v2h-8v-2z%22%20fill%3D%22%23000080%22%2F%3E%3C%2Fsvg%3E") 16 16, wait !important; }
 /* B's games have no caps (the user, 2026-11-08: "The animated bottle caps clash with the Windows 95 skin. I'd prefer bare initials
    for missing games, and the plain favicon otherwise."): a game whose files are here shows its exe's own icon at its size, plainly;
@@ -275,6 +335,54 @@ html.d95-desk .d95-sb-track { flex: 1 1 auto; min-height: 0; position: relative;
 html.d95-desk .d95-sb-track.d95-down { background: repeating-conic-gradient(#000000 0 25%, #808080 0 50%) 0 0 / 2px 2px; }
 html.d95-desk .d95-sb-thumb { position: absolute; left: 0; right: 0; top: 0; background: #c0c0c0; box-shadow: inset -1px -1px #000000, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff; }
 html.d95-desk .d95-win.d95-closed, html.d95-desk .d95-win.d95-min { display: none !important; }
+/* a window's edges and corners, which resize it (web/skins.js, resizable): inside its frame, over its 2 px of padding */
+.d95-rz { display: none; }
+html.d95-desk .d95-win > .d95-rz { display: block; position: absolute; z-index: 5; touch-action: none; }
+html.d95-desk .d95-win > .d95-rz-n { top: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+html.d95-desk .d95-win > .d95-rz-s { bottom: 0; left: 8px; right: 8px; height: 4px; cursor: ns-resize; }
+html.d95-desk .d95-win > .d95-rz-e { right: 0; top: 8px; bottom: 8px; width: 4px; cursor: ew-resize; }
+html.d95-desk .d95-win > .d95-rz-w { left: 0; top: 8px; bottom: 8px; width: 4px; cursor: ew-resize; }
+html.d95-desk .d95-win > .d95-rz-nw { top: 0; left: 0; width: 8px; height: 4px; cursor: nwse-resize; }
+html.d95-desk .d95-win > .d95-rz-ne { top: 0; right: 0; width: 8px; height: 4px; cursor: nesw-resize; }
+html.d95-desk .d95-win > .d95-rz-sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+html.d95-desk .d95-win > .d95-rz-se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+/* a window given a size keeps it: its contents scroll in it (a sized window's own min and max come from web/skins.js) */
+html.d95-desk .d95-win[style*="height"]:not(.stage-wrap) { min-height: 0; }
+/* Music's first size, about a 1995 media player's with its list scrolling inside (the user, 2026-11-08: "Music window is too
+   tall. I can barely see it all in 4k"); never taller than the room above the task bar (web/skins.js, place) */
+html.d95-desk .d95-win[data-d95-id="tab-music"] { height: 420px; }
+/* "Windows 95 games only" (web/skins.js, win95Sync): the games whose original did not run on Windows 95, or of which nothing is
+   known, leave All games and the favourites' icons; the count of them says so */
+html.d95-win95only .games > li[data-win95]:not([data-win95="yes"]), html.d95-win95only .d95-fav[data-win95]:not([data-win95="yes"]) { display: none; }
+.win95-count { margin: 0; font-size: 12px; color: var(--muted, #444); flex-basis: 100%; }
+.win95-count[hidden] { display: none; }
+/* the music player in 1995's manner: a black display with green figures in a sunken edge (the spectrum's peaks yellow, the tracker's
+   row in the selection's navy), raised square buttons whose toggles stay pressed in, and the playlist a white list box */
+:root[data-skin="d95"] .mu-lcd { background: #000; color: #00ff00; border: 0; border-radius: 0; padding: 5px 7px 6px; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .mu-spectrum { --mu-bar: #00c000; --mu-peak: #ffff00; }
+/* the tracker's scroll bar is Windows 95's, 16 px high (its arrows the skin's own, below), and the display grows by it */
+/* the window gives the player its width: widening it shows more of the tracker's channels */
+:root[data-skin="d95"] .mu-list { max-width: none; }
+:root[data-skin="d95"] .mu-hbar { height: 16px; margin-top: 0; }
+:root[data-skin="d95"] .mu-hb-left, :root[data-skin="d95"] .mu-hb-right { width: 16px; border: 0; opacity: 1; background-repeat: no-repeat; }
+:root[data-skin="d95"] .mu-hb-left::before, :root[data-skin="d95"] .mu-hb-right::before { content: none; }
+:root[data-skin="d95"] .mu-hb-track { margin: 0; border: 0; opacity: 1; background: repeating-conic-gradient(#c0c0c0 0 25%, #ffffff 0 50%) 0 0 / 2px 2px; }
+:root[data-skin="d95"] .mu-hb-thumb { top: 0; bottom: 0; opacity: 1; background: #c0c0c0;
+  box-shadow: inset -1px -1px #000000, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff; }
+:root[data-skin="d95"] .mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: 88px; }
+:root[data-skin="d95"] .mu-hb-left { background-image: var(--d95-sb-left); }
+:root[data-skin="d95"] .mu-hb-left.mu-down { background-image: var(--d95-sb-left-pressed); }
+:root[data-skin="d95"] .mu-hb-right { background-image: var(--d95-sb-right); }
+:root[data-skin="d95"] .mu-hb-right.mu-down { background-image: var(--d95-sb-right-pressed); }
+:root[data-skin="d95"] .mu-row-now { background: #000080; color: #fff; }
+:root[data-skin="d95"] #music .mu-btn { width: 25px; height: 22px; border: 0; border-radius: 0; background: var(--panel); color: #000; }
+:root[data-skin="d95"] #music .mu-btn[aria-pressed="true"] { color: inherit; background: var(--sk-mid);
+  box-shadow: inset 1px 1px var(--sk-dk), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-lo), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .mu-list { background: #fff; color: #000; padding: 3px 2px; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
+:root[data-skin="d95"] .mu-game { color: #000; margin-top: 4px; }
+:root[data-skin="d95"] #music .mu-tune:hover { background: none; }
+:root[data-skin="d95"] #music .mu-tune[aria-current] { background: #000080; color: #fff; }
+:root[data-skin="d95"] #music .mu-tune:focus-visible { outline: 1px dotted #000; outline-offset: -1px; }
 html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
   padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
 html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -284,6 +392,16 @@ html.d95-dragging, html.d95-dragging * { -webkit-user-select: none !important; u
 html.d95-desk .d95-mn { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; }
 html.d95-desk .d95-mn::after { content: ""; position: absolute; left: 4px; top: 8px; width: 6px; height: 2px; background: var(--sk-dk); }
 html.d95-desk .d95-mn:active::after { transform: translate(1px, 1px); }
+/* What's This? (web/skins.js, o.whatsThis): the title bar's "?" in a Settings section's window, beside its other buttons; while
+   it is pressed the pointer is Windows 95's arrow with a question mark, and the next click shows that control's tip */
+html.d95-desk .d95-hlp { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; color: #000000; }
+html.d95-desk .d95-hlp::after { content: "?"; position: absolute; inset: 0; font: bold 11px/14px Arial, sans-serif; text-align: center; }
+html.d95-desk .d95-hlp:active::after, html.d95-desk .d95-hlp[aria-pressed=true]::after { transform: translate(1px, 1px); }
+html.d95-desk .d95-hlp + .d95-mn { margin-left: 2px; }
+html.d95-whats, html.d95-whats * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' shape-rendering='crispEdges'%3E%3Cpath d='M0.5 0.5v16l4-4 3 7 2-1-3-7h5z' fill='%23fff' stroke='%23000'/%3E%3Ctext x='12' y='26' font-family='Arial' font-weight='bold' font-size='14' fill='%23000' stroke='%23fff' stroke-width='3' paint-order='stroke'%3E%3F%3C/text%3E%3C/svg%3E") 0 0, help !important; }
+/* one "?" a window, in its title bar, so none on the rows; the explanation stays each control's description, and F1 on a
+   focused control shows its tip */
+:root[data-skin="d95"] .bps-help:not(#\#) { display: none; }
 /* the close button: an X drawn with two strokes */
 html.d95-desk .d95-x { width: 16px; height: 14px; padding: 0; flex: none; position: relative; color: var(--fg); }
 html.d95-desk .d95-x::before, html.d95-desk .d95-x::after { content: ""; position: absolute; left: 3px; right: 4px; top: 5px; height: 2px;
@@ -504,7 +622,7 @@ html.d95-desk .d95-icon-panel-mods > i::after { background: var(--accent); clip-
 /* B: a window with a title bar, the wizard's picture at the left, a chunked progress bar */
 :root[data-skin="d95"] .card { background: var(--panel); border: 0; border-radius: 0; padding: 18px;
   box-shadow: inset -1px -1px var(--sk-dk), inset 1px 1px var(--sk-hi), inset -2px -2px var(--sk-lo), inset 2px 2px var(--sk-mid); }
-:root[data-skin="d95"] .wiz-card { padding: 3px 14px 14px 3px; }
+:root[data-skin="d95"] .wiz-card { padding: 3px 14px 14px 3px; min-width: min(340px, 100%); min-height: 190px; box-sizing: border-box; }
 :root[data-skin="d95"] .wiz-card > .wiz-head { background: var(--sk-title); color: var(--sk-title-fg); margin-right: -11px; padding: 3px 6px; }
 :root[data-skin="d95"] .wiz-steps { display: none; }
 :root[data-skin="d95"] .wiz-card > .wiz-art { background: linear-gradient(var(--bg), color-mix(in srgb, var(--bg) 60%, #000)); left: 11px; top: 11px; bottom: 11px; width: 96px;
@@ -729,3 +847,119 @@ html.d95-desk .d95-icon:focus-visible > span:last-child { background: var(--acce
 html.d95-desk .d95-task:focus-visible > span { outline: 1px dotted var(--sk-dk); outline-offset: 1px; }
 html.d95-desk .d95-pop:focus-visible > span { outline: 1px dotted var(--sk-dk); outline-offset: 1px; }
 html.d95-desk .d95-keys { margin-top: 8px; }
+
+/* ======================= Desktop 95 in one page (web/deskapps.js; docs/WEB_PLAYER.md, "Desktop 95 in one page") ======================= */
+/* a page leaving for the desktop (web/skins.js, onePage): nothing of it is drawn meanwhile */
+html.d95-leaving body { visibility: hidden; }
+/* a window holding another page: its menu bar (a game's), and the page or the text filling the rest */
+/* off the desktop (another skin chosen while windows were open): out of sight while their pages close, still drawing, so a game
+   finishes its own way out */
+html:not(.d95-desk) .d95-app { position: fixed; left: -10000px; top: 0; width: 640px; height: 480px; visibility: hidden; }
+html.d95-desk .d95-app { display: flex; flex-direction: column; padding: 3px; overflow: hidden; }
+html.d95-desk .d95-app-game { width: 680px; height: 590px; }
+html.d95-desk .d95-app-page { width: 640px; height: 480px; }
+html.d95-desk .d95-app-txt { width: 600px; height: 440px; }
+html.d95-desk .d95-app-client { flex: 1 1 auto; min-height: 0; display: flex; margin-top: 2px;
+  box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); padding: 2px; }
+html.d95-desk .d95-app-frame { flex: 1 1 auto; width: 100%; height: 100%; border: 0; display: block; background: #808080; }
+html.d95-desk .d95-app-text { flex: 1 1 auto; margin: 0; padding: 4px 6px; overflow: auto; background: #ffffff; color: #000000;
+  font: 13px/1.35 "Courier New", Courier, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+html.d95-desk .d95-app-text:focus-visible { outline: 1px dotted #000000; outline-offset: -3px; }
+/* a game's menu bar: words on the window's face, the open one in navy */
+html.d95-desk .d95-menubar { display: flex; flex: none; padding: 1px 0; }
+html.d95-desk .d95-menubar-item:not(#\#) { background: none; box-shadow: none; border: 0; padding: 1px 7px; min-height: 0; color: #000000; }
+html.d95-desk .d95-menubar-item:not(#\#)[aria-expanded=true], html.d95-desk .d95-menubar-item:not(#\#):hover { background: #000080; color: #ffffff; }
+html.d95-desk .d95-menubar-item:not(#\#):focus-visible { outline: 1px dotted #000000; outline-offset: -2px; }
+/* a message box: a small window in the middle, its icon, its text and OK */
+.d95-msgbox { padding: 3px; border: 0; background: var(--panel, #c0c0c0); color: #000000; min-width: 260px; max-width: min(420px, calc(100vw - 32px));
+  box-shadow: inset -1px -1px #000000, inset 1px 1px #dfdfdf, inset -2px -2px #808080, inset 2px 2px #ffffff; font: 13px "MS Sans Serif", Tahoma, sans-serif; }
+.d95-msgbox::backdrop { background: transparent; }
+.d95-msgbox-tb { display: flex; align-items: center; padding: 2px 4px; background: linear-gradient(90deg, #000080, #1084d0); color: #ffffff; font-weight: bold; }
+.d95-msgbox-body { display: flex; align-items: center; gap: 14px; padding: 16px 14px 8px; }
+.d95-msgbox-body p { margin: 0; }
+.d95-msgbox-icon { flex: none; width: 32px; height: 32px; position: relative; }
+.d95-msgbox-icon::before { content: ""; position: absolute; inset: 1px 0 0; background: #ffff00; clip-path: polygon(50% 0, 100% 96%, 0 96%); }
+.d95-msgbox-icon::after { content: "!"; position: absolute; inset: 9px 0 0; text-align: center; font: bold 18px/1 Arial, sans-serif; color: #000000; }
+.d95-msgbox-row { display: flex; justify-content: center; padding: 6px 0 10px; }
+.d95-msgbox-row button { min-width: 75px; padding: 3px 10px; background: #c0c0c0; color: #000000; border: 0; border-radius: 0;
+  box-shadow: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf; outline: 1px solid #000000; }
+.d95-msgbox-row button:focus-visible { outline: 1px solid #000000; box-shadow: inset -1px -1px #000000, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf, inset 0 0 0 4px #c0c0c0, inset 0 0 0 5px #000000; }
+/* a page inside one of those windows (?embed=1): no desktop of its own; a game's window fills it, the frame and title being the
+   desktop's; a document is a plain page on the window's face, without the site's header or the way back */
+html.d95-embed[data-skin="d95"] body { background: #808080; }
+html.d95-embed[data-skin="d95"] body:has(> main > h1) { background: var(--panel); }
+html.d95-embed.d95-desk .stage-wrap.d95-win { left: 0 !important; top: 0 !important; right: 0; bottom: 0; width: auto !important; height: auto !important;
+  max-width: none !important; max-height: none !important; }
+html.d95-embed.d95-desk .stage-wrap.d95-win > .d95-tb, html.d95-embed.d95-desk .stage-wrap .d95-grip { display: none; }
+html.d95-embed .byopop-footer, html.d95-embed body > header, html.d95-embed main > .back { display: none !important; }
+/* a narrow screen (under 760 px): one window at a time fills the screen above the task bar, maximized, the task bar switching */
+html.d95-narrow.d95-desk .d95-win:not(.d95-closed):not(.d95-min) { left: 0 !important; top: 0 !important; width: 100vw !important; height: calc(100dvh - 28px) !important;
+  max-width: none !important; max-height: none !important; }
+html.d95-narrow.d95-desk .d95-win .d95-rz { display: none; }
+/* a document window's icon: a small white page with a folded corner and lines */
+html.d95-desk .d95-sys-doc { display: block; width: 12px; height: 14px; margin: 1px 2px; background: #ffffff; position: relative;
+  box-shadow: inset 0 0 0 1px #000000; clip-path: polygon(0 0, 70% 0, 100% 28%, 100% 100%, 0 100%); }
+html.d95-desk .d95-sys-doc::after { content: ""; position: absolute; left: 3px; right: 3px; top: 6px; height: 5px;
+  background: repeating-linear-gradient(#000080 0 1px, transparent 1px 2px); }
+
+/* ---------- The Library (web/library.js): Desktop 95's grid of the games, in a 2004 game client's look of our own ----------
+   Olive and khaki, flat panels edged by 1-pixel bevels, small Tahoma, an amber-olive selection, square buttons and its own
+   title bar. It exists only on the listing's desktop. */
+#library { display: none; }
+html.d95-desk #library.lib-win:not(.d95-closed):not(.d95-min) { display: flex; }
+html.d95-desk .lib-win {
+  --lib-bg: #4c5844; --lib-panel: #3e4637; --lib-fg: #d8ded3; --lib-dim: #a0a890; --lib-hi: #8c9a7e; --lib-lo: #1f251b;
+  --lib-sel: #958831; --lib-sel-fg: #ffffff; --lib-head: #5a6a50; --lib-title: #6a7a52;
+  flex-direction: column; width: 640px; height: 430px; min-width: 300px; overflow: hidden;
+  color: var(--lib-fg); font: 11px/1.35 Tahoma, Verdana, "Segoe UI", sans-serif; }
+html.d95-desk .lib-win.d95-win:not(#\#) { background: var(--lib-bg); padding: 2px; border: 1px solid; border-image: none;
+  border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi); box-shadow: none; }
+html.d95-desk .lib-win.d95-win:not(#\#) > .d95-tb { background: var(--lib-title); color: #f4f2dc; height: 20px; font-weight: bold;
+  border-bottom: 1px solid var(--lib-lo); margin: 0 0 4px; }
+html.d95-desk .lib-win.d95-active:not(#\#) > .d95-tb { background: linear-gradient(var(--lib-title), #586843); }
+html.d95-desk .lib-win:not(.d95-active):not(#\#) > .d95-tb { color: var(--lib-dim); background: var(--lib-head); }
+/* its buttons: square, flat, a 1-pixel bevel */
+html.d95-desk .lib-win .d95-tb button:not(#\#), html.d95-desk .lib-win .lib-btn:not(#\#), html.d95-desk .lib-win .lib-hb:not(#\#) {
+  background: var(--lib-bg); color: var(--lib-fg); border: 1px solid; border-color: var(--lib-hi) var(--lib-lo) var(--lib-lo) var(--lib-hi);
+  border-radius: 0; box-shadow: none; font: inherit; }
+html.d95-desk .lib-win .d95-tb .d95-x:not(#\#) { color: var(--lib-fg); }
+html.d95-desk .lib-win .d95-tb .d95-mn:not(#\#)::after { background: var(--lib-fg); }
+html.d95-desk .lib-win .lib-btn:not(#\#):active:not(:disabled), html.d95-desk .lib-win .lib-hb:not(#\#):active { border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); }
+html.d95-desk .lib-win .lib-btn:disabled { color: var(--lib-dim); }
+html.d95-desk .lib-win button:focus-visible, html.d95-desk .lib-win input:focus-visible, html.d95-desk .lib-win td:focus-visible { outline: 1px dotted var(--lib-fg); outline-offset: -2px; }
+.lib-bar { display: flex; align-items: center; gap: 6px; padding: 2px 4px 6px; flex: none; }
+.lib-btn { min-width: 64px; height: 21px; padding: 0 10px; font-weight: bold; }
+.lib-flabel { margin-left: auto; color: var(--lib-dim); }
+.lib-filter { width: 160px; height: 19px; box-sizing: border-box; padding: 1px 4px; font: inherit; color: var(--lib-fg); background: var(--lib-panel);
+  border: 1px solid; border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); border-radius: 0; }
+.lib-area { flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--lib-panel); margin: 0 4px;
+  border: 1px solid; border-color: var(--lib-lo) var(--lib-hi) var(--lib-hi) var(--lib-lo); scrollbar-color: var(--lib-hi) var(--lib-panel); }
+.lib-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.lib-grid th { position: sticky; top: 0; z-index: 1; padding: 0; text-align: left; font-weight: normal; background: var(--lib-bg); }
+.lib-hb { display: block; width: 100%; height: 18px; padding: 0 6px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.lib-h[aria-sort=ascending] .lib-hb::after { content: " \25B4"; color: var(--lib-sel); }
+.lib-h[aria-sort=descending] .lib-hb::after { content: " \25BE"; color: var(--lib-sel); }
+.lib-c-name { width: auto; }
+.lib-c-status { width: 120px; }
+.lib-c-time, .lib-c-last { width: 84px; }
+.lib-c-year { width: 46px; }
+.lib-grid td { padding: 1px 6px; height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+.lib-name { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.lib-name > span { overflow: hidden; text-overflow: ellipsis; }
+.lib-row[aria-selected=true] > td { background: var(--lib-sel); color: var(--lib-sel-fg); }
+.lib-row.lib-s-soon > td:not(:first-child), .lib-row.lib-s-unsold > td:not(:first-child) { color: var(--lib-dim); }
+.lib-row[aria-selected=true].lib-s-soon > td, .lib-row[aria-selected=true].lib-s-unsold > td { color: var(--lib-sel-fg); }
+.lib-icon { flex: none; width: 16px; height: 16px; display: grid; place-items: center; overflow: hidden; }
+.lib-icon img { width: 16px; height: 16px; image-rendering: pixelated; }
+.lib-icon-cap { background: var(--tile, #808080); color: #ffffff; font: bold 7px/1 Verdana, sans-serif; letter-spacing: -0.5px; }
+.lib-status { flex: none; display: flex; padding: 3px 6px 1px; color: var(--lib-dim); }
+/* Properties: a property sheet of values */
+.lib-props-list { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 14px; }
+.lib-props-list dt { color: #404040; }
+.lib-props-list dd { margin: 0; }
+.lib-props-row { display: flex; justify-content: flex-end; padding: 0 12px 10px; }
+.lib-props-row button { min-width: 72px; }
+/* narrow: the window maximized, as every window there; Last played and Year give way */
+html.d95-narrow .lib-c-last, html.d95-narrow .lib-c-year { display: none; }
+/* a link to one of our pages opens a window on Desktop 95's one page, not a tab (web/deskapps.js): its "opens in a new tab" goes */
+html.d95-desk .newtab { display: none; }

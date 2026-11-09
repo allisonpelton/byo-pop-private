@@ -30,21 +30,21 @@ std::string JsonString(const std::string& theText)
 	std::string anOut = "\"";
 	for (size_t i = 0; i < theText.size(); i++)
 	{
-		unsigned char c = (unsigned char) theText[i];
-		if (c == '"')
+		unsigned char aChar = (unsigned char) theText[i];
+		if (aChar == '"')
 			anOut += "\\\"";
-		else if (c == '\\')
+		else if (aChar == '\\')
 			anOut += "\\\\";
-		else if (c == '\n')
+		else if (aChar == '\n')
 			anOut += "\\n";
-		else if (c < 0x20)
+		else if (aChar < 0x20)
 		{
 			char anEscape[8];
-			snprintf(anEscape, sizeof(anEscape), "\\u%04x", c);
+			snprintf(anEscape, sizeof(anEscape), "\\u%04x", aChar);
 			anOut += anEscape;
 		}
 		else
-			anOut += (char) c;
+			anOut += (char) aChar;
 	}
 	return anOut + "\"";
 }
@@ -256,13 +256,13 @@ std::string DiffGame(uint32_t theSeed, bool isTimed, int theTicks, ModeTotals* t
 {
 	Side aPlain(theSeed, isTimed, false);
 	Side aVariant(theSeed, isTimed, true);
-	Board* a = aPlain.mBoard;
-	Board* b = aVariant.mBoard;
+	Board* aPlainBoard = aPlain.mBoard;
+	Board* aVariantBoard = aVariant.mBoard;
 	std::string aWhy;
 	int aTick = 0;
 	int aLastState = -1;
-	if (StateCodec::Encode(a, StateCodec::PROFILE_LOGIC) != StateCodec::Encode(b, StateCodec::PROFILE_LOGIC))
-		aWhy = "after the constructor: LOGIC differs at " + FirstDifference(a, b);
+	if (StateCodec::Encode(aPlainBoard, StateCodec::PROFILE_LOGIC) != StateCodec::Encode(aVariantBoard, StateCodec::PROFILE_LOGIC))
+		aWhy = "after the constructor: LOGIC differs at " + FirstDifference(aPlainBoard, aVariantBoard);
 	for (; aWhy.empty() && (aTick < theTicks); aTick++)
 	{
 		if (aPlain.Ended() || aVariant.Ended())
@@ -271,26 +271,26 @@ std::string DiffGame(uint32_t theSeed, bool isTimed, int theTicks, ModeTotals* t
 				aWhy = "one board's game ended, the other's did not";
 			break;
 		}
-		aPlain.mBot->BeforeUpdate(a);
-		aVariant.mBot->BeforeUpdate(b);
-		a->Update();
-		b->Update();
-		std::string anA = StateCodec::Encode(a, StateCodec::PROFILE_LOGIC);
-		std::string aB = StateCodec::Encode(b, StateCodec::PROFILE_LOGIC);
+		aPlain.mBot->BeforeUpdate(aPlainBoard);
+		aVariant.mBot->BeforeUpdate(aVariantBoard);
+		aPlainBoard->Update();
+		aVariantBoard->Update();
+		std::string anA = StateCodec::Encode(aPlainBoard, StateCodec::PROFILE_LOGIC);
+		std::string aB = StateCodec::Encode(aVariantBoard, StateCodec::PROFILE_LOGIC);
 		if (anA != aB)
 		{
-			aWhy = "LOGIC differs at " + FirstDifference(a, b) + ": hashes " + Hex64(StateCodec::Fnv1a(anA)) + " and " + Hex64(StateCodec::Fnv1a(aB));
+			aWhy = "LOGIC differs at " + FirstDifference(aPlainBoard, aVariantBoard) + ": hashes " + Hex64(StateCodec::Fnv1a(anA)) + " and " + Hex64(StateCodec::Fnv1a(aB));
 			break;
 		}
-		if ((a->mState == STATE_PLAYING) && (aLastState != STATE_PLAYING))
+		if ((aPlainBoard->mState == STATE_PLAYING) && (aLastState != STATE_PLAYING))
 		{
 			theTotals->mSettles++;
-			if (MoveList(a) != MoveList(b))
-				aWhy = "the move lists differ: " + MoveList(a) + "/ " + MoveList(b);
-			else if (SaveBytes(a) != SaveBytes(b))
+			if (MoveList(aPlainBoard) != MoveList(aVariantBoard))
+				aWhy = "the move lists differ: " + MoveList(aPlainBoard) + "/ " + MoveList(aVariantBoard);
+			else if (SaveBytes(aPlainBoard) != SaveBytes(aVariantBoard))
 				aWhy = "the saves differ";
 		}
-		aLastState = a->mState;
+		aLastState = aPlainBoard->mState;
 	}
 
 	theTotals->mGames++;
@@ -304,13 +304,13 @@ std::string DiffGame(uint32_t theSeed, bool isTimed, int theTicks, ModeTotals* t
 	theTotals->mMoves += aPlain.mBot->mMoves;
 	theTotals->mHints += aPlain.mBot->mHints;
 	theTotals->mPauses += aPlain.mBot->mPauses;
-	if (a->mDisplayLevel > theTotals->mMaxLevel)
-		theTotals->mMaxLevel = a->mDisplayLevel;
-	theTotals->mScores += a->mScore;
+	if (aPlainBoard->mDisplayLevel > theTotals->mMaxLevel)
+		theTotals->mMaxLevel = aPlainBoard->mDisplayLevel;
+	theTotals->mScores += aPlainBoard->mScore;
 	*theLine = std::string(isTimed ? "timed" : "normal") + " seed " + std::to_string(theSeed) + ": " + std::to_string(aTick) + " updates, board tick " +
-		std::to_string(a->mUpdateCnt) + ", state " + std::to_string(a->mState) + ", level " + std::to_string(a->mDisplayLevel) + ", score " +
-		std::to_string(a->mScore) + ", " + std::to_string(aPlain.mBot->mMoves) + " moves, LOGIC " +
-		Hex64(StateCodec::LogicHash(a)) + (aWhy.empty() ? ": equal" : ": DIFFERS at update " + std::to_string(aTick) + ": " + aWhy);
+		std::to_string(aPlainBoard->mUpdateCnt) + ", state " + std::to_string(aPlainBoard->mState) + ", level " + std::to_string(aPlainBoard->mDisplayLevel) + ", score " +
+		std::to_string(aPlainBoard->mScore) + ", " + std::to_string(aPlain.mBot->mMoves) + " moves, LOGIC " +
+		Hex64(StateCodec::LogicHash(aPlainBoard)) + (aWhy.empty() ? ": equal" : ": DIFFERS at update " + std::to_string(aTick) + ": " + aWhy);
 	return aWhy;
 }
 
@@ -465,27 +465,27 @@ std::string MirrorDifference(Board* theDown, Board* theUp, bool withPositions)
 	int aMirror = MirrorLine(theDown);
 	if (theDown->mDiagonalLeftFirst != theUp->mDiagonalLeftFirst)
 		return "the next diagonal slide's side";
-	for (int r = 0; r < aRows; r++)
+	for (int aRow = 0; aRow < aRows; aRow++)
 	{
 		for (int c = 0; c < theDown->mCols; c++)
 		{
-			Piece* a = theDown->mBoard[r][c];
-			Piece* b = theUp->mBoard[aRows - 1 - r][c];
-			std::string aCell = "cell (" + std::to_string(c) + "," + std::to_string(r) + ")";
-			int aDirt = theDown->mLayout.IsDirt(c, r) ? theDown->mLayout.mDirt[r][c] : 0;
-			int aMirrorDirt = theUp->mLayout.IsDirt(c, aRows - 1 - r) ? theUp->mLayout.mDirt[aRows - 1 - r][c] : 0;
+			Piece* aDownPiece = theDown->mBoard[aRow][c];
+			Piece* anUpPiece = theUp->mBoard[aRows - 1 - aRow][c];
+			std::string aCell = "cell (" + std::to_string(c) + "," + std::to_string(aRow) + ")";
+			int aDirt = theDown->mLayout.IsDirt(c, aRow) ? theDown->mLayout.mDirt[aRow][c] : 0;
+			int aMirrorDirt = theUp->mLayout.IsDirt(c, aRows - 1 - aRow) ? theUp->mLayout.mDirt[aRows - 1 - aRow][c] : 0;
 			if (aDirt != aMirrorDirt)
 				return aCell + ": dirt layers " + std::to_string(aDirt) + " and " + std::to_string(aMirrorDirt);
-			if ((a == NULL) != (b == NULL))
+			if ((aDownPiece == NULL) != (anUpPiece == NULL))
 				return aCell + ": a gem on one side only";
-			if (a == NULL)
+			if (aDownPiece == NULL)
 				continue;
-			if (a->mColor != b->mColor)
-				return aCell + ": colours " + std::to_string(a->mColor) + " and " + std::to_string(b->mColor);
-			if (b->mRow != aRows - 1 - r)
-				return aCell + ": the up gem's row is " + std::to_string(b->mRow);
-			if (withPositions && (aMirror - a->mY != b->mY))
-				return aCell + ": y " + std::to_string(a->mY) + " and " + std::to_string(b->mY);
+			if (aDownPiece->mColor != anUpPiece->mColor)
+				return aCell + ": colours " + std::to_string(aDownPiece->mColor) + " and " + std::to_string(anUpPiece->mColor);
+			if (anUpPiece->mRow != aRows - 1 - aRow)
+				return aCell + ": the up gem's row is " + std::to_string(anUpPiece->mRow);
+			if (withPositions && (aMirror - aDownPiece->mY != anUpPiece->mY))
+				return aCell + ": y " + std::to_string(aDownPiece->mY) + " and " + std::to_string(anUpPiece->mY);
 		}
 	}
 	return "";
@@ -497,17 +497,17 @@ std::string MirrorFillRefill(uint32_t theSeed, MirrorShape theShape)
 {
 	MirrorSide aDown(theSeed, false, theShape);
 	MirrorSide anUp(theSeed, true, theShape);
-	Board* a = aDown.mBoard;
-	Board* b = anUp.mBoard;
+	Board* aDownBoard = aDown.mBoard;
+	Board* anUpBoard = anUp.mBoard;
 	std::string anError;
-	if (!RestoreMirrored(a, b, &anError))
+	if (!RestoreMirrored(aDownBoard, anUpBoard, &anError))
 		return "restore: " + anError;
-	a->FillBoardVariant();
-	b->FillBoardVariant();
-	std::string aWhy = MirrorDifference(a, b, true);
+	aDownBoard->NewBoardVariant();
+	anUpBoard->NewBoardVariant();
+	std::string aWhy = MirrorDifference(aDownBoard, anUpBoard, true);
 	if (!aWhy.empty())
 		return "the fill: " + aWhy;
-	if (!SameRngState(a, b))
+	if (!SameRngState(aDownBoard, anUpBoard))
 		return "the fill: the draws differ";
 	// The same cells emptied on both sides (mirrored), then one refill
 	std::mt19937 aRand(theSeed);
@@ -515,27 +515,27 @@ std::string MirrorFillRefill(uint32_t theSeed, MirrorShape theShape)
 	{
 		int c = (int) (aRand() % 8);
 		int r = (int) (aRand() % 8);
-		if ((a->mBoard[r][c] == NULL) || (a->mBoard[r][c] == a->mSelectedPiece))
+		if ((aDownBoard->mBoard[r][c] == NULL) || (aDownBoard->mBoard[r][c] == aDownBoard->mSelectedPiece))
 			continue;
-		delete a->mBoard[r][c];
-		a->mBoard[r][c] = NULL;
-		delete b->mBoard[7 - r][c];
-		b->mBoard[7 - r][c] = NULL;
+		delete aDownBoard->mBoard[r][c];
+		aDownBoard->mBoard[r][c] = NULL;
+		delete anUpBoard->mBoard[7 - r][c];
+		anUpBoard->mBoard[7 - r][c] = NULL;
 	}
 	if (theShape == MIRROR_DIRT)
 	{
-		a->RefillDiagonal();
-		b->RefillDiagonal();
+		aDownBoard->RefillDiagonal();
+		anUpBoard->RefillDiagonal();
 	}
 	else
 	{
-		a->RefillMasked();
-		b->RefillMasked();
+		aDownBoard->RefillMasked();
+		anUpBoard->RefillMasked();
 	}
-	aWhy = MirrorDifference(a, b, true);
+	aWhy = MirrorDifference(aDownBoard, anUpBoard, true);
 	if (!aWhy.empty())
 		return "the refill: " + aWhy;
-	if (!SameRngState(a, b))
+	if (!SameRngState(aDownBoard, anUpBoard))
 		return "the refill: the draws differ";
 	return "";
 }
@@ -571,48 +571,48 @@ std::string MirrorGame(uint32_t theSeed, MirrorShape theShape, int theMoves, Mir
 {
 	MirrorSide aDown(theSeed, false, theShape);
 	MirrorSide anUp(theSeed, true, theShape);
-	Board* a = aDown.mBoard;
-	Board* b = anUp.mBoard;
+	Board* aDownBoard = aDown.mBoard;
+	Board* anUpBoard = anUp.mBoard;
 	std::mt19937 aRand(theSeed);
 	std::string aWhy;
 	std::string anError;
 	int aMoves = 0;
 	int aWarnings = 0;
 	const char* anEnd = "the move cap";
-	if (!RestoreMirrored(a, b, &anError))
+	if (!RestoreMirrored(aDownBoard, anUpBoard, &anError))
 		aWhy = "restore: " + anError;
 	while (aWhy.empty())
 	{
-		int aTicksA = RunToSettle(a, 20000);
-		int aTicksB = RunToSettle(b, 20000);
+		int aTicksA = RunToSettle(aDownBoard, 20000);
+		int aTicksB = RunToSettle(anUpBoard, 20000);
 		if ((aTicksA < 0) || (aTicksB < 0))
 		{
 			aWhy = "no settle in 20000 ticks";
 			break;
 		}
-		if (a->mState != b->mState)
+		if (aDownBoard->mState != anUpBoard->mState)
 		{
-			aWhy = "states " + std::to_string(a->mState) + " and " + std::to_string(b->mState);
+			aWhy = "states " + std::to_string(aDownBoard->mState) + " and " + std::to_string(anUpBoard->mState);
 			break;
 		}
 		if (aTicksA != aTicksB)
 			aWarnings++;
-		if (a->mState != STATE_PLAYING)
+		if (aDownBoard->mState != STATE_PLAYING)
 		{
-			anEnd = (a->mState == STATE_BLACK_HOLE) ? "a level-up" : "a game over";
-			if (a->mState == STATE_BLACK_HOLE)
+			anEnd = (aDownBoard->mState == STATE_BLACK_HOLE) ? "a level-up" : "a game over";
+			if (aDownBoard->mState == STATE_BLACK_HOLE)
 				theTotals->mLevelUps++;
 			else
 				theTotals->mGameOvers++;
 			break;
 		}
 		theTotals->mSettles++;
-		aWhy = MirrorDifference(a, b, true);
-		if (aWhy.empty() && ((a->mScore != b->mScore) || (a->mGemsCleared != b->mGemsCleared) || (a->mLongestCascade != b->mLongestCascade) ||
-			(a->mBestMoveScore != b->mBestMoveScore) || (a->mMoveCount != b->mMoveCount)))
-			aWhy = "score or stats: score " + std::to_string(a->mScore) + "/" + std::to_string(b->mScore) + ", gems " + std::to_string(a->mGemsCleared) +
-				"/" + std::to_string(b->mGemsCleared);
-		if (aWhy.empty() && !SameRngState(a, b))
+		aWhy = MirrorDifference(aDownBoard, anUpBoard, true);
+		if (aWhy.empty() && ((aDownBoard->mScore != anUpBoard->mScore) || (aDownBoard->mGemsCleared != anUpBoard->mGemsCleared) || (aDownBoard->mLongestCascade != anUpBoard->mLongestCascade) ||
+			(aDownBoard->mBestMoveScore != anUpBoard->mBestMoveScore) || (aDownBoard->mMoveCount != anUpBoard->mMoveCount)))
+			aWhy = "score or stats: score " + std::to_string(aDownBoard->mScore) + "/" + std::to_string(anUpBoard->mScore) + ", gems " + std::to_string(aDownBoard->mGemsCleared) +
+				"/" + std::to_string(anUpBoard->mGemsCleared);
+		if (aWhy.empty() && !SameRngState(aDownBoard, anUpBoard))
 			aWhy = "the draws differ";
 		if (!aWhy.empty() || (aMoves >= theMoves))
 		{
@@ -623,7 +623,7 @@ std::string MirrorGame(uint32_t theSeed, MirrorShape theShape, int theMoves, Mir
 		// A move from the down board's list, mirrored for the up board
 		std::vector<std::vector<int> > aList;
 		int aMove[4];
-		for (int i = 0; a->FindMove(aMove, i, true, true); i++)
+		for (int i = 0; aDownBoard->FindMove(aMove, i, true, true); i++)
 			aList.push_back(std::vector<int>(aMove, aMove + 4));
 		if (aList.empty())
 		{
@@ -631,16 +631,16 @@ std::string MirrorGame(uint32_t theSeed, MirrorShape theShape, int theMoves, Mir
 			break;
 		}
 		const std::vector<int>& m = aList[aRand() % aList.size()];
-		int aRows = a->mRows;
-		a->StartSwap(a->mBoard[m[1]][m[0]], a->mBoard[m[3]][m[2]]);
-		b->StartSwap(b->mBoard[aRows - 1 - m[1]][m[0]], b->mBoard[aRows - 1 - m[3]][m[2]]);
+		int aRows = aDownBoard->mRows;
+		aDownBoard->SwapPieces(aDownBoard->mBoard[m[1]][m[0]], aDownBoard->mBoard[m[3]][m[2]]);
+		anUpBoard->SwapPieces(anUpBoard->mBoard[aRows - 1 - m[1]][m[0]], anUpBoard->mBoard[aRows - 1 - m[3]][m[2]]);
 		aMoves++;
 	}
 	theTotals->mGames++;
 	theTotals->mMoves += aMoves;
 	theTotals->mTickWarnings += aWarnings;
 	*theLine = std::string(gMirrorShapeNames[theShape]) + " seed " + std::to_string(theSeed) + ": " + std::to_string(aMoves) + " moves, score " +
-		std::to_string(a->mScore) + ", ended at " + anEnd + (aWarnings ? ", " + std::to_string(aWarnings) + " settles on other ticks" : "") +
+		std::to_string(aDownBoard->mScore) + ", ended at " + anEnd + (aWarnings ? ", " + std::to_string(aWarnings) + " settles on other ticks" : "") +
 		(aWhy.empty() ? ": mirrored" : ": DIFFERS after move " + std::to_string(aMoves) + ": " + aWhy);
 	return aWhy;
 }

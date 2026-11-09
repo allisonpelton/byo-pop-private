@@ -1,0 +1,45 @@
+# origcmp/tours/menus.txt without its shot lines (origrun takes no shots on the host).
+# Never click the Options dialog's Done: the original has a More Games button there (the port leaves the partner
+# link out, so its Done is one row higher); the tour leaves Options through Scores, Credits or Help.
+# The menus: title (loading, finished, hover), selector (types, skills, side buttons, hover), options (music
+# slider), scores, credits, help from options with the focus lost and regained, then an Action board from the help:
+# its start, the new-game confirmation (no), options over it (a modal pause) and its help (closed by its own link), the focus lost and
+# regained, then new game (yes): the selector slides over the board; the quit dialog (no).
+at 10 focus regain
+at 940 move 308 451
+at 1000 click 308 451
+at 1110 move 410 190
+at 1140 click 410 190
+at 1170 move 565 383
+at 1200 click 565 383
+at 1230 move 85 140
+at 1260 click 85 203
+at 1310 down 366 110
+at 1320 move 400 110
+at 1330 move 440 110
+at 1340 up 440 110
+at 1360 click 380 212
+at 1410 click 390 357
+at 1450 click 85 203
+at 1490 click 458 245
+at 1910 click 390 357
+at 1950 click 85 203
+at 1990 click 300 245
+at 2100 move 406 459
+at 2130 move 600 300
+at 2140 focus lose
+at 2260 focus regain
+at 2310 click 406 424
+at 2600 click 84 140
+at 2650 click 449 176
+at 2710 click 85 203
+at 2760 click 300 245
+at 2810 click 406 424
+at 2910 focus lose
+at 3000 focus regain
+at 3050 click 84 140
+at 3090 click 308 176
+at 3300 click 84 458
+at 3350 click 449 176
+at 3400 move 1 1
+quit

@@ -324,7 +324,7 @@ WorldMap::WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry) :
 	if (mInvalid)
 	{
 		mApp->ShowMainMenu(2, true);
-		mApp->DoMessage(DIALOG_BAD_SAVE, GT(0x004944bc), GT(0x004944d0), 3, 0xa2, 0x52, 0x13c);
+		mApp->ShowBadSaveMessage();
 	}
 	else if (mChamberDone)
 	{
@@ -393,6 +393,7 @@ void WorldMap::CropEnterButton()
 		Rect(0, mProgress[mCurrent] != 0 ? 0x2d : 0, 0x118, 0x2d));
 }
 
+// 0x417b20
 WorldMap::~WorldMap()
 {
 	delete mEnterButton->mButtonImage;
@@ -489,6 +490,7 @@ void WorldMap::Measure(int thePyramid, int theDistance)
 }
 
 // 0x4189b0: the next pyramid on the way from one to another (the nearest of the neighbours of theFrom to theTo)
+// 0x418990
 int WorldMap::NextHop(int theFrom, int theTo)
 {
 	if (theFrom == theTo)
@@ -598,7 +600,7 @@ void WorldMap::Draw(Graphics* g)
 		g->DrawImage(mApp->mImages[IMAGE_BIGTREASURES], 0x226, 0x17b, Rect(0xf, 0x168, 0xf, 0xf));
 }
 
-// 0x417c10
+// 0x417c10 (and 0x418390, its last piece: the twinkles' loop and the repaint)
 void WorldMap::Update()
 {
 	Widget::Update();
@@ -898,6 +900,7 @@ void MummyApp::ShowAdventureSlots()
 	if (aAny)
 	{
 		AdventureSlotsDialog* aDialog = (AdventureSlotsDialog*) NewDialogOf(new AdventureSlotsDialog(this));
+		aDialog->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));   // (the three adventure dialogs have a black header)
 		aDialog->Resize((mWidth - 0x17c) / 2, (mHeight - aDialog->GetPreferredHeight(0x17c)) / 2, 0x17c,
 			aDialog->GetPreferredHeight(0x17c));
 		AddDialog(DIALOG_ADVENTURE_NEW, aDialog);
@@ -912,15 +915,23 @@ void MummyApp::ShowAdventureSlots()
 void MummyApp::ShowNewAdventure()
 {
 	NewAdventureDialog* aDialog = (NewAdventureDialog*) NewDialogOf(new NewAdventureDialog(this));
+	aDialog->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));
 	aDialog->Resize((mWidth - 0x17c) / 2, (mHeight - aDialog->GetPreferredHeight(0x17c)) / 2, 0x17c,
 		aDialog->GetPreferredHeight(0x17c));
 	AddDialog(DIALOG_NEW_ADVENTURE_NAME, aDialog);
+}
+
+// 0x41f0d0: the message of a saved game that cannot be read
+void MummyApp::ShowBadSaveMessage()
+{
+	DoMessage(DIALOG_BAD_SAVE, GT(0x004944bc), GT(0x004944d0), 3, 0xa2, 0x52, 0x13c);
 }
 
 // 0x41bb10: the games to delete
 void MummyApp::ShowDeleteAdventure()
 {
 	DeleteAdventureDialog* aDialog = (DeleteAdventureDialog*) NewDialogOf(new DeleteAdventureDialog(this));
+	aDialog->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));
 	aDialog->Resize((mWidth - 0x17c) / 2, (mHeight - aDialog->GetPreferredHeight(0x17c)) / 2, 0x17c,
 		aDialog->GetPreferredHeight(0x17c));
 	AddDialog(DIALOG_DELETE_ADVENTURE, aDialog);
@@ -947,7 +958,7 @@ void MummyApp::LoadAdventure(int theSlot, bool theFlag)
 	mWorldMap->Resize(0, 0, 0x280, 0x1e0);
 	mWidgetManager->AddWidget(mWorldMap);
 	if (mWorldMap->mProgress[0] == 0xf && mWorldMap->mCurrent == 0 && mGameMode == MODE_ADVENTURE_DONE)
-		DoMessage(DIALOG_INTRO, GT(0x00493f54), GT(0x00493f68), 3, 0x6e, 0x55, 0x1a4);
+		DoMessage(DIALOG_INTRO, GT(0x00493f54), GT(0x00493f68), 3, 0x6e, 0x55, 0x1a4, 0x136);
 }
 
 // 0x406f10, 0x407cc0 and 0x4083e0: the explorer was caught in the adventure: the saved game is read again (the maze starts

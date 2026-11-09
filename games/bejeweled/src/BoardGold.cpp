@@ -97,8 +97,8 @@ int Board::GoldLimitTicks() const
 	return std::max(aLimit.mMin, aLimit.mBase + aLimit.mPerLevel * mLevel) * 100;
 }
 
-// SetupLevel (0x4cae29), at the start of each level: no gold yet, the level's whole time
-void Board::SetupLevelGold()
+// SetupLevelData (0x4cae29), at the start of each level: no gold yet, the level's whole time
+void Board::SetupLevelDataGold()
 {
 	memset(mGold, 0, sizeof(mGold));
 	mGoldShines.clear();
@@ -122,11 +122,11 @@ void Board::UpdateGoldGoal()
 			mScore += aBonus;
 			if (mStats != NULL) mStats->OnPoints(aBonus);
 		}
-		StartBlackHole();
+		DoWhirlpool();
 	}
 	else if (GoldTimed() && (mGoldTicksLeft == 0))
 	{
-		ShowText(mApp->GetString("TIME_UP"), 400);
+		DoBouncyText(mApp->GetString("TIME_UP"), 400);
 		GameOver(200);
 	}
 }

@@ -136,6 +136,9 @@ Board::Board(NoahApp* theApp, bool theContinue)
 	}
 }
 
+// 0x401330: the destructor. The original frees the pieces (with their paths), the fish, the bubbles and the preview's
+// two paths, and only releases the buffers of the texts' and the sparkles' lists, so the ones still on show are lost;
+// it then runs its InitGrid, which makes 90 new pieces that nothing frees. The port frees everything it owns.
 Board::~Board()
 {
 	for (int x = 0; x < 9; x++)
@@ -165,7 +168,10 @@ Board::~Board()
 		delete mPixelPath[i];
 }
 
-// 0x401580: the next level (the level counter is the app's)
+// 0x401580: the next level (the level counter is the app's). The fish and the bubbles of the level before are deleted
+// below where the original calls its two clearing helpers, 0x402de0 (fish) and 0x402e50 (bubbles); the first also ends
+// with a call of Widget's slot 9 with 0, a flag of the 2002 framework's dirty-rectangle drawing that the fish's creator
+// sets again with 1, which the port does not have.
 void Board::NewLevel()
 {
 	mApp->mLevel++;

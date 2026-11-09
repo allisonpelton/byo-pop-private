@@ -1,0 +1,10 @@
+# The same saved game declined ("No": DeleteSaveGame); the selector's start button begins a new game and the window closes in it.
+at 10 focus regain
+at 1000 move 308 451
+at 1000 click 308 451
+at 1800 move 451 227
+at 1800 click 451 227
+at 2400 move 400 448
+at 2400 click 400 448
+at 3400 move 1 1
+quit

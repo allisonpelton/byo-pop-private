@@ -160,7 +160,7 @@ Str expandWord(Str theWord, int theWild)
 	return theWord;
 }
 
-// 0x404880
+// 0x404880, with its tail at 0x404c02 (the lookup of the word by value), which the export splits off
 int Dictionary::isWord(Str theWord, int theExpand)
 {
 	if (theWord.empty())

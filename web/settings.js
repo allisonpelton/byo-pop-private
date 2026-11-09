@@ -49,7 +49,9 @@ var ByopopSettings = (function () {
     // that every choice, Plain too, is stored and the first visit's card is asked only once
     skin: { values: ["plain", "demo", "d95", "soda"], def: "unset" },
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
-    ambient: { values: SWITCH, def: "on" },          // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
+    ambient: { values: SWITCH, def: "on" },
+    gamesOpen: { values: ["games", "library"], def: "games" },  // Desktop 95: the window the games' entries open (web/skins.js)
+    win95Only: { values: SWITCH, def: "off" },       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)          // on: the game's light glows around it in the dark Demo Disc and Soda Fountain (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
     colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid"], def: "none" },
@@ -225,6 +227,9 @@ var ByopopSettings = (function () {
     { name: "skin", label: T("settings.skin.label"), options: [["plain", T("skin.plain")], ["demo", T("skin.demo")], ["d95", T("skin.d95")], ["soda", T("skin.soda")]],
       hint: T("settings.skin.hint") },
     { name: "ambient", label: T("settings.ambient.label"), hint: T("settings.ambient.hint") },
+    { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
+    { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
+      hint: T("settings.gamesopen.hint") },
     { name: "scanlines", label: T("settings.scanlines.label"), options: [["off", T("settings.off")], ["light", T("settings.scanlines.light")], ["strong", T("settings.scanlines.strong")]],
       hint: T("settings.scanlines.hint") },
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
@@ -272,7 +277,7 @@ var ByopopSettings = (function () {
   ];
   var SECTIONS = FIELDS.filter(function (f) { return f.section; }).map(function (f) { return f.section; });
   var STYLE =
-    ".bps { display: grid; gap: 8px; }\n" +
+    ".bps { display: grid; gap: 4px; }\n" +
     ".bps p { margin: 0; }\n" +
     ".bps-about, .bps-hint, .bps-msg { color: var(--muted); font-size: 13px; }\n" +
     ".bps-group { margin: 12px 0 0; font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }\n" +
@@ -283,7 +288,7 @@ var ByopopSettings = (function () {
     ".bps-tab:hover { border-color: var(--accent); }\n" +
     ".bps-tab[aria-selected=true] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg, #fff); }\n" +
     ".bps-tab-pic, .bps-tab-pic svg { display: block; width: 16px; height: 16px; }\n" +
-    ".bps-sec { display: grid; gap: 8px; }\n" +
+    ".bps-sec { display: grid; gap: 0; }\n" +
     ".bps-sec[hidden] { display: none; }\n" +
     ".bps-sec > .bps-group { margin-top: 2px; }\n" +
     ".bps-folder { display: none; }\n" +
@@ -291,8 +296,9 @@ var ByopopSettings = (function () {
     ".bps-scope legend { padding: 0 6px; font-size: 13px; font-weight: 600; }\n" +
     ".bps-scope label { display: flex; align-items: center; gap: 6px; cursor: pointer; }\n" +
     ".bps-scope input { accent-color: var(--accent); margin: 0; }\n" +
-    ".bps-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 16px; align-items: center;\n" +
-    "  padding: 10px 14px; background: var(--panel-2, var(--panel)); border: 1px solid var(--line); border-radius: 10px; }\n" +
+    ".bps-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; align-items: center;\n" +
+    "  padding: 5px 2px; border-bottom: 1px solid var(--line); }\n" +
+    ".bps-row .bps-hint:empty { display: none; }\n" +
     ".bps-row label { font-weight: 600; }\n" +
     ".bps-row .bps-hint { grid-column: 1; }\n" +
     ".bps-row .bps-start { display: block; color: var(--accent); }\n" +
@@ -308,14 +314,15 @@ var ByopopSettings = (function () {
     // the starting volume's row: the label with its "?", the explanation, and the two sliders
     ".bps-vol .bps-ctl { grid-row: 1; }\n" +
     ".bps-labline { display: flex; align-items: center; gap: 8px; min-width: 0; }\n" +
-    ".bps-help { flex: none; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--line);\n" +
-    "  background: var(--bg); color: var(--fg); font: inherit; font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer; }\n" +
+    ".bps-help { flex: none; width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 1px solid var(--line);\n" +
+    "  background: var(--bg); color: var(--fg); font: inherit; font-size: 11px; font-weight: 700; line-height: 1; cursor: pointer; }\n" +
     ".bps-help:hover { border-color: var(--accent); }\n" +
     ".bps-help:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n" +
     ".bps-help[aria-expanded=true] { background: var(--accent); border-color: var(--accent); color: var(--panel); }\n" +
     ".bps-row .bps-pop { grid-column: 1 / -1; margin: 4px 0 2px; padding: 8px 12px; background: var(--bg); color: var(--fg);\n" +
     "  border: 1px solid var(--accent); border-radius: 8px; font-size: 13px; }\n" +
     ".bps-row .bps-pop[hidden] { display: none; }\n" +
+    ".bps-row .bps-pop.bps-tip { position: fixed; z-index: 2147483000; margin: 0; max-width: 280px; box-shadow: 2px 2px 6px rgba(0,0,0,.35); }\n" +
     ".bps-levels { grid-column: 1 / -1; display: grid; gap: 8px; margin: 6px 0 0; padding: 0; border: 0; min-width: 0; }\n" +
     ".bps-levels[hidden] { display: none; }\n" +
     ".bps-level { display: grid; grid-template-columns: 3.6em minmax(0, 1fr) 5.2em; gap: 10px; align-items: center; }\n" +
@@ -390,6 +397,47 @@ var ByopopSettings = (function () {
     });
     sync();
   }
+
+  // A row's explanation as a tip at a point (What's This? in Desktop 95's title bar, or F1 on a focused control, in any skin): it
+  // floats there over the window and goes at the next press, key or scroll anywhere. The same text stays the control's
+  // description (aria-describedby) whether or not it shows.
+  var tipShown = null;
+  function hideTip() {
+    if (!tipShown) return;
+    tipShown.classList.remove("bps-tip");
+    tipShown.hidden = true;
+    tipShown.style.left = tipShown.style.top = "";
+    tipShown = null;
+    ["pointerdown", "keydown", "scroll", "resize"].forEach(function (n) { window.removeEventListener(n, hideTip, true); });
+  }
+  function showTip(pop, x, y) {
+    hideTip();
+    tipShown = pop;
+    pop.hidden = false;
+    pop.classList.add("bps-tip");
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    pop.style.left = Math.max(4, Math.min(x, window.innerWidth - w - 4)) + "px";
+    pop.style.top = Math.max(4, Math.min(y, window.innerHeight - h - 4)) + "px";
+    setTimeout(function () { ["pointerdown", "keydown", "scroll", "resize"].forEach(function (n) { window.addEventListener(n, hideTip, true); }); }, 0);
+  }
+  function wireTips(container) {
+    function popOf(el) { var row = el && el.closest && el.closest(".bps-row"); return row && row.querySelector(".bps-pop"); }
+    container.addEventListener("byopop-whatsthis", function (ev) {
+      var pop = popOf(ev.target);
+      if (pop && pop.textContent) showTip(pop, ev.detail.x + 4, ev.detail.y + 8);
+    });
+    container.addEventListener("keydown", function (ev) {
+      if (ev.key !== "F1") return;
+      var pop = popOf(document.activeElement);
+      if (!pop || !pop.textContent) return;
+      ev.preventDefault();
+      if (tipShown === pop) { hideTip(); return; }
+      var r = document.activeElement.getBoundingClientRect();
+      showTip(pop, r.left, r.bottom + 4);
+    });
+  }
+  // on the document: a section's window may be lifted out of the container onto the desktop
+  if (typeof document !== "undefined" && document.addEventListener) wireTips(document);
 
   // Builds the settings into container (and replaces what it held). The controls save as they change.
   //   live        the container is in a game's page: a setting that only applies when a game starts says so
@@ -602,9 +650,9 @@ var ByopopSettings = (function () {
     function buildVolume(f) {
       var row = make("div", "bps-row bps-vol"), id = "bps-" + (++idCount) + "-" + f.name;
       var c = { field: f, kind: "volume", select: null, checkbox: null, own: null, levels: {}, group: null, label: null };
-      var hint = make("p", "bps-hint", f.hint);
+      var hint = make("p", "bps-hint");
       hint.id = id + "-hint";
-      var popId = id + "-help", pop = make("p", "bps-pop", f.help);
+      var popId = id + "-help", pop = make("p", "bps-pop", [f.hint, f.help].filter(Boolean).join(" "));
       pop.id = popId;
       pop.hidden = true;
       var describedBy = hint.id + " " + popId;
@@ -687,12 +735,13 @@ var ByopopSettings = (function () {
       var row = make("div", "bps-row"), id = "bps-" + (++idCount) + "-" + f.name;
       var label = make("label", "", f.label);
       label.htmlFor = id;
-      var hint = make("p", "bps-hint", f.hint);
+      // values, not sentences (docs/WEB_PLAYER.md): what a setting does is behind its "?", and the line under the label holds
+      // only the live markers (applies at the next start, this game's own value)
+      var hint = make("p", "bps-hint");
       hint.id = id + "-hint";
-      // the "?" button and its explanation, as the starting volume has them
       var help = null, pop = null;
-      if (f.help) {
-        pop = make("p", "bps-pop", f.help);
+      if (f.hint || f.help) {
+        pop = make("p", "bps-pop", [f.hint, f.help].filter(Boolean).join(" "));
         pop.id = id + "-help";
         pop.hidden = true;
         help = make("button", "bps-help", "?");

@@ -299,7 +299,7 @@ public:
 			PutInt(anItr->mX);
 			PutInt(anItr->mY);
 			PutInt(anItr->mLife);
-			PutInt(anItr->mUnused);
+			PutInt(anItr->mAlwaysMinusOne);
 			PutInt(anItr->mPoints);
 		}
 	}
@@ -310,40 +310,40 @@ public:
 	{
 		if (!Want(theFlags, "rng"))
 			return;
-		Board* b = mBoard;
+		Board* aBoard = mBoard;
 		uint32_t aState[MTRAND_N];
 		int anIndex = 0;
 		if (mProfileFlag == FULL)
 		{
-			if (b->mOwnRng == NULL)
+			if (aBoard->mOwnRng == NULL)
 				return;
-			PutInt((int) b->mGameSeed);
-			PutBool(b->mUserSeeded);
-			PutBool(b->mTakesPendingSeed);
-			PutInt((int) b->mBoardDraws);
-			b->mOwnRng->GetState(aState, &anIndex);
+			PutInt((int) aBoard->mGameSeed);
+			PutBool(aBoard->mUserSeeded);
+			PutBool(aBoard->mTakesPendingSeed);
+			PutInt((int) aBoard->mBoardDraws);
+			aBoard->mOwnRng->GetState(aState, &anIndex);
 			PutMt(aState, anIndex);
 		}
 		else if (mProfileFlag == LOGIC)
 		{
-			PutInt((int) b->mGameSeed);
-			PutBool(b->mUserSeeded);
-			PutBool(b->mRanked);
-			PutInt((int) b->mBoardDraws);
-			BoardRngState(b, mRng, aState, &anIndex);
+			PutInt((int) aBoard->mGameSeed);
+			PutBool(aBoard->mUserSeeded);
+			PutBool(aBoard->mRanked);
+			PutInt((int) aBoard->mBoardDraws);
+			BoardRngState(aBoard, mRng, aState, &anIndex);
 			PutMt(aState, anIndex);
 		}
 		else
 		{
-			PutBool(b->mOwnRng != NULL);
-			PutInt((int) b->mGameSeed);
-			PutBool(b->mUserSeeded);
-			PutBool(b->mRanked);
-			PutBool(b->mTakesPendingSeed);
-			PutInt((int) b->mBoardDraws);
-			if (b->mOwnRng != NULL)
+			PutBool(aBoard->mOwnRng != NULL);
+			PutInt((int) aBoard->mGameSeed);
+			PutBool(aBoard->mUserSeeded);
+			PutBool(aBoard->mRanked);
+			PutBool(aBoard->mTakesPendingSeed);
+			PutInt((int) aBoard->mBoardDraws);
+			if (aBoard->mOwnRng != NULL)
 			{
-				b->mOwnRng->GetState(aState, &anIndex);
+				aBoard->mOwnRng->GetState(aState, &anIndex);
 				PutMt(aState, anIndex);
 			}
 		}
@@ -475,20 +475,20 @@ public:
 			Fail(std::to_string(aCount) + " arrow steps");
 		for (int i = 0; mOk && (i < aCount); i++)
 		{
-			Board::ArrowStep s;
-			s.mFromCol = GetInt("mArrowSteps");
-			s.mFromRow = GetInt("mArrowSteps");
-			s.mToCol = GetInt("mArrowSteps");
-			s.mToRow = GetInt("mArrowSteps");
+			Board::ArrowStep aStep;
+			aStep.mFromCol = GetInt("mArrowSteps");
+			aStep.mFromRow = GetInt("mArrowSteps");
+			aStep.mToCol = GetInt("mArrowSteps");
+			aStep.mToRow = GetInt("mArrowSteps");
 			// A step goes along a row or a column, or along an exact diagonal (the diagonal arrows)
-			bool isFromCell = (s.mFromCol >= 0) && (s.mFromCol < mBoard->mCols) && (s.mFromRow >= 0) && (s.mFromRow < mBoard->mRows);
-			int aColStep = std::abs(s.mToCol - s.mFromCol), aRowStep = std::abs(s.mToRow - s.mFromRow);
-			bool isToNear = (s.mToCol >= -1) && (s.mToCol <= mBoard->mCols) && (s.mToRow >= -1) && (s.mToRow <= mBoard->mRows) &&
+			bool isFromCell = (aStep.mFromCol >= 0) && (aStep.mFromCol < mBoard->mCols) && (aStep.mFromRow >= 0) && (aStep.mFromRow < mBoard->mRows);
+			int aColStep = std::abs(aStep.mToCol - aStep.mFromCol), aRowStep = std::abs(aStep.mToRow - aStep.mFromRow);
+			bool isToNear = (aStep.mToCol >= -1) && (aStep.mToCol <= mBoard->mCols) && (aStep.mToRow >= -1) && (aStep.mToRow <= mBoard->mRows) &&
 				(((aColStep == 0) != (aRowStep == 0)) || ((aColStep == aRowStep) && (aColStep > 0)));
 			if (mOk && (!isFromCell || !isToNear))
-				Fail("an arrow step from (" + std::to_string(s.mFromCol) + "," + std::to_string(s.mFromRow) + ") to (" +
-					std::to_string(s.mToCol) + "," + std::to_string(s.mToRow) + ")");
-			mBoard->mArrowSteps.push_back(s);
+				Fail("an arrow step from (" + std::to_string(aStep.mFromCol) + "," + std::to_string(aStep.mFromRow) + ") to (" +
+					std::to_string(aStep.mToCol) + "," + std::to_string(aStep.mToRow) + ")");
+			mBoard->mArrowSteps.push_back(aStep);
 		}
 	}
 	// After the cells: a cell with layers holds no gem
@@ -583,7 +583,7 @@ public:
 			if (thePiece != NULL)
 			{
 				mOrphans.push_back(thePiece);
-				// Owned like the pieces FillBoard parks, so the board frees it
+				// Owned like the pieces NewBoard parks, so the board frees it
 				mBoard->mOrphanedPieces.push_back(thePiece);
 			}
 		}
@@ -608,7 +608,7 @@ public:
 			aPopup.mX = GetInt("mScorePopups");
 			aPopup.mY = GetInt("mScorePopups");
 			aPopup.mLife = GetInt("mScorePopups");
-			aPopup.mUnused = GetInt("mScorePopups");
+			aPopup.mAlwaysMinusOne = GetInt("mScorePopups");
 			aPopup.mPoints = GetInt("mScorePopups");
 			mBoard->mScorePopups.push_back(aPopup);
 		}
@@ -618,15 +618,15 @@ public:
 	{
 		if ((theFlags & mFlag) == 0)
 			return;
-		Board* b = mBoard;
+		Board* aBoard = mBoard;
 		bool hasOwn = GetBool("rng");
-		b->mGameSeed = (uint32_t) GetInt("rng");
-		b->mUserSeeded = GetBool("rng");
-		b->mRanked = GetBool("rng");
-		b->mTakesPendingSeed = GetBool("rng");
-		b->mBoardDraws = (uint32_t) GetInt("rng");
-		delete b->mOwnRng;
-		b->mOwnRng = NULL;
+		aBoard->mGameSeed = (uint32_t) GetInt("rng");
+		aBoard->mUserSeeded = GetBool("rng");
+		aBoard->mRanked = GetBool("rng");
+		aBoard->mTakesPendingSeed = GetBool("rng");
+		aBoard->mBoardDraws = (uint32_t) GetInt("rng");
+		delete aBoard->mOwnRng;
+		aBoard->mOwnRng = NULL;
 		if (hasOwn)
 		{
 			uint32_t aState[MTRAND_N];
@@ -634,151 +634,151 @@ public:
 			GetMt(aState, &anIndex);
 			if (mOk)
 			{
-				b->mOwnRng = new MTRand(1);
-				if (!b->mOwnRng->SetState(aState, anIndex))
+				aBoard->mOwnRng = new MTRand(1);
+				if (!aBoard->mOwnRng->SetState(aState, anIndex))
 					Fail("an RNG state MTRand refuses");
 			}
 		}
 #ifndef BEJ_NO_VARIANTS
-		b->mVariant.mOwnRng = (b->mOwnRng != NULL);
+		aBoard->mVariant.mOwnRng = (aBoard->mOwnRng != NULL);
 #endif
 	}
 };
 
 // The table: every Board field in declaration order (Board.h), with the encodings that take it
-template<class V> void VisitBoard(V& v, Board* b)
+template<class V> void VisitBoard(V& theVisitor, Board* theBoard)
 {
-	v.Layout(LOGIC | SNAP | V2 | UNDO);
-	v.Int("mUpdateCnt", b->mUpdateCnt, FULL | LOGIC | SNAP);   // the board tick (WidgetContainer)
-	v.Int("mLevel", b->mLevel, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mDisplayLevel", b->mDisplayLevel, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Cells(FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mState", b->mState, FULL | LOGIC | SNAP | V2);
-	v.Bool("mTimedMode", b->mTimedMode, FULL | LOGIC | SNAP | V2);
-	v.Bool("mIsNewGame", b->mIsNewGame, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.PieceRef("mSelectedPiece", b->mSelectedPiece, FULL | LOGIC | SNAP);
-	v.Int("mCursorFrame", b->mCursorFrame, FULL | SNAP);
-	v.Bool("mShowTutorial", b->mShowTutorial, FULL | LOGIC | SNAP);
-	v.Int("mTutorialBob", b->mTutorialBob, FULL | SNAP);
-	v.Int("mTutorialBobDir", b->mTutorialBobDir, FULL | SNAP);
-	v.Int("mTutorialCol", b->mTutorialCol, FULL | LOGIC | SNAP);
-	v.Int("mTutorialRow", b->mTutorialRow, FULL | LOGIC | SNAP);
-	v.Int("mTutorialCol2", b->mTutorialCol2, FULL | LOGIC | SNAP);
-	v.PieceRef("mSwapPiece1", b->mSwapPiece1, FULL | LOGIC | SNAP);
-	v.PieceRef("mSwapPiece2", b->mSwapPiece2, FULL | LOGIC | SNAP);
-	v.Int("mSwapAngle", b->mSwapAngle, FULL | LOGIC | SNAP);
-	v.Int("mSwapCenterX", b->mSwapCenterX, FULL | LOGIC | SNAP);
-	v.Int("mSwapCenterY", b->mSwapCenterY, FULL | LOGIC | SNAP);
-	v.Int("mBarWidth", b->mBarWidth, FULL | LOGIC | SNAP | V2);
-	v.Int("mPlayStartTick", b->mPlayStartTick, FULL | LOGIC | SNAP);
-	v.Int("mPlaySeconds", b->mPlaySeconds, FULL | LOGIC | SNAP | V2);
-	v.Int("mGameDuration", b->mGameDuration, FULL | LOGIC | SNAP);
-	v.Int("mIdleTicks", b->mIdleTicks, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mScore", b->mScore, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Double("mPointMultiplier", b->mPointMultiplier, FULL | LOGIC | SNAP | V2);
-	v.Int("mDisplayScore", b->mDisplayScore, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mGemsCleared", b->mGemsCleared, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mMoveMatchCount", b->mMoveMatchCount, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mCascadeCount", b->mCascadeCount, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mLastLandSoundTick", b->mLastLandSoundTick, FULL | SNAP);
-	v.Int("mGameOverCountdown", b->mGameOverCountdown, FULL | LOGIC | SNAP);
-	v.Int("mLongestCascade", b->mLongestCascade, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mBestMoveScore", b->mBestMoveScore, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Int("mUnused218", b->mUnused218, FULL | LOGIC | SNAP);
-	v.Int("mMoveScore", b->mMoveScore, FULL | LOGIC | SNAP | UNDO);
-	v.Int("mMoveScoreTimer", b->mMoveScoreTimer, FULL | LOGIC | SNAP);
-	v.Double("mMoveScoreAlpha", b->mMoveScoreAlpha, FULL | SNAP);
-	v.Double("mHintGlowAlpha", b->mHintGlowAlpha, FULL | SNAP);
-	v.Int("mHintGlowTimer", b->mHintGlowTimer, FULL | SNAP);
-	v.Int("mHintGlowDuration", b->mHintGlowDuration, FULL | SNAP);
-	v.Bool("mNewGamePending", b->mNewGamePending, FULL | LOGIC | SNAP);
-	v.Int("mPauseCount", b->mPauseCount, FULL | LOGIC | SNAP);
-	v.Int("mUserPauseCount", b->mUserPauseCount, FULL | LOGIC | SNAP);
-	v.Popups(FULL | SNAP);
-	v.Bool("mStatsDisabled", b->mStatsDisabled, FULL | LOGIC | SNAP | V2);
-	v.Int("mUnused264", b->mUnused264, FULL | LOGIC | SNAP | V2);
-	v.Int("mLevelStartScore", b->mLevelStartScore, FULL | LOGIC | SNAP | V2);
-	v.Int("mLevelTargetScore", b->mLevelTargetScore, FULL | LOGIC | SNAP | V2);
-	v.Int("mLevelPoints", b->mLevelPoints, FULL | LOGIC | SNAP | V2);
-	v.Double("mTimeDrain", b->mTimeDrain, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Double("mTimeDrainRate", b->mTimeDrainRate, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.Double("mTimeDrainAccel", b->mTimeDrainAccel, FULL | LOGIC | SNAP | V2);
-	v.Int("mBarColor", b->mBarColor, FULL | LOGIC | SNAP | V2);
-	v.Int("mLastWarningTick", b->mLastWarningTick, FULL | SNAP);
-	v.Int("mMouseX", b->mMouseX, FULL | SNAP);
-	v.Int("mMouseY", b->mMouseY, FULL | SNAP);
-	v.Int("mMouseDownX", b->mMouseDownX, FULL | SNAP);
-	v.Int("mMouseDownY", b->mMouseDownY, FULL | SNAP);
-	v.Bool("mMouseDown", b->mMouseDown, FULL | SNAP);
-	v.Int("mInputDelay", b->mInputDelay, FULL | LOGIC | SNAP);
-	v.Bool("mBackgroundChanged", b->mBackgroundChanged, FULL | SNAP);
-	v.DerivedBool("mTextImage", b->mTextImage != NULL, FULL | DERIVED);
-	v.DerivedBool("mTextColorImage", b->mTextColorImage != NULL, FULL | DERIVED);
-	v.Bool("mShowingText", b->mShowingText, FULL | SNAP);
-	v.Double("mTextPhase", b->mTextPhase, FULL | SNAP);
-	v.Int("mTextDuration", b->mTextDuration, FULL | SNAP);
-	v.Int("mTextTimeLeft", b->mTextTimeLeft, FULL | SNAP);
-	v.Int("mWipeY", b->mWipeY, FULL | LOGIC | SNAP | V2);
-	v.Int("mElectOffset", b->mElectOffset, FULL | LOGIC | SNAP);
-	v.Int("mBlackHoleFrame", b->mBlackHoleFrame, FULL | LOGIC | SNAP | V2);
-	v.Int("mTimeDrainDelay", b->mTimeDrainDelay, FULL | LOGIC | SNAP | UNDO);
-	v.Double("mBlackHoleLevel", b->mBlackHoleLevel, FULL | LOGIC | SNAP | V2);
-	v.Bool("mLevelTextShown", b->mLevelTextShown, FULL | LOGIC | SNAP | V2);
-	v.DerivedInt("mOrphanedPieces", (int) b->mOrphanedPieces.size(), FULL | DERIVED);
+	theVisitor.Layout(LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mUpdateCnt", theBoard->mUpdateCnt, FULL | LOGIC | SNAP);   // the board tick (WidgetContainer)
+	theVisitor.Int("mLevel", theBoard->mLevel, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mDisplayLevel", theBoard->mDisplayLevel, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Cells(FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mState", theBoard->mState, FULL | LOGIC | SNAP | V2);
+	theVisitor.Bool("mTimedMode", theBoard->mTimedMode, FULL | LOGIC | SNAP | V2);
+	theVisitor.Bool("mIsNewGame", theBoard->mIsNewGame, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.PieceRef("mSelectedPiece", theBoard->mSelectedPiece, FULL | LOGIC | SNAP);
+	theVisitor.Int("mCursorFrame", theBoard->mCursorFrame, FULL | SNAP);
+	theVisitor.Bool("mShowTutorial", theBoard->mShowTutorial, FULL | LOGIC | SNAP);
+	theVisitor.Int("mTutorialBob", theBoard->mTutorialBob, FULL | SNAP);
+	theVisitor.Int("mTutorialBobDir", theBoard->mTutorialBobDir, FULL | SNAP);
+	theVisitor.Int("mTutorialCol", theBoard->mTutorialCol, FULL | LOGIC | SNAP);
+	theVisitor.Int("mTutorialRow", theBoard->mTutorialRow, FULL | LOGIC | SNAP);
+	theVisitor.Int("mTutorialCol2", theBoard->mTutorialCol2, FULL | LOGIC | SNAP);
+	theVisitor.PieceRef("mSwapPiece1", theBoard->mSwapPiece1, FULL | LOGIC | SNAP);
+	theVisitor.PieceRef("mSwapPiece2", theBoard->mSwapPiece2, FULL | LOGIC | SNAP);
+	theVisitor.Int("mSwapAngle", theBoard->mSwapAngle, FULL | LOGIC | SNAP);
+	theVisitor.Int("mSwapCenterX", theBoard->mSwapCenterX, FULL | LOGIC | SNAP);
+	theVisitor.Int("mSwapCenterY", theBoard->mSwapCenterY, FULL | LOGIC | SNAP);
+	theVisitor.Int("mBarWidth", theBoard->mBarWidth, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mPlayStartTick", theBoard->mPlayStartTick, FULL | LOGIC | SNAP);
+	theVisitor.Int("mPlaySeconds", theBoard->mPlaySeconds, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mGameDuration", theBoard->mGameDuration, FULL | LOGIC | SNAP);
+	theVisitor.Int("mIdleTicks", theBoard->mIdleTicks, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mScore", theBoard->mScore, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Double("mPointMultiplier", theBoard->mPointMultiplier, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mDisplayScore", theBoard->mDisplayScore, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mGemsCleared", theBoard->mGemsCleared, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mMoveMatchCount", theBoard->mMoveMatchCount, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mCascadeCount", theBoard->mCascadeCount, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mLastLandSoundTick", theBoard->mLastLandSoundTick, FULL | SNAP);
+	theVisitor.Int("mGameOverCountdown", theBoard->mGameOverCountdown, FULL | LOGIC | SNAP);
+	theVisitor.Int("mLongestCascade", theBoard->mLongestCascade, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mBestMoveScore", theBoard->mBestMoveScore, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Int("mClearedAtMoveStart", theBoard->mClearedAtMoveStart, FULL | LOGIC | SNAP);
+	theVisitor.Int("mMoveScore", theBoard->mMoveScore, FULL | LOGIC | SNAP | UNDO);
+	theVisitor.Int("mMoveScoreTimer", theBoard->mMoveScoreTimer, FULL | LOGIC | SNAP);
+	theVisitor.Double("mMoveScoreAlpha", theBoard->mMoveScoreAlpha, FULL | SNAP);
+	theVisitor.Double("mHintGlowAlpha", theBoard->mHintGlowAlpha, FULL | SNAP);
+	theVisitor.Int("mHintGlowTimer", theBoard->mHintGlowTimer, FULL | SNAP);
+	theVisitor.Int("mHintGlowDuration", theBoard->mHintGlowDuration, FULL | SNAP);
+	theVisitor.Bool("mNewGamePending", theBoard->mNewGamePending, FULL | LOGIC | SNAP);
+	theVisitor.Int("mPauseCount", theBoard->mPauseCount, FULL | LOGIC | SNAP);
+	theVisitor.Int("mUserPauseCount", theBoard->mUserPauseCount, FULL | LOGIC | SNAP);
+	theVisitor.Popups(FULL | SNAP);
+	theVisitor.Bool("mStatsDisabled", theBoard->mStatsDisabled, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mSavedZero", theBoard->mSavedZero, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mLevelStartScore", theBoard->mLevelStartScore, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mLevelTargetScore", theBoard->mLevelTargetScore, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mLevelPoints", theBoard->mLevelPoints, FULL | LOGIC | SNAP | V2);
+	theVisitor.Double("mTimeDrain", theBoard->mTimeDrain, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Double("mTimeDrainRate", theBoard->mTimeDrainRate, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Double("mTimeDrainAccel", theBoard->mTimeDrainAccel, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mBarColor", theBoard->mBarColor, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mLastWarningTick", theBoard->mLastWarningTick, FULL | SNAP);
+	theVisitor.Int("mMouseX", theBoard->mMouseX, FULL | SNAP);
+	theVisitor.Int("mMouseY", theBoard->mMouseY, FULL | SNAP);
+	theVisitor.Int("mMouseDownX", theBoard->mMouseDownX, FULL | SNAP);
+	theVisitor.Int("mMouseDownY", theBoard->mMouseDownY, FULL | SNAP);
+	theVisitor.Bool("mMouseDown", theBoard->mMouseDown, FULL | SNAP);
+	theVisitor.Int("mInputDelay", theBoard->mInputDelay, FULL | LOGIC | SNAP);
+	theVisitor.Bool("mBackgroundChanged", theBoard->mBackgroundChanged, FULL | SNAP);
+	theVisitor.DerivedBool("mTextImage", theBoard->mTextImage != NULL, FULL | DERIVED);
+	theVisitor.DerivedBool("mTextColorImage", theBoard->mTextColorImage != NULL, FULL | DERIVED);
+	theVisitor.Bool("mShowingText", theBoard->mShowingText, FULL | SNAP);
+	theVisitor.Double("mTextPhase", theBoard->mTextPhase, FULL | SNAP);
+	theVisitor.Int("mTextDuration", theBoard->mTextDuration, FULL | SNAP);
+	theVisitor.Int("mTextTimeLeft", theBoard->mTextTimeLeft, FULL | SNAP);
+	theVisitor.Int("mWipeY", theBoard->mWipeY, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mElectOffset", theBoard->mElectOffset, FULL | LOGIC | SNAP);
+	theVisitor.Int("mBlackHoleFrame", theBoard->mBlackHoleFrame, FULL | LOGIC | SNAP | V2);
+	theVisitor.Int("mTimeDrainDelay", theBoard->mTimeDrainDelay, FULL | LOGIC | SNAP | UNDO);
+	theVisitor.Double("mBlackHoleLevel", theBoard->mBlackHoleLevel, FULL | LOGIC | SNAP | V2);
+	theVisitor.Bool("mLevelTextShown", theBoard->mLevelTextShown, FULL | LOGIC | SNAP | V2);
+	theVisitor.DerivedInt("mOrphanedPieces", (int) theBoard->mOrphanedPieces.size(), FULL | DERIVED);
 	// port(variant) members (stage 2: the board's RNG; mOwnRng, mGameSeed, mUserSeeded, mRanked, mBoardDraws,
 	// mTakesPendingSeed). Not in the table: mRules, mVariant, mLayout (the rules snapshot and what follows
 	// from it), the recorder and playback members, mRngStart (replay bookkeeping), mBoardSerial and mResumed
 	// (the LiveSplit observer's bookkeeping, stage 2b: design 4.15 gives them no row)
-	v.Rng(FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.Rng(FULL | LOGIC | SNAP | V2 | UNDO);
 	// Stage 5, the moves (the v2 save's MOVE chunk), on a variant board only. Not FULL: that stays the stage-0
 	// list and the board's own RNG, so a rule set that plays as the original (the oracle's inert cases) hashes
 	// as its reference; LOGIC (the replays' CHECK and END) and SNAPSHOT take them
-	v.VariantInt("mMoveCount", b->mMoveCount, LOGIC | SNAP | V2 | UNDO);
-	v.VariantInt("mInvalidMoves", b->mInvalidMoves, LOGIC | SNAP | V2 | UNDO);
-	v.VariantInt("mUndosUsed", b->mUndosUsed, LOGIC | SNAP | V2);
+	theVisitor.VariantInt("mMoveCount", theBoard->mMoveCount, LOGIC | SNAP | V2 | UNDO);
+	theVisitor.VariantInt("mInvalidMoves", theBoard->mInvalidMoves, LOGIC | SNAP | V2 | UNDO);
+	theVisitor.VariantInt("mUndosUsed", theBoard->mUndosUsed, LOGIC | SNAP | V2);
 	// Stage 7, the level's shape (index into board.levels; the v2 save's header holds it). The layout itself follows
 	// from the rules, this index and the dirt layers below (not in the table, like mLayout and mPendingLayout, which equals mLayout between
 	// ticks); not LOGIC, which has mLevel and the layout's size (so the replays' hashes of stage 6 still hold), nor
 	// UNDO, since an undo never crosses a level
-	v.VariantInt("mLevelShape", b->mLevelShape, SNAP | V2);
+	theVisitor.VariantInt("mLevelShape", theBoard->mLevelShape, SNAP | V2);
 	// Stage 7c, gravity (the v2 save's GRAV chunk), only when the rules set a gravity rule: FULL too, since no such
 	// rule set plays as the original; UNDO, since an undo restores the direction "alternate" points in
-	v.GravityInt("mGravityFlips", b->mGravityFlips, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.GravityBool("mGravityNoFlip", b->mGravityNoFlip, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.GravityInt("mGravityFlips", theBoard->mGravityFlips, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.GravityBool("mGravityNoFlip", theBoard->mGravityNoFlip, FULL | LOGIC | SNAP | V2 | UNDO);
 	// Stage 7b, dirt (the v2 save's DIRT chunk), only when the rules have dirt: the layers left, which make mLayout
 	// differ from the level's mask, and the side the next diagonal slide tries first. FULL too, since no such rule set
 	// plays as the original; UNDO, since an undo brings the dirt back
-	v.DirtLayers(FULL | LOGIC | SNAP | V2 | UNDO);
-	v.DirtBool("mDiagonalLeftFirst", b->mDiagonalLeftFirst, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.DirtLayers(FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.DirtBool("mDiagonalLeftFirst", theBoard->mDiagonalLeftFirst, FULL | LOGIC | SNAP | V2 | UNDO);
 	// Stage 12, the gold board (the v2 save's GOLD and GTIM chunks), only when the rules have gold: the gold cells and the
 	// level's time. FULL too, since no such rule set plays as the original; UNDO, since an undo brings the gold back (and
 	// the time left with undo.restoreTime: Board::Undo)
-	v.GoldCells(FULL | LOGIC | SNAP | V2 | UNDO);
-	v.GoldInt("mGoldTicksLeft", b->mGoldTicksLeft, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.GoldInt("mGoldTickLimit", b->mGoldTickLimit, FULL | LOGIC | SNAP | V2);
+	theVisitor.GoldCells(FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.GoldInt("mGoldTicksLeft", theBoard->mGoldTicksLeft, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.GoldInt("mGoldTickLimit", theBoard->mGoldTickLimit, FULL | LOGIC | SNAP | V2);
 	// Stage 10, twists and slides, only when the rules have them: the move of states 10..13 (the grid holds the board
 	// before it, so a save needs none of it: not V2) and its animation. FULL too, since no such rule set plays as the
 	// original; not UNDO, since an undo is taken in STATE_PLAYING
-	v.MovesInt("mMoveInPlay.mType", b->mMoveInPlay.mType, FULL | LOGIC | SNAP);
-	v.MovesInt("mMoveInPlay.mA", b->mMoveInPlay.mA, FULL | LOGIC | SNAP);
-	v.MovesInt("mMoveInPlay.mB", b->mMoveInPlay.mB, FULL | LOGIC | SNAP);
-	v.MovesInt("mMoveInPlay.mC", b->mMoveInPlay.mC, FULL | LOGIC | SNAP);
-	v.MovesInt("mMoveInPlay.mD", b->mMoveInPlay.mD, FULL | LOGIC | SNAP);
-	v.MovesInt("mMoveInPlay.mE", b->mMoveInPlay.mE, FULL | LOGIC | SNAP);
-	v.MovesInt("mMoveTick", b->mMoveTick, FULL | LOGIC | SNAP);
-	v.MovesInt("mSlideFrom", b->mSlideFrom, FULL | LOGIC | SNAP);
-	v.MovesInt("mSlideTo", b->mSlideTo, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mMoveInPlay.mType", theBoard->mMoveInPlay.mType, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mMoveInPlay.mA", theBoard->mMoveInPlay.mA, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mMoveInPlay.mB", theBoard->mMoveInPlay.mB, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mMoveInPlay.mC", theBoard->mMoveInPlay.mC, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mMoveInPlay.mD", theBoard->mMoveInPlay.mD, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mMoveInPlay.mE", theBoard->mMoveInPlay.mE, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mMoveTick", theBoard->mMoveTick, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mSlideFrom", theBoard->mSlideFrom, FULL | LOGIC | SNAP);
+	theVisitor.MovesInt("mSlideTo", theBoard->mSlideTo, FULL | LOGIC | SNAP);
 	// Stage 18, arrow gems (the v2 save's ARRW chunk), only when the rules have them: each gem's arrow, the moves toward
 	// the next and the arrows cleared (the bonus's factor). FULL too, since no such rule set plays as the original; UNDO,
 	// since an undo brings the arrows back. The step a move made due, and STATE_ARROW_STEPPING's steps (the grid holds
 	// them done) with their animation: not UNDO, which is taken in STATE_PLAYING; a save holds the steps done
 	// (Board::GetVariantSave)
-	v.ArrowCells(FULL | LOGIC | SNAP | V2 | UNDO);
-	v.ArrowInt("mArrowMoves", b->mArrowMoves, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.ArrowInt("mArrowsCleared", b->mArrowsCleared, FULL | LOGIC | SNAP | V2 | UNDO);
-	v.ArrowBool("mArrowStepDue", b->mArrowStepDue, FULL | LOGIC | SNAP | V2);
-	v.ArrowSteps(FULL | LOGIC | SNAP);
-	v.ArrowInt("mArrowTick", b->mArrowTick, FULL | LOGIC | SNAP);
+	theVisitor.ArrowCells(FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.ArrowInt("mArrowMoves", theBoard->mArrowMoves, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.ArrowInt("mArrowsCleared", theBoard->mArrowsCleared, FULL | LOGIC | SNAP | V2 | UNDO);
+	theVisitor.ArrowBool("mArrowStepDue", theBoard->mArrowStepDue, FULL | LOGIC | SNAP | V2);
+	theVisitor.ArrowSteps(FULL | LOGIC | SNAP);
+	theVisitor.ArrowInt("mArrowTick", theBoard->mArrowTick, FULL | LOGIC | SNAP);
 }
 
 }

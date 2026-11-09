@@ -233,9 +233,9 @@ void MatchFinder::FindGroups(const ColorGrid& theGrid, const Spec& theSpec, std:
 	else
 		theGroups->swap(aRuns);
 
-	for (size_t s = 0; s < theSpec.mShapes.size(); s++)
+	for (size_t aShapeIndex = 0; aShapeIndex < theSpec.mShapes.size(); aShapeIndex++)
 	{
-		const Spec::Shape& aShape = theSpec.mShapes[s];
+		const Spec::Shape& aShape = theSpec.mShapes[aShapeIndex];
 		for (int aRow = 0; aRow < theGrid.mRows; aRow++)
 		{
 			for (int aCol = 0; aCol < theGrid.mCols; aCol++)
@@ -257,7 +257,7 @@ void MatchFinder::FindGroups(const ColorGrid& theGrid, const Spec& theSpec, std:
 						continue;
 					Group anInstance;
 					anInstance.mKind = GROUP_SHAPE;
-					anInstance.mShape = (int) s;
+					anInstance.mShape = (int) aShapeIndex;
 					anInstance.mColor = aColor;
 					for (const Cell& c : anOrientation)
 						anInstance.mCells.push_back(Cell(aCol + c.first, aRow + c.second));

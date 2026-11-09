@@ -90,7 +90,7 @@ struct Spec
 };
 
 void		FindGroups(const ColorGrid& theGrid, const Spec& theSpec, std::vector<Group>* theGroups);
-// Whether the grid has any group (the fill's test, HasMatchVariant)
+// Whether the grid has any group (the fill's test, HasSetVariant)
 bool		AnyGroup(const ColorGrid& theGrid, const Spec& theSpec);
 // Whether some group of FindGroups would hold the cell: with theHorizontal alone a horizontal run through it, with
 // theVertical alone a vertical run, with both any group (FindMove's contract). A local scan around the cell.

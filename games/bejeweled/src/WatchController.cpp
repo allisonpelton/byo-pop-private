@@ -154,7 +154,7 @@ bool WatchController::Load(std::string* theError)
 		return false;
 	}
 	// Someone else's rules: the play code divides by, indexes and loops with what they say (the 12 diff.txt
-	// values give SetupLevel's mLevelPoints, Update's divisor), so only rules the game itself makes. Canonical
+	// values give SetupLevelData's mLevelPoints, Update's divisor), so only rules the game itself makes. Canonical
 	// bytes again: one rule set has one RulesId
 	if (mRules.Canonical() != mFile.mRules)
 	{
@@ -396,11 +396,11 @@ bool WatchController::IsMoveDue() const
 // One iteration of the playback loop (6.8). Swapped in.
 bool WatchController::Step()
 {
-	Board* b = mBoard;
+	Board* aBoard = mBoard;
 	const Replay::Segment& aSegment = mFile.mSegments[mSegment];
 	const std::vector<Replay::Event>& anEvents = aSegment.mEvents;
 	bool isLast = (mSegment + 1 == mFile.mSegments.size());
-	uint32_t aTick = (uint32_t) b->mUpdateCnt;
+	uint32_t aTick = (uint32_t) aBoard->mUpdateCnt;
 
 	// The recording's CHECK of a settle is the first event at the tick the board settled at
 	if ((mCheckDue >= 0) && ((mEvent >= anEvents.size()) || (anEvents[mEvent].mTick != aTick) || (anEvents[mEvent].mOp != Replay::OP_CHECK)))
@@ -426,12 +426,12 @@ bool WatchController::Step()
 				return Corrupt("events after the board's game ended (New Game)", &anEvents[mEvent]);
 			return Finish();
 		}
-		if (isDone && ((b->mState == STATE_GAME_OVER_DONE) || (aTick >= mFile.mEnd.mEndTick)))
+		if (isDone && ((aBoard->mState == STATE_GAME_OVER_DONE) || (aTick >= mFile.mEnd.mEndTick)))
 			return Finish();
 		if (aTick >= mFile.mEnd.mEndTick)
 			return Corrupt("the replay goes on past its END tick " + std::to_string(mFile.mEnd.mEndTick));
 	}
-	if ((b->mPauseCount > 0) || (b->mUserPauseCount > 0))
+	if ((aBoard->mPauseCount > 0) || (aBoard->mUserPauseCount > 0))
 		return Corrupt("the board is paused at tick " + std::to_string(aTick) + ", and no event unpauses it");
 
 	// ENV: what the tick-150 block of this update reads (the recorder took it at the start of the same update)
@@ -440,10 +440,10 @@ bool WatchController::Step()
 		mApp->mShowInstructions = aSegment.mShowInstructions;
 		mApp->mTimesPlayed = aSegment.mTimesPlayed;
 	}
-	b->Update();
-	if ((b->mState == STATE_PLAYING) && (mLastState != STATE_PLAYING))
-		mCheckDue = b->mUpdateCnt;
-	mLastState = b->mState;
+	aBoard->Update();
+	if ((aBoard->mState == STATE_PLAYING) && (mLastState != STATE_PLAYING))
+		mCheckDue = aBoard->mUpdateCnt;
+	mLastState = aBoard->mState;
 	return true;
 }
 
@@ -458,30 +458,30 @@ Piece* WatchController::CellPiece(int64_t theCol, int64_t theRow)
 // Swapped in.
 bool WatchController::Apply(const Replay::Event& theEvent)
 {
-	Board* b = mBoard;
-	const int64_t* a = theEvent.mArgs;
+	Board* aBoard = mBoard;
+	const int64_t* anArgs = theEvent.mArgs;
 	// MouseDown's gates, before it selects, deselects or targets: no user pause, no input delay, not in game
 	// over, the vortex or the wipe
-	bool isMouseDownOpen = (b->mUserPauseCount == 0) && (b->mInputDelay == 0) && (b->mState != STATE_GAME_OVER) &&
-		(b->mState != STATE_GAME_OVER_DONE) && (b->mState != STATE_BLACK_HOLE) && (b->mState != STATE_LEVEL_WIPE);
-	b->mPlaybackApplying = true;
+	bool isMouseDownOpen = (aBoard->mUserPauseCount == 0) && (aBoard->mInputDelay == 0) && (aBoard->mState != STATE_GAME_OVER) &&
+		(aBoard->mState != STATE_GAME_OVER_DONE) && (aBoard->mState != STATE_BLACK_HOLE) && (aBoard->mState != STATE_LEVEL_WIPE);
+	aBoard->mPlaybackApplying = true;
 	bool isOk = true;
 	std::string aWhy;
 	switch (theEvent.mOp)
 	{
 	case Replay::OP_SELECT:
 		{
-			Piece* aPiece = CellPiece(a[0], a[1]);
-			if (!isMouseDownOpen || (b->mSelectedPiece != NULL) || (aPiece == NULL))
+			Piece* aPiece = CellPiece(anArgs[0], anArgs[1]);
+			if (!isMouseDownOpen || (aBoard->mSelectedPiece != NULL) || (aPiece == NULL))
 			{
 				aWhy = "a selection MouseDown would not make";
 				isOk = false;
 				break;
 			}
-			b->mCursorFrame = 0;
-			b->mSelectedPiece = aPiece;
-			b->MarkDirty();
-			mApp->PlaySample(SOUND_SELECT, b->GetPanForX((int)(aPiece->mX + 24.0)));
+			aBoard->mCursorFrame = 0;
+			aBoard->mSelectedPiece = aPiece;
+			aBoard->MarkDirty();
+			mApp->PlaySample(SOUND_SELECT, aBoard->GetPanPosition((int)(aPiece->mX + 24.0)));
 		}
 		break;
 
@@ -492,102 +492,102 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			isOk = false;
 			break;
 		}
-		b->mSelectedPiece = NULL;
-		b->MarkDirty();
+		aBoard->mSelectedPiece = NULL;
+		aBoard->MarkDirty();
 		break;
 
 	case Replay::OP_TARGET:
 		{
 			// A click (MouseDown) or a drag (MouseDrag): both need a selection and the board in play
-			Piece* aTarget = CellPiece(a[0], a[1]);
-			if ((b->mState != STATE_PLAYING) || (b->mSelectedPiece == NULL) || ((aTarget == NULL) && (a[0] != -1)))
+			Piece* aTarget = CellPiece(anArgs[0], anArgs[1]);
+			if ((aBoard->mState != STATE_PLAYING) || (aBoard->mSelectedPiece == NULL) || ((aTarget == NULL) && (anArgs[0] != -1)))
 			{
 				aWhy = "a target without a selection, out of play or on an empty cell";
 				isOk = false;
 				break;
 			}
-			if ((aTarget != NULL) && (aTarget != b->mSelectedPiece))
-				b->StartSwap(b->mSelectedPiece, aTarget);
-			b->mSelectedPiece = NULL;
-			b->MarkDirty();
+			if ((aTarget != NULL) && (aTarget != aBoard->mSelectedPiece))
+				aBoard->SwapPieces(aBoard->mSelectedPiece, aTarget);
+			aBoard->mSelectedPiece = NULL;
+			aBoard->MarkDirty();
 		}
 		break;
 
 	case Replay::OP_TWIST:
 		// Stage 10: the gate the input layer records it behind (Board::CanTwist: in play, open to input, the rules'
 		// twists that way, four gems)
-		if (!b->mVariant.mMoves || !b->CanTwist((int) a[0], (int) a[1], (int) a[2]))
+		if (!aBoard->mVariant.mMoves || !aBoard->CanTwist((int) anArgs[0], (int) anArgs[1], (int) anArgs[2]))
 		{
 			aWhy = "a twist the board would not make";
 			isOk = false;
 			break;
 		}
-		b->StartTwist((int) a[0], (int) a[1], (int) a[2]);
+		aBoard->StartTwist((int) anArgs[0], (int) anArgs[1], (int) anArgs[2]);
 		break;
 
 	case Replay::OP_SLIDE:
 		// ... (Board::CanSlide: a whole segment of gems from that cell, 1 <= k < its length)
-		if (!b->mVariant.mMoves || !b->CanSlide((int) a[0], (int) a[1], (int) a[2], (int) a[3], (int) a[4]))
+		if (!aBoard->mVariant.mMoves || !aBoard->CanSlide((int) anArgs[0], (int) anArgs[1], (int) anArgs[2], (int) anArgs[3], (int) anArgs[4]))
 		{
 			aWhy = "a slide the board would not make";
 			isOk = false;
 			break;
 		}
-		b->StartSlide((int) a[0], (int) a[1], (int) a[2], (int) a[3], (int) a[4]);
+		aBoard->StartSlide((int) anArgs[0], (int) anArgs[1], (int) anArgs[2], (int) anArgs[3], (int) anArgs[4]);
 		break;
 
 	case Replay::OP_HINT:
 		// ShowHint's gate; the board's own ShowHint ignores a playback board. Stage 5: a board playing without a
 		// move gives no hint either (Board::NoHintVariant)
-		if ((b->mState != STATE_PLAYING) || (b->mPauseCount != 0) || b->NoHintVariant())
+		if ((aBoard->mState != STATE_PLAYING) || (aBoard->mPauseCount != 0) || aBoard->NoHintVariant())
 		{
 			aWhy = "a hint ShowHint would not give";
 			isOk = false;
 			break;
 		}
-		b->DoHint();
+		aBoard->TryShowHint();
 		break;
 
 	case Replay::OP_UNDO:
 		// Stage 6: RequestUndo's gate (Board::CanUndo); the board's own RequestUndo ignores a playback board
-		if (!b->CanUndo())
+		if (!aBoard->CanUndo())
 		{
 			aWhy = "an undo RequestUndo would refuse";
 			isOk = false;
 			break;
 		}
-		b->Undo();
+		aBoard->Undo();
 		break;
 
 	case Replay::OP_PAUSE:
-		b->Pause(a[0] != 0);
+		aBoard->Pause(anArgs[0] != 0);
 		break;
 
 	case Replay::OP_UNPAUSE:
-		b->Unpause(a[0] != 0);
+		aBoard->Unpause(anArgs[0] != 0);
 		break;
 
 	case Replay::OP_NEW_GAME:
-		b->RequestNewGame();
+		aBoard->RequestNewGame();
 		mNewGameApplied = true;
 		break;
 
 	case Replay::OP_XRAND:
 		// Draws from the global stream that were not the board's: only a board on that stream sees them. Its
 		// MTRand draws them, past Board::Rand, so mBoardDraws stays the recorded board's
-		if ((b->mGameSeed != 0) || (b->mOwnRng == NULL))
+		if ((aBoard->mGameSeed != 0) || (aBoard->mOwnRng == NULL))
 		{
 			aWhy = "outside draws for a board with its own seed";
 			isOk = false;
 			break;
 		}
-		for (int64_t i = 0; i < a[0]; i++)
-			b->mOwnRng->Next();
+		for (int64_t i = 0; i < anArgs[0]; i++)
+			aBoard->mOwnRng->Next();
 		break;
 
 	case Replay::OP_HOVER:
-		b->mMouseX = (int) a[0];
-		b->mMouseY = (int) a[1];
+		aBoard->mMouseX = (int) anArgs[0];
+		aBoard->mMouseY = (int) anArgs[1];
 		break;
 
 	case Replay::OP_SAVE:
@@ -597,24 +597,24 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			// In the vortex their positions and angles come from libm's cos, sin and atan2, whose last bits differ
 			// between platforms (the LOGIC hash leaves them out too): a replay recorded natively, played in wasm
 			// (the verifier, stage 4), or the other way round, makes other bytes there
-			mLastSaveExact = ((mFile.mFlags & Replay::FLAG_HOVER) != 0) && (b->mState != STATE_BLACK_HOLE);
-			if (a[0] == Replay::SAVE_GAME)
-				b->SaveGame(); // into mPlaybackSave (Board::WriteSaveFile)
+			mLastSaveExact = ((mFile.mFlags & Replay::FLAG_HOVER) != 0) && (aBoard->mState != STATE_BLACK_HOLE);
+			if (anArgs[0] == Replay::SAVE_GAME)
+				aBoard->SaveGame(); // into mPlaybackSave (Board::WriteSaveFile)
 			else
 			{
 				Buffer aSnapshot;
-				b->SaveGameSnapshot(&aSnapshot);
-				b->mPlaybackSave = aSnapshot;
+				aBoard->SaveGameSnapshot(&aSnapshot);
+				aBoard->mPlaybackSave = aSnapshot;
 			}
 			// Hashed only where it is compared
 			if (mLastSaveExact)
 			{
-				std::string aSave = BufferBytes(b->mPlaybackSave);
+				std::string aSave = BufferBytes(aBoard->mPlaybackSave);
 				uint32_t aHash = Replay::SaveHash(aSave.data(), aSave.size());
-				if (aHash != (uint32_t) a[1])
+				if (aHash != (uint32_t) anArgs[1])
 				{
 					char aText[64];
-					snprintf(aText, sizeof(aText), "the save's hash is %08x, the replay's %08x", (unsigned) aHash, (unsigned) a[1]);
+					snprintf(aText, sizeof(aText), "the save's hash is %08x, the replay's %08x", (unsigned) aHash, (unsigned) anArgs[1]);
 					aWhy = aText;
 					isOk = false;
 					break;
@@ -622,8 +622,8 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			}
 			// What the resume of the next segment may check its RNGS against
 			Replay::RngState aRng;
-			b->GetRngState(&aRng);
-			mPrevSeeded = (b->mGameSeed != 0);
+			aBoard->GetRngState(&aRng);
+			mPrevSeeded = (aBoard->mGameSeed != 0);
 			mPrevRng = aRng;
 		}
 		break;
@@ -631,7 +631,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 	case Replay::OP_LOAD:
 		{
 			const Replay::Segment& aSegment = mFile.mSegments[mSegment];
-			if (b->mUpdateCnt != 0)
+			if (aBoard->mUpdateCnt != 0)
 			{
 				aWhy = "a LOAD after the board's first update";
 				isOk = false;
@@ -642,9 +642,9 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 				mLoadSave.Clear();
 				mLoadSave.WriteBytes((const uchar*) aSegment.mLoadSave.data(), (int) aSegment.mLoadSave.size());
 			}
-			b->mPlaybackLoad = &mLoadSave;
-			bool isLoaded = b->LoadGame();
-			b->mPlaybackLoad = NULL;
+			aBoard->mPlaybackLoad = &mLoadSave;
+			bool isLoaded = aBoard->LoadGame();
+			aBoard->mPlaybackLoad = NULL;
 			if (!isLoaded)
 			{
 				aWhy = "the save does not load";
@@ -652,17 +652,17 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 				break;
 			}
 			// The Stats page counts the whole game: the segment before saved it, unless the replay holds only the save
-			if (b->mStats != NULL)
+			if (aBoard->mStats != NULL)
 			{
 				bool isCarried = mHasCarriedStats && !aSegment.mHasLoadSave;
 				if (isCarried)
-					*b->mStats = mCarriedStats;
+					*aBoard->mStats = mCarriedStats;
 				else
 				{
-					*b->mStats = GameStats();
-					b->mStats->mFromResume = true;
+					*aBoard->mStats = GameStats();
+					aBoard->mStats->mFromResume = true;
 				}
-				b->mStats->OnLoad(b);
+				aBoard->mStats->OnLoad(aBoard);
 			}
 			// A game the segment before played on its own seed goes on with that RNG as it was at the save (6.5)
 			const Replay::RngState& aRng = aSegment.mLoadRng;
@@ -675,14 +675,14 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 			// A variant board's v2 save holds the RNG the game goes on with (its RNGS chunk, stage 5): the segment's
 			// RNGS must be that one (LDSV bytes too)
 			Replay::RngState aSaved;
-			b->GetRngState(&aSaved);
-			if (b->mVariant.mAny && ((aSaved.mSeed != 0) || (aRng.mSeed != 0)) && !SameRng(aRng, aSaved))
+			aBoard->GetRngState(&aSaved);
+			if (aBoard->mVariant.mAny && ((aSaved.mSeed != 0) || (aRng.mSeed != 0)) && !SameRng(aRng, aSaved))
 			{
 				aWhy = "RNGS is not the RNG the v2 save holds";
 				isOk = false;
 				break;
 			}
-			if (!b->SetPlaybackRng(aRng))
+			if (!aBoard->SetPlaybackRng(aRng))
 			{
 				aWhy = "an RNGS state MTRand refuses";
 				isOk = false;
@@ -699,11 +699,11 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 				break;
 			}
 			mCheckDue = -1;
-			uint64_t aHash = StateCodec::LogicHash(b);
-			if (aHash != (uint64_t) a[0])
+			uint64_t aHash = StateCodec::LogicHash(aBoard);
+			if (aHash != (uint64_t) anArgs[0])
 			{
 				char aText[96];
-				snprintf(aText, sizeof(aText), "LOGIC hash %016llx, the replay's %016llx", (unsigned long long) aHash, (unsigned long long) a[0]);
+				snprintf(aText, sizeof(aText), "LOGIC hash %016llx, the replay's %016llx", (unsigned long long) aHash, (unsigned long long) anArgs[0]);
 				aWhy = aText;
 				isOk = false;
 				break;
@@ -717,7 +717,7 @@ bool WatchController::Apply(const Replay::Event& theEvent)
 		isOk = false;
 		break;
 	}
-	b->mPlaybackApplying = false;
+	aBoard->mPlaybackApplying = false;
 	return isOk || Corrupt(aWhy, &theEvent);
 }
 
@@ -733,11 +733,11 @@ bool WatchController::NextSegment()
 // The replay's END against the board: the game over, New Game, or the tick it was dropped or saved at
 bool WatchController::Finish()
 {
-	Board* b = mBoard;
+	Board* aBoard = mBoard;
 	const Replay::EndInfo& anEnd = mFile.mEnd;
-	Replay::EndInfo aGot = b->GetEndInfo(anEnd.mReason);
+	Replay::EndInfo aGot = aBoard->GetEndInfo(anEnd.mReason);
 	const std::vector<Replay::Event>& anEvents = mFile.mSegments[mSegment].mEvents;
-	bool isGameOver = (b->mState == STATE_GAME_OVER_DONE);
+	bool isGameOver = (aBoard->mState == STATE_GAME_OVER_DONE);
 	std::string aWhy;
 	if ((anEnd.mReason == Replay::END_NO_MOVES) || (anEnd.mReason == Replay::END_TIME_UP) || (anEnd.mReason == Replay::END_GOLD_TIME_UP) ||
 		(anEnd.mReason == Replay::END_ARROW_ESCAPED))
@@ -771,14 +771,14 @@ bool WatchController::Finish()
 	// and the RNG the save was made with
 	if (aWhy.empty() && mFile.mHasSaveHash && mLastSaveExact)
 	{
-		std::string aSave = BufferBytes(b->mPlaybackSave);
+		std::string aSave = BufferBytes(aBoard->mPlaybackSave);
 		if (Replay::SaveHash(aSave.data(), aSave.size()) != mFile.mSaveHash)
 			aWhy = "SVHA is not the hash of the last save";
 	}
 	if (aWhy.empty() && mFile.mHasTrailingRng)
 	{
 		Replay::RngState aRng;
-		b->GetRngState(&aRng);
+		aBoard->GetRngState(&aRng);
 		if (!SameRng(aRng, mFile.mTrailingRng))
 			aWhy = "the sidecar's RNGS is not the board's RNG at the save";
 	}

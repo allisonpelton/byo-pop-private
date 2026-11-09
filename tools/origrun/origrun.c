@@ -1519,6 +1519,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 // Run one timed inner command (the tail of "at N ...") while the window thread is held. Capture/clicks/keys
 // are posted; the thread is resumed right after. burst manages its own per-frame holds, so it is run unheld.
 static LPARAM xy(int,int);
+static int parse_vk(const char*);
 static HWND child_at(HWND,int,int,POINT*);
 static void post_click(HWND,int,int,int);
 static void post_key(HWND,int);
@@ -1530,7 +1531,37 @@ static int  parse_vk(const char*);
 // (UpdateAppStep), and each millisecond of hold is time its clock runs on. A held click now holds the game for
 // about 0.04 ms instead of 60.
 static int gInputHeld = 0;
+static WPARAM gButtonsHeld = 0;   // MK_LBUTTON and MK_RBUTTON while a down edge has had no up: a move then carries them, as Windows' do, so a down, moves and an up on updates of their own make a drag
 static void input_gap(DWORD ms){ if (!gInputHeld && !vc_is_held()) Sleep(ms); }   // a game held on the virtual clock reads them all in order too
+// One key or button edge, or a double click, for an at line and for a plain script line alike (a game with no update
+// counter has only the plain ones). Returns 0 for any other command.
+static int post_edge(HWND hw, const char* cmd, const char* rest)
+{
+	if (ieq(cmd,"keydown")||ieq(cmd,"keyup")||ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge (kdown/kup: the same), so that a press can span updates (a game that polls its key state, or clears a key when it is let go, loses a down and up read in one update)
+		char v[32]; if(sscanf(rest,"%31s",v)==1) { int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
+			if (ieq(cmd,"keydown")||ieq(cmd,"kdown")) PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16)));
+			else PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); }
+		return 1;
+	}
+	if (ieq(cmd,"down")||ieq(cmd,"up")||ieq(cmd,"rdown")||ieq(cmd,"rup")){   // one button edge (rdown/rup: the right one), so that a click can span updates (a down and up read in one update are lost in some games)
+		int r=cmd[0]=='r'||cmd[0]=='R', down=ieq(cmd+r,"down");
+		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
+		if (n==2) cursor_note(hw,x,y);
+		WPARAM bit=r?MK_RBUTTON:MK_LBUTTON;
+		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp); gButtonsHeld|=bit; PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,gButtonsHeld,lp); }
+		else { gButtonsHeld&=~bit; PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,gButtonsHeld,lp); }
+		return 1;
+	}
+	if (ieq(cmd,"dclick")){   // a double click of the left button, the messages Windows sends a window whose class asks for double clicks
+		int x,y; if(sscanf(rest,"%d %d",&x,&y)!=2) return 1;
+		POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y); cursor_note(hw,x,y);
+		PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp);
+		PostMessageA(t,WM_LBUTTONDOWN,gButtonsHeld|MK_LBUTTON,lp); PostMessageA(t,WM_LBUTTONUP,gButtonsHeld,lp);
+		PostMessageA(t,WM_LBUTTONDBLCLK,gButtonsHeld|MK_LBUTTON,lp); PostMessageA(t,WM_LBUTTONUP,gButtonsHeld,lp);
+		return 1;
+	}
+	return 0;
+}
 static void exec_at(const char* inner)
 {
 	char cmd[32]={0}; int off=0; sscanf(inner,"%31s%n",cmd,&off); const char* rest=inner+off; while(*rest==' ')rest++;
@@ -1559,20 +1590,9 @@ static void exec_at(const char* inner)
 	else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,1); }
 	else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hw,parse_vk(v)); }
 	else if (ieq(cmd,"text")){ post_text(hw,rest); }
-	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); } }
+	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,gButtonsHeld,xy(x,y)); } }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }
-	else if (ieq(cmd,"keydown")||ieq(cmd,"keyup")||ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge (kdown/kup: the same), so that a press can span updates (a game that polls its key state, or clears a key when it is let go, loses a down and up read in one update)
-		char v[32]; if(sscanf(rest,"%31s",v)==1) { int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
-			if (ieq(cmd,"keydown")||ieq(cmd,"kdown")) PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16)));
-			else PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); }
-	}
-	else if (ieq(cmd,"down")||ieq(cmd,"up")||ieq(cmd,"rdown")||ieq(cmd,"rup")){   // one button edge (rdown/rup: the right one), so that a click can span updates (a down and up read in one update are lost in some games)
-		int r=cmd[0]=='r'||cmd[0]=='R', down=ieq(cmd+r,"down");
-		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
-		if (n==2) cursor_note(hw,x,y);
-		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,0,lp); PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,r?MK_RBUTTON:MK_LBUTTON,lp); }
-		else PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,0,lp);
-	}
+	else if (post_edge(hw,cmd,rest)) {}
 	else logline("at: cannot do '%s' at an update",cmd);
 	gInputHeld = 0;
 	if (th){ hold_end(th); CloseHandle(th); logline("at %s: the game was held %.2f ms", cmd, gLastHeldMs); }
@@ -1813,7 +1833,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		}
 		HWND hwnd = resolve_window(0,NULL);   // the live main window of any of our processes, fresh each command
 		if (!hwnd && !ieq(cmd,"quit")) { logline("(%s) no live window -- skipping",cmd); continue; }
-		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hwnd,x,y); PostMessageA(hwnd,WM_MOUSEMOVE,0,xy(x,y)); } }
+		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hwnd,x,y); PostMessageA(hwnd,WM_MOUSEMOVE,gButtonsHeld,xy(x,y)); } }
 		else if (ieq(cmd,"click")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hwnd,x,y,0); }
 		else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hwnd,x,y,1); }
 		else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hwnd,parse_vk(v)); }
@@ -1824,6 +1844,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		else if (ieq(cmd,"text")){ post_text(hwnd,rest); }
 		else if (ieq(cmd,"focus")){ post_focus(hwnd, ieq(rest,"regain")); logline("focus %s",rest); }
 		else if (ieq(cmd,"shot")){ char n[256]="shot"; sscanf(rest,"%255s",n); capture(hwnd,n); }
+		else if (post_edge(hwnd,cmd,rest)) logline("%s %s",cmd,rest);
 		else if (ieq(cmd,"quit")){ InterlockedExchange(&gMode3dFrozen,1); if(hwnd){ PostMessageA(hwnd,WM_SYSCOMMAND,SC_CLOSE,0); PostMessageA(hwnd,WM_CLOSE,0,0);} logline("quit (posted close)"); break; }
 		else logline("unknown script command: %s",cmd);
 	}
@@ -2896,7 +2917,23 @@ static int coverage_import(const char* exe)
 	}
 	int room = hdrEnd<=nt->OptionalHeader.SizeOfHeaders && hdrEnd<=firstRaw && hdrEnd<=len;
 	for (unsigned char* q=(unsigned char*)&sec[ns]; room && q<b+hdrEnd; q++) if (*q) room=0;
+	int moved=0;
+	if (!room && hdrEnd<=nt->OptionalHeader.SizeOfHeaders && hdrEnd<=firstRaw && hdrEnd<=len) {
+		// The bytes after the section table are taken (Mahjong Escape keeps its copyright text there): move the NT headers
+		// and the section table up over the DOS stub, which the loader never reads, by one section header or a little more.
+		DWORD old=(DWORD)dos->e_lfanew, tableEnd=(DWORD)((unsigned char*)&sec[ns]-b);
+		DWORD nw=(old-(DWORD)sizeof(IMAGE_SECTION_HEADER))&~7u;
+		if (old>=sizeof(IMAGE_DOS_HEADER)+sizeof(IMAGE_SECTION_HEADER) && nw>=sizeof(IMAGE_DOS_HEADER)) {
+			memmove(b+nw,b+old,tableEnd-old);
+			memset(b+nw+(tableEnd-old),0,old-nw);   // the old table's last bytes, now the new section header's room
+			dos->e_lfanew=(LONG)nw;
+			nt=(IMAGE_NT_HEADERS32*)(b+nw); sec=IMAGE_FIRST_SECTION(nt);
+			hdrEnd=(DWORD)((unsigned char*)&sec[ns+1]-b);
+			room=1; moved=1;
+		}
+	}
 	if (!room) { logline("--coverage: no room in %s for another section header; not changed", exe); free(b); return 0; }
+	if (moved) logline("--coverage: the bytes after %s's section table are in use, so its headers move up over the DOS stub", exe);
 
 	static const char kFunc[]="DirectSoundCreate", kDll[]="dsound.dll";
 	DWORD fa=nt->OptionalHeader.FileAlignment, sa=nt->OptionalHeader.SectionAlignment;

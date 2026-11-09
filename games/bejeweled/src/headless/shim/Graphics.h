@@ -3,7 +3,7 @@
 
 // port(variant): headless shim of framework/Graphics.h for the verifier (games/bejeweled/docs/CODE_MODS_DESIGN.md
 // 6.9). Not part of the original game. Drawing does nothing: no draw writes a field play reads (Board::Draw,
-// SetupLevel's background and ColorizeText only write image bits), so a headless board plays as a drawn one.
+// SetupLevelData's background and ColorizeText only write image bits), so a headless board plays as a drawn one.
 
 #include "Common.h"
 #include "Rect.h"

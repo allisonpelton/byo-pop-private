@@ -258,13 +258,19 @@ function entryNames(p) {
   p.C.save("bigmoney", "Big Money", set([200, 20, 30], pic(54, 20, 99)));
   // BookWorm's pointer: Alchemy's, its colours up to three steps off
   p.C.save("bookworm", "BookWorm", set([197, 20, 30], pic(37, 1, 77)));
-  // Bejeweled Twist's: Alchemy's design kept as JPEG 2000, a few pixels up to 33 off, and a faint edge (alpha 9) from its masks
-  const twist = (w, ox, colour) => {
+  // Bejeweled Twist's: Alchemy's design kept as JPEG 2000, a few pixels up to 33 off, and a faint edge (alpha 9) from its masks;
+  // its hand as the decoder gives it now has a stray pixel or two 47 off
+  const twist = (w, ox, colour, strays) => {
     const c = canvas(w, w, ox, ox, colour), at = (x, y) => ((ox + y) * w + ox + x) * 4;
     c.data[at(2, 4)] += 33; c.data.set([90, 90, 90, 9], at(3, 1)); c.data.set([0, 0, 0, 9], at(7, 6));
+    (strays || []).forEach((s) => { c.data[at(s[0], s[1])] += s[2]; });
     return p.C.picture(c, ox, ox);
   };
-  p.C.save("bejeweledtwist", "Bejeweled Twist", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { pointer: twist(54, 9, 200), hand: twist(58, 11, 20) }));
+  const strayHand = (strays) => twist(37, 2, 20, strays);
+  p.C.save("bejeweledtwist", "Bejeweled Twist", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { pointer: twist(54, 9, 200), hand: twist(58, 11, 20, [[0, 5, 47]]) }));
+  // too many pixels off, or one too far off, is another picture
+  p.C.save("many", "Many Pixels Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: strayHand([[0, 1, 47], [0, 2, 47], [1, 2, 47], [0, 3, 47]]) }));
+  p.C.save("far", "One Pixel Far Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: strayHand([[0, 5, 90]]) }));
   p.C.save("near", "Hot Spot A Pixel Off", Object.assign(set([200, 20, 30], pic(37, 1, 77)), { hand: pic(37, 2, 20, 1) }));
   // Atomica's are green
   p.C.save("p", "Pointer Differs", set([90, 20, 30], pic(37, 1, 77)));
@@ -277,7 +283,7 @@ function entryNames(p) {
     "faint edges or by a hot spot a pixel away share " +
     "an entry; another colour, a missing shadow or a hot spot further away in the pointer or hand keeps a set apart", entryNames(p),
     ["Default", "Alchemy, Bejeweled, Bejeweled Twist, Big Money, BookWorm and Hot Spot A Pixel Off", "Hand Differs",
-      "Hand Without Shadow", "Hot Spot Three Pixels Off", "Pointer Differs"]);
+      "Hand Without Shadow", "Hot Spot Three Pixels Off", "Many Pixels Off", "One Pixel Far Off", "Pointer Differs"]);
   const dragPic = () => { const el = node("div"); p.C.render(el);
     return el.children[0].children[1].children[1].children[1].children.find((i) => i.attrs["data-kind"] === "drag").src; };
   check("the entry pictures the dragging cursor of the first by title", dragPic(), p.C.all().alchemy.drag.url);

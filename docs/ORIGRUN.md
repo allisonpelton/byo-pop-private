@@ -161,6 +161,11 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   since a game's window can be slow to appear while it tries to phone home).
 - `key <vk>` — a virtual-key press (decimal or `0x..`).
 - `text <chars...>` — type the rest of the line.
+- `down x y` / `up x y` (`rdown` / `rup` for the right button), `keydown <vk>` / `keyup <vk>`, `dclick x y` — one
+  edge of a button or key, or a double click (down, up, `WM_LBUTTONDBLCLK`, up), posted now. They are the same as at an
+  `at` line (below) and are for a game with no update counter (Mahjong Escape): a `wait` between the edges makes a held
+  press, and moves in between make a drag. A held key changes no key state the game reads with `GetKeyState` or
+  `GetAsyncKeyState` (Ctrl+C as `keydown 17`, `key 67`, `keyup 17` works only in a game that reads its messages).
 - `focus lose` / `focus regain` — post the deactivate/activate messages a window gets when it loses and
   regains the focus (`WM_ACTIVATEAPP`, `WM_ACTIVATE`, `WM_KILLFOCUS`/`WM_SETFOCUS`).
 - `shot <name>` — capture the window to `shots/<name>.png` now.
@@ -184,9 +189,12 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   of them is refused at the start, and each one is refused (logged) should it run on the host anyway. In the
   sandbox `hwmove` lights no hover on a SAF game (Seven Seas, 2026-11-01): use a posted `move` for hover there.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
-  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `keydown`/`keyup` for one edge of a key (`kdown`/`kup` are the same; a game that polls its key state, or clears a key
+  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `dclick`, `keydown`/`keyup` for one edge of a key (`kdown`/`kup` are the same; a game that polls its key state, or clears a key
   when it is let go, loses a `key`'s down and up in one update), `down`/`up` or `rdown`/`rup` for one edge of the left or
-  right button, or `burst`), then resume it. Lands on the exact update
+  right button, or `burst`), then resume it; `quit` is not among them (origrun logs that it cannot do it at an update), so a
+  script that ends on its own puts a plain `quit` line after its last `at` line. A `move` while a `down` has had no `up`
+  carries that button's flag (MK_LBUTTON, MK_RBUTTON), as Windows' moves do, so a drag is a `down`, one or more `move`s and
+  an `up`, each at an update of its own. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
   the same game update rather than the same wall-clock time. A held game reads all the posted messages before its
   next update, so `at N click x y` gives it the down and the up in the same update, which some games lose; `at N
@@ -1015,7 +1023,9 @@ The recorder sees only what runs after the stand-in loads, and a game that takes
 copy's exe one more import, the stand-in's `DirectSoundCreate`, in a section of its own (`.orcov`): Windows then loads
 the stand-in with the exe's other DLLs, before the game's first instruction. The exe keeps its unpatched bytes beside
 it (`.origrun-unpatched`) and the next run puts them back, as with the patch list (`--patches`); an exe that imports
-`dsound.dll` already is left alone. The run log says what was done, and its last line gives the number of functions
+`dsound.dll` already is left alone. The new section header needs 40 free bytes after the section table; where they hold
+something else (Mahjong Escape keeps its copyright text there), origrun moves the PE headers and the section table up
+over the DOS stub, which the loader never reads, and fixes `e_lfanew`. The run log says what was done, and its last line gives the number of functions
 reached and whether the game ended normally (the hits file's closing line).
 
 Each line of the hits file is `<address> <order> <thread id>`, in the order the functions were first reached; lines
@@ -1023,7 +1033,8 @@ that start with `#` are the recorder's own (how many functions it watched, how m
 exe's code and were left out, and the closing line). Limits: the exe's own functions only (not the game's DLLs, such as
 `bass.dll`); a function is reached or not, with no count of calls and no lines or branches; code that reads its own bytes
 (a checksum of the exe) would see the breakpoints; not inside Windows Sandbox yet. `tools/origrun/covtest.sh` (in
-check.sh's origrun suite) runs it on `covtest.exe`, a program with no window and no sound, built for ASLR.
+check.sh's origrun suite) runs it on `covtest.exe`, a program with no window and no sound, built for ASLR, once as built
+and once with text after its section table (`tools/origrun/fillslack.py`).
 
 ## Hardware acceleration (3D mode)
 

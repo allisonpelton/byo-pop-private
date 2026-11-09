@@ -1,0 +1,38 @@
+# five saved adventures (the Delete Game button is there only when every slot holds one): the list of them, the one to
+# delete (which brings the list back, now with a free slot and no Delete Game button), a new game in the free slot with the
+# name box (Enter, a name with a comma, a name in use, a good one), then a saved game played (needs adv0.sav to adv4.sav,
+# all named Bot, in the user folder; the box is clicked again after a message closes (the original's old widget manager does not give the focus back); the coverage check's gap run, docs/COVERAGE.md)
+99 title
+1000 click 185 426
+1200 shot slots
+1210 click 320 342
+1400 shot delete
+1410 click 320 225
+1600 shot afterdel
+1610 click 320 225
+1800 shot newname
+1810 text a,b
+1850 key 13
+1900 shot entered
+1910 click 320 300
+2050 shot invalid
+2100 click 320 257
+2150 click 320 241
+2200 key 8
+2204 key 8
+2208 key 8
+2212 text Bot
+2260 shot typedBot
+2270 click 320 300
+2400 shot inuse
+2410 click 320 257
+2450 click 320 241
+2500 key 8
+2504 key 8
+2508 key 8
+2512 text bot
+2560 click 320 300
+2800 shot intro
+2850 click 320 360
+3000 shot map
+3100 quit
