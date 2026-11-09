@@ -74,9 +74,11 @@ AtomicaApp::AtomicaApp()
 	mSprites = new SpriteMgr(this);
 }
 
+// 0x406260
 AtomicaApp::~AtomicaApp()
 {
 	delete mSprites;
+	mSprites = NULL;	// a menu still up when the app goes frees its sprites in its destructor
 }
 
 // 0x4067b0
@@ -114,7 +116,7 @@ void AtomicaApp::Init()
 	mWidgetManager->AddWidget(mTitleScreen);
 }
 
-// the title screen's play link was clicked: the menu's doors close over it (and the slam deletes it, 0x405e20)
+// 0x4061f0: the title screen's play link was clicked: the menu's doors close over it (and the slam deletes it, 0x405e20)
 void AtomicaApp::TitleScreenDone()
 {
 	if (mMenu != NULL)	// port: the title screen is still there until the doors have shut; a second click does not start over

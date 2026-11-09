@@ -1,0 +1,19 @@
+# save: elements-action
+# The elements game of the strategy kind in the action mode (mode 1: mksave.py "elements-action", one element atom of each kind placed in the field),
+# continued from the main menu and a double click on each of them in turn: in the action mode what the elements set off reaches the
+# meter (Meter::Hit, 0x4058a0), which the strategy mode's run of the same game (sv-elements) never does.
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+2600 move 390 65
+2610 dclick 390 65
+2900 move 590 65
+2910 dclick 590 65
+3200 move 190 415
+3210 dclick 190 415
+3500 move 590 415
+3510 dclick 590 415
+3800 move 190 65
+3810 dclick 190 65
+end 4400

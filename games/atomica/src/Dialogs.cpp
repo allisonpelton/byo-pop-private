@@ -73,7 +73,7 @@ GameDialog::GameDialog(AtomicaApp* theApp, bool theCentered) :
 	Resize(mBoxX, mBoxY, 0, 0);
 }
 
-// 0x4167a0
+// 0x4167a0 / 0x432c00
 GameDialog::~GameDialog()
 {
 	mButtons.Reset();
@@ -107,7 +107,7 @@ void GameDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	Widget::Resize(mBoxX, mBoxY, mApp->mDialogMonitor->mWidth, mApp->mDialogMonitor->mHeight);
 }
 
-// 0x416890
+// 0x416890 / 0x422950 (the options box's own adds its two sliders, which are in mOthers here)
 void GameDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -132,7 +132,7 @@ void GameDialog::AddedToManager(WidgetManager* theWidgetManager)
 	}
 }
 
-// 0x416940
+// 0x416940 / 0x422990 (the options box's own removes its two sliders, which are in mOthers here)
 void GameDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

@@ -1,0 +1,24 @@
+# save: over
+# A saved game at level 4 with a high score and the field full but for two cells (mksave.py), continued in the original: a move that lets the
+# round come (two atoms placed ahead), a second move onto a placed-ahead cell that fills the field, the game over, the high score entry
+# (a name typed, "save"), the end-of-game page and "main menu".
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+2700 move 490 415
+2710 click 490 415
+2720 move 520 415
+2730 move 540 415
+2740 click 540 415
+3000 move 440 415
+3010 click 440 415
+3020 move 470 415
+3030 move 490 415
+3040 click 490 415
+4200 text Ada
+4300 move 270 338
+4310 click 270 338
+5500 move 206 392
+5510 click 206 392
+end 6500

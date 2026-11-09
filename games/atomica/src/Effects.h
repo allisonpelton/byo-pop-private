@@ -27,7 +27,7 @@ public:
 	float		mVY;			// +0x14
 
 	Effect(AtomicaApp* theApp) : mApp(theApp), mX(0), mY(0), mVX(0), mVY(0) {}	// 0x401000
-	virtual ~Effect() {}
+	virtual ~Effect() {}	// 0x401020: the original's GameObj destructor only sets its vtable
 	virtual bool Update() = 0;
 	virtual void Draw(Graphics* g) = 0;
 };

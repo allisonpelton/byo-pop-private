@@ -1,3 +1,92 @@
 export re/atomica/gh/functions.jsonl
 src games/atomica/src
 game 00401000-00435ff0
+# Game code the port leaves out on purpose, found by the coverage check of 2026-11-09 (GAME_NOTES.md, "Coverage check"): the compiler's
+# scalar deleting destructors and vtable-only destructors, MSVC 7.0's std::string helpers (the port uses std::string), the
+# framework glue the platform layer replaces, and what the port keeps in another shape.
+none 004014a0 wrapper of 0x40c4c0 (the middle of a cell in pixels, Grid::CellToPixel, Grid.cpp:146) with the same arguments, called by the mouse handler 0x40e7f0; the port's Grid::MouseDown calls CellToPixel itself (Grid.cpp:397)
+none 00401c30 scalar deleting destructor of Atom: calls its destructor (0x401060, ported as Atom::~Atom, Atom.cpp:225) and frees the object; the compiler makes it
+none 004030c0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): frees a heap buffer and empties the string; the port uses std::string
+none 00403310 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): frees a heap buffer and empties the string; the port uses std::string
+none 00403340 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): grows the buffer (_Grow); the port uses std::string
+none 004033be std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): the second half of 0x403340, which Ghidra split off (copies the text into the new buffer); the port uses std::string
+none 00403460 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): reserve / shrink the buffer; the port uses std::string
+none 00403530 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): erase(pos, n); the port uses std::string
+none 00403610 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): assign(string, pos, n); the port uses std::string
+none 004036d0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): assign(char*, n); the port uses std::string
+none 00403780 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): assign(char*); the port uses std::string
+none 004037b0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): the constructor from a char*; the port uses std::string
+none 004047c0 ElementAtom's override of DrawAimLine (Atom.h:98): only calls Atom's (0x401c60) with the same argument; the port's ElementAtom inherits it
+none 00404ad0 scalar deleting destructor of ElementAtom: calls its destructor (0x404630, ported as ElementAtom::~ElementAtom, Elements.cpp:85) and frees the object; the compiler makes it
+none 004056a0 destructor of the level meter (Meter, Board.h:32): sets only its vtable pointer; the port's Meter has no virtual functions
+none 00405ad0 WinMain glue: stores the instance, runs the app's Init (0x4067b0) and Start, then 0x406220; the platform layer's main does the same (src/main.cpp:158-161)
+none 00405cf0 empty virtual function (the ButtonListener's and Image's do-nothing slots); the framework's base classes have their own
+none 00406220 WinMain glue, the shutdown half: writes the high score file (0x405f30) and calls SexyApp's Shutdown; main.cpp:161 calls Shutdown, and the port writes the high scores when a score is added (DialogScore.cpp:86)
+none 00406240 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): the constructor of an empty string (length 0, capacity 15, first byte 0); the port uses std::string
+none 00406340 ButtonListener's default handler (vtable slot 0, forwards to the empty slot 1); the framework's ButtonListener (framework/ButtonListener.h) replaces it
+none 00406350 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): append(string, pos, n); the port uses std::string
+none 00406480 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): the copy constructor; the port uses std::string
+none 004064b0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): assignment from a string; the port uses std::string
+none 004064d0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): operator+(char*, string); the port uses std::string
+none 0040b9c0 scalar deleting destructor of Atomicus: calls its destructor (0x40b2a0, ported as Atomicus::~Atomicus, Atomicus.cpp:41) and frees the object; the compiler makes it
+none 0040c2b0 destructor of the atom-pop effect (Effects.h:71): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 0040c2e0 scalar deleting destructor of the atom-pop effect: calls its destructor (0x40c2b0) and frees the object; the compiler makes it
+none 0040e640 scalar deleting destructor of Grid: calls its destructor (0x40c340, ported as Grid::~Grid, Grid.cpp:98) and frees the object; the compiler makes it
+none 004145b0 BonusMolecules destructor: deletes the thirty pattern objects of its three lists; the port's patterns are a static table (BonusMolecules.cpp:17), nothing to free
+none 004153c0 scalar deleting destructor of BonusMolecules: calls its destructor (0x4145b0, which has nothing to free in the port) and frees the object; the compiler makes it
+none 00415ac0 bonus-pattern destructor: frees the pattern's cell array; the port's patterns are a static table (BonusMolecules.cpp:17)
+none 00415c60 scalar deleting destructor of BonusPattern: calls its destructor (0x415ac0, which has nothing to free in the port) and frees the object; the compiler makes it
+none 00415d90 scalar deleting destructor of the bonus molecule's effect: calls its destructor (0x415c90, ported as the destructor of BonusEffect, BonusMolecules.cpp:58) and frees the object; the compiler makes it
+none 004166e0 destructor of the flash effect (Effects.h:48): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 00416710 scalar deleting destructor of the flash effect: calls its destructor (0x4166e0) and frees the object; the compiler makes it
+none 004170a0 scalar deleting destructor of Shatter: calls its destructor (0x416f00, ported as Shatter::~Shatter, Effects.cpp:243) and frees the object; the compiler makes it
+none 00417260 destructor of the Bolt effect (Effects.h:199): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 004173c0 scalar deleting destructor of Bolt: calls its destructor (0x417260) and frees the object; the compiler makes it
+none 00417ad0 destructor of the spark effect (Effects.h:60): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 00417b00 scalar deleting destructor of the spark effect: calls its destructor (0x417ad0) and frees the object; the compiler makes it
+none 00417ec0 scalar deleting destructor of QuitDialog: calls its destructor (0x417d30, ported as QuitDialog::~QuitDialog, DialogQuit.cpp:26) and frees the object; the compiler makes it
+none 00418cd0 destructor of the drifting-picture effect (Effects.h:35): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 00418d10 scalar deleting destructor of the drifting-picture effect: calls its destructor (0x418cd0) and frees the object; the compiler makes it
+none 00418e20 destructor of the blast effect (Effects.h:81): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 00418e30 scalar deleting destructor of Blast: calls its destructor (0x418e20) and frees the object; the compiler makes it
+none 004191a0 the compiler's vector constructor iterator: runs the point constructor (0x401490) over the three 8-byte points of a local array in 0x424b40; the port's PathFinder::DrawNode declares its Point aPoints[3] (PathFinder.cpp:323) and needs no iterator
+none 004198b0 scalar deleting destructor of MainMenu: calls its destructor (0x4190b0, ported as MainMenu::~MainMenu, Menu.cpp:113) and frees the object; the compiler makes it
+none 0041c4b0 destructor of the spark effect (Effects.h:236): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 0041c5c0 scalar deleting destructor of the spark effect: calls its destructor (0x41c4b0) and frees the object; the compiler makes it
+none 0041ced0 scalar deleting destructor of HighScoreDialog: calls its destructor (0x41ca20, ported as HighScoreDialog::~HighScoreDialog, DialogScore.cpp:48) and frees the object; the compiler makes it
+none 0041e240 constructor of the high score table: sets its vtable only; the port's ScoreTable has no virtual functions (HighScores.h:15)
+none 0041e250 destructor of the high score table: sets its vtable only; the port's ScoreTable has no virtual functions
+none 0041e430 high score table: stores the app pointer (+4), which only the creation of the name entry box in 0x41e440 uses; the port's ScoreTable keeps no app pointer and the app makes the box (AppGame.cpp:84)
+none 0041ea10 scalar deleting destructor of HighScoresBox: calls its destructor (0x41e690, ported as HighScoresBox::~HighScoresBox, Menu.cpp:606) and frees the object; the compiler makes it
+none 0041ffc0 destructor of the board's flicker object: sets its vtable only; the port keeps it as an int (Board.h:77)
+none 00420010 scalar deleting destructor of the flicker object: calls its destructor (0x41ffc0) and frees the object; the compiler makes it
+none 00420280 scalar deleting destructor of LevelUpDialog: calls its destructor (0x420170, ported as LevelUpDialog::~LevelUpDialog, Dialogs.cpp:237) and frees the object; the compiler makes it
+none 00421730 destructor of the earth-bolt effect (Effects.h:158): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 00421740 scalar deleting destructor of EarthBolt: calls its destructor (0x421730) and frees the object; the compiler makes it
+none 00421af0 destructor of the sine and cosine table object (0x421a90): sets its vtable only
+none 00421c60 destructor of Atomicus' mouth object (0x421c40): sets its vtable only
+none 00421e80 destructor of the explosion effect (Effects.h:143): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 00421ee0 scalar deleting destructor of Explosion: calls its destructor (0x421e80) and frees the object; the compiler makes it
+none 004220e0 ConfirmDialog::AddedToManager: only calls GameDialog::AddedToManager (0x416890); the port's ConfirmDialog inherits it
+none 004220f0 ConfirmDialog::RemovedFromManager: only calls GameDialog::RemovedFromManager (0x416940); the port's ConfirmDialog inherits it
+none 00422890 destructor of the nuke-flash effect (Effects.h:133): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 004228b0 scalar deleting destructor of NukeFlash: calls its destructor (0x422890) and frees the object; the compiler makes it
+none 00423470 scalar deleting destructor of OptionsDialog: calls its destructor (0x4229d0, ported as OptionsDialog::~OptionsDialog, DialogOptions.cpp:43) and frees the object; the compiler makes it
+none 00424e50 scalar deleting destructor of PathFinder: calls its destructor (0x424970, ported as PathFinder::~PathFinder, PathFinder.cpp:21) and frees the object; the compiler makes it
+none 00425110 destructor of the infect-bolt effect (Effects.h:218): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
+none 00425200 scalar deleting destructor of InfectBolt: calls its destructor (0x425110) and frees the object; the compiler makes it
+none 004259c0 PtrList destructor: frees the array; the port's PtrList holds a std::vector, which frees itself
+none 00425d70 scalar deleting destructor of PtrList: calls its destructor (0x4259c0) and frees the object; the compiler makes it
+none 00425e20 destructor of the game's random number generator (GameRand): sets its vtable only; the port's GameRand has no virtual functions
+none 004292a0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): append(char*, n); the port uses std::string
+none 004293c0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): operator+(string, char*); the port uses std::string
+none 00429670 calls Image slot 21 (MemoryImage::Palletize) on 24 pictures the loading thread has just loaded: it turns a picture of at most 255 colours into an 8-bit palette picture (same pixels, less memory) and leaves the others as they are; the port keeps 32-bit pictures
+none 004296b0 scalar deleting destructor of Sprite: calls its destructor (0x4295e0, ported as Sprite::~Sprite, Support.cpp:88) and frees the object; the compiler makes it
+none 00429960 SpriteMgr: stores the Graphics pointer a draw hands it (+0x20); nothing in the original reads it (Support.h:195)
+none 00429e00 scalar deleting destructor of FloatyText: calls its destructor (0x429da0, ported as FloatyText::~FloatyText, Effects.cpp:305) and frees the object; the compiler makes it
+none 0042a2b0 HintBox override of Resize that only calls Widget::Resize with the same arguments; the port's constructor calls Widget::Resize (HintBox.cpp:81)
+none 0042a7e0 scalar deleting destructor of HintBox: calls its destructor (0x42a0b0, ported as HintBox::~HintBox, HintBox.cpp:247) and frees the object; the compiler makes it
+none 0042fe60 scalar deleting destructor of TitleScreen: calls its destructor (0x42fd10, ported as TitleScreen::~TitleScreen, Screens.cpp:54) and frees the object; the compiler makes it
+none 00433050 scalar deleting destructor of Board: calls its destructor (0x4319c0, ported as Board::~Board, Board.cpp:241) and frees the object; the compiler makes it
+none 00435fe0 destructor of the framework's Graphics: sets the vtable; the port's framework has its own Graphics
+none 00435ff0 framework: Graphics::GetFont (returns the font in use); the port's framework has its own Graphics
