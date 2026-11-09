@@ -45,6 +45,7 @@ TitleScreen::TitleScreen(NoahApp* theApp) :
 	mHasTransparencies = false;
 }
 
+// 0x41fbf0: the destructor deletes the play link (the original also deletes its register link, which the port does not have)
 TitleScreen::~TitleScreen()
 {
 	delete mPlayLink;
@@ -303,6 +304,7 @@ NextLevelWidget::NextLevelWidget(NoahApp* theApp) :
 	mApp->PlaySample(SOUND_LEVELUPVOICE);
 }
 
+// 0x415180: the destructor deletes the link and the panel's picture
 NextLevelWidget::~NextLevelWidget()
 {
 	delete mNextLink;
@@ -472,8 +474,11 @@ HighScoreWidget::HighScoreWidget(NoahApp* theApp) :
 	Load();
 }
 
+// 0x411e20: the original writes hiscores.dat here, when the widget goes (AddScore only changes the list). The port also saves in
+// AddScore, since the web build never destroys the widget at a tab's close.
 HighScoreWidget::~HighScoreWidget()
 {
+	Save();
 	delete mMenuLink;
 }
 
