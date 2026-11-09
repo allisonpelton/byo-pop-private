@@ -1374,7 +1374,7 @@ too).
 
 The decoder is the games' own two module renderers, built for the web on their own as `openmpt.js` and `openmpt.wasm` beside the
 pages (target `byopop_openmpt`, from `web/music/openmpt_web.c`, a handful of C wrappers: load, subsongs, select, orders, repeat,
-length, render, and stb_vorbis's whole-file decode). As `Platform::Mixer` picks them, an MO3 or OXM plays through libopenmpt at the
+length, render, seek, the tracker view's position and rows, and stb_vorbis's whole-file decode). As `Platform::Mixer` picks them, an MO3 or OXM plays through libopenmpt at the
 port's settings and every other module (S3M, IT, XM) through libxmp-lite, so that a tune sounds as it does in its game (below,
 "Music levels"); libxmp-lite's sequences are the subsongs there, and for every game's modules they are libopenmpt's, the same
 number of the same lengths. It holds no game code, and the page loads it only when the tab is first opened. Its licence is
@@ -1385,10 +1385,28 @@ AudioWorklet (its source is a string in music.js, loaded through a Blob URL), ke
 has used a chunk, and when it runs dry after a tune's end, which moves on to the next tune; after the last tune the first one plays
 again. A new tune flushes the worklet's queue, and the worklet answers the flush, so the messages about the tune before are ignored.
 
-The player is in one state at a time: idle, loading, playing or paused. It has Play/Pause, Next, a "Repeat the tune" box (libopenmpt
-repeats a subsong for ever; a range of orders or decoded sound starts again at its start) and a volume slider (a GainNode). The
-repeat box and the volume are kept in `localStorage`
-(`byopop-music-loop`, `byopop-music-volume`). Each tune in the list is a button that plays it. The Media Session API gets the
+The player is in one state at a time: idle, loading, playing or paused. Its controls are a media player's (the user, 2026-11-08),
+drawn in the page (their pictures are SVG paths in music.js, named for screen readers by the strings): Previous (the tune's own
+start once it has played more than 3 seconds, else the tune before), Play/Pause, Stop (the tune stays chosen, back at its start)
+and Next; a seek bar between the time heard and the tune's length; a "Repeat the tune" box (libopenmpt repeats a subsong for ever; a
+range of orders or decoded sound starts again at its start) and a volume slider (a GainNode). The time heard is the decoder's
+position at the start of the chunk the worklet plays plus the context's time since it began it, so it is what the listener hears,
+not the second ahead the decoder has rendered. A seek moves the decoder (libopenmpt to the time; libxmp-lite to the frame nearest it,
+`xmp_seek_time_frame`; decoded sound to its sample) and flushes the worklet. The repeat box, the volume and the two views are kept in
+`localStorage` (`byopop-music-loop`, `byopop-music-volume`, `byopop-music-tracker`, `byopop-music-spectrum`). Each tune in the list
+is a button that plays it, its name on one line, cut with an ellipsis where it does not fit (the name whole in its tooltip).
+
+Two views can be shown. **Spectrum**: 28 bars from 40 Hz to 16 kHz, spaced as the ear hears them, each with a peak that falls back
+(a Web Audio AnalyserNode, put between the worklet and the volume only while the view is on, so the bars are the tune's own whatever
+the volume, and still move at `?silent=1`). **Tracker**, for a module's tune (an Ogg tune has no patterns, and the view is not
+shown): the order, pattern and row heard, and the nine rows around it, each channel's cell as libopenmpt writes it
+(`openmpt_module_format_pattern_row_channel`) or, for libxmp-lite's modules, its note, instrument, volume and effect (the effect as
+libxmp-lite's own type, in hex). While the view is on and the player is on the screen, the decoder renders in slices of 512 frames
+and notes its pattern and row before each, so the view shows the row of the slice being heard; otherwise it renders as before and
+is never asked, so a closed view or window costs nothing. A frame's look at the clock and the views runs only while a tune plays (and
+while the spectrum's bars fall back after it). In Desktop 95 both views are black screens in a sunken edge, the bars green with
+yellow peaks, the row heard in the selection's navy. tools/musictest.js (unit-web) checks the decoder's view, rows and seek on a
+small ProTracker module it makes, and on a staged MO3 when there is one. The Media Session API gets the
 tune's name, the game as the artist and the game's icon, and its play, pause, next, previous and stop handlers, so the keyboard's
 media keys and the system's media controls drive the player. At `?silent=1` the volume's GainNode reaches the speakers only through a
 second gain of 0, so they get exact zeros, and the status line ends in "(silent)". The graph has to reach the destination all the
