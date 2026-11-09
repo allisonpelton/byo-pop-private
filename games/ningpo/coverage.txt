@@ -1,0 +1,15 @@
+# tools/coverage.py's settings for Ning Po Mahjong Deluxe (docs/COVERAGE.md).
+export re/ningpo/gh/functions.jsonl
+src games/ningpo/src
+src games/ningpo/engine
+# The game's own code, which the port translates (docs/README.md, "The binary"): the game and Pyrogon's PG framework
+# (0x401010 to the framework's last function), the H layer under it, and the window procedure, which the linker put
+# among the libraries. The rest of the exe is the C runtime (0x418380..0x422af4), Lua 4 (from 0x429010), the Ogg Vorbis
+# decoder and its glue, minizip and zlib, the IJG JPEG library and DirectX's GUIDs.
+game 00401010-00417b10
+game 00422b10-00428fb0
+game 00433290-00433837
+# Game code the port leaves out on purpose.
+none 0040c890 WinMain: the platform layer's main starts the game (src/main.cpp)
+none 00405cd0 NingPo::checkRegistration: registration code (docs/README.md, "Left out"); origrun's patch answers it
+none 0040edb0 PGApp::checkRegistration: registration code
