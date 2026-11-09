@@ -27,7 +27,7 @@ void OptionsDialog::CheckboxChecked(int theId, bool checked)
 {
 	if ((theId == FULLSCREEN_CHECKBOX_ID) && (!checked) && (mApp->mForceFullscreen))
 	{
-		mApp->ShowColorDepthDialog();
+		mApp->DoColorDepthExplanation();
 		mFullscreenCheckbox->SetChecked(true, true);
 	}
 }
@@ -142,9 +142,9 @@ void OptionsDialog::ButtonDepress(int theId)
 	Dialog::ButtonDepress(theId);
 
 	if (theId == HELP_BUTTON_ID)
-		mApp->ShowFullInstructionsDialog();
+		mApp->DoFullInstructions();
 	else if (theId == HIGH_SCORES_BUTTON_ID)
-		mApp->ShowHighScoreDialog();
+		mApp->DoHighScoreDialog();
 	else if (theId == MODS_BUTTON_ID)
 		mApp->OpenModMenu(); // port(mods): over this dialog, which stays open
 	else if (theId == EXTRAS_BUTTON_ID)

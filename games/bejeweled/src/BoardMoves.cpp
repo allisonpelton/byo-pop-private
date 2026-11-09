@@ -3,7 +3,7 @@
 //
 // A twist turns a 2x2 block a quarter turn in TWIST_STEPS ticks, at MoveSet's integer cos and sin; a slide moves a
 // segment's gems k cells on in moves.slide.snapTicks ticks, wrapping inside the segment. Both run as a swap runs
-// (UpdateSwap, 0x4cd84f): at the end the move is made in the grid and ProcessMatches decides; a move without a group
+// (UpdateSwapping, 0x4cd84f): at the end the move is made in the grid and FindSets decides; a move without a group
 // goes back (with bad2), or stays with moves.allowInvalid (KeepInvalidMove). One that goes back is undone in the grid
 // at once and only its gems' positions turn back, so the grid holds the board before the move in all four states.
 
@@ -227,14 +227,14 @@ void Board::StartSlide(int theAxis, int theLine, int theStart, int theK, int the
 	MarkDirty();
 }
 
-// UpdateSwap's end (0x4cd84f) for a twist or a slide that has run: the move stands with a group, goes back, or with
+// UpdateSwapping's end (0x4cd84f) for a twist or a slide that has run: the move stands with a group, goes back, or with
 // moves.allowInvalid stays
 static void EndForwardMove(Board* theBoard, WinDMApp* theApp, int theBackState)
 {
 	CommitMove(theBoard, theBoard->mMoveInPlay);
 	theBoard->mCascadeCount = 1;
 	theBoard->mMoveMatchCount = 0;
-	if (theBoard->ProcessMatches())
+	if (theBoard->FindSets())
 	{
 		theBoard->mState = STATE_CLEARING;
 		if (theBoard->mShowTutorial)
@@ -515,7 +515,7 @@ void Board::DrawMovesUnder(Graphics* g)
 		if (aPiece == NULL)
 			continue;
 		int aPos = isSliding ? (int)((isRow ? aPiece->mX - anOriginX : aPiece->mY - anOriginY)) : Wrap(i * CELL_SIZE + mDragOffset, aSpan);
-		Rect aSrc(aPiece->mSpinFrame * 52 + 2, aPiece->mColor * 104, GEM_SIZE, GEM_SIZE);
+		Rect aSrc(aPiece->mSpinFrame * GEMSHEET_PITCH + 2, aPiece->mColor * GEMSHEET_COLOR_HEIGHT, GEM_SIZE, GEM_SIZE);
 		for (int aCopy = 0; aCopy < 2; aCopy++)
 		{
 			int anAt = aPos - aCopy * aSpan;
@@ -545,7 +545,7 @@ void Board::DrawMovesOver(Graphics* g)
 	else if ((mState != STATE_PLAYING) || (mDragAxis >= 0) || (mMouseX < 0) ||
 		!TwistAt(mMouseX, mMouseY, (mRules.mMoves.mTypes & GameRules::MOVE_SWAP) != 0, &aCol, &aRow))
 		return;
-	int aFrame = (mCursorFrame % 6) * 52;
+	int aFrame = (mCursorFrame % 6) * CURSOR_FRAME_SIZE;
 	int aX = GetColX(aCol) - 2;
 	int aY = GetRowY(aRow) - 2;
 	Image* aCursor = mApp->mImages[IMAGE_TARGET];

@@ -127,6 +127,7 @@ bool Board::DeleteClassicSave()
 	return Platform::RemoveUserFile(ClassicSavePath());
 }
 
+// 0x41ca40
 bool MummyApp::ClassicSaveExists()
 {
 	std::string aData;

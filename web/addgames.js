@@ -24,9 +24,8 @@ var ByopopAddGames = (function () {
   }
 
   // ---------- the queue: one game at a time ----------
-  // The games added while the queue ran are opened together once it is empty (opened): one game's cap is levered off by the
-  // opener and flips over to the game's icon; several, and the opener falls onto the grid and flips them all (web/capanim.js).
-  // The cards are checked again (their state, the icons) at the end of that.
+  // The games added while the queue ran are shown together once it is empty (opened): the cards are checked again (their
+  // state, the icons).
   var queue = [], running = false, opened = [];
   // the site's wait cursor while a game's files are read (web/cursors.js)
   function busy(on) { try { if (window.ByopopCursors) ByopopCursors.busy("addgames", on); } catch (e) {} }
@@ -121,24 +120,8 @@ var ByopopAddGames = (function () {
   function openCaps() {
     var games = opened;
     opened = [];
-    function redraw() { try { return window.ByopopTiles ? ByopopTiles.check() : null; } catch (x) { return null; } }
     if (!games.length) return;
-    var caps = games.map(function (g) { var c = cardOf(g); return c ? c.querySelector(".badge") : null; });
-    // the back of each cap: the game's icon, once the add has read it (else the cap's own face again)
-    var record = {};
-    try { record = ByopopGameFiles.all(); } catch (x) {}
-    var backs = games.map(function (g) {
-      var url = record[g.spec.id] && record[g.spec.id].icon;
-      if (!url) return null;
-      var img = new Image();
-      img.src = url;
-      img.alt = "";
-      return img;
-    });
-    try {
-      if (games.length === 1) ByopopCapAnim.pop(caps[0], { back: backs[0], after: redraw });
-      else ByopopCapAnim.drop(caps, backs, redraw);
-    } catch (x) { redraw(); }
+    try { if (window.ByopopTiles) ByopopTiles.check(); } catch (x) {}
   }
 
   // ---------- the panel ----------

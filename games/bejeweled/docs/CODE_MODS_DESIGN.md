@@ -105,7 +105,7 @@ gems, a gold layer and undo is a single valid set of rules, built from four mods
 | Geometry | Logical 51-px simulation with a view-only scale (from rules-engine). This replaces "constants scaled by pitch" (fidelity). | Removes edits to `24.0`, `49`, `22/88.2/26`, `16`, `69`, `240/65` and the sparkle offsets inside translated functions. Physics and click feel are identical at every board size. |
 | RNG | A `Board::Rand()` member hides `Sexy::Rand` at the 9 draw expressions. Original-rules unseeded games keep the global stream. Seeded, rule, seed-feature and ranked games own an `MTRand` (from determinism). The global `gMTRand` is never reseeded. | Draws outside the board (the `HighScoreWidget` tip roll) cannot shift a board's stream, and ranked players cannot burn draws. |
 | External draws | A board-own draw counter is compared with a global counter at `Board::Update` entry. Draws are not sampled at frame boundaries. | `-script` input runs inside `SexyAppBase::UpdateFrames` (`RunScript` before `WidgetManager::UpdateFrame`), and the board's own draws also happen inside the frame. |
-| Resume | A resume is a new segment: a fresh constructor (with its `FillBoard` draws), then `LoadGame` at board tick 0. | `LoadGame` does not restore `mUpdateCnt` (it restarts at 0), `mTimeDrainDelay` (300 from the ctor), timers or popups, and tick 150 runs again. A resumed game cannot continue the uninterrupted trace. |
+| Resume | A resume is a new segment: a fresh constructor (with its `NewBoard` draws), then `LoadGame` at board tick 0. | `LoadGame` does not restore `mUpdateCnt` (it restarts at 0), `mTimeDrainDelay` (300 from the ctor), timers or popups, and tick 150 runs again. A resumed game cannot continue the uninterrupted trace. |
 | Undo | Undo uses `StateCodec` snapshots, not the `LoadGame` body. | `LoadGame` calls `mApp->SetTimedMode(..., false)` and sets `mApp->mShowInstructions = false`, and it misses unsaved fields. |
 | Move types | A set of move types. swap+twist, swap+slide, twist+slide and all three are allowed (from determinism). | The combinations the user asked for. Input resolution is defined in 4.4. |
 | Patterns | Straight runs, optional diagonals, optional merging of crossing runs into L/T/plus, and keyed cell patterns with rotations and mirrors (from rules-engine). | Covers "L of three", squares and arbitrary shapes. |
@@ -114,8 +114,8 @@ gems, a gold layer and undo is a single valid set of rules, built from four mods
 | Trig | libm stays. There is no DetMath. New animations use integer tables. | DetMath would change native no-mod output (the raw `mHoleAngle` bytes in vortex saves, and the swap positions that `GetPieceAt` sees). Trig-derived values never feed a gameplay decision, and the LOGIC hash excludes them (6.6). |
 | Replay storage | Native: `<userdir>/replays/`. Web: `/persist/replays`, a sibling of `/persist/userdata`. | `webpersist_backup` copies the whole user dir into one localStorage item and deletes it on a quota error. `webpersist_restore` also deletes user-dir files missing from the backup, so excluding a user-dir folder from the backup would delete it. |
 | Invalid rule sets | A mod that fails its own checks has its `rules` ignored. A merged set that fails drops the lowest-priority mod contributing to the failing group, then merges again. Groups are never applied partly. | Rule-engine's "everything falls back to classic" punished unrelated mods. |
-| Kept invalid move | Clears `mIsNewGame` (`invalidCountsAsMove`, default true) and runs through `STATE_FALLING`'s settle path. | With `mIsNewGame` left true, `IsGameInProgress()` is false and the game would not be saved on exit. The settle path reuses the original no-moves check. |
-| Watching a replay | Watching replaces the current board the way a mode switch does: a game in progress is saved by `~Board`. When the watch ends, `NewGame(); ConfirmLoadGame();` offers to resume it. | Only one board exists at a time, so `gGameConfig` can be switched to the replay's rules safely. Reuses existing flows. |
+| Kept invalid move | Clears `mIsNewGame` (`invalidCountsAsMove`, default true) and runs through `STATE_FALLING`'s settle path. | With `mIsNewGame` left true, `IsInProgress()` is false and the game would not be saved on exit. The settle path reuses the original no-moves check. |
+| Watching a replay | Watching replaces the current board the way a mode switch does: a game in progress is saved by `~Board`. When the watch ends, `NewGame(); TryConfirmLoad();` offers to resume it. | Only one board exists at a time, so `gGameConfig` can be switched to the replay's rules safely. Reuses existing flows. |
 | Verifier wasm | `-sSTANDALONE_WASM`, no JS glue (from rules-engine and determinism). | Workers instantiate imported modules. Minimal imports. |
 
 ---
@@ -149,15 +149,15 @@ struct VariantFlags
 	bool mShape;      // not a full 8x8: size, mask or per-level shapes
 	bool mScaled;     // logical extent D > 406, so the view scales (section 5)
 	bool mDraw;       // DrawVariant: mShape || specials || gold || non-swap moves || mNoTutorial
-	bool mMatch;      // ProcessMatchesVariant / HasMatchVariant: patterns, minRun != 3, specials, gold
-	bool mSearch;     // FindMoveVariant / DoHintVariant: patterns, minRun != 3, non-swap move types
+	bool mMatch;      // FindSetsVariant / HasSetVariant: patterns, minRun != 3, specials, gold
+	bool mSearch;     // FindMoveVariant / TryShowHintVariant: patterns, minRun != 3, non-swap move types
 	bool mMoves;      // twist / slide in the move set: the variant input layer
 	bool mInvalid;    // moves.allowInvalid
 	bool mNoMoves;    // a non-default noMoves rule
 	bool mNoTutorial; // the tutorial move (rows 4..6, cols 1..6, horizontal 3-run) cannot apply
 	bool mGravity;    // board.gravity.direction != down: the flip, fall-out and game-over variants (4.16)
-	bool mFall;       // FallPiecesVariant, RefillMasked, FillBoardVariant: mShape, mGravity or fallAccel != 180
-	bool mChecker;    // DrawVariantChecker in SetupLevel: mShape || look.backdrop == "twilight"
+	bool mFall;       // FallPiecesVariant, RefillMasked, NewBoardVariant: mShape, mGravity or fallAccel != 180
+	bool mChecker;    // DrawVariantChecker in SetupLevelData: mShape || look.backdrop == "twilight"
 	bool mSpecials, mGold, mUndo;
 };
 ```
@@ -184,10 +184,10 @@ struct VariantFlags
 | `games/bejeweled/src/MatchFinder.h/.cpp` | new, pure | `ColorGrid` (int8 colour, -1 empty, -2 hole, plus a kind byte), `FindGroups(grid, MatchRules, out)` in the original scan order, `AnyGroup`, `GroupsThrough(cells)`, and pattern compilation (rotations, mirrors). No Sexy headers. |
 | `games/bejeweled/src/MoveSet.h/.cpp` | new, pure | `Move {type, a, b, c, d}`, `EnumerateMoves(grid, layout, rules, visitor)` in a fixed order, `ApplyMove(grid&, move)`, `MovedCells(move)`. |
 | `games/bejeweled/src/StateCodec.h/.cpp` | new | One field table that drives the v2 save chunks, undo snapshots, and the FULL and LOGIC hashes (6.6). |
-| `games/bejeweled/src/BoardVariant.cpp` | new, Board members | `InitVariant`, `SetupLevelVariant`, `ApplyPendingLayout`, `UpdateGoldGoal`, `OnNoMovesVariant`, `KeepInvalidMove`, the undo stack. |
-| `games/bejeweled/src/BoardMatch.cpp` | new, Board members | `ProcessMatchesVariant`, `HasMatchVariant`, `FindMoveVariant`, `DoHintVariant`, `ScoreGroup`, special gems, gilding. |
+| `games/bejeweled/src/BoardVariant.cpp` | new, Board members | `InitVariant`, `SetupLevelDataVariant`, `ApplyPendingLayout`, `UpdateGoldGoal`, `OnNoMovesVariant`, `KeepInvalidMove`, the undo stack. |
+| `games/bejeweled/src/BoardMatch.cpp` | new, Board members | `FindSetsVariant`, `HasSetVariant`, `FindMoveVariant`, `TryShowHintVariant`, `ScoreGroup`, special gems, gilding. |
 | `games/bejeweled/src/BoardMoves.cpp` | new, Board members | Variant input (`MouseDownVariant/DragVariant/UpVariant`), `StartTwist/UpdateTwist`, `StartSlide/UpdateSlide`, the integer twist table. |
-| `games/bejeweled/src/BoardShape.cpp` | new, Board members | `FillBoardVariant`, `RefillMasked`, `FillBoardWithMove`, `DrawVariantChecker`. |
+| `games/bejeweled/src/BoardShape.cpp` | new, Board members | `NewBoardVariant`, `RefillMasked`, `NewBoardWithMove`, `DrawVariantChecker`. |
 | `games/bejeweled/src/BoardDrawVariant.cpp` | new, Board members | `DrawVariant`: a superset of `Draw` 0x4cbc70 with scaling, holes, gold layer, special overlays, effects, twist cursor, slide preview and the gold HUD. |
 | `games/bejeweled/src/BoardSave.cpp` | new, Board members | The v2 header and chunk writer/reader. |
 | `games/bejeweled/src/Replay.h/.cpp`, `ReplayRecorder.*`, `WatchController.*` | new | The `.bjr` format, recording, the playback driver and gate checks, segments and the sidecar. |
@@ -218,7 +218,7 @@ as they are: they describe the binary's layout, not the port's.
 	GameRules        mRules;          // snapshot of gGameConfig.mRules taken in InitVariant
 	VariantFlags     mVariant;
 	BoardLayout      mLayout;         // current level's layout (8x8: origin 203/16, D 406, bottom 480)
-	BoardLayout      mPendingLayout;  // next level's layout; SetupLevel draws it, UpdateBlackHole applies it
+	BoardLayout      mPendingLayout;  // next level's layout; SetupLevelData draws it, UpdateWhirlpool applies it
 	int              mCols, mRows;    // == mLayout dims; 8, 8
 	int              mLevelShape;     // index into rules.board.levels (0 without levels)
 	MTRand*          mOwnRng;         // NULL: Sexy::Rand (original stream)
@@ -270,10 +270,10 @@ before `Sexy::Rand`, so the 9 translated `Rand()` expressions do not change:
 
 The 9 translated `Rand()` expressions are:
 - `UpdateClearing` refill
-- `UpdateGameOver`: 4 draws
-- `FillBoard`: 2 draws
-- `UpdateLevelWipe`
-- `UpdateFallOut`
+- `UpdateGameOverAnim`: 4 draws
+- `NewBoard`: 2 draws
+- `UpdateLevelTransition`
+- `UpdateBoardDropping`
 
 GAME_NOTES section 3.16 groups them into 7 items. `Sexy::Rand()` and `MTRand::Next()` return the
 same value, so the original stream is unchanged.
@@ -293,41 +293,41 @@ Kinds of change:
 | `GetColX`, `GetRowY` | 0x4c9b25, 0x4c9b37 | L | Static becomes member (`this` is unused in the binary anyway): `theCol * CELL_SIZE + mLayout.mOriginX`. |
 | `GameOver` | 0x4c9b47 | H, R | `UsePendingSeed();` (stage 2: a game over uses up a seed the player chose, 4.10). `mRecorder->OnGameOver()` (result snapshot). |
 | `RequestNewGame` | 0x4c9bab | H, R | First line: `mTakesPendingSeed = false;` (stage 2: New Game is no game over for the seed, 4.10). `NEW_GAME` event. |
-| `IsGameInProgress` | 0x4c9bbe | H | `if (mPlaybackOnly) return false;` Covers both checks in `~Board`, `Shutdown`, `GetShutdownSaves` and `ConfirmQuit`. |
+| `IsInProgress` | 0x4c9bbe | H | `if (mPlaybackOnly) return false;` Covers both checks in `~Board`, `Shutdown`, `GetShutdownSaves` and `ConfirmQuit`. |
 | `Pause`, `Unpause` | 0x4c9bda, 0x4c9c2d | R | `PAUSE u` / `UNPAUSE u`. Calls nested inside `SaveGame` are suppressed, because the `SAVE` event replays them. |
 | `GetPieceAt` | 0x4c9c7c | B, H | Logical coordinates, so `GEM_SIZE` stays. Stage 7c: `if (mVariant.mGravity && GravityUp() && theY >= mLayout.mClipBottom) return NULL;` (a rising gem hidden under the clip; `GravityUp()` keeps it off under `-forcevariant`, 4.16). |
-| `HasMatch` | 0x4c9cf5 | B, H | `if (mVariant.mMatch) return HasMatchVariant();` |
-| `GetPanForX` | 0x4c9d94 | B, L | Static becomes member. |
+| `HasSet` | 0x4c9cf5 | B, H | `if (mVariant.mMatch) return HasSetVariant();` |
+| `GetPanPosition` | 0x4c9d94 | B, L | Static becomes member. |
 | `FindMove` | 0x4c9dda | B, N, H | `if (mVariant.mSearch) return FindMoveVariant(...)`. Before the swap: `if (mBoard[aRow2][aCol2] == NULL) continue;` (hole target). |
 | `MouseMove`, `MouseLeave` | 0x4c9fd0, 0x4c9fe9 | H, R | `if (mPlaybackOnly) return;`, `if (mVariant.mScaled) mLayout.ToLogical(&x, &y);` and `HOVER` (optional channel). Every input handler starts with the same playback guard, because playback applies events directly, never through the handlers. |
-| `StartSwap` | 0x4c9ff8 | H | After the adjacency check: `mMoveCount++` (variant boards) and `if (mVariant.mUndo) TakeUndoSnapshot();` |
+| `SwapPieces` | 0x4c9ff8 | H | After the adjacency check: `mMoveCount++` (variant boards) and `if (mVariant.mUndo) TakeUndoSnapshot();` |
 | `GetBoardSize`, `GetBoardCenter` | 0x4ca13e, 0x4ca179 | B, L | Members; 406x406 and (406,219) on 8x8. |
-| `ShowText`, `ColorizeText` | 0x4ca1c8, 0x4ca36e | none | |
-| `StartBlackHole` | 0x4ca58d | B, H | `if (mVariant.mUndo) mUndo.Clear();` The `24.0` stays (logical). |
+| `DoBouncyText`, `ColorizeText` | 0x4ca1c8, 0x4ca36e | none | |
+| `DoWhirlpool` | 0x4ca58d | B, H | `if (mVariant.mUndo) mUndo.Clear();` The `24.0` stays (logical). |
 | `MouseDown` | 0x4ca6b0 | H, R | Top: `if (mPlaybackOnly) return;` and `ToLogical`. After the state gate: `if (mVariant.mMoves) { MouseDownVariant(x, y, theClickCount); return; }` Events: `SELECT` after the selection branch, `TARGET` at the tail, `DESELECT` on a right click. |
 | `MouseUp` | 0x4ca8b7 | H | Playback guard. `if (mVariant.mMoves) MouseUpVariant(x, y);` |
-| `MouseDrag` | 0x4ca8c1 | H, N, R | Playback guard, `ToLogical`. `if (mVariant.mMoves) { MouseDragVariant(x, y); return; }` The four `StartSwap` calls get NULL-neighbour guards (holes). `TARGET` event. |
+| `MouseDrag` | 0x4ca8c1 | H, N, R | Playback guard, `ToLogical`. `if (mVariant.mMoves) { MouseDragVariant(x, y); return; }` The four `SwapPieces` calls get NULL-neighbour guards (holes). `TARGET` event. |
 | `KeyChar` | 0x4ca9d3 | H | Playback guard. `if (mVariant.mUndo && IsUndoKey(theChar)) { RequestUndo(); return; }` Other keys still toggle pause. |
 | `UpdateClearing` | 0x4ca9ed | B, H | The shrink pass stays. Refill: `if (mVariant.mShape) RefillMasked(); else { original do/while }` (stage 7c: `mFall`). |
-| `UpdateGameOver` | 0x4cab82 | B, L, H | `mHeight + GEM_SIZE` becomes `mLayout.mScreenBottom + GEM_SIZE` (480 unless scaled). Stage 7c, fall phase: `if (mVariant.mGravity) allGone = GameOverFallVariant(); else { original loop }`. |
-| `DoHint` | 0x4cad2f | H | After the penalty lines: `if (mVariant.mSearch) { DoHintVariant(); return; }` (which also sets `mIdleTicks = 0`). |
-| `SetupLevel` | 0x4cae29 | H | Tile loop: `if (mVariant.mShape) DrawVariantChecker(&g, anImageA, anImageB); else { original 10x10 loop }` (stage 7c: `mChecker`, which adds the Twilight backdrop). At the end: `if (mVariant.mAny) SetupLevelVariant();` (next level's layout into `mPendingLayout`, gold reset, gold timer). |
-| `FillBoard` | 0x4cb182 | H | First line: `if (mVariant.mShape) { FillBoardVariant(); return; }` (stage 7c: `mFall`). |
-| `UpdateLevelWipe` | 0x4cb284 | none | Screen-space background; `FillBoard` dispatches itself. |
-| `UpdateFallOut` | 0x4cb3bf | B, L, H | One `Rand()%15` per column per tick (8 by default). `mHeight + 32` becomes `mLayout.mScreenBottom + 32`. Stage 7c, first line: `if (mVariant.mGravity) { UpdateFallOutVariant(); return; }` |
+| `UpdateGameOverAnim` | 0x4cab82 | B, L, H | `mHeight + GEM_SIZE` becomes `mLayout.mScreenBottom + GEM_SIZE` (480 unless scaled). Stage 7c, fall phase: `if (mVariant.mGravity) allGone = GameOverFallVariant(); else { original loop }`. |
+| `TryShowHint` | 0x4cad2f | H | After the penalty lines: `if (mVariant.mSearch) { TryShowHintVariant(); return; }` (which also sets `mIdleTicks = 0`). |
+| `SetupLevelData` | 0x4cae29 | H | Tile loop: `if (mVariant.mShape) DrawVariantChecker(&g, anImageA, anImageB); else { original 10x10 loop }` (stage 7c: `mChecker`, which adds the Twilight backdrop). At the end: `if (mVariant.mAny) SetupLevelDataVariant();` (next level's layout into `mPendingLayout`, gold reset, gold timer). |
+| `NewBoard` | 0x4cb182 | H | First line: `if (mVariant.mShape) { NewBoardVariant(); return; }` (stage 7c: `mFall`). |
+| `UpdateLevelTransition` | 0x4cb284 | none | Screen-space background; `NewBoard` dispatches itself. |
+| `UpdateBoardDropping` | 0x4cb3bf | B, L, H | One `Rand()%15` per column per tick (8 by default). `mHeight + 32` becomes `mLayout.mScreenBottom + 32`. Stage 7c, first line: `if (mVariant.mGravity) { UpdateBoardDroppingVariant(); return; }` |
 | `ShowHint` | 0x4cb475 | H, R | `if (mPlaybackOnly) return;` and `HINT` inside its `if`. |
-| `Board::Board` | 0x4cb5bc | H | After the existing `memset(mBoard...)`: `InitVariant();` (rules, flags, layout, RNG, `mRngStart`). Tutorial loop: `if (mVariant.mNoTutorial) FillBoardWithMove(); else { original do/while }` |
-| `UpdateBlackHole` | 0x4cb931 | B, H | After the deletion loop in the done-block: `if (mVariant.mShape) ApplyPendingLayout();`, so the loop deletes with the old bounds. |
+| `Board::Board` | 0x4cb5bc | H | After the existing `memset(mBoard...)`: `InitVariant();` (rules, flags, layout, RNG, `mRngStart`). Tutorial loop: `if (mVariant.mNoTutorial) NewBoardWithMove(); else { original do/while }` |
+| `UpdateWhirlpool` | 0x4cb931 | B, H | After the deletion loop in the done-block: `if (mVariant.mShape) ApplyPendingLayout();`, so the loop deletes with the old bounds. |
 | `Draw` | 0x4cbc70 | H | First line: `if (mVariant.mDraw) { DrawVariant(g); return; }` Nothing else changes. |
 | `LoadGame` | 0x4cca98 | B, H, R | The file read becomes `mPlaybackLoad ? copy : file`. Version (as built, stage 5): `if (mVariant.mAny ? !ReadVariantHeader(aBuffer, aVersion) : (aVersion != SAVEGAME_VERSION)) return false;`, so a variant board takes only a v2 save and every other board only v1 (7.2). `SAVE_SIZE` replaces `sizeof(Piece)`. States 10..13 map to 1 like 2/3. At the end `GameLoadedVariant`, which for a variant board reads the chunks (`ReadVariantChunks`), and `LOAD` (R). |
 | `SaveGame` | 0x4ccdfe | H, R | Before the file write: `if (mPlaybackOnly) { mPlaybackSave = aBuffer; return true; }` `SAVE` marker and sidecar write (R). |
 | `WriteSaveGame` (port) | body of 0x4ccdfe | B, H | `SAVE_SIZE`. Variant boards write `SAVEGAME_VERSION_VARIANT` and the header after the version, then chunks at the end. |
 | `SaveGameSnapshot` (port) | | H | States 10..13 map to 1. |
-| `DeleteSaveGame` | 0x4cd130 | H | Also deletes the sidecar when one exists. |
+| `DeleteSavedGame` | 0x4cd130 | H | Also deletes the sidecar when one exists. |
 | `~Board` | 0x4cd1ba | B, R | `mRecorder->OnBoardDestroyed()` (finalises the replay). |
-| `ProcessMatches` | 0x4cd287 | B, H | First line: `if (mVariant.mMatch) return ProcessMatchesVariant();` Bounds: `aLines = aPass ? mRows : mCols`, `aLen = aPass ? mCols : mRows`, `j != aLen - 1`. |
+| `FindSets` | 0x4cd287 | B, H | First line: `if (mVariant.mMatch) return FindSetsVariant();` Bounds: `aLines = aPass ? mRows : mCols`, `aLen = aPass ? mCols : mRows`, `j != aLen - 1`. |
 | `UpdateFalling` | 0x4cd687 | B, N, H | `if (aPiece == NULL) continue;` (holes). No-moves branch: `if (mVariant.mNoMoves) OnNoMovesVariant(); else if (mTimedMode) ...` Stage 7c: the per-piece loop becomes `if (mVariant.mFall) aSettled = FallPiecesVariant(&aLandedCount, &aLandedXSum); else { original loop }`, which then hosts the hole guard, 7b's x settling, the direction and `fallAccel`; at the end of the no-match branch `if (mVariant.mGravity) OnGravitySettle();` |
-| `UpdateSwap` | 0x4cd84f | H | After `mIsNewGame = false;`: `UsePendingSeed();` (stage 2, 4.10), since stage 5 `OnMoveMade();` (it also counts the move). Swap back only `if ((mState == STATE_SWAPPING) && !mVariant.mInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
+| `UpdateSwapping` | 0x4cd84f | H | After `mIsNewGame = false;`: `UsePendingSeed();` (stage 2, 4.10), since stage 5 `OnMoveMade();` (it also counts the move). Swap back only `if ((mState == STATE_SWAPPING) && !mVariant.mInvalid)`. New `else if (mState == STATE_SWAPPING) KeepInvalidMove();` In the final `else` (swap-back done): `if (mVariant.mUndo) mUndo.PopLast();` |
 | `Update` | 0x4cdabc | H, R | Top: `if (mRecorder) mRecorder->SyncExternalRand();` Drain predicate adds `\|\| IsVariantMoveState(mState)`. After the bar clamp: `if (mVariant.mGold) aTargetWidth = GoldBarTarget();` Level block: `if (mVariant.mGold) UpdateGoldGoal(); else if (mState == STATE_PLAYING) { original }` New `case`s 10..13. After the switch: `if (mRecorder) mRecorder->AfterUpdate();` (CHECK at settle). The tick-150 block is untouched. |
 
 New states, which never occur under the original rules:
@@ -341,7 +341,7 @@ New states, which never occur under the original rules:
   original: the instructions dialog for the first 5 games, otherwise the GO banner.
 - `mShowTutorial` becomes true, but `DrawVariant` (always used when `mNoTutorial`, since that sets
   `mDraw`) draws no arrows when `mTutorialCol < 0`.
-- On a swap board, the first scoring swap dismisses the dialog through the existing `UpdateSwap`
+- On a swap board, the first scoring swap dismisses the dialog through the existing `UpdateSwapping`
   branch. `UpdateTwist` and `UpdateSlide` contain the same three dismissal lines.
 - No edit to the tick-150 block is needed. An `mTutorialCol >= 0` guard there would have
   suppressed the GO banner, because the original shows GO only when the instructions are not
@@ -356,7 +356,7 @@ New states, which never occur under the original rules:
 | `~WinDMApp` (0x4d4b08) | Frees the stored shrink-row count instead of `NUM_GEM_COLORS`. Its port section makes the last LiveSplit block write: `active = 0`, `boardSerial = 0` (4.15). |
 | `WinDMApp::UpdateFrames` (0x4d4921) | Before `SexyApp::UpdateFrames()`: `if (mWatch) mWatch->BeforeFrame();` (due events, extra updates for speed). The `TraceBoard` call moves to `BoardTrace.cpp`. After it and the test hooks (stage 2b, desktop): `if (LiveSplitObserver::Wanted()) LiveSplitObserver::AfterUpdate(this);` (4.15). |
 | `WinDMApp::HandleCmdLineParam` (port) | `-livesplitlog=<file>` (4.15). |
-| `WinDMApp::ShowInstructionsDialog` (0x4d59cc) | The text id comes from `mBoard->InstructionsStringId()`. That is `"INSTRUCTIONDIALOG"` unless twist or slide is active, in which case it is `_TWIST` or `_SLIDE`, falling back to the default text. With a gravity rule it is `_TWILIGHT` or `_GRAVITY_UP` (4.16). |
+| `WinDMApp::DoInstructionDialogette` (0x4d59cc) | The text id comes from `mBoard->InstructionsStringId()`. That is `"INSTRUCTIONDIALOG"` unless twist or slide is active, in which case it is `_TWIST` or `_SLIDE`, falling back to the default text. With a gravity rule it is `_TWILIGHT` or `_GRAVITY_UP` (4.16). |
 | `SoundManager::GetSoundInstance` (framework) | Applies the default pitch that `Board::InitVariant` sets from `look.soundPitch` (4.16). |
 | `WinDMApp::ButtonDepress` (0x4d6a40) | `BUTTON_UNDO = 16`. Extras ids. While watching, side-bar presses go to the watch controller. |
 | `WinDMApp::TitleScreenIsFinished` (0x4d6f28) | Creates the undo hotspot only when `undo.enabled`. With `-replay=` it enters watch mode instead of the two `NewGame` calls. |
@@ -581,7 +581,7 @@ dotted leaves. `rules` goes into the same map, with these additions:
 | `gold.timeLimit` values ≥ 10 s; `undo.depth` 1..100; `slide.snapTicks` 4..60; `board.gravity.fallAccel` 50..1000; `look.soundPitch` -12..12. | Clamp and warn. |
 | Unknown keys under `rules` or `features`. | Warn ("did you mean ..."), then ignore. |
 
-As a backstop for combinations the static check cannot predict, `FillBoardVariant` caps rerolls:
+As a backstop for combinations the static check cannot predict, `NewBoardVariant` caps rerolls:
 after 1000 rerolls the board restarts, still drawing from the board RNG, so it stays
 deterministic.
 
@@ -620,10 +620,10 @@ deterministic.
 ### 4.1 Allow invalid moves
 
 - **Rule:** `moves.allowInvalid`, `invalidPenalty`, `invalidCountsAsMove`, `noMoves.*`.
-- **Code:** `UpdateSwap` (0x4cd84f) gets the condition and branch from 2.5.
+- **Code:** `UpdateSwapping` (0x4cd84f) gets the condition and branch from 2.5.
   `KeepInvalidMove()` does the following:
   - sets `mSwapPiece1/2 = NULL`;
-  - applies the penalty with `DoHint`'s formula
+  - applies the penalty with `TryShowHint`'s formula
     (`mScore = (int)((double)mScore - mPointMultiplier * penalty)`, floored at 0);
   - if `invalidCountsAsMove`, sets `mIsNewGame = false`, so the board change makes the game "in
     progress" and it is saved on exit;
@@ -631,7 +631,7 @@ deterministic.
   - plays `SOUND_BAD` as feedback;
   - sets `mState = STATE_FALLING`.
 
-  On the next tick `UpdateFalling` settles at once (all pieces are at rest). `ProcessMatches`
+  On the next tick `UpdateFalling` settles at once (all pieces are at rest). `FindSets`
   finds nothing, the stats update is harmless, then `FindMove` gives `STATE_PLAYING` or the
   no-moves branch. The original no-moves logic is therefore reused unchanged.
 - **Other move types:** `UpdateTwist` and `UpdateSlide` call the same function instead of
@@ -643,7 +643,7 @@ deterministic.
 - **Replay:** no new events.
 
 **As built (stage 5, `Board::KeepInvalidMove`, `OnNoMovesVariant` and `OnMoveMade` in `BoardVariant.cpp`):**
-- **The hooks.** `UpdateSwap`: the swap-back branch takes `!mVariant.mInvalid`, a new branch calls
+- **The hooks.** `UpdateSwapping`: the swap-back branch takes `!mVariant.mInvalid`, a new branch calls
   `KeepInvalidMove()`, and the match branch's `UsePendingSeed()` became `OnMoveMade()`. `UpdateFalling`: `else if
   (mVariant.mNoMoves) OnNoMovesVariant();` before the original branches. Seven hook lines in all with the save's
   (7.2). After the review two more for a hint without a move (below): `ShowHint` returns `if (NoHintVariant())`, and
@@ -657,12 +657,12 @@ deterministic.
   costs. With `invalidCountsAsMove` false a kept swap leaves the game new: no save at a quit, a mode switch without
   a question, the chosen seed still pending, `mMoveCount` unchanged.
 - **The tutorial.** A kept swap changes the board, so the move the first-game tutorial shows may make no match
-  afterwards. `KeepInvalidMove` tries it (swap, `HasMatch`, swap back); if it no longer matches, the arrows and the
+  afterwards. `KeepInvalidMove` tries it (swap, `HasSet`, swap back); if it no longer matches, the arrows and the
   instructions go as at a game over (`mShowTutorial` false, `KillDialog`; `mShowInstructions` stays, so the next game
   shows them again). One that still matches stays up until a match, as before.
 - **The move counts** (`mMoveCount`, `mInvalidMoves`, and `mUndosUsed`, 0 until stage 6) are counted on every
   board, but saved (`MOVE`), hashed (LOGIC, 6.6) and traced only on a variant board. `mMoveCount` counts the moves
-  that stood: matches, and kept swaps that count as moves. Not, as 2.5 had it for `StartSwap`, every swap
+  that stood: matches, and kept swaps that count as moves. Not, as 2.5 had it for `SwapPieces`, every swap
   started: a swap that goes back is no move.
 - **"continue"** shows `NO_MATCHES_LEFT`, default "NO MATCHES!" (the board's width, like "NO MOVES!"; "NO MATCHES
   LEFT!" ran past it), at every settle without a move, and returns to `STATE_PLAYING`. `-trace` prints such a
@@ -684,7 +684,7 @@ deterministic.
 
 ### 4.2 More gem colours
 
-- **Rule:** `board.gemColors` up to 12. `FillBoard` and the refill already draw
+- **Rule:** `board.gemColors` up to 12. `NewBoard` and the refill already draw
   `Rand() % gGameConfig.mGemColors`, so the logic stays on the original paths: this is a tunable,
   not a variant.
 - **Behaviour change:** an existing mod that sets 8..12 was clamped to 7 before and now gets its
@@ -731,19 +731,19 @@ Section 5 has the details.
 - **Rule:** `board.cols/rows/mask/levels`.
 - **Code:**
   - bounds edits;
-  - `FillBoardVariant`, `RefillMasked`;
+  - `NewBoardVariant`, `RefillMasked`;
   - NULL guards in `FindMove`, `MouseDrag` and `UpdateFalling`;
   - `DrawVariant` and `DrawVariantChecker`;
-  - the per-level shape switch in `SetupLevelVariant` (pending) and `UpdateBlackHole`
+  - the per-level shape switch in `SetupLevelDataVariant` (pending) and `UpdateWhirlpool`
     (applied after deletion).
-- **Unchanged:** `ProcessMatches` and `HasMatch` already handle NULL cells, since a NULL resets the
+- **Unchanged:** `FindSets` and `HasSet` already handle NULL cells, since a NULL resets the
   run. With standard matching they need only bounds edits.
 - **Save:** v2 header with dims and level-shape index *before* the cell records (7.2).
 
 **As built (stage 7, `BoardShape.cpp`, `BoardDrawVariant.cpp`; GAME_NOTES 12.10):**
-- There is no `SetupLevelVariant`: `SetupLevel` calls `DrawVariantChecker` in place of its tile loop, and that
+- There is no `SetupLevelDataVariant`: `SetupLevelData` calls `DrawVariantChecker` in place of its tile loop, and that
   sets `mPendingLayout` before drawing the next background.
-- `FillBoardVariant` gives up after 1000 rerolls of a cell, logs it and fills the board again. On the default
+- `NewBoardVariant` gives up after 1000 rerolls of a cell, logs it and fills the board again. On the default
   rules the cap is never reached.
 - `mNoTutorial` is set when the first shape cannot hold the tutorial move (rows 4..6 playable in columns 0..7).
   Swaps, runs of 3 and no diagonals join the test in the stages that play moves.type and the match rules (8 and
@@ -775,10 +775,10 @@ Section 5 has the details.
      with integer interpolation. The duration depends only on the rules, never on the offset, so
      the offset is cosmetic.
   2. Then it rotates the pointers along the segment, updates `mCol/mRow/mX/mY`, and runs
-     `mCascadeCount = 1; mMoveMatchCount = 0; ProcessMatches()`.
+     `mCascadeCount = 1; mMoveMatchCount = 0; FindSets()`.
   3. With no match, it either goes to `STATE_SLIDING_BACK` (another `snapTicks`) with
      `SOUND_BAD`, or calls `KeepInvalidMove()`.
-  4. On a match: `mIsNewGame = false`, and the tutorial dismissal lines run as in `UpdateSwap`.
+  4. On a match: `mIsNewGame = false`, and the tutorial dismissal lines run as in `UpdateSwapping`.
 - **Draw:** the segment's pieces at their offsets, plus the wrapped copy at the other end, clipped
   to the segment's rectangle.
 - **Save:** the grid is committed only at the end of the forward animation, so a save during a
@@ -810,8 +810,8 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
     cross-platform hash.
 - **On completion:**
   1. Rotate clockwise on screen (TL→TR→BR→BL) and snap.
-  2. Run `mCascadeCount = 1; mMoveMatchCount = 0; ProcessMatches()`.
-  3. On a match: the same bookkeeping as `UpdateSwap`'s success branch (state 4,
+  2. Run `mCascadeCount = 1; mMoveMatchCount = 0; FindSets()`.
+  3. On a match: the same bookkeeping as `UpdateSwapping`'s success branch (state 4,
      `mIsNewGame = false`, tutorial dismissal).
   4. Otherwise: rotate back with `SOUND_BAD`, or call `KeepInvalidMove()`.
 - **Draw:** a ring at the hovered intersection: `images/twistcursor`, or the four corner quarters
@@ -831,7 +831,7 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
   sits at the first constituent's position and is classified `L`, `T` or `plus` by geometry.
 - **Default equivalence.** With the default rules, steps 1 and 2 are exactly the original run
   order. The difftest and `-forcevariant` prove it.
-- **`ProcessMatchesVariant`** builds the grid from `mBoard` and runs the finder. For each group,
+- **`FindSetsVariant`** builds the grid from `mBoard` and runs the finder. For each group,
   `ScoreGroup()` is a faithful copy of 0x4cd287's scoring block:
   - `SetValue(++mMoveMatchCount)`, the length bonuses for runs, then `+ bonus[pattern]` before
     the multiplier;
@@ -840,10 +840,10 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
 
   It then marks pieces dying (except special creations), and plays the original
   gotset/combo/multishot sounds with the original pan rule.
-- **`HasMatchVariant`** is `AnyGroup`, used by `FillBoardVariant`. For `minRun` alone, the same
+- **`HasSetVariant`** is `AnyGroup`, used by `NewBoardVariant`. For `minRun` alone, the same
   variant path is used: no edit to the translated `== 3` lines.
 - **Search:** see 4.7.
-- **UI:** optional banners `PATTERN_<name>` through `ShowText`, only when the string is defined.
+- **UI:** optional banners `PATTERN_<name>` through `DoBouncyText`, only when the string is defined.
 - **Save:** none beyond v2.
 
 ### 4.7 Hint and no-moves search (`FindMoveVariant`)
@@ -861,12 +861,12 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
   negligible, and it runs only at settle and on hints.
 - **Callers:**
   - the no-moves check in `UpdateFalling` (unchanged call, which dispatches);
-  - `DoHintVariant`: the sparkle and spin go to the moved gem that lands in a group;
+  - `TryShowHintVariant`: the sparkle and spin go to the moved gem that lands in a group;
   - `TraceBoard` (variant move lines with click/drag coordinates, for writing `-script`
     playtests).
 
 **As built (stage 9, `MatchFinder.cpp`, `BoardMatch.cpp`; GAME_NOTES 12.14):**
-- There is no `DoHintVariant` yet: for swaps `DoHint` already sparkles the gem that moves into the cell the search
+- There is no `TryShowHintVariant` yet: for swaps `TryShowHint` already sparkles the gem that moves into the cell the search
   measured, so it comes with twists and slides (stage 10). The same for the move type in `FindMove`'s contract.
 - `crossings: "merge"` joins diagonal runs too. The length bonuses go to straight runs only, diagonals included; a
   merged group or a shape instance scores the set value and its `match.bonus`.
@@ -877,7 +877,7 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
 **As built (stage 10, `MoveSet.cpp`, `BoardMoves.cpp`; GAME_NOTES 12.15):** 4.4, 4.5 and this section, where they differ:
 - The search is `MoveSet::FindMove`: a move is `{type, A..E}` (a slide's E is its k). `FindMove`'s contract stays
   `{to, from}`, the cell where the first moved gem that lands in a group lands and the cell it comes from, with no
-  type in it; a twist or slide is found once, at that gem. `DoHint` needs no variant path.
+  type in it; a twist or slide is found once, at that gem. `TryShowHint` needs no variant path.
 - The grid is the board before the move until the forward animation ends, as planned; with no group the move is
   undone in the grid at once and only the positions animate back.
 - There is no `images/twistcursor`: the ring is four 26x26 quarters of `IMAGE_TARGET`.
@@ -888,7 +888,7 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
 ### 4.8 Flame and lightning gems
 
 - **Data:** `Piece::mKind` and `mKindFrame` (2.4).
-- **Creation** (in `ProcessMatchesVariant`):
+- **Creation** (in `FindSetsVariant`):
   - Triggers are checked lightning first, then flame. For a group matching a trigger, one piece
     stays alive (`mDying = false`) and gets `mKind`.
   - That piece is the gem the player moved, if it is in the group (`mSwapPiece1/2`, the slid
@@ -933,14 +933,14 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
 
 - **Data:** `mGold[r][c]` (per cell, so it does not move with gems), `mGoldLeft`,
   `mGoldTicksLeft`, `mGoldTickLimit`. Gold forces `mVariant.mMatch`.
-- **Gilding:** cells of scored groups turn gold in `ProcessMatchesVariant`. With
+- **Gilding:** cells of scored groups turn gold in `FindSetsVariant`. With
   `"matchesAndBlasts"`, blast cells do too. Each gilding adds a shine `BoardEffect`.
 - **Goal:** `Update`'s level block calls `UpdateGoldGoal()`, which:
   - counts down `mGoldTicksLeft` in the same states as the timed drain (PLAYING, SWAPPING, and the
     variant move states), only once `mTimeDrainDelay` is 0, so the GO period is free;
   - in `STATE_PLAYING` with `mGoldLeft == 0`: adds `timeBonus × secondsLeft × multiplier`, then
-    calls `StartBlackHole()` (vortex → `SetupLevel` → wipe → `FillBoard`, all original);
-  - when time runs out: `ShowText(GetString("TIME_UP"), 400)` + `GameOver(200)`, as the original
+    calls `DoWhirlpool()` (vortex → `SetupLevelData` → wipe → `NewBoard`, all original);
+  - when time runs out: `DoBouncyText(GetString("TIME_UP"), 400)` + `GameOver(200)`, as the original
     time-up does.
 
   The original score-based level end and time-up checks are skipped in gold mode, and the
@@ -949,29 +949,29 @@ The search order is fixed: swaps (original order), then twists, then slides (4.7
   untimed) and `gold.timeLimit.timed`.
 - **Bar:** `GoldBarTarget()` shows gold progress when untimed, and time left when timed. The
   original timed colouring and warning code keep working on that width.
-- **Level setup:** `SetupLevelVariant()` resets gold, sets the limit to
+- **Level setup:** `SetupLevelDataVariant()` resets gold, sets the limit to
   `max(min, base + perLevel × level)` seconds times 100, and picks the next level's shape into
   `mPendingLayout`.
 - **No moves:** `noMoves.normal` defaults to `"fallOut"` under gold, so the board reshuffles
-  through `STATE_FALL_OUT` and `FillBoard`. The gold layer persists.
+  through `STATE_FALL_OUT` and `NewBoard`. The gold layer persists.
 - **Art:**
   - The gold tile is `images/goldtile`, or the level's checker tile through
     `CreateColorizedImage(..., Color(235,185,45))`, built once per level. It is drawn between the
     background and the gems.
   - HUD: `GOLD 23/64` in mainfont, centred over the bar.
-- **Save:** `GOLD` (bitmap) and `GTIM` (ticks left, limit). `LoadGame` never calls `SetupLevel`,
+- **Save:** `GOLD` (bitmap) and `GTIM` (ticks left, limit). `LoadGame` never calls `SetupLevelData`,
   so gold state comes only from these chunks.
 
 **As built (stage 12, `BoardGold.cpp`; GAME_NOTES 12.17):** where it differs from the plan above:
 - No `mGoldLeft`: `GoldLeft()` counts the cells of the goal not yet gold. The goal is the gem cells of the mask, and
   its dirt cells with `gold.countDirt` (default true); only a gem cell turns gold, so a dirt cell does once its last
   layer is gone and a group takes the gem there.
-- `SetupLevel` resets the gold and the time (`SetupLevelGold`), at its end; the shine is `Board::mGoldShines` (30
+- `SetupLevelData` resets the gold and the time (`SetupLevelDataGold`), at its end; the shine is `Board::mGoldShines` (30
   ticks a cell), not a `BoardEffect`.
 - `-forcevariant` does not turn gold on (it would change play). A gold level's time up ends a replay with END reason
   4 (gold time up).
 - `GOLD` holds a byte for every cell, row-major (1 gold, only on a gem cell of the mask); `GTIM` two u32s. Stage 7's
-  `RebuildLoadedBackground`, which calls `SetupLevel` on a resume, keeps the loaded gold and time. Engine ABI 9.
+  `RebuildLoadedBackground`, which calls `SetupLevelData` on a resume, keeps the loaded gold and time. Engine ABI 9.
 - An undo brings the gold back with the board; the time left comes back only with `undo.restoreTime`.
 - `-trace` adds `gold D/N` (and `time T/L` in ticks with a limit) to the variant line and a `gold:` line, a word a row.
 
@@ -988,7 +988,7 @@ The RNG model is in 6.2.
 player actually starts playing, so switching to Timed straight away still plays it):
 - `NewGame` gives the pending seed to every board it creates (`mTakesPendingSeed`).
 - The seed is used up (`Board::UsePendingSeed`) when a game on it is played:
-  - at the board's first swap that makes a match: `UpdateSwap`, where `mIsNewGame` is cleared, the
+  - at the board's first swap that makes a match: `UpdateSwapping`, where `mIsNewGame` is cleared, the
     same moment that decides whether quitting saves the game;
   - or at its game over: `GameOver`, the one entry to `STATE_GAME_OVER` (no moves in Normal mode,
     time up). A timed game can run out without any move.
@@ -1038,10 +1038,10 @@ Format, recording and playback are in section 6.
   3. Sets them from the replay header and creates a playback board (`mPlaybackOnly`, owned RNG
      from the header).
   4. At the end, shows "REPLAY END" (Watch again / Back) instead of the high-score screen.
-  5. Restores everything, then calls `NewGame(); ConfirmLoadGame();`, which offers to resume the
+  5. Restores everything, then calls `NewGame(); TryConfirmLoad();`, which offers to resume the
      saved game.
 
-  Because `IsGameInProgress()` is false for a playback board, it never saves, counts or deletes
+  Because `IsInProgress()` is false for a playback board, it never saves, counts or deletes
   anything.
 - **Speeds:** 1x, 2x, 4x, 8x (extra `Update()` calls per frame), pause, step to the next move, exit.
 - **Storage:** native `<userdir>/replays/`; web `/persist/replays` via `-replaydir`.
@@ -1051,7 +1051,7 @@ Format, recording and playback are in section 6.
     user marked Keep.
   - As built (stage 3a): the name is `<yyyymmdd>-<hhmmss>-<normal|timed>-<score>[-<n>][-keep].bjr`
     (local time; `-<n>` from 2 when the name is taken). `-keep` pins the file: the score qualified
-    for the game-over screen's table (as `DoCheckForHighScore` decides), or later the user's Keep.
+    for the game-over screen's table (as `ProcessScoreStuff` decides), or later the user's Keep.
   - Pruning, after each write, removes the oldest unpinned replays beyond `keep`: oldest by the time the
     file was written (its mtime, so a daylight-saving or time-zone change reorders nothing), within one
     second by the name's time, then its copy number (`-2` came after the name it avoided). Files with
@@ -1076,7 +1076,7 @@ Format, recording and playback are in section 6.
     nothing. Only the mode buttons show the replay's mode until the watch stops.
   - The end: "REPLAY end" on stdout, the last board stays. `-replayquit` quits then (the CLI, the
     oracle). New Game and the mode buttons end the watch (while it plays too): the player's mode,
-    then `NewGame(); ConfirmLoadGame();` as in step 5. Options, Quit and Hint work as usual (a
+    then `NewGame(); TryConfirmLoad();` as in step 5. Options, Quit and Hint work as usual (a
     playback board ignores `ShowHint`); a modal dialog holds the watch, as it pauses a game. Options →
     High Scores shows and re-saves the player's table, never a replay's `-seeded` one.
 - **As built (stage 13, `ReplayBrowserDialog.cpp`, `ReplayOverlay.cpp`; GAME_NOTES 12.18):** the watch
@@ -1093,12 +1093,12 @@ Format, recording and playback are in section 6.
 
 - **Rule:** the `undo.*` group. It is a rule, so the game gets its own score table and an owned
   RNG.
-- **Snapshot:** `TakeUndoSnapshot()` runs in `StartSwap` after the adjacency check, and in
+- **Snapshot:** `TakeUndoSnapshot()` runs in `SwapPieces` after the adjacency check, and in
   `StartTwist`/`StartSlide`, only in `STATE_PLAYING`. It writes `StateCodec`'s UNDO profile
   (6.7).
-  - It is popped when the move is taken back by the game: swap-back completion in `UpdateSwap`'s
+  - It is popped when the move is taken back by the game: swap-back completion in `UpdateSwapping`'s
     final `else`, and `_BACK` completion.
-  - The stack is cleared in `StartBlackHole`, so undo never crosses a level.
+  - The stack is cleared in `DoWhirlpool`, so undo never crosses a level.
 - **`UNDO`:**
   - **Allowed when:** `STATE_PLAYING`, `mPauseCount == 0`, the stack is non-empty, `max` is not
     reached, and (in timed mode) `inTimed`.
@@ -1115,9 +1115,9 @@ Format, recording and playback are in section 6.
 - **Save:** the stack is not saved; it is empty after a load.
 
 **As built (stage 6, `Board::TakeUndoSnapshot` ... `Board::Undo` in `BoardVariant.cpp`, `UndoOrb.h`):**
-- **Stack.** `mUndoStack`, StateCodec UNDO encodings (6.7), newest last, at most `depth`. `StartSwap` pushes after
+- **Stack.** `mUndoStack`, StateCodec UNDO encodings (6.7), newest last, at most `depth`. `SwapPieces` pushes after
   its adjacency check (only in `STATE_PLAYING`); the end of a swap back pops; a kept invalid move keeps its
-  snapshot, so it can be undone; `StartBlackHole` and `GameLoadedVariant` empty it. Twist and slide take theirs when
+  snapshot, so it can be undone; `DoWhirlpool` and `GameLoadedVariant` empty it. Twist and slide take theirs when
   they exist (stage 8).
 - **Gate** (`CanUndo`, which playback checks again): undo on, `STATE_PLAYING`, `mPauseCount == 0`, a snapshot, `max`
   not reached, and in timed mode `inTimed`.
@@ -1126,7 +1126,7 @@ Format, recording and playback are in section 6.
   the RNG, the move counts). Then it puts back what it keeps: the drain fields unless `restoreTime`, the RNG state
   and `mBoardDraws` when `restoreRng` is false, always `mTakesPendingSeed` (a match used the seed up). It clears the
   selection, the swap pieces, the popups, the move score and the hint glow; sets `mIdleTicks` 0; takes
-  `penalty × multiplier` (floored at 0, as `DoHint`); counts `mUndosUsed`; shows the `UNDO` string as a 150-tick
+  `penalty × multiplier` (floored at 0, as `TryShowHint`); counts `mUndosUsed`; shows the `UNDO` string as a 150-tick
   banner. An undo of the first move makes the game new again (`mIsNewGame`): a quit then saves nothing.
 - **Keys.** `KeyChar`: z, u (either case) and Backspace call `RequestUndo` instead of pausing when undo is on in the
   board's mode (`UndoKeysActive`) and no user pause is on. In timed mode without `inTimed` they pause as any key. A
@@ -1188,7 +1188,7 @@ Added from the user's answer to Q6 (2026-10-18): gems fall through holes, and bo
 
   On a board without dirt, `RefillDiagonal` is never used, so the vertical pass stays the original
   refill, line for line.
-- **Fill (`FillBoardVariant`):** dirt cells are skipped like holes. The reroll-until-no-match rule
+- **Fill (`NewBoardVariant`):** dirt cells are skipped like holes. The reroll-until-no-match rule
   treats dirt as a run breaker.
 - **Gold mode (4.9):** a dirt cell cannot be gilded until its last layer is gone. By default
   `gold.countDirt: true`, so dirt cells count toward the cells left. Revealing a cell does not gild
@@ -1207,7 +1207,7 @@ Added from the user's answer to Q6 (2026-10-18): gems fall through holes, and bo
   goes, the cell becomes `CELL_GEM` for the rest of the level (`BoardLayout::ClearDirtLayer`). A new
   level takes a fresh layout from the rules, so its dirt is whole again. A timed board's fall-out
   refills the same level, so the dirt left stays.
-- **A group is a scored run.** `ClearDirtNextToRun` runs after each run `ProcessMatches` scores. BJ1
+- **A group is a scored run.** `ClearDirtNextToRun` runs after each run `FindSets` scores. BJ1
   scores an L or a T as two runs, so a dirt cell next to both of them loses two layers. Special-gem
   blasts take layers once specials exist (stages 9 and 10). Gold (4.9) comes with its own stage.
 - **Diagonal pass (`SlideDiagonal`).** The rows are scanned from the far side back (bottom to top
@@ -1282,7 +1282,7 @@ Each category's subcategory variable has its own name: `Normal`, `Timetrial` and
 | Event | Code | Reading |
 |---|---|---|
 | Start | Tick 150 of a board that did not resume a save: `Board::Update` plays `SOUND_GO`, then shows the GO banner or, in a profile's first 5 games, the instructions dialog | A1: tick 150, although the banner's first non-zero alpha comes at tick 151 (Q21). It is about 0.1–0.2 s before a "GO visible" retime (derived from the fade, not measured), so times run slightly long. A2: the same tick when the dialog replaces the banner. A3: never a resumed board (`LoadGame` does not restore `mUpdateCnt`, so it shows GO again) |
-| Level split | `StartBlackHole` (entry into state 7) | A4: "N Levels" is N wormholes; the run ends while the HUD still shows level N. A5: the `StartBlackHole` tick; the gems visibly move one tick later |
+| Level split | `DoWhirlpool` (entry into state 7) | A4: "N Levels" is N wormholes; the run ends while the HUD still shows level N. A5: the `DoWhirlpool` tick; the gems visibly move one tick later |
 | Score split | The first tick with the HUD score at or above the threshold | A6: "on screen" is the rolling `mDisplayScore`, not `mScore`. A7: no split after `GameOver`, although the HUD keeps rolling during the shake (ask the moderators). A8: hints roll the HUD down; a split is never undone |
 | Reset | Game over (no moves in Normal, time up, New Game), board replaced (mode switch), quit | A Timetrial fall-out is not a reset |
 | None | Pauses, dialogs, focus loss | A9: real time runs on; the splitter never pauses the timer. A10: no rule covers ports; whether runs on this port count is for the moderators |
@@ -1622,8 +1622,8 @@ gravity change with every match); where they differ, the code wins.
 |---|---|
 | Twilight is mode 4, the secret counterpart of Classic, and unlocks after Classic level 17. Otherwise it plays as Classic (untimed, level bar, game over when no move is left; wiki.gg). | `IsModeUnlocked(4)` 0x5cf3e3 |
 | One gravity byte on the board (+0x1721), which the constructor sets in mode 4: Twilight starts **up**. | 0x5adb76..0x5adb9c |
-| Up: rows count from the bottom (`GetRowY` 620 − 84·row, else 32 + 84·row); refills spawn below the screen; `FillBoard` starts its gems below. | 0x594bd5, 0x5a7255, 0x597efd |
-| **The only flip** is in `UpdateFalling`: everything has settled, `ProcessMatches` found nothing, and the state has just become idle. The same step swaps grid rows r and 7 − r, so row 0 is always the entry side. | 0x5a9edb..0x5a9f5d |
+| Up: rows count from the bottom (`GetRowY` 620 − 84·row, else 32 + 84·row); refills spawn below the screen; `NewBoard` starts its gems below. | 0x594bd5, 0x5a7255, 0x597efd |
+| **The only flip** is in `UpdateFalling`: everything has settled, `FindSets` found nothing, and the state has just become idle. The same step swaps grid rows r and 7 − r, so row 0 is always the entry side. | 0x5a9edb..0x5a9f5d |
 | So a move's cascades share one direction, and a swap that makes no match never flips: the swap-back goes straight to idle. | 0x5a8b99..0x5a8ba5 |
 | The opening fill runs with the flag set, so **the opening board rises**; its settle flips, so the first move's gems fall from the top and the second's rise. | 0x5aded3 |
 | Each level's fill also flips at its settle, so the last move of a level and the first of the next share a direction. There is no reset per level; the flag is saved. | 0x597f15, 0x5a51c2, 0x59c993 |
@@ -1681,7 +1681,7 @@ gravity change with every match); where they differ, the code wins.
   - the opening fill rises and its settle flips, so the first move's gems fall from the top and the
     second's rise;
   - all of a move's cascades use one direction;
-  - a swap that makes no match never flips. A swap-back returns to `STATE_PLAYING` from `UpdateSwap`
+  - a swap that makes no match never flips. A swap-back returns to `STATE_PLAYING` from `UpdateSwapping`
     without a settle, and `KeepInvalidMove` (4.1) sets `mGravityNoFlip`. Twist and slide (4.4, 4.5) behave
     the same;
   - every fill flips once at its settle (level, timed fall-out), so across a level-up the last move and
@@ -1706,13 +1706,13 @@ gravity change with every match); where they differ, the code wins.
   with a gap in each pass), and the down branch is the original pass line for line. An upward refill draws
   the same colours as the downward refill of the vertically mirrored grid, since `(int)` truncates toward
   the board on both sides. On 8x8, upward spawns start at y ≥ 442, under the clip's bottom edge 428.
-- **`FillBoardVariant`** (5.5): under up, rows `0..rows-1`; the reference Y is the nearest filled cell
+- **`NewBoardVariant`** (5.5): under up, rows `0..rows-1`; the reference Y is the nearest filled cell
   above, else M = `GetRowY(0) + GetRowY(rows-1)` (389 on 8x8); gems start at `ref + Rand()%240 + 65`. For
   one RNG state the upward fill is the vertical mirror of the downward one, with the same draws.
 - **Seeds (4.10):** the tutorial loop keeps the first fill with the tutorial move in rows 4..6, and a
   rising fill puts its mirror in rows 1..3, so a seed may keep a different fill. A seed's Twilight board is
   therefore not simply the mirror of its Classic board.
-- **Fall-out and game over follow gravity** (Q26). `UpdateFallOutVariant` keeps one `Rand()%15` per
+- **Fall-out and game over follow gravity** (Q26). `UpdateBoardDroppingVariant` keeps one `Rand()%15` per
   column per tick, scans from the top under up, moves by `-mVelY` and drops a piece at
   y ≤ M − (`mScreenBottom` + 32), −123 on 8x8. `GameOverFallVariant` leaves the shake and explosion draws
   in translated code and mirrors only the fall (gone at M − (`mScreenBottom` + 49), −140).
@@ -1721,14 +1721,14 @@ gravity change with every match); where they differ, the code wins.
 **What the player sees.**
 - No direction indicator, as in Bejeweled 2.
 - **Backdrop** (`look.backdrop: "twilight"`). BJ1 has no backdrop picture, only the level's tinted checker
-  tiles, so this approximates Bejeweled 2's effect. `SetupLevel`'s tile-loop hook (`mChecker`) runs
+  tiles, so this approximates Bejeweled 2's effect. `SetupLevelData`'s tile-loop hook (`mChecker`) runs
   `DrawVariantChecker`, which draws the tiles, then mirrors that layer left to right about the board
   centre x 406 and halves each colour channel. The translated `IMAGE_ALPHABACK` draw (frame and HUD)
   follows unchanged, so the HUD is not mirrored. The constructor's copy and the level wipe show the
   result.
 - **Pitch** (`look.soundPitch: -2`). `SoundManager` gains a default pitch that `GetSoundInstance` applies
   to every instance it hands out (`SDLSoundInstance::AdjustPitch` already exists). `InitVariant` sets it
-  from the rules (0 otherwise). That covers `PlaySample` and the whirlpool instance that `StartBlackHole`
+  from the rules (0 otherwise). That covers `PlaySample` and the whirlpool instance that `DoWhirlpool`
   takes directly, with no edit in translated code. Music is unchanged.
 - **Clip** (amends stage 7's `DrawVariant`). The gem layer is clipped to the board's own screen
   rectangle, `ToScreen(origin) − (9, 4)` to `ToScreen(origin + (w, h)) + (13, 6)`. On 8x8 that is
@@ -1752,13 +1752,13 @@ gravity change with every match); where they differ, the code wins.
 |---|---|
 | Holes and masks (5.4) | `V` and M come from the current layout; gems rise through holes as they fall through them. |
 | Dirt (4.14, 7b) | Mirrored: dirt is a floor for down and a ceiling for up, only the entry-side segment is refilled, and diagonal slides come from the entry side. `mDiagonalLeftFirst` is shared. 7b adds a warning per direction in use: dirt at a column's entry-side end blocks its refill. |
-| Shapes and per-level shapes (5.3) | No restriction: the layout switches in `UpdateBlackHole` before `FillBoard` uses the new M. |
+| Shapes and per-level shapes (5.3) | No restriction: the layout switches in `UpdateWhirlpool` before `NewBoard` uses the new M. |
 | Scaled boards (5.1) | Logical space throughout; the limits are `mScreenBottom` and its mirror; the clip above. |
 | Twist, slide (4.4, 4.5) | A matching move flips at its settle; `_BACK` returns to PLAYING without a settle, so it never flips. |
 | Allow invalid moves (4.1) | A kept invalid move never flips (`mGravityNoFlip`). With `noMoves: "continue"`, a move's settle still reaches PLAYING and flips. |
 | Flame and lightning (4.8) | Blasts resolve within the move; the refill takes the move's direction. |
 | Gold (4.9) | The gold layer is per cell and does not move. Gold's fall-out and time-up game over follow gravity. |
-| Undo (4.12, 6.7) | The `StartSwap` snapshot, taken after the previous settle's flip, holds `mGravityFlips` and `mGravityNoFlip`, so undo restores the direction, and with `restoreRng` the repeated move refills the same way. |
+| Undo (4.12, 6.7) | The `SwapPieces` snapshot, taken after the previous settle's flip, holds `mGravityFlips` and `mGravityNoFlip`, so undo restores the direction, and with `restoreRng` the repeated move refills the same way. |
 | Replays (6.3) | No new events: gravity follows from the moves. |
 | StateCodec, hashes, trace (6.6) | Rows for `mGravityFlips` and `mGravityNoFlip` (V2, UNDO, LOGIC, FULL) and the trace field `gravity up\|down flips n` exist only when the rules set a gravity rule. The condition reads `mRules`, not the flags `-forcevariant` sets, so default-rules hashes and the stage-0 `-tracehash` baselines stay frozen. |
 | v2 save (7.2) | Chunk `GRAV {i32 flips, u8 noFlip}` under the same condition; a missing chunk reads as 0. Saves mid-cascade (states 0 and 4) resume in the saved direction, since `LoadGame` snaps positions. A save in `STATE_SWAPPING_BACK` already holds the swapped grid as state 1, as in the original; no flip is involved. |
@@ -1773,12 +1773,12 @@ gravity change with every match); where they differ, the code wins.
   180`), `mChecker` (`mShape || look.backdrop == "twilight"`). `-forcevariant` also sets `mGravity`, `mFall`
   and `mChecker`; the rules stay down, so the flip and the `GetPieceAt` guard stay off.
 - **Translated hooks** (2.5): `UpdateFalling` (the loop goes to `FallPiecesVariant` when `mFall`, and
-  `OnGravitySettle` ends the no-match branch), `UpdateClearing` and `FillBoard` (condition `mFall`),
-  `UpdateGameOver` (fall phase), `UpdateFallOut` (first line), `GetPieceAt` (guard), `SetupLevel`
-  (condition `mChecker`). About 6 tagged lines, none in `Draw`. `UpdateSwap` is not touched: the flip sits
+  `OnGravitySettle` ends the no-match branch), `UpdateClearing` and `NewBoard` (condition `mFall`),
+  `UpdateGameOverAnim` (fall phase), `UpdateBoardDropping` (first line), `GetPieceAt` (guard), `SetupLevelData`
+  (condition `mChecker`). About 6 tagged lines, none in `Draw`. `UpdateSwapping` is not touched: the flip sits
   at the settle, where Bejeweled 2 has it.
 - **Variant code** (`BoardShape.cpp`): `FallPiecesVariant`, the direction branches of `RefillMasked` and
-  `FillBoardVariant`, `UpdateFallOutVariant`, `GameOverFallVariant`, `OnGravitySettle`, the backdrop pass,
+  `NewBoardVariant`, `UpdateBoardDroppingVariant`, `GameOverFallVariant`, `OnGravitySettle`, the backdrop pass,
   the `GRAV` chunk, the StateCodec rows and the trace field. `KeepInvalidMove` sets `mGravityNoFlip`.
 - **Outside Board:** `SoundManager::SetDefaultPitch` (framework), `InstructionsStringId`, the strings.
 
@@ -1787,7 +1787,7 @@ gravity change with every match); where they differ, the code wins.
   off): traces, files and screenshots pixel-exact. The stage-0 no-moves game-over and timed fall-out
   scripts cover the end animations. Default-rules `-tracehash` baselines are unchanged. `BEJ_NO_VARIANTS`
   must match too, and the difftest now covers the gravity paths at down.
-- **Mirror unit tests** (verifier): for one RNG state, `FillBoardVariant(up)` and `RefillMasked(up)` on a
+- **Mirror unit tests** (verifier): for one RNG state, `NewBoardVariant(up)` and `RefillMasked(up)` on a
   grid with holes equal the mirrors of the down versions, in colours, rows and draw counts.
 - **`bejeweled_verify mirrortest --seeds 1..200`**: a mirrored copy of a down board is restored into an
   `up` board with the same RNG state, and the bot plays mirrored moves. Grid, score and stats are compared
@@ -1805,7 +1805,7 @@ gravity change with every match); where they differ, the code wins.
 **Size and stage.** About 690 lines: rules and `rulestest` ~150, flags, helpers and hooks ~50, falling,
 refill and fill ~90, fall-out and game over ~70, clip and guard ~30, chunk, StateCodec, trace and strings
 ~60, backdrop and pitch ~60, mirror tests and scripts ~180. Stage **7c** comes after stage 7 and before 7b.
-It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMasked`, `FillBoardVariant`,
+It needs stages 3 (StateCodec), 5 (v2 chunks), 6 (the undo row) and 7 (`RefillMasked`, `NewBoardVariant`,
 `DrawVariant`), and coming before 7b lets 7b write its diagonal pass and x settling direction-aware once.
 
 **As built (stage 7c, `BoardShape.cpp`, `BoardVariant.cpp`, `BoardLayout.h`):**
@@ -2039,8 +2039,8 @@ drawn image is replaced. On the web the import still asks for the whole install 
   - **Board:** the rules' name and RulesId, the board's shape (stage 7), and the seed when there is
     one. Later stages add their own rows: specials made and detonated (11), gold covered (12), twists
     and slides (10).
-- **Counting:** a `GameStats` observer that the board calls from hooks in `ProcessMatches` (each scored
-  run: length, colour, cascade depth, points), `StartSwap`, the swap back, `DoHint`, `Undo`, the level-up
+- **Counting:** a `GameStats` observer that the board calls from hooks in `FindSets` (each scored
+  run: length, colour, cascade depth, points), `SwapPieces`, the swap back, `TryShowHint`, `Undo`, the level-up
   and game over.
   - Like the LiveSplit observer and the replay recorder, it is no simulation state. It never draws
     from an RNG, is not in StateCodec's LOGIC and adds nothing to the score key. LOGIC hashes with the
@@ -2171,7 +2171,7 @@ move that stands makes the settle step the arrows (`OnMoveMade`, and a kept inva
 The steps trade the grid at once and animate for 24 ticks in `STATE_ARROW_STEPPING` (14), then the board settles again.
 The arrows closest to their edge go first, so an escape is always the settle's only step. On a shaped board an arrow
 with only holes ahead flies past them to the first cell off the grid. A board with arrows always takes the match
-rules' path (`ProcessMatchesVariant`), where the groups' and blasts' dying arrows are cleared; an arrow that a group
+rules' path (`FindSetsVariant`), where the groups' and blasts' dying arrows are cleared; an arrow that a group
 turns into a flame or lightning gem is cleared too, and new arrows never start on a special gem. The bonus is
 `arrows.bonus` times the arrows cleared this game times the multiplier, so late in a game it is thousands a clear;
 such a board takes the fast score roll that scoring tunables get (`mFastScoreRoll`). Without it the shown score
@@ -2302,12 +2302,12 @@ moves.
   assume a full board and get guards: `UpdateFalling`, `FindMove`'s swap target, and
   `MouseDrag`'s neighbour.
 - **Level changes with `board.levels`:**
-  1. `SetupLevel` runs inside `UpdateBlackHole`'s done-block, *before* that block's deletion
-     loop. At that point `SetupLevelVariant()` only computes `mPendingLayout = levels[(mLevel) % n]`,
+  1. `SetupLevelData` runs inside `UpdateWhirlpool`'s done-block, *before* that block's deletion
+     loop. At that point `SetupLevelDataVariant()` only computes `mPendingLayout = levels[(mLevel) % n]`,
      and `DrawVariantChecker` draws the next background from the pending layout.
   2. The deletion loop runs with the old bounds.
   3. Then `ApplyPendingLayout()` switches `mLayout`, `mCols`, `mRows` and `mLevelShape`.
-  4. In the constructor, `InitVariant` sets both layouts to level 0 before `SetupLevel`.
+  4. In the constructor, `InitVariant` sets both layouts to level 0 before `SetupLevelData`.
 - **Loading:** the v2 save stores `mLevelShape` and the dims in its header, ahead of the cell
   records. `ReadVariantHeader` applies that layout before the cells are read, and then rebuilds
   the background for the loaded level and shape.
@@ -2337,17 +2337,17 @@ On a full column `V = 0..rows-1`, which is line for line the original pass, with
 order. `UpdateFalling` already settles each piece to `GetRowY(mRow)`. Stage 7c orders `V` from the entry
 side, so the same pass also refills upward (4.16).
 
-### 5.5 Fill with holes (`FillBoardVariant`)
+### 5.5 Fill with holes (`NewBoardVariant`)
 
-- It parks the old pieces exactly as `FillBoard` does (all `MAX` cells, except a stale
+- It parks the old pieces exactly as `NewBoard` does (all `MAX` cells, except a stale
   `mSelectedPiece`).
 - Fill order: rows `rows-1..0`, columns `0..cols-1`, skipping holes. `aBelowY` is the `(int)mY` of
   the nearest playable cell below, which is already filled since filling runs bottom-up; else 0.
-- Each cell draws `Rand()%240`, then rerolls `Rand() % gemColors` while `HasMatch()` (the variant
+- Each cell draws `Rand()%240`, then rerolls `Rand() % gemColors` while `HasSet()` (the variant
   when `mMatch`), with the cap from 3.6.
 - On a full 8x8 this is the original algorithm. Stage 7c adds the mirrored upward fill (4.16).
-- **`FillBoardWithMove()`** replaces the tutorial loop when `mNoTutorial` is set:
-  `do FillBoardVariant(); while (!AnyMove() && ++n < 100);`. It leaves `mTutorialCol = -1`.
+- **`NewBoardWithMove()`** replaces the tutorial loop when `mNoTutorial` is set:
+  `do NewBoardVariant(); while (!AnyMove() && ++n < 100);`. It leaves `mTutorialCol = -1`.
 
 ### 5.6 Drawing (`DrawVariant`, `DrawVariantChecker`)
 
@@ -2386,10 +2386,10 @@ generalisation:
 
 | Effect | Handling |
 |---|---|
-| Vortex (`StartBlackHole`/`UpdateBlackHole`) | `GetBoardCenter`/`GetBoardSize` are logical, so `aMaxRadius = (int)((int)sqrt(w²+h²)/2.2)` grows with the board (260 at 8x8). Pieces spiral in logical space. The 256 px vortex image is drawn unscaled at (406, 219). |
+| Vortex (`DoWhirlpool`/`UpdateWhirlpool`) | `GetBoardCenter`/`GetBoardSize` are logical, so `aMaxRadius = (int)((int)sqrt(w²+h²)/2.2)` grows with the board (260 at 8x8). Pieces spiral in logical space. The 256 px vortex image is drawn unscaled at (406, 219). |
 | Game-over shake and fall | Per piece; the fall limit is `mScreenBottom + GEM_SIZE` (mirrored under up gravity, 4.16). |
 | Fall-out | `mCols` draws per tick; the limit is `mScreenBottom + 32` (mirrored under up gravity, 4.16). |
-| Level wipe | Unchanged (full screen); `FillBoard` dispatches. |
+| Level wipe | Unchanged (full screen); `NewBoard` dispatches. |
 | `HighScoreWidget::Resize` (0x4cedf5) | Draws `mApp->mBoard->Draw` into its snapshot, so it picks up `DrawVariant` by itself. |
 
 ---
@@ -2404,7 +2404,7 @@ generalisation:
    code. `srand(GetTickCount())` in `Init` stays unused by game code.
 2. **Clock.** Only the board tick, `mUpdateCnt`: `WidgetContainer::mUpdateCnt`, incremented by
    `Widget::Update()` in step 3 of `Board::Update`, after the pause checks. There is no wall time
-   in play; `GetDayNumber` is used for high scores only.
+   in play; `GetDayNum` is used for high scores only.
 3. **Floating point.**
    - Gameplay doubles use only `+ - * /`, `sqrt` and `(int)` casts, which give identical results
      with SSE2 (the existing `-msse2 -mfpmath=sse`) and in wasm.
@@ -2418,8 +2418,8 @@ generalisation:
      game and the verifier with `-mno-nontrapping-fptoint`: such a conversion gives x86's `INT_MIN`
      (also for NaN) instead of wasm's saturated value, so a replay recorded on one platform verifies
      on the other.
-4. **Trig stays libm.** `cos` (`UpdateSwap`), `cos/sin` (`UpdateBlackHole`) and `atan2`
-   (`StartBlackHole`) only set positions that no gameplay decision reads:
+4. **Trig stays libm.** `cos` (`UpdateSwapping`), `cos/sin` (`UpdateWhirlpool`) and `atan2`
+   (`DoWhirlpool`) only set positions that no gameplay decision reads:
    - `MouseDown` returns in state 7;
    - swap positions are snapped at 180°;
    - commands carry cells;
@@ -2477,22 +2477,22 @@ This is equivalent to live play, including during pauses:
 |---|---|---|---|---|
 | `SELECT` | c r | `MouseDown` selection branch (the cell where `GetPieceAt` found the piece) | `mCursorFrame = 0; mSelectedPiece = mBoard[r][c]; MarkDirty(); PlaySample(SOUND_SELECT, ...)` | `mUserPauseCount == 0`, `mInputDelay == 0`, state not 5..8, no selection, cell non-NULL |
 | `DESELECT` | | `MouseDown` right button | `mSelectedPiece = NULL; MarkDirty()` | as above, without the selection test |
-| `TARGET` | c r, or -1 | `MouseDown` tail (click zone or clicked piece), `MouseDrag` | `t = cell or NULL; if (t && t != sel) StartSwap(sel, t); sel = NULL; MarkDirty()` | `mState == STATE_PLAYING`, selection set (and the `MouseDown` gates for clicks) |
+| `TARGET` | c r, or -1 | `MouseDown` tail (click zone or clicked piece), `MouseDrag` | `t = cell or NULL; if (t && t != sel) SwapPieces(sel, t); sel = NULL; MarkDirty()` | `mState == STATE_PLAYING`, selection set (and the `MouseDown` gates for clicks) |
 | `TWIST` | c r dir | variant input | `StartTwist` | PLAYING, no user pause, `mInputDelay == 0`, four cells present |
 | `SLIDE` | axis line start k off | variant input | `StartSlide` | PLAYING, the same, valid segment, `1 <= k < len` |
-| `HINT` | | inside `ShowHint`'s `if` | `DoHint()` | `mState == STATE_PLAYING && mPauseCount == 0` |
+| `HINT` | | inside `ShowHint`'s `if` | `TryShowHint()` | `mState == STATE_PLAYING && mPauseCount == 0` |
 | `PAUSE` / `UNPAUSE` | u | `Pause`/`Unpause` (KeyChar, click-to-unpause, ModalOpen/Close, focus) | `Pause(u)` / `Unpause(u)` | none |
 | `UNDO` | | `RequestUndo` | `Undo()` | 4.12 conditions |
 | `NEW_GAME` | | `RequestNewGame` | `RequestNewGame()` | none |
 | `XRAND` | n | `SyncExternalRand` | n × `mOwnRng->Next()` | session-mode replays only |
 | `HOVER` | x y (-1 = leave) | `MouseMove`/`MouseLeave`, last value per tick (optional channel) | `mMouseX/Y = ...` | none |
 | `SAVE` | kind, u32 hash | `SaveGame` (kind 1), `GetShutdownSaves` snapshot (kind 2) | the same call into `mPlaybackSave` | none |
-| `LOAD` | | `LoadGame` after `ConfirmLoadGame` → YES | `LoadGame` from the bytes the previous segment's last `SAVE` produced (`mPlaybackLoad`) | first board tick only |
+| `LOAD` | | `LoadGame` after `TryConfirmLoad` → YES | `LoadGame` from the bytes the previous segment's last `SAVE` produced (`mPlaybackLoad`) | first board tick only |
 | `CHECK` | u64 | `AfterUpdate` when the state enters PLAYING | compare with the LOGIC hash | |
 
 - **Stale selections.** Commands carry the grid cell and the selection is a recorded event, so the
-  stale-selection quirk (GAME_NOTES 3.6, a piece orphaned by `FillBoard` swapped back in by
-  `StartSwap`) replays exactly.
+  stale-selection quirk (GAME_NOTES 3.6, a piece orphaned by `NewBoard` swapped back in by
+  `SwapPieces`) replays exactly.
 - **Corrupt replays.** The drive loop flags a replay as corrupt when:
   - an event fails its gate;
   - the board is paused and no further event at that tick unpauses it;
@@ -2576,12 +2576,12 @@ records { u32 tag, u32 len, payload }:
 **The sidecar** (in-progress replay, 7.3) is written next to the save, with the save's hash.
 
 **Resuming.** On the next launch:
-1. `TitleScreenIsFinished` creates a fresh board. Its constructor runs, with `FillBoard` and
+1. `TitleScreenIsFinished` creates a fresh board. Its constructor runs, with `NewBoard` and
    tutorial draws.
-2. `ConfirmLoadGame` opens a modal before the first tick (`PAUSE false`). YES runs `KillDialog`,
+2. `TryConfirmLoad` opens a modal before the first tick (`PAUSE false`). YES runs `KillDialog`,
    then `ModalClose` (`UNPAUSE false`), then `LoadGame` (`LOAD`), all at board tick 0.
 3. The recorder reads the sidecar and checks that its hash matches the loaded save. It appends this
-   new segment to the old replay. `DeleteSaveGame` also deletes the sidecar.
+   new segment to the old replay. `DeleteSavedGame` also deletes the sidecar.
 4. Session mode: the segment's RNG start is the MT state at the new constructor.
    Owned-RNG variant boards: the v2 chunk restores the RNG. Owned-RNG default-rules boards: the
    sidecar's `RNGS` restores it.
@@ -2618,10 +2618,10 @@ A client that restored a different RNG state diverges, and the next `CHECK` fail
   moves, from `STATE_PLAYING` time up, after a recorded `NEW_GAME` it is a new game. `END` is taken
   when the game-over screen appears, at `~Board` after New Game, or at `~Board` of an unsaved board
   (abandoned). A board whose last event is a `SAVE` hands the game to the sidecar.
-- **Declined resume.** No in the load dialog (`DeleteSaveGame` without a `LOAD`) turns the
+- **Declined resume.** No in the load dialog (`DeleteSavedGame` without a `LOAD`) turns the
   sidecar's recorded game into a finished replay with reason 5.
-- **`HINT`** is recorded in `DoHint`. Its only caller is `ShowHint`, inside the `if`, and playback
-  calls `DoHint` itself.
+- **`HINT`** is recorded in `TryShowHint`. Its only caller is `ShowHint`, inside the `if`, and playback
+  calls `TryShowHint` itself.
 - **Replaced.** The first save of a recording board replaces another board's (a mode switch saved the
   timed game, the next is saved at the quit): the sidecar's game is kept as a finished replay first,
   as for a declined resume (7.3).
@@ -2730,7 +2730,7 @@ for (;;) {
 - **Gates** (beyond 6.3): `SELECT`, `DESELECT` take `MouseDown`'s (no user pause, no input delay, not
   states 5..8; `SELECT`: no selection, a gem in the cell). `TARGET` cannot tell a click from a drag
   (`MouseDrag` has no input-delay gate): `STATE_PLAYING`, a selection, -1 -1 or a gem. `HINT`:
-  `ShowHint`'s, then `DoHint`. `XRAND`: only a board without a seed (session mode), `n` draws of its
+  `ShowHint`'s, then `TryShowHint`. `XRAND`: only a board without a seed (session mode), `n` draws of its
   `MTRand` past `Board::Rand`. `LOAD`: at tick 0, then `SetPlaybackRng` with the segment's `RNGS`;
   after a segment on a seed, that `RNGS` must be the RNG the board had at its last `SAVE` (6.5).
   `CHECK` must be the first event at the tick the board settled at, and every settle needs one.
@@ -2773,7 +2773,7 @@ for (;;) {
     says them (every field in the mod path's range and spelling, `Validate` passed: at most 32 shapes and 64
     levels are checked first), every tunable double is finite, and the `diff.txt` values are finite with
     points and multiplier bases above 0 whose product is at least 1 and per-level steps not below 0, so
-    `SetupLevel`'s `mLevelPoints`, `Update`'s divisor, is at least 1 at every level (or, past the int range,
+    `SetupLevelData`'s `mLevelPoints`, `Update`'s divisor, is at least 1 at every level (or, past the int range,
     `INT_MIN`). Else "cannot play: RULE: ...". The game's own `diff.txt` is still read as the original reads
     it.
 - **Output.** `REPLAY start`, `REPLAY segment k` and `REPLAY end: ok, <n> CHECKs, END ...` or
@@ -3105,7 +3105,7 @@ contains:
 - for default-rules owned-RNG games, an `RNGS` record.
 
 It exists only when recording, or when a default-rules game owns its RNG. It is written by
-`SaveGame`, staged into the web backup by `GetShutdownSaves`, and deleted by `DeleteSaveGame`.
+`SaveGame`, staged into the web backup by `GetShutdownSaves`, and deleted by `DeleteSavedGame`.
 
 **As built (stage 3a, `Board::WriteSaveSidecar` / `GameLoadedVariant`):**
 - **Contents.** A recording's sidecar is the whole replay so far, ending in `SAVE`. When the board
@@ -3204,13 +3204,13 @@ tests. Sizes are new or changed lines.
 | 2b | Auto LiveSplit (4.15) | `features.livesplit`; `LiveSplitBlock.h` (layout 1) and `LiveSplitObserver` (detection, counters, `displayScoreMax`, sequence counter, status lines, template copy) under the desktop `#if`; Board serial and `mResumed`; `UpdateFrames` and `~WinDMApp` hooks; `-livesplitlog`; the `livesplit` mod with 12 templates; `BejeweledDeluxe-byopop.asl` (the original 1.87 only after its test) | Oracle case "livesplit" (also `-forcevariant` and `BEJ_NO_VARIANTS`); `-livesplitlog` against `-tracehash` states; `lsprobe` with `check_lslog.py`, incl. a `-fast` stress run; `lsdecide.py` scenarios; `asltest` (Framework csc, 1.8.37's usings) equals `lsdecide.py`; `check_asl_offsets.py`; magic once in `.data`. Publishing and the manual LiveSplit test wait for the user | ~1,550 (≈340 game) |
 | 3 | Replay core (10) + StateCodec | StateCodec table and hashes; recorder hooks; `SyncExternalRand`; `HOVER`; `CHECK`; `.bjr` writer and reader; playback driver with gates; `-replay=`; `mPlaybackOnly`, `mPlaybackLoad/Save`; segments and sidecar; `GetShutdownSaves`; `-replaydir`, `/persist/replays`; pruning | 9.1 items 5 and 6 (in-game); scripted resume (`playtest_load`) as a two-segment replay; external-draw script replays; StateCodec round trip at every settle | ~1,300 |
 | 4 | Headless verifier | Shims, `WinDMAppHeadless`, `verify_main`, `BoardTrace` move, standalone wasm, Node runner, difftest harness, CI job | Verifier = game for all corpus replays; native-recorded → wasm-verified; difftest runs (trivially equal until stage 7); the Node runner takes the stage-0 switches (`-script`, `-tracehash`, `-autoplay`), which the web shell does not pass, and the oracle scripts' LOGIC hashes match native | ~900 |
-| 5 | Allow invalid moves (1) + noMoves + v2 save | `UpdateSwap` branch, `KeepInvalidMove`, `OnNoMovesVariant`, v2 header and chunks (`RNGS`, `MOVE`), variant trace lines | Kept-swap script; `"continue"` script; v2 save → quit → load round trip; replay verify; v1 untouched (oracle) | ~450 |
+| 5 | Allow invalid moves (1) + noMoves + v2 save | `UpdateSwapping` branch, `KeepInvalidMove`, `OnNoMovesVariant`, v2 header and chunks (`RNGS`, `MOVE`), variant trace lines | Kept-swap script; `"continue"` script; v2 save → quit → load round trip; replay verify; v1 untouched (oracle) | ~450 |
 | 6 | Undo (11) | UNDO profile, `UndoStack`, `RequestUndo`/`Undo`, pop/clear points, keys and orb hotspot, `UNDO` event | Undo script (repeat the same move → identical refill); timed `inTimed`/`restoreTime`; replay with undos verifies; snapshot round trip | ~450 |
-| 7 | Geometry and shapes (3) | `BoardLayout` scaling, `ToLogical`, `FillBoardVariant`, `RefillMasked`, `FillBoardWithMove`, NULL guards, `DrawVariant`, `DrawVariantChecker`, per-level shapes (pending → apply), v2 dims | `-forcevariant` oracle incl. pixel-exact screenshots; difftest now meaningful; scripts and screenshots for 6x6, 10x7, 16x16, diamond and a two-level shape mod (board, vortex, wipe, game-over fall); save/load on level 2; replay verify | ~1,400 |
-| 7c | Twilight gravity (4.16) | `board.gravity.*` and `look.*` (group, validation, fill minimum per order); `mGravity`, `mFall`, `mChecker`; `FallPiecesVariant` (direction, `fallAccel`); direction-aware `RefillMasked` and `FillBoardVariant`; fall-out and game-over variants; `OnGravitySettle`; `GetPieceAt` guard; per-board clip; `GRAV` chunk, StateCodec rows and trace field (gravity rule sets only); backdrop pass; default sound pitch; help strings | `-forcevariant` oracle pixel-exact, default-rules hashes unchanged; difftest; mirror unit tests and `mirrortest`; Twilight scripts and screenshots (opening rise, alternation, flip per fill, no flip on swap-back or kept invalid move, Timed fall-out, game over, save mid-cascade, undo, diamond); replay verify; `rulestest` | ~690 |
+| 7 | Geometry and shapes (3) | `BoardLayout` scaling, `ToLogical`, `NewBoardVariant`, `RefillMasked`, `NewBoardWithMove`, NULL guards, `DrawVariant`, `DrawVariantChecker`, per-level shapes (pending → apply), v2 dims | `-forcevariant` oracle incl. pixel-exact screenshots; difftest now meaningful; scripts and screenshots for 6x6, 10x7, 16x16, diamond and a two-level shape mod (board, vortex, wipe, game-over fall); save/load on level 2; replay verify | ~1,400 |
+| 7c | Twilight gravity (4.16) | `board.gravity.*` and `look.*` (group, validation, fill minimum per order); `mGravity`, `mFall`, `mChecker`; `FallPiecesVariant` (direction, `fallAccel`); direction-aware `RefillMasked` and `NewBoardVariant`; fall-out and game-over variants; `OnGravitySettle`; `GetPieceAt` guard; per-board clip; `GRAV` chunk, StateCodec rows and trace field (gravity rule sets only); backdrop pass; default sound pitch; help strings | `-forcevariant` oracle pixel-exact, default-rules hashes unchanged; difftest; mirror unit tests and `mirrortest`; Twilight scripts and screenshots (opening rise, alternation, flip per fill, no flip on swap-back or kept invalid move, Timed fall-out, game over, save mid-cascade, undo, diamond); replay verify; `rulestest` | ~690 |
 | 7b | Dirt tiles and diagonal falling (4.14) | Mask legend `d`/`2`..`9`, dirt cells in input/match/hint code, layer clearing next to groups (and blasts), `RefillDiagonal` with the alternating toggle, `mVelX` in `UpdateFalling` (inside 7c's `FallPiecesVariant`), dirt art and dust effect, `DIRT` chunk | Fixture boards (alternation, top-row dirt, layers, two adjacent groups); screenshots; save mid-cascade; replay verify; boards without dirt unchanged (oracle, difftest) | ~700 |
 | 8 | More gem colours (2) | Clamp 12, `imageOps.extendRows` (1x + HD), default op, glyphs, N shrink images, tints, `EnsureGemColors` | PNG of the generated sheet (1x and `example-crystal-gems` HD); 9- and 12-colour screenshots; loading bar unchanged | ~450 |
-| 9 | Patterns (6) | `MatchFinder` (runs, diagonals, crossings, cell patterns), `ProcessMatchesVariant`, `ScoreGroup`, `HasMatchVariant`, `FindMoveVariant` (swap), `DoHintVariant`, fill cap, colour-minimum validation | `-forcevariant` oracle (exact run order and scoring); finder fixtures (L3, square, diagonal, minRun 2, merge L/T/plus, subset skip); hint equals brute force; scripts | ~1,200 |
+| 9 | Patterns (6) | `MatchFinder` (runs, diagonals, crossings, cell patterns), `FindSetsVariant`, `ScoreGroup`, `HasSetVariant`, `FindMoveVariant` (swap), `TryShowHintVariant`, fill cap, colour-minimum validation | `-forcevariant` oracle (exact run order and scoring); finder fixtures (L3, square, diagonal, minRun 2, merge L/T/plus, subset skip); hint equals brute force; scripts | ~1,200 |
 | 10 | Twist + slide (5, 4) + combinations | States 10–13, variant input, integer twist table, segments, `MoveSet` twist and slide, multi-type input, instruction strings, trace lines | Rotate and drag scripts (coordinates from the trace); kept vs reverted with `allowInvalid`; diamond + twist; swap+twist+slide input matrix; save mid-move; replay verify; generic search equals brute force | ~1,500 |
 | 11 | Special gems (7) | Creation, detonation FIFO, chains, scoring, effects, art fallbacks, sounds, `KIND` chunk | Fixture boards with exact expected scores and creation cells; chain order; screenshots; save with specials; undo round trip; replay verify | ~1,000 |
 | 12 | Gold board (8) | Gold layer, `UpdateGoldGoal`, bar and HUD, gold tile, `noMoves` defaults, `GOLD`/`GTIM`, levels + gold | Small gold mod: a script completes level 1 → vortex → level-2 mask; timed time-up; save/load mid-level; the Twisted Quest combination script | ~750 |
@@ -3254,7 +3254,7 @@ modes and the measures go to the user before they are tuned.
 | Shim drift in the verifier | The CI trace diff; minimal shims; a test of `mUpdateCnt`/`Resize` semantics. |
 | Floating point across platforms | 6.1: SSE2/wasm IEEE, `-ffp-contract=off`, no fast-math, clamped casts, libm trig only for cosmetic positions excluded from LOGIC. |
 | localStorage quota (one backup item for the whole user dir) | Replays in `/persist/replays`; only the small sidecar sits in the user dir. |
-| Restrictive rule combinations hang `FillBoard` | Static colour minimum plus a deterministic reroll cap. |
+| Restrictive rule combinations hang `NewBoard` | Static colour minimum plus a deterministic reroll cap. |
 | Combination explosion | Pairwise playtests (shape × move set × specials × gold × undo), the difftest, fuzzed rule sets with an autoplay bot. Exhaustive coverage is impossible. |
 | Engine changes invalidate old replays | `engineAbi`; corpus re-verified in CI; old verifier builds kept per ABI. |
 | Cheating | Server seeds, single use, time plausibility, gate checks. Bots and tool-assisted play remain possible. |
@@ -3414,7 +3414,7 @@ Recommendations are in brackets.
   counter is used instead (6.2).
 - Undo through the `LoadGame` body would call `mApp->SetTimedMode(..., false)` and set
   `mApp->mShowInstructions = false`. Undo uses StateCodec instead (6.7).
-- Per-level shapes must switch after `UpdateBlackHole`'s deletion loop, not in `SetupLevel`. The
+- Per-level shapes must switch after `UpdateWhirlpool`'s deletion loop, not in `SetupLevelData`. The
   save's dims and shape index must come before the cell records (5.3, 7.2).
 - "Following games take splitmix32(seed)" contradicted the double `NewGame` at startup. It is
   replaced by the pending-seed rule (4.10).

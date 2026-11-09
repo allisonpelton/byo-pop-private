@@ -198,7 +198,8 @@ def script_span(path):
 
 def port_exe():
     root = os.getcwd()
-    return (os.path.join(root, 'build', 'native', 'mummymaze.exe'), os.path.join(root, 'assets', 'mummymaze'))
+    exe = os.environ.get('PORT_EXE') or os.path.join(root, 'build', 'native', 'mummymaze.exe')   # PORT_EXE: another build, such as the frozen baseline's
+    return (exe, os.path.join(root, 'assets', 'mummymaze'))
 
 
 def port_load(out, runs):

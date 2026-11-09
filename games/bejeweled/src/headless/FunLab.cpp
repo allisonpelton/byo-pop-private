@@ -250,43 +250,43 @@ public:
 	// The move as the replay player applies it: SELECT, an update, TARGET for a swap; TWIST and SLIDE at once
 	void StartMove(const MoveSet::Move& theMove)
 	{
-		Board* b = mBoard;
+		Board* aBoard = mBoard;
 		if (theMove.mType == GameRules::MOVE_TWIST)
 		{
-			b->mPlaybackApplying = true;
-			b->StartTwist(theMove.mA, theMove.mB, theMove.mC);
-			b->mPlaybackApplying = false;
+			aBoard->mPlaybackApplying = true;
+			aBoard->StartTwist(theMove.mA, theMove.mB, theMove.mC);
+			aBoard->mPlaybackApplying = false;
 			return;
 		}
 		if (theMove.mType == GameRules::MOVE_SLIDE)
 		{
-			b->mPlaybackApplying = true;
-			b->StartSlide(theMove.mA, theMove.mB, theMove.mC, theMove.mE, 0);
-			b->mPlaybackApplying = false;
+			aBoard->mPlaybackApplying = true;
+			aBoard->StartSlide(theMove.mA, theMove.mB, theMove.mC, theMove.mE, 0);
+			aBoard->mPlaybackApplying = false;
 			return;
 		}
-		b->mPlaybackApplying = true;
-		b->mCursorFrame = 0;
-		b->mSelectedPiece = b->mBoard[theMove.mB][theMove.mA];
-		b->MarkDirty();
-		b->mPlaybackApplying = false;
+		aBoard->mPlaybackApplying = true;
+		aBoard->mCursorFrame = 0;
+		aBoard->mSelectedPiece = aBoard->mBoard[theMove.mB][theMove.mA];
+		aBoard->MarkDirty();
+		aBoard->mPlaybackApplying = false;
 		Update();
-		if (b->mState != STATE_PLAYING)
+		if (aBoard->mState != STATE_PLAYING)
 			return;
-		b->mPlaybackApplying = true;
-		Piece* aTarget = b->mBoard[theMove.mD][theMove.mC];
-		if ((aTarget != NULL) && (aTarget != b->mSelectedPiece))
-			b->StartSwap(b->mSelectedPiece, aTarget);
-		b->mSelectedPiece = NULL;
-		b->MarkDirty();
-		b->mPlaybackApplying = false;
+		aBoard->mPlaybackApplying = true;
+		Piece* aTarget = aBoard->mBoard[theMove.mD][theMove.mC];
+		if ((aTarget != NULL) && (aTarget != aBoard->mSelectedPiece))
+			aBoard->SwapPieces(aBoard->mSelectedPiece, aTarget);
+		aBoard->mSelectedPiece = NULL;
+		aBoard->MarkDirty();
+		aBoard->mPlaybackApplying = false;
 	}
 
 	Outcome PlayMove(const MoveSet::Move& theMove);
 };
 
 // The moves of the board in play, a swap once (not from both of its cells), in the search's order
-std::vector<MoveSet::Move> BoardMoves(Board* b)
+std::vector<MoveSet::Move> BoardMoves(Board* theBoard)
 {
 	std::vector<MoveSet::Move> aMoves;
 	auto anAdd = [&aMoves](const MoveSet::Move& m)
@@ -301,16 +301,16 @@ std::vector<MoveSet::Move> BoardMoves(Board* b)
 		}
 		aMoves.push_back(m);
 	};
-	if (b->mVariant.mSearch)
+	if (theBoard->mVariant.mSearch)
 	{
 		std::vector<MoveSet::Found> aFound;
-		b->FindVariantMoves(&aFound);
+		theBoard->FindVariantMoves(&aFound);
 		for (const MoveSet::Found& f : aFound)
 			anAdd(f.mMove);
 		return aMoves;
 	}
 	int aFound[4];
-	for (int i = 0; b->FindMove(aFound, i, true, true); i++)
+	for (int i = 0; theBoard->FindMove(aFound, i, true, true); i++)
 	{
 		MoveSet::Move m;
 		m.mA = aFound[0];
@@ -329,29 +329,29 @@ int SpecialsMade(Board* b)
 
 Outcome LabBoard::PlayMove(const MoveSet::Move& theMove)
 {
-	Board* b = mBoard;
-	int aSpecials = SpecialsMade(b);
-	int anArrows = b->mArrowsCleared;
-	int aGoldLeft = b->mVariant.mGold ? b->GoldLeft() : 0;
-	int aLevel = b->mLevel;
+	Board* aBoard = mBoard;
+	int aSpecials = SpecialsMade(aBoard);
+	int anArrows = aBoard->mArrowsCleared;
+	int aGoldLeft = aBoard->mVariant.mGold ? aBoard->GoldLeft() : 0;
+	int aLevel = aBoard->mLevel;
 	StartMove(theMove);
 	Outcome anOutcome;
 	for (int aTick = 1; aTick <= SETTLE_CAP; aTick++)
 	{
 		Update();
-		if (IsSettled(b->mState))
+		if (IsSettled(aBoard->mState))
 		{
-			anOutcome.mState = b->mState;
+			anOutcome.mState = aBoard->mState;
 			break;
 		}
 	}
-	anOutcome.mPoints = b->mMoveScore;
-	anOutcome.mRounds = b->mCascadeCount - 1;
-	anOutcome.mSpecials = SpecialsMade(b) - aSpecials;
-	anOutcome.mArrows = b->mArrowsCleared - anArrows;
-	anOutcome.mGilded = (b->mVariant.mGold && (b->mLevel == aLevel)) ? aGoldLeft - b->GoldLeft() : 0;
-	anOutcome.mBeaten = (b->mState == STATE_BLACK_HOLE) || (b->mLevel != aLevel) || LevelBeaten(b);
-	anOutcome.mMovesLeft = (b->mState == STATE_PLAYING) ? (int) BoardMoves(b).size() : 0;
+	anOutcome.mPoints = aBoard->mMoveScore;
+	anOutcome.mRounds = aBoard->mCascadeCount - 1;
+	anOutcome.mSpecials = SpecialsMade(aBoard) - aSpecials;
+	anOutcome.mArrows = aBoard->mArrowsCleared - anArrows;
+	anOutcome.mGilded = (aBoard->mVariant.mGold && (aBoard->mLevel == aLevel)) ? aGoldLeft - aBoard->GoldLeft() : 0;
+	anOutcome.mBeaten = (aBoard->mState == STATE_BLACK_HOLE) || (aBoard->mLevel != aLevel) || LevelBeaten(aBoard);
+	anOutcome.mMovesLeft = (aBoard->mState == STATE_PLAYING) ? (int) BoardMoves(aBoard).size() : 0;
 	return anOutcome;
 }
 
@@ -520,22 +520,22 @@ public:
 	GameLog Play(int theMaxMoves, int theMaxTicks)
 	{
 		GameLog aLog;
-		Board* b = mMain.mBoard;
-		int aLevel = b->mLevel, aLevelStart = 0;
+		Board* aBoard = mMain.mBoard;
+		int aLevel = aBoard->mLevel, aLevelStart = 0;
 		std::vector<int> aLevelPoints;
 		bool wasDanger = false;
-		while ((aLog.mMoves < theMaxMoves) && (b->mUpdateCnt < theMaxTicks))
+		while ((aLog.mMoves < theMaxMoves) && (aBoard->mUpdateCnt < theMaxTicks))
 		{
 			if (!mMain.ReadyToMove(mWait))
 				break;
-			if (b->mLevel != aLevel)
+			if (aBoard->mLevel != aLevel)
 			{
 				aLog.mLevelMoves.push_back(aLog.mMoves - aLevelStart);
 				aLevelStart = aLog.mMoves;
-				aLevel = b->mLevel;
+				aLevel = aBoard->mLevel;
 				aLevelPoints.clear();
 			}
-			std::vector<MoveSet::Move> aMoves = BoardMoves(b);
+			std::vector<MoveSet::Move> aMoves = BoardMoves(aBoard);
 			int aChoices = (int) aMoves.size();
 			aLog.mChoices.push_back(aChoices);
 			if (!mTimed && (aChoices <= FEW_MOVES))
@@ -561,30 +561,30 @@ public:
 					break;
 				aMove = aMoves[aChoice];
 			}
-			Outcome o = mMain.PlayMove(aMove);
+			Outcome anOutcome = mMain.PlayMove(aMove);
 			aLog.mMoves++;
-			aLog.mPoints += o.mPoints;
-			aLog.mRounds += std::max(0, o.mRounds);
-			aLog.mCascades += (o.mRounds >= 2) ? 1 : 0;
-			aLog.mBigCascades += (o.mRounds >= 4) ? 1 : 0;
-			aLog.mEvents += o.mSpecials + o.mArrows;
+			aLog.mPoints += anOutcome.mPoints;
+			aLog.mRounds += std::max(0, anOutcome.mRounds);
+			aLog.mCascades += (anOutcome.mRounds >= 2) ? 1 : 0;
+			aLog.mBigCascades += (anOutcome.mRounds >= 4) ? 1 : 0;
+			aLog.mEvents += anOutcome.mSpecials + anOutcome.mArrows;
 			if ((int) aLevelPoints.size() >= BIG_AFTER)
 			{
 				std::vector<int> aSorted = aLevelPoints;
 				std::nth_element(aSorted.begin(), aSorted.begin() + aSorted.size() / 2, aSorted.end());
 				int aMedian = aSorted[aSorted.size() / 2];
-				aLog.mBig += ((aMedian > 0) && (o.mPoints >= BIG_FACTOR * aMedian)) ? 1 : 0;
+				aLog.mBig += ((aMedian > 0) && (anOutcome.mPoints >= BIG_FACTOR * aMedian)) ? 1 : 0;
 			}
-			aLevelPoints.push_back(o.mPoints);
+			aLevelPoints.push_back(anOutcome.mPoints);
 		}
-		aLog.mTicks = b->mUpdateCnt;
-		aLog.mLevel = b->mDisplayLevel;
-		aLog.mScore = b->mScore;
-		if (IsOver(b->mState))
+		aLog.mTicks = aBoard->mUpdateCnt;
+		aLog.mLevel = aBoard->mDisplayLevel;
+		aLog.mScore = aBoard->mScore;
+		if (IsOver(aBoard->mState))
 		{
 			int aFrom = mMain.mEndFrom;
 			aLog.mEnd = (aFrom == STATE_FALLING) ? "no moves" : (aFrom == STATE_ARROW_STEPPING) ? "arrow escaped" :
-				b->mVariant.mGold ? "gold time up" : "time up";
+				aBoard->mVariant.mGold ? "gold time up" : "time up";
 			for (int i = std::max(0, (int) aLog.mDangerTrail.size() - WARNING_POINTS); i < (int) aLog.mDangerTrail.size(); i++)
 				aLog.mWarned = aLog.mWarned || aLog.mDangerTrail[i];
 		}

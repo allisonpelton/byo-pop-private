@@ -45,7 +45,7 @@ DEFAULT_UPSCALER = r"E:\retools\realesrgan-ncnn-vulkan-20220424\bin\realesrgan-n
 MODEL = "realesrgan-x4plus"
 FONT_MODEL = "realesrgan-x4plus-anime"
 # Sheets cut into cells. checkertextures2 holds the board textures: each 51x51 cell is drawn on its own in
-# a checkerboard (Board::SetupLevel), always next to a different one, so cells are not wrapped.
+# a checkerboard (Board::SetupLevelData), always next to a different one, so cells are not wrapped.
 GRIDS = {"gemsheet6": (52, 52), "sparkle": (40, 40), "blackhole": (256, 256), "target1": (52, 52),
          "checkertextures2": (51, 51)}
 MOD_ID = "hd4x-textures"

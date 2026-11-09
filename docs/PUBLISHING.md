@@ -67,7 +67,10 @@ It holds only what git tracks, so no game file goes there either. GitHub refuses
 user's own address rather than their noreply one (its email privacy setting). Ten old commits on the trunk do, and
 `claude/site-easy-b32d6e`, whose tip is one of them, was refused for that on 2026-11-08; its commits are in the trunk,
 so nothing is missing. A branch that a session rebased is refused as not a fast-forward: push that branch alone with
-`--force` once you have checked that the branch, not the backup, holds the newer work.
+`--force` once you have checked that the branch, not the backup, holds the newer work. The coordinator's permission
+check refuses a forced push (2026-11-09, Twist's readability branch after its work-in-progress commit was split), so
+such a branch waits for its merge into the trunk, which the next push carries; until then the mirror below holds it,
+`.git` included.
 
 The second stays on this machine: the main checkout, git-ignored files and all (staged assets, `re/`, the frozen
 baselines and the oracle cache under `build/`, `secrets/`), mirrored to `E:\backups\byo-pop` on another drive. Run it
@@ -78,7 +81,9 @@ robocopy C:\Users\Administrator\Documents\claude\byo-pop E:\backups\byo-pop /MIR
 ```
 
 It leaves out the sessions' worktrees (their commits are in `.git`, and their ignored files are mostly copies of the
-main checkout's) and follows no junction. `/MIR` makes the copy match the checkout, so a file deleted here goes from
+main checkout's) and follows no junction. A git-ignored file a session makes that is not a copy (a game's origrun
+config, its test patch list) belongs in the main checkout, or it goes with the worktree: Bejeweled's identical-play
+config and seed patch list were lost that way (found 2026-11-09). `/MIR` makes the copy match the checkout, so a file deleted here goes from
 the copy at the next run too: it is a mirror, not a history.
 
 <!-- /private -->

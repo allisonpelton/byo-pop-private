@@ -447,17 +447,38 @@ static void vc_summary(void)
 // moment), so a game that reads the cursor after posted input finds it where a real mouse would be. Until the first
 // one, the game reads Windows' cursor. See docs/ORIGRUN.md, "The scripted cursor".
 static int    gCursorScripted = 0;
-static CurShared* gCur = NULL;        // mapped until origrun exits
+static int    gKeysScripted = 0;      // --keys scripted: the copy's GetKeyState reads the key state below (cursor.c)
+static CurShared* gCur = NULL;        // mapped until origrun exits (made for --cursor scripted or --keys scripted)
 static void cursor_note(HWND top, int x, int y)
 {
-	if (!gCur || !top) return;
+	if (!gCur || !gCursorScripted || !top) return;
 	POINT p={x,y}; ClientToScreen(top,&p);
 	InterlockedExchange64(&gCur->pos, ((LONGLONG)p.y<<32) | (DWORD)p.x);
 	InterlockedExchange(&gCur->set,1);
 	InterlockedIncrement(&gCur->posts);
 }
+// --keys scripted: one key or button edge, written to the block before it is posted, so a game that asks GetKeyState
+// while it handles a later message finds the key as a real keyboard would leave it (docs/ORIGRUN.md, "The scripted
+// keys"). A down flips the toggle bit, as Windows' does.
+static void keys_note(int vk, int down)
+{
+	if (!gCur || !gKeysScripted || vk<=0 || vk>255) return;
+	BYTE k=gCur->keys[vk];
+	if (down) { if (!(k&0x80)) k^=1; k|=0x80; } else k&=(BYTE)~0x80;
+	gCur->keys[vk]=k;
+	MemoryBarrier();
+	InterlockedExchange(&gCur->keysSet,1);
+	InterlockedIncrement(&gCur->keyPosts);
+}
 static void cursor_summary(void)
 {
+	if (gKeysScripted && gCur) {
+		CurShared* k=gCur;
+		if (!k->keysInstalled) logline("--keys scripted: WARNING: no game process patched its GetKeyState (did it load the stand-in, dsound.dll?)");
+		else logline("scripted keys: %ld key and button edge%s posted; %ld game process%s patched GetKeyState, which answered %ld time%s with "
+			"the scripted state and %ld from Windows (before the first)", (long)k->keyPosts, k->keyPosts==1?"":"s",
+			(long)k->keysInstalled, k->keysInstalled==1?"":"es", (long)k->keyReads, k->keyReads==1?"":"s", (long)k->keyRealReads);
+	}
 	if (!gCursorScripted || !gCur) return;
 	CurShared* c=gCur;
 	if (!c->installed) logline("--cursor scripted: WARNING: no game process patched its GetCursorPos (did it load the stand-in, dsound.dll?)");
@@ -477,7 +498,7 @@ static void cursor_summary(void)
 static int    gMsgboxHook = 1;        // 1: hooked; 0: --msgbox show; -1: no stand-in (--sound real), so shown
 static MbxShared* gMbx = NULL;        // mapped until origrun exits
 static volatile LONG gMbxDraining = 0;
-static const char* mbx_log_name(void) { return gClockVirtual?"clock":gCursorScripted?"cursor":"msgbox"; }
+static const char* mbx_log_name(void) { return gClockVirtual?"clock":gCursorScripted||gKeysScripted?"cursor":"msgbox"; }
 static const char* mbx_id_name(LONG id)
 {
 	static const char* const n[]={"0","IDOK","IDCANCEL","IDABORT","IDRETRY","IDIGNORE","IDYES","IDNO","IDCLOSE","IDHELP","IDTRYAGAIN","IDCONTINUE"};
@@ -647,6 +668,7 @@ static void restore_unpatched(void)
 
 // Load, check and apply the patch list. Returns 1 on success (or when there is nothing to do), 0 when the list
 // was refused -- the caller then stops the run, so a wrong list can never be run.
+static int gSeedPatches=0;   // applied entries that carry {seed}: a --seed that none uses pins nothing
 static int apply_patches(const char* listPath, int haveSeed, uint32_t seed)
 {
 	if (!file_exists(listPath)) { logline("no patch list (%s): the copy runs unpatched", listPath); return 1; }
@@ -701,6 +723,7 @@ static int apply_patches(const char* listPath, int haveSeed, uint32_t seed)
 		SetFilePointer(h,q->off,NULL,FILE_BEGIN); DWORD wrote=0; WriteFile(h,q->rep,q->n,&wrote,NULL); CloseHandle(h);
 		char want[600],have[600]; hexstr(q->exp,q->n,have,sizeof(have)); hexstr(q->rep,q->n,want,sizeof(want));
 		logline("patched %s@%s: %s -> %s  (%s: %s)",q->file,q->where,have,want,q->kind,q->reason[0]?q->reason:"(no reason given)");
+		if (q->usesSeed) gSeedPatches++;
 	}
 	logline("applied %d patch(es) to the copy", np);
 	return 1;
@@ -1519,6 +1542,7 @@ static void do_burst(const char* name, int count, int interval_ms, int byUpdates
 // Run one timed inner command (the tail of "at N ...") while the window thread is held. Capture/clicks/keys
 // are posted; the thread is resumed right after. burst manages its own per-frame holds, so it is run unheld.
 static LPARAM xy(int,int);
+static int parse_vk(const char*);
 static HWND child_at(HWND,int,int,POINT*);
 static void post_click(HWND,int,int,int);
 static void post_key(HWND,int);
@@ -1530,7 +1554,43 @@ static int  parse_vk(const char*);
 // (UpdateAppStep), and each millisecond of hold is time its clock runs on. A held click now holds the game for
 // about 0.04 ms instead of 60.
 static int gInputHeld = 0;
+static WPARAM gButtonsHeld = 0;   // MK_LBUTTON and MK_RBUTTON while a down edge has had no up: a move then carries them, as Windows' do, so a down, moves and an up on updates of their own make a drag
 static void input_gap(DWORD ms){ if (!gInputHeld && !vc_is_held()) Sleep(ms); }   // a game held on the virtual clock reads them all in order too
+// One key or button edge, or a double click, for an at line and for a plain script line alike (a game with no update
+// counter has only the plain ones). Returns 0 for any other command.
+static int post_edge(HWND hw, const char* cmd, const char* rest)
+{
+	if (ieq(cmd,"keydown")||ieq(cmd,"keyup")||ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge (kdown/kup: the same), so that a press can span updates (a game that polls its key state, or clears a key when it is let go, loses a down and up read in one update)
+		char v[32]; if(sscanf(rest,"%31s",v)==1) { int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
+			if (ieq(cmd,"keydown")||ieq(cmd,"kdown")) { keys_note(vk,1); PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16))); }
+			else { keys_note(vk,0); PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); } }
+		return 1;
+	}
+	if (ieq(cmd,"down")||ieq(cmd,"up")||ieq(cmd,"rdown")||ieq(cmd,"rup")){   // one button edge (rdown/rup: the right one), so that a click can span updates (a down and up read in one update are lost in some games)
+		int r=cmd[0]=='r'||cmd[0]=='R', down=ieq(cmd+r,"down");
+		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
+		if (n==2) cursor_note(hw,x,y);
+		WPARAM bit=r?MK_RBUTTON:MK_LBUTTON;
+		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp); gButtonsHeld|=bit; keys_note(r?VK_RBUTTON:VK_LBUTTON,1); PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,gButtonsHeld,lp); }
+		else { gButtonsHeld&=~bit; keys_note(r?VK_RBUTTON:VK_LBUTTON,0); PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,gButtonsHeld,lp); }
+		return 1;
+	}
+	if (ieq(cmd,"dclick")||ieq(cmd,"rdclick")){   // a double click (rdclick: of the right button), the messages Windows sends a window whose class asks for double clicks
+		int r=cmd[0]=='r'||cmd[0]=='R', x,y; if(sscanf(rest,"%d %d",&x,&y)!=2) return 1;
+		WPARAM bit=r?MK_RBUTTON:MK_LBUTTON; UINT dn=r?WM_RBUTTONDOWN:WM_LBUTTONDOWN, up=r?WM_RBUTTONUP:WM_LBUTTONUP, dbl=r?WM_RBUTTONDBLCLK:WM_LBUTTONDBLCLK;
+		POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y); cursor_note(hw,x,y);
+		PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp);
+		int vb=r?VK_RBUTTON:VK_LBUTTON;
+		keys_note(vb,1); PostMessageA(t,dn,gButtonsHeld|bit,lp); keys_note(vb,0); PostMessageA(t,up,gButtonsHeld,lp);
+		keys_note(vb,1); PostMessageA(t,dbl,gButtonsHeld|bit,lp); keys_note(vb,0); PostMessageA(t,up,gButtonsHeld,lp);
+		return 1;
+	}
+	if (ieq(cmd,"char")){   // one WM_CHAR of the code given (decimal or 0x..), for a control character a script line cannot hold: Ctrl+Z is 0x1a, which ends a file read in text mode (Mahjong Escape, 2026-11-09)
+		int c; if (sscanf(rest,"%i",&c)==1) PostMessageA(hw,WM_CHAR,(WPARAM)(c&0xFF),1);
+		return 1;
+	}
+	return 0;
+}
 static void exec_at(const char* inner)
 {
 	char cmd[32]={0}; int off=0; sscanf(inner,"%31s%n",cmd,&off); const char* rest=inner+off; while(*rest==' ')rest++;
@@ -1559,20 +1619,9 @@ static void exec_at(const char* inner)
 	else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hw,x,y,1); }
 	else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hw,parse_vk(v)); }
 	else if (ieq(cmd,"text")){ post_text(hw,rest); }
-	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,0,xy(x,y)); } }
+	else if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hw,x,y); PostMessageA(hw,WM_MOUSEMOVE,gButtonsHeld,xy(x,y)); } }
 	else if (ieq(cmd,"focus")){ post_focus(hw, ieq(rest,"regain")); }
-	else if (ieq(cmd,"keydown")||ieq(cmd,"keyup")||ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge (kdown/kup: the same), so that a press can span updates (a game that polls its key state, or clears a key when it is let go, loses a down and up read in one update)
-		char v[32]; if(sscanf(rest,"%31s",v)==1) { int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
-			if (ieq(cmd,"keydown")||ieq(cmd,"kdown")) PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16)));
-			else PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); }
-	}
-	else if (ieq(cmd,"down")||ieq(cmd,"up")||ieq(cmd,"rdown")||ieq(cmd,"rup")){   // one button edge (rdown/rup: the right one), so that a click can span updates (a down and up read in one update are lost in some games)
-		int r=cmd[0]=='r'||cmd[0]=='R', down=ieq(cmd+r,"down");
-		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
-		if (n==2) cursor_note(hw,x,y);
-		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,0,lp); PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,r?MK_RBUTTON:MK_LBUTTON,lp); }
-		else PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,0,lp);
-	}
+	else if (post_edge(hw,cmd,rest)) {}
 	else logline("at: cannot do '%s' at an update",cmd);
 	gInputHeld = 0;
 	if (th){ hold_end(th); CloseHandle(th); logline("at %s: the game was held %.2f ms", cmd, gLastHeldMs); }
@@ -1618,15 +1667,15 @@ static void post_click(HWND hwnd,int x,int y,int right)
 	cursor_note(hwnd,x,y);
 	POINT cp; HWND t=child_at(hwnd,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
 	PostMessageA(t, WM_MOUSEMOVE, 0, lp); input_gap(20);
-	if (right){ PostMessageA(t,WM_RBUTTONDOWN,MK_RBUTTON,lp); input_gap(40); PostMessageA(t,WM_RBUTTONUP,0,lp); }
-	else      { PostMessageA(t,WM_LBUTTONDOWN,MK_LBUTTON,lp); input_gap(40); PostMessageA(t,WM_LBUTTONUP,0,lp); }
+	if (right){ keys_note(VK_RBUTTON,1); PostMessageA(t,WM_RBUTTONDOWN,MK_RBUTTON,lp); input_gap(40); keys_note(VK_RBUTTON,0); PostMessageA(t,WM_RBUTTONUP,0,lp); }
+	else      { keys_note(VK_LBUTTON,1); PostMessageA(t,WM_LBUTTONDOWN,MK_LBUTTON,lp); input_gap(40); keys_note(VK_LBUTTON,0); PostMessageA(t,WM_LBUTTONUP,0,lp); }
 }
 static void post_key(HWND hwnd,int vk)
 {
 	UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
 	LPARAM down=(LPARAM)(1|(sc<<16));
 	LPARAM up=(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31));
-	PostMessageA(hwnd,WM_KEYDOWN,vk,down); input_gap(20); PostMessageA(hwnd,WM_KEYUP,vk,up);
+	keys_note(vk,1); PostMessageA(hwnd,WM_KEYDOWN,vk,down); input_gap(20); keys_note(vk,0); PostMessageA(hwnd,WM_KEYUP,vk,up);
 }
 static void post_text(HWND hwnd,const char* s){ for(;*s;s++){ PostMessageA(hwnd,WM_CHAR,(unsigned char)*s,1); input_gap(10);} }
 static void post_focus(HWND hwnd,int regain)
@@ -1813,7 +1862,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		}
 		HWND hwnd = resolve_window(0,NULL);   // the live main window of any of our processes, fresh each command
 		if (!hwnd && !ieq(cmd,"quit")) { logline("(%s) no live window -- skipping",cmd); continue; }
-		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hwnd,x,y); PostMessageA(hwnd,WM_MOUSEMOVE,0,xy(x,y)); } }
+		if (ieq(cmd,"move")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) { cursor_note(hwnd,x,y); PostMessageA(hwnd,WM_MOUSEMOVE,gButtonsHeld,xy(x,y)); } }
 		else if (ieq(cmd,"click")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hwnd,x,y,0); }
 		else if (ieq(cmd,"rclick")){ int x,y; if(sscanf(rest,"%d %d",&x,&y)==2) post_click(hwnd,x,y,1); }
 		else if (ieq(cmd,"key")){ char v[32]; if(sscanf(rest,"%31s",v)==1) post_key(hwnd,parse_vk(v)); }
@@ -1824,6 +1873,7 @@ static void run_script(DWORD pid, const char* scriptPath)
 		else if (ieq(cmd,"text")){ post_text(hwnd,rest); }
 		else if (ieq(cmd,"focus")){ post_focus(hwnd, ieq(rest,"regain")); logline("focus %s",rest); }
 		else if (ieq(cmd,"shot")){ char n[256]="shot"; sscanf(rest,"%255s",n); capture(hwnd,n); }
+		else if (post_edge(hwnd,cmd,rest)) logline("%s %s",cmd,rest);
 		else if (ieq(cmd,"quit")){ InterlockedExchange(&gMode3dFrozen,1); if(hwnd){ PostMessageA(hwnd,WM_SYSCOMMAND,SC_CLOSE,0); PostMessageA(hwnd,WM_CLOSE,0,0);} logline("quit (posted close)"); break; }
 		else logline("unknown script command: %s",cmd);
 	}
@@ -2896,7 +2946,23 @@ static int coverage_import(const char* exe)
 	}
 	int room = hdrEnd<=nt->OptionalHeader.SizeOfHeaders && hdrEnd<=firstRaw && hdrEnd<=len;
 	for (unsigned char* q=(unsigned char*)&sec[ns]; room && q<b+hdrEnd; q++) if (*q) room=0;
+	int moved=0;
+	if (!room && hdrEnd<=nt->OptionalHeader.SizeOfHeaders && hdrEnd<=firstRaw && hdrEnd<=len) {
+		// The bytes after the section table are taken (Mahjong Escape keeps its copyright text there): move the NT headers
+		// and the section table up over the DOS stub, which the loader never reads, by one section header or a little more.
+		DWORD old=(DWORD)dos->e_lfanew, tableEnd=(DWORD)((unsigned char*)&sec[ns]-b);
+		DWORD nw=(old-(DWORD)sizeof(IMAGE_SECTION_HEADER))&~7u;
+		if (old>=sizeof(IMAGE_DOS_HEADER)+sizeof(IMAGE_SECTION_HEADER) && nw>=sizeof(IMAGE_DOS_HEADER)) {
+			memmove(b+nw,b+old,tableEnd-old);
+			memset(b+nw+(tableEnd-old),0,old-nw);   // the old table's last bytes, now the new section header's room
+			dos->e_lfanew=(LONG)nw;
+			nt=(IMAGE_NT_HEADERS32*)(b+nw); sec=IMAGE_FIRST_SECTION(nt);
+			hdrEnd=(DWORD)((unsigned char*)&sec[ns+1]-b);
+			room=1; moved=1;
+		}
+	}
 	if (!room) { logline("--coverage: no room in %s for another section header; not changed", exe); free(b); return 0; }
+	if (moved) logline("--coverage: the bytes after %s's section table are in use, so its headers move up over the DOS stub", exe);
 
 	static const char kFunc[]="DirectSoundCreate", kDll[]="dsound.dll";
 	DWORD fa=nt->OptionalHeader.FileAlignment, sa=nt->OptionalHeader.SectionAlignment;
@@ -2939,12 +3005,17 @@ static int coverage_import(const char* exe)
 	free(b); free(nb);
 	return ok;
 }
+// How the run ended, added to the hits file for tools/coverage.py's "How it ended" (a crash's exit code, or the timeout).
+static char gCoverageEnd[96];
 // The run log's line for the hits file: how many functions the run reached, and whether the game ended normally.
 static void coverage_summary(void)
 {
 	if (!gCoverageList[0]) return;
 	FILE* f=fopen(gCoverageOut,"r");
 	if (!f) { logline("--coverage: no hits file (%s): the game never loaded the stand-in", gCoverageOut); return; }
+	fclose(f);
+	if (gCoverageEnd[0] && (f=fopen(gCoverageOut,"a"))) { fputs(gCoverageEnd,f); fclose(f); }
+	if (!(f=fopen(gCoverageOut,"r"))) return;
 	char line[512]; int hits=0, ended=0;
 	while (fgets(line,sizeof(line),f)) { if (line[0]=='#') { if (strstr(line,"ended normally")) ended=1; } else if (line[0]>' ') hits++; }
 	fclose(f);
@@ -3018,9 +3089,11 @@ static int watch_run(Launched* L, const char* script, int timeout, const char* k
 	if (wait_game(L,timeout)) {
 		logline("timeout (%ds) -- ending the run (the job kills the game and its children)",timeout);
 		end_game(L);
+		lstrcpynA(gCoverageEnd,"# coverage: origrun stopped the game at its timeout\n",sizeof(gCoverageEnd));
 	} else {
 		DWORD ec=0; GetExitCodeProcess(L->proc,&ec);
 		logline("game exited (its process's exit code 0x%08lX)",(unsigned long)ec);
+		wsprintfA(gCoverageEnd,"# coverage: the game's process exited with code 0x%08lX\n",(unsigned long)ec);
 	}
 
 	InterlockedExchange(&gStop,1);
@@ -3672,6 +3745,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
 	if (gClockVirtual) fprintf(rf,"clock=virtual\n");
 	if (gCursorScripted) fprintf(rf,"cursor=scripted\n");
+	if (gKeysScripted) fprintf(rf,"keys=scripted\n");
 	if (gMsgboxHook==0) fprintf(rf,"msgbox=show\n");
 	fclose(rf);
 	// --reg: registry presets, imported inside before the game starts, into the hive the game uses there.
@@ -4044,21 +4118,23 @@ static DWORD arm_guest_shutdown(DWORD sec)
 		SHTDN_REASON_MAJOR_OTHER|SHTDN_REASON_MINOR_OTHER|SHTDN_REASON_FLAG_PLANNED);
 }
 
-// --cursor scripted: the block the game's GetCursorPos reads (cursor.h), made before the game starts and named after
-// the run's id, and the environment that tells the stand-in about it.
+// --cursor scripted, --keys scripted: the block the game's GetCursorPos and GetKeyState read (cursor.h), made before the
+// game starts and named after the run's id, and the environment that tells the stand-in about it.
 static void cursor_create(void)
 {
 	char name[128]; wsprintfA(name,"Local\\origrun-cursor-%s",gClockId);
 	HANDLE m=CreateFileMappingA(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,sizeof(CurShared),name);   // open until origrun exits
 	CurShared* c=m ? (CurShared*)MapViewOfFile(m,FILE_MAP_ALL_ACCESS,0,0,sizeof(CurShared)) : NULL;
-	if (!c) { logline("--cursor scripted: no shared block %s (err %lu): the game's GetCursorPos stays Windows'", name, GetLastError()); if (m) CloseHandle(m); return; }
+	if (!c) { logline("--cursor/--keys scripted: no shared block %s (err %lu): the game's GetCursorPos and GetKeyState stay Windows'", name, GetLastError()); if (m) CloseHandle(m); return; }
 	c->version=CUR_VERSION; c->size=sizeof(CurShared);
 	MemoryBarrier();
 	c->magic=CUR_MAGIC;
 	gCur=c;
-	SetEnvironmentVariableA("ORIGRUN_CURSOR","scripted");
+	if (gCursorScripted) SetEnvironmentVariableA("ORIGRUN_CURSOR","scripted");
+	if (gKeysScripted) SetEnvironmentVariableA("ORIGRUN_KEYS","scripted");
 	SetEnvironmentVariableA("ORIGRUN_CURSOR_ID",gClockId);
-	logline("--cursor scripted: the game's GetCursorPos returns the last mouse position the script posted (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
+	if (gCursorScripted) logline("--cursor scripted: the game's GetCursorPos returns the last mouse position the script posted (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
+	if (gKeysScripted) logline("--keys scripted: the game's GetKeyState returns the key and button state the script's posted edges left (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
 }
 
 // The message-box hook (on unless --msgbox show): its block, with the script's msgbox rules (load_msgbox_rules runs
@@ -4082,18 +4158,21 @@ static void msgbox_create(void)
 		"default button) and its MessageBeep calls with no sound; --msgbox show shows them (the stand-in's log is logs/%s.log)", mbx_log_name());
 }
 
-// The environment the stand-in's virtual clock, scripted cursor and message-box hook read (vclock.c, cursor.c,
-// msgbox.c), inherited by the game through rundesk; none of it without --clock virtual, --cursor scripted or the
-// message-box hook, so a value left in origrun's own environment never reaches a game.
+// The environment the stand-in's virtual clock, scripted cursor and keys and message-box hook read (vclock.c, cursor.c,
+// msgbox.c), inherited by the game through rundesk; none of it without --clock virtual, --cursor scripted, --keys
+// scripted or the message-box hook, so a value left in origrun's own environment never reaches a game.
 static void clock_env(void)
 {
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID","ORIGRUN_LASTINPUT",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
+	// Always: the stand-in's GetLastInputInfo says the last input is now, so an original that stops drawing once the
+	// machine is idle for the screensaver's timeout keeps drawing (docs/ORIGRUN.md, "The last-input hook")
+	SetEnvironmentVariableA("ORIGRUN_LASTINPUT","now");
 	if (gMsgboxHook==0) logline("--msgbox show: message boxes are shown as before; the dialog watch answers them once they are on screen, after their sound");
-	if (!gClockVirtual && !gCursorScripted && gMsgboxHook<=0) return;
+	if (!gClockVirtual && !gCursorScripted && !gKeysScripted && gMsgboxHook<=0) return;
 	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
-	if (gCursorScripted) cursor_create();
+	if (gCursorScripted || gKeysScripted) cursor_create();
 	if (gMsgboxHook>0) msgbox_create();
 	if (!gClockVirtual) return;
 	char host[16]; wsprintfA(host,"%lu",GetCurrentProcessId());
@@ -4182,6 +4261,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
 			else if (ieq(ln,"clock")) gClockVirtual = ieq(v,"virtual");
 			else if (ieq(ln,"cursor")) gCursorScripted = ieq(v,"scripted");
+			else if (ieq(ln,"keys")) gKeysScripted = ieq(v,"scripted");
 			else if (ieq(ln,"msgbox")) gMsgboxHook = ieq(v,"show") ? 0 : 1;
 		}
 		fclose(f);
@@ -4225,6 +4305,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	SetEnvironmentVariableA("ORIGRUN_SOUND", ieq(sound,"real") ? "real" : sound);
 	if (gClockVirtual && ieq(sound,"real")) { logline("clock=virtual needs the sound stand-in, which sound=real leaves out: the run stays on the wall clock"); gClockVirtual=0; }
 	if (gCursorScripted && ieq(sound,"real")) { logline("cursor=scripted needs the sound stand-in, which sound=real leaves out: GetCursorPos stays Windows'"); gCursorScripted=0; }
+	if (gKeysScripted && ieq(sound,"real")) { logline("keys=scripted needs the sound stand-in, which sound=real leaves out: GetKeyState stays Windows'"); gKeysScripted=0; }
 	if (gMsgboxHook>0 && ieq(sound,"real")) { logline("sound=real: no stand-in, so no message-box hook: the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
 	if (script[0]) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
@@ -4333,6 +4414,11 @@ int main(int argc, char** argv)
 			if (ieq(v,"scripted")) gCursorScripted=1; else if (ieq(v,"real")) gCursorScripted=0;
 			else { fprintf(stderr,"--cursor takes scripted or real, not %s\n",v); return 2; }
 		}
+		else if (ieq(argv[i],"--keys")&&i+1<argc) {
+			const char* v=argv[++i];
+			if (ieq(v,"scripted")) gKeysScripted=1; else if (ieq(v,"real")) gKeysScripted=0;
+			else { fprintf(stderr,"--keys takes scripted or real, not %s\n",v); return 2; }
+		}
 		else if (ieq(argv[i],"--msgbox")&&i+1<argc) {
 			const char* v=argv[++i];
 			if (ieq(v,"show")) gMsgboxHook=0; else if (ieq(v,"hook")) gMsgboxHook=1;
@@ -4368,6 +4454,10 @@ int main(int argc, char** argv)
 	}
 	if (gCursorScripted && ieq(sound,"real")) {
 		fprintf(stderr, "origrun: --cursor scripted lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
+		return 2;
+	}
+	if (gKeysScripted && ieq(sound,"real")) {
+		fprintf(stderr, "origrun: --keys scripted lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
 		return 2;
 	}
 	if (gCoverageList[0] && (ieq(sound,"real") || sandboxHost)) {
@@ -4543,7 +4633,17 @@ int main(int argc, char** argv)
 		}
 		else if (game) wsprintfA(listPath,"%s\\tools\\origrun\\patches\\%s.txt",repo,game);
 		if (listPath[0] && !apply_patches(listPath, haveSeed, seed)) return 2;
-	} else logline("--no-patches: the copy runs unpatched");
+		// The seed reaches the game only through a patch that carries {seed}. With --exe and no --patches (or a
+		// list without such an entry) a --seed would pin nothing, and the run would draw its own random content.
+		if (haveSeed && !gSeedPatches) {
+			if (listPath[0]) logline("--seed %u: no entry of the patch list %s carries {seed}, so nothing would pin it -- run stops", seed, listPath);
+			else logline("--seed %u: no patch list applies (--exe without --game or --patches), so nothing would pin it -- run stops", seed);
+			return 2;
+		}
+	} else {
+		logline("--no-patches: the copy runs unpatched");
+		if (haveSeed) logline("WARNING: --seed %u is not pinned, since only a patch list carries it", seed);
+	}
 
 	// The DirectDraw/Direct3D 7 wrapper: a previous run's never carries over. --dgvoodoo <dir> places it ("env" reads
 	// the folder from ORIGRUN_DGVOODOO), and --3d on places it from ORIGRUN_DGVOODOO when that is set, since 3D cannot

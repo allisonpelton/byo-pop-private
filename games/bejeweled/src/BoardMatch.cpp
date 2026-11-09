@@ -1,5 +1,5 @@
 // port(variant): the match rules on a board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7, stage 9): the
-// variant paths of ProcessMatches, HasMatch and FindMove, on MatchFinder's groups. Not part of the original game.
+// variant paths of FindSets, HasSet and FindMove, on MatchFinder's groups. Not part of the original game.
 // -forcevariant runs them at default rules, where they must play exactly as the originals.
 
 #include "Board.h"
@@ -25,8 +25,8 @@ void Board::FillColorGrid(MatchFinder::ColorGrid* theGrid) const
 	}
 }
 
-// HasMatch (0x4c9cf5) under the match rules: the fill rerolls a colour while the grid has any group
-bool Board::HasMatchVariant()
+// HasSet (0x4c9cf5) under the match rules: the fill rerolls a colour while the grid has any group
+bool Board::HasSetVariant()
 {
 	MatchFinder::ColorGrid aGrid;
 	FillColorGrid(&aGrid);
@@ -37,7 +37,7 @@ bool Board::HasMatchVariant()
 // original's order and test, each swap found from both of its cells, so at default rules the n-th move is the
 // original's. theMove keeps FindMove's {col, row, col2, row2}, read as "the gem at (col2, row2) moves into (col, row),
 // where it lands in a group": a swap's two cells, or the cell a twist or a slide brings that gem into and the cell
-// it comes from (DoHint sparkles it there). FindVariantMove gives the move itself (BoardMoves.cpp).
+// it comes from (TryShowHint sparkles it there). FindVariantMove gives the move itself (BoardMoves.cpp).
 bool Board::FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool vertical)
 {
 	MatchFinder::ColorGrid aGrid;
@@ -55,7 +55,7 @@ bool Board::FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool 
 	return true;
 }
 
-// ProcessMatches (0x4cd287)'s scoring block for one group: the original's for a vertical or horizontal run, plus
+// FindSets (0x4cd287)'s scoring block for one group: the original's for a vertical or horizontal run, plus
 // match.bonus for its pattern before the multiplier; the length bonuses for straight runs only (diagonals included)
 void Board::ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX)
 {
@@ -92,7 +92,7 @@ void Board::ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX)
 	aBasePoints += aBonus;
 	int aPoints = (int)(aBasePoints * mPointMultiplier);
 
-	ScorePopup aPopup = {anAvgX + 24, anAvgY + 16, 110, -1, aPoints};
+	ScorePopup aPopup = {anAvgX + ScorePopup::OFFSET_X, anAvgY + ScorePopup::OFFSET_Y, ScorePopup::START_LIFE, -1, aPoints};
 	mScorePopups.push_back(aPopup);
 	mGemsCleared += aCount;
 	int aScoreBefore = mScore;
@@ -111,7 +111,7 @@ void Board::ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX)
 		mHintGlowAlpha = 0.0;
 		mHintGlowTimer = 0;
 		mMoveScore = 0;
-		mUnused218 = 0;
+		mClearedAtMoveStart = 0;
 	}
 	AddMoveScore(aPoints);
 }
@@ -123,7 +123,7 @@ void Board::AddMoveScore(int thePoints)
 	int anExcellentScore = (int)(mPointMultiplier * gGameConfig.mExcellentFactor);
 	if ((mMoveScore < anExcellentScore) && (mMoveScore + thePoints >= anExcellentScore))
 	{
-		ShowText(mApp->GetString("EXCELLENT"), 200);
+		DoBouncyText(mApp->GetString("EXCELLENT"), 200);
 		mApp->PlaySample(SOUND_EXCELLENT);
 	}
 	mMoveScore += thePoints;
@@ -138,9 +138,9 @@ void Board::AddMoveScore(int thePoints)
 	}
 }
 
-// ProcessMatches (0x4cd287) under the match rules: MatchFinder's groups in its order, each scored (ScoreGroup) and
+// FindSets (0x4cd287) under the match rules: MatchFinder's groups in its order, each scored (ScoreGroup) and
 // its gems marked dying, then the original's sounds with a group as a run (its gems as the run's length)
-bool Board::ProcessMatchesVariant()
+bool Board::FindSetsVariant()
 {
 	MatchFinder::ColorGrid aGrid;
 	FillColorGrid(&aGrid);
@@ -179,7 +179,7 @@ bool Board::ProcessMatchesVariant()
 	int aNumMatches = (int) aGroups.size();
 	if (aNumMatches > 0)
 	{
-		int aPan = GetPanForX(anAvgXSum / aNumMatches + 24);
+		int aPan = GetPanPosition(anAvgXSum / aNumMatches + 24);
 		mIdleTicks = 0;
 		mApp->PlaySample((aMaxLength == 3) ? SOUND_GOTSET : SOUND_GOTSETBIG, aPan);
 		int aCombo = mCascadeCount - 1;

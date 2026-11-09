@@ -53,6 +53,14 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   write `.saf` archives correctly (the format is in `docs/POPCAP_GAMES_SURVEY.md`, "Talismania Deluxe"), keeps its
   author's credit and license, and pushes the working version to the fork. That fork is the one place outside the
   coordinator's snapshots that a session pushes to; byo-pop itself is never pushed by a game session.
+- **origrun and the framework as projects of their own (the user, 2026-11-08):** "Note publishing origrun and the
+  framework on SDL2 + wasm as a task to tackle at any point after the decomps are complete." Each becomes a repository
+  of its own with its own README. origrun (`tools/origrun`, with rundesk) is the harness for running a 2000s Windows game
+  invisibly, silently and on a virtual clock, with scripted input, watched values and function coverage. It needs its
+  SexyApp-era assumptions said plainly, its fixed paths to the repo and rundesk made options, and its protection
+  handling left out, as `.publishignore` does now. The framework (`framework/` and `platform/`) is SexyAppFramework on
+  SDL2 natively and in WebAssembly, published under PopCap's framework licence (`framework/LICENSE.txt`) with nothing
+  taken from a game. Not before every decomp is complete; any time after that.
 - Before each publish the coordinator checks the trunk for game files and game text.
 
 ## Which games, in what order
@@ -225,11 +233,20 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   code rebuilt with the original compiler reproduces the exe's instructions, and our ports are built by clang and
   Emscripten on a portable framework, with SDL in place of DirectX and the leaks fixed, so its scores would be noise.
   What it would catch that our comparisons miss is a slip in code no comparison run reaches: options, rare branches,
-  error paths. So each game gets a coverage check once it plays identical:
-  which of the original's functions its comparison runs reach (origrun would record it), and for each function in our
-  Ghidra export, whether the port has its counterpart, named by its address (today the ports name few: Bejeweled 154
-  distinct addresses, Twist 204). A function the runs never reach is read against the export or given a run that
-  reaches it. The coordinator builds the tool in `tools/` and tries it on one game first.
+  error paths. So each game gets a coverage check once it plays identical: which of the original's functions its
+  comparison runs reach (origrun would record it), and for each function in our Ghidra export, whether the port has its
+  counterpart, named by its address (today the ports name few: Bejeweled 154 distinct addresses, Twist 204). A function
+  the runs never reach is read against the export or given a run that reaches it. The tool came on 2026-11-08
+  (`docs/COVERAGE.md`: origrun's `--coverage` and `tools/coverage.py`). Its pilot, a minute of Bejeweled's original,
+  recorded 1739 of the exe's 5900 functions and 60 of its 152 game functions, and found one the port has no counterpart
+  for; one short run proves the tool, not the method, so Ning Po takes the first whole check (every run its comparisons
+  make and short runs for what they miss, each gap judged, the cost noted), and the other games take theirs after it, at
+  their place in each game's order (below). Ning Po's found no missing logic: of 272 functions reached with no
+  counterpart, 32 were the tool's (fixed), 54 had their addresses placed and 185 became `none` lines, in about 15
+  minutes of machine time (`docs/COVERAGE.md`, "A game's whole check"). The same evening (2026-11-08) Noah's Ark, Mummy
+  Maze, Bonnie's, the two Mahjong Escapes, Alchemy, Atomica, Big Money and Water Bugs took theirs; Cosmic Bugs, TipTop,
+  Pixelus, BookWorm, Word Harmony, Rocket Mania, Dynomite, Seven Seas and the two Bookworm Adventures follow as slots
+  free, and Bejeweled and Twist take theirs after their readability passes.
 - **A performance pass before the readability pass (the user, 2026-11-03):** "Slot in performance passes for the games
   before readability passes. There's got to be a few things to speed up in most games." It comes after the coverage
   check. First each original and its native port are measured over the same scripted play, on a quiet machine (no
@@ -246,6 +263,13 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   need not wait for the pass to speed up its own port (the user, 2026-11-08: "Sessions should be allowed to improve
   performance early on so they can test with -fast and run even faster"): a speed-up that makes its `-fast` runs
   quicker may come at any time, under these rules, and is listed in its notes with the numbers.
+  Shared costs found so far, waiting to be fixed once for every game: SDL_RenderPresent takes 69% of Alchemy's main
+  thread, a driver cost per presented frame under every renderer (Alchemy, 2026-11-09). Its frames almost never repeat
+  (4 of 2,406 identical), so only a frame cap would cut it, and that is a visible change, a mod; the one shared fix
+  proposed is uploading only a redrawn MemoryImage's changed rectangle (SDL_UpdateTexture, 7% of the main thread;
+  games/alchemy/docs/GAME_NOTES.md section 8). SexyApp::Init's window and
+  graphics device take 250–310 ms of Noah's Ark's 0.6 s start (Noah's Ark, 2026-11-09). Creating the device on
+  another thread is ruled out (no threads); showing the window before the device is made only moves the wait.
 - **Done means every phase but modding (the user, 2026-11-08):** "I've decided I want to go through every phase
   except modding before a game can be considered done and ready for the live site, and just publish whatever games are
   ready by the end of December. I'm in no hurry to get games out in a less-than-stellar state." A game is done only once
@@ -282,7 +306,15 @@ were fixed (34e6da1, a6547b9). The chat
   still done when asked. Desktop 95's pixelated text waits for a pixel font drawn for the project (the user, 2026-11-08: "Draw our own
   later"): every Windows install still has the bitmap MS Sans Serif (`sserife.fon`), but browsers draw only TrueType and
   OpenType, so the skin's "MS Sans Serif" comes out as the smooth Microsoft Sans Serif, and Microsoft's font itself is
-  never shipped.
+  never shipped. Desktop 95 is the site's only look (the user, 2026-11-09: "I've basically completely lost interest in
+  the skins that aren't Windows 95", and later that day: "drop the alt skins, including the plain one"): Demo Disc, Soda
+  Fountain, Plain, the skin choice and the dark theme are taken out, and new site work is built and checked in Desktop 95
+  alone. An XP look, and perhaps Vista's, waits until the site works as the user wants it (the user,
+  2026-11-09: "it would be once all the site functionality is exactly as I want it"): each a second style of the same
+  desktop, as XP's own Display settings offered the XP style or the Classic one for the same windows. The desktop's
+  behaviour is first parted from the 95 look (the code tests for "d95" where it means the desktop), then each style
+  is its own paint, controls and icons of our own drawing; Vista's glass is measured against the frame time of games in
+  other windows. The coordinator's guess on 2026-11-09: $30-60 for the parting, $100-150 for XP, $150-200 for Vista.
 - **Which games, and where they are published (the user, 2026-10-26):** every game may be decompiled except Plants vs.
   Zombies, Insaniquarium and Zuma Deluxe, whose fan communities we leave to their work. A game with another PC decompilation in
   progress or an active modding community is built but unpublished: its folder goes into `.publishignore` and it stays

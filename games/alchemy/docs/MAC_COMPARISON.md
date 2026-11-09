@@ -87,7 +87,7 @@ Windows exe makes a link widget instead (`CLICK_HERE_TO_PLAY_NEXT_BOARD`); the p
 screen by screen. The registration and online parts (`RegisterDialog`, `InternetScoreDialog`, `UpdateCheckDialog`, `DoRegister*`,
 `DoPregameNag`, `DoTimeTrialLimit`, `DoWebsiteInform`, `UploadScore`, `CheckForUpdates`, `RegisterRefused`, `Registered`,
 `ScoreUploaded`, the browser dialogs and `URLOpen*`) are the unregistered and online game that the port leaves out
-(`GAME_NOTES.md`, section 5). `DoColorDepthExplination` is the colour-depth question, which the port has (`DIALOG_COLOR_DEPTH`).
+(`GAME_NOTES.md`, section 5). `DoColorDepthExplination` is the colour-depth question, which the port had until 2026-11-09 and leaves out now (`GAME_NOTES.md`, section 5).
 
 ## Faults found and fixed
 

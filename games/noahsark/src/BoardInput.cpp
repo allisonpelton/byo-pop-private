@@ -368,12 +368,19 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 	}
 	if (mState != BOARD_PLAYING)
 		return;
+	PuzzleSwap(aCellX, aCellY);
+}
+
+// puzzle mode: the picked animal and the one at the cell trade places when the cell is its neighbour (the click's second step
+// and the drag's); a cell farther away only drops the pick. Returns whether they traded.
+bool Board::PuzzleSwap(int aCellX, int aCellY)
+{
 	int aDX = mSelected->mX - aCellX;
 	int aDY = mSelected->mY - aCellY;
 	if (sqrtf((float) (aDY * aDY + aDX * aDX)) != 1.0f)
 	{
 		mSelected = NULL;
-		return;
+		return false;
 	}
 	Piece* aOther = mGrid[aCellX][aCellY];
 	int aType = mSelected->mType;
@@ -403,6 +410,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 	aOther->mMatchSwap = true;
 	mSelected = NULL;
 	mState = BOARD_SWAP;
+	return true;
 }
 
 // 0x40f310
@@ -424,12 +432,13 @@ void Board::MouseUp(int x, int y, int theClickCount)
 	MouseUp(x, y);
 }
 
-// 0x40f710: dragging a link from one animal to another
+// 0x40f710: dragging: in action and strategy a link from the picked animal to another of its kind, in puzzle the picked animal
+// onto a neighbour (the two trade places). The two statements that note the mouse position are the original's 0x40f3a0.
 void Board::MouseDrag(int x, int y)
 {
 	Widget::MouseDrag(x, y);
-	if (!AnyWaiting() && false)
-		return;
+	mMouseX = x;
+	mMouseY = y;
 	if ((mState != BOARD_PLAYING) && (mApp->mGameMode == GAMEMODE_PUZZLE))
 		return;
 	if (mApp->mGameMode == GAMEMODE_STAMPEDE)
@@ -448,67 +457,89 @@ void Board::MouseDrag(int x, int y)
 		return;
 	if (p->mType > 0xc)
 		return;
-	if (mApp->mGameMode == GAMEMODE_PUZZLE)
-		return;
-	if (mSelected == NULL)
-		return;
-	if (mSelected->mType != p->mType)
-		return;
-	if (p->mRemoved || p->mFading || p->mMoving)
-		return;
-	if (mState != BOARD_PLAYING)
-		return;
 
-	bool aInList = std::find(mLink.begin(), mLink.end(), p) != mLink.end();
-	if (!aInList)
+	if (mApp->mGameMode != GAMEMODE_PUZZLE)
 	{
-		if (mLink.size() < 2)
+		if (mSelected == NULL)
+			return;
+		if (mSelected->mType != p->mType)
+			return;
+		if (p->mRemoved || p->mFading || p->mMoving)
+			return;
+		if (mState != BOARD_PLAYING)
+			return;
+
+		bool aInList = std::find(mLink.begin(), mLink.end(), p) != mLink.end();
+		// no link yet: an animal it cannot reach is treated like one already in the link, which changes nothing
+		if (!aInList && mLink.empty() && !Reachable(mSelected, p))
+			aInList = true;
+		if (aInList)
 		{
-			if (!Reachable(mSelected, p))
-				aInList = true;  // fall through to the "no longer reachable" branch below
+			// moving back over the first animal of the pair undoes the link
+			if (mLink.size() > 1)
+			{
+				Piece* aFirst = mLink.front();
+				Piece* aSecond = mLink[1];
+				if (aFirst == p)
+				{
+					aFirst->mPartner = NULL;
+					aSecond->mPartner = NULL;
+					aFirst->mFacingRight = false;
+					aSecond->mFacingRight = false;
+					mDragging = false;
+					mSelected = aFirst;
+					ClearLink();
+					ClearLinkList();
+					mApp->PlaySample(SOUND_DESELECT);
+				}
+			}
+			return;
 		}
-	}
-	if (aInList)
-	{
-		// moving back over the first animal of the pair undoes the link
-		if (mLink.size() > 1)
+
+		if (!mLink.empty())
 		{
+			// a link is there: it is taken back when the new animal is reachable from its first animal
 			Piece* aFirst = mLink.front();
 			Piece* aLast = mLink.back();
-			if (aFirst == p)
-			{
-				aFirst->mPartner = NULL;
-				aLast->mPartner = NULL;
-				aFirst->mFacingRight = false;
-				aLast->mFacingRight = false;
-				mDragging = false;
-				mSelected = aFirst;
-				ClearLink();
-				ClearLinkList();
-				mApp->PlaySample(SOUND_DESELECT);
-			}
+			if (!Reachable(aFirst, p))
+				return;
+			aFirst->mPartner = NULL;
+			aFirst->mFacingRight = false;
+			aLast->mPartner = NULL;
+			aLast->mFacingRight = false;
+			mSelected = aFirst;
+			ClearLink();
+			ClearLinkList();
 		}
+		// the path's result is not looked at: the pair is joined with whatever path was made
+		BuildTrail(mSelected->mX, mSelected->mY, aCellX, aCellY);
+		LinkPieces(mSelected, p);
+		mSelected = p;
+		mApp->PlaySample(SOUND_SELECT);
+		mLastMoveTick = mUpdateCnt;
+		ClearHint();
+		mDragging = true;
 		return;
 	}
 
-	if (mLink.size() >= 1)
+	// puzzle mode
+	if (mSelected == NULL)
 	{
-		Piece* aFirst = mLink.front();
-		Piece* aLast = mLink.back();
-		if (!Reachable(aFirst, p))
+		if (mDragging)
 			return;
-		aFirst->mPartner = NULL;
-		aFirst->mFacingRight = false;
-		aLast->mPartner = NULL;
-		aLast->mFacingRight = false;
-		mSelected = aFirst;
-		ClearLink();
-		ClearLinkList();
+		if (mState != BOARD_PLAYING)
+			return;
+		if ((p->mType < 0xd) && !p->mRemoved && !p->mFading && !p->mMoving)
+		{
+			mSelected = p;
+			mApp->PlaySample(SOUND_SELECT);
+			return;
+		}
+		mSelected = NULL;
+		return;
 	}
-	if (BuildTrail(mSelected->mX, mSelected->mY, aCellX, aCellY))
-	{
-		LinkPieces(mSelected, p);
+	if (mState != BOARD_PLAYING)
+		return;
+	if (PuzzleSwap(aCellX, aCellY))
 		mDragging = true;
-		mSelected = mLink.front();
-	}
 }

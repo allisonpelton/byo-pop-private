@@ -20,16 +20,16 @@
 //             END hash it (FNV-1a 64).
 //   SNAPSHOT  a decodable copy of every field FULL hashes that can be restored (not the banner images'
 //             presence or the parked orphan count), with explicit layout and RNG presence: the round trip
-//             of 6.6 (write, restore into a scratch board, write again), and from stage 5 the base of the v2
+//             of 6.6 (write, restore into a scratch board, write again), and the base of the v2
 //             save chunks (the V2 flag marks their fields).
-//   UNDO      stage 6, an undo snapshot (6.7): the layout, per cell present, colour and kind (in
+//   UNDO      an undo snapshot (6.7): the layout, per cell present, colour and kind (in
 //             STATE_PLAYING every gem is at rest), the UNDO-flagged fields and the RNG as SNAPSHOT has it.
 //             Decoding it into the board it came from is the undo: fresh pieces at their rest positions, the
 //             cosmetic fields zero; every other field stays as it is.
 //
 // Values are little-endian: ints as 4 bytes, bools as 1, doubles as their IEEE-754 bits; pointers to
 // pieces as cells (row * cols + col, -1 for none, rows * cols and up for a piece outside the grid: the stale
-// selection FillBoard drops, GAME_NOTES 3.6).
+// selection NewBoard drops, GAME_NOTES 3.6).
 
 #include <cstdint>
 #include <string>

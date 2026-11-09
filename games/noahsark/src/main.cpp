@@ -90,6 +90,8 @@ static std::string FindGameDir()
 }
 #endif
 
+// 0x411380: the original's WinMain: it keeps the instance handle and runs Init, Start and Shutdown on the global app
+// object. The port does the same with an app it makes here; the platform layer replaces the instance handle.
 int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");

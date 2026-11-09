@@ -113,23 +113,23 @@ Poly Teardrop(double r, double cy, double theApex, int theCount)
 		double a = (aToward + aHalf + (360.0 - 2 * aHalf) * i / (theCount - 1)) * kPi / 180;
 		anArc.push_back(std::make_pair(r * std::cos(a), cy + r * std::sin(a)));
 	}
-	Poly p;
+	Poly aPoly;
 	if (isUp)
 	{
-		p.push_back(std::make_pair(0.0, theApex));
-		p.insert(p.end(), anArc.begin(), anArc.end());
+		aPoly.push_back(std::make_pair(0.0, theApex));
+		aPoly.insert(aPoly.end(), anArc.begin(), anArc.end());
 	}
 	else
 	{
-		p = anArc;
-		p.push_back(std::make_pair(0.0, theApex));
+		aPoly = anArc;
+		aPoly.push_back(std::make_pair(0.0, theApex));
 	}
-	return p;
+	return aPoly;
 }
 
 Poly Chamfered(const Poly& thePoly, double theCut)
 {
-	Poly p;
+	Poly aPoly;
 	size_t n = thePoly.size();
 	for (size_t i = 0; i < n; i++)
 	{
@@ -138,10 +138,10 @@ Poly Chamfered(const Poly& thePoly, double theCut)
 		const std::pair<double, double>& b = thePoly[(i + 1) % n];
 		double ax = a.first - c.first, ay = a.second - c.second, al = std::hypot(ax, ay);
 		double bx = b.first - c.first, by = b.second - c.second, bl = std::hypot(bx, by);
-		p.push_back(std::make_pair(c.first + ax / al * theCut, c.second + ay / al * theCut));
-		p.push_back(std::make_pair(c.first + bx / bl * theCut, c.second + by / bl * theCut));
+		aPoly.push_back(std::make_pair(c.first + ax / al * theCut, c.second + ay / al * theCut));
+		aPoly.push_back(std::make_pair(c.first + bx / bl * theCut, c.second + by / bl * theCut));
 	}
-	return p;
+	return aPoly;
 }
 
 Poly Rect(double hw, double hh)
@@ -159,11 +159,11 @@ Poly Rect(double hw, double hh)
 std::vector<Plane> StepCut(const Poly& thePoly, double theGirdle, const std::vector<std::pair<double, double> >& theSteps)
 {
 	std::vector<Plane> aPlanes;
-	size_t n = thePoly.size();
-	std::vector<double> mx(n), my(n), o(n);
-	for (size_t i = 0; i < n; i++)
+	size_t aCount = thePoly.size();
+	std::vector<double> mx(aCount), my(aCount), o(aCount);
+	for (size_t i = 0; i < aCount; i++)
 	{
-		double ex = thePoly[(i + 1) % n].first - thePoly[i].first, ey = thePoly[(i + 1) % n].second - thePoly[i].second;
+		double ex = thePoly[(i + 1) % aCount].first - thePoly[i].first, ey = thePoly[(i + 1) % aCount].second - thePoly[i].second;
 		double l = std::hypot(ex, ey);
 		mx[i] = ey / l;
 		my[i] = -ex / l;
@@ -177,9 +177,9 @@ std::vector<Plane> StepCut(const Poly& thePoly, double theGirdle, const std::vec
 	{
 		double anInset = theSteps[s].first, z2 = theSteps[s].second;
 		double dz = z2 - z, ln = std::hypot(dz, anInset);
-		for (size_t i = 0; i < n; i++)
+		for (size_t i = 0; i < aCount; i++)
 			aCrown.push_back(Plane{V3(mx[i] * dz / ln, my[i] * dz / ln, anInset / ln), (dz * anOff[i] + anInset * z) / ln});
-		for (size_t i = 0; i < n; i++)
+		for (size_t i = 0; i < aCount; i++)
 			anOff[i] -= anInset;
 		z = z2;
 	}
@@ -196,12 +196,12 @@ std::vector<Plane> StepCut(const Poly& thePoly, double theGirdle, const std::vec
 std::vector<V3> SolidVertices(const std::vector<Plane>& thePlanes)
 {
 	std::vector<V3> aVerts;
-	size_t n = thePlanes.size();
-	for (size_t i = 0; i < n; i++)
+	size_t aCount = thePlanes.size();
+	for (size_t i = 0; i < aCount; i++)
 	{
-		for (size_t j = i + 1; j < n; j++)
+		for (size_t j = i + 1; j < aCount; j++)
 		{
-			for (size_t k = j + 1; k < n; k++)
+			for (size_t k = j + 1; k < aCount; k++)
 			{
 				const V3 &a = thePlanes[i].n, &b = thePlanes[j].n, &c = thePlanes[k].n;
 				double det = a.x * (b.y * c.z - b.z * c.y) - a.y * (b.x * c.z - b.z * c.x) + a.z * (b.x * c.y - b.y * c.x);
@@ -214,7 +214,7 @@ std::vector<V3> SolidVertices(const std::vector<Plane>& thePlanes)
 				double z = (a.x * (b.y * d3 - d2 * c.y) - a.y * (b.x * d3 - d2 * c.x) + d1 * (b.x * c.y - b.y * c.x)) / det;
 				V3 p(x, y, z);
 				bool isInside = true;
-				for (size_t m = 0; m < n && isInside; m++)
+				for (size_t m = 0; m < aCount && isInside; m++)
 					isInside = thePlanes[m].n.Dot(p) <= thePlanes[m].d + 1e-6;
 				if (isInside)
 					aVerts.push_back(p);
@@ -337,85 +337,85 @@ const int kColors[12][3] = {{250, 212, 28}, {232, 232, 242}, {38, 122, 250}, {23
 // The port's own cuts (cel and glossy)
 Model OwnModel(int theColor)
 {
-	Model m;
+	Model aModel;
 	switch (theColor)
 	{
-	case 0: m = Faceted(NGon(4, 28, 37), Steps{{6.0, 10.0}, {6.0, 15.0}}); break;                       // rhombus
-	case 1: m = Faceted(NGon(16, 34, 34, 90 + 11.25), Steps{{4.0, 8.0}, {5.0, 12.0}, {5.0, 15.0}}); break; // round
-	case 2: m = Faceted(Chamfered(NGon(3, 42, 42, 90), 7), Steps{{6.0, 10.0}, {5.0, 15.0}}); break;      // triangle
-	case 3: m = Faceted(Chamfered(NGon(4, 33 * std::sqrt(2.0), 33 * std::sqrt(2.0), 45), 6)); break;    // square
-	case 4: m = Faceted(NGon(6, 34, 37, 90)); break;                                                     // hexagon
-	case 5: m = Faceted(NGon(14, 36, 27, 90 + 360.0 / 28)); break;                                       // oval
-	case 6: m = Faceted(Chamfered(Rect(25, 35), 9)); break;                                              // emerald cut
-	case 7: m = Faceted(NGon(5, 36, 36, -90)); break;                                                    // shield
-	case 8: m = Faceted(Chamfered(Rect(36, 23), 7)); break;                                              // baguette
-	case 9: m = Faceted(Chamfered(NGon(3, 42, 42, -90), 7), Steps{{6.0, 10.0}, {5.0, 15.0}}); break;     // triangle down
-	case 10: m = Smooth(V3(31, 31, 15)); break;                                                           // cabochon
-	default: m = Faceted(NGon(8, 34, 34, 90 + 22.5)); break;                                             // octagon
+	case 0: aModel = Faceted(NGon(4, 28, 37), Steps{{6.0, 10.0}, {6.0, 15.0}}); break;                       // rhombus
+	case 1: aModel = Faceted(NGon(16, 34, 34, 90 + 11.25), Steps{{4.0, 8.0}, {5.0, 12.0}, {5.0, 15.0}}); break; // round
+	case 2: aModel = Faceted(Chamfered(NGon(3, 42, 42, 90), 7), Steps{{6.0, 10.0}, {5.0, 15.0}}); break;      // triangle
+	case 3: aModel = Faceted(Chamfered(NGon(4, 33 * std::sqrt(2.0), 33 * std::sqrt(2.0), 45), 6)); break;    // square
+	case 4: aModel = Faceted(NGon(6, 34, 37, 90)); break;                                                     // hexagon
+	case 5: aModel = Faceted(NGon(14, 36, 27, 90 + 360.0 / 28)); break;                                       // oval
+	case 6: aModel = Faceted(Chamfered(Rect(25, 35), 9)); break;                                              // emerald cut
+	case 7: aModel = Faceted(NGon(5, 36, 36, -90)); break;                                                    // shield
+	case 8: aModel = Faceted(Chamfered(Rect(36, 23), 7)); break;                                              // baguette
+	case 9: aModel = Faceted(Chamfered(NGon(3, 42, 42, -90), 7), Steps{{6.0, 10.0}, {5.0, 15.0}}); break;     // triangle down
+	case 10: aModel = Smooth(V3(31, 31, 15)); break;                                                           // cabochon
+	default: aModel = Faceted(NGon(8, 34, 34, 90 + 22.5)); break;                                             // octagon
 	}
-	BaseTones(m, kColors[theColor % 12][0], kColors[theColor % 12][1], kColors[theColor % 12][2]);
-	Finish(m);
-	return m;
+	BaseTones(aModel, kColors[theColor % 12][0], kColors[theColor % 12][1], kColors[theColor % 12][2]);
+	Finish(aModel);
+	return aModel;
 }
 
 // tools/make_su_gems_mod.py su_gems()
 Model SuModel(int theColor)
 {
-	Model m;
+	Model aModel;
 	switch (theColor)
 	{
 	case 0:
-		m = Faceted(Poly{{0, 37}, {-29, 9}, {0, -37}, {29, 9}}, Steps{{6.0, 10.0}, {6.0, 15.0}});
-		SetTones(m, Tone(186, 140, 0), Tone(238, 196, 18), Tone(255, 232, 84), Tone(255, 248, 186));
+		aModel = Faceted(Poly{{0, 37}, {-29, 9}, {0, -37}, {29, 9}}, Steps{{6.0, 10.0}, {6.0, 15.0}});
+		SetTones(aModel, Tone(186, 140, 0), Tone(238, 196, 18), Tone(255, 232, 84), Tone(255, 248, 186));
 		break;
 	case 1:
-		m = Smooth(V3(33, 24, 15));
-		m.mPastel = true;
-		m.mGlint = 0.996;
-		SetTones(m, Tone(214, 196, 216), Tone(236, 224, 238), Tone(250, 244, 250), Tone(255, 255, 255));
+		aModel = Smooth(V3(33, 24, 15));
+		aModel.mPastel = true;
+		aModel.mGlint = 0.996;
+		SetTones(aModel, Tone(214, 196, 216), Tone(236, 224, 238), Tone(250, 244, 250), Tone(255, 255, 255));
 		break;
 	case 2:
-		m = Faceted(Teardrop(23, -11, 36, 13));
-		SetTones(m, Tone(22, 88, 196), Tone(52, 140, 238), Tone(120, 192, 255), Tone(200, 232, 255));
+		aModel = Faceted(Teardrop(23, -11, 36, 13));
+		SetTones(aModel, Tone(22, 88, 196), Tone(52, 140, 238), Tone(120, 192, 255), Tone(200, 232, 255));
 		break;
 	case 3:
-		m = Faceted(Chamfered(NGon(4, 33 * std::sqrt(2.0), 33 * std::sqrt(2.0), 45), 9), Steps{{6.0, 10.0}, {6.0, 15.0}});
-		SetTones(m, Tone(150, 0, 24), Tone(214, 22, 46), Tone(255, 84, 94), Tone(255, 170, 170));
+		aModel = Faceted(Chamfered(NGon(4, 33 * std::sqrt(2.0), 33 * std::sqrt(2.0), 45), 9), Steps{{6.0, 10.0}, {6.0, 15.0}});
+		SetTones(aModel, Tone(150, 0, 24), Tone(214, 22, 46), Tone(255, 84, 94), Tone(255, 170, 170));
 		break;
 	case 4:
-		m = Faceted(NGon(16, 26, 35, 90 + 360.0 / 32));
-		SetTones(m, Tone(108, 30, 150), Tone(164, 72, 206), Tone(210, 134, 240), Tone(240, 204, 255));
+		aModel = Faceted(NGon(16, 26, 35, 90 + 360.0 / 32));
+		SetTones(aModel, Tone(108, 30, 150), Tone(164, 72, 206), Tone(210, 134, 240), Tone(240, 204, 255));
 		break;
 	case 5:
-		m = Faceted(NGon(6, 37, 26 / std::sin(60 * kPi / 180), 0));
-		SetTones(m, Tone(168, 66, 8), Tone(226, 110, 30), Tone(255, 160, 72), Tone(255, 212, 150));
+		aModel = Faceted(NGon(6, 37, 26 / std::sin(60 * kPi / 180), 0));
+		SetTones(aModel, Tone(168, 66, 8), Tone(226, 110, 30), Tone(255, 160, 72), Tone(255, 212, 150));
 		break;
 	case 6:
-		m = Faceted(Chamfered(NGon(3, 42, 42, -90), 7), Steps{{6.0, 10.0}, {5.0, 15.0}});
-		SetTones(m, Tone(36, 128, 18), Tone(88, 190, 40), Tone(158, 232, 90), Tone(214, 250, 172));
+		aModel = Faceted(Chamfered(NGon(3, 42, 42, -90), 7), Steps{{6.0, 10.0}, {5.0, 15.0}});
+		SetTones(aModel, Tone(36, 128, 18), Tone(88, 190, 40), Tone(158, 232, 90), Tone(214, 250, 172));
 		break;
 	case 7:
-		m = Faceted(NGon(5, 36, 36, 90));
-		SetTones(m, Tone(196, 74, 136), Tone(238, 128, 178), Tone(255, 180, 214), Tone(255, 226, 240));
+		aModel = Faceted(NGon(5, 36, 36, 90));
+		SetTones(aModel, Tone(196, 74, 136), Tone(238, 128, 178), Tone(255, 180, 214), Tone(255, 226, 240));
 		break;
 	case 8:
-		m = Faceted(Teardrop(23, 11, -36, 13));
-		SetTones(m, Tone(18, 30, 120), Tone(36, 66, 186), Tone(84, 124, 232), Tone(164, 190, 255));
+		aModel = Faceted(Teardrop(23, 11, -36, 13));
+		SetTones(aModel, Tone(18, 30, 120), Tone(36, 66, 186), Tone(84, 124, 232), Tone(164, 190, 255));
 		break;
 	case 9:
-		m = Faceted(NGon(8, 34, 34, 90 + 22.5));
-		m.mRainbow = true;
-		SetTones(m, Tone(70, 70, 70), Tone(120, 120, 120), Tone(175, 175, 175), Tone(225, 225, 225));
+		aModel = Faceted(NGon(8, 34, 34, 90 + 22.5));
+		aModel.mRainbow = true;
+		SetTones(aModel, Tone(70, 70, 70), Tone(120, 120, 120), Tone(175, 175, 175), Tone(225, 225, 225));
 		break;
 	case 10:
-		m = Faceted(NGon(20, 35, 35, 90 + 9), Steps{{4.0, 9.0}, {5.0, 13.0}, {5.0, 16.0}});
-		SetTones(m, Tone(104, 0, 52), Tone(164, 18, 84), Tone(218, 60, 126), Tone(250, 152, 192));
+		aModel = Faceted(NGon(20, 35, 35, 90 + 9), Steps{{4.0, 9.0}, {5.0, 13.0}, {5.0, 16.0}});
+		SetTones(aModel, Tone(104, 0, 52), Tone(164, 18, 84), Tone(218, 60, 126), Tone(250, 152, 192));
 		break;
 	default:
 		return OwnModel(theColor);
 	}
-	Finish(m);
-	return m;
+	Finish(aModel);
+	return aModel;
 }
 
 // An arrow gem (4.20): the bullet cut, a long stone with a flat back and a sharp point, pointing theDir (0 up, 1 right,
@@ -519,26 +519,26 @@ void CastRays(const Model& theModel, const M3& theRot, int theSize, double theUn
 		for (int x = 0; x < theCast.mW; x++)
 		{
 			double mx = ((x0 + x + 0.5) / theSS - theOX) / theUnitPx;
-			Sample& s = theCast.mSamples[(size_t) y * theCast.mW + x];
+			Sample& aSample = theCast.mSamples[(size_t) y * theCast.mW + x];
 			double aDist = 1e30;
 			for (size_t i = 0; i < ne; i++)
 				aDist = std::min(aDist, enx[i] * mx + eny[i] * my - ec[i]);
-			s.mDist = (float) aDist;
-			s.mHit = false;
-			s.mFace = 0;
+			aSample.mDist = (float) aDist;
+			aSample.mHit = false;
+			aSample.mFace = 0;
 			if (aDist <= 0)
 				continue;
 			V3 aDir = V3(mx, my, -EYE).Unit();
-			s.mDir = aDir;
-			double t;
+			aSample.mDir = aDir;
+			double aHitDistance;
 			if (theModel.mEllipsoid)
 			{
 				// the proxy ellipsoid in model space
 				V3 anEyeM = theRot.TransposeTimes(anEye), aDirM = theRot.TransposeTimes(aDir);
-				if (!RayEllipsoid(anEyeM, aDirM, theModel.mAxes, &t))
+				if (!RayEllipsoid(anEyeM, aDirM, theModel.mAxes, &aHitDistance))
 					continue;
-				s.mHit = true;
-				s.mModelPoint = anEyeM + aDirM * t;
+				aSample.mHit = true;
+				aSample.mModelPoint = anEyeM + aDirM * aHitDistance;
 				continue;
 			}
 			double tIn = -1e30, tOut = 1e30;
@@ -548,10 +548,10 @@ void CastRays(const Model& theModel, const M3& theRot, int theSize, double theUn
 				double aDenom = aDir.Dot(theCast.mViewNormals[i]);
 				if (aDenom < 0)
 				{
-					t = aNum[i] / aDenom;
-					if (t > tIn)
+					aHitDistance = aNum[i] / aDenom;
+					if (aHitDistance > tIn)
 					{
-						tIn = t;
+						tIn = aHitDistance;
 						aFace = (int) i;
 					}
 				}
@@ -560,9 +560,9 @@ void CastRays(const Model& theModel, const M3& theRot, int theSize, double theUn
 			}
 			if (tIn < tOut)
 			{
-				s.mHit = true;
-				s.mFace = aFace;
-				s.mModelPoint = theRot.TransposeTimes(anEye + aDir * tIn);
+				aSample.mHit = true;
+				aSample.mFace = aFace;
+				aSample.mModelPoint = theRot.TransposeTimes(anEye + aDir * tIn);
 			}
 		}
 	}
@@ -579,54 +579,54 @@ double Clamp01(double v)
 }
 
 // The colour of one sample (straight RGB; alpha is the silhouette's)
-Rgba Shade(GemStyle theStyle, const Model& theModel, const Cast& theCast, const Sample& s, bool hasGlow, double theGlow)
+Rgba Shade(GemStyle theStyle, const Model& theModel, const Cast& theCast, const Sample& theSample, bool hasGlow, double theGlow)
 {
-	if (!s.mHit)
+	if (!theSample.mHit)
 		return theModel.mLine;
-	V3 v = s.mDir * -1;
-	V3 aSmoothM = V3(s.mModelPoint.x / (theModel.mAxes.x * theModel.mAxes.x), s.mModelPoint.y / (theModel.mAxes.y * theModel.mAxes.y),
-		s.mModelPoint.z / (theModel.mAxes.z * theModel.mAxes.z)).Unit();
+	V3 aViewDir = theSample.mDir * -1;
+	V3 aSmoothM = V3(theSample.mModelPoint.x / (theModel.mAxes.x * theModel.mAxes.x), theSample.mModelPoint.y / (theModel.mAxes.y * theModel.mAxes.y),
+		theSample.mModelPoint.z / (theModel.mAxes.z * theModel.mAxes.z)).Unit();
 	V3 aSmooth = theCast.mRot * aSmoothM;
-	V3 n = (theModel.mSmooth || theModel.mEllipsoid) ? aSmooth : theCast.mViewNormals[s.mFace];
+	V3 aNormal = (theModel.mSmooth || theModel.mEllipsoid) ? aSmooth : theCast.mViewNormals[theSample.mFace];
 	V3 aGlowDir;
 	if (hasGlow)
 	{
 		double a = theGlow * kPi / 180;
 		aGlowDir = V3(std::cos(a), std::sin(a), GLOW_Z).Unit();
 	}
-	double ndv = Clamp01(n.Dot(v));
+	double ndv = Clamp01(aNormal.Dot(aViewDir));
 
 	if (theStyle == GEMS_GLOSSY)
 	{
 		// glass: the body colour lit by the key light, a sky seen in the reflection, a hard highlight
-		double aDiffuse = Clamp01(n.Dot(KEY));
-		double aFill = Clamp01(n.Dot(FILL));
-		V3 r = n * (2 * n.Dot(v)) - v;
+		double aDiffuse = Clamp01(aNormal.Dot(KEY));
+		double aFill = Clamp01(aNormal.Dot(FILL));
+		V3 r = aNormal * (2 * aNormal.Dot(aViewDir)) - aViewDir;
 		double aSky = Clamp01((r.y + 0.15) / 0.5);
 		double aFresnel = std::pow(1 - ndv, 2.0);
-		double aSpec = std::pow(Clamp01(n.Dot((KEY + v).Unit())), 80.0);
-		double aGlowLight = hasGlow ? GLOW_K * std::pow(Clamp01(n.Dot(aGlowDir)), 2.0) : 0;
+		double aSpec = std::pow(Clamp01(aNormal.Dot((KEY + aViewDir).Unit())), 80.0);
+		double aGlowLight = hasGlow ? GLOW_K * std::pow(Clamp01(aNormal.Dot(aGlowDir)), 2.0) : 0;
 		double t = Clamp01(0.18 + 0.55 * aDiffuse + 0.25 * aFill * aFill + aGlowLight);
 		Rgba c = (t < 0.5) ? Mix(theModel.mTones[0], theModel.mTones[1], t * 2) : Mix(theModel.mTones[1], theModel.mTones[2], (t - 0.5) * 2);
 		c = Mix(c, theModel.mTones[3], aSky * (0.25 + 0.5 * aFresnel));
 		c = Mix(c, Rgba(1, 1, 1), Clamp01(aSpec * 1.2 + aGlowLight * 0.3));
-		if (s.mDist < OUTLINE * 0.7)
+		if (theSample.mDist < OUTLINE * 0.7)
 			c = Mix(c, theModel.mTones[0], 0.7);
 		return c;
 	}
 
-	double aLight = Clamp01(n.Dot(LIGHT));
+	double aLight = Clamp01(aNormal.Dot(LIGHT));
 	if (hasGlow)
-		aLight += GLOW_K * std::pow(Clamp01(n.Dot(aGlowDir)), 2.0);
+		aLight += GLOW_K * std::pow(Clamp01(aNormal.Dot(aGlowDir)), 2.0);
 	int aLevel = Level(aLight);
-	Rgba c = theModel.mTones[aLevel];
+	Rgba aTone = theModel.mTones[aLevel];
 	if (theModel.mRainbow)
 	{
-		const V3& nm = theModel.mPlanes[s.mFace].n;
+		const V3& nm = theModel.mPlanes[theSample.mFace].n;
 		double aHue = (std::atan2(nm.y, std::fabs(nm.x)) / kPi + 0.5) * 0.85 + 0.33 * std::round(std::fabs(nm.z) * 3);
 		aHue -= std::floor(aHue);
 		const Rgba& t = theModel.mTones[aLevel];
-		c = Rgba::Hsv(aHue, 0.6, std::max(t.r, std::max(t.g, t.b)));
+		aTone = Rgba::Hsv(aHue, 0.6, std::max(t.r, std::max(t.g, t.b)));
 	}
 	if (theModel.mPastel)
 	{
@@ -638,15 +638,15 @@ Rgba Shade(GemStyle theStyle, const Model& theModel, const Cast& theCast, const 
 		int k = (int) std::floor(az) % 3;
 		double f = az - std::floor(az);
 		Rgba aTint = Mix(kTints[k], kTints[(k + 1) % 3], f);
-		c = Mix(c, aTint, std::pow(Clamp01(1 - ndv), 1.5) * 0.75);
+		aTone = Mix(aTone, aTint, std::pow(Clamp01(1 - ndv), 1.5) * 0.75);
 	}
 	if (ndv < theModel.mRim)
-		c = Rgba(theModel.mTones[0].r * 0.8f, theModel.mTones[0].g * 0.8f, theModel.mTones[0].b * 0.8f);
-	if (aSmooth.Dot((LIGHT + v).Unit()) > theModel.mGlint)
-		c = Rgba(1, 1, 1);
-	if (s.mDist < OUTLINE)
-		c = theModel.mLine;
-	return c;
+		aTone = Rgba(theModel.mTones[0].r * 0.8f, theModel.mTones[0].g * 0.8f, theModel.mTones[0].b * 0.8f);
+	if (aSmooth.Dot((LIGHT + aViewDir).Unit()) > theModel.mGlint)
+		aTone = Rgba(1, 1, 1);
+	if (theSample.mDist < OUTLINE)
+		aTone = theModel.mLine;
+	return aTone;
 }
 
 // Shades a cast into a theSize x theSize premultiplied tile (4 floats per pixel)
@@ -709,10 +709,10 @@ void DrawGemSheet(GemStyle theStyle, int theColors, int theScale, std::vector<ui
 	int aSS = (theScale >= 3) ? 2 : 3;
 	double aUnitPx = UNIT_PX * theScale;
 	// One colour's two rows; the colours share nothing, so native builds draw them on several threads
-	auto drawColor = [&](int c) {
+	auto drawColor = [&](int theColorIndex) {
 		Cast aCast;
 		std::vector<float> aTile;
-		Model aModel = ModelFor(theStyle, c);
+		Model aModel = ModelFor(theStyle, theColorIndex);
 		double bx, by;
 		BBoxCentre(aModel, &bx, &by);
 		double ox = ANCHOR_X * theScale - bx * aUnitPx, oy = ANCHOR_Y * theScale + by * aUnitPx;
@@ -725,7 +725,7 @@ void DrawGemSheet(GemStyle theStyle, int theColors, int theScale, std::vector<ui
 				if (!isGlow || (f == 0))
 					CastRays(aModel, RotY(isGlow ? 0.0 : f * SPIN_STEP), aCell, aUnitPx, ox, oy, aSS, aCast);
 				ShadeTile(theStyle, aModel, aCast, aCell, aSS, isGlow, 90.0 + f * GLOW_STEP, aTile);
-				int aTop = (2 * c + aRow) * aCell, aLeft = f * aCell;
+				int aTop = (2 * theColorIndex + aRow) * aCell, aLeft = f * aCell;
 				for (int y = 0; y < aCell; y++)
 				{
 					for (int x = 0; x < aCell; x++)
@@ -796,8 +796,8 @@ void DrawArrowSheet(int theColors, int theScale, std::vector<uint32_t>& theOut)
 					// as on the gem sheet, the game samples x 2..50 and y 0..48 of a cell
 					if ((x < 2 * theScale) || (x >= 51 * theScale) || (y >= 49 * theScale))
 						continue;
-					const float* p = &aTile[((size_t) y * aCell + x) * 4];
-					float aStone = std::max(0.0f, std::min(1.0f, p[3]));
+					const float* aPixel = &aTile[((size_t) y * aCell + x) * 4];
+					float aStone = std::max(0.0f, std::min(1.0f, aPixel[3]));
 					float aNear = 0.0f;
 					if (aStone < 1.0f)
 					{
@@ -816,7 +816,7 @@ void DrawArrowSheet(int theColors, int theScale, std::vector<uint32_t>& theOut)
 						continue;
 					float aPremul[3];
 					for (int i = 0; i < 3; i++)
-						aPremul[i] = ((p[3] > 0.0f) ? p[i] * aStone / p[3] : 0.0f) + kRim[i] * aRimA;
+						aPremul[i] = ((aPixel[3] > 0.0f) ? aPixel[i] * aStone / aPixel[3] : 0.0f) + kRim[i] * aRimA;
 					theOut[(size_t) (aTop + y) * aW + aLeft + x] = PackArgb(aPremul[0] / anA, aPremul[1] / anA, aPremul[2] / anA, anA);
 				}
 			}

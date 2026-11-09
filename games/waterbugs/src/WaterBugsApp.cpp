@@ -333,6 +333,7 @@ WaterBugsApp::~WaterBugsApp()
 	}
 }
 
+// 0x42b340 (WinMain: cp.cfg, the window and the screen, the sound, the game; what follows GameMain is Shutdown)
 void WaterBugsApp::Init()
 {
 	SexyAppBase::Init();

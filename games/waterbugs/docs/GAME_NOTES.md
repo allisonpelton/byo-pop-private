@@ -200,3 +200,123 @@ processor time is the minute's length. The port sleeps between updates and used 
 working set than the original during the minute (about 20 MB of it at the menu already, and the first board adds about 33 MB to
 the port's against about 7 MB to the original's); the performance pass looks at where it goes. Neither run fell behind real
 time. The page's load time was not measured.
+
+## Coverage check (2026-11-08)
+
+The whole coverage check of `docs/COVERAGE.md`, after Ning Po's. origrun's `--coverage` recorded which of the original's
+functions ran in 37 runs on the host, all on the real clock with the silent sound stand-in (the virtual clock runs this
+engine at about 30 steps a second, so it was not used; the real clock also reaches the sound code). The scripts are
+written by `tools/coverage/scripts.py` (one list of steps for each run, an origrun script for the original and a
+`-realinput` file for the port, which checks a click's place by `state`), `tools/coverage/run.py` runs one (it waits for
+room among the 3 game processes, stages the copy under `C:/byo-og/wbcov`, windowed, and keeps the hits in
+`build/coverage/waterbugs/hits/`) and `tools/coverage/runall.sh` is the first batch. Hand-made saves
+(`scripts.py save <levels reached>`) put a run on a late world at once. 18 of the runs ended by themselves and 19 at
+origrun's timeout (150 or 200 s: the last Esc of a script that ends on the map or in a dialog does not leave the game; each
+had played its whole script):
+
+- `tour`: the Options screen button by button, the credits, the help pages, the high scores and the player list.
+  `users`: the player list (pick, rename, delete with the question answered both ways). `typing`: the rename box typed
+  with key events, because the game reads typed keys from its key queue and ignores character messages (shifted and plain
+  letters, backspace, the arrows, home, end, delete, a name longer than the box, Return). `leave`: the main menu's quit
+  button, answered no and then yes.
+- `play1`: a new game from Start (the story screen, 60 random shots, Esc's quit question cancelled and then answered).
+  `resumeyes` and `resumeno`: Start with a game in progress.
+- `deep9` to `deep530` and the `more*` runs (17 in all): a saved game on a late world, Start, the world button, the level
+  selection's start, then 45 or 70 shots at random places (the ship is sent with `move`, a click fires it, and every ninth
+  shot also clicks the story screen's and the results requester's buttons). Many of them reached game over (the ship is
+  lost on the later worlds), so the loss of lives, `Level_GameOver` and the high scores' table ran. `deepman`, `deepeasy`,
+  `deephard` and `deepfocus` repeat one with the manual shooter, the easy and the hard difficulty, and the focus lost and
+  regained in the middle of a board. `over149`, `over399` and `over519` start a saved game with one life; `held74` to
+  `held269` hold the original's own test keys (`Powerup_Init` reads keys 0 to 9 and A to D: a power-up that appears is of
+  the key's kind), a third of the shots each.
+
+`games/waterbugs/coverage.txt` sets the game's own code as one range, 0x401000 to 0x442cf0: the game, Retro64's engine,
+the system layer and the blitters of every pixel format; the rest of the exe is the C runtime and the libraries. It has
+742 functions, and the runs reached 542 of them.
+
+**Reached in the original with no counterpart in the port: 75 at first, 0 at the end.**
+
+- **Placed: 18.** Functions the port translates inline or in another shape got their address in the comment above the
+  function that holds them: the list templates' instances (0x401000, 0x4010a0, 0x4011a0, 0x401220, 0x40b260, 0x410810,
+  0x412540, 0x411030, 0x411150, 0x4109b0, 0x41c130, 0x4107e0: the comment sat above `template <class T>`, which `tools/coverage.py` does
+  not read as the block above the function, so the addresses are now on the line under it; a spec went to the
+  coordinator), the multi-line header declarations of 0x40afa0 and 0x40b360, the destructor copy 0x419c00, the wrapper
+  0x40ad50, the text input's setup 0x42c3b0 and the start-up code 0x42b340 (above `WaterBugsApp::Init`). These were comment edits only.
+- **Left out on purpose: 56, as `none` lines in coverage.txt, each with its reason.** The std::list and container
+  instances (the port uses `std::vector` and arrays), the per-format blitter wrappers (the port's screen is 16-bit only, so
+  its `Image_Blit` and the like call the 16-bit blitter at once), the DirectDraw display object and the window code (the
+  host and the framework do those: the window's size and place, the surface lock, the present, the mode change), the timer
+  object behind `TimeMs`, the palette realize of an 8-bit display, the trial's "Free Trial Remaining" clock text, `FixPath`,
+  the start-up globals the compiler makes, and an empty function that the main loop calls.
+- **One was missing logic: 0x412360, the Shooter's destructor.** The original's list of shooters runs it on each node when a
+  level is left: it deletes the beams still in the air, destroys the five Objs the ship holds and the base. The port deleted
+  a shooter as a plain Obj, so a beam in flight when the player left a board (Esc and OKAY, or the game closing) was never
+  freed. `Shooter_Destroy` and `List_DeleteNode(Shooter*)` are new (WBShooter.cpp); play does not change (the beams of a
+  level that ends normally are removed already), and `tools/check.sh waterbugs` still matches (the frozen baseline).
+
+**Defined in the port, never reached: 61 at the end** (the first two runs left 165). The port's function was read again against
+the export for each, by one Sonnet agent over the whole list (`build/coverage/waterbugs/reread.md`; I read its verdicts on
+the anchor's drop and the name entry against the export myself): **59 match, 2 differ**, both in `ParseHex4` and
+`ParseHex3` (0x4205f0, 0x4206d0): for text whose first pair is not hexadecimal the original returns the text's address
+where the port returns 0, which no shipped data reaches (no colour is written in hex). They are left as they are. The agent
+also found stale comments (the enemy kinds in WBEnemy.cpp and above `struct Enemy` carried an older numbering, and `Log`'s
+comment named the wrong function), which are corrected.
+
+- **Reachable in the original, but no run collected them: 13.** The power-up kinds 1, 5, 8, 9, 10 (A), 11 (B) and 13 (D)
+  at collection (0x4188d0, 0x418920, 0x418930, 0x418980, 0x4189d0, 0x4189f0, 0x418a30), the GiveWeapon helpers of the
+  kinds 4, 12 and 7 (0x418c20, 0x418c70, 0x418d10) and the weapons' updates of the anchor,
+  the missile and the time bomb (0x41a060, 0x41a2f0, 0x41a650). The held-key runs made the kinds appear, but the ship has
+  to run into the power-up, and a script that sends it to random places did so for kinds 0, 2, 3 and 6 only. A run that
+  steers the ship to a power-up needs the original's positions (origrun's `--watch` of the power-up list); a later pass can
+  add it. Re-read: all match (the anchor's drop checked by hand against the export).
+- **Reachable, not run: the display re-open, 4.** F7, Alt+Enter, F8 and the Options screen's VIDEO button open the display
+  again, and the original then converts all its images (0x4015c0, 0x402670, 0x428640, and the button's handler 0x4293c0).
+  Not run: it changes the machine's display mode, which the user is working on. The port's host switches the window itself
+  (listed under the full screen above), never loses the screen, and does not call these three; they match the export, and
+  are candidates for taking out (or for wiring in, if the port is to keep a screen format of its own).
+- **Candidates for taking out unneeded code: 44.** No play of the original can reach these; they were not removed now.
+  - The sweepers power-up (kind 15; no key reaches it and the data never gives it): 0x4189b0, `Sweeper_Push` 0x41c4a0,
+    `Sweeper_Draw` 0x41cfb0, and the ship flag 4 branches that only it sets.
+  - The mine and ice weapons (kinds 16 and 17, which no table gives) with `Ice_Freeze` 0x41a430, `Enemy_Freeze` 0x406e20
+    and the two GiveWeapon helpers 0x418b80 and 0x418cc0.
+  - The enemy kinds 0x12, 0x13, 0x14 and 0x10 (snake shooter, snake, smart walker, line walker): the random boards draw
+    kinds 7 to 13 and 0 to 6 only (`Level_EnemyCounts`), and the data defines no placed enemy of these kinds (0x408de0,
+    0x409160, 0x409480 and the `Enemy_FromXml` branches).
+  - Draw kinds 3 and 6, the whole add-blend family (0x432440, 0x434520, 0x4359e0, 0x436490, 0x424cc0, 0x4241f0), the
+    unclipped font paths (0x423d80, 0x424910, 0x423a90, 0x42bdb0, 0x42c0a0, 0x424ed0, 0x424f30, 0x42e240, 0x425270), and the
+    blitters of sources and destinations the game never draws (0x42fee0, 0x430020, 0x434d00, 0x435bf0, 0x432970, 0x434a80,
+    0x401a80).
+  - Data features the shipped files do not use: hex colours and swapped colours (0x4205f0, 0x4206d0, 0x420be0), the panel
+    tag (0x418050), the .tga branch and `Image_ConvertTo` (0x423b20: the portal pictures are not in the install), the FLI
+    delta chunk (0x40c670), the text input's own surface (0x42cad0), `Log` (0x429240) and `Sys_Sleep` (0x428d00).
+  - The name entry's on-screen keys, `MenuItem_TypeKey` and `Key_Push` (0x4159c0, 0x428fb0): the original's screen change
+    (0x40d5e0) turns the name-entry screen into the high-score table, putting the score in under the player's name, so
+    that screen is never shown (the agent's reachability verdict said otherwise; the export says this). The player's name is
+    typed only in the player list.
+  - `Obj_ClearChildren` (0x403480), an unreferenced copy of `List_Clear`.
+
+**Never reached and not defined in the port: 139.** Mostly the exception-unwind funclets (`Unwind@...`), the trial and
+registration code the port left out, the paths of the formats the game never uses, and the C++ library instances the engine
+does not call. None looked like something the runs should have reached.
+
+**Open or odd.**
+- On the original's world map, a click that comes with its move in one update was lost three times (a level selection that
+  did not start: `deep120`, `deep120b`, `held74`) and once crashed the original (`held269`, an access violation at the click
+  on a world button). With each button hovered 300 steps before its click, all three ran to the end; the crashing run is
+  `build/coverage/waterbugs/hits_old/held269.log`. A real mouse always moves first, so it is listed as an oddity
+  (`DEVIATIONS.md`) and not chased.
+- Windowed, the original sets its 16-bit screen to 5-5-5 (0x42ee60) and the full screen takes DirectDraw's format; the port
+  draws in 5-6-5 in both. A windowed screenshot of the original therefore keeps 5 bits of green where the port's keeps 6,
+  and the second phase of the identical-play pass (shotdiff) may see a one-bit difference in green there. No logic is
+  affected.
+
+**Spec for the coordinator (the tool).** `tools/coverage.py` does not read a comment above a `template <class T>` line as the
+block above the function that follows it (the address counts as a mention only). Twelve of the 18 placements were this; the
+fix is to treat the template line as part of the declaration. The report's "How it ended" cannot tell origrun's timeout from
+a crash (`held269` crashed, and the report says "origrun stopped it (a timeout), or it crashed" for it as for the timed out
+ones); the log's line "game exited (its process's exit code ...)" does.
+
+**What it cost.** The first batch of 17 runs took about 50 minutes of wall time, mostly waiting for room among the 3 game
+processes (a run itself takes 40 to 150 s); the 20 extra runs about 40 minutes. One Sonnet agent sorted the first 70 reached
+functions (16 minutes, 300,000 tokens) and another read the 62 unreached ones (36 minutes, 340,000 tokens). This session's
+own work was about five hours.

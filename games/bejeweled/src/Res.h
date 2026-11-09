@@ -4,7 +4,7 @@
 // Resource ids and name tables of Bejeweled Deluxe 1.87 (data only, no code).
 //
 // Images: WinDMApp::mImages (app+0x790, new Image*[NUM_IMAGES]) is indexed by ImageId. Entry i is
-//   loaded by WinDMApp::LoadAppImage(i) as GetImage("images\\" + gImageNames[i], true) followed by
+//   loaded by WinDMApp::DoLoadImage(i) as GetImage("images\\" + gImageNames[i], true) followed by
 //   GenerateDDSurface(). WinDMApp::Init loads 0..NUM_TITLE_IMAGES-1 synchronously; the loading
 //   thread (WinDMApp::LoadingThreadProc) loads NUM_TITLE_IMAGES..NUM_IMAGES-1.
 // Sounds: SoundManager::LoadSound(id, "sounds\\" + gSoundNames[id]) for id 0..NUM_SOUNDS-1

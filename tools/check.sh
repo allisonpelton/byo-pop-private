@@ -43,7 +43,9 @@
 #                playcountpagetest (its pages' side, web/playcount.js: when it may contact the counter) and termstest (web/terms.js:
 #                when a page skips the terms card, the development hosts, ?terms=1 and the test key) and cursorstest (web/cursors.js:
 #                the site's cursor, which of a game's cursors it keeps, its rules for each context, busy() and animated
-#                cursors). The build folder is build/web;
+#                cursors) and linkstest (tools/linkstest.js: every link to the site's own licence, terms and copyright pages
+#                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
+#                its seek, on a module the test makes and a staged MO3 when there is one). The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
 #                depth, culling, matrices, textures, render targets, blending, alpha test, texture stages, scissor,
@@ -728,12 +730,20 @@ suite_unit-web() {
 	local n o
 	"$NODE" tools/cursorstest.js > "$1.cur" 2>&1 || st=1
 	n="$(lastof "$1.cur" 'cursorstest:')"
+	# every link to the site's own licence, terms and copyright pages opens in a new tab (tools/linkstest.js)
+	local q
+	"$NODE" tools/linkstest.js > "$1.lk" 2>&1 || st=1
+	q="$(lastof "$1.lk" 'linkstest:')"
+	# the music player's decoder: the tracker view's rows and the seek bar's seek (tools/musictest.js)
+	local r
+	"$NODE" tools/musictest.js "$web/openmpt.js" assets > "$1.mu" 2>&1 || st=1
+	r="$(lastof "$1.mu" 'musictest:')"
 	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
 	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $o"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $o"
 	return $st
 }
 
@@ -2016,7 +2026,10 @@ suite_bejeweledtwist() {
 	m="$(twist_game menu "$exe" 1 170 60 160)"
 	t="$(TWIST_MODE=-3d twist_game takeoff "$exe" 1 3021 2780 2900 2940 2980 3020)"
 	local dec="sounds decode as Tremor's"
-	"$W/build/native/bjt_sounddecode.exe" --compare "$W"/assets/bejeweledtwist/sounds/*.ogg > "$1.decode" 2>&1 || { dec="SOUNDS DECODE DIFFERENTLY"; st=1; }
+	# the decode tool links the framework's stb_vorbis: build it here, since a session that builds only its game's target
+	# keeps a copy from before a change to the decoder (seconds when it is up to date)
+	if ! TARGET=bjt_sounddecode tools/build.sh native > "$1.decbuild" 2>&1; then dec="BJT_SOUNDDECODE DOES NOT BUILD"; st=1
+	elif ! "$W/build/native/bjt_sounddecode.exe" --compare "$W"/assets/bejeweledtwist/sounds/*.ogg > "$1.decode" 2>&1; then dec="SOUNDS DECODE DIFFERENTLY"; st=1; fi
 	sv="$(twist_save "$exe")"
 	{ echo "classic: $c"; echo "blitz: $b"; echo "classic rerun: $r"; echo "menu: $m"; echo "3D take-off: $t"; echo "save: $sv"; } > "$1"
 	if [ "$c" = "$BT_CLASSIC" ] && [ "$b" = "$BT_BLITZ" ] && [ "$m" = "$BT_MENU" ] && [ "$t" = "$BT_TAKEOFF" ]; then sh="screens as frozen"; else sh="SCREENS CHANGED"; st=1; fi

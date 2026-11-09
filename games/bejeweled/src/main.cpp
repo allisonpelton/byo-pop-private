@@ -1,4 +1,4 @@
-// Entry point for the Bejeweled Deluxe port (native and Emscripten).
+// port: the entry point of the Bejeweled Deluxe port (native and Emscripten).
 //
 // Arguments (all optional):
 //   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/, properties/
@@ -10,7 +10,7 @@
 //   -dumprules       print the enabled mods' merged rules (canonical form as text), their RulesId and the
 //                    merge report, then exit (games/bejeweled/docs/CODE_MODS_DESIGN.md 3.7)
 //   -forcevariant    test hook: every board takes its generalised code paths at default rules
-//                    (GameConfig::mForceVariant; nothing reads them yet in stage 1)
+//                    (GameConfig::mForceVariant)
 //   -gameseed=N      play the next game on seed N, 1..4294967295 (GameConfig::mPendingSeed; the web shell
 //                    passes ?seed=N this way); anything else is refused with exit status 2. Every new game
 //                    gets the seed until one is played on it (its first match or its game over), so a
