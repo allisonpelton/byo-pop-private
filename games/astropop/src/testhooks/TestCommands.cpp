@@ -8,11 +8,14 @@
 #include "Compat2004.h"
 #include "LoaderScreen.h"
 #include "MainMenu.h"
+#include "Particle.h"
 #include "UserProfile.h"
 #include "WidgetManager.h"
 
+#include <climits>
 #include <cstdio>
 #include <string>
+#include <SDL.h>
 
 using namespace Sexy;
 
@@ -87,6 +90,40 @@ void ReadInts(const std::string& theArgs, int* theValues, int theMax)
 
 }
 
+// -trace (a test flag): the values that origrun's --watch reads in the original (docs/ORIGRUN.md), in the same lines
+// ("watch 1: 0 -> 10 at update 312"), so that tools/origcmp pairs them value by value: 1 the board's score (+0x1974), 2 its level
+// (+0x1940), 3 the position in the game's generator (the MTRand that 0x5a4e28 points to; the index at +0x9c0) and 4 the position
+// in Rand()'s generator (the MTRand at 0x5a5e98), each "-" while there is no board (watch 4 always has a value). Logged in the
+// update in which a value differs from the last one logged, with the update count the framework keeps (+0x4a0 in the original).
+void AstroPopApp::TraceUpdate()
+{
+	static const int WATCHES = 4;
+	static int sLast[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN};
+	static bool sFirst = true;
+	int aValue[WATCHES] = {INT_MIN, INT_MIN, INT_MIN, INT_MIN};
+	uint32_t aState[MTRAND_N];
+	int anIndex = 0;
+	if (mBoard != NULL)
+	{
+		aValue[0] = mBoard->mScore;
+		aValue[1] = mBoard->m1940;
+	}
+	gGameRand.GetState(aState, &anIndex);
+	aValue[2] = anIndex;
+	GetRandMTState(aState, &anIndex);
+	aValue[3] = anIndex;
+	for (int i = 0; i < WATCHES; i++)
+	{
+		if (!sFirst && aValue[i] == sLast[i])
+			continue;
+		std::string anOld = sFirst ? "?" : (sLast[i] == INT_MIN ? "-" : StrFormat("%d", sLast[i]));
+		std::string aNew = aValue[i] == INT_MIN ? "-" : StrFormat("%d", aValue[i]);
+		SDL_Log("watch %d: %s -> %s at update %d", i + 1, anOld.c_str(), aNew.c_str(), mUpdateCount);
+		sLast[i] = aValue[i];
+	}
+	sFirst = false;
+}
+
 bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	if (theCommand.mCommand == "state")
@@ -99,13 +136,14 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			aUser = "\"" + aName + "\"";
 		}
 		std::string aLine = std::string("STATE {\"screen\":\"") + ScreenName(this) + "\",\"user\":" + aUser;
+		aLine += StrFormat(",\"appupdates\":%d", mUpdateCount);
 		if (mBoard != NULL)
 		{
 			aLine += StrFormat(",\"mode\":%d,\"level\":%d,\"score\":%d,\"stage\":%d,\"updates\":%d",
 				mBoard->mMode, mBoard->m1940, mBoard->mScore, mBoard->mField193C, mBoard->mUpdateCnt);
 			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->m1924,
 				mBoard->mFlag8E8 ? 1 : 0, (int) mBoard->m70.size());
-			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusy() ? 1 : 0);
+			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusyReason());
 			aLine += ",\"field\":" + mBoard->DescribeField();
 		}
 		Reply(aLine + "}");

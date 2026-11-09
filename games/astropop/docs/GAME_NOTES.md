@@ -138,8 +138,6 @@ offsets are relative to it (add 0xc for the object's own offsets).
 - `XcfFile::Parse` reads the file with plain line rules and keeps every key; the original validates the key names against
   a list given before the parse (28 names for the descriptor) and checks the .sig (both left out; unmodified files give the
   same values).
-- The original's Rand() for the selector's rising particles is the game's generator (`MTRand::NextNoAssert`, 0x5a4e28);
-  the port draws them from `Rand()` in the same order (3D mode only).
 - The tunable-constants table (0x4f1e40, a lookup of numbers by name) is replaced by its default values.
 - `StartLoopSound` stops a loop with `Stop()` and starts it with `Play(false, false)`.
 - `PointerTrail::Step` on the warp stars is left out (the original steps a trail that nothing reads).
@@ -170,6 +168,14 @@ None found yet.
 - The selector's hidden hover sequence (Classic, Survival, Hall of Fame, Options... in order, then Quit) starts the screen
   of ships flying off (`ShipsScreen`, translated); with the More Games button gone the sequence's first step is missing,
   so the screen cannot be reached until the sequence is decided.
+
+- On the machine the pass runs on (Windows 11, build 26300) the original cannot load its fonts: the loading thread stops at
+  its task 203 of 206 with an unhandled exception, every time, after libpng warns about a palette. The three palette PNGs
+  of the game (`fonts/_Kiloton9.png`, `_Fusion16.png`, `_NeuropolX30outline.png`) are the only ones it has; the staged copy
+  that origrun runs (`games/astropop/tools/origcmp/stage_original.sh`) stores them as RGBA PNGs with the same pixels, and then
+  the original loads and runs. Found with origrun's `--coverage` (the functions the loading thread reached, in order: the
+  palette handling, then the unpack of a 2-bit palette row, then the exception filter). The port decodes the same files without
+  trouble. Not chased further (the user's copies on older Windows may be fine).
 
 ## 9. Next steps
 
