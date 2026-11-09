@@ -27,8 +27,11 @@ origrun may hook a copy's GetCursorPos so that it returns origrun's scripted mou
 framework reads the cursor after posted input, and the sandbox has none, so its board never sees a scripted mouse), the
 user answered "Yes, hook it". Asked the same day whether origrun may hook a copy's MessageBox and MessageBeep calls,
 so that a message box is answered without appearing and neither plays its sound on the user's speakers, the user
-answered "Yes, hook them". Those OKs cover the clock's reads and waits, GetCursorPos, MessageBox and MessageBeep only:
-any other hook of a Windows function inside a copy still needs the user's OK first.
+answered "Yes, hook them". Asked on 2026-11-09 whether origrun may hook a copy's GetKeyState so that scripted Shift and
+Ctrl presses register (Mahjong Escape reads Shift and Ctrl with GetKeyState while it handles a key, and a posted key
+sets no key state), the user answered "Yes, hook it". Those OKs cover the clock's reads and waits, GetCursorPos,
+GetKeyState, MessageBox and MessageBeep only: any other hook of a Windows function inside a copy still needs the user's
+OK first.
 
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
@@ -115,6 +118,9 @@ Options:
 - `--cursor scripted` / `--cursor real` — the copy's `GetCursorPos` returns the last mouse position the script
   posted, or Windows' cursor (the default), for a game that reads the cursor after posted input (Bejeweled Twist's
   board). With or without `--clock virtual`; refused with `--sound real`. See "The scripted cursor".
+- `--keys scripted` / `--keys real` � the copy's `GetKeyState` returns the key and mouse-button state the script's
+  posted edges left, or Windows' (the default), for a game that asks whether Shift or Ctrl is down while it handles a
+  key (Mahjong Escape). Refused with `--sound real`. See "The scripted keys".
 - `--msgbox show` — show the copy's message boxes as before (each plays its sound, and the dialog watch answers it once
   it is on screen) instead of answering them in the stand-in with no window and no sound, which every run with the
   stand-in does by default (`--msgbox hook`). For a phase-two comparison that photographs a box; turn the speakers off
@@ -167,7 +173,8 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   for the right button) — one edge of a button or key, or a double click (down, up, `WM_LBUTTONDBLCLK`, up), posted now. They are the same as at an
   `at` line (below) and are for a game with no update counter (Mahjong Escape): a `wait` between the edges makes a held
   press, and moves in between make a drag. A held key changes no key state the game reads with `GetKeyState` or
-  `GetAsyncKeyState` (Ctrl+C as `keydown 17`, `key 67`, `keyup 17` works only in a game that reads its messages).
+  `GetAsyncKeyState` (Ctrl+C as `keydown 17`, `key 67`, `keyup 17` works only in a game that reads its messages),
+  unless the run has `--keys scripted`, which answers `GetKeyState` ("The scripted keys").
 - `focus lose` / `focus regain` — post the deactivate/activate messages a window gets when it loses and
   regains the focus (`WM_ACTIVATEAPP`, `WM_ACTIVATE`, `WM_KILLFOCUS`/`WM_SETFOCUS`).
 - `shot <name>` — capture the window to `shots/<name>.png` now.
@@ -943,6 +950,32 @@ was made.
 - The point is converted when it is posted: a window moved later keeps the old screen point.
 - One point for the run: every process of the copy reads the last one posted, a process that starts later too, as a
   real mouse stays where it was.
+
+## The scripted keys (`--keys scripted`)
+
+A posted key or click changes no key state: Windows keeps that per thread from real input, so a game that asks
+`GetKeyState` whether Shift or Ctrl is down while it handles a posted key finds them up, and Shift+Tab, a selection
+made with Shift and the arrows, or Ctrl+Insert reach it as plain Tab, arrows and Insert. Mahjong Escape reads both that
+way (0x42c660, as it reads the mouse buttons). `--keys scripted` points the copy's `GetKeyState` imports at the
+stand-in's own function (`tools/origrun/cursor.c`; the user's OK of 2026-11-09 above, and nothing else is hooked). It
+shares the scripted cursor's block (`cursor.h`): before each key or button edge it posts (`keydown`, `keyup`, `key`,
+`down`, `up`, `click`, `rclick`, `dclick`, `rdclick`, at lines and plain ones alike) origrun writes the key's new state
+there, and from the first one on `GetKeyState` answers from it: the high bit while the key is down, and the low bit
+flipped by each press, as Windows has them. Shift, Ctrl and Alt read as down while either side of them is. Until the
+first edge the call goes to Windows. The run's log ends with a line of how many edges were posted and how many calls
+the block answered, and the stand-in's log (`logs/cursor.log`, or `logs/clock.log` with the clock) has each process's
+count.
+
+The state is what origrun last posted, not what the game has read so far: a game that handles the messages later reads
+the state as of the last edge. So a modifier is pressed on an update (or after a `wait`) before the key it modifies and
+let go on one after, as a real player's are: `at 500 keydown 16`, `at 501 key 9`, `at 502 keyup 16` is a Shift+Tab, and
+`keydown 16`, `key 9`, `keyup 16` on three plain lines in one go is a plain Tab.
+
+**Limits:**
+- Only `GetKeyState`. `GetAsyncKeyState` and `GetKeyboardState` are not hooked (hooking either needs the user's OK
+  first), and `hwkey` and `hwclick` go through Windows' own input, not the block.
+- The hook lives in the stand-in, as the cursor's does: a copy that never loads it never gets it (a coverage run loads
+  it, since the exe then imports it), and imports bound late are not patched.
 
 ## Message boxes and beeps (hooked)
 

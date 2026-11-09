@@ -447,17 +447,38 @@ static void vc_summary(void)
 // moment), so a game that reads the cursor after posted input finds it where a real mouse would be. Until the first
 // one, the game reads Windows' cursor. See docs/ORIGRUN.md, "The scripted cursor".
 static int    gCursorScripted = 0;
-static CurShared* gCur = NULL;        // mapped until origrun exits
+static int    gKeysScripted = 0;      // --keys scripted: the copy's GetKeyState reads the key state below (cursor.c)
+static CurShared* gCur = NULL;        // mapped until origrun exits (made for --cursor scripted or --keys scripted)
 static void cursor_note(HWND top, int x, int y)
 {
-	if (!gCur || !top) return;
+	if (!gCur || !gCursorScripted || !top) return;
 	POINT p={x,y}; ClientToScreen(top,&p);
 	InterlockedExchange64(&gCur->pos, ((LONGLONG)p.y<<32) | (DWORD)p.x);
 	InterlockedExchange(&gCur->set,1);
 	InterlockedIncrement(&gCur->posts);
 }
+// --keys scripted: one key or button edge, written to the block before it is posted, so a game that asks GetKeyState
+// while it handles a later message finds the key as a real keyboard would leave it (docs/ORIGRUN.md, "The scripted
+// keys"). A down flips the toggle bit, as Windows' does.
+static void keys_note(int vk, int down)
+{
+	if (!gCur || !gKeysScripted || vk<=0 || vk>255) return;
+	BYTE k=gCur->keys[vk];
+	if (down) { if (!(k&0x80)) k^=1; k|=0x80; } else k&=(BYTE)~0x80;
+	gCur->keys[vk]=k;
+	MemoryBarrier();
+	InterlockedExchange(&gCur->keysSet,1);
+	InterlockedIncrement(&gCur->keyPosts);
+}
 static void cursor_summary(void)
 {
+	if (gKeysScripted && gCur) {
+		CurShared* k=gCur;
+		if (!k->keysInstalled) logline("--keys scripted: WARNING: no game process patched its GetKeyState (did it load the stand-in, dsound.dll?)");
+		else logline("scripted keys: %ld key and button edge%s posted; %ld game process%s patched GetKeyState, which answered %ld time%s with "
+			"the scripted state and %ld from Windows (before the first)", (long)k->keyPosts, k->keyPosts==1?"":"s",
+			(long)k->keysInstalled, k->keysInstalled==1?"":"es", (long)k->keyReads, k->keyReads==1?"":"s", (long)k->keyRealReads);
+	}
 	if (!gCursorScripted || !gCur) return;
 	CurShared* c=gCur;
 	if (!c->installed) logline("--cursor scripted: WARNING: no game process patched its GetCursorPos (did it load the stand-in, dsound.dll?)");
@@ -477,7 +498,7 @@ static void cursor_summary(void)
 static int    gMsgboxHook = 1;        // 1: hooked; 0: --msgbox show; -1: no stand-in (--sound real), so shown
 static MbxShared* gMbx = NULL;        // mapped until origrun exits
 static volatile LONG gMbxDraining = 0;
-static const char* mbx_log_name(void) { return gClockVirtual?"clock":gCursorScripted?"cursor":"msgbox"; }
+static const char* mbx_log_name(void) { return gClockVirtual?"clock":gCursorScripted||gKeysScripted?"cursor":"msgbox"; }
 static const char* mbx_id_name(LONG id)
 {
 	static const char* const n[]={"0","IDOK","IDCANCEL","IDABORT","IDRETRY","IDIGNORE","IDYES","IDNO","IDCLOSE","IDHELP","IDTRYAGAIN","IDCONTINUE"};
@@ -1539,8 +1560,8 @@ static int post_edge(HWND hw, const char* cmd, const char* rest)
 {
 	if (ieq(cmd,"keydown")||ieq(cmd,"keyup")||ieq(cmd,"kdown")||ieq(cmd,"kup")){   // one key edge (kdown/kup: the same), so that a press can span updates (a game that polls its key state, or clears a key when it is let go, loses a down and up read in one update)
 		char v[32]; if(sscanf(rest,"%31s",v)==1) { int vk=parse_vk(v); UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
-			if (ieq(cmd,"keydown")||ieq(cmd,"kdown")) PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16)));
-			else PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); }
+			if (ieq(cmd,"keydown")||ieq(cmd,"kdown")) { keys_note(vk,1); PostMessageA(hw,WM_KEYDOWN,vk,(LPARAM)(1|(sc<<16))); }
+			else { keys_note(vk,0); PostMessageA(hw,WM_KEYUP,vk,(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31))); } }
 		return 1;
 	}
 	if (ieq(cmd,"down")||ieq(cmd,"up")||ieq(cmd,"rdown")||ieq(cmd,"rup")){   // one button edge (rdown/rup: the right one), so that a click can span updates (a down and up read in one update are lost in some games)
@@ -1548,8 +1569,8 @@ static int post_edge(HWND hw, const char* cmd, const char* rest)
 		int x=0,y=0,n=sscanf(rest,"%d %d",&x,&y); POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
 		if (n==2) cursor_note(hw,x,y);
 		WPARAM bit=r?MK_RBUTTON:MK_LBUTTON;
-		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp); gButtonsHeld|=bit; PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,gButtonsHeld,lp); }
-		else { gButtonsHeld&=~bit; PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,gButtonsHeld,lp); }
+		if (down) { if (n==2) PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp); gButtonsHeld|=bit; keys_note(r?VK_RBUTTON:VK_LBUTTON,1); PostMessageA(t,r?WM_RBUTTONDOWN:WM_LBUTTONDOWN,gButtonsHeld,lp); }
+		else { gButtonsHeld&=~bit; keys_note(r?VK_RBUTTON:VK_LBUTTON,0); PostMessageA(t,r?WM_RBUTTONUP:WM_LBUTTONUP,gButtonsHeld,lp); }
 		return 1;
 	}
 	if (ieq(cmd,"dclick")||ieq(cmd,"rdclick")){   // a double click (rdclick: of the right button), the messages Windows sends a window whose class asks for double clicks
@@ -1557,8 +1578,9 @@ static int post_edge(HWND hw, const char* cmd, const char* rest)
 		WPARAM bit=r?MK_RBUTTON:MK_LBUTTON; UINT dn=r?WM_RBUTTONDOWN:WM_LBUTTONDOWN, up=r?WM_RBUTTONUP:WM_LBUTTONUP, dbl=r?WM_RBUTTONDBLCLK:WM_LBUTTONDBLCLK;
 		POINT cp; HWND t=child_at(hw,x,y,&cp); LPARAM lp=xy(cp.x,cp.y); cursor_note(hw,x,y);
 		PostMessageA(t,WM_MOUSEMOVE,gButtonsHeld,lp);
-		PostMessageA(t,dn,gButtonsHeld|bit,lp); PostMessageA(t,up,gButtonsHeld,lp);
-		PostMessageA(t,dbl,gButtonsHeld|bit,lp); PostMessageA(t,up,gButtonsHeld,lp);
+		int vb=r?VK_RBUTTON:VK_LBUTTON;
+		keys_note(vb,1); PostMessageA(t,dn,gButtonsHeld|bit,lp); keys_note(vb,0); PostMessageA(t,up,gButtonsHeld,lp);
+		keys_note(vb,1); PostMessageA(t,dbl,gButtonsHeld|bit,lp); keys_note(vb,0); PostMessageA(t,up,gButtonsHeld,lp);
 		return 1;
 	}
 	if (ieq(cmd,"char")){   // one WM_CHAR of the code given (decimal or 0x..), for a control character a script line cannot hold: Ctrl+Z is 0x1a, which ends a file read in text mode (Mahjong Escape, 2026-11-09)
@@ -1643,15 +1665,15 @@ static void post_click(HWND hwnd,int x,int y,int right)
 	cursor_note(hwnd,x,y);
 	POINT cp; HWND t=child_at(hwnd,x,y,&cp); LPARAM lp=xy(cp.x,cp.y);
 	PostMessageA(t, WM_MOUSEMOVE, 0, lp); input_gap(20);
-	if (right){ PostMessageA(t,WM_RBUTTONDOWN,MK_RBUTTON,lp); input_gap(40); PostMessageA(t,WM_RBUTTONUP,0,lp); }
-	else      { PostMessageA(t,WM_LBUTTONDOWN,MK_LBUTTON,lp); input_gap(40); PostMessageA(t,WM_LBUTTONUP,0,lp); }
+	if (right){ keys_note(VK_RBUTTON,1); PostMessageA(t,WM_RBUTTONDOWN,MK_RBUTTON,lp); input_gap(40); keys_note(VK_RBUTTON,0); PostMessageA(t,WM_RBUTTONUP,0,lp); }
+	else      { keys_note(VK_LBUTTON,1); PostMessageA(t,WM_LBUTTONDOWN,MK_LBUTTON,lp); input_gap(40); keys_note(VK_LBUTTON,0); PostMessageA(t,WM_LBUTTONUP,0,lp); }
 }
 static void post_key(HWND hwnd,int vk)
 {
 	UINT sc=MapVirtualKeyA(vk,MAPVK_VK_TO_VSC);
 	LPARAM down=(LPARAM)(1|(sc<<16));
 	LPARAM up=(LPARAM)(1|(sc<<16)|(1u<<30)|(1u<<31));
-	PostMessageA(hwnd,WM_KEYDOWN,vk,down); input_gap(20); PostMessageA(hwnd,WM_KEYUP,vk,up);
+	keys_note(vk,1); PostMessageA(hwnd,WM_KEYDOWN,vk,down); input_gap(20); keys_note(vk,0); PostMessageA(hwnd,WM_KEYUP,vk,up);
 }
 static void post_text(HWND hwnd,const char* s){ for(;*s;s++){ PostMessageA(hwnd,WM_CHAR,(unsigned char)*s,1); input_gap(10);} }
 static void post_focus(HWND hwnd,int regain)
@@ -3721,6 +3743,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gMode3dExpr[0]) fprintf(rf,"flag3d=%s\n",gMode3dExpr);
 	if (gClockVirtual) fprintf(rf,"clock=virtual\n");
 	if (gCursorScripted) fprintf(rf,"cursor=scripted\n");
+	if (gKeysScripted) fprintf(rf,"keys=scripted\n");
 	if (gMsgboxHook==0) fprintf(rf,"msgbox=show\n");
 	fclose(rf);
 	// --reg: registry presets, imported inside before the game starts, into the hive the game uses there.
@@ -4093,21 +4116,23 @@ static DWORD arm_guest_shutdown(DWORD sec)
 		SHTDN_REASON_MAJOR_OTHER|SHTDN_REASON_MINOR_OTHER|SHTDN_REASON_FLAG_PLANNED);
 }
 
-// --cursor scripted: the block the game's GetCursorPos reads (cursor.h), made before the game starts and named after
-// the run's id, and the environment that tells the stand-in about it.
+// --cursor scripted, --keys scripted: the block the game's GetCursorPos and GetKeyState read (cursor.h), made before the
+// game starts and named after the run's id, and the environment that tells the stand-in about it.
 static void cursor_create(void)
 {
 	char name[128]; wsprintfA(name,"Local\\origrun-cursor-%s",gClockId);
 	HANDLE m=CreateFileMappingA(INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,sizeof(CurShared),name);   // open until origrun exits
 	CurShared* c=m ? (CurShared*)MapViewOfFile(m,FILE_MAP_ALL_ACCESS,0,0,sizeof(CurShared)) : NULL;
-	if (!c) { logline("--cursor scripted: no shared block %s (err %lu): the game's GetCursorPos stays Windows'", name, GetLastError()); if (m) CloseHandle(m); return; }
+	if (!c) { logline("--cursor/--keys scripted: no shared block %s (err %lu): the game's GetCursorPos and GetKeyState stay Windows'", name, GetLastError()); if (m) CloseHandle(m); return; }
 	c->version=CUR_VERSION; c->size=sizeof(CurShared);
 	MemoryBarrier();
 	c->magic=CUR_MAGIC;
 	gCur=c;
-	SetEnvironmentVariableA("ORIGRUN_CURSOR","scripted");
+	if (gCursorScripted) SetEnvironmentVariableA("ORIGRUN_CURSOR","scripted");
+	if (gKeysScripted) SetEnvironmentVariableA("ORIGRUN_KEYS","scripted");
 	SetEnvironmentVariableA("ORIGRUN_CURSOR_ID",gClockId);
-	logline("--cursor scripted: the game's GetCursorPos returns the last mouse position the script posted (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
+	if (gCursorScripted) logline("--cursor scripted: the game's GetCursorPos returns the last mouse position the script posted (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
+	if (gKeysScripted) logline("--keys scripted: the game's GetKeyState returns the key and button state the script's posted edges left (in the stand-in; its log is logs/%s.log)", gClockVirtual?"clock":"cursor");
 }
 
 // The message-box hook (on unless --msgbox show): its block, with the script's msgbox rules (load_msgbox_rules runs
@@ -4131,18 +4156,18 @@ static void msgbox_create(void)
 		"default button) and its MessageBeep calls with no sound; --msgbox show shows them (the stand-in's log is logs/%s.log)", mbx_log_name());
 }
 
-// The environment the stand-in's virtual clock, scripted cursor and message-box hook read (vclock.c, cursor.c,
-// msgbox.c), inherited by the game through rundesk; none of it without --clock virtual, --cursor scripted or the
-// message-box hook, so a value left in origrun's own environment never reaches a game.
+// The environment the stand-in's virtual clock, scripted cursor and keys and message-box hook read (vclock.c, cursor.c,
+// msgbox.c), inherited by the game through rundesk; none of it without --clock virtual, --cursor scripted, --keys
+// scripted or the message-box hook, so a value left in origrun's own environment never reaches a game.
 static void clock_env(void)
 {
 	static const char* const names[]={"ORIGRUN_CLOCK","ORIGRUN_CLOCK_ID","ORIGRUN_CLOCK_HOST","ORIGRUN_CLOCK_HOLDSTART","ORIGRUN_CLOCK_COUNTER","ORIGRUN_CLOCK_WATCH",
-		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID",NULL};
+		"ORIGRUN_CURSOR","ORIGRUN_CURSOR_ID","ORIGRUN_KEYS","ORIGRUN_MSGBOX","ORIGRUN_MSGBOX_ID",NULL};
 	for (int i=0;names[i];i++) SetEnvironmentVariableA(names[i],NULL);
 	if (gMsgboxHook==0) logline("--msgbox show: message boxes are shown as before; the dialog watch answers them once they are on screen, after their sound");
-	if (!gClockVirtual && !gCursorScripted && gMsgboxHook<=0) return;
+	if (!gClockVirtual && !gCursorScripted && !gKeysScripted && gMsgboxHook<=0) return;
 	wsprintfA(gClockId,"%lu-%lu",GetCurrentProcessId(),GetTickCount());
-	if (gCursorScripted) cursor_create();
+	if (gCursorScripted || gKeysScripted) cursor_create();
 	if (gMsgboxHook>0) msgbox_create();
 	if (!gClockVirtual) return;
 	char host[16]; wsprintfA(host,"%lu",GetCurrentProcessId());
@@ -4231,6 +4256,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"flag3d")) lstrcpynA(gMode3dExpr,v,256);
 			else if (ieq(ln,"clock")) gClockVirtual = ieq(v,"virtual");
 			else if (ieq(ln,"cursor")) gCursorScripted = ieq(v,"scripted");
+			else if (ieq(ln,"keys")) gKeysScripted = ieq(v,"scripted");
 			else if (ieq(ln,"msgbox")) gMsgboxHook = ieq(v,"show") ? 0 : 1;
 		}
 		fclose(f);
@@ -4274,6 +4300,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 	SetEnvironmentVariableA("ORIGRUN_SOUND", ieq(sound,"real") ? "real" : sound);
 	if (gClockVirtual && ieq(sound,"real")) { logline("clock=virtual needs the sound stand-in, which sound=real leaves out: the run stays on the wall clock"); gClockVirtual=0; }
 	if (gCursorScripted && ieq(sound,"real")) { logline("cursor=scripted needs the sound stand-in, which sound=real leaves out: GetCursorPos stays Windows'"); gCursorScripted=0; }
+	if (gKeysScripted && ieq(sound,"real")) { logline("keys=scripted needs the sound stand-in, which sound=real leaves out: GetKeyState stays Windows'"); gKeysScripted=0; }
 	if (gMsgboxHook>0 && ieq(sound,"real")) { logline("sound=real: no stand-in, so no message-box hook: the game's boxes are shown, play their sound and are answered by the dialog watch"); gMsgboxHook=-1; }
 	if (script[0]) load_msgbox_rules(script);   // before the message-box hook's block is made, and before any dialog can appear
 	clock_env();
@@ -4382,6 +4409,11 @@ int main(int argc, char** argv)
 			if (ieq(v,"scripted")) gCursorScripted=1; else if (ieq(v,"real")) gCursorScripted=0;
 			else { fprintf(stderr,"--cursor takes scripted or real, not %s\n",v); return 2; }
 		}
+		else if (ieq(argv[i],"--keys")&&i+1<argc) {
+			const char* v=argv[++i];
+			if (ieq(v,"scripted")) gKeysScripted=1; else if (ieq(v,"real")) gKeysScripted=0;
+			else { fprintf(stderr,"--keys takes scripted or real, not %s\n",v); return 2; }
+		}
 		else if (ieq(argv[i],"--msgbox")&&i+1<argc) {
 			const char* v=argv[++i];
 			if (ieq(v,"show")) gMsgboxHook=0; else if (ieq(v,"hook")) gMsgboxHook=1;
@@ -4417,6 +4449,10 @@ int main(int argc, char** argv)
 	}
 	if (gCursorScripted && ieq(sound,"real")) {
 		fprintf(stderr, "origrun: --cursor scripted lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
+		return 2;
+	}
+	if (gKeysScripted && ieq(sound,"real")) {
+		fprintf(stderr, "origrun: --keys scripted lives in the sound stand-in, which --sound real leaves out; use --sound stub, wav or nodriver\n");
 		return 2;
 	}
 	if (gCoverageList[0] && (ieq(sound,"real") || sandboxHost)) {
