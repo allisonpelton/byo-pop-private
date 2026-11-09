@@ -145,7 +145,8 @@ var ByopopChat = (function () {
       all.push(entry);
     });
     return {
-      here: typeof here === "string" ? here : "",
+      // the game this page plays (a function: the desktop's game in front), whose tag is drawn as the reader's own
+      get here() { var h = typeof here === "function" ? here() : here; return typeof h === "string" ? h : ""; },
       get: function (id) { return typeof id === "string" && byId[id] ? byId[id] : null; },
       all: function () { return all.slice(); },
       icon: function (id) {
@@ -370,7 +371,9 @@ var ByopopChat = (function () {
   // random(), storage (null: none), timers {set, clear}, auto (false: no messages "received" by themselves).
   function localSource(opts) {
     opts = opts || {};
-    var games = asGames(opts.games, opts.game), here = typeof opts.game === "string" ? opts.game : "";
+    var games = asGames(opts.games, opts.game);
+    // the game the messages sent here carry: a page's own, or (a function) whichever game the desktop has in front
+    function hereNow() { var g = typeof opts.game === "function" ? opts.game() : opts.game; return typeof g === "string" ? g : ""; }
     var now = opts.now || function () { return Date.now(); };
     var rnd = opts.random || Math.random;
     var store = opts.storage !== undefined ? opts.storage : storage();
@@ -442,7 +445,7 @@ var ByopopChat = (function () {
           if (usernameError(name)) { reject(sendError("name", ByopopStrings.t("chat.send.name"))); return; }
           var wait = limiter.take(now());
           if (wait) { reject(sendError("rate", ByopopStrings.t("chat.send.rate"), wait)); return; }
-          var m = make(now(), name, clean, here);
+          var m = make(now(), name, clean, hereNow());
           live.add(m);
           if (!live.isSaved() && !warnedStorage) {
             warnedStorage = true;

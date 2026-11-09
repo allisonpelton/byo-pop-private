@@ -323,8 +323,8 @@ var ByopopSkin = (function () {
       try { target.dispatchEvent(new CustomEvent("byopop-whatsthis", { bubbles: true, detail: { x: x, y: y } })); } catch (e) {}
     }
     function whatsKey(ev) { if (ev.key === "Escape") { swallow(ev); endWhats(); } }
-    function closeWin(w) { if (w.onClose) w.onClose(); else setClosed(w, true); }
-    // a window's control menu, from its title bar's icon or Alt+Space
+    function closeWin(w) { closeAllMenus(); if (w.onClose) w.onClose(); else setClosed(w, true); }
+    // a window's control menu, from its title bar's icon
     function controlMenu(w, from, x, y) {
       var entries = [{ label: T("skin.desk.m.minimize"), fn: function () { setMin(w, true); } }];
       if (w.maximize) entries.push({ label: T("skin.desk.m.maximize"), fn: function () { w.maximize(); } });
@@ -337,7 +337,8 @@ var ByopopSkin = (function () {
           entries.push({ rule: true });
         }
       }
-      entries.push({ label: T("skin.desk.m.close"), key: "Alt+F4", bold: true, fn: function () { closeWin(w); } });
+      // no key beside it: Alt+F4 closes the browser's window, never the page's (the user, 2026-11-09: "Alt-F4 captured by browser")
+      entries.push({ label: T("skin.desk.m.close"), bold: true, fn: function () { closeWin(w); } });
       popMenu(from, entries, x, y, w.el.getAttribute("data-d95-title"));
     }
     // a window's title (the game's: its name and its mods), on its title bar and task bar button and in its buttons' names
@@ -354,6 +355,7 @@ var ByopopSkin = (function () {
     }
     // minimized: out of sight, its button on the task bar, which brings it back where it was
     function setMin(w, m) {
+      if (m) closeAllMenus();
       w.min = !!m;
       w.el.classList.toggle("d95-min", w.min);
       if (!w.min) { raise(w); place(w, true); }
@@ -392,7 +394,16 @@ var ByopopSkin = (function () {
           if (edge.indexOf("s") >= 0) nh = st.h + dy;
           if (edge.indexOf("n") >= 0) nh = st.h - dy;
           nw = Math.max(RZ_MIN.w, Math.min(r.w - 8, nw));
-          nh = Math.max(RZ_MIN.h, Math.min(r.h - 8, nh));
+          // a window may ask for more than RZ_MIN (o.minHeight: Music keeps its player and three of its list's rows)
+          var least = RZ_MIN.h;
+          if (w.minHeight) try { least = Math.max(least, w.minHeight() || 0); } catch (err) {}
+          nh = Math.max(Math.min(least, r.h - 8), Math.min(r.h - 8, nh));
+          // and the edge dragged stays on the desktop: the bottom above the task bar, the right inside the screen, the top and the
+          // left at 0 at most
+          if (edge.indexOf("s") >= 0) nh = Math.max(Math.min(least, r.h - st.y), Math.min(nh, r.h - st.y));
+          if (edge.indexOf("e") >= 0) nw = Math.min(nw, Math.max(RZ_MIN.w, r.w - st.x));
+          if (edge.indexOf("n") >= 0) nh = Math.min(nh, st.y + st.h);
+          if (edge.indexOf("w") >= 0) nw = Math.min(nw, st.x + st.w);
           // the left and top edges move the window as it grows the other way
           w.x = edge.indexOf("w") >= 0 ? st.x + st.w - nw : st.x;
           w.y = edge.indexOf("n") >= 0 ? st.y + st.h - nh : st.y;
@@ -459,7 +470,8 @@ var ByopopSkin = (function () {
     function add(el, o) {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
       var w = { focusIn: o.focusIn || null, el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
-                button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null };
+                button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
+                minHeight: o.minHeight || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
       el.classList.add("d95-win");
       el.setAttribute("data-d95-title", o.title);
@@ -518,7 +530,8 @@ var ByopopSkin = (function () {
         if (!findArea() && window.MutationObserver) { var mo = new MutationObserver(function () { if (findArea()) mo.disconnect(); }); mo.observe(el, { childList: true, subtree: true }); }
       }
       handle.classList.add("d95-handle");
-      // the control menu (o.menu): the title bar's icon opens it, as does Alt+Space in the window: Minimize, Maximize, Close
+      // the control menu (o.menu): the title bar's icon opens it: Minimize, Maximize, Close. No key opens it: Alt+Space is the
+      // browser window's own menu on Windows, and Alt+F4 closes the browser's window (the user, 2026-11-09)
       if (o.menu && handle.classList.contains("d95-tb")) {
         var sys = document.createElement("button");
         sys.type = "button"; sys.className = "d95-sys";
@@ -526,12 +539,6 @@ var ByopopSkin = (function () {
         if (o.menuIcon) sys.appendChild(o.menuIcon);
         handle.insertBefore(sys, handle.firstChild);
         sys.addEventListener("click", function () { var r = sys.getBoundingClientRect(); controlMenu(w, sys, r.left, r.bottom); });
-        el.addEventListener("keydown", function (ev) {
-          if (!on) return;
-          if (ev.key === " " && ev.altKey) { ev.preventDefault(); var r = sys.getBoundingClientRect(); controlMenu(w, sys, r.left, r.bottom); }
-          // Alt+F4 closes it (the browser may keep Alt+F4 for its own window: then the menu's Close does it)
-          else if (ev.key === "F4" && ev.altKey && o.onClose) { ev.preventDefault(); closeWin(w); }
-        }, true);
         w.sys = sys;
       }
       if (o.minimize) {
@@ -840,10 +847,10 @@ var ByopopSkin = (function () {
         }
         if (listing) {
           win("library");
-          settings("tab-settings"); win("tab-players"); win("tab-saves"); win("tab-music");
+          settings("tab-settings"); win("tab-music"); win("chat");
         } else {
           settings("panel-settings");
-          [["players", "index.tabs.players"], ["saves", "index.tabs.saves"], ["music", "index.tabs.music"]].forEach(function (m) {
+          [["music", "index.tabs.music"]].forEach(function (m) {
             list.appendChild(item(T(m[1]), null, { href: "./#" + m[0] }));
           });
           list.appendChild(rule());
@@ -1045,6 +1052,7 @@ var ByopopSkin = (function () {
       if (!favMenu) return;
       var m = favMenu; favMenu = null;
       if (m.el.parentNode) m.el.parentNode.removeChild(m.el);
+      if (m.opts && m.opts.done) try { m.opts.done(); } catch (e) {}
       if (back && m.from && m.from.parentNode) m.from.focus();
     }
     function openFavMenu(from, g, x, y) {
@@ -1057,28 +1065,37 @@ var ByopopSkin = (function () {
                      } }],
               x, y, T2("skin.fav.menu", { game: g.title }));
     }
-    // a small menu at a point (a favourite's icon's, a window's control menu): entries {label, fn, bold, disabled, key} or
-    // {rule: true}; the arrows, Home and End move, Enter opens, Escape closes it with the focus back where it came from
-    function popMenu(from, entries, x, y, label) {
+    // a small menu at a point (a favourite's icon's, a window's control menu, a game window's menu bar): entries {label, fn,
+    // bold, disabled, key, checked (a choice of several: its dot), ticked (an on or off: its tick)} or {rule: true}; the arrows,
+    // Home and End move, Enter opens, Escape closes it with the focus back where it came from. opts: side (a menu bar's: the
+    // left and right arrows open the menu beside it, side(-1 or 1)), done (called when it closes)
+    function popMenu(from, entries, x, y, label, opts) {
       closeFavMenu(false);
       var m = document.createElement("div");
       m.className = "d95-menu d95-ctx"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", label || "");
       entries.forEach(function (en) {
         if (en.rule) { var r = document.createElement("div"); r.className = "d95-rule"; r.setAttribute("role", "separator"); m.appendChild(r); return; }
-        var b = document.createElement("button");
-        b.type = "button"; b.className = "d95-item" + (en.bold ? " d95-default" : ""); b.setAttribute("role", en.checked !== undefined ? "menuitemradio" : "menuitem"); b.tabIndex = -1;
+        // an entry with an address (a store's page) is a link that opens in a new tab, never a script's window.open, which a
+        // popup blocker may stop; its name says it opens in a new tab
+        var b = document.createElement(en.href ? "a" : "button");
+        if (en.href) { b.href = en.href; b.target = "_blank"; b.rel = "noopener noreferrer"; b.setAttribute("aria-label", en.label + " " + ByopopStrings.t("site.new_tab")); }
+        else b.type = "button";
+        b.className = "d95-item" + (en.bold ? " d95-default" : ""); b.tabIndex = -1;
+        b.setAttribute("role", en.checked !== undefined ? "menuitemradio" : en.ticked !== undefined ? "menuitemcheckbox" : "menuitem");
         if (en.checked !== undefined) { b.setAttribute("aria-checked", en.checked ? "true" : "false"); b.classList.add("d95-radio"); }
+        if (en.ticked !== undefined) { b.setAttribute("aria-checked", en.ticked ? "true" : "false"); b.classList.add("d95-tick"); }
         var s = document.createElement("span"); s.textContent = en.label; b.appendChild(s);
         if (en.key) { var k = document.createElement("span"); k.className = "d95-key"; k.textContent = en.key; b.appendChild(k); b.setAttribute("aria-keyshortcuts", en.key); }
         if (en.disabled) b.setAttribute("aria-disabled", "true");
-        b.addEventListener("click", function () { if (en.disabled) return; closeFavMenu(true); en.fn(); });
+        b.addEventListener("click", function () { if (en.disabled) return; closeFavMenu(true); if (en.fn) en.fn(); });
         m.appendChild(b);
       });
       document.body.appendChild(m);
       var vw = document.documentElement.clientWidth, vh = room().h;
       m.style.left = Math.max(0, Math.min(x, vw - m.offsetWidth - 2)) + "px";
       m.style.top = Math.max(0, Math.min(y, vh - m.offsetHeight - 2)) + "px";
-      favMenu = { el: m, from: from };
+      favMenu = { el: m, from: from, opts: opts || null };
+      if (entries.some(function (en) { return en.ticked !== undefined; })) m.classList.add("d95-has-ticks");
       var items = Array.prototype.slice.call(m.querySelectorAll(".d95-item"));
       m.addEventListener("keydown", function (ev) {
         var i = items.indexOf(document.activeElement);
@@ -1088,11 +1105,30 @@ var ByopopSkin = (function () {
         else if (ev.key === "End") { ev.preventDefault(); items[items.length - 1].focus(); }
         else if (ev.key === "Escape") { ev.preventDefault(); closeFavMenu(true); }
         else if (ev.key === "Tab") closeFavMenu(false);
+        else if ((ev.key === "ArrowLeft" || ev.key === "ArrowRight") && opts && opts.side) {
+          ev.preventDefault();
+          var side = opts.side;
+          closeFavMenu(false);
+          side(ev.key === "ArrowLeft" ? -1 : 1);
+        }
       });
       m.addEventListener("pointerover", function (ev) { var b = ev.target.closest && ev.target.closest(".d95-item"); if (b) b.focus(); });
       items[0].focus();
     }
     document.addEventListener("pointerdown", function (ev) { if (favMenu && !favMenu.el.contains(ev.target)) closeFavMenu(false); }, true);
+    // Every menu (the Pop menu and its lists, a window's menus, the context menus, What's This?) closes as Windows' did (the
+    // user, 2026-11-09: "The dropdown doesn't disappear properly when clicking out of it"): on a press outside it, which still
+    // does what it does; on Esc; when its window is minimized, closed or goes, or another window comes to the front. A press in
+    // a game's frame never reaches this page: the page's window loses the focus to the frame instead (its blur).
+    function closeAllMenus() {
+      if (taskbar) try { taskbar.close(); } catch (e) {}
+      closeFavMenu(false);
+      endWhats();
+    }
+    window.addEventListener("blur", function () { if (on) closeAllMenus(); });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && on && (favMenu || whatsOn || document.querySelector(".d95-pop:not([hidden]), .d95-menu:not([hidden]):not(.d95-ctx)"))) closeAllMenus();
+    });
     // a lifted window: onto the desktop, or back where it was
     function lift(w, up) {
       if (!w.home) return;
@@ -1151,6 +1187,9 @@ var ByopopSkin = (function () {
     var active = null;
     function activate(w) {
       if (active === w) return;
+      // another window to the front: the open menus close, as Windows' did (the task bar's or the desktop's focus is no window,
+      // and leaves the Pop menu open)
+      if (w) closeAllMenus();
       if (active) active.el.classList.remove("d95-active");
       active = w;
       if (w) { w.el.classList.add("d95-active"); if (String(w.el.style.zIndex) !== String(top)) raise(w); }
@@ -1271,6 +1310,7 @@ var ByopopSkin = (function () {
     function remove(id) {
       var w = find(id);
       if (!w) return;
+      closeAllMenus();
       if (active === w) activate(null);
       wins.splice(wins.indexOf(w), 1);
       if (w.el.parentNode) w.el.parentNode.removeChild(w.el);
@@ -1292,8 +1332,8 @@ var ByopopSkin = (function () {
              // a window as the Pop menu opens it
              openWin: function (id) { var w = find(id); if (!w || !on) return; if (w.min) setMin(w, false); if (w.open) { w.open(); raise(w); } else show(w); },
              list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
-             menu: function (from, entries, x, y, label) { popMenu(from, entries, x, y, label); },
-             closeMenus: function () { if (taskbar) taskbar.close(); closeFavMenu(false); },
+             menu: function (from, entries, x, y, label, opts) { popMenu(from, entries, x, y, label, opts); },
+             closeMenus: closeAllMenus,
              raise: function (id) { var w = find(id); if (w && on) raise(w); },
              show: function (id) { var w = find(id); if (w && on) show(w); return !!(w && on); },
              minimize: function (id) { var w = find(id); if (w && on) setMin(w, true); },
