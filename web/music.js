@@ -80,6 +80,8 @@ var ByopopMusic = (function () {
 
   // ---------- the decoder ----------
   var decoderPromise = null;
+  // the decoder let go (the Music window closed): the next tune loads it again
+  function dropDecoder() { decoderPromise = null; }
   function decoder() {
     if (decoderPromise) return decoderPromise;
     decoderPromise = new Promise(function (resolve, reject) {
@@ -319,7 +321,7 @@ var ByopopMusic = (function () {
     tracker.setAttribute("aria-hidden", "true");
     var trackerAt = make("div", "mu-tracker-at"), trackerRows = make("pre", "mu-tracker-rows");
     // a scroll bar under the rows when the channels do not all fit, drawn here (arrows, a track and its thumb; the browser's own
-    // bar draws no arrows in every skin): it moves the view by whole channels and follows nothing on its own. A click on it is the
+    // bar draws no arrows): it moves the view by whole channels and follows nothing on its own. A click on it is the
     // bar's, not the display's (which would go to the next view); the keyboard's way is Left and Right on the display.
     var trackerScroll = make("div", "mu-hbar"), hbLeft = make("span", "mu-hb-left"), hbTrack = make("span", "mu-hb-track"),
         hbThumb = make("span", "mu-hb-thumb"), hbRight = make("span", "mu-hb-right");
@@ -385,11 +387,10 @@ var ByopopMusic = (function () {
     split.title = T("music.split");
     root.appendChild(split);
     // Only the playlist scrolls (the user, 2026-11-09: "only the list of songs should scroll within the music menu, so that the
-    // tracker/spectral analyzer and controls are always visible"): in a window of its own (Desktop 95) the list takes the height
-    // the player leaves, and keeps at least LIST_ROWS of its rows, so the display grows only as far as that leaves them
+    // tracker/spectral analyzer and controls are always visible"): in its window the list takes the height the player leaves,
+    // and keeps at least LIST_ROWS of its rows, so the display grows only as far as that leaves them
     var LIST_ROWS = 3;
     function listBox() { var p = list.parentNode; return p && p.classList && p.classList.contains("d95-client") ? p : list; }
-    // (the window's classes stay on the tab's panel in the other skins, where they do nothing: the desktop is what counts)
     function inWindow() {
       return document.documentElement.classList.contains("d95-desk") && !!(root.closest && root.closest(".d95-win")) && root.getClientRects().length > 0;
     }
@@ -403,18 +404,23 @@ var ByopopMusic = (function () {
       if (!win || !inWindow()) return 0;
       return win.offsetHeight - listBox().clientHeight + listLeast();
     }
-    function setRows(n, keep) {
+    // grow: the player asked for the rows (the splitter or its keys): a window too short for them and LIST_ROWS of the list grows
+    // downward by the difference, as far as the desktop's bottom edge (the user, 2026-11-09: "Doesn't seem like I'm able to
+    // expand the tracker view to add more rows"); fewer rows give the height back to the list and never shrink the window
+    function setRows(n, keep, grow) {
       n = Math.max(ROWS_MIN, Math.min(ROWS_MAX, Math.round(n)));
       if (inWindow()) {
+        root.style.setProperty("--mu-rows", String(n));
+        var win = root.closest(".d95-win");
+        // (the list has a floor of its own, so the display can overflow it: the window grows a step at a time, at least a row,
+        // until the list has its rows or the window meets the desktop's bottom edge)
+        for (var guard = 0; grow && win && guard < 200 && listBox().clientHeight < listLeast(); guard++) {
+          var by = 0;
+          try { by = ByopopSkin.desk.grow(win, Math.max(ROW_PX, listLeast() - listBox().clientHeight)); } catch (e) {}
+          if (!by) break;
+        }
         // as many as leave the list its rows in the window as it is
-        root.style.setProperty("--mu-rows", String(n));
         while (n > ROWS_MIN && listBox().clientHeight < listLeast()) { n--; root.style.setProperty("--mu-rows", String(n)); }
-      } else if (root.getClientRects().length) {
-        // a tab of the page (the other skins): the player and LIST_ROWS rows fit the browser's window, and the list is at most
-        // what the player leaves of it (--mu-player-h, web/index.html), so the player stays in view while the list scrolls
-        root.style.setProperty("--mu-rows", String(n));
-        while (n > ROWS_MIN && player.offsetHeight + split.offsetHeight + listLeast() + 40 > window.innerHeight) { n--; root.style.setProperty("--mu-rows", String(n)); }
-        root.style.setProperty("--mu-player-h", (player.offsetHeight + split.offsetHeight) + "px");
       }
       var changed = n !== rows;
       rows = n;
@@ -434,7 +440,7 @@ var ByopopMusic = (function () {
     });
     split.addEventListener("pointermove", function (ev) {
       if (!splitDrag || ev.pointerId !== splitDrag.id) return;
-      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / ROW_PX), false);
+      setRows(splitDrag.rows + Math.round((ev.clientY - splitDrag.y) / ROW_PX), false, true);
     });
     function endSplit(ev) {
       if (!splitDrag || ev.pointerId !== splitDrag.id) return;
@@ -447,7 +453,7 @@ var ByopopMusic = (function () {
       var to = { ArrowDown: rows + 1, ArrowUp: rows - 1, PageDown: rows + 5, PageUp: rows - 5, Home: ROWS_MIN, End: ROWS_MAX }[ev.key];
       if (to === undefined || ev.altKey || ev.ctrlKey || ev.metaKey) return;
       ev.preventDefault();
-      setRows(to, true);
+      setRows(to, true, true);
     });
 
     var list = make("div", "mu-list");
@@ -519,6 +525,13 @@ var ByopopMusic = (function () {
         ms.metadata = new MediaMetadata({ title: t.name, artist: t.game.title, album: T("music.album"), artwork: art });
         ms.playbackState = state === "paused" ? "paused" : "playing";
       } catch (e) {}
+    }
+    var MEDIA_ACTIONS = ["play", "pause", "nexttrack", "previoustrack", "stop", "seekto"];
+    function unwireMedia() {
+      var ms = navigator.mediaSession;
+      if (!ms) return;
+      MEDIA_ACTIONS.forEach(function (a) { try { ms.setActionHandler(a, null); } catch (e) {} });
+      try { ms.metadata = null; ms.playbackState = "none"; } catch (e) {}
     }
     function wireMedia() {
       var ms = navigator.mediaSession;
@@ -711,7 +724,8 @@ var ByopopMusic = (function () {
       setState("loading");
       var ticket = {};
       play.ticket = ticket;
-      audio().then(function () {
+      if (!wired) { wired = true; wireMedia(); }
+      (M ? Promise.resolve() : decoder().then(function (m) { M = m; })).then(audio).then(function () {
         return openExisting(t.game.persist).then(function (db) {
           if (!db) throw new Error("gone");
           var unique = t.keys.filter(function (k, j) { return t.keys.indexOf(k) === j; }), got = {};
@@ -741,6 +755,25 @@ var ByopopMusic = (function () {
     function resume() { if (ctx) ctx.resume(); setState("playing"); fill(); }
     // Stop: the tune stays chosen, back at its start (Play plays it from there)
     function stop() { play.ticket = {}; unload(); if (ctx) ctx.suspend(); setState("idle"); }
+    // The window closed (the user, 2026-11-09: "Music should quit playing if the window is closed"): the music stops and its
+    // sound goes, the context closed with its worklet and graph, the decoder let go and the media keys handed back; the tune
+    // stays chosen, so the window opened again shows it stopped. Minimizing keeps it playing, as a minimized player did.
+    var wired = false;
+    function shutdown() {
+      play.ticket = {};
+      unload();
+      if (viewBuf && M) try { M._free(viewBuf); } catch (e) {}
+      viewBuf = 0;
+      if (node) { try { node.port.onmessage = null; node.disconnect(); } catch (e) {} node = null; }
+      if (analyser) { try { analyser.disconnect(); } catch (e) {} analyser = null; }
+      if (gain) { try { gain.disconnect(); } catch (e) {} gain = null; }
+      if (ctx) { try { ctx.close(); } catch (e) {} ctx = null; }
+      queued = 0; flushes = 0; ended = false; heads = [];
+      M = null;
+      dropDecoder();
+      if (wired) { wired = false; unwireMedia(); }
+      setState("idle");
+    }
     function next() { if (tunes.length) play((current + 1) % tunes.length); }
     // Previous, as players do: the tune's own start once it has played a few seconds, else the tune before
     function previous() {
@@ -824,8 +857,14 @@ var ByopopMusic = (function () {
       trackerAt.textContent = at;
       var showing = used.slice(firstChannel, firstChannel + shown);
       trackerRows.textContent = "";
+      // the view stays inside the pattern (the user, 2026-11-09: "it should never scroll empty lines into the top or bottom"): the
+      // heard row in the middle only while the view can scroll to it, so at the pattern's start the view sits at row 0 and the
+      // highlight moves down to the middle, and near its end the last row stays at the bottom while the highlight moves down to
+      // it; a display with room for the whole pattern does not scroll at all ("it shouldn't scroll at all, but just move the
+      // cursor down"), the rows below the pattern left empty. A new pattern starts at its own row 0, so it shows from its top.
       var above = Math.floor((rows - 1) / 2);
-      for (var r = mark[2] - above; r < mark[2] - above + rows; r++) {
+      var top = Math.max(0, Math.min(mark[2] - above, mark[3] - rows));
+      for (var r = top; r < top + rows; r++) {
         var line = make("span", r === mark[2] ? "mu-row mu-row-now" : "mu-row");
         if (r >= 0 && r < mark[3]) {
           var row = rowOf(mark[1], r).split("|");
@@ -1021,26 +1060,31 @@ var ByopopMusic = (function () {
       }).then(function () {
         render();
         if (!tunes.length) { say(T("music.lcd_none"), T("music.none")); return; }
+        wired = true;
         wireMedia();
         setState("idle");
       }, function () { scanned = false; say(T("music.lcd_error"), T("music.failed")); });
     }
-    // the player shown: read the games' music then. The tab's panel is hidden until its tab is chosen; Desktop 95's Music
-    // window shows the player while the panel keeps its hidden attribute, so the player's own box counts too (the user,
-    // 2026-11-09: "Music seems to have vanished in my browser")
+    // the player shown: read the games' music then (the user, 2026-11-09: "Music seems to have vanished in my browser"). The
+    // tab's panel is hidden until its tab is chosen (a narrow screen); Desktop 95 lifts the panel into a window whatever its
+    // hidden attribute says (web/skins.js), so the window opening (its class) or the player's own box counts too
     var panel = root.closest("[role=tabpanel]") || root;
-    if (!panel.hidden || root.getClientRects().length > 0) scan();
+    function shown() {
+      return !panel.hidden || (panel.classList.contains("d95-win") && !panel.classList.contains("d95-closed")) || root.getClientRects().length > 0;
+    }
+    if (shown()) scan();
     else {
-      new MutationObserver(function (records, obs) { if (!panel.hidden) { obs.disconnect(); scan(); } }).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
-      if (window.ResizeObserver) {
-        var seen = new ResizeObserver(function () { if (root.getClientRects().length > 0) { seen.disconnect(); scan(); } });
-        seen.observe(root);
-      }
+      var watch = new MutationObserver(function () { if (shown()) { watch.disconnect(); if (seen) seen.disconnect(); scan(); } });
+      watch.observe(panel, { attributes: true, attributeFilter: ["hidden", "class"] });
+      var seen = window.ResizeObserver ? new ResizeObserver(function () { if (shown()) { seen.disconnect(); watch.disconnect(); scan(); } }) : null;
+      if (seen) seen.observe(root);
     }
     // for tests: the state, the tunes, and how far the decoder has rendered the tune (it moves only as the worklet plays)
     return { state: function () { return state; }, tunes: function () { return tunes.slice(); },
       position: function () { return source ? source.position() : 0; }, elapsed: function () { return elapsed(); },
-      seek: function (s) { seekTo(s); }, minHeight: windowLeast, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; } };
+      seek: function (s) { seekTo(s); }, minHeight: windowLeast, shutdown: shutdown,
+      // for tests: whether any of the sound is still held (the context and its state, the worklet, the decoder)
+      held: function () { return { ctx: ctx ? ctx.state : null, node: !!node, decoder: !!M, media: wired }; }, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; } };
   }
 
   // (the Sounds window, web/sounds.js, reads the games' files with the same read-only reader, draws its Stop and speaker with the

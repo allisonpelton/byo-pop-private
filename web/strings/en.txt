@@ -13,24 +13,9 @@
 # The terms (web/terms.html) and the licences are not here: they stay word for word as written.
 
 
-# ---- Everywhere: the theme button (web/theme.js)
+# ---- Desktop 95, the site's look (web/skins.js)
 
-theme.button = Dark theme
-theme.to_light = Use the light theme
-theme.to_dark = Use the dark theme
-skin.plain = Plain
-skin.demo = Demo Disc
-skin.demo.about = Sky-blue gloss and gel buttons, after the free-demo sites of the early 2000s.
-skin.d95 = Desktop 95
-skin.d95.about = Grey windows on a teal desktop: every part of the site is a window you can move.
-skin.soda = Soda Fountain
-skin.soda.about = An awning, a chrome counter and a board for your bottle caps.
-skin.pick.title = Pick a look for the site
-skin.pick.text = Each comes in a light and a dark version and changes only the page around the games.
-skin.pick.plain = No thanks, keep it plain
-skin.pick.later = You can change it any time in Settings.
 skin.wiz.title = byo-pop Setup: {game}
-skin.wiz.bottling = Bottling {game}
 skin.wiz.licence = Licence
 skin.wiz.folder = Your folder
 skin.wiz.copying = Copying
@@ -71,6 +56,10 @@ library.props.no = No
 library.ok = OK
 settings.gamesopen.label = Games open in
 settings.gamesopen.hint = In Desktop 95, the window that the Pop menu's Games and a closed game open.
+settings.gamesize.label = Game window size
+settings.gamesize.one = 1x
+settings.gamesize.fit = Largest that fits
+settings.gamesize.hint = The size a game's window opens at when no size is chosen in its View menu: the game's own size, or the largest whole multiple of it that fits the desktop.
 skin.apps.game_menu = Game
 skin.apps.terms = Terms, copyright and licenses
 skin.apps.close = Close
@@ -93,10 +82,12 @@ skin.apps.filter_none = No colour filter
 # the title bar's "?" of a Settings section's window (Windows 95's What's This?)
 skin.desk.whatsthis = What’s This? ({window})
 skin.desk.maximize = Maximize {window}
+skin.desk.restore = Restore {window}
 # A window's control menu (its title bar's icon): the button's name, then its entries
 skin.desk.menu = Control menu: {window}
 skin.desk.m.minimize = Minimize
 skin.desk.m.maximize = Maximize
+skin.desk.m.restore = Restore
 skin.desk.m.close = Close
 skin.desk.m.size = {n}x ({w} x {h})
 # Desktop 95's keys, said once in About
@@ -121,10 +112,6 @@ skin.fav.remove = Remove from favourites
 skin.fav.menu = {game}
 skin.desk.games = All games
 skin.desk.about = About
-settings.skin.label = Skin
-settings.skin.hint = The site's look around the game. The game itself never changes.
-settings.ambient.label = Ambient light
-settings.ambient.hint = In the dark Demo Disc and Soda Fountain, the game's colours glow softly around it.
 settings.win95only.label = Windows 95 games only
 settings.win95only.hint = In Desktop 95, list only the games whose original ran on Windows 95, as its readme says. Games already open stay open. Other skins list every game.
 skin.win95.hidden = {count} hidden
@@ -275,7 +262,6 @@ index.tile.label_year = {name}, {year}, {state}
 # How much a game was played here: {n} plays, {time} like "2 h 15 min"
 index.played = {n} play · {time} | {n} plays · {time}
 index.played_last = Last played {date}
-index.cap.plays = {n} play | {n} plays
 # every player's counts under a game's name, from the site's play counter: "2 playing now · 1234 plays"
 index.counts.plays = {n} play | {n} plays
 index.counts.live = {n} playing now
@@ -418,8 +404,6 @@ game.status.closing = Closing the game…
 game.status.restarting = Restarting…
 game.status.closed = Game closed
 # Desktop 95's game window's title after the game's name ("Bejeweled - 2 mods"): the mods that run
-# Desktop 95: the theme button's line in Settings' Appearance
-game.theme.label = Light or dark page
 game.status.mods_off = Mods off for this run
 game.status.mods_none = No mods active
 game.status.mods_active = {n} mod active | {n} mods active
@@ -983,17 +967,10 @@ players.flag.would_be = would be “{name}”: the game’s rules change the nam
 # After a game's name in the table: {flags} are the notes above, separated by semicolons
 players.flags = — {flags}
 
-# What the Player names setting is across the games. {n} games, or all of them; {verb} for a setting this page does not know
-players.mode.games = Player names: each game’s own.
-players.mode.note = Player names: {parts}.
-players.mode.game_all = all {n} games asks as the original does | all {n} games ask as the original does
-players.mode.game_some = {n} game asks as the original does | {n} games ask as the original does
-players.mode.fill_all = all {n} games fills in the name | all {n} games fill in the name
-players.mode.fill_some = {n} game fills in the name | {n} games fill in the name
-players.mode.create_all = all {n} games uses the player | all {n} games use the player
-players.mode.create_some = {n} game uses the player | {n} games use the player
-players.mode.other_all = all {n} games {verb}
-players.mode.other_some = {n} game {verb} | {n} games {verb}
+# What the Player names setting is across the games, as values, while they differ: {parts} the values, separated by commas; a
+# part is a value of the setting (or one this page does not know, as it is) and {n} the games that have it
+players.mode.note = Player names: {parts}
+players.mode.part = {mode} ({n})
 
 # ---- The players inside the games
 players.in_games = In the games
@@ -1078,13 +1055,15 @@ chat.save = Save
 chat.cancel = Cancel
 chat.name_failed = That name was not kept.
 chat.signin = Sign in with Discord
+# the Sign in button's tooltip while it is disabled
 chat.signin_note = Not available yet.
-chat.signin_said = Signing in with Discord is not available yet.
 chat.connecting = Connecting…
 chat.unreachable = The chat is not reachable.
 chat.unreachable_start = The chat is not reachable.
 chat.show = Show the chat
 chat.hide = Hide the chat
+# the test chat's tag, and its tooltip
+chat.test = TEST
 chat.note = Test chat: the messages are made up and stay in this browser. Nothing is sent anywhere.
 
 # The line between the days of messages: {weekday}, {day}, {month} and {year} make {date}

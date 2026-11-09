@@ -349,7 +349,7 @@ var ByopopSounds = (function () {
     desk.add(board.el, { id: "sounds", title: T("sounds.title"), closable: true, closed: true, pic: pic, at: at, scroll: ".sb-grid" });
     board.el.classList.add("sb-win");
     // read the games when it opens; stop, and drop the decoded sounds, when it closes (a minimized window keeps them); the
-    // desktop going (another skin, a narrow screen) closes it too
+    // desktop going (a screen under 760 pixels wide) closes it too
     var open = false;
     function watch() {
       var now = !board.el.classList.contains("d95-closed") && document.documentElement.classList.contains("d95-desk");
