@@ -190,6 +190,7 @@ public:
 
 	// port: the standard test commands (docs/TEST_COMMANDS.md), src/testhooks/TestHooks.cpp
 	virtual bool	HandleScriptCommand(const ScriptCommand& theCommand) override;
+	void			TraceUpdate();       // -trace (testhooks/TestCommands.cpp): the values that origrun's --watch reads in the original
 
 	using SexyApp::SwitchScreenMode;
 

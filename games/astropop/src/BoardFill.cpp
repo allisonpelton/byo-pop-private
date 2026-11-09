@@ -260,11 +260,11 @@ int Board::CheckStackHeight()
 	}
 	m970 = aHighest;
 
-	double aTenth = (double) aSum * (double) 0.1f;
-	double aDanger = aTenth + fabs((double) aMax - aTenth) * (double) 0.5f;
-	m930 = (float) aDanger;
-	if (aDanger > (double) m934)
-		m934 = (float) aDanger;
+	float aTenth = (float) aSum * 0.1f;
+	float aDanger = aTenth + fabsf(aMax - aTenth) * 0.5f;
+	m930 = aDanger;
+	if (aDanger > m934)
+		m934 = aDanger;
 
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
@@ -550,15 +550,15 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 				if (theSpecials)
 				{
 					double aDraw1 = (double) ((int) AstroRand() % 500000000);
-					if (!((double) m1bec * 5e8 < aDraw1))
+					if (!(m1bec * 5e8f < aDraw1))
 					{
 						double aDraw2 = (double) ((int) AstroRand() % 500000000);
-						double aStone = (double) aRules.mRule[RULE_STONE].mRates[aPhase].mRate * 5e8;
+						float aStone = aRules.mRule[RULE_STONE].mRates[aPhase].mRate * 5e8f;
 						if (aDraw2 <= aStone)
 							aCode = 2;
 						else
 						{
-							double aSteel = (double) aRules.mRule[RULE_STEEL].mRates[aPhase].mRate * 5e8;
+							float aSteel = aRules.mRule[RULE_STEEL].mRates[aPhase].mRate * 5e8f;
 							if (!(aDraw2 > aSteel + aStone))
 								aCode = 3;
 						}
@@ -568,36 +568,35 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			else
 			{
 				double aDraw1 = (double) ((int) AstroRand() % 500000000);
-				double aPlainShare = (double) m1be8 * 5e8;
+				float aPlainShare = m1be8 * 5e8f;
 				if (aDraw1 > aPlainShare)
 				{
-					if (theSpecials && !(aDraw1 > ((double) m1bec + (double) m1be8) * 5e8))
+					if (theSpecials && !(aDraw1 > (m1bec + m1be8) * 5e8f))
 					{
 						double aDraw2 = (double) ((int) AstroRand() % 500000000);
-						float aStone = (float) ((double) aRules.mRule[RULE_STONE].mRates[aPhase].mRate * 5e8);
-						float aSteel = (float) ((double) aRules.mRule[RULE_STEEL].mRates[aPhase].mRate * 5e8);
-						float aMutator = (float) ((double) aRules.mRule[RULE_MUTATOR].mRates[aPhase].mRate * 5e8);
-						if (aDraw2 <= (double) aStone)
+						float aStone = aRules.mRule[RULE_STONE].mRates[aPhase].mRate * 5e8f;
+						float aSteel = aRules.mRule[RULE_STEEL].mRates[aPhase].mRate * 5e8f;
+						float aMutator = aRules.mRule[RULE_MUTATOR].mRates[aPhase].mRate * 5e8f;
+						if (aDraw2 <= aStone)
 							aCode = 2;
-						else if (aDraw2 <= (double) aSteel + (double) aStone)
+						else if (aDraw2 <= aSteel + aStone)
 							aCode = 3;
-						else if (aDraw2 <= ((double) aMutator + (double) aSteel) + (double) aStone)
+						else if (aDraw2 <= (aMutator + aSteel) + aStone)
 							aCode = 7;
 					}
 				}
 				else
 				{
 					float aDraw = (float) (double) ((int) AstroRand() % 500000000);
-					float aKillAll = (float) ((double) aRules.mRule[RULE_KILLALL].mRates[aPhase].mRate * 5e8);
-					float aBomb = (float) ((double) aRules.mRule[RULE_BOMB].mRates[aPhase].mRate * 5e8);
-					float aFreeze = (float) ((double) aRules.mRule[RULE_FREEZE].mRates[aPhase].mRate * 5e8);
-					float aRowNuke = (float) ((double) aRules.mRule[RULE_ROWNUKE].mRates[aPhase].mRate * 5e8);
-					float aColNuke = (float) ((double) aRules.mRule[RULE_COLNUKE].mRates[aPhase].mRate * 5e8);
-					double aSum1 = (double) aBomb + (double) aKillAll;
-					double aSum2 = ((double) aFreeze + (double) aBomb) + (double) aKillAll;
-					double aSum3 = (((double) aRowNuke + (double) aFreeze) + (double) aBomb) + (double) aKillAll;
-					double aSum4 = ((((double) aColNuke + (double) aRowNuke) + (double) aFreeze) + (double) aBomb) +
-						(double) aKillAll;
+					float aKillAll = aRules.mRule[RULE_KILLALL].mRates[aPhase].mRate * 5e8f;
+					float aBomb = aRules.mRule[RULE_BOMB].mRates[aPhase].mRate * 5e8f;
+					float aFreeze = aRules.mRule[RULE_FREEZE].mRates[aPhase].mRate * 5e8f;
+					float aRowNuke = aRules.mRule[RULE_ROWNUKE].mRates[aPhase].mRate * 5e8f;
+					float aColNuke = aRules.mRule[RULE_COLNUKE].mRates[aPhase].mRate * 5e8f;
+					float aSum1 = aBomb + aKillAll;
+					float aSum2 = (aFreeze + aBomb) + aKillAll;
+					float aSum3 = ((aRowNuke + aFreeze) + aBomb) + aKillAll;
+					float aSum4 = (((aColNuke + aRowNuke) + aFreeze) + aBomb) + aKillAll;
 					if (aDraw <= aKillAll && m1f0[0] == 0)
 						aCode = 1;
 					else if (aDraw > aKillAll && !(aSum1 < aDraw) && aBomb > 0.0f && m1f0[1] == 0)

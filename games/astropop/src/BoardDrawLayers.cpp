@@ -589,7 +589,7 @@ void Board::DrawFreezeFx(Graphics* g)
 // the two sirens at the top of the screen, each in the picture and in its light (3D only)
 void Board::DrawSirens(Graphics* g)
 {
-	if (m4c8 || mFlag8E8)
+	if (mSirenAnim.mStopped || mFlag8E8)
 		return;
 
 	int aCel = mSirenAnim.GetCel();

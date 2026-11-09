@@ -122,7 +122,7 @@ void Board::UpdateSpecialMode()
 		}
 		if (mMode == 2 && !m907 && m1994 == 0 && m7c.empty() && CountMovingBricks(false) == 0)
 			Fn4335e0();
-		if (!m4c8)
+		if (!mSirenAnim.mStopped)
 			m1ab8 = 8;
 		m1ac0 = PickSpawnDelay();
 	}
@@ -160,7 +160,7 @@ void Board::UpdateSpecialMode()
 			anAnim->SetNumFrames(IMAGE_ATOMIC_EXPLOSION->mNumCols);
 			anAnim->SetDelay(aNumAnims < 3 ? 6 : 3);
 			int aSpin = ((int) AstroRand() % 500000000) % 0x32;
-			anAnim->mStep = (float) ((double) 6.283f / (double) aSpin);
+			anAnim->mStep = 6.283f / (float) aSpin;
 			anAnim->mPingPong = false;
 			anAnim->mHoldLast = true;
 			anAnim->SetStopped(false);
@@ -174,7 +174,7 @@ void Board::UpdateSpecialMode()
 			anAnim->mX = 300.0f;
 			anAnim->mY = 100.0f;
 			int aSpin = ((int) AstroRand() % 500000000) % 0x32;
-			anAnim->mStep = (float) ((double) 6.283f / (double) aSpin);
+			anAnim->mStep = 6.283f / (float) aSpin;
 			anAnim->SetNumFrames(IMAGE_ATOMIC_EXPLOSION->mNumCols);
 			anAnim->SetDelay(0xb);
 			anAnim->mPingPong = false;
@@ -187,9 +187,9 @@ void Board::UpdateSpecialMode()
 			mApp->PlaySample(SOUND_SLOWDOWN);
 		}
 
-		// (x87, 53 bits: the share of the meter that is left, a quarter of the updates, at most 255)
-		double aRate = (double) 1.0f / (double) m1be0;
-		int aLeft = (int) ((aRate * (double) m1bdc - aRate * (double) m1bd8) * (double) 0.25f);
+		// (x87 at 24 bits, every result a float: the share of the meter that is left, a quarter of the updates, at most 255)
+		float aRate = 1.0f / m1be0;
+		int aLeft = (int) ((aRate * m1bdc - aRate * m1bd8) * 0.25f);
 		if (aLeft > 0xff)
 			aLeft = 0xff;
 		Fire(0x21, aLeft);
@@ -224,7 +224,7 @@ void Board::UpdateSpecialMode()
 			DropUnsupported(ma8);
 			m1a3c = -1;
 			std::vector<CellRef3>().swap(m1a0);
-			if (!m4c8)
+			if (!mSirenAnim.mStopped)
 				m1ab8 = 8;
 			for (unsigned int aRowIndex = 1; aRowIndex < m314.size(); aRowIndex++)
 			{
@@ -262,8 +262,8 @@ void Board::UpdateSpecialMode()
 	if (m1a34 == 1)
 		m1a80 = ((int) AstroRand() % 500000000) % 0xb - 5;
 	{
-		double aRate = (double) 1.0f / (double) m1be0;
-		int aLeft = (int) ((aRate * (double) m1bdc - aRate * (double) m1bd8) * (double) 0.25f);
+		float aRate = 1.0f / m1be0;
+		int aLeft = (int) ((aRate * m1bdc - aRate * m1bd8) * 0.25f);
 		if (aLeft > 0xff)
 			aLeft = 0xff;
 		Fire(0x23, aLeft);

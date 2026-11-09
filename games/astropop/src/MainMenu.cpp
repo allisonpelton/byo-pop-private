@@ -5,6 +5,7 @@
 #include "GameText.h"
 #include "Image.h"
 #include "MemoryImage.h"
+#include "Particle.h"
 #include "ShipsScreen.h"
 #include "WidgetManager.h"
 #include "Res.h"
@@ -216,7 +217,7 @@ void MainMenu::Update()
 			{
 				MenuParticle* aParticle = new MenuParticle();
 				int aCelWidth = IMAGE_PARTICLE_RADIAL->GetCelWidth();
-				unsigned long aRand = Rand();
+				unsigned long aRand = AstroRand();
 				aParticle->mX = ((int) aRand % 500000000) % (0xcd - aCelWidth) + 0xd7;
 				aParticle->mY = 0x1b3;
 				aParticle->mAlpha = 0xff;

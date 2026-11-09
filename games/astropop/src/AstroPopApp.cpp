@@ -5,6 +5,7 @@
 #include "HallOfFame.h"
 #include "LoaderScreen.h"
 #include "MainMenu.h"
+#include "Particle.h"
 #include "SDLMusicInterface.h"
 #include "ResourceManager.h"
 #include <SDL.h>
@@ -105,6 +106,8 @@ void AstroPopApp::UpdateFrames()
 	SexyApp::UpdateFrames();
 	if (mTimer664 > 0)
 		mTimer664--;
+	if (mTraceMode)
+		TraceUpdate();
 }
 
 // 0x408b70 slot 67
@@ -162,6 +165,9 @@ void AstroPopApp::ListUsers()
 	mUserNames.clear();
 	RegistryGetSubKeys("Users", &mUserNames);
 }
+
+// the game's own generator (Particle.h)
+MTRand Sexy::gGameRand;
 
 // 0x42f170 slot 16
 void AstroPopApp::Init()
@@ -279,6 +285,9 @@ void AstroPopApp::Init()
 		mCompletedLoadingThreadTasks++;
 	}
 	PlaySong(0);
+
+	// 0x429280, the start-up, goes on after the Init with the game's own generator: seeded with the next number of Rand()'s
+	SeedMTRand2004(gGameRand, (unsigned long) (unsigned int) Rand());
 }
 
 // 0x42cda0 slot 17 (runs in one go in the port)

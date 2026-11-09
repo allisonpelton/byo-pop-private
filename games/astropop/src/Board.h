@@ -389,7 +389,6 @@ public:
 	FrameAnim	m420;// +0x420
 	FrameAnim	mAnim460;// +0x460
 	FrameAnim	mSirenAnim;// +0x4a0 the siren (IMAGE_SIREN)
-	bool	m4c8 = false;// +0x4c8 ?
 	FrameAnim	mAnim4e0;// +0x4e0
 	FrameAnim	mAnim520;// +0x520
 	FrameAnim	mAnim560;// +0x560 ?
@@ -855,6 +854,7 @@ public:
 	bool			AnyMoveLeft(bool* theFlag);                     // 0x459bc0 (BoardMoves.cpp)
 	// port: for the test commands (BoardBot.cpp)
 	std::string		DescribeField();                                // the field as a JSON array of 19 strings of 10 characters
+	int				BotBusyReason();                                // 0, or which of BotBusy's conditions holds (test-only)
 	bool			BotBusy();                                      // the game takes no input now (bricks fly, a screen or a box is up)
 	std::string		BotMove();                                      // the move the bot makes next as JSON, or "null" (BoardBot.cpp)
 	void			UpdateGameOver();                               // 0x45e680

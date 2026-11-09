@@ -81,6 +81,35 @@ clicks Continue (320,440) first.
 - `FUN_004b83f0` is the 2004 `DrawImageCel(img, x, y, cel)`: the cel counts along the rows when the image has more than one
   row, else along the columns; out-of-range cels draw nothing. The port's `Graphics::DrawImageCel` indexes `cel % cols,
   cel / cols`; the game's own helper is used where the two differ.
+- Ghidra writes an x87 float compare as `a < b != (a == b)` for **a <= b** (and `a < b == (a == b)` for a > b): the two
+  tests are exclusive, so `!=` is an "or". Read as a strict `<` it is wrong exactly when the two floats are equal, which a
+  brick that has just been put on its target is. The asm decides (`FCOM; TEST AH,0x41; JP`: JP taken for a > b, so the code
+  after it runs for a <= b; `TEST AH,0x1; JZ` taken for a >= b). Brick got five of these wrong at first (the arrival test and
+  the 423 test of UpdateState1, the `Listen(0)` test of SetTargetY, the -5 clamp of the wobble, the 9.0 test of the
+  mutation timer); the identical-play pass found them by one brick that did not hear event 0 after a retarget.
+- **The original's x87 rounds every result to a float** (precision control 24 bits: DirectDraw's setup never preserves the
+  FPU, `docs/FRAMEWORK_2004.md`, "3D and the FPU"). Seen in a run of the original (classic, seed 7, update 8186): the
+  wait before the next row is `m19d8 = (int) (m19cc + m930 * 20.0f)` (0x46ec55: `FILD; FLD float; FMUL float; FADDP; _ftol`),
+  with `m930` = 2.3f (2.29999995): in a full-precision x87 or in double the product is 45.999999 and the row waits 1045, in
+  the original it is rounded to 46.0 and the row waits 1046, so a row came one update earlier. The port computes the
+  expressions that the game truncates, compares or chains in `float` (an SSE float operation rounds like the 24-bit x87):
+  the wait formula, the danger display (`CheckStackHeight`), the spawn thresholds (`FillTopRow`), the ramp interpolation
+  (`UpdateRamp`), the stage bonuses and the speeds of the streaks and particles. What a single operation followed by a store into
+  a float field computes is the same either way and was left as it was. The expressions of the drawing and screen code were
+  not looked at (phase two).
+- A relative path of `XcfFile` (`HasKey`, `GetInt`: 0x412d00 and its neighbours) starts at the section under the cursor, and
+  its first part may be the name of that section itself: a bonus level file is read with the paths `LEVEL\ROWn\Brickn` right
+  after `Parse`, whose cursor stands on `LEVEL`. The first translation looked for the first part among the children only, found no
+  row, and the port's bonus round was the wall of stones alone (classic, seed 11, update 16047: the generator moved by 590
+  places in the port and by 231 in the original).
+- The Board's byte at +0x4c8, which the pace code (`UpdateStates`, 0x475040) reads to choose the pace after a spurt, is not
+  a flag of its own: the siren's `FrameAnim` sits at +0x4a0 and +0x4c8 is its `mStopped` (field +0x28, true from the
+  constructor). The first translation had an unset `m4c8` there, so the pace after a spurt was always 8 and the extra
+  `PickSpawnDelay` draw of the stopped-siren case (pace 4) never came (found by classic, seed 2, update 7495, where the
+  original drew one number the port did not). The siren drawing and the two `m1ab8 = 8` sites of BoardMode read the same field.
+- `Brick::UpdateRainbow` (0x4062d0) first erases the colour that was shown from the list (`vector::erase`, 0x405f70) and
+  only then draws, when the list is not empty; with none left the brick stops being a rainbow. The first translation drew
+  without erasing.
 - `tools/ctorstores.py <addr>` lists a constructor's field stores compactly (zero runs folded); the Board's vectors are
   0x10 bytes each (allocator slot, begin, end, capacity).
 - The decompiled app offsets that matter so far: +0x628 Board, +0x62c 43 lists (12 bytes each, made by 0x4319b0),
@@ -115,6 +144,11 @@ The playfield object class (sizeof 0x234 / 0x23c / 0x254, vtables 0x55d500 .. 0x
 table, 143 slots) is two subobjects: +0 a state-machine part (vtable 0x55d5a8: slot 1 SetState(int), 5/6/7 per-state
 updates ...) and +0xc the listener part. Methods reached through the +0xc vtable get `this` = object+0xc, so their field
 offsets are relative to it (add 0xc for the object's own offsets).
+The small handlers of events 0x10 and 0x11 (0x433cc0, 0x433cd0) are such methods: `INC [ECX + 0x1a04]` is the Board's own +0x1a68
+(`m1a68`, the number of fired bricks that sit at their place with their flag +0x188 set), which the spawn of the next row waits
+to see at zero (`Board::SpawnControl`). The first translation counted in the Board's +0x1a04 (`m1a04`, a value set from the level)
+instead, so a row came one update early after a retarget (found by the first different update of the identical-play pass).
+The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a only for a mutated brick: a brick that is shown and not mutated and is not a plain colour goes to state 3 at once (a plain colour fires event 0x27, a stone, steel or bomb fires its own events in its own handler), and the Board answers 0x1a (0x45d7a0) and 0x1b by setting its mutator hold (`m1b5c`, 2000 updates) when no mutating brick is left. The first translation fired 0x1a for every such brick, so the hold was set and a mutator was refused for 2000 updates where the original made one (found by the first different row of survival, seed 1, update 8496).
 
 ## 5. Left out of the port (registration, links, statistics)
 
@@ -138,8 +172,6 @@ offsets are relative to it (add 0xc for the object's own offsets).
 - `XcfFile::Parse` reads the file with plain line rules and keeps every key; the original validates the key names against
   a list given before the parse (28 names for the descriptor) and checks the .sig (both left out; unmodified files give the
   same values).
-- The original's Rand() for the selector's rising particles is the game's generator (`MTRand::NextNoAssert`, 0x5a4e28);
-  the port draws them from `Rand()` in the same order (3D mode only).
 - The tunable-constants table (0x4f1e40, a lookup of numbers by name) is replaced by its default values.
 - `StartLoopSound` stops a loop with `Stop()` and starts it with `Play(false, false)`.
 - `PointerTrail::Step` on the warp stars is left out (the original steps a trail that nothing reads).
@@ -171,9 +203,18 @@ None found yet.
   of ships flying off (`ShipsScreen`, translated); with the More Games button gone the sequence's first step is missing,
   so the screen cannot be reached until the sequence is decided.
 
+- On the machine the pass runs on (Windows 11, build 26300) the original cannot load its fonts: the loading thread stops at
+  its task 203 of 206 with an unhandled exception, every time, after libpng warns about a palette. The three palette PNGs
+  of the game (`fonts/_Kiloton9.png`, `_Fusion16.png`, `_NeuropolX30outline.png`) are the only ones it has; the staged copy
+  that origrun runs (`games/astropop/tools/origcmp/stage_original.sh`) stores them as RGBA PNGs with the same pixels, and then
+  the original loads and runs. Found with origrun's `--coverage` (the functions the loading thread reached, in order: the
+  palette handling, then the unpack of a 2-bit palette row, then the exception filter). The port decodes the same files without
+  trouble. Not chased further (the user's copies on older Windows may be fine).
+
 ## 9. Next steps
 
 1. The web build and its registrations (page.js, stores, profiles, saveimport, controls, sound tracks), the origrun row.
 2. The identical-play pass, both phases, with `games/astropop/docs/IDENTICAL_PLAY.md`; real-input driver play.
 3. The frozen baseline `build/baseline-astropop`, the fixes mod (or "none"), the performance numbers.
 4. Close the gap of the removed More Games button; the app's destructor does not delete its screens (as the original's).
+5. Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
