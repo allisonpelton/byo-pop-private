@@ -83,6 +83,31 @@ code. Then three lists:
 Last come the functions left out on purpose, and the functions outside the game code by group (framework, C runtime,
 libraries, unnamed), with how many the runs reached.
 
+## A game's whole check
+
+Ning Po took the first (2026-11-08; its `GAME_NOTES.md`, "Coverage check", is the example to follow, and
+`games/ningpo/tools/coverage/run.sh` the script). A game's session takes it in its own worktree:
+
+1. Merge main and rebuild origrun (`tools/origrun/build.sh`). Run `python -I tools/coverage.py list <game>`, and write
+   `games/<game>/coverage.txt`: the export, the sources, the game code's range or ranges, and a `none` line, with its
+   reason, for each function the port leaves out on purpose.
+2. Run the original with `--coverage`: the game's own identical-play runs first, then short runs for what they miss
+   (every mode to its end, every dialog, the options, the high scores, losing and regaining the focus, quitting from
+   each screen). A run on the virtual clock with no sound device skips the sound code, so give one run the real clock
+   and the silent stand-in. Each run is a game process like any other: at most 3 on the machine
+   (`python -I tools/gamecount.py --limit 3`), none during an oracle, and no link or "More Games" button clicked.
+3. Run `python -I tools/coverage.py report <game> <hits>...` and work through the report. A function reached with no
+   counterpart gets one of three things: its address placed above the port function that holds it, a translation if
+   it is missing, or a `none` line. A port function never reached is either given a run that reaches it, or read again
+   against the export and any slip fixed. Those no play can reach are listed in the notes as candidates for taking out,
+   not removed yet. One Sonnet agent can sort the first report's long list (Ning Po's 253 took it 7.5 minutes).
+4. Write a section "Coverage check" in the game's notes: the runs, the counts before and after, each gap and what was
+   done, the candidates, anything left open, and roughly what it cost. Then message the coordinator to merge. A spec
+   for the tool goes to the coordinator; the session does not edit the tool itself.
+
+On Ning Po (815 game functions) the runs took about 15 minutes of machine time, and every change to the sources was a
+comment. A game that finds missing logic translates it from the export and runs its suite and frozen baseline again.
+
 ## Limits
 
 Functions only: a function is reached or not, with no count of calls and no lines or branches inside it. The exe's own
