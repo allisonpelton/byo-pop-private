@@ -1,0 +1,32 @@
+# Bonnie's original, a coverage run (tools/coverage/run.sh) on a save the port made (SAVEDIR, tools/realmove.py with
+# BB_STOP=lastturn): a classic game with one turn left, resumed from the menu; Resign (Scramble's place at one turn),
+# its question answered Yes, the game's end and its OK, then clicks on whatever follows. Positions are the port's.
+waitshot logo 20000
+wait 6000
+click 180 306
+wait 2500
+click 460 330
+wait 4000
+click 693 560
+wait 2000
+click 396 414
+wait 3000
+click 458 414
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+click 400 560
+wait 3000
+click 745 565
+wait 3000
+quit

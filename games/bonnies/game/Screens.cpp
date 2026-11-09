@@ -1123,7 +1123,7 @@ static void panelButtonImage(Button* theButton, int theFrame)
 	theButton->setDownImage(Str(lit(0x458708)), theFrame + 2);
 }
 
-// 0x4173c0
+// 0x4173c0, with its tail at 0x41756b (the name saved and the options written), which the export splits off
 int NamePanel::handleEvent(Event* theEvent)
 {
 	int aResult = 0;
@@ -1481,7 +1481,7 @@ void OptionsMenu::draw()
 	}
 }
 
-// 0x4184a0
+// 0x4184a0 (0x417b20, a sound played at full volume and pitch, is inline in the sound slider's case)
 int OptionsMenu::handleEvent(Event* theEvent)
 {
 	if (mLoaded == 0)
