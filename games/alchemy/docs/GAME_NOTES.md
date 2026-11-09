@@ -203,22 +203,30 @@ sessions' games ran meanwhile, so the processor times move by a few seconds from
 
 **The first pass's processor figure was wrong, and the performance pass found why (2026-11-09).** The first measurement put the
 original at 1.4 to 1.6 s of processor time for the scripted minute and the port at about 6 s, and this section said the port used
-"about five times" the original's. The original's frame loop skips every draw while a screensaver-idle flag is set: a byte at
-0x54d7ec, tested in `DrawDirtyStuff` at 0x46cb46, set by a once-a-second routine at 0x462a60. That routine asks
-`SystemParametersInfo` whether a screensaver is on (it is on this machine, HKCU `ScreenSaveActive` = 1) and for its timeout, and
-`GetLastInputInfo` for the last keyboard or mouse input anywhere on the machine, and when the machine has been idle for the timeout
-less two seconds it sets the flag. Origrun's private desktop gets no input, so the original ran with the machine's idleness, and
-the runs of 2026-11-08 were made while the user was away: the copy drew 549 times in the 65 s (its draw counter, at the app's
-+0x4bc) instead of on every update. With the one jump at 0x46cb4d (`0f 85 eb 01 00 00`) turned into six `nop`s in the copy (a
-`test` line of an origrun patch list, `build/perf/alch-nodrawskip.txt`, which `perf.py` takes from `PERF_ORIG_PATCHES`), the same
-minute draws 3400 to 5900 times and costs the processor what the port costs. Every comparison of the original's speed, and every
-screenshot of it taken after ten idle minutes, depends on that flag; the coordinator is putting a hook of `GetLastInputInfo` into
-origrun for the originals that import it (Alchemy does).
+"about five times" the original's. The fault was in the original's runs, not in either game: `perf.py` started origrun with
+`--run alch --seed 11` and no `--patches`, origrun looks for its default patch list by the run's name
+(`tools/origrun/patches/alch.txt`, while the list is `alchemy.txt`), found none and applied no patch, so `--seed 11` pinned nothing
+(the run's log says "RNG seed to pin: 11" all the same). The original dealt its own boards, the bot's script (moves chosen for the
+port's seed-11 boards, played as mouse clicks) met no move on most of them, and the copy sat drawing now and then: 549 to 565
+draws in 6,451 updates (its draw counter, the app's +0x4bc) instead of on nearly every update. The same script with the list given
+(`--patches tools/origrun/patches/alchemy.txt`, whose one line pins the seed) draws 5,950 to 5,970 times in the same 6,451 updates
+and costs the processor what the port costs (the table below); `perf.py` now always gives the list, and refuses to run without it.
+
+An earlier version of this section gave another cause, which I measured and then found not to explain these numbers: the original
+has a screensaver-idle draw stop (a byte at 0x54d7ec, tested in `DrawDirtyStuff` at 0x46cb46, set by a once-a-second routine at
+0x462a60 that asks `SystemParametersInfo` for the screensaver and its timeout and `GetLastInputInfo` for the machine's last input).
+The code is there, but in every run I watched the byte read 0, and so did the routine's screensaver flag (0x51260c), while its
+timeout (0x512608) stayed at its start value. With the seed pinned, the same 1,480-update script draws 991 times with the list
+alone, 1,019 times with the jump at 0x46cb4d (`0f 85 eb 01 00 00`) turned into six `nop`s by a `test` line of the list, and 1,019
+times with a `test` line that writes the same bytes back; without the list (seed unpinned) 192 and 190. So the earlier result, that
+the nop raised the draws fivefold, compared a pinned run with an unpinned one. Whether that routine stops the draws on a machine
+idle for ten minutes was not tested here: origrun's stand-in now answers `GetLastInputInfo` with the present moment in every run
+(`docs/ORIGRUN.md`, "The last-input hook"), which keeps it from setting the flag whatever the machine does.
 
 **How.** `games/alchemy/tools/profile/perf.py` starts the game and reads that process alone, every 100 ms: its working set, its
 private bytes (the pagefile usage, whose peak Windows keeps) and its processor time (kernel plus user); `run.sh` alternates the
 two, `exp.sh <name> VAR=VALUE...` runs the port's minute once with a changed environment (`PERF_PORT_ARGS` adds game arguments,
-`PERF_ORIG_PATCHES` gives the original's patch list), `drivers.sh` repeats it per SDL render driver, and `cpuprof.py` samples the
+`PERF_ORIG_PATCHES` names another patch list for the original), `drivers.sh` repeats it per SDL render driver, and `cpuprof.py` samples the
 threads' instruction pointers weighted by the cycles each used (with the stack of a sample that is outside the exe, to name the
 call that made it). The port is `build/native/alchemy.exe` natively under rundesk, never `-fast`; the original is the staged copy
 under origrun on its real clock (`--clock real`; origrun puts it under rundesk itself). Both play the same scripted input: the
@@ -248,7 +256,7 @@ pane's browser sharing a busy machine (its own start-up took 0.9 to 9.5 s of the
 | | peak working set (MB) | peak private bytes (MB) | mean working set in the last minute (MB) |
 |---|---|---|---|
 | port, 5 runs | 66.9 to 76.0 | 66.9 to 69.3 | 65.8 to 74.9 |
-| original, 5 runs (2 with the draw stop, 3 without) | 64.3 to 77.3 | 50.9 to 56.3 | 62.8 to 74.0 |
+| original, 7 runs (2 with the seed unpinned, 5 pinned) | 64.3 to 77.3 | 50.9 to 56.3 | 62.8 to 74.0 |
 | port, load only (3 runs) | 59.7 to 68.9 | 59.5 to 62.5 | |
 | original, load only (3 runs) | 59.3 to 69.0 | 46.1 to 48.5 | |
 
@@ -267,11 +275,12 @@ buffers, Direct3D's and the driver's allocations) belongs to the framework's not
 
 | | whole run | the minute | draws in the run |
 |---|---|---|---|
-| original as first measured, the draw stop on (2 runs) | 1.64, 1.44 | 1.20, 0.99 | 549 |
-| original, the draw stop patched out (3 runs) | 8.25, 5.45, 5.05 | 7.59, 4.63, 4.59 | 5407, 3427, 5862 |
+| original as first measured, the seed unpinned (2 runs) | 1.64, 1.44 | 1.20, 0.99 | 549, 565 |
+| original, seed pinned, the jump at 0x46cb4d nopped out, before the hook (3 runs) | 8.25, 5.45, 5.05 | 7.59, 4.63, 4.59 | 5407, 3427, 5862 |
+| original, seed pinned, nothing nopped, the hook on (2 runs) | 6.97, 4.61 | 6.36, 4.22 | 5972, 5952 |
 | port (5 runs; the first two are the first pass's) | 6.06, 5.92, 6.25, 5.22, 5.56 | 5.00, 4.92, 5.31, 4.58, 5.00 | 3,290 to 3,610 |
 
-Over the same minute with both drawing, the original used 4.6 to 7.6 s and the port 4.6 to 5.3 s: the port is not the heavier
+Over the same minute with both drawing, the original used 4.2 to 7.6 s and the port 4.6 to 5.3 s: the port is not the heavier
 of the two, and no speed-up is to be had by comparison. The spread inside a column (5.2 to 6.3 s for the port in the quiet runs,
 and 8.3 to 8.7 s in two more runs, made while the machine was busier) is the machine's load: the cost is the driver's spinning
 and waiting, which grows when other processes compete. Read the table as "about 5 to 6 s, around 8% of a core", for either.
@@ -297,7 +306,7 @@ the lever.
 **Do frames draw nothing new?** No. The framework draws when a top-level widget is dirty or a second has passed, and 3,602 of
 4,062 draw decisions found one: `EffectsWidget::Update` (0x40844f, ported line for line) calls `MarkDirty` on every third update
 for each sparkle and score popup alive (49,800 calls in the minute), the board, the side panel
-and the pieces follow it, and the original does the same, which is why it too draws on most updates once its draw stop is out. Of
+and the pieces follow it, and the original does the same, which is why it too draws on nearly every update (5,950 of 6,451 in the pinned runs). Of
 2,406 frames read back and compared with the one before, 4 were identical (0.2%), 28 changed under 1% of the pixels, 732 under 5%,
 1,596 under 25% and 45 more; the changed pixels averaged 368,000 a frame, 13% of their bounding box (2.79 M pixels on average), so the changes are
 spread over the screen. So dropping frames that show nothing new saves 0.2%, and a partial present
@@ -315,8 +324,8 @@ JS heap at the play link was 5 to 12.5 MB, which is not a process's memory. The 
 
 To repeat: `bash games/alchemy/tools/profile/run.sh` from the worktree root, after `tools/origrun/build.sh`, a port script in
 `build/perf/port-play.txt` and its original's in `build/perf/orig-play.txt` (`games/alchemy/tools/profile/perf.py`, `run.sh` and
-`exp.sh` say how); for the original with its draw stop out, `PERF_ORIG_PATCHES` is a copy of `tools/origrun/patches/alchemy.txt`
-with the line `test AlchemyGame.exe va:0x46cb4d 0f85eb010000 909090909090 <reason>` added.
+`exp.sh` say how); the original runs with `tools/origrun/patches/alchemy.txt` (the seed line; `perf.py` gives it, `PERF_ORIG_PATCHES` names
+another list). A run of the original without a list is not seed pinned: look for "applied 1 patch(es)" in its `origrun.log`.
 
 ## 9. Coverage check (2026-11-08)
 
