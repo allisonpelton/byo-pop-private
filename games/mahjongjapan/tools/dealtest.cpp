@@ -96,6 +96,8 @@ static long gLimit = 400000;
 static bool gGaveUp = false;
 static std::mt19937 gOrder;
 static bool gShuffle = false;
+static bool gClassic = false;  // MJ_CLASSIC: a classic game is won when no tile is left
+static bool gDeadEnd = false;  // MJ_DEADEND (with MJ_CLASSIC): the first play that leaves tiles and no pair, for the no-moves box
 
 static void Apply(Layout& theLayout, Move& theMove)
 {
@@ -177,9 +179,19 @@ static bool CanClick(Layout& theLayout, Tile* theTile)
 	return !aHigher || ClickPoint(theLayout, theTile, x, y);
 }
 
+static bool AllTaken()
+{
+	for (Tile* aTile : gTiles)
+		if (aTile->mTaken == 0)
+			return false;
+	return true;
+}
+
 static bool SolveFrom(Layout& theLayout)
 {
-	if (!gMoves.empty() && gMoves.back().mFirst->mKind == 0x2b)
+	if (gDeadEnd && AllTaken())
+		return false;
+	if (gClassic ? AllTaken() : (!gMoves.empty() && gMoves.back().mFirst->mKind == 0x2b))
 		return true;
 	std::string aKey;
 	for (Tile* aTile : gTiles)
@@ -241,6 +253,8 @@ static bool SolveFrom(Layout& theLayout)
 				anAdd(a, b);
 		}
 	}
+	if (gDeadEnd && aMoves.empty())
+		return true;
 	if (gShuffle)
 		std::shuffle(aMoves.begin(), aMoves.end(), gOrder);
 	std::stable_sort(aMoves.begin(), aMoves.end(),
@@ -292,6 +306,27 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 	int anOffX = ((aLeft - aRight) + 800) / 2 - aLeft;
 	int anOffY = (((aTop - aBottom) + 0x1c4) / 2 - aTop) + -5;
 	aLayout.UpdateFree();
+	if (const char* aKindsFile = getenv("MJ_KINDS"))
+	{
+		// MJ_KINDS=<file>: the kinds of a deal that the original made (read from its saved game), one tile a line as
+		// "x y z kind", for solving a classic game whose deal came from the clock; with MJ_CLASSIC=1
+		FILE* aFile = fopen(aKindsFile, "r");
+		size_t aCount = 0;
+		int aX = 0, aY = 0, aZ = 0, aKind = 0;
+		while (aFile != nullptr && fscanf(aFile, "%d %d %d %d", &aX, &aY, &aZ, &aKind) == 4)
+			for (Tile* aTile : gTiles)
+				if (aTile->mX == aX && aTile->mY == aY && aTile->mZ == aZ)
+				{
+					aTile->mKind = aKind;
+					aCount++;
+				}
+		if (aFile != nullptr)
+			fclose(aFile);
+		fprintf(stderr, "kinds read for %d of %d tiles\n", (int)aCount, (int)gTiles.size());
+		aLayout.UpdateFree();
+	}
+	gClassic = getenv("MJ_CLASSIC") != nullptr;
+	gDeadEnd = gClassic && getenv("MJ_DEADEND") != nullptr;
 	if (theDeal)
 	{
 		// As Board::Start (0x40ae60) deals a stage's blank tiles: with the stage's seed, from the player's file
@@ -390,6 +425,9 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 		aPoint(aMove.mFirst, x1, y1);
 		aPoint(aMove.mSecond, x2, y2);
 		printf("%d %d %d %d\n", x1, y1, x2, y2);
+		fprintf(stderr, "pair %d: tile %d,%d,%d kind 0x%x with tile %d,%d,%d kind 0x%x\n", aMoveCount, aMove.mFirst->mX,
+			aMove.mFirst->mY, aMove.mFirst->mZ, aMove.mFirst->mKind, aMove.mSecond->mX, aMove.mSecond->mY,
+			aMove.mSecond->mZ, aMove.mSecond->mKind);
 		// A special tile's flights take longer, and the board ignores clicks while they last (Board::OnLButtonDown,
 		// 0x40c030): "special <moves before it> <kind>" on stderr, for the script to wait
 		if (0x2b < aMove.mFirst->mKind)

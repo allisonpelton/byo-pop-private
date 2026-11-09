@@ -23,11 +23,13 @@
 
 using namespace Sexy;
 
-// a dialog with the game's colours and fonts (0x41aa90) whose text is named by its address in the exe
-void MummyApp::DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW)
+// a dialog with the game's colours and fonts (0x41aa90) whose text is named by its address in the exe; its height is the
+// preferred one, but the adventure's two long messages (the intro after a new game's name, the congratulations after the last chamber) give it
+void MummyApp::DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW,
+	int theH)
 {
 	Dialog* aDialog = NewDialog(theId, true, theHeader, theLines, theMode == 3 ? GT(0x004922d0) : SexyString(""), theMode);
-	aDialog->Resize(theX, theY, theW, aDialog->GetPreferredHeight(theW));
+	aDialog->Resize(theX, theY, theW, theH >= 0 ? theH : aDialog->GetPreferredHeight(theW));
 	AddDialog(theId, aDialog);
 }
 
@@ -352,7 +354,9 @@ void MummyApp::ShowGamePanel()
 	}
 }
 
-// 0x4201e0: the answers of the dialogs
+// 0x4201e0: the answers of the dialogs (0x41ffb0 and 0x41fff0: the tests of a new adventure's name, in case 2000 +
+// DIALOG_NEW_ADVENTURE_NAME below; 0x41f730 and 0x41f8f0: its two messages, a name that will not do and one that is in use,
+// made there with DoMessage)
 void MummyApp::ButtonDepress(int theId)
 {
 	if (theId >= 3000 && theId < 4000)
@@ -420,21 +424,17 @@ void MummyApp::ButtonDepress(int theId)
 		KillDialog(DIALOG_TIP);
 		break;
 	}
-	case 2000 + DIALOG_RESET_TIPS:
-		// 0x7ec: the tips come back
-		KillDialog(DIALOG_RESET_TIPS);
-		mTipTwoMummies = mTipGate = mTipTrap = mTipRed = mTipScorpion = mTipDark = mTipAnkh = true;
-		break;
 	case 2000 + DIALOG_NEW_ADVENTURE_NAME:
 	{
-		// 0x4201e0 case 0x7db: the name of a new adventure: letters and numbers, not one that is in use
+		// 0x4201e0 case 0x7db: the name of a new adventure: not empty and with no comma (0x41ffb0; the message says letters
+		// and numbers, the code only looks for a comma), not one that is in use (0x41fff0: an exact comparison with the name
+		// stored in each slot's file, so Bob and bob can both be used)
 		NewAdventureDialog* aDialog = (NewAdventureDialog*) GetDialog(DIALOG_NEW_ADVENTURE_NAME);
 		SexyString aName = aDialog->mNameEdit->mString;
 		bool aValid = !aName.empty();
 		for (size_t i = 0; i < aName.size(); i++)
 		{
-			unsigned char c = (unsigned char) aName[i];
-			if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
+			if (aName[i] == ',')
 				aValid = false;
 		}
 		if (!aValid)
@@ -446,7 +446,7 @@ void MummyApp::ButtonDepress(int theId)
 		for (int i = 0; i < 5; i++)
 		{
 			SexyString anOther;
-			if (AdventureName(i, anOther) && stricmp(anOther.c_str(), aName.c_str()) == 0)
+			if (AdventureName(i, anOther) && strcmp(anOther.c_str(), aName.c_str()) == 0)
 				aUsed = true;
 		}
 		if (aUsed)
@@ -456,7 +456,7 @@ void MummyApp::ButtonDepress(int theId)
 		}
 		CreateAdventure(mCurrentSlot, aName);
 		LoadAdventure(mCurrentSlot, false);
-		DoMessage(DIALOG_INTRO, GT(0x00494824), GT(0x00494834), 3, 0x6e, 0x41, 0x1a4);
+		DoMessage(DIALOG_INTRO, GT(0x00494824), GT(0x00494834), 3, 0x6e, 0x41, 0x1a4, 0x15e);
 		KillDialog(DIALOG_NEW_ADVENTURE_NAME);
 		break;
 	}

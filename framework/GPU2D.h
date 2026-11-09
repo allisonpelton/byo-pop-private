@@ -220,6 +220,11 @@ private:
 	Image* mTextureImages[STAGES];  // this+0x158: the bound piece, as (image, piece)
 	int mTexturePieces[STAGES];
 
+	// The state and filter caches follow a scene the device began by itself (a target set, a clear or a swap before the
+	// scene's first draw) before they are read, as PreDraw does: otherwise a state set in that gap was forgotten by the
+	// cache when PreDraw caught up, and setting it back was skipped as no change (Twist's VizManager turned depth writing
+	// on and off before its first draw, and the depth test stayed on for the rest of the frame, hiding the 2D drawing)
+	void FollowScene();
 	void SetCachedState(int theKind, int theStage, int theType, unsigned long theValue);
 	const GPUPieceLayout* PrepareImage(Image* theImage);  // slot 0x44 for a draw; null for a cube or volume texture
 	void ApplyDepthStates();  // 0x13c, 0x61fbf0

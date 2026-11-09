@@ -145,7 +145,7 @@ public:
 	int						mAbandonCount;      // +0x3cc
 	MTRand					mRand;              // +0x3d0
 	bool					mLoadedGame;        // +0xd90
-	std::vector<Fish*>		mFish;              // +0xd94 .. (the eight std::vectors of the original)
+	std::vector<Fish*>		mFish;              // +0xda4 (the original has an unused vector at +0xd94 before it; then bubbles +0xdb4, texts +0xdc4, sparkles +0xdd4)
 	std::vector<Bubble*>	mBubbles;
 	std::vector<FloatingText*>	mTexts;
 	std::vector<Sparkle*>	mSparkles;
@@ -238,7 +238,6 @@ public:
 	void					GameOver();                     // 0x407480
 	void					HighlightGroup(int theX, int theY); // 0x4070d0
 	void					FloodGroup(int theX, int theY); // 0x407160
-	void					RefillPuzzle();                 // 0x4061d0
 	bool					MarkRuns(bool theAnimate);      // 0x402260
 	void					PushRow();                      // 0x403a90
 	void					AddFish(int theCount, bool theAtSides); // 0x408df0
@@ -249,6 +248,7 @@ public:
 	// BoardInput.cpp
 	bool					BuildTrail(int x1, int y1, int x2, int y2); // 0x402ec0
 	void					LinkPieces(Piece* theFirst, Piece* theSecond);
+	bool					PuzzleSwap(int aCellX, int aCellY);
 
 	// BoardUpdate.cpp
 	void					ExchangeContents(Piece* a, Piece* b, int theOffsetXForA, int theOffsetXForB, bool theSwapOffsetY);

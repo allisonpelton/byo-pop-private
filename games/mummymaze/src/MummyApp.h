@@ -40,6 +40,24 @@ class ImageFont;
 class Dialog;
 class Widget;
 
+class MummyApp;
+
+// The game's pictures by id (IMAGE_X in Res.h). mApp->mImages[IMAGE_X] decodes a picture the first time it is asked for; the
+// original decodes all of them at start (0x41db90 for each id), which is most of the load, and a picture that nothing
+// asks for in a run is never decoded or held.
+class ImageTable
+{
+public:
+	explicit ImageTable(MummyApp* theApp);
+	Image*					operator[](int theId) { return mImages[theId] != NULL ? mImages[theId] : Load(theId); }
+
+private:
+	Image*					Load(int theId);
+
+	MummyApp*				mApp;
+	Image*					mImages[NUM_IMAGES];
+};
+
 // The game modes (app+0x103d8)
 enum GameMode
 {
@@ -71,8 +89,7 @@ enum DialogId
 	DIALOG_ANKH = 9,
 	DIALOG_MAP_MESSAGE = 0xf,
 	DIALOG_ADV_INFO = 0x11,
-	DIALOG_DELETE_ADVENTURE = 0x18,
-	DIALOG_RESET_TIPS = 0x1c
+	DIALOG_DELETE_ADVENTURE = 0x18
 };
 
 class MummyApp : public SexyApp
@@ -85,7 +102,7 @@ public:
 		NUM_LOADING_TASKS = 27   // 25 sounds and two more steps
 	};
 
-	Image**					mImages;            // +0x10380 new Image*[NUM_IMAGES], loaded by Init
+	ImageTable				mImages;            // +0x10380 new Image*[NUM_IMAGES] (see ImageTable)
 	ImageFont*				mFont1;             // +0x10384 data\font1.txt
 	ImageFont*				mScoreFont;         // +0x10388 data\scorefont.txt (made by the loading thread)
 	ImageFont*				mHeaderFont;        // +0x1038c data\headerfont.txt
@@ -145,6 +162,7 @@ public:
 	std::string				mAutoplayLog;
 	std::string				mAutoplayShots;
 	struct AutoplayState*	mAutoplayState;
+	bool					mSoundTried[NUM_SOUNDS];   // port: the sound's file has been asked for (see LoadSoundOnce)
 	void					AutoplayUpdate();
 	void					HandleAutoplayParam(const std::string& theParamName, const std::string& theParamValue);
 
@@ -156,6 +174,8 @@ public:
 	virtual void			ButtonPress(int theId) override;
 	virtual void			ButtonDepress(int theId) override;
 	virtual void			UpdateFrames() override;
+	virtual void			PlaySample(int theSoundNum) override;
+	virtual void			PlaySample(int theSoundNum, int thePan) override;
 	virtual void			LoadingThreadProc() override;
 	virtual void			WriteToRegistry() override;
 	virtual void			ReadFromRegistry() override;
@@ -166,7 +186,8 @@ public:
 	virtual bool			HandleScriptCommand(const ScriptCommand& theCommand) override;	// the standard test commands (testhooks/TestCommands.cpp)
 
 	// Helpers (WinMM.exe addresses in MummyApp.cpp)
-	bool					LoadImage(int theImageId);
+	void					LoadSoundOnce(int theSoundNum);
+	Image*					LoadImage(int theImageId);   // 0x41db90: NULL (and the game ends) when the picture is not there
 	// the clock of the times that a game takes (the original's GetTickCount): the bot's runs count updates instead, 10 ms each,
 	// so that their scores do not depend on how fast the machine is
 	// (the fixes mod's gameClock does the same in a normal run: the time of a chamber is the updates it took)
@@ -195,6 +216,7 @@ public:
 	void					ShowAdventureSlots();                   // 0x41b800
 	void					ShowNewAdventure();
 	void					ShowDeleteAdventure();                  // 0x41bb10
+	void					ShowBadSaveMessage();                   // 0x41f0d0
 	void					DeleteAdventure(int theSlot);           // 0x41bc80
 	void					CreateAdventure(int theSlot, const SexyString& theName);   // 0x4201e0 case 0x7db
 	bool					AdventureExists(int theSlot);
@@ -207,7 +229,8 @@ public:
 	void					ShowVictory();                          // 0x41e890
 	bool					LoadClassic();                          // 0x41c600
 	bool					ClassicSaveExists();
-	void					DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW);
+	void					DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW,
+											int theH = -1);
 };
 
 extern MummyApp* gApp;

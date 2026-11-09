@@ -52,11 +52,19 @@ and the compiler's deleting destructors count as library code too. `none` names 
 code that the port leaves out on purpose, with the reason: registration code, buttons that lead out of the game, a
 `WinMain` that the platform layer replaces.
 
+`addrmap <tsv> <from column> <to column>` is for a port whose comments carry another edition's addresses (Mahjong Escape:
+Ancient China's carries Ancient Japan's until its readability pass): every address read from the sources is looked up in the
+table's `from` column (tab-separated, columns counted from 1, hex with or without 0x, data rows as well as functions) and
+replaced by its `to` address before it is matched. An address with no row stays as it is, and the report lists each such
+address once, with where it first appears, under "Not in the address map": code only this edition has, a function the other
+edition has and this one lacks, a pair the table missed, or an address inside a function rather than its entry.
+
 ## How the port's counterparts are found
 
 The ports write the original's address in the comment block just above each function they translate (`// 0x4cb5bc`), and
 often beside a declaration in a header (`void DrawEditBox(...);  // 0x4d2857`). An address in the comment block above a
-definition or a declaration, or in the comment on its own line, makes that function a counterpart. A declaration may run
+definition or a declaration, or in the comment on its own line, makes that function a counterpart; a `template <...>`
+line between the comment and the function is part of the declaration (Water Bugs, 2026-11-09). A declaration may run
 over several lines and have default arguments, and a constructor or destructor declared in its class counts (its name
 the class's own, at the class's own scope), while a call statement in a function body never does. An address in any
 other comment is a mention: code that cites the function without being it. An address inside a function, not at its
@@ -66,13 +74,16 @@ it.
 
 ## Reading the report
 
-The report opens with the runs (how many functions each reached, and whether the game exited by itself or origrun
-stopped it at a timeout; a run that origrun stops has still played the script it was given) and the counts for the game
+The report opens with the runs (how many functions each reached, and whether the game exited by itself, crashed, with its
+exit code, or was stopped by origrun at a timeout, from the line origrun adds to the hits file since 2026-11-09; a run that
+origrun stops has still played the script it was given) and the counts for the game
 code. Then three lists:
 
 - **Reached in the original, with no definition in the port.** The work: each is code the original ran that the port
   has no function for. Translated inline somewhere: give its address in the comment above the function that holds it.
-  Missing: translate it. Left out on purpose: a `none` line with the reason.
+  Missing: translate it. Left out on purpose: a `none` line with the reason. Its "Called from" column (here and in
+  the third list) is empty when every caller sits in code the export has no function for: search the export for the
+  address instead.
 - **Defined in the port, never reached in these runs.** No comparison has tested these. Give each a run that reaches it
   (a feature the runs missed), or read the port's function again against the export. One that no play of the original
   can reach is a candidate for taking out; that is the game session's call, and code that only some input reaches (an
@@ -114,4 +125,6 @@ Functions only: a function is reached or not, with no count of calls and no line
 code only, not the game's DLLs. Not inside Windows Sandbox yet, so a game whose comparisons run there (Bejeweled's do)
 takes its coverage runs on the host, where origrun posts input and takes no shots (it refuses a script with shots
 there), so a coverage script's click positions come from the port's own screenshots. A comparison of the framework's own
-coverage across games is not part of it.
+coverage across games is not part of it. Only the export's functions are watched: code that Ghidra left
+without a function (Mummy Maze had 16 such functions in gaps of its export) is never listed, so a game session that finds one
+defines it in the export, or names it in its notes. The sources read are .cpp, .c, .h, .hpp, .inl and .inc files.

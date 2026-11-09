@@ -443,6 +443,7 @@ bool Image::Draw(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 }
 
 // 0x42dcd0
+// 0x42e960 inlined here: the keyed copy's loop over the rows
 bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theScaleY, int theAlpha,
 	uint8_t* theDst, int theDstPitch)
 {
@@ -763,6 +764,7 @@ bool Image::SaveBmp(const char* thePath)
 	Put32(14, 0x28);
 	Put32(18, (uint32_t)mWidth);
 	Put32(22, (uint32_t)mHeight);
+	Put32(34, aSize);
 	aHeader[26] = 1;
 	aHeader[28] = 0x18;
 	bool aResult = fwrite(aHeader, 1, 0x0e, aFile) == 0x0e && fwrite(aHeader + 0x0e, 1, 0x28, aFile) == 0x28 &&

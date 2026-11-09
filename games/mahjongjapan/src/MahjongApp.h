@@ -20,6 +20,7 @@ namespace mahjongjapan
 class MahjongGame : public jb::App
 {
 public:
+	// 0x424a30
 	MahjongGame() : App(0x19) {}
 	// 0x424a60, 0x424a80
 	~MahjongGame() override {}

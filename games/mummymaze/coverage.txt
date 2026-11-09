@@ -1,0 +1,112 @@
+# tools/coverage.py's settings for Mummy Maze Deluxe (docs/COVERAGE.md).
+export re/mummymaze/gh/functions.jsonl
+src games/mummymaze/src
+# The game's own code (docs/README.md, "The binary"): 0x401000 to 0x42d5b0. The rest of the exe is the framework
+# (SexyAppFramework, from 0x42d5c0), the C runtime, FMOD's glue, libvorbis and the other libraries the game links.
+game 00401000-0042d5b0
+# Left out on purpose or taken by the compiler (the coverage check, 2026-11-08; the reasons are in GAME_NOTES.md, "Coverage check")
+none 004019b0 std::string::_Tidy (the port uses std::string)
+none 00401a00 std::string _Eos (sets the length and the terminator; the port uses std::string)
+none 00401a20 std::string::_Grow (the port uses std::string)
+none 00401b40 std::string::_Copy/_Grow helper: allocates a buffer of reserve+2 bytes (the refcounted std::string of VC6; the port uses std::string)
+none 00401bc0 tail of 00401b40 (std::string _Copy: copies the old contents into the new buffer, frees the old one; the port uses std::string)
+none 00401c50 compiler-made: registers the destructor of a static object with atexit
+none 00401c70 compiler-made: registers the destructor of a static object with atexit
+none 00402170 std::string default constructor (an empty string; the port uses std::string)
+none 00402e00 std::string::assign(const string&, pos, n) (_Tidy/_Grow based; the port uses std::string)
+none 00403000 std::string::assign(const char*, n) (the port uses std::string)
+none 004030a0 std::string::max_size() (0xfffffffd); the port uses std::string
+none 00403180 operator+(const char*, const std::string&) (the port uses std::string)
+none 004032d0 operator+(const std::string&, const char*) (the port uses std::string)
+none 00403400 compiler-made: registers the destructor of a static object with atexit
+none 00403420 compiler-made: registers the destructor of a static object with atexit
+none 00403440 static initializer of the tutorial text strings: calls 00403450 and registers the atexit destructor
+none 00403e50 compiler-made: registers the destructor of a static object with atexit
+none 00404550 deleting dtor: calls the destructor 0x00404570 then operator delete when bit 0 is set
+none 004083b0 std::ostream::operator<<(manipulator) (applies endl/flush); used only by the debug-file output (debug.txt at every maze load, badmaps.dat when the search finds nothing)
+none 004083d0 std::endl for the same debug-file output as 004083b0 (calls the ostream flush 0x45147f); not written by the port (GAME_NOTES.md, 'Not a fix: the two debug files')
+none 004125f0 std::string constructor from const char* (the port uses std::string)
+none 00412720 compiler-made: registers the destructor of a static object with atexit
+none 00412740 compiler-made: registers the destructor of a static object with atexit
+none 00412dd0 compiler-made: registers the destructor of a static object with atexit
+none 00412df0 compiler-made: registers the destructor of a static object with atexit
+none 00412e00 static initializer of the global MummyApp at 0x49c198: calls 00412e10 (constructor 0x419bb0 on the global) and 00412e20 (atexit); the port makes the app in main()
+none 00412e10 calls the MummyApp constructor (0x419bb0) on the global app object at 0x49c198; the port does new MummyApp() in main() (main.cpp)
+none 00412e20 compiler-made: registers the destructor of a static object with atexit
+none 00412e70 compiler-made: registers the destructor of a static object with atexit
+none 00412e90 compiler-made: registers the destructor of a static object with atexit
+none 00413680 deleting dtor: calls the destructor 0x004136a0 then operator delete when bit 0 is set
+none 00413c00 compiler-made: registers the destructor of a static object with atexit
+none 00413c20 compiler-made: registers the destructor of a static object with atexit
+none 00414260 compiler-made: registers the destructor of a static object with atexit
+none 00414280 compiler-made: registers the destructor of a static object with atexit
+none 00414370 compiler-made: registers the destructor of a static object with atexit
+none 00414390 compiler-made: registers the destructor of a static object with atexit
+none 00415e20 compiler-made: registers the destructor of a static object with atexit
+none 00415e40 compiler-made: registers the destructor of a static object with atexit
+none 00416570 compiler-made: registers the destructor of a static object with atexit
+none 00416590 compiler-made: registers the destructor of a static object with atexit
+none 00416b70 deleting dtor: calls the destructor 0x00416b90 then operator delete when bit 0 is set
+none 00416fc0 compiler-made: registers the destructor of a static object with atexit
+none 00416fd0 compiler-made: registers the destructor of a static object with atexit
+none 00416ff0 compiler-made: registers the destructor of a static object with atexit
+none 00417b00 deleting dtor: calls the destructor 0x00417b20 then operator delete when bit 0 is set
+none 00419ab0 std::string::append(count, char) (the port uses std::string)
+none 00419b80 compiler-made: registers the destructor of a static object with atexit
+none 00419ba0 compiler-made: registers the destructor of a static object with atexit
+none 00421900 std::set/std::map default constructor (allocates the empty tree header, a node of 0x40 bytes) for the member at app+0x103dc; the member is only constructed (0x419bb0)
+none 00421b10 compiler-made: registers the destructor of a static object with atexit
+none 00421b30 compiler-made: registers the destructor of a static object with atexit
+none 00421bc0 deleting dtor: calls the destructor 0x00421be0 then operator delete when bit 0 is set
+none 00421d80 compiler-made: registers the destructor of a static object with atexit
+none 00421da0 compiler-made: registers the destructor of a static object with atexit
+none 00422070 deleting dtor: calls the destructor 0x00422090 then operator delete when bit 0 is set
+none 00422430 NewAdventureDialog's ButtonDepress override (Dialog ButtonListener table 0x4828d0, slot 1): ignores id 0 and otherwise calls Dialog::ButtonDepress
+none 00422450 compiler-made: registers the destructor of a static object with atexit
+none 00422470 compiler-made: registers the destructor of a static object with atexit
+none 00422990 deleting dtor: calls the destructor 0x004229b0 then operator delete when bit 0 is set
+none 004250c0 compiler-made: registers the destructor of a static object with atexit
+none 004250e0 compiler-made: registers the destructor of a static object with atexit
+none 00425df0 deleting dtor: calls the destructor 0x00425e10 then operator delete when bit 0 is set
+none 00426b20 OptionsDialog's CheckboxChecked (CheckboxListener table 0x482a60, slot 0): when a box is unchecked and the framework flag app+0x231 is set (the desktop is not 16 or 32 bi
+none 00426e40 compiler-made: registers the destructor of a static object with atexit
+none 00426e60 compiler-made: registers the destructor of a static object with atexit
+none 00427020 compiler-made: registers the destructor of a static object with atexit
+none 00427040 compiler-made: registers the destructor of a static object with atexit
+none 00427120 deleting dtor: calls the destructor 0x00427140 then operator delete when bit 0 is set
+none 00427140 destructor of PyramidButton's base: frees the std::string at +0x88 (the button's label, empty here) and runs the Widget destructor
+none 004271a0 ButtonWidget::IsButtonDown (slot 42 of ButtonWidget and of PyramidButton: visible, mouse-visible and not disabled), the framework's virtual compiled into the game range
+none 00427d90 compiler-made: registers the destructor of a static object with atexit
+none 00427db0 compiler-made: registers the destructor of a static object with atexit
+none 00428470 compiler-made: registers the destructor of a static object with atexit
+none 00428490 compiler-made: registers the destructor of a static object with atexit
+none 004290f0 compiler-made: registers the destructor of a static object with atexit
+none 00429110 compiler-made: registers the destructor of a static object with atexit
+none 004291a0 compiler-made: registers the destructor of a static object with atexit
+none 004291c0 compiler-made: registers the destructor of a static object with atexit
+none 004296d0 deleting dtor: calls the destructor 0x004296f0 then operator delete when bit 0 is set
+none 0042a5c0 compiler-made: registers the destructor of a static object with atexit
+none 0042a5e0 compiler-made: registers the destructor of a static object with atexit
+none 0042aa60 deleting dtor: calls the destructor 0x0042aa80 then operator delete when bit 0 is set
+none 0042b360 compiler-made: registers the destructor of a static object with atexit
+none 0042b380 compiler-made: registers the destructor of a static object with atexit
+none 0042b6f0 compiler-made: registers the destructor of a static object with atexit
+none 0042b710 compiler-made: registers the destructor of a static object with atexit
+none 0042d5a0 compiler-made: registers the destructor of a static object with atexit
+none 0042d5b0 the Dialog constructor (header, lines and footer strings, the footer buttons from the button mode: OK / CANCEL / YES / NO, the content insets, id)
+# Found by the later runs (the coverage check, 2026-11-08)
+none 00401850 a std::string helper the compiler put in the game range: releases the reference-counted text (the port uses std::string)
+none 00401c80 an empty function (a trivial destructor that the compiler's std::map and std::list code calls: nothing to translate)
+none 00402150 compiler-made deleting destructor: calls the destructor (0x402190), then operator delete when bit 0 of the argument is set
+none 004030b0 a std::string helper: makes a copy-on-write string its own before it is changed (the port uses std::string)
+none 00403e60 compiler-made: registers the destructor of a static array of 67 strings with atexit
+none 004126b0 a std::list helper: allocates a list node and links it in (the port uses std::list or std::vector)
+none 00412e30 compiler-made: registers the destructor of a static object with atexit
+none 004142c0 compiler-made deleting destructor: calls the destructor (0x42b3f0), then operator delete when bit 0 of the argument is set
+none 00414830 compiler-made deleting destructor: calls the destructor (0x414850), then operator delete when bit 0 of the argument is set
+none 00421050 a std::map helper: erase(first, last), clearing the whole map when the range is all of it (the port uses std::map)
+none 00427ff0 compiler-made deleting destructor: calls the destructor (0x428010), then operator delete when bit 0 of the argument is set
+none 0042bae0 compiler-made deleting destructor: calls the destructor (0x42bb00), then operator delete when bit 0 of the argument is set
+none 00412d70 an override that only calls the base class's function of its slot (Dialog's vf15, with its argument) and does nothing else; the port's class inherits it
+none 0041fab0 the "No Windowed Mode" message that 0x426b20 shows (its line above): the port has no flag that forces fullscreen, so no play reaches it, and it has neither
+none 0041cdf0 the question of a "Reset Tips" button that the options dialog never places (0x426b70 asks it for an id no widget has): no play reaches it; the port has neither the button nor the answer (its case was taken out 2026-11-09)

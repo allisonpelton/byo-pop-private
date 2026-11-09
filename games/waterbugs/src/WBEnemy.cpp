@@ -451,7 +451,7 @@ int Frog_Move(Enemy* theEnemy)
 	return 1;
 }
 
-// Kind 0xd, a laser walker's shot: bursts in a ring inside a cell that is not open (0: done)
+// Kind 0xe, a laser walker's shot: bursts in a ring inside a cell that is not open (0: done)
 int LaserShot_Move(Enemy* theEnemy)
 {
 	int aCol = (int)theEnemy->x / 16;
@@ -833,7 +833,7 @@ void Walker_Turn(Enemy* theEnemy)
 	} while (aTry <= 3);
 }
 
-// Kind 0xd (a laser walker's shot) on a beam: the ship's beams all burst into sparks along their length, and it
+// Kind 0xe (a laser walker's shot) on a beam: the ship's beams all burst into sparks along their length, and it
 // loses them
 int LaserShot_HitBeams(Enemy* theEnemy)
 {
@@ -1201,7 +1201,7 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 	}
 }
 
-// Kind 5: shotDelay updates after its last shot fires a snake (kind 6) from 50 pixels out, at an angle its
+// Kind 0x12: shotDelay updates after its last shot fires a snake (kind 0x13) from 50 pixels out, at an angle its
 // animation's frame and a random quarter turn give, when the cell there is open
 int SnakeShooter_Move(Enemy* theEnemy)
 {
@@ -1258,7 +1258,7 @@ int SnakeShooter_Move(Enemy* theEnemy)
 	return aResult;
 }
 
-// Kind 6, a snake shooter's snake: bursts on hitting anything not open, holing the board 3 cells round
+// Kind 0x13, a snake shooter's snake: bursts on hitting anything not open, holing the board 3 cells round
 int Snake_Move(Enemy* theEnemy)
 {
 	theEnemy->hitCell = nullptr;
@@ -1273,7 +1273,7 @@ int Snake_Move(Enemy* theEnemy)
 	return 1;
 }
 
-// Kind 0xc, a cannon walker's ball: rises and falls through its animation over its lifetime, then bursts, holing
+// Kind 0xd, a cannon walker's ball: rises and falls through its animation over its lifetime, then bursts, holing
 // the board 3 cells round (0: done)
 int CannonBall_Move(Enemy* theEnemy)
 {
@@ -1335,7 +1335,7 @@ void ScurryWalker_Move(Enemy* theEnemy)
 	Walker_Move(theEnemy, 2);
 }
 
-// Kind 9: 1000 updates after it last did, turns towards the ship when that is within 150 pixels; slows (to a third
+// Kind 0x14: 1000 updates after it last did, turns towards the ship when that is within 150 pixels; slows (to a third
 // of its speed) while a beam across its way is that near, and speeds back up without
 void SmartWalker_Move(Enemy* theEnemy)
 {
@@ -1385,8 +1385,8 @@ void SmartWalker_Move(Enemy* theEnemy)
 	Walker_Move(theEnemy, 2);
 }
 
-// Kind 10: 4000 updates after its last shot, when the 9 by 9 cells 16 cells ahead of it hold 29 filled ones or
-// lines, fires a cannon ball (kind 0xc) that way in a puff of smoke
+// Kind 0xb: 4000 updates after its last shot, when the 9 by 9 cells 16 cells ahead of it hold 29 filled ones or
+// lines, fires a cannon ball (kind 0xd) that way in a puff of smoke
 void CannonWalker_Move(Enemy* theEnemy)
 {
 	if ((double)theEnemy->lastShot + 4000.0 < (double)theEnemy->age)

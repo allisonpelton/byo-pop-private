@@ -27,8 +27,13 @@ origrun may hook a copy's GetCursorPos so that it returns origrun's scripted mou
 framework reads the cursor after posted input, and the sandbox has none, so its board never sees a scripted mouse), the
 user answered "Yes, hook it". Asked the same day whether origrun may hook a copy's MessageBox and MessageBeep calls,
 so that a message box is answered without appearing and neither plays its sound on the user's speakers, the user
-answered "Yes, hook them". Those OKs cover the clock's reads and waits, GetCursorPos, MessageBox and MessageBeep only:
-any other hook of a Windows function inside a copy still needs the user's OK first.
+answered "Yes, hook them". Asked on 2026-11-09 whether origrun may hook a copy's GetKeyState so that scripted Shift and
+Ctrl presses register (Mahjong Escape reads Shift and Ctrl with GetKeyState while it handles a key, and a posted key
+sets no key state), the user answered "Yes, hook it". Asked the same day whether origrun may hook a copy's
+GetLastInputInfo so that originals keep drawing while the user is away (a SexyAppFramework original stops drawing once
+the machine has had no input for the screensaver's timeout), the user answered "Yes, hook it". Those OKs cover the
+clock's reads and waits, GetCursorPos, GetKeyState, GetLastInputInfo, MessageBox and MessageBeep only: any other hook of
+a Windows function inside a copy still needs the user's OK first.
 
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
@@ -115,6 +120,9 @@ Options:
 - `--cursor scripted` / `--cursor real` — the copy's `GetCursorPos` returns the last mouse position the script
   posted, or Windows' cursor (the default), for a game that reads the cursor after posted input (Bejeweled Twist's
   board). With or without `--clock virtual`; refused with `--sound real`. See "The scripted cursor".
+- `--keys scripted` / `--keys real` � the copy's `GetKeyState` returns the key and mouse-button state the script's
+  posted edges left, or Windows' (the default), for a game that asks whether Shift or Ctrl is down while it handles a
+  key (Mahjong Escape). Refused with `--sound real`. See "The scripted keys".
 - `--msgbox show` — show the copy's message boxes as before (each plays its sound, and the dialog watch answers it once
   it is on screen) instead of answering them in the stand-in with no window and no sound, which every run with the
   stand-in does by default (`--msgbox hook`). For a phase-two comparison that photographs a box; turn the speakers off
@@ -161,6 +169,14 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   since a game's window can be slow to appear while it tries to phone home).
 - `key <vk>` — a virtual-key press (decimal or `0x..`).
 - `text <chars...>` — type the rest of the line.
+- `char <code>` — one `WM_CHAR` of that code (decimal or `0x..`), for a control character a script line cannot hold
+  (Ctrl+Z, 0x1a, ends a script file, which is read in text mode).
+- `down x y` / `up x y` (`rdown` / `rup` for the right button), `keydown <vk>` / `keyup <vk>`, `dclick x y` (`rdclick`
+  for the right button) — one edge of a button or key, or a double click (down, up, `WM_LBUTTONDBLCLK`, up), posted now. They are the same as at an
+  `at` line (below) and are for a game with no update counter (Mahjong Escape): a `wait` between the edges makes a held
+  press, and moves in between make a drag. A held key changes no key state the game reads with `GetKeyState` or
+  `GetAsyncKeyState` (Ctrl+C as `keydown 17`, `key 67`, `keyup 17` works only in a game that reads its messages),
+  unless the run has `--keys scripted`, which answers `GetKeyState` ("The scripted keys").
 - `focus lose` / `focus regain` — post the deactivate/activate messages a window gets when it loses and
   regains the focus (`WM_ACTIVATEAPP`, `WM_ACTIVATE`, `WM_KILLFOCUS`/`WM_SETFOCUS`).
 - `shot <name>` — capture the window to `shots/<name>.png` now.
@@ -184,9 +200,12 @@ real time, a fraction of a second on the virtual clock ("Load times", under Wind
   of them is refused at the start, and each one is refused (logged) should it run on the host anyway. In the
   sandbox `hwmove` lights no hover on a SAF game (Seven Seas, 2026-11-01): use a posted `move` for hover there.
 - `at <N> <command...>` — when the update counter reaches `N`, hold the game's window thread, run the command
-  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `keydown`/`keyup` for one edge of a key (`kdown`/`kup` are the same; a game that polls its key state, or clears a key
+  (`shot`, `click`/`rclick`/`key`/`text`/`move`/`focus`, `dclick`, `keydown`/`keyup` for one edge of a key (`kdown`/`kup` are the same; a game that polls its key state, or clears a key
   when it is let go, loses a `key`'s down and up in one update), `down`/`up` or `rdown`/`rup` for one edge of the left or
-  right button, or `burst`), then resume it. Lands on the exact update
+  right button, or `burst`), then resume it; `quit` is not among them (origrun logs that it cannot do it at an update), so a
+  script that ends on its own puts a plain `quit` line after its last `at` line. A `move` while a `down` has had no `up`
+  carries that button's flag (MK_LBUTTON, MK_RBUTTON), as Windows' moves do, so a drag is a `down`, one or more `move`s and
+  an `up`, each at an update of its own. Lands on the exact update
   (the counter is polled every ~1 ms against ~10 ms updates), so the original and the port can be captured at
   the same game update rather than the same wall-clock time. A held game reads all the posted messages before its
   next update, so `at N click x y` gives it the down and the up in the same update, which some games lose; `at N
@@ -933,6 +952,57 @@ was made.
 - The point is converted when it is posted: a window moved later keeps the old screen point.
 - One point for the run: every process of the copy reads the last one posted, a process that starts later too, as a
   real mouse stays where it was.
+
+## The scripted keys (`--keys scripted`)
+
+A posted key or click changes no key state: Windows keeps that per thread from real input, so a game that asks
+`GetKeyState` whether Shift or Ctrl is down while it handles a posted key finds them up, and Shift+Tab, a selection
+made with Shift and the arrows, or Ctrl+Insert reach it as plain Tab, arrows and Insert. Mahjong Escape reads both that
+way (0x42c660, as it reads the mouse buttons). `--keys scripted` points the copy's `GetKeyState` imports at the
+stand-in's own function (`tools/origrun/cursor.c`; the user's OK of 2026-11-09 above, and nothing else is hooked). It
+shares the scripted cursor's block (`cursor.h`): before each key or button edge it posts (`keydown`, `keyup`, `key`,
+`down`, `up`, `click`, `rclick`, `dclick`, `rdclick`, at lines and plain ones alike) origrun writes the key's new state
+there, and from the first one on `GetKeyState` answers from it: the high bit while the key is down, and the low bit
+flipped by each press, as Windows has them. Shift, Ctrl and Alt read as down while either side of them is. Until the
+first edge the call goes to Windows. The run's log ends with a line of how many edges were posted and how many calls
+the block answered, and the stand-in's log (`logs/cursor.log`, or `logs/clock.log` with the clock) has each process's
+count.
+
+The state is what origrun last posted, not what the game has read so far: a game that handles the messages later reads
+the state as of the last edge. So a modifier is pressed on an update (or after a `wait`) before the key it modifies and
+let go on one after, as a real player's are: `at 500 keydown 16`, `at 501 key 9`, `at 502 keyup 16` is a Shift+Tab, and
+`keydown 16`, `key 9`, `keyup 16` on three plain lines in one go is a plain Tab.
+
+**Limits:**
+- Only `GetKeyState`. `GetAsyncKeyState` and `GetKeyboardState` are not hooked (hooking either needs the user's OK
+  first), and `hwkey` and `hwclick` go through Windows' own input, not the block.
+- The hook lives in the stand-in, as the cursor's does: a copy that never loads it never gets it (a coverage run loads
+  it, since the exe then imports it), and imports bound late are not patched.
+
+## The last-input hook (always on)
+
+A SexyAppFramework original asks Windows once a second whether a screensaver is set and how long its timeout is
+(`SystemParametersInfo`), and when the machine's last keyboard or mouse input was (`GetLastInputInfo`, which counts input
+anywhere on the machine). Once that input is older than the timeout it sets a flag, and its `DrawDirtyStuff` then draws
+nothing until input comes again (Alchemy, 2026-11-09: the routine at 0x462a60 sets the byte 0x54d7ec that 0x46cb46
+tests). rundesk's private desktop makes no difference. So every original run made while the user was away from the
+machine for about ten minutes (overnight runs included) drew a frame now and then instead of on every update: its
+screenshots showed a stale frame, and its CPU and draw counts read low (Alchemy's "the port uses five times the
+original's CPU" came from that). On the virtual clock it was worse: the copy's GetTickCount starts at Windows' and runs
+ahead of it, so a run past ten virtual minutes stopped drawing even while the user typed. Fifteen originals' exes import
+`GetLastInputInfo` (Alchemy, AstroPop, Banana Bugs, Bejeweled 1, 2, 3 and Twist, Big Money, Bookworm Adventures, Hammer
+Heads, Heavy Weapon, Typer Shark, Venice, Zuma's Revenge); any other game that reads it gets the same answer.
+
+Since 2026-11-09 the stand-in answers every copy's `GetLastInputInfo` itself (`tools/origrun/vclock.c`,
+`H_GetLastInputInfo`; the user's OK above), in every run that loads it, with no option: the last input is always now, on
+the copy's own clock (the virtual one when it is on, read without moving it). The framework finds the function with
+`GetProcAddress` (Windows 95's user32 has none), which no import patch reaches, so the stand-in puts a jump to its own
+function at the start of user32's `GetLastInputInfo`, in the copy's process only; its import is patched as well. A call
+with no structure or a wrong `cbSize` fails with `ERROR_INVALID_PARAMETER`. The stand-in's log has each process's count
+of calls answered. A copy that
+never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not hooked, and its
+draws still stop while the machine is idle: run those while the user is at the machine, or patch the copy's jump as
+Alchemy's notes describe.
 
 ## Message boxes and beeps (hooked)
 

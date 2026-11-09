@@ -373,18 +373,8 @@ var ByopopSaves = (function () {
     function endPlan() { plan = null; confirmBox.hidden = true; }
     var errorControls = [];   // the controls that an error is read with (the import's, web/saveimport.js, join them)
     root.textContent = "";
-    root.appendChild(make("p", "pl-about", ByopopStrings.t("saves.about")));
-    // whether the browser has agreed to keep the site's storage (a game page asks after an import, web/shell.html,
-    // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site, and only then is it said
-    var kept = make("p", "pl-about");
-    kept.hidden = true;
-    root.appendChild(kept);
-    try {
-      if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(function (yes) {
-        kept.textContent = ByopopStrings.t("saves.kept");
-        kept.hidden = yes;
-      }, function () {});
-    } catch (e) {}
+    // where the saves are kept, as a value: the window's status bar in Desktop 95 (web/skins.css), a line at the foot elsewhere
+    var where = make("p", "pl-about sv-where", ByopopStrings.t("saves.about"));
     var status = make("p", "pl-status");
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
@@ -399,7 +389,10 @@ var ByopopSaves = (function () {
       status.textContent = isError ? "" : text;
       alertEl.textContent = isError ? text : "";
       errorControls.forEach(function (c) {
-        if (isError) c.setAttribute("aria-describedby", alertEl.id); else c.removeAttribute("aria-describedby");
+        // a control's own description (the backup button's, while the browser may clear the saves) stays with the error
+        var own = c.getAttribute("data-own-desc") || "";
+        var ids = (isError ? [alertEl.id, own] : [own]).filter(Boolean).join(" ");
+        if (ids) c.setAttribute("aria-describedby", ids); else c.removeAttribute("aria-describedby");
       });
     }
 
@@ -418,6 +411,21 @@ var ByopopSaves = (function () {
     var confirmBox = make("div", "pl-confirm sv-confirm");
     confirmBox.hidden = true;
     root.appendChild(listTitle); root.appendChild(list); root.appendChild(row); root.appendChild(report); root.appendChild(confirmBox);
+    root.appendChild(where);
+    // whether the browser has agreed to keep the site's storage (a game page asks after an import, web/shell.html,
+    // askToKeepStorage): until it has, a drive that runs low on space can make it clear the whole site, and then the backup
+    // button says so, as its tooltip and its description
+    var kept = make("span", "visually-hidden", ByopopStrings.t("saves.kept"));
+    kept.id = "sv-kept";
+    try {
+      if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(function (yes) {
+        if (yes) return;
+        backupButton.title = kept.textContent;
+        row.appendChild(kept);
+        backupButton.setAttribute("data-own-desc", kept.id);
+        backupButton.setAttribute("aria-describedby", kept.id);
+      }, function () {});
+    } catch (e) {}
 
     errorControls.push(backupButton, pick);
     // the import (web/saveimport.js) is told to stand still too while anything runs
@@ -704,6 +712,7 @@ var ByopopSaves = (function () {
         });
       } catch (e) { root.appendChild(make("p", "pl-error", ByopopStrings.t("saves.import_unavailable"))); }
     }
+    root.appendChild(where);  // last, under the import too: a status bar is the window's foot
     document.addEventListener("visibilitychange", function () { if (!document.hidden && !busy) renderList(); });
     window.addEventListener("pageshow", function () { if (!busy) renderList(); });
     window.addEventListener("storage", function (ev) { if (!busy && (ev.key === null || /^sexy-userdata-backup:/.test(ev.key || ""))) renderList(); });

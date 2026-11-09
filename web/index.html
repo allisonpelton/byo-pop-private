@@ -7,9 +7,8 @@
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js), then the light or dark theme, set before the page is
-     drawn (web/theme.js) -->
-<script src="strings.js"></script><script src="theme.js"></script><script src="logo.js"></script><script src="terms.js"></script>
+<!-- the site's text for the scripts (web/strings/en.txt, web/i18n.js) and its logo drawn inline (web/logo.js) -->
+<script src="strings.js"></script><script src="logo.js"></script><script src="terms.js"></script>
 <!-- the site's cursor, a game's set the player chose (web/cursors.js) -->
 <script src="cursors.js"></script>
 <style>
@@ -28,17 +27,6 @@
   --radius: 10px;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
-    color-scheme: dark;
-  }
-}
-/* the theme the player chose with the theme button (web/theme.js) */
-:root[data-theme="dark"] {
-  --bg: #14111d; --panel: #1f1a2c; --fg: #ece8f6; --muted: #a59fbb; --line: #3a3350; --accent: #a383ff;
-  color-scheme: dark;
-}
 body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 var(--font-ui); }
 /* The focus ring is always visible for the keyboard (docs/WEB_PLAYER.md, "Accessibility"). Nothing here moves by itself, and a player
    who asks for no motion gets none */
@@ -54,17 +42,6 @@ main { padding-block: 0 32px; }
 .site-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 24px; }
 /* The logo at its drawn size, 276 by 64 (the user, 2026-11-02: "Make the logo bigger on the front page"), narrower on a small screen */
 .site-header img { display: block; max-width: 100%; height: auto; }
-.site-header .logo-dark { display: none; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  :root:not([data-theme="light"]) .site-header .logo-dark { display: block; }
-}
-:root[data-theme="dark"] .site-header .logo-light { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-:root[data-theme="dark"] .site-header .logo-dark { display: block; }
-/* the theme button (web/theme.js), at the header's right */
-.theme-btn { margin-left: auto; width: 40px; height: 34px; padding: 0; color: var(--muted); background: var(--panel);
-  border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
-.theme-btn:hover { color: var(--fg); border-color: var(--accent); }
 h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .games {
@@ -153,8 +130,6 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .ag-state { color: var(--muted); font-size: 13px; }
 .ag-ok { color: var(--accent); }
 .ag-error, .adding-rejected { color: #b3261e; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ag-error, :root:not([data-theme="light"]) .adding-rejected { color: #ff8a80; } }
-:root[data-theme="dark"] .ag-error, :root[data-theme="dark"] .adding-rejected { color: #ff8a80; }
 .adding select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; max-width: 100%; }
 .adding-rejected { margin: 8px 0 0; font-size: 13px; }
 .logo-drop { border-radius: var(--radius); }
@@ -167,8 +142,6 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .bin-pick, .bin-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
 .bin-confirm p { flex-basis: 100%; margin: 0; }
 .adding button.bin-yes { border-color: #b3261e; color: #b3261e; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .adding button.bin-yes { border-color: #ff8a80; color: #ff8a80; } }
-:root[data-theme="dark"] .adding button.bin-yes { border-color: #ff8a80; color: #ff8a80; }
 /* a cap that can go into the bin (the game's files are here) */
 .badge[draggable=true] { cursor: grab; }
 .drop-on { outline: 3px dashed var(--accent); outline-offset: 4px; }
@@ -191,6 +164,10 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 /* Under the name, in words: whether the game's files are loaded in this browser ("Play now") or not ("Add your files"),
    and for a game played here before, a "?" that explains why they are not (docs/WEB_PLAYER.md, "The listing page") */
 .ownrow { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 8px 12px; min-height: 20px; }
+/* a game's label ("Play now", "Add your files") is the last line of its link, so a click on it opens the game; the row under the
+   link holds only the "?" beside it, when there is one */
+.tile > .own { margin-top: -4px; }
+a.tile + .ownrow:not(:has(.why)) { min-height: 0; }
 .own { font-size: 12px; color: var(--muted); }
 .own:empty { display: none; }
 .own-yes { color: var(--accent); font-weight: 600; }
@@ -233,14 +210,12 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .tabpanel[hidden] { display: none; }
 .tabpanel:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 2px; }
 /* The players (docs/WEB_PLAYER.md, "Player profiles"): web/players.js builds the section's insides */
-#players h3, #saves h3 { margin: 24px 0 8px; font-size: 15px; font-weight: 600; }
+#players-body h3, #saves-body h3 { margin: 24px 0 8px; font-size: 15px; font-weight: 600; }
 .pl-about, .pl-hint, .pl-muted { color: var(--muted); font-size: 13px; }
-#players p, #saves p { margin: 0 0 8px; }
+#players-body p, #saves-body p { margin: 0 0 8px; }
 .pl-status { min-height: 1.5em; font-size: 13px; }
 .pl-status.pl-alert:empty { display: none; }
 .pl-status.pl-error, .pl-error { color: #b3261e; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pl-status.pl-error, :root:not([data-theme="light"]) .pl-error { color: #ff8a80; } }
-:root[data-theme="dark"] .pl-status.pl-error, :root[data-theme="dark"] .pl-error { color: #ff8a80; }
 .pl-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .pl-use, .pl-game { margin: 0 0 12px; padding: 0; border: 0; min-width: 0; }
 .pl-game { padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
@@ -252,18 +227,22 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .pl-current { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .pl-current input, .pl-names input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; }
 .pl-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
-#players button, #saves button, #music button {
+/* The chat (web/chat.js draws its insides): one window of the desktop for every game.
+   Its own heading gives way to the window's title bar. */
+#chat { display: flex; flex-direction: column; min-height: 0; overflow: hidden; box-sizing: border-box; }
+html:not(.d95-desk) #chat { display: none !important; }
+#chat > h2 { display: none; }
+#chat .chat-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#players-body button, #saves-body button, #music button {
   font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; cursor: pointer;
 }
-#players button:hover, #saves button:hover, #music button:hover { border-color: var(--accent); }
-#players button:focus-visible, #saves button:focus-visible, #players input:focus-visible, #saves input:focus-visible,
-#players summary:focus-visible, #saves summary:focus-visible, #saves select:focus-visible,
+#players-body button:hover, #saves-body button:hover, #music button:hover { border-color: var(--accent); }
+#players-body button:focus-visible, #saves-body button:focus-visible, #players-body input:focus-visible, #saves-body input:focus-visible,
+#players-body summary:focus-visible, #saves-body summary:focus-visible, #saves-body select:focus-visible,
 #music button:focus-visible, #music input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-#players button[disabled], #saves button[disabled] { opacity: 0.5; cursor: default; }
-#players button.pl-link { border: 0; background: none; color: var(--accent); padding: 0 2px; text-decoration: underline; font-size: inherit; }
-#players button.pl-danger, #saves button.pl-danger { border-color: #b3261e; color: #b3261e; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #players button.pl-danger, :root:not([data-theme="light"]) #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; } }
-:root[data-theme="dark"] #players button.pl-danger, :root[data-theme="dark"] #saves button.pl-danger { border-color: #ff8a80; color: #ff8a80; }
+#players-body button[disabled], #saves-body button[disabled] { opacity: 0.5; cursor: default; }
+#players-body button.pl-link { border: 0; background: none; color: var(--accent); padding: 0 2px; text-decoration: underline; font-size: inherit; }
+#players-body button.pl-danger, #saves-body button.pl-danger { border-color: #b3261e; color: #b3261e; }
 .pl-badge { font-size: 12px; font-weight: 600; color: var(--accent); border: 1px solid var(--accent); border-radius: 99px; padding: 0 8px; }
 .pl-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
 .pl-form[hidden] { display: none; }
@@ -284,8 +263,6 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .pl-names label { cursor: pointer; overflow-wrap: anywhere; }
 .pl-pending, .pl-pending-tag { font-size: 13px; color: var(--accent); }
 .pl-confirm { margin: 12px 0; padding: 14px 16px; background: var(--panel); border: 2px solid #b3261e; border-radius: var(--radius); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pl-confirm { border-color: #ff8a80; } }
-:root[data-theme="dark"] .pl-confirm { border-color: #ff8a80; }
 .pl-confirm h4 { margin: 0 0 8px; font-size: 15px; }
 .pl-confirm ul { margin: 0 0 12px; padding-left: 18px; }
 .pl-results { gap: 4px; margin-bottom: 8px; font-size: 13px; }
@@ -300,7 +277,8 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .pl-count { color: var(--muted); font-size: 13px; }
 /* The music player (web/music.js): one display, a seek bar and one row of controls, then the playlist; small and tight, as
    players of the time were (docs/WEB_PLAYER.md, "Values, not sentences") */
-.mu-player { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin: 0 0 8px; max-width: 520px; }
+/* the player is as wide as its panel or window: a wider one shows more of the tracker's channels */
+.mu-player { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin: 0 0 8px; }
 .mu-lcd { min-width: 0; overflow: hidden; background: #0b0a10; color: #c9b8ff; border: 1px solid var(--line); border-radius: 3px; padding: 4px 6px 5px; font: 12px/1.25 ui-monospace, "Cascadia Mono", Consolas, monospace; }
 .mu-lcd-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .mu-lcd-state { display: inline-flex; flex: none; }
@@ -314,13 +292,33 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .mu-lcd-tune { min-height: 1.25em; }
 .mu-lcd-game { font-size: 10px; opacity: .7; min-height: 1.25em; }
 .mu-lcd-total { flex: none; align-self: flex-start; font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; }
-.mu-vis { position: relative; height: 72px; margin-top: 3px; cursor: pointer; }
+.mu-vis { position: relative; height: calc(12px + var(--mu-rows, 5) * 12px); margin-top: 3px; cursor: pointer; }
 .mu-vis:focus-visible { outline: 1px dotted currentColor; outline-offset: 1px; }
 .mu-spectrum { display: block; width: 100%; height: 100%; --mu-bar: #a383ff; --mu-peak: #ece8f6; }
 .mu-tracker { height: 100%; overflow: hidden; }
 .mu-spectrum[hidden], .mu-tracker[hidden] { display: none; }
 .mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
 .mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
+.mu-tracker { display: flex; flex-direction: column; }
+.mu-tracker-rows { flex: 1 1 auto; min-height: 0; }
+/* the tracker's scroll bar (web/music.js): an arrow at each end, a track and its thumb, in the display's colours */
+.mu-hbar { flex: none; display: flex; height: 12px; margin-top: 2px; }
+.mu-hbar[hidden] { display: none; }
+.mu-hb-left, .mu-hb-right { flex: none; width: 12px; position: relative; border: 1px solid currentColor; box-sizing: border-box; opacity: .7; cursor: default; }
+.mu-hb-left::before, .mu-hb-right::before { content: ""; position: absolute; top: 2px; border: 3px solid transparent; }
+.mu-hb-left::before { left: 0; border-right: 4px solid currentColor; }
+.mu-hb-right::before { right: 0; border-left: 4px solid currentColor; }
+.mu-hb-left.mu-down, .mu-hb-right.mu-down { opacity: 1; }
+.mu-hb-track { flex: 1 1 auto; position: relative; margin: 0 2px; border-top: 1px dotted currentColor; border-bottom: 1px dotted currentColor; opacity: .7; }
+.mu-hb-thumb { position: absolute; top: 1px; bottom: 1px; background: currentColor; opacity: .6; }
+/* the display grows by the bar while the tracker has one, so the rows keep their room */
+.mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(26px + var(--mu-rows, 5) * 12px); }
+/* the splitter between the player and the playlist (web/music.js): a band the height of a few pixels, its grip a pair of lines */
+.mu-split { height: 7px; margin: 0 0 4px; cursor: ns-resize; touch-action: none; position: relative; }
+.mu-split::before { content: ""; position: absolute; left: 50%; top: 2px; width: 24px; margin-left: -12px; height: 3px;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.mu-split:hover::before, .mu-split:focus-visible::before { border-color: var(--accent); }
+.mu-split:focus-visible { outline: 1px dotted currentColor; outline-offset: -1px; }
 .mu-row { display: block; }
 .mu-row-now { background: #6b3fd1; color: #fff; }
 .mu-seekbar { width: 100%; margin: 0; }
@@ -342,8 +340,23 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .mu-time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
 #music .mu-tune[aria-current] .mu-num, #music .mu-tune[aria-current] .mu-time { color: inherit; }
 /* The import from an installed game (web/saveimport.js) */
-#saves select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
-.si-help h4 { margin: 12px 0 8px; font-size: 14px; font-weight: 600; }
+#saves-body select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
+/* the import's wizard (web/saveimport.js): its picture (drawn only by Desktop 95, web/skins.css), one page at a time, and
+   Back, Next and Cancel at its foot */
+.si-wiz { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 8px 0; }
+.si-art { display: none; }
+.si-page[hidden] { display: none; }
+.si-page { min-width: 0; min-height: 180px; }
+.si-page-title { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.si-page-title:focus { outline: none; }
+/* the last page names itself by the plan's own heading once there is one */
+.si-page:has(> .si-confirm:not([hidden]) > h4) > .si-page-title { display: none; }
+.si-line { font-size: 13px; margin: 0 0 10px; }
+.si-places { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 10px; margin: 8px 0 12px; font-size: 13px; }
+.si-places dd { margin: 0; overflow-wrap: anywhere; }
+.si-cmd-all { display: flex; justify-content: flex-end; }
+.si-nav { display: flex; justify-content: flex-end; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.si-nav button + button + button { margin-left: 8px; }
 .si-help, .si-pickers { margin: 8px 0; }
 .si-help p, .si-help li { font-size: 13px; }
 .si-help code, .si-confirm code { font-size: 12px; overflow-wrap: anywhere; }
@@ -358,7 +371,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .si-sub { margin: 12px 0 4px; font-size: 13px; font-weight: 600; }
 .si-confirm li { overflow-wrap: anywhere; }
 /* The site's settings (docs/WEB_PLAYER.md, "Site settings"): web/settings.js draws the controls and brings their style */
-/* The foot of the page: the disclaimer and the credit, at the page's width, in the muted colour of both themes */
+/* The foot of the page: the disclaimer and the credit, at the page's width, in the muted colour */
 /* Where a game can still be bought: a link for each store, beside the game's own link in the card (cmake/ByopopStores.cmake) */
 .buyrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; padding: 0 8px 12px; font-size: 12px; }
 .buyrow[hidden] { display: none; }
@@ -380,7 +393,7 @@ footer {
 footer p { margin: 0 0 8px; }
 footer a { color: var(--accent); }
 </style>
-<!-- the site's skins (web/skins.js sets <html data-skin>; docs/WEB_PLAYER.md, "Skins") -->
+<!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
 <link rel="stylesheet" href="skins.css"><script src="skins.js"></script>
 </head>
 <body>
@@ -388,11 +401,9 @@ footer a { color: var(--accent); }
   <!-- The logo stands for the bottle opener: game folders dropped on it are added (web/addgames.js) -->
   <div class="logo-drop" id="logo-drop">
     <img class="logo-light" src="logo.svg" alt="{{index.logo_alt}}" width="210" height="64" draggable="false">
-    <img class="logo-dark" src="logo-dark.svg" alt="" width="210" height="64" draggable="false">
   </div>
   <!-- Out of sight (the user, 2026-11-03: "remove Games from the front page header"), but still the page's heading and the list's name -->
   <h1 id="games-title" class="visually-hidden">{{index.games}}</h1>
-  <button type="button" class="theme-btn" data-theme-toggle aria-label="{{theme.button}}" aria-pressed="false"></button>
 </header>
 <main>
   <div class="toolbar">
@@ -430,9 +441,9 @@ footer a { color: var(--accent); }
        checkbox and Continue as the game's own terms card, and the same agreement kept -->
   <dialog class="terms-dialog" id="terms-dialog" aria-labelledby="terms-title">
     <h2 id="terms-title">{{index.terms.heading}}</h2>
-    <div class="terms" id="terms-text" tabindex="0" role="region" aria-label="{{game.terms.region}}"></div>
     <label class="agree"><input type="checkbox" id="terms-agree" autocomplete="off"> <span id="terms-agree-text">{{index.terms.agree}}</span></label>
     <div class="terms-row"><button class="primary" id="btn-terms" type="button" disabled>{{game.terms.continue}}</button><button type="button" id="btn-terms-skip">{{index.terms.skip}}</button></div>
+    <div class="terms" id="terms-text" tabindex="0" role="region" aria-label="{{game.terms.region}}"></div>
   </dialog>
   <section class="adding" id="bin-panel" aria-labelledby="bin-title" hidden>
     <div class="adding-head">
@@ -458,32 +469,31 @@ footer a { color: var(--accent); }
   <!-- Jungle Juice, the page for other projects' decompilations (web/jungle/index.html; the user, 2026-11-04: "the front page will
        link to it after the game tiles") -->
   <a class="jungle-link" href="jungle/"><span class="jungle-name">{{index.jungle.name}}</span> <span class="jungle-about">{{index.jungle.about}}</span></a>
-  <!-- The players, the saves, the music and the settings, as tabs under the games (the tabs script below), each an icon of our own named by its
+  <!-- The music and the settings (the players and the saves are sections of Settings), as tabs under the games (the tabs script below), each an icon of our own named by its
        aria-label, with the name as its tooltip (the user, 2026-11-03: "use icons rather than names") -->
   <div class="tabs" role="tablist" aria-label="{{index.tabs.label}}">
-    <button type="button" role="tab" id="tab-players" aria-controls="players" aria-selected="true" aria-label="{{index.tabs.players}}" title="{{index.tabs.players}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14c2.8 0 5 2.2 5 5"/></svg></button>
-    <button type="button" role="tab" id="tab-saves" aria-controls="saves" aria-selected="false" tabindex="-1" aria-label="{{index.tabs.saves}}" title="{{index.tabs.saves}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4h12.5L20 7.5V20H4z"/><path d="M8 4v5h7V4"/><rect x="7.5" y="13" width="9" height="7"/></svg></button>
+    <button type="button" role="tab" id="tab-settings" aria-controls="settings" aria-selected="true" aria-label="{{index.tabs.settings}}" title="{{index.tabs.settings}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/></svg></button>
     <button type="button" role="tab" id="tab-music" aria-controls="music" aria-selected="false" tabindex="-1" aria-label="{{index.tabs.music}}" title="{{index.tabs.music}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 18V5.5l11-2.5v12.5"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/></svg></button>
-    <button type="button" role="tab" id="tab-settings" aria-controls="settings" aria-selected="false" tabindex="-1" aria-label="{{index.tabs.settings}}" title="{{index.tabs.settings}}"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/><circle cx="12" cy="12" r="6.5"/></svg></button>
   </div>
-  <section id="players" class="tabpanel" role="tabpanel" aria-labelledby="tab-players" tabindex="0">
-    <h2 class="pl-sr">{{index.players.heading}}</h2>
-    <div id="players-body"></div>
-  </section>
-  <section id="saves" class="tabpanel" role="tabpanel" aria-labelledby="tab-saves" tabindex="0" hidden>
-    <h2 class="pl-sr">{{index.saves.heading}}</h2>
-    <div id="saves-body"></div>
-  </section>
   <section id="music" class="tabpanel" role="tabpanel" aria-labelledby="tab-music" tabindex="0" hidden>
     <h2 class="pl-sr">{{index.music.heading}}</h2>
     <div id="music-body"></div>
   </section>
-  <section id="settings" class="tabpanel" role="tabpanel" aria-labelledby="tab-settings" tabindex="0" hidden>
+  <section id="settings" class="tabpanel" role="tabpanel" aria-labelledby="tab-settings" tabindex="0">
     <h2 class="pl-sr">{{index.settings.heading}}</h2>
     <div id="settings-controls"></div>
     <div id="site-cursor" class="site-cursor-choice"></div>
+    <!-- the players and the saves, which web/settings.js puts into its Players and Saves sections -->
+    <div id="players-body"></div>
+    <div id="saves-body"></div>
   </section>
 </main>
+<!-- The chat (web/chat.js; docs/CHAT_DESIGN.md): one window of Desktop 95's desktop for every game; hidden until the script
+     has drawn it -->
+<aside class="chat" id="chat" hidden aria-labelledby="chat-title">
+  <h2 id="chat-title"><button type="button" data-chat-toggle aria-expanded="true" aria-controls="chat-body"><span class="chat-chevron" aria-hidden="true"></span>{{game.chat.title}}<span class="chat-unread" data-chat-unread hidden></span></button></h2>
+  <div class="chat-body" id="chat-body" data-chat-body></div>
+</aside>
 <footer>
   <p>{{index.footer.about}}</p>
   <p>{{index.footer.trademarks}}</p>
@@ -500,26 +510,34 @@ footer a { color: var(--accent); }
 <script src="saves.js"></script>
 <script src="soundtracks.js"></script>
 <script src="music.js"></script>
+<!-- the soundboard: Desktop 95's Sounds window (web/sounds.js) and its table of the games' sounds (web/soundboards.js) -->
+<script src="soundboards.js"></script>
+<script src="sounds.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
      import rules and each listed game's page.js (import-games.js, written by the build) -->
 <script>var Module = {};</script>
 <script src="modpanel.js"></script>
 <script src="exeicon.js"></script>
 <script src="gameimport.js"></script>
-<script src="capanim.js"></script>
 <script src="import-games.js"></script>
 <script src="other-games.js"></script>
 <script src="terms-games.js"></script>
 <script src="addgames.js"></script>
+<script src="library.js"></script>
+<script src="chat-games.js"></script>
+<script src="chat.js"></script>
 <script>
 // The settings section: the controls are web/settings.js's, the same as in a game's Settings panel
 // (its sections: a row of tabs; in Desktop 95 the folder's icons each open the section's own window, below. The site's
 // mouse pointer is part of Input. #settings-<section> opens at that section.)
 var siteSettingsView = null;
+// the addresses of the Players and Saves tabs, which are Settings' sections now (the user, 2026-11-09: "Fold players and saves
+// into the settings menu"): #players and #saves still land there, as do ?open= addresses with them (web/skins.js, onePage)
+function settingsHash(h) { return { "#players": "#settings-players", "#saves": "#settings-saves" }[h] || h; }
 try {
   siteSettingsView = ByopopSettings.render(document.getElementById("settings-controls"), {
-    extra: { input: document.getElementById("site-cursor") },
-    section: (/^#settings-([a-z]+)$/.exec(location.hash) || [])[1],
+    extra: { input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
+    section: (/^#settings-([a-z]+)$/.exec(settingsHash(location.hash)) || [])[1],
     openSection: function (id) { if (window.ByopopSkin && ByopopSkin.desk.show("set-" + id)) return; siteSettingsView.select(id, true); }
   });
 } catch (e) {}
@@ -777,8 +795,8 @@ try {
   function show(tile, info, gen) {
     if (gen !== generation) return;  // a newer check has started
     var card = tile.parentNode, row = card.querySelector(".ownrow"), label = card.querySelector(".own");
-    // the game's own icon (read out of its exe by the game's page, kept in the record) in place of the initials; in a skin, faint
-    // under them on the cap (web/skins.css, "The cap board"), so the initials stay in the badge, out of sight in Plain
+    // the game's own icon (read out of its exe by the game's page, kept in the record) in place of the initials, which stay in
+    // the badge out of sight (web/skins.css, "The cap board")
     var badge = tile.querySelector(".badge");
     if (badge.getAttribute("data-initials") === null) badge.setAttribute("data-initials", badge.textContent);
     if (info.state === "yes" && info.icon) {
@@ -800,7 +818,6 @@ try {
     }
     // a game whose files are here: its cap can be dragged into the recycle bin (web/addgames.js), which lists such games too
     badge.draggable = info.state === "yes";
-    capStudies(badge, card, info);
     card.setAttribute("data-files", info.state);
     label.textContent = ByopopStrings.t(WORDS[info.state]);
     label.className = "own own-" + info.state;
@@ -846,22 +863,13 @@ try {
   }
 
   // How much the game was played here (ByopopPlay), once it has been: "3 plays · 2 h 15 min", then "Last played 1 Nov 2026"
-  // The cap board's studies (docs/WEB_PLAYER.md, "Skins"), drawn only in a skin (web/skins.css), on the cap of a game whose
-  // files are here; all of it from what this browser already keeps (ByopopPlay, ByopopGameFiles), and hidden from assistive
-  // technology, since the card's own text says the same:
-  //   the record under the cap: plays, play time and the last day, shown when the cap flips (hover, or the card's focus)
-  //   the print of the copy: a year stamp when its exe was built in the game's first year (data-released), a ring for a later
-  //     re-release (built two years after or more), nothing between (ByopopExeIcon.built); no store is named
-  //   wear from play: a scratch at 10 hours, a dent and a tilt at 40, patina at 100 (data-wear 1 to 3)
-  //   the date under the crimp: the day this copy came in (the record's opened)
-  // The game's icon on its cap, fitted (the user, 2026-11-08: "The logos overlaid on the caps need work so they fit properly and
-  // are better centered"): in a skin inside the cap's flat face, within the crimped rim, a box of FACE px; in Plain, alone, a
-  // box of PLAIN px. Of the exe's images kept (the large one and the one nearest 32 px) it takes the smallest that is at least
+  // The game's icon, fitted (the user, 2026-11-08: "The logos overlaid on the caps need work so they fit properly and are better
+  // centered"): a box of FACE px. Of the exe's images kept (the large one and the one nearest 32 px) it takes the smallest that is at least
   // the box's size in device pixels, else the largest; only its visible pixels count (many icons have empty space on a side),
   // cropped to them. It is drawn at the screen's own pixels: made smaller with smoothing, or larger only a whole number of
   // times, pixel for pixel, so that it stays crisp; its size is kept even with the box's in device pixels, so that the badge
-  // centres it on whole pixels. Drawn again when the skin or the screen's pixel ratio changes.
-  var FACE = 32, PLAIN = 64, fitted = {};
+  // centres it on whole pixels. Drawn again when the screen's pixel ratio changes.
+  var FACE = 32, fitted = {};
   function loadImage(url) {
     if (!url) return Promise.resolve(null);
     return new Promise(function (ok) {
@@ -884,7 +892,7 @@ try {
     return x1 < 0 ? null : { im: im, x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
   }
   function fitIcon(img, url, small) {
-    var dpr = window.devicePixelRatio || 1, box = document.documentElement.hasAttribute("data-skin") ? FACE : PLAIN;
+    var dpr = window.devicePixelRatio || 1, box = FACE;
     var key = url + "|" + small + "|" + box + "|" + dpr;
     img.setAttribute("data-fit", key);
     function put(f) {
@@ -920,41 +928,8 @@ try {
       fitIcon(img, k[0], k[1]);
     });
   }
-  if (window.MutationObserver) new MutationObserver(refit).observe(document.documentElement, { attributes: true, attributeFilter: ["data-skin"] });
   var lastDpr = window.devicePixelRatio || 1;
   window.addEventListener("resize", function () { var d = window.devicePixelRatio || 1; if (d !== lastDpr) { lastDpr = d; refit(); } });
-  function capStudies(badge, card, info) {
-    Array.prototype.slice.call(badge.querySelectorAll(".cap-x")).forEach(function (e) { e.remove(); });
-    ["data-wear", "data-print"].forEach(function (a) { badge.removeAttribute(a); });
-    if (info.state !== "yes") return;
-    function add(cls, text) { var e = make("span", text || ""); e.className = "cap-x " + cls; e.setAttribute("aria-hidden", "true"); badge.appendChild(e); return e; }
-    var play = info.play, hours = play ? play.seconds / 3600 : 0;
-    var wear = hours >= 100 ? 3 : hours >= 40 ? 2 : hours >= 10 ? 1 : 0;
-    if (wear) { badge.setAttribute("data-wear", String(wear)); add("cap-wear"); }
-    var released = parseInt(card.getAttribute("data-released") || "", 10);
-    if (info.built && released) {
-      if (info.built <= released) { badge.setAttribute("data-print", "first"); add("cap-year", String(info.built)); }
-      else if (info.built >= released + 2) { badge.setAttribute("data-print", "later"); add("cap-ring"); }
-    }
-    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(info.opened || "");
-    if (m) {
-      var opened = info.opened;
-      // short, as a bottling date on a rim is
-      try { opened = new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(undefined, { year: "2-digit", month: "numeric", day: "numeric" }); } catch (e) {}
-      add("cap-date", opened);
-    }
-    if (play && play.plays > 0) {
-      var back = add("cap-back");
-      back.appendChild(make("b", ByopopStrings.t("index.cap.plays", {n: play.plays})));
-      back.appendChild(make("span", ByopopPlay.duration(play.seconds)));
-      var lm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(play.last || "");
-      if (lm) {
-        var last = play.last === ByopopPlay.today() ? ByopopStrings.t("index.played_today") : play.last;
-        try { if (play.last !== ByopopPlay.today()) last = new Date(+lm[1], +lm[2] - 1, +lm[3]).toLocaleDateString(undefined, { month: "short", day: "numeric" }); } catch (e) {}
-        back.appendChild(make("span", last));
-      }
-    }
-  }
   function showPlayed(card, play) {
     var line = card.querySelector(".played");
     if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
@@ -1087,10 +1062,11 @@ try {
 })();
 </script>
 <script>
-// The tabs under the games (docs/WEB_PLAYER.md, "The listing page"): Players, Saves and Settings, after the ARIA pattern for tabs with
+// The tabs under the games (docs/WEB_PLAYER.md, "The listing page"): Settings and Music, after the ARIA pattern for tabs with
 // automatic activation. Only the chosen tab is in the tab order; the arrow keys move along the tabs and show each one's panel, Home and
-// End go to the first and the last, and Tab goes on into the panel. A link to #players, #saves or #settings (the Players section's
-// "Player names in Settings", a game page's "Manage players"), here or when the page opens, shows that tab and puts the focus on it.
+// End go to the first and the last, and Tab goes on into the panel. A link to #settings or #music, here or when the page opens,
+// shows that tab and puts the focus on it; #settings-<section> shows Settings at that section, and #players and #saves (the tabs
+// these were) Settings at Players or Saves (a game page's "Manage players").
 // The player's own choice goes into the address (replaceState, no history entry), so that a reload keeps it, and is remembered in
 // localStorage for the next visit (the page works without it).
 (function () {
@@ -1110,28 +1086,25 @@ try {
   }
   function byPanel(id) { return tabs.filter(function (t) { return t.getAttribute("aria-controls") === id; })[0] || null; }
   tabs.forEach(function (tab, i) {
-    tab.addEventListener("click", function () { choose(tab, false); toAddress(tab); });
+    tab.addEventListener("click", function () { choose(tab, false); });
     tab.addEventListener("keydown", function (ev) {
       var to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[ev.key];
       if (to === undefined || ev.altKey || ev.ctrlKey || ev.metaKey) return;
       ev.preventDefault();
       var next = tabs[(to + tabs.length) % tabs.length];
       choose(next, true);
-      toAddress(next);
     });
   });
-  function toAddress(tab) {
-    try { history.replaceState(null, "", location.pathname + location.search + "#" + panel(tab).id); } catch (e) {}
-  }
   // Desktop 95's desktop (web/skins.js): each tab is a window there, and a link to it opens that window
   function onDesk(tab) {
     try { return ByopopSkin.desk.show("tab-" + panel(tab).id); } catch (e) { return false; }
   }
-  // #players, #saves or #settings: that tab, scrolled to; #settings-<section>: Settings at that section (on the desktop, its
-  // window over the Settings folder)
-  function fromHash() {
-    var sec = /^#settings-([a-z]+)$/.exec(location.hash);
-    var tab = byPanel(sec ? "settings" : location.hash.slice(1));
+  // #settings or #music: that tab, scrolled to; #settings-<section> (and #players, #saves): Settings at that section (on the
+  // desktop, its window over the Settings folder). The address never keeps it: the desktop puts it back to the site's root
+  // (web/deskapps.js), so a link to one, or one typed into the address, only opens its window.
+  function fromHash(h) {
+    var hash = settingsHash(h === undefined ? location.hash : h), sec = /^#settings-([a-z]+)$/.exec(hash);
+    var tab = byPanel(sec ? "settings" : hash.slice(1));
     if (!tab) return false;
     choose(tab, false);
     if (sec && window.siteSettingsView) {
@@ -1145,14 +1118,19 @@ try {
   var saved = null;
   try { saved = localStorage.getItem(KEY); } catch (e) {}
   if (!fromHash() && byPanel(saved)) choose(byPanel(saved), false);
-  window.addEventListener("hashchange", fromHash);
+  // (#sounds, the Sounds window's, is not a tab: the desktop opens it; settle takes the hash off the address again)
+  window.addEventListener("hashchange", function () {
+    if (location.hash === "#sounds") { try { ByopopSkin.desk.show("sounds"); } catch (e) {} } else fromHash();
+    try { if (window.ByopopApps) ByopopApps.settle(); } catch (e) {}
+  });
   // a link to the tab that is already in the address (the hash does not change): the tab all the same, and the focus on it
   document.addEventListener("click", function (ev) {
     var a = ev.target.closest && ev.target.closest('a[href^="#"]');
-    var tab = a && byPanel(a.getAttribute("href").slice(1));
+    var href = a && a.getAttribute("href"), sec = href && /^#settings-([a-z]+)$/.exec(settingsHash(href));
+    var tab = a && byPanel(sec ? "settings" : href.slice(1));
     if (!tab) return;
     ev.preventDefault();
-    if (location.hash !== a.getAttribute("href")) history.pushState(null, "", a.getAttribute("href"));
+    if (sec) { fromHash(href); return; }
     choose(tab, true);
     if (!onDesk(tab)) tabs[0].parentNode.scrollIntoView({ block: "start" });
   });
@@ -1218,39 +1196,89 @@ try {
 // Desktop 95's windows on the listing (web/skins.js, ByopopSkin.desk): the games, each of the tabs under them (Players, Saves,
 // Music, Settings) and the page's notes are windows of their own, each with its icon (the user, 2026-11-08: "There should be
 // separate windows for games, settings, and about, with icons for each"), kept where the player leaves them ("index" in
-// byopop-desk); drawn only in that skin, on a wide screen. The games' window is open at first, the notes' beside it, and the
+// byopop-desk), open or closed; drawn on a wide screen. The games' window is open at first, the notes' beside it, and the
 // tabs' windows closed until their icons (or a link to #settings and the like) open them, one cascaded over the other; each
-// tab's icon has the tab's own picture. Out of the desktop the tabs are tabs again, in their place under the games.
+// tab's icon has the tab's own picture. Under 760 pixels wide the tabs are tabs again, in their place under the games.
 try {
   (function () {
     var d = ByopopSkin.desk, head = document.querySelector(".site-header");
     function top() { return head ? head.offsetTop + head.offsetHeight + 4 : 12; }
     d.add(document.querySelector("main"), { id: "games", title: ByopopStrings.t("skin.desk.games"), closable: true, body: true,
-      at: function (left) { return [left, top()]; } });
-    ["settings", "players", "saves", "music"].forEach(function (id, i) {
+      scroll: ".games", at: function (left) { return [left, top()]; } });
+    // the Library (web/library.js): the games as a grid, closed at first, its icon beside All games'
+    if (window.ByopopLibrary) ByopopLibrary.attach(d, function (left, vw) { return [Math.max(left, Math.min(left + 60, vw - 640)), top() + 40]; });
+    ["settings", "music"].forEach(function (id, i) {
       var tab = document.getElementById("tab-" + id), sec = document.getElementById(id);
       if (!tab || !sec) return;
+      // the music's playlist scrolls on its own, under the player, and takes what a taller window gives
       d.add(sec, { id: "tab-" + id, title: tab.getAttribute("aria-label"), closable: true, closed: true, body: true, lift: true,
+        scroll: id === "music" ? ".mu-list" : null,
+        minHeight: id === "music" ? function () { return window.ByopopMusicPanel && ByopopMusicPanel.minHeight ? ByopopMusicPanel.minHeight() : 0; } : null,
+        // closing Music stops it and lets its sound go (web/music.js, shutdown); minimizing keeps it playing
+        afterClose: id === "music" ? function () { if (window.ByopopMusicPanel && ByopopMusicPanel.shutdown) ByopopMusicPanel.shutdown(); } : null,
         pic: tab.querySelector("svg"), at: function (left, vw) { return [Math.max(left, vw - 620) - i * 28, top() + 24 + i * 28]; } });
     });
+    // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
+    if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>
     if (siteSettingsView) siteSettingsView.sections.forEach(function (r, i) {
-      d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true,
+      d.add(r.el, { id: "set-" + r.id, title: r.name, icon: r.small, closable: true, closed: true, body: true, lift: true, noIcon: true, whatsThis: true,
         at: function (left, vw) { return [Math.max(left, vw - 560) - (i % 5) * 24, top() + 60 + (i % 5) * 24]; } });
     });
+    // The chat: one window for every game (the user, 2026-11-09: "Let's just have a single chat window instead of waiting for
+    // it to load with each game"), built when it first opens and kept running while games open and close. It sits at the
+    // desktop's right edge, 300 pixels wide, so a game's window at the left and the chat are side by side from 1280 pixels
+    // wide; it comes up with the first game the page opens (unless "Show chat" is off) behind that game's window, and in
+    // front only when the player brings it there. What the player sends is tagged with the game in front (ByopopApps.frontGame),
+    // or with none while no game is open.
+    var chatEl = document.getElementById("chat"), chat = null, chatShown = false;
+    function startChat() {
+      if (chat || !window.ByopopChat) return;
+      try {
+        chat = ByopopChat.mount(chatEl, { visible: true,
+          game: function () { try { return window.ByopopApps ? ByopopApps.frontGame() : ""; } catch (e) { return ""; } },
+          games: typeof ByopopGames !== "undefined" ? ByopopGames : [],
+          iconOf: function (id) {
+            var r = typeof ByopopGameFiles !== "undefined" ? ByopopGameFiles.all()[id] : null;
+            return r && ByopopGameFiles.present(r) && r.icon ? r.icon : "";
+          } });
+        // its collapser has no part in a window that minimizes: open, whatever a game's page left
+        if (chatEl.classList.contains("chat-collapsed")) chat.setCollapsed(false);
+      } catch (e) { console.warn("the chat could not start", e); }
+    }
+    if (chatEl && window.ByopopChat) {
+      var chatPic = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      chatPic.setAttribute("viewBox", "0 0 24 24"); chatPic.setAttribute("class", "tab-icon");
+      chatPic.innerHTML = '<path d="M4 5h16v11H9l-4 4v-4H4z"/>';
+      d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true, pic: chatPic,
+        scroll: ".bpc-log", at: function (left, vw) { return [Math.max(left, vw - 312), top()]; } });
+      window.addEventListener("byopop-desk-active", function (ev) {
+        var id = ev.detail && ev.detail.id;
+        if (id === "chat") { startChat(); return; }
+        // a game's window: the chat comes up behind it, the first time
+        if (chatShown || !id || !/^app-/.test(id) || !window.ByopopApps || !ByopopApps.frontGame()) return;
+        chatShown = true;
+        var showChat = "on"; try { showChat = ByopopSettings.get("showChat"); } catch (e) {}
+        if (showChat === "off" || !d.find("chat").closed) return;
+        setTimeout(function () { d.openWin("chat"); d.openWin(id); }, 0);
+      });
+    }
     d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,
       at: function (left, vw) { return [Math.max(left, vw - 500), top() + 220]; } });
     ByopopSkin.deskSync();
     // the page opened at #settings and the like: that tab's window (the tabs' script ran before these windows were added)
-    if (/^#(settings|players|saves|music)$/.test(location.hash)) d.show("tab-" + location.hash.slice(1));
+    if (/^#(settings|music)$/.test(location.hash)) d.show("tab-" + location.hash.slice(1));
+    if (location.hash === "#sounds") d.show("sounds");
     // a game's window closed on its page: All games open and in front (web/shell.html, closeProgram)
     var want = null;
     try { want = sessionStorage.getItem("byopop-desk-open"); sessionStorage.removeItem("byopop-desk-open"); } catch (e) {}
-    if (want === "games") d.show("games");
-    var sec = /^#settings-([a-z]+)$/.exec(location.hash);
+    if (want === "games") d.show(ByopopSkin.gamesWindow ? ByopopSkin.gamesWindow() : "games");
+    var sec = /^#settings-([a-z]+)$/.exec(settingsHash(location.hash));
     if (sec && d.find("set-" + sec[1])) { d.show("tab-settings"); d.show("set-" + sec[1]); }
   })();
 } catch (e) { console.warn("the desktop's windows could not be added", e); }
 </script>
+<!-- Desktop 95 in one page: the pages of the site as windows on the desktop (web/deskapps.js) -->
+<script src="deskapps.js"></script>
 </body>
 </html>

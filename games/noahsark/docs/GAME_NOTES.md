@@ -56,7 +56,7 @@ Work notes while the translation is written (see Board.h for the final field nam
 - A pair is removed by a path of empty cells (`Reachable`, breadth-first; `SearchPath`, depth-first with a cost bound,
   gives the trail that is drawn). The pieces walk along the trail toward each other and are taken in within 5 pixels;
   removed pieces then fly to the ark (speed 5.3). Combos lower the water. Strategy mode has gravity and pushes a new row
-  in (`PushRow`); puzzle mode is match-3 (`MarkRuns`, `RefillPuzzle`); the stampede bonus removes groups of three or
+  in (`PushRow`); puzzle mode is match-3 (`MarkRuns`); the stampede bonus removes groups of three or
   more while the columns close in on the middle.
 - Drawing Noah (`Board::Draw`): two flags choose his picture, the board's `mNoahWorried` (+0x35c) and `mArkLeaving`
   (+0xe15). Normal play uses his idle sprites (first image 62 plus a frame); once worried, his climbing frames
@@ -208,3 +208,189 @@ the registry reader at 0x42d229 is `KEY_READ` instead of read and write: with on
 stayed 0 and the title showed no link, and it became 1 once the open asked for read access only (the open for read and write
 presumably failed without elevation; not checked). With the three, the title shows its link at update 104.
 <!-- /private -->
+
+### The performance pass (2026-11-09)
+
+**What the profile showed.** `tools/profile/prof.sh` runs Bejeweled's sampling profiler (`cpuprof.py`: every thread's instruction
+pointer about once a millisecond, weighted by cycles) on the port under rundesk. During play the game's own code is a small part of
+the processor time: in a real-time minute the exe is about 2 %, the rest is the operating system's and the graphics driver's work
+(ntdll 87 %, nvwgf2um 5 %), which the game's code cannot make cheaper. At start-up it was different: before the title screen the
+port decoded all 82 pictures (72 ms) and all 34 sounds (about 100 ms) whether the game used them or not, which was also
+18 MB of memory at the title. The rest of the 0.8 s is the framework's start-up (`SexyApp::Init`: the window and the
+graphics device, 250 to 310 ms) and the process's own start, which are shared code (see the spec below).
+
+**What changed: pictures and sounds are loaded at their first use** (the way Mummy Maze's port does it, commit b5d51336). `NoahApp`'s
+`mImages` is an `ImageTable`: indexing it gives the picture, decoded on the first request, and the loading bar still counts the
+sounds as before (`LoadingThreadProc` adds their number to the bar's completed tasks at once). `NoahApp::PlaySample` loads
+the sound on its first play (`LoadSoundOnce`); the mixer decodes outside its lock and registers the sound inside it
+(`Platform::Mixer::LoadSoundData`), so a first play in the middle of a game is safe. Which pictures and sounds are used, and in what
+order, is the game's, so every draw, every random number and every screen is the same as before.
+
+**Deviations of this change** (each listed because the original loads all of them first): a picture that is missing or bad is told at
+its first use instead of at start (the same popup, the game ends, and a blank 1x1 picture stands in for that one frame), and a sound
+that is missing stays silent instead of being told at start; the first use of a picture or sound costs its decode in that frame,
+once. Nothing shows in the game's files as shipped.
+
+**Proof that play is unchanged.** `tools/check.sh noahsark` passes with the frozen baseline identical (the bot's action, strategy and
+puzzle games end on the same updates with the same scores, the rerun is identical and the baseline is identical). Besides
+that, the same action game with `BYOPOP_SOUNDLOG` set played the same sounds on the same updates before and after (417 plays;
+`tools/soundcmp.py` lines up the two logs and takes the new `load` lines out), and the autoplay log and the state log of the
+bot's game are byte for byte the same.
+
+**Numbers, native, before and after.** The first measurements (section 10 above) were taken with other sessions' games running, and a
+before-block and an after-block taken minutes apart were not comparable, so these are twelve pairs run in turn (before, after,
+before, ...; `tools/profile/loadpairs.sh`) with other sessions' games running (the machine busy 33 to 100 %, median 45 % before and 41 % after). "Before" is the port as
+merged at 6d7b2b79, "after" this pass's build; `PORT_EXE` makes `perf.py` run another exe.
+
+| First screen that takes input (the title's play link), 12 pairs | Before | After |
+|---|---|---|
+| Seconds from the process's creation, median | 0.99 | 0.60 |
+| Fastest run | 0.62 | 0.46 |
+| Pairs in which the after run was faster | | 11 of 12 (median difference -0.37 s) |
+| Private bytes at the title, median | 56.0 MB | 38.2 MB |
+| Processor time until the title, median | 0.62 s | 0.44 s |
+
+Four runs of the 24 took 3.9 to 50 s because another session's heavy run was on the machine at that moment (the before runs of
+pairs 1, 2 and 4 and the after run of pair 12); they stay in the medians. The medians of the eight pairs in which both runs were under 3 s are
+0.93 s before and 0.54 s after. The original's 2.12 s in the table above was measured in another hour and is not compared to
+these directly; both of the port's figures stay below it.
+
+The scripted minute (the table above, 6000 updates of the bot's game on the real clock), run twice before and twice after: updates
+per second 105.2 and 105.2 before, 104.3 and 103.8 after (the clock paces them, so this is the same); processor time in the minute
+8.8 and 7.3 s before, 7.95 and 7.95 s after (the machine was busier than at the first measurement, which gave 5 s, and the
+spread is the machine's, not a difference of the change); peak private bytes in the minute 70.8 and 69.1 MB before, 63.0 and
+66.1 MB after (the pictures and sounds the minute never reaches stay undecoded). An uncapped run of the whole bot game (`-fast`,
+7401 updates, five pairs, the framework's own "Seconds" figure) took a median of 1.57 s before and 1.34 s after, inside the
+spread of the runs (1.28 to 1.75 s before, 1.10 to 1.77 s after).
+
+WEBNUMBERS
+
+**Spec for the coordinator (shared code, not done here).** About 0.3 s of the port's 0.6 s start is `SexyApp::Init`: creating the window
+and the graphics device (250 to 310 ms in the profile). A start that shows the window at once and creates the device after it, or
+in the background while the game builds its tables, would take part of that from every game; it changes what the framework does at
+start and is the coordinator's.
+
+**Tools of the pass** (all in `tools/profile/`): `prof.sh <name> <seconds> <script>` (the sampling profile of the port under rundesk,
+waiting for room), `perfpass.sh` (the pairs of the minute and the load, before and after), `loadpairs.sh [pairs]` (the interleaved load
+pairs), `webpairs.sh <before dir> <pairs>` (the web build's pairs under Node) and `perf.py`'s `PORT_EXE`.
+
+**Code taken out** (the second part of the pass, after the coverage check's candidates): `Board::RefillPuzzle` (0x4061d0) and
+the puzzle branch of `Board::EnsureMoves`, which the new level code never reaches (it calls `EnsureMoves` only for modes other than
+puzzle and Stampede); the comment in `EnsureMoves` says so. The suite passes with the baseline identical. The rest of the port's
+functions were all reached by the original's runs (section 11), apart from `AbandonPair` and `TriggerNoMoves`, which a board with no
+pair left reaches and which were read again against the export; the fields named `Unused` stay because the original's objects and
+save files keep them.
+
+## 11. Coverage check (2026-11-08)
+
+The coverage check of `docs/COVERAGE.md`, the second game's whole one after Ning Po's. origrun's `--coverage` recorded which of the
+original's functions ran in 15 runs on the host (`tools/coverage/run.sh` starts a run, `all.sh` is the list of them; the hits are in
+`build/coverage/noahsark/hits/`). Fourteen were on the virtual clock with no sound device, one on the real clock with the
+silent stand-in, and every one of them ended with the game exiting:
+
+- the identical-play cases: an easy and a hard action game (`act_e`, `act_h`), strategy (`str_e`, `str_h`) and puzzle (`puz_e`, `puz_m`),
+  each played by the port's bot and replayed in the original as clicks (`tools/origrun_replay.py`);
+- two games lost on purpose (`lose_act`, `lose_str`: the bot stops moving at update 800, the water comes up and the game over screen
+  follows) and two that end in a ranked score, so that the name entry and the high score list run (`rank_act`, `rank_puz`: the bot
+  plays on to a score the table keeps; `REPLAY_TEXT_DELAY=3` types the name three updates later in the original, which takes the name
+  one update later than the port);
+- the Stampede (`stamp`): a Stampede is never started by a menu, so the run loads a saved game of it (`SAVE=` in `run_original.sh`
+  stages a save file as the copy's `data/savegame.dat`) and plays the three levels out;
+- the dialogs tour (`dialogs`): both sliders, the hint box, Help (which closes Options in the original: see below), High Scores and
+  Credits from Options, the quit question from play and from the menu answered no and then yes, Continue, a lost and regained
+  focus, then the strategy and puzzle intros;
+- the real-clock tour (`rt`): a played minute of an action game on the real clock, for the sound code;
+- the drags (`drag_puz`, `drag_act`; `tours/drag_puz.txt`, `tours/drag_act.txt`), added after the first thirteen, once origrun's moves
+  carried the held button's flag (865a602e): a `down`, moves and an `up`, each at an update of its own. In the puzzle: a drag onto a
+  neighbour (the swap, and the swap back), a move during the swap, a drag two cells away that drops the pick, then a drag that picks the
+  animal it reaches and goes on to swap it. In the action mode: a link dragged from (0,1) to (0,0), a move inside the cell, back onto
+  the first animal (the link taken back), on to (0,2) (linked again), onto another kind and onto an animal it cannot reach (nothing), and
+  the release (the pair joined); then the Options sliders, each pressed at its thumb and dragged to the left.
+
+`games/noahsark/coverage.txt` sets the game's own code as one range, 0x401000-0x420d10 (Board, the dialogs, the screens, NoahApp and
+the compiler's copies of the standard library): 258 functions. The rest of the exe is the 2002 SexyApp framework (from Widget at
+0x421d60), the C runtime and the libraries. The first report, from ten of the runs, had the runs reach 205 of the 258 and the port
+define 142 of them; the last one, from all 15, has them reach 221 and the port define 169.
+
+**Reached in the original with no counterpart in the port: 79 at first, 0 at the end.**
+
+- **Placed: 24.** Functions the port translates inline or in another shape got their address in the comment above the function that
+  holds them: the destructors and manager hooks of the dialogs and widgets (`AddedToManager`, `RemovedFromManager`, `Resize`,
+  `GetPreferredHeight`), the clearing of the fish and bubbles inside `NewLevel`, the combo flags in `ConnectPair`, `WinMain` in
+  `main`, `UpdateFrames`, `LostFocus`, and the nine-patch box draw that the original has twice (0x4126d0 and 0x416160, byte for byte)
+  and the port holds once as `DrawImageBox2003`. Comments only.
+- **Left out on purpose: 53 at first, as `none` lines in coverage.txt with their reasons** (the later runs added a few more; 78 functions
+  are left out in all, the registration dialog's nine among them): the registration dialog and its two helpers (taken out, section 9);
+  the ten compiler-made scalar deleting destructors; the framework's default overrides, which the port's classes inherit; the
+  original's own `std::string`, `std::vector`, `std::list` and `std::map` instantiations (MSVC 6), which the port's standard library
+  replaces; the global NoahApp object's start-up and exit glue (the port's `main` makes and deletes the app); and 0x41d3b0, the Options
+  check boxes' handler for a display on which windowed mode cannot be restored (the port's SDL window can always switch back).
+- **Missing: three, all translated.**
+  - **Help in the Options dialog closes Options first** (the original's Help button reaches the mode intro's creator): it applies the
+    full screen and hint boxes, closes the dialog and then shows the intro for the current mode. The port's `ShowModeIntroDialog` left
+    Options open under the intro, so the click chain of the dialogs tour (Help, OK, Options, High Scores...) went another way. Now the
+    same, at the top of `ShowModeIntroDialog`.
+  - **A game in progress is saved when the app is destroyed** (`NoahApp`'s destructor, 0x4169e0). The original's destructor runs at the
+    end of `WinMain`, so closing the window during a game saves it and the menu then offers Continue. The port's `~NoahApp` deleted
+    the board unsaved (`SaveGame` already returns early on the game over screen). Now it saves first, as the original does.
+  - **`HighScoreWidget`'s destructor writes hiscores.dat** (0x411e20). The original's `AddScore` does not save: the file is written
+    when the widget is destroyed, on leaving the screen or at exit, and it creates the file when none exists. The port's `AddScore`
+    saved at once and its destructor only deleted the link. The destructor now saves too; the `Save()` in `AddScore` stays, for the web
+    build, which never deletes the app. The table in memory and in the file after a recorded score is the same either way.
+- **Left open: none.**
+
+**Defined in the port, never reached: 3 at the end** (the later runs and the placed addresses cleared the rest):
+
+- **`Board::MouseDrag` (0x40f710): rewritten, and now run in the original.** The re-read found six slips against the export. In puzzle
+  mode a drag from the picked animal onto a neighbour swaps the two at once in the original; the port ignored the drag, so the player had
+  to release and click the neighbour. The link drag left the animal dragged from selected where the original selects the one dragged
+  onto, played no sound, neither took the hint away nor noted the time of the move, and let a path that `BuildTrail` fails to make stop
+  the link. All six are now as the original, and the puzzle swap is one helper (`Board::PuzzleSwap`) for the click and the drag. The
+  suite and the frozen baseline are unchanged (the clicks and the bot do not drag). `drag_puz` and `drag_act` reached 0x40f710 and
+  0x40f3a0 (the two statements that note the mouse position, placed above `MouseDrag`), and the same scripts played in the port
+  (`-script`, the same updates; the port's `state` shows the board, the phase and the score at the updates asked for, not the selection
+  or the link) agree with what the original's watched values show: the puzzle's swap comes the update after the move
+  (the two cells' kinds trade at counter 746 in the original), the swap back follows 25 updates later and the board plays again 26
+  after that; the pick dropped by the move two cells away, the animal picked by the next move and the swap with the one below it come
+  at the same updates; the link takes the animal dragged onto as the selected one, the move inside its cell changes nothing, the move
+  back onto the first animal empties the link and selects the first again, the move on to (0,2) links from it, the other kind and the
+  unreachable animal change nothing, and the release joins the pair (the score 0 to 10, the board's two cells gone) in both. Before the
+  rewrite the port did none of the puzzle drag. `tools/coverage/dragtest.py` also drags the port's board with real `down`, `move` and
+  `up` events through the real-input path (a swap, and nothing for a drag two cells away). Two things the first try of the scripts
+  showed: the get-ready click picks the animal under it in both, so the tours click outside the board to put it back before dragging;
+  and a press on the board with an animal picked drops the pick (the click path's second step), which is the original's too.
+- **`OptionsDialog::SliderVal` (0x41d370): reached by `drag_act`**, which presses each slider at its thumb (the thumbs are near the
+  right end: the music's at about (517,113), the effects' at (517,145)) and drags it to the left. The original calls it, and it
+  matches the export (the music volume for slider 0, the effects' for slider 1). The port's own slider is the framework's, shared with
+  every game; its dialog is laid out differently from the original's (21 px lower, 42 px shorter), so the original's tour is not
+  replayed in it.
+- **`Board::AbandonPair` (0x4067e0) and `Board::TriggerNoMoves` (0x4074c0):** reached only by a board with no pair left, which none of
+  the 15 runs came to. Both were read again line by line against the export and match, including the points taken, the water's move and
+  the sample played.
+- **Taken out (2026-11-09, the performance pass's second part): `Board::RefillPuzzle` (0x4061d0) and the puzzle branch of
+  `Board::EnsureMoves`.** The original's only caller of `EnsureMoves` is the new level code, which calls it only for modes
+  other than puzzle (4) and Stampede (5), so the branch that calls `RefillPuzzle` never runs in either. The port had the same guard;
+  the function and the branch are gone, with a comment where the branch was, and the suite passes with the baseline identical.
+  (The read also found that the port moves a falling animal up by swapping two pointers where the original makes a
+  new piece and deletes the old one, and sets `mY` of both cells, which the original does not: it cannot matter while the code is
+  unreached.)
+
+**Tool specs for the coordinator.** None left. The first version of this section asked for a `drag` command; origrun's `down`, `move` and
+`up` at updates of their own do it once its moves carry the held button's flag (865a602e), and that is what the two drag runs use. The
+host takes no screenshots, so the original's Options dialog, which is taller than the port's drawing suggested, had to be measured in
+Windows Sandbox (`SANDBOX=1 tools/run_original.sh`) before the clicks of the dialogs tour landed.
+
+**Other differences found while reading, none with a visible effect and none changed:**
+
+- The original's `Board` destructor leaks the elements of the texts and sparkles vectors and calls `InitGrid` at the end, which allocates
+  90 pieces that nothing frees; the port's `~Board` frees more (the leaks of the original are fixed in the port).
+- 0x402de0 (clear the fish) ends with a call of Widget's ninth slot (the 2002 dirty-rectangle drawing's flag) with 0, and the fish's
+  creator 0x408df0 with 1; the port has no such flag and calls `MarkDirty()` instead.
+- `OptionsDialog::SetColor` (0x41cd40) colours five buttons in the original and three in the port (the Register and Web buttons are gone,
+  section 9). `~TitleScreen` deletes the "register now" link too.
+- `NoahApp::UpdateFrames` (0x418c00) sets a flag at +0x450 that nothing reads.
+- `Board.h` had the fish vector at +0xd94; it is at +0xda4 in the original (the one at +0xd94 is never used). Comment corrected.
+
+**Cost.** The original ran for about 20 minutes of machine time all together, and the wait for room (at most 3 game processes on the
+machine) took more than that. Sonnet agents sorted the first report's 79 rows (17 minutes, 338k tokens) and read the five port
+functions again (10 minutes, 217k tokens); the rest was this session's, with a few sandbox runs for the Options layout.

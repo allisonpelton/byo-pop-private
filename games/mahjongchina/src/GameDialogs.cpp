@@ -296,7 +296,7 @@ bool EscapeMenu::OnCommand(int theCmd)
 	return true;
 }
 
-// 0x407f10
+// 0x407cd0
 LevelDone::LevelDone(int theTime, int theScore, const char* theNextTitle) : Dialog(0x7d, 0x96),
 	mNextTitle(theNextTitle)
 {
@@ -304,7 +304,7 @@ LevelDone::LevelDone(int theTime, int theScore, const char* theNextTitle) : Dial
 	mScore = jb::FormatNumber(theScore);
 }
 
-// 0x408040
+// 0x407ee0
 void LevelDone::Create()
 {
 	int aLeft[] = {3, 3, 0};
@@ -329,7 +329,7 @@ void LevelDone::Create()
 	jb::PlaySound(0x175);
 }
 
-// 0x408240
+// 0x407ff0
 bool LevelDone::OnCommand(int theCmd)
 {
 	if (theCmd - 1 != 0)
@@ -339,7 +339,7 @@ bool LevelDone::OnCommand(int theCmd)
 	return true;
 }
 
-// 0x408380
+// 0x408270
 void LevelDoneScroll::Draw()
 {
 	DrawImage(0, 0, 0x12d, nullptr, true, 100, 100, mAlpha);
@@ -348,7 +348,7 @@ void LevelDoneScroll::Draw()
 		false, mAlpha);
 }
 
-// 0x408410
+// 0x4084e0
 void LevelDoneScroll::Init()
 {
 	mNextLabel = jb::LoadDllString(0x22);
@@ -357,7 +357,7 @@ void LevelDoneScroll::Init()
 	RegUpdate(true);
 }
 
-// 0x408470
+// 0x4085f0
 bool LevelDoneScroll::Update()
 {
 	if (0 < mDelay)

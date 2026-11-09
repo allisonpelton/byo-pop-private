@@ -21,7 +21,8 @@ ADDR = re.compile(r'\b0x([0-9a-fA-F]{5,8})\b')
 FUNC_DEF = re.compile(r"^(?!\s)(?!(?:if|for|while|switch|return|else|do|case|default|namespace|class|struct|enum|"
                       r"union|typedef|using|template|public|private|protected|#)\b)"
                       r"[\w:<>,*&~ \[\]]*?\b((?:\w+::)*~?\w+|operator\s*\S+)\s*\(")
-SOURCES = ('.cpp', '.c', '.h', '.hpp', '.inl')
+SOURCES = ('.cpp', '.c', '.h', '.hpp', '.inl', '.inc')
+TEMPLATE_HEAD = re.compile(r'\s*template\s*<[^;{]*$')
 
 
 def die(msg):
@@ -30,8 +31,9 @@ def die(msg):
 
 def settings(game):
     """games/<game>/coverage.txt: export <path>, src <dir> (more than one allowed), game <lo>-<hi> (more than one
-    allowed), none <addr or lo-hi> <reason>. Paths are relative to the repository."""
-    cfg = {'export': None, 'src': [], 'game': [], 'none': []}
+    allowed), none <addr or lo-hi> <reason>, addrmap <tsv> <from column> <to column>. Paths are relative to the
+    repository."""
+    cfg = {'export': None, 'src': [], 'game': [], 'none': [], 'addrmap': None, 'unmapped': {}}
     path = os.path.join(REPO, 'games', game, 'coverage.txt')
     if os.path.isfile(path):
         for n, line in enumerate(open(path, encoding='utf-8'), 1):
@@ -51,6 +53,11 @@ def settings(game):
                 if not why.strip():
                     die('%s:%d: a "none" line needs its reason' % (path, n))
                 cfg['none'].append((span(where, path, n), why.strip()))
+            elif key == 'addrmap':
+                words = rest.split()
+                if len(words) != 3 or not words[1].isdigit() or not words[2].isdigit():
+                    die('%s:%d: addrmap <tsv> <from column> <to column>' % (path, n))
+                cfg['addrmap'] = (words[0], int(words[1]), int(words[2]))
             else:
                 die('%s:%d: unknown setting %r' % (path, n, key))
     if not cfg['export']:
@@ -87,7 +94,7 @@ def load_export(cfg):
 def is_definition(lines, index):
     """A definition: its parameter list closes and a '{' (or ': init') follows before any ';'."""
     text = ''
-    for k in range(index, min(index + 12, len(lines))):
+    for k in range(index, min(index + 80, len(lines))):   # 80: a constructor's initializer list can be long
         text += lines[k] + '\n'
         brace, semi = text.find('{'), text.find(';')
         if brace >= 0 and (semi < 0 or brace < semi):
@@ -151,11 +158,40 @@ def declaration_end(codes, index):
     return None
 
 
+def load_addrmap(cfg):
+    """The addrmap setting's table as {from address: to address}: a port whose comments carry another edition's addresses
+    (Mahjong Escape: Ancient China's, which still has Ancient Japan's) is matched through it. Columns count from 1 and
+    hold hex addresses with or without 0x; rows of data as well as functions belong in it, so that a global's address
+    is not listed as unmapped."""
+    if not cfg['addrmap']:
+        return None
+    tsv, fc, tc = cfg['addrmap']
+    amap = {}
+    for line in open(os.path.join(REPO, tsv), encoding='utf-8'):
+        cols = line.rstrip('\r\n').split('\t')
+        if len(cols) < max(fc, tc):
+            continue
+        try:
+            amap[int(cols[fc - 1], 16)] = int(cols[tc - 1], 16)
+        except ValueError:
+            continue   # a header
+    return amap
+
+
 def port_sites(cfg, fns):
     """addr -> sites, where a site is (kind, path, line, name): kind 'def' for the comment block just above a function's
     definition or declaration (or the comment on its own line), 'inside' for an address within a function that is not
     its entry, 'mention' for any other comment."""
     starts = sorted(fns)
+    amap = load_addrmap(cfg)
+
+    def mapped(a, rel, line):
+        if amap is None:
+            return a
+        if a in amap:
+            return amap[a]
+        cfg['unmapped'].setdefault(a, (rel, line))   # stays as it is, and the report lists it
+        return a
 
     def owner(a):
         if a in fns:
@@ -208,12 +244,15 @@ def port_sites(cfg, fns):
                     continue
                 block = [i]   # the comment on the line itself counts too
                 j = i - 1
+                while j >= 0 and TEMPLATE_HEAD.match(codes[j]):   # a template's head is part of the declaration
+                    block.append(j)
+                    j -= 1
                 while j >= 0 and not codes[j].strip() and comments[j].strip():
                     block.append(j)
                     j -= 1
                 for k in block:
                     for h in ADDR.findall(comments[k]):
-                        a, entry = owner(int(h, 16))
+                        a, entry = owner(mapped(int(h, 16), rel, k + 1))
                         if a is not None:
                             sites[a].append(('def' if entry else 'inside', rel, i + 1, m.group(1)))
                             used.add((k, h))
@@ -221,7 +260,7 @@ def port_sites(cfg, fns):
                 for h in ADDR.findall(c):
                     if (k, h) in used:
                         continue
-                    a, entry = owner(int(h, 16))
+                    a, entry = owner(mapped(int(h, 16), rel, k + 1))
                     if a is not None:
                         sites[a].append(('mention' if entry else 'inside', rel, k + 1, ''))
     return sites
@@ -230,20 +269,31 @@ def port_sites(cfg, fns):
 def read_hits(paths):
     hits, runs = {}, []
     for p in paths:
-        n, ended, watched = 0, False, None
+        n, ended, watched, code, stopped = 0, False, None, None, False
         for line in open(p, encoding='utf-8', errors='replace'):
             line = line.strip()
             if line.startswith('#'):
                 ended = ended or 'ended normally' in line
                 m = re.search(r'(\d+) functions watched', line)
                 watched = int(m.group(1)) if m else watched
+                m = re.search(r'exited with code 0x([0-9A-Fa-f]{8})', line)   # origrun's line, since 2026-11-09
+                code = int(m.group(1), 16) if m else code
+                stopped = stopped or 'stopped the game at its timeout' in line
                 continue
             if not line:
                 continue
             a = int(line.split()[0], 16)
             n += 1
             hits[a] = hits.get(a, 0) + 1
-        runs.append((p, n, ended, watched))
+        if ended:
+            how = 'the game exited'
+        elif code is not None:
+            how = 'it crashed (0x%08X)' % code if code >= 0xC0000000 else 'the game exited with code %d' % code
+        elif stopped:
+            how = 'origrun stopped it (a timeout)'
+        else:   # a hits file from before origrun said how a run ended
+            how = 'origrun stopped it (a timeout), or it crashed'
+        runs.append((p, n, how, watched))
     return hits, runs
 
 
@@ -293,10 +343,9 @@ def report(game, hit_paths, out):
         game, datetime.date.today().isoformat(), len(runs), '' if len(runs) == 1 else 's', cfg['export'],
         ', '.join('`%s`' % s for s in cfg['src'])))
     w('| Run | Functions reached | How it ended |\n|---|---:|---|\n')
-    for p, n, ended, watched in runs:
+    for p, n, how, watched in runs:
         w('| `%s` | %d%s | %s |\n' % (os.path.relpath(p, REPO).replace('\\', '/'), n,
-                                      ' of %d watched' % watched if watched else '',
-                                      'the game exited' if ended else 'origrun stopped it (a timeout), or it crashed'))
+                                      ' of %d watched' % watched if watched else '', how))
     span_txt = ', '.join('%08x-%08x' % s for s in cfg['game']) if cfg['game'] else 'the whole exe'
     w('\nThe game\'s own code (%s) has %d functions. The runs reached %d of them, the port defines %d, and %d are '
       'left out on purpose (`games/%s/coverage.txt`).\n\n' % (span_txt, len(game_fns), len(reached), len(with_def),
@@ -352,6 +401,16 @@ def report(game, hit_paths, out):
             w(row(a, callers(a).replace('|', '\\|')))
     else:
         w('None.\n')
+    if cfg['addrmap']:
+        un = cfg['unmapped']
+        w('\n## Not in the address map\n\nThe port\'s addresses that `%s` has no row for, so they were matched as they '
+          'are: code only this edition has, or functions of the other edition that this one lacks.\n\n' % cfg['addrmap'][0])
+        if un:
+            w('| Address | First at |\n|---|---|\n')
+            for a in sorted(un):
+                w('| %08x | %s:%d |\n' % (a, un[a][0], un[a][1]))
+        else:
+            w('None.\n')
     if left_out:
         w('\n## Left out on purpose\n\n| Address | Name | Size | Reached | Reason |\n|---|---|---:|---|---|\n')
         for a in sorted(left_out):

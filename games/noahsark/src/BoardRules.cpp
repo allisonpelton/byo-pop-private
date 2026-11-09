@@ -352,7 +352,8 @@ void Board::UpdateSparkles()
 }
 
 // 0x407600: the pair in mLink has been joined: score it (a run of the same kind scores a combo and lowers the
-// water), and let both walk towards each other along their paths
+// // water), and let both walk towards each other along their paths. The assignments to mComboShownAt and mComboShown
+// are the original's small setter, 0x407440.
 void Board::ConnectPair()
 {
 	// the original returns only for an empty link (a vector of 0 bytes), not for a single animal
@@ -601,63 +602,6 @@ void Board::FloodGroup(int theX, int theY)
 			}
 		}
 	}
-}
-
-// 0x4061d0: puzzle mode: let the animals fall into the holes and drop new ones from the top
-void Board::RefillPuzzle()
-{
-	bool aChanged;
-	do
-	{
-		aChanged = false;
-		for (int x = 0; x < 9; x++)
-		{
-			for (int y = 8; y >= 0; y--)
-			{
-				Piece* p = mGrid[x][y];
-				if ((p != NULL) && ((p->mType < 0xd) || (p->mType == PIECE_BLOCK)) && !p->mRemoved && !p->mFading &&
-					!p->mMoving && (y < 8))
-				{
-					Piece* aBelow = mGrid[x][y + 1];
-					if ((aBelow->mType == PIECE_EMPTY) || aBelow->mRemoved || aBelow->mFading ||
-						(aBelow->mMoving && ((aBelow->mX != x) || (aBelow->mY != y + 1))))
-					{
-						std::swap(mGrid[x][y], mGrid[x][y + 1]);
-						mGrid[x][y]->mY = y;
-						mGrid[x][y + 1]->mY = y + 1;
-						aChanged = true;
-					}
-				}
-			}
-		}
-		if (mApp->mGameMode == GAMEMODE_PUZZLE)
-		{
-			for (int x = 0; x < 9; x++)
-			{
-				if (mGrid[x][0]->mType == PIECE_EMPTY)
-				{
-					int aKinds = mApp->mLevel + 3;
-					if (aKinds < 0xe)
-					{
-						if (aKinds < 7)
-							aKinds = 7;
-					}
-					else
-						aKinds = 0xd;
-					Piece* p = mGrid[x][0];
-					p->mType = CrtRand() % aKinds;
-					p->mFallSpeed = -6;
-					p->mY = 0;
-					p->mPixelY = (float) CellTop(0);
-					p->mOffsetY = -0x32;
-					if (mGrid[x][1]->mOffsetY < 0)
-						p->mOffsetY += mGrid[x][1]->mOffsetY;
-					aChanged = true;
-				}
-			}
-		}
-	}
-	while (aChanged);
 }
 
 // 0x402260: puzzle mode: mark every run of three or more and, if theAnimate, take them out (the animals leave

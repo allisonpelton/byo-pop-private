@@ -38,7 +38,7 @@ get_filename_component(BYOPOP_WEB_FOOTER_CSS "${CMAKE_CURRENT_LIST_DIR}/../web/f
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopStores.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/ByopopOthers.cmake)
 # the site's logo and icons (web/brand; docs/WEB_PLAYER.md), copied next to the pages, which link them
-set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-dark.svg cap.svg opener.svg)
+set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg cap.svg)
 # web/settings.js, the site's settings and the record of which games have their files (docs/WEB_PLAYER.md, "Site
 # settings", "The listing page"): one file that the listing page and every game page load. web/profiles.js keeps the site's
 # players and what the games report of theirs ("Player profiles"); the listing page and the game pages load it too.
@@ -51,12 +51,13 @@ set(BYOPOP_WEB_BRAND favicon.svg favicon.ico apple-touch-icon.png logo.svg logo-
 # games of its own. web/testkit.js is the player-only page's test tools, which a game page loads only at ?player=1 on a
 # development host (docs/WEB_PLAYER.md, "The player-only page"). web/skins.js and web/skins.css are the site's skins ("Skins").
 # web/settingsicons.js holds the Settings sections' icons, drawn by tools/settingsicons.py.
-set(BYOPOP_WEB_SHARED_JS theme.js logo.js cursors.js capanim.js settingsicons.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js skins.css perf.js view.js controldata.js controls.js clips.js)
+set(BYOPOP_WEB_SHARED_JS logo.js cursors.js settingsicons.js settings.js profiles.js exeicon.js gameimport.js chat.js testkit.js skins.js skins.css perf.js view.js controldata.js controls.js clips.js)
 # the listing page's own scripts: the Players section (web/players.js), the save backup (web/saves.js) and the import of
 # saves from an installed game (web/saveimport.js, with the table platform/saveimport.json as saveimport-table.js), and the
 # adding of games' files (web/addgames.js, with web/modpanel.js for its zip and pak readers, and import-games.js, each listed
-# game's page.js, which byopop_web_index() writes), copied next to index.html only
-set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js)
+# game's page.js, which byopop_web_index() writes), and Desktop 95's soundboard (web/sounds.js, with its table web/soundboards.js),
+# copied next to index.html only
+set(BYOPOP_WEB_INDEX_JS players.js saves.js saveimport.js modpanel.js addgames.js music.js soundtracks.js sounds.js soundboards.js deskapps.js library.js)
 # The listing page, build/web/index.html (made from web/index.html by byopop_web_index() at the end of this file): one
 # tile for each game in BYOPOP_WEB_FINISHED, in alphabetical order of TITLE (not this list's order; the page can sort by
 # release date instead), with a badge and the year of its release. The list is the coordinator's: the coordinator adds a
@@ -112,7 +113,10 @@ set(BYOPOP_WEB_BADGES
 # Desktop 95's "Windows 95 games only" setting lists only the games that "actually supported Windows 95. That info is in the
 # README for most games"). Each row has, in the comment above it, the file of the game's own that says so (its readme's system
 # requirements); only the fact is kept here, never the readme's text. A game without a row is unknown, and an unknown game is
-# hidden while the setting is on. A row whose value is not yes, no or unknown is a configure error.
+# hidden while the setting is on. A game released before the last one whose readme names Windows 95 (TipTop, 2002-12-12 in
+# BYOPOP_WEB_RELEASED) is yes whatever its readme says (the user, 2026-11-08: "Anything released before the last game that did
+# support Windows 95, we'll assume supported 95"), as the readmes found for those are mostly of later re-releases. A row whose
+# value is not yes, no or unknown is a configure error.
 set(BYOPOP_WEB_WIN95
   # re/_installers/AtomicaSetup/files/Atomica Deluxe/readme.txt
   "atomica|yes"
@@ -126,8 +130,8 @@ set(BYOPOP_WEB_WIN95
   "sevenseas|yes"
   # re/_installers/WinNingPo_setup/Data/Filez/readme.txt
   "ningpo|yes"
-  # re/_installers/AlchemySetup-en/files/Alchemy Deluxe/readme.html (98+)
-  "alchemy|no"
+  # released 2001-08-29, before TipTop, so yes by the rule above (re/_installers/AlchemySetup-en/files/Alchemy Deluxe/readme.html says 98+)
+  "alchemy|yes"
   # re/_installers/BonniesBookstoreSetup/files/Bonnie's Bookstore Deluxe/readme.html (98+)
   "bonnies|no"
   # re/_installers/PixelusSetup/files/Pixelus Deluxe/readme.html (98+)
@@ -138,16 +142,16 @@ set(BYOPOP_WEB_WIN95
   "wordharmony|no"
   # re/_installers/BananaBugsSetup/files/Banana Bugs/readme.html (XP SP2+)
   "bananabugs|no"
-  # the Steam copy, Bejeweled Deluxe/readme.html (98+); only the Steam release's readme was found, and the 2001 original may differ
-  "bejeweled|no"
+  # released 2001-05-30, before TipTop, so yes by the rule above (the Steam copy's Bejeweled Deluxe/readme.html says 98+)
+  "bejeweled|yes"
   # the Steam copy, Bejeweled 2 Deluxe/readme.html (98+)
   "bejeweled2|no"
   # the Steam copy, Bejeweled 3/readme.html (XP SP2+)
   "bejeweled3|no"
   # the PopCap Games install, Bejeweled Twist/readme.html (XP+)
   "bejeweledtwist|no"
-  # the Steam copy, Big Money Deluxe/readme.html (98+)
-  "bigmoney|no"
+  # released 2002-06-04, before TipTop, so yes by the rule above (the Steam copy's Big Money Deluxe/readme.html says 98+)
+  "bigmoney|yes"
   # the Steam copy, BookWorm Deluxe/readme.html (2000+)
   "bookworm|no"
   # the PopCap Games install, Bookworm Adventures Deluxe/readme.html (2000+)
@@ -156,8 +160,8 @@ set(BYOPOP_WEB_WIN95
   "bookwormadv2|no"
   # the Steam copy, AstroPop Deluxe/readme.html (98+)
   "astropop|no"
-  # the Steam copy, Dynomite Deluxe/readme.html (98+)
-  "dynomite|no"
+  # released 2002-01-25, before TipTop, so yes by the rule above (the Steam copy's Dynomite Deluxe/readme.html says 98+)
+  "dynomite|yes"
   # the Steam copy, Rocket Mania Deluxe/readme.html (98+)
   "rocketmania|no"
   # the Steam copy, Heavy Weapon Deluxe/readme.html (98+)
@@ -712,7 +716,7 @@ function(byopop_web_shell var target pagedir)
   byopop_json_string(terms_json "${terms}\n${buy_html}")
   set_property(GLOBAL PROPERTY BYOPOP_WEB_terms_${target} "{\"version\": \"${terms_version}\", \"html\": ${terms_json}}")
   string(REPLACE "@BYOPOP_TITLE@" "${arg_TITLE}" page "${page}")
-  # the game's cap over its import card (web/capanim.js): its badge, as on the listing page
+  # the game's cap over its import card: its badge, as on the listing page
   byopop_web_badge(${target} "${arg_TITLE}" cap_initials cap_colour)
   # escaped as the listing's are: the initials are the cap's text, the colour sits in its style attribute
   foreach(field cap_initials cap_colour)
@@ -1055,7 +1059,10 @@ function(byopop_web_index)
           byopop_web_string(buy_text store.buy_on store "${store}")
           byopop_web_string(buy_label store.buy_label store "${store}" title "${title}")
         endif()
-        string(APPEND buy_html "<a href=\"${url}\" rel=\"noopener\" aria-label=\"${buy_label}\">${buy_text}</a>")
+        # every store link opens in a new tab, as a plain link a popup blocker leaves alone (the user, 2026-11-09: "The buy links
+        # should always open in a new tab"), and its name says so
+        byopop_web_string(buy_new_tab site.new_tab)
+        string(APPEND buy_html "<a href=\"${url}\" target=\"_blank\" rel=\"noopener noreferrer\" aria-label=\"${buy_label} ${buy_new_tab}\">${buy_text}</a>")
       endwhile()
       if(NOT buy_html STREQUAL "" AND soon)
         set(buy_html "<div class=\"buyrow\">${buy_html}</div>")
@@ -1096,7 +1103,7 @@ function(byopop_web_index)
     string(CONCAT tile "    <li class=\"game\" style=\"--tile: ${colour}\" data-released=\"${released}\" data-title=\"${title_attr}\" data-win95=\"${win95}\"${unsold_attr}>"
       "<a class=\"tile\" href=\"${target}.html\" data-game=\"${game_id}\" data-persist=\"${game_persist}\" data-lock=\"${game_lock}\"${replays_attr}${label_attr}>"
       "<span class=\"badge\" aria-hidden=\"true\">${initials}</span>"
-      "<span class=\"name\">${title}</span>${year_html}</a><div class=\"ownrow\"><span class=\"own\" aria-hidden=\"true\"></span></div>${buy_html}</li>")
+      "<span class=\"name\">${title}</span>${year_html}<span class=\"own\" aria-hidden=\"true\"></span></a><div class=\"ownrow\"></div>${buy_html}</li>")
     list(APPEND tiles "${tile}")
     math(EXPR count "${count} + 1")
   endforeach()
@@ -1189,7 +1196,7 @@ endfunction()
 
 # byopop_web_jungle(): writes Jungle Juice, the site's page for other projects' decompilations (docs/WEB_PLAYER.md, "Jungle
 # Juice"; the user, 2026-11-04): every page of web/jungle/ into build/web/jungle/, its {{key}} markers filled from the site's
-# text. Its pages reach the site's shared files (the logo, theme.js, strings.js) one folder up.
+# text. Its pages reach the site's shared files (the logo, strings.js) one folder up.
 function(byopop_web_jungle)
   get_filename_component(source "${BYOPOP_WEB_BRAND_DIR}/../jungle" ABSOLUTE)
   file(GLOB pages RELATIVE ${source} CONFIGURE_DEPENDS ${source}/*.html)
