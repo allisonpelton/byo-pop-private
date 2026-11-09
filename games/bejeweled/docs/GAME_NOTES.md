@@ -2741,3 +2741,86 @@ of `LoadGame`, 0x4cca98; the high-score record helpers of `ReadFromFile` and `Wr
 `ModIndicators.cpp` and `testhooks/MemReport.cpp` carry the marker in their first comment. Comments that told the code-mod
 stages as a story (`BoardVariant.cpp`'s header, `VariantFlags`, the build warnings in `GameConfigMods.cpp`) or had gone
 stale ("no TWIST or SLIDE yet", "nothing reads them yet in stage 1") describe the code as it is.
+
+## 21. Coverage check (2026-11-09)
+
+The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, and
+`tools/coverage.py report` put them beside the port's sources. Bejeweled's comparisons run in Windows Sandbox, where
+`--coverage` does not work yet, so the runs were taken on the host, where origrun posts input and takes no shot. The
+scripts come from `tools/coverage/scripts.py`, with every position taken from the port's layout, and `tools/coverage/run.sh`
+runs one. The hits are in `build/coverage/bejeweled/hits/`. The copy is the prepared one (the exe carved out of
+`WinBej.exe`), on the virtual clock with the silent stand-in.
+
+The runs:
+
+- **play**: a fresh Normal game. The first move's hint, the Hint button three times, 340 random swaps (sets, cascades,
+  level-ups, a game over), the focus lost and regained, New Game answered No and then Yes, and the window closed during
+  play.
+- **dialogs**: the focus lost and regained on the title. Options with both sliders, the custom cursors box twice, Help
+  and its Done, High Scores and its Done, and Options' Done. Then Timed, Normal with its question, the Quit button
+  answered No, and the window closed with Options open.
+- **timed**: a Timed game left until its time ran out. The name entry typed and Enter, play again, and the window closed.
+- **nomoves** (three runs), **nomoves_hi** (two) and **fallout** (three): a saved game with one move left
+  (`origcmp/nomoves.py --one`), loaded through the question, and the move made. Whether the refill leaves a move is the
+  original's RNG, which is not pinned on the host, so each was run more than once. Those runs gave "no more moves", the
+  game over, the name entry and the high-score screen, with the window closed there. With a score that places on the
+  all-time table, they gave the record dialog's "Nth place" text. In Timed mode they gave the board falling out and in.
+- **levelup**: a saved game whose score has reached the level's target. The level-up (the wipe and the black hole),
+  then play, and the Quit button answered Yes.
+- **declined**: a saved game whose load question is answered No, then Quit and Yes.
+- **title_quit**: the window closed on the title.
+- **extra**: a key typed on the board during play.
+- **timedconfirm**: Timed clicked over a loaded game in progress, with its question answered Yes.
+- **realclock**: on the real clock with the silent stand-in, so the sound code runs. The title, play and swaps.
+
+Every run ended with the game exiting normally. The runs took about 11 minutes of machine time, one game process at a
+time. The user's saved game (`C:\ProgramData\Steam\Bejeweled\userdata\savegame.dat`) was backed up first and put back
+afterwards, byte for byte.
+
+**Two things the runs had to get around.**
+
+- The virtual clock does not see the title's loading thread wait on the disk. In two runs the whole script ran before
+  the "click here to play" link existed, and the game only reached its title. So origrun's counter is the int at
+  0x53ba60, whose top byte is the app's loaded flag (0x53b570 + 0x4f3, which `TitleScreen::Update` 0x4d3c6a reads). Each
+  script's first line is `at 16777216 ...`, which waits for that flag.
+- The original checks for "no more moves" only when the board settles after a move, so a saved board with no move just
+  sits. The saves need exactly one move left.
+
+One run failed at its start, with the original's "Failed to initialize DirectDraw" (`DDERR_NOEXCLUSIVEMODE`) answered by
+the stand-in, and passed when run again. `tools/origrun/bejeweled.cfg` and the seed patch, which the identical-play runs
+used, are no longer on this machine. Coverage needs neither, because run.sh gives the counter itself.
+
+`games/bejeweled/coverage.txt` sets the game code as one range, 0x4c9a94-0x4d82d2, with 152 functions. 24 of them are
+left out on purpose:
+
+- RegisterDialog and the other registration code;
+- the URL functions;
+- the update check;
+- `WinMain`;
+- three empty listener defaults and `TRect::Inflate`, which the framework's headers have;
+- `TitleScreen::Resize`: the original's version is `Widget::Resize` followed by the register
+  link's place, and the link is taken out (section 18).
+
+**Reached in the original with no counterpart in the port: none, from the first report on.** The readability pass had
+already put an address or port marker above every function (section 20).
+
+**Defined in the port, never reached: 24 in the first report, 2 at the end.** The first set of runs reached the
+dialogs, play and the level-up, but not the hint, the game over, the high scores or the record dialog. Of the runs
+that reached those, two had lost the race with the loading thread and one was the save with no move. The reruns and four
+short runs reached all but two:
+
+- `WinDMApp::GetGameSEHInfo` (0x4d4ad9) runs only in the framework's crash report. It forwards to `SexyApp`'s, as the
+  export does.
+- `WinDMApp::DoColorDepthExplanation` (0x4d5bef, `ShowColorDepthDialog` in the export) runs only when the display
+  forces full screen and the box is unchecked, which a modern desktop never does. The export shows dialog 12, modal,
+  with the same header, lines and OK footer as the port.
+
+Both are code that only an error or a rare machine reaches, so they stay. **No candidates for taking out**: every
+other port function in the game code ran in the original. **Never reached and not defined in the port: none.**
+
+**No change to the game.** The check changed no source file. It added the tools in `tools/coverage/`; the `none` line
+for `TitleScreen::Resize` came in with the readability pass's merge.
+
+**Not covered.** Alt+Enter and the Options dialog's full-screen box were not run. On the host they would change the
+display mode of the user's machine. The port's full screen is its own (the host switches the window, a listed
+deviation). The realplay driver's `fullscreen` step tests it on the port.
