@@ -33,7 +33,7 @@ HelpWidget::HelpWidget(AlchemyApp* theApp)
 	mReturnLink->mDoFinger = true;
 }
 
-// 0x408a6e
+// 0x408a6e (the deleting destructor), 0x4089a6 (the destructor it calls: deletes the two links)
 HelpWidget::~HelpWidget()
 {
 	delete mTutorialLink;
