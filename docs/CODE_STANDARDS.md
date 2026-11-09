@@ -186,7 +186,10 @@ scope-aware script for the one-letter names, run by one Sonnet agent with the ex
 a renamed helper outside the function it was working in, which the build caught; a check of every renamed scope for
 leftover uses of the old letter found none. Two practical points for the next game. A source file cannot be written
 while a build has it open (on Windows the write fails), so edits wait for the build. And a check run that fails early
-keeps running its other suites, so a second run must not start before the first one ends.
+keeps running its other suites, so a second run must not start before the first one ends. The whole oracle, three ways,
+found the pass identical to the frozen baselines in every case (1098 runs: 443 cases by default and forced onto the
+variant paths, 293 without them). Its first run found 113 differences, all of them because the worktree had never built
+the game's web build: build it (`tools/check.sh build-web:<game>`) before the oracle, whose wasm cases run it.
 
 **What stays open.** Rule 7 is judgement, and so is the line between a label and history in rule 8. The checker cannot
 prove that a name is good, only that none is a stand-in; a reviewer still reads the names. Bejeweled Twist takes the
