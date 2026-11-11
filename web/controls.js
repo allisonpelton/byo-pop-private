@@ -224,10 +224,92 @@ var ByopopControls = (function () {
     if (v === "off") return false;
     try { return window.matchMedia("(pointer: coarse)").matches; } catch (e) { return false; }
   }
+  // Where the bar is (setting "touchPlace"): under the game, at its side, or automatic: at the side while the screen is wider
+  // than tall (the user, 2026-11-10: "When in landscape mode on mobile, the mobile controls completely obscure the game. An
+  // option to put them to the side of the game and have them show in full screen is needed"). The page lays it out by the class
+  // on <html> (touch-side) and leaves it room in full screen (web/shell.html, fitFullscreen).
+  function touchSide() {
+    var v = setting("touchPlace");
+    if (v === "side") return true;
+    if (v === "under") return false;
+    return window.innerWidth > window.innerHeight;
+  }
+  function placeTouch() {
+    var side = !!touchBar && touchSide(), root = document.documentElement;
+    if (root.classList.contains("touch-side") === side && root.classList.contains("touch-keys") === !!touchBar) return;
+    root.classList.toggle("touch-keys", !!touchBar);
+    root.classList.toggle("touch-side", side);
+    try { window.dispatchEvent(new CustomEvent("byopop-touch-keys")); } catch (e) {}
+  }
+  // The screen keyboard, for a game's own text fields (a player's name): a touch screen shows its keyboard only for a text field
+  // of the page, so the bar's keyboard button puts the focus in one, kept out of sight, and what is typed there goes to the game
+  // as keys (the user, 2026-11-10: "The mobile keyboard did not pop up for me to type my username")
+  var typeField = null;
+  function sendTyped(key, keyCode) {
+    if (!canvas) return;
+    ["keydown", "keypress", "keyup"].forEach(function (type) {
+      var printable = key.length === 1;
+      if (type === "keypress" && !printable && key !== "Enter") return;
+      var charCode = type === "keypress" ? (printable ? key.charCodeAt(0) : 13) : 0;
+      var e = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: key, code: "" });
+      Object.defineProperty(e, "keyCode", { get: function () { return type === "keypress" ? charCode : keyCode; } });
+      Object.defineProperty(e, "charCode", { get: function () { return charCode; } });
+      Object.defineProperty(e, "which", { get: function () { return type === "keypress" ? charCode : keyCode; } });
+      if (ours) ours.add(e); else e.byopopOurs = true;
+      canvas.dispatchEvent(e);
+    });
+  }
+  function keyCodeOf(ch) {
+    var u = ch.toUpperCase().charCodeAt(0);
+    if ((u >= 48 && u <= 57) || (u >= 65 && u <= 90)) return u;
+    return ch === " " ? 32 : 0;
+  }
+  function typeButton() {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "bc-keyboard";
+    b.setAttribute("aria-label", T("controls.touch.keyboard"));
+    b.title = T("controls.touch.keyboard");
+    // a keyboard, drawn here: its case and three rows of keys
+    b.innerHTML = '<svg viewBox="0 0 24 16" width="24" height="16" aria-hidden="true" focusable="false" shape-rendering="crispEdges">' +
+      '<rect x="0.5" y="0.5" width="23" height="15" fill="none" stroke="currentColor"/>' +
+      '<path fill="currentColor" d="M3 3h2v2H3zM7 3h2v2H7zM11 3h2v2h-2zM15 3h2v2h-2zM19 3h2v2h-2zM3 7h2v2H3zM7 7h2v2H7zM11 7h2v2h-2zM15 7h2v2h-2zM19 7h2v2h-2zM6 11h12v2H6z"/></svg>';
+    typeField = document.createElement("input");
+    typeField.type = "text";
+    typeField.className = "bc-typefield";
+    typeField.setAttribute("aria-label", T("controls.touch.keyboard"));
+    typeField.autocomplete = "off"; typeField.autocapitalize = "off"; typeField.spellcheck = false;
+    typeField.setAttribute("autocorrect", "off");
+    typeField.tabIndex = -1;
+    var field = typeField;
+    // one space kept in it, so that Backspace always has something to delete and so sends an event
+    function rest() { field.value = " "; try { field.setSelectionRange(1, 1); } catch (e) {} }
+    field.addEventListener("beforeinput", function (ev) {
+      var t = ev.inputType || "";
+      if (t === "deleteContentBackward") { ev.preventDefault(); sendTyped("Backspace", 8); rest(); }
+      else if (t === "insertLineBreak" || t === "insertParagraph") { ev.preventDefault(); sendTyped("Enter", 13); }
+    });
+    field.addEventListener("input", function () {
+      var text = field.value.replace(/^ /, "");
+      for (var i = 0; i < text.length; i++) sendTyped(text.charAt(i), keyCodeOf(text.charAt(i)));
+      rest();
+    });
+    field.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); sendTyped("Enter", 13); } });
+    field.addEventListener("focus", function () { rest(); b.setAttribute("aria-pressed", "true"); });
+    field.addEventListener("blur", function () { b.setAttribute("aria-pressed", "false"); });
+    b.setAttribute("aria-pressed", "false");
+    // (the press, not the click: the keyboard comes up only for a focus given inside the touch itself)
+    b.addEventListener("pointerdown", function (ev) {
+      ev.preventDefault();
+      if (document.activeElement === field) { field.blur(); if (canvas) canvas.focus(); } else field.focus();
+    });
+    b.addEventListener("click", function (ev) { if (ev.detail === 0) field.focus(); });
+    return b;
+  }
   function syncTouch() {
     var entries = keyEntries();
-    if (!touchWanted() || !entries.length) { if (touchBar) { touchBar.remove(); touchBar = null; } return; }
-    if (touchBar) return;
+    if (!touchWanted()) { if (touchBar) { touchBar.remove(); touchBar = null; typeField = null; } placeTouch(); return; }
+    if (touchBar) { placeTouch(); return; }
     touchBar = document.createElement("div");
     touchBar.className = "bc-touch";
     touchBar.setAttribute("role", "group");
@@ -248,9 +330,13 @@ var ByopopControls = (function () {
       b.addEventListener("click", function (ev) { if (ev.detail === 0) { press(ev); release(ev); } });
       touchBar.appendChild(b);
     });
+    touchBar.appendChild(typeButton());
+    touchBar.appendChild(typeField);
     var wrap = document.getElementById("main") || stage.parentNode;
     wrap.appendChild(touchBar);
+    placeTouch();
   }
+  window.addEventListener("resize", function () { if (touchBar) placeTouch(); });
 
   // ---------- the Controls panel ----------
   var capturing = null;
@@ -358,6 +444,8 @@ var ByopopControls = (function () {
     ".bc-display span { padding: 2px 7px; border-radius: 4px; font: 600 13px/1.3 ui-monospace, Consolas, monospace; color: #fff;" +
     " background: rgba(0, 0, 0, 0.6); text-shadow: 0 1px 1px #000; }" +
     ".bc-touch { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 16px; touch-action: none; }" +
+    ".bc-touch .bc-typefield { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }" +
+    ".bc-touch button.bc-keyboard { min-width: 44px; padding: 6px 8px; }" +
     ".bc-touch button { min-width: 64px; min-height: 44px; padding: 6px 14px; font: inherit; touch-action: none; -webkit-user-select: none; user-select: none; }" +
     ".bc-list { margin: 0 0 12px; } .bc-list dt { font-weight: 600; margin-top: 10px; } .bc-list dd { margin: 3px 0 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }" +
     ".bc-keys kbd { display: inline-block; min-width: 1.6em; text-align: center; padding: 1px 6px; margin-right: 4px; border: 1px solid currentColor; border-radius: 4px; font: 600 12px/1.5 ui-monospace, Consolas, monospace; opacity: 0.85; }" +
@@ -397,7 +485,7 @@ var ByopopControls = (function () {
   }
   window.addEventListener("byopop-setting", function (ev) {
     var n = ev.detail && ev.detail.name;
-    if (n === "inputDisplay" || n === "touchKeys" || n === "speed") sync();
+    if (n === "inputDisplay" || n === "touchKeys" || n === "touchPlace" || n === "speed") sync();
   });
   window.addEventListener("storage", function (ev) {
     if (ev.key === MAPKEY) { map = loadMap(); drawPanel(); }
