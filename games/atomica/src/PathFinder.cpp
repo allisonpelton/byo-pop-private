@@ -27,8 +27,6 @@ PathFinder::~PathFinder()
 void PathFinder::Reset()
 {
 	mD34 = -1;
-	mD38 = -1;
-	mB3c = false;
 	mPath.Clear();
 	mPoints.Clear();
 }

@@ -507,6 +507,7 @@ void AtomicaApp::LoadingThreadProc()
 // 0x407..0x408ca0: every atom type's pictures. The sheet holds three cells for each type (3k, 3k+1, 3k+2); the
 // plain atoms and the chromium atom (types 0 to 11) also get 20 turned copies of the mask and the atom blended
 // with each (the mask has the atom drawn on it first). Types 5, 7 and 9 lose a symbol's lines (the colour-blind fix: swirl, teeth, crescent).
+// With 0x429bc0: the original wraps each blended image in a sprite, where the port draws the blend into a blank sprite.
 void AtomicaApp::LoadAtoms()
 {
 	Sprite* aSwirl = mSprites->Load("colorizeswirl");
