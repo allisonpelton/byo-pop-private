@@ -16,8 +16,7 @@ Piece::Piece() :
 	mPartner(NULL),
 	mScale(50.0),
 	mMatchSwap(false), mMatch(false),
-	mBlink(0),
-	mUnused60(false)
+	mBlink(0)
 {
 }
 
@@ -40,8 +39,7 @@ Piece::Piece(const Piece& theOther) :
 	mPartner(theOther.mPartner),
 	mScale(theOther.mScale),
 	mMatchSwap(false), mMatch(false),
-	mBlink(0),
-	mUnused60(false)
+	mBlink(0)
 {
 	// port: the original's copy (0x4060d0) leaves the path empty and the match fields at their defaults; the
 	// copies that move a falling piece (0x403d60) copy the path node by node
