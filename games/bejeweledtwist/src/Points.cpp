@@ -103,6 +103,7 @@ Points::Points(WinTwistApp* theApp, Font* theFont, const SexyString& theText, in
 	mAlpha = 1.0f;
 }
 
+// 0x7319e5: sets +0x14 to 1, inline here
 void Points::Update()
 {
 	mUpdates++;

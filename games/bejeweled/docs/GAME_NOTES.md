@@ -2881,3 +2881,34 @@ for `TitleScreen::Resize` came in with the readability pass's merge.
 **Not covered.** Alt+Enter and the Options dialog's full-screen box were not run. On the host they would change the
 display mode of the user's machine. The port's full screen is its own (the host switches the window, a listed
 deviation). The realplay driver's `fullscreen` step tests it on the port.
+
+## 22. Code the port does not need (2026-11-09)
+
+The last step before a game is done (`docs/COORDINATION.md`): taking out code the port does not need, beyond the
+registration code and the buttons that lead out of the game, which went in section 18. The coverage check (section 21)
+found no candidate in the translated game: every port function of the game code ran in the original, except two error
+paths that stay. So this step looked for port code that nothing calls. Every definition under `src/` was set against
+every use of its name in the game, the framework and the platform. That left only the code-drawn art's library (`art/`,
+the `codeArt` mod's own code, which no play of the unmodded game reaches): eleven functions written for it and never
+called.
+
+- `Raster`: `Path::QuadTo`, `Path::CubicTo`, `Mask::Inner`, `Mask::Union`, `Mask::Scale`, `Canvas::AlphaMask`,
+  `Canvas::MultiplyAlpha`, and `Mask::Distance`, which only `Inner` used.
+- `VectorFont`: `HasGlyph` and `CharInk`.
+- `GemArt`: `GemModelCount`.
+- `CodeArt`: `Disable` (the mod is never switched off while the game runs).
+
+Every source file is built, since the build takes each folder's files by pattern, and no other header declares a function
+nothing calls.
+
+**Kept on purpose.** The fields the original sets and never reads stay: Board's `mClearedAtMoveStart` and
+`mLevelTextShown`, and ScorePopup's `mAlwaysMinusOne`. So do the ones it saves but never sets, such as `mSavedZero`. The save
+file and the state codec carry them, and so does the trace hash the oracle compares against the frozen baselines, so
+taking them out would change the oracle's output, not the game. Each is named for what it holds (`docs/CODE_STANDARDS.md`,
+rule 3). The colour-depth dialog and `GetGameSEHInfo` stay as error paths (section 21). Piece's paddings stay with the
+layout the save keeps.
+
+**Proof.** Nothing the game runs changed. The native and web builds pass, and so do the unit suite (rulestest, mod
+settings, real input, commands and the rest) and verify (54 checks). The code-drawn art, the only code touched, dumps
+byte for byte as main's exe does at scales 1, 2 and 4 (`-dumpcodeart`, 41, 77 and 77 files). The oracle needs no run: no
+code it reaches changed.

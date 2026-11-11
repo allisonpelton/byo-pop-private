@@ -35,7 +35,7 @@ enum {
 	ALIGN_CENTER = ALIGN_CENTER_X | ALIGN_CENTER_Y,
 };
 
-// 0x756ee7: the image scaled by theScaleX, theScaleY and placed by theAlign
+// 0x756ee7: the image scaled by theScaleX, theScaleY and placed by theAlign, 0x70e293: its overload that centres, inline here
 void DrawImageScaledCentered(Graphics* g, Image* theImage, float theX, float theY, int theAlign, float theScaleX,
 	float theScaleY);
 // 0x757751: the same, centred

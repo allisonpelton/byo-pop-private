@@ -40,7 +40,6 @@ struct Settings
 Settings SettingsFor(const Sexy::GameFeatures& theFeatures, int theGemColors);
 
 void Enable(const Settings& theSettings);
-void Disable();
 bool IsEnabled();
 
 // Draws one image ("images/name", lower case, no extension) at the settings' density; false when code art has no

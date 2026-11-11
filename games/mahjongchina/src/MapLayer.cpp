@@ -156,10 +156,10 @@ void MapView::Init()
 {
 	mStartText = jb::LoadDllString(0x21);
 	mEndText = jb::LoadDllString(0x1c);
-	mFont = jb::GetDllFont(0xa3, 0xa2, -1);
-	mIntroFont = jb::GetDllFont(0x102, 0x103, -1);
+	mFont = jb::GetDllFont(0xa3, 0xa2);
+	mIntroFont = jb::GetDllFont(0x102, 0x103);
 	mIntroText = jb::LoadDllString(0x6c);
-	mStageFont = jb::GetDllFont(0x137, 0x134, -1);
+	mStageFont = jb::GetDllFont(0x137, 0x134);
 	int aProgress = gUser.mProgress;
 	mLevel = aProgress;
 	if (0x33 < aProgress)
@@ -509,7 +509,7 @@ void MapLayer::Continue()
 		YesNoBox* aBox = new YesNoBox(this, 2, 1, 0x8c, 0x8d, false, 0x78, 0x78);
 		jb::gManager->Push(aBox, true, true, true);
 		aBox->SetTitle(0x8e);
-		aBox->AddText(0x8b, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->AddText(0x8b, 0, 0, 0x5a, false);
 	}
 }
 

@@ -22,7 +22,6 @@ class Display
 public:
 	bool mActive = true;                 // the app is active (the window's)
 	bool mAccelerated = false;           // +0xb8 the mode was set with acceleration (never, in the port)
-	int mDesktopBits = 32;               // the desktop's colour depth
 	std::map<int, Image*> mImages;       // +0xbc
 	std::map<int, Font*> mFonts;         // +0xcc
 	std::vector<Image*> mCreated;        // +0xe0
@@ -45,8 +44,8 @@ public:
 
 	// 0x432430: the image of theId (from theModule, loaded and cached the first time; the cache is by id only)
 	Image* GetImage(int theId, Module theModule);
-	// 0x4326e0: theKind -1 for an image with alpha, else the image's colour key
-	Font* GetFont(int theImageId, int theTextId, int theKind, Module theModule);
+	// 0x4326e0
+	Font* GetFont(int theImageId, int theTextId, Module theModule);
 	// 0x433380: false when the file did not load (then nothing is cached)
 	bool LoadFileImage(int theId, const char* thePath);
 	// 0x433490

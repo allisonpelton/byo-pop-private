@@ -1594,6 +1594,7 @@ static int post_edge(HWND hw, const char* cmd, const char* rest)
 static void exec_at(const char* inner)
 {
 	char cmd[32]={0}; int off=0; sscanf(inner,"%31s%n",cmd,&off); const char* rest=inner+off; while(*rest==' ')rest++;
+	if (ieq(cmd,"text")) rest=inner+off+(inner[off]==' '||inner[off]=='	');   // text: all after one separator, spaces included
 	if (ieq(cmd,"shot")){ char n[256]="shot"; sscanf(rest,"%255s",n); capture_held(n); if (gLastHeldMs>0) logline("at shot %s: the game was held %.2f ms", n, gLastHeldMs); return; }
 	if (ieq(cmd,"burst")){ char n[256]="burst"; int c=10,k=1; char kw[16]=""; int iv=100;
 		if (sscanf(rest,"%255s %d %15s %d",n,&c,kw,&iv)>=2) { if (ieq(kw,"update")) do_burst(n,c,0,1,iv>0?iv:1); else do_burst(n,c,iv>0?iv:atoi(kw),0,0); }
@@ -1797,6 +1798,8 @@ static void run_script(DWORD pid, const char* scriptPath)
 		char* p=line; while(*p==' '||*p=='\t')p++;
 		if (*p==0||*p=='#') continue;
 		char cmd[32]={0}; int off=0; sscanf(p,"%31s%n",cmd,&off); char* rest=p+off; while(*rest==' ')rest++;
+		// text types all that follows its one separator, spaces included ("text  " types a space; Typer Shark, 2026-11-09)
+		if (ieq(cmd,"text")) rest=p+off+(p[off]==' '||p[off]=='	');
 		// Commands that manage timing/the window themselves are not gated on an immediate window.
 		if (ieq(cmd,"msgbox")) continue;   // msgbox rules are loaded up front (load_msgbox_rules), before launch
 		if (ieq(cmd,"wait")){ int ms=atoi(rest); if (!gClockVirtual || vc_wait(ms)<0) Sleep(ms); continue; }   // on the virtual clock: game time
@@ -1838,6 +1841,32 @@ static void run_script(DWORD pid, const char* scriptPath)
 			if (!gCounterExpr[0] || !read_counter(gCounterExpr,&v)) { logline("mark: the counter could not be read"); continue; }
 			gAtMark=v; gAtMarked=1;
 			logline("mark: the counter reads %lu", (unsigned long)v);
+			continue;
+		}
+		if (ieq(cmd,"waitfor")){
+			// waitfor <expr> <op> <value> [<timeout_ms>]: hold the script until the memory expression (the --watch
+			// grammar) reads so; op is == != < <= > >=. The game runs free meanwhile, on the virtual clock too: a gate on
+			// the game's own state for the first input, where an update count is a guess (an original's loading thread
+			// runs on the wall clock while its updates run on the virtual one; Typer Shark, 2026-11-09). "mark" after it
+			// lets "at +N" count from there.
+			char e[128]="", op[4]="", val[32]=""; int ms=60000;
+			if (sscanf(rest,"%127s %3s %31s %d",e,op,val,&ms)<3) { logline("waitfor: need 'waitfor <expr> <op> <value> [<timeout_ms>]'"); continue; }
+			long long want=strtoll(val,NULL,0);
+			int kind = !strcmp(op,"==")?0 : !strcmp(op,"!=")?1 : !strcmp(op,"<")?2 : !strcmp(op,"<=")?3 : !strcmp(op,">")?4 : !strcmp(op,">=")?5 : -1;
+			if (kind<0) { logline("waitfor: unknown operator '%s' (== != < <= > >=)", op); continue; }
+			vc_free();
+			double t0=qpc_ms(); uint32_t v=0; int read=0, met=0;
+			while (!gStop && qpc_ms()-t0<ms) {
+				if (read_counter(e,&v)) {
+					read=1;
+					long long have = (want>0x7fffffffLL) ? (long long)v : (long long)(int32_t)v;
+					met = kind==0?have==want : kind==1?have!=want : kind==2?have<want : kind==3?have<=want : kind==4?have>want : have>=want;
+					if (met) break;
+				}
+				Sleep(1);
+			}
+			if (met) logline("waitfor %s %s %s: met after %.0f ms (reads %d)", e, op, val, qpc_ms()-t0, (int)v);
+			else logline("waitfor %s %s %s: not met within %d ms (%s %d)", e, op, val, ms, read?"last read":"never read", (int)v);
 			continue;
 		}
 		if (ieq(cmd,"at")){

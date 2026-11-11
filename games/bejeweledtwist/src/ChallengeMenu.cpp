@@ -106,6 +106,7 @@ SphereVertex MakeSphereVertex(float x, float y, float z, float theU, float theV)
 
 // 0x6e4fad: a sphere of theStacks bands from pole to pole by theSlices columns, as a list of triangles (the poles' bands
 // one triangle a column, the others two); nothing when the list is made already
+// 0x6e4bbb: a vertex block copy, inline here
 void BuildSphere(std::vector<SphereVertex>& theVertices, int theStacks, int theSlices)
 {
 	if (!theVertices.empty())
@@ -189,6 +190,8 @@ struct BillboardVertex {
 // 0.00151515 over the depth over the picture's width, times theSize times 80). It leaves the draw mode, the colour
 // and colorizing set. With Direct3D (gD3DInterface) the original draws a quad of the picture's proportions facing the
 // camera instead (0x6ddd52), and sets nothing of the Graphics.
+// 0x673c10: copy of a camera transform, inline here
+// 0x6dd0e2: a vector built from three floats, inline here
 void DrawBillboard(Graphics* g, Image* theImage, float theX, float theY, float theZ, unsigned int theColor, int theDrawMode,
 	float theSize)
 {
@@ -429,6 +432,8 @@ void ChallengeButton::PlayMouseOverSound()
 // how big it looks) turned by the update count and lit by a point light at the sun, with the cloud layer as a second
 // sphere a little larger, drawn first; without it a picture of the planet is made for the size it has. The ring, name,
 // moon meter and glow are drawn about it.
+// 0x6802ad: eleven default values copied from globals, inline here
+// 0x6847ca: its forwarding overload, inline here
 void ChallengeButton::Draw(Graphics* g)
 {
 	mClip = false;
@@ -891,6 +896,7 @@ void ChallengeButton::Draw(Graphics* g)
 }
 
 // 0x6e5c3e
+// 0x6e4daa: the camera spline's constructor, inline here
 ChallengeMenu::ChallengeMenu()
 {
 	Resize(0, 0, gApp->mWidth, gApp->mHeight);
@@ -975,6 +981,7 @@ ChallengeMenu::ChallengeMenu()
 	SetState(0, false);
 }
 
+// 0x6e0c6c: the menu destructor body, inline here
 ChallengeMenu::~ChallengeMenu()
 {
 	for (ChallengeButton* aButton : mButtons) {
@@ -1330,6 +1337,7 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 }
 
 // 0x6e3f41
+// 0x6dd2bd: the setter of mIsRevealed (+0x5c4), inline here
 void ChallengeMenu::Update()
 {
 	TwistWidget::Update();

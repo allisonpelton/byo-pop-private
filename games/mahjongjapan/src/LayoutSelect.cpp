@@ -237,9 +237,9 @@ void LayoutHeader::Draw()
 void LayoutHeader::Init()
 {
 	mTitle = jb::LoadDllString(0x10);
-	mTitleFont = jb::GetDllFont(199, 200, -1);
-	mPageFont = jb::GetDllFont(0xcb, 0xca, -1);
-	mPlayedFont = jb::GetDllFont(0xcb, 0xca, -1);
+	mTitleFont = jb::GetDllFont(199, 200);
+	mPageFont = jb::GetDllFont(0xcb, 0xca);
+	mPlayedFont = jb::GetDllFont(0xcb, 0xca);
 	int aLeft = mCount;
 	int aPlayed = 0;
 	if (0 < aLeft)
@@ -297,7 +297,7 @@ void LayoutSlot::Init()
 	mCell.right = mCell.left + 0xc1;
 	mCell.top = (mIndex / 3) * 0x93;
 	mCell.bottom = mCell.top + 0x93;
-	mFont = jb::GetDllFont(0xa3, 0xa2, -1);
+	mFont = jb::GetDllFont(0xa3, 0xa2);
 	SetCursorKind(1, false);
 	RegClick(true);
 	RegHover(true);
@@ -392,7 +392,7 @@ void LayoutSlot::SetLayout(jb::Image* theSheet, int theLayoutId, int theLayout)
 		ErrorBox* aBox = new ErrorBox();
 		jb::gManager->Push(aBox, true, false, true);
 		aBox->SetTitle(0x6b);
-		aBox->AddText(0x6a, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->AddText(0x6a, 0, 0, 0x5a, false);
 	}
 	else
 	{
@@ -605,7 +605,7 @@ void LayoutSelect::Choose(int theSlot)
 		YesNoBox* aBox = new YesNoBox(this, 2, 1, 0x8c, 0x8d, false, 0x78, 0x78);
 		jb::gManager->Push(aBox, true, true, true);
 		aBox->SetTitle(0x8e);
-		aBox->AddText(0x8b, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->AddText(0x8b, 0, 0, 0x5a, false);
 		return;
 	}
 	Start(false);

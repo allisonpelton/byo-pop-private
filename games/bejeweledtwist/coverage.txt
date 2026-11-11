@@ -1,0 +1,1499 @@
+# tools/coverage.py's settings for Bejeweled Twist (docs/COVERAGE.md).
+export re/bejeweledtwist/gh/functions.jsonl
+src games/bejeweledtwist/src
+# The game's own code: from the first function after the libraries the linker put before it (16-byte aligned) to the
+# last before the C++ library (std::_String_base::_Xlen, 0x768fcf). The framework (SexyAppFramework 1.3 with Twist's
+# additions, the D3D layer at 0x61xxxx-0x62xxxx among them) lies below it, the C runtime above.
+game 0066fb6d-00768fad
+# Left out on purpose (the coverage check, 2026-11-09; NOTES.md "Coverage check").
+none 0073321a PopDRMComm: the DRM wrapper's window and messages, registration code removed with the rest of it
+none 007333e5 PopDRMComm: the DRM wrapper's window and messages, registration code
+none 0073343c PopDRMComm: the DRM wrapper's window and messages, registration code
+none 00733493 PopDRMComm: the DRM wrapper's window class and window, registration code
+none 0073354d PopDRMComm: the DRM wrapper's window and messages, registration code
+none 00733590 PopDRMComm: the DRM wrapper's window and messages, registration code
+none 0073b140 PopDRMComm: the DRM wrapper's messages, registration code
+none 0073b020 The trial badge (IMAGE_TRIALBADGE_PULSE), registration code
+none 0073b256 The trial badge's draw, registration code
+none 0073b403 The trial badge, registration code
+none 00761f11 The QA stats dump (a .csv on PopCap's own network share, named by the computer): developer telemetry, writes nothing outside PopCap's network
+none 007648d2 The QA stats dump's caller: developer telemetry
+none 00767b38 The debug information overlay (game version, update count, the D3D adapter and memory): a developer's overlay, not ported with the framework's others (framework/SexyAppBase.cpp)
+none 0075edac The window procedure: the platform layer's SDL events stand in for it
+none 006f41aa CustomSoundManager::LoadSound, the DirectSound buffer loader: the framework's sound manager stands in for it
+# Library code in the game's range, with no name in the export: the C++ library's template instances (containers,
+# strings, iterators), the compiler's unwind funclets and stubs, and the framework's and the platform's own code that
+# the linker put among the game's. Sorted from the coverage report (NOTES.md "Coverage check"), one function a line.
+none 0067ee6d compiler EH unwind funclet/stub: library code
+none 00680353 a small helper the compiler repeated for several types (x24): C++ library code
+none 00680369 std/CRT template instance: library code
+none 0068038c a small helper the compiler repeated for several types (x24): C++ library code
+none 006803f1 std/CRT template instance: library code
+none 00680488 std/CRT template instance: library code
+none 006804d9 std::copy / uninitialized_copy of a plain struct: library code
+none 00680518 a small helper the compiler repeated for several types (x4): C++ library code
+none 00680542 a small helper the compiler repeated for several types (x6): C++ library code
+none 00680638 std/CRT template instance: library code
+none 006806be a small helper the compiler repeated for several types (x5): C++ library code
+none 00680788 a small helper the compiler repeated for several types (x17): C++ library code
+none 00680833 a small helper the compiler repeated for several types (x25): C++ library code
+none 00680864 a small helper the compiler repeated for several types (x17): C++ library code
+none 006808b9 a small helper the compiler repeated for several types (x44): C++ library code
+none 006808e1 a small helper the compiler repeated for several types (x23): C++ library code
+none 00680973 a small helper the compiler repeated for several types (x20): C++ library code
+none 006809c0 a small helper the compiler repeated for several types (x19): C++ library code
+none 006809fd std/CRT template instance: library code
+none 00680a1c a small helper the compiler repeated for several types (x50): C++ library code
+none 00680a3a a small helper the compiler repeated for several types (x20): C++ library code
+none 00680b60 std/CRT template instance: library code
+none 006848c6 a small helper the compiler repeated for several types (x68): C++ library code
+none 006848d9 std/CRT template instance: library code
+none 00684a50 a small helper the compiler repeated for several types (x68): C++ library code
+none 00684c1a std/CRT template instance: library code
+none 00684d05 std/CRT template instance: library code
+none 00684eb5 std/CRT template instance: library code
+none 00685444 a small helper the compiler repeated for several types (x21): C++ library code
+none 00685486 std/CRT template instance: library code
+none 006857a0 std/CRT template instance: library code
+none 00685beb a small helper the compiler repeated for several types (x21): C++ library code
+none 00685c2f a small helper the compiler repeated for several types (x44): C++ library code
+none 00685d72 a small helper the compiler repeated for several types (x41): C++ library code
+none 0068610f a small helper the compiler repeated for several types (x21): C++ library code
+none 0068625e std/CRT template instance: library code
+none 00686652 a small helper the compiler repeated for several types (x50): C++ library code
+none 0068671a a small helper the compiler repeated for several types (x21): C++ library code
+none 00686ba9 a small helper the compiler repeated for several types (x29): C++ library code
+none 00686d5e std/CRT template instance: library code
+none 0068776b a small helper the compiler repeated for several types (x41): C++ library code
+none 00687aca a small helper the compiler repeated for several types (x39): C++ library code
+none 0069114d std/CRT template instance: library code
+none 006916f4 a small helper the compiler repeated for several types (x21): C++ library code
+none 006941b9 a small helper the compiler repeated for several types (x24): C++ library code
+none 006941cf std/CRT template instance: library code
+none 006941f2 a small helper the compiler repeated for several types (x68): C++ library code
+none 00694205 std/CRT template instance: library code
+none 00694229 a small helper the compiler repeated for several types (x24): C++ library code
+none 00694242 a small helper the compiler repeated for several types (x68): C++ library code
+none 00694282 std/CRT template instance: library code
+none 006942cc std/CRT template instance: library code
+none 006942f7 std/CRT template instance: library code
+none 0069431f std/CRT template instance: library code
+none 0069434f std/CRT template instance: library code
+none 006943ca std/CRT template instance: library code
+none 0069440a std/CRT template instance: library code
+none 0069446e std/CRT template instance: library code
+none 00694513 a small helper the compiler repeated for several types (x21): C++ library code
+none 00694534 std/CRT template instance: library code
+none 00694579 std/CRT template instance: library code
+none 00694610 std/CRT template instance: library code
+none 00694674 std/CRT template instance: library code
+none 006946e3 a small helper the compiler repeated for several types (x21): C++ library code
+none 00694705 a small helper the compiler repeated for several types (x44): C++ library code
+none 0069472d a small helper the compiler repeated for several types (x41): C++ library code
+none 0069475a a small helper the compiler repeated for several types (x3): C++ library code
+none 006947bd a small helper the compiler repeated for several types (x41): C++ library code
+none 006947ea a small helper the compiler repeated for several types (x25): C++ library code
+none 00694843 a small helper the compiler repeated for several types (x21): C++ library code
+none 006948d9 a small helper the compiler repeated for several types (x19): C++ library code
+none 00694916 std/CRT template instance: library code
+none 00694954 std::vector of struct with std::string: helper (copy ctor/dtor/insert): library code
+none 00694960 std::vector of struct with std::string: helper (copy ctor/dtor/insert): library code
+none 0069496f a small helper the compiler repeated for several types (x20): C++ library code
+none 006949c0 a small helper the compiler repeated for several types (x50): C++ library code
+none 006949f5 a small helper the compiler repeated for several types (x21): C++ library code
+none 00694a16 std::vector of struct with std::string: helper (copy ctor/dtor/insert): library code
+none 00694a3a std/CRT template instance: library code
+none 00694ad0 std::vector of struct with std::string: helper (copy ctor/dtor/insert): library code
+none 00694afc a small helper the compiler repeated for several types (x5): C++ library code
+none 00694b36 std::vector of struct with std::string: helper (copy ctor/dtor/insert): library code
+none 00694ba7 std::vector of struct with std::string: helper (copy ctor/dtor/insert): library code
+none 00694df4 a small helper the compiler repeated for several types (x21): C++ library code
+none 00694e3d a small helper the compiler repeated for several types (x29): C++ library code
+none 00694e84 std/CRT template instance: library code
+none 00694ffa std::vector of struct with std::string: helper (copy ctor/dtor/insert): library code
+none 00695081 called only from C++ library template instances: library code
+none 006950cc a small helper the compiler repeated for several types (x5): C++ library code
+none 00695485 a small helper the compiler repeated for several types (x41): C++ library code
+none 006954f1 a small helper the compiler repeated for several types (x5): C++ library code
+none 00695530 a small helper the compiler repeated for several types (x5): C++ library code
+none 0069554d a small helper the compiler repeated for several types (x5): C++ library code
+none 006955e5 a small helper the compiler repeated for several types (x44): C++ library code
+none 0069560d a small helper the compiler repeated for several types (x39): C++ library code
+none 00695662 a small helper the compiler repeated for several types (x25): C++ library code
+none 0069568a a small helper the compiler repeated for several types (x50): C++ library code
+none 006956a4 a small helper the compiler repeated for several types (x23): C++ library code
+none 006958b7 std/CRT template instance: library code
+none 006958e4 a small helper the compiler repeated for several types (x20): C++ library code
+none 00695a90 std::vector of struct with std::string: helper (copy ctor/dtor/insert): library code
+none 00695acd a small helper the compiler repeated for several types (x50): C++ library code
+none 0069677a std/CRT template instance: library code
+none 00696980 std/CRT template instance: library code
+none 0069699f a small helper the compiler repeated for several types (x41): C++ library code
+none 00697d06 a small helper the compiler repeated for several types (x39): C++ library code
+none 006982fa std/CRT template instance: library code
+none 0069941f compiler EH unwind funclet/stub: library code
+none 0069942a compiler EH unwind funclet/stub: library code
+none 00699bbc compiler EH unwind funclet/stub: library code
+none 00699f7f a small helper the compiler repeated for several types (x68): C++ library code
+none 00699f92 std/CRT template instance: library code
+none 00699fb5 a small helper the compiler repeated for several types (x68): C++ library code
+none 00699fe0 std/CRT template instance: library code
+none 0069a024 std/CRT template instance: library code
+none 0069a04c std/CRT template instance: library code
+none 0069a0d2 a small helper the compiler repeated for several types (x3): C++ library code
+none 0069a0fb a small helper the compiler repeated for several types (x6): C++ library code
+none 0069a704 std/CRT template instance: library code
+none 0069a740 a small helper the compiler repeated for several types (x4): C++ library code
+none 0069a7d1 a small helper the compiler repeated for several types (x17): C++ library code
+none 0069a8a4 a small helper the compiler repeated for several types (x41): C++ library code
+none 0069a8e9 a small helper the compiler repeated for several types (x25): C++ library code
+none 0069a91b a small helper the compiler repeated for several types (x17): C++ library code
+none 0069a964 a small helper the compiler repeated for several types (x44): C++ library code
+none 0069a9b9 a small helper the compiler repeated for several types (x23): C++ library code
+none 0069aa25 std/CRT template instance: library code
+none 0069aa44 a small helper the compiler repeated for several types (x20): C++ library code
+none 0069aa74 a small helper the compiler repeated for several types (x14): C++ library code
+none 0069aaa3 a small helper the compiler repeated for several types (x50): C++ library code
+none 0069be4d a small helper the compiler repeated for several types (x21): C++ library code
+none 0069be96 std/CRT template instance: library code
+none 0069c040 std/CRT template instance: library code
+none 0069cb9c a small helper the compiler repeated for several types (x41): C++ library code
+none 0069ccaa std/CRT template instance: library code
+none 0069ccc9 a small helper the compiler repeated for several types (x39): C++ library code
+none 0069de89 std/CRT template instance: library code
+none 0069e249 compiler EH unwind funclet/stub: library code
+none 0069e3a4 std/CRT template instance: library code
+none 006a0375 compiler EH unwind funclet/stub: library code
+none 006a075c std/CRT template instance: library code
+none 006a1bff compiler EH unwind funclet/stub: library code
+none 006a22f9 std/CRT template instance: library code
+none 006a38ee called only from C++ library template instances: library code
+none 006a3903 compiler EH unwind funclet/stub: library code
+none 006a3a5e std/CRT template instance: library code
+none 006a3a7d std/CRT template instance: library code
+none 006a3a9c std/CRT template instance: library code
+none 006a3d7b compiler EH unwind funclet/stub: library code
+none 006a3e70 compiler EH unwind funclet/stub: library code
+none 006a4043 compiler EH unwind funclet/stub: library code
+none 006a4a0d compiler EH unwind funclet/stub: library code
+none 006a54ac std/CRT template instance: library code
+none 006a6b26 framework Rect::Contains(Point): library code
+none 006a6b87 framework Point::operator!=: library code
+none 006a6baa a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6bbd a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6bd0 std/CRT template instance: library code
+none 006a6bf4 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6c12 std/CRT template instance: library code
+none 006a6c3a a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6c4d std/CRT template instance: library code
+none 006a6c71 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6c84 std/CRT template instance: library code
+none 006a6ca8 a small helper the compiler repeated for several types (x24): C++ library code
+none 006a6cbe std/CRT template instance: library code
+none 006a6ce1 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6cf4 std/CRT template instance: library code
+none 006a6d18 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6d36 std/CRT template instance: library code
+none 006a6d91 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6da4 std/CRT template instance: library code
+none 006a6dc8 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6ddb std/CRT template instance: library code
+none 006a6dff a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6e36 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6e49 std/CRT template instance: library code
+none 006a6e71 a small helper the compiler repeated for several types (x24): C++ library code
+none 006a6e87 std/CRT template instance: library code
+none 006a6eaa a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6ebd std/CRT template instance: library code
+none 006a6ee1 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6ef4 std/CRT template instance: library code
+none 006a6f18 a small helper the compiler repeated for several types (x24): C++ library code
+none 006a6f64 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6f77 std/CRT template instance: library code
+none 006a6fb2 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a6fdd a small helper the compiler repeated for several types (x68): C++ library code
+none 006a702b a small helper the compiler repeated for several types (x3): C++ library code
+none 006a7040 a small helper the compiler repeated for several types (x3): C++ library code
+none 006a7062 a small helper the compiler repeated for several types (x4): C++ library code
+none 006a70c4 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a70da a small helper the compiler repeated for several types (x68): C++ library code
+none 006a70f0 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a7103 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a7119 a small helper the compiler repeated for several types (x24): C++ library code
+none 006a7132 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a7153 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a718a a small helper the compiler repeated for several types (x68): C++ library code
+none 006a71a0 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a71d7 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a72b6 a small helper the compiler repeated for several types (x24): C++ library code
+none 006a72cf a small helper the compiler repeated for several types (x68): C++ library code
+none 006a7328 a small helper the compiler repeated for several types (x3): C++ library code
+none 006a733d a small helper the compiler repeated for several types (x3): C++ library code
+none 006a735f a small helper the compiler repeated for several types (x4): C++ library code
+none 006a73c1 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a73d4 a small helper the compiler repeated for several types (x24): C++ library code
+none 006a73ea a small helper the compiler repeated for several types (x24): C++ library code
+none 006a744c a small helper the compiler repeated for several types (x68): C++ library code
+none 006a745f a small helper the compiler repeated for several types (x68): C++ library code
+none 006a7475 std/CRT template instance: library code
+none 006a74a3 std/CRT template instance: library code
+none 006a74d1 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a74e4 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a7518 std/CRT template instance: library code
+none 006a76d7 std/CRT template instance: library code
+none 006a76f8 std/CRT template instance: library code
+none 006a7730 std/CRT template instance: library code
+none 006a7778 std/CRT template instance: library code
+none 006a77b0 std/CRT template instance: library code
+none 006a7809 std/CRT template instance: library code
+none 006a7879 std/CRT template instance: library code
+none 006a78b1 std/CRT template instance: library code
+none 006a7901 std/CRT template instance: library code
+none 006a7939 std/CRT template instance: library code
+none 006a7a62 std/CRT template instance: library code
+none 006a7ae3 std/CRT template instance: library code
+none 006a7b73 std/CRT template instance: library code
+none 006a7bc6 std/CRT template instance: library code
+none 006a7c18 std/CRT template instance: library code
+none 006a7c68 std/CRT template instance: library code
+none 006a7c90 std/CRT template instance: library code
+none 006a7cba std/CRT template instance: library code
+none 006a7ce2 std/CRT template instance: library code
+none 006a7d21 a small helper the compiler repeated for several types (x68): C++ library code
+none 006a7d62 std/CRT template instance: library code
+none 006a7d8c std/CRT template instance: library code
+none 006a7de5 std/CRT template instance: library code
+none 006a7e2d std/CRT template instance: library code
+none 006a7e55 std/CRT template instance: library code
+none 006a7e7f std/CRT template instance: library code
+none 006a7ea7 std/CRT template instance: library code
+none 006a7ed1 std/CRT template instance: library code
+none 006a7ef9 std/CRT template instance: library code
+none 006a7f75 std/CRT template instance: library code
+none 006a7f9d std/CRT template instance: library code
+none 006a7fc7 std/CRT template instance: library code
+none 006a7ff2 std/CRT template instance: library code
+none 006a801c std/CRT template instance: library code
+none 006a8044 std/CRT template instance: library code
+none 006a806c a small helper the compiler repeated for several types (x3): C++ library code
+none 006a809e a small helper the compiler repeated for several types (x3): C++ library code
+none 006a8159 std/CRT template instance: library code
+none 006a8197 std/CRT template instance: library code
+none 006a81cf std/CRT template instance: library code
+none 006a8207 std/CRT template instance: library code
+none 006a8277 std/CRT template instance: library code
+none 006a82af std/CRT template instance: library code
+none 006a82e7 std/CRT template instance: library code
+none 006a831f std/CRT template instance: library code
+none 006a8497 std/CRT template instance: library code
+none 006a84d9 std/CRT template instance: library code
+none 006a851c std/CRT template instance: library code
+none 006a855e std/CRT template instance: library code
+none 006a85a0 std/CRT template instance: library code
+none 006a85e0 std/CRT template instance: library code
+none 006a8620 std/CRT template instance: library code
+none 006a8662 std/CRT template instance: library code
+none 006a86e6 std/CRT template instance: library code
+none 006a8728 std/CRT template instance: library code
+none 006a87ac std/CRT template instance: library code
+none 006a87ef std/CRT template instance: library code
+none 006a882f std/CRT template instance: library code
+none 006a8872 std/CRT template instance: library code
+none 006a88f2 std/CRT template instance: library code
+none 006a8934 std/CRT template instance: library code
+none 006a8979 std/CRT template instance: library code
+none 006a89c3 std/CRT template instance: library code
+none 006a8a03 std/CRT template instance: library code
+none 006a8a60 std/CRT template instance: library code
+none 006a8adc std/CRT template instance: library code
+none 006a8b1c std/CRT template instance: library code
+none 006a8b5c std/CRT template instance: library code
+none 006a8b9c std/CRT template instance: library code
+none 006a8bed std/CRT template instance: library code
+none 006a8c2d std/CRT template instance: library code
+none 006a8cad std/CRT template instance: library code
+none 006a8ced std/CRT template instance: library code
+none 006a90c2 std/CRT template instance: library code
+none 006a90fb std/CRT template instance: library code
+none 006a9152 a small helper the compiler repeated for several types (x4): C++ library code
+none 006a91b8 a small helper the compiler repeated for several types (x4): C++ library code
+none 006a9220 a small helper the compiler repeated for several types (x3): C++ library code
+none 006a9267 std::copy / uninitialized_copy of a plain struct: library code
+none 006a94b4 a small helper the compiler repeated for several types (x6): C++ library code
+none 006a94cc a small helper the compiler repeated for several types (x6): C++ library code
+none 006a94e5 a small helper the compiler repeated for several types (x3): C++ library code
+none 006a9501 a small helper the compiler repeated for several types (x3): C++ library code
+none 006a951b a small helper the compiler repeated for several types (x6): C++ library code
+none 006a9651 a small helper the compiler repeated for several types (x6): C++ library code
+none 006a9689 a small helper the compiler repeated for several types (x21): C++ library code
+none 006a96aa a small helper the compiler repeated for several types (x21): C++ library code
+none 006a96cb a small helper the compiler repeated for several types (x21): C++ library code
+none 006a96ec a small helper the compiler repeated for several types (x21): C++ library code
+none 006a970d a small helper the compiler repeated for several types (x21): C++ library code
+none 006a972e a small helper the compiler repeated for several types (x21): C++ library code
+none 006a9770 a small helper the compiler repeated for several types (x21): C++ library code
+none 006a97b2 a small helper the compiler repeated for several types (x21): C++ library code
+none 006a97d3 a small helper the compiler repeated for several types (x21): C++ library code
+none 006a97f4 std/CRT template instance: library code
+none 006a9823 std/CRT template instance: library code
+none 006a9852 std/CRT template instance: library code
+none 006a9881 std/CRT template instance: library code
+none 006a98b0 std/CRT template instance: library code
+none 006a990e std/CRT template instance: library code
+none 006a996c std/CRT template instance: library code
+none 006a999b std/CRT template instance: library code
+none 006ab255 std container query wrapper (size()!=0): library code
+none 006ab5e5 std/CRT template instance: library code
+none 006ab631 std/CRT template instance: library code
+none 006ab67d a small helper the compiler repeated for several types (x4): C++ library code
+none 006ab764 a small helper the compiler repeated for several types (x4): C++ library code
+none 006ab8b4 a small helper the compiler repeated for several types (x3): C++ library code
+none 006aba5d a small helper the compiler repeated for several types (x3): C++ library code
+none 006abaf2 std/CRT template instance: library code
+none 006abb24 std/CRT template instance: library code
+none 006abb8e std/CRT template instance: library code
+none 006abbc9 std/CRT template instance: library code
+none 006abc04 std/CRT template instance: library code
+none 006abc3f std/CRT template instance: library code
+none 006abca0 std/CRT template instance: library code
+none 006abd16 std/CRT template instance: library code
+none 006abd65 std/CRT template instance: library code
+none 006abdd2 std/CRT template instance: library code
+none 006abe18 std/CRT template instance: library code
+none 006abe56 std/CRT template instance: library code
+none 006abff0 std/CRT template instance: library code
+none 006ac037 std/CRT template instance: library code
+none 006ac0c5 std/CRT template instance: library code
+none 006ac10c std/CRT template instance: library code
+none 006ac153 std/CRT template instance: library code
+none 006ac19a std/CRT template instance: library code
+none 006ac21d std/CRT template instance: library code
+none 006ac26c std/CRT template instance: library code
+none 006ac2ce std/CRT template instance: library code
+none 006ac349 std/CRT template instance: library code
+none 006ac3ad std/CRT template instance: library code
+none 006ac3f4 a small helper the compiler repeated for several types (x44): C++ library code
+none 006ac444 a small helper the compiler repeated for several types (x5): C++ library code
+none 006ac4bf a small helper the compiler repeated for several types (x5): C++ library code
+none 006ac551 a small helper the compiler repeated for several types (x4): C++ library code
+none 006ac5ab std::copy / uninitialized_copy of a plain struct: library code
+none 006ac9ff a small helper the compiler repeated for several types (x21): C++ library code
+none 006aca21 a small helper the compiler repeated for several types (x21): C++ library code
+none 006aca43 a small helper the compiler repeated for several types (x21): C++ library code
+none 006aca65 a small helper the compiler repeated for several types (x21): C++ library code
+none 006aca87 a small helper the compiler repeated for several types (x21): C++ library code
+none 006acaa9 a small helper the compiler repeated for several types (x21): C++ library code
+none 006acaed a small helper the compiler repeated for several types (x21): C++ library code
+none 006acb31 a small helper the compiler repeated for several types (x21): C++ library code
+none 006acb53 a small helper the compiler repeated for several types (x21): C++ library code
+none 006acb75 a small helper the compiler repeated for several types (x44): C++ library code
+none 006acb9d a small helper the compiler repeated for several types (x44): C++ library code
+none 006acbc5 a small helper the compiler repeated for several types (x44): C++ library code
+none 006acbed a small helper the compiler repeated for several types (x44): C++ library code
+none 006acc15 a small helper the compiler repeated for several types (x44): C++ library code
+none 006acc65 a small helper the compiler repeated for several types (x44): C++ library code
+none 006accb5 a small helper the compiler repeated for several types (x44): C++ library code
+none 006accdd a small helper the compiler repeated for several types (x44): C++ library code
+none 006acd4c a small helper the compiler repeated for several types (x17): C++ library code
+none 006acd72 a small helper the compiler repeated for several types (x17): C++ library code
+none 006acd98 a small helper the compiler repeated for several types (x17): C++ library code
+none 006acdbe a small helper the compiler repeated for several types (x17): C++ library code
+none 006acde4 a small helper the compiler repeated for several types (x17): C++ library code
+none 006acecf a small helper the compiler repeated for several types (x41): C++ library code
+none 006acf06 a small helper the compiler repeated for several types (x41): C++ library code
+none 006acf33 a small helper the compiler repeated for several types (x41): C++ library code
+none 006acf60 a small helper the compiler repeated for several types (x41): C++ library code
+none 006acfba a small helper the compiler repeated for several types (x41): C++ library code
+none 006acfe7 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad014 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad0a1 std/CRT template instance: library code
+none 006ad0c3 std/CRT template instance: library code
+none 006ad0e5 std/CRT template instance: library code
+none 006ad107 std/CRT template instance: library code
+none 006ad129 std/CRT template instance: library code
+none 006ad14b std/CRT template instance: library code
+none 006ad16d std/CRT template instance: library code
+none 006ad18f std/CRT template instance: library code
+none 006ad1b1 std/CRT template instance: library code
+none 006ad1d3 std/CRT template instance: library code
+none 006ad1f5 std/CRT template instance: library code
+none 006ad22c a small helper the compiler repeated for several types (x3): C++ library code
+none 006ad25c a small helper the compiler repeated for several types (x10): C++ library code
+none 006ad28c a small helper the compiler repeated for several types (x10): C++ library code
+none 006ad3a0 a small helper the compiler repeated for several types (x10): C++ library code
+none 006ad3d0 a small helper the compiler repeated for several types (x3): C++ library code
+none 006ad402 a small helper the compiler repeated for several types (x3): C++ library code
+none 006ad440 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad46d a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad4b2 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad4f7 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad593 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad5d8 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad61d a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad662 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ad6bc a small helper the compiler repeated for several types (x6): C++ library code
+none 006ad6e2 a small helper the compiler repeated for several types (x7): C++ library code
+none 006ad715 a small helper the compiler repeated for several types (x6): C++ library code
+none 006ad73b a small helper the compiler repeated for several types (x7): C++ library code
+none 006ad7a0 a small helper the compiler repeated for several types (x6): C++ library code
+none 006ad7c6 a small helper the compiler repeated for several types (x7): C++ library code
+none 006ad898 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ad8d9 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ad901 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ad929 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ad951 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ad979 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ad9a1 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ad9f1 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ada19 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ada41 a small helper the compiler repeated for several types (x25): C++ library code
+none 006ada91 a small helper the compiler repeated for several types (x25): C++ library code
+none 006adb09 a small helper the compiler repeated for several types (x25): C++ library code
+none 006add79 a small helper the compiler repeated for several types (x17): C++ library code
+none 006add9b a small helper the compiler repeated for several types (x17): C++ library code
+none 006addbc a small helper the compiler repeated for several types (x17): C++ library code
+none 006adddf a small helper the compiler repeated for several types (x17): C++ library code
+none 006ade00 a small helper the compiler repeated for several types (x17): C++ library code
+none 006adf01 a small helper the compiler repeated for several types (x17): C++ library code
+none 006adf4d a small helper the compiler repeated for several types (x21): C++ library code
+none 006adf72 a small helper the compiler repeated for several types (x21): C++ library code
+none 006adf97 a small helper the compiler repeated for several types (x21): C++ library code
+none 006adfbc a small helper the compiler repeated for several types (x21): C++ library code
+none 006adfe1 a small helper the compiler repeated for several types (x21): C++ library code
+none 006ae006 a small helper the compiler repeated for several types (x21): C++ library code
+none 006ae050 a small helper the compiler repeated for several types (x21): C++ library code
+none 006ae09a a small helper the compiler repeated for several types (x21): C++ library code
+none 006ae0bf a small helper the compiler repeated for several types (x21): C++ library code
+none 006ae211 a small helper the compiler repeated for several types (x44): C++ library code
+none 006ae239 a small helper the compiler repeated for several types (x44): C++ library code
+none 006ae261 a small helper the compiler repeated for several types (x44): C++ library code
+none 006ae289 a small helper the compiler repeated for several types (x44): C++ library code
+none 006ae2b1 a small helper the compiler repeated for several types (x44): C++ library code
+none 006ae2d9 a small helper the compiler repeated for several types (x14): C++ library code
+none 006ae388 a small helper the compiler repeated for several types (x14): C++ library code
+none 006ae3d2 a small helper the compiler repeated for several types (x14): C++ library code
+none 006ae449 a small helper the compiler repeated for several types (x14): C++ library code
+none 006ae4bc a small helper the compiler repeated for several types (x14): C++ library code
+none 006ae550 a small helper the compiler repeated for several types (x14): C++ library code
+none 006ae57f a small helper the compiler repeated for several types (x12): C++ library code
+none 006ae5da a small helper the compiler repeated for several types (x14): C++ library code
+none 006ae61f a small helper the compiler repeated for several types (x19): C++ library code
+none 006ae672 a small helper the compiler repeated for several types (x19): C++ library code
+none 006ae6af a small helper the compiler repeated for several types (x12): C++ library code
+none 006ae6c7 a small helper the compiler repeated for several types (x4): C++ library code
+none 006ae6f9 a small helper the compiler repeated for several types (x19): C++ library code
+none 006ae74c a small helper the compiler repeated for several types (x19): C++ library code
+none 006ae7f7 a small helper the compiler repeated for several types (x19): C++ library code
+none 006ae9bc a small helper the compiler repeated for several types (x12): C++ library code
+none 006ae9d4 a small helper the compiler repeated for several types (x4): C++ library code
+none 006aea68 a small helper the compiler repeated for several types (x7): C++ library code
+none 006aea92 a small helper the compiler repeated for several types (x7): C++ library code
+none 006aeabc a small helper the compiler repeated for several types (x7): C++ library code
+none 006aeb96 a small helper the compiler repeated for several types (x23): C++ library code
+none 006aebbf a small helper the compiler repeated for several types (x23): C++ library code
+none 006aebe7 a small helper the compiler repeated for several types (x23): C++ library code
+none 006aec11 a small helper the compiler repeated for several types (x23): C++ library code
+none 006aec39 a small helper the compiler repeated for several types (x23): C++ library code
+none 006aec61 a small helper the compiler repeated for several types (x50): C++ library code
+none 006aed46 called only from C++ library template instances: library code
+none 006aed6e a small helper the compiler repeated for several types (x44): C++ library code
+none 006af5a3 framework Point/Rect helper (rect from two points): library code
+none 006af5dc a small helper the compiler repeated for several types (x20): C++ library code
+none 006af617 a small helper the compiler repeated for several types (x20): C++ library code
+none 006af652 a small helper the compiler repeated for several types (x3): C++ library code
+none 006af6b6 a small helper the compiler repeated for several types (x20): C++ library code
+none 006af6f1 a small helper the compiler repeated for several types (x20): C++ library code
+none 006af72c a small helper the compiler repeated for several types (x20): C++ library code
+none 006af806 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006af8bc a small helper the compiler repeated for several types (x3): C++ library code
+none 006af992 a small helper the compiler repeated for several types (x20): C++ library code
+none 006af9b7 std/CRT template instance: library code
+none 006af9d6 a small helper the compiler repeated for several types (x20): C++ library code
+none 006af9f8 a small helper the compiler repeated for several types (x3): C++ library code
+none 006afa3c a small helper the compiler repeated for several types (x3): C++ library code
+none 006afa5e a small helper the compiler repeated for several types (x20): C++ library code
+none 006afb06 a small helper the compiler repeated for several types (x3): C++ library code
+none 006afc49 a small helper the compiler repeated for several types (x50): C++ library code
+none 006afc62 a small helper the compiler repeated for several types (x50): C++ library code
+none 006afc7b a small helper the compiler repeated for several types (x50): C++ library code
+none 006afc94 a small helper the compiler repeated for several types (x50): C++ library code
+none 006afcad a small helper the compiler repeated for several types (x50): C++ library code
+none 006afcdf a small helper the compiler repeated for several types (x50): C++ library code
+none 006afd11 a small helper the compiler repeated for several types (x50): C++ library code
+none 006afd2a a small helper the compiler repeated for several types (x50): C++ library code
+none 006afdcc std/CRT template instance: library code
+none 006b0367 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006b03b8 a small helper the compiler repeated for several types (x14): C++ library code
+none 006b03e7 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b0408 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b0429 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b044a a small helper the compiler repeated for several types (x21): C++ library code
+none 006b046b a small helper the compiler repeated for several types (x19): C++ library code
+none 006b04a8 std/CRT template instance: library code
+none 006b04c7 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b04e8 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b052a a small helper the compiler repeated for several types (x19): C++ library code
+none 006b0567 std/CRT template instance: library code
+none 006b0586 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b05c8 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b05e9 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b0680 std/CRT template instance: library code
+none 006b069f std/CRT template instance: library code
+none 006b06be a small helper the compiler repeated for several types (x50): C++ library code
+none 006b06d7 a small helper the compiler repeated for several types (x50): C++ library code
+none 006b06f0 a small helper the compiler repeated for several types (x50): C++ library code
+none 006b0709 a small helper the compiler repeated for several types (x50): C++ library code
+none 006b0722 a small helper the compiler repeated for several types (x50): C++ library code
+none 006b13b8 std/CRT template instance: library code
+none 006b14d5 std/CRT template instance: library code
+none 006b1746 a small helper the compiler repeated for several types (x20): C++ library code
+none 006b1786 a small helper the compiler repeated for several types (x20): C++ library code
+none 006b1a2d std/CRT template instance: library code
+none 006b1c9e std/CRT template instance: library code
+none 006b1df2 std/CRT template instance: library code
+none 006b1fbb a small helper the compiler repeated for several types (x7): C++ library code
+none 006b22c5 a small helper the compiler repeated for several types (x7): C++ library code
+none 006b252b a small helper the compiler repeated for several types (x7): C++ library code
+none 006b2880 std/CRT template instance: library code
+none 006b35b1 std/CRT template instance: library code
+none 006b67c9 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006b685f std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006b6913 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006b69cc a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6a13 a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6a5a std/CRT template instance: library code
+none 006b6aa4 a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6aeb a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6b32 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b6b7b a small helper the compiler repeated for several types (x21): C++ library code
+none 006b6bc4 a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6c0b a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6c52 a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6c99 a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6ce0 a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6d27 a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6d6e a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6e16 std/CRT template instance: library code
+none 006b6e60 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b6ea9 a small helper the compiler repeated for several types (x29): C++ library code
+none 006b6ef0 std/CRT template instance: library code
+none 006b6f3a a small helper the compiler repeated for several types (x21): C++ library code
+none 006b6f83 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b6fcc a small helper the compiler repeated for several types (x29): C++ library code
+none 006b705c std/CRT template instance: library code
+none 006b71d2 std/CRT template instance: library code
+none 006b7348 std/CRT template instance: library code
+none 006b74be std/CRT template instance: library code
+none 006b7634 std/CRT template instance: library code
+none 006b77de std/CRT template instance: library code
+none 006b7993 std/CRT template instance: library code
+none 006b7b09 std/CRT template instance: library code
+none 006b7df5 std/CRT template instance: library code
+none 006b7fa1 std/CRT template instance: library code
+none 006b828d std/CRT template instance: library code
+none 006b8403 std/CRT template instance: library code
+none 006b8579 std/CRT template instance: library code
+none 006b8725 a small helper the compiler repeated for several types (x21): C++ library code
+none 006b876e std/CRT template instance: library code
+none 006b8918 a small helper the compiler repeated for several types (x3): C++ library code
+none 006b8990 a small helper the compiler repeated for several types (x5): C++ library code
+none 006b8a83 std/CRT template instance: library code
+none 006b8cbf std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006b8d18 std/CRT template instance: library code
+none 006b90af a small helper the compiler repeated for several types (x41): C++ library code
+none 006b9112 a small helper the compiler repeated for several types (x41): C++ library code
+none 006b9175 a small helper the compiler repeated for several types (x41): C++ library code
+none 006b91d8 a small helper the compiler repeated for several types (x41): C++ library code
+none 006b923b a small helper the compiler repeated for several types (x41): C++ library code
+none 006b929e a small helper the compiler repeated for several types (x41): C++ library code
+none 006b9301 a small helper the compiler repeated for several types (x41): C++ library code
+none 006b9364 a small helper the compiler repeated for several types (x41): C++ library code
+none 006b942a a small helper the compiler repeated for several types (x41): C++ library code
+none 006b948d a small helper the compiler repeated for several types (x41): C++ library code
+none 006b9553 a small helper the compiler repeated for several types (x41): C++ library code
+none 006b95b6 a small helper the compiler repeated for several types (x41): C++ library code
+none 006b9619 a small helper the compiler repeated for several types (x41): C++ library code
+none 006b968a a small helper the compiler repeated for several types (x41): C++ library code
+none 006b96ed called only from C++ library template instances: library code
+none 006b9702 a small helper the compiler repeated for several types (x50): C++ library code
+none 006b9755 a small helper the compiler repeated for several types (x5): C++ library code
+none 006b97fc std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006b984e std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006b996e a small helper the compiler repeated for several types (x39): C++ library code
+none 006b99c3 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9a24 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9a79 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9b23 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9b78 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9bcd a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9c77 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9ccc a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9d76 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9dd7 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9e38 a small helper the compiler repeated for several types (x39): C++ library code
+none 006b9fa3 called only from C++ library template instances: library code
+none 006ba005 a small helper the compiler repeated for several types (x5): C++ library code
+none 006ba057 a small helper the compiler repeated for several types (x5): C++ library code
+none 006bd577 std/CRT template instance: library code
+none 006bd5de a small helper the compiler repeated for several types (x5): C++ library code
+none 006bd61d a small helper the compiler repeated for several types (x5): C++ library code
+none 006bd662 a small helper the compiler repeated for several types (x5): C++ library code
+none 006bd70e a small helper the compiler repeated for several types (x44): C++ library code
+none 006bd736 a small helper the compiler repeated for several types (x5): C++ library code
+none 006bee51 a small helper the compiler repeated for several types (x25): C++ library code
+none 006bee79 a small helper the compiler repeated for several types (x50): C++ library code
+none 006beebb a small helper the compiler repeated for several types (x23): C++ library code
+none 006beee3 a small helper the compiler repeated for several types (x5): C++ library code
+none 006bef79 a small helper the compiler repeated for several types (x44): C++ library code
+none 006c414b called only from C++ library template instances: library code
+none 006c41ac a small helper the compiler repeated for several types (x20): C++ library code
+none 006c41ce a small helper the compiler repeated for several types (x23): C++ library code
+none 006c4240 std/CRT template instance: library code
+none 006c4d02 a small helper the compiler repeated for several types (x20): C++ library code
+none 006c4d3d a small helper the compiler repeated for several types (x20): C++ library code
+none 006c4d5f std/CRT template instance: library code
+none 006c4dd7 a small helper the compiler repeated for several types (x50): C++ library code
+none 006c7f1d std/CRT template instance: library code
+none 006c8116 a small helper the compiler repeated for several types (x50): C++ library code
+none 006c9a7c std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006c9b10 std/CRT template instance: library code
+none 006ca8fb std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006ca920 a small helper the compiler repeated for several types (x41): C++ library code
+none 006cd413 a small helper the compiler repeated for several types (x39): C++ library code
+none 006d7130 a small helper the compiler repeated for several types (x68): C++ library code
+none 006d7143 std/CRT template instance: library code
+none 006d7167 a small helper the compiler repeated for several types (x68): C++ library code
+none 006d7198 std/CRT template instance: library code
+none 006d71c0 std/CRT template instance: library code
+none 006d71f0 std/CRT template instance: library code
+none 006d7241 std/CRT template instance: library code
+none 006d7294 std/CRT template instance: library code
+none 006d72f0 std/CRT template instance: library code
+none 006d7355 a small helper the compiler repeated for several types (x21): C++ library code
+none 006d7749 std/CRT template instance: library code
+none 006d7786 a small helper the compiler repeated for several types (x44): C++ library code
+none 006d77ef a small helper the compiler repeated for several types (x21): C++ library code
+none 006d79be std/CRT template instance: library code
+none 006d79f5 a small helper the compiler repeated for several types (x41): C++ library code
+none 006d7a22 a small helper the compiler repeated for several types (x25): C++ library code
+none 006d7a4a a small helper the compiler repeated for several types (x50): C++ library code
+none 006d7a9d a small helper the compiler repeated for several types (x21): C++ library code
+none 006d7af3 a small helper the compiler repeated for several types (x19): C++ library code
+none 006d7b30 a small helper the compiler repeated for several types (x50): C++ library code
+none 006d7b72 a small helper the compiler repeated for several types (x20): C++ library code
+none 006d7bec a small helper the compiler repeated for several types (x21): C++ library code
+none 006d7c45 a small helper the compiler repeated for several types (x29): C++ library code
+none 006d7c8c std/CRT template instance: library code
+none 006d7e10 std/CRT template instance: library code
+none 006d7ee7 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006d7f72 a small helper the compiler repeated for several types (x41): C++ library code
+none 006d7fd5 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006d8029 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006d803e a small helper the compiler repeated for several types (x39): C++ library code
+none 006d86e3 std/CRT template instance: library code
+none 006d8706 a small helper the compiler repeated for several types (x68): C++ library code
+none 006d8719 std/CRT template instance: library code
+none 006d873d a small helper the compiler repeated for several types (x68): C++ library code
+none 006d8750 std/CRT template instance: library code
+none 006d8774 a small helper the compiler repeated for several types (x24): C++ library code
+none 006d878d a small helper the compiler repeated for several types (x68): C++ library code
+none 006d87a3 a small helper the compiler repeated for several types (x68): C++ library code
+none 006d880a std/CRT template instance: library code
+none 006d8835 std/CRT template instance: library code
+none 006d885d std/CRT template instance: library code
+none 006d8885 std/CRT template instance: library code
+none 006d88c1 std/CRT template instance: library code
+none 006d88f9 std/CRT template instance: library code
+none 006d8931 std/CRT template instance: library code
+none 006d8969 std/CRT template instance: library code
+none 006d89a9 std/CRT template instance: library code
+none 006d89eb std/CRT template instance: library code
+none 006d8b79 a small helper the compiler repeated for several types (x3): C++ library code
+none 006d8bc8 a small helper the compiler repeated for several types (x21): C++ library code
+none 006d8be9 a small helper the compiler repeated for several types (x21): C++ library code
+none 006d8c0a std/CRT template instance: library code
+none 006d8c39 std/CRT template instance: library code
+none 006d8e41 std/CRT template instance: library code
+none 006d8e88 std/CRT template instance: library code
+none 006d8ecf std/CRT template instance: library code
+none 006d8fcb a small helper the compiler repeated for several types (x21): C++ library code
+none 006d8fed a small helper the compiler repeated for several types (x21): C++ library code
+none 006d900f a small helper the compiler repeated for several types (x44): C++ library code
+none 006d9037 a small helper the compiler repeated for several types (x44): C++ library code
+none 006d905f a small helper the compiler repeated for several types (x17): C++ library code
+none 006d90a3 a small helper the compiler repeated for several types (x41): C++ library code
+none 006d90e8 a small helper the compiler repeated for several types (x41): C++ library code
+none 006d912d a small helper the compiler repeated for several types (x41): C++ library code
+none 006d9202 a small helper the compiler repeated for several types (x17): C++ library code
+none 006d924c a small helper the compiler repeated for several types (x21): C++ library code
+none 006d9271 a small helper the compiler repeated for several types (x21): C++ library code
+none 006d92c8 a small helper the compiler repeated for several types (x44): C++ library code
+none 006d931c std/CRT template instance: library code
+none 006d9367 a small helper the compiler repeated for several types (x19): C++ library code
+none 006d93a4 std/CRT template instance: library code
+none 006d93ef a small helper the compiler repeated for several types (x23): C++ library code
+none 006d94e1 a small helper the compiler repeated for several types (x20): C++ library code
+none 006d951c a small helper the compiler repeated for several types (x20): C++ library code
+none 006d956d a small helper the compiler repeated for several types (x50): C++ library code
+none 006d9586 a small helper the compiler repeated for several types (x50): C++ library code
+none 006d95c7 std/CRT template instance: library code
+none 006d95e6 a small helper the compiler repeated for several types (x21): C++ library code
+none 006d9607 a small helper the compiler repeated for several types (x21): C++ library code
+none 006d9628 a small helper the compiler repeated for several types (x50): C++ library code
+none 006d9723 called only from C++ library template instances: library code
+none 006d98fc a small helper the compiler repeated for several types (x21): C++ library code
+none 006d9945 a small helper the compiler repeated for several types (x29): C++ library code
+none 006d998c a small helper the compiler repeated for several types (x29): C++ library code
+none 006d99d3 std/CRT template instance: library code
+none 006d9b84 std/CRT template instance: library code
+none 006d9cfa std/CRT template instance: library code
+none 006d9e70 std/CRT template instance: library code
+none 006d9eb9 a small helper the compiler repeated for several types (x41): C++ library code
+none 006d9f1c a small helper the compiler repeated for several types (x41): C++ library code
+none 006d9f7f a small helper the compiler repeated for several types (x41): C++ library code
+none 006da092 a small helper the compiler repeated for several types (x39): C++ library code
+none 006da0e7 a small helper the compiler repeated for several types (x39): C++ library code
+none 006da13c a small helper the compiler repeated for several types (x39): C++ library code
+none 006da191 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006db6b1 called only from C++ library template instances: library code
+none 006db71f std/CRT template instance: library code
+none 006dd402 compiler EH unwind funclet/stub: library code
+none 006dd403 compiler EH unwind funclet/stub: library code
+none 006dd457 a small helper the compiler repeated for several types (x24): C++ library code
+none 006dd46d std/CRT template instance: library code
+none 006dd490 a small helper the compiler repeated for several types (x68): C++ library code
+none 006dd4a6 a small helper the compiler repeated for several types (x24): C++ library code
+none 006dd53f std/CRT template instance: library code
+none 006dd567 std/CRT template instance: library code
+none 006dd591 std/CRT template instance: library code
+none 006dd5bc std/CRT template instance: library code
+none 006dd623 std/CRT template instance: library code
+none 006dd65b std/CRT template instance: library code
+none 006dd6cb std/CRT template instance: library code
+none 006dd70d std/CRT template instance: library code
+none 006dd7a6 std/CRT template instance: library code
+none 006dd8e3 a small helper the compiler repeated for several types (x6): C++ library code
+none 006dd96e std/CRT template instance: library code
+none 006dd998 a small helper the compiler repeated for several types (x21): C++ library code
+none 006dd9b9 std/CRT template instance: library code
+none 006e001c std/CRT template instance: library code
+none 006e0063 std/CRT template instance: library code
+none 006e0223 a small helper the compiler repeated for several types (x21): C++ library code
+none 006e0245 a small helper the compiler repeated for several types (x44): C++ library code
+none 006e0281 a small helper the compiler repeated for several types (x17): C++ library code
+none 006e02d1 a small helper the compiler repeated for several types (x12): C++ library code
+none 006e031a a small helper the compiler repeated for several types (x41): C++ library code
+none 006e035f a small helper the compiler repeated for several types (x41): C++ library code
+none 006e03d1 a small helper the compiler repeated for several types (x25): C++ library code
+none 006e0464 a small helper the compiler repeated for several types (x17): C++ library code
+none 006e04fc a small helper the compiler repeated for several types (x12): C++ library code
+none 006e051f a small helper the compiler repeated for several types (x21): C++ library code
+none 006e055d a small helper the compiler repeated for several types (x44): C++ library code
+none 006e05d9 a small helper the compiler repeated for several types (x19): C++ library code
+none 006e0616 std/CRT template instance: library code
+none 006e068d a small helper the compiler repeated for several types (x23): C++ library code
+none 006e0785 a small helper the compiler repeated for several types (x20): C++ library code
+none 006e07c0 a small helper the compiler repeated for several types (x20): C++ library code
+none 006e0820 a small helper the compiler repeated for several types (x50): C++ library code
+none 006e0839 called only from C++ library template instances: library code
+none 006e08ac a small helper the compiler repeated for several types (x21): C++ library code
+none 006e08cd a small helper the compiler repeated for several types (x19): C++ library code
+none 006e090a std/CRT template instance: library code
+none 006e0929 std/CRT template instance: library code
+none 006e0948 a small helper the compiler repeated for several types (x3): C++ library code
+none 006e0967 a small helper the compiler repeated for several types (x50): C++ library code
+none 006e0999 std/CRT template instance: library code
+none 006e09bd a small helper the compiler repeated for several types (x20): C++ library code
+none 006e340c std/CRT template instance: library code
+none 006e34ca a small helper the compiler repeated for several types (x29): C++ library code
+none 006e3511 a small helper the compiler repeated for several types (x21): C++ library code
+none 006e355a a small helper the compiler repeated for several types (x21): C++ library code
+none 006e35a3 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006e362e std/CRT template instance: library code
+none 006e37a4 std/CRT template instance: library code
+none 006e4be2 a small helper the compiler repeated for several types (x41): C++ library code
+none 006e4c45 a small helper the compiler repeated for several types (x41): C++ library code
+none 006e4d0b std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006e5953 a small helper the compiler repeated for several types (x39): C++ library code
+none 006e59a8 a small helper the compiler repeated for several types (x39): C++ library code
+none 006e5a52 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006e5c09 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006e65bc std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006e65d7 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006e6e26 a small helper the compiler repeated for several types (x3): C++ library code
+none 006e9871 a small helper the compiler repeated for several types (x24): C++ library code
+none 006e9887 std/CRT template instance: library code
+none 006e98aa a small helper the compiler repeated for several types (x68): C++ library code
+none 006e98bd std/CRT template instance: library code
+none 006e98e0 a small helper the compiler repeated for several types (x24): C++ library code
+none 006e98f6 std/CRT template instance: library code
+none 006e9919 std/CRT template instance: library code
+none 006e9943 a small helper the compiler repeated for several types (x24): C++ library code
+none 006e995c a small helper the compiler repeated for several types (x68): C++ library code
+none 006e99ad a small helper the compiler repeated for several types (x24): C++ library code
+none 006e9a60 std/CRT template instance: library code
+none 006e9ab0 std/CRT template instance: library code
+none 006e9adb std/CRT template instance: library code
+none 006e9b05 std/CRT template instance: library code
+none 006e9b2f std/CRT template instance: library code
+none 006e9b9b std/CRT template instance: library code
+none 006e9c0b std/CRT template instance: library code
+none 006e9c99 std/CRT template instance: library code
+none 006e9cd9 std/CRT template instance: library code
+none 006e9d1a std/CRT template instance: library code
+none 006e9d5f std/CRT template instance: library code
+none 006e9e11 std::copy / uninitialized_copy of a plain struct: library code
+none 006e9eef a small helper the compiler repeated for several types (x3): C++ library code
+none 006e9f06 a small helper the compiler repeated for several types (x6): C++ library code
+none 006e9f1e a small helper the compiler repeated for several types (x3): C++ library code
+none 006ea018 a small helper the compiler repeated for several types (x4): C++ library code
+none 006ea060 a small helper the compiler repeated for several types (x4): C++ library code
+none 006ea0c6 std/CRT template instance: library code
+none 006ea139 std/CRT template instance: library code
+none 006ea1b6 std/CRT template instance: library code
+none 006ea1fd std/CRT template instance: library code
+none 006ea244 std/CRT template instance: library code
+none 006ea4ab a small helper the compiler repeated for several types (x17): C++ library code
+none 006ea4d1 a small helper the compiler repeated for several types (x17): C++ library code
+none 006ea4f7 a small helper the compiler repeated for several types (x17): C++ library code
+none 006ea594 a small helper the compiler repeated for several types (x10): C++ library code
+none 006ea628 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ea6b2 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ea6df a small helper the compiler repeated for several types (x7): C++ library code
+none 006ea78f a small helper the compiler repeated for several types (x17): C++ library code
+none 006ea7b1 a small helper the compiler repeated for several types (x17): C++ library code
+none 006ea84c a small helper the compiler repeated for several types (x17): C++ library code
+none 006ea88e a small helper the compiler repeated for several types (x44): C++ library code
+none 006ea8b6 a small helper the compiler repeated for several types (x44): C++ library code
+none 006ea8de a small helper the compiler repeated for several types (x44): C++ library code
+none 006ea974 a small helper the compiler repeated for several types (x12): C++ library code
+none 006ea9ae a small helper the compiler repeated for several types (x7): C++ library code
+none 006ea9d6 called only from C++ library template instances: library code
+none 006eaa49 a small helper the compiler repeated for several types (x23): C++ library code
+none 006eaa72 a small helper the compiler repeated for several types (x23): C++ library code
+none 006eab14 a small helper the compiler repeated for several types (x23): C++ library code
+none 006eabd7 a small helper the compiler repeated for several types (x20): C++ library code
+none 006eabfc std/CRT template instance: library code
+none 006eac29 a small helper the compiler repeated for several types (x4): C++ library code
+none 006eac45 a small helper the compiler repeated for several types (x20): C++ library code
+none 006eac6d a small helper the compiler repeated for several types (x20): C++ library code
+none 006eaccd called only from C++ library template instances: library code
+none 006ead01 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006ead31 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006ead9d a small helper the compiler repeated for several types (x19): C++ library code
+none 006eadda std/CRT template instance: library code
+none 006eadf9 a small helper the compiler repeated for several types (x19): C++ library code
+none 006eae36 std/CRT template instance: library code
+none 006eae55 a small helper the compiler repeated for several types (x3): C++ library code
+none 006eae74 a small helper the compiler repeated for several types (x50): C++ library code
+none 006eae8d a small helper the compiler repeated for several types (x50): C++ library code
+none 006eaea6 a small helper the compiler repeated for several types (x50): C++ library code
+none 006eb18a a small helper the compiler repeated for several types (x20): C++ library code
+none 006eb1c5 a small helper the compiler repeated for several types (x20): C++ library code
+none 006eb275 std/CRT template instance: library code
+none 006eb457 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006eb46a std/CRT template instance: library code
+none 006eb528 a small helper the compiler repeated for several types (x21): C++ library code
+none 006eb571 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006eb5fc a small helper the compiler repeated for several types (x21): C++ library code
+none 006eb68e std/CRT template instance: library code
+none 006eb83f std/CRT template instance: library code
+none 006eb9fb std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006eba32 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006eba6b a small helper the compiler repeated for several types (x3): C++ library code
+none 006ebae3 a small helper the compiler repeated for several types (x41): C++ library code
+none 006ebb46 a small helper the compiler repeated for several types (x3): C++ library code
+none 006ebbbe a small helper the compiler repeated for several types (x41): C++ library code
+none 006ebcd3 a small helper the compiler repeated for several types (x39): C++ library code
+none 006ebd28 a small helper the compiler repeated for several types (x39): C++ library code
+none 006ebdb7 std/CRT template instance: library code
+none 006ebe67 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006ebe9a called only from C++ library template instances: library code
+none 006ebedd std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006ebf0f called only from C++ library template instances: library code
+none 006ebf59 called only from C++ library template instances: library code
+none 006ec2b4 std/CRT template instance: library code
+none 006ec2f9 std/CRT template instance: library code
+none 006ec46e a small helper the compiler repeated for several types (x6): C++ library code
+none 006ec494 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006ec55e a small helper the compiler repeated for several types (x7): C++ library code
+none 006ed17c std/CRT template instance: library code
+none 006ed297 std/CRT template instance: library code
+none 006ed474 std/CRT template instance: library code
+none 006ed5d9 a small helper the compiler repeated for several types (x3): C++ library code
+none 006ed697 std/CRT template instance: library code
+none 006ed86a std/CRT template instance: library code
+none 006ed89f a small helper the compiler repeated for several types (x10): C++ library code
+none 006ed946 a small helper the compiler repeated for several types (x7): C++ library code
+none 006ed9f4 a small helper the compiler repeated for several types (x12): C++ library code
+none 006eda22 a small helper the compiler repeated for several types (x6): C++ library code
+none 006eda5e a small helper the compiler repeated for several types (x4): C++ library code
+none 006edaa8 a small helper the compiler repeated for several types (x7): C++ library code
+none 006edb84 a small helper the compiler repeated for several types (x3): C++ library code
+none 006ee9eb a small helper the compiler repeated for several types (x7): C++ library code
+none 006eeb20 std/CRT template instance: library code
+none 006eede9 std/CRT template instance: library code
+none 006f40d4 called only from C++ library template instances: library code
+none 006f4105 std/CRT template instance: library code
+none 006f417a framework sound manager (CustomSoundManager: the DirectSound 3D buffer loader is replaced by the SDL sound manager): library code
+none 006f419f framework sound manager (CustomSoundManager: the DirectSound 3D buffer loader is replaced by the SDL sound manager): library code
+none 006f463f framework sound manager (CustomSoundManager: the DirectSound 3D buffer loader is replaced by the SDL sound manager): library code
+none 006f5593 compiler-generated delete (virtual deleting dtor call): library code
+none 006f55a7 compiler EH unwind funclet/stub: library code
+none 006f56db a small helper the compiler repeated for several types (x3): C++ library code
+none 006f56f0 a small helper the compiler repeated for several types (x3): C++ library code
+none 006f5712 a small helper the compiler repeated for several types (x4): C++ library code
+none 006f5792 std/CRT template instance: library code
+none 006f57c0 std/CRT template instance: library code
+none 006f57e8 std/CRT template instance: library code
+none 006f5833 std/CRT template instance: library code
+none 006f587b std/CRT template instance: library code
+none 006f593b a small helper the compiler repeated for several types (x3): C++ library code
+none 006f597a std/CRT template instance: library code
+none 006f59dd std/CRT template instance: library code
+none 006f5a90 std/CRT template instance: library code
+none 006f5f50 a small helper the compiler repeated for several types (x4): C++ library code
+none 006f5fd0 std/CRT template instance: library code
+none 006f6002 std/CRT template instance: library code
+none 006f605a std/CRT template instance: library code
+none 006f6080 std/CRT template instance: library code
+none 006f60a4 std/CRT template instance: library code
+none 006f6114 std::copy / uninitialized_copy of a plain struct: library code
+none 006f615a std/CRT template instance: library code
+none 006f61d4 std/CRT template instance: library code
+none 006f6209 a small helper the compiler repeated for several types (x4): C++ library code
+none 006f6224 std/CRT template instance: library code
+none 006f623b a small helper the compiler repeated for several types (x10): C++ library code
+none 006f6258 a small helper the compiler repeated for several types (x10): C++ library code
+none 006f6281 a small helper the compiler repeated for several types (x7): C++ library code
+none 006f62af a small helper the compiler repeated for several types (x3): C++ library code
+none 006f62fa a small helper the compiler repeated for several types (x12): C++ library code
+none 006f6328 a small helper the compiler repeated for several types (x6): C++ library code
+none 006f6353 a small helper the compiler repeated for several types (x12): C++ library code
+none 006f6381 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006f63ae a small helper the compiler repeated for several types (x7): C++ library code
+none 006f8047 a small helper the compiler repeated for several types (x3): C++ library code
+none 006f8068 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006f80fc std/CRT template instance: library code
+none 006f8368 a small helper the compiler repeated for several types (x7): C++ library code
+none 006f840a std/CRT template instance: library code
+none 006f855e std/CRT template instance: library code
+none 006f85b3 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006f8614 std/CRT template instance: library code
+none 006f865e std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006f868f std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006f86b9 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 006f9fed std/CRT template instance: library code
+none 006fa5d2 compiler EH unwind funclet/stub: library code
+none 006fc0eb std/CRT template instance: library code
+none 006fc456 a small helper the compiler repeated for several types (x68): C++ library code
+none 006fcadf std/CRT template instance: library code
+none 006fcfdf a small helper the compiler repeated for several types (x29): C++ library code
+none 006fd19c std/CRT template instance: library code
+none 006fe15b std/CRT template instance: library code
+none 006ff438 std/CRT template instance: library code
+none 006ff45c std/CRT template instance: library code
+none 006ff47b std/CRT template instance: library code
+none 006ff4d8 std/CRT template instance: library code
+none 007003f4 std/CRT template instance: library code
+none 007008b6 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 00702d0d a small helper the compiler repeated for several types (x3): C++ library code
+none 00702d1a a small helper the compiler repeated for several types (x68): C++ library code
+none 00702d2d std/CRT template instance: library code
+none 00702d51 a small helper the compiler repeated for several types (x68): C++ library code
+none 00702d64 std/CRT template instance: library code
+none 00702d88 a small helper the compiler repeated for several types (x68): C++ library code
+none 00702d9e a small helper the compiler repeated for several types (x68): C++ library code
+none 00702df5 std/CRT template instance: library code
+none 00702e1d std/CRT template instance: library code
+none 00702e51 std/CRT template instance: library code
+none 00702e89 std/CRT template instance: library code
+none 00702ec1 std/CRT template instance: library code
+none 00702f03 std/CRT template instance: library code
+none 0070302d a small helper the compiler repeated for several types (x21): C++ library code
+none 0070304e a small helper the compiler repeated for several types (x21): C++ library code
+none 0070306f std/CRT template instance: library code
+none 0070309e std/CRT template instance: library code
+none 007030cd std/CRT template instance: library code
+none 007037c6 std/CRT template instance: library code
+none 0070380d std/CRT template instance: library code
+none 007038a5 a small helper the compiler repeated for several types (x21): C++ library code
+none 007038c7 a small helper the compiler repeated for several types (x21): C++ library code
+none 007038e9 a small helper the compiler repeated for several types (x44): C++ library code
+none 00703911 a small helper the compiler repeated for several types (x44): C++ library code
+none 0070393c std/CRT template instance: library code
+none 00703976 a small helper the compiler repeated for several types (x41): C++ library code
+none 007039bb a small helper the compiler repeated for several types (x41): C++ library code
+none 00703a4a a small helper the compiler repeated for several types (x21): C++ library code
+none 00703a6f a small helper the compiler repeated for several types (x21): C++ library code
+none 00703af3 std/CRT template instance: library code
+none 00704605 a small helper the compiler repeated for several types (x50): C++ library code
+none 0070461e a small helper the compiler repeated for several types (x50): C++ library code
+none 00704b4b a small helper the compiler repeated for several types (x21): C++ library code
+none 00704b6c a small helper the compiler repeated for several types (x21): C++ library code
+none 00704d9c std/CRT template instance: library code
+none 007070f4 compiler EH unwind funclet/stub: library code
+none 007075c7 a small helper the compiler repeated for several types (x29): C++ library code
+none 0070760e a small helper the compiler repeated for several types (x29): C++ library code
+none 00707655 std/CRT template instance: library code
+none 007077cb std/CRT template instance: library code
+none 007079d2 a small helper the compiler repeated for several types (x41): C++ library code
+none 00707a35 a small helper the compiler repeated for several types (x41): C++ library code
+none 00707ad5 a small helper the compiler repeated for several types (x39): C++ library code
+none 00707b2a a small helper the compiler repeated for several types (x39): C++ library code
+none 0070cf00 a small helper the compiler repeated for several types (x3): C++ library code
+none 0070cf0d a small helper the compiler repeated for several types (x24): C++ library code
+none 0070cf46 a small helper the compiler repeated for several types (x24): C++ library code
+none 0070cf7f std/CRT template instance: library code
+none 0070cfa0 std::copy / uninitialized_copy of a plain struct: library code
+none 0070cfc8 std/CRT template instance: library code
+none 0070cff9 std/CRT template instance: library code
+none 0070d031 std/CRT template instance: library code
+none 0070d3b9 std/CRT template instance: library code
+none 0070d485 a small helper the compiler repeated for several types (x41): C++ library code
+none 0070d50c called only from C++ library template instances: library code
+none 0070d54c a small helper the compiler repeated for several types (x3): C++ library code
+none 0070d5bb called only from C++ library template instances: library code
+none 0070d5e0 a small helper the compiler repeated for several types (x44): C++ library code
+none 0070d608 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 0070d634 std/CRT template instance: library code
+none 0070d653 a small helper the compiler repeated for several types (x23): C++ library code
+none 0070d6cb a small helper the compiler repeated for several types (x20): C++ library code
+none 0070d6f6 called only from C++ library template instances: library code
+none 0070d773 a small helper the compiler repeated for several types (x50): C++ library code
+none 0070d78c std/CRT template instance: library code
+none 0070d7ab a small helper the compiler repeated for several types (x21): C++ library code
+none 0070d7f4 std/CRT template instance: library code
+none 0070d9b7 a small helper the compiler repeated for several types (x41): C++ library code
+none 0070da3d a small helper the compiler repeated for several types (x39): C++ library code
+none 0070f12b compiler EH unwind funclet/stub: library code
+none 0070f901 a small helper the compiler repeated for several types (x24): C++ library code
+none 0070f93a a small helper the compiler repeated for several types (x24): C++ library code
+none 0070f9d2 std/CRT template instance: library code
+none 0070f9fa std/CRT template instance: library code
+none 0070fb69 std/CRT template instance: library code
+none 0070fbc0 std/CRT template instance: library code
+none 0070fd72 std/CRT template instance: library code
+none 0070fdcb a small helper the compiler repeated for several types (x6): C++ library code
+none 0071115b std/CRT template instance: library code
+none 007111b1 std/CRT template instance: library code
+none 00711209 std/CRT template instance: library code
+none 0071129d std/CRT template instance: library code
+none 007112e4 std/CRT template instance: library code
+none 0071141e std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 00712eac std/CRT template instance: library code
+none 00712f2f a small helper the compiler repeated for several types (x4): C++ library code
+none 00712f4a std/CRT template instance: library code
+none 00712f61 a small helper the compiler repeated for several types (x10): C++ library code
+none 00712f79 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 007135cb a small helper the compiler repeated for several types (x12): C++ library code
+none 007135f9 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 00713620 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 00713dbb a small helper the compiler repeated for several types (x3): C++ library code
+none 00714492 a small helper the compiler repeated for several types (x19): C++ library code
+none 007144cf std/CRT template instance: library code
+none 007144ee a small helper the compiler repeated for several types (x19): C++ library code
+none 0071452b std/CRT template instance: library code
+none 00714581 a small helper the compiler repeated for several types (x20): C++ library code
+none 007145c1 a small helper the compiler repeated for several types (x20): C++ library code
+none 0071466c std/CRT template instance: library code
+none 007146c1 std/CRT template instance: library code
+none 00714a1a a small helper the compiler repeated for several types (x21): C++ library code
+none 00714a63 a small helper the compiler repeated for several types (x21): C++ library code
+none 00714aaf std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 0071cc11 std/CRT template instance: library code
+none 0071d017 a small helper the compiler repeated for several types (x68): C++ library code
+none 0071d02a std/CRT template instance: library code
+none 0071d04e a small helper the compiler repeated for several types (x68): C++ library code
+none 0071d061 std/CRT template instance: library code
+none 0071d085 a small helper the compiler repeated for several types (x68): C++ library code
+none 0071d09b a small helper the compiler repeated for several types (x68): C++ library code
+none 0071d0e7 std/CRT template instance: library code
+none 0071d10f std/CRT template instance: library code
+none 0071d139 std/CRT template instance: library code
+none 0071d16d std/CRT template instance: library code
+none 0071d1a5 std/CRT template instance: library code
+none 0071d1dd std/CRT template instance: library code
+none 0071d21f std/CRT template instance: library code
+none 0071d2db called only from C++ library template instances: library code
+none 0071d335 a small helper the compiler repeated for several types (x3): C++ library code
+none 0071d37c a small helper the compiler repeated for several types (x21): C++ library code
+none 0071d39d std/CRT template instance: library code
+none 0071e0e0 std/CRT template instance: library code
+none 0071e127 std/CRT template instance: library code
+none 0071e164 called only from C++ library template instances: library code
+none 0071e225 a small helper the compiler repeated for several types (x21): C++ library code
+none 0071e247 a small helper the compiler repeated for several types (x44): C++ library code
+none 0071e26f a small helper the compiler repeated for several types (x17): C++ library code
+none 0071e2b0 a small helper the compiler repeated for several types (x41): C++ library code
+none 0071e2f5 a small helper the compiler repeated for several types (x41): C++ library code
+none 0071e322 a small helper the compiler repeated for several types (x25): C++ library code
+none 0071e384 a small helper the compiler repeated for several types (x17): C++ library code
+none 0071e3ce a small helper the compiler repeated for several types (x21): C++ library code
+none 0071e40c a small helper the compiler repeated for several types (x44): C++ library code
+none 0071e4ab a small helper the compiler repeated for several types (x23): C++ library code
+none 0071e539 a small helper the compiler repeated for several types (x3): C++ library code
+none 0071e574 a small helper the compiler repeated for several types (x50): C++ library code
+none 0071e596 a small helper the compiler repeated for several types (x19): C++ library code
+none 0071e5f2 a small helper the compiler repeated for several types (x21): C++ library code
+none 0071e613 a small helper the compiler repeated for several types (x50): C++ library code
+none 0071e631 a small helper the compiler repeated for several types (x20): C++ library code
+none 0071e6ef a small helper the compiler repeated for several types (x29): C++ library code
+none 0071e736 a small helper the compiler repeated for several types (x29): C++ library code
+none 0071e77d std/CRT template instance: library code
+none 0071e927 std/CRT template instance: library code
+none 0071ead8 a small helper the compiler repeated for several types (x41): C++ library code
+none 0071eb3b a small helper the compiler repeated for several types (x41): C++ library code
+none 0071ebfc a small helper the compiler repeated for several types (x39): C++ library code
+none 0071ec51 a small helper the compiler repeated for several types (x39): C++ library code
+none 0071ff34 compiler EH unwind funclet/stub: library code
+none 0071ff35 std/CRT template instance: library code
+none 00721086 a small helper the compiler repeated for several types (x68): C++ library code
+none 00721099 std/CRT template instance: library code
+none 007210bd a small helper the compiler repeated for several types (x68): C++ library code
+none 007210ee std/CRT template instance: library code
+none 00721116 std/CRT template instance: library code
+none 00721146 std/CRT template instance: library code
+none 0072117e std/CRT template instance: library code
+none 007211d1 std/CRT template instance: library code
+none 00721263 a small helper the compiler repeated for several types (x21): C++ library code
+none 00721284 std/CRT template instance: library code
+none 00721a06 std/CRT template instance: library code
+none 00721a6b a small helper the compiler repeated for several types (x21): C++ library code
+none 00721a8d a small helper the compiler repeated for several types (x44): C++ library code
+none 00721ad0 a small helper the compiler repeated for several types (x41): C++ library code
+none 00721afd a small helper the compiler repeated for several types (x25): C++ library code
+none 00721b56 a small helper the compiler repeated for several types (x21): C++ library code
+none 00721bc0 a small helper the compiler repeated for several types (x19): C++ library code
+none 00721bfd std/CRT template instance: library code
+none 00721ca5 called only from C++ library template instances: library code
+none 00721cd3 a small helper the compiler repeated for several types (x20): C++ library code
+none 00721d24 a small helper the compiler repeated for several types (x50): C++ library code
+none 00721d3d std/CRT template instance: library code
+none 00721e38 a small helper the compiler repeated for several types (x21): C++ library code
+none 00721e59 std/CRT template instance: library code
+none 007234af a small helper the compiler repeated for several types (x29): C++ library code
+none 007234f6 std/CRT template instance: library code
+none 007242f9 a small helper the compiler repeated for several types (x41): C++ library code
+none 0072435c a small helper the compiler repeated for several types (x39): C++ library code
+none 0072957e compiler EH unwind funclet/stub: library code
+none 00729a55 std/CRT template instance: library code
+none 00729a88 std/CRT template instance: library code
+none 00729ac0 std/CRT template instance: library code
+none 0072b887 a small helper the compiler repeated for several types (x41): C++ library code
+none 0072b8bd a small helper the compiler repeated for several types (x17): C++ library code
+none 0072b906 a small helper the compiler repeated for several types (x23): C++ library code
+none 0072b96f std/CRT template instance: library code
+none 0072b98e a small helper the compiler repeated for several types (x20): C++ library code
+none 0072b9be a small helper the compiler repeated for several types (x14): C++ library code
+none 0072b9ed std/CRT template instance: library code
+none 0072ba0c a small helper the compiler repeated for several types (x50): C++ library code
+none 0072bf71 std/CRT template instance: library code
+none 0072c142 a small helper the compiler repeated for several types (x41): C++ library code
+none 0072c1a5 a small helper the compiler repeated for several types (x39): C++ library code
+none 00731f64 a small helper the compiler repeated for several types (x68): C++ library code
+none 00731f85 std/CRT template instance: library code
+none 00731fa6 std/CRT template instance: library code
+none 00731fca std/CRT template instance: library code
+none 00732015 std/CRT template instance: library code
+none 0073203d std/CRT template instance: library code
+none 00732075 std/CRT template instance: library code
+none 007320c8 std/CRT template instance: library code
+none 0073215a a small helper the compiler repeated for several types (x21): C++ library code
+none 0073217b std/CRT template instance: library code
+none 007321f6 std/CRT template instance: library code
+none 00732270 a small helper the compiler repeated for several types (x21): C++ library code
+none 00732292 a small helper the compiler repeated for several types (x44): C++ library code
+none 007322bd std/CRT template instance: library code
+none 007322f4 a small helper the compiler repeated for several types (x41): C++ library code
+none 00732333 a small helper the compiler repeated for several types (x25): C++ library code
+none 0073238c a small helper the compiler repeated for several types (x21): C++ library code
+none 0073240d a small helper the compiler repeated for several types (x14): C++ library code
+none 007325e6 a small helper the compiler repeated for several types (x50): C++ library code
+none 00732637 a small helper the compiler repeated for several types (x21): C++ library code
+none 0073274b std/CRT template instance: library code
+none 0073276a a small helper the compiler repeated for several types (x29): C++ library code
+none 007327b1 std/CRT template instance: library code
+none 00732954 a small helper the compiler repeated for several types (x41): C++ library code
+none 007329ec a small helper the compiler repeated for several types (x39): C++ library code
+none 00733049 called only from C++ library template instances: library code
+none 0073393c std/CRT template instance: library code
+none 00733a6a std/CRT template instance: library code
+none 00733bf3 std/CRT template instance: library code
+none 00733cb0 a small helper the compiler repeated for several types (x10): C++ library code
+none 00733cd4 a small helper the compiler repeated for several types (x7): C++ library code
+none 00733d29 a small helper the compiler repeated for several types (x12): C++ library code
+none 00733d4d a small helper the compiler repeated for several types (x7): C++ library code
+none 007347e7 std/CRT template instance: library code
+none 00734acb a small helper the compiler repeated for several types (x7): C++ library code
+none 00734ba0 std/CRT template instance: library code
+none 00736483 a small helper the compiler repeated for several types (x68): C++ library code
+none 00736496 std/CRT template instance: library code
+none 007364b9 a small helper the compiler repeated for several types (x68): C++ library code
+none 007364e4 std/CRT template instance: library code
+none 00736528 std/CRT template instance: library code
+none 00736583 std/CRT template instance: library code
+none 0073660a a small helper the compiler repeated for several types (x4): C++ library code
+none 00736634 a small helper the compiler repeated for several types (x6): C++ library code
+none 00736d20 std/CRT template instance: library code
+none 00736d5c a small helper the compiler repeated for several types (x4): C++ library code
+none 00736ded a small helper the compiler repeated for several types (x17): C++ library code
+none 00736e13 a small helper the compiler repeated for several types (x41): C++ library code
+none 00736e58 a small helper the compiler repeated for several types (x25): C++ library code
+none 00736e8a a small helper the compiler repeated for several types (x17): C++ library code
+none 00736ed3 a small helper the compiler repeated for several types (x44): C++ library code
+none 00736f28 a small helper the compiler repeated for several types (x23): C++ library code
+none 00736f94 std/CRT template instance: library code
+none 00736fb3 a small helper the compiler repeated for several types (x20): C++ library code
+none 00736fe3 a small helper the compiler repeated for several types (x14): C++ library code
+none 00737012 a small helper the compiler repeated for several types (x50): C++ library code
+none 00737102 std/CRT template instance: library code
+none 00738568 a small helper the compiler repeated for several types (x21): C++ library code
+none 007385b1 std/CRT template instance: library code
+none 0073876c a small helper the compiler repeated for several types (x41): C++ library code
+none 007387cf a small helper the compiler repeated for several types (x39): C++ library code
+none 00738e6f std/CRT template instance: library code
+none 00738e92 a small helper the compiler repeated for several types (x68): C++ library code
+none 00738ee4 std/CRT template instance: library code
+none 00738f12 std/CRT template instance: library code
+none 00738f4a std/CRT template instance: library code
+none 0073907e std/CRT template instance: library code
+none 007390d2 a small helper the compiler repeated for several types (x41): C++ library code
+none 007391b2 std/CRT template instance: library code
+none 007391d8 called only from C++ library template instances: library code
+none 007391f8 a small helper the compiler repeated for several types (x5): C++ library code
+none 007392da a small helper the compiler repeated for several types (x5): C++ library code
+none 007393d2 a small helper the compiler repeated for several types (x21): C++ library code
+none 0073941b a small helper the compiler repeated for several types (x5): C++ library code
+none 00739470 a small helper the compiler repeated for several types (x5): C++ library code
+none 007394e9 a small helper the compiler repeated for several types (x44): C++ library code
+none 0073951f a small helper the compiler repeated for several types (x23): C++ library code
+none 00739547 a small helper the compiler repeated for several types (x50): C++ library code
+none 007395ab a small helper the compiler repeated for several types (x20): C++ library code
+none 00739614 std/CRT template instance: library code
+none 00739641 a small helper the compiler repeated for several types (x50): C++ library code
+none 0073965f std/CRT template instance: library code
+none 0073985d std/CRT template instance: library code
+none 00739862 a small helper the compiler repeated for several types (x41): C++ library code
+none 007398c5 a small helper the compiler repeated for several types (x39): C++ library code
+none 0073afe1 called only from C++ library template instances: library code
+none 0073b188 std/CRT template instance: library code
+none 0073b1a7 std/CRT template instance: library code
+none 0073b3e4 std/CRT template instance: library code
+none 0073e779 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 0073eb28 a small helper the compiler repeated for several types (x5): C++ library code
+none 0074405e compiler EH unwind funclet/stub: library code
+none 007475d5 a small helper the compiler repeated for several types (x5): C++ library code
+none 007478bb a small helper the compiler repeated for several types (x5): C++ library code
+none 00748588 a small helper the compiler repeated for several types (x5): C++ library code
+none 00748797 a small helper the compiler repeated for several types (x5): C++ library code
+none 00749699 a small helper the compiler repeated for several types (x68): C++ library code
+none 007496ac std/CRT template instance: library code
+none 00749707 a small helper the compiler repeated for several types (x68): C++ library code
+none 0074971a std/CRT template instance: library code
+none 0074973d a small helper the compiler repeated for several types (x68): C++ library code
+none 00749769 a small helper the compiler repeated for several types (x68): C++ library code
+none 007497be std/CRT template instance: library code
+none 0074984c std/CRT template instance: library code
+none 0074989c std/CRT template instance: library code
+none 007498ca std/CRT template instance: library code
+none 00749902 std/CRT template instance: library code
+none 00749986 std/CRT template instance: library code
+none 007499d7 std/CRT template instance: library code
+none 00749b42 a small helper the compiler repeated for several types (x6): C++ library code
+none 00749b93 a small helper the compiler repeated for several types (x21): C++ library code
+none 00749bd5 std/CRT template instance: library code
+none 0074a534 std/CRT template instance: library code
+none 0074a5bf std/CRT template instance: library code
+none 0074a6b6 a small helper the compiler repeated for several types (x21): C++ library code
+none 0074a6fa a small helper the compiler repeated for several types (x44): C++ library code
+none 0074a74a a small helper the compiler repeated for several types (x17): C++ library code
+none 0074a770 a small helper the compiler repeated for several types (x41): C++ library code
+none 0074a7cd std/CRT template instance: library code
+none 0074a856 a small helper the compiler repeated for several types (x41): C++ library code
+none 0074a883 a small helper the compiler repeated for several types (x25): C++ library code
+none 0074a93e a small helper the compiler repeated for several types (x17): C++ library code
+none 0074a988 a small helper the compiler repeated for several types (x21): C++ library code
+none 0074aa04 a small helper the compiler repeated for several types (x44): C++ library code
+none 0074aa47 a small helper the compiler repeated for several types (x14): C++ library code
+none 0074ab18 a small helper the compiler repeated for several types (x23): C++ library code
+none 0074abdc a small helper the compiler repeated for several types (x20): C++ library code
+none 0074ac2d a small helper the compiler repeated for several types (x50): C++ library code
+none 0074ac87 a small helper the compiler repeated for several types (x21): C++ library code
+none 0074acc9 std/CRT template instance: library code
+none 0074ace8 a small helper the compiler repeated for several types (x50): C++ library code
+none 0074adae a small helper the compiler repeated for several types (x29): C++ library code
+none 0074ae3c a small helper the compiler repeated for several types (x21): C++ library code
+none 0074ae85 std/CRT template instance: library code
+none 0074b171 std/CRT template instance: library code
+none 0074b345 a small helper the compiler repeated for several types (x41): C++ library code
+none 0074b40b a small helper the compiler repeated for several types (x41): C++ library code
+none 0074bd75 called only from C++ library template instances: library code
+none 0074bd88 std/CRT template instance: library code
+none 0074bda7 a small helper the compiler repeated for several types (x39): C++ library code
+none 0074be51 a small helper the compiler repeated for several types (x39): C++ library code
+none 0074c8d6 compiler EH unwind funclet/stub: library code
+none 0074cc41 std/CRT template instance: library code
+none 0074cf94 a small helper the compiler repeated for several types (x4): C++ library code
+none 0074cfb2 std/CRT template instance: library code
+none 0074d980 std/CRT template instance: library code
+none 0074dba5 std/CRT template instance: library code
+none 0074e352 std/CRT template instance: library code
+none 0074e5c7 std/CRT template instance: library code
+none 0074e5e6 std/CRT template instance: library code
+none 0074e684 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 0074e6d7 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 007502ad std/CRT template instance: library code
+none 00754153 std/CRT template instance: library code
+none 007547a1 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 0075526e std/CRT template instance: library code
+none 00755af2 std/CRT template instance: library code
+none 00756750 std/CRT template instance: library code
+none 00756796 called only from C++ library template instances: library code
+none 00756906 std/CRT template instance: library code
+none 007580ab a small helper the compiler repeated for several types (x24): C++ library code
+none 007580c1 std/CRT template instance: library code
+none 007580e4 a small helper the compiler repeated for several types (x24): C++ library code
+none 00758118 std/CRT template instance: library code
+none 00758149 std/CRT template instance: library code
+none 00758181 std/CRT template instance: library code
+none 00758612 std/CRT template instance: library code
+none 007586b8 a small helper the compiler repeated for several types (x41): C++ library code
+none 00758c0a std/CRT template instance: library code
+none 00758c2d std/CRT template instance: library code
+none 00758c4c called only from C++ library template instances: library code
+none 00758c70 a small helper the compiler repeated for several types (x5): C++ library code
+none 00758d56 a small helper the compiler repeated for several types (x5): C++ library code
+none 00758dae std/CRT template instance: library code
+none 007590b6 a small helper the compiler repeated for several types (x5): C++ library code
+none 0075910b a small helper the compiler repeated for several types (x5): C++ library code
+none 00759189 a small helper the compiler repeated for several types (x44): C++ library code
+none 0075923b a small helper the compiler repeated for several types (x23): C++ library code
+none 00759263 a small helper the compiler repeated for several types (x50): C++ library code
+none 007592c7 a small helper the compiler repeated for several types (x20): C++ library code
+none 00759471 std/CRT template instance: library code
+none 0075949e a small helper the compiler repeated for several types (x50): C++ library code
+none 007594bc std/CRT template instance: library code
+none 007596d5 a small helper the compiler repeated for several types (x41): C++ library code
+none 00759738 a small helper the compiler repeated for several types (x39): C++ library code
+none 0075978d std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 00759afb compiler EH unwind funclet/stub: library code
+none 00759d99 std/CRT template instance: library code
+none 0075c4bf std/CRT template instance: library code
+none 0075e8ae platform window code (SetWindowLongA/W wrapper; the port uses SDL): library code
+none 0075e8fe std/CRT template instance: library code
+none 0075e91d std/CRT template instance: library code
+none 0075e93c std/CRT template instance: library code
+none 0075f145 framework SexyAppBase (WinTwistApp virtual slot 50: a D3D flag and a max of two int fields): library code
+none 0075f16c framework SexyAppBase FPS averaging (WinTwistApp virtual slot 92): library code
+none 0075faf4 platform message pump (SexyAppBase::ProcessDeferredMessages / PeekMessage loop): library code
+none 0075fb02 platform message pump (SexyAppBase::ProcessDeferredMessages / PeekMessage loop): library code
+none 0075fcb7 called only from C++ library template instances: library code
+none 0075fdd4 a small helper the compiler repeated for several types (x68): C++ library code
+none 0075fde7 std/CRT template instance: library code
+none 0075fe72 a small helper the compiler repeated for several types (x68): C++ library code
+none 0075feb0 std/CRT template instance: library code
+none 0075ff79 std/CRT template instance: library code
+none 0075ffe4 std/CRT template instance: library code
+none 00760158 std/CRT template instance: library code
+none 007601ee std/CRT template instance: library code
+none 00760353 a small helper the compiler repeated for several types (x3): C++ library code
+none 007603bf a small helper the compiler repeated for several types (x6): C++ library code
+none 00760ba2 std/CRT template instance: library code
+none 00760bd1 std/CRT template instance: library code
+none 00760c1c std/CRT template instance: library code
+none 00760c40 std/CRT template instance: library code
+none 00760d48 a small helper the compiler repeated for several types (x4): C++ library code
+none 00760e86 a small helper the compiler repeated for several types (x17): C++ library code
+none 00760eb1 a small helper the compiler repeated for several types (x41): C++ library code
+none 00760ede a small helper the compiler repeated for several types (x4): C++ library code
+none 00760efc std/CRT template instance: library code
+none 00760f1b a small helper the compiler repeated for several types (x10): C++ library code
+none 00760f5c std/CRT template instance: library code
+none 0076104d a small helper the compiler repeated for several types (x25): C++ library code
+none 007610e8 a small helper the compiler repeated for several types (x17): C++ library code
+none 00761170 a small helper the compiler repeated for several types (x44): C++ library code
+none 00761198 a small helper the compiler repeated for several types (x12): C++ library code
+none 007611f3 std/CRT template instance: library code
+none 007612d0 a small helper the compiler repeated for several types (x23): C++ library code
+none 00761765 std::list/map/vector template instance (insert/erase/clear/copy of game element types): library code
+none 00761788 a small helper the compiler repeated for several types (x3): C++ library code
+none 0076185c std/CRT template instance: library code
+none 0076187b a small helper the compiler repeated for several types (x20): C++ library code
+none 0076190b a small helper the compiler repeated for several types (x14): C++ library code
+none 0076193a std/CRT template instance: library code
+none 0076199e a small helper the compiler repeated for several types (x50): C++ library code
+none 007642a8 a small helper the compiler repeated for several types (x29): C++ library code
+none 00764320 a small helper the compiler repeated for several types (x29): C++ library code
+none 00764367 a small helper the compiler repeated for several types (x21): C++ library code
+none 0076456f std/CRT template instance: library code
+none 00764814 std/CRT template instance: library code
+none 0076512b a small helper the compiler repeated for several types (x41): C++ library code
+none 007664bd a small helper the compiler repeated for several types (x39): C++ library code
+none 00768720 std/CRT template instance: library code
+none 0076877a framework SexyAppBase destructor / Sexy::WorkerThread (the port runs loading in one go): library code
+none 00768c53 std/CRT template instance: library code
+none 00768cc4 framework SexyAppBase destructor / Sexy::WorkerThread (the port runs loading in one go): library code
+none 00768d09 framework SexyAppBase destructor / Sexy::WorkerThread (the port runs loading in one go): library code
+none 00768d52 framework SexyAppBase destructor / Sexy::WorkerThread (the port runs loading in one go): library code
+none 00768d8f framework SexyAppBase destructor / Sexy::WorkerThread (the port runs loading in one go): library code
+none 00768daa framework SexyAppBase destructor / Sexy::WorkerThread (the port runs loading in one go): library code
+none 00768dea std/CRT template instance: library code
+none 006e8045 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e805b std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e807e std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e80ac std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e80f0 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e811b std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8451 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e848d std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e84fe std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8532 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8587 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e85aa std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e85e6 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8708 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e88d8 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8960 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e897d std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8a33 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8a91 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8aab std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8b33 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8b60 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8bf5 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8d5f std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8f65 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8f84 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006e8fe7 std::vector of the credits lines (a 0x3c-byte entry): library code
+none 006a7754 std::map / std::set node, iterator and insert code: library code
+none 006a7b2b std::map / std::set node, iterator and insert code: library code
+none 006a8357 std::map / std::set node, iterator and insert code: library code
+none 006ab9f6 std::map / std::set node, iterator and insert code: library code
+none 006abb62 std::map / std::set node, iterator and insert code: library code
+none 006ad769 std::map / std::set node, iterator and insert code: library code
+none 006ae95e std::map / std::set node, iterator and insert code: library code
+none 006aea06 std::map / std::set node, iterator and insert code: library code
+none 006af82f std::map / std::set node, iterator and insert code: library code
+none 006af920 std::map / std::set node, iterator and insert code: library code
+none 006b17c1 std::map / std::set node, iterator and insert code: library code
+none 006b2367 std::map / std::set node, iterator and insert code: library code
+none 006b6db5 std::map / std::set node, iterator and insert code: library code
+none 006b8e9c std::map / std::set node, iterator and insert code: library code
+none 0067fabb the vftable reset a compiler-generated destructor does: library code
+none 0069a61a compiler-generated scalar deleting destructor: library code
+none 00699a07 EditListener::AllowKey, the framework default that returns true: library code
+none 006d94c4 compiler-generated destructor of ChallengeInfoParser: library code
+none 006ebd7d std::vector element copy of a curved value: library code
+none 00702b61 GoodTube::MouseMove only calls TwistWidget::MouseMove, which the port inherits: library code
+none 0070d347 std::list copy of a GraphicsOperation: library code
+none 0070da1a GraphicsRecorder constructor, replaced by default member initializers: library code
+none 00673c50 PerspectiveCamera base constructor, replaced by default member initializers: library code
+none 00750ba8 std::list find and erase: library code
+none 00750ceb std::list find and erase: library code
+none 00750c93 framework Rect constructor from two points: library code
+none 0075e9db F1 cycles SexyAppBase mShowFPSMode when debug keys are on; the FPS overlay is not ported: library code
+none 0075f61d SexyAppBase::SetMusicVolume, the framework's: library code
+none 0075e95b The QA stats dump's buffer cleared (beside 0x7648d2): developer telemetry, left out with it
+none 006dd3e9 ChallengeMenu::MouseMove: keeps the mouse's place in two fields nothing reads; the port keeps neither
+none 0075ecf1 WinTwistApp's slot 16: a call made only with mUseSexyCache, which the port never sets (WinTwistApp::Init)

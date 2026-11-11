@@ -13,8 +13,6 @@ namespace jb
 Manager* gManager = nullptr;
 bool gLayerDeleted = false;
 bool gInvalidated = false;
-// 0x5d8e9e: a manager exists
-static bool gManagerAlive = false;
 // 0x5d8ea0: the pauses asked for (0x42c110)
 static int gPauseRequests = 0;
 // 0x527ba8: the full screen's "windowed" button (image 0x35 at 785, 4)
@@ -28,7 +26,6 @@ static bool InList(ListNode* theHead, void* theObj)
 // 0x42a0d0
 Manager::Manager()
 {
-	gManagerAlive = true;
 	mSound = new Sound();
 	mDisplay = new Display();
 }
@@ -36,7 +33,6 @@ Manager::Manager()
 // 0x42a230
 Manager::~Manager()
 {
-	gManagerAlive = false;
 	if (mRunning)
 		Stop();
 	delete mSound;
@@ -716,7 +712,7 @@ void Manager::Char(int theChar, int theRepeat, int theScan)
 // 0x42bd40
 void Manager::Frame()
 {
-	if (mRunning && !mPaused && !mSuspended)
+	if (mRunning && !mPaused)
 	{
 		uint32_t aNow = TickCount();
 		int aClock = (int)(aNow - mStart);
@@ -839,35 +835,6 @@ void Manager::Update(int theClock, uint32_t theDelta)
 	}
 }
 
-// 0x42c090
-void Manager::OnSize(int theType)
-{
-	if (theType == 4 || theType == 1)
-	{
-		mRunning = false;
-		if (gFullScreen)
-			mDisplay->Release();
-		mMinimized = true;
-	}
-	else
-	{
-		mRunning = true;
-	}
-	if (mMinimized)
-	{
-		PauseClock(!mRunning);
-		if (mRunning)
-			mMinimized = false;
-	}
-}
-
-// 0x42c0f0
-void Manager::Redraw()
-{
-	if (mRunning && !mPaused)
-		PresentDone();
-}
-
 // 0x42c110
 void Manager::Pause(bool thePause)
 {
@@ -914,7 +881,7 @@ bool Manager::SetHardwareAccel(bool theOn)
 // 0x42c220
 bool Manager::SetFullScreen(bool theOn, bool theReset)
 {
-	if (gFullScreen != theOn && (theOn || 0xf < mDisplay->mDesktopBits))
+	if (gFullScreen != theOn)
 	{
 		Pause(true);
 		if (theReset)
@@ -1101,9 +1068,9 @@ void Manager::GetImageInfo(int theId, ImageInfo& theInfo)
 }
 
 // 0x42c870
-Font* Manager::GetFont(int theImageId, int theTextId, int theKind, Module theModule)
+Font* Manager::GetFont(int theImageId, int theTextId, Module theModule)
 {
-	return mDisplay->GetFont(theImageId, theTextId, theKind, theModule);
+	return mDisplay->GetFont(theImageId, theTextId, theModule);
 }
 
 // 0x42c890

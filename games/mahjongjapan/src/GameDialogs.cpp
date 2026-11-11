@@ -99,7 +99,7 @@ bool FreeMenu::OnCommand(int theCmd)
 	}
 	jb::gManager->Replace(aBox, false, true);
 	aBox->SetTitle(0x18);
-	aBox->AddText(0x17, 0, 0, 0x50, false, nullptr, 0);
+	aBox->AddText(0x17, 0, 0, 0x50, false);
 	return true;
 push:
 	jb::gManager->Push(aLayer, true, false, true);
@@ -153,19 +153,19 @@ void ResultBox::Create()
 	SetEdges(aLeft, aRight, aTop, aBottom);
 	SetTitle(0xb8);
 	std::string aLabel = jb::LoadDllString(0xb7);
-	AddText(aLabel.c_str(), 1, 0x32, 0x55, false, nullptr, 0);
-	AddText(mTime.c_str(), 1, GetTextWidth(aLabel.c_str()) + 0x38, 0x55, true, nullptr, 0);
+	AddText(aLabel.c_str(), 1, 0x32, 0x55, false);
+	AddText(mTime.c_str(), 1, GetTextWidth(aLabel.c_str()) + 0x38, 0x55, true);
 	aLabel = jb::LoadDllString(0xb3);
-	AddText(aLabel.c_str(), 1, 300, 0x55, false, nullptr, 0);
-	AddText(mBestTime.c_str(), 1, GetTextWidth(aLabel.c_str()) + 0x132, 0x55, true, nullptr, 0);
+	AddText(aLabel.c_str(), 1, 300, 0x55, false);
+	AddText(mBestTime.c_str(), 1, GetTextWidth(aLabel.c_str()) + 0x132, 0x55, true);
 	aLabel = jb::LoadDllString(0xb6);
-	AddText(aLabel.c_str(), 1, 0x32, 0x73, false, nullptr, 0);
-	AddText(mScore.c_str(), 1, GetTextWidth(aLabel.c_str()) + 0x38, 0x73, true, nullptr, 0);
+	AddText(aLabel.c_str(), 1, 0x32, 0x73, false);
+	AddText(mScore.c_str(), 1, GetTextWidth(aLabel.c_str()) + 0x38, 0x73, true);
 	aLabel = jb::LoadDllString(0xb1);
-	AddText(aLabel.c_str(), 1, 300, 0x73, false, nullptr, 0);
-	AddText(mBestScore.c_str(), 1, GetTextWidth(aLabel.c_str()) + 0x132, 0x73, true, nullptr, 0);
+	AddText(aLabel.c_str(), 1, 300, 0x73, false);
+	AddText(mBestScore.c_str(), 1, GetTextWidth(aLabel.c_str()) + 0x132, 0x73, true);
 	if (!mMessage.empty())
-		AddText(mMessage.c_str(), 0, 0, 0x9b, false, nullptr, 0);
+		AddText(mMessage.c_str(), 0, 0, 0x9b, false);
 	DialogButton* aButton = new DialogButton(1, 200);
 	Add(aButton, 0x3e, 0xaf);
 	aButton->SetText(0xb4);
@@ -201,7 +201,7 @@ void QuitNote::Create()
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
 	SetTitle(0x1f);
-	AddText(0x1d, 0, 0, 0x5a, false, nullptr, 0);
+	AddText(0x1d, 0, 0, 0x5a, false);
 	mDontShow = new jb::CheckBox(0x12a, 2);
 	Add(mDontShow, 0x2d, 0x82);
 	jb::SetCheckLabel(mDontShow, 0x1e, 0x122, 0x121, 0x20, 0x1f, 0xff);
@@ -263,7 +263,7 @@ bool EscapeMenu::OnCommand(int theCmd)
 			YesNoBox* aBox = new YesNoBox(mOwner, 0, 1, 0x1b, 0x16, true, 0x66, 0x66);
 			jb::gManager->Replace(aBox, false, true);
 			aBox->SetTitle(0x18);
-			aBox->AddText(0x17, 0, 0, 0x50, false, nullptr, 0);
+			aBox->AddText(0x17, 0, 0, 0x50, false);
 			return true;
 		}
 		if (!gUser.mShowQuitNote)
@@ -364,11 +364,11 @@ void LevelDoneScroll::Init()
 	mLabelScore = jb::LoadDllString(0x24);
 	mNextLabel = jb::LoadDllString(0x22);
 	mLabelBest = jb::LoadDllString(0xbd);
-	mTextFont = jb::GetDllFont(0x12e, 0x12f, -1);
-	mHeadFont = jb::GetDllFont(0x11e, 0x11d, -1);
-	mValueFont = jb::GetDllFont(0x122, 0x121, -1);
-	mClockFont = jb::GetDllFont(0xcb, 0xca, -1);
-	mSmallFont = jb::GetDllFont(0xa3, 0xa2, -1);
+	mTextFont = jb::GetDllFont(0x12e, 0x12f);
+	mHeadFont = jb::GetDllFont(0x11e, 0x11d);
+	mValueFont = jb::GetDllFont(0x122, 0x121);
+	mClockFont = jb::GetDllFont(0xcb, 0xca);
+	mSmallFont = jb::GetDllFont(0xa3, 0xa2);
 	mLines = mTextFont->DrawWrappedCentred(this, 0x8f, 0, 0x136, 1000, mNextTitle.c_str(), 0x14, true, 0xff);
 	RegUpdate(true);
 }
@@ -418,14 +418,14 @@ void TipPicture::Init()
 			i++;
 			aCount--;
 		} while (aCount != 0);
-		mFont = jb::GetDllFont(0x133, 0x132, -1);
+		mFont = jb::GetDllFont(0x133, 0x132);
 		return;
 	}
 	if (mImage != 0x172)
 	{
 		mLabel1 = jb::LoadDllString(0x5e);
 		mLabel2 = jb::LoadDllString(0x67);
-		mFont = jb::GetDllFont(0x133, 0x132, -1);
+		mFont = jb::GetDllFont(0x133, 0x132);
 		return;
 	}
 	RegUpdate(true);
@@ -518,7 +518,7 @@ void TipBox::Create()
 		aRight[1] = 3;
 		aRight[2] = 3;
 		SetTitle(0x38);
-		AddText(0x37, 1, 0x32, 0x50, false, nullptr, 0);
+		AddText(0x37, 1, 0x32, 0x50, false);
 		Add(new TipPicture(0x167 - (mId != 0)), 0x61, 0x87);
 		goto edges;
 	case 1:
@@ -531,7 +531,7 @@ void TipBox::Create()
 		aRight[0] = 1;
 		aRight[1] = 0;
 		SetTitle(0x34);
-		AddText(0x33, 1, 0x28, 0x50, false, nullptr, 0);
+		AddText(0x33, 1, 0x28, 0x50, false);
 		break;
 	case 2:
 		anX = 0x8e;
@@ -543,7 +543,7 @@ void TipBox::Create()
 		aRight[0] = 3;
 		aRight[1] = 0;
 		SetTitle(0x36);
-		AddText(0x35, 1, 0x37, 0x50, false, nullptr, 0);
+		AddText(0x35, 1, 0x37, 0x50, false);
 		break;
 	case 3:
 		anX = 0x99;
@@ -555,7 +555,7 @@ void TipBox::Create()
 		aRight[0] = 3;
 		aRight[1] = 0;
 		SetTitle(0x3a);
-		AddText(0x39, 1, 0x2d, 0x53, false, nullptr, 0);
+		AddText(0x39, 1, 0x2d, 0x53, false);
 		break;
 	case 4:
 		anX = 0x98;
@@ -565,7 +565,7 @@ void TipBox::Create()
 		aRight[0] = 3;
 		aRight[1] = 0;
 		SetTitle(0x3c);
-		AddText(0x3b, 1, 0x2d, 0x53, false, nullptr, 0);
+		AddText(0x3b, 1, 0x2d, 0x53, false);
 		break;
 	case 5:
 		anX = 0x82;
@@ -578,7 +578,7 @@ void TipBox::Create()
 		aLeft[1] = 0;
 		aRight[0] = 1;
 		aRight[1] = 0;
-		AddText(0x40, 0, 0x28, 0x3c, false, nullptr, 0);
+		AddText(0x40, 0, 0x28, 0x3c, false);
 		goto edges;
 	case 6:
 		anX = 0x8e;
@@ -590,7 +590,7 @@ void TipBox::Create()
 		aRight[0] = 2;
 		aRight[1] = 0;
 		SetTitle(0x42);
-		AddText(0x41, 1, 0x28, 0x50, false, nullptr, 0);
+		AddText(0x41, 1, 0x28, 0x50, false);
 		Add(new TipPicture(0x172), 0x4c, 0xc3);
 		goto edges;
 	case 7:
@@ -609,8 +609,8 @@ void TipBox::Create()
 		aRight[2] = 2;
 		aRight[3] = 1;
 		SetTitle(0x3f);
-		AddText(0x3d, 0, 0x32, 0x50, false, nullptr, 0);
-		AddText(0x3e, 0, 0x32, 0xe1, false, nullptr, 0);
+		AddText(0x3d, 0, 0x32, 0x50, false);
+		AddText(0x3e, 0, 0x32, 0xe1, false);
 		Add(new TipPicture(0x3f), 0x49, 0x6e);
 		break;
 	default:

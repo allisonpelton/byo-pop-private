@@ -695,11 +695,6 @@ GemStyle GemStyleFromName(const std::string& theName)
 	return GEMS_CEL;
 }
 
-int GemModelCount(GemStyle theStyle)
-{
-	return (theStyle == GEMS_SU) ? 11 : 12;
-}
-
 void DrawGemSheet(GemStyle theStyle, int theColors, int theScale, std::vector<uint32_t>& theOut)
 {
 	theColors = std::max(1, std::min(12, theColors));

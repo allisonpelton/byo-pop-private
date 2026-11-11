@@ -19,6 +19,8 @@
 
 using namespace Sexy;
 
+// 0x70e341: the world perspective camera's constructor, inline here
+// 0x70e361: the off-center perspective camera's constructor, inline here
 Hyperspace::Hyperspace()
 {
 	// The level comes from the board (+0x158 - 1) when there is one: none yet. The ctor also sets up the curves of the
@@ -67,6 +69,7 @@ void Hyperspace::MakeOldPicture()
 	mOwnsOldPicture = true;
 }
 
+// 0x70e527: the thrust puff's reset, inline here
 void Hyperspace::Update()
 {
 	if (mState == 0 || mState == 6) {

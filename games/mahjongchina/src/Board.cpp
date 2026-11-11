@@ -184,7 +184,7 @@ void Board::Init()
 	jb::LoadSound(0x15f, false);
 	jb::LoadSound(0x179, false);
 	jb::LoadSound(0x178, true);
-	mFont = jb::GetDllFont(0xd9, 0xd8, -1);
+	mFont = jb::GetDllFont(0xd9, 0xd8);
 	RegUpdate(true);
 	RegClick(true);
 	RegLayerCmd(true);
@@ -222,7 +222,7 @@ void Board::LoadLayout()
 		ErrorBox* aBox = new ErrorBox();
 		jb::gManager->Push(aBox, true, false, true);
 		aBox->SetTitle(0x6b);
-		aBox->AddText(0x6a, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->AddText(0x6a, 0, 0, 0x5a, false);
 		return;
 	}
 	Measure();
@@ -445,7 +445,7 @@ bool Board::OnCommand(int theCmd)
 				YesNoBox* aBox = new YesNoBox(GetPlayLayer(), 0, 0x93, 0x1b, 0x16, true, 0x66, 0x66);
 				jb::gManager->Push(aBox, true, false, true);
 				aBox->SetTitle(0x1a);
-				aBox->AddText(0x19, 0, 0, 0x50, false, nullptr, 0);
+				aBox->AddText(0x19, 0, 0, 0x50, false);
 			}
 			return true;
 		case 0x94:

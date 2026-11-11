@@ -606,7 +606,7 @@ SDL_Texture* DDInterface::PrepareTexture(MemoryImage* theImage, DDTextureData* t
 				return NULL;
 		}
 
-		if ((!isPalletized) && (!mPremultiplied))
+		if ((!isPalletized) && ((!mPremultiplied) || (theImage->mUploadAsIs)))
 			SDL_UpdateTexture(aTexture, NULL, aPixels, aWidth * 4);
 		else
 		{
