@@ -342,8 +342,9 @@ destructor path would show only as a crash; the web build (`tools/check.sh build
 ## The readability pass (2026-11-11)
 
 The pass of `docs/CODE_STANDARDS.md`. Nothing the port does changed (the proof is at the end), and
-`python tools/namecheck.py games/waterbugs` finds nothing. It has two exceptions, in `namecheck.txt`: `folder engine`
-(Retro64 is the game's own engine, beside `src`, so it is checked like the rest) and `allow offset gScreenFormat565`
+`python tools/namecheck.py games/waterbugs` finds nothing. It has two exceptions, in `namecheck.txt`: `engine retro64`
+(Retro64 is the game's own engine, now the one copy under `engines/retro64` that Cosmic Bugs shares, so it is checked
+like the rest) and `allow offset gScreenFormat565`
 (the pixel format's name: red 5 bits, green 6, blue 5, which is not an offset). These notes use the new names; the
 sections above that report a past run (the performance figures, the coverage check) keep the names of their time.
 
@@ -383,7 +384,7 @@ functions (it found one).
 
 | names | what they are | uses |
 |---|---|---|
-| `SCREEN_WIDTH`, `SCREEN_HEIGHT`, `SCREEN_CENTRE_X`, `SCREEN_CENTRE_Y` (`engine/R64.h`) | the 800 by 600 screen and its middle | 140, in the game, the host and the engine |
+| `SCREEN_WIDTH`, `SCREEN_HEIGHT`, `SCREEN_CENTRE_X`, `SCREEN_CENTRE_Y` (`engines/retro64/R64.h`) | the 800 by 600 screen and its middle | 140, in the game, the host and the engine |
 | `CELL_SIZE`, `CELL_HALF`, `GRID_COLUMNS`, `GRID_ROWS`, `BOARD_WIDTH`, `BOARD_HEIGHT` (`WBGame.h`) | the 16-pixel cell, half of it, the 50 by 37 board and its 800 by 592 pixels | 270: every position over 16 is a cell index |
 | `CellKind`: `CELL_OPEN`, `CELL_BEAM`, `CELL_LINE`, `CELL_EDGE`, `CELL_FILLED`, `CELL_SOLID` | what a cell is (`Cell::mKind`) | 145 |
 | `EnemyKind` (twenty names: `ENEMY_FROG`, `ENEMY_BUMP_ROLLER`, `ENEMY_CANNON_BALL`...) and `EnemyState`: `ENEMY_APPEARING`, `ENEMY_DYING`, `ENEMY_FADING`, `ENEMY_ALIVE` | what an enemy is and where it is in its life | 90 |
@@ -416,6 +417,45 @@ order, which makes the table a byte longer). The comparison caught a slip on the
 is the screen's height less a cell, not the board's 592 less a cell. `tools/check.sh waterbugs` (the suite against the frozen baseline) passes, and so do `tools/check.sh build` (every target
 and tool) and `build-web:waterbugs`; the web build matters because the native build compiles none of the
 `__EMSCRIPTEN__` blocks nor `SiteProfiles.cpp`, which is where the old names were still found.
+
+## The shared engine (2026-11-11)
+
+The engine moved from `games/waterbugs/engine` to `engines/retro64`, the one copy that Cosmic Bugs is built on too
+(`docs/ENGINES.md`; the user, 2026-11-11: "Share engines"). Its files are this game's readable version, with Cosmic Bugs'
+copy folded in, and each function's comment gives its address in both exes, tagged with the game's folder name
+(`0x40c2e0 (cosmicbugs), 0x40c4d0 (waterbugs)`). The two exes hold the same library, so nothing needed a switch between
+the games: what only Cosmic Bugs' code reaches is there for both and costs this game nothing, and what the game's own code
+chooses it still chooses.
+
+**What came back.** The unneeded-code pass above took out what no Water Bugs input reaches; that is in the shared engine
+again, because the other game reaches it, and every function of it is one of this exe's own: the fonts' unclipped
+drawing and the flag that chooses it (`Font_SetClipped`, 0x422330), a font's texture and mask target (+0xd50 to +0xd5f),
+`Image_BlitUnclipped`, `Image_BlitAlphaFadeUnclipped`, `Image_SetMask`, `Rect_Overlap`, `Rect_Intersect`,
+`Image_AddMaskUnclipped`, `Image_AddMask`, `AddMask8` and `Image_FillAlphaRect`; the text input's own surface and
+background (`DrawOwn`, 0x42cad0, and the two parameters `TextInput_Init` has again); `Bank_Reconvert` (0x428640),
+`Xml_Reset` (0x41ee70), `Sys_Sleep` (0x428d00) and `SetScreenLostCallback` (0x4293a0); the message pump's flag
+`gPumpMessages` (0 here, set by Cosmic Bugs' demo code, as the original's own demo set it); and the port's
+`DrawList_Count` and `Sys_Host`. The game's own code is what the original's is: it sets a font's clipped flag to 1 where
+the original does (`Font_LoadXml`, `Screen_Redraw`; `TextInput_Draw` does it in the engine), and it gives the text input
+no surface and no background. Nothing else of what came back runs, so the game plays as before. The structs that mirror the
+original's are its size again (`Font` 0xd6c, `TextInput`, and `Text` 0x6c8 with it). `coverage.txt` reads
+`src engines/retro64` and loses its `none` lines for 0x422330 and 0x4293a0, and `namecheck.txt` reads
+`engine retro64`. The coverage count of this game's exe goes from 522 of 742 functions with a counterpart to 536: twelve more,
+all of them what came back.
+
+**What stays in the game, and what the unneeded-code pass above still says.** The demo mode and its branches, the sweepers,
+the water mine and the freeze, the unreachable display re-open and the other game code are still out of `src`; only the
+engine's functions listed here are back, and the pass's list of what it took from the engine stands as a list of what
+only the other game reaches.
+
+**The proof.** The engine's objects before and after, function by function with positions taken out (the engine now has
+more functions, so their addresses in the object move): of the 236 functions of the old objects 199 have the same
+instructions. The 36 that differ are the ones that read a member of a struct whose layout is the original's again (every
+`Font` and `TextInput` function: a member's offset), `PumpMessages` (the pump's flag), and `Image_BlitAlphaFade`, which the
+compiler now builds around a helper that two functions call. In `src` seven objects differ: the three functions that gained a call and the ones that use a struct holding a `Font` or a
+`TextInput` (the size of `Text`, and the offset of the members after a font). `tools/check.sh waterbugs` passes with the frozen baseline unchanged, `tools/check.sh build`
+(every target and tool) and `build-web:waterbugs` pass.
+
 ## Coverage check (2026-11-08)
 
 The whole coverage check of `docs/COVERAGE.md`, after Ning Po's. origrun's `--coverage` recorded which of the original's

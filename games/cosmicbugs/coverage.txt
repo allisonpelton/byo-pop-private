@@ -1,0 +1,9 @@
+# tools/coverage.py's settings for Cosmic Bugs (docs/COVERAGE.md). Its engine is Retro64's, the one copy that Water Bugs
+# shares (engines/retro64), whose comments give each game's addresses tagged with its folder name.
+export re/cosmicbugs/gh/functions.jsonl
+src games/cosmicbugs/src
+src engines/retro64
+# The game's own code and the engine under it (docs/README.md, "The binary"): the game, the engine, the system layer,
+# the blitters of every pixel format. The rest of the exe is the C runtime and the libraries the engine links (from
+# 0x442920 on). The same span as Water Bugs' 0x401000..0x442cf0 by the two exes' function match.
+game 00401000-004428b0

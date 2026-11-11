@@ -28,14 +28,31 @@ XmlTag::XmlTag()
 	mEmpty = 0;
 }
 
-// (0x41ee70 forgets the tag and frees its attributes: Xml_NextTag starts each tag afresh, and this frees them)
+// (frees the attributes, as Xml_Reset does besides forgetting the tag: Xml_NextTag starts each tag afresh)
 XmlTag::~XmlTag()
 {
 	std::free(mAttrs);
 }
 
-// 0x42d8a0. The names and values have no bound in the original; the port cuts them at 0xff characters and stops at
-// the buffer's end.
+// 0x41e970 (cosmicbugs), 0x41ee70 (waterbugs): forgets the tag and frees its attributes
+void Xml_Reset(XmlTag* theTag)
+{
+	theTag->mCount = 0;
+	theTag->mName[0] = '\0';
+	theTag->mText = nullptr;
+	theTag->mTextLen = 0;
+	theTag->mClosing = 0;
+	theTag->mEmpty = 0;
+	theTag->mCapacity = 0;
+	if (theTag->mAttrs != nullptr)
+	{
+		std::free(theTag->mAttrs);
+		theTag->mAttrs = nullptr;
+	}
+}
+
+// 0x42d3c0 (cosmicbugs), 0x42d8a0 (waterbugs). The names and values have no bound in the original; the port cuts them
+// at 0xff characters and stops at the buffer's end.
 const char* Xml_NextTag(const char* theCursor, XmlTag* theTag)
 {
 	theTag->mCount = 0;
@@ -162,7 +179,7 @@ const char* Xml_NextTag(const char* theCursor, XmlTag* theTag)
 	}
 }
 
-// 0x42d7b0
+// 0x42d2d0 (cosmicbugs), 0x42d7b0 (waterbugs)
 const char* Xml_ReadToken(const char* theCursor, char* theOut, int theLimit, int* theCount)
 {
 	int i = 0;
@@ -219,7 +236,7 @@ const char* Xml_ReadToken(const char* theCursor, char* theOut, int theLimit, int
 	return theCursor;
 }
 
-// 0x401420
+// 0x401370 (cosmicbugs), 0x401420 (waterbugs)
 const char* Xml_GetString(const XmlTag* theTag, const char* theName)
 {
 	int i = 0;
@@ -235,7 +252,7 @@ const char* Xml_GetString(const XmlTag* theTag, const char* theName)
 	return nullptr;
 }
 
-// 0x4014a0
+// 0x4013f0 (cosmicbugs), 0x4014a0 (waterbugs)
 int Xml_GetInt(const XmlTag* theTag, const char* theName)
 {
 	int i = 0;

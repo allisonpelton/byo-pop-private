@@ -1,8 +1,9 @@
-#ifndef __COSMICBUGS_R64FLIC_H__
-#define __COSMICBUGS_R64FLIC_H__
+#ifndef __RETRO64_R64FLIC_H__
+#define __RETRO64_R64FLIC_H__
 
-// The exe's FLIC reader (0x40c390..0x40ca80): the whole file is kept in memory after a 0x14-byte handle, and each
-// call decodes the next frame onto an 8-bit buffer, the palette chunks going to gFlicPalette.
+// The exe's FLIC reader (0x40c1a0..0x40c890 (cosmicbugs), 0x40c390..0x40ca80 (waterbugs)): the whole file is kept in
+// memory after a 0x14-byte handle, and each call decodes the next frame onto an 8-bit buffer, the palette chunks going
+// to gFlicPalette.
 
 #include <cstddef>
 #include <cstdint>
@@ -27,15 +28,16 @@ struct Flic
 	uint32_t mMemSize;
 };
 
-extern uint8_t gFlicPalette[0x300]; // 0x6e57a0: r, g, b per index
-extern int gFlicSkipPalette;        // 0x6e5aa0: palette chunks are read past and not kept
+extern uint8_t gFlicPalette[0x300]; // 0x6e57a0 (cosmicbugs), 0x6e57a8 (waterbugs): r, g, b per index
+// 0x6e5aa0 (cosmicbugs), 0x6e5aa8 (waterbugs): palette chunks are read past and not kept
+extern int gFlicSkipPalette;
 
-// 0x40c390 (theMode 0): a FLI or FLC file's handle, or null
+// 0x40c1a0 (cosmicbugs), 0x40c390 (waterbugs) (theMode 0): a FLI or FLC file's handle, or null
 Flic* Flic_Open(const uint8_t* theFile, size_t theFileSize);
-// 0x40c880: decodes the next frame onto theDst (theDPitch bytes a row); after the ring frame it goes on with the
-// second
+// 0x40c690 (cosmicbugs), 0x40c880 (waterbugs): decodes the next frame onto theDst (theDPitch bytes a row); after the
+// ring frame it goes on with the second
 void Flic_NextFrame(Flic* theFlic, uint8_t* theDst, int theDPitch);
-// 0x40ca80
+// 0x40c890 (cosmicbugs), 0x40ca80 (waterbugs)
 void Flic_Close(Flic* theFlic);
 
 } // namespace r64

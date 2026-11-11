@@ -1,6 +1,7 @@
-// Retro64's images (0x423980..0x425d60), pixel formats, palettes, the sine tables and the pixel helpers
-// 0x42d540..0x42e6a0. The 24- and 32-bit destinations the blit wrappers also handle are not translated
-// (R64Blit.h says why): a wrapper whose destination is not 16-bit draws nothing here.
+// Retro64's images (0x4234a0..0x425880 (cosmicbugs), 0x423980..0x425d60 (waterbugs)), pixel formats, palettes, the sine
+// tables and the pixel helpers
+// 0x42d060..0x42e1c0 (cosmicbugs), 0x42d540..0x42e6a0 (waterbugs). The 24- and 32-bit destinations the blit wrappers
+// also handle are not translated (R64Blit.h says why): a wrapper whose destination is not 16-bit draws nothing here.
 
 #include "R64.h"
 #include "R64Blit.h"
@@ -15,8 +16,8 @@ namespace r64
 namespace
 {
 
-int gCosTable[361]; // 0x709a08
-int gSinTable[361]; // 0x709fb0
+int gCosTable[361]; // 0x709988 (cosmicbugs), 0x709a08 (waterbugs)
+int gSinTable[361]; // 0x709f30 (cosmicbugs), 0x709fb0 (waterbugs)
 
 void InitComponent(uint32_t theMask, uint32_t& theMaskOut, int& theBits, int& theShift, int& theLoss)
 {
@@ -63,7 +64,8 @@ inline int DegIndex(int theAngle)
 
 } // namespace
 
-// 0x4012d0 (and 0x42e790). An 8-bit format gets the masks 0xff0000, 0xff00 and 0xff.
+// 0x401230 (cosmicbugs), 0x4012d0 (waterbugs) (and 0x42e2b0 (cosmicbugs), 0x42e790 (waterbugs)). An 8-bit format gets
+// the masks 0xff0000, 0xff00 and 0xff.
 void PixelFormat_Init(PixelFormat* theFmt, int theBpp, uint32_t theRedMask, uint32_t theGreenMask, uint32_t theBlueMask)
 {
 	if (theBpp == 8)
@@ -78,7 +80,7 @@ void PixelFormat_Init(PixelFormat* theFmt, int theBpp, uint32_t theRedMask, uint
 	InitComponent(theBlueMask, theFmt->mBMask, theFmt->mBBits, theFmt->mBShift, theFmt->mBLoss);
 }
 
-// 0x4013d0
+// 0x401330 (cosmicbugs), 0x4013d0 (waterbugs)
 Palette::Palette()
 {
 	std::memset(mRgb, 0, sizeof(mRgb));
@@ -87,7 +89,7 @@ Palette::Palette()
 	std::memset(mConv, 0, sizeof(mConv));
 }
 
-// 0x42be80
+// 0x42b9a0 (cosmicbugs), 0x42be80 (waterbugs)
 void InitSinCos()
 {
 	int i = 0;
@@ -100,19 +102,19 @@ void InitSinCos()
 	} while (i < 0x169);
 }
 
-// 0x42bef0
+// 0x42ba10 (cosmicbugs), 0x42bef0 (waterbugs)
 float SinDeg(int theAngle)
 {
 	return (float)(gSinTable[DegIndex(theAngle)] * 0.0009765625);
 }
 
-// 0x42bf50
+// 0x42ba70 (cosmicbugs), 0x42bf50 (waterbugs)
 float CosDeg(int theAngle)
 {
 	return (float)(gCosTable[DegIndex(theAngle)] * 0.0009765625);
 }
 
-// 0x42bfb0
+// 0x42bad0 (cosmicbugs), 0x42bfb0 (waterbugs)
 int ClipBlit(int theClipL, int theClipT, int theClipR, int theClipB, int x, int y, int theWidth, int theHeight,
 	int* theOutX, int* theOutY, int* theOutSx, int* theOutSy, int* theOutW, int* theOutH)
 {
@@ -148,7 +150,44 @@ int ClipBlit(int theClipL, int theClipT, int theClipR, int theClipB, int x, int 
 	return 0;
 }
 
-// 0x42c0f0 (each colour is truncated: the original's fistp runs with the rounding control set to chop, or 0xc00)
+// 0x42b8d0 (cosmicbugs), 0x42bdb0 (waterbugs): whether two rectangles {l, t, r, b} (inclusive) overlap, by the distance
+// of their centres as the original works it out (halves rounded toward 0)
+int Rect_Overlap(int theLeft1, int theTop1, int theRight1, int theBottom1, int theLeft2, int theTop2, int theRight2,
+	int theBottom2)
+{
+	int aWidth1 = (theRight1 - theLeft1) + 1;
+	int aWidth2 = (theRight2 - theLeft2) + 1;
+	int aHalfWidth1 = aWidth1 / 2;
+	int aDistanceX = std::abs(((aHalfWidth1 - aWidth2 / 2) - theLeft2) + theLeft1);
+	int aHeight1 = (theBottom1 - theTop1) + 1;
+	int aHeight2 = (theBottom2 - theTop2) + 1;
+	int aDistanceY = std::abs(((aHeight1 / 2 - aHeight2 / 2) - theTop2) + theTop1);
+	if (((aWidth2 + aWidth1) / 2 < aDistanceX || (aHeight2 + aHeight1) / 2 < aDistanceY) &&
+		(aHalfWidth1 <= aDistanceX || aHeight1 / 2 <= aDistanceY))
+		return 0;
+	return 1;
+}
+
+// 0x42bbc0 (cosmicbugs), 0x42c0a0 (waterbugs)
+void Rect_Intersect(int* theOut, int theLeft1, int theTop1, int theRight1, int theBottom1, int theLeft2, int theTop2,
+	int theRight2, int theBottom2)
+{
+	if (theLeft1 <= theLeft2)
+		theLeft1 = theLeft2;
+	if (theTop1 <= theTop2)
+		theTop1 = theTop2;
+	if (theRight2 <= theRight1)
+		theRight1 = theRight2;
+	if (theBottom2 <= theBottom1)
+		theBottom1 = theBottom2;
+	theOut[0] = theLeft1;
+	theOut[1] = theTop1;
+	theOut[2] = theRight1;
+	theOut[3] = theBottom1;
+}
+
+// 0x42bc10 (cosmicbugs), 0x42c0f0 (waterbugs) (each colour is truncated: the original's fistp runs with the rounding
+// control set to chop, or 0xc00)
 void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t theR0, uint8_t theG0, uint8_t theB0,
 	uint8_t theR1, uint8_t theG1, uint8_t theB1)
 {
@@ -172,7 +211,7 @@ void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t theR0
 	}
 }
 
-// 0x423980. The original leaves +0x3c and +0x40 alone; the port's are 0.
+// 0x4234a0 (cosmicbugs), 0x423980 (waterbugs). The original leaves +0x3c and +0x40 alone; the port's are 0.
 void Image_Init(Image* theImg)
 {
 	theImg->mBits = nullptr;
@@ -216,26 +255,49 @@ void Image_Init(Image* theImg)
 	PixelFormat_Init(&theImg->mBankFmt, 8, 0, 0, 0);
 }
 
-// 0x423a50
+// 0x423570 (cosmicbugs), 0x423a50 (waterbugs)
 void Image_SetMidHandle(Image* theImg)
 {
 	theImg->mHandleX = theImg->mOrigW / 2;
 	theImg->mHandleY = theImg->mOrigH / 2;
 }
 
-// 0x423a70
+// 0x423590 (cosmicbugs), 0x423a70 (waterbugs)
 int Image_DrawX(const Image* theImg)
 {
 	return theImg->mXOff - theImg->mHandleX;
 }
 
-// 0x423a80
+// 0x4235a0 (cosmicbugs), 0x423a80 (waterbugs)
 int Image_DrawY(const Image* theImg)
 {
 	return theImg->mYOff - theImg->mHandleY;
 }
 
-// 0x423b00
+// 0x4235b0 (cosmicbugs), 0x423a90 (waterbugs): no mask falls back to the image's default one
+void Image_SetMask(Image* theImg, Image* theMask, int theMaskX, int theMaskY)
+{
+	if (theMask != nullptr)
+	{
+		theImg->mMask = theMask;
+		theImg->mMaskX = theMaskX;
+		theImg->mMaskY = theMaskY;
+		theImg->mHasMask = 1;
+		return;
+	}
+	theImg->mMaskX = 0;
+	theImg->mMaskY = 0;
+	if (theImg->mDefMask != nullptr)
+	{
+		theImg->mMask = theImg->mDefMask;
+		theImg->mHasMask = 1;
+		return;
+	}
+	theImg->mHasMask = 0;
+	theImg->mMask = nullptr;
+}
+
+// 0x423620 (cosmicbugs), 0x423b00 (waterbugs)
 void Image_SetPalette(Image* theImg, Palette* thePal)
 {
 	if (thePal == nullptr)
@@ -243,7 +305,7 @@ void Image_SetPalette(Image* theImg, Palette* thePal)
 	theImg->mPalette = thePal;
 }
 
-// 0x423b20. The old bits are freed whoever owns them, as in the original.
+// 0x423640 (cosmicbugs), 0x423b20 (waterbugs). The old bits are freed whoever owns them, as in the original.
 int Image_ConvertTo(Image* theImg, const PixelFormat* theFmt, const uint8_t* theRgb)
 {
 	PixelFormat aFmt = *theFmt;
@@ -269,7 +331,7 @@ int Image_ConvertTo(Image* theImg, const PixelFormat* theFmt, const uint8_t* the
 	return 0;
 }
 
-// 0x423bf0
+// 0x423710 (cosmicbugs), 0x423bf0 (waterbugs)
 void Image_FreeRle(Image* theImg)
 {
 	if (theImg->mRle != nullptr)
@@ -279,7 +341,7 @@ void Image_FreeRle(Image* theImg)
 	}
 }
 
-// 0x425470: whether column x of the mask has a pixel that is not 0
+// 0x424f90 (cosmicbugs), 0x425470 (waterbugs): whether column x of the mask has a pixel that is not 0
 int Image_MaskColumnSet(const Image* theImg, int x)
 {
 	const Image* aMask = theImg->mMask;
@@ -300,7 +362,7 @@ int Image_MaskColumnSet(const Image* theImg, int x)
 	return 0;
 }
 
-// 0x4254c0: an image whose bits belong to a bank keeps everything
+// 0x424fe0 (cosmicbugs), 0x4254c0 (waterbugs): an image whose bits belong to a bank keeps everything
 void Image_Free(Image* theImg)
 {
 	if (theImg->mNotOwned == 0)
@@ -318,7 +380,8 @@ void Image_Free(Image* theImg)
 	}
 }
 
-// 0x425520. Image_Free resets the format to 8-bit first, so a null fmt makes an 8-bit image.
+// 0x425040 (cosmicbugs), 0x425520 (waterbugs). Image_Free resets the format to 8-bit first, so a null fmt makes an
+// 8-bit image.
 void Image_Create(Image* theImg, int theWidth, int theHeight, const PixelFormat* theFmt)
 {
 	if (theImg->mNotOwned == 0)
@@ -348,7 +411,7 @@ void Image_Create(Image* theImg, int theWidth, int theHeight, const PixelFormat*
 	}
 }
 
-// 0x4255d0
+// 0x4250f0 (cosmicbugs), 0x4255d0 (waterbugs)
 void Image_CreateCopy(Image* theImg, const uint8_t* theSrc, int theSrcPitch, int theWidth, int theHeight,
 	const PixelFormat* theFmt)
 {
@@ -360,7 +423,7 @@ void Image_CreateCopy(Image* theImg, const uint8_t* theSrc, int theSrcPitch, int
 	}
 }
 
-// 0x425630
+// 0x425150 (cosmicbugs), 0x425630 (waterbugs)
 void Image_BuildRle(Image* theImg)
 {
 	if (theImg->mRle != nullptr)
@@ -372,7 +435,7 @@ void Image_BuildRle(Image* theImg)
 		theImg->mRle = Rle_Build(theImg->mBits, theImg->mPitch, theImg->mH);
 }
 
-// 0x425d00
+// 0x425820 (cosmicbugs), 0x425d00 (waterbugs)
 void Image_Destroy(Image* theImg)
 {
 	Image* anAutoMask = theImg->mAutoMask;
@@ -391,14 +454,14 @@ void Image_Destroy(Image* theImg)
 		Image_Free(theImg);
 }
 
-// 0x425d60
+// 0x425880 (cosmicbugs), 0x425d60 (waterbugs)
 void Image_Copy(Image* theImg, const Image* theSrc)
 {
 	if (theImg->mNotOwned == 0)
 		Image_CreateCopy(theImg, theSrc->mBits, theSrc->mPitch, theSrc->mW, theSrc->mH, &theSrc->mFmt);
 }
 
-// 0x423c20
+// 0x423740 (cosmicbugs), 0x423c20 (waterbugs)
 void Image_Blit(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip, int x,
 	int y)
 {
@@ -413,21 +476,88 @@ void Image_Blit(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelForm
 		if (theFmt->mBpp == 8)
 		{
 			if (theImg->mFmt.mBpp == 8)
-				// 0x4295f0
+				// 0x429110 (cosmicbugs), 0x4295f0 (waterbugs)
 				Copy8(theDst, aDstX, aDstY, theDstPitch, 0, theImg->mBits, aSrcX, aSrcY, theImg->mPitch, 0, w, h);
 		}
 		else if (theImg->mFmt.mBpp == 8)
 		{
-			if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429cb0
+			if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x4297d0 (cosmicbugs), 0x429cb0 (waterbugs)
 				Pal16(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY,
 					w, h);
 		}
-		else if (Is16(theFmt)) // 0x429680
+		else if (Is16(theFmt)) // 0x4291a0 (cosmicbugs), 0x429680 (waterbugs)
 			Copy16(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, w, h);
 	}
 }
 
-// 0x423f50. The runs are used only when the whole image is drawn.
+// 0x4238a0 (cosmicbugs), 0x423d80 (waterbugs). A 16-bit image without a mask draws nothing; an 8-bit one is its own
+// mask.
+void Image_BlitUnclipped(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x, int y)
+{
+	int aDstX = x + (theImg->mXOff - theImg->mHandleX);
+	int aDstY = y + (theImg->mYOff - theImg->mHandleY);
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (theFmt->mBpp == 8)
+	{
+		if (theImg->mFmt.mBpp != 8)
+			return;
+		Copy8Key(theDst, aDstX, aDstY, theDstPitch, 0, theImg->mBits, 0, 0, theImg->mPitch, 0, theImg->mW,
+			theImg->mH);
+		return;
+	}
+	const uint8_t* aMask;
+	int aMaskPitch, aMaskX, aMaskY;
+	if (theImg->mHasMask == 1)
+	{
+		const uint8_t* aRle = theImg->mMask->mRle;
+		if (aRle != nullptr && theImg->mMaskX == 0 && theImg->mMaskY == 0)
+		{
+			if (theImg->mFmt.mBpp != 8)
+			{
+				if (Is16(theFmt))
+					Rle16Copy(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
+				return;
+			}
+			if (theImg->mPalette == nullptr)
+				return;
+			if (Is16(theFmt))
+				RlePal16Copy(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
+					theImg->mPalette, aRle);
+			return;
+		}
+		if (theImg->mFmt.mBpp != 8)
+		{
+			if (Is16(theFmt))
+				Copy16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, 0, 0,
+					theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, theImg->mW,
+					theImg->mH);
+			return;
+		}
+		if (theImg->mPalette == nullptr)
+			return;
+		aMask = theImg->mMask->mBits;
+		aMaskPitch = theImg->mMask->mPitch;
+		aMaskX = theImg->mMaskX;
+		aMaskY = theImg->mMaskY;
+	}
+	else
+	{
+		if (theImg->mFmt.mBpp != 8)
+			return;
+		if (theImg->mPalette == nullptr)
+			return;
+		aMask = theImg->mBits;
+		aMaskPitch = theImg->mPitch;
+		aMaskX = 0;
+		aMaskY = 0;
+	}
+	if (Is16(theFmt))
+		Pal16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, 0, 0, aMask,
+			aMaskPitch, aMaskX, aMaskY, theImg->mW, theImg->mH);
+}
+
+// 0x423a70 (cosmicbugs), 0x423f50 (waterbugs). The runs are used only when the whole image is drawn.
 void Image_BlitMasked(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
 	int x, int y)
 {
@@ -442,7 +572,7 @@ void Image_BlitMasked(Image* theImg, uint8_t* theDst, int theDstPitch, const Pix
 	if (theFmt->mBpp == 8)
 	{
 		if (theImg->mFmt.mBpp == 8)
-			// 0x429630
+			// 0x429150 (cosmicbugs), 0x429630 (waterbugs)
 			Copy8Key(theDst, aDstX, aDstY, theDstPitch, 0, theImg->mBits, aSrcX, aSrcY, theImg->mPitch, 0, w, h);
 	}
 	else if (theImg->mHasMask == 1)
@@ -452,14 +582,14 @@ void Image_BlitMasked(Image* theImg, uint8_t* theDst, int theDstPitch, const Pix
 		{
 			if (theImg->mFmt.mBpp != 8)
 			{
-				if (Is16(theFmt)) // 0x429750
+				if (Is16(theFmt)) // 0x429270 (cosmicbugs), 0x429750 (waterbugs)
 					Copy16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY,
 						theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, w, h);
 				return;
 			}
 			if (theImg->mPalette != nullptr)
 			{
-				if (Is16(theFmt)) // 0x429d90
+				if (Is16(theFmt)) // 0x4298b0 (cosmicbugs), 0x429d90 (waterbugs)
 					Pal16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX,
 						aSrcY, theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, w, h);
 				return;
@@ -469,13 +599,13 @@ void Image_BlitMasked(Image* theImg, uint8_t* theDst, int theDstPitch, const Pix
 		{
 			if (theImg->mFmt.mBpp != 8)
 			{
-				if (Is16(theFmt)) // 0x429af0
+				if (Is16(theFmt)) // 0x429610 (cosmicbugs), 0x429af0 (waterbugs)
 					Rle16Copy(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
 				return;
 			}
 			if (theImg->mPalette != nullptr)
 			{
-				if (Is16(theFmt)) // 0x42a0d0
+				if (Is16(theFmt)) // 0x429bf0 (cosmicbugs), 0x42a0d0 (waterbugs)
 					RlePal16Copy(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
 						theImg->mPalette, aRle);
 				return;
@@ -484,13 +614,14 @@ void Image_BlitMasked(Image* theImg, uint8_t* theDst, int theDstPitch, const Pix
 	}
 	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr)
 	{
-		if (Is16(theFmt)) // 0x429d90
+		if (Is16(theFmt)) // 0x4298b0 (cosmicbugs), 0x429d90 (waterbugs)
 			Pal16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY,
 				theImg->mBits, theImg->mPitch, 0, 0, w, h);
 	}
 }
 
-// 0x4241f0: the colour through the image's mask (an 8-bit image without one is its own)
+// 0x423d10 (cosmicbugs), 0x4241f0 (waterbugs): the colour through the image's mask (an 8-bit image without one is its
+// own)
 void Image_BlitFill(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
 	int x, int y, uint32_t theColour)
 {
@@ -509,7 +640,7 @@ void Image_BlitFill(Image* theImg, uint8_t* theDst, int theDstPitch, const Pixel
 			const uint8_t* aRle = theImg->mMask->mRle;
 			if (aRle != nullptr && theImg->mMaskX == 0 && theImg->mMaskY == 0 && w == theImg->mW && h == theImg->mH)
 			{
-				if (Is16(theFmt)) // 0x429b30
+				if (Is16(theFmt)) // 0x429650 (cosmicbugs), 0x429b30 (waterbugs)
 					Rle16Fill(theDst, theDstPitch, theFmt, aDstX, aDstY, aRle, (uint16_t)theColour);
 				return;
 			}
@@ -527,13 +658,13 @@ void Image_BlitFill(Image* theImg, uint8_t* theDst, int theDstPitch, const Pixel
 			aMaskY = 0;
 			aMaskX = 0;
 		}
-		if (Is16(theFmt)) // 0x429860
+		if (Is16(theFmt)) // 0x429380 (cosmicbugs), 0x429860 (waterbugs)
 			Fill16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, aSrcX, aSrcY, aMask, aMaskPitch, aMaskX, aMaskY, w, h,
 				(uint16_t)theColour);
 	}
 }
 
-// 0x424360
+// 0x423e80 (cosmicbugs), 0x424360 (waterbugs)
 void Image_BlitFillAlpha(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
 	int x, int y, uint32_t theColour, uint32_t theAlpha)
 {
@@ -552,7 +683,7 @@ void Image_BlitFillAlpha(Image* theImg, uint8_t* theDst, int theDstPitch, const 
 			const uint8_t* aRle = theImg->mMask->mRle;
 			if (aRle != nullptr && theImg->mMaskX == 0 && theImg->mMaskY == 0 && w == theImg->mW && h == theImg->mH)
 			{
-				if (Is16(theFmt)) // 0x429b70
+				if (Is16(theFmt)) // 0x429690 (cosmicbugs), 0x429b70 (waterbugs)
 					Rle16FillAlpha(theDst, theDstPitch, theFmt, aDstX, aDstY, aRle, (uint16_t)theColour,
 						theAlpha & 0xff);
 				return;
@@ -571,21 +702,22 @@ void Image_BlitFillAlpha(Image* theImg, uint8_t* theDst, int theDstPitch, const 
 			aMaskY = 0;
 			aMaskX = 0;
 		}
-		if (Is16(theFmt)) // 0x4298a0
+		if (Is16(theFmt)) // 0x4293c0 (cosmicbugs), 0x4298a0 (waterbugs)
 			Fill16MaskAlpha(theDst, theDstPitch, theFmt, aDstX, aDstY, aSrcX, aSrcY, aMask, aMaskPitch, aMaskX, aMaskY,
 				w, h, (uint16_t)theColour, (uint8_t)theAlpha);
 	}
 }
 
-// 0x4244f0, 0x424700, 0x424cc0 share one shape: only images with a mask draw
+// 0x424010 (cosmicbugs), 0x4244f0 (waterbugs), 0x424220 (cosmicbugs), 0x424700 (waterbugs), 0x4247e0 (cosmicbugs),
+// 0x424cc0 (waterbugs) share one shape: only images with a mask draw
 namespace
 {
 
 enum MaskedKind
 {
-	BLEND,  // 0x4244f0
-	ALPHA,  // 0x424700
-	ADD     // 0x424cc0
+	BLEND,  // 0x424010 (cosmicbugs), 0x4244f0 (waterbugs)
+	ALPHA,  // 0x424220 (cosmicbugs), 0x424700 (waterbugs)
+	ADD     // 0x4247e0 (cosmicbugs), 0x424cc0 (waterbugs)
 };
 
 void BlitMaskedKind(MaskedKind theKind, Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
@@ -608,26 +740,26 @@ void BlitMaskedKind(MaskedKind theKind, Image* theImg, uint8_t* theDst, int theD
 		{
 			if (theImg->mPalette != nullptr && Is16(theFmt))
 			{
-				if (theKind == BLEND) // 0x429eb0
+				if (theKind == BLEND) // 0x4299d0 (cosmicbugs), 0x429eb0 (waterbugs)
 					PalBlend16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
 						theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
-				else if (theKind == ALPHA) // 0x429ef0
+				else if (theKind == ALPHA) // 0x429a10 (cosmicbugs), 0x429ef0 (waterbugs)
 					PalAlpha16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
 						theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
-				else // 0x429f70
+				else // 0x429a90 (cosmicbugs), 0x429f70 (waterbugs)
 					PalAdd16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
 						theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
 			}
 		}
 		else if (Is16(theFmt))
 		{
-			if (theKind == BLEND) // 0x4298e0
+			if (theKind == BLEND) // 0x429400 (cosmicbugs), 0x4298e0 (waterbugs)
 				Blend16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY,
 					aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
-			else if (theKind == ALPHA) // 0x429920
+			else if (theKind == ALPHA) // 0x429440 (cosmicbugs), 0x429920 (waterbugs)
 				Alpha16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY,
 					aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
-			else // 0x4299a0
+			else // 0x4294c0 (cosmicbugs), 0x4299a0 (waterbugs)
 				Add16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY,
 					aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
 		}
@@ -636,29 +768,30 @@ void BlitMaskedKind(MaskedKind theKind, Image* theImg, uint8_t* theDst, int theD
 	{
 		if (Is16(theFmt))
 		{
-			if (theKind == BLEND) // 0x429bb0
+			if (theKind == BLEND) // 0x4296d0 (cosmicbugs), 0x429bb0 (waterbugs)
 				Rle16Blend(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
-			else if (theKind == ALPHA) // 0x429bf0
+			else if (theKind == ALPHA) // 0x429710 (cosmicbugs), 0x429bf0 (waterbugs)
 				Rle16Alpha(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
-			else // 0x429c70
+			else // 0x429790 (cosmicbugs), 0x429c70 (waterbugs)
 				Rle16Add(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
 		}
 	}
 	else if (theImg->mPalette != nullptr && Is16(theFmt))
 	{
-		if (theKind == BLEND) // 0x42a110
+		if (theKind == BLEND) // 0x429c30 (cosmicbugs), 0x42a110 (waterbugs)
 			RlePal16Blend(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette,
 				aRle);
-		else if (theKind == ALPHA) // 0x42a150
+		else if (theKind == ALPHA) // 0x429c70 (cosmicbugs), 0x42a150 (waterbugs)
 			RlePal16Alpha(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette,
 				aRle);
-		else // 0x42a1d0
+		else // 0x429cf0 (cosmicbugs), 0x42a1d0 (waterbugs)
 			RlePal16Add(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette,
 				aRle);
 	}
 }
 
-// 0x424a90's faded alpha blend, with the runs when the whole image is drawn (theWhole)
+// 0x424430 (cosmicbugs), 0x424910 (waterbugs) and 0x4245b0 (cosmicbugs), 0x424a90 (waterbugs): the faded alpha blend,
+// unclipped (the whole image) or clipped, with the runs when the whole image is drawn (theWhole)
 void BlitAlphaFadeAt(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
 	int theDstY, int theSrcX, int theSrcY, int theWidth, int theHeight, bool theWhole, uint32_t theAlpha)
 {
@@ -669,22 +802,22 @@ void BlitAlphaFadeAt(Image* theImg, uint8_t* theDst, int theDstPitch, const Pixe
 	{
 		if (theImg->mFmt.mBpp == 8)
 		{
-			if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429f30
+			if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429a50 (cosmicbugs), 0x429f30 (waterbugs)
 				PalAlpha16MaskFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch,
 					theImg->mPalette, theSrcX, theSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, theWidth,
 					theHeight, (int)theAlpha);
 		}
-		else if (Is16(theFmt)) // 0x429960
+		else if (Is16(theFmt)) // 0x429480 (cosmicbugs), 0x429960 (waterbugs)
 			Alpha16MaskFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX,
 				theSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, theWidth, theHeight, (int)theAlpha);
 	}
 	else if (theImg->mFmt.mBpp != 8)
 	{
-		if (Is16(theFmt)) // 0x429c30
+		if (Is16(theFmt)) // 0x429750 (cosmicbugs), 0x429c30 (waterbugs)
 			Rle16AlphaFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch, aRle,
 				theAlpha);
 	}
-	else if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x42a190
+	else if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429cb0 (cosmicbugs), 0x42a190 (waterbugs)
 		RlePal16AlphaFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch,
 			theImg->mPalette, aRle, theAlpha);
 }
@@ -709,7 +842,45 @@ void Image_BlitAdd(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelF
 	BlitMaskedKind(ADD, theImg, theDst, theDstPitch, theFmt, theClip, x, y);
 }
 
-// 0x424a90
+// 0x4249f0 (cosmicbugs), 0x424ed0 (waterbugs): adds the mask onto an 8-bit destination (theFmt is not checked for null
+// here)
+void Image_AddMaskUnclipped(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x, int y)
+{
+	if (theFmt->mBpp == 8 && theImg->mHasMask == 1)
+		AddMask8(theDst, theDstPitch, (theImg->mXOff - theImg->mHandleX) + x, (theImg->mYOff - theImg->mHandleY) + y,
+			theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, theImg->mW, theImg->mH);
+}
+
+// 0x424a50 (cosmicbugs), 0x424f30 (waterbugs). Unlike 0x4249f0 (cosmicbugs), 0x424ed0 (waterbugs) this adds the image's
+// own bits, at the mask's offset.
+void Image_AddMask(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
+	int x, int y)
+{
+	if (theFmt->mBpp == 8)
+	{
+		int aDstX, aDstY, aSrcX, aSrcY, w, h;
+		int aClipped = ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], (theImg->mXOff - theImg->mHandleX) + x,
+			(theImg->mYOff - theImg->mHandleY) + y, theImg->mW, theImg->mH, &aDstX, &aDstY, &aSrcX, &aSrcY, &w, &h);
+		if (aClipped != 0 && 0 < w && 0 < h && theImg->mHasMask == 1)
+			AddMask8(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mMaskX + aSrcX,
+				theImg->mMaskY + aSrcY, w, h);
+	}
+}
+
+// 0x424430 (cosmicbugs), 0x424910 (waterbugs): the runs whenever the mask has them and no offset
+void Image_BlitAlphaFadeUnclipped(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x,
+	int y, uint32_t theAlpha)
+{
+	int aDstX = x + (theImg->mXOff - theImg->mHandleX);
+	int aDstY = y + (theImg->mYOff - theImg->mHandleY);
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (theFmt->mBpp != 8 && theImg->mHasMask == 1)
+		BlitAlphaFadeAt(theImg, theDst, theDstPitch, theFmt, aDstX, aDstY, 0, 0, theImg->mW, theImg->mH, true,
+			theAlpha);
+}
+
+// 0x4245b0 (cosmicbugs), 0x424a90 (waterbugs)
 void Image_BlitAlphaFade(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
 	int x, int y, uint32_t theAlpha)
 {
@@ -724,7 +895,7 @@ void Image_BlitAlphaFade(Image* theImg, uint8_t* theDst, int theDstPitch, const 
 			w == theImg->mW && h == theImg->mH, theAlpha);
 }
 
-// 0x425010: a part of the image, opaque and unclipped
+// 0x424b30 (cosmicbugs), 0x425010 (waterbugs): a part of the image, opaque and unclipped
 void Image_BlitRect(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
 	int theDstY, int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
@@ -733,22 +904,22 @@ void Image_BlitRect(Image* theImg, uint8_t* theDst, int theDstPitch, const Pixel
 	if (theFmt->mBpp == 8)
 	{
 		if (theImg->mFmt.mBpp == 8)
-			// 0x4295f0
+			// 0x429110 (cosmicbugs), 0x4295f0 (waterbugs)
 			Copy8(theDst, theDstX, theDstY, theDstPitch, 0, theImg->mBits, theSrcX, theSrcY, theImg->mPitch, 0,
 				theWidth, theHeight);
 	}
 	else if (theImg->mFmt.mBpp == 8)
 	{
-		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429cb0
+		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x4297d0 (cosmicbugs), 0x429cb0 (waterbugs)
 			Pal16(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX,
 				theSrcY, theWidth, theHeight);
 	}
-	else if (Is16(theFmt)) // 0x429680
+	else if (Is16(theFmt)) // 0x4291a0 (cosmicbugs), 0x429680 (waterbugs)
 		Copy16(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX, theSrcY, theWidth,
 			theHeight);
 }
 
-// 0x4250f0: a part of the image through its mask, unclipped
+// 0x424c10 (cosmicbugs), 0x4250f0 (waterbugs): a part of the image through its mask, unclipped
 void Image_BlitSubRect(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
 	int theDstY, int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
@@ -757,7 +928,7 @@ void Image_BlitSubRect(Image* theImg, uint8_t* theDst, int theDstPitch, const Pi
 	if (theFmt->mBpp == 8)
 	{
 		if (theImg->mFmt.mBpp == 8)
-			// 0x429630
+			// 0x429150 (cosmicbugs), 0x429630 (waterbugs)
 			Copy8Key(theDst, theDstX, theDstY, theDstPitch, 0, theImg->mBits, theSrcX, theSrcY, theImg->mPitch, 0,
 				theWidth, theHeight);
 	}
@@ -765,22 +936,34 @@ void Image_BlitSubRect(Image* theImg, uint8_t* theDst, int theDstPitch, const Pi
 	{
 		if (theImg->mFmt.mBpp != 8)
 		{
-			if (Is16(theFmt)) // 0x429750
+			if (Is16(theFmt)) // 0x429270 (cosmicbugs), 0x429750 (waterbugs)
 				Copy16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX, theSrcY,
 					theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, theWidth, theHeight);
 			return;
 		}
-		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429d90
+		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x4298b0 (cosmicbugs), 0x429d90 (waterbugs)
 			Pal16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX,
 				theSrcY, theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, theWidth,
 				theHeight);
 	}
-	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr && Is16(theFmt)) // 0x429d90
+	// 0x4298b0 (cosmicbugs), 0x429d90 (waterbugs)
+	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr && Is16(theFmt))
 		Pal16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX,
 			theSrcY, theImg->mBits, theImg->mPitch, 0, 0, theWidth, theHeight);
 }
 
-// 0x4252f0: rotated by angle degrees about (x, y), the image's middle
+// 0x424d90 (cosmicbugs), 0x425270 (waterbugs): the colour through a part of the mask, unclipped. The mask's offset gets
+// theSrcX and theSrcY added, and the blitter adds them again, as in the original. theFmt is not checked for null.
+void Image_FillAlphaRect(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
+	int theDstY, int theSrcX, int theSrcY, int theWidth, int theHeight, uint32_t theColour, uint32_t theAlpha)
+{
+	if (theFmt->mBpp != 8 && theImg->mHasMask == 1 && Is16(theFmt))
+		Fill16MaskAlpha(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrcX, theSrcY, theImg->mMask->mBits,
+			theImg->mMask->mPitch, theImg->mMaskX + theSrcX, theImg->mMaskY + theSrcY, theWidth, theHeight,
+			(uint16_t)theColour, (uint8_t)theAlpha);
+}
+
+// 0x424e10 (cosmicbugs), 0x4252f0 (waterbugs): rotated by angle degrees about (x, y), the image's middle
 void Image_BlitRotated(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x, int y,
 	int theAngle, const int* theClip)
 {
@@ -796,22 +979,23 @@ void Image_BlitRotated(Image* theImg, uint8_t* theDst, int theDstPitch, const Pi
 	{
 		if (theImg->mFmt.mBpp != 8)
 		{
-			if (Is16(theFmt)) // 0x4299e0
+			if (Is16(theFmt)) // 0x429500 (cosmicbugs), 0x4299e0 (waterbugs)
 				Rotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mW, theImg->mH,
 					theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, x, y, theAngle,
 					theClip);
 			return;
 		}
-		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429fb0
+		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429ad0 (cosmicbugs), 0x429fb0 (waterbugs)
 			PalRotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mPalette, theImg->mW, theImg->mH,
 				theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, x, y, theAngle, theClip);
 	}
-	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr && Is16(theFmt)) // 0x429fb0
+	// 0x429ad0 (cosmicbugs), 0x429fb0 (waterbugs)
+	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr && Is16(theFmt))
 		PalRotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mPalette, theImg->mW, theImg->mH,
 			theImg->mBits, theImg->mPitch, 0, 0, x, y, theAngle, theClip);
 }
 
-// 0x42d540
+// 0x42d060 (cosmicbugs), 0x42d540 (waterbugs)
 void Fill8(uint8_t* theDst, int theDstPitch, int l, int t, int r, int b, int theValue)
 {
 	uint8_t* d = theDst + theDstPitch * t + l;
@@ -827,7 +1011,7 @@ void Fill8(uint8_t* theDst, int theDstPitch, int l, int t, int r, int b, int the
 	}
 }
 
-// 0x42e020
+// 0x42db40 (cosmicbugs), 0x42e020 (waterbugs)
 void ExtractAlpha(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
 	int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
@@ -858,8 +1042,48 @@ void ExtractAlpha(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, co
 	}
 }
 
-// 0x42e0a0. The original passes the pixel through globals between a reader per source depth (0x42de00 8-bit,
-// 0x42de40 16-bit, 0x42dea0 24/32-bit) and a writer per destination depth (0x42def0, 0x42df50, 0x42dfd0).
+// 0x42dd60 (cosmicbugs), 0x42e240 (waterbugs). The original adds four pixels at a time between aligned edges, skipping
+// words that are all 0; per pixel that is the same as this.
+void AddMask8(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
+	int theSrcX, int theSrcY, int theWidth, int theHeight)
+{
+	uint8_t* aDstRow = theDst + theDstPitch * theDstY + theDstX;
+	const uint8_t* aSrcRow = theSrc + theSrcPitch * theSrcY + theSrcX;
+	if (0 < theHeight)
+	{
+		do
+		{
+			uint8_t* aDstPixel = aDstRow;
+			const uint8_t* aSrcPixel = aSrcRow;
+			int aCount = theWidth;
+			if (0 < theWidth)
+			{
+				do
+				{
+					if (*aSrcPixel != 0)
+					{
+						uint32_t aSum = (uint32_t)*aSrcPixel + (uint32_t)*aDstPixel;
+						if (0xff < aSum)
+							aSum = 0xff;
+						*aDstPixel = (uint8_t)aSum;
+					}
+					aCount--;
+					aDstPixel++;
+					aSrcPixel++;
+				} while (aCount != 0);
+			}
+			aSrcRow += theSrcPitch;
+			aDstRow += theDstPitch;
+			theHeight--;
+		} while (theHeight != 0);
+	}
+}
+
+// 0x42dbc0 (cosmicbugs), 0x42e0a0 (waterbugs). The original passes the pixel through globals between a reader per
+// source depth (0x42d920 (cosmicbugs), 0x42de00 (waterbugs) 8-bit,
+// 0x42d960 (cosmicbugs), 0x42de40 (waterbugs) 16-bit, 0x42d9c0 (cosmicbugs), 0x42dea0 (waterbugs) 24/32-bit) and a
+// writer per destination depth (0x42da10 (cosmicbugs), 0x42def0 (waterbugs), 0x42da70 (cosmicbugs),
+// 0x42df50 (waterbugs), 0x42daf0 (cosmicbugs), 0x42dfd0 (waterbugs)).
 int ConvertPixels(const PixelFormat* theDstFmt, uint8_t* theDst, int theDstPitch, int theDstX, int theDstY,
 	const PixelFormat* theSrcFmt, const uint8_t* theRgb, const uint8_t* theSrc, int theSrcPitch, int theSrcX,
 	int theSrcY, int theWidth, int theHeight)
@@ -934,10 +1158,10 @@ int ConvertPixels(const PixelFormat* theDstFmt, uint8_t* theDst, int theDstPitch
 	return 1;
 }
 
-// 0x42e480. A first pass sizes the buffer, a second writes it; each row is a state machine over the pixels: 0
-// counts skipped (0) pixels, 1 blended ones (stored), 2 solid (0xff) ones, and every change of state starts a new
-// word-aligned count. A row ends with its runs completed by zero counts. Word alignment is by address in the
-// original; malloc's buffers are aligned, so the port aligns by offset.
+// 0x42dfa0 (cosmicbugs), 0x42e480 (waterbugs). A first pass sizes the buffer, a second writes it; each row is a state
+// machine over the pixels: 0 counts skipped (0) pixels, 1 blended ones (stored), 2 solid (0xff) ones, and every change
+// of state starts a new word-aligned count. A row ends with its runs completed by zero counts. Word alignment is by
+// address in the original; malloc's buffers are aligned, so the port aligns by offset.
 uint8_t* Rle_Build(const uint8_t* theBits, int theWidth, int theHeight)
 {
 	const uint8_t* aRow = theBits;

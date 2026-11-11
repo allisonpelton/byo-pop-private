@@ -1,0 +1,66 @@
+#ifndef __RETRO64_R64BANK_H__
+#define __RETRO64_R64BANK_H__
+
+// Retro64's image banks (0x425900..0x428160 (cosmicbugs), 0x425de0..0x428640 (waterbugs)): a .bbk names the images and
+// palettes of a .dat file (XML: BANK datafile, IMAGELIST of IMAGE, PALETTELIST of PALETTE); Bank_Load reads both. Mode
+// 0 keeps the pixels as stored (art8: 8-bit images through palettes the screen's format converts), mode 1 converts each
+// image to the screen's format and gives it a mask from its alpha (art: 32-bit images). An image named mask_<name>
+// becomes <name>'s mask.
+
+#include "R64.h"
+
+#include <vector>
+
+namespace r64
+{
+
+// The original's lists are MSVC std::lists, read by position (0x425f50 (cosmicbugs), 0x426430 (waterbugs),
+// 0x425fa0 (cosmicbugs), 0x426480 (waterbugs)); vectors read the same.
+struct Bank
+{
+	int mMode;                           // +0x00  Bank_Load's mode
+	std::vector<Image*> mImages;         // +0x04  (+0x10 is the same as an array, for Bank_ImageAt)
+	std::vector<uint8_t*> mRawPalettes;  // +0x14  {r, g, b, unused} x 256 as the .bbk lists them
+	int mPalettesBuilt;                  // +0x20
+	std::vector<Palette*> mPalettes;     // +0x24  the raw palettes in the screen's format
+	uint8_t* mData;                      // +0x30  every image's pixels
+	uint32_t mDataSize;                  // +0x34
+	char mDataPath[0x200];               // +0x38  the .dat: the .bbk's folder and its datafile
+
+	Bank();   // 0x427300 (cosmicbugs), 0x427790 (waterbugs)
+	~Bank();  // 0x4270d0 (cosmicbugs), 0x427560 (waterbugs)
+	Bank(const Bank&) = delete;
+	Bank& operator=(const Bank&) = delete;
+};
+
+void Bank_Reset(Bank* theBank);                                      // 0x425cd0 (cosmicbugs), 0x4261b0 (waterbugs)
+void Bank_Clear(Bank* theBank);                                      // 0x425d70 (cosmicbugs), 0x426250 (waterbugs)
+int Bank_Alloc(Bank* theBank, uint32_t theSize);                     // 0x425900 (cosmicbugs), 0x425de0 (waterbugs)
+Image* Bank_ImageAt(const Bank* theBank, uint32_t theIndex);         // 0x4259d0 (cosmicbugs), 0x425eb0 (waterbugs)
+int Bank_Count(const Bank* theBank);                                 // 0x4259f0 (cosmicbugs), 0x425ed0 (waterbugs)
+uint8_t* Bank_RawPaletteAt(const Bank* theBank, uint32_t theIndex);  // 0x425f50 (cosmicbugs), 0x426430 (waterbugs)
+Palette* Bank_PaletteAt(const Bank* theBank, uint32_t theIndex);     // 0x425fa0 (cosmicbugs), 0x426480 (waterbugs)
+int Bank_LoadRaw(Bank* theBank, const char* thePath);                // 0x425ff0 (cosmicbugs), 0x4264d0 (waterbugs)
+// 0x4260f0 (cosmicbugs), 0x4265d0 (waterbugs)
+int Bank_LoadConverted(Bank* theBank, const char* thePath, const PixelFormat* theFmt);
+int Bank_LinkMasks(Bank* theBank);                                   // 0x426b70 (cosmicbugs), 0x427050 (waterbugs)
+int Bank_AssignPalettes(Bank* theBank);                              // 0x426d90 (cosmicbugs), 0x427270 (waterbugs)
+int Bank_AssignRawPalettes(Bank* theBank);                           // 0x426e60 (cosmicbugs), 0x427340 (waterbugs)
+// 0x426ef0 (cosmicbugs), 0x4273d0 (waterbugs)
+Image* Bank_FindImage(const Bank* theBank, const char* theName, int* theIndex);
+int Bank_IndexOf(const Bank* theBank, const char* theName);          // 0x427130 (cosmicbugs), 0x4275c0 (waterbugs)
+Image* Bank_FindImage2(const Bank* theBank, const char* theName);    // 0x427390 (cosmicbugs), 0x427820 (waterbugs)
+int Bank_BuildPalettes(Bank* theBank, const PixelFormat* theFmt);    // 0x427740 (cosmicbugs), 0x427c20 (waterbugs)
+int Bank_ParseXml(Bank* theBank, const char* thePath);               // 0x427910 (cosmicbugs), 0x427df0 (waterbugs)
+// 0x428010 (cosmicbugs), 0x4284f0 (waterbugs)
+int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat* theFmt);
+int Bank_Reconvert(Bank* theBank, const PixelFormat* theFmt);        // 0x428160 (cosmicbugs), 0x428640 (waterbugs)
+
+// 0x4019d0 (cosmicbugs), 0x401a80 (waterbugs), 0x401a60 (cosmicbugs), 0x401b10 (waterbugs): n {r, g, b, unused} colours
+// in theFmt, as 32- or 16-bit pixels
+int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* theDst, const uint8_t* theRgb, int n);
+int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* theDst, const uint8_t* theRgb, int n);
+
+} // namespace r64
+
+#endif

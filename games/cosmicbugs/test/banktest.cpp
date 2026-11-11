@@ -96,7 +96,7 @@ bool DrawFonts(Bank* theArt, Bank* theArt8, const PixelFormat* theFmt, const cha
 	while (p != nullptr && *p != 0 && y < H)
 	{
 		p = Xml_NextTag(p, &aTag);
-		if (std::strcmp(aTag.name, "font") != 0)
+		if (std::strcmp(aTag.mName, "font") != 0)
 			continue;
 		const char* aFace = Xml_GetString(&aTag, "face");
 		const char* aStrip = Xml_GetString(&aTag, "strip");
@@ -173,7 +173,7 @@ bool DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 	while (p != nullptr && *p != 0)
 	{
 		p = Xml_NextTag(p, &aTag);
-		if (std::strcmp(aTag.name, "animation") != 0)
+		if (std::strcmp(aTag.mName, "animation") != 0)
 			continue;
 		cb::Animation* anAnim = cb::List_Append(&cb::gAnims, new cb::Animation());
 		cb::Animation_FromXml(anAnim, &aTag);
@@ -195,13 +195,13 @@ bool DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 		}
 		n++;
 		Image* aFrame = anAnim->frames[0];
-		if (x + aFrame->w > W)
+		if (x + aFrame->mW > W)
 		{
 			x = 0;
 			y += aRowH + 2;
 			aRowH = 0;
 		}
-		if (y + aFrame->h > H)
+		if (y + aFrame->mH > H)
 		{
 			aFlush();
 			for (size_t k = 0; k < aScreen.size(); k++)
@@ -210,13 +210,13 @@ bool DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 			y = 0;
 			aRowH = 0;
 		}
-		if (aFrame->hasMask != 0)
+		if (aFrame->mHasMask != 0)
 			Image_BlitAlpha(aFrame, (uint8_t*)aScreen.data(), W * 2, theFmt, aClip, x, y);
 		else
 			Image_Blit(aFrame, (uint8_t*)aScreen.data(), W * 2, theFmt, aClip, x, y);
-		x += aFrame->w + 2;
-		if (aFrame->h > aRowH)
-			aRowH = aFrame->h;
+		x += aFrame->mW + 2;
+		if (aFrame->mH > aRowH)
+			aRowH = aFrame->mH;
 	}
 	aFlush();
 	std::printf("%d animations, %d missing, %d failed\n", n, aMissing, aFailed);
@@ -256,7 +256,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	std::printf("art8: %d images, %d palettes; art: %d images, %u bytes\n", Bank_Count(aBank8),
-		(int)aBank8->palettes.size(), Bank_Count(aBank), aBank->dataSize);
+		(int)aBank8->mPalettes.size(), Bank_Count(aBank), aBank->mDataSize);
 
 	if (std::strcmp(aWhich, "anims") == 0)
 	{
@@ -287,8 +287,8 @@ int main(int argc, char** argv)
 		for (; i < Bank_Count(aShow); i++)
 		{
 			Image* anImage = Bank_ImageAt(aShow, (uint32_t)i);
-			int w = anImage->origW > 0 ? anImage->origW : anImage->w;
-			int h = anImage->origH > 0 ? anImage->origH : anImage->h;
+			int w = anImage->mOrigW > 0 ? anImage->mOrigW : anImage->mW;
+			int h = anImage->mOrigH > 0 ? anImage->mOrigH : anImage->mH;
 			if (x + w > W)
 			{
 				x = 0;
@@ -297,14 +297,14 @@ int main(int argc, char** argv)
 			}
 			if (y + h > H && aRowH > 0)
 				break;
-			if (anImage->isMask)
+			if (anImage->mIsMask)
 				Image_Blit(anImage, (uint8_t*)aScreen.data(), W * 2, &aScreenFmt, aClip, x, y);
-			else if (anImage->fmt.bpp == 8)
+			else if (anImage->mFmt.mBpp == 8)
 				Image_BlitMasked(anImage, (uint8_t*)aScreen.data(), W * 2, &aScreenFmt, aClip, x, y);
 			else
 				Image_BlitAlpha(anImage, (uint8_t*)aScreen.data(), W * 2, &aScreenFmt, aClip, x, y);
-			std::printf("%d %s %dx%d bpp %d mask %d at %d,%d\n", i, anImage->name, anImage->w, anImage->h,
-				anImage->bankFmt.bpp, anImage->hasMask, x, y);
+			std::printf("%d %s %dx%d bpp %d mask %d at %d,%d\n", i, anImage->mName, anImage->mW, anImage->mH,
+				anImage->mBankFmt.mBpp, anImage->mHasMask, x, y);
 			x += w + 2;
 			if (h > aRowH)
 				aRowH = h;

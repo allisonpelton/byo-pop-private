@@ -4,7 +4,8 @@ Cosmic Bugs runs on Retro64's own engine, which Water Bugs shares. It is plain C
 with virtual methods, no RTTI, only structs with type and state fields that the game's code switches on. The exe
 is MSVC 2005 with a DirectDraw screen, DirectInput, and BASS for sound and MO3 music. This map is written from our
 own Ghidra export (`re/cosmicbugs/`, made by `tools/ghidra_pass.sh`); `docs/symbols/*.jsonl` holds the names given
-so far, and the port's `engine/` translates the engine function by function, each with its address in a comment.
+so far, and the port's `engines/retro64/` (shared with Water Bugs, `docs/ENGINES.md`) translates the engine function by
+function, each with its address in a comment.
 
 ## Reading the export
 
@@ -163,7 +164,7 @@ loads it looping with BASS's volume ramping, Music_Play (0x429090) starts it fro
 (0x4290c0) goes on, and Music_SetVolume (0x429000) takes 0..256 and gives BASS a percentage. Each level set names
 its song, and a `song` tag of a game file loads one at once (the title's).
 
-The port puts all of this behind one interface, `r64::SysHost` in `engine/R64Sys.h` (the files, the screen, the
+The port puts all of this behind one interface, `r64::SysHost` in `engines/retro64/R64Sys.h` (the files, the screen, the
 clock, the pointer, the sounds, the music, links, the save folder and the player's name), which the port's host
 (`src/CosmicBugsApp.cpp`) implements over the platform and the headless runner (`test/gamerun.cpp`) over plain
 memory.

@@ -435,9 +435,9 @@ static Font* ScreenFont(const char* theName)
 {
 	Font* aFont = Font_Find(theName);
 	Font_SetEscapes(aFont, 1);
-	Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.fmt, gBackBuffer.w, gBackBuffer.h);
+	Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.mFmt, gBackBuffer.mW, gBackBuffer.mH);
 	Font_SetPalette(aFont, nullptr);
-	aFont->alpha = 0xff;
+	aFont->mAlpha = 0xff;
 	return aFont;
 }
 
@@ -455,7 +455,7 @@ void DrawPaused()
 {
 	char aText[32];
 	Font* aFont = ScreenFont("main_font");
-	aFont->align = 2;
+	aFont->mAlign = 2;
 	std::strcpy(aText, GT(0x458e74));
 	DrawCentred(aFont, 200, aText);
 	std::strcpy(aText, GT(0x458e58));
@@ -702,9 +702,9 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 	Level_SetPatterns(theLevel, aH, aV);
 	int aNoPanel = Xml_GetInt(theTag, "no_panel");
 	int aNoStars = Xml_GetInt(theTag, "no_stars");
-	while (p != nullptr && std::strcmp(theTag->name, "/level") != 0)
+	while (p != nullptr && std::strcmp(theTag->mName, "/level") != 0)
 	{
-		const char* aName = theTag->name;
+		const char* aName = theTag->mName;
 		if (std::strcmp(aName, "row") == 0 && aRow < theLevel->rows)
 		{
 			if (aRow == 0)
