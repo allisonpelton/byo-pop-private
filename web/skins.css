@@ -362,6 +362,9 @@ html.d95-desk #music.d95-win .mu > .d95-client { flex: 1 1 auto; min-height: 60p
 html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
   padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
 html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* the window's title, its heading (web/skins.js, named): drawn as the title bar's text it always was */
+html.d95-desk .d95-tb > h2.d95-tb-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; padding: 0;
+  font: inherit; color: inherit; background: none; border: 0; }
 html.d95-desk .d95-handle { cursor: default; touch-action: none; -webkit-user-select: none; user-select: none; }
 html.d95-dragging, html.d95-dragging * { -webkit-user-select: none !important; user-select: none !important; }
 /* the minimize button: the underscore, at the bottom of a small raised button */

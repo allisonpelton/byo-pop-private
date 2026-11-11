@@ -1349,5 +1349,33 @@ try {
 </script>
 <!-- Desktop 95 in one page: the pages of the site as windows on the desktop (web/deskapps.js) -->
 <script src="deskapps.js"></script>
+<!-- A test's check of this page, on a development host only (127.0.0.1, localhost and the like: web/terms.js, devHost):
+     ?driver=tools/web/<name>.js fetches that shared driver from tools/webtest/serve.py's /__repo/ (tools/web/deskcheck.js,
+     the desktop's accessibility as a screen reader meets it) and runs it once the page has loaded; its result is
+     window.byopopDeskCheck.result, and the title ends with its verdict. Nothing on any other host, or without the parameter -->
+<script>
+try {
+  (function () {
+    var path = new URLSearchParams(location.search).get("driver");
+    if (!path || !/^tools\/web\/[A-Za-z0-9._-]+\.js$/.test(path) || !(window.ByopopTerms && ByopopTerms.devHost(location))) return;
+    var run = window.byopopDeskCheck = { result: undefined };
+    window.addEventListener("load", function () {
+      fetch("/__repo/" + path, { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error("driver " + path + ": " + r.status);
+        return r.text();
+      }).then(function (code) {
+        var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+        return new AsyncFunction("t", "args", code + "\n//# sourceURL=" + location.origin + "/__repo/" + path)(null, undefined);
+      }).then(function (v) {
+        run.result = v;
+        document.title += " | " + path.replace(/^.*\/|\.js$/g, "") + ": " + (v && !v.fail ? "PASS" : "FAIL");
+      }, function (e) {
+        run.result = { error: String(e && e.message || e) };
+        document.title += " | " + path.replace(/^.*\/|\.js$/g, "") + ": ERROR";
+      });
+    });
+  })();
+} catch (e) {}
+</script>
 </body>
 </html>
