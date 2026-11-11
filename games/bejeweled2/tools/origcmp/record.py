@@ -117,9 +117,6 @@ def tour(d, a):
                         for k in 'bcd':
                             d.ok('wait 20')
                             d.shot('dialog40' + k)
-                        for k in range(14):  # and its four pages (675 updates each) one after the other
-                            d.ok('wait 200')
-                            d.shot('dialog40p%02d' % k)
                     continue
                 if top == 36:
                     d.key('Escape')
@@ -278,6 +275,10 @@ def tourmode(d, a):
                     seen.add(top)
                     d.ok('wait 60')
                     d.shot('dialog%d' % top)
+                    if top == 40 and os.environ.get('TOUR_HELP'):  # the How To Play screen's four pages (675 updates each) one after the other
+                        for k in range(14):
+                            d.ok('wait 200')
+                            d.shot('dialog40p%02d' % k)
                     continue
                 if top == 36:
                     d.key('Escape')
