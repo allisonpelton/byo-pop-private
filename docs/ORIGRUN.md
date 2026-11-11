@@ -583,6 +583,17 @@ pipes, RPC and every other transport. A game that never loads the stand-in, and 
 A blocked call fails at once, so a game that asks again until it gets an answer asks at full speed: a script should
 not wait for a network answer.
 
+**Seven Seas' "Submit to Internet High Score List" is not a network call of the game, so the block does not stop it.**
+The button (on the high-score screen at y 356 to 386, above the New Game button and presumably as wide: x 135 to 505) opens a dialog (the dialog's SUBMIT button is at
+x 387 to 557, y 355 to 386); the dialog's SUBMIT runs the upload (0x41f340), which fills the template `scoreul.tpl` into a file
+`score<N>.html` in the game's folder and ends by calling `SexyApp::vf19` (0x42e370, `OpenURL`), whose only action is
+`ShellExecuteA(open, <that file>)`: the user's default browser starts, and the form posts to the publisher's site from
+there. The game imports no connection function (its one `wsock32` import is `shutdown`). Under origrun the stand-in's
+network block therefore logs nothing for it: replays of the Seven Seas coverage run `vlose` (seed 7, the one-life saved game
+from its coverage tools) reached the button and the dialog (`NET: no network call`; 9 of the 12 submission functions) but not
+the upload. A script keeps its clicks off that row and off the dialog (the rule at the top), and stopping the launch needs a
+hook of `ShellExecute` and the process-creating functions, which the user has not allowed ("Gaps / next steps").
+
 ## The registry map (`--reg-map popcap`)
 
 A PopCap game of 2004 keeps its settings and players under `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap\<Game>` (Typer Shark: the
