@@ -110,6 +110,14 @@ Every call re-reads the whole context, so what costs is context times calls, and
   or one Bash command with the reads separated by `echo ---`.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
+- **Cleared between steps (2026-11-11; the user: "If you find ways to work more efficiently, take them").** Re-reading
+  its own conversation is about two thirds of what a session spends: about 230k tokens a call across sessions that
+  day, against about 70k for a fresh one. A session is cleared at each pause between steps. That pause is either a
+  merge request sent, or nothing of its own running in the background with its work safe in the tree. At that pause it
+  writes `build/handoff.md` in its worktree (git-ignored), under about 150 lines of facts: the step and what done looks
+  like, what is committed, what is half done with the exact next actions, the commands and flags it runs, what it waits
+  for, open questions, and what its notes do not say yet. It then tells the coordinator, who clears it and has it
+  continue from the note. Monitors notify when a run ends, not on progress lines.
 
 ## Sessions, ownership and git
 

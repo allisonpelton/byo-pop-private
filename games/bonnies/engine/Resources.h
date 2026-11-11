@@ -57,6 +57,16 @@ public:
 	// 0x421b30
 	static void free(Entry* theEntry);
 
+	// port (the memory report, docs/TEST_COMMANDS.md): what the cache holds now, read only
+	struct MemoryUse
+	{
+		int mImageCount = 0;
+		size_t mImageBytes = 0;  // the images' pixels and frames
+		int mFontCount = 0;      // (their images are among the images)
+		int mSoundCount = 0;     // (their bytes are the host's)
+	};
+	static MemoryUse memoryUse();
+
 	int mFreeNow;    // +0x00
 	int mNextSweep;  // +0x04
 	int mNoSharing;  // +0x08: each getImage loads its own (the menu sets it around its books)

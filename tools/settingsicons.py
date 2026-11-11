@@ -167,7 +167,19 @@ def chat(n):
     return im
 
 
-ICONS = [("players", players), ("saves", saves), ("sound", sound), ("look", look), ("overlays", overlays), ("input", inputs),
+def saver(n):
+    im, d = canvas(n)
+    # a monitor whose screen has gone dark, a few stars on it
+    box(d, n, 3, 3, 29, 23, SILVER)
+    box(d, n, 6, 6, 26, 20, K)
+    for (x, y, c) in ((8, 8, WHITE), (20, 8, YELLOW), (14, 12, WHITE), (22, 16, AQUA), (10, 16, YELLOW)):
+        box(d, n, x, y, x + 2, y + 2, c, c)
+    box(d, n, 13, 23, 19, 26, SILVER)
+    box(d, n, 8, 26, 24, 29, SILVER)
+    return im
+
+
+ICONS = [("players", players), ("saves", saves), ("sound", sound), ("look", look), ("saver", saver), ("overlays", overlays), ("input", inputs),
          ("start", start), ("game", game), ("page", page), ("chat", chat)]
 
 

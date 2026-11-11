@@ -63,6 +63,7 @@ public:
 class Dictionary
 {
 public:
+	// 0x41f8d0
 	Dictionary() : mRoot(nullptr) {}
 
 	// 0x4208d0
@@ -102,6 +103,7 @@ public:
 class WordTree
 {
 public:
+	// 0x420b40
 	WordTree() : mRoot(nullptr) {}
 	virtual ~WordTree();  // 0x420b50
 
@@ -119,6 +121,7 @@ public:
 class LineReader
 {
 public:
+	// 0x4209c0
 	LineReader(engine::InputStream* theStream) : mPos(0), mCount(0), mStream(theStream) {}
 
 	// 0x420a80: the next line that is not empty into theLine; its length, 0 at the end
