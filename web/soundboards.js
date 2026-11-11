@@ -1376,7 +1376,22 @@ var ByopopSoundboards = {
       ["sounds/mama2.ogg", "Mama 2 (unused)", "Never played"]
     ] },
   ] },
-  mahjongchina: { groups: [
+  mahjongchina: {
+    // presets from the sound logs of the Mahjong session's driven runs (5 ms an update; mahjong-soundlogs/INDEX.md)
+    presets: [
+      { name: "Pair", when: "A free tile is selected, then its partner", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 210]]},
+      { name: "Not Free", when: "A pair is taken, then a covered tile is clicked", steps: [["Resource.dll|pe:WAVE:176", 0], ["Resource.dll|pe:WAVE:174", 205]]},
+      { name: "Bonus", when: "A pair that matches the tray's tile", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:352", 205], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Gold Match", when: "A gold pair is matched", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:377", 205]]},
+      { name: "Level Clear", when: "The last tiles have flown off; the map comes back", steps: [["Resource.dll|pe:WAVE:373", 0], ["Resource.dll|pe:WAVE:340", 585], ["Resource.dll|pe:WAVE:381", 1575]]},
+      { name: "Key", when: "A key tile is selected, matched and joins its lock", steps: [["Resource.dll|pe:WAVE:378", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205], ["Resource.dll|pe:WAVE:379", 615]]},
+      { name: "Magnet", when: "A magnet tile is selected and matched", steps: [["Resource.dll|pe:WAVE:348", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Joker", when: "A joker tile is selected and matched", steps: [["Resource.dll|pe:WAVE:347", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Undo", when: "The Undo button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:351", 0]]},
+      { name: "Shuffle", when: "The Shuffle button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:349", 0]]},
+      { name: "Ending", when: "The last stage's text goes, then the ending's fanfare", steps: [["Resource.dll|pe:WAVE:382", 0], ["Resource.dll|pe:WAVE:373", 2300]]}
+    ],
+    groups: [
     { name: "Menus", sounds: [
       ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
     ] },
@@ -1411,7 +1426,22 @@ var ByopopSoundboards = {
       ["Resource.dll|pe:WAVE:106", "Unused MP3", "The game never plays it; its code never refers to the resource"]
     ] },
   ] },
-  mahjongjapan: { groups: [
+  mahjongjapan: {
+    // presets from the sound logs of the Mahjong session's driven runs (5 ms an update; mahjong-soundlogs/INDEX.md)
+    presets: [
+      { name: "Pair", when: "A free tile is selected, then its partner", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 210]]},
+      { name: "Not Free", when: "A pair is taken, then a covered tile is clicked", steps: [["Resource.dll|pe:WAVE:176", 0], ["Resource.dll|pe:WAVE:174", 205]]},
+      { name: "Bonus", when: "A pair that matches the tray's tile", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:352", 205], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Gold Match", when: "A gold pair is matched", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:377", 205]]},
+      { name: "Level Clear", when: "The last tiles have flown off; the map comes back", steps: [["Resource.dll|pe:WAVE:373", 0], ["Resource.dll|pe:WAVE:340", 485], ["Resource.dll|pe:WAVE:381", 1475]]},
+      { name: "Key", when: "A key tile is selected, matched and joins its lock", steps: [["Resource.dll|pe:WAVE:378", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205], ["Resource.dll|pe:WAVE:379", 610]]},
+      { name: "Magnet", when: "A magnet tile is selected and matched", steps: [["Resource.dll|pe:WAVE:348", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Joker", when: "A joker tile is selected and matched", steps: [["Resource.dll|pe:WAVE:347", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Undo", when: "The Undo button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:351", 0]]},
+      { name: "Shuffle", when: "The Shuffle button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:349", 0]]},
+      { name: "Ending", when: "The last stage's text goes, then the ending's fanfare", steps: [["Resource.dll|pe:WAVE:382", 0], ["Resource.dll|pe:WAVE:373", 2300]]}
+    ],
+    groups: [
     { name: "Menus", sounds: [
       ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
     ] },
