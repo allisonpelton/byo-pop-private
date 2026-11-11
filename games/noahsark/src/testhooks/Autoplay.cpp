@@ -88,26 +88,26 @@ void NoahApp::ResyncEvent(char theType)
 	if (mResyncState == NULL)
 	{
 		mResyncState = new ResyncState();
-		FILE* f = fopen(mResync.c_str(), "r");
-		char t;
-		int l;
-		unsigned int s;
-		int u;
-		while ((f != NULL) && (fscanf(f, " %c %d %u %d", &t, &l, &s, &u) == 4))
+		FILE* aFile = fopen(mResync.c_str(), "r");
+		char aKind;
+		int aLevel;
+		unsigned int aSeedState;
+		int aUpdate;
+		while ((aFile != NULL) && (fscanf(aFile, " %c %d %u %d", &aKind, &aLevel, &aSeedState, &aUpdate) == 4))
 		{
-			ResyncEntry e = { t, l, s, u };
-			mResyncState->mEntries.push_back(e);
+			ResyncEntry anEntry = { aKind, aLevel, aSeedState, aUpdate };
+			mResyncState->mEntries.push_back(anEntry);
 		}
-		if (f != NULL)
-			fclose(f);
+		if (aFile != NULL)
+			fclose(aFile);
 	}
-	ResyncState* r = mResyncState;
-	size_t& aNext = r->mNext[theType == 'r' ? 1 : 0];
-	for (size_t i = aNext; i < r->mEntries.size(); i++)
+	ResyncState* aResync = mResyncState;
+	size_t& aNext = aResync->mNext[theType == 'r' ? 1 : 0];
+	for (size_t i = aNext; i < aResync->mEntries.size(); i++)
 	{
-		if ((r->mEntries[i].mType == theType) && (r->mEntries[i].mLevel == mLevel))
+		if ((aResync->mEntries[i].mType == theType) && (aResync->mEntries[i].mLevel == mLevel))
 		{
-			CrtSRand(r->mEntries[i].mState);
+			CrtSRand(aResync->mEntries[i].mState);
 			aNext = i + 1;
 			return;
 		}
@@ -166,16 +166,16 @@ void NoahApp::HandleCmdLineParam(const std::string& theParamName, const std::str
 namespace
 {
 
-void Log(AutoplayState* s, const char* theFormat, ...)
+void Log(AutoplayState* theState, const char* theFormat, ...)
 {
-	if (s->mLog == NULL)
+	if (theState->mLog == NULL)
 		return;
 	va_list args;
 	va_start(args, theFormat);
-	vfprintf(s->mLog, theFormat, args);
+	vfprintf(theState->mLog, theFormat, args);
 	va_end(args);
-	fputc('\n', s->mLog);
-	fflush(s->mLog);
+	fputc('\n', theState->mLog);
+	fflush(theState->mLog);
 }
 
 const char* ModeName(int theMode)
@@ -201,27 +201,27 @@ void WidgetClick(NoahApp* theApp, Widget* theWidget)
 	theApp->mWidgetManager->MouseUp(aX, aY, 1);
 }
 
-void Click(Board* b, int x, int y)
+void Click(Board* theBoard, int x, int y)
 {
 	int aX = Board::CellLeft(x) + 25;
 	int aY = Board::CellTop(y) + 25;
 	// logged with the game's update count so that the same clicks can be replayed in the original (tools/origrun_script.py)
-	Log(b->mApp->mAutoplayState, "click at update %d: %d %d", b->mApp->mUpdateCount, aX, aY);
-	b->MouseMove(aX, aY);
-	b->MouseDown(aX, aY, 1);
-	b->MouseUp(aX, aY, 1);
+	Log(theBoard->mApp->mAutoplayState, "click at update %d: %d %d", theBoard->mApp->mUpdateCount, aX, aY);
+	theBoard->MouseMove(aX, aY);
+	theBoard->MouseDown(aX, aY, 1);
+	theBoard->MouseUp(aX, aY, 1);
 }
 
 }
 
 void NoahApp::AutoplayUpdate()
 {
-	AutoplayState* s = mAutoplayState;
-	s->mTick++;
-	if ((s->mLog == NULL) && !mAutoplayLog.empty())
+	AutoplayState* aState = mAutoplayState;
+	aState->mTick++;
+	if ((aState->mLog == NULL) && !mAutoplayLog.empty())
 	{
-		s->mLog = fopen(mAutoplayLog.c_str(), "w");
-		Log(s, "autoplay seed %u mode %s diff %d games %d", s->mSeed, ModeName(mAutoplayMode), mAutoplayDiff, mAutoplayGames);
+		aState->mLog = fopen(mAutoplayLog.c_str(), "w");
+		Log(aState, "autoplay seed %u mode %s diff %d games %d", aState->mSeed, ModeName(mAutoplayMode), mAutoplayDiff, mAutoplayGames);
 	}
 	// a pair that starts walking (a match was made): where the two animals are, for screenshots of the walk
 	if (mBoard != NULL)
@@ -238,15 +238,15 @@ void NoahApp::AutoplayUpdate()
 					}
 					aMoving++;
 				}
-		if ((aMoving > 0) && (s->mWalking == 0))
-			Log(s, "pair joined at update %d: first animal at column %d row %d", s->mTick, aFirstX, aFirstY);
-		s->mWalking = aMoving;
+		if ((aMoving > 0) && (aState->mWalking == 0))
+			Log(aState, "pair joined at update %d: first animal at column %d row %d", aState->mTick, aFirstX, aFirstY);
+		aState->mWalking = aMoving;
 	}
-	if (s->mTick > mAutoplayCap)
+	if (aState->mTick > mAutoplayCap)
 	{
-		Log(s, "cap reached at update %d: games %d", s->mTick, s->mGames);
-		if (s->mLog != NULL)
-			fclose(s->mLog);
+		Log(aState, "cap reached at update %d: games %d", aState->mTick, aState->mGames);
+		if (aState->mLog != NULL)
+			fclose(aState->mLog);
 		Shutdown();
 		return;
 	}
@@ -255,24 +255,24 @@ void NoahApp::AutoplayUpdate()
 
 	if (mTitleScreen != NULL)
 	{
-		if (mLoaded && (s->mTick > 60) && !mAutoplayMenu)
+		if (mLoaded && (aState->mTick > 60) && !mAutoplayMenu)
 			TitleScreenDone();
 		return;
 	}
-	if (s->mWait > 0)
+	if (aState->mWait > 0)
 	{
-		s->mWait--;
+		aState->mWait--;
 		return;
 	}
 
 	if (mHighScoreWidget != NULL)
 	{
-		if (!s->mGameOverLogged)
+		if (!aState->mGameOverLogged)
 		{
-			s->mGameOverLogged = true;
-			Log(s, "game %d over at update %d: score %d level %d moves %d", s->mGames, s->mTick, mGameScore, mLevel, s->mMoves);
+			aState->mGameOverLogged = true;
+			Log(aState, "game %d over at update %d: score %d level %d moves %d", aState->mGames, aState->mTick, mGameScore, mLevel, aState->mMoves);
 			if (!mAutoplayShots.empty())
-				SaveScreenshot(StrFormat("%s-over%d.png", mAutoplayShots.c_str(), s->mGames));
+				SaveScreenshot(StrFormat("%s-over%d.png", mAutoplayShots.c_str(), aState->mGames));
 		}
 		Dialog* aDialog = GetDialog(DIALOG_RECORD_SCORE);
 		if (aDialog != NULL)
@@ -281,31 +281,31 @@ void NoahApp::AutoplayUpdate()
 			{
 				if (((RecordScoreDialog*) aDialog)->mNameEdit->mString.empty())
 				{
-					Log(s, "text at update %d: BOT", mUpdateCount);
+					Log(aState, "text at update %d: BOT", mUpdateCount);
 					// typed like a player (the original is given the characters too), so nothing is selected
-					for (const char* c = "BOT"; *c != 0; c++)
-						((RecordScoreDialog*) aDialog)->mNameEdit->KeyChar((SexyChar) *c);
-					s->mWait = 5;
+					for (const char* aChar = "BOT"; *aChar != 0; aChar++)
+						((RecordScoreDialog*) aDialog)->mNameEdit->KeyChar((SexyChar) *aChar);
+					aState->mWait = 5;
 				}
 				else
 					WidgetClick(this, aDialog->mYesButton);
-				s->mWait = 5;
+				aState->mWait = 5;
 				return;
 			}
 			((RecordScoreDialog*) aDialog)->mNameEdit->SetText("BOT");
 			ButtonDepress(2000 + DIALOG_RECORD_SCORE);
-			s->mWait = 5;
+			aState->mWait = 5;
 			return;
 		}
 		if (mHighScoreWidget->mFade >= 255.0)
 		{
-			Log(s, "high scores: %d %d %d %d %d", mHighScoreWidget->mScores[0], mHighScoreWidget->mScores[1],
+			Log(aState, "high scores: %d %d %d %d %d", mHighScoreWidget->mScores[0], mHighScoreWidget->mScores[1],
 				mHighScoreWidget->mScores[2], mHighScoreWidget->mScores[3], mHighScoreWidget->mScores[4]);
 			if (mAutoplayMenu)
 				WidgetClick(this, mHighScoreWidget->mMenuLink);
 			else
 				mHighScoreWidget->ButtonDepress(1);
-			s->mWait = 10;
+			aState->mWait = 10;
 		}
 		return;
 	}
@@ -313,42 +313,42 @@ void NoahApp::AutoplayUpdate()
 	{
 		if (mAutoplayMenu)
 			return;
-		if (s->mGames >= mAutoplayGames)
+		if (aState->mGames >= mAutoplayGames)
 		{
-			Log(s, "done after %d games at update %d", s->mGames, s->mTick);
-			if (s->mLog != NULL)
-				fclose(s->mLog);
+			Log(aState, "done after %d games at update %d", aState->mGames, aState->mTick);
+			if (aState->mLog != NULL)
+				fclose(aState->mLog);
 			Shutdown();
 			return;
 		}
-		s->mGames++;
-		s->mGameOverLogged = false;
-		s->mMoves = 0;
-		s->mLastLevel = 0;
+		aState->mGames++;
+		aState->mGameOverLogged = false;
+		aState->mMoves = 0;
+		aState->mLastLevel = 0;
 		mGameMode = mAutoplayMode;
 		mDifficulty = mAutoplayDiff;
 		DeleteSavedGame();
-		Log(s, "game %d starts at update %d", s->mGames, s->mTick);
+		Log(aState, "game %d starts at update %d", aState->mGames, aState->mTick);
 		StartGame(false);
 		return;
 	}
 	if (mNextLevelWidget != NULL)
 	{
-		if (!s->mLevelLogged)
+		if (!aState->mLevelLogged)
 		{
-			s->mLevelLogged = true;
-			Log(s, "level %d done at update %d: score %d mode %s", mLevel, s->mTick, mGameScore, ModeName(mGameMode));
+			aState->mLevelLogged = true;
+			Log(aState, "level %d done at update %d: score %d mode %s", mLevel, aState->mTick, mGameScore, ModeName(mGameMode));
 			if (!mAutoplayShots.empty())
-				SaveScreenshot(StrFormat("%s-level%d-%d.png", mAutoplayShots.c_str(), s->mGames, mLevel));
-			s->mWait = 30;
+				SaveScreenshot(StrFormat("%s-level%d-%d.png", mAutoplayShots.c_str(), aState->mGames, mLevel));
+			aState->mWait = 30;
 			return;
 		}
 		if (mAutoplayMenu)
 			WidgetClick(this, mNextLevelWidget->mNextLink);
 		else
 			mNextLevelWidget->ButtonDepress(0);
-		s->mLevelLogged = false;
-		s->mWait = 10;
+		aState->mLevelLogged = false;
+		aState->mWait = 10;
 		return;
 	}
 	if (mBoard == NULL)
@@ -358,35 +358,35 @@ void NoahApp::AutoplayUpdate()
 		if (mAutoplayMenu)
 			return;                 // a -script clicks it, as in the original
 		ButtonDepress(2000 + DIALOG_MODE_INTRO);
-		s->mWait = 5;
+		aState->mWait = 5;
 		return;
 	}
 	if ((GetDialog(DIALOG_TUTORIAL) != NULL) || (GetDialog(DIALOG_QUIT) != NULL))
 		return;                     // a script answers these dialogs; the bot plays on the board only
-	Board* b = mBoard;
-	if (b->mPaused)
-		b->mPaused = false;
-	if (b->mState != BOARD_PLAYING)
+	Board* aBoard = mBoard;
+	if (aBoard->mPaused)
+		aBoard->mPaused = false;
+	if (aBoard->mState != BOARD_PLAYING)
 		return;
-	if (b->mUpdateCnt % 4 != 0)
+	if (aBoard->mUpdateCnt % 4 != 0)
 		return;
-	if (!BotBoardSettled(b))
+	if (!BotBoardSettled(aBoard))
 		return;
-	if ((mAutoplayStop > 0) && (s->mTick > mAutoplayStop))
+	if ((mAutoplayStop > 0) && (aState->mTick > mAutoplayStop))
 		return;                     // the bot has stopped moving (a game it leaves alone is lost); the run goes on
 
 	// the bot's move (Bot.cpp, which the test command "move" gives a driver too); its clicks are logged, so that the
 	// original can replay them
 	BotMove aMove;
-	if (!BotChooseMove(b, mGameMode, s->mSeed, aMove))
+	if (!BotChooseMove(aBoard, mGameMode, aState->mSeed, aMove))
 		return;
 	for (int i = 0; i < aMove.mCount; i++)
-		Click(b, aMove.mCellX[i], aMove.mCellY[i]);
-	s->mMoves++;
-	if ((mGameMode != GAMEMODE_STAMPEDE) && (mGameMode != GAMEMODE_PUZZLE) && (mLevel != s->mLastLevel))
+		Click(aBoard, aMove.mCellX[i], aMove.mCellY[i]);
+	aState->mMoves++;
+	if ((mGameMode != GAMEMODE_STAMPEDE) && (mGameMode != GAMEMODE_PUZZLE) && (mLevel != aState->mLastLevel))
 	{
-		s->mLastLevel = mLevel;
-		Log(s, "level %d at update %d", mLevel, s->mTick);
+		aState->mLastLevel = mLevel;
+		Log(aState, "level %d at update %d", mLevel, aState->mTick);
 	}
 }
 
@@ -417,79 +417,79 @@ void NoahApp::StateLogUpdate()
 	{
 		mStateLogState = new StateLogState();
 		mStateLogState->mFile = fopen(mStateLog.c_str(), "w");
-		const char* c = mStateLogCells.c_str();
+		const char* aSpec = mStateLogCells.c_str();
 		int x, y, n;
-		while ((*c == 'w') || (*c == 'r') || (*c == 'c'))
+		while ((*aSpec == 'w') || (*aSpec == 'r') || (*aSpec == 'c'))
 		{
-			if (*c == 'w')
+			if (*aSpec == 'w')
 				mStateLogState->mLogWater = true;
-			else if (*c == 'r')
+			else if (*aSpec == 'r')
 				mStateLogState->mLogRng = true;
 			else
 				mStateLogState->mLogRngCount = true;
-			c++;
-			if (*c == ';')
-				c++;
+			aSpec++;
+			if (*aSpec == ';')
+				aSpec++;
 		}
-		while ((mStateLogState->mCells < 4) && (sscanf(c, "%d,%d%n", &x, &y, &n) == 2))
+		while ((mStateLogState->mCells < 4) && (sscanf(aSpec, "%d,%d%n", &x, &y, &n) == 2))
 		{
 			mStateLogState->mCellX[mStateLogState->mCells] = x;
 			mStateLogState->mCellY[mStateLogState->mCells] = y;
 			mStateLogState->mCellType[mStateLogState->mCells++] = -2;
-			c += n;
-			if (*c == ';')
-				c++;
+			aSpec += n;
+			if (*aSpec == ';')
+				aSpec++;
 		}
 	}
-	StateLogState* s = mStateLogState;
-	if (s->mFile == NULL)
+	StateLogState* aLog = mStateLogState;
+	if (aLog->mFile == NULL)
 		return;
-	if (s->mLogWater && (mBoard != NULL) && (mBoard->mWaterY != s->mWater))
+	if (aLog->mLogWater && (mBoard != NULL) && (mBoard->mWaterY != aLog->mWater))
 	{
-		fprintf(s->mFile, "water %d -> %d at update %d\n", s->mWater, mBoard->mWaterY, mUpdateCount);
-		s->mWater = mBoard->mWaterY;
+		fprintf(aLog->mFile, "water %d -> %d at update %d\n", aLog->mWater, mBoard->mWaterY, mUpdateCount);
+		aLog->mWater = mBoard->mWaterY;
 	}
-	if (s->mLogRngCount && (CrtRandCount() != s->mRngCount))
+	if (aLog->mLogRngCount && (CrtRandCount() != aLog->mRngCount))
 	{
-		fprintf(s->mFile, "rngc %u at update %d\n", CrtRandCount(), mUpdateCount);
-		s->mRngCount = CrtRandCount();
+		fprintf(aLog->mFile, "rngc %u at update %d\n", CrtRandCount(), mUpdateCount);
+		aLog->mRngCount = CrtRandCount();
 	}
-	if (s->mLogRng && (CrtRandSnapshot() != s->mRng))
+	if (aLog->mLogRng && (CrtRandSnapshot() != aLog->mRng))
 	{
-		fprintf(s->mFile, "rng %u -> %u at update %d\n", s->mRng, CrtRandSnapshot(), mUpdateCount);
-		s->mRng = CrtRandSnapshot();
+		fprintf(aLog->mFile, "rng %u -> %u at update %d\n", aLog->mRng, CrtRandSnapshot(), mUpdateCount);
+		aLog->mRng = CrtRandSnapshot();
 	}
-	for (int i = 0; (i < s->mCells) && (mBoard != NULL); i++)
+	for (int i = 0; (i < aLog->mCells) && (mBoard != NULL); i++)
 	{
-		int t = mBoard->mGrid[s->mCellX[i]][s->mCellY[i]]->mType;
-		if (t != s->mCellType[i])
+		int aType = mBoard->mGrid[aLog->mCellX[i]][aLog->mCellY[i]]->mType;
+		if (aType != aLog->mCellType[i])
 		{
-			fprintf(s->mFile, "cell %d,%d: %d -> %d at update %d\n", s->mCellX[i], s->mCellY[i], s->mCellType[i], t, mUpdateCount);
-			s->mCellType[i] = t;
+			fprintf(aLog->mFile, "cell %d,%d: %d -> %d at update %d\n", aLog->mCellX[i], aLog->mCellY[i], aLog->mCellType[i], aType, mUpdateCount);
+			aLog->mCellType[i] = aType;
 		}
 	}
 	int aState = (mBoard != NULL) ? (int) mBoard->mState : -1;
-	if ((aState == s->mState) && (mGameScore == s->mScore) && (mLevel == s->mLevel) && (mGameMode == s->mMode))
+	if ((aState == aLog->mState) && (mGameScore == aLog->mScore) && (mLevel == aLog->mLevel) && (mGameMode == aLog->mMode))
 		return;
-	fprintf(s->mFile, "update %d: state %d score %d level %d mode %d\n", mUpdateCount, aState, mGameScore, mLevel, mGameMode);
-	if ((aState != s->mState) && (mBoard != NULL))
+	fprintf(aLog->mFile, "update %d: state %d score %d level %d mode %d\n", mUpdateCount, aState, mGameScore, mLevel, mGameMode);
+	if ((aState != aLog->mState) && (mBoard != NULL))
 	{
 		for (int y = 0; y < 9; y++)
 		{
 			char aRow[10];
 			for (int x = 0; x < 9; x++)
 			{
-				Piece* p = mBoard->mGrid[x][y];
-				int t = (p == NULL) ? PIECE_EMPTY : p->mType;
-				aRow[x] = (t == PIECE_EMPTY) ? '.' : (t == PIECE_BLOCK) ? 'X' : (t == PIECE_CRATE) ? 'Y' : (char) ((t < 10) ? ('0' + t) : ('A' + t - 10));
+				Piece* aPiece = mBoard->mGrid[x][y];
+				int aType = (aPiece == NULL) ? PIECE_EMPTY : aPiece->mType;
+				aRow[x] = (aType == PIECE_EMPTY) ? '.' : (aType == PIECE_BLOCK) ? 'X' : (aType == PIECE_CRATE) ? 'Y' : (char) ((aType < 10) ? ('0' + aType) : ('A' + aType - 10));
 			}
 			aRow[9] = 0;
-			fprintf(s->mFile, "grid %d %s\n", y, aRow);
+			fprintf(aLog->mFile, "grid %d %s\n", y, aRow);
 		}
 	}
-	fflush(s->mFile);
-	s->mState = aState;
-	s->mScore = mGameScore;
-	s->mLevel = mLevel;
-	s->mMode = mGameMode;
+	fflush(aLog->mFile);
+	aLog->mState = aState;
+	aLog->mScore = mGameScore;
+	aLog->mLevel = mLevel;
+	aLog->mMode = mGameMode;
 }

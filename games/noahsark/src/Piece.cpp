@@ -15,7 +15,7 @@ Piece::Piece() :
 	mFacingRight(true),
 	mPartner(NULL),
 	mScale(50.0),
-	mMatchSwap(false), mMatch(false),
+	mInSwap(false), mMatch(false),
 	mBlink(0)
 {
 }
@@ -38,7 +38,7 @@ Piece::Piece(const Piece& theOther) :
 	mFacingRight(theOther.mFacingRight),
 	mPartner(theOther.mPartner),
 	mScale(theOther.mScale),
-	mMatchSwap(false), mMatch(false),
+	mInSwap(false), mMatch(false),
 	mBlink(0)
 {
 	// port: the original's copy (0x4060d0) leaves the path empty and the match fields at their defaults; the

@@ -92,20 +92,20 @@ public:
 	Piece*					mSelected;          // +0x308 the animal the player has picked
 	bool					mPaused;            // +0x30c
 	int						mState;             // +0x310 BoardState
-	int						mState314;          // +0x314
+	int						mLastThunderUpdate; // +0x314 mUpdateCnt at the last thunder; saved, and nothing reads it
 	int						mStartTick;         // +0x31c GetTickCount() when the level began (the animals start to fall 400 ms later)
 	int						mStartUpdate;       // port(mod fixes, steadyClock): the app's update count when the level began
 	int						mLastInputTick;     // +0x318 mUpdateCnt of the last mouse press or drag
-	int						mState320;          // +0x320
-	int						mState324;          // +0x324
+	int						mUnsetAfterStartTick; // +0x320 the original never sets it (0 in the port); saved, and nothing reads it
+	int						mUnsetBeforeLastMoveTick; // +0x324 as +0x320
 	int						mLastMoveTick;      // +0x328 mUpdateCnt of the last pair joined or hint: idle hints after 500 ticks
 	bool					mShowGetReady;      // +0x32c
-	int						mState330;          // +0x330
+	int						mUnsetAfterShowGetReady; // +0x330 as +0x320
 	bool					mLightning;         // +0x336 the lightning flash is on
 	bool					mThunderCue;        // +0x337
 	int						mStormTimer;        // +0x338 >0: the sky darkens (set to 3 by a combo)
 	bool					mDragging;          // +0x33c a link was started by dragging
-	int						mSpawnRate;         // +0x340 grows by one every 3000 ticks: new animals' kinds
+	int						mNewRowKinds;       // +0x340 how many kinds of animal a row pushed in is drawn from: one more every 3000 ticks
 	int						mRowCount;          // +0x344 rows pushed in so far
 	int						mArkX;              // +0x348 17
 	int						mArkY;              // +0x34c 98
@@ -115,11 +115,11 @@ public:
 	bool					mNoahWorried;       // +0x35c
 	int						mNoahFrame;         // +0x360
 	int						mNoahSprite;        // +0x364 first of Noah's images in use (IMAGE_NOAH_HAPPY_STILL1)
-	int						mFade;              // +0x368
+	int						mLostFade;          // +0x368 counts up to 0xff once the game is lost; saved, and nothing reads it
 	int						mWaterY;            // +0x36c the water's surface (starts at 0x1a2)
 	int						mWaterTargetY;      // +0x370
-	int						mWavePhaseB;        // +0x374
-	int						mWavePhaseA;        // +0x378
+	int						mFrontWavePhase;    // +0x374 the scroll of the waves in front of the board
+	int						mBackWavePhase;     // +0x378 the scroll of the wave behind it
 	int						mArkLevelY;         // +0x37c 200: when the surface reaches it the game is lost
 	int						mBackdropTick;      // +0x380
 	int						mBonusPoints;       // +0x384
@@ -130,13 +130,13 @@ public:
 	int						mHintIndex;         // +0x398 which of the four how-to-play lines is shown
 	int						mHintTimer;         // +0x39c
 	int						mHintAlpha;         // +0x3a0
-	int						mComboShownAt;      // +0x3a4
-	int						mComboShown;        // +0x3a8 the number in "Combo X%d"
-	bool					mSetUp3ac;          // +0x3ac
-	int						mPulseA;            // +0x3b0 0..0xab, bounces
-	int						mPulseADir;         // +0x3b4
-	int						mPulseB;            // +0x3b8 100..250 (the flash of an animal that can be joined)
-	int						mPulseBDir;         // +0x3bc
+	int						mShownCombo;        // +0x3a4 the number in "Combo X%d"
+	int						mComboTextTimer;    // +0x3a8 >0: the combo line is on show (0xc when a combo scores, counted down)
+	bool					mLeftBehindFading;  // +0x3ac the animals still on the board when the ark leaves have been set to fade
+	int						mDangerPulse;       // +0x3b0 0..0xab, bounces: the red of the water when it is near the ark
+	int						mDangerPulseDir;    // +0x3b4 1 or -1
+	int						mFlashPulse;        // +0x3b8 100..250, bounces: the grey of an animal that flashes (a hint)
+	int						mFlashPulseDir;     // +0x3bc 1 or -1
 	bool					mGravity;           // +0x3c0 strategy and puzzle: pieces fall
 	bool					mNoMoves;           // +0x3c1
 	int						mAbandonAlpha;      // +0x3c4
@@ -198,13 +198,13 @@ public:
 	void					EnsureMoves();                  // 0x401f10
 	void					RebuildClones();                // 0x401fc0
 	void					FreeClones();                   // 0x402000
-	bool					TryRemoveClonePair(Piece* p);   // 0x4020e0
+	bool					TryRemoveClonePair(Piece* thePiece);   // 0x4020e0
 	bool					AllClonesGone();                // 0x402590
 	void					SwapRandom();                   // 0x4025c0
-	bool					Reachable(Piece* a, Piece* b);  // 0x4026d0
-	bool					CloneReachable(Piece* a, Piece* b); // 0x402a70
-	bool					FindPath(int x1, int y1, int x2, int y2, int theMaxSegments, bool theWantPath); // 0x403370
-	bool					SearchPath(int x, int y, int x2, int y2, int theDepth, int theMaxDepth, int theCost, int (*thePath)[2]); // 0x4036f0
+	bool					Reachable(Piece* theFrom, Piece* theTo);  // 0x4026d0
+	bool					CloneReachable(Piece* theFrom, Piece* theTo); // 0x402a70
+	bool					FindPath(int theFromX, int theFromY, int theToX, int theToY, int theMaxSegments, bool theWantPath); // 0x403370
+	bool					SearchPath(int x, int y, int theToX, int theToY, int theDepth, int theMaxDepth, int theCost, int (*thePath)[2]); // 0x4036f0
 	void					ClearLink();                    // 0x403910
 	bool					RowEmpty(int theRow);           // 0x403a50
 	bool					ColumnEmpty(int theColumn);     // 0x403a00
@@ -217,7 +217,7 @@ public:
 	bool					AnyWaiting();                   // 0x406710
 	void					ReleaseWaiting();               // 0x406750
 	bool					AnyFalling();                   // 0x4067a0
-	bool					HasPartner(Piece* p, int theX, int theY); // 0x406cd0
+	bool					HasPartner(Piece* thePiece, int theX, int theY); // 0x406cd0
 	bool					HasMove();                      // 0x406aa0
 	void					ShowHint();                     // 0x406d70
 	void					ShowHintLine(int theIndex);     // 0x407460
@@ -241,12 +241,12 @@ public:
 	static const SexyString&	HintLine(int theIndex, int theLine);
 
 	// BoardInput.cpp
-	bool					BuildTrail(int x1, int y1, int x2, int y2); // 0x402ec0
+	bool					BuildTrail(int theFromX, int theFromY, int theToX, int theToY); // 0x402ec0
 	void					LinkPieces(Piece* theFirst, Piece* theSecond);
-	bool					PuzzleSwap(int aCellX, int aCellY);
+	bool					PuzzleSwap(int theCellX, int theCellY);
 
 	// BoardUpdate.cpp
-	void					ExchangeContents(Piece* a, Piece* b, int theOffsetXForA, int theOffsetXForB, bool theSwapOffsetY);
+	void					ExchangeContents(Piece* theFirst, Piece* theSecond, int theOffsetXForA, int theOffsetXForB, bool theSwapOffsetY);
 
 	// BoardDraw.cpp
 	void					DrawFish(Graphics* g);          // 0x408ce0

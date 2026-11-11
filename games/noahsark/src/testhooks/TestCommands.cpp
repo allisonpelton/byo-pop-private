@@ -223,9 +223,9 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 				aRows += (y == 0) ? "\"" : ",\"";
 				for (int x = 0; x < 9; x++)
 				{
-					Piece* p = aBoard->mGrid[x][y];
-					int t = (p == NULL) ? PIECE_EMPTY : p->mType;
-					aRows += (t == PIECE_EMPTY) ? '.' : (t == PIECE_BLOCK) ? 'X' : (t == PIECE_CRATE) ? 'Y' : (char) ((t < 10) ? ('0' + t) : ('A' + t - 10));
+					Piece* aPiece = aBoard->mGrid[x][y];
+					int aType = (aPiece == NULL) ? PIECE_EMPTY : aPiece->mType;
+					aRows += (aType == PIECE_EMPTY) ? '.' : (aType == PIECE_BLOCK) ? 'X' : (aType == PIECE_CRATE) ? 'Y' : (char) ((aType < 10) ? ('0' + aType) : ('A' + aType - 10));
 				}
 				aRows += "\"";
 			}
@@ -443,16 +443,16 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 			Reply(MoveClicks("menu", ClickOn(mHighScoreWidget->mMenuLink), 10));
 		else if (aScreen == "game")
 		{
-			Board* b = mBoard;
+			Board* aBoard = mBoard;
 			BotMove aMove;
-			if ((b->mState != BOARD_PLAYING) || b->mPaused ||
-				((mGameMode != GAMEMODE_STAMPEDE) && !BotBoardSettled(b)))
+			if ((aBoard->mState != BOARD_PLAYING) || aBoard->mPaused ||
+				((mGameMode != GAMEMODE_STAMPEDE) && !BotBoardSettled(aBoard)))
 				Reply(MoveWait(10));
-			else if (BotChooseMove(b, mGameMode, mTestBotSeed, aMove))
+			else if (BotChooseMove(aBoard, mGameMode, mTestBotSeed, aMove))
 			{
 				std::string aClicks;
 				for (int i = 0; i < aMove.mCount; i++)
-					aClicks += (i > 0 ? "," : "") + Click(Board::CellLeft(aMove.mCellX[i]) + 25 + b->mX, Board::CellTop(aMove.mCellY[i]) + 25 + b->mY);
+					aClicks += (i > 0 ? "," : "") + Click(Board::CellLeft(aMove.mCellX[i]) + 25 + aBoard->mX, Board::CellTop(aMove.mCellY[i]) + 25 + aBoard->mY);
 				Reply(MoveClicks((mGameMode == GAMEMODE_STAMPEDE) ? "group" : (mGameMode == GAMEMODE_PUZZLE) ? "swap" : "pair", aClicks, 4));
 			}
 			else

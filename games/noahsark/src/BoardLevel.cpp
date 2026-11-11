@@ -73,11 +73,11 @@ Board::Board(NoahApp* theApp, bool theContinue)
 	mFloodSpeed = 0;
 	mNoahFrame = 0;
 	mNoahSprite = IMAGE_NOAH_HAPPY_STILL1;
-	mFade = 0;
+	mLostFade = 0;
 	mWaterY = 0x1a2;
 	mWaterTargetY = 0x1a2;
-	mWavePhaseB = 0;
-	mWavePhaseA = 0xf;
+	mFrontWavePhase = 0;
+	mBackWavePhase = 0xf;
 	mArkLevelY = 200;
 	mBackdropTick = 0;
 	mBonusPoints = 0;
@@ -88,12 +88,12 @@ Board::Board(NoahApp* theApp, bool theContinue)
 	mHintIndex = 0;
 	mHintTimer = 0;
 	mHintAlpha = 0;
-	mComboShownAt = 2;
-	mComboShown = 0;
-	mPulseA = 0;
-	mPulseADir = 1;
-	mPulseB = 5;
-	mPulseBDir = 1;
+	mShownCombo = 2;
+	mComboTextTimer = 0;
+	mDangerPulse = 0;
+	mDangerPulseDir = 1;
+	mFlashPulse = 5;
+	mFlashPulseDir = 1;
 	mGravity = false;
 	mNoMoves = false;
 	mAbandonAlpha = 0;
@@ -102,15 +102,15 @@ Board::Board(NoahApp* theApp, bool theContinue)
 	mArkLeaving = false;
 	mSelected = NULL;
 	mState = BOARD_GET_READY;
-	mState314 = mLastInputTick = mStartTick = mState320 = mState324 = mLastMoveTick = mState330 = 0;
+	mLastThunderUpdate = mLastInputTick = mStartTick = mUnsetAfterStartTick = mUnsetBeforeLastMoveTick = mLastMoveTick = mUnsetAfterShowGetReady = 0;
 	mStartUpdate = mApp->mUpdateCount;
 	mLightning = false;
 	mRowCount = 0;
-	mSpawnRate = 0;
+	mNewRowKinds = 0;
 	mAnimTick = 0;
 	mNoahWorried = false;
-	mSetUp3ac = false;
-	mPulseB = 5;
+	mLeftBehindFading = false;
+	mFlashPulse = 5;
 	mPathSegments = -1;
 	mBestCost = 100000;
 	mSteps = 0;
@@ -287,11 +287,11 @@ void Board::NewLevel()
 		mWaterTargetY = mWaterY;
 	}
 	mCombo = 1;
-	mComboShownAt = 2;
-	mComboShown = 0;
+	mShownCombo = 2;
+	mComboTextTimer = 0;
 	mComboPairs = 0;
 	mBestCombo = 1;
-	mSpawnRate = 3;
+	mNewRowKinds = 3;
 	mRowCount = 1;
 	mLastType = PIECE_EMPTY;
 	mAbandonAlpha = 0;
@@ -316,7 +316,7 @@ void Board::NewLevel()
 		mWaterY = 0;
 	mState = BOARD_GET_READY;
 	mNoahWorried = false;
-	mSetUp3ac = false;
+	mLeftBehindFading = false;
 	mNoMoves = false;
 	mStartTick = GameTickCount();
 	mStartUpdate = mApp->mUpdateCount;
@@ -471,50 +471,50 @@ void Board::FreeClones()
 		}
 }
 
-// 0x4020e0: join the first reachable clone of the same kind with p (both become empty); with gravity the
+// 0x4020e0: join the piece with the first reachable clone of its kind (both become empty); with gravity the
 // cells above fall one place
-bool Board::TryRemoveClonePair(Piece* p)
+bool Board::TryRemoveClonePair(Piece* thePiece)
 {
 	bool aDone = false;
-	for (int qx = 0; qx < 9 && !aDone; qx++)
+	for (int aOtherX = 0; aOtherX < 9 && !aDone; aOtherX++)
 	{
-		for (int qy = 0; qy < 9 && !aDone; qy++)
+		for (int aOtherY = 0; aOtherY < 9 && !aDone; aOtherY++)
 		{
-			Piece* q = mClone[qx][qy];
-			if ((q != p) && (q->mType == p->mType) && CloneReachable(q, p))
+			Piece* aOther = mClone[aOtherX][aOtherY];
+			if ((aOther != thePiece) && (aOther->mType == thePiece->mType) && CloneReachable(aOther, thePiece))
 			{
-				q->mType = PIECE_EMPTY;
-				p->mType = PIECE_EMPTY;
+				aOther->mType = PIECE_EMPTY;
+				thePiece->mType = PIECE_EMPTY;
 				if (mGravity)
 				{
-					for (int yy = qy - 1; yy >= 0; yy--)
+					for (int aAboveY = aOtherY - 1; aAboveY >= 0; aAboveY--)
 					{
-						int aType = mClone[qx][yy]->mType;
+						int aType = mClone[aOtherX][aAboveY]->mType;
 						if ((aType < 0xd) || (aType == PIECE_BLOCK))
 						{
-							Piece* aBelow = mClone[qx][yy + 1];
+							Piece* aBelow = mClone[aOtherX][aAboveY + 1];
 							if (aBelow->mType == PIECE_EMPTY)
 							{
 								aBelow->mType = aType;
-								aBelow->mDestX = mClone[qx][yy]->mDestX;
-								aBelow->mDestY = mClone[qx][yy]->mDestY;
-								mClone[qx][yy]->mType = PIECE_EMPTY;
+								aBelow->mDestX = mClone[aOtherX][aAboveY]->mDestX;
+								aBelow->mDestY = mClone[aOtherX][aAboveY]->mDestY;
+								mClone[aOtherX][aAboveY]->mType = PIECE_EMPTY;
 							}
 						}
 					}
-					int px = p->mX, py = p->mY;
-					for (int yy = py - 1; yy >= 0; yy--)
+					int aPieceX = thePiece->mX, aPieceY = thePiece->mY;
+					for (int aAboveY = aPieceY - 1; aAboveY >= 0; aAboveY--)
 					{
-						int aType = mClone[px][yy]->mType;
+						int aType = mClone[aPieceX][aAboveY]->mType;
 						if ((aType < 0xd) || (aType == PIECE_BLOCK))
 						{
-							Piece* aBelow = mClone[px][yy + 1];
+							Piece* aBelow = mClone[aPieceX][aAboveY + 1];
 							if (aBelow->mType == PIECE_EMPTY)
 							{
 								aBelow->mType = aType;
-								aBelow->mDestX = mClone[px][yy]->mDestX;
-								aBelow->mDestY = mClone[px][yy]->mDestY;
-								mClone[px][yy]->mType = PIECE_EMPTY;
+								aBelow->mDestX = mClone[aPieceX][aAboveY]->mDestX;
+								aBelow->mDestY = mClone[aPieceX][aAboveY]->mDestY;
+								mClone[aPieceX][aAboveY]->mType = PIECE_EMPTY;
 							}
 						}
 					}
@@ -539,84 +539,84 @@ bool Board::AllClonesGone()
 // 0x4025c0: swap the kinds of two random clones of different kinds (and write them back to the real grid)
 void Board::SwapRandom()
 {
-	Piece* a = mClone[Rand9()][Rand9()];
-	while ((a->mType > 0xc) && (a->mType != PIECE_BLOCK))
-		a = mClone[Rand9()][Rand9()];
+	Piece* aFirst = mClone[Rand9()][Rand9()];
+	while ((aFirst->mType > 0xc) && (aFirst->mType != PIECE_BLOCK))
+		aFirst = mClone[Rand9()][Rand9()];
 	for (;;)
 	{
-		Piece* b = mClone[Rand9()][Rand9()];
-		if ((b->mType > 0xc) && (b->mType != PIECE_BLOCK))
+		Piece* aSecond = mClone[Rand9()][Rand9()];
+		if ((aSecond->mType > 0xc) && (aSecond->mType != PIECE_BLOCK))
 			continue;
-		if (b->mType != a->mType)
+		if (aSecond->mType != aFirst->mType)
 		{
-			std::swap(a->mType, b->mType);
-			mGrid[b->mDestX][b->mDestY]->mType = b->mType;
-			mGrid[a->mDestX][a->mDestY]->mType = a->mType;
+			std::swap(aFirst->mType, aSecond->mType);
+			mGrid[aSecond->mDestX][aSecond->mDestY]->mType = aSecond->mType;
+			mGrid[aFirst->mDestX][aFirst->mDestY]->mType = aFirst->mType;
 			return;
 		}
 	}
 }
 
-// 0x4026d0 / 0x402a70: can a reach b? A breadth-first search over the four neighbours through empty cells (and
+// 0x4026d0 / 0x402a70: can one piece reach the other? A breadth-first search over the four neighbours through empty cells (and
 // cells whose animal is leaving). The real grid also lets a piece walk through one that is moving; the clones do not.
-bool Board::Reachable(Piece* a, Piece* b)
+bool Board::Reachable(Piece* theFrom, Piece* theTo)
 {
 	bool aSeen[9][9];
 	memset(aSeen, 0, sizeof(aSeen));
 	std::queue<std::pair<int, int> > aOpen;
-	aOpen.push(std::make_pair(a->mX, a->mY));
-	aSeen[a->mX][a->mY] = true;
+	aOpen.push(std::make_pair(theFrom->mX, theFrom->mY));
+	aSeen[theFrom->mX][theFrom->mY] = true;
 	static const int aDX[4] = {1, 0, -1, 0};
 	static const int aDY[4] = {0, 1, 0, -1};
 	while (!aOpen.empty())
 	{
 		std::pair<int, int> aCell = aOpen.front();
 		aOpen.pop();
-		for (int d = 0; d < 4; d++)
+		for (int aDir = 0; aDir < 4; aDir++)
 		{
-			int nx = aCell.first + aDX[d];
-			int ny = aCell.second + aDY[d];
-			if ((nx < 0) || (nx > 8) || (ny < 0) || (ny > 8) || aSeen[nx][ny])
+			int aNextX = aCell.first + aDX[aDir];
+			int aNextY = aCell.second + aDY[aDir];
+			if ((aNextX < 0) || (aNextX > 8) || (aNextY < 0) || (aNextY > 8) || aSeen[aNextX][aNextY])
 				continue;
-			Piece* p = mGrid[nx][ny];
-			if (p == b)
+			Piece* aPiece = mGrid[aNextX][aNextY];
+			if (aPiece == theTo)
 				return true;
-			if ((p->mType == PIECE_EMPTY) || p->mRemoved || p->mFading || p->mMoving)
+			if ((aPiece->mType == PIECE_EMPTY) || aPiece->mRemoved || aPiece->mFading || aPiece->mMoving)
 			{
-				aSeen[nx][ny] = true;
-				aOpen.push(std::make_pair(nx, ny));
+				aSeen[aNextX][aNextY] = true;
+				aOpen.push(std::make_pair(aNextX, aNextY));
 			}
 		}
 	}
 	return false;
 }
 
-bool Board::CloneReachable(Piece* a, Piece* b)
+bool Board::CloneReachable(Piece* theFrom, Piece* theTo)
 {
 	bool aSeen[9][9];
 	memset(aSeen, 0, sizeof(aSeen));
 	std::queue<std::pair<int, int> > aOpen;
-	aOpen.push(std::make_pair(a->mX, a->mY));
-	aSeen[a->mX][a->mY] = true;
+	aOpen.push(std::make_pair(theFrom->mX, theFrom->mY));
+	aSeen[theFrom->mX][theFrom->mY] = true;
 	static const int aDX[4] = {1, 0, -1, 0};
 	static const int aDY[4] = {0, 1, 0, -1};
 	while (!aOpen.empty())
 	{
 		std::pair<int, int> aCell = aOpen.front();
 		aOpen.pop();
-		for (int d = 0; d < 4; d++)
+		for (int aDir = 0; aDir < 4; aDir++)
 		{
-			int nx = aCell.first + aDX[d];
-			int ny = aCell.second + aDY[d];
-			if ((nx < 0) || (nx > 8) || (ny < 0) || (ny > 8) || aSeen[nx][ny])
+			int aNextX = aCell.first + aDX[aDir];
+			int aNextY = aCell.second + aDY[aDir];
+			if ((aNextX < 0) || (aNextX > 8) || (aNextY < 0) || (aNextY > 8) || aSeen[aNextX][aNextY])
 				continue;
-			Piece* p = mClone[nx][ny];
-			if (p == b)
+			Piece* aPiece = mClone[aNextX][aNextY];
+			if (aPiece == theTo)
 				return true;
-			if ((p->mType == PIECE_EMPTY) || p->mRemoved || p->mFading)
+			if ((aPiece->mType == PIECE_EMPTY) || aPiece->mRemoved || aPiece->mFading)
 			{
-				aSeen[nx][ny] = true;
-				aOpen.push(std::make_pair(nx, ny));
+				aSeen[aNextX][aNextY] = true;
+				aOpen.push(std::make_pair(aNextX, aNextY));
 			}
 		}
 	}
@@ -643,8 +643,8 @@ bool Board::RowEmpty(int theRow)
 {
 	for (int x = 0; x < 9; x++)
 	{
-		Piece* p = mGrid[x][theRow];
-		if ((p != NULL) && (p->mType != PIECE_EMPTY) && !p->mRemoved && !p->mFading && !p->mMoving)
+		Piece* aPiece = mGrid[x][theRow];
+		if ((aPiece != NULL) && (aPiece->mType != PIECE_EMPTY) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
 			return false;
 	}
 	return true;
@@ -654,16 +654,16 @@ bool Board::ColumnEmpty(int theColumn)
 {
 	for (int y = 0; y < 9; y++)
 	{
-		Piece* p = mGrid[theColumn][y];
-		if ((p != NULL) && (p->mType != PIECE_EMPTY) && !p->mRemoved && !p->mFading && !p->mMoving)
+		Piece* aPiece = mGrid[theColumn][y];
+		if ((aPiece != NULL) && (aPiece->mType != PIECE_EMPTY) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
 			return false;
 	}
 	return true;
 }
 
-// 0x403370: the cheapest path of straight runs from (x1,y1) to (x2,y2); the corners go to mPathCells and the
+// 0x403370: the cheapest path of straight runs from one cell to another; the corners go to mPathCells and the
 // path in pixels to mPixelPath. Without theWantPath it only tells whether one exists.
-bool Board::FindPath(int x1, int y1, int x2, int y2, int theMaxSegments, bool theWantPath)
+bool Board::FindPath(int theFromX, int theFromY, int theToX, int theToY, int theMaxSegments, bool theWantPath)
 {
 	ClearLink();
 	for (int x = 0; x < 9; x++)
@@ -673,19 +673,19 @@ bool Board::FindPath(int x1, int y1, int x2, int y2, int theMaxSegments, bool th
 	mPathSegments = -1;
 	mSteps = 0;
 	int aCorners[100];
-	if (!SearchPath(x1, y1, x2, y2, 0, theMaxSegments, 0, theWantPath ? (int (*)[2]) aCorners : NULL))
+	if (!SearchPath(theFromX, theFromY, theToX, theToY, 0, theMaxSegments, 0, theWantPath ? (int (*)[2]) aCorners : NULL))
 		return false;
 	if (!theWantPath)
 		return true;
 	if (mPathSegments == -1)
 		return false;
 	mPathLength = 0;
-	int aPrevX = CellLeft(x1);
-	int aPrevY = CellTop(y1);
+	int aPrevX = CellLeft(theFromX);
+	int aPrevY = CellTop(theFromY);
 	for (int i = 0; i <= mPathSegments; i++)
 	{
-		int aCellX = (i == mPathSegments) ? x2 : mPathCells[i][0];
-		int aCellY = (i == mPathSegments) ? y2 : mPathCells[i][1];
+		int aCellX = (i == mPathSegments) ? theToX : mPathCells[i][0];
+		int aCellY = (i == mPathSegments) ? theToY : mPathCells[i][1];
 		int aX = CellLeft(aCellX);
 		int aY = CellTop(aCellY);
 		mPathLength += abs(aY - aPrevY) + abs(aX - aPrevX);
@@ -703,25 +703,25 @@ bool Board::FindPath(int x1, int y1, int x2, int y2, int theMaxSegments, bool th
 // 0x4036f0: depth-first search along straight runs in the four directions; a run may end on any cell and a
 // new run starts there. A step costs 1 and starting a run 2; the cost to each cell is kept to prune. A piece
 // blocks a run while the game is on (mState 1) unless it is leaving.
-bool Board::SearchPath(int x, int y, int x2, int y2, int theDepth, int theMaxDepth, int theCost, int (*thePath)[2])
+bool Board::SearchPath(int x, int y, int theToX, int theToY, int theDepth, int theMaxDepth, int theCost, int (*thePath)[2])
 {
 	static const int aDirs[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
 	bool aFound = false;
-	for (int d = 0; d < 4; d++)
+	for (int aDir = 0; aDir < 4; aDir++)
 	{
-		int dx = aDirs[d][0];
-		int dy = aDirs[d][1];
-		int nx = x + dx;
-		int ny = y;
+		int aStepX = aDirs[aDir][0];
+		int aStepY = aDirs[aDir][1];
+		int aNextX = x + aStepX;
+		int aNextY = y;
 		int aSteps = 2;
 		int aCost = theCost + 2;
-		while (nx >= 0)
+		while (aNextX >= 0)
 		{
-			ny += dy;
-			if ((ny < 0) || (nx > 8) || (ny > 8))
+			aNextY += aStepY;
+			if ((aNextY < 0) || (aNextX > 8) || (aNextY > 8))
 				break;
 			mSteps++;
-			if ((nx == x2) && (ny == y2))
+			if ((aNextX == theToX) && (aNextY == theToY))
 			{
 				if (thePath != NULL)
 				{
@@ -740,22 +740,22 @@ bool Board::SearchPath(int x, int y, int x2, int y2, int theDepth, int theMaxDep
 			}
 			if (mState == BOARD_PLAYING)
 			{
-				Piece* p = mGrid[nx][ny];
-				int aType = p->mType;
-				if (((aType < 0xd) || (aType == PIECE_CRATE) || (aType == PIECE_BLOCK)) && !p->mRemoved && !p->mFading)
+				Piece* aPiece = mGrid[aNextX][aNextY];
+				int aType = aPiece->mType;
+				if (((aType < 0xd) || (aType == PIECE_CRATE) || (aType == PIECE_BLOCK)) && !aPiece->mRemoved && !aPiece->mFading)
 					break;
 			}
 			if (theDepth < theMaxDepth)
 			{
 				if (thePath != NULL)
 				{
-					thePath[theDepth][0] = nx;
-					thePath[theDepth][1] = ny;
+					thePath[theDepth][0] = aNextX;
+					thePath[theDepth][1] = aNextY;
 				}
-				if (aCost < mCost[nx][ny])
+				if (aCost < mCost[aNextX][aNextY])
 				{
-					mCost[nx][ny] = aCost;
-					if (SearchPath(nx, ny, x2, y2, theDepth + 1, theMaxDepth, aCost, thePath))
+					mCost[aNextX][aNextY] = aCost;
+					if (SearchPath(aNextX, aNextY, theToX, theToY, theDepth + 1, theMaxDepth, aCost, thePath))
 					{
 						if (thePath == NULL)
 							return true;
@@ -763,7 +763,7 @@ bool Board::SearchPath(int x, int y, int x2, int y2, int theDepth, int theMaxDep
 					}
 				}
 			}
-			nx += dx;
+			aNextX += aStepX;
 			aSteps++;
 			aCost++;
 		}

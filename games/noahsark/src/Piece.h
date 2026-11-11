@@ -56,7 +56,7 @@ struct Piece
 	Piece*			mPartner;               // +0x3c the animal this one walks to
 	double			mScale;                 // +0x40 50.0
 	std::vector<PathNode*>	mPath;          // +0x48 (the original's std::vector of PathNode*)
-	bool			mMatchSwap;             // +0x58
+	bool			mInSwap;            // +0x58 one of the two animals of the puzzle swap in progress (the swap back finds them by it)
 	bool			mMatch;                 // +0x59 part of a run of three (puzzle mode)
 	int				mBlink;                 // +0x5c 0..4
 

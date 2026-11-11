@@ -107,9 +107,9 @@ void TitleScreen::Draw(Graphics* g)
 		g->SetColor(Color(0, 0, 0));
 		g->SetFont(mApp->mFonts[FONT_SMALL]);
 		int aWidth = g->GetFont()->StringWidth(mPlayLink->mLabel);
-		for (int dx = -2; dx < 1; dx++)
-			for (int dy = -2; dy < 1; dy++)
-				g->DrawString(mPlayLink->mLabel, (mWidth - aWidth) / 2 + dx, dy + 0x1d8);
+		for (int aOffsetX = -2; aOffsetX < 1; aOffsetX++)
+			for (int aOffsetY = -2; aOffsetY < 1; aOffsetY++)
+				g->DrawString(mPlayLink->mLabel, (mWidth - aWidth) / 2 + aOffsetX, aOffsetY + 0x1d8);
 	}
 }
 
@@ -366,29 +366,29 @@ void NextLevelWidget::Draw(Graphics* g)
 	}
 	mBackground = new MemoryImage(mApp);
 	mBackground->Create(mWidth, mHeight);
-	Graphics ig(mBackground);
+	Graphics aPanelGraphics(mBackground);
 	ImageTable& anImages = mApp->mImages;
-	ig.DrawImage(anImages[IMAGE_FRAME], 0, 0);
-	DrawImageBox2003(&ig, Rect(0, 0, 0x1d8, 0x1d7), anImages[IMAGE_DIALOG]);
+	aPanelGraphics.DrawImage(anImages[IMAGE_FRAME], 0, 0);
+	DrawImageBox2003(&aPanelGraphics, Rect(0, 0, 0x1d8, 0x1d7), anImages[IMAGE_DIALOG]);
 
 	SexyString aTitle = GT(0x00494f34);
-	ig.SetFont(mApp->mFonts[FONT_BIG]);
-	ig.SetColor(Color(0x32, 0x32, 0x32, 200));
-	for (int dx = 0; dx < 2; dx++)
+	aPanelGraphics.SetFont(mApp->mFonts[FONT_BIG]);
+	aPanelGraphics.SetColor(Color(0x32, 0x32, 0x32, 200));
+	for (int aOffsetX = 0; aOffsetX < 2; aOffsetX++)
 		for (int aPass = 0; aPass < 2; aPass++)
-			ig.DrawString(aTitle, (mWidth - ig.GetFont()->StringWidth(aTitle)) / 2 + dx, 0x3c);
-	ig.SetColor(Color(0xff, 0xff, 0xff));
-	ig.DrawString(aTitle, (mWidth - ig.GetFont()->StringWidth(aTitle)) / 2, 0x3c);
+			aPanelGraphics.DrawString(aTitle, (mWidth - aPanelGraphics.GetFont()->StringWidth(aTitle)) / 2 + aOffsetX, 0x3c);
+	aPanelGraphics.SetColor(Color(0xff, 0xff, 0xff));
+	aPanelGraphics.DrawString(aTitle, (mWidth - aPanelGraphics.GetFont()->StringWidth(aTitle)) / 2, 0x3c);
 
 	Image* aPicture = anImages[IMAGE_HAPPYENDING];
 	int aPicX = (mWidth - aPicture->mWidth) / 2;
-	ig.DrawImage(aPicture, aPicX, 0x50);
+	aPanelGraphics.DrawImage(aPicture, aPicX, 0x50);
 
 	Font* aTiny = mApp->mFonts[FONT_GARAMOND_TINY];
-	ig.SetFont(aTiny);
-	ig.SetColor(Color(0x75, 0x5d, 0x43));
+	aPanelGraphics.SetFont(aTiny);
+	aPanelGraphics.SetColor(Color(0x75, 0x5d, 0x43));
 	SexyString aTime = FormatText2(GT((mSeconds % 60 < 10) ? 0x00494f24 : 0x00494f18), mSeconds / 60, mSeconds % 60);
-	ig.DrawString(aTime, aPicX + 10, 100);
+	aPanelGraphics.DrawString(aTime, aPicX + 10, 100);
 
 	SexyString aLeft, aRight;
 	if (!mBonus)
@@ -403,22 +403,22 @@ void NextLevelWidget::Draw(Graphics* g)
 	}
 	int aMiddleStart = aPicX + 10 + aTiny->StringWidth(aTime);
 	int aRightX = aPicX + aPicture->mWidth - 10 - aTiny->StringWidth(aRight);
-	ig.DrawString(aLeft, (aRightX - aMiddleStart - aTiny->StringWidth(aLeft)) / 2 + aMiddleStart, 100);
-	ig.DrawString(aRight, aRightX, 100);
+	aPanelGraphics.DrawString(aLeft, (aRightX - aMiddleStart - aTiny->StringWidth(aLeft)) / 2 + aMiddleStart, 100);
+	aPanelGraphics.DrawString(aRight, aRightX, 100);
 
 	// the rank
-	DrawCentered(&ig, aTiny, GT(0x00494ecc), mWidth, 0x104, Color(0x75, 0x5d, 0x43));
+	DrawCentered(&aPanelGraphics, aTiny, GT(0x00494ecc), mWidth, 0x104, Color(0x75, 0x5d, 0x43));
 	int aRank = 0;
 	while ((aRank < 23) && (mApp->mGameScore >= gRankThresholds[aRank]))
 		aRank++;
 	if (aRank > 22)
 		aRank = 22;
-	DrawCentered(&ig, mApp->mFonts[FONT_MEDIUM], GT(gRankNames[aRank]), mWidth, 0x128, Color(0xff, 0xff, 0xff));
-	DrawCentered(&ig, aTiny, FormatText(GT(0x00494eb4), gRankThresholds[aRank]), mWidth, 0x144,
+	DrawCentered(&aPanelGraphics, mApp->mFonts[FONT_MEDIUM], GT(gRankNames[aRank]), mWidth, 0x128, Color(0xff, 0xff, 0xff));
+	DrawCentered(&aPanelGraphics, aTiny, FormatText(GT(0x00494eb4), gRankThresholds[aRank]), mWidth, 0x144,
 		Color(0x75, 0x5d, 0x43));
 
-	DrawCentered(&ig, aTiny, GT(gTipLines[mTip]), mWidth, 0x169, Color(0xc2, 0x9f, 0x83));
-	DrawCentered(&ig, aTiny, GT(gTipLines2[mTip]), mWidth, 0x182, Color(0xc2, 0x9f, 0x83));
+	DrawCentered(&aPanelGraphics, aTiny, GT(gTipLines[mTip]), mWidth, 0x169, Color(0xc2, 0x9f, 0x83));
+	DrawCentered(&aPanelGraphics, aTiny, GT(gTipLines2[mTip]), mWidth, 0x182, Color(0xc2, 0x9f, 0x83));
 	g->DrawImage(mBackground, 0, 0);
 }
 
