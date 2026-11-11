@@ -699,6 +699,48 @@ void DDInterface::RemoveImageData(MemoryImage* theImage)
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+// A stretch of one axis of a quad: where it lies on the screen and the texture coordinate at its ends, which a stretch
+// outside the texture holds at the edge (0 or 1)
+struct ClampSegment
+{
+	float mStart, mEnd;
+	float mCoordStart, mCoordEnd;
+};
+
+// Cuts the span theStart..theEnd, over which the texture coordinate goes linearly from theCoordStart to theCoordEnd, where
+// the coordinate crosses 0 and 1; the segments (at most three, in order) take their coordinates clamped to 0..1, so one
+// outside the texture has the same coordinate at both ends. Returns their number.
+static int CutAtTextureEdges(float theStart, float theEnd, float theCoordStart, float theCoordEnd, ClampSegment theSegments[3])
+{
+	float aTimes[4] = { 0, 0, 0, 1 };
+	int aCount = 1;
+	if (theCoordEnd != theCoordStart)
+	{
+		float aCross0 = (0 - theCoordStart) / (theCoordEnd - theCoordStart);
+		float aCross1 = (1 - theCoordStart) / (theCoordEnd - theCoordStart);
+		if (aCross0 > aCross1)
+			std::swap(aCross0, aCross1);
+		if ((aCross0 > 0) && (aCross0 < 1))
+			aTimes[aCount++] = aCross0;
+		if ((aCross1 > 0) && (aCross1 < 1))
+			aTimes[aCount++] = aCross1;
+	}
+	aTimes[aCount++] = 1;
+
+	int aSegments = 0;
+	for (int i = 0; i + 1 < aCount; i++)
+	{
+		if (aTimes[i + 1] <= aTimes[i])
+			continue;
+		ClampSegment& aSegment = theSegments[aSegments++];
+		aSegment.mStart = theStart + (theEnd - theStart) * aTimes[i];
+		aSegment.mEnd = theStart + (theEnd - theStart) * aTimes[i + 1];
+		aSegment.mCoordStart = std::min(1.0f, std::max(0.0f, theCoordStart + (theCoordEnd - theCoordStart) * aTimes[i]));
+		aSegment.mCoordEnd = std::min(1.0f, std::max(0.0f, theCoordStart + (theCoordEnd - theCoordStart) * aTimes[i + 1]));
+	}
+	return aSegments;
+}
+
 // Draws theSrcRect of theImage onto the logical quad theX/theY (corners: top-left, top-right,
 // bottom-right, bottom-left of the source rectangle).
 void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const float theY[4], const Rect& theSrcRect, bool mirror, const Color& theColor, int theDrawMode, const Rect* theClipRect, bool linearHint)
@@ -747,6 +789,39 @@ void DDInterface::DrawTexturedQuad(Image* theImage, const float theX[4], const f
 		SDL_SetTextureColorMod(aTexture, aColor.r, aColor.g, aColor.b);
 		SDL_SetTextureAlphaMod(aTexture, aColor.a);
 		SDL_RenderCopyExF(mRenderer, aTexture, &aSrcRect, &aDestRect, 0, NULL, mirror ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+		return;
+	}
+
+	// port: a source rectangle reaching outside the texture. The original's textures use clamp addressing, so a coordinate
+	// outside 0..1 reads the texture's edge texel, but SDL's accelerated renderer draws no pixel of such a quad (Bejeweled 2's
+	// portal, whose zoomed backdrop starts above the picture). An axis-aligned quad is cut where its coordinates cross 0 and 1:
+	// the part inside is drawn as it is, and each part outside as a strip of the edge texels.
+	const float kEdgeTolerance = 0.0001f;  // the rounding of a coordinate that is 1 (a stretch of the whole texture)
+	if (mIs3D && (theX[0] == theX[3]) && (theX[1] == theX[2]) && (theY[0] == theY[1]) && (theY[2] == theY[3]) &&
+		(theX[1] > theX[0]) && (theY[3] > theY[0]) &&
+		((std::min(u0, u1) < -kEdgeTolerance) || (std::max(u0, u1) > 1 + kEdgeTolerance) || (std::min(v0, v1) < -kEdgeTolerance) ||
+		(std::max(v0, v1) > 1 + kEdgeTolerance)))
+	{
+		ClampSegment aColumns[3], aRows[3];
+		int aColumnCount = CutAtTextureEdges(theX[0], theX[1], u0, u1, aColumns);
+		int aRowCount = CutAtTextureEdges(theY[0], theY[3], v0, v1, aRows);
+		for (int aRow = 0; aRow < aRowCount; aRow++)
+		{
+			for (int aColumn = 0; aColumn < aColumnCount; aColumn++)
+			{
+				const ClampSegment& aC = aColumns[aColumn];
+				const ClampSegment& aR = aRows[aRow];
+				const float aPieceX[4] = { aC.mStart, aC.mEnd, aC.mEnd, aC.mStart };
+				const float aPieceY[4] = { aR.mStart, aR.mStart, aR.mEnd, aR.mEnd };
+				const float aPieceU[4] = { aC.mCoordStart, aC.mCoordEnd, aC.mCoordEnd, aC.mCoordStart };
+				const float aPieceV[4] = { aR.mCoordStart, aR.mCoordStart, aR.mCoordEnd, aR.mCoordEnd };
+				SDL_Vertex aPiece[4];
+				for (int i = 0; i < 4; i++)
+					SetVertex(aPiece[i], aPieceX[i] * aScale, aPieceY[i] * aScale, aColor, aPieceU[i], aPieceV[i]);
+				static const int aPieceIndices[6] = { 0, 1, 2, 0, 2, 3 };
+				SDL_RenderGeometry(mRenderer, aTexture, aPiece, 4, aPieceIndices, 6);
+			}
+		}
 		return;
 	}
 
