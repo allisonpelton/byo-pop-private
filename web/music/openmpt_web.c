@@ -10,6 +10,7 @@
 #include <string.h>
 #include <emscripten.h>
 #include "libopenmpt/libopenmpt.h"
+#include "libopenmpt/libopenmpt_ext.h"
 #include <xmp.h>
 #include "../../platform/ModuleText.h"
 #include "../../platform/MusicLevels.h"
@@ -18,7 +19,10 @@
 
 /* One module: either renderer */
 typedef struct {
+  openmpt_module_ext* ext;    /* libopenmpt's module with its interfaces (mpt is its module) */
   openmpt_module* mpt;
+  openmpt_module_ext_interface_interactive interactive;   /* its channel mutes; has_interactive 0 when it has none */
+  int has_interactive;
   xmp_context xmp;
   int rate;       /* the rate libxmp-lite's player was started at */
   int sequence;   /* libxmp-lite's selected sequence */
@@ -47,8 +51,11 @@ EMSCRIPTEN_KEEPALIVE bm_module* bm_load(const void* data, int size) {
   bm_module* b = (bm_module*)calloc(1, sizeof(bm_module));
   if (!b) return 0;
   if (is_openmpt((const unsigned char*)data, size)) {
-    b->mpt = openmpt_module_create_from_memory2(data, (size_t)size, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-    if (!b->mpt) { free(b); return 0; }
+    b->ext = openmpt_module_ext_create_from_memory(data, (size_t)size, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    if (!b->ext) { free(b); return 0; }
+    b->mpt = openmpt_module_ext_get_module(b->ext);
+    b->has_interactive = openmpt_module_ext_get_interface(b->ext, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE, &b->interactive,
+                                                          sizeof b->interactive) != 0;
     openmpt_module_set_render_param(b->mpt, OPENMPT_MODULE_RENDER_INTERPOLATIONFILTER_LENGTH, BYOPOP_OPENMPT_INTERPOLATION);
     openmpt_module_set_render_param(b->mpt, OPENMPT_MODULE_RENDER_STEREOSEPARATION_PERCENT, BYOPOP_OPENMPT_SEPARATION);
     return b;
@@ -59,7 +66,7 @@ EMSCRIPTEN_KEEPALIVE bm_module* bm_load(const void* data, int size) {
   return b;
 }
 EMSCRIPTEN_KEEPALIVE void bm_free(bm_module* b) {
-  if (b->mpt) openmpt_module_destroy(b->mpt);
+  if (b->ext) openmpt_module_ext_destroy(b->ext);
   if (b->xmp) { xmp_end_player(b->xmp); xmp_release_module(b->xmp); xmp_free_context(b->xmp); }
   free(b);
 }
@@ -286,6 +293,37 @@ EMSCRIPTEN_KEEPALIVE const char* bm_row_text(bm_module* b, int pattern, int row)
     row_text[at] = 0;
   }
   return row_text;
+}
+
+/* The module's instruments' names, a line each ("1A Bass\n", platform/ModuleText.h's byopop_name_line; empty names left
+   out): libopenmpt's instruments, or its samples where the module has none; libxmp-lite's instruments. The text lives
+   until the next call. */
+static char name_text[256 * 40 + 1];
+EMSCRIPTEN_KEEPALIVE const char* bm_names(bm_module* b) {
+  int at = 0;
+  name_text[0] = 0;
+  if (b->mpt) {
+    int ins = openmpt_module_get_num_instruments(b->mpt), n = ins > 0 ? ins : openmpt_module_get_num_samples(b->mpt);
+    for (int i = 0; i < n; i++) {
+      const char* name = ins > 0 ? openmpt_module_get_instrument_name(b->mpt, i) : openmpt_module_get_sample_name(b->mpt, i);
+      at = byopop_name_line(name_text, at, (int)sizeof name_text, i + 1, name);
+      if (name) openmpt_free_string(name);
+    }
+    return name_text;
+  }
+  byopop_xmp_names(info(b).mod, name_text, (int)sizeof name_text);
+  return name_text;
+}
+
+/* Mutes a channel (on 1) or brings it back (on 0), the tracker's header's click; 1 done, 0 not (a channel out of range, or
+   libopenmpt without its interactive interface). libxmp-lite's mutes last until its player starts again (a new tune). */
+EMSCRIPTEN_KEEPALIVE int bm_mute(bm_module* b, int channel, int on) {
+  if (b->mpt) {
+    if (!b->has_interactive || channel < 0 || channel >= openmpt_module_get_num_channels(b->mpt)) return 0;
+    return b->interactive.set_channel_mute_status(b->ext, channel, on ? 1 : 0) ? 1 : 0;
+  }
+  if (channel < 0 || channel >= info(b).mod->chn) return 0;
+  return xmp_channel_mute(b->xmp, channel, on ? 1 : 0) >= 0 ? 1 : 0;
 }
 
 /* Plays on from seconds into the selected subsong (the seek bar), the decoder at rate; the position it reached (libxmp-lite goes

@@ -649,6 +649,11 @@ var ByopopMusic = (function () {
         position: function () { return M._bm_position(m) - start; },
         seek: function (s) { M._bm_seek(m, ctx.sampleRate, start + s); },
         rowText: function (pattern, row) { return M.UTF8ToString(M._bm_row_text(m, pattern, row)); },
+        // its instruments' names (its samples' where it has no instruments), a line each: "1A Bass"
+        names: function () { return typeof M._bm_names === "function" ? M.UTF8ToString(M._bm_names(m)) : ""; },   // (a decoder cached from before it: none)
+        // a channel muted or brought back; false where the decoder cannot (one cached from before bm_mute). It is heard once the
+        // second the decoder has rendered ahead has played
+        mute: function (c, on) { return typeof M._bm_mute === "function" && M._bm_mute(m, c, on ? 1 : 0) === 1; },
         // the channels that play a note anywhere in the module, by number
         used: function () {
           var buf = M._malloc(256), n = Math.min(256, M._bm_used(m, buf, 256)), list = [];
@@ -752,7 +757,7 @@ var ByopopMusic = (function () {
     function unload() {
       if (source) { source.free(); source = null; }
       flush();
-      rowCache = {}; usedChannels = null; firstChannel = 0; rollReset();
+      rowCache = {}; usedChannels = null; ownNames = null; firstChannel = 0; rollReset();
     }
     function play(i) {
       var t = tunes[i];
@@ -851,6 +856,33 @@ var ByopopMusic = (function () {
     var rowCache = {}, shownRow = "";
     // the channels shown: only those with a note somewhere (read once a tune), as many whole columns as the view's width holds,
     // from firstChannel (the scroll bar's); each cell whole, or not shown
+    // the instruments' names by their number as the cells write it ({"1A": "Bass"}), from the decoder's or the game's list
+    var ownNames = null, chanIns = {}, HEAD_NAME = 6;
+    // the channels muted from the tracker's header, by number, for the tune shown (id); a new tune starts with none
+    var muted = {};
+    function setMute(feed, c, on) {
+      if (!feed.mute || !feed.mute(c, on)) return false;
+      if (on) muted[c] = true; else delete muted[c];
+      return true;
+    }
+    function clickChannel(c, alone) {
+      var feed = trackerFeed();
+      if (!feed) return;
+      if (muted.id !== feed.id) muted = { id: feed.id };
+      var used = feed.used();
+      if (alone) {
+        // that channel alone; again on the channel already alone, every channel back
+        var lone = !muted[c] && used.every(function (u) { return u === c || muted[u]; });
+        used.forEach(function (u) { setMute(feed, u, !lone && u !== c); });
+      } else setMute(feed, c, !muted[c]);
+      shownRow = "";
+      drawTracker();
+    }
+    function parseNames(text) {
+      var out = {};
+      text.split("\n").forEach(function (line) { if (line.length > 3) out[line.slice(0, 2)] = line.slice(3); });
+      return out;
+    }
     var usedChannels = null, firstChannel = 0, shownChannels = 0, totalChannels = 0, measure = null;
     // a character's width in the rows' own font, measured where the rows are drawn (a canvas's font can resolve to another face)
     function charWidth() {
@@ -877,13 +909,15 @@ var ByopopMusic = (function () {
       if (follow) {
         var v = follow.view;
         if (v.kind !== "module" || !(v.rows > 0)) return null;
-        return { mark: [0, v.pattern, v.row, v.rows, v.channels, v.order], rowAt: followedRow, used: followedUsed, id: "g" + follow.serial };
+        return { mark: [0, v.pattern, v.row, v.rows, v.channels, v.order], rowAt: followedRow, used: followedUsed, names: followedNames, mute: followedMute, id: "g" + follow.serial };
       }
       if (!source || !source.rowText) return null;
       var h = heard(), mark = null;
       if (h && h.head.marks) h.head.marks.forEach(function (m) { if (m[0] <= h.into) mark = m; });
       if (!mark) return null;
-      return { mark: mark, rowAt: rowOf, used: function () { if (!usedChannels) usedChannels = source.used ? source.used() : []; return usedChannels; }, id: "own" };
+      return { mark: mark, rowAt: rowOf, used: function () { if (!usedChannels) usedChannels = source.used ? source.used() : []; return usedChannels; },
+        names: function () { if (!ownNames) ownNames = parseNames(source.names ? source.names() : ""); return ownNames; },
+        mute: function (c, on) { return !!(source.mute && source.mute(c, on)); }, id: "own" };
     }
     function drawTracker() {
       if (tracker.hidden) return;
@@ -908,7 +942,25 @@ var ByopopMusic = (function () {
       if (shown < used.length) at += "  " + T("music.tracker_ch", { first: firstChannel + 1, last: firstChannel + shown, count: used.length });
       trackerAt.textContent = at;
       var showing = used.slice(firstChannel, firstChannel + shown);
-      trackerHead.textContent = pad("", String(mark[3] - 1).length) + " " + showing.map(function (c) { return pad(two(c + 1), width); }).join("│");
+      // each column's channel number and the name of the instrument it played last, up to the heard row (in an earlier pattern
+      // where this one has not set it yet), cut to the column's width; the number alone where the column leaves fewer than
+      // HEAD_NAME characters for the name (the narrow cells' three would be noise)
+      var names = feed.names ? feed.names() : {};
+      if (chanIns.id !== feed.id) chanIns = { id: feed.id };
+      for (var r0 = 0; r0 <= mark[2]; r0++) {
+        var cells0 = rowOf(mark[1], r0).split("|");
+        showing.forEach(function (c) { var t = (cells0[c] || "").slice(4, 6); if (/^[0-9A-F]{2}$/.test(t) && t !== "00") chanIns[c] = t; });
+      }
+      // each a span that a click mutes or brings back (Ctrl-click: that channel alone), a muted one dimmed and struck through
+      if (muted.id !== feed.id) muted = { id: feed.id };
+      trackerHead.textContent = pad("", String(mark[3] - 1).length) + " ";
+      showing.forEach(function (c, i) {
+        var nm = width - 3 >= HEAD_NAME && chanIns[c] && names[chanIns[c]];
+        if (i) trackerHead.appendChild(document.createTextNode("│"));
+        var span = make("span", muted[c] ? "mu-ch mu-ch-off" : "mu-ch", pad(two(c + 1) + (nm ? " " + nm : ""), width));
+        span.setAttribute("data-ch", String(c));
+        trackerHead.appendChild(span);
+      });
       trackerRows.textContent = "";
       // the view stays inside the pattern (the user, 2026-11-09: "it should never scroll empty lines into the top or bottom"): the
       // heard row in the middle only while the view can scroll to it, so at the pattern's start the view sits at row 0 and the
@@ -937,7 +989,7 @@ var ByopopMusic = (function () {
     // patterns heard so far, so it can widen while the tune plays. About a pattern fills the width; the pitches are named at
     // the left in the tracker's spelling, each pattern's beats and bars are lines, and each bar carries its instrument's number
     // (or, where the bars are too thin, a key at the bottom right gives each colour's number).
-    var ROLL_ROWS = 64, BLACK_KEYS = [1, 3, 6, 8, 10];
+    var ROLL_ROWS = 64, KEY_NAME = 12, KEY_LEAST = 6, BLACK_KEYS = [1, 3, 6, 8, 10];
     var PITCH_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"];
     var ROLL = ["#00ff00", "#ffff00", "#00ffff", "#ff00ff", "#ff0000", "#ffffff", "#c0c0c0", "#808000", "#008080", "#800080",
       "#008000", "#800000"];   // the instruments' colours, the bright and the dark of the 16-colour palette (no blue: too dark on black)
@@ -951,7 +1003,7 @@ var ByopopMusic = (function () {
       var n = cell.charAt(0), acc = cell.charAt(1), oct = cell.charAt(2);
       if (n === "=" || n === "^" || n === "~") return { pitch: "off" };
       if (!(n in NAMES) || !(oct >= "0" && oct <= "9")) return null;
-      var ins = cell.slice(4, 6), num = /^\d+$/.test(ins) ? parseInt(ins, 10) : parseInt(ins, 16);
+      var ins = cell.slice(4, 6), num = parseInt(ins, 16);   // both renderers write it in hex
       return { pitch: NAMES[n] + (acc === "#" ? 1 : 0) + 12 * (+oct) + 1, colour: num > 0 ? (num - 1) % ROLL.length : -1, ins: num > 0 ? num : 0 };
     }
     function rollPattern(feed, pattern, rows) {
@@ -1069,9 +1121,14 @@ var ByopopMusic = (function () {
           g.fillRect(x, 0, 1, hgt);
         }
       });
-      // the notes, each with its instrument's number at its start where the bar has room for it; the instruments drawn, for the
-      // key where the bars have none
-      var drawn = {};
+      // the notes, each with its instrument's number and name at its start, cut to the bar's length, where the bar has room for
+      // the number; the instruments drawn, for the key where the bars have none
+      var drawn = {}, names = feed.names ? feed.names() : {};
+      function fit(text, room) {
+        if (g.measureText(text).width <= room) return text;
+        while (text.length > 2 && g.measureText(text).width > room) text = text.slice(0, -1);
+        return text.replace(/ +$/, "");
+      }
       parts.forEach(function (part) {
         part[0].notes.forEach(function (n) {
           var x0 = head + (n[0] + part[1] - mark[2]) * col, x1 = head + (n[1] + part[1] - mark[2]) * col - 1;
@@ -1081,21 +1138,40 @@ var ByopopMusic = (function () {
           if (n[4]) drawn[n[4]] = n[3];
           if (n[4] && step >= 10 && x1 - x0 >= 15) {
             g.fillStyle = n[3] >= 7 ? "#ffffff" : "#000000";
-            g.fillText(n[4], x0 + 2, y(n[2]) + step / 2);
+            g.fillText(fit(names[n[4]] ? n[4] + " " + names[n[4]] : n[4], Math.min(x1, w) - x0 - 4), x0 + 2, y(n[2]) + step / 2);
           }
         });
       });
-      // the key: a swatch and the number of each instrument drawn, along the bottom right, when the bars are too thin to carry it
+      // the key: a swatch, the number and the name of each instrument drawn, along the bottom right, when the bars are too thin
+      // to carry them. It takes one line or two; the names are cut to fit (KEY_NAME characters at most, KEY_LEAST at least),
+      // and where even that does not fit, the numbers alone
       var shown = Object.keys(drawn).sort();
       if (step < 10 && shown.length) {
-        var kw = Math.ceil(g.measureText("00").width) + 14, kx = w - shown.length * kw - 2;
-        g.fillStyle = "#000000";
-        g.fillRect(kx - 2, hgt - 13, w - kx + 2, 13);
-        shown.forEach(function (t, i) {
-          g.fillStyle = ROLL[drawn[t]];
-          g.fillRect(kx + i * kw, hgt - 10, 8, 8);
-          g.fillStyle = style.color;
-          g.fillText(t, kx + i * kw + 10, hgt - 6);
+        var room = w - left - 4, lines = null;
+        function lay(cut) {
+          var out = [[]], used = 0;
+          shown.forEach(function (t) {
+            var nm = cut > 0 && names[t] ? names[t].slice(0, cut).replace(/ +$/, "") : "", label = nm ? t + " " + nm : t;
+            var lw = Math.ceil(g.measureText(label).width) + 16;
+            if (used + lw > room && out[out.length - 1].length) { out.push([]); used = 0; }
+            out[out.length - 1].push([t, label, lw]);
+            used += lw;
+          });
+          return out;
+        }
+        for (var cut = KEY_NAME; cut >= KEY_LEAST && !lines; cut -= 2) { var tried = lay(cut); if (tried.length <= 2) lines = tried; }
+        if (!lines) lines = lay(0);
+        lines.forEach(function (line, k) {
+          var ky = hgt - 13 * (lines.length - k), kx = w - line.reduce(function (a, it) { return a + it[2]; }, 0) - 2;
+          g.fillStyle = "#000000";
+          g.fillRect(kx - 2, ky, w - kx + 2, 13);
+          line.forEach(function (it) {
+            g.fillStyle = ROLL[drawn[it[0]]];
+            g.fillRect(kx, ky + 3, 8, 8);
+            g.fillStyle = style.color;
+            g.fillText(it[1], kx + 10, ky + 7);
+            kx += it[2];
+          });
         });
       }
       g.restore();
@@ -1423,6 +1499,19 @@ var ByopopMusic = (function () {
       }
       return follow.rows[k];
     }
+    function followedNames() {
+      if (follow.names == null) {
+        // a game built before byopop_music_names has no such call: no names
+        try { follow.names = parseNames(follow.M.ccall("byopop_music_names", "string", ["number"], [follow.song]) || ""); }
+        catch (e) { follow.names = {}; }
+      }
+      return follow.names;
+    }
+    // a channel of the game's song muted or brought back (byopop_music_mute); false where its build has no such call
+    function followedMute(c, on) {
+      try { return follow.M.ccall("byopop_music_mute", "number", ["number", "number", "number"], [follow.song, c, on ? 1 : 0]) === 1; }
+      catch (e) { return false; }
+    }
     function followedUsed() {
       if (!follow.used) {
         try { follow.used = (follow.M.ccall("byopop_music_used", "string", ["number"], [follow.song]) || "").split(",").filter(Boolean).map(Number); }
@@ -1499,6 +1588,13 @@ var ByopopMusic = (function () {
     window.addEventListener("resize", function () { if (!splitDrag) setRows(asked, false); });
     if (window.ResizeObserver) try { new ResizeObserver(function () { if (!splitDrag) setRows(asked, false); }).observe(root); } catch (e) {}
     visEl.addEventListener("click", function (ev) { if (!trackerScroll.contains(ev.target)) nextVis(); });
+    // a click on a channel's number in the tracker's header is the channel's, not the display's
+    trackerHead.addEventListener("click", function (ev) {
+      var span = ev.target.closest ? ev.target.closest(".mu-ch") : null;
+      if (!span) return;
+      ev.stopPropagation();
+      clickChannel(+span.getAttribute("data-ch"), ev.ctrlKey || ev.metaKey);
+    });
     // the bar: the thumb's size is the share of the channels shown, its place the first one's
     function placeThumb() {
       if (trackerScroll.hidden) return;
