@@ -201,6 +201,78 @@ working set than the original during the minute (about 20 MB of it at the menu a
 the port's against about 7 MB to the original's); the performance pass looks at where it goes. Neither run fell behind real
 time. The page's load time was not measured.
 
+## The performance pass (2026-11-11)
+
+**What the profile showed.** `games/bejeweled/tools/profile/cpuprof.py` (every thread's instruction pointer about once a
+millisecond, weighted by cycles) under rundesk, on the port in real time over the load and 36 s of the first board: 68% of the
+cycles are in ntdll (the system's calls on the game's behalf: the present, the driver), 13% in the exe. Of the exe's share the
+game's own code is small: `DDInterface::PrepareTexture` (the framework's upload of the 800x600 screen, 6.6% of all cycles) and
+`WaterBugsWidget::Draw` (the 16-bit screen widened to the framework's 32 bits, 3.0%) come first, then the engine's blitters
+(`Alpha16MaskFade` 0.9%). On a dense late board under `-fast` (level 300, 9200 updates in 5.4 s, about 1700 updates a second) the
+game's own code is 62% of the cycles and `Alpha16MaskFade`, the fading cell blit, is 24.5% of them; that matters only to how fast a
+test runs (a real-time minute spends about 3 to 4% of a core there), and it was not changed. The start (the process to the first
+frame) is the framework's window and graphics device for about 300 ms, then the game's own `GameStart` for 175 ms (the art banks
+45 to 60 ms, the game file with its 77 animations 120 to 136 ms; five runs); the original took 1.0 s for its loading and the port
+0.5 to 0.6 s of "Resource Loading Time", so the loading stands as it is.
+
+**What changed.**
+- The widget's screen picture (`WaterBugsWidget`) is opaque and uploaded as it is, as the Mahjong ports' screen is: `SetImageMode(false,
+  false)` so that the framework does not look through the 480000 pixels for alpha after each change, and `mUploadAsIs` so that it
+  does not premultiply them pixel by pixel in strips before the upload (every alpha byte is 0xff, where premultiplying changes
+  nothing). The 16-bit pixels are widened by a 65536-entry table (`gPixelsFromScreen16`, 256 KB, made once) instead of three shifts
+  and two ORs a pixel. The pixels that reach the screen are the same.
+- `memreport` (docs/TEST_COMMANDS.md): the framework answers it (the screen picture, the sounds and songs); the engine's own
+  holders are added by `wb::AddMemReportHolders` (`src/testhooks/TestCommands.cpp`, from `WaterBugsApp::AddMemReportHolders`): the
+  art banks' pixels and masks, the animations' frames and masks, the run-length masks, the palettes and animation records, and the
+  back buffer.
+- `tools/profile/cputime.py` (one real-time scripted run's processor time, every thread, and the peaks) and `pairs.sh` (two exes
+  alternated over one script) for the comparison below.
+
+**Proof that play is unchanged.** A windowed `-fast` run of 5000 updates (the start, a world, a board, random shots; seed 11) gave
+byte-identical PNGs at 8 points (updates 100 to 4900) from the build before and the build after, and `tools/check.sh waterbugs`
+passes with every frozen value as before (the scripted game and its rerun, the window run twice, the loss, the three screens' hashes).
+
+**Numbers.** One real-time scripted run (the start, a world, the first board, random shots; 25.7 s of wall time, with 1 to 3 other sessions'
+games running), the processor time of the process (kernel plus user, every thread), the build before
+and the build after alternated:
+
+| Processor time of the run | Before | After |
+|---|---|---|
+| Runs (s) | 5.77, 5.80, 6.80, 5.42, 7.28 | 4.08, 5.03, 4.80, 4.64 |
+| Median | 5.80 s (22% of a core) | 4.72 s (18% of a core) |
+
+That is 18% less processor time (the 7.28 and the 4.08 ran while a second chain of this session's runs overlapped them; without them
+the medians are 5.77 and 4.80). The pairs of the alternation alone: 5.77 against 5.03, 6.80 against 4.80, 5.42 against 4.80. Peak
+working set (158 to 167 MB) and peak private bytes (157 to 163 MB) are the same in both.
+
+**Where the memory is.** `memreport` at the main menu (private bytes 132.8 MB; 35.6 MB of them were there before the game read a
+file, the libraries, the window and the graphics device): the art banks 27.5 MB (the converted pixels and their 8-bit masks, one
+block of 26.2 MB), the animations' 1058 frames 16.1 MB and their masks 5.7 MB, the run-length masks 4.5 MB, palettes and animation
+records 1.9 MB, the back buffer 1.0 MB, the framework's screen picture 1.9 MB, the sounds 0.15 MB (the game file names only three)
+and one song; the song's player holds about 3.5 MB (measured by leaving the load out). That is about 62 MB of the 97 MB the game added; the
+rest, about 35 MB, is what the report cannot see: the heap's slack between the many frames, the driver's and the libraries' own
+allocations after the start (`tools/memmap.py` finds 99.6 MB of private memory in 134 allocations, the largest 26.2 MB the art
+bank and 15.8 and 12.7 MB the heap segments of the frames, the 22 allocations between 256 KB and 1 MB 20 MB). The original holds
+90 to 93 MB at the same place with no graphics device, so the port's extra is mostly that device (35.6 MB before the first file)
+and the real-time frames' driver memory: the 33 MB that the first screen after the menu adds in a real-time run is not the game's
+(a `-fast` run, which presents far fewer frames, adds 4 MB there). The game's own data is the original's.
+
+**Not done, and why.**
+- *Decoding the animations when first used (as Mummy Maze's and Noah's Ark's pictures are).* A count of the animations whose frames
+  a first board asks for found 42 of the 77, 14.6 of their 21.8 MB, so the gain would be about 7 MB of memory (4% of the private
+  bytes) and about 40 ms of the start; `Animation_Find` also has to give the frame count at once (a FLIC's own count replaces the
+  file's `num_frames`, and the mask file's count replaces that), so the headers would have to be read at the start anyway. Left
+  as it is.
+- *Sounds on first play:* three sounds, 0.15 MB; nothing to win.
+- *The blitters* (`Alpha16MaskFade`, `RlePal16Alpha`), only a faster `-fast`.
+
+**Shared costs seen here, for the coordinator** (the ones already listed in docs/COORDINATION.md hold for this game too):
+`DDInterface::PrepareTexture` still hands the whole 800x600 texture to SDL for each drawn frame (1.9 MB, at 60 frames a second),
+though the game knows which rectangle changed (`mDirtyLeft` to `mDirtyBottom`); a partial upload (or a streaming texture) in the
+framework would help the games that draw from a software screen. imagehlp.dll takes 9.4% of the start's cycles on the main thread
+(the profile of the first 2.2 s), also still without a call site. The graphics device is 35.6 MB of private bytes before the game
+reads a file.
+
 ## Coverage check (2026-11-08)
 
 The whole coverage check of `docs/COVERAGE.md`, after Ning Po's. origrun's `--coverage` recorded which of the original's
