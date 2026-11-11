@@ -10,13 +10,20 @@ namespace mahjongjapan
 {
 
 int gKindCounts[42];
+// gKindCounts' places: one for each plain kind (kind - 1), then all the seasons and all the flowers
+enum
+{
+	DEAL_SEASONS = 0x22,
+	DEAL_FLOWERS = 0x23,
+	NUM_DEAL_KINDS = 0x24,
+};
 int gBonusCounts[8];
 int gQuadKinds;
 int gPairKinds;
 int gDealCount;  // 0x533630
 
 // The search (0x413d90): its state is in globals in the original
-static bool gSolve2b;              // 0x5335f8 a tile of kind 0x2b is among those taken
+static bool gSolveGold;            // 0x5335f8 a tile of kind 0x2b is among those taken
 static int gSolveKinded;           // 0x5335fc the tiles on the board with a kind
 static uint32_t gSolveLimit;       // 0x533600 ms
 static uint32_t gSolveStart;       // 0x533604
@@ -25,14 +32,14 @@ static int gQuadNext;              // 0x53360c
 static int gQuadTiles;             // 0x533610
 static int gPairNext;              // 0x533614
 static int gPairTiles;             // 0x533618
-static int gHalvesLeft;            // 0x53361c
-static int gHalvesCount;           // 0x533620
+static int gLocksLeft;            // 0x53361c
+static int gLockCount;           // 0x533620
 static int gSolveBlank;            // 0x533624 the tiles taken without a kind
 static int gSolveQuads;            // 0x533628 the pairs taken as halves of fours
 static int gSolveTaken;            // 0x53362c
 static Tile* gPairOrder[400];      // 0x533704 the order's pairs, filled from the end
 static Tile* gQuadOrder[400];      // 0x533d44 the order's fours
-static Tile* gHalves[400];         // 0x534384 the tiles that match 0x2d
+static Tile* gLocks[400];         // 0x534384 the tiles that match 0x2d
 static Tile* gSolveFreed[400][20]; // 0x5349c4 the tiles a move frees, by depth
 static Tile* gSolveFree[400][400]; // 0x53c6c4 the free tiles, by depth
 
@@ -40,16 +47,16 @@ static Tile* gSolveFree[400][400]; // 0x53c6c4 the free tiles, by depth
 // kind up to 0x2a, else as 0x413380
 bool TilesMatch(int theKind, int theOther)
 {
-	if (theKind == 0x2c)
+	if (theKind == KIND_KEY)
 	{
-		if (theOther == 0x2d)
+		if (theOther == KIND_LOCK)
 			return true;
 	}
-	else if (theKind == 0x2b && theOther == 0x2b)
+	else if (theKind == KIND_GOLD && theOther == KIND_GOLD)
 		return true;
-	if (0x2a < theOther)
+	if (KIND_LAST_FLOWER < theOther)
 		return false;
-	if (theKind != 0x2e && theKind != 0x2f)
+	if (theKind != KIND_JOKER && theKind != KIND_MAGNET)
 		return KindsMatch(theKind, theOther);
 	return true;
 }
@@ -57,9 +64,9 @@ bool TilesMatch(int theKind, int theOther)
 // 0x413380: the seasons match one another, so do the flowers, the rest only themselves
 bool KindsMatch(int theKind, int theOther)
 {
-	if (0x22 < theKind && theKind < 0x27 && 0x22 < theOther && theOther < 0x27)
+	if (KIND_LAST_PLAIN < theKind && theKind < KIND_FIRST_FLOWER && KIND_LAST_PLAIN < theOther && theOther < KIND_FIRST_FLOWER)
 		return true;
-	if (0x26 < theKind && theKind < 0x2b && 0x26 < theOther && theOther < 0x2b)
+	if (KIND_LAST_SEASON < theKind && theKind < KIND_GOLD && KIND_LAST_SEASON < theOther && theOther < KIND_GOLD)
 		return true;
 	return theKind == theOther;
 }
@@ -71,13 +78,13 @@ int KindPoints(int theKind)
 		return ((theKind - 1) % 9 + 1) * 5;
 	if (theKind < 0x1f)
 		return 0x32;
-	if (0x1e < theKind && theKind < 0x23)
+	if (0x1e < theKind && theKind < KIND_FIRST_SEASON)
 		return 0x32;
-	if (0x22 < theKind && theKind < 0x27)
+	if (KIND_LAST_PLAIN < theKind && theKind < KIND_FIRST_FLOWER)
 		return 100;
-	if (0x26 < theKind && theKind < 0x2b)
+	if (KIND_LAST_SEASON < theKind && theKind < KIND_GOLD)
 		return 100;
-	return theKind == 0x2b ? 1000 : 0;
+	return theKind == KIND_GOLD ? 1000 : 0;
 }
 
 // 0x413a00: theSize more tiles to one of the 36 counts (the 34 kinds, all seasons, all flowers). While some kinds are
@@ -90,7 +97,7 @@ void AddKind(int* theCounts, int theSize, int* theEmpty, int* theFull)
 	int anEmpty;
 	if (theSize == 2 && *theEmpty == 0)
 	{
-		aRange = 0x24 - *theFull;
+		aRange = NUM_DEAL_KINDS - *theFull;
 		if (aRange == 0)
 		{
 			aPick = 0;
@@ -150,7 +157,7 @@ pick:
 				goto take;
 		}
 		i = i + 1;
-		if (i == 0x24)
+		if (i == NUM_DEAL_KINDS)
 			i = 0;
 	} while (true);
 }
@@ -173,31 +180,31 @@ void Deal::Start(Layout* theLayout, int theQuadPercent, int theMove, bool theRed
 		int aSeasons = 0;
 		for (int i = 0; i < 8; i++)
 		{
-			int aCountOf = gKindCounts[34 + i];
+			int aCountOf = gKindCounts[DEAL_SEASONS + i];
 			gBonusCounts[i] = aCountOf;
 			if (i <= 3)
 				aSeasons = aSeasons + aCountOf;
 			else
 				aFlowers = aFlowers + aCountOf;
 		}
-		gKindCounts[34] = aSeasons;
-		gKindCounts[35] = aFlowers;
+		gKindCounts[DEAL_SEASONS] = aSeasons;
+		gKindCounts[DEAL_FLOWERS] = aFlowers;
 	}
 	else
 		Distribute(aCount);
 	if (mLayout->mHasCounts)
 	{
-		gHalvesCount = mLayout->GetHalves(gHalves, 400);
-		gHalvesLeft = gHalvesCount;
+		gLockCount = mLayout->GetLocks(gLocks, 400);
+		gLocksLeft = gLockCount;
 		gSolveKinded = mLayout->CountKinded();
 	}
 	else
 	{
-		gHalvesCount = 0;
-		gHalvesLeft = 0;
+		gLockCount = 0;
+		gLocksLeft = 0;
 		gSolveKinded = 0;
 	}
-	gSolve2b = false;
+	gSolveGold = false;
 	mLayout->ClearGroups();
 	gDealCount = mLayout->CountLeft();
 	gSolveTaken = 0;
@@ -233,7 +240,7 @@ void Deal::Start(Layout* theLayout, int theQuadPercent, int theMove, bool theRed
 void Deal::Distribute(int theTiles)
 {
 	int aSeasons = 0;
-	for (int i = 0; i < 0x24; i++)
+	for (int i = 0; i < NUM_DEAL_KINDS; i++)
 		gKindCounts[i] = 0;
 	gPairKinds = 0;
 	gQuadKinds = 0;
@@ -261,14 +268,14 @@ void Deal::Distribute(int theTiles)
 	for (; 0 < theTiles; theTiles = theTiles - aRound)
 	{
 		int aRoundCounts[36];
-		int anEmpty = 0x24;
-		for (int i = 0; i < 0x24; i++)
+		int anEmpty = NUM_DEAL_KINDS;
+		for (int i = 0; i < NUM_DEAL_KINDS; i++)
 			aRoundCounts[i] = 0;
 		int aFull = 0;
 		int aTaken = 0;
 		if (0 < aFixed && aFixedDealt < aFixed)
 		{
-			for (int i = 0; i < 0x24; i++)
+			for (int i = 0; i < NUM_DEAL_KINDS; i++)
 			{
 				int aCount = aCounts[i];
 				if (0 < aCount)
@@ -315,7 +322,7 @@ void Deal::Distribute(int theTiles)
 		}
 		if (0 < aTaken)
 		{
-			for (int i = 0; i < 0x24; i++)
+			for (int i = 0; i < NUM_DEAL_KINDS; i++)
 			{
 				int aCount = aCounts[i];
 				if (0 < aCount)
@@ -333,12 +340,12 @@ void Deal::Distribute(int theTiles)
 				}
 			}
 		}
-		for (int i = 0; i < 0x24; i++)
+		for (int i = 0; i < NUM_DEAL_KINDS; i++)
 			gKindCounts[i] = gKindCounts[i] + aRoundCounts[i];
 	}
 	for (int i = 0; i < 8; i++)
 		gBonusCounts[i] = 0;
-	int aSeasonTotal = gKindCounts[34];
+	int aSeasonTotal = gKindCounts[DEAL_SEASONS];
 	if (aFixed < 1)
 	{
 		int i = 0;
@@ -350,7 +357,7 @@ void Deal::Distribute(int theTiles)
 				i = i + 1;
 			} while (i < aSeasonTotal);
 		}
-		int aFlowerTotal = gKindCounts[35];
+		int aFlowerTotal = gKindCounts[DEAL_FLOWERS];
 		i = 0;
 		if (0 < aFlowerTotal)
 		{
@@ -383,7 +390,7 @@ void Deal::Distribute(int theTiles)
 				aBonusSlot = aBonusSlot + 1;
 			} while (aDealt < aSeasonTotal);
 		}
-		int aFlowerTotal = gKindCounts[35];
+		int aFlowerTotal = gKindCounts[DEAL_FLOWERS];
 		i = 0;
 		aDealt = 0;
 		if (0 < aFlowerTotal)
@@ -418,7 +425,7 @@ void Deal::DealOrder()
 		aCountSlot = aCountSlot + 1;
 		aQuads = aQuads + aCount / 4;
 		aPairs = aPairs + aCount / 2;
-	} while (aCountSlot < gKindCounts + 0x24);
+	} while (aCountSlot < gKindCounts + NUM_DEAL_KINDS);
 	int i = 0;
 	if (0 < gQuadTiles)
 	{
@@ -465,7 +472,7 @@ void DealKind(Tile** theTiles, int theSize, int* theLeft)
 	while (gKindCounts[k] < theSize || (aSeen = aSeen + gKindCounts[k] / theSize, aSeen <= aPick))
 	{
 		k = k + 1;
-		if (k == 0x24)
+		if (k == NUM_DEAL_KINDS)
 			k = 0;
 	}
 	int i = 0;
@@ -473,10 +480,10 @@ void DealKind(Tile** theTiles, int theSize, int* theLeft)
 	{
 		do
 		{
-			if (k == 0x22)
-				DealBonus(*theTiles, gKindCounts[34] - i, 0x23);
-			else if (k == 0x23)
-				DealBonus(*theTiles, gKindCounts[35] - i, 0x27);
+			if (k == DEAL_SEASONS)
+				DealBonus(*theTiles, gKindCounts[DEAL_SEASONS] - i, KIND_FIRST_SEASON);
+			else if (k == DEAL_FLOWERS)
+				DealBonus(*theTiles, gKindCounts[DEAL_FLOWERS] - i, KIND_FIRST_FLOWER);
 			else
 				(*theTiles)->mKind = k + 1;
 			i = i + 1;
@@ -517,10 +524,10 @@ void DealOne(Tile* theTile, int* theLeft)
 		{
 			if (0 < gKindCounts[k] && (aSeen = aSeen + gKindCounts[k], aPick < aSeen))
 			{
-				if (k == 0x22)
-					DealBonus(theTile, gKindCounts[34], 0x23);
-				else if (k == 0x23)
-					DealBonus(theTile, gKindCounts[35], 0x27);
+				if (k == DEAL_SEASONS)
+					DealBonus(theTile, gKindCounts[DEAL_SEASONS], KIND_FIRST_SEASON);
+				else if (k == DEAL_FLOWERS)
+					DealBonus(theTile, gKindCounts[DEAL_FLOWERS], KIND_FIRST_FLOWER);
 				else
 					theTile->mKind = k + 1;
 				gKindCounts[k] = gKindCounts[k] - 1;
@@ -528,7 +535,7 @@ void DealOne(Tile* theTile, int* theLeft)
 				return;
 			}
 			k = k + 1;
-		} while (k != 0x24);
+		} while (k != NUM_DEAL_KINDS);
 	} while (true);
 }
 
@@ -541,7 +548,7 @@ void DealBonus(Tile* theTile, int theRange, int theBase)
 	else
 		aPick = jb::CrtRand() % theRange;
 	int i = 0;
-	int aFirst = theBase != 0x23 ? 4 : 0;
+	int aFirst = theBase != KIND_FIRST_SEASON ? 4 : 0;
 	int aSeen = 0;
 	int* aCountSlot = gBonusCounts + aFirst;
 	do
@@ -563,7 +570,7 @@ void DealBonus(Tile* theTile, int theRange, int theBase)
 // 0x2f go alone and 0x2d only with a 0x2c.
 bool Deal::Solve(int theDepth, int theCount, int theGroup)
 {
-	if (gHalvesLeft + gSolveTaken == gDealCount || (gSolve2b && gSolveKinded + gSolveTaken == gDealCount))
+	if (gLocksLeft + gSolveTaken == gDealCount || (gSolveGold && gSolveKinded + gSolveTaken == gDealCount))
 	{
 		gQuadTiles = gSolveQuads * 4;
 		gQuadNext = gQuadTiles - 1;
@@ -583,22 +590,22 @@ bool Deal::Solve(int theDepth, int theCount, int theGroup)
 			if (mLayout->mHasCounts)
 			{
 				int aKind = aTile->mKind;
-				if (aKind == 0x2c)
+				if (aKind == KIND_KEY)
 				{
-					if (0 < gHalvesLeft)
+					if (0 < gLocksLeft)
 					{
-						int k = gHalvesCount - 1;
+						int k = gLockCount - 1;
 						if (-1 < k)
 						{
-							Tile** aHalf = gHalves + k;
+							Tile** aHalf = gLocks + k;
 							do
 							{
 								if ((*aHalf)->mTaken == 0)
 								{
-									gHalvesLeft = gHalvesLeft - 1;
+									gLocksLeft = gLocksLeft - 1;
 									if (Take(aTile, *aHalf, theCount, theDepth, theGroup))
 										return true;
-									gHalvesLeft = gHalvesLeft + 1;
+									gLocksLeft = gLocksLeft + 1;
 								}
 								k = k - 1;
 								aHalf = aHalf - 1;
@@ -607,9 +614,9 @@ bool Deal::Solve(int theDepth, int theCount, int theGroup)
 					}
 					goto next;
 				}
-				if (aKind == 0x2d)
+				if (aKind == KIND_LOCK)
 					goto next;
-				if (aKind == 0x2e || aKind == 0x2f)
+				if (aKind == KIND_JOKER || aKind == KIND_MAGNET)
 				{
 					if (Take(aTile, nullptr, theCount, theDepth, theGroup))
 						return true;
@@ -673,8 +680,8 @@ bool Deal::Take(Tile* theTile, Tile* theOther, int theCount, int theDepth, int t
 		gSolveBlank = gSolveBlank + 1;
 	else
 		gSolveKinded = gSolveKinded - 1;
-	if (theTile->mKind == 0x2b)
-		gSolve2b = true;
+	if (theTile->mKind == KIND_GOLD)
+		gSolveGold = true;
 	if (theOther != nullptr)
 	{
 		theOther->mTaken = mMove;
@@ -767,8 +774,8 @@ bool Deal::Take(Tile* theTile, Tile* theOther, int theCount, int theDepth, int t
 		gSolveBlank = gSolveBlank - 1;
 	else
 		gSolveKinded = gSolveKinded + 1;
-	if (theTile->mKind == 0x2b)
-		gSolve2b = false;
+	if (theTile->mKind == KIND_GOLD)
+		gSolveGold = false;
 	if (theOther != nullptr)
 	{
 		theOther->mTaken = 0;

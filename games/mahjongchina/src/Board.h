@@ -140,7 +140,7 @@ public:
 	int mMusicMove = -1;          // +0xb58 the move the key tiles' music started at
 	int mSelSound = -1;           // +0xb5c
 	bool mTipShown = false;       // +0xb60 a tip covers the board: it is still drawn
-	bool mTipKeys = false;        // +0xb61 the key tiles' tip waits for both to be free
+	bool mTipGold = false;        // +0xb61 the key tiles' tip waits for both to be free
 	bool mTipFlowers = false;     // +0xb62 the flowers' tip waits for a free flower
 	bool mHighlight = false;      // +0xb63 the tip's tiles bob
 	int mHighlightKind = 0;       // +0xb64
@@ -198,7 +198,7 @@ public:
 	// 0x40b3d0
 	void DrawFlight(Flight* theFlight);
 	// 0x40b650
-	void ApplyWildLinks() { mLayout.ApplyWildLinks(); }
+	void ApplyMagnetLinks() { mLayout.ApplyMagnetLinks(); }
 	// 0x40b690: the tiles' rects and the layout's offset
 	void Measure();
 	// 0x40b780: where the tiles fly in from
@@ -228,18 +228,18 @@ public:
 	// 0x40c990
 	void EndTake();
 	// 0x40c9c0: the halves (0x2c with 0x2d)
-	void TakeHalves(Tile* theTile, Tile* theOther);
+	void TakeKeyAndLock(Tile* theTile, Tile* theOther);
 	// 0x40cab0, 0x40cb60, 0x40cc00
-	void JoinHalves();
-	void FlyHalves();
-	void EndHalves();
+	void JoinKeyAndLock();
+	void FlyKeyAndLock();
+	void EndKeyAndLock();
 	// 0x40cc10: the wild tile (0x2e) takes every free tile of the other's kind
-	void TakeWild(Tile* theTile, Tile* theOther);
+	void TakeJoker(Tile* theTile, Tile* theOther);
 	// 0x40cd80: the linked wild tile (0x2f) takes the other's kind
-	void TakeLinked(Tile* theTile, Tile* theOther);
+	void TakeMagnet(Tile* theTile, Tile* theOther);
 	// 0x40ce30, 0x40ced0
-	void FlyLinked();
-	void EndLinked();
+	void FlyMagnet();
+	void EndMagnet();
 	// 0x40cef0
 	void FinishFlights();
 	// 0x40cf20
@@ -250,8 +250,8 @@ public:
 	void UndoPair(Tile* theTile, Tile* theOther);
 	// 0x40d3c0, 0x40d460, 0x40d510
 	void EndUndo();
-	void UndoLinked();
-	void EndUndoLinked();
+	void UndoMagnet();
+	void EndUndoMagnet();
 	// 0x40d560: the free pairs counted, the hints' order, the tips and the key tiles' music
 	void UpdateMoves();
 	// 0x40d6e0
@@ -259,16 +259,16 @@ public:
 	// 0x40d870
 	void StartHints();
 	// 0x40d8b0: the key tiles end the round
-	void TakeKeys(Tile* theTile, Tile* theOther);
+	void TakeGold(Tile* theTile, Tile* theOther);
 	// 0x40da30, 0x40da70
-	void EndKeys();
+	void EndGold();
 	void FlyOff();
 	// 0x40dc00
 	void EndRound();
 	// 0x40dea0
 	void EndHighlight() { mHighlight = false; }
 	// 0x40deb0
-	void EndKeysInTray();
+	void EndGoldInTray();
 	// 0x40df00: Enter or space skips the tiles flying off
 	void SkipFlyOff();
 	// 0x40dfa0: the layout to save, or null

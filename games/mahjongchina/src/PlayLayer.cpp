@@ -412,7 +412,7 @@ void PlayLayer::StartLevel(int theLevel, bool theResume, int theLayoutId, const 
 			mTip = 4;
 	}
 	if (mLevel == 0 && aProgress == 0)
-		mBoard->mTipKeys = true;
+		mBoard->mTipGold = true;
 	if (mLevel == 1 && aProgress == 1)
 		mBoard->mTipFlowers = true;
 	ResetGame();
@@ -437,7 +437,7 @@ void PlayLayer::Begin()
 void PlayLayer::Restart()
 {
 	mResume = false;
-	mBoard->ApplyWildLinks();
+	mBoard->ApplyMagnetLinks();
 	ResetGame();
 	if (mMode == 0)
 	{

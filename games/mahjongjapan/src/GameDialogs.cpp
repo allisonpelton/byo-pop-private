@@ -448,21 +448,21 @@ void TipPicture::Draw()
 	int anImage = mImage;
 	if (anImage == 0x3f)
 	{
-		DrawTile(0, 0, 0x27);
+		DrawTile(0, 0, KIND_FIRST_FLOWER);
 		mFont->DrawCentred(this, 0, 0x4b, mNames2[0].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0x50, 0, 0x28);
+		DrawTile(0x50, 0, KIND_FIRST_FLOWER + 1);
 		mFont->DrawCentred(this, 0x50, 0x4b, mNames2[1].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0xa0, 0, 0x29);
+		DrawTile(0xa0, 0, KIND_FIRST_FLOWER + 2);
 		mFont->DrawCentred(this, 0xa0, 0x4b, mNames2[2].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0xf0, 0, 0x2a);
+		DrawTile(0xf0, 0, KIND_FIRST_FLOWER + 3);
 		mFont->DrawCentred(this, 0xf0, 0x4b, mNames2[3].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0, 0x91, 0x23);
+		DrawTile(0, 0x91, KIND_FIRST_SEASON);
 		mFont->DrawCentred(this, 0, 0xdc, mNames1[0].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0x50, 0x91, 0x24);
+		DrawTile(0x50, 0x91, KIND_FIRST_SEASON + 1);
 		mFont->DrawCentred(this, 0x50, 0xdc, mNames1[1].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0xa0, 0x91, 0x25);
+		DrawTile(0xa0, 0x91, KIND_FIRST_SEASON + 2);
 		mFont->DrawCentred(this, 0xa0, 0xdc, mNames1[2].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0xf0, 0x91, 0x26);
+		DrawTile(0xf0, 0x91, KIND_FIRST_SEASON + 3);
 		mFont->DrawCentred(this, 0xf0, 0xdc, mNames1[3].c_str(), 0x30, 100, 100, 0xff);
 		return;
 	}

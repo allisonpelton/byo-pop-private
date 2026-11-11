@@ -185,9 +185,9 @@ int Layout::GetFree(Tile** theTiles, int theMax)
 }
 
 // 0x414880
-int Layout::GetHalves(Tile** theTiles, int theMax)
+int Layout::GetLocks(Tile** theTiles, int theMax)
 {
-	return GetMatching(0x2d, theTiles, theMax);
+	return GetMatching(KIND_LOCK, theTiles, theMax);
 }
 
 // 0x4148a0
@@ -237,7 +237,7 @@ int Layout::GetFreeSpecials(Tile** theTiles, int theMax)
 		if (aTile->mTaken == 0 && aTile->mFree)
 		{
 			int aKind = aTile->mKind;
-			if (aKind == 0x2c || aKind == 0x2e || aKind == 0x2f)
+			if (aKind == KIND_KEY || aKind == KIND_JOKER || aKind == KIND_MAGNET)
 			{
 				if (aCount < theMax)
 					*theTiles = aTile;
@@ -369,12 +369,12 @@ bool Layout::IsFree(int theX, int theY, int theZ)
 // 0x414d10: the seasons count together (at 0x23) and so do the flowers (at 0x27)
 void Layout::CountMoves(int* thePairs, int* theLeft, int* theKinds)
 {
-	int aCounts[0x2c];
+	int aCounts[NUM_COUNTED_KINDS];
 	jb::ListNode* aNode = mHead;
 	*theKinds = 0;
 	*theLeft = 0;
 	*thePairs = 0;
-	for (int i = 0; i < 0x2c; i++)
+	for (int i = 0; i < NUM_COUNTED_KINDS; i++)
 		aCounts[i] = 0;
 	for (; aNode != nullptr; aNode = aNode->mNext)
 	{
@@ -383,22 +383,22 @@ void Layout::CountMoves(int* thePairs, int* theLeft, int* theKinds)
 		{
 			*theLeft = *theLeft + 1;
 			int aKind;
-			if (aTile->mFree && (aKind = aTile->mKind, aKind < 0x2c))
+			if (aTile->mFree && (aKind = aTile->mKind, aKind < NUM_COUNTED_KINDS))
 			{
-				if (aKind < 0x23 || 0x26 < aKind)
+				if (aKind < KIND_FIRST_SEASON || KIND_LAST_SEASON < aKind)
 				{
-					if (aKind < 0x27 || 0x2a < aKind)
+					if (aKind < KIND_FIRST_FLOWER || KIND_LAST_FLOWER < aKind)
 						aCounts[aKind] = aCounts[aKind] + 1;
 					else
-						aCounts[0x27] = aCounts[0x27] + 1;
+						aCounts[KIND_FIRST_FLOWER] = aCounts[KIND_FIRST_FLOWER] + 1;
 				}
 				else
-					aCounts[0x23] = aCounts[0x23] + 1;
+					aCounts[KIND_FIRST_SEASON] = aCounts[KIND_FIRST_SEASON] + 1;
 			}
 		}
 	}
 	int* aCountSlot = aCounts;
-	int aRemaining = 0x2c;
+	int aRemaining = NUM_COUNTED_KINDS;
 	do
 	{
 		if (1 < *aCountSlot)
@@ -430,7 +430,7 @@ int Layout::CountFree2b()
 	for (jb::ListNode* aNode = mHead; aNode != nullptr; aNode = aNode->mNext)
 	{
 		Tile* aTile = (Tile*)aNode->mObj;
-		if (aTile->mTaken == 0 && aTile->mKind == 0x2b && aTile->mFree)
+		if (aTile->mTaken == 0 && aTile->mKind == KIND_GOLD && aTile->mFree)
 			aCount = aCount + 1;
 	}
 	return aCount;
@@ -446,7 +446,7 @@ bool Layout::HasFreeFlowers()
 		if (aNode == nullptr)
 			return false;
 		Tile* aTile = (Tile*)aNode->mObj;
-		if (aTile->mTaken == 0 && 0x26 < aTile->mKind && aTile->mKind < 0x2b && aTile->mFree &&
+		if (aTile->mTaken == 0 && KIND_LAST_SEASON < aTile->mKind && aTile->mKind < KIND_GOLD && aTile->mFree &&
 			(aCount = aCount + 1, 1 < aCount))
 			break;
 		aNode = aNode->mNext;
@@ -474,23 +474,23 @@ int Layout::GetTaken(int theMove, Tile** theTiles, int theMax)
 // 0x414ec0
 int Layout::GetPairsOf(int theIndex, Tile** theTiles, int theMax)
 {
-	int aCounts[0x2c];
+	int aCounts[NUM_COUNTED_KINDS];
 	jb::ListNode* aHead = mHead;
-	for (int i = 0; i < 0x2c; i++)
+	for (int i = 0; i < NUM_COUNTED_KINDS; i++)
 		aCounts[i] = 0;
 	for (jb::ListNode* aNode = aHead; aNode != nullptr; aNode = aNode->mNext)
 	{
 		Tile* aTile = (Tile*)aNode->mObj;
 		int aKind;
-		if (aTile->mTaken == 0 && aTile->mFree && (aKind = aTile->mKind, aKind < 0x2c))
+		if (aTile->mTaken == 0 && aTile->mFree && (aKind = aTile->mKind, aKind < NUM_COUNTED_KINDS))
 		{
-			if (aKind < 0x23 || 0x26 < aKind)
+			if (aKind < KIND_FIRST_SEASON || KIND_LAST_SEASON < aKind)
 			{
-				if (0x26 < aKind && aKind < 0x2b)
-					aKind = 0x27;
+				if (KIND_LAST_SEASON < aKind && aKind < KIND_GOLD)
+					aKind = KIND_FIRST_FLOWER;
 			}
 			else
-				aKind = 0x23;
+				aKind = KIND_FIRST_SEASON;
 			aCounts[aKind] = aCounts[aKind] + 1;
 		}
 	}
@@ -503,7 +503,7 @@ int Layout::GetPairsOf(int theIndex, Tile** theTiles, int theMax)
 		{
 			if (theIndex == aSeen)
 			{
-				if (aKind < 0x2c)
+				if (aKind < NUM_COUNTED_KINDS)
 				{
 					int aCount = 0;
 					for (jb::ListNode* aNode = aHead; aNode != nullptr; aNode = aNode->mNext)
@@ -525,22 +525,22 @@ int Layout::GetPairsOf(int theIndex, Tile** theTiles, int theMax)
 		}
 		aKind = aKind + 1;
 		aCountSlot = aCountSlot + 1;
-	} while (aKind < 0x2c);
+	} while (aKind < NUM_COUNTED_KINDS);
 	return 0;
 }
 
 // 0x414fd0
-void Layout::ApplyWildLinks()
+void Layout::ApplyMagnetLinks()
 {
 	for (jb::ListNode* aNode = mHead; aNode != nullptr; aNode = aNode->mNext)
 	{
 		Tile* aTile = (Tile*)aNode->mObj;
-		Tile* aLink = aTile->mWildLink;
+		Tile* aLink = aTile->mMagnetLink;
 		if (aLink != nullptr && aTile->mTaken != 0)
 		{
-			aLink->mKind = 0x2f;
-			aTile->mWildLink->mPreset = true;
-			aTile->mWildLink = nullptr;
+			aLink->mKind = KIND_MAGNET;
+			aTile->mMagnetLink->mPreset = true;
+			aTile->mMagnetLink = nullptr;
 		}
 	}
 }
@@ -601,7 +601,7 @@ int Layout::GetCounts(int* theCounts)
 	{
 		Tile* aTile = (Tile*)aNode->mObj;
 		int aKind;
-		if (aTile->mPreset && (aKind = aTile->mKind, aKind < 0x2b))
+		if (aTile->mPreset && (aKind = aTile->mKind, aKind < KIND_GOLD))
 		{
 			aCount = aCount + 1;
 			theCounts[aKind - 1] = theCounts[aKind - 1] + 1;
@@ -646,19 +646,19 @@ void Layout::GetLowest(Tile** theTile, Tile** theOther)
 		if (aTile->mTaken == 0)
 		{
 			int aKind = aTile->mKind;
-			if (aKind < 0x23 || 0x26 < aKind)
+			if (aKind < KIND_FIRST_SEASON || KIND_LAST_SEASON < aKind)
 			{
-				if (0x26 < aKind && aKind < 0x2b)
-					aKind = 0x27;
+				if (KIND_LAST_SEASON < aKind && aKind < KIND_GOLD)
+					aKind = KIND_FIRST_FLOWER;
 			}
 			else
-				aKind = 0x23;
+				aKind = KIND_FIRST_SEASON;
 			if (aKind < aLowest)
 			{
 				*theTile = aTile;
 				aLowest = aKind;
 			}
-			else if (aKind == aLowest && aKind < 0x2b)
+			else if (aKind == aLowest && aKind < KIND_GOLD)
 				*theOther = aTile;
 		}
 	}
@@ -671,7 +671,7 @@ int Layout::TakeKinds()
 	for (jb::ListNode* aNode = mHead; aNode != nullptr; aNode = aNode->mNext)
 	{
 		Tile* aTile = (Tile*)aNode->mObj;
-		if (aTile->mTaken == 0 && aTile->mKind < 0x2b)
+		if (aTile->mTaken == 0 && aTile->mKind < KIND_GOLD)
 		{
 			aCount = aCount + 1;
 			aTile->mTaken = 1;
@@ -687,7 +687,7 @@ int Layout::TakeSpecials()
 	for (jb::ListNode* aNode = mHead; aNode != nullptr; aNode = aNode->mNext)
 	{
 		Tile* aTile = (Tile*)aNode->mObj;
-		if (aTile->mTaken == 0 && 0x2a < aTile->mKind)
+		if (aTile->mTaken == 0 && KIND_LAST_FLOWER < aTile->mKind)
 		{
 			aCount = aCount + 1;
 			aTile->mTaken = 1;
@@ -781,7 +781,7 @@ void Layout::Serialize(jb::Stream& theStream)
 		for (jb::ListNode* aNode = mHead; aNode != nullptr; aNode = aNode->mNext)
 		{
 			theStream.Serialize((Tile*)aNode->mObj);
-			if (((Tile*)aNode->mObj)->mWildLink != nullptr)
+			if (((Tile*)aNode->mObj)->mMagnetLink != nullptr)
 				aLinks = aLinks + 1;
 		}
 		theStream.Short(aLinks);
@@ -790,9 +790,9 @@ void Layout::Serialize(jb::Stream& theStream)
 			int anIndex = 0;
 			for (jb::ListNode* aNode = mHead; aNode != nullptr; aNode = aNode->mNext)
 			{
-				if (((Tile*)aNode->mObj)->mWildLink != nullptr)
+				if (((Tile*)aNode->mObj)->mMagnetLink != nullptr)
 				{
-					int aLink = IndexOf(((Tile*)aNode->mObj)->mWildLink);
+					int aLink = IndexOf(((Tile*)aNode->mObj)->mMagnetLink);
 					theStream.Short(anIndex);
 					theStream.Short(aLink);
 				}
@@ -812,7 +812,7 @@ void Layout::Serialize(jb::Stream& theStream)
 		Tile* aTile = (Tile*)aNode->mObj;
 		if (aRead.mX != aTile->mX || aRead.mY != aTile->mY || aRead.mZ != aTile->mZ)
 			return;
-		if (!aTile->mPreset || aTile->mKind == 0x2f)
+		if (!aTile->mPreset || aTile->mKind == KIND_MAGNET)
 			aTile->mKind = aRead.mKind;
 		((Tile*)aNode->mObj)->mTaken = aRead.mTaken;
 	}
@@ -830,7 +830,7 @@ void Layout::Serialize(jb::Stream& theStream)
 			Tile* aLink;
 			if (aTile == nullptr || (aLink = At(aLinkIndex)) == nullptr)
 				break;
-			aTile->mWildLink = aLink;
+			aTile->mMagnetLink = aLink;
 			i = i + 1;
 		} while (i < aLinks);
 	}

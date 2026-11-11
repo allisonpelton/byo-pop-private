@@ -73,7 +73,7 @@ public:
 // screen coordinates (the board at 0,0x42, placed as Board::Measure, 0x40b690, does). A move is a pair of free
 // tiles, or a free special tile and a tile it can take (Board::CanSelect 0x40c350, CanPair 0x40c3b0, Take 0x40c560):
 // a key (0x2c) takes a lock (0x2d) that can be seen; the wild tile 0x2e takes every tile of the kind of an ordinary
-// tile that can be seen (TakeWild 0x40cc10); 0x2f takes such a tile and becomes its kind (TakeLinked 0x40cd80).
+// tile that can be seen (TakeJoker 0x40cc10); 0x2f takes such a tile and becomes its kind (TakeMagnet 0x40cd80).
 // The search tries the moves nearest the key tiles first.
 struct Move
 {

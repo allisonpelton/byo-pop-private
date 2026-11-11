@@ -2,6 +2,7 @@
 
 #include "Font.h"
 #include "JBBase.h"
+#include "Layout.h"
 #include "Manager.h"
 #include "Res.h"
 
@@ -51,36 +52,36 @@ void HelpExample::Draw()
 		return;
 	case 2:
 	case 5:
-		DrawTile(0, 0, 0x23);
+		DrawTile(0, 0, KIND_FIRST_SEASON);
 		mFont->DrawCentred(this, 0, 0x4b, mNames1[0].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0x50, 0, 0x24);
+		DrawTile(0x50, 0, KIND_FIRST_SEASON + 1);
 		mFont->DrawCentred(this, 0x50, 0x4b, mNames1[1].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0xa0, 0, 0x25);
+		DrawTile(0xa0, 0, KIND_FIRST_SEASON + 2);
 		mFont->DrawCentred(this, 0xa0, 0x4b, mNames1[2].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0xf0, 0, 0x26);
+		DrawTile(0xf0, 0, KIND_FIRST_SEASON + 3);
 		mFont->DrawCentred(this, 0xf0, 0x4b, mNames1[3].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0, 0x55, 0x27);
+		DrawTile(0, 0x55, KIND_FIRST_FLOWER);
 		mFont->DrawCentred(this, 0, 0xa0, mNames2[0].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0x50, 0x55, 0x28);
+		DrawTile(0x50, 0x55, KIND_FIRST_FLOWER + 1);
 		mFont->DrawCentred(this, 0x50, 0xa0, mNames2[1].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0xa0, 0x55, 0x29);
+		DrawTile(0xa0, 0x55, KIND_FIRST_FLOWER + 2);
 		mFont->DrawCentred(this, 0xa0, 0xa0, mNames2[2].c_str(), 0x30, 100, 100, 0xff);
-		DrawTile(0xf0, 0x55, 0x2a);
+		DrawTile(0xf0, 0x55, KIND_FIRST_FLOWER + 3);
 		mFont->DrawCentred(this, 0xf0, 0xa0, mNames2[3].c_str(), 0x30, 100, 100, 0xff);
 		return;
 	case 3:
-		DrawSpecial(-5, -0x3f, 0x2b);
-		DrawSpecial(-0x2f, -0x3f, 0x2b);
+		DrawSpecial(-5, -0x3f, KIND_GOLD);
+		DrawSpecial(-0x2f, -0x3f, KIND_GOLD);
 		return;
 	case 6:
-		DrawSpecial(-5, -0x21, 0x2b);
-		DrawSpecial(-0x2f, -0x21, 0x2b);
-		DrawSpecial(-5, 0x48, 0x2c);
-		DrawSpecial(-0x2f, 0x48, 0x2d);
+		DrawSpecial(-5, -0x21, KIND_GOLD);
+		DrawSpecial(-0x2f, -0x21, KIND_GOLD);
+		DrawSpecial(-5, 0x48, KIND_KEY);
+		DrawSpecial(-0x2f, 0x48, KIND_LOCK);
 		return;
 	case 7:
-		DrawSpecial(-0x2a, -0x49, 0x2f);
-		DrawSpecial(-0x2a, 0x2a, 0x2e);
+		DrawSpecial(-0x2a, -0x49, KIND_MAGNET);
+		DrawSpecial(-0x2a, 0x2a, KIND_JOKER);
 	}
 }
 
@@ -89,10 +90,10 @@ void HelpExample::DrawSpecial(int theX, int theY, int theKind)
 {
 	jb::Rect aRect;
 	aRect.left = 0;
-	if (theKind == 0x2b)
+	if (theKind == KIND_GOLD)
 		aRect.left = 1;
-	else if (0x2b < theKind)
-		aRect.left = theKind - 0x2a;
+	else if (KIND_GOLD < theKind)
+		aRect.left = theKind - KIND_LAST_FLOWER;
 	aRect.left = aRect.left * 0x30;
 	aRect.right = aRect.left + 0x30;
 	aRect.top = 0;
