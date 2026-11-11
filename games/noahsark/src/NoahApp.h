@@ -87,6 +87,14 @@ enum DialogId
 	DIALOG_DIFFICULTY = 12
 };
 
+// A dialog's own buttons report to the app with the dialog's id added to one of these
+enum DialogButtonBase
+{
+	DIALOG_YES = 2000,           // the first button: Yes, OK, or the one button of a footer
+	DIALOG_NO = 3000,            // the second: No or Cancel
+	DIALOG_BUTTONS_END = 4000
+};
+
 // Button ids
 enum ButtonId
 {

@@ -187,7 +187,7 @@ void NoahApp::UpdateTestGoto()
 		return;
 	std::string aScreen = TestScreen();
 	if (aScreen == "newgame")
-		ButtonDepress(2000 + DIALOG_NEW_GAME);
+		ButtonDepress(DIALOG_YES + DIALOG_NEW_GAME);
 	else if (aScreen == "difficulty")
 	{
 		DifficultyDialog* aDialog = (DifficultyDialog*) GetDialog(DIALOG_DIFFICULTY);
@@ -250,7 +250,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 			if (aScreen == "title")
 				TitleScreenDone();
 			else if (aScreen == "game")
-				ButtonDepress(2000 + DIALOG_QUIT);          // the quit question's Yes: the game is saved and the menu comes back
+				ButtonDepress(DIALOG_YES + DIALOG_QUIT);          // the quit question's Yes: the game is saved and the menu comes back
 			else if (aScreen == "highscores")
 				mHighScoreWidget->ButtonDepress(1);
 			else if (aScreen != "menu")

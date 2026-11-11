@@ -293,7 +293,7 @@ void NoahApp::AutoplayUpdate()
 				return;
 			}
 			((RecordScoreDialog*) aDialog)->mNameEdit->SetText("BOT");
-			ButtonDepress(2000 + DIALOG_RECORD_SCORE);
+			ButtonDepress(DIALOG_YES + DIALOG_RECORD_SCORE);
 			aState->mWait = 5;
 			return;
 		}
@@ -357,7 +357,7 @@ void NoahApp::AutoplayUpdate()
 	{
 		if (mAutoplayMenu)
 			return;                 // a -script clicks it, as in the original
-		ButtonDepress(2000 + DIALOG_MODE_INTRO);
+		ButtonDepress(DIALOG_YES + DIALOG_MODE_INTRO);
 		aState->mWait = 5;
 		return;
 	}

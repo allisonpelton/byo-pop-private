@@ -221,12 +221,12 @@ void IntroWidget::Draw(Graphics* g)
 	// the lines about the button the mouse is on (or the general invitation)
 	static const unsigned int aTables[6][6] =
 	{
-		{0x0049c510, 0x004949f0, 0x0049c510, 0x004949e0, 0x0049c510, 0x0049c510},
+		{GT_EMPTY, 0x004949f0, GT_EMPTY, 0x004949e0, GT_EMPTY, GT_EMPTY},
 		{0x004949d0, 0x004949c0, 0x004949b0, 0x004949a0, 0x00494994, 0x00494984},
 		{0x00494978, 0x0049496c, 0x0049495c, 0x00494950, 0x00494944, 0x00494938},
 		{0x00494928, 0x00494918, 0x00494908, 0x004948f8, 0x004948ec, 0x004948e0},
 		{0x004948d0, 0x004948c0, 0x004948b0, 0x004948a4, 0x00494894, 0x00494888},
-		{0x0049c510, 0x00494878, 0x0049c510, 0x0049c510, 0x0049c510, 0x0049c510}
+		{GT_EMPTY, 0x00494878, GT_EMPTY, GT_EMPTY, GT_EMPTY, GT_EMPTY}
 	};
 	bool aFirstEmpty = GT(aTables[0][mHover]).empty();
 	bool aLastEmpty = GT(aTables[5][mHover]).empty();
@@ -238,7 +238,7 @@ void IntroWidget::Draw(Graphics* g)
 	for (int i = 0; i < 6; i++)
 	{
 		const SexyString& aText = GT(aTables[i][mHover]);
-		if (aTables[i][mHover] == 0x0049c510)
+		if (aTables[i][mHover] == GT_EMPTY)
 			continue;
 		g->DrawString(aText, (0x117 - g->GetFont()->StringWidth(aText)) / 2 + 0x150, aY + i * 0x28);
 	}

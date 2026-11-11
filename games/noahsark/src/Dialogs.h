@@ -4,7 +4,7 @@
 // The dialogs of Noah's Ark Deluxe: DifficultyDialog (WinNoah.exe 0x410c00), HighScoreDialog (0x4113e0),
 // RecordScoreDialog (0x41d750), OptionsDialog (0x41c230) and TutorialDialog (0x4205b0). RegisterDialog
 // (0x41de70) and the trial's other dialogs are not ported. All derive from the 2002 dialog (an app
-// ButtonListener, buttons mId + 2000 / + 3000: Dialog2004).
+// ButtonListener, buttons mId + DIALOG_YES and mId + DIALOG_NO: Dialog2004).
 
 #include "Compat2004.h"
 #include "DialogButton.h"

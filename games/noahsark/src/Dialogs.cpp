@@ -27,7 +27,7 @@ using namespace Sexy;
 // 0x410c00
 DifficultyDialog::DifficultyDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_DIFFICULTY, true,
-		GT(0x00494410), GT(0x0049c510), GT(0x0049441c), BUTTONS_FOOTER),
+		GT(0x00494410), GT(GT_EMPTY), GT(0x0049441c), BUTTONS_FOOTER),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
@@ -120,7 +120,7 @@ void DifficultyDialog::ButtonDepress(int theId)
 // 0x4113e0
 HighScoreDialog::HighScoreDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_HIGH_SCORES, true,
-		GT(0x0049444c), GT(0x0049c510), GT(0x00494458), BUTTONS_FOOTER),
+		GT(0x0049444c), GT(GT_EMPTY), GT(0x00494458), BUTTONS_FOOTER),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
@@ -173,7 +173,7 @@ void HighScoreDialog::Draw(Graphics* g)
 // be 120 pixels wide (the field at +0x80), with no limit on the number of characters.
 RecordScoreDialog::RecordScoreDialog(NoahApp* theApp, const std::string& thePlace) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_RECORD_SCORE, true,
-		GT(0x00495ef0), thePlace, GT(0x0049c510), BUTTONS_OK_CANCEL),
+		GT(0x00495ef0), thePlace, GT(GT_EMPTY), BUTTONS_OK_CANCEL),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
@@ -263,7 +263,7 @@ void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 {
 	(void) theId;
 	(void) theString;
-	mApp->ButtonDepress(mId + 2000);
+	mApp->ButtonDepress(mId + DIALOG_YES);
 }
 
 // port: the characters the name box takes (the 2002 EditListener has no such hook: its edit widget chooses them itself)
@@ -279,7 +279,7 @@ bool RecordScoreDialog::AllowChar(int theId, SexyChar theChar)
 // 0x41c230
 OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_OPTIONS, true,
-		GT(0x00495fd8), GT(0x0049c510), GT(0x00494458), BUTTONS_FOOTER),
+		GT(0x00495fd8), GT(GT_EMPTY), GT(0x00494458), BUTTONS_FOOTER),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
@@ -420,7 +420,7 @@ void OptionsDialog::ButtonPress(int theId)
 	mApp->ButtonPress(0);
 }
 
-// 0x41d410: the buttons of the dialog (the footer button is the app's: ButtonDepress(2003))
+// 0x41d410: the buttons of the dialog (the footer button is the app's: DIALOG_YES + DIALOG_OPTIONS)
 void OptionsDialog::ButtonDepress(int theId)
 {
 	Dialog2004::ButtonDepress(theId);
@@ -453,7 +453,7 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 // 0x4205b0: the dialog has no header and no lines of its own (Draw writes the heading), and its button reads READY
 TutorialDialog::TutorialDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_TUTORIAL, true,
-		GT(0x0049c510), GT(0x0049c510), GT(0x004962e4), BUTTONS_FOOTER),
+		GT(GT_EMPTY), GT(GT_EMPTY), GT(0x004962e4), BUTTONS_FOOTER),
 	mApp(theApp),
 	mWait(0),
 	mStep(0),

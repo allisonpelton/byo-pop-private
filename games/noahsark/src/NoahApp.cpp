@@ -553,12 +553,12 @@ void NoahApp::ShowQuitDialog()
 {
 	if (mBoard != NULL)
 	{
-		Dialog* aDialog = DoDialog(DIALOG_QUIT, true, GT(0x004956ec), GT(0x004956fc), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
+		Dialog* aDialog = DoDialog(DIALOG_QUIT, true, GT(0x004956ec), GT(0x004956fc), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);
 		aDialog->Resize(0xbb, 0x57, 0x1a0, 300);
 	}
 	else
 	{
-		DoDialog(DIALOG_QUIT, true, GT(0x00494a20), GT(0x00495760), GT(0x0049c510), Dialog::BUTTONS_YES_NO);   // no resize: the dialog keeps NewDialog's size
+		DoDialog(DIALOG_QUIT, true, GT(0x00494a20), GT(0x00495760), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);   // no resize: the dialog keeps NewDialog's size
 	}
 }
 
@@ -568,7 +568,7 @@ void NoahApp::ShowNewGameDialog(int theGameMode)
 	mGameMode = theGameMode;
 	if (HasSavedGame())
 	{
-		Dialog* aDialog = DoDialog(DIALOG_NEW_GAME, true, GT(0x00495e94), GT(0x00495ea4), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
+		Dialog* aDialog = DoDialog(DIALOG_NEW_GAME, true, GT(0x00495e94), GT(0x00495ea4), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);
 		int aY = (theGameMode == GAMEMODE_ACTION) ? 0x73 : ((theGameMode == GAMEMODE_STRATEGY) ? 100 : 100);
 		int aHeight = (theGameMode == GAMEMODE_ACTION) ? 0xfa : 0x118;
 		aDialog->Resize(0x6e, aY, 0x1a4, aHeight);
@@ -680,9 +680,9 @@ void NoahApp::DeleteSavedGame()
 // 0x41a0b0: every button of the game
 void NoahApp::ButtonDepress(int theId)
 {
-	if ((theId >= 2000) && (theId < 3000))
+	if ((theId >= DIALOG_YES) && (theId < DIALOG_NO))
 	{
-		switch (theId - 2000)
+		switch (theId - DIALOG_YES)
 		{
 		case DIALOG_NEW_GAME:
 			KillDialog(DIALOG_NEW_GAME);
@@ -747,18 +747,18 @@ void NoahApp::ButtonDepress(int theId)
 			break;
 		}
 		default:
-			KillDialog(theId - 2000);
+			KillDialog(theId - DIALOG_YES);
 			break;
 		}
 	}
-	else if ((theId >= 3000) && (theId < 4000))
+	else if ((theId >= DIALOG_NO) && (theId < DIALOG_BUTTONS_END))
 	{
-		if (theId == 3000 + DIALOG_QUIT)
+		if (theId == DIALOG_NO + DIALOG_QUIT)
 		{
 			if (mBoard != NULL)
 				mBoard->mPaused = false;
 		}
-		KillDialog(theId - 3000);
+		KillDialog(theId - DIALOG_NO);
 	}
 
 	switch (theId)

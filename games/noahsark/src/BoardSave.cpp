@@ -110,7 +110,7 @@ const SexyString& Board::HintLine(int theIndex, int theLine)
 		{0x0049428c, 0x00494278, 0x00494268}
 	};
 	if ((theIndex < 0) || (theIndex > 3) || (theLine < 0) || (theLine > 2))
-		return GT(0);
+		return GT(GT_EMPTY);
 	return GT(aLines[theIndex][theLine]);
 }
 
