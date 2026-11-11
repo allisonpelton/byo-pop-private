@@ -115,6 +115,12 @@ typically like").
 - **The README's performance table (the user, 2026-11-10):** "Include in the readme a performance comparison table
   including load time, CPU, and memory usage for every game", port against original, from each game's performance
   numbers in its notes.
+- **A shared cost found by Atomica's performance pass (2026-11-11):** `DDInterface::FillScanLines` hands every row to
+  SDL as its own rectangle. Atomica's tunnel sends about 21,000 a frame, which costs about 58 MB of private bytes in
+  the driver (under every renderer) and over a quarter of the game's processor time. Joining rows that touch could
+  halve them but may round a right edge differently at some window scales, so no fix is chosen yet; to test one,
+  `games/atomica/tools/profile/pairs.sh` for the figures and a screenshot every 40 updates of its scenarios s2, a1 and
+  g5 before and after for the pixels.
 - **Memory broken down, and a software path to test (the user, 2026-11-11):** "I'd want the more granular performance
   reports then": every game's memory split into libraries, sound, graphics and game state, for the port and where it can
   be read for the original, in the README's performance table. The framework answers a standard `memreport` test command
