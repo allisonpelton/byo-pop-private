@@ -139,6 +139,7 @@ void CreditsScreen::Update()
 	MarkDirty();
 }
 
+// port: builds the credits' lines from the original's table
 void CreditsScreen::MakeLines()
 {
 	Font* aHeadFont = FONT_NEURO30;

@@ -25,6 +25,7 @@ XcfFile::~XcfFile()
 	Clear();
 }
 
+// port: the reader of data\descriptor.xcf
 void XcfFile::Clear()
 {
 	for (size_t i = 0; i < mTop.size(); i++)
@@ -204,6 +205,7 @@ int XcfFile::FindSection(const std::string& theName)
 }
 
 // Resolves a path to the section that holds its last component
+// port: the reader of data\descriptor.xcf
 XcfFile::Section* XcfFile::FindValueSection(const std::string& thePath, std::string* theKey)
 {
 	std::string aPath = Upper(thePath);

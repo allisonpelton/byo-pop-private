@@ -4,10 +4,9 @@ The port is the original game, unmodified. This list holds every place where its
 what `MahjongEscapeAC.exe` does, and why. None of them has an effect a player can see, except the shape of full screen
 on a graphics driver set to stretch ("The device") and players that keep their progress when they move ("The
 players' checksum"). A comment at each place in the code names the original's address,
-so a grep for the address finds both sides. The port began as Ancient Japan's, so the comments on its code give
-Japan's addresses, and this list gives both where the two exes' functions pair (`re/mahjongchina/compare/addrmap.tsv`
-pairs them); the data and text addresses in the comments are China's own. Turning the code addresses into China's
-waits for the readability pass. The engine's members sit at other offsets in China (the game's own fields too, a
+so a grep for the address finds both sides. The code is shared with Ancient Japan's, so the comments on it give both
+exes' addresses, each with the game's name after it, and this list gives both where the two exes' functions pair
+(`re/mahjongchina/compare/addrmap.tsv` pairs them). The engine's members sit at other offsets in China (the game's own fields too, a
 word or two lower), so the offsets below are Japan's.
 
 ## The device

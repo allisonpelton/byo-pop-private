@@ -143,6 +143,13 @@ var ByopopSchemes = (function () {
     rows.forEach(function (bits, y) { for (var x = 0; x < 8; x++) if (bits & (0x80 >> x)) g.fillRect(x * n, y * n, n, n); });
     return "url(\"" + c.toDataURL("image/png") + "\")";
   }
+  // the picture of a pattern for a preview (web/settings.js, the Appearance list): its CSS background image and tile size,
+  // or null for none
+  function patternPreview(id) {
+    if (!PATTERNS[id]) return null;
+    var tile = 8 * dotSize() + "px";
+    return { image: patternUri(PATTERNS[id]), size: tile + " " + tile };
+  }
   function setDot() { try { document.documentElement.style.setProperty("--d95-dot", dotSize() + "px"); } catch (e) {} }
   var ratioQuery = null;
   function watchRatio() {
@@ -242,7 +249,7 @@ var ByopopSchemes = (function () {
     });
     window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === WALL_KEY || ev.key === null) { apply(); backdrop(); } });
   }
-  return { patterns: PATTERNS, patternIds: patternIds, wallpaperIds: wallpaperIds, fits: FITS, backdrop: backdrop, setPicture: setPicture,
+  return { patterns: PATTERNS, patternIds: patternIds, patternPreview: patternPreview, wallpaperIds: wallpaperIds, fits: FITS, backdrop: backdrop, setPicture: setPicture,
     clearPicture: clearPicture, chooser: chooser, picture: picture, LIST: LIST, ids: LIST.map(function (s) { return s.id; }), byId: byId, ends: ends, contrast: contrast, apply: apply, chosen: chosen };
 })();
 if (typeof module !== "undefined") module.exports = ByopopSchemes;

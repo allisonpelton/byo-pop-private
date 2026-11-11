@@ -67,13 +67,12 @@ public:
 	MainMenu*					mMainMenu;          // +0x644 the game selector (ShowMainMenu)
 	Widget*						mHallScreen;        // +0x648 the hall of fame (ShowHallOfFame), NULL for none
 	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
-	Widget*						mScreen650;         // +0x650 the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
-	Widget*						mScreen654;         // +0x654 the story screen (0x428f10), removed by its button 0xfb6
-	bool						mFlag658;           // +0x658 ValidateUser: profile setting 0x11 (1 when missing) is not 0
+	Widget*						mCharSelector;      // +0x650 the pilot choice screen, shown over the selector; ShowMainMenu removes it
+	Widget*						mCreditsScreen;     // +0x654 the credits screen (0x428f10), removed by its button 0xfb6
+	bool						mTutorialOn;        // +0x658 the pilot still has the tutorial (profile setting 0x11, 1 when missing); cleared and saved at the first move
 	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
-	bool						mFlag65b = false;   // +0x65b set by the Board once a game has lasted 6000 updates
-	int							mTimer664;          // +0x664 counted down by UpdateFrames
+	int							mComboPingTimer;    // +0x664 updates before the combo ping may sound again (PlayComboPing sets 45); UpdateFrames counts it down
 	int							mGameUpdates;       // +0x668 counted by the Board's Update while a game runs
 	Font*						mDialogFont;        // +0x66c FONT_DIALOG_BOX, set when the loading thread ends
 	MemoryImage*				mGradient[3];       // +0x674 +0x678 +0x67c 1 x 480 white, grey and dark ramps
@@ -86,10 +85,10 @@ public:
 	XcfFile*					mDescriptor;        // +0x6a8 data\descriptor.xcf: the level settings (LoadDescriptor)
 	std::vector<HallEntry>		mHall;              // +0x6c4 the hall of fame (0x2c bytes an entry), kept in users\datahs.usr
 	int							mClassicPilot;      // +0x6d4 the pilot the player chose for the classic mode (the Board's mode)
-	bool						mFlag6f9;           // +0x6f9 ValidateUser: profile setting 0x13 (1 when missing) is not 0
-	bool						mFlag6fa;           // +0x6fa ValidateUser: profile setting 0x72 is 1
-	bool						mFlag6fb;           // +0x6fb ValidateUser: profile setting 0x73 (1 when missing) is 1
-	bool						mFlag6fc;           // +0x6fc (set by the help screen; read by the Board's Update)
+	bool						mHintsOn;           // +0x6f9 the hints option (profile setting 0x13, 1 when missing)
+	bool						mColorblind;        // +0x6fa the colour-blind option (profile setting 0x72 is 1)
+	bool						mShowHelpAtStart;   // +0x6fb the help screen is shown when a game starts (profile setting 0x73, 1 when missing, is 1)
+	bool						mHelpShown;         // +0x6fc the help screen has been shown for this game (set by the help screen; the Board waits for it)
 	Widget*						mHelpScreen;        // +0x69c the full-screen help (ShowFullScreenHelp), NULL for none
 	int							mMusicSlot;         // +0x6d8 the slot that plays (0 or 1)
 	int							mMusicOrder;        // +0x6dc the song position (order) that plays, -1 for none
@@ -108,14 +107,9 @@ public:
 	virtual void	Init() override;                            // 0x42f170 slot 16
 	virtual void	LoadingThreadProc() override;               // 0x42cda0 slot 17
 	virtual void	Shutdown() override;                        // 0x4290d0 slot 33
-	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override; // 0x40e060 slot 35
 	virtual void	SwitchScreenMode(bool wantWindowed) override; // 0x4090d0 slot 53
-	virtual Dialog*	DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
-						const SexyString& theDialogLines, const SexyString& theDialogFooter,
-						int theButtonMode) override;            // 0x412360 slot 55
 	virtual void	GotFocus() override;                        // 0x4253e0 slot 62
 	virtual void	LostFocus() override;                       // 0x425380 slot 63
-	virtual void	SetMusicVolumeFloat(float theVolume);       // 0x408b70 slot 67 (a new virtual of the game)
 
 	// port: the 2004 SexyApp makes a BassMusicInterface itself (slot 15, 0x408e30); here an SDLMusicInterface
 	// with BASS 2.0's music gain (docs/FRAMEWORK_2004.md section 6)
@@ -157,7 +151,7 @@ public:
 	void			ShowMessageDialog(const std::string& theHeader, const std::string& theText); // an OK box (the original makes it at each place with 0x411ba0)
 	void				ShowUpgradeDialog(); // 0x412730: the warp screen's box that tells the pilot's weapon has been upgraded
 	void				ShowPowerDialog();  // 0x40c490: the box that explains the pilot's weapon, opened by the first move of a game
-	AstroDialog*	MakeDialog(int theType, bool theAnimated, int theId, int theWidth, int theHeight, int theButtonMode, const std::string& theHeader, const std::string& theLines, const std::string& theYes, const std::string& theNo, bool theUnused);   // 0x411ba0 a box of a colour set (theType); theId 100 .. 124 is the dialog's id
+	AstroDialog*	MakeDialog(int theType, bool theAnimated, int theId, int theWidth, int theHeight, int theButtonMode, const std::string& theHeader, const std::string& theLines, const std::string& theYes, const std::string& theNo);   // 0x411ba0 a box of a colour set (theType); theId 100 .. 124 is the dialog's id
 	Color			GetDialogInsetColor(int theSet);            // the tint of a dialog set's inset picture (0x5a4ff0 and the five after it)
 	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.
 	void			StartGame(bool theContinue);                // 0x428c70 (the Board)

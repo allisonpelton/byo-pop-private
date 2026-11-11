@@ -23,7 +23,6 @@ public:
 	// 0x413a9c: flag 1 keeps a value already set (from the command line)
 	void registerVariable(const char* theName, const char* theValue, unsigned int theFlags);
 	// 0x413b3d
-	void setVariableString(const char* theName, const char* theValue);
 	// 0x413b81: atoi of the value, 0 for an unknown name
 	int getVariableInt(const char* theName);
 	// 0x413bab: nullptr for an unknown name

@@ -14,36 +14,36 @@
 
 using namespace Sexy;
 
-// 0x45e680: one update of the end of a game (the Board's Update calls it while mFlag8E8 is set).
+// 0x45e680: one update of the end of a game (the Board's Update calls it while mGameOver is set).
 void Board::UpdateGameOver()
 {
-	mAnim5a0.Update();
-	m1b34 = (m1b34 + 4) & 0xff;
-	if (m905)
+	mResultPulseAnim.Update();
+	mGameOverCounter = (mGameOverCounter + 4) & 0xff;
+	if (mGameOverAnimDone)
 		return;
 
-	if (m1948 > 0)
+	if (mEndFlashAlpha > 0)
 	{
-		m1948 -= 2;
-		mOverlay.SetFill(0xff, 0xff, 0xff, m1948);
-		if (m1948 <= 0)
+		mEndFlashAlpha -= 2;
+		mOverlay.SetFill(0xff, 0xff, 0xff, mEndFlashAlpha);
+		if (mEndFlashAlpha <= 0)
 		{
-			m1948 = 0;
+			mEndFlashAlpha = 0;
 			SetOverlayHidden(true);
 		}
 	}
 
-	m1a80 = ((int) AstroRand() % 500000000) % 11 - 5;
-	if (m1948 > 0xf0)
+	mScreenShakeX = ((int) AstroRand() % 500000000) % 11 - 5;
+	if (mEndFlashAlpha > 0xf0)
 		return;
 
 	// The panels fade one after the other: a panel runs only when every panel before it has reached its turn (counted
 	// in aFront). A panel rising to 255 turns round at 255 and falls by 4; one that has reached 128 lets the next start.
 	int aDone = 0;
 	int aFront = 0;
-	for (unsigned int i = 0; i < m1e0.size(); i++)
+	for (unsigned int i = 0; i < mEndBlastFades.size(); i++)
 	{
-		FadeRec* aRec = &m1e0[i];
+		FadeRec* aRec = &mEndBlastFades[i];
 		if (aRec->mValue == 0 && !aRec->mRising)
 		{
 			aDone++;
@@ -74,11 +74,11 @@ void Board::UpdateGameOver()
 		aFront++;
 	}
 
-	for (unsigned int i = 0; i < me8.size(); i++)
-		me8[i]->mAnim.SetStopped(false);
-	for (unsigned int i = 0; i < me8.size(); i++)
+	for (unsigned int i = 0; i < mSunSparks.size(); i++)
+		mSunSparks[i]->mAnim.SetStopped(false);
+	for (unsigned int i = 0; i < mSunSparks.size(); i++)
 	{
-		SunParticle* aSpark = me8[i];
+		SunParticle* aSpark = mSunSparks[i];
 		if (!aSpark->mAnim.mStopped)
 		{
 			aSpark->mAnim.Update();
@@ -87,12 +87,12 @@ void Board::UpdateGameOver()
 		}
 	}
 
-	if (aDone != (int) m1e0.size())
+	if (aDone != (int) mEndBlastFades.size())
 		return;
-	if (m1948 != 0)
+	if (mEndFlashAlpha != 0)
 		return;
-	m905 = true;
-	if (m1a60 == 1 || m1a60 == 2)
+	mGameOverAnimDone = true;
+	if (mGameType == 1 || mGameType == 2)
 		CreateEndButtons();
 }
 
@@ -101,15 +101,15 @@ void Board::UpdateGameOver()
 // the port frees it once the buttons have their copies.
 void Board::CreateEndButtons()
 {
-	m91d = true;
-	mAnim5a0.SetNumFrames(0x1f);
-	mAnim5a0.SetDelay(1);
-	mAnim5a0.mPingPong = true;
-	mAnim5a0.mHoldLast = false;
-	mAnim5a0.SetStopped(false);
+	mEndPageShown = true;
+	mResultPulseAnim.SetNumFrames(0x1f);
+	mResultPulseAnim.SetDelay(1);
+	mResultPulseAnim.mPingPong = true;
+	mResultPulseAnim.mHoldLast = false;
+	mResultPulseAnim.SetStopped(false);
 
 	AstroButton* aContinue = new AstroButton(0xfa4, mApp);
-	m2e4 = aContinue;
+	mContinueButton = aContinue;
 
 	MemoryImage* anInset;
 	MemoryImage* aButtonImage;
@@ -119,13 +119,13 @@ void Board::CreateEndButtons()
 	aContinue->mButtonImage = mApp->CopyImage(aButtonImage, Rect(0, 0, 0x78, 0x21));
 	aContinue->mOverImage = mApp->CopyImage(aButtonImage, Rect(0x78, 0, 0x78, 0x21));
 	aContinue->mDownImage = mApp->CopyImage(aButtonImage, Rect(0xf0, 0, 0x78, 0x21));
-	aContinue->mLabel = (m1a60 == 1) ? GT(0x564b30) : GT(0x5654e4);
+	aContinue->mLabel = (mGameType == 1) ? GT(0x564b30) : GT(0x5654e4);
 	aContinue->SetFont(FONT_DIALOG_BOX_BTN);
 	aContinue->SetColor(0, Color(0xff, 0xff, 0));
 	aContinue->SetColor(1, Color(0xff, 0xff, 0xff));
 
 	AstroButton* aMenu = new AstroButton(0xfa5, mApp);
-	m2e8 = aMenu;
+	mMenuButton = aMenu;
 	aMenu->mButtonImage = mApp->CopyImage(aButtonImage, Rect(0, 0, 0x78, 0x21));
 	aMenu->mOverImage = mApp->CopyImage(aButtonImage, Rect(0x78, 0, 0x78, 0x21));
 	aMenu->mDownImage = mApp->CopyImage(aButtonImage, Rect(0xf0, 0, 0x78, 0x21));
@@ -172,28 +172,28 @@ int Board::WeaponLevelSum()
 // record lists (and the saved game is dropped); when the game is left in the middle the progress is stored instead.
 void Board::SaveFinalScore()
 {
-	if (mFlag8E8)
+	if (mGameOver)
 	{
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);
-		m908 = mApp->AddHallOfFame(aName, mScore, m1940, mMode, 1);
+		mApp->AddHallOfFame(aName, mScore, mLevelNumber, mMode, 1);
 
 		int aBest = mScore;
 		mApp->mUser->GetInt(mMode, &aBest);
 		if (mScore > aBest)
 		{
 			mApp->mUser->SetInt(mMode, mScore);
-			mApp->mUser->SetInt(mMode + 4, m1940);
+			mApp->mUser->SetInt(mMode + 4, mLevelNumber);
 		}
 
 		ProfileRecord aRecord;
 		aRecord.mField[0] = 1;
 		aRecord.mField[1] = mMode;
 		aRecord.mField[2] = mScore;
-		aRecord.mField[3] = m1940;
+		aRecord.mField[3] = mLevelNumber;
 		aRecord.mField[4] = -1;
 		aRecord.mField[5] = WeaponLevelSum();
-		m1b30 = mApp->mUser->AddRecord(aRecord);
+		mNewRecordRow = mApp->mUser->AddRecord(aRecord);
 		mApp->mUser->ResetGame();
 	}
 	else
@@ -210,56 +210,56 @@ void Board::GameOver()
 	// (the original writes a line with the level to its trace list)
 	mApp->PlaySample(SOUND_VGAMEOVER);
 	mApp->PlaySample(SOUND_MEGA_EXPLOSION);
-	mFlag8E8 = true;
-	for (unsigned int i = 0; i < m1c0.size(); i++)
-		m1c0[i]->SetDisabled(true);
-	m2ec->SetDisabled(true);
-	for (unsigned int i = 0; i < m1c0.size(); i++)
-		m1c0[i]->SetVisible(false);
-	m2ec->SetVisible(false);
+	mGameOver = true;
+	for (unsigned int i = 0; i < mFieldButtons.size(); i++)
+		mFieldButtons[i]->SetDisabled(true);
+	mHelpButton->SetDisabled(true);
+	for (unsigned int i = 0; i < mFieldButtons.size(); i++)
+		mFieldButtons[i]->SetVisible(false);
+	mHelpButton->SetVisible(false);
 
-	if (m1a60 == 1)
+	if (mGameType == 1)
 	{
 		int aBestLevel = 0;
 		mApp->mUser->GetInt(mMode + 8, &aBestLevel);
 		if (aBestLevel < 4)
-			m1b6c = -1;
+			mCheckpointLevel = -1;
 		else
-			m1b6c = (aBestLevel / 4) * 4;
-		mApp->mUser->GetInt(0x5d, &m7c4);
+			mCheckpointLevel = (aBestLevel / 4) * 4;
+		mApp->mUser->GetInt(0x5d, &mBestChain);
 		mApp->mUser->SetInt(0x5d, 0);
 		mApp->mUser->ResetHintsShown();
 		SaveFinalScore();
 	}
-	else if (m1a60 == 2)
+	else if (mGameType == 2)
 	{
-		m19b8 = m19b4;
+		mPlayTime = mRampTime;
 		ProfileRecord aRecord;
 		aRecord.mField[0] = 2;
 		aRecord.mField[1] = mMode;
 		aRecord.mField[2] = mScore;
 		aRecord.mField[3] = -1;
-		aRecord.mField[4] = m19b4 / 100;
+		aRecord.mField[4] = mRampTime / 100;
 		aRecord.mField[5] = WeaponLevelSum();
-		m1b30 = mApp->mUser->AddRecord(aRecord);
+		mNewRecordRow = mApp->mUser->AddRecord(aRecord);
 
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);
-		m908 = mApp->AddHallOfFame(aName, mScore, m19b8 / 100, mMode, 2);
+		mApp->AddHallOfFame(aName, mScore, mPlayTime / 100, mMode, 2);
 
 		int aBestTime = 0;
 		mApp->mUser->GetInt(mMode + 0x67, &aBestTime);
-		if (aBestTime < m19b8 / 100)
+		if (aBestTime < mPlayTime / 100)
 		{
-			aBestTime = m19b8 / 100;
+			aBestTime = mPlayTime / 100;
 			mApp->mUser->SetInt(mMode + 0x67, aBestTime);
 		}
 	}
 
 	mApp->PlaySong(0x27);
-	m1948 = 0xff;
+	mEndFlashAlpha = 0xff;
 	mOverlay.SetFill(255, 255, 255, 255);
 	SetOverlayHidden(false);
 	ClearField();
-	m134.clear();
+	mPlayedBonusStages.clear();
 }

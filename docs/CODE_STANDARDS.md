@@ -48,7 +48,7 @@ Two things hold above every rule:
   `allow stage` line), and exits nonzero on any finding. `--list` also
   prints what the exceptions allow, and `--checks` picks checks. Exceptions go in `games/<game>/namecheck.txt`, one a
   line, each with its reason after ` -- `. A `folder <name>` line there adds another source folder of the game to the
-  check, for a port that has an engine of its own beside `src/` (Mahjong Escape's `engine/`); an `engine <name>` line
+  check, for a port that has code of its own beside `src/`; an `engine <name>` line
   adds a shared engine, `engines/<name>`, and runs its comments through the `tag` check as well (an address without its
   game's tag in a shared engine is a finding).
 - `python tools/splitfields.py <game> --export <the export's per-function folder>` lists members that may be one

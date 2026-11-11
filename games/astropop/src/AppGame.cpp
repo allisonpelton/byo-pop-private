@@ -70,16 +70,16 @@ void AstroPopApp::CloseMainMenu()
 // 0x4117d0: the screen over the selector goes
 void AstroPopApp::CloseSelectorScreen()
 {
-	mWidgetManager->RemoveWidget(mScreen650);
-	SafeDeleteWidget(mScreen650);
-	mScreen650 = NULL;
+	mWidgetManager->RemoveWidget(mCharSelector);
+	SafeDeleteWidget(mCharSelector);
+	mCharSelector = NULL;
 }
 
 // 0x428b30: a new classic game from a level. The player's hints start again, the old game (if any) goes, and the new Board
 // takes the screen. The first level shows the tutorial unless theSkipTutorial or the player turned the hints off.
 void AstroPopApp::StartClassicGame(int theLevel, bool theFlag, bool theSkipTutorial)
 {
-	if (mScreen650 != NULL)
+	if (mCharSelector != NULL)
 		CloseSelectorScreen();
 	mBus.Clear();
 	if (mBoard != NULL)
@@ -91,7 +91,7 @@ void AstroPopApp::StartClassicGame(int theLevel, bool theFlag, bool theSkipTutor
 	mUser->Save();
 	LoadPilotImages(1);
 
-	bool aTutorial = theLevel == 1 && mFlag6f9 && !theSkipTutorial;
+	bool aTutorial = theLevel == 1 && mHintsOn && !theSkipTutorial;
 	mBoard = new Board(this, &mBus, 1, 1, theLevel, theFlag, true, aTutorial);
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mWidgetManager->AddWidget(mBoard);
@@ -103,8 +103,8 @@ void AstroPopApp::StartClassicGame(int theLevel, bool theFlag, bool theSkipTutor
 void AstroPopApp::StartSurvivalGame(int thePilot)
 {
 	mSurvivalPilot = thePilot;
-	mFlag6fc = false;
-	if (mScreen650 != NULL)
+	mHelpShown = false;
+	if (mCharSelector != NULL)
 		CloseSelectorScreen();
 	mBus.Clear();
 	if (mBoard != NULL)
@@ -130,15 +130,15 @@ void AstroPopApp::StartGame(bool theContinue)
 	if (aSavedLevel > 1 && theContinue)
 	{
 		int aScore = 0;
-		float aFloat50 = 0;
-		float aFloat52 = 0;
-		int aSetting54 = 0;
-		int aSetting55 = 0;
+		float aWeaponCharge = 0;
+		float aScoreMultiplier = 0;
+		int aPlayTime = 0;
+		int aLevelsCompleted = 0;
 		mUser->GetInt(0x51, &aScore);
-		mUser->GetFloat(0x50, &aFloat50);
-		mUser->GetFloat(0x52, &aFloat52);
-		mUser->GetInt(0x54, &aSetting54);
-		mUser->GetInt(0x55, &aSetting55);
+		mUser->GetFloat(0x50, &aWeaponCharge);
+		mUser->GetFloat(0x52, &aScoreMultiplier);
+		mUser->GetInt(0x54, &aPlayTime);
+		mUser->GetInt(0x55, &aLevelsCompleted);
 		int aPilot = 0;
 		mUser->GetInt(0x53, &aPilot);
 
@@ -157,7 +157,7 @@ void AstroPopApp::StartGame(bool theContinue)
 		LoadPilotImages(1);
 		mBoard = new Board(this, &mBus, 1, 0, 1, false, false, false);
 		mBoard->Resize(0, 0, mWidth, mHeight);
-		mBoard->RestoreGame(aScore, aSetting54, aSetting55, aFloat52, aFloat50, aSavedLevel);
+		mBoard->RestoreGame(aScore, aPlayTime, aLevelsCompleted, aScoreMultiplier, aWeaponCharge, aSavedLevel);
 		mWidgetManager->AddWidget(mBoard);
 		mWidgetManager->SetFocus(mBoard);
 		StartLoopSound(-1);
@@ -177,7 +177,7 @@ void AstroPopApp::StartGame(bool theContinue)
 // comes back here with theCheckpointed set. Otherwise the game starts at the first level.
 void AstroPopApp::StartClassic(bool theCheckpointed, bool theSkipTutorial)
 {
-	mFlag6fc = false;
+	mHelpShown = false;
 	int aBest;
 	mUser->GetInt(mClassicPilot + 8, &aBest);
 	if (aBest < 4)

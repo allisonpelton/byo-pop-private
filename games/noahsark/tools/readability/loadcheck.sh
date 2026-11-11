@@ -21,7 +21,7 @@ cat > "$D/script.txt" <<EOF
 710 screenshot $W/$D/playing.png
 800 quit
 EOF
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done
 timeout 300 build/native/rundesk.exe "$EXE" -gamedir="$W/assets/noahsark" -userdir="$W/build/readab/user_$NAME" -fast -seed=1 \
 	-script="$W/$D/script.txt" > "$D/run.log" 2>&1
 echo "$NAME: exit $?"

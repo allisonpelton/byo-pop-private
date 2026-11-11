@@ -364,15 +364,19 @@ option(BUILD_BONNIES "Build the Bonnie's Bookstore Deluxe port" ON)
 if(BUILD_BONNIES AND EXISTS ${PROJECT_SOURCE_DIR}/games/bonnies/CMakeLists.txt)
   add_subdirectory(games/bonnies)
 endif()
-# Mahjong Escape: Ancient Japan: JollyBear's engine (games/mahjongjapan/engine) under the framework's app host;
-# optional while it is new
+# The two Mahjong Escape ports share JollyBear's engine (engines/jollybear) and their game code (engines/mahjongescape);
+# optional while they are new
 option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
+option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+if((BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt) OR
+   (BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt))
+  add_subdirectory(engines/jollybear)
+endif()
+# Mahjong Escape: Ancient Japan, under the framework's app host
 if(BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt)
   add_subdirectory(games/mahjongjapan)
 endif()
-# Mahjong Escape: Ancient China: Ancient Japan's port (games/mahjongchina/engine is a copy of its engine) with China's
-# differences; optional while it is new
-option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+# Mahjong Escape: Ancient China: Ancient Japan's port with China's differences
 if(BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt)
   add_subdirectory(games/mahjongchina)
 endif()
