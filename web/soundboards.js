@@ -585,6 +585,52 @@ var ByopopSoundboards = {
       ["sounds/bad.ogg", "Bad", "Loaded, never played"]
     ] },
   ] },
+  bonnies: { groups: [
+    { name: "Buttons and menus", sounds: [
+      ["Sound/Button_Press.ogg", "Button press", "A button without a sound of its own is pressed"],
+      ["Sound/Button_Release.ogg", "Button release", "A button without a sound of its own is released"],
+      ["Sound/Button2_Press.ogg", "Round button press", "A button is pressed on the options menu, the player list and the new-player name box"],
+      ["Sound/Button2_Release.ogg", "Round button release", "A button is released on the options menu, the player list and the new-player name box"],
+      ["Sound/PaperButton_Press.ogg", "Paper button press", "A button is pressed on the dialogs, the help arrows, the high scores, the story and the interstitial screens"],
+      ["Sound/PaperButton_Release.ogg", "Paper button release", "A button is released on the dialogs, the help arrows, the high scores, the story and the interstitial screens"],
+      ["Sound/Checkbox_Press.ogg", "Check box press", "A check box is pressed, or the sound volume slider is moved"],
+      ["Sound/Logo.ogg", "Logo", "The logo screen's first update"],
+      ["Sound/Bell.ogg", "Shop bell", "The bell area of the main menu's picture is clicked"],
+      ["Sound/CashRegister.ogg", "Cash register", "The cash register area of the main menu's picture is clicked"],
+      ["Sound/type_01.ogg", "Typewriter key 1", "The typewriter area of the main menu is clicked (one of three keys at random), or a letter of the story is typed"],
+      ["Sound/type_02.ogg", "Typewriter key 2", "The typewriter area of the main menu is clicked (one of three keys at random), or a letter of the story is typed"],
+      ["Sound/type_03.ogg", "Typewriter key 3", "The typewriter area of the main menu is clicked (one of three keys at random), or a letter of the story is typed"]
+    ] },
+    { name: "Building words", sounds: [
+      ["Sound/Place_01.ogg", "Tile placed 1", "A tile is added to the word's path (one of three at random)"],
+      ["Sound/Place_02.ogg", "Tile placed 2", "A tile is added to the word's path (one of three at random)"],
+      ["Sound/Place_03.ogg", "Tile placed 3", "A tile is added to the word's path (one of three at random)"],
+      ["Sound/Cancel.ogg", "Path dropped", "A right click drops a path of tiles"],
+      ["Sound/Error.ogg", "Error", "A tile that cannot join the path is picked (at most every 700 ms), Submit on a non-word, or Alt+Enter that is refused"],
+      ["Sound/Scramble.ogg", "Shuffle", "The shuffle button is pressed and there are moves left to shuffle"]
+    ] },
+    { name: "Scoring words", sounds: [
+      ["Sound/Word_03.ogg", "Word of 3", "A word of 3 letters or fewer is scored"],
+      ["Sound/Word_04.ogg", "Word of 4", "A word of 4 letters is scored"],
+      ["Sound/Word_05.ogg", "Word of 5", "A word of 5 letters is scored"],
+      ["Sound/Word_06.ogg", "Word of 6 or more", "A word of 6 letters or more is scored"],
+      ["Sound/Blocker_Fallout.ogg", "Blocker falls out", "In a refill, a blocker tile with nothing below it drops out of the board"]
+    ] },
+    { name: "Level end", sounds: [
+      ["Sound/Level_Up_Quick.ogg", "Level won", "The board's quota is filled and the level is won"],
+      ["Sound/Level_Up.ogg", "Level summary", "The level's summary appears (at 80% volume)"],
+      ["Sound/AddPoint.ogg", "Score counts up", "A step of the level's bonus is counted into the score; its pitch rises with each step"],
+      ["Sound/GameOver.ogg", "Game over", "The game is over"]
+    ] },
+    { name: "Story typewriter", sounds: [
+      ["Sound/type_space_01.ogg", "Typewriter space", "A space of the story is typed on the intro screen"],
+      ["Sound/typewriter_carriagereturn_01.ogg", "Carriage return", "A line of the story is finished on the intro screen"],
+      ["Sound/Screen_Transition_01.ogg", "Transition 1", "The story is typed out and the screen goes on (picked by the level number, 1 to 4)"],
+      ["Sound/Screen_Transition_02.ogg", "Transition 2", "The story is typed out and the screen goes on (picked by the level number, 1 to 4)"],
+      ["Sound/Screen_Transition_03.ogg", "Transition 3", "The story is typed out and the screen goes on (picked by the level number, 1 to 4)"],
+      ["Sound/Screen_Transition_04.ogg", "Transition 4", "The story is typed out and the screen goes on (picked by the level number, 1 to 4)"]
+    ] },
+  ] },
   bookworm: {
     presets: [
       { name: "3-Letter Word", when: "A word is scored: the tiles are eaten and a note rises for each letter", steps: [["sounds/buttonclick", 0], ["sounds/wordcomplete", 0], ["sounds/up1", 200], ["sounds/up2", 300], ["sounds/up3", 400], ["sounds/piece_hit", 410], ["sounds/piece_hit", 490], ["sounds/piece_hit", 540], ["sounds/piece_hit", 590], ["sounds/chomp", 660]]},
@@ -658,6 +704,54 @@ var ByopopSoundboards = {
       ["sounds/buttonclick.ogg", "Click", "A button is pressed"],
       ["sounds/goldtile.ogg", "Volume test", "The Options' sound effects slider is let go"]
     ] }
+  ] },
+  cosmicbugs: {
+    presets: [
+      { name: "Kill Chain", when: "Bugs shot one after another", steps: [["audio/explosion1", 0], ["audio/exp300", 0], ["audio/explosion1", 510], ["audio/exp400", 510], ["audio/explosion1", 790], ["audio/exp500", 790], ["audio/explosion1", 1250], ["audio/exp600", 1250], ["audio/powerup", 1800]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["audio/click.wav", "Click", "A menu item is clicked or auto-clicked"]
+    ] },
+    { name: "The ship and its beams", sounds: [
+      ["audio/drill_shoot.wav", "Beam shot", "The ship fires its beams (when fewer than three beams are out)"],
+      ["audio/drill.wav", "Beam drilling", "While the beams run, every 66 updates after the shot"],
+      ["audio/clank.wav", "Beam clank", "A beam's head meets a cell that is not open and stops"],
+      ["audio/fill.wav", "Fill", "A captured side fills in; repeats every 120 updates while fills run, and when a beam pair ends"],
+      ["audio/fill_end.wav", "Fill ends", "The last but one fill of a board finishes"],
+      ["audio/explosion2.wav", "Ship explodes", "The ship explodes"]
+    ] },
+    { name: "Enemies", sounds: [
+      ["audio/explosion1.wav", "Enemy explodes", "A defined enemy, shot or time bomb explodes"],
+      ["audio/bump.wav", "Line bump", "A bump roller pushes a line of filled cells one cell on"],
+      ["audio/canon.wav", "Cannon", "A snake shooter fires a snake, or a cannon walker fires a cannon ball"],
+      ["audio/laser.wav", "Laser", "A laser walker fires a laser shot"],
+      ["audio/beam_hit.wav", "Laser hits beams", "A laser shot touches a beam; the beams burst into sparks"],
+      ["audio/electricity.wav", "Electricity", "An enemy touches a beam while the ship is firing (at most once a second per enemy)"],
+      ["audio/ice.wav", "Freezing", "An enemy is frozen in an ice capsule by an ice shot; plays again as the capsule is set up if it is fully opaque"]
+    ] },
+    { name: "Kill scores", sounds: [
+      ["audio/exp100.wav", "Kill 100", "An enemy dies as the first of its chain (100 points); chosen by 100 times the chain"],
+      ["audio/exp200.wav", "Kill 200", "An enemy dies as the second of its chain (200 points)"],
+      ["audio/exp300.wav", "Kill 300", "An enemy dies as the third of its chain (300 points)"],
+      ["audio/exp400.wav", "Kill 400", "An enemy dies as the fourth of its chain (400 points)"],
+      ["audio/exp500.wav", "Kill 500", "An enemy dies as the fifth of its chain, or in a time bomb's blast (500 points)"],
+      ["audio/exp600.wav", "Kill 600", "An enemy dies as the sixth of its chain (600 points)"],
+      ["audio/exp700.wav", "Kill 700", "An enemy dies as the seventh of its chain (700 points)"],
+      ["audio/exp800.wav", "Kill 800", "An enemy dies as the eighth of its chain (800 points)"],
+      ["audio/exp900.wav", "Kill 900", "An enemy dies as the ninth of its chain (900 points)"]
+    ] },
+    { name: "Power-ups and weapons", sounds: [
+      ["audio/powerup.wav", "Power-up", "A power-up is caught, except slow shot, hyper motion and flip flopper"],
+      ["audio/powerdn.wav", "Power-down", "A slow shot, hyper motion or flip flopper power-up is caught"],
+      ["audio/mine.wav", "Mine launched", "A mine, magnet or time bomb is launched by a click"],
+      ["audio/ice_launch.wav", "Ice shot launched", "An ice shot is launched by a click"],
+      ["audio/missile.wav", "Missile launched", "A missile is launched by a click"],
+      ["audio/fuse.wav", "Time bomb fuse", "A time bomb burns its fuse; repeats every 230 updates of its age"]
+    ] },
+    { name: "Unused", sounds: [
+      ["audio/spawn.wav", "Spawn (unused)", "Never played"]
+    ] },
   ] },
   dynomite: {
     presets: [
@@ -1052,6 +1146,91 @@ var ByopopSoundboards = {
       ["sounds/eerie1.au", "Eerie 1 (unused)", "Never played"],
       ["sounds/eerie3.au", "Eerie 3 (unused)", "Never played"],
       ["sounds/extralife.au", "Extra life (unused)", "Never played"]
+    ] },
+  ] },
+  waterbugs: {
+    presets: [
+      { name: "Board Summary", when: "A board's figures appear", steps: [["audio/pop", 0], ["audio/pop", 300], ["audio/pop", 600]]}
+    ],
+    groups: [
+    { name: "Menus and summary", sounds: [
+      ["audio/click.wav", "Click", "A menu item is clicked or auto-clicked"],
+      ["audio/pop.wav", "Summary pop", "A figure of the end-of-board summary (fill percent, best fill, shots, fewest shots, bonus) appears"]
+    ] },
+    { name: "The ship and its beams", sounds: [
+      ["audio/drill_shoot.wav", "Beam shot", "The ship fires its beams (when fewer than three beams are out)"],
+      ["audio/drill.wav", "Beam drilling", "While the beams run, every 66 updates after the shot"],
+      ["audio/clank.wav", "Beam clank", "A beam's head meets a cell that is not open and stops"],
+      ["audio/buzzer.wav", "Buzzer", "A click with an enemy near the ship while the fill quota is not yet passed; no beams fire"],
+      ["audio/fill.wav", "Fill", "A captured side fills in; repeats every 120 updates while fills run, and when a beam pair ends"],
+      ["audio/fill_end.wav", "Fill ends", "The last but one fill of a board finishes"],
+      ["audio/explosion2.wav", "Ship explodes", "The ship explodes"],
+      ["audio/invincibubble.wav", "Bubble protects", "An enemy touches a beam that would hit the ship while the ship is in its invincibubble"]
+    ] },
+    { name: "Enemies", sounds: [
+      ["audio/explosion1.wav", "Enemy explodes", "A defined enemy, shot or time bomb explodes"],
+      ["audio/bump.wav", "Line bump", "A bump roller pushes a line of filled cells one cell on"],
+      ["audio/frog_jump.wav", "Frog jumps", "A frog finishes sitting (1000 updates) and hops"],
+      ["audio/frog_land.wav", "Frog lands", "A frog lands, turns round and sits"],
+      ["audio/crab.wav", "Crab nips", "A crab walker nips at frame 12 of its animation, with a line or filled cell two cells ahead"],
+      ["audio/canon.wav", "Cannon", "A snake shooter fires a snake, or a cannon walker fires a cannon ball"],
+      ["audio/laser.wav", "Laser", "A laser walker fires a laser shot"],
+      ["audio/beam_hit.wav", "Laser hits beams", "A laser shot touches a beam; the beams burst into sparks"],
+      ["audio/electricity.wav", "Electricity", "An enemy touches a beam while the ship is firing (at most once a second per enemy)"]
+    ] },
+    { name: "Kill scores", sounds: [
+      ["audio/exp100.wav", "Kill 100", "An enemy dies as the first of its chain (100 points); chosen by 100 times the chain"],
+      ["audio/exp200.wav", "Kill 200", "An enemy dies as the second of its chain (200 points)"],
+      ["audio/exp300.wav", "Kill 300", "An enemy dies as the third of its chain (300 points)"],
+      ["audio/exp400.wav", "Kill 400", "An enemy dies as the fourth of its chain (400 points)"],
+      ["audio/exp500.wav", "Kill 500", "An enemy dies as the fifth of its chain, or in a time bomb's blast (500 points)"],
+      ["audio/exp600.wav", "Kill 600", "An enemy dies as the sixth of its chain (600 points)"],
+      ["audio/exp700.wav", "Kill 700", "An enemy dies as the seventh of its chain (700 points)"],
+      ["audio/exp800.wav", "Kill 800", "An enemy dies as the eighth of its chain (800 points)"],
+      ["audio/exp900.wav", "Kill 900", "An enemy dies as the ninth of its chain (900 points)"]
+    ] },
+    { name: "Power-ups and weapons", sounds: [
+      ["audio/powerup.wav", "Power-up", "A power-up is caught, except flip flopper, slow shot and hyper motion (an extra life included)"],
+      ["audio/powerdn.wav", "Power-down", "A flip flopper, slow shot or hyper motion power-up is caught"],
+      ["audio/mine.wav", "Mine launched", "A magnet or a time bomb is launched by a click"],
+      ["audio/anchor.wav", "Anchor launched", "An anchor is launched by a click"],
+      ["audio/missile.wav", "Missile launched", "A missile is launched by a click"],
+      ["audio/fuse.wav", "Time bomb fuse", "A time bomb burns its fuse; repeats every 230 updates of its age"]
+    ] }
+  ] },
+  wordharmony: {
+    presets: [
+      { name: "Level Clear", when: "The last word of a level is found and its tallies count up", steps: [["res/sounds/pop_wind", 0], ["res/music/intense-levelend", 30], ["res/sounds/ball_pop", 30], ["res/sounds/ball_pop", 130], ["res/sounds/ball_pop", 230], ["res/sounds/ball_pop", 330], ["res/sounds/message_add", 1600], ["res/sounds/message_add", 2100], ["res/sounds/message_add", 2600], ["res/sounds/stats_countup", 3600], ["res/sounds/stats_countup", 3960], ["res/sounds/stats_countup", 4260], ["res/sounds/stats_countup", 4500], ["res/sounds/stats_countup", 4730], ["res/sounds/stats_countup", 4900], ["res/sounds/stats_countup", 5060], ["res/sounds/stats_countup", 5200], ["res/sounds/stats_countup", 5330], ["res/sounds/stats_countup", 5400], ["res/sounds/stats_countup", 5500], ["res/sounds/stats_countup", 5560]]},
+      { name: "Level Start", when: "A level opens and its first balls drop in", steps: [["res/sounds/level_intro", 0], ["res/sounds/level_begin", 1040], ["res/sounds/ball_rustle2", 1240], ["res/sounds/ball_rustle2", 1370]]},
+      { name: "Word Found", when: "A word is accepted and its balls pop", steps: [["res/sounds/pop_wind", 0], ["res/sounds/ball_pop", 30], ["res/sounds/ball_pop", 130], ["res/sounds/ball_pop", 230], ["res/sounds/ball_pop", 330]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["res/sounds/menu_mouseover.wav", "Mouse over", "The pointer enters a button or check box of a screen"],
+      ["res/sounds/menu_clicked.wav", "Menu click", "A button or check box of a screen is pressed"]
+    ] },
+    { name: "Level start", sounds: [
+      ["res/sounds/level_intro.wav", "Level intro", "A level's loading screen opens, as the level's music starts"],
+      ["res/sounds/level_begin.wav", "Level begins", "The level's play starts, or a saved game is loaded back in"]
+    ] },
+    { name: "Balls", sounds: [
+      ["res/sounds/ball_rustle.wav", "Next ball shown", "The HUD shows the next ball's letters and the new-ball blossom"],
+      ["res/sounds/ball_rustle2.WAV", "Balls arrive", "A ball, a word's balls or a recycled word's balls are dropped in (not when set quiet)"],
+      ["res/sounds/ball_pop.wav", "Ball pops", "Each picked ball of a found word pops, one after the other"],
+      ["res/sounds/pop_wind.WAV", "Word found", "A word is accepted and scored"]
+    ] },
+    { name: "Bonuses", sounds: [
+      ["res/sounds/speedy_match.wav", "Speedy match", "A word is made less than 2 seconds after the previous word"],
+      ["res/sounds/special_longword.wav", "Long word", "A word of more than 5 letters is made"],
+      ["res/sounds/special_bonus.wav", "Bonus word", "The word made is the level's bonus word"],
+      ["res/sounds/special_multiplier.wav", "Multiplier ball", "A popping ball carries a 2x, 3x or 4x multiplier"]
+    ] },
+    { name: "Level end and results", sounds: [
+      ["res/sounds/level_complete.wav", "Level complete", "A puzzle or solitaire level ends"],
+      ["res/music/intense-levelend.wav", "Level up", "A freematch level ends (this file is in res/music, loaded as a sound)"],
+      ["res/music/intenseEnd.wav", "Game over", "A game ends without quitting (this file is in res/music, loaded as a sound)"],
+      ["res/sounds/message_add.wav", "Result line", "A line of the level's results shows, up to three of them (not in puzzle mode)"],
+      ["res/sounds/stats_countup.wav", "Bonus counts up", "Each 100 points of the bonus is counted into the score on the results screen"]
     ] },
   ] }
 };
