@@ -36,6 +36,22 @@ const bad = Buffer.concat([rec("Cheat", 99999, false), ...five(500).slice(1)]);
 same("noahsark: a failed check shows score % 256", R.parse(R.RECORDS.noahsark, new Uint8Array(bad))[0].rows[0].score, 99999 % 256);
 const rm = Buffer.concat([0, 1, 2].map(() => Buffer.concat([day(1), rec("X", 1, true, true), ...Array.from({ length: 10 }, (_, i) => rec("R" + i, 1000 - i, true, true))])));
 same("rocketmania: the name's length twice", R.parse(R.RECORDS.rocketmania, new Uint8Array(rm)).map((x) => x.rows.length + x.rows[0].name), ["10R0", "10R0", "10R0"]);
+// Atomica's HS.CFG: two fixed 208-byte tables; the day's best only on today's UTC day code
+function atTable(scores, names, best, bestName, dayCode) {
+  const b = Buffer.alloc(208);
+  scores.forEach((v, i) => b.writeInt32LE(v, i * 4));
+  names.forEach((n, i) => b.write(n, 20 + i * 30, "latin1"));
+  b.writeInt32LE(best, 170); b.write(bestName, 174, "latin1"); b.writeInt32LE(dayCode, 204);
+  return b;
+}
+const atToday = ((now.getUTCMonth() + 1) + now.getUTCFullYear() * 12) * 31 + now.getUTCDate();
+const at = R.parse(R.RECORDS.atomica, new Uint8Array(Buffer.concat([
+  atTable([40000, 25000, 15000, 10000, 5000], ["Ann", "Bo", "Cy", "Di", "Ed"], 777, "Zed", atToday),
+  atTable([9, 8, 7, 6, 5], ["A", "B", "C", "D", "E"], 3, "Old", atToday - 1)])));
+same("atomica: Strategy then Action", at.map((x) => x.name), ["Strategy", "Action"]);
+same("atomica: today's best, then the five", at[0].rows.map((r) => [r.place, r.name, r.score]),
+  [["trophies.today", "Zed", 777], ["1", "Ann", 40000], ["2", "Bo", 25000], ["3", "Cy", 15000], ["4", "Di", 10000], ["5", "Ed", 5000]]);
+same("atomica: another day's best is not shown", at[1].rows.length, 5);
 const magic = Buffer.alloc(4); magic.writeUInt32LE(0xb9e7e3f8, 0);
 const b2 = Buffer.concat([magic, ...Array.from({ length: 90 }, (_, i) => rec("B" + (i % 10), 100 - (i % 10), true))]);
 same("bejeweled2: nine tables of ten after the magic", R.parse(R.RECORDS.bejeweled2, new Uint8Array(b2)).map((x) => x.rows.length), [10, 10, 10, 10, 10, 10, 10, 10, 10]);

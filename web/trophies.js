@@ -6,7 +6,7 @@
 //
 // RECORDS: by game id, where its records are and how they are kept, from the port's own reader (each entry names it):
 //   file     the file in the game's user dir
-//   kind     "popcap": PopCap's high-score record of 2001-2004 (games/bejeweled/docs/GAME_NOTES.md, "hiscores.dat"): a u16 name
+//   kind     "atomica": Atomica's fixed tables (parseAtomica); "popcap": PopCap's high-score record of 2001-2004 (games/bejeweled/docs/GAME_NOTES.md, "hiscores.dat"): a u16 name
 //            length, the name, an i32 score and an i32 check (score ^ 0x42BEEF ^ the name's bytes, each signed times 0x11, xored);
 //            a record whose check fails shows score % 256, as the games do
 //   tables   the tables in the file's order, by the names the game shows them under
@@ -31,6 +31,8 @@ var ByopopTrophies = (function () {
     mummymaze: { file: "hiscores.dat", kind: "popcap", tables: ["Classic"], places: 5 },
     // games/rocketmania/src/Dialogs.cpp, LoadScores
     rocketmania: { file: "Players/hiscores.dat", kind: "popcap", tables: ["Classic", "Arcade", "Strategy"], places: 10, day: true, twice: true },
+    // games/atomica/src/AppGame.cpp, ReadHighScores (HighScores.cpp): two fixed tables, expert games sharing their mode's
+    atomica: { file: "HS.CFG", kind: "atomica", tables: ["Strategy", "Action"] },
     // games/bejeweled2/src/HighScoreWidget.cpp, ReadFromFile
     bejeweled2: { file: "users/hiscores.dat", kind: "popcap", magic: 0xb9e7e3f8,
       tables: ["Classic", "Action", "Puzzle", "Endless", "Twilight", "Hyper", "Cognito", "Finity", "Hidden"], places: 10 }
@@ -58,8 +60,24 @@ var ByopopTrophies = (function () {
     try { var a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return new TextDecoder("windows-1252").decode(a); } catch (e) { return s; }
   }
   function today() { var d = new Date(), s = new Date(d.getFullYear(), 0, 0); return (d.getFullYear() - 1900) * 366 + Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - s) / 86400000) - 1; }
+  // Atomica's HS.CFG: a table is 208 bytes, five i32 scores, five 30-byte NUL-ended names, the day's best (i32 score, -1 for
+  // none, its 30-byte name) and its day, ((month + year * 12) * 31 + day of the month) in UTC (HighScores.cpp, DateCode)
+  function atomicaDay() { var d = new Date(); return ((d.getUTCMonth() + 1) + d.getUTCFullYear() * 12) * 31 + d.getUTCDate(); }
+  function cString(b, at, n) { var s = ""; for (var i = 0; i < n && b[at + i]; i++) s += String.fromCharCode(b[at + i]); return decodeName(s); }
+  function parseAtomica(spec, b) {
+    var out = [], dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+    for (var t = 0; t < spec.tables.length && (t + 1) * 208 <= b.length; t++) {
+      var base = t * 208, rows = [];
+      var best = dv.getInt32(base + 170, true), bestName = cString(b, base + 174, 30);
+      if (best !== -1 && dv.getInt32(base + 204, true) === atomicaDay()) rows.push({ place: T("trophies.today"), name: bestName, score: best });
+      for (var i = 0; i < 5; i++) rows.push({ place: String(i + 1), name: cString(b, base + 20 + i * 30, 30), score: dv.getInt32(base + i * 4, true) });
+      out.push({ name: spec.tables[t], rows: rows });
+    }
+    return out;
+  }
   // the file's tables: [{name, rows: [{place, name, score}]}]
   function parse(spec, b) {
+    if (spec.kind === "atomica") return parseAtomica(spec, b);
     var at = 0, out = [], dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
     if (spec.magic !== undefined) { if (b.length < 4 || dv.getUint32(0, true) !== spec.magic) return []; at = 4; }
     for (var t = 0; t < spec.tables.length; t++) {
