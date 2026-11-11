@@ -4644,6 +4644,10 @@ bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolu
 {
 	MTAutoDisallowRand aDisallowRand;
 
+	// A script's screenshot runs at the start of an update, after mUpdateCount has moved on and before the widgets have
+	// updated: the picture is drawn with the count of the update it shows, as the draw after that update had it, so a
+	// curve that counts the app's updates (a CurvedVal's auto increment) is not drawn one update ahead of the rest
+	mUpdateCount--;
 	mIsDrawing = true;
 	mDrawingLogicalShot = !fullResolution;
 	mDDInterface->BeginFrame();
@@ -4651,6 +4655,7 @@ bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolu
 	mWidgetManager->DrawScreen();
 	mDrawingLogicalShot = false;
 	mIsDrawing = false;
+	mUpdateCount++;
 
 	if (fullResolution)
 	{
