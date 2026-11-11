@@ -12,12 +12,12 @@
 namespace jb
 {
 
-// 0x4309f0
+// 0x4309f0 (mahjongjapan)
 Slider::Slider(int theImage, int theMinX, int theMaxX) : Button(theImage, 2, false), mMinX(theMinX), mMaxX(theMaxX)
 {
 }
 
-// 0x430a70: dragged along its row
+// 0x430a70 (mahjongjapan): dragged along its row
 bool Slider::OnLButtonDown(int theFlags, int theX, int theY)
 {
 	PlaySound(SOUND_CLICK);
@@ -25,19 +25,19 @@ bool Slider::OnLButtonDown(int theFlags, int theX, int theY)
 	return true;
 }
 
-// 0x430aa0
+// 0x437ea0 (mahjongchina), 0x430aa0 (mahjongjapan)
 void Slider::OnDragEnd(int theFlags, int theX, int theY)
 {
 	ReportValue();
 }
 
-// 0x430aa0
+// 0x437ea0 (mahjongchina), 0x430aa0 (mahjongjapan)
 void Slider::OnDrag(int theFlags, int theX, int theY)
 {
 	ReportValue();
 }
 
-// 0x430ab0
+// 0x437eb0 (mahjongchina), 0x430ab0 (mahjongjapan)
 void Slider::ReportValue()
 {
 	int aValue = ((mX - mMinX) * 100) / (mMaxX - mMinX);
@@ -51,7 +51,7 @@ void Slider::ReportValue()
 	((SliderBar*)mParent)->ValueChanged(aValue);
 }
 
-// 0x430b00 (0x40a4e0 moves it)
+// 0x430b00 (mahjongjapan) (0x40a360 (mahjongchina), 0x40a4e0 (mahjongjapan) moves it)
 void Slider::SetValue(int theValue)
 {
 	if (theValue < 0)
@@ -61,19 +61,20 @@ void Slider::SetValue(int theValue)
 	mX = ((mMaxX - mMinX) * theValue) / 100 + mMinX;
 }
 
-// 0x426910
+// 0x430640 (mahjongchina), 0x426910 (mahjongjapan)
 SliderBar::SliderBar(int theTrack, int theThumb, int theSliderX, int theSliderEnd)
 	: mTrack(theTrack), mThumb(theThumb), mSliderX(theSliderX), mSliderEnd(theSliderEnd)
 {
 }
 
-// 0x426980
+// 0x4306b0 (mahjongchina), 0x426980 (mahjongjapan)
 void SliderBar::Draw()
 {
 	DrawImage(0, 0, mTrack, nullptr, true, 100, 100, 0xff);
 }
 
-// 0x4269a0: the slider's range is mSliderX to mSliderEnd plus the track's width less a quarter of the slider's
+// 0x4306d0 (mahjongchina), 0x4269a0 (mahjongjapan): the slider's range is mSliderX to mSliderEnd plus the track's width
+// less a quarter of the slider's
 void SliderBar::Init()
 {
 	ImageInfo anInfo;
@@ -85,26 +86,26 @@ void SliderBar::Init()
 	AddChild(mSlider, mSliderX, (aTrackHeight - anInfo.mHeight) / 2);
 }
 
-// 0x426a80
+// 0x4307b0 (mahjongchina), 0x426a80 (mahjongjapan)
 void SliderBar::SetValue(int theValue)
 {
 	mSlider->SetValue(theValue);
 }
 
-// 0x426aa0
+// 0x4307d0 (mahjongchina), 0x426aa0 (mahjongjapan)
 void SliderBar::ValueChanged(int theValue)
 {
 	OnValue(theValue);
 }
 
-// 0x426ac0
+// 0x4307f0 (mahjongchina), 0x426ac0 (mahjongjapan)
 ListBox::ListBox(int theCmd, int theWidth, int theRowHeight, int theRows, int theFixed)
 	: mCmd(theCmd), mTop(theFixed), mWidth(theWidth), mRowHeight(theRowHeight), mRows(theRows), mFixed(theFixed)
 {
 	SetRect(mFrame, 0, 0, theWidth + 2, theRowHeight * theRows + 2);
 }
 
-// 0x426b90
+// 0x4308c0 (mahjongchina), 0x426b90 (mahjongjapan)
 ListBox::~ListBox()
 {
 	for (Item* anItem : mItems)
@@ -112,7 +113,7 @@ ListBox::~ListBox()
 	mItems.clear();
 }
 
-// 0x426cb0
+// 0x4309b0 (mahjongchina), 0x426cb0 (mahjongjapan)
 void ListBox::Init()
 {
 	SetCursorKind(CURSOR_KIND_HAND, false);
@@ -123,7 +124,7 @@ void ListBox::Init()
 	OnInit();
 }
 
-// 0x426d00
+// 0x430a00 (mahjongchina), 0x426d00 (mahjongjapan)
 void ListBox::SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theColour3)
 {
 	mFrameColour1 = theColour1;
@@ -132,7 +133,7 @@ void ListBox::SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theCol
 	mFrameColour3 = theColour3;
 }
 
-// 0x426d30
+// 0x430a30 (mahjongchina), 0x426d30 (mahjongjapan)
 void ListBox::SetFont(int theFontImage, int theFontText, int theX, int theY, int theDisabledAlpha)
 {
 	mFont = GetDllFont(theFontImage, theFontText);
@@ -141,7 +142,8 @@ void ListBox::SetFont(int theFontImage, int theFontText, int theX, int theY, int
 	mDisabledAlpha = theDisabledAlpha;
 }
 
-// 0x426d70: the buttons' images have four frames; the list's frame grows by a button's width
+// 0x430a70 (mahjongchina), 0x426d70 (mahjongjapan): the buttons' images have four frames; the list's frame grows by a
+// button's width
 void ListBox::SetScroll(int theUpImage, int theDownImage)
 {
 	mUpImage = theUpImage;
@@ -159,7 +161,7 @@ void ListBox::SetScroll(int theUpImage, int theDownImage)
 	mFrame.right = anInfo.mWidth / 4 + 2 + mFrame.right;
 }
 
-// 0x426eb0
+// 0x430bb0 (mahjongchina), 0x426eb0 (mahjongjapan)
 void ListBox::Draw()
 {
 	if (mFramed)
@@ -224,7 +226,7 @@ void ListBox::Draw()
 	}
 }
 
-// 0x4270e0: the hand over the rows that hold items
+// 0x430dd0 (mahjongchina), 0x4270e0 (mahjongjapan): the hand over the rows that hold items
 void ListBox::OnMouseMove(int theFlags, int theX, int theY)
 {
 	int aCount = (int)mItems.size();
@@ -238,7 +240,7 @@ void ListBox::OnMouseMove(int theFlags, int theX, int theY)
 	SetCursorKind(CURSOR_KIND_ARROW, true);
 }
 
-// 0x427150
+// 0x430e40 (mahjongchina), 0x427150 (mahjongjapan)
 bool ListBox::OnLButtonDown(int theFlags, int theX, int theY)
 {
 	if (1 < theX && theX < mWidth - 2)
@@ -259,7 +261,8 @@ bool ListBox::OnLButtonDown(int theFlags, int theX, int theY)
 	return false;
 }
 
-// 0x4271f0: the scroll buttons' commands are their images; the selection moves with the rows
+// 0x430ee0 (mahjongchina), 0x4271f0 (mahjongjapan): the scroll buttons' commands are their images; the selection moves
+// with the rows
 bool ListBox::OnCommand(int theCmd)
 {
 	if (mScrolls)
@@ -288,7 +291,7 @@ bool ListBox::OnCommand(int theCmd)
 	return false;
 }
 
-// 0x4272a0: below 0 is the first; the list scrolls down to it, never up
+// 0x430f90 (mahjongchina), 0x4272a0 (mahjongjapan): below 0 is the first; the list scrolls down to it, never up
 void ListBox::SetSelected(int theIndex)
 {
 	if (theIndex < 0)
@@ -302,7 +305,7 @@ void ListBox::SetSelected(int theIndex)
 		mTop = (mFixed - mRows) + 1 + aSelected;
 }
 
-// 0x427340
+// 0x431030 (mahjongchina), 0x427340 (mahjongjapan)
 int ListBox::Add(int theStringId, int theData)
 {
 	Item* anItem = new Item();
@@ -311,7 +314,7 @@ int ListBox::Add(int theStringId, int theData)
 	return AddItem(anItem);
 }
 
-// 0x4273c0
+// 0x4310b0 (mahjongchina), 0x4273c0 (mahjongjapan)
 int ListBox::Add(const char* theText, int theData)
 {
 	Item* anItem = new Item();
@@ -320,7 +323,7 @@ int ListBox::Add(const char* theText, int theData)
 	return AddItem(anItem);
 }
 
-// 0x427440
+// 0x431130 (mahjongchina), 0x427440 (mahjongjapan)
 int ListBox::AddItem(Item* theItem)
 {
 	mItems.push_back(theItem);
@@ -330,7 +333,7 @@ int ListBox::AddItem(Item* theItem)
 	return (int)mItems.size() - 1;
 }
 
-// 0x4274a0
+// 0x431190 (mahjongchina), 0x4274a0 (mahjongjapan)
 void ListBox::UpdateButtons()
 {
 	if (mScrolls)
@@ -341,7 +344,7 @@ void ListBox::UpdateButtons()
 	}
 }
 
-// 0x427510
+// 0x431200 (mahjongchina), 0x427510 (mahjongjapan)
 void ListBox::Remove(int theIndex)
 {
 	delete mItems[theIndex];
@@ -359,8 +362,8 @@ void ListBox::Remove(int theIndex)
 	UpdateButtons();
 }
 
-// 0x427630 (the original disabled the scroll buttons even for a list without them, through pointers it never set;
-// the port skips them)
+// 0x431320 (mahjongchina), 0x427630 (mahjongjapan) (the original disabled the scroll buttons even for a list without
+// them, through pointers it never set; the port skips them)
 void ListBox::ClearItems()
 {
 	for (Item* anItem : mItems)
@@ -399,14 +402,14 @@ static bool ControlDown()
 	return (GetHost()->InputFlags() & 8) != 0;
 }
 
-// 0x427920
+// 0x431430 (mahjongchina), 0x427920 (mahjongjapan)
 TextEdit::TextEdit(int theWidth, int theHeight, int theMaxLength, bool theUnderline)
 	: mWidth(theWidth), mHeight(theHeight), mMaxLength(theMaxLength), mUnderline(theUnderline)
 {
 	SetRect(mFrame, -4, -2, theWidth + 4, theHeight + 4);
 }
 
-// 0x427af0
+// 0x4315d0 (mahjongchina), 0x427af0 (mahjongjapan)
 void TextEdit::SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theColour3)
 {
 	mFrameColour1 = theColour1;
@@ -415,7 +418,7 @@ void TextEdit::SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theCo
 	mFrameColour3 = theColour3;
 }
 
-// 0x427b20
+// 0x431600 (mahjongchina), 0x427b20 (mahjongjapan)
 void TextEdit::SetFont(int theFontImage, int theFontText, int theTextY, int theDisabledAlpha)
 {
 	mFont = GetDllFont(theFontImage, theFontText);
@@ -423,8 +426,8 @@ void TextEdit::SetFont(int theFontImage, int theFontText, int theTextY, int theD
 	mDisabledAlpha = theDisabledAlpha;
 }
 
-// 0x427b60: the scroll follows the cursor with five characters to spare. The selection's end is clamped to the last
-// character shown plus the scroll a second time, as in the original.
+// 0x431640 (mahjongchina), 0x427b60 (mahjongjapan): the scroll follows the cursor with five characters to spare. The
+// selection's end is clamped to the last character shown plus the scroll a second time, as in the original.
 void TextEdit::Draw()
 {
 	if (!IsVisible())
@@ -517,7 +520,7 @@ void TextEdit::Draw()
 	mFont->DrawLeft(this, 0, mTextY, mText.c_str(), mWidth, 100, 100, anAlpha);
 }
 
-// 0x427fa0: the caret blinks every half second
+// 0x431a60 (mahjongchina), 0x427fa0 (mahjongjapan): the caret blinks every half second
 void TextEdit::Init()
 {
 	int aPeriod = 500 / mManager->GetPeriod();
@@ -532,7 +535,7 @@ void TextEdit::Init()
 	SetUserFlag(true);
 }
 
-// 0x428010
+// 0x431ac0 (mahjongchina), 0x428010 (mahjongjapan)
 bool TextEdit::Update()
 {
 	if (mFocused && IsActive())
@@ -548,7 +551,8 @@ bool TextEdit::Update()
 	return false;
 }
 
-// 0x428060: ^C copies, Enter goes to the layer, ^V pastes, ^X cuts, ^Z undoes; a character of the font is typed
+// 0x431b20 (mahjongchina), 0x428060 (mahjongjapan): ^C copies, Enter goes to the layer, ^V pastes, ^X cuts, ^Z undoes;
+// a character of the font is typed
 void TextEdit::OnChar(int theChar, int theRepeat, int theScan)
 {
 	if (!mFocused)
@@ -587,8 +591,9 @@ void TextEdit::OnChar(int theChar, int theRepeat, int theScan)
 	Changed();
 }
 
-// 0x428210: Backspace, Delete (with Shift: as Backspace, or a cut), End, Home, the arrows (Ctrl: by words; Shift:
-// selecting) and Insert (Ctrl: copy, Shift: paste). Never taken, so the other objects get the key too.
+// 0x431cd0 (mahjongchina), 0x428210 (mahjongjapan): Backspace, Delete (with Shift: as Backspace, or a cut), End, Home,
+// the arrows (Ctrl: by words; Shift: selecting) and Insert (Ctrl: copy, Shift: paste). Never taken, so the other
+// objects get the key too.
 bool TextEdit::OnKeyDown(int theKey, int theRepeat, int theScan)
 {
 	if (!mFocused)
@@ -701,7 +706,8 @@ keys:
 	return false;
 }
 
-// 0x428490: Shift extends the selection; the click takes the layer's focus and drags the cursor
+// 0x431f40 (mahjongchina), 0x428490 (mahjongjapan): Shift extends the selection; the click takes the layer's focus and
+// drags the cursor
 bool TextEdit::OnLButtonDown(int theFlags, int theX, int theY)
 {
 	if (ShiftDown())
@@ -718,14 +724,14 @@ bool TextEdit::OnLButtonDown(int theFlags, int theX, int theY)
 	return true;
 }
 
-// 0x428500
+// 0x431fb0 (mahjongchina), 0x428500 (mahjongjapan)
 void TextEdit::OnDragEnd(int theFlags, int theX, int theY)
 {
 	mCaretOn = true;
 	Invalidate();
 }
 
-// 0x428510
+// 0x431fc0 (mahjongchina), 0x428510 (mahjongjapan)
 void TextEdit::OnDrag(int theFlags, int theX, int theY)
 {
 	if (mAnchor == -1)
@@ -738,7 +744,7 @@ void TextEdit::OnDrag(int theFlags, int theX, int theY)
 	}
 }
 
-// 0x428550: the word is selected (with Shift, the selection grows to it)
+// 0x432000 (mahjongchina), 0x428550 (mahjongjapan): the word is selected (with Shift, the selection grows to it)
 bool TextEdit::OnLButtonDblClk(int theFlags, int theX, int theY)
 {
 	int aPos = HitTest(theX);
@@ -762,7 +768,7 @@ bool TextEdit::OnLButtonDblClk(int theFlags, int theX, int theY)
 	return true;
 }
 
-// 0x4285d0: past the word, then past what follows it up to the next word
+// 0x432080 (mahjongchina), 0x4285d0 (mahjongjapan): past the word, then past what follows it up to the next word
 int TextEdit::WordEnd(int thePos)
 {
 	int aLength = (int)mText.size();
@@ -786,7 +792,7 @@ int TextEdit::WordEnd(int thePos)
 	return i;
 }
 
-// 0x428640: back over what precedes the word, then to the word's start
+// 0x4320f0 (mahjongchina), 0x428640 (mahjongjapan): back over what precedes the word, then to the word's start
 int TextEdit::WordStart(int thePos)
 {
 	int i = thePos - 1;
@@ -811,7 +817,8 @@ int TextEdit::WordStart(int thePos)
 	return i + 1;
 }
 
-// 0x4286b0: left of the edit is the character before the scroll; past a character's middle is the next one
+// 0x432160 (mahjongchina), 0x4286b0 (mahjongjapan): left of the edit is the character before the scroll; past a
+// character's middle is the next one
 int TextEdit::HitTest(int theX)
 {
 	int x = 0;
@@ -843,7 +850,7 @@ int TextEdit::HitTest(int theX)
 	return x;
 }
 
-// 0x4287a0
+// 0x432240 (mahjongchina), 0x4287a0 (mahjongjapan)
 void TextEdit::SetFocus(bool theFocus)
 {
 	mFocused = theFocus;
@@ -862,7 +869,7 @@ void TextEdit::SetFocus(bool theFocus)
 	}
 }
 
-// 0x4287f0
+// 0x432290 (mahjongchina), 0x4287f0 (mahjongjapan)
 bool TextEdit::DeleteSelection()
 {
 	int anAnchor = mAnchor;
@@ -878,7 +885,7 @@ bool TextEdit::DeleteSelection()
 	return true;
 }
 
-// 0x428840
+// 0x4322e0 (mahjongchina), 0x428840 (mahjongjapan)
 bool TextEdit::Copy()
 {
 	int anAnchor = mAnchor;
@@ -897,7 +904,8 @@ bool TextEdit::Copy()
 	return false;
 }
 
-// 0x4288e0: a new kind of edit keeps the text as it was; the counts say what an undo selects
+// 0x432380 (mahjongchina), 0x4288e0 (mahjongjapan): a new kind of edit keeps the text as it was; the counts say what an
+// undo selects
 void TextEdit::RecordUndo(int theKind, int theArg)
 {
 	if (mUndoKind != theKind)
@@ -949,7 +957,7 @@ void TextEdit::RecordUndo(int theKind, int theArg)
 	}
 }
 
-// 0x428a40: the texts swap, so a second undo redoes
+// 0x4324e0 (mahjongchina), 0x428a40 (mahjongjapan): the texts swap, so a second undo redoes
 void TextEdit::Undo()
 {
 	std::string aText = mText;
@@ -973,7 +981,7 @@ void TextEdit::Undo()
 	mUndoKind = -1;
 }
 
-// 0x428b00
+// 0x4325a0 (mahjongchina), 0x428b00 (mahjongjapan)
 void TextEdit::Changed()
 {
 	mCaretOn = true;
@@ -981,7 +989,7 @@ void TextEdit::Changed()
 	OnChanged(mText.c_str());
 }
 
-// 0x428b30
+// 0x4325c0 (mahjongchina), 0x428b30 (mahjongjapan)
 bool TextEdit::Cut()
 {
 	if (!Copy())
@@ -992,7 +1000,7 @@ bool TextEdit::Cut()
 	return true;
 }
 
-// 0x428b70: only the clipboard's characters that the font has
+// 0x432600 (mahjongchina), 0x428b70 (mahjongjapan): only the clipboard's characters that the font has
 bool TextEdit::Paste()
 {
 	std::string aText;
@@ -1009,7 +1017,8 @@ bool TextEdit::Paste()
 	return true;
 }
 
-// 0x428c90 (the width is measured with theText at the end, wherever the cursor is)
+// 0x432720 (mahjongchina), 0x428c90 (mahjongjapan) (the width is measured with theText at the end, wherever the cursor
+// is)
 bool TextEdit::Fits(const std::string& theText)
 {
 	int aLength = (int)theText.size() + (int)mText.size();
@@ -1030,7 +1039,7 @@ bool TextEdit::Fits(const std::string& theText)
 	return true;
 }
 
-// 0x4287a0 through a layer's focus list
+// 0x432240 (mahjongchina), 0x4287a0 (mahjongjapan) through a layer's focus list
 void SetObjectFocus(Object* theObject, bool theFocus)
 {
 	((TextEdit*)theObject)->SetFocus(theFocus);

@@ -1,9 +1,11 @@
 #ifndef __JB_WIDGETS_H__
 #define __JB_WIDGETS_H__
 
-// The engine's widgets (0x426910..0x428dc0, and the slider 0x4309f0..0x430b50): the slider bar (0x426910, vtable
-// 0x51e298) with its thumb (0x4309f0, vtable 0x51e5dc), the list box (0x426ac0, vtable 0x51e2f4) and the text edit
-// (0x427920, vtable 0x51e350).
+// The engine's widgets (0x430640..0x432860 (mahjongchina), 0x426910..0x428dc0 (mahjongjapan), and the slider
+// 0x4309f0..0x430b50 (mahjongjapan)): the slider bar (0x430640 (mahjongchina), 0x426910 (mahjongjapan), vtable
+// 0x51e298 (mahjongjapan)) with its thumb (0x4309f0 (mahjongjapan), vtable 0x51e5dc (mahjongjapan)), the list box
+// (0x4307f0 (mahjongchina), 0x426ac0 (mahjongjapan), vtable 0x51e2f4 (mahjongjapan)) and the text edit
+// (0x431430 (mahjongchina), 0x427920 (mahjongjapan), vtable 0x51e350 (mahjongjapan)).
 
 #include "Object.h"
 
@@ -16,30 +18,30 @@ namespace jb
 class Font;
 class SliderBar;
 
-// 0x4309f0: a button of two frames dragged between mMinX and mMaxX (its parent is a SliderBar)
+// 0x4309f0 (mahjongjapan): a button of two frames dragged between mMinX and mMaxX (its parent is a SliderBar)
 class Slider : public Button
 {
 public:
 	int mMinX;  // +0xe4
 	int mMaxX;  // +0xe8
 
-	// 0x4309f0
+	// 0x4309f0 (mahjongjapan)
 	Slider(int theImage, int theMinX, int theMaxX);
-	// 0x430a60
+	// 0x42ac20 (mahjongchina), 0x430a60 (mahjongjapan)
 	~Slider() override {}
 
-	bool OnLButtonDown(int theFlags, int theX, int theY) override;   // 0x430a70
-	bool OnLButtonUp(int theFlags, int theX, int theY) override { return true; }  // 0x430a30
-	void OnDragEnd(int theFlags, int theX, int theY) override;       // 0x430aa0
-	void OnDrag(int theFlags, int theX, int theY) override;          // 0x430aa0
+	bool OnLButtonDown(int theFlags, int theX, int theY) override;   // 0x430a70 (mahjongjapan)
+	bool OnLButtonUp(int theFlags, int theX, int theY) override { return true; }  // 0x430a30 (mahjongjapan)
+	void OnDragEnd(int theFlags, int theX, int theY) override;       // 0x437ea0 (mahjongchina), 0x430aa0 (mahjongjapan)
+	void OnDrag(int theFlags, int theX, int theY) override;          // 0x437ea0 (mahjongchina), 0x430aa0 (mahjongjapan)
 
-	// 0x430ab0: the position as 0-100, to the bar
+	// 0x437eb0 (mahjongchina), 0x430ab0 (mahjongjapan): the position as 0-100, to the bar
 	void ReportValue();
-	// 0x430b00
+	// 0x430b00 (mahjongjapan)
 	void SetValue(int theValue);
 };
 
-// 0x426910: a track image with a slider on it; OnValue gets 0-100
+// 0x430640 (mahjongchina), 0x426910 (mahjongjapan): a track image with a slider on it; OnValue gets 0-100
 class SliderBar : public Object
 {
 public:
@@ -49,23 +51,23 @@ public:
 	int mSliderEnd;           // +0x9c the slider's right end, less the track's width
 	Slider* mSlider = nullptr;  // +0xa4
 
-	// 0x426910
+	// 0x430640 (mahjongchina), 0x426910 (mahjongjapan)
 	SliderBar(int theTrack, int theThumb, int theSliderX, int theSliderEnd);
-	// 0x426970
+	// 0x4306a0 (mahjongchina), 0x426970 (mahjongjapan)
 	~SliderBar() override {}
 
-	void Draw() override;     // 0x426980
-	void Init() override;     // 0x4269a0
-	virtual void OnValue(int theValue) {}  // +0x58 (0x428dc0)
+	void Draw() override;     // 0x4306b0 (mahjongchina), 0x426980 (mahjongjapan)
+	void Init() override;     // 0x4306d0 (mahjongchina), 0x4269a0 (mahjongjapan)
+	virtual void OnValue(int theValue) {}  // +0x58 (0x428dc0 (mahjongjapan))
 
-	// 0x426a80
+	// 0x4307b0 (mahjongchina), 0x426a80 (mahjongjapan)
 	void SetValue(int theValue);
-	// 0x426aa0: from the slider
+	// 0x4307d0 (mahjongchina), 0x426aa0 (mahjongjapan): from the slider
 	void ValueChanged(int theValue);
 };
 
-// 0x426ac0: a list of strings in rows; the first mFixed rows stay, the rest scroll by the up and down buttons. A click
-// selects a row and sends the layer the command mCmd.
+// 0x4307f0 (mahjongchina), 0x426ac0 (mahjongjapan): a list of strings in rows; the first mFixed rows stay, the rest
+// scroll by the up and down buttons. A click selects a row and sends the layer the command mCmd.
 class ListBox : public Object
 {
 public:
@@ -100,49 +102,57 @@ public:
 	int mTextY = 0;                 // +0xfc
 	int mDisabledAlpha = 0xff;      // +0x100
 
-	// 0x426ac0
+	// 0x4307f0 (mahjongchina), 0x426ac0 (mahjongjapan)
 	ListBox(int theCmd, int theWidth, int theRowHeight, int theRows, int theFixed);
-	// 0x426b90
+	// 0x4308c0 (mahjongchina), 0x426b90 (mahjongjapan)
 	~ListBox() override;
 
-	void Draw() override;                                              // 0x426eb0
-	void Init() override;                                              // 0x426cb0
-	bool OnCommand(int theCmd) override;                               // 0x4271f0
-	bool OnLButtonDown(int theFlags, int theX, int theY) override;     // 0x427150
-	void OnMouseMove(int theFlags, int theX, int theY) override;       // 0x4270e0
-	virtual void OnInit() {}                                           // +0x58 (0x429700)
+	// 0x430bb0 (mahjongchina), 0x426eb0 (mahjongjapan)
+	void Draw() override;
+	// 0x4309b0 (mahjongchina), 0x426cb0 (mahjongjapan)
+	void Init() override;
+	// 0x430ee0 (mahjongchina), 0x4271f0 (mahjongjapan)
+	bool OnCommand(int theCmd) override;
+	// 0x430e40 (mahjongchina), 0x427150 (mahjongjapan)
+	bool OnLButtonDown(int theFlags, int theX, int theY) override;
+	// 0x430dd0 (mahjongchina), 0x4270e0 (mahjongjapan)
+	void OnMouseMove(int theFlags, int theX, int theY) override;
+	// +0x58 (0x4221c0 (mahjongchina), 0x429700 (mahjongjapan))
+	virtual void OnInit() {}
 
-	// 0x426c80, 0x426ca0
+	// 0x426c80 (mahjongjapan), 0x426ca0 (mahjongjapan)
 	int GetCount() const { return (int)mItems.size(); }
 	int GetSelected() const { return mSelected; }
-	// 0x426cf0
+	// 0x4309f0 (mahjongchina), 0x426cf0 (mahjongjapan)
 	void SetSelColour(uint32_t theColour) { mSelColour = theColour; }
-	// 0x426d00
+	// 0x430a00 (mahjongchina), 0x426d00 (mahjongjapan)
 	void SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theColour3);
-	// 0x426d30
+	// 0x430a30 (mahjongchina), 0x426d30 (mahjongjapan)
 	void SetFont(int theFontImage, int theFontText, int theX, int theY, int theDisabledAlpha);
-	// 0x426d70: the scroll buttons (images of four frames) on the right
+	// 0x430a70 (mahjongchina), 0x426d70 (mahjongjapan): the scroll buttons (images of four frames) on the right
 	void SetScroll(int theUpImage, int theDownImage);
-	// 0x4272a0
+	// 0x430f90 (mahjongchina), 0x4272a0 (mahjongjapan)
 	void SetSelected(int theIndex);
-	// 0x427340, 0x4273c0: the new item's index
+	// 0x431030 (mahjongchina), 0x427340 (mahjongjapan), 0x4310b0 (mahjongchina), 0x4273c0 (mahjongjapan): the new
+	// item's index
 	int Add(int theStringId, int theData);
 	int Add(const char* theText, int theData);
-	// 0x427440
+	// 0x431130 (mahjongchina), 0x427440 (mahjongjapan)
 	int AddItem(Item* theItem);
-	// 0x4274a0
+	// 0x431190 (mahjongchina), 0x4274a0 (mahjongjapan)
 	void UpdateButtons();
-	// 0x427510
+	// 0x431200 (mahjongchina), 0x427510 (mahjongjapan)
 	void Remove(int theIndex);
-	// 0x427630
+	// 0x431320 (mahjongchina), 0x427630 (mahjongjapan)
 	void ClearItems();  // not the virtual Clear (+0x0c), which stays empty
-	// 0x4276d0, 0x4276f0
+	// 0x4313c0 (mahjongchina), 0x4276d0 (mahjongjapan), 0x4313e0 (mahjongchina), 0x4276f0 (mahjongjapan)
 	const std::string& GetText(int theIndex) const { return mItems[theIndex]->mText; }
 	int GetData(int theIndex) const { return mItems[theIndex]->mData; }
 };
 
-// 0x427920: a line of text typed in, with a caret, a selection (from the anchor to the cursor), the clipboard and one
-// level of undo. A layer's focus list holds text edits; Enter goes to the layer (+0x24), and every change to OnChanged.
+// 0x431430 (mahjongchina), 0x427920 (mahjongjapan): a line of text typed in, with a caret, a selection (from the anchor
+// to the cursor), the clipboard and one level of undo. A layer's focus list holds text edits; Enter goes to the layer
+// (+0x24), and every change to OnChanged.
 class TextEdit : public Object
 {
 public:
@@ -173,57 +183,66 @@ public:
 	int mUndoInserted = 0;           // +0x104
 	int mUndoDeleted = 0;            // +0x108
 
-	// 0x427920
+	// 0x431430 (mahjongchina), 0x427920 (mahjongjapan)
 	TextEdit(int theWidth, int theHeight, int theMaxLength, bool theUnderline);
-	// 0x427a20, 0x427a40
+	// 0x431530 (mahjongchina), 0x427a20 (mahjongjapan), 0x431550 (mahjongchina), 0x427a40 (mahjongjapan)
 	~TextEdit() override {}
 
-	void Draw() override;                                              // 0x427b60
-	void Init() override;                                              // 0x427fa0
-	bool OnLButtonDown(int theFlags, int theX, int theY) override;     // 0x428490
-	bool OnLButtonDblClk(int theFlags, int theX, int theY) override;   // 0x428550
-	void OnDragEnd(int theFlags, int theX, int theY) override;         // 0x428500
-	void OnDrag(int theFlags, int theX, int theY) override;            // 0x428510
-	bool OnKeyDown(int theKey, int theRepeat, int theScan) override;   // 0x428210
-	void OnChar(int theChar, int theRepeat, int theScan) override;     // 0x428060
-	bool Update() override;                                            // 0x428010 the caret blinks
-	virtual void OnChanged(const char* theText) {}                     // +0x58 (0x428dc0)
+	// 0x431640 (mahjongchina), 0x427b60 (mahjongjapan)
+	void Draw() override;
+	// 0x431a60 (mahjongchina), 0x427fa0 (mahjongjapan)
+	void Init() override;
+	// 0x431f40 (mahjongchina), 0x428490 (mahjongjapan)
+	bool OnLButtonDown(int theFlags, int theX, int theY) override;
+	// 0x432000 (mahjongchina), 0x428550 (mahjongjapan)
+	bool OnLButtonDblClk(int theFlags, int theX, int theY) override;
+	// 0x431fb0 (mahjongchina), 0x428500 (mahjongjapan)
+	void OnDragEnd(int theFlags, int theX, int theY) override;
+	// 0x431fc0 (mahjongchina), 0x428510 (mahjongjapan)
+	void OnDrag(int theFlags, int theX, int theY) override;
+	// 0x431cd0 (mahjongchina), 0x428210 (mahjongjapan)
+	bool OnKeyDown(int theKey, int theRepeat, int theScan) override;
+	// 0x431b20 (mahjongchina), 0x428060 (mahjongjapan)
+	void OnChar(int theChar, int theRepeat, int theScan) override;
+	// 0x431ac0 (mahjongchina), 0x428010 (mahjongjapan) the caret blinks
+	bool Update() override;
+	virtual void OnChanged(const char* theText) {}                     // +0x58 (0x428dc0 (mahjongjapan))
 
-	// 0x427ab0
+	// 0x427ab0 (mahjongjapan)
 	std::string GetText() const { return mText; }
-	// 0x427ae0
+	// 0x4315c0 (mahjongchina), 0x427ae0 (mahjongjapan)
 	void SetSelColour(uint32_t theColour) { mSelColour = theColour; }
-	// 0x427af0
+	// 0x4315d0 (mahjongchina), 0x427af0 (mahjongjapan)
 	void SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theColour3);
-	// 0x427b20
+	// 0x431600 (mahjongchina), 0x427b20 (mahjongjapan)
 	void SetFont(int theFontImage, int theFontText, int theTextY, int theDisabledAlpha);
-	// 0x4287a0: on, the whole text is selected
+	// 0x432240 (mahjongchina), 0x4287a0 (mahjongjapan): on, the whole text is selected
 	void SetFocus(bool theFocus);
 
-	// 0x4285d0, 0x428640
+	// 0x432080 (mahjongchina), 0x4285d0 (mahjongjapan), 0x4320f0 (mahjongchina), 0x428640 (mahjongjapan)
 	int WordEnd(int thePos);
 	int WordStart(int thePos);
-	// 0x4286b0: the character position at theX
+	// 0x432160 (mahjongchina), 0x4286b0 (mahjongjapan): the character position at theX
 	int HitTest(int theX);
-	// 0x4287f0
+	// 0x432290 (mahjongchina), 0x4287f0 (mahjongjapan)
 	bool DeleteSelection();
-	// 0x428840
+	// 0x4322e0 (mahjongchina), 0x428840 (mahjongjapan)
 	bool Copy();
-	// 0x4288e0
+	// 0x432380 (mahjongchina), 0x4288e0 (mahjongjapan)
 	void RecordUndo(int theKind, int theArg);
-	// 0x428a40
+	// 0x4324e0 (mahjongchina), 0x428a40 (mahjongjapan)
 	void Undo();
-	// 0x428b00
+	// 0x4325a0 (mahjongchina), 0x428b00 (mahjongjapan)
 	void Changed();
-	// 0x428b30
+	// 0x4325c0 (mahjongchina), 0x428b30 (mahjongjapan)
 	bool Cut();
-	// 0x428b70
+	// 0x432600 (mahjongchina), 0x428b70 (mahjongjapan)
 	bool Paste();
-	// 0x428c90: theText may replace the selection (the length and the width)
+	// 0x432720 (mahjongchina), 0x428c90 (mahjongjapan): theText may replace the selection (the length and the width)
 	bool Fits(const std::string& theText);
 };
 
-// 0x4287a0 through a layer's focus list (it holds text edits only)
+// 0x432240 (mahjongchina), 0x4287a0 (mahjongjapan) through a layer's focus list (it holds text edits only)
 void SetObjectFocus(Object* theObject, bool theFocus);
 
 } // namespace jb

@@ -14,9 +14,10 @@ namespace jb
 Manager* gManager = nullptr;
 bool gLayerDeleted = false;
 bool gInvalidated = false;
-// 0x5d8ea0: the pauses asked for (0x42c110)
+// 0x5d8ea0 (mahjongjapan): the pauses asked for (0x4221d0 (mahjongchina), 0x42c110 (mahjongjapan))
 static int gPauseRequests = 0;
-// 0x527ba8|0x526a08: the full screen's "windowed" button (EXE_IMAGE_WINDOWED_BUTTON at 785, 4)
+// 0x526a08 (mahjongchina), 0x527ba8 (mahjongjapan): the full screen's "windowed" button (EXE_IMAGE_WINDOWED_BUTTON at
+// 785, 4)
 static const Rect WINDOWED_BUTTON = {784, 0, SCREEN_WIDTH, 16};
 
 static bool InList(ListNode* theHead, void* theObj)
@@ -24,14 +25,14 @@ static bool InList(ListNode* theHead, void* theObj)
 	return ListContains(theHead, theObj);
 }
 
-// 0x42a0d0
+// 0x4201a0 (mahjongchina), 0x42a0d0 (mahjongjapan)
 Manager::Manager()
 {
 	mSound = new Sound();
 	mDisplay = new Display();
 }
 
-// 0x42a230
+// 0x4202e0 (mahjongchina), 0x42a230 (mahjongjapan)
 Manager::~Manager()
 {
 	if (mRunning)
@@ -44,7 +45,7 @@ Manager::~Manager()
 		gManager = nullptr;
 }
 
-// 0x42a2c0
+// 0x420380 (mahjongchina), 0x42a2c0 (mahjongjapan)
 void Manager::Stop()
 {
 	mDisplay->Release();
@@ -57,13 +58,13 @@ void Manager::Stop()
 	ListClear(mAnimators);
 }
 
-// 0x42a340
+// 0x42a340 (mahjongjapan)
 bool Manager::IsAppActive()
 {
 	return mDisplay->mActive;
 }
 
-// 0x42a5c0
+// 0x4203f0 (mahjongchina), 0x42a5c0 (mahjongjapan)
 void Manager::Shutdown()
 {
 	for (size_t i = 0; i < mLayers.size(); i++)
@@ -71,7 +72,7 @@ void Manager::Shutdown()
 	Stop();
 }
 
-// 0x42a5f0 (the cursors are the host's; the window's timer is the host's frame)
+// 0x420430 (mahjongchina), 0x42a5f0 (mahjongjapan) (the cursors are the host's; the window's timer is the host's frame)
 bool Manager::Init(bool theFullScreen, int thePeriod)
 {
 	mPeriod = thePeriod;
@@ -94,8 +95,8 @@ bool Manager::Init(bool theFullScreen, int thePeriod)
 	return true;
 }
 
-// 0x42c300 (with theUseSetting the registry's HardwareAcceleration, else the display's state, decides whether a
-// failed mode is tried again without acceleration)
+// 0x4223d0 (mahjongchina), 0x42c300 (mahjongjapan) (with theUseSetting the registry's HardwareAcceleration, else the
+// display's state, decides whether a failed mode is tried again without acceleration)
 bool Manager::SetMode(bool theFullScreen, bool theUseSetting)
 {
 	bool aRetry = theFullScreen && (theUseSetting ? gHardwareAccel : mDisplay->mAccelerated);
@@ -105,14 +106,15 @@ bool Manager::SetMode(bool theFullScreen, bool theUseSetting)
 	return 0 <= aResult;
 }
 
-// 0x42a800
+// 0x420660 (mahjongchina), 0x42a800 (mahjongjapan)
 void Manager::PresentDone()
 {
 	mDisplay->PresentDone();
 	mLastPresent = TickCount();
 }
 
-// 0x42a820 (the software cursor of the accelerated display is the host's cursor in the port)
+// 0x420680 (mahjongchina), 0x42a820 (mahjongjapan) (the software cursor of the accelerated display is the host's cursor
+// in the port)
 void Manager::Draw()
 {
 	if (mRunning && !mPaused)
@@ -164,7 +166,7 @@ void Manager::Draw()
 	}
 }
 
-// 0x42a9f0
+// 0x420860 (mahjongchina), 0x42a9f0 (mahjongjapan)
 void Manager::Push(Layer* theLayer, bool theOverlay, bool theDarken, bool theAnimate)
 {
 	if (!theOverlay)
@@ -188,7 +190,7 @@ void Manager::Push(Layer* theLayer, bool theOverlay, bool theDarken, bool theAni
 	Invalidate();
 }
 
-// 0x42ac00
+// 0x420a80 (mahjongchina), 0x42ac00 (mahjongjapan)
 void Manager::DeactivateTop(bool theDarken)
 {
 	size_t i = mLayers.size();
@@ -204,7 +206,7 @@ void Manager::DeactivateTop(bool theDarken)
 	}
 }
 
-// 0x42ac60
+// 0x420ad0 (mahjongchina), 0x42ac60 (mahjongjapan)
 Layer* Manager::Pop(bool theAnimate, int theCount)
 {
 	mHover = nullptr;
@@ -220,7 +222,7 @@ Layer* Manager::Pop(bool theAnimate, int theCount)
 	return aTop;
 }
 
-// 0x42acb0 (with an empty stack the original read past it)
+// 0x420b20 (mahjongchina), 0x42acb0 (mahjongjapan) (with an empty stack the original read past it)
 Layer* Manager::PopNow(int theCount)
 {
 	if (mLayers.empty())
@@ -253,7 +255,7 @@ Layer* Manager::PopNow(int theCount)
 	return nullptr;
 }
 
-// 0x42adb0
+// 0x420c40 (mahjongchina), 0x42adb0 (mahjongjapan)
 Layer* Manager::PopAnimated(int theCount)
 {
 	int aCount = 0;
@@ -288,7 +290,7 @@ Layer* Manager::PopAnimated(int theCount)
 
 bool gFastStart = false;
 
-// 0x42ae80
+// 0x420d20 (mahjongchina), 0x42ae80 (mahjongjapan)
 void Manager::SwitchTo(Layer* theLayer)
 {
 	mCapture = nullptr;
@@ -306,7 +308,7 @@ void Manager::SwitchTo(Layer* theLayer)
 	}
 }
 
-// 0x42aed0
+// 0x420d70 (mahjongchina), 0x42aed0 (mahjongjapan)
 void Manager::SwitchNow()
 {
 	if (mNextLayer != nullptr)
@@ -323,7 +325,7 @@ void Manager::SwitchNow()
 	}
 }
 
-// 0x42b0b0
+// 0x420f50 (mahjongchina), 0x42b0b0 (mahjongjapan)
 void Manager::FadeDone()
 {
 	mFade = 0;
@@ -331,7 +333,7 @@ void Manager::FadeDone()
 	mLayers.back()->OnShown();
 }
 
-// 0x42b0d0
+// 0x420f80 (mahjongchina), 0x42b0d0 (mahjongjapan)
 void Manager::Replace(Layer* theLayer, bool theAnimateOut, bool theAnimateIn)
 {
 	mCapture = nullptr;
@@ -352,7 +354,7 @@ void Manager::Replace(Layer* theLayer, bool theAnimateOut, bool theAnimateIn)
 	Invalidate();
 }
 
-// 0x42b2d0
+// 0x421190 (mahjongchina), 0x42b2d0 (mahjongjapan)
 void Manager::DeleteLayer(Layer* theLayer, bool theNotify)
 {
 	ListRemove(mTransitions, theLayer);
@@ -362,7 +364,7 @@ void Manager::DeleteLayer(Layer* theLayer, bool theNotify)
 	gLayerDeleted = true;
 }
 
-// 0x42b340
+// 0x421200 (mahjongchina), 0x42b340 (mahjongjapan)
 void Manager::ClearLayers(bool theNotify)
 {
 	for (size_t i = 0; i < mLayers.size(); i++)
@@ -370,7 +372,8 @@ void Manager::ClearLayers(bool theNotify)
 	mLayers.clear();
 }
 
-// 0x42b3b0 (0x42cb90's mapping of a stretched full screen to 800x600 is the host's)
+// 0x421280 (mahjongchina), 0x42b3b0 (mahjongjapan) (0x422ca0 (mahjongchina), 0x42cb90 (mahjongjapan)'s mapping of a
+// stretched full screen to 800x600 is the host's)
 void Manager::MouseMove(int theFlags, int theX, int theY)
 {
 	mCursorLocked = false;
@@ -461,14 +464,14 @@ void Manager::MouseMove(int theFlags, int theX, int theY)
 	Draw();
 }
 
-// 0x42b5c0
+// 0x421520 (mahjongchina), 0x42b5c0 (mahjongjapan)
 void Manager::SendHover(bool theIn, int theFlags)
 {
 	if (mCapture == nullptr || mHover == mCapture)
 		mHover->DispatchHover(theIn, theFlags);
 }
 
-// 0x42b5f0
+// 0x421570 (mahjongchina), 0x42b5f0 (mahjongjapan)
 void Manager::SetObjectCursor(Object* theObject, int theCursor, bool theLock)
 {
 	if (mHover == theObject || theLock)
@@ -476,7 +479,7 @@ void Manager::SetObjectCursor(Object* theObject, int theCursor, bool theLock)
 	mCursorLocked = theLock;
 }
 
-// 0x42b620
+// 0x4215b0 (mahjongchina), 0x42b620 (mahjongjapan)
 void Manager::LButtonDown(int theFlags, int theX, int theY)
 {
 	if (mCapture == nullptr)
@@ -494,7 +497,7 @@ void Manager::LButtonDown(int theFlags, int theX, int theY)
 	Draw();
 }
 
-// 0x42b6e0
+// 0x421680 (mahjongchina), 0x42b6e0 (mahjongjapan)
 void Manager::LButtonDbl(int theFlags, int theX, int theY)
 {
 	if (mCapture != nullptr)
@@ -517,7 +520,7 @@ void Manager::LButtonDbl(int theFlags, int theX, int theY)
 	Draw();
 }
 
-// 0x42b7a0
+// 0x421740 (mahjongchina), 0x42b7a0 (mahjongjapan)
 void Manager::StartDrag(Object* theObject, int theFlags, int theLeft, int theTop, int theRight, int theBottom)
 {
 	if (mCapture != nullptr)
@@ -538,7 +541,7 @@ void Manager::StartDrag(Object* theObject, int theFlags, int theLeft, int theTop
 	SetRect(mDragClamp, theLeft, theTop, theRight, theBottom);
 }
 
-// 0x42b840
+// 0x4217f0 (mahjongchina), 0x42b840 (mahjongjapan)
 void Manager::LButtonUp(int theFlags, int theX, int theY)
 {
 	if (mCapture == nullptr)
@@ -560,7 +563,7 @@ void Manager::LButtonUp(int theFlags, int theX, int theY)
 	Draw();
 }
 
-// 0x42b910
+// 0x4218d0 (mahjongchina), 0x42b910 (mahjongjapan)
 void Manager::RButtonDown(int theFlags, int theX, int theY)
 {
 	if (mCapture == nullptr)
@@ -576,7 +579,7 @@ void Manager::RButtonDown(int theFlags, int theX, int theY)
 	Draw();
 }
 
-// 0x42b9b0
+// 0x421970 (mahjongchina), 0x42b9b0 (mahjongjapan)
 void Manager::RButtonDbl(int theFlags, int theX, int theY)
 {
 	if (mCapture != nullptr)
@@ -599,7 +602,7 @@ void Manager::RButtonDbl(int theFlags, int theX, int theY)
 	Draw();
 }
 
-// 0x42ba70
+// 0x421a30 (mahjongchina), 0x42ba70 (mahjongjapan)
 void Manager::RButtonUp(int theFlags, int theX, int theY)
 {
 	if (mCapture == nullptr)
@@ -615,7 +618,7 @@ void Manager::RButtonUp(int theFlags, int theX, int theY)
 	Draw();
 }
 
-// 0x42bb10
+// 0x421ad0 (mahjongchina), 0x42bb10 (mahjongjapan)
 void Manager::DragTo(int theX, int theY)
 {
 	int aX = (mDragOrigin.x - mDragStart.x) + theX;
@@ -635,7 +638,7 @@ void Manager::DragTo(int theX, int theY)
 	}
 }
 
-// 0x42bb90
+// 0x421b60 (mahjongchina), 0x42bb90 (mahjongjapan)
 void Manager::Activate(bool theActive)
 {
 	if (mActive != theActive)
@@ -672,7 +675,7 @@ void Manager::Activate(bool theActive)
 	}
 }
 
-// 0x42bc60
+// 0x421c40 (mahjongchina), 0x42bc60 (mahjongjapan)
 void Manager::Key(int theKey, int theRepeat, int theScan)
 {
 	ListNode* aNode = mKeys;
@@ -686,7 +689,7 @@ void Manager::Key(int theKey, int theRepeat, int theScan)
 	Draw();
 }
 
-// 0x42bcb0
+// 0x421cb0 (mahjongchina), 0x42bcb0 (mahjongjapan)
 void Manager::Char(int theChar, int theRepeat, int theScan)
 {
 	ListNode* aNode = mChars;
@@ -710,7 +713,7 @@ void Manager::Char(int theChar, int theRepeat, int theScan)
 	Draw();
 }
 
-// 0x42bd40
+// 0x421d70 (mahjongchina), 0x42bd40 (mahjongjapan)
 void Manager::Frame()
 {
 	if (mRunning && !mPaused)
@@ -741,7 +744,7 @@ void Manager::Frame()
 	}
 }
 
-// 0x42be10
+// 0x421e60 (mahjongchina), 0x42be10 (mahjongjapan)
 void Manager::Update(int theClock, uint32_t theDelta)
 {
 	gLayerDeleted = false;
@@ -836,7 +839,7 @@ void Manager::Update(int theClock, uint32_t theDelta)
 	}
 }
 
-// 0x42c110
+// 0x4221d0 (mahjongchina), 0x42c110 (mahjongjapan)
 void Manager::Pause(bool thePause)
 {
 	gPauseRequests = gPauseRequests + (thePause ? 1 : -1);
@@ -844,7 +847,7 @@ void Manager::Pause(bool thePause)
 	PauseClock(thePause);
 }
 
-// 0x42c140
+// 0x422200 (mahjongchina), 0x42c140 (mahjongjapan)
 void Manager::PauseClock(bool thePause)
 {
 	if (thePause)
@@ -859,7 +862,7 @@ void Manager::PauseClock(bool thePause)
 		mStart = mStart + (TickCount() - mPauseStart);
 }
 
-// 0x42c190
+// 0x422260 (mahjongchina), 0x42c190 (mahjongjapan)
 bool Manager::SetHardwareAccel(bool theOn)
 {
 	if (!IsAppActive())
@@ -879,7 +882,7 @@ bool Manager::SetHardwareAccel(bool theOn)
 	return true;
 }
 
-// 0x42c220
+// 0x4222f0 (mahjongchina), 0x42c220 (mahjongjapan)
 bool Manager::SetFullScreen(bool theOn, bool theReset)
 {
 	if (gFullScreen != theOn)
@@ -898,7 +901,7 @@ bool Manager::SetFullScreen(bool theOn, bool theReset)
 	return true;
 }
 
-// 0x42c2a0
+// 0x422370 (mahjongchina), 0x42c2a0 (mahjongjapan)
 bool Manager::SetWideScreen(bool theOn)
 {
 	if (gWideScreen != theOn)
@@ -915,55 +918,55 @@ bool Manager::SetWideScreen(bool theOn)
 	return true;
 }
 
-// 0x42c370
+// 0x422430 (mahjongchina), 0x42c370 (mahjongjapan)
 void Manager::LoadSound(int theId, bool theLoop)
 {
 	mSound->Load(theId, theLoop);
 }
 
-// 0x42c390
+// 0x422450 (mahjongchina), 0x42c390 (mahjongjapan)
 void Manager::PlaySound(int theId)
 {
 	mSound->Play(theId);
 }
 
-// 0x42c3b0
+// 0x422470 (mahjongchina), 0x42c3b0 (mahjongjapan)
 void Manager::StopSound(int theId)
 {
 	mSound->Stop(theId);
 }
 
-// 0x42c3d0
+// 0x422490 (mahjongchina), 0x42c3d0 (mahjongjapan)
 void Manager::StopSoundsExcept(int theId)
 {
 	mSound->StopAllExcept(theId);
 }
 
-// 0x42c3f0
+// 0x4224d0 (mahjongchina), 0x42c3f0 (mahjongjapan)
 void Manager::PauseSounds(bool thePause, bool theLoopingOnly, int theExcept)
 {
 	mSound->Pause(thePause, theLoopingOnly, theExcept);
 }
 
-// 0x42c410
+// 0x4224f0 (mahjongchina), 0x42c410 (mahjongjapan)
 void Manager::LoadMusic(int theId)
 {
 	mSound->LoadMusic(theId);
 }
 
-// 0x42c430
+// 0x422510 (mahjongchina), 0x42c430 (mahjongjapan)
 void Manager::PlayMusic(int theId, bool theRestart, int theFadeMs, int theOrder)
 {
 	mSound->PlayMusic(theId, theRestart, theFadeMs, theOrder);
 }
 
-// 0x42c460
+// 0x422540 (mahjongchina), 0x42c460 (mahjongjapan)
 void Manager::PauseMusic(bool thePause)
 {
 	mSound->PauseMusic(thePause);
 }
 
-// 0x42c480
+// 0x422560 (mahjongchina), 0x42c480 (mahjongjapan)
 void Manager::SetSoundVolume(int theVolume)
 {
 	gSoundsVolume = theVolume;
@@ -975,7 +978,7 @@ void Manager::SetSoundVolume(int theVolume)
 	mSound->SetVolume(0);
 }
 
-// 0x42c4c0
+// 0x4225a0 (mahjongchina), 0x42c4c0 (mahjongjapan)
 void Manager::SetMusicVolume(int theVolume)
 {
 	gMusicVolume = theVolume;
@@ -987,94 +990,94 @@ void Manager::SetMusicVolume(int theVolume)
 	mSound->SetMusicVolume(0);
 }
 
-// 0x42c500
+// 0x4225e0 (mahjongchina), 0x42c500 (mahjongjapan)
 void Manager::SlideMusic(int theVolume, int theMs)
 {
 	if (gMusicOn)
 		mSound->SlideMusic(theVolume, theMs);
 }
 
-// 0x42c530
+// 0x422610 (mahjongchina), 0x42c530 (mahjongjapan)
 void Manager::SetMusicLoop(int theRowStep, int theOrder)
 {
 	mSound->SetMusicLoop(theRowStep, theOrder);
 }
 
-// 0x42c550
+// 0x422630 (mahjongchina), 0x42c550 (mahjongjapan)
 bool Manager::GetClipboard(std::string& theText)
 {
 	return GetHost()->GetClipboard(theText);
 }
 
-// 0x42c5c0
+// 0x4226a0 (mahjongchina), 0x42c5c0 (mahjongjapan)
 bool Manager::SetClipboard(const char* theText)
 {
 	return GetHost()->SetClipboard(theText);
 }
 
-// 0x42c6b0
+// 0x422790 (mahjongchina), 0x42c6b0 (mahjongjapan)
 bool Manager::LoadFileImage(int theId, const char* thePath)
 {
 	return mDisplay->LoadFileImage(theId, thePath);
 }
 
-// 0x42c6d0
+// 0x4227b0 (mahjongchina), 0x42c6d0 (mahjongjapan)
 void Manager::PreloadExeImage(int theId)
 {
 	mDisplay->Preload(theId, Module::EXE);
 }
 
-// 0x42c6f0
+// 0x4227d0 (mahjongchina), 0x42c6f0 (mahjongjapan)
 void Manager::PreloadDllImage(int theId)
 {
 	mDisplay->Preload(theId, Module::DLL);
 }
 
-// 0x42c710
+// 0x4227f0 (mahjongchina), 0x42c710 (mahjongjapan)
 void Manager::FreeImage(int theId)
 {
 	mDisplay->Free(theId);
 }
 
-// 0x42c720
+// 0x422800 (mahjongchina), 0x42c720 (mahjongjapan)
 Image* Manager::CreateImage(int theWidth, int theHeight)
 {
 	return mDisplay->CreateImage(theWidth, theHeight);
 }
 
-// 0x42c770
+// 0x422830 (mahjongchina), 0x42c770 (mahjongjapan)
 Image* Manager::GetImage(int theId, Module theModule)
 {
 	return mDisplay->GetImage(theId, theModule);
 }
 
-// 0x42c790
+// 0x422850 (mahjongchina), 0x42c790 (mahjongjapan)
 void Manager::DrawImage(int theX, int theY, Image* theImage, const Rect* theSrc, int theScaleX, int theScaleY,
 	int theAlpha, Rect& theOut)
 {
 	Display::DrawImage(theX, theY, theImage, theSrc, theScaleX, theScaleY, theAlpha, theOut);
 }
 
-// 0x42c7d0
+// 0x422890 (mahjongchina), 0x42c7d0 (mahjongjapan)
 void Manager::DrawImageKeyed(int theX, int theY, Image* theImage, uint32_t theKey, const Rect* theSrc,
 	int theScaleX, int theScaleY, int theAlpha, Rect& theOut)
 {
 	Display::DrawImageKeyed(theX, theY, theImage, theKey, theSrc, theScaleX, theScaleY, theAlpha, theOut);
 }
 
-// 0x42c850
+// 0x422910 (mahjongchina), 0x42c850 (mahjongjapan)
 void Manager::GetImageInfo(int theId, ImageInfo& theInfo)
 {
 	mDisplay->GetImageInfo(theId, theInfo);
 }
 
-// 0x42c870
+// 0x422930 (mahjongchina), 0x42c870 (mahjongjapan)
 Font* Manager::GetFont(int theImageId, int theTextId, Module theModule)
 {
 	return mDisplay->GetFont(theImageId, theTextId, theModule);
 }
 
-// 0x42c890
+// 0x422950 (mahjongchina), 0x42c890 (mahjongjapan)
 void Manager::SetCapture(Object* theObject, bool theOn)
 {
 	if (theOn)
@@ -1091,27 +1094,27 @@ void Manager::SetCapture(Object* theObject, bool theOn)
 	RedoHover();
 }
 
-// 0x42c8d0 (at 0 the original told the display (0x434dc0) about +0xdc; nothing in the exe raises the count from
-// its 0, so it never reaches 0 again)
+// 0x4229a0 (mahjongchina), 0x42c8d0 (mahjongjapan) (at 0 the original told the display (0x42ecb0 (mahjongchina),
+// 0x434dc0 (mahjongjapan)) about +0xdc; nothing in the exe raises the count from its 0, so it never reaches 0 again)
 void Manager::EndWait()
 {
 	mWaitCount = mWaitCount - 1;
 }
 
-// 0x42c8f0 (the accelerated display's software cursor is the host's cursor too)
+// 0x4229c0 (mahjongchina), 0x42c8f0 (mahjongjapan) (the accelerated display's software cursor is the host's cursor too)
 void Manager::SetCursor(int theKind)
 {
 	mCursor = theKind;
 	GetHost()->SetCursor(theKind);
 }
 
-// 0x42c810
+// 0x4228d0 (mahjongchina), 0x42c810 (mahjongjapan)
 void FillRectAlpha(Rect& theRect, int theAlpha, uint32_t theColour)
 {
 	gManager->mDisplay->FillRectAlpha(theRect, theAlpha, theColour);
 }
 
-// 0x42c830
+// 0x4228f0 (mahjongchina), 0x42c830 (mahjongjapan)
 void FillRect(const Rect* theRect, uint32_t theColour)
 {
 	gManager->mDisplay->FillRect(theRect, theColour);

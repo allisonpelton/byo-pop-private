@@ -27,7 +27,7 @@ public:
 	float mSlideTo = 1.0f;
 	float mSlideStep = 0.0f;   // per frame
 	int mSlideLeft = 0;        // frames
-	bool mSyncSet = false;     // 0x5d9368
+	bool mSyncSet = false;     // 0x5d8240 (mahjongchina), 0x5d9368 (mahjongjapan)
 	int mSyncRowStep = 1;
 	int mSyncOrder = 0;
 	int mLastOrder = -1;
@@ -101,7 +101,8 @@ public:
 			{
 				mLastOrder = anOrder;
 				mLastRow = aRow;
-				// 0x4372b0: the sync's row a multiple of the step jumps to the order, and the sync is removed
+				// 0x4335b0 (mahjongchina), 0x4372b0 (mahjongjapan): the sync's row a multiple of the step jumps to the
+				// order, and the sync is removed
 				if (mSyncSet && aRow % mSyncRowStep == 0)
 				{
 					SoundLog("music position %d", mSyncOrder);
@@ -161,7 +162,7 @@ static uint32_t Crc32(const uint8_t* theData, uint32_t theSize)
 	return ~aCrc;
 }
 
-// 0x436860 (BASS_SampleFree, BASS_MusicFree)
+// 0x432ae0 (mahjongchina), 0x436860 (mahjongjapan) (BASS_SampleFree, BASS_MusicFree)
 Sound::~Sound()
 {
 	Shutdown();
@@ -176,7 +177,7 @@ Sound::~Sound()
 	mMusics.clear();
 }
 
-// 0x436b20
+// 0x432da0 (mahjongchina), 0x436b20 (mahjongjapan)
 void Sound::Init()
 {
 	if (!mInitialized)
@@ -186,7 +187,7 @@ void Sound::Init()
 	}
 }
 
-// 0x436b50
+// 0x432dd0 (mahjongchina), 0x436b50 (mahjongjapan)
 void Sound::Shutdown()
 {
 	if (mInitialized)
@@ -206,7 +207,7 @@ void Sound::Shutdown()
 	}
 }
 
-// 0x436b70, 0x436c50
+// 0x432df0 (mahjongchina), 0x436b70 (mahjongjapan), 0x432ed0 (mahjongchina), 0x436c50 (mahjongjapan)
 void Sound::Load(int theId, bool theLoop)
 {
 	if (!mInitialized || mSamples.find(theId) != mSamples.end())
@@ -227,7 +228,8 @@ void Sound::Load(int theId, bool theLoop)
 	mSamples[theId] = aSample;
 }
 
-// 0x436d50: BASS_SampleGetChannel takes a free channel, or with BASS_SAMPLE_OVER_POS the one that has played longest
+// 0x433050 (mahjongchina), 0x436d50 (mahjongjapan): BASS_SampleGetChannel takes a free channel, or with
+// BASS_SAMPLE_OVER_POS the one that has played longest
 void Sound::Play(int theId)
 {
 	if (!mInitialized || mInactive)
@@ -255,7 +257,7 @@ void Sound::Play(int theId)
 	}
 }
 
-// 0x436de0: BASS_SampleStop stops all of the sample's channels
+// 0x4330e0 (mahjongchina), 0x436de0 (mahjongjapan): BASS_SampleStop stops all of the sample's channels
 void Sound::Stop(int theId)
 {
 	if (!mInitialized)
@@ -272,7 +274,7 @@ void Sound::Stop(int theId)
 	aSample->mPaused = false;
 }
 
-// 0x436e50
+// 0x433150 (mahjongchina), 0x436e50 (mahjongjapan)
 void Sound::StopAllExcept(int theId)
 {
 	if (!mInitialized)
@@ -313,7 +315,7 @@ void Sound::PauseVoice(int theVoice, bool thePause)
 	}
 }
 
-// 0x436ec0
+// 0x4331c0 (mahjongchina), 0x436ec0 (mahjongjapan)
 void Sound::SetVolume(int theVolume)
 {
 	if (!mInitialized)
@@ -330,7 +332,7 @@ void Sound::SetVolume(int theVolume)
 	}
 }
 
-// 0x436f60
+// 0x433260 (mahjongchina), 0x436f60 (mahjongjapan)
 void Sound::Pause(bool thePause, bool theLoopingOnly, int theExcept)
 {
 	if (!mInitialized)
@@ -361,7 +363,7 @@ void Sound::Pause(bool thePause, bool theLoopingOnly, int theExcept)
 	}
 }
 
-// 0x437520: the samples Pause has not paused
+// 0x433820 (mahjongchina), 0x437520 (mahjongjapan): the samples Pause has not paused
 void Sound::PauseSamples(bool thePause)
 {
 	for (auto& anEntry : mSamples)
@@ -387,7 +389,7 @@ void Sound::PauseSamples(bool thePause)
 	}
 }
 
-// 0x437010 (BASS_MusicLoad with BASS_MUSIC_LOOP | BASS_MUSIC_POSRESET)
+// 0x433310 (mahjongchina), 0x437010 (mahjongjapan) (BASS_MusicLoad with BASS_MUSIC_LOOP | BASS_MUSIC_POSRESET)
 void Sound::LoadMusic(int theId)
 {
 	if (!mInitialized || mMusics.find(theId) != mMusics.end())
@@ -413,7 +415,7 @@ void Sound::LoadMusic(int theId)
 	mMusics[theId] = aMusic;
 }
 
-// 0x4371a0
+// 0x4334a0 (mahjongchina), 0x4371a0 (mahjongjapan)
 void Sound::PlayMusic(int theId, bool theRestart, int theFadeMs, int theOrder)
 {
 	if (!mInitialized)
@@ -449,7 +451,7 @@ void Sound::PlayMusic(int theId, bool theRestart, int theFadeMs, int theOrder)
 		aMixer.PauseSong(aMusic->mSong, true);
 }
 
-// 0x437300
+// 0x433600 (mahjongchina), 0x437300 (mahjongjapan)
 void Sound::SetMusicLoop(int theRowStep, int theOrder)
 {
 	if (mMusic == nullptr)
@@ -463,7 +465,7 @@ void Sound::SetMusicLoop(int theRowStep, int theOrder)
 	aMixer.Unlock();
 }
 
-// 0x437360
+// 0x433660 (mahjongchina), 0x437360 (mahjongjapan)
 void Sound::StopMusic()
 {
 	if (!mInitialized || mMusic == nullptr)
@@ -477,7 +479,7 @@ void Sound::StopMusic()
 	mMusic = nullptr;
 }
 
-// 0x4373a0
+// 0x4336a0 (mahjongchina), 0x4373a0 (mahjongjapan)
 void Sound::PauseMusic(bool thePause)
 {
 	if (!mInitialized || mMusic == nullptr || mMusicPaused == thePause)
@@ -500,7 +502,7 @@ void Sound::PauseMusic(bool thePause)
 	}
 }
 
-// 0x437400
+// 0x433700 (mahjongchina), 0x437400 (mahjongjapan)
 void Sound::SetMusicVolume(int theVolume)
 {
 	if (!mInitialized)
@@ -514,7 +516,7 @@ void Sound::SetMusicVolume(int theVolume)
 	aMixer.Unlock();
 }
 
-// 0x437470
+// 0x433770 (mahjongchina), 0x437470 (mahjongjapan)
 void Sound::SlideMusic(int thePercent, int theMs)
 {
 	if (!mInitialized || mMusic == nullptr)
@@ -527,7 +529,7 @@ void Sound::SlideMusic(int thePercent, int theMs)
 	aMixer.Unlock();
 }
 
-// 0x4374b0
+// 0x4337b0 (mahjongchina), 0x4374b0 (mahjongjapan)
 void Sound::Activate(bool theActive)
 {
 	if (!mInitialized)

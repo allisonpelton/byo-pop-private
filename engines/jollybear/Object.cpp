@@ -9,7 +9,7 @@
 namespace jb
 {
 
-// 0x4207f0: one rect moved by (-theX, -theY)
+// 0x423050 (mahjongchina), 0x4207f0 (mahjongjapan): one rect moved by (-theX, -theY)
 static RegionRect* CopyRegionRect(const RegionRect* theRect, int theX, int theY)
 {
 	Rect aRect = theRect->mRect;
@@ -20,7 +20,7 @@ static RegionRect* CopyRegionRect(const RegionRect* theRect, int theX, int theY)
 	return aCopy;
 }
 
-// 0x4207a0: returns the first rect of the copy, linked through mNext
+// 0x423000 (mahjongchina), 0x4207a0 (mahjongjapan): returns the first rect of the copy, linked through mNext
 RegionRect* CopyRegion(RegionRect* theRegion, int theX, int theY, RegionRect** theFirst)
 {
 	RegionRect* aFirst = CopyRegionRect(theRegion, theX, theY);
@@ -36,19 +36,19 @@ RegionRect* CopyRegion(RegionRect* theRegion, int theX, int theY, RegionRect** t
 	return aFirst;
 }
 
-// 0x41ec10
+// 0x41e710 (mahjongchina), 0x41ec10 (mahjongjapan)
 Object::Object()
 {
 	SetRect(mDirty, 0, 0, 0, 0);
 	CrtSrand(TickCount());
 }
 
-// 0x41ed00
+// 0x41e7f0 (mahjongchina), 0x41ed00 (mahjongjapan)
 Object::~Object()
 {
 }
 
-// 0x41ed40
+// 0x41e830 (mahjongchina), 0x41ed40 (mahjongjapan)
 void Object::DestroyTree()
 {
 	Clear();
@@ -82,7 +82,7 @@ void Object::DestroyTree()
 	FreeClipOwn();
 }
 
-// 0x41eea0
+// 0x41e990 (mahjongchina), 0x41eea0 (mahjongjapan)
 void Object::FreeClipOwn()
 {
 	RegionRect* aRect = mClipOwn;
@@ -95,7 +95,7 @@ void Object::FreeClipOwn()
 	mClipOwn = nullptr;
 }
 
-// 0x41eed0
+// 0x41e9c0 (mahjongchina), 0x41eed0 (mahjongjapan)
 void Object::SetVisible(bool theVisible)
 {
 	if (mVisible != theVisible)
@@ -111,7 +111,7 @@ void Object::SetVisible(bool theVisible)
 	}
 }
 
-// 0x41ef30
+// 0x41ea20 (mahjongchina), 0x41ef30 (mahjongjapan)
 void Object::SetVisibleByParent(bool theVisible)
 {
 	mVisibleByParent = theVisible;
@@ -121,7 +121,7 @@ void Object::SetVisibleByParent(bool theVisible)
 	OnVisibleChanged();
 }
 
-// 0x41ef80
+// 0x41ea70 (mahjongchina), 0x41ef80 (mahjongjapan)
 void Object::SetEnabled(bool theEnabled)
 {
 	if (mEnabled != theEnabled)
@@ -136,7 +136,7 @@ void Object::SetEnabled(bool theEnabled)
 	}
 }
 
-// 0x41efe0
+// 0x41ead0 (mahjongchina), 0x41efe0 (mahjongjapan)
 void Object::SetEnabledByParent(bool theEnabled)
 {
 	mEnabledByParent = theEnabled;
@@ -146,7 +146,7 @@ void Object::SetEnabledByParent(bool theEnabled)
 	OnEnabledChanged();
 }
 
-// 0x41f020
+// 0x41eb10 (mahjongchina), 0x41f020 (mahjongjapan)
 void Object::PauseClock(bool thePaused)
 {
 	for (size_t i = 0; i < mAttachments.size(); i++)
@@ -169,7 +169,7 @@ void Object::PauseClock(bool thePaused)
 	}
 }
 
-// 0x41f090
+// 0x41eb80 (mahjongchina), 0x41f090 (mahjongjapan)
 void Object::SetCursorKind(int theCursor, bool theForce)
 {
 	if (mCursor != theCursor)
@@ -179,7 +179,7 @@ void Object::SetCursorKind(int theCursor, bool theForce)
 	}
 }
 
-// 0x41f0b0
+// 0x41eba0 (mahjongchina), 0x41f0b0 (mahjongjapan)
 void Object::SetClip(RegionRect* theRegion)
 {
 	FreeClipOwn();
@@ -196,7 +196,7 @@ void Object::SetClip(RegionRect* theRegion)
 		mChildren[i]->SetClip(theRegion);
 }
 
-// 0x41f190
+// 0x41ec70 (mahjongchina), 0x41f190 (mahjongjapan)
 void Object::DrawImage(int theX, int theY, int theImageId, const Rect* theSrc, bool theRelative, int theScaleX,
 	int theScaleY, int theAlpha)
 {
@@ -205,14 +205,14 @@ void Object::DrawImage(int theX, int theY, int theImageId, const Rect* theSrc, b
 		DrawWorker(0, theX, theY, anImage, theRelative, 0, theSrc, theScaleX, theScaleY, theAlpha);
 }
 
-// 0x41f1e0
+// 0x41ecc0 (mahjongchina), 0x41f1e0 (mahjongjapan)
 void Object::DrawImagePtr(int theX, int theY, Image* theImage, const Rect* theSrc, bool theRelative, int theScaleX,
 	int theScaleY, int theAlpha)
 {
 	DrawWorker(0, theX, theY, theImage, theRelative, 0, theSrc, theScaleX, theScaleY, theAlpha);
 }
 
-// 0x41f220
+// 0x41ed00 (mahjongchina), 0x41f220 (mahjongjapan)
 void Object::DrawImageKeyed(int theX, int theY, int theImageId, uint32_t theKey, const Rect* theSrc,
 	bool theRelative, int theScaleX, int theScaleY, int theAlpha)
 {
@@ -221,8 +221,8 @@ void Object::DrawImageKeyed(int theX, int theY, int theImageId, uint32_t theKey,
 		DrawWorker(1, theX, theY, anImage, theRelative, theKey, theSrc, theScaleX, theScaleY, theAlpha);
 }
 
-// 0x41f270. Without a clip region the alpha is multiplied by the layer's and the object's own; with one it is
-// not (the original passes it through unchanged on that path).
+// 0x41ed50 (mahjongchina), 0x41f270 (mahjongjapan). Without a clip region the alpha is multiplied by the layer's and
+// the object's own; with one it is not (the original passes it through unchanged on that path).
 void Object::DrawWorker(int theMode, int theX, int theY, Image* theImage, bool theRelative, uint32_t theKey,
 	const Rect* theSrc, int theScaleX, int theScaleY, int theAlpha)
 {
@@ -305,7 +305,7 @@ void Object::DrawWorker(int theMode, int theX, int theY, Image* theImage, bool t
 	}
 }
 
-// 0x41f6a0
+// 0x41f150 (mahjongchina), 0x41f6a0 (mahjongjapan)
 void Object::FillRect(Rect theRect, uint32_t theColour, bool theRelative)
 {
 	if (theRelative)
@@ -340,7 +340,7 @@ void Object::FillRect(Rect theRect, uint32_t theColour, bool theRelative)
 	} while (aClip != nullptr);
 }
 
-// 0x41f770
+// 0x41f220 (mahjongchina), 0x41f770 (mahjongjapan)
 void Object::FillRectAlpha(Rect theRect, int theAlpha, uint32_t theColour, bool theRelative)
 {
 	if (theRelative)
@@ -368,8 +368,8 @@ void Object::FillRectAlpha(Rect theRect, int theAlpha, uint32_t theColour, bool 
 	} while (aClip != nullptr);
 }
 
-// 0x41f810. A line that is neither horizontal nor vertical draws whatever the uninitialised rect held in the
-// original; the engine draws only horizontal and vertical ones.
+// 0x41f2c0 (mahjongchina), 0x41f810 (mahjongjapan). A line that is neither horizontal nor vertical draws whatever the
+// uninitialised rect held in the original; the engine draws only horizontal and vertical ones.
 void Object::DrawLine(int theX1, int theY1, int theX2, int theY2, uint32_t theColour, bool theRelative)
 {
 	Rect aRect;
@@ -394,7 +394,7 @@ void Object::DrawLine(int theX1, int theY1, int theX2, int theY2, uint32_t theCo
 	FillRect(aRect, theColour, theRelative);
 }
 
-// 0x41f8a0
+// 0x41f350 (mahjongchina), 0x41f8a0 (mahjongjapan)
 void Object::DrawFrame(const Rect& theRect, uint32_t theColour, bool theRelative)
 {
 	DrawLine(theRect.left, theRect.top, theRect.right, theRect.top, theColour, theRelative);
@@ -403,14 +403,14 @@ void Object::DrawFrame(const Rect& theRect, uint32_t theColour, bool theRelative
 	DrawLine(theRect.left, theRect.top, theRect.left, theRect.bottom, theColour, theRelative);
 }
 
-// 0x41f910
+// 0x41f3c0 (mahjongchina), 0x41f910 (mahjongjapan)
 void Object::AddDirty(const Rect& theRect)
 {
 	if (mTrackDirty)
 		UnionRect(mDirty, mDirty, theRect);
 }
 
-// 0x41f930
+// 0x41f3e0 (mahjongchina), 0x41f930 (mahjongjapan)
 void Object::Create(Manager* theManager, Layer* theLayer, int theX, int theY, Object* theParent)
 {
 	mLayer = theLayer;
@@ -422,14 +422,14 @@ void Object::Create(Manager* theManager, Layer* theLayer, int theX, int theY, Ob
 	Init();
 }
 
-// 0x41f970
+// 0x41f420 (mahjongchina), 0x41f970 (mahjongjapan)
 void Object::AddChild(Object* theChild, int theX, int theY)
 {
 	theChild->Create(mManager, mLayer, theX, theY, this);
 	mChildren.push_back(theChild);
 }
 
-// 0x41fb30
+// 0x41f5e0 (mahjongchina), 0x41fb30 (mahjongjapan)
 void Object::Attach(Attachment* theAttachment)
 {
 	theAttachment->mOwner = this;
@@ -437,7 +437,7 @@ void Object::Attach(Attachment* theAttachment)
 	mAttachments.push_back(theAttachment);
 }
 
-// 0x41fcf0
+// 0x41f7a0 (mahjongchina), 0x41fcf0 (mahjongjapan)
 void Object::DrawTree()
 {
 	SetRect(mDirty, 0, 0, 0, 0);
@@ -451,7 +451,7 @@ void Object::DrawTree()
 	}
 }
 
-// 0x41fd70
+// 0x41f820 (mahjongchina), 0x41fd70 (mahjongjapan)
 void Object::RegHover(bool theOn)
 {
 	if (mHoverReg != theOn)
@@ -466,7 +466,7 @@ void Object::RegHover(bool theOn)
 	}
 }
 
-// 0x41fda0
+// 0x41f890 (mahjongchina), 0x41fda0 (mahjongjapan)
 void Object::RegLayerCmd(bool theOn)
 {
 	if (mLayerCmdReg != theOn)
@@ -481,7 +481,7 @@ void Object::RegLayerCmd(bool theOn)
 	}
 }
 
-// 0x41fdd0
+// 0x41f900 (mahjongchina), 0x41fdd0 (mahjongjapan)
 void Object::RegClick(bool theOn)
 {
 	if (mClickReg != theOn)
@@ -496,7 +496,7 @@ void Object::RegClick(bool theOn)
 	}
 }
 
-// 0x41fe00
+// 0x41f970 (mahjongchina), 0x41fe00 (mahjongjapan)
 void Object::RegMove(bool theOn)
 {
 	if (mMoveReg != theOn)
@@ -511,7 +511,7 @@ void Object::RegMove(bool theOn)
 	}
 }
 
-// 0x41fe30
+// 0x41f9e0 (mahjongchina), 0x41fe30 (mahjongjapan)
 void Object::RegKey(bool theOn)
 {
 	if (mKeyReg != theOn)
@@ -526,7 +526,7 @@ void Object::RegKey(bool theOn)
 	}
 }
 
-// 0x41fe60
+// 0x41fa60 (mahjongchina), 0x41fe60 (mahjongjapan)
 void Object::RegChar(bool theOn)
 {
 	if (mCharReg != theOn)
@@ -541,7 +541,7 @@ void Object::RegChar(bool theOn)
 	}
 }
 
-// 0x41fe90
+// 0x41fae0 (mahjongchina), 0x41fe90 (mahjongjapan)
 void Object::RegUpdate(bool theOn)
 {
 	if (mUpdateReg != theOn)
@@ -559,7 +559,7 @@ void Object::RegUpdate(bool theOn)
 	}
 }
 
-// 0x41fee0
+// 0x41fba0 (mahjongchina), 0x41fee0 (mahjongjapan)
 void Object::GetScreenPos(int* thePos)
 {
 	Object* aParent = mParent;
@@ -575,7 +575,7 @@ void Object::GetScreenPos(int* thePos)
 	thePos[1] = thePos[1] + mY;
 }
 
-// 0x41ff90
+// 0x41fc50 (mahjongchina), 0x41ff90 (mahjongjapan)
 void Object::GetTreeDirty(Rect& theRect)
 {
 	Rect aRect = mDirty;
@@ -588,7 +588,7 @@ void Object::GetTreeDirty(Rect& theRect)
 	theRect = aRect;
 }
 
-// 0x420000
+// 0x41fcc0 (mahjongchina), 0x420000 (mahjongjapan)
 bool Object::DispatchMouse(int theMsg, int theFlags, int theX, int theY)
 {
 	int aPos[2];
@@ -615,7 +615,7 @@ bool Object::DispatchMouse(int theMsg, int theFlags, int theX, int theY)
 	return false;
 }
 
-// 0x420100
+// 0x41fdd0 (mahjongchina), 0x420100 (mahjongjapan)
 void Object::DispatchMouseMove(int theFlags, int theX, int theY)
 {
 	if (TakesInput())
@@ -626,7 +626,7 @@ void Object::DispatchMouseMove(int theFlags, int theX, int theY)
 	}
 }
 
-// 0x420150
+// 0x41fe40 (mahjongchina), 0x420150 (mahjongjapan)
 void Object::DispatchDragEnd(int theFlags, int theX, int theY)
 {
 	int aPos[2];
@@ -634,7 +634,7 @@ void Object::DispatchDragEnd(int theFlags, int theX, int theY)
 	OnDragEnd(theFlags, theX - aPos[0], theY - aPos[1]);
 }
 
-// 0x420190
+// 0x41fe80 (mahjongchina), 0x420190 (mahjongjapan)
 void Object::DispatchDrag(int theFlags, int theX, int theY)
 {
 	int aPos[2];
@@ -642,13 +642,13 @@ void Object::DispatchDrag(int theFlags, int theX, int theY)
 	OnDrag(theFlags, theX - aPos[0], theY - aPos[1]);
 }
 
-// 0x4201d0
+// 0x41fec0 (mahjongchina), 0x4201d0 (mahjongjapan)
 int Object::ManagerTime()
 {
 	return mManager->GetClock();
 }
 
-// 0x4201e0
+// 0x41fed0 (mahjongchina), 0x4201e0 (mahjongjapan)
 int Object::GetTime()
 {
 	if (IsEnabled())
@@ -656,13 +656,13 @@ int Object::GetTime()
 	return mPauseStart - mStart;
 }
 
-// 0x420220
+// 0x41ff10 (mahjongchina), 0x420220 (mahjongjapan)
 void Object::Capture(bool theOn)
 {
 	mManager->SetCapture(this, theOn);
 }
 
-// 0x420240
+// 0x41ff30 (mahjongchina), 0x420240 (mahjongjapan)
 bool Object::DoUpdate(int theClock)
 {
 	if (!TakesInput())
@@ -695,7 +695,7 @@ bool Object::DoUpdate(int theClock)
 	return aChanged;
 }
 
-// 0x420360
+// 0x420070 (mahjongchina), 0x420360 (mahjongjapan)
 void Object::AddTimer(int theId, int thePeriod, int theCount, int thePerTick)
 {
 	ObjTimer* aTimer = new ObjTimer;
@@ -708,7 +708,7 @@ void Object::AddTimer(int theId, int thePeriod, int theCount, int thePerTick)
 	ListAdd(mTimers, aTimer);
 }
 
-// 0x4203b0 (the period is compared unsigned, as the original)
+// 0x4200c0 (mahjongchina), 0x4203b0 (mahjongjapan) (the period is compared unsigned, as the original)
 bool Object::StepTimer(ObjTimer* theTimer, int theTime)
 {
 	if ((uint32_t)theTimer->mPeriod < (uint32_t)(theTime - theTimer->mLast))
@@ -728,7 +728,7 @@ bool Object::StepTimer(ObjTimer* theTimer, int theTime)
 	return false;
 }
 
-// 0x420400
+// 0x420110 (mahjongchina), 0x420400 (mahjongjapan)
 bool Object::FireTimer(ObjTimer* theTimer)
 {
 	int aLeft = theTimer->mLeft;
@@ -738,7 +738,7 @@ bool Object::FireTimer(ObjTimer* theTimer)
 	return theTimer->mLeft == 0;
 }
 
-// 0x420570
+// 0x420570 (mahjongjapan)
 bool Object::DispatchCommand(int theCmd)
 {
 	if (TakesInput())
@@ -746,14 +746,14 @@ bool Object::DispatchCommand(int theCmd)
 	return false;
 }
 
-// 0x4205a0
+// 0x4205a0 (mahjongjapan)
 void Object::DispatchHover(bool theIn, int theFlags)
 {
 	if (TakesInput())
 		OnHover(theIn, theFlags);
 }
 
-// 0x4205d0
+// 0x4205d0 (mahjongjapan)
 bool Object::DispatchKey(int theKey, int theRepeat, int theScan)
 {
 	if (TakesInput())
@@ -761,14 +761,14 @@ bool Object::DispatchKey(int theKey, int theRepeat, int theScan)
 	return false;
 }
 
-// 0x420600
+// 0x420600 (mahjongjapan)
 void Object::DispatchChar(int theChar, int theRepeat, int theScan)
 {
 	if (TakesInput())
 		OnChar(theChar, theRepeat, theScan);
 }
 
-// 0x4206c0
+// 0x4206c0 (mahjongjapan)
 bool Object::TakesInput() const
 {
 	if (!IsActive() && mIgnoreWhenDisabled)
@@ -776,32 +776,32 @@ bool Object::TakesInput() const
 	return true;
 }
 
-// 0x40a4e0
+// 0x40a360 (mahjongchina), 0x40a4e0 (mahjongjapan)
 void Object::SetPos(int theX, int theY)
 {
 	mX = theX;
 	mY = theY;
 }
 
-// 0x420650
+// 0x420650 (mahjongjapan)
 void LoadSound(int theId, bool theLoop)
 {
 	gManager->LoadSound(theId, theLoop);
 }
 
-// 0x420670
+// 0x420670 (mahjongjapan)
 void PlaySound(int theId)
 {
 	gManager->PlaySound(theId);
 }
 
-// 0x420680
+// 0x420680 (mahjongjapan)
 void StopSound(int theId)
 {
 	gManager->StopSound(theId);
 }
 
-// 0x4206a0
+// 0x4206a0 (mahjongjapan)
 int Random(int theRange)
 {
 	if (theRange == 0)
@@ -809,43 +809,43 @@ int Random(int theRange)
 	return CrtRand() % theRange;
 }
 
-// 0x41f680
+// 0x41f130 (mahjongchina), 0x41f680 (mahjongjapan)
 void GetImageInfo(int theImageId, ImageInfo& theInfo)
 {
 	gManager->GetImageInfo(theImageId, theInfo);
 }
 
-// 0x41f120
+// 0x41ec10 (mahjongchina), 0x41f120 (mahjongjapan)
 Font* GetExeFont(int theImageId, int theTextId)
 {
 	return gManager->GetFont(theImageId, theTextId, Module::EXE);
 }
 
-// 0x41f150
+// 0x41ec40 (mahjongchina), 0x41f150 (mahjongjapan)
 Font* GetDllFont(int theImageId, int theTextId)
 {
 	return gManager->GetFont(theImageId, theTextId, Module::DLL);
 }
 
-// 0x41f180
+// 0x41f180 (mahjongjapan)
 void FreeImage(int theImageId)
 {
 	gManager->FreeImage(theImageId);
 }
 
-// 0x420440
+// 0x420440 (mahjongjapan)
 Image* CreateImage(int theWidth, int theHeight)
 {
 	return gManager->CreateImage(theWidth, theHeight);
 }
 
-// 0x420460
+// 0x420460 (mahjongjapan)
 Image* LoadDllImage(int theImageId)
 {
 	return Display::LoadDllImage(theImageId);
 }
 
-// 0x420470
+// 0x420470 (mahjongjapan)
 Image* LoadDllImageKeyed(int theImageId, uint32_t theKey)
 {
 	return Display::LoadDllImageKeyed(theImageId, theKey);
@@ -853,18 +853,18 @@ Image* LoadDllImageKeyed(int theImageId, uint32_t theKey)
 
 // ---------------------------------------------------------------------------------------------------------------
 
-// 0x41e240
+// 0x41dea0 (mahjongchina), 0x41e240 (mahjongjapan)
 Button::Button(int theImage, int theFrames, bool theFixedSize)
 	: mImage(theImage), mCmd(theImage), mFrames(theFrames), mFixedSize(theFixedSize)
 {
 }
 
-// 0x41e310
+// 0x41df70 (mahjongchina), 0x41e310 (mahjongjapan)
 Button::~Button()
 {
 }
 
-// 0x41e3c0
+// 0x41dfd0 (mahjongchina), 0x41e3c0 (mahjongjapan)
 void Button::Init()
 {
 	if (!mFixedSize)
@@ -880,7 +880,7 @@ void Button::Init()
 	OnInit();
 }
 
-// 0x41e430
+// 0x41e040 (mahjongchina), 0x41e430 (mahjongjapan)
 void Button::SetLabel(int theStringId, int theFontImage, int theFontText, int theX, int theRight, int theY,
 	int thePressDX, int thePressDY, int theDisabledAlpha)
 {
@@ -895,7 +895,7 @@ void Button::SetLabel(int theStringId, int theFontImage, int theFontText, int th
 	mLabelLines = 0;
 }
 
-// 0x41e4b0
+// 0x41e0b0 (mahjongchina), 0x41e4b0 (mahjongjapan)
 void Button::Draw()
 {
 	if (IsVisible())
@@ -921,7 +921,7 @@ void Button::Draw()
 	}
 }
 
-// 0x41e560
+// 0x41e170 (mahjongchina), 0x41e560 (mahjongjapan)
 void Button::DrawNormal()
 {
 	Rect aSrc;
@@ -936,7 +936,7 @@ void Button::DrawNormal()
 	}
 }
 
-// 0x41e5c0
+// 0x41e1d0 (mahjongchina), 0x41e5c0 (mahjongjapan)
 void Button::DrawLabel()
 {
 	if (mFont != nullptr)
@@ -951,7 +951,7 @@ void Button::DrawLabel()
 	}
 }
 
-// 0x41e660
+// 0x41e210 (mahjongchina), 0x41e660 (mahjongjapan)
 void Button::DrawHover()
 {
 	Rect aSrc;
@@ -968,7 +968,7 @@ void Button::DrawHover()
 	DrawNormal();
 }
 
-// 0x41e6d0
+// 0x41e280 (mahjongchina), 0x41e6d0 (mahjongjapan)
 void Button::DrawPressed()
 {
 	Rect aSrc;
@@ -986,7 +986,7 @@ void Button::DrawPressed()
 	DrawNormal();
 }
 
-// 0x41e750
+// 0x41e300 (mahjongchina), 0x41e750 (mahjongjapan)
 void Button::DrawLabelPressed()
 {
 	if (mFont != nullptr)
@@ -1002,7 +1002,7 @@ void Button::DrawLabelPressed()
 	}
 }
 
-// 0x41e810
+// 0x41e350 (mahjongchina), 0x41e810 (mahjongjapan)
 void Button::DrawDisabled()
 {
 	Rect aSrc;
@@ -1019,7 +1019,7 @@ void Button::DrawDisabled()
 	DrawNormal();
 }
 
-// 0x41e890
+// 0x41e3d0 (mahjongchina), 0x41e890 (mahjongjapan)
 void Button::DrawLabelDisabled()
 {
 	if (mFont != nullptr)
@@ -1035,7 +1035,7 @@ void Button::DrawLabelDisabled()
 	}
 }
 
-// 0x41e930
+// 0x41e410 (mahjongchina), 0x41e930 (mahjongjapan)
 bool Button::OnLButtonDown(int theFlags, int theX, int theY)
 {
 	mPressed = true;
@@ -1045,7 +1045,7 @@ bool Button::OnLButtonDown(int theFlags, int theX, int theY)
 	return true;
 }
 
-// 0x41e960
+// 0x41e440 (mahjongchina), 0x41e960 (mahjongjapan)
 bool Button::OnLButtonUp(int theFlags, int theX, int theY)
 {
 	mPressed = false;
@@ -1056,7 +1056,7 @@ bool Button::OnLButtonUp(int theFlags, int theX, int theY)
 	return true;
 }
 
-// 0x41e990
+// 0x41e470 (mahjongchina), 0x41e990 (mahjongjapan)
 void Button::OnHover(bool theIn, int theFlags)
 {
 	if (mHover != theIn)
@@ -1068,7 +1068,7 @@ void Button::OnHover(bool theIn, int theFlags)
 	}
 }
 
-// 0x41e9d0
+// 0x41e4b0 (mahjongchina), 0x41e9d0 (mahjongjapan)
 void Button::OnEnabledChanged()
 {
 	if (!IsEnabled())
@@ -1078,7 +1078,7 @@ void Button::OnEnabledChanged()
 	}
 }
 
-// 0x41e9f0
+// 0x41e4d0 (mahjongchina), 0x41e9f0 (mahjongjapan)
 void Button::OnVisibleChanged()
 {
 	if (!IsVisible())
@@ -1088,13 +1088,13 @@ void Button::OnVisibleChanged()
 	}
 }
 
-// 0x41ea10
+// 0x41e4f0 (mahjongchina), 0x41ea10 (mahjongjapan)
 void Button::OnRelease()
 {
 	mPressed = false;
 }
 
-// 0x41ea30
+// 0x41e510 (mahjongchina), 0x41ea30 (mahjongjapan)
 void Button::OnClick()
 {
 	mLayer->Command(mCmd);
@@ -1102,14 +1102,14 @@ void Button::OnClick()
 
 // ---------------------------------------------------------------------------------------------------------------
 
-// 0x41ea40
+// 0x41e520 (mahjongchina), 0x41ea40 (mahjongjapan)
 Toggle::Toggle(int theImage, RadioGroup* theGroup, int theId)
 	: Button(theImage, 2, false), mGroup(theGroup), mId(theId)
 {
 	theGroup->Add(this);
 }
 
-// 0x41eaf0
+// 0x41e610 (mahjongchina), 0x41eaf0 (mahjongjapan)
 void Toggle::DrawNormal()
 {
 	if (0 < mFrameWidth)
@@ -1134,20 +1134,20 @@ void Toggle::DrawNormal()
 	}
 }
 
-// 0x41ebc0
+// 0x41e6d0 (mahjongchina), 0x41ebc0 (mahjongjapan)
 void Toggle::DrawHover()
 {
 	DrawNormal();
 }
 
-// 0x41ebd0
+// 0x41e6e0 (mahjongchina), 0x41ebd0 (mahjongjapan)
 void Toggle::OnClick()
 {
 	mGroup->Select(mId);
 	Button::OnClick();
 }
 
-// 0x422260
+// 0x422f90 (mahjongchina), 0x422260 (mahjongjapan)
 void RadioGroup::Select(int theId)
 {
 	if (mSelected != theId)
@@ -1161,12 +1161,12 @@ void RadioGroup::Select(int theId)
 	}
 }
 
-// 0x424ae0
+// 0x42a310 (mahjongchina), 0x424ae0 (mahjongjapan)
 CheckBox::CheckBox(int theImage, int theFrames) : Button(theImage, theFrames, false)
 {
 }
 
-// 0x424b40
+// 0x41e5c0 (mahjongchina), 0x424b40 (mahjongjapan)
 void SetCheckLabel(Button* theButton, int theStringId, int theFontImage, int theFontText, int theX, int theY,
 	int theDisabledAlpha)
 {
@@ -1177,7 +1177,7 @@ void SetCheckLabel(Button* theButton, int theStringId, int theFontImage, int the
 	theButton->mDisabledAlpha = theDisabledAlpha;
 }
 
-// 0x424b90
+// 0x42a370 (mahjongchina), 0x424b90 (mahjongjapan)
 void CheckBox::DrawNormal()
 {
 	if (0 < mFrameWidth)
@@ -1199,7 +1199,7 @@ void CheckBox::DrawNormal()
 	}
 }
 
-// 0x424be0
+// 0x42a410 (mahjongchina), 0x424be0 (mahjongjapan)
 void CheckBox::DrawHover()
 {
 	if (mFrames < 3)
@@ -1215,13 +1215,13 @@ void CheckBox::DrawHover()
 	DrawFrame(1);
 }
 
-// 0x424c20
+// 0x424c20 (mahjongjapan)
 void CheckBox::DrawPressed()
 {
 	DrawHover();
 }
 
-// 0x424c30
+// 0x42a3c0 (mahjongchina), 0x424c30 (mahjongjapan)
 void CheckBox::DrawDisabled()
 {
 	if (4 < mFrames && mShowDisabled)
@@ -1237,14 +1237,14 @@ void CheckBox::DrawDisabled()
 	DrawNormal();
 }
 
-// 0x424c70
+// 0x42a450 (mahjongchina), 0x424c70 (mahjongjapan)
 void CheckBox::OnClick()
 {
 	mChecked = !mChecked;
 	Button::OnClick();
 }
 
-// 0x424c90
+// 0x42a470 (mahjongchina), 0x424c90 (mahjongjapan)
 void CheckBox::DrawFrame(int theFrame)
 {
 	Rect aSrc;

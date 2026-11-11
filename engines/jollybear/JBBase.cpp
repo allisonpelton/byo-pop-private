@@ -135,7 +135,7 @@ void ListClear(ListNode*& theHead)
 namespace jb
 {
 
-// 0x422a00
+// 0x424c90 (mahjongchina), 0x422a00 (mahjongjapan)
 std::string Tokenize(const std::string& theText, char theSep, int& thePos)
 {
 	std::string aToken;
@@ -159,7 +159,7 @@ std::string Tokenize(const std::string& theText, char theSep, int& thePos)
 	return aToken;
 }
 
-// 0x422ae0
+// 0x424d70 (mahjongchina), 0x422ae0 (mahjongjapan)
 int ParseNumber(const std::string& theText)
 {
 	const char* aText = theText.c_str();
@@ -170,7 +170,7 @@ int ParseNumber(const std::string& theText)
 	return (int)strtol(anX + 1, &anEnd, 16);
 }
 
-// 0x422b70
+// 0x424e00 (mahjongchina), 0x422b70 (mahjongjapan)
 int FindOneOf(const std::string& theText, int theStart, const char* theSet)
 {
 	if (theStart < (int)theText.size() && -1 < theStart)
@@ -182,7 +182,7 @@ int FindOneOf(const std::string& theText, int theStart, const char* theSet)
 	return -1;
 }
 
-// 0x4234c0
+// 0x425750 (mahjongchina), 0x4234c0 (mahjongjapan)
 void TrimRight(std::string& theText)
 {
 	int aCut = -1;
@@ -197,7 +197,7 @@ void TrimRight(std::string& theText)
 		theText.resize(aCut);
 }
 
-// 0x423510
+// 0x4257a0 (mahjongchina), 0x423510 (mahjongjapan)
 void TrimLeft(std::string& theText)
 {
 	size_t i = 0;
@@ -206,13 +206,13 @@ void TrimLeft(std::string& theText)
 	theText.erase(0, i);
 }
 
-// 0x422cb0
+// 0x424f40 (mahjongchina), 0x422cb0 (mahjongjapan)
 std::string Mid(const std::string& theText, int theFirst)
 {
 	return Mid(theText, theFirst, (int)theText.size() - theFirst);
 }
 
-// 0x422ce0
+// 0x424f70 (mahjongchina), 0x422ce0 (mahjongjapan)
 std::string Mid(const std::string& theText, int theFirst, int theCount)
 {
 	if (theFirst < 0)
@@ -229,7 +229,7 @@ std::string Mid(const std::string& theText, int theFirst, int theCount)
 	return theText.substr((size_t)theFirst, (size_t)theCount);
 }
 
-// 0x423700
+// 0x425990 (mahjongchina), 0x423700 (mahjongjapan)
 void Delete(std::string& theText, int theIndex, int theCount)
 {
 	if (theIndex < 0)
@@ -239,7 +239,7 @@ void Delete(std::string& theText, int theIndex, int theCount)
 		theText.erase((size_t)theIndex, (size_t)theCount);
 }
 
-// 0x423660
+// 0x4258f0 (mahjongchina), 0x423660 (mahjongjapan)
 void Insert(std::string& theText, int theIndex, char theChar)
 {
 	if (theIndex < 0)
@@ -249,7 +249,7 @@ void Insert(std::string& theText, int theIndex, char theChar)
 	theText.insert((size_t)theIndex, 1, theChar);
 }
 
-// 0x4231d0
+// 0x425460 (mahjongchina), 0x4231d0 (mahjongjapan)
 static std::string FormatList(const char* theFormat, va_list theArgs)
 {
 	va_list aCopy;
@@ -272,7 +272,7 @@ std::string Format(const char* theFormat, ...)
 	return aText;
 }
 
-// 0x423260
+// 0x4254f0 (mahjongchina), 0x423260 (mahjongjapan)
 std::string FormatDll(int theId, ...)
 {
 	std::string aFormat = LoadDllString(theId);
@@ -283,13 +283,13 @@ std::string FormatDll(int theId, ...)
 	return aText;
 }
 
-// 0x423450: hours, minutes, seconds
+// 0x4256e0 (mahjongchina), 0x423450 (mahjongjapan): hours, minutes, seconds
 std::string FormatTime(int theSeconds)
 {
 	return Format("%d:%02d:%02d", theSeconds / 3600, (theSeconds % 3600) / 60, (theSeconds % 3600) % 60);
 }
 
-// 0x4232d0
+// 0x425560 (mahjongchina), 0x4232d0 (mahjongjapan)
 std::string FormatNumber(int theNumber)
 {
 	std::string aDigits = Format("%d", theNumber < 0 ? -theNumber : theNumber);
@@ -306,7 +306,7 @@ std::string FormatNumber(int theNumber)
 	return aText;
 }
 
-// 0x423760
+// 0x4259f0 (mahjongchina), 0x423760 (mahjongjapan)
 void Insert(std::string& theText, int theIndex, const char* theInsert)
 {
 	if (theIndex < 0)

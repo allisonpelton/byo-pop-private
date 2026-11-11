@@ -4,8 +4,8 @@ China runs on the same JollyBear engine as Ancient Japan, three months older (`M
 2006-08-21 by MSVC 6, Japan's on 2006-11-08). `games/mahjongjapan/docs/ENGINE.md` is the map of it: the object tree,
 the fonts, the streams, the app, the manager and the device. Its addresses are Japan's. China's engine functions are
 laid out in another order, so the same function sits at another address (Japan's 0x424d30 is China's 0x42a500, 0x432610 is
-0x42c5c0); `re/mahjongchina/compare/addrmap.tsv` pairs them. `engine/` is Japan's, and its comments give Japan's
-addresses.
+0x42c5c0); `re/mahjongchina/compare/addrmap.tsv` pairs them. `engines/jollybear/` is the one copy of it that both
+games build, and its comments give Japan's addresses.
 
 Every engine function the comparison flagged was looked at. What differs is how it was compiled, not what it does.
 China's build inlined many short calls (accessors of the lists, the strings and the objects' flags) and

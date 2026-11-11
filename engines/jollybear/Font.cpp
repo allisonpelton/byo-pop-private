@@ -8,7 +8,7 @@
 namespace jb
 {
 
-// 0x42ef50
+// 0x4354d0 (mahjongchina), 0x42ef50 (mahjongjapan)
 CharMap::Row::~Row()
 {
 	delete[] mX;
@@ -34,19 +34,20 @@ CharMap::Row::~Row()
 	}
 }
 
-// 0x42efc0
+// 0x435540 (mahjongchina), 0x42efc0 (mahjongjapan)
 CharMap::CharMap(int theCapacity) : mCapacity(theCapacity)
 {
 	mRows = new Row[theCapacity];
 }
 
-// 0x42f0d0
+// 0x435650 (mahjongchina), 0x42f0d0 (mahjongjapan)
 CharMap::~CharMap()
 {
 	delete[] mRows;
 }
 
-// 0x42f0f0 (the original had no check of the row count or of the 255 glyphs its buffers hold)
+// 0x435670 (mahjongchina), 0x42f0f0 (mahjongjapan) (the original had no check of the row count or of the 255 glyphs its
+// buffers hold)
 bool CharMap::ParseRow(const std::string& theLine, int thePos)
 {
 	if (mCapacity <= mUsed)
@@ -91,7 +92,7 @@ bool CharMap::ParseRow(const std::string& theLine, int thePos)
 	return true;
 }
 
-// 0x42f2e0
+// 0x435860 (mahjongchina), 0x42f2e0 (mahjongjapan)
 bool CharMap::ParseKerns(const std::string& theLine, int thePos)
 {
 	int aLen = (int)theLine.size();
@@ -132,7 +133,7 @@ bool CharMap::ParseKerns(const std::string& theLine, int thePos)
 	return false;
 }
 
-// 0x42f4b0
+// 0x435a30 (mahjongchina), 0x42f4b0 (mahjongjapan)
 bool CharMap::Lookup(uint16_t theChar, uint16_t theNext, Glyph& theGlyph)
 {
 	int aRowIndex = 0;
@@ -170,7 +171,7 @@ bool CharMap::Lookup(uint16_t theChar, uint16_t theNext, Glyph& theGlyph)
 	return false;
 }
 
-// 0x42f580
+// 0x435b00 (mahjongchina), 0x42f580 (mahjongjapan)
 bool CharMap::Has(uint16_t theChar)
 {
 	if (theChar == ' ')
@@ -189,14 +190,14 @@ bool CharMap::Has(uint16_t theChar)
 	return false;
 }
 
-// 0x423930
+// 0x425b90 (mahjongchina), 0x423930 (mahjongjapan)
 Font::~Font()
 {
 	delete[] mWidths;
 	delete mMap;
 }
 
-// 0x423970
+// 0x425bc0 (mahjongchina), 0x423970 (mahjongjapan)
 bool Font::Load(int theImage, int theTextId, Module theModule)
 {
 	mImage = theImage;
@@ -232,7 +233,8 @@ bool Font::Load(int theImage, int theTextId, Module theModule)
 	return true;
 }
 
-// 0x423c00 (a character the font lacks adds the previous character's advance again, as in the original)
+// 0x425e50 (mahjongchina), 0x423c00 (mahjongjapan) (a character the font lacks adds the previous character's advance
+// again, as in the original)
 int Font::GetWidth(const char* theText, int theScale)
 {
 	if (*theText != '\0')
@@ -271,13 +273,13 @@ int Font::GetWidth(const char* theText, int theScale)
 	return 0;
 }
 
-// 0x423cc0
+// 0x425f10 (mahjongchina), 0x423cc0 (mahjongjapan)
 bool Font::HasChar(uint8_t theChar)
 {
 	return mMap->Has(theChar);
 }
 
-// 0x423ce0
+// 0x425f30 (mahjongchina), 0x423ce0 (mahjongjapan)
 void Font::Filter(std::string& theText)
 {
 	std::string aKept;
@@ -295,7 +297,8 @@ void Font::Filter(std::string& theText)
 	theText = aKept;
 }
 
-// 0x423d80 (a first character the font lacks added a stale register in the original, here 0)
+// 0x425fd0 (mahjongchina), 0x423d80 (mahjongjapan) (a first character the font lacks added a stale register in the
+// original, here 0)
 int Font::FitCount(const char* theText, int theMaxWidth)
 {
 	if (*theText == '\0')
@@ -325,7 +328,8 @@ int Font::FitCount(const char* theText, int theMaxWidth)
 	return i;
 }
 
-// 0x423e20 (a tab is looked up as a glyph here; a first character the font lacks gave a stale register, here 0)
+// 0x426070 (mahjongchina), 0x423e20 (mahjongjapan) (a tab is looked up as a glyph here; a first character the font
+// lacks gave a stale register, here 0)
 int* Font::GetWidths(const char* theText, int* theLength)
 {
 	int aLen = (int)strlen(theText);
@@ -364,7 +368,7 @@ int* Font::GetWidths(const char* theText, int* theLength)
 	return mWidths;
 }
 
-// 0x423ef0
+// 0x426140 (mahjongchina), 0x423ef0 (mahjongjapan)
 int Font::DrawLeft(Object* theObject, int theX, int theY, const char* theText, int theMaxWidth, int theScaleX,
 	int theScaleY, int theAlpha)
 {
@@ -415,7 +419,7 @@ int Font::DrawLeft(Object* theObject, int theX, int theY, const char* theText, i
 	return i;
 }
 
-// 0x4240a0
+// 0x4262f0 (mahjongchina), 0x4240a0 (mahjongjapan)
 void Font::DrawCentred(Object* theObject, int theX, int theY, const char* theText, int theWidth, int theScaleX,
 	int theScaleY, int theAlpha)
 {
@@ -423,7 +427,7 @@ void Font::DrawCentred(Object* theObject, int theX, int theY, const char* theTex
 	DrawLeft(theObject, (theWidth - aWidth) / 2 + theX, theY, theText, -1, theScaleX, theScaleY, theAlpha);
 }
 
-// 0x4240f0
+// 0x426340 (mahjongchina), 0x4240f0 (mahjongjapan)
 void Font::DrawRight(Object* theObject, int theX, int theY, const char* theText, int theScaleX, int theScaleY,
 	int theAlpha)
 {
@@ -431,7 +435,7 @@ void Font::DrawRight(Object* theObject, int theX, int theY, const char* theText,
 	DrawLeft(theObject, theX - aWidth, theY, theText, -1, theScaleX, theScaleY, theAlpha);
 }
 
-// 0x424130
+// 0x426380 (mahjongchina), 0x424130 (mahjongjapan)
 void Font::DrawLines(Object* theObject, int theX, int theY, const char* theText, int theLineStep, int theScaleX,
 	int theScaleY, int theAlpha)
 {
@@ -451,7 +455,7 @@ void Font::DrawLines(Object* theObject, int theX, int theY, const char* theText,
 	DrawLeft(theObject, theX, theY, aLine.c_str(), -1, theScaleX, theScaleY, theAlpha);
 }
 
-// 0x4242a0
+// 0x4264e0 (mahjongchina), 0x4242a0 (mahjongjapan)
 void Font::DrawLinesCentred(Object* theObject, int theX, int theY, const char* theText, int theWidth,
 	int theLineStep, int theScaleX, int theScaleY, int theAlpha)
 {
@@ -471,7 +475,7 @@ void Font::DrawLinesCentred(Object* theObject, int theX, int theY, const char* t
 	DrawCentred(theObject, theX, theY, aLine.c_str(), theWidth, theScaleX, theScaleY, theAlpha);
 }
 
-// 0x424460
+// 0x426690 (mahjongchina), 0x424460 (mahjongjapan)
 int Font::DrawWrappedCentred(Object* theObject, int theX, int theY, int theWidth, int theMaxHeight,
 	const char* theText, int theLineStep, bool theMeasureOnly, int theAlpha)
 {
@@ -479,7 +483,7 @@ int Font::DrawWrappedCentred(Object* theObject, int theX, int theY, int theWidth
 		theAlpha, true);
 }
 
-// 0x4244a0
+// 0x4266d0 (mahjongchina), 0x4244a0 (mahjongjapan)
 int Font::DrawWrappedWorker(Object* theObject, int theX, int theY, int theWidth, int theMaxHeight,
 	const char* theText, int theLineStep, bool theMeasureOnly, int theAlpha, bool theCentred)
 {
@@ -534,7 +538,7 @@ int Font::DrawWrappedWorker(Object* theObject, int theX, int theY, int theWidth,
 	return aLines;
 }
 
-// 0x424760
+// 0x426960 (mahjongchina), 0x424760 (mahjongjapan)
 int Font::NextWord(int theStart, const std::string& theText, std::string& theWord)
 {
 	if ((int)theText.size() <= theStart)
@@ -562,7 +566,7 @@ int Font::NextWord(int theStart, const std::string& theText, std::string& theWor
 	return anEnd + 1;
 }
 
-// 0x424880
+// 0x426a70 (mahjongchina), 0x424880 (mahjongjapan)
 int Font::TrailingSpaces(const char* theText)
 {
 	int aCount = 0;

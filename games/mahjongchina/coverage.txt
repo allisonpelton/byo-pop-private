@@ -3,7 +3,8 @@
 # re/mahjongchina/compare/addrmap.tsv), and the port's sources are the same files as Japan's.
 export re/mahjongchina/gh/functions.jsonl
 src games/mahjongchina/src
-src games/mahjongchina/engine
+src engines/mahjongescape/src
+src engines/jollybear
 addrmap re/mahjongchina/compare/addrmap.tsv 1 2
 # The game's own code (the game, 0x401000..0x4171f0, and Jolly Bear's engine, 0x41dea0..0x4374f0); the rest of the exe is the
 # C runtime, the device, libjpeg and the PNG decoder, the software blitters and more runtime and STL.

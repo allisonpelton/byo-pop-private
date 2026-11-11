@@ -18,13 +18,13 @@ namespace jb
 uint8_t* gScreen = nullptr;
 int gScreenPitch = 0;
 
-// 0x5d8f38..0x5d8f44: the blit's temporary buffer, grown as needed
+// 0x5d80a0..0x5d80ac (mahjongchina), 0x5d8f38..0x5d8f44 (mahjongjapan): the blit's temporary buffer, grown as needed
 static uint8_t* gBlitBuffer = nullptr;
 static int gBlitPitch = 0;
 static int gBlitWidth = 0;
 static int gBlitHeight = 0;
 
-// 0x42ce90
+// 0x426c90 (mahjongchina), 0x42ce90 (mahjongjapan)
 void FreeBlitBuffer()
 {
 	if (gBlitBuffer != nullptr)
@@ -36,7 +36,8 @@ void FreeBlitBuffer()
 	}
 }
 
-// 0x42cec0: room for the image scaled (and 4 more pixels each way), cleared to 0 when theClear
+// 0x426cc0 (mahjongchina), 0x42cec0 (mahjongjapan): room for the image scaled (and 4 more pixels each way), cleared to
+// 0 when theClear
 static void EnsureBlitBuffer(int theWidth, int theHeight, int theScaleX, int theScaleY, bool theClear)
 {
 	int aWidth = MulDiv(theWidth, theScaleX, 100) + 4;
@@ -63,13 +64,13 @@ static void EnsureBlitBuffer(int theWidth, int theHeight, int theScaleX, int the
 	}
 }
 
-// 0x42ce00
+// 0x42ce00 (mahjongjapan)
 Image::~Image()
 {
 	Release();
 }
 
-// 0x42cf80
+// 0x426d80 (mahjongchina), 0x42cf80 (mahjongjapan)
 void Image::Release()
 {
 	mPrepared = false;
@@ -84,7 +85,7 @@ void Image::Release()
 		mDisplay->Untrack(this);
 }
 
-// 0x42cfc0
+// 0x426db0 (mahjongchina), 0x42cfc0 (mahjongjapan)
 bool Image::LoadResource(int theId, Module theModule)
 {
 	Release();
@@ -113,7 +114,7 @@ bool Image::LoadResource(int theId, Module theModule)
 	return Decode(aData, aSize, aType);
 }
 
-// 0x42d080
+// 0x426e70 (mahjongchina), 0x42d080 (mahjongjapan)
 bool Image::Decode(const uint8_t* theData, uint32_t theSize, int theType)
 {
 	switch (theType)
@@ -145,7 +146,8 @@ static uint16_t ReadU16(const uint8_t* theBytes)
 	return (uint16_t)(theBytes[0] | (theBytes[1] << 8));
 }
 
-// 0x42d110: the pixels stay in the resource, after the header (biSize bytes; no palette)
+// 0x426f00 (mahjongchina), 0x42d110 (mahjongjapan): the pixels stay in the resource, after the header (biSize bytes; no
+// palette)
 bool Image::DecodeBmp(const uint8_t* theData)
 {
 	mBits = (uint8_t*)theData + ReadI32(theData);
@@ -160,8 +162,9 @@ bool Image::DecodeBmp(const uint8_t* theData)
 	return true;
 }
 
-// 0x42d160: to 24 bits, B G R, the rows bottom-up. The original decodes with the exe's libjpeg (0x438000..,
-// islow); libjpeg 6b, as the original does (Platform::LoadImageFromMemory).
+// 0x426f50 (mahjongchina), 0x42d160 (mahjongjapan): to 24 bits, B G R, the rows bottom-up. The original decodes with
+// the exe's libjpeg (from 0x438000 (mahjongjapan) on, islow); libjpeg 6b, as the original does
+// (Platform::LoadImageFromMemory).
 bool Image::DecodeJpeg(const uint8_t* theData, uint32_t theSize)
 {
 	mBitCount = 0x18;
@@ -199,8 +202,8 @@ bool Image::DecodeJpeg(const uint8_t* theData, uint32_t theSize)
 	return true;
 }
 
-// 0x42d320: an uncompressed true-colour TGA (type 2) stays in the resource; the others are read as RLE. The rows
-// are kept in the file's order (bottom-up for the game's).
+// 0x427110 (mahjongchina), 0x42d320 (mahjongjapan): an uncompressed true-colour TGA (type 2) stays in the resource; the
+// others are read as RLE. The rows are kept in the file's order (bottom-up for the game's).
 bool Image::DecodeTga(const uint8_t* theData, int theSize)
 {
 	mWidth = ReadU16(theData + 0xc);
@@ -228,7 +231,7 @@ bool Image::DecodeTga(const uint8_t* theData, int theSize)
 	return aLeft == 0;
 }
 
-// 0x42d3f0
+// 0x4271e0 (mahjongchina), 0x42d3f0 (mahjongjapan)
 bool Image::DecodeTgaRow(const uint8_t*& theSrc, uint8_t* theDst, int theWidth, uint8_t& theState, int& theLeft)
 {
 	int aBytes = mBitCount / 8;
@@ -293,8 +296,9 @@ bool Image::DecodeTgaRow(const uint8_t*& theSrc, uint8_t* theDst, int theWidth, 
 	return true;
 }
 
-// 0x42d580: RGB8 to 24 bits, RGBA8 to 32 bits (other formats as 24-bit), B G R (A), the rows bottom-up. The
-// original decodes with the exe's own PNG decoder (0x444f50); PNG is lossless, so stb_image gives the same pixels.
+// 0x427370 (mahjongchina), 0x42d580 (mahjongjapan): RGB8 to 24 bits, RGBA8 to 32 bits (other formats as 24-bit), B G R
+// (A), the rows bottom-up. The original decodes with the exe's own PNG decoder (0x5124f0 (mahjongchina),
+// 0x444f50 (mahjongjapan)); PNG is lossless, so stb_image gives the same pixels.
 bool Image::DecodePng(const uint8_t* theData, uint32_t theSize)
 {
 	int aWidth, aHeight, aComp;
@@ -329,7 +333,7 @@ bool Image::DecodePng(const uint8_t* theData, uint32_t theSize)
 	return true;
 }
 
-// 0x42d670
+// 0x427460 (mahjongchina), 0x42d670 (mahjongjapan)
 bool Image::LoadFile(const char* thePath)
 {
 	Release();
@@ -375,7 +379,8 @@ bool Image::LoadFile(const char* thePath)
 	return aResult;
 }
 
-// 0x42d940: the file header and BITMAPINFOHEADER (0x3a bytes read), then the pixels at bfOffBits
+// 0x427710 (mahjongchina), 0x42d940 (mahjongjapan): the file header and BITMAPINFOHEADER (0x3a bytes read), then the
+// pixels at bfOffBits
 bool Image::LoadBmpFile(FILE* theFile)
 {
 	uint8_t aHeader[0x3a];
@@ -400,7 +405,7 @@ bool Image::LoadBmpFile(FILE* theFile)
 	return true;
 }
 
-// 0x42da20
+// 0x4277f0 (mahjongchina), 0x42da20 (mahjongjapan)
 void Image::AllocBits()
 {
 	if (mBitCount == 0x18)
@@ -414,14 +419,14 @@ void Image::AllocBits()
 	mOwnsBits = true;
 }
 
-// 0x42da70
+// 0x427840 (mahjongchina), 0x42da70 (mahjongjapan)
 void Image::SetColourKey(uint32_t theKey)
 {
 	mKeyed = true;
 	mKey = ((theKey & 0xff) << 16) | (theKey & 0xff00) | ((theKey >> 16) & 0xff);
 }
 
-// 0x42daa0
+// 0x427870 (mahjongchina), 0x42daa0 (mahjongjapan)
 void Image::GetInfo(ImageInfo& theInfo)
 {
 	theInfo.mWidth = mWidth;
@@ -431,7 +436,7 @@ void Image::GetInfo(ImageInfo& theInfo)
 	theInfo.mKey = ((mKey & 0xff) << 16) | (mKey & 0xff00) | ((mKey >> 16) & 0xff);
 }
 
-// 0x42dae0 (the accelerated display's textured quads are not ported)
+// 0x4278b0 (mahjongchina), 0x42dae0 (mahjongjapan) (the accelerated display's textured quads are not ported)
 bool Image::Draw(int theX, int theY, const Rect& theSrc, int theScaleX, int theScaleY, int theAlpha)
 {
 	if (mWidth == 0 || mHeight == 0)
@@ -443,8 +448,8 @@ bool Image::Draw(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 	return Blit(theX, theY, theSrc, theScaleX, theScaleY, theAlpha, gScreen, gScreenPitch);
 }
 
-// 0x42dcd0
-// 0x42e960 inlined here: the keyed copy's loop over the rows
+// 0x427aa0 (mahjongchina), 0x42dcd0 (mahjongjapan)
+// 0x428730 (mahjongchina), 0x42e960 (mahjongjapan) inlined here: the keyed copy's loop over the rows
 bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theScaleY, int theAlpha,
 	uint8_t* theDst, int theDstPitch)
 {
@@ -494,8 +499,8 @@ bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 		if (aWidth < 1 || aHeight < 1)
 			return true;
 	}
-	// Port: the original's keyed copy (0x42e960) loops once more than it should for an empty unclipped rect;
-	// nothing is drawn for one here
+	// Port: the original's keyed copy (0x428730 (mahjongchina), 0x42e960 (mahjongjapan)) loops once more than it should
+	// for an empty unclipped rect; nothing is drawn for one here
 	if (aWidth < 1 || aHeight < 1)
 		return true;
 	if (mBitCount == 0x20)
@@ -519,7 +524,8 @@ bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 	}
 	else if (theAlpha == 0xff)
 	{
-		// 0x42e960, 0x438fc0: the pixels that are not the key, opaque
+		// 0x428730 (mahjongchina), 0x42e960 (mahjongjapan), 0x436630 (mahjongchina), 0x438fc0 (mahjongjapan): the
+		// pixels that are not the key, opaque
 		int y = aHeight;
 		do
 		{
@@ -549,7 +555,7 @@ bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 	return true;
 }
 
-// 0x42e3a0
+// 0x428170 (mahjongchina), 0x42e3a0 (mahjongjapan)
 bool Image::EnsurePrepared()
 {
 	if (!mPrepared)
@@ -557,7 +563,7 @@ bool Image::EnsurePrepared()
 	return true;
 }
 
-// 0x42e8b0
+// 0x428680 (mahjongchina), 0x42e8b0 (mahjongjapan)
 bool Image::Prepare()
 {
 	if (mBits == nullptr)
@@ -573,7 +579,7 @@ bool Image::Prepare()
 	return true;
 }
 
-// 0x42e940
+// 0x428710 (mahjongchina), 0x42e940 (mahjongjapan)
 void Image::FreePixels()
 {
 	mPrepared = false;
@@ -584,7 +590,7 @@ void Image::FreePixels()
 	}
 }
 
-// 0x42e9a0 (the 16-bit targets of the accelerated display are not ported)
+// 0x428770 (mahjongchina), 0x42e9a0 (mahjongjapan) (the 16-bit targets of the accelerated display are not ported)
 void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst, int theDstPitch, int theDstBits,
 	int theWidth, int theHeight)
 {
@@ -594,7 +600,7 @@ void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst,
 	{
 		do
 		{
-			// 0x438fa0
+			// 0x436610 (mahjongchina), 0x438fa0 (mahjongjapan)
 			memcpy(theDst, theSrc, (size_t)theWidth * 4);
 			theSrc = theSrc + theSrcPitch;
 			theDst = theDst - theDstPitch;
@@ -608,7 +614,7 @@ void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst,
 		{
 			do
 			{
-				// 0x438ef0
+				// 0x436560 (mahjongchina), 0x438ef0 (mahjongjapan)
 				const uint8_t* aSrcPixel = theSrc;
 				uint32_t* aDstPixel = (uint32_t*)theDst;
 				int aRemaining = theWidth;
@@ -628,7 +634,7 @@ void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst,
 		}
 		do
 		{
-			// 0x438f20
+			// 0x436590 (mahjongchina), 0x438f20 (mahjongjapan)
 			const uint8_t* aSrcPixel = theSrc;
 			uint32_t* aDstPixel = (uint32_t*)theDst;
 			int aRemaining = theWidth;
@@ -651,7 +657,7 @@ void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst,
 	}
 }
 
-// 0x42eb60
+// 0x428930 (mahjongchina), 0x42eb60 (mahjongjapan)
 void Image::Create(int theWidth, int theHeight, Display* theDisplay)
 {
 	mHeight = theHeight;
@@ -662,7 +668,7 @@ void Image::Create(int theWidth, int theHeight, Display* theDisplay)
 	mDisplay = theDisplay;
 }
 
-// 0x42eb90
+// 0x428960 (mahjongchina), 0x42eb90 (mahjongjapan)
 void Image::BeginDrawing()
 {
 	FreePixels();
@@ -670,7 +676,7 @@ void Image::BeginDrawing()
 	mFlipped = true;
 }
 
-// 0x42ebb0
+// 0x428980 (mahjongchina), 0x42ebb0 (mahjongjapan)
 void Image::Fill(uint32_t theColour)
 {
 	FreePixels();
@@ -680,7 +686,7 @@ void Image::Fill(uint32_t theColour)
 	mFlipped = true;
 }
 
-// 0x42ec10
+// 0x4289e0 (mahjongchina), 0x42ec10 (mahjongjapan)
 void Image::FlipRows()
 {
 	mFlipped = false;
@@ -700,7 +706,7 @@ void Image::FlipRows()
 	}
 }
 
-// 0x42ecd0
+// 0x428aa0 (mahjongchina), 0x42ecd0 (mahjongjapan)
 bool Image::LoadDll(int theId)
 {
 	if (LoadResource(theId, Module::DLL))
@@ -711,14 +717,14 @@ bool Image::LoadDll(int theId)
 	return false;
 }
 
-// 0x42ed00
+// 0x428ad0 (mahjongchina), 0x42ed00 (mahjongjapan)
 bool Image::LoadDllKeyed(int theId, uint32_t theKey)
 {
 	SetColourKey(theKey);
 	return LoadDll(theId);
 }
 
-// 0x42ed20
+// 0x428af0 (mahjongchina), 0x42ed20 (mahjongjapan)
 bool Image::DrawTo(Image* theTarget, int theX, int theY, const Rect& theSrc, int theScaleX, int theScaleY,
 	int theAlpha)
 {
@@ -727,7 +733,8 @@ bool Image::DrawTo(Image* theTarget, int theX, int theY, const Rect& theSrc, int
 	return false;
 }
 
-// 0x42ed70: B G R rows (0x438880 drops the alpha), bottom-up as the DIB is
+// 0x428b40 (mahjongchina), 0x42ed70 (mahjongjapan): B G R rows (0x435ef0 (mahjongchina), 0x438880 (mahjongjapan) drops
+// the alpha), bottom-up as the DIB is
 bool Image::SaveBmp(const char* thePath)
 {
 	if (mFlipped)
@@ -776,7 +783,7 @@ bool Image::SaveBmp(const char* thePath)
 	return aResult;
 }
 
-// 0x42dff0 (software display)
+// 0x427dc0 (mahjongchina), 0x42dff0 (mahjongjapan) (software display)
 void ScreenFillRect(const Rect* theRect, uint32_t theColour)
 {
 	Rect aScreen;
@@ -793,7 +800,7 @@ void ScreenFillRect(const Rect* theRect, uint32_t theColour)
 		aRect->right - aRect->left, aRect->bottom - aRect->top);
 }
 
-// 0x42e120 (software display)
+// 0x427ef0 (mahjongchina), 0x42e120 (mahjongjapan) (software display)
 void ScreenFillRectAlpha(Rect& theRect, int theAlpha, uint32_t theColour)
 {
 	if (theAlpha < 0)

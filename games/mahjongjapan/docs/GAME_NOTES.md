@@ -208,7 +208,7 @@ the game's code and were not changed.
 **What the pass changed**, each proved to leave every drawn byte and every random draw as it was (`tools/check.sh` against the
 frozen baseline passes with every picture and checksum the same):
 
-- **The engine's blits** (`engine/Blit.cpp`): the blend of one row went a pixel at a time through three per-channel sums
+- **The engine's blits** (`engines/jollybear/Blit.cpp`): the blend of one row went a pixel at a time through three per-channel sums
   (`Div255`), and a source pixel that is opaque or empty, nearly all of them in this game's art, now skips them: an opaque
   pixel (alpha 255) is stored as it is, which is what the sums give (`Div255(x * 255) == x`), an empty one (all four bytes
   0) leaves the pixel under it. `CopyRgb` and `SetRgb` take a pixel as one word instead of three bytes. 12000 random cases
@@ -439,7 +439,7 @@ to its end with a pinned seed.
 
 The last finishing item before the readability pass (`docs/COORDINATION.md`: "figure out what code does not need to be
 present in the decomps"), done as Alchemy's section 10 and Bejeweled's section 22 do it. Registration and the buttons
-that lead out were already out. The survey covers `engine/` and `src/` (the test hooks, `TestCommands.cpp` and `Bot.cpp`,
+that lead out were already out. The survey covers `engines/jollybear/`, `engines/mahjongescape/src/` and `src/` (the test hooks, `TestCommands.cpp` and `Bot.cpp`,
 which tests need, apart) by six scans:
 
 1. **Functions.** The 39 object files of the native build, every defined function against every relocation in all of them
@@ -514,7 +514,7 @@ the removals, find no further dead function, member or constant.
 ## The readability pass (2026-11-11)
 
 The rules are `docs/CODE_STANDARDS.md`. `python tools/namecheck.py games/mahjongjapan` has no finding; the game's
-`namecheck.txt` adds `engine/` to the check with a `folder` line. The two exceptions, `Div255` and `AppendCp1252`, are numbers that belong to their
+`namecheck.txt` adds `engines/jollybear` and `engines/mahjongescape/src` to the check with `folder` lines. The two exceptions, `Div255` and `AppendCp1252`, are numbers that belong to their
 names. The game has no Mac build, so every name comes from how the code uses the thing and from the game's own words.
 
 **Nothing the port does changed, proved by the object code.** The whole pass is renames, named constants, comments and
@@ -549,7 +549,7 @@ commands' answers keep their field names, which are a format.
 
 **Numbers (rule 7).**
 - *Resources.* The original passes its resource ids as numbers, and so did the port: `AddText(0x6a, ...)`,
-  `DrawImage(0, 0, 0x6d, ...)`. `src/Res.h` and `engine/EngineRes.h` now name the 336 ids the code uses (pictures, the
+  `DrawImage(0, 0, 0x6d, ...)`. `src/Res.h` and `engines/jollybear/EngineRes.h` now name the 336 ids the code uses (pictures, the
   fonts' pictures and character maps, sounds, music and strings; the engine's click, the exe's pictures and the splash
   font), in 598 places: `STRING_NO_LAYOUT_TEXT`, `IMAGE_MENU_BACKGROUND`, `FONT_HEADING` with `FONT_HEADING_MAP`,
   `SOUND_SHUFFLE`. A picture is named for what it shows (every picture of Resource.dll and the exe was looked at, on
@@ -559,7 +559,7 @@ commands' answers keep their field names, which are a format.
   (`Deal.cpp`), on about 170 lines of the board, the deal, the layout, the bot and the help pictures.
 - *The board's states.* The twelve flight kinds (`FLIGHT_TAKEN` to `FLIGHT_GOLD_TO_TRAY`, each with the step that follows
   its landing) and the three phases (`Board.h`).
-- *The screen and the cursor.* `SCREEN_WIDTH`, `SCREEN_HEIGHT` and the `CURSOR_KIND` values (`engine/JBBase.h`).
+- *The screen and the cursor.* `SCREEN_WIDTH`, `SCREEN_HEIGHT` and the `CURSOR_KIND` values (`engines/jollybear/JBBase.h`).
 - *Left as numbers.* Positions, sizes and frame counts, whose line says what they are; the scale in percent (100) and the
   alpha (0xff) that every draw call ends with; the resource ids inside tables (`STAGE_IMAGES`, `BACKGROUNDS`), whose
   comment names the table; and each dialog's and layer's command and timer ids, which are local to one class (the

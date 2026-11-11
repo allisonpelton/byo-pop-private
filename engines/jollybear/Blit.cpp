@@ -8,7 +8,7 @@ namespace jb
 namespace blit
 {
 
-// 0x451178
+// 0x4534f4 (mahjongchina), 0x451178 (mahjongjapan)
 uint8_t* Malloc32(int theWidth, int theHeight, int* thePitch)
 {
 	if (thePitch != nullptr)
@@ -29,7 +29,7 @@ uint8_t* Malloc32(int theWidth, int theHeight, int* thePitch)
 	return nullptr;
 }
 
-// 0x4511fc
+// 0x44d320 (mahjongchina), 0x4511fc (mahjongjapan)
 uint8_t* Malloc24(int theWidth, int theHeight, int* thePitch)
 {
 	if (thePitch != nullptr)
@@ -50,13 +50,13 @@ uint8_t* Malloc24(int theWidth, int theHeight, int* thePitch)
 	return nullptr;
 }
 
-// 0x455974
+// 0x4534e8 (mahjongchina), 0x455974 (mahjongjapan)
 void Free(uint8_t* thePixels)
 {
 	free(thePixels);
 }
 
-// 0x4556e0
+// 0x453254 (mahjongchina), 0x4556e0 (mahjongjapan)
 void PremultiplyRow(const uint8_t* theSrc, uint8_t* theDst, int theWidth)
 {
 	int i = 0;
@@ -73,7 +73,7 @@ void PremultiplyRow(const uint8_t* theSrc, uint8_t* theDst, int theWidth)
 	}
 }
 
-// 0x455780
+// 0x4532f4 (mahjongchina), 0x455780 (mahjongjapan)
 int Premultiply(uint8_t* thePixels, int thePitch, int theWidth, int theHeight)
 {
 	if (thePixels == nullptr)
@@ -97,7 +97,7 @@ int Premultiply(uint8_t* thePixels, int thePitch, int theWidth, int theHeight)
 	return -6;
 }
 
-// 0x454400
+// 0x451f74 (mahjongchina), 0x454400 (mahjongjapan)
 void OverRow(const uint8_t* theSrc, const uint8_t* theUnder, uint8_t* theDst, int theWidth, bool theSaturate)
 {
 	int i = 0;
@@ -162,7 +162,7 @@ void OverRow(const uint8_t* theSrc, const uint8_t* theUnder, uint8_t* theDst, in
 	}
 }
 
-// 0x455338
+// 0x452eac (mahjongchina), 0x455338 (mahjongjapan)
 int Blend(const uint8_t* theSrc, int theSrcPitch, const uint8_t* theUnder, int theUnderPitch, uint8_t* theDst,
 	int theDstPitch, int theWidth, int theHeight, int theMode)
 {
@@ -191,7 +191,8 @@ int Blend(const uint8_t* theSrc, int theSrcPitch, const uint8_t* theUnder, int t
 	return -14;
 }
 
-// 0x4557f4 (the original copies three pixels a step while 16 bytes remain; the bytes are the same)
+// 0x453368 (mahjongchina), 0x4557f4 (mahjongjapan) (the original copies three pixels a step while 16 bytes remain; the
+// bytes are the same)
 int CopyRgb(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst, int theDstPitch, int theWidth,
 	int theHeight)
 {
@@ -238,7 +239,7 @@ int CopyRgb(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst, int theDstP
 	return -6;
 }
 
-// 0x50e17c: theBytes bytes a row, each multiplied by theValue
+// 0x50b8f4 (mahjongchina), 0x50e17c (mahjongjapan): theBytes bytes a row, each multiplied by theValue
 static int MulCSame(const uint8_t* theSrc, int theSrcPitch, uint8_t theValue, uint8_t* theDst, int theDstPitch,
 	int theBytes, int theHeight)
 {
@@ -274,7 +275,7 @@ static int MulCSame(const uint8_t* theSrc, int theSrcPitch, uint8_t theValue, ui
 	return -14;
 }
 
-// 0x451c58
+// 0x44f7cc (mahjongchina), 0x451c58 (mahjongjapan)
 int MulC(const uint8_t* theSrc, int theSrcPitch, const uint8_t* theValue, uint8_t* theDst, int theDstPitch,
 	int theWidth, int theHeight)
 {
@@ -314,7 +315,7 @@ int MulC(const uint8_t* theSrc, int theSrcPitch, const uint8_t* theValue, uint8_
 	return -6;
 }
 
-// 0x50e2f0
+// 0x50ba68 (mahjongchina), 0x50e2f0 (mahjongjapan)
 int MulCRgb(const uint8_t* theSrc, int theSrcPitch, const uint8_t* theValue, uint8_t* theDst, int theDstPitch,
 	int theWidth, int theHeight)
 {
@@ -350,7 +351,7 @@ int MulCRgb(const uint8_t* theSrc, int theSrcPitch, const uint8_t* theValue, uin
 	return -6;
 }
 
-// 0x451df8 (scale 0)
+// 0x44f96c (mahjongchina), 0x451df8 (mahjongjapan) (scale 0)
 int AddCRgb(const uint8_t* theValue, uint8_t* theDst, int theDstPitch, int theWidth, int theHeight)
 {
 	if (theValue == nullptr || theDst == nullptr)
@@ -396,7 +397,8 @@ int AddCRgb(const uint8_t* theValue, uint8_t* theDst, int theDstPitch, int theWi
 	return -6;
 }
 
-// 0x451ae0 (the original sets four pixels a step while 20 bytes remain; the bytes are the same)
+// 0x44f654 (mahjongchina), 0x451ae0 (mahjongjapan) (the original sets four pixels a step while 20 bytes remain; the
+// bytes are the same)
 int SetRgb(const uint8_t* theValue, uint8_t* theDst, int theDstPitch, int theWidth, int theHeight)
 {
 	if (theDst == nullptr || theValue == nullptr)
@@ -433,7 +435,7 @@ int SetRgb(const uint8_t* theValue, uint8_t* theDst, int theDstPitch, int theWid
 	return -6;
 }
 
-// 0x45194c (three pixels a step in the original while 16 bytes remain)
+// 0x44f4c0 (mahjongchina), 0x45194c (mahjongjapan) (three pixels a step in the original while 16 bytes remain)
 int Set4(const uint8_t* theValue, uint8_t* theDst, int theDstPitch, int theWidth, int theHeight)
 {
 	if (theDst == nullptr || theValue == nullptr)
@@ -468,7 +470,7 @@ int Set4(const uint8_t* theValue, uint8_t* theDst, int theDstPitch, int theWidth
 	return -6;
 }
 
-// 0x4534a0 with its last argument 0
+// 0x451014 (mahjongchina), 0x4534a0 (mahjongjapan) with its last argument 0
 static void AlphaCompCRow(const uint8_t* theSrc, uint32_t theSrcAlpha, const uint8_t* theUnder,
 	uint32_t theUnderAlpha, uint8_t* theDst, int theBytes)
 {
@@ -486,7 +488,7 @@ static void AlphaCompCRow(const uint8_t* theSrc, uint32_t theSrcAlpha, const uin
 	}
 }
 
-// 0x453ef8 (mode 0)
+// 0x451a6c (mahjongchina), 0x453ef8 (mahjongjapan) (mode 0)
 int AlphaCompC(const uint8_t* theSrc, int theSrcPitch, int theSrcAlpha, const uint8_t* theUnder,
 	int theUnderPitch, int theUnderAlpha, uint8_t* theDst, int theDstPitch, int theWidth, int theHeight)
 {
@@ -513,9 +515,10 @@ int AlphaCompC(const uint8_t* theSrc, int theSrcPitch, int theSrcAlpha, const ui
 	return -14;
 }
 
-// 0x4517f8 with interpolation 1, which goes to the general resize 0x4f8bf8. The source pixel of each destination
-// pixel here is the destination position divided by the factor; whether 0x4f8bf8 maps them so is not
-// known (docs/DEVIATIONS.md).
+// 0x44f36c (mahjongchina), 0x4517f8 (mahjongjapan) with interpolation 1, which goes to the general resize
+// 0x4f7af8 (mahjongchina), 0x4f8bf8 (mahjongjapan). The source pixel of each destination pixel here is the destination
+// position divided by the factor; whether 0x4f7af8 (mahjongchina), 0x4f8bf8 (mahjongjapan) maps them so is not known
+// (docs/DEVIATIONS.md).
 void ResizeNearest(const uint8_t* theSrc, int theSrcWidth, int theSrcHeight, int theSrcPitch, int theSrcLeft,
 	int theSrcTop, int theSrcRight, int theSrcBottom, uint8_t* theDst, int theDstPitch, int theDstWidth,
 	int theDstHeight, double theFactorX, double theFactorY)

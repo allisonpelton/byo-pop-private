@@ -8,15 +8,15 @@
 namespace jb
 {
 
-// 0x5d8e10 (made empty by 0x425d60)
+// 0x5d8148 (mahjongchina), 0x5d8e10 (mahjongjapan) (made empty by 0x425d60 (mahjongjapan))
 std::string gVersion;
 
-// 0x42f650
+// 0x42f650 (mahjongjapan)
 Logo::Logo(bool theSplashLogo) : mSplashLogo(theSplashLogo)
 {
 }
 
-// 0x42f6b0: on black, the SplashLogo image or Jolly Bear's logo with the version at the bottom right
+// 0x42f6b0 (mahjongjapan): on black, the SplashLogo image or Jolly Bear's logo with the version at the bottom right
 void Logo::Draw()
 {
 	if (mSplashLogo)
@@ -36,8 +36,8 @@ void Logo::Draw()
 		mFont->DrawRight(this, 0x316, 0x253, gVersion.c_str(), 100, 100, 0xff);
 }
 
-// 0x42f7f0: the logo's images come from the exe. The SplashLogo image is centred across and a third of the way down,
-// and with it the links stay off.
+// 0x42f7f0 (mahjongjapan): the logo's images come from the exe. The SplashLogo image is centred across and a third of
+// the way down, and with it the links stay off.
 void Logo::Init()
 {
 	mManager->PreloadExeImage(EXE_IMAGE_CREATED_BY);
@@ -58,7 +58,7 @@ void Logo::Init()
 	mFont = GetExeFont(EXE_FONT_SPLASH, EXE_FONT_SPLASH_MAP);
 }
 
-// 0x42f8c0: two seconds, then Jolly Bear's logo after the SplashLogo, or the game
+// 0x42f8c0 (mahjongjapan): two seconds, then Jolly Bear's logo after the SplashLogo, or the game
 bool Logo::Update()
 {
 	if (0 < mTime)
@@ -81,12 +81,12 @@ bool Logo::Update()
 	return false;
 }
 
-// 0x425320
+// 0x42b6c0 (mahjongchina), 0x425320 (mahjongjapan)
 Splash::Splash(bool theSplashLogo) : Layer(0, 0), mSplashLogo(theSplashLogo)
 {
 }
 
-// 0x425370: SplashLogo is a file in the exe's folder (image 0xff01)
+// 0x42b760 (mahjongchina), 0x425370 (mahjongjapan): SplashLogo is a file in the exe's folder (image 0xff01)
 void Splash::Load()
 {
 	if (mSplashLogo)

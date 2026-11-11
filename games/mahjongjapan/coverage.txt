@@ -1,7 +1,8 @@
 # tools/coverage.py's settings for Mahjong Escape: Ancient Japan (docs/COVERAGE.md).
 export re/mahjongjapan/gh/functions.jsonl
 src games/mahjongjapan/src
-src games/mahjongjapan/engine
+src engines/mahjongescape/src
+src engines/jollybear
 # The game's own code, which the port translates (engine docs, "The binary"): the game (0x401000..0x417680) and Jolly Bear's
 # engine (0x41e240..0x431a70, the object tree, layers, manager, widgets, and the classes on the device: image, font map,
 # CRC32, logo, window). The rest of the exe is the C runtime (0x417680..0x41e240), the device (the display and the sound

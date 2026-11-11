@@ -72,7 +72,7 @@ describes each of them; this section says what differs here.
 ## Performance (2026-11-09)
 
 The performance pass, made once for both games (`games/mahjongjapan/docs/GAME_NOTES.md`, "Performance", describes the method, the
-profile and each change; the code is the same, so the changes are the same files: `engine/Blit.cpp`, `src/MahjongApp.cpp`,
+profile and each change; the code is the same, so the changes are the same files: `engines/jollybear/Blit.cpp`, `engines/mahjongescape/src/MahjongApp.cpp`,
 `src/TestCommands.cpp`, and the shared `MemoryImage::mUploadAsIs`, which this port sets on the screen image too). Measured as
 Japan's: the minute of play of `tools/check.sh mahjongchina` (the menu, a new player, Dynasty Adventure stage 1 won by the
 solver's clicks, back to the map), the processor time in the window 20 s to 50 s, runs made in turn, the original through
@@ -267,7 +267,7 @@ The pass is Ancient Japan's, made here the same way (its section of this name ha
 method): the same 206 renames by scope, the tile's `mBobsAsHint` and `mLiftStart`, the magic tiles' code in the game's own
 words (`TakeGold`, `TakeKeyAndLock`, `TakeJoker`, `TakeMagnet` and the names built on them), the tile kinds, the flight
 kinds and phases, the screen size and the cursor kinds, the port markers, the comments and the wrapped lines.
-`python tools/namecheck.py games/mahjongchina` has no finding (its `namecheck.txt` adds `engine/` to the check).
+`python tools/namecheck.py games/mahjongchina` has no finding (its `namecheck.txt` adds `engines/jollybear` and `engines/mahjongescape/src` to the check).
 
 The resource names are China's own where its resources are: `src/Res.h` names the 350 ids its code uses, in 602 places.
 An id that both games have means the same thing in both (the string tables match but for five strings Japan adds and

@@ -8,19 +8,19 @@
 namespace jb
 {
 
-// 0x420840 (the original sets +0x08 and +0x34 from the low byte of the x)
+// 0x4230b0 (mahjongchina), 0x420840 (mahjongjapan) (the original sets +0x08 and +0x34 from the low byte of the x)
 Layer::Layer(int theX, int theY)
 	: mXLowByteSet((char)theX != 0), mX(theX), mY(theY), mXLowByteSetToo((char)theX != 0)
 {
 }
 
-// 0x4208d0
+// 0x423140 (mahjongchina), 0x4208d0 (mahjongjapan)
 Layer::~Layer()
 {
 	DestroyObjects();
 }
 
-// 0x420950
+// 0x4231c0 (mahjongchina), 0x420950 (mahjongjapan)
 void Layer::DestroyObjects()
 {
 	for (size_t i = 0; i < mObjects.size(); i++)
@@ -33,34 +33,34 @@ void Layer::DestroyObjects()
 	mFocus.clear();
 }
 
-// 0x420a20
+// 0x420a20 (mahjongjapan)
 bool Layer::AppActive()
 {
 	return mManager->GetActive();
 }
 
-// 0x420a90
+// 0x423250 (mahjongchina), 0x420a90 (mahjongjapan)
 void Layer::SetManager(Manager* theManager)
 {
 	mManager = theManager;
 	Load();
 }
 
-// 0x420ac0
+// 0x423280 (mahjongchina), 0x420ac0 (mahjongjapan)
 void Layer::Add(Object* theObject, int theX, int theY)
 {
 	theObject->Create(mManager, this, theX, theY, nullptr);
 	mObjects.push_back(theObject);
 }
 
-// 0x420c80
+// 0x423440 (mahjongchina), 0x420c80 (mahjongjapan)
 void Layer::AddFocusable(Object* theObject, int theX, int theY)
 {
 	Add(theObject, theX, theY);
 	AddFocus(theObject);
 }
 
-// 0x420cb0
+// 0x423470 (mahjongchina), 0x420cb0 (mahjongjapan)
 void Layer::Draw()
 {
 	for (size_t i = 0; i < mObjects.size(); i++)
@@ -71,7 +71,7 @@ void Layer::Draw()
 		FillRectAlpha(aBounds, mDarken, 0);
 }
 
-// 0x420d10
+// 0x4234d0 (mahjongchina), 0x420d10 (mahjongjapan)
 bool Layer::StepDarken(int theStep)
 {
 	if (!mActive && mDarkens)
@@ -84,7 +84,7 @@ bool Layer::StepDarken(int theStep)
 	return false;
 }
 
-// 0x420d50
+// 0x423510 (mahjongchina), 0x420d50 (mahjongjapan)
 void Layer::StartFade(int theFade)
 {
 	mFade = theFade;
@@ -98,7 +98,7 @@ void Layer::StartFade(int theFade)
 	mFadeSkip = true;
 }
 
-// 0x420d80
+// 0x423540 (mahjongchina), 0x420d80 (mahjongjapan)
 bool Layer::StepFade(int theStep, bool* theDelete)
 {
 	if (!mFadeSkip)
@@ -133,7 +133,7 @@ bool Layer::StepFade(int theStep, bool* theDelete)
 	return true;
 }
 
-// 0x420df0
+// 0x4235b0 (mahjongchina), 0x420df0 (mahjongjapan)
 void Layer::SetActive(bool theActive, bool theDarken)
 {
 	if (mActive != theActive)
@@ -155,7 +155,7 @@ void Layer::SetActive(bool theActive, bool theDarken)
 	}
 }
 
-// 0x420e70
+// 0x423630 (mahjongchina), 0x420e70 (mahjongjapan)
 void Layer::GetBounds(Rect& theRect)
 {
 	Rect aRect;
@@ -169,14 +169,14 @@ void Layer::GetBounds(Rect& theRect)
 	theRect = aRect;
 }
 
-// 0x420ee0
+// 0x4236a0 (mahjongchina), 0x420ee0 (mahjongjapan)
 void Layer::SetClip(RegionRect* theRegion)
 {
 	for (size_t i = 0; i < mObjects.size(); i++)
 		mObjects[i]->SetClip(theRegion);
 }
 
-// 0x420f10
+// 0x4236d0 (mahjongchina), 0x420f10 (mahjongjapan)
 void Layer::AppActivate(bool theActive)
 {
 	if (mFocusIndex != -1)
@@ -192,7 +192,7 @@ void Layer::AppActivate(bool theActive)
 	OnAppActivate(theActive);
 }
 
-// 0x420fa0
+// 0x423760 (mahjongchina), 0x420fa0 (mahjongjapan)
 void Layer::AddFocus(Object* theObject)
 {
 	mFocus.push_back(theObject);
@@ -203,7 +203,7 @@ void Layer::AddFocus(Object* theObject)
 	}
 }
 
-// 0x421160
+// 0x423920 (mahjongchina), 0x421160 (mahjongjapan)
 void Layer::FocusNext()
 {
 	if (IsActive() && 1 < (int)mFocus.size())
@@ -218,7 +218,7 @@ void Layer::FocusNext()
 	}
 }
 
-// 0x4211f0
+// 0x4239b0 (mahjongchina), 0x4211f0 (mahjongjapan)
 void Layer::FocusPrev()
 {
 	if (IsActive() && 1 < (int)mFocus.size())
@@ -233,7 +233,7 @@ void Layer::FocusPrev()
 	}
 }
 
-// 0x421280
+// 0x423a40 (mahjongchina), 0x421280 (mahjongjapan)
 void Layer::SetFocus(Object* theObject)
 {
 	if (IsActive())
@@ -251,7 +251,7 @@ void Layer::SetFocus(Object* theObject)
 	}
 }
 
-// 0x421330
+// 0x423af0 (mahjongchina), 0x421330 (mahjongjapan)
 void Layer::Command(int theCmd)
 {
 	if (!OnCommand(theCmd))

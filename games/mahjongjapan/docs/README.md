@@ -6,14 +6,17 @@ platform layer. It plays natively (Windows, SDL2) and in the browser (Emscripten
 never in the repository: `Resource.dll` holds the pictures, sounds, music, layouts and texts, and the exe holds the
 menus' texts and two pictures. The port reads both as PE resources and never runs either.
 
-The game runs on JollyBear's engine, which no other port has yet. `engine/` is that engine (the app, the manager and
-its layers, the object tree, the fonts, the streams, the widgets and the software display), translated in the
-original's shape and mapped onto `platform/` through a small host interface (`jb::Host` in `engine/Host.h`: the clock,
-the sleep, the screen, the resources, the registry, links, the clipboard and the cursor). The sound object's BASS
-calls become the platform's mixer, with the MO3 music played through `platform/openmpt`. `src/` is the game. The
-SexyAppFramework only hosts it (`src/MahjongApp.cpp`: the window, the clock, the input, the sound device and the 800x600
-screen the engine presents), as it hosts TipTop and Ning Po. `ENGINE.md` maps the engine; Mahjong Escape: Ancient
-China runs on the same code, so its port can reuse the map and most of `engine/`.
+The game runs on JollyBear's engine, which only the two Mahjong Escapes have. `engines/jollybear/` is that engine (the
+app, the manager and its layers, the object tree, the fonts, the streams, the widgets and the software display),
+translated in the original's shape and mapped onto `platform/` through a small host interface (`jb::Host` in
+`engines/jollybear/Host.h`: the clock, the sleep, the screen, the resources, the registry, links, the clipboard and the
+cursor). The sound object's BASS calls become the platform's mixer, with the MO3 music played through
+`platform/openmpt`. The game's code is one source for both editions, `engines/mahjongescape/src/`; this game's `src/`
+holds what is Ancient Japan's own: `Edition.h` (the names, the numbers, the tables and the switches of what only one
+edition has), `Res.h` (the resource ids), the text table and the few functions the two exes do differently
+(`LevelDone`, the panel's `Draw`). The SexyAppFramework only hosts it (`engines/mahjongescape/src/MahjongApp.cpp`: the
+window, the clock, the input, the sound device and the 800x600 screen the engine presents), as it hosts TipTop and
+Ning Po. `ENGINE.md` maps the engine; Mahjong Escape: Ancient China runs on the same engine and the same game code.
 
 Everything a player sees is there: the splash, the main menu, the players, Emperor's Adventure (the map, its 60
 stages, the tips, the level's end and the ending), the classic game's 162 layouts, the in-game menu, the options, the

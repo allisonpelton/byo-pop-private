@@ -3,8 +3,9 @@
 This is a port of Mahjong Escape: Ancient China (SpinTop Games, 2006, part of the PopCap Game Collection) to the shared
 platform layer. It plays natively (Windows, SDL2) and in the browser (Emscripten). China is the same program as
 Mahjong Escape: Ancient Japan with other resources and a few changes, so the port is Japan's port
-(`games/mahjongjapan`) with every difference between the two exes carried over. `engine/` is a copy of Japan's
-JollyBear engine, `src/` is the game. The game's files come from the player's own copy and are never in the repository:
+(`games/mahjongjapan`) with every difference between the two exes carried over. The engine (`engines/jollybear/`) and
+the game's code (`engines/mahjongescape/src/`) are one copy that both games build; this game's `src/` holds what is
+China's own (`Edition.h`, `Res.h`, the text table and the functions the two exes do differently). The game's files come from the player's own copy and are never in the repository:
 `Resource.dll` holds the pictures, sounds, music, layouts and texts, and `MahjongEscapeAC.exe` the menus' texts and two
 pictures. The port reads both as PE resources and never runs either.
 

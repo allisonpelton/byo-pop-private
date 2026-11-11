@@ -359,7 +359,8 @@ option(BUILD_BONNIES "Build the Bonnie's Bookstore Deluxe port" ON)
 if(BUILD_BONNIES AND EXISTS ${PROJECT_SOURCE_DIR}/games/bonnies/CMakeLists.txt)
   add_subdirectory(games/bonnies)
 endif()
-# The two Mahjong Escape ports share JollyBear's engine (engines/jollybear); optional while they are new
+# The two Mahjong Escape ports share JollyBear's engine (engines/jollybear) and their game code (engines/mahjongescape);
+# optional while they are new
 option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
 option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
 if((BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt) OR

@@ -3,7 +3,7 @@
 namespace jb
 {
 
-// 0x425470
+// 0x42b860 (mahjongchina), 0x425470 (mahjongjapan)
 bool TextResource::Load(int theId, int theCharSize, Module theModule)
 {
 	if (theCharSize == 0)
@@ -21,7 +21,8 @@ bool TextResource::Load(int theId, int theCharSize, Module theModule)
 	return true;
 }
 
-// 0x425510 (the original's strcspn and wcscspn could run past the resource when it lacks a NUL; these stop at its end)
+// 0x42b900 (mahjongchina), 0x425510 (mahjongjapan) (the original's strcspn and wcscspn could run past the resource when
+// it lacks a NUL; these stop at its end)
 bool TextResource::ReadLine(int& thePos, std::string& theLine)
 {
 	if (mSize <= thePos)

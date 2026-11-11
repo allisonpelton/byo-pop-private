@@ -1,10 +1,10 @@
 #ifndef __JB_ANIMATION_H__
 #define __JB_ANIMATION_H__
 
-// A strip animation attached to an object (vtable 0x51e068): the frames of an image side by side, stepped every
-// period. It swings from a middle frame out to a random frame on either side and back (Setup), waiting a delay at
-// the outer frame and, unless set, a random one between 250 and 1250 ms at the start; it stops after the cycles it
-// is given.
+// A strip animation attached to an object (vtable 0x51ced4 (mahjongchina), 0x51e068 (mahjongjapan)): the frames of an
+// image side by side, stepped every period. It swings from a middle frame out to a random frame on either side and back
+// (Setup), waiting a delay at the outer frame and, unless set, a random one between 250 and 1250 ms at the start; it
+// stops after the cycles it is given.
 
 #include "Object.h"
 
@@ -39,29 +39,31 @@ public:
 	int mAlpha = 0xff;       // +0x74
 	int mSwingDelay = 0;     // +0x7c the wait at the outer frame
 
-	// 0x425640
+	// 0x429d80 (mahjongchina), 0x425640 (mahjongjapan)
 	Animation() {}
-	// 0x4256c0
+	// 0x429e00 (mahjongchina), 0x4256c0 (mahjongjapan)
 	~Animation() override {}
 
-	bool Update(int theClock) override;           // 0x4258a0
-	void Draw() override;                         // 0x425990
-	void SetPaused(bool thePaused) override;      // 0x425810
+	bool Update(int theClock) override;           // 0x429ff0 (mahjongchina), 0x4258a0 (mahjongjapan)
+	void Draw() override;                         // 0x42a0e0 (mahjongchina), 0x425990 (mahjongjapan)
+	void SetPaused(bool thePaused) override;      // 0x429f60 (mahjongchina), 0x425810 (mahjongjapan)
 
-	// 0x4256d0: the image at (theX, theY) of the owner, in frames theFrameWidth wide
+	// 0x429e10 (mahjongchina), 0x4256d0 (mahjongjapan): the image at (theX, theY) of the owner, in frames theFrameWidth
+	// wide
 	void SetImage(int theX, int theY, int theImage, int theFrameWidth);
-	// 0x425720: from a random frame
+	// 0x429e60 (mahjongchina), 0x425720 (mahjongjapan): from a random frame
 	void Setup(int thePeriod, int theMiddle, int theBelow, int theAbove, int theSwingDelay, int theCycles,
 		int theDelay, bool theDrawDelayed);
-	// 0x4257c0
+	// 0x429f10 (mahjongchina), 0x4257c0 (mahjongjapan)
 	void Start();
-	// 0x425840: the time it is held or paused does not count
+	// 0x429f90 (mahjongchina), 0x425840 (mahjongjapan): the time it is held or paused does not count
 	void UpdateHold();
-	// 0x425aa0
+	// 0x42a1f0 (mahjongchina), 0x425aa0 (mahjongjapan)
 	void StepSwing();
-	// 0x425b20: a cycle ended at theFrame (-1: the frame stays); false when it stopped
+	// 0x42a280 (mahjongchina), 0x425b20 (mahjongjapan): a cycle ended at theFrame (-1: the frame stays); false when it
+	// stopped
 	bool EndCycle(int theFrame);
-	// 0x425b70: -1 for a random delay
+	// 0x42a2d0 (mahjongchina), 0x425b70 (mahjongjapan): -1 for a random delay
 	void SetDelay(int theDelay);
 };
 

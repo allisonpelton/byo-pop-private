@@ -35,7 +35,7 @@ const uint8_t* FindResourceData(Module theModule, const char* theType, int theId
 	return gHost->FindResource(theModule, theType, 0, theId, theSize);
 }
 
-// 0x423590
+// 0x425820 (mahjongchina), 0x423590 (mahjongjapan)
 std::string LoadDllString(int theId)
 {
 	std::string aText;
@@ -43,7 +43,7 @@ std::string LoadDllString(int theId)
 	return aText;
 }
 
-// 0x423570
+// 0x425800 (mahjongchina), 0x423570 (mahjongjapan)
 std::string LoadExeString(int theId)
 {
 	std::string aText;

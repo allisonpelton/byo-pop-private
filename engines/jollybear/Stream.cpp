@@ -8,7 +8,8 @@ namespace jb
 static uint32_t gCrcTable[256];
 static bool gCrcTableMade = false;
 
-// The table at 0x527bc4 is the standard one of the reflected polynomial 0xedb88320
+// The table at 0x528698 (mahjongchina), 0x527bc4 (mahjongjapan) is the standard one of the reflected polynomial
+// 0xedb88320
 static void MakeCrcTable()
 {
 	for (uint32_t i = 0; i < 256; i++)
@@ -21,7 +22,7 @@ static void MakeCrcTable()
 	gCrcTableMade = true;
 }
 
-// 0x42f5e0
+// 0x4440b0 (mahjongchina), 0x42f5e0 (mahjongjapan)
 void Crc32Byte(uint8_t theByte, uint32_t& theCrc)
 {
 	if (!gCrcTableMade)
@@ -29,7 +30,7 @@ void Crc32Byte(uint8_t theByte, uint32_t& theCrc)
 	theCrc = gCrcTable[(theCrc & 0xff) ^ theByte] ^ (theCrc >> 8);
 }
 
-// 0x42f610
+// 0x4440e0 (mahjongchina), 0x42f610 (mahjongjapan)
 void Crc32Block(uint32_t& theCrc, const uint8_t* theData, int theSize)
 {
 	int i = 0;
@@ -45,20 +46,20 @@ void Crc32Block(uint32_t& theCrc, const uint8_t* theData, int theSize)
 	theCrc = ~theCrc;
 }
 
-// 0x424d30
+// 0x42a500 (mahjongchina), 0x424d30 (mahjongjapan)
 Stream::Stream()
 {
 	mCrc = 0xffffffff;
 	CrtSrand(TickCount());
 }
 
-// 0x424d90
+// 0x424d90 (mahjongjapan)
 Stream::~Stream()
 {
 	Close();
 }
 
-// 0x424dc0
+// 0x42a570 (mahjongchina), 0x424dc0 (mahjongjapan)
 void Stream::Close()
 {
 	if (mBuffer != nullptr)
@@ -77,7 +78,7 @@ void Stream::Close()
 	}
 }
 
-// 0x424e00
+// 0x42a5b0 (mahjongchina), 0x424e00 (mahjongjapan)
 bool Stream::OpenWrite(const char* thePath)
 {
 	Close();
@@ -87,7 +88,7 @@ bool Stream::OpenWrite(const char* thePath)
 	return mFile != nullptr;
 }
 
-// 0x424e40
+// 0x42a5f0 (mahjongchina), 0x424e40 (mahjongjapan)
 void Stream::OpenReadMemory(const uint8_t* theData, int theSize)
 {
 	Close();
@@ -97,7 +98,7 @@ void Stream::OpenReadMemory(const uint8_t* theData, int theSize)
 	mCrc = 0xffffffff;
 }
 
-// 0x424e70
+// 0x42a620 (mahjongchina), 0x424e70 (mahjongjapan)
 bool Stream::OpenRead(const char* thePath)
 {
 	Close();
@@ -107,7 +108,7 @@ bool Stream::OpenRead(const char* thePath)
 	return mFile != nullptr;
 }
 
-// 0x424ec0
+// 0x42a670 (mahjongchina), 0x424ec0 (mahjongjapan)
 void Stream::PutByte(uint8_t theByte)
 {
 	Crc32Byte(theByte, mCrc);
@@ -129,7 +130,7 @@ void Stream::PutByte(uint8_t theByte)
 	fputc(theByte, mFile);
 }
 
-// 0x424f60
+// 0x42a710 (mahjongchina), 0x424f60 (mahjongjapan)
 char Stream::GetByte()
 {
 	if (mFile == nullptr)
@@ -148,7 +149,7 @@ char Stream::GetByte()
 	return (char)aByte;
 }
 
-// 0x424fd0, 0x425050
+// 0x42a780 (mahjongchina), 0x424fd0 (mahjongjapan), 0x42a800 (mahjongchina), 0x425050 (mahjongjapan)
 void Stream::String(std::string& theText)
 {
 	if (mMode == 1)
@@ -176,7 +177,7 @@ void Stream::String(std::string& theText)
 	}
 }
 
-// 0x4250d0
+// 0x42a880 (mahjongchina), 0x4250d0 (mahjongjapan)
 void Stream::Char(int& theValue)
 {
 	if (mMode == 1)
@@ -188,7 +189,7 @@ void Stream::Char(int& theValue)
 		theValue = (signed char)GetByte();
 }
 
-// 0x425100
+// 0x42a8b0 (mahjongchina), 0x425100 (mahjongjapan)
 void Stream::Short(int& theValue)
 {
 	if (mMode == 1)
@@ -205,7 +206,7 @@ void Stream::Short(int& theValue)
 	}
 }
 
-// 0x425160
+// 0x42a910 (mahjongchina), 0x425160 (mahjongjapan)
 void Stream::Word(int& theValue)
 {
 	if (mMode == 1)
@@ -222,7 +223,7 @@ void Stream::Word(int& theValue)
 	}
 }
 
-// 0x4251b0
+// 0x42a960 (mahjongchina), 0x4251b0 (mahjongjapan)
 void Stream::Int(int& theValue)
 {
 	if (mMode == 1)
@@ -243,7 +244,7 @@ void Stream::Int(int& theValue)
 	}
 }
 
-// 0x425240
+// 0x42a9f0 (mahjongchina), 0x425240 (mahjongjapan)
 void Stream::Bool(bool& theValue)
 {
 	if (mMode == 1)
@@ -255,7 +256,7 @@ void Stream::Bool(bool& theValue)
 		theValue = GetByte() == 1;
 }
 
-// 0x425280
+// 0x42aa30 (mahjongchina), 0x425280 (mahjongjapan)
 void Stream::Checksum()
 {
 	if (mMode == 1)
@@ -273,7 +274,7 @@ void Stream::Checksum()
 	}
 }
 
-// 0x4252d0
+// 0x42aa80 (mahjongchina), 0x4252d0 (mahjongjapan)
 void Stream::ChecksumBlock(const uint8_t* theData, int theSize)
 {
 	Crc32Block(mCrc, theData, theSize);

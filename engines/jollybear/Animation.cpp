@@ -5,7 +5,7 @@
 namespace jb
 {
 
-// 0x4256d0
+// 0x429e10 (mahjongchina), 0x4256d0 (mahjongjapan)
 void Animation::SetImage(int theX, int theY, int theImage, int theFrameWidth)
 {
 	mY = theY;
@@ -18,7 +18,7 @@ void Animation::SetImage(int theX, int theY, int theImage, int theFrameWidth)
 	mFrames = anInfo.mWidth / mFrameWidth;
 }
 
-// 0x425720
+// 0x429e60 (mahjongchina), 0x425720 (mahjongjapan)
 void Animation::Setup(int thePeriod, int theMiddle, int theBelow, int theAbove, int theSwingDelay, int theCycles,
 	int theDelay, bool theDrawDelayed)
 {
@@ -50,14 +50,14 @@ void Animation::Setup(int thePeriod, int theMiddle, int theBelow, int theAbove, 
 	Start();
 }
 
-// 0x4257c0
+// 0x429f10 (mahjongchina), 0x4257c0 (mahjongjapan)
 void Animation::Start()
 {
 	mLast = 0;
 	mRunning = true;
 }
 
-// 0x425810
+// 0x429f60 (mahjongchina), 0x425810 (mahjongjapan)
 void Animation::SetPaused(bool thePaused)
 {
 	if (mPaused != thePaused)
@@ -69,7 +69,7 @@ void Animation::SetPaused(bool thePaused)
 	}
 }
 
-// 0x425840
+// 0x429f90 (mahjongchina), 0x425840 (mahjongjapan)
 void Animation::UpdateHold()
 {
 	if (mLast != 0)
@@ -93,7 +93,7 @@ void Animation::UpdateHold()
 	}
 }
 
-// 0x4258a0
+// 0x429ff0 (mahjongchina), 0x4258a0 (mahjongjapan)
 bool Animation::Update(int theClock)
 {
 	if (mRunning && !mPaused)
@@ -130,7 +130,7 @@ bool Animation::Update(int theClock)
 	return false;
 }
 
-// 0x425990
+// 0x42a0e0 (mahjongchina), 0x425990 (mahjongjapan)
 void Animation::Draw()
 {
 	if (mRunning && (mDelay < 1 || mDrawDelayed))
@@ -148,7 +148,7 @@ void Animation::Draw()
 	}
 }
 
-// 0x425aa0
+// 0x42a1f0 (mahjongchina), 0x425aa0 (mahjongjapan)
 void Animation::StepSwing()
 {
 	bool aForward = mForward;
@@ -185,7 +185,7 @@ void Animation::StepSwing()
 	}
 }
 
-// 0x425b20
+// 0x42a280 (mahjongchina), 0x425b20 (mahjongjapan)
 bool Animation::EndCycle(int theFrame)
 {
 	if (mCycles != -1)
@@ -202,7 +202,7 @@ bool Animation::EndCycle(int theFrame)
 	return true;
 }
 
-// 0x425b70
+// 0x42a2d0 (mahjongchina), 0x425b70 (mahjongjapan)
 void Animation::SetDelay(int theDelay)
 {
 	if (theDelay == -1)
