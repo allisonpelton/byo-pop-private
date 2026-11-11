@@ -775,15 +775,23 @@ libxmp-lite are in About.
 - **Storage:** `byopop-music-loop`, `byopop-music-mute`, `byopop-music-volume`, `byopop-music-vis` and
   `byopop-music-rows`.
 - **The piano roll** (the user, 2026-11-09: "add the piano roll too") is the view after the tracker, for a module
-  only, as the tracker is. Its notes are bars on a pitch grid: time runs left to right in rows, 4 pixels a row, with
-  the heard row under a fixed playhead a third of the way in, and pitch runs up the display. The C of each octave
-  has a faint line, and each instrument has one colour of twelve from the 16-colour palette (blue left out, too dark
-  on black). A note lasts until the next note, key off, cut or fade in its channel, or to its pattern's end. The
+  only, as the tracker is. Its notes are bars on a pitch grid: time runs left to right in rows, as wide as lets 64
+  rows (about a pattern) fill the display, 4 pixels at least (the user, 2026-11-11: "way too zoomed out"), with the
+  heard row under a fixed playhead a third of the way in, and pitch runs up the display. A margin at the left names
+  each C in the tracker's spelling (C-4), and every note where a semitone is 11 pixels high or more; the C of each
+  octave has a faint line, and the black keys' rows are a shade lighter where a semitone is 4 pixels or more. Each
+  pattern has a line every beat and a brighter one every bar, four rows a beat and sixteen a bar as in the score, and
+  a brighter one still at its first row. Each instrument has one colour of twelve from the 16-colour palette (blue
+  left out, too dark on black), and a bar carries its instrument's number as the cell writes it where there is room
+  (10 pixels high, 15 wide); where the semitones are thinner, a key at the bottom right gives each colour drawn its
+  instruments' numbers. A note lasts until the next note, key off, cut or fade in its channel, or to its pattern's end. The
   roll reads the cells the tracker reads (`rowText`, `byopop_music_row`), each pattern once. For the player's own
   tunes the decoder gives the pitch range at once (`bm_range`, the tune's lowest to highest note) and the order list
   (`bm_order_pattern`, `bm_pattern_rows`; a "+++" order is passed over), so the display is filled with the orders
   on either side. For a game's module, whose order list the page does not have, the range is that of the patterns
-  heard so far, so it can widen, and only the pattern heard before the current one is shown, at its left. The roll
+  heard so far, so it can widen; the pattern heard before the current one is shown at its left, and at its right the
+  patterns that followed it the last time the tune went on from it, so the right of the display fills once the tune
+  comes round again. The roll
   takes the splitter's height and is drawn only when its row, range or size changes.
 - **The score** (sheet music) is the view after the piano roll, for a module only. It draws the pattern heard in staff
   notation with VexFlow 5.0.0 (`web/third_party/vexflow-bravura.js`, MIT, served as `vexflow/vexflow-bravura.js`,
@@ -805,7 +813,9 @@ libxmp-lite are in About.
   the player's own tunes.
 - **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, score, nothing. The spectrum is 24 bars from
   40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
-  ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard; it never scrolls past the pattern's ends. Only
+  ("ORD 07  PAT 06  ROW 16/64"), each column's channel number over it (the user, 2026-11-11: labels on the
+  columns; XM, MOD and S3M have no field for a channel's name and libxmp-lite keeps none from an IT, so a number is
+  all most tunes could show) and the rows around the one heard; it never scrolls past the pattern's ends. Only
   the channels that play a note somewhere are shown (`bm_used`); when they do not all fit, a scroll bar drawn by
   the player moves through them. An Ogg tune shows the spectrum instead. While the tracker shows, the decoder
   renders in 512-frame slices and notes its row before each; a closed view costs nothing.
