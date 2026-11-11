@@ -186,6 +186,12 @@ and the player can do nothing. It is the original's level-complete scene, not de
 scene should be shorter, the toggle would move `ShowLevelUp` up to the tick at which the atoms have gone (the state trace would then
 differ from the original's after each level). Nothing else was found.
 
+**A candidate, for the user to decide (2026-11-11).** The original never removes `SAVEGAME.DAT`, so a saved game can be continued,
+played to its end or left without saving, and continued again from the same point as often as the player likes; the menu offers it
+until another game is saved over it. The port does the same now (`IDENTICAL_PLAY.md`, "The saved game stays"; before, it emptied
+the file when the game was continued, which no one had asked of it). A toggle of the fixes mod could make a continued game use its
+file up. It is not made: whether a second chance from a saved game is a fault is the user's call.
+
 ## 11. Performance
 
 The performance pass (2026-11-10 and 11). The port and the original were measured turn about over the same scripted play, the
