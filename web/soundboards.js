@@ -146,6 +146,80 @@ var ByopopSoundboards = {
       ["sounds/v_newhighscore.ogg", "\"New high score\"", "A game ends with a new high score"]
     ] }
   ] },
+  atomica: {
+    presets: [
+      { name: "Get Ready", when: "A game starts", steps: [["sounds/capclick", 0], ["sounds/swoop", 0], ["sounds/dooropen", 450], ["sounds/voices/getready", 510], ["sounds/whoosh", 1000], ["sounds/voices/go", 2540]]},
+      { name: "Super Combo", when: "Molecules made one after another", steps: [["sounds/createmolecule", 0], ["sounds/geiger1", 10, {"v": -1687, "loop": 1, "end": 5570, "ramp": [[2650, -1354]]}], ["sounds/whoosh", 10], ["sounds/voices/Combo", 310], ["sounds/createmolecule", 2640], ["sounds/whoosh", 2650], ["sounds/voices/supercombo", 2950]]},
+      { name: "Level Up", when: "The meter fills", steps: [["sounds/createmolecule", 0], ["sounds/whoosh", 10], ["sounds/voices/levelup", 360], ["sounds/whoosh", 2000]]},
+      { name: "Game Over", when: "The board fills", steps: [["sounds/whoosh", 0], ["sounds/voices/gameover", 260], ["sounds/doorslam", 3460], ["sounds/voices/anewhighscore", 3990], ["sounds/swoop", 4520]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["sounds/capclick.ogg", "Cap click", "A button is pressed: the main menu, high scores box, quit box, hint box check box, most options buttons; also the bomb button lighting up and the bonus molecule frame sliding in or out"],
+      ["sounds/swoop.ogg", "Swoop", "A menu panel slides in or out of the main menu (and when a game is started from it)"],
+      ["sounds/doorslam.ogg", "Door slam", "The main menu's door shuts as the board closes"],
+      ["sounds/dooropen.ogg", "Door open", "The main menu's door opens once its panel has slid away"]
+    ] },
+    { name: "Atoms", sounds: [
+      ["sounds/atomappear.ogg", "Atom appears", "A new atom finishes starting to appear on the grid"],
+      ["sounds/selectatom.ogg", "Select atom", "An atom is picked up; the options dialog's reset-hints button"],
+      ["sounds/moveatom.ogg", "Move atom", "A picked atom is sent along a path to a new cell"],
+      ["sounds/movebioatom.ogg", "Move biohazard", "A biohazard atom is sent along a path to a new cell"],
+      ["sounds/whoosh.ogg", "Whoosh", "Atoms fly away (a molecule made, an element atom shatters, the grid is cleared, a bonus ring starts); a new level's atoms arrive"],
+      ["sounds/lowwhoosh.ogg", "Low whoosh", "Each atom a swirl carries off disappears"],
+      ["sounds/magnet.ogg", "Magnet", "Atoms are pulled along toward each other after a move"]
+    ] },
+    { name: "Molecules and combos", sounds: [
+      ["sounds/createmolecule.ogg", "Molecule created", "Atoms join to make a molecule"],
+      ["sounds/electric1.ogg", "Electric 1", "Lightning bonds between neighbouring atoms of one type; one of the three picked at random; the infection bolt plays all three at once and then one every 10 updates"],
+      ["sounds/electric2.ogg", "Electric 2", "Lightning bonds between neighbouring atoms of one type; one of the three picked at random; the infection bolt plays all three at once and then one every 10 updates"],
+      ["sounds/electric3.ogg", "Electric 3", "Lightning bonds between neighbouring atoms of one type; one of the three picked at random; the infection bolt plays all three at once and then one every 10 updates"],
+      ["sounds/geiger1.ogg", "Geiger counter 1", "Loops while the combo is 2 or more, its volume following the combo; stops when it fades to 0 or the grid is reset"],
+      ["sounds/geiger2.ogg", "Geiger counter 2", "Loops while the combo is above 3, its volume following the combo; stops when it fades to 0 or the grid is reset"],
+      ["sounds/voices/combo.ogg", "Combo voice", "The combo reaches 2"],
+      ["sounds/voices/supercombo.ogg", "Super combo voice", "The combo reaches 3"],
+      ["sounds/voices/megacombo.ogg", "Mega combo voice", "The combo reaches 4"],
+      ["sounds/voices/ultracombo.ogg", "Ultra combo voice", "The combo reaches 5"],
+      ["sounds/voices/hypercombo.ogg", "Hyper combo voice", "The combo reaches 6"],
+      ["sounds/voices/gigacombo.ogg", "Giga combo voice", "The combo reaches 7"],
+      ["sounds/voices/maxcombo.ogg", "Max combo voice", "The combo reaches 8"]
+    ] },
+    { name: "Bombs and biohazards", sounds: [
+      ["sounds/nukeblast.ogg", "Nuke blast", "An atom is destroyed by the atomic bomb or an element's blast"],
+      ["sounds/heartbeat.ogg", "Heartbeat", "A biohazard atom's glow reaches its brightest; repeats with the pulse"],
+      ["sounds/voices/atomicbombready.ogg", "Bomb ready voice", "The atomic bomb button finishes lighting"],
+      ["sounds/voices/atomicbomb.ogg", "Atomic bomb voice", "The bomb becomes available with atoms on the grid"],
+      ["sounds/voices/biohazard.ogg", "Biohazard voice", "The first biohazard atom of a grid finishes appearing (one of two choices, both this voice)"],
+      ["sounds/voices/biohazardalert.ogg", "Biohazard alert (unused)", "Never played"]
+    ] },
+    { name: "Elements and bonus molecules", sounds: [
+      ["sounds/freeze.ogg", "Freeze", "A freeze takes hold of the board (the freeze progress reaches 128)"],
+      ["sounds/voices/fire.ogg", "Fire voice", "A fire element atom is placed"],
+      ["sounds/voices/ice.ogg", "Ice voice", "A water (ice) element atom is placed"],
+      ["sounds/voices/lightning.ogg", "Lightning voice", "An earth (lightning) element atom is placed"],
+      ["sounds/voices/wind.ogg", "Wind voice", "An air (wind) element atom is placed"],
+      ["sounds/voices/ether.ogg", "Ether voice", "An ether element atom is placed"],
+      ["sounds/voices/bonusmolecule.ogg", "Bonus molecule voice", "A bonus molecule is made"],
+      ["sounds/voices/bonusmoleculeready.ogg", "Bonus ready voice", "The bonus molecule frame has slid into place with its pattern ready"],
+      ["sounds/voices/bonusmoleculeupgraded.ogg", "Bonus upgraded voice", "A bonus molecule is upgraded"]
+    ] },
+    { name: "Level start and end", sounds: [
+      ["sounds/voices/getready.ogg", "Get ready voice", "A level begins"],
+      ["sounds/voices/go.ogg", "Go voice", "The grid's field is revealed and play starts"],
+      ["sounds/voices/levelup.ogg", "Level up voice", "The meter fills and the level goes up"],
+      ["sounds/voices/gameover.ogg", "Game over voice", "The game ends (300 updates into the game-over count)"],
+      ["sounds/voices/anewhighscore.ogg", "New high score voice", "The name entry box opens for a score that earns a place"],
+      ["sounds/voices/cool.ogg", "Cool voice", "Okay is pressed on a high score name: one of six voices at random"],
+      ["sounds/voices/excellent.ogg", "Excellent voice", "Okay is pressed on a high score name: one of six voices at random"],
+      ["sounds/voices/great.ogg", "Great voice", "Okay is pressed on a high score name: one of six voices at random"],
+      ["sounds/voices/nifty.ogg", "Nifty voice", "Okay is pressed on a high score name: one of six voices at random"],
+      ["sounds/voices/terrific.ogg", "Terrific voice", "Okay is pressed on a high score name: one of six voices at random"],
+      ["sounds/voices/wicked.ogg", "Wicked voice", "Okay is pressed on a high score name: one of six voices at random"],
+      ["sounds/voices/awesome.ogg", "Awesome voice (unused)", "Never played"],
+      ["sounds/voices/levelcomplete.ogg", "Level complete voice (unused)", "Never played"],
+      ["sounds/voices/beautiful.ogg", "Beautiful voice (unused)", "Never played"]
+    ] },
+  ] },
   bejeweled: {
     presets: [
       { name: "Swap", when: "A swap that makes one match", steps: [["sounds/select", 0, {"p": 299}], ["sounds/gotset2", 380, {"p": 98}], ["sounds/combo22", 380, {"p": 98}], ["sounds/gemongem2", 770, {"p": 98}]]},
@@ -585,6 +659,115 @@ var ByopopSoundboards = {
       ["sounds/goldtile.ogg", "Volume test", "The Options' sound effects slider is let go"]
     ] }
   ] },
+  dynomite: {
+    presets: [
+      { name: "Blast Chain", when: "A big hit sets off blasts", steps: [["sounds/explosion", 0], ["sounds/fireinthehole", 0], ["sounds/explosion", 400], ["sounds/explosion", 770], ["sounds/blastit", 770], ["sounds/xcombo", 1260], ["sounds/explosion", 1910], ["sounds/blastit", 1910], ["sounds/explosion", 2600], ["sounds/explosion", 2830], ["sounds/explosion", 3460], ["sounds/blastit", 3460], ["sounds/explosion", 3810]]},
+      { name: "Combo Ladder", when: "Combos follow one after another", steps: [["sounds/xsupercombo", 0], ["sounds/xcambriancombo", 420], ["sounds/xtriassiccombo", 740], ["sounds/xjurassiccombo", 1060], ["sounds/xcretaceouscombo", 1390], ["sounds/xdynamitecombo", 1840], ["sounds/thunderbolt", 3150]]},
+      { name: "Whirleys Coming", when: "The hourglass runs low", steps: [["sounds/ticktock", 0, {"loop": 1, "end": 2000}], ["sounds/whirleysiren", 2000], ["sounds/xwhirleyscoming1", 3000]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["sounds/click.ogg", "Click", "A button is pressed: the intro screen's pages, options, high scores, the side bar, the museum's button, a puzzle in the list"],
+      ["sounds/egglands.wav", "Egg lands", "The OK or play button of a page or the title screen is pressed; the tutorial's buttons; also an egg lands on the grid"],
+      ["sounds/xwelcometodynomite.ogg", "Welcome voice", "The large Inchy talks on the intro screen when it opens for the first time"],
+      ["sounds/xgameover.ogg", "Game over voice", "The large Inchy talks when a game ends (the eggs have run off the board)"],
+      ["sounds/inchypop.ogg", "Inchy pops up", "Inchy pops up (his countdown reaches 50); a board is cleared (three times as it counts); every step of the tutorial"],
+      ["sounds/whirleyhit.ogg", "Whirley hit", "A whirley is hit by an egg; also Save is pressed when it cannot save, or with no save slot chosen"]
+    ] },
+    { name: "Shooting and hitting", sounds: [
+      ["sounds/rubbershot.ogg", "Rubber shot", "The launcher fires an egg"],
+      ["sounds/breakegg.wav", "Egg breaks", "Eggs break: a matching group, eggs past the line, loose eggs dropping, or a flying egg hits"],
+      ["sounds/explosion.ogg", "Explosion", "A group of three or more breaks, or a dynamite or blast egg goes off"],
+      ["sounds/popbonus.ogg", "Bonus pops out", "A broken egg releases a bonus item that flies to the power-up display"],
+      ["sounds/mama1.ogg", "Mama", "A broken egg releases a baby dinosaur (the code loads this file twice and picks either at random)"],
+      ["sounds/reward.ogg", "Baby leaves", "A baby dinosaur effect ends as it leaves the screen"],
+      ["sounds/scoremultiplier.ogg", "Score multiplier", "A group of eggs breaks while a double, triple or quadruple multiplier is active; a power-up reaches its place"],
+      ["sounds/blastit.ogg", "Blast it voice", "The tank flinches at a hit of five or more eggs, or a blast: one of four voices at random"],
+      ["sounds/charge.ogg", "Charge voice", "The tank flinches at a hit of five or more eggs, or a blast: one of four voices at random"],
+      ["sounds/kaboom.ogg", "Kaboom voice", "The tank flinches at a hit of five or more eggs, or a blast: one of four voices at random"],
+      ["sounds/fireinthehole.ogg", "Fire in the hole voice", "The tank flinches at a hit of five or more eggs, or a blast: one of four voices at random"]
+    ] },
+    { name: "Combos", sounds: [
+      ["sounds/xcombo.ogg", "Combo voice", "Inchy calls a chain of 1"],
+      ["sounds/xsupercombo.ogg", "Super combo voice", "Inchy calls a chain of 2"],
+      ["sounds/xcambriancombo.ogg", "Cambrian combo voice", "Inchy calls a chain of 3"],
+      ["sounds/xtriassiccombo.ogg", "Triassic combo voice", "Inchy calls a chain of 4"],
+      ["sounds/xjurassiccombo.ogg", "Jurassic combo voice", "Inchy calls a chain of 5"],
+      ["sounds/xcretaceouscombo.ogg", "Cretaceous combo voice", "Inchy calls a chain of 6"],
+      ["sounds/xdynamitecombo.ogg", "Dynamite combo voice", "Inchy calls a chain of 7; the launcher then gets a stick of dynamite"],
+      ["sounds/thunderbolt.ogg", "Thunderbolt", "A dynamite stick is made (also when a saved game that holds one is loaded)"]
+    ] },
+    { name: "Ceiling and danger", sounds: [
+      ["sounds/grind.ogg", "Grind", "Loops while the ceiling or the grid is moving"],
+      ["sounds/footfall.ogg", "Footfall", "The ceiling steps down a row (Stomped, and the fossil mode's eggs coming down)"],
+      ["sounds/footfallrumble.ogg", "Footfall rumble", "Loops in a puzzle round while one shot is left before the ceiling drops"],
+      ["sounds/warning.ogg", "Warning", "In a puzzle round with 1 to 3 shots left before the ceiling drops, repeating every 125 updates"],
+      ["sounds/speedup.ogg", "Speed up", "The hourglass runs out in the endless kind: the ceiling speeds up"],
+      ["sounds/footlands.ogg", "Foot lands", "The ceiling reaches the bottom and the game ends"],
+      ["sounds/aooga.ogg", "Aooga", "The grid sets its alarm flag (eggs close to the bottom)"],
+      ["sounds/alert.ogg", "Alert", "Steggy's alert blinks (the code only sets that from a saved game); repeats every 35 updates"]
+    ] },
+    { name: "Hourglass and whirleys", sounds: [
+      ["sounds/ticktock.ogg", "Tick tock", "Loops while the endless mode's hourglass has between 5 and 3 seconds left"],
+      ["sounds/whirleysiren.ogg", "Whirley siren", "The hourglass passes 3 seconds left"],
+      ["sounds/xwhirleyscoming1.ogg", "Whirleys coming voice", "Kroney calls out near the end of the hourglass (alternates with the second call)"],
+      ["sounds/xwhirleyscoming2.ogg", "Whirleys coming voice 2", "Kroney's other call near the end of the hourglass"],
+      ["sounds/xtimesrunningout.ogg", "Time running out voice", "Kroney calls out in a hurry, when the call is due and the hurry flag is set"]
+    ] },
+    { name: "Fossils and the museum", sounds: [
+      ["sounds/chime.ogg", "Chime", "A fossil falls into place; a board is cleared; the museum's tyrannosaurus is out; a fossil is placed in the museum"],
+      ["sounds/fossil.ogg", "Fossil", "The museum's fossil fragments start to fade in at a round's end"],
+      ["sounds/footstep.ogg", "Footstep", "The museum's tyrannosaurus takes a step out of the wall, every 160 updates"],
+      ["sounds/roar.ogg", "Roar", "The tyrannosaurus roars after his last step"]
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/explode.ogg", "Explode (unused)", "Never played"],
+      ["sounds/mama2.ogg", "Mama 2 (unused)", "Never played"]
+    ] },
+  ] },
+  mummymaze: {
+    presets: [
+      { name: "Chamber Opens", when: "A chamber begins", steps: [["sounds/tombslide", 0], ["sounds/mummyhowl", 900]]},
+      { name: "Caught", when: "A mummy catches the explorer", steps: [["sounds/mumwalk60a", 0, {"p": 34}], ["sounds/pummel", 680, {"p": 34}], ["sounds/mummyhowl", 1960]]},
+      { name: "Escape", when: "The explorer walks out of the exit", steps: [["sounds/mumwalk60b", 0, {"p": 91}], ["sounds/finishedlevel", 680]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["sounds/click.ogg", "Click", "A button is pressed: the menus, the options dialog, the map, the board's buttons and other dialogs"],
+      ["sounds/tombslide.ogg", "Tomb slide", "The title screen opens fresh; a level begins (75 updates in, not in the ending modes)"]
+    ] },
+    { name: "Explorer", sounds: [
+      ["sounds/expwalk60a.ogg", "Explorer step 60 A", "The explorer takes a step at the slowest speed setting (one of the A and B pair at random, panned)"],
+      ["sounds/expwalk60b.ogg", "Explorer step 60 B", "The explorer takes a step at the slowest speed setting (one of the A and B pair at random, panned)"],
+      ["sounds/expwalk30a.ogg", "Explorer step 30 A", "The explorer takes a step at the middle speed setting (random of A and B)"],
+      ["sounds/expwalk30b.ogg", "Explorer step 30 B", "The explorer takes a step at the middle speed setting (random of A and B)"],
+      ["sounds/expwalk15a.ogg", "Explorer step 15 A", "The explorer takes a step at the fastest speed setting (random of A and B)"],
+      ["sounds/expwalk15b.ogg", "Explorer step 15 B", "The explorer takes a step at the fastest speed setting (random of A and B)"]
+    ] },
+    { name: "Mummies and scorpions", sounds: [
+      ["sounds/mumwalk60a.ogg", "Mummy step 60 A", "A mummy steps at the slowest speed setting, once a move (random of A and B, panned)"],
+      ["sounds/mumwalk60b.ogg", "Mummy step 60 B", "A mummy steps at the slowest speed setting, once a move (random of A and B, panned)"],
+      ["sounds/mumwalk30a.ogg", "Mummy step 30 A", "A mummy steps at the middle speed setting (random of A and B)"],
+      ["sounds/mumwalk30b.ogg", "Mummy step 30 B", "A mummy steps at the middle speed setting (random of A and B)"],
+      ["sounds/mumwalk15a.ogg", "Mummy step 15 A", "A mummy steps at the fastest speed setting (random of A and B)"],
+      ["sounds/mumwalk15b.ogg", "Mummy step 15 B", "A mummy steps at the fastest speed setting (random of A and B)"],
+      ["sounds/scorpwalk1.ogg", "Scorpion step 1", "A scorpion starts a move (one of two at random, panned)"],
+      ["sounds/scorpwalk2.ogg", "Scorpion step 2", "A scorpion starts a move (one of two at random, panned)"],
+      ["sounds/pummel.mp3", "Pummel", "A mummy or scorpion fights something or catches the explorer (panned)"]
+    ] },
+    { name: "The maze", sounds: [
+      ["sounds/gate.ogg", "Gate", "The key is stepped on and the gate opens or closes (panned by the gate)"],
+      ["sounds/block.ogg", "Block falls", "The explorer is killed by a trap of the block kind, a moment into its death"],
+      ["sounds/pit.ogg", "Pit", "The explorer is killed by a trap of the pit kind, a moment into its death"],
+      ["sounds/poison.ogg", "Poison", "A scorpion's last move ends and the explorer is stung"],
+      ["sounds/badankh.ogg", "Bad ankh", "The ankh check finds the maze cannot be solved, when the ankh is shown"]
+    ] },
+    { name: "Level end", sounds: [
+      ["sounds/finishedlevel.ogg", "Level finished", "The explorer reaches the exit and walks out (not while a solution is shown, not in the tutorial)"],
+      ["sounds/mummyhowl.ogg", "Mummy howl", "The explorer is lost; also about 165 updates after a level begins (not in the ending modes)"],
+      ["sounds/opentreasure.ogg", "Open treasure", "The ending of an adventure or classic game begins its fade"]
+    ] },
+  ] },
   rocketmania: {
     presets: [
       { name: "Rocket Launch", when: "A fuse reaches a rocket", steps: [["sounds/Fuse Burning 01d short", 0], ["sounds/Ba Ding 01b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Fuse Burning 01d short", 1520], ["sounds/Firework Explosion 04", 1950]]},
@@ -670,6 +853,47 @@ var ByopopSoundboards = {
       ["sounds/rocket being bought 02.ogg", "Rocket bought", "A bought rocket flies to its launcher"],
       ["sounds/magic rocket upgraded 03.ogg", "Rocket upgraded", "A launcher's meter is raised in the shop"],
       ["sounds/magic rocket upgraded 02.ogg", "Rocket upgraded 2 (unused)", "Never played"]
+    ] },
+  ] },
+  sevenseas: {
+    presets: [
+      { name: "Welcome Aboard", when: "Play is pressed on the intro screen", steps: [["sounds/talkallhands", 0], ["sounds/talkwelcometosevenseas", 580]]},
+      { name: "Broadside", when: "A cannon shot hits a ship", steps: [["sounds/boom", 0, {"p": 33}], ["sounds/explode2", 450, {"p": 33}]]},
+      { name: "Ship Lost", when: "A life is lost and the ship comes back", steps: [["sounds/explode2", 0], ["sounds/sink", 0], ["sounds/reappear", 1250, {"p": 166}]]}
+    ],
+    groups: [
+    { name: "Menus and voices", sounds: [
+      ["sounds/click.ogg", "Click", "A button is pressed: the menus, the help screen and the demo screen"],
+      ["sounds/talkwelcometosevenseas.ogg", "Welcome voice", "The intro screen, about a second after it opens, the first time the menu shows after the program starts"],
+      ["sounds/talkhoistsail.ogg", "Hoist sail voice", "Play or Tutorial is pressed on the intro screen (one of three voices at random)"],
+      ["sounds/talkallhands.ogg", "All hands voice", "Play or Tutorial is pressed on the intro screen (one of three voices at random)"],
+      ["sounds/talkayeaye.ogg", "Aye aye voice", "Play or Tutorial is pressed on the intro screen (one of three voices at random)"]
+    ] },
+    { name: "Your ship", sounds: [
+      ["sounds/movegood.ogg", "Ship moves", "The player's ship is sent to a new cell (panned by its position)"],
+      ["sounds/whirlout.ogg", "Whirlpool out", "The ship sails into an active whirlpool and leaves the board"],
+      ["sounds/whirlin.ogg", "Whirlpool in", "The ship comes in from a whirlpool at a level's start"],
+      ["sounds/reappear.ogg", "Ship reappears", "The ship is placed again after a life is lost, and again each time its blinking goes off"],
+      ["sounds/boom.ogg", "Cannon shot", "Cannons are fired, by the player or by an enemy ship (panned)"]
+    ] },
+    { name: "Enemies", sounds: [
+      ["sounds/moveevil.ogg", "Enemies move", "The enemy ships start their move after any turning is finished"],
+      ["sounds/explode.ogg", "Small explosion", "A small explosion is spawned at a cell (panned)"],
+      ["sounds/explode2.ogg", "Big explosion", "A big explosion is spawned at a cell (panned)"],
+      ["sounds/monster.ogg", "Sea monster", "A sea monster ship is shot, or sails into the player's cell or another ship (panned)"],
+      ["sounds/sink.ogg", "Ship sinks", "A life is lost"]
+    ] },
+    { name: "Scoring and level end", sounds: [
+      ["sounds/bonusship.ogg", "Extra ship", "The score passes another thousand and a life is added (also when a level's kill bonus does it)"],
+      ["sounds/talkdavyjoneslocker.ogg", "Davy Jones voice", "At a level's end, the pirate has finished appearing and one of four voices is picked at random"],
+      ["sounds/talkarrmatey.ogg", "Arr matey voice", "At a level's end, the pirate has finished appearing and one of four voices is picked at random"],
+      ["sounds/talkwalktheplank.ogg", "Walk the plank voice", "At a level's end, the pirate has finished appearing and one of four voices is picked at random"],
+      ["sounds/talklandlubber.ogg", "Landlubber voice", "At a level's end, the pirate has finished appearing and one of four voices is picked at random"]
+    ] },
+    { name: "Bonus dig", sounds: [
+      ["sounds/bonusdig.ogg", "Dig", "A square is dug on the bonus screen, with nothing special under it (panned by column)"],
+      ["sounds/bonusgraves.ogg", "Graves near", "A dug square has graves in the neighbouring squares"],
+      ["sounds/bonuslose.ogg", "Ghost", "A square holding a ghost is dug"]
     ] },
   ] }
 };
