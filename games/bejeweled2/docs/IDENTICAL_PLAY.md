@@ -112,15 +112,104 @@ the port's 640 by 480 layout has it, the original's button is elsewhere, and the
 
 ## Phase two (looks identical), begun 2026-11-11
 
-The first fault was the one phase one pointed at: at 640 by 480 the port loaded its pictures at full size, where the original
-loads each at five eighths (a copy it makes once and keeps in the user's folder). Everything that is laid out from a
-picture's size stood wrong there, a dialog's buttons most of all, and `AddAlphaSparkle` read other pixels. The port now
-shrinks a picture as it loads, with the original's arithmetic (`CustomResourceManager::ShrinkImage`, the original's
-`0x5afda3`; GAME_NOTES.md, the deviations, says what is not kept: the copies on disk). Two runs of phase one were made
-again at 640 by 480 and say that the shrunk pixels are the original's where the game reads them: Endless (40 moves, 27
-levels) is identical without `nosparkle`, which it had needed, and the resumed game is identical with the "Load Game?" click
-at the port's own button, which had needed moving. The screens themselves have not been compared yet.
+Phase two asks that every screen, dialog and text look as the original's does, that the music and sounds follow the same states,
+that focus loss and regain do the same, and that the web build and the real input paths work. Nothing here changes how the
+game plays but one wrap-around (Finity's timer bar, below): the bot's games in every mode (`tools/check.sh bejeweled2`) have the
+frozen baseline's transcripts but for four lines of the start, where the menu slides in, and the baseline is refrozen with them.
 
-## Not yet covered
+### What was compared, and how
 
-The web build was checked under Node in 2D only (the page's 3D game in the Browser pane is phase two's). Phase two is not begun.
+**Screens at 640 by 480** (the original's size without 3D, which is what it runs at in Windows Sandbox). The port plays a tour with
+real input (`origcmp/record.py --mode tour`, `tourload`, `tour:<mode>` for each of the eight modes, `tour:dialogs`) and notes the
+update of every shot; `origcmp/run_tour_original.sh` gives the original the same inputs at the same updates inside Windows Sandbox,
+where origrun takes a shot at each update (the original's window is cut out of the picture); `tools/shotdiff` pairs them. A shot
+is taken once the screen stands still, and the animated ones (the How To Play page's slide and its four pages, the whirlpool, the
+level changes, the puzzle world's WARP) along their way, every 40 to 200 updates. The port runs with `-drawevery` (a draw after every
+update, as the original does on its virtual clock) in these runs. Covered: title, new player, welcome, menu, secret menu, high
+scores, options (from the menu and over a game), "Load Game?" and the loaded board, the messages in front of a first game, How To
+Play, the board of each mode with its tutorial and big text, every level change, the end screens and the scores after them, the
+puzzle world's WARP, and the dialogs that open from the menu: Quit, the user list with Rename, Delete and the create dialog, and the
+high scores' reset question.
+
+**Music and sounds by state.** origrun's DirectSound stand-in logs every sound the original plays (`logs/sound.log`) and a BASS
+proxy beside the copy (`games/bookwormadv/tools/bassproxy`, the same 48 functions) logs its music (`basslog.txt`); the port's own
+`BYOPOP_SOUNDLOG` logs its plays; `games/bejeweled/tools/origcmp/soundcmp.py` pairs them by order and state (each sound named by
+load order, with its volume, pan and pitch; the music by song, order and each change of volume). The original plays on origrun's
+host run (a second copy of its folder, `ORIG_RUN=bej2s`, so the sandbox copy keeps the real BASS).
+
+**Focus and the page.** The shared page check (`tools/web/pagecheck.js`, with the game's table in
+`games/bejeweled2/tools/web/pagecheck.js`) ran in the Browser pane against the web build.
+
+**Real input.** `realplay/full.py` plays every mode with real mouse and key events only, from launch through the new player, the
+welcome and the first-game messages, in 2D and 3D, windowed and full screen (below).
+
+### What was found, and what the port does now
+
+| Difference | Cause in the original | What the port does now | Commit |
+| --- | --- | --- | --- |
+| At 640 by 480 every dialog, button and what is laid out from a picture's size stood wrong, and `AddAlphaSparkle` read other pixels | the original loads each picture without small art of its own at five eighths of its size (`0x5afda3`: 8 by 8 pixels become 5 by 5 by area weights in 256ths) | the same arithmetic at each load (`CustomResourceManager::ShrinkImage`) | 35d0991d |
+| Text at 640 by 480 was set in the wrong size | a font without an `sm_path` is the same descriptor at five eighths of its size (`0x5b4f8c`, an `ImageFont` scaled by 0.625) | the same | 72ec0b60 |
+| The options dialog's checkbox labels and the welcome box's header were laid out differently | the options' label lines come in the original's order, and the welcome box's header widths differ for the two games (Deluxe and its trial) | the same orders and widths | 72ec0b60 |
+| The main menu slid from and to the wrong place | it moves from and to 1000, not 700 (`0x5c8aa9`, `0x5c80e1`) | the same | 72ec0b60 |
+| Stretched and rotated pictures (the big text, the power gem's glow, the spinning tiles) were sampled differently in the 2D game | the original's 2D game draws them through its own software paths on its software screen | the 2D game turns on the framework's software stretch and rotation (`mSoftwareStretch`, `mSoftwareTransforms`) | 72ec0b60 |
+| The 2D whirlpool did not open over the menu's last picture, and each shot added its glow twice | the original's software screen is one surface that keeps the last frame; a shot reads it as it is | `DDInterface::mKeepScreen` (off by default; the 2D game turns it on): a frame does not clear the screen and a screenshot takes the screen as it is | 999c8f04 (shared), 63c4fbd5 |
+| The menu's music was cut and started again at a fade-in when a game began, from the options dialog's Main Menu and from the high scores' Back | slot 0x30 of the music interface is `FadeOut(song, stop, speed)`: the original fades the song out and the pending offset (`MUSICOFFSET_MAIN`, `_ACTION` or `_MAIN_MENU`) plays when the volume reaches 0. The port called these three sites as `FadeIn(song, offset 1, speed)`, which restarts the song at order 1 and fades it in | `FadeOut(song, true, speed)` at the three sites; Classic's music events are then the original's, 105 each, with the same orders, the same volume steps and the same updates | 756ffefc |
+| The test command `goto menu` did not leave a game, so the real-input run of Cognito never reached the menu | since `DoMainMenu` keeps the board (as the original does unless a cheat changed its pictures), the command has to hide the board and slide the menu in as the options dialog's Main Menu button does (`0x5cc563`) | the command does that | 756ffefc |
+| The puzzle tour's board buttons and the app's own buttons made no click sound | the original's Board and WinDMApp each override the button listener's ButtonPress (0x596bc2, 0x5dc1cf) with a play of `SOUND_CLICK` | `Board::ButtonPress` and `WinDMApp::ButtonPress` do the same | f17efe75 |
+| Finity's timer bar ran up where the original's fell, and the warning beep played in three extra stretches of 640 updates | the original's integer arithmetic wraps: `((score - target) * 0x2c4) / 2` goes negative once the score passes about 3 million, which Finity reaches at level 4. The compiler folded the port's expression into one multiply by 354 that does not wrap until twice that score, so the bar's target stayed at the top where the original's went to 0 | the game builds with `-fwrapv`, so every int expression wraps as the original's x86 code does; Finity's sounds and music are then the original's (562 plays against the original's 563, the one that is the title's click, and 204 music events each) | f17efe75 |
+
+The comparison tools came with these commits (`origcmp/record.py`, `replay.py`, `run_tour_original.sh`, `to_commands.py --shots`,
+`web_shots.sh`, `state`'s new buttons).
+
+### What is identical now
+
+**Pictures at 640 by 480.** Each of the eight modes was played by the port's tour (12 moves, a profile with the secret modes
+unlocked, seed 909, `-drawevery`) and by the original in Windows Sandbox with the same inputs at the same updates, and the shots
+compared by `tools/shotdiff`: Classic 5 shots, Action 15, Puzzle 4, Hyper 16, Twilight 6, Cognito 6 and Endless 55 (through its level
+changes, five shots each) are identical but for one box on the menu's shots, the 99 by 26 pill at (384,436) where the
+original has the empty "More Games" button and the port has nothing (the outbound button is out by the user's decision). The
+earlier tours were identical in the same way: the first screens of a new player (title to the first board, commit 72ec0b60), the dialogs tour (quit, user list,
+rename, delete, create, reset: 8), the puzzle world's whirlpool and WARP frame by frame (13) and the How To Play pages at every
+200 updates of their 675 (19 shots, 18 identical and the pill). Finity differs in its pictures (below).
+
+**The web build** plays the same recordings under Node (`origcmp/web_shots.sh`, the page's wasm with the page's files in place) and
+its shots equal the native port's pixel for pixel: the first screens 31 of 31, dialogs 8, Classic 14, Twilight 6, Action 10, Hyper 16,
+puzzle 13, the help pages 19; replaying Endless (40 shots), Finity (30) and Cognito (6) natively and on the web gives the same
+pictures too (the shots in those three recordings, made between 03:00 and 03:05 with the build of that time, before commit 63c4fbd5, differ from
+a native replay's of the same inputs; the fresh tours above, made with the final build, cover those modes). The page check (`tools/web/pagecheck.js`
+with this game's table) passes in the Browser pane: 11 checks, none failed, one note. The page's own real-input play,
+`games/bejeweled2/tools/web/full.js`, plays all eight modes (60 moves each, Finity to its end) through the canvas's DOM events,
+silently, with no error, with the final build at the canvas's size (60 moves a mode) and at twice it (30 moves a mode, the pointer
+at other sizes, as in full screen).
+
+**Sounds and music** by state, in the eight tours: the music is the original's in every one (204 events each: the same songs,
+orders, volume steps and updates; the menu song fades out at a game's start and the board's song starts at its offset), and every
+sound play is the original's, with its volume, pan and pitch, in the same order (75, 138, 24, 122, 92, 8, 176 and 563 plays), but
+for one `menuclick` in each tour that only the original makes: the click of the title's Play link, which the original's
+TitleScreen::ButtonPress (0x5d9b0e) plays only while its trial counter at +0x308 has run down to 0, which it does in an unregistered
+copy (origrun's) and never in a registered one, where the port is (GAME_NOTES, deviations).
+
+**Real input.** `realplay/full.py` plays each of the eight modes with real mouse and key events only (window messages posted to
+the game's window under rundesk, as visrun does; no test command but the state read, the bot's move, `unlock all` and `lose`), from
+the title through the new player's name, the welcome message, the menu and the one-time hints to a game's end and back to the menu,
+in 2D and 3D, windowed and full screen: all four runs end "full: ok" with the final build (12 moves a mode, Finity to its end).
+
+**Focus** is the page check's: the window loses and regains the focus, and the page's answers are checked against the native
+build's (`tools/web/pagecheck_native.py`), as the page check's table lists them.
+
+### Differences that stay (phase two)
+
+- **Finity's pictures** differ in small details from the first shot after level 2's clear and widely in the cascades of the later
+  levels, where overlapping popups of millions cover the board; every state, the generator's index at every update (compared to update
+  8716), the sounds and the music are the original's, so the difference is in what only Finity draws (the bomb, the rock, the wildcard
+  destroyer) or in the popups' arithmetic. Not chased (GAME_NOTES, "Oddities"), with how to see it.
+- **The 3D game's screens** were not compared with the original's in phase two: the original at 1024 by 768 needs the user's leave
+  for its captures, which the coordinator has been asked for, and the 3D tour is recorded (`build/logs/bej2/t3_tour`). The 3D game's
+  logic is identical (phase one), its sounds go through the code the 2D game's do, and its real-input play passes.
+- **The empty More Games pill** (above), and the title's one click sound (above).
+
+### Performance numbers
+
+A Classic tour of 5008 updates ran in 1.5 seconds natively with `-fast` (about 3 300 updates a second, drawing after every update),
+and the web build under Node ran its 5006 updates in 31.5 seconds (160 a second: the software stretch and triangle paths in wasm).
+In the page (`?fast=1`) the eight modes' 60 moves each took 3 to 14 seconds. The performance pass itself comes later.

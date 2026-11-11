@@ -19,6 +19,10 @@ Each of these has no visible effect on play unless the entry says so.
   (MainMenu), no PopCap pages (OptionsDialog's Register, PopCap page and Update Check buttons and the Automatic Update
   checkbox; `mAlwaysUpdate` is no longer set). OptionsDialog's Main Menu button with no board calls Shutdown in the original
   (a branch that cannot be reached); the port has no such branch.
+- **The title's Play link makes no click sound.** TitleScreen's ButtonPress (0x5d9b0e) plays the click only while the
+  trial counter at +0x308 (the updates before the nag, 100 at the start, counting down in an unregistered game) is 0; in a
+  registered game it stays 100 and the original is silent there too. The unregistered copy that origrun runs plays it, which is
+  the one `menuclick` that every mode's sound comparison lists as original-only.
 - **Loading is done in line.** The original loads backgrounds, resources and the galaxy map on worker threads
   (`WorkerThread`) while the screen keeps drawing; the port runs those tasks in one go on the main thread (the framework runs
   a SexyAppFramework game's loading thread in one go in the same way). `backdrops.lst` is not rewritten, and the reload
@@ -208,7 +212,21 @@ constructor does clear).
   with its pictures' sizes (the yes of "Load Game?" was at (257,222), on the original's Cancel row). With the pictures shrunk
   as the original shrinks them the button is at (257,213), inside the original's, and the resumed game is identical with no
   click moved; whether every dialog matches to the pixel is the screen comparison's to say.
+- **Finity's screenshots differ from the original's in small details** (2D, 640 by 480, `record.py --mode tour:finity` against
+  `run_tour_original.sh`, `tools/shotdiff`): from the first shot after level 2's clear (1.9 thousand pixels of 307 thousand) to the
+  cascades of level 8 and 9, where the whole board is covered by overlapping score popups of millions (up to 60 thousand
+  pixels, 18 thousand of them visible). The layout of every popup, shard and bomb counter is the same; what differs is shading
+  and the placement of explosion shards and the big digits' semi-transparent interiors by a pixel. The logic is the
+  original's: every state, the global generator's index at every update (up to update 8716 compared), the sounds (562 plays) and the
+  music (204 events) are identical, and the web build gives the native build's pictures exactly. Endless, which has no bombs,
+  rocks or power gems, is identical in all 55 shots, so the difference is in the pictures that only Finity draws (the bomb's
+  counter, the rock, the wildcard destroyer) or in the popups' arithmetic at scores of millions (the score popups of the
+  other modes, in the same font, match). A lead for whoever takes it up: the shards' jitter and the bombs' shake use the C library's
+  `rand()` (`CrtRand`, seeded by origrun's `crtseed` patch), which no watch shows, so a bomb or rock that makes the original call it a
+  different number of times or in another order than the port does would move the particles and nothing else; a watch of the
+  C library's seed in the original (per-thread data) would tell. Not chased (CLAUDE.md, "Oddities are not chased"); to see it, run the tour
+  (`record_port.sh tour:finity 12 <dir> 909` with `PROFILE=`, then `run_tour_original.sh`) and `tools/shotdiff`.
 
 ## Fix candidates (for the fixes mod)
 
-None found yet.
+None. Phase two compared every screen, sound and tour and found no bug of the original that the port keeps.
