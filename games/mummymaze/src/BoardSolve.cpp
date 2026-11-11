@@ -15,7 +15,7 @@
 
 using namespace Sexy;
 
-// one mummy's step in the search: the same rules as Board::PlanMummies, on a copy of the state
+// one mummy's step in the search: the same rules as Board::SetMummiesInMotion, on a copy of the state
 void Board::StepMummy(ChaseState& s, int theIndex)
 {
 	int& x = s.mMummyX[theIndex];
@@ -83,7 +83,7 @@ void Board::StepScorpion(ChaseState& s)
 
 // 0x405580 (theRecord: record the shortest solution in mSolution) and 0x411a90 (otherwise: only find out whether there is one)
 // 0x404f60 (the visited list), 0x405010 (the best solution's list: below, where the index is looked up)
-void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath, int theDX, int theDY, bool theRecord)
+void Board::DoSolutionHelper(const ChaseState& theFrom, std::vector<ChaseState>& thePath, int theDX, int theDY, bool theRecord)
 {
 	if (theRecord)
 	{
@@ -153,7 +153,7 @@ void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath
 			return;
 		if (s.mExplorerX == s.mMummyX[1] && s.mExplorerY == s.mMummyY[1] && s.mMummyAlive[1])
 			return;
-		// port(mods, the fixes mod's solverFight): the board flips the gate when a fight on the key stone ends (Mummy::OnArrived), whether
+		// port(mods, the fixes mod's solverFight): the board flips the gate when a fight on the key stone ends (Mummy::CheckGate), whether
 		// or not the winner moved this turn and whether or not the key was used earlier in it; the original's search flips it only
 		// for a mummy that moved and the key not used yet. The first kind it has right (the code below), the rest are added here.
 		if (mApp->mFixes.mSolverFight && aMummyFight && s.mMummyAlive[0] && s.mMummyX[0] == mKeyX && s.mMummyY[0] == mKeyY &&
@@ -193,7 +193,7 @@ void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath
 					{
 						std::vector<ChaseState> aPath = thePath;
 						if (CanMove(s.mExplorerX, s.mExplorerY, s.mExplorerX + dx, s.mExplorerY + dy, false, s.mGateClosed))
-							SolveRec(s, aPath, dx, dy, theRecord);
+							DoSolutionHelper(s, aPath, dx, dy, theRecord);
 					}
 				}
 			}
@@ -203,7 +203,7 @@ void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath
 		else if (!mShowingSolution || thePath.size() < mSolution.size())
 		{
 			mShowingSolution = true;
-			ClearSolution();
+			ClearSolutionList();
 			mSolution = thePath;
 		}
 	}
@@ -229,13 +229,13 @@ void Board::SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath
 }
 
 // 0x4050b0: the Abandon Hope button: find the shortest way out and play it
-void Board::Solve()
+void Board::DoSolution()
 {
-	Retry();
+	ResetMaze();
 	mShowingSolution = false;
-	ClearUndo();
-	ClearVisited();
-	ClearSolution();
+	ClearMoves();
+	ClearCheckedList();
+	ClearSolutionList();
 	ChaseState aStart = GetChaseState();
 	for (int dx = -1; dx < 2; dx++)
 	{
@@ -248,27 +248,27 @@ void Board::Solve()
 				mVisited.insert(aStart);
 				if (CanMove(aStart.mExplorerX, aStart.mExplorerY, aStart.mExplorerX + dx, aStart.mExplorerY + dy, false,
 					aStart.mGateClosed))
-					SolveRec(aStart, aPath, dx, dy, true);
+					DoSolutionHelper(aStart, aPath, dx, dy, true);
 			}
 		}
 	}
 	mState = STATE_READY;
-	Retry();
+	ResetMaze();
 	// left out on purpose: when the search finds no way the original appends the maze to badmaps.dat (a debug file that the
 	// player should not get)
 	if (mShowingSolution && !mSolution.empty())
 		mSolution.erase(mSolution.begin());
-	ClearVisited();
+	ClearCheckedList();
 }
 
-// port: the shortest way out from the state the board is in now (Solve does the same from the start, after taking every
+// port: the shortest way out from the state the board is in now (DoSolution does the same from the start, after taking every
 // move back, and plays it); the way is left in mSolution as well. The test bot uses it to go on after a turn that the
 // search did not foresee (the original's search leaves out that a mummy that wins a fight on the key stone flips the gate)
 bool Board::FindWay(std::vector<ChaseState>& thePath)
 {
 	mShowingSolution = false;
-	ClearVisited();
-	ClearSolution();
+	ClearCheckedList();
+	ClearSolutionList();
 	ChaseState aStart = GetChaseState();
 	for (int dx = -1; dx < 2; dx++)
 	{
@@ -281,7 +281,7 @@ bool Board::FindWay(std::vector<ChaseState>& thePath)
 				mVisited.insert(aStart);
 				if (CanMove(aStart.mExplorerX, aStart.mExplorerY, aStart.mExplorerX + dx, aStart.mExplorerY + dy, false,
 					aStart.mGateClosed))
-					SolveRec(aStart, aPath, dx, dy, true);
+					DoSolutionHelper(aStart, aPath, dx, dy, true);
 			}
 		}
 	}
@@ -290,8 +290,8 @@ bool Board::FindWay(std::vector<ChaseState>& thePath)
 	if (aFound)
 		thePath.erase(thePath.begin());
 	mShowingSolution = false;
-	ClearVisited();
-	ClearSolution();
+	ClearCheckedList();
+	ClearSolutionList();
 	return aFound;
 }
 
@@ -301,7 +301,7 @@ void Board::CheckSolvable(bool thePlaySound)
 	if (mShowingSolution || (mCells[mExplorer->mX][mExplorer->mY] & EXIT_ANY) != 0 || mSize >= 7)
 		return;
 	mSolvable = false;
-	ClearVisited();
+	ClearCheckedList();
 	ChaseState aStart = GetChaseState();
 	for (int dx = -1; dx < 2; dx++)
 	{
@@ -314,7 +314,7 @@ void Board::CheckSolvable(bool thePlaySound)
 				mVisited.insert(aStart);
 				if (CanMove(aStart.mExplorerX, aStart.mExplorerY, aStart.mExplorerX + dx, aStart.mExplorerY + dy, false,
 					aStart.mGateClosed))
-					SolveRec(aStart, aPath, dx, dy, false);
+					DoSolutionHelper(aStart, aPath, dx, dy, false);
 			}
 		}
 	}
@@ -323,5 +323,5 @@ void Board::CheckSolvable(bool thePlaySound)
 		mApp->PlaySample(SOUND_BADANKH);
 	if (!mSolvable)
 		m274 = mUpdateCnt;
-	ClearVisited();
+	ClearCheckedList();
 }

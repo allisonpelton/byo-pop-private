@@ -28,10 +28,10 @@
 
 using namespace Sexy;
 
-MummyApp* Sexy::gApp = NULL;
+MMApp* Sexy::gApp = NULL;
 
 // 0x419bb0
-MummyApp::MummyApp() :
+MMApp::MMApp() :
 	mImages(this)
 {
 	gApp = this;
@@ -96,7 +96,7 @@ MummyApp::MummyApp() :
 }
 
 // 0x419fc0: the widgets the app holds come off the widget manager before they go
-MummyApp::~MummyApp()
+MMApp::~MMApp()
 {
 	Widget* aWidgets[] = {mLevelComplete, mHighScores, mHighScoreBack, mWorldMap, mBoard, mVictory, mSidePanel, mGamePanel,
 		mMainMenu, mTitleScreen};
@@ -116,7 +116,7 @@ MummyApp::~MummyApp()
 	delete mPyramidFont;
 }
 
-ImageTable::ImageTable(MummyApp* theApp) :
+ImageTable::ImageTable(MMApp* theApp) :
 	mApp(theApp)
 {
 	for (int i = 0; i < NUM_IMAGES; i++)
@@ -125,7 +125,7 @@ ImageTable::ImageTable(MummyApp* theApp) :
 
 Image* ImageTable::Load(int theId)
 {
-	Image* anImage = mApp->LoadImage(theId);
+	Image* anImage = mApp->DoLoadImage(theId);
 	if (anImage == NULL)
 	{
 		// port: a picture that is not there is told at its first use, not at start; a blank one stands in while the game ends
@@ -142,7 +142,7 @@ Image* ImageTable::Load(int theId)
 }
 
 // 0x41db90: images\<name>
-Image* MummyApp::LoadImage(int theImageId)
+Image* MMApp::DoLoadImage(int theImageId)
 {
 	std::string aPath = std::string("images\\") + gImageNames[theImageId];
 	Image* anImage = GetImage(aPath);
@@ -156,7 +156,7 @@ Image* MummyApp::LoadImage(int theImageId)
 }
 
 // 0x41e200
-void MummyApp::Init()
+void MMApp::Init()
 {
 	SexyApp::Init();
 	mFixes = LoadFixSettings();
@@ -191,7 +191,7 @@ void MummyApp::Init()
 // port: a sound is decoded when it is first played; the original decodes all of them in its loading thread (0x41dd60), a
 // fifth of the load. One that is not there stays silent. The one MP3 (pummel) needs a decoder the platform has not got yet:
 // that sound stays silent.
-void MummyApp::LoadSoundOnce(int theSoundNum)
+void MMApp::LoadSoundOnce(int theSoundNum)
 {
 	if (theSoundNum < 0 || theSoundNum >= NUM_SOUNDS || mSoundTried[theSoundNum] || mSoundManager == NULL)
 		return;
@@ -199,13 +199,13 @@ void MummyApp::LoadSoundOnce(int theSoundNum)
 	mSoundManager->LoadSound(theSoundNum, std::string("sounds\\") + gSoundNames[theSoundNum]);
 }
 
-void MummyApp::PlaySample(int theSoundNum)
+void MMApp::PlaySample(int theSoundNum)
 {
 	LoadSoundOnce(theSoundNum);
 	SexyApp::PlaySample(theSoundNum);
 }
 
-void MummyApp::PlaySample(int theSoundNum, int thePan)
+void MMApp::PlaySample(int theSoundNum, int thePan)
 {
 	LoadSoundOnce(theSoundNum);
 	SexyApp::PlaySample(theSoundNum, thePan);
@@ -213,7 +213,7 @@ void MummyApp::PlaySample(int theSoundNum, int thePan)
 
 // 0x41dd60: the sounds (the loading bar counts them: their files are decoded at their first play, see LoadSoundOnce), the
 // score and pyramid fonts, then the light mask
-void MummyApp::LoadingThreadProc()
+void MMApp::LoadingThreadProc()
 {
 	mNumLoadingThreadTasks = NUM_LOADING_TASKS;
 	mCompletedLoadingThreadTasks += NUM_SOUNDS;
@@ -244,7 +244,7 @@ void MummyApp::LoadingThreadProc()
 }
 
 // 0x41a3c0 / 0x41a620: the registry values of the game
-void MummyApp::WriteToRegistry()
+void MMApp::WriteToRegistry()
 {
 	SexyApp::WriteToRegistry();
 	if (!mLastScoreName.empty())
@@ -262,7 +262,7 @@ void MummyApp::WriteToRegistry()
 	RegistryWriteInteger("AnkhNag", mTipAnkh ? 1 : 0);
 }
 
-void MummyApp::ReadFromRegistry()
+void MMApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
 	std::string aName;
@@ -294,7 +294,7 @@ void MummyApp::ReadFromRegistry()
 }
 
 // 0x41aa90
-Dialog* MummyApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+Dialog* MMApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
 {
 	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DBUTTON], theDialogId, isModal,
@@ -312,14 +312,14 @@ Dialog* MummyApp::NewDialog(int theDialogId, bool isModal, const SexyString& the
 }
 
 // 0x41e9d0: every button press clicks
-void MummyApp::ButtonPress(int theId)
+void MMApp::ButtonPress(int theId)
 {
 	(void) theId;
 	PlaySample(SOUND_CLICK);
 }
 
 // 0x41e9b0: the music's update runs a second time (the fades take half as many updates as the framework's one step gives)
-void MummyApp::UpdateFrames()
+void MMApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
 	mMusicInterface->Update();
@@ -327,7 +327,7 @@ void MummyApp::UpdateFrames()
 		AutoplayUpdate();
 }
 
-void MummyApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+void MMApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-autoplay")
 	{
@@ -353,7 +353,7 @@ void MummyApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 
 // 0x41e9e0: music from an order of the game's module; the two slots take turns so that one can fade out as the
 // other fades in
-void MummyApp::SetMusicOrder(int theOrder, bool theFade)
+void MMApp::DoMusic(int theOrder, bool theFade)
 {
 	if (theFade)
 	{

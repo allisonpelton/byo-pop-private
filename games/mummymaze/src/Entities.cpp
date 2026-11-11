@@ -16,7 +16,7 @@ using namespace Sexy;
 
 // 0x426e70: the entrance of the maze is a cell on its border; the explorer starts just outside it, on the nearest
 // side (always the bottom one on the ending board)
-Explorer::Explorer(MummyApp* theApp, int theX, int theY, int theSize) :
+Player::Player(MMApp* theApp, int theX, int theY, int theSize) :
 	mApp(theApp)
 {
 	mDir = 2;
@@ -64,7 +64,7 @@ Explorer::Explorer(MummyApp* theApp, int theX, int theY, int theSize) :
 }
 
 // 0x426f70: now and then the explorer looks around
-void Explorer::Update()
+void Player::Update()
 {
 	mIdleTimer++;
 	if (mIdle)
@@ -97,7 +97,7 @@ void Explorer::Update()
 }
 
 // 0x421b40
-Mummy::Mummy(MummyApp* theApp, int theX, int theY, int theIndex) :
+Mummy::Mummy(MMApp* theApp, int theX, int theY, int theIndex) :
 	mApp(theApp)
 {
 	mX = theX;
@@ -153,7 +153,7 @@ void Mummy::Update()
 }
 
 // 0x421cc0: start an idle animation now (never kind 0)
-void Mummy::StartIdle()
+void Mummy::DoIdle()
 {
 	mIdle = true;
 	do
@@ -173,7 +173,7 @@ void Mummy::ResetIdle()
 }
 
 // 0x429120
-Scorpion::Scorpion(MummyApp* theApp, int theX, int theY) :
+Scorp::Scorp(MMApp* theApp, int theX, int theY) :
 	mApp(theApp)
 {
 	mX = theX;

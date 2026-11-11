@@ -73,7 +73,7 @@ ChaseState Board::GetChaseState()
 }
 
 // 0x403e80
-Board::Board(MummyApp* theApp) :
+Board::Board(MMApp* theApp) :
 	mApp(theApp),
 	mSize(6),
 	mCellSize(60),
@@ -84,7 +84,7 @@ Board::Board(MummyApp* theApp) :
 	mScorpion = NULL;
 	mDarkImage = NULL;
 	mDarkImageValid = false;
-	ClearHover();
+	ClearArrows();
 	mStartTick = 0;
 	m270 = 0;
 	m274 = 0;
@@ -146,8 +146,8 @@ Board::Board(MummyApp* theApp) :
 	mContinueLink->mOverColor = Color(0xff, 0xff, 0xff);
 	mContinueLink->SetVisible(false);
 
-	StartLevel();
-	ClearHover();
+	NewGame();
+	ClearArrows();
 	mTimeBase = 9999;
 	mClickX = mClickY = -1;
 	mTorchFrame = 0;
@@ -173,10 +173,10 @@ Board::~Board()
 }
 
 // 0x40e0e0: the key was stepped on: the gate opens or closes
-void Board::ToggleGate()
+void Board::FlipGate()
 {
 	mGateClosed = !mGateClosed;
-	mApp->PlaySample(SOUND_GATE, Pan(mGateX));
+	mApp->PlaySample(SOUND_GATE, GetPanAt(mGateX));
 	if (mGateAnim > 0)
 	{
 		mGateAnim--;
@@ -187,37 +187,37 @@ void Board::ToggleGate()
 }
 
 // 0x404770: begin a level: load the maze (or set up the tutorial / ending board) and reset the state
-void Board::StartLevel()
+void Board::NewGame()
 {
 	mTimeBase = 9999;
 	mRed = false;                       // 0x4b0
 	mDark = false;                      // 0x4e0
 	mSolvable = true;                   // 0x4ec
-	ResetIdle();
-	ClearUndo();
+	DoResetIdles();
+	ClearMoves();
 	switch (mApp->mGameMode)
 	{
 	case MODE_CLASSIC:
 		if (mApp->mClassicPyramid == 0xe)
 			mDark = true;
-		LoadMaze();
+		LoadMap();
 		break;
 	case MODE_ADVENTURE:
 		if (mApp->mAdvPyramid == 7)
 			mDark = true;
-		LoadMaze();
+		LoadMap();
 		break;
 	case MODE_ADVENTURE_DONE:
 	case MODE_CLASSIC_DONE:
 		mApp->mRestoring = false;
-		SetupEnding();
+		LoadTreasureMap();
 		break;
 	case 4:
-		SetupTutorial(0);
-		mApp->SetMusicOrder(0xe, true);
+		LoadTutorialMap(0);
+		mApp->DoMusic(0xe, true);
 		break;
 	default:
-		SetupTutorial(mApp->mGameMode - 4);
+		LoadTutorialMap(mApp->mGameMode - 4);
 		break;
 	}
 	mStarted = true;
@@ -246,30 +246,30 @@ void Board::StartLevel()
 	if (mApp->mGameMode > 3)
 		mFlagEc0 = true;
 	if (((mMummies[0] != NULL) && (mMummies[1] != NULL)) && !mFlagEc0 && mMummies[0]->mAlive && mMummies[1]->mAlive)
-		mApp->ShowTip(0);
+		mApp->DoWarning(0);
 	if (!mFlagEc0)
 	{
 		if ((mGateX >= 0) && (mGateX < mSize) && (mGateY >= 0) && (mGateY < mSize))
-			mApp->ShowTip(1);
+			mApp->DoWarning(1);
 		if (!mFlagEc0)
 		{
 			if (((mTrapX[0] >= 0) && (mTrapX[0] < mSize) && (mTrapY[0] >= 0) && (mTrapY[0] < mSize)) ||
 				((mTrapX[1] >= 0) && (mTrapX[1] < mSize) && (mTrapY[1] >= 0) && (mTrapY[1] < mSize)))
-				mApp->ShowTip(2);
+				mApp->DoWarning(2);
 			if (!mFlagEc0)
 			{
 				if (mRed)
-					mApp->ShowTip(3);
+					mApp->DoWarning(3);
 				if (!mFlagEc0)
 				{
 					if ((mScorpion != NULL) && mScorpion->mAlive)
-						mApp->ShowTip(4);
+						mApp->DoWarning(4);
 					if (!mFlagEc0)
 					{
 						if (mDark)
-							mApp->ShowTip(5);
+							mApp->DoWarning(5);
 						if (!mFlagEc0 && (mSize > 6) && mApp->mShowAnkh)
-							mApp->ShowTip(6);
+							mApp->DoWarning(6);
 					}
 				}
 			}
@@ -278,15 +278,15 @@ void Board::StartLevel()
 }
 
 // 0x404a30: the explorer is lost
-void Board::Lose()
+void Board::DoGameOver()
 {
 	mApp->PlaySample(SOUND_MUMMYHOWL);
 	mState = STATE_LOST;
-	mApp->ShowGamePanel();
+	mApp->DoGameOver();
 }
 
 // 0x404a50: remember the chase before a move
-void Board::PushUndo()
+void Board::DoNewTurn()
 {
 	if (!mUndo.empty())
 	{
@@ -326,7 +326,7 @@ void Board::PushUndo()
 }
 
 // 0x404be0: take back the last move
-void Board::Undo()
+void Board::UndoMove()
 {
 	if (mUndo.empty() || mApp->mGameMode >= 2 || mState == STATE_DONE || mShowingSolution || mApp->mHighScores != NULL)
 		return;
@@ -357,7 +357,7 @@ void Board::Undo()
 	mScorpion->mToY = mScorpion->mY;
 	mScorpion->mStinging = false;
 	if (mGateClosed != u.mGateClosed)
-		ToggleGate();
+		FlipGate();
 	mGateAnim = mGateClosed ? 0 : 7;
 	mState = STATE_READY;
 	if (!mSolvable)
@@ -369,23 +369,23 @@ void Board::Undo()
 }
 
 // 0x404dd0, 0x404e30, 0x404e90
-void Board::ClearUndo()
+void Board::ClearMoves()
 {
 	mUndo.clear();
 }
 
-void Board::ClearVisited()
+void Board::ClearCheckedList()
 {
 	mVisited.clear();
 }
 
-void Board::ClearSolution()
+void Board::ClearSolutionList()
 {
 	mSolution.clear();
 }
 
 // 0x404ef0: take every move back
-void Board::Retry()
+void Board::ResetMaze()
 {
 	if (mApp->mGameMode < 2 && !mShowingSolution && mState != STATE_DONE && mApp->mHighScores == NULL &&
 		mApp->mLevelComplete == NULL)
@@ -393,7 +393,7 @@ void Board::Retry()
 		mSolvable = true;
 		mClickX = mClickY = 99;
 		while (!mUndo.empty())
-			Undo();
+			UndoMove();
 	}
 }
 
@@ -418,7 +418,7 @@ struct ByteReader
 
 // 0x40e1d0. Left out on purpose: the original also writes debug.txt on every load (a debug file that the player should not
 // get).
-void Board::LoadMaze()
+void Board::LoadMap()
 {
 	mShowingSolution = false;
 	if (!mApp->mRestoring)
@@ -608,7 +608,7 @@ void Board::LoadMaze()
 			}
 			// the explorer's entrance, the mummies, the scorpion, the traps
 			aByte = aReader.Next() & 0xff;
-			mExplorer = new Explorer(mApp, aByte & 0xf, aByte >> 4, mSize);
+			mExplorer = new Player(mApp, aByte & 0xf, aByte >> 4, mSize);
 			aByte = aReader.Next() & 0xff;
 			delete mMummies[0];
 			mMummies[0] = new Mummy(mApp, aByte & 0xf, aByte >> 4, 0);
@@ -626,13 +626,13 @@ void Board::LoadMaze()
 			delete mScorpion;
 			if (aScorpions < 1)
 			{
-				mScorpion = new Scorpion(mApp, 99, 99);
+				mScorpion = new Scorp(mApp, 99, 99);
 				mScorpion->mAlive = false;
 			}
 			else
 			{
 				aByte = aReader.Next() & 0xff;
-				mScorpion = new Scorpion(mApp, aByte & 0xf, aByte >> 4);
+				mScorpion = new Scorp(mApp, aByte & 0xf, aByte >> 4);
 			}
 			mTrapX[0] = mTrapY[0] = mTrapX[1] = mTrapY[1] = 99;
 			if (aTraps > 0)
@@ -751,7 +751,7 @@ void Board::LoadMaze()
 			aByte = aReader.Next() & 0xff;
 			aX = mSize - (aByte >> 4) - 1;
 			aY = aByte & 0xf;
-			mExplorer = new Explorer(mApp, aX, aY, mSize);
+			mExplorer = new Player(mApp, aX, aY, mSize);
 			mMummies[0] = NULL;
 			mMummies[1] = NULL;
 			aByte = aReader.Next() & 0xff;
@@ -768,13 +768,13 @@ void Board::LoadMaze()
 			}
 			if (aScorpions < 1)
 			{
-				mScorpion = new Scorpion(mApp, 99, 99);
+				mScorpion = new Scorp(mApp, 99, 99);
 				mScorpion->mAlive = false;
 			}
 			else
 			{
 				aByte = aReader.Next() & 0xff;
-				mScorpion = new Scorpion(mApp, mSize - (aByte >> 4) - 1, aByte & 0xf);
+				mScorpion = new Scorp(mApp, mSize - (aByte >> 4) - 1, aByte & 0xf);
 			}
 			mTrapX[0] = mTrapY[0] = mTrapX[1] = mTrapY[1] = 99;
 			if (aTraps > 0)
@@ -797,7 +797,7 @@ void Board::LoadMaze()
 	}
 
 	int aChamber = (mApp->mGameMode == MODE_ADVENTURE) ? mApp->mAdvChamber : mApp->mClassicChamber;
-	mApp->SetMusicOrder(abs(aChamber % 16) + 0x17, true);
+	mApp->DoMusic(abs(aChamber % 16) + 0x17, true);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -828,7 +828,7 @@ static void ClearToBorders(Board* b)
 	}
 }
 
-void Board::SetupEnding()
+void Board::LoadTreasureMap()
 {
 	ClearToBorders(this);
 	for (int i = 0; i < 2; i++)
@@ -837,13 +837,13 @@ void Board::SetupEnding()
 		mMummies[i] = NULL;
 	}
 	delete mExplorer;
-	mExplorer = new Explorer(mApp, 3, 3, mSize);
+	mExplorer = new Player(mApp, 3, 3, mSize);
 	mMummies[0] = new Mummy(mApp, 99, 99, 1);
 	mMummies[0]->mAlive = false;
 	mMummies[1] = new Mummy(mApp, 99, 99, 1);
 	mMummies[1]->mAlive = false;
 	delete mScorpion;
-	mScorpion = new Scorpion(mApp, 99, 99);
+	mScorpion = new Scorp(mApp, 99, 99);
 	mScorpion->mAlive = false;
 	mTrapX[0] = mTrapY[0] = mTrapX[1] = mTrapY[1] = 99;
 	mGateX = mGateY = mKeyX = mKeyY = 99;
@@ -852,7 +852,7 @@ void Board::SetupEnding()
 	mGateAnim = 0;
 }
 
-void Board::SetupTutorial(int thePart)
+void Board::LoadTutorialMap(int thePart)
 {
 	ClearToBorders(this);
 	for (int i = 0; i < 2; i++)
@@ -874,7 +874,7 @@ void Board::SetupTutorial(int thePart)
 	static const int kExplorer[5][2] = {{3, 4}, {3, 3}, {4, 3}, {2, 3}, {2, 2}};
 	static const int kMummy0[5][2] = {{0, 2}, {3, 1}, {1, 1}, {3, 2}, {4, 2}};
 	delete mExplorer;
-	mExplorer = new Explorer(mApp, kExplorer[thePart][0], kExplorer[thePart][1], mSize);
+	mExplorer = new Player(mApp, kExplorer[thePart][0], kExplorer[thePart][1], mSize);
 	mMummies[0] = new Mummy(mApp, kMummy0[thePart][0], kMummy0[thePart][1], 0);
 	if (thePart == 3)
 		mMummies[1] = new Mummy(mApp, 3, 0, 1);
@@ -885,10 +885,10 @@ void Board::SetupTutorial(int thePart)
 	}
 	delete mScorpion;
 	if (thePart == 3)
-		mScorpion = new Scorpion(mApp, 5, 3);
+		mScorpion = new Scorp(mApp, 5, 3);
 	else
 	{
-		mScorpion = new Scorpion(mApp, 99, 99);
+		mScorpion = new Scorp(mApp, 99, 99);
 		mScorpion->mAlive = false;
 	}
 	mTrapX[0] = mTrapY[0] = mTrapX[1] = mTrapY[1] = 99;

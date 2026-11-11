@@ -1,4 +1,4 @@
-// The screens that follow a level: LevelCompleteScreen (WinMM.exe 0x422480, drawn by 0x422b00) and HighScoreScreen
+// The screens that follow a level: NextLevelWidget (WinMM.exe 0x422480, drawn by 0x422b00) and HighScoreWidget
 // (0x4143a0, drawn by 0x415250). See Screens.h.
 
 #include "Screens.h"
@@ -25,9 +25,9 @@ using namespace Sexy;
 #include "Tables.inc"
 
 // ---------------------------------------------------------------------------------------------------------
-// LevelCompleteScreen
+// NextLevelWidget
 
-static HyperlinkWidget* MakeYellowLink(MummyApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel)
+static HyperlinkWidget* MakeYellowLink(MMApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel)
 {
 	HyperlinkWidget* aLink = new HyperlinkWidget(theId, theListener);
 	aLink->mLabel = theLabel;
@@ -38,7 +38,7 @@ static HyperlinkWidget* MakeYellowLink(MummyApp* theApp, int theId, ButtonListen
 }
 
 // 0x422480
-LevelCompleteScreen::LevelCompleteScreen(MummyApp* theApp) :
+NextLevelWidget::NextLevelWidget(MMApp* theApp) :
 	mApp(theApp)
 {
 	mDoFinger = true;
@@ -46,8 +46,8 @@ LevelCompleteScreen::LevelCompleteScreen(MummyApp* theApp) :
 		(mApp->mClassicChamber < 0xe && mApp->mGameMode == MODE_CLASSIC);
 	mNextLink = MakeYellowLink(mApp, 0, this, aNextChamber ? GT(0x00494c24) : GT(0x00494c08));
 	mMapLink = MakeYellowLink(mApp, 1, this, GT(0x00494bf4));
-	mApp->SetMusicOrder(0x28, false);
-	mApp->SetMusicOrder(0x28, false);
+	mApp->DoMusic(0x28, false);
+	mApp->DoMusic(0x28, false);
 	if (mApp->mBoard == NULL)
 		mSeconds = 0;
 	else
@@ -72,18 +72,18 @@ LevelCompleteScreen::LevelCompleteScreen(MummyApp* theApp) :
 	}
 	mVariant = CrtRand() % 3;
 	mFrame = 0;
-	mApp->RemoveBoard();
+	mApp->KillBoard();
 }
 
 // 0x4229b0
-LevelCompleteScreen::~LevelCompleteScreen()
+NextLevelWidget::~NextLevelWidget()
 {
 	delete mNextLink;
 	delete mMapLink;
 }
 
 // 0x424ea0
-void LevelCompleteScreen::AddedToManager(WidgetManager* theWidgetManager)
+void NextLevelWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mNextLink);
@@ -91,7 +91,7 @@ void LevelCompleteScreen::AddedToManager(WidgetManager* theWidgetManager)
 }
 
 // 0x424ed0
-void LevelCompleteScreen::RemovedFromManager(WidgetManager* theWidgetManager)
+void NextLevelWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mNextLink);
@@ -99,11 +99,11 @@ void LevelCompleteScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // 0x424f00
-void LevelCompleteScreen::Resize(int theX, int theY, int theWidth, int theHeight)
+void NextLevelWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	int aWidth = mNextLink->mFont->StringWidth(mNextLink->mLabel);
-	MummyApp* anApp = mApp;
+	MMApp* anApp = mApp;
 	if (anApp->mGameMode == MODE_CLASSIC)
 	{
 		mNextLink->Resize((mWidth - aWidth) / 2 + mX, mHeight - 0x37, aWidth, 0x1d);
@@ -120,7 +120,7 @@ void LevelCompleteScreen::Resize(int theX, int theY, int theWidth, int theHeight
 }
 
 // 0x422a30
-void LevelCompleteScreen::Update()
+void NextLevelWidget::Update()
 {
 	Widget::Update();
 	if (mVariant == 1)
@@ -154,7 +154,7 @@ static void DrawCentered(Graphics* g, const SexyString& theText, int theWidth, i
 }
 
 // 0x422b00: the picture of the explorer, the lines of the result, and the rank (the adventure shows the total time)
-void LevelCompleteScreen::Draw(Graphics* g)
+void NextLevelWidget::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], -0x96, 0);
 	{
@@ -250,7 +250,7 @@ void LevelCompleteScreen::Draw(Graphics* g)
 }
 
 // 0x424fa0
-void LevelCompleteScreen::ButtonDepress(int theId)
+void NextLevelWidget::ButtonDepress(int theId)
 {
 	if (theId == 0)
 	{
@@ -259,42 +259,42 @@ void LevelCompleteScreen::ButtonDepress(int theId)
 			if (mApp->mClassicChamber == 0xe)
 			{
 				mApp->mGameMode = MODE_CLASSIC_DONE;
-				mApp->RemoveLevelComplete();
+				mApp->KillNextLevel();
 				return;
 			}
 			mApp->mClassicChamber++;
-			mApp->RemoveLevelComplete();
+			mApp->KillNextLevel();
 			return;
 		}
 		if (mApp->mGameMode == MODE_ADVENTURE)
 		{
 			double aTotal = mApp->mTotalTime;
-			mApp->LoadAdventure(mApp->mCurrentSlot, true);
+			mApp->DoMap(mApp->mCurrentSlot, true);
 			mApp->mTotalTime = aTotal;
 		}
 	}
 	else if (theId == 1)
 	{
 		double aTotal = mApp->mTotalTime;
-		mApp->LoadAdventure(mApp->mCurrentSlot, false);
+		mApp->DoMap(mApp->mCurrentSlot, false);
 		mApp->mTotalTime = aTotal;
-		mApp->RemoveLevelComplete();
+		mApp->KillNextLevel();
 		return;
 	}
-	mApp->RemoveLevelComplete();
+	mApp->KillNextLevel();
 }
 
-void LevelCompleteScreen::ButtonPress(int theId)
+void NextLevelWidget::ButtonPress(int theId)
 {
 	(void) theId;
 	mApp->PlaySample(SOUND_CLICK);
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// HighScoreScreen
+// HighScoreWidget
 
 // 0x4143a0
-HighScoreScreen::HighScoreScreen(MummyApp* theApp) :
+HighScoreWidget::HighScoreWidget(MMApp* theApp) :
 	mApp(theApp),
 	mCounter(0),
 	mNameAsked(false),
@@ -309,26 +309,26 @@ HighScoreScreen::HighScoreScreen(MummyApp* theApp) :
 	mMenuLink->SetFont(mApp->mHeaderFont);
 	for (int i = 0; i < 5; i++)
 		mScores[i] = 0;
-	Load();
+	ReadFromFile();
 }
 
 // 0x414850: the list is written whenever the screen goes (0x4148e0; the victory screen's 0x402190 does the same with 0x4023e0).
 // The original shows a message when the file cannot be made; the port leaves that out.
-HighScoreScreen::~HighScoreScreen()
+HighScoreWidget::~HighScoreWidget()
 {
 	delete mMenuLink;
-	Save();
+	WriteToFile();
 }
 
 // 0x414d80 (the original adds a second link, to the Internet score list, which is out)
-void HighScoreScreen::AddedToManager(WidgetManager* theWidgetManager)
+void HighScoreWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mMenuLink);
 }
 
 // 0x414db0
-void HighScoreScreen::RemovedFromManager(WidgetManager* theWidgetManager)
+void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mMenuLink);
@@ -336,7 +336,7 @@ void HighScoreScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 
 // 0x415ab0, 0x402d40 (the victory screen's own: the same, and it places the Internet link above the menu link
 // when the game is not the adventure; that link is out)
-void HighScoreScreen::Resize(int theX, int theY, int theWidth, int theHeight)
+void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	int aWidth = mMenuLink->mFont->StringWidth(mMenuLink->mLabel);
@@ -351,7 +351,7 @@ static const unsigned kDefaultNames[5] = {0x0048d218, 0x0048d210, 0x0048d208, 0x
 static const int kDefaultScores[5] = {1000, 900, 800, 700, 500};
 
 // 0x402220
-void HighScoreScreen::Load()
+void HighScoreWidget::ReadFromFile()
 {
 	for (int i = 0; i < 5; i++)
 	{
@@ -389,7 +389,7 @@ void HighScoreScreen::Load()
 	}
 }
 
-void HighScoreScreen::Save()
+void HighScoreWidget::WriteToFile()
 {
 	std::string aData;
 	for (int i = 0; i < 5; i++)
@@ -408,7 +408,7 @@ void HighScoreScreen::Save()
 }
 
 // 0x414d50
-int HighScoreScreen::RankOf(int theScore)
+int HighScoreWidget::GetScorePlace(int theScore)
 {
 	for (int i = 0; i < 5; i++)
 		if (theScore > mScores[i])
@@ -417,23 +417,23 @@ int HighScoreScreen::RankOf(int theScore)
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// GameOverScroll
+// HighScoreSlide
 
 // 0x414290
-GameOverScroll::GameOverScroll(MummyApp* theApp) :
-	ScrollScreen(theApp),
+HighScoreSlide::HighScoreSlide(MMApp* theApp) :
+	TombstoneWidget(theApp),
 	mHold(0)
 {
 }
 
-GameOverScroll::~GameOverScroll()
+HighScoreSlide::~HighScoreSlide()
 {
 }
 
 // 0x414330: it rests 50 updates once it has come down, goes up, and leaves
-void GameOverScroll::Update()
+void HighScoreSlide::Update()
 {
-	ScrollScreen::Update();
+	TombstoneWidget::Update();
 	if (mOffset == 0)
 	{
 		if (mHold < 0x32)
@@ -442,22 +442,22 @@ void GameOverScroll::Update()
 			mScrollState = 5;
 	}
 	if (mScrollState == 6)
-		mApp->RemoveGameOverScroll();
+		mApp->KillHighScoreSlide();
 }
 
 // 0x4142f0
-void GameOverScroll::Draw(Graphics* g)
+void HighScoreSlide::Draw(Graphics* g)
 {
-	ScrollScreen::Draw(g);
+	TombstoneWidget::Draw(g);
 	g->DrawImage(mApp->mImages[IMAGE_GAMEOVERTEXT], 100, mOffset - 0x71 + mY);
 }
 
 // 0x415b40: the name for the score that the dialog asked for: the score takes its place and the others move down
-void HighScoreScreen::SetName(const SexyString& theName)
+void HighScoreWidget::NameEntered(const SexyString& theName)
 {
 	if (theName.empty())
 		return;
-	int aRank = RankOf(mApp->mScore);
+	int aRank = GetScorePlace(mApp->mScore);
 	if (aRank < 0)
 		return;
 	for (int i = 4; i > aRank; i--)
@@ -488,19 +488,19 @@ static SexyString OrdinalSuffix(int theNumber)
 }
 
 // 0x414ac0 (and 0x4025c0 of the victory screen): a score that makes the list asks for the name
-void HighScoreScreen::AskName()
+void HighScoreWidget::ProcessScoreStuff()
 {
-	int aRank = RankOf(mApp->mScore) + 1;
+	int aRank = GetScorePlace(mApp->mScore) + 1;
 	if (aRank > 0)
 	{
 		char aBuf[16];
 		sprintf(aBuf, "%d", aRank);
-		mApp->ShowRecordScore(GT(0x0048d32c) + SexyString(aBuf) + OrdinalSuffix(aRank) + GT(0x0048d2c8));
+		mApp->DoRecordScoreDialog(GT(0x0048d32c) + SexyString(aBuf) + OrdinalSuffix(aRank) + GT(0x0048d2c8));
 	}
 }
 
 // 0x415a00
-void HighScoreScreen::Update()
+void HighScoreWidget::Update()
 {
 	Widget::Update();
 	if (mCounter > 0 && --mCounter == 0)
@@ -509,7 +509,7 @@ void HighScoreScreen::Update()
 	}
 	if (!mNameAsked && mFade >= 175.0)
 	{
-		AskName();
+		ProcessScoreStuff();
 		mNameAsked = true;
 	}
 	if (mFade < 255.0)
@@ -520,7 +520,7 @@ void HighScoreScreen::Update()
 }
 
 // 0x415250: the score, its rank and the list, fading in; the list stands in a frame of the dialog's picture (0x414de0)
-void HighScoreScreen::Draw(Graphics* g)
+void HighScoreWidget::Draw(Graphics* g)
 {
 	int anAlpha = (int) mFade;
 	g->SetColorizeImages(true);
@@ -566,44 +566,44 @@ void HighScoreScreen::Draw(Graphics* g)
 }
 
 // 0x402dc0: the link back to the main menu (id 0 of the original is the Internet score list: not here)
-void HighScoreScreen::ButtonDepress(int theId)
+void HighScoreWidget::ButtonDepress(int theId)
 {
 	if (theId == 1)
-		mApp->ShowMainMenu(0, true);
+		mApp->DoIntro(0, true);
 }
 
-void HighScoreScreen::ButtonPress(int theId)
+void HighScoreWidget::ButtonPress(int theId)
 {
 	(void) theId;
 	mApp->PlaySample(SOUND_CLICK);
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// VictoryScreen
+// BeachWidget
 
 // 0x401ca0
-VictoryScreen::VictoryScreen(MummyApp* theApp) :
-	HighScoreScreen(theApp)
+BeachWidget::BeachWidget(MMApp* theApp) :
+	HighScoreWidget(theApp)
 {
 }
 
-VictoryScreen::~VictoryScreen()
+BeachWidget::~BeachWidget()
 {
 }
 
 // 0x402a00: nothing yet; the link comes with the name (Update)
-void VictoryScreen::AddedToManager(WidgetManager* theWidgetManager)
+void BeachWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 }
 
 // 0x402c60: the name for the score is asked for once the picture is in, and the link to the menu comes then
-void VictoryScreen::Update()
+void BeachWidget::Update()
 {
 	Widget::Update();
 	if (!mNameAsked && mFade >= 175.0)
 	{
-		AskName();
+		ProcessScoreStuff();
 		mWidgetManager->AddWidget(mMenuLink);
 		mNameAsked = true;
 	}
@@ -615,7 +615,7 @@ void VictoryScreen::Update()
 }
 
 // 0x402a10
-void VictoryScreen::Draw(Graphics* g)
+void BeachWidget::Draw(Graphics* g)
 {
 	g->SetColorizeImages(true);
 	g->SetColor(Color(0xff, 0xff, 0xff, (int) mFade));

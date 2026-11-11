@@ -101,13 +101,13 @@ const char* KeyName(int theKey)
 std::string StepInputFor(Board* b, int theKey, int theCellX, int theCellY)
 {
 	if (StepInput == "clicks")
-		return StrFormat("{\"click\":[%d,%d]}", b->mX + 10 + b->PixelX(theCellX) + b->mCellSize / 2,
-			b->mY + b->PixelY(theCellY) + b->mCellSize / 2);
+		return StrFormat("{\"click\":[%d,%d]}", b->mX + 10 + b->GetXAt(theCellX) + b->mCellSize / 2,
+			b->mY + b->GetYAt(theCellY) + b->mCellSize / 2);
 	return StrFormat("{\"key\":\"%s\"}", KeyName(theKey));
 }
 
 // the dialog that is up, the newest (highest id) first, or -1
-int TopDialog(MummyApp* theApp)
+int TopDialog(MMApp* theApp)
 {
 	for (int anId = 31; anId >= 0; anId--)
 		if (theApp->GetDialog(anId) != NULL)
@@ -146,7 +146,7 @@ bool BoardReady(Board* b)
 	return true;
 }
 
-const char* ScreenName(MummyApp* a)
+const char* ScreenName(MMApp* a)
 {
 	if (a->GetDialogCount() > 0)
 		return "dialog";
@@ -183,7 +183,7 @@ const char* ModeName(int theMode)
 
 // A game that has ended: the victory screen or the high score table after a lost game, with its name asked and the
 // screen settled; or the tutorial handed over to the classic game that follows it
-bool GameOver(MummyApp* a)
+bool GameOver(MMApp* a)
 {
 	if (a->mVictory != NULL && a->mVictory->mFade >= 255.0 && a->mVictory->mNameAsked)
 		return true;
@@ -192,7 +192,7 @@ bool GameOver(MummyApp* a)
 	return BotMode == "tutorial" && a->mGameMode == MODE_CLASSIC && a->mBoard != NULL;
 }
 
-std::string StateJson(MummyApp* a)
+std::string StateJson(MMApp* a)
 {
 	Board* b = a->mBoard;
 	int aPyramid = a->mGameMode == MODE_ADVENTURE ? a->mAdvPyramid : a->mClassicPyramid;
@@ -234,7 +234,7 @@ std::string StateJson(MummyApp* a)
 }
 
 // What the bot does on a dialog: the first button, a name typed into the boxes that ask for one
-std::string DialogMove(MummyApp* a, int theId)
+std::string DialogMove(MMApp* a, int theId)
 {
 	Dialog* aDialog = a->GetDialog(theId);
 	if (theId == DIALOG_RECORD_SCORE)
@@ -244,13 +244,13 @@ std::string DialogMove(MummyApp* a, int theId)
 	}
 	if (theId == DIALOG_NEW_ADVENTURE_NAME)
 	{
-		NewAdventureDialog* aName = (NewAdventureDialog*) aDialog;
+		NameDialog* aName = (NameDialog*) aDialog;
 		return Move("name", ClickStep(aName->mNameEdit) + ",{\"key\":\"b\"},{\"key\":\"o\"},{\"key\":\"t\"}," + ClickStep(aDialog->mYesButton), 5);
 	}
 	if (theId == DIALOG_ADVENTURE_NEW)
 	{
 		// the saved adventures: the first slot (it goes on with that game, or starts a new one when it is empty)
-		AdventureSlotsDialog* aSlots = (AdventureSlotsDialog*) aDialog;
+		AdventureDialog* aSlots = (AdventureDialog*) aDialog;
 		return Move("dialog", ClickStep(aSlots->mSlots[0]), 5);
 	}
 	if (theId == DIALOG_CONTINUE && aDialog->mNoButton != NULL)
@@ -261,7 +261,7 @@ std::string DialogMove(MummyApp* a, int theId)
 }
 
 // The move for the screen the game is on
-std::string BotMove(MummyApp* a)
+std::string BotMove(MMApp* a)
 {
 	// the dialogs
 	if (a->GetDialogCount() > 0)
@@ -280,7 +280,7 @@ std::string BotMove(MummyApp* a)
 	// the world map: the first pyramid that is open, once the marker stands still
 	if (a->mWorldMap != NULL)
 	{
-		WorldMap* m = a->mWorldMap;
+		MapWidget* m = a->mWorldMap;
 		if (m->mStep >= 0 || m->mCurrent != m->mTarget)
 			return Move("wait", "", 20);
 		for (int i = 0; i < 15; i++)
@@ -398,11 +398,11 @@ std::string BotMove(MummyApp* a)
 
 }	// namespace
 
-bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
+bool MMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
 	std::string anArgs = theCommand.mArgs;
-	MummyApp* a = this;
+	MMApp* a = this;
 
 	if (aCommand == "state")
 	{
@@ -492,9 +492,9 @@ bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else if (anArgs == "tutorial")
 			mMainMenu->ButtonDepress(3);
 		else if (anArgs == "options")
-			ShowOptions();
+			DoOptions();
 		else if (anArgs == "highscores")
-			ShowHighScoreDialog();
+			DoHighScoreDialog();
 		else if (anArgs == "credits")
 			DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, 0xa2, 0x52, 0x13c);
 		else
@@ -528,7 +528,7 @@ bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		{
 			mClassicPyramid = aPyramid;
 			mClassicChamber = aChamber;
-			StartBoardScreen();
+			NewGame();
 			ReplyOK(theCommand);
 			return true;
 		}
@@ -564,11 +564,11 @@ bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		if (aCommand == "win")
-			OnLevelComplete();
+			DoNextLevel();
 		else if (mGameMode == MODE_ADVENTURE)
 			AdventureCaught();
 		else
-			b->Lose();
+			b->DoGameOver();
 		ReplyOK(theCommand);
 		return true;
 	}

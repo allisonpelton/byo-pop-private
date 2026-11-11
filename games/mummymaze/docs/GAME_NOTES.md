@@ -35,7 +35,7 @@ Registry values (`PopCap\MummyMaze`): LastScoreName, LastInternetScoreName, Spee
 (+0x1042c), Ankh (+0x1042d, default 1), and the tip flags TwoMummyNag (+0x10e8c), GateNag, TrapNag, RedNag, ScorpNag, DarkNag,
 AnkhNag (+0x10e92), all default true.
 
-Maze files: `data\mazes\B-<n>.dat`, 101 files of 1506 bytes (bit-packed walls, see Board::LoadMaze, 0x40e1d0).
+Maze files: `data\mazes\B-<n>.dat`, 101 files of 1506 bytes (bit-packed walls, see Board::LoadMap, 0x40e1d0).
 
 ## Classes (constructor, vtable)
 
@@ -52,10 +52,10 @@ Maze files: `data\mazes\B-<n>.dat`, 101 files of 1506 bytes (bit-packed walls, s
 | | 0x415e50 | 0x4819d0 | name entry dialog |
 | (menu) | 0x4165a0 | 0x481a94 | main menu |
 | (map) | 0x417010 | 0x482690 | world map |
-| MummyApp | 0x419bb0 | 0x482748 | application |
-| Explorer? | 0x426e70 | 0x482b40 | the explorer (positions itself on the nearest edge) |
+| MMApp | 0x419bb0 | 0x482748 | application |
+| Player | 0x426e70 | 0x482b40 | the explorer (positions itself on the nearest edge) |
 | Mummy | 0x421b40 | 0x482828 | white and red mummies (id in +0x74) |
-| Scorpion | 0x429120 | 0x482e20 | scorpion |
+| Scorp | 0x429120 | 0x482e20 | scorpion |
 
 (The table is filled in as the classes are read.)
 
@@ -105,7 +105,7 @@ recursive count (0x418a30, 0x4189b0). A solved pyramid opens its neighbours (0x4
 Flow: the main menu's Adventure link sets the game mode to 1 and calls 0x41b800: with saved games it shows the slot dialog (id 10,
 five slots, a DELETE GAME button, Cancel), else the dialog for a new name (id 11). A slot loads through 0x41bcc0: no file means the name
 dialog; a file is read by the map's constructor (bad format: the main menu comes back with a message). A chamber that is won sets
-app+0x10408; the next map (made by LoadAdventure(slot, true)) counts it, saves, and goes straight on into the pyramid's next chamber,
+app+0x10408; the next map (made by DoMap(slot, true)) counts it, saves, and goes straight on into the pyramid's next chamber,
 or, when the pyramid is solved, shows its treasure (game mode 2, the ending board) whose link leads back to the map. Being caught
 makes a map from the saved file (so the time and the catches are those of the file), adds one catch and saves (0x41c300 saves
 whenever it removes the map). When the last pyramid is solved the victory screen comes and the saved progress starts again from zero.
@@ -146,7 +146,7 @@ command that is never given changes nothing and draws no random number. Each ans
 | `level <n>` | a classic game from chamber n (1 to 225) from the main menu, as `-autoplaystart` does it; on a classic board it restarts the board at that chamber |
 | `unlock all` | opens every pyramid on the adventure's map (nothing else in the game is locked) |
 | `set score <n>`, `set botmode classic\|adventure\|tutorial`, `set stepinput keys\|clicks` | the score; what `move` starts from the main menu; whether a step of the explorer is the arrow key or a click on the cell |
-| `win`, `lose` | `OnLevelComplete` (the explorer has left the maze), or `Board::Lose` (the game-over panel; `AdventureCaught` in the adventure) |
+| `win`, `lose` | `DoNextLevel` (the explorer has left the maze), or `Board::DoGameOver` (the game-over panel; `AdventureCaught` in the adventure) |
 | `seed <n>` | seeds the C library generator, the one every draw of the game comes from |
 | `move` | the bot's next move as `MOVE {"kind", "input": [...], "updates": n}`, where `input` is the real input in order, `{"click": {"x", "y"}}` or `{"key": "<DOM name>"}`, in game coordinates; `MOVE null` when there is none |
 
@@ -169,13 +169,13 @@ driver whose answer takes longer than a step holds the key through the next step
 What the original does that the fixes mod (`mods/fixes`, below) mends, and what it left alone.
 
 - **Made: the clock of a chamber.** The original times a chamber and the adventure's total by `GetTickCount` (the bonus of a classic
-  chamber, `LevelCompleteScreen`, 0x422480; the time kept by `Adventure.cpp`), while the clock on the board counts updates. A slow
+  chamber, `NextLevelWidget`, 0x422480; the time kept by `Adventure.cpp`), while the clock on the board counts updates. A slow
   moment or a long pause costs bonus points, and two runs of the same input do not score alike. `gameClock` counts the updates
-  (`MummyApp::GameTick`), as the bot's and `-fast` runs already do. In a play with no pause and no slow machine the seconds are the
+  (`MMApp::GameTick`), as the bot's and `-fast` runs already do. In a play with no pause and no slow machine the seconds are the
   same.
 - **Made: the key-stone fight in the search.** When mummy 1 meets mummy 0 the board lets mummy 0 win, and when the fight ends
-  `Mummy::OnArrived` (0x421d00) flips the gate if the winner stands on the key stone, whether it moved this turn or not and whether
-  the key was used earlier in the turn. The search of the Ankh and of Abandon Hope (`SolveRec`) flips it only for a winner that moved
+  `Mummy::CheckGate` (0x421d00) flips the gate if the winner stands on the key stone, whether it moved this turn or not and whether
+  the key was used earlier in the turn. The search of the Ankh and of Abandon Hope (`DoSolutionHelper`) flips it only for a winner that moved
   and the key not used yet. `solverFight` flips it in the other cases too. No bot game of the suite (1200 chambers) meets the case, so
   it is checked against the board's code and not by a played game.
 - **Not a fix: the Ankh works only on the 6 x 6 mazes** (`CheckSolvable` returns for size 7 and over). It is a design limit of 2002
@@ -289,9 +289,9 @@ thread; the GPU driver 11 to 13 % of the samples. The profile of the scripted mi
 uses about 2 s of processor time for 60 s of play, so there is little to win.
 
 **What changed (all in the game's own files).** The port decodes a picture when the game first asks for it, and a sound when it first
-plays it, where the original decodes all 246 pictures in `Init` and all 25 sounds in its loading thread (0x41dd60). `MummyApp::mImages`
-is an `ImageTable`, a member whose `operator[]` returns the picture and decodes it through `LoadImage` (0x41db90) the first time; the
-sounds go through `MummyApp::PlaySample`, which calls `LoadSoundOnce` first (`SexyAppBase::PlaySample` is the only way the game plays
+plays it, where the original decodes all 246 pictures in `Init` and all 25 sounds in its loading thread (0x41dd60). `MMApp::mImages`
+is an `ImageTable`, a member whose `operator[]` returns the picture and decodes it through `DoLoadImage` (0x41db90) the first time; the
+sounds go through `MMApp::PlaySample`, which calls `LoadSoundOnce` first (`SexyAppBase::PlaySample` is the only way the game plays
 a sound, and the sound manager takes the volume per instance, so a late load changes nothing). The loading thread still builds the
 fonts and the light mask, and counts the sounds as done at once, so the title's bar and the update that ends loading are the same.
 Two deviations, neither visible in a shipped copy: a picture that is not in the game's folder is told at its first use (the same popup,
@@ -356,12 +356,12 @@ The bots' runs end with the game exiting; the others end at origrun's timeout, h
   debug-file streams, and overrides that only call their base class.
 - **Placed: 49 addresses.** Functions the port translates in another shape got their address in the comment above the
   function that holds them: the destructors of the screens and dialogs (the port frees the same members), the fragments the
-  export split off a function (0x418390 is the twinkles' loop at the end of `WorldMap::Update`, 0x42a280 the end of
-  `SidePanel::Update`, 0x41ca70 the Tutorial button's question inside `OptionsDialog::ButtonDepress`), the two lists that
-  `SolveRec` looks through (0x404f60, 0x405010), the high score screen's rank, its children's add and remove and its resize
+  export split off a function (0x418390 is the twinkles' loop at the end of `MapWidget::Update`, 0x42a280 the end of
+  `Sidebar::Update`, 0x41ca70 the Tutorial button's question inside `OptionsDialog::ButtonDepress`), the two lists that
+  `DoSolutionHelper` looks through (0x404f60, 0x405010), the high score screen's rank, its children's add and remove and its resize
   (0x402d40 is the victory screen's own, which also adds the link to the Internet score list, now gone), and the messages of
   a bad name and a name in use (0x41f730, 0x41f8f0), which the port makes with `DoMessage` in place. The message of a bad
-  saved game (0x41f0d0) was inline in `WorldMap`'s constructor; it is now `MummyApp::ShowBadSaveMessage`, as in the original,
+  saved game (0x41f0d0) was inline in `MapWidget`'s constructor; it is now `MMApp::DoVersionError`, as in the original,
   because the tool does not see that constructor as a definition (see the specs below).
 - **Missing logic found and translated: eight differences**, six found by reading the function a run reached and two by
   comparing the pictures of the saved adventures' run:
@@ -396,7 +396,7 @@ matches it line by line (music, effects, and the speed in three steps with the s
 
 **Candidates for taking out unneeded code (decided 2026-11-09).** No play of the original reaches these:
 
-- the `DIALOG_RESET_TIPS` case in `MummyApp::ButtonDepress` (MummyFlow.cpp): the original has the question of a "Reset Tips"
+- the `DIALOG_RESET_TIPS` case in `MMApp::ButtonDepress` (MummyFlow.cpp): the original has the question of a "Reset Tips"
   button on the options dialog (0x41cdf0, called from 0x426b70) and no play of it reaches the question; the port has no such button.
   **Taken out** with its `DIALOG_RESET_TIPS` id; 0x41cdf0 got a `none` line in coverage.txt.
 - the "No Windowed Mode" message (0x426b20 asks it, 0x41fab0 makes it): shown when the framework found no windowed display mode,
@@ -414,9 +414,9 @@ from two functions the runs did run), the Reset Tips question and the No Windowe
 - The tool does not see the 16 functions that sit in gaps between the export's entries, nor three addresses the port cites that
   are not function entries (0x408567, 0x42beb0, 0x42beef); it needs support for extra function entries.
 - It does not read `.inc` files; the address of a function defined there is placed above its caller instead (0x403450,
-  above `DrawTutorialText`).
+  above `DrawTutorialDialog`).
 - A definition whose initializer list runs over more than twelve lines is not seen as one (`is_definition` reads twelve lines
-  for the `{`): the comment above `WorldMap::WorldMap` counted as a mention.
+  for the `{`): the comment above `MapWidget::MapWidget` counted as a mention.
 - Framework: the original's widget manager is the old one and gives no keyboard focus back when a modal dialog is removed;
   after "Name Invalid" over the new adventure's name box the player must click the box again, in the port the box keeps its
   focus. Not a difference of the game's own code; left as it is.
@@ -445,8 +445,8 @@ path of the game reaches or needs, by seven scans of `src/` (the test hooks apar
 
 1. **Functions.** The 23 object files of the native build, every function they define (606) against every relocation in all of
    them (`llvm-nm --defined-only`, `llvm-objdump -r`): 54 have no reference. 48 are the second forms of constructors and
-   destructors; the other six (`WorldMap::CropEnterButton`, `WorldMap::Open`, `MummyApp::ShowBadSaveMessage`,
-   `Board::DrawClipped`, `Board::KeyStep`, `HighScoreScreen::RankOf`) have callers in their own file, inlined. None is dead.
+   destructors; the other six (`MapWidget::CropEnterButton`, `MapWidget::ActivatePyramid`, `MMApp::DoVersionError`,
+   `Board::DrawClipped`, `Board::KeyStep`, `HighScoreWidget::GetScorePlace`) have callers in their own file, inlined. None is dead.
 2. **Compiler warnings.** Every source compiled again with `-Wall -Wextra -Wunused -Wunused-member-function
    -Wunused-private-field -Wunused-template -Wunused-macros -Wunreachable-code`: none in the game's files.
 3. **Fields.** Every member `m...` of the game's headers (259) by whether any code reads it: three, below.
@@ -462,7 +462,7 @@ path of the game reaches or needs, by seven scans of `src/` (the test hooks apar
 
 | What | Why it is not needed | Verdict |
 |---|---|---|
-| `DIALOG_NEW_GAME` (dialog 0) and its answer in `MummyApp::ButtonDepress` (the original's case 2000 of 0x4201e0) | nothing opens dialog 0, in the port or in the original: the original's game code opens ids 1 to 3, 5 to 9, 0xc, 0xe to 0x12, 0x14 to 0x18 and 0x1a to 0x1c | removed |
+| `DIALOG_NEW_GAME` (dialog 0) and its answer in `MMApp::ButtonDepress` (the original's case 2000 of 0x4201e0) | nothing opens dialog 0, in the port or in the original: the original's game code opens ids 1 to 3, 5 to 9, 0xc, 0xe to 0x12, 0x14 to 0x18 and 0x1a to 0x1c | removed |
 | `Board::mMouseX`, `mMouseY` (+0x27c, +0x280) | `MouseMove` (0x40e150) stores the point and nothing reads it, in the port or in the original | removed; the comment above `MouseMove` says what the original stores |
 | `Board::mTutorialPart` | not a field of the original: its "+0x498" is `mTutorialStep` (+0x4e4) seen from the button listener's part of the board (0x4112b0); only ever zeroed | removed |
 | `Board::mWalkTick` | a second name for +0x4c0, which is `mMoveTick`; only ever zeroed | removed |
@@ -473,7 +473,7 @@ path of the game reaches or needs, by seven scans of `src/` (the test hooks apar
 find, are the explorer's fourth idle animation: `kExplorerIdleCount` is 4 and the picture is `readmap6 + size + 3 * kind`. (They
 were taken out for an hour; the suite did not notice, since no photograph of it catches that animation. A script now follows
 each run of ids to its end: `readmap6 + 11` is `light10`, `whitedance6 + 23` is `redlisten10`, `mummy6 + 5` is `redmummy10` and
-`whitefight6 + 5` is `redfight10`, before and after.) `MummyApp::mScoreBuffer`, what the Internet score list was sent, is
+`whitefight6 + 5` is `redfight10`, before and after.) `MMApp::mScoreBuffer`, what the Internet score list was sent, is
 written by the game and read by nothing but the saved game, whose format holds it (`BoardSave.cpp`). `Board::FindWay`, the
 solver from where the explorer stands, is the port's own and is called only by the test hooks (the `move` command and the
 autoplay bot); it sits in `BoardSolve.cpp` because it shares the search's private state. The registry values are the

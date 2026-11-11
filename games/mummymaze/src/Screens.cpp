@@ -26,7 +26,7 @@ using namespace Sexy;
 // TitleScreen
 
 // 0x42a5f0
-TitleScreen::TitleScreen(MummyApp* theApp) :
+TitleScreen::TitleScreen(MMApp* theApp) :
 	mApp(theApp),
 	mProgress(0.0),
 	mPlayShown(false)
@@ -119,7 +119,7 @@ void TitleScreen::Draw(Graphics* g)
 void TitleScreen::ButtonDepress(int theId)
 {
 	(void) theId;		// the play link's
-	mApp->TitleDone();
+	mApp->LoadingCompleted();
 }
 
 void TitleScreen::ButtonPress(int theId)
@@ -129,10 +129,10 @@ void TitleScreen::ButtonPress(int theId)
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// ScrollScreen
+// TombstoneWidget
 
 // 0x42b390
-ScrollScreen::ScrollScreen(MummyApp* theApp) :
+TombstoneWidget::TombstoneWidget(MMApp* theApp) :
 	mApp(theApp),
 	mOffset(0x1dc),
 	mTorchFrame(0),
@@ -143,24 +143,24 @@ ScrollScreen::ScrollScreen(MummyApp* theApp) :
 }
 
 // 0x42b3f0
-ScrollScreen::~ScrollScreen()
+TombstoneWidget::~TombstoneWidget()
 {
 }
 
 // 0x416e80
-void ScrollScreen::ButtonPress(int theId)
+void TombstoneWidget::ButtonPress(int theId)
 {
 	(void) theId;
 	mApp->PlaySample(SOUND_CLICK);
 }
 
-void ScrollScreen::ButtonDepress(int theId)
+void TombstoneWidget::ButtonDepress(int theId)
 {
 	(void) theId;
 }
 
 // 0x42b400: the front of the scroll and its torch (a 17-frame cycle, drawn through a 58 x 58 window)
-void ScrollScreen::Draw(Graphics* g)
+void TombstoneWidget::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_MENUFRONT], 0, mHeight - 0x1dc + mOffset);
 	Graphics gc(*g);
@@ -170,7 +170,7 @@ void ScrollScreen::Draw(Graphics* g)
 }
 
 // 0x42b580
-void ScrollScreen::Update()
+void TombstoneWidget::Update()
 {
 	Widget::Update();
 	bool aMoved = false;
@@ -238,9 +238,9 @@ void ScrollScreen::Update()
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// MainMenu
+// IntroScreen
 
-static HyperlinkWidget* MakeMenuLink(MummyApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel)
+static HyperlinkWidget* MakeMenuLink(MMApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel)
 {
 	HyperlinkWidget* aLink = new HyperlinkWidget(theId, theListener);
 	aLink->mLabel = theLabel;
@@ -252,8 +252,8 @@ static HyperlinkWidget* MakeMenuLink(MummyApp* theApp, int theId, ButtonListener
 }
 
 // 0x4165a0: theEntry 0 comes from the title (the scroll comes down), 1 from the adventure (it slides back), 2 shows it at once
-MainMenu::MainMenu(MummyApp* theApp, int theEntry) :
-	ScrollScreen(theApp),
+IntroScreen::IntroScreen(MMApp* theApp, int theEntry) :
+	TombstoneWidget(theApp),
 	mFade(0.0)
 {
 	mLinks[0] = MakeMenuLink(theApp, 0, this, GT(0x0049224c));
@@ -283,32 +283,32 @@ MainMenu::MainMenu(MummyApp* theApp, int theEntry) :
 }
 
 // 0x416b90
-MainMenu::~MainMenu()
+IntroScreen::~IntroScreen()
 {
 	for (int i = 0; i < 4; i++)
 		delete mLinks[i];
 }
 
 // 0x416e00 / 0x416e40
-void MainMenu::AddedToManager(WidgetManager* theWidgetManager)
+void IntroScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
-	ScrollScreen::AddedToManager(theWidgetManager);
+	TombstoneWidget::AddedToManager(theWidgetManager);
 	for (int i = 0; i < 4; i++)
 		theWidgetManager->AddWidget(mLinks[i]);
 }
 
-void MainMenu::RemovedFromManager(WidgetManager* theWidgetManager)
+void IntroScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
-	ScrollScreen::RemovedFromManager(theWidgetManager);
+	TombstoneWidget::RemovedFromManager(theWidgetManager);
 	for (int i = 0; i < 4; i++)
 		theWidgetManager->RemoveWidget(mLinks[i]);
 }
 
 // 0x416cd0
-void MainMenu::Update()
+void IntroScreen::Update()
 {
 	int aOffset = mOffset;
-	ScrollScreen::Update();
+	TombstoneWidget::Update();
 	if (aOffset != mOffset)
 	{
 		mLinks[1]->Resize(mX + 0x32, mHeight + mY - 0x46 + mOffset, mWidth / 2 - 0x32, 0x20);
@@ -326,19 +326,19 @@ void MainMenu::Update()
 }
 
 // 0x416c20
-void MainMenu::Draw(Graphics* g)
+void IntroScreen::Draw(Graphics* g)
 {
 	g->SetColorizeImages(true);
 	int aValue = (int) (mFade * 255.0);
 	g->SetColor(Color(aValue, aValue, aValue));
 	g->DrawImage(mApp->mImages[IMAGE_MENUBACK], 0, 0);
 	g->SetColorizeImages(false);
-	ScrollScreen::Draw(g);
+	TombstoneWidget::Draw(g);
 	g->DrawImage(mApp->mImages[IMAGE_MENULOGO], (mWidth - 0x1c7) / 2, 10 - mOffset);
 }
 
 // 0x416e90
-void MainMenu::ButtonDepress(int theId)
+void IntroScreen::ButtonDepress(int theId)
 {
 	switch (theId)
 	{
@@ -354,28 +354,28 @@ void MainMenu::ButtonDepress(int theId)
 		mApp->mScoreBuffer.WriteString("");
 		mApp->mScoreBuffer.WriteString("");
 		mApp->mScoreBuffer.WriteLong((long) time(NULL));
-		mApp->StartClassicOrContinue();
+		mApp->TryConfirmLoad();
 		return;
 	case 1:
 		mApp->mGameMode = MODE_ADVENTURE;
-		mApp->ShowAdventureSlots();
+		mApp->DoAdventure();
 		return;
 	case 2:
-		mApp->ShowQuitDialog();
+		mApp->ConfirmQuit();
 		return;
 	case 3:
-		mApp->StartTutorial();
+		mApp->DoTutorial();
 		mApp->mGameMode = MODE_TUTORIAL;
 		return;
 	}
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// GamePanel
+// GameOverWidget
 
 // 0x412ea0
-GamePanel::GamePanel(MummyApp* theApp) :
-	ScrollScreen(theApp),
+GameOverWidget::GameOverWidget(MMApp* theApp) :
+	TombstoneWidget(theApp),
 	mLeaving(false),
 	mFade(1.0)
 {
@@ -403,7 +403,7 @@ GamePanel::GamePanel(MummyApp* theApp) :
 }
 
 // 0x4136a0 (its deleting form 0x413680)
-GamePanel::~GamePanel()
+GameOverWidget::~GameOverWidget()
 {
 	for (int i = 0; i < 4; i++)
 		delete mLinks[i];
@@ -411,32 +411,32 @@ GamePanel::~GamePanel()
 
 // 0x403430: a press on a link of the panel makes no sound (the main menu and the other screens click: 0x416e80); the
 // links' releases choose
-void GamePanel::ButtonPress(int theId)
+void GameOverWidget::ButtonPress(int theId)
 {
 	(void) theId;
 }
 
 // 0x4138d0
-void GamePanel::AddedToManager(WidgetManager* theWidgetManager)
+void GameOverWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
-	ScrollScreen::AddedToManager(theWidgetManager);
+	TombstoneWidget::AddedToManager(theWidgetManager);
 	for (int i = 0; i < 4; i++)
 		theWidgetManager->AddWidget(mLinks[i]);
 }
 
 // 0x413910
-void GamePanel::RemovedFromManager(WidgetManager* theWidgetManager)
+void GameOverWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
-	ScrollScreen::RemovedFromManager(theWidgetManager);
+	TombstoneWidget::RemovedFromManager(theWidgetManager);
 	for (int i = 0; i < 4; i++)
 		theWidgetManager->RemoveWidget(mLinks[i]);
 }
 
 // 0x4137a0
-void GamePanel::Update()
+void GameOverWidget::Update()
 {
 	int aOffset = mOffset;
-	ScrollScreen::Update();
+	TombstoneWidget::Update();
 	if (mOffset != aOffset)
 	{
 		mLinks[0]->Resize(mX + 0x32, mHeight + mY - 0x46 + mOffset, mWidth / 2 - 0x32, 0x20);
@@ -453,40 +453,40 @@ void GamePanel::Update()
 			mFade = 0.0;
 			if (mScrollState == 3)
 			{
-				mApp->ShowMainMenu(1, true);
-				mApp->RemoveGamePanel();
+				mApp->DoIntro(1, true);
+				mApp->KillGameOver();
 			}
 		}
 	}
 }
 
 // 0x413730
-void GamePanel::Draw(Graphics* g)
+void GameOverWidget::Draw(Graphics* g)
 {
 	if (mFade < 1.0)
 	{
 		g->SetColor(Color(0, 0, 0, (int) ((1.0 - mFade) * 255.0)));
 		g->FillRect(0, 0, mWidth, mHeight);
 	}
-	ScrollScreen::Draw(g);
+	TombstoneWidget::Draw(g);
 }
 
 // 0x413950
-void GamePanel::ButtonDepress(int theId)
+void GameOverWidget::ButtonDepress(int theId)
 {
 	Board* aBoard = mApp->mBoard;
 	switch (theId)
 	{
 	case 0:
-		aBoard->Undo();
+		aBoard->UndoMove();
 		break;
 	case 1:
-		aBoard->Retry();
+		aBoard->ResetMaze();
 		break;
 	case 2:
 		if (mApp->mGameMode == MODE_ADVENTURE)
 			mApp->AdventureLeave();
-		aBoard->SaveClassic();
+		aBoard->SaveGame();
 		for (int i = 0; i < 4; i++)
 			mLinks[i]->SetVisible(true);
 		mLeaving = true;
@@ -498,13 +498,13 @@ void GamePanel::ButtonDepress(int theId)
 		if (mApp->mGameMode == MODE_ADVENTURE)
 		{
 			mApp->AdventureLeave();
-			aBoard->Retry();
-			mApp->LoadAdventure(mApp->mCurrentSlot, false);
+			aBoard->ResetMaze();
+			mApp->DoMap(mApp->mCurrentSlot, false);
 		}
 		else
 		{
 			aBoard->mShowingSolution = false;
-			aBoard->Retry();
+			aBoard->ResetMaze();
 			aBoard->m270 = aBoard->mUpdateCnt;
 			aBoard->mState = STATE_SOLVING;
 		}
@@ -512,14 +512,14 @@ void GamePanel::ButtonDepress(int theId)
 	default:
 		return;
 	}
-	mApp->RemoveGamePanel();
+	mApp->KillGameOver();
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// SidePanel
+// Sidebar
 
 // 0x4291d0
-SidePanel::SidePanel(MummyApp* theApp) :
+Sidebar::Sidebar(MMApp* theApp) :
 	mApp(theApp),
 	mScore(theApp->mScore),
 	mAlpha(0),
@@ -556,7 +556,7 @@ SidePanel::SidePanel(MummyApp* theApp) :
 
 // (the original's buttons own the pictures that CopyImage made for them; here they are deleted with the button)
 // 0x4296f0
-SidePanel::~SidePanel()
+Sidebar::~Sidebar()
 {
 	for (int i = 0; i < 5; i++)
 	{
@@ -568,14 +568,14 @@ SidePanel::~SidePanel()
 }
 
 // 0x42a2a0 / 0x42a2f0
-void SidePanel::AddedToManager(WidgetManager* theWidgetManager)
+void Sidebar::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	for (int i = 0; i < 5; i++)
 		theWidgetManager->AddWidget(mButtons[i]);
 }
 
-void SidePanel::RemovedFromManager(WidgetManager* theWidgetManager)
+void Sidebar::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	for (int i = 0; i < 5; i++)
@@ -583,7 +583,7 @@ void SidePanel::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // 0x42a170 (and 0x42a280, its last piece)
-void SidePanel::Update()
+void Sidebar::Update()
 {
 	Widget::Update();
 	if (mApp->mBoard != NULL && mMumY < 0xd && mApp->mBoard->mFade >= 1.0)
@@ -617,15 +617,15 @@ void SidePanel::Update()
 }
 
 // 0x42a570
-void SidePanel::MouseDown(int x, int y, int theClickCount)
+void Sidebar::MouseDown(int x, int y, int theClickCount)
 {
 	(void) theClickCount;
 	if (x > 0x5c && y > 0x140 && x < 0x8b && y < 0x177 && mApp->mBoard != NULL && mApp->mShowAnkh)
-		mApp->ShowAnkhHelp(mApp->mBoard->mSolvable);
+		mApp->DoAnkhExplanation(mApp->mBoard->mSolvable);
 }
 
 // 0x42a340: the buttons' places (the creation order is undo, retry, options, world map, quit)
-void SidePanel::Resize(int theX, int theY, int theWidth, int theHeight)
+void Sidebar::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	static const int kY[5] = {0x83, 0xae, 0xe2, 0x10d, 0x1ae};
@@ -634,7 +634,7 @@ void SidePanel::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x429790
-void SidePanel::Draw(Graphics* g)
+void Sidebar::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0, 0, 0x96, 0x1e0));
 	Board* aBoard = mApp->mBoard;
@@ -741,31 +741,31 @@ void SidePanel::Draw(Graphics* g)
 }
 
 // 0x42a3d0
-void SidePanel::ButtonDepress(int theId)
+void Sidebar::ButtonDepress(int theId)
 {
 	switch (theId)
 	{
 	case 10:
 		if (mApp->mVictory == NULL && mApp->mBoard != NULL)
-			mApp->mBoard->Undo();
+			mApp->mBoard->UndoMove();
 		break;
 	case 11:
 		if (mApp->mVictory == NULL && mApp->mBoard != NULL)
-			mApp->mBoard->Retry();
+			mApp->mBoard->ResetMaze();
 		break;
 	case 12:
-		mApp->ShowOptions();
+		mApp->DoOptions();
 		break;
 	case 13:
 		mApp->OnWorldMapButton();
 		break;
 	case 14:
-		mApp->ShowQuitToMainDialog();
+		mApp->ConfirmQuitToMain();
 		break;
 	}
 }
 
-void SidePanel::ButtonPress(int theId)
+void Sidebar::ButtonPress(int theId)
 {
 	(void) theId;
 	mApp->PlaySample(SOUND_CLICK);

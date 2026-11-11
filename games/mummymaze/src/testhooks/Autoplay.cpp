@@ -123,7 +123,7 @@ void LogClick(AutoplayState* s, int theUpdate, Widget* theWidget, const char* th
 
 }
 
-void MummyApp::HandleAutoplayParam(const std::string& theParamName, const std::string& theParamValue)
+void MMApp::HandleAutoplayParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (mAutoplayState == NULL)
 		mAutoplayState = new AutoplayState();
@@ -144,7 +144,7 @@ void MummyApp::HandleAutoplayParam(const std::string& theParamName, const std::s
 }
 
 // the bot, once per update
-void MummyApp::AutoplayUpdate()
+void MMApp::AutoplayUpdate()
 {
 	AutoplayState* s = mAutoplayState;
 	if (s == NULL)
@@ -201,7 +201,7 @@ void MummyApp::AutoplayUpdate()
 	{
 		Board* b = mBoard;
 		Log(s, "saved: %d updates in, time base %d, saved %d", (int) b->mUpdateCnt, (int) b->mTimeBase, (int) (b->mUpdateCnt - b->mTimeBase));
-		b->SaveClassic();
+		b->SaveGame();
 		Shutdown();
 		return;
 	}
@@ -313,13 +313,13 @@ void MummyApp::AutoplayUpdate()
 			if (anId == DIALOG_NEW_ADVENTURE_NAME)
 			{
 				Log(s, "  text Bot at app update %d", mUpdateCount);
-				((NewAdventureDialog*) aDialog)->mNameEdit->SetText("Bot");
+				((NameDialog*) aDialog)->mNameEdit->SetText("Bot");
 			}
 			if (anId == DIALOG_ADVENTURE_NEW)
 			{
 				// the saved adventures: the first one goes on
 				Log(s, "adventure: continue slot 0");
-				((AdventureSlotsDialog*) aDialog)->ButtonDepress(0);
+				((AdventureDialog*) aDialog)->ButtonDepress(0);
 			}
 			else if (anId == DIALOG_CONTINUE)
 			{
@@ -340,7 +340,7 @@ void MummyApp::AutoplayUpdate()
 	// the adventure's world map: the first pyramid that is open, then into it
 	if (mWorldMap != NULL)
 	{
-		WorldMap* m = mWorldMap;
+		MapWidget* m = mWorldMap;
 		if (m->mStep >= 0 || m->mCurrent != m->mTarget)
 			return;
 		int aPyramid = -1;
@@ -605,13 +605,13 @@ void MummyApp::AutoplayUpdate()
 		}
 		if (s->mUseSolver)
 		{
-			// Solve takes every move back first (Retry): the original is given the click on RESET MAZE
+			// DoSolution takes every move back first (ResetMaze): the original is given the click on RESET MAZE
 			LogClick(s, mUpdateCount, mSidePanel->mButtons[1]);
-			b->Solve();
+			b->DoSolution();
 			s->mPath = b->mSolution;
 			s->mPathIndex = 0;
 			b->mShowingSolution = false;
-			b->ClearSolution();
+			b->ClearSolutionList();
 			Log(s, "level pyramid %d chamber %d (maze %d of file %d, %d x %d): solver, %d moves", BOT_PYR,
 				BOT_CHM, b->mMaze, b->mFile, b->mSize, b->mSize, (int) s->mPath.size());
 			s->mWait = 30;
@@ -622,7 +622,7 @@ void MummyApp::AutoplayUpdate()
 	}
 
 	// the next key
-	Explorer* e = b->mExplorer;
+	Player* e = b->mExplorer;
 	int aKey = 0;
 	if (s->mUseSolver)
 	{
@@ -716,7 +716,7 @@ void MummyApp::AutoplayUpdate()
 		{
 			Log(s, "undo");
 			LogClick(s, mUpdateCount, mSidePanel->mButtons[0]);
-			b->Undo();
+			b->UndoMove();
 			s->mWait = 5;
 			return;
 		}

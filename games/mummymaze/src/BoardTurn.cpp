@@ -23,7 +23,7 @@ using namespace Sexy;
 
 // 0x410090: the mummies choose their step: a white mummy closes the horizontal distance to the explorer first, a red one
 // the vertical; then it faces the way it goes (or at the explorer if it cannot move)
-void Board::PlanMummies()
+void Board::SetMummiesInMotion()
 {
 	bool aSounded = false;
 	for (int i = 0; i < 2; i++)
@@ -122,7 +122,7 @@ void Board::PlanMummies()
 		{
 			if (m->mX != m->mTargetX || m->mY != m->mTargetY)
 			{
-				mApp->PlaySample(abs(CrtRand() % 2) + 1 + anExtra, Pan(m->mTargetX));
+				mApp->PlaySample(abs(CrtRand() % 2) + 1 + anExtra, GetPanAt(m->mTargetX));
 				aSounded = true;
 			}
 		}
@@ -131,11 +131,11 @@ void Board::PlanMummies()
 }
 
 // 0x4103d0: the scorpion chooses its step (the same rules as a mummy); then the scorpion's turn begins
-void Board::PlanScorpion()
+void Board::SetScorpInMotion()
 {
 	if (mScorpion->mAlive)
 	{
-		Scorpion* s = mScorpion;
+		Scorp* s = mScorpion;
 		s->mProgress = 0;
 		int x = s->mX;
 		int y = s->mY;
@@ -252,11 +252,11 @@ void Board::UpdateMummies()
 				m->mFighting = false;
 				if (mState == STATE_CAUGHT)
 				{
-					Lose();
+					DoGameOver();
 					m->mFighting = true;
 				}
 				else
-					m->OnArrived();
+					m->CheckGate();
 			}
 			else
 				aBusy = true;
@@ -342,7 +342,7 @@ void Board::UpdateMummies()
 				aKilled = true;
 			}
 		}
-		Scorpion* s = mScorpion;
+		Scorp* s = mScorpion;
 		bool aFight = false;
 		if (m->mX == s->mX && m->mY == s->mY && s->mAlive)
 		{
@@ -352,18 +352,18 @@ void Board::UpdateMummies()
 		else if (aKilled)
 			aFight = true;
 		else if (aMoved)
-			m->OnArrived();
+			m->CheckGate();
 		if (aFight)
 		{
 			m->mFighting = true;
 			m->mFightFrame = 0;
-			mApp->PlaySample(SOUND_PUMMEL, Pan(m->mTargetX));
+			mApp->PlaySample(SOUND_PUMMEL, GetPanAt(m->mTargetX));
 		}
 		if (m->mX == mExplorer->mX && m->mY == mExplorer->mY)
 		{
 			m->mFighting = true;
 			m->mFightFrame = 0;
-			mApp->PlaySample(SOUND_PUMMEL, Pan(m->mTargetX));
+			mApp->PlaySample(SOUND_PUMMEL, GetPanAt(m->mTargetX));
 			mState = STATE_CAUGHT;
 			m274 = mUpdateCnt;
 			if (mApp->mGameMode != MODE_ADVENTURE)
@@ -374,7 +374,7 @@ void Board::UpdateMummies()
 	}
 	if (mState == STATE_MUMMY1)
 	{
-		PlanMummies();
+		SetMummiesInMotion();
 		return;
 	}
 	if (mApp->mGameMode >= 4)
@@ -398,16 +398,16 @@ void Board::UpdateMummies()
 	mState = STATE_READY;
 	if (mSolvable)
 		CheckSolvable(true);
-	ProcessClick();
-	ResetIdle();
+	DoProcessQueue();
+	DoResetIdles();
 	if (mExplorer != NULL)
 		UpdateExplorer();
 }
 
 // 0x4083e0: the scorpion's sting, then its walk, then what it met
-void Board::UpdateScorpion()
+void Board::UpdateScorp()
 {
-	Scorpion* s = mScorpion;
+	Scorp* s = mScorpion;
 	if (s == NULL)
 		return;
 	if (s->mStinging)
@@ -429,7 +429,7 @@ void Board::UpdateScorpion()
 	if (s->mAlive)
 	{
 		if (s->mProgress == 0 && (s->mToX != s->mX || s->mToY != s->mY))
-			mApp->PlaySample(abs(CrtRand() % 2) + 0xd, Pan(s->mToX));
+			mApp->PlaySample(abs(CrtRand() % 2) + 0xd, GetPanAt(s->mToX));
 		s = mScorpion;
 		if (s->mProgress < mCellSize && (s->mToX != s->mX || s->mToY != s->mY))
 		{
@@ -455,7 +455,7 @@ void Board::UpdateScorpion()
 					s->mAlive = false;
 					m->mFighting = true;
 					m->mFightFrame = 0;
-					mApp->PlaySample(SOUND_PUMMEL, Pan(s->mToX));
+					mApp->PlaySample(SOUND_PUMMEL, GetPanAt(s->mToX));
 					return;
 				}
 			}
@@ -465,7 +465,7 @@ void Board::UpdateScorpion()
 				s->mStingFrame = 0;
 				mState = STATE_CAUGHT;
 				m274 = mUpdateCnt;
-				mApp->PlaySample(SOUND_PUMMEL, Pan(s->mToX));
+				mApp->PlaySample(SOUND_PUMMEL, GetPanAt(s->mToX));
 				mExplorer->mDir = 2;
 				if (mApp->mGameMode != MODE_ADVENTURE)
 					return;
@@ -475,22 +475,22 @@ void Board::UpdateScorpion()
 			if (mState == STATE_SCORPION_LAST)
 			{
 				mDeathTimer2 = 0;
-				mApp->PlaySample(SOUND_POISON, Pan(mExplorer->mX));
+				mApp->PlaySample(SOUND_POISON, GetPanAt(mExplorer->mX));
 			}
 			if (aMoved)
-				s->OnArrived();
+				s->CheckGate();
 		}
 	}
 	if (mState != STATE_SCORPION_LAST)
 	{
-		PlanMummies();
+		SetMummiesInMotion();
 		return;
 	}
 	mState = STATE_READY;
 	if (mSolvable)
 		CheckSolvable(true);
-	ProcessClick();
-	ResetIdle();
+	DoProcessQueue();
+	DoResetIdles();
 	if (mExplorer != NULL)
 		UpdateExplorer();
 }
@@ -521,13 +521,13 @@ void Board::Update()
 			mState = STATE_ENDING;
 			if (abs(CrtRand() % 2) == 0)
 			{
-				mApp->SetMusicOrder(0x2c, false);
-				mApp->SetMusicOrder(0x2c, false);
+				mApp->DoMusic(0x2c, false);
+				mApp->DoMusic(0x2c, false);
 			}
 			else
 			{
-				mApp->SetMusicOrder(0x2e, false);
-				mApp->SetMusicOrder(0x2e, false);
+				mApp->DoMusic(0x2e, false);
+				mApp->DoMusic(0x2e, false);
 			}
 			mContinueLink->SetVisible(true);
 		}
@@ -554,7 +554,7 @@ void Board::Update()
 		MarkDirty();
 	}
 	if (mUpdateCnt - m270 == 0x32 && mState == STATE_SOLVING)
-		Solve();
+		DoSolution();
 	if (mUpdateCnt - mTimeBase == 0x4b)
 	{
 		int aMode = mApp->mGameMode;
@@ -615,8 +615,8 @@ void Board::Update()
 	if ((mFade >= 1.0 || mState == STATE_ENTER) && mExplorer != NULL)
 		UpdateExplorer();
 	UpdateMummies();
-	UpdateScorpion();
-	AgeHover();
+	UpdateScorp();
+	UpdateArrows();
 	if (mUpdateCnt % 10 == 0)
 	{
 		bool aSettled = false;
@@ -643,18 +643,18 @@ void Board::Update()
 		mApp->mSidePanel->MarkDirty();
 	}
 	if (mDeathTimer == 0x23 && mExitStyle == 0)
-		mApp->PlaySample(SOUND_BLOCK, Pan(mExplorer->mTargetX));
+		mApp->PlaySample(SOUND_BLOCK, GetPanAt(mExplorer->mTargetX));
 	else if (mDeathTimer == 3 && mExitStyle == 1)
-		mApp->PlaySample(SOUND_PIT, Pan(mExplorer->mTargetX));
+		mApp->PlaySample(SOUND_PIT, GetPanAt(mExplorer->mTargetX));
 	if (mDeathTimer == 0x118 && mState != STATE_SOLVING)
-		Lose();
+		DoGameOver();
 	if (mDeathTimer2 > -1 && mDeathTimer2 < 100)
 	{
 		mDeathTimer2++;
 		MarkDirty();
 	}
 	if (mDeathTimer2 == 100 && mState != STATE_SOLVING)
-		Lose();
+		DoGameOver();
 	if (mState != STATE_ENTER)
 	{
 		int aMode = mApp->mGameMode;
@@ -685,7 +685,7 @@ void Board::Update()
 				{
 					for (int i = 0; i < 2; i++)
 						if (mMummies[i] != NULL)
-							mMummies[i]->StartIdle();
+							mMummies[i]->DoIdle();
 				}
 				MarkDirty();
 			}
@@ -739,7 +739,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	for (int i = 0; i < 2; i++)
 		if (mMummies[i] != NULL && mMummies[i]->mFighting)
 			return;
-	Explorer* e = mExplorer;
+	Player* e = mExplorer;
 	int aPixelX = x - 10;
 	if (mState != STATE_READY)
 	{
@@ -747,8 +747,8 @@ void Board::MouseDown(int x, int y, int theClickCount)
 			return;
 		if (mShowingSolution)
 			return;
-		int aCX = CellX(aPixelX);
-		int aCY = CellY(y);
+		int aCX = GetColAt(aPixelX);
+		int aCY = GetRowAt(y);
 		if (aCX == e->mTargetX && aCY == e->mTargetY)
 		{
 			mClickX = e->mTargetX;
@@ -785,51 +785,51 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	if (mShowingSolution)
 		return;
 	bool aMoved = false;
-	if (CellX(aPixelX) == e->mX && CellY(y) == e->mY)
+	if (GetColAt(aPixelX) == e->mX && GetRowAt(y) == e->mY)
 	{
 		if (aMode < 4 || kTutorialMove[mTutorialStep] == 4)
 		{
-			PushUndo();
-			PlanScorpion();
+			DoNewTurn();
+			SetScorpInMotion();
 			aMoved = true;
 		}
 	}
 	else
 	{
-		if (CellX(aPixelX) == e->mX - 1 && CellY(y) == e->mY && CanExplorerMove(e->mX - 1, e->mY, true))
+		if (GetColAt(aPixelX) == e->mX - 1 && GetRowAt(y) == e->mY && CanMove(e->mX - 1, e->mY, true))
 		{
 			if (aMode < 4 || kTutorialMove[mTutorialStep] == 1)
 			{
-				PushUndo();
+				DoNewTurn();
 				mExplorer->mDir = 3;
 				mExplorer->mTargetX = mExplorer->mX - 1;
 				aMoved = true;
 			}
 		}
-		else if (CellX(aPixelX) == e->mX + 1 && CellY(y) == e->mY && CanExplorerMove(e->mX + 1, e->mY, true))
+		else if (GetColAt(aPixelX) == e->mX + 1 && GetRowAt(y) == e->mY && CanMove(e->mX + 1, e->mY, true))
 		{
 			if (aMode < 4 || kTutorialMove[mTutorialStep] == 2)
 			{
-				PushUndo();
+				DoNewTurn();
 				mExplorer->mDir = 1;
 				mExplorer->mTargetX = mExplorer->mX + 1;
 				aMoved = true;
 			}
 		}
-		else if (CellX(aPixelX) == e->mX && CellY(y) == e->mY - 1 && CanExplorerMove(e->mX, e->mY - 1, true))
+		else if (GetColAt(aPixelX) == e->mX && GetRowAt(y) == e->mY - 1 && CanMove(e->mX, e->mY - 1, true))
 		{
 			if (aMode < 4 || kTutorialMove[mTutorialStep] == 0)
 			{
-				PushUndo();
+				DoNewTurn();
 				mExplorer->mDir = 0;
 				mExplorer->mTargetY = mExplorer->mY - 1;
 				aMoved = true;
 			}
 		}
-		else if (CellX(aPixelX) == e->mX && CellY(y) == e->mY + 1 && CanExplorerMove(e->mX, e->mY + 1, true) &&
+		else if (GetColAt(aPixelX) == e->mX && GetRowAt(y) == e->mY + 1 && CanMove(e->mX, e->mY + 1, true) &&
 			(aMode < 4 || kTutorialMove[mTutorialStep] == 3))
 		{
-			PushUndo();
+			DoNewTurn();
 			mExplorer->mDir = 2;
 			mExplorer->mTargetY = mExplorer->mY + 1;
 			aMoved = true;
@@ -888,12 +888,12 @@ void Board::ButtonDepress(int theId)
 		mPlayNowButton0->mId = 0;
 		mApp->mGameMode = 7;
 		mTutorialStep++;
-		StartLevel();
+		NewGame();
 		return;
 	case 2:
 		mPlayNowButton0->SetVisible(false);
 		mApp->mGameMode = MODE_CLASSIC;
-		mApp->StartBoardScreen();
+		mApp->NewGame();
 		return;
 	case 3:
 		mApp->OnContinueLink();

@@ -21,7 +21,7 @@ namespace Sexy
 extern int			kAdventureMaze[225];	// per pyramid and chamber (15 x 15): the maze file number
 extern int			kAdventureLevel[225];	// per pyramid and chamber: the maze number in the file, minus 1
 extern int			kExcluded[962];			// (file, maze) pairs a classic game never picks, after a leading word
-extern int			kExcludedResume[966];	// (file, maze) pairs that LoadClassic skips when it picks the next chamber of a saved game
+extern int			kExcludedResume[966];	// (file, maze) pairs that LoadGame skips when it picks the next chamber of a saved game
 extern int			kMapPos[30];			// the world map: where each of the 15 pyramids is (x, y pairs)
 extern int			kMapLinks[225];			// the world map: 15 x 15, 1 where a path joins two pyramids
 extern int			kMapEdge[225];			// the world map: 15 x 15, the number of the path between two pyramids (negative: walked backwards)

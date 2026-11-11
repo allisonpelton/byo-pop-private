@@ -4,7 +4,7 @@
 // MummyApp.cpp: the application class of Mummy Maze Deluxe 1.1 and its helpers (WinMM.exe 0x419bb0-0x4210xx).
 // Behaviour spec: docs/GAME_NOTES.md.
 //
-// Original: class MummyApp : public Sexy::SexyApp (the 2002 SexyApp : ButtonListener), vftable 0x482748 (47 slots), data
+// Original: class MMApp : public Sexy::SexyApp (the 2002 SexyApp : ButtonListener), vftable 0x482748 (47 slots), data
 // from +0x10380 (the 256 x 256 light mask is at +0x380). Offsets below are the original's (code never depends on them).
 
 #include "SexyApp.h"
@@ -26,21 +26,21 @@ namespace Sexy
 
 class Board;
 class TitleScreen;
-class MainMenu;
-class SidePanel;
-class GamePanel;
-class LevelCompleteScreen;
-class HighScoreScreen;
-class VictoryScreen;
-class GameOverScroll;
-class WorldMap;
+class IntroScreen;
+class Sidebar;
+class GameOverWidget;
+class NextLevelWidget;
+class HighScoreWidget;
+class BeachWidget;
+class HighScoreSlide;
+class MapWidget;
 class Image;
 class MemoryImage;
 class ImageFont;
 class Dialog;
 class Widget;
 
-class MummyApp;
+class MMApp;
 
 // The game's pictures by id (IMAGE_X in Res.h). mApp->mImages[IMAGE_X] decodes a picture the first time it is asked for; the
 // original decodes all of them at start (0x41db90 for each id), which is most of the load, and a picture that nothing
@@ -48,13 +48,13 @@ class MummyApp;
 class ImageTable
 {
 public:
-	explicit ImageTable(MummyApp* theApp);
+	explicit ImageTable(MMApp* theApp);
 	Image*					operator[](int theId) { return mImages[theId] != NULL ? mImages[theId] : Load(theId); }
 
 private:
 	Image*					Load(int theId);
 
-	MummyApp*				mApp;
+	MMApp*				mApp;
 	Image*					mImages[NUM_IMAGES];
 };
 
@@ -91,7 +91,7 @@ enum DialogId
 	DIALOG_DELETE_ADVENTURE = 0x18
 };
 
-class MummyApp : public SexyApp
+class MMApp : public SexyApp
 {
 public:
 	enum
@@ -108,15 +108,15 @@ public:
 	ImageFont*				mBiggestFont;       // +0x10390 data\biggestfont.txt
 	ImageFont*				mPyramidFont;       // +0x10394 data\pyramidfont.txt (made by the loading thread)
 	TitleScreen*			mTitleScreen;       // +0x10398
-	MainMenu*				mMainMenu;          // +0x1039c
-	GamePanel*				mGamePanel;         // +0x103a0 the buttons of a game in progress (0x412ea0)
-	LevelCompleteScreen*	mLevelComplete;     // +0x103a4 (0x422480)
-	HighScoreScreen*		mHighScores;        // +0x103a8 (0x4143a0)
+	IntroScreen*				mMainMenu;          // +0x1039c
+	GameOverWidget*				mGamePanel;         // +0x103a0 the buttons of a game in progress (0x412ea0)
+	NextLevelWidget*	mLevelComplete;     // +0x103a4 (0x422480)
+	HighScoreWidget*		mHighScores;        // +0x103a8 (0x4143a0)
 	Widget*					mHighScoreBack;     // +0x103ac (0x414290)
-	WorldMap*				mWorldMap;          // +0x103b0 (0x417010)
+	MapWidget*				mWorldMap;          // +0x103b0 (0x417010)
 	Board*					mBoard;             // +0x103b4 (0x403e80)
-	VictoryScreen*			mVictory;           // +0x103b8 (0x401ca0)
-	SidePanel*				mSidePanel;         // +0x103bc (0x4291d0)
+	BeachWidget*			mVictory;           // +0x103b8 (0x401ca0)
+	Sidebar*				mSidePanel;         // +0x103bc (0x4291d0)
 	int						mGameMode;          // +0x103d8 GameMode
 	int						mCurrentSlot;       // +0x1048c the adventure slot (registry "Name")
 	int						mSpeed;             // +0x10434 registry "Speed" (default 1)
@@ -135,10 +135,10 @@ public:
 	int						mAdvChamber;        // +0x1040c the adventure: the chamber (0 .. 14) of the pyramid
 	int						mClassicPyramid;    // +0x10428 the classic game: the pyramid, 0 .. 14 (14 is the last, a dark one)
 	int						mClassicChamber;    // +0x10424 the classic game: the chamber, 0 .. 14 (14 holds the treasure)
-	bool					mRestoring;         // +0x104a4 loading a saved game: LoadMaze takes the file and maze from the save
+	bool					mRestoring;         // +0x104a4 loading a saved game: LoadMap takes the file and maze from the save
 	int						mRestoreFile;       // +0x104a0
 	int						mRestoreMaze;       // +0x1049c
-	bool					mFixedFile;         // +0x10498 LoadMaze takes mFixedFileNumber / mFixedMaze (the tutorial)
+	bool					mFixedFile;         // +0x10498 LoadMap takes mFixedFileNumber / mFixedMaze (the tutorial)
 	int						mFixedFileNumber;   // +0x10494
 	int						mFixedMaze;         // +0x10490
 	double					mTotalTime;         // +0x10418 the adventure's time played, in seconds
@@ -166,8 +166,8 @@ public:
 	void					HandleAutoplayParam(const std::string& theParamName, const std::string& theParamValue);
 
 public:
-	MummyApp();
-	virtual ~MummyApp();
+	MMApp();
+	virtual ~MMApp();
 
 	// SexyApp
 	virtual void			ButtonPress(int theId) override;
@@ -186,53 +186,53 @@ public:
 
 	// Helpers (WinMM.exe addresses in MummyApp.cpp)
 	void					LoadSoundOnce(int theSoundNum);
-	Image*					LoadImage(int theImageId);   // 0x41db90: NULL (and the game ends) when the picture is not there
+	Image*					DoLoadImage(int theImageId);   // 0x41db90: NULL (and the game ends) when the picture is not there
 	// the clock of the times that a game takes (the original's GetTickCount): the bot's runs count updates instead, 10 ms each,
 	// so that their scores do not depend on how fast the machine is
 	// (the fixes mod's gameClock does the same in a normal run: the time of a chamber is the updates it took)
 	DWORD					GameTick() { return (mAutoplay || mFastMode || mFixes.mGameClock) ? (DWORD) mUpdateCount * 10 : GetTickCount(); }
-	void					SetMusicOrder(int theOrder, bool theFade);
-	void					TitleDone();                            // 0x41e970
-	void					ShowMainMenu(int theEntry, bool theFade);   // 0x41b160
-	void					RemoveBoard();                          // 0x41c340
-	void					RemoveGamePanel();                      // 0x41b4b0
-	void					RemoveLevelComplete();                  // 0x41b7b0
-	void					RemoveWorldMap();                       // 0x41c300
-	void					StartBoardScreen();                     // 0x41e6a0
-	void					ShowGamePanel();                        // 0x41b2f0
-	void					RemoveGameOverScroll();                 // 0x41c380
-	void					OnLevelComplete();                      // 0x41b4f0
+	void					DoMusic(int theOrder, bool theFade);
+	void					LoadingCompleted();                            // 0x41e970
+	void					DoIntro(int theEntry, bool theFade);   // 0x41b160
+	void					KillBoard();                          // 0x41c340
+	void					KillGameOver();                      // 0x41b4b0
+	void					KillNextLevel();                  // 0x41b7b0
+	void					KillMap();                       // 0x41c300
+	void					NewGame();                     // 0x41e6a0
+	void					DoGameOver();                        // 0x41b2f0
+	void					KillHighScoreSlide();                 // 0x41c380
+	void					DoNextLevel();                      // 0x41b4f0
 	void					OnContinueLink();                       // 0x4112b0 case 3
-	void					StartClassicOrContinue();               // 0x41c410
-	void					StartTutorial();                        // 0x41c3c0
-	void					ShowQuitDialog();                       // 0x41cc30
-	void					ShowQuitToMainDialog();                 // 0x41cfb0
-	void					ShowOptions();                          // 0x41eab0
-	void					ShowHighScoreDialog();                  // 0x41f6a0
+	void					TryConfirmLoad();               // 0x41c410
+	void					DoTutorial();                        // 0x41c3c0
+	void					ConfirmQuit();                       // 0x41cc30
+	void					ConfirmQuitToMain();                 // 0x41cfb0
+	void					DoOptions();                          // 0x41eab0
+	void					DoHighScoreDialog();                  // 0x41f6a0
 	Dialog*					NewDialogOf(Dialog* theDialog);
-	void					ShowRecordScore(const SexyString& theLines);   // 0x41f3e0
-	void					ShowTip(int theWhich);                  // 0x41b5b0
-	void					ShowAdventureSlots();                   // 0x41b800
+	void					DoRecordScoreDialog(const SexyString& theLines);   // 0x41f3e0
+	void					DoWarning(int theWhich);                  // 0x41b5b0
+	void					DoAdventure();                   // 0x41b800
 	void					ShowNewAdventure();
-	void					ShowDeleteAdventure();                  // 0x41bb10
-	void					ShowBadSaveMessage();                   // 0x41f0d0
-	void					DeleteAdventure(int theSlot);           // 0x41bc80
+	void					DoDeleteDialog();                  // 0x41bb10
+	void					DoVersionError();                   // 0x41f0d0
+	void					DeleteGame(int theSlot);           // 0x41bc80
 	void					CreateAdventure(int theSlot, const SexyString& theName);   // 0x4201e0 case 0x7db
 	bool					AdventureExists(int theSlot);
 	bool					AdventureName(int theSlot, SexyString& theName);
-	void					LoadAdventure(int theSlot, bool theFlag);   // 0x41bcc0
+	void					DoMap(int theSlot, bool theFlag);   // 0x41bcc0
 	void					AdventureCaught();                      // 0x406f10, 0x407cc0, 0x4083e0
 	void					AdventureLeave();                       // 0x413950, 0x42a3d0
 	void					OnWorldMapButton();                     // 0x42a3d0 case 13
-	void					ShowAnkhHelp(bool theSolvable);         // 0x41fc70
-	void					ShowVictory();                          // 0x41e890
-	bool					LoadClassic();                          // 0x41c600
-	bool					ClassicSaveExists();
+	void					DoAnkhExplanation(bool theSolvable);         // 0x41fc70
+	void					DoBeach();                          // 0x41e890
+	bool					LoadGame();                          // 0x41c600
+	bool					HasSavedGame();
 	void					DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW,
 											int theH = -1);
 };
 
-extern MummyApp* gApp;
+extern MMApp* gApp;
 
 }
 
