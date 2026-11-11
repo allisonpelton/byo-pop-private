@@ -28,6 +28,7 @@ typedef struct {
   int sequence;   /* libxmp-lite's selected sequence */
   int loop;       /* libxmp-lite: repeat for ever */
   int ended;
+  int meter;      /* an IT's row highlights for libxmp-lite (rows per beat << 16 | per bar), 0 for none */
   short buf[4096 * 2];
 } bm_module;
 
@@ -60,6 +61,7 @@ EMSCRIPTEN_KEEPALIVE bm_module* bm_load(const void* data, int size) {
     openmpt_module_set_render_param(b->mpt, OPENMPT_MODULE_RENDER_STEREOSEPARATION_PERCENT, BYOPOP_OPENMPT_SEPARATION);
     return b;
   }
+  { int beat = 0, bar = 0; if (byopop_it_meter((const unsigned char*)data, size, &beat, &bar)) b->meter = beat << 16 | bar; }
   b->xmp = xmp_create_context();
   if (xmp_load_module_from_memory(b->xmp, data, size) != 0) { xmp_free_context(b->xmp); free(b); return 0; }
   xmp_start(b, 48000);
@@ -313,6 +315,25 @@ EMSCRIPTEN_KEEPALIVE const char* bm_names(bm_module* b) {
   }
   byopop_xmp_names(info(b).mod, name_text, (int)sizeof name_text);
   return name_text;
+}
+
+/* A pattern's rows per beat and per bar as the file stores them (beat << 16 | bar), 0 for none: libopenmpt's (an MO3's PRHI
+   chunk), except its own default 4 and 16, which it gives as well for a file that stores none; an IT's header for
+   libxmp-lite (ModuleText.h's byopop_it_meter). */
+EMSCRIPTEN_KEEPALIVE int bm_meter(bm_module* b, int pattern) {
+  if (b->mpt) {
+    int beat = openmpt_module_get_pattern_rows_per_beat(b->mpt, pattern), bar = openmpt_module_get_pattern_rows_per_measure(b->mpt, pattern);
+    return beat > 0 && bar >= beat && !(beat == 4 && bar == 16) ? beat << 16 | bar : 0;
+  }
+  return b->meter;
+}
+
+/* The current speed (ticks a row) and tempo (BPM) as speed << 16 | bpm: a row lasts speed * 2.5 / bpm seconds. */
+EMSCRIPTEN_KEEPALIVE int bm_tempo(bm_module* b) {
+  if (b->mpt) return openmpt_module_get_current_speed(b->mpt) << 16 | (int)(openmpt_module_get_current_tempo2(b->mpt) + 0.5);
+  struct xmp_frame_info fi;
+  xmp_get_frame_info(b->xmp, &fi);
+  return fi.speed << 16 | fi.bpm;
 }
 
 /* Mutes a channel (on 1) or brings it back (on 0), the tracker's header's click; 1 done, 0 not (a channel out of range, or

@@ -335,11 +335,13 @@ var ByopopMusic = (function () {
     var piano = make("canvas", "mu-piano");
     piano.setAttribute("aria-hidden", "true");
     piano.hidden = true;
-    // the score (drawScore below): the pattern heard as staves, which scroll up and down, and a mark over the heard column
-    var score = make("div", "mu-score"), scoreSheet = make("div", "mu-score-sheet"), scoreHead = make("div", "mu-score-head");
+    // the score (drawScore below): the patterns as staves sliding past the playhead (scoreHead), which scroll up and down, the
+    // clefs fixed at the left, and the metre as a value (scoreMeter)
+    var score = make("div", "mu-score"), scoreSheet = make("div", "mu-score-sheet"), scoreHead = make("div", "mu-score-head"), scoreMeter = make("span", "mu-meter");
     score.setAttribute("aria-hidden", "true");
     score.hidden = true;
     scoreSheet.appendChild(scoreHead);
+    scoreSheet.appendChild(scoreMeter);
     score.appendChild(scoreSheet);
     visEl.appendChild(spectrum); visEl.appendChild(tracker); visEl.appendChild(piano); visEl.appendChild(score);
     // the game the views follow (below, "Following a game"), over the view's top right corner
@@ -654,6 +656,10 @@ var ByopopMusic = (function () {
         // a channel muted or brought back; false where the decoder cannot (one cached from before bm_mute). It is heard once the
         // second the decoder has rendered ahead has played
         mute: function (c, on) { return typeof M._bm_mute === "function" && M._bm_mute(m, c, on ? 1 : 0) === 1; },
+        // a pattern's rows per beat and per bar as the file stores them (beat << 16 | bar), 0 where it stores none
+        meter: function (pattern) { return typeof M._bm_meter === "function" ? M._bm_meter(m, pattern) : 0; },
+        // the speed (ticks a row) and tempo playing now, or null
+        tempo: function () { var t = typeof M._bm_tempo === "function" ? M._bm_tempo(m) : 0; return t ? { speed: t >> 16, bpm: t & 0xffff } : null; },
         // the channels that play a note anywhere in the module, by number
         used: function () {
           var buf = M._malloc(256), n = Math.min(256, M._bm_used(m, buf, 256)), list = [];
@@ -909,7 +915,8 @@ var ByopopMusic = (function () {
       if (follow) {
         var v = follow.view;
         if (v.kind !== "module" || !(v.rows > 0)) return null;
-        return { mark: [0, v.pattern, v.row, v.rows, v.channels, v.order], rowAt: followedRow, used: followedUsed, names: followedNames, mute: followedMute, id: "g" + follow.serial };
+        return { mark: [0, v.pattern, v.row, v.rows, v.channels, v.order], rowAt: followedRow, used: followedUsed, names: followedNames, mute: followedMute,
+          meter: followedMeter, tempo: function () { return v.speed > 0 && v.bpm > 0 ? { speed: v.speed, bpm: v.bpm } : null; }, id: "g" + follow.serial };
       }
       if (!source || !source.rowText) return null;
       var h = heard(), mark = null;
@@ -917,7 +924,8 @@ var ByopopMusic = (function () {
       if (!mark) return null;
       return { mark: mark, rowAt: rowOf, used: function () { if (!usedChannels) usedChannels = source.used ? source.used() : []; return usedChannels; },
         names: function () { if (!ownNames) ownNames = parseNames(source.names ? source.names() : ""); return ownNames; },
-        mute: function (c, on) { return !!(source.mute && source.mute(c, on)); }, id: "own" };
+        mute: function (c, on) { return !!(source.mute && source.mute(c, on)); },
+        meter: function (p) { return source.meter ? source.meter(p) : 0; }, tempo: function () { return source.tempo ? source.tempo() : null; }, id: "own" };
     }
     function drawTracker() {
       if (tracker.hidden) return;
@@ -997,7 +1005,10 @@ var ByopopMusic = (function () {
     // { id, patterns: {pattern: {pattern, rows, notes: [[start, end, pitch, colour, instrument]]}}, lo, hi, exact,
     //   before: [pattern, rows], after: {pattern: [the pattern that came next, its rows]} }
     var roll = null;
-    function rollReset() { roll = null; sheet = null; sheets = {}; }
+    function rollReset() {
+      roll = null; tune = null; sheet = null; sheets = {};
+      Array.prototype.slice.call(scoreSheet.querySelectorAll(".mu-score-svg, .mu-score-clefs")).forEach(function (e) { e.parentNode.removeChild(e); });
+    }
     // a cell's note: its pitch (1 is C-0), "off" for a key off, cut or fade, or null; and its instrument's colour, or -1
     function noteOf(cell) {
       var n = cell.charAt(0), acc = cell.charAt(1), oct = cell.charAt(2);
@@ -1047,6 +1058,8 @@ var ByopopMusic = (function () {
       // the patterns on either side of the one heard: the orders before and after it where the decoder knows the order list (the
       // player's own tunes), else, for a game's module, the last one heard before it, and after it the patterns that followed it
       // the last time the tune went on from it (a game's tune comes round again; until then the display past its end is empty)
+      tuneScan(feed);
+      tunePattern(feed, mark[1], mark[3]);
       var now = rollPattern(feed, mark[1], mark[3]), parts = [[now, 0]];
       if (!follow && source && source.orderPattern) {
         // the orders before and after, as many as the display holds
@@ -1077,7 +1090,7 @@ var ByopopMusic = (function () {
       }
       roll.at = [mark[1], mark[3]];
       if (!w || !hgt || !roll.hi) return;
-      var key = [mark[2], roll.lo, roll.hi, w, hgt, parts.map(function (p) { return p[0].pattern + "@" + p[1]; }).join(",")].join(":");
+      var key = [mark[2], roll.lo, roll.hi, w, hgt, tuneOf(feed).read, parts.map(function (p) { return p[0].pattern + "@" + p[1]; }).join(",")].join(":");
       if (key === roll.shown) return;
       roll.shown = key;
       if (piano.width !== Math.round(w * dpr) || piano.height !== Math.round(hgt * dpr)) { piano.width = Math.round(w * dpr); piano.height = Math.round(hgt * dpr); }
@@ -1111,13 +1124,14 @@ var ByopopMusic = (function () {
       }
       g.fillStyle = "#003000";
       for (p = roll.lo; p <= roll.hi; p++) if ((p - 1) % 12 === 0) g.fillRect(left, y(p) + step - 1, w - left, 1);
-      // each pattern's beats and bars, its first row brighter: four rows a beat and four beats a bar, as in the score (the
-      // modules give no rows per beat)
+      // each pattern's beats and bars from its metre (meterOf, as in the score), its first row brighter; the bars run on from one
+      // pattern into the next
       parts.forEach(function (part) {
-        for (var r = 0; r < part[0].rows; r += 4) {
+        var m = meterOf(feed, part[0].pattern);
+        for (var r = 0; r < part[0].rows; r += m.beat) {
           var x = head + (r + part[1] - mark[2]) * col;
           if (x < left || x >= w) continue;
-          g.fillStyle = r === 0 ? "#707070" : r % 16 === 0 ? "#383838" : "#1c1c1c";
+          g.fillStyle = r === 0 ? "#707070" : r % m.bar === 0 ? "#383838" : "#1c1c1c";
           g.fillRect(x, 0, 1, hgt);
         }
       });
@@ -1174,27 +1188,191 @@ var ByopopMusic = (function () {
           });
         });
       }
+      // the heard pattern's metre as a value at the top left ("4/4 16TH FILE")
+      var label = sigOf(meterOf(feed, mark[1])).label, lw = Math.ceil(g.measureText(label).width) + 4;
+      g.fillStyle = "#000000";
+      g.fillRect(left, 0, lw, 13);
+      g.fillStyle = style.color;
+      g.globalAlpha = 0.7;
+      g.fillText(label, left + 2, 7);
+      g.globalAlpha = 1;
       g.restore();
       // the playhead, over the heard row
       g.fillStyle = "rgba(255, 255, 255, 0.25)";
       g.fillRect(head, 0, col, hgt);
     }
-    // The score (the user, 2026-11-09, sheet music): the pattern heard as staff notation, drawn by VexFlow 5.0.0
-    // (web/third_party/vexflow-bravura.js, served as vexflow/vexflow-bravura.js; MIT, with the Bravura and Academico fonts, SIL
-    // OFL), which the page fetches only
-    // when this view is first chosen. A staff for each instrument the pattern plays, in the instrument's colour from the piano
-    // roll, its clef from its notes (treble when they lie at G below middle C or higher on average, else bass); an instrument
-    // that plays one pitch only, four times or more, is taken for a drum and drawn on a percussion staff with x noteheads. A row
-    // is a sixteenth note, four rows a beat, in 4/4 (libopenmpt gives no rows per beat), so a 64-row pattern is four bars on
-    // one line, and the next pattern takes the line's place as a page turns. Within an instrument a note lasts until its
-    // channel's next note, key off, cut or fade, or until that instrument's next note in any channel; notes that start together
-    // are a chord; a length that no single note value gives is tied notes, as is a note held over a bar line. Sharps are
-    // written as the bar needs them (VexFlow's own rule for C major). Effects (slides, vibrato, volume) are not drawn. A
-    // tracker's C-5 is written as middle C. The column heard is marked; the staves scroll up and down.
-    // sheets: each pattern drawn so far, by its key, kept while the tune plays (a tune comes back to its patterns, and drawing one
-    // takes about 100 ms of the page's time): SCORE_KEEP at most, the oldest dropped first
-    var vf = null, vfLoading = false, sheet = null, sheets = {}, SCORE_KEEP = 32;
-    var SCORE_DUR = [[16, "w"], [12, "hd"], [8, "h"], [6, "qd"], [4, "q"], [3, "8d"], [2, "8"], [1, "16"]];
+    // The tune as a whole, for the bar lines and the score: each pattern's notes by instrument and its note onsets by channel
+    // (read once), the staves the tune needs, and its metre. tune: { id, pats: {pattern: {rows, parts, onsets}}, read, staves,
+    // staffAsk, staffSet, inferred, inferredAt, scanned }
+    var tune = null;
+    function tuneOf(feed) {
+      if (!tune || tune.id !== feed.id) tune = { id: feed.id, pats: {}, read: 0, staffAsk: "", staffSet: null, inferred: null, inferredAt: -1, scanned: false,
+        at: null, before: null, after: {} };
+      return tune;
+    }
+    // a pattern of it: its notes by instrument ({ rows, parts: [{ ins, ch, notes: [[start, end, pitch]] }] }) and which rows
+    // start a note in each channel (onsets[c][r] true)
+    function tunePattern(feed, pattern, rows) {
+      var t = tuneOf(feed), k = String(pattern);
+      if (t.pats[k]) return t.pats[k];
+      var parts = {}, open = {}, last = {}, onsets = [];
+      for (var r = 0; r < rows; r++) {
+        var cells = feed.rowAt(pattern, r).split("|");
+        for (var c = 0; c < cells.length; c++) {
+          var n = noteOf(cells[c] || "");
+          if (!n) continue;
+          if (open[c]) { open[c][1] = r; open[c] = null; }
+          if (n.pitch === "off") continue;
+          if (!onsets[c]) onsets[c] = [];
+          onsets[c][r] = true;
+          if (n.ins) last[c] = n.ins;
+          var ins = last[c] || 0, key = ins ? "i" + ins : "c" + c;
+          if (!parts[key]) parts[key] = { key: key, ins: ins, ch: c, notes: [] };
+          var note = [r, rows, n.pitch];
+          parts[key].notes.push(note);
+          open[c] = note;
+        }
+      }
+      t.read++;
+      t.pats[k] = { rows: rows, parts: parts, onsets: onsets };
+      return t.pats[k];
+    }
+    // the staves for some patterns (those on the display): a staff for each instrument they play, in instrument order, its clef
+    // from all its notes in the tune read so far. { list, key }, kept until the patterns or what has been read change
+    function staffSet(t, patterns) {
+      var ask = patterns.join(",") + ":" + t.read;
+      if (t.staffAsk === ask) return t.staffSet;
+      var want = {}, all = {};
+      patterns.forEach(function (pk) { var pt = t.pats[String(pk)]; if (pt) Object.keys(pt.parts).forEach(function (key) { want[key] = 1; }); });
+      Object.keys(t.pats).forEach(function (pk) {
+        var ps = t.pats[pk].parts;
+        Object.keys(ps).forEach(function (key) {
+          if (!want[key]) return;
+          var a = all[key] || (all[key] = { key: key, ins: ps[key].ins, ch: ps[key].ch, pitches: [] });
+          ps[key].notes.forEach(function (nn) { a.pitches.push(nn[2]); });
+        });
+      });
+      var list = Object.keys(all).map(function (key) {
+        var a = all[key], distinct = a.pitches.filter(function (v, i, arr) { return arr.indexOf(v) === i; });
+        var drum = distinct.length === 1 && a.pitches.length >= 4;
+        var avg = a.pitches.reduce(function (s2, v) { return s2 + v; }, 0) / a.pitches.length;
+        return { key: key, ins: a.ins, ch: a.ch, drum: drum, clef: drum ? "percussion" : avg >= 56 ? "treble" : "bass",
+                 colour: ROLL[a.ins > 0 ? (a.ins - 1) % ROLL.length : a.ch % ROLL.length] };
+      });
+      list.sort(function (a, b) { return (a.ins || 1000 + a.ch) - (b.ins || 1000 + b.ch); });
+      t.staffAsk = ask;
+      t.staffSet = { list: list, key: list.map(function (st) { return st.key + st.clef; }).join(",") };
+      return t.staffSet;
+    }
+    // the player's own tunes: every pattern of the order list read at once, so the staves and the metre are the whole tune's
+    function tuneScan(feed) {
+      var t = tuneOf(feed);
+      if (t.scanned || follow || !source || !source.orderPattern) return;
+      t.scanned = true;
+      for (var o = 0, seen = 0; seen < 512; o++, seen++) {
+        var op = source.orderPattern(o);
+        if (op === "skip") continue;
+        if (!op) break;
+        if (op[1]) tunePattern(feed, op[0], op[1]);
+      }
+    }
+    // The metre (the user, 2026-11-11: "not every pattern has 4 bars. Some have 8 or 12"): a pattern's rows per beat and per
+    // bar as the file stores them (an IT's row highlights, an MO3's; bm_meter, byopop_music_meter); else found from the notes:
+    // the shortest bar length in rows (8, 12, 16, 24 or 32) at which the channels' note onsets come round again (channels that
+    // repeat every 2, 3 or 4 rows, a hi-hat's, left out as telling nothing), doubled while a bar would last under 1.2 seconds
+    // at the tune's speed and tempo, and the beat that bar divides into (2 to 4 beats) nearest 110 beats a minute; else 4 and
+    // 16. { beat, bar, src: "FILE", "NOTES" or "DEFAULT" }
+    var METER_DEFAULT = { beat: 4, bar: 16, src: "DEFAULT" };
+    function meterOf(feed, pattern) {
+      var stored = feed.meter ? feed.meter(pattern) : 0;
+      if (stored > 0) return { beat: stored >> 16, bar: stored & 0xffff, src: "FILE" };
+      var t = tuneOf(feed);
+      if (t.inferredAt !== t.read) { t.inferred = inferMeter(t, feed.tempo ? feed.tempo() : null); t.inferredAt = t.read; }
+      return t.inferred || METER_DEFAULT;
+    }
+    function inferMeter(t, tempo) {
+      var LAGS = [2, 3, 4, 8, 12, 16, 24, 32], hit = {}, tot = {};
+      LAGS.forEach(function (L) { hit[L] = 0; tot[L] = 0; });
+      Object.keys(t.pats).forEach(function (pk) {
+        var pt = t.pats[pk];
+        pt.onsets.forEach(function (on) {
+          if (!on) return;
+          var count = 0;
+          for (var r = 0; r < pt.rows; r++) if (on[r]) count++;
+          if (count < 4) return;
+          var own = {};
+          LAGS.forEach(function (L) {
+            var h = 0, n = 0;
+            for (var r2 = 0; r2 + L < pt.rows; r2++) if (on[r2]) { n++; if (on[r2 + L]) h++; }
+            own[L] = [h, n];
+          });
+          // a channel that repeats every 2, 3 or 4 rows tells nothing of the bar
+          if ([2, 3, 4].some(function (L) { return own[L][1] >= 4 && own[L][0] >= 0.9 * own[L][1]; })) return;
+          LAGS.forEach(function (L) { hit[L] += own[L][0]; tot[L] += own[L][1]; });
+        });
+      });
+      var BARS = [8, 12, 16, 24, 32], score = {}, best = 0;
+      BARS.forEach(function (L) { score[L] = tot[L] >= 16 ? hit[L] / tot[L] : 0; best = Math.max(best, score[L]); });
+      if (best < 0.5) return null;
+      var bar = 0;
+      BARS.forEach(function (L) { if (!bar && score[L] >= 0.9 * best) bar = L; });
+      var rowSec = tempo && tempo.speed > 0 && tempo.bpm > 0 ? tempo.speed * 2.5 / tempo.bpm : 0;
+      while (rowSec && bar * rowSec < 1.2 && bar * 2 <= 32 && score[bar * 2] >= 0.9 * best) bar *= 2;
+      var beat = 0, gap = 1e9;
+      [4, 3, 2, 6, 8].forEach(function (d) {
+        if (bar % d || bar / d < 2 || bar / d > 4) return;
+        var miss = rowSec ? Math.abs(60 / (d * rowSec) - 110) : (d === 4 ? 0 : 1);
+        if (miss < gap) { gap = miss; beat = d; }
+      });
+      return beat ? { beat: beat, bar: bar, src: "NOTES" } : null;
+    }
+    // A metre as notation: the rows in a whole note (a row a sixteenth at 4 or 6 rows a beat, an eighth at 2 or 3, a
+    // thirty-second at 8 or 12; 3, 6 and 12 compound, a beat a dotted quarter), the time signature, and the label the display
+    // shows ("4/4 16TH FILE")
+    function sigOf(m) {
+      var compound = m.beat % 3 === 0, whole = compound ? m.beat * 8 / 3 : m.beat * 4;
+      if ([4, 8, 16, 32].indexOf(whole) < 0) { whole = 16; compound = false; }
+      var beats = m.bar / m.beat, num, den;
+      if (beats === Math.floor(beats)) { num = compound ? beats * 3 : beats; den = compound ? 8 : 4; }
+      else { num = m.bar; den = whole; }
+      var unit = { 4: "4TH", 8: "8TH", 16: "16TH", 32: "32ND" }[whole];
+      return { whole: whole, num: num, den: den, label: num + "/" + den + " " + unit + " " + m.src };
+    }
+    // the note values a length in rows is written with, longest first, for that many rows in a whole note
+    function noteValues(whole) {
+      return [[1, "w"], [0.75, "hd"], [0.5, "h"], [0.375, "qd"], [0.25, "q"], [0.1875, "8d"], [0.125, "8"], [0.09375, "16d"], [0.0625, "16"], [0.03125, "32"]]
+        .map(function (v) { return [v[0] * whole, v[1]]; }).filter(function (v) { return v[0] >= 1 && v[0] === Math.floor(v[0]); });
+    }
+    // the patterns on either side of the one heard, as the piano roll finds them: the order list's for the player's own
+    // tunes, else the one heard before and those that followed it the last time the tune went on from it. [[pattern, rows,
+    // offset from the heard pattern's first row in patterns: -1, 1, 2 ...]]
+    function neighbours(feed, mark, before, after) {
+      var t = tuneOf(feed), out = [];
+      if (!follow && source && source.orderPattern) {
+        for (var o = mark[5] - 1, k = 0; k < before && o >= 0; o--) { var b = source.orderPattern(o); if (b === "skip") continue; if (!b || !b[1]) break; out.push([b[0], b[1], -(++k)]); }
+        for (var o2 = mark[5] + 1, k2 = 0; k2 < after; o2++) { var a = source.orderPattern(o2); if (a === "skip") continue; if (!a || !a[1]) break; out.push([a[0], a[1], ++k2]); }
+        return out;
+      }
+      if (t.at && t.at[0] !== mark[1]) { t.before = t.at; t.after[t.at[0]] = [mark[1], mark[3]]; }
+      t.at = [mark[1], mark[3]];
+      if (t.before && before > 0) out.push([t.before[0], t.before[1], -1]);
+      for (var nx = t.after[mark[1]], k3 = 0; nx && k3 < after; nx = t.after[nx[0]]) out.push([nx[0], nx[1], ++k3]);
+      return out;
+    }
+    // The score (the user, 2026-11-09, sheet music; 2026-11-11: "sheet music should scroll instead of fitting to window
+    // width"): the tune in staff notation, drawn by VexFlow 5.0.0 (web/third_party/vexflow-bravura.js, served as
+    // vexflow/vexflow-bravura.js; MIT, with the Bravura and Academico fonts, SIL OFL), which the page fetches only when this
+    // view is first chosen. A staff for each instrument that the patterns on the display play (the heard one and those either
+    // side of it; a whole tune can have a hundred), in its piano-roll colour, its clef from all its notes in the tune (treble when they lie at G below middle C or higher on
+    // average, else bass; an instrument that plays one pitch only, four times or more, a drum on a percussion staff with x
+    // noteheads). Each pattern is drawn once, at a fixed scale (the display's height over the staves, 0.45 to 0.8), each row
+    // SCORE_ROW wide before scaling, its bars from its metre, and kept (SCORE_KEEP at most); the patterns run on side by side and
+    // slide past a playhead a third of the way in, the clefs and time signature standing still at the left. Within an
+    // instrument a note lasts until its channel's next note, key off, cut or fade, or until that instrument's next note in any
+    // channel; notes that start together are a chord; a length that no single note value gives is tied notes, as is a note
+    // held over a bar line. Sharps are written as the bar needs them (VexFlow's own rule for C major). Effects are not drawn. A
+    // tracker's C-5 is written as middle C. The staves scroll up and down where they do not fit.
+    var vf = null, vfLoading = false, sheet = null, sheets = {}, sheetSerial = 0, SCORE_KEEP = 32, SCORE_ROW = 26, SCORE_LINE = 84, SCORE_TOP = 24;
     var STEP_NAMES = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
     function loadScore() {
       if (vf || vfLoading) return;
@@ -1210,44 +1388,22 @@ var ByopopMusic = (function () {
       el.onerror = function () { vfLoading = false; };
       document.head.appendChild(el);
     }
-    // a pattern's notes by instrument: { rows, parts: [{ ins, notes: [[start, end, pitch]] }] }
-    function scorePattern(feed, pattern, rows) {
-      var parts = {}, open = {}, last = {};
-      for (var r = 0; r < rows; r++) {
-        var cells = feed.rowAt(pattern, r).split("|");
-        for (var c = 0; c < cells.length; c++) {
-          var n = noteOf(cells[c] || "");
-          if (!n) continue;
-          if (open[c]) { open[c][1] = r; open[c] = null; }
-          if (n.pitch === "off") continue;
-          if (n.ins) last[c] = n.ins;
-          var ins = last[c] || 0, key = ins ? "i" + ins : "c" + c;
-          if (!parts[key]) parts[key] = { ins: ins, ch: c, notes: [] };
-          var note = [r, rows, n.pitch];
-          parts[key].notes.push(note);
-          open[c] = note;
-        }
-      }
-      var list = Object.keys(parts).map(function (k) { return parts[k]; });
-      list.sort(function (a, b) { return (a.ins || 1000 + a.ch) - (b.ins || 1000 + b.ch); });
-      return { rows: rows, parts: list };
-    }
     function vfKey(pitch, drum) {
       if (drum) return "c/5/x2";
       var p = pitch - 1, oct = Math.floor(p / 12) - 1;
       return STEP_NAMES[p % 12] + "/" + oct;
     }
-    // one instrument's staff line: its notes cut at the instrument's next note, then split at every start, end and bar line
-    // into note values; returns [{ keys: [...], pitches: [...], start, rows, dur, tieFrom }] in order
-    function scoreEvents(part, rows) {
-      var notes = part.notes.map(function (n) { return n.slice(); });
+    // one instrument's line in a pattern: its notes cut at the instrument's next note, then split at every start, end and bar
+    // line into note values; returns [{ pitches, start, rows, dur, tieFrom }] in order
+    function scoreEvents(part, rows, bar, values) {
+      var notes = part ? part.notes.map(function (n) { return n.slice(); }) : [];
       var starts = notes.map(function (n) { return n[0]; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
       notes.forEach(function (n) {
         for (var i = 0; i < starts.length; i++) if (starts[i] > n[0]) { n[1] = Math.min(n[1], starts[i]); break; }
       });
       var cuts = { 0: 1 };
       cuts[rows] = 1;
-      for (var b = 16; b < rows; b += 16) cuts[b] = 1;
+      for (var b = bar; b < rows; b += bar) cuts[b] = 1;
       notes.forEach(function (n) { cuts[n[0]] = 1; cuts[n[1]] = 1; });
       var at = Object.keys(cuts).map(Number).filter(function (v) { return v >= 0 && v <= rows; }).sort(function (a, b) { return a - b; });
       var out = [];
@@ -1256,56 +1412,42 @@ var ByopopMusic = (function () {
         var sounding = notes.filter(function (n) { return n[0] <= a && a < n[1]; });
         var pitches = sounding.map(function (n) { return n[2]; }).filter(function (v, k, arr) { return arr.indexOf(v) === k; }).sort(function (x, y) { return x - y; });
         var held = sounding.length > 0 && sounding.every(function (n) { return n[0] < a; });
-        // the length in note values, longest first, each a tie on from the one before
+        // the length in note values, longest first, each a tie on from the one before, none across a bar line
         for (var r = a, first = true; r < z;) {
           var len = z - r, d = null;
-          for (var k = 0; k < SCORE_DUR.length; k++) if (SCORE_DUR[k][0] <= len && (r % 16) + SCORE_DUR[k][0] <= 16) { d = SCORE_DUR[k]; break; }
-          if (!d) d = SCORE_DUR[SCORE_DUR.length - 1];
+          for (var k = 0; k < values.length; k++) if (values[k][0] <= len && (r % bar) + values[k][0] <= bar) { d = values[k]; break; }
+          if (!d) d = values[values.length - 1];
           out.push({ pitches: pitches, start: r, rows: d[0], dur: d[1], tieFrom: pitches.length > 0 && (!first || held) });
           r += d[0]; first = false;
         }
       }
       return out;
     }
-    function renderScore(feed, pattern, rows, width) {
-      var V = vf, pat = scorePattern(feed, pattern, rows);
-      while (scoreSheet.lastChild && scoreSheet.lastChild !== scoreHead) scoreSheet.removeChild(scoreSheet.lastChild);
+    // one pattern drawn: { host (absolutely placed), width, height, rowX: each row's x and the end's, in pixels }
+    function renderSheet(t, staves, pattern, meter, scale) {
+      var V = vf, pat = t.pats[String(pattern)], rows = pat.rows, sig = sigOf(meter), values = noteValues(sig.whole), bar = meter.bar;
       var host = make("div", "mu-score-svg");
-      scoreSheet.appendChild(host);
-      var cols = [];
-      if (!pat.parts.length) return { cols: cols, height: 0, host: host };
-      var scale = 0.7, w = width / scale, bars = Math.ceil(rows / 16), lineH = 84, top = 24;
+      var bars = Math.ceil(rows / bar), barW = [], total = 0;
+      for (var b = 0; b < bars; b++) { barW.push((Math.min(rows, (b + 1) * bar) - b * bar) * SCORE_ROW + 14); total += barW[b]; }
+      var height = SCORE_TOP + staves.length * SCORE_LINE + 16;
       var renderer = new V.Renderer(host, V.Renderer.Backends.SVG);
-      renderer.resize(width, Math.ceil((top + pat.parts.length * lineH + 20) * scale));
+      renderer.resize(Math.ceil(total * scale), Math.ceil(height * scale));
       var ctx = renderer.getContext();
       ctx.scale(scale, scale);
-      var staves = [], voicesByBar = [];
-      pat.parts.forEach(function (part, si) {
-        var pitches = part.notes.map(function (n) { return n[2]; });
-        var distinct = pitches.filter(function (v, i, a) { return a.indexOf(v) === i; });
-        var drum = distinct.length === 1 && pitches.length >= 4;
-        var avg = pitches.reduce(function (s2, v) { return s2 + v; }, 0) / pitches.length;
-        var clef = drum ? "percussion" : avg >= 56 ? "treble" : "bass";
-        var restKey = clef === "bass" ? "d/3" : "b/4";
-        var colour = ROLL[part.ins > 0 ? (part.ins - 1) % ROLL.length : part.ch % ROLL.length];
-        var events = scoreEvents(part, rows), row = [];
-        for (var b = 0; b < bars; b++) {
-          var stave = new V.Stave(0, top + si * lineH, 10);
-          if (b === 0) stave.addClef(clef).addTimeSignature("4/4");
-          row.push({ stave: stave, notes: [], events: [] });
-        }
+      var lines = staves.map(function (st, si) {
+        var restKey = st.clef === "bass" ? "d/3" : "b/4", events = scoreEvents(pat.parts[st.key], rows, bar, values), row = [];
+        for (var b2 = 0, x = 0; b2 < bars; x += barW[b2], b2++) row.push({ stave: new V.Stave(x, SCORE_TOP + si * SCORE_LINE, barW[b2]), notes: [], events: [] });
         var made = [];
         events.forEach(function (ev) {
-          var bar = row[Math.floor(ev.start / 16)];
-          var keys = ev.pitches.length ? ev.pitches.map(function (p) { return vfKey(p, drum); }) : [restKey];
-          var n = new V.StaveNote({ keys: keys, duration: ev.dur + (ev.pitches.length ? "" : "r"), clef: drum ? "percussion" : clef, autoStem: true });
+          var cell = row[Math.floor(ev.start / bar)];
+          var keys = ev.pitches.length ? ev.pitches.map(function (p) { return vfKey(p, st.drum); }) : [restKey];
+          var n = new V.StaveNote({ keys: keys, duration: ev.dur + (ev.pitches.length ? "" : "r"), clef: st.clef, autoStem: true });
           if (/d$/.test(ev.dur)) V.Dot.buildAndAttach([n], { all: true });
-          n.setStyle({ fillStyle: colour, strokeStyle: colour });
-          n.setLedgerLineStyle({ strokeStyle: colour });
-          bar.notes.push(n); bar.events.push(ev);
+          n.setStyle({ fillStyle: st.colour, strokeStyle: st.colour });
+          n.setLedgerLineStyle({ strokeStyle: st.colour });
+          cell.notes.push(n); cell.events.push(ev);
           made.push([n, ev]);
         });
-        // ties: a note on from the one before with the same pitches it shares
         var ties = [];
         for (var i = 1; i < made.length; i++) {
           var cur = made[i][1], prev = made[i - 1][1];
@@ -1314,76 +1456,141 @@ var ByopopMusic = (function () {
           cur.pitches.forEach(function (p, k) { var j = prev.pitches.indexOf(p); if (j >= 0) { fi.push(j); li.push(k); } });
           if (fi.length) ties.push(new V.StaveTie({ firstNote: made[i - 1][0], lastNote: made[i][0], firstIndexes: fi, lastIndexes: li }));
         }
-        staves.push({ row: row, colour: colour, ties: ties, drum: drum });
+        return { row: row, colour: st.colour, ties: ties, drum: st.drum };
       });
-      // the bars across all staves side by side: each column as wide as the line allows, its notes lined up across the staves
-      var clefRoom = 0;
-      staves.forEach(function (st) { clefRoom = Math.max(clefRoom, st.row[0].stave.getNoteStartX() - st.row[0].stave.getX()); });
-      var inner = (w - 2 - clefRoom) / bars, x = 1;
-      for (var b = 0; b < bars; b++) {
-        var bw = inner + (b === 0 ? clefRoom : 0), voices = [];
-        staves.forEach(function (st) {
-          var cell = st.row[b];
-          cell.stave.setX(x); cell.stave.setWidth(bw);
-          var voice = new V.Voice({ numBeats: 4, beatValue: 4 });
+      // each bar's notes lined up across the staves
+      for (var b3 = 0; b3 < bars; b3++) {
+        var voices = [], fmt = new V.Formatter();
+        lines.forEach(function (ln) {
+          var cell = ln.row[b3], voice = new V.Voice({ numBeats: sig.num, beatValue: sig.den });
           voice.setMode(V.Voice.Mode.SOFT);
           voice.addTickables(cell.notes);
-          if (!st.drum) V.Accidental.applyAccidentals([voice], "C");
+          if (!ln.drum) V.Accidental.applyAccidentals([voice], "C");
           cell.voice = voice;
           voices.push(voice);
+          fmt.joinVoices([voice]);
         });
-        var startX = 0;
-        staves.forEach(function (st) { startX = Math.max(startX, st.row[b].stave.getNoteStartX()); });
-        staves.forEach(function (st) { st.row[b].stave.setNoteStartX(startX); });
-        var fmt = new V.Formatter();
-        staves.forEach(function (st) { fmt.joinVoices([st.row[b].voice]); });
-        fmt.format(voices, Math.max(10, x + bw - startX - 10));
-        x += bw;
+        var startX = lines.length ? lines[0].row[b3].stave.getNoteStartX() : 0;
+        fmt.format(voices, Math.max(10, lines.length ? lines[0].row[b3].stave.getX() + barW[b3] - startX - 10 : 10));
       }
-      staves.forEach(function (st) {
-        st.row.forEach(function (cell) {
+      var points = [[0, 0], [rows, total]];
+      lines.forEach(function (ln) {
+        ln.row.forEach(function (cell, bi) {
           cell.stave.setContext(ctx).draw();
-          var beams = V.Beam.generateBeams(cell.notes.filter(function (n) { return !n.isRest(); }));
+          var beams = V.Beam.generateBeams(cell.notes, { beamRests: false, maintainStemDirections: true });   // the rests break a beam
           cell.voice.draw(ctx, cell.stave);
-          beams.forEach(function (bm) { bm.setStyle({ fillStyle: st.colour, strokeStyle: st.colour }); bm.setContext(ctx).draw(); });
-          cell.notes.forEach(function (n, k) { var ev = cell.events[k]; cols.push([ev.start, n.getAbsoluteX() * scale]); });
+          beams.forEach(function (bm) { bm.setStyle({ fillStyle: ln.colour, strokeStyle: ln.colour }); bm.setContext(ctx).draw(); });
+          cell.notes.forEach(function (n, k) { points.push([cell.events[k].start, n.getAbsoluteX()]); });
+          if (bi) points.push([bi * bar, cell.stave.getX()]);
         });
-        st.ties.forEach(function (t) { t.setContext(ctx).draw(); });
+        ln.ties.forEach(function (tie) { tie.setContext(ctx).draw(); });
       });
-      cols.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+      // each row's x: the notes' and bar lines' known places, the rows between them in proportion
+      points.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+      var known = [];
+      points.forEach(function (p) { if (!known.length || known[known.length - 1][0] !== p[0]) known.push(p); });
+      var rowX = [];
+      for (var r = 0, j = 0; r <= rows; r++) {
+        while (j + 1 < known.length && known[j + 1][0] <= r) j++;
+        var p0 = known[j], p1 = known[Math.min(j + 1, known.length - 1)];
+        var x = p1[0] > p0[0] ? p0[1] + (p1[1] - p0[1]) * (r - p0[0]) / (p1[0] - p0[0]) : p0[1];
+        rowX.push(Math.round(x * scale));
+      }
+      rowX[rows] = Math.round(total * scale);
       var svg = host.querySelector("svg");
-      // the staff lines, bar lines, clefs and time signatures take the drawing's own colour (black, unseen on the display): grey
+      // the staff lines, bar lines and rests take the drawing's own colour (black, unseen on the display): grey
       if (svg) { svg.setAttribute("fill", "#808080"); svg.setAttribute("stroke", "#808080"); }
-      return { cols: cols, height: Math.ceil((top + staves.length * lineH + 20) * scale), host: host };
+      return { host: host, width: Math.round(total * scale), height: Math.ceil(height * scale), rowX: rowX };
+    }
+    // the clefs and time signature at the left, standing still while the patterns slide past
+    function renderClefs(staves, meter, scale) {
+      var V = vf, host = make("div", "mu-score-clefs"), sig = sigOf(meter), width = 80;
+      var height = SCORE_TOP + staves.length * SCORE_LINE + 16;
+      var renderer = new V.Renderer(host, V.Renderer.Backends.SVG);
+      renderer.resize(Math.ceil(width * scale), Math.ceil(height * scale));
+      var ctx = renderer.getContext();
+      ctx.scale(scale, scale);
+      staves.forEach(function (st, si) {
+        var stave = new V.Stave(0, SCORE_TOP + si * SCORE_LINE, width);
+        stave.addClef(st.clef).addTimeSignature(sig.num + "/" + sig.den);
+        stave.setContext(ctx).draw();
+      });
+      var svg = host.querySelector("svg");
+      if (svg) { svg.setAttribute("fill", "#808080"); svg.setAttribute("stroke", "#808080"); }
+      return { host: host, width: Math.ceil(width * scale) };
     }
     function drawScore() {
       if (score.hidden) return;
       if (!vf) { loadScore(); return; }
       var feed = trackerFeed();
       if (!feed) return;
-      var mark = feed.mark, w = scoreSheet.clientWidth;
-      if (!w) return;
-      var key = [feed.id, mark[1], mark[3], w].join(":");
-      if (!sheet || sheet.key !== key) {
-        var drawn = sheets[key];
-        if (drawn) {
-          while (scoreSheet.lastChild && scoreSheet.lastChild !== scoreHead) scoreSheet.removeChild(scoreSheet.lastChild);
-          scoreSheet.appendChild(drawn.host);
-        } else {
-          try { drawn = renderScore(feed, mark[1], mark[3], w); } catch (e) { drawn = { cols: [], height: 0, host: null }; }
-          var kept = Object.keys(sheets);
-          if (kept.length >= SCORE_KEEP) delete sheets[kept[0]];
-          if (drawn.host) sheets[key] = drawn;
-        }
-        sheet = { key: key, cols: drawn.cols, height: drawn.height, row: -1 };
+      var mark = feed.mark, w = score.clientWidth, hgt = score.clientHeight;
+      if (!w || !hgt) return;
+      var t = tuneOf(feed);
+      tuneScan(feed);
+      tunePattern(feed, mark[1], mark[3]);
+      var near = neighbours(feed, mark, 2, 4);
+      near.forEach(function (n) { tunePattern(feed, n[0], n[1]); });
+      // the staves of the patterns the display can show: the heard one and those either side of it (a pattern is wider than
+      // two thirds of the display at the least scale); the sheets are drawn again for a new set, each kept by its set
+      var set = staffSet(t, [mark[1]].concat(near.filter(function (n) { return Math.abs(n[2]) === 1; }).map(function (n) { return n[0]; })));
+      var staves = set.list;
+      if (!staves.length) return;
+      var scale = Math.max(0.45, Math.min(0.8, (hgt - 2) / (SCORE_TOP + staves.length * SCORE_LINE + 16)));
+      scale = Math.round(scale * 20) / 20;
+      var meter = meterOf(feed, mark[1]), sig = sigOf(meter);
+      var base = [t.id, set.key, scale].join(":");
+      // a sheet for each pattern, drawn when first needed: the heard one at once, then at most one more a frame
+      var fresh = 0;
+      function sheetFor(pattern, rows) {
+        var m = meterOf(feed, pattern), key = base + ":" + pattern + ":" + rows + ":" + m.beat + "/" + m.bar;
+        if (sheets[key]) return sheets[key];
+        if (fresh++ > 0) return null;
+        var drawn;
+        try { drawn = renderSheet(t, staves, pattern, m, scale); } catch (e) { drawn = null; }
+        var kept = Object.keys(sheets);
+        if (kept.length >= SCORE_KEEP) delete sheets[kept[0]];
+        if (drawn) { drawn.n = ++sheetSerial; drawn.host.style.position = "absolute"; drawn.host.style.top = "0"; sheets[key] = drawn; }
+        return drawn;
       }
-      if (sheet.row === mark[2]) return;
-      sheet.row = mark[2];
-      // the mark over the column heard: the last one that starts at or before the row heard
-      var x = -1;
-      for (var i = 0; i < sheet.cols.length && sheet.cols[i][0] <= mark[2]; i++) x = sheet.cols[i][1];
-      scoreHead.hidden = x < 0;
-      if (x >= 0) { scoreHead.style.left = Math.round(x - 3) + "px"; scoreHead.style.height = sheet.height + "px"; }
+      var cur = sheetFor(mark[1], mark[3]);
+      if (!cur) return;
+      var clefKey = base + ":" + sig.num + "/" + sig.den;
+      if (!sheet || sheet.clefKey !== clefKey) {
+        if (sheet && sheet.clefs && sheet.clefs.host.parentNode) sheet.clefs.host.parentNode.removeChild(sheet.clefs.host);
+        var clefs = null;
+        try { clefs = renderClefs(staves, meter, scale); } catch (e) { clefs = null; }
+        sheet = { clefKey: clefKey, clefs: clefs, placed: "" };
+        if (clefs) scoreSheet.appendChild(clefs.host);
+      }
+      var cw = sheet.clefs ? sheet.clefs.width : 0, head = cw + Math.floor((w - cw) / 3);
+      var curLeft = head - cur.rowX[mark[2]];
+      // the sheets in place: the heard one with its playhead row under the head, the ones before and after it beside it
+      var placed = [[cur, curLeft]], left = curLeft, right = curLeft + cur.width;
+      near.forEach(function (n) {
+        if (n[2] < 0 ? left <= cw : right >= w) return;
+        var s = sheetFor(n[0], n[1]);
+        if (!s) { if (n[2] < 0) left = -1e9; else right = 1e9; return; }
+        if (n[2] < 0) { left -= s.width; placed.push([s, left]); }
+        else { placed.push([s, right]); right += s.width; }
+      });
+      var stamp = placed.map(function (p) { return p[0].n + "@" + p[1]; }).join(",") + ":" + sig.label;
+      if (stamp === sheet.placed) return;
+      sheet.placed = stamp;
+      var height = 0, onPage = placed.map(function (p) { return p[0]; });
+      Object.keys(sheets).forEach(function (k) {
+        var s = sheets[k], i = onPage.indexOf(s);
+        if (i < 0) { if (s.host.parentNode) s.host.parentNode.removeChild(s.host); return; }
+        if (s.host.parentNode !== scoreSheet) scoreSheet.insertBefore(s.host, scoreSheet.firstChild);
+        s.host.style.left = placed[i][1] + "px";
+        height = Math.max(height, s.height);
+      });
+      scoreSheet.style.height = height + "px";
+      if (sheet.clefs) sheet.clefs.host.style.height = height + "px";
+      scoreHead.hidden = false;
+      scoreHead.style.left = (head - 1) + "px";
+      scoreHead.style.height = height + "px";
+      scoreMeter.textContent = sig.label;
     }
     // The spectrum: BARS bars over 40 Hz to 16 kHz spaced as the ear hears them, each with a peak that falls back
     var bins = null, peaks = [], levels = [];
@@ -1511,6 +1718,16 @@ var ByopopMusic = (function () {
     function followedMute(c, on) {
       try { return follow.M.ccall("byopop_music_mute", "number", ["number", "number", "number"], [follow.song, c, on ? 1 : 0]) === 1; }
       catch (e) { return false; }
+    }
+    // a pattern's stored rows per beat and per bar (byopop_music_meter, beat << 16 | bar), 0 where it stores none or the game's
+    // build has no such call
+    function followedMeter(pattern) {
+      if (!follow.meters) follow.meters = {};
+      if (!(pattern in follow.meters)) {
+        try { follow.meters[pattern] = follow.M.ccall("byopop_music_meter", "number", ["number", "number"], [follow.song, pattern]) || 0; }
+        catch (e) { follow.meters[pattern] = 0; }
+      }
+      return follow.meters[pattern];
     }
     function followedUsed() {
       if (!follow.used) {

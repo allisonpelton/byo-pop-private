@@ -780,8 +780,8 @@ libxmp-lite are in About.
   heard row under a fixed playhead a third of the way in, and pitch runs up the display. A margin at the left names
   each C in the tracker's spelling (C-4), and every note where a semitone is 11 pixels high or more; the C of each
   octave has a faint line, and the black keys' rows are a shade lighter where a semitone is 4 pixels or more. Each
-  pattern has a line every beat and a brighter one every bar, four rows a beat and sixteen a bar as in the score, and
-  a brighter one still at its first row. Each instrument has one colour of twelve from the 16-colour palette (blue
+  pattern has a line every beat and a brighter one every bar, from its metre (below, as in the score), and a brighter
+  one still at its first row; the metre is a value at the top left. Each instrument has one colour of twelve from the 16-colour palette (blue
   left out, too dark on black), and a bar carries its instrument's number as the cell writes it and its name, cut to
   the bar's length, where there is room (10 pixels high, 15 wide); where the semitones are thinner, a key at the bottom
   right gives each colour drawn its instruments' numbers and names, on one line or two, the names cut to 12 characters
@@ -797,24 +797,41 @@ libxmp-lite are in About.
   patterns that followed it the last time the tune went on from it, so the right of the display fills once the tune
   comes round again. The roll
   takes the splitter's height and is drawn only when its row, range or size changes.
-- **The score** (sheet music) is the view after the piano roll, for a module only. It draws the pattern heard in staff
+- **The score** (sheet music) is the view after the piano roll, for a module only. It draws the tune in staff
   notation with VexFlow 5.0.0 (`web/third_party/vexflow-bravura.js`, MIT, served as `vexflow/vexflow-bravura.js`,
   728,171 bytes with its fonts Bravura and Academico by Steinberg Media Technologies, SIL OFL 1.1; the licences are
   `web/third_party/vexflow.txt` and `bravura.txt`, served under `licenses/` and linked from the listing's footer).
-  The page fetches the file only when the score is first chosen, and draws once the music font is ready. Each
-  instrument the pattern plays has a staff in its piano-roll colour, the staff lines, bar lines, clefs and time
-  signatures in grey. A staff's clef is treble when its notes lie at G below middle C or higher on average, else
-  bass. An instrument that plays one pitch only, four times or more, is taken for a drum and drawn on a percussion
-  staff with x noteheads. A row is a sixteenth, four rows a beat, in 4/4 (libopenmpt does not give a module's rows
-  per beat), so a 64-row pattern is four bars on one line, and the next pattern takes its place as a page turns. A
-  tracker's C-5 is written as middle C. Within an instrument a note lasts until its channel's next note, key off, cut
-  or fade, or until the instrument's next note in any channel. Notes that start together are a chord, and a length
-  that no single note value gives, or a note held over a bar line, is tied notes. Beams follow VexFlow's own grouping,
-  and sharps are written as the bar needs them (VexFlow's rule for C major). Effects (slides, vibrato, volume) are
-  not drawn. A light bar marks the column heard, and the staves scroll up and down. Drawing a pattern takes about
-  100 ms of the page's time (Bejeweled's "1980-Autonomus", six staves of four bars), so each pattern drawn is kept,
-  32 at most, and a pattern that comes back is shown again at once. It works for a followed game's module as for
-  the player's own tunes.
+  The page fetches the file only when the score is first chosen, and draws once the music font is ready. It scrolls
+  instead of fitting the window's width (the user, 2026-11-11: "sheet music should scroll instead of fitting to window
+  width"): the patterns run on side by side, as on the piano roll (the orders on either side for the player's own tunes,
+  the one heard before and those that followed it for a game's), and slide past a playhead a third of the way in, while
+  the clefs and time signature stand still at the left. The scale is fixed by the display's height over the staves, 0.45
+  to 0.8, each row 26 pixels wide before scaling; the staves scroll up and down where they do not fit. Each pattern is
+  drawn once and kept (32 at most), as drawing one takes about 100 ms of the page's time, and at most one new pattern is
+  drawn a frame besides the heard one. Each instrument that the patterns on the display play (the heard one and those
+  either side of it) has a staff in its piano-roll colour, so the staves change at a pattern's end where the instruments
+  do and those sheets are drawn again (a whole tune can have a hundred instruments, Bejeweled Twist's), the staff lines,
+  bar lines, clefs and time signatures in grey. A staff's clef is treble when the instrument's notes in the tune (all of them for the
+  player's own, which the page reads through once; those heard so far for a game's) lie at G below middle C or higher
+  on average, else bass. An instrument that plays one pitch only, four times or more, is taken for a drum and
+  drawn on a percussion staff with x noteheads. A tracker's C-5 is written as middle C. Within an instrument a note lasts
+  until its channel's next note, key off, cut or fade, or until the instrument's next note in any channel. Notes that
+  start together are a chord, and a length that no single note value gives, or a note held over a bar line, is tied
+  notes. Beams follow VexFlow's own grouping, and sharps are written as the bar needs them (VexFlow's rule for C major).
+  Effects (slides, vibrato, volume) are not drawn.
+- **The metre** (the user, 2026-11-11: "not every pattern has 4 bars. Some have 8 or 12") sets the score's bars and the
+  piano roll's lines, and is shown on both as a value: the time signature, the note a row is, and where it came from
+  ("4/4 16TH FILE"). FILE is a pattern's rows per beat and per bar as the module stores them: an IT's row highlights
+  (its header, read by `byopop_it_meter` in `platform/ModuleText.h`, as libxmp-lite keeps none) or what libopenmpt reads
+  (an IT's, an MO3's), through `bm_meter` and `byopop_music_meter`; 4 and 16, libopenmpt's default and Impulse Tracker's, cannot
+  be told from a chosen 4 and 16 and count as none (every game's IT has them, so every game's tune takes NOTES). NOTES is found from the notes when nothing
+  is stored: the shortest bar of 8, 12, 16, 24 or 32 rows at which the channels' note onsets come round again (a channel
+  that repeats every 2, 3 or 4 rows, a hi-hat's, is left out), doubled while a bar would last under 1.2 seconds at the
+  speed and tempo playing (`bm_tempo`, the `speed` and `bpm` of `byopop_music_view`), with the beat that divides it into
+  2 to 4 beats nearest 110 a minute. DEFAULT, 4 rows a beat and 16 a bar, is where the notes repeat too little to tell
+  (half their onsets at best). A beat of 4 or 6 rows makes a row a sixteenth, 2 or 3 an eighth, 8 or 12 a thirty-second;
+  3, 6 and 12 are compound time, a beat a dotted quarter (6/8, 12/8). The bars run on: a pattern whose length is not a
+  whole number of bars ends on a short one.
 - **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, score, nothing. The spectrum is 24 bars from
   40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
   ("ORD 07  PAT 06  ROW 16/64"), a line over the columns (the user, 2026-11-11: labels on the columns) with each
@@ -865,11 +882,13 @@ the game last in front. The others' output node is disconnected from their speak
 the player's own switch.
 
 The game's side is a site hook in the platform layer: no game's code changes, and native builds do not compile it.
-`Platform::Mixer` answers four exported calls (`platform/Audio.cpp`):
+`Platform::Mixer` answers these exported calls (`platform/Audio.cpp`):
 
 - `byopop_music_song()`: the song the game plays (the loudest playing one, 0 for none).
 - `byopop_music_view(song)`: JSON with its kind (`module` or `stream`) and, for a module, its pattern, row, the
-  pattern's rows, channels, order and title.
+  pattern's rows, channels, order and title, and the speed and tempo playing.
+- `byopop_music_meter(song, pattern)`: the pattern's rows per beat and per bar as the module stores them, beat << 16 |
+  bar, 0 for none.
 - `byopop_music_row(song, pattern, row)`: a row's cells separated by `|`.
 - `byopop_music_used(song)`: the channels that play a note anywhere.
 - `byopop_music_mute(song, channel, mute)`: a channel muted (1) or brought back (0), the tracker's header's click; 1
