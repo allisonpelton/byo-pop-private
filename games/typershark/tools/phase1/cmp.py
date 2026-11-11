@@ -188,6 +188,19 @@ def mods_args():
     return ['-modsdir=' + os.path.abspath(d)] if d else []
 
 
+def mods_settings(ud):
+    """With TSMODSDIR the user folder gets a mod-settings.json that turns every toggle of the fixes mod on. A toggle that starts off
+    (`schools`: the fixes mod's rule of 2026-11-11, off by default where the bug is not well known to be one) would otherwise be left
+    out of the check that the fixes leave the state logs as they were."""
+    d = os.environ.get('TSMODSDIR')
+    if not d:
+        return
+    manifest = json.load(open(os.path.join(d, 'fixes', 'mod.json')))
+    values = {s['id']: True for s in manifest['settings'] if s['type'] == 'bool'}
+    os.makedirs(ud, exist_ok=True)
+    json.dump({'v': 1, 'mods': {'fixes': values}}, open(os.path.join(ud, 'mod-settings.json'), 'w'))
+
+
 def run_port(script_text, tag, seed, userfix=None, extra_args=()):
     sp = os.path.join(OUT, tag + '.port.txt')
     sl = os.path.join(OUT, tag + '.port.sl')
@@ -195,6 +208,7 @@ def run_port(script_text, tag, seed, userfix=None, extra_args=()):
     subprocess.call(['rm', '-rf', ud])
     if userfix:
         subprocess.call(['cp', '-r', os.path.join(OUT, 'fixtures', userfix), ud])
+    mods_settings(ud)
     open(sp, 'w', newline='\n').write(script_text)
     gamecount_wait()
     exe = PORT_EXE
@@ -213,6 +227,7 @@ def record_typist(steps, tag, seed, opts, hi, userfix=None):
     subprocess.call(['rm', '-rf', ud])
     if userfix:
         subprocess.call(['cp', '-r', os.path.join(OUT, 'fixtures', userfix), ud])
+    mods_settings(ud)
     open(sp, 'w', newline='\n').write(port_script(steps, [f'{hi + 5} quit']))
     gamecount_wait()
     subprocess.call([os.path.join(ROOT, 'build', 'native', 'rundesk.exe'), PORT_EXE,
