@@ -308,7 +308,6 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	}
 
 	mPickUpButtonDown = false;
-	mUnusedIntClearedOnClick = 0;
 
 	if (!mAtWarpGate)
 	{
@@ -576,7 +575,6 @@ void Board::MouseMove(int x, int y)
 		// the warp screen: the pointer turns to a hand over the two panels
 		if (mSlowGateX <= mLastPointerX && mLastPointerX <= mSlowGateX + 0x78 && 0xe0 < mLastPointerY && mLastPointerY <= aGateHeight + 0xf5)
 		{
-			mHoveredGate = 2;
 			mPointerOverEasyGate = false;
 			mPointerOverSlowGate = true;
 			mPointerOverFastGate = false;
@@ -586,7 +584,6 @@ void Board::MouseMove(int x, int y)
 		if (3 < mBestLevelReached && 0 < mFastGateX && mFastGateX <= mLastPointerX && mLastPointerX <= mFastGateX + 0x78 && 0xe0 < mLastPointerY &&
 			mLastPointerY <= aGateHeight + 0xf5)
 		{
-			mHoveredGate = 3;
 			mPointerOverEasyGate = false;
 			mPointerOverSlowGate = false;
 			mPointerOverFastGate = true;
@@ -617,7 +614,6 @@ void Board::MouseMove(int x, int y)
 		return;
 	}
 
-	mHoveredGate = 0;
 	mPointerOverFastGate = false;
 	mPointerOverSlowGate = false;
 	mPointerOverEasyGate = false;
@@ -688,8 +684,8 @@ void Board::MouseMove(int x, int y)
 	if (aKind < 0 || aKind > 5 || aBrick->IsJammed())
 	{
 		aBox->mLines.clear();
-		aBox->m60 = aCol;
-		aBox->m64 = (int) aRow;
+		aBox->mCellColumn = aCol;
+		aBox->mCellRow = (int) aRow;
 		if (aBrick->IsJammed())
 		{
 			aBox->AddLine(GT(0x00565a70));

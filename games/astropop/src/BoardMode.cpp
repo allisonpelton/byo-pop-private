@@ -222,7 +222,6 @@ void Board::UpdateSpecialMode()
 			mScreenShakeX = 0;
 			mWeaponCharge = 0;
 			DropUnsupported(mTakenCells);
-			mAtomicWeaponState = -1;
 			std::vector<CellRef3>().swap(mAtomicMarkedBricks);
 			if (!mSirenAnim.mStopped)
 				mPhase = 8;

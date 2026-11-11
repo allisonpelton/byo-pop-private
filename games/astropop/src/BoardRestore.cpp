@@ -17,10 +17,10 @@
 using namespace Sexy;
 
 // 0x467af0
-void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float theSetting52, float theSetting50, int theSavedLevel)
+void Board::RestoreGame(int theScore, int thePlayTime, int theLevelsCompleted, float theScoreMultiplier, float theWeaponCharge, int theSavedLevel)
 {
 	mWeaponChargeMax = 25600.0f;
-	mScoreMultiplier = theSetting52;
+	mScoreMultiplier = theScoreMultiplier;
 	mStageTextEnabled = false;
 	ApplyWeaponLevels();
 	mApp->mEngineLoop->SetVolume(1.0);
@@ -70,13 +70,13 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		mMeterFullAnim.SetStopped(false);
 	}
 
-	mLevelsCompleted = theSetting55;
+	mLevelsCompleted = theLevelsCompleted;
 	ClearField();
 	LoadLevel(false);
 	mScore = theScore;
 	mScoreShown = theScore;
-	mWeaponCharge = theSetting50;
-	mPlayTime = theSetting54;
+	mWeaponCharge = theWeaponCharge;
+	mPlayTime = thePlayTime;
 	UserProfile* aUser = mApp->mUser;
 	aUser->GetInt(0x5c, &mPlayPoints);
 	aUser->GetInt(0x60, &mRampTime);
@@ -126,13 +126,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				mTallyPaid = 0;
 				mClearCountRunning = false;
 				mBonusFadingOut = false;
-				mBonusRoundLoaded = true;
 				mBonusRevealDone = false;
 				mBonusFadeAlpha = 0;
 				mBannerTimeLeft = 0;
-				mBonusRevealDelay = 200;
-				std::string aBanner = GT(0x005647cc);
-				mBonusWarpTextX = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
 				mPlayStarted = true;
 				mStartedFromCheckpoint = false;
 				mBonusWarpIn = false;
@@ -145,7 +141,6 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				do
 				{
 					StreakRec* aStreak = &mStreaks[aStreakIndex];
-					aStreak->mFlag28 = false;
 					if (aStreak->mKind == 0)
 						aStreak->mColor = Color(0, 0, 0xfa);
 					else if (aStreak->mKind == 1)
@@ -260,9 +255,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				BeginClearWait();
 				mFreezeUpdatesLeft = aWaiting;
 			}
-			int aValue198c = mShipX;
-			aUser->GetInt(0x66, &aValue198c);
-			mShipX = aValue198c;
+			int aShipX = mShipX;
+			aUser->GetInt(0x66, &aShipX);
+			mShipX = aShipX;
 			mSirenOffDelay = -1;
 			CheckStackHeight();
 			CheckShipColumn();
@@ -363,16 +358,12 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		mTallyPaid = 0;
 		mClicksBlocked = true;
 		mClearCountRunning = false;
-		mBonusRoundLoaded = false;
 		mBonusFadingOut = false;
 		mBonusFadeAlpha = 0;
 		mBannerTimeLeft = 0;
-		mBonusRevealDelay = 200;
 		SetNextLevelScore();
 		mBonusTimeLeft = -1;
 		mBonusRevealDone = false;
-		std::string aBanner = GT(0x005647cc);
-		mBonusWarpTextX = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
 		mPlayStarted = true;
 		mStartedFromCheckpoint = false;
 		mBonusWarpIn = false;
@@ -385,7 +376,6 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		do
 		{
 			StreakRec* aStreak = &mStreaks[aStreakIndex];
-			aStreak->mFlag28 = false;
 			if (aStreak->mKind == 0)
 				aStreak->mColor = Color(0, 0, 0xfa);
 			else if (aStreak->mKind == 1)
@@ -426,9 +416,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			BeginClearWait();
 			mFreezeUpdatesLeft = aWaiting;
 		}
-		int aValue198c = mShipX;
-		aUser->GetInt(0x66, &aValue198c);
-		mShipX = aValue198c;
+		int aShipX = mShipX;
+		aUser->GetInt(0x66, &aShipX);
+		mShipX = aShipX;
 	}
 	mTallyBricksCounted = 0;
 	aUser->GetInt(100, &mTallyBricksCounted);

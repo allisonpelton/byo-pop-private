@@ -351,7 +351,7 @@ void AstroPopApp::ShowQuitDialog()
 	int aDraw = (int) AstroRand();
 	if (!mGoodbyeMessages.empty())
 		aLines = mGoodbyeMessages[((unsigned int) (aDraw % 500000000)) % mGoodbyeMessages.size()];
-	AstroDialog* aDialog = MakeDialog(1, false, 0x7c, -1, -1, 1, GT(0x005622b8), aLines, "Yes", "No", true);
+	AstroDialog* aDialog = MakeDialog(1, false, 0x7c, -1, -1, 1, GT(0x005622b8), aLines, "Yes", "No");
 	int aWidth = aDialog->mWidth;
 	int aHeight = aDialog->mHeight;
 	aDialog->Resize(0x140 - aWidth / 2, 0xf0 - aHeight / 2, aWidth, aHeight);
@@ -378,7 +378,7 @@ void AstroPopApp::ShowOptions(bool theFromGame)
 void AstroPopApp::ShowContinueDialog(const std::string& thePilot, int theLevel)
 {
 	MakeDialog(1, false, 0x74, 0x177, 0xe6, 1, GT(0x005649f0), StrFormat(GTC(0x564a00), thePilot.c_str(), theLevel), "Continue",
-			   GT(0x00564b3c), true);
+			   GT(0x00564b3c));
 }
 
 // 0x40bc00: the box where a new player types a name, centred a little low

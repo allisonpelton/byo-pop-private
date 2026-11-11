@@ -336,7 +336,6 @@ void Board::RevealBricks()
 	if (!mBonusRevealDone)
 	{
 		mBonusRevealDone = true;
-		mBonusRevealDelay = 300;
 	}
 	mTargeted.clear();
 	mBricksRevealing = false;
@@ -442,7 +441,6 @@ bool Board::SpawnControl()
 				return false;
 		}
 
-		mSetMadeSinceTopRow = false;
 		if (aWaited < aTime)
 		{
 			if (mExtraRowDelay < 1)

@@ -94,7 +94,6 @@ void Board::StartBonusRound(int theStage)
 
 	mApp->mUser->SetInt(0x3f, theStage);
 	mScreenShakeX = 0;
-	mBonusRoundLoaded = true;
 	mBonusFadeAlpha = 0xff;
 
 	// the top row is a wall of stones

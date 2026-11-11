@@ -32,7 +32,6 @@ void Board::UpdateIntroAndTally()
 					mBonusWarpPhase = 2;
 					mBonusWarpHold = 0;
 					mBonusWarpWhiteAlpha = 0xff;
-					mBonusWarpTextX = 0x182 - GetFontById(0xb1)->StringWidth(GT(0x566074)) / 2;
 				}
 			}
 			mOverlay.SetFill(255, 255, 255, mBonusWarpWhiteAlpha);
@@ -55,7 +54,6 @@ void Board::UpdateIntroAndTally()
 				for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
 				{
 					StreakRec* aStreak = &mStreaks[i];
-					aStreak->mFlag28 = false;
 					if (aStreak->mKind == 0)
 						aStreak->mColor = Color(0, 0, 250);
 					else if (aStreak->mKind == 1)

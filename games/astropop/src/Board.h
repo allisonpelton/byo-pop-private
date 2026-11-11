@@ -123,11 +123,10 @@ struct StreakRec
 	float			mMinSpeed;          // +0x1c
 	int				mMargin;            // +0x20
 	int				mKind;              // +0x24 0, 1 or 2: the dark, middle or bright colour
-	bool			mFlag28;            // +0x28
 	Image*			mImage;             // +0x2c the picture of the kind (the application's 0x674, 0x678, 0x67c)
 
 	StreakRec()                         // 0x432750 (the original leaves the speeds to the constructor's loop)
-		: mColor(0, 0, 0), mX(-1.0f), mY(-1.0f), mSpeed(0), mMinSpeed(0), mMargin(1), mKind(0), mFlag28(true), mImage(NULL) { }
+		: mColor(0, 0, 0), mX(-1.0f), mY(-1.0f), mSpeed(0), mMinSpeed(0), mMargin(1), mKind(0), mImage(NULL) { }
 };
 
 // A line of help for the pop-up that explains a brick (24 bytes, the vector at +0x1d0)
@@ -144,11 +143,8 @@ struct TipEntry
 struct StarRec
 {
 	Image*			mImage;             // +0x00
-	unsigned char	m04[0x4c];
 	float			mX;                 // +0x50
 	float			mY;                 // +0x54 counts down the screen
-	unsigned char	m58[0x08];
-	int				m60;                // +0x60
 	float			mSpeed;             // +0x64
 	int				mImageId;           // +0x68 the resource id of the picture (IMAGE_BG_OBJECT1 .. 7), -1 for none
 
@@ -187,14 +183,13 @@ struct StageBg
 	int				mOverPicAlphaStep; // +0x110 the change of mOverPicAlpha each update (+8 or -8, 0 when it rests)
 	int				mPanelAlpha; // +0x114 the alpha of the whole panel (strip, title, text), 0 to 255
 	int				mPanelAlphaStep; // +0x118 the change of mPanelAlpha each update; -8 fades the panel out and sets mFadedOut at 0
-	int				m11c;               // +0x11c
 	int				mTitleHeight; // +0x120 the height of the title as written by SetupHints
 	int				mTextHeight; // +0x124 the height of the text as written by SetupHints
 	StageBg*		mNext;              // +0x128 the next panel of the screen
 
 	StageBg()                           // 0x43fab0
 		: mPic(NULL), mOverPic(NULL), mX(0), mY(0), mX2(0), mY2(0), mFadedOut(false), mTitleWidth(0x96), mTitleX(0x78), mTextX(400),
-		  mPicAlpha(0xff), mOverPicAlpha(0), mCrossfadeTimer(0), mPicAlphaStep(0), mOverPicAlphaStep(0), mPanelAlpha(0xff), mPanelAlphaStep(0), m11c(0), mTitleHeight(0), mTextHeight(0), mNext(NULL) { }
+		  mPicAlpha(0xff), mOverPicAlpha(0), mCrossfadeTimer(0), mPicAlphaStep(0), mOverPicAlphaStep(0), mPanelAlpha(0xff), mPanelAlphaStep(0), mTitleHeight(0), mTextHeight(0), mNext(NULL) { }
 };
 
 // A tutorial hint on the screen (0x30 bytes, constructor 0x44f500; the Board keeps them in a vector at +0x230): the
@@ -231,7 +226,6 @@ struct WarpStar
 {
 	float		mX;                 // +0x4c
 	float		mY;                 // +0x50
-	float		mField5C;           // +0x5c (set to 0, never read)
 	float		mSpeed;             // +0x60 pixels per update
 	FrameAnim	mAnim;              // +0x64
 	Image*		mImage;             // +0xa4 one of the three sizes of IMAGE_WARP_FX
@@ -394,7 +388,6 @@ public:
 	std::vector<std::vector<int> >	mDemoAddedRows;// +0x344 the rows added during the demo (the file's added rows, and the kinds of row 0 each time a game is recorded): one kind for each column
 	Brick*	mHandKindBrick = NULL;// +0x354 the brick that stands for the kind in hand (MakeHand: a copy of the first brick taken, at the bottom of the field); MatchesHand compares with its kind
 	AstroPopApp*	mApp = NULL;// +0x358 the application (the bricks play their sounds through it)
-	PointerTrail	mPointerTrail;// +0x35c the pointer's recent steps (the original's draw feeds it); the port neither writes nor reads it
 	Color	mBackdropTint;// +0x3c0 the tint of the backdrop (FadeBackdrop moves it 8 steps at a time towards the colour of the first held brick; grey 100, 100, 100 when none)
 	Color	mOverlayFillColor;// +0x3d0 the colour the overlay is filled with: UpdateEffects counts its alpha down by 2 an update and hides the overlay at 0, the warp raises it to white
 	FrameAnim	mMeterFullAnim;// +0x3e0 restarted when the weapon meter fills (SOUND_POWERUP), runs while it stays full and stops when the bonus ends; nothing draws it
@@ -416,11 +409,6 @@ public:
 	int	mShipShimmerY = 0;// +0x6f4 top of the shimmer band in the ship's picture: 0 while the band grows, then 1 and up by 2 an update to 52, when the band starts again (UpdateSpecialMode)
 	int	mShipShimmerWidth = 0;// +0x6f8 width of the shimmer band: 53 (set when the weapon starts, never changes)
 	int	mShipShimmerHeight = 0;// +0x6fc height of the shimmer band: grows by 2 an update with the top at 0, then is 52 minus the top as the top moves down; the band is drawn while above 0
-	int	mBrickometerRiseStep = 0;// +0x700 step counter of the brickometer's rise (set to 0 by OnHyperBrick); nothing reads it
-	int	mBrickometerRiseTop = 0;// +0x704 y of the brickometer's top after OnHyperBrick filled it (444 minus its height); nothing reads it
-	int	mBrickometerRiseSteps = 0;// +0x708 number of steps (23) of the brickometer's rise that OnHyperBrick sets up; nothing reads it
-	int	mBrickometerRiseDistance = 0;// +0x70c how far the brickometer's top rose in pixels, old top minus new top (OnHyperBrick); nothing reads it
-	std::string	mWeaponHintText;// +0x710 the text of the weapon prompt (a game text set when the Board is made); nothing reads it
 	std::string	mStoryResourceGroup;// +0x72c name of the resource group of the story pages being shown (the pilot's Page<n> group that OpenStoryScreen loads)
 	XcfFile*	mBonusRoundFile = NULL;// +0x748 the file of the bonus round (data\bonus<n>.xcf) that StartBonusRound reads; the Board owns it and deletes it
 	AstroButton*	mHintOkButton = NULL;// +0x74c the OK button of a hint panel (id 0xfa2), coloured like the stage (RecolorThemeButtons); shown with the hint, hidden when DismissHint ends it
@@ -451,7 +439,6 @@ public:
 	int	mLeftArmX = 0;// +0x820 x of the left arm of the upgrade screen: slides in from minus its width to its stop and out again (Fn46a810)
 	int	mLeftArmY = 0;// +0x824 y of the left arm and its head on the upgrade screen: 416
 	int	mLeftArmStopX = 0;// +0x828 x where the left arm stops sliding in: 130 (SetupUpgradeAnims)
-	int	mLeftArmStopY = 0;// +0x82c y that SetupUpgradeAnims sets for the left arm's stop: 416; nothing reads it
 	bool	mLeftArmImagesOwned = false;// +0x830 the flipped copies of the arm and head (the left arm's pictures) belong to the Board and the destructor deletes them; set by SetupUpgradeAnims
 	MemoryImage*	mLeftArmImage = NULL;// +0x834 flipped copy of the upgrade arm picture (made when the Board is made): the arm that slides in from the left
 	MemoryImage*	mLeftHeadImage = NULL;// +0x838 flipped copy of the upgrade head picture: the head on the left arm, drawn with the cel of mLeftHeadAnim
@@ -459,7 +446,6 @@ public:
 	int	mRightArmX = 0;// +0x87c x of the right arm of the upgrade screen: starts at 660, past the right edge, slides in to its stop and out again (Fn46a810)
 	int	mRightArmY = 0;// +0x880 y of the right arm and its head on the upgrade screen: 416
 	int	mRightArmStopX = 0;// +0x884 x where the right arm stops sliding in: 463 (SetupUpgradeAnims)
-	int	mRightArmStopY = 0;// +0x888 y that SetupUpgradeAnims sets for the right arm's stop: 416; nothing reads it
 	bool	mRightArmImagesOwned = false;// +0x88c the destructor deletes the right arm's pictures when it is set; nothing sets it (they are the resource's pictures)
 	Image*	mRightArmImage = NULL;// +0x890 the upgrade arm picture (IMAGE_UPGRADE_ARM, the resource's own) of the arm that slides in from the right
 	Image*	mRightHeadImage = NULL;// +0x894 the upgrade head picture (IMAGE_UPGRADE_HEAD, the resource's own): the head of the right arm, drawn with the cel of mRightHeadAnim
@@ -474,12 +460,10 @@ public:
 	bool	mStartWeaponAfterPause = false;// +0x8df set when a click on the weapon prompt ends the pause (MouseDown); at the end of that pause Pause calls BeginPlay once
 	bool	mWelcomePlayed = false;// +0x8e0 the welcome voice has played in this game (Update plays it once no demo runs, and starts the engine loop); ResetState clears it
 	bool	mFirstHelpPending = false;// +0x8e1 the full-screen help is still to show once (copied from the application's help flag when the Board is made); Update shows it and clears this
-	bool	mUnusedClearedInCtor = false;// +0x8e2 set to false by the constructor only; nothing else writes or reads it
 	bool	mTopRowsAllowed = false;// +0x8e3 gate of SpawnControl: ResetGame sets it and nothing clears it; a new top row comes only while it is set (and no bounce, bonus, warp or end runs)
 	bool	mNewRowBouncing = false;// +0x8e4 AddTopRow sets it when the new top row starts to bounce, OnBrickBounced clears it once the row is still; meanwhile no new row, start or save
 	bool	mPickUpButtonDown = false;// +0x8e5 the pick-up button (down key or left mouse button) is held; PickUp refuses without it; MouseUp and clicks that are no pick-up clear it
 	bool	mBackdropTintChanging = false;// +0x8e6 the backdrop's tint is still moving to the colour of the first held brick: set when the hand changes (PickUpDone, nukes), cleared by FadeBackdrop on arrival
-	bool	mGameWasReset = false;// +0x8e7 ResetGame sets it; nothing clears or reads it
 	bool	mGameOver = false;// +0x8e8 the game is over: GameOver sets it and ResetGame clears it; Update runs UpdateGameOver meanwhile, input stops and SaveFinalScore stores the result
 	bool	mLevelUpPhase = false;// +0x8e9 the level is complete and the level-up screen with the warp follows: LevelComplete sets it (not for a bonus round), ResetGame clears it; input and new rows wait
 	bool	mStreaksFadingOut = false;// +0x8ea the warp streaks are fading out after a stage is loaded (LoadLevel sets it, UpdateEffects clears it when all 100 have shrunk away); input and new rows wait
@@ -498,33 +482,23 @@ public:
 	bool	mPauseTextWanted = false;// +0x8f7 Pause's second argument: true for a pause that losing the window's focus makes, false for one that a box makes; the overlay writes its pause texts only while it is set
 	bool	mTimeBonusRunning = false;// +0x8f8 the time bonus window is open: AdvanceChain opens it with the stage's first set, PayTimeBonus pays for 3 to 6 quick sets, it closes after 700 updates
 	bool	mAtomicBlastOver = false;// +0x8f9 the atomic blast animations are through (UpdateExplosion sets it), so the marked bricks of the mode 1 bonus go; UpdateSpecialMode clears it
-	bool	mWarpEngaged = false;// +0x8fa set when the warp's white-out ends (SOUND_WARP_ENGAGED plays, the field is cleared); ResetGame clears it; nothing reads it
 	bool	mFieldCleared = false;// +0x8fb nothing is left in rows 1 to 19 once everything has settled (ClearBonus is paid); FillTopRow and ResetGame clear it; the next row waits for it in a bonus
 	bool	mPlayStarted = false;// +0x8fc the game has really begun: the first pick-up, shot, set or weapon start sets it (event 0x2a fires once); rows, countdowns and the freeze wait for it
-	bool	mUnusedClearedInReset = false;// +0x8fd ResetGame clears it; nothing else writes or reads it
-	bool	mSetMadeSinceTopRow = false;// +0x8fe a set of enough bricks was made (OnBrickArrived plays its sound); SpawnControl clears it when the next top row is due; nothing reads it
 	bool	mSlowMotion = false;// +0x8ff when set only every eighth Update does the game's work (the others only record the demo step); nothing ever sets it
 	bool	mLevelCompleteBlocked = false;// +0x900 LevelComplete returns at once while it is set; the constructor clears it and nothing sets it
 	bool	mScreenWiping = false;// +0x901 the end-of-game screen wipe runs: Update waits for the wipe to end and then closes the board, Draw only draws the wipe; RedrawAfterDialog sets it
-	bool	mWipeImageCaptured = false;// +0x902 cleared by the constructor and when RedrawAfterDialog starts to draw the screen into the wipe's picture; nothing reads it
-	bool	mWipeImageUsed = false;// +0x903 cleared by the constructor and once RedrawAfterDialog has drawn the screen into the wipe's picture; nothing reads it
-	bool	mWipeCreated = false;// +0x904 the constructor sets it once the screen picture and the wipe are made; nothing reads it
 	bool	mGameOverAnimDone = false;// +0x905 the end-of-game blasts and fades are through (UpdateGameOver sets it, then makes the end buttons); UpdateGameOver returns at once while it is set
 	bool	mMeterPaused = false;// +0x906 while set the weapon meter does not run down in UpdateSpecialMode; the constructor clears it and nothing sets it
 	bool	mClearWaitStarted = false;// +0x907 mode 2: the wait for the field to be cleared has begun (BeginClearWait); set by ResetGame, cleared when the weapon starts so that the next quiet field begins it
-	bool	mInHallOfFame = false;// +0x908 whether the game's result got into the hall of fame (AddHallOfFame's answer in SaveFinalScore and GameOver); nothing reads it
 	bool	mStackWarningActive = false;// +0x909 the warning of a too high stack at the ship's column is on (CheckShipColumn sets it, 400 updates); SpawnControl holds the next top row back meanwhile
 	bool	mTutorialStageForced = false;// +0x90a the first stage's tutorial hints apply whatever the stage number is; the constructor clears it and nothing sets it
 	bool	mClickRepeating = false;// +0x90b set while Update repeats the held left button's click (classic game, weapon on); the pick-up sounds stay silent then; ResetState clears it
-	bool	mUnusedFlagFromCtor = false;// +0x90c the constructor clears it; nothing else writes or reads it
-	bool	mUnusedFlagFromReset = false;// +0x90d ResetGame clears it; nothing else writes or reads it
 	bool	mBoosterDue = false;// +0x90e a booster brick is to go into the next new top row: set by AdvanceChain (long chain) and PayTimeBonus, cleared by FillTopRow when it picks the column
 	bool	mClicksBlocked = false;// +0x90f while set MouseDown ignores the buttons and MouseUp keeps the pick-up flag: set when a bonus round starts, a box closes or the screen is redrawn after a box
 	bool	mBonusRoundOn = false;// +0x910 a bonus round is on (from LevelComplete's bonus branch or a restored bonus game until its tally ends): no meter, no stage counting, bricks from a bonus file
 	bool	mStartBannerDoneInBonus = false;// +0x911 set by UpdateStartBanner when the start banner has run through while a bonus round is on; StartBonusRound and ResetGame clear it; it holds back the round's no-move end
 	bool	mBricksRevealing = false;// +0x912 the bonus round's bricks are still being shown one by one (StartBonusRound sets it, RevealBricks clears it); the first click and the end checks wait
 	bool	mBonusRoundStarted = false;// +0x913 the player's first click has started the bonus round after its bricks appeared (MouseDown, event 0x28 fired); StartBonusRound clears it; the time runs from it
-	bool	mBonusRoundLoaded = false;// +0x914 StartBonusRound sets it once the round's file is read; LevelComplete and the restore clear it; nothing reads it
 	bool	mBonusFadingOut = false;// +0x915 while set UpdateIntroAndTally lowers the bonus fade value by 2 an update to 0; nothing ever sets it
 	bool	mClearCountRunning = false;// +0x916 the count-down that pays the bricks left over runs (StartClearCount sets it, the tally's end clears it); the held pieces stand over the stack and clicks do nothing
 	bool	mBonusWarpIn = false;// +0x917 the warp into a bonus round is running (LevelComplete sets it; UpdateIntroAndTally steps it through three parts before StartBonusRound); the screen is white
@@ -546,7 +520,6 @@ public:
 	float	mStackDanger = 0.0f;// +0x930 the danger of the stack: mean column height plus half the distance of the highest column from it (CheckStackHeight); scales the wait for the next top row
 	float	mStackDangerPeak = 0.0f;// +0x934 the highest mStackDanger seen lately: CheckStackHeight raises it at once, Update lowers it by 0.2 per update toward mStackDanger; nothing reads it
 	float	mWarpShipY = 0.0f;// +0x938 the ship's y in the warp: -312 above the screen when the flight starts, speeds up to 423 (UpdateWarp); it also sets the scenery's scroll speed
-	float	mUnusedFloatFromCtor = 0.0f;// +0x93c the constructor sets it to 500000000 beside mWarpShipY; nothing else writes or reads it
 	float	mScoreMultiplier = 0.0f;// +0x940 multiplies the points of the bricks gone and the bonuses, 1 to 6: 1 + level / 8 at set-up, +0.125 or +0.5625 per stage skipped at a gate, +3 per minute in survival
 	float	mBannerWavePhase = 0.0f;// +0x944 the phase of the wave that moves the banner's columns (AnimateBanner): 0 when the banner is made, +0.07 per update while its time runs
 	unsigned char	mDemoRecordAction = 0;// +0x948 the action of this update for the demo recording, in the codes of mDemoSteps: 0 none, 1 fire, 2 pick up, 0xc minus the column for a move; cleared every update
@@ -566,16 +539,13 @@ public:
 	int	mStackWarningTimer = 0;// +0x97c the updates (400) that the ship column's stack warning (mStackWarningActive) holds the next row back; 0 when the column has room
 	int	mScreenWipeKind = 0;// +0x980 the kind (0 to 3, drawn at random by the constructor) of the wipe that takes the field away at the end of a game; -1 until it is drawn
 	ScriptRows	mScriptRows;// +0x984 the rows of a scripted game (the demo, the tutorial and a level file): ten brick codes a row, 100 rows; LoadLevel clears them
-	int	made = 0;// +0xade stray; nothing uses it (remove with the dead fields)
 	int	mPauseCount = 0;// +0x1924 the number of pauses in force (Pause adds one, the end of a pause takes one); the game runs only at 0, and the animations draw from a frozen tick above 0
 	int	mPauseDarkening = 0;// +0x1928 how far the pause has darkened the field: +20 per update while paused up to the window height, -40 per update after; the shade's alpha is half of it, at most 230
 	int	mPausedUpdates = 0;// +0x192c counts the updates that run while the game is paused; ResetGame clears it; nothing reads it
 	int	mScriptRowIndex = 0;// +0x1930 the row of mScriptRows that FillTopRow plays next (-1 none); it moves on after each row and becomes -1 when the next row is empty
 	int	mExtraRowsDue = 0;// +0x1934 extra top rows owed (set by CheckSparseField for a sparse field, +1 by a periodic timer in Tick): SpawnControl brings one after a 100-update wait and takes it off
-	int	mUnusedIntClearedInReset = 0;// +0x1938 ResetGame clears it beside mExtraRowsDue; nothing else writes or reads it
 	int	mStageNumber = 0;// +0x193c the stage, from 1: minutes played + 1 in survival (UpdateRamp), raised at a warp gate one stage at a time (AdvanceLevel); picks hint panels, rules and speeds
 	int	mLevelNumber = 0;// +0x1940 the level shown as "Level N" and saved as the mode's level reached: starts as the constructor's level, becomes stage / 2 + 1 at a warp gate; every fourth has an upgrade
-	int	mUnusedIntClearedInLevelUp = 0;// +0x1944 LevelComplete and ResetGame clear it; nothing else writes or reads it
 	int	mEndFlashAlpha = 0;// +0x1948 the alpha of the white flash at the end of a game: 255 when the end page starts, falls 2 per update (the overlay's fill); the panels wait while it is above 240
 	int	mShipTilt = 0;// +0x194c which way the ship leans: 0 after a move to the left, 1 to the right, 2 level (set when the tilt frames end); picks the ship's picture row
 	int	mShipFlameFrame = 0;// +0x1950 the frame (0 to 7) of the ship's flame; advances every 10 updates (UpdateAnimCounters)
@@ -583,16 +553,12 @@ public:
 	int	mLastPointerX = 0;// +0x1958 the pointer's x at its last mouse event (MouseMove, MouseDown, MouseUp); the demo's clicks and the hover of the field read it
 	int	mLastPointerY = 0;// +0x195c the pointer's y at its last mouse event; the field's row is (y - 34) / 25 + 1
 	int	mStartTextAlpha = 0;// +0x1960 the alpha of the text bar at the start of play (bricks to pass, new starting point, survival intro): 0 before play (drawn full), 255 at the start, -4 per update, -1 gone
-	int	mUnusedIntFromReset = 0;// +0x1964 ResetGame clears it; nothing else writes or reads it
-	int	mLoadLevelFlag = 0;// +0x1968 the low byte of the constructor's flags (1 makes it load the level file, 0 for a restored game); the constructor tests its own parameter, so nothing reads it
 	int	mChainPoints = 0;// +0x196c the points of the bricks gone in the current chain of sets (OnBrickGone adds them); PayComboBonus pays them times mChainCount and clears it
 	int	mScoreShown = 0;// +0x1970 the score on the display: catches up with mScore by a step that grows with the gap (Update), and jumps to it when a game is restored
 	int	mScore = 0;// +0x1974 the score (profile setting 0x51); AddScore adds to it and keeps the mode's best; mScoreShown counts up to it on the display
 	int	mScoreAtStageStart = 0;// +0x1978 mScore when the game began or when a classic game came out of a warp; profile setting 0x61; a restored score is this plus mPlayPoints and mBonusRoundPoints
-	int	mLevelFileLevelUp = 0;// +0x197c the LevelUp value of a level file (10000 by default); nothing reads it
 	int	mChainCount = 0;// +0x1980 the sets made in a row (AdvanceChain adds one); a chain of 2 or more pays a bonus (PayComboBonus), 3 or more makes a fuel cell due; cleared when the chain ends
 	int	mLastChainCount = 0;// +0x1984 the chain count noted when no group was moving (OnBrickArrived); PayComboBonus and ResetGame clear it; nothing reads it
-	int	mUnusedIntClearedOnClick = 0;// +0x1988 cleared by ResetGame and by each left click that is not refused (MouseDown); nothing reads it
 	int	mShipX = 0;// +0x198c the ship's x in pixels, the left of its column (166 + 44 * column); shots, pick ups and the beam read it; 0x182 after a level file is loaded
 	int	mHeldBricksNotLanded = 0;// +0x1990 the picked-up or caught bricks that have not yet landed in the hand (+1 when taken, -1 in OnBrickLanded); firing, pick up and the pause wait for 0
 	int	mTakenBrickCount = 0;// +0x1994 the bricks taken from the field that have not yet gone: +1 as each goes into mTakenBricks, -1 in OnBrickGone; 0 means no removal is running
@@ -605,7 +571,6 @@ public:
 	int	mEffectsUpdateCount = 0;// +0x19b0 counts the calls of UpdateEffects since the level was loaded; a negative value hides the arriving ship's picture
 	int	mRampTime = 0;// +0x19b4 the time played in updates (100 a second) that drives the speed table and, in survival, the stage (6000 a stage); not counted in bonus rounds; profile setting 0x60
 	int	mPlayTime = 0;// +0x19b8 the updates of play counted every update that play runs, bonus rounds included; the time on the end page; profile setting 0x54
-	int	mUnusedIntSetTo500InReset = 0;// +0x19bc ResetGame sets it to 500; nothing else writes or reads it
 	int	mRowsLeftToPass = 0;// +0x19c0 copy of mRowsToPass made whenever a level's rules are set; AddTopRow runs while it is not 0 (the port never counts it down)
 	int	mRowsToPass = 0;// +0x19c4 the rows a stage takes to pass (NumRowsToPass: 25 by default, grows by mRowsToPassChange each stage, at most 70)
 	int	mRowsToPassChange = 0;// +0x19c8 how much mRowsToPass grows each stage (NumRowsToPassChangeBy of the level file, else 0)
@@ -622,11 +587,9 @@ public:
 	int	mWarpLightningPeriod = 0;// +0x19f4 the updates between two lightning flashes of the warp (100-299, drawn again after each flash); a flash starts when mUpdateCnt is a multiple of it
 	int	mWarpLightningY = 0;// +0x19f8 the y (50-399) at which the lightning picture is drawn, drawn again at each flash
 	int	mFreezeUpdatesLeft = 0;// +0x19fc the updates the freeze effect has left (1000 from BeginClearWait, counts down once the game runs); the freeze ends and event 0x28 (0) fires at 0
-	int	mNextStageNumber = 0;// +0x1a00 the stage after the one the game began on (mStageNumber + 1 in the constructor, aLevel + 1 for a classic game); nothing reads it
 	int	mSlowGateStage = 0;// +0x1a04 the stage the slow gate of the warp screen leads to (the current stage + 2); a click on the gate advances mStageNumber up to it
 	int	mFastGateStage = 0;// +0x1a08 the stage the fast gate leads to (a jump of up to 8 stages ahead); -1 when no fast gate is offered; its level is this / 2 + 1
 	int	mBestLevelReached = 0;// +0x1a0c the furthest level the player has reached with this pilot (profile record mMode + 8); the fast gate needs it above 3 and stages up to twice it minus 2
-	int	mUnusedIntClearedWithBrickCount = 0;// +0x1a10 cleared in ResetGame beside the stage's brick count; nothing else reads or writes it
 	int	mStageBricksCleared = 0;// +0x1a14 the bricks cleared toward the stage's quota mBricksToPass (OnBrickGone counts each; a booster adds 15%); saved in profile record 0x56; the brickometer fill
 	int	mBricksToPass = 0;// +0x1a18 the stage's quota of bricks (NumBricksToPass of the level file: 200 for level 1, then plus mBricksToPassChange, at most mBricksToPassMax)
 	int	mBricksToPassChange = 0;// +0x1a1c how much the quota mBricksToPass grows for each level (NumBricksToPassChangeBy of the level file, 20 for level 1)
@@ -637,7 +600,6 @@ public:
 	int	mTimeBonusStepsPaid = 0;// +0x1a30 the steps of the time bonus paid so far (0-6, at 200, 300, 400, 500, 600 and 700 updates); sets the height of the bonus's floating text
 	int	mPowerupActive = 0;// +0x1a34 1 while the pilot's power-up is running (the gauge full and the weapon in use), 0 while it charges; set in BeginPlay, cleared when the gauge is empty
 	int	mMode = 0;// +0x1a38 the pilot of the game (0 laser, 1 atomic, 2 turbot, 3 psychic) and the base of its profile records: best score at mMode, stage at +4, level at +8
-	int	mAtomicWeaponState = 0;// +0x1a3c 0 when the atomic weapon (mode 1) is fired in BeginPlay, -1 once its blast has gone; nothing reads it
 	int	mAtomicSymbolTimer = 0;// +0x1a40 updates since the eighth atomic explosion reached frame 7 (the atomic symbol fades in with twice it as alpha); past 149 it becomes -5 and the blast sounds; -1 none
 	int	mAtomicFlashAlpha = 0;// +0x1a44 alpha of the white flash over the screen while the atomic blast grows (0 at its start, +1 an update, +10 later up to 255); -1 when no blast runs
 	int	mTurbotWaveY = 0;// +0x1a48 the y of the turbot's wave picture: starts at the screen's height and falls 10 an update while the wave sweeps; -65536 when none
@@ -650,7 +612,6 @@ public:
 	int	mSupportedBrickCount = 0;// +0x1a68 the bricks that rise on a support brick (event 0x10 from Brick::SetTargetY counts up, 0x11 from FireLanded down); the next row waits for 0
 	int	mSlowGateX = 0;// +0x1a70 the x of the slow gate on the warp screen: 182 when two gates are shown, else centred; its click area is 120 wide
 	int	mFastGateX = 0;// +0x1a74 the x of the fast gate on the warp screen (402); -1 when none is offered
-	int	mUnusedIntFromCtor = 0;// +0x1a78 set to 0 in the constructor beside the screen wipe; nothing reads it
 	int	mSirenOffDelay = 0;// +0x1a7c the updates until the siren and its song stop after the stack has dropped below 13 rows (300 / (15 - height), CheckStackHeight); -1 none
 	int	mScreenShakeX = 0;// +0x1a80 the x shift of the frame, the panels and the logo: random -2..2 while a strong hit shakes (UpdateStartBanner), -5..5 in turbot mode and at the game's end; else 0
 	int	mScreenWipeSteps = 0;// +0x1a84 the steps the screen wipe runs each update: 2000 for the kind that ends at once, 4 for kind 3, else 6
@@ -664,7 +625,6 @@ public:
 	int	mDangerPulseStep = 0;// +0x1aa4 the step of mDangerPulseAlpha each update; its size comes from the stack height (CheckStackHeight) and its sign flips at either end
 	int	mDangerPulseAlpha = 0;// +0x1aa8 the pulsing alpha 0-255 of the danger zone's second layer while the stack is high (UpdateAlertFlash)
 	int	mDangerZoneAlpha = 0;// +0x1aac alpha 0-255 of the glow at the bottom of the screen: +4 an update while the stack is 14 rows or more, -6 otherwise
-	int	mHoveredGate = 0;// +0x1ab0 which warp gate the pointer is over (2 the slow gate, 3 the fast gate, 0 none); nothing reads it
 	int	mExtraRowDelay = 0;// +0x1ab4 a countdown from 100 held between extra rows: set when extra rows become due, counts down while no power-up runs; an extra row waits until it is 0
 	int	mPhase = 0;// +0x1ab8 the game's phase: index of the picture under the field (mPhasePictures) and key of PickSpawnDelay; 2-5 calm, 6-7 power-up, 8-9 siren, 10-13 chain flurry
 	int	mFlurryTimer = 0;// +0x1abc the updates left of the chain flurry (chain length x 100 after a chain over 2, 400 at a bonus round, 700 at the level-up screen); at 0 the phase goes back
@@ -714,7 +674,6 @@ public:
 	int	mCheckpointLevel = 0;// +0x1b6c the level a classic game continues from: the mode's best level rounded down to a multiple of four, -1 if below four; set when the game ends, shown on the end page +1
 	int	mBonusTimeLeft = 0;// +0x1b70 updates left of the bonus round: 6000 (60 s at 100 an update) once its bricks are shown, -1 before; at 0 the clear count starts; OnHyperBrick adds 300; saved as 0x57
 	int	mBonusFadeAlpha = 0;// +0x1b74 alpha 0-255 of the bonus round's fade-out: 0xff when the round is loaded, -2 an update while mBonusFadingOut (UpdateIntroAndTally)
-	int	mBonusRevealDelay = 0;// +0x1b78 200 when a bonus round warp starts or is restored, 300 when its bricks have all been revealed; nothing reads it
 	int	mBannerTimeLeft = 0;// +0x1b7c updates left of the banner made by BuildBanner (400); counted down in a bonus round while no supa banner runs; clicks and the tally wait until it is 0
 	int	mBannerDuration = 0;// +0x1b80 the whole time of the banner in updates, as BuildBanner was given it; AnimateBanner fades the banner in over its first 75 updates with it
 	int	mBannerTimeShown = 0;// +0x1b84 time left of the banner as of the last update (mBannerTimeLeft before its decrement); AnimateBanner fades the banner out over its last 75 updates with it
@@ -735,8 +694,6 @@ public:
 	int	mBonusWarpPhase = 0;// +0x1bc0 part of the warp into a bonus round while mBonusWarpIn: 1 the streaks run and the screen goes white, 2 white holds, 3 the streaks slow and the white fades; 0 not running
 	int	mBonusWarpHold = 0;// +0x1bc4 counts the updates the white screen holds in part 2 of the bonus warp, up to 50 (UpdateIntroAndTally)
 	int	mBonusWarpWhiteAlpha = 0;// +0x1bc8 alpha 0-255 of the white overlay in the bonus warp: +1 every second update in part 1 (to 80), 255 in part 2, -2 an update in part 3
-	int	mUnusedIntBesideBonusWarp = 0;// +0x1bcc the constructor clears it among the bonus warp fields; nothing else writes or reads it
-	int	mBonusWarpTextX = 0;// +0x1bd0 x that centres a text of the bonus warp on 386 (UpdateIntroAndTally and RestoreGame set it from the width of the font); nothing reads it
 	int	mRankNumber = 0;// +0x1bd4 the number of the rank of mScore (AstroPopApp::GetRankName), taken when the level-up text is made; its picture is mRankImage; above profile setting 0x71 it is a new rank
 	float	mWeaponCharge = 0.0f;// +0x1bd8 the weapon's charge, 0 to mWeaponChargeMax: rises by mWeaponChargeStep an update while idle, falls by mWeaponDrainStep while the weapon runs; saved as setting 0x50
 	float	mWeaponChargeMax = 0.0f;// +0x1bdc the charge at which the weapon is ready: 18000 (set by the constructor and ApplyWeaponLevels); the meter is full when mWeaponCharge reaches it
@@ -962,7 +919,7 @@ public:
 	void			DrawTestTexts(Graphics* g);
 
 	// ---- the saved game (BoardRestore.cpp)
-	void			RestoreGame(int theScore, int theSetting54, int theSetting55, float theSetting52, float theSetting50, int theSavedLevel);   // 0x467af0
+	void			RestoreGame(int theScore, int thePlayTime, int theLevelsCompleted, float theScoreMultiplier, float theWeaponCharge, int theSavedLevel);   // 0x467af0
 
 	// ---- pause and play (BoardPlay.cpp)
 	void			Pause(bool theStart, bool theFlag);             // 0x459040 a dialog opens (true) or closes (false)

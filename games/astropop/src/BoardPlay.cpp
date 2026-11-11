@@ -253,7 +253,6 @@ void Board::BeginPlay()
 					mAtomicMarkedBricks.push_back(aMark);
 				}
 			}
-			mAtomicWeaponState = 0;
 		}
 		else if (mMode == 2)
 		{
@@ -444,7 +443,6 @@ void Board::RedrawAfterDialog()
 		aLoop->Stop();
 	if (!mApp->Is3DAccelerated())
 		mApp->CloseBoard();
-	mWipeImageCaptured = false;
 	mScreenWiping = false;
 	if (mOverlay.mColor58 != mOverlay.mFill)
 		mOverlay.MarkDirty();
@@ -452,7 +450,6 @@ void Board::RedrawAfterDialog()
 	((MemoryImage*) mScreenImage)->SetImageMode(false, false);
 	mApp->mWidgetManager->DrawWidgetsTo(mScreenGraphics);
 	((MemoryImage*) mScreenImage)->SetImageMode(true, true);
-	mWipeImageUsed = false;
 	mScreenWiping = true;
 	mClicksBlocked = true;
 }

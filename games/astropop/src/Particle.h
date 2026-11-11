@@ -35,7 +35,6 @@ public:
 	float		mEndY;          // +0x20
 	const float* mSin;          // +0x24 gSinTable
 	const float* mCos;          // +0x28 gCosTable
-	int			mField2C;       // +0x2c (set by a slot of the vtable, never read)
 	int			mAngle;         // +0x30 degrees
 	int			mAge;           // +0x34 updates
 	int			mDelay;         // +0x38 updates before it moves

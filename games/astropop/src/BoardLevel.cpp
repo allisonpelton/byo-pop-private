@@ -124,11 +124,9 @@ void Board::LevelComplete()
 		mTallyPaid = 0;
 		mClearCountRunning = false;
 		mBricksRevealing = false;
-		mBonusRoundLoaded = false;
 		mBonusFadingOut = false;
 		mBonusFadeAlpha = 0;
 		mBannerTimeLeft = 0;
-		mBonusRevealDelay = 200;
 		mBonusTimeLeft = -1;
 		mBonusRevealDone = false;
 		mBonusWarpIn = true;
@@ -158,7 +156,6 @@ void Board::LevelComplete()
 	delete mLevelUpText;
 	mLevelUpText = new LevelUpText(IMAGE_LEVELUP_TEXT, 0);
 	mLevelUpPhase = true;
-	mUnusedIntClearedInLevelUp = 0;
 	mApp->PlaySample(SOUND_LEVEL_COMPLETE);
 	mApp->PlaySample(SOUND_WORDSWOOSH);
 	mApp->PlaySong(0x29);
@@ -258,7 +255,6 @@ void Board::SetupUpgradeAnims()
 	mRightArmX = 0x294;
 	mRightArmY = 0x1a0;
 	mRightArmStopX = 0x1cf;
-	mRightArmStopY = 0x1a0;
 	mRightHeadImage = IMAGE_UPGRADE_HEAD;
 	mRightArmImage = IMAGE_UPGRADE_ARM;
 	mRightHeadAnim.Reset();
@@ -270,7 +266,6 @@ void Board::SetupUpgradeAnims()
 	mLeftArmX = -IMAGE_UPGRADE_ARM->mWidth;
 	mLeftArmY = 0x1a0;
 	mLeftArmStopX = 0x82;
-	mLeftArmStopY = 0x1a0;
 	mLeftArmImagesOwned = true;
 	mLeftHeadAnim.Reset();
 	mLeftHeadAnim.SetNumFrames(IMAGE_UPGRADE_HEAD->mNumCols);
@@ -487,7 +482,6 @@ void Board::StartLevelUp()
 	for (unsigned int i = 0; i < mStreaks.size() && i < 100; i++)
 	{
 		StreakRec& aStreak = mStreaks[i];
-		aStreak.mFlag28 = false;
 		if (aStreak.mKind == 0)
 			aStreak.mColor = Color(0x50, 0x50, 0x50);
 		else if (aStreak.mKind == 1)

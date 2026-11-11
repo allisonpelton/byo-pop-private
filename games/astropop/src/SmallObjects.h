@@ -67,7 +67,6 @@ public:
 class HintBox
 {
 public:
-	int			m04;            // +0x04 updates so far
 	int			mPhaseTimer; // +0x08 counts the updates of the phase while mTimerRunning: the wait before it slides in, then the time it stays in view
 	int			mX;             // +0x0c
 	int			mY;             // +0x10
@@ -85,8 +84,8 @@ public:
 	Color		mTextColor; // +0x48 the text's colour
 	int			mShowTime;      // +0x58 updates the box stays out of view before it slides in
 	int			mHideTime;      // +0x5c updates it stays in view
-	int			m60;            // +0x60
-	int			m64;            // +0x64
+	int			mCellColumn; // +0x60 the column of the field cell the box is about (set by the pointer's cell hint; HideCellHint compares it)
+	int			mCellRow; // +0x64 the row of the field cell the box is about
 
 	HintBox();                              // 0x456660
 	virtual ~HintBox() {}                   // 0x456750
@@ -150,7 +149,6 @@ class LevelUpText
 {
 public:
 	virtual ~LevelUpText() {}                   // 0x40c870
-	bool		m04;            // +0x04
 	int			mActive; // +0x08 the picture is showing; 0 once it has faded out or shrunk to nothing
 	int			mStartDelay; // +0x0c updates left before the picture's size starts to move (constructed 30)
 	int			mBigHoldTime; // +0x10 updates left of the stretch to the big size 1.75 (constructed 100); the picture shrinks away after it
@@ -189,39 +187,6 @@ struct FadeRec
 	int			mValue;         // +0x00 alpha
 	int			mStep;          // +0x04
 	bool		mRising;        // +0x08
-};
-
-// The pointer's recent movement (class of 0x64 bytes, vtable 0x561ea4, constructor 0x40b1b0, step 0x40b230; the Board
-// keeps one at +0x35c): the last six steps in x and in y, as the Board's draw at 0x437bd0 gives it new positions.
-class PointerTrail
-{
-public:
-	float		mStepX[6];      // +0x04
-	int			mIndexX;        // +0x1c
-	int			m20;            // +0x20
-	float		mLastX;         // +0x24
-	float		mStepY[6];      // +0x28
-	int			mIndexY;        // +0x40
-	int			m44;            // +0x44
-	float		mLastY;         // +0x48
-	float		mX;             // +0x4c
-	float		mY;             // +0x50
-	float		mPrevX;         // +0x54
-	float		mPrevY;         // +0x58
-	int			m5c;            // +0x5c
-	int			m60;            // +0x60
-
-	PointerTrail()
-	{
-		for (int i = 0; i < 6; i++)
-		{
-			mStepX[i] = 0;
-			mStepY[i] = 0;
-		}
-		mIndexX = 0; m20 = 0; mLastX = 0; mIndexY = 0; m44 = 0; mLastY = 0;
-		mX = 0; mY = 0; mPrevX = 0; mPrevY = 0; m5c = 0; m60 = 0;
-	}
-	virtual ~PointerTrail() {}
 };
 
 }

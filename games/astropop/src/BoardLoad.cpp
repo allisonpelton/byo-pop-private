@@ -45,7 +45,6 @@ void Board::LoadLevel(bool theFromRules)
 				aFile.AddKeyName(StrFormat("Brick%d", i));
 			aFile.Parse(aFileName);
 			aFile.EnterFirstChild();
-			mLevelFileLevelUp = aFile.GetInt("\\LEVEL\\LevelUp");
 			mRowInterval = aFile.GetInt("\\LEVEL\\DropTime") * 100;
 			bool aDone = false;
 			mScriptRowIndex = -1;

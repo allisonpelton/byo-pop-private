@@ -185,9 +185,6 @@ bool Board::UpdateWarp()
 				mWarpFlight = true;
 				mShipInWarp = true;
 				mShipFrame = 2;
-				for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
-					mStreaks[i].mFlag28 = false;
-				mWarpEngaged = true;
 				mApp->PlaySample(SOUND_WARP_ENGAGED);
 				ClearField();
 				mWarpShipY = -312.0f; // 0xc39c0000 (the asm at 0x46ae88)
@@ -196,7 +193,6 @@ bool Board::UpdateWarp()
 					WarpStar* aStar = new WarpStar();
 					aStar->mX = 0;
 					aStar->mY = 0;
-					aStar->mField5C = 0;
 					aStar->mSpeed = 0;
 					aStar->mImage = NULL;
 					if (i < 5)
@@ -214,7 +210,6 @@ bool Board::UpdateWarp()
 					else
 						aStar->mX = (float) (((int) AstroRand() % 500000000) % 0xdc);
 					aStar->mY = (float) (((int) AstroRand() % 500000000) % 0x32 - 100);
-					aStar->mField5C = 0;
 					aStar->mSpeed = (float) (((int) AstroRand() % 500000000) % 0x51) * 0.01f + 0.4f;
 					mWarpStars.push_back(aStar);
 				}

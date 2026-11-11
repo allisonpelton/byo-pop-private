@@ -151,7 +151,7 @@ public:
 	void			ShowMessageDialog(const std::string& theHeader, const std::string& theText); // an OK box (the original makes it at each place with 0x411ba0)
 	void				ShowUpgradeDialog(); // 0x412730: the warp screen's box that tells the pilot's weapon has been upgraded
 	void				ShowPowerDialog();  // 0x40c490: the box that explains the pilot's weapon, opened by the first move of a game
-	AstroDialog*	MakeDialog(int theType, bool theAnimated, int theId, int theWidth, int theHeight, int theButtonMode, const std::string& theHeader, const std::string& theLines, const std::string& theYes, const std::string& theNo, bool theUnused);   // 0x411ba0 a box of a colour set (theType); theId 100 .. 124 is the dialog's id
+	AstroDialog*	MakeDialog(int theType, bool theAnimated, int theId, int theWidth, int theHeight, int theButtonMode, const std::string& theHeader, const std::string& theLines, const std::string& theYes, const std::string& theNo);   // 0x411ba0 a box of a colour set (theType); theId 100 .. 124 is the dialog's id
 	Color			GetDialogInsetColor(int theSet);            // the tint of a dialog set's inset picture (0x5a4ff0 and the five after it)
 	// The screens the selector opens. Not translated yet: each one logs "not translated" and does nothing.
 	void			StartGame(bool theContinue);                // 0x428c70 (the Board)

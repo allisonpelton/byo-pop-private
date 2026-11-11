@@ -32,7 +32,6 @@ KillAllBrick::KillAllBrick(Board* theBoard, EventBus* theBus, int theColumn) :
 	Brick(theBoard, theBus, theColumn)
 {
 	mSpecial = true;
-	mField234 = 0xff;
 	mDeathAnim.SetNumFrames(IMAGE_BRICK_KILLALL_RED_DEATH->mNumCols);
 	mChainCounted = false;
 }

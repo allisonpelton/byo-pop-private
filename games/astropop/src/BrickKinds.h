@@ -13,7 +13,6 @@ namespace Sexy
 class KillAllBrick : public Brick
 {
 public:
-	int				mField234;          // +0x234 255
 	bool			mChainCounted;      // +0x238 the brick went with a connected set that already advanced the chain, so OnKillAllDone does not advance it again
 
 	KillAllBrick(Board* theBoard, EventBus* theBus, int theColumn);

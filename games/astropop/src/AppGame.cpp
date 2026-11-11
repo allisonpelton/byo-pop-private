@@ -130,15 +130,15 @@ void AstroPopApp::StartGame(bool theContinue)
 	if (aSavedLevel > 1 && theContinue)
 	{
 		int aScore = 0;
-		float aFloat50 = 0;
-		float aFloat52 = 0;
-		int aSetting54 = 0;
-		int aSetting55 = 0;
+		float aWeaponCharge = 0;
+		float aScoreMultiplier = 0;
+		int aPlayTime = 0;
+		int aLevelsCompleted = 0;
 		mUser->GetInt(0x51, &aScore);
-		mUser->GetFloat(0x50, &aFloat50);
-		mUser->GetFloat(0x52, &aFloat52);
-		mUser->GetInt(0x54, &aSetting54);
-		mUser->GetInt(0x55, &aSetting55);
+		mUser->GetFloat(0x50, &aWeaponCharge);
+		mUser->GetFloat(0x52, &aScoreMultiplier);
+		mUser->GetInt(0x54, &aPlayTime);
+		mUser->GetInt(0x55, &aLevelsCompleted);
 		int aPilot = 0;
 		mUser->GetInt(0x53, &aPilot);
 
@@ -157,7 +157,7 @@ void AstroPopApp::StartGame(bool theContinue)
 		LoadPilotImages(1);
 		mBoard = new Board(this, &mBus, 1, 0, 1, false, false, false);
 		mBoard->Resize(0, 0, mWidth, mHeight);
-		mBoard->RestoreGame(aScore, aSetting54, aSetting55, aFloat52, aFloat50, aSavedLevel);
+		mBoard->RestoreGame(aScore, aPlayTime, aLevelsCompleted, aScoreMultiplier, aWeaponCharge, aSavedLevel);
 		mWidgetManager->AddWidget(mBoard);
 		mWidgetManager->SetFocus(mBoard);
 		StartLoopSound(-1);

@@ -538,7 +538,6 @@ void Board::UpdateStates()
 				g.DrawString(aText, 0, aFont->GetAscent());
 
 				mLevelUpText = new LevelUpText(anImage, 0);
-				mLevelUpText->m04 = true;
 				mApp->PlaySample(SOUND_WORDSWOOSH);
 			}
 		}
@@ -617,7 +616,7 @@ void Board::UpdateStates()
 		if (mTutorialPickCount > 0)
 			mTutorialPickTimer++;
 		if (mTutorialPickTimer == 1000)
-			mApp->MakeDialog(mMode + 2, false, 0x6c, -1, -1, 3, GT(0x56633c), GT(0x566348), GT(0x562024), std::string(), true);
+			mApp->MakeDialog(mMode + 2, false, 0x6c, -1, -1, 3, GT(0x56633c), GT(0x566348), GT(0x562024), std::string());
 	}
 
 Finish:

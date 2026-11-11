@@ -176,7 +176,7 @@ void Board::SaveFinalScore()
 	{
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);
-		mInHallOfFame = mApp->AddHallOfFame(aName, mScore, mLevelNumber, mMode, 1);
+		mApp->AddHallOfFame(aName, mScore, mLevelNumber, mMode, 1);
 
 		int aBest = mScore;
 		mApp->mUser->GetInt(mMode, &aBest);
@@ -245,7 +245,7 @@ void Board::GameOver()
 
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);
-		mInHallOfFame = mApp->AddHallOfFame(aName, mScore, mPlayTime / 100, mMode, 2);
+		mApp->AddHallOfFame(aName, mScore, mPlayTime / 100, mMode, 2);
 
 		int aBestTime = 0;
 		mApp->mUser->GetInt(mMode + 0x67, &aBestTime);

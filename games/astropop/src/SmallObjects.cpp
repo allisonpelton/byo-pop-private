@@ -78,7 +78,6 @@ LevelUpText::LevelUpText(Image* theImage, int theY)
 	mBigHoldTime = 100;
 	mScale = 1.0f;
 	mScaleSpeed = 0.025f;
-	m04 = false;
 }
 
 // 0x40b6a0: one update of the picture that announces a level (or a minute): its position and size ease towards the middle
@@ -204,9 +203,8 @@ HintBox::HintBox()
 	mDrawAllowed = true;
 	mInView = false;
 	mSlidIn = false;
-	m04 = 0;
-	m64 = 0;
-	m60 = 0;
+	mCellRow = 0;
+	mCellColumn = 0;
 	mY = 0;
 	mX = 0;
 	mPhaseTimer = 0;
@@ -217,7 +215,6 @@ HintBox::HintBox()
 // 0x435a40: the box counts; once it is shown it waits mShowTime updates, slides in, stays mHideTime updates and goes
 void HintBox::Update()
 {
-	m04++;
 	if (mTimerRunning)
 		mPhaseTimer++;
 

@@ -590,7 +590,6 @@ void Board::AdvanceLevel(bool theSave)
 	if (mGameType == 1)
 	{
 		mSlowGateStage = aLevel + 2;
-		mNextStageNumber = aLevel + 1;
 		int aHalf = (aLevel + 2) / 2;
 		int aRest = (aHalf + 1) % 4;
 		mFastGateStage = (aRest == 0) ? -1 : (aHalf - aRest) * 2 + 8;

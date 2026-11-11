@@ -53,7 +53,7 @@ void Board::HideCellHint(Brick* theBrick)
 	int aCol = CellColumn(theBrick->mX);
 	int aRow = CellRow(theBrick->mY);
 	HintBox* aBox = mHintBoxes[2];
-	if (aBox->mShown && aBox->m60 == aCol && aBox->m64 == aRow)
+	if (aBox->mShown && aBox->mCellColumn == aCol && aBox->mCellRow == aRow)
 		aBox->SetShown(false);
 }
 
@@ -644,26 +644,15 @@ void Board::OnHyperBrick(Brick* theBrick)
 		if (!(mBrickometerFill <= 1.0f))
 			mBrickometerFill = 1.0f;
 		float aFill = mBrickometerFill * 444.0f;
-		float aTop = 444.0f - aFill;
-		mBrickometerRiseDistance = (int) ((float) aY - aTop);
-		mBrickometerRiseSteps = 0x17;
-		mBrickometerRiseStep = 0;
-		mBrickometerRiseTop = (int) aTop;
 		mBoosterFlameY = (int) (492.0f - aFill);
 	}
 	else
 	{
 		int anOld = mBonusTimeLeft;
-		int aWas = (int) (444.0f - (float) anOld * 0.00016666666488163173f * 444.0f);
 		mBonusTimeLeft = anOld + 300;
 		if (mBonusTimeLeft >= 6000)
 			mBonusTimeLeft = 6000;
-		int aNow = (int) (444.0f - (float) mBonusTimeLeft * 0.00016666666488163173f * 444.0f);
 		float aFill = mBrickometerFill * 444.0f;
-		mBrickometerRiseDistance = aWas - aNow;
-		mBrickometerRiseSteps = 0x17;
-		mBrickometerRiseStep = 0;
-		mBrickometerRiseTop = aNow;
 		mBoosterFlameY = (int) (492.0f - aFill);
 	}
 

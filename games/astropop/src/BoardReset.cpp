@@ -15,7 +15,6 @@ using namespace Sexy;
 void Board::ResetGame()
 {
 	mHeldBricksNotLanded = 0;
-	mGameWasReset = true;
 	mDangerZoneAlpha = 0;
 	mWarpActive = false;
 	mWarpCharging = false;
@@ -51,9 +50,7 @@ void Board::ResetGame()
 	mScoreAtStageStart = mScore;
 	mClearWaitStarted = true;
 	mExtraRowsDue = 0;
-	mUnusedIntClearedInReset = 0;
 	mStreaksFadingOut = false;
-	mUnusedIntClearedInLevelUp = 0;
 	mLevelUpPhase = false;
 	mGameOver = false;
 	mComboTextVisible = true;
@@ -64,14 +61,10 @@ void Board::ResetGame()
 	mPerfectBannerAlpha = 0;
 	mShipTilt = 2;
 	mTakenBrickCount = 0;
-	mAtomicWeaponState = 0;
 	mTopRowsAllowed = true;
 	mMutatorCooldown = 0;
 	mNewRowBouncing = false;
-	mUnusedIntClearedOnClick = 0;
 	mBoosterDue = false;
-	mUnusedIntFromReset = 0;
-	mUnusedFlagFromReset = false;
 	mPickUpButtonDown = false;
 	mBackdropTintChanging = false;
 	mBackdropTint = Color(100, 100, 100);
@@ -92,21 +85,17 @@ void Board::ResetGame()
 	mStackWarningActive = false;
 	mStackWarningTimer = 0;
 	mWarpGatePicked = false;
-	mWarpEngaged = false;
 	mTurbotWaveY = -65536;
 	mPointsTextY = -1;
 	mPointsTextX = -1;
 	mSupportedBrickCount = 0;
 	mTimeBonusSets = 0;
-	mSetMadeSinceTopRow = false;
 	mGameOverAnimDone = false;
 	mTurbotFlashAlpha = -1;
-	mUnusedClearedInReset = false;
 	mPlayStarted = false;
 	mWarpLightningImage = NULL;
 	mFreezeUpdatesLeft = 0;
 	mAtomicFlashAlpha = -1;
-	mUnusedIntClearedWithBrickCount = 0;
 	mAtomicSymbolTimer = -1;
 	mFiftyLeftSoundPlayed = false;
 	mHundredLeftSoundPlayed = false;
@@ -138,7 +127,6 @@ void Board::ResetGame()
 	mPauseDarkening = 0;
 	mPausedUpdates = 0;
 	mRampTime = 0;
-	mUnusedIntSetTo500InReset = 500;
 	mStackDanger = 0;
 	mStackDangerPeak = 0;
 	mFuelCellDue = false;
@@ -182,7 +170,6 @@ void Board::ResetGame()
 			aStar->mImageId = aThird;
 		aStar->mX = (float) (((int) AstroRand() % 500000000) % (0x1b8 - aStar->mImage->mWidth) + 0xa6);
 		aStar->mY = (float) ((int) i * -900 + 100);
-		aStar->m60 = 0;
 		aStar->mSpeed = 0.1f;
 	}
 	mScreenShakeX = 0;

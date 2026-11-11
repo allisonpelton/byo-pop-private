@@ -119,7 +119,6 @@ void Board::OnBrickGone(Brick* theBrick)
 
 					mLevelUpTextShown = true;
 					mLevelUpText = new LevelUpText(anImage, 0);
-					mLevelUpText->m04 = true;
 					mApp->PlaySample(SOUND_WORDSWOOSH);
 					mStageMeterAnim.Reset();
 					mStageMeterAnim.SetStopped(false);

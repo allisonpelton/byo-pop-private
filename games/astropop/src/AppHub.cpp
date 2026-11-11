@@ -78,7 +78,7 @@ static void AskToEndGame(AstroPopApp* theApp)
 		aLines = GT(0x563870);
 		aHeader = GT(0x00563860);
 	}
-	theApp->MakeDialog(theApp->GetDialogSet(), false, 0x6a, -1, -1, 1, aHeader, aLines, "Yes", "No", true);
+	theApp->MakeDialog(theApp->GetDialogSet(), false, 0x6a, -1, -1, 1, aHeader, aLines, "Yes", "No");
 }
 
 // The OK of the message box (0x6c) returns the keyboard to the Board, or to the player-name box when that is open

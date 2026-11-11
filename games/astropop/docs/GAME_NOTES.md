@@ -288,9 +288,9 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    The music (a module stream) was not compared with the original's in phase two: its start, stop and focus handling remain to be
    checked, if origrun can see them.
 3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
-   waits for `docs/MOD_ROADMAP.md`'s turn. The coverage check is done (section 10). Still to do for the game to be done: the performance
-   numbers and pass, taking out code the game does not need, the readability pass (`docs/CODE_STANDARDS.md`), the check against the
-   PopCap Game Collection's copy, and a night run of the original in 3D for the screen wipe (section 10).
+   waits for `docs/MOD_ROADMAP.md`'s turn. Done since: the coverage check and the removal of code the game does not need (section 10), the
+   performance pass (section 11) and the readability pass (section 12). Still to do for the game to be done: the check against the PopCap Game
+   Collection's copy, the music's state against the original's, and a night run of the original in 3D for the screen wipe (section 10).
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
@@ -421,3 +421,52 @@ baseline (`tools/check.sh astropop`) is unchanged by this pass: it added only th
 machine has a free slot; it waits for one), `BEFORE_EXE=<name>` adds a run of an exe kept in `build/native` from before a change; the
 memory split is the standard `memreport <file>` test command (`docs/TEST_COMMANDS.md`) put into a `-realinput` script at the points
 wanted. The raw samples were deleted once these figures were written.
+
+## 12. The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
+
+**Result.** `tools/namecheck.py games/astropop` reports no finding in 114 files, and no identifier of the game's sources is a prefix and an
+offset (`m1a34`, `aFloat50`, `mFlag8E8`): every member, local, parameter and global says what it holds, and every function says which
+original function it is or that it is the port's (a `// port:` line). What the pass did, in order:
+
+1. *Helpers.* Every helper names its original function (an address) or carries a `// port: ...` line saying why it exists. Fields that
+   nothing reads were taken out (the brick's flags and numbers, the application's `mFlag65b`, `UserProfile`'s `mUnknown62`), in the
+   removal commit (`afe6e702`) and after it.
+2. *The Board's 418 fields.* `docs/board_fields.tsv` is the table (offset, type, name, comment; `tools/boardfields.py` writes the block
+   of `Board.h` from it). Six batches of about 70 rows were named by reading every use of the field, one agent at a time, each batch
+   applied by a script (`whole-word` replacement in the sources and these notes) and proved before the next: the build's object code
+   is the same as before the batch (`tools/objsnap.py cmp`: 84 objects, 1,632 functions, 0 differ) and the string literals of every
+   changed file are the same (a small lexer over `git show HEAD:` against the working copy). Where the original's code gave no
+   meaning, a name says what the code does (`mPowerBrickRowState`, `mTurbotWindUpCounter`); the table's comment says what was seen.
+3. *The small classes.* `StageBg`, `HintBox`, `HintSpot`, `FloatText`, `LevelUpText`, `BlinkRec`, `AstroDialog`, `ListDialog`,
+   `HelpDialog` and the speed table's `RampRecord` had members called by offset too, and the same hex names exist in several classes
+   (`m10c` of the Board is not `m10c` of `StageBg`), so a whole-word replacement over the sources renamed another class's member (the
+   first batch did that to three `StageBg` members and one of `HelpDialog`; found before any commit, repaired at once). Those names
+   were changed with the compiler: rename in the class's declaration, build with `-k 0`, and fix each "no member named" error at its
+   position, until none is left. That is also the way to rename a member of one class whose name another class uses.
+4. *The stand-ins.* `aFloat50`/`aFloat52`, `aValue198c`, `theSetting5x`, `mFlag78`/`mFlag80` of the overlay (now `mEmergencyPause`,
+   `mShownWhileRunning`), `gFlag5A5100` (`gStateSaved`) and the rest were named from the fields they carry.
+5. *Dead members.* After naming, every Board field with no read was found by a script (a use that is not the left side of a plain
+   one-line assignment counts as a read) and taken out with its stores: 36 fields, among them the original's pointer trail
+   (`PointerTrail`, the whole class), the brickometer's rise (four numbers the original computes and the port never draws), the
+   weapon hint text, the Hall of Fame flag (the call stays, its result goes), the bonus warp's text position, the wipe flags and
+   twelve fields that only a constructor or `ResetGame` touched. In the small classes: `StreakRec::mFlag28`, `WarpStar::mField5C`,
+   `Particle::mField2C`, `KillAllBrick::mField234`, `StageBg::m11c`, `CheckpointDialog::m114`, the update counter of `HintBox`, the
+   done flag of `LevelUpText`, the padding of `StarRec`, and `MakeDialog`'s last parameter (the original passes a flag it does not read;
+   all 14 callers passed `true`). The two numbers of `HintBox` that looked dead are read (`HideCellHint`) and are `mCellColumn` and
+   `mCellRow`. A stray row `made` (a word of a comment that the generator took for the field at +0xade) went too, and the generator no
+   longer adds rows unless asked (`--add`).
+
+**The removals were proved differently**, since taking out a member moves the offset of every member after it and so changes the object
+code: the build (native and web) and `tools/check.sh astropop` (the frozen baseline: a classic game of 120 moves with real input, its
+state compared with the baseline exe's). Every removed store was a statement of its own whose value nothing reads; a store with a
+call in it (an `AddHallOfFame`) kept the call.
+
+**Names given for what the code does, worth a second look when a screen is read against the original again:** `mStartBannerDoneInBonus`
+(set when the start banner ends in a bonus round, yet it holds back the round's end checks), `mClicksBlocked`, `mUpgradeDialogDone` and
+`mUpgradeDialogSeen` (both set by `TakeFocus`), `mStartedFromCheckpoint`, `mStageTextEnabled`, `mPointerOverEasyGate` (the easy gate is
+inferred from the picture's name), `mNextLevelScreenKind` / `mLevelEndScreenKind` (the 0 to 4 codes of the upgrade screen: which
+level's break each belongs to is not settled), `mPowerBrickRowState`, `mFrameDimming`, `mTurbotWindUpCounter`, `mHardStage`,
+`mKeepLoopSoundsMuted`, `mRowsLeftToPass`, `mRampTime`, `mPauseCount`.
+
+**To repeat or go on.** `python -I tools/namecheck.py games/astropop` lists what is left; `tools/objsnap.py snap|cmp astropop <json>`
+proves a rename by object code; a class's members are renamed by building with `-k 0` and fixing the errors at their positions.

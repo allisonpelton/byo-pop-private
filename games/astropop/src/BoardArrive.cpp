@@ -255,7 +255,6 @@ void Board::OnBrickArrived(Brick* theBrick)
 			}
 			else
 			{
-				mSetMadeSinceTopRow = true;
 				unsigned int anIndex = mConnectedCells.empty() ? 0 : (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mConnectedCells.size();
 				if (!HasMarkOfType(aLastKind))
 					mApp->PlaySampleAt(SOUND_MADE_SET, mConnectedCells[anIndex].mCol);
@@ -265,7 +264,6 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 		else
 		{
-			mSetMadeSinceTopRow = true;
 			unsigned int anIndex = (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mConnectedCells.size();
 			if (!HasMarkOfType(aLastKind))
 				mApp->PlaySampleAt(SOUND_MADE_BIG_SET, mConnectedCells[anIndex].mCol);

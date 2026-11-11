@@ -290,11 +290,11 @@ void OptionsDialog::CheckboxChecked(int theId, bool theChecked)
 		if (!gApp->Is3DAccelerationSupported())
 		{
 			mAccelCheck->SetChecked(false, false);
-			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x69, 400, -1, 3, GT(0x0056b270), GT(0x56b280), "OK", std::string(), true);
+			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x69, 400, -1, 3, GT(0x0056b270), GT(0x56b280), "OK", std::string());
 			return;
 		}
 		if (!gApp->Is3DAccelerationRecommended())
-			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x68, -1, -1, 3, "Warning", GT(0x56b1f0), "OK", std::string(), true);
+			gApp->MakeDialog(gApp->GetDialogSet(), false, 0x68, -1, -1, 3, "Warning", GT(0x56b1f0), "OK", std::string());
 	}
 }
 
@@ -304,7 +304,7 @@ void OptionsDialog::ButtonDepress(int theId)
 	switch (theId)
 	{
 	case 9:
-		gApp->MakeDialog(mColourSet, false, 0x75, -1, -1, 1, "WARNING", GT(0x56b308), "Yes", "No", true);
+		gApp->MakeDialog(mColourSet, false, 0x75, -1, -1, 1, "WARNING", GT(0x56b308), "Yes", "No");
 		break;
 	case 0xfa8:
 		gApp->ButtonDepress(0xfa8);
