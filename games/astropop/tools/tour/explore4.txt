@@ -1,0 +1,13 @@
+3000 shot e00_title
+3100 click 320 447
+3150 type Test
+3180 key Return
+3260 shot e01_menu
+3300 click 535 236
+3350 shot e02_options
+3360 click 408 296
+3400 click 413 387
+3460 shot e03_more1
+3600 shot e04_more2
+3800 shot e05_more3
+4100 shot e06_more4

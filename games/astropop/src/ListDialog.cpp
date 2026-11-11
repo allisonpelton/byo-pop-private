@@ -9,7 +9,7 @@
 #include "ListWidget.h"
 #include "MemoryImage.h"
 #include "Res.h"
-#include "ScrollbarWidget.h"
+#include "AstroScrollbar.h"
 #include "UserProfile.h"
 #include "WidgetManager.h"
 
@@ -34,7 +34,7 @@ int gListColors[6][3] =
 // 0x486570: the box is of the colour set of the selector (1), like the box of the new player. The list is eight lines
 // high, its text the small font; the scroll bar stands beside it.
 ListDialog::ListDialog(AstroPopApp* theApp, int theId, const std::string& theHeader, const std::string& theLines) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, theId, true, theHeader, theLines, std::string(), 2)
+	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, theId, true, theHeader, theLines, std::string(), 2)
 {
 	mApp = theApp;
 	m11c = 0xf;
@@ -45,7 +45,7 @@ ListDialog::ListDialog(AstroPopApp* theApp, int theId, const std::string& theHea
 	mList->mJustify = ListWidget::JUSTIFY_CENTER;
 	mList->SetColors(gListColors, 6);
 
-	mScrollbar = new ScrollbarWidget(0x38d, mList);
+	mScrollbar = new AstroScrollbar(0x38d, mList);
 	mScrollbar->mHorizontal = false;
 	mList->mScrollbar = mScrollbar;
 
@@ -60,7 +60,10 @@ void ListDialog::MakeButtonImages()
 	MemoryImage* aButtonImage = NULL;
 	gApp->MakeDialogImages(gApp->GetDialogInsetColor(1), gApp->GetDialogColor(1), &anInsetImage, &aButtonImage, false);
 	mComponentImage = anInsetImage;
+	// the 2004 Dialog reads the button height from the button picture at each use (GetPreferredHeight 0x4e91d0 and Resize); the
+	// port keeps the height it took at construction, so it follows the picture that replaces it
 	mYesButton->mComponentImage = aButtonImage;
+	mButtonHeight = aButtonImage->mHeight;
 	mYesButton->mNormalRect = Rect(0, 0, 0x78, 0x21);
 	mYesButton->mOverRect = Rect(0x78, 0, 0x78, 0x21);
 	mYesButton->mDownRect = Rect(0xf0, 0, 0x78, 0x21);

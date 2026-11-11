@@ -15,7 +15,7 @@ using namespace Sexy;
 
 // 0x484d80: the box is of the colour set of the selector (1). The field takes up to 24 letters and 305 pixels.
 NewUserDialog::NewUserDialog() :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x6b, true, GT(0x005649d4), GT(0x0056b064), std::string(), 2)
+	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x6b, true, GT(0x005649d4), GT(0x0056b064), std::string(), 2)
 {
 	mEdit = new EditWidget(0, this);
 	mEdit->SetFont(GetFontById(0xb0), GetFontById(0x120));
@@ -29,7 +29,10 @@ NewUserDialog::NewUserDialog() :
 	MemoryImage* aButtonImage = NULL;
 	gApp->MakeDialogImages(gApp->GetDialogInsetColor(1), gApp->GetDialogColor(1), &anInsetImage, &aButtonImage, false);
 	mComponentImage = anInsetImage;
+	// the 2004 Dialog reads the button height from the button picture at each use (GetPreferredHeight 0x4e91d0 and Resize); the
+	// port keeps the height it took at construction, so it follows the picture that replaces it
 	mYesButton->mComponentImage = aButtonImage;
+	mButtonHeight = aButtonImage->mHeight;
 	mYesButton->mNormalRect = Rect(0, 0, 0x78, 0x21);
 	mYesButton->mOverRect = Rect(0x78, 0, 0x78, 0x21);
 	mYesButton->mDownRect = Rect(0xf0, 0, 0x78, 0x21);
@@ -95,6 +98,12 @@ void NewUserDialog::Draw(Graphics* g)
 	int aParts = (aWidth - 0x21) / 0x20;
 	for (int i = 0; i < aParts; i++)
 		aClipped.DrawImage(IMAGE_EDIT_BOX, i * 0x20 + aX + 0x20, aY, Rect(0x20, 0, 0x20, 0x20));
+}
+
+// 0x4821d0: the height of the text and buttons, and 0x32 more for the field
+int NewUserDialog::GetPreferredHeight(int theWidth)
+{
+	return Dialog::GetPreferredHeight(theWidth) + 0x32;
 }
 
 // 0x4822b0

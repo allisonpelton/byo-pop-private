@@ -9,6 +9,7 @@
 // button OK that the Return, Space and Escape keys press too. It is 400 high, and as wide as its pictures need.
 // Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "CheckboxListener.h"
 #include "Dialog.h"
 #include <string>
@@ -22,7 +23,7 @@ class Checkbox;
 class Image;
 class MemoryImage;
 
-class PowerDialog : public Dialog, public CheckboxListener
+class PowerDialog : public Text2004<Dialog>, public CheckboxListener
 {
 public:
 	AstroPopApp*				mApp;       // +0x114 (+0x118: set to 0, never read)

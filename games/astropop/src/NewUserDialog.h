@@ -5,6 +5,7 @@
 // 0x483c20 / body 0x482140, vftable 0x56aa08, with an EditListener at +0x110, vftable 0x56a9f4). The name field is an
 // EditWidget the box keeps beside itself in the widget manager. Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "Dialog.h"
 #include "EditListener.h"
 
@@ -13,7 +14,7 @@ namespace Sexy
 
 class EditWidget;
 
-class NewUserDialog : public Dialog, public EditListener
+class NewUserDialog : public Text2004<Dialog>, public EditListener
 {
 public:
 	EditWidget*		mEdit;      // +0x114 the name field
@@ -26,6 +27,7 @@ public:
 	virtual void	RemovedFromManager(WidgetManager* theManager) override; // 0x482230
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x482260 the field sits under the text
 	virtual void	Draw(Graphics* g) override;                             // 0x483c50 the frame of the field
+	virtual int		GetPreferredHeight(int theWidth) override;              // 0x4821d0 the box's own height and 0x32 more for the field
 	virtual void	GotFocus() override;                                    // 0x4822b0 the keyboard goes to the field
 
 	// the listener of the field

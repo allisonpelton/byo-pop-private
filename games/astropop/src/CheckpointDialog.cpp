@@ -14,7 +14,7 @@ using namespace Sexy;
 // 0x488760. The box has no buttons; its inset picture is made in the colours of the game's set (the button picture the
 // maker also gives is not needed and goes at once).
 CheckpointDialog::CheckpointDialog(int theColourSet, AstroPopApp* theApp) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x78, true, GT(0x00564b3c), std::string(), std::string(), 0)
+	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x78, true, GT(0x00564b3c), std::string(), std::string(), 0)
 {
 	mApp = theApp;
 	m114 = 0;

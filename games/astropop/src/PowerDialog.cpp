@@ -19,7 +19,7 @@ using namespace Sexy;
 // three.
 PowerDialog::PowerDialog(AstroPopApp* theApp, int thePilot, MemoryImage* theInsetImage, MemoryImage* theStripImage,
 						 Image* theCheckImage) :
-	Dialog(theInsetImage, theStripImage, 0x7b, true, GT(0x0056c388), std::string(), "OK", Dialog::BUTTONS_FOOTER)
+	Text2004<Dialog>(theInsetImage, theStripImage, 0x7b, true, GT(0x0056c388), std::string(), "OK", Dialog::BUTTONS_FOOTER)
 {
 	mApp = theApp;
 	mResult = -1;
@@ -35,7 +35,10 @@ PowerDialog::PowerDialog(AstroPopApp* theApp, int thePilot, MemoryImage* theInse
 	mYesButton->mNormalRect = Rect(0, 0, 0x78, 0x21);
 	mYesButton->mOverRect = Rect(0x78, 0, 0x78, 0x21);
 	mYesButton->mDownRect = Rect(0xf0, 0, 0x78, 0x21);
+	// the 2004 Dialog reads the button height from the button picture at each use (GetPreferredHeight 0x4e91d0 and Resize); the
+	// port keeps the height it took at construction, so it follows the picture that replaces it
 	mYesButton->mComponentImage = theStripImage;
+	mButtonHeight = theStripImage->mHeight;
 	if (mNoButton != NULL)
 	{
 		mNoButton->mNormalRect = Rect(0, 0, 0x78, 0x21);

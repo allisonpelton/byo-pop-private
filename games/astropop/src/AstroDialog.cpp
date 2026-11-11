@@ -14,7 +14,7 @@ using namespace Sexy;
 // the buttons are hidden until the box has come in.
 AstroDialog::AstroDialog(AstroPopApp* theApp, int theId, const std::string& theHeader, int theButtonMode, bool theColoured,
 						 const Color& theInsetColor, const Color& theButtonColor) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, theId, true, theHeader, std::string(), std::string(), theButtonMode)
+	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, theId, true, theHeader, std::string(), std::string(), theButtonMode)
 {
 	mImageTop = 0;
 	mInsetImage = NULL;
@@ -26,7 +26,7 @@ AstroDialog::AstroDialog(AstroPopApp* theApp, int theId, const std::string& theH
 // 0x489e20: the same with a picture for the title and nothing written in the header, lines or footer
 AstroDialog::AstroDialog(AstroPopApp* theApp, int theId, Image* thePicture, int theImageTop, int theButtonMode, bool theColoured,
 						 const Color& theInsetColor, const Color& theButtonColor) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, theId, true, std::string(), std::string(), std::string(), theButtonMode)
+	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, theId, true, std::string(), std::string(), std::string(), theButtonMode)
 {
 	mInsetImage = NULL;
 	mButtonImage = NULL;
@@ -56,7 +56,10 @@ void AstroDialog::Setup(AstroPopApp* theApp, bool theColoured, const Color& theI
 	{
 		theApp->MakeDialogImages(mInsetColor, mButtonColor, &mInsetImage, &mButtonImage, false);
 		if (mYesButton != NULL)
+		{
 			mYesButton->mComponentImage = mButtonImage;
+			mButtonHeight = mButtonImage->mHeight;	// see NewUserDialog
+		}
 		mComponentImage = mInsetImage;
 	}
 	if (mNoButton != NULL)

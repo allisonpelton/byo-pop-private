@@ -10,6 +10,7 @@
 // highlight stay in the tables and are never used).
 // Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "Widget.h"
 #include "ButtonListener.h"
 #include "FrameAnim.h"
@@ -30,7 +31,7 @@ struct MenuParticle
 	int			mY;         // +0x48
 };
 
-class MainMenu : public Widget, public ButtonListener
+class MainMenu : public Text2004<Widget>, public ButtonListener
 {
 public:
 	enum
