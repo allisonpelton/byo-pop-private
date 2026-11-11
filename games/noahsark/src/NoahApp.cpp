@@ -113,10 +113,17 @@ NoahApp::~NoahApp()
 		mWidgetManager->RemoveWidget(mBoard);
 		delete mBoard;
 	}
-	delete mNextLevelWidget;
-	delete mIntroWidget;
-	delete mTitleScreen;
-	delete mHighScoreWidget;
+	// port: each screen leaves the widget manager before it is deleted. A dialog still open over one (the name entry over the
+	// game-over screen) hands the focus back to it when the framework removes the dialog, after this destructor.
+	Widget* aScreens[4] = {mNextLevelWidget, mIntroWidget, mTitleScreen, mHighScoreWidget};
+	for (int i = 0; i < 4; i++)
+	{
+		if (aScreens[i] != NULL)
+		{
+			mWidgetManager->RemoveWidget(aScreens[i]);
+			delete aScreens[i];
+		}
+	}
 	delete mQuitButtonImage;
 	delete mOptionsButtonImage;
 }

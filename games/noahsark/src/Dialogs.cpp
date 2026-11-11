@@ -256,10 +256,12 @@ void RecordScoreDialog::DrawEditBox(Graphics* g, int theX, int theY, int theWidt
 		aClipped.DrawImage(aBox, theX + 0x20 + i * 0x20, theY, Rect(0x20, 0, 0x20, 0x20));
 }
 
+// 0x41de20: Enter in the name box is a click on the dialog's OK button
 void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 {
 	(void) theId;
 	(void) theString;
+	mApp->ButtonDepress(mId + 2000);
 }
 
 bool RecordScoreDialog::AllowChar(int theId, SexyChar theChar)
