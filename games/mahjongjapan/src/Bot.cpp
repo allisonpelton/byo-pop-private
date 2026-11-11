@@ -11,7 +11,7 @@ namespace mahjongjapan
 {
 
 // the positions all the searches of one call may try before the bot goes on without a plan
-static const long kBudget = 100000;
+static const long SEARCH_BUDGET = 100000;
 
 // A copy of the live board's tiles: all of them in the board's order, the ones taken marked taken, each with the
 // kind it has now and where it is drawn
@@ -33,10 +33,10 @@ void Bot::Copy(Layout& theLayout)
 	}
 	mCopy.mHasCounts = theLayout.mHasCounts;
 	mCopy.UpdateFree();
-	mKeyGoal = false;
+	mGoldGoal = false;
 	for (Tile* aTile : mTiles)
-		if (aTile->mTaken == 0 && aTile->mKind == 0x2b)
-			mKeyGoal = true;
+		if (aTile->mTaken == 0 && aTile->mKind == KIND_GOLD)
+			mGoldGoal = true;
 }
 
 // The state of the copy as a string: each tile's kind, or a mark for a tile taken
@@ -48,11 +48,11 @@ std::string Bot::Key() const
 	return aKey;
 }
 
-// The goal: the key tiles taken in an escape level, else no tile left
+// The goal: the gold tiles taken in an escape level, else no tile left
 bool Bot::Done() const
 {
-	if (mKeyGoal)
-		return !mSteps.empty() && mTiles[mSteps.back().mFirst]->mKind == 0x2b;
+	if (mGoldGoal)
+		return !mSteps.empty() && mTiles[mSteps.back().mFirst]->mKind == KIND_GOLD;
 	for (Tile* aTile : mTiles)
 		if (aTile->mTaken == 0)
 			return false;
@@ -73,9 +73,10 @@ void Bot::Refresh(const std::vector<int>& theChanged, bool theBack)
 		{
 			if (aTile->mTaken != 0 || aTile == aThat)
 				continue;
-			int dx = abs(aTile->mX - aThat->mX);
-			int dy = abs(aTile->mY - aThat->mY);
-			if ((aTile->mZ == aThat->mZ && dx == 2 && dy <= 1) || (aTile->mZ == aThat->mZ - 1 && dx <= 1 && dy <= 1))
+			int aDeltaX = abs(aTile->mX - aThat->mX);
+			int aDeltaY = abs(aTile->mY - aThat->mY);
+			if ((aTile->mZ == aThat->mZ && aDeltaX == 2 && aDeltaY <= 1) ||
+				(aTile->mZ == aThat->mZ - 1 && aDeltaX <= 1 && aDeltaY <= 1))
 				mCopy.UpdateFree(aTile);
 		}
 	}
@@ -88,14 +89,14 @@ void Bot::Apply(Step& theStep)
 	Tile* aFirst = mTiles[theStep.mFirst];
 	Tile* aSecond = mTiles[theStep.mSecond];
 	int aKind = aFirst->mKind;
-	if (aKind == 0x2e)
+	if (aKind == KIND_JOKER)
 	{
 		theStep.mTaken.push_back(theStep.mFirst);
 		for (size_t i = 0; i < mTiles.size(); i++)
 			if (mTiles[i]->mTaken == 0 && KindsMatch(mTiles[i]->mKind, aSecond->mKind))
 				theStep.mTaken.push_back((int)i);
 	}
-	else if (aKind == 0x2f)
+	else if (aKind == KIND_MAGNET)
 	{
 		theStep.mTaken.push_back(theStep.mSecond);
 		theStep.mChanged = theStep.mFirst;
@@ -116,7 +117,7 @@ void Bot::Undo(Step& theStep)
 	for (int i : theStep.mTaken)
 		mTiles[i]->mTaken = 0;
 	if (theStep.mChanged >= 0)
-		mTiles[theStep.mChanged]->mKind = 0x2f;
+		mTiles[theStep.mChanged]->mKind = KIND_MAGNET;
 	Refresh(theStep.mTaken, true);
 }
 
@@ -127,8 +128,8 @@ bool Bot::ClickPoint(Tile* theTile, int& theX, int& theY)
 	for (int y = theTile->mRect.top + 26; y < theTile->mRect.bottom; y += 3)
 		for (int x = theTile->mRect.left + 24; x < theTile->mRect.right; x += 3)
 		{
-			int z = -1, tx, ty;
-			if (mCopy.HitTest(x, y, &z, &tx, &ty) == theTile)
+			int z = -1, aTileX, aTileY;
+			if (mCopy.HitTest(x, y, &z, &aTileX, &aTileY) == theTile)
 			{
 				theX = x;
 				theY = y;
@@ -138,8 +139,8 @@ bool Bot::ClickPoint(Tile* theTile, int& theX, int& theY)
 	for (int y = theTile->mRect.top; y < theTile->mRect.bottom; y++)
 		for (int x = theTile->mRect.left; x < theTile->mRect.right; x++)
 		{
-			int z = -1, tx, ty;
-			if (mCopy.HitTest(x, y, &z, &tx, &ty) == theTile)
+			int z = -1, aTileX, aTileY;
+			if (mCopy.HitTest(x, y, &z, &aTileX, &aTileY) == theTile)
 			{
 				theX = x;
 				theY = y;
@@ -163,7 +164,7 @@ bool Bot::CanClick(Tile* theTile)
 	return !aHigher || ClickPoint(theTile, x, y);
 }
 
-// The moves of the copy as it is, the ones nearest the key tiles first (an escape level), and for any other board in
+// The moves of the copy as it is, the ones nearest the gold tiles first (an escape level), and for any other board in
 // the board's order (or shuffled by the generator of a restart)
 void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 {
@@ -174,7 +175,7 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 		Tile* aTile = mTiles[i];
 		if (aTile->mTaken != 0)
 			continue;
-		if (aTile->mKind == 0x2b)
+		if (aTile->mKind == KIND_GOLD)
 			aKeys.push_back((int)i);
 		if (aTile->mFree && CanClick(aTile))
 			aFree.push_back((int)i);
@@ -193,7 +194,7 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 		aStep.mFirst = theFirst;
 		aStep.mSecond = theSecond;
 		int aRank = std::min(aNear(mTiles[theFirst]), aNear(mTiles[theSecond]));
-		if (mTiles[theFirst]->mKind == 0x2b)
+		if (mTiles[theFirst]->mKind == KIND_GOLD)
 			aRank = -1;
 		// every other start then takes the move that leaves the most tiles free first (the freest board keeps the most
 		// ways open), the others the board's order
@@ -211,9 +212,10 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 	for (size_t i = 0; i < aFree.size(); i++)
 		for (size_t j = i + 1; j < aFree.size(); j++)
 		{
-			Tile* a = mTiles[aFree[i]];
-			Tile* b = mTiles[aFree[j]];
-			if (0x2b < a->mKind || 0x2b < b->mKind || !TilesMatch(a->mKind, b->mKind))
+			Tile* aFreeTile = mTiles[aFree[i]];
+			Tile* anOtherFree = mTiles[aFree[j]];
+			if (KIND_GOLD < aFreeTile->mKind || KIND_GOLD < anOtherFree->mKind ||
+				!TilesMatch(aFreeTile->mKind, anOtherFree->mKind))
 				continue;
 			anAdd(aFree[i], aFree[j]);
 		}
@@ -223,27 +225,29 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 		for (int aKeyTile : aKeys)
 		{
 			Tile* aK = mTiles[aKeyTile];
-			int dx = abs(aK->mX - theLock->mX);
-			int dy = abs(aK->mY - theLock->mY);
-			if ((aK->mZ == theLock->mZ && dx == 2 && dy <= 1) || (aK->mZ + 1 == theLock->mZ && dx <= 1 && dy <= 1))
+			int aDeltaX = abs(aK->mX - theLock->mX);
+			int aDeltaY = abs(aK->mY - theLock->mY);
+			if ((aK->mZ == theLock->mZ && aDeltaX == 2 && aDeltaY <= 1) ||
+				(aK->mZ + 1 == theLock->mZ && aDeltaX <= 1 && aDeltaY <= 1))
 				return true;
 		}
 		return false;
 	};
 	for (int i : aFree)
 	{
-		Tile* a = mTiles[i];
-		if (a->mKind < 0x2c || a->mKind == 0x2d)
+		Tile* aSpecial = mTiles[i];
+		if (aSpecial->mKind < KIND_KEY || aSpecial->mKind == KIND_LOCK)
 			continue;
 		for (size_t j = 0; j < mTiles.size(); j++)
 		{
-			Tile* b = mTiles[j];
-			int bx, by;
-			if (b->mTaken != 0 || (int)j == i || !(a->mKind == 0x2c ? b->mKind == 0x2d : b->mKind < 0x2b))
+			Tile* aTarget = mTiles[j];
+			int aTargetX, aTargetY;
+			if (aTarget->mTaken != 0 || (int)j == i ||
+				!(aSpecial->mKind == KIND_KEY ? aTarget->mKind == KIND_LOCK : aTarget->mKind < KIND_GOLD))
 				continue;
-			if (a->mKind == 0x2c && mOnlyGoalLocks && !aKeys.empty() && !aHoldsGoal(b))
+			if (aSpecial->mKind == KIND_KEY && mOnlyGoalLocks && !aKeys.empty() && !aHoldsGoal(aTarget))
 				continue;
-			if (mCopy.IsVisible(b) && ClickPoint(b, bx, by))
+			if (mCopy.IsVisible(aTarget) && ClickPoint(aTarget, aTargetX, aTargetY))
 				anAdd(i, (int)j);
 		}
 	}
@@ -294,7 +298,7 @@ bool Bot::Search()
 {
 	bool aSolved = false;
 	long aSpent = 0;
-	for (int aTry = 0; !aSolved && aTry < 60 && aSpent < kBudget; aTry++)
+	for (int aTry = 0; !aSolved && aTry < 60 && aSpent < SEARCH_BUDGET; aTry++)
 	{
 		mSteps.clear();
 		mDead.clear();
@@ -323,19 +327,19 @@ bool Bot::Describe(Board& theBoard, const Step& theStep, BotMove& theMove)
 	Tile* aSecond = mTiles[theStep.mSecond];
 	int aPos[2];
 	theBoard.GetScreenPos(aPos);
-	int x1, y1, x2, y2;
-	if (!ClickPoint(aFirst, x1, y1) || !ClickPoint(aSecond, x2, y2))
+	int aFirstX, aFirstY, aSecondX, aSecondY;
+	if (!ClickPoint(aFirst, aFirstX, aFirstY) || !ClickPoint(aSecond, aSecondX, aSecondY))
 		return false;
 	theMove.mFirst = mLive[theStep.mFirst];
 	theMove.mSecond = mLive[theStep.mSecond];
 	theMove.mFirstKind = aFirst->mKind;
 	theMove.mSecondKind = aSecond->mKind;
-	theMove.mX1 = aPos[0] + theBoard.mOffX + x1;
-	theMove.mY1 = aPos[1] + theBoard.mOffY + y1;
-	theMove.mX2 = aPos[0] + theBoard.mOffX + x2;
-	theMove.mY2 = aPos[1] + theBoard.mOffY + y2;
-	theMove.mSpecial = 0x2b < aFirst->mKind;
-	theMove.mEnds = aFirst->mKind == 0x2b;
+	theMove.mX1 = aPos[0] + theBoard.mOffX + aFirstX;
+	theMove.mY1 = aPos[1] + theBoard.mOffY + aFirstY;
+	theMove.mX2 = aPos[0] + theBoard.mOffX + aSecondX;
+	theMove.mY2 = aPos[1] + theBoard.mOffY + aSecondY;
+	theMove.mSpecial = KIND_GOLD < aFirst->mKind;
+	theMove.mEnds = aFirst->mKind == KIND_GOLD;
 	return true;
 }
 

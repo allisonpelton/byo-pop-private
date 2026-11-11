@@ -42,7 +42,7 @@ public:
 	// 0x413d90: an order from the theCount free tiles at depth theDepth; theGroup is a pair waiting to be joined
 	// into a four
 	bool Solve(int theDepth, int theCount, int theGroup);
-	// 0x413ff0: take theTile and theOther (null for a wild tile) and search on
+	// 0x413ff0: take theTile and theOther (null for a joker or a magnet) and search on
 	bool Take(Tile* theTile, Tile* theOther, int theCount, int theDepth, int theGroup);
 	// 0x414310: the grouping of a pair taken; which tiles it grouped (1 theTile, 2 theOther, 4 theThird)
 	int Group(Tile* theTile, Tile* theOther, Tile* theThird, int* theGroup);
@@ -55,7 +55,7 @@ public:
 void DealKind(Tile** theTiles, int theSize, int* theLeft);
 // 0x413c80: one tile's kind, weighted by the counts
 void DealOne(Tile* theTile, int* theLeft);
-// 0x413d20: which season (theBase 0x23) or flower (0x27)
+// 0x413d20: which season (theBase KIND_FIRST_SEASON) or flower (KIND_FIRST_FLOWER)
 void DealBonus(Tile* theTile, int theRange, int theBase);
 // 0x413fa0: the search's time is not up; the clock is read every 1001 steps
 bool SolveInTime();

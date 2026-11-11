@@ -15,15 +15,6 @@
 
 using namespace Sexy;
 
-// the strings the original keeps in the code (not in its string table)
-static void DrawCentered(Graphics* g, Font* theFont, const char* theText, int theCenterX, int theY, const Color& theColor)
-{
-	g->SetFont(theFont);
-	g->SetColor(theColor);
-	std::string aText = theText;
-	g->DrawString(aText, theCenterX - theFont->StringWidth(aText) / 2, theY);
-}
-
 // the level names: the original's table at 0x4cbc58 points to these texts
 static const unsigned int kLevelNames[] = {
 	0x4ae4c0,

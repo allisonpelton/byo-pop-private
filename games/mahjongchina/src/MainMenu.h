@@ -24,7 +24,8 @@ class MenuButton : public jb::Button
 {
 public:
 	jb::Font* mFont = nullptr;  // +0xe4
-	int mTextId;                // +0xe8 0x77 the list's caption, else the escape's (0x78 or 0x79 once begun)
+	// +0xe8 STRING_CLASSIC_HINT, else the escape's (STRING_ADVENTURE_BEGIN_HINT, or the next string once begun)
+	int mTextId;
 	int mAlpha = 0;             // +0xec
 
 	// 0x4113b0
@@ -41,7 +42,7 @@ public:
 class PlayerButton : public jb::Button
 {
 public:
-	std::string mText;               // +0xe4 (0xd)
+	std::string mText;               // +0xe4 (STRING_CHANGE_PLAYER)
 	jb::Font* mFont = nullptr;       // +0xec
 	jb::Font* mHoverFont = nullptr;  // +0xf0
 

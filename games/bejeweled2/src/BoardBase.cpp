@@ -932,7 +932,7 @@ void Board::ResizeButtons()
 			mApp->ScaleNumUp(0x6d, 0));
 	}
 
-	if (!mHintTutorialShown)
+	if (!m191c)
 	{
 		if (mTutorialButton1 != NULL)
 		{

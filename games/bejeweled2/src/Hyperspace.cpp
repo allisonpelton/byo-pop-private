@@ -165,7 +165,7 @@ void Hyperspace::Update2d()
 			aLine--;
 		}
 	}
-	if (!mReady && mApp->mBoard->m15fb0 == 0.0f)
+	if (!mReady && mApp->mBoard->mFadeIn == 0.0f)
 	{
 		mReady = true;
 		mNeedBgCache = true;

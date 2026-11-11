@@ -99,8 +99,7 @@ empty file will do) the lines take its dispatch, so the driver's moves are real 
 (`docs/REAL_INPUT.md`). `tools/fwtest/commands.sh` is a driver of that kind. A game's command may wait for its moment by
 queuing itself again for a later update (`AddScriptCommand`, as Bookworm Adventures' `word` does while its board is
 busy). Real input still reaches the game meanwhile: `HandleEvent` drops it only in a `-script` run or while a game's
-test bot drives (`mScriptedInput`), no longer whenever the script holds a line (until 2026-11-08 one waiting `goto` kept
-every real click out of Bookworm Adventures). fwtest's `waitdown` checks it in `commands.sh`. On the web the exported
+test bot drives (`mScriptedInput`). fwtest's `waitdown` checks it in `commands.sh`. On the web the exported
 function is `byopop_test_command(line)`: it returns 1 when the line is queued and 0 when it is refused (no game running,
 no command in the line, too many waiting), and the line runs inside the next update, so a page that holds the game's
 updates steps one to run it. The answers are the ordinary log lines, which SDL's log starts with `INFO: `. The channel has one

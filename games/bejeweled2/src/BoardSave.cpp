@@ -196,7 +196,7 @@ bool Board::SaveGame()
 	PUT(aBuffer, m15e40);
 	PUT(aBuffer, m15e44);
 	PUT(aBuffer, m15e4c);
-	PUT(aBuffer, m15e50);
+	PUT(aBuffer, mCascadeCount);
 	PUT(aBuffer, m15e6c);
 	PUT(aBuffer, m15e70);
 	PUT(aBuffer, m15ee0);
@@ -230,9 +230,9 @@ bool Board::SaveGame()
 	if (mIsPuzzle && mIsSecret)
 	{
 		PUT(aBuffer, m1774);
-		PUT(aBuffer, m17a4);
-		PUT(aBuffer, m17a8);
-		PUT(aBuffer, m17ac);
+		PUT(aBuffer, mSecretPuzzleCount);
+		PUT(aBuffer, mSecretSolved);
+		PUT(aBuffer, mSecretRun);
 		aBuffer.WriteLong((long)mSecretPuzzles.size());
 		for (size_t i = 0; i < mSecretPuzzles.size(); i++)
 			aBuffer.WriteString(mSecretPuzzles[i]);
@@ -303,7 +303,7 @@ bool Board::LoadGame()
 	GET(aBuffer, m15e44);
 	m15e48 = m15e44;
 	GET(aBuffer, m15e4c);
-	GET(aBuffer, m15e50);
+	GET(aBuffer, mCascadeCount);
 	GET(aBuffer, m15e6c);
 	GET(aBuffer, m15e70);
 	GET(aBuffer, m15ee0);
@@ -337,9 +337,9 @@ bool Board::LoadGame()
 	if (mIsPuzzle && mIsSecret)
 	{
 		GET(aBuffer, m1774);
-		GET(aBuffer, m17a4);
-		GET(aBuffer, m17a8);
-		GET(aBuffer, m17ac);
+		GET(aBuffer, mSecretPuzzleCount);
+		GET(aBuffer, mSecretSolved);
+		GET(aBuffer, mSecretRun);
 		mScore = m1774;
 		m15e40 = m1774;
 		long aCount = aBuffer.ReadLong();

@@ -2005,7 +2005,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1 and 7.2, as built:
   cases out; it plays stage 1's and 2's rule cases as before stage 5, against their own facts in expect.txt
   (`<case>@novariants`: the v1 save and the RNG sidecar).
 
-### 12.8 The mod menu's hooks (M5 of docs/MOD_MENU_DESIGN.md)
+### 12.8 The mod menu's hooks (docs/MOD_MENU_DESIGN.md 8.2)
 
 None of these runs without an enabled mod that has settings, or a value held for the next game; the oracle has
 neither.
@@ -2971,3 +2971,14 @@ Collection's. It now takes a folder with `Bejeweled.exe` too. No game code chang
 
 **Not done.** The Collection's own exe was not run. Its code is the Steam game's, and a run would only show the
 banner's edges again.
+
+**The staged assets were an earlier state of the Steam install (found 2026-11-11).** Until this check, `assets/bejeweled`
+held 27 images whose bytes differ from the Steam folder's as it is now. Nothing in the repository re-encoded them. They
+were staged on 2026-10-18 from the files Steam had downloaded (dated 2018), and on 2026-10-23 at 17:49, the minute the
+launcher `WinBej.exe` first ran and made its cache under `C:\ProgramData\Steam\Bejeweled`, 35 files of the install
+were rewritten: those 27 images, six of the launcher's own, the licence and the readme. The rewritten images are the
+Collection's, byte for byte. The two sets hold the same pictures. 21 decode to the same pixels, and the other six
+(`blackcover`, `dialogbox2`, `holemask`, `slider-thumb`, `slider-track`, `timerbar`) differ only in the colour stored
+under fully transparent pixels. The port draws both the same: the oracle's playtest and its level-up script give the
+same trace and the same 32 screenshots on either staging. The worktree is restaged from the install as it is now
+(`python -I games/bejeweled/tools/stage_assets.py`), and the unit and verify suites pass on it.

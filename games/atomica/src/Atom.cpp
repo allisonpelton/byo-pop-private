@@ -138,7 +138,7 @@ Atom::Atom(Grid* theGrid, int theType, bool theNoSpecial) :
 	mWobbleStep = 2;
 	mType = theType;
 	mSpawn = 24.0f;
-	mFlyX = mFlySize = mFlyTurn = mFlyGrow = mFlyPhase = 0;
+	mFlyX = mFlySize = mFlyTurn = mFlyGrow = 0;
 	mAlpha = 0xff;
 	mFlag_ac = false;
 	mHidden = false;
@@ -953,12 +953,13 @@ void Atom::Draw(Graphics* g)
 	g->SetColorizeImages(false);
 	if (mApp->mShowSymbols && (mType < 0xc))
 	{
-		g->SetFont(mApp->mMonitorFontMedium);
+		// the colour-blind option: the atom's chemical symbol in the stencil font (the app's +0x474), black and then white over it
+		g->SetFont(mApp->mStencilFont);
 		g->SetColor(Color(0, 0, 0, 0xff));
 		const std::string& aSymbol = GT(gSymbolText[mType]);
-		g->DrawString(aSymbol, mX - mApp->mMonitorFontMedium->StringWidth(aSymbol) / 2 + 2, mY + 7);
+		g->DrawString(aSymbol, mX - mApp->mStencilFont->StringWidth(aSymbol) / 2 + 2, mY + 7);
 		g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
-		g->DrawString(aSymbol, mX - mApp->mMonitorFontMedium->StringWidth(aSymbol) / 2, mY + 5);
+		g->DrawString(aSymbol, mX - mApp->mStencilFont->StringWidth(aSymbol) / 2, mY + 5);
 	}
 }
 

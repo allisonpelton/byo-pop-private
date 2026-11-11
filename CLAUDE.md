@@ -90,9 +90,6 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 Every call re-reads the whole context, so what costs is context times calls, and a cache that expires while waiting
 (`docs/TOKEN_ECONOMY.md` has the measurements).
 - No workflows or parallel agents unless the user asks for them; mechanical work goes to one Sonnet agent.
-- **Fable only (the user, 2026-11-10, an experiment for the week):** "ONLY use the new Fable 5.2. Use it for
-  everything": every session and every agent it starts runs on Fable 5.2 (an Agent with `model: "fable"` or no model,
-  never Sonnet, Opus or Haiku) until the user ends the experiment (`docs/COORDINATION.md`, "Fable only").
 - A subagent never runs anything longer than about 4 minutes (the oracle, whole test suites, full builds,
   wait loops): its 5-minute cache expires and its whole context is written again. The owning session runs
   those, in the background, and waits for the notification instead of polling.
@@ -126,9 +123,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook breaks the build instead of
   silently never being called.
 - **Commits:** game sessions may commit on their own branch at verified milestones without asking the user each time.
-  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with a trailer
-  naming the model that did the work: `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>` during the Fable-only
-  experiment, `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` before it. Use the user's email only for authorship, never anywhere
+  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with the trailer
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; a session that runs on Fable 5.2 writes
+  `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>` instead. Use the user's email only for authorship, never anywhere
   else.
 - **Never push.** Only the coordinator publishes, and only as snapshots (the user, 2026-10-25):
   `python tools/publish.py --push` pushes one commit holding the trunk's tree without the paths in `.publishignore`

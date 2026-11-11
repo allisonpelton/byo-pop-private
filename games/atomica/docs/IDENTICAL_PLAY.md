@@ -228,3 +228,25 @@ is unchanged.
 The options box's "Register" and "More games" buttons, and the title screen's links, were left out in phase two; the "High scores"
 button now takes the width of the three rows that stood there. The title screen's line "thanks for registering", which the original's registered
 path draws under the logo, is left out too (its box is masked in `shotdiff.json`). The port has no free plays, no order dialogs and no web page to open.
+
+# Later finds
+
+## The colour-blind option (2026-11-11)
+
+None of the scenarios above turns the options box's "Colorblind Fix" on, and the port drew nothing for it. The survey of code the
+port does not need (`GAME_NOTES.md` section 13) found it: the port never named the stencil font, which the original uses for
+nothing else.
+
+| Difference | Cause in the original | Port now |
+| --- | --- | --- |
+| With the option on, no atom showed its chemical symbol, nor did the small atoms of the bonus molecule's sign | The twelve symbols are texts of one or two letters in the exe (the table at 0x4cb070); the port reads every text from the exe by address, from a table built from a string list that leaves such short strings out, so each came back empty | The twelve addresses are in `tools/extra_strings.txt` and in the table |
+| The atoms' symbols were to be in the medium monitor font | `Atom::Draw` (0x4037f0) sets the font at the app's +0x474, the stencil font, and writes the symbol in black at +2, +7 and in white at 0, +5 | the stencil font |
+| A button's label of an odd width stood one pixel left, in every box | `DrawButton` (0x416c30) takes half the button's width less half the text's width, each halved by itself | the same; the port had halved the difference |
+
+`tools/identical/p2-symbols.txt` starts a strategy game, opens the options box, ticks the box and goes back to the field. Its four
+pictures (the field before, the options box with the tick, the field with the symbols twice) were compared with the original's by
+`shots.py`: all four differ only faintly (at most 1,255 pixels below what the eye sees, none visible), with the one mask the
+options box already had for the original's Register and More Games rows. The original was run with every line of the scenario
+4,500 updates later, since in the Sandbox its title screen had not finished loading at update 1,510 and the click on its link
+missed; the port takes the same later lines. The biohazard countdown's shift of 12 pixels with the option on (0x4028c0) was already
+in the port and is not in these pictures.

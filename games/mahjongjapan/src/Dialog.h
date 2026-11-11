@@ -5,7 +5,8 @@
 // frame (0x403ab0, vtable 0x51c830): a scroll drawn from corners and edge pieces (images 0x114-0x11a) around a
 // stretched background (0x118), a title and a subtitle, up to ten texts that can appear late and fade in, and a
 // message shown for some seconds. Its buttons (0x4037b0, vtable 0x51c7b0) are either images of their own or a strip
-// of image 0x11f stretched to a width. YesNoBox (0x4034c0, vtable 0x51c784) asks yes or no and tells a listener.
+// of IMAGE_DIALOG_BUTTON_PARTS stretched to a width. YesNoBox (0x4034c0, vtable 0x51c784) asks yes or no and tells a
+// listener.
 
 #include "Layer.h"
 #include "Object.h"
@@ -62,7 +63,7 @@ public:
 	struct Text
 	{
 		std::string mText;    // +0x00
-		bool mAltFont;        // +0x08 font 0x133 instead of 0x122
+		bool mAltFont;        // +0x08 FONT_TEXT_ALT instead of FONT_TEXT
 		int mKind;            // +0x0c 0 lines centred, 1 lines
 		int mX;               // +0x10
 		int mY;               // +0x14
@@ -71,10 +72,10 @@ public:
 	std::string mTitle;            // +0x90
 	Text mTexts[10];               // +0xa0
 	int mTextCount = 0;            // +0x3c0
-	jb::Font* mSubtitleFont = nullptr;  // +0x3c8 (0x11c)
-	jb::Font* mTitleFont = nullptr;     // +0x3cc (0x11e)
-	jb::Font* mTextFont = nullptr;      // +0x3d0 (0x122)
-	jb::Font* mAltFont = nullptr;       // +0x3d4 (0x133)
+	jb::Font* mSubtitleFont = nullptr;  // +0x3c8 (FONT_CAPTION)
+	jb::Font* mTitleFont = nullptr;     // +0x3cc (FONT_HEADING)
+	jb::Font* mTextFont = nullptr;      // +0x3d0 (FONT_TEXT)
+	jb::Font* mAltFont = nullptr;       // +0x3d4 (FONT_TEXT_ALT)
 	bool mLaidOut = false;         // +0x3d8
 	int mWidth = 0;                // +0x3dc
 	int mHeight = 0;               // +0x3e0

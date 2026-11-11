@@ -8,63 +8,63 @@
 namespace jb
 {
 
-bool IntersectRect(Rect& out, const Rect& a, const Rect& b)
+bool IntersectRect(Rect& theOut, const Rect& theA, const Rect& theB)
 {
-	Rect r;
-	r.left = a.left > b.left ? a.left : b.left;
-	r.top = a.top > b.top ? a.top : b.top;
-	r.right = a.right < b.right ? a.right : b.right;
-	r.bottom = a.bottom < b.bottom ? a.bottom : b.bottom;
-	if (IsRectEmpty(r))
+	Rect aResult;
+	aResult.left = theA.left > theB.left ? theA.left : theB.left;
+	aResult.top = theA.top > theB.top ? theA.top : theB.top;
+	aResult.right = theA.right < theB.right ? theA.right : theB.right;
+	aResult.bottom = theA.bottom < theB.bottom ? theA.bottom : theB.bottom;
+	if (IsRectEmpty(aResult))
 	{
-		out = Rect();
+		theOut = Rect();
 		return false;
 	}
-	out = r;
+	theOut = aResult;
 	return true;
 }
 
-bool UnionRect(Rect& out, const Rect& a, const Rect& b)
+bool UnionRect(Rect& theOut, const Rect& theA, const Rect& theB)
 {
-	if (IsRectEmpty(a))
+	if (IsRectEmpty(theA))
 	{
-		if (IsRectEmpty(b))
+		if (IsRectEmpty(theB))
 		{
-			out = Rect();
+			theOut = Rect();
 			return false;
 		}
-		out = b;
+		theOut = theB;
 		return true;
 	}
-	if (IsRectEmpty(b))
+	if (IsRectEmpty(theB))
 	{
-		out = a;
+		theOut = theA;
 		return true;
 	}
-	Rect r;
-	r.left = a.left < b.left ? a.left : b.left;
-	r.top = a.top < b.top ? a.top : b.top;
-	r.right = a.right > b.right ? a.right : b.right;
-	r.bottom = a.bottom > b.bottom ? a.bottom : b.bottom;
-	out = r;
+	Rect aResult;
+	aResult.left = theA.left < theB.left ? theA.left : theB.left;
+	aResult.top = theA.top < theB.top ? theA.top : theB.top;
+	aResult.right = theA.right > theB.right ? theA.right : theB.right;
+	aResult.bottom = theA.bottom > theB.bottom ? theA.bottom : theB.bottom;
+	theOut = aResult;
 	return true;
 }
 
-int MulDiv(int a, int b, int c)
+int MulDiv(int theNumber, int theNumerator, int theDenominator)
 {
-	if (c == 0)
+	if (theDenominator == 0)
 		return -1;
-	long long p = (long long)a * b;
+	long long aProduct = (long long)theNumber * theNumerator;
 	// Win32 rounds half away from zero
-	long long q;
-	long long half = (c < 0 ? -(long long)c : c) / 2;
-	if ((p < 0) != (c < 0))
-		q = (p - (p < 0 ? half : -half)) / c;
+	long long aQuotient;
+	long long aHalf = (theDenominator < 0 ? -(long long)theDenominator : theDenominator) / 2;
+	if ((aProduct < 0) != (theDenominator < 0))
+		aQuotient = (aProduct - (aProduct < 0 ? aHalf : -aHalf)) / theDenominator;
 	else
-		q = (p + (p < 0 ? -half : half)) / c;
-	if (q > 0x7fffffffLL || q < -0x80000000LL)
+		aQuotient = (aProduct + (aProduct < 0 ? -aHalf : aHalf)) / theDenominator;
+	if (aQuotient > 0x7fffffffLL || aQuotient < -0x80000000LL)
 		return -1;
-	return (int)q;
+	return (int)aQuotient;
 }
 
 static uint32_t gCrtSeed = 1;
@@ -320,19 +320,19 @@ void Insert(std::string& theText, int theIndex, const char* theInsert)
 	}
 }
 
-int StrICmp(const char* a, const char* b)
+int StrICmp(const char* theA, const char* theB)
 {
 	while (true)
 	{
-		int ca = (uint8_t)*a, cb = (uint8_t)*b;
-		if (ca >= 'A' && ca <= 'Z')
-			ca += 'a' - 'A';
-		if (cb >= 'A' && cb <= 'Z')
-			cb += 'a' - 'A';
-		if (ca != cb || ca == 0)
-			return ca - cb;
-		a++;
-		b++;
+		int aCharA = (uint8_t)*theA, aCharB = (uint8_t)*theB;
+		if (aCharA >= 'A' && aCharA <= 'Z')
+			aCharA += 'a' - 'A';
+		if (aCharB >= 'A' && aCharB <= 'Z')
+			aCharB += 'a' - 'A';
+		if (aCharA != aCharB || aCharA == 0)
+			return aCharA - aCharB;
+		theA++;
+		theB++;
 	}
 }
 

@@ -1,13 +1,11 @@
 # Content a player cannot reach
 
-TipTop's session found a whole game mode, Timed, that its configuration places off the edge of the 640x480 screen. The
-user wondered whether other games hide something the same way, so on 2026-10-25 one Sonnet agent swept the eight
-games merged at the time (Bejeweled, Big Money, BookWorm, Noah's Ark, Seven Seas, Atomica, TipTop and Bookworm
-Adventures) for three kinds of unreachable content: widgets placed off screen or never given a size, modes, options
-and keys that the code supports but nothing offers, and resources that ship with the game and that nothing loads or
-draws. It read the decompilations, the ports, the Ghidra exports and the player's game files, and ran no game. The
-coordinator checked the findings that would change a port against the decompilations. Mummy Maze was merged while the
-sweep ran and is not in it.
+A sweep of the first eight games ported (Bejeweled, Big Money, BookWorm, Noah's Ark, Seven Seas, Atomica, TipTop and
+Bookworm Adventures; 2026-10-25) for three kinds of unreachable content: widgets placed off screen or never given a
+size, modes, options and keys that the code supports but nothing offers, and resources that ship with the game and that
+nothing loads or draws. It started from TipTop's Timed mode, which its configuration places off the edge of the 640x480
+screen. The games ported later are not in it. A game's "Developer leftovers" mod (`docs/MOD_ROADMAP.md`, standard mod
+23) is what would use these findings.
 
 Each finding says how it can be reached: **never** (no path in the code), **config edit** (only by changing one of the
 game's files), **key or switch** (a debug key or a command-line switch), or **unsure**. Where a game's own notes
@@ -20,23 +18,6 @@ player would call a feature: a developer cheat script that ships switched off, a
 menu, three enemies that were cut from the first book, and the maps of two books that nothing loads. TipTop's
 configuration switches off two more screens besides the Timed mode. The other games hide only leftovers: sounds that
 are loaded and never played, pictures that nothing draws, and help pop-ups that are never raised.
-
-## Port gaps found on the way
-
-A finding that first rested on "the port never uses this file" was checked against the original, and several turned
-out to be used by the original and missing from the port. They are fidelity faults, not hidden content, and went to
-the games' sessions on 2026-10-26.
-
-In Atomica the original plays `swoop` and `doorslam` from the main menu's update (0x4191d0) and from two other places
-(0x419520 and 0x41e770); the port loads both sounds (`AppLoad.cpp:478-479`) and never plays them. It also reads the
-`HSTextEdit` art (`mTextEdit`, +0x30c0) in the dialog at 0x41cf90, which the port loads and never draws. In Noah's Ark
-the original's tutorial dialog (0x420d10) draws `tutorialbox` (image 82) as the panel behind the animals, and its
-edit-box helper (0x41dca0) draws `editbox` (image 77) behind the score name; the port draws neither. In Seven Seas the
-board's "extra life" flash (`Board::Draw`, 0x406400) draws `bonusship` (image 37), where the port draws `extralife`
-(image 31, `BoardDraw.cpp:724`), and the score-name dialog (around 0x41a480) draws `editbox` (image 7), which the port
-does not. The original Seven Seas also has a "submit to the Internet high-score list" button and its dialog 11 (with
-the pictures `internethighscore` and `dbuttonclear`); the port leaves them out on purpose, as the servers are gone and
-the project has no online features.
 
 ## The shared framework
 
@@ -106,7 +87,7 @@ unsure.
 ## Noah's Ark
 
 Nothing of substance is unreachable. Every widget is on screen, and every image and sound in the original's tables is
-used (the apparent gaps were the port's, above). The game-mode field takes 1 (Flood), 3 (Freefall), 4 (Puzzle) and 5
+used. The game-mode field takes 1 (Flood), 3 (Freefall), 4 (Puzzle) and 5
 (the stampede bonus), so 0 and 2 look like removed modes. The level-complete panel has four tips but rolls only three
 in Freefall, and a leftover `if (mDifficulty == 0 && false)` in the same place is a difficulty rule compiled out
 (`Screens.cpp:299-302`).

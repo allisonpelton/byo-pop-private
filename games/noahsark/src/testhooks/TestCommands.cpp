@@ -1,4 +1,4 @@
-// Test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
+// port: test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
 // channel through HandleScriptCommand. A command that is never given changes nothing. Each answers on stdout with one
 // line: STATE {...}, MOVE {...}|null, OK <command> or ERROR <command>: <reason>.
 //
@@ -83,17 +83,17 @@ int ModeByName(const std::string& theName)
 
 const char* DifficultyName(int theDifficulty)
 {
-	return (theDifficulty == 0) ? "easy" : ((theDifficulty == 4) ? "medium" : "hard");
+	return (theDifficulty == DIFFICULTY_EASY) ? "easy" : ((theDifficulty == DIFFICULTY_MEDIUM) ? "medium" : "hard");
 }
 
 int DifficultyByName(const std::string& theName)
 {
 	if (theName == "easy")
-		return 0;
+		return DIFFICULTY_EASY;
 	if (theName == "medium")
-		return 4;
+		return DIFFICULTY_MEDIUM;
 	if (theName == "hard")
-		return 8;
+		return DIFFICULTY_HARD;
 	return -1;
 }
 
@@ -187,11 +187,11 @@ void NoahApp::UpdateTestGoto()
 		return;
 	std::string aScreen = TestScreen();
 	if (aScreen == "newgame")
-		ButtonDepress(2000 + DIALOG_NEW_GAME);
+		ButtonDepress(DIALOG_YES + DIALOG_NEW_GAME);
 	else if (aScreen == "difficulty")
 	{
 		DifficultyDialog* aDialog = (DifficultyDialog*) GetDialog(DIALOG_DIFFICULTY);
-		aDialog->ButtonDepress((mTestGotoDiff == 0) ? 0x3c : ((mTestGotoDiff == 4) ? 0x3d : 0x3e));
+		aDialog->ButtonDepress((mTestGotoDiff == DIFFICULTY_EASY) ? BUTTON_EASY : ((mTestGotoDiff == DIFFICULTY_MEDIUM) ? BUTTON_MEDIUM : BUTTON_HARD));
 		mTestGotoMode = 0;
 	}
 	else if (aScreen != "menu")
@@ -216,16 +216,16 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 				((aBoard->mState != BOARD_PLAYING) || !BotBoardSettled(aBoard)) ? "true" : "false");
 			aLine += StrFormat(",\"water\":%d,\"waterTarget\":%d,\"ark\":%d,\"animals\":%d", aBoard->mWaterY, aBoard->mWaterTargetY, aBoard->mArkLevelY, aBoard->AnimalCount());
 			aLine += StrFormat(",\"paused\":%s", aBoard->mPaused ? "true" : "false");           // a dialog has paused the board
-			// the board: a row a string, a cell a letter (. empty, X block, Y crate, 0-9 and A-D the animals)
+			// the board: a row a string, a cell a letter (. empty, X crate, Y block, 0-9 and A-C the animals)
 			std::string aRows;
-			for (int y = 0; y < 9; y++)
+			for (int y = 0; y < Board::GRID_SIZE; y++)
 			{
 				aRows += (y == 0) ? "\"" : ",\"";
-				for (int x = 0; x < 9; x++)
+				for (int x = 0; x < Board::GRID_SIZE; x++)
 				{
-					Piece* p = aBoard->mGrid[x][y];
-					int t = (p == NULL) ? PIECE_EMPTY : p->mType;
-					aRows += (t == PIECE_EMPTY) ? '.' : (t == PIECE_BLOCK) ? 'X' : (t == PIECE_CRATE) ? 'Y' : (char) ((t < 10) ? ('0' + t) : ('A' + t - 10));
+					Piece* aPiece = aBoard->mGrid[x][y];
+					int aType = (aPiece == NULL) ? PIECE_EMPTY : aPiece->mType;
+					aRows += (aType == PIECE_EMPTY) ? '.' : (aType == PIECE_CRATE) ? 'X' : (aType == PIECE_BLOCK) ? 'Y' : (char) ((aType < 10) ? ('0' + aType) : ('A' + aType - 10));
 				}
 				aRows += "\"";
 			}
@@ -250,7 +250,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 			if (aScreen == "title")
 				TitleScreenDone();
 			else if (aScreen == "game")
-				ButtonDepress(2000 + DIALOG_QUIT);          // the quit question's Yes: the game is saved and the menu comes back
+				ButtonDepress(DIALOG_YES + DIALOG_QUIT);          // the quit question's Yes: the game is saved and the menu comes back
 			else if (aScreen == "highscores")
 				mHighScoreWidget->ButtonDepress(1);
 			else if (aScreen != "menu")
@@ -272,7 +272,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 			ShowHighScores();
 		else if (aMode != 0)
 		{
-			int aDiff = aRest.empty() ? 0 : DifficultyByName(aRest);
+			int aDiff = aRest.empty() ? DIFFICULTY_EASY : DifficultyByName(aRest);
 			if (aDiff < 0)
 			{
 				ReplyError(theCommand, "difficulty is easy, medium or hard");
@@ -385,9 +385,9 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 		if (aCommand == "win")
 		{
 			// every animal saved: the board clear, the round ends as the game ends it
-			for (int x = 0; x < 9; x++)
-				for (int y = 0; y < 9; y++)
-					if (aBoard->mGrid[x][y]->mType < 0xd)
+			for (int x = 0; x < Board::GRID_SIZE; x++)
+				for (int y = 0; y < Board::GRID_SIZE; y++)
+					if (aBoard->mGrid[x][y]->mType < NUM_ANIMALS)
 						aBoard->mGrid[x][y]->mType = PIECE_EMPTY;
 		}
 		else
@@ -419,8 +419,8 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 		else if (aScreen == "difficulty")
 		{
 			DifficultyDialog* aDialog = (DifficultyDialog*) GetDialog(DIALOG_DIFFICULTY);
-			Widget* aButton = (mTestWantDiff == 0) ? (Widget*) aDialog->mEasyButton
-				: ((mTestWantDiff == 4) ? (Widget*) aDialog->mMediumButton : (Widget*) aDialog->mHardButton);
+			Widget* aButton = (mTestWantDiff == DIFFICULTY_EASY) ? (Widget*) aDialog->mEasyButton
+				: ((mTestWantDiff == DIFFICULTY_MEDIUM) ? (Widget*) aDialog->mMediumButton : (Widget*) aDialog->mHardButton);
 			Reply(MoveClicks("difficulty", ClickOn(aButton), 10));
 		}
 		else if (aScreen == "tutorial")
@@ -443,16 +443,16 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 			Reply(MoveClicks("menu", ClickOn(mHighScoreWidget->mMenuLink), 10));
 		else if (aScreen == "game")
 		{
-			Board* b = mBoard;
+			Board* aBoard = mBoard;
 			BotMove aMove;
-			if ((b->mState != BOARD_PLAYING) || b->mPaused ||
-				((mGameMode != GAMEMODE_STAMPEDE) && !BotBoardSettled(b)))
+			if ((aBoard->mState != BOARD_PLAYING) || aBoard->mPaused ||
+				((mGameMode != GAMEMODE_STAMPEDE) && !BotBoardSettled(aBoard)))
 				Reply(MoveWait(10));
-			else if (BotChooseMove(b, mGameMode, mTestBotSeed, aMove))
+			else if (BotChooseMove(aBoard, mGameMode, mTestBotSeed, aMove))
 			{
 				std::string aClicks;
 				for (int i = 0; i < aMove.mCount; i++)
-					aClicks += (i > 0 ? "," : "") + Click(Board::CellLeft(aMove.mCellX[i]) + 25 + b->mX, Board::CellTop(aMove.mCellY[i]) + 25 + b->mY);
+					aClicks += (i > 0 ? "," : "") + Click(Board::CellLeft(aMove.mCellX[i]) + 25 + aBoard->mX, Board::CellTop(aMove.mCellY[i]) + 25 + aBoard->mY);
 				Reply(MoveClicks((mGameMode == GAMEMODE_STAMPEDE) ? "group" : (mGameMode == GAMEMODE_PUZZLE) ? "swap" : "pair", aClicks, 4));
 			}
 			else

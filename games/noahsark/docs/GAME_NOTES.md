@@ -41,7 +41,7 @@ Work notes while the translation is written (see Board.h for the final field nam
 - A 9x9 grid of `Piece*` at +0x5c, index `x*9 + y` (x column, y row, y 0 = top). `FUN_0040e280(x)` is the cell's left
   pixel, `FUN_0040e2a0(y)` its top; a cell is 50x50 (0x32).
 - Piece (0x68 bytes): +0 x, +4 y, +8/+c the cell it moves to, +0x10/+0x14 float pixel position, +0x18 type
-  (0..12 animals, 0xd, 0xe empty, 0xf crate, 0x10 block), +0x1c alpha, +0x20/+0x24 pixel offset to the cell (a new piece
+  (0..12 animals, 0xe empty, 0xf block, 0x10 crate), +0x1c alpha, +0x20/+0x24 pixel offset to the cell (a new piece
   starts at y offset -0x1db and falls), +0x28 fall state, +0x2c selected, +0x2d removed (animating out), +0x2e,
   +0x2f flash, +0x30 moving along a path (+0x3c its partner, +0x34 index into its path vector +0x48), +0x38,
   +0x59 match mark (puzzle), +0x5c blink frame.
@@ -468,3 +468,98 @@ the new-game question, strategy and puzzle games, the menu's quit question; same
 the sources as they were before the removals and on the build after them, and all 26 screenshots are byte for byte the same (25
 different pictures; a contact sheet showed each dialog was reached). For the texts a script also checked that every line the
 new table keeps is a line of the old one, and that no address the sources name is missing from it.
+
+## 13. The readability pass (2026-11-11)
+
+The pass of `docs/CODE_STANDARDS.md`: `python tools/namecheck.py games/noahsark` has no finding and needs no exception file
+(110 findings before: 55 functions without an address, 38 one-letter names, 17 uses of a name with an offset in it). Noah's Ark
+has no Mac build, so every name comes from how the code uses the thing. Nothing the port does changed, apart from the two
+faults the pass found and fixed (below).
+
+**Locals and parameters.** About 195 one- and two-letter names got words with the framework's prefixes: a `Piece* p` is
+`aPiece`, the second of a pair `aOther` (or `aSecond` and `aThird` in a run of three), `a` and `b` are `theFrom` and `theTo`
+or `aFirst` and `aSecond`, `d` is `aDir`, `nx`, `ny` `aNextX`, `aNextY`, `dx`, `dy` `aStepX`, `aStepY` in the path search,
+`aOffsetX`, `aOffsetY` around a text's outline and `aDistX`, `aDistY` where an animal flies, the save's `w` and `r` are
+`aWriter` and `aReader`; `x1`, `y1`, `x2`, `y2` are `theFromX` to `theToY`; the mods' date helpers spell out the civil
+calendar's terms (`anEra`, `aDayOfYear`, ...); `main.cpp`'s locals take the prefix. Coordinates stay `x` and `y`.
+
+**Fields.** Named for what they hold, from their use in the port and in the original's disassembly:
+
+| Was | Is | What it holds |
+|---|---|---|
+| `mState314` | `mLastThunderUpdate` | the update count at the last thunder; saved, and nothing reads it |
+| `mState320`, `mState324`, `mState330` | `mUnsetAfterStartTick`, `mUnsetBeforeLastMoveTick`, `mUnsetAfterShowGetReady` | three fields the original never sets and writes to the saved game as they are; 0 in the port; nothing reads them |
+| `mFade` (Board) | `mLostFade` | counts up to 0xff once the game is lost; saved, and nothing reads it |
+| `mSetUp3ac` | `mLeftBehindFading` | the animals still on the board when the ark leaves have been set to fade |
+| `mPulseA`, `mPulseADir` | `mDangerPulse`, `mDangerPulseDir` | the red of the water near the ark, 0..0xab and back |
+| `mPulseB`, `mPulseBDir` | `mFlashPulse`, `mFlashPulseDir` | the grey of an animal that flashes for a hint |
+| `mWavePhaseA`, `mWavePhaseB` | `mBackWavePhase`, `mFrontWavePhase` | the scroll of the wave behind the board and of those in front |
+| `mComboShownAt`, `mComboShown` | `mShownCombo`, `mComboTextTimer` | the number in the combo line, and how long the line stays (the old names read the other way round) |
+| `mSpawnRate` | `mNewRowKinds` | how many kinds of animal a pushed row is drawn from |
+| `Piece::mMatchSwap` | `mInSwap` | one of the two animals of the puzzle swap in progress |
+
+The saved game's layout keeps the five that nothing reads (rule 3); each one's comment says so. `TitleScreen::mClicked` is at
++0x70 (its comment had "+0x70-ish").
+
+**The two obstacles.** `PIECE_BLOCK` and `PIECE_CRATE` named each other's kind: the one called block fell and showed
+crate.jpg, the port's numbers were the original's the other way round, and the saved game's reader and writer swapped them back
+(`FileType`). The names were first swapped at every use (object code identical), then the values put the original's way:
+`PIECE_BLOCK` is 15, the original's 0xf, block.jpg, which stays where it is (0x401ce0 places it, the draw at 0x409d13 takes
+picture 7 for it), and `PIECE_CRATE` is 16, 0x10, crate.jpg, which falls. `FileType` is gone. In the state log and the `state`
+command's board, `X` is and was the crate and `Y` the block (their comments said it the wrong way round too).
+
+**Numbers.** `NUM_ANIMALS` and `PIECE_ANIMAL_LAST` for the 0xd and 0xc of the kind tests (`PIECE_UNUSED`, a kind no code ever
+sets, went); a kind's sound is `SOUND_WINPIG + kind`; `Board::GRID_SIZE`, `GRID_LAST` and `CELL_SIZE` for the 9, 8 and 50
+(0x32) of the grid's loops, bounds and pixel offsets, about 165 places (a 0x32 that is a timer, a frame or a colour stays a
+number); `DIALOG_YES` and `DIALOG_NO` for the 2000 and 3000 a dialog's buttons add to its id; `GT_EMPTY` for the address of
+the original's empty string; `DIFFICULTY_EASY`, `_MEDIUM`, `_HARD` (0, 4, 8) and the difficulty dialog's `BUTTON_EASY`,
+`_MEDIUM`, `_HARD` (60 to 62).
+
+**Addresses and comments.** Every function names its address, the original function it is part of, or a `port:` marker. The
+overrides the dialogs and screens share in the original got their addresses from the vtables (0x4165d0 and 0x4126b0 for the
+level-up panel's and the game-over screen's manager hooks, 0x420a30 for the name entry's and the tutorial's, 0x411730 and
+0x4209f0 for the heights). `GameText.cpp`, `ModFeatures.cpp`, `main.cpp` and the three test hook files carry the marker in
+their first comment. The file headers no longer speak of a `Board.cpp` (the Board is six files), comments name functions by
+address and no longer by the decompiler's names (`FUN_004060d0`, `DAT_00494120`, `vf17`), and a few comments that told what
+had been taken out, or who decided it, now say what the code does.
+
+**Found by the pass, and fixed.**
+
+- *Enter in the name box.* Giving `RecordScoreDialog::EditWidgetText` its address (0x41de20) showed that the port's was empty
+  while the original's calls the app's `ButtonDepress` with the dialog's id plus 2000, the OK button: Enter records the name.
+  No run of the identical-play passes or of the coverage check had pressed Enter there (the bot and the replays click OK), and
+  the coverage report could not show it, since the port's function had no address to pair. The port's now does the same. A
+  script that sets a score, loses, types ABC and presses Enter ends on the high-score list, with ABC and its score in
+  `hiscores.dat` and in the registry's last name; before, it stayed on the name entry. The original's side was read, not run: its edit widget's `KeyDown`
+  (0x4491a0) hands every key but the letters to its key function (0x447ee0), which calls the listener's `EditWidgetText` for
+  key 13, and the name dialog's `EditWidgetText` (0x41de20, eight instructions) calls the app's `ButtonDepress`; PopCap's
+  released framework source has the same chain. Runs of the original with Enter in place of the click on OK decided
+  nothing: on the host no scripted key or character reaches the original at all (none of the edit widget's key functions is
+  ever hit, in the ranked-score run of 2026-11-08 either, whose typed name never arrived), and in two runs in Windows Sandbox
+  the name was recorded neither after Enter nor after a click on OK that followed it, so the typed name had not arrived
+  there either. Those runs also showed why a replay of the original can stay on its title: the link appears at a different
+  update each run (104 on 2026-11-08; 124 to 364 on 2026-11-11, later under the coverage recorder, a cold file cache or a
+  loaded machine), because the loading thread works in real time while the updates run ahead on the virtual clock, and a
+  script that clicks the link at update 301 misses it when it comes later. A script for this game waits for the link first
+  (`waitfor [[0x4d125c]+0x414]+0x68 != 0`, then `mark` and `at +N`).
+- *A crash on closing the game with the name entry open.* The same script without the Enter, quitting at the name entry, ended
+  in a segmentation fault: `NoahApp`'s destructor deleted its screens while they were still in the widget manager, and the
+  framework, removing the dialog afterwards, gave the focus back to the game-over screen that was gone. The destructor now takes
+  each screen out of the manager before deleting it (it already did for the board), and the script exits 0. This is the
+  port's own fault, not the original's: listed here with the deviations.
+- *An override that only called its base*, `NoahApp::LoadingThreadCompleted`, went (it belongs with section 12).
+
+**Proof.** A rename is proved by the object code: `tools/readability/objcode.sh` writes every unit's instructions, relocations
+and data, and after each batch (the locals and parameters, the fields, the kind numbers and the obstacles' names, the grid and
+cell sizes, the dialog and difficulty names) all 19 units were the same as before it. `tools/readability/rename.py` renames
+inside one scope and leaves literals and comments alone, after a first try that also renamed the `%u` of a format string showed
+up at once as a different unit. The changes the object code cannot prove were proved otherwise. The obstacles' values: a
+strategy game on hard played by the bot for 2500 updates and closed gives the same saved game byte for byte (7,637 bytes), the
+same bot log and the same state log before and after (`tools/readability/savecheck.sh`). That saved game, written before the change, also
+opens the same in a build from before the change and in the build after it: the same state lines with crates and blocks on the
+board, the same two screenshots byte for byte and the same game saved again at closing (`tools/readability/loadcheck.sh`), so a
+player's saved game still opens. `Board::HintLine` answers a line out
+of range with `GT_EMPTY` instead of address 0, the only unit that differs in that batch, and the removed override shifts the
+addresses of `NoahApp.cpp` and nothing else. At the end `tools/check.sh noahsark` passes with the frozen baseline identical,
+the screen tour of section 12 gives the same 26 screenshots byte for byte as before the pass, the web build plays the bot's
+action game to the same line under Node (level 4 done at update 17369, score 6074, the native build's line), and `tools/check.sh build` passes.

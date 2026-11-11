@@ -4570,6 +4570,11 @@ bool SexyAppBase::IsTestRun()
 		(mScriptedInput) || (!mRealInputFileName.empty()) || (!mCommandsFileName.empty());
 }
 
+void SexyAppBase::QuitAsGame()
+{
+	Shutdown();
+}
+
 int SexyAppBase::RequestRestart(bool isConfirmed, SexyString* theMessage)
 {
 	SexyString aMessage;

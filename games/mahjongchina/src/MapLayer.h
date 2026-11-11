@@ -35,13 +35,13 @@ int GetProgressStage();
 class MapView : public jb::Object
 {
 public:
-	std::string mStartText;      // +0x90 (0x21)
-	std::string mEndText;        // +0x98 (0x1c)
-	std::string mStageText;      // +0xa0 (0x70) the stage reached
+	std::string mStartText;      // +0x90 (STRING_FIRST_YEAR)
+	std::string mEndText;        // +0x98 (STRING_LAST_YEAR)
+	std::string mStageText;      // +0xa0 (STRING_STAGE_COMPLETED) the stage reached
 	jb::Font* mFont = nullptr;   // +0xa8
 	jb::Font* mIntroFont = nullptr;  // +0xac
 	jb::Font* mStageFont = nullptr;  // +0xb0
-	std::string mIntroText;      // +0xb4 (0x6c)
+	std::string mIntroText;      // +0xb4 (STRING_MAP_INTRO)
 	int mLevel = 0;              // +0xbc the chosen level
 	uint32_t mTick = 0;          // +0xc0 the marker's blink, by updates
 	bool mBack = false;          // +0xc4 the last level won is drawn as not yet won (before the move)

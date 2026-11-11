@@ -57,8 +57,12 @@ progress) and go on in a reloaded page.
 The bar and panels are ordinary HTML around the canvas. They reach the game in four ways:
 
 - **Function calls.** `platform/WebApi.cpp` exports `byopop_mods_open`, `byopop_mods_state`, `byopop_mods_edit` and
-  `byopop_mods_rescan`; `framework/ModMenu.cpp` exports `byopop_menu` and `byopop_restart`. The page calls them with
-  `Module.ccall`, and the game calls back through `Module.onModsChanged`.
+  `byopop_mods_rescan`; `framework/ModMenu.cpp` exports `byopop_menu`, `byopop_restart` and `byopop_quit`. The page calls
+  them with `Module.ccall`, and the game calls back through `Module.onModsChanged`. `byopop_quit` is for the Close of a
+  game's window: it calls the app's `QuitAsGame` hook (`SexyAppBase.h`), which shuts down at once by default and which
+  a game overrides to leave as its own Quit does (Bejeweled Twist plays its goodbye first). It returns 1 when a game
+  took the call and 0 when none runs; a build without the export is closed with `byopop_restart(1)`. The shutdown
+  reaches the page through `Module.onGameExit` either way.
 - **The screen's shape.** The stage is 4:3 unless the game calls `Module.onGameScreen(width, height)` before it makes
   its window (BookWorm's widescreen mod gives 854 x 480). SDL sizes the canvas to the stage.
 - **Files.** Adding a mod writes it into `/persist/mods` and syncs to IndexedDB; the game reads it at its next start.
@@ -463,6 +467,37 @@ to the control that last had the focus there. A window that takes the focus come
 the task bar the arrows move between items. Once the game's canvas has the focus it gets every key, Tab too; F6
 leaves it.
 
+**Its text.** Byopop Sans, `web/fonts/byopop-sans.woff` (about 5 KB), which `tools/web/pixelfont.py` builds from W95FA
+by Alina Sava (SIL OFL 1.1; `tools/web/w95fa.woff2`, the Latin subset of `@fontsource/win95fa` 5.3.0, the user's OK for
+the download 2026-11-11) and which is under the same licence (`web/licenses/byopop-sans.txt`). W95FA's own grid is 12.5
+pixels to the em and its advances are not whole pixels, so no CSS size shows it sharp; the script sets its glyphs on
+a grid of 11 pixels to the em with whole-pixel advances (to the end of each glyph's ink; the digits one width) and
+adds the characters the site uses that it lacks, drawn in the script (the arrows, the multiplication sign, the
+ellipsis, the dashes, the middle dot, the fractions, the grave accent, the copyright and trademark signs). After a
+change to the script, run it and commit the file; `--check` says whether the file is the script's. `web/skins.css` sets
+every text of the desktop at 11 pixels, unsmoothed, a few large texts at 22: the font is sharp only at 11 and its
+multiples, so a new part does not set a size of its own. It has one weight; bold is the same glyphs struck twice a
+pixel apart and a pixel wider, which is exactly how Windows made the bold of its bitmap font.
+
+**Colour schemes.** The setting `scheme` (Appearance, site-wide) picks one of nine schemes of our own, named after soda
+flavours; "Standard" is the look the site always had (the user, 2026-11-11, of the proposal's schemes and patterns:
+"Yes, 1 then 2"). `web/schemes.js` holds the table: for each scheme the desktop, the face of windows and buttons, its
+shadow and its soft light, the title bar (one colour, or two as a gradient: each scheme decides) and the selection.
+It sets them as variables on `<html>` (`--bg`, `--panel`, `--sk-lo`, `--sk-mid`, `--accent`, `--sk-title`, `--sk-band`),
+which `web/skins.css` draws from: a new rule there uses the variables, never the standard greys or blues as literals. The
+pictures skins.css holds as SVG in data addresses cannot read a variable, so for a scheme other than Standard their
+rules are written again with the scheme's colours (`uriRules`). White highlights, black edges and text sizes are the
+same in every scheme. `tools/schemetest.js` (in `unit-web`) checks every scheme: whole, named in the site's text, black
+and muted text and links on its face, white on its selection, title bar and desktop.
+
+**Pattern and wallpaper.** Three more settings of Appearance, site-wide, also in `web/schemes.js`: `pattern` (seven
+patterns of our own, 8 by 8 pixels in two colours, as rows of bits), `wallpaper` (three tiles of our own, drawn in
+translucent white and black so they suit every scheme, or "My picture") and `wallpaperFit` (centre, tile, stretch, for
+the player's picture). The picture is chosen with Browse under the settings (`ByopopSchemes.chooser`), drawn into a
+canvas, scaled to 1600 pixels at most and kept as a JPEG in localStorage `byopop-wallpaper`; it is never uploaded. The
+layers go on `<body>` of the page that has the desktop (not a page in a window of the one page). `tools/schemetest.js`
+checks the patterns' shape and that every choice is named.
+
 ### Desktop 95 in one page
 
 The whole site is one page, the listing's desktop (`web/deskapps.js`, `ByopopApps`). A game, its copyright page and
@@ -769,6 +804,14 @@ tracker/spectral analyzer sync with what's playing in the active game"). A tag n
 the game window last made active, while open and not minimized (`frontFrame` in `web/deskapps.js`). Music's own
 playback is not changed; when both play, the views show the game's.
 
+**Focus and sound (the user, 2026-11-10).** A site window is a desktop window: a game whose window is not the active one
+does what its original does without the focus (most mute themselves; the framework's own focus handling, nothing added
+for the web). `byopop_music_view` says whether the song reaches the output (`heard`), and the tag shows a muted speaker
+for a game that is not heard; the position shown stays the game's own. Only one game window is heard at a time
+(`hush` in `web/deskapps.js`): the game in front; with no game in front, none while Music plays a tune of its own, else
+the game last in front. The others' output node is disconnected from their speakers, not their page's mute, which is
+the player's own switch.
+
 The game's side is a site hook in the platform layer: no game's code changes, and native builds do not compile it.
 `Platform::Mixer` answers four exported calls (`platform/Audio.cpp`):
 
@@ -988,7 +1031,13 @@ are the game's to handle.
 ## The performance panel
 
 A game page shows the panel while the setting `perf` is on (`web/perf.js`; off by default). It only reads, so the
-game plays the same with it on, and with it off nothing of it runs. Each second it shows:
+game plays the same with it on, and with it off nothing of it runs. In a game's window on the one page it is part of
+the window, at the right of the game, and the window is that much wider (`sideWidth` in `web/shell.html`); nothing but
+the game and its mod menu is drawn over the game (the user, 2026-11-10), so the input display is in the window's
+status bar too. `?perf=1` on the listing's address or a game page's turns it on for that visit whatever the setting
+says (the one page passes it to its game windows), and a phone then does not go to full screen at Play, which would
+cover it. On a page under 600 pixels wide it is under the game, as wide as the page and scrolling in itself; on a
+small screen its Sound group comes first. Each second it shows:
 
 - **Frames:** frames per second and frame time, and the game's own time per frame, which the framework's frame hook
   passes (`sexyapp_test_frame`, `Module.byopopTestFrame`).
@@ -1036,9 +1085,27 @@ from. Only keys the game's own code handles are listed: not the framework's, not
   under the game for each key entry.
 - **Input display** (`inputDisplay`) shows the keys and mouse buttons the game is sent, in its bottom left corner.
 
+### Phones
+
+A phone is a touch screen whose short side is under 600 CSS pixels (`PHONE` in `web/shell.html`; `?phone=1` on a
+development host for tests). There (the user, 2026-11-10: "the games should all default to full screen with pixel
+perfect mode off"):
+
+- The game is as large as its window allows, not a whole multiple of its size, and Play asks for full screen unless
+  the "Full screen" setting is off.
+- Before the game is made, the cards (the terms, the files, Ready) have the whole page and scroll, without the
+  wizard's art column (a media query at 600 pixels, phone or not).
+- The touch keys (`web/controls.js`) always have a keyboard button: it puts the focus in a text field kept out of
+  sight, so the screen keyboard comes up, and what is typed goes to the game's canvas as key events (letters, Backspace,
+  Enter).
+- The setting "Touch keys position" (`touchPlace`: automatic, under, beside) puts the keys in a column at the right of
+  the game; automatic does so while the page is wider than tall. In full screen the keys stay on the screen and the
+  game keeps clear of them (`--touch-w`, `--touch-h`, `fitFullscreen`).
+
 ### Game speed
 
-`speed` (0.5, 0.75, 1, 1.25, 1.5, 2) sets `SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed`
+`speed` (the listed 0.5 to 2, or any number from 0.25 to 4 typed in the field beside the list; the user, 2026-11-10:
+"Allow game speed to be set to any arbitrary value") sets `SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed`
 (`framework/SexyAppBase.cpp`), from the frame hook once the application exists. At 1 nothing is called, so unmodded
 play is unchanged. It does not reach games whose own host runs their loop (Bonnie's Bookstore, Ning Po), nor a
 timer a game reads from the wall clock. Music and sounds keep their own speed.
@@ -1062,7 +1129,9 @@ Mahjongs) are left as they are.
 
 ### Always skip start-up logos
 
-`skipLogos` has the games go straight past their start-up logos (the PopCap logo, a publisher's or developer's
+`skipLogos` ("Skip start-up logos after the first launch") never applies to a game's first launch in this browser,
+which shows its logos once (the user, 2026-11-10); the page keeps the games launched in `byopop-logos-seen`. After
+that it has the games go straight past their start-up logos (the PopCap logo, a publisher's or developer's
 logo, a "presents" splash; not the loading bar or the title's own animation), each as a click or key on it would,
 so play afterwards is the same. The page tells the game before it starts: `byopop_site_skiplogos(1)` before
 `callMain` (`framework/WebSettings.cpp`). A game reads `Byopop::SiteSkipLogos()` (`framework/WebSettings.h`), which
