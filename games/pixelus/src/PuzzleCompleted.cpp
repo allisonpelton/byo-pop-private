@@ -371,6 +371,9 @@ void PuzzleCompletedScreen::DrawPicture(Graphics* g)
 	if (mPicture != NULL)
 	{
 		Rect aDest((int) mX, (int) mY, mSize, mSize);
+		// 0x41b13c: without 3D acceleration the picture is stretched with the fast (nearest) filter
+		if (!mApp->Is3DAccelerated())
+			g->SetFastStretch(true);
 		g->DrawImage(mPicture, aDest, Rect(0, 0, mPicture->GetWidth(), mPicture->GetHeight()));
 		if (aArrived)
 		{
@@ -403,7 +406,12 @@ void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 		Color aColor(255, (int) (190 + 52 * t), 0);
 		std::string aTitle = mTitle.empty() ? GT(0x50e8b0) : "<" + mTitle + ">";
 		g->SetFont(mApp->mFonts[FONT_GARAMOND12BOLD]);
-		DrawOutlined(g, aTitle, CENTER, 240, aColor, aBrown);
+		// 0x442370: centred in the widget's width, a shadow one pixel right and down, then the text
+		int aTitleX = (mWidth - g->GetFont()->StringWidth(aTitle)) / 2;
+		g->SetColor(aBrown);
+		g->DrawString(aTitle, aTitleX + 1, 241);
+		g->SetColor(aColor);
+		g->DrawString(aTitle, aTitleX, 240);
 	}
 	if (aArrived)
 	{

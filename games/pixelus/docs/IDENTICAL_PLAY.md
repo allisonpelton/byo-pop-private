@@ -128,8 +128,13 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
 - The story portraits' inner picture (the Cyclops' head in the frame, 3% of the screen at u1700) differs at the head's edges:
   the figure's outline matches pixel for pixel, so the stretch filter of the framework's `DrawImage` into the frame differs from the original's
   (0x458da0 draws with the application's own stretch mode). Not chased; the same stretch is used wherever the original scales an image.
-- The completed tablet's picture (u2700, 7.6%) is drawn from the same cells but its stretch is blurrier than the original's crisp
-  grid, and the title's outline colour differs by a few levels: the same stretch filter as the story portraits; not chased.
+- The completed tablet's title was drawn with a four-way outline; 0x442370 centres it in the widget's width and draws a drop shadow
+  one pixel right and down, then the text. Fixed (the title now matches pixel for pixel at u2700).
+- The completed tablet's picture (u2700, 7.5%) is blurrier in the port than in the original's shot. Cause found, not a bug:
+  0x41b13c sets the Graphics' fast stretch flag (nearest filter) when the application is not 3D accelerated, and the original in
+  the Windows Sandbox runs without 3D; the port's emulated 3D path filters the stretch, as the original does on a machine with
+  3D (the story portraits' stretch does not set the flag, and differs only at the head's edges, also a filter detail). The port
+  now sets the flag by the same test, so a port run without 3D draws like the sandboxed original.
 - The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
 
