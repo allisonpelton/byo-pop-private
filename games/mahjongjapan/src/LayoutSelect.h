@@ -9,6 +9,7 @@
 #include "Dialog.h"
 #include "Layer.h"
 #include "Object.h"
+#include "Res.h"
 
 #include <string>
 
@@ -35,7 +36,7 @@ public:
 	int mBackground = -1;  // +0xf0 the background shown, -1 none
 
 	// 0x401000
-	BackgroundPicture(jb::RadioGroup* theGroup, int theId) : Toggle(0x142, theGroup, theId) {}
+	BackgroundPicture(jb::RadioGroup* theGroup, int theId) : Toggle(IMAGE_BACKGROUND_LOCK, theGroup, theId) {}
 	// 0x401030, 0x401050
 	~BackgroundPicture() override {}
 
@@ -91,7 +92,7 @@ class LayoutHeader : public jb::Object
 public:
 	jb::Font* mTitleFont = nullptr;  // +0x90
 	jb::Font* mPageFont = nullptr;   // +0x94
-	std::string mTitle;              // +0x98 (0x10)
+	std::string mTitle;              // +0x98 (STRING_LAYOUTS_TITLE)
 	jb::Font* mPlayedFont = nullptr; // +0xa0
 	std::string mPrevPage;           // +0xa4
 	std::string mNextPage;           // +0xac

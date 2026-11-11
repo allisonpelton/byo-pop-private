@@ -130,14 +130,15 @@ settings.colorfilter.sepia = Sepia
 settings.colorfilter.warm = Warm (less blue light)
 settings.colorfilter.contrast = High contrast
 settings.colorfilter.vivid = Vivid
-settings.runtimer.label = Run timer
-settings.runtimer.hint = A timer in the corner of the game that counts while the game runs and stops while it is paused or hidden.
-view.timer = Run time
 settings.inputdisplay.label = Input display
 settings.inputdisplay.hint = Shows the keys and mouse buttons you are holding, in the corner of the game.
 settings.touchkeys.label = Touch keys
 settings.touchkeys.hint = Buttons under the game for its keys. Automatic shows them on a touch screen.
 settings.touchkeys.auto = Automatic
+settings.touchplace.label = Touch keys position
+settings.touchplace.hint = Automatic puts them beside the game on a screen wider than tall.
+settings.touchplace.under = Under the game
+settings.touchplace.side = Beside the game
 settings.gamepad.label = Gamepad
 settings.gamepad.hint = The stick moves the mouse, A clicks, B right-clicks and the other buttons press the game's keys. Choose them under Controls.
 game.btn.controls = Controls
@@ -146,8 +147,8 @@ settings.clips.hint = A Record button beside the game. It records the game's pic
 clips.record = Record
 clips.stop = Stop
 clips.title = Record a clip of the game, with its sound
-settings.skiplogos.label = Always skip start-up logos
-settings.skiplogos.hint = Games go straight past their opening logos, as a click on each would. Games that don't support it show theirs.
+settings.skiplogos.label = Skip start-up logos after the first launch
+settings.skiplogos.hint = Games go straight past their opening logos, as a click on each would, once you have started the game here before. Games that don't support it show theirs.
 settings.skiptutorials.label = Always skip tutorials
 settings.skiptutorials.hint = Turns off each game's own tutorial, as its options would, every time it starts. Games without such an option still show theirs.
 settings.speed.label = Game speed
@@ -165,6 +166,8 @@ controls.display.left = Left click
 controls.display.right = Right click
 controls.display.middle = Middle click
 controls.touch.label = The game's keys
+# the touch keys' button that brings up the screen keyboard, for typing in the game
+controls.touch.keyboard = Keyboard
 perf.title = Performance
 perf.note = Each second. Main thread: this page’s share, not the whole CPU.
 perf.waiting = Waiting for the first second of readings.
@@ -293,6 +296,8 @@ index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Mone
 index.footer.music_html = The Music player plays the music from the game files you added, in this browser, with
   <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
   <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
+  The desktop's text is set in
+  <a href="licenses/w95fa.txt" target="_blank" rel="noopener">W95FA<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Alina Sava.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)
@@ -466,7 +471,6 @@ game.exit.nomods = Play without mods
 game.exit.closing = Closing the game
 game.exit.restarting = Restarting
 game.exit.saving_restart = Saving, then starting again…
-game.exit.going_home = Going back to the games…
 game.exit.closed_saved = The game has closed. Your game in progress was saved, and you can continue it when
   you play again.
 game.exit.closed_settings = The game has closed. Your settings and high scores are saved.
@@ -572,8 +576,6 @@ settings.confirmleave.label = Ask before closing
 settings.confirmleave.hint = Most games save progress continuously.
 settings.pausehidden.label = Pause when the tab is hidden
 settings.pausehidden.hint = Stops the game and its sound on another tab. Natively, some games pause when focus is lost.
-settings.quithome.label = Quit to home
-settings.quithome.hint = Exiting a game through the in-game menu returns to the front page.
 settings.showchat.label = Show chat
 settings.showchat.hint = For now a test: the messages are made up and stay in this browser.
 settings.chatplace.label = Chat position
@@ -1228,6 +1230,8 @@ setup.cancelled = Setup was cancelled before this game began.
 setup.summary = Installed {installed} of {total}
 
 # The music player (web/music.js): the listing page's Music tab
+# the tooltip of the followed game's tag while the game is not heard; {game} is the game's title, and its tune's
+music.follow.muted = {game} (muted)
 music.unavailable = The music player is not available.
 music.none = None of the games you added has music the player can play yet.
 music.reading = Reading the games' music…

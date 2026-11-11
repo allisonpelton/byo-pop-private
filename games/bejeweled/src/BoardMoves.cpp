@@ -1,4 +1,4 @@
-// port(variant): twists and slides (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7, stage 10): states
+// port(variant): twists and slides (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7): states
 // 10..13, the input layer of a board with those moves, and their draw. Not part of the original game.
 //
 // A twist turns a 2x2 block a quarter turn in TWIST_STEPS ticks, at MoveSet's integer cos and sin; a slide moves a
@@ -523,7 +523,7 @@ void Board::DrawMovesUnder(Graphics* g)
 				break;
 			int aX = isRow ? anOriginX + anAt : anOriginX;
 			int aY = isRow ? anOriginY : anOriginY + anAt;
-			if (!mVariant.mArrows || !DrawArrowGem(&aLineG, aPiece, aX, aY)) // an arrow gem slides as one (stage 18)
+			if (!mVariant.mArrows || !DrawArrowGem(&aLineG, aPiece, aX, aY)) // an arrow gem slides as one
 				aLineG.DrawImage(mApp->mImages[IMAGE_GEMSHEET], aX, aY, aSrc);
 		}
 	}

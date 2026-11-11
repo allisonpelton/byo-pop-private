@@ -172,7 +172,6 @@ public:
 	int					m270;                   // +0x270
 	int					m274;                   // +0x274
 	bool				mUnsolvable;            // +0x278 "MAZE CAN NO LONGER BE SOLVED"
-	int					mMouseX, mMouseY;       // +0x27c, +0x280
 	int					mTrapX[2], mTrapY[2];   // +0x284 .. +0x290 skull traps (99 = none)
 	int					mDeathTimer;            // +0x294 -1 = off
 	int					mDeathTimer2;           // +0x298
@@ -200,7 +199,6 @@ public:
 	double				mFade2;                 // +0x4d8
 	bool				mDark;                  // +0x4e0 dark pyramid
 	int					mTutorialStep;          // +0x4e4 index into kTutorialMove
-	int					mTutorialPart;          // +0x498 (only ever zeroed)
 	int					mExitStyle;             // +0x4e8
 	bool				mSolvable;              // +0x4ec the ankh is gold
 	int					mEndAlpha;              // +0x4f0
@@ -208,7 +206,6 @@ public:
 	MTRand				mRand;                  // +0x500
 	bool				mFlagEc0;               // +0xec0
 	bool				mFlagEc1;               // +0xec1
-	DWORD				mWalkTick;              // +0x4c0 (kept apart)
 
 public:
 	Board(MummyApp* theApp);

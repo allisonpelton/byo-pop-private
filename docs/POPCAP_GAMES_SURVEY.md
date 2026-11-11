@@ -5,15 +5,9 @@ run on its engines, and the plan for the games still to port. The rules it follo
 sessions at once, which model) live in [COORDINATION.md](COORDINATION.md), "Which games, in what order"; this document
 gives the facts behind them. Bejeweled Deluxe, the first game ported, is the baseline every effort is measured against.
 
-The survey ran from 2026-10-18 to 2026-10-26. Nine passes on the first day covered the 26 games then installed: six ran
-the full Ghidra pipeline (BookWorm Deluxe, Bookworm Adventures Deluxe and Volume 2, Insaniquarium Deluxe, Talismania
-Deluxe and Typer Shark! Deluxe), and three did static analysis of the other 20 without Ghidra (PE and Rich headers,
-imports, RTTI, vtables, strings, link-order regions and pak listings), so their code sizes are address-range estimates.
-Later additions went through `tools/triage_popcap.py` only: the user's installers (2026-10-24), the PopCap games still
-missing and the user's further copies (2026-10-25), and other projects and communities (2026-10-26). Facts added after
-that are dated where they appear. Nothing in any install folder was modified. On 2026-11-04 the document was cleaned up:
-what it said about games already ported or not decompiled shrank to their row in section 4, and the superseded plans
-and decisions went.
+Six of the first games went through the full Ghidra pipeline; the others were read statically (PE and Rich headers,
+imports, RTTI, vtables, strings, link-order regions and pak listings) or through `tools/triage_popcap.py`, so their code
+sizes are address-range estimates. Facts added after the survey (2026-10-18 to 2026-10-26) are dated where they appear.
 
 Contents:
 1. [Where things stand](#1-where-things-stand)
@@ -28,8 +22,7 @@ Contents:
    [shared components](#36-shared-components)
 4. [All games at a glance](#4-all-games-at-a-glance)
 5. [The remaining games](#5-the-remaining-games): [Venice](#51-venice-deluxe), [Heavy Weapon](#52-heavy-weapon-deluxe),
-   [Hammer Heads](#53-hammer-heads-deluxe), [Bejeweled 2](#54-bejeweled-2-deluxe), [AstroPop](#55-astropop-deluxe),
-   [Typer Shark](#56-typer-shark-deluxe), [Pizza Frenzy](#57-pizza-frenzy), [Iggle Pop](#58-iggle-pop-deluxe),
+   [Hammer Heads](#53-hammer-heads-deluxe), [Pizza Frenzy](#57-pizza-frenzy), [Iggle Pop](#58-iggle-pop-deluxe),
    [Feeding Frenzy](#59-feeding-frenzy-deluxe), [Chuzzle](#510-chuzzle-deluxe),
    [Feeding Frenzy 2](#511-feeding-frenzy-2-deluxe), [Peggle Deluxe](#512-peggle-deluxe),
    [Peggle Nights](#513-peggle-nights), [Bejeweled 3](#514-bejeweled-3), [Banana Bugs](#515-banana-bugs),
@@ -43,15 +36,12 @@ Contents:
 
 ## 1. Where things stand
 
-Twenty-two games are ported, each in its own folder under `games/`: Bejeweled Deluxe, Big Money Deluxe, BookWorm
-Deluxe, Noah's Ark Deluxe, Seven Seas Deluxe, Atomica Deluxe, Mummy Maze Deluxe, TipTop Deluxe, Bookworm Adventures
-Deluxe, Ning Po Mahjong Deluxe, Pixelus Deluxe, Alchemy Deluxe, Word Harmony, Cosmic Bugs, Water Bugs, Rocket Mania
-Deluxe, Dynomite Deluxe, Bookworm Adventures Volume 2, Mahjong Escape: Ancient Japan and Ancient China, Bonnie's
-Bookstore Deluxe and Bejeweled Twist. The [progress table in README.md](../README.md#games) holds each one's status and
+Twenty-five games are ported, each in its own folder under `games/`. The
+[progress table in README.md](../README.md#games) holds each one's status and
 cost, and each game's own docs, linked from that table and from section 4, hold what its port found. Here a ported game
 keeps only its row in section 4, and a fact a remaining game needs from it is given in that game's section.
 
-Eighteen games remain; section 2 gives their order. These are not decompiled. Plants vs. Zombies, Insaniquarium Deluxe
+Fifteen games remain; section 2 gives their order. These are not decompiled. Plants vs. Zombies, Insaniquarium Deluxe
 and Zuma Deluxe have large fan communities, with finished decompilations, many ports and active modding, and the user
 leaves them to their own work (2026-10-26). Peggle Extreme and Peggle World of Warcraft Edition become settings of the
 Peggle Deluxe and Nights ports
@@ -70,35 +60,30 @@ mobile games, Bejeweled Live, Peggle 2 (consoles only) and the compilations were
 
 ### The order
 
-Every ported game first finishes its identical-play pass, both phases ([COORDINATION.md](COORDINATION.md), "Which
-games, in what order"). Then the remaining games follow the user's rule of 2026-11-01: "anything easier than Chuzzle can
-run in parallel, and anything harder has to be done in sequence AFTER all easier games have been finished." Games 1 to 9
-below, estimated at 4x to 8x, run side by side; games 10 to 18 run one at a time, in this order. A game that builds on
-another game's engine goes after it: Iggle Pop and Feeding Frenzy after Pizza Frenzy, Peggle Nights after Peggle Deluxe,
-Zuma's Revenge after Bejeweled 3, Talismania after Feeding Frenzy 2. The model follows COORDINATION.md's "Model
-selection": Opus for a game that needs an engine or framework layer no port has yet, Sonnet for a game that can largely
-copy another port. Efforts are the estimates without references ([3.3](#33-verdicts-and-effort)).
+When the remaining games start, how many run at once and which model each gets are rules of
+[COORDINATION.md](COORDINATION.md) ("Which games, in what order", "Model selection"). The table lists the games in
+that order: the easier ones, estimated at 4x to 8x, down to Feeding Frenzy, then the harder ones from Chuzzle on. A
+game that builds on another game's engine goes after it: Iggle Pop and Feeding Frenzy after Pizza Frenzy, Peggle Nights
+after Peggle Deluxe, Zuma's Revenge after Bejeweled 3, Talismania after Feeding Frenzy 2. Efforts are the estimates
+without references ([3.3](#33-verdicts-and-effort)).
 
 | # | Game | Model | Published | Effort | Engine, and what it needs first |
 |---|---|---|---|---|---|
 | 1 | [Venice Deluxe](#51-venice-deluxe) | Sonnet | yes | ~5x | SAF ~1.3 of Bejeweled's year, with PakInterface; no game RTTI |
 | 2 | [Heavy Weapon Deluxe](#52-heavy-weapon-deluxe) | Opus | yes | ~5x | a 2005 framework no port has, between BookWorm's and Big Money's; no game RTTI; SWF cutscenes; MO3 |
 | 3 | [Hammer Heads Deluxe](#53-hammer-heads-deluxe) | Sonnet | yes | ~6x | Big Money's 1.2 framework; TinyXML object files; an SWF how-to-play |
-| 4 | [Bejeweled 2 Deluxe](#54-bejeweled-2-deluxe) | Sonnet | yes | ~6x | Bejeweled's framework as it is; MO3; a Mac build |
-| 5 | [AstroPop Deluxe](#55-astropop-deluxe) | Sonnet | yes | ~7-8x | BookWorm's 2004 framework; no game RTTI; MO3 |
-| 6 | [Typer Shark! Deluxe](#56-typer-shark-deluxe) | Sonnet | yes | ~5x | BookWorm's 2004 framework; MO3 and `.au` sounds; typing on phones |
-| 7 | [Pizza Frenzy](#57-pizza-frenzy) | Opus | yes | ~8x | Sprout's first-generation engine, from Word Harmony's port; no RTTI |
-| 8 | [Iggle Pop Deluxe](#58-iggle-pop-deluxe) | Sonnet | yes | ~5-6x after Pizza Frenzy | Pizza Frenzy's engine build (72% of its functions identical); a Mac build with class names |
-| 9 | [Feeding Frenzy Deluxe](#59-feeding-frenzy-deluxe) | Sonnet | yes | small to medium after Iggle Pop | the same engine in an older build; a Mac build with class names |
-| 10 | [Chuzzle Deluxe](#510-chuzzle-deluxe) | Opus | yes | ~8-12x | Raptisoft's own engine, no RTTI; a Mac build with names |
-| 11 | [Feeding Frenzy 2 Deluxe](#511-feeding-frenzy-2-deluxe) | Opus | yes | ~10x | Sprout's second-generation engine, which no port has; `.theora` animations |
-| 12 | [Peggle Deluxe](#512-peggle-deluxe) | Sonnet | no | ~12x | Bejeweled's framework generation; JPEG 2000 and MO3; a Mac build |
-| 13 | [Peggle Nights](#513-peggle-nights) | Sonnet | no | ~4-5x after Deluxe | Peggle Deluxe's port; a Mac build |
-| 14 | [Bejeweled 3](#514-bejeweled-3) | Opus | yes | ~30x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
-| 15 | [Banana Bugs](#515-banana-bugs) | Opus | yes | ~15x | a public-generation SAF with PakInterface, BASS and JPEG 2000; game RTTI; a clear image of the installed copy is in `re/bananabugs/bin/` |
-| 16 | [Gyromancer](#516-gyromancer) | Opus | yes | large | Square Enix's own engine; a clear image of the Steam build is in `re/gyromancer/bin/` |
-| 17 | [Zuma's Revenge!](#517-zumas-revenge) | Opus | web only | ~35x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
-| 18 | [Talismania Deluxe](#518-talismania-deluxe) | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
+| 4 | [Pizza Frenzy](#57-pizza-frenzy) | Opus | yes | ~8x | Sprout's first-generation engine, from Word Harmony's port; no RTTI |
+| 5 | [Iggle Pop Deluxe](#58-iggle-pop-deluxe) | Sonnet | yes | ~5-6x after Pizza Frenzy | Pizza Frenzy's engine build (72% of its functions identical); a Mac build with class names |
+| 6 | [Feeding Frenzy Deluxe](#59-feeding-frenzy-deluxe) | Sonnet | yes | small to medium after Iggle Pop | the same engine in an older build; a Mac build with class names |
+| 7 | [Chuzzle Deluxe](#510-chuzzle-deluxe) | Opus | yes | ~8-12x | Raptisoft's own engine, no RTTI; a Mac build with names |
+| 8 | [Feeding Frenzy 2 Deluxe](#511-feeding-frenzy-2-deluxe) | Opus | yes | ~10x | Sprout's second-generation engine, which no port has; `.theora` animations |
+| 9 | [Peggle Deluxe](#512-peggle-deluxe) | Sonnet | no | ~12x | Bejeweled's framework generation; JPEG 2000 and MO3; a Mac build |
+| 10 | [Peggle Nights](#513-peggle-nights) | Sonnet | no | ~4-5x after Deluxe | Peggle Deluxe's port; a Mac build |
+| 11 | [Bejeweled 3](#514-bejeweled-3) | Opus | yes | ~30x | the post-2010 "prime" framework; builds the layer Zuma's Revenge reuses; a Mac build |
+| 12 | [Banana Bugs](#515-banana-bugs) | Opus | yes | ~15x | a public-generation SAF with PakInterface, BASS and JPEG 2000; game RTTI; a clear image of the installed copy is in `re/bananabugs/bin/` |
+| 13 | [Gyromancer](#516-gyromancer) | Opus | yes | large | Square Enix's own engine; a clear image of the Steam build is in `re/gyromancer/bin/` |
+| 14 | [Zuma's Revenge!](#517-zumas-revenge) | Opus | web only | ~35x | the 2009 internal framework; Bejeweled 3's layer and Bookworm Adventures' JeffLib; a Mac build |
+| 15 | [Talismania Deluxe](#518-talismania-deluxe) | Sonnet | yes | ~12-16x after Feeding Frenzy 2 | Feeding Frenzy 2's engine |
 
 ### Where a port is published
 
@@ -122,7 +107,7 @@ already made, outside the repository.
 
 ### After PopCap's games
 
-After the eighteen come other studios' games, at the user's decision of 2026-10-25; each needs the user's own copy.
+After these come other studios' games, at the user's decision of 2026-10-25; each needs the user's own copy.
 Octogeddon comes first (2026-11-01), World of Goo is wanted among them, and the three Cartoon Network games on Unity
 (2026-10-27) come with them. Glass Tower comes near the end, and the Tasty Planet series after it (2026-11-01). Which of
 the other games on PopCap's framework to port is decided then. Appendix A has the facts.
@@ -210,14 +195,18 @@ Two games found later are encrypted: Banana Bugs behind PopCap's 2010 DRM and Gy
 clear image ([5.16](#516-gyromancer)), and Banana Bugs' launcher keeps everything its `.dat` needs inside the file,
 so the private tool above writes the clear exe without running anything ([5.15](#515-banana-bugs)).
 
+Bejeweled's wrapper, as measured: `WinBej.exe` (2,972,712 bytes, SHA-256
+`a16fa32d6603f12843fce14153eecb5278cc907cc46aa862248229f5563b8376`) holds the game image at file offset `0x17b1a2`,
+length `0x15aa86` (1,419,910 bytes, SHA-256 `6257a77f0e54f65b5cdbe36faf1ee6872189a700b05e5ed608ae545c0649466e`).
+
 <!-- /private -->
 
 The `.luc` Lua files in the `drm/` folders belong to the wrappers, not the games. Alchemy's and Venice's scripts are
 all there, so neither game needs PopLua.
 
 **Ghidra on VS.NET 2002 (MSVC 7.0) binaries.** The BookWorm and Typer Shark passes found four problems.
-`tools/ghidra_import.sh` and `tools/rtti_msvc70.py` now handle them. Of the games still to port, Typer Shark, AstroPop,
-Heavy Weapon and Chuzzle are VS.NET 2002 builds.
+`tools/ghidra_import.sh` and `tools/rtti_msvc70.py` now handle them. Of the games still to port, Heavy Weapon
+and Chuzzle are VS.NET 2002 builds.
 - Ghidra 12's RTTI analyzer and `RecoverClassesFromRTTIScript` recover **no classes**. MSVC 7.0 writes 24-byte
   BaseClassDescriptors without the `pClassDescriptor` field, and Ghidra rejects them. `tools/rtti_msvc70.py` reads the
   RTTI itself and writes symbols that `ApplySymbols.java` applies (`SYMBOLS=` in `ghidra_import.sh`).
@@ -246,8 +235,7 @@ From vtable slot counts:
 
 The first-generation SexyApp of 2002 and early 2003 (Noah's Ark, Mummy Maze, Seven Seas, Atomica) is mapped in
 `games/noahsark/docs/FRAMEWORK_2002.md` and the `FRAMEWORK_2003.md` of Seven Seas and Atomica; no remaining game uses
-it. Pixelus and Alchemy (2004) are on BookWorm's generation. FRAMEWORK_2004.md's "Reuse for Typer Shark and AstroPop"
-gives the steps for the next 2004 game. The other SAF games are of the 1.3 generation: Zuma Deluxe, Insaniquarium, the
+it. Pixelus and Alchemy (2004) are on BookWorm's generation. The other SAF games are of the 1.3 generation: Zuma Deluxe, Insaniquarium, the
 Peggle family, Plants vs. Zombies, Venice and both Bookworm Adventures games, whose ports run on `framework/` as it
 is. Bejeweled Twist (2008), Zuma's Revenge (2009) and Bejeweled 3 (2011) use later internal generations with no public
 source. Twist's is ported: its D3D9 interface became the framework's GPU path (`framework/GPU2D.h`, `GPUInterface.h`,
@@ -298,16 +286,16 @@ group.
 | Atomica Deluxe | 2003-03, VS2002 | no wrapper | 2003 SAF (30 class strings) | none | 708 KB in all | | ~1.5x | [ported](../games/atomica/docs/README.md) |
 | Dynomite Deluxe (Raptisoft) | 2003-07-08, VS2002 | 2006 wrapper; carve | pre-public 2003 SAF | none | ~262 KB / ~445 fn; **no game RTTI** | EXTRA WORK | ~4.5x | [ported](../games/dynomite/docs/README.md) |
 | Rocket Mania Deluxe (Nuclide) | 2003-09-08, VC6 | 2006 wrapper; carve | pre-public 2003 SAF | none | ~195 KB / ~560 fn; RTTI | EXTRA WORK | ~3.5x | [ported](../games/rocketmania/docs/README.md) |
-| AstroPop Deluxe | 2004-04-06, VS2002 | 2006 wrapper; carve | pre-public Apr 2004 SAF | none | ~556 KB (67 KB generated) / ~1,030 fn; **no game RTTI** | EXTRA WORK | ~7-8x | [to port](#55-astropop-deluxe) |
+| AstroPop Deluxe | 2004-04-06, VS2002 | 2006 wrapper; carve | pre-public Apr 2004 SAF | none | ~556 KB (67 KB generated) / ~1,030 fn; **no game RTTI** | EXTRA WORK | ~7-8x | [ported](../games/astropop/docs/IDENTICAL_PLAY.md) |
 | BookWorm Deluxe 1.03 | 2004-04-15, VS2002 | CDProtect launcher; carve | pre-public early-2004 SAF | none | ~170-190 KB / ~750 fn; RTTI (custom scan) | EXTRA WORK | ~3-3.5x | [ported](../games/bookworm/docs/README.md) |
-| Typer Shark! Deluxe 1.02 | 2004-04-20, VS2002 | 2006 wrapper; carve | pre-public Apr 2004 SAF | none | 379 KB / 1,219 fn; RTTI (custom scan) | EXTRA WORK | ~5x | [to port](#56-typer-shark-deluxe) |
+| Typer Shark! Deluxe 1.02 | 2004-04-20, VS2002 | 2006 wrapper; carve | pre-public Apr 2004 SAF | none | 379 KB / 1,219 fn; RTTI (custom scan) | EXTRA WORK | ~5x | [ported](../games/typershark/docs/GAME_NOTES.md) |
 | Pixelus Deluxe (Nuclide) | 2004-07-29 | DRM wrapper; carve | BookWorm's 2004 SAF, plus Nuclide's own layer | none | 1.09 MB in all | | ~3x | [ported](../games/pixelus/docs/README.md) |
 | Alchemy Deluxe 1.6 | 2004-08-23 | 2007 DRM wrapper; carve | BookWorm's 2004 SAF | none | 900 KB in all; **no game RTTI** | | ~2-3x | [ported](../games/alchemy/docs/README.md) |
 | Heavy Weapon Deluxe | 2005-02-16, VS2002 | 2006 wrapper; carve | pre-1.2 SAF (early 2005) | FlashWidget cutscenes | ~300 KB / ~690 fn; **no game RTTI** | EXTRA WORK | ~5x | [to port](#52-heavy-weapon-deluxe) |
 | Big Money Deluxe | 2005-11-14, VS2002 | `WinBM.exe` 2006 wrapper; carve | public SAF 1.2 layout | none | ~130 KB / ~322 fn; RTTI | DIRECT | ~2x | [ported](../games/bigmoney/docs/README.md) |
 | Hammer Heads Deluxe (Nuclide) | 2006-05-17, VS2003 | 2006 wrapper; carve; stub the DRM IPC client | SAF 1.2 layout + FlashWidget | TinyXML; Nuclide property system and level editor | ~418 KB (~300 KB gameplay) / ~1,890 fn; RTTI | EXTRA WORK | ~6x | [to port](#53-hammer-heads-deluxe) |
 | Zuma Deluxe | 2007-04-04, VS2005 | 2007 wrapper; carve | SAF ~1.3 | none | ~360 KB; RTTI | | | not decompiled |
-| Bejeweled 2 Deluxe | 2007-04-11, VS2005 LTCG | 2007 wrapper; carve | SAF ~1.3, same vtables as Bejeweled | PopAnim (linked, appears unused) | ~325-343 KB / ~1,450 fn; RTTI | DIRECT | ~6x | [to port](#54-bejeweled-2-deluxe) |
+| Bejeweled 2 Deluxe | 2007-04-11, VS2005 LTCG | 2007 wrapper; carve | SAF ~1.3, same vtables as Bejeweled | PopAnim (linked, appears unused) | ~325-343 KB / ~1,450 fn; RTTI | DIRECT | ~6x | [ported](../games/bejeweled2/docs/IDENTICAL_PLAY.md) |
 | Bejeweled Deluxe 1.87 (baseline) | 2007-04-13, VS2005 LTCG | 2007 wrapper; carve | SAF ~1.3 | none | ~60 KB / ~250 fn | | 1x | [ported](../games/bejeweled/README.md) |
 | Venice Deluxe | 2007-06-06 | DRM wrapper; carve | SAF ~1.3 with PakInterface | none | 1.59 MB in all; **no game RTTI** | | ~5x | [to port](#51-venice-deluxe) |
 | Bookworm Adventures Deluxe | 2007-06-20, VS2005 | no wrapper | SAF ~1.3 + PopAnim | PopLua, LuaLib, LuaApp, JeffLib, XWidget (none public) | C++ ~588 KB / ~2,650 fn, plus 621 `.luc` scripts (~78K lines) | EXTRA WORK | ~10-15x | [ported](../games/bookwormadv/docs/README.md) |
@@ -410,116 +398,13 @@ behaviour. The image each port starts from, carved where the game is wrapped, is
   `boards/*.csv` tables; `gnomedata/*.txt`; `images/howtoplay.swf` (Bookworm Adventures' Flash player).
 - **Libraries:** TinyXML (zlib licence), the game's own open library, so the port can use it.
 
-### 5.4 Bejeweled 2 Deluxe
-
-**Sonnet, published, ~6x, DIRECT.**
-
-- **Image:** `WinBej2.exe` is the 2007-08-10 wrapper; the game inside it is 2,715,648 bytes. The game was linked
-  2007-04-11 with VS2005 LTCG, the same toolchain as Bejeweled. The app class is again `WinDMApp`.
-- **Framework:** identical vtables to Bejeweled in every class measured, so `framework/` and
-  [FRAMEWORK_NOTES.md](FRAMEWORK_NOTES.md) apply as they are, and Bejeweled's port (`games/bejeweled/`) is the nearest.
-- **RTTI:** 40 game classes (Board, MainMenu, GalaxyMap, Hyperspace, StarField, puzzle-mode classes, dialogs,
-  WorkerThread, CustomResourceManager...).
-- **Game code:** ~325-343 KB / ~1,450 functions; Board alone is ~100 KB.
-- **Libraries:** PopAnim is linked, but its constructors are only referenced from inside PopAnim, so it can be stubbed.
-- **Data:** `resources.xml` with an `sm_path` (low-res) extension; `music.xml` order offsets into one MO3
-  (`platform/openmpt`); `config.xml`, `Backdrops.xml`, `galaxy.xml`; puzzle files `puzzles/*/*.bpz` (magic `bf13 3f03`,
-  with named fields) plus `.sol`; `edata/*.txt` vertex and polygon lists for the galaxy and hyperspace effects.
-- **Mac build:** `re/bejeweled2/mac/`, Bejeweled 2 1.0.0, with name lists for the game and for its SexyApp framework.
-
-### 5.5 AstroPop Deluxe
-
-**Sonnet, published, ~7-8x, EXTRA WORK.**
-
-- **Image:** `WinAP.exe` is the 2006-08-21 wrapper; the game inside it is 1,748,992 bytes. Internal name WinGD. The
-  game was linked 2004-04-06 with VS2002.
-- **Framework:** the same April 2004 snapshot as Typer Shark and BookWorm (Widget 47, Dialog 52), plus MoreGames ad
-  classes. The port starts from BookWorm's: [FRAMEWORK_2004.md](FRAMEWORK_2004.md), "Reuse for Typer Shark and
-  AstroPop", gives the steps, and `framework/compat2004` holds the old behaviours.
-- **RTTI:** framework only; there are about 39 game vtables without COLs.
-- **Game code:** ~556 KB / ~1,030 functions, of which ~67 KB is generated resource-ID code (691 IDs) that should be
-  regenerated, not translated. It is the largest classic title: story mode, 4 pilots, SUPA weapons, survival and demo
-  playback.
-- **Data:** `resources.xml` (604 images) with non-standard attributes (static, delay, lastanimframe, `!program` paths);
-  `.xcf` bonus-level configs with `.sig` signatures; `music/music.mo3` (`platform/openmpt`); `users/*.usr` profiles.
-
 ### 5.6 Typer Shark! Deluxe
 
-**Sonnet, published, ~5x (range 4-6x), EXTRA WORK.**
+Ported (`games/typershark/`); its row is in section 4.
 
-**Install and image.**
-- The install is `A:\SteamLibrary\steamapps\common\Typer Shark Deluxe`.
 <!-- private: - `WinTS.exe` is the 2006-08-22 DRM wrapper, with Flash trial screens and the Steam2 API, and the unwrapping tool works on it unchanged. -->
 - `WinTS.exe` (1,860,002 bytes) is the 2006-08-22 DRM wrapper, with Flash trial screens and the Steam2 API. The game PE runs from 0x591a2 to EOF (1,495,040 bytes), and `extract_game_exe.py` carves it unchanged.
 <!-- /private -->
-- The inner PE has InternalName WinTS, development name "WordShark", and ProductVersion 1.02. It was linked 2004-04-20
-  with VS.NET 2002 (7.0, build 9466).
-- The old shareware code is still inside: RegisterDialog, KeyDialog, the BigInt key check, trial limits, BetaSupport,
-  UpdateCheck and HTTP crash reports. `properties/partner.xml` (NoReg, DontUpdate, SteamId 3450) disables it.
-
-**Framework.** The game uses the same pre-1.0 April 2004 SAF snapshot as AstroPop (whose framework RTTI set differs only
-by MoreGamesAd/MoreGamesButton) and BookWorm (built 5 days earlier): a monolithic SexyApp, Widget without
-WidgetContainer, no NativeDisplay; DDraw/D3D7, DSoundManager, BASS 1.x plus FMOD; ImageFont, XMLParser,
-PropertiesParser, DescParser; ResourceManager (unused) and the widget set. The framework region is 0x4623f0-0x4c6000
-(about 383 KB). Byte matching against BookWorm's port pairs 1,018 of its 1,388 framework functions with Typer Shark's,
-802 of them byte-identical ([FRAMEWORK_2004.md](FRAMEWORK_2004.md), "Reuse for Typer Shark and AstroPop"). There are no
-internal libraries. Game-side widgets (FadeButton, XWidget, TabbedWidget/TabPanel, TooltipWidget, SoundSlider,
-SexyString, WSTimer and a user-name edit filter) have no public source and are translated with the game.
-
-**RTTI.** There are 196 type descriptors and 273 vftables, covering 62 game classes. Ghidra recovers nothing
-([3.4](#34-findings-that-apply-to-many-games)); the survey's own scan and a re-export named 1,045 functions and placed
-223 vftable labels. For example, `Board::vf20` is `KeyChar(char)`: it upper-cases a-z, and space pauses.
-
-**Code.**
-- The game is 0x401000-0x4623f0: **1,219 functions, 379 KB**, bloated by MSVC 7's inline `std::string` code. 494
-  functions are in class namespaces. The 725 non-virtual helpers (236 KB) were left unnamed, and get names from their
-  debug strings (`UserProfileMgr::WriteDataToDisk` and similar).
-- The largest pieces are the UserProfileMgr save, load and registry code (~35 KB), the difficulty and abyss XML config
-  parser (11.7 KB), WinWSApp (19 KB of virtual functions), Board (26 KB of virtual functions: HUD, pause, level
-  complete, KeyChar, Shark Zapper, treasure and bonus rounds), MapScreen (8.4 KB) and TypingTutor (8.4 KB).
-- The 62 classes cover the screens (Title, Menu, Map, Board, HighScore, Stats, plus panels), TypingTutor and
-  LessonManager, about 30 entity classes (sharks and their variants, piranhas, Mecha bosses, torpedoes, projectiles,
-  clams, bubbles, BonusText and others) and 13 dialogs.
-
-**Data formats.** All files are loose, with no `main.pak` and no `resources.xml`. The asset set totals about 6 MB.
-- **Names:** image and sound names are hard-coded in WinWSApp, so they become a `Res.h`-style table.
-- **Images:** 518 files (484 GIF, 262 of them alpha masks; 33 JPG; 1 PNG). Some names differ in case, which the
-  case-insensitive VFS already handles.
-- **Fonts:** 23 ImageFont descriptors in `data/`, already supported.
-- **Sounds:** 34 OGG plus **3 µ-law `.au`** files, which `platform/Audio.cpp` decodes.
-- **Music:** `music/Wordshar.mo3` is MO3 v0 by Purple Motion (2002), with 9 sections chosen by order offset, played
-  through `platform/openmpt`.
-- **Levels:** `easy/normal/hard/expert/xtreme-cfg.xml`, 5,083 lines each (Config, Default, Level, Wave and Enemy
-  elements with speeds, counts, word difficulty and boss parameters); `abyss.xml` for endless mode; `Lesson0-18.xml`
-  typing lessons, with non-standard tags such as `<1>` that the lenient XMLParser accepts.
-- **Words:** `twords.txt` (16.7K lines in `#DIFF-3`..`#DIFF-21` sections), `waves.txt` (`#LENGTH-3..7` sections),
-  `themes.txt` (152 `#THEME` groups), `gemnames.txt` and `shipnames.txt`.
-- **Saves:** `users\user%d.dat` (Buffer format), `users\user.idx`, and `HKCU\Software\PopCap\TyperShark`, which the
-  port's registry emulation covers.
-
-**Input.** Typing on a desktop already works: the framework routes `SDL_TEXTINPUT` to `KeyChar`
-(`framework/SexyAppBase.cpp`). A phone's browser needs a way to type, which is open (section 6). The finger-placement
-tutor makes no sense on a touch screen.
-
-**Obstacles.** About 1,200 game functions; field offsets and slot meanings from the 2004 framework, where each class is
-checked against the new binary before its offsets are trusted; keyboard-only play; and the registration, trial, beta,
-update and crash-report code to stub out.
-
-**Typer Shark Abyss.** Individual Software's 2006 release in Typing Instructor Deluxe 17 holds no source (section 6).
-Its Wise installer carries two older builds of the game. One is the Abyss exe, linked 2006-10-15 with the same VS.NET
-2002 compiler, unwrapped and without debug information. The other is PopCap's Typer Shark Deluxe 1.0 trial, build 141
-of 2003-06-03, in a bundled PopCap installer. Both are the June 2003 code on the 2003 framework generation (Widget 43
-slots, Dialog 48, SexyApp 61, as Dynomite), not 1.02's April 2004 one, so field offsets and slots differ throughout.
-Abyss swaps the mode menu for a lesson-type list that loads Individual's word lists, and it drops NewUserDialog. Neither
-build has symbols, a PDB path or extra debug strings; both have fewer than 1.02, without MODVAL, demo recording or the
-profiler. All of 1.02's data files, sounds and music are byte-identical to the Abyss copies, as are 480 of its 518
-images; the rest is rebranded art. The CVS metadata names the module `GameSrc/cpp/WinWS` and dates the data files'
-revisions up to 2003-06-03. The two exes and the CVS files are kept in `re/typershark/abyss/` with a README. As a second
-compile of most of the game code against another layout, they can confirm function boundaries and show what changed
-between 1.0 and 1.02, but the port does not need them. The `Typer Shark.swf` beside the installer is a short preview of
-Abyss for Typing Instructor's game menu.
-
-Several GitHub repositories named "...Typer-Shark-Deluxe-Crack" are spam or malware bait and must not be used.
 
 ### 5.7 Pizza Frenzy
 
@@ -931,31 +816,15 @@ not packed and has full RTTI. It is just large.
 
 ## 6. Open questions
 
-1. **Typer Shark's leftover source: there is none (checked 2026-11-04).** The "Typer Shark Abyss" release, bundled with
-   Typing Instructor Deluxe 17 ([archive.org item](https://archive.org/details/typing-istructor-deluxe-17-typer-shark-abyss)),
-   was downloaded and unpacked without running anything. Its "CVS folder" is PopCap's CVS working-copy metadata in five
-   data folders: file names, revisions and dates of data files, and no code. The release has no `.cpp`, `.h`, project,
-   map or PDB file. What it does hold is two older builds of the game, described in
-   [5.6](#56-typer-shark-deluxe). No decision about source is left. The older builds are PopCap's own exes, like the
-   Mac builds, which the project's rules already let a port use as a guide with the PC exe as the authority.
 2. **Typing on phones (Typer Shark).** The web build needs a way to type on a touch screen: either a hidden `<input>`
    focused on a tap that forwards characters, with the canvas laid out above the soft keyboard, or an on-screen
    keyboard drawn by the web player. Which one is the user's choice.
 3. **More Mac builds.** A Mac build names the classes of a game whose PC exe has no game RTTI, as Chuzzle's does. Of the
-   games left, AstroPop, Heavy Weapon, Venice, Pizza Frenzy, Iggle Pop and Feeding Frenzy lack it. A web search
-   (2026-11-04) found Mac releases of two: Iggle Pop Deluxe (OS X, January 2006, for PowerPC and Intel; PCGamingWiki
-   says the Steam version runs on macOS) and Feeding Frenzy (OS X, 2007, Intel). Both were in PopCap's own bundle of
-   its 13 Mac games. The user found both (2026-10-31), and then copies without the launcher's protection (2026-11-04)
-   that hold the same game binaries, both universal PowerPC and Intel builds. Their symbol tables are stripped (17 and
-   19 names, none from C++), but GCC left their RTTI in: Iggle Pop's names 399 classes and Feeding Frenzy's 148, with
-   their base classes, Sprout's engine among them. Both are now in `re/<game>/mac/`
-   ([5.8](#58-iggle-pop-deluxe), [5.9](#59-feeding-frenzy-deluxe)), and they name Pizza Frenzy's engine too. PCGamingWiki
-   credits a 2005 OS X port of Pizza Frenzy to Ryan C. Gordon, without a source. Nothing shows a Mac release of
-   AstroPop, Heavy Weapon, Venice, Gyromancer or Banana Bugs. Any Mac build the user finds goes into `re/<game>/mac/`.
-4. **Both late images are in hand.** A clear image of Gyromancer's Steam build was found on 2026-11-04 and is kept in
-   `re/gyromancer/bin/` ([5.16](#516-gyromancer)), and Banana Bugs' was made from the installed copy the same day
-   and is kept in `re/bananabugs/bin/` ([5.15](#515-banana-bugs)); the how-to stays private. No image waits on a
-   download any more.
+   games left, Heavy Weapon, Venice, Pizza Frenzy, Iggle Pop and Feeding Frenzy lack it. Iggle Pop's and Feeding
+   Frenzy's Mac builds are in `re/<game>/mac/` ([5.8](#58-iggle-pop-deluxe), [5.9](#59-feeding-frenzy-deluxe)), and they
+   name Pizza Frenzy's engine too. PCGamingWiki credits a 2005 OS X port of Pizza Frenzy to Ryan C. Gordon, without a
+   source. Nothing shows a Mac release of Heavy Weapon, Venice, Gyromancer or Banana Bugs. Any Mac build the user finds
+   goes into `re/<game>/mac/`.
 5. **The survey's leftovers.** The old session's scratchpad folder
    (`C:/Users/Administrator/AppData/Local/Temp/claude/C--Users-Administrator-Documents-claude-wasm-bejeweled/bb6f3864-facb-48c7-acfa-f782a25ef960/scratchpad/survey/`)
    survives only in fragments: 1,058 files and 27 MB of partial Ghidra exports, with every script gone. The scripts
@@ -1108,5 +977,5 @@ The remaining games' copies, all read only:
 
 In the main checkout (git-ignored), `re/<game>/bin/` holds the exe or carved image of every remaining game (Banana
 Bugs' made from its `.dat` on 2026-11-04), `re/peggle/<edition>/` holds the four Peggle images with their Ghidra
-exports, and `re/<game>/mac/` the Mac builds (section 5). The survey's own working files are in question 5 of
+exports, and `re/<game>/mac/` the Mac builds (section 5). The survey's own working files are in the last question of
 [section 6](#6-open-questions).

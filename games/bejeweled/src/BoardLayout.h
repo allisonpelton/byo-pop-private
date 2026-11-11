@@ -64,7 +64,7 @@ public:
 	int				mExtent;                    // D
 	double			mScale;                     // view scale 406.0 / D
 	int				mScreenBottom;              // fall limit (Board::mHeight in the original)
-	// The gem layer's clip in screen space (stage 7c, 4.16): the board's own rectangle, the original
+	// The gem layer's clip in screen space (CODE_MODS_DESIGN.md 4.16): the board's own rectangle, the original
 	// ClipRect(194, 12, 428, 416) on 8x8; and its bottom edge in logical space (GetPieceAt's guard)
 	int				mClipX;
 	int				mClipY;
@@ -216,7 +216,7 @@ public:
 		return false;
 	}
 
-	// Stage 7b (4.14): one layer off a dirt cell, which becomes a gem cell when its last layer goes. False when the
+	// Dirt (CODE_MODS_DESIGN.md 4.14): one layer off a dirt cell, which becomes a gem cell when its last layer goes. False when the
 	// cell is no dirt
 	bool ClearDirtLayer(int theCol, int theRow)
 	{

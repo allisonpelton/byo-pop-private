@@ -492,7 +492,10 @@ var ByopopMusic = (function () {
     }
     // The one place the state changes: the buttons, the list, the display and the media session follow it
     function setState(next) {
+      var was = state;
       state = next;
+      // the desktop lets one window be heard at a time (web/deskapps.js): it asks again when this player starts or stops
+      if ((was === "playing") !== (next === "playing")) try { window.dispatchEvent(new CustomEvent("byopop-music-state", { detail: { playing: next === "playing" } })); } catch (e) {}
       var going = state === "playing" || state === "loading", label = T(going ? "music.pause" : "music.play");
       playBtn.replaceChild(glyph(going ? "pause" : "play"), playBtn.firstChild);
       playBtn.setAttribute("aria-label", label);
@@ -962,7 +965,8 @@ var ByopopMusic = (function () {
       if (!view) { unfollow(); return; }
       if (!follow || follow.win !== front.win || follow.song !== song) {
         unfollow();
-        follow = { win: front.win, M: m, song: song, view: view, title: front.title, rows: {}, used: null, tap: null, serial: ++followSerial };
+        follow = { win: front.win, M: m, song: song, view: view, title: front.title, rows: {}, used: null, tap: null, serial: ++followSerial,
+                   hushed: function () { try { return !!(window.ByopopApps && ByopopApps.hushed && ByopopApps.hushed(front.win)); } catch (e) { return false; } } };
         firstChannel = 0;
         applyVis();
       }
@@ -1017,13 +1021,22 @@ var ByopopMusic = (function () {
     var shownFollow = null;
     function showFollowed() {
       var text = follow ? follow.title : "", tip = follow ? (follow.view.title ? follow.title + ": " + follow.view.title : follow.title) : "";
+      // a game whose music does not reach the speakers (it muted itself without the focus, as its original does, or its sound is
+      // off, or the desktop lets another window be heard): the tag says so with the muted speaker; the position shown is the game's
+      var muted = !!follow && (follow.view.heard === 0 || follow.hushed());
+      if (muted) tip = T("music.follow.muted", { game: tip });
       if (shownFollow === tip) return;
       shownFollow = tip;
+      followEl.classList.toggle("mu-muted", muted);
       followEl.hidden = !follow;
       followEl.textContent = text;
       followEl.title = tip;
     }
     window.addEventListener("byopop-desk-active", function () { if (onScreen()) tick(); });
+    // back from another tab: the frame that ran as the page was hidden ended the loop (nothing seen, nothing followed), so it starts
+    // again here (the user, 2026-11-10: "when you switch back, the tracker window has to be activated again to resume")
+    document.addEventListener("visibilitychange", function () { if (onScreen()) tick(); });
+    window.addEventListener("pageshow", function () { if (onScreen()) tick(); });
 
     playBtn.addEventListener("click", function () {
       if (state === "playing" || state === "loading") pause();
@@ -1194,7 +1207,8 @@ var ByopopMusic = (function () {
       // for tests: whether any of the sound is still held (the context and its state, the worklet, the decoder)
       held: function () { return { ctx: ctx ? ctx.state : null, node: !!node, decoder: !!M, media: wired }; }, view: function () { return { tracker: !tracker.hidden, row: shownRow, spectrum: !!analyser && !spectrum.hidden, rows: rows }; },
       // for tests: the game the views follow, where its module is, and whether its output is tapped
-      following: function () { return follow ? { title: follow.title, view: follow.view, tapped: !!follow.tap, at: trackerAt.textContent } : null; },
+      playing: function () { return state === "playing"; },
+      following: function () { return follow ? { muted: followEl.classList.contains("mu-muted"),  title: follow.title, view: follow.view, tapped: !!follow.tap, at: trackerAt.textContent } : null; },
       tick: tick };
   }
 

@@ -236,7 +236,7 @@ void Board::DoUpdate()
 			aBar = ((m15e40 - (int)m15ef8 - m15ee8) * 0x2c4) / (m15eec - m15ee8);
 		else
 		{
-			aBar = (m17ac * 0x2c4) / 3;
+			aBar = (mSecretRun * 0x2c4) / 3;
 			if (aBar > 0x2c3)
 				aBar = 0x2c4;
 		}
@@ -855,11 +855,11 @@ void Board::DoUpdate()
 	}
 
 	// the sound of a bomb gem, once per update
-	if (m15e78)
+	if (mExplodeHappened)
 	{
 		SoundInstance* anInstance = mApp->mSoundManager->GetSoundInstance(SOUND_BOMB_EXPLODE);
 		if (anInstance != NULL)
 			anInstance->Play(false, true);
-		m15e78 = false;
+		mExplodeHappened = false;
 	}
 }

@@ -22,9 +22,7 @@ that much room left after the stage at the width it has without the chat, and go
 upright or when a widescreen game fills the width. Below the stage the page scrolls to it, and the page's scrollbar is hidden
 there (the wheel, touch, the keyboard and Tab still scroll), because a classic scrollbar takes 15 pixels of the page's width and
 would make a stage that is as wide as the page narrower than it is without the chat. `Module.onGameScreen` calls `layout()` when a
-game changes the stage's shape. Checked in the Browser pane at 1920 by 1080, 1366 by 768, 1280 by 800, 1024 by 768, 812 by 375,
-768 by 1024 and 360 by 640, and at the last with a widescreen game's shape: the stage has the same size with the chat as with
-the chat hidden.
+game changes the stage's shape. The stage has the same size with the chat as with the chat hidden.
 
 A message is `{id, t, user, text}`, with `{game, tag, gameTitle}` besides when it was sent from a game's page, and a line reads
 `HH:MM [BW] <username> text`, the time in the viewer's local time with the full date and time (`2026-10-30 09:05:07 UTC-6`) as
@@ -60,9 +58,8 @@ for whoever reads the records; a source puts them on from its table). Fields tha
 stored message and the message is kept.
 
 A username follows Discord's current rules: 2 to 32 characters, lowercase Latin letters, digits, underscore and period, and
-never two periods in a row (a period may begin or end a name). Discord's help article "New Usernames & Display Names" says so,
-and the blog post that announced them and the developer documentation of the User object agree on the characters and the
-length; the help page itself refused an automated fetch, so its text was read through a search summary. Discord lowercases what
+never two periods in a row (a period may begin or end a name), as Discord's help article "New Usernames & Display Names"
+has them. Discord lowercases what
 is typed, so the panel does too before it checks, and the real names will come from Discord, which also reserves a few more.
 There is no sign-in yet: the panel shows a "Sign in with Discord" button that is `aria-disabled` and says "Not available yet".
 Meanwhile the sender is a test username (`test_player` until changed) that the viewer can change in the panel, checked by those
@@ -101,8 +98,7 @@ the first screenful or older messages go in), the field has a label, the panel i
 in the page's order, so Tab and F6 from the canvas reach it. F6 and Shift+F6 typed in the chat move the focus on, as they do from
 the game, to the control after the chat or the one before it. The game takes keys only while its canvas has the focus (the
 shell's `SDL_EMSCRIPTEN_KEYBOARD_ELEMENT`, and the window guard behind it), and the chat is not inside the canvas, so what is
-typed in it does not reach the game; in the Browser pane a key listener on the canvas and one on the window, added after the
-shell's, saw nothing typed in the chat and saw a key typed on the canvas. The colours are the shell's tokens, and the colour of a
+typed in it does not reach the game. The colours are the shell's tokens, and the colour of a
 username is its hue (a hash of the name) at a lightness that passes 4.5 to 1 against the page in both themes.
 
 ## A backend that is only Cloudflare

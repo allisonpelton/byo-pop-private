@@ -5,17 +5,31 @@
    own --sk-* ones. Period fonts are named, never shipped: the player's own machine has them or the next one in the list. */
 
 /* ======================= Desktop 95: an affectionate parody of the 1995 desktop ======================= */
+/* Its text (the user, 2026-11-10, of a page that gets the 1995 look with plain CSS: "We shouldn't need to redraw ourselves"):
+   W95FA by Alina Sava (SIL OFL 1.1, web/licenses/w95fa.txt), the pixel shapes of the 1995 system font as outlines, sharp at 11
+   pixels and its whole multiples and unsmoothed. It has one weight: bold is the same glyphs struck twice a pixel apart, as
+   Windows made bold from a bitmap font (.d95-bold below; every bold in the desktop is told to be it). */
+@font-face { font-family: "W95FA"; src: url("fonts/w95fa.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: block; }
 /* Its windows (every part of a game's page a window on one desktop) are web/skins.js's and the page's; this is their look */
 :root[data-skin="d95"] {
   --bg: #008080; --panel: #c0c0c0; --panel-2: #c0c0c0; --fg: #000000; --muted: #3a3a3a; --line: #808080;
   --accent: #000080; --accent-fg: #ffffff; --ok: #005c2a; --warn: #6b3d00;
-  --font-ui: "MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif; --radius: 0px;
+  --font-ui: "W95FA", "MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif; --radius: 0px;
   --sk-hi: #ffffff; --sk-lo: #808080; --sk-dk: #000000; --sk-mid: #dfdfdf; --sk-well: #ffffff;
   --sk-title: linear-gradient(90deg, #000080, #1084d0); --sk-title-fg: #ffffff; --sk-desk-fg: #ffffff;
 }
 /* light only, whatever the browser's own scheme */
 :root[data-skin="d95"] { color-scheme: light; }
-:root[data-skin="d95"] body { font-size: 13px; }
+:root[data-skin="d95"] body { font-size: 11px; line-height: 1.3; -webkit-font-smoothing: none; font-smooth: never; text-rendering: geometricPrecision; }
+/* the controls take the page's font, not the browser's own for them */
+:root[data-skin="d95"] :is(button, input, select, textarea, option, label) { font-family: var(--font-ui); font-size: 11px; }
+/* every text of the desktop at the font's own size, whatever size its part asked for elsewhere (sizes between its multiples
+   blur its pixels): 11 pixels, the few large texts at twice that; a part with a font of its own (Music's display, a text
+   document, code) keeps its size */
+:root[data-skin="d95"] body :not(.mu-lcd, .mu-lcd *, .mu-vis, .mu-vis *, pre, pre *, code, kbd, .mono, .perf-panel dd, .d95-app-text, .d95-hlp, .d95-msgbox-icon, svg, svg *) { font-size: 11px !important; }
+:root[data-skin="d95"] body :is(.d95-band > span, .wiz-card > h2, .card > h2) { font-size: 22px !important; }
+/* bold: one weight struck twice (the font's file answers every weight with the same glyphs) */
+:root[data-skin="d95"] :is(b, strong, th, h1, h2, h3, h4, dt, summary, .d95-tb, .d95-tb-text) { text-shadow: 1px 0 0 currentColor; letter-spacing: 1px; }
 /* the raised bevel of a window or a button, and the sunken one of a field */
 :root[data-skin="d95"] .games > li, :root[data-skin="d95"] main:not(.stage-wrap), :root[data-skin="d95"] .bar, :root[data-skin="d95"] .panel,
 :root[data-skin="d95"] .chat, :root[data-skin="d95"] button, :root[data-skin="d95"] .button {
@@ -305,6 +319,7 @@ html.d95-win95only .games > li[data-win95]:not([data-win95="yes"]), html.d95-win
 :root[data-skin="d95"] .mu-lcd { background: #000; color: #00ff00; border: 0; border-radius: 0; padding: 5px 7px 6px; box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi), inset 2px 2px var(--sk-dk), inset -2px -2px var(--sk-mid); }
 :root[data-skin="d95"] .mu-spectrum { --mu-bar: #00c000; --mu-peak: #ffff00; }
 :root[data-skin="d95"] .mu-follow { background: #00ff00; color: #000; }
+:root[data-skin="d95"] .mu-follow.mu-muted { background: #808080; }
 /* the tracker's scroll bar is Windows 95's, 16 px high (its arrows the skin's own, below), and the display grows by it */
 /* the window gives the player its width: widening it shows more of the tracker's channels */
 :root[data-skin="d95"] .mu-list { max-width: none; }

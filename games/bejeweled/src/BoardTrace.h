@@ -6,10 +6,10 @@
 // writing -script runs:
 //   TRACE update <update>: <normal|timed> level <level> score <score> board tick <tick>
 //   TRACE   row <row>: <colour of each column, -1 for an empty cell>
-//   TRACE   seed <seed> <user|pergame>        a board with a seed of its own (code mods, stage 2)
-//   TRACE   variant moves <n> invalid <n>     a variant board (stage 5: the moves that stood, the kept invalid ones;
-//                                             stage 6: then " undos <n>", the undos taken, when its rules have undo)
-//   TRACE   gold: <a word a row>             a gold board (stage 12; the variant line then ends " gold <done>/<goal>",
+//   TRACE   seed <seed> <user|pergame>        a board with a seed of its own (code mods)
+//   TRACE   variant moves <n> invalid <n>     a variant board (the moves that stood, the kept invalid ones;
+//                                             then " undos <n>", the undos taken, when its rules have undo)
+//   TRACE   gold: <a word a row>             a gold board (the variant line then ends " gold <done>/<goal>",
 //                                             and " time <left>/<limit>" in ticks with a time limit): 1 gold, 0 not
 //                                             yet, . a cell outside the goal
 //   TRACE   move <i>: (<col>,<row>)->(<col2>,<row2>) click <x> <y> then <x2> <y2>
@@ -26,7 +26,7 @@ class Board;
 
 // Follows the board on screen from one update to the next: a board settles when it is in STATE_PLAYING after
 // an update and was not before (another board, or the same one in another state), or it took an undo since
-// (stage 6: the board a move was made from is back)
+// (the board a move was made from is back)
 class BoardTracer
 {
 public:

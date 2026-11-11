@@ -58,12 +58,12 @@ public:
 	// chose has its own table). Kept for the dtor's save: NewGame deletes the widget only after the next
 	// board has replaced mApp->mBoard (SafeDeleteWidget).
 	std::string		mFileName;
-	// port(variant): "WATCH REPLAY" (stage 13, games/bejeweled/docs/CODE_MODS_DESIGN.md 8): with features.replays, for a
+	// port(variant): "WATCH REPLAY" (games/bejeweled/docs/CODE_MODS_DESIGN.md 8): with features.replays, for a
 	// game whose replay was written (ReplayRecorder::FinishedReplay), at the right of the SEED line's row (y 120),
 	// sliding with the panel like the play-again link. Hidden until Update finds the file written, NULL without the
 	// feature, so the screen stays the original's.
 	HyperlinkWidget* mWatchReplayLink;
-	// port(variant): "STATS" (stage 17, 4.19): with features.gameStats, at the left of the SEED line's row, opening the
+	// port(variant): "STATS" (CODE_MODS_DESIGN.md 4.19): with features.gameStats, at the left of the SEED line's row, opening the
 	// Stats page (GameStatsPage.h) over the board window; NULL without the feature. mStatsPage is the open page.
 	HyperlinkWidget* mStatsLink;
 	GameStatsPage*	mStatsPage;

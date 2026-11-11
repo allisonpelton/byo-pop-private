@@ -2,7 +2,7 @@
 
 #ifdef __EMSCRIPTEN__
 #include "SiteProfiles.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Dialogs.h"
 #include "ImageFont.h"
 #include "WebProfiles.h"
@@ -10,7 +10,7 @@
 using namespace Sexy;
 
 // The score box as the game's dialog makes it: its font and limits (As many characters as fit 104 pixels of the dialog font; ASCII, case kept)
-static Byopop::SiteScoreNames Scores(AlchemyApp* theApp)
+static Byopop::SiteScoreNames Scores(WinAlchApp* theApp)
 {
 	return Byopop::SiteScoreNames(theApp, &theApp->mLastScoreName, theApp->mFont1, -1, 0x68,
 		"As many characters as fit 104 pixels of the dialog font; ASCII, case kept", NULL);
@@ -18,7 +18,7 @@ static Byopop::SiteScoreNames Scores(AlchemyApp* theApp)
 
 static void Start(SexyAppBase* theApp)
 {
-	Byopop::SiteScoreNames aScores = Scores((AlchemyApp*) theApp);
+	Byopop::SiteScoreNames aScores = Scores((WinAlchApp*) theApp);
 	Byopop::SiteStart("alchemy", aScores);
 }
 
@@ -28,7 +28,7 @@ static struct Register
 	Register() { Byopop::gSiteLoaded = Start; }
 } sRegister;
 
-void Sexy::SiteScoresChanged(AlchemyApp* theApp)
+void Sexy::SiteScoresChanged(WinAlchApp* theApp)
 {
 	Byopop::SiteScoreNames aScores = Scores(theApp);
 	Byopop::SiteChanged("alchemy", aScores);

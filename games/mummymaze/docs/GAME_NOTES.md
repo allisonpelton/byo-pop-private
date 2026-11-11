@@ -141,7 +141,7 @@ command that is never given changes nothing and draws no random number. Each ans
 
 | Command | Does |
 |---|---|
-| `state` | one JSON line. Always: `screen` (loading, title, menu, map, board, complete, lost, highscores, victory, dialog), `mode` (classic, adventure, tutorial, classic-treasure, adventure-treasure), `pyramid`, `chamber`, `level` (pyramid x 15 + chamber + 1), `score`, `update`, `over`, `botmode`, `stepinput`; with a dialog up `dialog` (its id); in the adventure `deaths` and `seconds`; on the level-complete screen `levelSeconds`; with a board `moves` (the undo list), `timer` (the clock on the board) and `board` (`size`, `state`, `ready`, `maze`, `file`, `dark`, `red`, `gate`, `key`, `unsolvable`, `explorer`, `mummy0`, `mummy1`, `scorpion` as `[x, y, alive]`) |
+| `state` | one JSON line. Always: `screen` (loading, title, menu, map, board, complete, lost, highscores, victory, dialog), `mode` (classic, adventure, tutorial, classic-treasure, adventure-treasure), `pyramid`, `chamber`, `level` (pyramid x 15 + chamber + 1), `score`, `update`, `over`, `botmode`, `stepinput`; with a dialog up `dialog` (its id); in the adventure `deaths` and `seconds`; on the level-complete screen `levelSeconds`; with a board `moves` (the undo list), `timer` (the clock on the board) and `board` (`size`, `state`, `ready`, `maze`, `file`, `dark`, `red`, `gate`, `key`, `unsolvable`, `explorer`, `mummy0`, `mummy1`, `scorpion` as `[x, y, alive]`, `traps` (two cells, 99 for none), `death` (the trap death's timer and kind: 0 the block, 1 the pit) and `walls` (a hex digit a cell, row by row: 1 north, 2 south, 4 east, 8 west)) |
 | `goto <screen>` | from the title: `menu` (presses the play link). From the main menu: `classic`, `adventure`, `tutorial`, `options`, `highscores`, `credits`, each through the menu's own link or the dialog's own function |
 | `level <n>` | a classic game from chamber n (1 to 225) from the main menu, as `-autoplaystart` does it; on a classic board it restarts the board at that chamber |
 | `unlock all` | opens every pyramid on the adventure's map (nothing else in the game is locked) |
@@ -221,8 +221,16 @@ removal leaves the baseline's logs and screenshots alone except where it is said
   true), which is the coordinator's to take out of `SexyApp`.
 - The pictures `register` and `registerrunes`, which only the registration screen used (`make_res.py` leaves them out, so the image
   ids after them moved up by two; `NUM_IMAGES` is 163).
-- Kept because the registered game has them: the `trialcircle` picture on the title, the "Internet scores" data buffer the classic
-  link starts, the tips.
+- Kept because the registered game has them: the "Internet scores" data buffer the classic link starts, the tips.
+- **What a registered copy shows on the title (taken out 2026-11-10; the user: "Mummy Maze still thanks you for registering").**
+  The original's title draws its registration state (0x42aaf0): the `trialcircle` picture, a medallion that reads "registered
+  version", at 0, 0x17f when registered, and one line over the loading bar, the thanks of a registered copy or the play count of a
+  trial. The first pass had kept both as the registered game's. Both are gone: `TitleScreen::Draw` draws neither, `make_res.py`
+  leaves the picture out (`NUM_IMAGES` is 162, the ids after it moved up by one), and the text table no longer lists the line.
+- **The text table lists only the texts the port names (2026-11-10).** `GameTextTable.inc` listed every string of the exe's text
+  region, 1208 of them, the registration screen's, the nags' and the Internet scores' among them. `make_gametext.py` now keeps
+  the addresses the port's sources name (`GT(0x...)` and the tables of addresses in the `.cpp` and `.inc` files): 238. A scan of
+  those 238 texts for registration, buying and web wording finds none.
 
 Loading was already as fast as the machine allows: the loading thread runs in one go after the first frame (the framework), it loads
 the 25 sounds and the fonts without waiting, and the title polls its progress every fourth update. There is no minimum time.
@@ -427,3 +435,63 @@ dialogs, are not in the frozen runs.)
 **What it cost.** The runs are short; most of the elapsed time went to waiting for room under the three-process limit. One
 Sonnet agent sorted the first 119 functions; this session read the export for each verdict it took over, for each of the
 differences above, and for the comparison of the saved adventures' pictures.
+
+## Code the port does not need (2026-11-11)
+
+The last finishing step before the readability pass (`docs/COORDINATION.md`). Registration and the buttons that lead out were
+already out (above), the coverage check had left one port function unreached and then none, and its two candidates were settled
+on 2026-11-09 (the Reset Tips answer taken out; the No Windowed Mode message never in the port). This survey looked for what no
+path of the game reaches or needs, by seven scans of `src/` (the test hooks apart, which the tests need):
+
+1. **Functions.** The 23 object files of the native build, every function they define (606) against every relocation in all of
+   them (`llvm-nm --defined-only`, `llvm-objdump -r`): 54 have no reference. 48 are the second forms of constructors and
+   destructors; the other six (`WorldMap::CropEnterButton`, `WorldMap::Open`, `MummyApp::ShowBadSaveMessage`,
+   `Board::DrawClipped`, `Board::KeyStep`, `HighScoreScreen::RankOf`) have callers in their own file, inlined. None is dead.
+2. **Compiler warnings.** Every source compiled again with `-Wall -Wextra -Wunused -Wunused-member-function
+   -Wunused-private-field -Wunused-template -Wunused-macros -Wunreachable-code`: none in the game's files.
+3. **Fields.** Every member `m...` of the game's headers (259) by whether any code reads it: three, below.
+4. **Constants and declarations.** Every enumerator, `#define` and `k...` constant (88) by use, and every function a header
+   declares (177) by definition and call: all are used.
+5. **Dialogs.** Every dialog id by who opens it, in the port and in the original (the ids the original gives its two ways of
+   opening a dialog, the application's slots +0xa0 and +0xa8): one id nothing opens, below.
+6. **Pictures and sounds.** Every id of `Res.h` by use in the port, with the index arithmetic followed to its largest value,
+   and each picture no code names against the original (its slot in the array at the app's +0x10380): two, below. All 25 sounds
+   are played (14 of them by number: the steps of the mummies, the explorer and the scorpion).
+7. **Windows leftovers, switched-off code, comments.** `_WIN32` once (the search for the retail install folder, which a Windows
+   player of the unpacked game needs), no `#if 0`, no commented-out code, no `TODO`.
+
+| What | Why it is not needed | Verdict |
+|---|---|---|
+| `DIALOG_NEW_GAME` (dialog 0) and its answer in `MummyApp::ButtonDepress` (the original's case 2000 of 0x4201e0) | nothing opens dialog 0, in the port or in the original: the original's game code opens ids 1 to 3, 5 to 9, 0xc, 0xe to 0x12, 0x14 to 0x18 and 0x1a to 0x1c | removed |
+| `Board::mMouseX`, `mMouseY` (+0x27c, +0x280) | `MouseMove` (0x40e150) stores the point and nothing reads it, in the port or in the original | removed; the comment above `MouseMove` says what the original stores |
+| `Board::mTutorialPart` | not a field of the original: its "+0x498" is `mTutorialStep` (+0x4e4) seen from the button listener's part of the board (0x4112b0); only ever zeroed | removed |
+| `Board::mWalkTick` | a second name for +0x4c0, which is `mMoveTick`; only ever zeroed | removed |
+| pictures `internethighscore`, `dbuttonclear` | drawn only by the Internet score list (0x416540, 0x415e50), which the port has not got | left out of the list (`make_res.py`); `NUM_IMAGES` is 160 |
+| the text table's 970 other entries | the port's code names 238 of the exe's 1208 strings (see "Registration", above) | left out of the table (`make_gametext.py`) |
+
+**Looked at and kept.** `light6`, `light8` and `light10`, which no code names and the first search of the original did not
+find, are the explorer's fourth idle animation: `kExplorerIdleCount` is 4 and the picture is `readmap6 + size + 3 * kind`. (They
+were taken out for an hour; the suite did not notice, since no photograph of it catches that animation. A script now follows
+each run of ids to its end: `readmap6 + 11` is `light10`, `whitedance6 + 23` is `redlisten10`, `mummy6 + 5` is `redmummy10` and
+`whitefight6 + 5` is `redfight10`, before and after.) `MummyApp::mScoreBuffer`, what the Internet score list was sent, is
+written by the game and read by nothing but the saved game, whose format holds it (`BoardSave.cpp`). `Board::FindWay`, the
+solver from where the explorer stands, is the port's own and is called only by the test hooks (the `move` command and the
+autoplay bot); it sits in `BoardSolve.cpp` because it shares the search's private state. The registry values are the
+original's settings. `GameText` reading the texts from `WinMM.exe` is how the port gets them. `ModFixes.cpp` and
+`SiteProfiles.cpp` are the fixes mod and the site's hooks. `tools/fmodproxy` is a tool for the original's music, not part of the
+port.
+
+**Doubtful, for the user.**
+- *The test hooks in the shipped game.* `src/testhooks/` (about 1,300 lines: the test commands, `-autoplay` and the bot) is
+  compiled into the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`). Taking it out of the
+  shipped build would need a build switch that the tests then turn on; nothing in the game depends on it.
+- *Shared code.* The framework's `TimesPlayed` and `TimesExecuted` registry values and `mIsRegistered` are `SexyApp`'s; whether
+  the framework still needs them is the coordinator's.
+
+**Proof.** `tools/check.sh build mummymaze` after the removals: the build passes and the suite's baseline is identical (classic
+1500, tips 1730, the whole game 251975, the adventure, the tutorial, the saved game, the rerun). The suite photographs little,
+so the pictures were checked with a control: the game built from the commit before the removals and again with them, and the
+nine phase-two scenarios that need no saved game (the menu, the options and their dialogs, a classic game, the high scores, the
+tutorial, an adventure, the focus) run on both with the same script and seed under `-fast`. All 114 screenshots are byte for
+byte the same. A script reads `Res.h` and `Res.cpp` before and after and finds every id still at the same file name in the
+same order (162 against 160), and the four runs of ids ending where they ended.

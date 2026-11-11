@@ -10,18 +10,18 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 class HyperlinkWidget;
 
 class HelpWidget : public Widget, public ButtonListener
 {
 public:
-	AlchemyApp*			mApp;               // +0x5c
+	WinAlchApp*			mApp;               // +0x5c
 	HyperlinkWidget*	mTutorialLink;      // +0x60 id 0
 	HyperlinkWidget*	mReturnLink;        // +0x64 id 1: back to the game, or to the selector when there is no game
 
 public:
-	HelpWidget(AlchemyApp* theApp);         // 0x408a8a
+	HelpWidget(WinAlchApp* theApp);         // 0x408a8a
 	virtual ~HelpWidget();                  // 0x408a6e
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;       // 0x4089fa

@@ -64,7 +64,9 @@ void Hyperspace::MakeOldPicture()
 	anImage->mD3DFlags = 0x10;  // +0x44: a render target (the VizManager draws the next level into it, ChooseViz)
 	anImage->Create(gApp->mWidth, gApp->mHeight);
 	anImage->SetImageMode(false, false);
-	gD3DInterface->PrepareImage(anImage);  // port: made a target now, as HoldTarget does
+	// port: made a target now, as HoldTarget does. Without Direct3D (a challenge's end in 2D) it is a plain picture
+	if (gD3DInterface != nullptr)
+		gD3DInterface->PrepareImage(anImage);
 	mOldPicture = anImage;
 	mOwnsOldPicture = true;
 }
@@ -315,17 +317,21 @@ void Hyperspace::DrawOverlay(Graphics* g)
 	}
 }
 
-void Hyperspace::StartChallenge()
+void Hyperspace::StartChallenge(float theX, float theY, float theZ)
 {
+	(void)theZ;
 	mState = 3;
 	mTransition = 11;
-	// The 2D branch only (the 3D one flies the camera in to the planet)
-	mFirstHalfPending = false;
-	ChooseViz(false);
-	mJumpLength.SetCurve(GTS(0x7e6288));
-	mBoardBrightness.SetCurve(GTS(0x7e6258));
-	gBoard->mTubeSlide.SetCurve(GTS(0x7e6228));
-	gBoard->Update();
+	if (gD3DInterface != nullptr) {
+		StartChallenge3D(theX, theY);
+	} else {
+		mFirstHalfPending = false;
+		ChooseViz(true);
+		mJumpLength.SetCurve(GTS(0x7e6288));
+		mBoardBrightness.SetCurve(GTS(0x7e6258));
+		gBoard->mTubeSlide.SetCurve(GTS(0x7e6228));
+		gBoard->Update();
+	}
 	SetTransition(11);
 }
 

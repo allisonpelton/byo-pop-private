@@ -19,6 +19,7 @@
 #include "Res.h"
 #include "UserDialogs.h"
 #include "WidgetManager.h"
+#include "SiteProfiles.h"
 
 using namespace Sexy;
 
@@ -251,6 +252,9 @@ void WinDMApp::DoCreateUserDialog()
 	CreateUserDialog* aDialog = new CreateUserDialog(false);
 	SetupDialog(aDialog, 0x17c);
 	AddDialog(DIALOG_CREATE_USER, aDialog);
+#ifdef __EMSCRIPTEN__
+	SiteFillNewUser(aDialog->mEdit);	// the site's player, when the page's setting says so (SiteProfiles.h)
+#endif
 	mWidgetManager->SetFocus(aDialog->mEdit);
 }
 
@@ -287,6 +291,9 @@ void WinDMApp::FinishUserDialog(bool theOk)
 		mWidgetManager->MarkAllDirty();
 		if (mMainMenu != nullptr)
 			mMainMenu->SyncProfile();
+#ifdef __EMSCRIPTEN__
+		SiteProfilesChanged(this);
+#endif
 	}
 	KillDialog(DIALOG_USER_LIST);
 }
@@ -330,6 +337,9 @@ void WinDMApp::FinishCreateUserDialog(bool theOk)
 	mWidgetManager->MarkAllDirty();
 	if (mMainMenu != nullptr)
 		mMainMenu->SyncProfile();
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(this);
+#endif
 }
 
 // 0x5dfae8
@@ -359,6 +369,9 @@ void WinDMApp::FinishConfirmDeleteUserDialog(bool theYes)
 	mWidgetManager->MarkAllDirty();
 	if (mMainMenu != nullptr)
 		mMainMenu->SyncProfile();
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(this);
+#endif
 }
 
 // 0x5dfb97
@@ -394,6 +407,9 @@ void WinDMApp::FinishRenameUserDialog(bool theOk)
 	if (mMainMenu != nullptr)
 		mMainMenu->SyncProfile();
 	KillDialog(DIALOG_RENAME_USER);
+#ifdef __EMSCRIPTEN__
+	SiteProfilesChanged(this);
+#endif
 }
 
 // 0x5df3d7: the one-line instructions of the first game
