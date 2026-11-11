@@ -116,8 +116,10 @@ var ByopopLibrary = (function () {
       return games.slice().sort(function (a, b) { return (sort.col === "name" ? 0 : cmp(a, b) * sort.dir) || byName(a, b) * (sort.col === "name" ? sort.dir : 1); });
     }
     function visible() { return rows.filter(function (r) { return !r.tr.hidden; }); }
-    function fill() {
-      var keepId = sel ? sel.g.id : null;
+    // jump: bring the selected row into view (a sort); a refresh from the cards or the storage keeps the list where the player
+    // scrolled it (the user, 2026-11-10: "Scroll keeps snapping back in the library window to the selected game")
+    function fill(jump) {
+      var keepId = sel ? sel.g.id : null, keepTop = area.scrollTop, hadFocus = !!(sel && document.activeElement === sel.cell);
       games = readGames();
       body.textContent = "";
       rows = order().map(function (g) {
@@ -139,7 +141,8 @@ var ByopopLibrary = (function () {
           tr.appendChild(td);
         });
         var r = { tr: tr, cell: name, g: g };
-        tr.addEventListener("mousedown", function (ev) { if (ev.button !== 1) select(r, true); });
+        // (the default would move the focus off the row's first cell again when another cell was pressed, and the keys with it)
+        tr.addEventListener("mousedown", function (ev) { if (ev.button !== 1) { ev.preventDefault(); select(r, true); } });
         tr.addEventListener("dblclick", function () { act(r, "play"); });
         tr.addEventListener("contextmenu", function (ev) { ev.preventDefault(); select(r, true); menu(r, ev.clientX, ev.clientY); });
         body.appendChild(tr);
@@ -148,7 +151,8 @@ var ByopopLibrary = (function () {
       Object.keys(heads).forEach(function (c) { heads[c].setAttribute("aria-sort", c === sort.col ? (sort.dir > 0 ? "ascending" : "descending") : "none"); });
       applyFilter();
       var again = rows.filter(function (r) { return r.g.id === keepId && !r.tr.hidden; })[0] || visible()[0] || null;
-      select(again, false);
+      select(again, hadFocus, jump !== true);
+      if (jump !== true) area.scrollTop = keepTop;
     }
     function applyFilter() {
       var q = filter.value.trim().toLowerCase();
@@ -156,13 +160,13 @@ var ByopopLibrary = (function () {
       count.textContent = T("library.count", { n: visible().length });
       if (sel && sel.tr.hidden) select(visible()[0] || null, false);
     }
-    function select(r, focus) {
+    function select(r, focus, stay) {
       if (sel && sel !== r) { sel.tr.setAttribute("aria-selected", "false"); sel.cell.tabIndex = -1; }
       sel = r;
       if (r) {
         r.tr.setAttribute("aria-selected", "true"); r.cell.tabIndex = 0;
         if (focus) { try { r.cell.focus({ preventScroll: true }); } catch (e) {} }
-        reveal(r.tr);
+        if (!stay) reveal(r.tr);
       }
       play.disabled = !r || r.g.status === "soon";
     }
@@ -176,7 +180,7 @@ var ByopopLibrary = (function () {
     function sortBy(c, say) {
       sort = { col: c, dir: sort.col === c ? -sort.dir : 1 };
       keep(sort);
-      fill();
+      fill(true);
       if (say) said.textContent = T("library.sorted", { col: T("library.col." + c), dir: T(sort.dir > 0 ? "library.asc" : "library.desc") });
     }
     function act(r, what) {
@@ -186,7 +190,7 @@ var ByopopLibrary = (function () {
         if (g.status === "soon") return;
         try { if (window.ByopopApps && ByopopApps.open(g.href, "push")) return; } catch (e) {}
         location.href = g.href;
-      } else if (what === "fav") { if (g.fav) g.fav.click(); setTimeout(fill, 0); }
+      } else if (what === "fav") { if (g.fav) g.fav.click(); setTimeout(function () { fill(); }, 0); }
       else if (what === "props") props(g);
     }
     function menu(r, x, y) {
@@ -237,7 +241,9 @@ var ByopopLibrary = (function () {
     });
     // the grid's keys: one tab stop (the selected row's first cell), the arrows, Home and End, Page Up and Down, typing a name's
     // first letters, Enter to play, and the menu
-    body.addEventListener("keydown", function (ev) {
+    // anywhere in the window but its filter and buttons, so the keys work as soon as the window is in front
+    el.addEventListener("keydown", function (ev) {
+      if (ev.defaultPrevented || (ev.target.closest && ev.target.closest("input, button, dialog"))) return;
       var v = visible(), i = v.indexOf(sel), page = Math.max(1, Math.floor(area.clientHeight / ((sel && sel.tr.offsetHeight) || 18)) - 1), to = -1;
       if (ev.key === "ArrowDown") to = i + 1;
       else if (ev.key === "ArrowUp") to = i - 1;
@@ -276,7 +282,7 @@ var ByopopLibrary = (function () {
     window.addEventListener("byopop-setting", later);
     window.addEventListener("pageshow", later);
     fill();
-    return { el: el, refresh: fill };
+    return { el: el, refresh: function () { fill(); }, focus: function () { if (sel && !el.contains(document.activeElement)) select(sel, true, true); } };
   }
 
   // The window on the listing's desktop (web/index.html adds the others): closed at first, its icon in the column after All games'
@@ -298,7 +304,7 @@ var ByopopLibrary = (function () {
     var front = false;
     window.addEventListener("byopop-desk-active", function (ev) {
       var now = !!(ev.detail && ev.detail.id === "library");
-      if (now && !front) lib.refresh();
+      if (now && !front) { lib.refresh(); lib.focus(); }
       front = now;
     });
     return lib;
