@@ -24,6 +24,6 @@ mkdir -p "$D"; rm -rf "$D/orig"
 echo "origrun exit=$?" >> "$D/orig.out"
 mkdir -p "$D/orig"; cp "$RUN/shots/"*.png "$D/orig/" 2>/dev/null; cp "$RUN/shots/landed.tsv" "$D/orig.landed.tsv" 2>/dev/null
 cp "$RUN/logs/origrun.log" "$D/orig.log" 2>/dev/null
-cp -r "$RUN/game/users" "$D/orig.users" 2>/dev/null
+rm -rf "$D/orig.users"; cp -r "$RUN/game/users" "$D/orig.users" 2>/dev/null   # (cp into a folder left by an earlier run would nest the new one inside it)
 grep -E "RESULT|exit=|WARNING|STOP|refus|cannot" "$D/orig.out" | head -20
 echo "shots: $(ls "$D/orig" 2>/dev/null | wc -l)"

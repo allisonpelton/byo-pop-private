@@ -379,8 +379,19 @@ registry value), the registry values the port writes, hint dialogs, pause, optio
 fresh profile with a level jump, and the files written at the end of a game other than by the byte comparison of the scenarios
 named above.
 
-**Phase 2 (looks identical).** Not done yet: the screens by shotdiff, sound, focus, the web build, and real mouse and key play
-through the page and the window are all still to do.
+**Phase 2 (looks identical), `IDENTICAL_PLAY.md`.** Tours written once and run on both programs (the original in Windows
+Sandbox on origrun's virtual clock, the port with `-fast -drawevery`, shots at the same updates, compared by shotdiff): the menus
+and dialogs, a saved adventure, an idle game, the abyss, two tutor lessons, Expert with penalty piranhas, Hard with treasure
+levels, and the whole Easy adventure with its maps, bosses, end dialog and endless levels: 1919 pairs, none differs visibly. The
+599 faint boxes are of three kinds, all judged (section 5's "a frame is drawn whole" for two of them; the window's last column
+where a creature enters is an oddity, `IDENTICAL_PLAY.md`). Port faults the tours found and fixed: the cannon balls' frame
+rectangle, the tutor's finger rings. The sound comparison (origrun's recording stand-in and a logging BASS against the port's
+sound log) found the sound effects equal play for play and the music missing: the module player was never registered, and
+`ChangeMusic` cut a song off where the original fades it out; after both fixes the music is equal event for event (850 events).
+The web build draws the same pictures as the native port to within 6 levels of 255 (1114 pairs under Node), plays the module, and
+passes the page check. Code played every mode with real mouse and key events, natively (windowed and full screen) and in the
+page. The port's shots come from the test command `shot` (section 9), because the framework's `screenshot` draws once more and a
+draw is a step in this game.
 
 ## 7. Oddities (what the original does that the port does not copy)
 
