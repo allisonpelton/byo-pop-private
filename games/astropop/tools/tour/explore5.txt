@@ -3,7 +3,7 @@
 3150 type Test
 3180 key Return
 3260 shot e01_menu
-3300 click 535 236
+3300 click 535 250
 3350 shot e02_options
 3360 click 320 329
 3420 shot e03_credits1

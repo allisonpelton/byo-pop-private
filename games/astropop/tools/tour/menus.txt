@@ -14,7 +14,7 @@
 3320 shot a07_hover_survival
 3330 move 535 160
 3350 shot a08_hover_halloffame
-3360 move 535 236
+3360 move 535 250
 3380 shot a09_hover_options
 3390 move 535 330
 3410 shot a10_hover_moregames

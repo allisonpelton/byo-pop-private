@@ -110,10 +110,10 @@ void Board::UpdateIntroAndTally()
 					aStarsDone++;
 				}
 			}
-			// (x87, 53 bits: the sum is compared before it is rounded to a float)
-			double aTime = (double) m1c00 + (double) 0.09f;
-			m1c00 = (float) aTime;
-			if (aTime >= 9.0 && aStreaksDone == 100)
+			// (x87 at 24 bits: the sum is a float when it is compared)
+			float aTime = m1c00 + 0.09f;
+			m1c00 = aTime;
+			if (aTime >= 9.0f && aStreaksDone == 100)
 			{
 				if (aStarsDone == (int) m190.size() && m1bc8 < 1)
 				{

@@ -146,12 +146,12 @@ void FloatText::Update()
 		return;
 
 	if (mSpeed == -1.0f && m40 == -1.0f && mTargetY == -1.0f)
-		mY = (float) ((double) mY - 1.0);
+		mY = mY - 1.0f;
 	else if (mY > mTargetY)
 	{
-		double aNew = (double) mY - (double) mSpeed;
-		mY = (float) aNew;
-		if (aNew <= (double) mTargetY)
+		float aNew = mY - mSpeed;
+		mY = aNew;
+		if (aNew <= mTargetY)
 		{
 			mY = mTargetY;
 			mHoldStart = mAge;
@@ -160,12 +160,12 @@ void FloatText::Update()
 	else if (mY == mTargetY)
 	{
 		if (mAge - mHoldStart >= mHold)
-			mY = (float) ((double) mY - (double) mSpeed);
+			mY = mY - mSpeed;
 	}
 	else
-		mY = (float) ((double) mY - (double) mSpeed);
+		mY = mY - mSpeed;
 
-	if ((double) -mFont->mHeight > (double) mY)
+	if ((float) -mFont->mHeight > mY)
 		mDone = true;
 
 	if (!mNoFade)
@@ -582,7 +582,7 @@ void FloatText::Draw(Graphics* g)
 		aColor = Color((int) (gApp->HSLToRGB(m10, 0xff, 0x80) & 0xffffff) | 0xff000000);
 	aColor.mAlpha = m50;
 	g->SetColor(aColor);
-	g->DrawString(mText, (int) mX, (int) ((double) mFont->GetAscent() + (double) mY));
+	g->DrawString(mText, (int) mX, (int) ((float) mFont->GetAscent() + mY));
 }
 
 // 0x40dab0

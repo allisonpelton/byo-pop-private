@@ -95,7 +95,7 @@ void AstroPopApp::ButtonPress(int theId)
 	PlaySample(SOUND_BUTTON_DOWN);
 }
 
-// 0x408b20 slot 7: the original also sets the x87 precision to 53 bits here (the port's float maths is SSE)
+// 0x408b20 slot 7: the original also sets the x87 precision to 24 bits here (_PC_24; the port's float maths is SSE)
 void AstroPopApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();

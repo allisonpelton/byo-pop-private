@@ -1,8 +1,8 @@
 // Board: Draw (0x461e50). It puts the layers of the screen on in this order: the backdrop, the danger zone, the texts of the
 // modes, the beam, the bricks, the banners of the goal, the crosshair, the explosions, the end-of-game page, the snow, the
 // panels of the stages and the upgrades, the logo or the combo, the SUPA weapon, the ship, the sprites on top and the
-// hints. The original works out its positions on the x87 stack, in extended precision; the sums here are done in double
-// before they are cut to a whole pixel, as _ftol does.
+// hints. The original works out its positions on the x87 stack at 24 bits of precision (UpdateFrames sets it): every sum is a
+// float before it is cut to a whole pixel, as _ftol does.
 
 #include "Board.h"
 #include "GameText.h"

@@ -2,7 +2,7 @@
 3100 click 320 447
 3150 type Test
 3180 key Return
-3300 click 535 236
+3300 click 535 250
 3350 shot o01_options
 3360 click 153 248
 3380 shot o02_colorblind

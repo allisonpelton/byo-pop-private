@@ -26,7 +26,12 @@ if [ -n "${PROFILE:-}" ]; then
   export ORIGRUN_ARGS="${ORIGRUN_ARGS:-} --reg $PWD/$R/$N/profile.reg"
 fi
 [ -n "${CHARGE:-}" ] && export ORIGRUN_ARGS="${ORIGRUN_ARGS:-} --patches tools/origrun/patches/astropop-charge.txt"
-[ -n "${PROFILE:-}" ] && export PORT_USER="$PWD/$R/$N.user"
+if [ -n "${PROFILE:-}" ]; then
+  # the port starts from the profile the recording started from (the recording's own user folder holds the game it saved at its end)
+  rm -rf "$R/$N.startuser"; mkdir -p "$R/$N.startuser/users"
+  cp "$PROFILE" "$R/$N.startuser/users/data1.usr"; cp "$R/$N/registry-start.ini" "$R/$N.startuser/registry.ini"
+  export PORT_USER="$PWD/$R/$N.startuser"
+fi
 SEED=$(python -I - "$@" <<'EOF'
 import sys
 a = sys.argv[1:]

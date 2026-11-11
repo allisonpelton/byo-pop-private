@@ -18,7 +18,7 @@
 3363 shot leave_classic_3
 3364 shot leave_classic_4
 3365 shot leave_classic_5
-3420 move 535 236
+3420 move 535 250
 3420 shot enter_options_0
 3421 shot enter_options_1
 3422 shot enter_options_2

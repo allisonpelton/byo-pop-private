@@ -95,7 +95,10 @@ void Board::AnimateBanner()
 
 	for (int aCol = 0; aCol < aWidth; aCol++)
 	{
-		int aShift = (int) ((sin((double) aCol * 0.024 + (double) m944) + 1.0) * 24.0);
+		// (x87 at 24 bits: the column's phase, the sum with the wave's offset, the sine plus one and the product are floats; FSIN's own result is not rounded)
+		float aPhase = (float) ((double) aCol * 0.024) + m944;
+		float aWave = (float) (sin((double) aPhase) + 1.0);
+		int aShift = (int) (aWave * 24.0f);
 		for (int aRow = 0; aRow < aSrcHeight; aRow++)
 		{
 			unsigned int aPixel = (unsigned int) aSrcBits[aRow * aWidth + aCol];
