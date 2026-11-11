@@ -61,9 +61,9 @@ public:
 	WinAlchApp*		mApp;                   // +0x5c
 	int				mState;                 // +0x60
 	MTRand			mRand;                  // +0x64
-	Buffer			mEncodedGame;                // +0xa28 the game's moves, for the internet scores of the original (kept, never sent)
+	Buffer			mEncodedGame;           // +0xa28 the game move by move (EncodeMoveNum, EncodeMove, EncodeDiscard), for the original's internet scores: saved with the game, and nothing reads it
 	std::string		mScript;                // +0xa64 "Move: n " commands: the test hook's input to the board
-	int				mSavedZero;             // +0xa80 (saved, never used)
+	int				mSavedZero;             // +0xa80 0 throughout: saved and loaded, and nothing reads it
 	Piece*			mCurPiece;              // +0xae8 the piece to place, or NULL
 	bool			mAnimateLights;         // +0xaec false while the tutorial builds a position
 	bool			mTimeTrial;             // +0xaed
@@ -121,8 +121,8 @@ public:
 	DWORD			mStartTick;             // +0xde8
 	int				mElapsed;               // +0xdec seconds before the last start
 	int				mTotalSeconds;          // +0xdf0 the game's length, when it ended
-	int				mPauseCount;                 // +0xdf4 pauses
-	int				mCoverCount;            // +0xdf8 time trial: the pause that hides the board
+	int				mPauseCount;            // +0xdf4 how many pauses hold the game (a dialog, the cover)
+	int				mCoverCount;            // +0xdf8 how many of them cover the board: a key press in any game, a dialog in the time trial
 	int				mLastWarning;           // +0xdfc update of the last warning sound
 	int				mFullCount;             // +0xe00 updates with the forge full (time trial)
 	int				mRun;                   // +0xe04 pieces since the last forge

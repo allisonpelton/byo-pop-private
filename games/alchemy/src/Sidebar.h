@@ -1,5 +1,5 @@
-#ifndef __ALCHEMY_SIDEPANEL_H__
-#define __ALCHEMY_SIDEPANEL_H__
+#ifndef __ALCHEMY_SIDEBAR_H__
+#define __ALCHEMY_SIDEBAR_H__
 
 // The left 150 pixels of the screen (class 0x4e4b40, ctor 0x40f987, size 0x90): the forge gauge (a tank of red
 // liquid with a wave on top and rising bubbles), the score and the skill and mode labels. The buttons below are the

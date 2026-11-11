@@ -1,5 +1,5 @@
-#ifndef __ALCHEMY_SELECTOR_H__
-#define __ALCHEMY_SELECTOR_H__
+#ifndef __ALCHEMY_INTROSCREEN_H__
+#define __ALCHEMY_INTROSCREEN_H__
 
 // The game selector (class 0x4e43a8, ctor 0x40c817, size 0xa4): the intro screen over the board area with the wizard,
 // three skill buttons, strategic or time trial, and the start and tutorial buttons. The ButtonListener part is at +0x58.

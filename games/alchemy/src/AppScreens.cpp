@@ -1,7 +1,8 @@
 // The screen flow of WinAlchApp: the selector, the board, the help text, the score screens and the dialogs, and the
 // handlers of the buttons (Alchemy.exe 0x410cb9-0x412017, 0x413eea). The registration, update-check, internet-score
 // and "more games" dialogs of the original (ids 5, 6, 8, 9, 10, 0xd-0xf, 0x11 and up) belong to the unregistered game
-// and its online services (GAME_NOTES.md, section 5, lists their functions): the copy this port comes from acts as registered
+// and its online services (GAME_NOTES.md, "What the original has and the port leaves out", lists their functions): the copy this port
+// comes from acts as registered
 // and the port has no online features, so they are not translated.
 
 #include "WinAlchApp.h"
@@ -91,7 +92,7 @@ void WinAlchApp::DoHelp()
 	{
 		mHelp = new HelpWidget(this);
 		mWidgetManager->AddWidget(mHelp);
-		mHelp->Resize(BOARD_X, 0, 0x1ea, 0x1e0);
+		mHelp->Resize(BOARD_X, 0, BOARD_WIDTH, SCREEN_HEIGHT);
 		mWidgetManager->PutBehind(mHelp, mBoardOverlay);
 		mBoardOverlay->mShowHelpArrow = true;
 		mBoardOverlay->MarkDirty();
@@ -136,7 +137,7 @@ void WinAlchApp::DoGameOver()
 	mBoard->SetVisible(false);
 
 	mHighScores = new HighScoreWidget(this);
-	mHighScores->Resize(BOARD_X, 0, 0x1ea, 0x1e0);
+	mHighScores->Resize(BOARD_X, 0, BOARD_WIDTH, SCREEN_HEIGHT);
 	mWidgetManager->AddWidget(mHighScores);
 	mWidgetManager->BringToFront(mBoard->mWizard);
 }
@@ -166,7 +167,7 @@ void WinAlchApp::NewGame()
 	}
 
 	mBoard = new Board(this);
-	mBoard->Resize(BOARD_X, 0, 0x1ea, 0x1e0);
+	mBoard->Resize(BOARD_X, 0, BOARD_WIDTH, SCREEN_HEIGHT);
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToBack(mBoard);
 	mWidgetManager->SetFocus(mBoard);
@@ -196,7 +197,7 @@ void WinAlchApp::ShowIntroScreen()
 	mTutorialMode = false;
 
 	mIntroScreen = new IntroScreen(this);
-	mIntroScreen->Resize(BOARD_X, 0, 0x1ea, 0x1e0);
+	mIntroScreen->Resize(BOARD_X, 0, BOARD_WIDTH, SCREEN_HEIGHT);
 	mWidgetManager->AddWidget(mIntroScreen);
 	mWidgetManager->BringToBack(mIntroScreen);
 	mWidgetManager->BringToFront(mBoardOverlay);

@@ -79,7 +79,7 @@ void Sidebar::Draw(Graphics* g)
 	}
 
 	// the backdrop's left part has the window for the tank
-	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0, 0, 0x96, 0x1e0));
+	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0, 0, WinAlchApp::BOARD_X, WinAlchApp::SCREEN_HEIGHT));
 
 	g->SetColor(Color(255, 255, 255));
 	g->SetFont(mApp->mScoreFont);

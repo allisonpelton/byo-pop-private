@@ -29,12 +29,14 @@ template <typename T> static void ReadRaw(Buffer* theBuffer, T* theValue)
 	theBuffer->ReadBytes((uchar*) theValue, (int) sizeof(T));
 }
 
+// Part of Board::SaveGame (0x402a44): a flag is one byte
 static void WriteBool(Buffer* theBuffer, bool theValue)
 {
 	uchar aByte = theValue ? 1 : 0;
 	theBuffer->WriteBytes(&aByte, 1);
 }
 
+// Part of Board::LoadGame (0x40589a)
 static void ReadBool(Buffer* theBuffer, bool* theValue)
 {
 	if (theBuffer->mReadBitPos / 8 + 1 > theBuffer->GetDataLen())
@@ -44,6 +46,7 @@ static void ReadBool(Buffer* theBuffer, bool* theValue)
 	*theValue = (aByte != 0);
 }
 
+// Part of Board::SaveGame (0x402a44): a text is its length, then its bytes
 static void WriteText(Buffer* theBuffer, const std::string& theText)
 {
 	int aLength = (int) theText.length();
@@ -51,6 +54,7 @@ static void WriteText(Buffer* theBuffer, const std::string& theText)
 	theBuffer->WriteBytes((const uchar*) theText.c_str(), aLength);
 }
 
+// Part of Board::LoadGame (0x40589a)
 static std::string ReadText(Buffer* theBuffer)
 {
 	int aLength = 0;
@@ -63,6 +67,7 @@ static std::string ReadText(Buffer* theBuffer)
 	return aText;
 }
 
+// port: the saved game's file, in the user's folder
 std::string Board::GetSaveGameFileName()
 {
 	return "userdata\\savegame.dat";
@@ -78,7 +83,8 @@ bool Board::SaveGame()
 	return mApp->WriteBytesToFile(GetSaveGameFileName(), aData.data(), (unsigned long) aData.size());
 }
 
-// The bytes SaveGame writes (also the web build's backup, WinAlchApp::GetShutdownSaves: it does not touch the clock)
+// Part of Board::SaveGame (0x402a44): the bytes it writes (also the web build's backup, WinAlchApp::GetShutdownSaves: it
+// does not touch the clock)
 std::string Board::SerializeGame()
 {
 	Buffer aBuffer;

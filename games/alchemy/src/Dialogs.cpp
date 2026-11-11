@@ -133,7 +133,7 @@ OptionsDialog::OptionsDialog(WinAlchApp* theApp) :
 	mSfxSlider->SetValue(mApp->GetSfxVolume());
 
 	// both boxes have the id 0; the dialog is their listener because a Checkbox takes one (the original's CheckboxChecked, 0x40d7c2, only
-	// raised the colour-depth question, which is left out: GAME_NOTES section 5)
+	// raised the colour-depth question, which is left out: GAME_NOTES.md, "What the original has and the port leaves out")
 	mFullscreenBox = new Checkbox(mApp->mImages[IMAGE_UNCHECKED], mApp->mImages[IMAGE_CHECKED], 0, this);
 	mFullscreenBox->SetChecked(!mApp->mIsWindowed, true);
 	mCursorsBox = new Checkbox(mApp->mImages[IMAGE_UNCHECKED], mApp->mImages[IMAGE_CHECKED], 0, this);
@@ -293,6 +293,7 @@ RecordScoreDialog::~RecordScoreDialog()
 	delete mEdit;
 }
 
+// port: the name in the edit box
 SexyString RecordScoreDialog::GetName()
 {
 	return mEdit->mString;

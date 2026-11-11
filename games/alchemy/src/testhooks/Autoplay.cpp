@@ -1,4 +1,4 @@
-// Test hooks: the autoplay bot (see Autoplay.h).
+// port: test hooks, the autoplay bot (see Autoplay.h).
 
 #include "Autoplay.h"
 #include "Bot.h"

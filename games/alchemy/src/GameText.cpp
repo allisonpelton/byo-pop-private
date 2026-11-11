@@ -1,4 +1,4 @@
-// The texts read from the player's own executable (see GameText.h).
+// port: the texts read from the player's own executable (see GameText.h).
 
 #include "GameText.h"
 #include "platform/VFS.h"

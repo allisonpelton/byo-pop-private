@@ -1,5 +1,5 @@
-#ifndef __ALCHEMY_EFFECTS_H__
-#define __ALCHEMY_EFFECTS_H__
+#ifndef __ALCHEMY_BOARDOVERLAY_H__
+#define __ALCHEMY_BOARDOVERLAY_H__
 
 // The effects overlay (class 0x4e3ab0, ctor 0x40858e, size 0x78): a transparent widget over the whole screen that
 // draws the score numbers that float up from a cleared piece and the sparkles. The board adds to it (0x408938 and

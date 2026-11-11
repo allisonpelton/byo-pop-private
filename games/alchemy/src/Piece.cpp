@@ -167,7 +167,7 @@ void Piece::Draw(Graphics* g)
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		g->DrawImage(mApp->mImages[mApp->mBoard->mHoverX == -1 ? IMAGE_LIGHT : IMAGE_BRITELIGHT], 0, 0);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
-		g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0xc, 0xc, Rect(mShape * 0x32, 0, 0x32, 0x32));
+		g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0xc, 0xc, Rect(mShape * WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	}
 	else
 	{

@@ -1,6 +1,6 @@
 // The application class of Alchemy Deluxe 1.6 (Alchemy.exe 0x4118c9-0x414903): construction, start-up, the loading
 // thread, the registry, and the side panel's buttons. The screens' flow (selector, board, dialogs) is in
-// AppScreens.cpp, the button handler in AppButtons.cpp. See WinAlchApp.h and docs/GAME_NOTES.md.
+// AppScreens.cpp with the button handler. See WinAlchApp.h and games/alchemy/docs/GAME_NOTES.md.
 
 #include "WinAlchApp.h"
 #include "Board.h"
@@ -218,6 +218,7 @@ void WinAlchApp::ShutdownHook()
 #endif
 }
 
+// port: the test hooks' options (WinAlchApp.h lists them); the framework handles the rest
 void WinAlchApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-autoplay")
@@ -255,7 +256,7 @@ void WinAlchApp::HandleCmdLineParam(const std::string& theParamName, const std::
 }
 
 // port: the 2004 SexyApp creates a BassMusicInterface (BASS 2.0): the port's music interface gets the full range
-// (docs/FRAMEWORK_2004.md section 6, 4.2)
+// (docs/FRAMEWORK_2004.md, "Sound and music")
 MusicInterface* WinAlchApp::CreateMusicInterface()
 {
 	if (mNoSoundNeeded)
@@ -381,15 +382,15 @@ void WinAlchApp::LoadingThreadProc()
 	// block (nullblock) and the skull (skulls), scaled into a square of (1 - (k + 1) / 21) * 50 pixels (odd)
 	for (int k = 0; k < NUM_SHAPE_SIZES; k++)
 	{
-		int aSize = ((int) ((1.0 - (k + 1.0) * 0.047619047619047616) * 50.0)) | 1;
+		int aSize = ((int) ((1.0 - (k + 1.0) * 0.047619047619047616) * SYMBOL_SIZE)) | 1;
 		for (int i = 0; i < NUM_SHAPE_IMAGES; i++)
 		{
 			MemoryImage* anImage = new MemoryImage(this);
-			anImage->Create(50, 50);
+			anImage->Create(SYMBOL_SIZE, SYMBOL_SIZE);
 			Graphics g(anImage);
 
 			Image* aSource;
-			Rect aSrcRect(0, 0, 50, 50);
+			Rect aSrcRect(0, 0, SYMBOL_SIZE, SYMBOL_SIZE);
 			if (i == 22)
 				aSource = mImages[IMAGE_NULLBLOCK];
 			else if (i == 23)
@@ -397,9 +398,9 @@ void WinAlchApp::LoadingThreadProc()
 			else
 			{
 				aSource = mImages[IMAGE_SYMBOLS];
-				aSrcRect = Rect(i * 50, 0, 50, 50);
+				aSrcRect = Rect(i * SYMBOL_SIZE, 0, SYMBOL_SIZE, SYMBOL_SIZE);
 			}
-			Rect aDestRect((50 - aSize) / 2, (50 - aSize) / 2, aSize, aSize);
+			Rect aDestRect((SYMBOL_SIZE - aSize) / 2, (SYMBOL_SIZE - aSize) / 2, aSize, aSize);
 			g.DrawImage(aSource, aDestRect, aSrcRect);
 			mShapeImages[k][i] = anImage;
 		}

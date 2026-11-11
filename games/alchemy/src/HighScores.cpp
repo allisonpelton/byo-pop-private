@@ -40,12 +40,14 @@ static unsigned int ScoreCheck(int theScore, const std::string& theName)
 	return aCheck;
 }
 
+// Part of HighScoreWidget::WriteToFile (0x40a341): a number is four bytes, the low one first
 static void PutInt(std::string& theData, int theValue)
 {
 	for (int i = 0; i < 4; i++)
 		theData += (char) ((theValue >> (i * 8)) & 0xff);
 }
 
+// Part of HighScoreWidget::WriteToFile (0x40a341): a name is its length in two bytes, then its bytes
 static void PutName(std::string& theData, const std::string& theName)
 {
 	unsigned int aLength = (unsigned int) theName.length() & 0xffff;
@@ -54,6 +56,7 @@ static void PutName(std::string& theData, const std::string& theName)
 	theData.append(theName, 0, aLength);
 }
 
+// Part of HighScoreWidget::WriteToFile (0x40a341): a name, its score and their check
 static void PutScore(std::string& theData, const std::string& theName, int theScore)
 {
 	PutName(theData, theName);
@@ -329,7 +332,7 @@ void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 		g.DrawImage(mBoardImage, 0, 0);
 		Graphics aClipped(g);
 		aClipped.ClipRect(0xd, 0x29, 0x1d0, 0x19c);
-		aClipped.DrawImageBox(Rect(0, 0x1e, 0x1ea, 0x1b2), mApp->mImages[IMAGE_DIALOG]);
+		aClipped.DrawImageBox(Rect(0, 0x1e, WinAlchApp::BOARD_WIDTH, 0x1b2), mApp->mImages[IMAGE_DIALOG]);
 
 		Board* aBoard = mApp->mBoard;
 		static const int anOffsets[5] = {-2, -1, 1, 2, 0};
@@ -448,9 +451,9 @@ void HighScoreWidget::Draw(Graphics* g)
 		aEdge.ClipRect(0xd, 0x29, 0x1d0, 0x19c);
 		int aEdgeY = (aBottom - aCellH) + 0x1e;
 		aEdge.DrawImage(aDialog, 0, aEdgeY, Rect(0, aCellH * 2, aCellW, aCellH));
-		int aRightX = 0x1ea - aCellW;
+		int aRightX = WinAlchApp::BOARD_WIDTH - aCellW;
 		aEdge.DrawImage(aDialog, aRightX, aEdgeY, Rect(aCellW * 2, aCellH * 2, aCellW, aCellH));
-		aEdge.ClipRect(aCellW, 0x1e, 0x1ea - aCellW * 2, aBottom);
+		aEdge.ClipRect(aCellW, 0x1e, WinAlchApp::BOARD_WIDTH - aCellW * 2, aBottom);
 		int aTiles = (aRightX - 1) / aCellW;
 		int aX = aCellW;
 		for (int i = 0; i < aTiles; i++)

@@ -1,4 +1,4 @@
-// Test hooks: the standard script commands (docs/TEST_COMMANDS.md), reachable only from a test (-script, and the live
+// port: test hooks, the standard script commands (docs/TEST_COMMANDS.md), reachable only from a test (-script, and the live
 // channel once the framework has it). A command that is never given changes nothing: no draw, no state. Every command
 // answers with one line on stdout: OK <command>, ERROR <command>: <reason>, STATE {...} or MOVE {...}.
 //
@@ -551,7 +551,7 @@ bool WinAlchApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		return true;
 	}
-	// memreport <file>: what the game holds in memory by owner (testhooks/MemReport.h), for the performance pass
+	// memreport <file>: what the game holds in memory by owner (testhooks/MemReport.h)
 	if (aName == "memreport")
 	{
 		if (theCommand.mArgs.empty())

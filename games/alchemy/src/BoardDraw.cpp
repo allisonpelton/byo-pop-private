@@ -17,7 +17,8 @@
 
 using namespace Sexy;
 
-// A flash of light over a cell, as bright as the animation is far along (0..100; the full colour at 75)
+// Part of Board::Draw (0x404923): a flash of light over a cell, as bright as the animation is far along (0..100; the full
+// colour at 75)
 static Color FlashColor(int thePercent)
 {
 	int aRed = (thePercent * 0xff) / 0x4b;
@@ -38,7 +39,7 @@ void Board::Draw(Graphics* g)
 	if (mCoverCount < 1)
 		g->DrawImage(mBgImage, 0, 0);
 	else
-		g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
+		g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(WinAlchApp::BOARD_X, 0, WinAlchApp::BOARD_WIDTH, WinAlchApp::SCREEN_HEIGHT));
 
 	// the level bar: a gem for each board cleared, the second row of gems after the seventh
 	if (mBoardsCleared < 8)
@@ -177,7 +178,7 @@ void Board::Draw(Graphics* g)
 				g->SetColorizeImages(true);
 				g->SetColor(Color(aRed, aGreen, aBlue));
 				g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], GetColX(mLightCol) + 1, GetRowY(mLightRow) + 1,
-					Rect(aPiece->mShape * 0x32, 0, 0x32, 0x32));
+					Rect(aPiece->mShape * WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 				g->SetColorizeImages(false);
 			}
 			else

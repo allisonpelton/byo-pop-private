@@ -125,7 +125,7 @@ Board::Board(WinAlchApp* theApp)
 	mSkillBase = mApp->mSkillLevel * 5 - 5;
 	mBgImage = new MemoryImage(mApp);
 	mDiscardImage = new MemoryImage(mApp);
-	mDiscardImage->Create(0x32, 0x32);
+	mDiscardImage->Create(WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE);
 	mDiscardImage->SetImageMode(true, true);
 
 	mTutorial = mApp->mTutorialMode;
@@ -583,7 +583,7 @@ void Board::DrawAliasedPiece(Graphics* g, Piece* thePiece, int theX, int theY)
 	g->SetColorizeImages(true);
 	g->SetColor(Color(gPieceColors[thePiece->mColor][0], gPieceColors[thePiece->mColor][1],
 		gPieceColors[thePiece->mColor][2]));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], theX + 1, theY + 1, Rect(thePiece->mShape * 0x32, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], theX + 1, theY + 1, Rect(thePiece->mShape * WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColorizeImages(false);
 }
 
@@ -595,7 +595,7 @@ void Board::RedrawBackground(int theCol, int theRow)
 	int aX = GetColX(theCol);
 	int aY = GetRowY(theRow);
 	g.ClipRect(aX, aY, CELL, CELL);
-	g.DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
+	g.DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(WinAlchApp::BOARD_X, 0, WinAlchApp::BOARD_WIDTH, WinAlchApp::SCREEN_HEIGHT));
 
 	int aLevel = mBoardsCleared % 9;
 	if (aLevel > 0)
@@ -673,11 +673,11 @@ void Board::PutPiece(Piece* thePiece, int theCol, int theRow)
 		}
 		{
 			Graphics g(mLightBase);
-			g.DrawImage(mApp->mImages[IMAGE_BACKDROP], aX, aY, Rect(0x96, 0, 0x1ea, 0x1e0));
+			g.DrawImage(mApp->mImages[IMAGE_BACKDROP], aX, aY, Rect(WinAlchApp::BOARD_X, 0, WinAlchApp::BOARD_WIDTH, WinAlchApp::SCREEN_HEIGHT));
 		}
 		{
 			Graphics g(mLightOut);
-			g.DrawImage(mApp->mImages[IMAGE_BACKDROP], aX, aY, Rect(0x96, 0, 0x1ea, 0x1e0));
+			g.DrawImage(mApp->mImages[IMAGE_BACKDROP], aX, aY, Rect(WinAlchApp::BOARD_X, 0, WinAlchApp::BOARD_WIDTH, WinAlchApp::SCREEN_HEIGHT));
 		}
 	}
 
@@ -928,7 +928,7 @@ void Board::SkipMove()
 				g.SetColorizeImages(true);
 				g.SetColor(Color(gPieceColors[mDiscardPiece->mColor][0], gPieceColors[mDiscardPiece->mColor][1],
 					gPieceColors[mDiscardPiece->mColor][2]));
-				g.DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0, 0, Rect(mDiscardPiece->mShape * 0x32, 0, 0x32, 0x32));
+				g.DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0, 0, Rect(mDiscardPiece->mShape * WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 				g.SetColorizeImages(false);
 			}
 		}
@@ -1111,7 +1111,7 @@ void Board::Resize(int theX, int theY, int theWidth, int theHeight)
 	mBgImage->SetImageMode(false, false);
 	{
 		Graphics g(mBgImage);
-		g.DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
+		g.DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(WinAlchApp::BOARD_X, 0, WinAlchApp::BOARD_WIDTH, WinAlchApp::SCREEN_HEIGHT));
 	}
 	RedrawBackground();
 

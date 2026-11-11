@@ -197,7 +197,7 @@ void IntroScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 // 0x40cefe
 void IntroScreen::Draw(Graphics* g)
 {
-	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
+	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(WinAlchApp::BOARD_X, 0, WinAlchApp::BOARD_WIDTH, WinAlchApp::SCREEN_HEIGHT));
 	g->DrawImage(mApp->mImages[IMAGE_GAMESELECTOR_BASE], 10, 0x23);
 
 	g->SetFont(mApp->mTitleFont);

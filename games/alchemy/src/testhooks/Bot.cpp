@@ -1,4 +1,4 @@
-// Test hooks: the bot's choice of a cell (see Bot.h).
+// port: test hooks, the bot's choice of a cell (see Bot.h).
 
 #include "Bot.h"
 #include "WinAlchApp.h"

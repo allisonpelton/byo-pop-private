@@ -1,5 +1,5 @@
-#ifndef __ALCHEMY_ALCHEMYAPP_H__
-#define __ALCHEMY_ALCHEMYAPP_H__
+#ifndef __ALCHEMY_WINALCHAPP_H__
+#define __ALCHEMY_WINALCHAPP_H__
 
 // WinAlchApp: the application class of Alchemy Deluxe 1.6 (Alchemy.exe's game image, linked 2004-08-23).
 // Behaviour spec: games/alchemy/docs/GAME_NOTES.md. Addresses in comments are the original's.
@@ -65,10 +65,12 @@ public:
 		NUM_LOADING_TASKS = 95,         // mNumLoadingThreadTasks (LoadingThreadProc): 50 pictures, 15 sounds, 1 + 20 + 9; the original's 101 also loaded 6 pictures that nothing draws or only its registration and internet scores used
 		NUM_SHAPE_SIZES = 20,           // the shrink animation of a piece
 		NUM_SHAPE_IMAGES = 24,          // 22 shapes, the blank block and the skull
+		SYMBOL_SIZE = 50,               // a piece's picture and a frame of the symbol and skull sheets, in pixels
 		NUM_BACKDROPS = 9,
 		SCREEN_WIDTH = 640,
 		SCREEN_HEIGHT = 480,
-		BOARD_X = 0x96                  // the board area is 490 x 480 at x = 150; the side panel is the left 150
+		BOARD_X = 0x96,                 // the board area is 490 x 480 at x = 150; the side panel is the left 150
+		BOARD_WIDTH = 0x1ea
 	};
 
 	Image**					mImages;                // +0x6b0 new Image*[66] (0x108 bytes)
@@ -103,7 +105,7 @@ public:
 	//                            (testhooks/Autoplay.h); -autoplaymode=strategic|timetrial|tutorial;
 	//   -autoplaycap=<n>         quits at update n (default 20000);
 	//   -autoplaylog=<file>      writes its input as a -script file, with comments on what happened;
-	//   -autoplayshots=<prefix>  screenshots at the game's milestones
+	//   -autoplayshots=<prefix>  screenshots as the game goes (the title, the selector, the tutorial's steps, a board cleared, the game over, the scores)
 	bool					mAutoplay;
 	unsigned long			mAutoplaySeed;
 	std::string				mAutoplayMode;
@@ -116,8 +118,8 @@ public:
 	//                            -autoplayscript=<file> (the clicks and moves as script lines)
 	//   -autoplaystart=<n>       the bot starts at update n (the original's loading takes a while)
 	//   -statelog=<file>         each change of the board's state, score, moves, forged pieces, boards cleared and the
-	//                            piece to place, with the update it came at (the identical-play pass compares it with
-	//                            the original's values)
+	//                            piece to place, with the update it came at, to compare with the original's values
+	//                            (games/alchemy/docs/IDENTICAL_PLAY.md)
 	//   -autoplayskill=<0..2>    (with -autoplayui) clicks that skill level's button before the mode's
 	//   -autoplaymiss=<n>        (with -autoplayui) one piece in n is put on a cell it cannot go to
 	//   -autoplayextra=<n>       (with -autoplayui) before one piece in n the bot clicks the hint button or presses a key (the pause)

@@ -28,7 +28,7 @@ void Board::NextTutorial()
 	}
 
 	Graphics g(mBgImage);
-	g.DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
+	g.DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(WinAlchApp::BOARD_X, 0, WinAlchApp::BOARD_WIDTH, WinAlchApp::SCREEN_HEIGHT));
 
 	SexyString aText;
 	bool needButton = false;
