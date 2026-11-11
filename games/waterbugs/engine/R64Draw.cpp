@@ -291,11 +291,6 @@ void DrawList_Clear()
 	gDrawCount = 0;
 }
 
-int DrawList_Count()
-{
-	return gDrawCount;
-}
-
 // 0x422030
 Dirty::Dirty()
 {

@@ -148,39 +148,6 @@ int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int w, in
 	return 0;
 }
 
-// 0x42bdb0: whether two rectangles {l, t, r, b} (inclusive) overlap, by the distance of their centres as the
-// original works it out (halves rounded toward 0)
-int Rect_Overlap(int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2)
-{
-	int w1 = (r1 - l1) + 1;
-	int w2 = (r2 - l2) + 1;
-	int aHalfW1 = w1 / 2;
-	int dx = std::abs(((aHalfW1 - w2 / 2) - l2) + l1);
-	int h1 = (b1 - t1) + 1;
-	int h2 = (b2 - t2) + 1;
-	if (((w2 + w1) / 2 < dx || (h2 + h1) / 2 < std::abs(((h1 / 2 - h2 / 2) - t2) + t1)) &&
-		(aHalfW1 <= dx || h1 / 2 <= std::abs(((h1 / 2 - h2 / 2) - t2) + t1)))
-		return 0;
-	return 1;
-}
-
-// 0x42c0a0
-void Rect_Intersect(int* theOut, int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2)
-{
-	if (l1 <= l2)
-		l1 = l2;
-	if (t1 <= t2)
-		t1 = t2;
-	if (r2 <= r1)
-		r1 = r2;
-	if (b2 <= b1)
-		b1 = b2;
-	theOut[0] = l1;
-	theOut[1] = t1;
-	theOut[2] = r1;
-	theOut[3] = b1;
-}
-
 // 0x42c0f0 (each colour is truncated: the original's fistp runs with the rounding control set to chop, or 0xc00)
 void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, uint8_t g0, uint8_t b0, uint8_t r1,
 	uint8_t g1, uint8_t b1)
@@ -266,29 +233,6 @@ int Image_DrawX(const Image* img)
 int Image_DrawY(const Image* img)
 {
 	return img->yOff - img->handleY;
-}
-
-// 0x423a90: no mask falls back to the image's default one
-void Image_SetMask(Image* img, Image* mask, int mx, int my)
-{
-	if (mask != nullptr)
-	{
-		img->mask = mask;
-		img->maskX = mx;
-		img->maskY = my;
-		img->hasMask = 1;
-		return;
-	}
-	img->maskX = 0;
-	img->maskY = 0;
-	if (img->defMask != nullptr)
-	{
-		img->mask = img->defMask;
-		img->hasMask = 1;
-		return;
-	}
-	img->hasMask = 0;
-	img->mask = nullptr;
 }
 
 // 0x423b00
@@ -476,69 +420,6 @@ void Image_Blit(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, co
 		else if (Is16(fmt)) // 0x429680
 			Copy16(dst, dpitch, ox, oy, img->bits, img->pitch, sx, sy, w, h);
 	}
-}
-
-// 0x423d80. A 16-bit image without a mask draws nothing; an 8-bit one is its own mask.
-void Image_BlitUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y)
-{
-	int ax = x + (img->xOff - img->handleX);
-	int ay = y + (img->yOff - img->handleY);
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (fmt->bpp == 8)
-	{
-		if (img->fmt.bpp != 8)
-			return;
-		Copy8Key(dst, ax, ay, dpitch, 0, img->bits, 0, 0, img->pitch, 0, img->w, img->h); // 0x429630
-		return;
-	}
-	const uint8_t* aMask;
-	int aMaskPitch, aMaskX, aMaskY;
-	if (img->hasMask == 1)
-	{
-		const uint8_t* aRle = img->mask->rle;
-		if (aRle != nullptr && img->maskX == 0 && img->maskY == 0)
-		{
-			if (img->fmt.bpp != 8)
-			{
-				if (Is16(fmt)) // 0x429af0
-					Rle16Copy(dst, dpitch, fmt, ax, ay, img->bits, img->pitch, aRle);
-				return;
-			}
-			if (img->palette == nullptr)
-				return;
-			if (Is16(fmt)) // 0x42a0d0
-				RlePal16Copy(dst, dpitch, fmt, ax, ay, img->bits, img->pitch, img->palette, aRle);
-			return;
-		}
-		if (img->fmt.bpp != 8)
-		{
-			if (Is16(fmt)) // 0x429750
-				Copy16Mask(dst, dpitch, ax, ay, img->bits, img->pitch, 0, 0, img->mask->bits, img->mask->pitch,
-					img->maskX, img->maskY, img->w, img->h);
-			return;
-		}
-		if (img->palette == nullptr)
-			return;
-		aMask = img->mask->bits;
-		aMaskPitch = img->mask->pitch;
-		aMaskX = img->maskX;
-		aMaskY = img->maskY;
-	}
-	else
-	{
-		if (img->fmt.bpp != 8)
-			return;
-		if (img->palette == nullptr)
-			return;
-		aMask = img->bits;
-		aMaskPitch = img->pitch;
-		aMaskX = 0;
-		aMaskY = 0;
-	}
-	if (Is16(fmt)) // 0x429d90
-		Pal16Mask(dst, dpitch, ax, ay, img->bits, img->pitch, img->palette, 0, 0, aMask, aMaskPitch, aMaskX, aMaskY,
-			img->w, img->h);
 }
 
 // 0x423f50. The runs are used only when the whole image is drawn.
@@ -763,7 +644,7 @@ void BlitMaskedKind(MaskedKind theKind, Image* img, uint8_t* dst, int dpitch, co
 	}
 }
 
-// 0x424910 and 0x424a90: the faded alpha blend, unclipped (whole image) or clipped
+// 0x424a90's faded alpha blend, with the runs when the whole image is drawn (theWhole)
 void BlitAlphaFadeAt(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int ox, int oy, int sx, int sy,
 	int w, int h, bool theWhole, uint32_t alpha)
 {
@@ -808,18 +689,6 @@ void Image_BlitAdd(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt,
 	BlitMaskedKind(kAdd, img, dst, dpitch, fmt, clip, x, y);
 }
 
-// 0x424910: the runs whenever the mask has them and no offset
-void Image_BlitAlphaFadeUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y,
-	uint32_t alpha)
-{
-	int ax = x + (img->xOff - img->handleX);
-	int ay = y + (img->yOff - img->handleY);
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (fmt->bpp != 8 && img->hasMask == 1)
-		BlitAlphaFadeAt(img, dst, dpitch, fmt, ax, ay, 0, 0, img->w, img->h, true, alpha);
-}
-
 // 0x424a90
 void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t alpha)
@@ -832,27 +701,6 @@ void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dpitch, const PixelFormat
 		fmt = &img->fmt;
 	if (0 < w && 0 < h && fmt->bpp != 8 && img->hasMask == 1)
 		BlitAlphaFadeAt(img, dst, dpitch, fmt, ox, oy, sx, sy, w, h, w == img->w && h == img->h, alpha);
-}
-
-// 0x424ed0: adds the mask onto an 8-bit destination (fmt is not checked for null here)
-void Image_AddMaskUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y)
-{
-	if (fmt->bpp == 8 && img->hasMask == 1)
-		AddMask8(dst, dpitch, (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y, img->mask->bits,
-			img->mask->pitch, img->maskX, img->maskY, img->w, img->h);
-}
-
-// 0x424f30. Unlike 0x424ed0 this adds the image's own bits, at the mask's offset.
-void Image_AddMask(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
-{
-	if (fmt->bpp == 8)
-	{
-		int ox, oy, sx, sy, w, h;
-		int aClipped = ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x,
-			(img->yOff - img->handleY) + y, img->w, img->h, &ox, &oy, &sx, &sy, &w, &h);
-		if (aClipped != 0 && 0 < w && 0 < h && img->hasMask == 1)
-			AddMask8(dst, dpitch, ox, oy, img->bits, img->pitch, img->maskX + sx, img->maskY + sy, w, h);
-	}
 }
 
 // 0x425010: a part of the image, opaque and unclipped
@@ -901,16 +749,6 @@ void Image_BlitSubRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* 
 	}
 	else if (img->fmt.bpp == 8 && img->palette != nullptr && Is16(fmt)) // 0x429d90
 		Pal16Mask(dst, dpitch, dx, dy, img->bits, img->pitch, img->palette, sx, sy, img->bits, img->pitch, 0, 0, w, h);
-}
-
-// 0x425270: the colour through a part of the mask, unclipped. The mask's offset gets sx and sy added, and the
-// blitter adds them again, as in the original. fmt is not checked for null.
-void Image_FillAlphaRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	int w, int h, uint32_t colour, uint32_t alpha)
-{
-	if (fmt->bpp != 8 && img->hasMask == 1 && Is16(fmt)) // 0x4298a0
-		Fill16MaskAlpha(dst, dpitch, fmt, dx, dy, sx, sy, img->mask->bits, img->mask->pitch, img->maskX + sx,
-			img->maskY + sy, w, h, (uint16_t)colour, (uint8_t)alpha);
 }
 
 // 0x4252f0: rotated by angle degrees about (x, y), the image's middle
@@ -986,42 +824,6 @@ void ExtractAlpha(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, 
 			d += dpitch;
 			aRows--;
 		} while (aRows != 0);
-	}
-}
-
-// 0x42e240. The original adds four pixels at a time between aligned edges, skipping words that are all 0; per pixel
-// that is the same as this.
-void AddMask8(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w, int h)
-{
-	uint8_t* d = dst + dpitch * dy + dx;
-	const uint8_t* s = src + spitch * sy + sx;
-	if (0 < h)
-	{
-		do
-		{
-			uint8_t* pd = d;
-			const uint8_t* ps = s;
-			int n = w;
-			if (0 < w)
-			{
-				do
-				{
-					if (*ps != 0)
-					{
-						uint32_t v = (uint32_t)*ps + (uint32_t)*pd;
-						if (0xff < v)
-							v = 0xff;
-						*pd = (uint8_t)v;
-					}
-					n--;
-					pd++;
-					ps++;
-				} while (n != 0);
-			}
-			s += spitch;
-			d += dpitch;
-			h--;
-		} while (h != 0);
 	}
 }
 

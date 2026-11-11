@@ -49,7 +49,6 @@ Image* Bank_FindImage2(const Bank* theBank, const char* theName);    // 0x427820
 int Bank_BuildPalettes(Bank* theBank, const PixelFormat* theFmt);    // 0x427c20
 int Bank_ParseXml(Bank* theBank, const char* thePath);               // 0x427df0
 int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat* theFmt); // 0x4284f0
-int Bank_Reconvert(Bank* theBank, const PixelFormat* theFmt);        // 0x428640
 
 // 0x401a80, 0x401b10: n {r, g, b, unused} colours in theFmt, as 32- or 16-bit pixels
 int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* dst, const uint8_t* rgb, int n);

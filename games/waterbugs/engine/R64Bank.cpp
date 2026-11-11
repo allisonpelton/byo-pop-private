@@ -29,7 +29,7 @@ void CopyName(char* theDst, size_t theSize, const char* theSrc)
 	theDst[n] = '\0';
 }
 
-// Each 8-bit image is its own mask (Bank_Load and Bank_Reconvert)
+// Each 8-bit image is its own mask (Bank_Load)
 void SelfMask8(Bank* theBank)
 {
 	for (Image* anImage : theBank->images)
@@ -595,21 +595,6 @@ int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat
 	if (Bank_LinkMasks(theBank) == 0)
 		return 0;
 	theBank->mode = theMode;
-	return 1;
-}
-
-// 0x428640: after the screen's format changed
-int Bank_Reconvert(Bank* theBank, const PixelFormat* theFmt)
-{
-	if (theBank->palettesBuilt == 1 && Bank_BuildPalettes(theBank, theFmt) == 0)
-		return 0;
-	if (theBank->mode != 1)
-		return 1;
-	if (Bank_LoadConverted(theBank, theBank->dataPath, theFmt) == 0)
-		return 0;
-	SelfMask8(theBank);
-	if (Bank_LinkMasks(theBank) == 0)
-		return 0;
 	return 1;
 }
 

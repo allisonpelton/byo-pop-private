@@ -21,9 +21,8 @@ int gPanelScore = -1;              // 0x460a30
 int gPowerupKinds[0x96];           // 0x6e5c08  a power-up's kind by a random index
 int gRebuildKinds = 1;             // 0x460a48  (never cleared: each power-up builds the table again)
 
-// 0x418810: ten entries for each kind from 0 to 9, 0 for the indexes past 99 but six more of 10 at 110..115 (the
-// test for kinds 15 and 16 never holds)
-// 0x418810
+// 0x418810: ten entries for each kind from 0 to 12 (the even ones of 8 and 9 are 0), 0 from index 130, and the extra life
+// (13) in the last six places, 140..145; no kind past 13 is in it
 void Powerup_BuildKinds()
 {
 	for (uint32_t i = 0; (int)i < 0x96; i++)
@@ -91,13 +90,6 @@ void Powerup_HyperMotion()
 	Shooter* aShip = gLevels.current->shooters.current;
 	aShip->flags = aShip->flags | 2;
 	gLevels.current->shooters.current->unk494 = 5000;
-}
-
-// 0x4189b0
-void Powerup_Sweepers()
-{
-	Shooter* aShip = gLevels.current->shooters.current;
-	aShip->flags = aShip->flags | 4;
 }
 
 // 0x4189d0
@@ -218,15 +210,6 @@ int Powerup_Collect(Powerup* thePowerup)
 		break;
 	default:
 		Powerup_FastShot();
-		break;
-	case 0xf:
-		Powerup_Sweepers();
-		break;
-	case 0x10:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 0);
-		break;
-	case 0x11:
-		Powerup_GiveWeapon(thePowerup, 40.0f, 3);
 		break;
 	}
 	aSound = "audio\\powerup.wav";
@@ -403,34 +386,6 @@ int Weapon_Blast(Weapon* theWeapon)
 	return aResult;
 }
 
-// 0x41a430 (an ice shot): freezes the enemies it touches (0 when it did), shedding the odd blue sparkle
-int Ice_Freeze(Weapon* theWeapon)
-{
-	int aResult = 1;
-	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (anEnemy->state == 3 &&
-			CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->w / 3), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->w / 3)) != 0.0)
-		{
-			aResult = 0;
-			Enemy_Freeze(anEnemy);
-		}
-	});
-	if (theWeapon->kind == 3 && RandRange(1, 0x23) == 1)
-	{
-		ParticleSystem_New();
-		int aParticle = theWeapon->particle;
-		int aLifetime = RandRange(600, 800);
-		float aVy = (float)((double)RandRange(-0x32, 0x32) / 400.0);
-		float aVx = (float)((double)RandRange(-0x32, 0x32) / 400.0);
-		float y = (float)RandRange(-5, 5) + theWeapon->y;
-		float x = (float)RandRange(-5, 5) + theWeapon->x;
-		ParticleSystem_Add(gLevels.current->systems.current, x, y, aVx, aVy, aParticle, aParticle, 0, 200, 200, 0xff,
-			0x58, 0x58, 0xff, 400, 10, aLifetime, 0.999f, 0.0002f, 5);
-	}
-	return aResult;
-}
-
 // 0x41a650 (a time bomb): sparks fly off the top of the fuse, which burns down, hissing every 230 updates; at the
 // end it blows up the enemies within 100 pixels and then itself
 int TimeBomb_Update(Weapon* theWeapon)
@@ -489,9 +444,7 @@ void Weapon_Launch(Weapon* theWeapon)
 		if (aKind != 1)
 		{
 			const char* aSound;
-			if (aKind == 3)
-				aSound = "audio\\ice_launch.wav";
-			else if (aKind == 0 || aKind == 5)
+			if (aKind == 5)
 				aSound = "audio\\mine.wav";
 			else
 			{
@@ -543,14 +496,8 @@ int Weapon_Move(Weapon* theWeapon)
 	theWeapon->vy = theWeapon->vy * theWeapon->drag;
 	switch (theWeapon->kind)
 	{
-	case 0:
-		aResult = Weapon_Blast(theWeapon);
-		break;
 	case 1:
 		aResult = Weapon_Blast(theWeapon);
-		break;
-	case 3:
-		aResult = Ice_Freeze(theWeapon);
 		break;
 	case 4:
 		aResult = TimeBomb_Update(theWeapon);
@@ -616,21 +563,10 @@ void Weapon_Setup(Weapon* theWeapon, float x, float y, float theRadius, int theK
 	theWeapon->across = gLevels.current->shooters.current->beamAcross;
 	switch (theKind)
 	{
-	case 0:
-		theWeapon->anim = Animation_Find("shooter_mine", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.15f;
-		theWeapon->drag = 0.996f;
-		break;
 	case 1:
 		Missile_Face(theWeapon);
 		theWeapon->launchSpeed = 0.15f;
 		theWeapon->drag = 1.002f;
-		break;
-	case 3:
-		theWeapon->anim = Animation_Find("ice_shot", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.2f;
-		theWeapon->drag = 1.001f;
-		theWeapon->particle = Bank_IndexOf(&gArtBank, "particle_0");
 		break;
 	case 4:
 	{
@@ -853,9 +789,10 @@ void List_DeleteNode(Powerup* thePowerup)
 	::operator delete(thePowerup);
 }
 
-// 0x418d60: a kind by the level (the later the level, the more kinds; only sweepers in the demo), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
+// 0x418d60: a kind by the level (the later the level, the more kinds), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
 // held while it is made, choose kinds 0..13 (the developers' test). The table gives kinds 0..13 (0 a faster beam; the
-// extra life is in its last six places), so nothing but the keys makes the sweepers, the water mine or the freeze (15..17).
+// extra life is in its last six places), so nothing makes the original's water mine or freeze (kinds 16 and 17); the
+// port leaves them out.
 Powerup* Powerup_Init(Powerup* thePowerup)
 {
 	Obj_Init(thePowerup);
@@ -866,11 +803,6 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aRange = 0xe;
 	aRange = aRange * 10 + 9;
 	thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
-	if (gDemo != 0)
-	{
-		thePowerup->kind = 0xf;
-		gPumpMessages = 1;
-	}
 	std::sprintf(thePowerup->text, "^%d", RandRange(1, 8));
 	if (Key_Down('0') != 0)
 		thePowerup->kind = 0;
@@ -960,18 +892,6 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 	default:
 		aText = GTA(0x459868);
 		aName = "powerup_speed";
-		break;
-	case 0xf:
-		aText = GTA(0x459984);
-		aName = "powerup_sweeper";
-		break;
-	case 0x10:
-		aText = GTA(0x4599d4);
-		aName = "powerup_mine";
-		break;
-	case 0x11:
-		aText = GTA(0x45996c);
-		aName = "powerup_freeze";
 		break;
 	}
 

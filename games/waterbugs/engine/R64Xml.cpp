@@ -28,26 +28,10 @@ XmlTag::XmlTag()
 	empty = 0;
 }
 
+// (0x41ee70 forgets the tag and frees its attributes: Xml_NextTag starts each tag afresh, and this frees them)
 XmlTag::~XmlTag()
 {
 	std::free(attrs);
-}
-
-// 0x41ee70
-void Xml_Reset(XmlTag* theTag)
-{
-	theTag->count = 0;
-	theTag->name[0] = '\0';
-	theTag->text = nullptr;
-	theTag->textLen = 0;
-	theTag->closing = 0;
-	theTag->empty = 0;
-	theTag->capacity = 0;
-	if (theTag->attrs != nullptr)
-	{
-		std::free(theTag->attrs);
-		theTag->attrs = nullptr;
-	}
 }
 
 // 0x42d8a0. The names and values have no bound in the original; the port cuts them at 0xff characters and stops at

@@ -15,6 +15,8 @@
 
 #include "TestCommands.h"
 
+#include "../../../../platform/MemReport.h"
+
 #include "WBGlobals.h"
 #include "WBLevel.h"
 
@@ -733,6 +735,52 @@ LevelSet* SetOfLevel(int theLevel)
 }
 
 }	// namespace
+
+// The memory report's holders of the engine: what the engine's own lists keep, which the framework cannot see
+void AddMemReportHolders(Platform::MemReport* theReport)
+{
+	size_t aBankBytes = (size_t)gArtBank.dataSize + (size_t)gArt8Bank.dataSize;
+	size_t aFrameBytes = 0, aMaskBytes = 0, aRleBytes = 0, aPaletteBytes = 0;
+	int aFrames = 0;
+	auto aAddRle = [&](const r64::Image* theImage)
+	{
+		if (theImage != nullptr && theImage->rle != nullptr)
+			aRleBytes += ((const RleHeader*)theImage->rle)->size;
+	};
+	for (const Bank* aBank : {&gArtBank, &gArt8Bank})
+	{
+		for (const r64::Image* anImage : aBank->images)
+			aAddRle(anImage->mask != nullptr ? anImage->mask : anImage->autoMask);
+		for (const Palette* aPalette : aBank->palettes)
+			aPaletteBytes += sizeof(Palette) + (aPalette->p16 != nullptr ? 512 : 0) + (aPalette->p32 != nullptr ? 1024 : 0);
+		aPaletteBytes += aBank->rawPalettes.size() * 0x400;
+	}
+	for (const Animation* anAnim = gAnims.head; anAnim != nullptr; anAnim = Node_Next(anAnim))
+	{
+		aPaletteBytes += sizeof(Animation) - sizeof(Animation::frames);
+		for (int i = 0; i < anAnim->count; i++)
+		{
+			const r64::Image* aFrame = anAnim->frames[i];
+			if (aFrame == nullptr)
+				continue;
+			aFrames++;
+			if (aFrame->notOwned == 0)
+				aFrameBytes += (size_t)aFrame->dataSize;
+			if (aFrame->hasMask != 0 && aFrame->mask != nullptr)
+			{
+				if (aFrame->mask->notOwned == 0)
+					aMaskBytes += (size_t)aFrame->mask->dataSize;
+				aAddRle(aFrame->mask);
+			}
+		}
+	}
+	theReport->mOthers.push_back({"art banks' pixels and masks", aBankBytes});
+	theReport->mOthers.push_back({"animation frames (" + std::to_string(aFrames) + ")", aFrameBytes});
+	theReport->mOthers.push_back({"animation masks", aMaskBytes});
+	theReport->mOthers.push_back({"run-length masks", aRleBytes});
+	theReport->mOthers.push_back({"palettes and animation records", aPaletteBytes});
+	theReport->mOthers.push_back({"back buffer", (size_t)gBackBuffer.dataSize});
+}
 
 bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 {

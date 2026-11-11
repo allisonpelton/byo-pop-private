@@ -92,8 +92,8 @@ void List_DeleteNode(T* theNode)
 // the list is empty.
 template <class T>
 // 0x401000, 0x4010a0, 0x4011a0, 0x401220, 0x411030, 0x411150 and 0x412540 are instances of it: for nodes freed without a
-// destructor (gLevelSets and others), gAnims, gLevels, gFonts, the level's power-ups, the nodes that end in the Obj destructor
-// 0x419c00, and its shooters
+// destructor (gLevelSets and others), gAnims, gFonts, the level's power-ups, the nodes that end in the Obj destructor
+// 0x419c00, its shooters and gLevels (whose nodes end in the level's destructor: List_DeleteNode(Level*))
 bool List_RemoveCurrent(List<T>* theList)
 {
 	T* aNode = theList->current;
@@ -310,15 +310,12 @@ struct Animation
 	Animation& operator=(const Animation&) = delete;
 };
 
-void Animation_FreeMasks(Animation* theAnim);                    // 0x4015c0
 void Animation_BuildTints(Animation* theAnim);                   // 0x401630
 Image* Animation_Frame(const Animation* theAnim, int theIndex);  // 0x401a70
 // 0x401c90: the animation named theName, made current, with its frame count and time; null if none
 Animation* Animation_Find(const char* theName, int* theCount, int* theFrameTime);
-// 0x401d20: (re)loads the frames; theReload keeps the frame images, which Animation_FreeMasks stripped of masks
-int Animation_Load(Animation* theAnim, int theReload);
-// 0x402670: every animation again, after the screen's format changed
-void Animation_ReloadAll();
+// 0x401d20: loads the frames
+int Animation_Load(Animation* theAnim);
 // 0x4026c0: an <animation> tag; Animation_Load's result
 int Animation_FromXml(Animation* theAnim, const XmlTag* theTag);
 
@@ -326,7 +323,6 @@ int Animation_FromXml(Animation* theAnim, const XmlTag* theTag);
 // 0x420570: the whole file, malloc'd, with a 0 after it (the port's; not counted in theSize); null if missing
 uint8_t* ReadWholeFile(const char* thePath, size_t* theSize);
 void ParseHex4(const char* theText, int* a, int* b, int* c, int* d);       // 0x4205f0: "rrggbbaa"
-void ParseHex3(const char* theText, int* a, int* b, int* c);               // 0x4206d0: "rrggbb"
 void Rand();                                                               // 0x420770
 void SeedRand(int theSeed);                                                // 0x4207a0
 uint32_t RandMod(uint32_t theRange);                                       // 0x4207b0
@@ -345,9 +341,6 @@ void SwapColours(Image* theImage, const char* theSwap);                    // 0x
 double CircleOverlap(float x1, float y1, float r1, float x2, float y2, float r2); // 0x420c60
 int BoxOverlap(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2); // 0x420cb0
 void RotateImage(Image* theImage, int theAngle);                           // 0x420da0
-// 0x429240: the original sends the text to the debugger (OutputDebugStringA); its log.txt append is another function, which
-// only a C runtime function calls. The port keeps neither
-void Log(const char* theFormat, ...);
 
 // Globals
 extern Bank gArtBank;            // 0x472bd8

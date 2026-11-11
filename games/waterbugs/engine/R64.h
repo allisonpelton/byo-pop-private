@@ -114,7 +114,6 @@ void Image_Copy(Image* img, const Image* src);                               // 
 void Image_SetMidHandle(Image* img);                                         // 0x423a50
 int Image_DrawX(const Image* img);                                           // 0x423a70
 int Image_DrawY(const Image* img);                                           // 0x423a80
-void Image_SetMask(Image* img, Image* mask, int mx, int my);                 // 0x423a90
 void Image_SetPalette(Image* img, Palette* pal);                             // 0x423b00
 int Image_ConvertTo(Image* img, const PixelFormat* fmt, const uint8_t* rgb); // 0x423b20
 void Image_FreeRle(Image* img);                                              // 0x423bf0
@@ -125,7 +124,6 @@ int Image_MaskColumnSet(const Image* img, int x);                            // 
 // handle lands. Each picks a blitter by the destination's depth, the image's depth and whether it has a mask and
 // that mask has runs.
 void Image_Blit(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x423c20
-void Image_BlitUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y);        // 0x423d80
 void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x423f50
 void Image_BlitFill(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t colour);                                                        // 0x4241f0
@@ -133,28 +131,19 @@ void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat
 	uint32_t colour, uint32_t alpha);                                        // 0x424360
 void Image_BlitBlend(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x4244f0
 void Image_BlitAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x424700
-void Image_BlitAlphaFadeUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y,
-	uint32_t alpha);                                                         // 0x424910
 void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t alpha);                                                         // 0x424a90
 void Image_BlitAdd(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x424cc0
-void Image_AddMaskUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y);     // 0x424ed0
-void Image_AddMask(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x424f30
 void Image_BlitRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
 	int w, int h);                                                           // 0x425010
 void Image_BlitSubRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
 	int w, int h);                                                           // 0x4250f0
-void Image_FillAlphaRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	int w, int h, uint32_t colour, uint32_t alpha);                          // 0x425270
 void Image_BlitRotated(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y, int angle,
 	const int* clip);                                                        // 0x4252f0
 
 // 0x42bfb0: clips a w x h rectangle at (x, y) to {clipL, clipT, clipR, clipB} (inclusive); 1 when some of it is left
 int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int w, int h, int* outX, int* outY,
 	int* outSx, int* outSy, int* outW, int* outH);
-// 0x42bdb0, 0x42c0a0: rectangles {l, t, r, b}, inclusive
-int Rect_Overlap(int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2);
-void Rect_Intersect(int* theOut, int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2);
 // 0x42c0f0: a palette's colours theFrom to theTo (either way, both included) shade from one colour to the other
 void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, uint8_t g0, uint8_t b0, uint8_t r1,
 	uint8_t g1, uint8_t b1);
@@ -166,8 +155,6 @@ int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dpitch, int dx, i
 // 0x42e020: the alpha bytes of w x h 32-bit pixels as an 8-bit mask
 void ExtractAlpha(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w,
 	int h);
-// 0x42e240: adds an 8-bit mask onto another, clamped at 0xff
-void AddMask8(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w, int h);
 // 0x42d540: fills {l, t, r, b} (inclusive) of an 8-bit buffer
 void Fill8(uint8_t* dst, int dpitch, int l, int t, int r, int b, int value);
 // 0x42e480: an 8-bit mask's runs (RleHeader, then per row the runs R64Blit.h describes); malloc'd

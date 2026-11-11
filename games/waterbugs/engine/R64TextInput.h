@@ -2,8 +2,9 @@
 #define __COSMICBUGS_R64TEXTINPUT_H__
 
 // Retro64's one-line text entry (0x42c260..0x42d1f0): a box with a frame, a fill and a blinking caret, typed into
-// from the key queue (R64Sys.h) in a bitmap font. It draws either straight onto the screen or onto a surface of its
-// own (with a background image or black under it), and adds what it drew to the dirty rectangles.
+// from the key queue (R64Sys.h) in a bitmap font. It draws straight onto the screen and adds what it drew to the
+// dirty rectangles. (The original can also draw onto a surface of its own, with a background image or black under
+// it, as the game never asks, the port leaves it out.)
 
 #include "R64Font.h"
 #include "R64Draw.h"
@@ -11,13 +12,13 @@
 namespace r64
 {
 
-// 0x4e8 bytes
+// 0x4e8 bytes in the original, whose offsets these are. Left out: its surface (+0x08), background (+0x0c), wasActive
+// (+0x38) and redraw (+0x80), all for the own surface, so a member after one of them sits 4, 8, 12 or 16 bytes lower
+// here.
 struct TextInput
 {
 	int unk00;                 // +0x00
 	int unk04;                 // +0x04
-	Image* surface;            // +0x08  drawn on instead of the screen (none here: the game passes null)
-	Image* background;         // +0x0c  under the text on the surface (null: black)
 	Font* font;                // +0x10
 	int x;                     // +0x14
 	int y;                     // +0x18
@@ -25,7 +26,6 @@ struct TextInput
 	int h;                     // +0x20
 	int box[4];                // +0x24  l, t, r, b (inclusive): clicks inside focus it
 	int active;                // +0x34  0: not drawn and not updated
-	int wasActive;             // +0x38
 	int frame[4];              // +0x3c
 	int inner[4];              // +0x4c  the frame less a pixel: the text and the caret are clipped to it
 	int padX;                  // +0x5c
@@ -34,7 +34,6 @@ struct TextInput
 	uint8_t frameColour[4];    // +0x74  r, g, b, a (a 0: no frame)
 	uint8_t fillColour[4];     // +0x78  (a 0: no fill)
 	char colourCode;           // +0x7c  the font's "^c" the text is drawn in
-	int redraw;                // +0x80
 	int focused;               // +0x84  1: takes keys and shows the caret
 	uint8_t caretColour[4];    // +0x88
 	int caretOn;               // +0x8c  the caret's blink
@@ -68,8 +67,8 @@ struct TextInput
 };
 
 void TextInput_Clear(TextInput* theInput);                                             // 0x42c280
-void TextInput_Init(TextInput* theInput, Image* theSurface, Image* theBackground, Font* theFont, int theMaxLength,
-	char theColourCode, int l, int t, int r, int b);                                   // 0x42c3b0
+void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char theColourCode, int l, int t, int r,
+	int b);                                                                               // 0x42c3b0
 void TextInput_SetFillColour(TextInput* theInput, uint8_t r, uint8_t g, uint8_t b, uint8_t a); // 0x42c5e0
 void TextInput_SetOutline(TextInput* theInput, char theCode);                         // 0x42c610
 void TextInput_SetOnEnter(TextInput* theInput, void (*theFunc)(const char*));         // 0x42c630

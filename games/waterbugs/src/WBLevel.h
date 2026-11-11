@@ -89,9 +89,9 @@ struct Enemy : Obj
 	Beam* lastBeam;            // +0x100  the beam it touched last
 	Cell* hitCell;             // +0x104  the cell it bounced off last
 	Obj* shield;               // +0x108  the flash where a beam touches it
-	Obj* ice;                  // +0x10c  an ice capsule; while there is one the enemy does not move
 };
-static_assert(sizeof(Enemy) == 0x110, "Enemy");
+// (the original's 0x110: it ends with the ice capsule of the freeze power-up, +0x10c, which nothing here makes)
+static_assert(sizeof(Enemy) == 0x110 - 4, "Enemy");
 
 struct Shooter;
 struct Rider;
@@ -120,7 +120,8 @@ struct Rider : Obj
 static_assert(sizeof(Rider) == 0xc0, "Rider");
 
 // The player's ship (0x4c4 bytes, 0x41da80 constructs one; WBShooter.cpp). state +0x0c: 1 hit, 3 under the
-// player's control, 4 coming in, 5 firing, 6 dying
+// player's control, 4 coming in, 5 firing, 6 dying. The offsets are the original's: the port's struct leaves out the
+// sweeper Obj (+0x270, 0xb0 bytes) and the particle index (+0x4a8), which only the sweepers power-up used.
 struct Shooter : Obj
 {
 	char vertName[0x20];       // +0xb0  the vertical animation's name (each new life starts with it)
@@ -133,20 +134,18 @@ struct Shooter : Obj
 	int unk10c;                // +0x10c
 	Obj wingsH;                // +0x110  drawn over the ship while no weapon orbits it
 	Obj wingsV;                // +0x1c0
-	Obj sweeper;               // +0x270  (flag 4) at both ends of the open span, pushing enemies off its line
 	Obj unk320;                // +0x320
 	Obj bubble;                // +0x3d0  (flag 0x10) the invincibubble
 	int beamAcross;            // +0x480  1: the beams go left and right
 	float appearTime;          // +0x484  updates the ship takes to come in
 	float beamSpeed;           // +0x488
-	int flags;                 // +0x48c  4: the sweeper, 8: it turns by itself, 0x10: invincible
+	int flags;                 // +0x48c  8: it turns by itself, 0x10: invincible
 	int unk490;                // +0x490
 	int unk494;                // +0x494
 	int drillSound;            // +0x498
 	int fireAge;               // +0x49c  its age when it last fired
 	int hitSound;              // +0x4a0  clank_sound: a beam meets a wall
 	int shootSound;            // +0x4a4
-	int particle;              // +0x4a8  particle_0's index in the art bank
 	int noAutoTurn;            // +0x4ac  the player turned it, or the auto-turn option is off
 	float extLeft;             // +0x4b0  the open span about the ship (0x41bb40)
 	float extRight;            // +0x4b4
@@ -154,7 +153,7 @@ struct Shooter : Obj
 	float extBottom;           // +0x4bc
 	int cellPoints;            // +0x4c0  the score for each cell captured
 };
-static_assert(sizeof(Shooter) == 0x4c4, "Shooter");
+static_assert(sizeof(Shooter) == 0x4c4 - 0xb0 - 4, "Shooter");
 
 struct Text;
 
@@ -217,7 +216,8 @@ struct Text : Obj
 	int unk1dc;                // +0x1dc
 	TextInput input;           // +0x1e0  a high score's name entry
 };
-static_assert(sizeof(Text) == 0x6c8, "Text");
+// (the original's 0x6c8 less the four members of its TextInput that R64TextInput.h says the port leaves out)
+static_assert(sizeof(Text) == 0x6c8 - 16, "Text");
 
 // A power-up (0xd8 bytes; 0x418d60 makes one of a random kind, 0x418b20 destroys it; WBPowerup.cpp). It falls
 // from where an enemy died until the ship (under the player's control) touches it. kind +0x08 the effect (1
@@ -230,8 +230,9 @@ struct Powerup : Obj
 };
 
 // A weapon a power-up gives (0xd8 bytes, in the level's list at +0x46c; WBPowerup.cpp). It orbits the ship
-// (state 3) until a click launches it (state 4) straight out the way it is from the ship. kind +0x08: 0 a mine,
-// 1 a missile, 3 an ice shot, 4 a time bomb, 5 a magnet, 6 an anchor
+// (state 3) until a click launches it (state 4) straight out the way it is from the ship. kind +0x08: 1 a missile,
+// 4 a time bomb, 5 a magnet, 6 an anchor (the original also has 0 a mine and 3 an ice shot, which only the power-up
+// kinds 16 and 17 give, and nothing makes those: the port leaves them out)
 struct Weapon : Obj
 {
 	int unkb0;                 // +0xb0
@@ -328,6 +329,7 @@ extern List<Enemy> gEnemyDefs;
 
 Level* Level_Init(Level* theLevel);                              // 0x413a60
 void Level_Destroy(Level* theLevel);                             // 0x413b70
+void List_DeleteNode(Level* theLevel);                           // 0x4011a0's delete
 // 0x412640: the level tag in theTag, the game file read on from p (null: theTag is all there is, the board is
 // random and its cells are not made)
 void Level_Load(Level* theLevel, const char* p, XmlTag* theTag);
@@ -417,8 +419,6 @@ int Enemy_NearCapture(Enemy* theEnemy);                          // 0x406b90
 void Enemy_Face(Enemy* theEnemy);                                // 0x406c50
 void Enemy_UpdateShield(Enemy* theEnemy);                        // 0x406cb0
 void Enemy_Shield(Enemy* theEnemy);                              // 0x406d10
-void Enemy_Freeze(Enemy* theEnemy);                              // 0x406e20
-void Enemy_UpdateIce(Enemy* theEnemy);                           // 0x406f50
 int Enemy_ClearOfRollers(Enemy* theEnemy);                       // 0x407070
 int Enemy_ClearOfWalkers(Enemy* theEnemy);                       // 0x4070d0
 int Enemy_Place(Enemy* theEnemy);                                // 0x407130: 0 when there is no room
