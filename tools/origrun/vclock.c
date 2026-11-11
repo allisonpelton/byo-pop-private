@@ -28,6 +28,8 @@
 // copy's GetCursorPos imports at cursor.c, and its MessageBox and MessageBeep imports at msgbox.c. Each hook belongs to
 // one of the three, and only the ones that are on are patched. Without the clock, DLLs the copy loads later are patched
 // from the other hooks' own calls (hooks_rescan).
+// It also serves the registry map (--reg-map popcap, ORIGRUN_REGMAP=popcap; regmap.c), off unless a run asks for it:
+// the copy's RegCreateKeyExA, RegOpenKeyExA, RegSetValueExA and RegQueryValueExA imports point at regmap.c.
 // Written from the public Win32 and PE documentation.
 
 #define PSAPI_VERSION 2   // K32EnumProcessModules from kernel32, no psapi.lib
@@ -52,6 +54,7 @@ static int        gKeysOn;          // the scripted keys are on (cursor.c)
 static int        gLastInputOn;     // the last-input hook is on (H_GetLastInputInfo)
 static LONG       gLastInputReads;  // this process's GetLastInputInfo calls answered
 static int        gMsgboxOn;        // the message-box hook is on (msgbox.c)
+static int        gRegMapOn;        // the registry map is on (regmap.c)
 static VcShared*  gSh;
 static HANDLE     gMap, gHeldEv, gRelEv, gHostProc;
 static DWORD      gDriver;          // the main thread: its waits drive the clock
@@ -503,11 +506,17 @@ int  msgbox_open(void);
 void msgbox_installed(void);
 void msgbox_patched(void);
 void msgbox_stats(LONG* boxes, LONG* beeps);
+LSTATUS WINAPI reg_RegCreateKeyExA(HKEY, LPCSTR, DWORD, LPSTR, DWORD, REGSAM, const LPSECURITY_ATTRIBUTES, PHKEY, LPDWORD);   // regmap.c
+LSTATUS WINAPI reg_RegOpenKeyExA(HKEY, LPCSTR, DWORD, REGSAM, PHKEY);
+LSTATUS WINAPI reg_RegSetValueExA(HKEY, LPCSTR, DWORD, DWORD, const BYTE*, DWORD);
+LSTATUS WINAPI reg_RegQueryValueExA(HKEY, LPCSTR, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
+void regmap_stats(LONG* creates, LONG* opens, LONG* misses, LONG* writes, LONG* reads, LONG* found);
 
 // Each hook belongs to the virtual clock (H_CLOCK), the scripted cursor (H_CURSOR), the message-box hook (H_MSGBOX), the
-// scripted keys (H_KEYS) or the last-input hook (H_LASTINPUT); only the ones that are on are patched.
-enum { H_CLOCK, H_CURSOR, H_MSGBOX, H_KEYS, H_LASTINPUT, H_GROUPS };
-static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor", "the message-box hook", "the scripted keys", "the last-input hook" };
+// scripted keys (H_KEYS), the last-input hook (H_LASTINPUT) or the registry map (H_REGMAP); only the ones that are on are
+// patched.
+enum { H_CLOCK, H_CURSOR, H_MSGBOX, H_KEYS, H_LASTINPUT, H_REGMAP, H_GROUPS };
+static const char* const kGrpName[] = { "the virtual clock", "the scripted cursor", "the message-box hook", "the scripted keys", "the last-input hook", "the registry map" };
 typedef struct { const char* dll; const char* name; void* hook; int grp; void* real; LONG patched; } HookDef;
 static HookDef gHooks[] = {
 	{ "winmm.dll",    "timeGetTime",                    (void*)H_timeGetTime,                    H_CLOCK },
@@ -540,9 +549,13 @@ static HookDef gHooks[] = {
 	{ "user32.dll",   "MessageBoxTimeoutA",             (void*)mbx_MessageBoxTimeoutA,           H_MSGBOX },
 	{ "user32.dll",   "MessageBoxTimeoutW",             (void*)mbx_MessageBoxTimeoutW,           H_MSGBOX },
 	{ "user32.dll",   "MessageBeep",                    (void*)mbx_MessageBeep,                  H_MSGBOX },
+	{ "advapi32.dll", "RegCreateKeyExA",                (void*)reg_RegCreateKeyExA,              H_REGMAP },
+	{ "advapi32.dll", "RegOpenKeyExA",                  (void*)reg_RegOpenKeyExA,                H_REGMAP },
+	{ "advapi32.dll", "RegSetValueExA",                 (void*)reg_RegSetValueExA,               H_REGMAP },
+	{ "advapi32.dll", "RegQueryValueExA",               (void*)reg_RegQueryValueExA,             H_REGMAP },
 };
 #define NHOOK ((int)(sizeof(gHooks) / sizeof(gHooks[0])))
-static int hook_on(int k) { int g = gHooks[k].grp; return g == H_CLOCK ? gOn : g == H_CURSOR ? gCursorOn : g == H_KEYS ? gKeysOn : g == H_LASTINPUT ? gLastInputOn : gMsgboxOn; }
+static int hook_on(int k) { int g = gHooks[k].grp; return g == H_CLOCK ? gOn : g == H_CURSOR ? gCursorOn : g == H_KEYS ? gKeysOn : g == H_LASTINPUT ? gLastInputOn : g == H_REGMAP ? gRegMapOn : gMsgboxOn; }
 
 // The functions a game may import that the clock cannot stand in for; logged when a module imports them.
 static const char* const kUncovered[] = { "timeSetEvent", "SetTimer", "CreateWaitableTimerA", "CreateWaitableTimerW",
@@ -631,7 +644,7 @@ static void patch_new_modules(void)
 		if (seen || !module_is_games(mods[i], leaf, MAX_PATH)) continue;
 		if (gPatchedN < 64) gPatched[gPatchedN++] = mods[i];
 		int n = patch_module(mods[i], leaf);
-		char grps[160] = ""; int on[H_GROUPS] = { gOn, gCursorOn, gMsgboxOn, gKeysOn, gLastInputOn };
+		char grps[160] = ""; int on[H_GROUPS] = { gOn, gCursorOn, gMsgboxOn, gKeysOn, gLastInputOn, gRegMapOn };
 		for (int g = 0; g < H_GROUPS; g++) if (on[g]) { if (grps[0]) lstrcatA(grps, ", "); lstrcatA(grps, kGrpName[g]); }
 		clog("%s: %d import%s on %s", leaf, n, n == 1 ? "" : "s", grps);
 	}
@@ -753,18 +766,20 @@ static int clock_install(const char* exe)
 
 // Called from the stand-in's DllMain on process attach: the virtual clock (ORIGRUN_CLOCK=virtual), the scripted cursor
 // (ORIGRUN_CURSOR=scripted), the scripted keys (ORIGRUN_KEYS=scripted), the message-box hook (ORIGRUN_MSGBOX=hook) and the
-// last-input hook (ORIGRUN_LASTINPUT=now), any of them. Nothing here loads a DLL that
-// is not loaded already (winmm and user32 are the stand-in's own imports), so it is safe under the loader lock.
+// last-input hook (ORIGRUN_LASTINPUT=now) and the registry map (ORIGRUN_REGMAP=popcap), any of them. Nothing here loads
+// a DLL that is not loaded already (winmm, user32 and advapi32 are the stand-in's own imports), so it is safe under the
+// loader lock.
 void vclock_install(HMODULE self)
 {
-	char mode[32] = "", cur[32] = "", mbx[32] = "", kys[32] = "", lin[32] = "";
+	char mode[32] = "", cur[32] = "", mbx[32] = "", kys[32] = "", lin[32] = "", rgm[32] = "";
 	GetEnvironmentVariableA("ORIGRUN_CLOCK", mode, sizeof(mode));
 	GetEnvironmentVariableA("ORIGRUN_CURSOR", cur, sizeof(cur));
 	GetEnvironmentVariableA("ORIGRUN_MSGBOX", mbx, sizeof(mbx));
 	GetEnvironmentVariableA("ORIGRUN_KEYS", kys, sizeof(kys));
 	GetEnvironmentVariableA("ORIGRUN_LASTINPUT", lin, sizeof(lin));
-	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted"), msgbox = !lstrcmpiA(mbx, "hook"), keys = !lstrcmpiA(kys, "scripted"), lastin = !lstrcmpiA(lin, "now");
-	if (!clock && !cursor && !msgbox && !keys && !lastin) return;
+	GetEnvironmentVariableA("ORIGRUN_REGMAP", rgm, sizeof(rgm));
+	int clock = !lstrcmpiA(mode, "virtual"), cursor = !lstrcmpiA(cur, "scripted"), msgbox = !lstrcmpiA(mbx, "hook"), keys = !lstrcmpiA(kys, "scripted"), lastin = !lstrcmpiA(lin, "now"), regmap = !lstrcmpiA(rgm, "popcap");
+	if (!clock && !cursor && !msgbox && !keys && !lastin && !regmap) return;
 	gSelf = self;
 	char dir[MAX_PATH] = "", path[MAX_PATH];
 	DWORD dn = GetEnvironmentVariableA("ORIGRUN_DIR", dir, sizeof(dir));
@@ -798,8 +813,13 @@ void vclock_install(HMODULE self)
 		if (lastinput_detour()) { gLastInputOn = 1; clog("pid %lu %s: last-input hook installed: GetLastInputInfo says the last input is now", pid, exe); }
 		else clog("pid %lu: GetLastInputInfo could not be reached (err %lu): no last-input hook", pid, GetLastError());
 	}
+	if (regmap) {
+		gRegMapOn = 1;
+		clog("pid %lu %s: registry map installed: a create or open of HKEY_LOCAL_MACHINE\\SOFTWARE\\PopCap or a key under it goes to "
+			"HKEY_CURRENT_USER with the same path (RegCreateKeyExA, RegOpenKeyExA; RegSetValueExA and RegQueryValueExA only count)", pid, exe);
+	}
 	int clockOk = clock && clock_install(exe);
-	if (!clockOk && !gCursorOn && !gMsgboxOn && !gKeysOn && !gLastInputOn) return;
+	if (!clockOk && !gCursorOn && !gMsgboxOn && !gKeysOn && !gLastInputOn && !gRegMapOn) return;
 
 	for (int k = 0; k < NHOOK; k++) {
 		HMODULE m = GetModuleHandleA(gHooks[k].dll);
@@ -824,7 +844,14 @@ void vclock_install(HMODULE self)
 // Called on process detach: the totals.
 void vclock_detach(void)
 {
-	if (!gOn && !gCursorOn && !gMsgboxOn && !gKeysOn && !gLastInputOn) return;
+	if (!gOn && !gCursorOn && !gMsgboxOn && !gKeysOn && !gLastInputOn && !gRegMapOn) return;
+	if (gRegMapOn) {
+		LONG creates, opens, misses, writes, reads, found; regmap_stats(&creates, &opens, &misses, &writes, &reads, &found);
+		clog("pid %lu exits: registry map: %ld create%s and %ld open%s of HKEY_LOCAL_MACHINE\\SOFTWARE\\PopCap keys went to HKEY_CURRENT_USER "
+			"(%ld more found no such key there); about %ld value%s written and %ld read through them, %ld of the reads found a value",
+			GetCurrentProcessId(), (long)creates, creates == 1 ? "" : "s", (long)opens, opens == 1 ? "" : "s", (long)misses,
+			(long)writes, writes == 1 ? "" : "s", (long)reads, (long)found);
+	}
 	if (gLastInputOn)
 		clog("pid %lu exits: GetLastInputInfo answered %ld time%s with the last input now", GetCurrentProcessId(), (long)gLastInputReads, gLastInputReads == 1 ? "" : "s");
 	if (gKeysOn) {

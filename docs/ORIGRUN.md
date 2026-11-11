@@ -31,9 +31,12 @@ answered "Yes, hook them". Asked on 2026-11-09 whether origrun may hook a copy's
 Ctrl presses register (Mahjong Escape reads Shift and Ctrl with GetKeyState while it handles a key, and a posted key
 sets no key state), the user answered "Yes, hook it". Asked the same day whether origrun may hook a copy's
 GetLastInputInfo so that originals keep drawing while the user is away (a SexyAppFramework original stops drawing once
-the machine has had no input for the screensaver's timeout), the user answered "Yes, hook it". Those OKs cover the
-clock's reads and waits, GetCursorPos, GetKeyState, GetLastInputInfo, MessageBox and MessageBeep only: any other hook of
-a Windows function inside a copy still needs the user's OK first.
+the machine has had no input for the screensaver's timeout), the user answered "Yes, hook it". Asked on 2026-11-10
+whether origrun may hook a copy's registry calls so that what an unelevated copy writes under
+`HKLM\SOFTWARE\PopCap\<Game>` lands under HKCU and its next run finds it, the user answered "Yes hook registry calls".
+Those OKs cover the clock's reads and waits, GetCursorPos, GetKeyState, GetLastInputInfo, MessageBox and MessageBeep, and
+RegCreateKeyExA, RegOpenKeyExA, RegSetValueExA and RegQueryValueExA only: any other hook of a Windows function inside a
+copy still needs the user's OK first.
 
 How any copy's protection is handled is kept in the private notes under Per-game status, which a public
 snapshot strips out (`docs/PUBLISHING.md`); this document otherwise names games only by title.
@@ -123,6 +126,10 @@ Options:
 - `--keys scripted` / `--keys real` — the copy's `GetKeyState` returns the key and mouse-button state the script's
   posted edges left, or Windows' (the default), for a game that asks whether Shift or Ctrl is down while it handles a
   key (Mahjong Escape). Refused with `--sound real`. See "The scripted keys".
+- `--reg-map popcap` / `--reg-map off` — the copy's creates and opens of `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap` keys go
+  to `HKEY_CURRENT_USER` with the same path, or to Windows as they are (the default), for a game of 2004 that keeps its
+  players and settings under HKLM, which an unelevated copy cannot write. `reg_map=popcap` in the game's `.cfg` asks for
+  it too. Refused with `--sound real`. See "The registry map".
 - `--msgbox show` — show the copy's message boxes as before (each plays its sound, and the dialog watch answers it once
   it is on screen) instead of answering them in the stand-in with no window and no sound, which every run with the
   stand-in does by default (`--msgbox hook`). For a phase-two comparison that photographs a box; turn the speakers off
@@ -1018,6 +1025,45 @@ with no structure or a wrong `cbSize` fails with `ERROR_INVALID_PARAMETER`. The 
 of calls answered. A copy that
 never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not hooked, so its
 draws could stop while the machine is idle: run those while the user is at the machine.
+
+## The registry map (`--reg-map popcap`)
+
+A PopCap game of 2004 keeps its settings and its players under `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap\<Game>` (Typer
+Shark: the options, a `Users` key with one key a player). A copy that origrun starts on the host is not elevated. It can
+neither make nor write that key, so a run's values are gone when it ends: a second run starts as a first one, and "quit,
+start again, carry on" cannot be compared on the host. (Inside Windows Sandbox the copy runs as SYSTEM and writes HKLM
+itself, and `--reg` presets carry values from one sandbox run to the next; the map is for runs on the host.)
+
+With `--reg-map popcap` the stand-in answers four of the copy's registry imports (`tools/origrun/regmap.c`; the user's OK
+of 2026-11-10 above, and nothing else is hooked):
+
+- `RegCreateKeyExA` and `RegOpenKeyExA`: a call on `HKEY_LOCAL_MACHINE` whose path is `SOFTWARE\PopCap` or lies under it
+  (any letter case) is made on `HKEY_CURRENT_USER` with the same path. The handle the game gets is the HKCU key's, so
+  what it then does with it (set, query, enumerate, delete, close) works on HKCU with no hook of its own. Every other
+  root or path goes to Windows unchanged.
+- `RegSetValueExA` and `RegQueryValueExA` only count the values written and read through mapped keys, for the log.
+
+It is off unless the command line or the game's `.cfg` (`reg_map=popcap`) asks for it. origrun's log says so when it is
+on, and the stand-in's log (`logs/clock.log`, `cursor.log` or `msgbox.log`) has one line when the map first takes effect
+("registry map in effect: a create of HKEY_LOCAL_MACHINE\SOFTWARE\PopCap\TyperShark went to HKEY_CURRENT_USER\...") and
+each process's totals when it exits. The values are PopCap games' own, which the user lets a run change without putting
+them back; a session that wants a clean start deletes `HKCU\Software\PopCap\<Game>` before its first run (and after
+its last, so that the next session does not inherit a player).
+
+What it does not do:
+
+- The HKLM key is not read while the map is on: a copy starts from what `HKCU\Software\PopCap\<Game>` holds, not from
+  what an installer or an elevated run left under HKLM (or under the per-user VirtualStore copy of it).
+- Only the four imports above, by name, in the copy's exe and its DLLs. The wide-character forms, `RegOpenKeyA`,
+  `RegCreateKeyA` and a `RegDeleteKeyA` that names `HKEY_LOCAL_MACHINE` with a whole path are not mapped (each needs the
+  user's OK first), nor is a key the game reaches from a handle it opened itself (`HKLM\SOFTWARE`, then `PopCap\<Game>`
+  below it), nor a function found with `GetProcAddress`.
+- The hook lives in the stand-in, as the cursor's does: a copy that never loads it never gets it.
+
+**Tested on 2026-11-10** with Typer Shark on the host: a first run that made a player (a name typed, two clicks) logged
+4 creates and 105 opens sent to HKCU and about 108 values written, none of its 4 reads found a value, and
+`HKCU\Software\PopCap\TyperShark` then held 95 values in four keys (the options, `Test3D`, `Users`, `Users\Tester`). A
+second run of the same copy logged 103 reads, 95 of which found a value. The key was deleted after the test.
 
 ## Message boxes and beeps (hooked)
 
