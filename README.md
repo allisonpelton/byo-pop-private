@@ -72,8 +72,7 @@ means both phases of its identical-play pass are finished, as each game's `docs/
 same input, a series of games plays out as in the original exe (the same boards, random draws, scores and endings), and
 its screens, dialogs, sound and music, focus handling and web build match the original's, with every difference fixed or
 explained. "Plays identical" means the first of those phases is done. A game with no fix candidates (no bug of the
-original that a fix would change, nor a wait that only costs the player time) has no fixes mod. The readability passes
-of the other games wait until the user approves the standards after Bejeweled's pilot and Twist's test.
+original that a fix would change, nor a wait that only costs the player time) has no fixes mod. The user approved the readability standards on 2026-11-10, so the other games take that pass now.
 
 The costs are what the work's tokens would cost at the API prices in [docs/TOKEN_ECONOMY.md](docs/TOKEN_ECONOMY.md),
 each model at its own; the subscription the work ran on does not bill them. A game's cost counts its own sessions with
