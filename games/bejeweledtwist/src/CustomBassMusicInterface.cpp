@@ -177,6 +177,7 @@ CustomBassMusicInterface::Track* CustomBassMusicInterface::AddTrack(int theSongI
 		aNew.mTarget[0] = aVolume;
 		aNew.mTarget[1] = aVolume;
 		aNew.mDefault = aVolume;
+		aNew.mDirty = true;
 		aTrack->mChannels.push_back(aNew);
 		aChannel++;
 		aVolume = GetMusicChannelVolume(theSongId, aChannel);

@@ -30,7 +30,7 @@ ANSWER = re.compile(r'^(STATE |MOVE |OK |ERROR )')
 
 # game pixels (640x480, the original's coordinates)
 PLAY_LINK = (320, 398)       # the title's "click here to play" (TitleScreen: PlayLinkY 386 + 12)
-NEW_GAME = (96, 162)         # the side bar's buttons (WinDMApp::MakeButton rectangles' middles)
+NEW_GAME = (96, 162)         # the side bar's buttons (WinDMApp::CreateControlButton rectangles' middles)
 NORMAL_MODE = (57, 200)
 TIMED_MODE = (135, 200)
 OPTIONS = (96, 261)

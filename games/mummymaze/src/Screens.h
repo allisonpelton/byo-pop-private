@@ -1,8 +1,8 @@
 #ifndef __MUMMYMAZE_SCREENS_H__
 #define __MUMMYMAZE_SCREENS_H__
 
-// The full-screen widgets of Mummy Maze Deluxe: TitleScreen (WinMM.exe 0x42a5f0), ScrollScreen (0x42b390, the parchment
-// that slides down over the menu and the panels), MainMenu (0x4165a0), GamePanel (0x412ea0), SidePanel (0x4291d0) and
+// The full-screen widgets of Mummy Maze Deluxe: TitleScreen (WinMM.exe 0x42a5f0), TombstoneWidget (0x42b390, the parchment
+// that slides down over the menu and the panels), IntroScreen (0x4165a0), GameOverWidget (0x412ea0), Sidebar (0x4291d0) and
 // the screens that follow a level. Behaviour spec: docs/GAME_NOTES.md.
 // Each is a top-level widget (the 2002 framework has no child widgets); the buttons they make are top-level too.
 
@@ -17,20 +17,20 @@
 namespace Sexy
 {
 
-class MummyApp;
+class MMApp;
 class MemoryImage;
 
 // 0x42a5f0: the title picture, a bar that fills as the sounds load, and the link that starts the game
 class TitleScreen : public Widget, public ButtonListener
 {
 public:
-	MummyApp*			mApp;                   // +0x50
+	MMApp*			mApp;                   // +0x50
 	double				mProgress;              // +0x58 the loading bar's fill, 0..1
 	bool				mPlayShown;             // +0x68 the play link has appeared
 	HyperlinkWidget*	mPlayLink;              // +0x7c id 1
 
 public:
-	TitleScreen(MummyApp* theApp);
+	TitleScreen(MMApp* theApp);
 	virtual ~TitleScreen();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
@@ -47,18 +47,18 @@ public:
 
 // 0x42b390: the parchment that scrolls down from the top of the window, with the torch beside it. Its state (+0x58): 0 comes
 // down, 1 rests, 2 bounces down to 200, 3 holds, 4 goes back up, 5 goes up, 6 is gone.
-class ScrollScreen : public Widget, public ButtonListener
+class TombstoneWidget : public Widget, public ButtonListener
 {
 public:
-	MummyApp*			mApp;                   // +0x4c
+	MMApp*			mApp;                   // +0x4c
 	int					mOffset;                // +0x50 how far down the parchment hangs (0x1dc: out of sight)
 	int					mTorchFrame;            // +0x54 0..16
 	int					mScrollState;           // +0x58
 	double				mScrollTime;            // +0x60
 
 public:
-	ScrollScreen(MummyApp* theApp);              // 0x42b390
-	virtual ~ScrollScreen();
+	TombstoneWidget(MMApp* theApp);              // 0x42b390
+	virtual ~TombstoneWidget();
 
 	virtual void		Update() override;       // 0x42b580
 	virtual void		Draw(Graphics* g) override;  // 0x42b400
@@ -69,15 +69,15 @@ public:
 };
 
 // 0x4165a0: the main menu: classic mode, adventure, tutorial and quit
-class MainMenu : public ScrollScreen
+class IntroScreen : public TombstoneWidget
 {
 public:
 	HyperlinkWidget*	mLinks[4];              // +0x6c .. ids 0 classic, 1 adventure, 2 quit, 3 tutorial
 	double				mFade;                  // +0x80
 
 public:
-	MainMenu(MummyApp* theApp, int theEntry);
-	virtual ~MainMenu();
+	IntroScreen(MMApp* theApp, int theEntry);
+	virtual ~IntroScreen();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
@@ -88,7 +88,7 @@ public:
 
 // 0x412ea0: the panel that comes down when the explorer is lost, or from the side panel: undo, try again, save and quit,
 // abandon hope (the world map in an adventure)
-class GamePanel : public ScrollScreen
+class GameOverWidget : public TombstoneWidget
 {
 public:
 	HyperlinkWidget*	mLinks[4];              // +0x6c .. ids 0 undo move, 1 try again, 2 save and quit, 3 abandon hope / world map
@@ -96,35 +96,37 @@ public:
 	double				mFade;                  // +0x80
 
 public:
-	GamePanel(MummyApp* theApp);
-	virtual ~GamePanel();
+	GameOverWidget(MMApp* theApp);
+	virtual ~GameOverWidget();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
 	virtual void		Update() override;
 	virtual void		Draw(Graphics* g) override;
 	virtual void		ButtonDepress(int theId) override;
+	virtual void		ButtonPress(int theId) override;      // 0x403430: the empty listener function
+	using TombstoneWidget::ButtonPress;
 };
 
 // 0x414290: the parchment with the game-over text that comes down over the high scores and goes up again
-class GameOverScroll : public ScrollScreen
+class HighScoreSlide : public TombstoneWidget
 {
 public:
 	int					mHold;                  // +0x6c how long it has rested
 
 public:
-	GameOverScroll(MummyApp* theApp);
-	virtual ~GameOverScroll();
+	HighScoreSlide(MMApp* theApp);
+	virtual ~HighScoreSlide();
 
 	virtual void		Update() override;      // 0x414330
 	virtual void		Draw(Graphics* g) override;  // 0x4142f0
 };
 
 // 0x4291d0: the panel at the left of the board (0x96 wide): the buttons, the score, the Ankh
-class SidePanel : public Widget, public ButtonListener
+class Sidebar : public Widget, public ButtonListener
 {
 public:
-	MummyApp*			mApp;                   // +0x50
+	MMApp*			mApp;                   // +0x50
 	int					mScore;                 // +0x54
 	int					mMumY;                  // +0x58 where the mummy logo hangs
 	int					mAlpha;                 // +0x5c
@@ -132,8 +134,8 @@ public:
 	ButtonWidget*		mButtons[5];            // +0x64 ..: ids 10 undo, 11 retry, 12 options, 13 world map, 14 quit
 
 public:
-	SidePanel(MummyApp* theApp);
-	virtual ~SidePanel();
+	Sidebar(MMApp* theApp);
+	virtual ~Sidebar();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
@@ -150,10 +152,10 @@ public:
 };
 
 // 0x422480: the screen after a level: the time, the points, and the link to the next chamber
-class LevelCompleteScreen : public Widget, public ButtonListener
+class NextLevelWidget : public Widget, public ButtonListener
 {
 public:
-	MummyApp*			mApp;                   // +0x54
+	MMApp*			mApp;                   // +0x54
 	HyperlinkWidget*	mNextLink;              // +0x58 id 0 "enter the next chamber" / "claim the hidden treasure"
 	HyperlinkWidget*	mMapLink;               // +0x5c id 1 "return to world map" (adventure)
 	int					mSeconds;               // +0x60 the time the level took
@@ -163,8 +165,8 @@ public:
 	int					mFrame;                 // +0x70 animation frame
 
 public:
-	LevelCompleteScreen(MummyApp* theApp);
-	virtual ~LevelCompleteScreen();
+	NextLevelWidget(MMApp* theApp);
+	virtual ~NextLevelWidget();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
@@ -179,10 +181,10 @@ public:
 };
 
 // 0x4143a0 / 0x413c30: the high-score table (a classic game ends with it)
-class HighScoreScreen : public Widget, public ButtonListener
+class HighScoreWidget : public Widget, public ButtonListener
 {
 public:
-	MummyApp*			mApp;
+	MMApp*			mApp;
 	HyperlinkWidget*	mMenuLink;              // id 0 "click here to return to main menu"
 	std::string			mNames[5];
 	int					mScores[5];
@@ -191,8 +193,8 @@ public:
 	double				mFade;                  // +0xc8 0 .. 255
 
 public:
-	HighScoreScreen(MummyApp* theApp);
-	virtual ~HighScoreScreen();
+	HighScoreWidget(MMApp* theApp);
+	virtual ~HighScoreWidget();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
@@ -205,20 +207,20 @@ public:
 	using ButtonListener::ButtonPress;
 	using ButtonListener::ButtonDepress;
 
-	void				Load();
-	void				Save();
-	int					RankOf(int theScore);
-	void				AskName();                  // 0x414ac0
-	void				SetName(const SexyString& theName);   // 0x415b40
+	void				ReadFromFile();
+	void				WriteToFile();
+	int					GetScorePlace(int theScore);
+	void				ProcessScoreStuff();                  // 0x414ac0
+	void				NameEntered(const SexyString& theName);   // 0x415b40
 };
 
 // 0x401ca0: the victory screen: the same list, name box and links as the high scores (the original's twin classes share
 // the functions that load and keep the list), but another picture, and the link comes after the name
-class VictoryScreen : public HighScoreScreen
+class BeachWidget : public HighScoreWidget
 {
 public:
-	VictoryScreen(MummyApp* theApp);
-	virtual ~VictoryScreen();
+	BeachWidget(MMApp* theApp);
+	virtual ~BeachWidget();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;   // 0x402a00
 	virtual void		Update() override;                                          // 0x402c60
@@ -230,12 +232,12 @@ public:
 class PyramidButton : public ButtonWidget
 {
 public:
-	MummyApp*			mApp;                   // +0x7c
+	MMApp*			mApp;                   // +0x7c
 	bool				mHover;                 // +0xaa the mouse is over it (kept for the map's picture)
 	bool				mEnabled;               // +0xab it can be entered
 
 public:
-	PyramidButton(int theId, ButtonListener* theListener, MummyApp* theApp);
+	PyramidButton(int theId, ButtonListener* theListener, MMApp* theApp);
 
 	virtual void		Draw(Graphics* g) override;                         // 0x4271c0
 	virtual void		MouseEnter() override;                              // 0x427d50
@@ -257,11 +259,11 @@ public:
 // 0x417010: the adventure's world map: fifteen pyramids, the explorer's marker that walks from one to another along the
 // paths, and three corners to click (the statistics, the player's name and the treasure chest). It reads the saved
 // adventure (adv<slot>.sav in the user folder; data/saves/adv<slot>.sav in the original) when it is made and writes it when the
-// game takes it away (MummyApp::RemoveWorldMap, 0x41c300).
-class WorldMap : public Widget, public ButtonListener
+// game takes it away (MMApp::KillMap, 0x41c300).
+class MapWidget : public Widget, public ButtonListener
 {
 public:
-	MummyApp*			mApp;                   // +0x50
+	MMApp*			mApp;                   // +0x50
 	int					mCurrent;               // +0xb4 the pyramid the marker stands on
 	int					mTarget;                // +0xb8 the pyramid it is walking to
 	int					mNext;                  // +0xbc the pyramid it is walking to next
@@ -287,8 +289,8 @@ public:
 	bool				mInvalid;               // the saved game was bad: the main menu is back
 
 public:
-	WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry);
-	virtual ~WorldMap();
+	MapWidget(MMApp* theApp, int theSlot, bool theCheckEntry);
+	virtual ~MapWidget();
 	void				CropEnterButton();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x4187d0
@@ -302,11 +304,11 @@ public:
 	using ButtonListener::ButtonPress;
 	using ButtonListener::ButtonDepress;
 
-	void				Save();                         // 0x4195d0
-	void				Unlock();                       // 0x419940
-	void				Open(int thePyramid);           // 0x418970
-	void				Measure(int thePyramid, int theDistance);   // 0x418a30
-	int					NextHop(int theFrom, int theTo);    // 0x4189b0
+	void				SaveGame();                         // 0x4195d0
+	void				OpenNewPyramids();                       // 0x419940
+	void				ActivatePyramid(int thePyramid);           // 0x418970
+	void				FindDists(int thePyramid, int theDistance);   // 0x418a30
+	int					FindBest(int theFrom, int theTo);    // 0x4189b0
 	void				EnableOpenPyramids();
 };
 

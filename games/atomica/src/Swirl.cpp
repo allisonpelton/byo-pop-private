@@ -31,7 +31,6 @@ namespace
 Swirl::Swirl(Board* theBoard) :
 	mBoard(theBoard),
 	mApp(theBoard->mApp),
-	m17f0(0),
 	mClone(false),
 	mShrink(1.0f)
 {
@@ -94,7 +93,7 @@ Swirl::~Swirl()
 // 0x427c70: it shrinks (a clone faster and faster), the centre moves toward its target, the atoms in it turn
 bool Swirl::Update()
 {
-	if ((0 < mBoard->mI184) && (mAtoms.Size() == 0) && !mBoard->mB98)
+	if ((0 < mBoard->mFreezeMoves) && (mAtoms.Size() == 0) && !mBoard->mSwirlsCatchUp)
 		return true;
 	mRadius = mRadius - mSpeed;
 	if (!mClone)
@@ -134,8 +133,8 @@ bool Swirl::Update()
 			anAtom->mFlySize = anAtom->mFlySize + 0.0015f;
 		anAtom->mFlyX = anAtom->mFlyX - anAtom->mFlyGrow * 0.33333334f;
 		anAtom->mFlyGrow = anAtom->mFlyGrow + 0.0033333332f;
-		if (anAtom->mF_b0 < anAtom->mFlyGrow)
-			anAtom->mFlyGrow = anAtom->mF_b0;
+		if (anAtom->mFlyGrowLimit < anAtom->mFlyGrow)
+			anAtom->mFlyGrow = anAtom->mFlyGrowLimit;
 		anAtom = mAtoms.Next();
 	}
 	return true;
@@ -169,14 +168,15 @@ Swirl* Swirl::Clone()
 	aCopy->mMinRadius = mMinRadius;
 	memcpy(aCopy->mPoints, mPoints, sizeof(mPoints));
 	memcpy(aCopy->mJitter, mJitter, sizeof(mJitter));
-	aCopy->m17f0 = m17f0;
 	aCopy->mClone = mClone;
 	return aCopy;
 }
 
 // 0x4283a0 with 0x427f50: a triangle in the colour of the graphics, written straight to the screen (no clipping or
-// moving but the screen's), only on the rows that the stride divides
-void Swirl::DrawTriangle(Graphics* g, const int* theA, const int* theB, const int* theC, int theStride)
+// moving but the screen's), only on the rows that the stride divides. The original fills each triangle's rows as it
+// comes; the port adds them to theSpans and Draw fills a ring's rows in one call, the same rows in the same order and
+// colour (GAME_NOTES.md, "Performance": a frame has about 600 triangles and 21,000 rows)
+void Swirl::DrawTriangle(std::vector<Span>& theSpans, const int* theA, const int* theB, const int* theC, int theStride)
 {
 	const int* aTop = theA;
 	if (theB[1] < theA[1])
@@ -205,7 +205,6 @@ void Swirl::DrawTriangle(Graphics* g, const int* theA, const int* theB, const in
 	// the long edge is on the left when it passes left of the middle point
 	bool aLongLeft = (double) aSlopeLong * (double) (aY2 - aY1) + (double) aX1 <= (double) aX2;
 
-	std::vector<Span> aSpans;
 	double aLong = aX1;
 	double aShort = aX1;
 	double aY = aY1;
@@ -245,7 +244,7 @@ void Swirl::DrawTriangle(Graphics* g, const int* theA, const int* theB, const in
 					if (0x27f < aSpan.mWidth + aSpan.mX)
 						aSpan.mWidth = 0x280 - aSpan.mX;
 					if (0 < aSpan.mWidth)
-						aSpans.push_back(aSpan);
+						theSpans.push_back(aSpan);
 				}
 			}
 			aLong = (double) aSlopeLong + aLong;
@@ -254,8 +253,6 @@ void Swirl::DrawTriangle(Graphics* g, const int* theA, const int* theB, const in
 			aCounter = aCounter + 1.0;
 		} while (aInclusive ? (aCounter <= aEnd) : (aCounter < aEnd));
 	}
-	if (!aSpans.empty())
-		g->mDestImage->FillScanLines(&aSpans[0], (int) aSpans.size(), g->GetColor(), Graphics::DRAWMODE_NORMAL);
 }
 
 // 0x428940: the ring as a band between its points and those of the swirl before it (the first as a disc up to the middle),
@@ -296,11 +293,11 @@ void Swirl::Draw(Graphics* g, Swirl* thePrevious)
 	if (this != mBoard->mGlowSwirl)
 	{
 		// the field frozen: every swirl glows a little
-		float aLimit = (float) mBoard->mI180 * aShade;
+		float aLimit = (float) mBoard->mFreezeProgress * aShade;
 		aRed = ((float) aRed > aLimit) ? aRed : (int) aLimit;
-		aLimit = (float) mBoard->mI180 * aShade;
+		aLimit = (float) mBoard->mFreezeProgress * aShade;
 		aGreen = ((float) aGreen > aLimit) ? aGreen : (int) aLimit;
-		aLimit = (float) mBoard->mI180 * aShade;
+		aLimit = (float) mBoard->mFreezeProgress * aShade;
 		aBlueFlash = ((float) aBlueFlash > aLimit) ? aBlueFlash : (int) aLimit;
 	}
 	else
@@ -337,6 +334,9 @@ void Swirl::Draw(Graphics* g, Swirl* thePrevious)
 
 	if (!mClone)
 	{
+		// port: the rows of the ring's triangles, filled together below; the list is kept between draws, so it is allocated once
+		static std::vector<Span> sSpans;
+		sSpans.clear();
 		for (int i = 0; i < 20; i++)
 		{
 			float anAngle1 = anAngle * mApp->mPi * 0.0055555557f;
@@ -355,7 +355,7 @@ void Swirl::Draw(Graphics* g, Swirl* thePrevious)
 			if (thePrevious == NULL)
 			{
 				int aCenter[2] = {(int) mX, (int) mY};
-				DrawTriangle(g, aA, aB, aCenter, aStride);
+				DrawTriangle(sSpans, aA, aB, aCenter, aStride);
 			}
 			else
 			{
@@ -363,11 +363,13 @@ void Swirl::Draw(Graphics* g, Swirl* thePrevious)
 					thePrevious->mJitter[aNext][1] + thePrevious->mPoints[aNext][1]};
 				int aD[2] = {thePrevious->mJitter[aThis][0] + thePrevious->mPoints[aThis][0],
 					thePrevious->mJitter[aThis][1] + thePrevious->mPoints[aThis][1]};
-				DrawTriangle(g, aA, aB, aC, aStride);
-				DrawTriangle(g, aA, aC, aD, aStride);
+				DrawTriangle(sSpans, aA, aB, aC, aStride);
+				DrawTriangle(sSpans, aA, aC, aD, aStride);
 			}
 			anAngle = anAngle2;
 		}
+		if (!sSpans.empty())
+			g->mDestImage->FillScanLines(&sSpans[0], (int) sSpans.size(), g->GetColor(), Graphics::DRAWMODE_NORMAL);
 	}
 
 	// the atoms

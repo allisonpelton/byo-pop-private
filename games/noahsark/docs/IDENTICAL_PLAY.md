@@ -352,6 +352,7 @@ suite passes against it (the logs of the three bot games are unchanged and every
 |---|---|---|---|
 | Options dialog: Register and Web buttons | registration code and a button that opens popcap.com | gone; Help and High Scores share a row, Credits takes the next, the dialog is a row shorter | b79c205f |
 | Registered flag, play counter, register dialog, picture, font, four texts | registration code | gone; the image ids after the register picture move down by one | b79c205f |
+| The title's "Thanks for registering" line (black outline, yellow face, y 0x170) and the title's tip counter, with nine registration texts the table held unused | what a registered copy shows (the user, 2026-11-08: part of the registration code) | gone; nothing else sat beside it, so there is no gap to close; the title's frozen screens lose the line | (this commit) |
 | Noah's idle pictures one off after that move (found by the suite's strategy photographs) | the original names them by number in `Board::Update` and the level reset | named by the enum; the saved game still writes the number the original uses | b79c205f |
 | Water a pixel above its level after a click ends the get-ready | the original snaps it only when the get-ready ends by itself | mod `snapWater` | b79c205f |
 | Start of a level and level-up seconds by the machine's clock | `GetTickCount` | mod `steadyClock` counts updates | b79c205f |
@@ -361,3 +362,14 @@ suite passes against it (the logs of the three bot games are unchanged and every
 The original's and the port's load time, memory and processor time over a scripted minute were measured back to back (`GAME_NOTES.md`, section 10): the
 play link shows 0.8 s after the port's start against 2.1 s after the original's (medians of five runs), and over the minute the port used about
 a quarter of the original's processor time and 12 MB less working set.
+
+## Found later, by the readability pass (2026-11-11)
+
+One difference from the original came to light when every function was given its address (`GAME_NOTES.md`, section 13): pressing
+Enter in the high-score name box did nothing in the port. The original's handler (0x41de20) clicks the dialog's OK button through
+the app, so Enter records the name; the port's was an empty function, and no run of the three phases, nor of the coverage check,
+had pressed Enter there (the bot and the replays click OK). The port now does the same as the original. It was checked with a
+script in the port (a score set, the game lost, a name typed, Enter: the high-score list follows, with the name in `hiscores.dat`);
+the original's side was read in the disassembly (the edit widget's key functions and the dialog's handler; `GAME_NOTES.md`, section 13) and not run: scripted keys did not reach the original in the runs that tried. The same script, quitting at the name entry
+without pressing Enter, also showed a crash of the port at exit, which is fixed (the app's destructor takes its screens out of the
+widget manager before deleting them).

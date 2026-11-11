@@ -1,4 +1,4 @@
-// port(variant): arrow gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20, stage 18). Not part of the original
+// port(variant): arrow gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20). Not part of the original
 // game; the idea is Bejeweled 3's Butterflies, turned four ways (eight with the diagonals), with none of that mode's
 // art or texts. Some gems are arrows (Piece::mArrow), each pointing up, right, down or left, or along a diagonal
 // (for a diamond board, whose edges are diagonal). A move that stands (OnMoveMade, or a kept
@@ -136,7 +136,7 @@ bool Board::ArrowSettle()
 		{
 			mArrowTick = 0;
 			mState = STATE_ARROW_STEPPING;
-			mApp->PlaySample(SOUND_SELECT, GetPanForX(GetColX(mArrowSteps[0].mFromCol) + 24));
+			mApp->PlaySample(SOUND_SELECT, GetPanPosition(GetColX(mArrowSteps[0].mFromCol) + 24));
 			return true;
 		}
 	}
@@ -156,35 +156,35 @@ void Board::UpdateArrowSteps()
 {
 	MarkDirty();
 	mArrowTick++;
-	double t = (double) mArrowTick / ARROW_STEP_TICKS;
-	t = t * t * (3.0 - 2.0 * t);
-	for (const ArrowStep& s : mArrowSteps)
+	double aStepProgress = (double) mArrowTick / ARROW_STEP_TICKS;
+	aStepProgress = aStepProgress * aStepProgress * (3.0 - 2.0 * aStepProgress);
+	for (const ArrowStep& aStep : mArrowSteps)
 	{
-		double aFromX = GetColX(s.mFromCol), aFromY = GetRowY(s.mFromRow);
-		double aToX = GetColX(s.mToCol), aToY = GetRowY(s.mToRow);
-		bool isEscape = (s.mToCol < 0) || (s.mToCol >= mCols) || (s.mToRow < 0) || (s.mToRow >= mRows);
+		double aFromX = GetColX(aStep.mFromCol), aFromY = GetRowY(aStep.mFromRow);
+		double aToX = GetColX(aStep.mToCol), aToY = GetRowY(aStep.mToRow);
+		bool isEscape = (aStep.mToCol < 0) || (aStep.mToCol >= mCols) || (aStep.mToRow < 0) || (aStep.mToRow >= mRows);
 		if (isEscape)
 		{
-			Piece* anArrow = mBoard[s.mFromRow][s.mFromCol];
-			anArrow->mX = aFromX + (aToX - aFromX) * t;
-			anArrow->mY = aFromY + (aToY - aFromY) * t;
+			Piece* anArrow = mBoard[aStep.mFromRow][aStep.mFromCol];
+			anArrow->mX = aFromX + (aToX - aFromX) * aStepProgress;
+			anArrow->mY = aFromY + (aToY - aFromY) * aStepProgress;
 			continue;
 		}
-		Piece* anArrow = mBoard[s.mToRow][s.mToCol];
-		Piece* aGem = mBoard[s.mFromRow][s.mFromCol];
-		anArrow->mX = aFromX + (aToX - aFromX) * t;
-		anArrow->mY = aFromY + (aToY - aFromY) * t;
-		aGem->mX = aToX + (aFromX - aToX) * t;
-		aGem->mY = aToY + (aFromY - aToY) * t;
+		Piece* anArrow = mBoard[aStep.mToRow][aStep.mToCol];
+		Piece* aGem = mBoard[aStep.mFromRow][aStep.mFromCol];
+		anArrow->mX = aFromX + (aToX - aFromX) * aStepProgress;
+		anArrow->mY = aFromY + (aToY - aFromY) * aStepProgress;
+		aGem->mX = aToX + (aFromX - aToX) * aStepProgress;
+		aGem->mY = aToY + (aFromY - aToY) * aStepProgress;
 	}
 	if (mArrowTick < ARROW_STEP_TICKS)
 		return;
 
 	bool anEscape = false;
-	for (const ArrowStep& s : mArrowSteps)
+	for (const ArrowStep& aStep : mArrowSteps)
 	{
-		bool isEscape = (s.mToCol < 0) || (s.mToCol >= mCols) || (s.mToRow < 0) || (s.mToRow >= mRows);
-		int aCols[2] = {s.mFromCol, s.mToCol}, aRows[2] = {s.mFromRow, s.mToRow};
+		bool isEscape = (aStep.mToCol < 0) || (aStep.mToCol >= mCols) || (aStep.mToRow < 0) || (aStep.mToRow >= mRows);
+		int aCols[2] = {aStep.mFromCol, aStep.mToCol}, aRows[2] = {aStep.mFromRow, aStep.mToRow};
 		for (int i = 0; i < (isEscape ? 1 : 2); i++)
 		{
 			Piece* aPiece = mBoard[aRows[i]][aCols[i]];
@@ -192,11 +192,11 @@ void Board::UpdateArrowSteps()
 			{
 				// gone over the edge: a shot when every edge it crossed is one of arrows.shots, which scores the arrow's
 				// bonus and leaves a cell to refill; otherwise an escape, and the game is over
-				int anEdges = ArrowExitEdges(s);
+				int anEdges = ArrowExitEdges(aStep);
 				if ((anEdges & ~mRules.mArrows.mShots) == 0)
 				{
 					ClearArrow(aPiece);
-					mApp->PlaySample(SOUND_GOTSETBIG, GetPanForX((int) aPiece->mX + 24));
+					mApp->PlaySample(SOUND_GOTSETBIG, GetPanPosition((int) aPiece->mX + 24));
 				}
 				else
 					anEscape = true;
@@ -215,7 +215,7 @@ void Board::UpdateArrowSteps()
 	if (anEscape)
 	{
 		mApp->PlaySample(SOUND_BAD);
-		ShowText(mApp->GetString("ARROW_ESCAPED", _S("ARROW ESCAPED!")), 400);
+		DoBouncyText(mApp->GetString("ARROW_ESCAPED", _S("ARROW ESCAPED!")), 400);
 		GameOver(200);
 		return;
 	}
@@ -320,7 +320,7 @@ void Board::AddNewArrow()
 	Piece* aPiece = aCandidates[Rand() % (int) aCandidates.size()];
 	aPiece->mArrow = aDir + 1;
 	aPiece->mSpinFrame = 0;
-	mApp->PlaySample(SOUND_GOTSETBIG, GetPanForX((int) aPiece->mX + 24));
+	mApp->PlaySample(SOUND_GOTSETBIG, GetPanPosition((int) aPiece->mX + 24));
 	MarkDirty();
 }
 
@@ -333,14 +333,14 @@ void Board::ClearArrow(Piece* thePiece)
 	int aPoints = (int) ((double) mRules.mArrows.mBonus * mArrowsCleared * mPointMultiplier);
 	if (aPoints <= 0)
 		return;
-	ScorePopup aPopup = {(int) thePiece->mX + 24, (int) thePiece->mY + 4, 110, -1, aPoints};
+	ScorePopup aPopup = {(int) thePiece->mX + ScorePopup::OFFSET_X, (int) thePiece->mY + 4, ScorePopup::START_LIFE, -1, aPoints};
 	mScorePopups.push_back(aPopup);
 	mScore += aPoints;
 	if (mStats != NULL) mStats->OnPoints(aPoints);
 	AddMoveScore(aPoints);
 }
 
-// ProcessMatchesVariant found groups (a board with arrows always takes the match rules' path): every arrow they or a
+// FindSetsVariant found groups (a board with arrows always takes the match rules' path): every arrow they or a
 // blast took
 void Board::ClearMatchedArrows()
 {

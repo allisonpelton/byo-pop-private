@@ -131,6 +131,17 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
+# Texture wrap test (tools/wraptest): framework/TriangleWrap, which cuts DrawTrianglesTex's triangles at whole-number u and v
+# for a game that wraps its texture (Bejeweled 2's Hyperspace tunnel), against what wrapping means. Pure, no SDL; native only,
+# wraptest.exe (tools/check.sh unit).
+if(NOT EMSCRIPTEN)
+  add_executable(wraptest tools/wraptest/wraptest.cpp framework/TriangleWrap.cpp)
+  target_include_directories(wraptest PRIVATE framework)
+  if((NOT MSVC) AND (CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)$"))
+    target_compile_options(wraptest PRIVATE -msse2 -mfpmath=sse)
+  endif()
+endif()
+
 # Sound test (tools/soundtest): sounds kept as 16-bit at their own rate, and voices that resample them as they mix,
 # against the old pipeline (stereo floats at the device rate). Native only; soundtest.exe (tools/check.sh unit).
 if(NOT EMSCRIPTEN)
@@ -211,6 +222,19 @@ if(NOT EMSCRIPTEN)
   endif()
 endif()
 
+# Scaling test (tools/scaletest): what it costs to scale a finished frame up to the window without a 3D device (SDL's
+# software renderer, GDI's stretch), and each way's picture. Native Windows only; it opens a window, so it runs under rundesk.
+if(WIN32 AND NOT EMSCRIPTEN)
+  add_executable(scaletest tools/scaletest/scaletest.cpp)
+  target_link_libraries(scaletest PRIVATE SDL2::SDL2 gdi32)
+  if(NOT MSVC)
+    target_compile_options(scaletest PRIVATE -Wall)
+  endif()
+  add_custom_command(TARGET scaletest POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:scaletest>
+    VERBATIM)
+endif()
+
 # GPU test (tools/gputest): the GL GPUInterface's Direct3D 9 conventions on the real GPU, one test each, exact pixels.
 # Native only; it opens a hidden GL window, so tools/check.sh gpu runs it under rundesk.
 if(NOT EMSCRIPTEN)
@@ -288,10 +312,20 @@ option(BUILD_TIPTOP "Build the TipTop Deluxe port" ON)
 if(BUILD_TIPTOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/tiptop/CMakeLists.txt)
   add_subdirectory(games/tiptop)
 endif()
+# AstroPop Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_ASTROPOP "Build the AstroPop Deluxe port" ON)
+if(BUILD_ASTROPOP AND EXISTS ${PROJECT_SOURCE_DIR}/games/astropop/CMakeLists.txt)
+  add_subdirectory(games/astropop)
+endif()
 # Pixelus Deluxe: optional while it is new; the build skips it if its folder is missing
 option(BUILD_PIXELUS "Build the Pixelus Deluxe port" ON)
 if(BUILD_PIXELUS AND EXISTS ${PROJECT_SOURCE_DIR}/games/pixelus/CMakeLists.txt)
   add_subdirectory(games/pixelus)
+endif()
+# Typer Shark! Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_TYPERSHARK "Build the Typer Shark Deluxe port" ON)
+if(BUILD_TYPERSHARK AND EXISTS ${PROJECT_SOURCE_DIR}/games/typershark/CMakeLists.txt)
+  add_subdirectory(games/typershark)
 endif()
 # Ning Po Mahjong Deluxe: Pyrogon's framework (games/ningpo/engine) under the framework's app host; optional while it
 # is new
@@ -304,13 +338,18 @@ option(BUILD_WORDHARMONY "Build the Word Harmony port" ON)
 if(BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt)
   add_subdirectory(games/wordharmony)
 endif()
-# Cosmic Bugs: Retro64's engine (games/cosmicbugs/engine) under the framework's app host; optional while it is new
+# Retro64's engine (engines/retro64), one copy for Cosmic Bugs and Water Bugs: built when either game is
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
+option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+if((BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt) OR
+   (BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt))
+  add_subdirectory(engines/retro64)
+endif()
+# Cosmic Bugs: Retro64's engine under the framework's app host; optional while it is new
 if(BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt)
   add_subdirectory(games/cosmicbugs)
 endif()
-# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine (games/waterbugs/engine); optional while it is new
-option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine; optional while it is new
 if(BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt)
   add_subdirectory(games/waterbugs)
 endif()
@@ -341,4 +380,9 @@ endif()
 option(BUILD_BEJEWELEDTWIST "Build the Bejeweled Twist port" ON)
 if(BUILD_BEJEWELEDTWIST AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweledtwist/CMakeLists.txt)
   add_subdirectory(games/bejeweledtwist)
+endif()
+# Bejeweled 2 Deluxe: optional while it is new; the build skips it if its folder is missing
+option(BUILD_BEJEWELED2 "Build the Bejeweled 2 Deluxe port" ON)
+if(BUILD_BEJEWELED2 AND EXISTS ${PROJECT_SOURCE_DIR}/games/bejeweled2/CMakeLists.txt)
+  add_subdirectory(games/bejeweled2)
 endif()

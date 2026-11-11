@@ -170,6 +170,7 @@ RedBars::~RedBars()
 	DeleteVizImage(IMAGE_FIRESTAR_ID);
 }
 
+// 0x67a154: the record constructor (eight fields), inline here
 void RedBars::Draw(Graphics* g)
 {
 	(void)g;
@@ -205,7 +206,7 @@ BlobDrift::BlobDrift(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mBlobImage = LoadVizImage(IMAGE_BLOB_BLUR_ID);
 	mBackground = LoadVizImage(IMAGE_BLOBDRIFT_BG_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 BlobDrift::~BlobDrift()
@@ -357,7 +358,7 @@ void BlobDrift::Draw(Graphics* g)
 UVWarp::UVWarp(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mImage = LoadVizImage(IMAGE_CRAZY_BG_ID);
-	mUnknown10 = 0.75f;  // 0x3f400000
+	mBrightness = 0.75f;  // 0x3f400000
 }
 
 UVWarp::~UVWarp()
@@ -414,7 +415,7 @@ void UVWarp::Draw(Graphics* g)
 ContainmentField::ContainmentField(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mImage = LoadVizImage(IMAGE_CRAZY_BG2_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 ContainmentField::~ContainmentField()
@@ -563,7 +564,7 @@ ParametricFractal::ParametricFractal(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mBlur = LoadVizImage(IMAGE_FRACTAL_BLUR_ID);
 	mBackground = LoadVizImage(IMAGE_FRACTAL_BG_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 ParametricFractal::~ParametricFractal()
@@ -688,7 +689,7 @@ WindCloud::WindCloud(WinTwistApp* theApp) : Visualizer(theApp)
 {
 	mSprite = LoadVizImage(IMAGE_AIR_STREAM_ID);
 	mBackground = LoadVizImage(IMAGE_TADPOLE_BG_ID);
-	mUnknown10 = 0.2f;  // 0x3e4ccccd
+	mBrightness = 0.2f;  // 0x3e4ccccd
 }
 
 WindCloud::~WindCloud()
@@ -715,8 +716,7 @@ void WindCloud::Init()
 		aSprite->mVX = (float)((1.0 - (double)(float)(aRand % 2000) / 1000.0) * 1.2);
 		aRand = CrtRand();
 		aSprite->mVY = (float)((1.0 - (double)(float)(aRand % 2000) / 1000.0) * 1.2);
-		aRand = CrtRand();
-		aSprite->mUnknown = (float)(aRand % 800);
+		CrtRand();  // the draw for +0x10, which nothing reads, kept for the order of the draws
 		aSprite++;
 		aCount--;
 	} while (aCount != 0);
@@ -964,7 +964,7 @@ void Raptis_Pulse::Update()
 	size_t aPulseIndex = 0;
 	while (aPulseIndex < mPulses.size()) {
 		Pulse* aPulse = mPulses[aPulseIndex++];
-		aPulse->mScale = (float)(((double)aPulse->mScale + 1.0) * 0.0005 * ((double)mUnknown74 + 1.0) + (double)aPulse->mScale);
+		aPulse->mScale = (float)(((double)aPulse->mScale + 1.0) * 0.0005 * ((double)mGrowthFactor + 1.0) + (double)aPulse->mScale);
 		aPulse->mAngle1 = (float)((double)aPulse->mAngle1 + 0.01);
 		aPulse->mAngle2 = (float)((double)aPulse->mAngle2 + 0.01);
 		aPulse->mDegrees = (float)((double)aPulse->mDegrees + 0.1);
@@ -1082,7 +1082,7 @@ void Raptis_Pulse::Draw(Graphics* g)
 	}
 	g->SetColor(Color(0xff));
 	float aSine = sinf(mPhase);
-	float aFactor = mUnknown78;
+	float aFactor = mDrawFactor;
 	float aCenterX2 = (float)aCenterX;
 	float aCenterY = (float)aCenterYInt;
 	size_t aPulseIndex = 0;

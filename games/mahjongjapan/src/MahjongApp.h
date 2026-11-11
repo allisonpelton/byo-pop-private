@@ -20,6 +20,7 @@ namespace mahjongjapan
 class MahjongGame : public jb::App
 {
 public:
+	// 0x424a30
 	MahjongGame() : App(0x19) {}
 	// 0x424a60, 0x424a80
 	~MahjongGame() override {}
@@ -41,7 +42,6 @@ class MahjongWidget : public Widget
 {
 public:
 	MemoryImage* mScreenImage;
-	std::vector<uint32_t> mScreen;  // the engine's last present
 	bool mScreenChanged;
 	int mButtons;                   // MK_LBUTTON 1, MK_RBUTTON 2, MK_MBUTTON 0x10
 

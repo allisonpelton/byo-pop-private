@@ -95,14 +95,9 @@ static std::vector<std::string> ProvenanceFor(const RulesStatus& theStatus, cons
 	return aMods;
 }
 
-// What this build does not do yet (games/bejeweled/docs/CODE_MODS_DESIGN.md 9.2: stage 1 reads, merges,
-// checks and reports the rules and features; stage 2 plays seeds, so any rule gives the board its own RNG
-// and seeds.perGame works, but the rules themselves are not played yet), as warnings for mods-status.json:
-// one per mod, naming every key of its own that is not played; for rule keys it says what they do change,
-// the RNG. Stage 3 records replays; since stage 13 they are watched in the game too, and the Extras dialog has
-// the seed field: of the features only the leaderboard is not in this build. Stage 5 plays moves.allowInvalid (with its penalty and invalidCountsAsMove) and
-// the noMoves rule, stage 6 the undo group, stage 7 the board shape group (sizes, masks, level shapes; dirt cells
-// stay holes until stage 7b), stages 7c, 7b and 9 gravity, dirt and the match rules, stage 10 the move types
+// What this build does not do, as warnings for mods-status.json (games/bejeweled/docs/CODE_MODS_DESIGN.md 9.2): one
+// per mod, naming every key of its own that is not played; for rule keys it says what they do change, the RNG (any
+// rule gives the board its own). Of the features only the leaderboard is not in this build.
 static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theFeatures, RulesStatus* theStatus)
 {
 	// per mod: its rule keys, its feature keys
@@ -115,10 +110,9 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	std::vector<ModKeys> aByMod;
 	std::vector<std::string> aKeys = theRules.VariantKeys();
 #ifndef BEJ_NO_VARIANTS
-	// Played since stage 5 (4.1): kept invalid moves and the noMoves rule; since stage 6 (4.12) undo; since stage 7
-	// (4.3) the board's shape; since stage 7c (4.16) gravity; since stage 7b (4.14) dirt; since stage 9 (4.6) the match
-	// rules; since stage 10 (4.4, 4.5) the move types; since stage 11 (4.8) the specials; since stage 12 (4.9) the gold
-	// board; since stage 18 (4.20) arrow gems, and since the curated modes' rework arrows that twists turn and their shots.
+	// The rules this build plays: kept invalid moves and the noMoves rule (4.1), undo (4.12), the board's shape (4.3),
+	// gravity (4.16), dirt (4.14), the match rules (4.6), the move types (4.4, 4.5), the specials (4.8), the gold board
+	// (4.9) and arrow gems (4.20), with the arrows that twists turn and their shots.
 	// A BEJ_NO_VARIANTS build plays no rule, nor shows look.*.
 	static const char* const aPlayed[] = {"moves.allowInvalid", "moves.invalidPenalty", "moves.invalidCountsAsMove", "noMoves.normal",
 		"noMoves.timed", "undo.enabled", "undo.depth", "undo.max", "undo.penalty", "undo.inTimed", "undo.restoreTime", "undo.restoreRng",
@@ -135,7 +129,7 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	aKeys.insert(aKeys.end(), aLookKeys.begin(), aLookKeys.end());
 #endif
 	const size_t aNumRuleKeys = aKeys.size();
-	// The feature that is on but not in this build (stage 14's online scores)
+	// The feature that is on but not in this build (the online scores)
 	if (theFeatures.mLeaderboard)
 		aKeys.push_back("features.leaderboard");
 	for (size_t i = 0; i < aKeys.size(); i++)
@@ -173,7 +167,7 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 		theStatus->mWarnings.push_back({theFeatures.mLiveSplitMod, "features.livesplit: desktop only, ignored"});
 #endif
 
-	// The gem sheet's generated rows (stage 8): what the imageOps get wrong
+	// The gem sheet's generated rows: what the imageOps get wrong
 	GemSheet::ModLooks(Platform::ModManager::Get().GetImageOps(), &theStatus->mWarnings);
 }
 

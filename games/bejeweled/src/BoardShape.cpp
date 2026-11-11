@@ -1,22 +1,22 @@
 // port(variant): board sizes and shapes (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3 and section 5), Board members.
-// Not part of the original game. Stage 7: a board of the rules' board.cols/rows/mask, or one shape per level
+// Not part of the original game. A board of the rules' board.cols/rows/mask, or one shape per level
 // (board.levels), simulated in logical 51-px space with the original constants (BoardLayout.h). The translated
-// functions dispatch here on a shape board (VariantFlags::mShape): FillBoard to FillBoardVariant, UpdateClearing's
-// refill to RefillMasked, SetupLevel's tile loop to DrawVariantChecker; the constructor's tutorial loop gives way to
-// FillBoardWithMove where the tutorial move cannot apply. Each is the original algorithm over the layout's cells, so
+// functions dispatch here on a shape board (VariantFlags::mShape): NewBoard to NewBoardVariant, UpdateClearing's
+// refill to RefillMasked, SetupLevelData's tile loop to DrawVariantChecker; the constructor's tutorial loop gives way to
+// NewBoardWithMove where the tutorial move cannot apply. Each is the original algorithm over the layout's cells, so
 // on the original 8x8 it draws the same Rand() values in the same order (-forcevariant runs it there).
 //
-// Level shapes: SetupLevel (inside UpdateBlackHole's done-block, before its deletion loop) sets up the next level's
+// Level shapes: SetupLevelData (inside UpdateWhirlpool's done-block, before its deletion loop) sets up the next level's
 // layout in mPendingLayout and draws its checkerboard; the deletion loop runs with the old bounds, then
 // ApplyPendingLayout switches. A loaded save brings its level's shape (BoardSave.cpp, SetLoadedLayout), and the
 // background is rebuilt for its level and shape (RebuildLoadedBackground; the original keeps level 0's, 5.3).
 //
-// Gravity (stage 7c, 4.16): the falls (VariantFlags::mFall: UpdateFalling's loop, the refill, the fill, the
+// Gravity (CODE_MODS_DESIGN.md 4.16): the falls (VariantFlags::mFall: UpdateFalling's loop, the refill, the fill, the
 // fall-out and the game-over fall) run here in the direction GravityUp() gives, mirrored about the board's middle
 // row under up; down is the original algorithm line for line, and -forcevariant runs it at default rules.
 // "alternate" (Bejeweled 2's Twilight) starts up and flips at each settle that ends a move (OnGravitySettle).
 //
-// Dirt (stage 7b, 4.14): a dirt cell holds no gem and is a floor. UpdateClearing's refill becomes RefillDiagonal
+// Dirt (CODE_MODS_DESIGN.md 4.14): a dirt cell holds no gem and is a floor. UpdateClearing's refill becomes RefillDiagonal
 // (column segments between dirt cells, then diagonal slides into the cells under dirt), a scored run takes a layer
 // off each dirt cell next to it (ClearDirtNextToRun), and a cell whose last layer goes is a gem cell from then on.
 
@@ -35,16 +35,16 @@
 
 using namespace Sexy;
 
-// FillBoardVariant's backstop (3.6): a fill that has rerolled this often starts again, still drawing from the
+// NewBoardVariant's backstop (3.6): a fill that has rerolled this often starts again, still drawing from the
 // board's RNG, so a combination of rules the static fill minimum did not foresee cannot hang it
 static const int MAX_FILL_REROLLS = 1000;
 
-// FillBoard (0x4cb182) on a shape board (5.5): the old pieces parked as FillBoard parks them, then rows bottom-up
+// NewBoard (0x4cb182) on a shape board (5.5): the old pieces parked as NewBoard parks them, then rows bottom-up
 // and columns left to right over the cells only, each gem 65..304 px above the nearest cell below it (already
 // filled) and its colour rolled until the board has no match. Under up (4.16) the mirror: rows top-down, each gem
 // 65..304 px below the nearest cell above it, or below the mirror line M = GetRowY(0) + GetRowY(rows - 1) (the
 // mirror of y 0), so for one RNG state the fill is the vertical mirror of the downward one, draw for draw
-void Board::FillBoardVariant()
+void Board::NewBoardVariant()
 {
 	mState = STATE_FALLING;
 	mIdleTicks = 0;
@@ -105,7 +105,7 @@ void Board::FillBoardVariant()
 				for (;;)
 				{
 					aPiece->mColor = Rand() % gGameConfig.mGemColors;
-					if (!HasMatch())
+					if (!HasSet())
 						break;
 					if (++aRerolls >= MAX_FILL_REROLLS)
 					{
@@ -193,11 +193,11 @@ void Board::RefillMasked()
 // The constructor's fill (0x4cb5bc) on a board where the tutorial move (a horizontal run to the right in rows 4..6,
 // columns 1..6) cannot apply (5.5): boards are filled until one has a move, at most 100 times. The tutorial
 // arrows stay off (mTutorialCol -1); the instructions dialog still opens at tick 150 as in the original (2.5).
-void Board::FillBoardWithMove()
+void Board::NewBoardWithMove()
 {
 	int aFills = 0;
 	do
-		FillBoard();
+		NewBoard();
 	while (!FindMove(NULL, 0, true, true) && (++aFills < 100));
 	mTutorialCol = -1;
 }
@@ -215,7 +215,7 @@ static Image* ModVoidTile(WinDMApp* theApp)
 	return aVoidTile;
 }
 
-// SetupLevel's tile loop (0x4cae29) on a shape board (5.6): the checkerboard of the level SetupLevel sets up, which
+// SetupLevelData's tile loop (0x4cae29) on a shape board (5.6): the checkerboard of the level SetupLevelData sets up, which
 // becomes the pending layout. The window is first filled with the void tile (a mod's images/voidtile, or the level's
 // texture darkened); then the board's cells and a ring of one cell around them get tile A or B by (r + c) % 2, as the
 // original's 10x10 cells from (151, -35) do, and holes the void tile. On the original 8x8 the tiles cover the whole
@@ -311,7 +311,7 @@ void Board::DrawVariantChecker(Graphics* g, Image* theTileA, Image* theTileB)
 	delete aDarkTile;
 }
 
-// UpdateBlackHole's done-block (0x4cb931), after its deletion loop: the level SetupLevel set up takes its shape
+// UpdateWhirlpool's done-block (0x4cb931), after its deletion loop: the level SetupLevelData set up takes its shape
 void Board::ApplyPendingLayout()
 {
 	mLayout = mPendingLayout; // dirt cells come back with all their layers (4.14)
@@ -347,8 +347,8 @@ void Board::SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape)
 }
 
 // GameLoadedVariant on a shape board: the background of the loaded level and its shape, where the original keeps
-// the level-0 background it was made with (5.3). SetupLevel draws it; the level parameters it would set are the
-// save's and stay, and so do the gold and its time (stage 12: the GOLD and GTIM chunks, ReadVariantChunks).
+// the level-0 background it was made with (5.3). SetupLevelData draws it; the level parameters it would set are the
+// save's and stay, and so do the gold and its time (the GOLD and GTIM chunks, ReadVariantChunks).
 void Board::RebuildLoadedBackground()
 {
 	bool aBackgroundChanged = mBackgroundChanged;
@@ -361,7 +361,7 @@ void Board::RebuildLoadedBackground()
 	memcpy(aGold, mGold, sizeof(mGold));
 	int aGoldTicksLeft = mGoldTicksLeft;
 	int aGoldTickLimit = mGoldTickLimit;
-	SetupLevel();
+	SetupLevelData();
 	mBackgroundChanged = aBackgroundChanged;
 	mTimeDrain = aTimeDrain;
 	mPointMultiplier = aPointMultiplier;
@@ -377,7 +377,7 @@ void Board::RebuildLoadedBackground()
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Gravity (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16)
+// Gravity (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16)
 
 // "up", or "alternate" after an even number of flips (Twilight starts up). False on every board whose rules say
 // "down", -forcevariant included, so the flip, the guard and the upward branches stay off there.
@@ -440,7 +440,7 @@ void Board::FallPiecesVariant(int* theLandedCount, int* theLandedXSum, bool* isS
 // The end of UpdateFalling's no-match branch: a settle. As in Bejeweled 2's UpdateFalling, "alternate" flips when the
 // settle reaches STATE_PLAYING, so a move's cascades share one direction, every fill (opening, level, fall-out) flips
 // once at its settle, and a settle without a move left does not flip; a kept invalid move's settle does not either
-// (mGravityNoFlip, KeepInvalidMove). A swap that goes back reaches PLAYING from UpdateSwap, with no settle.
+// (mGravityNoFlip, KeepInvalidMove). A swap that goes back reaches PLAYING from UpdateSwapping, with no settle.
 void Board::OnGravitySettle()
 {
 	if ((mRules.mBoard.mGravity == GameRules::GRAVITY_ALTERNATE) && (mState == STATE_PLAYING) && !mGravityNoFlip)
@@ -448,10 +448,10 @@ void Board::OnGravitySettle()
 	mGravityNoFlip = false;
 }
 
-// UpdateFallOut (0x4cb3bf) with board.gravity: one Rand() % 15 per column per tick as there; under up the scan starts
+// UpdateBoardDropping (0x4cb3bf) with board.gravity: one Rand() % 15 per column per tick as there; under up the scan starts
 // at the top, so the column's highest resting gem is released, gems rise, and a gem is gone once it passes the
 // mirror of the screen bottom (M - (mScreenBottom + 32), -123 on 8x8). Then the next board's fill, as there.
-void Board::UpdateFallOutVariant()
+void Board::UpdateBoardDroppingVariant()
 {
 	bool isUp = GravityUp();
 	int aGoneY = GetRowY(0) + GetRowY(mRows - 1) - (mLayout.mScreenBottom + 32);
@@ -493,11 +493,11 @@ void Board::UpdateFallOutVariant()
 	if (allGone)
 	{
 		mTimeDrainDelay = gGameConfig.mLevelDrainDelay;
-		FillBoard();
+		NewBoard();
 	}
 }
 
-// UpdateGameOver's fall (0x4cab82) with board.gravity: the shake and the explosion velocities stay in UpdateGameOver;
+// UpdateGameOverAnim's fall (0x4cab82) with board.gravity: the shake and the explosion velocities stay in UpdateGameOverAnim;
 // under up each gem moves by -mVelY, so its kick points down and it falls upwards, and it is gone once it passes the
 // mirror of the screen bottom (M - (mScreenBottom + 49), -140 on 8x8). True when every gem is gone.
 bool Board::GameOverFallVariant()
@@ -527,7 +527,7 @@ bool Board::GameOverFallVariant()
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14)
+// Dirt (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14)
 
 // UpdateClearing's refill on a board with dirt: passes over the column segments (RefillSegmentsPass) until nothing
 // moves, then one gem slides diagonally into a cell no vertical fall reaches (SlideDiagonal), which opens a cell on
@@ -669,7 +669,7 @@ bool Board::SlideDiagonal()
 	return false;
 }
 
-// ProcessMatches, after each scored run (theColor's gems in the rectangle, as it marks them): every dirt cell next to
+// FindSets, after each scored run (theColor's gems in the rectangle, as it marks them): every dirt cell next to
 // one of the run's gems (up, down, left, right) loses one layer, once for the run, so a cell next to two runs of one
 // resolution loses two. board.dirtPoints times the multiplier for each layer. A cell whose last layer goes is a gem
 // cell that the refill fills, under a puff of dust (DrawDirtDust).
@@ -688,7 +688,7 @@ void Board::ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, 
 	ClearDirtNextToCells(aCells);
 }
 
-// ClearDirtNextToRun for any group of cells (col, row): ProcessMatchesVariant's groups, a pattern once for its group
+// ClearDirtNextToRun for any group of cells (col, row): FindSetsVariant's groups, a pattern once for its group
 void Board::ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCells)
 {
 	static const int kNeighbours[4][2] = {{0, -1}, {-1, 0}, {1, 0}, {0, 1}};
@@ -712,7 +712,7 @@ void Board::ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCel
 	ClearDirtLayers(aNext);
 }
 
-// Stage 11: the dirt cells of theCells (a blast's reach) lose a layer each, as ClearDirtNextToCells' neighbours
+// The dirt cells of theCells (a blast's reach) lose a layer each, as ClearDirtNextToCells' neighbours
 void Board::ClearDirtCells(const std::vector<std::pair<int, int> >& theCells)
 {
 	bool aCells[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS] = {};
@@ -744,7 +744,7 @@ void Board::ClearDirtLayers(const bool (*theCells)[BoardLayout::MAX_COLS])
 			{
 				mScore += aPoints;
 				if (mStats != NULL) mStats->OnPoints(aPoints);
-				ScorePopup aPopup = {GetColX(aCol) + 24, GetRowY(aRow) + 16, 110, -1, aPoints};
+				ScorePopup aPopup = {GetColX(aCol) + ScorePopup::OFFSET_X, GetRowY(aRow) + ScorePopup::OFFSET_Y, ScorePopup::START_LIFE, -1, aPoints};
 				mScorePopups.push_back(aPopup);
 			}
 			if (!mLayout.IsDirt(aCol, aRow))

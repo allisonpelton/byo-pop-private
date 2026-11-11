@@ -44,7 +44,8 @@ static const char* const gFontFiles[NUM_FONTS] =
 enum { SONG_GAME = 0, SONG_MENU = 1, SONG_GAMEOVER = 2, SONG_GAME_INTRO = 3 };
 
 // 0x4166d0
-NoahApp::NoahApp()
+NoahApp::NoahApp() :
+	mImages(this)
 {
 	gApp = this;
 	mProdName = "NoahsArk";
@@ -54,7 +55,8 @@ NoahApp::NoahApp()
 	mWidth = GAME_WIDTH;
 	mHeight = GAME_HEIGHT;
 
-	mImages = NULL;
+	for (int i = 0; i < NUM_SOUNDS; i++)
+		mSoundTried[i] = false;
 	for (int i = 0; i < NUM_FONTS; i++)
 		mFonts[i] = NULL;
 	mBoard = NULL;
@@ -62,7 +64,7 @@ NoahApp::NoahApp()
 	mIntroWidget = NULL;
 	mTitleScreen = NULL;
 	mHighScoreWidget = NULL;
-	mDifficulty = 0;
+	mDifficulty = DIFFICULTY_EASY;
 	mLevel = 0;
 	mGameMode = GAMEMODE_ACTION;
 	mSavedGameMode = GAMEMODE_ACTION;
@@ -70,14 +72,12 @@ NoahApp::NoahApp()
 	mPuzzleNoticeShown = false;
 	mGameScore = 0;
 	mShownScore = 0;
-	mFloodStart = 0;
 	mSavedThisLevel = 0;
 	mAnimalsSaved = 0;
 	mComboCount = 0;
 	mBestCombo = 0;
 	mShowHints = true;
 	mShowTutorial = true;
-	mGameStartTick = 0;
 	mQuitButtonImage = NULL;
 	mOptionsButtonImage = NULL;
 	mQuitButton = NULL;
@@ -89,6 +89,7 @@ NoahApp::NoahApp()
 	mAutoplayDiff = 0;
 	mAutoplayGames = 1;
 	mAutoplayCap = 200000;
+	mAutoplayStop = 0;
 	mAutoplayMenu = false;
 	mTestGotoMode = 0;
 	mTestGotoDiff = 0;
@@ -100,35 +101,72 @@ NoahApp::NoahApp()
 	mResyncState = NULL;
 }
 
+// 0x4169e0: the original's app is a global that is destroyed when the process ends, and its destructor saves a game still in
+// progress first (a board and no game-over screen), so closing the window mid-game leaves a saved game for Continue. The web
+// build never destroys the app (a closed tab runs no code), so it keeps no such save.
 NoahApp::~NoahApp()
 {
+	if ((mBoard != NULL) && (mHighScoreWidget == NULL))
+		mBoard->SaveGame();
 	if (mBoard != NULL)
 	{
 		mWidgetManager->RemoveWidget(mBoard);
 		delete mBoard;
 	}
-	delete mNextLevelWidget;
-	delete mIntroWidget;
-	delete mTitleScreen;
-	delete mHighScoreWidget;
+	// port: each screen leaves the widget manager before it is deleted. A dialog still open over one (the name entry over the
+	// game-over screen) hands the focus back to it when the framework removes the dialog, after this destructor.
+	Widget* aScreens[4] = {mNextLevelWidget, mIntroWidget, mTitleScreen, mHighScoreWidget};
+	for (int i = 0; i < 4; i++)
+	{
+		if (aScreens[i] != NULL)
+		{
+			mWidgetManager->RemoveWidget(aScreens[i]);
+			delete aScreens[i];
+		}
+	}
 	delete mQuitButtonImage;
 	delete mOptionsButtonImage;
-	if (mImages != NULL)
-		delete[] mImages;
+}
+
+// port: the pictures by id, each decoded when it is first asked for (NoahApp.h)
+ImageTable::ImageTable(NoahApp* theApp) :
+	mApp(theApp)
+{
+	for (int i = 0; i < NUM_IMAGES; i++)
+		mImages[i] = NULL;
+}
+
+// port: a picture's first use
+Image* ImageTable::Load(int theId)
+{
+	Image* anImage = mApp->LoadImage(theId);
+	if (anImage == NULL)
+	{
+		// port: a picture that is not there is told at its first use, not at start; a blank one stands in while the game ends
+		static MemoryImage* aBlank = NULL;
+		if (aBlank == NULL)
+		{
+			aBlank = new MemoryImage();
+			aBlank->Create(1, 1);
+		}
+		return aBlank;
+	}
+	mImages[theId] = anImage;
+	return anImage;
 }
 
 // 0x417450: images\<name>
-bool NoahApp::LoadImage(int theImageId)
+Image* NoahApp::LoadImage(int theImageId)
 {
 	std::string aPath = std::string("images\\") + gImageNames[theImageId];
-	mImages[theImageId] = GetImage(aPath);
-	if (mImages[theImageId] == NULL)
+	Image* anImage = GetImage(aPath);
+	if (anImage == NULL)
 	{
 		Popup("Failed to load " + aPath);
 		mLoadingFailed = true;
-		return false;
+		Shutdown();
 	}
-	return true;
+	return anImage;
 }
 
 // 0x417970
@@ -140,17 +178,8 @@ void NoahApp::Init()
 	CrtSRand(mHasSeedParam ? (unsigned int) mRandSeed : (unsigned int) GetTickCount());
 	LoadGameTexts();
 
-	mImages = new Image*[NUM_IMAGES];
-	for (int i = 0; i < NUM_IMAGES; i++)
-		mImages[i] = NULL;
-	for (int i = 0; i < NUM_IMAGES; i++)
-	{
-		if (!LoadImage(i))
-		{
-			Shutdown();
-			return;
-		}
-	}
+	// the original decodes every picture here; mImages decodes each when it is first asked for (a picture that is not there is
+	// told then: a popup and the end of the game)
 	for (int i = 0; i < NUM_FONTS; i++)
 		mFonts[i] = new ImageFont(this, gFontFiles[i]);
 
@@ -169,29 +198,39 @@ void NoahApp::Init()
 	mMusicInterface->FadeIn(SONG_MENU, -1, 0.002, false);
 }
 
-// 0x417720: the sounds (the loading bar counts them)
+// port: a sound is decoded when it is first played; the original decodes all 34 in its loading thread (0x417720), a fifth of the
+// load. One that is not there stays silent (the original says "Failed to load sounds\<name>" at start and ends).
+void NoahApp::LoadSoundOnce(int theSoundNum)
+{
+	if (theSoundNum < 0 || theSoundNum >= NUM_SOUNDS || mSoundTried[theSoundNum] || mSoundManager == NULL)
+		return;
+	mSoundTried[theSoundNum] = true;
+	mSoundManager->LoadSound(theSoundNum, std::string("sounds\\") + gSoundNames[theSoundNum]);
+}
+
+// port: a sound is loaded at its first play
+void NoahApp::PlaySample(int theSoundNum)
+{
+	LoadSoundOnce(theSoundNum);
+	SexyApp::PlaySample(theSoundNum);
+}
+
+// port: as above, for a sound with a pan
+void NoahApp::PlaySample(int theSoundNum, int thePan)
+{
+	LoadSoundOnce(theSoundNum);
+	SexyApp::PlaySample(theSoundNum, thePan);
+}
+
+// 0x417720: the sounds (the loading bar counts them: their files are decoded at their first play, see LoadSoundOnce)
 void NoahApp::LoadingThreadProc()
 {
 	mNumLoadingThreadTasks = NUM_SOUNDS + 1;
-	for (int i = 0; i < NUM_SOUNDS; i++)
-	{
-		if (!mSoundManager->LoadSound(i, std::string("sounds\\") + gSoundNames[i]))
-		{
-			Popup(std::string("Failed to load sounds\\") + gSoundNames[i]);
-			mLoadingFailed = true;
-			return;
-		}
-		mCompletedLoadingThreadTasks++;
-	}
+	mCompletedLoadingThreadTasks += NUM_SOUNDS;
 	mCompletedLoadingThreadTasks++;
 }
 
-void NoahApp::LoadingThreadCompleted()
-{
-	SexyApp::LoadingThreadCompleted();
-}
-
-// 0x41af10 / 0x41b010: the registry values of the game
+// 0x41af10: the registry values of the game
 void NoahApp::WriteToRegistry()
 {
 	SexyApp::WriteToRegistry();
@@ -201,6 +240,7 @@ void NoahApp::WriteToRegistry()
 	RegistryWriteBoolean("ShowTutorial", mShowTutorial);
 }
 
+// 0x41b010
 void NoahApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
@@ -237,6 +277,8 @@ void NoahApp::ButtonPress(int theId)
 	PlaySample(SOUND_CLICK);
 }
 
+// 0x418c00: the original's override runs the base class's frame update and then, once the loading thread has finished,
+// sets a flag of its own (+0x450) that nothing reads, so the port has no such field.
 // the menu music goes on while the game's plays are not on: the intro of the game song leads into its loop
 void NoahApp::UpdateFrames()
 {
@@ -255,6 +297,7 @@ void NoahApp::UpdateFrames()
 	}
 }
 
+// part of 0x418460: the game's music from its intro (UpdateFrames goes on to the loop when the intro has ended)
 void NoahApp::PlayGameMusic()
 {
 	mMusicInterface->StopMusic(SONG_MENU);
@@ -265,6 +308,7 @@ void NoahApp::PlayGameMusic()
 	mMainSongLooping = false;
 }
 
+// 0x41abf0: slot 53 of the original (the focus is lost): its base class's empty function, then the board is redrawn
 void NoahApp::LostFocus()
 {
 	SexyApp::LostFocus();
@@ -419,7 +463,6 @@ void NoahApp::StartGame(bool theContinue)
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToBack(mBoard);
 	mWidgetManager->SetFocus(mBoard);
-	mGameStartTick = GameTickCount();
 	mOptionsButton->SetVisible(true);
 	mQuitButton->SetVisible(true);
 	PlayGameMusic();
@@ -462,6 +505,7 @@ void NoahApp::ShowHighScoreWidget()
 	}
 }
 
+// part of 0x4185c0: the game-over screen goes
 void NoahApp::RemoveHighScoreWidget()
 {
 	if (mHighScoreWidget != NULL)
@@ -509,12 +553,12 @@ void NoahApp::ShowQuitDialog()
 {
 	if (mBoard != NULL)
 	{
-		Dialog* aDialog = DoDialog(DIALOG_QUIT, true, GT(0x004956ec), GT(0x004956fc), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
+		Dialog* aDialog = DoDialog(DIALOG_QUIT, true, GT(0x004956ec), GT(0x004956fc), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);
 		aDialog->Resize(0xbb, 0x57, 0x1a0, 300);
 	}
 	else
 	{
-		DoDialog(DIALOG_QUIT, true, GT(0x00494a20), GT(0x00495760), GT(0x0049c510), Dialog::BUTTONS_YES_NO);   // no resize: the dialog keeps NewDialog's size
+		DoDialog(DIALOG_QUIT, true, GT(0x00494a20), GT(0x00495760), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);   // no resize: the dialog keeps NewDialog's size
 	}
 }
 
@@ -524,7 +568,7 @@ void NoahApp::ShowNewGameDialog(int theGameMode)
 	mGameMode = theGameMode;
 	if (HasSavedGame())
 	{
-		Dialog* aDialog = DoDialog(DIALOG_NEW_GAME, true, GT(0x00495e94), GT(0x00495ea4), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
+		Dialog* aDialog = DoDialog(DIALOG_NEW_GAME, true, GT(0x00495e94), GT(0x00495ea4), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);
 		int aY = (theGameMode == GAMEMODE_ACTION) ? 0x73 : ((theGameMode == GAMEMODE_STRATEGY) ? 100 : 100);
 		int aHeight = (theGameMode == GAMEMODE_ACTION) ? 0xfa : 0x118;
 		aDialog->Resize(0x6e, aY, 0x1a4, aHeight);
@@ -536,6 +580,19 @@ void NoahApp::ShowNewGameDialog(int theGameMode)
 // 0x419650: how to play in the current mode (a dialog the player closes to start)
 void NoahApp::ShowModeIntroDialog(int theMode)
 {
+	// Help in the Options dialog: the original closes the dialog first, taking its settings as DONE does (the Help is not
+	// opened over it, and the Options dialog is gone when the Help is closed)
+	OptionsDialog* anOptions = (OptionsDialog*) GetDialog(DIALOG_OPTIONS);
+	if (anOptions != NULL)
+	{
+		bool aWindowed = !anOptions->mFullscreenCheckbox->IsChecked();
+		if (mIsWindowed != aWindowed)
+			SwitchScreenMode(aWindowed);
+		mShowHints = anOptions->mHintsCheckbox->IsChecked();
+		if (!mShowHints && (mBoard != NULL))
+			mBoard->ClearHint();
+		KillDialog(DIALOG_OPTIONS);
+	}
 	SexyString aHeader, aLines;
 	int aX = 0x5a, aY = 0x37, aW = 0x1cc, aH = 0x186;
 	switch (theMode)
@@ -607,13 +664,14 @@ void NoahApp::ShowRecordScore(const SexyString& thePlace)
 	AddDialog(DIALOG_RECORD_SCORE, aDialog);
 }
 
-// 0x41ac10 / 0x41ac40: the saved game is data/savegame.dat in the original, savegame.dat in the user folder here
+// 0x41ac10: the saved game is data/savegame.dat in the original, savegame.dat in the user folder here
 bool NoahApp::HasSavedGame()
 {
 	std::string aData;
 	return Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + Board::SavePath(), &aData);
 }
 
+// 0x41ac40
 void NoahApp::DeleteSavedGame()
 {
 	Platform::RemoveUserFile(Board::SavePath());
@@ -622,9 +680,9 @@ void NoahApp::DeleteSavedGame()
 // 0x41a0b0: every button of the game
 void NoahApp::ButtonDepress(int theId)
 {
-	if ((theId >= 2000) && (theId < 3000))
+	if ((theId >= DIALOG_YES) && (theId < DIALOG_NO))
 	{
-		switch (theId - 2000)
+		switch (theId - DIALOG_YES)
 		{
 		case DIALOG_NEW_GAME:
 			KillDialog(DIALOG_NEW_GAME);
@@ -689,18 +747,18 @@ void NoahApp::ButtonDepress(int theId)
 			break;
 		}
 		default:
-			KillDialog(theId - 2000);
+			KillDialog(theId - DIALOG_YES);
 			break;
 		}
 	}
-	else if ((theId >= 3000) && (theId < 4000))
+	else if ((theId >= DIALOG_NO) && (theId < DIALOG_BUTTONS_END))
 	{
-		if (theId == 3000 + DIALOG_QUIT)
+		if (theId == DIALOG_NO + DIALOG_QUIT)
 		{
 			if (mBoard != NULL)
 				mBoard->mPaused = false;
 		}
-		KillDialog(theId - 3000);
+		KillDialog(theId - DIALOG_NO);
 	}
 
 	switch (theId)

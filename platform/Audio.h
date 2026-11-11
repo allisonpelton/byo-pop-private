@@ -43,6 +43,30 @@ public:
 	// every channel when the player cannot tell.
 	virtual int GetChannelVolume(int theChannel) { return -1; }
 	virtual void SetChannelVolume(int theChannel, int theVolume) {}
+#ifdef __EMSCRIPTEN__
+	// What the site's Music window shows of the module a game plays (docs/WEB_PLAYER.md, "Following a game"; Mixer's
+	// byopop_music_* exports). Web only, and asked only while that window follows the game. A player that cannot tell
+	// returns false, "" and 0: the window then shows the game's spectrum only.
+	// Where the player is: the pattern, the row, the pattern's rows, the module's channels and the order.
+	virtual bool GetView(int theOut[5]) { return false; }
+	// One row of a pattern, its channels' cells separated by '|' (libopenmpt's notation, as the window's own decoder gives it).
+	virtual std::string GetRowText(int thePattern, int theRow) { return std::string(); }
+	// Which channels play a note anywhere in the module: theOut[c] 1 or 0, up to theMax; returns the module's channels.
+	virtual int GetUsedChannels(unsigned char* theOut, int theMax) { return 0; }
+	// The module's own title, "" when it has none.
+	virtual std::string GetTitle() { return std::string(); }
+	// Its instruments' names (its samples' where it has no instruments), a line each as ModuleText.h's byopop_name_line
+	// writes them ("1A Bass"), empty names left out.
+	virtual std::string GetInstrumentNames() { return std::string(); }
+	// Mutes a channel (true) or brings it back (false), for the window's tracker; false when the player cannot.
+	virtual bool SetChannelMute(int theChannel, bool theMute) { return false; }
+	// A pattern's rows per beat and per bar as its file stores them (beat << 16 | bar), 0 when it stores none.
+	virtual int GetMeter(int thePattern) { return 0; }
+	// The current speed in ticks a row, 0 when the player cannot tell (with GetTempo's BPM, a row's length).
+	virtual int GetSpeed() { return 0; }
+	// The module's orders (its order list's length), 0 when the player cannot tell.
+	virtual int GetOrders() { return 0; }
+#endif
 };
 
 typedef bool (*ModuleDetector)(const std::vector<uint8_t>& theFile);
@@ -107,6 +131,10 @@ public:
 	// between Lock and Unlock. Returns the song handle, played and freed like a loaded song's.
 	int AddSong(std::unique_ptr<ModulePlayer> thePlayer);
 	void UnloadSong(int theSong);
+	// What the loaded songs hold, for the memory report (platform/MemReport.h): how many there are, the bytes the mixer
+	// keeps for audio tracks (an Ogg's file and decode buffer, a WAV's samples) and the size of the module files loaded
+	// (a module's player keeps a copy of its own, about that size or more).
+	void GetSongMemory(int* theCount, size_t* theTrackBytes, size_t* theModuleFileBytes);
 	// theOrder/theRow: start position (BASS_MusicPlayEx offset = MAKELONG(order,row)).
 	void PlaySong(int theSong, int theOrder, int theRow, bool theLoop, bool theResetPosition = true);
 	void StopSong(int theSong);
@@ -130,6 +158,22 @@ public:
 	void SetSongTempo(int theSong, int theBPM);
 	int GetSongChannelVolume(int theSong, int theChannel);
 	void SetSongChannelVolume(int theSong, int theChannel, int theVolume);
+#ifdef __EMSCRIPTEN__
+	// The site's Music window following the game (docs/WEB_PLAYER.md, "Following a game"; Audio.cpp's byopop_music_*). The
+	// song it shows: the loudest one playing (its handle, 0 for none), and as JSON where it is ({"song", "kind": "module" or
+	// "stream", and for a module "pattern", "row", "rows", "channels", "order", "speed", "bpm" (0 where the player cannot tell),
+	// "orders", "title"}); a row's cells; the channels used; the instruments' names; a channel muted or brought back (the
+	// window's own control, not the game's); a pattern's rows per beat and bar as its file stores them; the song moved to an
+	// order and row (the window's seek bar, Previous and Next while it follows the game: the music the game plays changes).
+	int WebFollowedSong();
+	std::string WebSongView(int theSong);
+	std::string WebSongRow(int theSong, int thePattern, int theRow);
+	std::string WebSongUsed(int theSong);
+	std::string WebSongNames(int theSong);
+	bool WebSongMute(int theSong, int theChannel, bool theMute);
+	int WebSongMeter(int theSong, int thePattern);
+	bool WebSongSeek(int theSong, int theOrder, int theRow);
+#endif
 
 #ifdef __EMSCRIPTEN__
 	// On the web the page's starting volume (web/settings.js, docs/WEB_PLAYER.md, "Site settings") reaches a game with no

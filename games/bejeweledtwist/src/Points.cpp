@@ -39,19 +39,18 @@ int ClampByte(int theValue)
 }  // namespace
 
 Points::Points(WinTwistApp* theApp, Font* theFont, const SexyString& theText, int theX, int theY, float theLife,
-	int theUnknown, const Color& theColor, int theKind)
+	const Color& theColor, int theKind)
 {
-	(void)theUnknown;
 	mStopHigh = true;
 	mDelay = 0;
-	mUnknown188 = false;
+	mUseLastLayerCycle = false;
 	mLife = theLife;
 	mPhase = 0;
 	mColor = theColor;
 	mApp = theApp;
 	mFont = theFont;
 	for (int i = 0; i < 5; i++)
-		mUnknown54[i] = 0;
+		mLayerOffsets[i] = 0;
 	if (theKind < 3) {
 		for (int i = 0; i < 5; i++) {
 			mCycles[i].mPos = std::fabs((float)RandSigned());
@@ -90,7 +89,7 @@ Points::Points(WinTwistApp* theApp, Font* theFont, const SexyString& theText, in
 	mText = theText;
 	Flash();
 	// (the original asks the font for the text's width and the ascent here and drops them)
-	mUnknown50 = 0;
+	mFontHeight = 0;
 	mX = (float)theX;
 	mY = (float)theY;
 	mScale = 0;
@@ -104,6 +103,7 @@ Points::Points(WinTwistApp* theApp, Font* theFont, const SexyString& theText, in
 	mAlpha = 1.0f;
 }
 
+// 0x7319e5: sets +0x14 to 1, inline here
 void Points::Update()
 {
 	mUpdates++;
@@ -188,7 +188,7 @@ void Points::Draw(Graphics* g)
 		do {
 			Color aColor;
 			if (aLayer == mLayers - 1) {
-				if (mUnknown188)
+				if (mUseLastLayerCycle)
 					aColor = mCycles[mLayers - 1].mColor;
 				else
 					aColor = mColor;

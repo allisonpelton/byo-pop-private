@@ -1,7 +1,7 @@
 #ifndef __MATCHFINDER_H__
 #define __MATCHFINDER_H__
 
-// port(variant): the match rules' finder (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6, stage 9). Not part of the
+// port(variant): the match rules' finder (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6). Not part of the
 // original game. Framework-free (GameRules and BoardLayout only), so tools/rulestest runs its fixtures.
 //
 // FindGroups emits the groups of a grid of colours in this order: the vertical runs (columns left to right, each
@@ -90,7 +90,7 @@ struct Spec
 };
 
 void		FindGroups(const ColorGrid& theGrid, const Spec& theSpec, std::vector<Group>* theGroups);
-// Whether the grid has any group (the fill's test, HasMatchVariant)
+// Whether the grid has any group (the fill's test, HasSetVariant)
 bool		AnyGroup(const ColorGrid& theGrid, const Spec& theSpec);
 // Whether some group of FindGroups would hold the cell: with theHorizontal alone a horizontal run through it, with
 // theVertical alone a vertical run, with both any group (FindMove's contract). A local scan around the cell.

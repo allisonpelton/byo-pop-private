@@ -52,7 +52,7 @@ screens, texts, music and sounds, and the loss and regain of the window's focus,
 Checked on 2026-10-31 by comparing, for each of the 42 functions of the exe that call `RandRange`, the sequence of the
 calls' ranges with the port's functions. 34 have a port function with the same sequence; the other eight are the same
 draws through a loop or a helper (the original writes a loop out twice or three times, or draws inline what the port
-does in `Sweeper_Spark` and the power-up's sparks), except `Emitter_Update` (0x40b940), whose many branches were
+does in the power-up's sparks and, until it was taken out, `Sweeper_Spark`), except `Emitter_Update` (0x40b940), whose many branches were
 read by eye against the exe and not yet by a run. One real difference was found and fixed: a random board's half
 width and height were drawn from 3 to 10 and 2 to 6 where the exe draws 2 to 10 and 1 to 6, so random boards
 differed. The frozen baseline of the port is in `tools/check.sh waterbugs` (the state lines and the hashes of three
@@ -129,3 +129,5 @@ Pipe-end glints (2026-11-01). On about 20 of the later-level shots, the sparkles
 The logo panel's strip at x 766, y 531..560 differs by the order of two draw-list entries at the same depth (an address tie-break in the original); one fill cell differs by one update in one run (z24000). Neither has a visible effect.
 
 The sound of the original could not be recorded (its audio library does not reach the sandbox's audio stand-in), so sound is compared by call counts only (see above).
+
+The world map and a click without a hover (2026-11-08). In the coverage runs (`GAME_NOTES.md`, "Coverage check") the original lost a click that came with its mouse move in one update on the world map's level-set buttons three times (the level selection never started), and once ended with an access violation (`held269`). With the button hovered 300 steps before the click it did neither. The port starts the board in every case. A real mouse moves before it clicks, so it is not chased.

@@ -26,7 +26,8 @@ START = re.compile(r"^<!-- private(?:: (.*?))? -->[ \t]*\r?$")
 END = re.compile(r"^<!-- /private -->[ \t]*\r?$")
 MARKER = r"^<!-- (/private|private(: .*)?) -->[[:space:]]*$"  # the same lines, for git grep -E
 FORBIDDEN = ("assets/", "re/", "build/")  # staged game files, Ghidra exports, builds (all git-ignored)
-TRAILER = "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+# the commit names the model that made it (CLAUDE.md, "Commits"): --model, e.g. "Opus 5.5"
+TRAILER = "Co-Authored-By: Claude {model} <noreply@anthropic.com>"
 
 
 def git(*args, env=None, data=None, ok=(0,)):
@@ -68,6 +69,7 @@ def main():
     ap.add_argument("--source", default="main")
     ap.add_argument("--remote", default="origin")
     ap.add_argument("-m", dest="message")
+    ap.add_argument("--model", required=True, help='the model making the snapshot, for its trailer, e.g. "Opus 5.5"')
     a = ap.parse_args()
     os.chdir(git("rev-parse", "--show-toplevel").decode().strip())
     source = git("rev-parse", "--verify", a.source + "^{commit}").decode().strip()
@@ -111,7 +113,7 @@ def main():
         print(f"nothing new: {LAST} ({parent[:10]}) already has this tree")
         return
     message = (a.message or f"byo-pop snapshot, {datetime.date.today().isoformat()}") + \
-        f"\n\nPublished by tools/publish.py from {source[:10]}.\n\n{TRAILER}\n"
+        f"\n\nPublished by tools/publish.py from {source[:10]}.\n\n{TRAILER.format(model=a.model)}\n"
     commit = git("commit-tree", tree, *(["-p", parent] if parent else []), "-F", "-", data=message.encode()).decode().strip()
     git("update-ref", NEXT, commit)
     print(f"snapshot {commit[:10]} of {source[:10]} in {NEXT}: {len(published)} files, parent "

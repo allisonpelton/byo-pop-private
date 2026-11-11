@@ -36,8 +36,8 @@ Any other folder in `build/` is a leftover of a past review or experiment and ca
 
 ## Running the oracle
 
-Moved here from CLAUDE.md on 2026-11-01; CLAUDE.md keeps the machine's rules for it (one oracle at a time, at most
-three game processes, no wait loop in the shell that starts it).
+CLAUDE.md has the machine's rules for it (one oracle at a time, at most three game processes, no wait loop in the
+shell that starts it).
 
 - The oracle's three runs per change (default, `-forcevariant`, the novariants build) are one command:
   `games/bejeweled/tools/oracle/compare.sh --variants default,forcevariant,novariants` (into build/oracle,
@@ -74,3 +74,7 @@ minutes for a typical merge). The quick forms of `pixelus`, `bookwormadv` and `t
 In merge mode the game suites run up to three game processes at a time (`--jobs`; the oracle, livesplit and the
 builds always run alone). The coordinator merges with the merge mode (the user, 2026-11-02: running every suite and
 the oracle for every merge was not feasible) and runs `all` before each publish.
+Neither `all` nor a shared change runs Bejeweled's oracle (the user, 2026-11-11: "Seems like the Bejeweled oracle is
+causing a lot of slowdown for no benefit"): it compares Bejeweled's game logic with the original's, and a change outside
+`games/bejeweled` that leaves Bejeweled's frozen baseline and `verify` unchanged leaves that logic unchanged too. It runs
+when `games/bejeweled` changes, or when named (`tools/check.sh oracle`).

@@ -140,6 +140,23 @@ check("order: a pak marker's game folders before the markers", I.ordered(spec("b
 check("name: the same", I.nameScore("TipTop Deluxe", I.games.filter((g) => g.target === "tiptop")[0]), 3);
 check("name: held", I.nameScore("PopCap TipTop Deluxe v1.0", I.games.filter((g) => g.target === "tiptop")[0]), 2);
 check("name: neither", I.nameScore("Games", I.games.filter((g) => g.target === "tiptop")[0]), 0);
+// a marker of alternatives ("a|b"): Typer Shark's exe is WinTS.exe in its Steam copy and TyperShark.exe in the Collection's
+if (finished.indexOf("typershark") < 0) {
+  const js = fs.readFileSync(path.join(root, "games", "typershark", "web", "page.js"), "utf8");
+  vm.runInContext(`ByopopImport.add("typershark", "Typer Shark Deluxe", function () {\n${js}\n  return PAGE;\n});`, ctx);
+}
+const ts = (exe) => files("TS/data/twords.txt", "TS/Images/TitleScreen.jpg", "TS/sounds/a.ogg").concat(exe ? files("TS/" + exe) : []);
+check("either: the Steam copy's exe", I.findRoot(spec("typershark"), ts("WinTS.exe"), false), "TS/");
+check("either: the Collection's exe", I.findRoot(spec("typershark"), ts("TyperShark.exe"), false), "TS/");
+check("either: neither exe", I.findRoot(spec("typershark"), ts(null), false), null);
+check("either: neither exe, named", I.missingMarkers(spec("typershark"), ts(null)), "WinTS.exe or TyperShark.exe");
+check("either: picked files", [I.hasMarkers(spec("typershark"), ["data/twords.txt", "images/titlescreen.jpg", "typershark.exe"]),
+  I.hasMarkers(spec("typershark"), ["data/twords.txt", "images/titlescreen.jpg", "WINTS.EXE"]),
+  I.hasMarkers(spec("typershark"), ["data/twords.txt", "images/titlescreen.jpg", "other.exe"])], [true, true, false]);
+check("either: missing in a known root", I.missingIn(spec("typershark"), ["data/twords.txt", "images/titlescreen.jpg"]), "WinTS.exe or TyperShark.exe");
+check("either: dropped folders of both copies", brief(I.sort(ts("WinTS.exe").map((f) => ({ path: "Steam/" + f.path, read: f.read }))
+  .concat(ts("TyperShark.exe").map((f) => ({ path: "Collection/" + f.path, read: f.read }))).concat(ts(null).map((f) => ({ path: "Bare/" + f.path, read: f.read }))))),
+  { found: [["Steam", "typershark", "Steam/TS/", ["typershark"]], ["Collection", "typershark", "Collection/TS/", ["typershark"]]], rejected: ["Bare"] });
 
 console.log(`gameimporttest: ${checks} checks, ${failed} failed`);
 process.exit(failed ? 1 : 0);

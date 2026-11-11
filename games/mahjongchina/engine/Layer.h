@@ -18,7 +18,7 @@ class Layer
 {
 public:
 	Manager* mManager = nullptr;        // +0x04
-	bool mFlag8;                        // +0x08 the low byte of the x passed to the constructor (unused)
+	bool mXLowByteSet;                  // +0x08 the low byte of the constructor's x is not zero; nothing reads it
 	std::vector<Object*> mObjects;      // +0x0c
 	int mX, mY;                         // +0x18, +0x1c
 	bool mActive = true;                // +0x20
@@ -26,7 +26,7 @@ public:
 	int mDarken = 0;                    // +0x28 grows to 0x80 while inactive
 	int mFade = 0;                      // +0x2c 1 fading out, 2 fading in
 	bool mFadeSkip = false;             // +0x30 the first step of a fade is skipped
-	bool mFlag34;                       // +0x34 as +0x08
+	bool mXLowByteSetToo;               // +0x34 the same; nothing reads it
 	std::vector<Object*> mFocus;        // +0x38
 	int mFocusIndex = -1;               // +0x44
 	bool mDarkens = true;               // +0x48
@@ -60,8 +60,6 @@ public:
 	// 0x420a30, 0x420a40
 	void SetOpaque(bool theOn) { mOpaque = theOn; }
 	bool IsOpaque() const { return mOpaque; }
-	// 0x420a50: an image of Resource.dll into the table
-	void PreloadImage(int theImageId);
 	// 0x420a60, 0x42a3b0
 	void AddCmdListener(Object* theObject) { ListAdd(mCmdListeners, theObject); }
 	void RemoveCmdListener(Object* theObject) { ListRemove(mCmdListeners, theObject); }

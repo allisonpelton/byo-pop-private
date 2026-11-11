@@ -12,46 +12,46 @@ namespace wb
 
 struct Obj
 {
-	Obj* next;                 // +0x00
-	Obj* prev;                 // +0x04
-	int kind;                  // +0x08
-	int state;                 // +0x0c  2: fading out (Obj_Update)
-	float x;                   // +0x10
-	float y;                   // +0x14
-	int depth;                 // +0x18  the draw list's
-	float oldX;                // +0x1c  before the last move
-	float oldY;                // +0x20
-	float vx;                  // +0x24
-	float vy;                  // +0x28
-	float speed;               // +0x2c  the game file's
-	int r;                     // +0x30  the draw list's colour and alpha
-	int g;                     // +0x34
-	int b;                     // +0x38
-	int alpha;                 // +0x3c
-	int tint;                  // +0x40  0: the animation's colours, -1 or no animation: none, else tints[tint]
-	Image* image;              // +0x44
-	int drawKind;              // +0x48  the draw list's (0 blit .. 6 additive)
-	int dirty;                 // +0x4c  also marks the dirty grid
-	float age;                 // +0x50  updates since made
-	float lifetime;            // +0x54  0: for ever
-	List<Obj> emitters;        // +0x58  (deleted as objects too)
-	List<Obj> children;        // +0x64
-	Animation* anim;           // +0x70
-	int frame;                 // +0x74
-	int frameCount;            // +0x78
-	int frameTime;             // +0x7c  updates a frame
-	int frameTimer;            // +0x80
-	int frameStep;             // +0x84
-	int loop;                  // +0x88  0: the last frame starts the fade out
-	float fade;                // +0x8c
-	int shadow;                // +0x90  a dark copy 5 pixels down and right, a depth below
-	Animation* dieAnim;        // +0x94  Obj_Explode plays it
-	int dieFrameCount;         // +0x98
-	int dieFrameTime;          // +0x9c
-	int oneShot;               // +0xa0  the animation's end (either way) finishes the object
-	int exploSound;            // +0xa4  -1: none
-	int appearSound;           // +0xa8  a text's, played with a burst of bubbles as it fades in (0: none)
-	int midHandle;             // +0xac  each frame is drawn about its middle
+	Obj* mNext;                 // +0x00
+	Obj* mPrev;                 // +0x04
+	int mKind;                  // +0x08
+	int mState;                 // +0x0c  2: fading out (Obj_Update)
+	float mX;                   // +0x10
+	float mY;                   // +0x14
+	int mDepth;                 // +0x18  the draw list's
+	float mOldX;                // +0x1c  before the last move
+	float mOldY;                // +0x20
+	float mVx;                  // +0x24
+	float mVy;                  // +0x28
+	float mSpeed;               // +0x2c  the game file's
+	int mR;                     // +0x30  the draw list's colour and alpha
+	int mG;                     // +0x34
+	int mB;                     // +0x38
+	int mAlpha;                 // +0x3c
+	int mTint;                  // +0x40  0: the animation's colours, -1 or no animation: none, else tints[tint]
+	Image* mImage;              // +0x44
+	int mDrawKind;              // +0x48  the draw list's (0 blit .. 6 additive)
+	int mDirty;                 // +0x4c  also marks the dirty grid
+	float mAge;                 // +0x50  updates since made
+	float mLifetime;            // +0x54  0: for ever
+	List<Obj> mEmitters;        // +0x58  (deleted as objects too)
+	List<Obj> mChildren;        // +0x64
+	Animation* mAnim;           // +0x70
+	int mFrame;                 // +0x74
+	int mFrameCount;            // +0x78
+	int mFrameTime;             // +0x7c  updates a frame
+	int mFrameTimer;            // +0x80
+	int mFrameStep;             // +0x84
+	int mLoop;                  // +0x88  0: the last frame starts the fade out
+	float mFade;                // +0x8c
+	int mShadow;                // +0x90  a dark copy 5 pixels down and right, a depth below
+	Animation* mDieAnim;        // +0x94  Obj_Explode plays it
+	int mDieFrameCount;         // +0x98
+	int mDieFrameTime;          // +0x9c
+	int mOneShot;               // +0xa0  the animation's end (either way) finishes the object
+	int mExploSound;            // +0xa4  -1: none
+	int mAppearSound;           // +0xa8  a text's, played with a burst of bubbles as it fades in (0: none)
+	int mMidHandle;             // +0xac  each frame is drawn about its middle
 };
 
 void Obj_Init(Obj* theObj);                                      // 0x40f230
@@ -62,7 +62,6 @@ int Obj_Update(Obj* theObj);
 void Obj_DrawTo(Obj* theObj, uint8_t* theDst, int theDPitch);
 void Obj_Draw(Obj* theObj);                                      // 0x40ee60: onto the screen
 void Obj_UpdateEmitters(Obj* theObj);                            // 0x40f030
-void Obj_ClearChildren(List<Obj>* theList);                      // 0x403480
 
 // 0x40e5b0: the fields a copy of an object takes (not the links, lists, tint, age, frame step or loop)
 void Obj_Copy(Obj* theObj, const Obj* theFrom);

@@ -10,6 +10,8 @@
 
 #include "Support.h"
 
+#include <vector>
+
 namespace Sexy
 {
 
@@ -17,6 +19,7 @@ class AtomicaApp;
 class Board;
 class Atom;
 class Graphics;
+struct Span;
 
 class Swirl
 {
@@ -39,7 +42,6 @@ public:
 	float			mMinRadius;		// +0x2c it goes when it has shrunk to this
 	int				mPoints[NUM_POINTS][2];		// +0x30 the ring's points (screen position)
 	int				mJitter[NUM_POINTS][2];		// +0xc10 what each is moved by (-7 to 7)
-	int				m17f0;			// +0x17f0 (a clone copies it; the original never sets it)
 	PtrList<Atom>	mAtoms;			// +0x17f4 the atoms that circle in it
 	bool			mClone;			// +0x180c a clone of a swirl for flown atoms: it draws no ring
 	float			mShrink;		// +0x1810 how fast a clone's shrinking speeds up
@@ -57,7 +59,7 @@ public:
 	void	Aim(int theX, int theY, float* theAngle, float* theRatio);	// 0x427ed0
 	Swirl*	Clone();						// 0x428870
 	void	Draw(Graphics* g, Swirl* thePrevious);	// 0x428940
-	void	DrawTriangle(Graphics* g, const int* theA, const int* theB, const int* theC, int theStride);	// 0x4283a0 with 0x427f50
+	void	DrawTriangle(std::vector<Span>& theSpans, const int* theA, const int* theB, const int* theC, int theStride);	// 0x4283a0 with 0x427f50
 };
 
 }

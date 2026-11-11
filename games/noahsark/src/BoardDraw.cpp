@@ -1,4 +1,4 @@
-// Board.cpp, part 5: drawing (WinNoah.exe 0x4092a0 Board::vf17 and its helpers 0x408810, 0x408ce0, 0x409180,
+// The Board, part 5 of 6: drawing (WinNoah.exe 0x4092a0, Board::Draw, and its helpers 0x408810, 0x408ce0, 0x409180,
 // 0x40bfa0, 0x40c180, 0x40c460, 0x40c8a0, 0x407fa0).
 
 #include "Board.h"
@@ -27,9 +27,9 @@ void DrawOutlined(Graphics* g, Font* theFont, const SexyString& theText, int the
 {
 	g->SetFont(theFont);
 	g->SetColor(theOutline);
-	for (int dx = -1; dx < 2; dx++)
-		for (int dy = -1; dy < 2; dy++)
-			g->DrawString(theText, theX + dx, theY + dy);
+	for (int aOffsetX = -1; aOffsetX < 2; aOffsetX++)
+		for (int aOffsetY = -1; aOffsetY < 2; aOffsetY++)
+			g->DrawString(theText, theX + aOffsetX, theY + aOffsetY);
 	g->SetColor(theColor);
 	g->DrawString(theText, theX, theY);
 }
@@ -84,14 +84,14 @@ void Board::DrawSparkles(Graphics* g)
 {
 	for (size_t i = 0; i < mSparkles.size(); i++)
 	{
-		Sparkle* s = mSparkles[i];
-		int aY = (s->mHeight + s->mY) - s->mFrame;
+		Sparkle* aSparkle = mSparkles[i];
+		int aY = (aSparkle->mHeight + aSparkle->mY) - aSparkle->mFrame;
 		Graphics aClip(*g);
-		aClip.SetColor(Color(0xff, 0xff, 0xff, std::max(0, std::min(0xff, s->mLife))));
+		aClip.SetColor(Color(0xff, 0xff, 0xff, std::max(0, std::min(0xff, aSparkle->mLife))));
 		aClip.SetColorizeImages(true);
-		aClip.ClipRect(s->mX, aY, 0xf, 0xf);
-		int aFrame = abs((s->mFrame / 5) % 4);
-		aClip.DrawImage(mApp->mImages[IMAGE_HEARTS], s->mX, aY - aFrame * 0xf);
+		aClip.ClipRect(aSparkle->mX, aY, 0xf, 0xf);
+		int aFrame = abs((aSparkle->mFrame / 5) % 4);
+		aClip.DrawImage(mApp->mImages[IMAGE_HEARTS], aSparkle->mX, aY - aFrame * 0xf);
 		aClip.SetColorizeImages(false);
 	}
 }
@@ -101,24 +101,24 @@ void Board::DrawTexts(Graphics* g)
 {
 	for (size_t i = 0; i < mTexts.size(); i++)
 	{
-		FloatingText* t = mTexts[i];
+		FloatingText* aFloating = mTexts[i];
 		g->SetFont(mApp->mFonts[FONT_COLORLESS]);
-		int aAlpha = std::min(t->mAlpha, 0xff);
-		SexyString aText = t->mText;
+		int aAlpha = std::min(aFloating->mAlpha, 0xff);
+		SexyString aText = aFloating->mText;
 		int aWidth = g->GetFont()->StringWidth(aText);
-		int aX = (0x1e - aWidth) / 2 + t->mX;
+		int aX = (0x1e - aWidth) / 2 + aFloating->mX;
 		g->SetColor(Color(0xdc, 0xdc, 0xdc, aAlpha));
-		for (int dx = -1; dx < 2; dx++)
-			for (int dy = -1; dy < 2; dy++)
-				g->DrawString(aText, aX + dx, t->mY + dy);
-		g->SetColor(Color(t->mColor.mRed, t->mColor.mGreen, t->mColor.mBlue, aAlpha));
-		g->DrawString(aText, aX, t->mY);
+		for (int aOffsetX = -1; aOffsetX < 2; aOffsetX++)
+			for (int aOffsetY = -1; aOffsetY < 2; aOffsetY++)
+				g->DrawString(aText, aX + aOffsetX, aFloating->mY + aOffsetY);
+		g->SetColor(Color(aFloating->mColor.mRed, aFloating->mColor.mGreen, aFloating->mColor.mBlue, aAlpha));
+		g->DrawString(aText, aX, aFloating->mY);
 
 		g->SetColorizeImages(true);
-		g->SetColor(Color(t->mColor.mRed, t->mColor.mGreen, t->mColor.mBlue, aAlpha));
-		int aStarX = t->mX + 7;
-		int aStarY = t->mY;
-		int aStars = t->mStars;
+		g->SetColor(Color(aFloating->mColor.mRed, aFloating->mColor.mGreen, aFloating->mColor.mBlue, aAlpha));
+		int aStarX = aFloating->mX + 7;
+		int aStarY = aFloating->mY;
+		int aStars = aFloating->mStars;
 		int aMode = mApp->mGameMode;
 		if ((aMode != GAMEMODE_STAMPEDE) && (aMode != GAMEMODE_PUZZLE))
 		{
@@ -127,7 +127,7 @@ void Board::DrawTexts(Graphics* g)
 			{
 				if (aStars >= 4)
 				{
-					g->DrawImage(aStar, t->mX - 0xb, aStarY);
+					g->DrawImage(aStar, aFloating->mX - 0xb, aStarY);
 					g->DrawImage(aStar, aStarX + 1 - 7 + 7, aStarY + 8);
 					g->DrawImage(aStar, aStarX + 0xd - 7 + 7, aStarY + 8);
 					g->DrawImage(aStar, aStarX + 0x19 - 7 + 7, aStarY + 8);
@@ -143,13 +143,13 @@ void Board::DrawTexts(Graphics* g)
 				}
 				else if (aStars == 2)
 				{
-					g->DrawImage(aStar, t->mX + 1, aStarY);
-					g->DrawImage(aStar, t->mX + 0xd, aStarY);
+					g->DrawImage(aStar, aFloating->mX + 1, aStarY);
+					g->DrawImage(aStar, aFloating->mX + 0xd, aStarY);
 					aStars = 0;
 				}
 				else
 				{
-					g->DrawImage(aStar, t->mX + 7, aStarY);
+					g->DrawImage(aStar, aFloating->mX + 7, aStarY);
 					aStars = 0;
 				}
 			}
@@ -164,7 +164,7 @@ void Board::DrawLevelNumber(Graphics* g)
 	int aBaseX = CellLeft(0);
 	int aWidth = 0x38;
 	int aLevel = mApp->mLevel;
-	for (int n = aLevel; n > 9; n /= 10)
+	for (int aRest = aLevel; aRest > 9; aRest /= 10)
 		aWidth += 10;
 	int aX = ((aBaseX - 10) - aWidth) / 2 - 10 + aWidth;
 	g->SetColorizeImages(true);
@@ -275,6 +275,7 @@ void Board::DrawTrailNodes(Graphics* g, const std::vector<PathNode*>& theNodes, 
 	}
 }
 
+// part of 0x40c8a0 and 0x40c460: the arrow on a trail's last cell, pointing the way of the last step
 void Board::DrawTrailArrow(Graphics* g, PathNode* theLast, PathNode* thePrev, const Color& theTint)
 {
 	int aX = CellLeft(theLast->mCellX);
@@ -330,13 +331,13 @@ void Board::DrawPreview(Graphics* g, bool theSecondPass)
 	{
 		for (size_t i = 0; i < mLink.size(); i++)
 		{
-			Piece* p = mLink[i];
-			if ((p != NULL) && (p->mPath.size() >= 2) && p->mFacingRight)
+			Piece* aPiece = mLink[i];
+			if ((aPiece != NULL) && (aPiece->mPath.size() >= 2) && aPiece->mFacingRight)
 			{
-				Color aTint = Lighter(AnimalColor(p->mType));
-				DrawTrailArrow(g, p->mPath.back(), p->mPath[p->mPath.size() - 2], aTint);
-				if (p->mPath.size() > 2)
-					DrawTrailNodes(g, p->mPath, 1, (int) p->mPath.size() - 1, aTint);
+				Color aTint = Lighter(AnimalColor(aPiece->mType));
+				DrawTrailArrow(g, aPiece->mPath.back(), aPiece->mPath[aPiece->mPath.size() - 2], aTint);
+				if (aPiece->mPath.size() > 2)
+					DrawTrailNodes(g, aPiece->mPath, 1, (int) aPiece->mPath.size() - 1, aTint);
 			}
 		}
 	}
@@ -346,26 +347,26 @@ void Board::DrawPreview(Graphics* g, bool theSecondPass)
 void Board::DrawWalkingTrails(Graphics* g)
 {
 	g->SetColorizeImages(false);
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
-			Piece* p = mGrid[x][y];
-			if (!p->mMoving || !p->mFacingRight || p->mPath.size() < 3)
+			Piece* aPiece = mGrid[x][y];
+			if (!aPiece->mMoving || !aPiece->mFacingRight || aPiece->mPath.size() < 3)
 				continue;
-			Color aTint = Lighter(AnimalColor(p->mType));
-			int aTo = (int) p->mPath.size();
-			if (p->mPartner != NULL)
-				aTo -= p->mPartner->mPathIndex;
-			int aFrom = p->mPathIndex;
+			Color aTint = Lighter(AnimalColor(aPiece->mType));
+			int aTo = (int) aPiece->mPath.size();
+			if (aPiece->mPartner != NULL)
+				aTo -= aPiece->mPartner->mPathIndex;
+			int aFrom = aPiece->mPathIndex;
 			if (aFrom < 1)
 				aFrom = 1;
-			DrawTrailNodes(g, p->mPath, aFrom, std::min(aTo, (int) p->mPath.size() - 1), aTint);
+			DrawTrailNodes(g, aPiece->mPath, aFrom, std::min(aTo, (int) aPiece->mPath.size() - 1), aTint);
 		}
 	}
 }
 
-// the outlined caption in the middle of the board ("Get Ready!", "No More Moves!", "PAUSED")
+// part of 0x4092a0: the outlined caption in the middle of the board ("Get Ready!", "No More Moves!", "PAUSED")
 void Board::DrawBanner(Graphics* g, const SexyString& theText)
 {
 	g->SetFont(mApp->mFonts[FONT_BIG]);
@@ -378,7 +379,7 @@ void Board::DrawBanner(Graphics* g, const SexyString& theText)
 void Board::Draw(Graphics* g)
 {
 	NoahApp* anApp = mApp;
-	Image** anImages = anApp->mImages;
+	ImageTable& anImages = anApp->mImages;
 
 	// the sky (rain, or the lightning flash)
 	Image* aSky = mLightning ? anImages[IMAGE_LIGHTNING] : anImages[IMAGE_RAIN1 + (mBackdropTick & 1)];
@@ -390,7 +391,7 @@ void Board::Draw(Graphics* g)
 		(mState == BOARD_SWAP_BACK) || (mState == BOARD_SETTLE));
 	Color aWave;
 	if (mStormTimer < 1)
-		aWave = aDanger ? Color(std::max(0, mPulseA - 0x48), 0, 0) : Color(0, 0, 0x80);
+		aWave = aDanger ? Color(std::max(0, mDangerPulse - 0x48), 0, 0) : Color(0, 0, 0x80);
 	else
 		aWave = Color(0x82, 0x82, 0xcd);
 	g->SetColor(aWave);
@@ -399,9 +400,9 @@ void Board::Draw(Graphics* g)
 	{
 		Graphics aClip(*g);
 		aClip.ClipRect(x, aSurface, 300, 0x1e);
-		aClip.DrawImage(anImages[IMAGE_WAVES], x + (((x / 300) + mWavePhaseA) % 0x1e) * -300, aSurface);
+		aClip.DrawImage(anImages[IMAGE_WAVES], x + (((x / 300) + mBackWavePhase) % 0x1e) * -300, aSurface);
 	}
-	g->SetColor(aDanger ? Color(std::max(0, mPulseA - 0x48), 0, 0) : Color(0, 0, 0x80));
+	g->SetColor(aDanger ? Color(std::max(0, mDangerPulse - 0x48), 0, 0) : Color(0, 0, 0x80));
 	g->FillRect(0, aSurface + 0x1e, mWidth, mHeight);
 	g->SetColorizeImages(false);
 
@@ -464,7 +465,7 @@ void Board::Draw(Graphics* g)
 		{
 			if ((mWaterY < mArkLevelY + 0x14) && ((mState == BOARD_PLAYING) || (mState == BOARD_SWAP) ||
 				(mState == BOARD_SWAP_BACK) || (mState == BOARD_SETTLE)))
-				aColor = Color(std::min(0xff, mPulseA + aShift), aShift, aShift);   // 0x4092a0: the pulse itself, only the back wave takes 0x48 off
+				aColor = Color(std::min(0xff, mDangerPulse + aShift), aShift, aShift);   // 0x4092a0: the pulse itself, only the back wave takes 0x48 off
 			else
 				aColor = Color(std::min(0xff, 0x2c + aShift), std::min(0xff, 0x45 + aShift), 0xb3);
 		}
@@ -476,7 +477,7 @@ void Board::Draw(Graphics* g)
 		{
 			Graphics aClip(*g);
 			aClip.ClipRect(x - aShift, mWaterY + i, 300, 0x1e);
-			aClip.DrawImage(anImages[IMAGE_WAVES], (x + (((x / 300) + mWavePhaseB) % 0x1e) * -300) - aShift, mWaterY + i);
+			aClip.DrawImage(anImages[IMAGE_WAVES], (x + (((x / 300) + mFrontWavePhase) % 0x1e) * -300) - aShift, mWaterY + i);
 		}
 		g->SetColorizeImages(false);
 	}
@@ -484,7 +485,7 @@ void Board::Draw(Graphics* g)
 	{
 		if ((mWaterY < mArkLevelY + 0x14) && ((mState == BOARD_PLAYING) || (mState == BOARD_SWAP) ||
 			(mState == BOARD_SWAP_BACK) || (mState == BOARD_SETTLE)))
-			g->SetColor(Color(std::min(0xff, mPulseA + 0x2d), 0x2d, 0x2d));
+			g->SetColor(Color(std::min(0xff, mDangerPulse + 0x2d), 0x2d, 0x2d));
 		else
 			g->SetColor(Color(0x54, 0x6d, 0xb3));
 		g->FillRect(0, mWaterY + 0x27, mWidth, (mHeight - mWaterY) - 0x1e);
@@ -504,78 +505,77 @@ void Board::Draw(Graphics* g)
 	if (!mPaused && anApp->mHasFocus)
 	{
 		// the animals and obstacles that stand still (the walking, leaving and abandoned are drawn later)
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
-			for (int y = 0; y < 9; y++)
+			for (int y = 0; y < GRID_SIZE; y++)
 			{
-				Piece* p = mGrid[x][y];
-				if (p == NULL)
+				Piece* aPiece = mGrid[x][y];
+				if (aPiece == NULL)
 					continue;
-				int aX = CellLeft(x) + p->mOffsetX;
-				int aY = CellTop(y) + p->mOffsetY;
-				int aType = p->mType;
-				bool aQuiet = !p->mRemoved && !p->mFading && !p->mMoving;
-				if ((aType == PIECE_BLOCK) || (aType == PIECE_CRATE))
+				int aX = CellLeft(x) + aPiece->mOffsetX;
+				int aY = CellTop(y) + aPiece->mOffsetY;
+				int aType = aPiece->mType;
+				bool aQuiet = !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving;
+				if ((aType == PIECE_CRATE) || (aType == PIECE_BLOCK))
 				{
-					if ((p->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
+					if ((aPiece->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
 					{
-						aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - p->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
+						aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - aPiece->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
 						aY += 14;
 					}
-					// the original's first group of obstacles (0x401ce0, the ones the port numbers 0x10) shows block.jpg, its second the crate
-					g->DrawImage(anImages[(aType == PIECE_BLOCK) ? IMAGE_CRATE : IMAGE_BLOCK], aX, aY);
+					g->DrawImage(anImages[(aType == PIECE_CRATE) ? IMAGE_CRATE : IMAGE_BLOCK], aX, aY);
 					continue;
 				}
 				if ((aType == PIECE_EMPTY) || !aQuiet)
 					continue;
-				if ((p->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
+				if ((aPiece->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
 				{
-					aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - p->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
+					aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - aPiece->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
 					aY += 14;
 				}
 				Graphics aClip(*g);
-				aClip.ClipRect(aX, aY, 0x32, 0x32);
-				if (p->mAlpha < 0xff)
+				aClip.ClipRect(aX, aY, CELL_SIZE, CELL_SIZE);
+				if (aPiece->mAlpha < 0xff)
 				{
 					aClip.SetColorizeImages(true);
-					aClip.SetColor(Color(0xff, 0xff, 0xff, std::max(0, p->mAlpha)));
+					aClip.SetColor(Color(0xff, 0xff, 0xff, std::max(0, aPiece->mAlpha)));
 				}
-				else if (p->mFlash)
+				else if (aPiece->mFlash)
 				{
 					aClip.SetColorizeImages(true);
-					aClip.SetColor(Color(mPulseB, mPulseB, mPulseB));
+					aClip.SetColor(Color(mFlashPulse, mFlashPulse, mFlashPulse));
 				}
 				bool aHover = (mSelected == NULL) && (CellAtX(mMouseX) == x) && (CellAtY(mMouseY) == y) &&
 					(anApp->mGameMode != GAMEMODE_STAMPEDE) && (x >= 0) && (y >= 0);
-				bool aInLink = std::find(mLink.begin(), mLink.end(), p) != mLink.end();
+				bool aInLink = std::find(mLink.begin(), mLink.end(), aPiece) != mLink.end();
 				int aRow;
-				if ((!p->mSelected || (mState != BOARD_GET_READY)) && !p->mFlash)
+				if ((!aPiece->mSelected || (mState != BOARD_GET_READY)) && !aPiece->mFlash)
 				{
 					if (aHover)
 						aRow = 4;
-					else if ((p == mSelected) || p->mSelected || aInLink)
+					else if ((aPiece == mSelected) || aPiece->mSelected || aInLink)
 						aRow = 6;
 					else if (anApp->mNextLevelWidget == NULL)
-						aRow = p->mBlink;
+						aRow = aPiece->mBlink;
 					else
 						aRow = 0;
 				}
 				else
 					aRow = 5;
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY - aRow * 0x32);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * CELL_SIZE, aY - aRow * CELL_SIZE);
 				aClip.SetColorizeImages(false);
 			}
 		}
 		// the Stampede's waiting row
 		if ((anApp->mGameMode == GAMEMODE_STAMPEDE) && (mState == BOARD_PLAYING))
 		{
-			for (int x = 0; x < 9; x++)
+			for (int x = 0; x < GRID_SIZE; x++)
 			{
 				int aX = CellLeft(x);
-				int aY = CellTop(9) + mNextRow[x]->mOffsetY;
+				int aY = CellTop(GRID_SIZE) + mNextRow[x]->mOffsetY;
 				Graphics aClip(*g);
-				aClip.ClipRect(aX, aY, 0x32, 0x32);
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - mNextRow[x]->mType * 0x32, aY - 0x32 * 2 + 0x32 * 2 - 0x32 * 0);
+				aClip.ClipRect(aX, aY, CELL_SIZE, CELL_SIZE);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - mNextRow[x]->mType * CELL_SIZE, aY - CELL_SIZE * 2 + CELL_SIZE * 2 - CELL_SIZE * 0);
 			}
 		}
 	}
@@ -587,62 +587,62 @@ void Board::Draw(Graphics* g)
 	DrawWalkingTrails(g);
 
 	// the animals that walk, are taken in or are abandoned
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
-			Piece* p = mGrid[x][y];
-			if ((p == NULL) || (p->mType == PIECE_EMPTY))
+			Piece* aPiece = mGrid[x][y];
+			if ((aPiece == NULL) || (aPiece->mType == PIECE_EMPTY))
 				continue;
-			int aType = p->mType;
-			if (!p->mRemoved && !p->mFading && !p->mMoving)
+			int aType = aPiece->mType;
+			if (!aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
 				continue;
-			if (p->mMoving && !p->mRemoved && !p->mFading)
+			if (aPiece->mMoving && !aPiece->mRemoved && !aPiece->mFading)
 			{
 				// the cell the animal has walked to (it stays in its grid slot until it is taken in), not the slot's
-				int aX = CellLeft(p->mX) + p->mOffsetX;
-				int aY = CellTop(p->mY) + p->mOffsetY;
-				if (!p->mFacingRight)
+				int aX = CellLeft(aPiece->mX) + aPiece->mOffsetX;
+				int aY = CellTop(aPiece->mY) + aPiece->mOffsetY;
+				if (!aPiece->mFacingRight)
 				{
 					aX += 6;
 					aY += 6;
 				}
 				Graphics aClip(*g);
-				aClip.ClipRect(aX, aY, 0x32, 0x32);
-				if (p->mAlpha < 0xff)
+				aClip.ClipRect(aX, aY, CELL_SIZE, CELL_SIZE);
+				if (aPiece->mAlpha < 0xff)
 				{
 					aClip.SetColorizeImages(true);
-					aClip.SetColor(Color(0xff, 0xff, 0xff, std::max(0, p->mAlpha)));
+					aClip.SetColor(Color(0xff, 0xff, 0xff, std::max(0, aPiece->mAlpha)));
 				}
-				else if (p->mFlash)
+				else if (aPiece->mFlash)
 				{
 					aClip.SetColorizeImages(true);
-					aClip.SetColor(Color(mPulseB, mPulseB, mPulseB));
+					aClip.SetColor(Color(mFlashPulse, mFlashPulse, mFlashPulse));
 				}
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * CELL_SIZE, aY);
 				aClip.SetColorizeImages(false);
 				continue;
 			}
 			// leaving for the ark (shrinking, shaded) or abandoned
-			int aSize = (int) p->mScale;
-			int aX = (int) p->mPixelX;
-			int aY = (int) p->mPixelY;
-			if (!p->mFacingRight && !p->mFading)
+			int aSize = (int) aPiece->mScale;
+			int aX = (int) aPiece->mPixelX;
+			int aY = (int) aPiece->mPixelY;
+			if (!aPiece->mFacingRight && !aPiece->mFading)
 			{
 				aX += 6;
 				aY += 6;
 			}
-			int aAlpha = std::max(0, std::min(0xff, p->mAlpha));
+			int aAlpha = std::max(0, std::min(0xff, aPiece->mAlpha));
 			g->SetColor(Color(10, 10, 10, aAlpha));
 			g->FillRect(aX + 1, aY + 1, aSize, aSize);
 			Graphics aClip(*g);
 			aClip.ClipRect(aX, aY, aSize, aSize);
-			if (p->mAlpha < 0xff)
+			if (aPiece->mAlpha < 0xff)
 			{
 				aClip.SetColorizeImages(true);
 				aClip.SetColor(Color(0xff, 0xff, 0xff, aAlpha));
 			}
-			if (p->mRemoved)
+			if (aPiece->mRemoved)
 			{
 				// the animal is stretched into a picture of its own with the framework's fast stretch (0x40a6f9 does so for
 				// the translucent ones, the opaque ones go straight to the screen, which a software surface stretches the same way)
@@ -651,13 +651,13 @@ void Board::Draw(Graphics* g)
 				{
 					Graphics aStretch(&aStretched);
 					aStretch.SetFastStretch(true);
-					aStretch.DrawImage(anImages[IMAGE_ANIMALS], Rect(0, 0, aSize, aSize), Rect(aType * 0x32, 0xfa, 0x32, 0x32));
+					aStretch.DrawImage(anImages[IMAGE_ANIMALS], Rect(0, 0, aSize, aSize), Rect(aType * CELL_SIZE, 0xfa, CELL_SIZE, CELL_SIZE));
 				}
 				aClip.DrawImage(&aStretched, aX, aY);
 			}
-			else if (p->mFading)
+			else if (aPiece->mFading)
 			{
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY - 0x15e);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * CELL_SIZE, aY - 0x15e);
 			}
 			aClip.SetColorizeImages(false);
 		}
@@ -670,9 +670,9 @@ void Board::Draw(Graphics* g)
 		DrawLevelNumber(g);
 	DrawModNote(g);
 
-	if (mComboShown > 0)
+	if (mComboTextTimer > 0)
 	{
-		SexyString aText = FormatText(GT(0x00494334), mComboShownAt);
+		SexyString aText = FormatText(GT(0x00494334), mShownCombo);
 		g->SetFont(anApp->mFonts[FONT_SMALL]);
 		g->SetColor(Color(0xff, 0xff, 0xff));
 		int aWidth = g->GetFont()->StringWidth(aText);
@@ -718,13 +718,13 @@ void Board::Draw(Graphics* g)
 			const SexyString& aBonus = GT(0x0049423c);
 			g->SetFont(anApp->mFonts[FONT_GARAMOND_SMALL]);
 			g->SetColor(Color(0, 0, 0, 0x96));
-			for (int dx = -1; dx < 2; dx++)
-				for (int dy = -1; dy < 2; dy++)
+			for (int aOffsetX = -1; aOffsetX < 2; aOffsetX++)
+				for (int aOffsetY = -1; aOffsetY < 2; aOffsetY++)
 				{
-					g->DrawString(aSpeed, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aSpeed)) / 2 + dx, 0xfa + dy);
-					g->DrawString(aBonus, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBonus)) / 2 + dx, 0x110 + dy);
+					g->DrawString(aSpeed, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aSpeed)) / 2 + aOffsetX, 0xfa + aOffsetY);
+					g->DrawString(aBonus, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBonus)) / 2 + aOffsetX, 0x110 + aOffsetY);
 					SexyString aBuffer = FormatText(GT(0x00494234), mBonusPoints);
-					g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2 - g->GetFont()->StringWidth(GT(0x00494230)) / 2 + dx, 0x126 + dy);
+					g->DrawString(aBuffer, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aBuffer)) / 2 - g->GetFont()->StringWidth(GT(0x00494230)) / 2 + aOffsetX, 0x126 + aOffsetY);
 				}
 			g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
 			g->DrawString(aSpeed, (CellLeft(0) - 10 - g->GetFont()->StringWidth(aSpeed)) / 2, 0xfa);

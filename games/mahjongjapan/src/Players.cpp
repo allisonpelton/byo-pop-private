@@ -3,6 +3,7 @@
 #include "App.h"
 #include "JBBase.h"
 #include "Manager.h"
+#include "Res.h"
 #include "User.h"
 #include "Widgets.h"
 
@@ -181,23 +182,23 @@ void PlayerBox::Create()
 	int aBottom[] = {3, 1, 1, 2, 0};
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
-	SetTitle(0xab);
+	SetTitle(STRING_SELECT_PLAYER_TITLE);
 	mList = new jb::ListBox(4, 0x118, 0x17, 6, 1);
 	Add(mList, 0x32, 0x46);
 	mList->SetSelColour(0x4e9bac);
 	mList->SetFrame(0x2149, 0x5289bf, 0x102860);
-	mList->SetFont(0x122, 0x121, 5, 0x11, 0x40);
-	mList->SetScroll(0x125, 0x126);
+	mList->SetFont(FONT_TEXT, FONT_TEXT_MAP, 5, 0x11, 0x40);
+	mList->SetScroll(IMAGE_SCROLL_UP, IMAGE_SCROLL_DOWN);
 	Fill(false);
 	DialogButton* aButton = new DialogButton(3, 0x66);
 	Add(aButton, 0x2d, 0xf0);
-	aButton->SetText(0xa7);
+	aButton->SetText(STRING_PLAYERS_DELETE);
 	aButton = new DialogButton(1, 0x66);
 	Add(aButton, 0x9b, 0xf0);
-	aButton->SetText(0xa8);
+	aButton->SetText(STRING_PLAYERS_OK);
 	aButton = new DialogButton(2, 0x66);
 	Add(aButton, 0x109, 0xf0);
-	aButton->SetText(0xa6);
+	aButton->SetText(STRING_PLAYERS_CANCEL);
 }
 
 // 0x416db0
@@ -229,14 +230,14 @@ bool PlayerBox::OnCommand(int theCmd)
 		aSelected = mList->GetSelected();
 		if (0 < aSelected)
 		{
-			YesNoBox* aBox = new YesNoBox(this, 1, 1, 0x1b, 0x16, true, 0x66, 0x66);
+			YesNoBox* aBox = new YesNoBox(this, 1, 1, STRING_YES, STRING_NO, true, 0x66, 0x66);
 			aBox->SetPos(0xd4, 0xb4);
 			jb::gManager->Push(aBox, true, false, true);
-			aBox->SetTitle(0xa4);
-			std::string aText = jb::FormatDll(0xa3, mList->GetText(aSelected).c_str());
-			aBox->AddText(aText.c_str(), 0, 0, 0x4d, false, nullptr, 0);
-			aText = jb::LoadDllString(0xa5);
-			aBox->AddText(aText.c_str(), 0, 0, 0x6b, false, nullptr, 0);
+			aBox->SetTitle(STRING_DELETE_PLAYER_TITLE);
+			std::string aText = jb::FormatDll(STRING_QUOTED_NAME, mList->GetText(aSelected).c_str());
+			aBox->AddText(aText.c_str(), 0, 0, 0x4d, false);
+			aText = jb::LoadDllString(STRING_DELETE_PLAYER_TEXT);
+			aBox->AddText(aText.c_str(), 0, 0, 0x6b, false);
 		}
 		return true;
 	case 3:
@@ -252,7 +253,7 @@ bool PlayerBox::OnCommand(int theCmd)
 	default:
 		return false;
 	}
-	ShowMessage(0x30, 0xe4, 0xaa, 2);
+	ShowMessage(0x30, 0xe4, STRING_CREATE_PLAYER_NOTE, 2);
 	return true;
 }
 
@@ -354,21 +355,21 @@ void NewPlayerBox::Create()
 	int aBottom[] = {3, 1, 2, 0};
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
-	SetTitle(0xad);
+	SetTitle(STRING_ENTER_NAME_TITLE);
 	mEdit = new jb::TextEdit(0x10e, 0x16, 100, false);
 	AddFocusable(mEdit, 0x30, 0x46);
-	mEdit->SetFont(0x122, 0x121, 0x10, 0x40);
+	mEdit->SetFont(FONT_TEXT, FONT_TEXT_MAP, 0x10, 0x40);
 	mEdit->SetSelColour(0x4e9bac);
 	mEdit->SetFrame(0x2149, 0x5289bf, 0x102860);
 	int anOffset = mFirst ? 0x37 : 0;
 	mOk = new DialogButton(1, 0x66);
 	Add(mOk, anOffset + 0x4c, 0x75);
-	mOk->SetText(0xa8);
+	mOk->SetText(STRING_PLAYERS_OK);
 	if (!mFirst)
 	{
 		mCancel = new DialogButton(2, 0x66);
 		Add(mCancel, anOffset + 0xba, 0x75);
-		mCancel->SetText(0xa6);
+		mCancel->SetText(STRING_PLAYERS_CANCEL);
 	}
 }
 
@@ -400,7 +401,7 @@ void NewPlayerBox::Accept()
 		jb::gManager->Pop(true, 1);
 	}
 	else
-		ShowMessage(0x2b, 0x6e, 0xac, 2);
+		ShowMessage(0x2b, 0x6e, STRING_ENTER_NAME_NOTE, 2);
 }
 
 } // namespace mahjongjapan

@@ -48,9 +48,9 @@ class Attachment
 public:
 	Object* mOwner = nullptr;  // +0x04
 
+	// 0x42ef00 inlined here: the base destructor, which only restores its vtable
 	virtual ~Attachment() {}
 	virtual void Load() {}                 // +0x04 (0x429700), when attached
-	virtual void Hold(bool theHeld) = 0;   // +0x08 the game stops it (Animation +0x50)
 	virtual bool Update(int theClock) = 0; // +0x0c the owner's clock; true when it changed
 	virtual void Draw() = 0;               // +0x10
 	virtual void SetPaused(bool thePaused) = 0;  // +0x14 the owner is disabled
@@ -71,7 +71,6 @@ public:
 	bool mTrackDirty = true;           // +0x39
 	std::vector<Object*> mChildren;    // +0x40
 	std::vector<Attachment*> mAttachments;  // +0x50
-	bool mAttachmentsUnder = false;    // +0x5c
 	bool mVisible = true;              // +0x5d
 	bool mVisibleByParent = true;      // +0x5e
 	bool mEnabled = true;              // +0x5f
@@ -106,9 +105,11 @@ public:
 	virtual bool OnLButtonDown(int theFlags, int theX, int theY) { return false; }    // +0x14
 	virtual bool OnLButtonDblClk(int theFlags, int theX, int theY) { return false; }  // +0x18
 	virtual bool OnLButtonUp(int theFlags, int theX, int theY) { return false; }      // +0x1c
+	// 0x420490 inlined here: the default that returns false, shared with OnRButtonDblClk, OnRButtonUp and OnKeyDown
 	virtual bool OnRButtonDown(int theFlags, int theX, int theY) { return false; }    // +0x20
 	virtual bool OnRButtonDblClk(int theFlags, int theX, int theY) { return false; }  // +0x24
 	virtual bool OnRButtonUp(int theFlags, int theX, int theY) { return false; }      // +0x28
+	// 0x4204a0 inlined here: the default that does nothing, shared with OnDragEnd, OnDrag and OnChar
 	virtual void OnMouseMove(int theFlags, int theX, int theY) {}                    // +0x2c
 	virtual void OnDragEnd(int theFlags, int theX, int theY) {}                      // +0x30
 	virtual void OnDrag(int theFlags, int theX, int theY) {}                         // +0x34
@@ -180,9 +181,6 @@ public:
 	void RegUpdate(bool theOn);
 	// 0x41fee0: the position on the screen
 	void GetScreenPos(int* thePos);
-	// 0x41ff50, 0x41ff70
-	void GetDirty(Rect& theRect) const { theRect = mDirty; }
-	void SetDirty(const Rect& theRect) { mDirty = theRect; }
 	// 0x41ff90: the dirty rects of the tree
 	void GetTreeDirty(Rect& theRect);
 	// 0x420000: a mouse message in the object's coordinates
@@ -239,8 +237,8 @@ int Random(int theRange);
 // 0x41f680: the size of an image of the table (ImageInfo in Image.h)
 void GetImageInfo(int theImageId, ImageInfo& theInfo);
 // 0x41f120, 0x41f150: a font of the exe or of Resource.dll
-Font* GetExeFont(int theImageId, int theTextId, int theKind);
-Font* GetDllFont(int theImageId, int theTextId, int theKind);
+Font* GetExeFont(int theImageId, int theTextId);
+Font* GetDllFont(int theImageId, int theTextId);
 // 0x41f180, 0x420440, 0x420460, 0x420470
 void FreeImage(int theImageId);
 Image* CreateImage(int theWidth, int theHeight);
@@ -269,9 +267,6 @@ public:
 	bool mFixedSize;         // +0xd0
 	bool mShowDisabled = true;  // +0xd1
 	int mHoverSound = 0;     // +0xd4
-	int mOverlay = 0;        // +0xd8 an image drawn over the hover frame
-	int mOverlayX = 0;       // +0xdc
-	int mOverlayY = 0;       // +0xe0
 
 	// 0x41e240
 	Button(int theImage, int theFrames, bool theFixedSize);

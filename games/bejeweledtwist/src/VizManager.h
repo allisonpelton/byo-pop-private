@@ -23,7 +23,7 @@ public:
 	int mFlags4 = 1;              // +0x4: bit 0 draws only around the board (with +0x8 and +0xc, see DrawsAroundBoard)
 	int mFlags8 = 0;              // +0x8
 	int mFlagsC = 0;              // +0xc: set and cleared by the VizManager for each draw
-	float mUnknown10 = 1.0f;      // +0x10
+	float mBrightness = 1.0f;     // +0x10: set by each visualizer constructor (0.2, 0.75 or 1), never read
 	WinTwistApp* mApp;            // +0x14
 	int mWidth = 0;               // +0x18: the VizManager's size (0x758dcf)
 	int mHeight = 0;              // +0x1c
@@ -34,8 +34,6 @@ public:
 	virtual void Init() {}                     // 1 (0x67a1c9)
 	virtual void Update() {}                   // 2 (0x67a1ca)
 	virtual void Draw(Graphics* g) { (void)g; }  // 3 (0x67fab8)
-	// 4 (0x670126, ret 4): a key pressed (the VizManager's 0x758034, not ported, asks the visualizer); true when handled
-	virtual bool Slot4(char theChar) { (void)theChar; return false; }
 	virtual void NextLook() {}                 // 5 (0x67012b): a cascade (VizManager 0x757ff5)
 	virtual void NewLevel() {}                 // 6 (0x67012c): the board's next level (VizManager 0x75800a)
 	virtual void Slot7() {}                    // 7 (0x67012d): (VizManager 0x75801f)
@@ -76,17 +74,17 @@ void DeleteVizImage(int theId);
 class VizManager : public TwistWidget {
 public:
 	WinTwistApp* mApp;                // +0x19c
-	int mUpdateCnt148 = 0;            // +0x148: its updates while it runs
+	int mRunUpdateCnt = 0;            // +0x148: its updates while it runs
 	int mVizIndex = -1;               // +0x14c: mViz's place in the list of names
 	Visualizer* mViz = nullptr;       // +0x150
-	int mUnknown18C = -1;             // +0x18c: the index of the visualizer being made for TakePendingViz, else -1 (Update waits)
-	int mUnknown190 = 0;              // +0x190: the 3D visualizer chosen for the game (SetVizByName, 0x7593ea)
+	int mPendingIndex = -1;           // +0x18c: the index of the visualizer being made for TakePendingViz, else -1 (Update waits)
+	int mChosenIndex = 0;             // +0x190: the 3D visualizer chosen for the game (SetVizByName, 0x7593ea)
 	int mBackdrop = 0;                // +0x194: Viz2D's picture (-1 the tutorial's, else the level)
 	bool mIsViz2D = true;             // port: mViz is a Viz2D (the 2D run's, or standing in for a 3D visualizer not ported)
 	bool m2D = true;                  // +0x198: no Direct3D or no "visualizers" box (set by the app's Init)
 	double mSpeed = 1.0;              // +0x1a0: the visualizer's updates per update
 	double mUpdateFrac = 0.0;         // +0x1a8
-	double mUnknown1B0 = 1.0;         // +0x1b0
+	double mSwitchTime = 1.0;         // +0x1b0: a double, never read
 	bool mPaused = false;             // +0x1b8
 	int mClipRect[4] = {-1, -1, 1, 1};  // +0x1bc: the rectangle the draw hook 0x758253 clips to (x, y, w, h); -1, -1, 1, 1 for all
 	int mBoardRect[4] = {0, 0, 0, 0};   // +0x1cc: the board's rectangle (halved with the half-size render target), 0 when the board moves

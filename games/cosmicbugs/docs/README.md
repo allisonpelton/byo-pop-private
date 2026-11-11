@@ -8,9 +8,9 @@ the player's own copy and are never in the repository.
 
 Cosmic Bugs is not a SexyAppFramework game. It runs on Retro64's own engine, which Water Bugs shares: plain C over
 global state, with no classes, software blitters into a 16-bit back buffer, its own bank, font, FLIC and XML code, and
-DirectDraw and BASS underneath. The port keeps that structure. `engine/` is the engine, translated function by
-function (`R64*.cpp`), and `src/` is the game on top of it (`CB*.cpp`). Everything the engine needs from the machine
-goes through one interface, `r64::SysHost` in `engine/R64Sys.h`: the files, the screen, the clock, the pointer, the
+DirectDraw and BASS underneath. The port keeps that structure. `engines/retro64/` is the engine, translated function by
+function (`R64*.cpp`, shared with Water Bugs, `docs/ENGINES.md`), and `src/` is the game on top of it (`CB*.cpp`).
+Everything the engine needs from the machine goes through one interface, `r64::SysHost` in `engines/retro64/R64Sys.h`: the files, the screen, the clock, the pointer, the
 sounds, the music, links, the save folder and the player's name. `src/CosmicBugsApp.cpp` implements it over the
 platform, with the SexyAppFramework hosting the window, the clock, the input and the sound device, and presenting the
 800x600 screen the game draws into; `test/gamerun.cpp` implements it over plain memory for the headless runner.
@@ -172,7 +172,7 @@ skips the game's logo screens: the PopCap logo, which is level kind 0xe, shown a
 animation files and ending by itself after about two seconds each (the title is up at update 2162 of a normal start). With the
 setting on, `GameStep` goes on from a logo screen as Esc on it does, the original's own skip, straight to the main menu
 (`gGoTo = 1`), so the title is up from the first update instead of at update 2162. The host's `SkipLogos()`
-(engine/R64Sys.h; the app answers `SiteSkipLogos()`, the headless runner `CB_SKIPLOGOS=1`) is how the game code, which does not see the framework, reads
+(engines/retro64/R64Sys.h; the app answers `SiteSkipLogos()`, the headless runner `CB_SKIPLOGOS=1`) is how the game code, which does not see the framework, reads
 it. The logos draw no random number, so the game's draws after them are the same with the setting on and off: the runner's seed
 series (`CB_WATCH=1`) is identical for a natural start, for Esc at the first logo and for the skip, and begins its first draw at update 2171, 11 and 11. With the setting off nothing changes
 (the baseline and the suite hold). The loading screen's bar is not a logo and is untouched; the title's own animation stays.

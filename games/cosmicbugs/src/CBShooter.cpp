@@ -233,8 +233,8 @@ int Shooter_EnemiesNear(Shooter* theShooter)
 {
 	int aCount = 0;
 	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (CircleOverlap(theShooter->x, theShooter->y, (float)(theShooter->image->h / 3), anEnemy->x, anEnemy->y,
-			(float)(anEnemy->image->h / 3)) != 0.0)
+		if (CircleOverlap(theShooter->x, theShooter->y, (float)(theShooter->image->mH / 3), anEnemy->x, anEnemy->y,
+			(float)(anEnemy->image->mH / 3)) != 0.0)
 			aCount = aCount + 1;
 	});
 	return aCount;
@@ -545,8 +545,8 @@ void Shooter_Firing(Shooter* theShooter)
 		if (aGoing != 0)
 			return;
 	}
-	Beam_DrawTo(theShooter->beams.head, gBackBuffer.bits, gBackBuffer.pitch);
-	Beam_DrawTo(theShooter->beams.tail, gBackBuffer.bits, gBackBuffer.pitch);
+	Beam_DrawTo(theShooter->beams.head, gBackBuffer.mBits, gBackBuffer.mPitch);
+	Beam_DrawTo(theShooter->beams.tail, gBackBuffer.mBits, gBackBuffer.mPitch);
 	// up and down, the sides are the cells left and right of the ship's; across, above and below it
 	Level* aLevel = gLevels.current;
 	Cell* aSide1;
@@ -952,10 +952,10 @@ int Shooter_Update(Shooter* theShooter)
 int Star_Update(Obj* theStar)
 {
 	Obj_Update(theStar);
-	if ((float)gBackBuffer.w <= theStar->x)
+	if ((float)gBackBuffer.mW <= theStar->x)
 		theStar->x = -2.0f;
 	if (theStar->y < -2.0f)
-		theStar->y = (float)((double)gBackBuffer.h + 12.0);
+		theStar->y = (float)((double)gBackBuffer.mH + 12.0);
 	theStar->depth = -999;
 	return 1;
 }

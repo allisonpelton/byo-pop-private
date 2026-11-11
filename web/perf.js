@@ -30,7 +30,13 @@ var ByopopPerf = (function () {
   var storage = null;
 
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
+  // ?perf=1 turns the panel on for this visit, whatever the setting says: the way in on a phone, where the setting is some menus
+  // away (the user, 2026-11-11: "I'll need a list of instructions that should pop it up for me"). The one page passes it on to
+  // its game windows (web/deskapps.js, frameUrl).
+  var ASKED = (function () { try { return new URLSearchParams(location.search).get("perf") === "1"; } catch (e) { return false; } })();
+  function small() { try { return window.matchMedia("(max-width: 600px), (max-height: 500px)").matches; } catch (e) { return false; } }
   function setting() {
+    if (ASKED) return "on";
     try {
       var o = JSON.parse(window.localStorage.getItem(KEY) || "{}"), g = pageGame && o.games && o.games[pageGame];
       if (g && (g.perf === "on" || g.perf === "off")) return g.perf;
@@ -82,16 +88,38 @@ var ByopopPerf = (function () {
     }
     function draw() { st.draws++; }
     ["drawArrays", "drawElements", "drawArraysInstanced", "drawElementsInstanced", "drawRangeElements"].forEach(function (n) { wrap(n, draw); });
-    function texBytes(a, wi, hi) {
-      var src = a[a.length - 1];
-      if (a.length >= 8 && typeof a[wi] === "number") return a[wi] * a[hi] * 4;
-      return src && src.width ? src.width * src.height * 4 : 0;  // from an image, a canvas or ImageData
+    // a pixel's bytes from its format and type: the channels a format has, the bytes a type gives each; a packed type
+    // (5_6_5, 4_4_4_4, 5_5_5_1: 2 bytes; 2_10_10_10, 10F_11F_11F, 5_9_9_9, 24_8: 4) is the whole pixel; 4 when unknown
+    var CHANNELS = { 0x1908: 4, 0x1907: 3, 0x1906: 1, 0x1909: 1, 0x190A: 2, 0x1903: 1, 0x8227: 2, 0x8D94: 1, 0x8228: 2,
+      0x8D98: 3, 0x8D99: 4, 0x1902: 1, 0x84F9: 1 };
+    var TYPE_BYTES = { 0x1400: 1, 0x1401: 1, 0x1402: 2, 0x1403: 2, 0x1404: 4, 0x1405: 4, 0x1406: 4, 0x140B: 2, 0x8D61: 2 };
+    var PACKED = { 0x8363: 2, 0x8033: 2, 0x8034: 2, 0x8368: 4, 0x8C3B: 4, 0x8C3E: 4, 0x84FA: 4 };
+    function pixelBytes(format, type) {
+      if (PACKED[type]) return PACKED[type];
+      return CHANNELS[format] && TYPE_BYTES[type] ? CHANNELS[format] * TYPE_BYTES[type] : 4;
     }
-    wrap("texImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 3, 4); });
-    wrap("texSubImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 4, 5); });
-    function bufBytes(d) { return typeof d === "number" ? d : (d && d.byteLength) || 0; }
-    wrap("bufferData", function (a) { st.upBytes += bufBytes(a[1]); });
-    wrap("bufferSubData", function (a) { st.upBytes += bufBytes(a[2]); });
+    // texImage2D(target, level, internalformat, width, height, border, format, type, pixels[, offset]) and
+    // texSubImage2D(target, level, x, y, width, height, format, type, pixels[, offset]): width, height, format and type at
+    // wi, wi + 1, 6 and 7; from an image, a canvas or ImageData, (.., format, type, source) as the last three
+    function texBytes(a, wi) {
+      if (a.length >= 9 && typeof a[wi] === "number") return a[wi] * a[wi + 1] * pixelBytes(a[6], a[7]);
+      var src = a[a.length - 1];
+      return src && src.width ? src.width * src.height * pixelBytes(a[a.length - 3], a[a.length - 2]) : 0;
+    }
+    wrap("texImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 3); });
+    wrap("texSubImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 4); });
+    // bufferData(target, size or data, usage[, srcOffset, length]) and bufferSubData(target, dstOffset, data[, srcOffset,
+    // length]): WebGL2's forms take a view and a part of it. Emscripten passes the whole wasm heap with an offset and a
+    // length, so the length (in the view's elements) is what goes up; without one, the view from srcOffset to its end.
+    function bufBytes(d, srcOffset, length) {
+      if (typeof d === "number") return d;
+      if (!d || !d.byteLength) return 0;
+      var each = d.BYTES_PER_ELEMENT || 1;
+      if (length) return length * each;
+      return Math.max(0, d.byteLength - (srcOffset || 0) * each);
+    }
+    wrap("bufferData", function (a) { st.upBytes += bufBytes(a[1], a[3], a[4]); });
+    wrap("bufferSubData", function (a) { st.upBytes += bufBytes(a[2], a[3], a[4]); });
     // the GPU's own time, only where the browser offers the query
     var isGl2 = typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext;
     var ext = null;
@@ -232,6 +260,8 @@ var ByopopPerf = (function () {
     row("perf.latency", a ? ms(a.base * 1000) + " / " + ms(a.output * 1000) : T("perf.na"));
     row("perf.queued", a && typeof a.queued === "number" ? ms(a.queued) : T("perf.na"));
     row("perf.gaps", a && typeof a.gaps === "number" ? String(a.gaps) : T("perf.na"));
+    // on a small screen the Sound group comes first, where it is read without scrolling (it is the one asked for there)
+    if (small()) rows = rows.slice(-4).concat(rows.slice(0, -4));
     var dl = document.createElement("dl");
     rows.forEach(function (r) {
       if (r[1] === null) { var h = document.createElement("dt"); h.className = "perf-group"; h.textContent = r[0]; dl.appendChild(h); return; }
@@ -251,7 +281,18 @@ var ByopopPerf = (function () {
     ".perf-panel dt { color: var(--muted); }\n" +
     ".perf-panel dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }\n" +
     ".perf-panel dt.perf-group { grid-column: 1 / -1; color: var(--fg); font-weight: 700; margin-top: 6px; }\n" +
-    "html.player-only .perf-panel { display: none !important; }\n";
+    "html.player-only .perf-panel { display: none !important; }\n" +
+    ".perf-panel.perf-side { position: static; width: 250px; max-height: none; border-radius: 0; box-shadow: none; border-width: 0 0 0 1px;\n" +
+    "  grid-column: 2; grid-row: 1 / 3; align-self: stretch; overflow: auto; }\n" +
+    "html.perf-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto; }\n" +
+    // a narrow page (a phone held upright): under the game, as wide as the page, scrolling in itself
+    "@media (max-width: 600px) {\n" +
+    "  .perf-panel.perf-side { grid-column: 1; grid-row: auto; width: auto; max-height: 40vh; border-width: 1px 0 0; }\n" +
+    "  html.perf-side .stage-wrap { grid-template-columns: minmax(0, 1fr); }\n" +
+    "}\n" +
+    ".perf-panel.perf-side p { display: none; }\n" +
+    "html.perf-side.touch-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto auto; }\n" +
+    "html.perf-side.touch-side .stage-wrap > .bc-touch { grid-column: 3; }\n";
   function build() {
     if (panel) return;
     var style = document.createElement("style");
@@ -267,6 +308,15 @@ var ByopopPerf = (function () {
     body = document.createElement("div");
     body.textContent = T("perf.waiting");
     panel.appendChild(h); panel.appendChild(note); panel.appendChild(body);
+    // In a game's window on the one page the panel is part of the window, at the right of the game, which it never covers; the
+    // window grows by its width (the user, 2026-11-10: "The performance panel should expand the game window and be static to the
+    // right"; web/shell.html, sideWidth)
+    var main = document.getElementById("main");
+    if (document.documentElement.classList.contains("d95-embed") && main) {
+      panel.classList.add("perf-side");
+      main.appendChild(panel);
+      return;
+    }
     document.body.appendChild(panel);
     // a window of Desktop 95's desktop (web/skins.js), whose icon is there while the panel is
     try {
@@ -281,6 +331,7 @@ var ByopopPerf = (function () {
     hook();
     build();
     panel.hidden = false;
+    side();
     st = fresh();
     raf = requestAnimationFrame(onRaf);
     tick = setInterval(second, 1000);
@@ -306,6 +357,12 @@ var ByopopPerf = (function () {
     unwrapGl();
     st = null; last = null; storage = null; gpuMs = [];
     if (panel) { panel.hidden = true; body.textContent = T("perf.waiting"); }
+    side();
+  }
+  function side() {
+    var is = !!panel && !panel.hidden && panel.classList.contains("perf-side");
+    document.documentElement.classList.toggle("perf-side", is);
+    try { window.dispatchEvent(new CustomEvent("byopop-side")); } catch (e) {}
   }
   function sync() {
     if (!document.body || !document.getElementById("canvas")) return;
@@ -313,7 +370,8 @@ var ByopopPerf = (function () {
     if (setting() === "on") start(); else stop();
   }
   function setGame(id) { pageGame = id || null; sync(); }
-  window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "perf") sync(); });
+  // a choice made on the page (the window's View menu, Settings) wins over ?perf=1 from then on, so the panel can be put away
+  window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "perf") { ASKED = false; sync(); } });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) sync(); });
   return { setGame: setGame, sync: sync, isOn: function () { return on; }, reading: function () { return last; } };
 })();

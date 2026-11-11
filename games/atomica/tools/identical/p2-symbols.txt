@@ -1,0 +1,25 @@
+# phase two: the colour-blind option turned on in a game: the options box with its check box ticked, then the field, where every
+# plain atom carries its chemical symbol (the stencil font, 0x4037f0) and the biohazard's countdown stands 12 pixels to the left
+1500 move 320 445
+1510 click 320 445
+2300 move 316 104
+2310 click 316 104
+2764 click 300 192
+2771 click 240 315
+2775 click 390 265
+2876 click 246 318
+2880 click 495 317
+3031 click 540 265
+3035 click 190 215
+3060 click 340 215
+3064 click 540 65
+3086 click 240 115
+3090 click 590 165
+3200 shot b3200
+3300 click 73 266
+3400 click 255 245
+3450 shot b3450
+3500 click 382 363
+3700 shot b3700
+3900 shot b3900
+end 3950

@@ -36,31 +36,31 @@ public:
 
 	float mFadeIn = 0;           // +0x148
 	float mFadeIn2 = 1.0f;       // +0x154: a copy of it
-	int mUnknown158 = 0;         // +0x158
+	int mIsFinished = 0;         // +0x158: 0, set by the constructor, never read
 	int mState = 0;              // +0x15c: 0 rises, 1 fills, 2 waits, 3 the award, 4 its end, 5 goes
 	float mTimer = 0;            // +0x160
-	std::string mUnknown164;     // +0x164
-	std::string mUnknown180;     // +0x180
-	bool mUnknown1A0 = false;    // +0x1a0: set while it waits (state 2)
+	std::string mTitleText;      // +0x164: an empty string, never read
+	std::string mSubtitleText;   // +0x180: an empty string, never read
+	bool mIsWaiting = false;     // +0x1a0: set while it waits (state 2)
 	int mCenterX = 0;            // +0x1a4
 	int mCenterY = 0;            // +0x1a8
 	float mBarY = 0;                // +0x1ac: the bar's top
 	float mVel = 0;              // +0x1b0
-	float mUnknown1B4 = 1.0f;    // +0x1b4
+	float mBarScale = 1.0f;      // +0x1b4: 1, set by the constructor, never read
 	Image* mBar;                 // +0x1b8: IMAGE_RANKBAR_LEVELUP
 	int mTotal;                  // +0x1bc: the rank's points with the bonus
 	int mPoints;                 // +0x1c0: before it
-	int mUnknown1C4 = 0;         // +0x1c4
+	int mStarsAdded = 0;         // +0x1c4: 0, set by the constructor, never read
 	int mBonus;                  // +0x1c8: the stars
 	int mRank;                   // +0x1cc: the player's rank when it came up
 	CurvedVal mFlash;            // +0x1d0: the button's flash (DrawOverlay)
 	CurvedVal mPillars;          // +0x240: the pillars and the screen rise
 	CurvedVal mSlide;            // +0x2b0: the pillars close in; at 0.85 of it the rank goes up
 	CurvedVal mGlow;             // +0x320: the "hot n sexy" glow's colour
-	CurvedVal mUnknown390;       // +0x390
+	CurvedVal mStarFade;         // +0x390: set going with the fade of the stars (same curve), never read
 	CurvedVal mFade;             // +0x400: the stars fade
-	float mUnknown470 = 0;       // +0x470
-	float mUnknown474 = 0;       // +0x474
+	float mPulseLeft = 0;        // +0x470: set to 1 when the stars are added and runs down by 0.02 an update; the bar waits for it
+	float mPulseLength = 0;      // +0x474: 3 when the stars are added, never read
 	EffectsManager* mFXManager;  // +0x478
 	int mStep = 1;               // +0x47c: a twentieth of the bonus, at least 1
 	int mSlots;                  // +0x480: the points between this rank and the next
@@ -70,7 +70,7 @@ public:
 	float mScale = 0;            // +0x490: the zoom it comes in with (the Direct3D draw's)
 	Image* mStarImage;           // +0x498: IMAGE_RANKBAR_STAR
 	int mStarWidth;              // +0x49c: its size, 1.1 times
-	int mUnknown4A0[4] = {};     // +0x4a0
+	int mStarOffsets[4] = {};    // +0x4a0: four zeros, never read
 	int mStarHeight;             // +0x4b0
 	int mBarWidth;               // +0x4b4: of the slots, 0.475 of the bar's image
 	int mLastFilled = -1;        // +0x4b8: the slot that flashes

@@ -46,8 +46,8 @@ void WriteFlags(Buffer& theBuffer, unsigned int theFlags)
 
 void Profile::SavedGame::Read(const Buffer& theBuffer)
 {
-	mUnknown20 = theBuffer.ReadShort();
-	mUnknown24 = theBuffer.ReadShort();
+	mReplayStart = theBuffer.ReadShort();
+	mReplayEnd = theBuffer.ReadShort();
 	mBest = theBuffer.ReadLong();
 	ByteVector aData;
 	theBuffer.ReadBuffer(&aData);
@@ -56,8 +56,8 @@ void Profile::SavedGame::Read(const Buffer& theBuffer)
 
 void Profile::SavedGame::Write(Buffer& theBuffer) const
 {
-	theBuffer.WriteShort((short)mUnknown20);
-	theBuffer.WriteShort((short)mUnknown24);
+	theBuffer.WriteShort((short)mReplayStart);
+	theBuffer.WriteShort((short)mReplayEnd);
 	theBuffer.WriteLong(mBest);
 	theBuffer.WriteBuffer(mData.mData);
 }
@@ -65,14 +65,15 @@ void Profile::SavedGame::Write(Buffer& theBuffer) const
 Profile::Profile()
 {
 	for (SavedGame& aGame : mSavedGames) {
-		aGame.mUnknown20 = 0;
-		aGame.mUnknown24 = 0;
+		aGame.mReplayStart = 0;
+		aGame.mReplayEnd = 0;
 		aGame.mBest = 0;
 	}
 }
 
 Profile::~Profile() = default;
 
+// 0x733e9a: the user folder scan, inline here
 std::string Profile::GetUserFolder(const SexyString& theName)
 {
 	// 0x733e9a: the name as a file name
@@ -141,13 +142,13 @@ bool Profile::Load(const SexyString& theName)
 	if (aVersion < 0x33)
 		return false;
 
-	mUnknown214 = -1;
+	mLastChallengeCategory = -1;
 	mName = theName;
 	ClearMap();
 	mIsNew = false;
-	mUnknown74 = aBuffer.ReadLong();
-	mUnknown78 = aBuffer.ReadLong();
-	mUnknown8C = aBuffer.ReadLong();
+	mHighestScore = aBuffer.ReadLong();
+	mTotalLevelsDelta = aBuffer.ReadLong();
+	mTotalPowerGems = aBuffer.ReadLong();
 	if (aVersion < 0x34)
 		aBuffer.ReadLong();
 	mBestChain = aBuffer.ReadLong();
@@ -155,50 +156,50 @@ bool Profile::Load(const SexyString& theName)
 		aBuffer.ReadLong();
 		aBuffer.ReadLong();
 	}
-	mUnknown94 = aBuffer.ReadLong();
-	mUnknown98 = aBuffer.ReadLong();
-	mUnknown164 = aBuffer.ReadLong();
-	mUnknown124 = aBuffer.ReadLong();
+	mTotalFlames = aBuffer.ReadLong();
+	mTotalElectros = aBuffer.ReadLong();
+	mAchievementBits = aBuffer.ReadLong();
+	mPuzzlesSolved = aBuffer.ReadLong();
 	mTotalPoints = aBuffer.ReadLong();
-	mUnknown58 = aBuffer.ReadLong();
+	mFirstGameTime = aBuffer.ReadLong();
 	for (int i = 0; i < 6; i++) {
-		mUnknown128[i] = aBuffer.ReadLong();
-		mUnknown5C[i] = aBuffer.ReadLong();
+		mBestLevels[i] = aBuffer.ReadLong();
+		mBestScores[i] = aBuffer.ReadLong();
 	}
 	mTotalPoints = aBuffer.ReadLong();
 	mGemsCleared = aBuffer.ReadLong();
-	ReadFlags(aBuffer, aVersion, &mFlags1E0);
-	aBuffer.ReadBytes(mBits170, 0x40);
+	ReadFlags(aBuffer, aVersion, &mGemTypesUnlocked);
+	aBuffer.ReadBytes(mSavedBits, 0x40);
 	mGamesPlayed = aBuffer.ReadLong();
-	mUnknown16C = aBuffer.ReadLong();
-	mUnknown1B0 = aBuffer.ReadByte() != 0;
-	ReadFlags(aBuffer, aVersion, &mFlags1E4);
+	mStartingRank = aBuffer.ReadLong();
+	mShowReminder = aBuffer.ReadByte() != 0;
+	ReadFlags(aBuffer, aVersion, &mTipsSeen);
 	for (int i = 0; i < 10; i++)
-		mUnknown1B4[i] = aBuffer.ReadLong();
-	mUnknown1DC = aBuffer.ReadLong();
-	mUnknown1B1 = aBuffer.ReadByte() != 0;
-	ReadFlags(aBuffer, aVersion, &mFlags1E8);
+		mSavedLongs[i] = aBuffer.ReadLong();
+	mLastModePlayed = aBuffer.ReadLong();
+	mBeforeFirstMove = aBuffer.ReadByte() != 0;
+	ReadFlags(aBuffer, aVersion, &mModesUnlocked);
 	mRank = aBuffer.ReadLong();
-	mBools80.clear();
+	mSavedBools.clear();
 	int aCount = aBuffer.ReadShort();
 	for (int i = aCount; i > 0; i--)
-		mBools80.push_back(aBuffer.ReadBoolean());
-	mUnknown160 = aBuffer.ReadLong();
-	mUnknown1F0 = aBuffer.ReadLong();
+		mSavedBools.push_back(aBuffer.ReadBoolean());
+	mRankPoints = aBuffer.ReadLong();
+	mReplayCount = aBuffer.ReadLong();
 	mCustomCursors = aBuffer.ReadByte() != 0;
 	gApp->EnableCustomCursors(mCustomCursors);
 	int aSlots = aBuffer.ReadShort();
-	mInts1F4.clear();
+	mChallengeStages.clear();
 	for (int i = aSlots; i > 0; i--)
-		mInts1F4.push_back(aBuffer.ReadShort());
+		mChallengeStages.push_back(aBuffer.ReadShort());
 	if (aVersion < 0x2c)
 		aBuffer.ReadByte();
-	mInts204.clear();
+	mChallengeBests.clear();
 	for (int i = aSlots; i > 0; i--)
-		mInts204.push_back(aBuffer.ReadLong());
-	mUnknown218 = aVersion < 0x2a ? 0 : aBuffer.ReadLong();
+		mChallengeBests.push_back(aBuffer.ReadLong());
+	mModesSeenBits = aVersion < 0x2a ? 0 : aBuffer.ReadLong();
 	for (int i = 0; i < 6; i++)
-		mUnknown140[i] = aVersion < 0x2b ? 0 : aBuffer.ReadLong();
+		mGamesByMode[i] = aVersion < 0x2b ? 0 : aBuffer.ReadLong();
 	if (0x2e < aVersion) {
 		for (SavedGame& aGame : mSavedGames)
 			aGame.Read(aBuffer);
@@ -210,59 +211,69 @@ bool Profile::Load(const SexyString& theName)
 
 void Profile::Save()
 {
-	if (mName.empty() || mName == GT(0x7da070))
-		return;
 	Buffer aBuffer;
-	std::string aPath = GetUserFolder(mName) + "\\profile.dat";
+	std::string aPath;
+	if (!GetSaveData(&aPath, &aBuffer))
+		return;
 	MkDir(GetFileDir(aPath, false));
+	gApp->WriteBufferToFile(aPath, &aBuffer);
+}
+
+// port (web): Save's file and its contents, for WinTwistApp::GetShutdownSaves as well
+bool Profile::GetSaveData(std::string* thePath, Buffer* theBuffer)
+{
+	if (mName.empty() || mName == GT(0x7da070))
+		return false;
+	Buffer& aBuffer = *theBuffer;
+	*thePath = GetUserFolder(mName) + "\\profile.dat";
 	aBuffer.WriteLong(kMagic);
 	aBuffer.WriteLong(kProfileVersion);
-	aBuffer.WriteLong(mUnknown74);
-	aBuffer.WriteLong(mUnknown78);
-	aBuffer.WriteLong(mUnknown8C);
+	aBuffer.WriteLong(mHighestScore);
+	aBuffer.WriteLong(mTotalLevelsDelta);
+	aBuffer.WriteLong(mTotalPowerGems);
 	aBuffer.WriteLong(mBestChain);
-	aBuffer.WriteLong(mUnknown94);
-	aBuffer.WriteLong(mUnknown98);
-	aBuffer.WriteLong(mUnknown164);
-	aBuffer.WriteLong(mUnknown124);
+	aBuffer.WriteLong(mTotalFlames);
+	aBuffer.WriteLong(mTotalElectros);
+	aBuffer.WriteLong(mAchievementBits);
+	aBuffer.WriteLong(mPuzzlesSolved);
 	aBuffer.WriteLong(mTotalPoints);
-	aBuffer.WriteLong(mUnknown58);
+	aBuffer.WriteLong(mFirstGameTime);
 	for (int i = 0; i < 6; i++) {
-		aBuffer.WriteLong(mUnknown128[i]);
-		aBuffer.WriteLong(mUnknown5C[i]);
+		aBuffer.WriteLong(mBestLevels[i]);
+		aBuffer.WriteLong(mBestScores[i]);
 	}
 	aBuffer.WriteLong(mTotalPoints);
 	aBuffer.WriteLong(mGemsCleared);
-	WriteFlags(aBuffer, mFlags1E0);
-	aBuffer.WriteBytes(mBits170, 0x40);
+	WriteFlags(aBuffer, mGemTypesUnlocked);
+	aBuffer.WriteBytes(mSavedBits, 0x40);
 	aBuffer.WriteLong(mGamesPlayed);
-	aBuffer.WriteLong(mUnknown16C);
-	aBuffer.WriteByte(mUnknown1B0);
-	WriteFlags(aBuffer, mFlags1E4);
+	aBuffer.WriteLong(mStartingRank);
+	aBuffer.WriteByte(mShowReminder);
+	WriteFlags(aBuffer, mTipsSeen);
 	for (int i = 0; i < 10; i++)
-		aBuffer.WriteLong(mUnknown1B4[i]);
-	aBuffer.WriteLong(mUnknown1DC);
-	aBuffer.WriteByte(mUnknown1B1);
-	WriteFlags(aBuffer, mFlags1E8);
+		aBuffer.WriteLong(mSavedLongs[i]);
+	aBuffer.WriteLong(mLastModePlayed);
+	aBuffer.WriteByte(mBeforeFirstMove);
+	WriteFlags(aBuffer, mModesUnlocked);
 	aBuffer.WriteLong(mRank);
-	aBuffer.WriteShort((short)mBools80.size());
-	for (unsigned int i = 0; i < mBools80.size(); i++)
-		aBuffer.WriteBoolean(mBools80[i]);
-	aBuffer.WriteLong(mUnknown160);
-	aBuffer.WriteLong(mUnknown1F0);
+	aBuffer.WriteShort((short)mSavedBools.size());
+	for (unsigned int i = 0; i < mSavedBools.size(); i++)
+		aBuffer.WriteBoolean(mSavedBools[i]);
+	aBuffer.WriteLong(mRankPoints);
+	aBuffer.WriteLong(mReplayCount);
 	aBuffer.WriteByte(mCustomCursors);
-	int aSlots = (int)mInts1F4.size();
+	int aSlots = (int)mChallengeStages.size();
 	aBuffer.WriteShort((short)aSlots);
 	for (int i = 0; i < aSlots; i++)
-		aBuffer.WriteShort((short)mInts1F4[i]);
+		aBuffer.WriteShort((short)mChallengeStages[i]);
 	for (int i = 0; i < aSlots; i++)
-		aBuffer.WriteLong(i < (int)mInts204.size() ? mInts204[i] : 0);
-	aBuffer.WriteLong(mUnknown218);
+		aBuffer.WriteLong(i < (int)mChallengeBests.size() ? mChallengeBests[i] : 0);
+	aBuffer.WriteLong(mModesSeenBits);
 	for (int i = 0; i < 6; i++)
-		aBuffer.WriteLong(mUnknown140[i]);
+		aBuffer.WriteLong(mGamesByMode[i]);
 	for (const SavedGame& aGame : mSavedGames)
 		aGame.Write(aBuffer);
-	gApp->WriteBufferToFile(aPath, &aBuffer);
+	return true;
 }
 
 bool Profile::Select(const SexyString& theName)
@@ -298,58 +309,58 @@ bool Profile::Create(const SexyString& theName)
 	}
 	Deltree(GetUserFolder(theName));
 	Save();
-	mInts204.clear();
-	mInts1F4.clear();
+	mChallengeBests.clear();
+	mChallengeStages.clear();
 	// 0x734a14(0): slot 0 is there and set
-	while ((int)mInts1F4.size() <= 0)
-		mInts1F4.push_back(0);
-	if (mInts1F4[0] == 0)
-		mInts1F4[0] = 1;
+	while ((int)mChallengeStages.size() <= 0)
+		mChallengeStages.push_back(0);
+	if (mChallengeStages[0] == 0)
+		mChallengeStages[0] = 1;
 	// With the app's list at +0xf5c (comes with the challenges) a zero for each of its entries goes on both vectors
-	mUnknown1F0 = 0;
+	mReplayCount = 0;
 	mIsNew = true;
 	mName = theName;
 	ClearMap();
-	mUnknown74 = 0;
-	mUnknown78 = 0;
-	mBools80.clear();
-	mUnknown8C = 0;
+	mHighestScore = 0;
+	mTotalLevelsDelta = 0;
+	mSavedBools.clear();
+	mTotalPowerGems = 0;
 	mBestChain = 0;
-	mUnknown94 = 0;
-	mUnknown98 = 0;
+	mTotalFlames = 0;
+	mTotalElectros = 0;
 	mCustomCursors = gApp->mCustomCursorsEnabled;
 	for (int i = 0; i < 6; i++) {
-		mUnknown128[i] = 0;
-		mUnknown5C[i] = 0;
-		mUnknown140[i] = 0;
+		mBestLevels[i] = 0;
+		mBestScores[i] = 0;
+		mGamesByMode[i] = 0;
 	}
 	mTotalPoints = 0;
 	mGemsCleared = 0;
-	mUnknown160 = 0;
-	mUnknown124 = 0;
-	mUnknown164 = 0;
-	mUnknown58 = 0;
-	mFlags1E0 = 0;
+	mRankPoints = 0;
+	mPuzzlesSolved = 0;
+	mAchievementBits = 0;
+	mFirstGameTime = 0;
+	mGemTypesUnlocked = 0;
 	mGamesPlayed = 0;
-	memset(mBits170, 0, sizeof(mBits170));
-	mUnknown16C = 2;
-	mUnknown1B0 = true;
-	mUnknown1B1 = true;
-	mFlags1E4 = 0;
+	memset(mSavedBits, 0, sizeof(mSavedBits));
+	mStartingRank = 2;
+	mShowReminder = true;
+	mBeforeFirstMove = true;
+	mTipsSeen = 0;
 	for (int i = 0; i < 10; i++)
-		mUnknown1B4[i] = 0;
+		mSavedLongs[i] = 0;
 	mRank = -1;
-	mUnknown1DC = 0;
-	mFlags1E8 = 0;
-	mUnknown218 = 0;
+	mLastModePlayed = 0;
+	mModesUnlocked = 0;
+	mModesSeenBits = 0;
 	for (SavedGame& aGame : mSavedGames) {
-		aGame.mUnknown20 = -1;
-		aGame.mUnknown24 = -1;
+		aGame.mReplayStart = -1;
+		aGame.mReplayEnd = -1;
 		aGame.mBest = 0;
 		aGame.mData.Clear();
 	}
-	mFlags1E8 |= 1u << 1;
-	mFlags1E8 |= 1u << 4;
+	mModesUnlocked |= 1u << 1;
+	mModesUnlocked |= 1u << 4;
 	return true;
 }
 
@@ -388,34 +399,23 @@ void Profile::Delete(const SexyString& theName)
 
 void Profile::ClearMap()
 {
-	mMap2C.clear();
 }
 
-void Profile::SetFlag1E0(int theBit, bool on)
+void Profile::SetGemTypeUnlocked(int theBit, bool on)
 {
 	unsigned int aBit = 1u << (theBit & 31);
-	mFlags1E0 = on ? (mFlags1E0 | aBit) : (mFlags1E0 & ~aBit);
+	mGemTypesUnlocked = on ? (mGemTypesUnlocked | aBit) : (mGemTypesUnlocked & ~aBit);
 }
 
-void Profile::SetFlag1E4(int theBit, bool on)
+void Profile::SetTipSeen(int theBit, bool on)
 {
 	unsigned int aBit = 1u << (theBit & 31);
-	mFlags1E4 = on ? (mFlags1E4 | aBit) : (mFlags1E4 & ~aBit);
+	mTipsSeen = on ? (mTipsSeen | aBit) : (mTipsSeen & ~aBit);
 }
 
 bool Profile::IsModeUnlocked(int theMode) const
 {
-	return (mFlags1E8 & (1u << (theMode & 31))) != 0;
-}
-
-bool Profile::GetBit170(int theBit) const
-{
-	return (mBits170[theBit / 8] & (0x80 >> (theBit & 7))) != 0;
-}
-
-void Profile::SetBit170(int theBit)
-{
-	mBits170[theBit / 8] |= (unsigned char)(0x80 >> (theBit & 7));
+	return (mModesUnlocked & (1u << (theMode & 31))) != 0;
 }
 
 SexyString Profile::GetName(int theIdx) const
@@ -427,25 +427,26 @@ SexyString Profile::GetName(int theIdx) const
 
 void Profile::MarkTutorialDone()
 {
-	SetFlag1E4(14, true);
-	SetFlag1E0(4, true);
-	SetFlag1E0(3, true);
+	SetTipSeen(14, true);
+	SetGemTypeUnlocked(4, true);
+	SetGemTypeUnlocked(3, true);
 	mRank = 0;
 	Save();
 }
 
+// part of GetChallengeStage (0x73497f) and OpenChallengeCategory (0x734a14): the lists grow to reach a category
 void Profile::GrowChallengeLists(int theCategory)
 {
-	while ((int)mInts1F4.size() <= theCategory)
-		mInts1F4.push_back(0);
-	while ((int)mInts204.size() <= theCategory)
-		mInts204.push_back(0);
+	while ((int)mChallengeStages.size() <= theCategory)
+		mChallengeStages.push_back(0);
+	while ((int)mChallengeBests.size() <= theCategory)
+		mChallengeBests.push_back(0);
 }
 
 int Profile::GetChallengeStage(int theCategory)
 {
 	GrowChallengeLists(theCategory);
-	return mInts1F4[theCategory];
+	return mChallengeStages[theCategory];
 }
 
 bool Profile::IsChallengeCategoryOpen(int theCategory)
@@ -455,16 +456,16 @@ bool Profile::IsChallengeCategoryOpen(int theCategory)
 
 void Profile::SetChallengeDone(int theCategory, int theNumber)
 {
-	if (theCategory < (int)mInts1F4.size()) {
-		mInts1F4[theCategory] = theNumber + 1;
-		mUnknown214 = theCategory;
+	if (theCategory < (int)mChallengeStages.size()) {
+		mChallengeStages[theCategory] = theNumber + 1;
+		mLastChallengeCategory = theCategory;
 	}
 }
 
 void Profile::OpenChallengeCategory(int theCategory)
 {
 	GrowChallengeLists(theCategory);
-	if (mInts1F4[theCategory] == 0)
-		mInts1F4[theCategory] = 1;
+	if (mChallengeStages[theCategory] == 0)
+		mChallengeStages[theCategory] = 1;
 }
 

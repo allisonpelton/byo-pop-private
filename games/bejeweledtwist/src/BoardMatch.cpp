@@ -37,9 +37,9 @@ int Sexy::gSparkDelay = 0;
 
 void Board::StartSparks(Piece* thePiece)
 {
-	thePiece->mUnknownF0 = 0;
-	thePiece->mUnknownEC = true;
-	thePiece->mUnknownF4 = gSparkDelay;
+	thePiece->mSparkleAlpha = 0;
+	thePiece->mHasSparkle = true;
+	thePiece->mSparkleDelay = gSparkDelay;
 }
 
 // 0x6b40b5: the player's profile opens theMode (once) and the banner of it comes up (DrawOverlay). The original also
@@ -50,31 +50,31 @@ void Board::UnlockMode(int theMode)
 		return;
 	mApp->mProfile->UnlockMode(theMode);
 	mApp->PlaySample(SOUND_GAMEUNLOCKED);
-	mUnknown6C8 = theMode;
-	mUnknown428.SetCurve(GTS(0x7dcbd4));
-	mUnknown498.SetCurve(GTS(0x7dcb90));
-	mUnknown508.SetCurve(GTS(0x7dcb58));
-	mUnknown578.SetCurve(GTS(0x7dcb10));
-	mUnknown5E8.SetCurve(GTS(0x7dcad8));
-	mUnknown658.SetCurve(GTS(0x7dcaa4));
+	mUnlockedMode = theMode;
+	mBannerStripe.SetCurve(GTS(0x7dcbd4));
+	mBannerShow.SetCurve(GTS(0x7dcb90));
+	mBannerModePicture.SetCurve(GTS(0x7dcb58));
+	mBannerGlow.SetCurve(GTS(0x7dcb10));
+	mBannerSheenColor.SetCurve(GTS(0x7dcad8));
+	mBannerSheenPos.SetCurve(GTS(0x7dcaa4));
 }
 
 // 0x6b3432: true once the tube's bonus challenge is met (the board has the bonus colours' count matched); in a
 // challenge, the challenge's goal
 bool Board::CheckGoal(bool theFlag)
 {
-	if (mGoodTube != nullptr && 0.0f < mGoodTube->mUnknown3B4)
+	if (mGoodTube != nullptr && 0.0f < mGoodTube->mBonusTimer)
 		return false;
 	if (mGameMode == MODE_CHALLENGE) {
 		if (mChallenge != nullptr) {
 			// theFlag asks for the game to end when the challenge has failed. The check is a final one (the stats
 			// are kept) once the challenge is over (+0x266a, +0x2669)
 			int aValue = 0;
-			bool aFinal = mUnknown266A || mUnknown2669;
+			bool aFinal = mChallengeOver || mChallengeMet;
 			int aResult = mApp->mChallengeInfo->Check(mChallenge, &aValue, aFinal);
 			// +0x2638 is the stat the challenge counts, +0x2634 the best of it
-			mUnknown2638 = (aFinal && aValue < mUnknown2638) ? mUnknown2638 : aValue;
-			mUnknown2634 = mUnknown2634 < mUnknown2638 ? mUnknown2638 : mUnknown2634;
+			mChallengeCount = (aFinal && aValue < mChallengeCount) ? mChallengeCount : aValue;
+			mChallengeBest = mChallengeBest < mChallengeCount ? mChallengeCount : mChallengeBest;
 			if (aFinal)
 				return true;
 			UpdateChallengeTube(false);
@@ -87,15 +87,15 @@ bool Board::CheckGoal(bool theFlag)
 			} else if (aResult == 0) {
 				return false;
 			}
-			mUnknown2669 = true;
+			mChallengeMet = true;
 		}
 	} else {
-		if (mBonusColors.size() != 0 && mBonusColors.size() <= (unsigned int)mUnknown2660 && mUnknown265C != 4) {
+		if (mBonusColors.size() != 0 && mBonusColors.size() <= (unsigned int)mBonusMatched && mBonusStage != 4) {
 			mApp->PlayVoice(SOUND_VOICE_CHALLENGECOMPLETE, false);
 			mApp->PlaySample(SOUND_CHALLENGECOMPLETED);
-			mUnknown2640++;
-			if (mUnknown265C == 3)
-				mUnknown265C = 4;
+			mBonusChallengesMet++;
+			if (mBonusStage == 3)
+				mBonusStage = 4;
 			else
 				mGoodTube->StartBonus();
 			return true;
@@ -106,14 +106,14 @@ bool Board::CheckGoal(bool theFlag)
 
 void Board::ResetFruitCount()
 {
-	if (mUnknown2664 != mUnknown2660 && (mUnknown2660 != 0 || mUnknown2664 == -1))
+	if (mBonusMatchedMark != mBonusMatched && (mBonusMatched != 0 || mBonusMatchedMark == -1))
 		return;
 	// 0x6b35b1: the fruit's count starts again; a fruit dance that has begun (3) moves on to its end
-	mUnknown2660 = 0;
-	mUnknown2664 = 0;
-	if (mUnknown265C == 3) {
-		mUnknown265C = 5;
-		mGoodTube->mUnknown5F0.SetCurve(GTS(0x7dc558));
+	mBonusMatched = 0;
+	mBonusMatchedMark = 0;
+	if (mBonusStage == 3) {
+		mBonusStage = 5;
+		mGoodTube->mBonusGlowCurve.SetCurve(GTS(0x7dc558));
 	}
 }
 
@@ -122,11 +122,11 @@ void Board::MakePowerGem(Piece* thePiece, float theDelay)
 	if (thePiece == nullptr)
 		return;
 	thePiece->MakePower(theDelay);
-	if (!mUnknown37F8) {
+	if (!mQuietFill) {
 		if (!IsBusy())
 			AddStat(0x15, 1);
-		if (mApp->mUnknownC74[0x26] == 0)
-			SetStat(0x26, mUnknown158);
+		if (mApp->mStats[0x26] == 0)
+			SetStat(0x26, mLevel);
 	}
 }
 
@@ -136,38 +136,39 @@ void Board::MakeElectroGem(Piece* thePiece, float theDelay)
 		return;
 	thePiece->mColor = thePiece->mColor % 7;
 	thePiece->MakeElectro(theDelay);
-	if (!mUnknown37F8) {
+	if (!mQuietFill) {
 		AddStat(0x14, 1);
-		if (mApp->mUnknownC74[0x27] == 0)
-			SetStat(0x27, mUnknown158);
+		if (mApp->mStats[0x27] == 0)
+			SetStat(0x27, mLevel);
 	}
 }
 
-void Board::Make6Gem(Piece* thePiece, float theDelay)
+void Board::MakeIceGem(Piece* thePiece, float theDelay)
 {
-	thePiece->Make6(theDelay);
+	thePiece->MakeIce(theDelay);
 	if (!IsBusy())
 		AddStat(0x16, 1);
-	if (mApp->mUnknownC74[0x25] == 0)
-		SetStat(0x25, mUnknown158);
+	if (mApp->mStats[0x25] == 0)
+		SetStat(0x25, mLevel);
 }
 
+// 0x6a4f56: resets +0x2e4 and +0x2e8, inline here
 void Board::MakeFruitGem(Piece* thePiece)
 {
 	if (thePiece == nullptr)
 		return;
-	if (thePiece->IsFlagSet(9) || thePiece->IsFlagSet(2))
+	if (thePiece->IsFlagSet(Piece::FLAG_BOMB) || thePiece->IsFlagSet(Piece::FLAG_LOCKED))
 		BreakSpecial(thePiece, false);
 	thePiece->ClearSpecial();
-	thePiece->SetFlag(0, true);
-	thePiece->mUnknown29C = 0;
+	thePiece->SetFlag(Piece::FLAG_FRUIT, true);
+	thePiece->mAura = 0;
 	thePiece->mBombCount = 0;
 	thePiece->mBlasted = false;
 	if (6 < thePiece->mColor || thePiece->mColor < 0)
-		thePiece->mColor = Rand85B970() % 7;
-	if (!mUnknown37F8) {
-		thePiece->mScale288 = 0;
-		thePiece->mUnknownE0 = 120;
+		thePiece->mColor = BoardRand() % 7;
+	if (!mQuietFill) {
+		thePiece->mBirthScale = 0;
+		thePiece->mFruitTimer = 120;
 		if (!IsBusy()) {
 			AddStat(0x18, 1);
 			thePiece->mDevilGlow = 1.0f;  // 0x6a4f56
@@ -175,7 +176,7 @@ void Board::MakeFruitGem(Piece* thePiece)
 			mApp->PlaySample(SOUND_FRUIT_APPEARS);
 		}
 	}
-	mUnknown21DA = true;
+	mSettling = true;
 }
 
 void Board::ClearHitCounts()
@@ -187,7 +188,7 @@ void Board::ClearHitCounts()
 		aLeft--;
 		aCell++;
 		if (aPiece != nullptr)
-			aPiece->mUnknown10C = 0;
+			aPiece->mMatchCount = 0;
 	}
 }
 
@@ -197,17 +198,17 @@ void Board::ClearSparkStarts()
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = GetPieceAt(aRow, aCol);
 			if (aPiece != nullptr) {
-				aPiece->mUnknownF4 = 0;
-				aPiece->mUnknownF0 = 0;
-				aPiece->mUnknownEC = false;
-				aPiece->mUnknown2F4 = false;
+				aPiece->mSparkleDelay = 0;
+				aPiece->mSparkleAlpha = 0;
+				aPiece->mHasSparkle = false;
+				aPiece->mIsInMatch = false;
 			}
 		}
 	}
 }
 
-Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theUnknown1,
-	bool theUnknown2, bool theFirst, bool theUnknown3)
+Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColor, int theSerial, bool theAddsProgress,
+	bool theMultiplyBySets, bool theFirst, bool theByLevel)
 {
 	if (thePoints < 1)
 		return nullptr;
@@ -216,24 +217,24 @@ Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColo
 		if (mChallenge == nullptr || (mChallenge->mFlags & Challenge::FLAG_POINTS) == 0)
 			return nullptr;
 	}
-	int aMult = mUnknown21D0;
-	if (!theUnknown3)
+	int aMult = mStepLevel;
+	if (!theByLevel)
 		aMult = 1;
 	int aPoints = aMult * thePoints;
-	if (1 < mUnknown2580 && theUnknown2)
-		aPoints *= mUnknown2580;
+	if (1 < mMatchSetCount && theMultiplyBySets)
+		aPoints *= mMatchSetCount;
 	int aTotal = mModeMultiplier * aPoints;
 	Points* aFloater = nullptr;  // what it returns
-	if (mUnknown2041 && -1 < theX && -1 < theY) {
+	if (mLevelStarted && -1 < theX && -1 < theY) {
 		// A serial of -0x68 to -0x65 (the kinds of special gem) takes a new one, which remembers the kind
 		if ((unsigned int)theSerial >= (unsigned int)-0x68 && (unsigned int)theSerial <= (unsigned int)-0x65) {
 			int aNew = gSettleCount;
 			gSettleCount++;
-			mUnknown37B8[aNew] = theSerial;
+			mSpecialKindBySerial[aNew] = theSerial;
 			theSerial = aNew;
 		}
 		// The points float up: a floater of the same serial (the same move's chain) takes them, else a new one
-		int aSum = mUnknown2580 * thePoints;
+		int aSum = mMatchSetCount * thePoints;
 		int aScaled = Ftol(std::pow((double)aMult, 0.45) * (double)aSum);
 		int aShown = aTotal;
 		if (theSerial == -1) {
@@ -245,9 +246,9 @@ Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColo
 					double aGrow = (double)aPoints->mTargetScale + 0.05000000074505806;
 					aPoints->mPoints += aTotal;
 					aPoints->mTargetScale = (float)(1.2000000476837158 >= aGrow ? aGrow : 1.2000000476837158);
-					aScaled += aPoints->mUnknown1C;
+					aScaled += aPoints->mChainScaled;
 					aPoints->mLife = 1.0f;
-					aSum += aPoints->mUnknown18;
+					aSum += aPoints->mChainSum;
 					aFloater = aPoints;
 					aShown = aPoints->mPoints;
 					break;
@@ -272,7 +273,7 @@ Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColo
 			theY = 120;
 		if (aFloater == nullptr) {
 			if (FONT_FLOATERS != nullptr) {
-				aFloater = new Points(mApp, FONT_FLOATERS, aText, theX, theY, 1.0f, 0, theColor, -1);
+				aFloater = new Points(mApp, FONT_FLOATERS, aText, theX, theY, 1.0f, theColor, -1);
 				aFloater->mTargetScale = aTargetScale;
 				aFloater->mSerial = theSerial;
 				aFloater->mSpring = 0.15f;
@@ -341,10 +342,10 @@ Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColo
 			}
 			aFloater->mCycles[0].SetPosition(0.25f);
 			aFloater->mCycles[1].SetPosition(0.75f);
-			aFloater->mUnknown1C = aScaled;
+			aFloater->mChainScaled = aScaled;
 			aFloater->mFlash = (float)((double)aSize * 0.699999988079071);
-			aFloater->mUnknown18 = aSum;
-			aFloater->mUnknown188 = true;
+			aFloater->mChainSum = aSum;
+			aFloater->mUseLastLayerCycle = true;
 			double anOpacity = (double)aSizeScaled * 0.0 + 0.75;
 			if (!(1.0 >= anOpacity))
 				anOpacity = 1.0;
@@ -355,14 +356,14 @@ Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColo
 	}
 	// Classic's progress: the points count less as the level's gauge fills, by the chains' multiplier
 	float aMultF = (float)aMult;
-	int aChains = mUnknown2234[0x21];
+	int aChains = mGameStats[0x21];
 	float anAvg = aMultF;
 	if (0 < aChains)
-		anAvg = (float)((double)mUnknown2234[0x39] / (double)aChains);
+		anAvg = (float)((double)mGameStats[0x39] / (double)aChains);
 	float aHigh = anAvg <= aMultF ? aMultF : anAvg;
 	float aLow = anAvg < aMultF ? anAvg : aMultF;
 	float aScale = (float)std::pow((double)aLow * 0.4 + (double)aHigh * 0.6, 0.7);
-	if (!theUnknown3)
+	if (!theByLevel)
 		aScale = 1.0f;
 	int aLeft = aTotal;
 	if (0 < aTotal) {
@@ -371,40 +372,40 @@ Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColo
 			int aStep = 100;
 			if (aLeft < 100)
 				aStep = aLeft;
-			int aTo = Ftol(std::pow((double)(mUnknown1544 + aStep) * aRatio, 0.75));
-			int aFrom = Ftol(std::pow((double)mUnknown1544 * aRatio, 0.75));
+			int aTo = Ftol(std::pow((double)(mTurnPoints + aStep) * aRatio, 0.75));
+			int aFrom = Ftol(std::pow((double)mTurnPoints * aRatio, 0.75));
 			int aGain = (aTo - aFrom) * 3;
-			if (theUnknown1 && mUnknown2041) {
-				mUnknown200 += aGain;
-				mUnknown14FC += aGain;
+			if (theAddsProgress && mLevelStarted) {
+				mLevelProgress += aGain;
+				mProgressGain += aGain;
 			}
 			aLeft -= aStep;
 			// (the original adds the whole points each step, not the step's)
-			mUnknown1544 += aTotal;
+			mTurnPoints += aTotal;
 		} while (0 < aLeft);
 	}
-	if (!mUnknown2629 && !mUnknown37C4 && 0 < mUnknown158)
+	if (!mReplayPlaying && !mIsReplay && 0 < mLevel)
 		mApp->mProfile->mTotalPoints += aTotal;
 	if (mGameMode == MODE_CHALLENGE)
 		theFirst = false;
-	if (!mGoodTube->mUnknown14D || theX < 1 || theY < 1 || !theFirst || !mUnknown2041) {
-		if (mUnknown2041)
-			SetScore(mUnknown168 + aTotal, false);
+	if (!mGoodTube->mLevelSoundOn || theX < 1 || theY < 1 || !theFirst || !mLevelStarted) {
+		if (mLevelStarted)
+			SetScore(mScore + aTotal, false);
 		if (theFirst)
 			AddChainStep();
 	} else {
 		// The points go to the tube as smoke, to the next light of its level; they reach the score on arrival
-		int aSteps = mGoodTube->mUnknown274;
-		int aDiv = GetLevelSteps(mGoodTube->mUnknown27C);
+		int aSteps = mGoodTube->mChainSteps;
+		int aDiv = GetLevelSteps(mGoodTube->mShownLevel);
 		int aPoint[2];
-		mGoodTube->GetStepPoint(aPoint, ((int)mUnknown2170.size() + aSteps) % aDiv, true);
+		mGoodTube->GetStepPoint(aPoint, ((int)mSmokeTravellers.size() + aSteps) % aDiv, true);
 		SmokeTraveller* aSmoke = new SmokeTraveller(theColor, theX, theY, mGoodTube->mX + aPoint[0],
 			mGoodTube->mY + aPoint[1], aTotal, false);
 		aSmoke->mBurst = true;
-		mUnknown2170.push_back(aSmoke);
+		mSmokeTravellers.push_back(aSmoke);
 	}
-	std::map<int, int>::iterator anIt = mUnknown37B8.find(theSerial);
-	int aKind = anIt != mUnknown37B8.end() ? anIt->second : 0;
+	std::map<int, int>::iterator anIt = mSpecialKindBySerial.find(theSerial);
+	int aKind = anIt != mSpecialKindBySerial.end() ? anIt->second : 0;
 	if (aKind == -0x68)
 		AddStat(0x3d, aTotal);
 	else if (aKind == -0x67)
@@ -413,7 +414,7 @@ Points* Board::AddPoints(int theX, int theY, int thePoints, const Color& theColo
 		AddStat(0x3b, aTotal);
 	else if (aKind == -0x65)
 		AddStat(0x3a, aTotal);
-	mUnknown2234[0x49] += aTotal;
+	mGameStats[0x49] += aTotal;
 	UpdateProgress(false);
 	return aFloater;
 }
@@ -423,32 +424,32 @@ void Board::ShowCountPopup()
 {
 	if (IsBusy())
 		return;
-	int aCount = mUnknown1F8;
-	if (mUnknown37B0 && mUnknown37B4 <= aCount) {
+	int aCount = mLevelGemCount;
+	if (mCountPopupOn && mCountPopupMin <= aCount) {
 		SetFontLayerColor(FONT_POPUP_COUNT, 1, Color(0x80, 0x80, 0x80));
-		if (mUnknown36B4 != aCount)
-			mUnknown36B4 = aCount;
-		mUnknown3730.SetCurve(GTS(0x7dca30));
-		mUnknown37A4 = 1.0f;
-		mUnknown37AC = 1.0f;
+		if (mCountPopupCount != aCount)
+			mCountPopupCount = aCount;
+		mCountPopupScale.SetCurve(GTS(0x7dca30));
+		mCountPopupShadow = 1.0f;
+		mCountPopupFade = 1.0f;
 	}
 }
 
 int Board::FindMatches(unsigned int theFlags)
 {
 	bool aReal = (theFlags & 2) != 0;
-	mUnknown1FF0 = 0;
-	mUnknown1FEC = 0;
-	mUnknown1FE8 = 0;
+	mMatchGemCount = 0;
+	mMatchCenterY = 0;
+	mMatchCenterX = 0;
 	if (aReal) {
 		ClearSparkStarts();
-		mUnknown2140.clear();
+		mMatchIds.clear();
 	}
 	ClearHitCounts();
-	if (mUnknown1382)
+	if (mEditorNoMatches)
 		return 0;
 	std::vector<Piece*> aReset;    // the gems whose state is cleared once the specials are chosen
-	bool aFirst = mUnknown1508 == 0;
+	bool aFirst = mChainLength == 0;
 	std::vector<MatchInfo> aMatches;
 	std::set<int> aTipGems;
 	int anAvgX = 0;
@@ -467,7 +468,7 @@ int Board::FindMatches(unsigned int theFlags)
 			else
 				anEnd = true;
 			if (anEnd) {
-				if (mUnknown1C68 <= aCount) {
+				if (mMatchLength <= aCount) {
 					MatchInfo anInfo;
 					anInfo.mRow = aRow;
 					anInfo.mCount = aCount;
@@ -503,7 +504,7 @@ int Board::FindMatches(unsigned int theFlags)
 			else
 				anEnd = true;
 			if (anEnd) {
-				if (mUnknown1C68 <= aCount) {
+				if (mMatchLength <= aCount) {
 					MatchInfo anInfo;
 					anInfo.mCol = aCol;
 					anInfo.mCount = aCount;
@@ -525,14 +526,14 @@ int Board::FindMatches(unsigned int theFlags)
 		}
 	}
 	// A challenge's squares: a gem and its four corners of one colour
-	if (mGameMode == MODE_CHALLENGE && (mUnknown3918 >> 6 & 1) != 0 && mUnknown1C98 && 1 < mRows - 1) {
+	if (mGameMode == MODE_CHALLENGE && (mUnlockFlags >> 6 & 1) != 0 && mIceGemsAllowed && 1 < mRows - 1) {
 		int aRow = 1;
 		do {
 			int aCol = 1;
 			if (1 < mCols - 1) {
 				do {
 					Piece* aPiece = GetPieceAt(aRow, aCol);
-					if (aPiece != nullptr && aPiece->mUnknown88 == 0) {
+					if (aPiece != nullptr && aPiece->mBusyTime == 0) {
 						std::vector<Piece*> aSquare;
 						aSquare.push_back(aPiece);
 						aSquare.push_back(GetPieceAt(aRow + 1, aCol + 1));
@@ -542,7 +543,7 @@ int Board::FindMatches(unsigned int theFlags)
 						std::vector<Piece*> aSame;
 						for (unsigned int i = 0; i < aSquare.size(); i++) {
 							Piece* aGem = aSquare[i];
-							if (aGem != nullptr && aGem->CanMove() && aGem->mUnknown88 == 0 &&
+							if (aGem != nullptr && aGem->CanMove() && aGem->mBusyTime == 0 &&
 								aGem->mColor == aPiece->mColor)
 								aSame.push_back(aGem);
 						}
@@ -571,20 +572,20 @@ int Board::FindMatches(unsigned int theFlags)
 		aSets = aMatchCount;
 	else
 		aSets = 3;
-	mUnknown2580 = aSets;
+	mMatchSetCount = aSets;
 	unsigned int aMatchIndex = 0;
 	if (aMatchCount != 0) {
 		do {
 			MatchInfo& aMatch = aMatches[aMatchIndex];
-			if (mUnknown21F4 == -1)
-				mUnknown21F4 = aMatch.mColor;
-			if (mApp->mUnknownC74[0x1c] < aMatch.mCount) {
+			if (mFirstMatchColor == -1)
+				mFirstMatchColor = aMatch.mColor;
+			if (mApp->mStats[0x1c] < aMatch.mCount) {
 				SetStat(0x1c, aMatch.mCount);
 				SetStat(0x1d, aMatch.mColor);
 			}
-			if (mUnknown2234[0x1c] < aMatch.mCount) {
-				mUnknown2234[0x1c] = aMatch.mCount;
-				mUnknown2234[0x1d] = aMatch.mColor;
+			if (mGameStats[0x1c] < aMatch.mCount) {
+				mGameStats[0x1c] = aMatch.mCount;
+				mGameStats[0x1d] = aMatch.mColor;
 			}
 			int aFruits = 0;
 			int anElectros = 0;
@@ -599,8 +600,8 @@ int Board::FindMatches(unsigned int theFlags)
 				// The match's shockwave, as strong as the cascade, pushes the gems round the match away from it
 				MatchShockwave* aWave = new MatchShockwave(Ftol((double)(gGemWidth / 2) + (double)aCentre->mX),
 					Ftol((double)(gGemHeight / 2) + (double)aCentre->mY));
-				aWave->SetStrength((float)mUnknown1508);
-				mUnknown1660.push_back(aWave);
+				aWave->SetStrength((float)mChainLength);
+				mShockwaves.push_back(aWave);
 				if (aMatch.mKind == 1) {
 					if (GetPieceAt(aRow, aCol - 1) != nullptr)
 						aWave->AddPush(aRow, aCol - 1, -1, 0);
@@ -639,21 +640,21 @@ int Board::FindMatches(unsigned int theFlags)
 				// The square: its corners fly into the middle gem, which turns
 				if (aCentre->mPendingKind == 0)
 					BreakPiece(aCentre);
-				Make6Gem(aCentre, 0.25f);
+				MakeIceGem(aCentre, 0.25f);
 				aCentre->mPendingDY = 0;
 				aCentre->mPendingDX = 0;
 				for (unsigned int i = 0; i < aMatch.mIds.size(); i++) {
 					Piece* aGem = GetPieceById(aMatch.mIds[i]);
-					if (aGem != nullptr && !aGem->mUnknown51D) {
+					if (aGem != nullptr && !aGem->mHasBroken) {
 						BreakPiece(aGem);
 						if (aGem->mPendingKind == 0) {
-							if (aGem->mUnknown538 == 0) {
+							if (aGem->mStrikeDelay == 0) {
 								aGem->mPendingDX = (float)(((double)aCentre->mX - (double)aGem->mX) / 25.0);
 								aGem->mPendingDY = (float)(((double)aCentre->mY - (double)aGem->mY) / 25.0);
 								aGem->mPendingTime = 0.25f;
 								aGem->mPendingKind = 0x40;
-								aGem->mUnknown2EC = aMatch.mSerial;
-								aGem->mUnknown4FC = 0;
+								aGem->mMatchSerial = aMatch.mSerial;
+								aGem->mLockState = 0;
 							}
 						} else {
 							aReset.push_back(aGem);
@@ -661,7 +662,7 @@ int Board::FindMatches(unsigned int theFlags)
 					}
 				}
 				aReset.push_back(aCentre);
-				aCentre->mUnknownEC = false;
+				aCentre->mHasSparkle = false;
 				aCentre->mBombCount = 0;
 				aCentre->ClearFlag(Piece::FLAG_BOMB);
 			}
@@ -676,15 +677,15 @@ int Board::FindMatches(unsigned int theFlags)
 						StartSparks(aGem);
 					if (aReal) {
 						if (!aGem->mBreaking)
-							aGem->mUnknown110 = aMatchIndex * 15;
-						if (aGem->mUnknown10C == 0) {
-							mUnknown1F0++;
-							if (!aGem->mUnknown537) {
-								if (!mUnknown2629 && 0 < mUnknown158)
+							aGem->mBreakDelay = aMatchIndex * 15;
+						if (aGem->mMatchCount == 0) {
+							mGemsCleared++;
+							if (!aGem->mHasBurst) {
+								if (!mReplayPlaying && 0 < mLevel)
 									mApp->mProfile->mGemsCleared++;
-								mUnknown1FC++;
-								mUnknown1F8++;
-								aGem->mUnknown537 = true;
+								mGameGemCount++;
+								mLevelGemCount++;
+								aGem->mHasBurst = true;
 								AddStat(0x3f, 1);
 								bool anElectro = aGem->IsFlagSet(Piece::FLAG_ELECTRO);
 								if (anElectro)
@@ -698,12 +699,12 @@ int Board::FindMatches(unsigned int theFlags)
 							}
 						}
 					}
-					aGem->mUnknown10C++;
+					aGem->mMatchCount++;
 					if (aGem->IsFlagSet(Piece::FLAG_ELECTRO))
 						anElectros++;
 					else if (aGem->IsFlagSet(Piece::FLAG_POWER))
 						aPowers++;
-					else if (aGem->IsFlagSet(Piece::FLAG_6))
+					else if (aGem->IsFlagSet(Piece::FLAG_ICE))
 						aSixes++;
 					else if (aGem->IsFlagSet(Piece::FLAG_FRUIT))
 						aFruits++;
@@ -714,29 +715,29 @@ int Board::FindMatches(unsigned int theFlags)
 				bool anElectro = false;
 				anAvgX += aSumX / aLength;
 				// A match of 4 makes a power gem, of 5 or more an electro gem
-				if (aFruits < 3 && mUnknown1C68 < aLength && (aMatch.mKind == 1 || aMatch.mKind == 2)) {
-					if (mUnknown1C68 + 1 < aLength) {
-						if ((mUnknown3914 >> 1 & 1) == 0 && 0 < mUnknown158)
+				if (aFruits < 3 && mMatchLength < aLength && (aMatch.mKind == 1 || aMatch.mKind == 2)) {
+					if (mMatchLength + 1 < aLength) {
+						if ((mSeenFlags >> 1 & 1) == 0 && 0 < mLevel)
 							aTipGems.insert(aMatch.mIds[0]);
 						anElectro = true;
 					} else {
-						if ((mUnknown3914 & 1) == 0 && 0 < mUnknown158)
+						if ((mSeenFlags & 1) == 0 && 0 < mLevel)
 							aTipGems.insert(aMatch.mIds[0]);
 						aPower = true;
 					}
 				}
 				// Before the profile has them, an electro gem's match makes a power gem, and none makes a power gem
-				if (((mUnknown3918 >> 3 & 1) == 0 || mUnknown158 == 0) && anElectro) {
+				if (((mUnlockFlags >> 3 & 1) == 0 || mLevel == 0) && anElectro) {
 					anElectro = false;
 					aPower = true;
 				}
-				if ((mUnknown3918 >> 4 & 1) == 0 || mUnknown158 == 0)
+				if ((mUnlockFlags >> 4 & 1) == 0 || mLevel == 0)
 					aPower = false;
 				gSparkDelay = 0;
 				if (aReal) {
 					int aPoints = 0;
-					int aCascade = mUnknown1508;
-					if (aCascade == 0 || mUnknown150C) {
+					int aCascade = mChainLength;
+					if (aCascade == 0 || mCascadePointsOn) {
 						if (6 < aCascade)
 							aCascade = 6;
 						aPoints = kCascadePoints[aCascade] + kMatchPoints[aMatch.mCount];
@@ -745,44 +746,44 @@ int Board::FindMatches(unsigned int theFlags)
 					for (unsigned int i = 0; i < aMatch.mIds.size(); i++) {
 						Piece* aGem = GetPieceById(aMatch.mIds[i]);
 						if (aGem != nullptr) {
-							aGem->mUnknown2EC = aSerial;
-							if (aGem->IsFlagSet(Piece::FLAG_FRUIT) && !aGem->mUnknown116)
-								aGem->mUnknown116 = true;
+							aGem->mMatchSerial = aSerial;
+							if (aGem->IsFlagSet(Piece::FLAG_FRUIT) && !aGem->mFruitCounted)
+								aGem->mFruitCounted = true;
 						}
 					}
 					if (anElectros == 0 || aPowers == 0 || aSixes == 0) {
 						if (aPower || anElectro)
 							MakeMatchSpecial(aMatch, aReset, aPower, anElectro);
 					} else {
-						// A power, an electro and a type 6 gem in one match: every gem on the board loses its
+						// A power, an electro and an ice gem in one match: every gem on the board loses its
 						// special and blows, from the middle rows out
 						Piece** aCell = mGrid;
 						for (int aLeft = mCols * mRows; 0 < aLeft; aLeft--) {
 							Piece* aGem = *aCell;
 							if (aGem != nullptr && !aGem->mBreaking) {
-								if (aGem->IsFlagSet(Piece::FLAG_POWER) || aGem->IsFlagSet(Piece::FLAG_6) ||
+								if (aGem->IsFlagSet(Piece::FLAG_POWER) || aGem->IsFlagSet(Piece::FLAG_ICE) ||
 									aGem->IsFlagSet(Piece::FLAG_ELECTRO))
 									aGem->ClearSpecial();
-								aGem->mUnknown88 = std::abs(aGem->mRow - mRows / 2) * 20 + 10;
-								aGem->mUnknown2EC = aLeft;
+								aGem->mBusyTime = std::abs(aGem->mRow - mRows / 2) * 20 + 10;
+								aGem->mMatchSerial = aLeft;
 							}
 							aCell++;
 						}
 						AddStat(0x1e, 1);
 					}
-					aMatch.mUnknown2C = aPoints;
+					aMatch.mPoints = aPoints;
 				}
 				// The tips for power and electro gems, in casual and classic
 				if ((theFlags & 1) != 0 && (mGameMode == MODE_ZEN || mGameMode == MODE_CLASSIC)) {
-					if (!aPower || (mUnknown3914 & 1) != 0) {
-						if (!anElectro || (mUnknown3914 >> 1 & 1) != 0)
+					if (!aPower || (mSeenFlags & 1) != 0) {
+						if (!anElectro || (mSeenFlags >> 1 & 1) != 0)
 							goto next_match;
-						mUnknown814 = 0x50;
+						mSlowDownWait = 0x50;
 					} else {
-						mUnknown814 = 0x28;
+						mSlowDownWait = 0x28;
 					}
-					mUnknown23EC = 1.0f;
-					mUnknown23F0 = 0.015f;
+					mMatchFlash = 1.0f;
+					mMatchFlashDecay = 0.015f;
 				}
 			}
 next_match:
@@ -793,47 +794,47 @@ next_match:
 		anAvgX = anAvgX / (int)aMatches.size();
 	if (!aReal) {
 		// Only the tips: a gem in two matches
-		bool aPowerTips = (mUnknown3918 >> 4 & 1) != 0 && 0 < mUnknown158;
+		bool aPowerTips = (mUnlockFlags >> 4 & 1) != 0 && 0 < mLevel;
 		for (int aRow = 0; aRow < mRows; aRow++) {
 			for (int aCol = 0; aCol < mCols; aCol++) {
 				Piece* aPiece = GetPieceAt(aRow, aCol);
 				if (aPiece == nullptr)
 					continue;
-				if (aPowerTips && 1 < aPiece->mUnknown10C && (theFlags & 1) != 0 &&
-					(mGameMode == MODE_ZEN || mGameMode == MODE_CLASSIC) && (mUnknown3914 & 1) == 0) {
+				if (aPowerTips && 1 < aPiece->mMatchCount && (theFlags & 1) != 0 &&
+					(mGameMode == MODE_ZEN || mGameMode == MODE_CLASSIC) && (mSeenFlags & 1) == 0) {
 					aTipGems.insert(aPiece->mId);
-					mUnknown23EC = 1.0f;
-					mUnknown814 = 0x28;
-					mUnknown23F0 = 0.015f;
+					mMatchFlash = 1.0f;
+					mSlowDownWait = 0x28;
+					mMatchFlashDecay = 0.015f;
 				}
-				aPiece->mUnknown10C = 0;
+				aPiece->mMatchCount = 0;
 			}
 		}
 		return FinishMatches(aMatches, aTipGems);
 	}
 	for (unsigned int i = 0; i < aReset.size(); i++) {
 		Piece* aGem = aReset[i];
-		aGem->mUnknownF0 = 0;
+		aGem->mSparkleAlpha = 0;
 		aGem->mGlow = 0;
 		aGem->mBreaking = false;
-		aGem->mUnknown29C = 0;
+		aGem->mAura = 0;
 		aGem->mBlasted = false;
-		aGem->mUnknown10C = 0;
-		aGem->mUnknownEC = false;
-		aGem->mUnknown88 = 0;
-		aGem->mUnknown38 = false;
-		aGem->mUnknown537 = false;
+		aGem->mMatchCount = 0;
+		aGem->mHasSparkle = false;
+		aGem->mBusyTime = 0;
+		aGem->mHasPulsingLight = false;
+		aGem->mHasBurst = false;
 	}
 	{
 		// A gem in two matches (an L or a T) becomes a power gem
-		bool aPowerGems = (mUnknown3918 >> 4 & 1) != 0 && 0 < mUnknown158;
+		bool aPowerGems = (mUnlockFlags >> 4 & 1) != 0 && 0 < mLevel;
 		for (int aRow = 0; aRow < mRows; aRow++) {
 			for (int aCol = 0; aCol < mCols; aCol++) {
 				Piece* aPiece = GetPieceAt(aRow, aCol);
-				if (aPiece == nullptr || !aPowerGems || aPiece->mUnknown10C < 2)
+				if (aPiece == nullptr || !aPowerGems || aPiece->mMatchCount < 2)
 					continue;
 				aPiece->mBreaking = false;
-				if (!aPiece->IsSpecial() || aPiece->IsFlagSet(Piece::FLAG_BOMB) || aPiece->mUnknown51D ||
+				if (!aPiece->IsSpecial() || aPiece->IsFlagSet(Piece::FLAG_BOMB) || aPiece->mHasBroken ||
 					aPiece->mPendingKind != 0) {
 					MakePowerGem(aPiece, 0.0f);
 				} else {
@@ -842,13 +843,13 @@ next_match:
 						continue;
 					aPiece->mBreaking = false;
 					aPiece->mBlasted = false;
-					aPiece->mUnknown538 = 0x10;
+					aPiece->mStrikeDelay = 0x10;
 				}
 				int aSerial = -1;
-				aPiece->mUnknown29C = 0;
-				aPiece->mUnknown10C = 0;
-				aPiece->mUnknown88 = 0;
-				aPiece->mUnknown51D = true;
+				aPiece->mAura = 0;
+				aPiece->mMatchCount = 0;
+				aPiece->mBusyTime = 0;
+				aPiece->mHasBroken = true;
 				for (unsigned int m = 0; m < aMatches.size(); m++) {
 					MatchInfo& aMatch = aMatches[m];
 					for (unsigned int i = 0; i < aMatch.mIds.size(); i++) {
@@ -864,20 +865,20 @@ next_match:
 						} else {
 							aMatch.mSerial = aSerial;
 						}
-						aGem->mUnknown2EC = aPiece->mUnknown2EC;
+						aGem->mMatchSerial = aPiece->mMatchSerial;
 						if (aGem == aPiece) {
 							// The match's other gems fly into it
 							for (unsigned int j = 0; j < aMatch.mIds.size(); j++) {
 								Piece* anOther = GetPieceById(aMatch.mIds[j]);
-								if (anOther != nullptr && !anOther->mUnknown51D && anOther != aPiece &&
-									aPiece->mUnknown538 == 0) {
+								if (anOther != nullptr && !anOther->mHasBroken && anOther != aPiece &&
+									aPiece->mStrikeDelay == 0) {
 									anOther->mPendingDX = (float)(((double)aPiece->mX - (double)anOther->mX) / 25.0);
 									float aY = aPiece->mY;
-									anOther->mUnknown110 = 0;
+									anOther->mBreakDelay = 0;
 									anOther->mPendingKind = 0x10;
 									anOther->mPendingDY = (float)(((double)aY - (double)anOther->mY) / 25.0);
 									anOther->mPendingTime = 0.25f;
-									aPiece->mUnknown4FC = 0;
+									aPiece->mLockState = 0;
 									BreakPiece(anOther);
 								}
 							}
@@ -891,35 +892,35 @@ next_match:
 	for (int aRow = 0; aRow < mRows; aRow++) {
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = GetPieceAt(aRow, aCol);
-			if (aPiece != nullptr && aPiece->mUnknown10C != 0) {
-				aPiece->mUnknown51D = false;
+			if (aPiece != nullptr && aPiece->mMatchCount != 0) {
+				aPiece->mHasBroken = false;
 				BreakPiece(aPiece);
 			}
 		}
 	}
-	if (mUnknown149C.size() != 0) {
+	if (mElectroStrikes.size() != 0) {
 		// (the original reads every cell without a check for a gap)
 		for (int aRow = 0; aRow < mRows; aRow++) {
 			for (int aCol = 0; aCol < mCols; aCol++) {
 				Piece* aPiece = GetPieceAt(aRow, aCol);
-				if (aPiece != nullptr && aPiece->mBreaking && aPiece->mUnknown110 == 0 &&
+				if (aPiece != nullptr && aPiece->mBreaking && aPiece->mBreakDelay == 0 &&
 					!aPiece->IsFlagSet(Piece::FLAG_COAL))
-					aPiece->mUnknown110 = 1;
+					aPiece->mBreakDelay = 1;
 			}
 		}
 	}
 	if (0 < aMatchCount) {
 		// A cascade
-		mUnknown1508++;
-		mUnknown14F4 = 0;
+		mChainLength++;
+		mUpdatesSinceCascade = 0;
 		AddStat(0x52, 1);
-		if ((unsigned int)mApp->mUnknownC74[0x2c] <= (unsigned int)mUnknown1508)
-			mApp->mUnknownC74[0x2c] = mUnknown1508;
-		if (mUnknown37B1 && 2 < mUnknown1508) {
-			mUnknown36C0.SetCurve(GTS(0x7dca30));
-			mUnknown37A0 = 1.0f;
-			mUnknown37A8 = 1.0f;
-			mUnknown36B8 = mUnknown1508;
+		if ((unsigned int)mApp->mStats[0x2c] <= (unsigned int)mChainLength)
+			mApp->mStats[0x2c] = mChainLength;
+		if (mCascadePopupOn && 2 < mChainLength) {
+			mCascadePopupScale.SetCurve(GTS(0x7dca30));
+			mCascadePopupShadow = 1.0f;
+			mCascadePopupFade = 1.0f;
+			mCascadePopupCount = mChainLength;
 		}
 		int aSixSound = -1;
 		float aPitch = 0;
@@ -930,7 +931,7 @@ next_match:
 			}
 		}
 		if (aSixSound == -1) {
-			int aCascade = mUnknown1508;
+			int aCascade = mChainLength;
 			if (6 < aCascade)
 				aCascade = 6;
 			mApp->PlaySample(aCascade + SOUND_COMBO_1);
@@ -938,16 +939,16 @@ next_match:
 			mApp->PlaySoundEx(aSixSound, 0, aPitch, 0.0f, true, true);
 		}
 		for (int i = 0; i < 24; i++)
-			mUnknown2058[i] = 1.5f;
+			mGlowRing[i] = 1.5f;
 	}
-	mUnknown2018 += aMatchCount;
+	mMatchesInTurn += aMatchCount;
 	AddStat(0x29, aMatchCount);
-	mUnknown20F4.clear();
+	mTwistPieces.clear();
 	if (DropPieces())
 		FillInBlanks(false);
 	if (aMatches.size() != 0) {
 		// The match of the fruit's next colour goes first
-		unsigned int aNext = (unsigned int)mUnknown2660;
+		unsigned int aNext = (unsigned int)mBonusMatched;
 		if (aNext < mBonusColors.size()) {
 			int aColor = mBonusColors[aNext];
 			for (unsigned int i = 1; i < aMatches.size(); i++) {
@@ -963,21 +964,21 @@ next_match:
 		int aDelay = 0;
 		for (unsigned int m = 0; m < aMatches.size(); m++) {
 			MatchInfo aMatch = aMatches[m];
-			mUnknown2614.push_back(aMatch);
-			unsigned int aNext = (unsigned int)mUnknown2660;
+			mTurnMatches.push_back(aMatch);
+			unsigned int aNext = (unsigned int)mBonusMatched;
 			if (aNext < mBonusColors.size()) {
 				if ((unsigned int)mBonusColors[aNext] == (unsigned int)aMatch.mColor) {
-					if (mUnknown265C == 3)
-						mApp->PlaySoundEx(SOUND_FRUITBONUSCOUNT, 0, (float)(unsigned int)mUnknown2660, 0.0f, true,
+					if (mBonusStage == 3)
+						mApp->PlaySoundEx(SOUND_FRUITBONUSCOUNT, 0, (float)(unsigned int)mBonusMatched, 0.0f, true,
 							true);
-					mUnknown2660++;
-					if (mUnknown2660 == 4 && mUnknown265C == 2)
-						mUnknown265C = 1;
+					mBonusMatched++;
+					if (mBonusMatched == 4 && mBonusStage == 2)
+						mBonusStage = 1;
 				}
 				if ((unsigned int)mBonusColors[0] == (unsigned int)aMatch.mColor)
 					aFruitMatched = true;
 			}
-			if (aMatch.mUnknown2C != 0) {
+			if (aMatch.mPoints != 0) {
 				// The match's points at its middle
 				Piece* aGem = GetPieceById(aMatch.mIds[0]);
 				int aSumX = 0;
@@ -992,12 +993,12 @@ next_match:
 				if (aGem != nullptr) {
 					int aCount = (int)aMatch.mIds.size();
 					int aLift = Ftol((double)gApp->mScale * 24.0);
-					Points* aPoints = AddPoints(aSumX / aCount, aSumY / aCount - aLift, aMatch.mUnknown2C,
+					Points* aPoints = AddPoints(aSumX / aCount, aSumY / aCount - aLift, aMatch.mPoints,
 						gGemColors[aGem->mColor], aMatch.mSerial, true, true, aFirst, true);
-					if (aFirst && 1 < mUnknown2170.size()) {
+					if (aFirst && 1 < mSmokeTravellers.size()) {
 						// The first points of a cascade, with other smoke already on its way: theirs waits and goes
 						// slower
-						SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mUnknown2170.back());
+						SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mSmokeTravellers.back());
 						aSmoke->mDelay = 0.1f;
 						aSmoke->mHurry = (float)((double)aSmoke->mHurry * 0.3499999940395355);
 					}
@@ -1009,26 +1010,27 @@ next_match:
 			aDelay += 15;
 		}
 	}
-	if (mUnknown1508 == 1) {
-		if (mUnknown265C == 0 && mUnknown2660 == mUnknown2664 && aFruitMatched) {
-			mUnknown2664 = 0;
-			mUnknown2660 = 1;
+	if (mChainLength == 1) {
+		if (mBonusStage == 0 && mBonusMatched == mBonusMatchedMark && aFruitMatched) {
+			mBonusMatchedMark = 0;
+			mBonusMatched = 1;
 		} else {
 			ResetFruitCount();
 		}
 	}
-	if (1 < mUnknown2580)
-		mApp->PlaySoundAt(SOUND_DOUBLESET, anAvgX, (float)(mUnknown2580 - 2), 0.0f);
+	if (1 < mMatchSetCount)
+		mApp->PlaySoundAt(SOUND_DOUBLESET, anAvgX, (float)(mMatchSetCount - 2), 0.0f);
 	return FinishMatches(aMatches, aTipGems);
 }
 
+// part of FindMatches (0x6cd468): its end, from the matches' average position to the count it returns
 int Board::FinishMatches(std::vector<MatchInfo>& theMatches, std::set<int>& theTipGems)
 {
-	if (mUnknown1FF0 != 0) {
-		mUnknown1FE8 = mUnknown1FE8 / mUnknown1FF0;
-		mUnknown1FEC = mUnknown1FEC / mUnknown1FF0;
+	if (mMatchGemCount != 0) {
+		mMatchCenterX = mMatchCenterX / mMatchGemCount;
+		mMatchCenterY = mMatchCenterY / mMatchGemCount;
 	}
-	if (0.0f < mUnknown23EC) {
+	if (0.0f < mMatchFlash) {
 		// The tip's gems glow: those of every match with a gem the tip is about (every match, with none)
 		for (unsigned int m = 0; m < theMatches.size(); m++) {
 			bool aGlow = theTipGems.empty();
@@ -1039,13 +1041,14 @@ int Board::FinishMatches(std::vector<MatchInfo>& theMatches, std::set<int>& theT
 			}
 			if (aGlow) {
 				for (int i = 0; i < (int)aMatch.mIds.size(); i++)
-					GetPieceById(aMatch.mIds[i])->mUnknown2F4 = true;
+					GetPieceById(aMatch.mIds[i])->mIsInMatch = true;
 			}
 		}
 	}
 	return (int)theMatches.size();
 }
 
+// part of FindMatches (0x6cd468): the special gem a match of four, five or more makes
 void Board::MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset, bool thePower, bool theElectro)
 {
 	// The gems that moved into the match, unless special
@@ -1058,8 +1061,8 @@ void Board::MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset,
 			continue;
 		aSumX = Ftol((double)aSumX + (double)aGem->mX);
 		aSumY = Ftol((double)aSumY + (double)aGem->mY);
-		if (aGem->mUnknown10C != 0 && !aGem->IsFlagSet(Piece::FLAG_ELECTRO) && !aGem->IsFlagSet(Piece::FLAG_POWER) &&
-			!aGem->IsFlagSet(Piece::FLAG_FRUIT) && (aGem->mUnknown2C != aGem->mRow || aGem->mUnknown24 != aGem->mCol))
+		if (aGem->mMatchCount != 0 && !aGem->IsFlagSet(Piece::FLAG_ELECTRO) && !aGem->IsFlagSet(Piece::FLAG_POWER) &&
+			!aGem->IsFlagSet(Piece::FLAG_FRUIT) && (aGem->mLastRow != aGem->mRow || aGem->mLastCol != aGem->mCol))
 			aCandidates.push_back(aGem);
 	}
 	aSumX = aSumX / theMatch.mCount;
@@ -1094,10 +1097,10 @@ void Board::MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset,
 	if (aChosen == nullptr) {
 		if (aCandidates.empty()) {
 			unsigned int aCount = (unsigned int)theMatch.mIds.size();
-			unsigned int aRoll = (unsigned int)Rand85B970();
+			unsigned int aRoll = (unsigned int)BoardRand();
 			aChosen = GetPieceById(theMatch.mIds[aRoll % aCount]);
 		} else {
-			unsigned int aRoll = (unsigned int)Rand85B970();
+			unsigned int aRoll = (unsigned int)BoardRand();
 			aChosen = aCandidates[aRoll % aCandidates.size()];
 		}
 	}
@@ -1111,30 +1114,30 @@ void Board::MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset,
 					MakeElectroGem(aPiece, 0.25f);
 					aPiece->mPendingDY = 0;
 					aPiece->mPendingDX = 0;
-					aPiece->mUnknown51D = true;
-					if (mUnknown1C68 + 2 < theMatch.mCount) {
+					aPiece->mHasBroken = true;
+					if (mMatchLength + 2 < theMatch.mCount) {
 						aPiece->mPendingKind += 0x10;
 						AddStat(0x15, 1);
 					}
 					for (unsigned int i = 0; i < theMatch.mIds.size(); i++) {
 						Piece* aGem = GetPieceById(theMatch.mIds[i]);
-						if (aGem == nullptr || aGem->mUnknown51D)
+						if (aGem == nullptr || aGem->mHasBroken)
 							continue;
 						BreakPiece(aGem);
 						if (!aGem->IsSpecial()) {
 							if (aGem == aPiece || aGem->mPendingKind != 0) {
 								theReset.push_back(aGem);
-							} else if (aGem->mUnknown538 == 0) {
+							} else if (aGem->mStrikeDelay == 0) {
 								aGem->mPendingDX = (float)(((double)aPiece->mX - (double)aGem->mX) / 25.0);
 								aGem->mPendingDY = (float)(((double)aPiece->mY - (double)aGem->mY) / 25.0);
 								aGem->mPendingKind = 8;
 								aGem->mPendingTime = 0.25f;
-								aGem->mUnknown2EC = theMatch.mSerial;
-								aGem->mUnknown110 = 0;
-								aGem->mUnknown4FC = 0;
+								aGem->mMatchSerial = theMatch.mSerial;
+								aGem->mBreakDelay = 0;
+								aGem->mLockState = 0;
 							}
 						} else {
-							aGem->mUnknown536 = false;
+							aGem->mIsCounted = false;
 						}
 					}
 				}
@@ -1142,39 +1145,39 @@ void Board::MakeMatchSpecial(MatchInfo& theMatch, std::vector<Piece*>& theReset,
 				MakePowerGem(aPiece, 0.25f);
 				aPiece->mPendingDY = 0;
 				aPiece->mPendingDX = 0;
-				aPiece->mUnknown51D = true;
+				aPiece->mHasBroken = true;
 				for (unsigned int i = 0; i < theMatch.mIds.size(); i++) {
 					Piece* aGem = GetPieceById(theMatch.mIds[i]);
-					if (aGem == nullptr || aGem->mUnknown51D)
+					if (aGem == nullptr || aGem->mHasBroken)
 						continue;
 					BreakPiece(aGem);
 					if (!aGem->IsSpecial()) {
 						if (aGem == aPiece || aGem->mPendingKind != 0) {
 							theReset.push_back(aGem);
-						} else if (aGem->mUnknown538 == 0) {
+						} else if (aGem->mStrikeDelay == 0) {
 							aGem->mPendingDX = (float)(((double)aPiece->mX - (double)aGem->mX) / 25.0);
 							aGem->mPendingDY = (float)(((double)aPiece->mY - (double)aGem->mY) / 25.0);
 							aGem->mPendingKind = 0x10;
 							aGem->mPendingTime = 0.25f;
-							aGem->mUnknown536 = false;
-							aGem->mUnknown2EC = theMatch.mSerial;
-							aGem->mUnknown110 = 0;
-							aGem->mUnknown4FC = 0;
+							aGem->mIsCounted = false;
+							aGem->mMatchSerial = theMatch.mSerial;
+							aGem->mBreakDelay = 0;
+							aGem->mLockState = 0;
 						}
 					} else {
-						aGem->mUnknown536 = false;
+						aGem->mIsCounted = false;
 					}
 				}
 			}
 		} else {
-			aPiece->mUnknown538 = theElectro ? 8 : 16;
+			aPiece->mStrikeDelay = theElectro ? 8 : 16;
 		}
 	} else {
 		BreakPiece(aPiece);
 	}
 	if (aPiece != nullptr) {
 		theReset.push_back(aChosen);
-		aPiece->mUnknownEC = false;
+		aPiece->mHasSparkle = false;
 		aPiece->mBombCount = 0;
 		aPiece->ClearFlag(Piece::FLAG_BOMB);
 	}
@@ -1215,18 +1218,18 @@ int Board::GetLevelFor(int* theLeft)
 	int aStart = 0;
 	while (true) {
 		int anEnd = aStart + GetLevelSteps(aLevel);
-		if (mUnknown224 < anEnd)
+		if (mLevelStepCount < anEnd)
 			break;
 		aLevel++;
 		aStart = anEnd;
 		if (aLevel == 10) {
 			if (theLeft != nullptr)
-				*theLeft = mUnknown224 - anEnd;
+				*theLeft = mLevelStepCount - anEnd;
 			return 10;
 		}
 	}
 	if (theLeft != nullptr)
-		*theLeft = mUnknown224 - aStart;
+		*theLeft = mLevelStepCount - aStart;
 	if (aLevel < 11)
 		return aLevel;
 	return 10;
@@ -1235,27 +1238,27 @@ int Board::GetLevelFor(int* theLeft)
 void Board::SetLevelSteps(int theSteps)
 {
 	int aLeft = 0;
-	int aShown = mGoodTube->mUnknown27C;
-	mUnknown224 = theSteps;
+	int aShown = mGoodTube->mShownLevel;
+	mLevelStepCount = theSteps;
 	int aLevel = GetLevelFor(&aLeft);
-	mUnknown21D0 = aLevel;
+	mStepLevel = aLevel;
 	if (aLevel == 10 && GetLevelSteps(10) * 2 <= aLeft) {
-		if (!mUnknown214)
-			mUnknown344C++;
-		mUnknown214 = true;
+		if (!mFruitDue)
+			mOverflowLevelCount++;
+		mFruitDue = true;
 	}
-	if (mUnknown2041) {
+	if (mLevelStarted) {
 		mGoodTube->SetLevelSteps(aLeft);
 		mGoodTube->SetLevelShown(aLevel);
 		if (aLevel < aShown) {
 			mGoodTube->MarkLevelChange();
-			mGoodTube->mUnknown29C = mGoodTube->mUnknown29C * 0.5f;
+			mGoodTube->mLevelFlash = mGoodTube->mLevelFlash * 0.5f;
 		} else if (aShown < aLevel && aLeft == 0) {
 			mGoodTube->MarkLevelChange();
-			if (mApp->mUnknownC74[0x36] == 0 && aLevel == 2)
-				mApp->mUnknownC74[0x36] = mUnknown158;
-			else if (mApp->mUnknownC74[0x37] == 0 && aLevel == 2)
-				mApp->mUnknownC74[0x37] = mUnknown158;
+			if (mApp->mStats[0x36] == 0 && aLevel == 2)
+				mApp->mStats[0x36] = mLevel;
+			else if (mApp->mStats[0x37] == 0 && aLevel == 2)
+				mApp->mStats[0x37] = mLevel;
 		}
 	}
 }
@@ -1263,26 +1266,26 @@ void Board::SetLevelSteps(int theSteps)
 void Board::AddChainStep()
 {
 	bool aCounted;
-	if (!mUnknown2041 || !mGoodTube->mUnknown14D) {
+	if (!mLevelStarted || !mGoodTube->mLevelSoundOn) {
 		aCounted = false;
 	} else {
-		mUnknown224++;
+		mLevelStepCount++;
 		aCounted = true;
 	}
 	// The step that starts a level counts twice
 	int aLeft = 0;
 	GetLevelFor(&aLeft);
 	if (aLeft == 0 && aCounted)
-		mUnknown224++;
+		mLevelStepCount++;
 	AddStat(0x2a, 1);
 	if (mGameMode != MODE_CHALLENGE)
-		SetLevelSteps(mUnknown224);
+		SetLevelSteps(mLevelStepCount);
 }
 
 void Board::ShowTubeLevel()
 {
-	if (mGoodTube != nullptr && mUnknown2041)
-		mGoodTube->SetLevelShown(mUnknown21D0);
+	if (mGoodTube != nullptr && mLevelStarted)
+		mGoodTube->SetLevelShown(mStepLevel);
 }
 
 void Board::MatchAfterMove()
@@ -1291,88 +1294,88 @@ void Board::MatchAfterMove()
 	if (mGameMode == MODE_PUZZLE) {
 		aMatches = 0;
 	} else {
-		unsigned int aFruitCount = (unsigned int)mUnknown2660;
-		mUnknown2614.clear();
-		int aCleared = mUnknown1F0;
+		unsigned int aFruitCount = (unsigned int)mBonusMatched;
+		mTurnMatches.clear();
+		int aCleared = mGemsCleared;
 		if (HasChallengeFlag(0x10))
 			CheckGoal(false);
 		aMatches = FindMatches(2);
-		if (aCleared < mUnknown1F0)
+		if (aCleared < mGemsCleared)
 			ShowCountPopup();
 		if (mGameMode == MODE_CHALLENGE) {
 			if (mChallenge != 0)
 				CheckGoal(false);
 		} else {
-			if (!CheckGoal(false) && mUnknown1508 < 1 && (unsigned int)mUnknown2660 == aFruitCount) {
-				if (aFruitCount < mBonusColors.size() && aFruitCount == (unsigned int)mUnknown2664)
-					mUnknown2660 = 0;
+			if (!CheckGoal(false) && mChainLength < 1 && (unsigned int)mBonusMatched == aFruitCount) {
+				if (aFruitCount < mBonusColors.size() && aFruitCount == (unsigned int)mBonusMatchedMark)
+					mBonusMatched = 0;
 			}
 		}
-		if (mUnknown2130 && mUnknown2041) {
-			mUnknown2130 = false;
+		if (mTurnEndSoundDue && mLevelStarted) {
+			mTurnEndSoundDue = false;
 			if (aMatches == 0) {
 				if (!IsSparkBlocked()) {
 					// The chain is over: the steps fall back to the level's start, and a chain that added none drops a level
-					int aStat = mUnknown224 % 10;
+					int aStat = mLevelStepCount % 10;
 					if (4 < aStat)
-						AddStat(mUnknown224 == 10 ? 0x13 : aStat + 9, 1);
-					int aSteps = mUnknown224;
+						AddStat(mLevelStepCount == 10 ? 0x13 : aStat + 9, 1);
+					int aSteps = mLevelStepCount;
 					int aLevel = 1;
 					int aStart = 0;
-					mUnknown344C = 0;
-					if (1 < mUnknown21D0) {
+					mOverflowLevelCount = 0;
+					if (1 < mStepLevel) {
 						do {
 							aStart += GetLevelSteps(aLevel);
 							aLevel++;
-						} while (aLevel < mUnknown21D0);
+						} while (aLevel < mStepLevel);
 					}
 					if (aStart == aSteps) {
-						int aDown = mUnknown21D0 - 1;
+						int aDown = mStepLevel - 1;
 						int i = 1;
 						if (aDown < 1)
 							aDown = i;
 						aStart = 0;
-						mUnknown21D0 = aDown;
+						mStepLevel = aDown;
 						if (1 < aDown) {
 							do {
 								aStart += GetLevelSteps(i);
 								i++;
-							} while (i < mUnknown21D0);
+							} while (i < mStepLevel);
 						}
 					}
-					mUnknown21F8 = 100;  // 0x6a3ff4
+					mLevelStartMark = 100;  // 0x6a3ff4
 					SetLevelSteps(aStart);
-					mUnknown818 = 0;
+					mChainLinks = 0;
 					SetStat(0x2a, aStart);
-					mUnknown2234[0x2a] = 0;  // (the app's copy keeps the steps)
-					mUnknown2201 = false;
-					mUnknown21A1 = true;
+					mGameStats[0x2a] = 0;  // (the app's copy keeps the steps)
+					mLevelCounts = false;
+					mCountersAllowed = true;
 				}
 			} else {
-				mUnknown818++;
-				int aChain = mUnknown818;
-				mUnknown2228 = 0.5f;
-				int aBest = mUnknown228[0];
+				mChainLinks++;
+				int aChain = mChainLinks;
+				mChainShine = 0.5f;
+				int aBest = mLevelRecords[0];
 				if (aBest <= aChain)
 					aBest = aChain;
-				mUnknown228[0] = aBest;
+				mLevelRecords[0] = aBest;
 				if (mGameMode == MODE_CHALLENGE) {
 					AddStat(0x2a, 1);
 				} else if (1 < aChain && 49 < aChain && aChain % 10 == 0) {
 					// 0x6cf3fd: "%d CHAIN!" on the tube (Color::White stands for the exe's 0xe14068)
-					SexyString aChainText = StrFormat(mApp->GetString(GTS(0x7dd764), GT(0x7dd750)).c_str(), mUnknown818);
+					SexyString aChainText = StrFormat(mApp->GetString(GTS(0x7dd764), GT(0x7dd750)).c_str(), mChainLinks);
 					mGoodTube->SetTip(aChainText, Color::White, 0.0f, 10000);
 				}
 			}
-			unsigned int& aBestChain = (unsigned int&)mApp->mUnknownC74[0x2b];
-			if (aBestChain <= (unsigned int)mUnknown818)
-				aBestChain = (unsigned int)mUnknown818;
-			int aChain = mUnknown818;
-			int aBest = mUnknown2234[0x2b];
+			unsigned int& aBestChain = (unsigned int&)mApp->mStats[0x2b];
+			if (aBestChain <= (unsigned int)mChainLinks)
+				aBestChain = (unsigned int)mChainLinks;
+			int aChain = mChainLinks;
+			int aBest = mGameStats[0x2b];
 			if (aBest <= aChain)
 				aBest = aChain;
-			mUnknown2234[0x2b] = aBest;
-			if (0 < mUnknown158) {
+			mGameStats[0x2b] = aBest;
+			if (0 < mLevel) {
 				int& aProfileBest = mApp->mProfile->mBestChain;
 				if (aChain <= aProfileBest)
 					aChain = aProfileBest;
@@ -1380,39 +1383,39 @@ void Board::MatchAfterMove()
 			}
 		}
 	}
-	if (mUnknown1FC0 != mUnknown1FB8) {
+	if (mTurnCountedForSpeed != mTurnCount) {
 		if (aMatches == 0) {
-			mUnknown215C = -1;
-			mUnknown2160 = 1;
-			mUnknown25B4 = 0;
-			mUnknown25AC = mUnknown25A8;
+			mChainFlashSet = -1;
+			mChainFlashKind = 1;
+			mQuickMoveCount = 0;
+			mQuickMoveGap = mSettledUpdates;
 		} else {
-			mUnknown244++;
-			mUnknown2164 = 1.0f;
-			mUnknown216C = true;
-			if (mUnknown1508 == 1)
-				PlayChainSound(mUnknown818 + 1);
-			if (mGameMode != MODE_PUZZLE && mUnknown2041 && mGoodTube->mUnknown14D && !mUnknown1390 && !mUnknown21A2)
-				mUnknown1FC0 = mUnknown1FB8;
-			mUnknown25B4++;
-			if (!mUnknown2629 && mGameMode != MODE_CHALLENGE) {
+			mChainsMade++;
+			mChainFlash = 1.0f;
+			mChainAdded = true;
+			if (mChainLength == 1)
+				PlayChainSound(mChainLinks + 1);
+			if (mGameMode != MODE_PUZZLE && mLevelStarted && mGoodTube->mLevelSoundOn && !mBeforeFirstTwist && !mGameLoaded)
+				mTurnCountedForSpeed = mTurnCount;
+			mQuickMoveCount++;
+			if (!mReplayPlaying && mGameMode != MODE_CHALLENGE) {
 				SpeedBonus();
 			}
 		}
 	}
-	if (mUnknown15C < 1)
-		mUnknown21DA = true;
-	if (mUnknown1438) {
-		mUnknown1438 = false;
+	if (mInputLock < 1)
+		mSettling = true;
+	if (mWaitDialogUp) {
+		mWaitDialogUp = false;
 		mApp->KillDialog(40);
-		mApp->mUnknown8D8 = false;
+		mApp->mWaitDialogActive = false;
 	}
-	if (mUnknown1FBC != mUnknown1FB8) {
-		AddStat(0x39, mUnknown21D0);
-		int aCascade = mUnknown1508;
+	if (mTurnCountedForStats != mTurnCount) {
+		AddStat(0x39, mStepLevel);
+		int aCascade = mChainLength;
 		if (4 < aCascade)
 			AddStat(aCascade < 10 ? aCascade + 3 : 0xd, 1);
-		mUnknown1FBC = mUnknown1FB8;
+		mTurnCountedForStats = mTurnCount;
 	}
 }
 
@@ -1426,7 +1429,7 @@ void Board::Refill()
 			for (int aCol = 0; aCol < mCols; aCol++) {
 				Piece* aPiece = GetPieceAt(aRow, aCol);
 				if (aPiece != nullptr &&
-					(0 < aPiece->mUnknown88 || (aPiece->mBombCount == 1 && aPiece->mUnknownD0 != 0.0f)))
+					(0 < aPiece->mBusyTime || (aPiece->mBombCount == 1 && aPiece->mCounterFlash != 0.0f)))
 					aDone = false;
 			}
 			aRow--;
@@ -1439,29 +1442,29 @@ void Board::Refill()
 	if (aDropped)
 		aNew = FillInBlanks(false);
 	MarkDirty();
-	mUnknown21DA = false;
+	mSettling = false;
 	EvaluateCursor(nullptr);
-	if (!aDropped && aNew == 0 && mUnknown149C.size() == 0 && mUnknown25A4)
+	if (!aDropped && aNew == 0 && mElectroStrikes.size() == 0 && mHintsReady)
 		SettleTurn();
-	else if (mUnknown15C < 1)
-		mUnknown15C = 0;
+	else if (mInputLock < 1)
+		mInputLock = 0;
 	CheckCombos();
 }
 
 void Board::BreakPiece(Piece* thePiece)
 {
-	thePiece->mUnknown10C = 0;
-	mUnknown2228 = 0.5f <= mUnknown2228 ? mUnknown2228 : 0.5f;
-	if (!mUnknown218C && thePiece->mColor < 7)
-		mUnknown218C = true;
-	if (thePiece->mUnknown2F5) {
-		thePiece->mUnknown2F5 = false;
+	thePiece->mMatchCount = 0;
+	mChainShine = 0.5f <= mChainShine ? mChainShine : 0.5f;
+	if (!mColorGemBroke && thePiece->mColor < 7)
+		mColorGemBroke = true;
+	if (thePiece->mHasPendingCount) {
+		thePiece->mHasPendingCount = false;
 		return;
 	}
-	if (0 < mUnknown1508) {
+	if (0 < mChainLength) {
 		// The cell glows in the gem's colour, brighter down a cascade
 		int aColor = thePiece->mColor;
-		int anAlpha = mUnknown1508 * 0x55;
+		int anAlpha = mChainLength * 0x55;
 		// (the original's table has black and two whites after the seven colours)
 		Color aTint = aColor < 7 ? gGemColors[aColor] : (aColor == 7 ? Color(0, 0, 0) : Color(255, 255, 255));
 		aTint.mAlpha = anAlpha < 0x100 ? anAlpha : 0xff;
@@ -1473,45 +1476,45 @@ void Board::BreakPiece(Piece* thePiece)
 	ShowCountPopup();
 	if (thePiece->IsFlagSet(Piece::FLAG_BOMB)) {
 		// A bomb in a match goes off harmlessly
-		if (!thePiece->mUnknown116)
+		if (!thePiece->mFruitCounted)
 			AddStat(0x47, 1);
 		BreakSpecial(thePiece, false);
 		thePiece->mBombCount = 0;
 		thePiece->ClearFlag(Piece::FLAG_BOMB);
 	}
-	if (thePiece->mUnknown51D) {
+	if (thePiece->mHasBroken) {
 		thePiece->mBreaking = false;
 		return;
 	}
 	int aColor = thePiece->mColor;
 	if (-1 < aColor && aColor < 7)
 		AddStat(aColor + 0x4b, 1);
-	if (mUnknown15C < 1 && !IsBusy()) {
-		mUnknown21DA = true;
-		mUnknown15C = 0;
+	if (mInputLock < 1 && !IsBusy()) {
+		mSettling = true;
+		mInputLock = 0;
 	}
-	if (thePiece->IsFlagSet(Piece::FLAG_1)) {
+	if (thePiece->IsFlagSet(Piece::FLAG_DROPPER)) {
 		AddStat(0x46, 1);
 		if (thePiece->mPendingKind == 0)
-			thePiece->mScale288 = 0.0f;
+			thePiece->mBirthScale = 0.0f;
 		if (thePiece->mBreaking)
-			thePiece->mScale288 = 0.75f;
-	} else if (thePiece->IsFlagSet(Piece::FLAG_6) && !thePiece->mUnknown51D) {
-		// Never reached: a flag-6 gem (the "ice gem") is made only from a challenge's square match (MatchInfo kind 4)
+			thePiece->mBirthScale = 0.75f;
+	} else if (thePiece->IsFlagSet(Piece::FLAG_ICE) && !thePiece->mHasBroken) {
+		// Never reached: an ice gem is made only from a challenge's square match (MatchInfo kind 4)
 		// or a soul of one, and squares need the profile's bit 6 (only tutorial.txt's "unlock icegem", which no line
 		// has) and "IceGemsAllowed" (false in config.xml; only config_action.xml, which no mode loads, says true).
 		// Its blast (stat 0x42, 50 sparks each of two kinds, 0x6baa5a, 75 points, Rand draws) is left out
 		NotPorted("Board::BreakPiece: a hypercube");
-	} else if (thePiece->IsFlagSet(Piece::FLAG_COAL) && !thePiece->mUnknown51D) {
+	} else if (thePiece->IsFlagSet(Piece::FLAG_COAL) && !thePiece->mHasBroken) {
 		AddStat(0x4a, 1);
 		BreakSpecial(thePiece, 1);
-	} else if (thePiece->IsFlagSet(Piece::FLAG_ELECTRO) && !thePiece->mUnknown51D) {
+	} else if (thePiece->IsFlagSet(Piece::FLAG_ELECTRO) && !thePiece->mHasBroken) {
 		// An electro gem goes off, unless a strike of its own runs already: it leaves the other strikes' lit gems,
 		// and its strike (+0x149c) starts
 		unsigned int i = 0;
-		if (mUnknown149C.size() != 0) {
+		if (mElectroStrikes.size() != 0) {
 			do {
-				ElectroStrike* aStrike = static_cast<ElectroStrike*>(mUnknown149C[i]);
+				ElectroStrike* aStrike = static_cast<ElectroStrike*>(mElectroStrikes[i]);
 				if (aStrike->mPieceId == thePiece->mId)
 					return;
 				std::vector<int>& anIds = aStrike->mIds;
@@ -1524,63 +1527,63 @@ void Board::BreakPiece(Piece* thePiece)
 					} while (j < anIds.size());
 				}
 				i++;
-			} while (i < mUnknown149C.size());
+			} while (i < mElectroStrikes.size());
 		}
 		bool aPower = thePiece->IsFlagSet(Piece::FLAG_POWER);
-		if (!thePiece->mUnknown537) {
+		if (!thePiece->mHasBurst) {
 			if (aPower) {
 				AddStat(0x40, 1);
 				AddStat(0x53, 1);
 			}
 			AddStat(0x41, 1);
 			AddStat(0x3e, 1);
-			thePiece->mUnknown537 = true;
-			mUnknown1FC++;
-			mUnknown1F8++;
+			thePiece->mHasBurst = true;
+			mGameGemCount++;
+			mLevelGemCount++;
 		}
-		mUnknown37B8[thePiece->mUnknown2EC] = -0x65;  // 0x6b8c49
+		mSpecialKindBySerial[thePiece->mMatchSerial] = -0x65;  // 0x6b8c49
 		thePiece->mGlow = 0;
 		mApp->PlaySample(SOUND_WILDCARD_DESTROYED);
 		ElectroStrike* aStrike = new ElectroStrike(thePiece);
-		mUnknown149C.push_back(aStrike);  // 0x6b9a24
+		mElectroStrikes.push_back(aStrike);  // 0x6b9a24
 		AddPoints(Ftol((double)(gGemWidth / 2) + (double)thePiece->mX),
 			Ftol((double)(gGemHeight / 2) + (double)thePiece->mY), 150, gGemColors[thePiece->mColor],
-			thePiece->mUnknown2EC, true, true, false, true);
+			thePiece->mMatchSerial, true, true, false, true);
 		thePiece->mBreaking = false;
-		thePiece->mUnknown10C = 0;
-		thePiece->mUnknown88 = 0;
-		thePiece->mUnknown51D = true;
-		mUnknown15C = 0;
+		thePiece->mMatchCount = 0;
+		thePiece->mBusyTime = 0;
+		thePiece->mHasBroken = true;
+		mInputLock = 0;
 		PlayPieceSound(thePiece, aPower ? SOUND_FLAMELIGHTNING : GetSoundById(SOUND_ELECTRO_START1_ID), 0.0f, 0.0f,
 			true);
 		return;
 	} else if (thePiece->IsFlagSet(Piece::FLAG_POWER)) {
-		if (!thePiece->mUnknown537) {
+		if (!thePiece->mHasBurst) {
 			AddStat(0x40, 1);
 			AddPoints(Ftol((double)(gGemWidth / 2) + (double)thePiece->mX),
 				Ftol((double)(gGemHeight / 2) + (double)thePiece->mY), 50, gGemColors[thePiece->mColor],
-				thePiece->mUnknown2EC, true, true, false, true);
-			thePiece->mUnknown537 = true;
-			mUnknown1FC++;
-			mUnknown1F8++;
+				thePiece->mMatchSerial, true, true, false, true);
+			thePiece->mHasBurst = true;
+			mGameGemCount++;
+			mLevelGemCount++;
 		}
-		mUnknown37B8[thePiece->mUnknown2EC] = -0x66;  // 0x6b8c49
+		mSpecialKindBySerial[thePiece->mMatchSerial] = -0x66;  // 0x6b8c49
 		thePiece->Blast();
 	} else if (thePiece->IsFlagSet(Piece::FLAG_LOCKED)) {
 		thePiece->BreakLock(false);
 	} else if (thePiece->IsFlagSet(Piece::FLAG_FRUIT)) {
-		if (mUnknown248 != 0.0f) {
+		if (mFruitBlast != 0.0f) {
 			// A fruit's blast is running: this one waits
 			thePiece->mBreaking = false;
-			thePiece->mUnknown88 = 1;
-			thePiece->mUnknown29C = 1.0f;
+			thePiece->mBusyTime = 1;
+			thePiece->mAura = 1.0f;
 			return;
 		}
-		// The fruit's blast starts (UpdateUnknown248), and the fruit dance's count of matches (+0x265c 1 or 2)
+		// The fruit's blast starts (UpdateFruitBlast), and the fruit dance's count of matches (+0x265c 1 or 2)
 		AddStat(0x45, 1);
 		PlayPieceSound(thePiece, SOUND_GEM_FRUIT_DESTROYED, 0.0f, 0.0f, true);
-		mUnknown22C++;
-		mUnknown24C = true;
+		mFruitsBroken++;
+		mFruitBrokeFree = true;
 		int aRow = 0;
 		if (0 < mRows) {
 			do {
@@ -1589,29 +1592,29 @@ void Board::BreakPiece(Piece* thePiece)
 					do {
 						Piece* aPiece = GetPieceAt(aRow, aCol);
 						if (aPiece != nullptr && (aPiece->IsFlagSet(Piece::FLAG_LOCKED) || aPiece->IsFlagSet(Piece::FLAG_BOMB)))
-							mUnknown24C = false;
+							mFruitBrokeFree = false;
 						aCol++;
 					} while (aCol < mCols);
 				}
 				aRow++;
 			} while (aRow < mRows);
 		}
-		mUnknown248 = 0.0001f;
-		mUnknown262A = true;
-		if (mUnknown265C == 0)
-			mUnknown265C = (mGoodTube->mUnknown3B0 == 0) + 1;
+		mFruitBlast = 0.0001f;
+		mFruitBrokeThisTurn = true;
+		if (mBonusStage == 0)
+			mBonusStage = (mGoodTube->mBonusState == 0) + 1;
 		else
-			mUnknown2664 = -1;
-		mUnknown25A4 = false;
-		mUnknown420 = thePiece->mColor;
-		mUnknown250 = GetColAt(Ftol((double)thePiece->mX));
-		mUnknown254 = GetRowAt(Ftol((double)(gGemHeight / 2) + (double)thePiece->mY));
-		mUnknown258 = thePiece->mId;
-		mUnknown260.SetCurve(GTS(0x7dd2f8));
-		mUnknown2D0.SetCurve(GTS(0x7dd2dc));
-		mUnknown340.SetCurve(GTS(0x7dd2b0));
-		mUnknown3B0.SetCurve(GTS(0x7dd28c));
-		mUnknown1394 = 0;
+			mBonusMatchedMark = -1;
+		mHintsReady = false;
+		mFruitColor = thePiece->mColor;
+		mFruitCol = GetColAt(Ftol((double)thePiece->mX));
+		mFruitRow = GetRowAt(Ftol((double)(gGemHeight / 2) + (double)thePiece->mY));
+		mFruitId = thePiece->mId;
+		mBlastRingSize.SetCurve(GTS(0x7dd2f8));
+		mBlastRingAlpha.SetCurve(GTS(0x7dd2dc));
+		mFruitGlowAlpha.SetCurve(GTS(0x7dd2b0));
+		mFruitBlastScale.SetCurve(GTS(0x7dd28c));
+		mFallDelay = 0;
 		thePiece->mBreaking = false;
 		return;
 	} else if (thePiece->IsFlagSet(Piece::FLAG_DEVIL)) {
@@ -1619,8 +1622,8 @@ void Board::BreakPiece(Piece* thePiece)
 		BreakSpecial(thePiece, false);
 		thePiece->mBlasted = true;
 	}
-	if (!thePiece->mUnknown116)
-		mUnknown1E8++;
+	if (!thePiece->mFruitCounted)
+		mGemsBroken++;
 	else
 		thePiece->mBlasted = true;
 }
@@ -1641,18 +1644,18 @@ void Board::BlowUpPiece(Piece* thePiece, float theX, float theY, bool theBreak, 
 		aPushY = (float)((double)aPushY * 2.0);
 	if (aPushY == 0.0f)
 		aPushX = (float)((double)aPushX * 2.0);
-	mUnknown1370[GetColAt(Ftol((double)thePiece->mX))] = mUpdateCnt;
+	mColumnBreakTime[GetColAt(Ftol((double)thePiece->mX))] = mUpdateCnt;
 	Light aLight;
 	aLight.mX = aX;
 	aLight.mY = aY;
-	aLight.mUnknown8 = 15.0f;
-	aLight.mUnknownC = 20.0f;
-	aLight.mUnknown10 = 0;
-	aLight.mUnknown14 = 1.0f;
-	aLight.mUnknown18 = true;
-	aLight.mUnknown1C = 0.1f;
-	aLight.mUnknown20 = 0.05f;
-	mUnknown1650.push_back(aLight);
+	aLight.mSize = 15.0f;
+	aLight.mFalloff = 20.0f;
+	aLight.mLevel = 0;
+	aLight.mStrength = 1.0f;
+	aLight.mRising = true;
+	aLight.mRiseRate = 0.1f;
+	aLight.mFadeRate = 0.05f;
+	mLights.push_back(aLight);
 
 	// smoke
 	for (int aLeft = 14; aLeft != 0; aLeft--) {
@@ -1740,15 +1743,15 @@ void Board::BlowUpPiece(Piece* thePiece, float theX, float theY, bool theBreak, 
 			anEffect->mDX = (float)(cos(anAngle) * (double)aSpeed2);
 			float aLift2 = (float)((double)gApp->mScale * -2.0);
 			anEffect->mDY = (float)(sin(anAngle) * (double)aSpeed2 + (double)aLift2);
-			anEffect->mUnknown38 = (float)((double)RandSigned() * 0.005 + 0.98);
+			anEffect->mVelocityDamping = (float)((double)RandSigned() * 0.005 + 0.98);
 		}
 		anEffect->mAngle = (float)anAngle;
 		anEffect->mDAngle = (float)((double)RandSigned() * 0.05000000074505806);
 		anEffect->mGravity = (float)((double)gApp->mScale * 0.05999999865889549);
-		anEffect->mUnknown9C = (float)((double)RandSigned() * (double)kTwoPiF);
-		anEffect->mUnknownA0 = (float)((double)RandSigned() * (double)kTwoPiF);
-		anEffect->mUnknownA4 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
-		anEffect->mUnknownA8 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+		anEffect->mBlend = (float)((double)RandSigned() * (double)kTwoPiF);
+		anEffect->mRateFrom = (float)((double)RandSigned() * (double)kTwoPiF);
+		anEffect->mRateTo = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+		anEffect->mTumbleTurn = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
 		float aFade = fabsf(RandSigned());
 		anEffect->mDAlpha = (float)(((double)aFade + (double)aFade + 4.0) * -0.0025);
 		mFXManager->AddEffect(anEffect);
@@ -1773,7 +1776,7 @@ void Board::BlowUpPiece(Piece* thePiece, float theX, float theY, bool theBreak, 
 		anEffect->mDScale = 0.005f;
 		aRand = (float)((double)RandSigned() * 0.5);
 		aRand = fabsf(aRand);
-		anEffect->mUnknownA0 = (float)((1.0 - (double)aRand) * (double)anEffect->mUnknownA0);
+		anEffect->mRateFrom = (float)((1.0 - (double)aRand) * (double)anEffect->mRateFrom);
 		anEffect->mColor = Color(128, 128, 128);
 		gBoard->mFXManager->AddEffect(anEffect);
 	}
@@ -1805,32 +1808,32 @@ void Board::BlowUpPiece(Piece* thePiece, float theX, float theY, bool theBreak, 
 		}
 		// Unless the board is +0x37c4's, a heat wave at the gem (0x6f9efe, no Direct3D test: 2D mode adds it too and
 		// only ages it), of the strength 0.8 and the growth 0.02
-		if (!mUnknown37C4) {
+		if (!mIsReplay) {
 			HeatWave* aWave = mFXManager->AddHeatWave((float)(gGemWidth / 2) + thePiece->mX,
 				(float)(gGemHeight / 2) + thePiece->mY, 0.8f);
 			aWave->mGrowth = 0.02f;
 		}
 	}
 
-	if (mUnknown1430 == thePiece)
-		mUnknown1430 = nullptr;
+	if (mCursorPiece == thePiece)
+		mCursorPiece = nullptr;
 	if (theBreak) {
 		MatchShockwave* aWave = new MatchShockwave(aCenterX, aCenterY);
 		aWave->SetStrength(2.0f);
-		mUnknown1660.push_back(aWave);
+		mShockwaves.push_back(aWave);
 		BreakPiece(thePiece);
-		if (!thePiece->mUnknown537 && !IsBusy()) {
+		if (!thePiece->mHasBurst && !IsBusy()) {
 			AddStat(0x3e, 1);
-			thePiece->mUnknown537 = true;
-			if (!mUnknown2629 && 0 < mUnknown158)
+			thePiece->mHasBurst = true;
+			if (!mReplayPlaying && 0 < mLevel)
 				mApp->mProfile->mGemsCleared++;
-			mUnknown1FC++;
-			mUnknown1F8++;
+			mGameGemCount++;
+			mLevelGemCount++;
 			ShowCountPopup();
 		}
 		if (thePiece->IsFlagSet(Piece::FLAG_COAL))
 			thePiece->mBreaking = true;
-		else if (thePiece->mUnknown88 == 0)
+		else if (thePiece->mBusyTime == 0)
 			thePiece->mBlasted = true;
 	}
 }
@@ -1855,9 +1858,9 @@ void Board::LiftColumn(Piece* thePiece, float theStrength)
 				aKick = (float)((double)aScale * (double)theStrength * (double)aNear);
 				if (aFirst == 0.0f)
 					aFirst = aKick;
-				aPiece->mUnknown34 = aFirst <= aPiece->mUnknown34 ? aFirst : aPiece->mUnknown34;
+				aPiece->mFallSpeed = aFirst <= aPiece->mFallSpeed ? aFirst : aPiece->mFallSpeed;
 			}
-			mUnknown133C[aCol] = aKick < aFirst ? aFirst : aKick;
+			mColumnLift[aCol] = aKick < aFirst ? aFirst : aKick;
 			aCol++;
 		} while (aCol <= thePiece->mCol);
 	}
@@ -1879,8 +1882,8 @@ void Board::LiftAround(Piece* thePiece, float theStrength)
 				aDY = aPiece->mY - thePiece->mY;
 				if (aFirst == 0.0f)
 					aFirst = aKick;
-				aKick = aFirst <= aPiece->mUnknown34 ? aFirst : aPiece->mUnknown34;
-				aPiece->mUnknown34 = aKick;
+				aKick = aFirst <= aPiece->mFallSpeed ? aFirst : aPiece->mFallSpeed;
+				aPiece->mFallSpeed = aKick;
 			} else if (aRow == -1) {
 				// and above the top row
 				aDX = (float)GetColX(aCol) - thePiece->mX;
@@ -1900,7 +1903,7 @@ void Board::LiftAround(Piece* thePiece, float theStrength)
 			aKick = (float)((double)aScale * (double)aPush);
 		}
 		aFirst = aKick <= aFirst ? aKick : aFirst;
-		mUnknown133C[aCol] = aFirst;
+		mColumnLift[aCol] = aFirst;
 	}
 }
 
@@ -1912,15 +1915,15 @@ void Board::SetOffPowerGem(Piece* thePiece)
 		thePiece->Blast();
 	} else {
 		// (the original asks IsBusy and the electro flag again here and keeps neither answer)
-		BurstAt(GetColX(thePiece->mUnknown24) + gGemWidth / 2, GetRowY(thePiece->mUnknown30) + gGemHeight / 2, 1);
+		BurstAt(GetColX(thePiece->mLastCol) + gGemWidth / 2, GetRowY(thePiece->mBurstRow) + gGemHeight / 2, 1);
 	}
-	if (!thePiece->mUnknown537) {
+	if (!thePiece->mHasBurst) {
 		AddStat(0x3e, 1);
-		if (!mUnknown2629 && 0 < mUnknown158)
+		if (!mReplayPlaying && 0 < mLevel)
 			mApp->mProfile->mGemsCleared++;
-		mUnknown1FC++;
-		mUnknown1F8++;
-		thePiece->mUnknown537 = true;
+		mGameGemCount++;
+		mLevelGemCount++;
+		thePiece->mHasBurst = true;
 		ShowCountPopup();
 	}
 	if (DropPieces())
@@ -1941,7 +1944,7 @@ void Board::BurstGems(int theX, int theY, int theRange)
 	// 0x6bac72: lights the cell at (theX, theY), then looks for the gems round it. It looks them up with GetPieceAt,
 	// which takes a row and a column, at pixel positions, so it never finds one, and the original's burst reaches no
 	// other gem (the power gems' chain bonus in it never runs either); the port keeps the lookup as it is.
-	mUnknown1370[GetColAt(theX)] = mUpdateCnt;
+	mColumnBreakTime[GetColAt(theX)] = mUpdateCnt;
 	int aCentreX = theX;
 	int aCentreY = theY;
 	Piece* aPiece = GetPieceAtXY(theX, theY);
@@ -1952,21 +1955,21 @@ void Board::BurstGems(int theX, int theY, int theRange)
 	Light aLight;
 	aLight.mX = (float)theX;
 	aLight.mY = (float)theY;
-	aLight.mUnknown8 = 2.0f;
-	aLight.mUnknownC = 1.0f;
-	aLight.mUnknown10 = 0;
-	aLight.mUnknown14 = 1.0f;
-	aLight.mUnknown18 = true;
-	aLight.mUnknown1C = 0.1f;
-	aLight.mUnknown20 = 0.05f;
-	mUnknown1650.push_back(aLight);
+	aLight.mSize = 2.0f;
+	aLight.mFalloff = 1.0f;
+	aLight.mLevel = 0;
+	aLight.mStrength = 1.0f;
+	aLight.mRising = true;
+	aLight.mRiseRate = 0.1f;
+	aLight.mFadeRate = 0.05f;
+	mLights.push_back(aLight);
 	sBurstCentres[sBurstCount][0] = aCentreX;
 	sBurstCentres[sBurstCount][1] = aCentreY;
 	sBurstCount++;
 	for (int aDY = -theRange; aDY <= theRange; aDY++) {
 		for (int aDX = -theRange; aDX <= theRange; aDX++) {
 			Piece* aGem = GetPieceAt(gGemWidth * aDX + theX, gGemHeight * aDY + theY);
-			if (aGem == nullptr || aGem->mUnknown88 != 0)
+			if (aGem == nullptr || aGem->mBusyTime != 0)
 				continue;
 			if (aDX != 0 || aDY != 0) {
 				int aHit = sBurstHitCount;
@@ -1980,8 +1983,8 @@ void Board::BurstGems(int theX, int theY, int theRange)
 					// A power gem in reach: the count +0x1528 and its +0x88 = 10. The original reads the app's integers
 					// "ExplosionChainBonusAdd" (default 10) and "ExplosionChainBonus" (40) here (0x4a3f30) and drops
 					// them, so the port leaves the reads out
-					mUnknown1528++;
-					aGem->mUnknown88 = 10;
+					mBurstPowerGems++;
+					aGem->mBusyTime = 10;
 					continue;
 				}
 			}
@@ -1993,7 +1996,7 @@ void Board::BurstGems(int theX, int theY, int theRange)
 void Board::BurstAt(int theX, int theY, int theRange)
 {
 	// 0x6baed1: the burst, and a ring of sparkles (effect 17) round each centre it lit, fewer the more gems it reached
-	mUnknown152C = true;
+	mBurstSoundDue = true;
 	sBurstCount = 0;
 	sBurstHitCount = 0;
 	BurstGems(theX, theY, theRange);
@@ -2015,8 +2018,9 @@ void Board::BurstAt(int theX, int theY, int theRange)
 			int aRand = Rand() % 100;
 			float anAngle = (float)((double)aRand / 400.0 + (double)i * 0.906000018119812);
 			float aDist = (float)aSpeed;
-			int aX = Ftol((double)(aDist * cosf(anAngle))) + sBurstCentres[aCentre][0];
-			int aY = Ftol((double)(aDist * sinf(anAngle))) + sBurstCentres[aCentre][1];
+			// the speed times the sine and cosine at the FPU's precision, not rounded to float before the conversion
+			int aX = Ftol((double)aDist * (double)cosf(anAngle)) + sBurstCentres[aCentre][0];
+			int aY = Ftol((double)aDist * (double)sinf(anAngle)) + sBurstCentres[aCentre][1];
 			// (the original works out the angle from the gem it reached, atan2 at 0x77ea70, and keeps nothing of it)
 			Effect* anEffect = mFXManager->AllocEffect(17);
 			anEffect->mX = (float)aX;
@@ -2026,27 +2030,28 @@ void Board::BurstAt(int theX, int theY, int theRange)
 			mFXManager->AddEffect(anEffect);
 		}
 	}
-	if (0 < mUnknown1528) {
-		float aCount = (float)mUnknown1528;
+	if (0 < mBurstPowerGems) {
+		float aCount = (float)mBurstPowerGems;
 		float aShake = (float)((double)aCount * 0.2 + 1.2);
 		if (2.0f <= aShake)
 			aShake = 2.0f;
-		mUnknown151C = aShake;
+		mShakeAmount = aShake;
 		float aSize = (float)((double)aCount * 1.2 + 1.25);
 		if (6.0f <= aSize)
 			aSize = 6.0f;
-		mUnknown1518 = aSize;
+		mShakeSize = aSize;
 	}
 }
 
 // 0x6ba87f: a geode flung from (theX, theY) along theAngle. Its draws from Rand are kept (the factors are 0).
+// 0x6a3217: the geode record's three curved values, constructed here
 Geode* Board::AddGeode(int theX, int theY, float theAngle)
 {
-	if (mUnknown2629)
-		mUnknown3905 = true;
+	if (mReplayPlaying)
+		mGeodesPending = true;
 	Geode* aGeode = new Geode();
-	aGeode->mUnknownB8.SetCurve(GTS(0x7dcd88));
-	aGeode->mUnknown128.SetCurve(GTS(0x7dcd68), &aGeode->mUnknownB8);
+	aGeode->mFlight.SetCurve(GTS(0x7dcd88));
+	aGeode->mBrightness.SetCurve(GTS(0x7dcd68), &aGeode->mFlight);
 	aGeode->mX = (float)theX;
 	aGeode->mY = (float)theY;
 	float aCos = cosf(theAngle);
@@ -2058,10 +2063,10 @@ Geode* Board::AddGeode(int theX, int theY, float theAngle)
 	aGeode->mX = (float)((double)aGeode->mDX * 10.0 + (double)aGeode->mX);
 	aGeode->mY = (float)((double)aGeode->mDY * 10.0 + (double)aGeode->mY);
 	aGeode->mLife = (float)((double)fabsf(RandSigned()) * 0.0 + 0.44999998807907104);
-	aGeode->mUnknown38.SetCurve(GTS(0x7dcd50), &aGeode->mUnknownB8);
-	aGeode->mUnknownB0 = 0;
+	aGeode->mArmTurn.SetCurve(GTS(0x7dcd50), &aGeode->mFlight);
+	aGeode->mLandCount = 0;
 	aGeode->mPoints = 100;
-	mUnknown14AC.push_back(aGeode);  // 0x6b9a79
+	mGeodes.push_back(aGeode);  // 0x6b9a79
 	return aGeode;
 }
 
@@ -2070,7 +2075,7 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 	// 0x6c03a4: a doom gem, coal, a gem lock or a bomb breaking
 	if (thePiece->IsFlagSet(Piece::FLAG_DEVIL)) {
 		// A doom gem: 25 bursts, a hundred times three sparklets in purple and pale green, and ten points
-		mUnknown3454 = 1.0f;
+		mGeodeFlash = 1.0f;
 		mApp->PlaySample(SOUND_DOOMGEM_DESTROYED);
 		int aX = Ftol((double)(gGemWidth / 2) + (double)thePiece->mX);
 		int aY = Ftol((double)(gGemHeight / 2) + (double)thePiece->mY);
@@ -2132,15 +2137,15 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 			} while (i < 3);
 			aBursts--;
 		} while (aBursts != 0);
-		if (mUnknown26A8 == 0) {
+		if (mJumpStage == 0) {
 			int i = 0;
 			do {
 				float aRise = (float)((double)gApp->mScale * 8.0);
-				AddPoints(aX, Ftol((double)aFY - (double)aRise), 50, gGemColors[thePiece->mColor], thePiece->mUnknown2EC,
+				AddPoints(aX, Ftol((double)aFY - (double)aRise), 50, gGemColors[thePiece->mColor], thePiece->mMatchSerial,
 					true, true, true, true);
-				if (!mUnknown2170.empty()) {
+				if (!mSmokeTravellers.empty()) {
 					// the points' smoke AddPoints just sent off: dark purple, later and slower each time
-					SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mUnknown2170.back());
+					SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mSmokeTravellers.back());
 					aSmoke->mAdditive = false;
 					aSmoke->mColor = Color(100, 24, 64);
 					float aStep = (float)i;
@@ -2162,15 +2167,15 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 	if (thePiece->IsFlagSet(Piece::FLAG_COAL)) {
 		// Coal: one to five geodes fly out in a fan, with a nova where it was
 		int aCount = 1;
-		if (Rand85B970() % 2 == 0)
+		if (BoardRand() % 2 == 0)
 			aCount = 2;
-		if (Rand85B970() % 3 == 0)
+		if (BoardRand() % 3 == 0)
 			aCount++;
-		if (Rand85B970() % 4 == 0)
+		if (BoardRand() % 4 == 0)
 			aCount++;
-		if (Rand85B970() % 5 == 0)
+		if (BoardRand() % 5 == 0)
 			aCount++;
-		Rand85B970();
+		BoardRand();
 		int aSteps = aCount - 1;
 		float aSpread = (float)((double)(float)aSteps * 0.8);
 		PlayPieceSound(thePiece, SOUND_COAL_BLASTED, 0.0f, 0.0f, true);
@@ -2184,14 +2189,14 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 			Geode* aGeode = AddGeode(aX, aY, aAngle);
 			aGeode->mIndex = i;
 			aGeode->mDelay = theType == 2 ? aDelay - 25 : aDelay;
-			int aBonus = mUnknown3450 * 50;
+			int aBonus = mGeodeBonusCount * 50;
 			if (250 < aBonus)
 				aBonus = 250;
 			aGeode->mPoints += aBonus;
-			mUnknown3450++;
+			mGeodeBonusCount++;
 			aDelay += 10;
 		}
-		mUnknown3454 = 1.0f;
+		mGeodeFlash = 1.0f;
 		Effect* aNova = mFXManager2->AllocEffect(43);
 		aNova->mX = (float)(gGemWidth / 2) + thePiece->mX;
 		aNova->mY = (float)(gGemHeight / 2) + thePiece->mY;
@@ -2240,16 +2245,16 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 	Light aLight;
 	aLight.mX = aFX;
 	aLight.mY = aFY;
-	aLight.mUnknown8 = 2.0f;
-	aLight.mUnknownC = 1.0f;
-	aLight.mUnknown10 = 0;
-	aLight.mUnknown14 = 1.0f;
-	aLight.mUnknown18 = true;
-	aLight.mUnknown1C = 0.1f;
-	aLight.mUnknown20 = 0.05f;
-	mUnknown1650.push_back(aLight);
+	aLight.mSize = 2.0f;
+	aLight.mFalloff = 1.0f;
+	aLight.mLevel = 0;
+	aLight.mStrength = 1.0f;
+	aLight.mRising = true;
+	aLight.mRiseRate = 0.1f;
+	aLight.mFadeRate = 0.05f;
+	mLights.push_back(aLight);
 	mApp->PlaySample(SOUND_GEM_COUNTDOWN_DESTROYED);
-	if (!mUnknown37C4) {
+	if (!mIsReplay) {
 		mFXManager->AddBombFlash((float)(gGemWidth / 2) + thePiece->mX, (float)(gGemHeight / 2) + thePiece->mY,
 			gGemColors[thePiece->mColor]);
 	}
@@ -2263,13 +2268,13 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 		mFXManager->AddEffect(anEffect);
 		aCount--;
 	} while (aCount != 0);
-	if ((unsigned int)thePiece->mUnknown2EC != 0 && !IsBusy()) {
+	if ((unsigned int)thePiece->mMatchSerial != 0 && !IsBusy()) {
 		float aRise = (float)((double)gApp->mScale * 8.0);
-		AddPoints(aX, Ftol((double)(aFY - aRise)), 50, gGemColors[thePiece->mColor], thePiece->mUnknown2EC, true, true,
+		AddPoints(aX, Ftol((double)(aFY - aRise)), 50, gGemColors[thePiece->mColor], thePiece->mMatchSerial, true, true,
 			true, true);
-		if (!mUnknown2170.empty()) {
+		if (!mSmokeTravellers.empty()) {
 			// the points' smoke AddPoints just sent off
-			SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mUnknown2170.back());
+			SmokeTraveller* aSmoke = static_cast<SmokeTraveller*>(mSmokeTravellers.back());
 			aSmoke->mHurry = (float)((double)aSmoke->mHurry * 0.3499999940395355);
 		}
 	}
@@ -2278,32 +2283,32 @@ void Board::BreakSpecial(Piece* thePiece, int theType)
 
 void Board::SpeedBonus()
 {
-	if (mUnknown25B4 == 0)
+	if (mQuickMoveCount == 0)
 		return;
-	unsigned int aGap = (unsigned int)(mUnknown25A8 - mUnknown25B0);
-	if (100 < aGap || 150 < (unsigned int)mUnknown25AC + aGap) {
-		mUnknown25B4 = 1;
+	unsigned int aGap = (unsigned int)(mSettledUpdates - mQuickMoveTime);
+	if (100 < aGap || 150 < (unsigned int)mQuickMoveGap + aGap) {
+		mQuickMoveCount = 1;
 		aGap = 0;
 	}
-	mUnknown25AC = (int)aGap;
-	mUnknown25B0 = mUnknown25A8;
-	int aLevel = mUnknown25B4 / 6;
-	if (mUnknown25B4 % 6 != 0)
+	mQuickMoveGap = (int)aGap;
+	mQuickMoveTime = mSettledUpdates;
+	int aLevel = mQuickMoveCount / 6;
+	if (mQuickMoveCount % 6 != 0)
 		return;
 	if (kSpeedBonusMax < aLevel)
 		aLevel = kSpeedBonusMax;
-	int aScore = mUnknown168;
+	int aScore = mScore;
 	AddPoints(-1, -1, kSpeedBonusPoints[aLevel], Color::White, -1, true, true, false, true);
-	mUnknown16C += mUnknown168 - aScore;
+	mScoreAtTurnStart += mScore - aScore;
 	ShowSpeedText(aLevel - 1);
 }
 
 void Board::ShowSpeedText(int theLevel)
 {
-	if (mUnknown158 == 0)
+	if (mLevel == 0)
 		return;
 	SpeedText* aText = new SpeedText(theLevel);
 	aText->mMouseVisible = false;
-	mUnknown23DC.push_back(aText);
+	mPendingDialogs.push_back(aText);
 	mApp->PlaySoundEx(SOUND_SPEEDBONUS, 0, (float)theLevel + (float)theLevel, 0.0f, true, true);
 }

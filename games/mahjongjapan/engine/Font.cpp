@@ -96,12 +96,12 @@ bool CharMap::ParseKerns(const std::string& theLine, int thePos)
 {
 	int aLen = (int)theLine.size();
 	uint16_t aChar = (uint16_t)ParseNumber(Tokenize(theLine, ',', thePos));
-	int r = 0;
+	int aRowIndex = 0;
 	if (0 < mUsed)
 	{
 		do
 		{
-			Row& aRow = mRows[r];
+			Row& aRow = mRows[aRowIndex];
 			if (aRow.mFirst <= aChar && (int)aChar < aRow.mCount + (int)aRow.mFirst)
 			{
 				int anIndex = aChar - aRow.mFirst;
@@ -126,8 +126,8 @@ bool CharMap::ParseKerns(const std::string& theLine, int thePos)
 				} while (thePos < aLen);
 				return true;
 			}
-			r = r + 1;
-		} while (r < mUsed);
+			aRowIndex = aRowIndex + 1;
+		} while (aRowIndex < mUsed);
 	}
 	return false;
 }
@@ -135,16 +135,16 @@ bool CharMap::ParseKerns(const std::string& theLine, int thePos)
 // 0x42f4b0
 bool CharMap::Lookup(uint16_t theChar, uint16_t theNext, Glyph& theGlyph)
 {
-	int r = 0;
+	int aRowIndex = 0;
 	if (0 < mUsed)
 	{
 		do
 		{
-			Row& aRow = mRows[r];
+			Row& aRow = mRows[aRowIndex];
 			if (aRow.mFirst <= theChar && (int)theChar < aRow.mCount + (int)aRow.mFirst)
 			{
 				int anIndex = theChar - aRow.mFirst;
-				theGlyph.mRow = r;
+				theGlyph.mRow = aRowIndex;
 				theGlyph.mX = aRow.mX[anIndex];
 				theGlyph.mKern = 0;
 				theGlyph.mWidth = aRow.mWidths[anIndex];
@@ -164,8 +164,8 @@ bool CharMap::Lookup(uint16_t theChar, uint16_t theNext, Glyph& theGlyph)
 				}
 				return true;
 			}
-			r = r + 1;
-		} while (r < mUsed);
+			aRowIndex = aRowIndex + 1;
+		} while (aRowIndex < mUsed);
 	}
 	return false;
 }
@@ -175,15 +175,16 @@ bool CharMap::Has(uint16_t theChar)
 {
 	if (theChar == ' ')
 		return true;
-	int r = 0;
+	int aRowIndex = 0;
 	if (0 < mUsed)
 	{
 		do
 		{
-			if (mRows[r].mFirst <= theChar && (int)theChar < mRows[r].mCount + (int)mRows[r].mFirst)
+			if (mRows[aRowIndex].mFirst <= theChar &&
+				(int)theChar < mRows[aRowIndex].mCount + (int)mRows[aRowIndex].mFirst)
 				return true;
-			r = r + 1;
-		} while (r < mUsed);
+			aRowIndex = aRowIndex + 1;
+		} while (aRowIndex < mUsed);
 	}
 	return false;
 }
@@ -231,14 +232,6 @@ bool Font::Load(int theImage, int theTextId, Module theModule)
 	return true;
 }
 
-// 0x423bd0
-bool Font::LoadKeyed(int theImage, int theTextId, uint32_t theKey, Module theModule)
-{
-	mKey = theKey;
-	mKeyed = true;
-	return Load(theImage, theTextId, theModule);
-}
-
 // 0x423c00 (a character the font lacks adds the previous character's advance again, as in the original)
 int Font::GetWidth(const char* theText, int theScale)
 {
@@ -256,7 +249,7 @@ int Font::GetWidth(const char* theText, int theScale)
 			}
 			else if (aChar == '\t')
 			{
-				anAdvance = GetTabWidth(anAcc);
+				anAdvance = 0;  // no tab stops
 			}
 			else
 			{
@@ -319,7 +312,7 @@ int Font::FitCount(const char* theText, int theMaxWidth)
 		}
 		else if (aChar == '\t')
 		{
-			anAdvance = GetTabWidth(anAcc);
+			anAdvance = 0;  // no tab stops
 		}
 		else
 		{
@@ -389,7 +382,7 @@ int Font::DrawLeft(Object* theObject, int theX, int theY, const char* theText, i
 		}
 		else if (aChar == '\t')
 		{
-			anAdvance = GetTabWidth(anAcc);
+			anAdvance = 0;  // no tab stops
 		}
 		else
 		{
@@ -410,12 +403,8 @@ int Font::DrawLeft(Object* theObject, int theX, int theY, const char* theText, i
 				aSrc.bottom = mLineHeight + aSrc.top;
 				aSrc.left = aGlyph.mX;
 				aSrc.right = aGlyph.mX + aGlyph.mWidth;
-				if (!mKeyed)
-					theObject->DrawImage(theX + anAcc, theY - mAscent, mImage, &aSrc, true, theScaleX, theScaleY,
-						theAlpha);
-				else
-					theObject->DrawImageKeyed(theX + anAcc, theY - mAscent, mImage, mKey, &aSrc, true, theScaleX,
-						theScaleY, theAlpha);
+				theObject->DrawImage(theX + anAcc, theY - mAscent, mImage, &aSrc, true, theScaleX, theScaleY,
+					theAlpha);
 			}
 		}
 		if (theScaleX != 100)
@@ -480,14 +469,6 @@ void Font::DrawLinesCentred(Object* theObject, int theX, int theY, const char* t
 		theY = theY + aStep;
 	}
 	DrawCentred(theObject, theX, theY, aLine.c_str(), theWidth, theScaleX, theScaleY, theAlpha);
-}
-
-// 0x424420
-int Font::DrawWrapped(Object* theObject, int theX, int theY, int theWidth, int theMaxHeight, const char* theText,
-	int theLineStep, bool theMeasureOnly, int theAlpha)
-{
-	return DrawWrappedWorker(theObject, theX, theY, theWidth, theMaxHeight, theText, theLineStep, theMeasureOnly,
-		theAlpha, false);
 }
 
 // 0x424460
@@ -592,40 +573,6 @@ int Font::TrailingSpaces(const char* theText)
 		aCount = aCount + 1;
 	}
 	return aCount;
-}
-
-// 0x4248b0
-void Font::SetTabStops(const int* theStops, int theCount)
-{
-	mTabCount = theCount;
-	if (10 < theCount)
-		mTabCount = 10;
-	int i = 0;
-	if (0 < mTabCount)
-	{
-		do
-		{
-			i = i + 1;
-			mTabs[i - 1] = *theStops;
-			theStops = theStops + 1;
-		} while (i < mTabCount);
-	}
-}
-
-// 0x4248f0
-int Font::GetTabWidth(int thePos)
-{
-	int i = 0;
-	if (0 < mTabCount)
-	{
-		do
-		{
-			if (thePos < mTabs[i])
-				return mTabs[i] - thePos;
-			i = i + 1;
-		} while (i < mTabCount);
-	}
-	return 0;
 }
 
 } // namespace jb

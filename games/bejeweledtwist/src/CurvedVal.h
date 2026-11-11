@@ -54,9 +54,7 @@ public:
 	void SetCurve(const std::string& theCurve, CurvedVal* theLinkedVal = nullptr);  // 0x6eca95
 	void SetCurveRef(const char* const* theCurveRef, CurvedVal* theLinkedVal = nullptr);
 	void SetMode(int theMode) { mMode = theMode; }                        // 0x6e97f3
-	void SetRamp(int theRamp) { mRamp = theRamp; }                        // 0x6e97ff
 	void SetOutRange(double theMin, double theMax) { mOutMin = theMin; mOutMax = theMax; }  // 0x6e980c
-	void SetInRange(double theMin, double theMax) { mInMin = theMin; mInMax = theMax; }     // 0x6e981f
 	bool IsInitialized() const { return mRamp != RAMP_NONE; }             // 0x6e97ea
 
 	bool SetInVal(double theInVal);                                       // 0x6ed03d
@@ -65,7 +63,6 @@ public:
 	double GetInVal();                                                    // 0x6ecf70
 	double GetOutVal();                                                   // 0x6ecf57
 	double GetOutVal(double theInVal);                                    // 0x6ecc24
-	double GetOutValDelta() { return GetOutVal() - mPrevOutVal; }         // 0x6ed148
 	double GetInValAtUpdate(int theUpdateCount) const;                    // 0x6e9832
 	int GetLengthInUpdates() const;                                       // 0x6e9842: -1 for a curve that does not move
 	bool CheckInThreshold(double theInVal);                               // 0x6ed0d9: the input crossed theInVal in the last step
@@ -76,7 +73,7 @@ public:
 private:
 	bool CheckCurveChange();                                              // 0x6ecb4a
 	bool CheckClamping();                                                 // 0x6ecb9b
-	void ParseDataString(const std::string& theString);                  // 0x6ec600
+	void ParseDataString(const std::string& theString);                  // 0x6ec600, 0x6ebc29: the curve's constructor, inline here
 };
 
 // The original makes its Direct3D device (0x6193b0, flags 0x140) without D3DCREATE_FPU_PRESERVE, so while 3D mode runs

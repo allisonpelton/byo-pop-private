@@ -90,6 +90,10 @@ public:
 	SDLSoundManager();
 	virtual ~SDLSoundManager();
 
+	// port: the loaded sounds' decoded samples in bytes, and how many sounds there are, for the memory report
+	// (platform/MemReport.h)
+	size_t GetSoundBytes(int* theCount) const;
+
 	// DirectSound volume curve from DSoundManager::VolumeToDB, converted to linear amplitude.
 	static double VolumeToGain(double theVolume);
 

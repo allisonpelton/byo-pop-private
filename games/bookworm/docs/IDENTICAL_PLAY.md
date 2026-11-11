@@ -1,7 +1,7 @@
 # BookWorm Deluxe: the identical-play pass
 
 Phase one of the pass CLAUDE.md names: **plays identical**. The same input gives the same games in the original and the
-port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) is not done.
+port, by the game's state, not by pictures. Phase two (screens, sound, focus, the web build) follows under "Phase 2".
 
 The original is the retail BookWorm Deluxe 1.03 (the version the port was decompiled from; the Steam copy wraps a later build
 and refuses to start outside Steam), the game carved out of its `Bookworm.exe` (`re/bookworm/bin/BookwormGame.exe`). It runs
@@ -86,6 +86,102 @@ bookworm`. Four bot runs with no mods (the two-game session c2, the three-game s
 update 3,000 and continued from its file) must write the same non-empty state log in the current port and in the baseline.
 That way later fixes and mods are shown to leave unmodded play as it was compared with the original.
 
+## Phase 2: screens
+
+The original takes shots only inside Windows Sandbox (`origrun --sandbox`), so each tour runs there on a fresh copy and a
+fresh registry, on the virtual clock with the scripted cursor; the port runs the same tour under rundesk with `-fast`.
+The tools are in `tools/shots/`: a tour is a list of `<update> <command>` lines, with `@port` or `@orig` on a line one side
+alone needs (`make.py` turns it into the port's `-script` or origrun's script). The original's loading thread runs in
+real time while its clock races, so its script waits 60 real seconds, marks, and times every later line from the mark.
+`fromlog.py` turns a bot game's log into a tour, with a shot after every tenth word, at every level summary, at each
+dialog, at the game over and at the Hall of Fame. Every click a script sends the original was checked against that run's
+own shot before it was trusted (one early menu click landed on the original's "More Games" button, which the port no
+longer has; it opened only an "Open Browser" box in the sandbox and was moved off it). `tools/shotdiff` compares the
+pictures; every box it flags was looked at and judged.
+
+| Tour | Pairs | Same | Faint | Flagged, and why |
+|---|---|---|---|---|
+| menus (title, new player, selector, help pages, Hall of Fame, options, credits, players, quit and leave questions) | 37 | 33 | 0 | 4: the options and credits dialogs, which in the original have one more row for the "More Games" button (taken out with the registration code) |
+| Classic (seed 7: 59 words, 7 levels, 3 dialogs, game over, Hall of Fame) | 17 | 2 | 9 | 6: flying word tiles (below) |
+| Action (seed 8: 112 words, 12 levels, 8 dialogs, game over, Hall of Fame) | 33 | 9 | 13 | 11: flying word tiles (below) |
+
+**Flying word tiles.** A submitted word's tiles fly to Lex shrinking, drawn by a stretched blit with fast stretch on
+(`FlyingPieceList::Draw`). The sandbox has no 3D, so the original runs in its software mode (its Hardware Acceleration box
+is unchecked there), and its software stretch (`DDImage::StretchBlt` at 0x45e200) steps its 16.16 source position before
+it reads, so the first column it draws is the source's second and the last is the next letter's first. It also comes out
+two levels darker. The port draws every frame on the GPU, as the original's 3D mode does, and samples texel centres. The
+tiles are in the same place and of the same size on both sides; only which source column lands on which pixel differs.
+The framework's software `MemoryImage::FastStretchBlt` already samples as the original's does, so a port drawn in
+software would match the sandbox. Kept: the port matches the original's 3D mode, which is what the game uses on a machine
+with a graphics card.
+
+**The web build** ran the menu and Classic tours under Node (`tools/shots/web.sh`, `webcmp.sh`) and was compared with the
+native port's shots: 33 of 37 menu shots identical, 2 faint, and 2 differing only in the options dialog's Hardware
+Acceleration box, which is unchecked under Node (no 3D there) as it is in the sandbox's original; all 17 Classic shots
+identical or faint (the flying tiles again, a level or two apart).
+
+## Phase 2: sound
+
+The original's samples go through DirectSound, which origrun's stand-in serves and records (`--sound wav`: each play is
+a duplicate of a loaded buffer, logged with its virtual time, volume and pan); its music goes through BASS, whose calls a
+logging `bass.dll` records (Big Money's `tools/bassproxy`, built into `build/bassproxy-bw`). Both runs are on the host
+(`tools/shots/sound_orig.sh`), since origrun records sound only there; every run's RESULT line says no sound reached the
+speakers. The port writes its own log (`BYOPOP_SOUNDLOG`, `sound_port.sh`). `soundcmp.py` names each play by its
+buffer's size and compares them in order; `musiccmp.py` compares each song's volume over time, which is what can be
+heard of the music (the original sets the volume on every update of a fade, so repeated values are dropped).
+
+| Tour | Sample plays | Music |
+|---|---|---|
+| Classic (seed 7) | 1,166 on each side, all the same sample, volume and pan on the same update | 603 volume changes the same, on the same update, to the game over |
+| Action (seed 8) | 2,409 on each side, all the same, on the same update | 603 volume changes the same, on the same update, to the game over |
+
+From the game over on, the original's music differs: under the game-over jingle the mode's own song fades back in from
+silence, and fades out with the jingle when the Hall of Fame closes; in the port it stays stopped. It is listed under
+"Oddities".
+
+## Phase 2: focus
+
+Two tours (`focusc.txt`, `focusa.txt`) play to the tenth word of the Classic and Action tours, then take the focus away
+for 50 updates (origrun's `focus lose`, the port's script `focus lose`), take shots while it is away, give it back and
+shoot again. Both sides pause the same way: the board's tiles turn blank, Action shows its "Game Paused" panel, the clock
+stands, and play goes on from the same update once the focus is back. These tours compared pictures; the sound while
+the focus is away (the original's `LostFocus` pauses the music, and the framework mutes an inactive window) was not
+recorded on them. All twelve focus shots are identical or faint; the other
+boxes flagged on those tours are the flying tiles above. One run of the original reached the first Action summary late,
+the run-to-run fidget of Lex under "Oddities"; run again, it matched.
+
+## Phase 2: real input
+
+The port's own driver plays through the real input path: `tools/playbymove` sends each move the port's word solver
+proposes (the test command `move`) as posted mouse clicks and key presses to the window under rundesk, reading the game's
+state from its log. Natively it played, by real input only: Classic and Action each for 4,000 moves (levels 55 and 62,
+no move refused, no stall), and a whole game of each from launch: the new-player dialog (typed), the help screen, 40
+words with their level summaries, the loss (`lose 40`, the game's own fire scan), the burn-down, the game-over summary,
+the Hall of Fame and the selector, then a second game.
+
+The same two whole games were played again in full screen: the game started full screen, as it does for a player who
+chose it before (`ScreenMode` 1 in its settings), and the driver's clicks went to the letterboxed window. Classic ran 3,846
+words and 134 level summaries, Action 3,919 words and 70 summaries, each with the loss, the game-over summary, the Hall of
+Fame and further games, and no move refused. At the end the game still wrote `ScreenMode` 1, which the framework takes from
+the window's own state, so the window never fell back to windowed.
+
+In the web build the page's own driver (`byopop.test.playByMove`, the twin of playbymove) sent the same moves as DOM events
+on the canvas, in the Browser pane with `?player=1&assets=1&silent=1&fast=1&hold=1`. Classic, from launch: the
+new-player name typed, the help screen, 354 words with 35 level summaries, the loss (`lose 40`), the game-over summary,
+the Hall of Fame, the selector and a second game up to level 28. Action, on the same profile (`set mode action`): the help
+screen, 354 words with 36 level summaries, the loss, the game-over summary, the Hall of Fame, the selector's new-game
+question and a second game up to level 27. Neither printed an error on the page (`byopop.test.errors` empty).
+The site installs the fixes mod in every page, so these runs had `scoreGlow` on; it changes only the score's glow.
+The web build's full screen is the browser's and needs a player's gesture, which a driver's events are not, so it was not
+played there (as in Alchemy's pass).
+
+## The fixes mod
+
+`games/bookworm/mods/fixes` has one toggle, `scoreGlow`: the original draws a heated version of the score while points
+are added, but truncates its alpha to 0, so it never shows (GAME_NOTES, "The fixes mod", with the candidates left out
+and why). With the toggle on the score glows; play, sound and every other picture stay as they were. The toggle starts off, since players know the score
+without its glow and the missing glow is not a known bug (docs/MOD_ROADMAP.md, "The fixes mod").
+
 ## Oddities (skipped)
 
 - **The praise flag starts as the heap left it.** The original's Board constructor never sets `mLexPraisePending` (+0x358), so
@@ -123,8 +219,23 @@ That way later fixes and mods are shown to leave unmodded play as it was compare
   the settings that matter and the tables come from HKCU, as the new-player dialog and the tables showed. Nothing the comparison
   watches depends on those counters.
 
+- **The mode's song comes back under the game-over jingle in the original.** At the game over the original stops the
+  danger song and the mode's song and starts the jingle, but on every update after it `IsPlaying(danger)` still answers
+  true (BASS's `ChannelIsActive` returns 1 for the stopped song, on 547 calls out of 547 after it first played), so the
+  board keeps calling FadeOut(danger) and FadeIn(mode song), and the mode's song plays again, rising from silence.
+  The recording runs BASS on its "no sound" device (the logging `bass.dll` gives BASS_Init device 0; with the real
+  device BASS_Init fails under origrun's DirectSound stand-in and the game plays no music at all), and whether a stopped
+  song stays "active" on a real device is not known, so this may be the recording's own effect. How to see it:
+  `musiccmp.py classic`, from change 604. What it would take: a run with BASS on a real sound device and its output
+  recorded, which origrun cannot do yet.
+
 ## Deviations left
 
 - The port shows no registration, trial or update-check dialog and has no internet high scores (not ported, on purpose).
 - Not compared in phase one: the options dialog, the hint dialogs' "don't show again" box, the help screens, deleting and
-  switching players, the quit question. Their effects are not on the game's state, and phase two looks at their screens.
+  switching players, the quit question. Their effects are not on the game's state, and phase two compared their screens.
+- The "More Games" button is gone from the options and credits dialogs, with the registration code, so each is one row
+  shorter.
+- The flying word tiles are drawn the way the original's 3D mode draws them. The original's software mode samples one
+  column further and comes out two levels darker ("Phase 2: screens").
+- The web build's full screen is the browser's own, and it needs a player's click or key to start.

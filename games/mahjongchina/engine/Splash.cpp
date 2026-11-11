@@ -1,6 +1,7 @@
 #include "Splash.h"
 
 #include "App.h"
+#include "EngineRes.h"
 #include "Font.h"
 #include "Manager.h"
 
@@ -21,16 +22,16 @@ void Logo::Draw()
 	if (mSplashLogo)
 	{
 		jb::FillRect(nullptr, 0);
-		DrawImage(mX, mY, 0xff01, nullptr, true, 100, 100, 0xff);
+		DrawImage(mX, mY, FILE_IMAGE_SPLASH_LOGO, nullptr, true, 100, 100, 0xff);
 		return;
 	}
 	jb::FillRect(nullptr, 0);
-	DrawImage(0x115, 0x6d, 0x4f, nullptr, true, 100, 100, 0xff);
-	DrawImage(0xe0, 0x92, 0x4d, nullptr, true, 100, 100, 0xff);
-	DrawImage(0x169, 0x19a, 0x50, nullptr, true, 100, 100, 0xff);
-	DrawImage(0x14d, 0x1aa, 0x37, nullptr, true, 100, 100, 0xff);
-	DrawImage(0x1d2, 0x1aa, 0x51, nullptr, true, 100, 100, 0xff);
-	DrawImage(0xe2, 0x235, 0x4e, nullptr, true, 100, 100, 0xff);
+	DrawImage(0x115, 0x6d, EXE_IMAGE_CREATED_BY, nullptr, true, 100, 100, 0xff);
+	DrawImage(0xe0, 0x92, EXE_IMAGE_SPINTOP_LOGO, nullptr, true, 100, 100, 0xff);
+	DrawImage(0x169, 0x19a, EXE_IMAGE_DEVELOPED_BY, nullptr, true, 100, 100, 0xff);
+	DrawImage(0x14d, 0x1aa, EXE_IMAGE_JOLLYBEAR_LOGO, nullptr, true, 100, 100, 0xff);
+	DrawImage(0x1d2, 0x1aa, EXE_IMAGE_TRADEMARK, nullptr, true, 100, 100, 0xff);
+	DrawImage(0xe2, 0x235, EXE_IMAGE_COPYRIGHT, nullptr, true, 100, 100, 0xff);
 	if (!gVersion.empty())
 		mFont->DrawRight(this, 0x316, 0x253, gVersion.c_str(), 100, 100, 0xff);
 }
@@ -39,22 +40,22 @@ void Logo::Draw()
 // and with it the links stay off.
 void Logo::Init()
 {
-	mManager->PreloadExeImage(0x4f);
-	mManager->PreloadExeImage(0x4d);
-	mManager->PreloadExeImage(0x50);
-	mManager->PreloadExeImage(0x37);
-	mManager->PreloadExeImage(0x51);
-	mManager->PreloadExeImage(0x4e);
-	mManager->PreloadExeImage(0x3a);
+	mManager->PreloadExeImage(EXE_IMAGE_CREATED_BY);
+	mManager->PreloadExeImage(EXE_IMAGE_SPINTOP_LOGO);
+	mManager->PreloadExeImage(EXE_IMAGE_DEVELOPED_BY);
+	mManager->PreloadExeImage(EXE_IMAGE_JOLLYBEAR_LOGO);
+	mManager->PreloadExeImage(EXE_IMAGE_TRADEMARK);
+	mManager->PreloadExeImage(EXE_IMAGE_COPYRIGHT);
+	mManager->PreloadExeImage(EXE_FONT_SPLASH);
 	if (mSplashLogo)
 	{
 		ImageInfo anInfo;
-		GetImageInfo(0xff01, anInfo);
-		mX = (800 - anInfo.mWidth) / 2;
-		mY = (600 - anInfo.mHeight) / 3;
+		GetImageInfo(FILE_IMAGE_SPLASH_LOGO, anInfo);
+		mX = (SCREEN_WIDTH - anInfo.mWidth) / 2;
+		mY = (SCREEN_HEIGHT - anInfo.mHeight) / 3;
 	}
 	RegUpdate(true);
-	mFont = GetExeFont(0x3a, 0x39, -1);
+	mFont = GetExeFont(EXE_FONT_SPLASH, EXE_FONT_SPLASH_MAP);
 }
 
 // 0x42f8c0: two seconds, then Jolly Bear's logo after the SplashLogo, or the game
@@ -89,7 +90,7 @@ Splash::Splash(bool theSplashLogo) : Layer(0, 0), mSplashLogo(theSplashLogo)
 void Splash::Load()
 {
 	if (mSplashLogo)
-		mSplashLogo = mManager->LoadFileImage(0xff01, (GetExeFolder() + "SplashLogo").c_str());
+		mSplashLogo = mManager->LoadFileImage(FILE_IMAGE_SPLASH_LOGO, (GetExeFolder() + "SplashLogo").c_str());
 	Add(new Logo(mSplashLogo), 0, 0);
 }
 

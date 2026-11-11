@@ -397,7 +397,7 @@ int Pak::find(const Str& theName)
 	return -1;
 }
 
-// 0x42f310
+// 0x42f310, with its tail at 0x42f35b (the find by value), which the export splits off
 bool Pak::contains(const Str& theName)
 {
 	if (mOpen == 0)

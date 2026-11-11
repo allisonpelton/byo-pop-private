@@ -24,14 +24,14 @@ Shockwave::Shockwave(Piece* thePiece, int theShape)
 	} else {
 		mX = (float)(gGemWidth / 2) + thePiece->mX;
 		float aY;
-		if (thePiece->mUnknown30 < 0)
+		if (thePiece->mBurstRow < 0)
 			aY = thePiece->mY;
 		else
-			aY = (float)gBoard->GetRowY(thePiece->mUnknown30);
+			aY = (float)gBoard->GetRowY(thePiece->mBurstRow);
 		mY = (float)(gGemHeight / 2) + aY;
 	}
 	mUpdates = 0;
-	mUnknown24 = 1.0f;
+	mAlpha = 1.0f;
 	mDuration = 1.0f;
 	mPiece = thePiece;
 	mShape = theShape;
@@ -98,7 +98,7 @@ void Shockwave::Update()
 {
 	mUpdates++;
 	float aStep = (float)((double)mMaxRadius / ((double)mDuration / 0.009999999776482582));
-	mUnknown14 = aStep;
+	mRingSpeed = aStep;
 	mRadius = aStep + mRadius;
 	mTime = (float)((double)mTime + 0.009999999776482582);
 	FindGems();
@@ -156,8 +156,8 @@ BlastShockwave::BlastShockwave(Piece* thePiece, int theRange, int theShape) : Sh
 	mStarting = true;
 	float aReach = (float)((double)(gGemWidth * theRange) + 0.0);
 	mMaxRadius = aReach;
-	mUnknown24 = aReach <= 90.0f ? 0.75f : 0.5f;
-	mUnknown34 = 0;
+	mAlpha = aReach <= 90.0f ? 0.75f : 0.5f;
+	mTenUpdateCount = 0;
 	mDuration = (float)((double)(float)theRange * 0.05000000074505806 + 0.15000000596046448);
 	mRingWait = 0;
 	mRingCount = 0;
@@ -172,17 +172,17 @@ BlastShockwave::BlastShockwave(Piece* thePiece, int theRange, int theShape) : Sh
 		aLastCol = aCol;
 	if (aLastCol < 0)
 		aLastCol = gBoard->mCols - 1;
-	if (thePiece->mUnknown2EC == -1) {
+	if (thePiece->mMatchSerial == -1) {
 		// the blast's chain is numbered with the gem's address
-		thePiece->mUnknown2EC = (int)(intptr_t)thePiece;
+		thePiece->mMatchSerial = (int)(intptr_t)thePiece;
 	}
 	for (int aRow = 0; aRow < gBoard->mRows; aRow++) {
 		for (aCol = aFirstCol; aCol <= aLastCol; aCol++) {
 			Piece* aPiece = gBoard->GetPieceAt(aRow, aCol);
-			if (aPiece == nullptr || aPiece->mUnknown30 == -1)
+			if (aPiece == nullptr || aPiece->mBurstRow == -1)
 				continue;
 			int aCellX = gBoard->GetColX(aCol) + gGemWidth / 2;
-			int aCellY = gBoard->GetRowY(aPiece->mUnknown30) + gGemHeight / 2;
+			int aCellY = gBoard->GetRowY(aPiece->mBurstRow) + gGemHeight / 2;
 			float aDX = mX - (float)aCellX;
 			float aDY = mY - (float)aCellY;
 			float aDist;
@@ -193,12 +193,12 @@ BlastShockwave::BlastShockwave(Piece* thePiece, int theRange, int theShape) : Sh
 			} else {
 				aDist = sqrtf(aDX * aDX + aDY * aDY);
 			}
-			if (aReach < aDist || aPiece == thePiece || aPiece->mUnknown51D || aPiece->mPendingKind != 0)
+			if (aReach < aDist || aPiece == thePiece || aPiece->mHasBroken || aPiece->mPendingKind != 0)
 				continue;
-			aPiece->mUnknown2EC = thePiece->mUnknown2EC;
+			aPiece->mMatchSerial = thePiece->mMatchSerial;
 			if (!aPiece->IsFlagSet(Piece::FLAG_POWER) || aPiece->IsFlagSet(Piece::FLAG_ELECTRO) || aPiece->mBlasted ||
 				aPiece->mGlow != 0.0f) {
-				if (!aPiece->IsFlagSet(Piece::FLAG_1) && !aPiece->IsFlagSet(Piece::FLAG_DEVIL)) {
+				if (!aPiece->IsFlagSet(Piece::FLAG_DROPPER) && !aPiece->IsFlagSet(Piece::FLAG_DEVIL)) {
 					if (aPiece->mGlow == 0.0f)
 						gBoard->BlowUpPiece(aPiece, mX, mY, true, true);
 				} else {
@@ -209,7 +209,7 @@ BlastShockwave::BlastShockwave(Piece* thePiece, int theRange, int theShape) : Sh
 				double aWait = (double)aDist * 20.0 / (double)gGemWidth;
 				if (aWait < 1.0)
 					aWait = 1.0;
-				aPiece->mUnknown88 = Ftol(aWait);
+				aPiece->mBusyTime = Ftol(aWait);
 				gBoard->LiftColumn(aPiece, 1.0f);
 				gBoard->AddBlastChain();
 			}
@@ -228,13 +228,13 @@ void BlastShockwave::Update()
 {
 	Shockwave::Update();
 	if (mUpdates % 10 == 0)
-		mUnknown34++;
+		mTenUpdateCount++;
 	float aWait = (float)((double)mRingWait - 0.009999999776482582);
 	mRingWait = aWait;
 	if (aWait <= 0.0f) {
 		if (mRingCount < 20) {
 			mRings[mRingCount] = (float)((double)gGemWidth * 0.30000001192092896);
-			mRingAlphas[mRingCount] = mUnknown24;
+			mRingAlphas[mRingCount] = mAlpha;
 			mRingCount++;
 		}
 		mRingWait = (float)((double)mDuration * 2.6600000858306885);
@@ -243,9 +243,9 @@ void BlastShockwave::Update()
 		Spark* aSpark = new Spark();
 		float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
 		float aCos = cosf(anAngle);
-		aSpark->mDX = aCos * mUnknown14;
+		aSpark->mDX = aCos * mRingSpeed;
 		float aSin = sinf(anAngle);
-		aSpark->mDY = aSin * mUnknown14;
+		aSpark->mDY = aSin * mRingSpeed;
 		aSpark->mX = (float)((double)mX + (double)gGemWidth * (double)aSpark->mDX * 0.25);
 		aSpark->mY = (float)((double)gGemHeight * (double)aSpark->mDY * 0.25 + (double)mY);
 		aSpark->mDelay = (float)((double)RandSigned() * 0.5 + 1.0);
@@ -255,7 +255,7 @@ void BlastShockwave::Update()
 	for (int i = 0; i < 20; i++) {
 		if (0.0f < mRingAlphas[i] && 0.0f < mRings[i]) {
 			aRings++;
-			float aRadius = (float)((double)mUnknown14 * 0.44999998807907104 + (double)mRings[i]);
+			float aRadius = (float)((double)mRingSpeed * 0.44999998807907104 + (double)mRings[i]);
 			mRings[i] = aRadius;
 			if ((double)mMaxRadius * 1.0499999523162842 < (double)aRadius)
 				mRingAlphas[i] = (float)((double)mRingAlphas[i] - (double)(float)(i + 2) * 0.004999999888241291);
@@ -284,15 +284,15 @@ void BlastShockwave::Update()
 		mDone = false;
 	if (mMaxRadius <= mRadius) {
 		mRadius = mMaxRadius;
-		float aFade = (float)((double)mUnknown24 - 0.019999999552965164);
-		mUnknown24 = aFade;
+		float aFade = (float)((double)mAlpha - 0.019999999552965164);
+		mAlpha = aFade;
 		if (aFade <= 0.0f) {
-			mUnknown24 = 0;
+			mAlpha = 0;
 			mDone = true;
 		}
 	} else {
 		mDone = false;
-		mUnknown24 = mMaxRadius <= 90.0f ? 0.5f : 0.24f;
+		mAlpha = mMaxRadius <= 90.0f ? 0.5f : 0.24f;
 	}
 	if (aRings != 0)
 		mDone = false;
@@ -303,7 +303,7 @@ void BlastShockwave::Draw(Graphics* g)
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColorizeImages(true);
-	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown24 * 255.0)));
+	g->SetColor(Color(255, 255, 255, Ftol((double)mAlpha * 255.0)));
 	for (int i = 0; i < 20; i++) {
 		if (0.0f < mRings[i] && 0.0f < mRingAlphas[i]) {
 			float aRadius = mRings[i];
@@ -329,10 +329,10 @@ void BlastShockwave::Draw(Graphics* g)
 }
 
 // 0x74b94e: the hint's wave. The arc runs from the gem to the target about a centre off to one side of the line.
-FruitShockwave::FruitShockwave(Piece* thePiece, int theRange, int theTargetX, int theTargetY, int theUnknownA4)
+FruitShockwave::FruitShockwave(Piece* thePiece, int theRange, int theTargetX, int theTargetY, int theHintRange)
 	: Shockwave(thePiece, 0)
 {
-	mUnknownA4 = theUnknownA4;
+	mHintRange = theHintRange;
 	mColorIndex = thePiece->mColor;
 	mColor = gGemColors[mColorIndex];
 	mRadius = 0;
@@ -341,15 +341,15 @@ FruitShockwave::FruitShockwave(Piece* thePiece, int theRange, int theTargetX, in
 	mY = (float)((double)(gGemWidth / 2) + (double)thePiece->mY);  // (the original halves the width for both)
 	mColor2 = Color::Black;
 	mColor2.mAlpha = 0;
-	mUnknownFC = 0;
-	mUnknown88 = false;
+	mRingGlow = 0;
+	mIsStarted = false;
 	mShape = 1;
 	gApp->PlaySample(SOUND_BONUSLASER);
 	mDuration = 1.5f;
-	mUnknown84 = 0;
-	mUnknownC8 = 0;
-	mUnknownC4 = 0;
-	mUnknownAC = 1;
+	mRingWait = 0;
+	mArcEnd = 0;
+	mArcStart = 0;
+	mRingStep = 1;
 	mWidth = 150.0f;
 	mEndX = (float)theTargetX;
 	mEndY = (float)theTargetY;
@@ -361,11 +361,10 @@ FruitShockwave::FruitShockwave(Piece* thePiece, int theRange, int theTargetX, in
 	float anAngle = (float)((double)(float)std::atan2((double)-aDY, (double)aDX) + 1.5707963705062866);  // 0x4c1b70
 	mCenterX = (float)(((double)mEndX + (double)mStartX) * 0.5);
 	mCenterY = (float)(((double)mEndY + (double)mStartY) * 0.5);
-	float aOut = (float)((double)aDist * 2.5);
 	float aCos = cosf(anAngle);  // 0x401b20
-	mCenterX = (float)((double)aCos * (double)aOut + (double)mCenterX);
+	mCenterX = (float)((double)aCos * (double)aDist * 2.5 + (double)mCenterX);  // rounded once, as the original
 	float aSin = sinf(anAngle);  // 0x401b70
-	mCenterY = (float)((double)mCenterY - (double)aSin * (double)aOut);
+	mCenterY = (float)((double)mCenterY - (double)aSin * (double)aDist * 2.5);
 	float aFromX = mStartX - mCenterX;
 	float aFromY = -(float)((double)mStartY - (double)mCenterY);
 	mAngleEnd = (float)std::atan2((double)aFromY, (double)aFromX);
@@ -374,9 +373,9 @@ FruitShockwave::FruitShockwave(Piece* thePiece, int theRange, int theTargetX, in
 	mAngleStart = (float)std::atan2((double)-aToY, (double)aToX);
 	mArcRadius = sqrtf((float)((double)aToX * (double)aToX + (double)aToY * (double)aToY));
 	mState = 1;
-	mUnknownD4 = 2.5f;
-	mUnknownE4 = 1;
-	mUnknownE8 = 0;
+	mArcAlpha = 2.5f;
+	mUnlockStep = 1;
+	mUnlockWait = 0;
 }
 
 FruitShockwave::~FruitShockwave()
@@ -393,8 +392,8 @@ void FruitShockwave::Update()
 	mDone = false;
 	if (mState < 2) {
 		// a new ring now and then
-		float aWait = (float)((double)mUnknown84 - 0.009999999776482582);
-		mUnknown84 = aWait;
+		float aWait = (float)((double)mRingWait - 0.009999999776482582);
+		mRingWait = aWait;
 		if (aWait <= 0.0f) {
 			int i = 0;
 			do {
@@ -404,43 +403,43 @@ void FruitShockwave::Update()
 				}
 				i++;
 			} while (i < 20);
-			mUnknown84 = 0.15f;
+			mRingWait = 0.15f;
 		}
 		if (mPiece != nullptr) {
-			float aStep = (float)((double)mUnknownE8 - 0.009999999776482582);
-			mUnknownE8 = aStep;
+			float aStep = (float)((double)mUnlockWait - 0.009999999776482582);
+			mUnlockWait = aStep;
 			if (aStep <= 0.0f) {
-				int aCount = mUnknownE4;
-				mUnknownE8 = (float)((double)(float)aCount * 0.10000000149011612 + 0.25);
+				int aCount = mUnlockStep;
+				mUnlockWait = (float)((double)(float)aCount * 0.10000000149011612 + 0.25);
 				if ((aCount < 1 || !mPiece->IsFlagSet(Piece::FLAG_BOMB)) && mPiece->IsFlagSet(Piece::FLAG_LOCKED) &&
-					mUnknownE4 == 3) {
+					mUnlockStep == 3) {
 					mPiece->BreakLock(false);
-					mPiece->mUnknown4FC = 0;
+					mPiece->mLockState = 0;
 					mPiece = nullptr;
 				}
-				mUnknownE4++;
+				mUnlockStep++;
 			}
 		}
 		// sparks thrown out from the gem
 		if (gBoard->mUpdateCnt % 4 == 0) {
 			Particle* aParticle = new Particle();
 			float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
-			aParticle->mDX = mUnknown14 * cosf(anAngle);
-			aParticle->mDY = mUnknown14 * sinf(anAngle);
+			aParticle->mDX = mRingSpeed * cosf(anAngle);
+			aParticle->mDY = mRingSpeed * sinf(anAngle);
 			aParticle->mX = (float)((double)gGemWidth * (double)aParticle->mDX * 0.25 + (double)mX);
 			aParticle->mY = (float)((double)gGemHeight * (double)aParticle->mDY * 0.25 + (double)mY);
 			aParticle->mWait = (float)(0.5 + (double)RandSigned() * 0.5);
 			mParticles.push_back(aParticle);
 		}
 		// the arc grows
-		if (mUnknownC8 < 1.0f) {
-			float aGrown = (float)((double)mUnknownC8 + 0.014999999664723873);
-			mUnknownC8 = aGrown;
+		if (mArcEnd < 1.0f) {
+			float aGrown = (float)((double)mArcEnd + 0.014999999664723873);
+			mArcEnd = aGrown;
 			if (1.0f < aGrown)
-				mUnknownC8 = 1.0f;
+				mArcEnd = 1.0f;
 		}
 		// and sends sparks along it
-		if (0.20000000298023224 < (double)mUnknownC8) {
+		if (0.20000000298023224 < (double)mArcEnd) {
 			Particle* aParticle = new Particle();
 			RandSigned();
 			aParticle->mX = mEndX;
@@ -456,55 +455,55 @@ void FruitShockwave::Update()
 			aParticle->mKind = 1;
 			mParticles.push_back(aParticle);
 		}
-		if (gBoard->mUpdateCnt % 12 == 0 && 0.5f < mUnknownC8) {
+		if (gBoard->mUpdateCnt % 12 == 0 && 0.5f < mArcEnd) {
 			// a light at the gem's side
 			Board::Light aLight;
 			float aReach = (float)((double)gGemWidth * 0.3499999940395355);
 			float anAngle = (float)((double)RandSigned() * 3.1415927410125732);
 			aLight.mX = cosf(anAngle) * aReach + mX;
 			aLight.mY = sinf(anAngle) * aReach + mY;
-			aLight.mUnknown8 = 8.0f;
-			aLight.mUnknownC = 28.0f;
-			aLight.mUnknown10 = 0;
-			aLight.mUnknown14 = 0.25f;
-			aLight.mUnknown18 = true;
-			aLight.mUnknown1C = 0.1f;
-			aLight.mUnknown20 = 0.1f;
+			aLight.mSize = 8.0f;
+			aLight.mFalloff = 28.0f;
+			aLight.mLevel = 0;
+			aLight.mStrength = 0.25f;
+			aLight.mRising = true;
+			aLight.mRiseRate = 0.1f;
+			aLight.mFadeRate = 0.1f;
 			aLight.mPiece = nullptr;
 			aLight.mPieceId = -1;
-			gBoard->mUnknown1650.push_back(aLight);  // 0x6b9b23
+			gBoard->mLights.push_back(aLight);  // 0x6b9b23
 		}
 	}
 	if (mState == 1) {
-		if (mUnknownC4 <= 0.0f) {
-			mUnknownC4 = 0;
-			float aLeft = (float)((double)mUnknownD4 - 0.014999999664723873);
-			mUnknownD4 = aLeft;
+		if (mArcStart <= 0.0f) {
+			mArcStart = 0;
+			float aLeft = (float)((double)mArcAlpha - 0.014999999664723873);
+			mArcAlpha = aLeft;
 			if (aLeft <= 0.0f)
 				mState = 3;
 		}
 	} else if (mState == 2 || mState == 3) {
 		if (mState == 2) {
-			float aLeft = (float)((double)mUnknownC8 - 0.009999999776482582);
-			mUnknownC8 = aLeft;
+			float aLeft = (float)((double)mArcEnd - 0.009999999776482582);
+			mArcEnd = aLeft;
 			if (aLeft <= 0.0f) {
-				mUnknownC8 = 0;
+				mArcEnd = 0;
 				mState = 3;
 			}
 		}
-		float aFade = (float)((double)mUnknown24 - 0.03999999910593033);
+		float aFade = (float)((double)mAlpha - 0.03999999910593033);
 		if (aFade < 0.0f)
 			aFade = 0.0f;
-		mUnknown24 = aFade;
+		mAlpha = aFade;
 		if (aFade <= 0.0f) {
-			mUnknown24 = 0;
+			mAlpha = 0;
 			mDone = true;
 		}
 	}
 	mRadius = mRadius <= mMaxRadius ? mRadius : mMaxRadius;
 	for (int i = 0; i < 20; i++) {
 		if (0.0f < mRings[i]) {
-			float aRing = mUnknown14 + mRings[i];
+			float aRing = mRingSpeed + mRings[i];
 			mRings[i] = aRing;
 			if (mRadius < aRing)
 				mRings[i] = 0;
@@ -547,7 +546,7 @@ void FruitShockwave::Update()
 	}
 	if (!mParticles.empty())
 		mDone = false;
-	if (0 < mColor2.mAlpha || 0.0f < mUnknownD4) {
+	if (0 < mColor2.mAlpha || 0.0f < mArcAlpha) {
 		int anAlpha = mColor2.mAlpha - 4;
 		mColor2.mAlpha = anAlpha;
 		if (anAlpha < 1) {
@@ -559,25 +558,25 @@ void FruitShockwave::Update()
 		}
 	}
 	if (mState < 2) {
-		float aGlow = (float)((double)mUnknownFC + 0.019999999552965164);
+		float aGlow = (float)((double)mRingGlow + 0.019999999552965164);
 		if (1.0f < aGlow)
 			aGlow = 1.0f;
-		mUnknownFC = aGlow;
+		mRingGlow = aGlow;
 	} else {
-		mUnknownFC = mUnknown24;
+		mRingGlow = mAlpha;
 	}
 }
 
 // 0x749e12
 void FruitShockwave::Draw(Graphics* g)
 {
-	g->SetColor(Color(mColor.mRed, mColor.mGreen, mColor.mBlue, Ftol((double)mUnknown24 * 128.0)));
+	g->SetColor(Color(mColor.mRed, mColor.mGreen, mColor.mBlue, Ftol((double)mAlpha * 128.0)));
 	int aSize = Ftol((double)mRadius + (double)mRadius);
 	g->DrawImage(IMAGE_FRUITBLAST_FILLCIRCLE, Ftol((double)mX - (double)mRadius), Ftol((double)mY - (double)mRadius),
 		aSize, aSize);
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColorizeImages(true);
-	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown24 * 32.0)));
+	g->SetColor(Color(255, 255, 255, Ftol((double)mAlpha * 32.0)));
 	for (int i = 0; i < 20; i++) {
 		if (0.0f < mRings[i]) {
 			float aRing = mRings[i];
@@ -587,21 +586,21 @@ void FruitShockwave::Draw(Graphics* g)
 		}
 	}
 	float anOuter = (float)((double)mRadius + 15.0);
-	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown24 * 96.0)));
+	g->SetColor(Color(255, 255, 255, Ftol((double)mAlpha * 96.0)));
 	aSize = Ftol((double)anOuter + (double)anOuter);
 	g->DrawImage(IMAGE_FRUITBLAST_OUTERRING, Ftol((double)mX - (double)anOuter), Ftol((double)mY - (double)anOuter),
 		aSize, aSize);
 	if (-1 < mState && gApp->Is3DAccelerated()) {
-		// Direct3D only (0x749f89): the arc as a ribbon of two triangles from the gem's end of it (mUnknownC4 of the way to
-		// the tube) to the far end (mUnknownC8), a mWidth wide, drawn twice: the arc's picture tinted by the hint's colour,
+		// Direct3D only (0x749f89): the arc as a ribbon of two triangles from the gem's end of it (mArcStart of the way to
+		// the tube) to the far end (mArcEnd), a mWidth wide, drawn twice: the arc's picture tinted by the hint's colour,
 		// then its highlights added
 		gD3DInterface->SetSamplerState(0, GPUSAMP_ADDRESSV, 3);  // slot 0xc4: clamped
 		float aDX = mStartX - mEndX;
 		float aDY = mStartY - mEndY;
-		float aFromX = mUnknownC4 * aDX + mEndX;
-		float aFromY = mEndY + aDY * mUnknownC4;
-		float aToX = mUnknownC8 * aDX + mEndX;
-		float aToY = aDY * mUnknownC8 + mEndY;
+		float aFromX = mArcStart * aDX + mEndX;
+		float aFromY = mEndY + aDY * mArcStart;
+		float aToX = mArcEnd * aDX + mEndX;
+		float aToY = aDY * mArcEnd + mEndY;
 		float aSideX = -aDX;
 		float aSideY = aDY;
 		float aLengthSquared = aSideX * aSideX + aDY * aDY;
@@ -623,8 +622,8 @@ void FruitShockwave::Draw(Graphics* g)
 		for (int aPass = 0; aPass < 2; aPass++) {
 			Image* anArc = aPass == 0 ? IMAGE_FRUITBLAST_ARC : IMAGE_FRUITBLAST_ARC_HIGHLIGHTS;
 			Color anArcColor = aPass == 0
-				? Color(mColor.mRed, mColor.mGreen, mColor.mBlue, Ftol((double)mUnknown24 * 64.0))
-				: Color(255, 255, 255, Ftol((double)mUnknown24 * 128.0));
+				? Color(mColor.mRed, mColor.mGreen, mColor.mBlue, Ftol((double)mAlpha * 64.0))
+				: Color(255, 255, 255, Ftol((double)mAlpha * 128.0));
 			// slot 0x70 (0x6220b0): a triangle through the textured draw, the blend argument 1 as its tx
 			TriVertex aFirst[1][3] = {{aCorners[0], aCorners[1], aCorners[3]}};
 			gD3DInterface->DrawTrianglesTex(anArc, aFirst, 1, anArcColor, aPass, 1.0f, 0.0f, true);
@@ -655,6 +654,6 @@ void FruitShockwave::OnGem(Piece* thePiece)
 		float aDY = (float)((double)mY - ((double)thePiece->mY + (double)(float)(gGemWidth / 2)));
 		if (thePiece->IsFlagSet(Piece::FLAG_BOMB) &&
 			sqrtf((float)((double)aDX * (double)aDX + (double)aDY * (double)aDY)) < 1.0f)
-			thePiece->mUnknown88 = 1;
+			thePiece->mBusyTime = 1;
 	}
 }

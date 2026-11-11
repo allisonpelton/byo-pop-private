@@ -21,7 +21,7 @@ void BoardTracer::AfterUpdate(Board* theBoard, int theUpdate)
 		PrintBoardTrace(theBoard, theUpdate);
 }
 
-// port(variant): the move lines of a board with twists or slides (stage 10, games/bejeweled/docs/CODE_MODS_DESIGN.md
+// port(variant): the move lines of a board with twists or slides (games/bejeweled/docs/CODE_MODS_DESIGN.md
 // 4.7), in MoveSet's order: a swap's as before; a twist's block, its direction, where the gem that makes the group
 // lands and comes from, and the click (a right click anticlockwise) on the point where the four gems meet; a slide's
 // line, its segment, k and that gem, and a drag along the segment that makes it (from a cell's centre k cells on, or
@@ -41,35 +41,35 @@ static void PrintVariantMoves(Board* theBoard)
 	theBoard->FindVariantMoves(&aMoves);
 	for (size_t i = 0; i < aMoves.size(); i++)
 	{
-		const MoveSet::Found& f = aMoves[i];
-		const MoveSet::Move& m = f.mMove;
-		if (m.mType == GameRules::MOVE_SWAP)
+		const MoveSet::Found& aFound = aMoves[i];
+		const MoveSet::Move& aMove = aFound.mMove;
+		if (aMove.mType == GameRules::MOVE_SWAP)
 		{
-			int aClick[2][2] = {{theBoard->GetColX(m.mA) + 24, theBoard->GetRowY(m.mB) + 24}, {theBoard->GetColX(m.mC) + 24, theBoard->GetRowY(m.mD) + 24}};
+			int aClick[2][2] = {{theBoard->GetColX(aMove.mA) + 24, theBoard->GetRowY(aMove.mB) + 24}, {theBoard->GetColX(aMove.mC) + 24, theBoard->GetRowY(aMove.mD) + 24}};
 			aScreen(aClick[0]);
 			aScreen(aClick[1]);
-			printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", (int) i, m.mA, m.mB, m.mC, m.mD,
+			printf("TRACE   move %d: (%d,%d)->(%d,%d) click %d %d then %d %d\n", (int) i, aMove.mA, aMove.mB, aMove.mC, aMove.mD,
 				aClick[0][0], aClick[0][1], aClick[1][0], aClick[1][1]);
 		}
-		else if (m.mType == GameRules::MOVE_TWIST)
+		else if (aMove.mType == GameRules::MOVE_TWIST)
 		{
-			int aClick[2] = {theBoard->GetColX(m.mA + 1) - 1, theBoard->GetRowY(m.mB + 1) - 1};
+			int aClick[2] = {theBoard->GetColX(aMove.mA + 1) - 1, theBoard->GetRowY(aMove.mB + 1) - 1};
 			aScreen(aClick);
-			printf("TRACE   move %d: twist (%d,%d) %s lands (%d,%d) from (%d,%d) %s %d %d\n", (int) i, m.mA, m.mB, (m.mC > 0) ? "cw" : "ccw",
-				f.mTo.first, f.mTo.second, f.mFrom.first, f.mFrom.second, (m.mC > 0) ? "click" : "rclick", aClick[0], aClick[1]);
+			printf("TRACE   move %d: twist (%d,%d) %s lands (%d,%d) from (%d,%d) %s %d %d\n", (int) i, aMove.mA, aMove.mB, (aMove.mC > 0) ? "cw" : "ccw",
+				aFound.mTo.first, aFound.mTo.second, aFound.mFrom.first, aFound.mFrom.second, (aMove.mC > 0) ? "click" : "rclick", aClick[0], aClick[1]);
 		}
 		else
 		{
-			bool isRow = (m.mA == MoveSet::AXIS_ROW);
-			bool isBack = (m.mD - m.mE < m.mE);
-			int aFrom = isBack ? m.mC + m.mD - 1 : m.mC;
-			int aTo = isBack ? aFrom - (m.mD - m.mE) : aFrom + m.mE;
-			int aDrag[2][2] = {{theBoard->GetColX(isRow ? aFrom : m.mB) + 24, theBoard->GetRowY(isRow ? m.mB : aFrom) + 24},
-				{theBoard->GetColX(isRow ? aTo : m.mB) + 24, theBoard->GetRowY(isRow ? m.mB : aTo) + 24}};
+			bool isRow = (aMove.mA == MoveSet::AXIS_ROW);
+			bool isBack = (aMove.mD - aMove.mE < aMove.mE);
+			int aFrom = isBack ? aMove.mC + aMove.mD - 1 : aMove.mC;
+			int aTo = isBack ? aFrom - (aMove.mD - aMove.mE) : aFrom + aMove.mE;
+			int aDrag[2][2] = {{theBoard->GetColX(isRow ? aFrom : aMove.mB) + 24, theBoard->GetRowY(isRow ? aMove.mB : aFrom) + 24},
+				{theBoard->GetColX(isRow ? aTo : aMove.mB) + 24, theBoard->GetRowY(isRow ? aMove.mB : aTo) + 24}};
 			aScreen(aDrag[0]);
 			aScreen(aDrag[1]);
 			printf("TRACE   move %d: slide %s %d from %d length %d by %d lands (%d,%d) from (%d,%d) drag %d %d to %d %d\n", (int) i,
-				isRow ? "row" : "col", m.mB, m.mC, m.mD, m.mE, f.mTo.first, f.mTo.second, f.mFrom.first, f.mFrom.second,
+				isRow ? "row" : "col", aMove.mB, aMove.mC, aMove.mD, aMove.mE, aFound.mTo.first, aFound.mTo.second, aFound.mFrom.first, aFound.mFrom.second,
 				aDrag[0][0], aDrag[0][1], aDrag[1][0], aDrag[1][1]);
 		}
 	}
@@ -88,7 +88,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 		printf("TRACE   row %d:", aRow);
 		for (int aCol = 0; aCol < aBoard->mCols; aCol++)
 		{
-			// port(variant): a dirt cell (stage 7b) prints as -1 - its layers left (-2..-10), a hole and an empty cell as -1
+			// port(variant): a dirt cell prints as -1 - its layers left (-2..-10), a hole and an empty cell as -1
 			if (aBoard->mLayout.IsDirt(aCol, aRow))
 				printf(" %d", -1 - (int) aBoard->mLayout.mDirt[aRow][aCol]);
 			else
@@ -99,13 +99,13 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	// port(variant): "user" for a seed the player chose; after the rows, which keep their place under the header
 	if (aBoard->mGameSeed != 0)
 		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
-	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves; stage 6:
-	// the undos taken, on a board with undo; stage 7c: the direction the next fall takes and the flips so far, when
-	// the rules set a gravity rule; stage 7b: the dirt layers left in all and the side the next diagonal slide tries
-	// first, when the rules have dirt; stage 9: the groups of each kind the board scored but runs, with match rules;
-	// stage 11: the flame and lightning gems made and the blasts, with specials rules, then a line of the specials;
-	// stage 12: the gold cells of the goal and, with a time limit, the level's ticks left, then a line of the gold;
-	// stage 18: the moves toward the next arrow and the arrows cleared, then a line of the arrows)
+	// port(variant): a variant board's own state (the moves that stood, the kept invalid moves;
+	// the undos taken, on a board with undo; the direction the next fall takes and the flips so far, when
+	// the rules set a gravity rule; the dirt layers left in all and the side the next diagonal slide tries
+	// first, when the rules have dirt; the groups of each kind the board scored but runs, with match rules;
+	// the flame and lightning gems made and the blasts, with specials rules, then a line of the specials;
+	// the gold cells of the goal and, with a time limit, the level's ticks left, then a line of the gold;
+	// the moves toward the next arrow and the arrows cleared, then a line of the arrows)
 	if (aBoard->mVariant.mAny)
 	{
 		printf("TRACE   variant moves %d invalid %d", aBoard->mMoveCount, aBoard->mInvalidMoves);
@@ -130,7 +130,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 				aCounts[MatchFinder::GROUP_PLUS], aCounts[MatchFinder::GROUP_DIAGONAL_DOWN] + aCounts[MatchFinder::GROUP_DIAGONAL_UP],
 				aCounts[MatchFinder::GROUP_SHAPE]);
 		}
-		// stage 11: the specials made and the blasts, with specials rules; then the specials on the board, row-major
+		// the specials made and the blasts, with specials rules; then the specials on the board, row-major
 		if (aBoard->mVariant.mSpecials)
 			printf(" specials flame %d lightning %d blasts %d", aBoard->mSpecialsMade[Specials::KIND_FLAME],
 				aBoard->mSpecialsMade[Specials::KIND_LIGHTNING], aBoard->mBlastCount);
@@ -157,7 +157,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 			}
 			printf("\n");
 		}
-		// stage 12: a word a row, a character a cell: 1 gold, 0 a cell of the goal not yet gold, . a cell outside it
+		// a word a row, a character a cell: 1 gold, 0 a cell of the goal not yet gold, . a cell outside it
 		// (x: gold outside the goal, which no board makes)
 		if (aBoard->mVariant.mGold)
 		{
@@ -173,7 +173,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 			}
 			printf("\n");
 		}
-		// stage 18: each arrow, its direction and its cell, row-major
+		// each arrow, its direction and its cell, row-major
 		if (aBoard->mVariant.mArrows)
 		{
 			static const char* const kArrowNames[GameRules::NUM_ARROW_DIRECTIONS] = {"up", "right", "down", "left", "upRight",
@@ -191,7 +191,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 			printf("\n");
 		}
 	}
-	// The clicks are screen positions: on a scaled board (stage 7) the cell centres scaled into the window
+	// The clicks are screen positions: on a scaled board the cell centres scaled into the window
 	const BoardLayout& aLayout = aBoard->mLayout;
 	if (aBoard->mVariant.mMoves)
 	{

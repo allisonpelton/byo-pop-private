@@ -1,0 +1,48 @@
+# Timing of moves: enter and leave of a panel button and of the user button, a shot at each of the next updates
+3000 shot z000
+3100 click 320 447
+3150 type Test
+3180 key Return
+3260 shot z001
+3300 move 110 190
+3300 shot enter_classic_0
+3301 shot enter_classic_1
+3302 shot enter_classic_2
+3303 shot enter_classic_3
+3304 shot enter_classic_4
+3305 shot enter_classic_5
+3360 move 320 40
+3360 shot leave_classic_0
+3361 shot leave_classic_1
+3362 shot leave_classic_2
+3363 shot leave_classic_3
+3364 shot leave_classic_4
+3365 shot leave_classic_5
+3420 move 535 250
+3420 shot enter_options_0
+3421 shot enter_options_1
+3422 shot enter_options_2
+3423 shot enter_options_3
+3424 shot enter_options_4
+3425 shot enter_options_5
+3480 move 320 40
+3480 shot leave_options_0
+3481 shot leave_options_1
+3482 shot leave_options_2
+3483 shot leave_options_3
+3484 shot leave_options_4
+3485 shot leave_options_5
+3540 move 326 93
+3540 shot enter_user_0
+3541 shot enter_user_1
+3542 shot enter_user_2
+3543 shot enter_user_3
+3544 shot enter_user_4
+3545 shot enter_user_5
+3600 move 320 40
+3600 shot leave_user_0
+3601 shot leave_user_1
+3602 shot leave_user_2
+3603 shot leave_user_3
+3604 shot leave_user_4
+3605 shot leave_user_5

@@ -1,0 +1,7 @@
+# title screen, six updates in a row (which update does a shot show?)
+3000 shot c0
+3001 shot c1
+3002 shot c2
+3003 shot c3
+3004 shot c4
+3005 shot c5

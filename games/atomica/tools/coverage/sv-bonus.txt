@@ -1,0 +1,21 @@
+# save: bonus
+# A saved game at level 4 with the bonus molecule's sign up (the plus of four atoms of one kind round one of another) and the plus one atom
+# short (mksave.py), continued in the original: the sign's hint, the last atom carried to its place, the bonus molecule that follows
+# (the sign's effects, the element atom it makes, its hint, and the double click that sets the fire off).
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+2700 click 474 264
+2800 move 590 415
+2810 click 590 415
+2820 move 540 400
+2830 move 480 370
+2840 move 420 335
+2850 move 390 315
+2860 click 390 315
+3600 click 500 314
+3700 click 306 326
+3790 move 390 265
+3800 dclick 390 265
+end 4600

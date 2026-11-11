@@ -10,7 +10,7 @@ namespace jb
 
 // 0x420840 (the original sets +0x08 and +0x34 from the low byte of the x)
 Layer::Layer(int theX, int theY)
-	: mFlag8((char)theX != 0), mX(theX), mY(theY), mFlag34((char)theX != 0)
+	: mXLowByteSet((char)theX != 0), mX(theX), mY(theY), mXLowByteSetToo((char)theX != 0)
 {
 }
 
@@ -36,13 +36,7 @@ void Layer::DestroyObjects()
 // 0x420a20
 bool Layer::AppActive()
 {
-	return mManager->IsAppActive();
-}
-
-// 0x420a50
-void Layer::PreloadImage(int theImageId)
-{
-	mManager->PreloadDllImage(theImageId);
+	return mManager->GetActive();
 }
 
 // 0x420a90

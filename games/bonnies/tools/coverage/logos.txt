@@ -1,0 +1,11 @@
+# Bonnie's original, a coverage run (tools/coverage/run.sh): a click on each logo, which hurries it, then the menu.
+wait 2500
+click 400 300
+wait 2000
+click 400 300
+wait 2000
+click 400 300
+wait 2000
+click 400 300
+wait 6000
+quit

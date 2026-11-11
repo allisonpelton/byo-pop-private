@@ -1,10 +1,10 @@
 #ifndef __SPECIALS_H__
 #define __SPECIALS_H__
 
-// port(variant): flame and lightning gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8, stage 11). Not part of the
+// port(variant): flame and lightning gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8). Not part of the
 // original game. Framework-free (GameRules, BoardLayout and MatchFinder only), so tools/rulestest runs its fixtures.
 //
-// One resolve (Board::ProcessMatchesVariant) in two steps, on the groups MatchFinder found:
+// One resolve (Board::FindSetsVariant) in two steps, on the groups MatchFinder found:
 //   Creations: each group in the finder's order whose pattern a special's createdBy names (lightning checked
 //   first) keeps one gem alive as that special: the first gem the move put into the group (in the move's own
 //   resolve: the swapped pair, the twisted four, the slid segment, in MoveSet::MovedCells' order), else the

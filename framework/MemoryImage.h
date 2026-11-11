@@ -25,6 +25,12 @@ class MemoryImage;
 // image has none. Null otherwise.
 extern bool (*gMemoryImageRecoverBits)(MemoryImage* theImage);
 
+// port: off (the 1.4 framework's SlowStretchBlt, which has `a = 255 * a / (a + aDestAlpha)` commented out, so a stretch
+// onto transparent bits leaves the colour darkened by the alpha). On, SlowStretchBlt blends with that line, as the
+// frameworks of 2004's later games do (AstroPop's 0x4b1bf0: the colour's weight is 255 * a / (a + the destination's
+// alpha), so onto transparent bits it is full). A game sets it once, before it draws.
+extern bool gSlowStretchRenormalizesAlpha;
+
 class MemoryImage : public Image
 {
 public:
@@ -48,6 +54,10 @@ public:
 	// those reads; DDInterface's transform copies set it, since they stand in for a software screen, and DDImage's
 	// BltRotated finds the row by the image's width (Bejeweled Twist's 0x413150).
 	bool					mRotateRowsByImageWidth;
+	// port: the pixels are already what the GPU texture takes (opaque, or premultiplied by their owner), so DDInterface
+	// uploads them as they are, in one call, where it copies and premultiplies every pixel of any other image first (an
+	// opaque 800x600 screen image changes every frame: a software game's whole display). Off by default and for a copy.
+	bool					mUploadAsIs;
 	
 	ulong*					mNativeAlphaData;
 	uchar*					mRLAlphaData;

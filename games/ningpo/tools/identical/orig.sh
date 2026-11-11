@@ -22,4 +22,4 @@ W=""; for e in "$@"; do W="$W --watch $e"; done
 # their real time and a run would go slower than real time; it draws nothing from the generator and changes no state
 ORIGRUN_CLOCK_GUARD=0 "$ORIGRUN" --exe "$(win "$OG_GAME/Ningpo.exe")" --run "$(basename "$OG_STAGE")" \
 	--script "$(win "$S")" --clock virtual --cursor scripted --counter 0x47be70 --update-ms 1 --sound nodriver --seed "$SEED" \
-	--patches tools/origrun/patches/ningpo.txt --timeout "$T" $W
+	--patches tools/origrun/patches/ningpo.txt --timeout "$T" ${COVERAGE:+--coverage "$COVERAGE"} $W

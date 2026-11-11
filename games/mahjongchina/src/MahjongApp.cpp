@@ -1,4 +1,4 @@
-// The port's host for Mahjong Escape: Ancient China (see MahjongApp.h).
+// port: the host for Mahjong Escape: Ancient China (see MahjongApp.h).
 
 #include "MahjongApp.h"
 
@@ -124,7 +124,7 @@ public:
 	const uint8_t* FindResource(jb::Module theModule, const char* theTypeName, int theTypeId, int theId,
 		uint32_t* theSize) override
 	{
-		const mahjongchina::PeResources& aFile = theModule == jb::Module::Dll ? mDll : mExe;
+		const mahjongchina::PeResources& aFile = theModule == jb::Module::DLL ? mDll : mExe;
 		if (theTypeName != nullptr)
 			return aFile.Find(mahjongchina::PeResources::Key(theTypeName),
 				mahjongchina::PeResources::Key((uint32_t)theId), theSize);
@@ -134,7 +134,7 @@ public:
 
 	bool LoadString(jb::Module theModule, int theId, std::string& theText) override
 	{
-		return (theModule == jb::Module::Dll ? mDll : mExe).LoadString((uint32_t)theId, theText);
+		return (theModule == jb::Module::DLL ? mDll : mExe).LoadString((uint32_t)theId, theText);
 	}
 
 	// the registry keys are read from the same emulated registry
@@ -143,30 +143,9 @@ public:
 		return gApp->RegistryReadInteger(RegName(theSection, theName), &theValue);
 	}
 
-	bool RegReadString(const char* theSection, const char* theName, bool theMachine, std::string& theValue) override
-	{
-		return gApp->RegistryReadString(RegName(theSection, theName), &theValue);
-	}
-
 	bool RegWriteInt(const char* theSection, const char* theName, int theValue) override
 	{
 		return gApp->RegistryWriteInteger(RegName(theSection, theName), theValue);
-	}
-
-	bool RegWriteString(const char* theSection, const char* theName, const char* theValue) override
-	{
-		return gApp->RegistryWriteString(RegName(theSection, theName), theValue);
-	}
-
-	bool RegDeleteValue(const char* theSection, const char* theName) override
-	{
-		gApp->RegistryEraseValue(RegName(theSection, theName));
-		return true;
-	}
-
-	bool RegDeleteKey(const char* theSection) override
-	{
-		return gApp->RegistryEraseKey(theSection != nullptr ? theSection : "");
 	}
 
 	std::string CommandLine() override
@@ -197,8 +176,8 @@ public:
 			theHeight = aMode.h;
 			return;
 		}
-		theWidth = 800;
-		theHeight = 600;
+		theWidth = jb::SCREEN_WIDTH;
+		theHeight = jb::SCREEN_HEIGHT;
 	}
 
 	// test runs (-script, -fast, rundesk) never block on a message box; MB_YESNO's answer is IDYES
@@ -229,7 +208,8 @@ public:
 
 	void SetCursor(int theKind) override
 	{
-		gApp->SetCursor(theKind == 1 ? CURSOR_HAND : theKind == 4 ? CURSOR_WAIT : CURSOR_POINTER);
+		gApp->SetCursor(theKind == jb::CURSOR_KIND_HAND ? CURSOR_HAND :
+			theKind == jb::CURSOR_KIND_WAIT ? CURSOR_WAIT : CURSOR_POINTER);
 	}
 
 	// the framework keeps the mouse's events going to the widget while a button is held
@@ -269,8 +249,18 @@ public:
 		MahjongWidget* aWidget = gApp->mWidget;
 		if (aWidget == nullptr)
 			return;
-		for (int y = 0; y < 600; y++)
-			memcpy(&aWidget->mScreen[y * 800], thePixels + y * thePitch, 800 * 4);
+		// port: one pass from the engine's buffer into the widget's image. The screen is opaque: the buffer's alpha
+		// bytes are not its pixels' alpha (the engine's drawing leaves them as they are).
+		MemoryImage* anImage = aWidget->mScreenImage;
+		ulong* aBits = anImage->GetBits();
+		for (int y = 0; y < jb::SCREEN_HEIGHT; y++)
+		{
+			const uint32_t* aSrc = (const uint32_t*)(thePixels + y * thePitch);
+			ulong* aDst = aBits + y * jb::SCREEN_WIDTH;
+			for (int x = 0; x < jb::SCREEN_WIDTH; x++)
+				aDst[x] = 0xff000000 | (aSrc[x] & 0xffffff);
+		}
+		anImage->BitsChanged();
 		aWidget->mScreenChanged = true;
 	}
 };
@@ -285,8 +275,14 @@ MahjongHost gHost;
 MahjongWidget::MahjongWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(800, 600);
-	mScreen.assign(800 * 600, 0);
+	mScreenImage->Create(jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT);
+	// port: opaque, so that the framework need not look through the 480000 pixels for alpha after each present
+	mScreenImage->SetImageMode(false, false);
+	// and its alpha bytes are all 0xff (Present), so the framework need not premultiply it pixel by pixel to upload it
+	mScreenImage->mUploadAsIs = true;
+	ulong* aBits = mScreenImage->GetBits();
+	for (int i = 0; i < jb::SCREEN_WIDTH * jb::SCREEN_HEIGHT; i++)
+		aBits[i] = 0xff000000;
 	mScreenChanged = true;
 	mButtons = 0;
 	mWantsFocus = true;
@@ -307,14 +303,7 @@ void MahjongWidget::Update()
 
 void MahjongWidget::Draw(Graphics* g)
 {
-	if (mScreenChanged)
-	{
-		ulong* aBits = mScreenImage->GetBits();
-		for (int i = 0; i < 800 * 600; i++)
-			aBits[i] = 0xff000000 | (mScreen[i] & 0xffffff);
-		mScreenImage->BitsChanged();
-		mScreenChanged = false;
-	}
+	mScreenChanged = false;
 	g->DrawImage(mScreenImage, 0, 0);
 }
 
@@ -326,11 +315,16 @@ void MahjongWidget::KeyChar(SexyChar theChar)
 		jb::gApp->mManager.Char(aChar, 1, 0);
 }
 
-// WM_KEYDOWN (the framework's key codes are the virtual keys)
+// 0x42fa00: WM_KEYDOWN (the framework's key codes are the virtual keys). Escape leaves full screen
+// before the key goes on.
 void MahjongWidget::KeyDown(KeyCode theKey)
 {
 	if (gApp->mGameStarted && !gApp->mGameEnded)
+	{
+		if (theKey == KEYCODE_ESCAPE && jb::gFullScreen)
+			jb::gApp->mManager.SetFullScreen(false, true);
 		jb::gApp->mManager.Key((int)theKey, 1, 0);
+	}
 }
 
 void MahjongWidget::MouseMove(int x, int y)
@@ -403,8 +397,8 @@ MahjongApp::MahjongApp()
 	mTitle = "Mahjong Escape";
 	// the original's key: Software\JollyBear\ and the title with only its letters, digits and spaces (0x429ac0)
 	mRegKey = "JollyBear\\Mahjong Escape";
-	mWidth = 800;
-	mHeight = 600;
+	mWidth = jb::SCREEN_WIDTH;
+	mHeight = jb::SCREEN_HEIGHT;
 	// the frame's pacing (25 ms, jb::Host::Sleep) is checked every 5 ms
 	mFrameTime = 5;
 	mWidget = nullptr;
@@ -425,6 +419,7 @@ MahjongApp::~MahjongApp()
 	delete mGame;
 }
 
+// 0x426850 inlined here: the exe's file version for the logo screen (the block after LoadGameTexts)
 void MahjongApp::Init()
 {
 	SexyAppBase::Init();
@@ -438,6 +433,25 @@ void MahjongApp::Init()
 		return;
 	}
 	mahjongchina::LoadGameTexts(aFolder);
+	// 0x426850: the exe's file version as "v.A.B.C.D" (VS_FIXEDFILEINFO's dwFileVersionMS and LS), which the logo screen
+	// shows at its lower right; the original asks Windows, the port reads the exe's version resource
+	{
+		std::vector<mahjongchina::PeResources::Key> aNames = gHost.mExe.Names(16);
+		uint32_t aSize = 0;
+		const uint8_t* aInfo = aNames.empty() ? nullptr : gHost.mExe.Find(16, aNames[0], &aSize);
+		for (uint32_t i = 0; aInfo != nullptr && i + 16 <= aSize; i++)
+		{
+			if (aInfo[i] == 0xbd && aInfo[i + 1] == 0x04 && aInfo[i + 2] == 0xef && aInfo[i + 3] == 0xfe)
+			{
+				uint32_t aMS = aInfo[i + 8] | aInfo[i + 9] << 8 | aInfo[i + 10] << 16 | (uint32_t)aInfo[i + 11] << 24;
+				uint32_t aLS = aInfo[i + 12] | aInfo[i + 13] << 8 | aInfo[i + 14] << 16 | (uint32_t)aInfo[i + 15] << 24;
+				char aText[48];
+				snprintf(aText, sizeof(aText), "v.%u.%u.%u.%u", aMS >> 16, aMS & 0xffff, aLS >> 16, aLS & 0xffff);
+				jb::gVersion = aText;
+				break;
+			}
+		}
+	}
 	jb::SetHost(&gHost);
 	// the two logo screens hold the player back 2 s each with nothing loaded meanwhile, so the port starts at the main menu
 	// (the loading rule, CLAUDE.md "Making a port"); -logos keeps the original's start, for runs compared with it and the suite
@@ -558,13 +572,13 @@ void MahjongApp::LostFocus()
 }
 
 // Alt+Enter and the web page's full screen button change the mode as the options' check box does
-void MahjongApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+void MahjongApp::SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce)
 {
-	if (mApplyingGameMode || !mGameStarted || mGameEnded || force)
+	if (mApplyingGameMode || !mGameStarted || mGameEnded || theForce)
 	{
-		SexyAppBase::SwitchScreenMode(wantWindowed, is3d, force);
+		SexyAppBase::SwitchScreenMode(theWantWindowed, theIs3d, theForce);
 		return;
 	}
-	if (wantWindowed != mIsWindowed)
-		mGame->mManager.SetFullScreen(!wantWindowed, true);
+	if (theWantWindowed != mIsWindowed)
+		mGame->mManager.SetFullScreen(!theWantWindowed, true);
 }

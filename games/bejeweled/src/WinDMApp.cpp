@@ -75,11 +75,8 @@ WinDMApp::WinDMApp()
 	mMainFont = NULL;
 	mHighScoreWidget = NULL;
 	mOverFont = NULL;
-	for (int i = 0; i < 6; i++)
-	{
-		mUnusedImagesA[i] = NULL;
-		mUnusedImagesB[i] = NULL;
-	}
+	// port: the two arrays of six images at +0x7d8 and +0x7f0, which the original zeroes here, deletes in the dtor and
+	// never uses otherwise, are left out
 	for (int i = 0; i < NUM_TIMERBAR_IMAGES; i++)
 		mTimerBarImages[i] = NULL;
 
@@ -148,12 +145,6 @@ WinDMApp::~WinDMApp()
 		delete *anItr;
 	}
 
-	for (int i = 0; i < 6; i++)
-	{
-		delete mUnusedImagesA[i];
-		delete mUnusedImagesB[i];
-	}
-
 	for (int i = 0; i < NUM_TIMERBAR_IMAGES; i++)
 		delete mTimerBarImages[i];
 
@@ -204,7 +195,7 @@ void WinDMApp::Shutdown()
 	if (!mShutdown)
 	{
 		// The deferred delete of the board saves the game a second time and counts it as played
-		if ((mBoard != NULL) && (mBoard->IsGameInProgress()))
+		if ((mBoard != NULL) && (mBoard->IsInProgress()))
 		{
 			mBoard->SaveGame();
 			mWidgetManager->RemoveWidget(mBoard);
@@ -221,7 +212,7 @@ void WinDMApp::Shutdown()
 // backup restored after a crash is consistent (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.5)
 void WinDMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 {
-	if ((mBoard == NULL) || (!mBoard->IsGameInProgress()))
+	if ((mBoard == NULL) || (!mBoard->IsInProgress()))
 		return;
 
 	Buffer aBuffer;
@@ -244,7 +235,7 @@ void WinDMApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 // progress as played (~Board) and MainLoopFinished() writes it again, so the last write has the count
 void WinDMApp::WriteShutdownRegistry()
 {
-	bool countGame = (mBoard != NULL) && (mBoard->IsGameInProgress());
+	bool countGame = (mBoard != NULL) && (mBoard->IsInProgress());
 	if (countGame)
 		mTimesPlayed++;
 	WriteToRegistry();
@@ -343,14 +334,14 @@ void WinDMApp::MakeGemShrinkImages(int theColor)
 	for (int aFrame = 0; aFrame < NUM_SHRINK_FRAMES; aFrame++)
 	{
 		MemoryImage* anImage = new MemoryImage(this);
-		anImage->Create(49, 49);
+		anImage->Create(Board::GEM_SIZE, Board::GEM_SIZE);
 
 		// Odd sizes 43, 35, 29, 21, 15, 7 (with 53-bit doubles), centred in the 49x49 cell
-		int aSize = (int) ((1.0 - (aFrame + 1) / 7.0) * 49.0) | 1;
-		int anOffset = (49 - aSize) / 2;
+		int aSize = (int) ((1.0 - (aFrame + 1) / 7.0) * Board::GEM_SIZE) | 1;
+		int anOffset = (Board::GEM_SIZE - aSize) / 2;
 
 		Graphics g(anImage);
-		g.DrawImage(mImages[IMAGE_GEMSHEET], Rect(anOffset, anOffset, aSize, aSize), Rect(2, theColor * 104, 49, 49));
+		g.DrawImage(mImages[IMAGE_GEMSHEET], Rect(anOffset, anOffset, aSize, aSize), Rect(2, theColor * Board::GEMSHEET_COLOR_HEIGHT, Board::GEM_SIZE, Board::GEM_SIZE));
 		mGemShrinkImages[theColor][aFrame] = anImage;
 	}
 	mGemShrinkColors = std::max(mGemShrinkColors, theColor + 1);
@@ -370,6 +361,7 @@ static void CompactImages(SexyAppBase* theApp)
 	}
 }
 
+// 0x4d4591 (empty in the original; port(lean): compacts the images)
 void WinDMApp::LoadingThreadCompleted()
 {
 	if (gGameConfig.mFeatures.mLean && gGameConfig.mFeatures.mLeanImages)
@@ -393,7 +385,7 @@ MusicInterface* WinDMApp::CreateMusicInterface()
 }
 
 // 0x4d45e3
-void WinDMApp::ShowRecordScoreDialog(const SexyString& theLines)
+void WinDMApp::DoRecordScoreDialog(const SexyString& theLines)
 {
 	RecordScoreDialog* aDialog = new RecordScoreDialog(this, theLines);
 	aDialog->Resize(250, 32, 316, aDialog->GetPreferredHeight(316));
@@ -476,10 +468,10 @@ void WinDMApp::ShowHighScoreWidget()
 }
 
 // 0x4d483e
-void WinDMApp::ShowOptionsDialog()
+void WinDMApp::DoOptions()
 {
 	OptionsDialog* aDialog = new OptionsDialog(this);
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 	AddDialog(DIALOG_OPTIONS, aDialog);
 }
 
@@ -490,7 +482,7 @@ void WinDMApp::ButtonPress(int theId)
 }
 
 // 0x4d48b6
-void WinDMApp::ShowHighScoreDialog()
+void WinDMApp::DoHighScoreDialog()
 {
 	HighScoreDialog* aDialog = new HighScoreDialog(this);
 	aDialog->Resize(194, 50, 428, aDialog->GetPreferredHeight(428));
@@ -565,7 +557,7 @@ bool WinDMApp::CanCommitNextGameValues()
 {
 	if ((mWatch != NULL) && mWatch->IsWatching())
 		return false;
-	if ((mBoard != NULL) && mBoard->IsGameInProgress())
+	if ((mBoard != NULL) && mBoard->IsInProgress())
 		return false;
 	return !FileExists(Board::ScopedSaveGameFileName());
 }
@@ -592,11 +584,11 @@ void WinDMApp::ApplyNextGameValues()
 	}
 }
 
-// port(mods): a game in progress is one the shutdown would save (Board::IsGameInProgress; a replay's board never
+// port(mods): a game in progress is one the shutdown would save (Board::IsInProgress; a replay's board never
 // is): the menu's Restart asks first
 bool WinDMApp::HasGameInProgress()
 {
-	return (mBoard != NULL) && mBoard->IsGameInProgress();
+	return (mBoard != NULL) && mBoard->IsInProgress();
 }
 
 // port(mods): not while the high-score name is being entered: the score would be lost
@@ -675,7 +667,7 @@ void WinDMApp::HandleCmdLineParam(const std::string& theParamName, const std::st
 		SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
-// theName with the extension of theOther ("snaps/s1.dat", "x\\savegame.bjr" -> "snaps/s1.bjr")
+// port: theName with the extension of theOther ("snaps/s1.dat", "x\\savegame.bjr" -> "snaps/s1.bjr")
 static std::string WithExtensionOf(const std::string& theName, const std::string& theOther)
 {
 	size_t aDot = theName.find_last_of('.');
@@ -692,7 +684,7 @@ bool WinDMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	// port: the standard test commands (testhooks/TestCommands.cpp)
 	if (HandleTestCommand(theCommand))
 		return true;
-	// port(variant): gemsheet <file.png>, the gem sheet as loaded and grown (stage 8), its HD pixels to <file>@<n>x.png
+	// port(variant): gemsheet <file.png>, the gem sheet as loaded and grown, its HD pixels to <file>@<n>x.png
 	if ((theCommand.mCommand == "gemsheet") && (mImages != NULL) && (mImages[IMAGE_GEMSHEET] != NULL))
 	{
 		if (!GemSheet::WritePngs((MemoryImage*) mImages[IMAGE_GEMSHEET], theCommand.mArgs))
@@ -773,12 +765,12 @@ void WinDMApp::ReadFromRegistry()
 }
 
 // 0x4d550d
-void WinDMApp::ConfirmLoadGame()
+void WinDMApp::TryConfirmLoad()
 {
-	if (mBoard->SaveGameExists())
+	if (mBoard->HasSavedGame())
 	{
 		Dialog* aDialog = DoDialog(DIALOG_CONFIRM_LOAD, true, GetString("CONFIRM_LOAD_DIALOG1"), GetString("CONFIRM_LOAD_DIALOG2"), "", Dialog::BUTTONS_YES_NO);
-		aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+		aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 	}
 }
 
@@ -813,14 +805,14 @@ void WinDMApp::ConfirmTimedMode()
 void WinDMApp::ConfirmQuit()
 {
 	SexyString aLines = GetString("CONFIRMQUIT1");
-	if ((mBoard != NULL) && (mBoard->IsGameInProgress()))
+	if ((mBoard != NULL) && (mBoard->IsInProgress()))
 		aLines += GetString("CONFIRMQUIT2");
 
 	DoDialog(DIALOG_QUIT, true, GetString("QUIT"), aLines, "", Dialog::BUTTONS_YES_NO);
 }
 
 // 0x4d59cc
-void WinDMApp::ShowInstructionsDialog()
+void WinDMApp::DoInstructionDialogette()
 {
 	SexyString aText = (mBoard != NULL) ? mBoard->InstructionsText() : GetString("INSTRUCTIONDIALOG"); // port(variant): the rules' own text (BoardVariant.cpp)
 	Dialog* aDialog = NewDialog(DIALOG_INSTRUCTIONS, false, "", aText, "", Dialog::BUTTONS_NONE);
@@ -830,7 +822,7 @@ void WinDMApp::ShowInstructionsDialog()
 }
 
 // 0x4d5ac1
-void WinDMApp::ShowFullInstructionsDialog()
+void WinDMApp::DoFullInstructions()
 {
 	SexyString aText = GetString("FULL_INSTRUCTIONS2");
 	if (mBoard != NULL) aText = mBoard->FullInstructionsText(aText); // port(variant): the rules' own first paragraph (BoardVariant.cpp)
@@ -841,7 +833,7 @@ void WinDMApp::ShowFullInstructionsDialog()
 }
 
 // 0x4d5bef
-void WinDMApp::ShowColorDepthDialog()
+void WinDMApp::DoColorDepthExplanation()
 {
 	DoDialog(DIALOG_FULL_INSTRUCTIONS, true, GetString("COLOR_DEPTH_EXPLANATION1"), GetString("COLOR_DEPTH_EXPLANATION2"), GetString("DIALOG_BUTTON_OK"), Dialog::BUTTONS_FOOTER);
 }
@@ -849,7 +841,7 @@ void WinDMApp::ShowColorDepthDialog()
 // ShowRegisterNagDialog (0x4d5cdf, dialog 15) is not ported: Board shows it only to unregistered copies
 
 // 0x4d62b8
-bool WinDMApp::LoadAppImage(int theImageId)
+bool WinDMApp::DoLoadImage(int theImageId)
 {
 	mImages[theImageId] = GetImage(std::string("images\\") + gImageNames[theImageId], true);
 	if (mImages[theImageId] == NULL)
@@ -895,7 +887,7 @@ void WinDMApp::Init()
 
 	for (int i = 0; i < NUM_TITLE_IMAGES; i++)
 	{
-		if (!LoadAppImage(i))
+		if (!DoLoadImage(i))
 		{
 			Shutdown();
 			return;
@@ -1003,10 +995,10 @@ void WinDMApp::ButtonDepress(int theId)
 		case DIALOG_CONFIRM_LOAD:
 			KillDialog(DIALOG_CONFIRM_LOAD);
 			mBoard->LoadGame();
-			mBoard->DeleteSaveGame();
+			mBoard->DeleteSavedGame();
 			break;
 
-		// port(variant): stage 13
+		// port(variant): watching a replay from the game
 		case DIALOG_CONFIRM_WATCH:
 			KillDialog(DIALOG_CONFIRM_WATCH);
 			StartWatch(mPendingWatch);
@@ -1046,7 +1038,7 @@ void WinDMApp::ButtonDepress(int theId)
 		if (aDialogId == DIALOG_CONFIRM_LOAD)
 		{
 			KillDialog(DIALOG_CONFIRM_LOAD);
-			mBoard->DeleteSaveGame();
+			mBoard->DeleteSavedGame();
 		}
 		else if (aDialogId == DIALOG_REPLAY_END) // port(variant): Back
 			EndWatch();
@@ -1080,7 +1072,7 @@ void WinDMApp::ButtonDepress(int theId)
 		break;
 
 	case BUTTON_OPTIONS:
-		ShowOptionsDialog();
+		DoOptions();
 		break;
 
 	case BUTTON_QUIT:
@@ -1110,7 +1102,7 @@ void WinDMApp::WatchReplay(const std::string& thePath, bool theFromDialogs)
 		Dialog* aDialog = DoDialog(DIALOG_CONFIRM_WATCH, true, GetString("REPLAY_CONFIRM_WATCH1", _S("WATCH REPLAY")),
 			GetString("REPLAY_CONFIRM_WATCH2", _S("Leave this game to watch the replay? Your game is saved, and offered again when you are done watching.")),
 			"", Dialog::BUTTONS_YES_NO);
-		aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+		aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 		return;
 	}
 	StartWatch(aPath);
@@ -1137,7 +1129,7 @@ void WinDMApp::StartWatch(const std::string& thePath)
 	if (wasPlayback)
 	{
 		NewGame();
-		ConfirmLoadGame();
+		TryConfirmLoad();
 	}
 	// "REPLAY <file>: cannot play: <why>": the why
 	std::string aWhy = mWatch->GetResult();
@@ -1146,10 +1138,10 @@ void WinDMApp::StartWatch(const std::string& thePath)
 		aWhy = aWhy.substr(aColon + 15);
 	Dialog* aDialog = DoDialog(DIALOG_REPLAY_ERROR, true, GetString("REPLAY_ERROR1", _S("REPLAY")),
 		GetString("REPLAY_ERROR2", _S("This replay cannot be played here: ")) + aWhy, GetString("DIALOG_BUTTON_OK", _S("OK")), Dialog::BUTTONS_FOOTER);
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 }
 
-// port(variant): back to the player's game, as the side-bar buttons ended a watch in stage 3b
+// port(variant): back to the player's game from a watched replay
 void WinDMApp::EndWatch()
 {
 	RemoveReplayStats();
@@ -1159,7 +1151,7 @@ void WinDMApp::EndWatch()
 		return;
 	mWatch->Stop();
 	NewGame();
-	ConfirmLoadGame();
+	TryConfirmLoad();
 }
 
 // port(variant): the overlay over each playback board, on top of the side bar's widgets, with the focus (a modal
@@ -1195,7 +1187,7 @@ void WinDMApp::OnWatchEnded()
 	Dialog* aDialog = DoDialog(DIALOG_REPLAY_END, true, GetString("REPLAY_END", _S("REPLAY END")), aLines, "", Dialog::BUTTONS_YES_NO);
 	aDialog->mYesButton->mLabel = GetString("REPLAY_WATCH_AGAIN", _S("Watch again"));
 	aDialog->mNoButton->mLabel = GetString("REPLAY_BACK", _S("Back"));
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 	if (hasStats)
 	{
 		mReplayStatsLink = new HyperlinkWidget(BUTTON_REPLAY_STATS, this);
@@ -1211,6 +1203,7 @@ void WinDMApp::OnWatchEnded()
 	}
 }
 
+// port(variant): the replay's Stats link and its page, before REPLAY END goes
 void WinDMApp::RemoveReplayStats()
 {
 	if (mReplayStatsPage != NULL)
@@ -1228,6 +1221,7 @@ void WinDMApp::RemoveReplayStats()
 	}
 }
 
+// port(variant): the overlay a watched replay draws over the board
 void WinDMApp::RemoveReplayOverlay()
 {
 	if (mReplayOverlay == NULL)
@@ -1245,13 +1239,15 @@ bool WinDMApp::HasExtras()
 	return aFeatures.mSeedEntry || aFeatures.mSeedPerGame || aFeatures.mReplays || aFeatures.mLeaderboard;
 }
 
+// port(variant): the Extras dialog, over Options
 void WinDMApp::ShowExtrasDialog()
 {
 	ExtrasDialog* aDialog = new ExtrasDialog(this);
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 	AddDialog(DIALOG_EXTRAS, aDialog);
 }
 
+// port(variant): Extras' replay browser
 void WinDMApp::ShowReplayBrowser()
 {
 	ReplayBrowserDialog* aDialog = new ReplayBrowserDialog(this);
@@ -1260,6 +1256,7 @@ void WinDMApp::ShowReplayBrowser()
 	AddDialog(DIALOG_REPLAYS, aDialog);
 }
 
+// port(variant): closes the browser and Extras, and Options as its Done would
 void WinDMApp::CloseExtras()
 {
 	KillDialog(DIALOG_REPLAYS);
@@ -1280,12 +1277,13 @@ void WinDMApp::PlaySeed(uint32_t theSeed)
 		Dialog* aDialog = DoDialog(DIALOG_CONFIRM_SEED, true, GetString("CONFIRM_SEED1", _S("PLAY SEED")),
 			GetString("CONFIRM_SEED2", _S("Abandon this game and start a new one on seed ")) + StrFormat(_S("%u?"), (unsigned) theSeed), "",
 			Dialog::BUTTONS_YES_NO);
-		aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+		aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 		return;
 	}
 	StartSeedGame(theSeed);
 }
 
+// port(variant): a new game on theSeed, once PlaySeed has asked or needed no asking
 void WinDMApp::StartSeedGame(uint32_t theSeed)
 {
 	CloseExtras();
@@ -1298,15 +1296,16 @@ void WinDMApp::StartSeedGame(uint32_t theSeed)
 		mBoard->RequestNewGame(); // New Game's shake and fall, then NewGame
 }
 
+// port(variant): the browser's are-you-sure before a replay is deleted
 void WinDMApp::ConfirmDeleteReplay()
 {
 	Dialog* aDialog = DoDialog(DIALOG_CONFIRM_DELETE, true, GetString("REPLAY_DELETE1", _S("DELETE REPLAY")),
 		GetString("REPLAY_DELETE2", _S("Delete this replay? It cannot be brought back.")), "", Dialog::BUTTONS_YES_NO);
-	aDialog->Resize(234, 50, 348, aDialog->GetPreferredHeight(348));
+	aDialog->Resize(DIALOG_X, DIALOG_Y, DIALOG_WIDTH, aDialog->GetPreferredHeight(DIALOG_WIDTH));
 }
 
 // 0x4d6e71
-ButtonWidget* WinDMApp::MakeButton(int theId, const Rect& theRect, int theOverImageId, int theDownImageId)
+ButtonWidget* WinDMApp::CreateControlButton(int theId, const Rect& theRect, int theOverImageId, int theDownImageId)
 {
 	// No mButtonImage: the board background shows the button art, the widget only adds hover/pressed images
 	ButtonWidget* aButton = new ButtonWidget(theId, this);
@@ -1336,12 +1335,12 @@ void WinDMApp::TitleScreenIsFinished()
 		mImages[IMAGE_TITLESCREEN] = NULL;
 	}
 
-	MakeButton(BUTTON_NEW_GAME, Rect(18, 142, 156, 41), -1, IMAGE_OVER_NEWGAME_PUSHED);
-	mNormalModeButton = MakeButton(BUTTON_NORMAL_MODE, Rect(18, 185, 78, 31), -1, IMAGE_OVER_NORMAL_PUSHED);
-	mTimedModeButton = MakeButton(BUTTON_TIMED_MODE, Rect(96, 185, 78, 31), -1, IMAGE_OVER_TIMETRIAL_PUSHED);
-	MakeButton(BUTTON_OPTIONS, Rect(18, 241, 156, 41), -1, IMAGE_OVER_OPTIONS_PUSHED);
-	MakeButton(BUTTON_QUIT, Rect(18, 405, 156, 40), -1, IMAGE_OVER_QUIT_PUSHED);
-	ButtonWidget* aHintButton = MakeButton(BUTTON_HINT, Rect(64, 303, 53, 73), IMAGE_OVER_HINT, IMAGE_OVER_HINT);
+	CreateControlButton(BUTTON_NEW_GAME, Rect(18, 142, 156, 41), -1, IMAGE_OVER_NEWGAME_PUSHED);
+	mNormalModeButton = CreateControlButton(BUTTON_NORMAL_MODE, Rect(18, 185, 78, 31), -1, IMAGE_OVER_NORMAL_PUSHED);
+	mTimedModeButton = CreateControlButton(BUTTON_TIMED_MODE, Rect(96, 185, 78, 31), -1, IMAGE_OVER_TIMETRIAL_PUSHED);
+	CreateControlButton(BUTTON_OPTIONS, Rect(18, 241, 156, 41), -1, IMAGE_OVER_OPTIONS_PUSHED);
+	CreateControlButton(BUTTON_QUIT, Rect(18, 405, 156, 40), -1, IMAGE_OVER_QUIT_PUSHED);
+	ButtonWidget* aHintButton = CreateControlButton(BUTTON_HINT, Rect(64, 303, 53, 73), IMAGE_OVER_HINT, IMAGE_OVER_HINT);
 	aHintButton->mMouseInsets = Insets(-16, -8, -16, -8);
 #ifndef BEJ_NO_VARIANTS
 	// port(variant): the red orb left of the timer bar, the undo button of a board with undo (UndoOrb.h); it draws
@@ -1355,7 +1354,7 @@ void WinDMApp::TitleScreenIsFinished()
 	if ((mWatch != NULL) && mWatch->Start()) return; // port(variant): -replay=<file>: the replay instead of the two new games
 	SetTimedMode(false, true);
 	NewGame();
-	ConfirmLoadGame();
+	TryConfirmLoad();
 }
 
 // 0x4d82d2
@@ -1382,7 +1381,7 @@ void WinDMApp::LoadingThreadProc()
 
 	for (int i = NUM_TITLE_IMAGES; i < NUM_IMAGES; i++)
 	{
-		if (!LoadAppImage(i))
+		if (!DoLoadImage(i))
 			return;
 		mCompletedLoadingThreadTasks++;
 	}

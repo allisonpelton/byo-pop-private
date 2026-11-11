@@ -1,3 +1,5 @@
+// port: the texts read from the player's own executable (see GameText.h).
+
 #include "GameText.h"
 #include "SexyAppBase.h"
 #include "platform/VFS.h"
@@ -62,13 +64,13 @@ std::map<unsigned int, SexyString>& Texts()
 // FNV-1a over the text's bytes (make_gametext.py computes the same)
 uint32_t TextHash(const char* theText, size_t theLength)
 {
-	uint32_t h = 2166136261u;
+	uint32_t aHash = 2166136261u;
 	for (size_t i = 0; i < theLength; i++)
 	{
-		h ^= (uint8_t) theText[i];
-		h *= 16777619u;
+		aHash ^= (uint8_t) theText[i];
+		aHash *= 16777619u;
 	}
-	return h;
+	return aHash;
 }
 
 uint32_t ReadU32(const std::vector<uint8_t>& theData, size_t theOffset)
@@ -151,28 +153,28 @@ bool Sexy::LoadGameTexts()
 		{
 			for (int anId = 0; anId < NUM_LIP_DATA; anId++)
 			{
-				const LipDataEntry& e = gLipDataEntries[anId];
-				size_t anOffset = anImage.Offset(e.mVA);
-				if ((anOffset != 0) && (anOffset + 4 * e.mInts <= aData.size()) &&
-					(TextHash((const char*) &aData[anOffset], 4 * e.mInts) == e.mHash))
+				const LipDataEntry& aLipEntry = gLipDataEntries[anId];
+				size_t anOffset = anImage.Offset(aLipEntry.mVA);
+				if ((anOffset != 0) && (anOffset + 4 * aLipEntry.mInts <= aData.size()) &&
+					(TextHash((const char*) &aData[anOffset], 4 * aLipEntry.mInts) == aLipEntry.mHash))
 				{
-					std::vector<int>& aList = LipData()[e.mVA];
-					for (uint32_t i = 0; i < e.mInts; i++)
+					std::vector<int>& aList = LipData()[aLipEntry.mVA];
+					for (uint32_t i = 0; i < aLipEntry.mInts; i++)
 						aList.push_back((int) ReadU32(aData, anOffset + 4 * i));
 				}
 				else
 				{
-					SDL_Log("GameText: the mouth data at 0x%08x does not match this executable", e.mVA);
+					SDL_Log("GameText: the mouth data at 0x%08x does not match this executable", aLipEntry.mVA);
 				}
 			}
 			for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
 			{
-				const GameTextEntry& e = gGameTextEntries[anId];
-				size_t anOffset = anImage.Offset(e.mVA);
-				if ((anOffset != 0) && (anOffset + e.mLength < aData.size()) && (aData[anOffset + e.mLength] == 0) &&
-					(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
+				const GameTextEntry& aTextEntry = gGameTextEntries[anId];
+				size_t anOffset = anImage.Offset(aTextEntry.mVA);
+				if ((anOffset != 0) && (anOffset + aTextEntry.mLength < aData.size()) && (aData[anOffset + aTextEntry.mLength] == 0) &&
+					(TextHash((const char*) &aData[anOffset], aTextEntry.mLength) == aTextEntry.mHash))
 				{
-					aTexts[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+					aTexts[aTextEntry.mVA].assign((const char*) &aData[anOffset], aTextEntry.mLength);
 					aMatched++;
 				}
 				else

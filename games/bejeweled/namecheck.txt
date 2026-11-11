@@ -1,0 +1,7 @@
+# tools/namecheck.py's exceptions for Bejeweled (docs/CODE_STANDARDS.md). One rule a line, each with its reason.
+
+allow unknown UnknownKey -- the warning text for a rules key the game does not know: a name about unknown keys, not an unknown name
+short-ok Sha256.cpp a b c d e f h w -- SHA-256's working variables and message schedule as FIPS 180-4 names them
+allow offset Sha256 -- the algorithm's name, SHA-256, not an offset or address
+allow stage stage4 -- the oracle's mod folder mods/stage4/overflow, a name files carry
+allow stage stage0 -- the frozen baseline's folder build/baseline-stage0, a name files carry

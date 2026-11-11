@@ -1,0 +1,13 @@
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 326 93
+3340 click 248 309
+3380 shot e01_newbox
+3400 type Ann
+3420 key Return
+3500 shot e02_after_new
+3520 click 326 93
+3560 shot e03_list2
+3580 click 390 309
+3620 shot e04_delete_q

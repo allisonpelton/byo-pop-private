@@ -25,10 +25,10 @@ public:
 	int mTiles;                 // +0x94
 	int mExample = 0;           // +0x98 0 none; 1 and 4 the points (images 0x166, 0x167); 2 and 5 the kinds;
 	                            // 3, 6 and 7 the tiles that match
-	std::string mPointsText;    // +0x9c (0x5e)
-	std::string mTimeText;      // +0xa4 (0x67)
-	std::string mNames1[4];     // +0xac (0x69, by tabs)
-	std::string mNames2[4];     // +0xcc (0x5d, by tabs)
+	std::string mPointsText;    // +0x9c (STRING_PICTURE_FREE_TILE)
+	std::string mTimeText;      // +0xa4 (STRING_PICTURE_NOT_FREE)
+	std::string mNames1[4];     // +0xac (STRING_PICTURE_SEASON_NAME, by tabs)
+	std::string mNames2[4];     // +0xcc (STRING_PICTURE_FLOWER_NAME, by tabs)
 
 	// 0x40e950
 	explicit HelpExample(int theTiles) : mTiles(theTiles) {}
@@ -38,7 +38,7 @@ public:
 	void Draw() override;  // 0x40ebf0
 	void Init() override;  // 0x40eac0
 
-	// 0x40ef30: a tile of image 0x66's faces 0x2b..0x2f
+	// 0x40ef30: one of the magic tiles' faces (IMAGE_SPECIAL_FACES)
 	void DrawSpecial(int theX, int theY, int theKind);
 	// 0x40efa0: a blank tile with face theKind (1-based) of the tile set
 	void DrawTile(int theX, int theY, int theKind);
@@ -90,7 +90,7 @@ public:
 class HelpPicture : public jb::Object
 {
 public:
-	int mPicture = 0;  // +0x90 0 none, 1 image 0x164, 2 image 0x165
+	int mPicture = 0;  // +0x90 0 none, 1 IMAGE_HELP_MAP_PICTURE, 2 IMAGE_HELP_LAYOUT_PICTURE
 
 	// 0x40f400
 	HelpPicture() {}

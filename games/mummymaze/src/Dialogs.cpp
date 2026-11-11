@@ -1,5 +1,5 @@
 // The dialogs of Mummy Maze Deluxe that are classes of their own (WinMM.exe 0x427dc0 ...). The ones that only show
-// lines of text and buttons are MummyApp::DoMessage calls (MummyFlow.cpp).
+// lines of text and buttons are MMApp::DoMessage calls (MummyFlow.cpp).
 
 #include "Button2003.h"
 #include "Dialogs.h"
@@ -23,7 +23,7 @@ int Sexy::kNameEditColors[5][4] =
 };
 
 // 0x4282d0 (and 0x422150): the box of a name: the left end of the picture, a run of its middle and its right end
-void Sexy::DrawNameBox(Graphics* g, Image* theBox, int theX, int theY, int theWidth)
+void Sexy::DrawEditBox(Graphics* g, Image* theBox, int theX, int theY, int theWidth)
 {
 	g->DrawImage(theBox, theX, theY, Rect(0, 0, 0x20, 0x20));
 	g->DrawImage(theBox, theX + theWidth - 0x20, theY, Rect(0x40, 0, 0x20, 0x20));
@@ -35,7 +35,7 @@ void Sexy::DrawNameBox(Graphics* g, Image* theBox, int theX, int theY, int theWi
 }
 
 // 0x427dc0
-RecordScoreDialog::RecordScoreDialog(MummyApp* theApp, const SexyString& theLines) :
+RecordScoreDialog::RecordScoreDialog(MMApp* theApp, const SexyString& theLines) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_RECORD_SCORE, true, GT(0x00494548),
 		theLines, "", BUTTONS_OK_CANCEL),
 	mApp(theApp)
@@ -59,6 +59,7 @@ RecordScoreDialog::RecordScoreDialog(MummyApp* theApp, const SexyString& theLine
 #endif
 }
 
+// 0x428010 (its deleting form 0x427ff0)
 RecordScoreDialog::~RecordScoreDialog()
 {
 	delete mNameEdit;
@@ -98,7 +99,7 @@ int RecordScoreDialog::GetPreferredHeight(int theWidth)
 void RecordScoreDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
-	DrawNameBox(g, mApp->mImages[IMAGE_EDITBOX], (mNameEdit->mX - mX) - 4, (mNameEdit->mY - mY) - 4, mNameEdit->mWidth + 8);
+	DrawEditBox(g, mApp->mImages[IMAGE_EDITBOX], (mNameEdit->mX - mX) - 4, (mNameEdit->mY - mY) - 4, mNameEdit->mWidth + 8);
 	g->SetFont(mApp->mHeaderFont);
 	g->SetColor(Color(0xa4, 0x2c, 0));
 	g->DrawString(GT(0x004953ec), mNameEdit->mX - mX, (mNameEdit->mY - mY) - 0x13);

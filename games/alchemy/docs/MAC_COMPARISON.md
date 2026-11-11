@@ -87,7 +87,7 @@ Windows exe makes a link widget instead (`CLICK_HERE_TO_PLAY_NEXT_BOARD`); the p
 screen by screen. The registration and online parts (`RegisterDialog`, `InternetScoreDialog`, `UpdateCheckDialog`, `DoRegister*`,
 `DoPregameNag`, `DoTimeTrialLimit`, `DoWebsiteInform`, `UploadScore`, `CheckForUpdates`, `RegisterRefused`, `Registered`,
 `ScoreUploaded`, the browser dialogs and `URLOpen*`) are the unregistered and online game that the port leaves out
-(`GAME_NOTES.md`, section 5). `DoColorDepthExplination` is the colour-depth question, which the port has (`DIALOG_COLOR_DEPTH`).
+(`GAME_NOTES.md`, section 5). `DoColorDepthExplination` is the colour-depth question, which the port had until 2026-11-09 and leaves out now (`GAME_NOTES.md`, section 5).
 
 ## Faults found and fixed
 
@@ -95,7 +95,10 @@ The names showed no behaviour fault of the port: no function the Windows exe has
 port's class does not, and no constant to correct. The changes this comparison made to the repository are in the notes:
 `GAME_NOTES.md` says what `mTrialPause` is. Naming and structure corrections wait for the readability pass: the seven class names
 above, `HasSavedGame` and `DeleteSaveGame` into `Board`, `ShowMessage` into the app as `GiveHelp`, `DayKey` into
-`HighScoreWidget`, and `mTrialPause` renamed for what it does.
+`HighScoreWidget`, and `mTrialPause` renamed for what it does. That pass made them on 2026-11-11 (`GAME_NOTES.md`, "The
+readability pass"); this report keeps the names the port had when it was written. The pass also corrects one pairing above:
+`tools/macmatch.py`, which did not exist when this was written, pairs the Mac's `ClearBoard` with 0x406209 (the port's `GameWon`
+then) by its calls, which leaves `ResetBoard` for 0x4017dd (`ClearGrid`), and `CheckWin` is 0x4062e5 alone.
 
 ## Lessons for the next decompilation
 

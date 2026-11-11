@@ -37,21 +37,21 @@ public:
 	int mPanFromY = 0;                 // +0x160
 	CurvedVal mPan;                    // +0x168: 0 at mPanFrom, 1 at mPan
 	WinTwistApp* mApp;                 // +0x1d8
-	float mUnknown1DC = 0;             // +0x1dc: rises by 0.01 per update to 1 (not yet read)
+	float mRiseIn = 0;                 // +0x1dc: rises by 0.01 per update to 1 (never read)
 	int mState = 0;                    // +0x1e0: 2 the menu, 3 a game is starting
 	int mGameMode = -1;                // +0x1e4: the game to start (-1: the last one)
-	int mUnknown1E8 = 0;               // +0x1e8
+	int mPlayCount = 0;                // +0x1e8: set to 0 by the constructor, never read
 	CurvedVal mStart;                  // +0x1f0: runs while the menu comes up and while a game starts
 	float mStartDelay = 0;             // +0x260: mStart waits until this falls to 0 (by 0.01 per update)
-	CurvedVal mUnknown268;             // +0x268
-	float mUnknown2D8 = 0.01f;         // +0x2d8
+	CurvedVal mSlideIn;                // +0x268: a curve nothing sets or reads
+	float mRiseStep = 0.01f;           // +0x2d8: 0.01, set by the constructor, never read
 	HighScoresPanel* mHighScoresPanel = nullptr;  // +0x2dc
 	HelpPanel* mHelpPanel = nullptr;   // +0x2e0
 	PlayButton* mPlayButton = nullptr; // +0x2e4
 	ProfilePanel* mProfilePanel = nullptr;  // +0x2e8
 	OptionsPanel* mOptionsPanel = nullptr;  // +0x2ec
 	int mProfileY = 0;                 // +0x2f0: the menu's y with the profiles on the screen
-	int mUnknown2F4 = 0;               // +0x2f4: the menu's height when it was last sized
+	int mSizedHeight = 0;              // +0x2f4: the menu's height when it was last sized
 	ColorCycle mColorCycles[4];        // +0x2f8: red, yellow, green and cyan, a quarter apart
 	float mGatesShut = 1.0f;           // +0x3c8: rises to 1 while the gates are shut, falls while they are open
 	float mNoBoard = 1.0f;             // +0x3cc: rises to 1 while there is no board, falls while there is
@@ -60,10 +60,10 @@ public:
 	int mPanel = PANEL_MAIN;           // +0x3d8
 	EndStats* mEndStats = nullptr;     // +0x3dc: the stats after a game
 	EffectsManager* mFXManager;        // +0x3e0: just behind the menu
-	SexyString mUnknown3E4;            // +0x3e4: the new high score's name
-	int mUnknown400 = 0;               // +0x400: its level
-	int mUnknown404 = 0;               // +0x404: its score
-	int mUnknown408 = -1;              // +0x408: the high score just made (-1: none)
+	SexyString mNewScoreName;          // +0x3e4: the new high score's name
+	int mNewScoreLevel = 0;            // +0x400: its level
+	int mNewScorePoints = 0;           // +0x404: its score
+	int mNewScorePlace = -1;           // +0x408: the high score just made (-1: none)
 	bool mPanning = false;             // +0x40c: the menu is not where its pan ends
 	CurvedVal mZoom;                   // +0x410: DrawAll's zoom (nothing sets it, so it stays at its start)
 	SexyTransform2D mZoomMatrix;       // +0x480: the zoom about the screen's middle, made while mZoom is between 0 and 1

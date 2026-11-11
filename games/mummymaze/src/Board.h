@@ -22,7 +22,7 @@
 namespace Sexy
 {
 
-class MummyApp;
+class MMApp;
 class Image;
 class MemoryImage;
 
@@ -91,7 +91,7 @@ struct UndoState
 };
 
 // 0x426e70: the explorer (a Widget in the original that the board draws; only its Update is used)
-struct Explorer
+struct Player
 {
 	int			mX, mY;             // +0x50 the cell (-1 or the size while outside the maze)
 	int			mTargetX, mTargetY; // +0x58, +0x5c
@@ -101,10 +101,10 @@ struct Explorer
 	bool		mIdle;              // +0x70 an idle animation is running
 	int			mIdleKind;          // +0x74
 	int			mIdleFrame;         // +0x78
-	MummyApp*	mApp;
+	MMApp*	mApp;
 	bool		mDirty;             // +0x18
 
-	Explorer(MummyApp* theApp, int theX, int theY, int theSize);    // 0x426e70
+	Player(MMApp* theApp, int theX, int theY, int theSize);    // 0x426e70
 	void		Update();                                           // 0x426f70
 };
 
@@ -125,18 +125,18 @@ struct Mummy
 	bool		mIdle;              // +0x88
 	int			mIdleKind;          // +0x8c
 	int			mIdleFrame;         // +0x90
-	MummyApp*	mApp;
+	MMApp*	mApp;
 	bool		mDirty;             // +0x18
 
-	Mummy(MummyApp* theApp, int theX, int theY, int theIndex);      // 0x421b40
+	Mummy(MMApp* theApp, int theX, int theY, int theIndex);      // 0x421b40
 	void		Update();                                           // 0x421bf0
-	void		StartIdle();                                        // 0x421cc0
+	void		DoIdle();                                        // 0x421cc0
 	void		ResetIdle();
-	void		OnArrived();                                        // 0x421d00
+	void		CheckGate();                                        // 0x421d00
 };
 
 // 0x429120: the scorpion
-struct Scorpion
+struct Scorp
 {
 	int			mX, mY;             // +0x50
 	int			mFromX, mFromY;     // +0x58, +0x5c
@@ -146,36 +146,35 @@ struct Scorpion
 	bool		mStinging;          // +0x70
 	int			mStingFrame;        // +0x74
 	bool		mAlive;             // +0x78
-	MummyApp*	mApp;
+	MMApp*	mApp;
 
-	Scorpion(MummyApp* theApp, int theX, int theY);                 // 0x429120
-	void		OnArrived();                                        // 0x429170
+	Scorp(MMApp* theApp, int theX, int theY);                 // 0x429120
+	void		CheckGate();                                        // 0x429170
 };
 
 class Board : public Widget, public ButtonListener
 {
 public:
-	MummyApp*			mApp;                   // +0x58
+	MMApp*			mApp;                   // +0x58
 	int					mSize;                  // +0x50 6, 8 or 10
 	int					mCellSize;              // +0x54
 	int					mState;                 // +0x5c
-	Explorer*			mExplorer;              // +0x60
+	Player*			mExplorer;              // +0x60
 	Mummy*				mMummies[2];            // +0x64, +0x68
-	Scorpion*			mScorpion;              // +0x6c
+	Scorp*			mScorpion;              // +0x6c
 	MemoryImage*		mDarkImage;             // +0x70 the dark pyramid's light-masked picture
 	bool				mDarkImageValid;        // +0x74
-	DialogButton*		mPlayNowButton0;        // +0x78 id 0 (hidden)
+	DialogButton*		mTutorialStepButton;    // +0x78 id 0: the tutorial's own button (shown once the board has opened)
 	DialogButton*		mPlayNowButton;         // +0x7c id 2 ("PLAY NOW")
 	HyperlinkWidget*	mContinueLink;          // +0x80 id 3 (after a level)
 	int					mHover[NUM_HOVER][NUM_HOVER]; // +0x84 fade counters of the highlighted cells
 	DWORD				mStartTick;             // +0x26c
-	int					m270;                   // +0x270
-	int					m274;                   // +0x274
+	int					mSolveTick;             // +0x270 the update the solution was asked for (it starts 0x32 updates later)
+	int					mUnsolvableTick;        // +0x274 the update the "can no longer be solved" notice counts from
 	bool				mUnsolvable;            // +0x278 "MAZE CAN NO LONGER BE SOLVED"
-	int					mMouseX, mMouseY;       // +0x27c, +0x280
 	int					mTrapX[2], mTrapY[2];   // +0x284 .. +0x290 skull traps (99 = none)
-	int					mDeathTimer;            // +0x294 -1 = off
-	int					mDeathTimer2;           // +0x298
+	int					mTrapDeathTimer;        // +0x294 the death on a skull trap (-1 = off)
+	int					mStungTimer;            // +0x298 the death by the scorpion's sting (-1 = off)
 	int					mGateX, mGateY;         // +0x2a0 the gate is the barrier below this cell
 	int					mKeyX, mKeyY;           // +0x2a8
 	int					mMaze;                  // +0x2b0 the maze number in its file (1 .. 100)
@@ -197,21 +196,19 @@ public:
 	int					mTorchFrame;            // +0x4c4
 	int					mKeyFrame;              // +0x4c8
 	double				mFade;                  // +0x4d0 the board fades in (1 = all in)
-	double				mFade2;                 // +0x4d8
+	double				mRiseFade;              // +0x4d8 the figures rise out of the floor once the board is in (1 = up)
 	bool				mDark;                  // +0x4e0 dark pyramid
 	int					mTutorialStep;          // +0x4e4 index into kTutorialMove
-	int					mTutorialPart;          // +0x498 (only ever zeroed)
 	int					mExitStyle;             // +0x4e8
 	bool				mSolvable;              // +0x4ec the ankh is gold
 	int					mEndAlpha;              // +0x4f0
 	double				mEndFade;               // +0x4f8
 	MTRand				mRand;                  // +0x500
-	bool				mFlagEc0;               // +0xec0
-	bool				mFlagEc1;               // +0xec1
-	DWORD				mWalkTick;              // +0x4c0 (kept apart)
+	bool				mTipShown;              // +0xec0 a tip has come up for this board (or it is the tutorial's): no further tip
+	bool				mIntroPlaying;          // +0xec1 the board's opening (the tomb slides, the howl at update 0xa5) has not ended
 
 public:
-	Board(MummyApp* theApp);
+	Board(MMApp* theApp);
 	virtual ~Board();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
@@ -229,62 +226,62 @@ public:
 	using ButtonListener::ButtonDepress;
 
 	// level (BoardLevel.cpp)
-	void				LoadMaze();                     // 0x40e1d0
-	void				SetupEnding();                  // 0x40f2f0
-	void				SetupTutorial(int thePart);     // 0x40f520
-	void				StartLevel();                   // 0x404770
-	void				Lose();                         // 0x404a30
-	void				PushUndo();                     // 0x404a50
-	void				Undo();                         // 0x404be0
-	void				Retry();                        // 0x404ef0
-	void				ClearUndo();                    // 0x404dd0
-	void				ClearVisited();                 // 0x404e30
-	void				ClearSolution();                // 0x404e90
-	void				Solve();                        // 0x4050b0
+	void				LoadMap();                     // 0x40e1d0
+	void				LoadTreasureMap();                  // 0x40f2f0
+	void				LoadTutorialMap(int thePart);     // 0x40f520
+	void				NewGame();                   // 0x404770
+	void				DoGameOver();                         // 0x404a30
+	void				DoNewTurn();                     // 0x404a50
+	void				UndoMove();                         // 0x404be0
+	void				ResetMaze();                        // 0x404ef0
+	void				ClearMoves();                    // 0x404dd0
+	void				ClearCheckedList();                 // 0x404e30
+	void				ClearSolutionList();                // 0x404e90
+	void				DoSolution();                        // 0x4050b0
 	bool				FindWay(std::vector<ChaseState>& thePath);   // port: the same search from where the explorer stands now
 	void				CheckSolvable(bool thePlaySound); // 0x411640
-	void				SolveRec(const ChaseState& theFrom, std::vector<ChaseState>& thePath, int theDX, int theDY, bool theRecord); // 0x405580 / 0x411a90
+	void				DoSolutionHelper(const ChaseState& theFrom, std::vector<ChaseState>& thePath, int theDX, int theDY, bool theRecord); // 0x405580 / 0x411a90
 	void				StepScorpion(ChaseState& s);
 	void				StepMummy(ChaseState& s, int theIndex);
-	void				ToggleGate();                   // 0x40e0e0
+	void				FlipGate();                   // 0x40e0e0
 	void				KeyStep(int theX, int theY);    // 0x429170
 	ChaseState			GetChaseState();
 
 	// logic (BoardLogic.cpp)
 	bool				CanMove(int x1, int y1, int x2, int y2, bool theOccupied, bool theGateClosed); // 0x4079c0
-	bool				CanExplorerMove(int x, int y, bool theOccupied);   // 0x407b50
-	void				ResetIdle();                    // 0x407960
-	void				ProcessClick();                 // 0x4065b0
+	bool				CanMove(int x, int y, bool theOccupied);   // 0x407b50
+	void				DoResetIdles();                    // 0x407960
+	void				DoProcessQueue();                 // 0x4065b0
 	void				UpdateExplorer();               // 0x406f10
 	void				UpdateMummies();                // 0x407cc0
-	void				UpdateScorpion();               // 0x4083e0
-	void				PlanMummies();                  // 0x410090
-	void				PlanScorpion();                 // 0x4103d0
-	void				AgeHover();                     // 0x410a80
-	void				ClearHover();                   // 0x410ab0
-	int					PixelX(int theX) { return mCellSize * theX + 0x36; }   // 0x410ad0
-	int					PixelY(int theY) { return mCellSize * theY + 0x50; }   // 0x410ae0
-	int					CellX(int thePixel) { return (thePixel - 0x36) / mCellSize; }  // 0x410af0
-	int					CellY(int thePixel) { return (thePixel - 0x50) / mCellSize; }  // 0x410b00
-	int					Pan(int theCell);               // 0x410b10
+	void				UpdateScorp();               // 0x4083e0
+	void				SetMummiesInMotion();                  // 0x410090
+	void				SetScorpInMotion();                 // 0x4103d0
+	void				UpdateArrows();                     // 0x410a80
+	void				ClearArrows();                   // 0x410ab0
+	int					GetXAt(int theX) { return mCellSize * theX + 0x36; }   // 0x410ad0
+	int					GetYAt(int theY) { return mCellSize * theY + 0x50; }   // 0x410ae0
+	int					GetColAt(int thePixel) { return (thePixel - 0x36) / mCellSize; }  // 0x410af0
+	int					GetRowAt(int thePixel) { return (thePixel - 0x50) / mCellSize; }  // 0x410b00
+	int					GetPanAt(int theCell);               // 0x410b10
 	void				MoveSound(int theCell);
-	bool				SaveClassic();                  // 0x410b70
-	static bool			DeleteClassicSave();            // 0x410dd0
+	bool				SaveGame();                  // 0x410b70
+	static bool			DeleteSavedGame();            // 0x410dd0
 
 	// drawing (BoardDraw.cpp)
-	void				DrawBoard(Graphics* g, bool theWithExplorer);   // 0x4095f0
-	void				DrawFront(Graphics* g);         // 0x40b2f0
+	void				DrawBoardStuff(Graphics* g, bool theWithExplorer);   // 0x4095f0
+	void				DrawMinimalBoardStuff(Graphics* g);         // 0x40b2f0
 	void				DrawNearWalls(Graphics* theClip, Graphics* theBlockGraphics = NULL);
 	void				DrawTrapBlock(Graphics* g, int x, int y);
-	void				DrawMummy(Graphics* g, int theIndex, bool theFull); // 0x40d130
+	void				DrawMummies(Graphics* g, int theIndex, bool theFull); // 0x40d130
 	void				DrawExplorer(Graphics* g);      // 0x40d910
-	void				DrawScorpion(Graphics* g);      // 0x40de00
+	void				DrawScorp(Graphics* g);      // 0x40de00
 	void				DrawDark(Graphics* g);          // 0x40cb70
-	void				DrawEnding(Graphics* g);        // 0x40c950
-	void				DrawMoveHint(int x1, int y1, int x2, int y2, Graphics* g);   // 0x410660
+	void				DrawTreasure(Graphics* g);        // 0x40c950
+	void				DrawArrow(int x1, int y1, int x2, int y2, Graphics* g);   // 0x410660
 	void				DrawTutorialArrow(int x, int y, Graphics* g);                // 0x410860
-	void				DrawSolving(int x, int y, int w, int h, Graphics* g);        // 0x408780
-	void				DrawTutorialText(int x, int y, int w, int h, Graphics* g);   // 0x408e50
+	void				DrawWaitDialog(int x, int y, int theWidth, int theHeight, Graphics* g);        // 0x408780
+	void				DrawTutorialDialog(int x, int y, int theWidth, int theHeight, Graphics* g);   // 0x408e50
 	void				DrawClipped(Graphics* g, Image* theImage, int theX, int theY, int theClipX, int theClipY, int theClipW, int theClipH);
 	int					SizeIndex() { return mSize == 8 ? 1 : (mSize == 10 ? 2 : 0); }
 };

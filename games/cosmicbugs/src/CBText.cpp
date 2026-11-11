@@ -25,7 +25,7 @@ namespace
 void SetScreenTarget(Font* theFont)
 {
 	Font_SetEscapes(theFont, 1);
-	Font_SetTarget(theFont, gScreenBits, gScreenPitch, &gBackBuffer.fmt, gBackBuffer.w, gBackBuffer.h);
+	Font_SetTarget(theFont, gScreenBits, gScreenPitch, &gBackBuffer.mFmt, gBackBuffer.mW, gBackBuffer.mH);
 	Font_SetPalette(theFont, nullptr);
 }
 
@@ -235,8 +235,8 @@ void Text_Draw(Text* theText)
 		return;
 	}
 	SetScreenTarget(theText->font);
-	theText->font->alpha = theText->alpha;
-	theText->font->align = theText->align;
+	theText->font->mAlpha = theText->alpha;
+	theText->font->mAlign = theText->align;
 	const char* aString = theText->text;
 	int aRect[4];
 	Font_DrawOutlined(theText->font, aRect, (int)theText->x, (int)theText->y, aString);

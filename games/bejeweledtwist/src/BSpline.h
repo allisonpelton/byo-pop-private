@@ -21,12 +21,11 @@ public:
 	float GetXPoint(float t) const { return GetPoint(t, mXCoef); }   // 0x6d76cb
 	float GetYPoint(float t) const { return GetPoint(t, mYCoef); }   // 0x6d76e2
 	// From t, the next point along the curve at least one unit away: x, y and the new t. False at the end.
-	bool GetNextPoint(float& x, float& y, float& t) const;           // 0x6d7811
 
 private:
 	float GetPoint(float t, const std::vector<float>& theCoef) const;  // 0x6d75fc
 	void CalculateArcLengths();                                       // 0x6d80b3
-	static void CalculateSplinePrv(const std::vector<float>& thePoints, std::vector<float>& theCoef);        // 0x6d81a0
+	static void CalculateSplinePrv(const std::vector<float>& thePoints, std::vector<float>& theCoef);        // 0x6d81a0, 0x6d814b: the spline's constructor, inline here
 	static void CalculateSplinePrvLinear(const std::vector<float>& thePoints, std::vector<float>& theCoef);  // 0x6d85d4
 };
 

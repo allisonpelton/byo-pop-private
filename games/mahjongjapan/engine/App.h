@@ -19,7 +19,6 @@ class AppBase
 {
 public:
 	std::string mCmdLine;      // +0x0c
-	std::string mClassName;    // +0x18
 	int mProductId;            // +0x20 the exe's string of the product's name (the registry key)
 	int mTitleId;              // +0x24 the exe's string of the window's title
 	bool mUseDefaults = false; // +0x28 the registry is not read
@@ -35,23 +34,16 @@ public:
 
 	// 0x4291b0: a DWORD of the registry, or theDefault
 	int RegGetInt(const char* theSection, const char* theName, int theDefault, bool theMachine = false);
-	// 0x429230
-	std::string RegGetString(const char* theSection, const char* theName, const char* theDefault,
-		bool theMachine = false);
 	// 0x429470: true only for 1
 	bool RegGetBool(const char* theSection, const char* theName, bool theDefault, bool theMachine = false);
 	// 0x429360
 	static bool RegSetInt(const char* theSection, const char* theName, int theValue);
-	// 0x4293c0: without a name the section is deleted, without a value the name
-	static bool RegSetString(const char* theSection, const char* theName, const char* theValue);
 	// 0x4294a0
 	static void RegSetBool(const char* theSection, const char* theName, bool theValue);
 	// 0x429800: the company, product and title names and the folders
 	void SetupNames();
 	// 0x429ac0: the product's key, the title's letters, digits and spaces
 	void MakeProductKey();
-	// 0x429b90: the number after a command line word (0 when there is none)
-	int GetCmdInt(const char* theName);
 	// 0x429ca0
 	bool HasCmdFlag(const char* theName);
 };
@@ -98,7 +90,9 @@ inline bool IsAccelerated() { return gHardwareAccel; }
 
 // 0x4249e0: the exe's folder; 0x429e20, 0x429e40: the data folders
 inline const std::string& GetExeFolder() { return gExeFolder; }
+// 0x4249f0 inlined here: the user folder's getter (it copies the string of 0x429e20)
 inline const std::string& GetUserFolder() { return gUserFolder; }
+// 0x424a10 inlined here: the shared folder's getter (it copies the string of 0x429e40)
 inline const std::string& GetCommonFolder() { return gCommonFolder; }
 
 } // namespace jb

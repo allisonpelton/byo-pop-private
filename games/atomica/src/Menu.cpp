@@ -40,7 +40,7 @@ namespace
 	}
 }
 
-// 0x4198e0
+// 0x4198e0 / 0x419760
 MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	mApp(theApp),
 	mDoor(0x12f),
@@ -57,11 +57,11 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	mRank(0),
 	mEntryShown(false)
 {
-	Sprite* aDoors = mApp->mSprites->Load("menudoors");
-	mDoorLeft = mApp->mSprites->SubSprite(aDoors, 0, 0, 0x12f, 0x1e0);
-	mDoorRight = mApp->mSprites->SubSprite(aDoors, 0x12f, 0, 0x151, 0x1e0);
+	mDoorSheet = mApp->mSprites->Load("menudoors");
+	mDoorLeft = mApp->mSprites->SubSprite(mDoorSheet, 0, 0, 0x12f, 0x1e0);
+	mDoorRight = mApp->mSprites->SubSprite(mDoorSheet, 0x12f, 0, 0x151, 0x1e0);
 	mPanel = mApp->mSprites->Load("menupanel");
-	mApp->mB3eac = false;
+	mApp->mMenuDoorsOpen = false;
 	mPanelY = mPanel->mHeight + 10;
 	mHasSave = mApp->HasSavedGame();
 
@@ -82,12 +82,12 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	{
 		mScore = aBoard->mScore;
 		mLevelReached = aBoard->mMeter.mMoleculesMade;
-		mTime = aBoard->mStat1c4;
-		mAtoms = aBoard->mStat1cc;
-		mMolecules = aBoard->mStat1d0;
-		mCombo = aBoard->mStat1d4;
-		mBonusMolecules = aBoard->mStat1d8;
-		mBonusUpgrades = aBoard->mStat1dc;
+		mTime = aBoard->mStatUpdates;
+		mAtoms = aBoard->mStatAtoms;
+		mMolecules = aBoard->mStatMolecules;
+		mCombo = aBoard->mStatBestCombo;
+		mBonusMolecules = aBoard->mStatBonusMolecules;
+		mBonusUpgrades = aBoard->mStatBonusUpgrades;
 	}
 	mRank = RankOfScore(mScore);
 	mApp->mMusicInterface->PlayMusic(1, theGameOver ? 0x29 : 0x1f, false);
@@ -110,8 +110,18 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	ShowPage(mGameOver);
 }
 
+// 0x4190b0
 MainMenu::~MainMenu()
 {
+	// 0x4190b0 / 0x41e690: the sheet, the doors and the panel are freed (the original's four frees; the sprite manager is gone when the
+	// app's destructor deletes a menu that is still up)
+	if (mApp->mSprites != NULL)
+	{
+		mApp->mSprites->Free(mDoorSheet);
+		mApp->mSprites->Free(mDoorLeft);
+		mApp->mSprites->Free(mDoorRight);
+		mApp->mSprites->Free(mPanel);
+	}
 	mApp->mMusicInterface->StopMusic(1);
 	mButtons.Reset();
 	Widget* aButton = mButtons.Next();
@@ -123,7 +133,7 @@ MainMenu::~MainMenu()
 	mButtons.Clear();
 }
 
-// the buttons of the main page or those of the end of a game
+// port: the buttons of the main page or those of the end of a game
 void MainMenu::ShowPage(bool theGameOver)
 {
 	mGameOver = theGameOver;
@@ -260,7 +270,7 @@ void MainMenu::Update()
 			if (mDoor >= 0x14a)
 			{
 				mDoor = 0x14a;
-				mApp->mB3eac = true;
+				mApp->mMenuDoorsOpen = true;
 			}
 		}
 	}
@@ -273,12 +283,13 @@ bool MainMenu::PanelShown() const
 	return mSlammed && !mClosing && !mLeaving && (mAlpha >= 0xff);
 }
 
+// port: whether the mouse is over a button of the menu
 bool MainMenu::Over(int theId) const
 {
 	return (mBtn[theId] != NULL) && mBtn[theId]->mIsOver;
 }
 
-// a button's field, brighter when the mouse is over it
+// port: a button's field, brighter when the mouse is over it
 void MainMenu::FillButton(Graphics* g, int theId)
 {
 	ButtonWidget* aButton = mBtn[theId];
@@ -582,9 +593,9 @@ HighScoresBox::HighScoresBox(AtomicaApp* theApp) :
 	mClosing(false),
 	mSpin(0)
 {
-	Sprite* aDoors = mApp->mSprites->Load("menudoors");
-	mDoorLeft = mApp->mSprites->SubSprite(aDoors, 0, 0, 0x12f, 0x1e0);
-	mDoorRight = mApp->mSprites->SubSprite(aDoors, 0x12f, 0, 0x151, 0x1e0);
+	mDoorSheet = mApp->mSprites->Load("menudoors");
+	mDoorLeft = mApp->mSprites->SubSprite(mDoorSheet, 0, 0, 0x12f, 0x1e0);
+	mDoorRight = mApp->mSprites->SubSprite(mDoorSheet, 0x12f, 0, 0x151, 0x1e0);
 	mPanel = mApp->mSprites->Load("menupanel");
 	mPanelY = mPanel->mHeight + 10;
 	mHasTransparencies = true;
@@ -594,12 +605,23 @@ HighScoresBox::HighScoresBox(AtomicaApp* theApp) :
 	mReturn->Resize(0xd9, 0x17c, 0xce, 0x25);
 }
 
+// 0x41e690
 HighScoresBox::~HighScoresBox()
 {
+	// 0x4190b0 / 0x41e690: the sheet, the doors and the panel are freed (the original's four frees; the sprite manager is gone when the
+	// app's destructor deletes a menu that is still up)
+	if (mApp->mSprites != NULL)
+	{
+		mApp->mSprites->Free(mDoorSheet);
+		mApp->mSprites->Free(mDoorLeft);
+		mApp->mSprites->Free(mDoorRight);
+		mApp->mSprites->Free(mPanel);
+	}
 	mApp->mHighScoresBox = NULL;
 	mApp->SafeDeleteWidget(mReturn);
 }
 
+// 0x41e960
 void HighScoresBox::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -607,6 +629,7 @@ void HighScoresBox::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddBaseModal(this);
 }
 
+// 0x41e9a0
 void HighScoresBox::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

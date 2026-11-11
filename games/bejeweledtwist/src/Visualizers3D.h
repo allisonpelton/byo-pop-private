@@ -134,7 +134,7 @@ public:
 		float mAngle = 0.0f;  // +8
 	};
 	struct Sprite {  // 0x14 bytes
-		float mX = 0.0f, mY = 0.0f, mVX = 0.0f, mVY = 0.0f, mUnknown = 0.0f;
+		float mX = 0.0f, mY = 0.0f, mVX = 0.0f, mVY = 0.0f;  // (+0x10: a fifth rand draw that nothing reads, left out)
 	};
 	int mCount = 0;                    // +0x24
 	Sprite mSprites[500];              // +0x28 (the original has a pointer to each)
@@ -179,8 +179,8 @@ public:
 	Ring* mLatestRing = nullptr;      // +0x68
 	float mPhase = 0.0f;              // +0x6c
 	float mPhaseStep = 0.0313f;       // +0x70 (0x3d03126f)
-	float mUnknown74 = 0.0f;          // +0x74
-	float mUnknown78 = 0.0f;          // +0x78
+	float mGrowthFactor = 0.0f;       // +0x74: adds to the 1 that multiplies the pulses' growth
+	float mDrawFactor = 0.0f;         // +0x78: the factor the pulses are drawn with
 	float mAngle = 0.0f;              // +0x7c
 	explicit Raptis_Pulse(WinTwistApp* theApp);  // 0x67973d
 	~Raptis_Pulse() override;                    // 0x67a011
@@ -377,9 +377,9 @@ public:
 		float mY = 0.0f;       // +0x04
 		float mVX = 0.0f;      // +0x08
 		float mVY = 0.0f;      // +0x0c
-		float mRand10 = 0.0f;  // +0x10: made by the constructor, never read
-		float mRand14 = 0.0f;  // +0x14: made by the constructor, never read
-		int mUnknown18 = 0;    // +0x18
+		float mThirdDraw = 0.0f;   // +0x10: the constructor's third RandSigned, kept for the draws' order; never read
+		float mFourthDraw = 0.0f;  // +0x14: its fourth, the same
+		int mFlipCount = 0;    // +0x18: 0, set by the constructor, never read
 		float mLife = 1.0f;    // +0x1c
 		int mCel = 0;          // +0x20: the cel of IMAGE_AZTEC_STRIP
 		int mAlpha = 0;        // +0x2c
@@ -417,7 +417,7 @@ public:
 		float mCenterY = 0.0f;     // +0x14
 		float mSpeed = 0.0f;       // +0x18
 		float mTurn = 1.0f;        // +0x1c
-		float mUnknown20 = 1.0f;   // +0x20
+		float mSplitScale = 1.0f;  // +0x20: 1, copied to a split electron, never read
 		int mCountdown = 0;        // +0x24: updates to the next split
 		float mSign = 0.0f;        // +0x28
 		Electron();                // 0x67c581
@@ -447,8 +447,8 @@ public:
 class Cubes : public Visualizer {
 public:
 	int mCount = 0;            // +0x24
-	float mUnknown28 = 0.0f;   // +0x28: grows by 0.035 an update, never read
-	float mUnknown2C = 0.0f;   // +0x2c: grows by 0.025 an update, never read
+	float mFirstGrowth = 0.0f;  // +0x28: grows by 0.035 an update, never read
+	float mSecondGrowth = 0.0f;  // +0x2c: grows by 0.025 an update, never read
 	Image* mImage = nullptr;   // +0x30: IMAGE_BORDERED_SQUARE
 	explicit Cubes(WinTwistApp* theApp);  // 0x670fb6
 	~Cubes() override;                    // 0x671d55
@@ -501,8 +501,8 @@ public:
 	std::vector<Bar*> mBars;        // +0x24 (a std::list)
 	int mCount = 0;                 // +0x30
 	float mAngleA = 0.0f;           // +0x34: the middle gear's turn
-	int mUnknown38 = 1;             // +0x38: multiplied by 0 and added in Update
-	int mUnknown3C = 0;             // +0x3c: the first gear's last argument (0x672a71's), never read
+	int mAngleZero = 1;             // +0x38: multiplied by 0 and added to the turn in Update, so it changes nothing
+	int mFirstGearTurn = 0;         // +0x3c: the first gear last argument (0x672a71), never read
 	float mAngleB = 0.0f;           // +0x40: the turn of the gears round it
 	Image* mGear = nullptr;         // +0x44: IMAGE_GEAR
 	Image* mGearBlur = nullptr;     // +0x48: IMAGE_GEAR_BLUR
@@ -526,33 +526,33 @@ public:
 		float mX = 0.0f;          // +0x00
 		float mY = 0.0f;          // +0x04
 		float mZ = 0.0f;          // +0x08
-		float mUnknown0C = 0.0f;  // +0x0c
-		int mUnknown10 = 0;       // +0x10: the strip's extent (see MakeStripVertices), always 0
+		float mStripAngle = 0.0f;  // +0x0c: 0, set by the constructor, never read
+		int mExtent = 0;          // +0x10: the strip's extent (see MakeStripVertices), always 0
 		float mSize = 0.0f;       // +0x14: half the strip's height here
-		float mUnknown18 = 0.0f;  // +0x18: made 20.0 by MakeStripVertices, never read
+		float mStripSize = 0.0f;  // +0x18: made 20.0 by MakeStripVertices, never read
 		float mAngle = 0.0f;      // +0x1c: a speck's turn
 		unsigned char mFlag = 0;  // +0x20: the strip has no height here
 		int mScreenX = 0;         // +0x24
 		int mScreenY = 0;         // +0x28
-		int mUnknown2C = 0;       // +0x2c: the strip's direction across, with +0x30 (0 and 1)
-		int mUnknown30 = 0;       // +0x30
-		int mUnknown34 = 0;       // +0x34
-		int mUnknown38 = 0;       // +0x38
+		int mAcrossX = 0;         // +0x2c: the strip's direction across, with +0x30 (0 and 1)
+		int mAcrossY = 0;         // +0x30: and its y (1)
+		int mSpanX = 0;           // +0x34: the strip's width across in x, in pixels
+		int mSpanY = 0;           // +0x38: the strip's width across in y, in pixels
 		Point();                  // 0x67a79a (0x67a3d2)
 	};
 	int mCount = 0;               // +0x24
-	float mUnknown2C = 6.0f;      // +0x2c (the constructor's values for +0x2c to +0x58, mostly never read)
-	int mUnknown30 = 0xf;         // +0x30
-	int mUnknown34 = 0x28;        // +0x34: where the strip's extent starts to shrink it
-	int mUnknown38 = 300;         // +0x38
-	float mUnknown3C = 9.0f;      // +0x3c
-	float mUnknown40 = 4.0f;      // +0x40
-	float mUnknown44 = 20.0f;     // +0x44
-	float mUnknown48 = 6.0f;      // +0x48
-	float mUnknown4C = 40.0f;     // +0x4c
-	float mUnknown50 = 4.0f;      // +0x50
-	float mUnknown54 = 0.0f;      // +0x54
-	float mUnknown58 = 0.0f;      // +0x58
+	float mStripWidth = 6.0f;     // +0x2c: 6, set by the constructor, never read
+	int mStripLength = 0xf;       // +0x30: 15, set by the constructor, never read
+	int mShrinkStart = 0x28;      // +0x34: where the strip's extent starts to shrink it
+	int mShrinkEnd = 300;         // +0x38: 300, the extent at which the shrinking ends
+	float mShrinkAmount = 9.0f;   // +0x3c: 9, how much of the strip's width the shrinking takes
+	float mInnerWidth = 4.0f;     // +0x40: 4, set by the constructor, never read
+	float mOuterWidth = 20.0f;    // +0x44: 20, set by the constructor, never read
+	float mInnerLength = 6.0f;    // +0x48: 6, set by the constructor, never read
+	float mOuterLength = 40.0f;   // +0x4c: 40, set by the constructor, never read
+	float mMinSpeed = 4.0f;       // +0x50: 4, set by the constructor, never read
+	float mDriftX = 0.0f;         // +0x54: 0, set by the constructor, never read
+	float mDriftY = 0.0f;         // +0x58: 0, set by the constructor, never read
 	std::vector<Point*> mTrailPoints;  // +0x5c (a std::vector)
 	std::vector<Point*> mDust;         // +0x6c
 	Image* mPointy = nullptr;     // +0x7c: IMAGE_SLIPSTREAM_POINTY
@@ -785,8 +785,8 @@ public:
 		std::vector<ZenVertex> mFace;    // +0x00: the face at z of the depth
 		std::vector<ZenVertex> mBack;    // +0x10: the face turned over (z negated, u from the other side)
 		std::vector<ZenVertex> mWalls;   // +0x20: the rim (and the inner rim of a ring), faded by the curve
-		int mUnknown30 = 0;              // +0x30
-		Mat3 mUnknown34;                 // +0x34
+		int mSegmentCount = 0;           // +0x30: never set or read
+		Mat3 mFaceTurn;                  // +0x34: never set or read
 		void Build(float theInner, float theOuter, int theSegments, float theDepth, float theAspectX, float theAspectY);  // 0x691e55
 		void SetTexCoords(float theScaleX, float theScaleY, bool theFace, bool theBack);  // 0x68fad3
 		void Fade(float theAlpha);       // 0x68fb89
@@ -795,7 +795,7 @@ public:
 	// 0x288 bytes (constructor 0x691c08): six rings of increasing radius and the curve that fades them in
 	struct Scene {
 		VizZenWheels* mViz;       // +0x00
-		int mUnknown4 = 0;        // +0x04: set to the board's level less one by NewLevel and to 0 by it first
+		int mLevelIndex = 0;      // +0x04: set to the board's level less one by NewLevel and to 0 by it first
 		Ring mRings[6];           // +0x08
 		CurvedVal mCurve;         // +0x218
 		explicit Scene(VizZenWheels* theViz) : mViz(theViz) {}  // 0x691c08
@@ -826,7 +826,6 @@ public:
 	void Init() override;                        // 0x690ac9
 	void Update() override;                      // 0x6913fe
 	void Draw(Graphics* g) override;             // 0x691533
-	bool Slot4(char theChar) override;           // 0x690af4: b, c, e, g and r
 	void NextLook() override;                    // 0x690ad3
 	void NewLevel() override;                    // 0x68f572
 	// slot 8 (0x691da5): the name for the debug text (the port's Visualizer has no slot 8, so this is not an override)

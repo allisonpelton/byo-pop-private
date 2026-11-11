@@ -20,7 +20,9 @@
 #include "Bot.h"
 #include "Board.h"
 #include "Dialog.h"
+#include "Display.h"
 #include "Globals.h"
+#include "Image.h"
 #include "Layer.h"
 #include "LayoutSelect.h"
 #include "MahjongApp.h"
@@ -30,13 +32,22 @@
 #include "Object.h"
 #include "PlayLayer.h"
 #include "Players.h"
+#include "Sound.h"
 #include "User.h"
 
+#include "platform/Audio.h"
+
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <typeinfo>
 #include <vector>
+
+#ifdef _WIN32
+extern "C" __declspec(dllimport) int __stdcall K32GetProcessMemoryInfo(void* theProcess, void* theCounters, unsigned long theSize);
+extern "C" __declspec(dllimport) void* __stdcall GetCurrentProcess(void);
+#endif
 
 using namespace Sexy;
 using namespace mahjongchina;
@@ -85,6 +96,80 @@ void ReplyError(const std::string& theCommand, const std::string& theReason)
 	Reply("ERROR " + theCommand + ": " + theReason);
 }
 
+// port: memreport <file>: what the engine holds in memory, by image and by sound. An image keeps its
+// DIB (its own bytes only when it decoded them: a BMP resource's are the resource's) and, once drawn, the 32-bit copy.
+void WriteMemReport(const std::string& thePath)
+{
+	FILE* aFile = fopen(thePath.c_str(), "w");
+	if (aFile == nullptr)
+		return;
+	struct Row
+	{
+		int mId;
+		const jb::Image* mImage;
+		size_t mOwned, mPixels;
+	};
+	std::vector<Row> aRows;
+	size_t anOwned = 0, aPixels = 0;
+	auto aAdd = [&](int theId, const jb::Image* theImage)
+	{
+		size_t anOwn = theImage->mOwnsBits ? (size_t)theImage->mPitch * theImage->mHeight : 0;
+		size_t aPix = theImage->mPixels != nullptr ? (size_t)theImage->mPixelPitch * theImage->mHeight : 0;
+		aRows.push_back({theId, theImage, anOwn, aPix});
+		anOwned += anOwn;
+		aPixels += aPix;
+	};
+	jb::Display* aDisplay = jb::gManager->mDisplay;
+	for (const auto& anEntry : aDisplay->mImages)
+		if (anEntry.second != nullptr)
+			aAdd(anEntry.first, anEntry.second);
+	size_t aCached = aRows.size();
+	for (const jb::Image* anImage : aDisplay->mCreated)
+		aAdd(-1, anImage);
+	std::sort(aRows.begin(), aRows.end(), [](const Row& theA, const Row& theB) {
+		return theA.mOwned + theA.mPixels > theB.mOwned + theB.mPixels;
+	});
+	fprintf(aFile, "images: %zu cached by id, %zu made to draw into; decoded bits %.2f MB, 32-bit copies %.2f MB\n", aCached,
+		aRows.size() - aCached, anOwned / 1048576.0, aPixels / 1048576.0);
+	for (const Row& aRow : aRows)
+		fprintf(aFile, "  image %d: %dx%d, %d-bit, own bits %zu, 32-bit copy %zu\n", aRow.mId, aRow.mImage->mWidth,
+			aRow.mImage->mHeight, aRow.mImage->mBitCount, aRow.mOwned, aRow.mPixels);
+	size_t aSamples = 0;
+	size_t aCount = 0;
+	jb::Sound* aSound = jb::gManager->mSound;
+	if (aSound != nullptr)
+		for (const auto& anEntry : aSound->mSamples)
+			if (anEntry.second != nullptr && anEntry.second->mData)
+			{
+				aSamples += anEntry.second->mData->Bytes();
+				aCount++;
+				fprintf(aFile, "  sound %d: %zu frames, %d channels, %d Hz, %zu bytes\n", anEntry.first,
+					anEntry.second->mData->mFrames, anEntry.second->mData->mChannels, anEntry.second->mData->mRate,
+					anEntry.second->mData->Bytes());
+			}
+	fprintf(aFile, "sounds: %zu, %.2f MB\n", aCount, aSamples / 1048576.0);
+#ifdef _WIN32
+	struct ProcessCounters
+	{
+		unsigned long mSize, mPageFaults;
+		size_t mPeakWorkingSet, mWorkingSet, mQuotaPeakPaged, mQuotaPaged, mQuotaPeakNonPaged, mQuotaNonPaged, mPagefile,
+			mPeakPagefile, mPrivate;
+	} aCounters = {};
+	aCounters.mSize = sizeof(aCounters);
+	if (K32GetProcessMemoryInfo(GetCurrentProcess(), &aCounters, sizeof(aCounters)))
+		fprintf(aFile, "process: working set %.1f MB, private %.1f MB\n", aCounters.mWorkingSet / 1048576.0,
+			aCounters.mPrivate / 1048576.0);
+#endif
+	if (aSound != nullptr)
+	{
+		fprintf(aFile, "music loaded:");
+		for (const auto& anEntry : aSound->mMusics)
+			fprintf(aFile, " %d", anEntry.first);
+		fprintf(aFile, "\n");
+	}
+	fclose(aFile);
+}
+
 std::string Num(int theValue)
 {
 	return std::to_string(theValue);
@@ -100,52 +185,52 @@ struct LayerInfo
 LayerInfo InfoOf(jb::Layer* theLayer)
 {
 	std::string aType = typeid(*theLayer).name();
-	auto Is = [&](const char* theName) { return aType.find(theName) != std::string::npos; };
-	if (Is("NewPlayerBox"))
+	auto aTypeHas = [&](const char* theName) { return aType.find(theName) != std::string::npos; };
+	if (aTypeHas("NewPlayerBox"))
 		return {"newplayer", false};
-	if (Is("PlayerBox"))
+	if (aTypeHas("PlayerBox"))
 		return {"players", false};
-	if (Is("MainMenu"))
+	if (aTypeHas("MainMenu"))
 		return {"menu", true};
-	if (Is("LayoutSelect"))
+	if (aTypeHas("LayoutSelect"))
 		return {"classic list", true};
-	if (Is("MapLayer"))
+	if (aTypeHas("MapLayer"))
 		return {"map", true};
-	if (Is("PlayLayer"))
+	if (aTypeHas("PlayLayer"))
 		return {((PlayLayer*)theLayer)->mMode == 0 ? "escape" : "classic", true};
-	if (Is("EndLayer"))
+	if (aTypeHas("EndLayer"))
 		return {"ending", true};
-	if (Is("LevelDone"))
+	if (aTypeHas("LevelDone"))
 		return {"level done", true};
-	if (Is("Splash"))
+	if (aTypeHas("Splash"))
 		return {"splash", true};
-	if (Is("PauseLayer"))
+	if (aTypeHas("PauseLayer"))
 		return {"pause", false};
-	if (Is("TipBox"))
+	if (aTypeHas("TipBox"))
 		return {"tip", false};
-	if (Is("NoMovesBox"))
+	if (aTypeHas("NoMovesBox"))
 		return {"no moves", false};
-	if (Is("ResultBox"))
+	if (aTypeHas("ResultBox"))
 		return {"result", false};
-	if (Is("QuitNote"))
+	if (aTypeHas("QuitNote"))
 		return {"quit note", false};
-	if (Is("RestartBox"))
+	if (aTypeHas("RestartBox"))
 		return {"restart", false};
-	if (Is("FreeMenu") || Is("EscapeMenu"))
+	if (aTypeHas("FreeMenu") || aTypeHas("EscapeMenu"))
 		return {"game menu", false};
-	if (Is("OptionsNote"))
+	if (aTypeHas("OptionsNote"))
 		return {"options note", false};
-	if (Is("OptionsBox"))
+	if (aTypeHas("OptionsBox"))
 		return {"options", false};
-	if (Is("StyleBox"))
+	if (aTypeHas("StyleBox"))
 		return {"tile sets", false};
-	if (Is("BackgroundBox"))
+	if (aTypeHas("BackgroundBox"))
 		return {"backgrounds", false};
-	if (Is("HelpMenu") || Is("HelpFree") || Is("HelpEscape"))
+	if (aTypeHas("HelpMenu") || aTypeHas("HelpFree") || aTypeHas("HelpEscape"))
 		return {"help", false};
-	if (Is("ErrorBox"))
+	if (aTypeHas("ErrorBox"))
 		return {"error", false};
-	if (Is("YesNoBox"))
+	if (aTypeHas("YesNoBox"))
 		return {"question", false};
 	return {"dialog", false};
 }
@@ -165,17 +250,6 @@ jb::Layer* ScreenLayer()
 	for (size_t i = jb::gManager->mLayers.size(); 0 < i; i--)
 		if (InfoOf(jb::gManager->mLayers[i - 1]).mScreen)
 			return jb::gManager->mLayers[i - 1];
-	return nullptr;
-}
-
-template <class T>
-T* FindLayer()
-{
-	if (jb::gManager == nullptr)
-		return nullptr;
-	for (size_t i = jb::gManager->mLayers.size(); 0 < i; i--)
-		if (T* aLayer = dynamic_cast<T*>(jb::gManager->mLayers[i - 1]))
-			return aLayer;
 	return nullptr;
 }
 
@@ -199,8 +273,9 @@ bool BoardBlocked(Board* theBoard)
 {
 	if (theBoard == nullptr || !theBoard->mStarted)
 		return true;
-	return !((theBoard->mFlightCount < 1 || theBoard->mFlightKind == 0 || theBoard->mFlightKind == 6) &&
-		theBoard->mPhase == 0 && theBoard->mPhaseLeft < 1);
+	return !((theBoard->mFlightCount < 1 || theBoard->mFlightKind == FLIGHT_TAKEN ||
+			theBoard->mFlightKind == FLIGHT_UNDO) &&
+		theBoard->mPhase == PHASE_FLY_IN && theBoard->mPhaseLeft < 1);
 }
 
 struct Btn
@@ -457,7 +532,8 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	const std::string& aCommand = theCommand.mCommand;
 	const std::string& anArgs = theCommand.mArgs;
 	bool aKnown = aCommand == "state" || aCommand == "move" || aCommand == "goto" || aCommand == "level" ||
-		aCommand == "unlock" || aCommand == "set" || aCommand == "win" || aCommand == "lose" || aCommand == "seed";
+		aCommand == "unlock" || aCommand == "set" || aCommand == "win" || aCommand == "lose" || aCommand == "seed" ||
+		aCommand == "memreport";
 	if (!aKnown)
 		return false;
 	std::string aText = CommandText(theCommand);
@@ -469,6 +545,12 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (aCommand == "state")
 	{
 		Reply("STATE " + StateJson());
+		return true;
+	}
+	if (aCommand == "memreport")
+	{
+		WriteMemReport(anArgs);
+		ReplyOK(aText);
 		return true;
 	}
 	if (aCommand == "move")
@@ -528,7 +610,7 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		PlayLayer* aPlay = ActivePlay();
 		if (aPlay == nullptr || aPlay->mBoard == nullptr || TopLayer() != aPlay || aPlay->mBoard->mOver ||
-			aPlay->mBoard->mEscaping || !aPlay->mBoard->mStarted || aPlay->mBoard->mPhase != 0)
+			aPlay->mBoard->mEscaping || !aPlay->mBoard->mStarted || aPlay->mBoard->mPhase != PHASE_FLY_IN)
 		{
 			ReplyError(aText, "no game on the board to win");
 			return true;
@@ -606,11 +688,11 @@ bool MahjongApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				ReplyError(aText, "layout 1-" + Num(gLayoutCount));
 				return true;
 			}
-			Layout aTemp;
-			aTemp.Load(GetLayoutId(aLayout - 1));
+			Layout aLoaded;
+			aLoaded.Load(GetLayoutId(aLayout - 1));
 			gUser.mSelectedLayout = aLayout - 1;
 			PlayLayer* aNew = new PlayLayer(1);
-			aNew->SetLayout(aLayout - 1, false, GetLayoutId(aLayout - 1), aTemp.mName.c_str());
+			aNew->SetLayout(aLayout - 1, false, GetLayoutId(aLayout - 1), aLoaded.mName.c_str());
 			gPending.mKind = PENDING_BOARD;
 			gPending.mLevel = 0;
 			jb::gManager->SwitchTo(aNew);

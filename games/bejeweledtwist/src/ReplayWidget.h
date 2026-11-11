@@ -16,9 +16,9 @@ public:
 	enum { STATE_RISING = 0, STATE_SETTLING = 1, STATE_UP = 2, STATE_GOING = 3 };
 
 	bool mPopped = false;          // +0x14c: up (or on its way up) and bobbing
-	float mUnknown150 = 0;         // +0x150: counts down to the next round of +0x154 (nothing draws them)
-	float mUnknown154 = 0;         // +0x154
-	int mUnknown158 = 0;           // +0x158: 0 or 1, flips at each round
+	float mBobWait = 0;            // +0x150: counts down to the next round of +0x154 (nothing draws them)
+	float mBobPhase = 0;           // +0x154: runs up by 0.03 an update; past 1 it flips mBobSide (nothing draws it)
+	int mBobSide = 0;              // +0x158: 0 or 1, flips at each round
 	int mTargetY = 0;              // +0x15c
 	int mState = STATE_GOING;      // +0x160
 	Image* mPod;                   // +0x164: IMAGE_INGAMEUI_REPLAYPOD

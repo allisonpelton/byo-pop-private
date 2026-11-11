@@ -398,9 +398,9 @@ void VizZenWheels::Scene::Draw(Graphics* g)
 		GPUMatrix aMatrix = GPUMatrix::Identity();             // 0x44f5f0
 		Mat4Scale(aMatrix, 30.0f, 30.0f, 30.0f);               // 0x44f810
 		double aCount = (double)anApp->mUpdateCount;
-		Mat4RotateY(aMatrix, (float)((((double)mUnknown4 * 3.1415927410125732) + ((double)mUnknown4 * 3.1415927410125732)) / 10.0 +
+		Mat4RotateY(aMatrix, (float)((((double)mLevelIndex * 3.1415927410125732) + ((double)mLevelIndex * 3.1415927410125732)) / 10.0 +
 			aCount * 0.00019999999494757503));
-		Mat4RotateX(aMatrix, (float)((((double)mUnknown4 / 10.0) * 3.1415927410125732) / 3.0 + aCount * 9.999999747378752e-05));
+		Mat4RotateX(aMatrix, (float)((((double)mLevelIndex / 10.0) * 3.1415927410125732) / 3.0 + aCount * 9.999999747378752e-05));
 		Mat4RotateZ(aMatrix, (float)(aCount / 20000.0));
 		gD3DInterface->SetTextureLinearFilter(0, true);  // slot 0xc8
 		gD3DInterface->DrawObject(anApp->mOuterSpaceObject, aMatrix, Color::White, false);  // slot 0x10c
@@ -782,32 +782,6 @@ void VizZenWheels::Draw(Graphics* g)
 	g->PopState();  // 0x41fe00
 }
 
-// 0x690af4: b brings in the next look, c the next pair at once, e a new level, g toggles the scene, r new pictures
-bool VizZenWheels::Slot4(char theChar)
-{
-	if (theChar == 'b') {
-		NextLook();
-		return true;
-	}
-	if (theChar == 'c') {
-		PickImages(true, true);
-		return true;
-	}
-	if (theChar == 'e') {
-		NewLevel();
-		return true;
-	}
-	if (theChar == 'g') {
-		mShowScene = !mShowScene;
-		return true;
-	}
-	if (theChar == 'r') {
-		PickImages(true, false);
-		return true;
-	}
-	return false;
-}
-
 // 0x690ad3: a cascade: while held it is kept for the end of the hold, else the wheels go out at once and the pictures swap
 void VizZenWheels::NextLook()
 {
@@ -827,8 +801,8 @@ void VizZenWheels::NewLevel()
 	mPhase = 0.0f;
 	mState = 1;
 	if (mScene != nullptr) {
-		mScene->mUnknown4 = 0;
+		mScene->mLevelIndex = 0;
 		if (mApp->mBoard != nullptr)
-			mScene->mUnknown4 = mApp->mBoard->mUnknown158 - 1;
+			mScene->mLevelIndex = mApp->mBoard->mLevel - 1;
 	}
 }

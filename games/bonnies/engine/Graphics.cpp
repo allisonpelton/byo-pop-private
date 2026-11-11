@@ -911,7 +911,7 @@ void fillTriangle(float theX1, float theY1, float theX2, float theY2, float theX
 	}
 }
 
-// 0x424c00
+// 0x424c00 (0x41f5b0, a fill of 32-bit words, is inline in its opaque branch)
 void fillRect(float theX, float theY, float theW, float theH, uint32_t theColor)
 {
 	double aW = (double)gWidth;

@@ -16,25 +16,25 @@ namespace Sexy
 struct Piece
 {
 	int		mColor;          // +0x00 gem color 0..6 (Rand()%7); gemsheet row = mColor*104. port(variant): 0..11 (board.gemColors)
-	int		mPad04;          // +0x04 (padding before the double; raw garbage in original saves)
+	int		mPadBeforeX;     // +0x04 padding before mX (raw garbage in original saves)
 	double	mX;              // +0x08 screen x of the top-left corner; resting value GetColX(mCol)
 	double	mY;              // +0x10 screen y of the top-left corner; resting value GetRowY(mRow)
 	int		mCol;            // +0x18 grid column 0..7
 	int		mRow;            // +0x1c grid row 0..7 (0 = top)
 	int		mVelX;           // +0x20 game-over explosion x velocity (Rand()%7-3), added to mX each tick in state 5
-	int		mPad24;          // +0x24 (padding)
+	int		mPadBeforeVelY;  // +0x24 padding before mVelY
 	double	mVelY;           // +0x28 fall velocity: +0.18/tick in states 0 and 9, +0.15/tick in state 5
 	int		mSwapOffX;       // +0x30 (int)(mX - Board::mSwapCenterX) at swap start; negated for the swap back
 	int		mSwapOffY;       // +0x34 (int)(mY - Board::mSwapCenterY)
 	bool	mGlowing;        // +0x38 mouse-over glow active
-	char	mPad39[7];       // +0x39 (padding)
+	char	mPadBeforeGlowAlpha[7]; // +0x39 padding before mGlowAlpha
 	double	mGlowAlpha;      // +0x40 glow crossfade 0..1: -0.012/tick while glowing, +0.045/tick more while hovered (max 1.0)
 	int		mGlowFrame;      // +0x48 glow animation frame 0..14 (glow row src x = mGlowFrame*52 + sx)
 	bool	mDying;          // +0x4c matched / swallowed by the vortex: drawn from WinDMApp::mGemShrinkImages
-	char	mPad4D[3];       // +0x4d (padding)
+	char	mPadBeforeDyingFrame[3]; // +0x4d padding before mDyingFrame
 	int		mDyingFrame;     // +0x50 shrink frame 0..5; the piece is deleted when it would reach 6
 	int		mSpinFrame;      // +0x54 spin frame 0..14 (normal row src x = mSpinFrame*52 + 2); 0 = still
-	int		mSparkleCount;   // +0x58 hint sparkle countdown (DoHint sets 58; -1 every 5 ticks)
+	int		mSparkleCount;   // +0x58 hint sparkle countdown (TryShowHint sets 58; -1 every 5 ticks)
 	int		mSparkleFrame;   // +0x5c hint sparkle frame counter (+1 every 5 ticks while mSparkleCount > 0)
 	double	mHoleAngle;      // +0x60 vortex polar angle (radians) around the board center (406,219)
 	double	mHoleAngVel;     // +0x68 vortex angular velocity
@@ -44,7 +44,7 @@ struct Piece
 	// port(variant): not part of the raw save record
 	int		mKind;           // +0x78 special gem: 0 normal, 1 flame, 2 lightning (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8)
 	int		mKindFrame;      // +0x7c special gem overlay animation frame (cosmetic)
-	int		mArrow;          // +0x80 arrow gem: GameRules::ArrowDirection + 1, 0 for none (4.20, stage 18)
+	int		mArrow;          // +0x80 arrow gem: GameRules::ArrowDirection + 1, 0 for none (CODE_MODS_DESIGN.md 4.20)
 
 	Piece();                 // 0x4c9aec
 };

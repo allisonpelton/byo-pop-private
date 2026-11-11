@@ -21,6 +21,7 @@
 #include "DisplayGeometry.h"
 #include "Rect.h"
 #include "Color.h"
+#include "TriangleWrap.h"
 
 struct SDL_Window;
 struct SDL_Renderer;
@@ -56,7 +57,8 @@ public:
 	SDL_Window* mWindow;
 	SDL_Renderer* mRenderer;
 	DDImage* mScreenImage;
-	bool mIs3D;  // true when the renderer is hardware accelerated
+	bool mIs3D;  // true when the renderer is hardware accelerated and the game has not switched 3D off (SexyAppBase::Set3DAcclerated)
+	bool mCan3D;  // port: the renderer is hardware accelerated (what mIs3D is before a game switches 3D off)
 	bool mIsWindowed;
 	bool mVSync;
 	bool mPixelPerfect;  // nearest filtering for unscaled 1x blits when the screen is scaled (default true)
@@ -71,6 +73,12 @@ public:
 	// The screen texture everything draws into (logical resolution * mRenderScale).
 	SDL_Texture* mScreenTexture;
 	int mRenderScale;
+	// Texture addressing of DrawTrianglesTex's u and v (TEXTURE_ADDRESS_CLAMP, the default, or _WRAP: the picture repeats where a
+	// coordinate leaves 0..1), as Direct3D's stage state 0xd and 0xe; kept until set again (framework/TriangleWrap.h)
+	int mTextureAddressU;
+	int mTextureAddressV;
+	void SetTextureAddress(int theU, int theV) { mTextureAddressU = theU; mTextureAddressV = theV; }
+
 	int mForcedRenderScale;  // test hook (-renderscale=N): render at N times the logical size whatever the window size
 
 	// Blend modes (SDL_BlendMode values). With mPremultiplied, textures and vertex colours are
@@ -102,6 +110,10 @@ public:
 	// mBitsChangedCount changes, so a source whose pixels change without BitsChanged keeps an old copy.
 	bool mSoftwareStretch;
 
+	// With mSoftwareStretch: a fast stretch steps its column before it samples (texel (srcX * 65536 + (i + 1) * step) >> 16),
+	// as 1.5's DDImage::StretchBlt does (AstroPop's 0x4c68c0; Bejeweled Twist's 0x41a3e0 samples first). Off by default.
+	bool mFastStretchPreAdd;
+
 	// The software transforms (off by default; set with mSoftwareStretch by a game whose original drew its screen in
 	// software, as Bejeweled Twist does in 2D). The second piece of the software 2D path: DDImage's BltRotated,
 	// BltMatrix and BltTrianglesTex on the screen draw with MemoryImage's software code (the bilinear rotation of
@@ -116,10 +128,19 @@ public:
 	// do). The images are kept by size (GetTransformCopy); with them a frame of Twist costs about 2 ms more.
 	bool mSoftwareTransforms;
 
+	// Whether the screen keeps what the last frame drew (off by default: every frame starts from black). The original's software
+	// screen is one surface that persists from frame to frame, so a widget that draws nothing in a frame leaves what was there
+	// before (Bejeweled 2's 2D whirlpool opens over the main menu's last picture, which neither the menu nor the board draws any
+	// more). A game that draws its whole screen every frame gains nothing from it.
+	bool mKeepScreen;
+
 	// An image of at least theWidth x theHeight for the software transforms, its size rounded up to 16 pixels; the
 	// caller fills and draws only its top-left theWidth x theHeight. At most kTransformCacheSize are kept, the least
 	// recently used going first, so a texture is not made for every draw.
 	MemoryImage* GetTransformCopy(int theWidth, int theHeight);
+	// A stretched copy of theSrcRect at theWidth x theHeight (the software stretch, below); DDImage draws a stretch into
+	// a picture of its own through it too
+	MemoryImage* GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast);
 
 protected:
 	// The stretched copies: at most kStretchCacheSize and kCopyCacheBytes of pixels (the transform copies have their own
@@ -147,7 +168,6 @@ protected:
 	std::vector<TransformCopyEntry> mTransformCopies;
 	std::vector<StretchCopyEntry> mStretchCopies;
 	unsigned int mStretchUse;
-	MemoryImage* GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast);
 	void ClearStretchCopies();
 
 protected:
@@ -205,6 +225,9 @@ public:
 	virtual void BltRotated(Image* theImage, float theX, float theY, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, double theRot, float theRotCenterX, float theRotCenterY);
 	virtual void BltTransformed(Image* theImage, const Rect* theClipRect, const Color& theColor, int theDrawMode, const Rect& theSrcRect, const SexyMatrix3& theTransform, bool linearFilter, float theX, float theY, bool center);
 	virtual void DrawTrianglesTex(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend);
+	// What a display's DrawTrianglesTex starts with: with a wrap set, cuts the triangles at whole-number u and v and draws the
+	// pieces through DrawTrianglesTex clamped, and says true; with clamp both ways it does nothing and says false.
+	bool DrawTrianglesTexWrapped(Image* theTexture, const TriVertex theVertices[][3], int theNumTriangles, const Rect* theClipRect, const Color& theColor, int theDrawMode, float tx, float ty, bool blend);
 	virtual void ClearRect(const Rect& theRect);
 
 	// Reads the logical screen back into ARGB pixels (used for screenshots / GetBits on the screen).

@@ -35,29 +35,39 @@ Registry values (`PopCap\MummyMaze`): LastScoreName, LastInternetScoreName, Spee
 (+0x1042c), Ankh (+0x1042d, default 1), and the tip flags TwoMummyNag (+0x10e8c), GateNag, TrapNag, RedNag, ScorpNag, DarkNag,
 AnkhNag (+0x10e92), all default true.
 
-Maze files: `data\mazes\B-<n>.dat`, 101 files of 1506 bytes (bit-packed walls, see Board::LoadMaze, 0x40e1d0).
+Maze files: `data\mazes\B-<n>.dat`, 101 files of 1506 bytes (bit-packed walls, see Board::LoadMap, 0x40e1d0).
 
 ## Classes (constructor, vtable)
 
+The names are the Mac build's (`docs/CODE_STANDARDS.md`, rule 1); the port's classes carry them.
+
 | Class | Ctor | Vtable | Role |
 |---|---|---|---|
-| (dialog) | 0x401000 | 0x481338 | adventure slot chooser (new game, continue, delete, cancel) |
-| (screen) | 0x401ca0 | 0x481400 | victory screen |
+| AdventureDialog | 0x401000 | 0x481338 | the saved adventures: a slot to play, Delete Game, Cancel |
+| BeachWidget | 0x401ca0 | 0x481400 | the victory screen (a HighScoreWidget over the beach picture) |
 | Board | 0x403e80 | 0x4814d4 | the maze |
-| (dialog) | 0x412750 | 0x481620 | choose a game to delete |
-| (panel) | 0x412ea0 | 0x4816e4 | in-game buttons |
-| (screen) | 0x413c30 | 0x48179c | high scores |
-| | 0x414290 | 0x481860 | small |
-| (screen) | 0x4143a0 | 0x481910 | high scores table |
-| | 0x415e50 | 0x4819d0 | name entry dialog |
-| (menu) | 0x4165a0 | 0x481a94 | main menu |
-| (map) | 0x417010 | 0x482690 | world map |
-| MummyApp | 0x419bb0 | 0x482748 | application |
-| Explorer? | 0x426e70 | 0x482b40 | the explorer (positions itself on the nearest edge) |
+| DeleteDialog | 0x412750 | 0x481620 | choose a saved adventure to delete |
+| GameOverWidget | 0x412ea0 | 0x4816e4 | the scroll of a lost explorer with its four links (a TombstoneWidget) |
+| HighScoreDialog | 0x413c30 | 0x48179c | the high scores as a dialog of the options |
+| HighScoreSlide | 0x414290 | 0x481860 | the game-over parchment that comes down over the high scores |
+| HighScoreWidget | 0x4143a0 | 0x481910 | the high score table |
+| InternetScoreDialog | 0x415e50 | 0x4819d0 | the Internet score list (not in the port) |
+| IntroScreen | 0x4165a0 | 0x481a94 | the main menu (a TombstoneWidget) |
+| MapWidget | 0x417010 | 0x482690 | the adventure's world map |
+| MMApp | 0x419bb0 | 0x482748 | the application |
 | Mummy | 0x421b40 | 0x482828 | white and red mummies (id in +0x74) |
-| Scorpion | 0x429120 | 0x482e20 | scorpion |
-
-(The table is filled in as the classes are read.)
+| NameDialog | 0x421db0 | | the name of a new adventure |
+| NextLevelWidget | 0x422480 | | the level-complete screen |
+| OptionsDialog | 0x4250f0 | | the options |
+| Player | 0x426e70 | 0x482b40 | the explorer (positions itself on the nearest edge) |
+| PyramidButton | 0x427050 | | a pyramid of the world map |
+| RecordScoreDialog | 0x427dc0 | | the name for a high score |
+| RegisterDialog | 0x4284a0 | | registration (not in the port) |
+| Scorp | 0x429120 | 0x482e20 | the scorpion |
+| Sidebar | 0x4291d0 | | the panel left of the maze: the score, the buttons, the pyramid's map |
+| TitleScreen | 0x42a5f0 | | the title with its loading bar |
+| TombstoneWidget | 0x42b390 | | the scroll that the main menu and the lost panel come down on |
+| WarningDialog | 0x42b720 | | a tip |
 
 ## The board (0x403e80; Widget + ButtonListener at +0x4c; object 0xec8 bytes)
 
@@ -105,7 +115,7 @@ recursive count (0x418a30, 0x4189b0). A solved pyramid opens its neighbours (0x4
 Flow: the main menu's Adventure link sets the game mode to 1 and calls 0x41b800: with saved games it shows the slot dialog (id 10,
 five slots, a DELETE GAME button, Cancel), else the dialog for a new name (id 11). A slot loads through 0x41bcc0: no file means the name
 dialog; a file is read by the map's constructor (bad format: the main menu comes back with a message). A chamber that is won sets
-app+0x10408; the next map (made by LoadAdventure(slot, true)) counts it, saves, and goes straight on into the pyramid's next chamber,
+app+0x10408; the next map (made by DoMap(slot, true)) counts it, saves, and goes straight on into the pyramid's next chamber,
 or, when the pyramid is solved, shows its treasure (game mode 2, the ending board) whose link leads back to the map. Being caught
 makes a map from the saved file (so the time and the catches are those of the file), adds one catch and saves (0x41c300 saves
 whenever it removes the map). When the last pyramid is solved the victory screen comes and the saved progress starts again from zero.
@@ -141,12 +151,12 @@ command that is never given changes nothing and draws no random number. Each ans
 
 | Command | Does |
 |---|---|
-| `state` | one JSON line. Always: `screen` (loading, title, menu, map, board, complete, lost, highscores, victory, dialog), `mode` (classic, adventure, tutorial, classic-treasure, adventure-treasure), `pyramid`, `chamber`, `level` (pyramid x 15 + chamber + 1), `score`, `update`, `over`, `botmode`, `stepinput`; with a dialog up `dialog` (its id); in the adventure `deaths` and `seconds`; on the level-complete screen `levelSeconds`; with a board `moves` (the undo list), `timer` (the clock on the board) and `board` (`size`, `state`, `ready`, `maze`, `file`, `dark`, `red`, `gate`, `key`, `unsolvable`, `explorer`, `mummy0`, `mummy1`, `scorpion` as `[x, y, alive]`) |
+| `state` | one JSON line. Always: `screen` (loading, title, menu, map, board, complete, lost, highscores, victory, dialog), `mode` (classic, adventure, tutorial, classic-treasure, adventure-treasure), `pyramid`, `chamber`, `level` (pyramid x 15 + chamber + 1), `score`, `update`, `over`, `botmode`, `stepinput`; with a dialog up `dialog` (its id); in the adventure `deaths` and `seconds`; on the level-complete screen `levelSeconds`; with a board `moves` (the undo list), `timer` (the clock on the board) and `board` (`size`, `state`, `ready`, `maze`, `file`, `dark`, `red`, `gate`, `key`, `unsolvable`, `explorer`, `mummy0`, `mummy1`, `scorpion` as `[x, y, alive]`, `traps` (two cells, 99 for none), `death` (the trap death's timer and kind: 0 the block, 1 the pit) and `walls` (a hex digit a cell, row by row: 1 north, 2 south, 4 east, 8 west)) |
 | `goto <screen>` | from the title: `menu` (presses the play link). From the main menu: `classic`, `adventure`, `tutorial`, `options`, `highscores`, `credits`, each through the menu's own link or the dialog's own function |
 | `level <n>` | a classic game from chamber n (1 to 225) from the main menu, as `-autoplaystart` does it; on a classic board it restarts the board at that chamber |
 | `unlock all` | opens every pyramid on the adventure's map (nothing else in the game is locked) |
 | `set score <n>`, `set botmode classic\|adventure\|tutorial`, `set stepinput keys\|clicks` | the score; what `move` starts from the main menu; whether a step of the explorer is the arrow key or a click on the cell |
-| `win`, `lose` | `OnLevelComplete` (the explorer has left the maze), or `Board::Lose` (the game-over panel; `AdventureCaught` in the adventure) |
+| `win`, `lose` | `DoNextLevel` (the explorer has left the maze), or `Board::DoGameOver` (the game-over panel; `AdventureCaught` in the adventure) |
 | `seed <n>` | seeds the C library generator, the one every draw of the game comes from |
 | `move` | the bot's next move as `MOVE {"kind", "input": [...], "updates": n}`, where `input` is the real input in order, `{"click": {"x", "y"}}` or `{"key": "<DOM name>"}`, in game coordinates; `MOVE null` when there is none |
 
@@ -169,13 +179,13 @@ driver whose answer takes longer than a step holds the key through the next step
 What the original does that the fixes mod (`mods/fixes`, below) mends, and what it left alone.
 
 - **Made: the clock of a chamber.** The original times a chamber and the adventure's total by `GetTickCount` (the bonus of a classic
-  chamber, `LevelCompleteScreen`, 0x422480; the time kept by `Adventure.cpp`), while the clock on the board counts updates. A slow
+  chamber, `NextLevelWidget`, 0x422480; the time kept by `Adventure.cpp`), while the clock on the board counts updates. A slow
   moment or a long pause costs bonus points, and two runs of the same input do not score alike. `gameClock` counts the updates
-  (`MummyApp::GameTick`), as the bot's and `-fast` runs already do. In a play with no pause and no slow machine the seconds are the
+  (`MMApp::GameTick`), as the bot's and `-fast` runs already do. In a play with no pause and no slow machine the seconds are the
   same.
 - **Made: the key-stone fight in the search.** When mummy 1 meets mummy 0 the board lets mummy 0 win, and when the fight ends
-  `Mummy::OnArrived` (0x421d00) flips the gate if the winner stands on the key stone, whether it moved this turn or not and whether
-  the key was used earlier in the turn. The search of the Ankh and of Abandon Hope (`SolveRec`) flips it only for a winner that moved
+  `Mummy::CheckGate` (0x421d00) flips the gate if the winner stands on the key stone, whether it moved this turn or not and whether
+  the key was used earlier in the turn. The search of the Ankh and of Abandon Hope (`DoSolutionHelper`) flips it only for a winner that moved
   and the key not used yet. `solverFight` flips it in the other cases too. No bot game of the suite (1200 chambers) meets the case, so
   it is checked against the board's code and not by a played game.
 - **Not a fix: the Ankh works only on the 6 x 6 mazes** (`CheckSolvable` returns for size 7 and over). It is a design limit of 2002
@@ -221,8 +231,16 @@ removal leaves the baseline's logs and screenshots alone except where it is said
   true), which is the coordinator's to take out of `SexyApp`.
 - The pictures `register` and `registerrunes`, which only the registration screen used (`make_res.py` leaves them out, so the image
   ids after them moved up by two; `NUM_IMAGES` is 163).
-- Kept because the registered game has them: the `trialcircle` picture on the title, the "Internet scores" data buffer the classic
-  link starts, the tips.
+- Kept because the registered game has them: the "Internet scores" data buffer the classic link starts, the tips.
+- **What a registered copy shows on the title (taken out 2026-11-10; the user: "Mummy Maze still thanks you for registering").**
+  The original's title draws its registration state (0x42aaf0): the `trialcircle` picture, a medallion that reads "registered
+  version", at 0, 0x17f when registered, and one line over the loading bar, the thanks of a registered copy or the play count of a
+  trial. The first pass had kept both as the registered game's. Both are gone: `TitleScreen::Draw` draws neither, `make_res.py`
+  leaves the picture out (`NUM_IMAGES` is 162, the ids after it moved up by one), and the text table no longer lists the line.
+- **The text table lists only the texts the port names (2026-11-10).** `GameTextTable.inc` listed every string of the exe's text
+  region, 1208 of them, the registration screen's, the nags' and the Internet scores' among them. `make_gametext.py` now keeps
+  the addresses the port's sources name (`GT(0x...)` and the tables of addresses in the `.cpp` and `.inc` files): 238. A scan of
+  those 238 texts for registration, buying and web wording finds none.
 
 Loading was already as fast as the machine allows: the loading thread runs in one go after the first frame (the framework), it loads
 the 25 sounds and the fonts without waiting, and the title polls its progress every fourth update. There is no minimum time.
@@ -270,3 +288,369 @@ which is the busy machine: the processor time of a run follows what the other se
 from the loopback server and imports them into its test profile on every load, while the player on the site reads a folder it has
 already imported; the Browser pane is often hidden here, and a hidden pane paces its frames itself instead of the game. A figure from that page
 would not be the site's, so none is given; it needs a visible browser on the deployed site.
+
+### The performance pass (2026-11-09)
+
+**What the profile showed.** Timers around the steps of the start (taken out again) and a flat sampling profile of the port's start
+(`games/bejeweled/tools/profile/cpuprof.py`, under rundesk) put the time to the title at about 0.7 s on this machine: `SexyApp::Init`
+300 to 350 ms, all of it in `MakeWindow` (the SDL window and the D3D11 device, shared code); the pictures a good part of the rest (246
+GIFs, 90 to 106 ms in the stb GIF decoder, and the JPEGs, about 30 ms); the file reads about 30 ms; the sounds' decoding in the loading
+thread; the GPU driver 11 to 13 % of the samples. The profile of the scripted minute was not read for the game's own code: the minute
+uses about 2 s of processor time for 60 s of play, so there is little to win.
+
+**What changed (all in the game's own files).** The port decodes a picture when the game first asks for it, and a sound when it first
+plays it, where the original decodes all 246 pictures in `Init` and all 25 sounds in its loading thread (0x41dd60). `MMApp::mImages`
+is an `ImageTable`, a member whose `operator[]` returns the picture and decodes it through `DoLoadImage` (0x41db90) the first time; the
+sounds go through `MMApp::PlaySample`, which calls `LoadSoundOnce` first (`SexyAppBase::PlaySample` is the only way the game plays
+a sound, and the sound manager takes the volume per instance, so a late load changes nothing). The loading thread still builds the
+fonts and the light mask, and counts the sounds as done at once, so the title's bar and the update that ends loading are the same.
+Two deviations, neither visible in a shipped copy: a picture that is not in the game's folder is told at its first use (the same popup,
+then the end of the game) instead of at the start, and a sound that is not there stays silent where the original ended the game.
+The `DIALOG_RESET_TIPS` case (see "Coverage check") was also taken out. `tools/profile/perf.py` takes `PORT_EXE` (another exe to
+measure, the frozen baseline), and `tools/identical/soundcmp.py` reads the sound log's load lines in the form the framework now writes.
+
+**What stayed the same.** The sound log of the classic game under autoplay (`BYOPOP_SOUNDLOG`), the autoplay's log, and every suite
+of `tools/check.sh mummymaze` (the frozen baseline identical, against main's libjpeg-refrozen copy) match before and after.
+
+**Numbers.** Two rounds back to back on this machine, three runs each (the machine 0.26 to 0.47 busy, 2 other game processes), the
+time from the creation of the process to the title's play link:
+
+| | Frozen baseline | Lazy |
+|---|---|---|
+| Time to the title, round 1 | 0.86, 0.76, 0.75 s (median 0.76) | 0.46, 0.44, 0.42 s (median 0.44) |
+| Time to the title, round 2 | 0.70, 0.65, 0.66 s (median 0.66) | 0.38, 0.39, 0.38 s (median 0.38) |
+| Working set and private bytes at the title | 71.5 and 71.3 MB | 37.5 and 37.2 MB |
+| Peak private bytes over the scripted minute | 85.2 MB | 57.8 to 58.2 MB |
+| A whole game under `-fast` (12155 updates, seed 21, four runs each, alternating) | 0.72 to 1.31 s | 0.54 to 0.95 s |
+
+The processor time of the scripted minute did not change: on a quiet machine (0.27 busy) 2.12 s for the baseline against 2.20 s for the
+lazy build (99.8 and 100.0 updates a second); an earlier pair on a busier machine (0.30 and 0.49 busy) read 1.55 s and 3.22 s, which is the
+machine, as the 1.55 to 2.12 s of the baseline itself shows, and not a cost of the change (the pictures that a minute uses are
+decoded in its first updates, a small part of what the start no longer decodes). The pictures and sounds a game never meets are never decoded: memory
+at the title is half of what it was (the original's 58 to 60 MB of private bytes there, measured above, is now above the port's 37), and the
+peak of the minute is 27 MB lower.
+
+**Not done, and why.** The 300 to 350 ms in `MakeWindow` is the framework's (SDL's window and the D3D11 device): a spec to the
+coordinator. The stb GIF decoder is shared too; a faster GIF decode would speed every game's start and every first use here. The game's
+own code was not profiled further: a scripted minute uses about 2 s of processor time for 60 s of play. The web build's load was
+not measured (see above); it builds (`tools/check.sh build-web:mummymaze` passes) but was not run, so the lazy decode was not
+timed there.
+
+## Coverage check (2026-11-08)
+
+The whole coverage check of the game (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's functions
+ran, in 23 runs on the host (`tools/coverage/run_all.sh`, `gap_all.sh`, `gap.sh` and `prep.sh`; the hits in
+`build/coverage/mummymaze/hits/`), one game process at a time:
+
+- the ten phase-two scenarios (adv, c6, d1, d2, d3, dark, focus, hs1, s1, tut), on the virtual clock;
+- six runs of the port bot's games (`prep.sh` turns the port's log into the original's input): two classic games (classic21,
+  classic8; the second ends in Abandon Hope, with the name box and the table), the game that starts in pyramid 3 (tips), the
+  tutorial, an adventure, and the late game (a saved game in the last chamber of the last pyramid, played on to the victory
+  screen, the name box and the table);
+- six runs for what those miss (`tools/coverage/scenarios/` and `gap.sh`): the Ankh asked what it is; the options (the switches
+  and the Tutorial button's question); five saved adventures (the list, Delete Game, the free slot, the name box with Enter,
+  a name with a comma, a name in use, an accepted one, then the intro and the map); the classic game with Enter in the high
+  score's name box in place of its OK (rank); a saved adventure of a version the game does not know ("Bad Save Game File");
+  and a sweep along the options' sliders;
+- one run on the real clock (the sound code the virtual clock skips).
+
+The bots' runs end with the game exiting; the others end at origrun's timeout, having played their whole script.
+`games/mummymaze/coverage.txt` sets the game's own code as 0x401000 to 0x42d5b0 (the rest of the exe is the framework from
+0x42d5c0, the C runtime and the libraries): 411 functions, of which the runs reached 365.
+
+**Reached in the original with no counterpart in the port: 119 after the first ten runs, 139 after sixteen, 0 at the end.**
+
+- **Left out on purpose: 104 `none` lines in coverage.txt (102 when the check ended, and the two below), each with its reason.** What the compiler makes (the atexit
+  registrations of static objects, the deleting destructors, the std::string, std::list and std::map helpers it placed in the
+  game's range), the framework's `WinMain` start (0x412e40 is the port's `main`), the Dialog constructor at 0x42d5b0, the
+  debug-file streams, and overrides that only call their base class.
+- **Placed: 49 addresses.** Functions the port translates in another shape got their address in the comment above the
+  function that holds them: the destructors of the screens and dialogs (the port frees the same members), the fragments the
+  export split off a function (0x418390 is the twinkles' loop at the end of `MapWidget::Update`, 0x42a280 the end of
+  `Sidebar::Update`, 0x41ca70 the Tutorial button's question inside `OptionsDialog::ButtonDepress`), the two lists that
+  `DoSolutionHelper` looks through (0x404f60, 0x405010), the high score screen's rank, its children's add and remove and its resize
+  (0x402d40 is the victory screen's own, which also adds the link to the Internet score list, now gone), and the messages of
+  a bad name and a name in use (0x41f730, 0x41f8f0), which the port makes with `DoMessage` in place. The message of a bad
+  saved game (0x41f0d0) was inline in `MapWidget`'s constructor; it is now `MMApp::DoVersionError`, as in the original,
+  because the tool does not see that constructor as a definition (see the specs below).
+- **Missing logic found and translated: eight differences**, six found by reading the function a run reached and two by
+  comparing the pictures of the saved adventures' run:
+  1. A new adventure's name is refused only when it is empty or holds a comma (0x41ffb0), although the message says "letters
+     and numbers"; the port refused anything but letters and digits.
+  2. The test for a name in use (0x41fff0) compares exactly: `Bob` and `bob` can both be used. The port ignored case.
+  3. Enter in the new adventure's name box does nothing (its listener at 0x401c90 is empty); the port's answered OK. (The
+     high score's name box does answer OK, 0x428450; the run with Enter reached it.)
+  4. A press on a button of the game's panel (0x403430) makes no sound; the port played the click.
+  5. A press on any button of the options, saved adventures, delete-adventure and tip dialogs plays the click (0x426b50,
+     0x412d80), and the footer button's press reaches the app, which clicks too; the port clicked on release only.
+  6. The Delete Game button of the saved adventures' dialog is there only when all five slots hold a game (the flag at
+     0x401000 is cleared by each free slot); the port showed it when any did. The dialog is also 50 pixels shorter without it.
+  7. The header of the saved adventures', delete and new adventure dialogs is black (0x41b800, 0x41bb10, 0x41bcc0 set it); the
+     port gave them the brown of the other dialogs.
+  8. The Adventure Mode message that follows a new game's name has a fixed height, 0x15e (0x4201e0), and the congratulations
+     message of the map 0x136 (0x41bcc0); the port used the preferred height, 7 pixels more for the first (the second was
+     read from the export and has no picture).
+
+  The edits are small and in the port's own files. After them the saved adventures' run, played through both games, matches
+  picture for picture: six pairs match and four differ only faintly (in three, the top row of the header text of the name box, 236
+  pixels by at most 33 levels, which shotdiff does not count as visible; in the map, a twinkle at 12 levels).
+- **Open: none.**
+
+**Defined in the port, never reached: 64 after the first ten runs, 0 at the end.** The extra runs reached the rest (the
+sliders' dialog code, the saved adventures' and delete dialogs, the Ankh question, the bad save message, the tips' close,
+Enter in the high score box, the in-use message). The last was `OptionsDialog::SliderVal` (0x426a30): the sweep along the
+sliders pressed at every thumb but the slider's own mouse-down (0x43dbd0) never ran, because p2.py wrote its `down` without the
+point and origrun posts a bare `down` at (0, 0). With the point (`at N down x y`, after a `move` an update earlier) the press
+reaches the slider, and the sweep reached 0x43dbd0 and SliderVal. The port's function was also read against the export and
+matches it line by line (music, effects, and the speed in three steps with the slider put back on its step).
+
+**Candidates for taking out unneeded code (decided 2026-11-09).** No play of the original reaches these:
+
+- the `DIALOG_RESET_TIPS` case in `MMApp::ButtonDepress` (MummyFlow.cpp): the original has the question of a "Reset Tips"
+  button on the options dialog (0x41cdf0, called from 0x426b70) and no play of it reaches the question; the port has no such button.
+  **Taken out** with its `DIALOG_RESET_TIPS` id; 0x41cdf0 got a `none` line in coverage.txt.
+- the "No Windowed Mode" message (0x426b20 asks it, 0x41fab0 makes it): shown when the framework found no windowed display mode,
+  a flag the host never sets. The port never had either (nothing to take out); 0x41fab0 got a `none` line.
+
+**Never reached and not defined in the port: 46.** The larger ones are removed code: registration (0x41ec00 "Already
+Registered", 0x41ef10 "Registration Invalid", 0x4284a0 the key check, 0x428e70 the register page and the small functions around
+it, 0x428aa0 to 0x42a4b0), the Internet score list and the score upload (0x41f470 "Submit Score", 0x415e50, 0x41ac00 and the
+helpers it calls at 0x421030 to 0x421ac0), "High Score" at 0x41f290 (the message when the score file cannot be written, called
+from two functions the runs did run), the Reset Tips question and the No Windowed Mode message above. The rest are small (3 to
+279 bytes), with no caller in the export or only the removed code above; none sits on a path that a run reached.
+
+**Specs for the coordinator (tools/coverage.py and others).**
+
+- The tool does not see the 16 functions that sit in gaps between the export's entries, nor three addresses the port cites that
+  are not function entries (0x408567, 0x42beb0, 0x42beef); it needs support for extra function entries.
+- It does not read `.inc` files; the address of a function defined there is placed above its caller instead (0x403450,
+  above `DrawTutorialDialog`).
+- A definition whose initializer list runs over more than twelve lines is not seen as one (`is_definition` reads twelve lines
+  for the `{`): the comment above `MapWidget::MapWidget` counted as a mention.
+- Framework: the original's widget manager is the old one and gives no keyboard focus back when a modal dialog is removed;
+  after "Name Invalid" over the new adventure's name box the player must click the box again, in the port the box keeps its
+  focus. Not a difference of the game's own code; left as it is.
+- origrun: `key` posts a key-down and key-up only (no character message), so Enter and Backspace work in this game's edit
+  boxes (they take them from the key-down); `down` and `up` with no point post at (0, 0), which the sliders' first sweep took
+  for a press that never reached the slider (the tool's own, fixed in p2.py).
+
+**Tools of the check.** `tools/identical/p2.py` gained `down` and `up` (one edge of the left button, sent with its point); `p2.sh` takes
+`SAVES=<folder>` (saved adventures put into both games' user folders, for the saved adventures' run).
+
+**Baseline.** After the edits `tools/check.sh mummymaze` passes: every result as before and the frozen baseline identical, against
+main's baseline refrozen with the libjpeg decoder. (The session's earlier copy of the baseline was the one from before libjpeg and
+differed from the port in 19 shots by at most 3 levels, with or without these edits; the pictures the edits change, the adventure
+dialogs, are not in the frozen runs.)
+
+**What it cost.** The runs are short; most of the elapsed time went to waiting for room under the three-process limit. One
+Sonnet agent sorted the first 119 functions; this session read the export for each verdict it took over, for each of the
+differences above, and for the comparison of the saved adventures' pictures.
+
+## Code the port does not need (2026-11-11)
+
+The last finishing step before the readability pass (`docs/COORDINATION.md`). Registration and the buttons that lead out were
+already out (above), the coverage check had left one port function unreached and then none, and its two candidates were settled
+on 2026-11-09 (the Reset Tips answer taken out; the No Windowed Mode message never in the port). This survey looked for what no
+path of the game reaches or needs, by seven scans of `src/` (the test hooks apart, which the tests need):
+
+1. **Functions.** The 23 object files of the native build, every function they define (606) against every relocation in all of
+   them (`llvm-nm --defined-only`, `llvm-objdump -r`): 54 have no reference. 48 are the second forms of constructors and
+   destructors; the other six (`MapWidget::CropEnterButton`, `MapWidget::ActivatePyramid`, `MMApp::DoVersionError`,
+   `Board::DrawClipped`, `Board::KeyStep`, `HighScoreWidget::GetScorePlace`) have callers in their own file, inlined. None is dead.
+2. **Compiler warnings.** Every source compiled again with `-Wall -Wextra -Wunused -Wunused-member-function
+   -Wunused-private-field -Wunused-template -Wunused-macros -Wunreachable-code`: none in the game's files.
+3. **Fields.** Every member `m...` of the game's headers (259) by whether any code reads it: three, below.
+4. **Constants and declarations.** Every enumerator, `#define` and `k...` constant (88) by use, and every function a header
+   declares (177) by definition and call: all are used.
+5. **Dialogs.** Every dialog id by who opens it, in the port and in the original (the ids the original gives its two ways of
+   opening a dialog, the application's slots +0xa0 and +0xa8): one id nothing opens, below.
+6. **Pictures and sounds.** Every id of `Res.h` by use in the port, with the index arithmetic followed to its largest value,
+   and each picture no code names against the original (its slot in the array at the app's +0x10380): two, below. All 25 sounds
+   are played (14 of them by number: the steps of the mummies, the explorer and the scorpion).
+7. **Windows leftovers, switched-off code, comments.** `_WIN32` once (the search for the retail install folder, which a Windows
+   player of the unpacked game needs), no `#if 0`, no commented-out code, no `TODO`.
+
+| What | Why it is not needed | Verdict |
+|---|---|---|
+| `DIALOG_NEW_GAME` (dialog 0) and its answer in `MMApp::ButtonDepress` (the original's case 2000 of 0x4201e0) | nothing opens dialog 0, in the port or in the original: the original's game code opens ids 1 to 3, 5 to 9, 0xc, 0xe to 0x12, 0x14 to 0x18 and 0x1a to 0x1c | removed |
+| `Board::mMouseX`, `mMouseY` (+0x27c, +0x280) | `MouseMove` (0x40e150) stores the point and nothing reads it, in the port or in the original | removed; the comment above `MouseMove` says what the original stores |
+| `Board::mTutorialPart` | not a field of the original: its "+0x498" is `mTutorialStep` (+0x4e4) seen from the button listener's part of the board (0x4112b0); only ever zeroed | removed |
+| `Board::mWalkTick` | a second name for +0x4c0, which is `mMoveTick`; only ever zeroed | removed |
+| pictures `internethighscore`, `dbuttonclear` | drawn only by the Internet score list (0x416540, 0x415e50), which the port has not got | left out of the list (`make_res.py`); `NUM_IMAGES` is 160 |
+| the text table's 970 other entries | the port's code names 238 of the exe's 1208 strings (see "Registration", above) | left out of the table (`make_gametext.py`) |
+
+**Looked at and kept.** `light6`, `light8` and `light10`, which no code names and the first search of the original did not
+find, are the explorer's fourth idle animation: `kExplorerIdleCount` is 4 and the picture is `readmap6 + size + 3 * kind`. (They
+were taken out for an hour; the suite did not notice, since no photograph of it catches that animation. A script now follows
+each run of ids to its end: `readmap6 + 11` is `light10`, `whitedance6 + 23` is `redlisten10`, `mummy6 + 5` is `redmummy10` and
+`whitefight6 + 5` is `redfight10`, before and after.) `MMApp::mScoreBuffer`, what the Internet score list was sent, is
+written by the game and read by nothing but the saved game, whose format holds it (`BoardSave.cpp`). `Board::FindWay`, the
+solver from where the explorer stands, is the port's own and is called only by the test hooks (the `move` command and the
+autoplay bot); it sits in `BoardSolve.cpp` because it shares the search's private state. The registry values are the
+original's settings. `GameText` reading the texts from `WinMM.exe` is how the port gets them. `ModFixes.cpp` and
+`SiteProfiles.cpp` are the fixes mod and the site's hooks. `tools/fmodproxy` is a tool for the original's music, not part of the
+port.
+
+**Doubtful, for the user.**
+- *The test hooks in the shipped game.* `src/testhooks/` (about 1,300 lines: the test commands, `-autoplay` and the bot) is
+  compiled into the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`). Taking it out of the
+  shipped build would need a build switch that the tests then turn on; nothing in the game depends on it.
+- *Shared code.* The framework's `TimesPlayed` and `TimesExecuted` registry values and `mIsRegistered` are `SexyApp`'s; whether
+  the framework still needs them is the coordinator's.
+
+**Proof.** `tools/check.sh build mummymaze` after the removals: the build passes and the suite's baseline is identical (classic
+1500, tips 1730, the whole game 251975, the adventure, the tutorial, the saved game, the rerun). The suite photographs little,
+so the pictures were checked with a control: the game built from the commit before the removals and again with them, and the
+nine phase-two scenarios that need no saved game (the menu, the options and their dialogs, a classic game, the high scores, the
+tutorial, an adventure, the focus) run on both with the same script and seed under `-fast`. All 114 screenshots are byte for
+byte the same. A script reads `Res.h` and `Res.cpp` before and after and finds every id still at the same file name in the
+same order (162 against 160), and the four runs of ids ending where they ended.
+
+## The readability pass (2026-11-11)
+
+The rules are `docs/CODE_STANDARDS.md`; `python tools/namecheck.py games/mummymaze` checks the ones a tool can check and has no
+finding (105 when the pass began: 50 functions without an address or a port marker, 38 one-letter names, 17 uses of a stand-in
+name), with no exception file. Nothing the port does changed, but for the one difference from the original that the pass found
+(below).
+
+**Names from the Mac build.** The Mac build of the game (`re/mummymaze/mac`, git-ignored) still has its symbols.
+`tools/macmatch.py` pairs 232 of its 445 game functions with the PC export, and its symbols run in the PC's address order, class
+by class, which names the functions between two pairs as well. Sixteen classes take the Mac's names: `MummyApp` is `MMApp`,
+`WorldMap` `MapWidget`, `SidePanel` `Sidebar`, `Explorer` `Player`, `Scorpion` `Scorp`, `MainMenu` `IntroScreen`, `ScrollScreen`
+`TombstoneWidget`, `GamePanel` `GameOverWidget`, `GameOverScroll` `HighScoreSlide`, `HighScoreScreen` `HighScoreWidget`,
+`VictoryScreen` `BeachWidget`, `LevelCompleteScreen` `NextLevelWidget`, `TipDialog` `WarningDialog`, `NewAdventureDialog`
+`NameDialog`, `AdventureSlotsDialog` `AdventureDialog` and `DeleteAdventureDialog` `DeleteDialog`. The files keep their names
+(`MummyApp.cpp` holds `MMApp`). 79 functions follow:
+
+- Board: `StartLevel` is `NewGame`, `Lose` `DoGameOver`, `PushUndo` `DoNewTurn`, `Undo` `UndoMove`, `ClearUndo` `ClearMoves`,
+  `ClearVisited` `ClearCheckedList`, `ClearSolution` `ClearSolutionList`, `Retry` `ResetMaze`, `Solve` `DoSolution`, `SolveRec`
+  `DoSolutionHelper`, `ProcessClick` `DoProcessQueue`, `ResetIdle` `DoResetIdles`, `CanExplorerMove` `CanMove` (the Mac has the
+  two as overloads), `UpdateScorpion` `UpdateScorp`, `DrawSolving` `DrawWaitDialog`, `DrawTutorialText` `DrawTutorialDialog`,
+  `DrawBoard` `DrawBoardStuff`, `DrawFront` `DrawMinimalBoardStuff`, `DrawEnding` `DrawTreasure`, `DrawMummy` `DrawMummies`,
+  `DrawScorpion` `DrawScorp`, `ToggleGate` `FlipGate`, `LoadMaze` `LoadMap`, `SetupEnding` `LoadTreasureMap`, `SetupTutorial`
+  `LoadTutorialMap`, `PlanMummies` `SetMummiesInMotion`, `PlanScorpion` `SetScorpInMotion`, `DrawMoveHint` `DrawArrow`,
+  `AgeHover` `UpdateArrows`, `ClearHover` `ClearArrows`, `PixelX` `GetXAt`, `PixelY` `GetYAt`, `CellX` `GetColAt`, `CellY`
+  `GetRowAt`, `Pan` `GetPanAt`, `SaveClassic` `SaveGame` and `DeleteClassicSave` `DeleteSavedGame`.
+- MMApp: `ShowMainMenu` is `DoIntro`, `ShowGamePanel` `DoGameOver`, `RemoveGamePanel` `KillGameOver`, `OnLevelComplete`
+  `DoNextLevel`, `ShowTip` `DoWarning`, `RemoveLevelComplete` `KillNextLevel`, `ShowAdventureSlots` `DoAdventure`,
+  `ShowDeleteAdventure` `DoDeleteDialog`, `DeleteAdventure` `DeleteGame`, `LoadAdventure` `DoMap`, `RemoveWorldMap` `KillMap`,
+  `RemoveBoard` `KillBoard`, `RemoveGameOverScroll` `KillHighScoreSlide`, `StartTutorial` `DoTutorial`,
+  `StartClassicOrContinue` `TryConfirmLoad`, `LoadClassic` `LoadGame`, `ClassicSaveExists` `HasSavedGame`, `ShowQuitDialog`
+  `ConfirmQuit`, `ShowQuitToMainDialog` `ConfirmQuitToMain`, `LoadImage` `DoLoadImage`, `StartBoardScreen` `NewGame`,
+  `ShowVictory` `DoBeach`, `TitleDone` `LoadingCompleted`, `SetMusicOrder` `DoMusic`, `ShowOptions` `DoOptions`,
+  `ShowBadSaveMessage` `DoVersionError`, `ShowRecordScore` `DoRecordScoreDialog`, `ShowHighScoreDialog` `DoHighScoreDialog` and
+  `ShowAnkhHelp` `DoAnkhExplanation` (the Mac spells it "Explination").
+- MapWidget: `Open` is `ActivatePyramid`, `NextHop` `FindBest`, `Measure` `FindDists`, `Save` `SaveGame`, `Unlock`
+  `OpenNewPyramids`. HighScoreWidget: `Load` is `ReadFromFile`, `Save` `WriteToFile`, `RankOf` `GetScorePlace`, `AskName`
+  `ProcessScoreStuff`, `SetName` `NameEntered`. The pieces: `Mummy::StartIdle` is `DoIdle`, and `OnArrived` of all three is
+  `CheckGate`. `DrawNameBox` is `DrawEditBox`.
+
+The port's own helpers keep their names (`DoMessage`, `GetChaseState`, `DrawTrapBlock`, `DrawNearWalls`, `AdventureCaught`,
+`FindWay` and the like), each marked as the port's with the function it is a piece of. The Mac build's `AddAnim`, `FindAnim` and
+`GiveHelp` have no place in the PC's order: they are the Mac version's own. This file carries the new names throughout;
+`IDENTICAL_PLAY.md` and `README.md` keep the names of their time.
+
+**Fields.** Board's fields that were named by an offset or a number: `mFlagEc0` is `mTipShown`, `mFlagEc1` `mIntroPlaying`,
+`m270` `mSolveTick`, `m274` `mUnsolvableTick`, `mDeathTimer` `mTrapDeathTimer`, `mDeathTimer2` `mStungTimer`, `mFade2`
+`mRiseFade` and `mPlayNowButton0` `mTutorialStepButton`, each with a comment that says what it holds. (The fields nothing reads
+went in "Code the port does not need".)
+
+**One-letter names.** 38 variables used far from their declaration got words: `Mummy* m` is `aMummy`, `Player* e`
+`anExplorer`, `Scorp* s` `aScorpion`, `ChaseState s` `aState`, `UndoState u` `anUndo`, the test hooks' `Board* b` `aBoard`,
+`MMApp* a` `theApp` and `AutoplayState* s` `aState`; the two box-drawing functions' `w` and `h` are `theWidth` and
+`theHeight`.
+
+**Numbers.** The game modes compared as numbers 61 times (`aMode != 2 && aMode != 3`, `mGameMode > 3`) carry their names
+(`MODE_ADVENTURE_DONE`, `MODE_CLASSIC_DONE`, `MODE_TUTORIAL`, and the new `MODE_TUTORIAL_LAST`); the rectangle that 15 messages
+take is `MESSAGE_X`, `MESSAGE_Y`, `MESSAGE_WIDTH`; the hard-coded boards' outer walls are `WALL_WEST` and its three fellows.
+
+**Addresses and comments.** Every function names its address or says it is the port's. The addresses came from the exe's
+vtables where the port had one comment for several functions or none: the compiler keeps one copy of identical code, so
+`NameDialog`'s `AddedToManager` and `RemovedFromManager` are `RecordScoreDialog`'s (0x428090, 0x4280c0), and the press of the
+title, the side panel, the level-complete screen and the high scores is the world map's (0x418a90, a click). `GameLevels.cpp`,
+`GameText.cpp`, `ModFixes.cpp` and the two test-hook files carry the port marker in their first comment. Comments that held a
+date or a stage of the work say what the code does. The table of classes above is the Mac's, with every class's constructor.
+The coverage report with these addresses lists two port functions as never reached, 0x413f10 and its deleting form 0x413ef0:
+they are `HighScoreDialog`'s destructor, which no run reached because none closes that dialog; read against the export, it
+deletes the list at +0xc0 and ends in the dialog's own destructor, as the port's does.
+
+**What the pass found.** A comment in `NextLevelWidget::Draw` (0x422b00) said that the adventure's lines were "not ported yet",
+and they were not: the level-complete screen of the adventure left out the plural endings of its time line (the original adds
+the text at 0x4923f4 to "hour", "minute" and "second" unless the number is 1, and the punctuation at 0x494f54 after the
+minutes) and the two lines that follow, which tell of the chamber that comes next (a switch over the chamber: fourteen pairs of
+lines at 0x13f and 0x15d, and one line at 0x14e before the pyramid's last). Phase two had never photographed that screen: its
+adventure scenario takes a picture every 250 updates and the bot leaves the screen between two of them. The port draws all of
+it now; the text table has the 31 texts (269 entries).
+
+**Proof.** A rename is proved by the object code. The 23 object files were disassembled before and after each step
+(`llvm-objdump -d -r`): the instructions are the same, and all 5281 relocations name the same symbols once the renames are
+applied to the names before, so every call still goes to the function it went to. The variables', fields', constants' and
+comments' steps leave every object as it was, instructions and relocations, but the two the fix above changes
+(`Screens2.cpp`, and `GameText.cpp` for its longer table). No quoted string of the sources changed (603 before and after), so
+no log line or file format did. `tools/check.sh build mummymaze` passes with the baseline identical, the web build builds, and
+the trap's 150 frames still compare as they did. The fix was compared with the original: the adventure's level-complete screen
+after the first chamber, five photographs between updates 2500 and 2900, matches pixel for pixel, natively (5 of 5 against the
+original in Windows Sandbox) and in the web build under Node (5 of 5 against the native port).
+
+## Split fields (`tools/splitfields.py`, 2026-11-11)
+
+`python tools/splitfields.py mummymaze --export re/mummymaze/gh/decomp/_global` found no member declared twice under two
+names, none never written and none written and never read (the port's 29 classes have 280 members, 214 of them with an
+offset known from the export). Its last check lists the members whose offset an export function touches while the port's
+translation of that function never names the member: 33 members to begin with, 19 after the one fix below. Each was read in
+the export and in the port; the verdicts follow.
+
+**One real gap, fixed.** `0x4201e0` (`MMApp::ButtonDepress`), case 0x7d3, the answer to "Quit to Main": in an adventure
+it makes a map from the saved game (the constructor reads the file into the app's time and death count), adds the time played
+in this maze (`mElapsedBase / 100` plus the seconds since the board's start, the same sum as the other ways out of a maze)
+unless the chamber's result screen is up, which has added it already, and removes the map, whose removal writes the file. The
+port's case went to the main menu and saved nothing for an adventure, so the time played since the last save was lost. It
+now does what the original does (`AdventureLeave` for a chamber being played, a map made and removed for the result
+screen). Compared with the original in Windows Sandbox: an adventure of a new player, a chamber entered, 20 seconds played,
+Quit to Main answered with yes, the same slot opened again and the map's statistics read: both say "0 hours, 0 minutes, and 20
+seconds", and the four photographs (the dialog, the slots, the map, the statistics) match, apart from differences of a single
+level in a few dozen pixels that shotdiff counts as faint (`IDENTICAL_PLAY.md`, the readability pass's changes); the web
+build under Node matches the native port's four photographs exactly.
+
+**The world map's three buttons are the shift of a second base class, not a split.** `0x418aa0` is the map's button
+handler, a `ButtonListener` method: its `this` is the listener part of the object, 0x4c bytes above the widget's start. Its
++0x68 is the port's `mCurrent` (+0xb4), +0x6c `mTarget` (+0xb8), +0x74 `mProgress` (+0xc0, 15 chambers counts), +0xb0
+`mStep` (+0xfc), +0x18 `mEnterButton` (+0x64) and +0x2c the pyramid buttons (+0x78). The port's declarations of
+`mBackButton`, `mStatsButton` and `mChestButton` are right; the tool's offsets for the first two are the widget's own and
+find the listener's fields. The port's `MapWidget::ButtonDepress` was read case by case against the export (statistics,
+name, intro, enter, back, the pyramids' default case with its walk and its two returns) and has the same branches.
+
+**The trial counter, registration code left out.** The original's `0x4017f0` (a slot chosen: `AdventureDialog`),
+`0x4201e0` case 0x7de (Continue, when a classic game was saved: it reads the saved chamber and pyramid at +0x10424 and
++0x10428, which is why they are findings) and `0x424fa0` (the start of a game) each add one to the app's counter at +0x36c;
+`0x42a5f0`, `0x42b0d0` and `0x42bc50` compare it with 30 and the registered flag (+0x2f0): the trial's thirty plays and the
+nag. None of it is in the port (registration code is out, `Registration and the buttons that lead out of the game`), and the
+two saved fields are read only for it.
+
+**Read only, harmless.** The original's functions read these through another path than the port's translation does, and
+nothing they read changes what is drawn or played.
+
+- `Board::mSize` (+0x50) in `0x410660` and `0x410860`: the port reads it through `SizeIndex()`, an inline in `Board.h`
+  that the tool does not follow (6, 8 or 10 become 0, 1, 2, as the export's tests of 8 and 10 do).
+- `mApp` (+0x58) in `0x40cb70`, `0x40d130`, `0x40de00` and `0x410860`: the original's drawing reaches its pictures through
+  the app's table at +0x10380; the port reaches the same pictures through `IMG(...)`.
+- `mExplorer` (+0x60) and `mScorpion` (+0x6c) in `0x4050b0` and `0x411640`: both searches start from a record that the
+  original builds inline from the live pieces; the port's `Board::GetChaseState` (`BoardLevel.cpp`) builds it once for both.
+- `mPlayNowButton` (+0x7c) in `0x408780`: the +0x7c there is a call through the board's table (a virtual function), not the
+  member.
+- `mMaze` (+0x2b0) and `mFile` (+0x2b4) in `0x4050b0`: the original, when its search finds no way out, appends the two
+  numbers to `badmaps.dat`, the debug file that "Fix candidates" lists as not written (left out on purpose, with a comment in
+  `Board::DoSolution`).
+- `mFont1` (+0x10384) and `mHeaderFont` (+0x1038c) in `0x41bb10`, `0x41eab0` and `0x41b5b0`: the original reads the two
+  fonts where it makes a dialog and hands them to the constructor; the port's dialogs set the same two fonts as buttons,
+  header and lines font in their own constructors (`Dialogs.cpp`, `AdventureDialogs.cpp`).
+- `mImages` (+0x10380) in `0x41db90`: the picture loader indexes the original's array of pictures; in the port it is the
+  `ImageTable`, which decodes a picture at its first use (`MummyApp.h`).
+- `mElapsedBase` (+0x104a8) in `0x4201e0`: the sum above, now in `AdventureLeave`.
+- `WarningDialog::mWhich` (+0xcc): the dialog's height at 0x42bb80 and its box at 0x42bba0 to 0x42bc00 differ for "which" 7,
+  the reminder that the demo showed; the port does not make that dialog. The height of the others is 0x122 plus 0x14, 0x136,
+  as the port has it.
+
+`mTotalTime` and `mDeaths` stay in the tool's list for `0x4201e0`: its case 0x7db (a new adventure, writing the zeros) is
+`MMApp::CreateAdventure` and its case 0x7d3 is `AdventureLeave`, which are the port's own functions with their own
+comments. The finding is the tool's limit (it reads one translation per address); both are read and compared.

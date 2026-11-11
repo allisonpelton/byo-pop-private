@@ -26,6 +26,7 @@ using namespace Sexy;
 #include "GameLevels.h"
 #include "Tables.inc"
 
+// port: the saved classic game's file in the user folder
 static std::string ClassicSavePath()
 {
 	return "classic.sav";
@@ -100,7 +101,7 @@ bool WebStringOk(const std::string& theString)
 }
 
 // 0x410b70: not written for an adventure game or when the level is lost
-bool Board::SaveClassic()
+bool Board::SaveGame()
 {
 	if (mShowingSolution || mApp->mGameMode == MODE_ADVENTURE)
 		return false;
@@ -122,12 +123,13 @@ bool Board::SaveClassic()
 }
 
 // 0x410dd0
-bool Board::DeleteClassicSave()
+bool Board::DeleteSavedGame()
 {
 	return Platform::RemoveUserFile(ClassicSavePath());
 }
 
-bool MummyApp::ClassicSaveExists()
+// 0x41ca40
+bool MMApp::HasSavedGame()
 {
 	std::string aData;
 	return Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + ClassicSavePath(), &aData);
@@ -135,7 +137,7 @@ bool MummyApp::ClassicSaveExists()
 
 // 0x41c600: takes the saved game's numbers over; the next board loads that maze. A level that was done is not played again:
 // the game moves on to the next chamber (and pyramid) and picks its file and maze the way a new board would.
-bool MummyApp::LoadClassic()
+bool MMApp::LoadGame()
 {
 	std::string aData;
 	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + ClassicSavePath(), &aData))

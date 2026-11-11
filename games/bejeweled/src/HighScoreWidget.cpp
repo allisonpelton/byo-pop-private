@@ -30,7 +30,7 @@ static int GetHighScoreChecksum(const char* theName, int theLength, int theScore
 	return aChecksum;
 }
 
-// Reads one record (u16 length, name, int32 score, int32 checksum). Names longer than 255 bytes are
+// part of ReadFromFile (0x4ceec2): reads one record (u16 length, name, int32 score, int32 checksum). Names longer than 255 bytes are
 // cut to 255 and the rest stays in the stream, as in the original. Returns false at end of file.
 static bool ReadHighScoreRecord(FILE* theFile, SexyString* theName, int* theScore, bool* isValid)
 {
@@ -55,7 +55,7 @@ static bool ReadHighScoreRecord(FILE* theFile, SexyString* theName, int* theScor
 	return true;
 }
 
-// Writes one record in the format ReadHighScoreRecord reads
+// part of WriteToFile (0x4cf1b4): writes one record in the format ReadHighScoreRecord reads
 static void WriteHighScoreRecord(FILE* theFile, const SexyString& theName, int theScore)
 {
 	unsigned short aLength = (unsigned short) theName.length();
@@ -69,7 +69,7 @@ static void WriteHighScoreRecord(FILE* theFile, const SexyString& theName, int t
 // port(variant): the table a game's scores go to: hiscores.dat (scoped for gameplay mods), or for a seed the
 // player chose, practice on a known board, its own "-seeded" table
 // (games/bejeweled/docs/CODE_MODS_DESIGN.md 3.7, 4.10). Per-game seeds (rules, seeds.perGame) keep the
-// normal table. A replay's board (stage 3b, Options -> High Scores while watching) is not the player's game:
+// normal table. A replay's board (Options -> High Scores while watching) is not the player's game:
 // the player's table.
 static std::string HighScoreFileName(Board* theBoard)
 {
@@ -116,7 +116,7 @@ void HighScoreWidget::DrawScoreRow(Graphics* g, const SexyString& theName, int t
 }
 
 // 0x4ced59
-int HighScoreWidget::GetDayNumber()
+int HighScoreWidget::GetDayNum()
 {
 	time_t aTime = time(NULL);
 	tm* aLocalTime = localtime(&aTime);
@@ -124,7 +124,7 @@ int HighScoreWidget::GetDayNumber()
 }
 
 // 0x4ced82
-int HighScoreWidget::GetRank(int theMode, int theScore)
+int HighScoreWidget::GetScorePlace(int theMode, int theScore)
 {
 	// Ties do not place
 	int aRank = 0;
@@ -205,7 +205,7 @@ void HighScoreWidget::ButtonDepress(int theId)
 }
 
 // 0x4ceec2
-void HighScoreWidget::LoadHighScores()
+void HighScoreWidget::ReadFromFile()
 {
 	FILE* aFile = Platform::VFS::Get().Open(mFileName, "rb"); // port(variant): was GameConfig::ScopedFileName(HIGHSCORE_FILE_NAME)
 	if (aFile == NULL)
@@ -223,7 +223,7 @@ void HighScoreWidget::LoadHighScores()
 			break;
 
 		// Today's best only counts on the day it was saved
-		if ((aDay == GetDayNumber()) && (isValid))
+		if ((aDay == GetDayNum()) && (isValid))
 		{
 			mTodayNames[aMode] = aName;
 			mTodayScores[aMode] = aScore;
@@ -247,7 +247,7 @@ void HighScoreWidget::LoadHighScores()
 }
 
 // 0x4cf1b4
-void HighScoreWidget::SaveHighScores()
+void HighScoreWidget::WriteToFile()
 {
 	std::string aFileName = mFileName; // port(variant): was GameConfig::ScopedFileName(HIGHSCORE_FILE_NAME)
 	mApp->EraseFile(aFileName);
@@ -262,7 +262,7 @@ void HighScoreWidget::SaveHighScores()
 	for (int aMode = 0; aMode < NUM_HIGH_SCORE_MODES; aMode++)
 	{
 		// Always stamped with today, so an older "today" record becomes today's on the next load
-		int aDay = GetDayNumber();
+		int aDay = GetDayNum();
 		fwrite(&aDay, 4, 1, aFile);
 		WriteHighScoreRecord(aFile, mTodayNames[aMode], mTodayScores[aMode]);
 		for (int i = 0; i < NUM_HIGH_SCORES; i++)
@@ -274,7 +274,7 @@ void HighScoreWidget::SaveHighScores()
 }
 
 // 0x4cf4a7
-SexyString HighScoreWidget::GetOrdinalSuffix(int theNum)
+SexyString HighScoreWidget::GetOrderSuffix(int theNum)
 {
 	if ((theNum % 100) / 10 == 1)
 		return _S("th");
@@ -394,10 +394,10 @@ void HighScoreWidget::AddHighScore(const SexyString& theName)
 	if (theName.empty())
 		return;
 
-	// The board's mode here, the app's mode in DoCheckForHighScore (always equal)
+	// The board's mode here, the app's mode in ProcessScoreStuff (always equal)
 	int aMode = mApp->mBoard->mTimedMode ? 1 : 0;
 	int aScore = mApp->mBoard->mScore;
-	int aRank = GetRank(aMode, aScore);
+	int aRank = GetScorePlace(aMode, aScore);
 
 	if (aScore > mTodayScores[aMode])
 	{
@@ -416,7 +416,7 @@ void HighScoreWidget::AddHighScore(const SexyString& theName)
 		mScores[aMode][aRank - 1] = aScore;
 	}
 
-	SaveHighScores();
+	WriteToFile();
 }
 
 // 0x4d07cd
@@ -490,7 +490,7 @@ HighScoreWidget::HighScoreWidget(WinDMApp* theApp)
 	mScores[1][4] = 600;
 
 	mFileName = HighScoreFileName(mApp->mBoard); // port(variant): the table of the game on the board
-	LoadHighScores();
+	ReadFromFile();
 }
 
 // 0x4d0dad
@@ -501,16 +501,16 @@ HighScoreWidget::~HighScoreWidget()
 	delete mWatchReplayLink; // port(variant)
 	delete mStatsLink; // port(variant)
 	delete mStatsPage; // port(variant)
-	SaveHighScores();
+	WriteToFile();
 }
 
 // 0x4d0e4b
-void HighScoreWidget::DoCheckForHighScore()
+void HighScoreWidget::ProcessScoreStuff()
 {
 	int aScore = mApp->mBoard->mScore;
 	int aMode = mApp->mTimedMode ? 1 : 0;
 	bool isBestToday = aScore > mTodayScores[aMode];
-	int aRank = GetRank(aMode, aScore);
+	int aRank = GetScorePlace(aMode, aScore);
 
 	// port: always registered; the unregistered branch appended a "register to record your score"
 	// question to the same messages and showed ShowRegisterToRecordScoreDialog instead
@@ -518,16 +518,16 @@ void HighScoreWidget::DoCheckForHighScore()
 	if (isBestToday)
 	{
 		if (aRank > 0)
-			aMessage = _S("You got the highest score of\nthe day and ") + StrFormat("%d", aRank) + GetOrdinalSuffix(aRank) + _S(" place\nof all time!");
+			aMessage = _S("You got the highest score of\nthe day and ") + StrFormat("%d", aRank) + GetOrderSuffix(aRank) + _S(" place\nof all time!");
 		else
 			aMessage = _S("You got the highest score\nof the day!");
 	}
 	else if (aRank > 0)
-		aMessage = _S("You got ") + StrFormat("%d", aRank) + GetOrdinalSuffix(aRank) + _S(" place of all time!");
+		aMessage = _S("You got ") + StrFormat("%d", aRank) + GetOrderSuffix(aRank) + _S(" place of all time!");
 	else
 		return;
 
-	mApp->ShowRecordScoreDialog(aMessage);
+	mApp->DoRecordScoreDialog(aMessage);
 }
 
 // 0x4d1187
@@ -543,7 +543,7 @@ void HighScoreWidget::Update()
 		if (mSlideY >= 0)
 		{
 			mSlideY = 0;
-			DoCheckForHighScore();
+			ProcessScoreStuff();
 		}
 		MarkDirty();
 		mPlayAgainLink->Resize(265, mSlideY + 389, 286, 23);
@@ -587,5 +587,5 @@ void HighScoreWidget::CloseStats()
 // 0x4d11fd
 void HighScoreWidget::CheckForHighScore()
 {
-	DoCheckForHighScore();
+	ProcessScoreStuff();
 }

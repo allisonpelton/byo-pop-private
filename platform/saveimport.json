@@ -261,6 +261,57 @@
         { "from": "users/*/profile.dat", "to": "users/*/profile.dat", "what": "a player" },
         { "from": "users/*/savegame_*.dat", "to": "users/*/savegame_*.dat", "what": "a player's game in progress" }
       ]
+    },
+    "astropop": {
+      "folder": "AstroPop Deluxe",
+      "steam": "AstroPop Deluxe",
+      "note": "AstroPop keeps each player's file (users/data<n>.usr) in its game folder and a part of the player's settings in the registry under PopCap\\AstroPop\\Users; the game reads both, so both come over.",
+      "registry": {
+        "key": "PopCap\\AstroPop",
+        "hives": ["vs", "hklm", "hkcu"],
+        "sets": ["base", "app"],
+        "values": ["Users\\LastUser=sz", "Users\\LastUserNum=dword", "Users\\*\\13=sz", "Users\\*\\#=dword"]
+      },
+      "files": [
+        { "from": "users/data#.usr", "to": "users/data#.usr", "what": "a player" },
+        { "from": "users/datahs.usr", "to": "users/datahs.usr", "what": "the hall of fame" }
+      ]
+    },
+    "bejeweled2": {
+      "folder": "Bejeweled 2 Deluxe",
+      "steam": "Bejeweled 2 Deluxe",
+      "appdata": "Bejeweled2",
+      "note": "The Steam edition keeps its players in C:\\ProgramData\\Steam\\Bejeweled2 (choose that folder) and its settings under HKEY_CURRENT_USER\\Software\\Steam\\Bejeweled2, the key this port reads too; a copy that keeps its settings elsewhere only brings its players and scores.",
+      "registry": {
+        "key": "Steam\\Bejeweled2",
+        "hives": ["hkcu", "vs", "hklm"],
+        "sets": ["base", "app"],
+        "values": ["LastScoreName=sz", "LastProfileName=sz", "HighResolution=dword", "AlwaysUpdate=dword", "GameMode=dword", "ModeSeconds#=dword"]
+      },
+      "files": [
+        { "from": "users/hiscores.dat", "to": "users/hiscores.dat", "what": "the high scores" },
+        { "from": "users/*/profile.dat", "to": "users/*/profile.dat", "what": "a player" },
+        { "from": "users/*/*.sav", "to": "users/*/*.sav", "what": "a player's games in progress, one for each mode" }
+      ]
+    },
+    "typershark": {
+      "folder": "Typer Shark Deluxe", "steam": "Typer Shark Deluxe",
+      "note": "Typer Shark keeps the list of players and each player's file (users/user.idx, users/user<n>.dat) in its game folder and the rest of each player (the progress, the statistics, the settings) in the registry under PopCap\\TyperShark\\Users; the game reads both, so both come over.",
+      "registry": {
+        "key": "PopCap\\TyperShark",
+        "hives": ["vs", "hklm", "hkcu"],
+        "sets": ["base", "app"],
+        "values": ["Users\\User=sz", "Users\\*\\Version=sz", "Users\\*\\UserNumber=sz", "Users\\*\\Seed=sz", "Users\\*\\AnnoDomini=sz",
+          "Users\\*\\NumSharksKilled=sz", "Users\\*\\NumPiranhasKilled=sz", "Users\\*\\NumBossesKilled=sz", "Users\\*\\LastLesson=sz",
+          "Users\\*\\NumAbyssSharksKilled=sz", "Users\\*\\NumAbyssPiranhasKilled=sz", "Users\\*\\NBTL=sz", "Users\\*\\SpacePauses=dword",
+          "Users\\*\\PKTR=sz", "Users\\*\\SKTR=sz", "Users\\*\\NGC=sz", "Users\\*\\RNGC=dword", "Users\\*\\SeenTutorial=sz",
+          "Users\\*\\AbyssBoss=sz", "Users\\*\\svm=dword", "Users\\*\\vl#=dword", "Users\\*\\vd=sz", "Users\\*\\GTT#=sz",
+          "Users\\*\\SGTT#=sz", "Users\\*\\WPM#=sz", "Users\\*\\LastWPMIndex=sz", "Users\\*\\ad#=sz"]
+      },
+      "files": [
+        { "from": "users/user.idx", "to": "users/user.idx", "what": "the list of players" },
+        { "from": "users/user#.dat", "to": "users/user#.dat", "what": "a player" }
+      ]
     }
   }
 }

@@ -144,7 +144,7 @@ bool AutoplayBot::InputBlocked()
 	return false;
 }
 
-// A board position (Board::GetColX, Piece::mX) in the window: on a scaled board (stage 7) scaled about the board
+// A board position (Board::GetColX, Piece::mX) in the window: on a scaled board scaled about the board
 // window's corner, as BoardTrace prints its clicks; else itself
 int AutoplayBot::ToScreenX(WinDMApp* theApp, int theX)
 {
@@ -234,9 +234,9 @@ void AutoplayBot::AddTargetSteps(int theCol, int theRow, int theCol2, int theRow
 	}
 }
 
-// Arrow gems (stage 18): whether the swap of (theCol, theRow) and (theCol2, theRow2) puts the arrow at (theArrowCol,
+// Arrow gems: whether the swap of (theCol, theRow) and (theCol2, theRow2) puts the arrow at (theArrowCol,
 // theArrowRow) in a line of three of its colour
-static bool SwapMatchesArrow(Board* b, int theCol, int theRow, int theCol2, int theRow2, int theArrowCol, int theArrowRow)
+static bool SwapMatchesArrow(Board* theBoard, int theCol, int theRow, int theCol2, int theRow2, int theArrowCol, int theArrowRow)
 {
 	auto aColorAt = [&](int aCol, int aRow) {
 		if ((aCol == theCol) && (aRow == theRow))
@@ -249,7 +249,7 @@ static bool SwapMatchesArrow(Board* b, int theCol, int theRow, int theCol2, int 
 			aCol = theCol;
 			aRow = theRow;
 		}
-		Piece* aPiece = b->mBoard[aRow][aCol];
+		Piece* aPiece = theBoard->mBoard[aRow][aCol];
 		return (aPiece != NULL) ? aPiece->mColor : -1;
 	};
 	int aCol = theArrowCol, aRow = theArrowRow;
@@ -268,7 +268,7 @@ static bool SwapMatchesArrow(Board* b, int theCol, int theRow, int theCol2, int 
 	{
 		int dc = (anAxis == 0) ? 1 : 0, dr = 1 - dc;
 		int aRun = 1;
-		for (int c = aCol + dc, r = aRow + dr; (c < b->mCols) && (r < b->mRows) && (aColorAt(c, r) == aColor); c += dc, r += dr)
+		for (int c = aCol + dc, r = aRow + dr; (c < theBoard->mCols) && (r < theBoard->mRows) && (aColorAt(c, r) == aColor); c += dc, r += dr)
 			aRun++;
 		for (int c = aCol - dc, r = aRow - dr; (c >= 0) && (r >= 0) && (aColorAt(c, r) == aColor); c -= dc, r -= dr)
 			aRun++;
@@ -280,22 +280,22 @@ static bool SwapMatchesArrow(Board* b, int theCol, int theRow, int theCol2, int 
 
 // Of the valid moves (packed as PlanMove packs them), the ones that clear the arrow closest to its edge, else any arrow;
 // all of them if none does
-static void PreferArrowMoves(Board* b, std::vector<int>* theMoves)
+static void PreferArrowMoves(Board* theBoard, std::vector<int>* theMoves)
 {
 	int aBest = -1;
 	std::vector<int> aBestMoves, anyMoves;
-	for (int aRow = 0; aRow < b->mRows; aRow++)
+	for (int aRow = 0; aRow < theBoard->mRows; aRow++)
 	{
-		for (int aCol = 0; aCol < b->mCols; aCol++)
+		for (int aCol = 0; aCol < theBoard->mCols; aCol++)
 		{
-			Piece* aPiece = b->mBoard[aRow][aCol];
+			Piece* aPiece = theBoard->mBoard[aRow][aCol];
 			if ((aPiece == NULL) || (aPiece->mArrow == 0))
 				continue;
-			int aDistance = b->ArrowDistance(aCol, aRow, aPiece->mArrow - 1);
+			int aDistance = theBoard->ArrowDistance(aCol, aRow, aPiece->mArrow - 1);
 			std::vector<int> aClearing;
 			for (int aMove : *theMoves)
 			{
-				if (SwapMatchesArrow(b, aMove >> 12, (aMove >> 8) & 15, (aMove >> 4) & 15, aMove & 15, aCol, aRow))
+				if (SwapMatchesArrow(theBoard, aMove >> 12, (aMove >> 8) & 15, (aMove >> 4) & 15, aMove & 15, aCol, aRow))
 					aClearing.push_back(aMove);
 			}
 			anyMoves.insert(anyMoves.end(), aClearing.begin(), aClearing.end());
@@ -332,7 +332,7 @@ void AutoplayBot::PlanMove()
 	}
 
 	// Only moves whose two gems take a click (the first game's instructions cover the top rows). A move is packed
-	// 4 bits a coordinate; the board's own size and its playable cells (stage 7: on the original 8x8 the same list)
+	// 4 bits a coordinate; the board's own size and its playable cells (on the original 8x8 the same list)
 	std::vector<int> aMoves;
 	const char* aKindName;
 	if (aKind < 12)
@@ -387,29 +387,29 @@ void AutoplayBot::PlanMove()
 // drag from a cell's centre k cells on (or length - k back, when that is shorter), as BoardTrace prints them
 bool AutoplayBot::VariantMoveOnBoard(const MoveSet::Move& theMove)
 {
-	Board* b = mApp->mBoard;
+	Board* aBoard = mApp->mBoard;
 	const MoveSet::Move& m = theMove;
 	if (m.mType == GameRules::MOVE_SWAP)
-		return OnBoard(b->GetColX(m.mA) + 24, b->GetRowY(m.mB) + 24) && OnBoard(b->GetColX(m.mC) + 24, b->GetRowY(m.mD) + 24);
+		return OnBoard(aBoard->GetColX(m.mA) + 24, aBoard->GetRowY(m.mB) + 24) && OnBoard(aBoard->GetColX(m.mC) + 24, aBoard->GetRowY(m.mD) + 24);
 	if (m.mType == GameRules::MOVE_TWIST)
-		return OnBoard(b->GetColX(m.mA + 1) - 1, b->GetRowY(m.mB + 1) - 1);
+		return OnBoard(aBoard->GetColX(m.mA + 1) - 1, aBoard->GetRowY(m.mB + 1) - 1);
 	bool isRow = (m.mA == MoveSet::AXIS_ROW);
 	bool isBack = (m.mD - m.mE < m.mE);
 	int aFrom = isBack ? m.mC + m.mD - 1 : m.mC;
 	int aTo = isBack ? aFrom - (m.mD - m.mE) : aFrom + m.mE;
-	return OnBoard(b->GetColX(isRow ? aFrom : m.mB) + 24, b->GetRowY(isRow ? m.mB : aFrom) + 24) &&
-		OnBoard(b->GetColX(isRow ? aTo : m.mB) + 24, b->GetRowY(isRow ? m.mB : aTo) + 24);
+	return OnBoard(aBoard->GetColX(isRow ? aFrom : m.mB) + 24, aBoard->GetRowY(isRow ? m.mB : aFrom) + 24) &&
+		OnBoard(aBoard->GetColX(isRow ? aTo : m.mB) + 24, aBoard->GetRowY(isRow ? m.mB : aTo) + 24);
 }
 
-// PlanMove on a board with twists or slides (stage 10): a valid move of any type (MoveSet's search), or a random one
+// PlanMove on a board with twists or slides: a valid move of any type (MoveSet's search), or a random one
 // of a random type the rules have (usually without a group). A swap as AddTargetSteps makes it (not as a drag where a
 // drag slides); a twist as a click within 8 px of the point where its gems meet (13 px take it), a right click for
 // one anticlockwise; a slide as a press within 8 px of a cell's centre and a drag of 1 to 3 moves along the line to
 // k cells on, give or take 20 px (26 px would round to another k)
 void AutoplayBot::PlanVariantMove(bool isRandom, int theDelay)
 {
-	Board* b = mApp->mBoard;
-	int aTypes = b->mRules.mMoves.mTypes;
+	Board* aBoard = mApp->mBoard;
+	int aTypes = aBoard->mRules.mMoves.mTypes;
 	std::vector<MoveSet::Move> aMoves;
 	const char* aKindName = isRandom ? "random" : "valid";
 	if (isRandom)
@@ -421,35 +421,35 @@ void AutoplayBot::PlanVariantMove(bool isRandom, int theDelay)
 				aTypeList.push_back(aType);
 		}
 		int aType = aTypeList[Random((int) aTypeList.size())];
-		for (int aRow = 0; aRow < b->mRows; aRow++)
+		for (int aRow = 0; aRow < aBoard->mRows; aRow++)
 		{
-			for (int aCol = 0; aCol < b->mCols; aCol++)
+			for (int aCol = 0; aCol < aBoard->mCols; aCol++)
 			{
 				MoveSet::Move aMove;
 				aMove.mType = aType;
-				if ((aType == GameRules::MOVE_SWAP) && b->mLayout.IsPlayable(aCol, aRow))
+				if ((aType == GameRules::MOVE_SWAP) && aBoard->mLayout.IsPlayable(aCol, aRow))
 				{
 					aMove.mA = aCol;
 					aMove.mB = aRow;
-					if (b->mLayout.IsPlayable(aCol + 1, aRow))
+					if (aBoard->mLayout.IsPlayable(aCol + 1, aRow))
 					{
 						aMove.mC = aCol + 1;
 						aMove.mD = aRow;
 						aMoves.push_back(aMove);
 					}
-					if (b->mLayout.IsPlayable(aCol, aRow + 1))
+					if (aBoard->mLayout.IsPlayable(aCol, aRow + 1))
 					{
 						aMove.mC = aCol;
 						aMove.mD = aRow + 1;
 						aMoves.push_back(aMove);
 					}
 				}
-				else if ((aType == GameRules::MOVE_TWIST) && b->mLayout.IsPlayable(aCol, aRow) && b->mLayout.IsPlayable(aCol + 1, aRow) &&
-					b->mLayout.IsPlayable(aCol, aRow + 1) && b->mLayout.IsPlayable(aCol + 1, aRow + 1))
+				else if ((aType == GameRules::MOVE_TWIST) && aBoard->mLayout.IsPlayable(aCol, aRow) && aBoard->mLayout.IsPlayable(aCol + 1, aRow) &&
+					aBoard->mLayout.IsPlayable(aCol, aRow + 1) && aBoard->mLayout.IsPlayable(aCol + 1, aRow + 1))
 				{
 					aMove.mA = aCol;
 					aMove.mB = aRow;
-					aMove.mC = (b->mRules.mMoves.mTwistBoth && (Random(2) == 0)) ? -1 : 1;
+					aMove.mC = (aBoard->mRules.mMoves.mTwistBoth && (Random(2) == 0)) ? -1 : 1;
 					aMoves.push_back(aMove);
 				}
 				else if (aType == GameRules::MOVE_SLIDE)
@@ -459,7 +459,7 @@ void AutoplayBot::PlanVariantMove(bool isRandom, int theDelay)
 					{
 						int aStart = 0;
 						int aLength = 0;
-						if (MoveSet::SegmentAt(b->mLayout, anAxis, aCol, aRow, &aStart, &aLength) && (aLength >= 2) &&
+						if (MoveSet::SegmentAt(aBoard->mLayout, anAxis, aCol, aRow, &aStart, &aLength) && (aLength >= 2) &&
 							(aStart == ((anAxis == MoveSet::AXIS_ROW) ? aCol : aRow)))
 						{
 							aMove.mA = anAxis;
@@ -477,7 +477,7 @@ void AutoplayBot::PlanVariantMove(bool isRandom, int theDelay)
 	else
 	{
 		std::vector<MoveSet::Found> aFound;
-		b->FindVariantMoves(&aFound);
+		aBoard->FindVariantMoves(&aFound);
 		for (size_t i = 0; i < aFound.size(); i++)
 			aMoves.push_back(aFound[i].mMove);
 	}
@@ -491,30 +491,30 @@ void AutoplayBot::PlanVariantMove(bool isRandom, int theDelay)
 	if (aMoves.empty())
 		return;
 
-	const MoveSet::Move m = aMoves[Random((int) aMoves.size())];
-	if (m.mType == GameRules::MOVE_SWAP)
+	const MoveSet::Move aPickedMove = aMoves[Random((int) aMoves.size())];
+	if (aPickedMove.mType == GameRules::MOVE_SWAP)
 	{
 		int aStyle = Random((aTypes & GameRules::MOVE_SLIDE) ? 8 : 10);
-		Note("move %d: (%d,%d)->(%d,%d) %s, %s", ++mMoveNum, m.mA, m.mB, m.mC, m.mD, aKindName,
+		Note("move %d: (%d,%d)->(%d,%d) %s, %s", ++mMoveNum, aPickedMove.mA, aPickedMove.mB, aPickedMove.mC, aPickedMove.mD, aKindName,
 			(aStyle < 6) ? "click" : (aStyle < 8) ? "zone click" : "drag");
-		AddTargetSteps(m.mA, m.mB, m.mC, m.mD, aStyle, theDelay);
+		AddTargetSteps(aPickedMove.mA, aPickedMove.mB, aPickedMove.mC, aPickedMove.mD, aStyle, theDelay);
 	}
-	else if (m.mType == GameRules::MOVE_TWIST)
+	else if (aPickedMove.mType == GameRules::MOVE_TWIST)
 	{
-		Note("move %d: twist (%d,%d) %s, %s", ++mMoveNum, m.mA, m.mB, (m.mC > 0) ? "cw" : "ccw", aKindName);
-		Step aClick = {STEP_CLICK_AT, ROLE_SELECT, (m.mC > 0) ? 0 : 1, 0, b->GetColX(m.mA + 1) - 1 + Random(17) - 8,
-			b->GetRowY(m.mB + 1) - 1 + Random(17) - 8, theDelay};
+		Note("move %d: twist (%d,%d) %s, %s", ++mMoveNum, aPickedMove.mA, aPickedMove.mB, (aPickedMove.mC > 0) ? "cw" : "ccw", aKindName);
+		Step aClick = {STEP_CLICK_AT, ROLE_SELECT, (aPickedMove.mC > 0) ? 0 : 1, 0, aBoard->GetColX(aPickedMove.mA + 1) - 1 + Random(17) - 8,
+			aBoard->GetRowY(aPickedMove.mB + 1) - 1 + Random(17) - 8, theDelay};
 		mPlan.push_back(aClick);
 	}
 	else
 	{
-		bool isRow = (m.mA == MoveSet::AXIS_ROW);
-		bool isBack = (m.mD - m.mE < m.mE);
-		int aFrom = isBack ? m.mC + m.mD - 1 : m.mC;
-		int aDistance = (isBack ? -(m.mD - m.mE) : m.mE) * Board::CELL_SIZE + Random(41) - 20;
-		Note("move %d: slide %s %d from %d length %d by %d, %s", ++mMoveNum, isRow ? "row" : "col", m.mB, m.mC, m.mD, m.mE, aKindName);
-		Step aDown = {STEP_DOWN_AT, ROLE_SELECT, 0, 0, b->GetColX(isRow ? aFrom : m.mB) + 24 + Random(17) - 8,
-			b->GetRowY(isRow ? m.mB : aFrom) + 24 + Random(17) - 8, theDelay};
+		bool isRow = (aPickedMove.mA == MoveSet::AXIS_ROW);
+		bool isBack = (aPickedMove.mD - aPickedMove.mE < aPickedMove.mE);
+		int aFrom = isBack ? aPickedMove.mC + aPickedMove.mD - 1 : aPickedMove.mC;
+		int aDistance = (isBack ? -(aPickedMove.mD - aPickedMove.mE) : aPickedMove.mE) * Board::CELL_SIZE + Random(41) - 20;
+		Note("move %d: slide %s %d from %d length %d by %d, %s", ++mMoveNum, isRow ? "row" : "col", aPickedMove.mB, aPickedMove.mC, aPickedMove.mD, aPickedMove.mE, aKindName);
+		Step aDown = {STEP_DOWN_AT, ROLE_SELECT, 0, 0, aBoard->GetColX(isRow ? aFrom : aPickedMove.mB) + 24 + Random(17) - 8,
+			aBoard->GetRowY(isRow ? aPickedMove.mB : aFrom) + 24 + Random(17) - 8, theDelay};
 		mPlan.push_back(aDown);
 		int aParts = 1 + Random(3);
 		int aDone = 0;

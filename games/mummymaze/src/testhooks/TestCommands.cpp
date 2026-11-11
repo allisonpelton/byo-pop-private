@@ -1,4 +1,4 @@
-// Test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
+// port: test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
 // channel (-commands, byopop_test_command) through HandleScriptCommand. A command that is never given changes nothing:
 // no random number is drawn and no state moves. Each answers on stdout with one line: STATE {...}, MOVE {...} or
 // MOVE null, OK <command> or ERROR <command>: <reason>.
@@ -101,13 +101,13 @@ const char* KeyName(int theKey)
 std::string StepInputFor(Board* b, int theKey, int theCellX, int theCellY)
 {
 	if (StepInput == "clicks")
-		return StrFormat("{\"click\":[%d,%d]}", b->mX + 10 + b->PixelX(theCellX) + b->mCellSize / 2,
-			b->mY + b->PixelY(theCellY) + b->mCellSize / 2);
+		return StrFormat("{\"click\":[%d,%d]}", b->mX + 10 + b->GetXAt(theCellX) + b->mCellSize / 2,
+			b->mY + b->GetYAt(theCellY) + b->mCellSize / 2);
 	return StrFormat("{\"key\":\"%s\"}", KeyName(theKey));
 }
 
 // the dialog that is up, the newest (highest id) first, or -1
-int TopDialog(MummyApp* theApp)
+int TopDialog(MMApp* theApp)
 {
 	for (int anId = 31; anId >= 0; anId--)
 		if (theApp->GetDialog(anId) != NULL)
@@ -138,7 +138,7 @@ ChaseState NormalizeChase(ChaseState s)
 
 bool BoardReady(Board* b)
 {
-	if (b->mState != STATE_READY || b->mDeathTimer2 >= 0 || b->mFade2 < 1.0 || b->mShowingSolution)
+	if (b->mState != STATE_READY || b->mStungTimer >= 0 || b->mRiseFade < 1.0 || b->mShowingSolution)
 		return false;
 	for (int i = 0; i < 2; i++)
 		if (b->mMummies[i] != NULL && b->mMummies[i]->mFighting)
@@ -146,25 +146,25 @@ bool BoardReady(Board* b)
 	return true;
 }
 
-const char* ScreenName(MummyApp* a)
+const char* ScreenName(MMApp* theApp)
 {
-	if (a->GetDialogCount() > 0)
+	if (theApp->GetDialogCount() > 0)
 		return "dialog";
-	if (a->mTitleScreen != NULL)
-		return a->mTitleScreen->mPlayShown ? "title" : "loading";
-	if (a->mWorldMap != NULL)
+	if (theApp->mTitleScreen != NULL)
+		return theApp->mTitleScreen->mPlayShown ? "title" : "loading";
+	if (theApp->mWorldMap != NULL)
 		return "map";
-	if (a->mMainMenu != NULL)
+	if (theApp->mMainMenu != NULL)
 		return "menu";
-	if (a->mHighScores != NULL)
+	if (theApp->mHighScores != NULL)
 		return "highscores";
-	if (a->mLevelComplete != NULL)
+	if (theApp->mLevelComplete != NULL)
 		return "complete";
-	if (a->mGamePanel != NULL)
+	if (theApp->mGamePanel != NULL)
 		return "lost";
-	if (a->mVictory != NULL)
+	if (theApp->mVictory != NULL)
 		return "victory";
-	if (a->mBoard != NULL)
+	if (theApp->mBoard != NULL)
 		return "board";
 	return "none";
 }
@@ -183,7 +183,7 @@ const char* ModeName(int theMode)
 
 // A game that has ended: the victory screen or the high score table after a lost game, with its name asked and the
 // screen settled; or the tutorial handed over to the classic game that follows it
-bool GameOver(MummyApp* a)
+bool GameOver(MMApp* a)
 {
 	if (a->mVictory != NULL && a->mVictory->mFade >= 255.0 && a->mVictory->mNameAsked)
 		return true;
@@ -192,42 +192,49 @@ bool GameOver(MummyApp* a)
 	return BotMode == "tutorial" && a->mGameMode == MODE_CLASSIC && a->mBoard != NULL;
 }
 
-std::string StateJson(MummyApp* a)
+std::string StateJson(MMApp* theApp)
 {
-	Board* b = a->mBoard;
-	int aPyramid = a->mGameMode == MODE_ADVENTURE ? a->mAdvPyramid : a->mClassicPyramid;
-	int aChamber = a->mGameMode == MODE_ADVENTURE ? a->mAdvChamber : a->mClassicChamber;
+	Board* aBoard = theApp->mBoard;
+	int aPyramid = theApp->mGameMode == MODE_ADVENTURE ? theApp->mAdvPyramid : theApp->mClassicPyramid;
+	int aChamber = theApp->mGameMode == MODE_ADVENTURE ? theApp->mAdvChamber : theApp->mClassicChamber;
 	std::string aJson = StrFormat("{\"screen\":\"%s\",\"mode\":\"%s\",\"pyramid\":%d,\"chamber\":%d,\"level\":%d,\"score\":%d,"
-		"\"update\":%d,\"over\":%s,\"botmode\":\"%s\",\"stepinput\":\"%s\"", ScreenName(a), ModeName(a->mGameMode), aPyramid,
-		aChamber, aPyramid * 15 + aChamber + 1, a->mScore, a->mUpdateCount, GameOver(a) ? "true" : "false", BotMode.c_str(),
+		"\"update\":%d,\"over\":%s,\"botmode\":\"%s\",\"stepinput\":\"%s\"", ScreenName(theApp), ModeName(theApp->mGameMode), aPyramid,
+		aChamber, aPyramid * 15 + aChamber + 1, theApp->mScore, theApp->mUpdateCount, GameOver(theApp) ? "true" : "false", BotMode.c_str(),
 		StepInput.c_str());
-	if (a->GetDialogCount() > 0)
-		aJson += StrFormat(",\"dialog\":%d", TopDialog(a));
-	if (a->mGameMode == MODE_ADVENTURE || a->mGameMode == MODE_ADVENTURE_DONE)
-		aJson += StrFormat(",\"deaths\":%d,\"seconds\":%.0f", a->mDeaths, a->mTotalTime);
-	if (a->mLevelComplete != NULL)
-		aJson += StrFormat(",\"levelSeconds\":%d", a->mLevelComplete->mSeconds);
-	if (b != NULL)
+	if (theApp->GetDialogCount() > 0)
+		aJson += StrFormat(",\"dialog\":%d", TopDialog(theApp));
+	if (theApp->mGameMode == MODE_ADVENTURE || theApp->mGameMode == MODE_ADVENTURE_DONE)
+		aJson += StrFormat(",\"deaths\":%d,\"seconds\":%.0f", theApp->mDeaths, theApp->mTotalTime);
+	if (theApp->mLevelComplete != NULL)
+		aJson += StrFormat(",\"levelSeconds\":%d", theApp->mLevelComplete->mSeconds);
+	if (aBoard != NULL)
 	{
-		aJson += StrFormat(",\"moves\":%d,\"timer\":%d", (int) b->mUndo.size(), ((int) (a->mElapsedBase - b->mTimeBase) + b->mUpdateCnt) / 100);
+		aJson += StrFormat(",\"moves\":%d,\"timer\":%d", (int) aBoard->mUndo.size(), ((int) (theApp->mElapsedBase - aBoard->mTimeBase) + aBoard->mUpdateCnt) / 100);
 		aJson += StrFormat(",\"board\":{\"size\":%d,\"state\":%d,\"ready\":%s,\"maze\":%d,\"file\":%d,\"dark\":%s,\"red\":%s,\"gate\":%s,"
-			"\"key\":[%d,%d],\"unsolvable\":%s", b->mSize, (int) b->mState, BoardReady(b) ? "true" : "false", b->mMaze, b->mFile,
-			b->mDark ? "true" : "false", b->mRed ? "true" : "false", b->mGateClosed ? "true" : "false", b->mKeyX, b->mKeyY,
-			b->mUnsolvable ? "true" : "false");
-		if (b->mExplorer != NULL)
-			aJson += StrFormat(",\"explorer\":[%d,%d]", b->mExplorer->mX, b->mExplorer->mY);
+			"\"key\":[%d,%d],\"unsolvable\":%s", aBoard->mSize, (int) aBoard->mState, BoardReady(aBoard) ? "true" : "false", aBoard->mMaze, aBoard->mFile,
+			aBoard->mDark ? "true" : "false", aBoard->mRed ? "true" : "false", aBoard->mGateClosed ? "true" : "false", aBoard->mKeyX, aBoard->mKeyY,
+			aBoard->mUnsolvable ? "true" : "false");
+		if (aBoard->mExplorer != NULL)
+			aJson += StrFormat(",\"explorer\":[%d,%d]", aBoard->mExplorer->mX, aBoard->mExplorer->mY);
 		for (int i = 0; i < 2; i++)
-			if (b->mMummies[i] != NULL)
-				aJson += StrFormat(",\"mummy%d\":[%d,%d,%d]", i, b->mMummies[i]->mX, b->mMummies[i]->mY, b->mMummies[i]->mAlive ? 1 : 0);
-		if (b->mScorpion != NULL)
-			aJson += StrFormat(",\"scorpion\":[%d,%d,%d]", b->mScorpion->mX, b->mScorpion->mY, b->mScorpion->mAlive ? 1 : 0);
-		aJson += "}";
+			if (aBoard->mMummies[i] != NULL)
+				aJson += StrFormat(",\"mummy%d\":[%d,%d,%d]", i, aBoard->mMummies[i]->mX, aBoard->mMummies[i]->mY, aBoard->mMummies[i]->mAlive ? 1 : 0);
+		if (aBoard->mScorpion != NULL)
+			aJson += StrFormat(",\"scorpion\":[%d,%d,%d]", aBoard->mScorpion->mX, aBoard->mScorpion->mY, aBoard->mScorpion->mAlive ? 1 : 0);
+		// the skull traps (99 = none), the death on one (its timer and which of the two it is: 0 the block, 1 the pit), and the
+		// cells' wall bits, a hex digit a cell, row by row (1 north, 2 south, 4 east, 8 west)
+		aJson += StrFormat(",\"traps\":[[%d,%d],[%d,%d]],\"death\":[%d,%d],\"walls\":\"", aBoard->mTrapX[0], aBoard->mTrapY[0], aBoard->mTrapX[1],
+			aBoard->mTrapY[1], aBoard->mTrapDeathTimer, aBoard->mExitStyle);
+		for (int y = 0; y < aBoard->mSize; y++)
+			for (int x = 0; x < aBoard->mSize; x++)
+				aJson += StrFormat("%x", aBoard->mCells[x][y] & 0xf);
+		aJson += "\"}";
 	}
 	return aJson + "}";
 }
 
 // What the bot does on a dialog: the first button, a name typed into the boxes that ask for one
-std::string DialogMove(MummyApp* a, int theId)
+std::string DialogMove(MMApp* a, int theId)
 {
 	Dialog* aDialog = a->GetDialog(theId);
 	if (theId == DIALOG_RECORD_SCORE)
@@ -237,13 +244,13 @@ std::string DialogMove(MummyApp* a, int theId)
 	}
 	if (theId == DIALOG_NEW_ADVENTURE_NAME)
 	{
-		NewAdventureDialog* aName = (NewAdventureDialog*) aDialog;
+		NameDialog* aName = (NameDialog*) aDialog;
 		return Move("name", ClickStep(aName->mNameEdit) + ",{\"key\":\"b\"},{\"key\":\"o\"},{\"key\":\"t\"}," + ClickStep(aDialog->mYesButton), 5);
 	}
 	if (theId == DIALOG_ADVENTURE_NEW)
 	{
 		// the saved adventures: the first slot (it goes on with that game, or starts a new one when it is empty)
-		AdventureSlotsDialog* aSlots = (AdventureSlotsDialog*) aDialog;
+		AdventureDialog* aSlots = (AdventureDialog*) aDialog;
 		return Move("dialog", ClickStep(aSlots->mSlots[0]), 5);
 	}
 	if (theId == DIALOG_CONTINUE && aDialog->mNoButton != NULL)
@@ -254,26 +261,26 @@ std::string DialogMove(MummyApp* a, int theId)
 }
 
 // The move for the screen the game is on
-std::string BotMove(MummyApp* a)
+std::string BotMove(MMApp* theApp)
 {
 	// the dialogs
-	if (a->GetDialogCount() > 0)
+	if (theApp->GetDialogCount() > 0)
 	{
-		int anId = TopDialog(a);
-		std::string aMove = anId >= 0 ? DialogMove(a, anId) : "";
+		int anId = TopDialog(theApp);
+		std::string aMove = anId >= 0 ? DialogMove(theApp, anId) : "";
 		return aMove.empty() ? std::string("MOVE null") : aMove;
 	}
 	// the title: the play link, once it has appeared
-	if (a->mTitleScreen != NULL)
+	if (theApp->mTitleScreen != NULL)
 	{
-		if (a->mTitleScreen->mPlayShown)
-			return Move("title", ClickStep(a->mTitleScreen->mPlayLink), 20);
+		if (theApp->mTitleScreen->mPlayShown)
+			return Move("title", ClickStep(theApp->mTitleScreen->mPlayLink), 20);
 		return Move("wait", "", 60);
 	}
 	// the world map: the first pyramid that is open, once the marker stands still
-	if (a->mWorldMap != NULL)
+	if (theApp->mWorldMap != NULL)
 	{
-		WorldMap* m = a->mWorldMap;
+		MapWidget* m = theApp->mWorldMap;
 		if (m->mStep >= 0 || m->mCurrent != m->mTarget)
 			return Move("wait", "", 20);
 		for (int i = 0; i < 15; i++)
@@ -281,67 +288,67 @@ std::string BotMove(MummyApp* a)
 				return Move("map", ClickStep(m->mPyramids[i]), 10, StrFormat(",\"pyramid\":%d", i));
 		return "MOVE null";
 	}
-	if (a->mMainMenu != NULL)
+	if (theApp->mMainMenu != NULL)
 	{
-		if (a->mMainMenu->mScrollState != 1)
+		if (theApp->mMainMenu->mScrollState != 1)
 			return Move("wait", "", 20);
 		int aLink = BotMode == "tutorial" ? 3 : (BotMode == "adventure" ? 1 : 0);
-		return Move("menu", ClickStep(a->mMainMenu->mLinks[aLink]), 10, StrFormat(",\"link\":%d", aLink));
+		return Move("menu", ClickStep(theApp->mMainMenu->mLinks[aLink]), 10, StrFormat(",\"link\":%d", aLink));
 	}
 	// the table after a game, and the victory screen: look at them, then back to the menu
-	if (a->mHighScores != NULL)
+	if (theApp->mHighScores != NULL)
 	{
-		if (a->mHighScores->mFade >= 255.0 && a->mHighScoreBack == NULL && a->mHighScores->mNameAsked)
-			return Move("menu-back", ClickStep(a->mHighScores->mMenuLink), 20);
+		if (theApp->mHighScores->mFade >= 255.0 && theApp->mHighScoreBack == NULL && theApp->mHighScores->mNameAsked)
+			return Move("menu-back", ClickStep(theApp->mHighScores->mMenuLink), 20);
 		return Move("wait", "", 20);
 	}
-	if (BotMode == "tutorial" && a->mGameMode == MODE_CLASSIC)
+	if (BotMode == "tutorial" && theApp->mGameMode == MODE_CLASSIC)
 		return "MOVE null";
 	// a chamber is done: on to the next
-	if (a->mLevelComplete != NULL)
-		return Move("next", ClickStep(a->mLevelComplete->mNextLink), 5);
+	if (theApp->mLevelComplete != NULL)
+		return Move("next", ClickStep(theApp->mLevelComplete->mNextLink), 5);
 	// the panel of a lost explorer: try again
-	if (a->mGamePanel != NULL)
+	if (theApp->mGamePanel != NULL)
 	{
-		if (a->mGamePanel->mScrollState != 1)
+		if (theApp->mGamePanel->mScrollState != 1)
 			return Move("wait", "", 20);
-		return Move("again", ClickStep(a->mGamePanel->mLinks[1]), 5);
+		return Move("again", ClickStep(theApp->mGamePanel->mLinks[1]), 5);
 	}
-	if (a->mVictory != NULL)
+	if (theApp->mVictory != NULL)
 	{
-		if (a->mVictory->mFade >= 255.0 && a->mVictory->mNameAsked)
-			return Move("menu-back", ClickStep(a->mVictory->mMenuLink), 20);
+		if (theApp->mVictory->mFade >= 255.0 && theApp->mVictory->mNameAsked)
+			return Move("menu-back", ClickStep(theApp->mVictory->mMenuLink), 20);
 		return Move("wait", "", 20);
 	}
-	Board* b = a->mBoard;
-	if (b == NULL)
+	Board* aBoard = theApp->mBoard;
+	if (aBoard == NULL)
 		return Move("wait", "", 20);
 
 	// the tutorial: the button that is showing, or the move the table allows
-	if (a->mGameMode >= MODE_TUTORIAL && a->mGameMode <= 8)
+	if (theApp->mGameMode >= MODE_TUTORIAL && theApp->mGameMode <= MODE_TUTORIAL_LAST)
 	{
-		if (b->mState != STATE_READY || b->mDeathTimer2 >= 0 || b->mFade2 < 1.0)
+		if (aBoard->mState != STATE_READY || aBoard->mStungTimer >= 0 || aBoard->mRiseFade < 1.0)
 			return Move("wait", "", 5);
 		for (int i = 0; i < 2; i++)
-			if (b->mMummies[i] != NULL && b->mMummies[i]->mFighting)
+			if (aBoard->mMummies[i] != NULL && aBoard->mMummies[i]->mFighting)
 				return Move("wait", "", 5);
-		if (b->mPlayNowButton0->mVisible || b->mPlayNowButton->mVisible)
-			return Move("tutorial-button", ClickStep(b->mPlayNowButton0->mVisible ? (Widget*) b->mPlayNowButton0 : (Widget*) b->mPlayNowButton), 10);
+		if (aBoard->mTutorialStepButton->mVisible || aBoard->mPlayNowButton->mVisible)
+			return Move("tutorial-button", ClickStep(aBoard->mTutorialStepButton->mVisible ? (Widget*) aBoard->mTutorialStepButton : (Widget*) aBoard->mPlayNowButton), 10);
 		static const int kKeys[5] = {KEYCODE_UP, KEYCODE_LEFT, KEYCODE_RIGHT, KEYCODE_DOWN, KEYCODE_SPACE};
-		int aMove = kTutorialMove[b->mTutorialStep];
+		int aMove = kTutorialMove[aBoard->mTutorialStep];
 		if (aMove < 0 || aMove > 4)
 			return Move("wait", "", 5);
 		int aDX = aMove == 1 ? -1 : (aMove == 2 ? 1 : 0), aDY = aMove == 0 ? -1 : (aMove == 3 ? 1 : 0);
-		return Move("step", StepInputFor(b, kKeys[aMove], b->mExplorer->mX + aDX, b->mExplorer->mY + aDY), 1);
+		return Move("step", StepInputFor(aBoard, kKeys[aMove], aBoard->mExplorer->mX + aDX, aBoard->mExplorer->mY + aDY), 1);
 	}
 	// the treasure scene at the end of a pyramid: the link on
-	if (a->mGameMode == MODE_CLASSIC_DONE || a->mGameMode == MODE_ADVENTURE_DONE)
+	if (theApp->mGameMode == MODE_CLASSIC_DONE || theApp->mGameMode == MODE_ADVENTURE_DONE)
 	{
-		if (b->mContinueLink != NULL && b->mContinueLink->mVisible)
-			return Move("treasure", ClickStep(b->mContinueLink), 20);
+		if (aBoard->mContinueLink != NULL && aBoard->mContinueLink->mVisible)
+			return Move("treasure", ClickStep(aBoard->mContinueLink), 20);
 		return Move("wait", "", 20);
 	}
-	if (!BoardReady(b) || (a->mGameMode != MODE_CLASSIC && a->mGameMode != MODE_ADVENTURE))
+	if (!BoardReady(aBoard) || (theApp->mGameMode != MODE_CLASSIC && theApp->mGameMode != MODE_ADVENTURE))
 		return Move("wait", "", 5);
 
 	// the maze: the solver's way out. The plan is made once from where the explorer stands and followed while the board
@@ -349,11 +356,11 @@ std::string BotMove(MummyApp* a)
 	// could choose another way each time and walk in circles); it is made again when the board is off the plan, as the
 	// autoplay bot does (Autoplay.cpp). The search is the one of Abandon Hope, with the fixes mod's key-stone fight when
 	// that mod is on.
-	if (b->mExplorer == NULL || a->mSidePanel == NULL)
+	if (aBoard->mExplorer == NULL || theApp->mSidePanel == NULL)
 		return Move("wait", "", 5);
-	ChaseState aHave = NormalizeChase(b->GetChaseState());
+	ChaseState aHave = NormalizeChase(aBoard->GetChaseState());
 	int aIndex = -1;
-	if (gPlan.mBoard == b && gPlan.mMaze == b->mMaze && gPlan.mFile == b->mFile && gPlan.mMode == a->mGameMode)
+	if (gPlan.mBoard == aBoard && gPlan.mMaze == aBoard->mMaze && gPlan.mFile == aBoard->mFile && gPlan.mMode == theApp->mGameMode)
 	{
 		if (aHave == gPlan.mStart)
 			aIndex = 0;
@@ -365,47 +372,47 @@ std::string BotMove(MummyApp* a)
 	if (aIndex < 0 || aIndex >= (int) gPlan.mPath.size())
 	{
 		std::vector<ChaseState> aFound;
-		if (!b->FindWay(aFound) || aFound.empty())
+		if (!aBoard->FindWay(aFound) || aFound.empty())
 		{
 			// no way out from here: take the moves back, which the side panel's RESET MAZE does
 			gPlan.mBoard = NULL;
-			if (b->mUndo.empty())
+			if (aBoard->mUndo.empty())
 				return "MOVE null";
-			return Move("reset", ClickStep(a->mSidePanel->mButtons[1]), 10);
+			return Move("reset", ClickStep(theApp->mSidePanel->mButtons[1]), 10);
 		}
-		gPlan.mBoard = b;
-		gPlan.mMaze = b->mMaze;
-		gPlan.mFile = b->mFile;
-		gPlan.mMode = a->mGameMode;
+		gPlan.mBoard = aBoard;
+		gPlan.mMaze = aBoard->mMaze;
+		gPlan.mFile = aBoard->mFile;
+		gPlan.mMode = theApp->mGameMode;
 		gPlan.mStart = aHave;
 		gPlan.mPath = aFound;
 		aIndex = 0;
 	}
 	std::vector<ChaseState> aPath(gPlan.mPath.begin() + aIndex, gPlan.mPath.end());
 	const ChaseState& aNext = aPath[0];
-	int dx = aNext.mExplorerX - b->mExplorer->mX;
-	int dy = aNext.mExplorerY - b->mExplorer->mY;
+	int dx = aNext.mExplorerX - aBoard->mExplorer->mX;
+	int dy = aNext.mExplorerY - aBoard->mExplorer->mY;
 	int aKey = dx < 0 ? KEYCODE_LEFT : (dx > 0 ? KEYCODE_RIGHT : (dy < 0 ? KEYCODE_UP : (dy > 0 ? KEYCODE_DOWN : KEYCODE_SPACE)));
-	return Move("step", StepInputFor(b, aKey, aNext.mExplorerX, aNext.mExplorerY), 1, StrFormat(",\"to\":[%d,%d],\"remaining\":%d", aNext.mExplorerX, aNext.mExplorerY, (int) aPath.size()));
+	return Move("step", StepInputFor(aBoard, aKey, aNext.mExplorerX, aNext.mExplorerY), 1, StrFormat(",\"to\":[%d,%d],\"remaining\":%d", aNext.mExplorerX, aNext.mExplorerY, (int) aPath.size()));
 }
 
 }	// namespace
 
-bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
+bool MMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 {
 	const std::string& aCommand = theCommand.mCommand;
 	std::string anArgs = theCommand.mArgs;
-	MummyApp* a = this;
+	MMApp* anApp = this;
 
 	if (aCommand == "state")
 	{
-		Reply("STATE " + StateJson(a));
+		Reply("STATE " + StateJson(anApp));
 		return true;
 	}
 
 	if (aCommand == "move")
 	{
-		Reply(BotMove(a));
+		Reply(BotMove(anApp));
 		return true;
 	}
 
@@ -475,7 +482,7 @@ bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		if (mMainMenu == NULL || mMainMenu->mScrollState != 1)
 		{
-			ReplyError(theCommand, std::string("only from the main menu (now ") + ScreenName(a) + ")");
+			ReplyError(theCommand, std::string("only from the main menu (now ") + ScreenName(anApp) + ")");
 			return true;
 		}
 		if (anArgs == "classic")
@@ -485,11 +492,11 @@ bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else if (anArgs == "tutorial")
 			mMainMenu->ButtonDepress(3);
 		else if (anArgs == "options")
-			ShowOptions();
+			DoOptions();
 		else if (anArgs == "highscores")
-			ShowHighScoreDialog();
+			DoHighScoreDialog();
 		else if (anArgs == "credits")
-			DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, 0xa2, 0x52, 0x13c);
+			DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		else
 		{
 			ReplyError(theCommand, "unknown screen");
@@ -521,11 +528,11 @@ bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		{
 			mClassicPyramid = aPyramid;
 			mClassicChamber = aChamber;
-			StartBoardScreen();
+			NewGame();
 			ReplyOK(theCommand);
 			return true;
 		}
-		ReplyError(theCommand, std::string("only from the main menu or a classic board (now ") + ScreenName(a) + ")");
+		ReplyError(theCommand, std::string("only from the main menu or a classic board (now ") + ScreenName(anApp) + ")");
 		return true;
 	}
 
@@ -550,18 +557,18 @@ bool MummyApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	if (aCommand == "win" || aCommand == "lose")
 	{
-		Board* b = mBoard;
-		if (b == NULL || mLevelComplete != NULL || mGamePanel != NULL || (mGameMode != MODE_CLASSIC && mGameMode != MODE_ADVENTURE))
+		Board* aBoard = mBoard;
+		if (aBoard == NULL || mLevelComplete != NULL || mGamePanel != NULL || (mGameMode != MODE_CLASSIC && mGameMode != MODE_ADVENTURE))
 		{
 			ReplyError(theCommand, "only on a classic or adventure board in play");
 			return true;
 		}
 		if (aCommand == "win")
-			OnLevelComplete();
+			DoNextLevel();
 		else if (mGameMode == MODE_ADVENTURE)
 			AdventureCaught();
 		else
-			b->Lose();
+			aBoard->DoGameOver();
 		ReplyOK(theCommand);
 		return true;
 	}

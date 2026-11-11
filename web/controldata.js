@@ -14,6 +14,22 @@ var ByopopControlData = {
     { does: "Pause or resume", how: "Press any key" }
   ],
 
+  // src/BoardInput.cpp Board::KeyChar (Space, Z and X), Board::KeyDown (arrows, Return, Escape), Board::MouseDown (left, right and
+  // middle buttons), Board::MouseMove (the ship follows the mouse)
+  astropop: [
+    { does: "Move the ship", how: "Move the mouse" },
+    { does: "Take the bricks at the ship", how: "Left click" },
+    { does: "Shoot a brick", how: "Right click" },
+    { does: "Start the play at once", how: "Middle click" },
+    { does: "Start the play at once with the keyboard", keys: ["Enter"] },
+    { does: "Move the ship left", keys: ["ArrowLeft", "KeyZ"] },
+    { does: "Move the ship right", keys: ["ArrowRight", "KeyX"] },
+    { does: "Take the bricks", keys: ["ArrowDown"] },
+    { does: "Shoot a brick", keys: ["ArrowUp"] },
+    { does: "Pause or resume", keys: ["Space"] },
+    { does: "Open the menu", keys: ["Escape"] }
+  ],
+
   // src/Grid.cpp Grid::KeyDown (Space), Grid::MouseDown (left, double and right clicks)
   atomica: [
     { does: "Pick up an atom", how: "Click it" },
@@ -28,6 +44,15 @@ var ByopopControlData = {
     { does: "Swap two gems", how: "Click a gem, then one next to it" },
     { does: "Swap by dragging", how: "Drag a gem onto a neighbour" },
     { does: "Pause or resume", how: "Press any key" }
+  ],
+
+  // src/BoardInput.cpp Board::MouseDown (a click, a right click, a click while the game is paused), Board::MouseDrag; the board's
+  // Board::KeyChar (src/BoardCheats.cpp) takes only typed cheat words
+  bejeweled2: [
+    { does: "Swap two gems", how: "Click a gem, then one next to it" },
+    { does: "Swap by dragging", how: "Drag a gem onto a neighbour" },
+    { does: "Let go of the gem you picked", how: "Right click" },
+    { does: "Resume a paused game", how: "Click" }
   ],
 
   // src/BoardTwist.cpp Board::KeyDown (Pause/Escape, Return/Space, arrows), Board::MouseDown
@@ -161,6 +186,18 @@ var ByopopControlData = {
     { does: "Steer down", keys: ["ArrowDown", "Numpad2"] },
     { does: "Fire the cannons", keys: ["Space", "Numpad5", "Numpad0", "Insert"] },
     { does: "Move with the mouse", how: "Click a square next to your ship" }
+  ],
+
+  // src/BoardKeys.cpp Board::KeyChar (letters, Return, Space), src/MapScreen.cpp MapScreen::KeyChar (letters, Space),
+  // src/HintDialog.cpp HintDialog::KeyChar (Return, Space, Escape)
+  typershark: [
+    { does: "Kill a creature", how: "Type the letters of its word" },
+    { does: "Use the Shark Zapper when it is charged", keys: ["Enter"] },
+    { does: "Pause or resume (when the player's space bar setting is on)", keys: ["Space"] },
+    { does: "Go back to the map at the end of a level", keys: ["Space"] },
+    { does: "Choose a level on the map", how: "Click its chest, or type its letter" },
+    { does: "Start the level chosen on the map", keys: ["Space"] },
+    { does: "Go on from a hint box", keys: ["Enter", "Space", "Escape"] }
   ],
 
   // src/App.cpp ColumnCursorProc MSG_KEY (arrows, numpad 4 and 6, Space), MSG_MOUSEDOWN

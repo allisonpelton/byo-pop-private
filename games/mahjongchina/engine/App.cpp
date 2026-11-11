@@ -1,5 +1,6 @@
 #include "App.h"
 
+#include "EngineRes.h"
 #include "Host.h"
 #include "Object.h"
 
@@ -33,19 +34,6 @@ int AppBase::RegGetInt(const char* theSection, const char* theName, int theDefau
 	return theDefault;
 }
 
-// 0x429230
-std::string AppBase::RegGetString(const char* theSection, const char* theName, const char* theDefault,
-	bool theMachine)
-{
-	if (!mUseDefaults && !gCompany.empty())
-	{
-		std::string aValue;
-		if (GetHost()->RegReadString(theSection, theName, theMachine, aValue))
-			return aValue;
-	}
-	return theDefault;
-}
-
 // 0x429470
 bool AppBase::RegGetBool(const char* theSection, const char* theName, bool theDefault, bool theMachine)
 {
@@ -58,18 +46,6 @@ bool AppBase::RegSetInt(const char* theSection, const char* theName, int theValu
 	if (gCompany.empty())
 		return false;
 	return GetHost()->RegWriteInt(theSection, theName, theValue);
-}
-
-// 0x4293c0
-bool AppBase::RegSetString(const char* theSection, const char* theName, const char* theValue)
-{
-	if (gCompany.empty())
-		return false;
-	if (theName == nullptr)
-		return GetHost()->RegDeleteKey(theSection);
-	if (theValue == nullptr)
-		return GetHost()->RegDeleteValue(theSection, theName);
-	return GetHost()->RegWriteString(theSection, theName, theValue);
 }
 
 // 0x4294a0
@@ -128,29 +104,6 @@ void AppBase::MakeProductKey()
 	}
 }
 
-// 0x429b90
-int AppBase::GetCmdInt(const char* theName)
-{
-	int aPos = 0;
-	bool aFound = false;
-	int aLen = (int)mCmdLine.size();
-	std::string aWord = Tokenize(mCmdLine, ' ', aPos);
-	while (true)
-	{
-		if (StrICmp(aWord.c_str(), theName) == 0)
-			aFound = true;
-		if (aLen <= aPos)
-			break;
-		aWord = Tokenize(mCmdLine, ' ', aPos);
-		if (aFound)
-		{
-			char* anEnd;
-			return (int)strtol(aWord.c_str(), &anEnd, 10);
-		}
-	}
-	return 0;
-}
-
 // 0x429ca0
 bool AppBase::HasCmdFlag(const char* theName)
 {
@@ -195,6 +148,7 @@ bool App::Quit()
 }
 
 // 0x426060
+// 0x4296f0 inlined here: AppBase's own Init, which only returns true (the end of this one)
 bool App::Init()
 {
 	mCmdLine = GetHost()->CommandLine();
@@ -231,7 +185,7 @@ bool App::Init()
 		return false;
 	mManager.SetMusicVolume(gMusicVolume);
 	mManager.SetSoundVolume(gSoundsVolume);
-	mManager.LoadSound(0x69, false);
+	mManager.LoadSound(SOUND_CLICK, false);
 	mManager.SwitchTo(CreateFirstLayer());
 	return true;
 }

@@ -47,15 +47,15 @@ namespace Replay
 enum
 {
 	FORMAT = 1,
-	// Bumped whenever variant simulation output changes (6.4). 2: stage 5, kept invalid moves, the noMoves rule,
-	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. 3: stage 7, the board shape rules (sizes,
+	// Bumped whenever variant simulation output changes (6.4). 2: kept invalid moves, the noMoves rule,
+	// the v2 save and the variant boards' MOVE fields in the LOGIC hash. 3: the board shape rules (sizes,
 	// masks, level shapes), which earlier engines played on the original 8x8, and the displayed score's fast roll
-	// with a mod's scoring tunables (Board::RollScoreFast). 4: stage 7b, dirt cells (board.mask "d"), which earlier
-	// engines played as holes, and their diagonal slides. 5: stage 8, board.gemColors 8..12, which earlier engines
-	// played as 7. 6: stage 9, the match rules (match.*), which earlier engines played as runs of 3. 7: stage 10,
-	// twists and slides (moves.type), which earlier engines played as swaps. 8: stage 11, flame and lightning gems
-	// (specials.*), which earlier engines never made. 9: stage 12, the gold board (gold.*), which earlier engines
-	// played as score levels. 10: stage 18, arrow gems (arrows.*, the diagonals with them), which earlier engines
+	// with a mod's scoring tunables (Board::RollScoreFast). 4: dirt cells (board.mask "d"), which earlier
+	// engines played as holes, and their diagonal slides. 5: board.gemColors 8..12, which earlier engines
+	// played as 7. 6: the match rules (match.*), which earlier engines played as runs of 3. 7:
+	// twists and slides (moves.type), which earlier engines played as swaps. 8: flame and lightning gems
+	// (specials.*), which earlier engines never made. 9: the gold board (gold.*), which earlier engines
+	// played as score levels. 10: arrow gems (arrows.*, the diagonals with them), which earlier engines
 	// played without arrows. 11: arrows that twists turn and edges they leave by for a bonus (arrows.turn,
 	// arrows.shots) and gold that only blasts gild (gold.gild "blasts"), which earlier engines played otherwise. The
 	// original rules are frozen, so a replay of them (no variant rule, no scoring tunable
@@ -111,7 +111,7 @@ enum EndReason
 	END_NEW_GAME = 3,
 	END_GOLD_TIME_UP = 4,
 	END_SAVED = 5,
-	END_ARROW_ESCAPED = 6,      // port(variant): an arrow gem stepped off the board (stage 18)
+	END_ARROW_ESCAPED = 6,      // port(variant): an arrow gem stepped off the board
 	NUM_END_REASONS = 7
 };
 
@@ -225,7 +225,7 @@ std::string			Write(const File& theFile);
 // as it comes (5 KB each, MAX_SEGMENTS at most).
 bool				Read(const std::string& theBytes, File* theFile, std::string* theError = NULL);
 
-// A row of the replay browser (stage 13, ReplayBrowserDialog.h): META, the first segment's mode and seed, the
+// A row of the replay browser (ReplayBrowserDialog.h): META, the first segment's mode and seed, the
 // number of segments and END, from the records without their events, so a long replay costs no more than its
 // bytes. False for what is no replay (the magic, the format, a record past the end, no END of its size); whether
 // one plays is for Read and CheckPlayable to say.
@@ -256,7 +256,7 @@ int					CountMoves(const Segment& theSegment);
 // can start theFile on a theCols x theRows board: this engine's ABI (any from FIRST_ENGINE_ABI for a replay of
 // the original rules, isOriginalRules: their simulation never changes) and a RULE record; one segment at least;
 // every segment in mode 0 or 1, from a seed other than 0 or a global-stream state, user-seeded only with a
-// seed; only the commands this build's game makes (UNDO since stage 6; no TWIST or SLIDE yet), their arguments in
+// seed; only the commands this build's game makes, their arguments in
 // range (cells of the board, TARGET -1 -1, pause flags 0/1, 1..MAX_XRAND outside draws, save kinds, int
 // positions); in every segment after the first, and only with its RNGS (and in the first only with its
 // LDSV), one LOAD at tick 0, whose bytes are the segment's LDSV (a save CheckSave takes) or the SAVE that
@@ -276,8 +276,8 @@ enum
 	MAX_EVENTS_PER_TICK = 10000,    // events stamped with one tick (a paused board's tick holds them all)
 	MAX_SAVES_PER_SEGMENT = 4       // the game makes 3 at most: Shutdown's, ~Board's, a snapshot sidecar's
 };
-// Stage 7: theCols x theRows bound the cells events name (the largest of the rules' shapes), and theShapes, the
-// rules' level shapes, are what an LDSV's v2 save is checked against (CheckSave). Stage 8: so are theGemColors, the
+// TheCols x theRows bound the cells events name (the largest of the rules' shapes), and theShapes, the
+// rules' level shapes, are what an LDSV's v2 save is checked against (CheckSave). So are theGemColors, the
 // colours the rules play (GameConfig::mGemColors).
 bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError = NULL,
 						bool isOriginalRules = false, const std::vector<BoardLayout>* theShapes = NULL, int theGemColors = 7);
@@ -288,10 +288,10 @@ bool				CheckPlayable(const File& theFile, int theCols, int theRows, std::string
 // (piece colour 0..theGemColors - 1 and the cell it is in, the animation frames, bools 0 or 1, finite doubles, the state,
 // level, bar, vortex and wipe values). LoadGame takes any savegame.dat as the original does; a replay's
 // bytes come from someone else. With theRulesId (the replay's RLID) a v2 save of those rules passes too
-// (stage 5, below): its header names them and the board's shape (a full theCols x theRows board, level shape
+// (below): its header names them and the board's shape (a full theCols x theRows board, level shape
 // 0), the same fields follow, then its chunks (ReadVariantSave; the MOVE counts not below 0). Which of the two
 // a board takes is LoadGame's to say: a variant board only v2, any other only v1. False with theError set.
-// Stage 7: with theShapes (the rules' level shapes, GameRules::LayoutForLevel of 0..ShapeCount() - 1) a v2 save
+// With theShapes (the rules' level shapes, GameRules::LayoutForLevel of 0..ShapeCount() - 1) a v2 save
 // may be of any of them: its level shape one of theShapes, its size and mask that shape's, its level one of that
 // shape (mLevel % the count), its cells read over that size.
 bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError = NULL,
@@ -306,13 +306,13 @@ bool				CheckSave(const std::string& theSave, int theCols, int theRows, std::str
 //     RNGS  the RNG the game goes on with, as the replay's RNGS record (u32 seed, 0: the global stream; u8
 //           userSeeded, u8 ranked, 624 x u32 mt, i32 mti)
 //     MOVE  i32 moves, i32 invalidMoves, i32 undosUsed
-//     GRAV  i32 flips, u8 noFlip (stage 7c)
-//     DIRT  u8 leftFirst, u8 layers[cols * rows] (stage 7b, row-major: a dirt cell's layers left, 0 elsewhere; a
+//     GRAV  i32 flips, u8 noFlip
+//     DIRT  u8 leftFirst, u8 layers[cols * rows] (row-major: a dirt cell's layers left, 0 elsewhere; a
 //           cell with layers is no gem cell of the mask, and one whose last layer went is)
-//     KIND  u8 kinds[cols * rows] (stage 11, row-major: a gem's kind, 0 normal, 1 flame, 2 lightning; 0 where no gem)
-//     GOLD  u8 gold[cols * rows] (stage 12, row-major: 1 a gold cell, 0 elsewhere; gold only on a gem cell of the mask)
-//     GTIM  u32 ticksLeft, u32 limit (stage 12: the level's time, 0 0 for none)
-//     ARRW  i32 moves, i32 cleared, u8 stepDue, u8 arrows[cols * rows] (stage 18: the moves toward the next arrow, the
+//     KIND  u8 kinds[cols * rows] (row-major: a gem's kind, 0 normal, 1 flame, 2 lightning; 0 where no gem)
+//     GOLD  u8 gold[cols * rows] (row-major: 1 a gold cell, 0 elsewhere; gold only on a gem cell of the mask)
+//     GTIM  u32 ticksLeft, u32 limit (the level's time, 0 0 for none)
+//     ARRW  i32 moves, i32 cleared, u8 stepDue, u8 arrows[cols * rows] (the moves toward the next arrow, the
 //           arrows cleared, whether the settle steps them, then row-major each gem's arrow, 0 none or its direction + 1)
 // A v1 save (version 1) has the v1 field sequence right after its version.
 enum
@@ -334,21 +334,21 @@ struct VariantSave
 	int32_t			mMoves = 0;                 // MOVE
 	int32_t			mInvalidMoves = 0;
 	int32_t			mUndosUsed = 0;
-	bool			mHasGravity = false;        // GRAV (stage 7c): written when the rules set a gravity rule; absent reads as 0
+	bool			mHasGravity = false;        // GRAV: written when the rules set a gravity rule; absent reads as 0
 	int32_t			mGravityFlips = 0;
 	bool			mGravityNoFlip = false;
-	bool			mHasDirt = false;           // DIRT (stage 7b): written when the rules have dirt; absent, a dirt cell of the
+	bool			mHasDirt = false;           // DIRT: written when the rules have dirt; absent, a dirt cell of the
 	                                            // level's mask has all its layers where the save's mask has no gem cell, else none
 	bool			mDiagonalLeftFirst = true;
 	std::vector<uint8_t> mDirtLayers;           // mCols * mRows, row-major
-	bool			mHasKinds = false;          // KIND (stage 11): written when the rules have specials; absent, every gem is normal
+	bool			mHasKinds = false;          // KIND: written when the rules have specials; absent, every gem is normal
 	std::vector<uint8_t> mKinds;                // mCols * mRows, row-major
-	bool			mHasGold = false;           // GOLD and GTIM (stage 12): written when the rules have gold; absent, no cell is gold
+	bool			mHasGold = false;           // GOLD and GTIM: written when the rules have gold; absent, no cell is gold
 	std::vector<uint8_t> mGold;                 // mCols * mRows, row-major
 	bool			mHasGoldTime = false;       // GTIM; absent, the level's whole time
 	int32_t			mGoldTicksLeft = 0;
 	int32_t			mGoldTickLimit = 0;
-	bool			mHasArrows = false;         // ARRW (stage 18): written when the rules have arrows; absent, none and no counts
+	bool			mHasArrows = false;         // ARRW: written when the rules have arrows; absent, none and no counts
 	std::vector<uint8_t> mArrows;               // mCols * mRows, row-major
 	int32_t			mArrowMoves = 0;
 	int32_t			mArrowsCleared = 0;

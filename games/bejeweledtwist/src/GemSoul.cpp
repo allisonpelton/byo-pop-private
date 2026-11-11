@@ -25,8 +25,8 @@ GemSoul::GemSoul(int theType)
 	mAngle = (float)((double)RandSigned() * 3.1415927410125732);
 	float aSpeed = std::fabs(RandSigned());
 	mAngleSpeed = (float)(((double)aSpeed * 0.001 + 0.002) * (double)6.2831854820251465f);
-	mUnknown8E8 = (float)((double)RandSigned() * 3.1415927410125732);
-	mUnknown8EC = (float)((double)RandSigned() * (double)6.2831854820251465f * 0.004999999888241291);
+	mSwirlAngle = (float)((double)RandSigned() * 3.1415927410125732);
+	mSwirlSpeed = (float)((double)RandSigned() * (double)6.2831854820251465f * 0.004999999888241291);
 	mRadius = 0;
 	mRectX = 0;
 	mRectY = 0;
@@ -74,8 +74,8 @@ GemSoul::GemSoul(int theType)
 		mOuter = nullptr;
 		mType = 0;
 	}
-	mUnknown748.SetCurve(GTS(0x7e32c8));
-	mIndex = (int)gBoard->mUnknown26B0.size();
+	mSpaceFade.SetCurve(GTS(0x7e32c8));
+	mIndex = (int)gBoard->mLevelSouls.size();
 }
 
 GemSoul::~GemSoul()
@@ -86,30 +86,30 @@ GemSoul::~GemSoul()
 
 void GemSoul::SetTarget(Piece* thePiece)
 {
-	mUnknown680 = thePiece;
+	mHomePiece = thePiece;
 	mState = 2;
 	mTargetX = (float)(gBoard->GetColX(thePiece->mCol) + gGemWidth / 2);
-	mTargetY = (float)(gBoard->GetRowY(mUnknown680->mRow) + gGemHeight / 2);
+	mTargetY = (float)(gBoard->GetRowY(mHomePiece->mRow) + gGemHeight / 2);
 	if (gD3DInterface == nullptr) {
-		mUnknown660 = 2.0f;
-		mUnknown7E0.SetCurve(GTS(0x7e3318));
-		mUnknown7E0.mIncRate = (double)RandSigned() * 0.001500000013038516 + mUnknown7E0.mIncRate;
-		mUnknown858.SetCurve(GTS(0x7e32f0), &mUnknown7E0);
+		mRetargetWait = 2.0f;
+		mFlightClock.SetCurve(GTS(0x7e3318));
+		mFlightClock.mIncRate = (double)RandSigned() * 0.001500000013038516 + mFlightClock.mIncRate;
+		mReturnCurve.SetCurve(GTS(0x7e32f0), &mFlightClock);
 	} else {
 		// Direct3D starts it from a random point below the screen (x across the app's width, y from the screen's
 		// bottom to 256 times the scale below it), with curves of its own
-		mUnknown660 = 1.0f;
-		mUnknown850 = Ftol((double)RandFloat() * (double)gApp->mWidth);
+		mRetargetWait = 1.0f;
+		mTurnBackX = Ftol((double)RandFloat() * (double)gApp->mWidth);
 		int aBelow = Ftol((double)gApp->mScale * 256.0);
-		mUnknown854 = Ftol((double)RandFloat() * (double)aBelow + (double)(gApp->mHeight + aBelow));
-		mUnknown7E0.SetCurve(GTS(0x7e3360));
-		float aDX = (float)mUnknown850 - mTargetX;
-		float aDY = (float)mUnknown854 - mTargetY;
+		mTurnBackY = Ftol((double)RandFloat() * (double)aBelow + (double)(gApp->mHeight + aBelow));
+		mFlightClock.SetCurve(GTS(0x7e3360));
+		float aDX = (float)mTurnBackX - mTargetX;
+		float aDY = (float)mTurnBackY - mTargetY;
 		float aDistance = std::sqrt(aDX * aDX + aDY * aDY);
 		int aScaled = Ftol((double)gApp->mScale * 1000.0);
-		mUnknown7E0.mIncRate = (double)aScaled / (double)aDistance * 0.012000000104308128 + 0.00800000037997961;
-		mUnknown7E0.mIncRate = (double)RandSigned() * 0.004999999888241291 + mUnknown7E0.mIncRate;
-		mUnknown858.SetCurve(GTS(0x7e333c), &mUnknown7E0);
+		mFlightClock.mIncRate = (double)aScaled / (double)aDistance * 0.012000000104308128 + 0.00800000037997961;
+		mFlightClock.mIncRate = (double)RandSigned() * 0.004999999888241291 + mFlightClock.mIncRate;
+		mReturnCurve.SetCurve(GTS(0x7e333c), &mFlightClock);
 	}
 	Update();
 }
@@ -117,42 +117,42 @@ void GemSoul::SetTarget(Piece* thePiece)
 void GemSoul::Update()
 {
 	if (gBoard->mHyperspace != nullptr) {
-		if (gBoard->mHyperspace->mFlag15C)
+		if (gBoard->mHyperspace->mJumpSkipped)
 			return;
-		mUnknown748.IncInVal();
-		// Its place in space (mUnknown7BC to mUnknown7D4, only drawn in 3D mode, but worked out in 2D too) follows
+		mSpaceFade.IncInVal();
+		// Its place in space (mSpacePos to mSpaceVel, only drawn in 3D mode, but worked out in 2D too) follows
 		// the ship's place on the camera's path (the hyperspace's +0x14c0): a point behind the ship, one more behind
 		// it for each soul before this one
 		Vec3 aBehind{0.0f, -0.17000000178813934f, (float)(-12.0 - (double)mIndex * 2.0999999046325684)};
-		Vec3 aPlace = TransformPoint(gBoard->mHyperspace->mUnknown14C0, aBehind);
-		mUnknown7C8[0] = aPlace.x;
-		mUnknown7C8[1] = aPlace.y;
-		mUnknown7C8[2] = aPlace.z;
+		Vec3 aPlace = TransformPoint(gBoard->mHyperspace->mShipPlace, aBehind);
+		mSpaceGoal[0] = aPlace.x;
+		mSpaceGoal[1] = aPlace.y;
+		mSpaceGoal[2] = aPlace.z;
 		if (mUpdateCnt == 0) {
 			// A random start about it
 			float aRandX = RandSigned();
 			float aRandY = (float)((double)RandSigned() * 0.25);
 			float aRandZ = RandSigned();
-			mUnknown7BC[0] = (float)((double)mUnknown7C8[0] + (double)(float)((double)aRandX * 0.30000001192092896));
-			mUnknown7BC[1] = (float)((double)mUnknown7C8[1] + (double)(float)((double)aRandY * 0.30000001192092896));
-			mUnknown7BC[2] = (float)((double)mUnknown7C8[2] + (double)(float)((double)aRandZ * 0.30000001192092896));
+			mSpacePos[0] = (float)((double)mSpaceGoal[0] + (double)(float)((double)aRandX * 0.30000001192092896));
+			mSpacePos[1] = (float)((double)mSpaceGoal[1] + (double)(float)((double)aRandY * 0.30000001192092896));
+			mSpacePos[2] = (float)((double)mSpaceGoal[2] + (double)(float)((double)aRandZ * 0.30000001192092896));
 		}
 		// It drifts after its place: a velocity (7D4) of a 0.005 of the way there, damped, then moved by
-		float aDiffX = (float)((double)mUnknown7C8[0] - (double)mUnknown7BC[0]);
-		float aDiffY = (float)((double)mUnknown7C8[1] - (double)mUnknown7BC[1]);
-		float aDiffZ = (float)((double)mUnknown7C8[2] - (double)mUnknown7BC[2]);
-		mUnknown7D4[0] = (float)((double)(float)((double)aDiffX * 0.004999999888241291) + (double)mUnknown7D4[0]);
-		mUnknown7D4[1] = (float)((double)(float)((double)aDiffY * 0.004999999888241291) + (double)mUnknown7D4[1]);
-		mUnknown7D4[2] = (float)((double)(float)((double)aDiffZ * 0.004999999888241291) + (double)mUnknown7D4[2]);
-		mUnknown7D4[0] = (float)((double)0.9900000095367432f * (double)mUnknown7D4[0]);
-		mUnknown7D4[1] = (float)((double)mUnknown7D4[1] * (double)0.9900000095367432f);
-		mUnknown7D4[2] = (float)((double)0.9900000095367432f * (double)mUnknown7D4[2]);
-		mUnknown7D4[2] = (float)((double)mUnknown7D4[2] * 0.949999988079071);
-		mUnknown7BC[2] = (float)(((double)mUnknown7C8[2] - (double)mUnknown7BC[2]) * 0.20000000298023224 +
-			(double)mUnknown7BC[2]);
-		mUnknown7BC[0] = (float)((double)mUnknown7D4[0] + (double)mUnknown7BC[0]);
-		mUnknown7BC[1] = (float)((double)mUnknown7D4[1] + (double)mUnknown7BC[1]);
-		mUnknown7BC[2] = (float)((double)mUnknown7D4[2] + (double)mUnknown7BC[2]);
+		float aDiffX = (float)((double)mSpaceGoal[0] - (double)mSpacePos[0]);
+		float aDiffY = (float)((double)mSpaceGoal[1] - (double)mSpacePos[1]);
+		float aDiffZ = (float)((double)mSpaceGoal[2] - (double)mSpacePos[2]);
+		mSpaceVel[0] = (float)((double)(float)((double)aDiffX * 0.004999999888241291) + (double)mSpaceVel[0]);
+		mSpaceVel[1] = (float)((double)(float)((double)aDiffY * 0.004999999888241291) + (double)mSpaceVel[1]);
+		mSpaceVel[2] = (float)((double)(float)((double)aDiffZ * 0.004999999888241291) + (double)mSpaceVel[2]);
+		mSpaceVel[0] = (float)((double)0.9900000095367432f * (double)mSpaceVel[0]);
+		mSpaceVel[1] = (float)((double)mSpaceVel[1] * (double)0.9900000095367432f);
+		mSpaceVel[2] = (float)((double)0.9900000095367432f * (double)mSpaceVel[2]);
+		mSpaceVel[2] = (float)((double)mSpaceVel[2] * 0.949999988079071);
+		mSpacePos[2] = (float)(((double)mSpaceGoal[2] - (double)mSpacePos[2]) * 0.20000000298023224 +
+			(double)mSpacePos[2]);
+		mSpacePos[0] = (float)((double)mSpaceVel[0] + (double)mSpacePos[0]);
+		mSpacePos[1] = (float)((double)mSpaceVel[1] + (double)mSpacePos[1]);
+		mSpacePos[2] = (float)((double)mSpaceVel[2] + (double)mSpacePos[2]);
 	}
 	mUpdateCnt++;
 	// Towards the target, no faster than twice the warm-up
@@ -167,11 +167,11 @@ void GemSoul::Update()
 		aWarm = 1.0;
 	float aLimit = (float)(aWarm + aWarm);
 	const float aTwoPi = 6.2831854820251465f;
-	mUnknown8E8 = mUnknown8EC + mUnknown8E8;
-	if (aTwoPi < mUnknown8E8 || aTwoPi == mUnknown8E8)
-		mUnknown8E8 = mUnknown8E8 - aTwoPi;
-	else if (!(-aTwoPi < mUnknown8E8))
-		mUnknown8E8 = mUnknown8E8 + aTwoPi;
+	mSwirlAngle = mSwirlSpeed + mSwirlAngle;
+	if (aTwoPi < mSwirlAngle || aTwoPi == mSwirlAngle)
+		mSwirlAngle = mSwirlAngle - aTwoPi;
+	else if (!(-aTwoPi < mSwirlAngle))
+		mSwirlAngle = mSwirlAngle + aTwoPi;
 	mAngle = mAngleSpeed + mAngle;
 	if (!(mAngle < aTwoPi))
 		mAngle = mAngle - aTwoPi;
@@ -196,7 +196,7 @@ void GemSoul::Update()
 			gApp->PlaySample(SOUND_SOULIFY);
 			// (the original writes here even when the gem has just blasted)
 			if (mPiece != nullptr)
-				mPiece->mUnknown535 = false;
+				mPiece->mIsLive = false;
 		}
 		if (200 <= mUpdateCnt) {
 			delete mPiece;
@@ -227,14 +227,14 @@ void GemSoul::Update()
 	if (mState < 2 || gD3DInterface == nullptr) {
 		float aCos = std::cos(mAngle);
 		int aX = Ftol((double)mRadius * (double)aCos + (double)mX);
-		mUnknown850 = aX;
+		mTurnBackX = aX;
 		mDrawX = aX;
 		float aSin = std::sin(mAngle);
 		int aY = Ftol((double)mRadius * (double)aSin + (double)mY);
-		float aWait = (float)((double)mUnknown660 - 0.01);
-		mUnknown854 = aY;
+		float aWait = (float)((double)mRetargetWait - 0.01);
+		mTurnBackY = aY;
 		mDrawY = aY;
-		mUnknown660 = aWait;
+		mRetargetWait = aWait;
 		double aMaxRadius = (double)gBoard->mWidth * 0.30000001192092896;
 		double aRadius = (double)mRadius + 0.5;
 		if (!(aRadius < aMaxRadius || aRadius == aMaxRadius))
@@ -243,51 +243,51 @@ void GemSoul::Update()
 		if (mState < 2) {
 			if (!(0.0f < aWait)) {
 				// A new target in the area
-				mUnknown660 = (float)((double)std::fabs(RandSigned()) * 0.5 + 0.30000001192092896);
+				mRetargetWait = (float)((double)std::fabs(RandSigned()) * 0.5 + 0.30000001192092896);
 				float aRandX = std::fabs(RandSigned());
 				mTargetX = (float)((double)mRectWidth * (double)aRandX + (double)mRectX);
 				float aRandY = std::fabs(RandSigned());
 				mTargetY = (float)((double)mRectHeight * (double)aRandY + (double)mRectY);
 			}
-			double aGrow = (double)mUnknown740 + 0.01;
+			double aGrow = (double)mReturn + 0.01;
 			if (1.25 < aGrow)
 				aGrow = 1.25;
-			mUnknown740 = (float)aGrow;
+			mReturn = (float)aGrow;
 		}
 		mAngleSpeed = (float)((double)aTwoPi * 7.5e-06 + (double)mAngleSpeed);
 	}
 	if (mState == 2) {
 		// Back to its cell
-		if (0.0f < mUnknown660)
-			mUnknown660 = (float)((double)mUnknown660 - 0.01);
-		mTargetX = (float)(gBoard->GetColX(mUnknown680->mCol) + gGemWidth / 2);
-		mTargetY = (float)(gBoard->GetRowY(mUnknown680->mRow) + gGemHeight / 2);
+		if (0.0f < mRetargetWait)
+			mRetargetWait = (float)((double)mRetargetWait - 0.01);
+		mTargetX = (float)(gBoard->GetColX(mHomePiece->mCol) + gGemWidth / 2);
+		mTargetY = (float)(gBoard->GetRowY(mHomePiece->mRow) + gGemHeight / 2);
 		int aY;
-		if (0.0f < mUnknown660 || mUnknown7E0.IncInVal()) {
-			double aT = mUnknown7E0.GetOutVal();
-			double aT2 = mUnknown7E0.GetOutVal();
-			mDrawX = Ftol((1.0 - aT) * (double)mUnknown850 + (double)mTargetX * aT2);
-			aT = mUnknown7E0.GetOutVal();
-			aT2 = mUnknown7E0.GetOutVal();
-			aY = Ftol((1.0 - aT) * (double)mUnknown854 + (double)mTargetY * aT2);
+		if (0.0f < mRetargetWait || mFlightClock.IncInVal()) {
+			double aT = mFlightClock.GetOutVal();
+			double aT2 = mFlightClock.GetOutVal();
+			mDrawX = Ftol((1.0 - aT) * (double)mTurnBackX + (double)mTargetX * aT2);
+			aT = mFlightClock.GetOutVal();
+			aT2 = mFlightClock.GetOutVal();
+			aY = Ftol((1.0 - aT) * (double)mTurnBackY + (double)mTargetY * aT2);
 		} else {
 			mRadius = 0;
 			mDrawX = Ftol((double)mTargetX);
 			mX = (float)mDrawX;
 			aY = Ftol((double)mTargetY);
-			mUnknown73C = true;
+			mIsHome = true;
 			mY = (float)aY;
 		}
 		mDrawY = aY;
-		mUnknown740 = (float)mUnknown858.GetOutVal();
+		mReturn = (float)mReturnCurve.GetOutVal();
 	} else if (mState == 0) {
 		// Coming out of the gem
 		if (mPiece == nullptr || 80 < mUpdateCnt) {
-			double aBright = (double)mUnknown684 + 0.05;
+			double aBright = (double)mBrightness + 0.05;
 			if (1.0 < aBright)
 				aBright = 1.0;
-			mUnknown684 = (float)aBright;
-			if (!(1.0f > mUnknown684) && !(1.0f > mUnknown740))
+			mBrightness = (float)aBright;
+			if (!(1.0f > mBrightness) && !(1.0f > mReturn))
 				mState = 1;
 		}
 	}
@@ -295,31 +295,32 @@ void GemSoul::Update()
 	mY = mY + aVelY;
 	// The twelve beams (drawn by none of the 2D code)
 	for (int i = 0; i < 12; i++) {
-		float aT = mUnknown6D8[i] + mUnknown6A8[i];
-		mUnknown6A8[i] = aT;
+		float aT = mBeamRate[i] + mBeamPhase[i];
+		mBeamPhase[i] = aT;
 		if (!(1.0f > aT)) {
-			mUnknown6D8[i] = 0;
-			mUnknown6A8[i] = 0;
+			mBeamRate[i] = 0;
+			mBeamPhase[i] = 0;
 		}
 	}
 	if (mUpdateCnt % 10 == 0) {
 		int aBeam = (int)Rand() % 12;
-		if (mUnknown6D8[aBeam] == 0.0f) {
+		if (mBeamRate[aBeam] == 0.0f) {
 			float aRate;
 			float aFirst = std::fabs((float)((double)RandSigned() * 0.029999999329447746));
 			if ((double)aFirst < 0.004999999888241291 || (double)aFirst == 0.004999999888241291)
 				aRate = std::fabs((float)((double)RandSigned() * 0.029999999329447746));
 			else
 				aRate = 0.005f;
-			mUnknown6D8[aBeam] = aRate;
-			mUnknown708[aBeam] = (int)Rand() % 3;
+			mBeamRate[aBeam] = aRate;
+			mBeamSize[aBeam] = (int)Rand() % 3;
 		}
 	}
 }
 
+// 0x7008ea: the test of a bit of mType (+0x650), inline here
 void GemSoul::Draw(Graphics* g)
 {
-	if (!mUnknown8F4)
+	if (!mIsVisible)
 		return;
 	if (mPiece != nullptr) {
 		// The gem itself, shrinking away from 80 updates on
@@ -346,19 +347,19 @@ void GemSoul::Draw(Graphics* g)
 				gD3DInterface->PopTransform();
 		}
 	}
-	// Direct3D draws the rest through a SexyTransform2D scaled by mUnknown684 about the soul
+	// Direct3D draws the rest through a SexyTransform2D scaled by mBrightness about the soul
 	if (gD3DInterface != nullptr) {
 		SexyTransform2D aMatrix;
 		aMatrix.LoadIdentity();
 		aMatrix.Translate((float)-mDrawX, (float)-mDrawY);
-		aMatrix.Scale(mUnknown684, mUnknown684);
+		aMatrix.Scale(mBrightness, mBrightness);
 		aMatrix.Translate((float)mDrawX, (float)mDrawY);
 		gD3DInterface->PushTransform(aMatrix, true);
 	}
 	g->SetColorizeImages(true);
-	// (the original picks a colour by the type here, and when mUnknown740 is 1 works out twelve beams with it, drawing
+	// (the original picks a colour by the type here, and when mReturn is 1 works out twelve beams with it, drawing
 	// none of them)
-	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown684 * 255.0)));
+	g->SetColor(Color(255, 255, 255, Ftol((double)mBrightness * 255.0)));
 	if (mType & (1 << 3)) {
 		Image* aCrackle = IMAGE_GEM_LIGHTNING_CRACKLE;
 		int aCels = aCrackle->mNumRows * aCrackle->mNumCols;
@@ -379,11 +380,11 @@ void GemSoul::Draw(Graphics* g)
 		for (int i = 0; i < 100; i++) {
 			Particle& aParticle = mParticles[i];
 			if (0.0f < aParticle.mT) {
-				int aWidth = Ftol((double)aSparklet->mWidth * (double)mUnknown740 * 1.5);
-				int aHeight = Ftol((double)aSparklet->mHeight * (double)mUnknown740 * 1.5);
-				g->SetColor(Color(255, 200, 32, Ftol((double)aParticle.mT * 255.0 * (double)mUnknown684)));
-				int aY = Ftol((double)aParticle.mY * (double)mUnknown740 + (double)mDrawY - (double)(aHeight / 2));
-				int aX = Ftol((double)aParticle.mX * (double)mUnknown740 + (double)mDrawX - (double)(aWidth / 2));
+				int aWidth = Ftol((double)aSparklet->mWidth * (double)mReturn * 1.5);
+				int aHeight = Ftol((double)aSparklet->mHeight * (double)mReturn * 1.5);
+				g->SetColor(Color(255, 200, 32, Ftol((double)aParticle.mT * 255.0 * (double)mBrightness)));
+				int aY = Ftol((double)aParticle.mY * (double)mReturn + (double)mDrawY - (double)(aHeight / 2));
+				int aX = Ftol((double)aParticle.mX * (double)mReturn + (double)mDrawX - (double)(aWidth / 2));
 				g->DrawImage(aSparklet, aX, aY, aWidth, aHeight);
 			}
 		}
@@ -391,17 +392,17 @@ void GemSoul::Draw(Graphics* g)
 	}
 	if (mType & (1 << 0)) {
 		Image* aFruits = IMAGE_FRUITS;
-		int aWidth = Ftol((double)aFruits->GetCelWidth() * (double)mUnknown740 * 0.5);
-		int aHeight = Ftol((double)aFruits->GetCelHeight() * (double)mUnknown740 * 0.5);
-		g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown684 * 128.0)));
+		int aWidth = Ftol((double)aFruits->GetCelWidth() * (double)mReturn * 0.5);
+		int aHeight = Ftol((double)aFruits->GetCelHeight() * (double)mReturn * 0.5);
+		g->SetColor(Color(255, 255, 255, Ftol((double)mBrightness * 128.0)));
 		g->DrawImageCel(aFruits, Rect(mDrawX - aWidth / 2, mDrawY - aHeight / 2, aWidth, aHeight), mColor);
 	}
-	g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown684 * 255.0)));
-	int aWidth = Ftol((double)mOuter->mWidth * (double)mUnknown740);
-	int aHeight = Ftol((double)mOuter->mHeight * (double)mUnknown740);
+	g->SetColor(Color(255, 255, 255, Ftol((double)mBrightness * 255.0)));
+	int aWidth = Ftol((double)mOuter->mWidth * (double)mReturn);
+	int aHeight = Ftol((double)mOuter->mHeight * (double)mReturn);
 	g->DrawImage(mOuter, mDrawX - aWidth / 2, mDrawY - aHeight / 2, aWidth, aHeight);
-	aWidth = Ftol((double)mSheen->mWidth * (double)mUnknown740);
-	aHeight = Ftol((double)mSheen->mHeight * (double)mUnknown740);
+	aWidth = Ftol((double)mSheen->mWidth * (double)mReturn);
+	aHeight = Ftol((double)mSheen->mHeight * (double)mReturn);
 	g->DrawImage(mSheen, mDrawX - aWidth / 2, mDrawY - aHeight / 2, aWidth, aHeight);
 	if (gD3DInterface != nullptr)
 		gD3DInterface->PopTransform();

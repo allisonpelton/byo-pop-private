@@ -268,8 +268,12 @@ autoplay crashes in this copy. The web build's numbers are under "Performance (w
 | A focus loss during a level's jump crashed the game, or left the next level's board empty for good | the board's update holds while it is paused, but the original's Hyperspace widget ran on and passed the row count that ends the jump | space holds still while the board is paused, and the jump goes on where it was (NOTES.md, "Deviations") | 64f450e5 |
 | The doom gem's placement could loop for ever and freeze the game | NextTurnGems picks random inner cells until one qualifies, with no limit | when no inner gem can take it, no doom gem comes that turn; otherwise the same picks and draws | this pass |
 | Loading took about 8 seconds whatever the machine | the loader waited for its smoothed bar | the menu comes once the files are loaded | 0462fe93 |
+| After the faster loading, the PopCap logo faded in behind the menu and the menu's Play button stayed invisible until clicked (the user's report) | the port handed over a few updates into the loader's opening, whose curves the original has played out by its hand-over at update 848 | the loader's clock moves on to update 848 at the hand-over; check.sh freezes the menu with Play drawn | this pass |
 | Registration code and the "More Games" button | the trial, nag and buy paths | taken out (NOTES.md, "Registration and outbound buttons") | fe0f06bc |
 | On the web in 3D every click landed a row too high | the page's stage changed shape by its style, which SDL never hears of | the page sends a resize once the game gives its size | this pass (shared) |
+| The sound effects sounded distorted (the user's report): every match's gem_hit came out a dull thud at a fifth of its level, and lightbar_blink and bomb_explode lost their highs | the port's Ogg decoder, stb_vorbis, decodes Vorbis residue type 0 (these three files, the only ones from a 2001 encoder) with a wrong length, so only the lowest band of each block is heard | measured with -audiocapture against a re-creation from ffmpeg's decode (NOTES.md, "Sound"); the one-line fix is in shared code, sent to the coordinator; `bjt_sounddecode --compare` catches it | shared, pending |
+| A game left on the web was lost: two levels played, then another game opened (the user's report) | a page never shuts down, so it keeps the files a shutdown would write by asking the game (GetShutdownSaves), which Twist did not answer | Twist gives the save its quit would write, byte for byte, and the profile (NOTES.md, "Saving on the way out"); check.sh compares them with a quit's and resumes | this pass |
+| The level-up's take-off looked wrong in 3D (the user's report: "a lot happening, all very fast", the meter's landing fine and its take-off not): large white slabs swept over the screen for about two seconds while the board left | the old level's picture leaves on a glass cube that moves right, down and away from the camera; the original passes its three moves to Translate z first (0x712808 to 0x712849), and the port had read them as x, y and z, so the cube came towards the camera and through it, its outer rainbow pass filling the screen | the cube moves as the original's; compared frame by frame with the original in 3D on the user's desktop (NOTES.md, "3D mode"), the take-off, the flight and the landing match; check.sh freezes five frames of the take-off; the 2D transition already matched the original's by shotdiff, apart from the gem souls' paths, which follow the update count since launch | this pass |
 
 The fixes mod (`mods/fixes`, NOTES.md "The fixes mod") holds one fix, `rewindSkips`: a best move's replay hides the
 board's float, mirrored and smoothly turning pictures while it rewinds, as it hides the rest. The port now loads
@@ -283,3 +287,47 @@ square that changes the board without a line, the one the level's twist count pi
 it never cycles one square through four turns; the game's own autoplay would draw a random square from the game's
 generator there.
 
+
+## Challenge mode against the original (2026-11-11)
+
+### What was compared and how
+
+Phase two had compared challenge mode only up to the start of a challenge. This part compared five whole challenges in
+2D: a win that opens the bar's next stage; the Tube Menu and Restart Challenge, then a timed win; a three-minute
+highest-single-move challenge; a one-move challenge; and a timed challenge lost to its game over. Each ran
+in the original under origrun (seed 1234, 2D) and in the port under rundesk, and the shots were compared by
+shotdiff and the sound by soundcmp. The 3D load, the dialogs, the win and the bar were compared on the visible desktop,
+which the user allowed for Twist's 3D ("3D testing for Twist approved"). Three short silent runs did this on
+2026-11-11, between 03:19 and 03:46 local time, with short probe runs between 03:12 and 03:30. Each left nothing running
+and put back the game's registry key and the users folders. NOTES.md's "Challenges against the original" has the method.
+
+### Changes this part made
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| The challenge bar's opened lock and new number moved at the wrong times | the lock wipes by the curve at +0x248 (0x6df324) and the new number fades by 1 minus the one at +0x1d8 (0x6df21c); the port had them swapped | the same as the original | this pass |
+| A Twist dialog's button never looked pressed or hovered | DrawImageBox takes the whole cel (0x422980), and the button image has one column of three rows; the port took the cel modulo the columns, always 0 | the same as the original | this pass |
+| "CHALLENGE COMPLETE" zoomed one update ahead in script shots | its curve counts the app's updates, and a script's shot ran after the count moved (a test artefact, not seen in play) | the framework's mid-update shots draw with the count one lower | 85bf301c, 952429de (shared) |
+| The board's picture at a challenge's end drew a black square in 2D | the original's software stretch (0x41a3e0) blits with the draw's colour and additive mode; the port's dropped both | the same as the original | 85bf301c (shared) |
+
+### Oddities left alone
+
+None new. Smoke, sparks, the flame ring and the game-over gems' fall come out differently in every run, because they
+draw from the global Rand, which in the original moves from run to run: a coal gem's ember counter starts from the heap
+(already under "Oddities" in NOTES.md). The boards come from the board's own generator and match in every run,
+through the game over. The port's `-fast` clock plays no part: the lost challenge rerun in real time gave the same
+pictures, pixel for pixel.
+
+### Differences that remain
+
+- The original's mouse pointer is in its shots; the port's are taken without one.
+- The picked planet's name seems to flash in over five updates. The original draws nothing for six updates after the
+  click's slow update, catching up, so the same picture stands while the port's frames move on.
+- In 3D on the real clock: the nebula turns on its own clock, and once the screenshots have slowed the original its
+  clicks land a few updates off, so its later boards part from the port's. By state (visrun's peeks), the load matches
+  update for update.
+- The 3D performance pairs were not taken: a real-time visible run gives no clean timing.
+
+### Deviations that remain
+
+None added.

@@ -40,14 +40,14 @@ public:
 	// UpdateProgress (0x6e0ddb) sets them
 	int mStage = 0;                 // +0x164: the challenge the planet starts (from 1)
 	CurvedVal mBarFill;             // +0x168: the bar's fill grows by it when a stage is done
-	CurvedVal mUnknown1D8;          // +0x1d8: the lock and the new number glow
-	CurvedVal mUnknown248;          // +0x248: the old number's glow and the lock's wipe
-	CurvedVal mUnknown2B8;          // +0x2b8: the additive glow of the bar
+	CurvedVal mNewNumberGlow;       // +0x1d8: the new number glows and the old one fades
+	CurvedVal mLockWipe;            // +0x248: the opened lock wipes away from the top
+	CurvedVal mBarGlow;             // +0x2b8: the additive glow of the bar
 	CurvedVal mDim;                 // +0x328: 1 darkens the planet and its text (the planet is closed or opening)
-	CurvedVal mUnknown398;          // +0x398: stepped; nothing here reads it
+	CurvedVal mStageStep;           // +0x398: stepped; nothing here reads it
 	CurvedVal mTextFade;            // +0x408: the bar's and the name's fade
 	CurvedVal mEclipseFade;         // +0x478: the eclipse title's fade
-	float mUnknown4E8 = 1.0f;       // +0x4e8: rises to 1 by 0.005 an update; below 1 it throws sparks
+	float mSparkProgress = 1.0f;    // +0x4e8: rises to 1 by 0.005 an update; below 1 it throws sparks
 	float mGlow = 0;                // +0x4ec: the name's glow while the mouse is over the planet (to 0.5)
 	std::vector<Image*> mLayers;    // +0x4f0: the category's layer pictures (planet_x, cloud_x); the planet is the first
 	Image* mNameImage = nullptr;    // +0x500: IMAGE_CHALLENGEUI_TITLES_<category>
@@ -55,25 +55,25 @@ public:
 	Color mCategoryColor;           // +0x508: the category's color (challenges.xml); the bar and the glow use it
 	int mCategory = 0;              // +0x518: the category's number (also the id)
 	bool mOpen = false;             // +0x51c: the category is open to the player
-	bool mUnknown51D = false;       // +0x51d: when set, Update does nothing (nothing sets it)
-	float mUnknown520 = 0;          // +0x520: AddedToManager's start angle round the circle
-	float mUnknown524 = 0;          // +0x524: this planet's angle
-	float mUnknown528 = 0;          // +0x528: the menu's +0x188
-	int mUnknown52C = 0;            // +0x52c: counts the pulses of mUnknown530 still to come
-	float mUnknown530 = 0;          // +0x530: runs down by 0.04 an update, and starts again at 1 while mUnknown52C is over 0
+	bool mIsFrozen = false;         // +0x51d: when set, Update does nothing (nothing sets it)
+	float mStartAngle = 0;          // +0x520: AddedToManager's start angle round the circle
+	float mAngle = 0;               // +0x524: this planet's angle
+	float mOrbitRadius = 0;         // +0x528: the menu's +0x188
+	int mPulsesLeft = 0;            // +0x52c: counts the pulses of mPulse still to come
+	float mPulse = 0;               // +0x530: runs down by 0.04 an update, and starts again at 1 while mPulsesLeft is over 0
 	CurvedVal mIdle;                // +0x538: set at construction; Update steps it
 	// The planet's place in the menu's 3D world (AddedToManager 0x6dfc49 sets it; the camera flies to it when the
 	// planet is picked)
 	float mWorldPos[3] = {0, 0, 0};   // +0x5a8
 	// Where Draw put the planet: the screen's x and y and its depth, which says how big it is
 	float mScreenPos[3] = {0, 0, 0};  // +0x5b4
-	float mFade = 0;                  // +0x5c0: the bar and the name come in (0 to 1) while mUnknown5C4 is set
-	bool mUnknown5C4 = false;         // +0x5c4: set by the menu's Update (0x6dd2bd) from whether the planet is open
-	bool mUnknown5C5 = false;         // +0x5c5: SetState 3 sets it on every planet but the picked one
+	float mFade = 0;                  // +0x5c0: the bar and the name come in (0 to 1) while mIsRevealed is set
+	bool mIsRevealed = false;         // +0x5c4: set by the menu's Update (0x6dd2bd) from whether the planet is open and the mouse is shown
+	bool mIsNotPicked = false;        // +0x5c5: SetState 3 sets it on every planet but the picked one
 	bool mEclipse = false;            // +0x5c6: every challenge of the category is done; its night challenge is next
 	int mProgress = 0;                // +0x5c8: the category's best (Profile +0x204)
 	bool mAdditive = false;           // +0x5cc: the category's "additive" (the 3D draw blends its clouds by it)
-	bool mUnknown5CD = false;         // +0x5cd: Update runs UpdateProgress when the curve at +0x1d8 ends while it is set
+	bool mProgressPending = false;    // +0x5cd: Update runs UpdateProgress when the curve at +0x1d8 ends while it is set
 	float mEclipseFlares[32] = {};       // +0x5d0: the eclipse title's flares (Update moves them; only the 3D draw shows them)
 	OrbitText* mTip = nullptr;        // +0x650: the planet's tip (MakeTip), a night challenge's new record
 	float mTilt = 0;                  // +0x160: the planet's turn about x (only the 3D meshes show it)
@@ -102,16 +102,16 @@ public:
 	int mCategory = 0;                        // +0x17c: the planet picked
 	int mStageSel = 0;                        // +0x180: and its challenge
 	int mStarted = 0;                         // +0x184: set when a challenge starts
-	float mUnknown15C = 0;                    // +0x15c: runs down by 0.03 an update
-	float mUnknown188 = 0;                    // +0x188: 0.4 of the height; AddedToManager gives it to the planets (+0x528)
+	float mDescGlow = 0;                      // +0x15c: the description's glow; runs down by 0.03 an update
+	float mOrbitRadius = 0;                   // +0x188: 0.4 of the height; AddedToManager gives it to the planets (+0x528)
 	// The hovered planet's pictures (ButtonMouseEnter 0x6e665e makes them, DrawSunAndTexts 0x6e132d draws them)
 	MemoryImage* mTitleImage = nullptr;       // +0x18c: the category's name, in its colour (and the eclipse title)
 	TextImage* mDescImage = nullptr;          // +0x190: the challenge's description
-	TextImage* mDescGlowImage = nullptr;      // +0x194: the same with the font's second layer, flashed by mUnknown15C
+	TextImage* mDescGlowImage = nullptr;      // +0x194: the same with the font's second layer, flashed by mDescGlow
 	float mHoverFade = 1.0f;                  // +0x198: the hovered planet's text
 	SexyString mBestText;                     // +0x19c: "BEST: %d" under an eclipse planet's name, else empty
-	EffectsManager* mFXManager1B8 = nullptr;  // +0x1b8: a widget of the menu
-	EffectsManager* mFXManager1BC = nullptr;  // +0x1bc: the sun's glow (moved down by the open curve, drawn by Draw)
+	EffectsManager* mPlanetSparks = nullptr;  // +0x1b8: the sparks about a planet as it comes in
+	EffectsManager* mSunGlow = nullptr;  // +0x1bc: the sun's glow (moved down by the open curve, drawn by Draw)
 	int mState = 0;                           // +0x1c4: 0 away, 1 shown by the play menu, 2 leaving for a menu, 3 leaving
 	                                          // for a challenge, 4 shown at once (after a game), 5 only shown
 	// The curves SetState sets for each state (the strings are the exe's, by address) and Update steps. The ones that
@@ -128,15 +128,15 @@ public:
 	CurvedVal mCameraShiftX;                  // +0x550: added to the camera's x
 	CurvedVal mCameraShiftY;                  // +0x5c0: added to its y
 	float mCameraPos[3] = {0, -12.0f, 0};     // +0x630: where the camera starts
-	CurvedVal mUnknown640;                    // +0x640
-	CurvedVal mUnknown6B0;                    // +0x6b0
-	CurvedVal mUnknown720;                    // +0x720
+	CurvedVal mEclipseIntensity;              // +0x640: the eclipse's light, added to the planets' lighting
+	CurvedVal mEclipseCover;                  // +0x6b0: how far the moon covers the sun; the world's light follows 1 less this
+	CurvedVal mMoonTurn;                      // +0x720: the moon's turn about the sun, times one and a half pi
 	CurvedVal mCameraTurn;                    // +0x790: how far the hyperspace's camera turns to mCameraTarget
 	Mat3 mCameraTarget;                       // +0x800: the camera's turn when a planet is picked (SetState 1)
 	float mZoomPos[3] = {0, 0, 0};            // +0x824: the picked planet's place (SetState 2 to 4)
 	CurvedVal mZoom;                          // +0x830: the camera flies from its start to the picked planet by it
 	// (+0x8a0: the trial's flash over a locked challenge, registration code, left out)
-	CurvedVal mUnknown928;                    // +0x928: the glow colours' blend (only 0x6e32c9 sets it, which nothing calls)
+	CurvedVal mSunGrey;                       // +0x928: the glow colours' blend (only 0x6e32c9 sets it, which nothing calls)
 	// The camera stack: the camera places of properties/camerastack.txt (0x6e5a8d), two lines of three numbers
 	// each. The mouse drag changes the one at mCameraStackIndex; nothing else reads them.
 	struct CameraStackEntry {
@@ -150,9 +150,9 @@ public:
 	int mDragStartY = 0;                      // +0x9c4
 	int mLastMouseX = 0;                      // +0x9c8
 	int mLastMouseY = 0;                      // +0x9cc
-	float mUnknown9D0 = 0;                    // +0x9d0: counts up while no planet is hovered
-	float mUnknown9D4 = 0;                    // +0x9d4: then rises to 1
-	bool mUnknown9BC = false;                 // +0x9bc
+	float mIdleTime = 0;                      // +0x9d0: counts up while no planet is hovered
+	float mTitleSunGlow = 0;                  // +0x9d4: then rises to 1; the title sun's alpha
+	bool mClicksBlocked = false;              // +0x9bc: cleared at construction and on closing; a planet click does nothing while it is set (nothing sets it)
 	// +0x9dc: the board's end-of-challenge message (0x6b330d makes it); Update lifts its rank bar's timer while its update
 	// count is 250 and deletes it once clicked
 	AwardTelly* mAwardTelly = nullptr;
@@ -193,10 +193,10 @@ public:
 // 0x6e132d)
 extern CurvedVal gSunCurve;      // 0x85c558: the sun's glow (SetState links it to mOpen)
 extern Transform3D gMenuCamera;  // 0x85c51c: the camera: its place and the turn of its three axes
-extern float gUnknown85C508;     // 0x85c508: 1 - mUnknown6B0, but not below 0.25
-extern Color gUnknown85C50C;     // 0x85c50c: mUnknown928 from (128, 32, 128) to (0, 0, 128)
-extern Color gSunGlowColor;      // 0x85c5c8: mUnknown928 from white to (255, 128, 255)
+extern float gWorldLight;     // 0x85c508: 1 - mEclipseCover, but not below 0.25
+extern Color gAmbientBase;     // 0x85c50c: mSunGrey from (128, 32, 128) to (0, 0, 128)
+extern Color gSunGlowColor;      // 0x85c5c8: mSunGrey from white to (255, 128, 255)
 extern float gAspect;            // 0x84ebf8: the screen's width over its height
-extern float gAspect45;          // 0x84ebfc: 45 times that
+extern float gFovTimesAspect;          // 0x84ebfc: 45 times that
 
 }  // namespace Sexy

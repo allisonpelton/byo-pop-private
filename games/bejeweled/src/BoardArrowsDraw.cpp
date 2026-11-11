@@ -1,4 +1,4 @@
-// port(variant): arrow gems' drawing (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20, stage 18; the rules are in
+// port(variant): arrow gems' drawing (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20; the rules are in
 // BoardArrows.cpp). Not part of the original game. Apart from the board's rules so the verifier, which draws nothing,
 // need not build the art: it has empty ones (headless/HeadlessShims.cpp).
 
@@ -61,7 +61,7 @@ MemoryImage* ArrowSheet(WinDMApp* theApp, int theColors)
 		return sSheet;
 	std::vector<uint32_t> aBits;
 	Art::DrawArrowSheet(theColors, aScale, aBits);
-	int aW = Art::ARROW_DIRECTIONS * 52, aH = 52 * theColors;
+	int aW = Art::ARROW_DIRECTIONS * Board::GEMSHEET_PITCH, aH = Board::GEMSHEET_PITCH * theColors;
 	if (sSheet == NULL)
 		sSheet = new MemoryImage(theApp);
 	if (aScale == 1)
@@ -87,7 +87,7 @@ bool Board::DrawArrowGem(Graphics* g, Piece* thePiece, int theX, int theY)
 	MemoryImage* aSheet = ArrowSheet(mApp, mRules.mBoard.mGemColors);
 	int aColor = std::min(thePiece->mColor, 11);
 	int aDir = thePiece->mArrow - 1;
-	g->DrawImage(aSheet, theX, theY, Rect(aDir * 52 + 2, aColor * 52, GEM_SIZE, GEM_SIZE));
+	g->DrawImage(aSheet, theX, theY, Rect(aDir * GEMSHEET_PITCH + 2, aColor * GEMSHEET_PITCH, GEM_SIZE, GEM_SIZE));
 	// one step from its edge: it pulses white
 	if ((mState == STATE_PLAYING) && (ArrowDistance(thePiece->mCol, thePiece->mRow, aDir) == 0))
 	{
@@ -96,7 +96,7 @@ bool Board::DrawArrowGem(Graphics* g, Piece* thePiece, int theX, int theY)
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		g->SetColorizeImages(true);
 		g->SetColor(Color(255, 255, 255, anAlpha));
-		g->DrawImage(aSheet, theX, theY, Rect(aDir * 52 + 2, aColor * 52, GEM_SIZE, GEM_SIZE));
+		g->DrawImage(aSheet, theX, theY, Rect(aDir * GEMSHEET_PITCH + 2, aColor * GEMSHEET_PITCH, GEM_SIZE, GEM_SIZE));
 		g->SetColorizeImages(false);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}

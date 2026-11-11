@@ -3371,13 +3371,10 @@ int GetSoundThrow(ResourceManager* theManager, int theId, const char* theName)  
 }  // namespace
 
 Image* Sexy::GetImageById(int theId) { return *(Image**)gResources[theId]; }
-Font* Sexy::GetFontById(int theId) { return *(Font**)gResources[theId]; }
 int Sexy::GetSoundById(int theId) { return *(int*)gResources[theId]; }
 int Sexy::GetImageOffsetX(int theId) { return gImageOffsets[theId][0]; }
 int Sexy::GetImageOffsetY(int theId) { return gImageOffsets[theId][1]; }
 Image** Sexy::GetImageRefById(int theId) { return (Image**)gResources[theId]; }
-Font** Sexy::GetFontRefById(int theId) { return (Font**)gResources[theId]; }
-int* Sexy::GetSoundRefById(int theId) { return (int*)gResources[theId]; }
 const char* Sexy::GetStringIdById(int theId) { return (unsigned)theId < RESOURCE_ID_MAX ? gResourceNames[theId] : ""; }
 
 // The original fills a map from the names (the later of two equal names wins) and looks the name up in it
@@ -3390,10 +3387,8 @@ int Sexy::GetIdByName(const char* theName)
 	return RESOURCE_ID_MAX;
 }
 ResourceId Sexy::GetIdByImage(Image* theImage) { return GetIdByVariant((intptr_t)theImage); }
-ResourceId Sexy::GetIdByFont(Font* theFont) { return GetIdByVariant((intptr_t)theFont); }
-ResourceId Sexy::GetIdBySound(int theSound) { return GetIdByVariant(theSound); }
 
-bool Sexy::Extract2DOnlyResources(ResourceManager* theManager)
+bool Sexy::Extract2DOnlyResources(ResourceManager* theManager)  // 0x73eae6
 {
 	try {
 		IMAGE_PLANET = GetImageThrow(theManager, IMAGE_PLANET_ID, "IMAGE_PLANET");
@@ -3404,62 +3399,9 @@ bool Sexy::Extract2DOnlyResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractDynamicResources(ResourceManager* theManager)
-{
-	try {
-		FONT_600_BEACHHOUSE86 = GetFontThrow(theManager, FONT_600_BEACHHOUSE86_ID, "FONT_600_BEACHHOUSE86");
-		FONT_600_BOMBPOP3 = GetFontThrow(theManager, FONT_600_BOMBPOP3_ID, "FONT_600_BOMBPOP3");
-		FONT_600_CONTINUUMBOLD20 = GetFontThrow(theManager, FONT_600_CONTINUUMBOLD20_ID, "FONT_600_CONTINUUMBOLD20");
-		FONT_600_CONTINUUMBOLD38 = GetFontThrow(theManager, FONT_600_CONTINUUMBOLD38_ID, "FONT_600_CONTINUUMBOLD38");
-		FONT_600_CONTINUUMBOLD47 = GetFontThrow(theManager, FONT_600_CONTINUUMBOLD47_ID, "FONT_600_CONTINUUMBOLD47");
-		FONT_600_CONTINUUMBOLD120 = GetFontThrow(theManager, FONT_600_CONTINUUMBOLD120_ID, "FONT_600_CONTINUUMBOLD120");
-		FONT_600_DSCRYSTAL127 = GetFontThrow(theManager, FONT_600_DSCRYSTAL127_ID, "FONT_600_DSCRYSTAL127");
-		FONT_600_FRESHBOT2220 = GetFontThrow(theManager, FONT_600_FRESHBOT2220_ID, "FONT_600_FRESHBOT2220");
-		FONT_600_HUMANST521BT25 = GetFontThrow(theManager, FONT_600_HUMANST521BT25_ID, "FONT_600_HUMANST521BT25");
-		FONT_600_HUMANST521BT30 = GetFontThrow(theManager, FONT_600_HUMANST521BT30_ID, "FONT_600_HUMANST521BT30");
-		FONT_600_HUMANST521BT40 = GetFontThrow(theManager, FONT_600_HUMANST521BT40_ID, "FONT_600_HUMANST521BT40");
-		FONT_768_BEACHHOUSE86 = GetFontThrow(theManager, FONT_768_BEACHHOUSE86_ID, "FONT_768_BEACHHOUSE86");
-		FONT_768_BOMBPOP3 = GetFontThrow(theManager, FONT_768_BOMBPOP3_ID, "FONT_768_BOMBPOP3");
-		FONT_600_CONTBOLD25SCORE = GetFontThrow(theManager, FONT_600_CONTBOLD25SCORE_ID, "FONT_600_CONTBOLD25SCORE");
-		FONT_768_CONTBOLD25SCORE = GetFontThrow(theManager, FONT_768_CONTBOLD25SCORE_ID, "FONT_768_CONTBOLD25SCORE");
-		FONT_768_CONTINUUMBOLD20 = GetFontThrow(theManager, FONT_768_CONTINUUMBOLD20_ID, "FONT_768_CONTINUUMBOLD20");
-		FONT_768_CONTINUUMBOLD38 = GetFontThrow(theManager, FONT_768_CONTINUUMBOLD38_ID, "FONT_768_CONTINUUMBOLD38");
-		FONT_768_CONTINUUMBOLD47 = GetFontThrow(theManager, FONT_768_CONTINUUMBOLD47_ID, "FONT_768_CONTINUUMBOLD47");
-		FONT_768_CONTINUUMBOLD120 = GetFontThrow(theManager, FONT_768_CONTINUUMBOLD120_ID, "FONT_768_CONTINUUMBOLD120");
-		FONT_768_DSCRYSTAL127 = GetFontThrow(theManager, FONT_768_DSCRYSTAL127_ID, "FONT_768_DSCRYSTAL127");
-		FONT_768_FRESHBOT2220 = GetFontThrow(theManager, FONT_768_FRESHBOT2220_ID, "FONT_768_FRESHBOT2220");
-		FONT_768_HUMANST521BT25 = GetFontThrow(theManager, FONT_768_HUMANST521BT25_ID, "FONT_768_HUMANST521BT25");
-		FONT_768_HUMANST521BT30 = GetFontThrow(theManager, FONT_768_HUMANST521BT30_ID, "FONT_768_HUMANST521BT30");
-		FONT_768_HUMANST521BT40 = GetFontThrow(theManager, FONT_768_HUMANST521BT40_ID, "FONT_768_HUMANST521BT40");
-		FONT_BEACHHOUSE86 = GetFontThrow(theManager, FONT_BEACHHOUSE86_ID, "FONT_BEACHHOUSE86");
-		FONT_BOMBPOP3 = GetFontThrow(theManager, FONT_BOMBPOP3_ID, "FONT_BOMBPOP3");
-		FONT_CONTBOLD15 = GetFontThrow(theManager, FONT_CONTBOLD15_ID, "FONT_CONTBOLD15");
-		FONT_CONTBOLD19 = GetFontThrow(theManager, FONT_CONTBOLD19_ID, "FONT_CONTBOLD19");
-		FONT_CONTBOLD30 = GetFontThrow(theManager, FONT_CONTBOLD30_ID, "FONT_CONTBOLD30");
-		FONT_CONTBOLD25SCORE = GetFontThrow(theManager, FONT_CONTBOLD25SCORE_ID, "FONT_CONTBOLD25SCORE");
-		FONT_CONTINUUMBOLD20 = GetFontThrow(theManager, FONT_CONTINUUMBOLD20_ID, "FONT_CONTINUUMBOLD20");
-		FONT_CONTINUUMBOLD38 = GetFontThrow(theManager, FONT_CONTINUUMBOLD38_ID, "FONT_CONTINUUMBOLD38");
-		FONT_CONTINUUMBOLD47 = GetFontThrow(theManager, FONT_CONTINUUMBOLD47_ID, "FONT_CONTINUUMBOLD47");
-		FONT_CONTINUUMBOLD120 = GetFontThrow(theManager, FONT_CONTINUUMBOLD120_ID, "FONT_CONTINUUMBOLD120");
-		FONT_DSCRYSTAL127 = GetFontThrow(theManager, FONT_DSCRYSTAL127_ID, "FONT_DSCRYSTAL127");
-		FONT_FRESHBOT2220 = GetFontThrow(theManager, FONT_FRESHBOT2220_ID, "FONT_FRESHBOT2220");
-		FONT_HUMANST9 = GetFontThrow(theManager, FONT_HUMANST9_ID, "FONT_HUMANST9");
-		FONT_HUMANST12 = GetFontThrow(theManager, FONT_HUMANST12_ID, "FONT_HUMANST12");
-		FONT_HUMANST19 = GetFontThrow(theManager, FONT_HUMANST19_ID, "FONT_HUMANST19");
-		FONT_HUMANST12BOLD = GetFontThrow(theManager, FONT_HUMANST12BOLD_ID, "FONT_HUMANST12BOLD");
-		FONT_HUMANST19BOLD = GetFontThrow(theManager, FONT_HUMANST19BOLD_ID, "FONT_HUMANST19BOLD");
-		FONT_HUMANST521BT25 = GetFontThrow(theManager, FONT_HUMANST521BT25_ID, "FONT_HUMANST521BT25");
-		FONT_HUMANST521BT30 = GetFontThrow(theManager, FONT_HUMANST521BT30_ID, "FONT_HUMANST521BT30");
-		FONT_HUMANST521BT40 = GetFontThrow(theManager, FONT_HUMANST521BT40_ID, "FONT_HUMANST521BT40");
-		FONT_HUMANST9BOLD = GetFontThrow(theManager, FONT_HUMANST9BOLD_ID, "FONT_HUMANST9BOLD");
-		FONT_HUMANSTBOLD19 = GetFontThrow(theManager, FONT_HUMANSTBOLD19_ID, "FONT_HUMANSTBOLD19");
-	} catch (ResourceManagerException&) {
-		return false;
-	}
-	return true;
-}
-
-bool Sexy::ExtractLoadScreenNonReleaseResources(ResourceManager* theManager)
+// 0x73e6ab: a resource id lookup, inline here
+// 0x73e6ea: a resource id lookup, inline here
+bool Sexy::ExtractLoadScreenNonReleaseResources(ResourceManager* theManager)  // 0x73ef19
 {
 	try {
 		IMAGE_CURSOR_DRAGGING = GetImageThrow(theManager, IMAGE_CURSOR_DRAGGING_ID, "IMAGE_CURSOR_DRAGGING");
@@ -3496,7 +3438,7 @@ bool Sexy::ExtractLoadScreenNonReleaseResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractLoadingThreadResources(ResourceManager* theManager)
+bool Sexy::ExtractLoadingThreadResources(ResourceManager* theManager)  // 0x74406e
 {
 	try {
 		IMAGE_INGAMEUI_GRIDBAR_BOT = GetImageThrow(theManager, IMAGE_INGAMEUI_GRIDBAR_BOT_ID, "IMAGE_INGAMEUI_GRIDBAR_BOT");
@@ -4213,7 +4155,7 @@ bool Sexy::ExtractLoadingThreadResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractNonResizeResources(ResourceManager* theManager)
+bool Sexy::ExtractNonResizeResources(ResourceManager* theManager)  // 0x7475db
 {
 	try {
 		IMAGE_CLOUD_ARSENAL = GetImageThrow(theManager, IMAGE_CLOUD_ARSENAL_ID, "IMAGE_CLOUD_ARSENAL");
@@ -4259,7 +4201,7 @@ bool Sexy::ExtractNonResizeResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractSoundsResources(ResourceManager* theManager)
+bool Sexy::ExtractSoundsResources(ResourceManager* theManager)  // 0x7478c1
 {
 	try {
 		SOUND_PURR = GetSoundThrow(theManager, SOUND_PURR_ID, "SOUND_PURR");
@@ -4403,7 +4345,7 @@ bool Sexy::ExtractSoundsResources(ResourceManager* theManager)
 	return true;
 }
 
-bool Sexy::ExtractTubeResources(ResourceManager* theManager)
+bool Sexy::ExtractTubeResources(ResourceManager* theManager)  // 0x74858e
 {
 	try {
 		IMAGE_INGAMEUI_TUBE_GLASS = GetImageThrow(theManager, IMAGE_INGAMEUI_TUBE_GLASS_ID, "IMAGE_INGAMEUI_TUBE_GLASS");
@@ -4435,136 +4377,4 @@ bool Sexy::ExtractTubeResources(ResourceManager* theManager)
 		return false;
 	}
 	return true;
-}
-
-bool Sexy::ExtractVizResources(ResourceManager* theManager)
-{
-	try {
-		IMAGE_ZENDROP1 = GetImageThrow(theManager, IMAGE_ZENDROP1_ID, "IMAGE_ZENDROP1");
-		IMAGE_ZENDROP2 = GetImageThrow(theManager, IMAGE_ZENDROP2_ID, "IMAGE_ZENDROP2");
-		IMAGE_ZENDROP3 = GetImageThrow(theManager, IMAGE_ZENDROP3_ID, "IMAGE_ZENDROP3");
-		IMAGE_ZENDROP4 = GetImageThrow(theManager, IMAGE_ZENDROP4_ID, "IMAGE_ZENDROP4");
-		IMAGE_ZENDROP5 = GetImageThrow(theManager, IMAGE_ZENDROP5_ID, "IMAGE_ZENDROP5");
-		IMAGE_ZENDROP6 = GetImageThrow(theManager, IMAGE_ZENDROP6_ID, "IMAGE_ZENDROP6");
-		IMAGE_ZENDROP7 = GetImageThrow(theManager, IMAGE_ZENDROP7_ID, "IMAGE_ZENDROP7");
-		IMAGE_ZENDROP8 = GetImageThrow(theManager, IMAGE_ZENDROP8_ID, "IMAGE_ZENDROP8");
-		IMAGE_ZENDROP9 = GetImageThrow(theManager, IMAGE_ZENDROP9_ID, "IMAGE_ZENDROP9");
-		IMAGE_ZENDROP10 = GetImageThrow(theManager, IMAGE_ZENDROP10_ID, "IMAGE_ZENDROP10");
-		IMAGE_ZENDROP11 = GetImageThrow(theManager, IMAGE_ZENDROP11_ID, "IMAGE_ZENDROP11");
-		IMAGE_ZENDROP12 = GetImageThrow(theManager, IMAGE_ZENDROP12_ID, "IMAGE_ZENDROP12");
-		IMAGE_ZENDROP13 = GetImageThrow(theManager, IMAGE_ZENDROP13_ID, "IMAGE_ZENDROP13");
-		IMAGE_ZENDROP14 = GetImageThrow(theManager, IMAGE_ZENDROP14_ID, "IMAGE_ZENDROP14");
-		IMAGE_ZENDROP15 = GetImageThrow(theManager, IMAGE_ZENDROP15_ID, "IMAGE_ZENDROP15");
-		IMAGE_ZENDROP16 = GetImageThrow(theManager, IMAGE_ZENDROP16_ID, "IMAGE_ZENDROP16");
-		IMAGE_ZENDROP17 = GetImageThrow(theManager, IMAGE_ZENDROP17_ID, "IMAGE_ZENDROP17");
-		IMAGE_ZENDROP18 = GetImageThrow(theManager, IMAGE_ZENDROP18_ID, "IMAGE_ZENDROP18");
-		IMAGE_ZENDROP19 = GetImageThrow(theManager, IMAGE_ZENDROP19_ID, "IMAGE_ZENDROP19");
-		IMAGE_ZENDROP20 = GetImageThrow(theManager, IMAGE_ZENDROP20_ID, "IMAGE_ZENDROP20");
-		IMAGE_ZENDROP21 = GetImageThrow(theManager, IMAGE_ZENDROP21_ID, "IMAGE_ZENDROP21");
-		IMAGE_ZENDROP22 = GetImageThrow(theManager, IMAGE_ZENDROP22_ID, "IMAGE_ZENDROP22");
-		IMAGE_ZENDROP23 = GetImageThrow(theManager, IMAGE_ZENDROP23_ID, "IMAGE_ZENDROP23");
-		IMAGE_ZENDROP24 = GetImageThrow(theManager, IMAGE_ZENDROP24_ID, "IMAGE_ZENDROP24");
-		IMAGE_ZENDROP25 = GetImageThrow(theManager, IMAGE_ZENDROP25_ID, "IMAGE_ZENDROP25");
-		IMAGE_ZENDROP26 = GetImageThrow(theManager, IMAGE_ZENDROP26_ID, "IMAGE_ZENDROP26");
-		IMAGE_ZENDROP27 = GetImageThrow(theManager, IMAGE_ZENDROP27_ID, "IMAGE_ZENDROP27");
-		IMAGE_ZENDROP28 = GetImageThrow(theManager, IMAGE_ZENDROP28_ID, "IMAGE_ZENDROP28");
-		IMAGE_ZENDROP29 = GetImageThrow(theManager, IMAGE_ZENDROP29_ID, "IMAGE_ZENDROP29");
-		IMAGE_ZENDROP30 = GetImageThrow(theManager, IMAGE_ZENDROP30_ID, "IMAGE_ZENDROP30");
-		IMAGE_ZENDROP31 = GetImageThrow(theManager, IMAGE_ZENDROP31_ID, "IMAGE_ZENDROP31");
-		IMAGE_ZENDROP32 = GetImageThrow(theManager, IMAGE_ZENDROP32_ID, "IMAGE_ZENDROP32");
-		IMAGE_ZENDROP33 = GetImageThrow(theManager, IMAGE_ZENDROP33_ID, "IMAGE_ZENDROP33");
-		IMAGE_ZENDROP34 = GetImageThrow(theManager, IMAGE_ZENDROP34_ID, "IMAGE_ZENDROP34");
-		IMAGE_ZENDROP35 = GetImageThrow(theManager, IMAGE_ZENDROP35_ID, "IMAGE_ZENDROP35");
-		IMAGE_ZENDROP36 = GetImageThrow(theManager, IMAGE_ZENDROP36_ID, "IMAGE_ZENDROP36");
-		IMAGE_ZENDROP37 = GetImageThrow(theManager, IMAGE_ZENDROP37_ID, "IMAGE_ZENDROP37");
-		IMAGE_ZENDROP38 = GetImageThrow(theManager, IMAGE_ZENDROP38_ID, "IMAGE_ZENDROP38");
-		IMAGE_ZENDROP39 = GetImageThrow(theManager, IMAGE_ZENDROP39_ID, "IMAGE_ZENDROP39");
-		IMAGE_ZENDROP40 = GetImageThrow(theManager, IMAGE_ZENDROP40_ID, "IMAGE_ZENDROP40");
-		IMAGE_ZENDROP41 = GetImageThrow(theManager, IMAGE_ZENDROP41_ID, "IMAGE_ZENDROP41");
-		IMAGE_ZENDROP42 = GetImageThrow(theManager, IMAGE_ZENDROP42_ID, "IMAGE_ZENDROP42");
-		IMAGE_ZENDROP43 = GetImageThrow(theManager, IMAGE_ZENDROP43_ID, "IMAGE_ZENDROP43");
-		IMAGE_ZENDROP44 = GetImageThrow(theManager, IMAGE_ZENDROP44_ID, "IMAGE_ZENDROP44");
-		IMAGE_ZENDROP45 = GetImageThrow(theManager, IMAGE_ZENDROP45_ID, "IMAGE_ZENDROP45");
-		IMAGE_ZENDROP46 = GetImageThrow(theManager, IMAGE_ZENDROP46_ID, "IMAGE_ZENDROP46");
-		IMAGE_ZENDROP47 = GetImageThrow(theManager, IMAGE_ZENDROP47_ID, "IMAGE_ZENDROP47");
-		IMAGE_GRAVITY_SPIRALTEXTURE = GetImageThrow(theManager, IMAGE_GRAVITY_SPIRALTEXTURE_ID, "IMAGE_GRAVITY_SPIRALTEXTURE");
-		IMAGE_BUCKYTRIFACE = GetImageThrow(theManager, IMAGE_BUCKYTRIFACE_ID, "IMAGE_BUCKYTRIFACE");
-		IMAGE_FIRESTAR = GetImageThrow(theManager, IMAGE_FIRESTAR_ID, "IMAGE_FIRESTAR");
-		IMAGE_VIRTUTORIAL = GetImageThrow(theManager, IMAGE_VIRTUTORIAL_ID, "IMAGE_VIRTUTORIAL");
-		IMAGE_YINYANG_BLACKTOALPHAZERO = GetImageThrow(theManager, IMAGE_YINYANG_BLACKTOALPHAZERO_ID, "IMAGE_YINYANG_BLACKTOALPHAZERO");
-		IMAGE_YINYANG2Z = GetImageThrow(theManager, IMAGE_YINYANG2Z_ID, "IMAGE_YINYANG2Z");
-		IMAGE_YINYANG3Z = GetImageThrow(theManager, IMAGE_YINYANG3Z_ID, "IMAGE_YINYANG3Z");
-		IMAGE_YINYANG4Z = GetImageThrow(theManager, IMAGE_YINYANG4Z_ID, "IMAGE_YINYANG4Z");
-		IMAGE_YINYANG5Z = GetImageThrow(theManager, IMAGE_YINYANG5Z_ID, "IMAGE_YINYANG5Z");
-		IMAGE_YINYANG6Z = GetImageThrow(theManager, IMAGE_YINYANG6Z_ID, "IMAGE_YINYANG6Z");
-		IMAGE_YINYANG7Z = GetImageThrow(theManager, IMAGE_YINYANG7Z_ID, "IMAGE_YINYANG7Z");
-		IMAGE_ZENGYRO_EDGETEXTURE = GetImageThrow(theManager, IMAGE_ZENGYRO_EDGETEXTURE_ID, "IMAGE_ZENGYRO_EDGETEXTURE");
-		IMAGE_AIR_STREAM = GetImageThrow(theManager, IMAGE_AIR_STREAM_ID, "IMAGE_AIR_STREAM");
-		IMAGE_MOLECULE_BG = GetImageThrow(theManager, IMAGE_MOLECULE_BG_ID, "IMAGE_MOLECULE_BG");
-		IMAGE_TADPOLE_BG = GetImageThrow(theManager, IMAGE_TADPOLE_BG_ID, "IMAGE_TADPOLE_BG");
-		IMAGE_COREWARP_BG = GetImageThrow(theManager, IMAGE_COREWARP_BG_ID, "IMAGE_COREWARP_BG");
-		IMAGE_CRAZY_BG = GetImageThrow(theManager, IMAGE_CRAZY_BG_ID, "IMAGE_CRAZY_BG");
-		IMAGE_CRAZY_BG2 = GetImageThrow(theManager, IMAGE_CRAZY_BG2_ID, "IMAGE_CRAZY_BG2");
-		IMAGE_GRAVITYFIELD_BG = GetImageThrow(theManager, IMAGE_GRAVITYFIELD_BG_ID, "IMAGE_GRAVITYFIELD_BG");
-		IMAGE_JELLYBLOB_BG = GetImageThrow(theManager, IMAGE_JELLYBLOB_BG_ID, "IMAGE_JELLYBLOB_BG");
-		IMAGE_GEARS_BG = GetImageThrow(theManager, IMAGE_GEARS_BG_ID, "IMAGE_GEARS_BG");
-		IMAGE_FRACTAL_BG = GetImageThrow(theManager, IMAGE_FRACTAL_BG_ID, "IMAGE_FRACTAL_BG");
-		IMAGE_RAINDROPS_BG = GetImageThrow(theManager, IMAGE_RAINDROPS_BG_ID, "IMAGE_RAINDROPS_BG");
-		IMAGE_SLIPSTREAM_BG = GetImageThrow(theManager, IMAGE_SLIPSTREAM_BG_ID, "IMAGE_SLIPSTREAM_BG");
-		IMAGE_SPACETHREADS_BG = GetImageThrow(theManager, IMAGE_SPACETHREADS_BG_ID, "IMAGE_SPACETHREADS_BG");
-		IMAGE_SUBATOMIC_BG = GetImageThrow(theManager, IMAGE_SUBATOMIC_BG_ID, "IMAGE_SUBATOMIC_BG");
-		IMAGE_AZTEC_BG = GetImageThrow(theManager, IMAGE_AZTEC_BG_ID, "IMAGE_AZTEC_BG");
-		IMAGE_MAGICSNAKE_BG = GetImageThrow(theManager, IMAGE_MAGICSNAKE_BG_ID, "IMAGE_MAGICSNAKE_BG");
-		IMAGE_SPLASH = GetImageThrow(theManager, IMAGE_SPLASH_ID, "IMAGE_SPLASH");
-		IMAGE_AZTEC_STRIP = GetImageThrow(theManager, IMAGE_AZTEC_STRIP_ID, "IMAGE_AZTEC_STRIP");
-		IMAGE_PULSERING = GetImageThrow(theManager, IMAGE_PULSERING_ID, "IMAGE_PULSERING");
-		IMAGE_COREWARP_BLUR = GetImageThrow(theManager, IMAGE_COREWARP_BLUR_ID, "IMAGE_COREWARP_BLUR");
-		IMAGE_FRACTAL_BLUR = GetImageThrow(theManager, IMAGE_FRACTAL_BLUR_ID, "IMAGE_FRACTAL_BLUR");
-		IMAGE_BLOB_BLUR = GetImageThrow(theManager, IMAGE_BLOB_BLUR_ID, "IMAGE_BLOB_BLUR");
-		IMAGE_BLOBDRIFT_BG = GetImageThrow(theManager, IMAGE_BLOBDRIFT_BG_ID, "IMAGE_BLOBDRIFT_BG");
-		IMAGE_BORDERED_SQUARE = GetImageThrow(theManager, IMAGE_BORDERED_SQUARE_ID, "IMAGE_BORDERED_SQUARE");
-		IMAGE_CLOUD1 = GetImageThrow(theManager, IMAGE_CLOUD1_ID, "IMAGE_CLOUD1");
-		IMAGE_CLOUD2 = GetImageThrow(theManager, IMAGE_CLOUD2_ID, "IMAGE_CLOUD2");
-		IMAGE_CLOUD3 = GetImageThrow(theManager, IMAGE_CLOUD3_ID, "IMAGE_CLOUD3");
-		IMAGE_FLUFFYSTARS = GetImageThrow(theManager, IMAGE_FLUFFYSTARS_ID, "IMAGE_FLUFFYSTARS");
-		IMAGE_GEAR = GetImageThrow(theManager, IMAGE_GEAR_ID, "IMAGE_GEAR");
-		IMAGE_GEAR_BLUR = GetImageThrow(theManager, IMAGE_GEAR_BLUR_ID, "IMAGE_GEAR_BLUR");
-		IMAGE_GLASSPLASMA_FALLBACK = GetImageThrow(theManager, IMAGE_GLASSPLASMA_FALLBACK_ID, "IMAGE_GLASSPLASMA_FALLBACK");
-		IMAGE_GLASSPLASMA_FRAGMENT = GetImageThrow(theManager, IMAGE_GLASSPLASMA_FRAGMENT_ID, "IMAGE_GLASSPLASMA_FRAGMENT");
-		IMAGE_GRAVITY_EDGETEXTURE = GetImageThrow(theManager, IMAGE_GRAVITY_EDGETEXTURE_ID, "IMAGE_GRAVITY_EDGETEXTURE");
-		IMAGE_JELLYTRAIL_TEXTURE = GetImageThrow(theManager, IMAGE_JELLYTRAIL_TEXTURE_ID, "IMAGE_JELLYTRAIL_TEXTURE");
-		IMAGE_MAGICSNAKE_FRAGMENT = GetImageThrow(theManager, IMAGE_MAGICSNAKE_FRAGMENT_ID, "IMAGE_MAGICSNAKE_FRAGMENT");
-		IMAGE_POINTY = GetImageThrow(theManager, IMAGE_POINTY_ID, "IMAGE_POINTY");
-		IMAGE_POINTY2 = GetImageThrow(theManager, IMAGE_POINTY2_ID, "IMAGE_POINTY2");
-		IMAGE_POINTY3 = GetImageThrow(theManager, IMAGE_POINTY3_ID, "IMAGE_POINTY3");
-		IMAGE_ROCKS = GetImageThrow(theManager, IMAGE_ROCKS_ID, "IMAGE_ROCKS");
-		IMAGE_SLIPSTREAM_POINTY = GetImageThrow(theManager, IMAGE_SLIPSTREAM_POINTY_ID, "IMAGE_SLIPSTREAM_POINTY");
-		IMAGE_SPACE_THREAD = GetImageThrow(theManager, IMAGE_SPACE_THREAD_ID, "IMAGE_SPACE_THREAD");
-		IMAGE_STARRY = GetImageThrow(theManager, IMAGE_STARRY_ID, "IMAGE_STARRY");
-		IMAGE_SUBATOMIC_BLUR = GetImageThrow(theManager, IMAGE_SUBATOMIC_BLUR_ID, "IMAGE_SUBATOMIC_BLUR");
-	} catch (ResourceManagerException&) {
-		return false;
-	}
-	return true;
-}
-
-bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theName)
-{
-	if (strcmp(theName, "2DOnly") == 0)
-		return Extract2DOnlyResources(theManager);
-	if (strcmp(theName, "Dynamic") == 0)
-		return ExtractDynamicResources(theManager);
-	if (strcmp(theName, "LoadScreenNonRelease") == 0)
-		return ExtractLoadScreenNonReleaseResources(theManager);
-	if (strcmp(theName, "LoadingThread") == 0)
-		return ExtractLoadingThreadResources(theManager);
-	if (strcmp(theName, "NonResize") == 0)
-		return ExtractNonResizeResources(theManager);
-	if (strcmp(theName, "Sounds") == 0)
-		return ExtractSoundsResources(theManager);
-	if (strcmp(theName, "Tube") == 0)
-		return ExtractTubeResources(theManager);
-	if (strcmp(theName, "Viz") == 0)
-		return ExtractVizResources(theManager);
-	return false;
 }

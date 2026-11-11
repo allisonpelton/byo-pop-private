@@ -101,8 +101,8 @@ RandSigned()).
 
 The site's "Always skip start-up logos" (`Byopop::SiteSkipLogos()`, `-skiplogos` natively; 2026-11-08) leaves out the
 PopCap logo and its trademark sign: the loader's constructor holds `mPopCapAlpha` (+0xb0) and `mTrademarkAlpha` (+0x580)
-at 0, and nothing but those two draws in DrawAll reads them. In the port, whose loading is over before the loader's first frames, the device and bar show from the start and the logo
-fades in only behind the main menu's arrival (from about update 50 until the loader leaves at about 154). The loading,
+at 0, and nothing but those two draws in DrawAll reads them. Since the port's hand-over moves the loader on to the original's ("Deviations", loading), the logo is never drawn in
+the port anyway, and the switch only makes sure of it. The loading,
 the menu's start, the Logo (the game's title, which stays) and every random draw are as before: a seeded Classic
 autoplay is the same at update 8010 with and without the switch, and with it off the frozen screens and the baseline
 are unchanged.
@@ -337,7 +337,7 @@ score while the board has a challenge (+0x2630). The score's row (0x7028b7) move
 whose best ever is shown (+0x768, set by Board::SetChallenge from Profile +0x204), and the text is faded by the tip
 (1 - +0x244). By the tube's kind and the challenge's flags (tested in this order):
 - kind 3 (a "Moves" rule alone): the moves left (string 0x7e40dc through the app's GetString, or 0x7e40ec for one),
-  word-wrapped in FONT_SCORE, 50 below the row with a Points rule, 80 above it without; SetUnknown158(3) sets +0x580
+  word-wrapped in FONT_SCORE, 50 below the row with a Points rule, 80 above it without; SetTubeKind(3) sets +0x580
   to 1 (0x702b87);
 - a pattern: 0x6db0ec fills the tube's four lists (+0x56c the stats, +0x53c their values, +0x55c the comparisons,
   +0x54c the goals; the only code that fills them). A night-mode pattern shows the count's title, the count's ticker
@@ -391,7 +391,7 @@ selector under the mouse included.
 
 ## The challenges' data and goal (Challenge.cpp)
 
-The app owns the challenge list (WinTwistApp+0xf5c, `ChallengeInfo`, 0x18 bytes, built right after Ranks): the categories read from properties\challenges.xml by 0x6dcff3. A category (0x74 bytes) holds its id, the layer pictures, additive, the visualizer name, bkg2d, its challenges, the nightmode "special" challenge and a colour. A challenge (0xe4 bytes) holds its texts, the rules (stat, operator, value; operators are only "=", ">=", "<=" and "<"), a flags word (+0x80: count, time, moves, points, onboard, time limit, onemove, pattern, constantcounters, nightmode, nocount, nocascades, constantdoom, quitonfail, badgem), the time and move goals, its category and number, the pattern (colour letters of RWGYVOB) and its progress, the config file and the best and low scores. The parser takes a rules string by removing spaces and quotes and reading comma-separated name/operator/value fields, the keywords case-insensitively; Time is given in minutes and kept in seconds. The board's active challenge is at Board+0x2630 and is null outside Challenge mode, so Classic, Zen and Blitz never reach this code. `ChallengeInfo::Check` (0x6db273) compares each rule's stat (the app's whole-game array, the board's one-move array or its on-board array, by flags) against its goal and returns 0 not met, 1 met, 2 failed; `GetText` (0x6db73e) builds the description with the numbers and a 0-1 fraction; `GetPercentDone` (0x6d8d19) feeds the Mandala. Board::CheckGoal's challenge branch, UpdateChallengeTube (0x6af390), the pattern counter in GoodTube::UpdateTick, FillInBlanks' re-deal while the goal is already met and CountDownCounters' stop read this object. The menu, and the board's start, end, restart, timer and counter flow, are not ported yet. Deviations: a rule with an unknown stat name is skipped, and a category or challenge that fails to parse is freed, not leaked; errors go to the log, not to a message box. The port reads the Moves total through `mUnknownC74[0x21]`, which is the same memory as the original's +0xcf8; LevelValue::GetCount reads it there too.
+The app owns the challenge list (WinTwistApp+0xf5c, `ChallengeInfo`, 0x18 bytes, built right after Ranks): the categories read from properties\challenges.xml by 0x6dcff3. A category (0x74 bytes) holds its id, the layer pictures, additive, the visualizer name, bkg2d, its challenges, the nightmode "special" challenge and a colour. A challenge (0xe4 bytes) holds its texts, the rules (stat, operator, value; operators are only "=", ">=", "<=" and "<"), a flags word (+0x80: count, time, moves, points, onboard, time limit, onemove, pattern, constantcounters, nightmode, nocount, nocascades, constantdoom, quitonfail, badgem), the time and move goals, its category and number, the pattern (colour letters of RWGYVOB) and its progress, the config file and the best and low scores. The parser takes a rules string by removing spaces and quotes and reading comma-separated name/operator/value fields, the keywords case-insensitively; Time is given in minutes and kept in seconds. The board's active challenge is at Board+0x2630 and is null outside Challenge mode, so Classic, Zen and Blitz never reach this code. `ChallengeInfo::Check` (0x6db273) compares each rule's stat (the app's whole-game array, the board's one-move array or its on-board array, by flags) against its goal and returns 0 not met, 1 met, 2 failed; `GetText` (0x6db73e) builds the description with the numbers and a 0-1 fraction; `GetPercentDone` (0x6d8d19) feeds the Mandala. Board::CheckGoal's challenge branch, UpdateChallengeTube (0x6af390), the pattern counter in GoodTube::UpdateTick, FillInBlanks' re-deal while the goal is already met and CountDownCounters' stop read this object. The menu, and the board's start, end, restart, timer and counter flow, are not ported yet. Deviations: a rule with an unknown stat name is skipped, and a category or challenge that fails to parse is freed, not leaked; errors go to the log, not to a message box. The port reads the Moves total through `mStats[0x21]`, which is the same memory as the original's +0xcf8; LevelValue::GetCount reads it there too.
 
 ## The challenge menu (ChallengeMenu.cpp)
 
@@ -449,6 +449,17 @@ same seed, script and shots, in the Browser pane) matches the native port's from
 levels per channel; before that its main menu shows the site's player name and its buttons' labels sooner, because
 the site makes the player rather than the autoplay.
 
+The level-up's take-off in 3D was compared with the original on 2026-11-08, after the user found it wrong. The original ran once more on the user's visible desktop through visrun, for this comparison only (the user's answer, relayed by the coordinator on 2026-11-08: "Yes, run it"), for about a minute and a quarter: a patched copy under build/ with origrun's sound stand-in taken out and the cursor-test patch undone, its window kept on top for the run, shots by PrintWindow of its own window only, no input at all beyond the game's own `-autoplay`, and the game's registry key and users folders backed up and put back. It shot the seeded autoplay game's first level-up from update 2700 (every 13 updates or so, as fast as PrintWindow could take a 3D window) and logged the hyperspace's state. The original plays the same game as the port, its first level ending 843 to 852 updates later, the 844 the port's menu comes sooner ("Deviations", loading), so the two were lined up by the jump: the original's states changed at 3590 to 3661 (1 to 2), 3902 to 3979 (2 to 3), 4324 to 4430 (3 to 4) and 4430 to 4514 (4 to 5), the port's at 2767, 3097, 3563 and 3597, each within the original's bounds 845 to 852 updates later. During the take-off (state 2, while +0x15b is set) the old level's picture leaves on a glass cube, its outer pass an additive rainbow case, carried by +0x5d8 times 2.1 to the right, -1.3 down and -2.7 away from the camera (0x7127f1 to 0x712849, whose three products are pushed z first). The port had them as x -1.3, y -2.7 and z 2.1, so the cube came towards the camera and passed through it, and its rainbow case filled the screen as white slabs. Fixed, the take-off, the flight and the landing match the original's frames; the tube's white flash at the start and the end of the jump is the original's too. check.sh's Twist suite freezes the 3D take-off at 2780, 2900, 2940, 2980 and 3020 (the same hashes on every run; the build before the fix gives other hashes for all five). In 2D the same day the original ran seeded in the sandbox (origrun, shots every 5 updates from 2900 to 4500) and was compared by shotdiff with the port's shots 843 updates earlier, the offset at which every frame of the take-off, the jump and the new board's drop matched the port's best (`takeoff2d`): what remains is a frame's lead or lag in a slide here and there, and the gem souls, which swirl on paths of their own, since their CurvedVal is timed by the app's update count since launch, which the loading deviation shifts; the game itself, its boards and the meter's take-off and landing, is the same.
+
+The picture froze for the user on the web (2026-11-09: a flame gem set off in Classic with a bomb on the board and a
+tip up; the sound and the menu went on, and nothing more was drawn but the bombs' haze). The cause was in the shared
+GPU2D: the device begins a scene by itself when VizManager::Draw sets the target and clears the depth before the
+frame's first draw, and GPU2D's state cache caught up with that scene only at its next PreDraw. VizManager turns depth
+writing on for its FillRect of the board's rectangle in that gap, the catch-up put "off" back in the cache while the
+device kept it on, and turning it off was then skipped as no change: the depth test stayed on, against a depth buffer
+nothing cleared, for every later draw of the frame and of each frame after. The native build has the same device and cache. The caches now catch up before they are read (GPU2D::FollowScene). `gem <row> <col> flame` and live.py's
+`flame` step set flame gems off with a real twist to show it.
+
 ## Deviations
 
 Each is a change without a visible effect in play, but for the first.
@@ -463,6 +474,20 @@ Each is a change without a visible effect in play, but for the first.
   48400, though around its level-ups a match lands a few updates apart, since parts of the original time themselves
   by the app's update count since launch (CurvedVal, the level-up mandala's turns, Board's pulses). The frozen
   baseline and check.sh's screens were refrozen with the change.
+  What the loader draws follows the original's order with the wait taken out (2026-11-08, from the user's report that
+  the PopCap logo showed behind the menu and the Play button stayed invisible until clicked). The loader's own curves
+  play its opening from its construction: the PopCap logo fades in over its first 250 updates and out from 550 to
+  800, its trademark sign in and out by 400, the screen comes up from black from 300 to 600, the device slides in from
+  250 to 400, the Play button's alpha rises at 350 to 400 (the main menu's Play button follows it), and the title fades
+  in from 800. The original hands over at the loader's update 848 at the earliest (the bar's cap and smoothing;
+  origrun saw the main menu made at the app's update 846-847 on its virtual clock), when the logo is gone and the
+  button is up. The port, handing over a few updates in, had the logo still fading in behind the menu and the button's
+  alpha at 0. So at the hand-over the port moves the loader's clock on to its update 848: the start of every curve the
+  constructor set and the hand-over does not set again, and the loader's update count (the glows, the bar's scroll).
+  After that the menu, the title's fade and the loader's slide away are as in the original's; before it, the port
+  shows the original's first few updates, black. No random draw depends on them: a seeded Classic autoplay is the
+  same at update 8010 before and after, and check.sh's Classic and Blitz screens and the baseline are unchanged. The
+  suite's menu set (updates 60 and 160) freezes the menu with Play drawn; the port before this fix fails it.
 - A level-up through a lost focus (a crash and a soft lock of the original's logic, fixed in the port). While the
   board is paused (the window lost the focus, or the options are over it) its UpdateGame returns at once, so its part
   of the jump between levels (UpdateJump, 0x6d090f, and the next level's start) holds, but the original's Hyperspace
@@ -587,6 +612,55 @@ the frozen baseline confirms.
 The generated resource table (Res.cpp, Res.h, from the exe's id table) still names the trial's pictures and sounds,
 since their ids are indexes into that table; no code uses them.
 
+## The readability pass (2026-11-08)
+
+The second game to take `docs/CODE_STANDARDS.md`, after Bejeweled's pilot; that doc's "How it worked out on Twist" says
+what the pass changed in the rules and what it cost. Here is what it changed in the port. Nothing it does changed: the
+frozen baseline proves it (below), and `python tools/namecheck.py games/bejeweledtwist` finds nothing, with the
+exceptions and their reasons in `games/bejeweledtwist/namecheck.txt`.
+
+**Names.** The port had kept most fields by the original's offset (`mUnknown2120`). Every one now says what it holds,
+named from its uses here and in the export, since Twist has no Mac build: Board's `mUnknown2120` is `mUnturnableCells`,
+the app's `mUnknownFA0` is `mBestMoves`. Each declaration keeps its offset at the start of its comment (`// +0x2120`), so
+the port still reads beside the export. Names that carried an offset after a word went the same way (`Profile::mFlags1E4`
+is `mTipsSeen`, `Piece::mScale288` is `mBirthScale`, `Rand85B970` is `BoardRand`), and so did the methods named for the
+field they set (`SetUnknown3924` is `SetBoardFade`). Piece's numbered flags are named: `FLAG_DROPPER` (1), `FLAG_FIXED`
+(5, which nothing sets), `FLAG_ICE` (6), `FLAG_ANGEL` (7), `FLAG_TUTORIAL_MARK` (11, which nothing reads) and
+`FLAG_DOOM` (12), and the calls that passed a bare number use them; `Make6` and `Make7` are `MakeIce` and `MakeAngel`.
+The one-letter names that lived long (rule 5) are spelled out, except a curve's `t` in BSpline.cpp and CurvedVal.cpp.
+
+**Addresses.** Every translated function names its address, on its declaration in the header as before or above its
+definition; 44 that had none now name it, or the original function they were split out of (`FinishMatches`, part of
+`FindMatches` at 0x6cd468), or carry the `port:` marker. The resource extractors' addresses come from `tools/resgen.py`,
+and TwistD3D's interface slots name the exe's function beside the slot.
+
+**What came out.** Nothing that the port reads or that a save or the random draws depend on:
+
+- 54 of Board's fields that the port never reads or writes (the original uses a few of them, only in its puzzle mode,
+  which the port leaves out; the left-out puzzle code's comment names the one it needs, +0x2034), and the five lines that
+  only wrote some of them;
+- the two globals the board's constructor clears and nothing reads (0x85a9d0 and 0x85aef0);
+- members the port never touched: Profile's map at +0x2c and string at +0x38, Piece's vector at +0x214 with its record
+  type, the loader's curve at +0x5f0, the menu button's string at +0x160, and the dialog listener's empty slot 2, which
+  nothing calls;
+- a parameter of `Board::EndJump`, `FlyingText`'s constructor and `Points`' constructor that the original never reads
+  (the declarations say that the original's call passes it).
+
+Profile's saved fields stay, named for what they hold (`mSavedBools`, `mSavedBits`, `mSavedLongs`), since the save
+file's layout needs them; so do the rainbow glyphs' third and fourth random draws (`mThirdDraw`, `mFourthDraw`), which
+nothing reads but which keep the draws in order.
+
+**Comments** that named an old field now name the new one, and the class comments that said fields were still named by
+offset are gone.
+
+**The proof.** The 1026 table renames left the object code of all 81 units the same instruction for instruction
+(llvm-objdump before and after). Everything after them, the hand renames and the removals that change layouts, rests on
+check.sh's Twist suite (2026-11-09, with the flame-gem fix merged): the start's menu, a seeded Classic game to update
+5156, a Blitz game to its high scores and the 3D level-up's take-off, 16 screens, all as frozen; a rerun identical; the
+frozen baseline exe's run identical; a page's save the same as a quit's, and resumed. namecheck finds nothing (13 uses
+allowed with their reasons in namecheck.txt); the native and web builds are clean but for a warning that was there
+before the pass.
+
 ## The challenge's flow on the board
 
 A challenge game now runs to its end, as the original does with 3D off.
@@ -655,7 +729,7 @@ challenge's music and redraws the tube. With track 305 playing, its channels are
 - runs NewLevel and ClearBoard, and fills with +0x20dc at 2;
 - calls the VizManager's slot 7.
 
-**Music.** `PlayChallengeMusic` (0x6b66d2) runs from StartUnknown34F0 in a challenge and from the restart. An untimed
+**Music.** `PlayChallengeMusic` (0x6b66d2) runs from StartGo in a challenge and from the restart. An untimed
 challenge fades to track 306, or to 305 with a Moves goal (then `UpdateTurnBasedMusic`). A timed one stops the music
 and plays track 300 at once, or 308 for a 180-second limit.
 
@@ -679,7 +753,7 @@ StartTwist runs it after every twist in every mode (0x6c7225). Its steps:
   (`PreLockPiece` 0x6ace4d: +0x504 to 0, +0x4fc to 2, SOUND_GEM_PRELOCK). In a constant-counters challenge it is a gem
   next to the bomb or devil gem with the lowest count (the directions table 0x84e978). Because each direction is taken
   out of the list before the loop steps on, only directions 0, 2, 4 and 6 are tried. Otherwise the gem comes from a
-  random place: an even Rand85B970 picks any cell, an odd one a cell inside the border, and the first that can is taken.
+  random place: an even BoardRand picks any cell, an odd one a cell inside the border, and the first that can is taken.
 - Then a doom gem (flag 12) may appear. That needs no doom gem on the board, mDevil's count at 0 or more, an idle board
   and a mode other than Zen. It still does not appear if the level's matches are under three times its moves
   (+0x2234 [0x39] / [0x21]), or if |RandUnit (0x6a3477)| * (tube progress * 1.2)^4 is under 0.05. A constant-doom
@@ -689,7 +763,7 @@ StartTwist runs it after every twist in every mode (0x6c7225). Its steps:
 
 Classic's config has lock gems from level 4 and devil gems from level 13. The port ran this only in a challenge at
 first; it now runs it in every mode, as the original does, so Classic and Blitz get their lock gems and doom gems (and
-their Rand85B970 draws) where the original has them. Blitz's and Zen's configs have neither (first level -1), so there
+their BoardRand draws) where the original has them. Blitz's and Zen's configs have neither (first level -1), so there
 NextTurnGems draws nothing and changes nothing.
 
 **Gem locks and doom gems breaking.** A locked gem in a match, or one a fruit's wave reaches on its third ring
@@ -758,7 +832,7 @@ SettleTurn and CheckSettled then call `Board::AwardFruit` (0x6ba5b4) with -1, -1
 past 151 (at most 14) go on top of the steps of the levels below the board's (GetLevelSteps), through SetLevelSteps.
 AwardFruit's colour is the count of fruits awarded (+0x218) modulo 7. Its gem is FindHintPiece's (the bomb with the
 lowest counter or a locked gem, whatever its colour), else the first plain gem of that colour from a cell picked by
-Rand85B970 round the grid, else up to 100 cells picked at random (Rand85B970, the column first), any plain gem; after
+BoardRand round the grid, else up to 100 cells picked at random (BoardRand, the column first), any plain gem; after
 100 misses there is no fruit. The tutorial's `awardfruit a,b` names the cell (a - 1, b - 1). The award is a
 FruitAwardScreen (0x228 bytes, vtable 0x7e24c4) queued in the board's dialog queue (+0x23dc); the tube stops taking the
 mouse. When it comes up it plays SOUND_TROPHY_AWARDED and over 1 / 0.015 updates leaves a trail of IMAGE_FRUITS cels
@@ -772,7 +846,7 @@ broken). Otherwise it counts stat 0x45, plays SOUND_GEM_FRUIT_DESTROYED,
 counts +0x22c and sets +0x24c when the board has no lock or bomb (neither is read), starts the blast (+0x248 at
 0.0001), notes the fruit's colour, cell and id (+0x420, +0x250, +0x254, +0x258), sets the four curves +0x260, +0x2d0,
 +0x340, +0x3b0 (0x7dd2f8, 0x7dd2dc, 0x7dd2b0, 0x7dd28c) and moves +0x265c from 0 to 2, or 1 while the tube's +0x3b0 is
-set (an already started challenge sets +0x2664 to -1 instead). `UpdateUnknown248` (0x6c4466) runs the blast: +0x248
+set (an already started challenge sets +0x2664 to -1 instead). `UpdateFruitBlast` (0x6c4466) runs the blast: +0x248
 grows by 0.002 an update; at 0.5 the fruit's own 500 points pop up. Up to 0.85, four rings spread from the fruit's cell
 (ring i at 2.8 * blast - 0.15 * i - 0.5 on +0x260, the last one slower), and each cell a ring crosses (within 0.3 of a
 cell of its radius, 4.4 * +0x260) is touched: gems of the fruit's colour light up (+0x29c) and on the last ring break
@@ -833,9 +907,9 @@ behind it.
 **Never reached, left as NotPorted.** These paths exist in the exe but no game reaches them, each for the reason given
 in its comment: the puzzle mode (5) with its panel, board, fill, sparkles and tube widget (no menu starts mode 5: the
 mode select's buttons are modes 1 to 4 and the main menu's Play takes the last game's mode); the board's state 2
-(nothing sets +0x160 to 2); the "ice gem" (FLAG_6, from a challenge's square match, which needs the profile's bit 6 from
+(nothing sets +0x160 to 2); the "ice gem" (FLAG_ICE, from a challenge's square match, which needs the profile's bit 6 from
 a tutorial line "unlock icegem" that tutorial.txt lacks and "IceGemsAllowed", false in config.xml); the "angel gem"
-(FLAG_7, set only by Make7, whose callers need it already); the droppers (+0x21e4, made only for FLAG_1 gems, a flag
+(FLAG_ANGEL, set only by MakeAngel, whose callers need it already); the droppers (+0x21e4, made only for FLAG_DROPPER gems, a flag
 set only by the droppers' own update); FlyingText's kind 1 (both makers are given kind 0); the tutorial's title
 (+0x1f4, +0x1f8 only ever 0); the board's image +0x15dc, the objects at +0x1488 and the pieces' +0x528 (only ever 0);
 +0x284's growth (only ever 0 or copied); 0x6c425f (+0x23d8 set only by 0x6bb145, which nothing calls); 0x74db1b
@@ -908,6 +982,43 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
 - `win`: the level's goal is met (Classic, Zen), or Blitz's clock runs out. `lose`: EndGame, or Blitz's clock runs
   out. Both answer ERROR while the board is busy and in a challenge.
 - `seed`: ERROR, as the game draws from several generators; `-seed=<n>` seeds them at the start.
+- Twist's own, beside the standard set: `shutdownsaves <dir>` writes what a page going away would keep (GetShutdownSaves,
+  below under "Saving on the way out") into `<dir>`, each file by its name, and answers `SHUTDOWNSAVES <names>`, so a test
+  compares it with what a quit writes. `gem <row> <col> flame` makes the gem there a flame gem at once (the piece's own
+  MakePower, as a match of four does, without the board's stats; ERROR with no gem there or a busy board), so a driver
+  sets flame gems off with a real twist (realplay/live.py's `flame` step). `autoplaychallenge` makes -autoplay's mode
+  the challenges (2), which its command line cannot name: the mode select then opens the challenge menu, a script clicks
+  the planet, and -autoplay plays the challenge (below, "Challenges against the original").
+
+## Saving on the way out
+
+The original saves a game in progress only when its board goes: Shutdown removes a board that CanSaveOnQuit allows (not
+in a challenge, nor in states 6 and 7) and Board::RemovedFromManager writes `savegame_<mode>.dat` (not for a timed game,
+nor at level 0), then the profile is saved. A game left in a replay is saved as it was before the replay (+0x23b4), and
+one left in the middle of a twist, or with +0x25a5 clear (the board not at rest: +0x21da, set by a match and cleared by
+Refill (0x6c755e), keeps it clear after most twists), as it was before its last twist (mSaveBuffer, LoadGame of it, then
+SaveGame with the replays). So a Classic or Zen game quit natively goes on, at its next start, from the board before its
+last twist, with that twist's score kept: the original's code does the same (each write of +0x21da and +0x25a5 checked
+against the export), but its own autoplay crashes in origrun's copy, so its quit's file was not read.
+
+A web page never shuts down: it is reloaded, left for another page, closed, or discarded. The page keeps a backup of the
+user files as a shutdown would leave them (SexyAppBase::UpdateUserDataBackup, at most every 2 s while a game changes and
+at once when the page goes), and asks the game for the files its shutdown writes through GetShutdownSaves. Twist had no
+answer, so no game was ever kept on the web (the user, 2026-11-08: two levels played, then another game opened, and the
+game was gone). WinTwistApp::GetShutdownSaves now gives the save Board::GetQuitSave makes and the profile as
+Profile::GetSaveData builds it, with their names relative to the user directory: on the web GetAppDataFolder() is the
+user directory's absolute path, and the backup leaves out a name outside it. GetQuitSave takes the destructor's branches
+without touching the board: where the destructor would load a save first, Board::ResaveAsLoaded copies that save's bytes
+by SaveGame's layout (Board::mSaveRanges keeps where SaveGame put each save in mSaveBuffer and +0x23b4) and gives what
+LoadGame and SaveGame change on the way: the score in stat 0x49 (SetScore), the level time (+0x230) and the three values
+kept as ten-thousandths (+0x1454, +0x1458, +0x220) read into floats and written again, and the replays in place of the
+flag. check.sh's Twist suite leaves a seeded Classic game mid-twist and at rest, compares the `shutdownsaves` files with
+what the quit writes, byte for byte, and resumes the second; in Zen they were compared the same way, and in Blitz
+neither writes a save. In the Browser pane the game resumed with the same board, score and progress after a reload,
+after another game's page and after the tab was closed. Desktop 95's close only hides the game's window.
+
+The mode select's own new game over a save matches the original's (Mandala::StartMode, 0x72313d): Classic and Blitz ask
+whether to go on; a new game counts the given-up one as played and deletes its save; Zen goes on without asking.
 
 ## Comparing the looks (phase two)
 
@@ -943,6 +1054,82 @@ is reported in IDENTICAL_PLAY.md.
   the constructor registers SWTri's drawers as the original's does (0x766ce7 calls 0x50f7e0); without them SWTri drew
   nothing, the tutorial's click-now arrows among it. Additive matrix and triangle draws still go through SDL, since
   1.3's SWTri has no additive triangles (Twist's has, 0x60d250's flag 0x80). It costs about 2 ms a frame.
+
+## Challenges against the original (2026-11-11)
+
+Challenge mode was compared in five 2D runs in origrun's sandbox (seed 1234) and in three 3D runs on the visible
+desktop (the user, 2026-11-11: "3D testing for Twist approved"). In each, a saved profile sets the challenge's
+state; a script clicks a planet, and the game's own autoplay plays the challenge. The original's copy takes a test patch
+that makes its -autoplay=classic play challenges. The port takes the `autoplaychallenge` test command. The 2D runs:
+A wins Detonator and shows the bar's new stage; B opens the Tube Menu and Restart Challenge, says Yes, then wins the
+timed Firestorm; C plays a three-minute highest-single-move challenge; E plays a one-move challenge (destroy 12 gems in
+one move); F plays a timed 30-flame-gem challenge to its game over. The original's update N is the port's N - 842 (the original's main menu
+is made at 847, the port's at 4); sound lines up at the original's virtual ms / 10 - 845. Shots were compared by
+shotdiff; sound by soundcmp and the gaps between plays.
+
+**Fixed by the comparison:**
+- The challenge bar's curves were swapped: the lock that a new stage opens wipes by the curve at +0x248 (0x6df324),
+  and the new number's glow fades by 1 minus the one at +0x1d8 (0x6df21c). The port had them the other way round, so
+  the lock and number moved at the wrong times. (`mLockWipe`, `mNewNumberGlow`.)
+- A Twist dialog button drew cel 0 whatever its state: DrawImageBox gets the whole cel (0x422980, its row the cel
+  over the columns), and IMAGE_SIZEABLEBUTTON is one column of three rows, so pressed and hover never showed.
+- "CHALLENGE COMPLETE" zoomed one update ahead in every script shot: its curve counts the app's updates, and a
+  script's shot ran after the count moved. The framework's mid-update shots now draw with the count one lower
+  (shared, SaveScreenshotMidUpdate).
+- An additive software stretch drew its black background (the board's picture at a challenge's end): the software
+  stretch now blits with the draw's colour and mode, as 0x41a3e0 does (shared).
+
+**What differs and why.** Every box shotdiff still flags in A, B, C, E and F was looked at: smoke, sparks, the
+moon's flame ring, flame fire, the game-over gems' fall and the original's own mouse pointer, which origrun draws
+into its shots. The effects draw from the global Rand, which in the original moves from run to run (a coal gem's
+ember counter starts from the heap; see "Oddities"). The boards, which come from the board's own generator, match
+in every run through the end. The `-fast` clock changes none of this: F rerun in real time gave the same pictures
+pixel for pixel. The picked planet's name seems to flash in over five updates. It does not: the original draws
+nothing for six updates after the click's slow update, catching up, and its frames 1900 to 1905 are the same picture.
+Sound: the same events in order in every run. The original's runs end with a few more "stop" lines, its shutdown
+stopping sounds still playing; the port logs no stops at exit.
+
+**3D on the visible desktop** (`build/bjt/v3d/visrun_twist.py`, Bookworm Adventures' visrun with `--users`,
+`peek`, `chain`). The original runs on the real clock, so a shot lands some updates after the one asked for,
+and during the load as many as 50: there the original makes many updates for each frame it draws. A shot holds the
+game 60 ms, so the frames the card has queued reach the window first. The port's shots were then taken at the
+updates the original's landed at, with each click just after the shot before it. By state, the load matches update
+for update: the menu's mOpen, the hyperspace's states and the crystal curves (visrun's peeks). By picture, the load,
+the Options and Restart Challenge dialogs, the win, the bar and the rank's star match. The tube's white fly-in is the
+original's too: the sidebar shader's constant c0.z is the tube's blend plus 1 minus its alpha. Left unmatched: the
+nebula turns on its own real-time clock; the volume sliders show the user's own saved volumes; and once the shots have
+slowed the original, its clicks land a few updates off, so its later boards part from the port's. No 3D
+performance pairs were taken: real-time visible runs give no clean timing.
+
+## Sound
+
+The user found the sound effects distorted (2026-11-08). Measured, not judged by ear: the port's mix, captured with
+`-audiocapture=<file.wav>` (WinTwistApp: after each update the mixer renders that update's 1/100 s of 48 kHz stereo
+with the mixer locked, so a `-fast` run captures exactly what the game played), was compared with a re-creation of the
+same mix by tools/sfxmix.py, which takes the sound log of the same run (BYOPOP_SOUNDLOG) and plays each effect from the
+game's file decoded by ffmpeg, at DirectSound's gain and pan for its hundredths of a dB, its whole-Hz pitch and linear
+resampling, clamped at full scale. A seeded Classic autoplay of 30 s with the music at 0 (`-seed=1234 -autoplay=1`)
+differed from its re-creation by -40.6 dB, almost all of it in one effect, gem_hit, the sound of every match: its
+capture was a dull thud at a fifth of its level.
+
+tools/sounddecode (`bjt_sounddecode`) decodes files with the port's own loader (Platform::Mixer::LoadSoundData) or,
+with `--tremor`, with Tremor. Against ffmpeg, 144 of the 147 sounds agree within -96 dB; gem_hit, lightbar_blink and
+bomb_explode do not (-0.3, -0.0 and -5.5 dB), and Tremor decodes those three within -60 dB. They are the only three
+from the oldest encoder ("Xiphophorus libVorbis I 20010813") and the only ones whose residues are of type 0, which
+stb_vorbis decodes wrongly: its residue_decode passes a length of n - offset - k to codebook_decode_step for type 0,
+where offset is the partition's bin in the whole spectrum, so every partition after the first decodes to nothing and
+only the lowest 32 bins of a long block (about 700 Hz) are heard. With n - k there, all 147 agree with ffmpeg within
+-96 dB, and the capture of the same run differs from its re-creation by -58.4 dB. The fix is in the shared
+third_party/stb/stb_vorbis.c (and libopenmpt's copy has the same line); the same files' kind is in Bookworm's 18 voice
+lines, two of Noah's Ark's sounds and one of Rocket Mania's. `bjt_sounddecode --compare <files>` decodes each file
+both ways and fails on one where the port's decode and Tremor's differ by more than -40 dB of its level and 1% of full
+scale at a sample.
+
+Nothing else differed: the rates (44.1 and 22.05 kHz, resampled to 48 kHz), the mono and stereo files, the volumes in
+hundredths of a dB, the pans and the semitone pitches all match the re-creation. The mix does reach full scale: in the
+same 30 s about 200 samples clamp, where the voice lines (0.85 of full scale at their gain) fall on matches and
+combos. That is the plain sum DirectSound's mixer makes too, not the distortion; it was not measured in the original,
+whose buffers origrun's stand-in logs only by their calls.
 
 ## Oddities
 
@@ -1101,3 +1288,278 @@ for updates. Hardware 3D at 4x and 6x falls further than SwiftShader 3D. Its cau
 What it means: on an N100-class machine with any GPU, both modes should play smoothly. On a Celeron-class machine 2D
 is playable at around 40 frames a second. 3D drops to under 20 frames a second, though the game itself keeps nearly
 full speed. A browser without the graphics card already starts in 2D (the game's own choice, above in "3D mode").
+
+## The performance pass (2026-11-11)
+
+The pass of `docs/COORDINATION.md` ("A performance pass before the readability pass"), after the two "Performance" sections
+above, whose native half had only the main menu to compare (the original's autoplay crashed in that copy). The prepared copy
+runs its autoplay, so the original and the port were measured over the same game.
+
+**Measured in pairs.** `tools/profile/pairs.sh` runs the original and then the port, each one process sampled every 50 ms by
+`games/bejeweled/tools/profile/perfmin.py` from its creation to its exit: the same seeded Classic autoplay (seed 1234, which
+deals both the same game), 2D at the 768 art, windowed, on the real clock, silent, about 105 s a run. The original runs under
+origrun on the host with its seed patch, the port under rundesk. The processor figures are for 30 s to 90 s of the process's
+life, inside the game on both sides. 3D is not in it: the original runs in 3D only on the user's own desktop ("3D mode"
+above). Six pairs ran on 2026-11-11 between 00:57 and 01:20. The machine was never quiet: one to four other sessions' game
+processes ran beside every run (the counts are in the table), so no pair is clean, and the figures are for comparing the two
+here and now.
+
+| Pair | Other game processes (original, port) | Original: processor in the window, whole run | Port: processor in the window, whole run | Peak private bytes, original / port | Peak working set, original / port |
+|---|---|---|---|---|---|
+| 1 | 1, 2 | 55.3 %, 57.5 s | 39.4 %, 47.4 s | 186.0 / 395.4 MB | 212.0 / 396.3 MB |
+| 2 | 3, 2 | 46.3 %, 50.1 s | 38.3 %, 40.7 s | 185.7 / 405.9 MB | 204.3 / 406.8 MB |
+| 3 | 2, 3 | 54.4 %, 56.5 s | 34.6 %, 41.5 s | 185.4 / 383.1 MB | 204.3 / 388.1 MB |
+| 4 | 4, 3 | 35.3 %, 40.5 s | 33.9 %, 43.7 s | 185.5 / 391.6 MB | 204.2 / 398.7 MB |
+| 5 | 3, 2 | 39.7 %, 43.3 s | 34.6 %, 41.7 s | 185.4 / 388.3 MB | 204.4 / 396.7 MB |
+| 6 | 2, 2 | 51.6 %, 50.6 s | 37.7 %, 45.8 s | 188.0 / 392.1 MB | 213.3 / 399.2 MB |
+
+The processor figures are the percentage of one core in the window and the seconds over the whole run. In the window the port
+used less than the original in every pair: 34 to 39 % of a core (median 36) against 35 to 55 % (median 49). Both draw the 2D
+game in software, which is why either costs a third to a half of a core. Over the whole run the port used less in five pairs
+of six (its loading is shorter too). In memory the port holds about twice what the original does, 383 to 406 MB of private
+bytes at its peak against 185 to 188 MB.
+
+**Where the memory goes.** One run's private bytes over time (pair 4): the original is at 158 MB when its menu comes up and
+between 177 and 184 MB for the rest. The port is at 210 MB when the game starts and 228 to 230 MB while it plays, then 386 MB
+at the first level-up, 283 MB after it, and 379 MB at the second. So there are two parts. The steady 50 MB over the original is
+the framework's, as for Bejeweled and the Mahjongs (`docs/COORDINATION.md`: every image's pixels kept beside its texture, the
+sounds as 48 kHz float). The other part is a transient of about 165 MB at each level-up's jump (in a run under `memprof.py`:
+240 MB until 44 s, 305 MB from 44 s, 405 MB from 52 s, 283 MB from 62 s), which the original does not have. It is not the
+game's C++ heap: a temporary `operator new` that logged every block of 64 KB and more (never committed) counted 22 MB of them
+from the level-up on, most of it images getting their pixels back (`MemoryImage::GetBits`, 17 MB). `memprof.py` puts it in
+private memory that belongs to no module, so it is allocated beneath the game, by the C libraries or the graphics driver's
+side of the display, while the jump's frames are drawn in software and uploaded. That is shared code: the finding went to the
+coordinator, and nothing in the game was changed for it.
+
+**Where the time goes in a test run.** `games/bejeweled/tools/profile/cpuprof.py` on the port with `-fast` (seed 1234,
+30,000 updates of Classic autoplay in 24.7 s, 79 G cycles): the graphics driver 38 %, system calls (ntdll) 21 %, Direct3D and
+win32u 6 %, and the exe 28 %. The exe's share is the 2D game's software drawing and what follows from it:
+`MemoryImage::BltRotated` 5.5 %, the texture upload (`DDInterface::PrepareTexture`) 4.1 %, the software triangles 3.3 %,
+then the JPEG 2000 decoder of the backdrops (about 4 % in all), the effects (`EffectsManager::Update` and `DrawEffects`,
+1.7 %) and the Ogg decoder. No function of the board's own logic is above 0.2 %.
+
+**What the pass changed: nothing in the game.** The port already uses less processor time than the original, its `-fast`
+runs do 1,200 updates a second with two thirds of the time in the driver and the system, and its own share is the software
+drawing the original has too. Both memory costs are below the game. No source changed, so the frozen baseline needs no new
+run.
+
+**Not measured.** The 3D mode against the original (above). The web build was measured on 2026-11-03 ("Performance (web)")
+and not again. A quiet machine: the script waited and then measured with other sessions' games running.
+
+## Coverage check (2026-11-09)
+
+The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in nine runs
+on the host (the prepared copy `build/origrun/bjtlvl/game`, the virtual clock, seed 1234, 2D at the 768 art, the scripted
+cursor; `games/bejeweledtwist/tools/coverage/run.sh` runs one, its scripts beside it, the hits in
+`build/coverage/bejeweledtwist/hits/`). The host takes no screenshots, so the menu runs were laid out from the port's screens
+(the same 800x600 places) and checked by what they reached:
+
+- `-autoplay` Classic (120 s), Zen (200 s) and Blitz (240 s and 600 s) on the virtual clock, and Classic for 90 s on the real
+  clock with the silent stand-in, for the music and sound code (it reached nothing the others had not).
+- `menus.txt`: the high scores with the personal stats and both lists, the options with three boxes ticked and unticked, How to
+  Play paged forward and back, Change User and its Continue, the focus lost and regained, and the quit question.
+- `challenge.txt`: Play, Challenge, the first planet (its challenge starts at once) and 25 twists at random corners, then the
+  tube's Menu.
+- `newplayer.txt`: a new player made through Change User, the credits (the mode buttons entered in the order of the easter egg,
+  "The credits" above) and their Continue, and that player's tutorial with its first forced twist and random twists after it.
+- `ingame.txt`: Classic with twists, Escape twice, the focus lost and back, an idle stretch, the tube's Menu with Back to Game,
+  Main Menu answered No and then Yes (the save), Classic again with Continue on the saved game, Main Menu and Yes, then Blitz
+  twisted at random.
+
+The players live in the user's own `C:\ProgramData\Steam\BejeweledTwist\users` (the user allows changes to the saves); the
+folder was copied before the runs that make or save a player and put back after them. The registry's ScreenMode and ArtRes were
+set for the runs and the user's values put back afterwards.
+
+`games/bejeweledtwist/coverage.txt` sets the game's own code as 0x66fb6d-0x768fad (the libraries the linker put first end below
+it; the C++ library starts at 0x768fcf). The report counts 7183 functions there; the nine runs reached 2530.
+
+| | after the first runs | at the end |
+|---|---:|---:|
+| game functions reached | 2327 (five runs) | 2530 |
+| reached in the original, no counterpart in the port | 1524 (six runs) | 0 |
+| defined in the port, never reached | 474 (six runs) | 418 |
+| `none` lines | 0 | 1488 |
+
+**Reached with no counterpart: 1524, then 0.** One Sonnet agent sorted them from the export. Most are library code in the
+game's range that the export has no names for: the C++ library's template instances (containers, strings, iterators of the
+game's own types, often one helper repeated for twenty or more types), the compiler's unwind funclets, the vectors of the
+credits' lines, two constructors the port replaces by member initialisers, the platform's window procedure and the framework's
+debug information overlay; each is a `none` line with its reason. Also `none`: the registration code (the PopDRMComm wrapper,
+the trial badge), PopCap's QA stats dump (a .csv on their own network share), and the DirectSound buffer loader, which the
+framework's sound manager stands in for. 80 were done inline in a port function and now have their address in the comment above
+it (comment edits only). Five were missing from the port, and are translated now:
+
+- `Board::LostFocus` and `Board::GotFocus` (0x6a663b, 0x6a6686): whenever the board loses the focus, to a dialog or a panel
+  over it as well as to another window, Blitz's music pauses, and it resumes when the board has the focus back unless the board
+  is paused more than once. (The skip flag LostFocus also sets is only ever cleared.)
+- `WinTwistApp::ModalOpen` and `ModalClose` (0x761359, 0x75f4da): a modal dialog over a game pauses the board, the pause shown
+  (the board hidden) in Blitz for the game's own questions (ids below 0x28), and its closing unpauses it. Before, the board went
+  on under the quit question, Blitz's clock included.
+- `RankBadge::Update` (0x70cbfa): while the mouse is over the rank badge in the tube's head, the tube's tip shows "RANK n" and
+  the rank's name, then how far the player is to the next rank, then nothing, each for 200 updates. +0x150 is a float timer and
+  +0x154 the page, which the port had as two unread ints. Checked in the port only (both pages show, once the game-text
+  table had its two texts: see the next section).
+- `Board::KeyChar` (0x6b3217): the last 24 letters typed while the mouse is off the grid; SNACKERS switches coal to its
+  snackers look and back, NORMAL stops the rain effect and sets the game's speed back to 1. NORMAL's other branch, which asks
+  the app for a change of screen mode, needs a flag (+0x1bf1) that only the constructor writes, and is left out.
+
+**Defined in the port, never reached: 474, then 418.** 260 are the 3D renderer (Visualizers3D*.cpp and HyperspaceD3D.cpp):
+coverage cannot record inside the sandbox yet, and 3D runs only there, but these were compared with the original by their screens
+and their generators' states ("3D mode" above). The other 158 were read again against the export by an agent, the larger ones
+first. Four differences came out of it, three of them real and fixed now: `Board::BurstAt` (0x6baed1) converted the speed times
+the cosine and sine after rounding the product to float, where the original converts the FPU's product; `FruitShockwave`'s
+constructor (0x74b94e) rounded the distance times 2.5 to float before using it, where the original rounds the whole sum once;
+and `CustomBassMusicInterface::AddTrack` (0x6eec7a) made each channel with its dirty flag clear where the original sets it. The
+fourth, the challenge planet's tip printing its number with 0x45dfb0, is not one: 0x45dfb0 groups the digits by the C++ locale,
+which in the "C" locale is no grouping, as the port's `%d` gives. The rest match the export: the 74 smallest read one by one by a second agent (`Board::RandUnit`, 0x6a3477, by its disassembly, which the export's decompile gets wrong), the larger ones by the first, whose record for them is its summary rather than a note for each line, and UpdateGameOver's row-fall loop, which the export's decompile leaves out, not compared at all. Most of the 158 need play that a blind script does
+not reach: a game with no moves left (UpdateGameOver, GameOverShow: the original's Blitz autoplay never ends its game, even in
+600 s), the fruit gems' shockwave, the replays from the stats, Zen's jumps, the idle hint, the help dialog from a game, the mouse
+wheel, deleting a player. Two cannot be reached in the original at all: the VizManager's key function (0x758034, no caller) and
+the base Traveller's Update and Draw (no plain Traveller is made). They stay, as a few lines each.
+
+**Neither reached nor defined: 5723.** Most are library template instances no run took and the export's unnamed code around
+them; nothing in the runs points at game logic among them that a run should have reached.
+
+The bejeweledtwist suite passes after the changes (screens as frozen, baseline identical): its runs open no dialog over a game,
+change no focus in a game, type nothing and fire no fruit shockwave, so none of the fixes touches them.
+
+**What the coverage check proves, and what it does not (the user, 2026-11-10: "Not sure how you can claim which functions
+aren't reached when the functionality isn't 100%").** The check proves two things only: which of the original's functions ran
+in the runs it made, and that each of those has a counterpart in the port (a function, a place inside one, or a reason for
+leaving it out). It does not prove that a counterpart is right; only a comparison with the original shows that, and "never
+reached" there means "no run of mine reached it", not "the game works without it". Challenge mode shows the gap: its functions
+were reached and had counterparts, and it still had four faults (below), because none of its screens had ever been compared
+with the original by pictures. Neither phase of `IDENTICAL_PLAY.md` has a challenge-mode comparison in it. Compared since
+(2026-11-10, in 2D): the challenge menu at rest, and the load from the planet's click to the first "GO!". The rest (the win's
+message and what follows it, a failed challenge, the timed and the night challenges, restart and continue, and challenge mode
+in 3D) was compared on 2026-11-11: "Challenges against the original".
+
+**Open.** For the tool (sent to the coordinator): coverage inside Windows Sandbox, so that the 3D code, and runs that need
+shots, can be recorded. The rank badge's tip against the original: three sandbox runs with the user's player staged (2026-11-11) did not get a
+Classic board under the mouse (the mode select was not ready at update 2000, and a later click ended on the main menu), and
+it was left there: the tip's two texts and its timing are the original's code, seen working in the port.
+
+**Cost.** About 30 minutes of game processes (the nine runs, one at a time, beside the port's screen runs), three agents' sorting
+and reading (about a million tokens between them), and the session's own work.
+
+## The challenge's start and the unlock voice (the user's faults, 2026-11-10)
+
+The user: "The Twist challenge load doesn't look right", and "after winning, 'New Challenge Unlocked' played twice". Four
+faults came out of it, each the original's own logic that the port had wrong or lacked.
+
+**The 3D start was the 2D one.** `Hyperspace::StartChallenge` (0x71c18f) has two branches, and the port had only the one
+without Direct3D, run in 3D as well: the 2D fade's curves under a 3D flight, so the empty board stood over the ship and the
+gate while they flew in. The Direct3D branch is translated (`StartChallenge3D`, from the disassembly, since the export hides
+which curve each string goes to): the level 0, the jump's five curves reset (0x70e83c), the crystals', the engine's, the cone's
+and the orbit's curves on the jump's clock, the camera's path and the sidebar's turns at rest, the crystals' direction from the
+picked planet's place on the screen (in units of 380 art pixels from the middle, y up; `ChallengeMenu::Start` passes the
+planet's +0x5b4, which the port had left out), and the VizManager's picture drawn into the jump's picture, which space shows
+instead of the VizManager. The gate now opens at the planet with the challenge's backdrop in it, the camera flies in, and the
+tube and the board come after, as at Classic's start. Seen in the port only (strips of shots before and after): the original's
+3D frames need a run on the user's visible desktop, which needs the user's leave each time ("3D mode" above), and is not asked
+for yet.
+
+**The planets stood still in 2D.** The software planet reads its layer a little further along each update: the shift is the
+spin (the update count times 0.2) times 0.4, kept on the FPU's stack across the pixel loop, where the export shows only an
+unnamed value. The port had the planet's scale times 0.4, a constant. Found by shotdiff against the original in the sandbox
+(the user's player staged into its ProgramData, `build/bjt/sb.sh`): in the original 1,922 of the Spectrum planet's pixels
+changed in 50 updates, in the port none. With the fix the planets match at every frame compared.
+
+**The unlock voice played twice.** The voice plays when a planet's dimming curve passes 0.9 (`ChallengeButton::Update`). After
+a win the curve runs once (the voice), and when the win's message goes the menu sets the curve to the constant 0
+(`UpdateProgress(false)`). `CurvedVal::SetConstant` (0x6e97bd) zeroes the input and both ends of its range; the port set the
+range's end to 1. SetConstant leaves the step of the curve before it, so in the port the input ran from 0 to 1 again and passed
+0.9 a second time, 2.7 s later; in the original each step is clamped back to 0. Proved by a won challenge on the live channel
+with the sound log (`live.py ... challenge 495 95 after 2 flame f ...`, the bot's twist with its gems made flame gems): with the
+old range voice_newchallengeunlocked plays at updates 2583 and 3126, with the fix once. The fix is in every curve of the game;
+the suite's screens and baseline are unchanged by it.
+
+**Ending a challenge crashed in 2D** (found by that run, not by the user, who plays in 3D). Since the 3D milestone (d09fc960,
+2026-11-02) `Hyperspace::MakeOldPicture` prepared the jump's picture through the Direct3D object, which 2D does not have, and
+space's end in a challenge makes that picture in 2D too: an access violation as the trophy's sound started. The call is skipped
+without Direct3D. No test had finished a challenge in 2D since then.
+
+Also from the 2D comparison (45 pairs, `build/shotreview/bejeweledtwist/chal2d`): once the port ran on the original's update
+numbers, the load matched but for three things, masked or left. The original's captures hold its mouse pointer, the port's do
+not (a mask at the pointer's place). The sun's flames round the moon and the glints on a few gems as the board settles differ
+in shape and moment: both draw random numbers on their own, apart from the board's, which matched gem for gem (masks). And the
+picked planet's name flashes in over the five updates between the press and the release in the port, while the original's five
+captures there are identical and brighter; the original draws nothing for those updates, so its captures repeat
+one frame (settled 2026-11-11, "Challenges against the original").
+
+The game-text table was stale: a curve or text whose address `gametext.py` has not listed reads as empty, so the 3D branch's
+twelve curves ran out at once until the table was made again, and the rank badge's two texts of the coverage check had been
+empty too (its tip showed only the rank's name). The table is regenerated; 18 addresses nothing uses any more went out of it.
+`live.py` has three new steps for this: `challenge <x> <y>`, `after <n>` and `wait <n>`.
+
+## The site's Close says goodbye (2026-11-11)
+
+The user: "When using the window close dialog, it should wait for the Goodbye sound like quitting from the menu does." The
+menu's Quit, Yes (`Menu::DialogButtonDepress`, dialog 2) plays SOUND_VOICE_GOODBYE and waits for it in place before
+`Shutdown()`; a web build cannot wait in place (the sound plays only once the call returns), so that wait was compiled out on
+the web, and the site's Close shut the game down at once through the restart hook. Now the framework has
+`SexyAppBase::QuitAsGame` (by default `Shutdown()`), which the page calls through the export `byopop_quit`, and Twist
+overrides it: the voice starts, and `UpdateFrames` shuts the game down once it has ended (a voice that never ends is given
+1,000 updates), a second call meanwhile doing nothing. On the web the menu's Quit goes the same way; natively it is unchanged,
+and nothing native calls the hook (the suite's screens and baseline are as frozen). Seen in the Browser pane with `?silent=1`,
+where nothing can be heard, by the game's own log: `byopop_quit` at update 1437 logged "the goodbye voice started", then "ended
+after 139 updates; shutting down" (the voice is 1.405 s long), and the page's game ended. The site's own line that calls
+`byopop_quit` is the site session's.
+
+## Code the port does not need (2026-11-11)
+
+The last step before a game is done (`docs/COORDINATION.md`), beyond the registration code and the buttons that lead out of
+the game ("Registration and outbound buttons" above). Two sources: the coverage check's candidates, code no play of the
+original can reach, and port code that nothing calls, found by setting every function defined under `src/` against every use
+of its name in the game (its `popanim/` too), the framework and the platform, and the fields `tools/splitfields.py` found
+set and never read (below). Taken out, about 320 lines of `src/` in all:
+
+- Never called in the original either (no caller in the export, no vtable slot): `BSpline::GetNextPoint` (0x6d7811),
+  `Profile::GetSavedBit` and `SetSavedBit` (0x733838, 0x73386e), and from the exe's generated resource code
+  `ExtractResourcesByName` (0x748fef) with the two group functions only it called, `ExtractDynamicResources` and
+  `ExtractVizResources` (0x73eb2e, 0x74879d; the custom resource manager loads those groups itself), and the accessors
+  `GetFontById`, `GetFontRefById`, `GetSoundRefById`, `GetIdByFont` and `GetIdBySound`. `tools/resgen.py` leaves them out too
+  (its output has drifted from the hand-kept `Res.cpp` in other ways, so the files were edited, not generated again).
+- Reached only through code that is itself left out: `Piece::AddDust` (0x7290db), which only the ice gem's blast in
+  `Board::BreakPiece` calls (ice gems cannot be made in the shipped game, and that branch was never ported), and the
+  visualizers' key slot, `Visualizer::Slot4` with `VizZenWheels`' answer to it (0x690af4), which only the VizManager's key
+  function asks (0x758034, no caller in the original and not ported).
+- Inline accessors nothing uses: `CurvedVal::SetRamp`, `SetInRange` and `GetOutValDelta`, `GoodTube::IsTimerStartedFull`,
+  `Profile::IsGemTypeUnlocked`.
+- The port's own: `ModFeatureEnabled` (ModFeatures), which no mod code calls.
+- Fields the original sets and never reads, with the code that only set them: the cell's mark of a gem that cannot move
+  under the cursor's corners (+0x10 of a cell, set and cleared in `UpdateGame`, 0x6d090f; the export has no read of it), and
+  the wind cloud's fifth value per sprite (+0x10 of a sprite, 0x6928e8), whose rand draw stays so the draws keep their order.
+
+**Kept on purpose.** `CurvedVal::SetCurveRef` and the curve reference it sets (`CheckCurveChange` reads it on every step;
+nothing sets one, but it is the class's own mechanism, not a function on its own). `Board::PopAnimCommand`, which the
+animation player in `popanim/` calls. The fields the original sets and never reads, each named for what it holds, and the
+ones a save carries. The branches marked `NotPorted` (the ice gem, the angel gem's soul): they say what the original has
+there. The base `Traveller`'s empty `Update` and `Draw`, which the classes made from it override. Functions no coverage
+run reached but some play can (the replays, the fruit's shockwave, a game with no moves left, the help from a game): they
+were read again against the export in the coverage check and stay.
+
+**Proof.** Nothing the game runs changed: every function taken out had no caller. The native build passes with them gone
+(a call left anywhere would not link), and the suite's screens and baseline are as frozen.
+
+**The field check.** `python tools/splitfields.py bejeweledtwist --export <main>/re/bejeweledtwist/gh` (2026-11-11), which looks
+for one field of the original declared as two members, found no split. Its findings, each read in the port and the export:
+
+- "export", 176 members in 186 functions (106 written there): all but seven are `Board` members in 0x6d090f, which the port
+  translates as `UpdateGame` with its parts (`UpdateGeodes`, `UpdateJump`, `UpdateToolTips` and others) and the tool reads as
+  `UpdateGeodes` alone, the first of them to carry the address; the same for `DrawGrid`, one part of 0x6caa13. Every one of
+  those members is named, and written where the export writes it, elsewhere in that update or that drawing. The other seven:
+  0x733774 is the profile's `mAchievementBits |= 1 << n`, inline in `EndJump`, so its +0x164 is the profile's, not the
+  board's `mClearedOnNewLevel`. 0x71c18f is `Hyperspace::StartChallenge`, whose `mState` and `mTransition` the port sets
+  before it calls `StartChallenge3D`; the +0x6b8 it reads is `mJumpClock`, whose offset comment sits on a line of three
+  members, which the tool gives to the first. 0x6dfe2a, the challenge menu's `MouseWheel`, steps `mCameraStackIndex` only
+  while `mClicksBlocked` is set, which nothing sets, so the port's empty function does the same. 0x7627ea, the volume ramp
+  inline in `WinTwistApp::Init`, reads the board only to call 0x6c6469 on it when there is one, and at `Init` there is none.
+- "never written", 3: `Blob::mOwner` and the music `Track`'s `mSongId` and `mTrackId` are set in their constructors'
+  initializer lists, which the tool does not read as writes.
+- "write only", 2: the cell's mark and the sprite's fifth value above, set and never read in the original too; taken out.
+
+**Pictures and sounds.** No resource id, global or file name went: the two group functions taken out were empty (resources.xml
+lists nothing in the Dynamic and Viz groups that the manager extracts through them), and the accessors work on any id. Since no
+id was removed, no run of ids reached by arithmetic (`IMAGE_..._ID + n`) can have lost a member. The change adds no quoted
+string and changes none, so no name a file, a save or the properties look up was renamed.

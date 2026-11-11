@@ -1212,7 +1212,7 @@ static void TestMTRand()
 	Check(!aRand.SetState(aState, -1) && !aRand.SetState(aState, MTRAND_N + 2) && (aRand.Next() == aReference.Next()),
 		"MTRand SetState refuses an index outside 0..625");
 
-	// The all-zero state draws 0 forever (FillBoard would never find a colour): refused at every index. Only
+	// The all-zero state draws 0 forever (NewBoard would never find a colour): refused at every index. Only
 	// the top bit of the first word takes part in the recurrence, so its low bits do not make it valid
 	for (int aFirst = 0; aFirst < 2; aFirst++)
 	{
@@ -1562,7 +1562,7 @@ static std::string V1Save(int theCols = 8, int theRows = 8)
 			memcpy(aPiece + offsetof(Piece, mCol), &aCol, 4);
 			memcpy(aPiece + offsetof(Piece, mRow), &aRow, 4);
 			memcpy(aPiece + offsetof(Piece, mGlowAlpha), &anAlpha, 8);
-			memset(aPiece + offsetof(Piece, mPad39), 0xcd, 7); // padding: anything
+			memset(aPiece + offsetof(Piece, mPadBeforeGlowAlpha), 0xcd, 7); // padding: anything
 			s.append((const char*) aPiece, sizeof(aPiece));
 		}
 	}
@@ -1581,7 +1581,7 @@ static std::string V1Save(int theCols = 8, int theRows = 8)
 	I32(1);
 	I32(150);
 	U8(0);
-	I32(-559038737); // mUnused264: anything
+	I32(-559038737); // mSavedZero: anything
 	I32(0);
 	I32(1000);       // mLevelTargetScore
 	I32(1000);

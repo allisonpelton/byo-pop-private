@@ -13,10 +13,9 @@
 
 using namespace Sexy;
 
-FlyingText::FlyingText(int theKind, Image* theImage, int theX, int theY, float theUnused, int theSoundId,
-	float theDelay)
+// 0x6fc3a9: the field defaults of the constructor, inline here
+FlyingText::FlyingText(int theKind, Image* theImage, int theX, int theY, int theSoundId, float theDelay)
 {
-	(void)theUnused;
 	mKind = theKind;
 	mSoundId = theSoundId;
 	mTextImage = theImage;

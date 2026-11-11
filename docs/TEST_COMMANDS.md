@@ -35,6 +35,33 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `win`, `lose` | ends the current level or game now, as a win or a loss, through the game's own ending |
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
 | `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
+| `memreport [file]` | prints what the game holds in memory as one JSON line, `MEMREPORT {...}` (below); with a file it also writes the detail there (a SexyAppFramework port: every picture with its copies, and the heaps). It changes nothing |
+
+`memreport` answers with the same line in every game, so that a game's memory splits the same way everywhere:
+`{"images":{"count","pixels","copies","textures"},"sounds":{"count","bytes"},"music":{"count","tracks","moduleFiles"},`
+`"others":{...},"process":{"workingSet","private","privateAtStart"}}`, every size in bytes. `pixels` is the pictures' own
+pixels and palettes, `copies` the second copies made from them (the blitters' alpha caches, high-resolution pixels), and
+`textures` an estimate of what the graphics device holds for them, which no process can read. `tracks` is what the mixer
+keeps for audio tracks and `moduleFiles` the size of the module files loaded (a module's player keeps its own copy, about
+that size or more). `privateAtStart` is the process's private bytes when its libraries were loaded and its window,
+graphics device and sound device were up, before it loaded a picture, a sound or a song. From these a reader gets four
+parts: libraries and devices (`privateAtStart`), graphics (`pixels` + `copies`), sound (`sounds.bytes` + the music), and the
+game's own state (`private` less the other three; `others` names what an engine can account for in it).
+
+A SexyAppFramework port answers it in the framework (`SexyAppBase::DoMemReport`, here and in `-script`), with nothing to
+write in the game; a game with large holders of its own adds them in `AddMemReportHolders`. An engine of its own (the
+Mahjong Escapes, Ning Po, Cosmic Bugs and Water Bugs, Bonnie's, Word Harmony) uses `platform/MemReport.h`: it calls
+`Platform::NoteStartMemory()` once its window and devices are up and before it reads a game file, fills a
+`Platform::MemReport` in its own `memreport` command with what its pictures and sounds hold
+(`Platform::AddSongMemory` adds the mixer's songs; `mOthers` takes any other holder by name), and answers with
+`Platform::LogMemReport`, which adds the process's numbers and prints the line.
+
+`tools/memmap.py <pid>` is the same question asked from outside, of any running game (a port, or an original under origrun):
+it reads the process's address space and totals it by kind (the libraries by module, mapped files, stacks, private memory, the
+part of it in the heaps' first allocations) beside the process's own counters. It reads only, injects nothing and needs no test
+command in the game. It tells what the process holds in libraries and the driver against its own allocations, which `memreport`
+cannot see (`games/alchemy/docs/GAME_NOTES.md`, "The software path", has one on the default path, the software renderer and the
+original). `tools/scaletest` measures the cost and the picture of scaling a finished frame to the window.
 
 A move's `input` steps, played in order (Twist's and Alchemy's drivers set the form, 2026-11-07): `{"move":[x,y]}` moves
 the pointer there (a hover: a piece that hangs from the pointer needs one before its click), `{"click":[x,y]}` clicks
@@ -79,12 +106,13 @@ empty file will do) the lines take its dispatch, so the driver's moves are real 
 (`docs/REAL_INPUT.md`). `tools/fwtest/commands.sh` is a driver of that kind. A game's command may wait for its moment by
 queuing itself again for a later update (`AddScriptCommand`, as Bookworm Adventures' `word` does while its board is
 busy). Real input still reaches the game meanwhile: `HandleEvent` drops it only in a `-script` run or while a game's
-test bot drives (`mScriptedInput`), no longer whenever the script holds a line (until 2026-11-08 one waiting `goto` kept
-every real click out of Bookworm Adventures). fwtest's `waitdown` checks it in `commands.sh`. On the web the exported
+test bot drives (`mScriptedInput`). fwtest's `waitdown` checks it in `commands.sh`. On the web the exported
 function is `byopop_test_command(line)`: it returns 1 when the line is queued and 0 when it is refused (no game running,
 no command in the line, too many waiting), and the line runs inside the next update, so a page that holds the game's
 updates steps one to run it. The answers are the ordinary log lines, which SDL's log starts with `INFO: `. The channel has one
 command of its own, `wait <n>`: the lines after it wait n updates, and it answers `OK wait <n>` when they are up. The
+framework also answers `pointer`, here and in `-script`, with `POINTER {"x":..,"y":..,"in":true|false}`: the mouse as the
+widgets last saw it, in game pixels (the page check's resize line, `docs/WEB_PLAYER.md`, "The page check"). The
 full description is with `-script`'s in `framework/SexyAppBase.h`.
 
 ## The native loop

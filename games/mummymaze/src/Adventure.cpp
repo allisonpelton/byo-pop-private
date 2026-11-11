@@ -39,6 +39,7 @@ using namespace Sexy;
 // ---------------------------------------------------------------------------------------------------------
 // the files
 
+// port: the file of a slot's saved adventure
 static std::string AdventureFileName(int theSlot)
 {
 	char aBuf[32];
@@ -46,7 +47,8 @@ static std::string AdventureFileName(int theSlot)
 	return aBuf;
 }
 
-bool MummyApp::AdventureExists(int theSlot)
+// port: whether a slot holds a saved adventure
+bool MMApp::AdventureExists(int theSlot)
 {
 	std::string aData;
 	return Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + AdventureFileName(theSlot), &aData);
@@ -123,8 +125,8 @@ void PutString(std::string& theData, const std::string& theString)
 
 }
 
-// the name that a saved adventure carries ("" when there is none)
-bool MummyApp::AdventureName(int theSlot, SexyString& theName)
+// port: the name that a saved adventure carries ("" when there is none)
+bool MMApp::AdventureName(int theSlot, SexyString& theName)
 {
 	std::string aData;
 	if (!Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + AdventureFileName(theSlot), &aData))
@@ -134,18 +136,18 @@ bool MummyApp::AdventureName(int theSlot, SexyString& theName)
 	return true;
 }
 
-// 0x41bb10's friend 0x41bc80: the file goes
-void MummyApp::DeleteAdventure(int theSlot)
+// 0x41bc80: the file of a slot goes (the dialog of 0x41bb10 asks which)
+void MMApp::DeleteGame(int theSlot)
 {
 	Platform::RemoveUserFile(AdventureFileName(theSlot));
 #ifdef __EMSCRIPTEN__
 	SiteProfilesChanged(this);	// the web page's players (framework/WebProfiles.h): an adventure was deleted
 #endif
-	ShowAdventureSlots();
+	DoAdventure();
 }
 
 // a new adventure (0x4201e0 case 0x7db): a saved game with nothing done yet
-void MummyApp::CreateAdventure(int theSlot, const SexyString& theName)
+void MMApp::CreateAdventure(int theSlot, const SexyString& theName)
 {
 	std::string aData;
 	PutString(aData, theName);
@@ -172,7 +174,7 @@ void MummyApp::CreateAdventure(int theSlot, const SexyString& theName)
 // PyramidButton
 
 // 0x427050: the pictures are the ones the map's constructor gives it (the over and the down picture are the same)
-PyramidButton::PyramidButton(int theId, ButtonListener* theListener, MummyApp* theApp) :
+PyramidButton::PyramidButton(int theId, ButtonListener* theListener, MMApp* theApp) :
 	ButtonWidget(theId, theListener),
 	mApp(theApp),
 	mHover(false),
@@ -223,15 +225,15 @@ void PyramidButton::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 	ButtonWidget::MouseDown(x, y, theBtnNum, theClickCount);
 	if (mDisabled || mEnabled)
 		return;
-	WorldMap* aMap = mApp->mWorldMap;
+	MapWidget* aMap = mApp->mWorldMap;
 	if (aMap == NULL)
 		return;
 	if (mId == 15 && aMap->mProgress[14] < 0)
-		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x00495348), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x00495348), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 	else if (aMap->mProgress[mId - 1] < 0)
-		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x004952b4), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x004952b4), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 	else if (aMap->mProgress[mId - 1] == 0xf)
-		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x00495270), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x00495270), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 	MarkDirty();
 }
 
@@ -244,21 +246,23 @@ void PyramidButton::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 		mButtonListener->ButtonDepress(mId);
 }
 
+// port: a spot of the world map that answers clicks and draws nothing (the stats, the player's name, the chest)
 MapHotspot::MapHotspot(int theId, ButtonListener* theListener) :
 	ButtonWidget(theId, theListener)
 {
 }
 
+// port: the map's own picture shows the spot
 void MapHotspot::Draw(Graphics* g)
 {
 	(void) g;
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WorldMap
+// MapWidget
 
 // 0x417010
-WorldMap::WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry) :
+MapWidget::MapWidget(MMApp* theApp, int theSlot, bool theCheckEntry) :
 	mApp(theApp),
 	mCurrent(0),
 	mTarget(0),
@@ -323,16 +327,16 @@ WorldMap::WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry) :
 	}
 	if (mInvalid)
 	{
-		mApp->ShowMainMenu(2, true);
-		mApp->DoMessage(DIALOG_BAD_SAVE, GT(0x004944bc), GT(0x004944d0), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoIntro(2, true);
+		mApp->DoVersionError();
 	}
 	else if (mChamberDone)
 	{
 		// the chamber that has just been won
 		mCurrent = mTarget = mApp->mAdvPyramid;
 		mProgress[mCurrent]++;
-		Unlock();
-		Save();
+		OpenNewPyramids();
+		SaveGame();
 	}
 
 	mEnterButton = new ButtonWidget(99, this);
@@ -381,19 +385,21 @@ WorldMap::WorldMap(MummyApp* theApp, int theSlot, bool theCheckEntry) :
 	}
 	for (int i = 0; i < 15; i++)
 		mDistance[i] = 99;
-	mApp->SetMusicOrder(0x43, true);
+	mApp->DoMusic(0x43, true);
 }
 
-// 0x417010, 0x417c10 (on arrival): the ENTER button's picture is a 0x118 x 0x2d crop of the buttons' sheet, the upper row for
+// port: a piece of the constructor and of Update on arrival (0x417010, 0x417c10): the ENTER button's picture is a 0x118 x
+// 0x2d crop of the buttons' sheet, the upper row for
 // a pyramid with no chamber done, the lower one after that (the original's button owns the copy that CopyImage made)
-void WorldMap::CropEnterButton()
+void MapWidget::CropEnterButton()
 {
 	delete mEnterButton->mButtonImage;
 	mEnterButton->mButtonImage = mApp->CopyImage(mApp->mImages[IMAGE_ADVBUTTONS],
 		Rect(0, mProgress[mCurrent] != 0 ? 0x2d : 0, 0x118, 0x2d));
 }
 
-WorldMap::~WorldMap()
+// 0x417b20
+MapWidget::~MapWidget()
 {
 	delete mEnterButton->mButtonImage;
 	delete mEnterButton;
@@ -406,7 +412,7 @@ WorldMap::~WorldMap()
 }
 
 // 0x4187d0
-void WorldMap::AddedToManager(WidgetManager* theWidgetManager)
+void MapWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mEnterButton);
@@ -419,7 +425,7 @@ void WorldMap::AddedToManager(WidgetManager* theWidgetManager)
 }
 
 // 0x418840
-void WorldMap::RemovedFromManager(WidgetManager* theWidgetManager)
+void MapWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mEnterButton);
@@ -432,7 +438,7 @@ void WorldMap::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // 0x4188b0
-void WorldMap::Resize(int theX, int theY, int theWidth, int theHeight)
+void MapWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 	mBackButton->Resize(0, 0x18d, 0xb5, 0x2d);
@@ -445,14 +451,14 @@ void WorldMap::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x418970: a pyramid that was shut is open now (nothing done in it yet)
-void WorldMap::Open(int thePyramid)
+void MapWidget::ActivatePyramid(int thePyramid)
 {
 	if (mProgress[thePyramid] < 0)
 		mProgress[thePyramid] = 0;
 }
 
 // 0x419940: what a solved pyramid opens: its neighbours on the map, and the last pyramid once the others are solved
-void WorldMap::Unlock()
+void MapWidget::OpenNewPyramids()
 {
 	static const int kOpens[14][4] =
 	{
@@ -464,7 +470,7 @@ void WorldMap::Unlock()
 		if (mProgress[i] == 0xf && i < 14)
 		{
 			for (int j = 0; j < 4 && kOpens[i][j] >= 0; j++)
-				Open(kOpens[i][j]);
+				ActivatePyramid(kOpens[i][j]);
 		}
 		bool aAllDone = true;
 		for (int j = 0; j < 14; j++)
@@ -473,29 +479,30 @@ void WorldMap::Unlock()
 				aAllDone = false;
 		}
 		if (aAllDone)
-			Open(14);
+			ActivatePyramid(14);
 	}
 }
 
 // 0x418a30: how many paths away each pyramid is from one (a search; 99 for the ones not reached)
-void WorldMap::Measure(int thePyramid, int theDistance)
+void MapWidget::FindDists(int thePyramid, int theDistance)
 {
 	mDistance[thePyramid] = theDistance;
 	for (int i = 0; i < 15; i++)
 	{
 		if (kMapLinks[thePyramid * 15 + i] == 1 && mProgress[i] > -1 && theDistance + 1 < mDistance[i])
-			Measure(i, theDistance + 1);
+			FindDists(i, theDistance + 1);
 	}
 }
 
 // 0x4189b0: the next pyramid on the way from one to another (the nearest of the neighbours of theFrom to theTo)
-int WorldMap::NextHop(int theFrom, int theTo)
+// 0x418990
+int MapWidget::FindBest(int theFrom, int theTo)
 {
 	if (theFrom == theTo)
 		return theFrom;
 	for (int i = 0; i < 15; i++)
 		mDistance[i] = 99;
-	Measure(theTo, 0);
+	FindDists(theTo, 0);
 	int aBest = 99;
 	int aNext = 99;
 	for (int i = 0; i < 15; i++)
@@ -509,8 +516,8 @@ int WorldMap::NextHop(int theFrom, int theTo)
 	return aNext;
 }
 
-// the pyramids that can be entered (open and not solved) answer clicks again
-void WorldMap::EnableOpenPyramids()
+// port: a helper of the world map: the pyramids that can be entered (open and not solved) answer clicks again
+void MapWidget::EnableOpenPyramids()
 {
 	for (int i = 0; i < 15; i++)
 	{
@@ -523,7 +530,7 @@ void WorldMap::EnableOpenPyramids()
 }
 
 // 0x4195d0
-void WorldMap::Save()
+void MapWidget::SaveGame()
 {
 	if (mInvalid)
 		return;
@@ -554,7 +561,7 @@ void WorldMap::Save()
 }
 
 // 0x4183c0
-void WorldMap::Draw(Graphics* g)
+void MapWidget::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_ADVENTUREMAP], 0, 0);
 	g->SetColorizeImages(true);
@@ -598,8 +605,8 @@ void WorldMap::Draw(Graphics* g)
 		g->DrawImage(mApp->mImages[IMAGE_BIGTREASURES], 0x226, 0x17b, Rect(0xf, 0x168, 0xf, 0xf));
 }
 
-// 0x417c10
-void WorldMap::Update()
+// 0x417c10 (and 0x418390, its last piece: the twinkles' loop and the repaint)
+void MapWidget::Update()
 {
 	Widget::Update();
 	if (mApp->mGameMode == MODE_ADVENTURE_DONE)
@@ -612,18 +619,18 @@ void WorldMap::Update()
 			// a chamber has been won and the pyramid goes on: straight into the next chamber
 			mApp->mAdvPyramid = mCurrent;
 			mApp->mAdvChamber = mProgress[mCurrent];
-			mApp->StartBoardScreen();
-			mApp->RemoveWorldMap();
+			mApp->NewGame();
+			mApp->KillMap();
 			return;
 		}
 		if (mProgress[mCurrent] == 0xf && mApp->mGameMode != MODE_ADVENTURE_DONE)
 		{
 			// the pyramid is solved: its treasure on the ending board
 			aEntered = true;
-			Unlock();
+			OpenNewPyramids();
 			mApp->mGameMode = MODE_ADVENTURE_DONE;
 			mApp->mAdvChamber = 0xe;
-			mApp->StartBoardScreen();
+			mApp->NewGame();
 			if (mProgress[14] == 0xf)
 			{
 				// the last pyramid: the game is won and the map starts again
@@ -636,7 +643,7 @@ void WorldMap::Update()
 					mTarget = 0;
 				}
 			}
-			mApp->RemoveWorldMap();
+			mApp->KillMap();
 			// (the original goes on here: the hover, the marker and the twinkles, which draw random numbers)
 		}
 	}
@@ -644,7 +651,7 @@ void WorldMap::Update()
 	{
 		// (the first time: what the solved pyramids have opened can be entered)
 		mOpened = true;
-		Unlock();
+		OpenNewPyramids();
 		EnableOpenPyramids();
 	}
 
@@ -673,7 +680,7 @@ void WorldMap::Update()
 	// the marker's walk
 	if (mCurrent != mTarget && mStep < 0)
 	{
-		mNext = NextHop(mCurrent, mTarget);
+		mNext = FindBest(mCurrent, mTarget);
 		mStep = 0;
 	}
 	if (mStep >= 0)
@@ -763,14 +770,14 @@ void WorldMap::Update()
 }
 
 // 0x418a90
-void WorldMap::ButtonPress(int theId)
+void MapWidget::ButtonPress(int theId)
 {
 	(void) theId;
 	mApp->PlaySample(SOUND_CLICK);
 }
 
 // 0x418aa0
-void WorldMap::ButtonDepress(int theId)
+void MapWidget::ButtonDepress(int theId)
 {
 	switch (theId)
 	{
@@ -813,7 +820,7 @@ void WorldMap::ButtonDepress(int theId)
 		if (mApp->mDeaths != 1)
 			aText += "s";
 		aText += ".";
-		mApp->DoMessage(DIALOG_ADV_INFO, GT(0x00492350), aText, 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_ADV_INFO, GT(0x00492350), aText, 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		return;
 	}
 	case 0x33:
@@ -822,28 +829,28 @@ void WorldMap::ButtonDepress(int theId)
 		mApp->AdventureName(mApp->mCurrentSlot, aName);
 		char aBuf[200];
 		sprintf(aBuf, GTC(0x00492338), aName.c_str());
-		mApp->DoMessage(DIALOG_ADV_INFO, GT(0x00492240), aBuf, 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_ADV_INFO, GT(0x00492240), aBuf, 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		return;
 	}
 	case 0x34:
-		mApp->DoMessage(DIALOG_INTRO, GT(0x004922d4), GT(0x004922e0), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_INTRO, GT(0x004922d4), GT(0x004922e0), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		return;
 	case 99:
 		// into the pyramid that the marker stands on
 		if (mProgress[mCurrent] == mApp->mAdvChamber && mCurrent == mApp->mAdvPyramid && mApp->mBoard != NULL)
 		{
-			mApp->RemoveWorldMap();
+			mApp->KillMap();
 			return;
 		}
 		mApp->mAdvPyramid = mCurrent;
 		mApp->mAdvChamber = mProgress[mCurrent];
-		mApp->StartBoardScreen();
-		mApp->RemoveWorldMap();
+		mApp->NewGame();
+		mApp->KillMap();
 		return;
 	case 0x62:
-		mApp->ShowMainMenu(2, true);
-		mApp->SetMusicOrder(1, true);
-		mApp->RemoveWorldMap();
+		mApp->DoIntro(2, true);
+		mApp->DoMusic(1, true);
+		mApp->KillMap();
 		return;
 	default:
 		break;
@@ -867,19 +874,19 @@ void WorldMap::ButtonDepress(int theId)
 		return;
 	mApp->mAdvPyramid = mCurrent;
 	mApp->mAdvChamber = mProgress[mCurrent];
-	mApp->StartBoardScreen();
-	mApp->RemoveWorldMap();
+	mApp->NewGame();
+	mApp->KillMap();
 }
 
 // ---------------------------------------------------------------------------------------------------------
 // the app's side
 
 // 0x41c300: the world map goes, and the adventure is saved
-void MummyApp::RemoveWorldMap()
+void MMApp::KillMap()
 {
 	if (mWorldMap != NULL)
 	{
-		mWorldMap->Save();
+		mWorldMap->SaveGame();
 		mWidgetManager->RemoveWidget((Widget*) mWorldMap);
 		SafeDeleteWidget((Widget*) mWorldMap);
 		mWorldMap = NULL;
@@ -887,7 +894,7 @@ void MummyApp::RemoveWorldMap()
 }
 
 // 0x41b800: the games that were saved, or a new one when there are none
-void MummyApp::ShowAdventureSlots()
+void MMApp::DoAdventure()
 {
 	bool aAny = false;
 	for (int i = 0; i < 5; i++)
@@ -897,7 +904,8 @@ void MummyApp::ShowAdventureSlots()
 	}
 	if (aAny)
 	{
-		AdventureSlotsDialog* aDialog = (AdventureSlotsDialog*) NewDialogOf(new AdventureSlotsDialog(this));
+		AdventureDialog* aDialog = (AdventureDialog*) NewDialogOf(new AdventureDialog(this));
+		aDialog->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));   // (the three adventure dialogs have a black header)
 		aDialog->Resize((mWidth - 0x17c) / 2, (mHeight - aDialog->GetPreferredHeight(0x17c)) / 2, 0x17c,
 			aDialog->GetPreferredHeight(0x17c));
 		AddDialog(DIALOG_ADVENTURE_NEW, aDialog);
@@ -909,34 +917,43 @@ void MummyApp::ShowAdventureSlots()
 	}
 }
 
-void MummyApp::ShowNewAdventure()
+// port: the box that asks for a new adventure's name (the piece of 0x41bcc0 that opens it for a slot with no game)
+void MMApp::ShowNewAdventure()
 {
-	NewAdventureDialog* aDialog = (NewAdventureDialog*) NewDialogOf(new NewAdventureDialog(this));
+	NameDialog* aDialog = (NameDialog*) NewDialogOf(new NameDialog(this));
+	aDialog->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));
 	aDialog->Resize((mWidth - 0x17c) / 2, (mHeight - aDialog->GetPreferredHeight(0x17c)) / 2, 0x17c,
 		aDialog->GetPreferredHeight(0x17c));
 	AddDialog(DIALOG_NEW_ADVENTURE_NAME, aDialog);
 }
 
-// 0x41bb10: the games to delete
-void MummyApp::ShowDeleteAdventure()
+// 0x41f0d0: the message of a saved game that cannot be read
+void MMApp::DoVersionError()
 {
-	DeleteAdventureDialog* aDialog = (DeleteAdventureDialog*) NewDialogOf(new DeleteAdventureDialog(this));
+	DoMessage(DIALOG_BAD_SAVE, GT(0x004944bc), GT(0x004944d0), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
+}
+
+// 0x41bb10: the games to delete
+void MMApp::DoDeleteDialog()
+{
+	DeleteDialog* aDialog = (DeleteDialog*) NewDialogOf(new DeleteDialog(this));
+	aDialog->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));
 	aDialog->Resize((mWidth - 0x17c) / 2, (mHeight - aDialog->GetPreferredHeight(0x17c)) / 2, 0x17c,
 		aDialog->GetPreferredHeight(0x17c));
 	AddDialog(DIALOG_DELETE_ADVENTURE, aDialog);
 }
 
 // 0x41bcc0: the saved adventure of a slot on the world map, or the box that asks for a name when there is none
-void MummyApp::LoadAdventure(int theSlot, bool theFlag)
+void MMApp::DoMap(int theSlot, bool theFlag)
 {
-	RemoveWorldMap();
+	KillMap();
 	mCurrentSlot = theSlot;
 	if (!AdventureExists(theSlot))
 	{
 		ShowNewAdventure();
 		return;
 	}
-	WorldMap* aMap = new WorldMap(this, theSlot, theFlag);
+	MapWidget* aMap = new MapWidget(this, theSlot, theFlag);
 	if (aMap->mInvalid)
 	{
 		delete aMap;
@@ -947,14 +964,14 @@ void MummyApp::LoadAdventure(int theSlot, bool theFlag)
 	mWorldMap->Resize(0, 0, 0x280, 0x1e0);
 	mWidgetManager->AddWidget(mWorldMap);
 	if (mWorldMap->mProgress[0] == 0xf && mWorldMap->mCurrent == 0 && mGameMode == MODE_ADVENTURE_DONE)
-		DoMessage(DIALOG_INTRO, GT(0x00493f54), GT(0x00493f68), 3, 0x6e, 0x55, 0x1a4);
+		DoMessage(DIALOG_INTRO, GT(0x00493f54), GT(0x00493f68), 3, 0x6e, 0x55, 0x1a4, 0x136);
 }
 
 // 0x406f10, 0x407cc0 and 0x4083e0: the explorer was caught in the adventure: the saved game is read again (the maze starts
 // over from the map), the catch is counted and the game saved
-void MummyApp::AdventureCaught()
+void MMApp::AdventureCaught()
 {
-	WorldMap* aMap = new WorldMap(this, mCurrentSlot, false);
+	MapWidget* aMap = new MapWidget(this, mCurrentSlot, false);
 	if (aMap->mInvalid)
 	{
 		delete aMap;
@@ -962,13 +979,14 @@ void MummyApp::AdventureCaught()
 	}
 	mWorldMap = aMap;
 	mDeaths++;
-	RemoveWorldMap();
+	KillMap();
 }
 
-// 0x413950 (cases 2 and 3) and 0x42a3d0 (case 13): the way out of a maze to the map: the time played in it is added
-void MummyApp::AdventureLeave()
+// 0x413950 (cases 2 and 3), 0x42a3d0 (case 13) and 0x4201e0 (case 0x7d3, Quit to Main): the way out of a maze: the saved
+// adventure is read into a map, the time played in the maze is added, and the map goes again, which writes the file
+void MMApp::AdventureLeave()
 {
-	WorldMap* aMap = new WorldMap(this, mCurrentSlot, false);
+	MapWidget* aMap = new MapWidget(this, mCurrentSlot, false);
 	if (aMap->mInvalid)
 	{
 		delete aMap;
@@ -977,18 +995,18 @@ void MummyApp::AdventureLeave()
 	mWorldMap = aMap;
 	DWORD aNow = GameTick();
 	mTotalTime += (double) (int) (mElapsedBase / 100 + (aNow - (mBoard != NULL ? mBoard->mStartTick : aNow)) / 1000);
-	RemoveWorldMap();
+	KillMap();
 }
 
 // 0x42a3d0 case 13: the world map button of the side panel
-void MummyApp::OnWorldMapButton()
+void MMApp::OnWorldMapButton()
 {
 	if (mBoard == NULL)
 	{
 		if (mVictory == NULL)
 		{
 			double aTime = mTotalTime;
-			LoadAdventure(mCurrentSlot, false);
+			DoMap(mCurrentSlot, false);
 			mTotalTime = aTime;
 		}
 	}
@@ -997,9 +1015,9 @@ void MummyApp::OnWorldMapButton()
 		DWORD aNow = GameTick();
 		DWORD aStart = mBoard->mStartTick;
 		int aBase = (int) mElapsedBase;
-		RemoveWorldMap();
-		RemoveBoard();
-		LoadAdventure(mCurrentSlot, false);
+		KillMap();
+		KillBoard();
+		DoMap(mCurrentSlot, false);
 		mTotalTime = (double) (int) (aBase / 100 + (aNow - aStart) / 1000) + mTotalTime;
 	}
 }

@@ -28,6 +28,8 @@ else:
     print("at 310 click 390 244")
     for k, cmd, a in lines:
         if cmd == 'quit':
+            if host:  # a host run ends by itself, for a coverage run (tools/coverage/all.sh): origrun's plain quit follows the last at
+                print("quit")
             continue
         if cmd == 'screenshot':
             if host:

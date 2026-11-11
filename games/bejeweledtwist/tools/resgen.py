@@ -2,7 +2,7 @@
 """Writes src/Res.h and src/Res.cpp, the resource globals of Bejeweled Twist, as the exe's own ResGen output has them
 (0x73b609-0x749300): an enum of every resource id, a table from id to global (GetImageById and the like), the x/y offset
 of each image (GetImageOffsetX/Y), a map back from a resource to its id (GetIdByImage and the like), the id's name
-(GetStringIdById), one Extract<Group>Resources function per <Resources> group and ExtractResourcesByName.
+(GetStringIdById), one Extract<Group>Resources function per <Resources> group (but for Dynamic and Viz, which nothing calls).
 
 The ids and their order come from the exe (the name table of GetStringIdById, 0x73b687): the shipped resources.xml
 lacks the 20 shaders, which the exe loads itself in ExtractLoadScreenNonReleaseResources, and lists IMAGE_BOOM_NOVA,
@@ -63,6 +63,16 @@ def xml_groups(path):
     return groups
 
 
+# Each group's Extract function in the exe, as ExtractResourcesByName (0x748fef) calls them
+EXTRACT_ADDRESSES = {'2DOnly': 0x73eae6, 'Dynamic': 0x73eb2e, 'LoadScreenNonRelease': 0x73ef19,
+                     'LoadingThread': 0x74406e, 'NonResize': 0x7475db, 'Sounds': 0x7478c1, 'Tube': 0x74858e,
+                     'Viz': 0x74879d}
+
+
+def address_of(theGroup):
+    return '  // 0x%x' % EXTRACT_ADDRESSES[theGroup] if theGroup in EXTRACT_ADDRESSES else ''
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--exe', default=os.path.join(ROOT, 'assets', 'bejeweledtwist', 'bejeweledtwist.exe'))
@@ -86,21 +96,15 @@ def main():
                   'enum ResourceId {']
     h += ['\t%s_ID,' % rid for rid in ids]
     h += ['\tRESOURCE_ID_MAX', '};', '',
-          'bool ExtractResourcesByName(ResourceManager* theManager, const char* theName);  // 0x748fef',
           'Image* GetImageById(int theId);               // 0x73b609',
-          'Font* GetFontById(int theId);                 // 0x73b61a',
           'int GetSoundById(int theId);                  // 0x73b62b',
           'int GetImageOffsetX(int theId);               // 0x73b63c: the image\'s x= in resources.xml',
           'int GetImageOffsetY(int theId);               // 0x73b64b',
           'Image** GetImageRefById(int theId);           // 0x73b65a',
-          'Font** GetFontRefById(int theId);             // 0x73b669',
-          'int* GetSoundRefById(int theId);              // 0x73b678',
           'const char* GetStringIdById(int theId);       // 0x73b687',
           '// 0x7490e0: the id of the resource with that name (as GetStringIdById gives it, upper case), RESOURCE_ID_MAX for none',
           'int GetIdByName(const char* theName);',
-          'ResourceId GetIdByImage(Image* theImage);     // 0x73e690: RESOURCE_ID_MAX for one not from the manager',
-          'ResourceId GetIdByFont(Font* theFont);        // 0x73e699',
-          'ResourceId GetIdBySound(int theSound);        // 0x73e6a2', '']
+          'ResourceId GetIdByImage(Image* theImage);     // 0x73e690: RESOURCE_ID_MAX for one not from the manager', '']
     c = HEADER + ['#include "Res.h"', '', '#include <cstring>', '#include <map>', '', '#include "CritSect.h"',
                   '#include "AutoCrit.h"', '#include "CustomResourceManager.h"', '', 'using namespace Sexy;', '']
     for rid in ids:
@@ -150,13 +154,10 @@ def main():
           '}', '',
           '}  // namespace', '',
           'Image* Sexy::GetImageById(int theId) { return *(Image**)gResources[theId]; }',
-          'Font* Sexy::GetFontById(int theId) { return *(Font**)gResources[theId]; }',
           'int Sexy::GetSoundById(int theId) { return *(int*)gResources[theId]; }',
           'int Sexy::GetImageOffsetX(int theId) { return gImageOffsets[theId][0]; }',
           'int Sexy::GetImageOffsetY(int theId) { return gImageOffsets[theId][1]; }',
           'Image** Sexy::GetImageRefById(int theId) { return (Image**)gResources[theId]; }',
-          'Font** Sexy::GetFontRefById(int theId) { return (Font**)gResources[theId]; }',
-          'int* Sexy::GetSoundRefById(int theId) { return (int*)gResources[theId]; }',
           'const char* Sexy::GetStringIdById(int theId) { return (unsigned)theId < RESOURCE_ID_MAX ? gResourceNames[theId] : ""; }',
           '',
           '// The original fills a map from the names (the later of two equal names wins) and looks the name up in it',
@@ -169,14 +170,17 @@ def main():
           '	return RESOURCE_ID_MAX;',
           '}',
           '',
-          'ResourceId Sexy::GetIdByImage(Image* theImage) { return GetIdByVariant((intptr_t)theImage); }',
-          'ResourceId Sexy::GetIdByFont(Font* theFont) { return GetIdByVariant((intptr_t)theFont); }',
-          'ResourceId Sexy::GetIdBySound(int theSound) { return GetIdByVariant(theSound); }', '']
+          'ResourceId Sexy::GetIdByImage(Image* theImage) { return GetIdByVariant((intptr_t)theImage); }', '']
 
     done = set()
     for g, items in groups:
         h.append('// %s' % g)
-        h.append('bool Extract%sResources(ResourceManager* theManager);' % g)
+        # the Dynamic and Viz groups' functions are left out: only ExtractResourcesByName called them, which nothing
+        # calls (the font, sound and by-name accessors nothing calls are left out too; NOTES.md, "Code the port does
+        # not need")
+        extracted = g not in ('Dynamic', 'Viz')
+        if extracted:
+            h.append('bool Extract%sResources(ResourceManager* theManager);%s' % (g, address_of(g)))
         names = [rid for _, rid in items]
         if g == 'LoadScreenNonRelease':
             names += [rid for rid in ids if kind[rid] == 'Shader']
@@ -185,17 +189,15 @@ def main():
                 done.add(rid)
                 h.append('extern %s %s;' % (KINDS[kind[rid]], rid))
         h.append('')
-        c += ['bool Sexy::Extract%sResources(ResourceManager* theManager)' % g, '{', '\ttry {']
+        if not extracted:
+            continue
+        c += ['bool Sexy::Extract%sResources(ResourceManager* theManager)%s' % (g, address_of(g)), '{', '\ttry {']
         for k, rid in items:
             c.append('\t\t%s = %s(theManager, %s_ID, "%s");' % (rid, GETTER[k], rid, rid))
         if g == 'LoadScreenNonRelease':
             c.append('\t\t// The exe compiles the 20 SHADER_ programs here from shaders\\*.psh and *.vsh (3D mode only).')
         c += ['\t} catch (ResourceManagerException&) {', '\t\treturn false;', '\t}', '\treturn true;', '}', '']
     h.append('}  // namespace Sexy')
-    c += ['bool Sexy::ExtractResourcesByName(ResourceManager* theManager, const char* theName)', '{']
-    for g, _ in groups:
-        c += ['\tif (strcmp(theName, "%s") == 0)' % g, '\t\treturn Extract%sResources(theManager);' % g]
-    c += ['\treturn false;', '}', '']
     open(os.path.join(SRC, 'Res.h'), 'w', encoding='utf-8', newline='').write('\n'.join(h) + '\n')
     open(os.path.join(SRC, 'Res.cpp'), 'w', encoding='utf-8', newline='').write('\n'.join(c))
     print('%d ids, %d groups -> Res.h, Res.cpp' % (len(ids), len(groups)))

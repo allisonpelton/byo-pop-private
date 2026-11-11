@@ -19,7 +19,7 @@ using namespace Sexy;
 // OptionsDialog
 
 // 0x4250f0
-OptionsDialog::OptionsDialog(MummyApp* theApp) :
+OptionsDialog::OptionsDialog(MMApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_OPTIONS, true, GT(0x004950e8), "",
 		GT(0x00491f90), BUTTONS_FOOTER),
 	mApp(theApp)
@@ -75,6 +75,7 @@ OptionsDialog::OptionsDialog(MummyApp* theApp) :
 	mAnkhCheckbox->SetChecked(mApp->mShowAnkh, false);
 }
 
+// 0x425e10
 OptionsDialog::~OptionsDialog()
 {
 	delete mTutorialButton;
@@ -113,6 +114,7 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 
 // 0x426190: two rows of buttons above the footer button, then the sliders and the switches (without the Register and the web
 // page buttons, the Tutorial and Scores buttons share the first row and the Credits button takes the second)
+// 0x4261f0, 0x426240
 void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
@@ -169,20 +171,27 @@ void OptionsDialog::Draw(Graphics* g)
 		g->DrawString(GT(aTexts[i]), (aBoxes[i]->mX - mX) + 0x28, (aBoxes[i]->mY - mY) + 0x15);
 }
 
-// 0x426b70: the dialog's own buttons (the footer button is the app's: ButtonDepress(2005))
+// 0x426b50: every press of a button of the dialog clicks; the footer button's also reaches the app, which clicks too
+void OptionsDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_CLICK);
+}
+
+// 0x426b70, 0x41ca70 (its question for the Tutorial button): the dialog's own buttons (the footer button is the app's: ButtonDepress(2005))
 void OptionsDialog::ButtonDepress(int theId)
 {
 	Dialog2004::ButtonDepress(theId);
 	switch (theId)
 	{
 	case 0:
-		mApp->DoMessage(DIALOG_STARTED_TUTORIAL, GT(0x00492228), GT(0x004940f8), 1, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_STARTED_TUTORIAL, GT(0x00492228), GT(0x004940f8), 1, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		break;
 	case 2:
-		mApp->ShowHighScoreDialog();
+		mApp->DoHighScoreDialog();
 		break;
 	case 4:
-		mApp->DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		break;
 	}
 }
@@ -209,12 +218,12 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 // HighScoreDialog
 
 // 0x413c30
-HighScoreDialog::HighScoreDialog(MummyApp* theApp) :
+HighScoreDialog::HighScoreDialog(MMApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_HIGH_SCORES, true, GT(0x00491f84), "",
 		GT(0x00491f90), BUTTONS_FOOTER),
 	mApp(theApp)
 {
-	mScores = new HighScoreScreen(theApp);
+	mScores = new HighScoreWidget(theApp);
 	Use2003Buttons(this, mApp->mImages[IMAGE_DBUTTON]);
 	SetButtonFont(mApp->mFont1);
 	SetHeaderFont(mApp->mHeaderFont);
@@ -224,6 +233,7 @@ HighScoreDialog::HighScoreDialog(MummyApp* theApp) :
 	SetColor(Dialog::COLOR_HEADER, Color(0x66, 0x5c, 0x38));
 }
 
+// 0x413f10 (its deleting form 0x413ef0)
 HighScoreDialog::~HighScoreDialog()
 {
 	delete mScores;
@@ -254,7 +264,7 @@ void HighScoreDialog::Draw(Graphics* g)
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// TipDialog
+// WarningDialog
 
 // the lines of each tip (the addresses of their texts) and the first line's place: four lines from 0x5f, the tip of the
 // traps three from 0x69
@@ -270,7 +280,7 @@ static const unsigned int kTipLines[7][4] =
 };
 
 // 0x42b720
-TipDialog::TipDialog(MummyApp* theApp, int theWhich) :
+WarningDialog::WarningDialog(MMApp* theApp, int theWhich) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_TIP, true, "", "", GT(0x004955b4),
 		BUTTONS_FOOTER),
 	mApp(theApp),
@@ -295,43 +305,51 @@ TipDialog::TipDialog(MummyApp* theApp, int theWhich) :
 	mCheckbox = new Checkbox(aUnchecked, aChecked, 0, this);
 }
 
-TipDialog::~TipDialog()
+// 0x42bb00 (its deleting form 0x42bae0); the two pictures of the check box are freed here, and are not in the original
+WarningDialog::~WarningDialog()
 {
 	delete mCheckbox;
 	delete mCheckedImage;
 	delete mUncheckedImage;
 }
 
+// 0x412d80
+void WarningDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_CLICK);
+}
+
 // 0x42bba0
-void TipDialog::AddedToManager(WidgetManager* theWidgetManager)
+void WarningDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mCheckbox);
 }
 
 // 0x42bbd0
-void TipDialog::RemovedFromManager(WidgetManager* theWidgetManager)
+void WarningDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mCheckbox);
 }
 
 // 0x42bc00
-void TipDialog::Resize(int theX, int theY, int theWidth, int theHeight)
+void WarningDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
 	mCheckbox->Resize(mX + 0x41, mY + 0xa8, 0x24, 0x25);
 }
 
 // 0x42bb80
-int TipDialog::GetPreferredHeight(int theWidth)
+int WarningDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
 	return 0x136;
 }
 
 // 0x42bc50: the warning and its lines, and the label of the box
-void TipDialog::Draw(Graphics* g)
+void WarningDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
 	g->SetFont(mApp->mHeaderFont);

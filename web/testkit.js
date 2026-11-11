@@ -224,7 +224,7 @@
     }
     throw new Error("byopop.test: unknown key " + key);
   }
-  function keyEvent(type, info, mods) {
+  function keyEvent(type, info, mods, target) {
     var e = new KeyboardEvent(type, { bubbles: true, cancelable: true, key: info.key, code: info.code,
       shiftKey: !!(mods && mods.shift), ctrlKey: !!(mods && mods.ctrl), altKey: !!(mods && mods.alt) });
     var charCode = type === "keypress" ? info.key.charCodeAt(0) : 0;
@@ -232,7 +232,8 @@
     Object.defineProperty(e, "keyCode", { get: function () { return type === "keypress" ? charCode : info.keyCode; } });
     Object.defineProperty(e, "charCode", { get: function () { return charCode; } });
     Object.defineProperty(e, "which", { get: function () { return which; } });
-    canvas.dispatchEvent(e);
+    (target || canvas).dispatchEvent(e);
+    return e.defaultPrevented;
   }
   test.keyDown = function (key, mods) { keyEvent("keydown", keyInfo(key), mods); return test.frame(); };
   test.keyUp = function (key, mods) { keyEvent("keyup", keyInfo(key), mods); return test.frame(); };
@@ -242,6 +243,16 @@
     keyEvent("keydown", info, mods);
     if (info.key.length === 1) keyEvent("keypress", info, mods);
     return test.frame().then(function () { keyEvent("keyup", info, mods); return test.frame(); });
+  };
+  // a press sent at once (down, its keypress where it types a character, up) to the canvas or another element, resolving with
+  // which of the three the page cancelled: {key, down, press (null without one), up}. The browser acts on a key only when the
+  // page did not cancel it (Firefox's quick find on a keypress of ' or /, Tab's focus move, the page's scrolling on a keydown),
+  // so this tells whether a player's key would also reach the browser (tools/web/pagecheck.js)
+  test.keyCheck = function (key, mods, target) {
+    var info = keyInfo(key), r = { key: key, down: keyEvent("keydown", info, mods, target), press: null, up: false };
+    if (info.key.length === 1) r.press = keyEvent("keypress", info, mods, target);
+    r.up = keyEvent("keyup", info, mods, target);
+    return test.frame().then(function () { return r; });
   };
   test.type = function (text) {
     return Array.prototype.reduce.call(String(text), function (p, ch) {
@@ -517,20 +528,27 @@
   // into errors); result is {error: message} after a failure.
   var driverPath = params.get("driver");
   test.result = undefined;
+  // a game's driver (games/<game>/tools/...) or a shared one (tools/web/<name>.js), fetched from the server's /__repo/; it
+  // runs as the body of an async function of t (byopop.test) and args (what test.run passed, undefined from ?driver=)
+  var DRIVER_PATH = /^(games\/[a-z0-9]+\/tools\/[A-Za-z0-9._\/-]+|tools\/web\/[A-Za-z0-9._-]+)\.js$/;
+  function loadDriver(path) {
+    if (!DRIVER_PATH.test(path) || path.indexOf("..") >= 0)
+      return Promise.reject(new Error("byopop.test: a driver is games/<game>/tools/<path>.js or tools/web/<name>.js"));
+    return fetch("/__repo/" + path, { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("byopop.test: driver " + path + ": " + r.status);
+      return r.text();
+    }).then(function (code) {
+      var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+      return new AsyncFunction("t", "args", code + "\n//# sourceURL=" + location.origin + "/__repo/" + path);
+    });
+  }
+  // a shared driver run from a game's own, with that game's table: return await t.run("tools/web/pagecheck.js", {...})
+  test.run = function (path, args) { return loadDriver(path).then(function (run) { return run(test, args); }); };
   if (driverPath === "move") {
     test.driver = test.loaded.then(test.start).then(function () { return test.playByMove(); });
     test.driver.then(function (v) { test.result = v; }, function (e) { addError("driver", (e && e.stack) || e); test.result = { error: String(e && e.message || e) }; });
   } else if (driverPath) {
-    test.driver = !/^games\/[a-z0-9]+\/tools\/[A-Za-z0-9._\/-]+\.js$/.test(driverPath) || driverPath.indexOf("..") >= 0
-      ? Promise.reject(new Error("byopop.test: a driver is games/<game>/tools/<path>.js"))
-      : fetch("/__repo/" + driverPath, { cache: "no-store" }).then(function (r) {
-        if (!r.ok) throw new Error("byopop.test: driver " + driverPath + ": " + r.status);
-        return r.text();
-      }).then(function (code) {
-        var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-        var run = new AsyncFunction("t", code + "\n//# sourceURL=" + location.origin + "/__repo/" + driverPath);
-        return driverAt.then(function () { return run(test); });
-      });
+    test.driver = loadDriver(driverPath).then(function (run) { return driverAt.then(function () { return run(test); }); });
     test.driver.then(function (v) { test.result = v; },
       function (e) { addError("driver", (e && e.stack) || e); test.result = { error: String(e && e.message || e) }; });
   } else test.driver = null;

@@ -70,11 +70,9 @@ public:
 	std::string		mLoadingText;			// the line the title screen shows under its bar (title screen +0xc4)
 
 	int				mMode;					// +0x3ea4 0 the strategy mode, 1 the action mode
-	bool			mB3ea0;					// +0x3ea0 the player gave up the game
 	int				mExpertMode;			// +0x3ea8 1: expert (double scores)
-	bool			mB3eac;					// +0x3eac the main menu is to be closed when the game updates
+	bool			mMenuDoorsOpen;		// +0x3eac the menu's doors stand open: the board closes the menu at its next update
 	int				mPauseCount;			// +0x4068 >0: the game is paused
-	int				mI440;					// +0x440 a counter of the base app that the grid raises
 	bool			mShowSymbols;			// the atoms show their chemical symbols
 	bool			mShowTips;				// the tutorial boxes (the option 'disable hints' turns them off)
 	bool			mHintsShown[0xff];		// +0x406c the hints that were shown in earlier games
@@ -84,7 +82,6 @@ public:
 	Widget*			mHighScoresBox;			// the tables of both games (from the options)
 	ScoreTable		mScoreTables[2];		// +0x3eb0 the strategy mode's and +0x3f8c the action mode's high scores
 	Widget*			mQuitDialog;			// +0x3e8c the quit box
-	Widget*			mConfirmDialog;			// +0x3e94
 	Widget*			mOptionsDialog;			// +0x3e90 the game options
 
 	GameRand		mRand;					// +0x3da4 the game's random numbers
@@ -278,7 +275,6 @@ public:
 	bool				HasSavedGame();
 	void				SaveGame();							// 0x405fc0
 	void				ResumeGame();						// 0x406060
-	void				DeleteSavedGame();
 	void				ShowQuit();							// 0x405bd0
 	void				ShowOptions();						// 0x405d00
 	void				ResetHints();
@@ -286,13 +282,11 @@ public:
 	void				ShowHighScoreEntry(int theScore);	// 0x41e440
 	void				ReadHighScores();					// 0x405ed0
 	void				WriteHighScores();					// 0x405f30
-	void				ShowConfirm();						// 0x405c40
 	void				ShowMainMenu(bool theGameOver);		// 0x405d70
 	void				ShowGameOver();						// 0x406200
 	void				ShowLevelUp();						// 0x432240
 	void				CloseMenu();						// 0x405e90
 	void				CloseBoard();						// 0x405e20
-	void				EndGame();							// 0x405cb0
 
 private:
 	void				LoadAtoms();						// the atoms' pictures (0x407?-0x408ca0)

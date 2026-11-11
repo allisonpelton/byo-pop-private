@@ -1,0 +1,34 @@
+# Tour 3: the hall of fame (both pages), the classic and the survival pilot screens with each pilot lit
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 535 160
+3380 shot h01_hof
+3390 move 253 456
+3410 shot h02_hof_hover_personal
+3420 click 253 456
+3470 shot h03_personal
+3480 move 533 456
+3500 shot h04_personal_hover_main
+3510 click 533 456
+3580 shot h05_menu
+3600 click 110 190
+3680 shot h06_classic_select
+3690 move 110 300
+3710 shot h07_hover_vector
+3720 move 275 300
+3740 shot h08_hover_vixx
+3750 move 420 300
+3770 shot h09_hover_sprocket
+3780 move 570 300
+3800 shot h10_hover_turbot
+3810 move 360 466
+3830 shot h11_hover_return
+3840 click 360 466
+3900 shot h12_menu
+3920 click 110 330
+4000 shot h13_survival_select
+4010 move 87 421
+4030 shot h14_hover_go
+4040 click 360 466
+4100 shot h15_menu2

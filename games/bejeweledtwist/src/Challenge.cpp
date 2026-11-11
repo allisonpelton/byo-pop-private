@@ -254,6 +254,7 @@ bool ChallengeInfoParser::ParseChallenge(Challenge* theChallenge)
 }
 
 // 0x6dc8d9: the <challenge> tags of one category; false when the file is wrong
+// 0x6d9fe2: the challenge record's constructor, inline here
 bool ChallengeInfoParser::ParseCategory(ChallengeCategory* theCategory)
 {
 	XMLElement anElement;
@@ -288,6 +289,7 @@ bool ChallengeInfoParser::ParseCategory(ChallengeCategory* theCategory)
 }
 
 // 0x6dcb26: the <Category> tags of the file
+// 0x6db65b: the category record's constructor, inline here
 void ChallengeInfoParser::ParseCategories()
 {
 	if (!mParser->HasFailed()) {
@@ -347,6 +349,7 @@ void ChallengeInfoParser::ParseFile(const std::string& theFileName)
 
 }  // namespace
 
+// port: frees the category's challenges and its special one
 ChallengeCategory::~ChallengeCategory()
 {
 	for (Challenge* aChallenge : mChallenges)
@@ -354,11 +357,13 @@ ChallengeCategory::~ChallengeCategory()
 	delete mSpecial;
 }
 
+// 0x6dd087
 ChallengeInfo::ChallengeInfo()
 {
 	Load();
 }
 
+// port: frees the categories
 ChallengeInfo::~ChallengeInfo()
 {
 	Clear();
@@ -429,7 +434,7 @@ Challenge* ChallengeInfo::GetChallenge(unsigned int theCategory, int theNumber)
 	return aChallenge;
 }
 
-// 0x6d8d19: the profile's mInts1F4 hold, for each category, the challenge it stands at (from 1)
+// 0x6d8d19: the profile's mChallengeStages hold, for each category, the challenge it stands at (from 1)
 int ChallengeInfo::GetPercentDone(const Profile* theProfile) const
 {
 	if (theProfile == nullptr)
@@ -438,7 +443,7 @@ int ChallengeInfo::GetPercentDone(const Profile* theProfile) const
 	int aTotal = 0;
 	if (0 < (int)mCategories.size()) {
 		for (int i = 0; i < (int)mCategories.size(); i++) {
-			const std::vector<int>& aStages = theProfile->mInts1F4;
+			const std::vector<int>& aStages = theProfile->mChallengeStages;
 			if (i < (int)aStages.size() && -1 < aStages[i] - 1)
 				aDone += aStages[i] - 1;
 			aTotal += GetChallengeCount(i);
@@ -465,11 +470,11 @@ std::vector<ChallengeGoal> ChallengeInfo::GetGoals(const Challenge* theChallenge
 	// The stats come from the last move, the gems on the board now, or the whole game
 	const int* aStats;
 	if (anOneMove)
-		aStats = gBoard->mUnknown2234;
+		aStats = gBoard->mGameStats;
 	else if (gBoard != nullptr && (theChallenge->mFlags & Challenge::FLAG_ONBOARD) != 0)
-		aStats = gBoard->mUnknown3560;
+		aStats = gBoard->mGemCounts;
 	else
-		aStats = gApp->mUnknownC74;
+		aStats = gApp->mStats;
 	for (const ChallengeRule& aRule : theChallenge->mRules) {
 		ChallengeGoal aGoal;
 		aGoal.mStat = aRule.mStat;
@@ -478,17 +483,17 @@ std::vector<ChallengeGoal> ChallengeInfo::GetGoals(const Challenge* theChallenge
 		int aValue;
 		if (aRule.mStat == STAT_GEMS) {
 			// port: the original needs the board here
-			if (aStats == gApp->mUnknownC74)
-				aValue = gBoard != nullptr ? gBoard->mUnknown1FC : 0;
+			if (aStats == gApp->mStats)
+				aValue = gBoard != nullptr ? gBoard->mGameGemCount : 0;
 			else
 				aValue = aStats[STAT_GEMS + 1] + aStats[STAT_GEMS];
 		} else if (aRule.mStat == STAT_MOVES || aRule.mStat == STAT_TIME) {
-			aValue = gApp->mUnknownC74[aRule.mStat];
+			aValue = gApp->mStats[aRule.mStat];
 		} else {
 			aValue = aStats[aRule.mStat];
 		}
 		if (anOneMove && aRule.mStat == STAT_POINTS)
-			aValue = gBoard->mUnknown168 - gBoard->mUnknown16C;
+			aValue = gBoard->mScore - gBoard->mScoreAtTurnStart;
 		aGoal.mCurrent = aValue;
 		aGoals.push_back(aGoal);
 	}
@@ -510,12 +515,12 @@ int ChallengeInfo::Check(Challenge* theChallenge, int* theValue, bool theFinal)
 	if ((theChallenge->mFlags & Challenge::FLAG_PATTERN) != 0) {
 		// The matches of this move that are the pattern's next colours
 		unsigned int j = 0;
-		while (theChallenge->mProgress < (int)theChallenge->mPattern.size() && j < gBoard->mUnknown2614.size()) {
-			MatchInfo& aMatch = gBoard->mUnknown2614[j];
-			if (!aMatch.mUnknown30 && aMatch.mColor == theChallenge->mPattern[theChallenge->mProgress]) {
+		while (theChallenge->mProgress < (int)theChallenge->mPattern.size() && j < gBoard->mTurnMatches.size()) {
+			MatchInfo& aMatch = gBoard->mTurnMatches[j];
+			if (!aMatch.mWasScored && aMatch.mColor == theChallenge->mPattern[theChallenge->mProgress]) {
 				mPatternMatches++;
 				theChallenge->mProgress++;
-				aMatch.mUnknown30 = true;
+				aMatch.mWasScored = true;
 			}
 			j++;
 		}
@@ -523,18 +528,18 @@ int ChallengeInfo::Check(Challenge* theChallenge, int* theValue, bool theFinal)
 		anAllMet = (int)theChallenge->mPattern.size() <= aValue;
 	} else if (!aGoals.empty()) {
 		if (aGoals.size() == 1 && aGoals[0].mStat == STAT_MOVES)
-			aValue = (int)gApp->mUnknownC74[STAT_MOVES];
+			aValue = (int)gApp->mStats[STAT_MOVES];
 		else
 			aValue = aGoals[0].mCurrent;
 	}
 
 	// The gems of the colour that must not break: the ones that did are taken off the count, and the check fails
 	if (-1 < theChallenge->mBadGem) {
-		int aBroken = gApp->mUnknownC74[STAT_FIRST_COLOR + theChallenge->mBadGem];
+		int aBroken = gApp->mStats[STAT_FIRST_COLOR + theChallenge->mBadGem];
 		if (0 < aBroken) {
-			gBoard->mUnknown1FC -= aBroken;
-			gBoard->mUnknown1F8 -= aBroken;
-			gApp->mUnknownC74[STAT_FIRST_COLOR + theChallenge->mBadGem] = 0;
+			gBoard->mGameGemCount -= aBroken;
+			gBoard->mLevelGemCount -= aBroken;
+			gApp->mStats[STAT_FIRST_COLOR + theChallenge->mBadGem] = 0;
 			mResult = 2;
 			theFinal = true;
 			if (!aGoals.empty() && aGoals[0].mStat == STAT_GEMS)
@@ -565,7 +570,7 @@ int ChallengeInfo::Check(Challenge* theChallenge, int* theValue, bool theFinal)
 		}
 		if (aGoal.mStat == STAT_MOVES || aGoal.mStat == STAT_TIME) {
 			// A limit that has run out, once the board has settled
-			aTimeOut = aGoal.mOp != 2 && !aMet && gBoard->mUnknown25A4;
+			aTimeOut = aGoal.mOp != 2 && !aMet && gBoard->mHintsReady;
 			if (anAllMet && 0 < i) {
 				aMet = true;
 			} else if (aTimeOut) {
@@ -585,8 +590,8 @@ int ChallengeInfo::Check(Challenge* theChallenge, int* theValue, bool theFinal)
 			// The stats that came before the miss start again
 			*theValue = 0;
 			for (int j = 0; j < aFirstPast; j++) {
-				gApp->mUnknownC74[aGoals[j].mStat] = 0;
-				gBoard->mUnknown2234[aGoals[j].mStat] = 0;
+				gApp->mStats[aGoals[j].mStat] = 0;
+				gBoard->mGameStats[aGoals[j].mStat] = 0;
 			}
 		}
 	}

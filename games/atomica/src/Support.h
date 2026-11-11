@@ -22,20 +22,16 @@ class AtomicaApp;
 
 // 0x4259a0: the original's list of pointers (an array that grows by one), with an iteration cursor that
 // Reset() (0x425c00) rewinds and Next() (0x425c10) advances; Next() returns NULL at the end. Remove() keeps the
-// cursor on the element it was on: removing an element at or before the cursor moves it back by one. With a sort
-// key set (0x425a10), Add() inserts in order instead of appending.
+// cursor on the element it was on: removing an element at or before the cursor moves it back by one. (The original's
+// list can also keep itself sorted by a key, 0x425a10; no list of the game is given one.)
 template<class T>
 class PtrList
 {
 public:
-	typedef int (*KeyFunc)(const T*);
-
 	std::vector<T*>		mItems;
 	int					mCursor;		// +8
-	KeyFunc				mKey;			// the int field the sorted list orders by (+0x10: its offset), NULL: not sorted
-	int					mSortMode;		// +0x14: 1 ascending, otherwise descending
 
-	PtrList() : mCursor(0), mKey(NULL), mSortMode(0) {}
+	PtrList() : mCursor(0) {}	// 0x4259a0
 
 	int		Size() const { return (int) mItems.size(); }
 	void	Reset() { mCursor = 0; }					// 0x425c00
@@ -77,31 +73,7 @@ public:
 				return true;
 		return false;
 	}
-	void	Add(T* thePtr)								// 0x425da0, sorted: 0x425a10
-	{
-		if (mKey == NULL)
-		{
-			mItems.push_back(thePtr);
-			return;
-		}
-		if (mItems.empty())
-		{
-			mItems.push_back(thePtr);
-			mCursor = 0;
-			return;
-		}
-		int aNewKey = mKey(thePtr);
-		size_t i = 0;
-		for (; i < mItems.size(); i++)
-		{
-			int aKey = mKey(mItems[i]);
-			if (mSortMode == 1 ? (aNewKey < aKey) : (aKey < aNewKey))
-				break;
-		}
-		mItems.insert(mItems.begin() + i, thePtr);
-		if ((int) i < mCursor)
-			mCursor++;
-	}
+	void	Add(T* thePtr) { mItems.push_back(thePtr); }	// 0x425da0
 	bool	Remove(const T* thePtr)						// 0x425b00
 	{
 		bool aFound = false;
@@ -169,7 +141,7 @@ public:
 	int			mHeight;		// +0x14
 	Rect		mSrc;			// +0x18 the part of the image a draw takes
 
-	Sprite() : mImage(NULL), mOwnsImage(true), mWidth(0), mHeight(0) {}
+	Sprite() : mImage(NULL), mOwnsImage(true), mWidth(0), mHeight(0) {}	// 0x429680
 	~Sprite();
 	void		SetImage(Image* theImage);	// 0x429610: the whole image
 	unsigned int* GetBits();				// 0x429650
@@ -177,7 +149,7 @@ public:
 
 	// 0x4014c0: top left at x, y
 	void		Draw(Graphics* g, int theX, int theY);
-	// 0x4014f0: centred on x, y
+	// 0x4014f0 / 0x401530: centred on x, y (the second one is given the position as a pair)
 	void		DrawCentered(Graphics* g, int theX, int theY);
 	// 0x401570: centred on the float position x, y (0x4015.. adds one half before it truncates)
 	void		DrawCenteredF(Graphics* g, float theX, float theY);
@@ -192,13 +164,11 @@ public:
 	AtomicaApp*				mApp;			// +4
 	std::vector<Sprite*>	mSprites;		// +8
 	bool					mLoadFailed;	// +0x24
-	Graphics*				mGraphics;		// +0x20 (set by 0x429960, which no draw ever reads)
 
-	SpriteMgr(AtomicaApp* theApp) : mApp(theApp), mLoadFailed(false), mGraphics(NULL) {}
+	SpriteMgr(AtomicaApp* theApp) : mApp(theApp), mLoadFailed(false) {}	// 0x429830
 	~SpriteMgr();
 
 	Sprite*		Load(const std::string& theName);						// 0x429c60: images\<name>, or a popup and NULL
-	Sprite*		Wrap(Image* theImage);									// 0x429bc0
 	Sprite*		SubSprite(Sprite* theSheet, int theX, int theY, int theWidth, int theHeight); // 0x429970
 	Sprite*		Cell(Sprite* theSheet, int theCellWidth, int theCellHeight, int theIndex);  // 0x429a10
 	Sprite*		Blank(int theWidth, int theHeight);						// 0x429ab0: a clear image to draw on

@@ -9,14 +9,14 @@ namespace wb
 
 void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float theVx, float theVy)
 {
-	theBeam->startX = theX;
-	theBeam->owner = theOwner;
-	theBeam->depth = 6;
-	theBeam->startY = theY;
-	theBeam->drawKind = 1;
-	theBeam->hit = 0;
-	theBeam->vx = theVx;
-	theBeam->vy = theVy;
+	theBeam->mStartX = theX;
+	theBeam->mOwner = theOwner;
+	theBeam->mDepth = 6;
+	theBeam->mStartY = theY;
+	theBeam->mDrawKind = 1;
+	theBeam->mHit = 0;
+	theBeam->mVx = theVx;
+	theBeam->mVy = theVy;
 	const char* aName = nullptr;
 	if (0.0f < theVx)
 		aName = "shooter_beam_right";
@@ -27,8 +27,8 @@ void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float 
 	else if (theVy < 0.0f)
 		aName = "shooter_beam_up";
 	if (aName != nullptr)
-		theBeam->anim = Animation_Find(aName, &theBeam->frameCount, &theBeam->frameTime);
-	// Water Bugs' beam has a harpoon at its head (unkcc), going the same way
+		theBeam->mAnim = Animation_Find(aName, &theBeam->mFrameCount, &theBeam->mFrameTime);
+	// Water Bugs' beam has a harpoon at its head, going the same way
 	const char* aTip = nullptr;
 	if (0.0f < theVx)
 		aTip = "harpoon_right";
@@ -39,87 +39,88 @@ void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float 
 	else if (theVy < 0.0f)
 		aTip = "harpoon_up";
 	if (aTip != nullptr)
-		theBeam->unkcc.anim = Animation_Find(aTip, &theBeam->unkcc.frameCount, &theBeam->unkcc.frameTime);
-	theBeam->unkcc.drawKind = 1;
-	theBeam->unkcc.x = theBeam->x;
-	theBeam->unkcc.midHandle = 1;
-	theBeam->unkcc.dirty = 1;
-	theBeam->unkcc.y = theBeam->y;
-	theBeam->unkcc.depth = 7;
-	theBeam->unkcc.vx = theBeam->vx;
-	theBeam->unkcc.vy = theBeam->vy;
+		theBeam->mHarpoon.mAnim = Animation_Find(aTip, &theBeam->mHarpoon.mFrameCount, &theBeam->mHarpoon.mFrameTime);
+	theBeam->mHarpoon.mDrawKind = 1;
+	theBeam->mHarpoon.mX = theBeam->mX;
+	theBeam->mHarpoon.mMidHandle = 1;
+	theBeam->mHarpoon.mDirty = 1;
+	theBeam->mHarpoon.mY = theBeam->mY;
+	theBeam->mHarpoon.mDepth = 7;
+	theBeam->mHarpoon.mVx = theBeam->mVx;
+	theBeam->mHarpoon.mVy = theBeam->mVy;
 }
 
 // It starts on the beam level with the enemy and runs the other way at twice the beam's speed
 void Rider_Setup(Rider* theRider, Beam* theBeam, float theX, float theY, Enemy* theEnemy)
 {
-	if (theBeam->vx == 0.0f)
+	if (theBeam->mVx == 0.0f)
 	{
-		theRider->x = theBeam->x;
-		theRider->y = theY;
+		theRider->mX = theBeam->mX;
+		theRider->mY = theY;
 	}
 	else
 	{
-		theRider->y = theBeam->y;
-		theRider->x = theX;
+		theRider->mY = theBeam->mY;
+		theRider->mX = theX;
 	}
-	theRider->firstImage = Bank_IndexOf(&gArtBank, "particle_0");
-	theRider->lastImage = Bank_IndexOf(&gArtBank, "particle_0");
-	theRider->vx = -theBeam->vx * 2.0f;
-	theRider->drawKind = 1;
-	theRider->beam = theBeam;
-	theRider->enemy = theEnemy;
-	theRider->vy = -theBeam->vy * 2.0f;
-	theRider->image = Bank_ImageAt(&gArtBank, Bank_IndexOf(&gArtBank, "beamrider"));
-	Image_SetMidHandle(theRider->image);
-	theRider->dirty = 1;
+	theRider->mFirstImage = Bank_IndexOf(&gArtBank, "particle_0");
+	theRider->mLastImage = Bank_IndexOf(&gArtBank, "particle_0");
+	theRider->mVx = -theBeam->mVx * 2.0f;
+	theRider->mDrawKind = 1;
+	theRider->mBeam = theBeam;
+	theRider->mEnemy = theEnemy;
+	theRider->mVy = -theBeam->mVy * 2.0f;
+	theRider->mImage = Bank_ImageAt(&gArtBank, Bank_IndexOf(&gArtBank, "beamrider"));
+	Image_SetMidHandle(theRider->mImage);
+	theRider->mDirty = 1;
 }
 
 int Rider_Update(Rider* theRider)
 {
 	int aResult = 1;
 	Obj_Update(theRider);
-	if (0.0f <= theRider->x && theRider->x < 800.0f && 0.0f <= theRider->y && theRider->y <= 592.0f)
+	if (0.0f <= theRider->mX && theRider->mX < (float)BOARD_WIDTH && 0.0f <= theRider->mY &&
+		theRider->mY <= (float)BOARD_HEIGHT)
 	{
-		int aCol = (int)theRider->x;
-		int aRow = (int)theRider->y;
-		if (gLevels.current->columns[aCol / 16][aRow / 16].kind != 5)
+		int aCol = (int)theRider->mX;
+		int aRow = (int)theRider->mY;
+		if (gLevels.mCurrent->mColumns[aCol / CELL_SIZE][aRow / CELL_SIZE].mKind != CELL_SOLID)
 		{
 			if (RandRange(1, 10) == 1)
 			{
 				ParticleSystem_New();
 				int aLifetime = RandRange(400, 500);
-				int aLast = theRider->lastImage;
-				int aFirst = theRider->firstImage;
+				int aLast = theRider->mLastImage;
+				int aFirst = theRider->mFirstImage;
 				float aVy = (float)((double)RandRange(-50, 50) / 500.0);
 				float aVx = (float)((double)RandRange(-50, 50) / 500.0);
-				float aY = (float)RandRange(-5, 5) + theRider->y;
-				float aX = (float)RandRange(-5, 5) + theRider->x;
-				ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
+				float aY = (float)RandRange(-5, 5) + theRider->mY;
+				float aX = (float)RandRange(-5, 5) + theRider->mX;
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
 					0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0002f, 5);
 			}
-			Shooter* aShooter = theRider->beam->owner;
-			double aDy = (double)theRider->y - (double)aShooter->y;
-			int aRadius = aShooter->image->w / 2;
-			double aDx = (double)theRider->x - (double)aShooter->x;
+			Shooter* aShooter = theRider->mBeam->mOwner;
+			double aDy = (double)theRider->mY - (double)aShooter->mY;
+			int aRadius = aShooter->mImage->mW / 2;
+			double aDx = (double)theRider->mX - (double)aShooter->mX;
 			double aDx2 = aDx * aDx;
 			double aDy2 = aDy * aDy;
 			if (aDx2 + aDy2 < (double)(aRadius * aRadius))
 			{
-				aShooter = theRider->beam->owner;
+				aShooter = theRider->mBeam->mOwner;
 				aResult = 0;
-				if ((aShooter->flags & 0x10) != 0)
+				if ((aShooter->mFlags & 0x10) != 0)
 				{
 					// (the original works out a pan from x for a play call that takes none)
 					Sound_Play(Sound_Find("audio\\invincibubble.wav"));
 					return 0;
 				}
-				float aHitY = (float)((double)theRider->vy / 12.0);
-				float aHitX = (float)((double)theRider->vx / 6.0);
+				float aHitY = (float)((double)theRider->mVy / 12.0);
+				float aHitX = (float)((double)theRider->mVx / 6.0);
 				Shooter_Hit(aShooter, aHitX, aHitY);
-				if (gLives != 0 && gDemo == 0)
+				if (gLives != 0)
 					gLives = gLives - 1;
-				gProfiles[gProfile].riderHits = gProfiles[gProfile].riderHits + 1;
+				gProfiles[gProfile].mRiderHits = gProfiles[gProfile].mRiderHits + 1;
 			}
 			return aResult;
 		}
@@ -133,83 +134,83 @@ void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch)
 	int aRect[4];
 	float aPos;
 	Image* anImage;
-	if (theBeam->x <= theBeam->startX)
+	if (theBeam->mX <= theBeam->mStartX)
 	{
-		if (theBeam->startX <= theBeam->x)
+		if (theBeam->mStartX <= theBeam->mX)
 		{
-			if (theBeam->startY < theBeam->y)
+			if (theBeam->mStartY < theBeam->mY)
 			{
 				// down
-				theBeam->image->handleY = 0;
-				theBeam->image->handleX = theBeam->image->origW / 2;
-				anImage = theBeam->image;
-				aRect[0] = (int)((double)theBeam->startX - (double)(anImage->origW / 2));
-				aRect[1] = (int)theBeam->startY;
-				aRect[2] = (int)((double)(anImage->origW / 2) + (double)theBeam->startX);
-				aRect[3] = (int)theBeam->y;
-				for (aPos = theBeam->startY; aPos <= theBeam->y; aPos = (float)anImage->h + aPos)
+				theBeam->mImage->mHandleY = 0;
+				theBeam->mImage->mHandleX = theBeam->mImage->mOrigW / 2;
+				anImage = theBeam->mImage;
+				aRect[0] = (int)((double)theBeam->mStartX - (double)(anImage->mOrigW / 2));
+				aRect[1] = (int)theBeam->mStartY;
+				aRect[2] = (int)((double)(anImage->mOrigW / 2) + (double)theBeam->mStartX);
+				aRect[3] = (int)theBeam->mY;
+				for (aPos = theBeam->mStartY; aPos <= theBeam->mY; aPos = (float)anImage->mH + aPos)
 				{
-					Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.fmt, aRect, (int)theBeam->x, (int)aPos);
-					anImage = theBeam->image;
+					Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.mFmt, aRect, (int)theBeam->mX, (int)aPos);
+					anImage = theBeam->mImage;
 				}
 			}
 			else
 			{
-				if (theBeam->startY <= theBeam->y)
+				if (theBeam->mStartY <= theBeam->mY)
 					goto riders;
 				// up
-				theBeam->image->handleY = theBeam->image->origH + -1;
-				theBeam->image->handleX = theBeam->image->origW / 2;
-				anImage = theBeam->image;
-				aRect[0] = (int)((double)theBeam->startX - (double)(anImage->origW / 2));
-				aRect[1] = (int)theBeam->y;
-				aRect[2] = (int)((double)(anImage->origW / 2) + (double)theBeam->startX);
-				aRect[3] = (int)theBeam->startY;
-				for (aPos = theBeam->startY; theBeam->y <= aPos; aPos = aPos - (float)anImage->h)
+				theBeam->mImage->mHandleY = theBeam->mImage->mOrigH + -1;
+				theBeam->mImage->mHandleX = theBeam->mImage->mOrigW / 2;
+				anImage = theBeam->mImage;
+				aRect[0] = (int)((double)theBeam->mStartX - (double)(anImage->mOrigW / 2));
+				aRect[1] = (int)theBeam->mY;
+				aRect[2] = (int)((double)(anImage->mOrigW / 2) + (double)theBeam->mStartX);
+				aRect[3] = (int)theBeam->mStartY;
+				for (aPos = theBeam->mStartY; theBeam->mY <= aPos; aPos = aPos - (float)anImage->mH)
 				{
-					Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.fmt, aRect, (int)theBeam->x, (int)aPos);
-					anImage = theBeam->image;
+					Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.mFmt, aRect, (int)theBeam->mX, (int)aPos);
+					anImage = theBeam->mImage;
 				}
 			}
 		}
 		else
 		{
 			// left
-			theBeam->image->handleX = theBeam->image->origW + -1;
-			theBeam->image->handleY = theBeam->image->origH / 2;
-			aRect[0] = (int)theBeam->x;
-			anImage = theBeam->image;
-			aRect[1] = (int)((double)theBeam->startY - (double)(anImage->origH / 2));
-			aRect[2] = (int)theBeam->startX;
-			aRect[3] = (int)((double)(anImage->origH / 2) + (double)theBeam->startY);
-			for (aPos = theBeam->startX; theBeam->x <= aPos; aPos = aPos - (float)anImage->w)
+			theBeam->mImage->mHandleX = theBeam->mImage->mOrigW + -1;
+			theBeam->mImage->mHandleY = theBeam->mImage->mOrigH / 2;
+			aRect[0] = (int)theBeam->mX;
+			anImage = theBeam->mImage;
+			aRect[1] = (int)((double)theBeam->mStartY - (double)(anImage->mOrigH / 2));
+			aRect[2] = (int)theBeam->mStartX;
+			aRect[3] = (int)((double)(anImage->mOrigH / 2) + (double)theBeam->mStartY);
+			for (aPos = theBeam->mStartX; theBeam->mX <= aPos; aPos = aPos - (float)anImage->mW)
 			{
-				Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.fmt, aRect, (int)aPos, (int)theBeam->y);
-				anImage = theBeam->image;
+				Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.mFmt, aRect, (int)aPos, (int)theBeam->mY);
+				anImage = theBeam->mImage;
 			}
 		}
 	}
 	else
 	{
 		// right
-		theBeam->image->handleX = 0;
-		theBeam->image->handleY = theBeam->image->origH / 2;
-		aRect[0] = (int)theBeam->startX;
-		anImage = theBeam->image;
-		aRect[1] = (int)((double)theBeam->startY - (double)(anImage->origH / 2));
-		aRect[2] = (int)theBeam->x;
-		aRect[3] = (int)((double)(anImage->origH / 2) + (double)theBeam->startY);
-		for (aPos = theBeam->startX; aPos <= theBeam->x; aPos = (float)anImage->w + aPos)
+		theBeam->mImage->mHandleX = 0;
+		theBeam->mImage->mHandleY = theBeam->mImage->mOrigH / 2;
+		aRect[0] = (int)theBeam->mStartX;
+		anImage = theBeam->mImage;
+		aRect[1] = (int)((double)theBeam->mStartY - (double)(anImage->mOrigH / 2));
+		aRect[2] = (int)theBeam->mX;
+		aRect[3] = (int)((double)(anImage->mOrigH / 2) + (double)theBeam->mStartY);
+		for (aPos = theBeam->mStartX; aPos <= theBeam->mX; aPos = (float)anImage->mW + aPos)
 		{
-			Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.fmt, aRect, (int)aPos, (int)theBeam->y);
-			anImage = theBeam->image;
+			Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.mFmt, aRect, (int)aPos, (int)theBeam->mY);
+			anImage = theBeam->mImage;
 		}
 	}
-	Dirty_AddClippedRect(&gDirty, aRect, kScreenClip);
+	Dirty_AddClippedRect(&gDirty, aRect, SCREEN_CLIP);
 riders:
-	List_Each(&theBeam->riders, [](Rider* aRider) { Obj_Draw(aRider); });
-	if (theBeam->hit == 0)
-		Obj_Draw(&theBeam->unkcc);
+	List_Each(&theBeam->mRiders, [](Rider* theARider) { Obj_Draw(theARider); });
+	if (theBeam->mHit == 0)
+		Obj_Draw(&theBeam->mHarpoon);
 }
 
 void Beam_Draw(Beam* theBeam)
@@ -227,25 +228,25 @@ static int Sign(float theValue)
 }
 
 // 0x4031f0: the head moves on while the cell ahead is open; the first time it is not, the beam pops in a ring of
-// particles; the harpoon (unkcc) follows it, four pixels behind
+// particles; the harpoon follows it, four pixels behind
 int Beam_Update(Beam* theBeam)
 {
 	int aResult = 1;
 	Obj_Update(theBeam);
-	int aHit = theBeam->hit;
+	int aHit = theBeam->mHit;
 	if (aHit != 0)
-		theBeam->frameTimer = 0;
+		theBeam->mFrameTimer = 0;
 	// back to where it was, to look at the cell it moved into
-	float aX = theBeam->x - theBeam->vx;
-	theBeam->x = aX;
-	float aY = theBeam->y - theBeam->vy;
-	theBeam->y = aY;
-	int aCol = (int)((double)theBeam->vx + (double)aX);
-	int aRow = (int)((double)aY + (double)theBeam->vy);
-	if (gLevels.current->columns[aCol / 16][aRow / 16].kind == 0)
+	float aX = theBeam->mX - theBeam->mVx;
+	theBeam->mX = aX;
+	float aY = theBeam->mY - theBeam->mVy;
+	theBeam->mY = aY;
+	int aCol = (int)((double)theBeam->mVx + (double)aX);
+	int aRow = (int)((double)aY + (double)theBeam->mVy);
+	if (gLevels.mCurrent->mColumns[aCol / CELL_SIZE][aRow / CELL_SIZE].mKind == CELL_OPEN)
 	{
-		theBeam->x = aX + theBeam->vx;
-		theBeam->y = aY + theBeam->vy;
+		theBeam->mX = aX + theBeam->mVx;
+		theBeam->mY = aY + theBeam->mVy;
 		// (Cosmic Bugs' beam sometimes shed a sparkle here; this one only takes the number)
 		if (RandMod(0x28) == 2)
 			RandRange(-50, 50);
@@ -254,30 +255,31 @@ int Beam_Update(Beam* theBeam)
 	{
 		if (aHit == 0)
 		{
-			Sound_Play(theBeam->owner->hitSound);
+			Sound_Play(theBeam->mOwner->mHitSound);
 			for (int anAngle = 0; anAngle < 0x168; anAngle = anAngle + 0x14)
 			{
 				float aVx = (float)((double)CosDeg(anAngle) * 0.11999999731779099);
 				float aVy = (float)((double)SinDeg(anAngle) * 0.11999999731779099);
 				ParticleSystem_New();
-				Cell* aCell = gLevels.current->columns[0];
-				ParticleSystem_Add(gLevels.current->systems.current, theBeam->x, theBeam->y, aVx, aVy, aCell->firstParticle,
-					aCell->lastParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x21c, 10, 400, 0.999f, 0.0f, 5);
+				Cell* aCell = gLevels.mCurrent->mColumns[0];
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theBeam->mX, theBeam->mY, aVx, aVy,
+					aCell->mFirstParticle, aCell->mLastParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x21c, 10, 400,
+					0.999f, 0.0f, 5);
 			}
 		}
-		theBeam->hit = 1;
+		theBeam->mHit = 1;
 		aResult = 0;
 	}
-	List<Rider>* aRiders = &theBeam->riders;
-	List_Each(aRiders, [&](Rider* aRider) {
-		if (Rider_Update(aRider) == 0)
+	List<Rider>* aRiders = &theBeam->mRiders;
+	List_Each(aRiders, [&](Rider* theARider) {
+		if (Rider_Update(theARider) == 0)
 			List_RemoveCurrent(aRiders);
 	});
 	// the tip follows the head, four pixels behind
-	if (theBeam->hit == 0)
-		Obj_Update(&theBeam->unkcc);
-	theBeam->unkcc.x = (float)((double)theBeam->x - (double)Sign(theBeam->vx) * 4.0);
-	theBeam->unkcc.y = (float)((double)theBeam->y - (double)Sign(theBeam->vy) * 4.0);
+	if (theBeam->mHit == 0)
+		Obj_Update(&theBeam->mHarpoon);
+	theBeam->mHarpoon.mX = (float)((double)theBeam->mX - (double)Sign(theBeam->mVx) * 4.0);
+	theBeam->mHarpoon.mY = (float)((double)theBeam->mY - (double)Sign(theBeam->mVy) * 4.0);
 	return aResult;
 }
 
@@ -285,17 +287,17 @@ int Beam_Update(Beam* theBeam)
 // difficulty)
 void Beam_Destroy(Beam* theBeam)
 {
-	if (theBeam->next == nullptr && theBeam->prev == nullptr)
+	if (theBeam->mNext == nullptr && theBeam->mPrev == nullptr)
 	{
-		gLevels.current->shooters.current->flags = 0;
-		Shooter* aShooter = gLevels.current->shooters.current;
+		gLevels.mCurrent->mShooters.mCurrent->mFlags = 0;
+		Shooter* aShooter = gLevels.mCurrent->mShooters.mCurrent;
 		double aSpeed = (double)gBeamSpeed - (double)gDifficulty * 0.05;
-		if (aSpeed <= (double)aShooter->beamSpeed)
-			aSpeed = aShooter->beamSpeed;
-		aShooter->beamSpeed = (float)aSpeed;
+		if (aSpeed <= (double)aShooter->mBeamSpeed)
+			aSpeed = aShooter->mBeamSpeed;
+		aShooter->mBeamSpeed = (float)aSpeed;
 	}
-	Obj_Destroy(&theBeam->unkcc);
-	List_Clear(&theBeam->riders);
+	Obj_Destroy(&theBeam->mHarpoon);
+	List_Clear(&theBeam->mRiders);
 	Obj_Destroy(theBeam);
 }
 
@@ -308,8 +310,8 @@ void List_DeleteNode(Beam* theBeam)
 Beam* Beam_Init(Beam* theBeam)
 {
 	Obj_Init(theBeam);
-	List_Init(&theBeam->riders);
-	Obj_Init(&theBeam->unkcc);
+	List_Init(&theBeam->mRiders);
+	Obj_Init(&theBeam->mHarpoon);
 	return theBeam;
 }
 
@@ -324,29 +326,29 @@ void Rider_Append(List<Rider>* theList)
 // beam passes within the image's width over theWDiv of it (the walk stops on that beam)
 Beam* Obj_TouchedBeam(Obj* theObj, int theWDiv, int theHDiv)
 {
-	Shooter* aShip = gLevels.current->shooters.current;
-	if (aShip != nullptr && aShip->beams.current != nullptr)
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	if (aShip != nullptr && aShip->mBeams.mCurrent != nullptr)
 	{
-		aShip->beams.current = aShip->beams.head;
+		aShip->mBeams.mCurrent = aShip->mBeams.mHead;
 		while (true)
 		{
-			Beam* aBeam = gLevels.current->shooters.current->beams.current;
-			if (BoxOverlap(theObj->x, theObj->y, (float)((theObj->image->w * 2) / theWDiv),
-					(float)((theObj->image->h * 2) / theHDiv), (float)(((double)aBeam->startX + aBeam->x) * 0.5),
-					(float)(((double)aBeam->startY + aBeam->y) * 0.5), std::fabs(aBeam->startX - aBeam->x),
-					std::fabs(aBeam->startY - aBeam->y)) != 0 &&
-				SegmentDist(theObj->x, theObj->y, aBeam->startX, aBeam->startY, aBeam->x, aBeam->y) <
-					(float)(theObj->image->w / theWDiv))
+			Beam* aBeam = gLevels.mCurrent->mShooters.mCurrent->mBeams.mCurrent;
+			if (BoxOverlap(theObj->mX, theObj->mY, (float)((theObj->mImage->mW * 2) / theWDiv),
+					(float)((theObj->mImage->mH * 2) / theHDiv), (float)(((double)aBeam->mStartX + aBeam->mX) * 0.5),
+					(float)(((double)aBeam->mStartY + aBeam->mY) * 0.5), std::fabs(aBeam->mStartX - aBeam->mX),
+					std::fabs(aBeam->mStartY - aBeam->mY)) != 0 &&
+				SegmentDist(theObj->mX, theObj->mY, aBeam->mStartX, aBeam->mStartY, aBeam->mX, aBeam->mY) <
+					(float)(theObj->mImage->mW / theWDiv))
 				return aBeam;
-			aShip = gLevels.current->shooters.current;
-			Beam* aNode = aShip->beams.current;
+			aShip = gLevels.mCurrent->mShooters.mCurrent;
+			Beam* aNode = aShip->mBeams.mCurrent;
 			if (aNode == nullptr)
 				return nullptr;
-			if (aNode->next == nullptr)
+			if (aNode->mNext == nullptr)
 				break;
-			aShip->beams.current = Node_Next(aNode);
+			aShip->mBeams.mCurrent = Node_Next(aNode);
 		}
-		aShip->beams.current = aShip->beams.head;
+		aShip->mBeams.mCurrent = aShip->mBeams.mHead;
 	}
 	return nullptr;
 }

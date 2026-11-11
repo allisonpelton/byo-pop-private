@@ -1,0 +1,14 @@
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 326 93
+3350 click 248 309
+3400 click 249 332
+3440 shot e01_empty_ok
+3460 click 249 332
+3500 shot e02_empty_ok2
+3520 type Test
+3540 key Return
+3580 shot e03_dup
+3600 key Return
+3640 shot e04_dup2

@@ -1,0 +1,14 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends bugs of the original BookWorm and leaves the game as it was: its rules, scores, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original exactly as it was.",
+  "features": {
+    "fixes": true
+  },
+  "settings": [
+    { "id": "scoreGlow", "label": "The score glows as it rises", "type": "bool", "default": false,
+      "help": "The original has a glowing version of the score to show while points are added, but a rounding mistake keeps it invisible. With this on, it shows." }
+  ]
+}

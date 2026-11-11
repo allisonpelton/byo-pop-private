@@ -50,8 +50,8 @@ public:
 	float mArrowRot = 0;          // +0x168: the arrow's angle
 	std::string mName;            // +0x16c: (never read)
 	float mTime = 0;              // +0x188: the arrow's bobbing
-	bool mUnknown18C = true;      // +0x18c
-	int mUnknown190 = 0;          // +0x190: the widget manager's +0x88 when added (never read)
+	bool mIsActive = true;        // +0x18c: true, never read
+	int mManagerLayer = 0;        // +0x190: the widget manager +0x88 when added (never read)
 	bool mMouseDownOn = true;     // +0x194: mouse presses reach the dialog
 	bool mShowClickText = false;  // +0x195: "click to continue" at the bottom
 	bool mMouseUpThisUpdate = false;  // +0x196
@@ -69,9 +69,10 @@ public:
 	float mPopScale = 1.0f;       // +0x210: the size it pops up from and shrinks away to (only Direct3D draws it)
 	bool mClosing = false;        // +0x214
 
+	// 0x75528d
 	TwistDialog(Image* theComponentImage, Image* theButtonComponentImage, int theId, bool isModal,
 		const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter,
-		int theButtonMode);   // 0x75528d
+		int theButtonMode);
 	~TwistDialog() override;  // 0x755133
 
 	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x7558fe

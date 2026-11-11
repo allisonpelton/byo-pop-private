@@ -20,11 +20,11 @@ public:
 	float mX = 0;                    // +0x8
 	float mY = 0;                    // +0xc
 	float mRadius = 0;               // +0x10
-	float mUnknown14 = 0;            // +0x14
+	float mRingSpeed = 0;            // +0x14: how far the rings and sparks grow in an update
 	float mMaxRadius = 0;            // +0x18
 	float mDuration = 1.0f;          // +0x1c
 	float mTime = 0;                 // +0x20
-	float mUnknown24 = 1.0f;         // +0x24
+	float mAlpha = 1.0f;             // +0x24: the rings' opacity (1; a short reach lowers it), fading as the wave goes
 	int mUpdates = 0;                // +0x28
 	int mShape = 0;                  // +0x2c: 1 for a square
 	bool mDone = false;              // +0x30: the board deletes it
@@ -70,7 +70,7 @@ public:
 		float mAlpha = 1.0f;         // +0x18
 	};
 
-	int mUnknown34 = 0;              // +0x34: counts every 10 updates
+	int mTenUpdateCount = 0;         // +0x34: counts every 10 updates
 	float mRings[20] = {};           // +0x38: the rings' radii
 	float mRingAlphas[20] = {};      // +0x88
 	float mRingWait = 0;             // +0xd8: before the next ring
@@ -81,7 +81,7 @@ public:
 
 	// 0x74b46e: blows up or sets off the gems within theRange gems of thePiece
 	BlastShockwave(Piece* thePiece, int theRange, int theShape);
-	~BlastShockwave() override;      // 0x74ac68
+	~BlastShockwave() override;      // 0x74ac68, 0x74abc0: its body, inline here
 	void Update() override;          // 0x74bea6
 	void Draw(Graphics* g) override; // 0x749c50
 };
@@ -108,34 +108,34 @@ public:
 	};
 
 	float mRings[20] = {};           // +0x34: the rings' radii (0 for one not in use)
-	float mUnknown84 = 0;            // +0x84: before the next ring
-	bool mUnknown88 = false;         // +0x88
+	float mRingWait = 0;             // +0x84: before the next ring
+	bool mIsStarted = false;         // +0x88: false, set by the constructor, never read
 	int mColorIndex = 0;             // +0x8c: the hint gem's colour
 	Color mColor;                    // +0x90: its tint
 	int mState = 1;                  // +0xa0: 1 and 2 spread, 3 fades out
-	int mUnknownA4 = 0;              // +0xa4: the constructor's last argument (200)
-	int mUnknownAC = 1;              // +0xac
+	int mHintRange = 0;              // +0xa4: the constructor's last argument (200 for the hint's wave); never read
+	int mRingStep = 1;               // +0xac: 1, set by the constructor, never read
 	float mStartX = 0;               // +0xb0: the gem
 	float mStartY = 0;               // +0xb4
 	float mEndX = 0;                 // +0xb8: where the arc goes (the tube's middle)
 	float mEndY = 0;                 // +0xbc
 	float mWidth = 150.0f;           // +0xc0: the ribbon's width (Direct3D)
-	float mUnknownC4 = 0;            // +0xc4
-	float mUnknownC8 = 0;            // +0xc8: how far the arc has come, up to 1
+	float mArcStart = 0;             // +0xc4: where the ribbon starts along the arc, 0 to 1
+	float mArcEnd = 0;               // +0xc8: how far the arc has come, up to 1
 	float mAngleStart = 0;           // +0xcc: the arc's angles about its centre
 	float mAngleEnd = 0;             // +0xd0
-	float mUnknownD4 = 0;            // +0xd4
+	float mArcAlpha = 0;             // +0xd4: the arc's opacity (2.5 at first, falling by 0.015 an update)
 	float mCenterX = 0;              // +0xd8: the arc's centre
 	float mCenterY = 0;              // +0xdc
 	float mArcRadius = 0;            // +0xe0
-	int mUnknownE4 = 1;              // +0xe4: counts the unlocking
-	float mUnknownE8 = 0;            // +0xe8: the wait to the next
+	int mUnlockStep = 1;             // +0xe4: counts the unlocking
+	float mUnlockWait = 0;           // +0xe8: the wait to the next
 	Color mColor2;                   // +0xec
-	float mUnknownFC = 0;            // +0xfc
+	float mRingGlow = 0;             // +0xfc: the rings' glow, up by 0.02 an update while the wave spreads
 	std::vector<Particle*> mParticles;  // +0x100
 
 	// 0x74b94e: thePiece is the gem the hint points at, theTargetX and theTargetY where the arc goes
-	FruitShockwave(Piece* thePiece, int theRange, int theTargetX, int theTargetY, int theUnknownA4);
+	FruitShockwave(Piece* thePiece, int theRange, int theTargetX, int theTargetY, int theHintRange);
 	~FruitShockwave() override;      // 0x74bcd4 (the original keeps the particles in a vector it frees without them)
 	void Update() override;          // 0x74c1aa
 	void Draw(Graphics* g) override; // 0x749e12

@@ -86,7 +86,7 @@ int Rider_Update(Rider* theRider)
 			}
 			Shooter* aShooter = theRider->beam->owner;
 			double aDy = (double)theRider->y - (double)aShooter->y;
-			int aRadius = aShooter->image->w / 2;
+			int aRadius = aShooter->image->mW / 2;
 			double aDx = (double)theRider->x - (double)aShooter->x;
 			double aDx2 = aDx * aDx;
 			double aDy2 = aDy * aDy;
@@ -126,16 +126,16 @@ void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch)
 			if (theBeam->startY < theBeam->y)
 			{
 				// down
-				theBeam->image->handleY = 0;
-				theBeam->image->handleX = theBeam->image->origW / 2;
+				theBeam->image->mHandleY = 0;
+				theBeam->image->mHandleX = theBeam->image->mOrigW / 2;
 				anImage = theBeam->image;
-				aRect[0] = (int)((double)theBeam->startX - (double)(anImage->origW / 2));
+				aRect[0] = (int)((double)theBeam->startX - (double)(anImage->mOrigW / 2));
 				aRect[1] = (int)theBeam->startY;
-				aRect[2] = (int)((double)(anImage->origW / 2) + (double)theBeam->startX);
+				aRect[2] = (int)((double)(anImage->mOrigW / 2) + (double)theBeam->startX);
 				aRect[3] = (int)theBeam->y;
-				for (aPos = theBeam->startY; aPos <= theBeam->y; aPos = (float)anImage->h + aPos)
+				for (aPos = theBeam->startY; aPos <= theBeam->y; aPos = (float)anImage->mH + aPos)
 				{
-					Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.fmt, aRect, (int)theBeam->x, (int)aPos);
+					Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.mFmt, aRect, (int)theBeam->x, (int)aPos);
 					anImage = theBeam->image;
 				}
 			}
@@ -144,16 +144,16 @@ void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch)
 				if (theBeam->startY <= theBeam->y)
 					goto riders;
 				// up
-				theBeam->image->handleY = theBeam->image->origH + -1;
-				theBeam->image->handleX = theBeam->image->origW / 2;
+				theBeam->image->mHandleY = theBeam->image->mOrigH + -1;
+				theBeam->image->mHandleX = theBeam->image->mOrigW / 2;
 				anImage = theBeam->image;
-				aRect[0] = (int)((double)theBeam->startX - (double)(anImage->origW / 2));
+				aRect[0] = (int)((double)theBeam->startX - (double)(anImage->mOrigW / 2));
 				aRect[1] = (int)theBeam->y;
-				aRect[2] = (int)((double)(anImage->origW / 2) + (double)theBeam->startX);
+				aRect[2] = (int)((double)(anImage->mOrigW / 2) + (double)theBeam->startX);
 				aRect[3] = (int)theBeam->startY;
-				for (aPos = theBeam->startY; theBeam->y <= aPos; aPos = aPos - (float)anImage->h)
+				for (aPos = theBeam->startY; theBeam->y <= aPos; aPos = aPos - (float)anImage->mH)
 				{
-					Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.fmt, aRect, (int)theBeam->x, (int)aPos);
+					Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.mFmt, aRect, (int)theBeam->x, (int)aPos);
 					anImage = theBeam->image;
 				}
 			}
@@ -161,16 +161,16 @@ void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch)
 		else
 		{
 			// left
-			theBeam->image->handleX = theBeam->image->origW + -1;
-			theBeam->image->handleY = theBeam->image->origH / 2;
+			theBeam->image->mHandleX = theBeam->image->mOrigW + -1;
+			theBeam->image->mHandleY = theBeam->image->mOrigH / 2;
 			aRect[0] = (int)theBeam->x;
 			anImage = theBeam->image;
-			aRect[1] = (int)((double)theBeam->startY - (double)(anImage->origH / 2));
+			aRect[1] = (int)((double)theBeam->startY - (double)(anImage->mOrigH / 2));
 			aRect[2] = (int)theBeam->startX;
-			aRect[3] = (int)((double)(anImage->origH / 2) + (double)theBeam->startY);
-			for (aPos = theBeam->startX; theBeam->x <= aPos; aPos = aPos - (float)anImage->w)
+			aRect[3] = (int)((double)(anImage->mOrigH / 2) + (double)theBeam->startY);
+			for (aPos = theBeam->startX; theBeam->x <= aPos; aPos = aPos - (float)anImage->mW)
 			{
-				Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.fmt, aRect, (int)aPos, (int)theBeam->y);
+				Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.mFmt, aRect, (int)aPos, (int)theBeam->y);
 				anImage = theBeam->image;
 			}
 		}
@@ -178,16 +178,16 @@ void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch)
 	else
 	{
 		// right
-		theBeam->image->handleX = 0;
-		theBeam->image->handleY = theBeam->image->origH / 2;
+		theBeam->image->mHandleX = 0;
+		theBeam->image->mHandleY = theBeam->image->mOrigH / 2;
 		aRect[0] = (int)theBeam->startX;
 		anImage = theBeam->image;
-		aRect[1] = (int)((double)theBeam->startY - (double)(anImage->origH / 2));
+		aRect[1] = (int)((double)theBeam->startY - (double)(anImage->mOrigH / 2));
 		aRect[2] = (int)theBeam->x;
-		aRect[3] = (int)((double)(anImage->origH / 2) + (double)theBeam->startY);
-		for (aPos = theBeam->startX; aPos <= theBeam->x; aPos = (float)anImage->w + aPos)
+		aRect[3] = (int)((double)(anImage->mOrigH / 2) + (double)theBeam->startY);
+		for (aPos = theBeam->startX; aPos <= theBeam->x; aPos = (float)anImage->mW + aPos)
 		{
-			Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.fmt, aRect, (int)aPos, (int)theBeam->y);
+			Image_BlitBlend(anImage, theDst, theDPitch, &gBackBuffer.mFmt, aRect, (int)aPos, (int)theBeam->y);
 			anImage = theBeam->image;
 		}
 	}
@@ -318,12 +318,12 @@ Beam* Obj_TouchedBeam(Obj* theObj, int theWDiv, int theHDiv)
 		while (true)
 		{
 			Beam* aBeam = gLevels.current->shooters.current->beams.current;
-			if (BoxOverlap(theObj->x, theObj->y, (float)((theObj->image->w * 2) / theWDiv),
-					(float)((theObj->image->h * 2) / theHDiv), (float)(((double)aBeam->startX + aBeam->x) * 0.5),
+			if (BoxOverlap(theObj->x, theObj->y, (float)((theObj->image->mW * 2) / theWDiv),
+					(float)((theObj->image->mH * 2) / theHDiv), (float)(((double)aBeam->startX + aBeam->x) * 0.5),
 					(float)(((double)aBeam->startY + aBeam->y) * 0.5), std::fabs(aBeam->startX - aBeam->x),
 					std::fabs(aBeam->startY - aBeam->y)) != 0 &&
 				SegmentDist(theObj->x, theObj->y, aBeam->startX, aBeam->startY, aBeam->x, aBeam->y) <
-					(float)(theObj->image->w / theWDiv))
+					(float)(theObj->image->mW / theWDiv))
 				return aBeam;
 			aShip = gLevels.current->shooters.current;
 			Beam* aNode = aShip->beams.current;

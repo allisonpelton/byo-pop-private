@@ -25,6 +25,7 @@ import bisect, collections, json, os, re, sys
 ROOT = os.path.expanduser('~/.claude/projects')
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'costs')
 PRICES = {  # per million tokens: input, cache read, cache write 5 minutes, cache write 1 hour, output
+    'claude-fable-5-2': (8, .20, 10, 16, 40),  # cache writes at the usual 1.25 and 2 times the input price
     'claude-opus-5-5': (4, .20, 5, 8, 20),
     'claude-sonnet-5-5': (2, .20, 2.5, 4, 10),
     'claude-haiku-5-5': (1, .10, 1.25, 2, 5),
@@ -44,6 +45,9 @@ TITLES = {
     "Bonnie's Bookstore Deluxe": 'bonnies', 'Venice Deluxe': 'venice', 'Heavy Weapon Deluxe': 'heavyweapon',
     'Hammer Heads Deluxe': 'hammerheads', 'Bejeweled 2 Deluxe': 'bejeweled2', 'AstroPop Deluxe': 'astropop',
     'Mahjong Escape: Ancient Japan': 'mahjongjapan', 'Mahjong Escape: Ancient China': 'mahjongchina', 'Bejeweled Twist': 'bejeweledtwist',
+    'Mahjong Escape: Ancient Japan and Ancient China': 'mahjongjapan', 'Typer Shark! Deluxe': 'typershark',
+    "Fix the Steam Bejeweled Twist's dgVoodoo windowing": 'bejeweledtwist',
+    'Shared: IJG libjpeg for JPEG images': 'shared', 'Shared: late web sound, native window size and full screen': 'shared',
 }
 RULES = """You are classifying pieces of work from Claude Code sessions on byo-pop, a repository that decompiles PopCap games, ports them to native and WebAssembly builds on a shared framework, and makes mods for them. Each piece ("#<id> [<group>] <time> $<cost>") is the work between two commits: the instruction in force (USER = the human, PEER <name> = another Claude session), the commits or merges that ended it, the agents it started and the files it edited.
 

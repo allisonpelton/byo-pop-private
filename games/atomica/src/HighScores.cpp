@@ -48,6 +48,7 @@ void ScoreTable::Write(Buffer* theBuffer) const
 	theBuffer->WriteBytes((const unsigned char*) &mDate, 4);
 }
 
+// port: the day as a number, the original's GetSystemTime calls in 0x41e440, 0x41e530 and 0x41ec90 made in line
 int ScoreTable::DateCode()
 {
 	time_t aNow = time(NULL);
@@ -55,14 +56,6 @@ int ScoreTable::DateCode()
 	if (aTime == NULL)
 		return 0;
 	return ((aTime->tm_mon + 1) + (aTime->tm_year + 1900) * 12) * 31 + aTime->tm_mday;
-}
-
-int ScoreTable::Place(int theScore) const
-{
-	int aPlace = 0;
-	while ((aPlace < NUM_SCORES) && (mScores[aPlace] >= theScore))
-		aPlace++;
-	return aPlace;
 }
 
 // 0x41e440: the score is worth a name if it is in the table (a place before the end), or the best of the day

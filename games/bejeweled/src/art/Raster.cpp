@@ -49,18 +49,18 @@ Paint Solid(const Rgba& theColor)
 	return [theColor](double, double) { return theColor; };
 }
 
-Rgba StopsAt(const std::vector<Stop>& theStops, double t)
+Rgba StopsAt(const std::vector<Stop>& theStops, double thePosition)
 {
 	if (theStops.empty())
 		return Rgba();
-	if (t <= theStops.front().mAt)
+	if (thePosition <= theStops.front().mAt)
 		return theStops.front().mColor;
 	for (size_t i = 1; i < theStops.size(); i++)
 	{
-		if (t <= theStops[i].mAt)
+		if (thePosition <= theStops[i].mAt)
 		{
 			double aSpan = theStops[i].mAt - theStops[i - 1].mAt;
-			return Mix(theStops[i - 1].mColor, theStops[i].mColor, (aSpan > 0) ? (t - theStops[i - 1].mAt) / aSpan : 1.0);
+			return Mix(theStops[i - 1].mColor, theStops[i].mColor, (aSpan > 0) ? (thePosition - theStops[i - 1].mAt) / aSpan : 1.0);
 		}
 	}
 	return theStops.back().mColor;
@@ -99,31 +99,6 @@ Path& Path::LineTo(double x, double y)
 	if (mContours.empty())
 		return MoveTo(x, y);
 	mContours.back().push_back(Vec2(x, y));
-	return *this;
-}
-
-Path& Path::QuadTo(double cx, double cy, double x, double y)
-{
-	Vec2 p0 = mContours.empty() ? Vec2(x, y) : mContours.back().back();
-	int n = std::max(4, (int) (std::hypot(cx - p0.x, cy - p0.y) + std::hypot(x - cx, y - cy)) / 2);
-	for (int i = 1; i <= n; i++)
-	{
-		double t = i / (double) n, u = 1 - t;
-		LineTo(u * u * p0.x + 2 * u * t * cx + t * t * x, u * u * p0.y + 2 * u * t * cy + t * t * y);
-	}
-	return *this;
-}
-
-Path& Path::CubicTo(double c1x, double c1y, double c2x, double c2y, double x, double y)
-{
-	Vec2 p0 = mContours.empty() ? Vec2(x, y) : mContours.back().back();
-	int n = std::max(6, (int) (std::hypot(c1x - p0.x, c1y - p0.y) + std::hypot(c2x - c1x, c2y - c1y) + std::hypot(x - c2x, y - c2y)) / 2);
-	for (int i = 1; i <= n; i++)
-	{
-		double t = i / (double) n, u = 1 - t;
-		double a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
-		LineTo(a * p0.x + b * c1x + c * c2x + d * x, a * p0.y + b * c1y + c * c2y + d * y);
-	}
 	return *this;
 }
 
@@ -283,7 +258,7 @@ struct Accumulator
 			size_t aLine = (size_t) y * mW;
 			double dy = std::min((double) (y + 1), p1.y) - std::max((double) y, p0.y);
 			double xnext = x + dxdy * dy;
-			double d = dy * aDir;
+			double aDeltaY = dy * aDir;
 			double x0 = std::min(x, xnext), x1 = std::max(x, xnext);
 			double x0floor = std::floor(x0);
 			int x0i = (int) x0floor;
@@ -292,29 +267,29 @@ struct Accumulator
 			if (x1i <= x0i + 1)
 			{
 				double xmf = 0.5 * (x + xnext) - x0floor;
-				mA[aLine + x0i] += (float) (d - d * xmf);
-				mA[aLine + x0i + 1] += (float) (d * xmf);
+				mA[aLine + x0i] += (float) (aDeltaY - aDeltaY * xmf);
+				mA[aLine + x0i + 1] += (float) (aDeltaY * xmf);
 			}
 			else
 			{
-				double s = 1.0 / (x1 - x0);
+				double anInverseWidth = 1.0 / (x1 - x0);
 				double x0f = x0 - x0floor;
-				double a0 = 0.5 * s * (1.0 - x0f) * (1.0 - x0f);
+				double a0 = 0.5 * anInverseWidth * (1.0 - x0f) * (1.0 - x0f);
 				double x1f = x1 - x1ceil + 1.0;
-				double am = 0.5 * s * x1f * x1f;
-				mA[aLine + x0i] += (float) (d * a0);
+				double am = 0.5 * anInverseWidth * x1f * x1f;
+				mA[aLine + x0i] += (float) (aDeltaY * a0);
 				if (x1i == x0i + 2)
-					mA[aLine + x0i + 1] += (float) (d * (1.0 - a0 - am));
+					mA[aLine + x0i + 1] += (float) (aDeltaY * (1.0 - a0 - am));
 				else
 				{
-					double a1 = s * (1.5 - x0f);
-					mA[aLine + x0i + 1] += (float) (d * (a1 - a0));
+					double a1 = anInverseWidth * (1.5 - x0f);
+					mA[aLine + x0i + 1] += (float) (aDeltaY * (a1 - a0));
 					for (int xi = x0i + 2; xi < x1i - 1; xi++)
-						mA[aLine + xi] += (float) (d * s);
-					double a2 = a1 + (x1i - x0i - 3) * s;
-					mA[aLine + x1i - 1] += (float) (d * (1.0 - a2 - am));
+						mA[aLine + xi] += (float) (aDeltaY * anInverseWidth);
+					double a2 = a1 + (x1i - x0i - 3) * anInverseWidth;
+					mA[aLine + x1i - 1] += (float) (aDeltaY * (1.0 - a2 - am));
 				}
-				mA[aLine + x1i] += (float) (d * am);
+				mA[aLine + x1i] += (float) (aDeltaY * am);
 			}
 			x = xnext;
 		}
@@ -394,25 +369,25 @@ Mask& Mask::Fill(const Path& thePath)
 
 Mask& Mask::Stroke(const std::vector<Vec2>& theLine, double theWidth, bool isClosed)
 {
-	double r = theWidth / 2;
-	size_t n = theLine.size();
-	if (n == 0)
+	double aRadius = theWidth / 2;
+	size_t aCount = theLine.size();
+	if (aCount == 0)
 		return *this;
-	for (size_t i = 0; i < n; i++)
+	for (size_t i = 0; i < aCount; i++)
 	{
 		const Vec2& p = theLine[i];
-		Fill(Path().Ellipse(p.x, p.y, r, r));
+		Fill(Path().Ellipse(p.x, p.y, aRadius, aRadius));
 	}
-	size_t aSegments = isClosed ? n : n - 1;
+	size_t aSegments = isClosed ? aCount : aCount - 1;
 	for (size_t i = 0; i < aSegments; i++)
 	{
 		const Vec2& a = theLine[i];
-		const Vec2& b = theLine[(i + 1) % n];
+		const Vec2& b = theLine[(i + 1) % aCount];
 		double dx = b.x - a.x, dy = b.y - a.y;
 		double aLen = std::hypot(dx, dy);
 		if (aLen < 1e-9)
 			continue;
-		double nx = -dy / aLen * r, ny = dx / aLen * r;
+		double nx = -dy / aLen * aRadius, ny = dx / aLen * aRadius;
 		Fill(Path().Polygon({Vec2(a.x + nx, a.y + ny), Vec2(b.x + nx, b.y + ny), Vec2(b.x - nx, b.y - ny), Vec2(a.x - nx, a.y - ny)}));
 	}
 	return *this;
@@ -422,13 +397,6 @@ Mask& Mask::StrokePath(const Path& thePath, double theWidth)
 {
 	for (size_t i = 0; i < thePath.mContours.size(); i++)
 		Stroke(thePath.mContours[i], theWidth, false);
-	return *this;
-}
-
-Mask& Mask::Union(const Mask& o)
-{
-	for (size_t i = 0; i < mA.size(); i++)
-		mA[i] = std::max(mA[i], o.mA[i]);
 	return *this;
 }
 
@@ -450,13 +418,6 @@ Mask& Mask::Invert()
 {
 	for (size_t i = 0; i < mA.size(); i++)
 		mA[i] = 1.0f - mA[i];
-	return *this;
-}
-
-Mask& Mask::Scale(float theFactor)
-{
-	for (size_t i = 0; i < mA.size(); i++)
-		mA[i] = Clamp01(mA[i] * theFactor);
 	return *this;
 }
 
@@ -552,100 +513,74 @@ Mask& Mask::Shift(double theDX, double theDY)
 }
 
 // Squared Euclidean distance transform of one line (Felzenszwalb and Huttenlocher)
-static void Edt1D(const double* f, int n, double* d, int* v, double* z)
+static void Edt1D(const double* theValues, int theCount, double* theDistances, int* theLocations, double* z)
 {
 	int k = 0;
-	v[0] = 0;
+	theLocations[0] = 0;
 	z[0] = -1e30;
 	z[1] = 1e30;
-	for (int q = 1; q < n; q++)
+	for (int q = 1; q < theCount; q++)
 	{
-		double s = ((f[q] + (double) q * q) - (f[v[k]] + (double) v[k] * v[k])) / (2.0 * q - 2.0 * v[k]);
+		double s = ((theValues[q] + (double) q * q) - (theValues[theLocations[k]] + (double) theLocations[k] * theLocations[k])) / (2.0 * q - 2.0 * theLocations[k]);
 		while (s <= z[k])
 		{
 			k--;
-			s = ((f[q] + (double) q * q) - (f[v[k]] + (double) v[k] * v[k])) / (2.0 * q - 2.0 * v[k]);
+			s = ((theValues[q] + (double) q * q) - (theValues[theLocations[k]] + (double) theLocations[k] * theLocations[k])) / (2.0 * q - 2.0 * theLocations[k]);
 		}
 		k++;
-		v[k] = q;
+		theLocations[k] = q;
 		z[k] = s;
 		z[k + 1] = 1e30;
 	}
 	k = 0;
-	for (int q = 0; q < n; q++)
+	for (int q = 0; q < theCount; q++)
 	{
 		while (z[k + 1] < q)
 			k++;
-		d[q] = (double) (q - v[k]) * (q - v[k]) + f[v[k]];
+		theDistances[q] = (double) (q - theLocations[k]) * (q - theLocations[k]) + theValues[theLocations[k]];
 	}
 }
 
 // Squared distance (pixels) from each pixel to the nearest pixel where theTarget is set. First each pixel's distance
 // to the nearest target in its column (two sweeps over the rows), then the exact transform along each row.
-static std::vector<double> Edt(const std::vector<char>& theTarget, int w, int h)
+static std::vector<double> Edt(const std::vector<char>& theTarget, int theWidth, int theHeight)
 {
 	const double kInf = 1e20;
-	const float kFar = (float) (w + h);
-	std::vector<float> aColumn((size_t) w * h);
-	for (int x = 0; x < w; x++)
+	const float kFar = (float) (theWidth + theHeight);
+	std::vector<float> aColumn((size_t) theWidth * theHeight);
+	for (int x = 0; x < theWidth; x++)
 		aColumn[x] = theTarget[x] ? 0.0f : kFar;
-	for (int y = 1; y < h; y++)
+	for (int y = 1; y < theHeight; y++)
 	{
-		const char* t = &theTarget[(size_t) y * w];
-		const float* aAbove = &aColumn[(size_t) (y - 1) * w];
-		float* g = &aColumn[(size_t) y * w];
-		for (int x = 0; x < w; x++)
+		const char* t = &theTarget[(size_t) y * theWidth];
+		const float* aAbove = &aColumn[(size_t) (y - 1) * theWidth];
+		float* g = &aColumn[(size_t) y * theWidth];
+		for (int x = 0; x < theWidth; x++)
 			g[x] = t[x] ? 0.0f : aAbove[x] + 1;
 	}
-	for (int y = h - 2; y >= 0; y--)
+	for (int y = theHeight - 2; y >= 0; y--)
 	{
-		const float* aBelow = &aColumn[(size_t) (y + 1) * w];
-		float* g = &aColumn[(size_t) y * w];
-		for (int x = 0; x < w; x++)
+		const float* aBelow = &aColumn[(size_t) (y + 1) * theWidth];
+		float* g = &aColumn[(size_t) y * theWidth];
+		for (int x = 0; x < theWidth; x++)
 			g[x] = std::min(g[x], aBelow[x] + 1);
 	}
-	std::vector<double> aGrid((size_t) w * h);
-	std::vector<double> f(w), d(w), z(w + 1);
-	std::vector<int> v(w);
-	for (int y = 0; y < h; y++)
+	std::vector<double> aGrid((size_t) theWidth * theHeight);
+	std::vector<double> f(theWidth), d(theWidth), z(theWidth + 1);
+	std::vector<int> v(theWidth);
+	for (int y = 0; y < theHeight; y++)
 	{
-		const float* g = &aColumn[(size_t) y * w];
-		for (int x = 0; x < w; x++)
+		const float* g = &aColumn[(size_t) y * theWidth];
+		for (int x = 0; x < theWidth; x++)
 			f[x] = (g[x] >= kFar) ? kInf : (double) g[x] * g[x];
-		Edt1D(&f[0], w, &d[0], &v[0], &z[0]);
-		std::copy(d.begin(), d.end(), aGrid.begin() + (size_t) y * w);
+		Edt1D(&f[0], theWidth, &d[0], &v[0], &z[0]);
+		std::copy(d.begin(), d.end(), aGrid.begin() + (size_t) y * theWidth);
 	}
 	return aGrid;
 }
 
 // Coverage this close to 0 or 1 is not an edge (a blur's far tail, rounding)
 static const float kEdge = 1e-3f;
-
-std::vector<float> Mask::Distance() const
-{
-	size_t n = mA.size();
-	std::vector<char> anIn(n), anOut(n);
-	for (size_t i = 0; i < n; i++)
-	{
-		anIn[i] = mA[i] >= 0.5f;
-		anOut[i] = !anIn[i];
-	}
-	std::vector<double> aToIn = Edt(anIn, mPW, mPH);
-	std::vector<double> aToOut = Edt(anOut, mPW, mPH);
-	std::vector<float> aDist(n);
-	for (size_t i = 0; i < n; i++)
-	{
-		double d;
-		if ((mA[i] > kEdge) && (mA[i] < 1.0f - kEdge))
-			d = 0.5 - mA[i];                                   // an edge pixel: its coverage places the edge
-		else if (anIn[i])
-			d = -(std::sqrt(aToOut[i]) - 0.5);
-		else
-			d = std::sqrt(aToIn[i]) - 0.5;
-		aDist[i] = (float) (d / mScale);
-	}
-	return aDist;
-}
 
 Mask Mask::Grown(double theRadius) const
 {
@@ -659,7 +594,7 @@ Mask Mask::Grown(double theRadius) const
 	float aScale = (float) mScale;
 	for (size_t i = 0; i < n; i++)
 	{
-		// the signed distance (Distance) where this side needs it; the other side is wholly in or out
+		// the signed distance to the edge where this side needs it; the other side is wholly in or out
 		double d;
 		if ((mA[i] > kEdge) && (mA[i] < 1.0f - kEdge))
 			d = 0.5 - mA[i];
@@ -669,15 +604,6 @@ Mask Mask::Grown(double theRadius) const
 			d = (mA[i] < 0.5f) ? 1e9 : -(std::sqrt(aSquared[i]) - 0.5);
 		aMask.mA[i] = Clamp01((float) (theRadius * aScale - d) + 0.5f);
 	}
-	return aMask;
-}
-
-Mask Mask::Inner(double theWidth) const
-{
-	Mask aMask(mW, mH, mScale);
-	std::vector<float> aDist = Distance();
-	for (size_t i = 0; i < aDist.size(); i++)
-		aMask.mA[i] = Clamp01((float) (-aDist[i] / theWidth)) * mA[i];
 	return aMask;
 }
 
@@ -708,30 +634,30 @@ Canvas::Canvas(int theW, int theH, int theScale) : mW(theW), mH(theH), mScale(th
 {
 }
 
-static inline void Composite(float* p, const Rgba& c, float k, Blend theBlend)
+static inline void Composite(float* thePixel, const Rgba& theColor, float k, Blend theBlend)
 {
-	float a = c.a * k;
-	if (a <= 0)
+	float anAlpha = theColor.a * k;
+	if (anAlpha <= 0)
 		return;
 	if (theBlend == BLEND_NORMAL)
 	{
-		float inv = 1 - a;
-		p[0] = c.r * a + p[0] * inv;
-		p[1] = c.g * a + p[1] * inv;
-		p[2] = c.b * a + p[2] * inv;
-		p[3] = a + p[3] * inv;
+		float inv = 1 - anAlpha;
+		thePixel[0] = theColor.r * anAlpha + thePixel[0] * inv;
+		thePixel[1] = theColor.g * anAlpha + thePixel[1] * inv;
+		thePixel[2] = theColor.b * anAlpha + thePixel[2] * inv;
+		thePixel[3] = anAlpha + thePixel[3] * inv;
 	}
 	else if (theBlend == BLEND_ADD)
 	{
-		p[0] = std::min(1.0f, p[0] + c.r * a);
-		p[1] = std::min(1.0f, p[1] + c.g * a);
-		p[2] = std::min(1.0f, p[2] + c.b * a);
-		p[3] = std::max(p[3], std::max(p[0], std::max(p[1], p[2])));
+		thePixel[0] = std::min(1.0f, thePixel[0] + theColor.r * anAlpha);
+		thePixel[1] = std::min(1.0f, thePixel[1] + theColor.g * anAlpha);
+		thePixel[2] = std::min(1.0f, thePixel[2] + theColor.b * anAlpha);
+		thePixel[3] = std::max(thePixel[3], std::max(thePixel[0], std::max(thePixel[1], thePixel[2])));
 	}
 	else
 	{
-		float inv = 1 - a;
-		p[0] *= inv; p[1] *= inv; p[2] *= inv; p[3] *= inv;
+		float inv = 1 - anAlpha;
+		thePixel[0] *= inv; thePixel[1] *= inv; thePixel[2] *= inv; thePixel[3] *= inv;
 	}
 }
 
@@ -811,24 +737,6 @@ Canvas& Canvas::Shadow(const Mask& theMask, double theDX, double theDY, double t
 	return Fill(aMask, theColor, 1, theBlend);
 }
 
-Mask Canvas::AlphaMask() const
-{
-	Mask aMask = NewMask();
-	for (size_t i = 0; i < aMask.mA.size(); i++)
-		aMask.mA[i] = mPx[i * 4 + 3];
-	return aMask;
-}
-
-void Canvas::MultiplyAlpha(const Mask& theMask)
-{
-	for (size_t i = 0; i < theMask.mA.size(); i++)
-	{
-		float k = theMask.mA[i];
-		for (int c = 0; c < 4; c++)
-			mPx[i * 4 + c] *= k;
-	}
-}
-
 uint32_t PackArgb(float r, float g, float b, float a)
 {
 	auto aByte = [](float v) { return (uint32_t) std::lround(Clamp01(v) * 255.0f); };
@@ -872,11 +780,11 @@ void Canvas::ToArgb1x(std::vector<uint32_t>& theOut) const
 
 void DownsampleArgb(const std::vector<uint32_t>& theSrc, int theW, int theH, int theScale, std::vector<uint32_t>& theOut)
 {
-	int w = theW / theScale, h = theH / theScale;
-	theOut.assign((size_t) w * h, 0);
+	int aWidth = theW / theScale, h = theH / theScale;
+	theOut.assign((size_t) aWidth * h, 0);
 	for (int y = 0; y < h; y++)
 	{
-		for (int x = 0; x < w; x++)
+		for (int x = 0; x < aWidth; x++)
 		{
 			double acc[4] = {0, 0, 0, 0};
 			for (int sy = 0; sy < theScale; sy++)
@@ -892,7 +800,7 @@ void DownsampleArgb(const std::vector<uint32_t>& theSrc, int theW, int theH, int
 				}
 			}
 			if (acc[3] > 0)
-				theOut[(size_t) y * w + x] = PackArgb((float) (acc[0] / acc[3] / 255.0), (float) (acc[1] / acc[3] / 255.0),
+				theOut[(size_t) y * aWidth + x] = PackArgb((float) (acc[0] / acc[3] / 255.0), (float) (acc[1] / acc[3] / 255.0),
 					(float) (acc[2] / acc[3] / 255.0), (float) (acc[3] / (theScale * theScale)));
 		}
 	}

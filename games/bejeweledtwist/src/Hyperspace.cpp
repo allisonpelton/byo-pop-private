@@ -19,6 +19,8 @@
 
 using namespace Sexy;
 
+// 0x70e341: the world perspective camera's constructor, inline here
+// 0x70e361: the off-center perspective camera's constructor, inline here
 Hyperspace::Hyperspace()
 {
 	// The level comes from the board (+0x158 - 1) when there is one: none yet. The ctor also sets up the curves of the
@@ -27,46 +29,49 @@ Hyperspace::Hyperspace()
 	// only once a jump or the state 1 to 2 step sets +0x156 (0x7163f3, SetTransition 9 and 10); +0x158 is whether
 	// gD3DInterface is set
 	mIs3D = false;
-	mFlag158 = gD3DInterface != nullptr;
+	mDrawsTravellers = gD3DInterface != nullptr;
 	if (gD3DInterface != nullptr)
 		MakeOldPicture();  // 0x714f98: the picture state 11 renders into
 	// 0x7152ff to 0x71544f: the cube's step along +0x8e8 (1, so it waits 50 ahead of where the jump starts), the three
 	// backdrops' fields of view and the cube's faces
-	mUnknown900.SetConstant(1.0);
-	mUnknownF28.SetCurve(GTS(0x7e4688));
-	mUnknownF28.SetMode(1);
-	mUnknownF98.SetCurve(GTS(0x7e4658));
-	mUnknownF98.SetMode(1);
-	mUnknown1008.SetCurve(GTS(0x7e4628));
-	mUnknown1008.SetMode(1);
-	mUnknown798.SetCurve(GTS(0x7e4600));
-	mUnknown808.SetCurve(GTS(0x7e45d8));
-	mUnknown878.SetCurve(GTS(0x7e45b0));
+	mCrystalStep.SetConstant(1.0);
+	mFirstBackdropFov.SetCurve(GTS(0x7e4688));
+	mFirstBackdropFov.SetMode(1);
+	mSecondBackdropFov.SetCurve(GTS(0x7e4658));
+	mSecondBackdropFov.SetMode(1);
+	mThirdBackdropFov.SetCurve(GTS(0x7e4628));
+	mThirdBackdropFov.SetMode(1);
+	mFirstFaceAlpha.SetCurve(GTS(0x7e4600));
+	mSecondFaceAlpha.SetCurve(GTS(0x7e45d8));
+	mSingleFaceAlpha.SetCurve(GTS(0x7e45b0));
 	RemoveAllWidgets(true, false);
 }
 
 Hyperspace::~Hyperspace()
 {
 	// port: the picture MakeOldPicture made is freed (the original's dtor 0x714e6e is not ported)
-	if (mOwnsUnknown160)
-		delete mUnknown160;
+	if (mOwnsOldPicture)
+		delete mOldPicture;
 }
 
 void Hyperspace::MakeOldPicture()
 {
-	// port: the port's mUnknown160 may hold a level's picture from a jump (SetTransition), which belongs to the
+	// port: the port's mOldPicture may hold a level's picture from a jump (SetTransition), which belongs to the
 	// resources; the original would draw into it, the port makes its own
-	if (mUnknown160 != nullptr && mOwnsUnknown160)
+	if (mOldPicture != nullptr && mOwnsOldPicture)
 		return;
 	DDImage* anImage = new DDImage(gApp->mDDInterface);
 	anImage->mD3DFlags = 0x10;  // +0x44: a render target (the VizManager draws the next level into it, ChooseViz)
 	anImage->Create(gApp->mWidth, gApp->mHeight);
 	anImage->SetImageMode(false, false);
-	gD3DInterface->PrepareImage(anImage);  // port: made a target now, as HoldTarget does
-	mUnknown160 = anImage;
-	mOwnsUnknown160 = true;
+	// port: made a target now, as HoldTarget does. Without Direct3D (a challenge's end in 2D) it is a plain picture
+	if (gD3DInterface != nullptr)
+		gD3DInterface->PrepareImage(anImage);
+	mOldPicture = anImage;
+	mOwnsOldPicture = true;
 }
 
+// 0x70e527: the thrust puff's reset, inline here
 void Hyperspace::Update()
 {
 	if (mState == 0 || mState == 6) {
@@ -87,7 +92,7 @@ void Hyperspace::Update()
 	// through a level-up left the board's rows and the next level behind it: a crash (UpdateJump read space after it was
 	// gone) or a board that never filled again.
 	if (gBoard != nullptr && gBoard->mHyperspace == this &&
-		(0 < gBoard->mUnknown1570 || gApp->mOptionsDialog != nullptr)) {
+		(0 < gBoard->mPauseCount || gApp->mOptionsDialog != nullptr)) {
 		MarkDirty();
 		return;
 	}
@@ -95,22 +100,22 @@ void Hyperspace::Update()
 		double aCool = mWarmUp - 0.0024999999441206455;
 		mWarmUp = 0.0 < aCool ? aCool : 0.0;
 	}
-	if (!mUnknown12B0.IncInVal()) {
+	if (!mBoardBrightnessFinal.IncInVal()) {
 		if (mState == 11) {
 			mState = 10;
 			gApp->mBoard->SetVisible(true);
 			gApp->mVizManager->SetVisible(true);
 		}
 	} else if (mState == 11 && gBoard != nullptr) {
-		gBoard->SetUnknown3924((float)mUnknown12B0.GetOutVal());
+		gBoard->SetBoardFade((float)mBoardBrightnessFinal.GetOutVal());
 	}
-	if (mFlag15E || (!mWidgets.empty() && mTransition != 9 && mTransition != 10)) {
-		mFlag15C = true;
+	if (mHoldsJump || (!mWidgets.empty() && mTransition != 9 && mTransition != 10)) {
+		mJumpSkipped = true;
 		MarkDirty();
 		return;
 	}
 	Widget::Update();
-	mFlag15C = false;
+	mJumpSkipped = false;
 	if (gD3DInterface != nullptr) {
 		// 0x715c21 with gD3DInterface set: no 2D chain, the common code of 0x716336 and the world's motion
 		Update3D();
@@ -121,21 +126,21 @@ void Hyperspace::Update()
 	// (transition 14, the trial's last jump, its limit dialog and its souls fading in state 7, is registration code,
 	// left out)
 	if (mTransition == 8) {
-		if (!mUnknown1570.IncInVal()) {
-			if (mFlag15B) {
+		if (!mJumpLength.IncInVal()) {
+			if (mFirstHalfPending) {
 				// Halfway: the jump's second half
-				mFlag15B = false;
-				mUnknown1570.SetCurve(GTS(0x7e49ec));
-				mUnknown258.SetCurve(GTS(0x7e49bc));
-				gBoard->mUnknown3880.SetCurve(GTS(0x7e498c));
+				mFirstHalfPending = false;
+				mJumpLength.SetCurve(GTS(0x7e49ec));
+				mBoardBrightness.SetCurve(GTS(0x7e49bc));
+				gBoard->mTubeSlide.SetCurve(GTS(0x7e498c));
 			} else {
 				gApp->mVizManager->SetVisible(true);
 				mState = 10;
 			}
 		}
-		mUnknown258.IncInVal();
-		gApp->mBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
-		if (mUnknown258.CheckInThreshold((double)0.6f) && !mFlag15B) {
+		mBoardBrightness.IncInVal();
+		gApp->mBoard->SetBoardFade((float)mBoardBrightness.GetOutVal());
+		if (mBoardBrightness.CheckInThreshold((double)0.6f) && !mFirstHalfPending) {
 			// The new level's gems, while the screen is white
 			Board* aBoard = gApp->mBoard;
 			aBoard->NewLevel();
@@ -144,36 +149,36 @@ void Hyperspace::Update()
 			aBoard->RetargetTravellers();
 		}
 	} else if (mTransition == 9 || mTransition == 10) {
-		if (!mUnknown1570.IncInVal()) {
+		if (!mJumpLength.IncInVal()) {
 			gApp->mVizManager->SetVisible(true);
 			mState = 10;
 		}
-		mUnknown258.IncInVal();
-		gApp->mBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
+		mBoardBrightness.IncInVal();
+		gApp->mBoard->SetBoardFade((float)mBoardBrightness.GetOutVal());
 	} else if (mTransition == 11) {
-		if (!mUnknown1570.IncInVal()) {
+		if (!mJumpLength.IncInVal()) {
 			// the challenge menu goes (0x715dc7)
 			if (gApp->mMainMenu->mChallengeMenu != nullptr)
 				gApp->mMainMenu->mChallengeMenu->mVisible = false;
 			gApp->mVizManager->SetVisible(true);
 			mState = 10;
 		}
-		mUnknown258.IncInVal();
-		gApp->mBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
-		gApp->mBoard->ApplyUnknown3924();
+		mBoardBrightness.IncInVal();
+		gApp->mBoard->SetBoardFade((float)mBoardBrightness.GetOutVal());
+		gApp->mBoard->ApplyBoardFade();
 	} else {
 		// The other transitions (in 2D 0, 12 and 13, and the menus' 1, 2, 4 and 5) run the camera's path (0x716366)
 		// (with Direct3D, when +0x1e8 is done in state 1: the VizManager draws into +0x160 and the camera flies off,
 		// state 2, SOUND_TRANS_SPACENOISE)
-		mUnknown1E8.IncInVal();
-		gApp->mVizManager->mSpeed = mUnknown1E8.GetOutVal();
+		mVizSpeed.IncInVal();
+		gApp->mVizManager->mSpeed = mVizSpeed.GetOutVal();
 		// (the VizManager's rectangle at +0x1bc, -1, -1, 1, 1, is for Direct3D's render target)
 		Board* aBoard = gApp->mBoard;
-		if (aBoard != nullptr && !aBoard->mUnknown37C4) {
-			mUnknown258.IncInVal();
-			aBoard->SetUnknown3924((float)mUnknown258.GetOutVal());
+		if (aBoard != nullptr && !aBoard->mIsReplay) {
+			mBoardBrightness.IncInVal();
+			aBoard->SetBoardFade((float)mBoardBrightness.GetOutVal());
 			if (mTransition == 11)
-				aBoard->ApplyUnknown3924();
+				aBoard->ApplyBoardFade();
 		}
 		// (the curves +0x900, +0x10f0, +0x2c8 and +0x338 step here; only the 3D camera reads them)
 		if (1 < mState && mState < 10) {
@@ -205,21 +210,21 @@ void Hyperspace::StartEndGame()
 	// 0x714883
 	mTransition = 13;
 	mState = 12;
-	mUnknown12B0.SetCurve(GTS(0x7d8610));
+	mBoardBrightnessFinal.SetCurve(GTS(0x7d8610));
 	if (gD3DInterface == nullptr && gApp->mBoard->mGameMode != Board::MODE_CHALLENGE) {
 		// 2D, not a challenge: space fades in over the board
-		mUnknown258.SetConstant(1.0);
+		mBoardBrightness.SetConstant(1.0);
 		mZOrder = gApp->mBoard->mZOrder;
 		mWidgetManager->PutInfront(this, gApp->mBoard);
 		gApp->mVizManager->SetVisible(true);
 		gApp->mBoard->SetVisible(true);
 		mHasAlpha = true;
-		mFlag155 = false;
+		mDrawsOwnBackground = false;
 	} else {
 		// Direct3D, or a challenge: the VizManager and the board are drawn into the old level's picture, which the
 		// challenge menu draws over itself while space comes back (0x714960)
 		MakeOldPicture();
-		Graphics aG(mUnknown160);
+		Graphics aG(mOldPicture);
 		gApp->mVizManager->Draw(&aG);
 		ModalFlags aFlags;
 		mWidgetManager->InitModalFlags(&aFlags);
@@ -227,10 +232,10 @@ void Hyperspace::StartEndGame()
 		mWidgetManager->mCurG = &aG;
 		mWidgetManager->FlushDeferredOverlayWidgets(0x7fffffff);
 		mWidgetManager->mCurG = nullptr;
-		mFlag155 = true;
+		mDrawsOwnBackground = true;
 		mLevel = 0;
 		gApp->mVizManager->SetVisible(false);
-		mFlag159 = gD3DInterface != nullptr;
+		mDrawsFinalFade = gD3DInterface != nullptr;
 	}
 }
 
@@ -242,18 +247,18 @@ void Hyperspace::Draw(Graphics* g)
 		return;
 	}
 	// With Direct3D: the level's world in 3D (0x71042e and on); comes with Direct3D, which the port does not have
-	if ((mTransition == 12 || mTransition == 13) && !mFlag155) {
+	if ((mTransition == 12 || mTransition == 13) && !mDrawsOwnBackground) {
 		// The end of a jump: space fades out over the board
-		if (gBoard == nullptr || gBoard->mUnknown3464 == nullptr)
+		if (gBoard == nullptr || gBoard->mFinalScoreLabel == nullptr)
 			mWidgetManager->FlushDeferredOverlayWidgets(0x7fffffff);
 		g->SetColorizeImages(true);
-		g->SetColor(Color(255, 255, 255, Ftol((1.0 - mUnknown12B0.GetOutVal()) * 255.0)));
+		g->SetColor(Color(255, 255, 255, Ftol((1.0 - mBoardBrightnessFinal.GetOutVal()) * 255.0)));
 		DrawImageScaledCentered(g, IMAGE_STATIC_SPACE, (float)(gApp->mWidth / 2), (float)(gApp->mHeight / 2), 3, 1.0f,
 			1.0f);
 	} else if (mTransition == 12 || mTransition == 13) {
 		DrawImageScaledCentered(g, IMAGE_STATIC_SPACE, (float)(gApp->mWidth / 2), (float)(gApp->mHeight / 2), 3, 1.0f,
 			1.0f);
-		if (mFlag159)
+		if (mDrawsFinalFade)
 			DrawOldPicture(g);
 	} else {
 		DrawImageScaledCentered(g, IMAGE_STATIC_SPACE, (float)(gApp->mWidth / 2), (float)(gApp->mHeight / 2), 3, 1.0f,
@@ -278,9 +283,9 @@ void Hyperspace::DrawTunnel(Graphics* g)
 		return;
 	// In 2D the level's picture, the old one for the jump's first half, fading in; Direct3D's tunnel is left out
 	g->SetColorizeImages(true);
-	g->SetColor(Color(255, 255, 255, Ftol(mUnknown1570.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+	g->SetColor(Color(255, 255, 255, Ftol(mJumpLength.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
 	int aWidth = Ftol((double)gApp->mScale * 1920.0);
-	g->DrawImage(mFlag15B ? mUnknown160 : static_cast<Viz2D*>(aVizManager->mViz)->mImage, (gApp->mWidth - aWidth) / 2,
+	g->DrawImage(mFirstHalfPending ? mOldPicture : static_cast<Viz2D*>(aVizManager->mViz)->mImage, (gApp->mWidth - aWidth) / 2,
 		0);
 }
 
@@ -288,7 +293,7 @@ void Hyperspace::DrawOldPicture(Graphics* g)
 {
 	if (mState == 11 && gD3DInterface != nullptr) {
 		// 0x70f836: with 3D the old picture is drawn afresh, the VizManager and then the board into +0x160
-		Graphics aG(mUnknown160);
+		Graphics aG(mOldPicture);
 		gApp->mVizManager->Draw(&aG);
 		ModalFlags aFlags;
 		mWidgetManager->InitModalFlags(&aFlags);
@@ -296,15 +301,15 @@ void Hyperspace::DrawOldPicture(Graphics* g)
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	g->SetColorizeImages(true);
-	g->SetColor(Color(255, 255, 255, Ftol(mUnknown12B0.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
-	g->DrawImage(mUnknown160, 0, 0);
+	g->SetColor(Color(255, 255, 255, Ftol(mBoardBrightnessFinal.GetOutVal() * 255.0)));  // CurvedVal::GetColor 0x6a1984
+	g->DrawImage(mOldPicture, 0, 0);
 }
 
 void Hyperspace::DrawOverlay(Graphics* g)
 {
 	// Direct3D only (+0x156 and +0x157): the planets, the saucer and the tube
 	(void)g;
-	if (gD3DInterface != nullptr && mIs3D && mFlag157) {
+	if (gD3DInterface != nullptr && mIs3D && mIsNewGameJump) {
 		// 0x713d82: with +0x157 set the sidebar, the cone and the thrust are drawn on top, as the overlay
 		Draw3DSidebar();
 		DrawCone();
@@ -312,17 +317,21 @@ void Hyperspace::DrawOverlay(Graphics* g)
 	}
 }
 
-void Hyperspace::StartChallenge()
+void Hyperspace::StartChallenge(float theX, float theY, float theZ)
 {
+	(void)theZ;
 	mState = 3;
 	mTransition = 11;
-	// The 2D branch only (the 3D one flies the camera in to the planet)
-	mFlag15B = false;
-	ChooseViz(false);
-	mUnknown1570.SetCurve(GTS(0x7e6288));
-	mUnknown258.SetCurve(GTS(0x7e6258));
-	gBoard->mUnknown3880.SetCurve(GTS(0x7e6228));
-	gBoard->Update();
+	if (gD3DInterface != nullptr) {
+		StartChallenge3D(theX, theY);
+	} else {
+		mFirstHalfPending = false;
+		ChooseViz(true);
+		mJumpLength.SetCurve(GTS(0x7e6288));
+		mBoardBrightness.SetCurve(GTS(0x7e6258));
+		gBoard->mTubeSlide.SetCurve(GTS(0x7e6228));
+		gBoard->Update();
+	}
 	SetTransition(11);
 }
 
@@ -338,31 +347,31 @@ void Hyperspace::SetTransition(int theTransition)
 		// The old level's picture stays for the jump; the VizManager takes the next level's
 		Viz2D* aViz = static_cast<Viz2D*>(gApp->mVizManager->mViz);
 		// (the original deletes the old picture first; the port deletes only the one it made)
-		if (mOwnsUnknown160) {
-			delete mUnknown160;
-			mOwnsUnknown160 = false;
+		if (mOwnsOldPicture) {
+			delete mOldPicture;
+			mOwnsOldPicture = false;
 		}
-		mUnknown160 = aViz->mImage;
-		mUnknown164 = aViz->mImageId;
+		mOldPicture = aViz->mImage;
+		mOldPictureId = aViz->mImageId;
 		aViz->mImage = nullptr;
 		aViz->mImageId = -1;
-		gBoard->mUnknown158++;
+		gBoard->mLevel++;
 		ChooseViz(true);
-		gBoard->mUnknown158--;
+		gBoard->mLevel--;
 		gApp->mVizManager->SetVisible(false);
-		mUnknown1570.SetCurve(GTS(0x7e5de0));
-		mUnknown258.SetCurve(GTS(0x7e5db8));
-		gBoard->mUnknown3880.SetCurve(GTS(0x7e5d88));
+		mJumpLength.SetCurve(GTS(0x7e5de0));
+		mBoardBrightness.SetCurve(GTS(0x7e5db8));
+		gBoard->mTubeSlide.SetCurve(GTS(0x7e5d88));
 	} else if (theTransition == 9) {
-		mFlag155 = true;
+		mDrawsOwnBackground = true;
 		ChooseViz(true);
 		mState = 1;
-		mUnknown1570.SetCurve(GTS(0x7e4b8c));
-		mUnknown258.SetCurve(GTS(0x7e4b60));
-		gBoard->mUnknown3880.SetCurve(GTS(0x7e4b34));
+		mJumpLength.SetCurve(GTS(0x7e4b8c));
+		mBoardBrightness.SetCurve(GTS(0x7e4b60));
+		gBoard->mTubeSlide.SetCurve(GTS(0x7e4b34));
 		Update();
 		gBoard->Update();
-		mFlag15B = false;
+		mFirstHalfPending = false;
 	} else if (theTransition == 10) {
 		SetTransition(9);
 		mTransition = 10;
@@ -370,17 +379,17 @@ void Hyperspace::SetTransition(int theTransition)
 	} else if (theTransition == 12) {
 		// The level's world's eleven curves are set to constants (0x71bedb): of them only the board's brightness
 		// (+0x258) and the VizManager's speed (+0x1e8) count in 2D, the rest are the 3D camera's
-		mUnknown258.SetConstant(1.0);
-		mUnknown1E8.SetConstant(1.0);
+		mBoardBrightness.SetConstant(1.0);
+		mVizSpeed.SetConstant(1.0);
 		mIs3D = false;
 		ChooseViz(true);
 		mTransition = 12;
 		mState = 11;
-		mFlag159 = true;
+		mDrawsFinalFade = true;
 		mLevel = 0;
-		mUnknown12B0.SetCurve(GTS(0x7e4a1c));
-		gBoard->SetUnknown3924(0.0f);
-		mFlag155 = false;
+		mBoardBrightnessFinal.SetCurve(GTS(0x7e4a1c));
+		gBoard->SetBoardFade(0.0f);
+		mDrawsOwnBackground = false;
 		mHasAlpha = true;
 		mZOrder = gApp->mBoard->mZOrder + 1;
 		mWidgetManager->BringToFront(this);
@@ -393,23 +402,23 @@ void Hyperspace::ChooseViz(bool theDraw)
 {
 	Board* aBoard = gApp->mBoard;
 	VizManager* aVizManager = gApp->mVizManager;
-	if (aBoard->mGameMode == Board::MODE_CLASSIC && !gApp->mProfile->GetFlag1E4(14)) {
+	if (aBoard->mGameMode == Board::MODE_CLASSIC && !gApp->mProfile->HasSeenTip(14)) {
 		// The first classic game: the tutorial's picture
 		aVizManager->SetBackdrop(-1, true);
 		aVizManager->SetVizByName("VizWarpBars", true);
 	} else if (aBoard->mGameMode == Board::MODE_BLITZ) {
 		// With Direct3D VizBuckyShards after an even number of blitz games, when the card can (slot 4's bit 0x20 set)
-		int aGames = gApp->mProfile->mUnknown140[3];
+		int aGames = gApp->mProfile->mGamesByMode[3];
 		const char* aVizName = "VizKaleidoCat";
 		if (aGames % 2 == 0 && gD3DInterface != nullptr && (gD3DInterface->GetCaps(0) & 0x20) != 0)
 			aVizName = "VizBuckyShards";
 		aVizManager->SetVizByName(aVizName, true);
 		aVizManager->SetBackdrop(46 - aGames % 47, true);
 	} else if (aBoard->mGameMode == Board::MODE_ZEN) {
-		aVizManager->SetBackdrop(aBoard->mUnknown158, true);
+		aVizManager->SetBackdrop(aBoard->mLevel, true);
 		aVizManager->SetVizByName("VizZenWheels", true);
 	} else if (aBoard->mGameMode != Board::MODE_CHALLENGE) {
-		aVizManager->SetBackdrop(aBoard->mUnknown158, gD3DInterface != nullptr);
+		aVizManager->SetBackdrop(aBoard->mLevel, gD3DInterface != nullptr);
 		if (gD3DInterface == nullptr) {
 			if (aVizManager->mViz == nullptr)
 				aVizManager->SetViz(VizManager::FindViz("Viz2D"), true);
@@ -417,7 +426,7 @@ void Hyperspace::ChooseViz(bool theDraw)
 		}
 		// 0x7593ea picks the 3D visualizer for the mode and level (+0x190); 2D never shows it, so only 3D calls it
 		if (gD3DInterface != nullptr) {
-			int aKey = aBoard->mUnknown158 + 1;
+			int aKey = aBoard->mLevel + 1;
 			if (aKey < 0)
 				aKey = -aKey;  // 0x77e769
 			aVizManager->SetVizForMode(aBoard->mGameMode, (unsigned int)aKey, true, !theDraw);
@@ -425,7 +434,7 @@ void Hyperspace::ChooseViz(bool theDraw)
 	}
 	// With Direct3D and theDraw the VizManager draws into the jump's picture, +0x160
 	if (gD3DInterface != nullptr && theDraw) {
-		Graphics aG(mUnknown160);
+		Graphics aG(mOldPicture);
 		aVizManager->Draw(&aG);
 	}
 	gApp->ClearUpdateBacklog(false);

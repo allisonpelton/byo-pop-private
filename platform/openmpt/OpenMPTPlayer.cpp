@@ -1,9 +1,11 @@
 #include "OpenMPTPlayer.h"
 #include "platform/Audio.h"
+#include "platform/ModuleText.h"
 #include "platform/MusicLevels.h"
 
 #include <libopenmpt/libopenmpt.h>
 #include <libopenmpt/libopenmpt_ext.h>
+#include <string>
 #include <SDL.h>
 #include <cmath>
 #include <cstring>
@@ -128,6 +130,107 @@ public:
 		}
 		return true;
 	}
+
+#ifdef __EMSCRIPTEN__
+	bool GetView(int theOut[5]) override
+	{
+		int aPattern = openmpt_module_get_current_pattern(mModule);
+		theOut[0] = aPattern;
+		theOut[1] = openmpt_module_get_current_row(mModule);
+		theOut[2] = openmpt_module_get_pattern_num_rows(mModule, aPattern);
+		theOut[3] = openmpt_module_get_num_channels(mModule);
+		theOut[4] = openmpt_module_get_current_order(mModule);
+		return true;
+	}
+
+	std::string GetRowText(int thePattern, int theRow) override
+	{
+		std::string aText;
+		int aChannels = openmpt_module_get_num_channels(mModule);
+		for (int c = 0; c < aChannels; c++)
+		{
+			const char* aCell = openmpt_module_format_pattern_row_channel(mModule, thePattern, theRow, c, 0, 1);
+			if (c)
+				aText += '|';
+			if (aCell)
+			{
+				aText += aCell;
+				openmpt_free_string(aCell);
+			}
+		}
+		return aText;
+	}
+
+	// libopenmpt's rows per beat and bar (an IT's highlights, an MO3's PRHI chunk); its own default 4 and 16 when the file stores
+	// none, which cannot be told apart from a file's 4 and 16, so those count as none
+	int GetMeter(int thePattern) override
+	{
+		int aBeat = openmpt_module_get_pattern_rows_per_beat(mModule, thePattern);
+		int aBar = openmpt_module_get_pattern_rows_per_measure(mModule, thePattern);
+		return aBeat > 0 && aBar >= aBeat && !(aBeat == 4 && aBar == 16) ? aBeat << 16 | aBar : 0;
+	}
+
+	int GetSpeed() override
+	{
+		return openmpt_module_get_current_speed(mModule);
+	}
+
+	int GetOrders() override
+	{
+		return openmpt_module_get_num_orders(mModule);
+	}
+
+	bool SetChannelMute(int theChannel, bool theMute) override
+	{
+		if (!mHasInteractive || theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))
+			return false;
+		return mInteractive.set_channel_mute_status(mModuleExt, theChannel, theMute ? 1 : 0) != 0;
+	}
+
+	std::string GetInstrumentNames() override
+	{
+		char aNames[256 * 40 + 1] = {};
+		int at = 0, aInstruments = openmpt_module_get_num_instruments(mModule);
+		int aCount = aInstruments > 0 ? aInstruments : openmpt_module_get_num_samples(mModule);
+		for (int i = 0; i < aCount; i++)
+		{
+			const char* aName = aInstruments > 0 ? openmpt_module_get_instrument_name(mModule, i) : openmpt_module_get_sample_name(mModule, i);
+			at = byopop_name_line(aNames, at, (int)sizeof(aNames), i + 1, aName);
+			if (aName)
+				openmpt_free_string(aName);
+		}
+		return aNames;
+	}
+
+	int GetUsedChannels(unsigned char* theOut, int theMax) override
+	{
+		int aChannels = openmpt_module_get_num_channels(mModule), aPatterns = openmpt_module_get_num_patterns(mModule);
+		for (int c = 0; c < aChannels && c < theMax; c++)
+			theOut[c] = 0;
+		for (int p = 0; p < aPatterns; p++)
+		{
+			int aRows = openmpt_module_get_pattern_num_rows(mModule, p);
+			for (int r = 0; r < aRows; r++)
+				for (int c = 0; c < aChannels && c < theMax; c++)
+				{
+					if (theOut[c])
+						continue;
+					uint8_t aNote = openmpt_module_get_pattern_row_channel_command(mModule, p, r, c, OPENMPT_MODULE_COMMAND_NOTE);
+					if (aNote >= 1 && aNote <= 120)
+						theOut[c] = 1;
+				}
+		}
+		return aChannels;
+	}
+
+	std::string GetTitle() override
+	{
+		const char* aTitle = openmpt_module_get_metadata(mModule, "title");
+		std::string aText = aTitle ? aTitle : "";
+		openmpt_free_string(aTitle);
+		return aText;
+	}
+#endif
 
 private:
 	void ApplyChannelVolume(int theChannel)

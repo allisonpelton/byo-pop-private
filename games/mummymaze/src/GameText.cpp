@@ -1,3 +1,5 @@
+// port: the game's texts, read from the player's own WinMM.exe (GameText.h).
+
 #include "GameText.h"
 #include "SexyAppBase.h"
 #include "PEImage.h"

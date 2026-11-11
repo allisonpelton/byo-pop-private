@@ -1,6 +1,7 @@
 #include "MapLayer.h"
 
 #include "Ending.h"
+#include "EngineRes.h"
 #include "Font.h"
 #include "GameDialogs.h"
 #include "GameText.h"
@@ -8,6 +9,7 @@
 #include "MainMenu.h"
 #include "Manager.h"
 #include "PlayLayer.h"
+#include "Res.h"
 #include "TextResource.h"
 #include "User.h"
 
@@ -17,18 +19,18 @@ namespace mahjongjapan
 {
 
 // 0x51ce98: the progress at which each stage's picture shows
-static const int kStageLevels[12] = {3, 7, 12, 17, 22, 27, 32, 37, 42, 47, 53, 60};
+static const int STAGE_LEVELS[12] = {3, 7, 12, 17, 22, 27, 32, 37, 42, 47, 53, 60};
 // 0x51cec8: the pictures' rects (the left and top place them; a click inside picks the stage's first level)
-static const int kStageRects[12][4] = {
+static const int STAGE_RECTS[12][4] = {
 	{0, 426, 156, 534}, {17, 302, 144, 404}, {30, 175, 157, 278}, {139, 40, 235, 160},
 	{236, 100, 376, 141}, {342, 141, 437, 264}, {357, 298, 472, 427}, {414, 427, 544, 529},
 	{539, 512, 653, 586}, {570, 333, 695, 479}, {614, 198, 728, 333}, {672, 53, 779, 148}};
 // 0x51cf88
-static const int kStageImages[12] = {571, 574, 573, 567, 576, 570, 572, 575, 568, 569, 566, 577};
+static const int STAGE_IMAGES[12] = {571, 574, 573, 567, 576, 570, 572, 575, 568, 569, 566, 577};
 // 0x51cfb8: the sixty levels' places on the path, then (0x51d198) the progress bar's width at each progress. One
 // table, as in the exe: the map reads the place of level 60 (the bar's first widths) while the last move ends, and
 // the bar's width before progress 0 (the last level's y) while the first move runs.
-static const int kPath[181] = {
+static const int MAP_PATH[181] = {
 	14, 516, 27, 504, 37, 489, 65, 434, 71, 418,
 	75, 403, 80, 385, 94, 327, 98, 309, 101, 293,
 	106, 276, 109, 258, 125, 200, 131, 184, 137, 169,
@@ -48,21 +50,21 @@ static const int kPath[181] = {
 	549, 561, 574, 586, 598, 610, 622, 635, 645, 655,
 	665, 675, 685, 696, 705, 714, 723, 732, 741, 750,
 	781};
-static int PointX(int theLevel) { return kPath[theLevel * 2]; }
-static int PointY(int theLevel) { return kPath[theLevel * 2 + 1]; }
-static int BarWidth(int theProgress) { return kPath[120 + theProgress]; }
+static int PointX(int theLevel) { return MAP_PATH[theLevel * 2]; }
+static int PointY(int theLevel) { return MAP_PATH[theLevel * 2 + 1]; }
+static int BarWidth(int theProgress) { return MAP_PATH[120 + theProgress]; }
 // 0x51d310: each stage's two figures for the play layer
-static const int kStageStats[12][2] = {
+static const int STAGE_STATS[12][2] = {
 	{-8500, -300}, {-300, 250}, {250, 538}, {538, 710}, {710, 794}, {794, 1185},
 	{1185, 1333}, {1333, 1573}, {1573, 1603}, {1603, 1867}, {1867, 1912}, {1912, 1926}};
 // 0x51d370: each level's background
-static const int kLevelBackgrounds[60] = {
+static const int LEVEL_BACKGROUNDS[60] = {
 	385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397, 398, 399,
 	400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414,
 	415, 416, 417, 418, 419, 420, 421, 422, 423, 424, 425, 426, 427, 428, 429,
 	430, 431, 432, 433, 434, 435, 436, 579, 580, 581, 582, 583, 584, 585, 578};
 // 0x5250cc: the stages' names in the exe
-static const uint32_t kStageNames[12] = {
+static const uint32_t STAGE_NAMES[12] = {
 	GTA(0x525160), GTA(0x525158), GTA(0x525150), GTA(0x525148), GTA(0x525140), GTA(0x525138),
 	GTA(0x52512c), GTA(0x525120), GTA(0x525110), GTA(0x52510c), GTA(0x525104), GTA(0x5250fc)};
 
@@ -75,13 +77,13 @@ void MapView::Draw()
 	int aShown = gUser.mProgress;
 	if (mMoving || mBack)
 		aShown = gUser.mProgress - 1;
-	DrawImage(0, 0, 0xe5, nullptr, true, 100, 100, 0xff);
+	DrawImage(0, 0, IMAGE_MAP, nullptr, true, 100, 100, 0xff);
 	int i = 0;
 	do
 	{
-		if (aShown < kStageLevels[i])
+		if (aShown < STAGE_LEVELS[i])
 			break;
-		DrawImage(kStageRects[i][0], kStageRects[i][1], kStageImages[i], nullptr, true, 100, 100, 0xff);
+		DrawImage(STAGE_RECTS[i][0], STAGE_RECTS[i][1], STAGE_IMAGES[i], nullptr, true, 100, 100, 0xff);
 		i++;
 	} while (i < 12);
 	int aLast = 0;
@@ -91,16 +93,16 @@ void MapView::Draw()
 		int aCount = aShown;
 		do
 		{
-			DrawImage(PointX(k), PointY(k), 0xf6, nullptr, true, 100, 100, 0xff);
+			DrawImage(PointX(k), PointY(k), IMAGE_MAP_POINT, nullptr, true, 100, 100, 0xff);
 			k++;
 			aCount--;
 			aLast = aShown;
 		} while (aCount != 0);
 	}
 	if (aShown < 0x3c)
-		DrawImage(PointX(aLast), PointY(aLast), 0x124, nullptr, true, 100, 100, 0xff);
+		DrawImage(PointX(aLast), PointY(aLast), IMAGE_MAP_POINT_RING, nullptr, true, 100, 100, 0xff);
 	if (mMoving && (aShown = aShown + 1, mNewStage) && i < 0xc)
-		DrawImage(kStageRects[i][0], kStageRects[i][1], kStageImages[i], nullptr, true, 100, 100, mMoveAlpha);
+		DrawImage(STAGE_RECTS[i][0], STAGE_RECTS[i][1], STAGE_IMAGES[i], nullptr, true, 100, 100, mMoveAlpha);
 	jb::Rect aBar;
 	aBar.left = 0;
 	aBar.top = 0;
@@ -108,10 +110,10 @@ void MapView::Draw()
 	aBar.bottom = 0x12;
 	if (mMoving)
 		aBar.right = ((aBar.right - BarWidth(aShown - 1)) * mMoveAlpha) / 0xff + BarWidth(aShown - 1);
-	DrawImage(9, 0x10, 0xf8, &aBar, true, 100, 100, 0xff);
+	DrawImage(9, 0x10, IMAGE_MAP_BAR, &aBar, true, 100, 100, 0xff);
 	if (0x2f7 < aBar.right)
 		aBar.right = 0x2f7;
-	DrawImage(aBar.right - 4, 0, 0xf7, nullptr, true, 100, 100, 0xff);
+	DrawImage(aBar.right - 4, 0, IMAGE_MAP_MARKER, nullptr, true, 100, 100, 0xff);
 	mFont->DrawLeft(this, 8, 0x34, mStartText.c_str(), -1, 100, 100, 0xff);
 	mFont->DrawRight(this, 0x312, 0x34, mEndText.c_str(), 100, 100, 0xff);
 	uint32_t aBlink = mTick % 0x28;
@@ -144,36 +146,36 @@ void MapView::Draw()
 		aY = ((PointY(aShown) - aY) * mMoveAlpha) / 0xff + -0x15 + aY;
 		aX = ((PointX(aShown) - aX) * mMoveAlpha) / 0xff + -0x15 + aX;
 	}
-	DrawImage(aX, aY, 0xf9, nullptr, true, 100, 100, (int)(aBlink * 200) / 0x14 + 0x37);
+	DrawImage(aX, aY, IMAGE_MAP_GLOW, nullptr, true, 100, 100, (int)(aBlink * 200) / 0x14 + 0x37);
 	if (aShown == 0 && 0 < mTextAlpha)
 	{
-		DrawImage(0x2a, 10, 0x101, nullptr, true, 400, 400, mTextAlpha);
-		mIntroFont->DrawLinesCentred(this, 0, 200, mIntroText.c_str(), 800, 0x1a, 100, 100, mTextAlpha);
+		DrawImage(0x2a, 10, IMAGE_MAP_TEXT_SHADE, nullptr, true, 400, 400, mTextAlpha);
+		mIntroFont->DrawLinesCentred(this, 0, 200, mIntroText.c_str(), jb::SCREEN_WIDTH, 0x1a, 100, 100, mTextAlpha);
 	}
 	if (mNewStage && 0 < mTextAlpha)
 	{
-		DrawImage(0x80, 0x82, 0x136, nullptr, true, 100, 100, mTextAlpha);
-		mStageFont->DrawLinesCentred(this, 0, 0xec, mStageText.c_str(), 800, 0x26, 100, 100, mTextAlpha);
-		DrawImage(0x80, 0x1a4, 0x135, nullptr, true, 100, 100, mTextAlpha);
+		DrawImage(0x80, 0x82, IMAGE_MAP_TEXT_TOP, nullptr, true, 100, 100, mTextAlpha);
+		mStageFont->DrawLinesCentred(this, 0, 0xec, mStageText.c_str(), jb::SCREEN_WIDTH, 0x26, 100, 100, mTextAlpha);
+		DrawImage(0x80, 0x1a4, IMAGE_MAP_TEXT_BOTTOM, nullptr, true, 100, 100, mTextAlpha);
 	}
 }
 
 // 0x40fc70
 void MapView::Init()
 {
-	mStartText = jb::LoadDllString(0x21);
-	mEndText = jb::LoadDllString(0x1c);
-	mFont = jb::GetDllFont(0xa3, 0xa2, -1);
-	mIntroFont = jb::GetDllFont(0x102, 0x103, -1);
-	mIntroText = jb::LoadDllString(0x6c);
-	mStageFont = jb::GetDllFont(0x137, 0x134, -1);
+	mStartText = jb::LoadDllString(STRING_FIRST_YEAR);
+	mEndText = jb::LoadDllString(STRING_LAST_YEAR);
+	mFont = jb::GetDllFont(FONT_SMALL, FONT_SMALL_MAP);
+	mIntroFont = jb::GetDllFont(FONT_MAP_INTRO, FONT_MAP_INTRO_MAP);
+	mIntroText = jb::LoadDllString(STRING_MAP_INTRO);
+	mStageFont = jb::GetDllFont(FONT_MAP_STAGE, FONT_MAP_STAGE_MAP);
 	int aProgress = gUser.mProgress;
 	mLevel = aProgress;
 	if (0x3b < aProgress)
 		mLevel = 0x3b;
-	jb::LoadSound(0x17e, false);
-	jb::LoadSound(0x17c, false);
-	jb::LoadSound(0x17d, false);
+	jb::LoadSound(SOUND_STAGE_TEXT_GONE, false);
+	jb::LoadSound(SOUND_NEW_STAGE, false);
+	jb::LoadSound(SOUND_MAP_MOVE, false);
 	RegUpdate(true);
 	RegClick(true);
 	RegMove(true);
@@ -203,7 +205,7 @@ bool MapView::Update()
 		if (anAlpha < 0)
 		{
 			mTextAlpha = 0;
-			jb::PlaySound(0x17e);
+			jb::PlaySound(SOUND_STAGE_TEXT_GONE);
 		}
 	}
 	else if (mMoving)
@@ -243,7 +245,7 @@ bool MapView::OnLButtonDown(int theFlags, int theX, int theY)
 	int aLevel = HitTest(theX, theY);
 	if (aLevel != -1)
 	{
-		jb::PlaySound(0x69);
+		jb::PlaySound(jb::SOUND_CLICK);
 		mLevel = aLevel;
 		jb::Invalidate();
 		return true;
@@ -260,7 +262,7 @@ bool MapView::OnLButtonDblClk(int theFlags, int theX, int theY)
 	if (aLevel != -1)
 	{
 		mLevel = aLevel;
-		jb::PlaySound(0x69);
+		jb::PlaySound(jb::SOUND_CLICK);
 		static_cast<MapLayer*>(mLayer)->Continue();
 		return true;
 	}
@@ -287,9 +289,9 @@ int MapView::HitTest(int theX, int theY)
 		i = 0;
 		do
 		{
-			if (kStageLevels[i] <= gUser.mProgress && kStageRects[i][0] < theX && theX < kStageRects[i][2] &&
-				kStageRects[i][1] < theY && theY < kStageRects[i][3])
-				return kStageLevels[i];
+			if (STAGE_LEVELS[i] <= gUser.mProgress && STAGE_RECTS[i][0] < theX && theX < STAGE_RECTS[i][2] &&
+				STAGE_RECTS[i][1] < theY && theY < STAGE_RECTS[i][3])
+				return STAGE_LEVELS[i];
 			i = i + 1;
 		} while (i < 11);
 	}
@@ -301,10 +303,10 @@ void MapView::OnMouseMove(int theFlags, int theX, int theY)
 {
 	if (HitTest(theX, theY) != -1)
 	{
-		SetCursorKind(1, true);
+		SetCursorKind(jb::CURSOR_KIND_HAND, true);
 		return;
 	}
-	SetCursorKind(0, true);
+	SetCursorKind(jb::CURSOR_KIND_ARROW, true);
 }
 
 // 0x4100e0
@@ -324,25 +326,25 @@ void MapView::StartMove(bool theNewStage, const char* theStageName)
 	{
 		mTextAlpha = 0;
 		mTextHold = 3000;
-		mStageText = jb::FormatDll(0x70, theStageName);
+		mStageText = jb::FormatDll(STRING_STAGE_COMPLETED, theStageName);
 		mFadeIn = true;
-		jb::PlaySound(0x17c);
+		jb::PlaySound(SOUND_NEW_STAGE);
 		return;
 	}
-	jb::PlaySound(0x17d);
+	jb::PlaySound(SOUND_MAP_MOVE);
 }
 
 // 0x4111e0
 void MapCurtain::Draw()
 {
 	if (mX != 0xffff)
-		DrawImage(mX, 0, 0xfc, nullptr, true, 100, 100, 0xff);
+		DrawImage(mX, 0, IMAGE_MAP_CURTAIN, nullptr, true, 100, 100, 0xff);
 }
 
 // 0x411210
 void MapCurtain::Init()
 {
-	mManager->PreloadDllImage(0xfc);
+	mManager->PreloadDllImage(IMAGE_MAP_CURTAIN);
 	SetUseClip(false);
 }
 
@@ -357,11 +359,11 @@ bool MapCurtain::Update()
 		else
 			aX = mX + GetDelta();
 		mX = aX;
-		if (!mClosing ? -0x90 < aX : mX < 800)
+		if (!mClosing ? -0x90 < aX : mX < jb::SCREEN_WIDTH)
 		{
-			mClip.mRect = {0, 0, mX + 0x2e, 600};
+			mClip.mRect = {0, 0, mX + 0x2e, jb::SCREEN_HEIGHT};
 			mLayer->SetClip(&mClip);
-			mPlayClip.mRect = {mX + 0x6c, 0, 800, 600};
+			mPlayClip.mRect = {mX + 0x6c, 0, jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT};
 			mPlay->SetClip(&mPlayClip);
 			return true;
 		}
@@ -385,7 +387,7 @@ void MapCurtain::Open()
 // 0x411350
 void MapCurtain::Close()
 {
-	mClip.mRect = {0, 0, 0, 600};
+	mClip.mRect = {0, 0, 0, jb::SCREEN_HEIGHT};
 	mLayer->SetClip(&mClip);
 	mClosing = true;
 	mX = -0xb8;
@@ -402,14 +404,14 @@ void RestartBox::Create()
 	int aBottom[] = {3, 3, 2, 3, 0};
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
-	SetTitle(0xb9);
-	AddText(0xba, 0, 0x28, 0x5a, false, nullptr, 0);
+	SetTitle(STRING_REPLAY_TITLE);
+	AddText(STRING_REPLAY_TEXT, 0, 0x28, 0x5a, false);
 	DialogButton* aButton = new DialogButton(0x1b);
 	Add(aButton, 0xa0, 0xd2);
-	aButton->SetText(0x1b);
+	aButton->SetText(STRING_YES);
 	aButton = new DialogButton(0x16);
 	Add(aButton, 0x104, 0xd2);
-	aButton->SetText(0x16);
+	aButton->SetText(STRING_NO);
 }
 
 // 0x410330
@@ -422,11 +424,11 @@ bool RestartBox::OnCommand(int theCmd)
 	}
 	if (theCmd == 0x1b)
 	{
-		YesNoBox* aBox = new YesNoBox(mMap, 2, 2, 0x1b, 0x16, true, 0x66, 0x66);
+		YesNoBox* aBox = new YesNoBox(mMap, 2, 2, STRING_YES, STRING_NO, true, 0x66, 0x66);
 		jb::gManager->Push(aBox, true, false, true);
-		aBox->SetTitle(0xbb);
-		std::string aText = jb::FormatDll(0xbc, gUser.mName.c_str());
-		aBox->AddText(aText.c_str(), 0, 0, 0x5a, false, nullptr, 0);
+		aBox->SetTitle(STRING_RESTART_GAME_TITLE);
+		std::string aText = jb::FormatDll(STRING_RESTART_GAME_TEXT, gUser.mName.c_str());
+		aBox->AddText(aText.c_str(), 0, 0, 0x5a, false);
 		return true;
 	}
 	return false;
@@ -444,21 +446,21 @@ void MapLayer::Load()
 	int aProgress = gUser.mProgress;
 	mView = new MapView();
 	Add(mView, 0, 0);
-	mMenu = new jb::Button(0xe4, 4, false);
+	mMenu = new jb::Button(IMAGE_MAP_MENU_BUTTON, 4, false);
 	Add(mMenu, 10, 0x228);
-	mMenu->SetLabel(0x6d, 0xa0, 0x9f, 0, 0x8e, 0x1a, 2, 2, 0xff);
-	mContinue = new jb::Button(0xe6, 4, false);
+	mMenu->SetLabel(STRING_MAP_MAIN_MENU, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x8e, 0x1a, 2, 2, 0xff);
+	mContinue = new jb::Button(IMAGE_MAP_PLAY_BUTTON, 4, false);
 	Add(mContinue, 0x283, 0x228);
-	mContinue->SetLabel(0x6e, 0xa0, 0x9f, 0, 0x94, 0x1a, 2, 2, 0xff);
+	mContinue->SetLabel(STRING_MAP_PLAY, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x94, 0x1a, 2, 2, 0xff);
 	mCurtain = new MapCurtain(mPlay);
 	Add(mCurtain, 0, 0);
-	mEnd = new jb::Button(0x16c, 4, false);
+	mEnd = new jb::Button(IMAGE_MAP_SHOWCASE_BUTTON, 4, false);
 	Add(mEnd, 0x145, 0x228);
-	mEnd->SetLabel(0x6f, 0xa0, 0x9f, 0, 0x8e, 0x1a, 2, 2, 0xff);
+	mEnd->SetLabel(STRING_MAP_SHOWCASE, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x8e, 0x1a, 2, 2, 0xff);
 	if (aProgress < 0x3c)
 		mEnd->SetVisible(false);
 	LoadLevels();
-	jb::gManager->LoadSound(0x154, false);
+	jb::gManager->LoadSound(SOUND_MAP_PROGRESS, false);
 }
 
 // 0x410840
@@ -513,7 +515,7 @@ void MapLayer::SetProgressed(bool theProgressed)
 	}
 	mCurtain->Close();
 	EnableAll(false);
-	jb::gManager->PlaySound(0x154);
+	jb::gManager->PlaySound(SOUND_MAP_PROGRESS);
 }
 
 // 0x410a00
@@ -554,10 +556,10 @@ void MapLayer::Continue()
 		StartLevel(false);
 	else
 	{
-		YesNoBox* aBox = new YesNoBox(this, 2, 1, 0x8c, 0x8d, false, 0x78, 0x78);
+		YesNoBox* aBox = new YesNoBox(this, 2, 1, STRING_CONTINUE, STRING_RESTART, false, 0x78, 0x78);
 		jb::gManager->Push(aBox, true, true, true);
-		aBox->SetTitle(0x8e);
-		aBox->AddText(0x8b, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->SetTitle(STRING_SAVED_GAME_TITLE);
+		aBox->AddText(STRING_SAVED_GAME_TEXT, 0, 0, 0x5a, false);
 	}
 }
 
@@ -600,19 +602,19 @@ void MapLayer::StartLevel(bool theResume)
 	int anIndex;
 	int aCount;
 	GetStage(aLevel, &aStage, &anIndex, &aCount);
-	std::string aTitle = jb::FormatDll(0x20, GT(kStageNames[aStage]));
-	mPlay->StartLevel(aLevel, theResume, kLevelBackgrounds[aLevel], aTitle.c_str(), aStage, kStageStats[aStage][0],
-		kStageStats[aStage][1], mLevels[aLevel].mQuadPercent, mLevels[aLevel].mSeed, mLevels[aLevel].mTitle.c_str());
+	std::string aTitle = jb::FormatDll(STRING_STAGE_NAME, GT(STAGE_NAMES[aStage]));
+	mPlay->StartLevel(aLevel, theResume, LEVEL_BACKGROUNDS[aLevel], aTitle.c_str(), aStage, STAGE_STATS[aStage][0],
+		STAGE_STATS[aStage][1], mLevels[aLevel].mQuadPercent, mLevels[aLevel].mSeed, mLevels[aLevel].mTitle.c_str());
 	mPlay->SetProgress(aCount, anIndex);
 	mCurtain->Open();
-	jb::gManager->PlaySound(0x154);
+	jb::gManager->PlaySound(SOUND_MAP_PROGRESS);
 }
 
 // 0x410d60 (the original has no bound on the lines; TXT 0x17f has sixty)
 bool MapLayer::LoadLevels()
 {
 	jb::TextResource aText;
-	if (!aText.Load(0x17f, 0, jb::Module::Dll))
+	if (!aText.Load(0x17f, 0, jb::Module::DLL))
 		return false;
 	std::string aLine;
 	int aPos = 0;
@@ -693,7 +695,7 @@ void MapLayer::StartProgress()
 		int anIndex;
 		int aCount;
 		GetStage(aLevel, &aStage, &anIndex, &aCount);
-		mView->StartMove(aNewStage, GT(kStageNames[aStage]));
+		mView->StartMove(aNewStage, GT(STAGE_NAMES[aStage]));
 	}
 }
 

@@ -14,6 +14,7 @@
 using namespace Sexy;
 
 bool (*Sexy::gMemoryImageRecoverBits)(MemoryImage* theImage) = NULL;
+bool Sexy::gSlowStretchRenormalizesAlpha = false;
 
 // port: helpers for drawing on HD pixels (see BeginHDMirror at the end of this file)
 namespace
@@ -185,6 +186,7 @@ MemoryImage::MemoryImage(const MemoryImage& theMemoryImage) :
 {
 	InitHD();
 	mRotateRowsByImageWidth = false;	// a copy is a plain image, as Init leaves one
+	mUploadAsIs = false;
 
 	bool deleteBits = false;
 
@@ -313,6 +315,7 @@ void MemoryImage::Init()
 	mPurgeBits = false;
 	mWantPal = false;
 	mRotateRowsByImageWidth = false;
+	mUploadAsIs = false;
 
 	mApp->AddMemoryImage(this);
 }

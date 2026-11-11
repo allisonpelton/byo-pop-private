@@ -39,21 +39,17 @@ public:
 	const uint8_t* FindResource(jb::Module theModule, const char* theTypeName, int theTypeId, int theId,
 		uint32_t* theSize) override
 	{
-		const PeResources& aFile = theModule == jb::Module::Dll ? mDll : mExe;
+		const PeResources& aFile = theModule == jb::Module::DLL ? mDll : mExe;
 		if (theTypeName != nullptr)
 			return aFile.Find(PeResources::Key(theTypeName), PeResources::Key((uint32_t)theId), theSize);
 		return aFile.Find(PeResources::Key((uint32_t)theTypeId), PeResources::Key((uint32_t)theId), theSize);
 	}
 	bool LoadString(jb::Module theModule, int theId, std::string& theText) override
 	{
-		return (theModule == jb::Module::Dll ? mDll : mExe).LoadString((uint32_t)theId, theText);
+		return (theModule == jb::Module::DLL ? mDll : mExe).LoadString((uint32_t)theId, theText);
 	}
 	bool RegReadInt(const char*, const char*, bool, int&) override { return false; }
-	bool RegReadString(const char*, const char*, bool, std::string&) override { return false; }
 	bool RegWriteInt(const char*, const char*, int) override { return false; }
-	bool RegWriteString(const char*, const char*, const char*) override { return false; }
-	bool RegDeleteValue(const char*, const char*) override { return false; }
-	bool RegDeleteKey(const char*) override { return false; }
 	std::string CommandLine() override { return ""; }
 	std::string FolderPath(int) override { return ""; }
 	std::string ExeFolder() override { return ""; }
@@ -77,7 +73,7 @@ public:
 // screen coordinates (the board at 0,0x42, placed as Board::Measure, 0x40b690, does). A move is a pair of free
 // tiles, or a free special tile and a tile it can take (Board::CanSelect 0x40c350, CanPair 0x40c3b0, Take 0x40c560):
 // a key (0x2c) takes a lock (0x2d) that can be seen; the wild tile 0x2e takes every tile of the kind of an ordinary
-// tile that can be seen (TakeWild 0x40cc10); 0x2f takes such a tile and becomes its kind (TakeLinked 0x40cd80).
+// tile that can be seen (TakeJoker 0x40cc10); 0x2f takes such a tile and becomes its kind (TakeMagnet 0x40cd80).
 // The search tries the moves nearest the key tiles first.
 struct Move
 {
@@ -97,6 +93,8 @@ static int gTries = 60;  // MJ_SOLVE_LIMIT and MJ_SOLVE_TRIES set both (for a st
 static bool gGaveUp = false;
 static std::mt19937 gOrder;
 static bool gShuffle = false;
+static bool gClassic = false;  // MJ_CLASSIC: a classic game is won when no tile is left
+static bool gDeadEnd = false;  // MJ_DEADEND (with MJ_CLASSIC): the first play that leaves tiles and no pair, for the no-moves box
 
 static void Apply(Layout& theLayout, Move& theMove)
 {
@@ -178,9 +176,19 @@ static bool CanClick(Layout& theLayout, Tile* theTile)
 	return !aHigher || ClickPoint(theLayout, theTile, x, y);
 }
 
+static bool AllTaken()
+{
+	for (Tile* aTile : gTiles)
+		if (aTile->mTaken == 0)
+			return false;
+	return true;
+}
+
 static bool SolveFrom(Layout& theLayout)
 {
-	if (!gMoves.empty() && gMoves.back().mFirst->mKind == 0x2b)
+	if (gDeadEnd && AllTaken())
+		return false;
+	if (gClassic ? AllTaken() : (!gMoves.empty() && gMoves.back().mFirst->mKind == 0x2b))
 		return true;
 	std::string aKey;
 	for (Tile* aTile : gTiles)
@@ -242,6 +250,8 @@ static bool SolveFrom(Layout& theLayout)
 				anAdd(a, b);
 		}
 	}
+	if (gDeadEnd && aMoves.empty())
+		return true;
 	if (gShuffle)
 		std::shuffle(aMoves.begin(), aMoves.end(), gOrder);
 	std::stable_sort(aMoves.begin(), aMoves.end(),
@@ -301,6 +311,27 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 	int anOffX = ((aLeft - aRight) + 800) / 2 - aLeft;
 	int anOffY = ((aTop - aBottom) + 0x1c4) / 2 - aTop;   // Board::Measure's, China's without the -5
 	aLayout.UpdateFree();
+	if (const char* aKindsFile = getenv("MJ_KINDS"))
+	{
+		// MJ_KINDS=<file>: the kinds of a deal that the original made (read from its saved game), one tile a line as
+		// "x y z kind", for solving a classic game whose deal came from the clock; with MJ_CLASSIC=1
+		FILE* aFile = fopen(aKindsFile, "r");
+		size_t aCount = 0;
+		int aX = 0, aY = 0, aZ = 0, aKind = 0;
+		while (aFile != nullptr && fscanf(aFile, "%d %d %d %d", &aX, &aY, &aZ, &aKind) == 4)
+			for (Tile* aTile : gTiles)
+				if (aTile->mX == aX && aTile->mY == aY && aTile->mZ == aZ)
+				{
+					aTile->mKind = aKind;
+					aCount++;
+				}
+		if (aFile != nullptr)
+			fclose(aFile);
+		fprintf(stderr, "kinds read for %d of %d tiles\n", (int)aCount, (int)gTiles.size());
+		aLayout.UpdateFree();
+	}
+	gClassic = getenv("MJ_CLASSIC") != nullptr;
+	gDeadEnd = gClassic && getenv("MJ_DEADEND") != nullptr;
 	if (theDeal)
 	{
 		// As Board::Start (0x40ae60) deals a stage's blank tiles: with the stage's seed, from the player's file
@@ -399,6 +430,9 @@ static int Solve(int theId, bool theDeal, unsigned int theSeed, int thePercent)
 		aPoint(aMove.mFirst, x1, y1);
 		aPoint(aMove.mSecond, x2, y2);
 		printf("%d %d %d %d\n", x1, y1, x2, y2);
+		fprintf(stderr, "pair %d: tile %d,%d,%d kind 0x%x with tile %d,%d,%d kind 0x%x\n", aMoveCount, aMove.mFirst->mX,
+			aMove.mFirst->mY, aMove.mFirst->mZ, aMove.mFirst->mKind, aMove.mSecond->mX, aMove.mSecond->mY,
+			aMove.mSecond->mZ, aMove.mSecond->mKind);
 		// A special tile's flights take longer, and the board ignores clicks while they last (Board::OnLButtonDown,
 		// 0x40c030): "special <moves before it> <kind>" on stderr, for the script to wait
 		if (0x2b < aMove.mFirst->mKind)
@@ -436,7 +470,7 @@ extern "C" int SDL_main(int argc, char** argv)
 	jb::SetHost(&aHost);
 	if (argc > 3 && std::string(argv[2]) == "--stage")
 	{
-		// the escape's layouts (MapLayer.cpp's kLevelBackgrounds, China's 0x51c280)
+		// the escape's layouts (MapLayer.cpp's LEVEL_BACKGROUNDS, China's 0x51c280)
 		static const int kStageLayouts[52] = {
 			385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397,
 			398, 399, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410,
@@ -444,7 +478,7 @@ extern "C" int SDL_main(int argc, char** argv)
 			424, 425, 426, 427, 428, 429, 430, 431, 432, 433, 434, 435, 436};
 		int aStage = atoi(argv[3]);
 		jb::TextResource aText;
-		if (aStage < 1 || 52 < aStage || !aText.Load(0x17f, 0, jb::Module::Dll))
+		if (aStage < 1 || 52 < aStage || !aText.Load(0x17f, 0, jb::Module::DLL))
 			return 2;
 		std::string aLine;
 		int aPos = 0;

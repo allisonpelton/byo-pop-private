@@ -27,7 +27,7 @@ public:
 	int mIndex = 0;                  // +0x654: how many souls the board had before it
 	float mX = 0;                    // +0x658
 	float mY = 0;                    // +0x65c
-	float mUnknown660 = 0;           // +0x660: the wait to a new target
+	float mRetargetWait = 0;         // +0x660: the wait to a new target
 	float mTargetX = 0;              // +0x664
 	float mTargetY = 0;              // +0x668
 	float mVelX = 0;                 // +0x66c
@@ -35,8 +35,8 @@ public:
 	int mDrawX = 0;                  // +0x674
 	int mDrawY = 0;                  // +0x678
 	Piece* mPiece = nullptr;         // +0x67c: the gem, drawn at the soul until it blasts or after 200 updates
-	Piece* mUnknown680 = nullptr;    // +0x680: the cell it goes back to in state 2 (its +0x20 and +0x28)
-	float mUnknown684 = 0;           // +0x684: its brightness (Hyperspace fades it out in state 7)
+	Piece* mHomePiece = nullptr;     // +0x680: the cell it goes back to in state 2 (its +0x20 and +0x28)
+	float mBrightness = 0;           // +0x684: its brightness (Hyperspace fades it out in state 7)
 	Image* mOuter = nullptr;         // +0x688: IMAGE_ELEMENTALS_OUTER_*
 	Image* mInner = nullptr;         // +0x68c
 	Image* mCore = nullptr;          // +0x690
@@ -45,40 +45,40 @@ public:
 	Image* mBeamSmall = nullptr;     // +0x69c
 	Image* mBeamMedium = nullptr;    // +0x6a0
 	Image* mBeamLarge = nullptr;     // +0x6a4
-	float mUnknown6A8[12] = {};      // +0x6a8: rising by mUnknown6D8, back to 0 past 1
-	float mUnknown6D8[12] = {};      // +0x6d8
-	int mUnknown708[12] = {};        // +0x708: 0 to 2 each
-	int mState = 0;                  // +0x738: 0 coming out, 1 swirling, 2 going back to mUnknown680
-	bool mUnknown73C = false;        // +0x73c: back at mUnknown680
-	float mUnknown740 = 1.0f;        // +0x740
-	float mUnknown744 = 0;           // +0x744
-	CurvedVal mUnknown748;           // +0x748: set by the ctor (0x7e32c8)
-	float mUnknown7B8 = 0;           // +0x7b8
-	float mUnknown7BC[3] = {};       // +0x7bc: Direct3D's place in space, from the hyperspace's camera (+0x14c0)
-	float mUnknown7C8[3] = {};       // +0x7c8
-	float mUnknown7D4[3] = {};       // +0x7d4
-	CurvedVal mUnknown7E0;           // +0x7e0
-	int mUnknown850 = 0;             // +0x850: where it was when it turned back (x, y)
-	int mUnknown854 = 0;             // +0x854
-	CurvedVal mUnknown858;           // +0x858
+	float mBeamPhase[12] = {};       // +0x6a8: twelve beams' places, rising by mBeamRate, back to 0 past 1
+	float mBeamRate[12] = {};        // +0x6d8: twelve beams' speeds, 0 when a beam is idle
+	int mBeamSize[12] = {};          // +0x708: twelve beams' sizes, 0 to 2 each
+	int mState = 0;                  // +0x738: 0 coming out, 1 swirling, 2 going back to mHomePiece
+	bool mIsHome = false;            // +0x73c: back at mHomePiece
+	float mReturn = 1.0f;            // +0x740: how far the soul has come back (the curve mReturnCurve gives it in state 2)
+	float mBeamLength = 0;           // +0x744: 0, never read
+	CurvedVal mSpaceFade;            // +0x748: set by the ctor (0x7e32c8); the 3D draw reads it
+	float mCoreSize = 0;             // +0x7b8: 0, never read
+	float mSpacePos[3] = {};         // +0x7bc: Direct3D's place in space, from the hyperspace's camera (+0x14c0)
+	float mSpaceGoal[3] = {};        // +0x7c8: the place in space it follows
+	float mSpaceVel[3] = {};         // +0x7d4: its speed in space
+	CurvedVal mFlightClock;          // +0x7e0: the clock of its flight back (mReturnCurve follows it)
+	int mTurnBackX = 0;              // +0x850: where it was when it turned back (x, y)
+	int mTurnBackY = 0;              // +0x854: and y
+	CurvedVal mReturnCurve;          // +0x858: how far it has come back, along mFlightClock
 	int mRectX = 0;                  // +0x8c8: the area it swirls in (x, y, width, height)
 	int mRectY = 0;                  // +0x8cc
 	int mRectWidth = 0;              // +0x8d0
 	int mRectHeight = 0;             // +0x8d4
-	float mUnknown8D8 = 0;           // +0x8d8
-	float mUnknown8DC = 0.02f;       // +0x8dc
+	float mSwirlRadiusStep = 0;      // +0x8d8: 0, never read
+	float mSwirlGrowth = 0.02f;      // +0x8dc: 0.02, never read
 	float mAngle = 0;                // +0x8e0
 	float mAngleSpeed = 0;           // +0x8e4
-	float mUnknown8E8 = 0;           // +0x8e8
-	float mUnknown8EC = 0;           // +0x8ec
+	float mSwirlAngle = 0;           // +0x8e8: a random angle that turns by mSwirlSpeed
+	float mSwirlSpeed = 0;           // +0x8ec: its turn an update
 	float mRadius = 0;               // +0x8f0
-	bool mUnknown8F4 = true;         // +0x8f4
+	bool mIsVisible = true;          // +0x8f4: the soul is drawn; Hyperspace clears it late in a jump
 	bool mFirst = false;             // +0x8f5: the board had no souls before it
 
 	// (the original's two virtuals have no overrides, so the port's are plain)
 	explicit GemSoul(int theType);   // 0x70188f
 	~GemSoul();                      // 0x7011ee: deletes mPiece
-	// 0x701c2b: back to thePiece's cell on the new board (state 2), over mUnknown7E0's curve
+	// 0x701c2b: back to thePiece's cell on the new board (state 2), over mFlightClock's curve
 	void SetTarget(Piece* thePiece);
 	void Update();                   // 0x700909 (slot 0)
 	void Draw(Graphics* g);          // 0x70120d (slot 1)

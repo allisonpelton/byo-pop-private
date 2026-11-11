@@ -25,6 +25,8 @@
 struct SDL_Window;
 union SDL_Event;
 
+namespace Platform { struct MemReport; }
+
 namespace Sexy
 {
 
@@ -190,6 +192,7 @@ public:
 	bool mTabletPC;
 	DDInterface* mDDInterface;
 	bool mAlphaDisabled;
+	bool mWant3D;  // port: the 3D choice Set3DAcclerated recorded (mUserChanged3DSetting), applied again whenever the display is made
 	MusicInterface* mMusicInterface;
 	bool mReadFromRegistry;
 	std::string mRegisterLink;
@@ -342,6 +345,13 @@ public:
 	//                     focus lose|regain    the window loses or regains the focus, as its focus
 	//                                          event does (mute, LostFocus/GotFocus), like origrun's
 	//                     quit                 Shutdown()
+	//                     pointer              answers POINTER {"x","y","in"}: the mouse as the widgets
+	//                                          last saw it, in game pixels (tools/web/pagecheck.js)
+	//                     memreport [file]     answers MEMREPORT and one line of JSON: what the pictures, the
+	//                                          sounds and the songs hold in bytes, and the process's working
+	//                                          set and private bytes now and at the end of Init
+	//                                          (platform/MemReport.h); with a file, also writes the table by
+	//                                          picture and the heaps there. It changes nothing in the game.
 	//                     modmenu <what> ...   the mod menu (framework/ModMenu.h; a mod id with spaces in
 	//                                          "..."): open, close, page <mod> | list, enable <mod> 0|1,
 	//                                          move <mod> -1|1, set <mod> <setting> <JSON value>, reset <mod>,
@@ -394,7 +404,7 @@ public:
 	//                                           write "focus lost" before it)
 	//                     resize <w> <h>        SDL_SetWindowSize: the window's client area, in screen pixels
 	//                     close                 the window's close button: SDL_WINDOWEVENT_CLOSE, then SDL_QUIT
-	//                     screenshot, screenshotfull, quit  as in -script (done at once, not pushed)
+	//                     screenshot, screenshotfull, quit, pointer, memreport  as in -script (done at once, not pushed)
 	//                   Full screen is Alt+Enter: "keydown Left Alt", "key Return", "keyup Left Alt". Other
 	//                   commands go to the game's HandleScriptCommand, run at once; so does a bare "move" (no
 	//                   point), which asks the game's bot for its next move (docs/TEST_COMMANDS.md).
@@ -527,7 +537,16 @@ protected:
 	void PushRealText(const std::string& theText);
 	// A script command the framework does not know; return true if handled (the default handles none)
 	virtual bool HandleScriptCommand(const ScriptCommand& theCommand);
-	bool SaveScreenshot(const std::string& theFileName, bool fullResolution = false);
+	// The "memreport" command (MemReportCommand.cpp): logs MEMREPORT and the report's line; with a file name it also
+	// writes the table by picture and the heaps there, and returns false when that file cannot be written.
+	bool DoMemReport(const std::string& theFileName);
+	// A game's own holders for that report: it adds a name and its bytes to theReport->mOthers (the default adds none)
+	virtual void AddMemReportHolders(Platform::MemReport* theReport);
+	// theDrawCountOffset: what the draw adds to mUpdateCount while it runs (0 for a game's own shots)
+	bool SaveScreenshot(const std::string& theFileName, bool fullResolution = false, int theDrawCountOffset = 0);
+	// SaveScreenshot for the framework's shots taken mid-update (after the count moved, before the widgets updated),
+	// drawn with the count one lower
+	bool SaveScreenshotMidUpdate(const std::string& theFileName, bool fullResolution = false);
 
 	// Registry emulation helpers
 	void LoadRegistry();
@@ -773,6 +792,10 @@ public:
 	// RESTART_BLOCKED when CanRestartNow says no, RESTART_CONFIRM when a game is in progress and isConfirmed is
 	// false (theMessage: the question), else RESTART_STARTED.
 	int RequestRestart(bool isConfirmed, SexyString* theMessage);
+	// port: quits as the game's own Quit does (the page's Close on a game's window: byopop_quit). The default shuts
+	// down at once; a game whose Quit says goodbye first overrides it to do the same and shut down after. It must
+	// not block: on the web the sound plays only once this returns, so such a game defers its Shutdown() to an update.
+	virtual void QuitAsGame();
 	// main(), after Shutdown() and before deleting the app: true when the app should start again with theArgs
 	// (logs "restart: <args>"). A test run (rundesk's BYOPOP_TEST_RUN, the oracle's BEJ_TEST_DESKTOP, -script or a
 	// test bot) does not start again unless BYOPOP_RELAUNCH_TEST_ARGS is set: then its arguments are added.

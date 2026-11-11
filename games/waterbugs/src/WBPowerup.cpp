@@ -21,9 +21,8 @@ int gPanelScore = -1;              // 0x460a30
 int gPowerupKinds[0x96];           // 0x6e5c08  a power-up's kind by a random index
 int gRebuildKinds = 1;             // 0x460a48  (never cleared: each power-up builds the table again)
 
-// 0x418810: ten entries for each kind from 0 to 9, 0 for the indexes past 99 but six more of 10 at 110..115 (the
-// test for kinds 15 and 16 never holds)
-// 0x418810
+// 0x418810: ten entries for each kind from 0 to 12 (the even ones of 8 and 9 are 0), 0 from index 130, and the extra life
+// (13) in the last six places, 140..145; no kind past 13 is in it
 void Powerup_BuildKinds()
 {
 	for (uint32_t i = 0; (int)i < 0x96; i++)
@@ -32,7 +31,7 @@ void Powerup_BuildKinds()
 		gPowerupKinds[i] = aKind;
 		if (0x81 < (int)i)
 			gPowerupKinds[i] = 0;
-		if ((aKind == 9 || aKind == 8) && (i & 1) == 0)
+		if ((aKind == POWERUP_EXPLODE_FLOATERS || aKind == POWERUP_EXPLODE_WALKERS) && (i & 1) == 0)
 			gPowerupKinds[i] = 0;
 	}
 	gPowerupKinds[140] = 0xd;
@@ -46,22 +45,22 @@ void Powerup_BuildKinds()
 // The effects. 0x4188a0: a faster beam (by the beams' starting speed)
 void Powerup_FastShot()
 {
-	Shooter* aShip = gLevels.current->shooters.current;
-	aShip->beamSpeed = (float)(((double)gBeamSpeed - (double)gDifficulty * (double)0.05f) + (double)aShip->beamSpeed);
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	aShip->mBeamSpeed = (float)(((double)gBeamSpeed - (double)gDifficulty * (double)0.05f) + (double)aShip->mBeamSpeed);
 }
 
 // 0x4188d0: half the speed, but not under half the starting speed
 void Powerup_SlowShot()
 {
-	Shooter* aShip = gLevels.current->shooters.current;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
 	float aMin = (float)(((double)gBeamSpeed - (double)gDifficulty * (double)0.05f) * 0.5);
-	float aHalf = (float)((double)aShip->beamSpeed * 0.5);
+	float aHalf = (float)((double)aShip->mBeamSpeed * 0.5);
 	if (aHalf < aMin)
 	{
-		aShip->beamSpeed = aMin;
+		aShip->mBeamSpeed = aMin;
 		return;
 	}
-	aShip->beamSpeed = aHalf;
+	aShip->mBeamSpeed = aHalf;
 }
 
 // 0x418920
@@ -73,49 +72,42 @@ void Powerup_ExtraLife()
 // 0x418930: a cell scores one more
 void Powerup_Multiplier()
 {
-	Shooter* aShip = gLevels.current->shooters.current;
-	aShip->cellPoints = aShip->cellPoints + 1;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	aShip->mCellPoints = aShip->mCellPoints + 1;
 }
 
 // 0x418950
 void Powerup_SlowMotion()
 {
-	Shooter* aShip = gLevels.current->shooters.current;
-	aShip->flags = aShip->flags | 1;
-	gLevels.current->shooters.current->unk490 = 5000;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	aShip->mFlags = aShip->mFlags | 1;
+	gLevels.mCurrent->mShooters.mCurrent->mSlowMotionTime = 5000;
 }
 
 // 0x418980
 void Powerup_HyperMotion()
 {
-	Shooter* aShip = gLevels.current->shooters.current;
-	aShip->flags = aShip->flags | 2;
-	gLevels.current->shooters.current->unk494 = 5000;
-}
-
-// 0x4189b0
-void Powerup_Sweepers()
-{
-	Shooter* aShip = gLevels.current->shooters.current;
-	aShip->flags = aShip->flags | 4;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	aShip->mFlags = aShip->mFlags | 2;
+	gLevels.mCurrent->mShooters.mCurrent->mHyperMotionTime = 5000;
 }
 
 // 0x4189d0
 void Powerup_FlipFlopper()
 {
-	Shooter* aShip = gLevels.current->shooters.current;
-	aShip->flags = aShip->flags | 8;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	aShip->mFlags = aShip->mFlags | 8;
 }
 
 // 0x4189f0: explode all floaters: the countdowns of the enemies of kinds 0..6 are set to 300, 600 and so on
 void Powerup_ExplodeFloaters()
 {
 	int aDelay = 300;
-	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
+	for (Enemy* anEnemy = gLevels.mCurrent->mEnemies.mHead; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 	{
-		if (-1 < anEnemy->kind && anEnemy->kind < 7)
+		if (-1 < anEnemy->mKind && anEnemy->mKind < 7)
 		{
-			anEnemy->countdown = aDelay;
+			anEnemy->mCountdown = aDelay;
 			aDelay = aDelay + 300;
 		}
 	}
@@ -125,11 +117,11 @@ void Powerup_ExplodeFloaters()
 void Powerup_ExplodeWalkers()
 {
 	int aDelay = 300;
-	for (Enemy* anEnemy = gLevels.current->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
+	for (Enemy* anEnemy = gLevels.mCurrent->mEnemies.mHead; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 	{
-		if (6 < anEnemy->kind && anEnemy->kind < 0xd)
+		if (6 < anEnemy->mKind && anEnemy->mKind < 0xd)
 		{
-			anEnemy->countdown = aDelay;
+			anEnemy->mCountdown = aDelay;
 			aDelay = aDelay + 300;
 		}
 	}
@@ -138,11 +130,12 @@ void Powerup_ExplodeWalkers()
 // 0x418a70
 void Powerup_Invincibubble()
 {
-	Shooter* aShip = gLevels.current->shooters.current;
-	aShip->flags = aShip->flags | 0x10;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	aShip->mFlags = aShip->mFlags | 0x10;
 }
 
 // 0x418a90: a new weapon at the tail, made current
+// 0x40ad50 (a weapon's constructor, which only calls Obj_Init, is inlined here)
 void Weapon_Append(List<Weapon>* theList)
 {
 	Weapon* aWeapon = (Weapon*)::operator new(sizeof(Weapon));
@@ -155,77 +148,69 @@ void Weapon_Setup(Weapon* theWeapon, float x, float y, float theRadius, int theK
 // 0x418b80, 0x418bd0, 0x418c20, 0x418c70, 0x418cc0, 0x418d10: a weapon where the power-up is
 void Powerup_GiveWeapon(Powerup* thePowerup, float theRadius, int theKind)
 {
-	Weapon_Append(&gLevels.current->weapons);
-	Weapon_Setup(gLevels.current->weapons.current, thePowerup->x, thePowerup->y, theRadius, theKind);
+	Weapon_Append(&gLevels.mCurrent->mWeapons);
+	Weapon_Setup(gLevels.mCurrent->mWeapons.mCurrent, thePowerup->mX, thePowerup->mY, theRadius, theKind);
 }
 
 // 0x4198a0: shows its name (removing any long or main_font text still up) and takes effect
 int Powerup_Collect(Powerup* thePowerup)
 {
-	gProfiles[gProfile].powerupsCaught = gProfiles[gProfile].powerupsCaught + 1;
-	List<Text>* aTexts = &gLevels.current->texts;
-	List_Each(aTexts, [&](Text* aText) {
-		if (0xd < std::strlen(aText->text) || aText->font == Font_Find("main_font"))
+	gProfiles[gProfile].mPowerupsCaught = gProfiles[gProfile].mPowerupsCaught + 1;
+	List<Text>* aTexts = &gLevels.mCurrent->mTexts;
+	List_Each(aTexts, [&](Text* theAText) {
+		if (0xd < std::strlen(theAText->mText) || theAText->mFont == Font_Find("main_font"))
 			List_RemoveCurrent(aTexts);
 	});
 	Text_Append(aTexts);
-	Text_Make(aTexts->current, thePowerup->text, Font_Find("main_font"), 400, 0xe6, 0, 200, 2000, 200, 0, 0);
+	Text_Make(aTexts->mCurrent, thePowerup->mText, Font_Find("main_font"), SCREEN_CENTRE_X, 0xe6, 0, 200, 2000, 200, 0,
+		0);
 	const char* aSound;
-	switch (thePowerup->kind)
+	switch (thePowerup->mKind)
 	{
-	case 1:
+	case POWERUP_FLIP_FLOPPER:
 		Powerup_FlipFlopper();
 		aSound = "audio\\powerdn.wav";
 		goto play;
-	case 2:
+	case POWERUP_SLOW_MOTION:
 		Powerup_SlowMotion();
 		break;
-	case 3:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 5);
+	case POWERUP_MAGNET:
+		Powerup_GiveWeapon(thePowerup, 50.0f, WEAPON_MAGNET);
 		break;
-	case 4:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 4);
+	case POWERUP_TIME_BOMB:
+		Powerup_GiveWeapon(thePowerup, 50.0f, WEAPON_TIME_BOMB);
 		break;
-	case 5:
+	case POWERUP_SLOW_SHOT:
 		Powerup_SlowShot();
 		aSound = "audio\\powerdn.wav";
 		goto play;
-	case 6:
+	case POWERUP_INVINCIBUBBLE:
 		Powerup_Invincibubble();
 		break;
-	case 7:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 6);
+	case POWERUP_ANCHOR:
+		Powerup_GiveWeapon(thePowerup, 50.0f, WEAPON_ANCHOR);
 		break;
-	case 8:
+	case POWERUP_EXPLODE_WALKERS:
 		Powerup_ExplodeWalkers();
 		break;
-	case 9:
+	case POWERUP_EXPLODE_FLOATERS:
 		Powerup_ExplodeFloaters();
 		break;
-	case 10:
+	case POWERUP_MULTIPLIER:
 		Powerup_Multiplier();
 		break;
-	case 0xb:
+	case POWERUP_HYPER_MOTION:
 		Powerup_HyperMotion();
 		aSound = "audio\\powerdn.wav";
 		goto play;
-	case 0xc:
-		Powerup_GiveWeapon(thePowerup, 40.0f, 1);
+	case POWERUP_MISSILE:
+		Powerup_GiveWeapon(thePowerup, 40.0f, WEAPON_MISSILE);
 		break;
-	case 0xd:
+	case POWERUP_EXTRA_LIFE:
 		Powerup_ExtraLife();
 		break;
 	default:
 		Powerup_FastShot();
-		break;
-	case 0xf:
-		Powerup_Sweepers();
-		break;
-	case 0x10:
-		Powerup_GiveWeapon(thePowerup, 50.0f, 0);
-		break;
-	case 0x11:
-		Powerup_GiveWeapon(thePowerup, 40.0f, 3);
 		break;
 	}
 	aSound = "audio\\powerup.wav";
@@ -237,61 +222,61 @@ play:
 // Powerup_Init's emitters, about its middle
 void Powerup_AddSparkles(Powerup* thePowerup, const char* theAnim)
 {
-	Emitter_Append(&thePowerup->emitters);
-	int y = RandRange(-8, 8) + thePowerup->image->h / 2;
-	int x = RandRange(-8, 8) + thePowerup->image->w / 2;
-	Emitter_Setup(static_cast<Emitter*>(thePowerup->emitters.current), thePowerup, x, y, 30.0f, 30.0f, 0x5a, 0,
+	Emitter_Append(&thePowerup->mEmitters);
+	int y = RandRange(-8, 8) + thePowerup->mImage->mH / 2;
+	int x = RandRange(-8, 8) + thePowerup->mImage->mW / 2;
+	Emitter_Setup(static_cast<Emitter*>(thePowerup->mEmitters.mCurrent), thePowerup, x, y, 30.0f, 30.0f, 0x5a, 0,
 		theAnim, 1, 255.0f, 255.0f, 1200.0f);
 }
 
 // 0x419ae0: falls; collected when it touches the ship, gone below the screen
 int Powerup_Fall(Powerup* thePowerup)
 {
-	thePowerup->vy = thePowerup->gravity + thePowerup->vy;
+	thePowerup->mVy = thePowerup->mGravity + thePowerup->mVy;
 	Obj_Update(thePowerup);
-	if (thePowerup->attached != nullptr)
+	if (thePowerup->mAttached != nullptr)
 	{
-		Obj_Update(thePowerup->attached);
-		Obj* anAttached = thePowerup->attached;
-		double aShift = (double)anAttached->image->w * (double)anAttached->vx;
-		anAttached->x = (float)((aShift + aShift) / 3.0 + (double)thePowerup->x);
-		thePowerup->attached->y = thePowerup->y;
+		Obj_Update(thePowerup->mAttached);
+		Obj* anAttached = thePowerup->mAttached;
+		double aShift = (double)anAttached->mImage->mW * (double)anAttached->mVx;
+		anAttached->mX = (float)((aShift + aShift) / 3.0 + (double)thePowerup->mX);
+		thePowerup->mAttached->mY = thePowerup->mY;
 	}
-	Shooter* aShip = gLevels.current->shooters.current;
-	if (aShip != nullptr && aShip->state == 3 &&
-		CircleOverlap(thePowerup->x, thePowerup->y, (float)(thePowerup->image->h / 2), aShip->x, aShip->y,
-			(float)(aShip->image->h / 4)) != 0.0)
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	if (aShip != nullptr && aShip->mState == 3 &&
+		CircleOverlap(thePowerup->mX, thePowerup->mY, (float)(thePowerup->mImage->mH / 2), aShip->mX, aShip->mY,
+			(float)(aShip->mImage->mH / 4)) != 0.0)
 	{
 		Powerup_Collect(thePowerup);
 		return 0;
 	}
-	float y = thePowerup->y;
-	int h = thePowerup->image->h;
+	float y = thePowerup->mY;
+	int h = thePowerup->mImage->mH;
 	Obj_UpdateEmitters(thePowerup);
-	return y <= (float)(h + 600);
+	return y <= (float)(h + SCREEN_HEIGHT);
 }
 
 // The weapons. 0x419e40: a missile's animation by the way it points
 void Missile_Face(Weapon* theWeapon)
 {
-	if (theWeapon->kind == 1)
+	if (theWeapon->mKind == WEAPON_MISSILE)
 	{
-		if (theWeapon->across == 0)
+		if (theWeapon->mAcross == 0)
 		{
-			if (0.0f < theWeapon->vy)
+			if (0.0f < theWeapon->mVy)
 			{
-				theWeapon->anim = Animation_Find("missile_down", &theWeapon->frameCount, &theWeapon->frameTime);
+				theWeapon->mAnim = Animation_Find("missile_down", &theWeapon->mFrameCount, &theWeapon->mFrameTime);
 				return;
 			}
-			theWeapon->anim = Animation_Find("missile_up", &theWeapon->frameCount, &theWeapon->frameTime);
+			theWeapon->mAnim = Animation_Find("missile_up", &theWeapon->mFrameCount, &theWeapon->mFrameTime);
 			return;
 		}
-		if (0.0f < theWeapon->vx)
+		if (0.0f < theWeapon->mVx)
 		{
-			theWeapon->anim = Animation_Find("missile_left", &theWeapon->frameCount, &theWeapon->frameTime);
+			theWeapon->mAnim = Animation_Find("missile_left", &theWeapon->mFrameCount, &theWeapon->mFrameTime);
 			return;
 		}
-		theWeapon->anim = Animation_Find("missile_right", &theWeapon->frameCount, &theWeapon->frameTime);
+		theWeapon->mAnim = Animation_Find("missile_right", &theWeapon->mFrameCount, &theWeapon->mFrameTime);
 	}
 }
 
@@ -307,53 +292,53 @@ int Sign(float x)
 // 0x419ee0 (the magnet): off cells that are not open, a third of its size ahead; it slows only over open cells
 int Weapon_Bounce(Weapon* theWeapon)
 {
-	int aCol = (int)theWeapon->x / 16;
-	int aRow = (int)theWeapon->y / 16;
-	Level* aLevel = gLevels.current;
-	if (aLevel->columns[aCol][aRow].kind == 0)
+	int aCol = (int)theWeapon->mX / CELL_SIZE;
+	int aRow = (int)theWeapon->mY / CELL_SIZE;
+	Level* aLevel = gLevels.mCurrent;
+	if (aLevel->mColumns[aCol][aRow].mKind == CELL_OPEN)
 	{
-		Image* anImage = theWeapon->image;
-		int x = (int)((double)(anImage->w * Sign(theWeapon->vx) / 3) + (double)theWeapon->x);
-		if (aLevel->columns[x / 16][aRow].kind != 0)
+		Image* anImage = theWeapon->mImage;
+		int x = (int)((double)(anImage->mW * Sign(theWeapon->mVx) / 3) + (double)theWeapon->mX);
+		if (aLevel->mColumns[x / CELL_SIZE][aRow].mKind != CELL_OPEN)
 		{
-			theWeapon->vx = -theWeapon->vx;
-			aLevel = gLevels.current;
+			theWeapon->mVx = -theWeapon->mVx;
+			aLevel = gLevels.mCurrent;
 		}
-		int y = (int)((double)(anImage->h * Sign(theWeapon->vy) / 3) + (double)theWeapon->y);
-		if (aLevel->columns[aCol][y / 16].kind != 0)
-			theWeapon->vy = -theWeapon->vy;
-		theWeapon->drag = 0.996f;
+		int y = (int)((double)(anImage->mH * Sign(theWeapon->mVy) / 3) + (double)theWeapon->mY);
+		if (aLevel->mColumns[aCol][y / CELL_SIZE].mKind != CELL_OPEN)
+			theWeapon->mVy = -theWeapon->mVy;
+		theWeapon->mDrag = 0.996f;
 		// (its own cell was open above, so this never holds)
-		if (gLevels.current->columns[aCol][aRow].kind != 0)
+		if (gLevels.mCurrent->mColumns[aCol][aRow].mKind != CELL_OPEN)
 		{
-			theWeapon->vx = -theWeapon->vx;
-			theWeapon->vy = -theWeapon->vy;
+			theWeapon->mVx = -theWeapon->mVx;
+			theWeapon->mVy = -theWeapon->mVy;
 			return 0;
 		}
 	}
 	else
-		theWeapon->drag = 1.0f;
+		theWeapon->mDrag = 1.0f;
 	return 0;
 }
 
 // 0x41a060 (the anchor): settles in the middle of its cell and makes that cell and the four beside it edges
 int Anchor_Drop(Weapon* theWeapon)
 {
-	int aCol = (int)theWeapon->x / 16;
-	int aRow = (int)theWeapon->y / 16;
-	theWeapon->x = (float)(aCol * 0x10 + 8);
-	theWeapon->y = (float)(aRow * 0x10 + 8);
-	for (int dc = -1; dc < 2; dc++)
+	int aCol = (int)theWeapon->mX / CELL_SIZE;
+	int aRow = (int)theWeapon->mY / CELL_SIZE;
+	theWeapon->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
+	theWeapon->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
+	for (int aDc = -1; aDc < 2; aDc++)
 	{
-		for (int dr = -1; dr < 2; dr++)
+		for (int aDr = -1; aDr < 2; aDr++)
 		{
-			if ((dr == 0 || dc == 0) && 0 < dc + aCol && dc + aCol < 0x31 && 0 < dr + aRow && dr + aRow < 0x24)
+			if ((aDr == 0 || aDc == 0) && 0 < aDc + aCol && aDc + aCol < 0x31 && 0 < aDr + aRow && aDr + aRow < 0x24)
 			{
-				Cell* aCell = &gLevels.current->columns[aCol + dc][aRow + dr];
-				if (aCell->kind == 0)
-					gLevels.current->totalCells = gLevels.current->totalCells - 1;
-				aCell->kind = 3;
-				aCell->image = Animation_Frame(gLevels.current->cornerTiles, 0);
+				Cell* aCell = &gLevels.mCurrent->mColumns[aCol + aDc][aRow + aDr];
+				if (aCell->mKind == CELL_OPEN)
+					gLevels.mCurrent->mTotalCells = gLevels.mCurrent->mTotalCells - 1;
+				aCell->mKind = CELL_EDGE;
+				aCell->mImage = Animation_Frame(gLevels.mCurrent->mCornerTiles, 0);
 				Cell_Redraw(aCell);
 			}
 		}
@@ -365,21 +350,23 @@ int Anchor_Drop(Weapon* theWeapon)
 // the way to it each update
 int Magnet_Pull(Weapon* theWeapon)
 {
-	if (9000.0f < theWeapon->age)
+	if (9000.0f < theWeapon->mAge)
 	{
-		if (theWeapon->age >= 10000.0f)
+		if (theWeapon->mAge >= 10000.0f)
 			return 0;
-		theWeapon->alpha = (int)((10000.0 - (double)theWeapon->age) * 255.0 / 1000.0);
+		theWeapon->mAlpha = (int)((10000.0 - (double)theWeapon->mAge) * 255.0 / 1000.0);
 	}
-	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (anEnemy->state == 3 &&
-			CircleOverlap(theWeapon->x, theWeapon->y, (float)theWeapon->image->w, anEnemy->x, anEnemy->y,
-				(float)anEnemy->image->w) != 0.0)
+	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnEnemy) {
+		if (theAnEnemy->mState == ENEMY_ALIVE &&
+			CircleOverlap(theWeapon->mX, theWeapon->mY, (float)theWeapon->mImage->mW, theAnEnemy->mX, theAnEnemy->mY,
+				(float)theAnEnemy->mImage->mW) != 0.0)
 		{
-			if (anEnemy->vx != 0.0f)
-				anEnemy->x = (float)(((double)theWeapon->x - (double)anEnemy->x) / 300.0 + (double)anEnemy->x);
-			if (anEnemy->vy != 0.0f)
-				anEnemy->y = (float)(((double)theWeapon->y - (double)anEnemy->y) / 300.0 + (double)anEnemy->y);
+			if (theAnEnemy->mVx != 0.0f)
+				theAnEnemy->mX = (float)(((double)theWeapon->mX - (double)theAnEnemy->mX) / 300.0 +
+					(double)theAnEnemy->mX);
+			if (theAnEnemy->mVy != 0.0f)
+				theAnEnemy->mY = (float)(((double)theWeapon->mY - (double)theAnEnemy->mY) / 300.0 +
+					(double)theAnEnemy->mY);
 		}
 	});
 	return 1;
@@ -389,44 +376,17 @@ int Magnet_Pull(Weapon* theWeapon)
 int Weapon_Blast(Weapon* theWeapon)
 {
 	int aResult = 1;
-	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (anEnemy->state == 3 &&
-			CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->w / 3), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->w / 3)) != 0.0)
+	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnEnemy) {
+		if (theAnEnemy->mState == ENEMY_ALIVE &&
+			CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 3), theAnEnemy->mX,
+				theAnEnemy->mY, (float)(theAnEnemy->mImage->mW / 3)) != 0.0)
 		{
-			anEnemy->dieAnim = Animation_Find("second_explo", &anEnemy->dieFrameCount, &anEnemy->dieFrameTime);
-			Enemy_Kill(anEnemy, 500);
+			theAnEnemy->mDieAnim = Animation_Find("second_explo", &theAnEnemy->mDieFrameCount,
+				&theAnEnemy->mDieFrameTime);
+			Enemy_Kill(theAnEnemy, 500);
 			aResult = 0;
 		}
 	});
-	return aResult;
-}
-
-// 0x41a430 (an ice shot): freezes the enemies it touches (0 when it did), shedding the odd blue sparkle
-int Ice_Freeze(Weapon* theWeapon)
-{
-	int aResult = 1;
-	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (anEnemy->state == 3 &&
-			CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->w / 3), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->w / 3)) != 0.0)
-		{
-			aResult = 0;
-			Enemy_Freeze(anEnemy);
-		}
-	});
-	if (theWeapon->kind == 3 && RandRange(1, 0x23) == 1)
-	{
-		ParticleSystem_New();
-		int aParticle = theWeapon->particle;
-		int aLifetime = RandRange(600, 800);
-		float aVy = (float)((double)RandRange(-0x32, 0x32) / 400.0);
-		float aVx = (float)((double)RandRange(-0x32, 0x32) / 400.0);
-		float y = (float)RandRange(-5, 5) + theWeapon->y;
-		float x = (float)RandRange(-5, 5) + theWeapon->x;
-		ParticleSystem_Add(gLevels.current->systems.current, x, y, aVx, aVy, aParticle, aParticle, 0, 200, 200, 0xff,
-			0x58, 0x58, 0xff, 400, 10, aLifetime, 0.999f, 0.0002f, 5);
-	}
 	return aResult;
 }
 
@@ -434,42 +394,44 @@ int Ice_Freeze(Weapon* theWeapon)
 // end it blows up the enemies within 100 pixels and then itself
 int TimeBomb_Update(Weapon* theWeapon)
 {
-	double anEnd = (double)theWeapon->lifetime - 1.0;
-	if ((double)theWeapon->age < anEnd)
+	double anEnd = (double)theWeapon->mLifetime - 1.0;
+	if ((double)theWeapon->mAge < anEnd)
 	{
 		if (RandRange(1, 10) == 1)
 		{
-			double aBase = (double)theWeapon->y - (double)(theWeapon->image->h / 2);
-			int aFuse = (int)(9.0 - (double)theWeapon->age * 8.0 / (double)theWeapon->lifetime);
+			double aBase = (double)theWeapon->mY - (double)(theWeapon->mImage->mH / 2);
+			int aFuse = (int)(9.0 - (double)theWeapon->mAge * 8.0 / (double)theWeapon->mLifetime);
 			int aTop = (int)(aBase - (double)aFuse);
 			ParticleSystem_New();
-			int aParticle = theWeapon->particle;
+			int aParticle = theWeapon->mParticle;
 			int aLifetime = RandRange(400, 500);
 			float aVy = (float)((double)RandRange(-0x32, 0x32) / 1200.0);
 			float aVx = (float)((double)RandRange(-0x32, 0x32) / 1200.0);
-			ParticleSystem_Add(gLevels.current->systems.current, (float)((double)theWeapon->x - 0.0), (float)aTop, aVx,
-				aVy, aParticle, aParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f, 5);
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, (float)((double)theWeapon->mX - 0.0), (float)aTop,
+				aVx, aVy, aParticle, aParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f,
+				5);
 		}
-		if ((int)theWeapon->age % 0xe6 == 0)
+		if ((int)theWeapon->mAge % 0xe6 == 0)
 		{
-			Sound_Play(theWeapon->fuseSound);
+			Sound_Play(theWeapon->mFuseSound);
 			return 1;
 		}
 	}
-	else if ((double)theWeapon->age == anEnd)
+	else if ((double)theWeapon->mAge == anEnd)
 	{
-		List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-			if (anEnemy->state == 3 &&
-				CircleOverlap(theWeapon->x, theWeapon->y, 100.0f, anEnemy->x, anEnemy->y,
-					(float)(anEnemy->image->w / 3)) != 0.0)
+		List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnEnemy) {
+			if (theAnEnemy->mState == ENEMY_ALIVE &&
+				CircleOverlap(theWeapon->mX, theWeapon->mY, 100.0f, theAnEnemy->mX, theAnEnemy->mY,
+					(float)(theAnEnemy->mImage->mW / 3)) != 0.0)
 			{
-				anEnemy->dieAnim = Animation_Find("second_explo", &anEnemy->dieFrameCount, &anEnemy->dieFrameTime);
-				Enemy_Kill(anEnemy, 500);
+				theAnEnemy->mDieAnim = Animation_Find("second_explo", &theAnEnemy->mDieFrameCount,
+					&theAnEnemy->mDieFrameTime);
+				Enemy_Kill(theAnEnemy, 500);
 			}
 		});
 		Obj_Explode(theWeapon, 0.0f, 0.0f);
-		theWeapon->lifetime = 0.0f;
-		theWeapon->age = 0.0f;
+		theWeapon->mLifetime = 0.0f;
+		theWeapon->mAge = 0.0f;
 	}
 	return 1;
 }
@@ -477,30 +439,28 @@ int TimeBomb_Update(Weapon* theWeapon)
 // 0x41a910: a click sends it straight out at its speed, the way it is from the ship (unless an enemy is too close)
 void Weapon_Launch(Weapon* theWeapon)
 {
-	if (theWeapon->tooClose == 0)
+	if (theWeapon->mTooClose == 0)
 	{
-		theWeapon->vx = (float)Sign(theWeapon->vx) * theWeapon->launchSpeed;
-		theWeapon->state = 4;
-		theWeapon->vy = (float)Sign(theWeapon->vy) * theWeapon->launchSpeed;
-		theWeapon->age = 0.0f;
-		int aKind = theWeapon->kind;
+		theWeapon->mVx = (float)Sign(theWeapon->mVx) * theWeapon->mLaunchSpeed;
+		theWeapon->mState = 4;
+		theWeapon->mVy = (float)Sign(theWeapon->mVy) * theWeapon->mLaunchSpeed;
+		theWeapon->mAge = 0.0f;
+		int aKind = theWeapon->mKind;
 		// (each sound is panned by x: the port's Sound_Play takes no pan)
-		if (aKind != 1)
+		if (aKind != WEAPON_MISSILE)
 		{
 			const char* aSound;
-			if (aKind == 3)
-				aSound = "audio\\ice_launch.wav";
-			else if (aKind == 0 || aKind == 5)
+			if (aKind == WEAPON_MAGNET)
 				aSound = "audio\\mine.wav";
 			else
 			{
-				if (aKind == 4)
+				if (aKind == WEAPON_TIME_BOMB)
 				{
 					Sound_Play(Sound_Find("audio\\mine.wav"));
-					theWeapon->lifetime = 2000.0f;
+					theWeapon->mLifetime = 2000.0f;
 					return;
 				}
-				if (aKind != 6)
+				if (aKind != WEAPON_ANCHOR)
 					return;
 				aSound = "audio\\anchor.wav";
 			}
@@ -508,25 +468,25 @@ void Weapon_Launch(Weapon* theWeapon)
 			return;
 		}
 		Sound_Play(Sound_Find("audio\\missile.wav"));
-		List<Obj>* anEmitters = &theWeapon->emitters;
+		List<Obj>* anEmitters = &theWeapon->mEmitters;
 		Emitter_Append(anEmitters);
-		Emitter* anEmitter = static_cast<Emitter*>(anEmitters->current);
-		if (0.0f < theWeapon->vx)
+		Emitter* anEmitter = static_cast<Emitter*>(anEmitters->mCurrent);
+		if (0.0f < theWeapon->mVx)
 		{
 			Emitter_Setup(anEmitter, theWeapon, -6, 0x15, 0.0f, 11.0f, 0x14, 0, "smoke", 1, 100.0f, 10.0f, 400.0f);
 			return;
 		}
-		if (theWeapon->vx < 0.0f)
+		if (theWeapon->mVx < 0.0f)
 		{
 			Emitter_Setup(anEmitter, theWeapon, 0x2a, 0x15, 0.0f, 11.0f, 0x14, 0, "smoke", 1, 100.0f, 10.0f, 400.0f);
 			return;
 		}
-		if (0.0f < theWeapon->vy)
+		if (0.0f < theWeapon->mVy)
 		{
 			Emitter_Setup(anEmitter, theWeapon, 0x15, -6, 11.0f, 0.0f, 0x14, 0, "smoke", 1, 100.0f, 10.0f, 400.0f);
 			return;
 		}
-		if (theWeapon->vy < 0.0f)
+		if (theWeapon->mVy < 0.0f)
 		{
 			Emitter_Setup(anEmitter, theWeapon, 0x15, 0x2a, 11.0f, 0.0f, 0x14, 0, "smoke", 1, 100.0f, 10.0f, 400.0f);
 			return;
@@ -538,36 +498,30 @@ void Weapon_Launch(Weapon* theWeapon)
 int Weapon_Move(Weapon* theWeapon)
 {
 	int aResult = 1;
-	theWeapon->vx = theWeapon->drag * theWeapon->vx;
-	theWeapon->vy = theWeapon->vy * theWeapon->drag;
-	switch (theWeapon->kind)
+	theWeapon->mVx = theWeapon->mDrag * theWeapon->mVx;
+	theWeapon->mVy = theWeapon->mVy * theWeapon->mDrag;
+	switch (theWeapon->mKind)
 	{
-	case 0:
+	case WEAPON_MISSILE:
 		aResult = Weapon_Blast(theWeapon);
 		break;
-	case 1:
-		aResult = Weapon_Blast(theWeapon);
-		break;
-	case 3:
-		aResult = Ice_Freeze(theWeapon);
-		break;
-	case 4:
+	case WEAPON_TIME_BOMB:
 		aResult = TimeBomb_Update(theWeapon);
 		break;
-	case 5:
+	case WEAPON_MAGNET:
 		Weapon_Bounce(theWeapon);
 		aResult = Magnet_Pull(theWeapon);
 		break;
-	case 6:
+	case WEAPON_ANCHOR:
 		aResult = Anchor_Drop(theWeapon);
 		break;
 	}
 	Obj_UpdateEmitters(theWeapon);
-	int w = theWeapon->image->w;
-	if ((float)(kScreenClip[0] - w) <= theWeapon->x && theWeapon->x <= (float)(w + kScreenClip[2]))
+	int w = theWeapon->mImage->mW;
+	if ((float)(SCREEN_CLIP[0] - w) <= theWeapon->mX && theWeapon->mX <= (float)(w + SCREEN_CLIP[2]))
 	{
-		int h = theWeapon->image->h;
-		if ((float)(kScreenClip[1] - h) <= theWeapon->y && theWeapon->y <= (float)(h + kScreenClip[3]))
+		int h = theWeapon->mImage->mH;
+		if ((float)(SCREEN_CLIP[1] - h) <= theWeapon->mY && theWeapon->mY <= (float)(h + SCREEN_CLIP[3]))
 			return aResult;
 	}
 	return 0;
@@ -577,90 +531,79 @@ int Weapon_Move(Weapon* theWeapon)
 void Weapon_TakeSlot(Weapon* theWeapon)
 {
 	int aCount = 0;
-	if (gLevels.current->shooters.current->beamAcross == 0)
-		theWeapon->angle = 0x5a;
+	if (gLevels.mCurrent->mShooters.mCurrent->mBeamAcross == 0)
+		theWeapon->mAngle = 0x5a;
 	else
-		theWeapon->angle = 0;
-	List<Weapon>* aWeapons = &gLevels.current->weapons;
-	if (aWeapons->current == nullptr)
+		theWeapon->mAngle = 0;
+	List<Weapon>* aWeapons = &gLevels.mCurrent->mWeapons;
+	if (aWeapons->mCurrent == nullptr)
 	{
-		aWeapons->current = theWeapon;
+		aWeapons->mCurrent = theWeapon;
 		return;
 	}
-	List_Each(aWeapons, [&](Weapon* aWeapon) {
-		if (aWeapon->state == 3 && aWeapon != theWeapon)
+	List_Each(aWeapons, [&](Weapon* theAWeapon) {
+		if (theAWeapon->mState == 3 && theAWeapon != theWeapon)
 		{
 			if (aCount == 0)
-				theWeapon->angle = (aWeapon->angle + 0xb4) % 0x168;
+				theWeapon->mAngle = (theAWeapon->mAngle + 0xb4) % 0x168;
 			else
 				List_RemoveCurrent(aWeapons);
 			aCount = aCount + 1;
 		}
 	});
-	aWeapons->current = theWeapon;
+	aWeapons->mCurrent = theWeapon;
 }
 
 // 0x41ae10
 void Weapon_Setup(Weapon* theWeapon, float x, float y, float theRadius, int theKind)
 {
-	theWeapon->x = x;
-	theWeapon->tooClose = 0;
-	theWeapon->y = y;
-	theWeapon->kind = theKind;
-	theWeapon->state = 3;
-	theWeapon->radius = theRadius;
-	theWeapon->depth = 3;
-	theWeapon->shadow = 1;
-	theWeapon->alpha = 0xff;
-	theWeapon->across = gLevels.current->shooters.current->beamAcross;
+	theWeapon->mX = x;
+	theWeapon->mTooClose = 0;
+	theWeapon->mY = y;
+	theWeapon->mKind = theKind;
+	theWeapon->mState = 3;
+	theWeapon->mRadius = theRadius;
+	theWeapon->mDepth = 3;
+	theWeapon->mShadow = 1;
+	theWeapon->mAlpha = 0xff;
+	theWeapon->mAcross = gLevels.mCurrent->mShooters.mCurrent->mBeamAcross;
 	switch (theKind)
 	{
-	case 0:
-		theWeapon->anim = Animation_Find("shooter_mine", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.15f;
-		theWeapon->drag = 0.996f;
-		break;
-	case 1:
+	case WEAPON_MISSILE:
 		Missile_Face(theWeapon);
-		theWeapon->launchSpeed = 0.15f;
-		theWeapon->drag = 1.002f;
+		theWeapon->mLaunchSpeed = 0.15f;
+		theWeapon->mDrag = 1.002f;
 		break;
-	case 3:
-		theWeapon->anim = Animation_Find("ice_shot", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.2f;
-		theWeapon->drag = 1.001f;
-		theWeapon->particle = Bank_IndexOf(&gArtBank, "particle_0");
-		break;
-	case 4:
+	case WEAPON_TIME_BOMB:
 	{
-		Shooter* aShip = gLevels.current->shooters.current;
-		theWeapon->anim = Animation_Find("shooter_timebomb", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.15f;
-		theWeapon->drag = 0.996f;
-		theWeapon->dieAnim = aShip->dieAnim;
-		theWeapon->dieFrameCount = aShip->dieFrameCount;
-		theWeapon->dieFrameTime = aShip->dieFrameTime;
-		theWeapon->particle = Bank_IndexOf(&gArtBank, "particle_0");
-		theWeapon->exploSound = Sound_Find("audio\\explosion1.wav");
-		theWeapon->fuseSound = Sound_Find("audio\\fuse.wav");
+		Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+		theWeapon->mAnim = Animation_Find("shooter_timebomb", &theWeapon->mFrameCount, &theWeapon->mFrameTime);
+		theWeapon->mLaunchSpeed = 0.15f;
+		theWeapon->mDrag = 0.996f;
+		theWeapon->mDieAnim = aShip->mDieAnim;
+		theWeapon->mDieFrameCount = aShip->mDieFrameCount;
+		theWeapon->mDieFrameTime = aShip->mDieFrameTime;
+		theWeapon->mParticle = Bank_IndexOf(&gArtBank, "particle_0");
+		theWeapon->mExploSound = Sound_Find("audio\\explosion1.wav");
+		theWeapon->mFuseSound = Sound_Find("audio\\fuse.wav");
 		break;
 	}
-	case 5:
-		theWeapon->anim = Animation_Find("shooter_magnet", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.35f;
-		theWeapon->drag = 0.996f;
+	case WEAPON_MAGNET:
+		theWeapon->mAnim = Animation_Find("shooter_magnet", &theWeapon->mFrameCount, &theWeapon->mFrameTime);
+		theWeapon->mLaunchSpeed = 0.35f;
+		theWeapon->mDrag = 0.996f;
 		break;
-	case 6:
-		theWeapon->anim = Animation_Find("anchor", &theWeapon->frameCount, &theWeapon->frameTime);
-		theWeapon->launchSpeed = 0.0f;
-		theWeapon->drag = 1.001f;
-		theWeapon->particle = Bank_IndexOf(&gArtBank, "particle_0");
-		theWeapon->shadow = 0;
+	case WEAPON_ANCHOR:
+		theWeapon->mAnim = Animation_Find("anchor", &theWeapon->mFrameCount, &theWeapon->mFrameTime);
+		theWeapon->mLaunchSpeed = 0.0f;
+		theWeapon->mDrag = 1.001f;
+		theWeapon->mParticle = Bank_IndexOf(&gArtBank, "particle_0");
+		theWeapon->mShadow = 0;
 		break;
 	}
-	theWeapon->dirty = 1;
-	theWeapon->drawKind = 4;
-	theWeapon->midHandle = 1;
+	theWeapon->mDirty = 1;
+	theWeapon->mDrawKind = 4;
+	theWeapon->mMidHandle = 1;
 	Weapon_TakeSlot(theWeapon);
 }
 
@@ -668,34 +611,33 @@ void Weapon_Setup(Weapon* theWeapon, float x, float y, float theRadius, int theK
 // faint while an enemy touches it or when it is not the first, which a click launches
 void Weapon_Orbit(Weapon* theWeapon)
 {
-	theWeapon->tooClose = 0;
-	theWeapon->alpha = 0xff;
-	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->w / 2), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->w / 2)) != 0.0 &&
-			theWeapon->kind != 4)
-			theWeapon->tooClose = 1;
+	theWeapon->mTooClose = 0;
+	theWeapon->mAlpha = 0xff;
+	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnEnemy) {
+		if (CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 2), theAnEnemy->mX,
+			theAnEnemy->mY, (float)(theAnEnemy->mImage->mW / 2)) != 0.0 && theWeapon->mKind != WEAPON_TIME_BOMB)
+			theWeapon->mTooClose = 1;
 	});
-	Shooter* aShip = gLevels.current->shooters.current;
-	if (theWeapon->tooClose == 1 || gFirstWeapon == 0)
-		theWeapon->alpha = 0x4b;
+	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
+	if (theWeapon->mTooClose == 1 || gFirstWeapon == 0)
+		theWeapon->mAlpha = 0x4b;
 	else
-		theWeapon->alpha = aShip->alpha;
-	if (theWeapon->across != aShip->beamAcross)
-		theWeapon->angle = (theWeapon->angle + 0x5a) % 0x168;
-	theWeapon->vx = CosDeg(theWeapon->angle) * theWeapon->radius;
-	float aVy = SinDeg(theWeapon->angle) * theWeapon->radius;
-	theWeapon->vy = aVy;
-	theWeapon->y = aVy + gLevels.current->shooters.current->y;
-	theWeapon->x = gLevels.current->shooters.current->x + theWeapon->vx;
+		theWeapon->mAlpha = aShip->mAlpha;
+	if (theWeapon->mAcross != aShip->mBeamAcross)
+		theWeapon->mAngle = (theWeapon->mAngle + 0x5a) % 0x168;
+	theWeapon->mVx = CosDeg(theWeapon->mAngle) * theWeapon->mRadius;
+	float aVy = SinDeg(theWeapon->mAngle) * theWeapon->mRadius;
+	theWeapon->mVy = aVy;
+	theWeapon->mY = aVy + gLevels.mCurrent->mShooters.mCurrent->mY;
+	theWeapon->mX = gLevels.mCurrent->mShooters.mCurrent->mX + theWeapon->mVx;
 	Missile_Face(theWeapon);
-	if (gLevels.current->clicked != 0 && gFirstWeapon != 0)
+	if (gLevels.mCurrent->mClicked != 0 && gFirstWeapon != 0)
 	{
 		Weapon_Launch(theWeapon);
-		gLevels.current->clicked = 0;
+		gLevels.mCurrent->mClicked = 0;
 	}
 	gFirstWeapon = 0;
-	theWeapon->across = gLevels.current->shooters.current->beamAcross;
+	theWeapon->mAcross = gLevels.mCurrent->mShooters.mCurrent->mBeamAcross;
 }
 
 } // namespace
@@ -708,72 +650,73 @@ void Panel_AppendItem(List<Obj>* theList)
 	List_Append(theList, anItem);
 }
 
-void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag)
+void Panel_FromXml(Panel* thePanel, const char* theXmlCursor, const XmlTag* theTag)
 {
-	thePanel->percentX = Xml_GetInt(theTag, "percent_x");
-	thePanel->percentY = Xml_GetInt(theTag, "percent_y");
-	thePanel->livesX = Xml_GetInt(theTag, "lives_x");
-	thePanel->livesY = Xml_GetInt(theTag, "lives_y");
-	thePanel->scoreX = Xml_GetInt(theTag, "score_x");
-	thePanel->scoreY = Xml_GetInt(theTag, "score_y");
-	thePanel->levelX = Xml_GetInt(theTag, "level_x");
-	thePanel->levelY = Xml_GetInt(theTag, "level_y");
-	thePanel->percentFont = Font_Find(Xml_GetString(theTag, "percent_font"));
-	thePanel->livesFont = Font_Find(Xml_GetString(theTag, "lives_font"));
-	thePanel->scoreFont = Font_Find(Xml_GetString(theTag, "score_font"));
-	thePanel->levelFont = Font_Find(Xml_GetString(theTag, "level_font"));
-	Obj_FromXml(thePanel, p, theTag);
-	thePanel->dirty = 0;
+	thePanel->mPercentX = Xml_GetInt(theTag, "percent_x");
+	thePanel->mPercentY = Xml_GetInt(theTag, "percent_y");
+	thePanel->mLivesX = Xml_GetInt(theTag, "lives_x");
+	thePanel->mLivesY = Xml_GetInt(theTag, "lives_y");
+	thePanel->mScoreX = Xml_GetInt(theTag, "score_x");
+	thePanel->mScoreY = Xml_GetInt(theTag, "score_y");
+	thePanel->mLevelX = Xml_GetInt(theTag, "level_x");
+	thePanel->mLevelY = Xml_GetInt(theTag, "level_y");
+	thePanel->mPercentFont = Font_Find(Xml_GetString(theTag, "percent_font"));
+	thePanel->mLivesFont = Font_Find(Xml_GetString(theTag, "lives_font"));
+	thePanel->mScoreFont = Font_Find(Xml_GetString(theTag, "score_font"));
+	thePanel->mLevelFont = Font_Find(Xml_GetString(theTag, "level_font"));
+	Obj_FromXml(thePanel, theXmlCursor, theTag);
+	thePanel->mDirty = 0;
 }
 
 // 0x4182a0: the panel a level without a panel tag gets: the panel image along the bottom, the logo at its right and,
 // in the level's menus, a quit button
 void Panel_Setup(Panel* thePanel)
 {
-	thePanel->percentX = 0x50;
-	thePanel->percentY = 0x224;
-	thePanel->livesX = 0x1de;
-	thePanel->livesY = 0x224;
-	thePanel->scoreX = 0xbd;
-	thePanel->scoreY = 0x224;
-	thePanel->levelX = 0x163;
-	thePanel->levelY = 0x224;
-	thePanel->percentFont = Font_Find("percent_font");
-	thePanel->livesFont = Font_Find("lives_font");
-	thePanel->scoreFont = Font_Find("score_font");
-	thePanel->levelFont = Font_Find("level_font");
-	thePanel->x = 0.0f;
-	thePanel->y = 520.0f;
-	thePanel->dirty = 0;
-	thePanel->anim = Animation_Find("panel", &thePanel->frameCount, &thePanel->frameTime);
-	List<Obj>* anItems = &thePanel->items;
+	thePanel->mPercentX = 0x50;
+	thePanel->mPercentY = 0x224;
+	thePanel->mLivesX = 0x1de;
+	thePanel->mLivesY = 0x224;
+	thePanel->mScoreX = 0xbd;
+	thePanel->mScoreY = 0x224;
+	thePanel->mLevelX = 0x163;
+	thePanel->mLevelY = 0x224;
+	thePanel->mPercentFont = Font_Find("percent_font");
+	thePanel->mLivesFont = Font_Find("lives_font");
+	thePanel->mScoreFont = Font_Find("score_font");
+	thePanel->mLevelFont = Font_Find("level_font");
+	thePanel->mX = 0.0f;
+	thePanel->mY = 520.0f;
+	thePanel->mDirty = 0;
+	thePanel->mAnim = Animation_Find("panel", &thePanel->mFrameCount, &thePanel->mFrameTime);
+	List<Obj>* anItems = &thePanel->mItems;
 	Panel_AppendItem(anItems);
-	anItems->current->anim = Animation_Find("water_panel", &anItems->current->frameCount, &anItems->current->frameTime);
-	anItems->current->x = 656.0f;
-	anItems->current->y = 531.0f;
-	anItems->current->midHandle = 0;
-	anItems->current->drawKind = 1;
-	thePanel->drawKind = 0;
-	Menu_Insert(&gLevels.current->menus);
-	MenuItem_Insert(&gLevels.current->menus.current->items);
-	MenuItem* aQuit = gLevels.current->menus.current->items.current;
-	aQuit->x = 549.0f;
-	std::strcpy(aQuit->name, "aaa");
-	aQuit->y = 567.0f;
-	aQuit->font = Font_Find("main_font");
-	aQuit->anim = Animation_Find("quit", &aQuit->frameCount, &aQuit->frameTime);
-	aQuit->midHandle = 1;
-	aQuit->drawKind = 1;
-	aQuit->dirty = 1;
-	aQuit->kind = 0x21;
-	aQuit->firstParticle = Bank_IndexOf(&gArtBank, "bubble01");
-	aQuit->lastParticle = Bank_IndexOf(&gArtBank, "bubble02");
+	anItems->mCurrent->mAnim = Animation_Find("water_panel", &anItems->mCurrent->mFrameCount,
+		&anItems->mCurrent->mFrameTime);
+	anItems->mCurrent->mX = 656.0f;
+	anItems->mCurrent->mY = 531.0f;
+	anItems->mCurrent->mMidHandle = 0;
+	anItems->mCurrent->mDrawKind = 1;
+	thePanel->mDrawKind = 0;
+	Menu_Insert(&gLevels.mCurrent->mMenus);
+	MenuItem_Insert(&gLevels.mCurrent->mMenus.mCurrent->mItems);
+	MenuItem* aQuit = gLevels.mCurrent->mMenus.mCurrent->mItems.mCurrent;
+	aQuit->mX = 549.0f;
+	std::strcpy(aQuit->mName, "aaa");
+	aQuit->mY = 567.0f;
+	aQuit->mFont = Font_Find("main_font");
+	aQuit->mAnim = Animation_Find("quit", &aQuit->mFrameCount, &aQuit->mFrameTime);
+	aQuit->mMidHandle = 1;
+	aQuit->mDrawKind = 1;
+	aQuit->mDirty = 1;
+	aQuit->mKind = 0x21;
+	aQuit->mFirstParticle = Bank_IndexOf(&gArtBank, "bubble01");
+	aQuit->mLastParticle = Bank_IndexOf(&gArtBank, "bubble02");
 }
 
 // (it returns 1)
 void Panel_Update(Panel* thePanel)
 {
-	List_Each(&thePanel->items, [](Obj* anItem) { Obj_Update(anItem); });
+	List_Each(&thePanel->mItems, [](Obj* theAnItem) { Obj_Update(theAnItem); });
 }
 
 // 0x4184e0: into the back buffer when theAll is set or a number changed (the lives shown stop at 99, and so do the lives);
@@ -783,52 +726,52 @@ void Panel_Draw(Panel* thePanel, int theAll)
 	char aText[32];
 	int aRect[4];
 	int aPercent;
-	Level* aLevel = gLevels.current;
-	if (aLevel->totalCells == 0)
+	Level* aLevel = gLevels.mCurrent;
+	if (aLevel->mTotalCells == 0)
 		aPercent = 0;
 	else
 	{
-		aPercent = (aLevel->filledCells * 100) / aLevel->totalCells;
+		aPercent = (aLevel->mFilledCells * 100) / aLevel->mTotalCells;
 		if (100 < aPercent)
 			aPercent = 100;
 	}
 	Obj_Update(thePanel);
 	if (theAll != 0 || aPercent != gPanelPercent || gLives != gPanelLives || gScore != gPanelScore)
 	{
-		Image* anImage = thePanel->image;
-		Image_BlitRect(anImage, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, (int)thePanel->x,
-			(int)thePanel->y, 0, 0, anImage->w, anImage->h);
+		Image* anImage = thePanel->mImage;
+		Image_BlitRect(anImage, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, (int)thePanel->mX,
+			(int)thePanel->mY, 0, 0, anImage->mW, anImage->mH);
 		std::sprintf(aText, "%03d", aPercent);
-		Font_SetTarget(thePanel->percentFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
-		Font_Printf(thePanel->percentFont, aRect, thePanel->percentX, thePanel->percentY, aText);
-		std::sprintf(aText, "%03d", gLevels.current->number);
-		Font_SetTarget(thePanel->levelFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
-		Font_Printf(thePanel->levelFont, aRect, thePanel->levelX, thePanel->levelY, aText);
+		Font_SetTarget(thePanel->mPercentFont, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
+		Font_Printf(thePanel->mPercentFont, aRect, thePanel->mPercentX, thePanel->mPercentY, aText);
+		std::sprintf(aText, "%03d", gLevels.mCurrent->mNumber);
+		Font_SetTarget(thePanel->mLevelFont, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
+		Font_Printf(thePanel->mLevelFont, aRect, thePanel->mLevelX, thePanel->mLevelY, aText);
 		int aScore = gScore;
 		if (9999999 < gScore)
 			aScore = 9999999;
 		std::sprintf(aText, "%07d", aScore);
-		Font_SetTarget(thePanel->scoreFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
-		Font_Printf(thePanel->scoreFont, aRect, thePanel->scoreX, thePanel->scoreY, aText);
+		Font_SetTarget(thePanel->mScoreFont, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
+		Font_Printf(thePanel->mScoreFont, aRect, thePanel->mScoreX, thePanel->mScoreY, aText);
 		if (0x62 < gLives)
 			gLives = 99;
 		std::sprintf(aText, "%02d", gLives);
-		Font_SetTarget(thePanel->livesFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
-		Font_Printf(thePanel->livesFont, aRect, thePanel->livesX, thePanel->livesY, aText);
-		Dirty_AddClippedShown(&gDirty, 0, (int)thePanel->y, thePanel->image->w, thePanel->image->h, kScreenClip);
+		Font_SetTarget(thePanel->mLivesFont, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
+		Font_Printf(thePanel->mLivesFont, aRect, thePanel->mLivesX, thePanel->mLivesY, aText);
+		Dirty_AddClippedShown(&gDirty, 0, (int)thePanel->mY, thePanel->mImage->mW, thePanel->mImage->mH, SCREEN_CLIP);
 		gPanelLives = gLives;
 		gPanelScore = gScore;
 		gPanelPercent = aPercent;
 	}
-	List_Each(&thePanel->items, [](Obj* anItem) {
-		if (anItem->image != nullptr)
+	List_Each(&thePanel->mItems, [](Obj* theAnItem) {
+		if (theAnItem->mImage != nullptr)
 		{
-			Obj_Draw(anItem);
-			Dirty_AddClippedImage(&gDirty, (int)anItem->x, (int)anItem->y, anItem->image, kScreenClip);
+			Obj_Draw(theAnItem);
+			Dirty_AddClippedImage(&gDirty, (int)theAnItem->mX, (int)theAnItem->mY, theAnItem->mImage, SCREEN_CLIP);
 		}
 	});
 }
@@ -836,123 +779,119 @@ void Panel_Draw(Panel* thePanel, int theAll)
 void Powerup_Draw(Powerup* thePowerup)
 {
 	Obj_Draw(thePowerup);
-	if (thePowerup->attached != nullptr && thePowerup->state == 4)
-		Obj_Draw(thePowerup->attached);
+	if (thePowerup->mAttached != nullptr && thePowerup->mState == 4)
+		Obj_Draw(thePowerup->mAttached);
 }
 
 void List_DeleteNode(Powerup* thePowerup)
 {
 	// 0x418b20
-	if (thePowerup->attached != nullptr)
+	if (thePowerup->mAttached != nullptr)
 	{
-		Obj_Destroy(thePowerup->attached);
-		::operator delete(thePowerup->attached);
+		Obj_Destroy(thePowerup->mAttached);
+		::operator delete(thePowerup->mAttached);
 	}
 	Obj_Destroy(thePowerup);
 	::operator delete(thePowerup);
 }
 
-// 0x418d60: a kind by the level (the later the level, the more kinds; only sweepers in the demo), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
+// 0x418d60: a kind by the level (the later the level, the more kinds), and its text, animation and three emitters of sparkles. The keys 0..9 and A..D,
 // held while it is made, choose kinds 0..13 (the developers' test). The table gives kinds 0..13 (0 a faster beam; the
-// extra life is in its last six places), so nothing but the keys makes the sweepers, the water mine or the freeze (15..17).
+// extra life is in its last six places), so nothing makes the original's water mine or freeze (kinds 16 and 17); the
+// port leaves them out.
 Powerup* Powerup_Init(Powerup* thePowerup)
 {
 	Obj_Init(thePowerup);
 	if (gRebuildKinds != 0)
 		Powerup_BuildKinds();
-	int aRange = gLevels.current->number / 4;
+	int aRange = gLevels.mCurrent->mNumber / 4;
 	if (0xe < aRange)
 		aRange = 0xe;
 	aRange = aRange * 10 + 9;
-	thePowerup->kind = gPowerupKinds[RandRange(0, aRange)];
-	if (gDemo != 0)
-	{
-		thePowerup->kind = 0xf;
-		gPumpMessages = 1;
-	}
-	std::sprintf(thePowerup->text, "^%d", RandRange(1, 8));
+	thePowerup->mKind = gPowerupKinds[RandRange(0, aRange)];
+	std::sprintf(thePowerup->mText, "^%d", RandRange(1, 8));
 	if (Key_Down('0') != 0)
-		thePowerup->kind = 0;
+		thePowerup->mKind = POWERUP_FAST_SHOT;
 	if (Key_Down('1') != 0)
-		thePowerup->kind = 1;
+		thePowerup->mKind = POWERUP_FLIP_FLOPPER;
 	if (Key_Down('2') != 0)
-		thePowerup->kind = 2;
+		thePowerup->mKind = POWERUP_SLOW_MOTION;
 	if (Key_Down('3') != 0)
-		thePowerup->kind = 3;
+		thePowerup->mKind = POWERUP_MAGNET;
 	if (Key_Down('4') != 0)
-		thePowerup->kind = 4;
+		thePowerup->mKind = POWERUP_TIME_BOMB;
 	if (Key_Down('5') != 0)
-		thePowerup->kind = 5;
+		thePowerup->mKind = POWERUP_SLOW_SHOT;
 	if (Key_Down('6') != 0)
-		thePowerup->kind = 6;
+		thePowerup->mKind = POWERUP_INVINCIBUBBLE;
 	if (Key_Down('7') != 0)
-		thePowerup->kind = 7;
+		thePowerup->mKind = POWERUP_ANCHOR;
 	if (Key_Down('8') != 0)
-		thePowerup->kind = 8;
+		thePowerup->mKind = POWERUP_EXPLODE_WALKERS;
 	if (Key_Down('9') != 0)
-		thePowerup->kind = 9;
+		thePowerup->mKind = POWERUP_EXPLODE_FLOATERS;
 	if (Key_Down('A') != 0)
-		thePowerup->kind = 10;
+		thePowerup->mKind = POWERUP_MULTIPLIER;
 	if (Key_Down('B') != 0)
-		thePowerup->kind = 11;
+		thePowerup->mKind = POWERUP_HYPER_MOTION;
 	if (Key_Down('C') != 0)
-		thePowerup->kind = 12;
+		thePowerup->mKind = POWERUP_MISSILE;
 	if (Key_Down('D') != 0)
-		thePowerup->kind = 13;
+		thePowerup->mKind = POWERUP_EXTRA_LIFE;
 	// The texts and names are the exe's (each strcat'd from its .rdata)
 	uint32_t aText;
 	const char* aName;
-	switch (thePowerup->kind)
+	switch (thePowerup->mKind)
 	{
-	case 1:
+	case POWERUP_FLIP_FLOPPER:
 		aText = GTA(0x45992c);
 		aName = "powerup_flip_flopper";
 		break;
-	case 2:
+	case POWERUP_SLOW_MOTION:
 		aText = GTA(0x459a68);
 		aName = "powerup_slowmo";
 		break;
-	case 3:
+	case POWERUP_MAGNET:
 		aText = GTA(0x4599bc);
 		aName = "powerup_magnet";
 		break;
-	case 4:
+	case POWERUP_TIME_BOMB:
 		aText = GTA(0x459950);
 		aName = "powerup_timebomb";
 		break;
-	case 5:
+	case POWERUP_SLOW_SHOT:
 		aText = GTA(0x459a2c);
 		aName = "powerup_slow";
 		break;
-	case 6:
+	case POWERUP_INVINCIBUBBLE:
 		aText = GTA(0x4598a4);
 		aName = "powerup_invincibubble";
 		break;
-	case 7:
+	case POWERUP_ANCHOR:
 		aText = GTA(0x459884);
 		aName = "powerup_anchor";
 		break;
-	case 8:
+	case POWERUP_EXPLODE_WALKERS:
 		aText = GTA(0x4598cc);
 		aName = "powerup_destroywalkers";
 		break;
-	case 9:
+	case POWERUP_EXPLODE_FLOATERS:
 		aText = GTA(0x4598fc);
 		aName = "powerup_destroyrollers";
 		break;
-	case 10:
+	case POWERUP_MULTIPLIER:
 		aText = GTA(0x4599ec);
 		aName = "powerup_2x";
 		break;
-	case 0xb:
+	case POWERUP_HYPER_MOTION:
 		aText = GTA(0x459a48);
 		aName = "powerup_hypermo";
 		break;
-	case 0xc:
+	case POWERUP_MISSILE:
 		aText = GTA(0x4599a0);
 		aName = "powerup_missile";
 		break;
-	case 0xd:
+	case POWERUP_EXTRA_LIFE:
 		aText = GTA(0x459a10);
 		aName = "powerup_plusone";
 		break;
@@ -960,59 +899,47 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 		aText = GTA(0x459868);
 		aName = "powerup_speed";
 		break;
-	case 0xf:
-		aText = GTA(0x459984);
-		aName = "powerup_sweeper";
-		break;
-	case 0x10:
-		aText = GTA(0x4599d4);
-		aName = "powerup_mine";
-		break;
-	case 0x11:
-		aText = GTA(0x45996c);
-		aName = "powerup_freeze";
-		break;
 	}
 
-	std::strcat(thePowerup->text, GT(aText));
-	thePowerup->state = 4;
-	thePowerup->depth = 1;
-	thePowerup->x = gLevels.current->enemies.current->x;
-	thePowerup->y = gLevels.current->enemies.current->y;
-	Animation* anAnim = Animation_Find(aName, &thePowerup->frameCount, &thePowerup->frameTime);
-	thePowerup->anim = anAnim;
-	thePowerup->image = anAnim->frames[0];
-	thePowerup->drawKind = 1;
-	thePowerup->dirty = 1;
-	thePowerup->midHandle = 1;
-	int aSide = Sign(thePowerup->x - 400.0f);
-	thePowerup->shadow = 1;
-	thePowerup->alpha = 0xff;
-	thePowerup->vx = (float)aSide * -0.1f;
-	thePowerup->vy = -0.2f;
-	thePowerup->gravity = 0.0002f;
-	List<Obj>* anEmitters = &thePowerup->emitters;
+	std::strcat(thePowerup->mText, GT(aText));
+	thePowerup->mState = 4;
+	thePowerup->mDepth = 1;
+	thePowerup->mX = gLevels.mCurrent->mEnemies.mCurrent->mX;
+	thePowerup->mY = gLevels.mCurrent->mEnemies.mCurrent->mY;
+	Animation* anAnim = Animation_Find(aName, &thePowerup->mFrameCount, &thePowerup->mFrameTime);
+	thePowerup->mAnim = anAnim;
+	thePowerup->mImage = anAnim->mFrames[0];
+	thePowerup->mDrawKind = 1;
+	thePowerup->mDirty = 1;
+	thePowerup->mMidHandle = 1;
+	int aSide = Sign(thePowerup->mX - (float)SCREEN_CENTRE_X);
+	thePowerup->mShadow = 1;
+	thePowerup->mAlpha = 0xff;
+	thePowerup->mVx = (float)aSide * -0.1f;
+	thePowerup->mVy = -0.2f;
+	thePowerup->mGravity = 0.0002f;
+	List<Obj>* anEmitters = &thePowerup->mEmitters;
 	Powerup_AddSparkles(thePowerup, "sparkles1");
-	anEmitters->current->drawKind = 4;
+	anEmitters->mCurrent->mDrawKind = 4;
 	Powerup_AddSparkles(thePowerup, "sparkles3");
 	Powerup_AddSparkles(thePowerup, "sparkles2");
-	Emitter* aLast = static_cast<Emitter*>(anEmitters->current);
-	aLast->drawKind = 5;
-	aLast->startR = 200;
-	aLast->startG = 200;
-	aLast->startB = 0xff;
-	aLast->endR = 200;
-	aLast->endG = 200;
-	aLast->endB = 0xff;
-	aLast->variance = 0;
-	thePowerup->attached = nullptr;
+	Emitter* aLast = static_cast<Emitter*>(anEmitters->mCurrent);
+	aLast->mDrawKind = 5;
+	aLast->mStartR = 200;
+	aLast->mStartG = 200;
+	aLast->mStartB = 0xff;
+	aLast->mEndR = 200;
+	aLast->mEndG = 200;
+	aLast->mEndB = 0xff;
+	aLast->mVariance = 0;
+	thePowerup->mAttached = nullptr;
 	// (the original then calls 0x401410, which is empty, while the flag at 0x460a40 is set)
 	return thePowerup;
 }
 
 int Powerup_Update(Powerup* thePowerup)
 {
-	if (thePowerup->state == 4)
+	if (thePowerup->mState == 4)
 		return Powerup_Fall(thePowerup);
 	return 0;
 }
@@ -1020,17 +947,17 @@ int Powerup_Update(Powerup* thePowerup)
 void Weapon_Draw(Weapon* theWeapon)
 {
 	Obj_Draw(theWeapon);
-	if (theWeapon->kind == 4 && theWeapon->state == 4)
+	if (theWeapon->mKind == WEAPON_TIME_BOMB && theWeapon->mState == 4)
 	{
-		int aFuse = (int)(9.0 - (double)theWeapon->age * 8.0 / (double)theWeapon->lifetime);
-		double aBase = (double)theWeapon->y - (double)(theWeapon->image->h / 2);
+		int aFuse = (int)(9.0 - (double)theWeapon->mAge * 8.0 / (double)theWeapon->mLifetime);
+		double aBase = (double)theWeapon->mY - (double)(theWeapon->mImage->mH / 2);
 		int aTop = (int)(aBase - (double)aFuse);
 		int aBottom = (int)aBase;
-		int x = (int)theWeapon->x;
+		int x = (int)theWeapon->mX;
 		Draw_Line(x, aTop, x, aBottom, 0x96, 0x96, 0x96, 0xff);
-		x = (int)((double)theWeapon->x - 1.0);
+		x = (int)((double)theWeapon->mX - 1.0);
 		Draw_Line(x, aTop, x, aBottom, 0xdc, 0xdc, 0xdc, 0xff);
-		Dirty_AddClippedShown(&gDirty, (int)((double)theWeapon->x - 1.0), aTop, 2, aFuse, kScreenClip);
+		Dirty_AddClippedShown(&gDirty, (int)((double)theWeapon->mX - 1.0), aTop, 2, aFuse, SCREEN_CLIP);
 	}
 }
 
@@ -1041,53 +968,53 @@ void Weapon_DrawTooClose(Weapon* theWeapon)
 	int aRect[4];
 	// (the original sprintfs the text, which has no %)
 	std::strcpy(aText, GT(0x459ab0));
-	if (theWeapon->tooClose != 0)
+	if (theWeapon->mTooClose != 0)
 	{
 		Font* aFont = Font_Find("micro_font");
 		Font_SetEscapes(aFont, 1);
-		Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.fmt, gBackBuffer.w, gBackBuffer.h);
+		Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.mFmt, gBackBuffer.mW, gBackBuffer.mH);
 		Font_SetPalette(aFont, nullptr);
-		aFont->alpha = 0xff;
-		aFont->align = 0;
+		aFont->mAlpha = 0xff;
+		aFont->mAlign = 0;
 		int x;
 		int y;
-		if (gLevels.current->shooters.current->beamAcross == 0)
+		if (gLevels.mCurrent->mShooters.mCurrent->mBeamAcross == 0)
 		{
-			x = (int)((double)theWeapon->x + 20.0);
-			y = (int)theWeapon->y;
+			x = (int)((double)theWeapon->mX + 20.0);
+			y = (int)theWeapon->mY;
 		}
 		else
 		{
-			x = (int)((double)theWeapon->x - (double)(Font_StringWidth(aFont, aText) / 2));
-			y = (int)((double)theWeapon->y - 20.0);
+			x = (int)((double)theWeapon->mX - (double)(Font_StringWidth(aFont, aText) / 2));
+			y = (int)((double)theWeapon->mY - 20.0);
 		}
 		Font_DrawOutlined(aFont, aRect, x, y, aText);
 		int aHeight = Font_StringHeight(aFont, aText) + 2;
-		Dirty_AddClippedShown(&gDirty, x - 1, y - 1, Font_StringWidth(aFont, aText) + 2, aHeight, kScreenClip);
+		Dirty_AddClippedShown(&gDirty, x - 1, y - 1, Font_StringWidth(aFont, aText) + 2, aHeight, SCREEN_CLIP);
 	}
 }
 
 // 0 when it is done, and whenever the ship is dying
 int Weapon_Update(Weapon* theWeapon)
 {
-	if (gLevels.current->shooters.current->state == 6)
+	if (gLevels.mCurrent->mShooters.mCurrent->mState == 6)
 		return 0;
-	float x = theWeapon->x;
-	float y = theWeapon->y;
+	float x = theWeapon->mX;
+	float y = theWeapon->mY;
 	int aResult = Obj_Update(theWeapon);
-	if (theWeapon->state == 3)
+	if (theWeapon->mState == 3)
 	{
-		theWeapon->x = x;
-		theWeapon->y = y;
+		theWeapon->mX = x;
+		theWeapon->mY = y;
 		Weapon_Orbit(theWeapon);
 	}
-	else if (theWeapon->state == 4)
+	else if (theWeapon->mState == 4)
 	{
-		int aCol = (int)theWeapon->x / 16;
+		int aCol = (int)theWeapon->mX / CELL_SIZE;
 		if (-1 < aCol && aCol < 0x32)
 		{
-			int aRow = (int)theWeapon->y / 16;
-			if (-1 < aRow && aRow < 0x25)
+			int aRow = (int)theWeapon->mY / CELL_SIZE;
+			if (-1 < aRow && aRow < GRID_ROWS)
 				return aResult & Weapon_Move(theWeapon);
 		}
 		return 0;

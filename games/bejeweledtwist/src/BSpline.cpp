@@ -87,35 +87,35 @@ void BSpline::CalculateSplinePrv(const std::vector<float>& thePoints, std::vecto
 	if (aCount < 2)
 		return;
 	int aSegs = aCount - 1;
-	Equations e(aSegs * 4, aSegs * 4 + 1);
+	Equations anEquations(aSegs * 4, aSegs * 4 + 1);
 	int aRow = 0;
-	e.At(aRow, 2) = 1.0f;
+	anEquations.At(aRow, 2) = 1.0f;
 	aRow++;
-	int c = 2;
-	for (int i = 0; i < aSegs; i++, c += 4) {
-		e.At(aRow, c + 1) = 1.0f;
-		e.SetRhs(aRow, thePoints[i]);
+	int aColumn = 2;
+	for (int i = 0; i < aSegs; i++, aColumn += 4) {
+		anEquations.At(aRow, aColumn + 1) = 1.0f;
+		anEquations.SetRhs(aRow, thePoints[i]);
 		aRow++;
-		e.At(aRow, c - 2) = 1.0f;
-		e.At(aRow, c - 1) = 1.0f;
-		e.At(aRow, c) = 1.0f;
-		e.SetRhs(aRow, thePoints[i + 1] - thePoints[i]);
+		anEquations.At(aRow, aColumn - 2) = 1.0f;
+		anEquations.At(aRow, aColumn - 1) = 1.0f;
+		anEquations.At(aRow, aColumn) = 1.0f;
+		anEquations.SetRhs(aRow, thePoints[i + 1] - thePoints[i]);
 		aRow++;
-		e.At(aRow, c - 2) = 3.0f;
-		e.At(aRow, c - 1) = 2.0f;
-		e.At(aRow, c) = 1.0f;
+		anEquations.At(aRow, aColumn - 2) = 3.0f;
+		anEquations.At(aRow, aColumn - 1) = 2.0f;
+		anEquations.At(aRow, aColumn) = 1.0f;
 		if (i < aCount - 2)
-			e.At(aRow, c + 4) = -1.0f;
+			anEquations.At(aRow, aColumn + 4) = -1.0f;
 		aRow++;
 		if (i < aCount - 2) {
-			e.At(aRow, c - 2) = 6.0f;
-			e.At(aRow, c - 1) = 2.0f;
-			e.At(aRow, c + 3) = -2.0f;
+			anEquations.At(aRow, aColumn - 2) = 6.0f;
+			anEquations.At(aRow, aColumn - 1) = 2.0f;
+			anEquations.At(aRow, aColumn + 3) = -2.0f;
 			aRow++;
 		}
 	}
-	e.Solve();
-	theCoef = e.mSolution;
+	anEquations.Solve();
+	theCoef = anEquations.mSolution;
 }
 
 void BSpline::CalculateSplinePrvLinear(const std::vector<float>& thePoints, std::vector<float>& theCoef)
@@ -163,37 +163,6 @@ float BSpline::GetPoint(float t, const std::vector<float>& theCoef) const
 	const float* k = &theCoef[(size_t)i * 4];
 	double v = (double)k[2] * f + (double)f * f * k[1] + (double)f * f * f * k[0] + k[3];
 	return (float)v;
-}
-
-bool BSpline::GetNextPoint(float& x, float& y, float& t) const
-{
-	int i = Ftol(std::floor(t));
-	if (i < 0 || i >= (int)mXPoints.size() - 1) {
-		x = GetXPoint(t);
-		y = GetYPoint(t);
-		return false;
-	}
-	float aStep = (float)(1.0 / ((double)mArcLengths[i] * 100.0));
-	float x0 = GetXPoint(t);
-	float y0 = GetYPoint(t);
-	float aT = t + aStep;
-	float x1 = GetXPoint(aT);
-	float y1 = GetYPoint(aT);
-	for (;;) {
-		float dy = y1 - y0;
-		float dx = x1 - x0;
-		if ((float)((double)dx * dx + (double)dy * dy) >= 1.0f)
-			break;
-		if ((float)(unsigned)((int)mXPoints.size() - 1) < aT)
-			break;
-		aT += aStep;
-		x1 = GetXPoint(aT);
-		y1 = GetYPoint(aT);
-	}
-	x = x1;
-	y = y1;
-	t = aT;
-	return true;
 }
 
 }  // namespace Sexy

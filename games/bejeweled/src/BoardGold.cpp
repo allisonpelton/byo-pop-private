@@ -1,4 +1,4 @@
-// port(variant): the Jewel Quest gold board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9, stage 12). Not part of
+// port(variant): the Jewel Quest gold board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9). Not part of
 // the original game. Every gem cell a scored group takes turns gold (a blast's too, with gold.gild
 // "matchesAndBlasts"); the gold is the cell's, so it stays when the gems fall. A level ends when every cell of the goal
 // is gold: the gem cells, and the dirt cells with gold.countDirt (a dirt cell turns gold only once its last layer is
@@ -97,8 +97,8 @@ int Board::GoldLimitTicks() const
 	return std::max(aLimit.mMin, aLimit.mBase + aLimit.mPerLevel * mLevel) * 100;
 }
 
-// SetupLevel (0x4cae29), at the start of each level: no gold yet, the level's whole time
-void Board::SetupLevelGold()
+// SetupLevelData (0x4cae29), at the start of each level: no gold yet, the level's whole time
+void Board::SetupLevelDataGold()
 {
 	memset(mGold, 0, sizeof(mGold));
 	mGoldShines.clear();
@@ -122,11 +122,11 @@ void Board::UpdateGoldGoal()
 			mScore += aBonus;
 			if (mStats != NULL) mStats->OnPoints(aBonus);
 		}
-		StartBlackHole();
+		DoWhirlpool();
 	}
 	else if (GoldTimed() && (mGoldTicksLeft == 0))
 	{
-		ShowText(mApp->GetString("TIME_UP"), 400);
+		DoBouncyText(mApp->GetString("TIME_UP"), 400);
 		GameOver(200);
 	}
 }

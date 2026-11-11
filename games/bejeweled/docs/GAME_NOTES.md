@@ -12,9 +12,9 @@ float rules) are in `docs/FRAMEWORK_NOTES.md`.
 **What was re-verified in the disassembly during synthesis:**
 - Board::Update score roll (section 3.7, step 16).
 - UpdateClearing grid shifting (3.8.4).
-- ProcessMatches run scan, averages and the 300..1200 clamp (3.9).
+- FindSets run scan, averages and the 300..1200 clamp (3.9).
 - ColorizeText pixel formula (3.12).
-- UpdateBlackHole x87 expressions (3.8.7).
+- UpdateWhirlpool x87 expressions (3.8.7).
 - FindMove scan (3.6).
 - MouseDown click zone (3.10).
 - Piece hover glow order (3.7, step 18).
@@ -73,7 +73,7 @@ structs use a different base per class:
 
 **Images.**
 - `WinDMApp::mImages` (app+0x790) is a `new Image*[36]` indexed by `ImageId`.
-- `LoadAppImage(i)` sets `mImages[i] = GetImage("images\\" + gImageNames[i], true)` (app slot 65), then calls `((DDImage*)mImages[i])->GenerateDDSurface()`.
+- `DoLoadImage(i)` sets `mImages[i] = GetImage("images\\" + gImageNames[i], true)` (app slot 65), then calls `((DDImage*)mImages[i])->GenerateDDSurface()`.
 - If GetImage fails: `Popup("Failed to load images\\" + name)` (slot 32), `mLoadingFailed = true`, return false.
 - Init loads images 0..6. LoadingThreadProc loads 7..35.
 
@@ -138,7 +138,7 @@ structs use a different base per class:
 | `GetBoardCenter` | x = (ColX(7)+49-ColX(0))/2 + ColX(0) = 406; y = (RowY(7)+49-RowY(0))/2 + RowY(0) = 219 |
 
 - Gems are 49x49, drawn at `((int)mX, (int)mY)`.
-- `GetPanForX(x)` = `(int)(((double)(x - 203 - 203) / 406.0) * 2.0 * 800.0)`, range about -800..800. It is used as the PlaySample pan.
+- `GetPanPosition(x)` = `(int)(((double)(x - 203 - 203) / 406.0) * 2.0 * 800.0)`, range about -800..800. It is used as the PlaySample pan.
 - `GetPieceAt(x,y)` scans rows 0..7 (outer) and cols 0..7. It returns the first piece with `p->mX <= x < p->mX + 49.0` and `p->mY <= y < p->mY + 49.0` (double compares), or NULL.
 
 ### 3.2 Construction: `Board(WinDMApp* theApp, bool timedMode)` (0x4cb5bc)
@@ -156,14 +156,14 @@ Steps, in order:
    - mGameDuration, mPlaySeconds, mGemsCleared, mLongestCascade, mBestMoveScore, mScore, mDisplayScore
 4. mBarColor = 23; mLastWarningTick = 0.
 5. Zero these:
-   - mMoveScore, mUnused218, mMoveScoreTimer, mHintGlowTimer, mHintGlowDuration
+   - mMoveScore, mClearedAtMoveStart, mMoveScoreTimer, mHintGlowTimer, mHintGlowDuration
    - mInputDelay, mMouseDown, mPlayStartTick, mPauseCount, mUserPauseCount
-   - mStatsDisabled, mLevelStartScore, mUnused264, mSwapPiece1, mSwapPiece2
+   - mStatsDisabled, mLevelStartScore, mSavedZero, mSwapPiece1, mSwapPiece2
 6. Fonts and level: mPointsFont = app->mAlphaDigitsFont; mScoreFont = app->mScoreFont; mLevel = 0; mDisplayLevel = 1.
 7. Background images:
    - `mBackgroundImage = new DDImage(app->mDDInterface)`, then `SetImageMode(false,false)` (MemoryImage slot 32), then `Create(640,480)`.
    - Same for `mNextBackgroundImage`.
-8. `SetupLevel()` (3.5).
+8. `SetupLevelData()` (3.5).
 9. mLevelTargetScore = mLevelPoints.
 10. `Graphics g(mBackgroundImage); g.DrawImage(mNextBackgroundImage, 0, 0)`.
 11. Remaining fields:
@@ -175,32 +175,32 @@ Steps, in order:
 12. Tutorial board loop:
     ```
     do {
-      FillBoard();                       // RNG, sets mState = 0, mIdleTicks = 0
+      NewBoard();                       // RNG, sets mState = 0, mIdleTicks = 0
       for (i = 0; FindMove(m, i, true, false); i++)   // m = {col,row,col2,row2}
         if (m[2] == m[0]+1 && (unsigned)(m[1]-4) <= 2 && m[0] >= 1 && m[0] < 7)
           { mTutorialCol = m[0]; mTutorialRow = m[1]; mTutorialCol2 = m[2]; break; }
     } while (mTutorialCol == -1);
     ```
     - The loop accepts the first horizontal-run move (in FindMove order) that swaps to the right, in rows 4..6, with col 1..6.
-    - Rejected boards consume RNG and their pieces leak; FillBoard does not delete them.
+    - Rejected boards consume RNG and their pieces leak; NewBoard does not delete them.
 
-Not initialised by the ctor: mState (FillBoard sets it), mSwapAngle, mSwapCenterX/Y, mMouseX/Y,
+Not initialised by the ctor: mState (NewBoard sets it), mSwapAngle, mSwapCenterX/Y, mMouseX/Y,
 mMouseDownX/Y, mTextPhase, mTextDuration, mTextTimeLeft, mWipeY, mBlackHoleFrame,
 mLevelTextShown. port: zero them, and set mMouseX/Y to -1 (as after MouseLeave). Before the first
 mouse event, the original's hover test reads heap garbage.
 
 ### 3.3 Destruction: `~Board` (0x4cd1ba)
 
-1. If `IsGameInProgress()`, call `SaveGame()`.
+1. If `IsInProgress()`, call `SaveGame()`.
 2. Delete (virtual) mBackgroundImage, mNextBackgroundImage, mTextImage and mTextColorImage.
 3. `mWhirlpoolSound->Release()` if set.
 4. `app->KillDialog(9)`.
-5. If `IsGameInProgress()` is still true, `++app->mTimesPlayed`. An abandoned game counts as played.
+5. If `IsInProgress()` is still true, `++app->mTimesPlayed`. An abandoned game counts as played.
 6. Destroy the string and the list; Widget::~Widget.
 
 Pieces in the grid are not deleted (leak). port: delete them here.
 
-`IsGameInProgress()` (0x4c9bbe) = `!mIsNewGame && mState != 5 && mState != 6`.
+`IsInProgress()` (0x4c9bbe) = `!mIsNewGame && mState != 5 && mState != 6`.
 
 ### 3.4 Pause / GameOver / hint helpers
 
@@ -240,9 +240,9 @@ Callers:
 - Time up: 200.
 - `RequestNewGame` (0x4c9bab): `GameOver(50); mNewGamePending = true`. Called by WinDMApp on YES to dialog 0.
 
-**`ShowHint()` (0x4cb475).** If `mState == 1 && mPauseCount == 0`, call `DoHint()`. Called from WinDMApp button 15.
+**`ShowHint()` (0x4cb475).** If `mState == 1 && mPauseCount == 0`, call `TryShowHint()`. Called from WinDMApp button 15.
 
-**`DoHint()` (0x4cad2f).**
+**`TryShowHint()` (0x4cad2f).**
 1. `mScore = (int)((double)mScore - mPointMultiplier*50.0)`, clamped to >= 0.
 2. If `FindMove(m, 0, true, true)`:
    - q = mBoard[m.row2][m.col2], the gem the move would bring in
@@ -251,7 +251,7 @@ Callers:
 
 No sound, no RNG.
 
-### 3.5 `SetupLevel()` (0x4cae29): background and level parameters
+### 3.5 `SetupLevelData()` (0x4cae29): background and level parameters
 
 Let `L = (double)mLevel`, `ci = mLevel % 4` and `ti = mLevel % 5`.
 
@@ -291,7 +291,7 @@ No RNG.
 
 ### 3.6 Board generation and move search
 
-**`FillBoard()` (0x4cb182).**
+**`NewBoard()` (0x4cb182).**
 1. mState = 0; mIdleTicks = 0.
 2. Set all 64 cells to NULL without deleting the old pieces.
 3. Fill:
@@ -302,17 +302,17 @@ No RNG.
        base = (row < 7) ? (int)mBoard[row+1][col]->mY : 0;
        p->mY = (double)(base - Rand()%240 - 65);           // RNG draw 1
        mBoard[row][col] = p;                               // placed before the color loop
-       do { p->mColor = Rand()%7; } while (HasMatch());    // RNG draws 2..n
+       do { p->mColor = Rand()%7; } while (HasSet());    // RNG draws 2..n
      }
    ```
 The result has no 3-in-a-row. Pieces start above the screen with mVelY = 0 and fall in state 0.
 
-**port: do not free the orphaned pieces in FillBoard.**
+**port: do not free the orphaned pieces in NewBoard.**
 - Original: the pieces from state 9 (and from rejected ctor boards) leak but stay valid. `mSelectedPiece` can still point at one, because a gem can be selected during states 0/2/3/4/9.
-- A later click in state 1 then calls `StartSwap(stalePiece, target)`. If adjacent by the stale col/row, the stale piece is swapped back into the grid. This is an original bug.
+- A later click in state 1 then calls `SwapPieces(stalePiece, target)`. If adjacent by the stale col/row, the stale piece is swapped back into the grid. This is an original bug.
 - To stay faithful and memory-safe, park orphans in a list owned by the Board and free them in ~Board.
 
-**`HasMatch()` (0x4c9cf5).**
+**`HasSet()` (0x4c9cf5).**
 - Pass 1 scans rows 0..7 left to right; pass 2 scans cols 0..7 top to bottom.
 - Track the run count and previous color (start -1). NULL sets prev = -1.
 - Equal color: ++count, and return true when it reaches 3. Different color: count = 1, prev = color.
@@ -343,7 +343,7 @@ Callers:
 |---|---|
 | ctor (tutorial) | `FindMove(m, i, true, false)` |
 | UpdateFalling (no-moves check) | `FindMove(NULL, 0, true, true)` |
-| DoHint | `FindMove(m, 0, true, true)` |
+| TryShowHint | `FindMove(m, 0, true, true)` |
 
 ### 3.7 `Update()` (0x4cdabc): per-tick order
 
@@ -400,8 +400,8 @@ Callers:
 13. `if (cnt == 149 && !app->mIsRegistered && app->mTimesPlayed >= 20) app->ShowRegisterNagDialog();`
 14. At `cnt == 150`:
     - `PlaySample(14 go1)`.
-    - If `!app->mShowInstructions || app->mTimesPlayed >= 5`: `ShowText(GetString("GO"), 250)`.
-    - If `app->mShowInstructions && app->mTimesPlayed < 5`: `app->ShowInstructionsDialog(); mShowTutorial = true;`
+    - If `!app->mShowInstructions || app->mTimesPlayed >= 5`: `DoBouncyText(GetString("GO"), 250)`.
+    - If `app->mShowInstructions && app->mTimesPlayed < 5`: `app->DoInstructionDialogette(); mShowTutorial = true;`
 15. `if (++mIdleTicks > 1500 && mState == 1) { mIdleTicks = 0; mHintGlowDuration = 400; mHintGlowTimer = 400; }`
 16. Score roll (verified in disassembly). m = mPointMultiplier.
 
@@ -440,20 +440,20 @@ Callers:
     - `if (cnt%3 == 0) { MarkDirty; if (v.mY > mPointsFont->GetAscent()/2 + 2) --v.mY; }`
     - MarkDirty; `if (--v.mLife < 1) erase (MarkDirty)`.
 20. Level end / time up, only if mState == 1:
-    - `if (mDisplayScore - (int)mTimeDrain - mLevelStartScore >= mLevelTargetScore - mLevelStartScore) StartBlackHole();` (sets state 7)
-    - Then, if still state 1: `if (mDisplayScore - (int)mTimeDrain - mLevelStartScore <= mLevelStartScore - mLevelTargetScore) { ShowText(GetString("TIME_UP"), 400); GameOver(200); }`
-    - The time-up test is not restricted to timed mode. In normal mode it can only fire when hints (DoHint) push mScore far enough below mLevelStartScore (one level's worth); see open question 3.
+    - `if (mDisplayScore - (int)mTimeDrain - mLevelStartScore >= mLevelTargetScore - mLevelStartScore) DoWhirlpool();` (sets state 7)
+    - Then, if still state 1: `if (mDisplayScore - (int)mTimeDrain - mLevelStartScore <= mLevelStartScore - mLevelTargetScore) { DoBouncyText(GetString("TIME_UP"), 400); GameOver(200); }`
+    - The time-up test is not restricted to timed mode. In normal mode it can only fire when hints (TryShowHint) push mScore far enough below mLevelStartScore (one level's worth); see open question 3.
 21. Dispatch on mState:
 
     | State | Handler |
     |---|---|
     | 0 | UpdateFalling |
-    | 2, 3 | UpdateSwap |
+    | 2, 3 | UpdateSwapping |
     | 4 | UpdateClearing |
-    | 5 | UpdateGameOver |
-    | 7 | UpdateBlackHole |
-    | 8 | UpdateLevelWipe |
-    | 9 | UpdateFallOut |
+    | 5 | UpdateGameOverAnim |
+    | 7 | UpdateWhirlpool |
+    | 8 | UpdateLevelTransition |
+    | 9 | UpdateBoardDropping |
     | 1, 6 | nothing |
 
 ### 3.8 State handlers
@@ -469,15 +469,15 @@ for row 0..7 { ty = (double)GetRowY(row);
            if (p->mY >= ty) { landed++; sumX = (int)(p->mX + 24.0 + (double)sumX); p->mY = ty; }
            p->mVelY = p->mVelY + 0.18; } } }     // velocity zeroed only on the next tick
 if (landed > 0 && abs(mLastLandSoundTick - cnt) >= 10)
-  { mLastLandSoundTick = cnt; PlaySample(8 gemongem2, GetPanForX(sumX/landed)); }
+  { mLastLandSoundTick = cnt; PlaySample(8 gemongem2, GetPanPosition(sumX/landed)); }
 if (settled) {
-  if (ProcessMatches()) mState = 4;
+  if (FindSets()) mState = 4;
   else {
     if (!mStatsDisabled) { mLongestCascade = max(mLongestCascade, mCascadeCount);
                            mBestMoveScore  = max(mBestMoveScore,  mMoveScore); }
     if (FindMove(NULL, 0, true, true)) mState = 1;
     else if (mTimedMode) mState = 9;
-    else { ShowText(GetString("NO_MOVES"), 400); GameOver(200); }
+    else { DoBouncyText(GetString("NO_MOVES"), 400); GameOver(200); }
   }
 }
 MarkDirty;
@@ -489,7 +489,7 @@ Idle. Input (3.10) and Update steps 18 and 20 apply.
 
 #### 3.8.3 States 2/3: swap animation
 
-**`StartSwap(Piece* a, Piece* b)` (0x4c9ff8).**
+**`SwapPieces(Piece* a, Piece* b)` (0x4c9ff8).**
 1. If `abs(a->mCol - b->mCol) + abs(a->mRow - b->mRow) != 1`: PlaySample(7 bad2) and return.
 2. Tutorial check: if `mShowTutorial && a->mCol == mTutorialCol && a->mRow == mTutorialRow && b->mCol == mTutorialCol2 && b->mRow == mTutorialRow`:
    - app->mShowInstructions = false; mShowTutorial = false; app->KillDialog(9).
@@ -499,7 +499,7 @@ Idle. Input (3.10) and Update steps 18 and 20 apply.
 5. `a->mSwapOffX = (int)(a->mX - mSwapCenterX)`, and likewise for a's Y and for b.
 6. mState = 2. There is no NULL check on the pieces.
 
-**`UpdateSwap()` (0x4cd84f).** MarkDirty; mSwapAngle += 5.
+**`UpdateSwapping()` (0x4cd84f).** MarkDirty; mSwapAngle += 5.
 
 If mSwapAngle == 180 (A = mSwapPiece1, B = mSwapPiece2):
 1. Exchange the pieces:
@@ -507,14 +507,14 @@ If mSwapAngle == 180 (A = mSwapPiece1, B = mSwapPiece2):
    - A.x = ColX(A.col); A.y = RowY(A.row); mBoard[A.row][A.col] = A
    - B.col = c; B.row = r; B snaps likewise; mBoard[r][c] = B
 2. mCascadeCount = 1; mMoveMatchCount = 0.
-3. If `ProcessMatches()`:
+3. If `FindSets()`:
    - mSwapPiece1 = mSwapPiece2 = NULL; mState = 4.
    - If mShowTutorial: mShowTutorial = false; app->KillDialog(9); app->mShowInstructions = false.
    - mIsNewGame = false.
 4. Else if mState == 2 (illegal swap):
    - `A.mSwapOffX = -A.mSwapOffX; A.mSwapOffY = -A.mSwapOffY; B.mSwapOffX = -A.mSwapOffX; B.mSwapOffY = -A.mSwapOffY` (B uses A's new values)
    - mSwapAngle = 0; PlaySample(7 bad2); mState = 3.
-5. Else (state 3 finished): mSwapPiece1 = mSwapPiece2 = NULL; mState = 1. ProcessMatches already ran on the restored board and found nothing.
+5. Else (state 3 finished): mSwapPiece1 = mSwapPiece2 = NULL; mState = 1. FindSets already ran on the restored board and found nothing.
 
 Otherwise (mid-animation):
 ```
@@ -560,7 +560,7 @@ MarkDirty; mState = 0; ++mCascadeCount;
 - Spawned gems stack above the highest gem of their column (minY - 69 per pass).
 - Colors are not re-rolled, so cascades occur.
 
-#### 3.8.5 State 5: `UpdateGameOver()` (0x4cab82)
+#### 3.8.5 State 5: `UpdateGameOverAnim()` (0x4cab82)
 
 MarkDirty first.
 
@@ -592,7 +592,7 @@ WidgetManager (it remains `app->mBoard`).
 
 #### 3.8.7 State 7: vortex
 
-**`StartBlackHole()` (0x4ca58d).** Called from Update step 20.
+**`DoWhirlpool()` (0x4ca58d).** Called from Update step 20.
 1. If mWhirlpoolSound: Release it.
 2. `mWhirlpoolSound = app->mSoundManager->GetSoundInstance(19)`; if non-NULL, `Play(true, false)` (looping).
 3. mBlackHoleLevel = 0.0; mLevelTextShown = false; mBlackHoleFrame = 0; mSelectedPiece = NULL.
@@ -606,7 +606,7 @@ WidgetManager (it remains `app->mBoard`).
    The x87 sum is rounded to float before sqrtf; `dy*dy` is an int multiply.
 5. mState = 7.
 
-**`UpdateBlackHole()` (0x4cb931).** Verified.
+**`UpdateWhirlpool()` (0x4cb931).** Verified.
 ```
 mBlackHoleLevel += 0.02; if (mBlackHoleLevel > 1.0) mBlackHoleLevel = 1.0;
 if (mWhirlpoolSound) mWhirlpoolSound->SetVolume(mBlackHoleLevel);
@@ -630,9 +630,9 @@ for each piece row-major {
 }
 if (max1 >= 80.0 && max2 < 80.0) PlaySample(15 levelup1);
 if (max1 >= 64.0 && max2 < 64.0) { mLevelTextShown = true;
-   ShowText(StrFormat(GetString("LEVEL").c_str(), mLevel + 2), 400); }   // "LEVEL %d", the next level's number
+   DoBouncyText(StrFormat(GetString("LEVEL").c_str(), mLevel + 2), 400); }   // "LEVEL %d", the next level's number
 if (done) {
-  ++mLevel; SetupLevel();               // new background into mNextBackgroundImage, new multiplier/points/drain
+  ++mLevel; SetupLevelData();               // new background into mNextBackgroundImage, new multiplier/points/drain
   delete all 64 pieces, cells = NULL;
   mLevelTargetScore = mLevelPoints + mScore; mLevelStartScore = mScore;
   PlaySample(17 firecrackle); mWipeY = 0; mState = 8;
@@ -641,7 +641,7 @@ MarkDirty;
 ```
 No RNG.
 
-#### 3.8.8 State 8: `UpdateLevelWipe()` (0x4cb284)
+#### 3.8.8 State 8: `UpdateLevelTransition()` (0x4cb284)
 
 1. `Graphics g(mBackgroundImage); g.ClipRect(0, mWipeY, mWidth, 3); g.DrawImage(mNextBackgroundImage, 0, 0);`
 2. Whirlpool fade:
@@ -651,11 +651,11 @@ No RNG.
 3. `if (cnt % 4 == 0) mElectOffset = Rand() % 128;`
 4. MarkDirty; mWipeY += 3.
 5. If `mWipeY > mHeight`:
-   - mDisplayLevel = mLevel + 1; mTimeDrainDelay = 200; FillBoard().
+   - mDisplayLevel = mLevel + 1; mTimeDrainDelay = 200; NewBoard().
    - Then `if (!app->mIsRegistered && app->mTimesPlayed >= 15 && Rand()%5 == 0) app->ShowRegisterNagDialog();`
-   - The Rand draw happens only when the first two conditions hold, after FillBoard's draws.
+   - The Rand draw happens only when the first two conditions hold, after NewBoard's draws.
 
-#### 3.8.9 State 9: `UpdateFallOut()` (0x4cb3bf)
+#### 3.8.9 State 9: `UpdateBoardDropping()` (0x4cb3bf)
 
 Timed mode with no moves left:
 ```
@@ -665,12 +665,12 @@ for col 0..7 { start = (Rand() % 15 == 0);          // exactly 8 draws per tick,
     if (p->mVelY == 0.0) { if (start) { p->mVelY = 1.0; start = false; } }   // no move this tick
     else { p->mY += p->mVelY; p->mVelY += 0.18; }
     if (p->mY < (double)(mHeight + 32)) allGone = false; } }
-if (allGone) { mTimeDrainDelay = 200; FillBoard(); }
+if (allGone) { mTimeDrainDelay = 200; NewBoard(); }
 ```
 - Pieces start in UpdateFalling with mVelY = 0, so each column is released bottom-up, one gem per lucky tick.
 - The drain keeps running only in states 1 and 2, so it pauses during the fall-out.
 
-### 3.9 `ProcessMatches()` (0x4cd287): scoring (verified)
+### 3.9 `FindSets()` (0x4cd287): scoring (verified)
 
 ```
 numMatches = 0; sumAvgX = 0; maxLen = 0;
@@ -691,10 +691,10 @@ for dir 0..1 {              // 0: vertical runs (line i = column i, j = row); 1:
         pts = (int)((double)base * mPointMultiplier);
         mScorePopups.push_back({ax+24, ay+16, 110, -1, pts});
         mGemsCleared += count; mScore += pts;
-        if (mMoveMatchCount == 1) { mHintGlowAlpha = 0.0; mHintGlowTimer = 0; mMoveScore = 0; mUnused218 = 0; }
+        if (mMoveMatchCount == 1) { mHintGlowAlpha = 0.0; mHintGlowTimer = 0; mMoveScore = 0; mClearedAtMoveStart = 0; }
         thr = (int)(mPointMultiplier * 120.0);
         if (mMoveScore < thr && mMoveScore + pts >= thr)
-          { ShowText(GetString("EXCELLENT"), 200); PlaySample(20 excellent1); }
+          { DoBouncyText(GetString("EXCELLENT"), 200); PlaySample(20 excellent1); }
         mMoveScore += pts;
         if (mMoveScoreTimer != -1)
           mMoveScoreTimer = (int)clamp((double)mMoveScore / mPointMultiplier * 3.0, 300.0, 1200.0);
@@ -703,7 +703,7 @@ for dir 0..1 {              // 0: vertical runs (line i = column i, j = row); 1:
       color = p ? p->mColor : -1; count = 1; start = (col,row);
     } } }
 if (numMatches > 0) {
-  pan = GetPanForX(sumAvgX / numMatches + 24); mIdleTicks = 0;
+  pan = GetPanPosition(sumAvgX / numMatches + 24); mIdleTicks = 0;
   PlaySample(maxLen == 3 ? 0 : 1, pan);                    // gotset2 / gotsetbig2
   c = mCascadeCount - 1; if (c >= 5) c = 4; PlaySample(c + 2, pan);  // combo22..combo52 (id 6 = combo52 again)
   if (numMatches > 1) PlaySample(13 multishot, pan);
@@ -733,7 +733,7 @@ Notes:
 6. p = GetPieceAt(x,y).
 7. If there is no selection:
    - If p is NULL, return (no MarkDirty).
-   - Otherwise: mCursorFrame = 0; mSelectedPiece = p; MarkDirty; `PlaySample(11 select, GetPanForX((int)(p->mX + 24.0)))`; return.
+   - Otherwise: mCursorFrame = 0; mSelectedPiece = p; MarkDirty; `PlaySample(11 select, GetPanPosition((int)(p->mX + 24.0)))`; return.
    - Selection works in every state except 5..8.
 8. If mState != 1, return. The selection is kept.
 9. Click zone:
@@ -747,7 +747,7 @@ Notes:
      if (|dy| < |dx|) c += (dx < 0 ? -1 : 1); else r += (dy < 0 ? -1 : 1);   // ties go vertical
      if ((unsigned)c < 8 && (unsigned)r < 8) target = mBoard[r][c];
    }
-   if (target && target != sel) StartSwap(sel, target);   // a non-adjacent target plays bad2
+   if (target && target != sel) SwapPieces(sel, target);   // a non-adjacent target plays bad2
    mSelectedPiece = NULL; MarkDirty;
    ```
    Clicking the selected gem again deselects it.
@@ -763,14 +763,14 @@ Notes:
 4. Else (ties go vertical):
    - dy > 0 && row < 7: neighbour is [row+1][col].
    - dy < 0 && row > 0: neighbour is [row-1][col].
-5. `StartSwap(sel, neighbour)` (no NULL check).
+5. `SwapPieces(sel, neighbour)` (no NULL check).
 6. In every case past the threshold: mSelectedPiece = NULL; MarkDirty.
 
 **`KeyChar(c)` (0x4ca9d3):** any key toggles the user pause (`Unpause(true)` if mUserPauseCount > 0, else `Pause(true)`).
 
 ### 3.11 Banner text
 
-**`ShowText(text, duration)` (0x4ca1c8).**
+**`DoBouncyText(text, duration)` (0x4ca1c8).**
 1. Delete mTextImage and mTextColorImage (virtual; not nulled first).
 2. `font = app->mOverFont`.
 3. mTextImage:
@@ -861,7 +861,7 @@ All `/2`, `/3`, `/6` are int divisions. blackcover.png is never used.
 The original format, version 1. port(variant): a board of code-mod rules writes the v2 save instead: a header
 before these fields and chunks after them (12.7).
 
-**`SaveGameExists()` (0x4cca37):** `app->FileExists(GetAppDataFolder() + "userdata\\savegame.dat")`.
+**`HasSavedGame()` (0x4cca37):** `app->FileExists(GetAppDataFolder() + "userdata\\savegame.dat")`.
 
 **`SaveGame()` (0x4ccdfe).**
 1. `Pause(false); Unpause(false)`. This commits play seconds, sets mPlayStartTick = cnt and mInputDelay = 10.
@@ -881,7 +881,7 @@ before these fields and chunks after them (12.7).
 | | f64 | mPointMultiplier |
 | | i32 x 6 | mDisplayScore, mGemsCleared, mMoveMatchCount, mCascadeCount, mLongestCascade, mBestMoveScore |
 | | u8 | mStatsDisabled |
-| | i32 x 4 | mUnused264, mLevelStartScore, mLevelTargetScore, mLevelPoints |
+| | i32 x 4 | mSavedZero, mLevelStartScore, mLevelTargetScore, mLevelPoints |
 | | f64 x 3 | mTimeDrain, mTimeDrainRate, mTimeDrainAccel |
 | | i32 x 3 | mBarColor, mWipeY, mBlackHoleFrame |
 | | f64 | mBlackHoleLevel |
@@ -913,14 +913,14 @@ Not restored:
   `RNGS` record) restores it: seed, stream, SEED line and the `-seeded` table. Without a matching sidecar
   the resumed game goes on on the global stream (12.3)
 
-`SetupLevel()` is NOT called, so the background stays the level-0 look (faithful bug). A state-4 save resumes with dying gems.
+`SetupLevelData()` is NOT called, so the background stays the level-0 look (faithful bug). A state-4 save resumes with dying gems.
 
-**`DeleteSaveGame()` (0x4cd130):** `app->EraseFile(path)`.
+**`DeleteSavedGame()` (0x4cd130):** `app->EraseFile(path)`.
 
 Callers:
-- WinDMApp ButtonDepress 2016: LoadGame + DeleteSaveGame.
-- 3016: DeleteSaveGame.
-- Shutdown and ~Board: SaveGame when IsGameInProgress.
+- WinDMApp ButtonDepress 2016: LoadGame + DeleteSavedGame.
+- 3016: DeleteSavedGame.
+- Shutdown and ~Board: SaveGame when IsInProgress.
 
 ### 3.15 Sounds played by Board
 
@@ -943,11 +943,11 @@ Callers:
 
 ### 3.16 RNG call order (all of Board)
 
-1. FillBoard: per cell (rows 7..0, cols 0..7): `Rand()%240`, then `Rand()%7` until no match.
+1. NewBoard: per cell (rows 7..0, cols 0..7): `Rand()%240`, then `Rand()%7` until no match.
 2. UpdateClearing refill: `Rand()%7` per gapped column per pass, cols 0..7, passes repeated.
-3. UpdateGameOver: every 6th tick and the final tick, per piece row-major: `%9` (x), `%9` (y); on the final tick also `%8` (vy) and `%7` (vx).
-4. UpdateLevelWipe: `%128` every 4th tick; at the end, FillBoard, then optionally `%5` (unregistered, 15+ plays).
-5. UpdateFallOut: 8 x `%15` per tick.
+3. UpdateGameOverAnim: every 6th tick and the final tick, per piece row-major: `%9` (x), `%9` (y); on the final tick also `%8` (vy) and `%7` (vx).
+4. UpdateLevelTransition: `%128` every 4th tick; at the end, NewBoard, then optionally `%5` (unregistered, 15+ plays).
+5. UpdateBoardDropping: 8 x `%15` per tick.
 6. Outside Board: `HighScoreWidget()` ctor: 1 x `%9` (game over and every High Scores dialog open).
 7. Startup consumes RNG in two Board ctors (TitleScreenIsFinished calls NewGame twice).
 
@@ -991,7 +991,7 @@ It runs inside SexyAppBase::Init.
 2. If CheckForVista(): MkDir and AllowAllAccess on GetAppDataFolder(), then UserDataMigrator: AddPath("userdata"), MigrateAll. port: skip.
 3. LoadProperties() (properties\default.xml).
 4. `DIALOG_YES/NO/OK/CANCEL_STRING = GetString("DIALOG_BUTTON_YES"/"_NO"/"_OK"/"_CANCEL")`.
-5. mImages = new Image*[36] (all NULL). For i = 0..6: `if (!LoadAppImage(i)) { Shutdown(); return; }`.
+5. mImages = new Image*[36] (all NULL). For i = 0..6: `if (!DoLoadImage(i)) { Shutdown(); return; }`.
 6. mHeaderFont = new ImageFont(this, "data\\afont1.txt"); mMainFont = new ImageFont(this, "data\\mainfont1.txt").
 7. `mTitleScreen = new TitleScreen(this); Resize(0,0,mWidth,mHeight); mWidgetManager->AddWidget(mTitleScreen)`.
 8. Music: LoadMusic 0/1/2 (section 1); PlayMusic(2, 0, false).
@@ -1005,7 +1005,7 @@ The loading thread starts later, in Start().
    - `std::fstream f("data\\diff.txt", ios::in)` (plain file, not the pak). port: VFS.
    - `f >> int 0x728 >> d 0x730 >> d 0x738 >> d 0x740 >> int 0x748 >> d 0x750 >> d 0x758 >> d 0x760 >> d 0x768 >> d 0x770 >> d 0x778 >> d 0x780`.
    - No error check; values are whitespace-separated.
-3. Images 7..35: `LoadAppImage(i)`; on failure go to end; ++mCompletedLoadingThreadTasks per image.
+3. Images 7..35: `DoLoadImage(i)`; on failure go to end; ++mCompletedLoadingThreadTasks per image.
 4. Sounds, if `mSoundManager->Initialized()`: for i = 0..20, `LoadSound(i, "sounds\\" + gSoundNames[i])`.
    - On failure: `Popup("Failed to load sounds\\" + name)`, mLoadingFailed = true, go to end.
    - ++completed per sound. If the manager is not initialised, completed += 21.
@@ -1034,7 +1034,7 @@ No RNG.
 **`TitleScreenIsFinished()` (0x4d6f28).** Called by TitleScreen::ButtonDepress.
 1. `mMusicInterface->FadeOut(2, true, 0.004)`.
 2. `mWidgetManager->RemoveWidget(mTitleScreen); SafeDeleteWidget(mTitleScreen); mTitleScreen = NULL;`
-3. Side-bar buttons, `MakeButton(id, Rect, overImg, downImg)`:
+3. Side-bar buttons, `CreateControlButton(id, Rect, overImg, downImg)`:
 
 | Id | Button | Rect (x,y,w,h) | over | down |
 |---|---|---|---|---|
@@ -1048,9 +1048,9 @@ No RNG.
    The hint button then gets `mMouseInsets = Insets(-16,-8,-16,-8)`.
 4. `SetTimedMode(false, true)`. This already calls NewGame().
 5. `NewGame()` again. The first board is SafeDeleted; both ctors consume RNG; the music fades repeat.
-6. `ConfirmLoadGame()`.
+6. `TryConfirmLoad()`.
 
-**`MakeButton` (0x4d6e71).**
+**`CreateControlButton` (0x4d6e71).**
 1. `b = new ButtonWidget(id, this)`; `b->Resize(rect)`; `b->mDoFinger = true`.
 2. `if (over != -1) b->mOverImage = mImages[over]`; `b->mDownImage = mImages[down]`.
 3. `b->mMouseInsets = Insets(1,1,3,3)`.
@@ -1076,7 +1076,7 @@ No RNG.
 2. `mHighScoreWidget = new HighScoreWidget(this); Resize(0,0,mWidth,mHeight); AddWidget; BringToBack`.
 
 **`Shutdown()` (0x4d43f9).**
-1. If not mShutdown, and mBoard && `mBoard->IsGameInProgress()`:
+1. If not mShutdown, and mBoard && `mBoard->IsInProgress()`:
    - `mBoard->SaveGame(); RemoveWidget(mBoard); SafeDeleteWidget(mBoard); mBoard = NULL`.
    - When the deferred delete runs, ~Board sees the game still in progress: it saves again and ++mTimesPlayed.
 2. Then SexyAppBase::Shutdown.
@@ -1103,23 +1103,23 @@ Button modes: 0 none, 1 YES_NO, 2 OK_CANCEL, 3 FOOTER.
 | Function | Dialog | Content / layout |
 |---|---|---|
 | ConfirmNewGame (0x4d5610) | 0 | If `mBoard->mState == 6`, NewGame() directly. Else DoDialog(0, modal, NEWGAMEDIALOG1, NEWGAMEDIALOG2, "", YES_NO). |
-| ConfirmQuit (0x4d58af) | 1 | lines = CONFIRMQUIT1, + CONFIRMQUIT2 if `mBoard && mBoard->IsGameInProgress()`. DoDialog(1, modal, GetString("QUIT"), lines, "", YES_NO). |
-| ShowOptionsDialog (0x4d483e) | 2 | `new OptionsDialog(this)`, Resize(234, 50, 348, prefH(348)), AddDialog(2). |
+| ConfirmQuit (0x4d58af) | 1 | lines = CONFIRMQUIT1, + CONFIRMQUIT2 if `mBoard && mBoard->IsInProgress()`. DoDialog(1, modal, GetString("QUIT"), lines, "", YES_NO). |
+| DoOptions (0x4d483e) | 2 | `new OptionsDialog(this)`, Resize(234, 50, 348, prefH(348)), AddDialog(2). |
 | ConfirmNormalMode (0x4d56ec) | 3 | If state 6, SetTimedMode(false,true). Else DoDialog(3, CONFIRMNORMALMODE1/2, YES_NO). |
 | ConfirmTimedMode (0x4d57cd) | 4 | If state 6, SetTimedMode(true,true). Else DoDialog(4, CONFIRMTIMEDMODE1/2, YES_NO). |
 | ShowRegisterDialog (0x4d5272) | 5 / 19 | If mIsRegistered: `d = DoDialog(19, true, "Already Registered", "You have already registered Bejeweled!", "OK", FOOTER)` (literals), then `d->Move(d->mX, d->mY+24)`. Else `new RegisterDialog`, Resize((mWidth-348)/2, 32, 348, prefH), AddDialog(5). port: only the 19 branch. |
 | ShowRegistrationInvalidDialog (0x4d5386) | 6 | DoDialog(6, REGISTRATION_INVALID_DIALOG1/2/3, FOOTER); PlaySample(7). |
 | ShowRegisterToRecordScoreDialog(lines) (0x4d5486) | 7 | DoDialog(7, GetString("HIGH_SCORE"), lines, "", YES_NO). |
-| ShowRecordScoreDialog(lines) (0x4d45e3) | 8 | `new RecordScoreDialog(this, lines)`, Resize(250, 32, 316, prefH(316)), AddDialog(8). |
-| ShowInstructionsDialog (0x4d59cc) | 9 | `NewDialog(9, false, "", INSTRUCTIONDIALOG, "", NONE)`; mContentInsets = Insets(16,24,16,24); Resize(201, 38, 418, prefH(418)); AddDialog(9). Non-modal. |
+| DoRecordScoreDialog(lines) (0x4d45e3) | 8 | `new RecordScoreDialog(this, lines)`, Resize(250, 32, 316, prefH(316)), AddDialog(8). |
+| DoInstructionDialogette (0x4d59cc) | 9 | `NewDialog(9, false, "", INSTRUCTIONDIALOG, "", NONE)`; mContentInsets = Insets(16,24,16,24); Resize(201, 38, 418, prefH(418)); AddDialog(9). Non-modal. |
 | OpenURL (0x4d5077) | 10 | `NewDialog(10, true, "", OPENING_BROWSER, "", NONE)`; mContentInsets = (16,26,16,16); Resize(180,140,280,70); AddDialog; return SexyAppBase::OpenURL(url, shutdown). |
 | URLOpenFailed (0x4d4e97) | 11 | Base call; KillDialog(10); CopyToClipboard(url); NewDialog(11, true, OPEN_BROWSER, URL_OPEN_ERROR1 + url + URL_OPEN_ERROR2, DIALOG_BUTTON_OK, FOOTER); Resize(100, 50, 440, prefH(440)); AddDialog. |
 | URLOpenSucceeded (0x4d4592) | - | Base call; KillDialog(10). |
-| ShowFullInstructionsDialog (0x4d5ac1) | 12 | NewDialog(12, true, FULL_INSTRUCTIONS1, FULL_INSTRUCTIONS2, DONE, FOOTER); mTextAlign = -1 (left); Resize(32, 8, mWidth-64, prefH(mWidth-64)); AddDialog. |
-| ShowColorDepthDialog (0x4d5bef) | 12 | DoDialog(12, COLOR_DEPTH_EXPLANATION1/2, DIALOG_BUTTON_OK, FOOTER). |
-| ShowHighScoreDialog (0x4d48b6) | 13 | `new HighScoreDialog(this)`, Resize(194, 50, 428, 326), AddDialog(13). |
+| DoFullInstructions (0x4d5ac1) | 12 | NewDialog(12, true, FULL_INSTRUCTIONS1, FULL_INSTRUCTIONS2, DONE, FOOTER); mTextAlign = -1 (left); Resize(32, 8, mWidth-64, prefH(mWidth-64)); AddDialog. |
+| DoColorDepthExplanation (0x4d5bef) | 12 | DoDialog(12, COLOR_DEPTH_EXPLANATION1/2, DIALOG_BUTTON_OK, FOOTER). |
+| DoHighScoreDialog (0x4d48b6) | 13 | `new HighScoreDialog(this)`, Resize(194, 50, 428, 326), AddDialog(13). |
 | ShowRegisterNagDialog (0x4d5cdf) | 15 | See below; NewDialog(15, true, REGISTER_NOW, msg, "", YES_NO); Resize(234, 50, 348, prefH(348)); AddDialog. |
-| ConfirmLoadGame (0x4d550d) | 16 | If `mBoard->SaveGameExists()`: d = DoDialog(16, CONFIRM_LOAD_DIALOG1/2, YES_NO); d->Resize(234, 50, 348, prefH(348)). |
+| TryConfirmLoad (0x4d550d) | 16 | If `mBoard->HasSavedGame()`: d = DoDialog(16, CONFIRM_LOAD_DIALOG1/2, YES_NO); d->Resize(234, 50, 348, prefH(348)). |
 | DoUpdateCheck (0x4d68da) | 18 | UpdateCheckDialog + HTTP check. Not ported. |
 
 **Register nag message.**
@@ -1165,7 +1165,7 @@ YES/OK/footer: `2000 <= r < 3000`, d = id - 2000.
 | 7 | ShowRegisterDialog(); KillDialog(7) |
 | 8 | Record score, see below |
 | 15 | KillDialog(15); ShowRegisterDialog() |
-| 16 | KillDialog(16); `mBoard->LoadGame(); mBoard->DeleteSaveGame()` |
+| 16 | KillDialog(16); `mBoard->LoadGame(); mBoard->DeleteSavedGame()` |
 | 17 | KillDialog(17); DoUpdateCheck() |
 | default | KillDialog(d) |
 
@@ -1182,7 +1182,7 @@ NO/CANCEL: `3000 <= r < 4000`, d = id - 3000.
 
 | d | Action |
 |---|---|
-| 16 | KillDialog(16); mBoard->DeleteSaveGame() |
+| 16 | KillDialog(16); mBoard->DeleteSavedGame() |
 | 10018 | KillDialog(10018); KillDialog(18) |
 | other | KillDialog(d) |
 
@@ -1193,7 +1193,7 @@ Then, for every id, a second switch:
 | 10 | ConfirmNewGame() |
 | 11 | `if (!mTimedMode) ConfirmNewGame(); else if (mBoard->mIsNewGame) SetTimedMode(false, true); else ConfirmNormalMode();` |
 | 12 | `if (mTimedMode) ConfirmNewGame(); else if (mBoard->mIsNewGame) SetTimedMode(true, true); else ConfirmTimedMode();` |
-| 13 | ShowOptionsDialog() |
+| 13 | DoOptions() |
 | 14 | ConfirmQuit() |
 | 15 | mBoard->ShowHint() |
 
@@ -1287,11 +1287,11 @@ It is never re-laid-out after this.
    - Today: "" / 0 for both modes.
    - Normal: Ace 1000, John 900, Chris 800, Brian 700, Ben 600.
    - Timed: Bradley 1000, Mike 900, Billy 800, Jason 700, Wim 600.
-6. `LoadHighScores()`.
+6. `ReadFromFile()`.
 7. port(variant): the table file is chosen before the load, from the board then in `mApp->mBoard`: a
    user-seeded game has its own table (12.3).
 
-**`~HighScoreWidget` (0x4d0dad).** Delete mBoardImage and mPlayAgainLink, then `SaveHighScores()`. It always re-saves.
+**`~HighScoreWidget` (0x4d0dad).** Delete mBoardImage and mPlayAgainLink, then `WriteToFile()`. It always re-saves.
 
 **`Resize` (0x4cedf5).**
 1. Widget::Resize; mSlideY = -theHeight.
@@ -1304,22 +1304,22 @@ It is never re-laid-out after this.
 **`Update` (0x4d1187).**
 1. Widget::Update.
 2. If mSlideY < 0:
-   - mSlideY += 8; if it is now >= 0: mSlideY = 0 and `DoCheckForHighScore()`.
+   - mSlideY += 8; if it is now >= 0: mSlideY = 0 and `ProcessScoreStuff()`.
    - MarkDirty; `mPlayAgainLink->Resize(265, mSlideY + 389, 286, 23)`.
    - At height 480 the slide takes 60 ticks.
 3. `if (mUpdateCnt % 10 == 0) { ++mColorCycle; MarkDirty; }`
 
 **`ButtonDepress` (0x4ceeb7):** `app->NewGame()` (no sound).
 
-**`GetRank(mode, score)` (0x4ced82).** `rank = 0; for (i = 4; i >= 0; i--) if (score > mScores[mode][i]) rank = i+1;`. Ties do not place.
+**`GetScorePlace(mode, score)` (0x4ced82).** `rank = 0; for (i = 4; i >= 0; i--) if (score > mScores[mode][i]) rank = i+1;`. Ties do not place.
 
-**`GetDayNumber()`:** `tm_year*366 + tm_yday` from `_localtime64(_time64())`.
+**`GetDayNum()`:** `tm_year*366 + tm_yday` from `_localtime64(_time64())`.
 
-**`GetOrdinalSuffix(n)`:** `(n%100)/10 == 1` gives "th"; otherwise n%10 of 1/2/3 gives "st"/"nd"/"rd", anything else "th".
+**`GetOrderSuffix(n)`:** `(n%100)/10 == 1` gives "th"; otherwise n%10 of 1/2/3 gives "st"/"nd"/"rd", anything else "th".
 
-**`DoCheckForHighScore()` (0x4d0e4b).** The virtual `CheckForHighScore()` (0x4d11fd) jumps here.
+**`ProcessScoreStuff()` (0x4d0e4b).** The virtual `CheckForHighScore()` (0x4d11fd) jumps here.
 1. `score = app->mBoard->mScore; mode = app->mTimedMode` (app's flag).
-2. `best = score > mTodayScores[mode]; rank = GetRank(mode, score); N = "%d"(rank) + GetOrdinalSuffix(rank)`.
+2. `best = score > mTodayScores[mode]; rank = GetScorePlace(mode, score); N = "%d"(rank) + GetOrderSuffix(rank)`.
 3. Messages (literals). `\n` is a newline; R = `"\n\nWould you like to register so\nyou can record your score?"`.
 
 | Case | Registered | Unregistered |
@@ -1329,33 +1329,33 @@ It is never re-laid-out after this.
 | !best && rank > 0 | `"You got " + N + " place of all time!"` | same + R |
 | otherwise | no dialog | no dialog |
 
-   - Registered: `app->ShowRecordScoreDialog(msg)`. Unregistered: `app->ShowRegisterToRecordScoreDialog(msg)`.
+   - Registered: `app->DoRecordScoreDialog(msg)`. Unregistered: `app->ShowRegisterToRecordScoreDialog(msg)`.
    - The HSWIDGET_*PLACEMENT* property strings are unused.
 
 **`AddHighScore(name)` (0x4d06d8).** Called on dialog 8 OK or Enter.
 1. If name is empty, return without saving.
-2. `mode = app->mBoard->mTimedMode` (the Board's flag); score = board->mScore; rank = GetRank(mode, score).
+2. `mode = app->mBoard->mTimedMode` (the Board's flag); score = board->mScore; rank = GetScorePlace(mode, score).
 3. `if (score > mTodayScores[mode]) { mTodayScores[mode] = score; mTodayNames[mode] = name; }`
 4. `if (rank) { for (k = 4; k >= rank; k--) shift [k-1] -> [k]; mNames[mode][rank-1] = name; mScores[mode][rank-1] = score; }`
-5. `SaveHighScores()`.
+5. `WriteToFile()`.
 
 **hiscores.dat format.**
 - Little-endian, no header. Two tables, Normal then Timed. Each table:
   ```
-  int32 day                                  // GetDayNumber() at save time
+  int32 day                                  // GetDayNum() at save time
   today:   u16 len, char name[len], int32 score, int32 checksum
   5 x all-time: u16 len, char name[len], int32 score, int32 checksum
   ```
 - `checksum = score ^ 0x42BEEF ^ XOR_k((int)(signed char)name[k] * 17)`.
 - File size = 8 + 12*10 + total name bytes.
 
-**Load (`LoadHighScores`, 0x4ceec2).** `fopen(appdata+"userdata\\hiscores.dat","rb")`; if missing, keep the defaults. Per table:
+**Load (`ReadFromFile`, 0x4ceec2).** `fopen(appdata+"userdata\\hiscores.dat","rb")`; if missing, keep the defaults. Per table:
 1. Read day; today's len (min(len,255)), name, score and checksum.
-2. The today record is accepted only if `day == GetDayNumber() && checksum ok`; otherwise the defaults stay.
+2. The today record is accepted only if `day == GetDayNum() && checksum ok`; otherwise the defaults stay.
 3. For each all-time entry: the name is always taken; score = checksum ok ? score : score % 256 (tamper penalty).
 4. fread results are never checked. port: stop at EOF and keep the defaults (see open questions).
 
-**Save (`SaveHighScores`, 0x4cf1b4).**
+**Save (`WriteToFile`, 0x4cf1b4).**
 1. `DeleteFileA(path); MkDir(appdata+"userdata"); fopen "wb"`.
 2. On failure: `Popup("Failed to create high score file!\nPlease report to support@popcap.com.")` and return.
 3. Writes the format above. The day is always today, so stale today records saved earlier as ""/0 are re-stamped.
@@ -1471,13 +1471,13 @@ At the shipped size (194,50,428,326) the columns are at x 124 and 304.
 
 **`SliderVal(id, v)`:** id 0 calls `app->SetMusicVolume(v)`, id 1 calls `app->SetSfxVolume(v)` (live).
 
-**`CheckboxChecked(id, checked)`.** Only when `id == 0 && !checked && app->mForceFullscreen`: `app->ShowColorDepthDialog(); mFullscreenCheckbox->SetChecked(true, true)`.
+**`CheckboxChecked(id, checked)`.** Only when `id == 0 && !checked && app->mForceFullscreen`: `app->DoColorDepthExplanation(); mFullscreenCheckbox->SetChecked(true, true)`.
 
 **`ButtonPress(id)`:** Dialog::ButtonPress(id), then PlaySample(12). The footer Done therefore plays menuclick twice (here and in WinDMApp::ButtonPress(2002)).
 
 **`ButtonDepress(id)`.** Dialog::ButtonDepress(id) (Done leads to app 2002), then:
 - id 100..199: `app->OpenURL(GetString(StrFormat("OptionsLinkURL%d", id-100), "http://www.popcap.com"), false)`. Shipped: steam://publisher/popcap. port: platform open.
-- 0: ShowFullInstructionsDialog. 1: ShowRegisterDialog. 2: ShowHighScoreDialog.
+- 0: DoFullInstructions. 1: ShowRegisterDialog. 2: DoHighScoreDialog.
 - 3: OpenURL("http://www.popcap.com") (no such button). 4: DoUpdateCheck (unreachable).
 
 ## 9. RecordScoreDialog (`games/bejeweled/src/RecordScoreDialog.h`)
@@ -1529,7 +1529,7 @@ On OK (2008): AddHighScore + mLastScoreName, then KillDialog(8). Cancel (3008): 
 
 **Start.**
 1. Init → TitleScreen. Start → loading thread.
-2. CLICK HERE TO PLAY → TitleScreenIsFinished: buttons, two NewGame() calls (normal mode), then ConfirmLoadGame.
+2. CLICK HERE TO PLAY → TitleScreenIsFinished: buttons, two NewGame() calls (normal mode), then TryConfirmLoad.
 3. If savegame.dat exists, dialog 16 is shown:
    - YES: LoadGame (sets the mode buttons from the save), then delete the file.
    - NO: delete the file.
@@ -1543,18 +1543,18 @@ On OK (2008): AddHighScore + mLastScoreName, then KillDialog(8). Cancel (3008): 
 | Key press | pause toggle |
 | Dialog or focus loss | pause (visible in timed mode) |
 
-**Level complete.** Bar full → state 7 vortex → state 8 wipe → FillBoard (state 0).
+**Level complete.** Bar full → state 7 vortex → state 8 wipe → NewBoard (state 0).
 
 **No moves.**
 - Normal mode: NO MOVES! → GameOver(200).
-- Timed mode: state 9 fall-out → FillBoard.
+- Timed mode: state 9 fall-out → NewBoard.
 
 **Time up.** Bar empty → TIME UP! → GameOver(200).
 
 **Game over.**
 1. State 5: shake, then explode/fall.
 2. gameover1 → state 6 → ShowHighScoreWidget: the board is removed but kept; the widget slides down over the snapshot.
-3. At the end of the slide, DoCheckForHighScore → dialog 8 (registered) or 7 (unregistered).
+3. At the end of the slide, ProcessScoreStuff → dialog 8 (registered) or 7 (unregistered).
 4. OK → AddHighScore → save.
 5. "CLICK HERE TO PLAY AGAIN" → NewGame. This deletes the widget (re-save) and the old board.
 
@@ -1583,7 +1583,7 @@ On OK (2008): AddHighScore + mLastScoreName, then KillDialog(8). Cancel (3008): 
 - Leaks the port may fix:
   - pieces in ~Board
   - WinDMApp mScoreFont and the shrink arrays
-- Leaks the port must NOT fix by deleting: the pieces FillBoard orphans. Park them in a Board-owned list (3.6).
+- Leaks the port must NOT fix by deleting: the pieces NewBoard orphans. Park them in a Board-owned list (3.6).
 - The Piece byte layout (0x78, padding included) is part of savegame.dat. Keep the 0x78-byte record
   (`Piece::SAVE_SIZE`) exactly as is: the code-mod fields (`mKind`, `mKindFrame`) follow it, and the save
   writes and reads exactly the record.
@@ -1606,19 +1606,19 @@ and address; its count is tracked per stage.
 
 | Stage | Hook lines | Translated functions | What |
 |---|---|---|---|
-| 1 | 55 | 22 | `InitVariant()` in the ctor; loop bounds `BOARD_ROWS`/`BOARD_COLS`/8/7 → `mRows`/`mCols`; `BOARD_X`/`BOARD_Y` → `mLayout.mOriginX/Y` in `GetColX`/`GetRowY`; `mHeight` → `mLayout.mScreenBottom` (480) in `UpdateGameOver`/`UpdateFallOut`; `sizeof(Piece)` → `Piece::SAVE_SIZE` in the save |
-| 2 | 63 | 27 | Set seed (12.3): `ChooseBoardRng()` in `WinDMApp::NewGame`; `UsePendingSeed()` on the board's first tick in `Update` (after the pause checks); `GameLoadedVariant()` at the end of a successful `LoadGame`; `delete mOwnRng` in `~Board`; `HighScoreWidget`: the table file chosen in the ctor and used by `LoadHighScores`/`SaveHighScores`, the SEED line in `Draw`. The 9 `Rand()` draws keep their text: `Board::Rand()` hides `Sexy::Rand` by class scope |
-| 2, seed rule | 65 | 30 | The pending seed waits for play (12.3, the user's decision of 2026-10-18): `UsePendingSeed()` leaves `Update` for `UpdateSwap` (after `mIsNewGame = false`) and `GameOver`; `RequestNewGame` clears `mTakesPendingSeed` before its `GameOver(50)` |
-| 3a | 94 | 41 | Replays, recording side (12.4). One-line observer hooks `if (mRecorder != NULL) mRecorder->...;` in `GameOver`, `RequestNewGame` (NEW_GAME), `Pause`/`Unpause`, `MouseMove`/`MouseLeave` (HOVER), `MouseDown` (SELECT, DESELECT, TARGET), `MouseDrag` (TARGET), `DoHint` (HINT), `SaveGame` (`BeginSave`), `~Board` (`OnBoardDestroyed`, `delete mRecorder`), `Update` (entry `SyncExternalRand`, end `AfterUpdate`); `WinDMApp::NewGame` attaches the recorder. Playback guards `if (mPlaybackOnly) return;` in `IsGameInProgress` and the input handlers, for stage 3b. `LoadGame`'s file read and `SaveGame`'s write go through `ReadSaveFile`/`WriteSaveFile` (playback bytes; SAVE and the sidecar), `DeleteSaveGame` deletes the sidecar, `GameLoadedVariant(aBuffer)` restores the sidecar's RNG |
+| 1 | 55 | 22 | `InitVariant()` in the ctor; loop bounds `BOARD_ROWS`/`BOARD_COLS`/8/7 → `mRows`/`mCols`; `BOARD_X`/`BOARD_Y` → `mLayout.mOriginX/Y` in `GetColX`/`GetRowY`; `mHeight` → `mLayout.mScreenBottom` (480) in `UpdateGameOverAnim`/`UpdateBoardDropping`; `sizeof(Piece)` → `Piece::SAVE_SIZE` in the save |
+| 2 | 63 | 27 | Set seed (12.3): `ChooseBoardRng()` in `WinDMApp::NewGame`; `UsePendingSeed()` on the board's first tick in `Update` (after the pause checks); `GameLoadedVariant()` at the end of a successful `LoadGame`; `delete mOwnRng` in `~Board`; `HighScoreWidget`: the table file chosen in the ctor and used by `ReadFromFile`/`WriteToFile`, the SEED line in `Draw`. The 9 `Rand()` draws keep their text: `Board::Rand()` hides `Sexy::Rand` by class scope |
+| 2, seed rule | 65 | 30 | The pending seed waits for play (12.3, the user's decision of 2026-10-18): `UsePendingSeed()` leaves `Update` for `UpdateSwapping` (after `mIsNewGame = false`) and `GameOver`; `RequestNewGame` clears `mTakesPendingSeed` before its `GameOver(50)` |
+| 3a | 94 | 41 | Replays, recording side (12.4). One-line observer hooks `if (mRecorder != NULL) mRecorder->...;` in `GameOver`, `RequestNewGame` (NEW_GAME), `Pause`/`Unpause`, `MouseMove`/`MouseLeave` (HOVER), `MouseDown` (SELECT, DESELECT, TARGET), `MouseDrag` (TARGET), `TryShowHint` (HINT), `SaveGame` (`BeginSave`), `~Board` (`OnBoardDestroyed`, `delete mRecorder`), `Update` (entry `SyncExternalRand`, end `AfterUpdate`); `WinDMApp::NewGame` attaches the recorder. Playback guards `if (mPlaybackOnly) return;` in `IsInProgress` and the input handlers, for stage 3b. `LoadGame`'s file read and `SaveGame`'s write go through `ReadSaveFile`/`WriteSaveFile` (playback bytes; SAVE and the sidecar), `DeleteSavedGame` deletes the sidecar, `GameLoadedVariant(aBuffer)` restores the sidecar's RNG |
 | 3b | 104 | 47 | Replays, playback side (12.4). `Pause`/`Unpause`: a playback board takes pauses only from its player (`if (mPlaybackOnly && !mPlaybackApplying) return;`). `WinDMApp`: `mWatch`/`mReplayQuit` set in the ctor, `mWatch` deleted in the dtor; `UpdateFrames` runs `mWatch->BeforeFrame()` first; `TitleScreenIsFinished` starts the watch instead of its two new games; `ButtonDepress` gives New Game and the mode buttons to the watch; `NewGame` and `ShowHighScoreWidget` return at once when the playback board calls them (its game ended) |
 | 2b | 106 | 47 | Auto LiveSplit (12.5), merged after stage 3 (on stage 2's code it was 67 lines in 32 functions): `LiveSplitObserver::AfterUpdate` at the end of `WinDMApp::UpdateFrames` (after 3b's `mWatch->BeforeFrame()`, the update and the test hooks, `CodecCheck` included; only while wanted), `LiveSplitObserver::AppDestroyed` at the end of `~WinDMApp` (after 3b's `delete mWatch`). Both functions were already edited by 3b, so the count of functions stays. No Board function changes: the board serial and the resumed mark are set in `InitVariant` and `GameLoadedVariant` |
 | 4 | 106 | 47 | The headless verifier (12.6) compiles the translated Board sources as they are: no hook. `TraceBoard`, a port test hook, moved its settle check and block to `BoardTrace.cpp`; the watch's ended-board line stays in `WinDMApp.cpp` |
-| 5 | 113 | 47 | Allow invalid moves, the noMoves rule and the v2 save (12.7). `UpdateSwap`: the swap back only `&& !mVariant.mInvalid`, then `else if (mState == STATE_SWAPPING) KeepInvalidMove();`, and the match branch's `UsePendingSeed()` became `OnMoveMade()` (it also counts the move). `UpdateFalling`: `else if (mVariant.mNoMoves) OnNoMovesVariant();` before the original no-moves branches. `LoadGame`: the version check becomes `mVariant.mAny ? !ReadVariantHeader(aBuffer, aVersion) : (aVersion != SAVEGAME_VERSION)`. `WriteSaveGame`: the version `0x101` and the header after it, the chunks after the last field, on a variant board only. Every function was edited before, so the count of functions stays |
+| 5 | 113 | 47 | Allow invalid moves, the noMoves rule and the v2 save (12.7). `UpdateSwapping`: the swap back only `&& !mVariant.mInvalid`, then `else if (mState == STATE_SWAPPING) KeepInvalidMove();`, and the match branch's `UsePendingSeed()` became `OnMoveMade()` (it also counts the move). `UpdateFalling`: `else if (mVariant.mNoMoves) OnNoMovesVariant();` before the original no-moves branches. `LoadGame`: the version check becomes `mVariant.mAny ? !ReadVariantHeader(aBuffer, aVersion) : (aVersion != SAVEGAME_VERSION)`. `WriteSaveGame`: the version `0x101` and the header after it, the chunks after the last field, on a variant board only. Every function was edited before, so the count of functions stays |
 | 5, review | 115 | 47 | Hint on a board without a move (12.7): `ShowHint`: `if (NoHintVariant()) return;` after the playback guard; `Update`: after the idle glow's two lines, `if (NoHintVariant()) mHintGlowTimer = 0;`. Both functions were edited before |
 
 With the original rules every edited line computes what the original did: the board is 8x8, the layout
 is the original constants, and no hook reads the variant flags yet. `UpdateClearing`'s refill pass,
-`FillBoard`, `SetupLevel`'s tile loop and `Draw` keep their 8x8 constants: on other boards they will be
+`NewBoard`, `SetupLevelData`'s tile loop and `Draw` keep their 8x8 constants: on other boards they will be
 replaced by variant paths, not generalised.
 
 ### 12.2 Mod numbers (port)
@@ -1631,7 +1631,7 @@ replaced by variant paths, not generalised.
 - `Json.cpp` rejects `nan`, `inf` and numbers too large for a double (strtod accepts them, JSON does not
   have them), so such a `mod.json` fails to parse like any other invalid JSON. Before stage 1 the mod
   loaded and the value played differently on native and web.
-- The board's own `(int)` casts of doubles (a match's points times the multiplier, `SetupLevel`'s level
+- The board's own `(int)` casts of doubles (a match's points times the multiplier, `SetupLevelData`'s level
   points, the hint penalty, the score roll) leave the int range with legal values too: `setValues`
   2,000,000,000 in a timed game, a `diff.txt` with large steps. Natively they give `INT_MIN` (x86's
   `cvttsd2si`, also for NaN); emcc's default, wasm's saturating conversion, gave `INT_MAX`, `INT_MIN` or 0, so
@@ -1660,7 +1660,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
      before).
 - **The pending seed** (design 4.10, the user's decision of 2026-10-18). NewGame gives it to every board
   it creates (`mTakesPendingSeed`), until a game on it is played: the board uses it up
-  (`UsePendingSeed`) with its first swap that makes a match (`UpdateSwap`, where `mIsNewGame` is
+  (`UsePendingSeed`) with its first swap that makes a match (`UpdateSwapping`, where `mIsNewGame` is
   cleared, the moment that also decides whether quitting saves the game) or at its game over
   (`GameOver`: no moves in normal mode, time up; a timed game can run out without any move). New Game is
   no game over: `RequestNewGame` clears `mTakesPendingSeed` before its `GameOver(50)`. Until then every
@@ -1697,7 +1697,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10 and 6.2, as built:
 - **Checks.** `games/bejeweled/tools/check_rng_use.py` (design 6.1 rule 1) and the oracle's stage-2 cases
   (the pending seed: `seed_start`, `seed_resume`, `seed_timed`, `seed_match_timed`, `seed_nomatch_timed`,
   `seed_newgame`); `MTRand` `GetState`/`SetState` round trips in `games/bejeweled/tools/rulestest`.
-  `SetState` refuses an index outside 0..625 and the all-zero state (every draw 0: `FillBoard` would never
+  `SetState` refuses an index outside 0..625 and the all-zero state (every draw 0: `NewBoard` would never
   end), so a save's `RNGS` reader (stages 3 and 5) can treat `false` as a chunk error.
   `MTRand::Serialize()` keeps no index (a copy made from it restarts at the next 624-word block); it stays
   as it is because the `-tracehash` FULL hash hashes it.
@@ -1743,7 +1743,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.2-6.6 and 7.3, as built:
   plays a replay instead of the game the title screen starts (`-replayquit`: quit at its end). Each segment
   gets a playback board that owns an `MTRand` from the segment's RNG start (`Board::InitVariant`), takes no
   input (the handlers' `mPlaybackOnly` guards) and no pause but the replay's (`Pause`/`Unpause`), never
-  saves, counts or deletes anything (`IsGameInProgress`), and loads the bytes the segment before saved (or
+  saves, counts or deletes anything (`IsInProgress`), and loads the bytes the segment before saved (or
   its `LDSV`) with the segment's `RNGS` (`GameLoadedVariant` reads no sidecar for it). The player updates it
   once per frame (the widget manager does not), applies each event at its board tick after its gate,
   compares every `CHECK` and `END`, and swaps the replay's app state (rules, tunables, diff values, ENV) in
@@ -1861,7 +1861,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 6.9, as built (`games/bejeweled/src/hea
 - **The app** (`HeadlessApp.h`, `WinDMAppHeadless.cpp`): every `WinDMApp` member a board or the player calls,
   on the real `WinDMApp.h`. `NewGame` and `ShowHighScoreWidget` end the watched replay
   (`WatchController::OnBoardEnd`) or set an end flag; `SetTimedMode` sets the mode; `KillDialog` and
-  `ShowInstructionsDialog` do nothing (that dialog is not modal); files live in memory; `SafeDeleteWidget`
+  `DoInstructionDialogette` do nothing (that dialog is not modal); files live in memory; `SafeDeleteWidget`
   defers the delete to the end of the frame as the framework does, so a segment's new board never takes the old
   one's address (the trace's settle rule compares boards). The diff.txt values start as the original's. The
   recorder's methods (`ReplayRecorderHeadless.cpp`) only link: no verifier board records.
@@ -1957,7 +1957,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1 and 7.2, as built:
   cascade.
 - **The first-game tutorial.** A swap that goes back leaves the board as it was, so the arrows stay right; a kept swap
   changes the board, and the swap the arrows show may make no match any more. `KeepInvalidMove` tries it (the two
-  gems swapped, `HasMatch`, swapped back): if it no longer matches, the arrows and the instructions dialog go, as at
+  gems swapped, `HasSet`, swapped back): if it no longer matches, the arrows and the instructions dialog go, as at
   a game over (`mShowTutorial` false, `KillDialog`), and `mShowInstructions` stays, so the next game shows them again
   (no match has been made). A tutorial move that still matches keeps them up until a match, as before.
 - **The noMoves rule** (`OnNoMovesVariant`, for a board that settles without a move). "gameOver" and "fallOut" are
@@ -1969,7 +1969,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1 and 7.2, as built:
   "fallOut" (`GameRules::ResolveDerived`): before the gold rule itself is played (stage 12) that part of it already
   is, and `mods-status.json` says so for the mod that turned gold on (unless a mod sets `noMoves.normal`).
 - **Hint without a move.** The original never plays a board without a move, so its Hint always finds one. A
-  "continue" board has none: `DoHint` would take the hint penalty and show nothing, and the idle glow (every 1500
+  "continue" board has none: `TryShowHint` would take the hint penalty and show nothing, and the idle glow (every 1500
   ticks) would invite that. `Board::NoHintVariant` (moves.allowInvalid, `STATE_PLAYING`, `FindMove` finds nothing):
   `ShowHint` then gives no hint (no penalty, no sparkle, no `HINT` recorded) and the glow stays off; the replay player's
   `HINT` gate refuses one there too.
@@ -2005,7 +2005,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1 and 7.2, as built:
   cases out; it plays stage 1's and 2's rule cases as before stage 5, against their own facts in expect.txt
   (`<case>@novariants`: the v1 save and the RNG sidecar).
 
-### 12.8 The mod menu's hooks (M5 of docs/MOD_MENU_DESIGN.md)
+### 12.8 The mod menu's hooks (docs/MOD_MENU_DESIGN.md 8.2)
 
 None of these runs without an enabled mod that has settings, or a value held for the next game; the oracle has
 neither.
@@ -2028,7 +2028,7 @@ neither.
   of the locked build's three-button row: help at `mX+24`, Mods at `mX+30+bw`, high scores at `mX+36+2bw`, with
   `bw = (mWidth-60)/3`, all at `mY+166`. It opens the menu over the dialog. An installed mod that is off does not
   count: the oracle's examples case keeps its Options screens.
-- **Restart.** `HasGameInProgress` is `mBoard->IsGameInProgress()` (a replay's board never is). `CanRestartNow` is
+- **Restart.** `HasGameInProgress` is `mBoard->IsInProgress()` (a replay's board never is). `CanRestartNow` is
   false while `DIALOG_RECORD_SCORE` is open. `GetRestartArgs` adds `-replaydir=` when one is set and `-gameseed=`
   while `mPendingSeed` waits.
 - **Messages.** `GameConfig::mStatus` keeps the last merge's report. `GetModMessages` gives the menu its errors and
@@ -2046,10 +2046,10 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12 and 6.7, as built. Nothing here ru
 every hook tests `mVariant.mUndo`, a compile-time false in a BEJ_NO_VARIANTS build, and the orb draws nothing and
 takes no mouse on any other board.
 
-- **Snapshots.** `StartSwap` (0x4c9ff8), after its adjacency check, pushes StateCodec's UNDO encoding of the board
+- **Snapshots.** `SwapPieces` (0x4c9ff8), after its adjacency check, pushes StateCodec's UNDO encoding of the board
   (`TakeUndoSnapshot`, only in `STATE_PLAYING`, where every gem rests in its cell). At most `undo.depth` are kept,
-  the oldest dropped. The swap back's last step in `UpdateSwap` (0x4cd84f) pops the snapshot again, since the board
-  is as it was; a kept invalid move keeps it. `StartBlackHole` (0x4ca58d) empties the stack, so no undo crosses a
+  the oldest dropped. The swap back's last step in `UpdateSwapping` (0x4cd84f) pops the snapshot again, since the board
+  is as it was; a kept invalid move keeps it. `DoWhirlpool` (0x4ca58d) empties the stack, so no undo crosses a
   level, and so does a loaded game (`GameLoadedVariant`): saves hold no snapshots.
 - **The undo** (`Undo`). The grid comes back as new gems at rest. Score, display score, stats, move score, idle
   ticks, `mIsNewGame`, the move counts and the RNG come back too; the timed drain only with `undo.restoreTime`.
@@ -2082,15 +2082,15 @@ original. Dirt cells (`d`, `2`..`9`) play as holes until stage 7b.
   whose rows 4..6 are playable in columns 0..7. `mDraw` (the copy of Draw) with either.
 - **Holes** are permanent NULLs in `mBoard[16][16]`. Three places assumed a full board and test for NULL now:
   `UpdateFalling` (0x4cd687), `FindMove`'s target cell (0x4c9dda) and `MouseDrag`'s neighbour (0x4ca8c1).
-- **Fill.** `FillBoard` (0x4cb182) calls `FillBoardVariant`: the original's park-and-fill over the playable cells,
+- **Fill.** `NewBoard` (0x4cb182) calls `NewBoardVariant`: the original's park-and-fill over the playable cells,
   bottom row first, each gem placed above the nearest gem below. After 1000 rerolls it logs and starts again. The
   constructor (0x4cb5bc) with `mNoTutorial` fills until a move exists (at most 100 fills), with no tutorial move.
 - **Refill.** `UpdateClearing` (0x4ca9ed) calls `RefillMasked`: the original pass over each column's playable
   rows, so gems fall through holes, and a new gem spawns above the column's top playable cell.
 - **Input.** On a scaled board `MouseMove`, `MouseDown` and `MouseDrag` take the window position to the logical
   one (`BoardLayout::ToLogical`) before the original code runs.
-- **Level change.** `SetupLevel` (0x4cae29) draws the next level's background for its shape
-  (`DrawVariantChecker`) and sets `mPendingLayout`. `UpdateBlackHole` (0x4cb931) deletes the old gems with the old
+- **Level change.** `SetupLevelData` (0x4cae29) draws the next level's background for its shape
+  (`DrawVariantChecker`) and sets `mPendingLayout`. `UpdateWhirlpool` (0x4cb931) deletes the old gems with the old
   bounds, then applies it (`ApplyPendingLayout`: layout, size, `mLevelShape` = level % shapes).
 - **Background.** The window is first filled with a void tile: a mod's `images\voidtile`, else the level's
   texture coloured (40, 32, 36). Then the cells and a ring of one cell around them get the original checker
@@ -2147,7 +2147,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14, as built (`BoardShape.cpp`, `Boar
 
 - **Flags.** `mDirt` when any level's mask has dirt (`GameRules::HasDirtRule`, `mDirtRules` on the board), and
   under `-forcevariant`. A mask with dirt is a shape, so `mShape`, `mFall` and `mDraw` are on already.
-- **Clearing.** After each run `ProcessMatches` scores, `ClearDirtNextToRun` takes one layer off each dirt cell
+- **Clearing.** After each run `FindSets` scores, `ClearDirtNextToRun` takes one layer off each dirt cell
   orthogonally next to the run, once per run. When the last layer goes, the cell is a gem cell for the rest of
   the level. A new level's layout comes whole from the rules.
 - **Refill.** `UpdateClearing` calls `RefillDiagonal` in place of `RefillMasked`. It alternates two steps:
@@ -2202,7 +2202,7 @@ it stays a tunable that every build plays, `BEJ_NO_VARIANTS` included.
 
 games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7, as built (`MatchFinder.cpp`, `BoardMatch.cpp`). The `match.*`
 rules play since stage 9: `minRun`, `diagonal` and `diagonalMinRun`, `crossings: "merge"`, `shapes` and `bonus`. A
-board whose rules set any of them takes the variant paths: `ProcessMatches` and `HasMatch` dispatch at their top on
+board whose rules set any of them takes the variant paths: `FindSets` and `HasSet` dispatch at their top on
 `mVariant.mMatch`, `FindMove` on `mVariant.mSearch`, and `-forcevariant` takes them at default rules, where the
 oracle shows they play exactly as the originals.
 
@@ -2224,7 +2224,7 @@ calls). The sounds are the original's, a group's cells counting as a run's lengt
 
 The search keeps `FindMove`'s contract and its order of candidates: a swap counts when the gem it moves into the
 cell lands in a group (`MatchFinder::InGroup`, a local scan around the cell), and `horizontal` or `vertical` alone
-means a run of that direction, as the tutorial asks. `DoHint` needs no variant path for swaps, since it already
+means a run of that direction, as the tutorial asks. `TryShowHint` needs no variant path for swaps, since it already
 sparkles the gem that moves in. The fill rerolls while `AnyGroup` finds a group; an orientation's anchor is the
 corner of its box, which for an L can be a hole, so holes anchor instances too. The tutorial is off with runs of
 another length or with diagonals, its text being about rows of three.
@@ -2245,13 +2245,13 @@ cells it moves by. The search gives the swaps in the original's order, then the 
 before anticlockwise), then the slides (each row's segments, then each column's, by 1 to length - 1 cells). A twist
 or a slide counts once, at the first of its moved gems that lands in a group, in `MovedCells`' order (the corners
 from the top left clockwise; a slide's cells from the segment's start). `FindMove`'s contract is unchanged: where
-that gem lands and where it comes from. `DoHint` therefore sparkles the right gem with no variant path, and the
+that gem lands and where it comes from. `TryShowHint` therefore sparkles the right gem with no variant path, and the
 callers that read a swap out of `FindMove` (the tutorial board, the headless verifier's bots and CascadeHunt) only
 ever play swap rules.
 
 Four new states: `STATE_TWISTING` (10), `STATE_TWISTING_BACK`, `STATE_SLIDING` and `STATE_SLIDING_BACK` (13). The
 grid holds the board before the move until the forward animation ends; then the move is made in the grid and
-`ProcessMatches` runs as after a swap (the tutorial box goes, `mIsNewGame` is cleared). Without a group the move is
+`FindSets` runs as after a swap (the tutorial box goes, `mIsNewGame` is cleared). Without a group the move is
 undone in the grid at once and only the positions animate back with the bad move's sound, or `KeepInvalidMove`
 keeps it. A twist turns 5 degrees a tick for 18 ticks (the swap's pace) by a table of cos and sin times 1024, so the
 positions are integers on every platform. A slide goes from the offset it was let go at to its k cells, or to k
@@ -2281,7 +2281,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8, as built (`Specials.cpp`, `BoardSp
 patterns: `runN` is a straight run of N or more, `L`, `T` and `plus` are merged crossings, `diagonal` a diagonal run,
 any other name a shape's id. `Specials` is framework-free, so tools/rulestest checks it on fixtures.
 
-`ProcessMatchesVariant` scores the groups and marks their gems dying as before; `ResolveSpecials` then runs in the
+`FindSetsVariant` scores the groups and marks their gems dying as before; `ResolveSpecials` then runs in the
 same tick. Each group whose pattern a special's `createdBy` names (lightning's checked first) keeps one gem alive as
 that special. On the move's own resolve (the first after it) that is the first moved gem in the group, in
 `MovedCells`' order (a swap's two gems, a twist's corners, a slide's cells); otherwise, and when no moved gem is in
@@ -2318,7 +2318,7 @@ back, so a resumed board can hold more specials than it made; the oracle's `spec
 
 games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9, as built (`BoardGold.cpp`). With `gold.enabled` a level is won by
 turning every cell of the goal gold, Jewel Quest's way, and no longer by points. The goal is the board's gem cells,
-and its dirt cells too with `gold.countDirt` (the default). `ProcessMatchesVariant` gilds the cells of every group it
+and its dirt cells too with `gold.countDirt` (the default). `FindSetsVariant` gilds the cells of every group it
 scores, before the specials are resolved, and with `gold.gild` at its default (`matchesAndBlasts`) a blast gilds the
 cells of the gems it destroys; `matches` leaves a blast's cells as they were. Only a gem cell turns gold, so a dirt
 cell does once its last layer is gone and a group takes the gem that fell into it. The gold belongs to the cell: it
@@ -2343,7 +2343,7 @@ with the sparkle sheet in gold, additively. The shine is not saved.
 Engine ABI 9: the gold layer and the level's time are play state (hashed and snapshotted by the codec, the gold's
 limit outside the undo rows). A v2 save under gold rules writes a `GOLD` chunk, a byte a cell, row-major (1 gold,
 only on a gem cell of the mask), and `GTIM`, the ticks left and the limit as two u32s; without them a resume has no
-gold and the level's whole time. A resume on a shape board rebuilds its background through `SetupLevel`
+gold and the level's whole time. A resume on a shape board rebuilds its background through `SetupLevelData`
 (`RebuildLoadedBackground`, stage 7), which keeps the loaded gold and time as it keeps the level's other values. An
 undo brings the gold back with the board; the time left comes back only with `undo.restoreTime`, so by default the
 clock runs on. `-forcevariant` does not turn gold on. `-trace` ends the variant line with `gold D/N`, and `time T/L`
@@ -2379,7 +2379,7 @@ and while paused a strip over the bottom frame lists the keys. Space or a click 
 next move, the first tick at which a TARGET naming a cell, a TWIST, a SLIDE or an UNDO is due, once at least one update
 has run. A dialog the player opens holds the watch. At the end the REPLAY END dialog gives the score and level, or
 where the replay went out of step: Watch again plays it from its start, and Back (or Esc during the watch, or New
-Game and the mode buttons, as in stage 3b) leaves it through `NewGame(); ConfirmLoadGame();`, which offers the saved
+Game and the mode buttons, as in stage 3b) leaves it through `NewGame(); TryConfirmLoad();`, which offers the saved
 game again. A file that cannot be played opens a dialog with the reason instead, and gives the player's game back
 when a watch was showing. `-replayquit` still quits at the end, and the headless verifier has no overlay or dialogs.
 
@@ -2486,17 +2486,17 @@ edge as the farthest such gem; the straight directions keep their draws, so the 
 | Address | Chosen | Alternatives |
 |---|---|---|
 | 0x4c9bab | RequestNewGame | EndGameForNewGame |
-| 0x4c9bbe | IsGameInProgress | CanSaveGame |
-| 0x4c9ff8 | StartSwap | BeginSwap |
+| 0x4c9bbe | IsInProgress | CanSaveGame |
+| 0x4c9ff8 | SwapPieces | BeginSwap |
 | 0x4ca36e | ColorizeText | RenderTextImage |
-| 0x4ca58d | StartBlackHole | StartVortex |
-| 0x4cae29 | SetupLevel | LevelSetup / BuildLevelBackground |
-| 0x4cb3bf | UpdateFallOut | UpdateBoardDrop |
+| 0x4ca58d | DoWhirlpool | StartVortex |
+| 0x4cae29 | SetupLevelData | LevelSetup / BuildLevelBackground |
+| 0x4cb3bf | UpdateBoardDropping | UpdateBoardDrop |
 | 0x4cb475 | ShowHint | Hint |
-| 0x4cb931 | UpdateBlackHole | - |
-| 0x4cca37 | SaveGameExists | SavedGameExists |
-| 0x4cd287 | ProcessMatches | ResolveMatches |
-| 0x4d0e4b | DoCheckForHighScore | CheckForHighScoreImpl (10_framework.jsonl name, overridden by 20_game.jsonl) |
+| 0x4cb931 | UpdateWhirlpool | - |
+| 0x4cca37 | HasSavedGame | SavedGameExists |
+| 0x4cd287 | FindSets | ResolveMatches |
+| 0x4d0e4b | ProcessScoreStuff | CheckForHighScoreImpl (10_framework.jsonl name, overridden by 20_game.jsonl) |
 
 **Other.**
 - SexyApp +0x715 is `mBuildUnlocked` (FRAMEWORK_NOTES), not "mNoReg". +0x6c0 is `mUserName`.
@@ -2517,8 +2517,8 @@ edge as the farthest such gem; the straight directions keep their draws, so the 
    - TitleScreen +0xa4 (mDisplayedPlayCount) has no visible effect.
    - WinDMApp +0x7d8/+0x7f0 (12 pointers) are only zeroed and deleted.
    - Purpose unknown; kept for layout fidelity.
-5. **High-score mode source.** HighScoreWidget mode: DoCheckForHighScore uses app->mTimedMode, AddHighScore uses board->mTimedMode. They should always be equal (the board is created from the app flag, and LoadGame sets both); not proven for every path.
-6. **Truncated hiscores.dat.** LoadHighScores reuses stale or uninitialised locals on a truncated file. The recommended port behaviour (stop at EOF, keep defaults) is a guess at "most faithful sane" behaviour.
+5. **High-score mode source.** HighScoreWidget mode: ProcessScoreStuff uses app->mTimedMode, AddHighScore uses board->mTimedMode. They should always be equal (the board is created from the app flag, and LoadGame sets both); not proven for every path.
+6. **Truncated hiscores.dat.** ReadFromFile reuses stale or uninitialised locals on a truncated file. The recommended port behaviour (stop at EOF, keep defaults) is a guess at "most faithful sane" behaviour.
 7. **HighScoreWidget overlay.** It relies on alphaback1's alpha to let the panel show through the left HUD area. Visually unverified.
 8. **DrawEditBox overdraw.** The visible result depends on editbox.png pixels; reproduce the draw order rather than "fixing" it.
 9. **Double menuclick.** OptionsDialog Done plays sample 12 twice in one tick. Whether the port's mixer layers two instances like DirectSound is a framework decision.
@@ -2563,15 +2563,15 @@ fix differs.
 
 **Made**
 - `selection`: a gem selected when Timed mode's board falls out and refills (no move left) stays selected in the original
-  though it is no longer on the board (`FillBoard` drops the grid and keeps the pointer). The next click targets it:
-  `MouseDown` with a stale selection runs `StartSwap(stale, clicked)`, which plays the "bad" sound and clears the selection when
+  though it is no longer on the board (`NewBoard` drops the grid and keeps the pointer). The next click targets it:
+  `MouseDown` with a stale selection runs `SwapPieces(stale, clicked)`, which plays the "bad" sound and clears the selection when
   the gems are far apart, so the click selects nothing, and when they are next to each other (by the stale gem's old column
   and row) puts the stale gem back into the grid and loses the gem there. With the fix `Board::DropStaleSelection` (called in
   `MouseDown` and `MouseDrag`) drops a selection that is no longer in the grid, records a deselect, and the click selects what
   it hits. To see it: a Timed game whose board has one move left (`tools/origcmp/nomoves.py --one`), select a gem as the board
   falls out, click another after the refill.
-- `resumeLook`: `LoadGame` does not call `SetupLevel` (section 3.14), so a saved game of level 2 or later comes back with the
-  first level's background tint and texture until the next level-up. With the fix `Board::ResumeLevelLook` runs `SetupLevel`
+- `resumeLook`: `LoadGame` does not call `SetupLevelData` (section 3.14), so a saved game of level 2 or later comes back with the
+  first level's background tint and texture until the next level-up. With the fix `Board::ResumeLevelLook` runs `SetupLevelData`
   after the load, keeps the level's values and the drain that the save holds, and draws the loaded level's look. A save taken
   in the middle of the level wipe, and a board with code-mod rules, keep the original's.
 
@@ -2694,3 +2694,291 @@ The tools: `tools/profile/perfmin.py` (the sampler; `--attach` for the original,
 input for both), `loadtime.py` (the port's loading time through the live channel). The original ran from a copy of the
 Steam install with the real exe carved out of the wrapper (`tools/extract_game_exe.py`, in `C:\byo-og\bej-perf\game`),
 under `build/origrun-bin/origrun.exe` with `--sound stub` and no virtual clock.
+
+### The performance pass (2026-11-09)
+
+**Measured again, in pairs.** `tools/profile/pairs.sh` runs the original and then the port over the same minute of play
+as above (`perfscript.py`), each sampled by `perfmin.py`, one game process at a time. The original runs under an origrun
+rebuilt after 12eda33b: its stand-in now answers `GetLastInputInfo`, so a SexyAppFramework original no longer stops
+drawing once the machine has been idle about ten minutes (`docs/ORIGRUN.md`, "The last-input hook"), which may have made
+the figures of 2026-11-08 read low. While a run goes, the machine's game processes are counted once a second. The script
+waited 1 h 46 min for the machine to have none, then ran 8 pairs between 04:46 and 05:12. Other sessions' games came back
+during the first six pairs, so only pairs 7 and 8 saw no other game process:
+
+| Pair | Other game processes (original, port) | Original: processor in the window, whole run | Port: processor in the window, whole run | Private bytes, original / port | Working set, original / port |
+|---|---|---|---|---|---|
+| 1 | 2, 2 | 4.70 %, 4.19 s | 3.90 %, 3.42 s | 36.3 / 54.7 MB | 57.9 / 61.6 MB |
+| 2 | 2, 2 | 4.03 %, 3.38 s | 4.43 %, 3.45 s | 35.9 / 55.1 MB | 57.5 / 61.9 MB |
+| 3 | 1, 2 | 4.70 %, 4.13 s | 5.72 %, 4.67 s | 35.7 / 54.8 MB | 57.3 / 61.8 MB |
+| 4 | 1, 1 | 3.48 %, 2.97 s | 4.61 %, 4.08 s | 35.7 / 54.4 MB | 57.2 / 61.4 MB |
+| 5 | 1, 0 | 4.12 %, 3.72 s | 2.61 %, 3.45 s | 35.9 / 53.8 MB | 57.6 / 61.7 MB |
+| 6 | 0, 1 | 4.88 %, 3.97 s | 3.08 %, 3.19 s | 35.7 / 54.9 MB | 57.1 / 61.8 MB |
+| **7** | **0, 0** | **4.95 %, 4.17 s** | **4.10 %, 3.48 s** | **35.9 / 55.4 MB** | **57.6 / 62.2 MB** |
+| **8** | **0, 0** | **4.31 %, 3.52 s** | **4.03 %, 3.67 s** | **35.9 / 54.7 MB** | **57.5 / 61.7 MB** |
+
+The processor figures are the percentage of one core in the window from 20 s to 80 s, and the seconds over the whole run.
+
+In the two quiet pairs the port uses a little less processor time than the original, 4.1 and 4.0 % of one core against 5.0
+and 4.3 %. The medians of all eight pairs agree: 4.1 % against 4.5 %, and 3.5 s against 3.8 s a run. On 2026-11-08 the
+port had seemed about 20 % above the original. That was within the noise of a busy machine, or the original's idle stop.
+The original's memory reads higher than on 2026-11-08 (36 MB private, 57.5 MB working set, against 34 and 48). It draws
+for the whole minute now, and in pair 8 it chose Direct3D's software renderer (D3D10Warp). The port holds about 19 MB more
+private memory, as before.
+
+**Where the port's time goes.** `cpuprof.py` was run on the port with `-fast`, because a test run is where its speed
+counts. For an autoplay game to its end on seed 7 (2.2 s, 10,637 updates, 1,064 draws), 85 to 90 % of the cycles are
+outside the game: system calls (ntdll, 53 %), the NVIDIA driver (21 %), win32u (10 %), and imagehlp (5 %), which wintrust
+loads for the driver's signature check when the device is made. The exe has 5 %, spread thin: the textures' upload
+(`DDInterface::PrepareTexture`, 1.3 %), the Ogg decoder (about 1 %), `MemoryImage::NormalBlt` (0.6 %), the GIF decoder and
+the crossfade image. A run that loads and quits at the title (0.39 s of it after loading, which takes 351 ms by the game's
+own log) is 94 % system and driver, and 6 % the exe's decoders (Vorbis, JPEG, PNG, the module player), none above 1 %.
+`cpuprof.py` now lists the modules every 200 samples instead of every 2,000, so a run of under a second still names them.
+
+**What the pass changed: nothing in the game.** Every cost the profile shows is one of two kinds:
+
+- The two shared costs in `docs/COORDINATION.md`, to be fixed once for every game: presenting a frame, and creating the
+  window and the device, along with the driver's signature check that comes with it.
+- The framework's own work, spread thin: decoding images and sounds, uploading textures.
+
+No function of Bejeweled's own code is above 0.3 % of a run, so there was nothing in the game to speed up. The
+frozen baseline and the oracle need no new run, since no source changed. The memory gap is the framework's: every
+image's pixels kept after the GPU has its texture (`PROFILE.md` section 5, "Pixels after upload", which the coordinator
+left for now).
+
+**Not measured.** As on 2026-11-08: the web build in a browser, since the Browser pane is hidden and throttled; full screen;
+and the GPU's own load. The samples and logs are in `build/perf/pass/` (git-ignored).
+
+## 20. The readability pass (2026-11-08)
+
+Bejeweled was the pilot of the readability pass: the rules are `docs/CODE_STANDARDS.md`, written while applying them here,
+and `tools/namecheck.py games/bejeweled` checks the ones a tool can check (no findings; the exceptions, each with its reason,
+are in `games/bejeweled/namecheck.txt`). Nothing the port does changed: the whole oracle, three ways, is ALL IDENTICAL
+(443 cases by default and with `-forcevariant`, 293 in the novariants build), the verifier's tests pass, and the code-drawn
+art, which the oracle does not reach, dumps byte for byte as before (densities 2 and 4, five gem styles and palettes).
+`TitleScreen::Resize` (0x4d4118), which the coverage pilot found with no counterpart, places only the register link after
+`Widget::Resize`, so it has a `none` line in `coverage.txt`.
+
+**Names from the Mac build.** The functions `MAC_COMPARISON.md` lists under "Names that differ" now carry the Mac's names,
+with the names built on them: `HasMatch` is `HasSet`, `ProcessMatches` `FindSets`, `StartSwap` `SwapPieces`, `UpdateSwap`
+`UpdateSwapping`, `ShowText` `DoBouncyText`, `StartBlackHole` `DoWhirlpool`, `UpdateBlackHole` `UpdateWhirlpool`,
+`UpdateGameOver` `UpdateGameOverAnim`, `UpdateLevelWipe` `UpdateLevelTransition`, `UpdateFallOut` `UpdateBoardDropping`,
+`DoHint` `TryShowHint`, `SetupLevel` `SetupLevelData`, `FillBoard` `NewBoard`, `GetPanForX` `GetPanPosition`,
+`IsGameInProgress` `IsInProgress`, `SaveGameExists` `HasSavedGame`, `DeleteSaveGame` `DeleteSavedGame`; in WinDMApp
+`ShowOptionsDialog` `DoOptions`, `ShowHighScoreDialog` `DoHighScoreDialog`, `ShowRecordScoreDialog` `DoRecordScoreDialog`,
+`ShowInstructionsDialog` `DoInstructionDialogette`, `ShowFullInstructionsDialog` `DoFullInstructions`,
+`ShowColorDepthDialog` `DoColorDepthExplanation` (the Mac spells it "Explination"), `ConfirmLoadGame` `TryConfirmLoad`,
+`LoadAppImage` `DoLoadImage`, `MakeButton` `CreateControlButton`; in HighScoreWidget `GetRank` `GetScorePlace`,
+`GetDayNumber` `GetDayNum`, `GetOrdinalSuffix` `GetOrderSuffix`, `LoadHighScores` `ReadFromFile`, `SaveHighScores`
+`WriteToFile` and `DoCheckForHighScore` `ProcessScoreStuff`. The variant versions follow (`FindSetsVariant`,
+`NewBoardVariant`, `NewBoardWithMove`, ...). The oracle's input scripts keep the old names in their comments, so that its
+cache of the baselines' runs stays valid; earlier reports (`IDENTICAL_PLAY.md`, `MAC_COMPARISON.md`) keep the names of their
+time.
+
+**Fields.** Board's `mUnused218` is `mClearedAtMoveStart` (zeroed by the ctor and a move's first scored run, never read),
+`mUnused264` is `mSavedZero` (0 throughout, saved and loaded), `ScorePopup::mUnused` is `mAlwaysMinusOne`, and Piece's padding
+is named for the field it aligns (`mPadBeforeX`, `mPadBeforeVelY`, `mPadBeforeGlowAlpha`, `mPadBeforeDyingFrame`). Two
+fields nothing depends on are left out: Board's SexyString at +0x2c8, which the original constructs and destroys and never
+uses, and WinDMApp's two arrays of six images at +0x7d8 and +0x7f0, zeroed, deleted and never used. The state codec's
+field names follow the new names (they label its rows in reports; its bytes are unchanged).
+
+**Numbers.** The score popup's offsets and life (`ScorePopup::OFFSET_X`, `OFFSET_Y`, `START_LIFE`), half a gem
+(`Board::GEM_HALF`), the gem sheet's frame pitch and colour rows (`GEMSHEET_PITCH`, `GEMSHEET_COLOR_HEIGHT`), the target
+cursor's frame (`CURSOR_FRAME_SIZE`) and the rectangle most dialogs take (`DIALOG_X`, `DIALOG_Y`, `DIALOG_WIDTH`) are named.
+
+**One-letter names.** 135 one-letter variables used far from their declaration got words (`ByteWriter w` is `aWriter`,
+`Board* b` `aBoard`, ...); in the code-drawn art, the helpers `B()` and `P()` are `MakeRgb()` and `GetPalette()`.
+SHA-256's working variables keep the standard's letters.
+
+**Addresses and comments.** Every function names its address, the original function it is part of (`ReadSaveBool` is part
+of `LoadGame`, 0x4cca98; the high-score record helpers of `ReadFromFile` and `WriteToFile`), or a port marker; `main.cpp`,
+`ModIndicators.cpp` and `testhooks/MemReport.cpp` carry the marker in their first comment. Comments that told the code-mod
+stages as a story (`BoardVariant.cpp`'s header, `VariantFlags`, the build warnings in `GameConfigMods.cpp`) or had gone
+stale ("no TWIST or SLIDE yet", "nothing reads them yet in stage 1") describe the code as it is.
+
+**No development stages in comments (2026-11-11).** The user on the standards: "the references to stages don't make sense
+to anyone looking at the code" (`docs/CODE_STANDARDS.md`, rule 8). The pass had kept 238 lines that named a stage of the
+code mods' development ("stage 7b", "the stage-0 list"). Each comment now names the feature (dirt, the gold board, arrow
+gems, the frozen baseline) and its section of `CODE_MODS_DESIGN.md`. What files carry stays: the oracle's mod folders
+(`mods/stage4/overflow`), `build/baseline-stage0` and `stage_assets.py`. `tools/readability/destage.py` made the edits,
+with no line added or removed. Every unit compiles to the same object code as before (98 objects, their disassembly
+and data sections hashed before and after).
+
+## 21. Coverage check (2026-11-09)
+
+The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, and
+`tools/coverage.py report` put them beside the port's sources. Bejeweled's comparisons run in Windows Sandbox, where
+`--coverage` does not work yet, so the runs were taken on the host, where origrun posts input and takes no shot. The
+scripts come from `tools/coverage/scripts.py`, with every position taken from the port's layout, and `tools/coverage/run.sh`
+runs one. The hits are in `build/coverage/bejeweled/hits/`. The copy is the prepared one (the exe carved out of
+`WinBej.exe`), on the virtual clock with the silent stand-in.
+
+The runs:
+
+- **play**: a fresh Normal game. The first move's hint, the Hint button three times, 340 random swaps (sets, cascades,
+  level-ups, a game over), the focus lost and regained, New Game answered No and then Yes, and the window closed during
+  play.
+- **dialogs**: the focus lost and regained on the title. Options with both sliders, the custom cursors box twice, Help
+  and its Done, High Scores and its Done, and Options' Done. Then Timed, Normal with its question, the Quit button
+  answered No, and the window closed with Options open.
+- **timed**: a Timed game left until its time ran out. The name entry typed and Enter, play again, and the window closed.
+- **nomoves** (three runs), **nomoves_hi** (two) and **fallout** (three): a saved game with one move left
+  (`origcmp/nomoves.py --one`), loaded through the question, and the move made. Whether the refill leaves a move is the
+  original's RNG, which is not pinned on the host, so each was run more than once. Those runs gave "no more moves", the
+  game over, the name entry and the high-score screen, with the window closed there. With a score that places on the
+  all-time table, they gave the record dialog's "Nth place" text. In Timed mode they gave the board falling out and in.
+- **levelup**: a saved game whose score has reached the level's target. The level-up (the wipe and the black hole),
+  then play, and the Quit button answered Yes.
+- **declined**: a saved game whose load question is answered No, then Quit and Yes.
+- **title_quit**: the window closed on the title.
+- **extra**: a key typed on the board during play.
+- **timedconfirm**: Timed clicked over a loaded game in progress, with its question answered Yes.
+- **realclock**: on the real clock with the silent stand-in, so the sound code runs. The title, play and swaps.
+
+Every run ended with the game exiting normally. The runs took about 11 minutes of machine time, one game process at a
+time. The user's saved game (`C:\ProgramData\Steam\Bejeweled\userdata\savegame.dat`) was backed up first and put back
+afterwards, byte for byte.
+
+**Two things the runs had to get around.**
+
+- The virtual clock does not see the title's loading thread wait on the disk. In two runs the whole script ran before
+  the "click here to play" link existed, and the game only reached its title. So origrun's counter is the int at
+  0x53ba60, whose top byte is the app's loaded flag (0x53b570 + 0x4f3, which `TitleScreen::Update` 0x4d3c6a reads). Each
+  script's first line is `at 16777216 ...`, which waits for that flag.
+- The original checks for "no more moves" only when the board settles after a move, so a saved board with no move just
+  sits. The saves need exactly one move left.
+
+One run failed at its start, with the original's "Failed to initialize DirectDraw" (`DDERR_NOEXCLUSIVEMODE`) answered by
+the stand-in, and passed when run again. `tools/origrun/bejeweled.cfg` and the seed patch, which the identical-play runs
+used, are no longer on this machine: they lived only in a worktree since removed. Coverage needs neither, because run.sh
+gives the counter itself. **To rebuild before the next Sandbox comparison:** both, from what `IDENTICAL_PLAY.md`
+records (the app static 0x53b570, its update count 0x53b9f4, the input gate's ranges in `UpdateAppStep` 0x44c900 and
+`Process` 0x44c340, and the seed patch at 0x44e9a1), placed in the main checkout's `tools/origrun`, still git-ignored, so
+the E: backup copies them.
+
+`games/bejeweled/coverage.txt` sets the game code as one range, 0x4c9a94-0x4d82d2, with 152 functions. 24 of them are
+left out on purpose:
+
+- RegisterDialog and the other registration code;
+- the URL functions;
+- the update check;
+- `WinMain`;
+- three empty listener defaults and `TRect::Inflate`, which the framework's headers have;
+- `TitleScreen::Resize`: the original's version is `Widget::Resize` followed by the register
+  link's place, and the link is taken out (section 18).
+
+**Reached in the original with no counterpart in the port: none, from the first report on.** The readability pass had
+already put an address or port marker above every function (section 20).
+
+**Defined in the port, never reached: 24 in the first report, 2 at the end.** The first set of runs reached the
+dialogs, play and the level-up, but not the hint, the game over, the high scores or the record dialog. Of the runs
+that reached those, two had lost the race with the loading thread and one was the save with no move. The reruns and four
+short runs reached all but two:
+
+- `WinDMApp::GetGameSEHInfo` (0x4d4ad9) runs only in the framework's crash report. It forwards to `SexyApp`'s, as the
+  export does.
+- `WinDMApp::DoColorDepthExplanation` (0x4d5bef, `ShowColorDepthDialog` in the export) runs only when the display
+  forces full screen and the box is unchecked, which a modern desktop never does. The export shows dialog 12, modal,
+  with the same header, lines and OK footer as the port.
+
+Both are code that only an error or a rare machine reaches, so they stay. **No candidates for taking out**: every
+other port function in the game code ran in the original. **Never reached and not defined in the port: none.**
+
+**No change to the game.** The check changed no source file. It added the tools in `tools/coverage/`; the `none` line
+for `TitleScreen::Resize` came in with the readability pass's merge.
+
+**Not covered.** Alt+Enter and the Options dialog's full-screen box were not run. On the host they would change the
+display mode of the user's machine. The port's full screen is its own (the host switches the window, a listed
+deviation). The realplay driver's `fullscreen` step tests it on the port.
+
+## 22. Code the port does not need (2026-11-09)
+
+The last step before a game is done (`docs/COORDINATION.md`): taking out code the port does not need, beyond the
+registration code and the buttons that lead out of the game, which went in section 18. The coverage check (section 21)
+found no candidate in the translated game: every port function of the game code ran in the original, except two error
+paths that stay. So this step looked for port code that nothing calls. Every definition under `src/` was set against
+every use of its name in the game, the framework and the platform. That left only the code-drawn art's library (`art/`,
+the `codeArt` mod's own code, which no play of the unmodded game reaches): eleven functions written for it and never
+called.
+
+- `Raster`: `Path::QuadTo`, `Path::CubicTo`, `Mask::Inner`, `Mask::Union`, `Mask::Scale`, `Canvas::AlphaMask`,
+  `Canvas::MultiplyAlpha`, and `Mask::Distance`, which only `Inner` used.
+- `VectorFont`: `HasGlyph` and `CharInk`.
+- `GemArt`: `GemModelCount`.
+- `CodeArt`: `Disable` (the mod is never switched off while the game runs).
+
+Every source file is built, since the build takes each folder's files by pattern, and no other header declares a function
+nothing calls.
+
+**Kept on purpose.** The fields the original sets and never reads stay: Board's `mClearedAtMoveStart` and
+`mLevelTextShown`, and ScorePopup's `mAlwaysMinusOne`. So do the ones it saves but never sets, such as `mSavedZero`. The save
+file and the state codec carry them, and so does the trace hash the oracle compares against the frozen baselines, so
+taking them out would change the oracle's output, not the game. Each is named for what it holds (`docs/CODE_STANDARDS.md`,
+rule 3). The colour-depth dialog and `GetGameSEHInfo` stay as error paths (section 21). Piece's paddings stay with the
+layout the save keeps.
+
+**Proof.** Nothing the game runs changed. The native and web builds pass, and so do the unit suite (rulestest, mod
+settings, real input, commands and the rest) and verify (54 checks). The code-drawn art, the only code touched, dumps
+byte for byte as main's exe does at scales 1, 2 and 4 (`-dumpcodeart`, 41, 77 and 77 files). The oracle needs no run: no
+code it reaches changed.
+
+## 23. The Collection version (2026-11-11)
+
+The port was made from the Steam copy, so it is checked against the game's version on the PopCap Game Collection disc
+(2009; `docs/COORDINATION.md`): the two versions compared, and the port run on the Collection's files.
+
+**Getting the files.** The disc image packs every game in InstallShield 15 cabinets. The user allowed unshield for it
+("unshield is fine", 2026-11-10): its 1.5.1 source (github.com/twogood/unshield, 67 KB), built with llvm-mingw in
+`E:\retools\unshield-build`. No zlib is on the machine, so a 20-line stand-in `zlib.h` serves unshield's three inflate
+calls from `third_party/stb`'s inflate, and no second download was needed. The image was mounted read-only, and only
+the group `BejeweledDeluxeComponent` came out: 93 files, 2.7 MB, in the main checkout's
+`re/_installers/BejeweledDeluxeCollection` (git-ignored). Two things to know when using it for another game: give the
+cabinet's path with forward slashes (`F:/data1.cab`), and create the output folders first and extract with `-d .` from
+inside them, since its own folder creation fails on a path with a drive letter.
+
+**The exe is the same build.** The Collection's `Bejeweled.exe` is the game itself, with no launcher around it. Set
+beside the game carved out of Steam's `WinBej.exe` (`tools/collection/cmpexe.py`), it has the same link time (13 April
+2007) and the same sections. `.text` and `.data` are byte for byte the same. `.rdata` differs in 7 bytes, the digits of
+a partner stamp at 0x51d340. The resources differ, and the Collection's exe carries a signature after its last section.
+So everything the decompilation, the identical-play pass and the coverage check found holds for the Collection's game
+too, and no code was compared further.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the Collection's 93 files, 88 are the same as Steam's, byte for byte:
+every image, sound, music and data file it has, and `default.xml`. The differences:
+
+- `properties/partner.xml`: the settings' registry key is `PopCap\Bejeweled`, not `Steam\Bejeweled`; the Options link
+  goes to PopCap's site, not Steam's page; the update check is not turned off; there is no partner name or Steam id.
+  The port reads the registry key from it, so its settings file gets that section name. The link and the update
+  check are taken out of the port (section 18), so the rest changes nothing.
+- The readme, and the exe's name.
+- Steam's copy has files the Collection lacks: the launcher's own (`drm/`, `Flash.ocx`), an MP3 copy of every sound
+  beside its Ogg file, and five images (`_overfont2.png`, `overfont2.gif`, `afont1.png`, `mainfont1.png`,
+  `_real-back.png`).
+
+**One visible difference, and it is the files'.** The port ran the oracle's playtest script (a Normal game, the hint,
+Options, a Timed game to its end, the name entry, play again, quit; 28 screenshots and the trace) once on each set of
+files, staged fresh. The traces are the same line for line, and so are the saved game and the high scores. 24
+screenshots are the same, and four differ, all in the big banner text ("GO!", "TIME UP"): its edges are a little heavier
+on the Collection's files. The cause is Steam's extra `_overfont2.png`. The image loader takes a font's alpha from
+`_overfont2.png` when it is there, and the Collection has only `_overfont2.gif`. The Steam files with that one file
+removed give all 28 of the Collection run's screenshots. The original has the same loader, so each version of the
+original draws its own files the same way; the port follows the files it is given.
+
+**The web build** on the Collection's files (under Node, the same script) gives the same trace as the native build. The
+page finds a game folder by `images/gemsheet6.*`, which the Collection's folder has.
+
+**One change.** `tools/stage_assets.py` asked for `WinBej.exe` in the folder it stages from, and so refused the
+Collection's. It now takes a folder with `Bejeweled.exe` too. No game code changed.
+
+**Not done.** The Collection's own exe was not run. Its code is the Steam game's, and a run would only show the
+banner's edges again.
+
+**The staged assets were an earlier state of the Steam install (found 2026-11-11).** Until this check, `assets/bejeweled`
+held 27 images whose bytes differ from the Steam folder's as it is now. Nothing in the repository re-encoded them. They
+were staged on 2026-10-18 from the files Steam had downloaded (dated 2018), and on 2026-10-23 at 17:49, the minute the
+launcher `WinBej.exe` first ran and made its cache under `C:\ProgramData\Steam\Bejeweled`, 35 files of the install
+were rewritten: those 27 images, six of the launcher's own, the licence and the readme. The rewritten images are the
+Collection's, byte for byte. The two sets hold the same pictures. 21 decode to the same pixels, and the other six
+(`blackcover`, `dialogbox2`, `holemask`, `slider-thumb`, `slider-track`, `timerbar`) differ only in the colour stored
+under fully transparent pixels. The port draws both the same: the oracle's playtest and its level-up script give the
+same trace and the same 32 screenshots on either staging. The worktree is restaged from the install as it is now
+(`python -I games/bejeweled/tools/stage_assets.py`), and the unit and verify suites pass on it.

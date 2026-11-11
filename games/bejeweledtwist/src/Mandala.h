@@ -32,7 +32,7 @@ public:
 	float mIdle = 0;             // +0x190: grows while no button is under the mouse; the hint shows after 0.25
 	std::vector<ModeButton*> mButtons;  // +0x194: Classic, Challenge, Blitz, Zen
 	float mOffsetY = 0;          // +0x1a4: the zoom's centre below the screen's (only Direct3D zooms)
-	float mUnknown1A8 = 0;       // +0x1a8: set by the challenge button, never read
+	float mChallengeOpenStep = 0;  // +0x1a8: set by the challenge button, never read
 	float mDelay = 0;            // +0x1ac: holds the states 0 and 2 while above 0 (never set above 0)
 	bool mPlayVoice = true;      // +0x1b0: "choose your game" is still to be said
 	int mSaveMode = -1;          // +0x1b4: the mode whose saved game the continue dialog asks about

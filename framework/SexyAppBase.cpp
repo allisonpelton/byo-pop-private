@@ -32,6 +32,7 @@
 #include "../platform/Placeholders.h"
 #include "../platform/Json.h"
 #include "../platform/Audio.h"
+#include "../platform/MemReport.h"
 
 #include <SDL.h>
 #include <stb_image_write.h>
@@ -502,6 +503,24 @@ EM_JS(void, sexyapp_watch_fullscreen_refusal, (int theWatch), {
 	Module.byopopFullscreenWatch = done;
 });
 
+// port: the page may hold the game's own full screen itself (the site's Desktop 95 puts the game's window in full screen as its
+// maximize button does, a whole multiple of the game's size centred on black, web/shell.html onGameFullscreen; the user,
+// 2026-11-08: "Full screen issue seems to be the difference between using the in-game full screen and pressing F11"). SDL's own
+// full screen makes the canvas the full-screen element at the screen's size, which the page's window cannot frame. 1 when the
+// page took the request (theFull: 1 to enter, 0 to leave), 0 to leave it to SDL.
+EM_JS(int, sexyapp_page_fullscreen, (int theFull), {
+	return (Module.onGameFullscreen && Module.onGameFullscreen(!!theFull)) ? 1 : 0;
+});
+
+// 1 while the page holds the game's full screen or has asked for it, 0 otherwise, -1 for a page with no full screen of its own
+EM_JS(int, sexyapp_page_fullscreen_state, (), {
+	return Module.gameFullscreenState ? (Module.gameFullscreenState() ? 1 : 0) : -1;
+});
+
+// the page took the game's last request for full screen: the game's windowed state follows the page's (UpdateAppStep), as the
+// player may leave it, or the browser refuse it, without the canvas changing size
+static bool gPageFullscreen = false;
+
 // The browser may close, reload or discard the page without giving control back, while 1.3 only
 // saves on shutdown. When the page is hidden or about to unload (SDL reports beforeunload as
 // SDL_APP_TERMINATING), PageGoingAway() writes the settings and brings the backup up to date. Event
@@ -655,6 +674,8 @@ SexyAppBase::SexyAppBase()
 	mDrawTime = 0;
 	mScreenBltTime = 0;
 	mAlphaDisabled = false;
+	mUserChanged3DSetting = false;
+	mWant3D = true;
 	mDebugKeysEnabled = false;
 	mNoSoundNeeded = false;
 	mWantFMod = false;
@@ -662,7 +683,6 @@ SexyAppBase::SexyAppBase()
 	mSyncRefreshRate = 100;
 	mVSyncUpdates = false;
 	mWaitForVSync = false;
-	mUserChanged3DSetting = false;
 	mAutoEnable3D = false;
 	mTest3D = false;
 	mRelaxUpdateBacklogCount = 0;
@@ -1215,6 +1235,10 @@ void SexyAppBase::WriteToRegistry()
 	RegistryWriteInteger("CustomCursors", mCustomCursorsEnabled ? 1 : 0);
 	RegistryWriteInteger("InProgress", 0);
 	RegistryWriteBoolean("WaitForVSync", mWaitForVSync);
+	// port: the 3D choice, once the player has made one (the original writes it the same way); a run that never changed
+	// it leaves a saved value as it was
+	if (mUserChanged3DSetting)
+		RegistryWriteBoolean("Is3D", mWant3D);
 }
 
 bool SexyAppBase::RegistryEraseKey(const SexyString& _theKeyName)
@@ -1512,8 +1536,17 @@ void SexyAppBase::UpdateUserDataBackup(bool force)
 		aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(RegistryPath()), aRegistry });
 	for (size_t i = 0; i < aSaves.size(); i++)
 	{
-		if (!UserDirRelativePath(aSaves[i].mFileName).empty())
-			aFiles.push_back(Platform::BackupFile{ UserDirRelativePath(aSaves[i].mFileName), aSaves[i].mData });
+		std::string aRelative = UserDirRelativePath(aSaves[i].mFileName);
+		if (!aRelative.empty())
+			aFiles.push_back(Platform::BackupFile{ aRelative, aSaves[i].mData });
+		else
+		{
+			// a name outside the user folder (an absolute path, say) cannot be kept: said once, so that a lost save shows in
+			// the log (Bejeweled Twist's first hook gave absolute names, 2026-11-08)
+			static std::set<std::string> sLogged;
+			if (sLogged.insert(aSaves[i].mFileName).second)
+				SDL_Log("shutdown save outside the user folder, not kept: %s", aSaves[i].mFileName.c_str());
+		}
 	}
 	Platform::BackupUserData(aFiles);
 
@@ -1623,7 +1656,7 @@ void SexyAppBase::UpdateFrames()
 				aPath[--aLength] = 0;
 			remove(aShotRequest.c_str());
 			if (aLength > 0)
-				SaveScreenshot(aPath);
+				SaveScreenshotMidUpdate(aPath);
 		}
 	}
 
@@ -2143,6 +2176,11 @@ void SexyAppBase::HandleEvent(const SDL_Event& theEvent)
 				mDDInterface->UpdateDisplaySize();
 			// fullscreen can also be left without the game (Esc in the browser, the window manager)
 			mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+#ifdef __EMSCRIPTEN__
+			// SDL's window stays windowed while the page holds the full screen
+			if ((gPageFullscreen) && (sexyapp_page_fullscreen_state() == 1))
+				mIsWindowed = false;
+#endif
 			mIsPhysWindowed = mIsWindowed;
 			mWidgetManager->MarkAllDirty();
 			break;
@@ -2597,11 +2635,21 @@ void SexyAppBase::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 	// port: SDL switches the existing window (desktop-resolution fullscreen) instead of recreating it
 	if (mHWnd != NULL)
 	{
-		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 #ifdef __EMSCRIPTEN__
-		// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
-		mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
-		sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+		// the page's own full screen (sexyapp_page_fullscreen), or SDL's
+		if (sexyapp_page_fullscreen(mIsWindowed ? 0 : 1))
+		{
+			gPageFullscreen = !mIsWindowed;
+		}
+		else
+		{
+			SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+			// a page that has no full screen at all refuses at once, and SDL leaves its window windowed; a later refusal is watched
+			mIsWindowed = (SDL_GetWindowFlags(mHWnd) & SDL_WINDOW_FULLSCREEN) == 0;
+			sexyapp_watch_fullscreen_refusal(mIsWindowed ? 0 : 1);
+		}
+#else
+		SDL_SetWindowFullscreen(mHWnd, mIsWindowed ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 #endif
 		mIsPhysWindowed = mIsWindowed;
 
@@ -2952,6 +3000,17 @@ bool SexyAppBase::UpdateAppStep(bool* updated)
 			ClearUpdateBacklog();
 		}
 
+#ifdef __EMSCRIPTEN__
+		// the page's full screen, left or refused (gPageFullscreen)
+		if ((gPageFullscreen) && (sexyapp_page_fullscreen_state() != 1))
+		{
+			gPageFullscreen = false;
+			mIsWindowed = true;
+			mIsPhysWindowed = true;
+			mWidgetManager->MarkAllDirty();
+		}
+#endif
+
 		if (!ProcessEvents())
 			mUpdateAppState = UPDATESTATE_PROCESS_1;
 	}
@@ -3003,6 +3062,23 @@ int SexyAppBase::InitDDInterface()
 			aScreenImage->mIsScreen = true;
 			mDDInterface->mScreenImage = aScreenImage;
 		}
+
+		// port: the player's 3D choice: this run's (Set3DAcclerated) or the saved "Is3D" (the original reads it as its
+		// 2D mode's switch). Only 3D off changes anything: a default start, or a display without acceleration, is as it was
+		bool aWant3D = mWant3D;
+		if (!mUserChanged3DSetting)
+		{
+			aWant3D = true;
+			RegistryReadBoolean("Is3D", &aWant3D);
+#ifdef __EMSCRIPTEN__
+			// the site's "3D acceleration" (always 1, never 0; -1 leaves it to the game) decides this run in place of the saved
+			// value, and writes nothing (mUserChanged3DSetting stays false); mCan3D still makes "always" 2D without WebGL2
+			if (Byopop::SiteAccel3D() >= 0)
+				aWant3D = Byopop::SiteAccel3D() != 0;
+#endif
+		}
+		if (!aWant3D)
+			mDDInterface->mIs3D = false;
 
 		// port: DDInterface::WindowToLogical already maps window to logical coordinates, so the widget
 		// manager's mouse remapping is the identity
@@ -3618,9 +3694,9 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 			mWidgetManager->KeyChar((SexyChar) aCommand.mArgs[0]);
 	}
 	else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
-		SaveScreenshot(aCommand.mArgs);
+		SaveScreenshotMidUpdate(aCommand.mArgs);
 	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
-		SaveScreenshot(aCommand.mArgs, true);
+		SaveScreenshotMidUpdate(aCommand.mArgs, true);
 	else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
 	{
 		// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
@@ -3632,6 +3708,21 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 	}
 	else if (aName == "quit")
 		Shutdown();
+	else if (aName == "memreport")
+	{
+		// what the game holds in memory, answered on the log (platform/MemReport.h): a test reads it, the game does not change
+		if (!DoMemReport(aCommand.mArgs))
+			SDL_Log("ERROR memreport %s: cannot write the file", aCommand.mArgs.c_str());
+		return SCRIPT_GAME;
+	}
+	else if ((aName == "pointer") && (mWidgetManager != NULL))
+	{
+		// the mouse as the widgets last saw it, in game pixels, answered on the log: a test reads where its input landed
+		// (tools/web/pagecheck.js, a click after the page's canvas changed size)
+		SDL_Log("POINTER {\"x\":%d,\"y\":%d,\"in\":%s}", mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY,
+			mWidgetManager->mMouseIn ? "true" : "false");
+		return SCRIPT_GAME;
+	}
 	else if (HandleScriptCommand(aCommand))
 		return SCRIPT_GAME;
 	else
@@ -4347,11 +4438,26 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		PushRealEvent(&anEvent);
 	}
 	else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
-		SaveScreenshot(aCommand.mArgs);
+		SaveScreenshotMidUpdate(aCommand.mArgs);
 	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
-		SaveScreenshot(aCommand.mArgs, true);
+		SaveScreenshotMidUpdate(aCommand.mArgs, true);
 	else if (aName == "quit")
 		Shutdown();
+	else if (aName == "memreport")
+	{
+		// what the game holds in memory, answered on the log (platform/MemReport.h): a test reads it, the game does not change
+		if (!DoMemReport(aCommand.mArgs))
+			SDL_Log("ERROR memreport %s: cannot write the file", aCommand.mArgs.c_str());
+		return SCRIPT_GAME;
+	}
+	else if ((aName == "pointer") && (mWidgetManager != NULL))
+	{
+		// the mouse as the widgets last saw it, in game pixels, answered on the log: a test reads where its input landed
+		// (tools/web/pagecheck.js, a click after the page's canvas changed size)
+		SDL_Log("POINTER {\"x\":%d,\"y\":%d,\"in\":%s}", mWidgetManager->mLastMouseX, mWidgetManager->mLastMouseY,
+			mWidgetManager->mMouseIn ? "true" : "false");
+		return SCRIPT_GAME;
+	}
 	else if (HandleScriptCommand(aCommand))
 		return SCRIPT_GAME;
 	else
@@ -4370,6 +4476,10 @@ void SexyAppBase::OpenModMenu()
 	MTAutoDisallowRand aDisallowRand;
 	mModMenu = new ModMenu(this);
 	mModMenu->Resize(0, 0, mWidth, mHeight);
+	// Above every deferred overlay a game uses (Bookworm Adventures' title logo at 1, its board at 10000): the widget
+	// manager draws an overlay before the first widget whose priority is above the overlay's, so at the default 0 the
+	// menu would lie under them all
+	mModMenu->mPriority = 0x7FFFFFF0;
 	mWidgetManager->AddWidget(mModMenu);
 	mWidgetManager->BringToFront(mModMenu);
 	// As AddDialog does for a modal dialog: the widgets below get no mouse or keys, and the game pauses
@@ -4460,6 +4570,11 @@ bool SexyAppBase::IsTestRun()
 		(mScriptedInput) || (!mRealInputFileName.empty()) || (!mCommandsFileName.empty());
 }
 
+void SexyAppBase::QuitAsGame()
+{
+	Shutdown();
+}
+
 int SexyAppBase::RequestRestart(bool isConfirmed, SexyString* theMessage)
 {
 	SexyString aMessage;
@@ -4540,17 +4655,42 @@ bool SexyAppBase::TakeRelaunch(std::vector<std::string>* theArgs)
 
 // Draws the whole screen now and saves it as a PNG, at the logical size or (fullResolution) at the
 // render target's size, which shows HD art (see -renderscale).
-bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolution)
+// The shots the framework takes between mUpdateCount's increment and the widgets' update (UpdateFrames' shot
+// request, RunScriptCommand's and RunRealInputCommand's screenshot lines): the picture is drawn with the count of the
+// update it shows, as the draw after that update had it, so a curve that counts the app's updates (a CurvedVal's auto
+// increment) is not drawn one update ahead of the rest. A game's own shots call SaveScreenshot, which keeps the count.
+bool SexyAppBase::SaveScreenshotMidUpdate(const std::string& theFileName, bool fullResolution)
+{
+	return SaveScreenshot(theFileName, fullResolution, -1);
+}
+
+bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolution, int theDrawCountOffset)
 {
 	MTAutoDisallowRand aDisallowRand;
 
-	mIsDrawing = true;
-	mDrawingLogicalShot = !fullResolution;
-	mDDInterface->BeginFrame();
-	mWidgetManager->MarkAllDirty();
-	mWidgetManager->DrawScreen();
-	mDrawingLogicalShot = false;
-	mIsDrawing = false;
+	// Only the draw sees the count moved by theDrawCountOffset (SaveScreenshotMidUpdate: one lower); the log lines
+	// below name the update the shot was asked at, which tests compare
+	mUpdateCount += theDrawCountOffset;
+	if (mDDInterface->mKeepScreen)
+	{
+		// the screen keeps what the last frame drew (DDInterface::mKeepScreen), and a frame drawn again on top of itself would
+		// differ from the frame the game shows (an effect that adds to the screen would add twice): the picture is the screen as
+		// it is, after the frame that is due. A test run of such a game draws every update (-drawevery) to have the frame of
+		// each update.
+		if (mHasPendingDraw)
+			DrawDirtyStuff();
+	}
+	else
+	{
+		mIsDrawing = true;
+		mDrawingLogicalShot = !fullResolution;
+		mDDInterface->BeginFrame();
+		mWidgetManager->MarkAllDirty();
+		mWidgetManager->DrawScreen();
+		mDrawingLogicalShot = false;
+		mIsDrawing = false;
+	}
+	mUpdateCount -= theDrawCountOffset;
 
 	if (fullResolution)
 	{
@@ -4646,6 +4786,29 @@ void SexyAppBase::Init()
 	if (!mCmdLineParsed)
 		DoParseCmdLine();
 
+	// port: a run with a test flag only on rundesk's private desktop (CLAUDE.md, "Running games in tests"; rundesk sets
+	// BYOPOP_TEST_RUN for everything it starts). Without that mark the run stops here, before its window can open on the
+	// user's screen: a test save starts full screen in some games, and Bejeweled 2's took over the user's monitor
+	// (2026-11-08). ORACLE_VISIBLE=1 is the user's own visible run (games/bejeweled/tools/oracle/compare.sh).
+#ifndef __EMSCRIPTEN__
+	{
+		bool hasTestFlag = (!mScriptFileName.empty()) || (mScriptedInput) || (!mRealInputFileName.empty()) ||
+			(!mCommandsFileName.empty()) || (mCommandsHold) || (mFastMode) || (mHasSeedParam) || (mTraceMode) || (mDrawEvery);
+		const char* aVisible = SDL_getenv("ORACLE_VISIBLE");
+		bool isMarked = (SDL_getenv("BYOPOP_TEST_RUN") != NULL) || (SDL_getenv("BEJ_TEST_DESKTOP") != NULL) ||
+			((aVisible != NULL) && (aVisible[0] != 0));
+		if (hasTestFlag && !isMarked)
+		{
+			const char* aText = "a test flag (-script, -autoplay, -realinput, -commands, -hold, -fast, -seed, -trace or "
+				"-drawevery) outside rundesk: start the game, or the script that starts it, under build/native/rundesk.exe "
+				"(CLAUDE.md, \"Running games in tests\")";
+			fprintf(stderr, "%s\n", aText);
+			SDL_Log("%s", aText);
+			DoExit(3);
+		}
+	}
+#endif
+
 	// port: -fast moves the sound effects on in DoUpdateFrames instead of in real time
 	if (mFastMode)
 		Platform::Mixer::Get().SetGameClocked(true);
@@ -4692,6 +4855,10 @@ void SexyAppBase::Init()
 	mMusicInterface = CreateMusicInterface();
 
 	SetMusicVolume(mMusicVolume);
+
+	// port: the "memreport" test command's start figure: the libraries are loaded and the window, the graphics device and
+	// the sound device are up, and the game has loaded no picture, sound or song yet
+	Platform::NoteStartMemory();
 
 	InitHook();
 
@@ -5463,7 +5630,19 @@ bool SexyAppBase::Is3DAccelerationRecommended()
 
 void SexyAppBase::Set3DAcclerated(bool is3D, bool reinit)
 {
-	// port: SDL's renderer is the only display path; it is accelerated whenever the system allows it
+	// port: SDL's renderer is the only display path, and it stays the GPU's whenever the system allows it. What 3D off
+	// changes is what the game and the framework's own drawing see (Is3DAccelerated, Graphics' mIs3D): the software
+	// drawing paths of PopCap's 2D mode. The choice is kept (mWant3D), written as "Is3D" and applied again each time the
+	// display is made; no re-init is needed, so reinit has nothing to do
+	if (mDDInterface == NULL)
+		return;
+	bool aIs3D = is3D && mDDInterface->mCan3D;
+	if (mDDInterface->mIs3D == aIs3D && mWant3D == is3D)
+		return;
+	mUserChanged3DSetting = true;
+	mWant3D = is3D;
+	mDDInterface->mIs3D = aIs3D;
+	mWidgetManager->MarkAllDirty();
 }
 
 SharedImageRef SexyAppBase::GetSharedImage(const std::string& theFileName, const std::string& theVariant, bool* isNew)

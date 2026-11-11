@@ -1,8 +1,10 @@
 #include "Options.h"
 
 #include "App.h"
+#include "EngineRes.h"
 #include "Manager.h"
 #include "PlayLayer.h"
+#include "Res.h"
 #include "User.h"
 
 namespace mahjongjapan
@@ -19,7 +21,7 @@ void OptionsNote::Create()
 	SetEdges(aLeft, aRight, aTop, aBottom);
 	DialogButton* anOk = new DialogButton(1);
 	Add(anOk, 0x98, 0xcb);
-	anOk->SetText(0x7c);
+	anOk->SetText(STRING_DIALOG_OK);
 }
 
 // 0x412240
@@ -58,55 +60,55 @@ void OptionsBox::Create()
 	}
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
-	SetTitle(0x86);
-	AddText(0x81, 1, 0x2d, 0x50, false, nullptr, 0);
+	SetTitle(STRING_OPTIONS_TITLE);
+	AddText(STRING_OPTION_MUSIC, 1, 0x2d, 0x50, false);
 	VolumeSlider* aSlider = new VolumeSlider(0);
 	Add(aSlider, 0x75, 0x42);
 	aSlider->SetValue(jb::gMusicVolume);
-	AddText(0x85, 1, 0x2d, 0x6e, false, nullptr, 0);
+	AddText(STRING_OPTION_SOUNDS, 1, 0x2d, 0x6e, false);
 	aSlider = new VolumeSlider(1);
 	Add(aSlider, 0x75, 0x60);
 	aSlider->SetValue(jb::gSoundsVolume);
-	mFullScreen = new jb::CheckBox(0x12a, 2);
+	mFullScreen = new jb::CheckBox(IMAGE_CHECK_BOX, 2);
 	Add(mFullScreen, 0x28, 0x78);
-	mFullScreen->SetLabel(0x80, 0x122, 0x121, 0x20, 0x1f, 0xff);
+	mFullScreen->SetLabel(STRING_OPTION_FULL_SCREEN, FONT_TEXT, FONT_TEXT_MAP, 0x20, 0x1f, 0xff);
 	mFullScreen->SetChecked(jb::gFullScreen);
 	if (jb::gWideAvailable)
 	{
-		mWide = new jb::CheckBox(0x12a, 2);
+		mWide = new jb::CheckBox(IMAGE_CHECK_BOX, 2);
 		Add(mWide, 0xb9, 0x78);
-		mWide->SetLabel(0x87, 0x122, 0x121, 0x20, 0x1f, 0xff);
+		mWide->SetLabel(STRING_OPTION_WIDESCREEN, FONT_TEXT, FONT_TEXT_MAP, 0x20, 0x1f, 0xff);
 		mWide->SetChecked(jb::gWideScreen);
 		mWide->SetVisible(jb::gFullScreen);
 	}
-	mAutoHint = new jb::CheckBox(0x12a, 2);
+	mAutoHint = new jb::CheckBox(IMAGE_CHECK_BOX, 2);
 	Add(mAutoHint, 0x28, 0xa0);
-	mAutoHint->SetLabel(0x84, 0x122, 0x121, 0x20, 0x1f, 0xff);
+	mAutoHint->SetLabel(STRING_OPTION_AUTO_HINTS, FONT_TEXT, FONT_TEXT_MAP, 0x20, 0x1f, 0xff);
 	mAutoHint->SetChecked(gUser.mAutoHint);
 	int aY = 200;
-	mAccel = new jb::CheckBox(0x12a, 2);
+	mAccel = new jb::CheckBox(IMAGE_CHECK_BOX, 2);
 	Add(mAccel, 0x28, 0xc8);
-	mAccel->SetLabel(0x7d, 0x122, 0x121, 0x20, 0x1f, 0xff);
+	mAccel->SetLabel(STRING_OPTION_3D, FONT_TEXT, FONT_TEXT_MAP, 0x20, 0x1f, 0xff);
 	mAccel->SetChecked(jb::IsAccelerated());
 	mAccel->SetCmd(2);
 	if (mFromMenu)
 	{
-		AddText(0x7e, 1, 0x2d, 0x113, false, nullptr, 0);
+		AddText(STRING_OPTION_DIFFICULTY, 1, 0x2d, 0x113, false);
 		aY = 0x118;
-		jb::Toggle* aToggle = new jb::Toggle(0x123, &mQuads, 0);
+		jb::Toggle* aToggle = new jb::Toggle(IMAGE_RADIO_BUTTON, &mQuads, 0);
 		Add(aToggle, 0x28, 0x118);
-		jb::SetCheckLabel(aToggle, 0x83, 0x122, 0x121, 0x20, 0x14, 0xff);
-		aToggle = new jb::Toggle(0x123, &mQuads, 0x19);
+		jb::SetCheckLabel(aToggle, STRING_OPTION_RELAXED, FONT_TEXT, FONT_TEXT_MAP, 0x20, 0x14, 0xff);
+		aToggle = new jb::Toggle(IMAGE_RADIO_BUTTON, &mQuads, 0x19);
 		Add(aToggle, 0xa0, 0x118);
-		jb::SetCheckLabel(aToggle, 0x82, 0x122, 0x121, 0x20, 0x14, 0xff);
-		aToggle = new jb::Toggle(0x123, &mQuads, 0x55);
+		jb::SetCheckLabel(aToggle, STRING_OPTION_NORMAL, FONT_TEXT, FONT_TEXT_MAP, 0x20, 0x14, 0xff);
+		aToggle = new jb::Toggle(IMAGE_RADIO_BUTTON, &mQuads, 0x55);
 		Add(aToggle, 0x118, 0x118);
-		jb::SetCheckLabel(aToggle, 0x7f, 0x122, 0x121, 0x20, 0x14, 0xff);
+		jb::SetCheckLabel(aToggle, STRING_OPTION_EXPERT, FONT_TEXT, FONT_TEXT_MAP, 0x20, 0x14, 0xff);
 		mQuads.Select(gUser.mQuadPercent);
 	}
 	DialogButton* anOk = new DialogButton(1);
 	Add(anOk, 0xa5, aY + 0x2e);
-	anOk->SetText(0x7a);
+	anOk->SetText(STRING_NO_MOVES_OK);
 }
 
 // 0x412880 (command 2: the port's display always passes the original's 3D test, 0x421370, and has no 3D warning,
@@ -159,15 +161,15 @@ bool OptionsBox::OnCommand(int theCmd)
 	mAccel->SetChecked(false);
 	OptionsNote* aNote = new OptionsNote();
 	jb::gManager->Push(aNote, true, false, true);
-	aNote->SetTitle(2);
-	aNote->AddText(1, 0, 0, 0x5a, false, nullptr, 0);
+	aNote->SetTitle(STRING_NO_3D_TITLE);
+	aNote->AddText(STRING_NO_3D_TEXT, 0, 0, 0x5a, false);
 	return true;
 }
 
 // 0x4159f0
 bool StyleToggle::OnLButtonDblClk(int theFlags, int theX, int theY)
 {
-	jb::PlaySound(0x69);
+	jb::PlaySound(jb::SOUND_CLICK);
 	static_cast<StyleBox*>(mLayer)->Apply();
 	return true;
 }
@@ -178,7 +180,7 @@ void StyleToggle::DrawNormal()
 	DrawTiles();
 	SetTrackDirty(false);
 	if (IsChecked())
-		DrawImage(-0x10, -0xf, 0x140, nullptr, true, 100, 100, 0xff);
+		DrawImage(-0x10, -0xf, IMAGE_STYLE_GLOW, nullptr, true, 100, 100, 0xff);
 	SetTrackDirty(true);
 }
 
@@ -206,7 +208,7 @@ void StyleToggle::DrawBack(int theX, int theY)
 	aRect.right = aRect.left + 0x30;
 	aRect.top = 0;
 	aRect.bottom = 0x3a;
-	DrawImageKeyed(theX, theY, 0x66, 0xff00ff, &aRect, true, 100, 100, 0xff);
+	DrawImageKeyed(theX, theY, IMAGE_SPECIAL_FACES, 0xff00ff, &aRect, true, 100, 100, 0xff);
 }
 
 // 0x415960
@@ -229,23 +231,23 @@ void StyleBox::Create()
 	int aBottom[] = {2, 3, 1, 1, 2, 0};
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
-	SetTitle(0x94);
-	Add(new StyleToggle(0x65, 0, &mStyles, 0), 0x34, 0x46);
-	Add(new StyleToggle(0xd7, 0, &mStyles, 1), 0xc0, 0x46);
-	Add(new StyleToggle(0x139, 6, &mStyles, 2), 0x14c, 0x46);
-	Add(new StyleToggle(0x13b, 7, &mStyles, 3), 0x34, 0xcf);
-	Add(new StyleToggle(0x13d, 0, &mStyles, 4), 0xc0, 0xcf);
-	Add(new StyleToggle(0x13f, 0, &mStyles, 5), 0x14c, 0xcf);
+	SetTitle(STRING_TILE_SET_TITLE);
+	Add(new StyleToggle(IMAGE_FACES_IVORY, 0, &mStyles, 0), 0x34, 0x46);
+	Add(new StyleToggle(IMAGE_FACES_GREEN, 0, &mStyles, 1), 0xc0, 0x46);
+	Add(new StyleToggle(IMAGE_FACES_RED, 6, &mStyles, 2), 0x14c, 0x46);
+	Add(new StyleToggle(IMAGE_FACES_BLACK, 7, &mStyles, 3), 0x34, 0xcf);
+	Add(new StyleToggle(IMAGE_FACES_PAINTED, 0, &mStyles, 4), 0xc0, 0xcf);
+	Add(new StyleToggle(IMAGE_FACES_NUMBERS, 0, &mStyles, 5), 0x14c, 0xcf);
 	int aStyle = gUser.mStyleFree;
 	if (mEscape)
 		aStyle = gUser.mStyleEscape;
 	mStyles.Select(aStyle);
 	DialogButton* aButton = new DialogButton(0, 0x66);
 	Add(aButton, 0x84, 0x156);
-	aButton->SetText(0x93);
+	aButton->SetText(STRING_TILE_SET_OK);
 	aButton = new DialogButton(1, 0x66);
 	Add(aButton, 0xfc, 0x156);
-	aButton->SetText(0x92);
+	aButton->SetText(STRING_TILE_SET_CANCEL);
 }
 
 // 0x415e40 (every command is taken)

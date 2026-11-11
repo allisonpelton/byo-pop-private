@@ -48,6 +48,7 @@ float ShardSide(float theAngle)
 }
 
 // 0x6f6451's type 16: a shard tumbling about two axes, its outline glinting as it faces the screen, with a sparkle
+// 0x70e227: the draw call's overload with a zero offset, inline here
 void DrawShard(Graphics* g, Effect* theEffect, int theUpdateCnt)
 {
 	float aFade = theEffect->mAlpha;
@@ -60,8 +61,8 @@ void DrawShard(Graphics* g, Effect* theEffect, int theUpdateCnt)
 	float aScale = theEffect->mScale;
 	Transform aTransform;
 	aTransform.RotateRad(theEffect->mAngle);
-	float aSideX = ShardSide(theEffect->mUnknown9C);
-	float aSideY = ShardSide(theEffect->mUnknownA0);
+	float aSideX = ShardSide(theEffect->mBlend);
+	float aSideY = ShardSide(theEffect->mRateFrom);
 	aTransform.Scale((float)((double)aSideX * 1.4 * (double)aScale), (float)((double)aScale * (double)aSideY * 1.4));
 	g->SetColorizeImages(true);
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -75,8 +76,8 @@ void DrawShard(Graphics* g, Effect* theEffect, int theUpdateCnt)
 	int aWidth = IMAGE_SM_SHARDS->GetCelWidth();
 	Rect aSrc(aWidth * aCel, 0, aWidth, IMAGE_SM_SHARDS->GetCelHeight());
 	gGraphicsRecorder->DrawImageTransform(g, IMAGE_SM_SHARDS, aTransform, aSrc, (float)Ftol(theEffect->mX), (float)Ftol(theEffect->mY), false);
-	float aFacing = sinf(theEffect->mUnknownA0);
-	aFacing = fabsf(sinf(theEffect->mUnknown9C) * aFacing);
+	float aFacing = sinf(theEffect->mRateFrom);
+	aFacing = fabsf(sinf(theEffect->mBlend) * aFacing);
 	float aDim = 2.0f - theEffect->mScale;
 	if (0.2f <= aDim) {
 		if (1.0f < aDim)
@@ -143,7 +144,7 @@ Effect::Effect(int theType) : mType(theType)
 		mAlpha = 1.0f;
 		mUpdateDiv = 0;
 		mDAlpha = (float)(-0.004999999888241291 - (double)fabsf(RandSigned()) * 0.009999999776482582);
-		mUnknown38 = 1.0f;
+		mVelocityDamping = 1.0f;
 		break;
 	case 26:  // smoke (Board::BlowUpPiece)
 		mImage = IMAGE_FX_STEAM;
@@ -152,9 +153,9 @@ Effect::Effect(int theType) : mType(theType)
 		mDAngle = (float)((double)RandSigned() * 0.03999999910593033);
 		mAlpha = 0.85f;
 		mDAlpha = 0;
-		mUnknown9C = 0.5f;
-		mUnknownA0 = -0.02f;
-		mUnknownA4 = 0.95f;
+		mBlend = 0.5f;
+		mRateFrom = -0.02f;
+		mRateTo = 0.95f;
 		break;
 	case 24:  // smoke (the countdown shards' trail)
 		mImage = IMAGE_SMOKE;
@@ -193,7 +194,7 @@ Effect::Effect(int theType) : mType(theType)
 		mAlpha = 1.0f;
 		mScale = (float)((double)fabsf(RandSigned()) * 0.20000000298023224 + 0.5);
 		mDScale = (float)(-0.0 - (double)fabsf(RandSigned()) * 0.009999999776482582);
-		mUnknown84 = (float)((double)fabsf(RandSigned()) * 0.75 + 0.5);
+		mSizeJitter = (float)((double)fabsf(RandSigned()) * 0.75 + 0.5);
 		break;
 	}
 	case 29:  // steam that trails smoke (AddBombFlash)
@@ -221,7 +222,7 @@ Effect::Effect(int theType) : mType(theType)
 		mAngle = (float)((double)RandSigned() * 3.1415927410125732);
 		mDAngle = 0.01f;
 		if (mType == 6) {
-			mUnknown80 = 0;
+			mPhase = 0;
 			mAlpha = 0.01f;
 			mDAlpha = 0.02f;
 		}
@@ -509,8 +510,8 @@ void EffectsManager::Update()
 				anEffect->mDeleteMe = true;
 				break;
 			}
-			float aDX = anEffect->mX - (float)(aBoard->mUnknown1C00 + gGemWidth);
-			float aDY = anEffect->mY - (float)(aBoard->mUnknown1C04 + gGemHeight);
+			float aDX = anEffect->mX - (float)(aBoard->mCursorX + gGemWidth);
+			float aDY = anEffect->mY - (float)(aBoard->mCursorY + gGemHeight);
 			float aDist = sqrtf(aDX * aDX + aDY * aDY);
 			float anAlpha = (float)((double)anEffect->mAlpha - (double)aDist * 0.0010000000474974513);
 			anEffect->mAlpha = anAlpha;
@@ -523,8 +524,8 @@ void EffectsManager::Update()
 			// from 0 to 1, and then a new rate is drawn
 			anEffect->mAlpha = (float)((double)anEffect->mAlpha - 0.0024999999441206455);
 			anEffect->mAngle = (float)((double)anEffect->mDY * 0.10000000149011612 + (double)anEffect->mAngle);
-			float aRate = (float)((1.0 - (double)anEffect->mUnknown9C) * (double)anEffect->mUnknownA0 +
-								  (double)anEffect->mUnknownA4 * (double)anEffect->mUnknown9C);
+			float aRate = (float)((1.0 - (double)anEffect->mBlend) * (double)anEffect->mRateFrom +
+								  (double)anEffect->mRateTo * (double)anEffect->mBlend);
 			float aTurn = (float)((double)aRate * 0.05000000074505806);
 			float anOldDX = anEffect->mDX;
 			float aCos = cosf(aTurn);
@@ -533,12 +534,12 @@ void EffectsManager::Update()
 			aCos = cosf(aTurn);
 			aSin = sinf(aTurn);
 			anEffect->mDY = (float)((double)aCos * (double)anEffect->mDY - (double)anOldDX * (double)aSin);
-			float aPos = (float)((double)anEffect->mUnknown9C + 0.009999999776482582);
-			anEffect->mUnknown9C = aPos;
+			float aPos = (float)((double)anEffect->mBlend + 0.009999999776482582);
+			anEffect->mBlend = aPos;
 			if (1.0f < aPos) {
-				anEffect->mUnknown9C = 0;
-				anEffect->mUnknownA0 = anEffect->mUnknownA4;
-				anEffect->mUnknownA4 = RandSigned();
+				anEffect->mBlend = 0;
+				anEffect->mRateFrom = anEffect->mRateTo;
+				anEffect->mRateTo = RandSigned();
 			}
 			break;
 		}
@@ -562,20 +563,20 @@ void EffectsManager::Update()
 		case 16:
 			if (mUpdateCnt % 2 == 0)
 				anEffect->mFrame = (anEffect->mFrame + 1) % 40;
-			anEffect->mDX = anEffect->mDX * anEffect->mUnknown38;
-			anEffect->mDY = anEffect->mUnknown38 * anEffect->mDY;
+			anEffect->mDX = anEffect->mDX * anEffect->mVelocityDamping;
+			anEffect->mDY = anEffect->mVelocityDamping * anEffect->mDY;
 			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
-			anEffect->mUnknown9C = anEffect->mUnknownA4 + anEffect->mUnknown9C;
-			anEffect->mUnknownA0 = anEffect->mUnknownA8 + anEffect->mUnknownA0;
+			anEffect->mBlend = anEffect->mRateTo + anEffect->mBlend;
+			anEffect->mRateFrom = anEffect->mTumbleTurn + anEffect->mRateFrom;
 			break;
 		case 26: {
 			// it slows, and once slow it fades
 			float aSpeed = sqrtf(anEffect->mDX * anEffect->mDX + anEffect->mDY * anEffect->mDY);
-			anEffect->mDX = anEffect->mDX * anEffect->mUnknownA4;
-			if (anEffect->mUnknown9C < aSpeed)
-				anEffect->mDY = anEffect->mUnknownA4 * anEffect->mDY;
+			anEffect->mDX = anEffect->mDX * anEffect->mRateTo;
+			if (anEffect->mBlend < aSpeed)
+				anEffect->mDY = anEffect->mRateTo * anEffect->mDY;
 			else
-				anEffect->mDAlpha = anEffect->mUnknownA0;
+				anEffect->mDAlpha = anEffect->mRateFrom;
 			anEffect->mAngle = anEffect->mDAngle + anEffect->mAngle;
 			anEffect->mScale = anEffect->mDScale + anEffect->mScale;
 			break;
@@ -652,10 +653,12 @@ void EffectsManager::Update()
 	}
 }
 
+// 0x670a26: powf, inline here
+// 0x70e26a: its overload with a zero last argument, inline here
 void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 {
 	// With the manager's +0xa1 set and Direct3D, the depth test goes off first
-	if (mUnknownA1 && gD3DInterface != nullptr)
+	if (mDepthTestOffFirst && gD3DInterface != nullptr)
 		gD3DInterface->SetDepthTestMode(0);
 	for (auto anIt = mEffects.begin(); anIt != mEffects.end(); ++anIt) {
 		Effect* anEffect = anIt->second;
@@ -702,8 +705,8 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColorizeImages(true);
 			g->SetColor(Color(125, 145, 255, Ftol((double)anOpacity * 105.0)));  // the effect's own colour is not used
-			float aRate = (float)((1.0 - (double)anEffect->mUnknown9C) * (double)anEffect->mUnknownA0 +
-								  (double)anEffect->mUnknownA4 * (double)anEffect->mUnknown9C);
+			float aRate = (float)((1.0 - (double)anEffect->mBlend) * (double)anEffect->mRateFrom +
+								  (double)anEffect->mRateTo * (double)anEffect->mBlend);
 			float aTurn = (float)((double)aRate * -0.30000001192092896);
 			int aCount = 5;
 			do {
@@ -887,7 +890,7 @@ void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 void EffectsManager::Draw(Graphics* g)
 {
 	// With the manager's +0xa0 set, a board and Direct3D, the board's transform (+0x29e8) is pushed around the drawing
-	bool aBoardTransform = mUnknownA0 && gBoard != nullptr && gD3DInterface != nullptr;
+	bool aBoardTransform = mDrawnUnderBoardTransform && gBoard != nullptr && gD3DInterface != nullptr;
 	if (aBoardTransform)
 		gD3DInterface->PushTransform(gBoard->mTransform, true);  // slot 0x14 (0x6f7a45)
 	DrawEffects(g, false);
@@ -904,15 +907,15 @@ void EffectsManager::DrawOverlay(Graphics* g)
 	// while the widget manager's image is the one drawn to, the distortion drawing (0x6f7ab4) runs, then the height
 	// image goes grey again (0x6f55b0) and +0xb5 clear. Both need the 3D interface, as the height image is made only
 	// with one.
-	mUnknownB4 = mUnknownB4 || !mHeatWaves.empty();
+	mHeightImageUsed = mHeightImageUsed || !mHeatWaves.empty();
 	if (!mHeatWaves.empty() ||
-		(gD3DInterface != nullptr && mUnknownB5 && mWidgetManager != nullptr &&
+		(gD3DInterface != nullptr && mHazeMarked && mWidgetManager != nullptr &&
 			(Image*)mWidgetManager->mImage == g->mDestImage)) {
 		if (gD3DInterface != nullptr) {
 			DrawDistortion(g);
 			ClearHeightImage(g);
 		}
-		mUnknownB5 = false;
+		mHazeMarked = false;
 	}
 }
 
@@ -930,7 +933,7 @@ DDImage* EffectsManager::GetHeightImage()
 	// 0x6f5efc
 	if (mHeightImage == nullptr)
 		MakeHeightImage();
-	mUnknownB4 = true;
+	mHeightImageUsed = true;
 	return mHeightImage;
 }
 
@@ -939,7 +942,7 @@ void EffectsManager::ClearHeightImage(Graphics* g)
 	// 0x6f55b0: the height image is cleared to grey (128, 128, 128, 255), then drawing goes on in g's image (the screen
 	// for none). port: the screen's own image is the device's null target
 	if (mHeightImage != nullptr && gD3DInterface != nullptr) {
-		mUnknownB4 = false;
+		mHeightImageUsed = false;
 		if (gD3DInterface->SetRenderTarget(mHeightImage))
 			gD3DInterface->Clear(0x80, 0x80, 0x80, 0xff);
 		Image* aTarget = g != nullptr ? g->mDestImage : nullptr;
@@ -956,6 +959,7 @@ struct DistortVertex {
 	float u0, v0, u1, v1;
 };
 
+// port: one vertex of the distortion's mesh, whose fields the original sets in place
 static DistortVertex MakeDistortVertex(float theX, float theY, float theU0, float theV0, float theU1, float theV1)
 {
 	DistortVertex aVertex;
@@ -1127,11 +1131,12 @@ void EffectsManager::DrawDistortion(Graphics* g)
 	gD3DInterface->SetPixelShader(nullptr);
 }
 
+// 0x6f5a46: an effect record reset, inline here
 HeatWave* EffectsManager::AddHeatWave(float theX, float theY, float theStrength)
 {
 	// 0x6f5a46 makes it; the end size is the app's scale times 400
 	HeatWave aWave;
-	aWave.mUnknown00 = 0;
+	aWave.mKind = 0;
 	aWave.mGrowth = 0.025f;
 	aWave.mOpacity = 1.0f;
 	aWave.mStartSize = 0;
@@ -1192,8 +1197,8 @@ void EffectsManager::AddBombFlash(float theX, float theY, const Color& theColor)
 		float aBase = (float)((double)gApp->mScale * 6.0);
 		float aRange = gApp->mScale + gApp->mScale;
 		float aSpeed = fabsf(RandSigned()) * aRange + aBase;
-		anEffect->mUnknown9C = theX;
-		anEffect->mUnknownA0 = theY;
+		anEffect->mBlend = theX;
+		anEffect->mRateFrom = theY;
 		anEffect->mDX = cosf(anAngle) * aSpeed;
 		anEffect->mDY = sinf(anAngle) * aSpeed;
 		anEffect->mX = (float)((double)cosf(anAngle) * 25.0 + (double)theX);
@@ -1226,14 +1231,14 @@ void EffectsManager::AddBombFlash(float theX, float theY, const Color& theColor)
 		anEffect->mDX = (float)(std::cos(anAngle) * (double)aSpeed);
 		float aLift = (float)((double)gApp->mScale * -2.0);
 		anEffect->mDY = (float)(std::sin(anAngle) * (double)aSpeed + (double)aLift);
-		anEffect->mUnknown38 = (float)((double)RandSigned() * 0.005 + 0.99);
+		anEffect->mVelocityDamping = (float)((double)RandSigned() * 0.005 + 0.99);
 		anEffect->mAngle = (float)anAngle;
 		anEffect->mDAngle = (float)((double)RandSigned() * 0.05000000074505806);
 		anEffect->mGravity = 0.06f;
-		anEffect->mUnknown9C = (float)((double)RandSigned() * 6.2831854820251465);
-		anEffect->mUnknownA0 = (float)((double)RandSigned() * 6.2831854820251465);
-		anEffect->mUnknownA4 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
-		anEffect->mUnknownA8 = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+		anEffect->mBlend = (float)((double)RandSigned() * 6.2831854820251465);
+		anEffect->mRateFrom = (float)((double)RandSigned() * 6.2831854820251465);
+		anEffect->mRateTo = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
+		anEffect->mTumbleTurn = (float)(((double)fabsf(RandSigned()) * 3.0 + 1.0) * 0.04500000178813934);
 		float aFade = fabsf(RandSigned());
 		anEffect->mDAlpha = (float)(((double)(aFade + aFade) + 4.0) * -0.0025);
 		AddEffect(anEffect);

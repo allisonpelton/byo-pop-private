@@ -23,10 +23,7 @@ public:
 	Grid*			mGrid;				// +0x2f4
 	int				mBestWays;			// +0x2f8 the number of turns of the best route (-1: none)
 	int				mBestCost;			// +0x2fc
-	int				mSearches;			// +0x300
 	int				mLength;			// +0x304 pixel length of the route
-	int				mD34, mD38;			// +0x34 +0x38
-	bool			mB3c;				// +0x3c
 
 	PathFinder(Grid* theGrid);						// 0x424900
 	~PathFinder();									// 0x424970

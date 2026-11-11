@@ -1,7 +1,7 @@
 // The title screen (see TitleScreen.h).
 
 #include "TitleScreen.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Graphics.h"
 #include "HyperlinkWidget.h"
 #include "ImageFont.h"
@@ -10,7 +10,7 @@
 using namespace Sexy;
 
 // 0x4103e2
-TitleScreen::TitleScreen(AlchemyApp* theApp)
+TitleScreen::TitleScreen(WinAlchApp* theApp)
 {
 	mApp = theApp;
 	mProgress = 0;
@@ -23,6 +23,7 @@ TitleScreen::TitleScreen(AlchemyApp* theApp)
 	mPlayLink->mLabel = theApp->GetString("CLICK_HERE_TO_PLAY");
 }
 
+// 0x41022c: deletes the links (the original's other one is the registration link, which the port does not have)
 TitleScreen::~TitleScreen()
 {
 	delete mPlayLink;
@@ -92,5 +93,5 @@ void TitleScreen::Update()
 void TitleScreen::ButtonDepress(int theId)
 {
 	if (theId != 0)
-		mApp->TitleScreenDone();
+		mApp->LoadingCompleted();
 }

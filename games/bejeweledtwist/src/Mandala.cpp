@@ -86,7 +86,7 @@ Mandala::Mandala(int theMode)
 		gModeEntries[3] = {gApp->GetString(GTS(0x7e79e8), GT(0x7e7960)), 4, IMAGE_PLAYMENU_ZENBUTTON_ID,
 			IMAGE_PLAYMENU_ZENBUB_ID, IMAGE_PLAYMENU_LVLTAGZEN_ID};
 	}
-	if (!gApp->mUnknown759)
+	if (!gApp->mIsNotLevelLock)
 		gApp->mProfile->UnlockMode(3);
 	mOver = -1;
 	mTextBright = 0;
@@ -129,9 +129,9 @@ Mandala::Mandala(int theMode)
 				int aVersion;
 				int aSaveMode;
 				int aFlags;
-				int anUnknown154;
+				int aTwistSpeedGrade;
 				int aLevel;
-				if (!Board::ReadSaveHeader(aBuffer, &aVersion, &aSaveMode, &aFlags, &anUnknown154, &aLevel))
+				if (!Board::ReadSaveHeader(aBuffer, &aVersion, &aSaveMode, &aFlags, &aTwistSpeedGrade, &aLevel))
 					gApp->EraseFile(aName);
 				else
 					aButton->mTagText = StrFormat(GTC(0x80da2c), aLevel);
@@ -143,7 +143,7 @@ Mandala::Mandala(int theMode)
 	mSaveMode = -1;
 	mDelay = 0;
 	mOffsetY = 0;
-	mUnknown1A8 = 0;
+	mChallengeOpenStep = 0;
 	mPlayVoice = true;
 	mEgg = false;
 	mFXManager = new EffectsManager();
@@ -158,7 +158,7 @@ Mandala::Mandala(int theMode)
 		int aMode = aButton->mMode;
 		if (!gApp->mProfile->IsModeUnlocked(aMode))
 			aButton->SetDoorOpen(false, true);
-		else if ((gApp->mProfile->mUnknown218 & (1u << (aMode & 31))) != 0)
+		else if ((gApp->mProfile->mModesSeenBits & (1u << (aMode & 31))) != 0)
 			aButton->SetDoorOpen(true, true);  // opened before: open at once
 	}
 
@@ -373,7 +373,7 @@ void Mandala::Update()
 						if (-1 < aMode && aButton->mDoorState == 0 && isOpen) {
 							aButton->SetDoorOpen(true, false);
 							anyOpened = true;
-							gApp->mProfile->mUnknown218 |= 1u << (aMode & 31);
+							gApp->mProfile->mModesSeenBits |= 1u << (aMode & 31);
 						}
 					}
 					if (anyOpened)
@@ -393,7 +393,7 @@ void Mandala::Update()
 					mClicked = true;
 					mParent->RemoveWidget(this);
 					gApp->SafeDeleteWidget(this);
-					gApp->mUnknownF24 = nullptr;
+					gApp->mMandalaWidget = nullptr;
 				}
 			}
 		}
@@ -402,23 +402,23 @@ void Mandala::Update()
 			mClicked = true;
 			mParent->RemoveWidget(this);
 			gApp->SafeDeleteWidget(this);
-			gApp->mUnknownF24 = nullptr;
-			if (gBoard->mUnknown2208 == this)
-				gBoard->mUnknown2208 = nullptr;
+			gApp->mMandalaWidget = nullptr;
+			if (gBoard->mShownDialog == this)
+				gBoard->mShownDialog = nullptr;
 			gApp->mMainMenu->mPlayButton->mAppear.SetConstant(0.0);
 			gApp->mMainMenu->mPlayButton->mAlpha.SetConstant(0.0);
 		}
 	} else if (mState == 4 && !mDarken.IncInVal()) {
 		// the zen jump's dark screen is complete: the other mode's game starts
-		if (gBoard->mUnknown2208 == this)
-			gBoard->mUnknown2208 = nullptr;
+		if (gBoard->mShownDialog == this)
+			gBoard->mShownDialog = nullptr;
 		StartMode(mSelected, false);
 		mState = 3;
 		mZoom.SetConstant(0.0);
 		gApp->mMainMenu->mPlayButton->mAlpha.SetConstant(0.0);
 		gBoard->mHyperspace->mFlash.SetCurve(GTS(0x7e6934));
-		gBoard->mHyperspace->mUnknown12B0.SetCurve(GTS(0x7e7520));
-		gBoard->mUnknown2578 = 400;
+		gBoard->mHyperspace->mBoardBrightnessFinal.SetCurve(GTS(0x7e7520));
+		gBoard->mReturnDialogWait = 400;
 	}
 
 	if (0.0f < mTextBright) {
@@ -749,7 +749,7 @@ void Mandala::ButtonDepress(int theId)
 		mOpen.SetCurve(GTS(0x7e75f4));
 		mSeamGlow.SetCurve(GTS(0x7e75c8));
 		gApp->PlaySample(SOUND_INNERLOCK2);
-		mUnknown1A8 = 0;
+		mChallengeOpenStep = 0;
 	} else {
 		int aMode = mButtons[theId]->mMode;
 		if (!gApp->mProfile->IsModeUnlocked(aMode))
@@ -767,7 +767,7 @@ void Mandala::ButtonDepress(int theId)
 					StartMode(aMode, true);
 			} else if (aMode == 2) {
 				gApp->mMainMenu->ShowChallenges(false);
-				mUnknown1A8 = 0.1f;
+				mChallengeOpenStep = 0.1f;
 				Close();
 				aPlayButton->mAppear.SetCurve(GTS(0x7e75a4));
 				aPlayButton->mAlpha.SetCurve(GTS(0x7dbdbc));
@@ -849,7 +849,7 @@ void Mandala::StartMode(int theMode, bool theNewGame)
 	if (theNewGame && gApp->SaveExists(theMode, 0)) {
 		// the saved game is given up: it counts as played
 		gApp->mProfile->mGamesPlayed++;
-		gApp->mProfile->mUnknown140[theMode]++;
+		gApp->mProfile->mGamesByMode[theMode]++;
 		gApp->DeleteSave(theMode, 0);
 	}
 	if (gApp->mHyperspace == nullptr)
@@ -874,15 +874,15 @@ void Mandala::StartMode(int theMode, bool theNewGame)
 		aPlayButton->mAppear.SetCurve(GTS(0x7e7460));
 		aPlayButton->mAlpha.SetCurve(GTS(0x7e7440), &aPlayButton->mAppear);
 	}
-	gBoard->mHyperspace->mFlag157 = true;
+	gBoard->mHyperspace->mIsNewGameJump = true;
 	if (mMode == 1) {
 		// classic into zen: the new board goes on from the old one's level and score
-		gBoard->mUnknown158 = anOldBoard->mUnknown158 - 1;
-		gBoard->mGoodTube->SetLevel(gBoard->mUnknown158);
-		gBoard->mUnknown168 = anOldBoard->mUnknown168;
-		gBoard->mUnknown16C = gBoard->mUnknown168;
-		gBoard->mUnknown14F8 = gBoard->mUnknown168;
-		gBoard->SetLevelSteps(anOldBoard->mUnknown224);
+		gBoard->mLevel = anOldBoard->mLevel - 1;
+		gBoard->mGoodTube->SetLevel(gBoard->mLevel);
+		gBoard->mScore = anOldBoard->mScore;
+		gBoard->mScoreAtTurnStart = gBoard->mScore;
+		gBoard->mShownScore = gBoard->mScore;
+		gBoard->SetLevelSteps(anOldBoard->mLevelStepCount);
 	}
 	Close();
 }

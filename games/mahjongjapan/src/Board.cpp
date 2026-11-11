@@ -6,6 +6,7 @@
 #include "Layer.h"
 #include "Manager.h"
 #include "PlayLayer.h"
+#include "Res.h"
 #include "Stream.h"
 #include "User.h"
 
@@ -69,32 +70,32 @@ void Board::SetStyle(int theStyle)
 	{
 	case 0:
 		aFaces = 0x65;
-		mSelImage = 0xb2;
+		mSelImage = IMAGE_FACES_IVORY_SELECTED;
 		aBack = 0;
 		break;
 	default:
 		aFaces = 0xd7;
-		mSelImage = 0xd6;
+		mSelImage = IMAGE_FACES_GREEN_SELECTED;
 		aBack = 0;
 		break;
 	case 2:
 		aFaces = 0x139;
-		mSelImage = 0x13a;
+		mSelImage = IMAGE_FACES_RED_SELECTED;
 		aBack = 6;
 		break;
 	case 3:
 		aFaces = 0x13b;
-		mSelImage = 0x13c;
+		mSelImage = IMAGE_FACES_BLACK_SELECTED;
 		aBack = 7;
 		break;
 	case 4:
 		aFaces = 0x13d;
-		mSelImage = 0x13e;
+		mSelImage = IMAGE_FACES_PAINTED_SELECTED;
 		aBack = 0;
 		break;
 	case 5:
 		aFaces = 0x13f;
-		mSelImage = 0x138;
+		mSelImage = IMAGE_FACES_NUMBERS_SELECTED;
 		aBack = 0;
 		break;
 	}
@@ -102,7 +103,7 @@ void Board::SetStyle(int theStyle)
 	if (mTiles == nullptr)
 		mTiles = jb::CreateImage(0x120, 0x1d0);
 	mTiles->Fill(0xff00ff);
-	jb::Image* aBacks = jb::LoadDllImageKeyed(0x66, 0xff00ff);
+	jb::Image* aBacks = jb::LoadDllImageKeyed(IMAGE_SPECIAL_FACES, 0xff00ff);
 	jb::Image* aFaceImage = jb::LoadDllImage(aFaces);
 	int aColumn = 0;
 	int x = 0;
@@ -112,18 +113,18 @@ void Board::SetStyle(int theStyle)
 		int aKind = aColumn;
 		do
 		{
-			// The blank tile (0) and the kinds draw on the set's back; the key tile (0x2b) and the specials on their
+			// The blank tile (0) and the kinds draw on the set's back; the gold tile and the other magic tiles on their
 			// own backs
 			int aCell = aBack;
-			if (0x2a < aKind)
+			if (KIND_LAST_FLOWER < aKind)
 			{
-				if (aKind == 0x2b)
+				if (aKind == KIND_GOLD)
 					aCell = 1;
 				else
 				{
 					aCell = 0;
-					if (0x2b < aKind)
-						aCell = aKind - 0x2a;
+					if (KIND_GOLD < aKind)
+						aCell = aKind - KIND_LAST_FLOWER;
 				}
 			}
 			jb::Rect aSrc;
@@ -132,7 +133,7 @@ void Board::SetStyle(int theStyle)
 			aSrc.top = 0;
 			aSrc.bottom = 0x3a;
 			aBacks->DrawTo(mTiles, x, y, aSrc, 100, 100, 0xff);
-			if (0 < aKind && aKind < 0x2b)
+			if (0 < aKind && aKind < KIND_GOLD)
 			{
 				aSrc.left = ((aKind - 1) % 6) * 0x26;
 				aSrc.top = ((aKind - 1) / 6) * 0x30;
@@ -163,28 +164,28 @@ void Board::SetLayout(int theLayoutId, int theQuadPercent, uint32_t theSeed)
 // 0x40aa70
 void Board::Init()
 {
-	mManager->PreloadDllImage(0x66);
-	mManager->PreloadDllImage(0xd9);
-	mManager->PreloadDllImage(0xb6);
-	mManager->PreloadDllImage(0xd1);
-	mManager->PreloadDllImage(0xb3);
-	mManager->PreloadDllImage(0xce);
-	mManager->PreloadDllImage(0xb1);
-	mManager->PreloadDllImage(0xb8);
-	jb::LoadSound(0xaf, false);
-	jb::LoadSound(0xae, false);
-	jb::LoadSound(0xb0, false);
-	jb::LoadSound(0x160, false);
-	jb::LoadSound(0x15b, true);
-	jb::LoadSound(0x15c, true);
-	jb::LoadSound(0x17a, true);
-	jb::LoadSound(0x15d, false);
-	jb::LoadSound(0x15f, false);
-	jb::LoadSound(0x179, false);
-	jb::LoadSound(0x178, true);
-	jb::LoadSound(0x17b, false);
-	jb::LoadSound(0x15e, false);
-	mFont = jb::GetDllFont(0xd9, 0xd8, -1);
+	mManager->PreloadDllImage(IMAGE_SPECIAL_FACES);
+	mManager->PreloadDllImage(FONT_POINTS);
+	mManager->PreloadDllImage(IMAGE_KEY_FRAMES);
+	mManager->PreloadDllImage(IMAGE_KEY);
+	mManager->PreloadDllImage(IMAGE_LOCK_FRAMES);
+	mManager->PreloadDllImage(IMAGE_GOLD_FRAMES);
+	mManager->PreloadDllImage(IMAGE_JOKER_FRAMES);
+	mManager->PreloadDllImage(IMAGE_MAGNET_FRAMES);
+	jb::LoadSound(SOUND_SELECT, false);
+	jb::LoadSound(SOUND_NOT_FREE, false);
+	jb::LoadSound(SOUND_MATCH, false);
+	jb::LoadSound(SOUND_BONUS, false);
+	jb::LoadSound(SOUND_JOKER_LOOP, true);
+	jb::LoadSound(SOUND_MAGNET_LOOP, true);
+	jb::LoadSound(SOUND_KEY_LOOP, true);
+	jb::LoadSound(SOUND_SHUFFLE, false);
+	jb::LoadSound(SOUND_UNDO, false);
+	jb::LoadSound(SOUND_GOLD_MATCH, false);
+	jb::LoadSound(SOUND_FLY_OFF_LOOP, true);
+	jb::LoadSound(SOUND_JOIN, false);
+	jb::LoadSound(SOUND_DEAL, false);
+	mFont = jb::GetDllFont(FONT_POINTS, FONT_POINTS_MAP);
 	RegUpdate(true);
 	RegClick(true);
 	RegLayerCmd(true);
@@ -221,8 +222,8 @@ void Board::LoadLayout()
 	{
 		ErrorBox* aBox = new ErrorBox();
 		jb::gManager->Push(aBox, true, false, true);
-		aBox->SetTitle(0x6b);
-		aBox->AddText(0x6a, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->SetTitle(STRING_ERROR_TITLE);
+		aBox->AddText(STRING_NO_LAYOUT_TEXT, 0, 0, 0x5a, false);
 		return;
 	}
 	Measure();
@@ -236,8 +237,8 @@ void Board::ClearHints()
 	{
 		do
 		{
-			mHints[i]->mFlag39 = false;
-			mHints[i]->m3c = 0;
+			mHints[i]->mBobsAsHint = false;
+			mHints[i]->mLiftStart = 0;
 			i++;
 		} while (i < mHintCount);
 	}
@@ -293,7 +294,7 @@ void Board::Start(bool theDeal, bool theKeep, bool theNewSeed)
 	mMusicMove = -1;
 	UpdateMoves();
 	jb::gManager->StopSoundsExcept(-1);
-	jb::PlaySound(0x15e);
+	jb::PlaySound(SOUND_DEAL);
 }
 
 // 0x40af70
@@ -302,10 +303,10 @@ void Board::Shuffle()
 	SetFlyOut();
 	mPhaseTime = 500;
 	mPhaseLeft = 500;
-	mPhase = 1;
-	jb::PlaySound(0x15d);
+	mPhase = PHASE_SHUFFLE_OUT;
+	jb::PlaySound(SOUND_SHUFFLE);
 	ClearSelection();
-	std::string aText = jb::LoadDllString(0x91);
+	std::string aText = jb::LoadDllString(STRING_BONUS_SECONDS);
 	mTexts.push_back(new PointsText(aText.c_str(), 0x244, 0x1bf));
 	GetPlayLayer()->AddSeconds(0x14);
 }
@@ -320,7 +321,7 @@ void Board::Reshuffle()
 	mDeal.Start(&mLayout, mQuadPercent, mMove, true);
 	UpdateMoves();
 	SwapFlyOut();
-	mPhase = 2;
+	mPhase = PHASE_SHUFFLE_BACK;
 	mPhaseTime = 500;
 	mPhaseLeft = 500;
 }
@@ -341,10 +342,10 @@ void Board::Draw()
 	if (0 < mTray[0])
 	{
 		DrawFace(0x163, 0x1d6, mTray[0], false, 6);
-		if (mFlightKind == 4)
+		if (mFlightKind == FLIGHT_KEY_LOCK_JOINED)
 		{
 			jb::Rect aSrc = {0x118, 0, 0x140, 0x32};
-			DrawImage(0x164, 0x1d7, 0xb6, &aSrc, true, 100, 100, 0xff);
+			DrawImage(0x164, 0x1d7, IMAGE_KEY_FRAMES, &aSrc, true, 100, 100, 0xff);
 		}
 	}
 	if (0 < mTray[1])
@@ -362,8 +363,8 @@ void Board::Draw()
 		}
 		if (mEscaping)
 		{
-			DrawFace(0x15c, 0x172, 0x2b, false, 0);
-			DrawFace(0x18e, 0x172, 0x2b, false, 0);
+			DrawFace(0x15c, 0x172, KIND_GOLD, false, 0);
+			DrawFace(0x18e, 0x172, KIND_GOLD, false, 0);
 		}
 		for (PointsText* aText : mTexts)
 		{
@@ -397,21 +398,21 @@ void Board::DrawFlight(Flight* theFlight)
 	int aGone = aTime - theFlight->mLeft;
 	int x = ((theFlight->mToX - theFlight->mFromX) * aGone) / aTime + theFlight->mFromX;
 	int y = ((theFlight->mToY - theFlight->mFromY) * aGone) / aTime + theFlight->mFromY;
-	if (mFlightKind != 3)
+	if (mFlightKind != FLIGHT_KEY_ONTO_LOCK)
 	{
 		if (0 < theFlight->mKind)
 			DrawFace(x, y, theFlight->mKind, false, 0);
 		return;
 	}
-	if (theFlight->mKind == 0x2c)
+	if (theFlight->mKind == KIND_KEY)
 	{
 		jb::Rect aSrc = {0x60, 0, 0x90, 0x3a};
-		DrawImageKeyed(x, y, 0x66, 0xff00ff, &aSrc, true, 100, 100, 0xff);
+		DrawImageKeyed(x, y, IMAGE_SPECIAL_FACES, 0xff00ff, &aSrc, true, 100, 100, 0xff);
 		aSrc = {0x118, 0, 0x140, 0x32};
-		DrawImage(x + 7, y + 1, 0xb6, &aSrc, true, 100, 100, 0xff);
+		DrawImage(x + 7, y + 1, IMAGE_KEY_FRAMES, &aSrc, true, 100, 100, 0xff);
 		return;
 	}
-	DrawImage(x + 7, y + 1, 0xd1, nullptr, true, 100, 100, 0xff);
+	DrawImage(x + 7, y + 1, IMAGE_KEY, nullptr, true, 100, 100, 0xff);
 }
 
 // 0x40b500
@@ -420,7 +421,7 @@ bool Board::OnCommand(int theCmd)
 	mIdleSince = GetTime();
 	if ((theCmd != 0x88 && theCmd != 0x90 && theCmd != 0x94 && theCmd != 0x10d && theCmd != 0x108 &&
 			theCmd != 0x10c) ||
-		(!mOver && mPhase == 0 && mPhaseLeft < 1))
+		(!mOver && mPhase == PHASE_FLY_IN && mPhaseLeft < 1))
 	{
 		StartClock();
 		switch (theCmd)
@@ -460,7 +461,7 @@ void Board::Measure()
 {
 	Tile* aTile = mLayout.First();
 	int aBottom = 0;
-	int aLeft = 800;
+	int aLeft = jb::SCREEN_WIDTH;
 	int aRight = 0;
 	int aTop = 0x1c4;
 	while (aTile != nullptr)
@@ -481,7 +482,7 @@ void Board::Measure()
 			aBottom = aTile->mRect.bottom;
 		aTile = mLayout.Next();
 	}
-	mOffX = ((aLeft - aRight) + 800) / 2 - aLeft;
+	mOffX = ((aLeft - aRight) + jb::SCREEN_WIDTH) / 2 - aLeft;
 	mOffY = (((aTop - aBottom) + 0x1c4) / 2 - aTop) + -5;
 }
 
@@ -622,14 +623,14 @@ void Board::DrawTile(Tile* theTile)
 		y = ((theTile->mRect.top - theTile->mFromY) * aGone) / aTime + mOffY;
 	}
 	y += aDY;
-	if (theTile->m3c != 0)
+	if (theTile->mLiftStart != 0)
 	{
-		if (!theTile->mFlag39)
+		if (!theTile->mBobsAsHint)
 		{
 			// A tile put back by an undo settles
-			int aLift = 0xd - (int)((uint32_t)(GetTime() - theTile->m3c) / 0x1e);
+			int aLift = 0xd - (int)((uint32_t)(GetTime() - theTile->mLiftStart) / 0x1e);
 			if (aLift < 1)
-				theTile->m3c = 0;
+				theTile->mLiftStart = 0;
 			else
 			{
 				x += aLift;
@@ -640,7 +641,7 @@ void Board::DrawTile(Tile* theTile)
 		else
 		{
 			// A hint's tiles bob three times
-			uint32_t aStep = (uint32_t)(GetTime() - theTile->m3c) / 0x26;
+			uint32_t aStep = (uint32_t)(GetTime() - theTile->mLiftStart) / 0x26;
 			if (aStep < 0x24)
 			{
 				aStep %= 0xc;
@@ -672,9 +673,9 @@ void Board::DrawTile(Tile* theTile)
 		aRect.top = y;
 		FillRectAlpha(aRect, 0x50, 0, true);
 	}
-	if (mFlightKind == 4 && theTile == mFlights[0]->mTile)
+	if (mFlightKind == FLIGHT_KEY_LOCK_JOINED && theTile == mFlights[0]->mTile)
 	{
-		// The halves joining
+		// The key and the lock joining
 		Flight* aFlight = mFlights[0];
 		int aFrame = ((aFlight->mTime - aFlight->mLeft) * 0x12) / aFlight->mTime;
 		if (0x11 < aFrame)
@@ -684,7 +685,7 @@ void Board::DrawTile(Tile* theTile)
 		aSrc.right = aSrc.left + 0x28;
 		aSrc.top = 0;
 		aSrc.bottom = 0x32;
-		DrawImage(x + 7, y + 1, 0xb3, &aSrc, true, 100, 100, 0xff);
+		DrawImage(x + 7, y + 1, IMAGE_LOCK_FRAMES, &aSrc, true, 100, 100, 0xff);
 	}
 }
 
@@ -703,7 +704,7 @@ void Board::DrawFace(int theX, int theY, int theKind, bool theSelected, int theO
 		uint32_t aCell;
 		if (anImage == 0)
 		{
-			if (0x2a < theKind)
+			if (KIND_LAST_FLOWER < theKind)
 				return;
 			aCell = (theKind + -1) % 6;
 			anImage = mSelImage;
@@ -734,9 +735,9 @@ bool Board::Update()
 		{
 			int aPhase = mPhase;
 			mPhaseLeft = 0;
-			if (aPhase == 0)
+			if (aPhase == PHASE_FLY_IN)
 				GetPlayLayer()->OnBoardShown();
-			else if (aPhase == 1)
+			else if (aPhase == PHASE_SHUFFLE_OUT)
 				Reshuffle();
 			else if (aPhase == 2)
 				EndShuffle();
@@ -759,44 +760,44 @@ bool Board::Update()
 		{
 			switch (mFlightKind)
 			{
-			case 0:
+			case FLIGHT_TAKEN:
 				EndTake();
 				CheckStuck();
 				break;
-			case 1:
-				FlyLinked();
+			case FLIGHT_ONTO_MAGNET:
+				FlyMagnet();
 				break;
-			case 2:
-				EndLinked();
+			case FLIGHT_MAGNET_TO_TRAY:
+				EndMagnet();
 				CheckStuck();
 				break;
-			case 3:
-				JoinHalves();
+			case FLIGHT_KEY_ONTO_LOCK:
+				JoinKeyAndLock();
 				break;
-			case 4:
-				FlyHalves();
+			case FLIGHT_KEY_LOCK_JOINED:
+				FlyKeyAndLock();
 				break;
-			case 5:
-				EndHalves();
+			case FLIGHT_KEY_LOCK_TO_TRAY:
+				EndKeyAndLock();
 				CheckStuck();
 				break;
-			case 6:
+			case FLIGHT_UNDO:
 				EndUndo();
 				break;
-			case 7:
-				UndoLinked();
+			case FLIGHT_UNDO_MAGNET:
+				UndoMagnet();
 				break;
-			case 8:
-				EndUndoLinked();
+			case FLIGHT_UNDO_MAGNET_OUT:
+				EndUndoMagnet();
 				break;
-			case 9:
-				EndKeys();
+			case FLIGHT_GOLD:
+				EndGold();
 				break;
-			case 10:
+			case FLIGHT_BEFORE_FLY_OFF:
 				FlyOff();
 				break;
-			case 0xb:
-				EndKeysInTray();
+			case FLIGHT_GOLD_TO_TRAY:
+				EndGoldInTray();
 				break;
 			}
 			if (mLeft == 0)
@@ -816,21 +817,21 @@ bool Board::Update()
 	if (!mTexts.empty())
 	{
 		aChanged = true;
-		auto it = mTexts.begin();
+		auto anIt = mTexts.begin();
 		do
 		{
-			PointsText* aText = *it;
+			PointsText* aText = *anIt;
 			int aDelta = GetDelta();
 			int aLeft = aText->mLeft;
 			aText->mLeft = aLeft - aDelta;
 			if (aLeft - aDelta < 0)
 			{
 				delete aText;
-				it = mTexts.erase(it);
+				anIt = mTexts.erase(anIt);
 			}
 			else
-				++it;
-		} while (it != mTexts.end());
+				++anIt;
+		} while (anIt != mTexts.end());
 	}
 	if (mIdleSince != 0)
 	{
@@ -852,7 +853,8 @@ bool Board::OnLButtonDown(int theFlags, int theX, int theY)
 	if (!mOver)
 	{
 		mIdleSince = GetTime();
-		if ((mFlightCount < 1 || mFlightKind == 0 || mFlightKind == 6) && mPhase == 0 && mPhaseLeft < 1)
+		if ((mFlightCount < 1 || mFlightKind == FLIGHT_TAKEN || mFlightKind == FLIGHT_UNDO) && mPhase == PHASE_FLY_IN &&
+			mPhaseLeft < 1)
 		{
 			int aZ = -1;
 			int aTileX = 0;
@@ -883,11 +885,11 @@ bool Board::OnLButtonDown(int theFlags, int theX, int theY)
 					mSelected = aTile;
 					StartSelAnim();
 				}
-				jb::PlaySound(0xaf);
+				jb::PlaySound(SOUND_SELECT);
 				jb::Invalidate();
 				return true;
 			}
-			jb::PlaySound(0xae);
+			jb::PlaySound(SOUND_NOT_FREE);
 		}
 	}
 	return true;
@@ -907,14 +909,14 @@ bool Board::OnRButtonDown(int theFlags, int theX, int theY)
 	mTip = nullptr;
 	switch (aTile->mKind)
 	{
-	case 0x2c:
-	case 0x2d:
+	case KIND_KEY:
+	case KIND_LOCK:
 		OnTimer(2, -1);
 		break;
-	case 0x2e:
+	case KIND_JOKER:
 		OnTimer(4, -1);
 		break;
-	case 0x2f:
+	case KIND_MAGNET:
 		OnTimer(3, -1);
 		break;
 	}
@@ -934,7 +936,7 @@ bool Board::OnRButtonDown(int theFlags, int theX, int theY)
 	else
 	{
 		x = mOffX + aTile->mRect.right;
-		if (x < 800 - aSize[0])
+		if (x < jb::SCREEN_WIDTH - aSize[0])
 			y = (aTile->mRect.top - aSize[1] / 2) + aPos[1] + 0x1d + mOffY;
 		else
 		{
@@ -948,8 +950,8 @@ bool Board::OnRButtonDown(int theFlags, int theX, int theY)
 		y = 0x1fe - aSize[1];
 	if (x < 0)
 		x = 0;
-	else if (800 - aSize[1] < x)  // as the original: the height
-		x = 800 - aSize[1];
+	else if (jb::SCREEN_WIDTH - aSize[1] < x)  // as the original: the height
+		x = jb::SCREEN_WIDTH - aSize[1];
 	mTip->SetPos(x, y);
 	return false;
 }
@@ -972,9 +974,10 @@ bool Board::CanSelect(Tile* theTile)
 	if (mLayout.mHasCounts)
 	{
 		Tile* aSelected = mSelected;
-		if (theTile->mKind == 0x2d)
-			return aSelected != nullptr && aSelected->mKind == 0x2c;
-		if (aSelected != nullptr && (aSelected->mKind == 0x2f || aSelected->mKind == 0x2e) && theTile->mKind < 0x2b)
+		if (theTile->mKind == KIND_LOCK)
+			return aSelected != nullptr && aSelected->mKind == KIND_KEY;
+		if (aSelected != nullptr && (aSelected->mKind == KIND_MAGNET || aSelected->mKind == KIND_JOKER) &&
+			theTile->mKind < KIND_GOLD)
 			return true;
 	}
 	return theTile->mFree;
@@ -988,7 +991,7 @@ bool Board::CanPair(Tile* theTile)
 	if (mSelected == nullptr)
 		return true;
 	int aKind = mSelected->mKind;
-	if (aKind != 0x2c && aKind != 0x2e && aKind != 0x2f)
+	if (aKind != KIND_KEY && aKind != KIND_JOKER && aKind != KIND_MAGNET)
 		return true;
 	return mLayout.IsVisible(theTile);
 }
@@ -998,24 +1001,24 @@ void Board::StartSelAnim()
 {
 	switch (mSelected->mKind)
 	{
-	case 0x2b:
+	case KIND_GOLD:
 		mSelFrames = 7;
-		mSelAnim = 0xce;
+		mSelAnim = IMAGE_GOLD_FRAMES;
 		break;
-	case 0x2c:
+	case KIND_KEY:
 		mSelFrames = 7;
-		mSelAnim = 0xb6;
-		mSelSound = 0x17a;
+		mSelAnim = IMAGE_KEY_FRAMES;
+		mSelSound = SOUND_KEY_LOOP;
 		break;
-	case 0x2e:
+	case KIND_JOKER:
 		mSelFrames = 7;
-		mSelAnim = 0xb1;
-		mSelSound = 0x15b;
+		mSelAnim = IMAGE_JOKER_FRAMES;
+		mSelSound = SOUND_JOKER_LOOP;
 		break;
-	case 0x2f:
+	case KIND_MAGNET:
 		mSelFrames = 7;
-		mSelAnim = 0xb8;
-		mSelSound = 0x15c;
+		mSelAnim = IMAGE_MAGNET_FRAMES;
+		mSelSound = SOUND_MAGNET_LOOP;
 		break;
 	}
 	if (mSelSound != -1)
@@ -1028,24 +1031,24 @@ void Board::Take(Tile* theTile, Tile* theOther)
 {
 	mMove++;
 	FinishFlights();
-	if (0x2a < theTile->mKind)
+	if (KIND_LAST_FLOWER < theTile->mKind)
 	{
 		switch (theTile->mKind)
 		{
-		case 0x2b:
-			TakeKeys(theTile, theOther);
+		case KIND_GOLD:
+			TakeGold(theTile, theOther);
 			return;
-		case 0x2c:
-			TakeHalves(theTile, theOther);
-			jb::PlaySound(0xb0);
+		case KIND_KEY:
+			TakeKeyAndLock(theTile, theOther);
+			jb::PlaySound(SOUND_MATCH);
 			return;
-		case 0x2e:
-			TakeWild(theTile, theOther);
-			jb::PlaySound(0xb0);
+		case KIND_JOKER:
+			TakeJoker(theTile, theOther);
+			jb::PlaySound(SOUND_MATCH);
 			return;
-		case 0x2f:
-			TakeLinked(theTile, theOther);
-			jb::PlaySound(0xb0);
+		case KIND_MAGNET:
+			TakeMagnet(theTile, theOther);
+			jb::PlaySound(SOUND_MATCH);
 			return;
 		}
 	}
@@ -1066,11 +1069,11 @@ void Board::Take(Tile* theTile, Tile* theOther)
 		mFlights[1] = aFlight;
 	}
 	mFlightCount = 2;
-	mFlightKind = 0;
+	mFlightKind = FLIGHT_TAKEN;
 	mFlights[0]->SetTo(0x15c, 0x1d6);
 	mFlights[1]->SetTo(0x18e, 0x1d6);
 	AddPoints(theOther, 2, true);
-	jb::PlaySound(0xb0);
+	jb::PlaySound(SOUND_MATCH);
 }
 
 // 0x40c6a0
@@ -1082,10 +1085,10 @@ void Board::AddPoints(Tile* theTile, int theCount, bool theBonus)
 		mTexts.push_back(new PointsText(aPoints, mOffX + theTile->mRect.left, mOffY + theTile->mRect.top));
 		if (theBonus && KindsMatch(theTile->mKind, mTray[0]))
 		{
-			std::string aText = jb::LoadDllString(0xc);
+			std::string aText = jb::LoadDllString(STRING_BONUS_POINTS);
 			mTexts.push_back(new PointsText(aText.c_str(), mOffX + 0x32 + theTile->mRect.left,
 				mOffY + 0x1a + theTile->mRect.top));
-			jb::PlaySound(0x160);
+			jb::PlaySound(SOUND_BONUS);
 			aPoints += 500;
 		}
 		GetPlayLayer()->AddScore(aPoints);
@@ -1095,7 +1098,7 @@ void Board::AddPoints(Tile* theTile, int theCount, bool theBonus)
 // 0x40c8b0
 void Board::AddEscapePoints(Tile* theTile)
 {
-	int aPoints = theTile->mKind < 0x2c ? 200 : 500;
+	int aPoints = theTile->mKind < KIND_KEY ? 200 : 500;
 	mTexts.push_back(new PointsText(aPoints, 0x174, 0x168));
 	GetPlayLayer()->AddScore(aPoints);
 }
@@ -1108,8 +1111,8 @@ void Board::EndTake()
 	ClearFlights();
 }
 
-// 0x40c9c0: the half flies onto the other and they join where it lies
-void Board::TakeHalves(Tile* theTile, Tile* theOther)
+// 0x40c9c0: one of the key and the lock flies onto the other and they join where it lies
+void Board::TakeKeyAndLock(Tile* theTile, Tile* theOther)
 {
 	theTile->mTaken = mMove;
 	mFlights[0] = new Flight(theTile, mOffX + theTile->mRect.left, mOffY + theTile->mRect.top, 400);
@@ -1118,11 +1121,11 @@ void Board::TakeHalves(Tile* theTile, Tile* theOther)
 	mFlights[1]->SetTo(mOffX + theOther->mRect.left, mOffY + theOther->mRect.top);
 	mLayout.UpdateNeighbours(theTile, nullptr, nullptr, 0, true);
 	mFlightCount = 2;
-	mFlightKind = 3;
+	mFlightKind = FLIGHT_KEY_ONTO_LOCK;
 }
 
 // 0x40cab0
-void Board::JoinHalves()
+void Board::JoinKeyAndLock()
 {
 	Tile* aTile = mFlights[1]->mTile;
 	mTray[0] = mFlights[0]->mKind;
@@ -1131,12 +1134,12 @@ void Board::JoinHalves()
 	mFlights[0] = new Flight(aTile, 0, mOffX + aTile->mRect.left, mOffY + aTile->mRect.top, 1000);
 	mFlights[0]->SetTo(mOffX + aTile->mRect.left, mOffY + aTile->mRect.top);
 	mFlightCount = 1;
-	mFlightKind = 4;
-	jb::PlaySound(0x17b);
+	mFlightKind = FLIGHT_KEY_LOCK_JOINED;
+	jb::PlaySound(SOUND_JOIN);
 }
 
 // 0x40cb60
-void Board::FlyHalves()
+void Board::FlyKeyAndLock()
 {
 	Tile* aTile = mFlights[0]->mTile;
 	aTile->mTaken = mMove;
@@ -1146,18 +1149,18 @@ void Board::FlyHalves()
 	mFlights[0] = new Flight(aTile, mOffX + aTile->mRect.left, mOffY + aTile->mRect.top, 500);
 	mFlights[0]->SetTo(0x18e, 0x1d6);
 	mFlightCount = 1;
-	mFlightKind = 5;
+	mFlightKind = FLIGHT_KEY_LOCK_TO_TRAY;
 }
 
 // 0x40cc00
-void Board::EndHalves()
+void Board::EndKeyAndLock()
 {
-	mTray[1] = 0x2d;
+	mTray[1] = KIND_LOCK;
 	ClearFlights();
 }
 
 // 0x40cc10
-void Board::TakeWild(Tile* theTile, Tile* theOther)
+void Board::TakeJoker(Tile* theTile, Tile* theOther)
 {
 	Tile* aTiles[41];
 	theTile->mTaken = mMove;
@@ -1183,27 +1186,27 @@ void Board::TakeWild(Tile* theTile, Tile* theOther)
 	mLayout.UpdateNeighbours(theTile, nullptr, nullptr, 0, true);
 	mLayout.UpdateNeighbours(aTiles, aCount, nullptr, 0, true);
 	UpdateMoves();
-	mFlightKind = 0;
+	mFlightKind = FLIGHT_TAKEN;
 	mFlightCount = aCount + 1;
 }
 
-// 0x40cd80: the other flies onto the linked tile, which takes its kind and flies to the tray as the wild tile
-void Board::TakeLinked(Tile* theTile, Tile* theOther)
+// 0x40cd80: the other flies onto the magnet, which takes its kind and flies to the tray as the magnet
+void Board::TakeMagnet(Tile* theTile, Tile* theOther)
 {
-	theOther->mWildLink = theTile;
+	theOther->mMagnetLink = theTile;
 	theOther->mTaken = mMove;
 	mLayout.UpdateNeighbours(theOther, nullptr, nullptr, 0, true);
 	mFlights[0] = new Flight(theOther, mOffX + theOther->mRect.left, mOffY + theOther->mRect.top, 500);
 	mFlights[0]->SetTo(mOffX + theTile->mRect.left, mOffY + theTile->mRect.top);
 	mFlightCount = 1;
-	mFlightKind = 1;
+	mFlightKind = FLIGHT_ONTO_MAGNET;
 }
 
 // 0x40ce30
-void Board::FlyLinked()
+void Board::FlyMagnet()
 {
 	Tile* aTile = mFlights[0]->mTile;
-	Tile* aLinked = aTile->mWildLink;
+	Tile* aLinked = aTile->mMagnetLink;
 	aLinked->mKind = aTile->mKind;
 	aLinked->mPreset = aTile->mPreset;
 	UpdateMoves();
@@ -1211,11 +1214,11 @@ void Board::FlyLinked()
 	mFlights[0] = new Flight(aTile, 0x2f, mOffX + aLinked->mRect.left, mOffY + aLinked->mRect.top, 500);
 	mFlights[0]->SetTo(0x15c, 0x1d6);
 	mFlightCount = 1;
-	mFlightKind = 2;
+	mFlightKind = FLIGHT_MAGNET_TO_TRAY;
 }
 
 // 0x40ced0
-void Board::EndLinked()
+void Board::EndMagnet()
 {
 	int aKind = mFlights[0]->mKind;
 	mTray[1] = 0;
@@ -1228,12 +1231,12 @@ void Board::FinishFlights()
 {
 	if (0 < mFlightCount)
 	{
-		if (mFlightKind == 0)
+		if (mFlightKind == FLIGHT_TAKEN)
 		{
 			EndTake();
 			return;
 		}
-		if (mFlightKind == 6)
+		if (mFlightKind == FLIGHT_UNDO)
 		{
 			EndUndo();
 			return;
@@ -1247,7 +1250,7 @@ void Board::Undo()
 	Tile* aTiles[41];
 	if (mMove == 0)
 		return;
-	if (0 < mFlightCount && mFlightKind != 0 && mFlightKind != 6)
+	if (0 < mFlightCount && mFlightKind != FLIGHT_TAKEN && mFlightKind != FLIGHT_UNDO)
 		return;
 	FinishFlights();
 	ClearHints();
@@ -1256,16 +1259,16 @@ void Board::Undo()
 	int aCount = mLayout.GetTaken(mMove, aTiles, 0x29);
 	if (aCount == 1)
 	{
-		// The linked wild tile flies back, and the tile it took flies out of it
+		// The magnet flies back, and the tile it took flies out of it
 		aTiles[0]->mFree = true;
 		mFlights[0] = new Flight(aTiles[0], 0x2f, 0x15c, 0x1d6, 300);
-		mFlights[0]->SetTo(aTiles[0]->mWildLink->mRect.left + mOffX, aTiles[0]->mWildLink->mRect.top + mOffY);
+		mFlights[0]->SetTo(aTiles[0]->mMagnetLink->mRect.left + mOffX, aTiles[0]->mMagnetLink->mRect.top + mOffY);
 		mFlightCount = 1;
-		mFlightKind = 7;
+		mFlightKind = FLIGHT_UNDO_MAGNET;
 	}
 	else if (2 < aCount)
 	{
-		// The wild tile and the tiles it took
+		// The joker and the tiles it took
 		if (0 < aCount)
 		{
 			Tile** aTile = aTiles;
@@ -1273,7 +1276,7 @@ void Board::Undo()
 			int aLeft = aCount;
 			do
 			{
-				if ((*aTile)->mKind == 0x2e)
+				if ((*aTile)->mKind == KIND_JOKER)
 				{
 					mFlights[0] = new Flight(*aTile, 0x15c, 0x1d6, 400);
 					mFlights[0]->SetTo((*aTile)->mRect.left + mOffX, (*aTile)->mRect.top + mOffY);
@@ -1290,12 +1293,12 @@ void Board::Undo()
 			} while (aLeft != 0);
 		}
 		mFlightCount = aCount;
-		mFlightKind = 6;
+		mFlightKind = FLIGHT_UNDO;
 	}
-	else if (aCount == 2 && (aTiles[0]->mKind == 0x2c || aTiles[1]->mKind == 0x2c))
+	else if (aCount == 2 && (aTiles[0]->mKind == KIND_KEY || aTiles[1]->mKind == KIND_KEY))
 	{
-		// The halves
-		if (aTiles[0]->mKind != 0x2c)
+		// The key and the lock
+		if (aTiles[0]->mKind != KIND_KEY)
 			UndoPair(aTiles[1], aTiles[0]);
 		else
 			UndoPair(aTiles[0], aTiles[1]);
@@ -1316,9 +1319,9 @@ void Board::Undo()
 	}
 	mMove--;
 	UpdateTray();
-	if (mTray[0] < 0x2b && KindsMatch(mTray[0], aKind))
+	if (mTray[0] < KIND_GOLD && KindsMatch(mTray[0], aKind))
 		GetPlayLayer()->AddScore(-500);
-	jb::PlaySound(0x15f);
+	jb::PlaySound(SOUND_UNDO);
 }
 
 // 0x40d1f0
@@ -1335,15 +1338,15 @@ void Board::UpdateTray()
 	if (aCount == 1)
 	{
 		mTray[1] = 0;
-		mTray[0] = 0x2f;
+		mTray[0] = KIND_MAGNET;
 		return;
 	}
 	if (aCount < 3)
 	{
-		if (aCount == 2 && (aTiles[0]->mKind == 0x2c || aTiles[1]->mKind == 0x2c))
+		if (aCount == 2 && (aTiles[0]->mKind == KIND_KEY || aTiles[1]->mKind == KIND_KEY))
 		{
-			mTray[0] = 0x2c;
-			mTray[1] = 0x2d;
+			mTray[0] = KIND_KEY;
+			mTray[1] = KIND_LOCK;
 			return;
 		}
 		mTray[0] = aTiles[0]->mKind;
@@ -1352,13 +1355,13 @@ void Board::UpdateTray()
 	else
 	{
 		int i = 0;
-		mTray[0] = 0x2e;
+		mTray[0] = KIND_JOKER;
 		if (0 < aCount)
 		{
 			Tile** aTile = aTiles;
 			do
 			{
-				if ((*aTile)->mKind != 0x2e)
+				if ((*aTile)->mKind != KIND_JOKER)
 				{
 					mTray[1] = aTiles[i]->mKind;
 					return;
@@ -1378,7 +1381,7 @@ void Board::UndoPair(Tile* theTile, Tile* theOther)
 	mFlights[1] = new Flight(theOther, 0x18e, 0x1d6, 400);
 	mFlights[1]->SetTo(theOther->mRect.left + 0xe + mOffX, theOther->mRect.top + -0xe + mOffY);
 	mFlightCount = 2;
-	mFlightKind = 6;
+	mFlightKind = FLIGHT_UNDO;
 }
 
 // 0x40d3c0
@@ -1400,7 +1403,7 @@ void Board::EndUndo()
 			else
 				mLayout.UpdateFree(aBack);
 			(*aTile)->mTaken = 0;
-			(*aTile)->m3c = GetTime();
+			(*aTile)->mLiftStart = GetTime();
 			i++;
 			aFlight++;
 			aTile++;
@@ -1413,26 +1416,26 @@ void Board::EndUndo()
 }
 
 // 0x40d460
-void Board::UndoLinked()
+void Board::UndoMagnet()
 {
 	Tile* aTile = mFlights[0]->mTile;
 	ClearFlights();
-	aTile->mKind = aTile->mWildLink->mKind;
-	mFlights[0] = new Flight(aTile, mOffX + aTile->mWildLink->mRect.left, mOffY + aTile->mWildLink->mRect.top, 300);
+	aTile->mKind = aTile->mMagnetLink->mKind;
+	mFlights[0] = new Flight(aTile, mOffX + aTile->mMagnetLink->mRect.left, mOffY + aTile->mMagnetLink->mRect.top, 300);
 	mFlights[0]->SetTo(mOffX + 0xe + aTile->mRect.left, mOffY + -0xe + aTile->mRect.top);
-	mFlightKind = 8;
+	mFlightKind = FLIGHT_UNDO_MAGNET_OUT;
 	mFlightCount = 1;
-	aTile->mWildLink->mKind = 0x2f;
-	aTile->mWildLink->mPreset = true;
-	aTile->mWildLink = nullptr;
+	aTile->mMagnetLink->mKind = KIND_MAGNET;
+	aTile->mMagnetLink->mPreset = true;
+	aTile->mMagnetLink = nullptr;
 }
 
 // 0x40d510
-void Board::EndUndoLinked()
+void Board::EndUndoMagnet()
 {
 	Tile* aTile = mFlights[0]->mTile;
 	aTile->mTaken = 0;
-	aTile->m3c = GetTime();
+	aTile->mLiftStart = GetTime();
 	mLayout.UpdateNeighbours(aTile, nullptr, nullptr, 0, false);
 	mLayout.UpdateFree(aTile);
 	UpdateMoves();
@@ -1473,10 +1476,10 @@ void Board::UpdateMoves()
 	if (mMode == 0)
 	{
 		int aKeys = mLayout.CountFree2b();
-		if (aKeys == 2 && mTipKeys)
+		if (aKeys == 2 && mTipGold)
 		{
 			AddTimer(1, 1000, 1, 1);
-			mTipKeys = false;
+			mTipGold = false;
 		}
 		if (mMusicMove == -1 && 0 < aKeys)
 		{
@@ -1535,15 +1538,15 @@ void Board::StartHints()
 	{
 		do
 		{
-			mHints[i]->mFlag39 = true;
-			mHints[i]->m3c = GetTime();
+			mHints[i]->mBobsAsHint = true;
+			mHints[i]->mLiftStart = GetTime();
 			i++;
 		} while (i < mHintCount);
 	}
 }
 
 // 0x40d8b0
-void Board::TakeKeys(Tile* theTile, Tile* theOther)
+void Board::TakeGold(Tile* theTile, Tile* theOther)
 {
 	mOver = true;
 	PlayLayer* aLayer = GetPlayLayer();
@@ -1567,23 +1570,23 @@ void Board::TakeKeys(Tile* theTile, Tile* theOther)
 		mFlights[1] = aFlight;
 	}
 	mFlightCount = 2;
-	mFlightKind = 9;
+	mFlightKind = FLIGHT_GOLD;
 	mFlights[0]->SetTo(0x15c, 0x172);
 	mFlights[1]->SetTo(0x18e, 0x172);
 	AddPoints(theOther, 2, false);
-	jb::PlaySound(0x179);
+	jb::PlaySound(SOUND_GOLD_MATCH);
 	jb::gManager->SetMusicLoop(4, 8);
 }
 
 // 0x40da30
-void Board::EndKeys()
+void Board::EndGold()
 {
 	if (2 < mLeft)
 	{
 		FlyOff();
 		mEscaping = true;
-		mFlightKind = 10;
-		jb::PlaySound(0x178);
+		mFlightKind = FLIGHT_BEFORE_FLY_OFF;
+		jb::PlaySound(SOUND_FLY_OFF_LOOP);
 		return;
 	}
 	ClearFlights();
@@ -1633,7 +1636,7 @@ set:
 	}
 }
 
-// 0x40dc00: the key tiles drop into the tray
+// 0x40dc00: the gold tiles drop into the tray
 void Board::EndRound()
 {
 	mEscaping = false;
@@ -1642,7 +1645,7 @@ void Board::EndRound()
 	mFlights[0]->SetTo(0x15c, 0x1d6);
 	mFlights[1]->SetTo(0x18e, 0x1d6);
 	mFlightCount = 2;
-	mFlightKind = 0xb;
+	mFlightKind = FLIGHT_GOLD_TO_TRAY;
 	GetPlayLayer()->CheckBestScore();
 }
 
@@ -1669,31 +1672,31 @@ bool Board::OnTimer(int theId, int theIndex)
 	{
 	case 1:
 		mHighlight = true;
-		mHighlightKind = 0x2b;
+		mHighlightKind = KIND_GOLD;
 		mHighlightOther = -1;
 		aPauseSounds = true;
 		break;
 	case 2:
 		mHighlight = true;
 		aPauseSounds = theIndex == -1;
-		mHighlightKind = 0x2c;
+		mHighlightKind = KIND_KEY;
 		mHighlightOther = 0x2d;
 		break;
 	case 3:
 		mHighlight = true;
 		aPauseSounds = theIndex == -1;
-		mHighlightKind = 0x2f;
+		mHighlightKind = KIND_MAGNET;
 		mHighlightOther = -1;
 		break;
 	case 4:
 		mHighlight = true;
 		aPauseSounds = theIndex == -1;
-		mHighlightKind = 0x2e;
+		mHighlightKind = KIND_JOKER;
 		mHighlightOther = -1;
 		break;
 	case 7:
 		mHighlight = true;
-		mHighlightKind = 0x27;
+		mHighlightKind = KIND_FIRST_FLOWER;
 		mHighlightOther = 0x28;
 		aPauseSounds = true;
 		break;
@@ -1707,12 +1710,12 @@ bool Board::OnTimer(int theId, int theIndex)
 }
 
 // 0x40deb0
-void Board::EndKeysInTray()
+void Board::EndGoldInTray()
 {
 	mStarted = false;
 	ClearFlights();
-	mTray[0] = 0x2b;
-	mTray[1] = 0x2b;
+	mTray[0] = KIND_GOLD;
+	mTray[1] = KIND_GOLD;
 	GetPlayLayer()->SetMoves(0, 0);
 	ClearTexts();
 	AddTimer(100, 100, 1, 1);

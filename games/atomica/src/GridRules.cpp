@@ -21,7 +21,7 @@ bool Grid::FindMolecules()
 {
 	gGridKeepTooltip = true;
 	bool aMade = false;
-	MouseMove(mM31c, mM320);
+	MouseMove(mMouseX, mMouseY);
 	gGridKeepTooltip = false;
 	mApp->mBoard->mBonus->Check(this);
 
@@ -39,16 +39,16 @@ bool Grid::FindMolecules()
 			{
 				mCombo += 2;
 				mApp->mSndCreateMolecule->Play();
-				mB335 = true;
+				mWhooshDue = true;
 				int aCount = Collect(aCol, aRow, aCol + 2, aRow + 1);
-				mStat37c += aCount;
-				if (!mRadiationRound || mB525)
+				mLevelAtoms += aCount;
+				if (!mRadiationRound || mAllRadiated)
 				{
-					if (!mB4c0)
+					if (!mBonusLevel)
 						aCount = 2;
 					mApp->mBoard->mMeter.Add(aCount, mCombo);
 				}
-				mStat380++;
+				mLevelMolecules++;
 				mGroupX += mX;
 				mGroupY += mY;
 				aMade = true;
@@ -61,16 +61,16 @@ bool Grid::FindMolecules()
 			{
 				mCombo += 2;
 				mApp->mSndCreateMolecule->Play();
-				mB335 = true;
+				mWhooshDue = true;
 				int aCount = Collect(aCol, aRow, aNextCol, aRow + 2);
-				mStat37c += aCount;
-				if (!mRadiationRound || mB525)
+				mLevelAtoms += aCount;
+				if (!mRadiationRound || mAllRadiated)
 				{
-					if (!mB4c0)
+					if (!mBonusLevel)
 						aCount = 2;
 					mApp->mBoard->mMeter.Add(aCount, mCombo);
 				}
-				mStat380++;
+				mLevelMolecules++;
 				mGroupX += mX;
 				mGroupY += mY;
 				aMade = true;
@@ -84,17 +84,17 @@ bool Grid::FindMolecules()
 			{
 				mCombo += 1;
 				mApp->mSndCreateMolecule->Play();
-				mB335 = true;
+				mWhooshDue = true;
 				int aCount = Collect(aCol, aRow, aNextCol, aNextRow);
-				mStat37c += aCount;
-				if (!mRadiationRound || mB525)
+				mLevelAtoms += aCount;
+				if (!mRadiationRound || mAllRadiated)
 				{
-					if (!mB4c0)
+					if (!mBonusLevel)
 						aCount = 1;
 					mApp->mBoard->mMeter.Add(aCount, mCombo);
 				}
 				mGroupX += mX;
-				mStat380++;
+				mLevelMolecules++;
 				mGroupY += mY;
 				aMade = true;
 				int aCombo = mCombo - 1;
@@ -107,16 +107,16 @@ bool Grid::FindMolecules()
 	} while (aNextCol < 8);
 
 	if (!aMade)
-		mB358 = true;
+		mComboEnded = true;
 	else
 	{
-		mB358 = false;
-		mF390 = mF390 + 100.0f;
+		mComboEnded = false;
+		mRoundTimer = mRoundTimer + 100.0f;
 	}
 	if (mApp->mMode == 1)
-		mB358 = false;
-	if (mStat384 < mCombo)
-		mStat384 = mCombo;
+		mComboEnded = false;
+	if (mLevelBestCombo < mCombo)
+		mLevelBestCombo = mCombo;
 	if (aMade)
 	{
 		if (1 < mCombo)
@@ -124,11 +124,11 @@ bool Grid::FindMolecules()
 		mApp->mBoard->mAtomicus->Comment(mCombo);
 		if (7 < mCombo)
 			mCombo = 7;
-		mApp->mBoard->mF0ac = (float) (mCombo * 0xc);
+		mApp->mBoard->mNeedleTarget = (float) (mCombo * 0xc);
 		mApp->mBoard->mBonus->Upgrade();
 	}
 	if (mApp->mBoard->mMeter.mFull)
-		mStat378 = mStat374 / 100;
+		mLevelSeconds = mLevelUpdates / 100;
 	return aMade;
 }
 
@@ -169,11 +169,11 @@ void Grid::AfterMove(bool theTimerTick)
 	if ((mApp->mMode == 1) && !theTimerTick)
 	{
 		mCombo = 0;
-		mApp->mBoard->mF0ac = 0;
+		mApp->mBoard->mNeedleTarget = 0;
 	}
 	bool aNewRound = true;
 	bool aSpread = true;
-	if (0 < mApp->mBoard->mI184)
+	if (0 < mApp->mBoard->mFreezeMoves)
 	{
 		aNewRound = false;
 		aSpread = false;
@@ -283,10 +283,10 @@ void Grid::Magnetise()
 	if (aAnyMoved)
 	{
 		mApp->mSndMagnet->Play();
-		bool aOldFlag = mB358;
+		bool aOldFlag = mComboEnded;
 		FindMolecules();
-		if (mB358)
-			mB358 = aOldFlag;
+		if (mComboEnded)
+			mComboEnded = aOldFlag;
 	}
 }
 
@@ -296,7 +296,7 @@ void Grid::Magnetise()
 int Grid::Collect(int theCol1, int theRow1, int theCol2, int theRow2)
 {
 	int aN = 0;
-	mB525 = false;
+	mAllRadiated = false;
 	bool aAllRadiated = true;
 	mGroupX = 0;
 	mGroupY = 0;
@@ -340,7 +340,7 @@ int Grid::Collect(int theCol1, int theRow1, int theCol2, int theRow2)
 						anAtom->RemoveFromCell();
 						mAtoms.Remove(anAtom);
 						aGroup->Add(anAtom);
-						anAtom->mE4 = 0x32;
+						anAtom->mShakeTime = 0x32;
 						aCount++;
 						int aPixel[2] = {0, 0};
 						CellToPixel(aCol, aRow, aPixel);
@@ -359,7 +359,7 @@ int Grid::Collect(int theCol1, int theRow1, int theCol2, int theRow2)
 		mGroupY /= aN;
 		mGroupColor.mRed /= aN;
 		mGroupColor.mGreen /= aN;
-		mB525 = aAllRadiated;
+		mAllRadiated = aAllRadiated;
 		mGroupColor.mBlue /= aN;
 	}
 	return aCount;
@@ -430,7 +430,7 @@ void Grid::Burst(Atom* theAtom)
 	anExplosion->mY = (float) aPixel[1];
 	mApp->mBoard->mEffects.Add(anExplosion);
 	delete theAtom;
-	if (mB4c0)
+	if (mBonusLevel)
 		mApp->mBoard->mMeter.Add(1, 0);
 	mApp->mSndNukeBlast->Play();
 }
@@ -480,10 +480,10 @@ void Grid::CheckUnsolvable()
 // made for the drawing and thrown away (its sound is the one a bolt plays).
 void Grid::DrawBond(Graphics* g, Atom* theA, Atom* theB, bool thePlaySound)
 {
-	float aAX = (float) (theA->mX + theA->mE8);
-	float aAY = (float) (theA->mY + theA->mEC);
-	float aBX = (float) (theB->mX + theB->mE8);
-	float aBY = (float) (theB->mY + theB->mEC);
+	float aAX = (float) (theA->mX + theA->mShakeX);
+	float aAY = (float) (theA->mY + theA->mShakeY);
+	float aBX = (float) (theB->mX + theB->mShakeX);
+	float aBY = (float) (theB->mY + theB->mShakeY);
 	float aCX = aBX;
 	float aCY = aBY;
 	float aDX = aBX;

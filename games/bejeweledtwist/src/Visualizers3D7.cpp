@@ -338,13 +338,14 @@ void VizJellyBlob::Blob::Update()
 
 // 0x6880fc: every triangle's three corners as vertices at the point's place (moved by the offset, times the scale) with
 // the point's place in the picture
+// 0x67fa2f: its forwarding overload, inline here
 void VizJellyBlob::Blob::BuildMesh(std::vector<TriVertex>& theVertices, float theOffsetX, float theOffsetY, float theScale)
 {
 	int aCount = (int)mTriangles.size();
-	int t = 0;
+	int aTime = 0;
 	if (0 < aCount) {
 		do {
-			const Triangle& aTriangle = mTriangles[t];
+			const Triangle& aTriangle = mTriangles[aTime];
 			int k = 0;
 			do {
 				const Cell* aCell = aTriangle.mCells[k];
@@ -353,8 +354,8 @@ void VizJellyBlob::Blob::BuildMesh(std::vector<TriVertex>& theVertices, float th
 				theVertices.push_back(TriVertex(aX, aY, aCell->mU, aCell->mV));  // 0x67fa2f
 				k++;
 			} while (k < 3);
-			t++;
-		} while (t < aCount);
+			aTime++;
+		} while (aTime < aCount);
 	}
 }
 

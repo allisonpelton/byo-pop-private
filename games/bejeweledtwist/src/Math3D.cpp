@@ -52,16 +52,16 @@ Mat3 Orthonormalized(const Mat3& theMatrix)
 Quat QuatFromMat3(const Mat3& theMatrix)
 {
 	Mat3 aMatrix = Orthonormalized(theMatrix);
-	Quat q = {0, 0, 0, 0};
+	Quat aQuat = {0, 0, 0, 0};
 	float aTrace = (float)((double)aMatrix.m[0] + (double)aMatrix.m[4] + (double)aMatrix.m[8]);
 	if (0.0f < aTrace) {
 		float aRoot = (float)std::sqrt((double)aTrace + 1.0);
-		q.w = (float)((double)aRoot * 0.5);
+		aQuat.w = (float)((double)aRoot * 0.5);
 		float aScale = (float)(0.5 / (double)aRoot);
-		q.x = (aMatrix.m[5] - aMatrix.m[7]) * aScale;
-		q.y = (aMatrix.m[6] - aMatrix.m[2]) * aScale;
-		q.z = (aMatrix.m[1] - aMatrix.m[3]) * aScale;
-		return q;
+		aQuat.x = (aMatrix.m[5] - aMatrix.m[7]) * aScale;
+		aQuat.y = (aMatrix.m[6] - aMatrix.m[2]) * aScale;
+		aQuat.z = (aMatrix.m[1] - aMatrix.m[3]) * aScale;
+		return aQuat;
 	}
 	// the largest of the diagonal picks the axis i; j and k follow it round (0x8595d8 holds 1, 2, 0)
 	static const int aNext[3] = {1, 2, 0};
@@ -77,13 +77,13 @@ Quat QuatFromMat3(const Mat3& theMatrix)
 	float aScale = aRoot;
 	if (aScale != 0.0f)
 		aScale = (float)(0.5 / (double)aScale);
-	q.w = (R[j][k] - R[k][j]) * aScale;
+	aQuat.w = (R[j][k] - R[k][j]) * aScale;
 	v[j] = (R[j][i] + R[i][j]) * aScale;
 	v[k] = (R[i][k] + R[k][i]) * aScale;
-	q.x = v[0];
-	q.y = v[1];
-	q.z = v[2];
-	return q;
+	aQuat.x = v[0];
+	aQuat.y = v[1];
+	aQuat.z = v[2];
+	return aQuat;
 }
 
 // 0x4c0f00: the rotation matrix of a unit quaternion
@@ -121,24 +121,24 @@ Quat NormalizedQuat(const Quat& q)
 }
 
 // 0x4c10f0: the quaternion a turned towards b by theT, the shortest way round
-Quat SlerpQuat(const Quat& a, const Quat& b, float theT, bool theLinear)
+Quat SlerpQuat(const Quat& theFrom, const Quat& theTo, float theT, bool theLinear)
 {
 	const float anEpsilon = 9.999999974752427e-07f;
 	// a and b alike: a
-	if (std::fabs(a.w - b.w) <= anEpsilon && std::fabs(a.x - b.x) <= anEpsilon && std::fabs(a.y - b.y) <= anEpsilon &&
-		std::fabs(a.z - b.z) <= anEpsilon)
-		return a;
+	if (std::fabs(theFrom.w - theTo.w) <= anEpsilon && std::fabs(theFrom.x - theTo.x) <= anEpsilon && std::fabs(theFrom.y - theTo.y) <= anEpsilon &&
+		std::fabs(theFrom.z - theTo.z) <= anEpsilon)
+		return theFrom;
 	if (theT <= 0.0f)
 		theT = 0.0f;
 	else if (1.0f <= theT)
 		theT = 1.0f;
 	float anInvT = (float)(1.0 - (double)theT);
-	Quat q2 = b;
-	float aDot = (float)((double)(b.y * a.y) + (double)(a.x * b.x) + (double)(b.z * a.z));
-	aDot = (float)((double)aDot + (double)(a.w * b.w));
+	Quat q2 = theTo;
+	float aDot = (float)((double)(theTo.y * theFrom.y) + (double)(theFrom.x * theTo.x) + (double)(theTo.z * theFrom.z));
+	aDot = (float)((double)aDot + (double)(theFrom.w * theTo.w));
 	if (aDot < 0.0f) {
 		aDot = -aDot;
-		q2 = Quat{-b.x, -b.y, -b.z, -b.w};
+		q2 = Quat{-theTo.x, -theTo.y, -theTo.z, -theTo.w};
 	}
 	if (0.0010000000474974513 < 1.0 - (double)aDot && !theLinear) {
 		float anAngle = (float)std::acos((double)aDot);
@@ -151,10 +151,10 @@ Quat SlerpQuat(const Quat& a, const Quat& b, float theT, bool theLinear)
 			float aToY = q2.y * aToScale;
 			float aToZ = q2.z * aToScale;
 			Quat r;
-			r.x = (float)((double)(a.x * aFromScale) + (double)aToX);
-			r.y = (float)((double)(a.y * aFromScale) + (double)aToY);
-			r.z = (float)((double)(a.z * aFromScale) + (double)aToZ);
-			r.w = (float)((double)q2.w * (double)aToScale + (double)aFromScale * (double)a.w);
+			r.x = (float)((double)(theFrom.x * aFromScale) + (double)aToX);
+			r.y = (float)((double)(theFrom.y * aFromScale) + (double)aToY);
+			r.z = (float)((double)(theFrom.z * aFromScale) + (double)aToZ);
+			r.w = (float)((double)q2.w * (double)aToScale + (double)aFromScale * (double)theFrom.w);
 			return NormalizedQuat(r);
 		}
 	}
@@ -162,14 +162,14 @@ Quat SlerpQuat(const Quat& a, const Quat& b, float theT, bool theLinear)
 	float aToX = q2.x * theT;
 	float aToY = q2.y * theT;
 	float aToZ = q2.z * theT;
-	float aFromX = a.x * anInvT;
-	float aFromY = a.y * anInvT;
-	float aFromZ = a.z * anInvT;
+	float aFromX = theFrom.x * anInvT;
+	float aFromY = theFrom.y * anInvT;
+	float aFromZ = theFrom.z * anInvT;
 	Quat r;
 	r.x = (float)((double)aFromX + (double)aToX);
 	r.y = (float)((double)aFromY + (double)aToY);
 	r.z = (float)((double)aFromZ + (double)aToZ);
-	r.w = (float)((double)q2.w * (double)theT + (double)a.w * (double)anInvT);
+	r.w = (float)((double)q2.w * (double)theT + (double)theFrom.w * (double)anInvT);
 	return NormalizedQuat(r);
 }
 
@@ -189,6 +189,7 @@ Mat3 Turn(float theRadians, int theCos1, int theSin, int theMinusSin, int theCos
 
 }  // namespace
 
+// port: the identity matrix
 Mat3::Mat3()
 {
 	for (int i = 0; i < 9; i++)
@@ -198,6 +199,7 @@ Mat3::Mat3()
 	m[8] = 1.0f;
 }
 
+// port: the product of two 3x3 matrices
 Mat3 Mat3::operator*(const Mat3& theOther) const
 {
 	Mat3 aProduct;
@@ -263,6 +265,7 @@ Vec3 Sexy::TimesMat3(const Vec3& theVector, const Mat3& theMatrix)
 		(float)(((double)m[2] * (double)theVector.x + (double)m[5] * (double)theVector.y) + (double)m[8] * (double)theVector.z)};
 }
 
+// 0x68b31c: component-wise vector multiply, inline here
 Vec3 Sexy::TransformPoint(const Transform3D& theTransform, const Vec3& thePoint)
 {
 	// 0x68b31c: scaled, each axis by its own
@@ -274,6 +277,9 @@ Vec3 Sexy::TransformPoint(const Transform3D& theTransform, const Vec3& thePoint)
 		(float)((double)theTransform.mPos.z + (double)aTurned.z)};
 }
 
+// 0x6dd0bd: component-wise vector divide, inline here
+// 0x6dd107: a vector read from a transform, inline here
+// 0x6dda14: a vector built from three transform columns, inline here
 Vec3 Sexy::WorldToCamera(const Transform3D& theCamera, const Vec3& thePoint)
 {
 	Vec3 aDelta{(float)((double)thePoint.x - (double)theCamera.mPos.x), (float)((double)thePoint.y - (double)theCamera.mPos.y),

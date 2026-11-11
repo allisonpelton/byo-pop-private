@@ -23,25 +23,27 @@
 
 using namespace Sexy;
 
-// a dialog with the game's colours and fonts (0x41aa90) whose text is named by its address in the exe
-void MummyApp::DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW)
+// a dialog with the game's colours and fonts (0x41aa90) whose text is named by its address in the exe; its height is the
+// preferred one, but the adventure's two long messages (the intro after a new game's name, the congratulations after the last chamber) give it
+void MMApp::DoMessage(int theId, const SexyString& theHeader, const SexyString& theLines, int theMode, int theX, int theY, int theW,
+	int theH)
 {
 	Dialog* aDialog = NewDialog(theId, true, theHeader, theLines, theMode == 3 ? GT(0x004922d0) : SexyString(""), theMode);
-	aDialog->Resize(theX, theY, theW, aDialog->GetPreferredHeight(theW));
+	aDialog->Resize(theX, theY, theW, theH >= 0 ? theH : aDialog->GetPreferredHeight(theW));
 	AddDialog(theId, aDialog);
 }
 
 // 0x41e970: the title screen is done: the menu scrolls down
-void MummyApp::TitleDone()
+void MMApp::LoadingCompleted()
 {
 	mWidgetManager->RemoveWidget(mTitleScreen);
 	SafeDeleteWidget(mTitleScreen);
 	mTitleScreen = NULL;
-	ShowMainMenu(0, false);
+	DoIntro(0, false);
 }
 
 // 0x41b160: the main menu in place of whatever else is on the screen
-void MummyApp::ShowMainMenu(int theEntry, bool theFade)
+void MMApp::DoIntro(int theEntry, bool theFade)
 {
 	mAdvPyramid = 0;
 	mAdvChamber = 0;
@@ -58,15 +60,15 @@ void MummyApp::ShowMainMenu(int theEntry, bool theFade)
 			*aSlots[i] = NULL;
 		}
 	}
-	mMainMenu = new MainMenu(this, theEntry);
+	mMainMenu = new IntroScreen(this, theEntry);
 	mMainMenu->Resize(0, 0, 0x280, 0x1e0);
 	mWidgetManager->AddWidget(mMainMenu);
 	if (theFade)
-		SetMusicOrder(1, true);
+		DoMusic(1, true);
 }
 
 // 0x41c340, 0x41b4b0, 0x41c300
-void MummyApp::RemoveBoard()
+void MMApp::KillBoard()
 {
 	if (mBoard != NULL)
 	{
@@ -76,7 +78,7 @@ void MummyApp::RemoveBoard()
 	}
 }
 
-void MummyApp::RemoveGamePanel()
+void MMApp::KillGameOver()
 {
 	if (mGamePanel != NULL)
 	{
@@ -87,7 +89,7 @@ void MummyApp::RemoveGamePanel()
 }
 
 // 0x41c380
-void MummyApp::RemoveGameOverScroll()
+void MMApp::KillHighScoreSlide()
 {
 	if (mHighScoreBack != NULL)
 	{
@@ -98,7 +100,7 @@ void MummyApp::RemoveGameOverScroll()
 }
 
 // 0x41b7b0: the level-complete screen goes; the next board comes unless the world map takes over
-void MummyApp::RemoveLevelComplete()
+void MMApp::KillNextLevel()
 {
 	if (mLevelComplete != NULL)
 	{
@@ -107,11 +109,11 @@ void MummyApp::RemoveLevelComplete()
 		mLevelComplete = NULL;
 	}
 	if (mWorldMap == NULL)
-		StartBoardScreen();
+		NewGame();
 }
 
 // 0x41e6a0: the side panel and the board of a new game
-void MummyApp::StartBoardScreen()
+void MMApp::NewGame()
 {
 	if (mHighScores != NULL)
 	{
@@ -131,8 +133,8 @@ void MummyApp::StartBoardScreen()
 		SafeDeleteWidget(mSidePanel);
 		mSidePanel = NULL;
 	}
-	RemoveBoard();
-	mSidePanel = new SidePanel(this);
+	KillBoard();
+	mSidePanel = new Sidebar(this);
 	mSidePanel->Resize(0, 0, 0x96, 0x1e0);
 	mWidgetManager->AddWidget(mSidePanel);
 	mSidePanel->MarkDirty();
@@ -144,26 +146,26 @@ void MummyApp::StartBoardScreen()
 }
 
 // 0x41b4f0: the level is complete: the screen with the score and the way on
-void MummyApp::OnLevelComplete()
+void MMApp::DoNextLevel()
 {
 	mBoard->mState = STATE_DONE;
 	if (mGameMode == MODE_ADVENTURE)
 		mChamberDone = true;
-	mLevelComplete = new LevelCompleteScreen(this);
+	mLevelComplete = new NextLevelWidget(this);
 	mLevelComplete->Resize(0x96, 0, 0x1ea, 0x1e0);
 	mWidgetManager->AddWidget(mLevelComplete);
 	mWidgetManager->SetFocus(mLevelComplete);
 }
 
 // 0x4112b0, case 3: the link after a level or on the ending board
-void MummyApp::OnContinueLink()
+void MMApp::OnContinueLink()
 {
 	if (mGameMode == MODE_ADVENTURE_DONE)
 	{
 		if (mAdvPyramid < 0xe)
 		{
-			LoadAdventure(mCurrentSlot, false);
-			RemoveBoard();
+			DoMap(mCurrentSlot, false);
+			KillBoard();
 			return;
 		}
 	}
@@ -176,29 +178,29 @@ void MummyApp::OnContinueLink()
 			mClassicChamber = 0;
 			mClassicPyramid = mClassicPyramid + 1;
 			mGameMode = MODE_CLASSIC;
-			StartBoardScreen();
+			NewGame();
 			return;
 		}
 	}
-	ShowVictory();
+	DoBeach();
 }
 
 // 0x41c410: classic mode: continue the game that was saved, or start a new one
-void MummyApp::StartClassicOrContinue()
+void MMApp::TryConfirmLoad()
 {
-	if (!ClassicSaveExists())
+	if (!HasSavedGame())
 	{
-		StartBoardScreen();
+		NewGame();
 		mScore = 0;
 		return;
 	}
-	DoMessage(DIALOG_CONTINUE, GT(0x00494068), GT(0x00494074), 1, 0xa2, 0x52, 0x13c);
+	DoMessage(DIALOG_CONTINUE, GT(0x00494068), GT(0x00494074), 1, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 }
 
 // 0x41c3c0: the tutorial
-void MummyApp::StartTutorial()
+void MMApp::DoTutorial()
 {
-	RemoveLevelComplete();	// 0x41b7b0 first: with no world map up it starts a board (and its draws) that the tutorial then replaces
+	KillNextLevel();	// 0x41b7b0 first: with no world map up it starts a board (and its draws) that the tutorial then replaces
 	if (mMainMenu != NULL)
 	{
 		mWidgetManager->RemoveWidget(mMainMenu);
@@ -208,29 +210,29 @@ void MummyApp::StartTutorial()
 	if (mBoard != NULL)
 	{
 		if (mGameMode == MODE_CLASSIC || mGameMode == MODE_CLASSIC_DONE)
-			mBoard->SaveClassic();
+			mBoard->SaveGame();
 		mBoard->mState = STATE_LOST;
 	}
 	mGameMode = MODE_TUTORIAL;
-	StartBoardScreen();
+	NewGame();
 	mScore = 0;
 }
 
 // 0x41cc30
-void MummyApp::ShowQuitDialog()
+void MMApp::ConfirmQuit()
 {
-	DoMessage(DIALOG_QUIT, "", GT(0x00494140), 1, 0xa2, 0x52, 0x13c);
+	DoMessage(DIALOG_QUIT, "", GT(0x00494140), 1, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 }
 
 // 0x41cfb0: the way back to the menu, with the question that goes with the state of the game
-void MummyApp::ShowQuitToMainDialog()
+void MMApp::ConfirmQuitToMain()
 {
 	if (mHighScores != NULL)
 	{
 		KillDialog(DIALOG_QUIT_TO_MAIN);
 		if (mWorldMap != NULL)
-			RemoveWorldMap();
-		ShowMainMenu(2, true);
+			KillMap();
+		DoIntro(2, true);
 	}
 	SexyString aLines;
 	if (mVictory != NULL)
@@ -238,11 +240,11 @@ void MummyApp::ShowQuitToMainDialog()
 	else if (mLevelComplete == NULL)
 	{
 		if (mBoard == NULL)
-			aLines = (mGameMode != 2 && mGameMode != 3) ? GT(0x004941e0) : GT(0x00494228);
-		else if (mGameMode < 2)
+			aLines = (mGameMode != MODE_ADVENTURE_DONE && mGameMode != MODE_CLASSIC_DONE) ? GT(0x004941e0) : GT(0x00494228);
+		else if (mGameMode < MODE_ADVENTURE_DONE)
 			aLines = (mBoard->mShowingSolution) ? GT(0x00494290) : GT(0x00494228);
 		else
-			aLines = (mGameMode != 2 && mGameMode != 3) ? GT(0x004941e0) : GT(0x00494228);
+			aLines = (mGameMode != MODE_ADVENTURE_DONE && mGameMode != MODE_CLASSIC_DONE) ? GT(0x004941e0) : GT(0x00494228);
 	}
 	else
 		aLines = GT(0x00494290);
@@ -253,7 +255,7 @@ void MummyApp::ShowQuitToMainDialog()
 }
 
 // 0x41f3e0: the name for a high score
-void MummyApp::ShowRecordScore(const SexyString& theLines)
+void MMApp::DoRecordScoreDialog(const SexyString& theLines)
 {
 	RecordScoreDialog* aDialog = new RecordScoreDialog(this, theLines);
 	aDialog->Resize(0xfa, 0x20, 0x13c, aDialog->GetPreferredHeight(0x13c));
@@ -261,7 +263,7 @@ void MummyApp::ShowRecordScore(const SexyString& theLines)
 }
 
 // 0x41eab0: the options
-void MummyApp::ShowOptions()
+void MMApp::DoOptions()
 {
 	OptionsDialog* aDialog = (OptionsDialog*) NewDialogOf(new OptionsDialog(this));
 	aDialog->Resize(0x99, 0x1a, 0x1e0, aDialog->GetPreferredHeight(0x1b6));
@@ -269,7 +271,7 @@ void MummyApp::ShowOptions()
 }
 
 // 0x41f6a0: the high scores as a dialog
-void MummyApp::ShowHighScoreDialog()
+void MMApp::DoHighScoreDialog()
 {
 	HighScoreDialog* aDialog = (HighScoreDialog*) NewDialogOf(new HighScoreDialog(this));
 	aDialog->Resize(0xf5, 0x5a, 300, aDialog->GetPreferredHeight(0x1ac));
@@ -278,7 +280,7 @@ void MummyApp::ShowHighScoreDialog()
 
 // the game's colours for a dialog of its own (the end of 0x41aa90, which the classes of 0x4250f0 and 0x413c30 get from
 // the callers: 0x41eab0 and 0x41f6a0)
-Dialog* MummyApp::NewDialogOf(Dialog* theDialog)
+Dialog* MMApp::NewDialogOf(Dialog* theDialog)
 {
 	theDialog->SetColor(Dialog::COLOR_HEADER, Color(0x66, 0x5c, 0x38));
 	theDialog->SetColor(Dialog::COLOR_LINES, Color(0x2e, 0x14, 0));
@@ -287,44 +289,44 @@ Dialog* MummyApp::NewDialogOf(Dialog* theDialog)
 	return theDialog;
 }
 
-// 0x41b5b0: a tip, if it has not been switched off (the demo's reminder, number 7, is not ported: this game is registered)
-void MummyApp::ShowTip(int theWhich)
+// 0x41b5b0: a tip, if it has not been switched off (the original's number 7 is the demo's reminder, registration, which the port has not got)
+void MMApp::DoWarning(int theWhich)
 {
 	bool* aFlags[7] = {&mTipTwoMummies, &mTipGate, &mTipTrap, &mTipRed, &mTipScorpion, &mTipDark, &mTipAnkh};
 	if (theWhich < 0 || theWhich > 6 || !*aFlags[theWhich])
 		return;
 	if (mBoard != NULL)
-		mBoard->mFlagEc0 = true;
-	TipDialog* aDialog = (TipDialog*) NewDialogOf(new TipDialog(this, theWhich));
+		mBoard->mTipShown = true;
+	WarningDialog* aDialog = (WarningDialog*) NewDialogOf(new WarningDialog(this, theWhich));
 	aDialog->Resize(0xb4, 0x46, 0x1ae, aDialog->GetPreferredHeight(0x17c));
 	AddDialog(DIALOG_TIP, aDialog);
 }
 
 // 0x41fc70: what the Ankh is for
-void MummyApp::ShowAnkhHelp(bool theSolvable)
+void MMApp::DoAnkhExplanation(bool theSolvable)
 {
 	if (mBoard == NULL || mBoard->mSize != 6 || !mShowAnkh)
 		return;
-	DoMessage(DIALOG_ANKH, GT(0x004947a4), GT(theSolvable ? 0x004947b0 : 0x00494700), 3, 0xa2, 0x52, 0x13c);
+	DoMessage(DIALOG_ANKH, GT(0x004947a4), GT(theSolvable ? 0x004947b0 : 0x00494700), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 }
 
 // 0x41e890: the game is won
-void MummyApp::ShowVictory()
+void MMApp::DoBeach()
 {
-	RemoveBoard();
+	KillBoard();
 	if (mGameMode == MODE_CLASSIC)
 		mGameMode = MODE_CLASSIC_DONE;
 	if (mGameMode == MODE_ADVENTURE)
 		mGameMode = MODE_ADVENTURE_DONE;
-	mVictory = new VictoryScreen(this);
+	mVictory = new BeachWidget(this);
 	mVictory->Resize(0x96, 0, 0x1ea, 0x1e0);
 	mWidgetManager->AddWidget(mVictory);
 	mWidgetManager->SetFocus(mVictory);
-	SetMusicOrder(0x37, false);
+	DoMusic(0x37, false);
 }
 
 // 0x41b2f0: the panel with undo, try again, save and quit and abandon hope
-void MummyApp::ShowGamePanel()
+void MMApp::DoGameOver()
 {
 	if (mGamePanel == NULL && mBoard != NULL)
 	{
@@ -336,24 +338,26 @@ void MummyApp::ShowGamePanel()
 				mScoreBuffer.WriteByte(1);
 				mScoreBuffer.WriteLong(mScore);
 			}
-			mHighScores = new HighScoreScreen(this);
+			mHighScores = new HighScoreWidget(this);
 			mHighScores->Resize(0x96, 0, 0x1ea, 0x1e0);
 			mWidgetManager->AddWidget(mHighScores);
-			mHighScoreBack = new GameOverScroll(this);
+			mHighScoreBack = new HighScoreSlide(this);
 			mHighScoreBack->Resize(0, 0, 0x280, 0x1e0);
 			mWidgetManager->AddWidget(mHighScoreBack);
-			SetMusicOrder(0x4c, true);
+			DoMusic(0x4c, true);
 			return;
 		}
-		mGamePanel = new GamePanel(this);
+		mGamePanel = new GameOverWidget(this);
 		mGamePanel->mScrollState = 0;
 		mGamePanel->Resize(0, 0, 0x280, 0x1e0);
 		mWidgetManager->AddWidget(mGamePanel);
 	}
 }
 
-// 0x4201e0: the answers of the dialogs
-void MummyApp::ButtonDepress(int theId)
+// 0x4201e0: the answers of the dialogs (0x41ffb0 and 0x41fff0: the tests of a new adventure's name, in case 2000 +
+// DIALOG_NEW_ADVENTURE_NAME below; 0x41f730 and 0x41f8f0: its two messages, a name that will not do and one that is in use,
+// made there with DoMessage)
+void MMApp::ButtonDepress(int theId)
 {
 	if (theId >= 3000 && theId < 4000)
 	{
@@ -361,8 +365,8 @@ void MummyApp::ButtonDepress(int theId)
 		if (anId == DIALOG_CONTINUE)
 		{
 			KillDialog(anId);
-			Board::DeleteClassicSave();
-			StartBoardScreen();
+			Board::DeleteSavedGame();
+			NewGame();
 			mScore = 0;
 			return;
 		}
@@ -373,15 +377,10 @@ void MummyApp::ButtonDepress(int theId)
 		return;
 	switch (theId)
 	{
-	case 2000 + DIALOG_NEW_GAME:
-		KillDialog(DIALOG_NEW_GAME);
-		StartBoardScreen();
-		mScore = 0;
-		break;
 	case 2000 + DIALOG_STARTED_TUTORIAL:
 		KillDialog(DIALOG_STARTED_TUTORIAL);
 		KillDialog(DIALOG_OPTIONS);
-		StartTutorial();
+		DoTutorial();
 		break;
 	case 2000 + DIALOG_QUIT:
 		KillDialog(DIALOG_QUIT);
@@ -389,13 +388,32 @@ void MummyApp::ButtonDepress(int theId)
 		break;
 	case 2000 + DIALOG_QUIT_TO_MAIN:
 		KillDialog(DIALOG_QUIT_TO_MAIN);
+		// 0x4201e0 case 0x7d3: an adventure is saved on the way out. The saved game is read into a map, the time played in
+		// this maze is added unless the chamber's result is up (which has added it), and the map goes again, which
+		// writes the file
+		if (mGameMode == MODE_ADVENTURE)
+		{
+			if (mLevelComplete == NULL)
+				AdventureLeave();
+			else
+			{
+				MapWidget* aMap = new MapWidget(this, mCurrentSlot, false);
+				if (aMap->mInvalid)
+					delete aMap;
+				else
+				{
+					mWorldMap = aMap;
+					KillMap();
+				}
+			}
+		}
 		if (mBoard != NULL)
 		{
 			if (mGameMode == MODE_CLASSIC || mGameMode == MODE_CLASSIC_DONE)
-				mBoard->SaveClassic();
+				mBoard->SaveGame();
 			mBoard->mState = STATE_LOST;
 		}
-		ShowMainMenu(2, true);
+		DoIntro(2, true);
 		break;
 	case 2000 + DIALOG_OPTIONS:
 	{
@@ -413,72 +431,68 @@ void MummyApp::ButtonDepress(int theId)
 	case 2000 + DIALOG_TIP:
 	{
 		// 0x4201e0 case 0x7eb: the box says whether this tip comes again
-		TipDialog* aDialog = (TipDialog*) GetDialog(DIALOG_TIP);
+		WarningDialog* aDialog = (WarningDialog*) GetDialog(DIALOG_TIP);
 		bool* aFlags[7] = {&mTipTwoMummies, &mTipGate, &mTipTrap, &mTipRed, &mTipScorpion, &mTipDark, &mTipAnkh};
 		if (aDialog->mWhich >= 0 && aDialog->mWhich < 7)
 			*aFlags[aDialog->mWhich] = !aDialog->mCheckbox->IsChecked();
 		KillDialog(DIALOG_TIP);
 		break;
 	}
-	case 2000 + DIALOG_RESET_TIPS:
-		// 0x7ec: the tips come back
-		KillDialog(DIALOG_RESET_TIPS);
-		mTipTwoMummies = mTipGate = mTipTrap = mTipRed = mTipScorpion = mTipDark = mTipAnkh = true;
-		break;
 	case 2000 + DIALOG_NEW_ADVENTURE_NAME:
 	{
-		// 0x4201e0 case 0x7db: the name of a new adventure: letters and numbers, not one that is in use
-		NewAdventureDialog* aDialog = (NewAdventureDialog*) GetDialog(DIALOG_NEW_ADVENTURE_NAME);
+		// 0x4201e0 case 0x7db: the name of a new adventure: not empty and with no comma (0x41ffb0; the message says letters
+		// and numbers, the code only looks for a comma), not one that is in use (0x41fff0: an exact comparison with the name
+		// stored in each slot's file, so Bob and bob can both be used)
+		NameDialog* aDialog = (NameDialog*) GetDialog(DIALOG_NEW_ADVENTURE_NAME);
 		SexyString aName = aDialog->mNameEdit->mString;
 		bool aValid = !aName.empty();
 		for (size_t i = 0; i < aName.size(); i++)
 		{
-			unsigned char c = (unsigned char) aName[i];
-			if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')))
+			if (aName[i] == ',')
 				aValid = false;
 		}
 		if (!aValid)
 		{
-			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x004945f8), 3, 0xa2, 0x52, 0x13c);
+			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x004945f8), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 			break;
 		}
 		bool aUsed = false;
 		for (int i = 0; i < 5; i++)
 		{
 			SexyString anOther;
-			if (AdventureName(i, anOther) && stricmp(anOther.c_str(), aName.c_str()) == 0)
+			if (AdventureName(i, anOther) && strcmp(anOther.c_str(), aName.c_str()) == 0)
 				aUsed = true;
 		}
 		if (aUsed)
 		{
-			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x00494644), 3, 0xa2, 0x52, 0x13c);
+			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x00494644), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 			break;
 		}
 		CreateAdventure(mCurrentSlot, aName);
-		LoadAdventure(mCurrentSlot, false);
-		DoMessage(DIALOG_INTRO, GT(0x00494824), GT(0x00494834), 3, 0x6e, 0x41, 0x1a4);
+		DoMap(mCurrentSlot, false);
+		DoMessage(DIALOG_INTRO, GT(0x00494824), GT(0x00494834), 3, 0x6e, 0x41, 0x1a4, 0x15e);
 		KillDialog(DIALOG_NEW_ADVENTURE_NAME);
 		break;
 	}
 	case 2000 + DIALOG_RECORD_SCORE:
 	{
 		RecordScoreDialog* aDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
-		if (mGameMode == 3)
+		if (mGameMode == MODE_CLASSIC_DONE)
 		{
 			if (mVictory != NULL)
-				mVictory->SetName(aDialog->mNameEdit->mString);
+				mVictory->NameEntered(aDialog->mNameEdit->mString);
 		}
 		else if (mHighScores != NULL)
-			mHighScores->SetName(aDialog->mNameEdit->mString);
+			mHighScores->NameEntered(aDialog->mNameEdit->mString);
 		mLastScoreName = aDialog->mNameEdit->mString;
 		KillDialog(DIALOG_RECORD_SCORE);
 		break;
 	}
 	case 2000 + DIALOG_CONTINUE:
 		KillDialog(DIALOG_CONTINUE);
-		LoadClassic();
-		Board::DeleteClassicSave();
-		StartBoardScreen();
+		LoadGame();
+		Board::DeleteSavedGame();
+		NewGame();
 		break;
 	default:
 		KillDialog(theId - 2000);

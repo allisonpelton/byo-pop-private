@@ -38,10 +38,10 @@ const size_t MOVE_SIZE = 3 * 4;
 const uint32_t TAG_GRAV = Replay::Tag("GRAV");
 const size_t GRAV_SIZE = 4 + 1;
 const uint32_t TAG_DIRT = Replay::Tag("DIRT"); // u8 leftFirst, then a byte a cell
-const uint32_t TAG_KIND = Replay::Tag("KIND"); // a byte a cell (stage 11)
-const uint32_t TAG_GOLD = Replay::Tag("GOLD"); // a byte a cell (stage 12)
-const uint32_t TAG_GTIM = Replay::Tag("GTIM"); // the level's time (stage 12)
-const uint32_t TAG_ARRW = Replay::Tag("ARRW"); // the counts, then a byte a cell (stage 18)
+const uint32_t TAG_KIND = Replay::Tag("KIND"); // a byte a cell
+const uint32_t TAG_GOLD = Replay::Tag("GOLD"); // a byte a cell
+const uint32_t TAG_GTIM = Replay::Tag("GTIM"); // the level's time
+const uint32_t TAG_ARRW = Replay::Tag("ARRW"); // the counts, then a byte a cell
 const size_t ARRW_FIXED = 4 + 4 + 1;
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
@@ -447,10 +447,10 @@ std::string Replay::VariantSaveChunks(const VariantSave& theSave)
 
 bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, std::string* theError)
 {
-	std::string aDummy;
-	std::string& anErr = (theError != NULL) ? *theError : aDummy;
+	std::string anIgnoredError;
+	std::string& anErr = (theError != NULL) ? *theError : anIgnoredError;
 	*theOut = VariantSave();
-	VariantSave& s = *theOut;
+	VariantSave& aSave = *theOut;
 	if (theSave.size() < SAVE_HEADER_FIXED)
 	{
 		anErr = "shorter than the v2 header";
@@ -463,17 +463,17 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		anErr = "version " + std::to_string(aVersion) + ", not the v2 save's " + std::to_string((int) SAVE_VERSION_VARIANT);
 		return false;
 	}
-	memcpy(s.mRulesId, theSave.data() + 4, RULES_ID_SIZE);
+	memcpy(aSave.mRulesId, theSave.data() + 4, RULES_ID_SIZE);
 	aHeader.mPos += RULES_ID_SIZE;
-	s.mCols = (int) aHeader.U16();
-	s.mRows = (int) aHeader.U16();
-	s.mLevelShape = (int32_t) aHeader.U32();
-	if ((s.mCols < 3) || (s.mCols > 16) || (s.mRows < 3) || (s.mRows > 16))
+	aSave.mCols = (int) aHeader.U16();
+	aSave.mRows = (int) aHeader.U16();
+	aSave.mLevelShape = (int32_t) aHeader.U32();
+	if ((aSave.mCols < 3) || (aSave.mCols > 16) || (aSave.mRows < 3) || (aSave.mRows > 16))
 	{
-		anErr = "a " + std::to_string(s.mCols) + "x" + std::to_string(s.mRows) + " board (3..16 each)";
+		anErr = "a " + std::to_string(aSave.mCols) + "x" + std::to_string(aSave.mRows) + " board (3..16 each)";
 		return false;
 	}
-	size_t aCells = (size_t) s.mCols * s.mRows;
+	size_t aCells = (size_t) aSave.mCols * aSave.mRows;
 	size_t aMaskSize = (aCells + 7) / 8;
 	if (theSave.size() - aHeader.mPos < aMaskSize)
 	{
@@ -481,9 +481,9 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		return false;
 	}
 	for (size_t i = 0; i < aCells; i++)
-		s.mPlayable.push_back((((uint8_t) theSave[aHeader.mPos + i / 8] >> (i % 8)) & 1) != 0);
+		aSave.mPlayable.push_back((((uint8_t) theSave[aHeader.mPos + i / 8] >> (i % 8)) & 1) != 0);
 	size_t aPos = aHeader.mPos + aMaskSize;
-	s.mBodyStart = aPos;
+	aSave.mBodyStart = aPos;
 
 	// The v1 field sequence: its size follows from the present bytes
 	if (theSave.size() - aPos < (size_t) SAVE_HEAD_SIZE)
@@ -504,9 +504,9 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		if (!isPresent)
 			continue;
 		aPresent[i] = true;
-		if (!s.mPlayable[i])
+		if (!aSave.mPlayable[i])
 		{
-			anErr = "a gem in the hole at cell (" + std::to_string(i % s.mCols) + "," + std::to_string(i / s.mCols) + ")";
+			anErr = "a gem in the hole at cell (" + std::to_string(i % aSave.mCols) + "," + std::to_string(i / aSave.mCols) + ")";
 			return false;
 		}
 		if (theSave.size() - aPos < Piece::SAVE_SIZE)
@@ -522,7 +522,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		return false;
 	}
 	aPos += SAVE_TAIL_SIZE;
-	s.mBodyEnd = aPos;
+	aSave.mBodyEnd = aPos;
 
 	// The chunks, up to END
 	bool hasRng = false;
@@ -557,7 +557,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		}
 		if (aTag == TAG_RNGS)
 		{
-			if (hasRng || (aLen != RNGS_SIZE) || !ReadRng(aReader, &s.mRng))
+			if (hasRng || (aLen != RNGS_SIZE) || !ReadRng(aReader, &aSave.mRng))
 			{
 				anErr = hasRng ? std::string("RNGS twice") : "RNGS: " + std::to_string(aLen) + " bytes, not " + std::to_string(RNGS_SIZE);
 				return false;
@@ -571,9 +571,9 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 				anErr = hasMoves ? std::string("MOVE twice") : "MOVE: " + std::to_string(aLen) + " bytes, not " + std::to_string(MOVE_SIZE);
 				return false;
 			}
-			s.mMoves = (int32_t) aReader.U32();
-			s.mInvalidMoves = (int32_t) aReader.U32();
-			s.mUndosUsed = (int32_t) aReader.U32();
+			aSave.mMoves = (int32_t) aReader.U32();
+			aSave.mInvalidMoves = (int32_t) aReader.U32();
+			aSave.mUndosUsed = (int32_t) aReader.U32();
 			hasMoves = true;
 		}
 		else if (aTag == TAG_GRAV)
@@ -583,23 +583,23 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 				anErr = hasGravity ? std::string("GRAV twice") : "GRAV: " + std::to_string(aLen) + " bytes, not " + std::to_string(GRAV_SIZE);
 				return false;
 			}
-			s.mGravityFlips = (int32_t) aReader.U32();
+			aSave.mGravityFlips = (int32_t) aReader.U32();
 			uint32_t aNoFlip = aReader.U8();
-			if ((s.mGravityFlips < 0) || (aNoFlip > 1))
+			if ((aSave.mGravityFlips < 0) || (aNoFlip > 1))
 			{
-				anErr = "GRAV: flips " + std::to_string(s.mGravityFlips) + ", noFlip " + std::to_string(aNoFlip);
+				anErr = "GRAV: flips " + std::to_string(aSave.mGravityFlips) + ", noFlip " + std::to_string(aNoFlip);
 				return false;
 			}
-			s.mGravityNoFlip = (aNoFlip != 0);
-			s.mHasGravity = true;
+			aSave.mGravityNoFlip = (aNoFlip != 0);
+			aSave.mHasGravity = true;
 			hasGravity = true;
 		}
 		else if (aTag == TAG_DIRT)
 		{
-			size_t aCells = s.mPlayable.size();
-			if (s.mHasDirt || (aLen != 1 + aCells))
+			size_t aCells = aSave.mPlayable.size();
+			if (aSave.mHasDirt || (aLen != 1 + aCells))
 			{
-				anErr = s.mHasDirt ? std::string("DIRT twice") : "DIRT: " + std::to_string(aLen) + " bytes, not " + std::to_string(1 + aCells);
+				anErr = aSave.mHasDirt ? std::string("DIRT twice") : "DIRT: " + std::to_string(aLen) + " bytes, not " + std::to_string(1 + aCells);
 				return false;
 			}
 			uint32_t aLeftFirst = aReader.U8();
@@ -608,26 +608,26 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 				anErr = "DIRT: leftFirst " + std::to_string(aLeftFirst);
 				return false;
 			}
-			s.mDiagonalLeftFirst = (aLeftFirst != 0);
+			aSave.mDiagonalLeftFirst = (aLeftFirst != 0);
 			for (size_t i = 0; i < aCells; i++)
 			{
 				uint8_t aLayers = (uint8_t) aReader.U8();
-				if ((aLayers > BoardLayout::MAX_DIRT_LAYERS) || ((aLayers > 0) && s.mPlayable[i]))
+				if ((aLayers > BoardLayout::MAX_DIRT_LAYERS) || ((aLayers > 0) && aSave.mPlayable[i]))
 				{
-					anErr = "DIRT: " + std::to_string(aLayers) + " layers at cell (" + std::to_string(i % s.mCols) + "," +
-						std::to_string(i / s.mCols) + ")" + (s.mPlayable[i] ? ", a gem cell" : "");
+					anErr = "DIRT: " + std::to_string(aLayers) + " layers at cell (" + std::to_string(i % aSave.mCols) + "," +
+						std::to_string(i / aSave.mCols) + ")" + (aSave.mPlayable[i] ? ", a gem cell" : "");
 					return false;
 				}
-				s.mDirtLayers.push_back(aLayers);
+				aSave.mDirtLayers.push_back(aLayers);
 			}
-			s.mHasDirt = true;
+			aSave.mHasDirt = true;
 		}
 		else if (aTag == TAG_KIND)
 		{
-			// stage 11: a gem's kind (Specials::Kind: 0 normal, 1 flame, 2 lightning), 0 where there is no gem
-			if (s.mHasKinds || (aLen != aCells))
+			// a gem's kind (Specials::Kind: 0 normal, 1 flame, 2 lightning), 0 where there is no gem
+			if (aSave.mHasKinds || (aLen != aCells))
 			{
-				anErr = s.mHasKinds ? std::string("KIND twice") : "KIND: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
+				anErr = aSave.mHasKinds ? std::string("KIND twice") : "KIND: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
 				return false;
 			}
 			for (size_t i = 0; i < aCells; i++)
@@ -635,84 +635,84 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 				uint8_t aKind = (uint8_t) aReader.U8();
 				if ((aKind > 2) || ((aKind > 0) && !aPresent[i]))
 				{
-					anErr = "KIND: kind " + std::to_string(aKind) + " at cell (" + std::to_string(i % s.mCols) + "," +
-						std::to_string(i / s.mCols) + ")" + (aPresent[i] ? "" : ", which has no gem");
+					anErr = "KIND: kind " + std::to_string(aKind) + " at cell (" + std::to_string(i % aSave.mCols) + "," +
+						std::to_string(i / aSave.mCols) + ")" + (aPresent[i] ? "" : ", which has no gem");
 					return false;
 				}
-				s.mKinds.push_back(aKind);
+				aSave.mKinds.push_back(aKind);
 			}
-			s.mHasKinds = true;
+			aSave.mHasKinds = true;
 		}
 		else if (aTag == TAG_GOLD)
 		{
-			// stage 12: 1 a gold cell, only on a gem cell of the save's mask
-			if (s.mHasGold || (aLen != aCells))
+			// 1 a gold cell, only on a gem cell of the save's mask
+			if (aSave.mHasGold || (aLen != aCells))
 			{
-				anErr = s.mHasGold ? std::string("GOLD twice") : "GOLD: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
+				anErr = aSave.mHasGold ? std::string("GOLD twice") : "GOLD: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
 				return false;
 			}
 			for (size_t i = 0; i < aCells; i++)
 			{
 				uint8_t aGold = (uint8_t) aReader.U8();
-				if ((aGold > 1) || ((aGold > 0) && !s.mPlayable[i]))
+				if ((aGold > 1) || ((aGold > 0) && !aSave.mPlayable[i]))
 				{
-					anErr = "GOLD: " + std::to_string(aGold) + " at cell (" + std::to_string(i % s.mCols) + "," +
-						std::to_string(i / s.mCols) + ")" + (s.mPlayable[i] ? "" : ", which is no gem cell");
+					anErr = "GOLD: " + std::to_string(aGold) + " at cell (" + std::to_string(i % aSave.mCols) + "," +
+						std::to_string(i / aSave.mCols) + ")" + (aSave.mPlayable[i] ? "" : ", which is no gem cell");
 					return false;
 				}
-				s.mGold.push_back(aGold);
+				aSave.mGold.push_back(aGold);
 			}
-			s.mHasGold = true;
+			aSave.mHasGold = true;
 		}
 		else if (aTag == TAG_GTIM)
 		{
-			// stage 12: the level's time left and its limit, in ticks (0 0: no limit)
-			if (s.mHasGoldTime || (aLen != 8))
+			// the level's time left and its limit, in ticks (0 0: no limit)
+			if (aSave.mHasGoldTime || (aLen != 8))
 			{
-				anErr = s.mHasGoldTime ? std::string("GTIM twice") : "GTIM: " + std::to_string(aLen) + " bytes, not 8";
+				anErr = aSave.mHasGoldTime ? std::string("GTIM twice") : "GTIM: " + std::to_string(aLen) + " bytes, not 8";
 				return false;
 			}
-			s.mGoldTicksLeft = (int32_t) aReader.U32();
-			s.mGoldTickLimit = (int32_t) aReader.U32();
-			if ((s.mGoldTickLimit < 0) || (s.mGoldTicksLeft < 0) || (s.mGoldTicksLeft > s.mGoldTickLimit))
+			aSave.mGoldTicksLeft = (int32_t) aReader.U32();
+			aSave.mGoldTickLimit = (int32_t) aReader.U32();
+			if ((aSave.mGoldTickLimit < 0) || (aSave.mGoldTicksLeft < 0) || (aSave.mGoldTicksLeft > aSave.mGoldTickLimit))
 			{
-				anErr = "GTIM: " + std::to_string(s.mGoldTicksLeft) + " ticks left of " + std::to_string(s.mGoldTickLimit);
+				anErr = "GTIM: " + std::to_string(aSave.mGoldTicksLeft) + " ticks left of " + std::to_string(aSave.mGoldTickLimit);
 				return false;
 			}
-			s.mHasGoldTime = true;
+			aSave.mHasGoldTime = true;
 		}
 		else if (aTag == TAG_ARRW)
 		{
-			// stage 18: the moves toward the next arrow, the arrows cleared, a step due, then each gem's arrow (0 none,
+			// the moves toward the next arrow, the arrows cleared, a step due, then each gem's arrow (0 none,
 			// else its direction + 1), 0 where there is no gem
-			if (s.mHasArrows || (aLen != ARRW_FIXED + aCells))
+			if (aSave.mHasArrows || (aLen != ARRW_FIXED + aCells))
 			{
-				anErr = s.mHasArrows ? std::string("ARRW twice") : "ARRW: " + std::to_string(aLen) + " bytes, not " + std::to_string(ARRW_FIXED + aCells);
+				anErr = aSave.mHasArrows ? std::string("ARRW twice") : "ARRW: " + std::to_string(aLen) + " bytes, not " + std::to_string(ARRW_FIXED + aCells);
 				return false;
 			}
-			s.mArrowMoves = (int32_t) aReader.U32();
-			s.mArrowsCleared = (int32_t) aReader.U32();
+			aSave.mArrowMoves = (int32_t) aReader.U32();
+			aSave.mArrowsCleared = (int32_t) aReader.U32();
 			uint8_t aDue = (uint8_t) aReader.U8();
-			if ((s.mArrowMoves < 0) || (s.mArrowsCleared < 0) || (aDue > 1))
+			if ((aSave.mArrowMoves < 0) || (aSave.mArrowsCleared < 0) || (aDue > 1))
 			{
-				anErr = "ARRW: " + std::to_string(s.mArrowMoves) + " moves, " + std::to_string(s.mArrowsCleared) + " cleared, step due " + std::to_string(aDue);
+				anErr = "ARRW: " + std::to_string(aSave.mArrowMoves) + " moves, " + std::to_string(aSave.mArrowsCleared) + " cleared, step due " + std::to_string(aDue);
 				return false;
 			}
-			s.mArrowStepDue = (aDue != 0);
+			aSave.mArrowStepDue = (aDue != 0);
 			for (size_t i = 0; i < aCells; i++)
 			{
 				uint8_t anArrow = (uint8_t) aReader.U8();
 				if ((anArrow > 8) || ((anArrow > 0) && !aPresent[i])) // GameRules::NUM_ARROW_DIRECTIONS
 				{
-					anErr = "ARRW: arrow " + std::to_string(anArrow) + " at cell (" + std::to_string(i % s.mCols) + "," +
-						std::to_string(i / s.mCols) + ")" + (aPresent[i] ? "" : ", which has no gem");
+					anErr = "ARRW: arrow " + std::to_string(anArrow) + " at cell (" + std::to_string(i % aSave.mCols) + "," +
+						std::to_string(i / aSave.mCols) + ")" + (aPresent[i] ? "" : ", which has no gem");
 					return false;
 				}
-				s.mArrows.push_back(anArrow);
+				aSave.mArrows.push_back(anArrow);
 			}
-			s.mHasArrows = true;
+			aSave.mHasArrows = true;
 		}
-		// any other chunk: a later stage's, skipped
+		// any other chunk: a newer engine's, skipped
 	}
 	if (aPos != theSave.size())
 	{
@@ -817,29 +817,29 @@ void CheckPiece(SaveCheck& theCheck, int theCol, int theRow, int theGemColors)
 {
 	std::string aCell = "cell (" + std::to_string(theCol) + "," + std::to_string(theRow) + ")'s ";
 	size_t aBase = theCheck.mPos;
-	SaveCheck& c = theCheck;
+	SaveCheck& aCheck = theCheck;
 	auto At = [&](size_t theOffset, const char* theName) -> std::string
 	{
 		// the fields are read in their order; padding and the unchecked ones are skipped up to theOffset
-		if (c.Ok() && (c.mPos < aBase + theOffset))
-			c.Skip(aBase + theOffset - c.mPos, aCell + theName);
+		if (aCheck.Ok() && (aCheck.mPos < aBase + theOffset))
+			aCheck.Skip(aBase + theOffset - aCheck.mPos, aCell + theName);
 		return aCell + theName;
 	};
-	c.Int(At(offsetof(Piece, mColor), "mColor"), 0, theGemColors - 1); // a gem sheet row, mGemShrinkImages[mColor]
-	c.Int(At(offsetof(Piece, mCol), "mCol"), theCol, theCol);        // the cell it is in: the grid writes go there
-	c.Int(At(offsetof(Piece, mRow), "mRow"), theRow, theRow);
-	c.Real(At(offsetof(Piece, mVelY), "mVelY"), -1000.0, 1000.0);
-	c.Bool(At(offsetof(Piece, mGlowing), "mGlowing"));
-	c.Real(At(offsetof(Piece, mGlowAlpha), "mGlowAlpha"), -1.0, 1.0); // a crossfade alpha (just under 0 once it fades)
-	c.Int(At(offsetof(Piece, mGlowFrame), "mGlowFrame"), 0, 14);     // gem sheet columns
-	c.Bool(At(offsetof(Piece, mDying), "mDying"));
-	c.Int(At(offsetof(Piece, mDyingFrame), "mDyingFrame"), 0, 5);    // mGemShrinkImages[][mDyingFrame]
-	c.Int(At(offsetof(Piece, mSpinFrame), "mSpinFrame"), 0, 14);
-	c.Int(At(offsetof(Piece, mSparkleCount), "mSparkleCount"), 0, 58); // DoHint's 58, down by 1
-	c.Int(At(offsetof(Piece, mSparkleFrame), "mSparkleFrame"), 0, 58); // sparkle cels from it (% 14, also below 0)
-	c.Real(At(offsetof(Piece, mHoleAngle), "mHoleAngle"), -1e9, 1e9);
-	c.Real(At(offsetof(Piece, mHoleAngVel), "mHoleAngVel"), -1e6, 1e6);
-	c.Real(At(offsetof(Piece, mHoleRadius), "mHoleRadius"), 0.0, 10000.0); // the vortex's shrink frame comes from it
+	aCheck.Int(At(offsetof(Piece, mColor), "mColor"), 0, theGemColors - 1); // a gem sheet row, mGemShrinkImages[mColor]
+	aCheck.Int(At(offsetof(Piece, mCol), "mCol"), theCol, theCol);        // the cell it is in: the grid writes go there
+	aCheck.Int(At(offsetof(Piece, mRow), "mRow"), theRow, theRow);
+	aCheck.Real(At(offsetof(Piece, mVelY), "mVelY"), -1000.0, 1000.0);
+	aCheck.Bool(At(offsetof(Piece, mGlowing), "mGlowing"));
+	aCheck.Real(At(offsetof(Piece, mGlowAlpha), "mGlowAlpha"), -1.0, 1.0); // a crossfade alpha (just under 0 once it fades)
+	aCheck.Int(At(offsetof(Piece, mGlowFrame), "mGlowFrame"), 0, 14);     // gem sheet columns
+	aCheck.Bool(At(offsetof(Piece, mDying), "mDying"));
+	aCheck.Int(At(offsetof(Piece, mDyingFrame), "mDyingFrame"), 0, 5);    // mGemShrinkImages[][mDyingFrame]
+	aCheck.Int(At(offsetof(Piece, mSpinFrame), "mSpinFrame"), 0, 14);
+	aCheck.Int(At(offsetof(Piece, mSparkleCount), "mSparkleCount"), 0, 58); // TryShowHint's 58, down by 1
+	aCheck.Int(At(offsetof(Piece, mSparkleFrame), "mSparkleFrame"), 0, 58); // sparkle cels from it (% 14, also below 0)
+	aCheck.Real(At(offsetof(Piece, mHoleAngle), "mHoleAngle"), -1e9, 1e9);
+	aCheck.Real(At(offsetof(Piece, mHoleAngVel), "mHoleAngVel"), -1e6, 1e6);
+	aCheck.Real(At(offsetof(Piece, mHoleRadius), "mHoleRadius"), 0.0, 10000.0); // the vortex's shrink frame comes from it
 	At(Piece::SAVE_SIZE, "record");
 }
 
@@ -848,12 +848,12 @@ void CheckPiece(SaveCheck& theCheck, int theCol, int theRow, int theGemColors)
 bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std::string* theError, const uint8_t* theRulesId,
 	const std::vector<BoardLayout>* theShapes, int theGemColors)
 {
-	std::string aDummy;
-	std::string& anErr = (theError != NULL) ? *theError : aDummy;
-	SaveCheck c(theSave);
+	std::string anIgnoredError;
+	std::string& anErr = (theError != NULL) ? *theError : anIgnoredError;
+	SaveCheck aCheck(theSave);
 	const int64_t SCORE_MAX = 1000000000;   // far over any game's, and its sums and *340 bar products stay in an int
 	const int64_t LEVEL_MAX = 100000;
-	// A v2 save (stage 5): of the replay's rules and the board's shape, its chunks well-formed; the same fields
+	// A v2 save: of the replay's rules and the board's shape, its chunks well-formed; the same fields
 	// follow its header as a v1 save's version
 	VariantSave aVariant;
 	int aCols = theCols;
@@ -863,89 +863,89 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 	{
 		std::string aWhy;
 		if (theRulesId == NULL)
-			c.mError = "a v2 save, and the replay names no rules for it";
+			aCheck.mError = "a v2 save, and the replay names no rules for it";
 		else if (!ReadVariantSave(theSave, &aVariant, &aWhy))
-			c.mError = "a v2 save that does not read: " + aWhy;
+			aCheck.mError = "a v2 save that does not read: " + aWhy;
 		else if (memcmp(aVariant.mRulesId, theRulesId, RULES_ID_SIZE) != 0)
-			c.mError = "a v2 save of other rules than the replay's";
+			aCheck.mError = "a v2 save of other rules than the replay's";
 		else if (theShapes != NULL)
 		{
-			// Stage 7: one of the rules' shapes, in its size and mask; its cells are read over that size
+			// One of the rules' shapes, in its size and mask; its cells are read over that size
 			if ((aVariant.mLevelShape < 0) || (aVariant.mLevelShape >= (int32_t) theShapes->size()))
-				c.mError = "a v2 save of level shape " + std::to_string(aVariant.mLevelShape) + ", and the rules have " +
+				aCheck.mError = "a v2 save of level shape " + std::to_string(aVariant.mLevelShape) + ", and the rules have " +
 					std::to_string(theShapes->size());
 			else
 			{
-				// a dirt cell may have lost its last layer (stage 7b)
+				// a dirt cell may have lost its last layer
 				const BoardLayout& aLayout = (*theShapes)[aVariant.mLevelShape];
 				if (!aLayout.FitsSaveMask(aVariant.mCols, aVariant.mRows, aVariant.mPlayable, aVariant.mHasDirt ? &aVariant.mDirtLayers : NULL))
-					c.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) +
+					aCheck.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) +
 						" board that is not its level shape " + std::to_string(aVariant.mLevelShape);
 				aCols = aLayout.mCols;
 				aRows = aLayout.mRows;
 			}
 		}
 		else if ((aVariant.mCols != theCols) || (aVariant.mRows != theRows) || (aVariant.mLevelShape != 0))
-			c.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) + " board, level shape " +
+			aCheck.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) + " board, level shape " +
 				std::to_string(aVariant.mLevelShape);
 		else if (std::find(aVariant.mPlayable.begin(), aVariant.mPlayable.end(), false) != aVariant.mPlayable.end())
-			c.mError = "a v2 save with holes in its mask";
-		if (c.Ok() && ((aVariant.mMoves < 0) || (aVariant.mInvalidMoves < 0) || (aVariant.mUndosUsed < 0)))
-			c.mError = "a v2 save whose MOVE counts go below 0";
-		c.mPos = aVariant.mBodyStart;
+			aCheck.mError = "a v2 save with holes in its mask";
+		if (aCheck.Ok() && ((aVariant.mMoves < 0) || (aVariant.mInvalidMoves < 0) || (aVariant.mUndosUsed < 0)))
+			aCheck.mError = "a v2 save whose MOVE counts go below 0";
+		aCheck.mPos = aVariant.mBodyStart;
 	}
 	else
-		c.Int("the version", 1, 1);
-	int isTimed = c.Bool("mTimedMode");
-	int32_t aLevel = c.Int("mLevel", 0, LEVEL_MAX);        // level % 4 and % 5 index SetupLevel's tables
-	if (c.Ok() && isVariant && (theShapes != NULL) && (aLevel % (int32_t) theShapes->size() != aVariant.mLevelShape))
-		c.mError = "a v2 save of level " + std::to_string(aLevel) + " in level shape " + std::to_string(aVariant.mLevelShape) + ", not that level's";
-	c.Int("mDisplayLevel", 1, LEVEL_MAX + 1);
+		aCheck.Int("the version", 1, 1);
+	int isTimed = aCheck.Bool("mTimedMode");
+	int32_t aLevel = aCheck.Int("mLevel", 0, LEVEL_MAX);        // level % 4 and % 5 index SetupLevelData's tables
+	if (aCheck.Ok() && isVariant && (theShapes != NULL) && (aLevel % (int32_t) theShapes->size() != aVariant.mLevelShape))
+		aCheck.mError = "a v2 save of level " + std::to_string(aLevel) + " in level shape " + std::to_string(aVariant.mLevelShape) + ", not that level's";
+	aCheck.Int("mDisplayLevel", 1, LEVEL_MAX + 1);
 	for (int aRow = 0; aRow < aRows; aRow++)
 	{
 		for (int aCol = 0; aCol < aCols; aCol++)
 		{
-			if (c.Bool("cell (" + std::to_string(aCol) + "," + std::to_string(aRow) + ")'s present byte"))
-				CheckPiece(c, aCol, aRow, theGemColors);
+			if (aCheck.Bool("cell (" + std::to_string(aCol) + "," + std::to_string(aRow) + ")'s present byte"))
+				CheckPiece(aCheck, aCol, aRow, theGemColors);
 		}
 	}
-	int32_t aState = c.Int("mState", 0, 9);
-	if (c.Ok() && ((aState == 5) || (aState == 6)))         // STATE_GAME_OVER, _DONE: a save is a game in progress
-		c.mError = "mState is " + std::to_string(aState) + ", a game over";
-	if (c.Ok() && (c.Bool("mTimedMode (again)") != isTimed))
-		c.mError = "the two mTimedMode bytes differ";
-	c.Bool("mIsNewGame");
-	c.Int("mBarWidth", 0, 340);           // a source width in mTimerBarImages
-	c.Int("mPlaySeconds", 0, 0x7fffffff);
-	c.Int("mIdleTicks", 0, 0x7fffffff);
-	c.Int("mScore", 0, SCORE_MAX);
-	c.Real("mPointMultiplier", 1e-6, 1e6); // a divisor of the move score
-	c.Int("mDisplayScore", 0, SCORE_MAX);
-	c.Int("mGemsCleared", 0, 0x7fffffff);
-	c.Int("mMoveMatchCount", 0, 0x7fffffff);
-	c.Int("mCascadeCount", 0, 0x7fffffff);
-	c.Int("mLongestCascade", 0, 0x7fffffff);
-	c.Int("mBestMoveScore", 0, SCORE_MAX);
-	c.Bool("mStatsDisabled");
-	c.Skip(4, "mUnused264");
-	int32_t aStart = c.Int("mLevelStartScore", 0, SCORE_MAX);
-	int32_t aTarget = c.Int("mLevelTargetScore", 0, 2 * SCORE_MAX);
-	if (c.Ok() && (aTarget <= aStart))             // Update divides by their difference
-		c.mError = "mLevelTargetScore " + std::to_string(aTarget) + " is not over mLevelStartScore " + std::to_string(aStart);
-	c.Int("mLevelPoints", 0, SCORE_MAX);
-	c.Real("mTimeDrain", -1e8, 1e8);
-	c.Real("mTimeDrainRate", -1e8, 1e8);
-	c.Real("mTimeDrainAccel", -1e8, 1e8);
-	c.Int("mBarColor", 0, 24);            // mTimerBarImages[mBarColor]
-	c.Int("mWipeY", 0, 1000);
-	c.Int("mBlackHoleFrame", 0, 8);       // a source column of the black hole image
-	c.Real("mBlackHoleLevel", 0.0, 1.0);
-	c.Bool("mLevelTextShown");
-	if (c.Ok() && (c.mPos != (isVariant ? aVariant.mBodyEnd : theSave.size())))
-		c.mError = std::to_string(theSave.size() - c.mPos) + " bytes after the last field";
-	if (!c.Ok())
+	int32_t aState = aCheck.Int("mState", 0, 9);
+	if (aCheck.Ok() && ((aState == 5) || (aState == 6)))         // STATE_GAME_OVER, _DONE: a save is a game in progress
+		aCheck.mError = "mState is " + std::to_string(aState) + ", a game over";
+	if (aCheck.Ok() && (aCheck.Bool("mTimedMode (again)") != isTimed))
+		aCheck.mError = "the two mTimedMode bytes differ";
+	aCheck.Bool("mIsNewGame");
+	aCheck.Int("mBarWidth", 0, 340);           // a source width in mTimerBarImages
+	aCheck.Int("mPlaySeconds", 0, 0x7fffffff);
+	aCheck.Int("mIdleTicks", 0, 0x7fffffff);
+	aCheck.Int("mScore", 0, SCORE_MAX);
+	aCheck.Real("mPointMultiplier", 1e-6, 1e6); // a divisor of the move score
+	aCheck.Int("mDisplayScore", 0, SCORE_MAX);
+	aCheck.Int("mGemsCleared", 0, 0x7fffffff);
+	aCheck.Int("mMoveMatchCount", 0, 0x7fffffff);
+	aCheck.Int("mCascadeCount", 0, 0x7fffffff);
+	aCheck.Int("mLongestCascade", 0, 0x7fffffff);
+	aCheck.Int("mBestMoveScore", 0, SCORE_MAX);
+	aCheck.Bool("mStatsDisabled");
+	aCheck.Skip(4, "mSavedZero");
+	int32_t aStart = aCheck.Int("mLevelStartScore", 0, SCORE_MAX);
+	int32_t aTarget = aCheck.Int("mLevelTargetScore", 0, 2 * SCORE_MAX);
+	if (aCheck.Ok() && (aTarget <= aStart))             // Update divides by their difference
+		aCheck.mError = "mLevelTargetScore " + std::to_string(aTarget) + " is not over mLevelStartScore " + std::to_string(aStart);
+	aCheck.Int("mLevelPoints", 0, SCORE_MAX);
+	aCheck.Real("mTimeDrain", -1e8, 1e8);
+	aCheck.Real("mTimeDrainRate", -1e8, 1e8);
+	aCheck.Real("mTimeDrainAccel", -1e8, 1e8);
+	aCheck.Int("mBarColor", 0, 24);            // mTimerBarImages[mBarColor]
+	aCheck.Int("mWipeY", 0, 1000);
+	aCheck.Int("mBlackHoleFrame", 0, 8);       // a source column of the black hole image
+	aCheck.Real("mBlackHoleLevel", 0.0, 1.0);
+	aCheck.Bool("mLevelTextShown");
+	if (aCheck.Ok() && (aCheck.mPos != (isVariant ? aVariant.mBodyEnd : theSave.size())))
+		aCheck.mError = std::to_string(theSave.size() - aCheck.mPos) + " bytes after the last field";
+	if (!aCheck.Ok())
 	{
-		anErr = "not a save the game could have made: " + c.mError;
+		anErr = "not a save the game could have made: " + aCheck.mError;
 		return false;
 	}
 	return true;
@@ -955,8 +955,8 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::string* theError, bool isOriginalRules,
 	const std::vector<BoardLayout>* theShapes, int theGemColors)
 {
-	std::string aDummy;
-	std::string& anErr = (theError != NULL) ? *theError : aDummy;
+	std::string anIgnoredError;
+	std::string& anErr = (theError != NULL) ? *theError : anIgnoredError;
 	bool isAbiPlayable = (theFile.mEngineAbi == (uint32_t) ENGINE_ABI) ||
 		(isOriginalRules && (theFile.mEngineAbi >= (uint32_t) FIRST_ENGINE_ABI) && (theFile.mEngineAbi < (uint32_t) ENGINE_ABI));
 	if (!isAbiPlayable)
@@ -982,11 +982,11 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 	}
 	int64_t anXrand = 0;
 	uint64_t aPlayed = 0;
-	for (size_t s = 0; s < theFile.mSegments.size(); s++)
+	for (size_t aSegmentIndex = 0; aSegmentIndex < theFile.mSegments.size(); aSegmentIndex++)
 	{
-		const Segment& aSegment = theFile.mSegments[s];
-		std::string aWhere = "segment " + std::to_string(s) + ": ";
-		bool isLast = (s + 1 == theFile.mSegments.size());
+		const Segment& aSegment = theFile.mSegments[aSegmentIndex];
+		std::string aWhere = "segment " + std::to_string(aSegmentIndex) + ": ";
+		bool isLast = (aSegmentIndex + 1 == theFile.mSegments.size());
 		if ((aSegment.mMode != 0) && (aSegment.mMode != 1))
 		{
 			anErr = aWhere + "mode " + std::to_string(aSegment.mMode);
@@ -1025,9 +1025,9 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 		for (size_t i = 0; i < aSegment.mEvents.size(); i++)
 		{
 			const Event& anEvent = aSegment.mEvents[i];
-			const int64_t* a = anEvent.mArgs;
+			const int64_t* anArgs = anEvent.mArgs;
 			std::string anAt = aWhere + "event " + std::to_string(i) + " (" + OpName(anEvent.mOp) + " at tick " + std::to_string(anEvent.mTick) + "): ";
-			bool isCell = (a[0] >= 0) && (a[0] < theCols) && (a[1] >= 0) && (a[1] < theRows);
+			bool isCell = (anArgs[0] >= 0) && (anArgs[0] < theCols) && (anArgs[1] >= 0) && (anArgs[1] < theRows);
 			if ((i > 0) && (anEvent.mTick != aSegment.mEvents[i - 1].mTick))
 				aTickStart = i;
 			if (i - aTickStart >= (size_t) MAX_EVENTS_PER_TICK)
@@ -1045,16 +1045,16 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				}
 				break;
 			case OP_TARGET:
-				if (!isCell && !((a[0] == -1) && (a[1] == -1)))
+				if (!isCell && !((anArgs[0] == -1) && (anArgs[1] == -1)))
 				{
 					anErr = anAt + "not a cell of the board";
 					return false;
 				}
 				break;
 			case OP_TWIST:
-				// stage 10: a block inside the board and a direction; whether the rules twist that way, and the four
+				// a block inside the board and a direction; whether the rules twist that way, and the four
 				// gems, are the player's gate (WatchController)
-				if (isOriginalRules || (a[0] < 0) || (a[0] + 1 >= theCols) || (a[1] < 0) || (a[1] + 1 >= theRows) || ((a[2] != 1) && (a[2] != -1)))
+				if (isOriginalRules || (anArgs[0] < 0) || (anArgs[0] + 1 >= theCols) || (anArgs[1] < 0) || (anArgs[1] + 1 >= theRows) || ((anArgs[2] != 1) && (anArgs[2] != -1)))
 				{
 					anErr = anAt + (isOriginalRules ? "a twist under the original rules" : "not a block of the board and a direction 1 or -1");
 					return false;
@@ -1064,10 +1064,10 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				// ... an axis, a line and a cell of it, a k and an offset that a segment of the board can take; its segment
 				// is the player's gate
 				{
-					int64_t aLength = (a[0] == 0) ? theCols : theRows;
-					if (isOriginalRules || ((a[0] != 0) && (a[0] != 1)) || (a[1] < 0) || (a[1] >= ((a[0] == 0) ? theRows : theCols)) ||
-						(a[2] < 0) || (a[2] >= aLength) || (a[3] < 1) || (a[3] >= aLength) ||
-						(a[4] < -aLength * BoardLayout::PITCH) || (a[4] > aLength * BoardLayout::PITCH))
+					int64_t aLength = (anArgs[0] == 0) ? theCols : theRows;
+					if (isOriginalRules || ((anArgs[0] != 0) && (anArgs[0] != 1)) || (anArgs[1] < 0) || (anArgs[1] >= ((anArgs[0] == 0) ? theRows : theCols)) ||
+						(anArgs[2] < 0) || (anArgs[2] >= aLength) || (anArgs[3] < 1) || (anArgs[3] >= aLength) ||
+						(anArgs[4] < -aLength * BoardLayout::PITCH) || (anArgs[4] > aLength * BoardLayout::PITCH))
 					{
 						anErr = anAt + (isOriginalRules ? "a slide under the original rules" : "not a slide a line of the board can make");
 						return false;
@@ -1075,23 +1075,23 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				}
 				break;
 			case OP_UNDO:
-				// stage 6: no arguments; whether the board may undo then is the player's gate (WatchController)
+				// no arguments; whether the board may undo then is the player's gate (WatchController)
 				break;
 			case OP_PAUSE:
 			case OP_UNPAUSE:
-				if ((a[0] != 0) && (a[0] != 1))
+				if ((anArgs[0] != 0) && (anArgs[0] != 1))
 				{
 					anErr = anAt + "not 0 or 1";
 					return false;
 				}
 				break;
 			case OP_XRAND:
-				if ((a[0] < 1) || (a[0] > MAX_XRAND))
+				if ((anArgs[0] < 1) || (anArgs[0] > MAX_XRAND))
 				{
 					anErr = anAt + "not 1.." + std::to_string((int) MAX_XRAND) + " draws";
 					return false;
 				}
-				anXrand += a[0];
+				anXrand += anArgs[0];
 				if (anXrand > MAX_XRAND)
 				{
 					anErr = anAt + "more than " + std::to_string((int) MAX_XRAND) + " outside draws in the replay";
@@ -1099,14 +1099,14 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				}
 				break;
 			case OP_HOVER:
-				if ((a[0] < -0x7fffffffll - 1) || (a[0] > 0x7fffffff) || (a[1] < -0x7fffffffll - 1) || (a[1] > 0x7fffffff))
+				if ((anArgs[0] < -0x7fffffffll - 1) || (anArgs[0] > 0x7fffffff) || (anArgs[1] < -0x7fffffffll - 1) || (anArgs[1] > 0x7fffffff))
 				{
 					anErr = anAt + "not a position";
 					return false;
 				}
 				break;
 			case OP_SAVE:
-				if (((a[0] != SAVE_GAME) && (a[0] != SAVE_SNAPSHOT)) || (a[1] < 0) || (a[1] > 0xffffffffll))
+				if (((anArgs[0] != SAVE_GAME) && (anArgs[0] != SAVE_SNAPSHOT)) || (anArgs[1] < 0) || (anArgs[1] > 0xffffffffll))
 				{
 					anErr = anAt + "not a save kind and hash";
 					return false;
@@ -1136,8 +1136,8 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 					anErr = anAt + "no RNGS for the board to go on with";
 					return false;
 				}
-				if (!aSegment.mHasLoadSave && ((s == 0) || theFile.mSegments[s - 1].mEvents.empty() ||
-					(theFile.mSegments[s - 1].mEvents.back().mOp != OP_SAVE)))
+				if (!aSegment.mHasLoadSave && ((aSegmentIndex == 0) || theFile.mSegments[aSegmentIndex - 1].mEvents.empty() ||
+					(theFile.mSegments[aSegmentIndex - 1].mEvents.back().mOp != OP_SAVE)))
 				{
 					anErr = anAt + "no save to load (no LDSV, and no SAVE ends the segment before)";
 					return false;
@@ -1159,7 +1159,7 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 			anErr = aWhere + "an RNGS or LDSV without a LOAD";
 			return false;
 		}
-		if ((s > 0) && (aLoads == 0))
+		if ((aSegmentIndex > 0) && (aLoads == 0))
 		{
 			anErr = aWhere + "a later segment that does not LOAD the game";
 			return false;

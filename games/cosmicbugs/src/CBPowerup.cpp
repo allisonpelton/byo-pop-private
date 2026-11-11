@@ -250,8 +250,8 @@ play:
 void Powerup_AddSparkles(Powerup* thePowerup, const char* theAnim)
 {
 	Emitter_Append(&thePowerup->emitters);
-	int y = RandRange(-8, 8) + thePowerup->image->h / 2;
-	int x = RandRange(-8, 8) + thePowerup->image->w / 2;
+	int y = RandRange(-8, 8) + thePowerup->image->mH / 2;
+	int x = RandRange(-8, 8) + thePowerup->image->mW / 2;
 	Emitter_Setup(static_cast<Emitter*>(thePowerup->emitters.current), thePowerup, x, y, 30.0f, 30.0f, 0x5a, 0,
 		theAnim, 1, 255.0f, 255.0f, 1200.0f);
 }
@@ -265,20 +265,20 @@ int Powerup_Fall(Powerup* thePowerup)
 	{
 		Obj_Update(thePowerup->attached);
 		Obj* anAttached = thePowerup->attached;
-		double aShift = (double)anAttached->image->w * (double)anAttached->vx;
+		double aShift = (double)anAttached->image->mW * (double)anAttached->vx;
 		anAttached->x = (float)((aShift + aShift) / 3.0 + (double)thePowerup->x);
 		thePowerup->attached->y = thePowerup->y;
 	}
 	Shooter* aShip = gLevels.current->shooters.current;
 	if (aShip != nullptr && aShip->state == 3 &&
-		CircleOverlap(thePowerup->x, thePowerup->y, (float)(thePowerup->image->h / 2), aShip->x, aShip->y,
-			(float)(aShip->image->h / 4)) != 0.0)
+		CircleOverlap(thePowerup->x, thePowerup->y, (float)(thePowerup->image->mH / 2), aShip->x, aShip->y,
+			(float)(aShip->image->mH / 4)) != 0.0)
 	{
 		Powerup_Collect(thePowerup);
 		return 0;
 	}
 	float y = thePowerup->y;
-	int h = thePowerup->image->h;
+	int h = thePowerup->image->mH;
 	Obj_UpdateEmitters(thePowerup);
 	return y <= (float)(h + 600);
 }
@@ -325,13 +325,13 @@ int Weapon_Bounce(Weapon* theWeapon)
 	if (aLevel->columns[aCol][aRow].kind == 0)
 	{
 		Image* anImage = theWeapon->image;
-		int x = (int)((double)(anImage->w * Sign(theWeapon->vx) / 3) + (double)theWeapon->x);
+		int x = (int)((double)(anImage->mW * Sign(theWeapon->vx) / 3) + (double)theWeapon->x);
 		if (aLevel->columns[x / 16][aRow].kind != 0)
 		{
 			theWeapon->vx = -theWeapon->vx;
 			aLevel = gLevels.current;
 		}
-		int y = (int)((double)(anImage->h * Sign(theWeapon->vy) / 3) + (double)theWeapon->y);
+		int y = (int)((double)(anImage->mH * Sign(theWeapon->vy) / 3) + (double)theWeapon->y);
 		if (aLevel->columns[aCol][y / 16].kind != 0)
 			theWeapon->vy = -theWeapon->vy;
 		theWeapon->drag = 0.996f;
@@ -385,8 +385,8 @@ int Magnet_Pull(Weapon* theWeapon)
 	}
 	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
 		if (anEnemy->state == 3 &&
-			CircleOverlap(theWeapon->x, theWeapon->y, (float)theWeapon->image->w, anEnemy->x, anEnemy->y,
-				(float)anEnemy->image->w) != 0.0)
+			CircleOverlap(theWeapon->x, theWeapon->y, (float)theWeapon->image->mW, anEnemy->x, anEnemy->y,
+				(float)anEnemy->image->mW) != 0.0)
 		{
 			if (anEnemy->vx != 0.0f)
 				anEnemy->x = (float)(((double)theWeapon->x - (double)anEnemy->x) / 300.0 + (double)anEnemy->x);
@@ -403,8 +403,8 @@ int Weapon_Blast(Weapon* theWeapon)
 	int aResult = 1;
 	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
 		if (anEnemy->state == 3 &&
-			CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->w / 3), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->w / 3)) != 0.0)
+			CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->mW / 3), anEnemy->x, anEnemy->y,
+				(float)(anEnemy->image->mW / 3)) != 0.0)
 		{
 			anEnemy->dieAnim = Animation_Find("second_explo", &anEnemy->dieFrameCount, &anEnemy->dieFrameTime);
 			Enemy_Kill(anEnemy, 500);
@@ -420,8 +420,8 @@ int Ice_Freeze(Weapon* theWeapon)
 	int aResult = 1;
 	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
 		if (anEnemy->state == 3 &&
-			CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->w / 3), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->w / 3)) != 0.0)
+			CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->mW / 3), anEnemy->x, anEnemy->y,
+				(float)(anEnemy->image->mW / 3)) != 0.0)
 		{
 			aResult = 0;
 			Enemy_Freeze(anEnemy);
@@ -451,7 +451,7 @@ int TimeBomb_Update(Weapon* theWeapon)
 	{
 		if (RandRange(1, 10) == 1)
 		{
-			double aBase = (double)theWeapon->y - (double)(theWeapon->image->h / 2);
+			double aBase = (double)theWeapon->y - (double)(theWeapon->image->mH / 2);
 			int aFuse = (int)(9.0 - (double)theWeapon->age * 8.0 / (double)theWeapon->lifetime);
 			int aTop = (int)(aBase - (double)aFuse);
 			ParticleSystem_New();
@@ -473,7 +473,7 @@ int TimeBomb_Update(Weapon* theWeapon)
 		List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
 			if (anEnemy->state == 3 &&
 				CircleOverlap(theWeapon->x, theWeapon->y, 100.0f, anEnemy->x, anEnemy->y,
-					(float)(anEnemy->image->w / 3)) != 0.0)
+					(float)(anEnemy->image->mW / 3)) != 0.0)
 			{
 				anEnemy->dieAnim = Animation_Find("second_explo", &anEnemy->dieFrameCount, &anEnemy->dieFrameTime);
 				Enemy_Kill(anEnemy, 500);
@@ -575,10 +575,10 @@ int Weapon_Move(Weapon* theWeapon)
 		break;
 	}
 	Obj_UpdateEmitters(theWeapon);
-	int w = theWeapon->image->w;
+	int w = theWeapon->image->mW;
 	if ((float)(kScreenClip[0] - w) <= theWeapon->x && theWeapon->x <= (float)(w + kScreenClip[2]))
 	{
-		int h = theWeapon->image->h;
+		int h = theWeapon->image->mH;
 		if ((float)(kScreenClip[1] - h) <= theWeapon->y && theWeapon->y <= (float)(h + kScreenClip[3]))
 			return aResult;
 	}
@@ -683,8 +683,8 @@ void Weapon_Orbit(Weapon* theWeapon)
 	theWeapon->tooClose = 0;
 	theWeapon->alpha = 0xff;
 	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->w / 2), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->w / 2)) != 0.0 &&
+		if (CircleOverlap(theWeapon->x, theWeapon->y, (float)(theWeapon->image->mW / 2), anEnemy->x, anEnemy->y,
+				(float)(anEnemy->image->mW / 2)) != 0.0 &&
 			theWeapon->kind != 4)
 			theWeapon->tooClose = 1;
 	});
@@ -785,30 +785,30 @@ void Panel_Draw(Panel* thePanel, int theAll)
 	if (theAll != 0 || aPercent != gPanelPercent || gLives != gPanelLives || gScore != gPanelScore)
 	{
 		Image* anImage = thePanel->image;
-		Image_BlitRect(anImage, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, (int)thePanel->x,
-			(int)thePanel->y, 0, 0, anImage->w, anImage->h);
+		Image_BlitRect(anImage, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, (int)thePanel->x,
+			(int)thePanel->y, 0, 0, anImage->mW, anImage->mH);
 		std::sprintf(aText, "%02d", aPercent);
-		Font_SetTarget(thePanel->percentFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
+		Font_SetTarget(thePanel->percentFont, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
 		Font_Printf(thePanel->percentFont, aRect, thePanel->percentX, thePanel->percentY, aText);
 		std::sprintf(aText, "%03d", gLevels.current->number);
-		Font_SetTarget(thePanel->levelFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
+		Font_SetTarget(thePanel->levelFont, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
 		Font_Printf(thePanel->levelFont, aRect, thePanel->levelX, thePanel->levelY, aText);
 		int aScore = gScore;
 		if (999999 < gScore)
 			aScore = 999999;
 		std::sprintf(aText, "%06d", aScore);
-		Font_SetTarget(thePanel->scoreFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
+		Font_SetTarget(thePanel->scoreFont, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
 		Font_Printf(thePanel->scoreFont, aRect, thePanel->scoreX, thePanel->scoreY, aText);
 		if (8 < gLives)
 			gLives = 9;
 		std::sprintf(aText, "%01d", gLives);
-		Font_SetTarget(thePanel->livesFont, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
+		Font_SetTarget(thePanel->livesFont, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
 		Font_Printf(thePanel->livesFont, aRect, thePanel->livesX, thePanel->livesY, aText);
-		Dirty_AddClippedShown(&gDirty, 0, (int)thePanel->y, thePanel->image->w, thePanel->image->h, kScreenClip);
+		Dirty_AddClippedShown(&gDirty, 0, (int)thePanel->y, thePanel->image->mW, thePanel->image->mH, kScreenClip);
 		gPanelLives = gLives;
 		gPanelScore = gScore;
 		gPanelPercent = aPercent;
@@ -1011,7 +1011,7 @@ void Weapon_Draw(Weapon* theWeapon)
 	if (theWeapon->kind == 4 && theWeapon->state == 4)
 	{
 		int aFuse = (int)(9.0 - (double)theWeapon->age * 8.0 / (double)theWeapon->lifetime);
-		double aBase = (double)theWeapon->y - (double)(theWeapon->image->h / 2);
+		double aBase = (double)theWeapon->y - (double)(theWeapon->image->mH / 2);
 		int aTop = (int)(aBase - (double)aFuse);
 		int aBottom = (int)aBase;
 		int x = (int)theWeapon->x;
@@ -1033,10 +1033,10 @@ void Weapon_DrawTooClose(Weapon* theWeapon)
 	{
 		Font* aFont = Font_Find("micro_font");
 		Font_SetEscapes(aFont, 1);
-		Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.fmt, gBackBuffer.w, gBackBuffer.h);
+		Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.mFmt, gBackBuffer.mW, gBackBuffer.mH);
 		Font_SetPalette(aFont, nullptr);
-		aFont->alpha = 0xff;
-		aFont->align = 0;
+		aFont->mAlpha = 0xff;
+		aFont->mAlign = 0;
 		int x;
 		int y;
 		if (gLevels.current->shooters.current->beamAcross == 0)

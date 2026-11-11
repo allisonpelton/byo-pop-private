@@ -41,11 +41,11 @@ using namespace Sexy;
 // The globals of the menu's camera and sun (ChallengeMenu.h)
 CurvedVal Sexy::gSunCurve;
 Transform3D Sexy::gMenuCamera;
-float Sexy::gUnknown85C508 = 0;
-Color Sexy::gUnknown85C50C;
+float Sexy::gWorldLight = 0;
+Color Sexy::gAmbientBase;
 Color Sexy::gSunGlowColor;
 float Sexy::gAspect = 0;
-float Sexy::gAspect45 = 0;
+float Sexy::gFovTimesAspect = 0;
 
 namespace {
 
@@ -106,6 +106,7 @@ SphereVertex MakeSphereVertex(float x, float y, float z, float theU, float theV)
 
 // 0x6e4fad: a sphere of theStacks bands from pole to pole by theSlices columns, as a list of triangles (the poles' bands
 // one triangle a column, the others two); nothing when the list is made already
+// 0x6e4bbb: a vertex block copy, inline here
 void BuildSphere(std::vector<SphereVertex>& theVertices, int theStacks, int theSlices)
 {
 	if (!theVertices.empty())
@@ -189,10 +190,12 @@ struct BillboardVertex {
 // 0.00151515 over the depth over the picture's width, times theSize times 80). It leaves the draw mode, the colour
 // and colorizing set. With Direct3D (gD3DInterface) the original draws a quad of the picture's proportions facing the
 // camera instead (0x6ddd52), and sets nothing of the Graphics.
+// 0x673c10: copy of a camera transform, inline here
+// 0x6dd0e2: a vector built from three floats, inline here
 void DrawBillboard(Graphics* g, Image* theImage, float theX, float theY, float theZ, unsigned int theColor, int theDrawMode,
 	float theSize)
 {
-	PerspectiveCamera aCamera(gAspect45, gAspect, 1.0f, 10000.0f);  // 0x67417d
+	PerspectiveCamera aCamera(gFovTimesAspect, gAspect, 1.0f, 10000.0f);  // 0x67417d
 	aCamera.mTransform = gMenuCamera;                              // 0x673c10
 	WorldGraphicsListener aListener(&aCamera, false);              // 0x4bd5d0
 	aListener.SetCulling(false);                                   // 0x4bd6c0
@@ -306,7 +309,7 @@ void ChallengeButton::MakeTip()
 // 0x6e3b0e
 void ChallengeButton::Update()
 {
-	if (mUnknown51D)
+	if (mIsFrozen)
 		return;
 	if (mTip != nullptr)
 		mTip->Update();
@@ -324,34 +327,34 @@ void ChallengeButton::Update()
 		gApp->PlaySample(SOUND_VOICE_NEWCHALLENGEUNLOCKED);
 	mDim.IncInVal();
 	mBarFill.IncInVal();
-	mUnknown398.IncInVal();
-	if (mUnknown1D8.mIncRate != 0.0 && !mUnknown1D8.HasBeenTriggered() && !mUnknown1D8.IncInVal() && mUnknown5CD)
+	mStageStep.IncInVal();
+	if (mNewNumberGlow.mIncRate != 0.0 && !mNewNumberGlow.HasBeenTriggered() && !mNewNumberGlow.IncInVal() && mProgressPending)
 		gApp->mMainMenu->mChallengeMenu->UpdateProgress(false, false);
 	mEclipseFade.IncInVal();
 	mTextFade.IncInVal();
-	mUnknown248.IncInVal();
-	mUnknown2B8.IncInVal();
-	int aPulses = mUnknown52C;
-	if (0 < aPulses || 0.0f < mUnknown530) {
-		double aLeft = (double)mUnknown530 - 0.03999999910593033;
-		mUnknown530 = (float)(aLeft >= 0.0 ? aLeft : 0.0);
-		if (mUnknown530 <= 0.0f && 0 < aPulses) {
-			mUnknown530 = 1.0f;
-			mUnknown52C = aPulses - 1;
+	mLockWipe.IncInVal();
+	mBarGlow.IncInVal();
+	int aPulses = mPulsesLeft;
+	if (0 < aPulses || 0.0f < mPulse) {
+		double aLeft = (double)mPulse - 0.03999999910593033;
+		mPulse = (float)(aLeft >= 0.0 ? aLeft : 0.0);
+		if (mPulse <= 0.0f && 0 < aPulses) {
+			mPulse = 1.0f;
+			mPulsesLeft = aPulses - 1;
 		}
 	}
-	if (mUnknown4E8 < 1.0f) {
-		double aRise = (double)mUnknown4E8 + 0.004999999888241291;
-		mUnknown4E8 = (float)(aRise <= 1.0 ? aRise : 1.0);
+	if (mSparkProgress < 1.0f) {
+		double aRise = (double)mSparkProgress + 0.004999999888241291;
+		mSparkProgress = (float)(aRise <= 1.0 ? aRise : 1.0);
 		int aWidth = mButtonImage->GetCelWidth();
 		int aHeight = mButtonImage->GetCelHeight();
 		int aX = mX;
 		int aY = mY;
 		// Sparks about the planet while it comes in
-		int aCount = Ftol((1.0 - (double)mUnknown4E8) * 3.0);
+		int aCount = Ftol((1.0 - (double)mSparkProgress) * 3.0);
 		while (0 < aCount) {
 			float anAngle = RandSigned();
-			Effect* anEffect = mMenu->mFXManager1B8->AllocEffect(0);
+			Effect* anEffect = mMenu->mPlanetSparks->AllocEffect(0);
 			anEffect->mImage = IMAGE_GEM_FRUIT_SPARK;
 			anEffect->mIsAdditive = true;
 			float aRadius = std::fabs(RandSigned());
@@ -369,12 +372,12 @@ void ChallengeButton::Update()
 			anEffect->mAlpha = 1.0f;
 			anEffect->mDAlpha = 0;
 			anEffect->mMaxScale = 1.0f;
-			mMenu->mFXManager1B8->AddEffect(anEffect);
+			mMenu->mPlanetSparks->AddEffect(anEffect);
 			aCount--;
 		}
 	}
 	// The bar and the name come in while the planet shows its text, and go out when it does not
-	if (!mUnknown5C4) {
+	if (!mIsRevealed) {
 		double aLeft = (double)mFade - 0.05000000074505806;
 		mFade = (float)(aLeft >= 0.0 ? aLeft : 0.0);
 	} else {
@@ -429,10 +432,12 @@ void ChallengeButton::PlayMouseOverSound()
 // how big it looks) turned by the update count and lit by a point light at the sun, with the cloud layer as a second
 // sphere a little larger, drawn first; without it a picture of the planet is made for the size it has. The ring, name,
 // moon meter and glow are drawn about it.
+// 0x6802ad: eleven default values copied from globals, inline here
+// 0x6847ca: its forwarding overload, inline here
 void ChallengeButton::Draw(Graphics* g)
 {
 	mClip = false;
-	PerspectiveCamera aCamera(gAspect45, gAspect, 1.0f, 10000.0f);  // 0x67417d
+	PerspectiveCamera aCamera(gFovTimesAspect, gAspect, 1.0f, 10000.0f);  // 0x67417d
 	aCamera.mTransform = gMenuCamera;                              // 0x673c10
 	WorldGraphicsListener aListener(&aCamera, false);  // 0x4bd5d0
 	aListener.SetCulling(true);                        // 0x4bd6c0
@@ -465,10 +470,10 @@ void ChallengeButton::Draw(Graphics* g)
 		aColors.mAmbient = Color::Black;
 		aColors.mIntensity = 1.0f;
 		float aDim = (float)mDim.GetOutVal();
-		Color aAmbient = BlendColors(gUnknown85C50C, Color(0x20, 0x20, 0x20), aDim);   // 0x7570c1
+		Color aAmbient = BlendColors(gAmbientBase, Color(0x20, 0x20, 0x20), aDim);   // 0x7570c1
 		aDim = (float)mDim.GetOutVal();
 		Color aDiffuse = BlendColors(gSunGlowColor, Color(0x20, 0x20, 0x20), aDim);
-		float aBrightness = gUnknown85C508;
+		float aBrightness = gWorldLight;
 		int aState = mMenu->mState;
 		if ((aState == 3 || aState == 5 || aState == 4) && mMenu->mButtons[mMenu->mCategory] == this)
 			aBrightness = 1.0f;
@@ -478,7 +483,7 @@ void ChallengeButton::Draw(Graphics* g)
 		aDiffuse.mRed = Ftol((double)aBrightness * (double)aDiffuse.mRed);
 		aDiffuse.mGreen = Ftol((double)aBrightness * (double)aDiffuse.mGreen);
 		aDiffuse.mBlue = Ftol((double)aBrightness * (double)aDiffuse.mBlue);
-		float anEclipse = (float)mMenu->mUnknown640.GetOutVal();
+		float anEclipse = (float)mMenu->mEclipseIntensity.GetOutVal();
 		if (0.0f < anEclipse) {
 			aColors.mIntensity = (float)((double)anEclipse * 5.0 + (double)aColors.mIntensity);
 			aAmbient.mRed = Ftol((double)aAmbient.mRed / (double)aColors.mIntensity);
@@ -584,8 +589,8 @@ void ChallengeButton::Draw(Graphics* g)
 			int aDestY = Ftol((double)aScreenY - (double)(aHeight / 2));
 			Rect aDest(aDestX, aDestY, aWidth, aHeight);
 			if (aDest.Intersects(g->mClipRect)) {
-				// the clouds drift with the size: 0.4 of the planet's scale, in columns
-				double aShift = (double)aScale * 0.4000000059604645;
+				// the planet turns: its layer is read 0.4 of the spin further along (0.08 of a column an update)
+				double aShift = (double)aSpin * 0.4000000059604645;
 				float aRowAt = 0;
 				for (int aRow = 0; aRow < aHeight; aRow++) {
 					uint32_t* aOut = aBufferBits + (size_t)aBufferWidth * (size_t)aRow;
@@ -674,7 +679,7 @@ void ChallengeButton::Draw(Graphics* g)
 		aRingTransform.Translate(0.0f, 0.0f);
 		g->DrawImageTransform(IMAGE_CHALLENGEUI_PLANETRING, aRingTransform, 0.0f, 0.0f);  // 0x422000
 	}
-	if (!mUnknown5C4) {
+	if (!mIsRevealed) {
 		if (gD3DInterface == nullptr)
 			g->PopState();
 		else
@@ -685,7 +690,7 @@ void ChallengeButton::Draw(Graphics* g)
 
 	// The name and the moon meter (a bar of cells, one for each challenge of the category) fade in with mFade
 	float aTextFade = (float)((double)mFade * (1.0 - mDim.GetOutVal()));
-	if (mUnknown5C5) {
+	if (mIsNotPicked) {
 		double aShrink = aOneMinusScale * 0.550000011920929 + 1.0;
 		if (aShrink < 0.0)
 			aShrink = 0.0;
@@ -746,7 +751,7 @@ void ChallengeButton::Draw(Graphics* g)
 				aSource = Rect(0, 0, IMAGE_MOONMETER_LOCK->mWidth, IMAGE_MOONMETER_LOCK->mHeight);
 				if (aCell == mStage) {
 					// the lock the new stage opens wipes away from the top
-					aSource.mY = Ftol(mUnknown1D8.GetOutVal() * (double)aSource.mHeight + (double)aSource.mY);
+					aSource.mY = Ftol(mLockWipe.GetOutVal() * (double)aSource.mHeight + (double)aSource.mY);
 					aSource.mHeight = aSource.mHeight - aSource.mY;
 					aYShift = (aSource.mY + (aSource.mY >> 31 & 3)) >> 2;
 				}
@@ -755,16 +760,16 @@ void ChallengeButton::Draw(Graphics* g)
 			// the cell of the challenge the planet starts: its glowing number
 			aCellImage = aGlowNumbers;
 			aSource = aGlowNumbers->GetCelRect(aCell);
-			g->SetColor(Color(255, 255, 255, Ftol((1.0 - mUnknown248.GetOutVal()) * aBarAlpha)));
+			g->SetColor(Color(255, 255, 255, Ftol((1.0 - mNewNumberGlow.GetOutVal()) * aBarAlpha)));
 		}
 		int aDrawY = Ftol(((double)aBarY - (double)(aSource.mHeight / 2)) + (double)aYShift + 0.0);
 		int aDrawX = Ftol(((double)aCellLeft + aHalfCell) - (double)(aSource.mWidth / 2));
 		g->DrawImage(aCellImage, aDrawX, aDrawY, aSource);
 		aCellLeft = (float)((double)(float)aCellWidth + (double)aCellLeft);
 	}
-	if (mUnknown1D8.GetOutVal() != 0.0) {
+	if (mNewNumberGlow.GetOutVal() != 0.0) {
 		// the number just done fades to grey, and the next glows
-		int anAlpha = Ftol((double)aBarAlphaInt * (double)aBarFade * mUnknown1D8.GetOutVal());
+		int anAlpha = Ftol((double)aBarAlphaInt * (double)aBarFade * mNewNumberGlow.GetOutVal());
 		g->SetColor(Color(aFull.mRed, aFull.mGreen, aFull.mBlue, anAlpha));
 		Rect aSource = aGreyNumbers->GetCelRect(mStage - 1);
 		int aDrawY = Ftol(((double)aBarY - (double)(aSource.mHeight / 2)) + 0.0);
@@ -774,7 +779,7 @@ void ChallengeButton::Draw(Graphics* g)
 		int aNext = mStage;
 		int aCount = gApp->mChallengeInfo->GetChallengeCount(mCategory);
 		if (aNext < aCount) {
-			g->SetColor(Color(255, 255, 255, Ftol(mUnknown1D8.GetOutVal() * aBarAlpha)));
+			g->SetColor(Color(255, 255, 255, Ftol(mNewNumberGlow.GetOutVal() * aBarAlpha)));
 			int aCel = aGlowNumbers->mNumCols - 1;
 			if (mStage < aGlowNumbers->mNumCols - 1)
 				aCel = mStage;
@@ -787,9 +792,9 @@ void ChallengeButton::Draw(Graphics* g)
 	}
 	// The lock the new stage opens glows, added to the picture
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-	g->SetColor(Color(255, 255, 255, Ftol(mUnknown2B8.GetOutVal() * aBarAlpha)));
+	g->SetColor(Color(255, 255, 255, Ftol(mBarGlow.GetOutVal() * aBarAlpha)));
 	Rect aLockSource = IMAGE_MOONMETER_LOCK->GetCelRect(0);
-	aLockSource.mY = Ftol(mUnknown248.GetOutVal() * (double)aLockSource.mHeight + (double)aLockSource.mY);
+	aLockSource.mY = Ftol(mLockWipe.GetOutVal() * (double)aLockSource.mHeight + (double)aLockSource.mY);
 	aLockSource.mHeight = aLockSource.mHeight - aLockSource.mY;
 	int aLockShift = (aLockSource.mY + (aLockSource.mY >> 31 & 3)) >> 2;
 	int aLockY = Ftol(((double)aBarY - (double)(aLockSource.mHeight / 2)) + (double)aLockShift + 0.0);
@@ -824,23 +829,23 @@ void ChallengeButton::Draw(Graphics* g)
 						aVertices[aTriangleCount][0] = TriVertex((float)aBarX, (float)aBarY, 0.5f, 0.5f, aColor);  // 0x6847ca
 						float aSin0 = sinf(anAngle);
 						float aCos0 = cosf(anAngle);
-						float aSin0b = sinf(anAngle);
-						float aCos0b = cosf(anAngle);
+						float aSinHere = sinf(anAngle);
+						float aCosHere = cosf(anAngle);
 						float aV = (float)((double)aSin0 * 0.5 + 0.5);
 						float aU = (float)((double)aCos0 * 0.5 + 0.5);
 						float aCelHeight = (float)(aGlowImage->mHeight / aGlowImage->mNumRows);  // 0x423750
-						float aY = (float)((double)aRadius * (double)aSin0b * (double)aCelHeight * 0.5 + (double)aBarY);
+						float aY = (float)((double)aRadius * (double)aSinHere * (double)aCelHeight * 0.5 + (double)aBarY);
 						float aCelWidth = (float)(aGlowImage->mWidth / aGlowImage->mNumCols);  // 0x423760
-						float aX = (float)((double)aRadius * (double)aCos0b * (double)aCelWidth * 0.5 + (double)aBarX);
+						float aX = (float)((double)aRadius * (double)aCosHere * (double)aCelWidth * 0.5 + (double)aBarX);
 						aVertices[aTriangleCount][1] = TriVertex(aX, aY, aU, aV, aColor);
 						float aSin1 = sinf(aNextAngle);
 						float aCos1 = cosf(aNextAngle);
-						float aSin1b = sinf(aNextAngle);
-						float aCos1b = cosf(aNextAngle);
+						float aSinNext = sinf(aNextAngle);
+						float aCosNext = cosf(aNextAngle);
 						aV = (float)((double)aSin1 * 0.5 + 0.5);
 						aU = (float)((double)aCos1 * 0.5 + 0.5);
-						aY = (float)((double)aRadius * (double)aSin1b * (double)aCelHeight * 0.5 + (double)aBarY);
-						aX = (float)((double)aRadius * (double)aCos1b * (double)aCelWidth * 0.5 + (double)aBarX);
+						aY = (float)((double)aRadius * (double)aSinNext * (double)aCelHeight * 0.5 + (double)aBarY);
+						aX = (float)((double)aRadius * (double)aCosNext * (double)aCelWidth * 0.5 + (double)aBarX);
 						aVertices[aTriangleCount][2] = TriVertex(aX, aY, aU, aV, aColor);
 						aFlareAlpha = Ftol((double)aFlareAlpha - 10.0);
 						aTriangleCount++;
@@ -891,6 +896,7 @@ void ChallengeButton::Draw(Graphics* g)
 }
 
 // 0x6e5c3e
+// 0x6e4daa: the camera spline's constructor, inline here
 ChallengeMenu::ChallengeMenu()
 {
 	Resize(0, 0, gApp->mWidth, gApp->mHeight);
@@ -900,11 +906,11 @@ ChallengeMenu::ChallengeMenu()
 	mStageSel = 0;
 	mStarted = 0;
 	mHoverFade = 1.0f;
-	mUnknown9BC = false;
+	mClicksBlocked = false;
 	mDragging = false;
 	mCameraStackIndex = 0;
 	mStartDelay = 0;
-	mUnknown15C = 0;
+	mDescGlow = 0;
 	// The camera starts at (0, -12, 0) (+0x630) and the camera stack comes from its file (0x6e5a8d)
 	mCameraPos[0] = 0;
 	mCameraPos[1] = -12.0f;
@@ -934,8 +940,8 @@ ChallengeMenu::ChallengeMenu()
 			SexyString aLayerName = StringToUpper(StringToSexyString("IMAGE_") + aChallengeCategory->mLayers[aLayer]);
 			int anId = GetIdByName(aLayerName.c_str());
 			aButton->mAdditive = aChallengeCategory->mAdditive;
-			if ((int)aCategory < (int)gApp->mProfile->mInts204.size())
-				aButton->mProgress = gApp->mProfile->mInts204[aCategory];
+			if ((int)aCategory < (int)gApp->mProfile->mChallengeBests.size())
+				aButton->mProgress = gApp->mProfile->mChallengeBests[aCategory];
 			if (anId == RESOURCE_ID_MAX)
 				gApp->Popup("Error: Can't find texture '" + aLayerName + "' for challenge menu");
 			else
@@ -962,8 +968,8 @@ ChallengeMenu::ChallengeMenu()
 	mMainMenuButton->mLabel = gApp->GetString(GTS(0x7e0cb0), GT(0x7e0c9c));
 	mMainMenuButton->SetFont(FONT_DIALOG_BUTTONS);
 	// Two particle managers (0x6f9f59): +0x1b8 is a widget of the menu, +0x1bc the sun's glow
-	mFXManager1B8 = new EffectsManager();
-	mFXManager1BC = new EffectsManager();
+	mPlanetSparks = new EffectsManager();
+	mSunGlow = new EffectsManager();
 	TwistButton* aButtons[2] = {mPlayMenuButton, mMainMenuButton};
 	for (TwistButton* aButton : aButtons) {
 		// as wide as the label needs, with a tenth to spare, but not narrower than the picture
@@ -975,6 +981,7 @@ ChallengeMenu::ChallengeMenu()
 	SetState(0, false);
 }
 
+// 0x6e0c6c: the menu destructor body, inline here
 ChallengeMenu::~ChallengeMenu()
 {
 	for (ChallengeButton* aButton : mButtons) {
@@ -985,9 +992,9 @@ ChallengeMenu::~ChallengeMenu()
 	delete mPlayMenuButton;
 	RemoveWidget(mMainMenuButton);
 	delete mMainMenuButton;
-	RemoveWidget(mFXManager1B8);
-	delete mFXManager1B8;
-	delete mFXManager1BC;
+	RemoveWidget(mPlanetSparks);
+	delete mPlanetSparks;
+	delete mSunGlow;
 	// port: the original never frees the planet picture
 	delete mPlanetImage;
 	// 0x6e0c6c
@@ -1007,13 +1014,13 @@ void ChallengeMenu::AddedToManager(WidgetManager* theWidgetManager)
 	float aStart = (float)(aTwoPi * 0.25 - (aTwoPi - (double)aSpan) * 0.5);
 	float aNegSpan = -aSpan;
 	float aStep = (float)((double)aNegSpan / (double)((int)mButtons.size() - 1));
-	mUnknown188 = (float)((double)mHeight * 0.4000000059604645);
+	mOrbitRadius = (float)((double)mHeight * 0.4000000059604645);
 	float anAngle = aStart;
 	for (unsigned int i = 0; i < (unsigned int)mButtons.size(); i++) {
 		ChallengeButton* aButton = mButtons[i];
-		aButton->mUnknown524 = anAngle;
-		aButton->mUnknown520 = aStart;
-		aButton->mUnknown528 = mUnknown188;
+		aButton->mAngle = anAngle;
+		aButton->mStartAngle = aStart;
+		aButton->mOrbitRadius = mOrbitRadius;
 		float aCos = std::cos(anAngle);
 		aButton->mWorldPos[0] = (float)((double)aCos * 4.800000190734863 * 1.5 + (double)mCameraPos[0]);
 		float aSin = std::sin(anAngle);
@@ -1030,8 +1037,8 @@ void ChallengeMenu::AddedToManager(WidgetManager* theWidgetManager)
 	mMainMenuButton->mX = Ftol(40.0 * (double)gApp->mScale);
 	mPlayMenuButton->mY = mHeight * 2;
 	mMainMenuButton->mY = mPlayMenuButton->mY;
-	AddWidget(mFXManager1B8);
-	mFXManager1BC->Resize(0, 0, mWidth, mHeight);
+	AddWidget(mPlanetSparks);
+	mSunGlow->Resize(0, 0, mWidth, mHeight);
 }
 
 // 0x6dd2cd
@@ -1042,14 +1049,14 @@ void ChallengeMenu::RemovedFromManager(WidgetManager* theWidgetManager)
 		RemoveWidget(aButton);
 	RemoveWidget(mPlayMenuButton);
 	RemoveWidget(mMainMenuButton);
-	RemoveWidget(mFXManager1B8);
+	RemoveWidget(mPlanetSparks);
 }
 
 // 0x6e30d5
 void ChallengeMenu::Show(int theMode, bool theNow)
 {
-	mUnknown9BC = false;
-	mFXManager1BC->Clear();
+	mClicksBlocked = false;
+	mSunGlow->Clear();
 	mVisible = true;
 	UpdateProgress(false, false);
 	SetState(theMode, theNow);
@@ -1077,7 +1084,7 @@ void ChallengeMenu::Close(int theState)
 	mPlayMenuButton->mMouseVisible = false;
 	for (ChallengeButton* aButton : mButtons) {
 		if (theState == 2)
-			aButton->mUnknown5C4 = false;
+			aButton->mIsRevealed = false;
 		aButton->mMouseVisible = false;
 	}
 	SetState(theState, false);
@@ -1103,13 +1110,13 @@ void ChallengeMenu::SetState(int theState, bool theNow)
 		mButtonSlide.SetCurve(GTS(0x7e06a8), &mOpen);
 		mStartDelay = 0.0f;
 		gSunCurve.SetCurve(GTS(0x7e068c), nullptr);
-		mUnknown6B0.SetCurve(GTS(0x7e07dc), nullptr);
-		mUnknown640.SetCurve(GTS(0x7e0908), nullptr);
+		mEclipseCover.SetCurve(GTS(0x7e07dc), nullptr);
+		mEclipseIntensity.SetCurve(GTS(0x7e0908), nullptr);
 		if (theNow) {
 			// at once: one step before the ends
 			mOpen.mInVal = mOpen.mInMax - 0.0010000000474974513;
-			mUnknown6B0.mInVal = mUnknown6B0.mInMax - 0.0010000000474974513;
-			mUnknown640.mInVal = mUnknown640.mInMax - 0.0010000000474974513;
+			mEclipseCover.mInVal = mEclipseCover.mInMax - 0.0010000000474974513;
+			mEclipseIntensity.mInVal = mEclipseIntensity.mInMax - 0.0010000000474974513;
 		}
 		mCameraRotX.SetCurve(GTS(0x7e066c), &mOpen);
 		mCameraRotY.SetCurve(GTS(0x7e0648), &mOpen);
@@ -1119,7 +1126,7 @@ void ChallengeMenu::SetState(int theState, bool theNow)
 		mCameraUp.SetCurve(GTS(0x7e0758), &mOpen);
 		mCameraShiftX.SetCurve(GTS(0x7e05dc), &mOpen);
 		mCameraShiftY.SetCurve(GTS(0x7e05bc), &mOpen);
-		mUnknown720.SetCurve(GTS(0x7e06f0), &mOpen);
+		mMoonTurn.SetCurve(GTS(0x7e06f0), &mOpen);
 		mCameraTurn.SetCurve(GTS(0x7e06c4), &mOpen);
 		// The turn the camera starts at (the three axes' curves at 0), turned 0.625 of the way to the identity, and
 		// its transpose (0x4c1670 with the identity for the other, then 0x6dda5c): mCameraTarget
@@ -1137,8 +1144,8 @@ void ChallengeMenu::SetState(int theState, bool theNow)
 		mButtonSlide.SetCurve(GTS(0x7e089c), &mOpen);
 		mStartDelay = 0.0f;
 		gSunCurve.SetCurve(GTS(0x7e07fc), &mOpen);
-		mUnknown6B0.SetCurve(GTS(0x7e07dc), &mOpen);
-		mUnknown640.SetCurve(GTS(0x7e0908), &mOpen);
+		mEclipseCover.SetCurve(GTS(0x7e07dc), &mOpen);
+		mEclipseIntensity.SetCurve(GTS(0x7e0908), &mOpen);
 		mCameraRotX.SetCurve(GTS(0x7e07bc), &mOpen);
 		mCameraRotY.SetCurve(GTS(0x7e0798), &mOpen);
 		mCameraRotZ.SetCurve(GTS(0x7e0798), &mOpen);
@@ -1147,7 +1154,7 @@ void ChallengeMenu::SetState(int theState, bool theNow)
 		mCameraUp.SetCurve(GTS(0x7e0758), &mOpen);
 		mCameraShiftX.SetCurve(GTS(0x7e0738), &mOpen);
 		mCameraShiftY.SetCurve(GTS(0x7e0718), &mOpen);
-		mUnknown720.SetCurve(GTS(0x7e06f0), &mOpen);
+		mMoonTurn.SetCurve(GTS(0x7e06f0), &mOpen);
 		mCameraTurn.SetCurve(GTS(0x7e06c4), &mOpen);
 		break;
 	case 3: {
@@ -1157,9 +1164,9 @@ void ChallengeMenu::SetState(int theState, bool theNow)
 		mButtonSlide.SetCurve(GTS(0x7e089c), &mOpen);
 		mStartDelay = 0.0f;
 		gSunCurve.SetCurve(GTS(0x7e087c), &mOpen);
-		mUnknown6B0.SetCurve(GTS(0x7e0858), &mOpen);
-		mUnknown640.SetCurve(GTS(0x7e0908), &mOpen);
-		mUnknown720.SetConstant(0.0);
+		mEclipseCover.SetCurve(GTS(0x7e0858), &mOpen);
+		mEclipseIntensity.SetCurve(GTS(0x7e0908), &mOpen);
+		mMoonTurn.SetConstant(0.0);
 		mCameraTurn.SetConstant(1.0);
 		ChallengeButton* aPicked = mButtons[mCategory];
 		mZoomPos[0] = aPicked->mWorldPos[0];
@@ -1167,7 +1174,7 @@ void ChallengeMenu::SetState(int theState, bool theNow)
 		mZoomPos[2] = aPicked->mWorldPos[2];
 		mZoom.SetCurve(GTS(0x7e0940), &mOpen);
 		for (unsigned int i = 0; i < (unsigned int)mButtons.size(); i++)
-			mButtons[i]->mUnknown5C5 = i != (unsigned int)mCategory;
+			mButtons[i]->mIsNotPicked = i != (unsigned int)mCategory;
 		if (mState == 4) {
 			// the menu was still coming in: the way out begins where the way in stood
 			float aLeft = (float)(1.0 - (double)aWas);
@@ -1185,10 +1192,10 @@ void ChallengeMenu::SetState(int theState, bool theNow)
 		mStartDelay = 0.0f;
 		if (mState != 5) {
 			gSunCurve.SetCurve(GTS(0x7e0924), &mOpen);
-			mUnknown640.SetCurve(GTS(0x7e0908), nullptr);
+			mEclipseIntensity.SetCurve(GTS(0x7e0908), nullptr);
 		}
-		mUnknown6B0.SetCurve(GTS(0x7e08e4), &mOpen);
-		mUnknown720.SetConstant(0.0);
+		mEclipseCover.SetCurve(GTS(0x7e08e4), &mOpen);
+		mMoonTurn.SetConstant(0.0);
 		mCameraTurn.SetConstant(1.0);
 		ChallengeButton* aPicked = mButtons[mCategory];
 		mZoomPos[0] = aPicked->mWorldPos[0];
@@ -1271,7 +1278,7 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 					aButton->mStage = anInfo->GetChallengeCount(i);
 					if (theAnimate) {
 						aAdvanced = true;
-						aButton->mUnknown398.SetCurve(GTS(0x7e0534));
+						aButton->mStageStep.SetCurve(GTS(0x7e0534));
 						aButton->mEclipseFade.SetCurve(GTS(0x7e050c));
 						aButton->mTextFade.SetCurve(GTS(0x7e04ec));
 					} else {
@@ -1279,18 +1286,18 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 					}
 				} else if (!theAnimate || aStage == 1) {
 					aButton->mBarFill.SetConstant(0.0);
-					aButton->mUnknown1D8.SetConstant(0.0);
-					aButton->mUnknown248.SetConstant(0.0);
-					aButton->mUnknown2B8.SetConstant(0.0);
+					aButton->mNewNumberGlow.SetConstant(0.0);
+					aButton->mLockWipe.SetConstant(0.0);
+					aButton->mBarGlow.SetConstant(0.0);
 					aButton->mStage = aStage;
 				} else {
 					// the planet moves on a stage: the bar fills, the new number glows and a sound plays
 					aAdvanced = true;
 					gApp->PlaySample(SOUND_CHALLENGE_UNLOCK);
 					aButton->mBarFill.SetCurve(GTS(0x7e0558));
-					aButton->mUnknown1D8.SetCurve(GTS(0x7e04c4));
-					aButton->mUnknown248.SetCurve(GTS(0x7e045c));
-					aButton->mUnknown2B8.SetCurve(GTS(0x7e0420));
+					aButton->mNewNumberGlow.SetCurve(GTS(0x7e04c4));
+					aButton->mLockWipe.SetCurve(GTS(0x7e045c));
+					aButton->mBarGlow.SetCurve(GTS(0x7e0420));
 				}
 			}
 		} else {
@@ -1298,16 +1305,16 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 		}
 		if (aEclipseNow) {
 			// the eclipse (also reached from the first stage past the last, not animating)
-			aButton->mUnknown398.SetConstant(1.0);
+			aButton->mStageStep.SetConstant(1.0);
 			aButton->mEclipseFade.SetConstant(1.0);
 			aButton->mTextFade.SetConstant(0.0);
 		}
-		aButton->mProgress = (int)i < (int)aProfile->mInts204.size() ? aProfile->mInts204[i] : 0;
+		aButton->mProgress = (int)i < (int)aProfile->mChallengeBests.size() ? aProfile->mChallengeBests[i] : 0;
 		aButton->mEclipse = anInfo->GetChallengeCount(i) < aProfile->GetChallengeStage((int)i);
 		bool anOpen = aProfile->IsChallengeCategoryOpen((int)i);
 		if (!anOpen) {
 			aButton->mOpen = false;
-			aButton->mUnknown398.SetConstant(0.0);
+			aButton->mStageStep.SetConstant(0.0);
 			aButton->mDim.SetConstant(1.0);
 			aButton->mMouseVisible = false;
 		} else if (!aButton->mOpen) {
@@ -1317,7 +1324,7 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 			} else {
 				anOpened = true;
 				aButton->mDim.SetCurve(GTS(0x7e03f4));
-				aButton->mUnknown5C4 = true;
+				aButton->mIsRevealed = true;
 			}
 			aButton->mMouseVisible = true;
 		}
@@ -1330,41 +1337,42 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 }
 
 // 0x6e3f41
+// 0x6dd2bd: the setter of mIsRevealed (+0x5c4), inline here
 void ChallengeMenu::Update()
 {
 	TwistWidget::Update();
 	gSunCurve.IncInVal();
-	mUnknown6B0.IncInVal();
-	mUnknown640.IncInVal();
-	// 1 - mUnknown6B0, but not below 0.25
+	mEclipseCover.IncInVal();
+	mEclipseIntensity.IncInVal();
+	// 1 - mEclipseCover, but not below 0.25
 	float aFraction = 0.25f;
-	if (0.25 <= 1.0 - mUnknown6B0.GetOutVal())
-		aFraction = (float)(1.0 - mUnknown6B0.GetOutVal());
-	gUnknown85C508 = aFraction;
+	if (0.25 <= 1.0 - mEclipseCover.GetOutVal())
+		aFraction = (float)(1.0 - mEclipseCover.GetOutVal());
+	gWorldLight = aFraction;
 	if (mHover == -1) {
 		mHoverFade = (float)((double)mHoverFade - 0.03999999910593033);
 		if (mHoverFade < 0.0f)
 			mHoverFade = 0.0f;
-		mUnknown9D0 = (float)((double)mUnknown9D0 + 0.009999999776482582);
-		if (0.5f < mUnknown9D0) {
-			mUnknown9D4 = (float)((double)mUnknown9D4 + 0.019999999552965164);
-			if (1.0f < mUnknown9D4)
-				mUnknown9D4 = 1.0f;
+		mIdleTime = (float)((double)mIdleTime + 0.009999999776482582);
+		if (0.5f < mIdleTime) {
+			mTitleSunGlow = (float)((double)mTitleSunGlow + 0.019999999552965164);
+			if (1.0f < mTitleSunGlow)
+				mTitleSunGlow = 1.0f;
 		}
 	} else {
 		mHoverFade = (float)((double)mHoverFade + 0.02500000037252903);
 		if (1.0f < mHoverFade)
 			mHoverFade = 1.0f;
-		mUnknown9D0 = 0;
-		mUnknown9D4 = 0;
+		mIdleTime = 0;
+		mTitleSunGlow = 0;
 	}
-	// The glow colours follow mUnknown928 (0x7570c1 blends two colours, the first's alpha kept)
-	mUnknown928.IncInVal();
-	float aBlend = (float)mUnknown928.GetOutVal();
+	// The glow colours follow mSunGrey (0x7570c1 blends two colours, the first's alpha kept)
+	mSunGrey.IncInVal();
+	float aBlend = (float)mSunGrey.GetOutVal();
 	gSunGlowColor = BlendColors(Color(255, 255, 255), Color(255, 128, 255), aBlend);
-	aBlend = (float)mUnknown928.GetOutVal();
-	gUnknown85C50C = BlendColors(Color(128, 32, 128), Color(0, 0, 128), aBlend);
-	mFXManager1BC->Update();
+	aBlend = (float)mSunGrey.GetOutVal();
+	gAmbientBase = BlendColors(Color(128, 32, 128), Color(0, 0, 128), aBlend);
+	mSunGlow->Update();
 	// The mouse drag changes the camera stack's entry mCameraStackIndex: sideways it turns about y (the right button,
 	// about z), up and down about x
 	WidgetManager* aWidgetManager = gApp->mWidgetManager;
@@ -1397,17 +1405,17 @@ void ChallengeMenu::Update()
 			mStartDelay = (float)((double)mStartDelay - 0.009999999776482582);
 		} else if (!mOpen.IncInVal()) {
 			// the curve has ended
-			mUnknown9D4 = 0;
+			mTitleSunGlow = 0;
 			mHoverFade = 0;
 			bool anIn = mOpen.GetOutVal() == 1.0;
 			mMouseVisible = anIn;
 			mMainMenuButton->mMouseVisible = anIn;
 			mPlayMenuButton->mMouseVisible = anIn;
 			if (mOpen.GetOutVal() == 1.0 && (mState == 1 || mState == 4))
-				mUnknown640.SetCurve(GTS(0x7e0b40), nullptr);
+				mEclipseIntensity.SetCurve(GTS(0x7e0b40), nullptr);
 			for (unsigned int i = 0; i < (unsigned int)mButtons.size(); i++) {
 				if (mState == 1)
-					mButtons[i]->mUnknown5C4 = mMouseVisible && mButtons[i]->mOpen;
+					mButtons[i]->mIsRevealed = mMouseVisible && mButtons[i]->mOpen;
 				mButtons[i]->mMouseVisible = mMouseVisible && mButtons[i]->mOpen;
 			}
 		}
@@ -1458,7 +1466,7 @@ void ChallengeMenu::Update()
 	if (gApp->mHyperspace != nullptr) {
 		float aTurn = (float)mCameraTurn.GetOutVal();
 		Mat3 anIdentity;
-		gApp->mHyperspace->mUnknown1548 = SlerpMat3(anIdentity, mCameraTarget, aTurn, false);
+		gApp->mHyperspace->mCameraTurn = SlerpMat3(anIdentity, mCameraTarget, aTurn, false);
 	}
 	// The buttons rise with mButtonSlide (0x34 is the buttons' y)
 	mPlayMenuButton->mY = Ftol(((1.0 - mButtonSlide.GetOutVal()) * 0.5 + 0.9250000119209290) * (double)mHeight);
@@ -1466,10 +1474,10 @@ void ChallengeMenu::Update()
 	// The glow's particles ride down with the open curve
 	double anOpen = mOpen.GetOutVal();
 	int aGlowShift = Ftol((double)gApp->mScale * 1500.0);
-	mFXManager1BC->mY = Ftol((double)aGlowShift * (1.0 - anOpen));
-	mFXManager1BC->mAlpha = (mState == 1 || mState == 4 || mState == 5) ? (float)gSunCurve.GetOutVal() : 0.0f;
+	mSunGlow->mY = Ftol((double)aGlowShift * (1.0 - anOpen));
+	mSunGlow->mAlpha = (mState == 1 || mState == 4 || mState == 5) ? (float)gSunCurve.GetOutVal() : 0.0f;
 	gAspect = (float)((double)gApp->mDDInterface->mWidth / (double)gApp->mDDInterface->mHeight);
-	gAspect45 = (float)((double)gAspect * 45.0);
+	gFovTimesAspect = (float)((double)gAspect * 45.0);
 	// The sun's glow throws particles about while the menu is all the way in
 	if (mStarted == 0 && mOpen.GetOutVal() == 1.0 && (mState == 1 || mState == 4)) {
 		float aRadius = (float)((double)IMAGE_ECLIPSE_SUN->mWidth * 0.30000001192092896);
@@ -1480,7 +1488,7 @@ void ChallengeMenu::Update()
 			aCount = (int)(Rand() % 100) / 80;
 		}
 		while (0 < aCount) {
-			Effect* anEffect = mFXManager1BC->AllocEffect(0);
+			Effect* anEffect = mSunGlow->AllocEffect(0);
 			anEffect->mImage = GetImageById((Rand() & 1) == 0 ? IMAGE_ECLIPSE_FLARE1_ID : IMAGE_ECLIPSE_FLARE2_ID);
 			float aSpeed = (float)((double)gApp->mScale * 0.30000001192092896);
 			aSpeed = (float)std::fabs(RandSigned() * aSpeed);
@@ -1500,13 +1508,13 @@ void ChallengeMenu::Update()
 			int aGrey = (int)(Rand() % 15) + 240;
 			anEffect->mColor = Color(aGrey, aGrey, aGrey);
 			anEffect->mIsAdditive = false;
-			mFXManager1BC->AddEffect(anEffect);
+			mSunGlow->AddEffect(anEffect);
 			aCount--;
 		}
 	}
-	if (0.0f < mUnknown15C) {
-		float aLeft = (float)((double)mUnknown15C - 0.029999999329447746);
-		mUnknown15C = 0.0f < aLeft ? aLeft : 0.0f;
+	if (0.0f < mDescGlow) {
+		float aLeft = (float)((double)mDescGlow - 0.029999999329447746);
+		mDescGlow = 0.0f < aLeft ? aLeft : 0.0f;
 	}
 	// 0x6e4989: the end-of-challenge message at +0x9dc. At its update count 250 the rank bar's timer gains the progress
 	// update's result over 100; once clicked it goes, and the menu goes from state 5 to state 4
@@ -1529,7 +1537,7 @@ void ChallengeMenu::Update()
 void ChallengeMenu::Draw(Graphics* g)
 {
 	TwistWidget::Draw(g);
-	mFXManager1BC->Draw(g);
+	mSunGlow->Draw(g);
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	g->SetColor(Color::White);
 	Image* aGraphic = IMAGE_PLAYMENU_MMGRAPHIC;
@@ -1544,7 +1552,7 @@ void ChallengeMenu::Draw(Graphics* g)
 void ChallengeMenu::DrawAll(ModalFlags* theFlags, Graphics* g)
 {
 	Hyperspace* aHyperspace = gApp->mHyperspace;
-	bool anOldPicture = aHyperspace != nullptr && aHyperspace->mState == 12 && !aHyperspace->mFlag159;
+	bool anOldPicture = aHyperspace != nullptr && aHyperspace->mState == 12 && !aHyperspace->mDrawsFinalFade;
 	if (gSunCurve.GetOutVal() == 0.0 && !anOldPicture)
 		return;
 	if (gD3DInterface != nullptr)
@@ -1558,27 +1566,27 @@ void ChallengeMenu::DrawAll(ModalFlags* theFlags, Graphics* g)
 // 0x6e132d
 void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 {
-	// The sun at the camera's start (0, -12, 0), greyer as mUnknown928 rises, at the sun curve's alpha
-	int aGrey = Ftol(255.0 - mUnknown928.GetOutVal() * 255.0);
+	// The sun at the camera's start (0, -12, 0), greyer as mSunGrey rises, at the sun curve's alpha
+	int aGrey = Ftol(255.0 - mSunGrey.GetOutVal() * 255.0);
 	int anAlpha = Ftol(gSunCurve.GetOutVal() * 255.0);
 	unsigned int aColor = (unsigned int)((((anAlpha << 8 | aGrey) << 8 | aGrey) << 8) | aGrey);
 	DrawBillboard(g, IMAGE_ECLIPSE_SUN, mCameraPos[0], mCameraPos[1], mCameraPos[2], aColor, Graphics::DRAWMODE_NORMAL,
 		4.75f);
 
-	// The moon: 4.1 from the sun along z, turned about the sun's y by mUnknown720 times one and a half pi
+	// The moon: 4.1 from the sun along z, turned about the sun's y by mMoonTurn times one and a half pi
 	Transform3D aSunPlace;  // 0x4bd4c0
 	aSunPlace.mPos = Vec3{mCameraPos[0], mCameraPos[1], mCameraPos[2]};  // 0x6dd0e2
 	Vec3 aMoon{0.0f, 0.0f, 4.0999999f};
 	Mat3 aTurn;
-	float aTurnValue = (float)mUnknown720.GetOutVal();
+	float aTurnValue = (float)mMoonTurn.GetOutVal();
 	aTurn.RotateY((float)((double)aTurnValue * 3.1415927410125732 * 1.5));
 	aMoon = TimesMat3(aMoon, aTurn);           // 0x673fa4
 	aMoon = TransformPoint(aSunPlace, aMoon);  // 0x68b6b6
 	if (gD3DInterface != nullptr) {
 		// The moon: the biggest sphere with the moon's picture, 2.43 large a little off the point (-0.04, 0.02, 0), turned about
 		// y by 0.025 degrees for each update, lit by a light along the moon's own turn; its dark side is the eclipse's,
-		// by mUnknown6B0. The moon's flat picture, black, is drawn over it while the eclipse is under 0.05.
-		PerspectiveCamera aCamera(gAspect45, gAspect, 1.0f, 10000.0f);  // 0x67417d
+		// by mEclipseCover. The moon's flat picture, black, is drawn over it while the eclipse is under 0.05.
+		PerspectiveCamera aCamera(gFovTimesAspect, gAspect, 1.0f, 10000.0f);  // 0x67417d
 		WorldGraphicsListener aListener(&aCamera, false);              // 0x4bd5d0
 		aListener.SetCulling(true);
 		aListener.SetDepth(false, true);
@@ -1605,12 +1613,12 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 		aColors.mSpecular = Color::Black;
 		aColors.mAmbient = Color(0, 0, 0);
 		aColors.mIntensity = 2.430000066757202f;
-		aColors.mAmbient.mRed = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mAmbient.mRed + 28.0);
-		aColors.mAmbient.mGreen = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mAmbient.mGreen + 28.0);
-		aColors.mAmbient.mBlue = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mAmbient.mBlue + 28.0);
-		aColors.mDiffuse.mRed = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mDiffuse.mRed);
-		aColors.mDiffuse.mGreen = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mDiffuse.mGreen);
-		aColors.mDiffuse.mBlue = Ftol(mUnknown6B0.GetOutVal() * (double)aColors.mDiffuse.mBlue);
+		aColors.mAmbient.mRed = Ftol(mEclipseCover.GetOutVal() * (double)aColors.mAmbient.mRed + 28.0);
+		aColors.mAmbient.mGreen = Ftol(mEclipseCover.GetOutVal() * (double)aColors.mAmbient.mGreen + 28.0);
+		aColors.mAmbient.mBlue = Ftol(mEclipseCover.GetOutVal() * (double)aColors.mAmbient.mBlue + 28.0);
+		aColors.mDiffuse.mRed = Ftol(mEclipseCover.GetOutVal() * (double)aColors.mDiffuse.mRed);
+		aColors.mDiffuse.mGreen = Ftol(mEclipseCover.GetOutVal() * (double)aColors.mDiffuse.mGreen);
+		aColors.mDiffuse.mBlue = Ftol(mEclipseCover.GetOutVal() * (double)aColors.mDiffuse.mBlue);
 		Vec3 aLightDirection = TimesMat3(Vec3{0.0f, 0.0f, 1.0f}, aTurn);  // 0x673fa4
 		gD3DInterface->SetDirectionalLight(0, aLightDirection, aColors);   // slot 0xec
 		gD3DInterface->LightEnable(0, true);                               // slot 0xe4
@@ -1621,8 +1629,8 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 			Color(255, 255, 255, 255), 0, 0.0f, 0.0f, true, &aPrimitiveListener);  // slot 0x7c
 		gD3DInterface->SetTexture(0, nullptr);
 		gD3DInterface->SetTextureWrap(0, false);
-		if (mUnknown6B0.GetOutVal() < 0.05000000074505806) {
-			int aBlackAlpha = Ftol(gSunCurve.GetOutVal() * 255.0 * (1.0 - mUnknown6B0.GetOutVal() / 0.05000000074505806));
+		if (mEclipseCover.GetOutVal() < 0.05000000074505806) {
+			int aBlackAlpha = Ftol(gSunCurve.GetOutVal() * 255.0 * (1.0 - mEclipseCover.GetOutVal() / 0.05000000074505806));
 			DrawBillboard(g, IMAGE_ECLIPSE_MOON, (float)((double)aMoon.x - 0.07999999821186066),
 				(float)((double)aMoon.y + 0.07000000029802322), aMoon.z, (unsigned int)aBlackAlpha << 24,
 				Graphics::DRAWMODE_NORMAL, 2.5f);
@@ -1631,8 +1639,8 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 		g->SetColor(Color::White);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	} else {
-		// dark grey (48), lighter by mUnknown6B0
-		unsigned int aBright = (unsigned int)Ftol(mUnknown6B0.GetOutVal() * 255.0) + 48;
+		// dark grey (48), lighter by mEclipseCover
+		unsigned int aBright = (unsigned int)Ftol(mEclipseCover.GetOutVal() * 255.0) + 48;
 		unsigned int aMoonGrey = 255;
 		if (aBright <= 255)
 			aMoonGrey = aBright;
@@ -1645,8 +1653,8 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 	g->SetFont(FONT_DIALOG_TEXT);
 	SetFontLayerColor(FONT_DIALOG_TEXT, GTS(0x80dfb4), Color(255, 255, 255, 255));
 	g->SetColor(Color(255, 255, 255));
-	// The eclipse's gold ring, added in while the sun is fully up, by how far mUnknown6B0 is below 1
-	double aDark = mUnknown6B0.GetOutVal();
+	// The eclipse's gold ring, added in while the sun is fully up, by how far mEclipseCover is below 1
+	double aDark = mEclipseCover.GetOutVal();
 	double aSun = gSunCurve.GetOutVal();
 	float aRing = (float)((1.0 - aDark) * aSun * gSunCurve.GetOutVal());
 	if (0.0f < aRing && gSunCurve.GetOutVal() == 1.0) {
@@ -1663,15 +1671,15 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 		}
 	}
 
-	// The two dancing glows: while mUnknown640 is up they swing round the middle of the screen, 280 from it, from 0.3
+	// The two dancing glows: while mEclipseIntensity is up they swing round the middle of the screen, 280 from it, from 0.3
 	// of a turn to none as its input runs to its end, and turn from half a turn to none
-	if (0.0 < mUnknown640.GetOutVal()) {
+	if (0.0 < mEclipseIntensity.GetOutVal()) {
 		const double aTwoPi = 6.2831854820251465;  // the float at 0x84ec00
 		float anAngleFrom = (float)(0.30000001192092896 * aTwoPi);
 		float anAngleTo = (float)(0.0 * aTwoPi);
 		float aTurnFrom = (float)(aTwoPi * 0.5);
 		float aTurnTo = anAngleTo;
-		float aDone = (float)(mUnknown640.mInVal / mUnknown640.mInMax);
+		float aDone = (float)(mEclipseIntensity.mInVal / mEclipseIntensity.mInMax);
 		float aRadius = (float)Ftol((double)gApp->mScale * 280.0);
 		float anAngle = (float)(((double)anAngleTo - (double)anAngleFrom) * (double)aDone + (double)anAngleFrom);
 		float aGlowTurn = (float)(((double)aTurnTo - (double)aTurnFrom) * (double)aDone + (double)aTurnFrom);
@@ -1681,10 +1689,10 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 		int aGlowY = Ftol((double)(mHeight / 2) - (double)aSin * (double)aRadius);
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		g->SetColorizeImages(true);
-		g->SetColor(Color(255, 255, 255, Ftol(mUnknown640.GetOutVal() * 255.0)));
+		g->SetColor(Color(255, 255, 255, Ftol(mEclipseIntensity.GetOutVal() * 255.0)));
 		DrawImageCentered(g, IMAGE_ECLIPSE_DANCE2, (float)aGlowX, (float)aGlowY, (double)aGlowTurn, 1.0f, 1.0f);
-		double aGlow = mUnknown640.GetOutVal();
-		g->SetColor(Color(255, 255, 255, Ftol(aGlow * 255.0 * mUnknown640.GetOutVal())));
+		double aGlow = mEclipseIntensity.GetOutVal();
+		g->SetColor(Color(255, 255, 255, Ftol(aGlow * 255.0 * mEclipseIntensity.GetOutVal())));
 		DrawImageCentered(g, IMAGE_ECLIPSE_DANCE1, (float)(aGlowX - Ftol((double)gApp->mScale * -15.0)),
 			(float)(aGlowY - Ftol((double)gApp->mScale * 55.0)), (double)aGlowTurn * 0.0, 1.0f, 1.0f);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -1694,10 +1702,10 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 	if (mOpen.GetOutVal() != 1.0 || (mState != 1 && mState != 4))
 		return;
 	if (mHover <= -1) {
-		if (0.0f < mUnknown9D4) {
+		if (0.0f < mTitleSunGlow) {
 			g->SetColorizeImages(true);
 			double aTitleSun = gSunCurve.GetOutVal();
-			g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown9D4 * 255.0 * aTitleSun)));
+			g->SetColor(Color(255, 255, 255, Ftol((double)mTitleSunGlow * 255.0 * aTitleSun)));
 			g->DrawImage(IMAGE_CHALLENGEMODETITLE, mWidth / 2 - IMAGE_CHALLENGEMODETITLE->mWidth / 2,
 				Ftol((double)gApp->mScale * 516.0));
 		}
@@ -1722,8 +1730,8 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 			1.0f);
 	}
 	g->SetColorizeImages(true);
-	if (0.0f < mUnknown15C) {
-		g->SetColor(Color(255, 255, 255, Ftol((double)mUnknown15C * 255.0)));
+	if (0.0f < mDescGlow) {
+		g->SetColor(Color(255, 255, 255, Ftol((double)mDescGlow * 255.0)));
 		if (mDescGlowImage != nullptr) {
 			DrawImageScaledCentered(g, mDescGlowImage, (float)aCenterX,
 				(float)(aY - Ftol((double)gApp->mScale * 10.0)), 1.0f, 1.0f);
@@ -1760,7 +1768,7 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 	// registration code, left out)
 }
 
-// 0x6dfe2a: the camera's zoom
+// 0x6dfe2a: the camera's zoom, which steps mCameraStackIndex only while mClicksBlocked is set, and nothing sets it
 void ChallengeMenu::MouseWheel(int theDelta)
 {
 	(void)theDelta;
@@ -1779,7 +1787,7 @@ void ChallengeMenu::ButtonDepress(int theId)
 	} else if (theId == BUTTON_MAIN_MENU) {
 		Close(2);
 		gApp->ShowMainMenu(false, false, 0.0f);
-	} else if (!mUnknown9BC) {
+	} else if (!mClicksBlocked) {
 		ChallengeButton* aButton = mButtons[theId];
 		mCategory = aButton->mCategory;
 		mStageSel = aButton->mStage;
@@ -1841,7 +1849,7 @@ void ChallengeMenu::ButtonMouseEnter(int theId)
 	SexyString aName = gApp->mChallengeInfo->GetCategoryId(theId);
 	int aBest = 0;
 	if (aButton->mEclipse)
-		aBest = gApp->mProfile->mInts204[aButton->mCategory];  // 0x439090
+		aBest = gApp->mProfile->mChallengeBests[aButton->mCategory];  // 0x439090
 	if (aButton->mEclipse && aBest != 0) {
 		mBestText = StrFormat(GTC(0x7e0d8c), aBest);
 	} else {
@@ -1913,7 +1921,7 @@ void ChallengeMenu::ButtonMouseEnter(int theId)
 		aTitleG.DrawImage(anEclipse, aTitleWidth / 2 - anEclipseWidth / 2, Ftol((double)gApp->mScale * 65.0),
 			anEclipseWidth, anEclipseHeight);  // 0x4216f0
 	}
-	mUnknown15C = 1.0f;
+	mDescGlow = 1.0f;
 }
 
 // 0x6dd418
@@ -1935,9 +1943,9 @@ void ChallengeMenu::Start(bool theNewGame)
 	mMainMenuButton->mMouseVisible = false;
 	mPlayMenuButton->mMouseVisible = false;
 	mMouseVisible = false;
-	// (the planet's place in the 3D world, at +0x5b4, aims the 3D camera: unused in 2D)
-	gApp->mBoard->mHyperspace->StartChallenge();
-	gApp->mBoard->SetUnknown3924(0.0f);
-	gApp->mBoard->ApplyUnknown3924();
+	const float* aPlace = mButtons[mCategory]->mScreenPos;
+	gApp->mBoard->mHyperspace->StartChallenge(aPlace[0], aPlace[1], aPlace[2]);
+	gApp->mBoard->SetBoardFade(0.0f);
+	gApp->mBoard->ApplyBoardFade();
 	Close(3);
 }

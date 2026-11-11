@@ -1,14 +1,15 @@
-// The screen flow of AlchemyApp: the selector, the board, the help text, the score screens and the dialogs, and the
+// The screen flow of WinAlchApp: the selector, the board, the help text, the score screens and the dialogs, and the
 // handlers of the buttons (Alchemy.exe 0x410cb9-0x412017, 0x413eea). The registration, update-check, internet-score
 // and "more games" dialogs of the original (ids 5, 6, 8, 9, 10, 0xd-0xf, 0x11 and up) belong to the unregistered game
-// and its online services (GAME_NOTES.md, section 5, lists their functions): the copy this port comes from acts as registered
+// and its online services (GAME_NOTES.md, "What the original has and the port leaves out", lists their functions): the copy this port
+// comes from acts as registered
 // and the port has no online features, so they are not translated.
 
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Board.h"
-#include "Selector.h"
-#include "SidePanel.h"
-#include "Effects.h"
+#include "IntroScreen.h"
+#include "Sidebar.h"
+#include "BoardOverlay.h"
 #include "Wizard.h"
 #include "HelpWidget.h"
 #include "HighScores.h"
@@ -23,27 +24,14 @@
 
 using namespace Sexy;
 
-// 0x410ee0: removes a widget from the screen and has the app delete it when it is safe
-void AlchemyApp::RemoveWidgetAndDelete(Widget* theWidget)
+// 0x4114ff: the wizard's message of three lines (header, text, footer) as a dialog
+void WinAlchApp::GiveHelp(const SexyString& theHeader, const SexyString& theLines, const SexyString& theFooter)
 {
-	mWidgetManager->RemoveWidget(theWidget);
-	SafeDeleteWidget(theWidget);
-}
-
-// 0x4010fc: only tests that the file opens
-bool AlchemyApp::HasSavedGame()
-{
-	return FileExists(Board::GetSaveGameFileName());
-}
-
-// 0x40111e
-bool AlchemyApp::DeleteSaveGame()
-{
-	return EraseFile(Board::GetSaveGameFileName());
+	DoDialog(DIALOG_HINT, true, theHeader, theLines, theFooter, Dialog::BUTTONS_FOOTER);
 }
 
 // 0x410d2a (slot 71): mutes or unmutes (when the count says it must), then the sound button follows the mute count
-void AlchemyApp::SetMute(bool wantMuted)
+void WinAlchApp::SetMute(bool wantMuted)
 {
 	if (wantMuted)
 	{
@@ -57,21 +45,21 @@ void AlchemyApp::SetMute(bool wantMuted)
 }
 
 // 0x410cb9 (slot 63): a modal dialog freezes the board's clock
-void AlchemyApp::ModalOpen()
+void WinAlchApp::ModalOpen()
 {
 	if (mBoard != NULL)
 		mBoard->Pause(mTimeTrial);
 }
 
 // 0x410cd3 (slot 64)
-void AlchemyApp::ModalClose()
+void WinAlchApp::ModalClose()
 {
 	if (mBoard != NULL)
-		mBoard->Resume(mTimeTrial);
+		mBoard->Unpause(mTimeTrial);
 }
 
 // 0x4111fa (slot 61): after the last dialog is gone the board gets the keyboard back
-bool AlchemyApp::KillDialog(int theDialogId)
+bool WinAlchApp::KillDialog(int theDialogId)
 {
 	if (SexyApp::KillDialog(theDialogId))
 	{
@@ -83,43 +71,43 @@ bool AlchemyApp::KillDialog(int theDialogId)
 }
 
 // 0x410dc3: the all-time score table
-void AlchemyApp::ShowAllTimeScores()
+void WinAlchApp::DoHighScoreDialog()
 {
-	Dialog* aDialog = new AllTimeDialog(this);
+	Dialog* aDialog = new HighScoreDialog(this);
 	aDialog->Resize(0xb5, 0x32, 0x1ac, aDialog->GetPreferredHeight(0x1ac));
 	AddDialog(DIALOG_HIGH_SCORES, aDialog);
 }
 
 // 0x410e37: the help text over the board; the effects overlay stays on top of it, and shows the arrow
-void AlchemyApp::ShowHelp()
+void WinAlchApp::DoHelp()
 {
 	KillDialog(DIALOG_OPTIONS);
 	if (mHelp == NULL)
 	{
 		mHelp = new HelpWidget(this);
 		mWidgetManager->AddWidget(mHelp);
-		mHelp->Resize(BOARD_X, 0, 0x1ea, 0x1e0);
-		mWidgetManager->PutBehind(mHelp, mEffects);
-		mEffects->mShowHelpArrow = true;
-		mEffects->MarkDirty();
+		mHelp->Resize(BOARD_X, 0, BOARD_WIDTH, SCREEN_HEIGHT);
+		mWidgetManager->PutBehind(mHelp, mBoardOverlay);
+		mBoardOverlay->mShowHelpArrow = true;
+		mBoardOverlay->MarkDirty();
 	}
 }
 
 // 0x410ee0
-void AlchemyApp::HideHelp()
+void WinAlchApp::RemoveHelpWidget()
 {
 	if (mHelp != NULL)
 	{
 		mWidgetManager->RemoveWidget(mHelp);
 		SafeDeleteWidget(mHelp);
 		mHelp = NULL;
-		mEffects->mShowHelpArrow = false;
-		mEffects->MarkDirty();
+		mBoardOverlay->mShowHelpArrow = false;
+		mBoardOverlay->MarkDirty();
 	}
 }
 
 // 0x410f28: the options dialog (gold buttons, black text)
-void AlchemyApp::ShowOptions()
+void WinAlchApp::DoOptions()
 {
 	OptionsDialog* aDialog = new OptionsDialog(this);
 	aDialog->SetColor(Dialog::COLOR_LINES, Color(0, 0, 0));
@@ -130,29 +118,29 @@ void AlchemyApp::ShowOptions()
 }
 
 // 0x4110bf: a score of the table is the player's: asks for the name
-void AlchemyApp::ShowNameEntry(const SexyString& theLines)
+void WinAlchApp::DoRecordScoreDialog(const SexyString& theLines)
 {
-	NameEntryDialog* aDialog = new NameEntryDialog(this, theLines);
+	RecordScoreDialog* aDialog = new RecordScoreDialog(this, theLines);
 	aDialog->Resize(0xfa, 0x20, 0x13c, aDialog->GetPreferredHeight(0x13c));
-	AddDialog(DIALOG_NAME_ENTRY, aDialog);
+	AddDialog(DIALOG_RECORD_SCORE, aDialog);
 }
 
 // 0x411138: the score table of the game that ended replaces the board's view
-void AlchemyApp::ShowHighScores()
+void WinAlchApp::DoGameOver()
 {
 	mBoard->SetVisible(false);
 
 	mHighScores = new HighScoreWidget(this);
-	mHighScores->Resize(BOARD_X, 0, 0x1ea, 0x1e0);
+	mHighScores->Resize(BOARD_X, 0, BOARD_WIDTH, SCREEN_HEIGHT);
 	mWidgetManager->AddWidget(mHighScores);
-	mWidgetManager->BringToFront(mBoard->mHelpBox);
+	mWidgetManager->BringToFront(mBoard->mWizard);
 }
 
 // 0x41122e: a new board replaces the selector, the score table and the old board
-void AlchemyApp::StartGame()
+void WinAlchApp::NewGame()
 {
-	HideHelp();
-	mSelectorFlag = false;
+	RemoveHelpWidget();
+	mBeforeFirstGame = false;
 
 	if (mHighScores != NULL)
 	{
@@ -160,11 +148,11 @@ void AlchemyApp::StartGame()
 		SafeDeleteWidget(mHighScores);
 		mHighScores = NULL;
 	}
-	if (mSelector != NULL)
+	if (mIntroScreen != NULL)
 	{
-		mWidgetManager->RemoveWidget(mSelector);
-		SafeDeleteWidget(mSelector);
-		mSelector = NULL;
+		mWidgetManager->RemoveWidget(mIntroScreen);
+		SafeDeleteWidget(mIntroScreen);
+		mIntroScreen = NULL;
 	}
 	if (mBoard != NULL)
 	{
@@ -173,19 +161,19 @@ void AlchemyApp::StartGame()
 	}
 
 	mBoard = new Board(this);
-	mBoard->Resize(BOARD_X, 0, 0x1ea, 0x1e0);
+	mBoard->Resize(BOARD_X, 0, BOARD_WIDTH, SCREEN_HEIGHT);
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToBack(mBoard);
 	mWidgetManager->SetFocus(mBoard);
 
-	mSidePanel->mScoreAnim = 0;
-	mSidePanel->MarkDirty();
+	mSidebar->mScoreAnim = 0;
+	mSidebar->MarkDirty();
 }
 
 // 0x411357: the selector replaces the board and the score table
-void AlchemyApp::ShowSelector()
+void WinAlchApp::ShowIntroScreen()
 {
-	HideHelp();
+	RemoveHelpWidget();
 
 	if (mHighScores != NULL)
 	{
@@ -202,29 +190,29 @@ void AlchemyApp::ShowSelector()
 
 	mTutorialMode = false;
 
-	mSelector = new SelectorScreen(this);
-	mSelector->Resize(BOARD_X, 0, 0x1ea, 0x1e0);
-	mWidgetManager->AddWidget(mSelector);
-	mWidgetManager->BringToBack(mSelector);
-	mWidgetManager->BringToFront(mEffects);
+	mIntroScreen = new IntroScreen(this);
+	mIntroScreen->Resize(BOARD_X, 0, BOARD_WIDTH, SCREEN_HEIGHT);
+	mWidgetManager->AddWidget(mIntroScreen);
+	mWidgetManager->BringToBack(mIntroScreen);
+	mWidgetManager->BringToFront(mBoardOverlay);
 }
 
 // 0x411d4f
-void AlchemyApp::ConfirmLoad()
+void WinAlchApp::TryConfirmLoad()
 {
-	if (HasSavedGame())
+	if (Board::HasSavedGame())
 		DoDialog(DIALOG_LOAD_GAME, true, GetString("CONFIRM_LOAD1"), GetString("CONFIRM_LOAD2"), "", Dialog::BUTTONS_YES_NO);
 }
 
 // 0x411e2a: the new game button: the selector comes up at once when no game is being played
-void AlchemyApp::ConfirmNewGame()
+void WinAlchApp::ConfirmNewGame()
 {
-	if (mSelector == NULL)
+	if (mIntroScreen == NULL)
 	{
 		if (mBoard == NULL || mBoard->mState == Board::STATE_GAME_OVER)
 		{
 			mTutorialMode = false;
-			ShowSelector();
+			ShowIntroScreen();
 		}
 		else
 			DoDialog(DIALOG_NEW_GAME, true, GetString("CONFIRM_NEW1"), GetString("CONFIRM_NEW2"), "", Dialog::BUTTONS_YES_NO);
@@ -232,34 +220,34 @@ void AlchemyApp::ConfirmNewGame()
 }
 
 // 0x411f27
-void AlchemyApp::ConfirmTutorial()
+void WinAlchApp::ConfirmTutorial()
 {
 	if (mBoard == NULL || mBoard->mState == Board::STATE_GAME_OVER)
 	{
 		mTutorialMode = true;
-		StartGame();
+		NewGame();
 	}
 	else
 		DoDialog(DIALOG_TUTORIAL, true, GetString("CONFIRM_TUTORIAL1"), GetString("CONFIRM_TUTORIAL2"), "", Dialog::BUTTONS_YES_NO);
 }
 
 // 0x412017: the quit button; a game with progress is mentioned
-void AlchemyApp::ConfirmQuit()
+void WinAlchApp::ConfirmQuit()
 {
 	SexyString aLines = GetString("CONFIRM_QUIT1");
-	if (mBoard != NULL && mBoard->HasProgress())
+	if (mBoard != NULL && mBoard->IsInProgress())
 		aLines += GetString("CONFIRM_QUIT2");
 	DoDialog(DIALOG_QUIT, true, GetString("QUIT"), aLines, "", Dialog::BUTTONS_YES_NO);
 }
 
 // 0x410db6: every button clicks
-void AlchemyApp::ButtonPress(int theId)
+void WinAlchApp::ButtonPress(int theId)
 {
 	PlaySample(SOUND_CLICK);
 }
 
 // 0x413eea: the panel's buttons (ids 10..16) and the dialogs' (2000 + id yes, 3000 + id no)
-void AlchemyApp::ButtonDepress(int theId)
+void WinAlchApp::ButtonDepress(int theId)
 {
 	int anId = theId % 10000;
 	if (anId >= 2000 && anId < 3000)
@@ -270,12 +258,7 @@ void AlchemyApp::ButtonDepress(int theId)
 		case DIALOG_NEW_GAME:
 			KillDialog(DIALOG_NEW_GAME);
 			mTutorialMode = false;
-			ShowSelector();
-			break;
-		case DIALOG_SKILL:
-			KillDialog(DIALOG_SKILL);
-			SetSkillLevel(mPendingSkill);
-			StartGame();
+			ShowIntroScreen();
 			break;
 		case DIALOG_QUIT:
 			KillDialog(DIALOG_QUIT);
@@ -291,27 +274,27 @@ void AlchemyApp::ButtonDepress(int theId)
 			KillDialog(DIALOG_OPTIONS);
 			break;
 		}
-		case DIALOG_NAME_ENTRY:
+		case DIALOG_RECORD_SCORE:
 		{
-			NameEntryDialog* aDialog = (NameEntryDialog*) GetDialog(DIALOG_NAME_ENTRY);
-			mHighScores->SetName(aDialog->GetName());
+			RecordScoreDialog* aDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
+			mHighScores->NameEntered(aDialog->GetName());
 			mLastScoreName = aDialog->GetName();
 #ifdef __EMSCRIPTEN__
 			SiteScoresChanged(this);
 #endif
-			KillDialog(DIALOG_NAME_ENTRY);
+			KillDialog(DIALOG_RECORD_SCORE);
 			break;
 		}
 		case DIALOG_TUTORIAL:
 			KillDialog(DIALOG_TUTORIAL);
 			mTutorialMode = true;
-			StartGame();
+			NewGame();
 			break;
 		case DIALOG_LOAD_GAME:
 			KillDialog(DIALOG_LOAD_GAME);
-			StartGame();
+			NewGame();
 			mBoard->LoadGame();
-			DeleteSaveGame();
+			Board::DeleteSavedGame();
 			break;
 		default:
 			KillDialog(aDialogId);
@@ -324,7 +307,7 @@ void AlchemyApp::ButtonDepress(int theId)
 		if (aDialogId == DIALOG_LOAD_GAME)
 		{
 			KillDialog(DIALOG_LOAD_GAME);
-			DeleteSaveGame();
+			Board::DeleteSavedGame();
 		}
 		else
 			KillDialog(aDialogId);
@@ -336,18 +319,18 @@ void AlchemyApp::ButtonDepress(int theId)
 		ConfirmNewGame();
 		break;
 	case BUTTON_OPTIONS:
-		ShowOptions();
+		DoOptions();
 		break;
 	case BUTTON_FORGE:
 		if (mBoard != NULL)
-			mBoard->UseForgeClicked();
+			mBoard->Discard();
 		break;
 	case BUTTON_QUIT:
 		ConfirmQuit();
 		break;
 	case BUTTON_HINT:
 		if (mBoard != NULL)
-			mBoard->ShowHint();
+			mBoard->ShowPossibleMoves();
 		break;
 	case BUTTON_SOUND:
 		SetMute(mMuteCount == 0);

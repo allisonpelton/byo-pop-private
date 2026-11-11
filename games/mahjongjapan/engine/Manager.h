@@ -30,9 +30,7 @@ public:
 	int mPeriod = 0;                 // +0x08 ms per frame
 	bool mPaused = true;             // +0x0c
 	bool mRunning = false;           // +0x0d
-	bool mSuspended = false;         // +0x0e
 	int mPauseCount = 0;             // +0x10
-	bool mMinimized = false;         // +0x14
 	uint32_t mStart = 0;             // +0x18 the clock's start (moved on by the time paused)
 	uint32_t mPauseStart = 0;        // +0x1c
 	uint32_t mLastPresent = 0;       // +0x20
@@ -68,7 +66,6 @@ public:
 	bool mFadeSkip = false;          // +0xd4
 	int mWaitCount = 0;              // +0xd8 (nothing raises it; see 0x42c8d0)
 	int mCursor = 0;                 // +0xe0 the software cursor's kind
-	bool mCursorDirty = true;        // +0xe4
 
 	// 0x42a0d0
 	Manager();
@@ -86,13 +83,21 @@ public:
 	void RemoveHover(Object* theObject) { ListRemove(mHovers, theObject); }
 	void AddClick(Object* theObject) { ListAdd(mClicks, theObject); }
 	void RemoveClick(Object* theObject) { ListRemove(mClicks, theObject); }
+	// 0x42a400 inlined here: the add to the move list (+0x50)
 	void AddMove(Object* theObject) { ListAdd(mMoves, theObject); }
+	// 0x42a410 inlined here: the removal from the move list (+0x50)
 	void RemoveMove(Object* theObject) { ListRemove(mMoves, theObject); }
+	// 0x42a460 inlined here: the add to the key list (+0x54)
 	void AddKey(Object* theObject) { ListAdd(mKeys, theObject); }
+	// 0x42a470 inlined here: the removal from the key list (+0x54)
 	void RemoveKey(Object* theObject) { ListRemove(mKeys, theObject); }
+	// 0x42a4c0 inlined here: the add to the character list (+0x58)
 	void AddChar(Object* theObject) { ListAdd(mChars, theObject); }
+	// 0x42a4d0 inlined here: the removal from the character list (+0x58)
 	void RemoveChar(Object* theObject) { ListRemove(mChars, theObject); }
+	// 0x42a520 inlined here: the add to the updaters (+0x5c)
 	void AddUpdater(Object* theObject) { ListAdd(mUpdaters, theObject); }
+	// 0x42a530 inlined here: the removal from the updaters (+0x5c)
 	void RemoveUpdater(Object* theObject) { ListRemove(mUpdaters, theObject); }
 	// 0x42c060
 	void AddAnimator(Layer* theLayer) { ListAdd(mAnimators, theLayer); }
@@ -161,10 +166,6 @@ public:
 	void Frame();
 	// 0x42be10
 	void Update(int theClock, uint32_t theDelta);
-	// 0x42c090: WM_SIZE
-	void OnSize(int theType);
-	// 0x42c0f0
-	void Redraw();
 	// 0x42c110, 0x42c140
 	void Pause(bool thePause);
 	void PauseClock(bool thePause);
@@ -200,7 +201,7 @@ public:
 	void DrawImageKeyed(int theX, int theY, Image* theImage, uint32_t theKey, const Rect* theSrc, int theScaleX,
 		int theScaleY, int theAlpha, Rect& theOut);
 	void GetImageInfo(int theId, ImageInfo& theInfo);
-	Font* GetFont(int theImageId, int theTextId, int theKind, Module theModule);
+	Font* GetFont(int theImageId, int theTextId, Module theModule);
 	// 0x42c890: capture on, or off (with the capture's OnRelease)
 	void SetCapture(Object* theObject, bool theOn);
 	// 0x42c8d0

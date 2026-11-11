@@ -8,6 +8,12 @@
       "port": 18765
     },
     {
+      "name": "web-local-test",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "80", "--bind", "10.0.0.194", "--directory", "build/web"],
+      "port": 80
+    },
+    {
       "name": "web-test",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18766", "--bind", "127.0.0.1", "--directory", "build/web-test"],
@@ -146,6 +152,12 @@
       "port": 18797
     },
     {
+      "name": "typershark-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18803"],
+      "port": 18803
+    },
+    {
       "name": "shotreview",
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/shotdiff/serve.py"],
@@ -168,6 +180,24 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "18794", "--bind", "127.0.0.1", "--directory", "build/web"],
       "port": 18794
+    },
+    {
+      "name": "astropop-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18798"],
+      "port": 18798
+    },
+    {
+      "name": "pagecheck-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18780"],
+      "port": 18780
+    },
+    {
+      "name": "bejeweled2-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18808"],
+      "port": 18808
     }
   ]
 }

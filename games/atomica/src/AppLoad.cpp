@@ -40,6 +40,7 @@ void Sound::Play()
 		mApp->PlaySample(mId);
 }
 
+// a helper of LoadingThreadProc (0x406f90): a sound made, and counted as one of the loading thread's tasks
 Sound* AtomicaApp::LoadSound(const char* theName)
 {
 	Sound* aSound = new Sound(this, theName);
@@ -77,12 +78,12 @@ Sprite* AtomicaApp::BlendSprites(Sprite* theA, Sprite* theB, double theWeight)
 		unsigned int* aPixelB = aBitsB + (aRectB.mY + y) * aStrideB + aRectB.mX;
 		for (int x = 0; x < aWidth; x++)
 		{
-			unsigned int a = *aPixelA++;
-			unsigned int b = *aPixelB++;
-			*aDest++ = ((((a & 0xff0000) * aWeightA + (b & 0xff0000) * aWeightB) & 0xff0000ff) |
-				(((a & 0xff) * aWeightA + (b & 0xff) * aWeightB) & 0xff00) |
-				(((a & 0xff00) * aWeightA + (b & 0xff00) * aWeightB) & 0xff0000)) >> 8 |
-				((((a >> 8) & 0xff0000) * aWeightA + ((b >> 8) & 0xff0000) * aWeightB) & 0xff000000);
+			unsigned int aPixelValueA = *aPixelA++;
+			unsigned int aPixelValueB = *aPixelB++;
+			*aDest++ = ((((aPixelValueA & 0xff0000) * aWeightA + (aPixelValueB & 0xff0000) * aWeightB) & 0xff0000ff) |
+				(((aPixelValueA & 0xff) * aWeightA + (aPixelValueB & 0xff) * aWeightB) & 0xff00) |
+				(((aPixelValueA & 0xff00) * aWeightA + (aPixelValueB & 0xff00) * aWeightB) & 0xff0000)) >> 8 |
+				((((aPixelValueA >> 8) & 0xff0000) * aWeightA + ((aPixelValueB >> 8) & 0xff0000) * aWeightB) & 0xff000000);
 		}
 	}
 	aResult->BitsChanged();
@@ -507,6 +508,7 @@ void AtomicaApp::LoadingThreadProc()
 // 0x407..0x408ca0: every atom type's pictures. The sheet holds three cells for each type (3k, 3k+1, 3k+2); the
 // plain atoms and the chromium atom (types 0 to 11) also get 20 turned copies of the mask and the atom blended
 // with each (the mask has the atom drawn on it first). Types 5, 7 and 9 lose a symbol's lines (the colour-blind fix: swirl, teeth, crescent).
+// With 0x429bc0: the original wraps each blended image in a sprite, where the port draws the blend into a blank sprite.
 void AtomicaApp::LoadAtoms()
 {
 	Sprite* aSwirl = mSprites->Load("colorizeswirl");

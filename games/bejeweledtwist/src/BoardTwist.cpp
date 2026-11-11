@@ -3,6 +3,7 @@
 
 #include "Buffer.h"
 #include "Challenge.h"
+#include "CustomBassMusicInterface.h"
 #include "GoodTube.h"
 
 #include <algorithm>
@@ -38,18 +39,63 @@ void Board::MouseDrag(int x, int y)
 
 void Board::MouseUp(int x, int y, int theClickCount)
 {
-	mUnknown15D0 = false;
+	mClickedThisUpdate = false;
 }
 
 void Board::MouseWheel(int theDelta)
 {
 }
 
+// Whenever the board loses the focus (to a dialog or a panel over it, or the app's), Blitz's music (tracks 300 and
+// 308) pauses, and it resumes when the board has it back unless the board is paused more than once. The skip flag set
+// here is only ever cleared again (MouseDown).
+void Board::LostFocus()
+{
+	Widget::LostFocus();
+	// The original says "BOARD:  LOST FOCUS()" with OutputDebugString
+	mSkipMouseClick = true;
+	mWantsFocus = true;
+	if (mApp->mTwistMusic != nullptr && (mApp->mTwistMusic->mCurTrack == 300 || mApp->mTwistMusic->mCurTrack == 308))
+		mApp->mTwistMusic->PauseAllMusic();
+}
+
+void Board::GotFocus()
+{
+	if (mPauseCount < 2 && mApp->mTwistMusic != nullptr &&
+		(mApp->mTwistMusic->mCurTrack == 300 || mApp->mTwistMusic->mCurTrack == 308))
+		mApp->mTwistMusic->ResumeAllMusic();
+	// The original says "BOARD:  GOT FOCUS()" with OutputDebugString
+	Widget::GotFocus();
+}
+
+// The last 24 letters typed are kept while the mouse is off the grid (any key typed over it clears them). SNACKERS
+// switches coal to its snackers look and back; NORMAL stops the rain effect and sets the game's speed back to 1. Either
+// word clears the letters. (With +0x1bf1 set, never in the original, NORMAL would ask the app for a change of screen
+// mode instead; that branch is left out.)
+void Board::KeyChar(SexyChar theChar)
+{
+	mTypedKeys.append(1, (SexyChar)(toupper((unsigned char)theChar) & 0xff));
+	if (0x18 < mTypedKeys.size())
+		mTypedKeys.erase(mTypedKeys.begin());
+	if (GetRowAt(mBoardMouseY) < 0 || GetColAt(mBoardMouseX) < 0) {
+		if (mTypedKeys.find("NORMAL") != SexyString::npos) {
+			mRainEffect = false;
+			mSpeedTarget = 1.0f;
+			mSpeedNow = 1.0f;
+		} else if (mTypedKeys.find("SNACKERS") != SexyString::npos) {
+			mCoalAsSnackers = !mCoalAsSnackers;
+		} else {
+			return;
+		}
+	}
+	mTypedKeys.clear();
+}
+
 void Board::WarpToCursor()
 {
 	// SetCursorPos: the original's ClientToScreen of the cursor's middle (+0x1c00 and its size +0x1c08)
-	if (mUnknown1430 != nullptr)
-		mApp->WarpMouse(mUnknown1C08 / 2 + mUnknown1C00, mUnknown1C0C / 2 + mUnknown1C04);
+	if (mCursorPiece != nullptr)
+		mApp->WarpMouse(mCursorWidth / 2 + mCursorX, mCursorHeight / 2 + mCursorY);
 }
 
 void Board::KeyDown(KeyCode theKey)
@@ -57,46 +103,46 @@ void Board::KeyDown(KeyCode theKey)
 	if (mApp->mDialogMap.size() != 0)
 		return;
 	if (theKey == KEYCODE_PAUSE || theKey == KEYCODE_ESCAPE) {
-		if (!IsBusy() && !mUnknown37C4 && !mUnknown2629 && mUnknown160 == 0 && mUnknown2208 == nullptr) {
-			if (mUnknown1570 == 0)
+		if (!IsBusy() && !mIsReplay && !mReplayPlaying && mPlayState == 0 && mShownDialog == nullptr) {
+			if (mPauseCount == 0)
 				Pause(true);
 			else
 				Unpause(true);
 		}
 	} else {
-		bool aPlaying = !mUnknown37C4 && !mUnknown2629;
+		bool aPlaying = !mIsReplay && !mReplayPlaying;
 		if (-1 < mApp->mAutoPlayMode)
 			aPlaying = false;
 		// Enter or space stops the wheel
 		if (aPlaying && (theKey == KEYCODE_RETURN || theKey == KEYCODE_SPACE) && gWheelSpin != nullptr &&
 			!gWheelSpin->mButton->mDisabled)
 			static_cast<ButtonListener*>(gWheelSpin)->ButtonDepress(0);
-		if (aPlaying && mUnknown20D0) {
-			int aY = mUnknown1C04;
+		if (aPlaying && mCursorShown) {
+			int aY = mCursorY;
 			int aRow = GetRowAt(aY);
-			int aCol = GetColAt(mUnknown1C00);
+			int aCol = GetColAt(mCursorX);
 			if (theKey == KEYCODE_RETURN || theKey == KEYCODE_SPACE) {
 				// A click on the cursor's gem
-				MouseDown(gGemWidth / 2 + mUnknown1C00, gGemHeight / 2 + aY, 0, 1);
+				MouseDown(gGemWidth / 2 + mCursorX, gGemHeight / 2 + aY, 0, 1);
 			} else {
 				// The arrows move the cursor, unless the opposite one is down too
 				aY = aRow;
 				if (theKey == KEYCODE_LEFT) {
-					if (aCol < 1 || mUnknown21D9 || mWidgetManager->mKeyDown[KEYCODE_RIGHT])
+					if (aCol < 1 || mTwisting || mWidgetManager->mKeyDown[KEYCODE_RIGHT])
 						goto done;
 					aCol--;
 				} else if (theKey == KEYCODE_UP) {
-					if (aRow < 1 || mUnknown21D9 || mWidgetManager->mKeyDown[KEYCODE_DOWN])
+					if (aRow < 1 || mTwisting || mWidgetManager->mKeyDown[KEYCODE_DOWN])
 						goto done;
 					aY = aRow - 1;
 				} else if (theKey == KEYCODE_RIGHT) {
-					if (mCols - 2 <= aCol || mUnknown21D9 || mWidgetManager->mKeyDown[KEYCODE_LEFT])
+					if (mCols - 2 <= aCol || mTwisting || mWidgetManager->mKeyDown[KEYCODE_LEFT])
 						goto done;
 					aCol++;
 				} else {
 					if (theKey != KEYCODE_DOWN)
 						goto debug;
-					if (mRows - 2 <= aRow || mUnknown21D9 || mWidgetManager->mKeyDown[KEYCODE_UP])
+					if (mRows - 2 <= aRow || mTwisting || mWidgetManager->mKeyDown[KEYCODE_UP])
 						goto done;
 					aY = aRow + 1;
 				}
@@ -114,10 +160,10 @@ debug:
 		bool aRead = mApp->ReadBufferFromFile(StrFormat("debug%d.sav", theKey - KEYCODE_ASCIIBEGIN), &aBuffer, true);
 		if (aRead) {
 			LoadGame(aBuffer);
-			mUnknown21A2 = false;
-			SetScore(mUnknown168, false);
+			mGameLoaded = false;
+			SetScore(mScore, false);
 		}
-		mUnknown2190 = mUnknown1FB8 - 1;
+		mTurnOfLastSound = mTurnCount - 1;
 		mApp->mScoresLoaded = true;
 	}
 done:
@@ -126,24 +172,24 @@ done:
 
 void Board::UpdateCursor(int x, int y)
 {
-	if (0 < mUnknown1570 || IsBusy() || mUnknown2629 || mUnknown160 == 1 || mUnknown37C4)
+	if (0 < mPauseCount || IsBusy() || mReplayPlaying || mPlayState == 1 || mIsReplay)
 		return;
-	if (mUnknown2208 != nullptr && (Widget*)mUnknown2208 != mUnknown2584 && mUnknown2208->mMouseVisible)
+	if (mShownDialog != nullptr && (Widget*)mShownDialog != mTutorial && mShownDialog->mMouseVisible)
 		return;
-	for (int i = 0; i < (int)mUnknown23DC.size(); i++) {
-		if (mUnknown23DC[i]->mMouseVisible)
+	for (int i = 0; i < (int)mPendingDialogs.size(); i++) {
+		if (mPendingDialogs[i]->mMouseVisible)
 			return;
 	}
-	mUnknown15B4 = x;
-	mUnknown15B8 = y;
-	int anOldCol = GetColAt(mUnknown1C00);
-	int anOldRow = GetRowAt(mUnknown1C04);
+	mBoardMouseX = x;
+	mBoardMouseY = y;
+	int anOldCol = GetColAt(mCursorX);
+	int anOldRow = GetRowAt(mCursorY);
 	int aRow = GetRowAt(y);
 	int aCol = GetColAt(x);
-	bool aTwisting = mUnknown21D9;
-	if (!aTwisting && (mUnknown1C6D || mUnknown2008 == 0)) {
-		int aDX = x - mUnknown1C08 / 2 - mUnknown1C00;
-		int aDY = y - mUnknown1C0C / 2 - mUnknown1C04;
+	bool aTwisting = mTwisting;
+	if (!aTwisting && (mMatchAtOnce || mMatchDelay == 0)) {
+		int aDX = x - mCursorWidth / 2 - mCursorX;
+		int aDY = y - mCursorHeight / 2 - mCursorY;
 		int aFar = std::abs(std::abs(aDY) < std::abs(aDX) ? aDX : aDY);
 		int aFar2 = std::abs(std::abs(aDY) < std::abs(aDX) ? aDX : aDY);
 		int aGemHeight = gGemHeight;
@@ -167,88 +213,88 @@ void Board::UpdateCursor(int x, int y)
 			}
 		}
 	} else if (aTwisting) {
-		mUnknown1C40 = false;
+		mTwistMatches = false;
 	}
-	if (mUnknown15C == 0 && !aTwisting && (anOldCol != aCol || anOldRow != aRow) && !mUnknown21A0) {
+	if (mInputLock == 0 && !aTwisting && (anOldCol != aCol || anOldRow != aRow) && !mClicksIgnored) {
 		ClearSparkStarts();
-		mUnknown1450 = 1.0f;
+		mCursorMoveGlow = 1.0f;
 	}
 }
 
 void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 {
 	UpdateCursor(x, y);
-	if (mGameMode == MODE_PUZZLE && (mUnknown1324 || mUnknown2030))
+	if (mGameMode == MODE_PUZZLE && (mPuzzleSolved || mEditorMode))
 		return;
-	if (mUnknown3905 && !mUnknown14AC.empty())
+	if (mGeodesPending && !mGeodes.empty())
 		return;
-	if (mUnknown2208 != nullptr && mUnknown2208->mMouseVisible && (Widget*)mUnknown2208 != mUnknown2584)
+	if (mShownDialog != nullptr && mShownDialog->mMouseVisible && (Widget*)mShownDialog != mTutorial)
 		return;
-	for (int i = 0; i < (int)mUnknown23DC.size(); i++) {
-		if (mUnknown23DC[i]->mMouseVisible)
+	for (int i = 0; i < (int)mPendingDialogs.size(); i++) {
+		if (mPendingDialogs[i]->mMouseVisible)
 			return;
 	}
-	if (mUnknown2584 != nullptr) {
+	if (mTutorial != nullptr) {
 		// (not while the tutorial waits on its dialog or its seconds, or on a forced move with no square to make it)
-		if (mUnknown2584->mUnknown210)
+		if (mTutorial->mWaitsForPlayer)
 			return;
-		int aState = mUnknown2584->mState;
-		if (aState == Tutorial::STATE_SECONDS || (aState == Tutorial::STATE_MOVE && mUnknown2400 == -1))
+		int aState = mTutorial->mState;
+		if (aState == Tutorial::STATE_SECONDS || (aState == Tutorial::STATE_MOVE && mTipCol == -1))
 			return;
 	}
 	if (mApp->mOptionsDialog != nullptr)
 		return;
-	if (mUnknown1570 != 0) {
+	if (mPauseCount != 0) {
 		// a click on the paused board resumes the game
 		Unpause(true);
 		return;
 	}
-	if (mUnknown37C4 || mUnknown2629 || mUnknown25A6 || !mUnknown149C.empty() || mUnknown21A3 || !mUnknown20D0)
+	if (mIsReplay || mReplayPlaying || mShownBeforeStart || !mElectroStrikes.empty() || mLevelDone || !mCursorShown)
 		return;
 	bool aQueue;
-	if (!mUnknown21D8) {
-		if (mUnknown2200) {
+	if (!mHintShowing) {
+		if (mSkipMouseClick) {
 			// The original says "BOARD:  mSkipMouseClick cleared" with OutputDebugString
-			mUnknown2200 = false;
+			mSkipMouseClick = false;
 		}
-		if (0 < mUnknown15D4)
+		if (0 < mClickBlockUpdates)
 			return;
-		mUnknown15D0 = true;
-		if (mUnknown21A0)
+		mClickedThisUpdate = true;
+		if (mClicksIgnored)
 			return;
-		if (mUnknown25A4) {
+		if (mHintsReady) {
 			ClearSparkStarts();
-			mUnknown1C1C = mUnknown1C00;
-			mUnknown1C20 = mUnknown1C04;
-			mUnknown1C24 = mUnknown1C08;
-			mUnknown1C28 = mUnknown1C0C;
-			if (mUnknown20CC < 0.5f)
+			mClickCursorX = mCursorX;
+			mClickCursorY = mCursorY;
+			mClickCursorWidth = mCursorWidth;
+			mClickCursorHeight = mCursorHeight;
+			if (mCursorAlpha < 0.5f)
 				return;
-			if (0 < mUnknown15C)
+			if (0 < mInputLock)
 				return;
-			mUnknown15C8 = x;
-			mUnknown15CC = y;
-			if (mUnknown21D9)
+			mLastClickX = x;
+			mLastClickY = y;
+			if (mTwisting)
 				return;
-			if (mUnknown15C != 0)
+			if (mInputLock != 0)
 				return;
-			mUnknown2015 = false;
-			if (!mUnknown25A4 || (mUnknown1C41 && (!mUnknown2054 || !mUnknown1C71))) {
+			mTwistClockwise = false;
+			if (!mHintsReady || (mTwistBlocked && (!mPuzzleBoardMade || !mTwistOverEmpty))) {
 				// A twist the locked gems block: they shake, and the cursor turns a little and back
-				if (mUnknown2400 == -1) {
+				if (mTipCol == -1) {
 					bool aBlocked = false;
-					if (mUnknown2120.size() != 0) {
+					if (mUnturnableCells.size() != 0) {
 						aBlocked = true;
-						for (unsigned int i = 0; i < mUnknown2120.size(); i++) {
-							Piece* aPiece = GetPieceAt(mUnknown2120[i].first, mUnknown2120[i].second);
+						for (unsigned int i = 0; i < mUnturnableCells.size(); i++) {
+							Piece* aPiece = GetPieceAt(mUnturnableCells[i].first, mUnturnableCells[i].second);
 							if (aPiece != nullptr)
 								aPiece->mLockShake = 1;
 						}
 					}
 					SetupTwist(-1, -1);
-					mUnknown1458 = 3.0f;
-					mUnknown21D9 = true;
-					if (!mUnknown2041 || aBlocked)
+					mTwistStep = 3.0f;
+					mTwisting = true;
+					if (!mLevelStarted || aBlocked)
 						mApp->PlaySample(SOUND_BADMOVE);
 				}
 			} else {
@@ -259,107 +305,107 @@ void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 			UpdateTurnBasedMusic();
 			return;
 		}
-		aQueue = !mUnknown21D9;
+		aQueue = !mTwisting;
 	} else {
 		aQueue = theBtnNum == 0;
 	}
 	// A click while the board is not ready waits (UpdateGame takes it within 20 updates)
 	if (aQueue) {
-		mUnknown15BC = x;
-		mUnknown15C0 = y;
-		mUnknown15C4 = mUpdateCnt;
+		mAutoClickX = x;
+		mAutoClickY = y;
+		mAutoClickTime = mUpdateCnt;
 	}
 }
 
 void Board::StartTwist(bool theInstant, int theX, int theY)
 {
-	if (mUnknown25A6 && !mUnknown37C4)
+	if (mShownBeforeStart && !mIsReplay)
 		return;
-	if (mChallenge != 0 && (mUnknown266A || mUnknown2669))
+	if (mChallenge != 0 && (mChallengeOver || mChallengeMet))
 		return;
-	if (mUnknown2584 != nullptr && !mUnknown2584->mMovesAllowed)
+	if (mTutorial != nullptr && !mTutorial->mMovesAllowed)
 		return;
-	mUnknown1390 = false;
-	mUnknown3904 = false;
-	if (mUnknown830.GetOutVal() != 0.0) {
-		float anIn = (float)mUnknown830.GetInVal();
-		mUnknown830.SetCurve(GTS(0x7dd5e8));
-		mUnknown830.SetInVal(1.0 - (double)anIn);
+	mBeforeFirstTwist = false;
+	mReplayPodDue = false;
+	if (mTipSlide.GetOutVal() != 0.0) {
+		float anIn = (float)mTipSlide.GetInVal();
+		mTipSlide.SetCurve(GTS(0x7dd5e8));
+		mTipSlide.SetInVal(1.0 - (double)anIn);
 	}
-	mUnknown21A1 = true;
-	mUnknown2664 = mUnknown2660;
-	std::memset(mUnknown2234, 0, sizeof(mUnknown2234));  // 0x6a69f0
-	mUnknown3804 = 0;
-	mUnknown2614.clear();
-	if (!mUnknown2629) {
+	mCountersAllowed = true;
+	mBonusMatchedMark = mBonusMatched;
+	std::memset(mGameStats, 0, sizeof(mGameStats));  // 0x6a69f0
+	mTurnRating = 0;
+	mTurnMatches.clear();
+	if (!mReplayPlaying) {
 		mSaveBuffer.Clear();
-		mUnknown23B4.Clear();
+		mReplaySave.Clear();
 	}
-	mUnknown3450 = 0;
-	if (!mUnknown37C4 && !mUnknown2629) {
+	mGeodeBonusCount = 0;
+	if (!mIsReplay && !mReplayPlaying) {
 		// The game before the twist, for the undo of a turn-based challenge and the tutorials
 		SaveGame(&mSaveBuffer, false);
-		mUnknown23A4 = GetRowAt(mUnknown1C04);
-		mUnknown23A8 = GetColAt(mUnknown1C00);
-		mUnknown23B0 = mApp->mProfile->mRank;
-		mUnknown23AC = mApp->mProfile->mUnknown160;
+		mReplayStartFrame = GetRowAt(mCursorY);
+		mReplayEndFrame = GetColAt(mCursorX);
+		mSavedRank = mApp->mProfile->mRank;
+		mSavedRankPoints = mApp->mProfile->mRankPoints;
 	}
 	if (mReplayPod != nullptr) {
 		mReplayPod->mState = ReplayWidget::STATE_GOING;
 		mReplayPod->mPopped = false;
 	}
-	mUnknown23C++;
-	mUnknown25D0 = 0.0f;
-	mUnknown1C42 = mUnknown1C40;
-	mUnknown1EC = mUnknown1E8;
-	mUnknown1F4 = mUnknown1F0;
-	mUnknown16C = mUnknown168;
-	mUnknown25C8 = 0;
-	mUnknown25CC = 0;
-	mUnknown1C58 = 25;
-	mUnknown1C5C = 0;
-	mUnknown1544 = 0;
-	mUnknown1F80 = -1;
-	mUnknown14F4 = 0;
-	mUnknown218C = false;
-	mUnknown21F4 = -1;
-	mUnknown1508 = 0;
-	mUnknown262A = false;
-	mUnknown2198 = true;
-	mUnknown2668 = true;
-	mUnknown1F8 = 0;
-	mUnknown170 = mUnknown14FC;
-	mUnknown2404 = -1;
-	mUnknown2400 = -1;
-	mUnknown2016 = true;
-	mUnknown216C = false;
+	mTwistsMade++;
+	mHintWait = 0.0f;
+	mTurnStartedWithMatch = mTwistMatches;
+	mGemsBrokenAtTurnStart = mGemsBroken;
+	mGemsClearedAtTurnStart = mGemsCleared;
+	mScoreAtTurnStart = mScore;
+	mHintState = 0;
+	mHintsShown = 0;
+	mBurstSize = 25;
+	mBlastChainCount = 0;
+	mTurnPoints = 0;
+	mLastPraiseLevel = -1;
+	mUpdatesSinceCascade = 0;
+	mColorGemBroke = false;
+	mFirstMatchColor = -1;
+	mChainLength = 0;
+	mFruitBrokeThisTurn = false;
+	mBombsMayCountDown = true;
+	mGoalCheckDue = true;
+	mLevelGemCount = 0;
+	mProgressGainAtTurnStart = mProgressGain;
+	mTipRow = -1;
+	mTipCol = -1;
+	mMatchCheckDue = true;
+	mChainAdded = false;
 	if (mGameMode == MODE_CHALLENGE && mChallenge != 0) {
 		CheckGoal(false);
 	}
 	if (!theInstant) {
 		double aX;
-		if (mUnknown1430 != nullptr) {
-			aX = (double)mUnknown1430->mX + (double)gGemWidth;
+		if (mCursorPiece != nullptr) {
+			aX = (double)mCursorPiece->mX + (double)gGemWidth;
 		} else {
 			Board* aBoard = gBoard;
 			aX = (double)(aBoard->GetColX(0) + (aBoard->mCols * gGemWidth) / 2);
 		}
 		// Lower when the twist makes no match
-		float aPitch = (float)(mUnknown1C40 ? 0 : -5);
+		float aPitch = (float)(mTwistMatches ? 0 : -5);
 		mApp->PlaySoundEx(SOUND_START_ROTATE, GetPan(Ftol(aX)), aPitch, 0.0f, true, true);
 	}
 	SetupTwist(theX, theY);
 	if (theInstant) {
 		FinishTwist(true);
 	} else {
-		mUnknown21D9 = true;
+		mTwisting = true;
 		float aSpeed;
-		if (0.0f <= mUnknown1C8C)
-			aSpeed = (float)(((double)mUnknown154 * 0.03 + 0.20999999344348907) * (double)mUnknown21D0 +
+		if (0.0f <= mSpeedNow)
+			aSpeed = (float)(((double)mTwistSpeedGrade * 0.03 + 0.20999999344348907) * (double)mStepLevel +
 				3.0999999046325684);
 		else
 			aSpeed = 1.0f;
-		mUnknown1458 = mUnknown145C * aSpeed;
+		mTwistStep = mTwistSpeedScale * aSpeed;
 	}
 	CountDownBombs(theInstant);
 	if (mSparkBlock == 0) {
@@ -369,9 +415,9 @@ void Board::StartTwist(bool theInstant, int theX, int theY)
 			Piece* aPiece = *aCell;
 			aCell++;
 			aCount--;
-			if (aPiece != nullptr && 0 < aPiece->mUnknown4FC && !aPiece->mUnknownB0) {
-				aPiece->mUnknown4FC--;
-				if (aPiece->mUnknown4FC < 1)
+			if (aPiece != nullptr && 0 < aPiece->mLockState && !aPiece->mIsTwisting) {
+				aPiece->mLockState--;
+				if (aPiece->mLockState < 1)
 					LockPiece(aPiece);
 			}
 		}
@@ -405,17 +451,19 @@ float PowInt(float theValue, int thePower)
 
 float Board::RandUnit()
 {
-	int aRoll = Rand85B970() % 10000 - 5000;
+	int aRoll = BoardRand() % 10000 - 5000;
 	return (float)((double)aRoll / 5000.0);
 }
 
 void Board::PreLockPiece(Piece* thePiece)
 {
 	thePiece->mLockTick = 0;
-	thePiece->mUnknown4FC = 2;
+	thePiece->mLockState = 2;
 	PlayPieceSound(thePiece, SOUND_GEM_PRELOCK, 0.0f, 0.0f, true);
 }
 
+// 0x6afdee: a piece record reset, inline here
+// 0x6b97b6: the piece record constructor taking the next serial, inline here
 void Board::NextTurnGems()
 {
 	// the gems in locks now
@@ -434,7 +482,7 @@ void Board::NextTurnGems()
 	if (!CanAddCounter())
 		return;
 	// (and "Freq: %d Timer: %d" with mLockGem's count and value)
-	if (aLocked < mMaxLocksOnScreen && mLockGem.mUnknown50) {
+	if (aLocked < mMaxLocksOnScreen && mLockGem.mIsDue) {
 		int aTotal = mCols * mRows;
 		Piece* aLock = nullptr;
 		if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr &&
@@ -479,11 +527,11 @@ void Board::NextTurnGems()
 		if (aLock == nullptr) {
 			// A gem from a random place on, or (on an odd roll) inside the border, the first that can take a lock
 			int aIndex;
-			if (Rand85B970() % 2 == 0) {
-				aIndex = Rand85B970() % aTotal;
+			if (BoardRand() % 2 == 0) {
+				aIndex = BoardRand() % aTotal;
 			} else {
-				int aRowPick = Rand85B970() % (mRows - 2);
-				int aColPick = Rand85B970() % (mCols - 2);
+				int aRowPick = BoardRand() % (mRows - 2);
+				int aColPick = BoardRand() % (mCols - 2);
 				aIndex = aColPick + (aRowPick + 1) * mCols + 1;
 			}
 			int aLeft = aTotal;
@@ -514,9 +562,9 @@ void Board::NextTurnGems()
 	// A doom gem: while there is none, when the tube is full enough by chance (not in Zen, nor early on a level whose
 	// matches are not yet three times its moves); a constant-doom challenge always has one
 	bool anAppear;
-	if (!mUnknown1F6C && 0 <= mDevil.GetCount() && !IsBusy() && mGameMode != MODE_ZEN) {
+	if (!mDevilChecked && 0 <= mDevil.GetCount() && !IsBusy() && mGameMode != MODE_ZEN) {
 		anAppear = true;
-		if (0 < mUnknown2234[0x21] && (float)((double)mUnknown2234[0x39] / (double)mUnknown2234[0x21]) < 3.0f)
+		if (0 < mGameStats[0x21] && (float)((double)mGameStats[0x39] / (double)mGameStats[0x21]) < 3.0f)
 			anAppear = false;
 		float aProgress = mGoodTube->mProgress;
 		float aRand = RandUnit();
@@ -530,14 +578,14 @@ void Board::NextTurnGems()
 	}
 	if (mGameMode == MODE_CHALLENGE && mChallenge != nullptr &&
 		(mChallenge->mFlags & Challenge::FLAG_CONSTANTDOOM) != 0) {
-		mUnknown1F6C = false;
+		mDevilChecked = false;
 		anAppear = true;
 		int i = 0;
 		Piece** aCell = mGrid;
 		if (0 < mCols * mRows) {
 			do {
 				Piece* aPiece = *aCell;
-				if (aPiece != nullptr && (aPiece->IsFlagSet(Piece::FLAG_DEVIL) || aPiece->IsFlagSet(Piece::FLAG_12)))
+				if (aPiece != nullptr && (aPiece->IsFlagSet(Piece::FLAG_DEVIL) || aPiece->IsFlagSet(Piece::FLAG_DOOM)))
 					anAppear = false;
 				i++;
 				aCell++;
@@ -548,8 +596,8 @@ void Board::NextTurnGems()
 		return;
 	// A gem inside the border that no move on the board would match becomes the doom gem (the original tries until
 	// one does, then counts its hundred tries down)
-	int aCursorX = mUnknown1C00;
-	int aCursorY = mUnknown1C04;
+	int aCursorX = mCursorX;
+	int aCursorY = mCursorY;
 	int aTries = 100;
 	// port: when no gem inside the border can take it (none plain, or every plain one in some move's line) the
 	// original's search never ends and the game freezes (NOTES.md, "Deviations"). The gems some move would match are
@@ -567,13 +615,13 @@ void Board::NextTurnGems()
 		return;
 	bool aSwept = false;
 	do {
-		while (!mUnknown1F6C) {
-			int aRowPick = Rand85B970() % (mRows - 2);
-			int aColPick = Rand85B970() % (mCols - 2);
+		while (!mDevilChecked) {
+			int aRowPick = BoardRand() % (mRows - 2);
+			int aColPick = BoardRand() % (mCols - 2);
 			Piece* aPiece = mGrid[aColPick + (aRowPick + 1) * mCols + 1];
 			if (aPiece == nullptr || aPiece->mBlasted || aPiece->mBreaking || 6 < aPiece->mColor || aPiece->mFlags != 0)
 				continue;
-			Piece* aSaved = mUnknown1430;
+			Piece* aSaved = mCursorPiece;
 			bool aMatched = false;
 			std::vector<int> aLineIds;  // port: every gem some move matches (see above)
 			MatchInfo anInfo;  // 0x6b97b6
@@ -583,7 +631,7 @@ void Board::NextTurnGems()
 				do {
 					anInfo.Reset();  // 0x6afdee
 					MoveCursor(aRow, aCol, true, &anInfo);
-					if (!mUnknown1C41 && mUnknown1C40) {
+					if (!mTwistBlocked && mTwistMatches) {
 						for (unsigned int j = 0; !anInfo.mIds.empty() && j < anInfo.mIds.size(); j++) {
 							if (anInfo.mIds[j] == aPiece->mId)
 								aMatched = true;
@@ -596,11 +644,11 @@ void Board::NextTurnGems()
 				aRow++;
 			} while (aRow < 8);
 			if (!aMatched) {
-				mUnknown1430 = aSaved;
+				mCursorPiece = aSaved;
 				PreLockPiece(aPiece);
-				aPiece->SetFlag(Piece::FLAG_12, true);
+				aPiece->SetFlag(Piece::FLAG_DOOM, true);
 				mApp->PlaySample(SOUND_DOOMGEM_APPEARS);
-				mUnknown1F6C = true;
+				mDevilChecked = true;
 			} else if (!aSwept) {
 				aSwept = true;
 				bool aFree = false;
@@ -624,11 +672,11 @@ void Board::NextTurnGems()
 
 void Board::SetupTwist(int theX, int theY)
 {
-	mUnknown20F4.clear();
+	mTwistPieces.clear();
 	if (theX < 0)
-		theX = mUnknown1C00;
+		theX = mCursorX;
 	if (theY < 0)
-		theY = mUnknown1C04;
+		theY = mCursorY;
 	// The twist's centre
 	int aCenterX = gGemWidth + theX;
 	int aCenterY = gGemHeight + theY;
@@ -637,21 +685,21 @@ void Board::SetupTwist(int theX, int theY)
 			Piece* aPiece = GetPieceAt(aRow, aCol);
 			if (aPiece == nullptr)
 				continue;
-			aPiece->mUnknownE4 = -1.0f;
-			aPiece->mUnknownE8 = 0.0f;
-			aPiece->mUnknown24 = aPiece->mCol;
-			aPiece->mUnknown2C = aPiece->mRow;
-			aPiece->mUnknown30 = aPiece->mRow;
-			aPiece->mUnknown51D = false;
+			aPiece->mRingAngle = -1.0f;
+			aPiece->mRingDelay = 0.0f;
+			aPiece->mLastCol = aPiece->mCol;
+			aPiece->mLastRow = aPiece->mRow;
+			aPiece->mBurstRow = aPiece->mRow;
+			aPiece->mHasBroken = false;
 			aPiece->mPendingKind = 0;
 			// The four gems half a gem from the centre turn
 			int aDX = std::abs(-(gGemWidth / 2) - Ftol(aPiece->mX) + aCenterX);
 			int aDY = std::abs(-(gGemHeight / 2) - Ftol(aPiece->mY) + aCenterY);
 			if ((aDX == gGemWidth / 2 && aDY <= gGemHeight / 2) || (aDY == gGemHeight / 2 && aDX <= gGemWidth / 2)) {
-				mUnknown20F4.push_back(aPiece);
-				aPiece->mUnknownF8 = true;
+				mTwistPieces.push_back(aPiece);
+				aPiece->mIsTwistCorner = true;
 			} else {
-				aPiece->mUnknownF8 = false;
+				aPiece->mIsTwistCorner = false;
 			}
 		}
 	}
@@ -660,8 +708,8 @@ void Board::SetupTwist(int theX, int theY)
 	std::vector<Piece*> aByQuarter;
 	for (int i = 4; i != 0; i--)
 		aByQuarter.push_back(nullptr);
-	for (unsigned int i = 0; i < mUnknown20F4.size(); i++) {
-		Piece* aPiece = mUnknown20F4[i];
+	for (unsigned int i = 0; i < mTwistPieces.size(); i++) {
+		Piece* aPiece = mTwistPieces[i];
 		int aDX = Ftol(aPiece->mX) + gGemWidth / 2 - aCenterX;
 		int aDY = Ftol(aPiece->mY) + gGemHeight / 2 - aCenterY;
 		float anAngle = (float)std::atan2((double)aDY, (double)aDX);
@@ -672,31 +720,31 @@ void Board::SetupTwist(int theX, int theY)
 	int aCount = 0;
 	for (unsigned int i = 0; i < aByQuarter.size(); i++) {
 		if (aByQuarter[i] != nullptr) {
-			mUnknown20F4[aCount] = aByQuarter[i];
+			mTwistPieces[aCount] = aByQuarter[i];
 			aCount++;
 		}
 	}
 	// Each gem moves to the next one's cell: clockwise, or the other way with +0x2015
-	int aSize = (int)mUnknown20F4.size();
+	int aSize = (int)mTwistPieces.size();
 	for (int i = 0; i < aSize; i++) {
 		int aNext = i + 1;
-		if (mUnknown2015)
+		if (mTwistClockwise)
 			aNext -= 2;
 		if (aNext < 0)
-			aNext += (int)mUnknown20F4.size();
-		else if (aNext == (int)mUnknown20F4.size())
+			aNext += (int)mTwistPieces.size();
+		else if (aNext == (int)mTwistPieces.size())
 			aNext = 0;
-		Piece* aFrom = mUnknown20F4[i];
-		Piece* aTo = mUnknown20F4[aNext];
-		StartPieceMove(mUnknown20F4[i], aTo->mCol - aFrom->mCol, aTo->mRow - aFrom->mRow);
+		Piece* aFrom = mTwistPieces[i];
+		Piece* aTo = mTwistPieces[aNext];
+		StartPieceMove(mTwistPieces[i], aTo->mCol - aFrom->mCol, aTo->mRow - aFrom->mRow);
 	}
 }
 
 bool Board::StartPieceMove(Piece* thePiece, int theDCol, int theDRow)
 {
 	ClearCellHints();
-	mUnknown2004 = false;
-	mUnknown3444 = 0;
+	mCounterHintDue = false;
+	mRecordedFrames = 0;
 	// The move's frames are recorded afresh
 	gGraphicsRecorder->PopFramesFrom(0);
 	if ((theDCol == 0 && theDRow == 0) || thePiece == nullptr)
@@ -705,39 +753,39 @@ bool Board::StartPieceMove(Piece* thePiece, int theDCol, int theDRow)
 	int aRow = thePiece->mRow + theDRow;
 	if (aCol < 0 || mCols <= aCol || aRow < 0 || mRows <= aRow)
 		return false;
-	mUnknown1558 = true;
-	thePiece->mUnknownE0 = 0;
-	thePiece->mUnknownB0 = true;
+	mTwistTried = true;
+	thePiece->mFruitTimer = 0;
+	thePiece->mIsTwisting = true;
 	int aToX = GetColX(thePiece->mCol + theDCol);
 	int aToY = GetRowY(thePiece->mRow + theDRow);
-	int aCenterX = mUnknown1C00 + gGemWidth / 2;
-	int aCenterY = mUnknown1C04 + gGemHeight / 2;
+	int aCenterX = mCursorX + gGemWidth / 2;
+	int aCenterY = mCursorY + gGemHeight / 2;
 	int aX = Ftol(thePiece->mX);
-	thePiece->mUnknownA0 = aX;
+	thePiece->mTwistStartX = aX;
 	int aY = Ftol(thePiece->mY);
-	thePiece->mUnknownA4 = aY;
-	thePiece->mUnknownA8 = Ftol((double)aX - (double)aCenterX);
-	thePiece->mUnknownAC = Ftol((double)aY - (double)aCenterY);
-	thePiece->mUnknown98 = theDCol;
-	thePiece->mUnknown9C = theDRow;
-	thePiece->mUnknown90 = Ftol((double)aToX - (double)thePiece->mX);
-	thePiece->mUnknown94 = Ftol((double)aToY - (double)thePiece->mY);
+	thePiece->mTwistStartY = aY;
+	thePiece->mTwistOffsetX = Ftol((double)aX - (double)aCenterX);
+	thePiece->mTwistOffsetY = Ftol((double)aY - (double)aCenterY);
+	thePiece->mTwistDCol = theDCol;
+	thePiece->mTwistDRow = theDRow;
+	thePiece->mTwistMoveX = Ftol((double)aToX - (double)thePiece->mX);
+	thePiece->mTwistMoveY = Ftol((double)aToY - (double)thePiece->mY);
 	return true;
 }
 
 void Board::FinishTwist(bool theStop)
 {
-	if (mUnknown2584 != nullptr)
-		mUnknown2584->PointAtNothing();
+	if (mTutorial != nullptr)
+		mTutorial->PointAtNothing();
 	std::vector<Piece*> aTurned;
 	Piece** aCell = mGrid;
 	for (int aRow = 0; aRow < mRows; aRow++) {
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = *aCell;
-			if (aPiece != nullptr && aPiece->mUnknownB0) {
+			if (aPiece != nullptr && aPiece->mIsTwisting) {
 				if (theStop) {
-					aPiece->mUnknownB0 = false;
-					aPiece->mUnknown14 = 0.0f;
+					aPiece->mIsTwisting = false;
+					aPiece->mTurnAmount = 0.0f;
 				}
 				aTurned.push_back(aPiece);
 				*aCell = nullptr;
@@ -746,28 +794,28 @@ void Board::FinishTwist(bool theStop)
 		}
 	}
 	if (theStop)
-		mUnknown21D9 = false;
+		mTwisting = false;
 	// The turned gems in their new cells
 	for (unsigned int i = 0; i < aTurned.size(); i++) {
 		Piece* aPiece = aTurned[i];
-		aPiece->mCol += aPiece->mUnknown98;
-		aPiece->mRow += aPiece->mUnknown9C;
+		aPiece->mCol += aPiece->mTwistDCol;
+		aPiece->mRow += aPiece->mTwistDRow;
 		int aRow = aPiece->mRow;
-		aPiece->mUnknown30 = aRow;
+		aPiece->mBurstRow = aRow;
 		aPiece->mX = (float)GetColX(aPiece->mCol);
 		aPiece->mY = (float)GetRowY(aRow);
 		mGrid[mCols * aRow + aPiece->mCol] = aPiece;
 	}
 	if (mGameMode == MODE_PUZZLE)
-		mUnknown2038 = 1.0f;
+		mTwistGlow = 1.0f;
 }
 
 void Board::CountDownBombs(bool theInstant)
 {
-	if (!mUnknown2198 || IsSparkBlocked() || (mGameMode == MODE_PUZZLE && mUnknown1324) || IsBusy())
+	if (!mBombsMayCountDown || IsSparkBlocked() || (mGameMode == MODE_PUZZLE && mPuzzleSolved) || IsBusy())
 		return;
 	Piece** aCell = mGrid;
-	mUnknown2010 = mCounter.GetValue();
+	mLowestCounter = mCounter.GetValue();
 	for (int aRow = 0; aRow < mRows; aRow++) {
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = *aCell;
@@ -776,36 +824,36 @@ void Board::CountDownBombs(bool theInstant)
 				if (theInstant) {
 					aLeft = aPiece->mBombCount - 1;
 					aPiece->mBombCount = aLeft;
-				} else if (mUnknown1C40 && aPiece->IsFlagSet(Piece::FLAG_DEVIL)) {
+				} else if (mTwistMatches && aPiece->IsFlagSet(Piece::FLAG_DEVIL)) {
 					// A devil gem that this twist's match may clear keeps its count
 					aCell++;
 					continue;
 				} else {
 					// The counter pulses; the count itself goes down as the twist ends
-					aPiece->mUnknownD0 = 1.0f;
-					aPiece->mUnknownD4 = 0.33f;
+					aPiece->mCounterFlash = 1.0f;
+					aPiece->mCounterSparks = 0.33f;
 					aLeft = aPiece->mBombCount - 1;
 				}
 				// The lowest count left on the board
 				int aLow = aLeft < 0 ? 0 : aLeft;
-				if (aLow < mUnknown2010)
-					mUnknown2010 = aLeft < 0 ? 0 : aLeft;
+				if (aLow < mLowestCounter)
+					mLowestCounter = aLeft < 0 ? 0 : aLeft;
 			}
 			aCell++;
 		}
 	}
-	mUnknown1C44 = 255;
-	mUnknown2198 = false;
+	mCounterFlash = 255;
+	mBombsMayCountDown = false;
 }
 
 void Board::LockPiece(Piece* thePiece)
 {
-	bool aKept = thePiece->IsFlagSet(Piece::FLAG_12);
+	bool aKept = thePiece->IsFlagSet(Piece::FLAG_DOOM);
 	thePiece->ClearSpecial();
 	thePiece->SetFlag(Piece::FLAG_LOCKED, true);
 	if (aKept)
-		thePiece->SetFlag(Piece::FLAG_12, true);
-	thePiece->mUnknown4FC = 0;
+		thePiece->SetFlag(Piece::FLAG_DOOM, true);
+	thePiece->mLockState = 0;
 	thePiece->mLockTick = 0;
 	thePiece->mLockCount = 1;
 	thePiece->mColor = thePiece->mColor % 7;
@@ -819,9 +867,9 @@ void Board::UnturnPieces()
 	for (int aRow = 0; aRow < mRows; aRow++) {
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = *aCell;
-			if (aPiece != nullptr && aPiece->mUnknownB0) {
+			if (aPiece != nullptr && aPiece->mIsTwisting) {
 				aPiece->mX = (float)GetColX(aCol);
-				aPiece->mUnknownB0 = false;
+				aPiece->mIsTwisting = false;
 				aPiece->mY = (float)GetRowY(aRow);
 			}
 			aCell++;
@@ -836,42 +884,42 @@ void Board::ClearTurning()
 		for (int aCol = 0; aCol < mCols; aCol++) {
 			Piece* aPiece = *aCell;
 			aCell++;
-			if (aPiece != nullptr && aPiece->mUnknownB0)
-				aPiece->mUnknownB0 = false;
+			if (aPiece != nullptr && aPiece->mIsTwisting)
+				aPiece->mIsTwisting = false;
 		}
 	}
 }
 
 void Board::UpdateTwist()
 {
-	if (mUnknown25A6)
+	if (mShownBeforeStart)
 		return;
 	// A gem that cannot move sends the twist back
 	bool aStuck = false;
 	Piece** aCell = mGrid;
 	for (int aRow = 0; aRow < mRows; aRow++) {
 		for (int aCol = 0; aCol < mCols; aCol++) {
-			if (*aCell != nullptr && (*aCell)->mUnknownB0 && !CanMove(*aCell))
+			if (*aCell != nullptr && (*aCell)->mIsTwisting && !CanMove(*aCell))
 				aStuck = true;
 			aCell++;
 		}
 	}
 	MarkDirty();
-	float aFade = (float)((double)mUnknown20D4 + 0.05000000074505806);
-	mUnknown25A4 = false;
+	float aFade = (float)((double)mCursorTwistFade + 0.05000000074505806);
+	mHintsReady = false;
 	if (1.0f < aFade)
 		aFade = 1.0f;
-	mUnknown20D4 = aFade;
-	float anOld = mUnknown1454;
-	float aStep = mUnknown210C ? 90.0f : mUnknown1458;
-	float anAngle = mUnknown1454 + aStep;
-	mUnknown1454 = anAngle;
+	mCursorTwistFade = aFade;
+	float anOld = mTwistAngle;
+	float aStep = mInstantTwist ? 90.0f : mTwistStep;
+	float anAngle = mTwistAngle + aStep;
+	mTwistAngle = anAngle;
 	if (90.0f <= anAngle)
-		mUnknown1454 = 90.0f;
+		mTwistAngle = 90.0f;
 	else if (anAngle < 0.0f)
-		mUnknown1454 = 0.0f;
+		mTwistAngle = 0.0f;
 	// Eased: slow out, fast through the middle, slow in
-	float aT = (float)((double)mUnknown1454 / 90.0);
+	float aT = (float)((double)mTwistAngle / 90.0);
 	float anEase;
 	if (0.5f > aT) {
 		double aPow = (double)(float)std::pow((double)aT, (double)2.25f);
@@ -881,76 +929,76 @@ void Board::UpdateTwist()
 		double aPow = (double)(float)std::pow((double)aRest, (double)2.25f);
 		anEase = (float)(1.0 - (double)(float)std::pow((double)2.0f, (double)2.25f) * 0.5 * aPow);
 	}
-	float aTurn = mUnknown2015 ? 1.5707963705062866f : -1.5707963705062866f;
-	mUnknown20C0 = (float)((double)aTurn * (double)anEase + (double)mUnknown20C4);
+	float aTurn = mTwistClockwise ? 1.5707963705062866f : -1.5707963705062866f;
+	mCursorTurnNow = (float)((double)aTurn * (double)anEase + (double)mCursorTurnBase);
 	double aDegrees = (double)anEase * 90.0;
 	if (90.0 < aDegrees)
 		aDegrees = 90.0;
 	double aRadians = aDegrees * 3.14159 / 180.0;
 	double aSin = std::sin(aRadians);
-	if (mUnknown1454 != anOld) {
+	if (mTwistAngle != anOld) {
 		aCell = mGrid;
 		for (int aRow = 0; aRow < mRows; aRow++) {
 			for (int aCol = 0; aCol < mCols; aCol++) {
 				Piece* aPiece = *aCell;
-				if (aPiece != nullptr && aPiece->mUnknownB0 && CanMove(aPiece)) {
-					int aDRow = aPiece->mRow - GetRowAt(mUnknown1C04);
-					int aDCol = aPiece->mCol - GetColAt(mUnknown1C00);
+				if (aPiece != nullptr && aPiece->mIsTwisting && CanMove(aPiece)) {
+					int aDRow = aPiece->mRow - GetRowAt(mCursorY);
+					int aDCol = aPiece->mCol - GetColAt(mCursorX);
 					if ((aDRow == 0 || aDRow == 1) && (aDCol == 0 || aDCol == 1)) {
 						// A gem of the cursor's square circles its centre
-						float aCenterX = (float)(gGemWidth / 2 + mUnknown1C00);
-						float aCenterY = (float)(gGemHeight / 2 + mUnknown1C04);
-						float aX = (float)aPiece->mUnknownA8;
-						float aY = (float)aPiece->mUnknownAC;
+						float aCenterX = (float)(gGemWidth / 2 + mCursorX);
+						float aCenterY = (float)(gGemHeight / 2 + mCursorY);
+						float aX = (float)aPiece->mTwistOffsetX;
+						float aY = (float)aPiece->mTwistOffsetY;
 						float aRadius = sqrtf((float)((double)aX * (double)aX + (double)aY * (double)aY));
 						float aStart = (float)std::atan2((double)aY, (double)aX);
-						float aNow = (float)(mUnknown2015 ? (double)aStart - aRadians : (double)aStart + aRadians);
+						float aNow = (float)(mTwistClockwise ? (double)aStart - aRadians : (double)aStart + aRadians);
 						aPiece->mX = (float)((double)cosf(aNow) * (double)aRadius + (double)aCenterX);
 						aPiece->mY = (float)((double)sinf(aNow) * (double)aRadius + (double)aCenterY);
 					} else {
 						// Any other gem slides straight to its cell
-						aPiece->mX = (float)((double)aPiece->mUnknown90 * aSin + (double)aPiece->mUnknownA0);
-						aPiece->mY = (float)((double)aPiece->mUnknown94 * aSin + (double)aPiece->mUnknownA4);
+						aPiece->mX = (float)((double)aPiece->mTwistMoveX * aSin + (double)aPiece->mTwistStartX);
+						aPiece->mY = (float)((double)aPiece->mTwistMoveY * aSin + (double)aPiece->mTwistStartY);
 					}
 				}
 				aCell++;
 			}
 		}
 	}
-	mUnknown15D8 = true;
-	if (30.0f <= mUnknown1454 && aStuck) {
+	mFinishingTwist = true;
+	if (30.0f <= mTwistAngle && aStuck) {
 		// Back from a third of the way
-		mUnknown1454 = 30.0f;
-		mUnknown1458 = -0.75f;
+		mTwistAngle = 30.0f;
+		mTwistStep = -0.75f;
 		aCell = mGrid;
 		for (int aRow = 0; aRow < mRows; aRow++) {
 			for (int aCol = 0; aCol < mCols; aCol++) {
-				if (*aCell != nullptr && (*aCell)->mUnknownB0)
+				if (*aCell != nullptr && (*aCell)->mIsTwisting)
 					CanMove(*aCell);
 				aCell++;
 			}
 		}
 	}
-	if (90.0f <= mUnknown1454) {
+	if (90.0f <= mTwistAngle) {
 		if (anOld < 90.0f) {
 			// The gems arrive: they take their new cells and the board looks for matches
-			if (0.0f < mUnknown23EC)
+			if (0.0f < mMatchFlash)
 				mApp->PlaySample(SOUND_TUTORIAL_MATCH);
 			FinishTwist(false);
 			FindMatches(1);
 		}
-		if (0.0f < mUnknown23EC) {
+		if (0.0f < mMatchFlash) {
 			// The tutorial's match pulses before the board goes on
-			mUnknown23EC = mUnknown23EC - mUnknown23F0;
+			mMatchFlash = mMatchFlash - mMatchFlashDecay;
 			for (int aRow = 0; aRow < mRows; aRow++) {
 				for (int aCol = 0; aCol < mCols; aCol++) {
 					Piece* aPiece = GetPieceAt(aRow, aCol);
-					if (aPiece != nullptr && aPiece->mUnknown2F4) {
-						if (0.0f < mUnknown23EC) {
-							double aSize = (double)(mUnknown23EC + mUnknown23EC);
+					if (aPiece != nullptr && aPiece->mIsInMatch) {
+						if (0.0f < mMatchFlash) {
+							double aSize = (double)(mMatchFlash + mMatchFlash);
 							if (1.0 < aSize)
 								aSize = 1.0;
-							double aWave = std::sin(((double)mUnknown23EC + 0.55) * (double)6.2831854820251465f);
+							double aWave = std::sin(((double)mMatchFlash + 0.55) * (double)6.2831854820251465f);
 							aPiece->mDrawScale = (float)(aSize * 0.5 * aWave + 1.149999976158142);
 						} else {
 							aPiece->mDrawScale = 1.0f;
@@ -966,43 +1014,43 @@ void Board::UpdateTwist()
 			Piece* aPiece = *aCell;
 			aCount--;
 			aCell++;
-			if (aPiece != nullptr && 0 < aPiece->mUnknown4FC && aPiece->mUnknownB0) {
-				aPiece->mUnknown4FC--;
-				if (aPiece->mUnknown4FC < 1)
+			if (aPiece != nullptr && 0 < aPiece->mLockState && aPiece->mIsTwisting) {
+				aPiece->mLockState--;
+				if (aPiece->mLockState < 1)
 					LockPiece(aPiece);
 			}
 		}
 		ClearSparkStarts();
-		if (!mUnknown210C && !mUnknown1C40 && !mUnknown1BF8)
+		if (!mInstantTwist && !mTwistMatches && !mBadTwistsAllowed)
 			return;
 		ClearTurning();
-		mUnknown2130 = true;
-		mUnknown21D9 = false;
-		if (!mUnknown1C42 && mUnknown2041) {
+		mTurnEndSoundDue = true;
+		mTwisting = false;
+		if (!mTurnStartedWithMatch && mLevelStarted) {
 			// A twist that made no match
 			if (mGameMode != MODE_CHALLENGE)
 				mApp->PlaySoundEx(SOUND_BADMOVE, 0, -2.0f, 0.0f, true, true);
 			AddStat(0x22, 1);
-			mUnknown240++;
+			mBadTwists++;
 		}
-		if (!mUnknown1C6D) {
-			if (mUnknown1C6F)
-				mUnknown2008 = 10;
+		if (!mMatchAtOnce) {
+			if (mDelayMatchAfterMove)
+				mMatchDelay = 10;
 			else
 				MatchAfterMove();
-			if (GetUnknown23F5())
-				mUnknown1C8C = 1.0f;
+			if (IsTipShowing())
+				mSpeedNow = 1.0f;
 		} else {
 			MatchAfterMove();
 		}
-		mUnknown15D8 = false;
+		mFinishingTwist = false;
 	} else {
-		if (0.0f < mUnknown1454)
+		if (0.0f < mTwistAngle)
 			return;
 		// Back where it started
 		UnturnPieces();
-		mUnknown15C = 0;
-		mUnknown21D9 = false;
+		mInputLock = 0;
+		mTwisting = false;
 	}
-	mUnknown1454 = 0.0f;
+	mTwistAngle = 0.0f;
 }

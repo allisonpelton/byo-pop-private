@@ -27,7 +27,7 @@ using namespace Sexy;
 // 0x410c00
 DifficultyDialog::DifficultyDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_DIFFICULTY, true,
-		GT(0x00494410), GT(0x0049c510), GT(0x0049441c), BUTTONS_FOOTER),
+		GT(0x00494410), GT(GT_EMPTY), GT(0x0049441c), BUTTONS_FOOTER),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
@@ -35,17 +35,18 @@ DifficultyDialog::DifficultyDialog(NoahApp* theApp) :
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
 
-	mEasyButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3c, this);
+	mEasyButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], BUTTON_EASY, this);
 	mEasyButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mEasyButton->mLabel = GT(0x00494408);
-	mMediumButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3d, this);
+	mMediumButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], BUTTON_MEDIUM, this);
 	mMediumButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mMediumButton->mLabel = GT(0x00494400);
-	mHardButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3e, this);
+	mHardButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], BUTTON_HARD, this);
 	mHardButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mHardButton->mLabel = GT(0x004943f8);
 }
 
+// 0x4110a0: the destructor deletes the three buttons
 DifficultyDialog::~DifficultyDialog()
 {
 	delete mEasyButton;
@@ -53,6 +54,7 @@ DifficultyDialog::~DifficultyDialog()
 	delete mHardButton;
 }
 
+// 0x411140
 void DifficultyDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
@@ -61,6 +63,7 @@ void DifficultyDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mHardButton);
 }
 
+// 0x411180
 void DifficultyDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -80,6 +83,7 @@ void DifficultyDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mHardButton->Resize(aX, mY + 0xb9, aWidth, 0x28);
 }
 
+// 0x411130: slot 47 of the original, a function that only returns 0x140
 int DifficultyDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
@@ -96,9 +100,9 @@ void DifficultyDialog::ButtonPress(int theId)
 // 0x4112b0: the three buttons set the difficulty and start the game over
 void DifficultyDialog::ButtonDepress(int theId)
 {
-	if ((theId >= 0x3c) && (theId <= 0x3e))
+	if ((theId >= BUTTON_EASY) && (theId <= BUTTON_HARD))
 	{
-		mApp->mDifficulty = (theId == 0x3c) ? 0 : ((theId == 0x3d) ? 4 : 8);
+		mApp->mDifficulty = (theId == BUTTON_EASY) ? DIFFICULTY_EASY : ((theId == BUTTON_MEDIUM) ? DIFFICULTY_MEDIUM : DIFFICULTY_HARD);
 		mApp->DeleteSavedGame();
 		mApp->StartGame(false);
 	}
@@ -116,7 +120,7 @@ void DifficultyDialog::ButtonDepress(int theId)
 // 0x4113e0
 HighScoreDialog::HighScoreDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_HIGH_SCORES, true,
-		GT(0x0049444c), GT(0x0049c510), GT(0x00494458), BUTTONS_FOOTER),
+		GT(0x0049444c), GT(GT_EMPTY), GT(0x00494458), BUTTONS_FOOTER),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
@@ -129,12 +133,14 @@ HighScoreDialog::HighScoreDialog(NoahApp* theApp) :
 	SetColor(COLOR_HEADER, Color(0xff, 0xff, 0xff));
 }
 
+// 0x411730: slot 47 of the original, a function that only returns 0x12c
 int HighScoreDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
 	return 0x12c;                                       // 0x411730
 }
 
+// 0x4116c0: the destructor deletes the dialog's list widget
 HighScoreDialog::~HighScoreDialog()
 {
 	delete mScores;
@@ -167,7 +173,7 @@ void HighScoreDialog::Draw(Graphics* g)
 // be 120 pixels wide (the field at +0x80), with no limit on the number of characters.
 RecordScoreDialog::RecordScoreDialog(NoahApp* theApp, const std::string& thePlace) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_RECORD_SCORE, true,
-		GT(0x00495ef0), thePlace, GT(0x0049c510), BUTTONS_OK_CANCEL),
+		GT(0x00495ef0), thePlace, GT(GT_EMPTY), BUTTONS_OK_CANCEL),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
@@ -190,11 +196,13 @@ RecordScoreDialog::RecordScoreDialog(NoahApp* theApp, const std::string& thePlac
 	mNameEdit->SetColor(EditWidget::COLOR_HILITE_TEXT, Color(0xff, 0xff, 0xff));
 }
 
+// 0x41d9d0: the destructor deletes the edit widget
 RecordScoreDialog::~RecordScoreDialog()
 {
 	delete mNameEdit;
 }
 
+// 0x41da40: the edit widget is added and takes the focus
 void RecordScoreDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
@@ -202,12 +210,14 @@ void RecordScoreDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->SetFocus(mNameEdit);
 }
 
+// 0x420a30 (the Tutorial dialog shares it): the widget of the dialog leaves with it
 void RecordScoreDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mNameEdit);
 }
 
+// 0x41da70
 void RecordScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
@@ -248,12 +258,15 @@ void RecordScoreDialog::DrawEditBox(Graphics* g, int theX, int theY, int theWidt
 		aClipped.DrawImage(aBox, theX + 0x20 + i * 0x20, theY, Rect(0x20, 0, 0x20, 0x20));
 }
 
+// 0x41de20: Enter in the name box is a click on the dialog's OK button
 void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 {
 	(void) theId;
 	(void) theString;
+	mApp->ButtonDepress(mId + DIALOG_YES);
 }
 
+// port: the characters the name box takes (the 2002 EditListener has no such hook: its edit widget chooses them itself)
 bool RecordScoreDialog::AllowChar(int theId, SexyChar theChar)
 {
 	(void) theId;
@@ -266,7 +279,7 @@ bool RecordScoreDialog::AllowChar(int theId, SexyChar theChar)
 // 0x41c230
 OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_OPTIONS, true,
-		GT(0x00495fd8), GT(0x0049c510), GT(0x00494458), BUTTONS_FOOTER),
+		GT(0x00495fd8), GT(GT_EMPTY), GT(0x00494458), BUTTONS_FOOTER),
 	mApp(theApp)
 {
 	Use2003Buttons(this, theApp->mImages[IMAGE_DBUTTON]);
@@ -274,7 +287,7 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
 
-	// (the original's Register and Web buttons, ids 1 and 3, are gone; the others keep their ids)
+	// (the original also has a Register and a Web button, ids 1 and 3, which the port leaves out; the others keep their ids)
 	struct Spec { DialogButton** mButton; int mId; unsigned int mText; };
 	Spec aSpecs[3] =
 	{
@@ -312,6 +325,8 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	mHintsCheckbox->SetChecked(mApp->mShowHints, false);
 }
 
+// 0x41cc40: the destructor deletes the buttons, the two sliders and the two check boxes (the original also deletes its
+// Register and Web buttons, which the port does not have)
 OptionsDialog::~OptionsDialog()
 {
 	delete mHelpButton;
@@ -323,6 +338,7 @@ OptionsDialog::~OptionsDialog()
 	delete mHintsCheckbox;
 }
 
+// 0x41cdc0
 void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
@@ -335,6 +351,7 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mHintsCheckbox);
 }
 
+// 0x41ce60
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -354,7 +371,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aContent = (mWidth - mContentInsets.mRight) - mContentInsets.mLeft;
 	int aHalf = (aContent - 6) / 2;
 	int aFooterY = (mYesButton != NULL) ? mYesButton->mY : mY + mHeight - 0x50;
-	// Help and Scores side by side, Credits across: the rows of Register and Web are gone, the dialog is that much shorter
+	// Help and Scores side by side, Credits across: the port has no rows of Register and Web, and its dialog is that much shorter
 	mHelpButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x54, aHalf, 0x24);
 	mScoresButton->Resize(mX + mContentInsets.mLeft + 6 + aHalf, aFooterY - 0x54, aHalf, 0x24);
 	mCreditsButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x2a, aContent, 0x24);
@@ -364,12 +381,14 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mHintsCheckbox->Resize(mX + 0x30, mY + 0xc2, 0x24, 0x25);
 }
 
+// 0x4209f0: slot 47 of the original (0x1b6 there: the port is shorter by the row of the Web button)
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
 	return 0x18c;                                       // 0x4209f0 gives 0x1b6; less the row of the Web button
 }
 
+// 0x41cd40: slot 7 of the original: the button text colour (index 3) also goes to its buttons
 void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 {
 	Dialog2004::SetColor(theIdx, theColor);
@@ -401,7 +420,7 @@ void OptionsDialog::ButtonPress(int theId)
 	mApp->ButtonPress(0);
 }
 
-// 0x41d410: the buttons of the dialog (the footer button is the app's: ButtonDepress(2003))
+// 0x41d410: the buttons of the dialog (the footer button is the app's: DIALOG_YES + DIALOG_OPTIONS)
 void OptionsDialog::ButtonDepress(int theId)
 {
 	Dialog2004::ButtonDepress(theId);
@@ -434,7 +453,7 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 // 0x4205b0: the dialog has no header and no lines of its own (Draw writes the heading), and its button reads READY
 TutorialDialog::TutorialDialog(NoahApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_TUTORIAL, true,
-		GT(0x0049c510), GT(0x0049c510), GT(0x004962e4), BUTTONS_FOOTER),
+		GT(GT_EMPTY), GT(GT_EMPTY), GT(0x004962e4), BUTTONS_FOOTER),
 	mApp(theApp),
 	mWait(0),
 	mStep(0),
@@ -462,6 +481,7 @@ TutorialDialog::TutorialDialog(NoahApp* theApp) :
 	mAgainCheckbox->SetChecked(false, false);
 }
 
+// 0x420980: the destructor deletes the check box
 TutorialDialog::~TutorialDialog()
 {
 	delete mAgainCheckbox;
@@ -474,12 +494,14 @@ void TutorialDialog::ButtonPress(int theId)
 	mApp->ButtonPress(0);
 }
 
+// 0x420a00
 void TutorialDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mAgainCheckbox);
 }
 
+// 0x420a30
 void TutorialDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -493,6 +515,7 @@ void TutorialDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mAgainCheckbox->Resize(mX + 0x30, mY + mWidth - 0x3c, 0x24, 0x25);   // the width, not the height: as the original has it
 }
 
+// 0x4209f0
 int TutorialDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;

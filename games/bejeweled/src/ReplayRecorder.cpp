@@ -196,7 +196,7 @@ void ReplayRecorder::AfterUpdate()
 		if (aWidget != NULL)
 		{
 			int aMode = mApp->mTimedMode ? 1 : 0;
-			isPinned = (mBoard->mScore > aWidget->mTodayScores[aMode]) || (aWidget->GetRank(aMode, mBoard->mScore) > 0);
+			isPinned = (mBoard->mScore > aWidget->mTodayScores[aMode]) || (aWidget->GetScorePlace(aMode, mBoard->mScore) > 0);
 		}
 		Finish(mEndReason, isPinned);
 	}
@@ -299,8 +299,8 @@ void ReplayRecorder::OnGameOver()
 	if (mNewGame)
 		mEndReason = Replay::END_NEW_GAME;
 	else
-		mEndReason = (mBoard->mState == STATE_FALLING) ? Replay::END_NO_MOVES : (mBoard->mState == STATE_ARROW_STEPPING) ? Replay::END_ARROW_ESCAPED : // port(variant): an arrow escaped (stage 18)
-			mBoard->mVariant.mGold ? Replay::END_GOLD_TIME_UP : Replay::END_TIME_UP; // port(variant): a gold level's time (stage 12)
+		mEndReason = (mBoard->mState == STATE_FALLING) ? Replay::END_NO_MOVES : (mBoard->mState == STATE_ARROW_STEPPING) ? Replay::END_ARROW_ESCAPED : // port(variant): an arrow escaped
+			mBoard->mVariant.mGold ? Replay::END_GOLD_TIME_UP : Replay::END_TIME_UP; // port(variant): a gold level's time
 }
 
 void ReplayRecorder::BeginSave()
@@ -553,40 +553,40 @@ std::string ReplayRecorder::Meta()
 // 1 without it
 bool ReplayRecorder::IsReplayName(const std::string& theName, bool* isPinned, int* theCopy)
 {
-	const char* p = theName.c_str();
-	for (int i = 0; i < 15; i++, p++)
+	const char* aCursor = theName.c_str();
+	for (int i = 0; i < 15; i++, aCursor++)
 	{
-		if ((i == 8) ? (*p != '-') : ((*p < '0') || (*p > '9')))
+		if ((i == 8) ? (*aCursor != '-') : ((*aCursor < '0') || (*aCursor > '9')))
 			return false;
 	}
-	if (*p++ != '-')
+	if (*aCursor++ != '-')
 		return false;
-	if (strncmp(p, "normal-", 7) == 0)
-		p += 7;
-	else if (strncmp(p, "timed-", 6) == 0)
-		p += 6;
+	if (strncmp(aCursor, "normal-", 7) == 0)
+		aCursor += 7;
+	else if (strncmp(aCursor, "timed-", 6) == 0)
+		aCursor += 6;
 	else
 		return false;
-	if ((*p < '0') || (*p > '9'))
+	if ((*aCursor < '0') || (*aCursor > '9'))
 		return false;
-	while ((*p >= '0') && (*p <= '9'))
-		p++;
+	while ((*aCursor >= '0') && (*aCursor <= '9'))
+		aCursor++;
 	int aCopy = 1;
-	if ((p[0] == '-') && (p[1] >= '0') && (p[1] <= '9'))
+	if ((aCursor[0] == '-') && (aCursor[1] >= '0') && (aCursor[1] <= '9'))
 	{
-		p++;
+		aCursor++;
 		aCopy = 0;
-		while ((*p >= '0') && (*p <= '9'))
+		while ((*aCursor >= '0') && (*aCursor <= '9'))
 		{
 			if (aCopy < 100000)
-				aCopy = aCopy * 10 + (*p - '0');
-			p++;
+				aCopy = aCopy * 10 + (*aCursor - '0');
+			aCursor++;
 		}
 	}
-	bool isKeep = (strncmp(p, "-keep", 5) == 0);
+	bool isKeep = (strncmp(aCursor, "-keep", 5) == 0);
 	if (isKeep)
-		p += 5;
-	if (strcmp(p, ".bjr") != 0)
+		aCursor += 5;
+	if (strcmp(aCursor, ".bjr") != 0)
 		return false;
 	if (isPinned != NULL)
 		*isPinned = isKeep;

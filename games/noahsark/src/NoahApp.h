@@ -33,6 +33,24 @@ class Dialog;
 class ButtonWidget;
 class Widget;
 class MusicInterface;
+class NoahApp;
+
+// The game's pictures by id (IMAGE_X in Res.h). mApp->mImages[IMAGE_X] decodes a picture the first time it is asked for; the original
+// decodes all 82 at start (0x417450 for each id), which is most of the load and of the memory at the title, and a picture that
+// nothing asks for in a run is never decoded or held. A picture that is not there is told at its first use (a popup and the end of
+// the game), as the original tells it at start.
+class ImageTable
+{
+public:
+	explicit ImageTable(NoahApp* theApp);
+	Image*					operator[](int theId) { return mImages[theId] != NULL ? mImages[theId] : Load(theId); }
+
+private:
+	Image*					Load(int theId);
+
+	NoahApp*				mApp;
+	Image*					mImages[NUM_IMAGES];
+};
 
 enum FontId
 {
@@ -52,8 +70,16 @@ enum GameMode
 {
 	GAMEMODE_ACTION = 1,         // "Flood" in the web version: the water rises in real time
 	GAMEMODE_STRATEGY = 3,       // "Freefall": turn based, the animals fall
-	GAMEMODE_PUZZLE = 4,         // swap adjacent animals to make rows of three (a time limit in the trial)
+	GAMEMODE_PUZZLE = 4,         // swap adjacent animals to make rows of three
 	GAMEMODE_STAMPEDE = 5        // the bonus round after every third level (the mode is kept in mSavedGameMode)
+};
+
+// app+0x440: the difficulty chosen for a game (it adds to the level in the flood's pace and the board's obstacles)
+enum Difficulty
+{
+	DIFFICULTY_EASY = 0,
+	DIFFICULTY_MEDIUM = 4,
+	DIFFICULTY_HARD = 8
 };
 
 // Dialog ids (AddDialog / DoDialog / KillDialog)
@@ -69,6 +95,14 @@ enum DialogId
 	DIALOG_DIFFICULTY = 12
 };
 
+// A dialog's own buttons report to the app with the dialog's id added to one of these
+enum DialogButtonBase
+{
+	DIALOG_YES = 2000,           // the first button: Yes, OK, or the one button of a footer
+	DIALOG_NO = 3000,            // the second: No or Cancel
+	DIALOG_BUTTONS_END = 4000
+};
+
 // Button ids
 enum ButtonId
 {
@@ -79,7 +113,10 @@ enum ButtonId
 	BUTTON_QUIT = 9,             // the menu's quit button
 	BUTTON_SIDEBAR_QUIT = 10,    // the board's quit button
 	BUTTON_SIDEBAR_OPTIONS = 12,
-	BUTTON_QUIT_KEY = 14
+	BUTTON_QUIT_KEY = 14,
+	BUTTON_EASY = 60,            // the difficulty dialog's three
+	BUTTON_MEDIUM = 61,
+	BUTTON_HARD = 62
 };
 
 class NoahApp : public SexyApp
@@ -92,7 +129,7 @@ public:
 		NUM_LOADING_TASKS = 34   // one per sound
 	};
 
-	Image**					mImages;            // +0x3e0 new Image*[82] (NUM_IMAGES), loaded by Init (GetImage)
+	ImageTable				mImages;            // +0x3e0 new Image*[82] (NUM_IMAGES), see ImageTable
 	ImageFont*				mFonts[NUM_FONTS];  // +0x3e4 .. +0x404
 	Board*					mBoard;             // +0x408 the game in progress (StartGame)
 	NextLevelWidget*		mNextLevelWidget;   // +0x40c shown between levels
@@ -100,22 +137,21 @@ public:
 	TitleScreen*			mTitleScreen;       // +0x414 until the first click
 	HighScoreWidget*		mHighScoreWidget;   // +0x41c the game-over screen
 	int						mLevel;             // +0x43c level number of the current game
-	int						mDifficulty;        // +0x440 0 easy, 4 medium, 8 hard
+	int						mDifficulty;        // +0x440 Difficulty
 	int						mGameMode;          // +0x444 GameMode
 	int						mSavedGameMode;     // +0x448 the mode a bonus round returns to
 	bool					mBonusRound;        // +0x439 a Stampede round is on
 	bool					mPuzzleNoticeShown; // +0x4a9 the bonus round's how-to dialog has been shown
 	int						mGameScore;         // +0x474 score of the game in progress
 	int						mShownScore;        // +0x478 the score on the display, counting up to mGameScore
-	int						mFloodStart;        // +0x47c the water's level at the start of the level
 	int						mAnimalsSaved;      // +0x480
 	int						mComboCount;        // +0x484 pairs of a kind joined in a row at least twice
 	int						mBestCombo;         // +0x488
 	int						mSavedThisLevel;    // +0x48c animals saved on the level just ended (NextLevelWidget takes it)
 	bool					mShowHints;         // +0x490 registry ShowHints (the options dialog's check box)
 	bool					mShowTutorial;      // +0x491 registry ShowTutorial
-	DWORD					mGameStartTick;     // +0x494
 	SexyString				mLastScoreName;     // +0x498 registry LastScoreName
+	bool					mSoundTried[NUM_SOUNDS];   // port: the sound's file has been asked for (see LoadSoundOnce)
 	bool					mMainSongStarted;
 	bool					mMainSongLooping;
 
@@ -135,8 +171,9 @@ public:
 	virtual void			ButtonPress(int theId) override;
 	virtual void			ButtonDepress(int theId) override;
 	virtual void			UpdateFrames() override;
+	virtual void			PlaySample(int theSoundNum) override;
+	virtual void			PlaySample(int theSoundNum, int thePan) override;
 	virtual void			LoadingThreadProc() override;
-	virtual void			LoadingThreadCompleted() override;
 	virtual void			WriteToRegistry() override;
 	virtual void			ReadFromRegistry() override;
 	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
@@ -153,6 +190,7 @@ public:
 	int						mAutoplayDiff;
 	int						mAutoplayGames;
 	int						mAutoplayCap;
+	int						mAutoplayStop;
 	bool					mAutoplayMenu;
 	std::string				mAutoplayLog;
 	std::string				mAutoplayShots;
@@ -183,7 +221,8 @@ public:
 	bool					ResyncHold();
 
 	// Helpers of the module (WinNoah.exe addresses in NoahApp.cpp)
-	bool					LoadImage(int theImageId);
+	Image*					LoadImage(int theImageId);   // 0x417450: NULL (and the game ends) when the picture is not there
+	void					LoadSoundOnce(int theSoundNum);
 	ButtonWidget*			AddButton(int theId, const Rect& theRect, Image* theImage, Image* theDownImage);
 	DialogButton*			AddDialogButton(int theId, const Rect& theRect, Image* theImage);
 	void					TitleScreenDone();

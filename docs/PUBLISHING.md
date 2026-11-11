@@ -7,9 +7,11 @@ coordinator publishes, after checking the trunk for game files and game text (CL
 
 ## What is private
 
-Files listed in `.publishignore` are left out whole. Today they are the two tools that copy a game's program out of
-PopCap's DRM wrapper or CD launcher, `tools/extract_game_exe.py` and `tools/triage_popcap.py`. The decompilation
-needs them, so they stay in the trunk, but the public repository does not show how to take the protection apart.
+Files listed in `.publishignore` are left out whole, each with its reason there: the tools that copy a game's program
+out of PopCap's DRM wrapper or CD launcher (`tools/extract_game_exe.py`, `tools/triage_popcap.py` and the like), the
+games' scripts that carve or patch a copy, origrun's table of install paths, and the games that stay unpublished. The
+decompilation needs the tools, so they stay in the trunk, but the public repository does not show how to take the
+protection apart.
 BookWorm's GameText is published: it reads the game's texts from the player's own `Bookworm.exe` at run time and
 looks inside the launcher only to find them.
 
@@ -32,15 +34,15 @@ markers would show, so close the block before the private lines and open a new o
 ## Making a snapshot
 
 ```bash
-python tools/publish.py
+python tools/publish.py --model "Opus 5.5"
 ```
 
-This builds the snapshot into `refs/publish/next` and checks it: no `.publishignore` path, no marker line, nothing
+`--model` names the model making the snapshot, for the commit's `Co-Authored-By` trailer. This builds the snapshot into `refs/publish/next` and checks it: no `.publishignore` path, no marker line, nothing
 under `assets/`, `re/` or `build/`. It prints what it left out and which files lost private blocks. Look at the
 result with `git show --stat refs/publish/next` or `git show refs/publish/next:<path>`, then publish it:
 
 ```bash
-python tools/publish.py --push
+python tools/publish.py --push --model "Opus 5.5"
 ```
 
 This builds the snapshot again and pushes it to origin's `main`. `refs/publish/main` then marks the last published
@@ -67,7 +69,10 @@ It holds only what git tracks, so no game file goes there either. GitHub refuses
 user's own address rather than their noreply one (its email privacy setting). Ten old commits on the trunk do, and
 `claude/site-easy-b32d6e`, whose tip is one of them, was refused for that on 2026-11-08; its commits are in the trunk,
 so nothing is missing. A branch that a session rebased is refused as not a fast-forward: push that branch alone with
-`--force` once you have checked that the branch, not the backup, holds the newer work.
+`--force` once you have checked that the branch, not the backup, holds the newer work. The coordinator's permission
+check refuses a forced push (2026-11-09, Twist's readability branch after its work-in-progress commit was split), so
+such a branch waits for its merge into the trunk, which the next push carries; until then the mirror below holds it,
+`.git` included.
 
 The second stays on this machine: the main checkout, git-ignored files and all (staged assets, `re/`, the frozen
 baselines and the oracle cache under `build/`, `secrets/`), mirrored to `E:\backups\byo-pop` on another drive. Run it
@@ -78,7 +83,9 @@ robocopy C:\Users\Administrator\Documents\claude\byo-pop E:\backups\byo-pop /MIR
 ```
 
 It leaves out the sessions' worktrees (their commits are in `.git`, and their ignored files are mostly copies of the
-main checkout's) and follows no junction. `/MIR` makes the copy match the checkout, so a file deleted here goes from
+main checkout's) and follows no junction. A git-ignored file a session makes that is not a copy (a game's origrun
+config, its test patch list) belongs in the main checkout, or it goes with the worktree: Bejeweled's identical-play
+config and seed patch list were lost that way (found 2026-11-09). `/MIR` makes the copy match the checkout, so a file deleted here goes from
 the copy at the next run too: it is a mirror, not a history.
 
 <!-- /private -->

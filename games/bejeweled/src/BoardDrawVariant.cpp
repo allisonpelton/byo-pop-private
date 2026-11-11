@@ -1,7 +1,7 @@
 // port(variant): Draw (0x4cbc70) for the boards that need more than it draws (games/bejeweled/docs/CODE_MODS_DESIGN.md
 // 5.6), a Board member. Not part of the original game. Draw dispatches here on VariantFlags::mDraw.
 //
-// Stage 7: a copy of Draw for boards of any size and shape. Its board layer (the gems with their glow crossfades and
+// A copy of Draw for boards of any size and shape. Its board layer (the gems with their glow crossfades and
 // shrink frames, the hint sparkles, the target cursor, the tutorial arrows) goes through a Graphics that scales the
 // logical positions by mLayout.mScale about the board window's corner (203, 16); the score popups are drawn at their
 // screen positions in the unscaled font; the vortex, the banner, the hole mask and the pause text are centred on the
@@ -9,7 +9,7 @@
 // (mTutorialCol >= 0). Unscaled boards take no scale branch, so on the original 8x8 this draws Draw's pixels
 // (-forcevariant's screenshots check it).
 //
-// Stage 7b (4.14): the dirt cells under the gems (DrawDirt) and the dust of a cleared one over them (DrawDirtDust).
+// Dirt (CODE_MODS_DESIGN.md 4.14): the dirt cells under the gems (DrawDirt) and the dust of a cleared one over them (DrawDirtDust).
 
 #include "Board.h"
 #include "WinDMApp.h"
@@ -60,7 +60,7 @@ void Board::DrawVariant(Graphics* g)
 		if (mVariant.mDirt)
 			DrawDirt(&aBoardG);
 		if (mVariant.mGold)
-			DrawGold(&aBoardG, false); // the gold cells (stage 12, BoardGold.cpp)
+			DrawGold(&aBoardG, false); // the gold cells (BoardGold.cpp)
 
 		for (int aRow = 0; aRow < mRows; aRow++)
 		{
@@ -70,15 +70,15 @@ void Board::DrawVariant(Graphics* g)
 				if ((aPiece == NULL) || (mVariant.mMoves && DrawsSlideCell(aCol, aRow))) // a sliding line: DrawMovesUnder
 					continue;
 
-				if (mVariant.mArrows && DrawArrowGem(&aBoardG, aPiece, (int)aPiece->mX, (int)aPiece->mY)) // an arrow gem (stage 18, BoardArrowsDraw.cpp)
+				if (mVariant.mArrows && DrawArrowGem(&aBoardG, aPiece, (int)aPiece->mX, (int)aPiece->mY)) // an arrow gem (BoardArrowsDraw.cpp)
 					continue;
-				int aSrcX = aPiece->mSpinFrame * 52 + 2;
-				int aSrcY = aPiece->mColor * 104;
+				int aSrcX = aPiece->mSpinFrame * GEMSHEET_PITCH + 2;
+				int aSrcY = aPiece->mColor * GEMSHEET_COLOR_HEIGHT;
 				if ((aPiece->mGlowing) && (aPiece->mSpinFrame == 0) && (!aPiece->mDying))
 				{
 					Image* aGemSheet = mApp->mImages[IMAGE_GEMSHEET];
 					DDImage* aGlowImage = mApp->CreateCrossfadeImage(aGemSheet, Rect(aSrcX, aSrcY, GEM_SIZE, GEM_SIZE),
-						aGemSheet, Rect(aPiece->mGlowFrame * 52 + aSrcX, aSrcY + 52, GEM_SIZE, GEM_SIZE), aPiece->mGlowAlpha);
+						aGemSheet, Rect(aPiece->mGlowFrame * GEMSHEET_PITCH + aSrcX, aSrcY + GEMSHEET_PITCH, GEM_SIZE, GEM_SIZE), aPiece->mGlowAlpha);
 					aBoardG.DrawImage(aGlowImage, (int)aPiece->mX, (int)aPiece->mY);
 					delete aGlowImage;
 				}
@@ -92,7 +92,7 @@ void Board::DrawVariant(Graphics* g)
 		if (mVariant.mMoves)
 			DrawMovesUnder(&aBoardG);
 		if (mVariant.mSpecials)
-			DrawSpecials(&aBoardG, false); // the flame and lightning gems' overlays (stage 11, BoardSpecials.cpp)
+			DrawSpecials(&aBoardG, false); // the flame and lightning gems' overlays (BoardSpecials.cpp)
 
 		Image* aSparkleImage = mApp->mImages[IMAGE_SPARKLE];
 		for (int aRow = 0; aRow < mRows; aRow++)
@@ -118,7 +118,7 @@ void Board::DrawVariant(Graphics* g)
 				{
 					int aModFrame = (aPiece->mSparkleFrame - 24) % 14;
 					if (aModFrame >= 0)
-						DrawSparkle(&aScaledG, aSparkleImage, aModFrame, (int)(aPiece->mX + 24.0), (int)(aPiece->mY + 6.0));
+						DrawSparkle(&aScaledG, aSparkleImage, aModFrame, (int)(aPiece->mX + GEM_HALF), (int)(aPiece->mY + 6.0));
 				}
 			}
 		}
@@ -130,13 +130,13 @@ void Board::DrawVariant(Graphics* g)
 		if (mVariant.mDirt)
 			DrawDirtDust(&aScaledG);
 		if (mVariant.mArrows)
-			DrawArrowWarnings(&aScaledG); // the edges arrows are about to cross (stage 18)
+			DrawArrowWarnings(&aScaledG); // the edges arrows are about to cross
 
 		Piece* aCursorPieces[3] = {mSelectedPiece, mSwapPiece1, mSwapPiece2};
 		for (int i = 0; i < 3; i++)
 		{
 			if (aCursorPieces[i] != NULL)
-				aScaledG.DrawImage(mApp->mImages[IMAGE_TARGET], (int)(aCursorPieces[i]->mX - 2.0), (int)(aCursorPieces[i]->mY - 2.0), Rect((mCursorFrame % 6) * 52, 0, 52, 52));
+				aScaledG.DrawImage(mApp->mImages[IMAGE_TARGET], (int)(aCursorPieces[i]->mX - 2.0), (int)(aCursorPieces[i]->mY - 2.0), Rect((mCursorFrame % 6) * CURSOR_FRAME_SIZE, 0, CURSOR_FRAME_SIZE, CURSOR_FRAME_SIZE));
 		}
 		if (mVariant.mMoves)
 			DrawMovesOver(&aScaledG);
@@ -229,7 +229,7 @@ void Board::DrawVariant(Graphics* g)
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14)
+// Dirt (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14)
 
 // The crack lines of the dirt art, in a cell's 51 x 51 px: a cell with n layers shows the first n
 static const int kCrackPoints = 4;

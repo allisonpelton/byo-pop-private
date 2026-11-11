@@ -16,23 +16,23 @@
 namespace Sexy
 {
 
-class MummyApp;
+class MMApp;
 class MemoryImage;
-class HighScoreScreen;
+class HighScoreWidget;
 
 // the colours of a name box's text, and the box itself (Dialogs.cpp)
 extern int kNameEditColors[5][4];
-void DrawNameBox(Graphics* g, Image* theBox, int theX, int theY, int theWidth);
+void DrawEditBox(Graphics* g, Image* theBox, int theX, int theY, int theWidth);
 
 // 0x427dc0: the name for a high score
 class RecordScoreDialog : public Dialog2004, public EditListener
 {
 public:
-	MummyApp*			mApp;                   // +0xc4
+	MMApp*			mApp;                   // +0xc4
 	EditWidget*			mNameEdit;              // +0xc8
 
 public:
-	RecordScoreDialog(MummyApp* theApp, const SexyString& theLines);
+	RecordScoreDialog(MMApp* theApp, const SexyString& theLines);
 	virtual ~RecordScoreDialog();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x428090
@@ -45,55 +45,59 @@ public:
 };
 
 // 0x401000: the saved adventures to choose from (five slots, each a name or NEW GAME), and the way to delete one
-class AdventureSlotsDialog : public Dialog2004
+class AdventureDialog : public Dialog2004
 {
 public:
-	MummyApp*			mApp;                   // +0xc4
+	MMApp*			mApp;                   // +0xc4
 	DialogButton*		mSlots[5];              // +0xc8 ids 0 to 4
 	DialogButton*		mDeleteButton;          // +0xdc id 5
 	bool				mHasDelete;             // +0xe0
 
 public:
-	AdventureSlotsDialog(MummyApp* theApp);
-	virtual ~AdventureSlotsDialog();
+	AdventureDialog(MMApp* theApp);
+	virtual ~AdventureDialog();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x4016d0
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x401710
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x401750
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x4016b0
+	virtual void		ButtonPress(int theId) override;                                    // 0x412d80
 	virtual void		ButtonDepress(int theId) override;                                  // 0x4017f0
 	using Widget::Resize;
+	using Dialog2004::ButtonPress;
 };
 
 // 0x412750: the saved adventures again, to pick the one to delete
-class DeleteAdventureDialog : public Dialog2004
+class DeleteDialog : public Dialog2004
 {
 public:
-	MummyApp*			mApp;
+	MMApp*			mApp;
 	DialogButton*		mSlots[5];              // +0xc8 ids 0 to 4
 
 public:
-	DeleteAdventureDialog(MummyApp* theApp);
-	virtual ~DeleteAdventureDialog();
+	DeleteDialog(MMApp* theApp);
+	virtual ~DeleteDialog();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x412ca0
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x412cd0
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x412d00
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x412c90
+	virtual void		ButtonPress(int theId) override;                                    // 0x412d80
 	virtual void		ButtonDepress(int theId) override;                                  // 0x412da0
 	using Widget::Resize;
+	using Dialog2004::ButtonPress;
 };
 
 // 0x421db0: the name of a new adventure
-class NewAdventureDialog : public Dialog2004, public EditListener
+class NameDialog : public Dialog2004, public EditListener
 {
 public:
-	MummyApp*			mApp;                   // +0xc4
+	MMApp*			mApp;                   // +0xc4
 	EditWidget*			mNameEdit;              // +0xc8
 
 public:
-	NewAdventureDialog(MummyApp* theApp);
-	virtual ~NewAdventureDialog();
+	NameDialog(MMApp* theApp);
+	virtual ~NameDialog();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;
@@ -109,7 +113,7 @@ public:
 class OptionsDialog : public Dialog2004, public SliderListener, public CheckboxListener
 {
 public:
-	MummyApp*			mApp;                   // +0xc8
+	MMApp*			mApp;                   // +0xc8
 	Slider*				mMusicSlider;           // +0xcc id 0
 	Slider*				mSfxSlider;             // +0xd0 id 1
 	Slider*				mSpeedSlider;           // +0xd4 id 2: 0 normal, a half fast, 1 fastest
@@ -124,7 +128,7 @@ public:
 	MemoryImage*		mUncheckedImage;
 
 public:
-	OptionsDialog(MummyApp* theApp);
+	OptionsDialog(MMApp* theApp);
 	virtual ~OptionsDialog();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x425ff0
@@ -133,42 +137,46 @@ public:
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x425f50
 	virtual void		Draw(Graphics* g) override;                                         // 0x4263c0
 	virtual void		SetColor(int theIdx, const Color& theColor) override;               // 0x425f60
+	virtual void		ButtonPress(int theId) override;                                    // 0x426b50
 	virtual void		ButtonDepress(int theId) override;                                  // 0x426b70
 	virtual void		SliderVal(int theId, double theVal) override;                       // 0x426a30
 	using Widget::Resize;
+	using Dialog2004::ButtonPress;
 };
 
 // 0x42b720: a tip: the first time a new kind of danger is in a maze, with a box to not see it again
-class TipDialog : public Dialog2004, public CheckboxListener
+class WarningDialog : public Dialog2004, public CheckboxListener
 {
 public:
-	MummyApp*			mApp;                   // +0xc4
+	MMApp*			mApp;                   // +0xc4
 	Checkbox*			mCheckbox;              // +0xc8 "do not show this screen again"
 	int					mWhich;                 // +0xcc 0 two mummies, 1 gate, 2 traps, 3 red mummy, 4 scorpion, 5 dark maze, 6 no ankh
 	MemoryImage*		mCheckedImage;
 	MemoryImage*		mUncheckedImage;
 
 public:
-	TipDialog(MummyApp* theApp, int theWhich);
-	virtual ~TipDialog();
+	WarningDialog(MMApp* theApp, int theWhich);
+	virtual ~WarningDialog();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;           // 0x42bba0
 	virtual void		RemovedFromManager(WidgetManager* theWidgetManager) override;       // 0x42bbd0
 	virtual void		Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x42bc00
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x42bb80
+	virtual void		ButtonPress(int theId) override;                                    // 0x412d80
 	virtual void		Draw(Graphics* g) override;                                         // 0x42bc50
 	using Widget::Resize;
+	using Dialog2004::ButtonPress;
 };
 
 // 0x413c30: the high scores, as a dialog of the options
 class HighScoreDialog : public Dialog2004
 {
 public:
-	MummyApp*			mApp;                   // +0xc4
-	HighScoreScreen*	mScores;                // +0xc0 only the list is used
+	MMApp*			mApp;                   // +0xc4
+	HighScoreWidget*	mScores;                // +0xc0 only the list is used
 
 public:
-	HighScoreDialog(MummyApp* theApp);
+	HighScoreDialog(MMApp* theApp);
 	virtual ~HighScoreDialog();
 
 	virtual int			GetPreferredHeight(int theWidth) override;                          // 0x413f80

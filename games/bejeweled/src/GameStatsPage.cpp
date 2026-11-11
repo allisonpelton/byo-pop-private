@@ -135,7 +135,7 @@ std::vector<Line> MatchLines(WinDMApp* theApp, Board* theBoard, const GameStats&
 			StrFormat(_S("%d, %d"), theStats.mSpecialsMade, theStats.mSpecialsSetOff)});
 	if (theStats.mGoldCovered > 0)
 		aLines.push_back({theApp->GetString("STATS_GOLD", _S("Gold covered")), Count(theStats.mGoldCovered)});
-	// the board's own count (stage 18: saved with the arrows, the bonus's factor), so the whole game's
+	// the board's own count (saved with the arrows, the bonus's factor), so the whole game's
 	if (theBoard->mVariant.mArrows)
 		aLines.push_back({theApp->GetString("STATS_ARROWS", _S("Arrows cleared")), Count(theBoard->mArrowsCleared)});
 	return aLines;

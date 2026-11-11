@@ -144,8 +144,8 @@ The baseline `build/baseline-mummymaze` was refrozen after the second and third 
   at the same update whenever the bot's Yes click lands on a dialog's button (4 of 4 times; all other buttons click once);
   the port plays it once. The press path in our export (`0x42e7f0`, the dialog's listener forwarding to the application's
   `ButtonPress`) shows one call, and the second was not found in about 25 minutes. Not chased.
-- Not compared: the unregistered build's nag and register screens, and the trap-death animation frame by frame (its first
-  frames and block are drawn as in the original, found by shotdiff)
+- Not compared: the unregistered build's nag and register screens. (The trap death was compared frame by frame on 2026-11-11,
+  below: this pass had only seen its first frames.)
 
 # Phase three: real input, the fixes mod and the registration code (2026-11-08)
 
@@ -213,3 +213,44 @@ register link and the play counters, the unused registration pictures and the re
 Options dialog, whose Tutorial and High Scores buttons now share the first row, with Credits across the second; the suite's three
 Options photographs changed with it and the baseline was refrozen there, and every log and every other photograph is the
 baseline's.
+
+# The user's faults of 2026-11-10: the title's thanks and the falling block
+
+The user: "Mummy Maze still thanks you for registering, and the falling block trap doesn't seem to be animated properly."
+
+## What was compared and how
+
+A death on a skull trap had never been compared past its first frames: no bot walks onto a trap, and no scenario of phase two
+did. `tools/identical/trapscn.py` makes the scenario. The port saves a classic game in a chamber whose maze has traps (the
+`level` test command twice, so that the board is of the chamber's own pool, then Quit to Main; seed 2 gives maze 99 of file 6,
+with a trap one step above the explorer). The script reads the board from the `state` command, which now reports the traps, the
+death's timer and kind and the walls, lists every walk of up to six steps from the explorer to a trap, and has the port try each
+one with a few seeds until the death is of the kind asked for: the game draws it at random, the block or the pit. It then writes
+the scenario for `p2.sh`: the saved game continued, the traps' tip closed, the walk, and a photograph of both programs every
+second update from ten updates before the trap to the lost panel, 150 of each. The original ran in Windows Sandbox on the
+virtual clock from the same file.
+
+Both kinds were compared, the block (seed 21) and the pit (seed 3), 300 pairs with `tools/shotdiff`. The web build ran the
+block's scenario and the title under Node and gave the native port's pictures pixel for pixel (150 of 150 and 1 of 1,
+`--allow 0`).
+
+## Changes
+
+| The difference | Its cause in the original | What the port does now | Commit |
+|---|---|---|---|
+| The title showed a medallion reading "registered version" and the line that thanks for registering | `0x42aaf0` draws the registration state: the `trialcircle` picture when registered and one of four lines over the bar | neither is drawn; the picture is not in the port's list and the line is not in its text table | a4c8aaab |
+| The block stood on the explorer from the first update it was drawn, 139 of 150 frames differing | `0x40abdc`: the block's height above the cell is three pixels for every unit that the square of the death's timer over 85 is short of 152, so it comes down from above the window and lands at the 114th update; the port had left the fall out and drew the block at the cell's top | `Board::DrawTrapBlock` computes the same height (in doubles; checked against exact arithmetic for every timer value and position) and stands the block on the cell's lower edge | c41698f9 |
+| The lost panel blacked out the board and the side panel behind the rising mummy, in every death | `0x412ea0` ends by setting the panel's fade to 1 (the two halves of the double, 0 and 0x3ff00000, read as "0" in the port); `0x413730` paints black only below 1, which happens when the player leaves for the main menu | the panel's fade starts at 1: the board stays in view behind it | c41698f9 |
+| The adventure's level-complete screen had no plural endings in its time line and lacked the two lines about the next chamber (found in the readability pass, 2026-11-11, by a comment that said "not ported yet") | `0x422b00` adds the text at 0x4923f4 to "hour", "minute" and "second" unless the number is 1 and the punctuation at 0x494f54 after the minutes, then a switch over the chamber draws two lines at 0x13f and 0x15d (one at 0x14e before the pyramid's last) | `NextLevelWidget::Draw` does the same; five photographs of the screen match the original pixel for pixel | the readability pass's last commit |
+| Quit to Main in an adventure went to the main menu and saved nothing: the time played in the chamber since the last save was lost (found by `tools/splitfields.py`, 2026-11-11: the export's handler touches the app's time and the map, the port's did not) | `0x4201e0` case 0x7d3: in an adventure the saved game is read into a map, the time played in this maze is added unless the chamber's result is up (which has added it), and the map goes again, which writes the file | `MMApp::ButtonDepress` does the same (`AdventureLeave`, or a map made and removed when the result is up); compared with the original in Windows Sandbox (a new player, a chamber entered, 20 seconds played, Quit to Main, the slot opened again): the statistics read 0 hours, 0 minutes and 20 seconds in both, and the four photographs match apart from faint differences of one level; the web build under Node matches the native port's four exactly | this commit |
+
+After the changes all 300 pairs are faint only. Two small boxes are left in every frame, before the death as well: a strip
+of 7 pixels at the maze's right edge (below) and 5 pixels of at most 12 levels in the side panel.
+
+## Oddity
+
+- **A wall's top face is one pixel wider in the original at the maze's right edge.** In maze 99 of file 6 the south wall of
+  the cell in the last column (5, 2) reaches screen column 576 in the original and 575 in the port, 7 pixels in all, in every
+  frame. The export shows the same clip rectangle for the maze in both drawing loops (`0x4095f0` and `0x40b2f0`: 0x32, 0x42,
+  0x16e, 0x177) and the same rectangles for the wall, so the port cuts where the export says; the cause was not found in about
+  twenty minutes and shotdiff does not count it as visible. To see it: `trapscn.py`'s scenario, any frame, the crop at 566, 238.

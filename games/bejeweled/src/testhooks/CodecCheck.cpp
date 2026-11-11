@@ -57,11 +57,11 @@ void CodecCheck::AfterUpdate()
 	mLastUndos = aBoard->mUndosUsed;
 	mChecked++;
 	std::string aDiff = StateCodec::RoundTrip(aBoard, mScratch);
-	// Stage 6: in play, the undo snapshot a move would take now restores into the copy and reads back the same
+	// In play, the undo snapshot a move would take now restores into the copy and reads back the same
 	if (aDiff.empty() && aBoard->mVariant.mUndo && (aBoard->mState == STATE_PLAYING))
 		aDiff = StateCodec::UndoRoundTrip(aBoard, mScratch);
 	// The save the board would make now passes the check a replay's LDSV gets (Replay::CheckSave), unless the
-	// game is over (no save then); a variant board's v2 save (stage 5) with its rules' RulesId, and its
+	// game is over (no save then); a variant board's v2 save with its rules' RulesId, and its
 	// header, field sequence and chunks read back as written (Replay::ReadVariantSave)
 	if (aDiff.empty() && (aBoard->mState != STATE_GAME_OVER) && (aBoard->mState != STATE_GAME_OVER_DONE))
 	{
@@ -112,8 +112,8 @@ void CodecCheck::AfterUpdate()
 void CodecCheck::CheckSynthetic(Board* theBoard)
 {
 	mSynthetic = new Board(mApp, Board::SCRATCH_BOARD);
-	Board* b = mSynthetic;
-	std::string aDiff = StateCodec::RoundTrip(theBoard, b);
+	Board* aBoard = mSynthetic;
+	std::string aDiff = StateCodec::RoundTrip(theBoard, aBoard);
 	if (aDiff.empty())
 	{
 		Piece* anOutside = new Piece();
@@ -121,29 +121,29 @@ void CodecCheck::CheckSynthetic(Board* theBoard)
 		anOutside->mCol = 2;
 		anOutside->mRow = 5;
 		anOutside->mX = 305.5;
-		b->mOrphanedPieces.push_back(anOutside);
-		b->mSelectedPiece = anOutside;
-		b->mSwapPiece1 = anOutside;
-		b->mSwapPiece2 = b->mBoard[0][0];
-		delete b->mBoard[b->mRows - 1][b->mCols - 1];
-		b->mBoard[b->mRows - 1][b->mCols - 1] = NULL;
+		aBoard->mOrphanedPieces.push_back(anOutside);
+		aBoard->mSelectedPiece = anOutside;
+		aBoard->mSwapPiece1 = anOutside;
+		aBoard->mSwapPiece2 = aBoard->mBoard[0][0];
+		delete aBoard->mBoard[aBoard->mRows - 1][aBoard->mCols - 1];
+		aBoard->mBoard[aBoard->mRows - 1][aBoard->mCols - 1] = NULL;
 		ScorePopup aPopup = {100, 200, 50, -1, 30};
-		b->mScorePopups.push_back(aPopup);
+		aBoard->mScorePopups.push_back(aPopup);
 		aPopup.mPoints = 45;
-		b->mScorePopups.push_back(aPopup);
-		delete b->mOwnRng;
-		b->mOwnRng = new MTRand(77);
+		aBoard->mScorePopups.push_back(aPopup);
+		delete aBoard->mOwnRng;
+		aBoard->mOwnRng = new MTRand(77);
 		for (int i = 0; i < 700; i++)
-			b->mOwnRng->Next();
-		b->mGameSeed = 77;
-		b->mUserSeeded = true;
-		b->mTakesPendingSeed = true;
-		b->mBoardDraws = 700;
-		// A variant board's move counts (stage 5; a board of the original rules has no rows for them)
-		b->mMoveCount = 17;
-		b->mInvalidMoves = 5;
-		b->mUndosUsed = 2;
-		aDiff = StateCodec::RoundTrip(b, mScratch);
+			aBoard->mOwnRng->Next();
+		aBoard->mGameSeed = 77;
+		aBoard->mUserSeeded = true;
+		aBoard->mTakesPendingSeed = true;
+		aBoard->mBoardDraws = 700;
+		// A variant board's move counts (a board of the original rules has no rows for them)
+		aBoard->mMoveCount = 17;
+		aBoard->mInvalidMoves = 5;
+		aBoard->mUndosUsed = 2;
+		aDiff = StateCodec::RoundTrip(aBoard, mScratch);
 	}
 	if (!aDiff.empty())
 	{
@@ -151,5 +151,5 @@ void CodecCheck::CheckSynthetic(Board* theBoard)
 		fprintf(mFile, "FAIL synthetic: %s\n", aDiff.c_str());
 	}
 	else
-		fprintf(mFile, "synthetic: ok, %d bytes\n", (int) StateCodec::Encode(b, StateCodec::PROFILE_SNAPSHOT).size());
+		fprintf(mFile, "synthetic: ok, %d bytes\n", (int) StateCodec::Encode(aBoard, StateCodec::PROFILE_SNAPSHOT).size());
 }

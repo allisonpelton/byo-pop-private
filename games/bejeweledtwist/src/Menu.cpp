@@ -39,14 +39,14 @@ bool gMenuStartAtEnd = false;
 Menu::Menu(WinTwistApp* theApp)
 {
 	mApp = theApp;
-	mUnknown408 = -1;  // the constructor's order: +0x4a4, +0x4b4, +0x3d0, +0x3d8 and the z order come first
+	mNewScorePlace = -1;  // the constructor's order: +0x4a4, +0x4b4, +0x3d0, +0x3d8 and the z order come first
 	mZOrder = -5;
 	SetState(0);
-	mUnknown408 = -1;
-	mUnknown1DC = 0;
+	mNewScorePlace = -1;
+	mRiseIn = 0;
 	mGameMode = -1;
 	mStartDelay = 0;
-	mUnknown2D8 = 0.01f;
+	mRiseStep = 0.01f;
 	mMouseVisible = false;
 	for (int i = 0; i < 4; i++) {
 		ColorCycle& aCycle = mColorCycles[i];
@@ -110,20 +110,20 @@ void Menu::AddedToManager(WidgetManager* theWidgetManager)
 	if (mNoProfile && mApp->mAutoPlayMode >= 0) {
 		// -autoplay plays as its own player
 		aProfile->Create(GT(0x7da118));
-		aProfile->mFlags1E8 = 0xffffffff;
+		aProfile->mModesUnlocked = 0xffffffff;
 		mNoProfile = false;
 	}
 	mState = 0;
 	Resize(0, 0, 0, 0);
 	mGameMode = -1;
-	mUnknown1E8 = 0;
+	mPlayCount = 0;
 	int aHeight = mApp->mHeight;
 	float aScale = (float)mApp->mArtRes / 1200.0f;
 	int aWidth = mApp->mWidth;
 	if (mApp->mAutoPlayMode >= 0) {
 		// -autoplay starts its game a second from now, with the basics tutorial taken as done
 		mApp->mAutoPlayDelay = 1.0f;
-		if (!mApp->mProfile->GetFlag1E4(0xe))
+		if (!mApp->mProfile->HasSeenTip(0xe))
 			mApp->mProfile->MarkTutorialDone();
 	}
 	theWidgetManager->AddWidget(mFXManager);
@@ -226,7 +226,7 @@ void Menu::Update()
 		mHighScoresPanel->SetCategory(mApp->mLastGameMode, true);
 		mHighScoresPanel->ShowBar();
 		mHighScoresPanel->mAlpha = 0;
-		if (mUnknown408 < 0)
+		if (mNewScorePlace < 0)
 			mHighScoresPanel->ShowAll();
 		else
 			ShowNewHighScore();
@@ -291,10 +291,10 @@ void Menu::Update()
 			aShut = 0.0f;
 	}
 	mGatesShut = aShut;
-	float aRise = (float)(mUnknown1DC + 0.009999999776482582);
-	mUnknown1DC = aRise;
+	float aRise = (float)(mRiseIn + 0.009999999776482582);
+	mRiseIn = aRise;
 	if (aRise > 1.0f)
-		mUnknown1DC = 1.0f;
+		mRiseIn = 1.0f;
 }
 
 void Menu::Draw(Graphics* g)
@@ -340,7 +340,7 @@ void Menu::Resize(int, int, int, int)
 	int anX = Ftol((double)(mApp->mWidth / 2) - (double)aGatesWidth * 1.5);
 	TwistWidget::Resize(anX, aY, aWidth, aHeight);
 	mProfileY = Ftol((double)mApp->mHeight * -1.5);
-	mUnknown2F4 = mHeight;
+	mSizedHeight = mHeight;
 }
 
 void Menu::GotFocus()
@@ -370,10 +370,12 @@ void Menu::DialogButtonDepress(int theDialogId, int theButtonId)
 	} else if (theDialogId == 2) {
 		mApp->KillDialog(2);
 		if (theButtonId == Dialog::ID_YES) {
+#ifdef __EMSCRIPTEN__
+			// port: on the web the sound plays only once this returns, so the wait is the app's, an update at a time
+			mApp->QuitAsGame();
+#else
 			SoundInstance* aSound = mApp->PlaySoundEx(SOUND_VOICE_GOODBYE, 0, 0, 0, false, true);
 			if (aSound != nullptr) {
-#ifndef __EMSCRIPTEN__
-				// port: on the web the sound plays only once this returns, so the wait is left out there
 				// under -fast the voices move only on the game's clock, so the wait moves the voice on itself
 				while (aSound->IsPlaying()) {
 					if (Platform::Mixer::Get().IsGameClocked())
@@ -381,10 +383,10 @@ void Menu::DialogButtonDepress(int theDialogId, int theButtonId)
 					else
 						SDL_Delay(10);
 				}
-#endif
 				aSound->Release();
 			}
 			mApp->Shutdown();
+#endif
 		}
 	}
 }
@@ -567,7 +569,7 @@ void Menu::ShowNewUser()
 	if (mNewUserPanel != nullptr)
 		return;
 	mNewUserPanel = new NewUserPanel(this, this, !mNoProfile);
-	int aWidth = GetImageById(mNewUserPanel->mUnknownB0)->mWidth;
+	int aWidth = GetImageById(mNewUserPanel->mImageId)->mWidth;
 	mNewUserPanel->Resize((mApp->mWidth * 3) / 2 - aWidth / 2, Ftol((double)mHeight * 0.699999988079071), aWidth,
 		mNewUserPanel->mHeight);
 	mApp->mGates->mProfileButton->SetGlowOn(false);
@@ -668,16 +670,16 @@ void Menu::ShowProfiles()
 
 void Menu::SetNewHighScore(int thePlace, SexyString theName, int theLevel, int theScore)
 {
-	mUnknown3E4 = theName;
-	mUnknown400 = theLevel;
-	mUnknown404 = theScore;
-	mUnknown408 = thePlace;
+	mNewScoreName = theName;
+	mNewScoreLevel = theLevel;
+	mNewScorePoints = theScore;
+	mNewScorePlace = thePlace;
 }
 
 void Menu::ShowNewHighScore()
 {
-	mHighScoresPanel->StartNewScore(mApp->mLastGameMode, mUnknown408, mUnknown3E4, mUnknown400, mUnknown404);
-	mUnknown408 = -1;
+	mHighScoresPanel->StartNewScore(mApp->mLastGameMode, mNewScorePlace, mNewScoreName, mNewScoreLevel, mNewScorePoints);
+	mNewScorePlace = -1;
 }
 
 void Menu::ShowScores(bool theNow)
@@ -717,7 +719,7 @@ void Menu::ShowHelp(bool theNow)
 		mApp->mHyperspace->SetTransition(2);
 	mPanel = PANEL_HELP;
 	AddWidget(mHelpPanel);
-	mHelpPanel->mUnknown17C = false;
+	mHelpPanel->mIsAnimDone = false;
 	mHelpPanel->SetPage(0);
 }
 

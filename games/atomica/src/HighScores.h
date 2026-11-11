@@ -28,7 +28,6 @@ public:
 	void		Read(Buffer* theBuffer);	// 0x41e260
 	void		Write(Buffer* theBuffer) const;	// 0x41e2c0
 	static int	DateCode();					// (month + year * 12) * 31 + day
-	int			Place(int theScore) const;	// the place a score takes: 0 to 4, 5 when it is none
 	bool		Qualifies(int theScore) const;	// 0x41e440: a score that is in the table or the best of the day
 	void		Add(int theScore, const char* theName);	// 0x41e530
 };

@@ -11,18 +11,18 @@
 // (what savegame.dat stores, padding included) of every cell, every Board field in declaration order
 // (cosmetic ones too: glow, hover, banner, popups, tutorial bob, sound throttles), the global RNG state
 // (draw count and state words), and the app fields below. Same platform only (raw doubles from libm).
-// Left out: images, fonts and sounds (only whether a banner image exists), mUnusedString,
+// Left out: images, fonts and sounds (only whether a banner image exists),
 // mWhirlpoolSound, which depends on the audio device, and the LiveSplit observer's bookkeeping
-// (mBoardSerial, mResumed; stage 2b), so FULL hashes stay equal to the stage-0 baselines. Nothing the hash reads is written by Draw (the
+// (mBoardSerial, mResumed), so FULL hashes stay equal to the frozen baselines. Nothing the hash reads is written by Draw (the
 // banner's ColorizeText only writes image bits), so the draw schedule (-fast, -renderscale) does not
 // change it; with script or -autoplay input the mouse fields are as deterministic as the clicks.
 //
 // LOGIC: the hand-written list below, the state later play can depend on; a narrower hash that a
-// cosmetic change (glow, sparkle, vortex spiral) leaves alone. It stays the stage-0 list, since the oracle
-// compares this column with the frozen stage-0 build; the replays' CHECK and END take StateCodec's LOGIC
+// cosmetic change (glow, sparkle, vortex spiral) leaves alone. It stays the frozen baseline's list, since the oracle
+// compares this column with the frozen baseline (build/baseline-stage0); the replays' CHECK and END take StateCodec's LOGIC
 // hash (games/bejeweled/src/StateCodec.h), which is portable and leaves out the libm-set positions and
-// mHoleRadius this one keeps. The board part of FULL is StateCodec's FULL encoding (port(variant), stage 3:
-// the same bytes the stage-0 field list hashed). Rule: a field is in the list if a later decision
+// mHoleRadius this one keeps. The board part of FULL is StateCodec's FULL encoding (port(variant):
+// the same bytes the frozen baseline's field list hashed). Rule: a field is in the list if a later decision
 // of the game (a state change, a score, a Rand() draw, the handling of an input, what a save or load
 // writes) can depend on it, or if it is a Board field that savegame.dat stores. Left out on purpose:
 //   - Piece: mGlowing, mGlowAlpha, mGlowFrame (hover glow), mSpinFrame, mSparkleCount, mSparkleFrame
@@ -47,11 +47,11 @@
 // port(variant), set seed (both hashes, after the rest): a pending seed the player chose, and a board's own
 // RNG (seed, the player's or not, whether it still holds the pending seed, Board::Rand count, MTRand state
 // words and index). They are hashed only when present, so an original game, which has neither, hashes as
-// in the stage-0 build.
+// in the frozen baseline.
 //
 // Portability: no pointer, padding or map-order dependence in LOGIC (its only libm-derived values are
 // swap positions, (int)-truncated). web/shell.html passes no test switches; the Node runner
-// (games/bejeweled/tools/verify/wasmrun.js, stage 4) runs the web build with them, and the oracle's ".wasm"
+// (games/bejeweled/tools/verify/wasmrun.js) runs the web build with them, and the oracle's ".wasm"
 // cases compare its LOGIC column with the native game's.
 
 #include "StateHash.h"
@@ -109,38 +109,38 @@ public:
 	}
 };
 
-void HashPiece(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
+void HashPiece(StateHasher& theHasher, Board* theBoard, Piece* thePiece, bool full)
 {
 	if (full)
 	{
-		h.Bytes(thePiece, Piece::SAVE_SIZE);  // the savegame.dat record (Piece.h)
+		theHasher.Bytes(thePiece, Piece::SAVE_SIZE);  // the savegame.dat record (Piece.h)
 		return;
 	}
 
-	h.Int(thePiece->mColor);
-	h.Int(thePiece->mCol);
-	h.Int(thePiece->mRow);
+	theHasher.Int(thePiece->mColor);
+	theHasher.Int(thePiece->mCol);
+	theHasher.Int(thePiece->mRow);
 	if (theBoard->mState != STATE_BLACK_HOLE)
 	{
-		h.Double(thePiece->mX);
-		h.Double(thePiece->mY);
+		theHasher.Double(thePiece->mX);
+		theHasher.Double(thePiece->mY);
 	}
-	h.Int(thePiece->mVelX);
-	h.Double(thePiece->mVelY);
-	h.Int(thePiece->mSwapOffX);
-	h.Int(thePiece->mSwapOffY);
-	h.Bool(thePiece->mDying);
-	h.Int(thePiece->mDyingFrame);
-	h.Double(thePiece->mHoleRadius);
+	theHasher.Int(thePiece->mVelX);
+	theHasher.Double(thePiece->mVelY);
+	theHasher.Int(thePiece->mSwapOffX);
+	theHasher.Int(thePiece->mSwapOffY);
+	theHasher.Bool(thePiece->mDying);
+	theHasher.Int(thePiece->mDyingFrame);
+	theHasher.Double(thePiece->mHoleRadius);
 }
 
 // A piece pointer as its cell (row * cols + col), -1 for NULL, or rows * cols and the piece's fields for a
-// piece that is not in the grid (a stale selection that FillBoard dropped, GAME_NOTES 3.6); 8x8: 64
-void HashPieceRef(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
+// piece that is not in the grid (a stale selection that NewBoard dropped, GAME_NOTES 3.6); 8x8: 64
+void HashPieceRef(StateHasher& theHasher, Board* theBoard, Piece* thePiece, bool full)
 {
 	if (thePiece == NULL)
 	{
-		h.Int(-1);
+		theHasher.Int(-1);
 		return;
 	}
 
@@ -150,14 +150,14 @@ void HashPieceRef(StateHasher& h, Board* theBoard, Piece* thePiece, bool full)
 		{
 			if (theBoard->mBoard[aRow][aCol] == thePiece)
 			{
-				h.Int(aRow * theBoard->mCols + aCol);
+				theHasher.Int(aRow * theBoard->mCols + aCol);
 				return;
 			}
 		}
 	}
 
-	h.Int(theBoard->mRows * theBoard->mCols);
-	HashPiece(h, theBoard, thePiece, full);
+	theHasher.Int(theBoard->mRows * theBoard->mCols);
+	HashPiece(theHasher, theBoard, thePiece, full);
 }
 
 void HashCells(StateHasher& h, Board* b, bool full)
@@ -174,105 +174,105 @@ void HashCells(StateHasher& h, Board* b, bool full)
 	}
 }
 
-// port(variant): a board's own RNG (stage 2); nothing for a board on the global stream
-void HashOwnRng(StateHasher& h, Board* b)
+// port(variant): a board's own RNG; nothing for a board on the global stream
+void HashOwnRng(StateHasher& theHasher, Board* b)
 {
 	if (b->mOwnRng == NULL)
 		return;
-	h.Int((int) b->mGameSeed);
-	h.Bool(b->mUserSeeded);
-	h.Bool(b->mTakesPendingSeed);
-	h.Int((int) b->mBoardDraws);
+	theHasher.Int((int) b->mGameSeed);
+	theHasher.Bool(b->mUserSeeded);
+	theHasher.Bool(b->mTakesPendingSeed);
+	theHasher.Int((int) b->mBoardDraws);
 	uint32_t aState[MTRAND_N];
 	int anIndex;
 	b->mOwnRng->GetState(aState, &anIndex);
-	h.Bytes(aState, sizeof(aState));
-	h.Int(anIndex);
+	theHasher.Bytes(aState, sizeof(aState));
+	theHasher.Int(anIndex);
 }
 
-void HashBoardLogic(StateHasher& h, Board* b)
+void HashBoardLogic(StateHasher& theHasher, Board* theBoard)
 {
-	h.Int(b->mUpdateCnt);  // board tick (Widget::mUpdateCnt)
-	h.Int(b->mLevel);
-	h.Int(b->mDisplayLevel);
-	h.Int(b->mState);
-	HashCells(h, b, false);
+	theHasher.Int(theBoard->mUpdateCnt);  // board tick (Widget::mUpdateCnt)
+	theHasher.Int(theBoard->mLevel);
+	theHasher.Int(theBoard->mDisplayLevel);
+	theHasher.Int(theBoard->mState);
+	HashCells(theHasher, theBoard, false);
 
-	h.Bool(b->mTimedMode);
-	h.Bool(b->mIsNewGame);
-	HashPieceRef(h, b, b->mSelectedPiece, false);
-	h.Bool(b->mShowTutorial);
-	h.Int(b->mTutorialCol);
-	h.Int(b->mTutorialRow);
-	h.Int(b->mTutorialCol2);
-	HashPieceRef(h, b, b->mSwapPiece1, false);
-	HashPieceRef(h, b, b->mSwapPiece2, false);
-	h.Int(b->mSwapAngle);
-	h.Int(b->mSwapCenterX);
-	h.Int(b->mSwapCenterY);
-	h.Int(b->mBarWidth);
-	h.Int(b->mPlayStartTick);
-	h.Int(b->mPlaySeconds);
-	h.Int(b->mGameDuration);
-	h.Int(b->mIdleTicks);
-	h.Int(b->mScore);
-	h.Double(b->mPointMultiplier);
-	h.Int(b->mDisplayScore);
-	h.Int(b->mGemsCleared);
-	h.Int(b->mMoveMatchCount);
-	h.Int(b->mCascadeCount);
-	h.Int(b->mGameOverCountdown);
-	h.Int(b->mLongestCascade);
-	h.Int(b->mBestMoveScore);
-	h.Int(b->mUnused218);
-	h.Int(b->mMoveScore);
-	h.Int(b->mMoveScoreTimer);
-	h.Bool(b->mNewGamePending);
-	h.Int(b->mPauseCount);
-	h.Int(b->mUserPauseCount);
-	h.Bool(b->mStatsDisabled);
-	h.Int(b->mUnused264);
-	h.Int(b->mLevelStartScore);
-	h.Int(b->mLevelTargetScore);
-	h.Int(b->mLevelPoints);
-	h.Double(b->mTimeDrain);
-	h.Double(b->mTimeDrainRate);
-	h.Double(b->mTimeDrainAccel);
-	h.Int(b->mBarColor);
-	h.Int(b->mMouseDownX);
-	h.Int(b->mMouseDownY);
-	h.Bool(b->mMouseDown);
-	h.Int(b->mInputDelay);
-	h.Int(b->mWipeY);
-	h.Int(b->mElectOffset);
-	h.Int(b->mBlackHoleFrame);
-	h.Int(b->mTimeDrainDelay);
-	h.Double(b->mBlackHoleLevel);
-	h.Bool(b->mLevelTextShown);
-	HashOwnRng(h, b);
+	theHasher.Bool(theBoard->mTimedMode);
+	theHasher.Bool(theBoard->mIsNewGame);
+	HashPieceRef(theHasher, theBoard, theBoard->mSelectedPiece, false);
+	theHasher.Bool(theBoard->mShowTutorial);
+	theHasher.Int(theBoard->mTutorialCol);
+	theHasher.Int(theBoard->mTutorialRow);
+	theHasher.Int(theBoard->mTutorialCol2);
+	HashPieceRef(theHasher, theBoard, theBoard->mSwapPiece1, false);
+	HashPieceRef(theHasher, theBoard, theBoard->mSwapPiece2, false);
+	theHasher.Int(theBoard->mSwapAngle);
+	theHasher.Int(theBoard->mSwapCenterX);
+	theHasher.Int(theBoard->mSwapCenterY);
+	theHasher.Int(theBoard->mBarWidth);
+	theHasher.Int(theBoard->mPlayStartTick);
+	theHasher.Int(theBoard->mPlaySeconds);
+	theHasher.Int(theBoard->mGameDuration);
+	theHasher.Int(theBoard->mIdleTicks);
+	theHasher.Int(theBoard->mScore);
+	theHasher.Double(theBoard->mPointMultiplier);
+	theHasher.Int(theBoard->mDisplayScore);
+	theHasher.Int(theBoard->mGemsCleared);
+	theHasher.Int(theBoard->mMoveMatchCount);
+	theHasher.Int(theBoard->mCascadeCount);
+	theHasher.Int(theBoard->mGameOverCountdown);
+	theHasher.Int(theBoard->mLongestCascade);
+	theHasher.Int(theBoard->mBestMoveScore);
+	theHasher.Int(theBoard->mClearedAtMoveStart);
+	theHasher.Int(theBoard->mMoveScore);
+	theHasher.Int(theBoard->mMoveScoreTimer);
+	theHasher.Bool(theBoard->mNewGamePending);
+	theHasher.Int(theBoard->mPauseCount);
+	theHasher.Int(theBoard->mUserPauseCount);
+	theHasher.Bool(theBoard->mStatsDisabled);
+	theHasher.Int(theBoard->mSavedZero);
+	theHasher.Int(theBoard->mLevelStartScore);
+	theHasher.Int(theBoard->mLevelTargetScore);
+	theHasher.Int(theBoard->mLevelPoints);
+	theHasher.Double(theBoard->mTimeDrain);
+	theHasher.Double(theBoard->mTimeDrainRate);
+	theHasher.Double(theBoard->mTimeDrainAccel);
+	theHasher.Int(theBoard->mBarColor);
+	theHasher.Int(theBoard->mMouseDownX);
+	theHasher.Int(theBoard->mMouseDownY);
+	theHasher.Bool(theBoard->mMouseDown);
+	theHasher.Int(theBoard->mInputDelay);
+	theHasher.Int(theBoard->mWipeY);
+	theHasher.Int(theBoard->mElectOffset);
+	theHasher.Int(theBoard->mBlackHoleFrame);
+	theHasher.Int(theBoard->mTimeDrainDelay);
+	theHasher.Double(theBoard->mBlackHoleLevel);
+	theHasher.Bool(theBoard->mLevelTextShown);
+	HashOwnRng(theHasher, theBoard);
 }
 
 // Every Board field in declaration order (Board.h), pieces as raw bytes. port(variant): StateCodec's FULL
-// encoding, the same bytes this function hashed field by field in stage 0 (the field table is the one list)
+// encoding, the same bytes this function hashed field by field in the frozen baseline (the field table is the one list)
 void HashBoardFull(StateHasher& h, Board* b)
 {
 	std::string aFull = StateCodec::Encode(b, StateCodec::PROFILE_FULL);
 	h.Bytes(aFull.data(), aFull.size());
 }
 
-void HashApp(StateHasher& h, WinDMApp* theApp)
+void HashApp(StateHasher& theHasher, WinDMApp* theApp)
 {
-	h.Int((int) GetRandCount());
-	h.Bool(theApp->mTimedMode);
-	h.Bool(theApp->mShowInstructions);
-	h.Int(theApp->mTimesPlayed);
-	h.Bool(theApp->mHighScoreWidget != NULL);
+	theHasher.Int((int) GetRandCount());
+	theHasher.Bool(theApp->mTimedMode);
+	theHasher.Bool(theApp->mShowInstructions);
+	theHasher.Int(theApp->mTimesPlayed);
+	theHasher.Bool(theApp->mHighScoreWidget != NULL);
 
-	h.Int((int) theApp->mDialogMap.size());
+	theHasher.Int((int) theApp->mDialogMap.size());
 	for (DialogMap::iterator anItr = theApp->mDialogMap.begin(); anItr != theApp->mDialogMap.end(); ++anItr)
-		h.Int(anItr->first);
+		theHasher.Int(anItr->first);
 	if (gGameConfig.mPendingSeed != 0)
-		h.Int((int) gGameConfig.mPendingSeed);
+		theHasher.Int((int) gGameConfig.mPendingSeed);
 }
 
 }

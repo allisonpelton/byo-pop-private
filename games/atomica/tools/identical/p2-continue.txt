@@ -1,0 +1,15 @@
+# phase two: a saved game continued and then left by the quit box's "quit" (without saving): the main menu still offers the saved
+# game, since the original never removes SAVEGAME.DAT. Run with --savefile <a saved game> (tools/coverage/make-saves.sh leaves one in
+# build/coverage/atomica/save/ud/SAVEGAME.DAT).
+1500 move 320 445
+1510 click 320 445
+2300 move 316 310
+2310 click 316 310
+2700 shot c2700
+2800 move 72 464
+2810 click 72 464
+2900 move 386 313
+2910 click 386 313
+3500 shot c3500
+3700 shot c3700
+end 3750

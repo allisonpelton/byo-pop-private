@@ -1,4 +1,4 @@
-// Entry point for the Noah's Ark Deluxe port (native and Emscripten).
+// port: the entry point of Noah's Ark Deluxe, native and Emscripten.
 //
 // Arguments (all optional):
 //   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/ and WinNoah.exe (read for the
@@ -25,14 +25,14 @@ using namespace Sexy;
 
 static std::string ArgValue(int argc, char** argv, const char* theKey)
 {
-	size_t n = strlen(theKey);
+	size_t aKeyLength = strlen(theKey);
 	for (int i = 1; i < argc; i++)
 	{
-		const char* a = argv[i];
-		while (*a == '-')
-			a++;
-		if (!strncmp(a, theKey, n) && a[n] == '=')
-			return a + n + 1;
+		const char* anArg = argv[i];
+		while (*anArg == '-')
+			anArg++;
+		if (!strncmp(anArg, theKey, aKeyLength) && anArg[aKeyLength] == '=')
+			return anArg + aKeyLength + 1;
 	}
 	return "";
 }
@@ -41,10 +41,10 @@ static bool HasFlag(int argc, char** argv, const char* theFlag)
 {
 	for (int i = 1; i < argc; i++)
 	{
-		const char* a = argv[i];
-		while (*a == '-')
-			a++;
-		if (!strcmp(a, theFlag))
+		const char* anArg = argv[i];
+		while (*anArg == '-')
+			anArg++;
+		if (!strcmp(anArg, theFlag))
 			return true;
 	}
 	return false;
@@ -61,63 +61,65 @@ static bool LooksLikeGameDir(const std::string& theDir)
 #ifndef __EMSCRIPTEN__
 static std::string ExeDir()
 {
-	char* base = SDL_GetBasePath();
-	std::string dir = base ? base : "./";
-	SDL_free(base);
-	while (!dir.empty() && (dir.back() == '/' || dir.back() == '\\'))
-		dir.pop_back();
-	return dir;
+	char* aBasePath = SDL_GetBasePath();
+	std::string aDir = aBasePath ? aBasePath : "./";
+	SDL_free(aBasePath);
+	while (!aDir.empty() && (aDir.back() == '/' || aDir.back() == '\\'))
+		aDir.pop_back();
+	return aDir;
 }
 
 static std::string FindGameDir()
 {
-	std::string exe = ExeDir();
-	std::vector<std::string> candidates = {exe, exe + "/assets/noahsark", exe + "/../assets/noahsark",
-		exe + "/../../assets/noahsark", "assets/noahsark"};
+	std::string anExeDir = ExeDir();
+	std::vector<std::string> aCandidates = {anExeDir, anExeDir + "/assets/noahsark", anExeDir + "/../assets/noahsark",
+		anExeDir + "/../../assets/noahsark", "assets/noahsark"};
 #ifdef _WIN32
 	// The retail install (the installer's default folder)
-	for (const char* env : {"ProgramFiles", "ProgramFiles(x86)"})
+	for (const char* anEnvName : {"ProgramFiles", "ProgramFiles(x86)"})
 	{
-		const char* pf = SDL_getenv(env);
-		if (pf)
-			candidates.push_back(std::string(pf) + "/PopCap Games/Noah's Ark Deluxe");
+		const char* aProgramFiles = SDL_getenv(anEnvName);
+		if (aProgramFiles)
+			aCandidates.push_back(std::string(aProgramFiles) + "/PopCap Games/Noah's Ark Deluxe");
 	}
 #endif
-	for (const std::string& c : candidates)
-		if (LooksLikeGameDir(c))
-			return c;
+	for (const std::string& aCandidate : aCandidates)
+		if (LooksLikeGameDir(aCandidate))
+			return aCandidate;
 	return "";
 }
 #endif
 
+// 0x411380: the original's WinMain: it keeps the instance handle and runs Init, Start and Shutdown on the global app
+// object. The port does the same with an app it makes here; the platform layer replaces the instance handle.
 int main(int argc, char** argv)
 {
-	std::string gameDir = ArgValue(argc, argv, "gamedir");
-	std::string userDir = ArgValue(argc, argv, "userdir");
-	std::string modsDir = ArgValue(argc, argv, "modsdir");
+	std::string aGameDir = ArgValue(argc, argv, "gamedir");
+	std::string aUserDir = ArgValue(argc, argv, "userdir");
+	std::string aModsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html, games/noahsark/web/page.js) mounts its own IndexedDB-backed folder, so
 	// Noah's Ark's files never mix with the other games' on the same site
-	if (gameDir.empty())
-		gameDir = "/napersist/game";
-	if (userDir.empty())
-		userDir = "/napersist/userdata";
-	if (modsDir.empty())
-		modsDir = "/napersist/mods";
+	if (aGameDir.empty())
+		aGameDir = "/napersist/game";
+	if (aUserDir.empty())
+		aUserDir = "/napersist/userdata";
+	if (aModsDir.empty())
+		aModsDir = "/napersist/mods";
 #else
-	if (gameDir.empty())
-		gameDir = FindGameDir();
-	if (userDir.empty())
+	if (aGameDir.empty())
+		aGameDir = FindGameDir();
+	if (aUserDir.empty())
 	{
 		char* pref = SDL_GetPrefPath("byo-pop", "Noahs Ark Deluxe");
-		userDir = pref ? pref : "userdata";
+		aUserDir = pref ? pref : "userdata";
 		SDL_free(pref);
-		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
-			userDir.pop_back();
+		while (!aUserDir.empty() && (aUserDir.back() == '/' || aUserDir.back() == '\\'))
+			aUserDir.pop_back();
 	}
-	if (modsDir.empty())
-		modsDir = ExeDir() + "/mods-noahsark";
+	if (aModsDir.empty())
+		aModsDir = ExeDir() + "/mods-noahsark";
 #endif
 
 #ifndef __EMSCRIPTEN__
@@ -125,32 +127,32 @@ int main(int argc, char** argv)
 	// user dir (platform/SaveImport.h), then exits without starting the game. Without it nothing changes.
 	{
 		int anImportResult = 0;
-		if (Platform::RunSaveImportIfRequested(argc, argv, "noahsark", gameDir, userDir, &anImportResult))
+		if (Platform::RunSaveImportIfRequested(argc, argv, "noahsark", aGameDir, aUserDir, &anImportResult))
 			return anImportResult;
 	}
 #endif
 
-	if (gameDir.empty() || !LooksLikeGameDir(gameDir))
+	if (aGameDir.empty() || !LooksLikeGameDir(aGameDir))
 	{
-		std::string msg = "Could not find the Noah's Ark Deluxe game files.\n\n"
+		std::string aMessage = "Could not find the Noah's Ark Deluxe game files.\n\n"
 			"Run with -gamedir=\"<your Noah's Ark Deluxe folder>\" or copy the images, data, sounds and music "
 			"folders and the original WinNoah.exe (the game's texts are read from it) into an assets/noahsark "
 			"folder next to the executable.";
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Noah's Ark Deluxe", msg.c_str(), nullptr);
-		SDL_Log("%s", msg.c_str());
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Noah's Ark Deluxe", aMessage.c_str(), nullptr);
+		SDL_Log("%s", aMessage.c_str());
 		return 1;
 	}
 
-	Platform::MakeDirs(userDir);
+	Platform::MakeDirs(aUserDir);
 	// Web: saves written as the page was closed may only have reached localStorage
-	Platform::RestoreUserDataBackup(userDir);
-	Platform::MakeDirs(modsDir);
-	Platform::VFS::Get().SetBaseDir(gameDir);
-	Platform::VFS::Get().SetUserDir(userDir);
-	Platform::ModManager::Get().SetModsDir(modsDir);
+	Platform::RestoreUserDataBackup(aUserDir);
+	Platform::MakeDirs(aModsDir);
+	Platform::VFS::Get().SetBaseDir(aGameDir);
+	Platform::VFS::Get().SetUserDir(aUserDir);
+	Platform::ModManager::Get().SetModsDir(aModsDir);
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
-	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+	SDL_Log("game: %s | user: %s | mods: %s", aGameDir.c_str(), aUserDir.c_str(), aModsDir.c_str());
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static NoahApp* anApp = new NoahApp();

@@ -1,0 +1,44 @@
+# Drags in the action mode: links dragged from one animal to another, and the Options sliders (GAME_NOTES.md, "Coverage check"). The board
+# of the easy game with seed 1 is the port's too (column x0 from the top: 2 2 2 2 0 0 0 1 0; row y0 is 2 1 2 3 2 0 0 3 3); a cell (x, y) is
+# at pixel (203 + 50x, 41 + 50y). "state" lines are for the port's script only.
+301 click 320 456
+360 click 198 188
+381 click 320 195
+440 click 400 405
+700 click 400 240
+# the get-ready click also picks the animal under it (4,4): a click outside the board puts it back
+720 click 100 240
+730 state
+# press on (0,1), drag to (0,0): linked (the same kind, next to each other); another move inside (0,0): nothing; back over (0,1): the link
+# is taken back; on to (0,2): linked again from (0,1); to (1,2) (another kind): nothing; to (0,3) (not reachable from (0,1)): nothing; back to
+# (0,2): nothing; release: the pair is joined
+740 move 203 91
+742 down 203 91
+744 move 203 41
+746 move 203 45
+748 move 203 91
+750 move 203 141
+752 move 253 141
+754 move 203 191
+756 move 203 141
+760 up 203 141
+761 state
+800 state
+900 state
+# the Options sliders: the thumbs are near the right end (music at about (517,113), effects at (517,145)); each is pressed on, dragged to the
+# left and let go
+1000 click 70 410
+1040 move 517 113
+1042 down 517 113
+1044 move 500 113
+1046 move 470 113
+1048 move 440 113
+1050 up 440 113
+1080 move 517 145
+1082 down 517 145
+1084 move 480 145
+1086 move 450 145
+1088 up 450 145
+1120 click 402 404
+1200 state
+1300 move 1 1

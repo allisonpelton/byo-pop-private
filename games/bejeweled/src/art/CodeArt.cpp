@@ -32,27 +32,27 @@ Palette MakePalette(Rgba thePanel, Rgba theDark, Rgba theLight, Rgba theInk, Rgb
 	Rgba theBackBottom, Rgba theLogoTop, Rgba theLogoBottom, Rgba theLogoGlow, Rgba theBar, Rgba theOrb, Rgba theLampLeft,
 	Rgba theLampRight, Rgba theVortex)
 {
-	Palette p;
-	p.mPanel = thePanel;
-	p.mPanelDark = theDark;
-	p.mPanelLight = theLight;
-	p.mInk = theInk;
-	p.mGlow = theGlow;
-	p.mWell = theWell;
-	p.mBackTop = theBackTop;
-	p.mBackBottom = theBackBottom;
-	p.mLogoTop = theLogoTop;
-	p.mLogoBottom = theLogoBottom;
-	p.mLogoGlow = theLogoGlow;
-	p.mBar = theBar;
-	p.mOrb = theOrb;
-	p.mLampLeft = theLampLeft;
-	p.mLampRight = theLampRight;
-	p.mVortex = theVortex;
-	return p;
+	Palette aPalette;
+	aPalette.mPanel = thePanel;
+	aPalette.mPanelDark = theDark;
+	aPalette.mPanelLight = theLight;
+	aPalette.mInk = theInk;
+	aPalette.mGlow = theGlow;
+	aPalette.mWell = theWell;
+	aPalette.mBackTop = theBackTop;
+	aPalette.mBackBottom = theBackBottom;
+	aPalette.mLogoTop = theLogoTop;
+	aPalette.mLogoBottom = theLogoBottom;
+	aPalette.mLogoGlow = theLogoGlow;
+	aPalette.mBar = theBar;
+	aPalette.mOrb = theOrb;
+	aPalette.mLampLeft = theLampLeft;
+	aPalette.mLampRight = theLampRight;
+	aPalette.mVortex = theVortex;
+	return aPalette;
 }
 
-Rgba B(int r, int g, int b)
+Rgba MakeRgb(int r, int g, int b)
 {
 	return Rgba::Bytes(r, g, b);
 }
@@ -66,21 +66,21 @@ struct NamedPalette
 const std::vector<NamedPalette>& Palettes()
 {
 	static const std::vector<NamedPalette> sPalettes = {
-		{"blue", MakePalette(B(44, 92, 158), B(14, 32, 70), B(140, 190, 240), B(225, 240, 255), B(255, 206, 84), B(10, 22, 48),
-			B(40, 70, 120), B(6, 12, 30), B(255, 238, 160), B(236, 124, 34), B(255, 170, 60), B(110, 220, 90), B(150, 90, 230),
-			B(230, 70, 60), B(150, 235, 120), B(60, 170, 255))},
-		{"violet", MakePalette(B(96, 64, 150), B(34, 18, 64), B(196, 170, 240), B(245, 236, 255), B(120, 230, 255), B(24, 12, 44),
-			B(80, 50, 120), B(14, 6, 28), B(210, 250, 255), B(90, 150, 255), B(120, 200, 255), B(240, 120, 220), B(60, 200, 230),
-			B(240, 90, 140), B(160, 240, 230), B(210, 110, 255))},
-		{"emerald", MakePalette(B(30, 118, 92), B(8, 46, 36), B(150, 220, 190), B(230, 255, 244), B(255, 220, 110), B(6, 30, 24),
-			B(24, 90, 72), B(4, 22, 18), B(255, 245, 180), B(220, 160, 40), B(255, 210, 90), B(120, 230, 140), B(240, 100, 120),
-			B(240, 90, 70), B(190, 250, 150), B(80, 240, 180))},
-		{"ember", MakePalette(B(150, 62, 36), B(60, 18, 8), B(240, 170, 120), B(255, 240, 224), B(255, 230, 120), B(40, 10, 4),
-			B(120, 46, 24), B(26, 6, 2), B(255, 250, 200), B(255, 150, 40), B(255, 120, 40), B(255, 190, 60), B(255, 150, 50),
-			B(255, 80, 40), B(255, 230, 120), B(255, 130, 40))},
-		{"night", MakePalette(B(46, 52, 68), B(14, 16, 24), B(150, 160, 186), B(220, 228, 240), B(140, 200, 255), B(8, 10, 16),
-			B(34, 38, 54), B(4, 5, 10), B(240, 244, 255), B(140, 160, 200), B(150, 190, 255), B(120, 200, 255), B(110, 140, 220),
-			B(220, 80, 90), B(170, 220, 250), B(130, 170, 255))},
+		{"blue", MakePalette(MakeRgb(44, 92, 158), MakeRgb(14, 32, 70), MakeRgb(140, 190, 240), MakeRgb(225, 240, 255), MakeRgb(255, 206, 84), MakeRgb(10, 22, 48),
+			MakeRgb(40, 70, 120), MakeRgb(6, 12, 30), MakeRgb(255, 238, 160), MakeRgb(236, 124, 34), MakeRgb(255, 170, 60), MakeRgb(110, 220, 90), MakeRgb(150, 90, 230),
+			MakeRgb(230, 70, 60), MakeRgb(150, 235, 120), MakeRgb(60, 170, 255))},
+		{"violet", MakePalette(MakeRgb(96, 64, 150), MakeRgb(34, 18, 64), MakeRgb(196, 170, 240), MakeRgb(245, 236, 255), MakeRgb(120, 230, 255), MakeRgb(24, 12, 44),
+			MakeRgb(80, 50, 120), MakeRgb(14, 6, 28), MakeRgb(210, 250, 255), MakeRgb(90, 150, 255), MakeRgb(120, 200, 255), MakeRgb(240, 120, 220), MakeRgb(60, 200, 230),
+			MakeRgb(240, 90, 140), MakeRgb(160, 240, 230), MakeRgb(210, 110, 255))},
+		{"emerald", MakePalette(MakeRgb(30, 118, 92), MakeRgb(8, 46, 36), MakeRgb(150, 220, 190), MakeRgb(230, 255, 244), MakeRgb(255, 220, 110), MakeRgb(6, 30, 24),
+			MakeRgb(24, 90, 72), MakeRgb(4, 22, 18), MakeRgb(255, 245, 180), MakeRgb(220, 160, 40), MakeRgb(255, 210, 90), MakeRgb(120, 230, 140), MakeRgb(240, 100, 120),
+			MakeRgb(240, 90, 70), MakeRgb(190, 250, 150), MakeRgb(80, 240, 180))},
+		{"ember", MakePalette(MakeRgb(150, 62, 36), MakeRgb(60, 18, 8), MakeRgb(240, 170, 120), MakeRgb(255, 240, 224), MakeRgb(255, 230, 120), MakeRgb(40, 10, 4),
+			MakeRgb(120, 46, 24), MakeRgb(26, 6, 2), MakeRgb(255, 250, 200), MakeRgb(255, 150, 40), MakeRgb(255, 120, 40), MakeRgb(255, 190, 60), MakeRgb(255, 150, 50),
+			MakeRgb(255, 80, 40), MakeRgb(255, 230, 120), MakeRgb(255, 130, 40))},
+		{"night", MakePalette(MakeRgb(46, 52, 68), MakeRgb(14, 16, 24), MakeRgb(150, 160, 186), MakeRgb(220, 228, 240), MakeRgb(140, 200, 255), MakeRgb(8, 10, 16),
+			MakeRgb(34, 38, 54), MakeRgb(4, 5, 10), MakeRgb(240, 244, 255), MakeRgb(140, 160, 200), MakeRgb(150, 190, 255), MakeRgb(120, 200, 255), MakeRgb(110, 140, 220),
+			MakeRgb(220, 80, 90), MakeRgb(170, 220, 250), MakeRgb(130, 170, 255))},
 	};
 	return sPalettes;
 }
@@ -378,15 +378,6 @@ void Enable(const Settings& theSettings)
 	gEnabled = true;
 }
 
-void Disable()
-{
-	Platform::SetImageGenerator(Platform::ImageGenerator());
-	for (int i = 0; i < NUM_FONTS; i++)
-		Platform::VFS::Get().SetGeneratedFile(kFonts[i].mDescriptor, "");
-	gModFonts.clear();
-	gEnabled = false;
-}
-
 bool IsEnabled()
 {
 	return gEnabled;
@@ -474,7 +465,7 @@ bool GenerateFontImage(const std::string& theName, Platform::LoadedImage& theOut
 	double aTop = aLayout.mBaseline - aFont->mCap;
 	std::vector<Stop> aStops;
 	if (aFont->mFill == FILL_GOLD)
-		aStops = {{0, B(255, 250, 196)}, {0.5, B(255, 206, 64)}, {1, B(236, 112, 28)}};
+		aStops = {{0, MakeRgb(255, 250, 196)}, {0.5, MakeRgb(255, 206, 64)}, {1, MakeRgb(236, 112, 28)}};
 	else
 		aStops = {{0, Rgba(1, 1, 1)}, {1, Rgba(0.8f, 0.84f, 0.9f)}};
 	aCanvas.Fill(aGlyphs, Linear(Vec2(0, aTop), Vec2(0, aLayout.mBaseline), aStops));
@@ -548,27 +539,27 @@ Canvas Local(const Canvas& theCanvas, double x0, double y0, double x1, double y1
 
 } // namespace
 
-void Ball(Canvas& theCanvas, double cx, double cy, double r, const Rgba& theColor)
+void Ball(Canvas& theCanvas, double cx, double cy, double theRadius, const Rgba& theColor)
 {
 	int ox, oy;
-	double m = r * 0.4 + 2;
-	Canvas aLocal = Local(theCanvas, cx - r - m, cy - r - m, cx + r + m, cy + r + m, &ox, &oy);
+	double m = theRadius * 0.4 + 2;
+	Canvas aLocal = Local(theCanvas, cx - theRadius - m, cy - theRadius - m, cx + theRadius + m, cy + theRadius + m, &ox, &oy);
 	double x = cx - ox, y = cy - oy;
-	Mask aBall = ShapeMask(aLocal, Path().Ellipse(x, y, r, r));
-	aLocal.Shadow(aBall, r * 0.06, r * 0.1, r * 0.12, Rgba(0, 0, 0, 0.45f));
-	aLocal.Fill(aBall, Radial(Vec2(x - r * 0.35, y - r * 0.4), r * 1.5, r * 1.5,
+	Mask aBall = ShapeMask(aLocal, Path().Ellipse(x, y, theRadius, theRadius));
+	aLocal.Shadow(aBall, theRadius * 0.06, theRadius * 0.1, theRadius * 0.12, Rgba(0, 0, 0, 0.45f));
+	aLocal.Fill(aBall, Radial(Vec2(x - theRadius * 0.35, y - theRadius * 0.4), theRadius * 1.5, theRadius * 1.5,
 		{{0, Lighter(theColor, 0.55)}, {0.45, theColor}, {1, Darker(theColor, 0.65)}}));
 	// light bounced in at the lower right, a darker edge, and the highlight
 	Mask aRim = aBall;
-	aRim.Subtract(Shifted(aBall, -r * 0.12, -r * 0.12));
-	aRim.Blur(r * 0.1).Intersect(aBall);
+	aRim.Subtract(Shifted(aBall, -theRadius * 0.12, -theRadius * 0.12));
+	aRim.Blur(theRadius * 0.1).Intersect(aBall);
 	aLocal.Fill(aRim, Lighter(theColor, 0.35).WithAlpha(0.55f));
 	Mask anEdge = aBall;
-	anEdge.Subtract(aBall.Grown(-std::max(0.8, r * 0.05)));
+	anEdge.Subtract(aBall.Grown(-std::max(0.8, theRadius * 0.05)));
 	aLocal.Fill(anEdge, Darker(theColor, 0.7).WithAlpha(0.6f));
-	Mask aShine = ShapeMask(aLocal, Path().Ellipse(x - r * 0.15, y - r * 0.5, r * 0.55, r * 0.32));
-	aShine.Blur(r * 0.06);
-	aLocal.Fill(aShine, Linear(Vec2(0, y - r * 0.85), Vec2(0, y - r * 0.15), {{0, Rgba(1, 1, 1, 0.9f)}, {1, Rgba(1, 1, 1, 0)}}));
+	Mask aShine = ShapeMask(aLocal, Path().Ellipse(x - theRadius * 0.15, y - theRadius * 0.5, theRadius * 0.55, theRadius * 0.32));
+	aShine.Blur(theRadius * 0.06);
+	aLocal.Fill(aShine, Linear(Vec2(0, y - theRadius * 0.85), Vec2(0, y - theRadius * 0.15), {{0, Rgba(1, 1, 1, 0.9f)}, {1, Rgba(1, 1, 1, 0)}}));
 	theCanvas.Draw(aLocal, ox, oy);
 }
 

@@ -23,7 +23,6 @@ void AtomicaApp::StartGame()
 		mWidgetManager->AddWidget(mBoard);
 		mBoard->Start();
 	}
-	mB3ea0 = false;
 }
 
 // 0x405bd0: the quit box
@@ -33,17 +32,6 @@ void AtomicaApp::ShowQuit()
 	{
 		QuitDialog* aDialog = new QuitDialog(this);
 		mQuitDialog = aDialog;
-		mWidgetManager->AddWidget(aDialog);
-	}
-}
-
-// 0x405c40: "confirm new game"
-void AtomicaApp::ShowConfirm()
-{
-	if (mConfirmDialog == NULL)
-	{
-		ConfirmDialog* aDialog = new ConfirmDialog(this);
-		mConfirmDialog = aDialog;
 		mWidgetManager->AddWidget(aDialog);
 	}
 }
@@ -118,7 +106,8 @@ void AtomicaApp::WriteHighScores()
 	WriteBufferToFile("HS.CFG", &aBuffer);
 }
 
-// port: the saved game is a file in the user's folder
+// port: the saved game is a file in the user's folder. The original's menu asks only whether the file is there (0x4198e0); a file
+// too short to hold a game counts as none here (builds of the port before 2026-11-11 emptied the file when a game was continued).
 bool AtomicaApp::HasSavedGame()
 {
 	Buffer aBuffer;
@@ -147,13 +136,8 @@ void AtomicaApp::SaveGame()
 	WriteBufferToFile("SAVEGAME.DAT", &aBuffer);
 }
 
-void AtomicaApp::DeleteSavedGame()
-{
-	Buffer aBuffer;
-	WriteBufferToFile("SAVEGAME.DAT", &aBuffer);
-}
-
-// 0x406060: the saved game goes on (the menu closes itself when its doors are open)
+// 0x406060 / 0x406020: the saved game goes on (the menu closes itself when its doors are open). The file stays as it is, as in
+// the original, which never removes it: the menu offers the same saved game again until another is saved over it.
 void AtomicaApp::ResumeGame()
 {
 	Buffer aBuffer;
@@ -175,19 +159,6 @@ void AtomicaApp::ResumeGame()
 		mBoard->Load(aFile);
 	}
 	fclose(aFile);
-	mB3ea0 = false;
-	DeleteSavedGame();
-}
-
-// 0x405cb0: the player gives up
-void AtomicaApp::EndGame()
-{
-	if ((mBoard != NULL) && (mBoard->mGrid != NULL) && !mBoard->mGrid->mLevelOver)
-	{
-		mBoard->mGrid->mLevelOver = true;
-		mBoard->mGrid->mOverTick = 0x7d;
-		mB3ea0 = true;
-	}
 }
 
 // 0x405d70: the main menu (theGameOver: after a game). The title screen or the board stays under it until its doors have shut
@@ -221,14 +192,11 @@ void AtomicaApp::CloseBoard()
 	mPauseCount = 0;
 }
 
-// 0x406200
+// 0x406200 (the original shows the menu's main page here when the player gave the game up, the flag at +0x3ea0; only the
+// "confirm new game" box sets it, which nothing opens: GAME_NOTES.md, "Code the port does not need")
 void AtomicaApp::ShowGameOver()
 {
-	DeleteSavedGame();
-	if (mB3ea0)
-		ShowMainMenu(false);
-	else
-		ShowMainMenu(true);
+	ShowMainMenu(true);
 }
 
 // 0x432240: the level-up box (the next level begins when its button is pressed)

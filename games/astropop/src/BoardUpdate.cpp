@@ -1,0 +1,591 @@
+// Board: the update of a frame (original 0x479480, slot 17). One big function in the original; the port keeps its order
+// of work and splits some blocks out into members named after what they do.
+
+#include "Board.h"
+#include "Brick.h"
+#include "BrickKinds.h"
+#include "AstroPopApp.h"
+#include "UserProfile.h"
+#include "SoundInstance.h"
+#include "Particle.h"
+#include "Image.h"
+#include "Res.h"
+
+using namespace Sexy;
+
+// 0x479480
+void Board::Update()
+{
+	Widget::Update();
+
+	if (m8db)
+	{
+		if (!m948)
+			m94c++;
+		else
+		{
+			m948 = 0;
+			m94c = 1;
+		}
+	}
+
+	// a warp to the next stage is on the screen (and is not fading out already)
+	bool aWarpActive = true;
+	if (m230.empty() || !m230[0]->m1c || -m7ec < m7e8)
+		aWarpActive = false;
+
+	if (m8ff && (mUpdateCnt % 8) != 0)
+	{
+		if (m8db)
+			RecordStep(false);
+		return;
+	}
+
+	if (m901)
+	{
+		if (m310->Check(m1a84))
+			mApp->CloseBoard();
+		MarkDirty();
+		return;
+	}
+
+	if (m1924 >= 1)
+	{
+		// the stage's picture is covered by the warp: the field's cover slides down
+		m192c++;
+		if (m1928 < mHeight)
+		{
+			MarkDirty();
+			int aCover = m1928;
+			m1928 = aCover + 0x14;
+			if (mHeight < aCover + 0x14)
+				m1928 = mHeight;
+			mOverlay.MarkDirtyFull();
+		}
+
+		if (m230.empty() || !m230[0]->m1c || m1924 != 1)
+		{
+			if (m919)
+			{
+				m808.Update(8);
+				MarkDirtyFull();
+			}
+		}
+		else if (!m919)
+			UpdateStageBackground();
+		else
+		{
+			m808.Update(8);
+			MarkDirtyFull();
+		}
+
+		if (aWarpActive)
+			UpdateEffects();
+	}
+	else
+	{
+		mApp->mGameUpdates++;
+		if (mApp->mHelpScreen != NULL)
+			return;
+
+		if (m8e1 && mApp->mFlag6fb && !mApp->mFlag6fc)
+		{
+			m8e1 = false;
+			mApp->ShowFullScreenHelp();
+			return;
+		}
+
+		// the demo (the title's game plays by itself): one step of its script
+		if (m8dc)
+		{
+			unsigned int aSize = (unsigned int) m2d0.size();
+			unsigned int aStep = (unsigned int) m954;
+			if (aSize <= aStep)
+			{
+				ResetState();
+				ResetGame();
+				BuildField();
+				return;
+			}
+
+			int anAction = m2d0[aStep].mAction;
+			if (anAction == 0)
+			{
+				int aWait = m95c;
+				m95c = aWait - 1;
+				if (aWait - 1 < 1)
+					m954 = aStep + 1;
+			}
+			else
+			{
+				m8dd = true;
+				if (anAction == 2)
+					MouseDown(m1958, m195c, 1);
+				else if (anAction == 1)
+					MouseDown(m1958, m195c, -1);
+				else
+				{
+					int aX = 0;
+					switch (anAction)
+					{
+					case 3:		aX = 0x232;	break;
+					case 4:		aX = 0x206;	break;
+					case 5:		aX = 0x1da;	break;
+					case 6:		aX = 0x1ae;	break;
+					case 7:		aX = 0x182;	break;
+					case 8:		aX = 0x156;	break;
+					case 9:		aX = 0x12a;	break;
+					case 10:	aX = 0xfe;	break;
+					case 0xb:	aX = 0xd2;	break;
+					case 0xc:	aX = 0xa6;	break;
+					}
+					MouseMove(aX, 400);
+				}
+				unsigned int aNext = (unsigned int) m954 + 1;
+				m8dd = false;
+				m954 = (int) aNext;
+				if (aNext < (unsigned int) m2d0.size() && m2d0[aNext].mAction == 0)
+					m95c = m2d0[aNext].mArg;
+			}
+		}
+
+		if (!m8e0)
+		{
+			if (!m8dc)
+			{
+				m8e0 = true;
+				mApp->PlaySample(SOUND_VWELCOME);
+			}
+			if (!mApp->mEngineLoop->IsPlaying())
+			{
+				mApp->mEngineLoop->SetVolume(1.0);
+				mApp->mHyperspaceLoop->SetVolume(1.0);
+				mApp->mEngineLoop->Play(true, false);
+			}
+		}
+
+		UpdateStates();
+		if (!gFlag5A5100 && m1a60 != 2 && !mFlag8E8 && m1940 > 1)
+			SaveGameState();
+		ShowThemeButtons();
+		if (m1a44 < 0)
+			UpdateScenery();
+		if (mFlag8E8)
+			UpdateGameOver();
+
+		if (m910 && m912 && (mUpdateCnt % 2) == 0)
+			RevealBricks();
+
+		SweepSprockets();
+		SweepTurbots();
+
+		if (IsSettled(false))
+			LevelComplete();
+		if (Fn46a810())
+			return;
+
+		if (m8ea && !aWarpActive)
+			UpdateEffects();
+		UpdateAnimCounters();
+		if (m8e6)
+			FadeBackdrop();
+		UpdateBricks();
+		if (m1a60 == 2)
+			UpdateRamp();
+
+		if ((mUpdateCnt % m19d4) == 0 && !mApp->mFlag658 && m1bbc <= mField193C && m8fc && m19d0 < m19cc - 200 && m19fc == 0)
+			m19d0++;
+
+		if (m930 < m934)
+		{
+			float aNew = m934 - 0.2f;
+			m934 = aNew;
+			if (aNew < m930)
+				m934 = m930;
+		}
+
+		if (SpawnControl())
+			return;
+
+		// the floating texts
+		for (int i = 0; i < (int) m140.size(); i++)
+		{
+			m140[i]->Update();
+			if (m140[i]->mDone)
+			{
+				delete m140[i];
+				m140.erase(m140.begin() + i);
+				i--;
+			}
+		}
+
+		mSirenAnim.Update();
+
+		// the score on the display catches up with the score, faster the further behind it is
+		int aShown = m1970;
+		int aScore = mScore;
+		if (aShown < aScore)
+		{
+			int aDiff = aScore - aShown;
+			if (aDiff < 1000)
+				aShown += 0xf;
+			else if (aDiff < 2000)
+				aShown += 0x32;
+			else if (aDiff < 5000)
+				aShown += 0xfa;
+			else if (aDiff < 10000)
+				aShown += 700;
+			else if (aDiff < 20000)
+				aShown += 0x5dc;
+			else if (aDiff < 50000)
+				aShown += 4000;
+			else if (aDiff < 200000)
+				aShown += 10000;
+			else if (aDiff < 400000)
+				aShown += 20000;
+			else if (aDiff < 600000)
+				aShown += 50000;
+			else if (aDiff < 800000)
+				aShown += 70000;
+			else if (aDiff < 1000000)
+				aShown += 100000;
+			else
+				aShown += 150000;
+			m1970 = aShown;
+			if (aScore <= aShown)
+				m1970 = aScore;
+		}
+
+		m420.Update();
+		if (m19fc == 0 && m8fc)
+			m19d8++;
+
+		UpdateExplosion();
+
+		// the blinking pictures
+		for (int i = 0; i < 40; i++)
+		{
+			md8[i].mCounter--;
+			if (md8[i].mCounter < -0x14)
+				md8[i].mCounter = 400;
+			md8[i].mAnim.Update();
+		}
+
+		if (m1a60 == 2)
+			UpdateSparks();
+
+		if (mFlag8E8 && !m91e)
+		{
+			m964--;
+			if (m964 < 1)
+			{
+				m91e = true;
+				if (m1b30 == 0)
+					mApp->PlaySample(SOUND_NEW_HIGH_SCORE);
+			}
+		}
+		if (!m91f && m1b44 > 0)
+		{
+			m1b44--;
+			if (m1b44 < 1)
+				m91f = true;
+		}
+
+		// with the left button held in the field of a classic game the click is repeated every update
+		if (mMode == 0 && m1958 > 0xa5 && m1958 < 0x25f && m1a34 == 1 && mApp->IsLeftButtonDown())
+		{
+			bool aFlag = m90b;
+			m90b = true;
+			MouseDown(m1958, m195c, 1);
+			m90b = aFlag;
+		}
+
+		for (unsigned int i = 0; i < m2b0.size(); i++)
+			m2b0[i]->Update();
+
+		if ((mUpdateCnt % 300) == 0 && m1a60 == 2)
+			DeleteDoomedBricks();
+		MarkDirty();
+	}
+
+	if (m8db)
+		RecordStep(false);
+}
+
+// the field's bricks appear one at a time (every second update) while a new field is built from the top: the first
+// brick that is not visible yet shows (and turns into a rainbow brick); when none is left the targets stop flashing and
+// the field is ready
+void Board::RevealBricks()
+{
+	for (int aRow = 1; aRow <= 0xe; aRow++)
+	{
+		for (int aCol = 0; aCol < 10; aCol++)
+		{
+			Brick* aBrick = m314[aRow][aCol];
+			if (aBrick != NULL && !aBrick->mVisible)
+			{
+				aBrick->SetVisible(true);
+				aBrick->MakeRainbow();
+				return;
+			}
+		}
+	}
+
+	for (unsigned int i = 0; i < mTargeted.size(); i++)
+		mTargeted[i]->StopFlash();
+	if (!m918)
+	{
+		m918 = true;
+		m1b78 = 300;
+	}
+	mTargeted.clear();
+	m912 = false;
+	m90f = false;
+	m1b70 = 6000;
+	HighlightTargets();
+}
+
+// every second update, in mode 1 of a running game: the first brick that has no sprocket yet is told it hits a marked
+// cell (event 0x18) or not (0x16)
+void Board::SweepSprockets()
+{
+	if (m1a34 != 1)
+		return;
+	if ((mUpdateCnt % 2) != 0 || mMode != 1 || m1a0.empty())
+		return;
+
+	for (unsigned int aRow = 1; aRow < m314.size(); aRow++)
+	{
+		for (int aCol = 0; aCol < 10; aCol++)
+		{
+			Brick* aBrick = m314[aRow][aCol];
+			if (aBrick != NULL && !aBrick->mSprocketOn && !aBrick->mFlag190)
+			{
+				FireTo(aBrick, HasCell3(aCol, aRow, m1a0) ? 0x18 : 0x16);
+				return;
+			}
+		}
+	}
+}
+
+// the same in mode 2 with the turbot bricks (events 0x19 and 0x17); the phase of m1b4c moves on once the list of the
+// marked cells is empty (or was)
+void Board::SweepTurbots()
+{
+	if (m1a34 != 1 || m1b4c == 1 || m1b4c == 3)
+		return;
+	if ((mUpdateCnt % 2) != 0 || mMode != 2)
+		return;
+
+	if (!mc8.empty())
+	{
+		for (unsigned int aRow = 1; aRow < m314.size(); aRow++)
+		{
+			for (int aCol = 0; aCol < 10; aCol++)
+			{
+				Brick* aBrick = m314[aRow][aCol];
+				if (aBrick != NULL && !aBrick->mTurbotOn && !aBrick->mFlag193)
+				{
+					FireTo(aBrick, HasCell(aCol, aRow, mc8) ? 0x19 : 0x17);
+					if (!mc8.empty())
+						return;
+					goto Phase;
+				}
+			}
+		}
+	}
+Phase:
+	if (m1b4c == 0)
+		m1b4c = 1;
+	else if (m1b4c == 2)
+		m1b4c = 3;
+}
+
+// when the field is quiet and the time has come, the next piece drops; when there is no room left the game ends (if the
+// profile asks for it). Returns true when the update ends here.
+bool Board::SpawnControl()
+{
+	if (!(m8e3 && !m8e4 && !m910 && !m8ec && !m8eb && !m8ed && !m8ef && !m8f4))
+		return false;
+
+	int aTime;
+	if (m1a60 == 2)
+		aTime = m19cc;
+	else
+	{
+		float aStage = (mField193C > 5) ? 0.0f : (float) (8 - mField193C);
+		aTime = (int) ((float) (m19cc - m19d0) + (aStage + aStage + 20.0f) * m930);
+	}
+
+	int aPhase = m1a34;
+	if (aPhase == 0)
+		m1ab4--;
+
+	if (m1a68 == 0 && CountMovingBricks(false) == 0 && m1994 == 0 && !m8ea && (aPhase != 1 || m8fb) &&
+		((mMode == 0 && (aPhase != 1 || m91c)) || (mMode == 3 && (aPhase != 1 || m91b)) || aPhase == 0 || m8fb) &&
+		!mApp->mFlag658 && m8fc && mf8.empty() && m19fc < 1 && (aTime <= m19d8 || m1934 > 0))
+	{
+		int aWaited = m19d8;
+		int aSpare = m1934;
+		if (aSpare >= 1 && !m8fb && m1ab4 > 0 && aWaited < aTime)
+			return false;
+
+		if (m1ab4 < 0)
+			m1ab4 = 0;
+
+		if (m909)
+		{
+			m97c--;
+			if (m97c < 1)
+				m909 = false;
+			if (m909)
+				return false;
+		}
+
+		m8fe = false;
+		if (aWaited < aTime)
+		{
+			if (m1ab4 < 1)
+			{
+				m1934 = aSpare - 1;
+				if (m1934 >= 0)
+					m1ab4 = 100;
+				else
+					m1934 = 0;
+			}
+		}
+		else
+		{
+			m19d8 = 0;
+			if (aSpare > 0)
+			{
+				m1934 = aSpare - 1;
+				m1ab4 = 100;
+			}
+		}
+
+		if (NoRoomLeft())
+		{
+			int aValue = 1;
+			mApp->mUser->GetInt(0x2e, &aValue);
+			if (aValue == 1 && m1bdc <= m1bd8)
+			{
+				Pause(true, false);
+				mOverlay.SetFlag78(true);
+				return true;
+			}
+		}
+		AddTopRow();
+		m2b0[2]->SetShown(false);
+		UpdateKlaxon();
+	}
+	return false;
+}
+
+// the 8 explosion animations of the game's end: they count their loops; when all 8 are through the explosion is over
+// (the animations are freed); the white flash of the overlay fades in as the blast grows and out again
+void Board::UpdateExplosion()
+{
+	int aNumDone = 0;
+	for (int i = 0; i < (int) m1b0.size(); i++)
+	{
+		FrameAnim* anAnim = m1b0[i];
+		anAnim->Update();
+		if (anAnim->mDone || (0 < anAnim->mMaxLoops && anAnim->mMaxLoops <= anAnim->mLoopCount))
+			aNumDone++;
+		if (i == 7 && anAnim->mNumFrames != 1 && anAnim->mFrame == 7 && !anAnim->mStopped && m1a40 == -1)
+		{
+			m1a40 = 0;
+			anAnim->SetStopped(true);
+			anAnim->SetDelay(3);
+		}
+	}
+
+	if (aNumDone == 8)
+	{
+		m8f9 = true;
+		m1a40 = -1;
+		m1a44 = -1;
+		SetOverlayHidden(true);
+		for (unsigned int i = 0; i < m1b0.size(); i++)
+			delete m1b0[i];
+		m1b0.clear();
+	}
+
+	int aCount = (int) m1b0.size();
+	int aFade = m1a44;
+	if (aFade >= 0)
+	{
+		bool aSetFill = true;
+		if (aCount >= 1)
+		{
+			FrameAnim* aLast = m1b0[aCount - 1];
+			int aCel = (aLast->mNumFrames == 1) ? 0 : aLast->mFrame;
+			if (aCel > IMAGE_ATOMIC_EXPLOSION->mNumCols / 2)
+			{
+				aFade += 10;
+				m1a44 = aFade;
+				if (aFade > 0xfe)
+				{
+					m1a44 = -1;
+					SetOverlayHidden(true);
+				}
+				mOverlay.SetFill(255, 255, 255, aFade);
+				return;
+			}
+		}
+		if (aFade < 0 || aCount < 1 || m1b0[aCount - 1]->mStopped)
+			aSetFill = false;
+		if (aSetFill)
+		{
+			m1a44 = aFade + 1;
+			mOverlay.SetFill(255, 255, 255, aFade + 1);
+		}
+	}
+}
+
+// the energy mode's sparks: every 10 updates a row of white sparks starts at the top of the field; they fall and are
+// freed when done
+void Board::UpdateSparks()
+{
+	if (m1b40 > 0)
+		m1b40--;
+	if (m1b40 > 0 && (mUpdateCnt % 10) == 0)
+	{
+		int aCol = 0;
+		int aSparkWidth = IMAGE_PARTICLE_WHITE->GetCelWidth();
+		if (0x1b8 / (aSparkWidth + 3) > 0)
+		{
+			do
+			{
+				float aSpeed = (float) (((int) AstroRand() % 500000000) % 300) * 0.001f + 0.1f;
+				Particle* aParticle = new Particle(0.0f, 0.0f, 0.0f, 0, aSpeed, (float) mHeight, gSinTable, gCosTable);
+				aParticle->mLife = 0x32;
+
+				int aRandom = (int) AstroRand() % 500000000;
+				int aWidth = IMAGE_PARTICLE_WHITE->GetCelWidth();
+				aParticle->SetX((float) ((aWidth + aRandom % 8) * aCol + 0xa6));
+				aParticle->SetY((float) (((int) AstroRand() % 500000000) % 10 + 0x11));
+				aParticle->SetImage(GetImageById(((int) AstroRand() % 500000000) % 5 + 0x23f), 5);
+				m2a0.push_back(aParticle);
+
+				aCol += mApp->Is3DAccelerated() ? 2 : 4;
+			}
+			while (aCol < 0x1b8 / (IMAGE_PARTICLE_WHITE->GetCelWidth() + 3));
+		}
+	}
+
+	for (unsigned int i = 0; i < m2a0.size(); i++)
+	{
+		m2a0[i]->Update();
+		if (m2a0[i]->mDone)
+		{
+			delete m2a0[i];
+			m2a0.erase(m2a0.begin() + i);
+			i--;
+		}
+	}
+
+	if (!mAnim620.mStopped)
+		mAnim620.Update();
+}

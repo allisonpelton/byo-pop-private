@@ -136,17 +136,17 @@ HintBox::HintBox(AtomicaApp* theApp, Grid* theGrid, int theHint) :
 	case 11:
 	case 12:
 		// beside the element atom that wants to act: on its right, or on its left on the right half of the screen
-		if (mGrid->mI4b8 < 0x141)
+		if (mGrid->mReadyElementX < 0x141)
 		{
-			mBoxX = mGrid->mI4b8 + 0x14;
+			mBoxX = mGrid->mReadyElementX + 0x14;
 		}
 		else
 		{
-			mBoxX = mGrid->mI4b8 - 0x154;
+			mBoxX = mGrid->mReadyElementX - 0x154;
 			if (mBoxX < 0)
 				mBoxX = 0;
 		}
-		mBoxY = mGrid->mI4bc - 0x32;
+		mBoxY = mGrid->mReadyElementY - 0x32;
 		mBoxWidth = 0x131;
 		mBoxHeight = 0x87;
 		if (mBoxY < 0)
@@ -243,7 +243,7 @@ HintBox::HintBox(AtomicaApp* theApp, Grid* theGrid, int theHint) :
 	mApp->mWidgetManager->AddWidget(this);
 }
 
-// 0x42a0b0: the game goes on; a ticked check box keeps the hint away in the games to come
+// 0x42a0b0 / 0x432c00: the game goes on; a ticked check box keeps the hint away in the games to come
 HintBox::~HintBox()
 {
 	for (size_t i = 0; i < mApp->mHintBoxes.size(); i++)
@@ -410,8 +410,8 @@ void HintBox::Draw(Graphics* g)
 	case 11:
 	case 12:
 		// at the element atom
-		aGridArrow.mX = mGrid->mI4b8 - 0x36;
-		aGridArrow.mY = mGrid->mI4bc - 0x26;
+		aGridArrow.mX = mGrid->mReadyElementX - 0x36;
+		aGridArrow.mY = mGrid->mReadyElementY - 0x26;
 		anArrows = &aGridArrow;
 		break;
 	case 0xd:

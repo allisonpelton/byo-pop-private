@@ -1,6 +1,8 @@
 # Keep LF everywhere: bash scripts break with CRLF, and the sources are LF
 * text=auto eol=lf
 *.png binary
+*.woff2 binary
+*.woff binary
 *.jpg binary
 *.gif binary
 *.sf2 binary

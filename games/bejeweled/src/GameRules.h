@@ -253,7 +253,7 @@ public:
 		bool						mRestoreRng = true;     // undo.restoreRng
 	};
 
-	// Arrow gems (4.20, stage 18): directions are bits 1 << ARROW_UP .. ARROW_UP_LEFT
+	// Arrow gems (CODE_MODS_DESIGN.md 4.20): directions are bits 1 << ARROW_UP .. ARROW_UP_LEFT
 	struct ArrowRules
 	{
 		bool						mEnabled = false;       // arrows.enabled (arrows)
@@ -310,7 +310,7 @@ public:
 	// Any rule beyond the legacy tunables differs from its default (a variant board, 1.2 principle 4)
 	bool							HasVariantRules() const;
 	// A scoring tunable (setValues, lengthBonus, longLengthBonus, excellentFactor, hintPenalty) differs from the
-	// original's: the board's displayed score then closes large gaps fast (Board::RollScoreFast, stage 7)
+	// original's: the board's displayed score then closes large gaps fast (Board::RollScoreFast)
 	bool							ScoringTunablesChanged() const;
 	// Replays of these rules play alike in every engine from Replay::FIRST_ENGINE_ABI on: no variant rule, no
 	// scoring tunable changed (engine 3 changed how their displayed score rolls) and at most 7 gem colours (engines
@@ -321,8 +321,8 @@ public:
 	// A board.gravity rule differs from its default: the board then keeps its gravity state in saves, hashes and
 	// traces (4.16; default rules, -forcevariant included, keep the frozen forms)
 	bool							HasGravityRule() const { return (mBoard.mGravity != GRAVITY_DOWN) || (mBoard.mFallAccel != DEFAULT_FALL_ACCEL); }
-	bool							HasDirtRule() const;   // a level's mask has dirt (stage 7b, 4.14)
-	// The new arrows (4.20, stage 18): a new arrow after this many moves on the 0-based level theLevel
+	bool							HasDirtRule() const;   // a level's mask has dirt (CODE_MODS_DESIGN.md 4.14)
+	// The new arrows (CODE_MODS_DESIGN.md 4.20): a new arrow after this many moves on the 0-based level theLevel
 	int								ArrowInterval(int theLevel) const;
 
 	// The checks of 3.6 (all of them, for the merged set). False with a message and the causes of the
@@ -337,7 +337,7 @@ public:
 	// makes, exactly what MergeRules makes of a mod.json that says them (every field in the range the mod path
 	// takes and normalised as it normalises, every check of Validate passed, so the canonical bytes come out
 	// alike), with a finite tunable in every double, and 12 diff.txt values every level of the original
-	// SetupLevel plays with: finite, points and multiplier bases above 0 whose product is at least 1, per-level
+	// SetupLevelData plays with: finite, points and multiplier bases above 0 whose product is at least 1, per-level
 	// steps not below 0, so mLevelPoints, Board::Update's divisor, is at least 1 on every level (or past the int
 	// range). False with a message. (The game's own diff.txt is read as the original reads it.)
 	bool							CheckRecorded(std::string* theError) const;

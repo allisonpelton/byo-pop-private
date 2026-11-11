@@ -1,7 +1,7 @@
 // The help screen (see HelpWidget.h).
 
 #include "HelpWidget.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Board.h"
 #include "Graphics.h"
 #include "HyperlinkWidget.h"
@@ -12,7 +12,7 @@
 using namespace Sexy;
 
 // 0x408a8a
-HelpWidget::HelpWidget(AlchemyApp* theApp)
+HelpWidget::HelpWidget(WinAlchApp* theApp)
 {
 	mApp = theApp;
 
@@ -33,7 +33,7 @@ HelpWidget::HelpWidget(AlchemyApp* theApp)
 	mReturnLink->mDoFinger = true;
 }
 
-// 0x408a6e
+// 0x408a6e (the deleting destructor), 0x4089a6 (the destructor it calls: deletes the two links)
 HelpWidget::~HelpWidget()
 {
 	delete mTutorialLink;
@@ -62,13 +62,13 @@ void HelpWidget::ButtonDepress(int theId)
 	if (theId == 0)
 		mApp->ConfirmTutorial();
 	else if (theId == 1)
-		mApp->HideHelp();
+		mApp->RemoveHelpWidget();
 }
 
 // 0x408cd7: three boxes of three symbols each, in colours, under the labels RIGHT, RIGHT and WRONG
 void HelpWidget::Draw(Graphics* g)
 {
-	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
+	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(WinAlchApp::BOARD_X, 0, WinAlchApp::BOARD_WIDTH, WinAlchApp::SCREEN_HEIGHT));
 	g->SetColor(Color(0, 0, 0));
 	g->FillRect(10, 0x27, 0x1d4, 0x1a0);
 	g->SetColor(Color(0xff, 0xff, 0));
@@ -82,11 +82,11 @@ void HelpWidget::Draw(Graphics* g)
 	g->SetColor(Color(0x5c, 0x5c, 0x5c));
 	g->DrawRect(0x12, 0x7a, 0x81, 0x41);
 	g->SetColor(Color(0, 0xff, 0));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x16, 0x7b, Rect(0, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x16, 0x7b, Rect(0, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0, 0xff, 0));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x3f, 0x7b, Rect(0x32, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x3f, 0x7b, Rect(WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0xff, 0x20, 0x20));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 100, 0x7b, Rect(0x32, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 100, 0x7b, Rect(WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0, 0xff, 0));
 	SexyString aRight = mApp->GetString("RIGHT");
 	g->DrawString(aRight, (0x81 - g->GetFont()->StringWidth(aRight)) / 2 + 0x12, 0xb6);
@@ -95,11 +95,11 @@ void HelpWidget::Draw(Graphics* g)
 	g->SetColor(Color(0x5c, 0x5c, 0x5c));
 	g->DrawRect(0xae, 0x7a, 0x81, 0x41);
 	g->SetColor(Color(0x40, 0x40, 0xff));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0xb0, 0x7b, Rect(0, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0xb0, 0x7b, Rect(0, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0x40, 0x40, 0xff));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0xd7, 0x7b, Rect(100, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0xd7, 0x7b, Rect(2 * WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0xff, 0, 0xff));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0xfe, 0x7b, Rect(100, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0xfe, 0x7b, Rect(2 * WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0, 0xff, 0));
 	aRight = mApp->GetString("RIGHT");
 	g->DrawString(aRight, (0x81 - g->GetFont()->StringWidth(aRight)) / 2 + 0xae, 0xb6);
@@ -108,11 +108,11 @@ void HelpWidget::Draw(Graphics* g)
 	g->SetColor(Color(0x5c, 0x5c, 0x5c));
 	g->DrawRect(0x14b, 0x7a, 0x81, 0x41);
 	g->SetColor(Color(0xff, 0x20, 0x20));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x14c, 0x7b, Rect(0x32, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x14c, 0x7b, Rect(WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0x40, 0x40, 0xff));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x170, 0x7b, Rect(100, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x170, 0x7b, Rect(2 * WinAlchApp::SYMBOL_SIZE, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0, 0xff, 0));
-	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x198, 0x7b, Rect(0, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0x198, 0x7b, Rect(0, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	g->SetColor(Color(0xff, 0, 0));
 	SexyString aWrong = mApp->GetString("WRONG");
 	g->DrawString(aWrong, (0x81 - g->GetFont()->StringWidth(aWrong)) / 2 + 0x14b, 0xb6);
@@ -123,7 +123,7 @@ void HelpWidget::Draw(Graphics* g)
 	g->SetColor(Color(0xff, 0xff, 0));
 	g->DrawImage(mApp->mImages[IMAGE_NULLBLOCK], 0x20, 0x11a);
 	WriteWordWrapped2004(g, Rect(0x5d, 0x11d, 0x92, -1), mApp->GetString("STONES_WILD"), 0xf, -1);
-	g->DrawImage(mApp->mImages[IMAGE_SKULLS], 0xfe, 0x11a, Rect(0, 0, 0x32, 0x32));
+	g->DrawImage(mApp->mImages[IMAGE_SKULLS], 0xfe, 0x11a, Rect(0, 0, WinAlchApp::SYMBOL_SIZE, WinAlchApp::SYMBOL_SIZE));
 	WriteWordWrapped2004(g, Rect(0x13b, 0x11d, 0x92, -1), mApp->GetString("SKULLS_MAGIC"), 0xf, -1);
 
 	WriteWordWrapped2004(g, Rect(0x1e, 200, mWidth - 0x3c, -1), mApp->GetString("ADJACENT_MUST_MATCH_COLOR_OR_SHAPE"), 0xf, 0);
