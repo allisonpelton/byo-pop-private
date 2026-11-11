@@ -1,0 +1,90 @@
+# A new player in the original, blind: Change User, New User, a name and Return; Play; the credits (the mode buttons
+# entered in the order classic, zen, blitz, challenge, three times round), their Continue; Classic, which is the new
+# player's tutorial: its first forced twist (526,236), then twists at random corners of the tutorial's board.
+# Positions from the port's screens. The player is made in the user's own profiles folder: back it up first.
+at 1600 click 400 575 5
+at 1900 click 326 458 5
+at 2200 text Cov
+at 2300 key 13 3
+at 2700 click 400 300 5
+at 3100 move 180 170
+at 3110 move 610 170
+at 3120 move 600 420
+at 3130 move 180 420
+at 3140 move 180 170
+at 3150 move 610 170
+at 3160 move 600 420
+at 3170 move 180 420
+at 3180 move 180 170
+at 3190 move 610 170
+at 3200 move 600 420
+at 3210 move 180 420
+at 4000 click 400 566 5
+at 4600 click 180 170 5
+at 5200 focus regain
+at 5400 move 526 236
+at 5405 click 526 236 5
+at 5800 move 526 236
+at 5805 click 526 236 5
+at 6200 move 582 360
+at 6205 click 582 360 5
+at 6350 move 702 520
+at 6355 click 702 520 5
+at 6500 move 582 320
+at 6505 click 582 320 5
+at 6650 move 622 400
+at 6655 click 622 400 5
+at 6800 move 502 120
+at 6805 click 502 120 5
+at 6950 move 702 360
+at 6955 click 702 360 5
+at 7100 move 582 440
+at 7105 click 582 440 5
+at 7250 move 622 520
+at 7255 click 622 520 5
+at 7400 move 502 80
+at 7405 click 502 80 5
+at 7550 move 582 200
+at 7555 click 582 200 5
+at 7700 move 502 80
+at 7705 click 502 80 5
+at 7850 move 622 520
+at 7855 click 622 520 5
+at 8000 move 662 440
+at 8005 click 662 440 5
+at 8150 move 462 400
+at 8155 click 462 400 5
+at 8300 move 582 320
+at 8305 click 582 320 5
+at 8450 move 662 480
+at 8455 click 662 480 5
+at 8600 move 622 440
+at 8605 click 622 440 5
+at 8750 move 502 400
+at 8755 click 502 400 5
+at 8900 move 462 360
+at 8905 click 462 360 5
+at 9050 move 462 40
+at 9055 click 462 40 5
+at 9200 move 462 160
+at 9205 click 462 160 5
+at 9350 move 502 400
+at 9355 click 502 400 5
+at 9500 move 462 520
+at 9505 click 462 520 5
+at 9650 move 582 240
+at 9655 click 582 240 5
+at 9800 move 582 400
+at 9805 click 582 400 5
+at 9950 move 702 160
+at 9955 click 702 160 5
+at 10100 move 622 160
+at 10105 click 622 160 5
+at 10250 move 662 200
+at 10255 click 662 200 5
+at 10400 move 582 40
+at 10405 click 582 40 5
+at 10550 move 662 80
+at 10555 click 662 80 5
+wait 3000
+quit

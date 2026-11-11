@@ -47,7 +47,6 @@ public:
 	int mThumb;               // +0x94 the slider's image
 	int mSliderX;             // +0x98 the slider's left end
 	int mSliderEnd;           // +0x9c the slider's right end, less the track's width
-	int mValue = 0;           // +0xa0
 	Slider* mSlider = nullptr;  // +0xa4
 
 	// 0x426910
@@ -173,7 +172,6 @@ public:
 	int mUndoPos = 0;                // +0x100
 	int mUndoInserted = 0;           // +0x104
 	int mUndoDeleted = 0;            // +0x108
-	bool mNoWidthCheck = false;      // +0x10c the text may grow past mWidth
 
 	// 0x427920
 	TextEdit(int theWidth, int theHeight, int theMaxLength, bool theUnderline);
@@ -221,7 +219,7 @@ public:
 	bool Cut();
 	// 0x428b70
 	bool Paste();
-	// 0x428c90: theText may replace the selection (the length, and the width unless mNoWidthCheck)
+	// 0x428c90: theText may replace the selection (the length and the width)
 	bool Fits(const std::string& theText);
 };
 

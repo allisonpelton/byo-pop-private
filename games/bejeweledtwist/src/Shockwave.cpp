@@ -361,11 +361,10 @@ FruitShockwave::FruitShockwave(Piece* thePiece, int theRange, int theTargetX, in
 	float anAngle = (float)((double)(float)std::atan2((double)-aDY, (double)aDX) + 1.5707963705062866);  // 0x4c1b70
 	mCenterX = (float)(((double)mEndX + (double)mStartX) * 0.5);
 	mCenterY = (float)(((double)mEndY + (double)mStartY) * 0.5);
-	float aOut = (float)((double)aDist * 2.5);
 	float aCos = cosf(anAngle);  // 0x401b20
-	mCenterX = (float)((double)aCos * (double)aOut + (double)mCenterX);
+	mCenterX = (float)((double)aCos * (double)aDist * 2.5 + (double)mCenterX);  // rounded once, as the original
 	float aSin = sinf(anAngle);  // 0x401b70
-	mCenterY = (float)((double)mCenterY - (double)aSin * (double)aOut);
+	mCenterY = (float)((double)mCenterY - (double)aSin * (double)aDist * 2.5);
 	float aFromX = mStartX - mCenterX;
 	float aFromY = -(float)((double)mStartY - (double)mCenterY);
 	mAngleEnd = (float)std::atan2((double)aFromY, (double)aFromX);

@@ -1,0 +1,198 @@
+# Play in the original by clicks, blind (positions from the port's screens): Classic (New if it asks to continue),
+# twists at random corners, Escape twice, the focus lost and back, an idle stretch for the hint, the tube's Menu with
+# Back to Game, then Main Menu answered No and then Yes (the save); Classic again, Continue on the saved game, Main
+# Menu and Yes; then Blitz, twisted at random until its minute is over (the game over and its stats).
+at 1600 click 400 300 5
+at 2000 click 180 170 5
+at 2400 click 400 360 5
+at 3000 focus regain
+at 3100 move 575 232
+at 3105 click 575 232 5
+at 3250 move 639 232
+at 3255 click 639 232 5
+at 3400 move 703 424
+at 3405 click 703 424 5
+at 3550 move 703 424
+at 3555 click 703 424 5
+at 3700 move 639 360
+at 3705 click 639 360 5
+at 3850 move 319 488
+at 3855 click 319 488 5
+at 4000 move 511 488
+at 4005 click 511 488 5
+at 4150 move 383 424
+at 4155 click 383 424 5
+at 4300 move 319 168
+at 4305 click 319 168 5
+at 4450 move 319 232
+at 4455 click 319 232 5
+at 4800 key 27 3
+at 5100 key 27 3
+at 5400 focus lose
+at 5700 focus regain
+at 8000 click 80 525 5
+at 8300 click 500 490 5
+at 8600 click 80 525 5
+at 8900 click 300 490 5
+at 9200 click 500 360 5
+at 9500 click 80 525 5
+at 9800 click 300 490 5
+at 10100 click 300 360 5
+at 11000 click 400 300 5
+at 11400 click 180 170 5
+at 11800 click 200 360 5
+at 12300 focus regain
+at 12400 move 511 488
+at 12405 click 511 488 5
+at 12550 move 383 296
+at 12555 click 383 296 5
+at 12700 move 575 104
+at 12705 click 575 104 5
+at 13000 click 80 525 5
+at 13300 click 300 490 5
+at 13600 click 300 360 5
+at 14500 click 400 300 5
+at 14900 click 600 420 5
+at 15300 focus regain
+at 15400 move 575 168
+at 15405 click 575 168 5
+at 15500 move 319 424
+at 15505 click 319 424 5
+at 15600 move 383 296
+at 15605 click 383 296 5
+at 15700 move 447 168
+at 15705 click 447 168 5
+at 15800 move 703 488
+at 15805 click 703 488 5
+at 15900 move 511 168
+at 15905 click 511 168 5
+at 16000 move 703 488
+at 16005 click 703 488 5
+at 16100 move 319 168
+at 16105 click 319 168 5
+at 16200 move 575 360
+at 16205 click 575 360 5
+at 16300 move 511 168
+at 16305 click 511 168 5
+at 16400 move 383 104
+at 16405 click 383 104 5
+at 16500 move 703 104
+at 16505 click 703 104 5
+at 16600 move 383 488
+at 16605 click 383 488 5
+at 16700 move 383 168
+at 16705 click 383 168 5
+at 16800 move 703 168
+at 16805 click 703 168 5
+at 16900 move 447 232
+at 16905 click 447 232 5
+at 17000 move 383 360
+at 17005 click 383 360 5
+at 17100 move 639 424
+at 17105 click 639 424 5
+at 17200 move 383 168
+at 17205 click 383 168 5
+at 17300 move 639 168
+at 17305 click 639 168 5
+at 17400 move 511 232
+at 17405 click 511 232 5
+at 17500 move 319 232
+at 17505 click 319 232 5
+at 17600 move 511 168
+at 17605 click 511 168 5
+at 17700 move 383 232
+at 17705 click 383 232 5
+at 17800 move 319 232
+at 17805 click 319 232 5
+at 17900 move 447 488
+at 17905 click 447 488 5
+at 18000 move 575 360
+at 18005 click 575 360 5
+at 18100 move 319 360
+at 18105 click 319 360 5
+at 18200 move 639 424
+at 18205 click 639 424 5
+at 18300 move 447 104
+at 18305 click 447 104 5
+at 18400 move 447 232
+at 18405 click 447 232 5
+at 18500 move 703 232
+at 18505 click 703 232 5
+at 18600 move 511 424
+at 18605 click 511 424 5
+at 18700 move 447 168
+at 18705 click 447 168 5
+at 18800 move 511 296
+at 18805 click 511 296 5
+at 18900 move 639 168
+at 18905 click 639 168 5
+at 19000 move 319 232
+at 19005 click 319 232 5
+at 19100 move 319 424
+at 19105 click 319 424 5
+at 19200 move 447 488
+at 19205 click 447 488 5
+at 19300 move 511 104
+at 19305 click 511 104 5
+at 19400 move 575 488
+at 19405 click 575 488 5
+at 19500 move 511 232
+at 19505 click 511 232 5
+at 19600 move 511 360
+at 19605 click 511 360 5
+at 19700 move 703 104
+at 19705 click 703 104 5
+at 19800 move 511 104
+at 19805 click 511 104 5
+at 19900 move 639 168
+at 19905 click 639 168 5
+at 20000 move 575 168
+at 20005 click 575 168 5
+at 20100 move 319 488
+at 20105 click 319 488 5
+at 20200 move 383 488
+at 20205 click 383 488 5
+at 20300 move 511 232
+at 20305 click 511 232 5
+at 20400 move 575 232
+at 20405 click 575 232 5
+at 20500 move 575 232
+at 20505 click 575 232 5
+at 20600 move 703 296
+at 20605 click 703 296 5
+at 20700 move 319 360
+at 20705 click 319 360 5
+at 20800 move 639 488
+at 20805 click 639 488 5
+at 20900 move 703 232
+at 20905 click 703 232 5
+at 21000 move 703 232
+at 21005 click 703 232 5
+at 21100 move 319 296
+at 21105 click 319 296 5
+at 21200 move 319 168
+at 21205 click 319 168 5
+at 21300 move 447 360
+at 21305 click 447 360 5
+at 21400 move 575 232
+at 21405 click 575 232 5
+at 21500 move 383 232
+at 21505 click 383 232 5
+at 21600 move 447 424
+at 21605 click 447 424 5
+at 21700 move 575 104
+at 21705 click 575 104 5
+at 21800 move 447 424
+at 21805 click 447 424 5
+at 21900 move 447 232
+at 21905 click 447 232 5
+at 22000 move 383 488
+at 22005 click 383 488 5
+at 22100 move 319 424
+at 22105 click 319 424 5
+at 22200 move 383 424
+at 22205 click 383 424 5
+at 22300 move 639 232
+at 22305 click 639 232 5
+wait 20000
+quit

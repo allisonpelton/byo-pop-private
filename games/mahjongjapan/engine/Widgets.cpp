@@ -93,7 +93,6 @@ void SliderBar::SetValue(int theValue)
 // 0x426aa0
 void SliderBar::ValueChanged(int theValue)
 {
-	mValue = theValue;
 	OnValue(theValue);
 }
 
@@ -135,7 +134,7 @@ void ListBox::SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theCol
 // 0x426d30
 void ListBox::SetFont(int theFontImage, int theFontText, int theX, int theY, int theDisabledAlpha)
 {
-	mFont = GetDllFont(theFontImage, theFontText, -1);
+	mFont = GetDllFont(theFontImage, theFontText);
 	mTextX = theX;
 	mTextY = theY;
 	mDisabledAlpha = theDisabledAlpha;
@@ -418,7 +417,7 @@ void TextEdit::SetFrame(uint32_t theColour1, uint32_t theColour2, uint32_t theCo
 // 0x427b20
 void TextEdit::SetFont(int theFontImage, int theFontText, int theTextY, int theDisabledAlpha)
 {
-	mFont = GetDllFont(theFontImage, theFontText, -1);
+	mFont = GetDllFont(theFontImage, theFontText);
 	mTextY = theTextY;
 	mDisabledAlpha = theDisabledAlpha;
 }
@@ -1017,19 +1016,16 @@ bool TextEdit::Fits(const std::string& theText)
 		aLength = aLength - std::abs(mAnchor - mCursor);
 	if (mMaxLength < aLength)
 		return false;
-	if (!mNoWidthCheck)
+	std::string aRest = mText;
+	if (mAnchor != -1)
 	{
-		std::string aRest = mText;
-		if (mAnchor != -1)
-		{
-			int aStart = mAnchor;
-			if (mCursor <= mAnchor)
-				aStart = mCursor;
-			Delete(aRest, aStart, std::abs(mAnchor - mCursor));
-		}
-		if (mWidth <= mFont->GetWidth((aRest + theText).c_str(), 100))
-			return false;
+		int aStart = mAnchor;
+		if (mCursor <= mAnchor)
+			aStart = mCursor;
+		Delete(aRest, aStart, std::abs(mAnchor - mCursor));
 	}
+	if (mWidth <= mFont->GetWidth((aRest + theText).c_str(), 100))
+		return false;
 	return true;
 }
 

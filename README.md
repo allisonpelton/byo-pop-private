@@ -50,10 +50,10 @@ installed copy (for example from Steam):
 | [Rocket Mania Deluxe](games/rocketmania/docs/README.md) | Sonnet | Plays identical; phase two largely done (a few comparisons open); registration out | 2026-10-26 | | $204 | | | $204 |
 | [Dynomite Deluxe](games/dynomite/docs/README.md) | Opus | Plays identical; registration and More Games out, no fix candidates; phase two's last differences open | 2026-10-26 | | $251 | | | $251 |
 | [Bookworm Adventures Volume 2](games/bookwormadv2/docs/README.md) | Sonnet | Plays identical through the first chapter and the mini-games, on Bookworm Adventures' engine; the later chapters and phase two next | 2026-10-26 | | $271 | | | $271 |
-| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Identical; logos and links out, fixes mod, coverage check and performance pass done; the readability pass next | 2026-11-01 | 1 | $304 | | | $304 |
+| [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Identical; logos and links out, fixes mod, coverage check, performance pass and the removal of code it does not need done; the readability pass next | 2026-11-01 | 1 | $304 | | | $304 |
 | [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | As Ancient Japan, from its port (whose row holds most of its cost) | 2026-11-01 | 1 | $4 | | | $4 |
 | [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Identical, on New Crayon's engine; fixes mod and coverage check done; the performance pass next | 2026-11-01 | 1 | $230 | | | $230 |
-| [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Identical, in 2D and in 3D, with PopAnim; registration out, fixes mod and readability pass (the standards' second test) done; the coverage check next | 2026-11-02 | 1 | $1,294 | | $6 | $1,300 |
+| [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Identical, in 2D and in 3D, with PopAnim; registration out, fixes mod, readability pass (the standards' second test) and coverage check done; the performance pass next | 2026-11-02 | 1 | $1,294 | | $6 | $1,300 |
 | [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Phase one: every mode plays as the original in 2D and 3D; Classic's ending, the puzzle packs, resumed saves and the web build still to compare; registration and More Games out | 2026-11-08 | | $254 | | | $254 |
 | [AstroPop Deluxe](games/astropop/docs/IDENTICAL_PLAY.md) | Sonnet | Phase one: classic and survival games play as the original over many seeds, one seed still differs | 2026-11-08 | | $322 | | | $322 |
 | Typer Shark! Deluxe | Sonnet | Ported and playable natively and on the web; phase one next | 2026-11-09 | | $367 | | | $367 |
@@ -72,8 +72,7 @@ means both phases of its identical-play pass are finished, as each game's `docs/
 same input, a series of games plays out as in the original exe (the same boards, random draws, scores and endings), and
 its screens, dialogs, sound and music, focus handling and web build match the original's, with every difference fixed or
 explained. "Plays identical" means the first of those phases is done. A game with no fix candidates (no bug of the
-original that a fix would change, nor a wait that only costs the player time) has no fixes mod. The readability passes
-of the other games wait until the user approves the standards after Bejeweled's pilot and Twist's test.
+original that a fix would change, nor a wait that only costs the player time) has no fixes mod. The user approved the readability standards on 2026-11-10, so the other games take that pass now.
 
 The costs are what the work's tokens would cost at the API prices in [docs/TOKEN_ECONOMY.md](docs/TOKEN_ECONOMY.md),
 each model at its own; the subscription the work ran on does not bill them. A game's cost counts its own sessions with

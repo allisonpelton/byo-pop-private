@@ -161,6 +161,7 @@ public:
 	LevelValue mDevil;                 // +0x1eb0: a doom gem's count
 	LevelValue mCoalGem;               // +0x1f08
 	int mBombGemCount = 0;             // +0x1f78: the bomb gems on the board, counted each update while the state is 0; Piece uses it to time a bomb's sparks
+	SexyString mTypedKeys;             // +0x1bd0: the last letters typed with the mouse off the grid, upper case (KeyChar)
 	bool mCoalAsSnackers = false;      // +0x1bf2: coal is drawn as snackers
 	Image* mShineImage = nullptr;      // +0x1c54
 	int mBlastChainCount = 0;          // +0x1c5c: the blasts chained in this turn (0 when a twist starts); it adds to the heat wave's strength
@@ -763,6 +764,9 @@ public:
 	void MouseUp(int x, int y, int theClickCount) override;      // 0x6a52c1
 	void MouseDrag(int x, int y) override;                       // 0x6a52cb
 	void MouseWheel(int theDelta) override;                      // 0x6a52d7
+	void LostFocus() override;                                   // 0x6a663b: Blitz's music paused
+	void GotFocus() override;                                    // 0x6a6686: and resumed
+	void KeyChar(SexyChar theChar) override;                     // 0x6b3217: the typed words SNACKERS and NORMAL
 	void KeyDown(KeyCode theKey) override;                       // 0x6ca439: pause, the wheel, the cursor's keys
 	void WarpToCursor();  // 0x6a45da: the mouse pointer onto the cursor's gem while +0x1430 holds a piece
 	void UpdateCursor(int x, int y);                             // 0x6bdbd9 (slot 70, the board's own)

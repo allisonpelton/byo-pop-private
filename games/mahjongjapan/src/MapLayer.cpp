@@ -163,10 +163,10 @@ void MapView::Init()
 {
 	mStartText = jb::LoadDllString(0x21);
 	mEndText = jb::LoadDllString(0x1c);
-	mFont = jb::GetDllFont(0xa3, 0xa2, -1);
-	mIntroFont = jb::GetDllFont(0x102, 0x103, -1);
+	mFont = jb::GetDllFont(0xa3, 0xa2);
+	mIntroFont = jb::GetDllFont(0x102, 0x103);
 	mIntroText = jb::LoadDllString(0x6c);
-	mStageFont = jb::GetDllFont(0x137, 0x134, -1);
+	mStageFont = jb::GetDllFont(0x137, 0x134);
 	int aProgress = gUser.mProgress;
 	mLevel = aProgress;
 	if (0x3b < aProgress)
@@ -403,7 +403,7 @@ void RestartBox::Create()
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
 	SetTitle(0xb9);
-	AddText(0xba, 0, 0x28, 0x5a, false, nullptr, 0);
+	AddText(0xba, 0, 0x28, 0x5a, false);
 	DialogButton* aButton = new DialogButton(0x1b);
 	Add(aButton, 0xa0, 0xd2);
 	aButton->SetText(0x1b);
@@ -426,7 +426,7 @@ bool RestartBox::OnCommand(int theCmd)
 		jb::gManager->Push(aBox, true, false, true);
 		aBox->SetTitle(0xbb);
 		std::string aText = jb::FormatDll(0xbc, gUser.mName.c_str());
-		aBox->AddText(aText.c_str(), 0, 0, 0x5a, false, nullptr, 0);
+		aBox->AddText(aText.c_str(), 0, 0, 0x5a, false);
 		return true;
 	}
 	return false;
@@ -557,7 +557,7 @@ void MapLayer::Continue()
 		YesNoBox* aBox = new YesNoBox(this, 2, 1, 0x8c, 0x8d, false, 0x78, 0x78);
 		jb::gManager->Push(aBox, true, true, true);
 		aBox->SetTitle(0x8e);
-		aBox->AddText(0x8b, 0, 0, 0x5a, false, nullptr, 0);
+		aBox->AddText(0x8b, 0, 0, 0x5a, false);
 	}
 }
 

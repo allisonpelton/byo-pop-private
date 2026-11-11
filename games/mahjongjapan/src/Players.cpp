@@ -234,9 +234,9 @@ bool PlayerBox::OnCommand(int theCmd)
 			jb::gManager->Push(aBox, true, false, true);
 			aBox->SetTitle(0xa4);
 			std::string aText = jb::FormatDll(0xa3, mList->GetText(aSelected).c_str());
-			aBox->AddText(aText.c_str(), 0, 0, 0x4d, false, nullptr, 0);
+			aBox->AddText(aText.c_str(), 0, 0, 0x4d, false);
 			aText = jb::LoadDllString(0xa5);
-			aBox->AddText(aText.c_str(), 0, 0, 0x6b, false, nullptr, 0);
+			aBox->AddText(aText.c_str(), 0, 0, 0x6b, false);
 		}
 		return true;
 	case 3:

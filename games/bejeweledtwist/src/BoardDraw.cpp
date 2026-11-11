@@ -99,6 +99,7 @@ void Board::DrawAll(ModalFlags* theFlags, Graphics* g)
 	}
 }
 
+// 0x75ea75: a coordinate scaled by the art size over 1024, inline here
 void Board::Draw(Graphics* g)
 {
 	bool is3D = mApp->Is3DAccelerated();
@@ -451,6 +452,7 @@ const int gSlotOffsets[9][2] = {{0, -1}, {-1, -1}, {-1, 0}, {-1, 1}, {0, 1}, {1,
 }  // namespace
 
 // 0x6caa13's gems: sorted by depth, drawn behind and in front, lit by the board's lights
+// 0x684796: the record constructor (eight fields), inline here
 void Board::DrawPieces(Graphics* g, Graphics& theLightG, bool is3D)
 {
 	(void)theLightG;
@@ -1138,6 +1140,7 @@ void Board::DrawToolTip(Graphics* g)
 	}
 }
 
+// 0x6a9b85: calls a method on every entry of a list, inline here
 void Board::DrawOverlay(Graphics* g)
 {
 	if (0.0f < mFruitBlast) {

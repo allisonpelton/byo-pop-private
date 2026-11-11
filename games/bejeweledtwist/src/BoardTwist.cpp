@@ -3,6 +3,7 @@
 
 #include "Buffer.h"
 #include "Challenge.h"
+#include "CustomBassMusicInterface.h"
 #include "GoodTube.h"
 
 #include <algorithm>
@@ -43,6 +44,51 @@ void Board::MouseUp(int x, int y, int theClickCount)
 
 void Board::MouseWheel(int theDelta)
 {
+}
+
+// Whenever the board loses the focus (to a dialog or a panel over it, or the app's), Blitz's music (tracks 300 and
+// 308) pauses, and it resumes when the board has it back unless the board is paused more than once. The skip flag set
+// here is only ever cleared again (MouseDown).
+void Board::LostFocus()
+{
+	Widget::LostFocus();
+	// The original says "BOARD:  LOST FOCUS()" with OutputDebugString
+	mSkipMouseClick = true;
+	mWantsFocus = true;
+	if (mApp->mTwistMusic != nullptr && (mApp->mTwistMusic->mCurTrack == 300 || mApp->mTwistMusic->mCurTrack == 308))
+		mApp->mTwistMusic->PauseAllMusic();
+}
+
+void Board::GotFocus()
+{
+	if (mPauseCount < 2 && mApp->mTwistMusic != nullptr &&
+		(mApp->mTwistMusic->mCurTrack == 300 || mApp->mTwistMusic->mCurTrack == 308))
+		mApp->mTwistMusic->ResumeAllMusic();
+	// The original says "BOARD:  GOT FOCUS()" with OutputDebugString
+	Widget::GotFocus();
+}
+
+// The last 24 letters typed are kept while the mouse is off the grid (any key typed over it clears them). SNACKERS
+// switches coal to its snackers look and back; NORMAL stops the rain effect and sets the game's speed back to 1. Either
+// word clears the letters. (With +0x1bf1 set, never in the original, NORMAL would ask the app for a change of screen
+// mode instead; that branch is left out.)
+void Board::KeyChar(SexyChar theChar)
+{
+	mTypedKeys.append(1, (SexyChar)(toupper((unsigned char)theChar) & 0xff));
+	if (0x18 < mTypedKeys.size())
+		mTypedKeys.erase(mTypedKeys.begin());
+	if (GetRowAt(mBoardMouseY) < 0 || GetColAt(mBoardMouseX) < 0) {
+		if (mTypedKeys.find("NORMAL") != SexyString::npos) {
+			mRainEffect = false;
+			mSpeedTarget = 1.0f;
+			mSpeedNow = 1.0f;
+		} else if (mTypedKeys.find("SNACKERS") != SexyString::npos) {
+			mCoalAsSnackers = !mCoalAsSnackers;
+		} else {
+			return;
+		}
+	}
+	mTypedKeys.clear();
 }
 
 void Board::WarpToCursor()
@@ -416,6 +462,8 @@ void Board::PreLockPiece(Piece* thePiece)
 	PlayPieceSound(thePiece, SOUND_GEM_PRELOCK, 0.0f, 0.0f, true);
 }
 
+// 0x6afdee: a piece record reset, inline here
+// 0x6b97b6: the piece record constructor taking the next serial, inline here
 void Board::NextTurnGems()
 {
 	// the gems in locks now

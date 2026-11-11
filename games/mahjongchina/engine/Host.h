@@ -31,12 +31,7 @@ public:
 	// The registry under Software\<company>\<product>[\<section>] of HKEY_CURRENT_USER, or of
 	// HKEY_LOCAL_MACHINE when theMachine (read only: ActivateLinks)
 	virtual bool RegReadInt(const char* theSection, const char* theName, bool theMachine, int& theValue) = 0;
-	virtual bool RegReadString(const char* theSection, const char* theName, bool theMachine,
-		std::string& theValue) = 0;
 	virtual bool RegWriteInt(const char* theSection, const char* theName, int theValue) = 0;
-	virtual bool RegWriteString(const char* theSection, const char* theName, const char* theValue) = 0;
-	virtual bool RegDeleteValue(const char* theSection, const char* theName) = 0;
-	virtual bool RegDeleteKey(const char* theSection) = 0;
 	// GetCommandLineA, after the program's name
 	virtual std::string CommandLine() = 0;
 	// SHGetFolderPathA's folder for a CSIDL (with the company and product appended, and a backslash at the end),

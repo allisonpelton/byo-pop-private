@@ -64,21 +64,14 @@ public:
 	{
 		std::string mText;    // +0x00
 		bool mAltFont;        // +0x08 font 0x133 instead of 0x122
-		int mKind;            // +0x0c 0 lines centred, 1 lines, 2 wrapped, 3 wrapped centred, 4 right-aligned
+		int mKind;            // +0x0c 0 lines centred, 1 lines
 		int mX;               // +0x10
 		int mY;               // +0x14
-		int mTabs[10];        // +0x18
-		int mTabCount;        // +0x40
-		int mDelay;           // +0x44 ms before it shows
-		int mFade;            // +0x48 ms of its fade-in left
-		int mFadeTime;        // +0x4c
 	};
 
 	std::string mTitle;            // +0x90
-	std::string mSubtitle;         // +0x98
 	Text mTexts[10];               // +0xa0
 	int mTextCount = 0;            // +0x3c0
-	bool mAnimating = false;       // +0x3c4 texts are waiting or fading in
 	jb::Animation* mDragons[2] = {};  // China +0x3c4, +0x3c8: the dragons of a top corner of kind 2
 	jb::Font* mSubtitleFont = nullptr;  // +0x3c8 (0x11c)
 	jb::Font* mTitleFont = nullptr;     // +0x3cc (0x11e)
@@ -124,8 +117,7 @@ public:
 	// 0x4047c0
 	void SetTitle(const char* theTitle) { mTitle = theTitle; }
 	// 0x4047e0
-	void AddText(const char* theText, int theKind, int theX, int theY, bool theAltFont, const int* theTabs,
-		int theTabCount);
+	void AddText(const char* theText, int theKind, int theX, int theY, bool theAltFont);
 	// 0x4048e0
 	void ShowMessage(int theX, int theY, const char* theText, int theSeconds);
 	// 0x404990
@@ -172,13 +164,11 @@ public:
 	// 0x404d60
 	void ClearTexts() { mFrame->mTextCount = 0; }
 	// 0x404d70: a string of Resource.dll
-	void AddText(int theStringId, int theKind, int theX, int theY, bool theAltFont, const int* theTabs,
-		int theTabCount);
+	void AddText(int theStringId, int theKind, int theX, int theY, bool theAltFont);
 	// 0x404e00
-	void AddText(const char* theText, int theKind, int theX, int theY, bool theAltFont, const int* theTabs,
-		int theTabCount)
+	void AddText(const char* theText, int theKind, int theX, int theY, bool theAltFont)
 	{
-		mFrame->AddText(theText, theKind, theX, theY, theAltFont, theTabs, theTabCount);
+		mFrame->AddText(theText, theKind, theX, theY, theAltFont);
 	}
 	// 0x404e30: a string of Resource.dll
 	void ShowMessage(int theX, int theY, int theStringId, int theSeconds);

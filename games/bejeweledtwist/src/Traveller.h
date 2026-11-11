@@ -27,7 +27,7 @@ public:
 	bool mSparkles = true;           // +0x54
 	bool mDone = false;              // +0x55: the board deletes it
 
-	Traveller();                     // 0x74f2a4 (with no piece)
+	Traveller();                     // 0x74f2a4 (with no piece), 0x757616: the clearing of the trail points, inline here
 	virtual ~Traveller() {}          // 0x74f284
 	virtual void Update() {}         // 0x74f30d
 	virtual void Draw() {}           // 0x74ff9b

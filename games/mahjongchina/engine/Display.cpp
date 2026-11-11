@@ -93,16 +93,13 @@ Image* Display::GetImage(int theId, Module theModule)
 }
 
 // 0x4326e0
-Font* Display::GetFont(int theImageId, int theTextId, int theKind, Module theModule)
+Font* Display::GetFont(int theImageId, int theTextId, Module theModule)
 {
 	auto anIt = mFonts.find(theImageId);
 	if (anIt != mFonts.end())
 		return anIt->second;
 	Font* aFont = new Font();
-	if (theKind == -1)
-		aFont->Load(theImageId, theTextId, theModule);
-	else
-		aFont->LoadKeyed(theImageId, theTextId, (uint32_t)theKind, theModule);
+	aFont->Load(theImageId, theTextId, theModule);
 	mFonts[theImageId] = aFont;
 	return aFont;
 }

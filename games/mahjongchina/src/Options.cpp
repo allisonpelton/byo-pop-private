@@ -59,11 +59,11 @@ void OptionsBox::Create()
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
 	SetTitle(0x86);
-	AddText(0x81, 1, 0x2d, 0x50, false, nullptr, 0);
+	AddText(0x81, 1, 0x2d, 0x50, false);
 	VolumeSlider* aSlider = new VolumeSlider(0);
 	Add(aSlider, 0x75, 0x42);
 	aSlider->SetValue(jb::gMusicVolume);
-	AddText(0x85, 1, 0x2d, 0x6e, false, nullptr, 0);
+	AddText(0x85, 1, 0x2d, 0x6e, false);
 	aSlider = new VolumeSlider(1);
 	Add(aSlider, 0x75, 0x60);
 	aSlider->SetValue(jb::gSoundsVolume);
@@ -91,7 +91,7 @@ void OptionsBox::Create()
 	mAccel->SetCmd(2);
 	if (mFromMenu)
 	{
-		AddText(0x7e, 1, 0x2d, 0x113, false, nullptr, 0);
+		AddText(0x7e, 1, 0x2d, 0x113, false);
 		aY = 0x118;
 		jb::Toggle* aToggle = new jb::Toggle(0x123, &mQuads, 0);
 		Add(aToggle, 0x28, 0x118);
@@ -160,7 +160,7 @@ bool OptionsBox::OnCommand(int theCmd)
 	OptionsNote* aNote = new OptionsNote();
 	jb::gManager->Push(aNote, true, false, true);
 	aNote->SetTitle(2);
-	aNote->AddText(1, 0, 0, 0x5a, false, nullptr, 0);
+	aNote->AddText(1, 0, 0, 0x5a, false);
 	return true;
 }
 
