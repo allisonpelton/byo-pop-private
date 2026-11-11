@@ -30,6 +30,9 @@
    document, code) keeps its size */
 :root[data-skin="d95"] body :not(.mu-lcd, .mu-lcd *, .mu-vis, .mu-vis *, pre, pre *, code, kbd, .mono, .perf-panel dd, .d95-app-text, .d95-hlp, .d95-msgbox-icon, svg, svg *) { font-size: 11px !important; }
 :root[data-skin="d95"] body :is(.d95-band > span, .wiz-card > h2, .card > h2) { font-size: 22px !important; }
+/* the Players and Saves sections' buttons are the desktop's buttons (the page's own rule gave them the page's background, which
+   is the desktop's colour here) */
+:root[data-skin="d95"] :is(#players-body, #saves-body) button:not(#\#) { background: var(--panel); color: var(--fg); }
 /* bold: one weight struck twice (the font's file answers every weight with the same glyphs) */
 :root[data-skin="d95"] :is(b, strong, th, h1, h2, h3, h4, dt, summary, .d95-tb, .d95-tb-text) { text-shadow: 1px 0 0 currentColor; letter-spacing: 1px; }
 /* the raised bevel of a window or a button, and the sunken one of a field */
