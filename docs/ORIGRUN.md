@@ -72,6 +72,7 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 | `--clock virtual\|real` | Run on origrun's virtual clock, or on the wall clock (the default). |
 | `--cursor scripted\|real` | The copy's `GetCursorPos` returns the script's last mouse position, or Windows' cursor (the default). |
 | `--keys scripted\|real` | The copy's `GetKeyState` returns the state the script's key and button edges left, or Windows' (the default). |
+| `--reg-map popcap\|off` | The copy's creates and opens of `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap` keys go to `HKEY_CURRENT_USER` with the same path, or to Windows as they are (the default): for a 2004 game that keeps its players and settings under HKLM, which an unelevated host run cannot write. Config key `reg_map=popcap`. Refused with `--sound real`. "The registry map". |
 | `--msgbox show` | Show the copy's message boxes, with their sound, instead of answering them in the stand-in (`--msgbox hook`, the default). |
 | `--coverage <list>` | Record which functions of the list the copy reaches ("Coverage"). Host only. |
 | `--patches <file>`, `--no-patches` | The patch list for the copy (default `tools/origrun/patches/<game>.txt` if present), or none ("Patching the copy"). |
@@ -515,6 +516,40 @@ own clock. The framework finds the function with `GetProcAddress`, which no impo
 puts a jump to its own function at the start of user32's `GetLastInputInfo`, in the copy's process only. A copy
 that never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not
 hooked: run those while the user is at the machine.
+
+## The registry map (`--reg-map popcap`)
+
+A PopCap game of 2004 keeps its settings and players under `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap\<Game>` (Typer Shark: the
+options, a `Users` key with one key a player). A copy started on the host is not elevated, so it can neither make nor write
+that key and a run's values are gone when it ends: "quit, start again, carry on" cannot be compared there. (In Windows
+Sandbox the copy runs as SYSTEM and writes HKLM itself; `--reg` presets carry values from one sandbox run to the next.)
+
+With `--reg-map popcap` the stand-in answers four of the copy's registry imports (`tools/origrun/regmap.c`; the user's OK:
+"Yes hook registry calls", 2026-11-10, in CLAUDE.md; nothing else is hooked):
+
+- `RegCreateKeyExA` and `RegOpenKeyExA`: a call on `HKEY_LOCAL_MACHINE` whose path is `SOFTWARE\PopCap` or lies under it
+  (any letter case) is made on `HKEY_CURRENT_USER` with the same path. The handle the game gets is the HKCU key's, so
+  set, query, enumerate, delete and close work on HKCU with no hook of their own. Every other root or path goes to Windows.
+- `RegSetValueExA` and `RegQueryValueExA` only count the values written and read through mapped keys, for the log.
+
+Off unless the command line or the game's `.cfg` asks for it. origrun's log says so when it is on, and the stand-in's log
+(`logs/clock.log`, `cursor.log` or `msgbox.log`) has one line when the map first takes effect and each process's totals at
+exit. The values are PopCap games' own, which the user lets a run change without restoring; a session that wants a clean
+start deletes `HKCU\Software\PopCap\<Game>` before its first run and after its last.
+
+Not done: the HKLM key is not read while the map is on (a copy starts from what HKCU holds, not from an installer's or an
+elevated run's values); the wide-character forms, `RegOpenKeyA`, `RegCreateKeyA`, a `RegDeleteKeyA` that names HKLM with a
+whole path, a key reached from a handle the game opened itself, and a function found with `GetProcAddress` are not mapped
+(each needs the user's OK first); a copy that never loads the stand-in never gets the hook.
+
+Tested with Typer Shark on the host (2026-11-10): a first run that made a player logged 4 creates and 105 opens sent to HKCU
+and about 108 values written; `HKCU\Software\PopCap\TyperShark` then held 95 values, and a second run of the same copy read
+103 values, 95 of which it found. In Windows Sandbox (2026-11-11) the map works the same way on SYSTEM's hive: a first run
+logged 4 creates and 493 opens sent to HKCU, the export held the game's 89 values under `HKEY_CURRENT_USER\Software\PopCap`
+(the same 89 a run without the map leaves under HKLM), and a second run given that export as its `--reg` preset found 89 of
+the 97 values it read. The map is not needed there. One first run with it on in the sandbox ended one key press behind the
+same script without it (the registry values at the end were the same; one run is not enough to blame the map, and it was
+not chased), so a tour that must line up with a port update for update runs without the map in the sandbox.
 
 ## Message boxes and beeps (hooked)
 

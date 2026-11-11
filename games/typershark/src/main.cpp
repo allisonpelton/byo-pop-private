@@ -14,6 +14,7 @@
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
+#include "platform/openmpt/OpenMPTPlayer.h"
 
 #include <SDL.h>
 #include <cstdio>
@@ -151,6 +152,10 @@ int main(int argc, char** argv)
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+
+	// The music is one MO3 module played by order position (BASS in the original): libopenmpt. Without this the module
+	// did not load and the game played no music (found by phase 2's sound comparison)
+	Platform::RegisterOpenMPTModules();
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static WinWSApp* anApp = new WinWSApp();

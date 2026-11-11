@@ -146,16 +146,21 @@
 #   astropop     AstroPop's bot through tools/playbymove (real input, -hold): a classic game from level 1, one from level 4 and a
 #                survival game, 120 moves each, and a rerun of the first with the same transcript, and
 #                build/baseline-astropop/astropop.exe's when there is one (about a minute)
+#   typershark   Typer Shark's own play (games/typershark/tools/regress.py): the port's typing bot plays 13 games (the menu, levels 1 to 3,
+#                typos, an idle game to game over, the abyss, the tutor, the bonus level, Hard, Expert, the whole adventure) under
+#                rundesk with -fast, and each state log's hash must be the one in games/typershark/tools/regress_expected.txt and
+#                the frozen build/baseline-typershark/typershark.exe's (the quick form runs the 5 shortest games, about a minute;
+#                the whole set several minutes)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
 #                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop; all = every suite, builds first.
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark; all = every suite, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
 # the suites' own output folders). Runs itself under build/native/rundesk.exe, so every game it starts is
 # invisible, silent and low priority (CLAUDE.md); suites run one after another (--jobs, below, is the exception).
 #
-# Quick forms: pixelus, bookwormadv and tiptop, the slowest game suites, have a shorter form that still starts the game,
+# Quick forms: pixelus, bookwormadv, tiptop and typershark, the slowest game suites, have a shorter form that still starts the game,
 # plays it and checks that a rerun gives the same result. `<suite>:quick` runs it (CHECK_QUICK=1 does so for every suite
 # named); the suite's summary line says that it was the quick form. A quick form leaves out only what dominates the time
 # (see the suites above) and never changes the normal suite. The other suites have none and ignore the request.
@@ -261,7 +266,7 @@ OUT="build/logs/check"
 QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
-GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop)
+GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark)
 ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
@@ -275,8 +280,8 @@ suite_weight() { WEIGHT=1; [ "$1" = bonnies ] && [ -f build/baseline-bonnies/bon
 declare -A EST=([build]=77 [build-web]=356 [build-nov]=72 [unit]=11 [unit-web]=8 [gpu]=1 [origrun]=5 [verify]=42 [modmenu]=50
 	[livesplit]=472 [bookworm]=8 [bigmoney]=7 [noahsark]=23 [atomica]=11 [alchemy]=12 [sevenseas]=7 [pixelus]=127
 	[bookwormadv]=129 [bookwormadv2]=55 [tiptop]=156 [mummymaze]=38 [ningpo]=21 [wordharmony]=17 [cosmicbugs]=5
-	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [oracle]=1080)
-declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52)
+	[waterbugs]=8 [rocketmania]=11 [dynomite]=8 [mahjongjapan]=11 [mahjongchina]=8 [bonnies]=46 [bejeweledtwist]=60 [bejeweled2]=220 [astropop]=60 [typershark]=480 [oracle]=1080)
+declare -A EST_QUICK=([pixelus]=40 [bookwormadv]=57 [tiptop]=52 [typershark]=270)
 
 declare -A SEL=() WHY_N=() WHY_P=() AREAS=() WEB_SEEN=() SH_N=() SH_P=()
 SH_ORDER=() WEB_T=() GL_FILES=()
@@ -304,7 +309,7 @@ note() {
 
 # pick <suite> <area> <path> [full|quick] [count]: a suite is chosen; a full choice beats a quick one, and a suite
 # with no quick form (QUICK_FORMS) is its own quick form
-QUICK_FORMS=(pixelus bookwormadv tiptop)
+QUICK_FORMS=(pixelus bookwormadv tiptop typershark)
 pick() {
 	local how="${4:-full}"
 	case " ${QUICK_FORMS[*]} " in *" $1 "*) ;; *) how=full ;; esac
@@ -2142,6 +2147,17 @@ suite_astropop() {
 	fi
 	SUMMARY="classic ${a#playbymove astropop: }; later level ${b#playbymove astropop: }; survival ${c#playbymove astropop: }; $r$bl"
 	[ $st -eq 0 ] || SUMMARY="$SUMMARY (expected classic '$AP_CLASSIC', later '$AP_LATER', survival '$AP_SURVIVAL')"
+	return $st
+}
+
+suite_typershark() {
+	local q="" st
+	need_assets typershark || return 1
+	[ "${CHECK_QUICK:-0}" = 1 ] && q="--quick"
+	python games/typershark/tools/regress.py $q > "$1" 2>&1
+	st=$?
+	SUMMARY="$(tail -n 1 "$1" | tr -d '')"
+	[ -n "$q" ] && SUMMARY="$SUMMARY (quick form: the 5 shortest games)"
 	return $st
 }
 
