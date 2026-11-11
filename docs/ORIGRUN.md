@@ -1065,6 +1065,14 @@ What it does not do:
 `HKCU\Software\PopCap\TyperShark` then held 95 values in four keys (the options, `Test3D`, `Users`, `Users\Tester`). A
 second run of the same copy logged 103 reads, 95 of which found a value. The key was deleted after the test.
 
+**In Windows Sandbox (2026-11-11)** the map works the same way on SYSTEM's own hive: a first run logged 4 creates and 493
+opens sent to HKCU, the export after the run held the game's 89 values under `HKEY_CURRENT_USER\Software\PopCap` (the same
+89 a run without the map leaves under HKLM), and a second run given that export as its `--reg` preset found 89 of the 97
+values it read. It is not needed there, since the copy writes HKLM itself. That one first run with the map on ended one
+key press behind the same script without it (Typer Shark was still on its map screen where the other run had started the
+next level); the registry values at the end were the same, one run is not enough to blame the map, and it was not chased.
+A tour that must line up with a port update for update is run without the map in the sandbox.
+
 ## Message boxes and beeps (hooked)
 
 A message box plays its sound as it appears (the error chime or question ding of its icon), and the dialog watch
