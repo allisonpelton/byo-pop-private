@@ -418,6 +418,9 @@ only COLOR_LABEL and COLOR_LABEL_HILITE exist; port sets 6. The ctor does not se
 - Update (0x4383a0): Widget::Update; if mIsDown && mIsOver && !mDisabled -> ButtonDownTick(mId); over-alpha
   fade out (not down, not over) or fade in (over), each followed by MarkDirty. Same as Zuma and 1.2/1.3
   apart from the !mDisabled test.
+- MouseEnter and MouseLeave call the listener's ButtonMouseEnter / ButtonMouseLeave once. Ours already does, so a game
+  override that also calls the listener doubles it (AstroPop's AstroButton did, which broke its menu's secret hover
+  order; its GAME_NOTES section 10).
 
 ### 5. DialogButton
 
@@ -668,6 +671,11 @@ slot | method | port | notes
 58 | int GetOptimalHeight() | same | count * itemH + 8
 59 | SetSelect(int) | same |
 (+0x58) 0 | ScrollPosition(int id, double pos) | same | forwards to mChild, mPosition = pos
+
+mPageSize is computed on the x87 and stored through a float, so it is rounded to 24 bits; with our double a scrolled list
+box shows its lines one pixel higher in some positions. AstroPop rounds it in its ListDialog::Resize
+(`(double)(float)mPageSize`, then the scroll bar's page size); a shared fix in ListWidget would cover every 2004 game
+with a scrolled list (not made yet: check BookWorm's and Typer Shark's list boxes first).
 
 Not in 2004: SetHilite, SetLineColor, MouseWheel, RemovedFromManager (port's calls ListClosed).
 
