@@ -237,6 +237,25 @@ def main():
             notes.append("Continue: a new game (screen game)")
             shot("new-game")
             st = play(click_lines(HELP_CONTINUE) + ["wait 40"])
+            # a game that went deep continues from its checkpoint ("Continue from level 5?"), and the first brick of a new kind opens
+            # its hint box, which holds the game (paused) until its OK is clicked: the bot's moves click it, and play on, until it runs
+            for k in range(6):
+                if st.get("paused") != 1:
+                    break
+                ans = r.play([], ("state", "move"))
+                m = json.loads(ans[1][len("MOVE "):])
+                if m is None:
+                    st = play(["wait 20"])
+                    continue
+                batch = []
+                for line in pbm.move_lines(m):
+                    if batch and not batch[-1].startswith("wait ") and not line.startswith("wait "):
+                        batch.append("wait 1")
+                    batch.append(line)
+                upd = m.get("updates", 1)
+                batch.append("wait %d" % (upd if isinstance(upd, int) and upd > 0 else 1))
+                st = play(batch)
+                notes.append("a box at the start of the new game: the bot's move %d" % (k + 1))
             # out by the options box: Escape, Main Menu, Yes
             st = play(["key Escape", "wait 40"] + click_lines((230, 388)) + ["wait 20"] + click_lines((255, 279)) + ["wait 80"])
             expect(st, "screen", "menu", "after Main Menu, Yes")

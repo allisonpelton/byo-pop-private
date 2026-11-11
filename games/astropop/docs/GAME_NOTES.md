@@ -278,6 +278,8 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    identical, sound, focus, the web build, real-input driver play) are done; what still differs is listed in section 8 and in the
    report. Waiting for the coordinator: the blit arithmetic of the 2004 `DDImage` (`NormalBlt`, `AdditiveBlt`) and its stretch
    (`StretchBlt`, `SlowStretchBlt`) in shared code.
+   The music (a module stream) was not compared with the original's in phase two: its start, stop and focus handling remain to be
+   checked, if origrun can see them.
 3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
    waits for `docs/MOD_ROADMAP.md`'s turn. Still to do for the game to be done: the performance numbers and pass, the coverage check,
    the readability pass (`docs/CODE_STANDARDS.md`), taking out code the game does not need.
