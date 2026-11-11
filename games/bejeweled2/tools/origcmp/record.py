@@ -53,7 +53,14 @@ def start_hidden(d):
         if s['screen'] == 'game' or s.get('mode') == 'hidden':
             return
         if s['dialogs']:
-            full.handle_dialog(d, s)  # the welcome message that follows a new player's first visit to the menu
+            # the welcome message that follows a new player's first visit to the menu: closed with the key, since the port's
+            # 640 by 480 layout of the dialog is not the original's and a click on the port's button misses the original's
+            # (the original's menu then never counted the circle: its message stayed up)
+            if max(s['dialogs']) == 36:
+                d.key('Escape')
+                d.ok('wait 3')
+            else:
+                full.handle_dialog(d, s)
             continue
         x, y = spots[i % 4]
         i += 1

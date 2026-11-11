@@ -1,8 +1,9 @@
 # Bejeweled 2 Deluxe: identical play, phase one (plays identical)
 
 Phase one asks that, given the same input, the port and the original play the same: the same boards and random draws in the same
-order, the same moves, scores, levels, timers and endings. This report covers that phase. It was started 2026-11-08; phase two
-(looks identical: screens, sound, focus, the web build) has not begun.
+order, the same moves, scores, levels, timers and endings. This report covers that phase. It was started 2026-11-08 and done
+2026-11-11, with one difference left as an oddity (a game resumed in the 3D game, below); phase two (looks identical: screens,
+sound, focus, the web build) has not begun.
 
 ## What was compared, and how
 
@@ -41,7 +42,8 @@ play in the browser).
 | Hyper | 40 moves, 7 levels (score 254700), identical; 20 moves and then idle through game over and 700 updates more, identical | 40 moves, 9 levels (score 395750), identical |
 | Cognito | 40 moves, 2 levels, identical | 40 moves, 2 levels (score 1805), identical |
 | Finity | 19 moves, 16 levels, through game over, identical (the score runs past what 32 bits hold, in the original and the port alike) | 14 moves, 13 levels, through game over, identical |
-| Hidden mode | 40 moves, 2 levels (score 940), identical | not compared: the original never started the mode in the runs made (see below) |
+| Hidden mode | 40 moves, 2 levels (score 940), identical | two games through their ending, identical: 6 moves (score 130) and, from another seed, 17 moves over 2 levels (score 640) |
+| A puzzle pack | not run | 150 moves: fifteen puzzles of the first pack solved over three planets (thirty tutorial clicks, twelve pods, three jumps to the next planet), every change of the board's state on the same update, identical |
 | Classic to its ending | 158 moves, 6 levels, through "no more moves" and game over (score 15631), identical | 174 moves, 5 levels, through game over (score 7741), identical |
 | A game left and resumed | identical through the load and 22 more moves, then different (see "Differences that stay") | 25 moves, the menu button, Main Menu, Classic, "Load Game?" yes, 25 more moves over three levels (score 1649), identical; the global generator's position too, as far as origrun logs it (4,000 changes) |
 | A saved game at level 10 | not run | a hyper cube swapped and 40 moves from a save made at level 10 with eight flame gems and three hyper cubes on its board, levels 10 to 13 (score 87797), 83 changes of the score, identical |
@@ -103,10 +105,11 @@ changes, generator included, so the difference is one of timing between the 3D o
 has it at (257,203), on the row that is the original's Cancel; the comparison gives the original its own place
 (`to_origrun.py --remap`), and the layout is phase two's.
 
+The hidden mode at 640 by 480 had never started in the original in the first runs. The cause was the comparison's: the circle
+round the four mode buttons takes long enough for the new player's welcome message to open, the driver clicked its button where
+the port's 640 by 480 layout has it, the original's button is elsewhere, and the original's message stayed up over its menu.
+`record.py` closes that message with the Escape key now, and the mode starts on both sides at the same update.
+
 ## Not yet covered
 
-The 2D game with the fix was run again in every mode but the hidden one, and all of them are identical to the original (the table); the
-hidden mode at 640 by 480 was not: in the runs made the original never started the mode (its board only came after a stray click
-of the driver, at update 2252), which the 3D game, given the same circle and the same welcome message, did not do; the cause was
-not found, and what the port does there was not checked against the original. A puzzle pack beyond its first puzzles was not played; the web
-build was checked under Node in 2D only (the page's 3D game in the Browser pane is phase two's). Phase two is not begun.
+The web build was checked under Node in 2D only (the page's 3D game in the Browser pane is phase two's). Phase two is not begun.
