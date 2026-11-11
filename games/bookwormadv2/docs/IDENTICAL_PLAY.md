@@ -53,6 +53,8 @@ the original, whose sandbox has no 3D (`Is3D=0`). `tools/identical/port.sh` now 
 The draws of a victory's fireworks and effects are one per frame, which the port's draw rate (`-fast`) does not match: `rngcmp.py` compares
 the counts from each engine's making to its victory and not after it, and rebases at the next engine's making.
 
+A second battle case, `boss-chapter2` (profile `profiles/bosschapter2`, saved by `tools/bossfocus.py --stop-level 4.1 --save`: book 4 on the map after chapter 1's boss, so the next battles are chapter 2's, Old MacDonald's; script: Adventure, the map's Enter, then the soak), gives the same picture as the first. All 6 engine state changes of the original agree with the port's within one update. The draws before the first engine are idle map draws at the same cadence in both, the port with a constant 31 more (draws made while the profile's screens come up, before the counter's start in the original), and after the engine's making the counts agree except for a constant one draw (update 8292 on) that comes with the first board, made in the update of the reseed, where the original's watch cannot see the draws (as for the mini-games above); it does not grow, and the later draws of both programs fall in the same updates. To see it: `PROFILE=<profiles/bosschapter2> CALLOAD=9000 bash tools/identical/case.sh boss-chapter2 cases/boss-chapter2.txt`.
+
 The profile of the third case was written by the port and loaded by the original (its saved fields, the unlocked mini-games
 and the book), so the save format is read the same way by the original. The other direction (a save written by the original,
 continued by the port) could not be tested: the sandbox does not give its files back.

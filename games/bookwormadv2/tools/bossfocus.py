@@ -29,6 +29,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=os.path.join(ROOT, "build", "bossfocus"))
     ap.add_argument("--steps", type=int, default=3000)
+    ap.add_argument("--stop-level", help="stop at the first map after a boss, once the level is this (the map shows the level just beaten: 4.1 for the start of chapter 2) without the focus checks, and keep the player's folder")
+    ap.add_argument("--save", help="with --stop-level: copy the player's folder here (a profile for a comparison case)")
     ap.add_argument("--userdir", default=os.path.join(HERE, "identical", "profiles", "bosschapter1"))
     args = ap.parse_args()
     run = os.path.abspath(args.dir)
@@ -44,11 +46,17 @@ def main():
     try:
         game.send("wait 600")  # the load
         game.send("goto adventure")
-        moves, last, batch, done_after, seen_boss = 0, None, [], {}, False
+        moves, last, batch, done_after, seen_boss, stopped = 0, None, [], {}, False, False
         while moves < args.steps:
             answers = game.send(*(batch + ["state", "move"]))
             st = json.loads(answers[-2][len("STATE "):])
             screen = st.get("screen")
+            if args.stop_level and seen_boss and screen == "map" and st.get("level") == args.stop_level and not st.get("curtain"):
+                game.send("wait 200")
+                stopped = True
+                break
+            if "(Boss)" in (st.get("enemy") or ""):
+                seen_boss = True
             # the moments to lose the focus: the boss beaten (its health 0, the victory), and the map that follows it
             boss = "(Boss)" in (st.get("enemy") or "")
             if boss:
@@ -84,6 +92,13 @@ def main():
         results.append(("stop", str(e), None))
     finally:
         game.finish(None)
+    if args.stop_level:
+        if stopped and args.save:
+            if os.path.isdir(args.save):
+                shutil.rmtree(args.save)
+            shutil.copytree(user, args.save)
+        print("bossfocus: %s the map of %s (%d moves)" % ("reached" if stopped else "did not reach", args.stop_level, moves))
+        return 0 if stopped else 1
     ok = True
     for screen, before, after in results:
         print("bossfocus:", screen, "before (song, playing)", before, "after the focus came back", after)
