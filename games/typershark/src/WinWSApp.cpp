@@ -916,7 +916,7 @@ void WinWSApp::MakeDerivedImages()
 			PalletizeImage(aCopy);
 			return aCopy;
 		}
-		// FUN_00412870: CopyImage, then Palletize
+		// 0x412870: CopyImage, then Palletize
 		static Image* Copy(WinWSApp* theApp, int theImage)
 		{
 			Image* aCopy = theApp->CopyImage(theApp->mImages[theImage]);

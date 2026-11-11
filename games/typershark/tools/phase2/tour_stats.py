@@ -2,7 +2,10 @@
 """Tour T: the statistics screen with a lesson played. The typing tutor's lesson 18 from its recording (rec/tut18), the
 "view stats?" question at its end, Yes, the statistics screen (tour M shows it empty), each of its three views, Close.
 
-    python tour_stats.py <name>
+    python tour_stats.py <name> [more]
+
+With `more` (the coverage check of 2026-11-11): before Close, the "Previous Lesson" button of the page is clicked twice (it goes from
+lesson 18 to 17 and 16) and then the "Next Lesson" button that shows after it, each with a picture.
 """
 import os
 import sys
@@ -13,9 +16,11 @@ from tour_game import load_inputs
 YES = (248, 272)                                    # the "view stats?" box (realplay.py's table)
 VIEWS = [(145, 359), (145, 396), (145, 323)]        # the statistics screen's three buttons
 CLOSE = (530, 433)
+PREV = (134, 119)                                   # "Previous Lesson" (the original's picture of the page, less its window frame)
+NEXT = (132, 88)                                    # "Next Lesson", above it (shown once the page is on a lesson before the last)
 
 
-def build(name, end=3440):
+def build(name, end=3440, more=False):
     t = Tour(name)
     t.steps = [s for s in load_inputs(os.path.join(ROOT, "build", "ts-p2", "rec", "tut18.in.txt")) if s[0] < end]
     s = t.shot
@@ -30,10 +35,16 @@ def build(name, end=3440):
         t.move(u, x, y); s(u + 4, f"stats_hover_{i}")
         t.click(u + 10, x, y); s(u + 14, f"stats_view_{i}_4"); s(u + 50, f"stats_view_{i}_40")
         u += 70
+    if more:
+        for i in range(2):
+            t.click(u, *PREV); s(u + 4, f"stats_prev_{i}"); s(u + 40, f"stats_prev_{i}_40")
+            u += 70
+        t.click(u, *NEXT); s(u + 4, "stats_next"); s(u + 40, "stats_next_40")
+        u += 70
     t.move(u, *CLOSE); s(u + 4, "stats_hover_close")
     t.click(u + 10, *CLOSE); s(u + 14, "stats_closed_4"); s(u + 60, "tutor_after_stats")
     t.write(quit_at=u + 100)
 
 
 if __name__ == "__main__":
-    build(sys.argv[1])
+    build(sys.argv[1], more=len(sys.argv) > 2 and sys.argv[2] == "more")

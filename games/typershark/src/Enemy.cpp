@@ -4,7 +4,7 @@
 
 using namespace Sexy;
 
-// 0x40a3f0: GameObject (0x4611b0) first, then the Enemy part
+// 0x40a3f0: GameObject (0x4611b0) first, then the Enemy part (0x40a413 is the export's second entry into its middle)
 Enemy::Enemy(WinWSApp* theApp) :
 	mFlag08(false),
 	mApp(theApp),
