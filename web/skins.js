@@ -149,12 +149,8 @@ var ByopopSkin = (function () {
       Object.keys(was).forEach(function (k) { if (k.indexOf("app:") === 0) mine[k] = was[k]; });
       wins.forEach(function (w) {
         // every window's open or closed state (a reload opens the listing's windows again as they were), its place once it has one
-        if (!w.placed && !w.min) {
-          if (w.keep === w.id) mine[w.keep] = { closed: !!w.closed };
-          // (a program's window not yet moved: where it first opened, which went by how many were open then)
-          else if (w.x || w.y) mine[w.keep] = { x: w.x, y: w.y, closed: false, min: false, placed: true };
-          return;
-        }
+        // (a program's window not yet moved keeps no place: it opens where its turn puts it)
+        if (!w.placed && !w.min) { if (w.keep === w.id) mine[w.keep] = { closed: !!w.closed }; return; }
         mine[w.keep] = { x: w.x, y: w.y, closed: !!w.closed, min: !!w.min, placed: !!w.placed };
         if (w.w && w.h) { mine[w.keep].w = w.w; mine[w.keep].h = w.h; }
       });

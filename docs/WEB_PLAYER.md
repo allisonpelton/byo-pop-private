@@ -769,6 +769,14 @@ tracker/spectral analyzer sync with what's playing in the active game"). A tag n
 the game window last made active, while open and not minimized (`frontFrame` in `web/deskapps.js`). Music's own
 playback is not changed; when both play, the views show the game's.
 
+**Focus and sound (the user, 2026-11-10).** A site window is a desktop window: a game whose window is not the active one
+does what its original does without the focus (most mute themselves; the framework's own focus handling, nothing added
+for the web). `byopop_music_view` says whether the song reaches the output (`heard`), and the tag shows a muted speaker
+for a game that is not heard; the position shown stays the game's own. Only one game window is heard at a time
+(`hush` in `web/deskapps.js`): the game in front; with no game in front, none while Music plays a tune of its own, else
+the game last in front. The others' output node is disconnected from their speakers, not their page's mute, which is
+the player's own switch.
+
 The game's side is a site hook in the platform layer: no game's code changes, and native builds do not compile it.
 `Platform::Mixer` answers four exported calls (`platform/Audio.cpp`):
 

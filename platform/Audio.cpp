@@ -1592,7 +1592,10 @@ std::string Mixer::WebSongView(int theSong)
 			aTitle = s->mModule->GetTitle();
 			aModule = true;
 		}
-		char aBuf[160];
+		char aBuf[200];
+		// whether the song reaches the output at all: 0 while the game has muted its music (a game that lost the focus), turned
+		// it down to nothing or the page's sound is off; the page then shows the game as muted (the user, 2026-11-10)
+		int aHeard = ((s->mGain * mMusicMaster * s->mTrackGain > 0.0f) && !mPageMuted) ? 1 : 0;
 		if (aModule)
 		{
 			// the title as a JSON string: its quotes, backslashes and control characters escaped
@@ -1609,13 +1612,13 @@ std::string Mixer::WebSongView(int theSong)
 				else
 					aQuoted += (char)c;
 			}
-			snprintf(aBuf, sizeof(aBuf), "{\"song\":%d,\"kind\":\"module\",\"pattern\":%d,\"row\":%d,\"rows\":%d,\"channels\":%d,\"order\":%d,\"title\":\"",
-				theSong, v[0], v[1], v[2], v[3], v[4]);
+			snprintf(aBuf, sizeof(aBuf), "{\"song\":%d,\"kind\":\"module\",\"heard\":%d,\"pattern\":%d,\"row\":%d,\"rows\":%d,\"channels\":%d,\"order\":%d,\"title\":\"",
+				theSong, aHeard, v[0], v[1], v[2], v[3], v[4]);
 			aJson = aBuf + aQuoted + "\"}";
 		}
 		else
 		{
-			snprintf(aBuf, sizeof(aBuf), "{\"song\":%d,\"kind\":\"stream\"}", theSong);
+			snprintf(aBuf, sizeof(aBuf), "{\"song\":%d,\"kind\":\"stream\",\"heard\":%d}", theSong, aHeard);
 			aJson = aBuf;
 		}
 	}

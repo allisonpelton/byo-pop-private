@@ -1705,9 +1705,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function closeProgram() {
     // in a window of the one page: the game's own close with its saves, then the window goes (web/deskapps.js)
     var P = desktopApps();
-    if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }); return; }
+    if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }, true); return; }
     try { sessionStorage.setItem("byopop-desk-open", "games"); } catch (e) {}
-    closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); });
+    closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); }, true);
   }
   function showMissingFiles() {
     $("files-missing").hidden = !missingFiles.length;
@@ -1721,7 +1721,15 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // settings are saved), and go on in a new page. then(info) runs once the save has reached browser storage; info
   // is Module.onGameExit's, or null when the game was not running.
   function gameRunning() { return gameState === "starting" || gameState === "running" || gameState === "closing"; }
-  function closeGameThen(then) {
+  // asQuit (the window's Close): the game quits as its own Quit does (byopop_quit: Twist says its goodbye first; the user,
+  // 2026-11-10: "it should wait for the Goodbye sound like quitting from the menu does") and shuts down by itself; a build
+  // without that export closes as before
+  function closeGameThen(then, asQuit) {
+    if (asQuit && gameState === "running" && window.Module && typeof Module._byopop_quit === "function") {
+      afterExit = then;
+      setGameState("closing");
+      try { Module._byopop_quit(); return; } catch (e) { afterExit = null; setGameState("running"); }
+    }
     if (gameRunning()) {
       var r = {};
       try { r = JSON.parse((panel && panel.call("byopop_restart", "string", ["number"], [1])) || "{}"); } catch (e) {}
