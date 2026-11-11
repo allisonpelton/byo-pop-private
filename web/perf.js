@@ -88,16 +88,38 @@ var ByopopPerf = (function () {
     }
     function draw() { st.draws++; }
     ["drawArrays", "drawElements", "drawArraysInstanced", "drawElementsInstanced", "drawRangeElements"].forEach(function (n) { wrap(n, draw); });
-    function texBytes(a, wi, hi) {
-      var src = a[a.length - 1];
-      if (a.length >= 8 && typeof a[wi] === "number") return a[wi] * a[hi] * 4;
-      return src && src.width ? src.width * src.height * 4 : 0;  // from an image, a canvas or ImageData
+    // a pixel's bytes from its format and type: the channels a format has, the bytes a type gives each; a packed type
+    // (5_6_5, 4_4_4_4, 5_5_5_1: 2 bytes; 2_10_10_10, 10F_11F_11F, 5_9_9_9, 24_8: 4) is the whole pixel; 4 when unknown
+    var CHANNELS = { 0x1908: 4, 0x1907: 3, 0x1906: 1, 0x1909: 1, 0x190A: 2, 0x1903: 1, 0x8227: 2, 0x8D94: 1, 0x8228: 2,
+      0x8D98: 3, 0x8D99: 4, 0x1902: 1, 0x84F9: 1 };
+    var TYPE_BYTES = { 0x1400: 1, 0x1401: 1, 0x1402: 2, 0x1403: 2, 0x1404: 4, 0x1405: 4, 0x1406: 4, 0x140B: 2, 0x8D61: 2 };
+    var PACKED = { 0x8363: 2, 0x8033: 2, 0x8034: 2, 0x8368: 4, 0x8C3B: 4, 0x8C3E: 4, 0x84FA: 4 };
+    function pixelBytes(format, type) {
+      if (PACKED[type]) return PACKED[type];
+      return CHANNELS[format] && TYPE_BYTES[type] ? CHANNELS[format] * TYPE_BYTES[type] : 4;
     }
-    wrap("texImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 3, 4); });
-    wrap("texSubImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 4, 5); });
-    function bufBytes(d) { return typeof d === "number" ? d : (d && d.byteLength) || 0; }
-    wrap("bufferData", function (a) { st.upBytes += bufBytes(a[1]); });
-    wrap("bufferSubData", function (a) { st.upBytes += bufBytes(a[2]); });
+    // texImage2D(target, level, internalformat, width, height, border, format, type, pixels[, offset]) and
+    // texSubImage2D(target, level, x, y, width, height, format, type, pixels[, offset]): width, height, format and type at
+    // wi, wi + 1, 6 and 7; from an image, a canvas or ImageData, (.., format, type, source) as the last three
+    function texBytes(a, wi) {
+      if (a.length >= 9 && typeof a[wi] === "number") return a[wi] * a[wi + 1] * pixelBytes(a[6], a[7]);
+      var src = a[a.length - 1];
+      return src && src.width ? src.width * src.height * pixelBytes(a[a.length - 3], a[a.length - 2]) : 0;
+    }
+    wrap("texImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 3); });
+    wrap("texSubImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 4); });
+    // bufferData(target, size or data, usage[, srcOffset, length]) and bufferSubData(target, dstOffset, data[, srcOffset,
+    // length]): WebGL2's forms take a view and a part of it. Emscripten passes the whole wasm heap with an offset and a
+    // length, so the length (in the view's elements) is what goes up; without one, the view from srcOffset to its end.
+    function bufBytes(d, srcOffset, length) {
+      if (typeof d === "number") return d;
+      if (!d || !d.byteLength) return 0;
+      var each = d.BYTES_PER_ELEMENT || 1;
+      if (length) return length * each;
+      return Math.max(0, d.byteLength - (srcOffset || 0) * each);
+    }
+    wrap("bufferData", function (a) { st.upBytes += bufBytes(a[1], a[3], a[4]); });
+    wrap("bufferSubData", function (a) { st.upBytes += bufBytes(a[2], a[3], a[4]); });
     // the GPU's own time, only where the browser offers the query
     var isGl2 = typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext;
     var ext = null;
