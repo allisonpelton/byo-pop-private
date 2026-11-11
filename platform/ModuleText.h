@@ -32,6 +32,19 @@ static inline int byopop_name_line(char* out, int at, int max, int number, const
 	return at;
 }
 
+/* An IT file's row highlights (its header's rows per beat at 0x1E and per measure at 0x1F, which the composer set for the
+   pattern editor): 1 with them at *theBeat and *theBar, 0 for another format or none set. 4 and 16, Impulse Tracker's own
+   default (every game's IT has them), count as none, as they do in libopenmpt's answer. The Music window's bar lines and
+   score take them as the tune's own beat and bar. */
+static inline int byopop_it_meter(const unsigned char* d, long n, int* theBeat, int* theBar)
+{
+	if (n < 0x20 || memcmp(d, "IMPM", 4) || !d[0x1E] || !d[0x1F] || d[0x1F] < d[0x1E]) return 0;
+	if (d[0x1E] == 4 && d[0x1F] == 16) return 0;
+	*theBeat = d[0x1E];
+	*theBar = d[0x1F];
+	return 1;
+}
+
 #ifdef XMP_KEY_OFF
 static void byopop_xmp_cell(const struct xmp_event* e, char* s)
 {

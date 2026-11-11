@@ -313,7 +313,10 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-score { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
 .mu-score-sheet { position: relative; }
 .mu-score-svg svg { display: block; }
-.mu-score-head { position: absolute; top: 0; width: 6px; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
+.mu-score-sheet { overflow: hidden; }
+.mu-score-head { position: absolute; top: 0; width: 3px; z-index: 1; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
+.mu-score-clefs { position: absolute; left: 0; top: 0; z-index: 2; background: #000; }
+.mu-meter { position: absolute; left: 2px; top: 0; z-index: 3; font-size: 10px; line-height: 12px; opacity: .7; white-space: nowrap; pointer-events: none; }
 .mu-score-head[hidden] { display: none; }
 .mu-spectrum[hidden], .mu-tracker[hidden], .mu-piano[hidden], .mu-score[hidden] { display: none; }
 .mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
