@@ -37,5 +37,17 @@ for (const s of S.LIST) {
   check(at(s.lo, s.face) >= 1.9, n + ": the shadow stands off the face");
   check(at(s.mid, s.face) > 1.05 && at("#ffffff", s.mid) > 1.02, n + ": the soft light is between the face and white");
 }
+// the desktop's patterns and wallpapers: eight rows of eight bits, neither empty nor full, each choice named
+for (const id of S.patternIds) {
+  check(new RegExp("^settings\.pattern\." + id + " = .+$", "m").test(strings), "pattern " + id + ": named in the site's text");
+  if (id === "none") continue;
+  const rows = S.patterns[id];
+  const bits = rows.reduce((n, r) => n + r.toString(2).replace(/0/g, "").length, 0);
+  check(rows.length === 8 && rows.every((r) => Number.isInteger(r) && r >= 0 && r <= 255), "pattern " + id + ": eight rows of eight bits");
+  check(bits > 0 && bits < 64, "pattern " + id + ": two colours");
+}
+check(new Set(S.patternIds.slice(1).map((id) => S.patterns[id].join(","))).size === S.patternIds.length - 1, "no two patterns are the same");
+for (const id of S.wallpaperIds) check(new RegExp("^settings\.wallpaper\." + id + " = .+$", "m").test(strings), "wallpaper " + id + ": named in the site's text");
+check(S.wallpaperIds[0] === "none" && S.wallpaperIds.indexOf("own") > 0, "the wallpapers: none, our tiles, the player's own");
 console.log("schemetest: " + checks + " checks, " + failed + " failed");
 process.exit(failed ? 1 : 0);

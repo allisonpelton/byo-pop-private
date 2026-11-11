@@ -65,6 +65,10 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .soon .name { color: var(--muted); }
 .soon .badge { filter: saturate(0.35); box-shadow: none; }
 .own-soon { font-weight: 600; }
+/* Appearance's picture for the wallpaper (web/schemes.js, chooser): the picture kept, small, in a sunken frame */
+.sch-picture { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sch-picture-view { display: inline-block; width: 48px; height: 36px; background: var(--bg) center / cover no-repeat;
+  box-shadow: inset 1px 1px var(--sk-lo, #808080), inset -1px -1px var(--sk-hi, #fff); }
 /* a port still in progress opened on a development host (web/localsoon.js): the Coming soon look, a link, and this computer's
    icon beside "Coming soon" (a monitor on its stand, drawn here) */
 .games > li.soon-local { background: var(--bg); border-style: dashed; }
@@ -557,7 +561,16 @@ var siteSettingsView = null;
 function settingsHash(h) { return { "#players": "#settings-players", "#saves": "#settings-saves" }[h] || h; }
 try {
   siteSettingsView = ByopopSettings.render(document.getElementById("settings-controls"), {
-    extra: { input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
+    extra: { look: (function () {
+        // the wallpaper's own picture (web/schemes.js): Browse, the picture kept, Remove; a picture chosen becomes the wallpaper
+        try {
+          return ByopopSchemes.chooser(function (k) { return ByopopStrings.t(k); }, function (kept) {
+            ByopopSettings.set("wallpaper", kept ? "own" : (ByopopSettings.get("wallpaper") === "own" ? "none" : ByopopSettings.get("wallpaper")));
+            try { window.dispatchEvent(new CustomEvent("byopop-setting", { detail: { name: "wallpaper" } })); } catch (e) {}
+            if (siteSettingsView && siteSettingsView.refresh) siteSettingsView.refresh();
+          });
+        } catch (e) { return null; }
+      })(), input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
     section: (/^#settings-([a-z]+)$/.exec(settingsHash(location.hash)) || [])[1],
     openSection: function (id) { if (window.ByopopSkin && ByopopSkin.desk.show("set-" + id)) return; siteSettingsView.select(id, true); }
   });

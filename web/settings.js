@@ -52,6 +52,10 @@ var ByopopSettings = (function () {
     win95Only: { values: SWITCH, def: "off" },
     // Desktop 95's colour scheme (web/schemes.js), site-wide
     scheme: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]), def: "standard" },
+    // the desktop's pattern and wallpaper (web/schemes.js), site-wide
+    pattern: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]), def: "none" },
+    wallpaper: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]), def: "none" },
+    wallpaperFit: { values: ["centre", "tile", "stretch"], def: "centre" },
     gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
@@ -248,6 +252,12 @@ var ByopopSettings = (function () {
     { section: "look" },
     { name: "scheme", label: T("settings.scheme.label"), hint: T("settings.scheme.hint"),
       options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]).map(function (id) { return [id, T("settings.scheme." + id)]; }) },
+    { name: "pattern", label: T("settings.pattern.label"), hint: T("settings.pattern.hint"),
+      options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]).map(function (id) { return [id, T("settings.pattern." + id)]; }) },
+    { name: "wallpaper", label: T("settings.wallpaper.label"), hint: T("settings.wallpaper.hint"),
+      options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]).map(function (id) { return [id, T("settings.wallpaper." + id)]; }) },
+    { name: "wallpaperFit", label: T("settings.wallpaperfit.label"), hint: T("settings.wallpaperfit.hint"),
+      options: [["centre", T("settings.wallpaperfit.centre")], ["tile", T("settings.wallpaperfit.tile")], ["stretch", T("settings.wallpaperfit.stretch")]] },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
     { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
       hint: T("settings.gamesopen.hint") },

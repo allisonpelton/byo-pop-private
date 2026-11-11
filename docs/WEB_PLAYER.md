@@ -490,6 +490,14 @@ rules are written again with the scheme's colours (`uriRules`). White highlights
 same in every scheme. `tools/schemetest.js` (in `unit-web`) checks every scheme: whole, named in the site's text, black
 and muted text and links on its face, white on its selection, title bar and desktop.
 
+**Pattern and wallpaper.** Three more settings of Appearance, site-wide, also in `web/schemes.js`: `pattern` (seven
+patterns of our own, 8 by 8 pixels in two colours, as rows of bits), `wallpaper` (three tiles of our own, drawn in
+translucent white and black so they suit every scheme, or "My picture") and `wallpaperFit` (centre, tile, stretch, for
+the player's picture). The picture is chosen with Browse under the settings (`ByopopSchemes.chooser`), drawn into a
+canvas, scaled to 1600 pixels at most and kept as a JPEG in localStorage `byopop-wallpaper`; it is never uploaded. The
+layers go on `<body>` of the page that has the desktop (not a page in a window of the one page). `tools/schemetest.js`
+checks the patterns' shape and that every choice is named.
+
 ### Desktop 95 in one page
 
 The whole site is one page, the listing's desktop (`web/deskapps.js`, `ByopopApps`). A game, its copyright page and
