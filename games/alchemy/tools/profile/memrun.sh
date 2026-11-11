@@ -1,6 +1,6 @@
 #!/bin/bash
 # memrun.sh: what the port holds in memory at the title (update 300), in the middle of the scripted minute (3000) and at its end
-# (6440), by the game's `memreport <file>` test command (src/testhooks/MemReport.cpp). It takes build/perf/port-play.txt (the
+# (6440), by the framework's `memreport <file>` test command (docs/TEST_COMMANDS.md). It takes build/perf/port-play.txt (the
 # port's script of the performance runs), adds the three commands, writes build/perf/port-mem.txt, and plays it with -fast under
 # rundesk once, after waiting for room (at most 3 game processes machine-wide). The reports are build/perf/memreport-title.txt,
 # -play.txt and -end.txt. Run from the worktree root.

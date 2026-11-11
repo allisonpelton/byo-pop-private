@@ -566,3 +566,119 @@ renamed class changes every mangled name). After the corrections seven units dif
 loaded, the rerun), and the screen tours 1, 2, 5 and 7 (the title, selector, options, help and scores; a strategic game
 with its name entry and table; the tutorial; the wizard's messages), run before the pass and after it with the same script and
 seed, give 106 screenshots that are byte for byte the same.
+
+## 12. The software path (2026-11-11)
+
+**The question.** What would a port cost if it drew through SDL's software renderer, with no Direct3D device
+(`SDL_RENDER_DRIVER=software`), instead of the default path? And the user's idea: nothing in these games looks better drawn
+at 4K, so draw at the game's own size and scale the finished frame at the end. This is a test; no default changed. The tools
+are `games/alchemy/tools/profile/softpath.py` (one measured run), `softpath.sh` (the matrix), `softpath_table.py` (the tables
+below), `softshots.sh` (the pictures), and the shared `tools/scaletest`, `tools/memmap.py` and the `memreport` test command.
+Every run is under rundesk, on a fresh user folder, seed 11, with the screen mode written into its registry.ini: windowed (2x,
+1280 x 960) and full screen on the 4K screen (3840 x 2160). Four ways of drawing: **default** (the Direct3D renderer, the
+frame drawn at the window's scale), **default at 640** (`-renderscale=1`: drawn at 640 x 480 and scaled by the renderer's
+final copy), **software at 640** (the same with the software renderer) and **software at the window's scale**.
+
+**Memory and cost, Alchemy.** Private bytes (MB) from `memreport` at start (before the game opens a file: the runtime, the
+libraries and the device), at the title, in play (update 3000) and at the end of the bot's game; the peak; the processor
+cycles of a real-time game (65 s, a scripted bot game) and the frames it drew; the frame time, from two `-fast` runs of the
+same game that differ only in how often it draws (the difference in wall time over the difference in frames, 5390 of them;
+`*` marks the short pair, 935 frames, where the long pair was not run).
+
+| drawing | window | private: start / title / play / end | peak | real-time game: G cycles, frames | one frame: ms, M cycles |
+|---|---|---|---|---|---|
+| default | window | 30.1 / 60.1 / 68.7 / 71.3 | 71.3 | 11.5, 3607 | 0.47, 1.2 |
+| default | full screen | 30.0 / 59.5 / 67.4 / 69.6 | 69.6 | 13.4, 3345 | 0.31, 0.9 |
+| default at 640 | window | 29.8 / 59.7 / 66.5 / 68.0 | 68.0 | 11.6, 2875 | 0.68, 0.9 |
+| default at 640 | full screen | 30.5 / 61.8 / 73.8 / 76.0 | 76.0 | 12.6, 3369 | 0.50, 1.0 |
+| software at 640 | window | 8.3 / 37.4 / 43.7 / 45.3 | 54.8 | 83.6, 2044 in 73 s | 24.7, 39.9 |
+| software at 640 | full screen | 8.3 / 64.3 / 70.9 / 72.3 | 97.4 | 126.2, 810 | 80.8, 167.1 |
+| software at the window's scale | window | 11.9 / 40.9 / 47.3 / 48.8 | 50.7 | 104.9, 3152 | 14.9*, 29.9* |
+| software at the window's scale | full screen | 11.9 / 84.8 / 91.3 / 92.6 | 117.6 | 181.4, 673 in 93 s | 156.4*, 290.7* |
+
+In a window the software renderer saves 12 to 25 MB of private bytes in play, depending on how it is counted (the reports:
+66.2 against 49.9 in the real-time game, 71.3 against 45.3 in the `-fast` one; the peaks: 66.8 against 54.8 and 71.3 against
+50.0; at 640 its peak lies 5 MB above its reports, in full screen 24 MB). The saving is the device: 30 MB before any file
+against 8 to 12. In full screen it is gone: the window's own surface at 3840 x 2160 is 33 MB, and the peak is 97 to 118 MB
+against 70. The price is time: 24.7 ms a frame against 0.5 (the game keeps about 28 frames a second in real time where the
+default path keeps 55) and 40 M cycles a frame against 1, so a real-time game costs 7 to 9 times the processor cycles in a window
+and 9 to 14 times in full screen. Drawing at the window's scale is cheaper per frame in a window (14.9 ms) than at 640
+(24.7), because the 640 path ends with SDL's linear scale of the finished frame, which `tools/scaletest` puts at 10.8 ms in a
+window and 56 to 75 ms at 4K; that is also why full screen takes 81 to 156 ms a frame. The software drawing itself is about 13
+to 14 ms a frame at 640.
+
+**Bookworm Adventures** (the larger game; the script only waits on the first cutscene with the new-player dialog, so "play"
+is that screen, and the frame time is the short pair, 1350 frames):
+
+| drawing | window | private: start / title / play / end | peak | real-time game: G cycles, frames | one frame: ms, M cycles |
+|---|---|---|---|---|---|
+| default | window | 29.6 / 160.7 / 165.8 / 166.3 | 168.1 | 16.0, 3482 | 0.52, 0.4 |
+| default | full screen | 29.6 / 164.6 / 169.5 / 170.3 | 171.0 | 15.2, 3472 | 0.50, 0.6 |
+| default at 640 | window | 29.7 / 167.5 / 170.6 / 170.7 | 170.9 | 15.6, 3401 | 0.12, 0.6 |
+| default at 640 | full screen | 30.5 / 165.5 / 171.1 / 172.1 | 172.6 | 14.1, 3597 | (noise) |
+| software at 640 | window | 12.2 / 144.3 / 150.5 / 150.5 | 161.8 | 131.7, 1882 | 28.0, 54.8 |
+| software at 640 | full screen | 12.2 / 165.5 / 171.8 / 171.9 | 202.6 | 131.4, 970 | 102.0, 200.3 |
+| software at the window's scale | window | 17.7 / 149.6 / 156.3 / 156.3 | 160.1 | 101.5, 816 in 71 s | 58.8, 106.3 |
+| software at the window's scale | full screen | 17.7 / 193.2 / 199.4 / 200.0 | 230.1 | 250.8, 671 in 124 s | 451.0, 609.8 |
+
+The saving is 6 to 16 MB in a window (the pictures dominate a bigger game: 160 MB at the title; by the peak only 6 to 8 MB),
+none in full screen, and the frame costs 28 to 59 ms in a window and 102 to 451 ms in full screen against 0.5.
+
+**The memory map** (`tools/memmap.py`, 30 s into the real-time bot game; MB). The original under origrun is the reference.
+
+| | images | mapped | stacks | private | process private bytes | working set |
+|---|---|---|---|---|---|---|
+| original (origrun) | 89.0 | 29.6 | 1.1 | 47.4 | 52.2 | 73.4 |
+| port, default, window | 139.3 | 10.0 | 2.6 | 42.1 | 66.8 | 66.9 |
+| port, default, full screen | 169.4 | 29.6 | 3.0 | 43.3 | 69.0 | 75.5 |
+| port, software at 640, window | 87.4 | 29.4 | 0.9 | 50.1 | 53.9 | 73.1 |
+| port, software at 640, full screen | 87.4 | 29.4 | 0.9 | 95.2 | 99.2 | 118.2 |
+
+The default path maps the graphics driver's libraries (77 MB in two files on this machine; shared, and not counted as private
+bytes), and the process's private bytes exceed stacks plus private by 22 MB, most likely the image pages the driver's
+libraries changed (not broken down further). The software path loads none of it: its map (87 MB of images, 54 MB private
+bytes) is the original's (89, 52), so the port's 15 MB over the original in a window is the device. Full screen with the
+software renderer adds one window-sized surface (33 MB at 4K) and SDL's present copy.
+
+**Scaling the finished frame, each way** (`tools/scaletest`, Alchemy's 640 x 480 frame, 200 frames each; milliseconds to
+scale / to hand to the window, and the process's processor cycles a frame; "exact" fills the window keeping the frame's shape,
+"whole" is the largest whole-number factor with borders; the hand-over is measured on rundesk's invisible desktop, and a GDI
+call into memory is the processor's work alone).
+
+| way | 2x window, exact (1280 x 960) | 4K, exact (2880 x 2160) | 4K, whole factor 4 (2560 x 1920) |
+|---|---|---|---|
+| SDL software renderer, nearest | 1.6 / 1.3, 4.9 M | 7.7 / 11.3, 25.5 M | 7.2 / 9.8, 25.3 M |
+| SDL software renderer, linear (what the framework does now) | 10.8 / 1.2, 24.1 M | 55.9 / 5.2, 126.1 M | 75.2 / 5.8, 128.7 M |
+| SDL_BlitScaled to the window's surface | 0.6 / 1.7, 2.4 M | 5.0 / 11.6, 21.5 M | 8.7 / 15.2, 25.8 M |
+| GDI `StretchDIBits`, nearest, into memory | 0.7, 1.4 M | 4.5, 9.2 M | 7.0, 11.3 M |
+| GDI `StretchDIBits`, nearest, into the window | 1.4, 0.4 M | 3.6, 0.4 M | 1.7, 0.6 M |
+| GDI `StretchDIBits`, halftone, into the window | 7.8, 14.3 M | 33.5, 67.2 M | 47.2, 88.9 M |
+
+`StretchDIBits` with nearest sampling into the window is the cheapest: 1.4 ms at 2x, 3.6 ms at 4K and 1.7 ms at the whole
+factor. Its cycles are only the process's own (the display driver or the compositor does the rest outside the process), so the
+milliseconds are the figure to compare. SDL's own nearest copy is 1.6 ms in a window and 7.7 at 4K; linear is the expensive
+one, and the framework's final copy uses it (`SDL_SetTextureScaleMode` in `DDInterface::CreateScreenTexture`).
+
+**The pictures** (`softshots.sh`, with the `tools/shots` tours 1, 2, 5 and 7: 106 screenshots each, windowed, by the default
+path and by the software renderer, at the window's scale and at `-renderscale=1`). A nearest scale of the 640 x 480 frame, by
+SDL or by GDI, is **byte for byte** the default path's picture at scale 2 (window) and at scale 4 (full screen): drawing at 4K
+gives this game nothing the game-size frame does not already hold. Linear and halftone scaling differ from it in 81 to 84% of
+the pixels (mean 3.1 to 3.6 levels). The software renderer's own pictures differ from the default path's in every screenshot of
+the tours, by at most 4 levels of 255 in a channel (median 3.1 to 3.9% of the pixels, at most 6.8%): its blending rounds
+differently from the GPU's. At the whole factor 4 the nearest picture is clean and leaves borders (640 px at the sides, 120
+above and below); at the exact fit of 4.5 it makes pixels of uneven width (4 and 5 wide).
+
+**What leaving the scaling to Windows would take.** Draw each frame at the game's own size with the software renderer
+(`-renderscale=1`, about 13 ms a frame in Alchemy, about 17 in Bookworm Adventures), and end the frame with one
+`StretchDIBits` (COLORONCOLOR) of that frame into the window's device context instead of SDL's linear copy. The measured
+parts add up to about 15 ms a frame in a window and about 17 at 4K for Alchemy (24.7 and 80.8 now; 0.5 by the default path);
+that sum is not built or run in the game. The code is a Windows-only present step in `DDInterface`: the window handle from
+`SDL_GetWindowWMInfo`; the frame's pixels from the render target with `SDL_RenderReadPixels` (a copy of its own, not measured);
+and the software renderer must not also own the window's surface, which has to be tried. The cheaper change, with no new
+code, is the final copy's scale mode: nearest where the factor is whole (1.6 ms against 10.8 in a window, 7.2 against 75 at
+4K whole), which the framework could choose per factor. Neither changes what the software path is: its drawing alone is about
+13 ms a frame against 0.5 for the default path, so it is a fallback for machines with no usable 3D device, not a way to lower
+the default path's memory (that is the driver's).
+
+**Not measured.** The software path's sound or loading time; Bookworm Adventures' pictures (compared on Alchemy only); the
+long pair for the software path at the window's scale and for Bookworm Adventures; the visible desktop's hand-over cost.
