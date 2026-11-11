@@ -70,12 +70,6 @@ AstroPopApp::AstroPopApp()
 	mMusicSlot = 0;
 	mMusicOrder = -1;
 
-	// The lines the quit dialog picks from (0x562900 ...)
-	static const unsigned int kGoodbyes[] = {0x562900, 0x5628b8, 0x562884, 0x562840, 0x5627fc, 0x5627e0, 0x5627c0,
-		0x562798, 0x562760, 0x562708};
-	for (size_t i = 0; i < sizeof(kGoodbyes) / sizeof(kGoodbyes[0]); i++)
-		mGoodbyeMessages.push_back(GT(kGoodbyes[i]));
-
 	// sin and cos of whole degrees: the original multiplies by a float constant (0x562704) in the x87 unit
 	for (int i = 0; i < 360; i++)
 	{
@@ -158,6 +152,14 @@ void AstroPopApp::InitPropertiesHook()
 	LoadProperties("properties/texts.xml", false, false);
 	if (!LoadGameTexts())
 		SDL_Log("AstroPop: no game texts read from WinAP.exe (texts without an override stay empty)");
+
+	// The ten lines the quit dialog picks from (the original's constructor stores them, 0x562900 ...): read here, since the
+	// texts are loaded only now
+	static const unsigned int kGoodbyes[] = {0x562900, 0x5628b8, 0x562884, 0x562840, 0x5627fc, 0x5627e0, 0x5627c0,
+		0x562798, 0x562760, 0x562708};
+	mGoodbyeMessages.clear();
+	for (size_t i = 0; i < sizeof(kGoodbyes) / sizeof(kGoodbyes[0]); i++)
+		mGoodbyeMessages.push_back(GT(kGoodbyes[i]));
 }
 
 // 0x4254b0: the names under the registry key Users
