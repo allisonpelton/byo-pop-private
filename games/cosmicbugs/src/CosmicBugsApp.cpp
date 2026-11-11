@@ -341,6 +341,7 @@ static void LoadFixes()
 		cb::gFixes.shieldFlash ? "on" : "off");
 }
 
+// 0x42ae60 (WinMain: cp.cfg, the window and the screen, the sound, the game; what follows GameMain is Shutdown)
 void CosmicBugsApp::Init()
 {
 	SexyAppBase::Init();
@@ -366,7 +367,7 @@ void CosmicBugsApp::Init()
 		Shutdown();
 		return;
 	}
-	// WinMain (0x42ae60): cp.cfg, the screen in its mode, the sound, then the game
+	// WinMain: cp.cfg, the screen in its mode, the sound, then the game
 	r64::LoadConfig();
 #ifdef __EMSCRIPTEN__
 	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu sets it

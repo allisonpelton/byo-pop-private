@@ -50,6 +50,7 @@ void Obj_Init(Obj* theObj)
 	theObj->exploSound = -1;
 }
 
+// 0x40f0f0, and 0x419780 (a jump to it, which the nodes of another list end in)
 void Obj_Destroy(Obj* theObj)
 {
 	List_Clear(&theObj->children);
