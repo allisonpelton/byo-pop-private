@@ -371,3 +371,26 @@ at the Widget at 0x427880). **The runs reached 362 of the 399. 0 are reached wit
 
 Cost: most of the session's time went to finding the original's click positions (two sandbox runs) and sorting the 170
 functions of the first report; the runs themselves took about 25 minutes of machine time.
+
+## 13. Performance pass (2026-11-11)
+
+The sampled profile of the port over the demo's 90 s (`games/bejeweled/tools/profile/cpuprof.py`, the port under rundesk in
+real time with `tools/profile/perf_port.txt`; 16.8 G cycles in 92 s): **88.0 % of the cycles are in ntdll.dll** (for a 32-bit
+process, system calls and waits: the frame's present and the timer), 5.1 % win32u.dll (window and message calls), 1.9 % the
+GPU driver, 0.8 % imagehlp.dll (the shared cost already listed in `docs/COORDINATION.md`), and **2.6 % the game's own code, all
+of it loading**: Ogg decoding (`_vorbis_lsp_to_curve` 0.4 %, the Huffman set-up and the inverse MDCT 0.5 % together), GIF
+decoding (0.4 %), JPEG decoding (0.2 %). No function of the game's logic or drawing (the board, the ships, the sea, the
+sprites) is in the profile at all; the largest game function of play is below 0.1 %. The processor time of the port was 4.8 to
+5.5 % of one core in the morning's measurement (section 11), as for Bejeweled, whose frames are the cost and not its code.
+
+So there is nothing in Seven Seas' own code to speed up that a player or a frozen baseline would see, and none was changed:
+the decoding at load is about 0.2 s of one core in a load of about a second, and a faster or lazier decoder would change when
+work happens, not what it does, for a saving a player cannot notice. What remains is shared and already listed by the
+coordinator (the per-frame present and Direct3D's 20 to 25 MB of private memory, the 20 MB of image pixels the framework keeps
+after their upload, the GIF quantizer, imagehlp.dll); this game adds no new one. The memory gap to the original (about 15 MB
+of private bytes, section 11) is those shared costs. The frozen baseline (`tools/check.sh sevenseas`) is unchanged, since the
+code is.
+
+A slip: this profile run was started while 3 other game processes were running, so the machine held 4 for 92 s; the
+count is checked before a run's start, and the run's exit code was not read before starting. Nothing else ran, and the run's
+files (`build/perf`) are small.
