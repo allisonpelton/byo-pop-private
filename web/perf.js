@@ -277,7 +277,7 @@ var ByopopPerf = (function () {
     if (panel.classList.contains("perf-side") && body.offsetHeight > was) try { window.dispatchEvent(new CustomEvent("byopop-side")); } catch (e) {}
   }
   var STYLE =
-    ".perf-panel { position: fixed; right: 12px; top: 60px; z-index: 9; width: 290px; max-height: calc(100vh - 80px); overflow: auto; box-sizing: border-box;\n" +
+    ".perf-panel { position: fixed; right: 12px; top: 60px; z-index: 9; width: 290px; max-height: calc(calc(100vh / var(--d95-z, 1)) - 80px); overflow: auto; box-sizing: border-box;\n" +
     "  background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-size: 12px; }\n" +
     ".perf-panel h2 { margin: 0; padding: 6px 10px; font-size: 13px; border-bottom: 1px solid var(--line); }\n" +
     ".perf-panel p { margin: 6px 10px 0; color: var(--muted); }\n" +
@@ -298,7 +298,7 @@ var ByopopPerf = (function () {
     "html.d95-desk:not(.d95-embed).perf-side #main > .perf-panel { grid-column: 2; grid-row: 2 / 4; }\n" +
     // a narrow page (a phone held upright): under the game, as wide as the page, scrolling in itself
     "@media (max-width: 600px) {\n" +
-    "  .perf-panel.perf-side { grid-column: 1; grid-row: auto; width: auto; max-height: 40vh; border-width: 1px 0 0; }\n" +
+    "  .perf-panel.perf-side { grid-column: 1; grid-row: auto; width: auto; max-height: calc(40vh / var(--d95-z, 1)); border-width: 1px 0 0; }\n" +
     "  html.perf-side .stage-wrap { grid-template-columns: minmax(0, 1fr); }\n" +
     "}\n" +
     ".perf-panel.perf-side p { display: none; }\n" +

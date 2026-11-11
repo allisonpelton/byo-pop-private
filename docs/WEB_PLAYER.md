@@ -231,7 +231,18 @@ full screen would stretch the canvas.
 
 **Its text** is Byopop Sans, `web/fonts/byopop-sans.woff`, built by `tools/web/pixelfont.py` from W95FA by Alina Sava
 (SIL OFL 1.1, as is ours); after a change to the script, run it and commit the file. The font is sharp only at 11
-pixels and its multiples, so every text is set at 11 (a few at 22), and a new part sets no size of its own.
+pixels and its multiples, so every text is set at 11 (a few at 22), and a new part sets no size of its own. A glyph's
+body has one pixel of bearing on its left, as W95FA's have but for y, ý and ÿ, which the script moves right a pixel (the
+user approved it, 2026-11-11, of "ry" touching).
+
+**Its zoom.** One pixel of the font is one of the screen's only where `devicePixelRatio` is whole, so a desktop page zooms
+(`zoom` on `<html>`, set by `web/skins.js`) by that ratio rounded over the ratio: at 125% it is drawn as at 100%, at 150% as
+at 200% (the user, 2026-11-11: "Zoom desktop to a whole-number scale"). A page inside one of its windows finds the
+rounded ratio as its own and zooms by 1. Under the zoom a pointer's position, `getBoundingClientRect` and the window's
+`clientWidth` and `innerWidth` are the screen's CSS pixels while a style's are the page's, so code that turns the one into
+the other divides by `ByopopSkin.zoom()` (`unzoom`, `viewW`, `viewH`), a canvas drawn at the screen's pixels uses
+`ByopopSkin.ratio()`, and the style sheets' viewport units are divided by `--d95-z` (`calc(100vw / var(--d95-z, 1))`;
+a new rule with `vw` or `vh` does the same). `?deskzoom=<z>` sets the zoom for a test at any scale.
 
 **Colour schemes.** `scheme` picks one of nine schemes of our own named after soda flavours, "Standard" being the
 original look (the user, 2026-11-11, of the proposal's schemes and patterns: "Yes, 1 then 2"). `web/schemes.js` sets

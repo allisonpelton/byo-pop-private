@@ -133,7 +133,8 @@ var ByopopSchemes = (function () {
   // 2 of them there, crisp, a little larger than one CSS pixel, as close as whole pixels allow. --d95-dot holds that size in
   // CSS pixels for the stylesheet, and is kept as the ratio changes (a browser zoom, a window moved to another screen).
   function dots() { return Math.max(1, Math.round(window.devicePixelRatio || 1)); }
-  function dotSize() { return dots() / (window.devicePixelRatio || 1); }
+  // in the page's CSS pixels, under the desktop's zoom too (web/skins.js: there a CSS pixel is already whole screen pixels)
+  function dotSize() { return dots() / (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1); }
   function patternUri(rows) {
     var n = dots(), c = document.createElement("canvas");
     c.width = c.height = 8 * n;
@@ -241,6 +242,7 @@ var ByopopSchemes = (function () {
   if (typeof document !== "undefined") {
     apply();
     watchRatio();
+    window.addEventListener("byopop-zoom", ratioChanged);
     if (document.body) backdrop(); else document.addEventListener("DOMContentLoaded", backdrop);
     window.addEventListener("byopop-setting", function (ev) {
       var n = ev.detail && ev.detail.name;

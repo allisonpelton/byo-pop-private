@@ -931,7 +931,8 @@ var ByopopChat = (function () {
       if (!opts.stage) return;
       var below = false;
       if (!root.hidden) {
-        var vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
+        // the window's size in the page's pixels (the desktop's zoom, web/skins.js)
+        var z = (window.ByopopSkin && ByopopSkin.zoom ? ByopopSkin.zoom() : 1), vw = (document.documentElement.clientWidth || window.innerWidth) / z, vh = window.innerHeight / z;
         var style = window.getComputedStyle(opts.stage), aw = parseFloat(style.getPropertyValue("--aspect-w")) || 4 / 3;
         // a pixel-perfect stage has its own width (web/shell.html, sizeStage)
         var stageWidth = parseFloat(style.getPropertyValue("--pp-w")) || Math.min(vw - 24, (vh - 90) * aw);

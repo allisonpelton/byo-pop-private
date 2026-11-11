@@ -447,9 +447,11 @@ var ByopopSettings = (function () {
     tipShown = pop;
     pop.hidden = false;
     pop.classList.add("bps-tip");
-    var w = pop.offsetWidth, h = pop.offsetHeight;
-    pop.style.left = Math.max(4, Math.min(x, window.innerWidth - w - 4)) + "px";
-    pop.style.top = Math.max(4, Math.min(y, window.innerHeight - h - 4)) + "px";
+    // x and y are the screen's (a pointer's, a getBoundingClientRect's): in the page's pixels under the desktop's zoom (web/skins.js)
+    var w = pop.offsetWidth, h = pop.offsetHeight, z = (window.ByopopSkin && ByopopSkin.zoom ? ByopopSkin.zoom() : 1);
+    x /= z; y /= z;
+    pop.style.left = Math.max(4, Math.min(x, window.innerWidth / z - w - 4)) + "px";
+    pop.style.top = Math.max(4, Math.min(y, window.innerHeight / z - h - 4)) + "px";
     setTimeout(function () { ["pointerdown", "keydown", "scroll", "resize"].forEach(function (n) { window.addEventListener(n, hideTip, true); }); }, 0);
   }
   function wireTips(container) {

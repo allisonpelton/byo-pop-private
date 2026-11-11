@@ -116,7 +116,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .ag-folder { font-weight: 600; }
 /* The terms of a game being added (web/addgames.js), as the game's own terms card shows them (web/shell.html) */
 .terms-dialog {
-  box-sizing: border-box; width: min(600px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 24px;
+  box-sizing: border-box; width: min(600px, calc(calc(100vw / var(--d95-z, 1)) - 32px)); max-height: calc(calc(100vh / var(--d95-z, 1)) - 32px); padding: 24px;
   background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius);
 }
 .terms-dialog[open] { display: grid; gap: 14px; }
@@ -207,7 +207,7 @@ a.tile + .ownrow:not(:has(.why)) { min-height: 0; }
 .why:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .why[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
 .why-pop {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; box-sizing: border-box; width: min(340px, calc(100vw - 32px));
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; box-sizing: border-box; width: min(340px, calc(calc(100vw / var(--d95-z, 1)) - 32px));
   padding: 14px 16px; background: var(--panel); color: var(--fg); border: 1px solid var(--accent); border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); text-align: left; font-size: 13px;
 }
@@ -1004,7 +1004,7 @@ try {
     return x1 < 0 ? null : { im: im, x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
   }
   function fitIcon(img, url, small) {
-    var dpr = window.devicePixelRatio || 1, box = FACE;
+    var dpr = (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1), box = FACE;
     var key = url + "|" + small + "|" + box + "|" + dpr;
     img.setAttribute("data-fit", key);
     function put(f) {
@@ -1041,7 +1041,9 @@ try {
     });
   }
   var lastDpr = window.devicePixelRatio || 1;
-  window.addEventListener("resize", function () { var d = window.devicePixelRatio || 1; if (d !== lastDpr) { lastDpr = d; refit(); } });
+  function nowRatio() { return (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1); }
+  window.addEventListener("resize", function () { var d = nowRatio(); if (d !== lastDpr) { lastDpr = d; refit(); } });
+  window.addEventListener("byopop-zoom", function () { lastDpr = nowRatio(); refit(); });
   function showPlayed(card, play) {
     var line = card.querySelector(".played");
     if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
