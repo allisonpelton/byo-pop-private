@@ -109,6 +109,7 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 | The tutorial board lacked the teacher and showed Reset, Hint and Undo | 0x409880: the tutorial board hides the three buttons (the ninth puzzle keeps them) and creates the teacher, drawn by the same routine as the temple's figure | `Board` hides them and draws `DrawCharacter(mTeacher)` after the tutorial sidebar | f18817b8 |
 | The sweep picture's tiles sat 1 pixel off | 0x409880's draws of the gray tile take (x - 1, y - 1) | the same (u2560 from 14.4% to 1.9%) | f18817b8 |
 | Temple thumbnails: no glow near the mouse | 0x4119e0, 0x4100f0, 0x410ad0: with the mouse within 64 pixels, each 6 by 6 cell of the shape shows with alpha 255 - d^3 * 255 / 2^18 (d from the cell's middle to the pointer) | `TempleScreen::DrawThumbs` does the same | f18817b8 |
+| The puzzle just solved came in over its shape on the temple screen, with a medal on the tutorial's thumbnails | 0x40fb80: a solved picture starts at alpha 255 (raised 2 an update), so it shows at once; 0x4127f6 draws a medal at (x + 62, y + 75) only when the player's current temple index is not 0 | `TempleScreen` shows it at once and draws no medal in the tutorial temple (u2800 from 4.6% to 1.4%) | this pass |
 | The tutorial's completed tablet showed the move count and the label | 0x41a66a: with the tutorial flag the tablet draws only its three lines (y 268, 293, 318; 283 and 308 once the tutorial is done) | `PuzzleCompletedScreen::DrawContent` the same | this pass |
 
 The frozen baseline (build/baseline-pixelus) was refreshed on 2026-11-08: the island now draws the application's generator as the
@@ -135,6 +136,9 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
   the Windows Sandbox runs without 3D; the port's emulated 3D path filters the stretch, as the original does on a machine with
   3D (the story portraits' stretch does not set the flag, and differs only at the head's edges, also a filter detail). The port
   now sets the flag by the same test, so a port run without 3D draws like the sandboxed original.
+- Shots in the middle of a move (u2300, u2450: the tile maker at another place on the board, tiles in flight or already yellow
+  in the sweep) differ because the two programs are at different steps of the same move at the same update count; the
+  boards agree at the move's end (the state logs). Not a draw difference; a shot at the end of a move would line them up.
 - The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
 
