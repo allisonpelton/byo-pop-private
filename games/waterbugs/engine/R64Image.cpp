@@ -349,12 +349,12 @@ void Image_Create(Image* img, int theWidth, int theHeight, const PixelFormat* fm
 }
 
 // 0x4255d0
-void Image_CreateCopy(Image* img, const uint8_t* src, int spitch, int w, int h, const PixelFormat* fmt)
+void Image_CreateCopy(Image* img, const uint8_t* src, int srcPitch, int w, int h, const PixelFormat* fmt)
 {
 	if (img->notOwned == 0)
 	{
 		Image_Create(img, w, h, fmt);
-		Copy8(img->bits, 0, 0, img->pitch, 0, src, 0, 0, spitch, 0, (img->fmt.bpp >> 3) * w, h);
+		Copy8(img->bits, 0, 0, img->pitch, 0, src, 0, 0, srcPitch, 0, (img->fmt.bpp >> 3) * w, h);
 	}
 }
 
@@ -397,11 +397,11 @@ void Image_Copy(Image* img, const Image* src)
 }
 
 // 0x423c20
-void Image_Blit(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_Blit(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y)
 {
-	int ox, oy, sx, sy, w, h;
+	int dstX, dstY, srcX, srcY, w, h;
 	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+			img->w, img->h, &dstX, &dstY, &srcX, &srcY, &w, &h) == 0)
 		return;
 	if (fmt == nullptr)
 		fmt = &img->fmt;
@@ -410,24 +410,24 @@ void Image_Blit(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, co
 		if (fmt->bpp == 8)
 		{
 			if (img->fmt.bpp == 8)
-				Copy8(dst, ox, oy, dpitch, 0, img->bits, sx, sy, img->pitch, 0, w, h); // 0x4295f0
+				Copy8(dst, dstX, dstY, dstPitch, 0, img->bits, srcX, srcY, img->pitch, 0, w, h); // 0x4295f0
 		}
 		else if (img->fmt.bpp == 8)
 		{
 			if (img->palette != nullptr && Is16(fmt)) // 0x429cb0
-				Pal16(dst, dpitch, ox, oy, img->bits, img->pitch, img->palette, sx, sy, w, h);
+				Pal16(dst, dstPitch, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, w, h);
 		}
 		else if (Is16(fmt)) // 0x429680
-			Copy16(dst, dpitch, ox, oy, img->bits, img->pitch, sx, sy, w, h);
+			Copy16(dst, dstPitch, dstX, dstY, img->bits, img->pitch, srcX, srcY, w, h);
 	}
 }
 
 // 0x423f50. The runs are used only when the whole image is drawn.
-void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_BlitMasked(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y)
 {
-	int ox, oy, sx, sy, w, h;
+	int dstX, dstY, srcX, srcY, w, h;
 	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+			img->w, img->h, &dstX, &dstY, &srcX, &srcY, &w, &h) == 0)
 		return;
 	if (fmt == nullptr)
 		fmt = &img->fmt;
@@ -436,7 +436,7 @@ void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* f
 	if (fmt->bpp == 8)
 	{
 		if (img->fmt.bpp == 8)
-			Copy8Key(dst, ox, oy, dpitch, 0, img->bits, sx, sy, img->pitch, 0, w, h); // 0x429630
+			Copy8Key(dst, dstX, dstY, dstPitch, 0, img->bits, srcX, srcY, img->pitch, 0, w, h); // 0x429630
 	}
 	else if (img->hasMask == 1)
 	{
@@ -446,14 +446,14 @@ void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* f
 			if (img->fmt.bpp != 8)
 			{
 				if (Is16(fmt)) // 0x429750
-					Copy16Mask(dst, dpitch, ox, oy, img->bits, img->pitch, sx, sy, img->mask->bits, img->mask->pitch,
+					Copy16Mask(dst, dstPitch, dstX, dstY, img->bits, img->pitch, srcX, srcY, img->mask->bits, img->mask->pitch,
 						img->maskX, img->maskY, w, h);
 				return;
 			}
 			if (img->palette != nullptr)
 			{
 				if (Is16(fmt)) // 0x429d90
-					Pal16Mask(dst, dpitch, ox, oy, img->bits, img->pitch, img->palette, sx, sy, img->mask->bits,
+					Pal16Mask(dst, dstPitch, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, img->mask->bits,
 						img->mask->pitch, img->maskX, img->maskY, w, h);
 				return;
 			}
@@ -463,13 +463,13 @@ void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* f
 			if (img->fmt.bpp != 8)
 			{
 				if (Is16(fmt)) // 0x429af0
-					Rle16Copy(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
+					Rle16Copy(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, aRle);
 				return;
 			}
 			if (img->palette != nullptr)
 			{
 				if (Is16(fmt)) // 0x42a0d0
-					RlePal16Copy(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
+					RlePal16Copy(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, aRle);
 				return;
 			}
 		}
@@ -477,18 +477,18 @@ void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* f
 	else if (img->fmt.bpp == 8 && img->palette != nullptr)
 	{
 		if (Is16(fmt)) // 0x429d90
-			Pal16Mask(dst, dpitch, ox, oy, img->bits, img->pitch, img->palette, sx, sy, img->bits, img->pitch, 0, 0,
+			Pal16Mask(dst, dstPitch, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, img->bits, img->pitch, 0, 0,
 				w, h);
 	}
 }
 
 // 0x4241f0: the colour through the image's mask (an 8-bit image without one is its own)
-void Image_BlitFill(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
+void Image_BlitFill(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t colour)
 {
-	int ox, oy, sx, sy, w, h;
+	int dstX, dstY, srcX, srcY, w, h;
 	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+			img->w, img->h, &dstX, &dstY, &srcX, &srcY, &w, &h) == 0)
 		return;
 	if (fmt == nullptr)
 		fmt = &img->fmt;
@@ -502,7 +502,7 @@ void Image_BlitFill(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt
 			if (aRle != nullptr && img->maskX == 0 && img->maskY == 0 && w == img->w && h == img->h)
 			{
 				if (Is16(fmt)) // 0x429b30
-					Rle16Fill(dst, dpitch, fmt, ox, oy, aRle, (uint16_t)colour);
+					Rle16Fill(dst, dstPitch, fmt, dstX, dstY, aRle, (uint16_t)colour);
 				return;
 			}
 			aMaskY = img->maskY;
@@ -520,17 +520,17 @@ void Image_BlitFill(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt
 			aMaskX = 0;
 		}
 		if (Is16(fmt)) // 0x429860
-			Fill16Mask(dst, dpitch, fmt, ox, oy, sx, sy, aMask, aMaskPitch, aMaskX, aMaskY, w, h, (uint16_t)colour);
+			Fill16Mask(dst, dstPitch, fmt, dstX, dstY, srcX, srcY, aMask, aMaskPitch, aMaskX, aMaskY, w, h, (uint16_t)colour);
 	}
 }
 
 // 0x424360
-void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
+void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t colour, uint32_t alpha)
 {
-	int ox, oy, sx, sy, w, h;
+	int dstX, dstY, srcX, srcY, w, h;
 	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+			img->w, img->h, &dstX, &dstY, &srcX, &srcY, &w, &h) == 0)
 		return;
 	if (fmt == nullptr)
 		fmt = &img->fmt;
@@ -544,7 +544,7 @@ void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat
 			if (aRle != nullptr && img->maskX == 0 && img->maskY == 0 && w == img->w && h == img->h)
 			{
 				if (Is16(fmt)) // 0x429b70
-					Rle16FillAlpha(dst, dpitch, fmt, ox, oy, aRle, (uint16_t)colour, alpha & 0xff);
+					Rle16FillAlpha(dst, dstPitch, fmt, dstX, dstY, aRle, (uint16_t)colour, alpha & 0xff);
 				return;
 			}
 			aMaskY = img->maskY;
@@ -562,7 +562,7 @@ void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat
 			aMaskX = 0;
 		}
 		if (Is16(fmt)) // 0x4298a0
-			Fill16MaskAlpha(dst, dpitch, fmt, ox, oy, sx, sy, aMask, aMaskPitch, aMaskX, aMaskY, w, h, (uint16_t)colour,
+			Fill16MaskAlpha(dst, dstPitch, fmt, dstX, dstY, srcX, srcY, aMask, aMaskPitch, aMaskX, aMaskY, w, h, (uint16_t)colour,
 				(uint8_t)alpha);
 	}
 }
@@ -578,12 +578,12 @@ enum MaskedKind
 	kAdd     // 0x424cc0
 };
 
-void BlitMaskedKind(MaskedKind theKind, Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip,
+void BlitMaskedKind(MaskedKind theKind, Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip,
 	int x, int y)
 {
-	int ox, oy, sx, sy, w, h;
+	int dstX, dstY, srcX, srcY, w, h;
 	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+			img->w, img->h, &dstX, &dstY, &srcX, &srcY, &w, &h) == 0)
 		return;
 	if (fmt == nullptr)
 		fmt = &img->fmt;
@@ -599,26 +599,26 @@ void BlitMaskedKind(MaskedKind theKind, Image* img, uint8_t* dst, int dpitch, co
 			if (img->palette != nullptr && Is16(fmt))
 			{
 				if (theKind == kBlend) // 0x429eb0
-					PalBlend16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, aMaskPixel, mp,
+					PalBlend16Mask(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, aMaskPixel, mp,
 						img->maskX, img->maskY, w, h);
 				else if (theKind == kAlpha) // 0x429ef0
-					PalAlpha16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, aMaskPixel, mp,
+					PalAlpha16Mask(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, aMaskPixel, mp,
 						img->maskX, img->maskY, w, h);
 				else // 0x429f70
-					PalAdd16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, aMaskPixel, mp,
+					PalAdd16Mask(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, aMaskPixel, mp,
 						img->maskX, img->maskY, w, h);
 			}
 		}
 		else if (Is16(fmt))
 		{
 			if (theKind == kBlend) // 0x4298e0
-				Blend16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, aMaskPixel, mp, img->maskX, img->maskY, w,
+				Blend16Mask(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, srcX, srcY, aMaskPixel, mp, img->maskX, img->maskY, w,
 					h);
 			else if (theKind == kAlpha) // 0x429920
-				Alpha16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, aMaskPixel, mp, img->maskX, img->maskY, w,
+				Alpha16Mask(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, srcX, srcY, aMaskPixel, mp, img->maskX, img->maskY, w,
 					h);
 			else // 0x4299a0
-				Add16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, aMaskPixel, mp, img->maskX, img->maskY, w, h);
+				Add16Mask(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, srcX, srcY, aMaskPixel, mp, img->maskX, img->maskY, w, h);
 		}
 	}
 	else if (img->fmt.bpp != 8)
@@ -626,26 +626,26 @@ void BlitMaskedKind(MaskedKind theKind, Image* img, uint8_t* dst, int dpitch, co
 		if (Is16(fmt))
 		{
 			if (theKind == kBlend) // 0x429bb0
-				Rle16Blend(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
+				Rle16Blend(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, aRle);
 			else if (theKind == kAlpha) // 0x429bf0
-				Rle16Alpha(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
+				Rle16Alpha(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, aRle);
 			else // 0x429c70
-				Rle16Add(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
+				Rle16Add(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, aRle);
 		}
 	}
 	else if (img->palette != nullptr && Is16(fmt))
 	{
 		if (theKind == kBlend) // 0x42a110
-			RlePal16Blend(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
+			RlePal16Blend(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, aRle);
 		else if (theKind == kAlpha) // 0x42a150
-			RlePal16Alpha(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
+			RlePal16Alpha(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, aRle);
 		else // 0x42a1d0
-			RlePal16Add(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
+			RlePal16Add(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, aRle);
 	}
 }
 
 // 0x424a90's faded alpha blend, with the runs when the whole image is drawn (theWhole)
-void BlitAlphaFadeAt(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int ox, int oy, int sx, int sy,
+void BlitAlphaFadeAt(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, int dstX, int dstY, int srcX, int srcY,
 	int theWidth, int theHeight, bool theWhole, uint32_t alpha)
 {
 	const uint8_t* aRle = img->mask->rle;
@@ -656,55 +656,55 @@ void BlitAlphaFadeAt(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fm
 		if (img->fmt.bpp == 8)
 		{
 			if (img->palette != nullptr && Is16(fmt)) // 0x429f30
-				PalAlpha16MaskFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, aMaskPixel, mp,
+				PalAlpha16MaskFade(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, aMaskPixel, mp,
 					img->maskX, img->maskY, theWidth, theHeight, (int)alpha);
 		}
 		else if (Is16(fmt)) // 0x429960
-			Alpha16MaskFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, aMaskPixel, mp, img->maskX, img->maskY, theWidth,
+			Alpha16MaskFade(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, srcX, srcY, aMaskPixel, mp, img->maskX, img->maskY, theWidth,
 				theHeight, (int)alpha);
 	}
 	else if (img->fmt.bpp != 8)
 	{
 		if (Is16(fmt)) // 0x429c30
-			Rle16AlphaFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle, alpha);
+			Rle16AlphaFade(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, aRle, alpha);
 	}
 	else if (img->palette != nullptr && Is16(fmt)) // 0x42a190
-		RlePal16AlphaFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle, alpha);
+		RlePal16AlphaFade(dst, dstPitch, fmt, dstX, dstY, img->bits, img->pitch, img->palette, aRle, alpha);
 }
 
 } // namespace
 
-void Image_BlitBlend(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_BlitBlend(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y)
 {
-	BlitMaskedKind(kBlend, img, dst, dpitch, fmt, clip, x, y);
+	BlitMaskedKind(kBlend, img, dst, dstPitch, fmt, clip, x, y);
 }
 
-void Image_BlitAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_BlitAlpha(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y)
 {
-	BlitMaskedKind(kAlpha, img, dst, dpitch, fmt, clip, x, y);
+	BlitMaskedKind(kAlpha, img, dst, dstPitch, fmt, clip, x, y);
 }
 
-void Image_BlitAdd(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_BlitAdd(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y)
 {
-	BlitMaskedKind(kAdd, img, dst, dpitch, fmt, clip, x, y);
+	BlitMaskedKind(kAdd, img, dst, dstPitch, fmt, clip, x, y);
 }
 
 // 0x424a90
-void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
+void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t alpha)
 {
-	int ox, oy, sx, sy, w, h;
+	int dstX, dstY, srcX, srcY, w, h;
 	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+			img->w, img->h, &dstX, &dstY, &srcX, &srcY, &w, &h) == 0)
 		return;
 	if (fmt == nullptr)
 		fmt = &img->fmt;
 	if (0 < w && 0 < h && fmt->bpp != 8 && img->hasMask == 1)
-		BlitAlphaFadeAt(img, dst, dpitch, fmt, ox, oy, sx, sy, w, h, w == img->w && h == img->h, alpha);
+		BlitAlphaFadeAt(img, dst, dstPitch, fmt, dstX, dstY, srcX, srcY, w, h, w == img->w && h == img->h, alpha);
 }
 
 // 0x425010: a part of the image, opaque and unclipped
-void Image_BlitRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
+void Image_BlitRect(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, int dstX, int dstY, int srcX, int srcY,
 	int theWidth, int theHeight)
 {
 	if (fmt == nullptr)
@@ -712,19 +712,19 @@ void Image_BlitRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt
 	if (fmt->bpp == 8)
 	{
 		if (img->fmt.bpp == 8)
-			Copy8(dst, dx, dy, dpitch, 0, img->bits, sx, sy, img->pitch, 0, theWidth, theHeight); // 0x4295f0
+			Copy8(dst, dstX, dstY, dstPitch, 0, img->bits, srcX, srcY, img->pitch, 0, theWidth, theHeight); // 0x4295f0
 	}
 	else if (img->fmt.bpp == 8)
 	{
 		if (img->palette != nullptr && Is16(fmt)) // 0x429cb0
-			Pal16(dst, dpitch, dx, dy, img->bits, img->pitch, img->palette, sx, sy, theWidth, theHeight);
+			Pal16(dst, dstPitch, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, theWidth, theHeight);
 	}
 	else if (Is16(fmt)) // 0x429680
-		Copy16(dst, dpitch, dx, dy, img->bits, img->pitch, sx, sy, theWidth, theHeight);
+		Copy16(dst, dstPitch, dstX, dstY, img->bits, img->pitch, srcX, srcY, theWidth, theHeight);
 }
 
 // 0x4250f0: a part of the image through its mask, unclipped
-void Image_BlitSubRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
+void Image_BlitSubRect(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, int dstX, int dstY, int srcX, int srcY,
 	int theWidth, int theHeight)
 {
 	if (fmt == nullptr)
@@ -732,27 +732,27 @@ void Image_BlitSubRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* 
 	if (fmt->bpp == 8)
 	{
 		if (img->fmt.bpp == 8)
-			Copy8Key(dst, dx, dy, dpitch, 0, img->bits, sx, sy, img->pitch, 0, theWidth, theHeight); // 0x429630
+			Copy8Key(dst, dstX, dstY, dstPitch, 0, img->bits, srcX, srcY, img->pitch, 0, theWidth, theHeight); // 0x429630
 	}
 	else if (img->hasMask == 1)
 	{
 		if (img->fmt.bpp != 8)
 		{
 			if (Is16(fmt)) // 0x429750
-				Copy16Mask(dst, dpitch, dx, dy, img->bits, img->pitch, sx, sy, img->mask->bits, img->mask->pitch,
+				Copy16Mask(dst, dstPitch, dstX, dstY, img->bits, img->pitch, srcX, srcY, img->mask->bits, img->mask->pitch,
 					img->maskX, img->maskY, theWidth, theHeight);
 			return;
 		}
 		if (img->palette != nullptr && Is16(fmt)) // 0x429d90
-			Pal16Mask(dst, dpitch, dx, dy, img->bits, img->pitch, img->palette, sx, sy, img->mask->bits,
+			Pal16Mask(dst, dstPitch, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, img->mask->bits,
 				img->mask->pitch, img->maskX, img->maskY, theWidth, theHeight);
 	}
 	else if (img->fmt.bpp == 8 && img->palette != nullptr && Is16(fmt)) // 0x429d90
-		Pal16Mask(dst, dpitch, dx, dy, img->bits, img->pitch, img->palette, sx, sy, img->bits, img->pitch, 0, 0, theWidth, theHeight);
+		Pal16Mask(dst, dstPitch, dstX, dstY, img->bits, img->pitch, img->palette, srcX, srcY, img->bits, img->pitch, 0, 0, theWidth, theHeight);
 }
 
 // 0x4252f0: rotated by angle degrees about (x, y), the image's middle
-void Image_BlitRotated(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y, int angle,
+void Image_BlitRotated(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, int x, int y, int angle,
 	const int* clip)
 {
 	if (fmt == nullptr)
@@ -760,48 +760,48 @@ void Image_BlitRotated(Image* img, uint8_t* dst, int dpitch, const PixelFormat* 
 	if (fmt->bpp == 8)
 	{
 		if (img->fmt.bpp == 8)
-			Rotate8(dst, dpitch, img->bits, img->pitch, img->w, img->h, x, y, angle, clip);
+			Rotate8(dst, dstPitch, img->bits, img->pitch, img->w, img->h, x, y, angle, clip);
 	}
 	else if (img->hasMask == 1)
 	{
 		if (img->fmt.bpp != 8)
 		{
 			if (Is16(fmt)) // 0x4299e0
-				Rotate16(dst, dpitch, img->bits, img->pitch, img->w, img->h, img->mask->bits, img->mask->pitch,
+				Rotate16(dst, dstPitch, img->bits, img->pitch, img->w, img->h, img->mask->bits, img->mask->pitch,
 					img->maskX, img->maskY, x, y, angle, clip);
 			return;
 		}
 		if (img->palette != nullptr && Is16(fmt)) // 0x429fb0
-			PalRotate16(dst, dpitch, img->bits, img->pitch, img->palette, img->w, img->h, img->mask->bits,
+			PalRotate16(dst, dstPitch, img->bits, img->pitch, img->palette, img->w, img->h, img->mask->bits,
 				img->mask->pitch, img->maskX, img->maskY, x, y, angle, clip);
 	}
 	else if (img->fmt.bpp == 8 && img->palette != nullptr && Is16(fmt)) // 0x429fb0
-		PalRotate16(dst, dpitch, img->bits, img->pitch, img->palette, img->w, img->h, img->bits, img->pitch, 0, 0, x, y,
+		PalRotate16(dst, dstPitch, img->bits, img->pitch, img->palette, img->w, img->h, img->bits, img->pitch, 0, 0, x, y,
 			angle, clip);
 }
 
 // 0x42d540
-void Fill8(uint8_t* dst, int dpitch, int l, int t, int r, int b, int value)
+void Fill8(uint8_t* dst, int dstPitch, int l, int t, int r, int b, int value)
 {
-	uint8_t* d = dst + dpitch * t + l;
+	uint8_t* d = dst + dstPitch * t + l;
 	if (t <= b)
 	{
 		int n = (b - t) + 1;
 		do
 		{
 			std::memset(d, value, (size_t)((r - l) + 1));
-			d += dpitch;
+			d += dstPitch;
 			n--;
 		} while (n != 0);
 	}
 }
 
 // 0x42e020
-void ExtractAlpha(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int theWidth,
+void ExtractAlpha(uint8_t* dst, int dstPitch, int dstX, int dstY, const uint8_t* src, int srcPitch, int srcX, int srcY, int theWidth,
 	int theHeight)
 {
-	const uint8_t* aSrcPixel = src + spitch * sy + sx * 4;
-	uint8_t* aDstPixel = dst + dpitch * dy + dx;
+	const uint8_t* aSrcPixel = src + srcPitch * srcY + srcX * 4;
+	uint8_t* aDstPixel = dst + dstPitch * dstY + dstX;
 	if (0 < theHeight)
 	{
 		int aRows = theHeight;
@@ -820,8 +820,8 @@ void ExtractAlpha(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, 
 					pd++;
 				} while (n != 0);
 			}
-			aSrcPixel += spitch;
-			aDstPixel += dpitch;
+			aSrcPixel += srcPitch;
+			aDstPixel += dstPitch;
 			aRows--;
 		} while (aRows != 0);
 	}
@@ -829,8 +829,8 @@ void ExtractAlpha(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, 
 
 // 0x42e0a0. The original passes the pixel through globals between a reader per source depth (0x42de00 8-bit,
 // 0x42de40 16-bit, 0x42dea0 24/32-bit) and a writer per destination depth (0x42def0, 0x42df50, 0x42dfd0).
-int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dpitch, int dx, int dy, const PixelFormat* srcFmt,
-	const uint8_t* rgb, const uint8_t* src, int spitch, int sx, int sy, int theWidth, int theHeight)
+int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dstPitch, int dstX, int dstY, const PixelFormat* srcFmt,
+	const uint8_t* rgb, const uint8_t* src, int srcPitch, int srcX, int srcY, int theWidth, int theHeight)
 {
 	uint32_t aSrcBpp = (uint32_t)srcFmt->bpp;
 	uint32_t aDstBpp = (uint32_t)dstFmt->bpp;
@@ -873,8 +873,8 @@ int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dpitch, int dx, i
 		else
 			std::memcpy(thePixel, &aValue, 4);
 	};
-	uint8_t* aDstPixel = dst + dpitch * dy + (aDstBpp >> 3) * dx;
-	const uint8_t* aSrcPixel = src + spitch * sy + (aSrcBpp >> 3) * sx;
+	uint8_t* aDstPixel = dst + dstPitch * dstY + (aDstBpp >> 3) * dstX;
+	const uint8_t* aSrcPixel = src + srcPitch * srcY + (aSrcBpp >> 3) * srcX;
 	if (0 < theHeight)
 	{
 		int aRows = theHeight;
@@ -894,8 +894,8 @@ int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dpitch, int dx, i
 					n--;
 				} while (n != 0);
 			}
-			aSrcPixel += spitch;
-			aDstPixel += dpitch;
+			aSrcPixel += srcPitch;
+			aDstPixel += dstPitch;
 			aRows--;
 		} while (aRows != 0);
 	}

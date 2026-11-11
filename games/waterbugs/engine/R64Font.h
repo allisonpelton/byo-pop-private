@@ -44,7 +44,7 @@ struct Font
 	int outlining;             // +0xc2c  while it does, colour codes are ignored
 	int alpha;                 // +0xc30  of glyphs with a mask on a screen over 8 bits
 	uint8_t* dst;              // +0xc34
-	int dpitch;                // +0xc38
+	int dstPitch;                // +0xc38
 	int dstW;                  // +0xc3c
 	int dstH;                  // +0xc40
 	Palette* palette;          // +0xc44  the glyphs' palette (null: each glyph's own)

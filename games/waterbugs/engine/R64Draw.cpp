@@ -194,7 +194,7 @@ void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, 
 		anItem.depth = theDepth;
 		anItem.kind = theKind;
 		anItem.dst = theDst;
-		anItem.dpitch = theDPitch;
+		anItem.dstPitch = theDPitch;
 		anItem.r = theRed;
 		anItem.g = theGreen;
 		anItem.b = theBlue;
@@ -257,26 +257,26 @@ void DrawList_Flush()
 		switch (it.kind)
 		{
 		case 0:
-			Image_Blit(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y);
+			Image_Blit(it.image, it.dst, it.dstPitch, aFormat, it.clip, it.x, it.y);
 			break;
 		case 1:
-			Image_BlitAlpha(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y);
+			Image_BlitAlpha(it.image, it.dst, it.dstPitch, aFormat, it.clip, it.x, it.y);
 			break;
 		case 2:
-			Image_BlitBlend(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y);
+			Image_BlitBlend(it.image, it.dst, it.dstPitch, aFormat, it.clip, it.x, it.y);
 			break;
 		case 3:
-			Image_BlitFill(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y, PackColour(aFormat, it.r, it.g, it.b));
+			Image_BlitFill(it.image, it.dst, it.dstPitch, aFormat, it.clip, it.x, it.y, PackColour(aFormat, it.r, it.g, it.b));
 			break;
 		case 4:
-			Image_BlitAlphaFade(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y, (uint32_t)it.alpha);
+			Image_BlitAlphaFade(it.image, it.dst, it.dstPitch, aFormat, it.clip, it.x, it.y, (uint32_t)it.alpha);
 			break;
 		case 5:
-			Image_BlitFillAlpha(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y, PackColour(aFormat, it.r, it.g, it.b),
+			Image_BlitFillAlpha(it.image, it.dst, it.dstPitch, aFormat, it.clip, it.x, it.y, PackColour(aFormat, it.r, it.g, it.b),
 				(uint32_t)(uint8_t)it.alpha);
 			break;
 		case 6:
-			Image_BlitAdd(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y);
+			Image_BlitAdd(it.image, it.dst, it.dstPitch, aFormat, it.clip, it.x, it.y);
 			break;
 		}
 		i++;
@@ -487,9 +487,9 @@ void Dirty_Clear(Dirty* theDirty)
 // 0x421eb0
 void Dirty_AddClipped(Dirty* theDirty, int x, int y, int w, int h, const int* theClip)
 {
-	int ox, oy, sx, sy, ow, oh;
-	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, w, h, &ox, &oy, &sx, &sy, &ow, &oh) == 1)
-		Dirty_AddRect(theDirty, ox, oy, ow, oh);
+	int dstX, dstY, srcX, srcY, blitWidth, blitHeight;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, w, h, &dstX, &dstY, &srcX, &srcY, &blitWidth, &blitHeight) == 1)
+		Dirty_AddRect(theDirty, dstX, dstY, blitWidth, blitHeight);
 }
 
 // 0x421f40: copies each changed rectangle of the back buffer to theDst, tells the screen, and clears the grid
@@ -554,35 +554,35 @@ void Dirty_SetSource(Dirty* theDirty, Image* theSource)
 // 0x422100: theRect is {l, t, r, b}
 void Dirty_AddClippedRect(Dirty* theDirty, const int* theRect, const int* theClip)
 {
-	int ox, oy, sx, sy, ow, oh;
+	int dstX, dstY, srcX, srcY, blitWidth, blitHeight;
 	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], theRect[0], theRect[1], (theRect[2] - theRect[0]) + 1,
-			(theRect[3] - theRect[1]) + 1, &ox, &oy, &sx, &sy, &ow, &oh) == 1)
+			(theRect[3] - theRect[1]) + 1, &dstX, &dstY, &srcX, &srcY, &blitWidth, &blitHeight) == 1)
 	{
-		Sys_AddUpdateRect(ox, oy, ow, oh);
-		Dirty_AddRect(theDirty, ox, oy, ow, oh);
+		Sys_AddUpdateRect(dstX, dstY, blitWidth, blitHeight);
+		Dirty_AddRect(theDirty, dstX, dstY, blitWidth, blitHeight);
 	}
 }
 
 // 0x4221b0
 void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int w, int h, const int* theClip)
 {
-	int ox, oy, sx, sy, ow, oh;
-	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, w, h, &ox, &oy, &sx, &sy, &ow, &oh) == 1)
+	int dstX, dstY, srcX, srcY, blitWidth, blitHeight;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, w, h, &dstX, &dstY, &srcX, &srcY, &blitWidth, &blitHeight) == 1)
 	{
-		Sys_AddUpdateRect(ox, oy, ow, oh);
-		Dirty_AddRect(theDirty, ox, oy, ow, oh);
+		Sys_AddUpdateRect(dstX, dstY, blitWidth, blitHeight);
+		Dirty_AddRect(theDirty, dstX, dstY, blitWidth, blitHeight);
 	}
 }
 
 // 0x422260: where theImage would be drawn at (x, y)
 void Dirty_AddClippedImage(Dirty* theDirty, int x, int y, const Image* theImage, const int* theClip)
 {
-	int ox, oy, sx, sy, ow, oh;
+	int dstX, dstY, srcX, srcY, blitWidth, blitHeight;
 	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], Image_DrawX(theImage) + x, Image_DrawY(theImage) + y,
-			theImage->w, theImage->h, &ox, &oy, &sx, &sy, &ow, &oh) == 1)
+			theImage->w, theImage->h, &dstX, &dstY, &srcX, &srcY, &blitWidth, &blitHeight) == 1)
 	{
-		Sys_AddUpdateRect(ox, oy, ow, oh);
-		Dirty_AddRect(theDirty, ox, oy, ow, oh);
+		Sys_AddUpdateRect(dstX, dstY, blitWidth, blitHeight);
+		Dirty_AddRect(theDirty, dstX, dstY, blitWidth, blitHeight);
 	}
 }
 

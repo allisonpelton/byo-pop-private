@@ -21,7 +21,7 @@ struct DrawItem
 	int depth;         // +0x0c  drawn in increasing depth
 	int kind;          // +0x10  0 blit, 1 alpha, 2 blend, 3 fill, 4 alpha faded, 5 fill faded, 6 additive
 	uint8_t* dst;      // +0x14
-	int dpitch;        // +0x18
+	int dstPitch;        // +0x18
 	int r;             // +0x1c  the fill colour (its low bytes)
 	int g;             // +0x20
 	int b;             // +0x24

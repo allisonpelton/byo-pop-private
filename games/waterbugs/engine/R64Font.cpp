@@ -158,7 +158,7 @@ Font::Font()
 	outline = nullptr;
 	outlining = 0;
 	dst = nullptr;
-	dpitch = 0;
+	dstPitch = 0;
 	fmt = nullptr;
 	palette = nullptr;
 	dstW = 0;
@@ -183,7 +183,7 @@ void Font_SetClip(Font* theFont, int l, int t, int r, int b)
 void Font_SetTarget(Font* theFont, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, int w, int h)
 {
 	theFont->dst = theDst;
-	theFont->dpitch = theDPitch;
+	theFont->dstPitch = theDPitch;
 	theFont->fmt = theFmt;
 	theFont->dstW = w;
 	theFont->dstH = h;
@@ -336,7 +336,7 @@ int Font_Draw(Font* theFont, const char* theText, int x, int y, int theAlign)
 			else
 			{
 				Image_SetPalette(theFont->glyphs[aChar], theFont->palette);
-				Image_BlitMasked(theFont->glyphs[*aText], theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y);
+				Image_BlitMasked(theFont->glyphs[*aText], theFont->dst, theFont->dstPitch, theFont->fmt, theFont->clip, x, y);
 				x = x + theFont->glyphs[*aText]->origW + theFont->spacing;
 			}
 			aChar = aText[1];
@@ -375,7 +375,7 @@ aligned:
 			{
 				Image_SetPalette(theFont->glyphs[aChar], theFont->palette);
 				const PixelFormat* f = theFont->fmt;
-				Image_BlitFillAlpha(theFont->glyphs[*aText], theFont->dst, theFont->dpitch, f, theFont->clip, x, y,
+				Image_BlitFillAlpha(theFont->glyphs[*aText], theFont->dst, theFont->dstPitch, f, theFont->clip, x, y,
 					PackColour(f, theRed, theGreen, theBlue), theAlpha);
 				x = x + theFont->glyphs[*aText]->origW + theFont->spacing;
 			}
@@ -433,26 +433,26 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 				if (aGlyph->hasMask == 1 && 8 < theFont->fmt->bpp)
 				{
 					if (theOutlinePass == 0)
-						Image_BlitAlphaFade(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y,
+						Image_BlitAlphaFade(aGlyph, theFont->dst, theFont->dstPitch, theFont->fmt, theFont->clip, x, y,
 							(uint32_t)theFont->alpha);
 					else
 					{
 						Image_SetPalette(aGlyph->mask, theFont->palette);
-						Image_BlitAlphaFade(aGlyph->mask, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x,
+						Image_BlitAlphaFade(aGlyph->mask, theFont->dst, theFont->dstPitch, theFont->fmt, theFont->clip, x,
 							y, (uint32_t)theFont->alpha);
 					}
 				}
 				else
-					Image_BlitMasked(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y);
+					Image_BlitMasked(aGlyph, theFont->dst, theFont->dstPitch, theFont->fmt, theFont->clip, x, y);
 				x = x + theFont->glyphs[*aText]->origW + theFont->spacing;
 			}
 		}
 		aText = aText + 1;
 		aChar = *aText;
 	}
-	int ox, oy, sx, sy, ow, oh;
+	int dstX, dstY, srcX, srcY, blitWidth, blitHeight;
 	if (ClipBlit(theFont->clip[0], theFont->clip[1], theFont->clip[2], theFont->clip[3], theRect[0], theRect[1],
-			(theRect[2] - theRect[0]) + 1, (theRect[3] - theRect[1]) + 1, &ox, &oy, &sx, &sy, &ow, &oh) != 1)
+			(theRect[2] - theRect[0]) + 1, (theRect[3] - theRect[1]) + 1, &dstX, &dstY, &srcX, &srcY, &blitWidth, &blitHeight) != 1)
 	{
 		theRect[0] = -1;
 		theRect[1] = -1;
@@ -460,10 +460,10 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 		theRect[3] = -1;
 		return theRect;
 	}
-	theRect[0] = ox;
-	theRect[2] = ox + ow + -1;
-	theRect[3] = oy + -1 + oh;
-	theRect[1] = oy;
+	theRect[0] = dstX;
+	theRect[2] = dstX + blitWidth + -1;
+	theRect[3] = dstY + -1 + blitHeight;
+	theRect[1] = dstY;
 	return theRect;
 }
 

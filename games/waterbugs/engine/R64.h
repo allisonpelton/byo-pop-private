@@ -107,7 +107,7 @@ struct RleHeader
 void Image_Init(Image* img);
 void Image_Free(Image* img);                                                 // 0x4254c0
 void Image_Create(Image* img, int theWidth, int theHeight, const PixelFormat* fmt);         // 0x425520
-void Image_CreateCopy(Image* img, const uint8_t* src, int spitch, int theWidth, int theHeight, const PixelFormat* fmt); // 0x4255d0
+void Image_CreateCopy(Image* img, const uint8_t* src, int srcPitch, int theWidth, int theHeight, const PixelFormat* fmt); // 0x4255d0
 void Image_BuildRle(Image* img);                                             // 0x425630
 void Image_Destroy(Image* img);                                              // 0x425d00
 void Image_Copy(Image* img, const Image* src);                               // 0x425d60
@@ -119,26 +119,26 @@ int Image_ConvertTo(Image* img, const PixelFormat* fmt, const uint8_t* rgb); // 
 void Image_FreeRle(Image* img);                                              // 0x423bf0
 int Image_MaskColumnSet(const Image* img, int x);                            // 0x425470
 
-// The drawing methods 0x423c20..0x4252f0. dst is the destination's first byte, dpitch its pitch in bytes and fmt
+// The drawing methods 0x423c20..0x4252f0. dst is the destination's first byte, dstPitch its pitch in bytes and fmt
 // its format (null: the image's own); clip is {left, top, right, bottom}, inclusive. (x, y) is where the image's
 // handle lands. Each picks a blitter by the destination's depth, the image's depth and whether it has a mask and
 // that mask has runs.
-void Image_Blit(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x423c20
-void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x423f50
-void Image_BlitFill(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
+void Image_Blit(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x423c20
+void Image_BlitMasked(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x423f50
+void Image_BlitFill(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t colour);                                                        // 0x4241f0
-void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
+void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t colour, uint32_t alpha);                                        // 0x424360
-void Image_BlitBlend(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x4244f0
-void Image_BlitAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x424700
-void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
+void Image_BlitBlend(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x4244f0
+void Image_BlitAlpha(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x424700
+void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y,
 	uint32_t alpha);                                                         // 0x424a90
-void Image_BlitAdd(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x424cc0
-void Image_BlitRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
+void Image_BlitAdd(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x424cc0
+void Image_BlitRect(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, int dstX, int dstY, int srcX, int srcY,
 	int theWidth, int theHeight);                                                           // 0x425010
-void Image_BlitSubRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
+void Image_BlitSubRect(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, int dstX, int dstY, int srcX, int srcY,
 	int theWidth, int theHeight);                                                           // 0x4250f0
-void Image_BlitRotated(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y, int angle,
+void Image_BlitRotated(Image* img, uint8_t* dst, int dstPitch, const PixelFormat* fmt, int x, int y, int angle,
 	const int* clip);                                                        // 0x4252f0
 
 // 0x42bfb0: clips a w x h rectangle at (x, y) to {clipL, clipT, clipR, clipB} (inclusive); 1 when some of it is left
@@ -148,15 +148,15 @@ int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int theWi
 void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, uint8_t g0, uint8_t b0, uint8_t r1,
 	uint8_t g1, uint8_t b1);
 
-// 0x42e0a0: converts w x h pixels at (sx, sy) of src to dstFmt at (dx, dy) of dst; an 8-bit source reads its colours
+// 0x42e0a0: converts w x h pixels at (srcX, srcY) of src to dstFmt at (dstX, dstY) of dst; an 8-bit source reads its colours
 // from rgb ({r, g, b, 0} per index). 0 for an 8-bit destination or an unknown depth.
-int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dpitch, int dx, int dy, const PixelFormat* srcFmt,
-	const uint8_t* rgb, const uint8_t* src, int spitch, int sx, int sy, int w, int h);
+int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dstPitch, int dstX, int dstY, const PixelFormat* srcFmt,
+	const uint8_t* rgb, const uint8_t* src, int srcPitch, int srcX, int srcY, int w, int h);
 // 0x42e020: the alpha bytes of w x h 32-bit pixels as an 8-bit mask
-void ExtractAlpha(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w,
+void ExtractAlpha(uint8_t* dst, int dstPitch, int dstX, int dstY, const uint8_t* src, int srcPitch, int srcX, int srcY, int w,
 	int h);
 // 0x42d540: fills {l, t, r, b} (inclusive) of an 8-bit buffer
-void Fill8(uint8_t* dst, int dpitch, int l, int t, int r, int b, int value);
+void Fill8(uint8_t* dst, int dstPitch, int l, int t, int r, int b, int value);
 // 0x42e480: an 8-bit mask's runs (RleHeader, then per row the runs R64Blit.h describes); malloc'd
 uint8_t* Rle_Build(const uint8_t* bits, int width, int height);
 
