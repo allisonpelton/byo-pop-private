@@ -88,12 +88,12 @@ state and letters typed, in list order.
    0x40a0c1, 0x40b711 and 0x40b857). Ghidra's export leaves that statement out, and the port left it out too: a black shark that
    had taken its second word loaded it again once it was typed and never died, so the level never ended (a bot sat in level 3 for
    100000 updates). The first update that differed was 41670 in the black shark scenario: the original's shark held no word with 3
-   letters typed (shocked, to die), the port's had its word back at 0 letters typed. Fix: `mWord2 = ""` after taking it in
-   `BlackShark::TypeLetter`; `mWord2 = ""` and `mWord3 = ""` in `RedShark::TypeLetter`. This is a bug that breaks play (a level
+   letters typed (shocked, to die), the port's had its word back at 0 letters typed. Fix: `mSecondWord = ""` after taking it in
+   `BlackShark::TypeLetter`; `mSecondWord = ""` and `mThirdWord = ""` in `RedShark::TypeLetter`. This is a bug that breaks play (a level
    that cannot be won), so it is fixed in the port itself, not in a mod. The stealth variants reach the same functions.
 
 2. **The abyss went on to the next level every 100 feet, the original does it every 200** (`Board::Update` 0x45c140: the check is
-   `mField1c0 / 200 < mScore / 200`, with `mScore` the depth in feet; `Board::SetDepth` 0x452cf0 already counted levels per 200 feet).
+   `mLessonStepDepth / 200 < mScore / 200`, with `mScore` the depth in feet; `Board::SetDepth` 0x452cf0 already counted levels per 200 feet).
    The first update that differed was 7199 of the abyss scenario, at 100 feet: the port took the lesson to level 1 and spawned a wave
    of ten single-letter piranhas, the original stayed in level 0 and spawned a wave of nine sharks (the generator then 12 numbers
    apart for good). Fix: `/ 200` in the two places of the test in `BoardUpdate.cpp`. After it the abyss scenario is equal for 18000
@@ -113,7 +113,7 @@ state and letters typed, in list order.
 5. **The map after level 5 landed on level 1.** Not reproduced. The bot went through the map many times in one game (the adventure
    scenario to level 34) and the lesson level (`lvl`), the score, the lives and everything else are equal in both programs after
    each map.
-6. **A fresh profile without the "tutorial seen" flag never spawns waves from level 5 (`mFlag1dc`).** The flag is the registry value
+6. **A fresh profile without the "tutorial seen" flag never spawns waves from level 5 (`mSeenTutorial`).** The flag is the registry value
    `SeenTutorial`. Every scenario starts with a new profile, so the flag is 0 at the start; the first group the player kills in
    level 1 sets it (`BoardEvents.cpp`, event 6, as the original) and the waves of the later levels are equal in both programs. A
    level 5 reached with the flag still 0 is not reachable by play (the first group dies in level 1); a level jump on a fresh profile
@@ -279,11 +279,11 @@ Comparer faults found on the way (not game differences):
 ## Round 2: oddities (not chased)
 
 1. **The original writes an uninitialised field into a new profile's file.** `UserProfile+0x1c8` (the level of a saved adventure game,
-   `mField1c8`; the port zeroes it, the constructors of 0x421f50 and 0x4222d0 never store it) is written by `WriteDataToDisk` as is. In a
+   `mSavedLevelNumber`; the port zeroes it, the constructors of 0x421f50 and 0x4222d0 never store it) is written by `WriteDataToDisk` as is. In a
    profile that only ran the typing tutor (`tutE12_s1`) the original's `user0.dat` holds the heap's leftover there ("137381704") and
    the port's holds 0: 8518 against 8510 bytes, the 9-character number against "0" (in `tutE15_s1` it is -2139062144, the heap's
    0x80808080 fill, 8520 against 8510 bytes; in both runs this one number is the only token of the file that differs). The field is read back only together with a saved
-   game level (`mField1c0` between 1 and 35), which is set in the same call that stores `mField1c8`, so nothing plays differently.
+   game level (`mSavedLevel` between 1 and 35), which is set in the same call that stores `mSavedLevelNumber`, so nothing plays differently.
    In the files of all the games (`idle_s1`, `bon1_s1`, `hardpir_s1`, `rt1_s1`) the fields were equal, because the profile had been
    saved by a game by then. It would take the allocator's leftovers to match, so it stays.
 2. **The original under origrun cannot keep any registry value.** Its `RegistryWrite` (0x4b1be0) opens and creates its key under

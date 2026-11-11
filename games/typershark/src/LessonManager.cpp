@@ -16,7 +16,8 @@
 
 using namespace Sexy;
 
-// the record and everything it owns (the original writes this out twice, for the levels and for the endless levels)
+// the record and everything it owns (the original writes this out twice, for the levels and for the endless levels, in the
+// destructor body 0x421c50)
 static void FreeLevel(LevelRecord* theLevel)
 {
 	for (size_t aWaveIndex = 0; aWaveIndex < theLevel->mWaves.size(); aWaveIndex++)

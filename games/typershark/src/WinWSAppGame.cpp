@@ -1,12 +1,11 @@
-// WinWSAppGame.cpp: the part of WinWSApp that starts, restarts and ends games (the original's unnamed WinWSApp methods
-// 0x426a40-0x430b20): the reset to the menu, the creation of the lesson manager, board, status bar and map screen, the
+// WinWSAppGame.cpp: the part of WinWSApp that starts, restarts and ends games (the original's WinWSApp methods
+// 0x426a40-0x430b20, which the export lists by address only): the reset to the menu, the creation of the lesson manager, board, status bar and map screen, the
 // return to the map after a level, the profile's saved game, the random words of a game (0x428d80, 0x42aad0, 0x430b20,
 // 0x4292b0, 0x429110) and two helpers of the user manager (0x4262b0, 0x413ff0). The button handler that calls them is in
 // WinWSAppButtons.cpp.
 //
 // Not translated: the demo recording trace 0x4ad5f0 (the first line of 0x4262b0) and the texts of the two error traces
 // of 0x428d80 and 0x42aad0 (0x52c860, 0x52c9a8); the erase that follows each stays, but it can not run.
-// The fields of the other classes are named after their offsets (mFieldXXX) until their groups name them.
 
 #include "WinWSApp.h"
 #include "GameText.h"
@@ -35,12 +34,12 @@ void WinWSApp::ResetGame(bool theKeepGameMode)
 	if (mLessonManager != NULL)
 		delete mLessonManager;                  // 0x421c50, then free()
 	mLessonManager = NULL;
-	mField8fc = 0;
-	mField900 = 0;
-	mField90c = 0;
+	mGameTimeSoFar = 0;
+	mTypingTimeSoFar = 0;
+	mLettersRightSoFar = 0;
 	if (!theKeepGameMode)
 		mDifficulty = 0;
-	mField908 = 0;
+	mLettersWrongSoFar = 0;
 	mUsedWords.clear();
 	mUsedLetters.erase(mUsedLetters.begin(), mUsedLetters.end());
 	mUsedLongWords.clear();
@@ -52,10 +51,10 @@ void WinWSApp::ResetGame(bool theKeepGameMode)
 	GetGemName();         // 0x429110
 	std::vector<int>().swap(mUsedThemes);        // free()
 	mTheme = -1;
-	mFlag68c = false;
-	mFlag684 = false;
-	mFlag685 = false;
-	mField904 = 0;
+	mEndGameAsked = false;
+	mLastAnswerYes = false;
+	mLastAnswerNo = false;
+	mPausedTimeSoFar = 0;
 	if (mStatusBar != NULL)
 	{
 		mWidgetManager->RemoveWidget(mStatusBar);
@@ -80,10 +79,10 @@ void WinWSApp::RestartBoard()
 {
 	if (mLessonManager != NULL)
 		delete mLessonManager;                  // 0x421c50, then free()
-	mField8fc = 0;
-	mField900 = 0;
-	mField90c = 0;
-	mField908 = 0;
+	mGameTimeSoFar = 0;
+	mTypingTimeSoFar = 0;
+	mLettersRightSoFar = 0;
+	mLettersWrongSoFar = 0;
 	mUsedWords.clear();
 	mUsedLetters.erase(mUsedLetters.begin(), mUsedLetters.end());
 	mUsedLongWords.clear();
@@ -95,14 +94,14 @@ void WinWSApp::RestartBoard()
 	GetGemName();         // 0x429110
 	std::vector<int>().swap(mUsedThemes);        // free()
 	mTheme = -1;
-	mFlag68c = false;
-	mFlag684 = false;
-	mFlag685 = false;
-	mField904 = 0;
+	mEndGameAsked = false;
+	mLastAnswerYes = false;
+	mLastAnswerNo = false;
+	mPausedTimeSoFar = 0;
 	if (mUser != NULL)
 	{
-		mUser->SetField1f4(0);      // 0x412640
-		mUser->SetField1f8(0);      // 0x412650
+		mUser->SetGameSharksKilled(0);      // 0x412640
+		mUser->SetGamePiranhasKilled(0);      // 0x412650
 	}
 	if (GetDialog(DIALOG_GAME_OVER) != NULL)
 		KillDialog(DIALOG_GAME_OVER);
@@ -130,26 +129,26 @@ void WinWSApp::RestartBoard()
 	{
 		if (!mLessonManager->mAbyssMode)    // +0xa5
 		{
-			mUser->mFlag230 = true;
+			mUser->mCompletionPending = true;
 			int i = 0;
 			do
 			{
-				mUser->mField234[i] = 0;
+				mUser->mGameGemsFound[i] = 0;
 				i++;
 			} while (i < 6);
 			i = 0;
 			do
 			{
-				mUser->mField24c[i] = 0;
+				mUser->mGameSecretsFound[i] = 0;
 				i++;
 			} while (i < 4);
-			if (mDifficulty != mUser->mField280)
+			if (mDifficulty != mUser->mVisitedDifficulty)
 			{
-				mUser->mField280 = mDifficulty;
+				mUser->mVisitedDifficulty = mDifficulty;
 				i = 0;
 				do
 				{
-					mUser->mField25c[i] = 0;
+					mUser->mVisitedLevels[i] = 0;
 					i++;
 				} while (i < 0x24);
 			}
@@ -198,7 +197,7 @@ void WinWSApp::CreateBoard()
 	if (mLessonManager != NULL)
 		delete mLessonManager;                  // 0x421c50, then free()
 	mLessonManager = new LessonManager(this);   // 0x4270e0 (sizeof 0xc0)
-	mFlag8d8 = false;
+	mAdventureStarting = false;
 	GetTreasureIndex();
 	GetShipName();         // 0x4292b0
 	GetGemName();         // 0x429110
@@ -260,11 +259,11 @@ void WinWSApp::ReturnToMap()
 	GetGemName();         // 0x429110
 
 	*mStats = mBoard->GetStats();       // 0x440080 (12 dwords)
-	mField8fc += mStats->mReserved[7];              // +0x20
-	mField900 += mBoard->mTypeTime;                // +0xe1c
-	mField908 += mStats->mReserved[9];              // +0x28
-	mField90c += mStats->mReserved[8];              // +0x24
-	mField904 = mStats->mReserved[6];               // +0x1c
+	mGameTimeSoFar += mStats->mReserved[7];              // +0x20
+	mTypingTimeSoFar += mBoard->mTypeTime;                // +0xe1c
+	mLettersWrongSoFar += mStats->mReserved[9];              // +0x28
+	mLettersRightSoFar += mStats->mReserved[8];              // +0x24
+	mPausedTimeSoFar = mStats->mReserved[6];               // +0x1c
 	mBoard->SetVisible(false);
 	mBoard->SetDisabled(true);
 	mStatusBar->SetDisabled(true);
@@ -289,30 +288,30 @@ void WinWSApp::SaveGameProgress(bool theFlag, bool theWithDouble)
 	if (mLessonManager->mAbyssMode)             // +0xa5
 		aLevel = 0;
 
-	mUser->mField1e0 = mField900;
+	mUser->mSavedTypingTime = mTypingTimeSoFar;
 	Player* aPlayer = mBoard->mPlayer;    // 0x412890: the board's +0xd68 (read again for each argument)
 	if (theWithDouble)
 	{
-		mUser->RecordResultWithDouble(theFlag == false, aPlayer->mField110, aPlayer->mScore, aPlayer->mEmpCharge,
-			aLevel, mDifficulty, aPlayer->mField114);     // 0x412520
+		mUser->RecordResultWithDouble(theFlag == false, aPlayer->mLives, aPlayer->mScore, aPlayer->mEmpCharge,
+			aLevel, mDifficulty, aPlayer->mLevelNumber);     // 0x412520
 	}
 	else
 	{
-		mUser->RecordResult(theFlag == false, aPlayer->mField110, aPlayer->mScore, aLevel, mDifficulty,
-			aPlayer->mField114);                        // 0x412580
+		mUser->RecordResult(theFlag == false, aPlayer->mLives, aPlayer->mScore, aLevel, mDifficulty,
+			aPlayer->mLevelNumber);                        // 0x412580
 	}
 
-	mUser->mField1cc = mField8fc;
-	mUser->mField1d0 = mField904;
-	mUser->mField1d4 = mField908;
-	mUser->mField1d8 = mField90c;
+	mUser->mSavedGameTime = mGameTimeSoFar;
+	mUser->mSavedPausedTime = mPausedTimeSoFar;
+	mUser->mSavedLettersWrong = mLettersWrongSoFar;
+	mUser->mSavedLettersRight = mLettersRightSoFar;
 	if (!mLessonManager->mAbyssMode)
 	{
 		CopyMapListsToUser();       // 0x426a40
 		int aLesson = 0;
 		if (mLessonManager != NULL)
 			aLesson = mLessonManager->mEndlessCount - 1;
-		mUser->SetField1e8(aLesson);    // 0x412390
+		mUser->SetEndlessLevelsPlayed(aLesson);    // 0x412390
 	}
 	mProfileMgr->WriteUserProfileToRegistry(mUser, theFlag, false);    // 0x41f1d0
 }
@@ -591,12 +590,12 @@ std::string WinWSApp::GetLongWord(int theMinLength, int theMaxLength)
 	// Not in the original: once every word of the lengths that can be drawn (theMinLength up to theMaxLength - 1, or just
 	// theMinLength) has been used, the original's loop below never ends (the game hangs; a game of about 1880 end-of-level words
 	// on Easy gets there). The used set is emptied then and the words are used again. Draws no random number, and changes
-	// nothing while an unused word is left (phase 1 of the identical-play pass found the hang, docs/PHASE1.md, oddity 1).
+	// nothing while an unused word is left (the hang is oddity 1 of docs/PHASE1.md).
 	{
-		bool anUnusedWord = false;
+		bool aFoundFreeWord = false;
 		bool aWordsInRange = false;
 		int aLastLength = (aRange != 0) ? (theMaxLength - 1) : theMinLength;
-		for (int aLen = theMinLength; (aLen <= aLastLength) && !anUnusedWord; aLen++)
+		for (int aLen = theMinLength; (aLen <= aLastLength) && !aFoundFreeWord; aLen++)
 		{
 			std::map<int, std::vector<std::string> >::const_iterator aListItr = mLongWords.find(aLen);
 			if (aListItr == mLongWords.end())
@@ -607,12 +606,12 @@ std::string WinWSApp::GetLongWord(int theMinLength, int theMaxLength)
 				std::map<std::string, bool>::const_iterator aUsedItr = mUsedLongWords.find(aListItr->second[i]);
 				if ((aUsedItr == mUsedLongWords.end()) || !aUsedItr->second)
 				{
-					anUnusedWord = true;
+					aFoundFreeWord = true;
 					break;
 				}
 			}
 		}
-		if (aWordsInRange && !anUnusedWord)
+		if (aWordsInRange && !aFoundFreeWord)
 			mUsedLongWords.clear();
 	}
 
@@ -661,32 +660,32 @@ void WinWSApp::CopyMapListsToUser()
 
 	while (true)
 	{
-		if (aPairIndex >= mUser->mVector2a4.size())
+		if (aPairIndex >= mUser->mSavedRouteDots.size())
 			break;
-		delete mUser->mVector2a4[aPairIndex];       // free()
+		delete mUser->mSavedRouteDots[aPairIndex];       // free()
 		aPairIndex++;
 	}
-	mUser->mVector2a4.clear();
+	mUser->mSavedRouteDots.clear();
 
 	while (true)
 	{
-		if (aNodeIndex >= mMapScreen->mVector1c4.size())
+		if (aNodeIndex >= mMapScreen->mRouteDots.size())
 			break;
-		ProfilePair* aSource = mMapScreen->mVector1c4[aNodeIndex];
+		ProfilePair* aSource = mMapScreen->mRouteDots[aNodeIndex];
 		ProfilePair* aPair = new ProfilePair;
 		aPair->mFirst = aSource->mFirst;
 		aPair->mSecond = aSource->mSecond;
-		mUser->mVector2a4.push_back(aPair);
+		mUser->mSavedRouteDots.push_back(aPair);
 		aNodeIndex++;
 	}
 
-	mUser->mVector2b4.clear();
+	mUser->mSavedRouteNodeIds.clear();
 	aNodeIndex = 0;
 	while (true)
 	{
-		if (aNodeIndex >= mMapScreen->mVector1d4.size())
+		if (aNodeIndex >= mMapScreen->mRouteNodes.size())
 			break;
-		mUser->mVector2b4.push_back(mMapScreen->mVector1d4[aNodeIndex]->mId);
+		mUser->mSavedRouteNodeIds.push_back(mMapScreen->mRouteNodes[aNodeIndex]->mId);
 		aNodeIndex++;
 	}
 }

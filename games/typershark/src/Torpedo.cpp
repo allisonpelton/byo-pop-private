@@ -95,9 +95,9 @@ void Torpedo::Update()
 			if (mState == 3 && mFrame >= mNumFrames)
 			{
 				mFrame = 7;
-				if (!mFlag18)
+				if (!mDeathFinished)
 				{
-					mFlag18 = true;
+					mDeathFinished = true;
 					mEvents.push_back(6);
 					mEvents.push_back(5);
 				}

@@ -16,19 +16,19 @@ std::string JsonQuote(const std::string& theText)
 	std::string aResult = "\"";
 	for (size_t i = 0; i < theText.size(); i++)
 	{
-		unsigned char c = (unsigned char) theText[i];
-		if (c == '"')
+		unsigned char aChar = (unsigned char) theText[i];
+		if (aChar == '"')
 			aResult += "\\\"";
-		else if (c == '\\')
+		else if (aChar == '\\')
 			aResult += "\\\\";
-		else if (c < 0x20)
+		else if (aChar < 0x20)
 		{
 			char aBuffer[8];
-			snprintf(aBuffer, sizeof(aBuffer), "\\u%04x", c);
+			snprintf(aBuffer, sizeof(aBuffer), "\\u%04x", aChar);
 			aResult += aBuffer;
 		}
 		else
-			aResult += (char) c;
+			aResult += (char) aChar;
 	}
 	return aResult + "\"";
 }
@@ -67,81 +67,81 @@ BotMove TypingMove(const BotCreature& theCreature, int theTyped)
 
 }  // namespace
 
-BotMove ChooseMove(const BoardSnapshot& s)
+BotMove ChooseMove(const BoardSnapshot& theSnapshot)
 {
 	BotMove aNone;
 
-	if (s.mPhase == BoardSnapshot::PHASE_NONE)
+	if (theSnapshot.mPhase == BoardSnapshot::PHASE_NONE)
 	{
-		if (s.mPrompt.empty())
+		if (theSnapshot.mPrompt.empty())
 			return aNone;
 		BotMove aMove;
 		aMove.mValid = true;
-		aMove.mWhat = s.mPromptWhat;
-		aMove.mInput = s.mPrompt;
+		aMove.mWhat = theSnapshot.mPromptWhat;
+		aMove.mInput = theSnapshot.mPrompt;
 		return aMove;
 	}
 
-	if (s.mPhase == BoardSnapshot::PHASE_STREAK)
+	if (theSnapshot.mPhase == BoardSnapshot::PHASE_STREAK)
 	{
-		if (s.mStreakPos >= (int) s.mStreakText.size())
+		if (theSnapshot.mStreakPos >= (int) theSnapshot.mStreakText.size())
 			return aNone;
 		BotCreature aText;
-		aText.mKind = s.mPromptWhat.empty() ? "streak" : s.mPromptWhat;		// the typing tutor's line is typed the same way
-		aText.mWord = s.mStreakText;
-		return TypingMove(aText, s.mStreakPos);
+		aText.mKind = theSnapshot.mPromptWhat.empty() ? "streak" : theSnapshot.mPromptWhat;		// the typing tutor's line is typed the same way
+		aText.mWord = theSnapshot.mStreakText;
+		return TypingMove(aText, theSnapshot.mStreakPos);
 	}
 
-	if (s.mPhase == BoardSnapshot::PHASE_CLAMS)
+	if (theSnapshot.mPhase == BoardSnapshot::PHASE_CLAMS)
 	{
 		// a dud clam that is open blocks every letter until it closes
-		for (size_t i = 0; i < s.mClams.size(); i++)
-			if (s.mClams[i].mState == 1 && s.mClams[i].mType == 0)
+		for (size_t i = 0; i < theSnapshot.mClams.size(); i++)
+			if (theSnapshot.mClams[i].mState == 1 && theSnapshot.mClams[i].mType == 0)
 				return aNone;
 		// the bot knows the clams' kinds (the game hides them until they open): the first closed clam of a winning kind
-		for (size_t i = 0; i < s.mClams.size(); i++)
-			if (s.mClams[i].mState == 4 && s.mClams[i].mType != 0 && !s.mClams[i].mWord.empty())
-				return TypingMove(s.mClams[i], 0);
+		for (size_t i = 0; i < theSnapshot.mClams.size(); i++)
+			if (theSnapshot.mClams[i].mState == 4 && theSnapshot.mClams[i].mType != 0 && !theSnapshot.mClams[i].mWord.empty())
+				return TypingMove(theSnapshot.mClams[i], 0);
 		return aNone;
 	}
 
 	// the normal play
-	if (s.mTarget >= 0 && s.mTarget < (int) s.mCreatures.size())
+	if (theSnapshot.mTarget >= 0 && theSnapshot.mTarget < (int) theSnapshot.mCreatures.size())
 	{
 		// locked on a creature: only its next letter counts
-		const BotCreature& aTarget = s.mCreatures[s.mTarget];
+		const BotCreature& aTarget = theSnapshot.mCreatures[theSnapshot.mTarget];
 		if (aTarget.mState != 0 && aTarget.mState != 6)
 			return aNone;
-		return TypingMove(aTarget, s.mTypedCount);
+		return TypingMove(aTarget, theSnapshot.mTypedCount);
 	}
 
 	int aBest = -1;
-	for (size_t i = 0; i < s.mCreatures.size(); i++)
+	for (size_t i = 0; i < theSnapshot.mCreatures.size(); i++)
 	{
-		const BotCreature& c = s.mCreatures[i];
-		if (c.mList == "bonus" || !Typable(s, c))
+		const BotCreature& c = theSnapshot.mCreatures[i];
+		if (c.mList == "bonus" || !Typable(theSnapshot, c))
 			continue;
-		if (aBest < 0 || c.mX < s.mCreatures[aBest].mX)
+		if (aBest < 0 || c.mX < theSnapshot.mCreatures[aBest].mX)
 			aBest = (int) i;
 	}
 	if (aBest < 0)
 	{
-		for (size_t i = 0; i < s.mCreatures.size() && aBest < 0; i++)
-			if (s.mCreatures[i].mList == "bonus" && Typable(s, s.mCreatures[i]))
+		for (size_t i = 0; i < theSnapshot.mCreatures.size() && aBest < 0; i++)
+			if (theSnapshot.mCreatures[i].mList == "bonus" && Typable(theSnapshot, theSnapshot.mCreatures[i]))
 				aBest = (int) i;
 	}
 	if (aBest < 0)
 		return aNone;
 
 	// the first letter goes to the first creature in the game's order that can take it
-	char aLetter = s.mCreatures[aBest].mWord[0];
-	for (size_t i = 0; i < s.mCreatures.size(); i++)
-		if (Typable(s, s.mCreatures[i]) && s.mCreatures[i].mWord[0] == aLetter)
+	char aLetter = theSnapshot.mCreatures[aBest].mWord[0];
+	for (size_t i = 0; i < theSnapshot.mCreatures.size(); i++)
+		if (Typable(theSnapshot, theSnapshot.mCreatures[i]) && theSnapshot.mCreatures[i].mWord[0] == aLetter)
 		{
 			aBest = (int) i;
 			break;
 		}
-	return TypingMove(s.mCreatures[aBest], 0);
+	return TypingMove(theSnapshot.mCreatures[aBest], 0);
 }
 
 std::string BotMoveToJson(const BotMove& theMove)
@@ -154,20 +154,20 @@ std::string BotMoveToJson(const BotMove& theMove)
 	aLine += ",\"input\":[";
 	for (size_t i = 0; i < theMove.mInput.size(); i++)
 	{
-		const BotStep& s = theMove.mInput[i];
+		const BotStep& aStep = theMove.mInput[i];
 		char aBuffer[96];
 		if (i > 0)
 			aLine += ",";
-		if (s.mKind == BotStep::KEY)
-			aLine += "{\"key\":" + JsonQuote(s.mKey) + "}";
-		else if (s.mKind == BotStep::CLICK)
+		if (aStep.mKind == BotStep::KEY)
+			aLine += "{\"key\":" + JsonQuote(aStep.mKey) + "}";
+		else if (aStep.mKind == BotStep::CLICK)
 		{
-			snprintf(aBuffer, sizeof(aBuffer), "{\"click\":[%d,%d]}", s.mX, s.mY);
+			snprintf(aBuffer, sizeof(aBuffer), "{\"click\":[%d,%d]}", aStep.mX, aStep.mY);
 			aLine += aBuffer;
 		}
 		else
 		{
-			snprintf(aBuffer, sizeof(aBuffer), "{\"wait\":%d}", s.mWait);
+			snprintf(aBuffer, sizeof(aBuffer), "{\"wait\":%d}", aStep.mWait);
 			aLine += aBuffer;
 		}
 	}

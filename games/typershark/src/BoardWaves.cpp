@@ -11,8 +11,8 @@
 //
 // Draws of random numbers all come from the game's MTRand (the original's 0x463a10 on the object at 0x565384).
 //
-// Four small helpers of the original's SpawnWave are written in line: 0x445df0 (BlackShark: mWord2 = the word) and 0x445e50
-// (RedShark: mWord3 = the word) are field assignments here, and 0x44c900 (std::map insert of a key and a null value) and
+// Four small helpers of the original's SpawnWave are written in line: 0x445df0 (BlackShark: mSecondWord = the word) and 0x445e50
+// (RedShark: mThirdWord = the word) are field assignments here, and 0x44c900 (std::map insert of a key and a null value) and
 // 0x450bf0 (std::map operator[] on the key) are mRecordsByType[kind] = record.
 
 #include "Board.h"
@@ -191,8 +191,8 @@ void Board::PlaceEnemies(int theFirstNew)
 			int aWordWidth;
 			double aPrevVelX = aPrev->mVelX;
 			double aPrevX = aPrev->mX;
-			int aPrevType = aPrev->mField0e4;
-			int aCurType = aCur->mField0e4;
+			int aPrevType = aPrev->mEnemyType;
+			int aCurType = aCur->mEnemyType;
 			if (aWaveType == 0)
 			{
 				if (aPrevType == 10 || aPrevType == 3 || aPrevType == 9)
@@ -202,7 +202,7 @@ void Board::PlaceEnemies(int theFirstNew)
 				if (aPrevType == 1 || aPrevType == 10)
 					aWordWidth = (int)(aPrev->mWord.size() + 1) * aTextWidth;
 				else if (aPrevType == 2 || aPrevType == 9)
-					aWordWidth = (int)(aPrev->mWord.size() + dynamic_cast<RedShark*>(aPrev)->mWord2.size() + 2) * aTextWidth;
+					aWordWidth = (int)(aPrev->mWord.size() + dynamic_cast<RedShark*>(aPrev)->mSecondWord.size() + 2) * aTextWidth;
 				else
 					aWordWidth = 0;
 			}
@@ -219,7 +219,7 @@ void Board::PlaceEnemies(int theFirstNew)
 			}
 
 			// the speed: below the previous one's, inside the record's limits
-			EnemyRecord* aRecord = mRecordsByType[aCur->mField0e4];
+			EnemyRecord* aRecord = mRecordsByType[aCur->mEnemyType];
 			if (aPrevVelX > aRecord->mMaxSpeed)
 				aPrevVelX = aRecord->mMaxSpeed;
 			double aMinSpeed = aRecord->mMinSpeed;
@@ -296,7 +296,7 @@ void Board::PlaceEnemies(int theFirstNew)
 // 0x452a60: a penalty piranha (the typos of a piranha wave send it): only when a piranha that is not dying (state 3) is on
 // the screen. A red piranha with a letter nobody has, at the right edge and a random height, as fast as the lesson's
 // penalty speed; from the sixth on, the speed grows by 1.7 times each and the piranha takes 0.4 of it. The first piranha clears
-// mFlag0f80 (the board waits for the wave to be over). (Board.h said "when no shark is in state 3"; the code looks at the
+// mScreenClear (the board waits for the wave to be over). (Board.h said "when no shark is in state 3"; the code looks at the
 // piranhas.)
 void Board::AddPiranha()
 {
@@ -328,12 +328,12 @@ void Board::AddPiranha()
 		aPiranha->SetVelX(mPiranhaSpeed * 0.4);
 	}
 	mPiranhas.push_back(aPiranha);
-	mFlag0f80 = false;
+	mScreenClear = false;
 }
 
 // 0x455bf0: makes the creatures of the lesson's next wave. A bonus level has none. The spawner starts afresh (the word
 // memory, the counters of the wave, the records by type). In the abyss mode a flag set by SetDepth / Update says that a boss
-// comes (one of four by mField0d2c mod 4). Otherwise: when the last wave of the level is the boss wave and the diver is
+// comes (one of four by mAbyssBossIndex mod 4). Otherwise: when the last wave of the level is the boss wave and the diver is
 // at the surface, the lesson goes to it; a player who has not seen the tutorial gets two sharks with fixed words; and the
 // wave's type says what to build from the enemy records: 0 sharks (PlaceEnemies), 1 piranhas (PlaceEnemies), 2 bonus
 // creatures (PlaceBonusCreatures), 3 a boss with its hint box. Each record gives a random count (between its minimum and
@@ -344,52 +344,52 @@ void Board::SpawnWave()
 	if (mLessonManager->IsBonusLevel())
 		return;
 
-	mField0d64 = 0;
+	mBonusCreaturesKilled = 0;
 	int aFirstNew = -1;
 	ResetWordMemory(mApp);
-	mField0f60 = 0;
-	mField0f64 = 0;
+	mWaveLettersRight = 0;
+	mWaveLettersWrong = 0;
 	mRecordsByType.clear();
 	mApp->mUsedLetters = "";
 	mApp->mUsedLetterCount = 0;
 	mApp->mUsedUpperCount = 0;
 
-	if (mLessonManager->mAbyssMode && mFlag0d28)
+	if (mLessonManager->mAbyssMode && mAbyssBossDue)
 	{
-		int aBossKind = mField0d2c % 4;
-		mFlag0d28 = false;
+		int aBossKind = mAbyssBossIndex % 4;
+		mAbyssBossDue = false;
 		if (aBossKind == 0)
 		{
 			mBoss = new TorpedoBoss(mApp, mPlayer, mLessonManager);
-			mBoss->mField0e4 = 0xc;
+			mBoss->mEnemyType = 0xc;
 		}
 		else if (aBossKind == 1)
 		{
 			mBoss = new MechaShark(mApp, mPlayer, mLessonManager);
-			mBoss->mField0e4 = 0xf;
+			mBoss->mEnemyType = 0xf;
 		}
 		else if (aBossKind == 2)
 		{
 			mBoss = new MechaSquid(mApp, mPlayer, mLessonManager);
-			mBoss->mField0e4 = 0x10;
+			mBoss->mEnemyType = 0x10;
 		}
 		else if (aBossKind == 3)
 		{
 			mBoss = new GhostShip(mApp, mPlayer, mLessonManager);
-			mBoss->mField0e4 = 0xe;
+			mBoss->mEnemyType = 0xe;
 		}
-		mFlag0f80 = false;
+		mScreenClear = false;
 		mPlayer->SetState(9);
 		return;
 	}
 
-	if (mLessonManager->LastWaveIsBoss() && !mPlayer->mFlag118 && mPlayer->mState == 0 &&
+	if (mLessonManager->LastWaveIsBoss() && !mPlayer->mDiveActive && mPlayer->mState == 0 &&
 		(double)mSurfaceHeight < mDivePos && !mLessonManager->IsEndless())
 		mLessonManager->GoToBossWave();
-	mFlag0f80 = false;
-	mFlag0eb5 = false;
+	mScreenClear = false;
+	mEmpUsedInWave = false;
 
-	if (!mApp->mUser->mFlag1dc)
+	if (!mApp->mUser->mSeenTutorial)
 	{
 		// the tutorial's two sharks
 		Shark* aShark = new Shark(mApp);
@@ -454,12 +454,12 @@ void Board::SpawnWave()
 							if (aPlain)
 							{
 								aBlack->SetWord(mApp->GetWord(aMinLength, aMaxLength));
-								aBlack->mWord2 = mApp->GetWord(aMinLength, aMaxLength);
+								aBlack->mSecondWord = mApp->GetWord(aMinLength, aMaxLength);
 							}
 							else
 							{
 								aBlack->SetWord(mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax));
-								aBlack->mWord2 = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
+								aBlack->mSecondWord = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
 								aThemed = true;
 							}
 						}
@@ -471,14 +471,14 @@ void Board::SpawnWave()
 							if (aPlain)
 							{
 								aRed->SetWord(mApp->GetWord(aMinLength, aMaxLength));
-								aRed->mWord2 = mApp->GetWord(aMinLength, aMaxLength);
-								aRed->mWord3 = mApp->GetWord(aMinLength, aMaxLength);
+								aRed->mSecondWord = mApp->GetWord(aMinLength, aMaxLength);
+								aRed->mThirdWord = mApp->GetWord(aMinLength, aMaxLength);
 							}
 							else
 							{
 								aRed->SetWord(mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax));
-								aRed->mWord2 = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
-								aRed->mWord3 = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
+								aRed->mSecondWord = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
+								aRed->mThirdWord = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
 								aThemed = true;
 							}
 						}
@@ -541,12 +541,12 @@ void Board::SpawnWave()
 							if (aPlain)
 							{
 								aStealthBlack->SetWord(mApp->GetWord(aMinLength, aMaxLength));
-								aStealthBlack->mWord2 = mApp->GetWord(aMinLength, aMaxLength);
+								aStealthBlack->mSecondWord = mApp->GetWord(aMinLength, aMaxLength);
 							}
 							else
 							{
 								aStealthBlack->SetWord(mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax));
-								aStealthBlack->mWord2 = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
+								aStealthBlack->mSecondWord = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
 								aThemed = true;
 							}
 						}
@@ -558,14 +558,14 @@ void Board::SpawnWave()
 							if (aPlain)
 							{
 								aStealthRed->SetWord(mApp->GetWord(aMinLength, aMaxLength));
-								aStealthRed->mWord2 = mApp->GetWord(aMinLength, aMaxLength);
-								aStealthRed->mWord3 = mApp->GetWord(aMinLength, aMaxLength);
+								aStealthRed->mSecondWord = mApp->GetWord(aMinLength, aMaxLength);
+								aStealthRed->mThirdWord = mApp->GetWord(aMinLength, aMaxLength);
 							}
 							else
 							{
 								aStealthRed->SetWord(mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax));
-								aStealthRed->mWord2 = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
-								aStealthRed->mWord3 = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
+								aStealthRed->mSecondWord = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
+								aStealthRed->mThirdWord = mApp->GetThemeWord(aMinLength, aMaxLength, aRecord->mThemeMin, aRecord->mThemeMax);
 								aThemed = true;
 							}
 						}
@@ -574,7 +574,7 @@ void Board::SpawnWave()
 
 						if (aKeep && aCreature != NULL)
 						{
-							aCreature->mField0e4 = aRecord->mType;
+							aCreature->mEnemyType = aRecord->mType;
 							// themed words make the shark a little slower, by difficulty (the score decides in the abyss mode)
 							double aDelta = 0.0;
 							if (aThemed)
@@ -668,7 +668,7 @@ void Board::SpawnWave()
 
 						if (aPiranha != NULL)
 						{
-							aPiranha->mField0e4 = aRecord->mType;
+							aPiranha->mEnemyType = aRecord->mType;
 							int aSteps = (int)((aRecord->mMaxSpeed - aRecord->mMinSpeed) * 1000.0);
 							if (aSteps == 0)
 								aSteps = 2;
@@ -710,7 +710,7 @@ void Board::SpawnWave()
 						if (aRecord->mType == 0xb)
 						{
 							aBonus = new BonusCreature(mApp);
-							aBonus->mField0e4 = aRecord->mType;
+							aBonus->mEnemyType = aRecord->mType;
 							if (!aRecord->mThemeRandom && aRecord->mThemeMax == -1 && aRecord->mThemeMin == -1)
 								aBonus->SetWord(mApp->GetWord(3, 4));
 							else
@@ -746,25 +746,25 @@ void Board::SpawnWave()
 		if (aBossKind == 0xc)
 		{
 			mBoss = new TorpedoBoss(mApp, mPlayer, mLessonManager);
-			mBoss->mField0e4 = 0xc;
+			mBoss->mEnemyType = 0xc;
 			mApp->ShowHintDialog(GT(0x00530e20), GT(0x00530eb4));
 		}
 		else if (aBossKind == 0xe)
 		{
 			mBoss = new GhostShip(mApp, mPlayer, mLessonManager);
-			mBoss->mField0e4 = 0xe;
+			mBoss->mEnemyType = 0xe;
 			mApp->ShowHintDialog(GT(0x00530da0), GT(0x00530eb4));
 		}
 		else if (aBossKind == 0xf)
 		{
 			mBoss = new MechaShark(mApp, mPlayer, mLessonManager);
-			mBoss->mField0e4 = 0xf;
+			mBoss->mEnemyType = 0xf;
 			mApp->ShowHintDialog(GT(0x00530d10), GT(0x00530eb4));
 		}
 		else if (aBossKind == 0x10)
 		{
 			mBoss = new MechaSquid(mApp, mPlayer, mLessonManager);
-			mBoss->mField0e4 = 0x10;
+			mBoss->mEnemyType = 0x10;
 			mApp->ShowHintDialog(GT(0x00530c68), GT(0x00530eb4));
 		}
 		mPlayer->SetState(9);

@@ -1,3 +1,4 @@
+// port(mods): whether a fix of the fixes mod is on (Fixes.h)
 #include "Fixes.h"
 #include "platform/ModManager.h"
 

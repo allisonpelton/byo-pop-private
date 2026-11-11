@@ -11,7 +11,7 @@ using namespace Sexy;
 
 // 0x461320: GameObject (0x4611b0) first. The diver starts in state 1 at x 30, y 0 (GameObject's zero) with a y speed
 // of 1.0 (mVelY, which the state 2 rise uses), visible, and the music of order 0 is started. The score at which
-// mField110 grows first is picked by the mode (WinWSApp +0x690): 450000, 525000, 650000, 700000 or 900000. Not set here
+// mLives grows first is picked by the mode (WinWSApp +0x690): 450000, 525000, 650000, 700000 or 900000. Not set here
 // (and left to chance in the original, which does not clear its memory): mHoseFrameUp, mHoseY, mAlpha
 Player::Player(WinWSApp* theApp) :
 	mApp(theApp),
@@ -19,19 +19,19 @@ Player::Player(WinWSApp* theApp) :
 	mEmpCharge(0.0),
 	mEmpActive(false),
 	mEmpX(0.0),
-	mField110(2),
-	mField114(0),
-	mFlag118(false),
+	mLives(2),
+	mLevelNumber(0),
+	mDiveActive(false),
 	mHoseFrame(0),
 	mHoseFrameUp(false),
 	mHoseY(0.0),
 	mAlpha(0),
-	mField134(0),
+	mCloudRounds(0),
 	mNextLevelScore(0),
-	mFlag13c(false),
-	mFlag13d(false),
+	mExtraLivesOff(false),
+	mExtraLifeFlashing(false),
 	mMode(0),
-	mFlag144(false)
+	mBittenByShark(false)
 {
 	mVisible = true;
 	mVelY = 1.0;
@@ -80,7 +80,7 @@ void Player::SetState(int theState)
 	mState = theState;
 	if (theState == 4)
 	{
-		mFlag118 = false;
+		mDiveActive = false;
 		return;
 	}
 	if (theState == 1)
@@ -98,9 +98,9 @@ void Player::SetState(int theState)
 	}
 	if (theState == 3)
 	{
-		// the original also reads the byte at +0x144 (mFlag144, set by the Board's event loops) and does nothing with it
+		// the original also reads the byte at +0x144 (mBittenByShark, set by the Board's event loops) and does nothing with it
 		mFrameDelay = 4;
-		mField134 = 0;
+		mCloudRounds = 0;
 		mFrame = 0;
 		mY = mY - (double)aRise;
 		mAlpha = 0xff;
@@ -147,7 +147,7 @@ void Player::Update()
 			{
 				mFrame = 0;
 				if (aState == 3)
-					mField134++;
+					mCloudRounds++;
 			}
 		}
 
@@ -178,7 +178,7 @@ void Player::Update()
 			mHoseY = mY;
 			if (!(mY < 235.0))
 			{
-				mFlag118 = true;
+				mDiveActive = true;
 				mState = 0;
 			}
 			else if (!(mY < 235.0))
@@ -193,7 +193,7 @@ void Player::Update()
 		}
 		else if (aState == 3)
 		{
-			if (mField134 >= 4)
+			if (mCloudRounds >= 4)
 			{
 				mAlpha -= 8;
 				if (mAlpha < 0)
@@ -283,16 +283,16 @@ void Player::Draw(Graphics* g)
 	}
 }
 
-// 0x4619d0: adds to the score. When the score has reached the next threshold (and mFlag13c is not set), mField110 grows by
-// one, mFlag13d is set, and the threshold moves on: by mode, a fixed list for the first thresholds, then a fixed step
+// 0x4619d0: adds to the score. When the score has reached the next threshold (and mExtraLivesOff is not set), mLives grows by
+// one, mExtraLifeFlashing is set, and the threshold moves on: by mode, a fixed list for the first thresholds, then a fixed step
 // (400000, 600000, 800000, 1500000 and 2000000 for the modes 0 to 4)
 void Player::AddScore(int theScore)
 {
 	mScore = mScore + theScore;
-	if (!mFlag13c && mNextLevelScore <= mScore)
+	if (!mExtraLivesOff && mNextLevelScore <= mScore)
 	{
-		mField110++;
-		mFlag13d = true;
+		mLives++;
+		mExtraLifeFlashing = true;
 		switch (mMode)
 		{
 		case 0:
@@ -338,7 +338,7 @@ void Player::AddScore(int theScore)
 }
 
 // 0x461b50: sets the score and works out the threshold that goes with it (the one AddScore would have reached after the
-// same score), without touching mField110. It agrees with the progression of AddScore except in mode 1, where a score
+// same score), without touching mLives. It agrees with the progression of AddScore except in mode 1, where a score
 // from 750000 to 774999 gets 1150000, not 775000
 void Player::SetScore(int theScore)
 {

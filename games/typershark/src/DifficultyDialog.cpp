@@ -43,8 +43,8 @@ static int GetAverageWPM(UserProfile* theUser)
 		theUser->mWPM[5] + theUser->mWPM[6] + theUser->mWPM[7] + theUser->mWPM[8] + theUser->mWPM[9]) / aCount;
 }
 
-// The button that suits the speed: under 30 the first, under 40 the second, under 60 the third, under 80 the fourth, else
-// the fifth. The original repeats the chain of tests in the constructor, Resize and Draw; they all use this.
+// port: the button that suits the speed: under 30 the first, under 40 the second, under 60 the third, under 80 the fourth, else
+// the fifth. The original repeats the chain of tests in the constructor 0x43f0f0, Resize 0x437ee0 and Draw 0x43ac70; they all use this.
 static int GetRecommendedButton(UserProfile* theUser)
 {
 	int aWPM = GetAverageWPM(theUser);

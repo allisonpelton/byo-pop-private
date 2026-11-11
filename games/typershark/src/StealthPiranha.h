@@ -1,7 +1,7 @@
 #ifndef __TYPERSHARK_STEALTHPIRANHA_H__
 #define __TYPERSHARK_STEALTHPIRANHA_H__
 
-// StealthPiranha.cpp: a piranha that swims in from the right half transparent (mFlag19 of Enemy is "stealth on") and
+// StealthPiranha.cpp: a piranha that swims in from the right half transparent (mStealthy of Enemy is "stealth on") and
 // turns solid for good when it passes x = 400 or is hit; StealthShark's behaviour on a piranha (the same own part).
 // StealthWhitePiranha takes it together with WhitePiranha.
 // Original: class Sexy::StealthPiranha : Piranha (virtual base; so are Enemy and GameObject), vftable 0x529a28 (own

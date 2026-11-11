@@ -70,7 +70,7 @@ port's: roles are guessed where the table says so in `Board.h` and the others co
 
 Functions inside the same address range that are not Board methods: class `HudBar`, the strip at the top of the screen
 (constructor 0x441730, 44 bytes; Update 0x441760, 134; Draw 0x449910, 809; 0x1c bytes: the diver, the app, the app's font +0x8bc, a
-flash alpha and a counter; it flashes while the diver's mFlag13d is set and draws "Lives left" and the level and points line),
+flash alpha and a counter; it flashes while the diver's mExtraLifeFlashing is set and draws "Lives left" and the level and points line),
 which no B job covers (give it to B2, 987 bytes), and the StatusBar's, TitleScreen's, MapScreen's and the dialogs' functions
 (S1, W1, D1).
 
@@ -109,60 +109,60 @@ Named after their offset in `Board.h`; the comment there says what the code does
 
 | offset | field | type | what is known |
 | --- | --- | --- | --- |
-| +0x60 | mField060 | int | constructor 0, never used |
+| +0x60 | mAlwaysZero | int | constructor 0, never used |
 | +0x154 | mField154 | int | ++ every other tick (constructor 0) |
 | +0x158 | mField158 | int | ++ every fourth tick (constructor 0) |
-| +0x1c0 | mField1c0 | int | constructor 0; SetDepth sets it |
-| +0xd10 | mField0d10 | double | y of a scrolling picture of the sea (constructor: the Widget's +0x14); SetLessonManager: mField0e10 + 270; Update moves it with the dive |
-| +0xd18 | mField0d18 | double | the same for the next picture; SetLessonManager: mField0e10 + 120 |
-| +0xd20 | mField0d20 | double | the same for the last picture; SetLessonManager: mField0e10 - 30 |
-| +0xd28 | mFlag0d28 | bool | constructor false; SetDepth sets it; SpawnWave clears it and in an abyss game builds a boss when it was set |
-| +0xd2c | mField0d2c | int | constructor -1; the first Update sets it from the profile; SpawnWave takes it mod 4 to pick the abyss boss (0 TorpedoBoss, 1 MechaShark...) |
-| +0xd38 | mFlag0d38 | bool | constructor false; KeyChar sets it |
-| +0xd60 | mFlag0d60 | bool | constructor false, never used |
-| +0xd64 | mField0d64 | int | constructor 0; SpawnWave zeroes it; HandleBonusCreatureEvents counts in it |
-| +0xe10 | mField0e10 | double | constructor: the Widget's +0x14; SetLessonManager: the y of the ruler's mOceanDepth mark; Draw compares it with the height |
-| +0xe50 | mTimer0e50 | WSTimer* | starts disabled; the fade of mField0e54 waits 2000 ms of it |
-| +0xe54 | mField0e54 | int | PlayerEaten sets 255; Update takes 3 off a tick once mTimer0e50 has passed 2 s (diver in state 1 or 9) |
-| +0xe8c | mField0e8c | int | constructor 0; GetStats gives it out (AppStats word 5) and GetFinishBonus reads it |
-| +0xe90 | mField0e90 | int | the diver's score at the start of the game (constructor, StartGame) |
-| +0xe94 | mField0e94 | int | KeyChar counts in it and compares it with a lesson value; ResetPiranhaSpeed zeroes it |
-| +0xea4 | mField0ea4 | int | constructor 255; Draw uses it as the alpha of the opening hint text ("Type the words on the sharks...") |
-| +0xea8 | mFlag0ea8 | bool | constructor false; KeyChar sets it |
-| +0xeb4 | mFlag0eb4 | bool | the EMP charge is draining (Update takes 0.01 off a tick) |
-| +0xeb5 | mFlag0eb5 | bool | constructor false; the event loops add mTypeTimer's time to mTypeTime only while it is false |
-| +0xebc | mFlag0ebc | bool | constructor false; HandleBossEvents sets it when a boss is beaten outside an abyss game |
-| +0xec0 | mField0ec0[9] | int | constructor: zeros, except [5] = random 4..7 and [8] = random 8..11; only Draw uses them (three groups of three) |
-| +0xee4 | mField0ee4 | int | constructor 0; Update counts it; IsHudActive tests it against 0x10 |
-| +0xee8 | mImage0ee8 | Image* | constructor: the app's mImages at byte offset 0x324 (index 0xc9) |
-| +0xeec | mImage0eec | Image* | constructor: the app's mImages at byte offset 0x338 (index 0xce) |
-| +0xef0 | mImage0ef0 | Image* | constructor: the first entry of the app's mSonarSweepImages (+0x7cc); Update takes entries 1 to 4 of it in the sonar animation of diver state 7 |
-| +0xef4 | mImage0ef4 | Image* | constructor: the first entry of the app's mSonarSweep2Images (+0x7dc); Update takes entries 1 to 4 of it in the sonar animation of diver state 7 |
-| +0xef8 | mField0ef8 | int | constructor 255 |
-| +0xefc | mFlag0efc | bool | constructor false |
-| +0xf00 | mTimer0f00 | WSTimer* | starts disabled; stopped and reset when the level ends |
-| +0xf04 | mField0f04 | int | constructor 255; only Draw reads it |
-| +0xf08 | mFlag0f08 | bool | constructor false; Draw reads it |
-| +0xf0c | mField0f0c | int | KeyChar adds GetStreakBonus to it; SaveProgress / Update keep the best in the profile (+0x64) |
-| +0xf10 | mString0f10 | std::string | (0x1c bytes) KeyChar clears it when mField0f2c reaches its length; Draw reads it |
-| +0xf2c | mField0f2c | int | KeyChar counts it up to the length of mString0f10 |
-| +0xf30 | mField0f30 | int | GetStreakBonus uses it; SaveProgress / Update keep the best in the profile (+0x68) |
-| +0xf38 | mField0f38 | double | constructor 0; KeyChar takes 5.0 off, Draw reads it |
-| +0xf40 | mFlag0f40 | bool | constructor false |
-| +0xf44 | mField0f44 | int | constructor 255 |
-| +0xf48 | mField0f48 | int | constructor 0 |
-| +0xf60 | mField0f60 | int | KeyChar counts it; SpawnWave zeroes it |
-| +0xf64 | mField0f64 | int | KeyChar counts it; SpawnWave zeroes it |
-| +0xf68 | mField0f68 | int | KeyChar counts it; GetStats gives it out (AppStats word 8) |
-| +0xf6c | mField0f6c | int | constructor 0; GetStats gives it out (AppStats word 9) |
-| +0xf70 | mField0f70 | int | KeyChar counts it |
-| +0xf74 | mField0f74 | int | KeyChar counts it |
-| +0xf80 | mFlag0f80 | bool | constructor true; AddPiranha clears it; the event loops and Update set it again |
-| +0xf84 | mField0f84 | int | constructor: the +8 field of the app's mImages at byte offset 0x7c (index 0x1f) |
+| +0x1c0 | mLessonStepDepth | int | constructor 0; SetDepth sets it |
+| +0xd10 | mNearMountainsY | double | y of a scrolling picture of the sea (constructor: the Widget's +0x14); SetLessonManager: mOceanFloorY + 270; Update moves it with the dive |
+| +0xd18 | mMidMountainsY | double | the same for the next picture; SetLessonManager: mOceanFloorY + 120 |
+| +0xd20 | mFarMountainsY | double | the same for the last picture; SetLessonManager: mOceanFloorY - 30 |
+| +0xd28 | mAbyssBossDue | bool | constructor false; SetDepth sets it; SpawnWave clears it and in an abyss game builds a boss when it was set |
+| +0xd2c | mAbyssBossIndex | int | constructor -1; the first Update sets it from the profile; SpawnWave takes it mod 4 to pick the abyss boss (0 TorpedoBoss, 1 MechaShark...) |
+| +0xd38 | mLetterTyped | bool | constructor false; KeyChar sets it |
+| +0xd60 | mAlwaysFalse | bool | constructor false, never used |
+| +0xd64 | mBonusCreaturesKilled | int | constructor 0; SpawnWave zeroes it; HandleBonusCreatureEvents counts in it |
+| +0xe10 | mOceanFloorY | double | constructor: the Widget's +0x14; SetLessonManager: the y of the ruler's mOceanDepth mark; Draw compares it with the height |
+| +0xe50 | mLevelTitleTimer | WSTimer* | starts disabled; the fade of mLevelTitleAlpha waits 2000 ms of it |
+| +0xe54 | mLevelTitleAlpha | int | PlayerEaten sets 255; Update takes 3 off a tick once mLevelTitleTimer has passed 2 s (diver in state 1 or 9) |
+| +0xe8c | mAccurateLevels | int | constructor 0; GetStats gives it out (AppStats word 5) and GetFinishBonus reads it |
+| +0xe90 | mStartScore | int | the diver's score at the start of the game (constructor, StartGame) |
+| +0xe94 | mPenaltyTypoCount | int | KeyChar counts in it and compares it with a lesson value; ResetPiranhaSpeed zeroes it |
+| +0xea4 | mHintAlpha | int | constructor 255; Draw uses it as the alpha of the opening hint text ("Type the words on the sharks...") |
+| +0xea8 | mHintFading | bool | constructor false; KeyChar sets it |
+| +0xeb4 | mEmpDraining | bool | the EMP charge is draining (Update takes 0.01 off a tick) |
+| +0xeb5 | mEmpUsedInWave | bool | constructor false; the event loops add mTypeTimer's time to mTypeTime only while it is false |
+| +0xebc | mBossBeaten | bool | constructor false; HandleBossEvents sets it when a boss is beaten outside an abyss game |
+| +0xec0 | mSparkles[9] | int | constructor: zeros, except [5] = random 4..7 and [8] = random 8..11; only Draw uses them (three groups of three) |
+| +0xee4 | mSonarStep | int | constructor 0; Update counts it; IsHudActive tests it against 0x10 |
+| +0xee8 | mSonarTopRightImage | Image* | constructor: the app's mImages at byte offset 0x324 (index 0xc9) |
+| +0xeec | mSonarBottomRightImage | Image* | constructor: the app's mImages at byte offset 0x338 (index 0xce) |
+| +0xef0 | mSonarBottomLeftImage | Image* | constructor: the first entry of the app's mSonarSweepImages (+0x7cc); Update takes entries 1 to 4 of it in the sonar animation of diver state 7 |
+| +0xef4 | mSonarTopLeftImage | Image* | constructor: the first entry of the app's mSonarSweep2Images (+0x7dc); Update takes entries 1 to 4 of it in the sonar animation of diver state 7 |
+| +0xef8 | mSonarAlpha | int | constructor 255 |
+| +0xefc | mCreaturePassDone | bool | constructor false |
+| +0xf00 | mTreasureTimer | WSTimer* | starts disabled; stopped and reset when the level ends |
+| +0xf04 | mTreasureAlpha | int | constructor 255; only Draw reads it |
+| +0xf08 | mTreasureFading | bool | constructor false; Draw reads it |
+| +0xf0c | mBonusWordPoints | int | KeyChar adds GetStreakBonus to it; SaveProgress / Update keep the best in the profile (+0x64) |
+| +0xf10 | mBonusWord | std::string | (0x1c bytes) KeyChar clears it when mBonusWordPos reaches its length; Draw reads it |
+| +0xf2c | mBonusWordPos | int | KeyChar counts it up to the length of mBonusWord |
+| +0xf30 | mBonusWordCount | int | GetStreakBonus uses it; SaveProgress / Update keep the best in the profile (+0x68) |
+| +0xf38 | mAirGauge | double | constructor 0; KeyChar takes 5.0 off, Draw reads it |
+| +0xf40 | mAirFillRising | bool | constructor false |
+| +0xf44 | mAirFillAlpha | int | constructor 255 |
+| +0xf48 | mTreasureFrame | int | constructor 0 |
+| +0xf60 | mWaveLettersRight | int | KeyChar counts it; SpawnWave zeroes it |
+| +0xf64 | mWaveLettersWrong | int | KeyChar counts it; SpawnWave zeroes it |
+| +0xf68 | mLettersRight | int | KeyChar counts it; GetStats gives it out (AppStats word 8) |
+| +0xf6c | mLettersWrong | int | constructor 0; GetStats gives it out (AppStats word 9) |
+| +0xf70 | mBonusLettersRight | int | KeyChar counts it |
+| +0xf74 | mBonusLettersWrong | int | KeyChar counts it |
+| +0xf80 | mScreenClear | bool | constructor true; AddPiranha clears it; the event loops and Update set it again |
+| +0xf84 | mWaterImageHeight | int | constructor: the +8 field of the app's mImages at byte offset 0x7c (index 0x1f) |
 | +0xf88 | mField0f88 | int | constructor: the +8 field of the app's mImages at byte offset 0x5c (index 0x17); IsBelowSurface compares mDivePos with it |
 
-Also unnamed inside embedded objects: `Smoother::mField38` and `FrameSmoother::mField38` (constructor zero, never used),
-`BgLayer::mField00` / `mField04` / `mUnused10`, `RatingPopup::mField34`. Gaps in the original's layout that have no field at all
+Also unnamed inside embedded objects: `Smoother::mAlwaysZero` and `FrameSmoother::mAlwaysZero` (constructor zero, never used),
+`BgLayer::mField00` / `mAlignmentGap` / `mAlwaysZeroInts`, `RatingPopup::mNeverWritten`. Gaps in the original's layout that have no field at all
 (alignment): after each bool, and four bytes at +0x15c, +0x1cc, +0xe0c and +0xf34 before a double; the compiler makes them again.
 
 ## 4. Registration and trial fields
@@ -194,7 +194,7 @@ A handler returns true after it removed the creature from its list (the tail pat
 | 7 | Shark, Piranha (before 4, at the left edge) | the creature's GameObject slot 6 is called (the turn at the left edge) | sharks, piranhas |
 | 8 | StealthShark, StealthPiranha (first time x <= 600) | 30 bubbles are added around the creature and a sound plays | sharks, piranhas |
 | 9 | nobody in the finished files | no handler found in the Board either; the E-jobs' list of codes named it | none |
-| 0xa | ProjectileBoss constructor | the boss exists: the handler touches mTimer0e50 (SetDisabled); the "DANGER!" hint dialog is shown by SpawnWave and the level start, not here | boss |
+| 0xa | ProjectileBoss constructor | the boss exists: the handler touches mLevelTitleTimer (SetDisabled); the "DANGER!" hint dialog is shown by SpawnWave and the level start, not here | boss |
 | 0xb | ProjectileBoss::SetState(7) | no case in the Board's handlers | none |
 | 0xc | ProjectileBoss::SetState(8) when its hit points are gone | the boss is beaten: the profile counts it (a field of the user outside an abyss game, the boss list in an abyss game), GetBossBonus points, and when the diver is in state 9 the level ends | boss |
 | 0xd | TorpedoBoss (mine/bubble shot) | no case in the Board's handlers | none |

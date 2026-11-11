@@ -16,7 +16,7 @@ namespace Sexy
 class RedShark : public BlackShark
 {
 public:
-	std::string				mWord3;					// +0x24 the word taken on when mWord2 is finished; the Board fills it. The original has an accessor (own slot 1, 0x407170, a copy) that no play reaches: it reads the field, as the port does
+	std::string				mThirdWord;					// +0x24 the word taken on when mSecondWord is finished; the Board fills it. The original has an accessor (own slot 1, 0x407170, a copy) that no play reaches: it reads the field, as the port does
 
 public:
 	RedShark(WinWSApp* theApp);														// 0x411400

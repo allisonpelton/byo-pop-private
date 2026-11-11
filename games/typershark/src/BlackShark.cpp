@@ -31,12 +31,12 @@ BlackShark::~BlackShark()
 }
 
 // 0x4035f0 (Shark part slot 0): Shark::IsSwimming also answers true for a shark that is not swimming but still has a
-// word, unless mFlag50 is set
+// word, unless mKilledByEmp is set
 bool BlackShark::IsSwimming()
 {
 	if (mState != 0 && mState != 6)
 	{
-		if (mWord.empty() || mFlag50)
+		if (mWord.empty() || mKilledByEmp)
 			return false;
 	}
 	return true;
@@ -60,10 +60,10 @@ void BlackShark::SetState(int theState)
 		mState = 5;
 		mFrame = 0;
 		mImage = mImages[1];
-		mFlag30 = true;
-		mField28 = 7;
-		mField2c = 6;
-		if (!mFlag50)
+		mShockShowing = true;
+		mShockPeriod = 7;
+		mShockTogglesLeft = 6;
+		if (!mKilledByEmp)
 		{
 			if (mWord.empty())
 				mApp->PlaySample(SOUND_SHARKDIES);
@@ -87,7 +87,7 @@ void BlackShark::SetState(int theState)
 	else if (theState == 3)
 	{
 		mImage = mImages[2];
-		if (!mWord.empty() && !mFlag50)
+		if (!mWord.empty() && !mKilledByEmp)
 		{
 			mFrameDelay = 11;
 			mVelY = 0.0;
@@ -108,17 +108,17 @@ void BlackShark::SetState(int theState)
 }
 
 // 0x409fb0: Enemy::TypeLetter (0x40a5b0) with a second word. When the last letter is typed the points of the word are
-// kept (mField54) and event 1 pushed; a second word then becomes the word (and is emptied: the Ghidra export drops that
+// kept (mWordPoints) and event 1 pushed; a second word then becomes the word (and is emptied: the Ghidra export drops that
 // assignment) and typing starts again at its first letter, without one the word is cleared and the creature lets go of its
-// target. Found in phase 1 of the identical-play pass: without the emptying a shark's word came back for ever.
+// target. Without the emptying a shark's word came back for ever.
 void BlackShark::TypeLetter()
 {
 	mNumTyped++;
 	if (mNumTyped == (int)mWord.size())
 	{
-		mField54 = GetPoints();
+		mWordPoints = GetPoints();
 		mEvents.push_back(1);
-		if (mWord2.empty())
+		if (mSecondWord.empty())
 		{
 			mWord = "";
 			mTyped = "";
@@ -128,9 +128,9 @@ void BlackShark::TypeLetter()
 				mAttacker->SetTarget(NULL);
 			return;
 		}
-		mWord = mWord2;
+		mWord = mSecondWord;
 		mNumTyped = 0;
-		mWord2 = "";		// the second word is used up (the export shows no such line; the code at 0x40a0b0 assigns the empty string to it)
+		mSecondWord = "";		// the second word is used up (the export shows no such line; the code at 0x40a0b0 assigns the empty string to it)
 	}
 	mTyped = mWord.substr(0, mNumTyped);
 	mRemaining = mWord.substr(mNumTyped, mWord.size());

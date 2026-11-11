@@ -27,9 +27,9 @@ struct HighScoreEntry
 	int						mScore;			// +0x00
 	int						mMode;			// +0x04 the game mode of the score (0 to 4); -1 in the abyss table
 	std::string				mName;			// +0x08
-	int						mField24;		// +0x24 the profile's mField0c (UserProfile::SetLastGame's third value); -1 in the abyss table
+	int						mLevelReached;		// +0x24 the level the diver was on in that game (the profile's mLastLevelReached); the default table holds 10 down to 6, -1 in the abyss table; saved in the file, the high score screen does not show it
 
-	HighScoreEntry() : mScore(0), mMode(0), mField24(0) {}
+	HighScoreEntry() : mScore(0), mMode(0), mLevelReached(0) {}
 };
 
 class UserProfileMgr

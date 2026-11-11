@@ -133,7 +133,7 @@ void DeleteUserDialog::ButtonPress(int theId)
 void DeleteUserDialog::ConfirmDelete(std::string theName)
 {
 	std::string aLines = StrFormat(GTC(0x0052e598), theName.c_str());
-	mApp->mFlag910 = true;
+	mApp->mDeleteUserAsked = true;
 	mApp->ShowConfirmDialog(GT(0x0052e588), aLines, "", true, GT(0x0052d1f8), GT(0x0052d1fc));	// 0x41c4f0: "YES", "NO"
 }
 

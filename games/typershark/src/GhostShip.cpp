@@ -50,34 +50,34 @@ GhostShip::GhostShip(WinWSApp* theApp, GameObject* thePlayer, LessonManager* the
 	if (mConfig->mAbyssMode != 0)
 	{
 		double aMore = 0.0;
-		mField10c = 250;
+		mMaxHitPoints = 250;
 		mHitPoints = 250;
 		int aScore = mApp->mBoard->mScore;	// +0x1c4 of the board: the score
 		if (aScore >= 18000)
 		{
 			aMore = 1.6;
-			mField10c = 450;
+			mMaxHitPoints = 450;
 			mHitPoints = 450;
 		}
 		else if (aScore >= 14000)
 		{
 			aMore = 1.3;
-			mField10c = 350;
+			mMaxHitPoints = 350;
 			mHitPoints = 350;
 		}
 		else if (aScore >= 10000)
 		{
 			aMore = 1.0;
-			mField10c = 350;
+			mMaxHitPoints = 350;
 			mHitPoints = 350;
 		}
 		else if (aScore >= 7000)
 		{
 			aMore = 0.8;
-			mField10c = 300;
+			mMaxHitPoints = 300;
 			mHitPoints = 300;
 		}
-		mField130 = 2;
+		mMinShots = 2;
 		mMaxShots = 3;
 		mShotSpeedMin = 0.8 + aMore;
 		mShotSpeedMax = aMore + 0.9;

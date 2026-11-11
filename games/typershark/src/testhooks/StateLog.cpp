@@ -43,55 +43,55 @@ struct StateLogCloser
 
 std::string Sexy::TestStateLogLine(WinWSApp* app)
 {
-	Board* b = app->mBoard;
-	if (b == NULL)
+	Board* aBoard = app->mBoard;
+	if (aBoard == NULL)
 		return "";
 	int aCounts[6] = { 0, 0, 0, 0, 0, 0 };
-	std::vector<BotCreature> aAll = TestCollectCreatures(b);
+	std::vector<BotCreature> aAll = TestCollectCreatures(aBoard);
 	std::string aList;
 	size_t aClamNumber = 0;
 	for (size_t i = 0; i < aAll.size(); i++)
 	{
-		const BotCreature& c = aAll[i];
-		int aTyped = c.mTyped;
-		if (c.mList == "clams")
+		const BotCreature& aCreature = aAll[i];
+		int aTyped = aCreature.mTyped;
+		if (aCreature.mList == "clams")
 		{
 			// a clam's last field packs what is its own: the kind, the frame, the opened and pulse flags and the tick modulo
 			// the frame delay (P1b: the original's Clam fields are read at +0xe8 and +0xf0, its GameObject's frame and tick)
-			Clam* aClam = dynamic_cast<Clam*>(b->mClams[aClamNumber++]);
+			Clam* aClam = dynamic_cast<Clam*>(aBoard->mClams[aClamNumber++]);
 			if (aClam != NULL)
 				aTyped = aClam->mType * 100000 + aClam->mFrame * 1000 + (aClam->mOpened ? 100 : 0) + (aClam->mPulseUp ? 10 : 0) +
 					aClam->mTick % 4;
 		}
-		if (c.mList == "sharks")
+		if (aCreature.mList == "sharks")
 			aCounts[0]++;
-		else if (c.mList == "piranhas")
+		else if (aCreature.mList == "piranhas")
 			aCounts[1]++;
-		else if (c.mList == "clams")
+		else if (aCreature.mList == "clams")
 			aCounts[2]++;
-		else if (c.mList == "bonus")
+		else if (aCreature.mList == "bonus")
 			aCounts[3]++;
-		else if (c.mList == "boss")
+		else if (aCreature.mList == "boss")
 			aCounts[4]++;
-		aList += StrFormat(" %s:%s@%.6f,%.6f,%d,%d", c.mKind.c_str(), c.mWord.c_str(), c.mX, c.mY, c.mState, aTyped);
+		aList += StrFormat(" %s:%s@%.6f,%.6f,%d,%d", aCreature.mKind.c_str(), aCreature.mWord.c_str(), aCreature.mX, aCreature.mY, aCreature.mState, aTyped);
 	}
 	int anOpenClam = -1;		// the index of the clam the board has open (the pearl waiting for its pair)
-	for (size_t i = 0; i < b->mClams.size(); i++)
-		if (b->mClams[i] == b->mOpenClam)
+	for (size_t i = 0; i < aBoard->mClams.size(); i++)
+		if (aBoard->mClams[i] == aBoard->mOpenClam)
 			anOpenClam = (int) i;
 	int aLevel = app->mLessonManager != NULL ? app->mLessonManager->mLevel : -2;
 	uint32_t aRandState[MTRAND_N];
 	int aRandIndex = 0;
 	gGameRand->GetState(aRandState, &aRandIndex);
-	// the fields after `lives` are what phase 1 of the identical-play pass reads out of the original's memory to compare
+	// the fields after `lives` are what the comparison of the game's logic reads out of the original's memory
 	// (games/typershark/tools/phase1): the board's own update count, its score (the depth in an abyss game), the game timer's
 	// three raw values, the pause and hint flags, the typed letters, the dive, the diver's state and EMP charge
 	return StrFormat("u=%d lvl=%d score=%d time=%d sharks=%d piranhas=%d clams=%d bonus=%d boss=%d typed=%d lives=%d bupd=%d bscore=%d "
 		"tcnt=%d tstart=%d tpaused=%d paused=%d hint=%d ty=%s dive=%.6f dstate=%d emp=%.6f rng=%d gameover=%d sw=%s swp=%d pairs=%d open=%d f38=%.6f diff=%d e94=%d cwt=%d |%s", app->mUpdateCount,
-		aLevel, b->mPlayer->mScore, b->mGameTimer->Elapsed(), aCounts[0], aCounts[1], aCounts[2], aCounts[3], aCounts[4] > 0 ? 1 : 0,
-		(int) b->mTyped.size(), b->mPlayer->mField110, b->mUpdateCount, b->mScore, b->mGameTimer->mUpdateCnt, b->mGameTimer->mStart,
-		b->mGameTimer->mPausedTotal, b->mPaused ? 1 : 0, app->mHintDialog != NULL ? 1 : 0, b->mTyped.c_str(), b->mDivePos,
-		b->mPlayer->mState, b->mPlayer->mEmpCharge, aRandIndex, b->mGameOverDialog != NULL ? 1 : 0, b->mString0f10.c_str(), b->mField0f2c, b->mPairsFound, anOpenClam, b->mField0f38, app->mDifficulty, b->mField0e94, app->mLessonManager->GetCurrentWaveType(), aList.c_str());
+		aLevel, aBoard->mPlayer->mScore, aBoard->mGameTimer->Elapsed(), aCounts[0], aCounts[1], aCounts[2], aCounts[3], aCounts[4] > 0 ? 1 : 0,
+		(int) aBoard->mTyped.size(), aBoard->mPlayer->mLives, aBoard->mUpdateCount, aBoard->mScore, aBoard->mGameTimer->mUpdateCnt, aBoard->mGameTimer->mStart,
+		aBoard->mGameTimer->mPausedTotal, aBoard->mPaused ? 1 : 0, app->mHintDialog != NULL ? 1 : 0, aBoard->mTyped.c_str(), aBoard->mDivePos,
+		aBoard->mPlayer->mState, aBoard->mPlayer->mEmpCharge, aRandIndex, aBoard->mGameOverDialog != NULL ? 1 : 0, aBoard->mBonusWord.c_str(), aBoard->mBonusWordPos, aBoard->mPairsFound, anOpenClam, aBoard->mAirGauge, app->mDifficulty, aBoard->mPenaltyTypoCount, app->mLessonManager->GetCurrentWaveType(), aList.c_str());
 }
 
 // the framework's update, then (with -statelog) the line for this update

@@ -18,7 +18,7 @@ StealthPiranha::StealthPiranha(WinWSApp* theApp, int theType) :
 	mEventSent(false),
 	mAlpha(50)
 {
-	mFlag19 = true;
+	mStealthy = true;
 	mTextColor = Color(0, 0, 0);
 	mStealthImages.resize(6);
 	mStealthImages[0] = mApp->mPiranhaImages[3][0];
@@ -38,7 +38,7 @@ StealthPiranha::~StealthPiranha()
 // 0x404f60 (the same code as StealthShark's): switching it off shows the normal picture
 void StealthPiranha::SetStealth(bool theStealth)
 {
-	mFlag19 = theStealth;
+	mStealthy = theStealth;
 	if (!theStealth)
 		mImage = mImages[0];
 }
@@ -54,7 +54,7 @@ void StealthPiranha::ResetSpeed()
 void StealthPiranha::Update()
 {
 	Piranha::Update();
-	bool aStealth = mFlag19;
+	bool aStealth = mStealthy;
 	if (aStealth)
 	{
 		if (mX <= 400.0)
@@ -92,7 +92,7 @@ void StealthPiranha::Draw(Graphics* g)
 			Board* aBoard = mApp->mBoard;
 			if (aBoard == NULL || !aBoard->mPaused)
 			{
-				if (mFlag19)
+				if (mStealthy)
 					g->SetColor(Color(mTextColor.GetRed(), mTextColor.GetGreen(), mTextColor.GetBlue(), mAlpha));
 				else
 					g->SetColor(mTextColor);
@@ -112,14 +112,14 @@ void StealthPiranha::SetState(int theState)
 	Piranha::SetState(theState);
 	if (theState == 0)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[0];
 		else
 			mImage = mImages[0];
 	}
 	else if (theState == 3)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[2];
 		else
 			mImage = mImages[2];
@@ -131,7 +131,7 @@ void StealthPiranha::SetState(int theState)
 void StealthPiranha::SetVelX(double v)
 {
 	mBaseSpeed = v;
-	if (!mFlag19)
+	if (!mStealthy)
 		mVelX = v;
 }
 

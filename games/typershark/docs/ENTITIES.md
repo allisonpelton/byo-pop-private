@@ -76,7 +76,7 @@ override (28 distinct targets in slot 7).
 - **Sizes and offsets**: Shark and Piranha are `Enemy`-derived single-chain classes in the port. Their own fields (the
   original's own part, +0x10 .. +0x24: a counter, a period, `mSavedVelX` = -1.0 until the dash at the right edge, the
   "entered" flag and `mFrameOffset` = frame * frame width) are in the headers with their original offsets. Enemy's
-  +0x20/+0x24 are `mTextOffsetY/X`, +0x28/+0x2c/+0x30 the shock-flash counters (`mField28`, `mField2c`, `mFlag30`).
+  +0x20/+0x24 are `mTextOffsetY/X`, +0x28/+0x2c/+0x30 the shock-flash counters (`mShockPeriod`, `mShockTogglesLeft`, `mShockShowing`).
 - **Image roles in `Enemy::mImages`**: 0 swim, 1 shock (the app's shock picture), 2 death, 3 mirrored swim (state 1), 4
   red (the flashing hit picture of a Shark in state 6); the sharks read them from `mSharkImages[type][role]`, the piranhas
   from `mPiranhaImages[type][role]`. A variant that sets `mImages[n]` differently overrides these in its constructor.
