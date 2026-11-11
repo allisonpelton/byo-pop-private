@@ -761,14 +761,18 @@ stings), and an Ogg Vorbis or WAV file is one tune. An entry may also have:
   Escapes' MO3 modules in `Resource.dll`, named "Resource 335" by their ids), or from named entries of a zip archive (Ning
   Po's music stream in its Python archive, stored or deflated, the latter through `DecompressionStream`). `tools/musictest.js`
   checks both readers on files it makes. Tip Top's one MIDI piece is not listed: the player has no MIDI synthesiser.
+- `where`: where in the game its code plays a tune, named as a game music rip names it ("Main Menu", "Level Theme 1",
+  "Danger 2": Title Case, one place, at most 20 characters, several tunes of one place numbered in the order the game
+  reaches them, else the file's; the user, 2026-11-11: "Rip style please!"). It comes from the game's session reading
+  its code, or from the file names of an Ogg game whose files are named for their places.
+- `unused`: the tunes the game's code never plays.
 
 A WAV file is one tune too, decoded by the browser like an Ogg file and timed from its header. Word Harmony makes its
-music as it plays: the menu loops one WAV, and its rising-water mode steps a drum track through short pieces as the water
-rises. Those are its tunes, each placed only as far as its code says ("Rising water", with no height). The single
-instrument samples its other modes pick at random are not tunes and are not listed.
-- `where`: where in the game its code plays a tune, as a short value ("Main menu", "Levels 1-5"). It comes from the
-  game's session reading its code, or from the file names of an Ogg game whose files are named for their places.
-- `unused`: the tunes the game's code never plays.
+music as it plays: the menu loops one WAV, and its rising-water mode steps a drum track through short pieces as the
+water rises. Those are its tunes, each placed only as far as its code says ("Rising Water 1" to 8 in the order the
+drum track steps through them, with no height). The single instrument samples its other modes pick at random are not
+tunes and are not listed. `tools/musictest.js` checks that every place in `web/soundtracks.js` is at most 20
+characters.
 
 Tunes are named plainly, by file name and "part n". No invented titles. Each line of the list shows the tune's place,
 or "Unused" struck through, and its format, the file's extension (MO3, IT, S3M, XM, OXM or OGG). The display's second

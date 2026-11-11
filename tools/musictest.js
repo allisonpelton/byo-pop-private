@@ -169,6 +169,19 @@ function protracker() {
   check("zip: a deflated entry, its name in any case", deflated && Buffer.from(deflated).equals(body));
   check("zip: no such entry", none === null);
   check("zip: an entry's name", R.baseName("ningpo.pyz|zip:theme_np.ogg") === "theme_np", R.baseName("ningpo.pyz|zip:theme_np.ogg"));
+
+  // ---------- the places in web/soundtracks.js: rip style (the user, 2026-11-11: "Rip style please!") ----------
+  const table = new Function(fs.readFileSync(path.join(__dirname, "../web/soundtracks.js"), "utf8") + "\nreturn ByopopSoundtracks;")();
+  const places = [];
+  Object.keys(table).forEach((g) => Object.keys(table[g].where || {}).forEach((k) => places.push([g, k, table[g].where[k]])));
+  check("places: some", places.length > 100, places.length);
+  const long = places.filter((p) => p[2].length > 20);
+  check("places: at most 20 characters", long.length === 0, long);
+  // Title Case: every word starts with a capital or a digit, but for "of" (Hall of Fame)
+  const lower = places.filter((p) => p[2].split(/[\s-]+/).some((w) => w !== "of" && !/^[A-Z0-9]/.test(w)));
+  check("places: Title Case", lower.length === 0, lower);
+  const unusedPlaced = Object.keys(table).reduce((a, g) => a.concat((table[g].unused || []).filter((k) => (table[g].where || {})[k])), []);
+  check("places: no unused tune placed", unusedPlaced.length === 0, unusedPlaced);
   console.log("musictest: " + checks + " checks, " + failed + " failed" + (mo3 ? "" : " (no MO3 staged: libxmp-lite only)"));
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.log("musictest: " + (e && e.stack || e)); process.exit(1); });
