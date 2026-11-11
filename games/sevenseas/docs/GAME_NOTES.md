@@ -406,9 +406,9 @@ function defined in `src/` whose name appears nowhere else but its declaration, 
   `KillDialog(DIALOG_REGISTER)` of a dialog the port does not have (commit 74d0c0fb); `SevenSeasApp::UpdateCursor`, an empty
   function nothing called, and `StopTalk`, which nothing called.
 - **Kept on purpose:** the resource table (`Res.cpp`, `Res.h`) holds every image and sound of the original's list in its order
-  and with its ids, since the names are looked up in that order; 12 images and 9 sounds of it nothing in the game's code names
-  (the online score's picture, the pirate's other mouths and the talking sounds, which are reached by the id plus a number, and
-  a few fonts and sprites). Dropping the picture of the removed online score button would renumber every id after it for 40 KB
+  and with its ids, since the names are looked up in that order; 10 images and 8 sounds of it nothing in the game's code names
+  (the online score's picture, a few fonts and sprites, and the pirate's mouths and talking sounds, which the code reaches by
+  their numbers, 0xe to 0x15: the readability pass names them). Dropping the picture of the removed online score button would renumber every id after it for 40 KB
   of memory; not done.
 - **Left alone:** the Treasure Island and warning nags are the registered game's own dialogs (they stay), and the registry
   values `BonusNag`, `Warn*Nag` are theirs. The registration and outbound-button removal was done earlier (section 8's list);
