@@ -463,6 +463,13 @@ to the control that last had the focus there. A window that takes the focus come
 the task bar the arrows move between items. Once the game's canvas has the focus it gets every key, Tab too; F6
 leaves it.
 
+**Its text.** W95FA by Alina Sava (SIL OFL 1.1; `web/fonts/w95fa.woff2`, 7,880 bytes, the Latin subset of
+`@fontsource/win95fa` 5.3.0, with `web/licenses/w95fa.txt`; the user's OK for the download, 2026-11-11). `web/skins.css`
+sets every text of the desktop at 11 pixels, unsmoothed, a few large texts at 22: the font is sharp only at 11 and its
+multiples, so a new part does not set a size of its own. It has one weight; bold is the same glyphs struck twice a
+pixel apart. It lacks the arrows, the multiplication sign, the ellipsis, the dashes, the middle dot, the fractions and
+the copyright and trademark signs, which fall back to the next font in `--font-ui`.
+
 ### Desktop 95 in one page
 
 The whole site is one page, the listing's desktop (`web/deskapps.js`, `ByopopApps`). A game, its copyright page and
