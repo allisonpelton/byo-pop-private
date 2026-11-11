@@ -7,9 +7,11 @@ coordinator publishes, after checking the trunk for game files and game text (CL
 
 ## What is private
 
-Files listed in `.publishignore` are left out whole. Today they are the two tools that copy a game's program out of
-PopCap's DRM wrapper or CD launcher, `tools/extract_game_exe.py` and `tools/triage_popcap.py`. The decompilation
-needs them, so they stay in the trunk, but the public repository does not show how to take the protection apart.
+Files listed in `.publishignore` are left out whole, each with its reason there: the tools that copy a game's program
+out of PopCap's DRM wrapper or CD launcher (`tools/extract_game_exe.py`, `tools/triage_popcap.py` and the like), the
+games' scripts that carve or patch a copy, origrun's table of install paths, and the games that stay unpublished. The
+decompilation needs the tools, so they stay in the trunk, but the public repository does not show how to take the
+protection apart.
 BookWorm's GameText is published: it reads the game's texts from the player's own `Bookworm.exe` at run time and
 looks inside the launcher only to find them.
 
