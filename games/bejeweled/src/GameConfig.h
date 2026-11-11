@@ -74,7 +74,7 @@ struct GameConfig
 	// /persist/replays on the web, outside the user dir's localStorage backup)
 	std::string mReplayDir;
 
-	// port(variant): watching a replay (stage 3b, WatchController): the segment the board about to be created
+	// port(variant): watching a replay (WatchController): the segment the board about to be created
 	// plays. Board::InitVariant takes it (a playback board that owns an MTRand from the segment's RNG start)
 	// and clears it; NULL for every other board.
 	const Replay::Segment* mNextBoardPlayback = nullptr;

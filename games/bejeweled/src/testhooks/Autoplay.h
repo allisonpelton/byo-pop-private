@@ -14,7 +14,7 @@
 // What it does: clicks the title screen's play link, switches to timed mode with -autoplaytimed, then
 // plays: mostly a random valid move, sometimes a random (usually illegal) swap or the hint button, as a
 // click on both gems, a click on the gem and one in the click zone toward the other, or a drag; on a board with
-// twists or slides (stage 10) a move of any of the rules' types, a twist as a click (a right click anticlockwise)
+// twists or slides a move of any of the rules' types, a twist as a click (a right click anticlockwise)
 // where its four gems meet, a slide as a drag along its line;
 // sometimes it selects a gem while the board is falling, clearing or falling out (a stale selection
 // after a fall-out). It quits 100 updates after the game-over screen appears, or at the update cap.
@@ -61,8 +61,8 @@ private:
 		STEP_DRAG_MOVE,     // mouse move mDX/mDY further (MouseDrag)
 		STEP_DRAG_UP,       // button up where the drag ended
 		STEP_CLICK_HINT,    // click the hint button
-		STEP_CLICK_AT,      // click at the board position mDX/mDY (a right click with mCol 1): a twist (stage 10)
-		STEP_DOWN_AT        // button down at the board position mDX/mDY, starts a drag: a slide (stage 10)
+		STEP_CLICK_AT,      // click at the board position mDX/mDY (a right click with mCol 1): a twist
+		STEP_DOWN_AT        // button down at the board position mDX/mDY, starts a drag: a slide
 	};
 
 	// What a step needs when it is due; if the game has moved on, the rest of the plan is dropped

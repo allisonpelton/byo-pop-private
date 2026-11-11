@@ -1,7 +1,7 @@
 // The wizard's head (see Wizard.h).
 
 #include "Wizard.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Graphics.h"
 
 #include <cmath>
@@ -19,7 +19,7 @@ static const int gLipSync[4][NUM_TRACK_STEPS][2] =
 };
 
 // 0x414887
-WizardBox::WizardBox(AlchemyApp* theApp)
+Wizard::Wizard(WinAlchApp* theApp)
 {
 	mApp = theApp;
 	mAlpha = 0;
@@ -34,7 +34,7 @@ WizardBox::WizardBox(AlchemyApp* theApp)
 }
 
 // 0x4148ce
-void WizardBox::Talk(int theTrack)
+void Wizard::Play(int theTrack)
 {
 	mStep = 0;
 	mTrack = theTrack;
@@ -44,14 +44,14 @@ void WizardBox::Talk(int theTrack)
 }
 
 // 0x414903
-void WizardBox::StopTalking()
+void Wizard::Stop()
 {
 	mTalking = false;
 	MarkDirty();
 }
 
 // 0x414912
-void WizardBox::Update()
+void Wizard::Update()
 {
 	Widget::Update();
 
@@ -63,7 +63,7 @@ void WizardBox::Update()
 			mStep++;
 			mTimer = gLipSync[mTrack][mStep][1];
 			if (mTimer == 0)
-				StopTalking();
+				Stop();
 			MarkDirty();
 		}
 	}
@@ -102,7 +102,7 @@ void WizardBox::Update()
 }
 
 // 0x414a7d
-void WizardBox::Draw(Graphics* g)
+void Wizard::Draw(Graphics* g)
 {
 	if (mAlpha < 0.001)
 		return;

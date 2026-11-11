@@ -15,10 +15,10 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 class Piece;
 class MemoryImage;
-class WizardBox;
+class Wizard;
 class ButtonWidget;
 class DialogButton;
 
@@ -58,12 +58,12 @@ public:
 		STATE_NEXT_BOARD = 6        // the next board fades in
 	};
 
-	AlchemyApp*		mApp;                   // +0x5c
+	WinAlchApp*		mApp;                   // +0x5c
 	int				mState;                 // +0x60
 	MTRand			mRand;                  // +0x64
-	Buffer			mRecord;                // +0xa28 the game's moves, for the internet scores of the original (kept, never sent)
+	Buffer			mEncodedGame;           // +0xa28 the game move by move (EncodeMoveNum, EncodeMove, EncodeDiscard), for the original's internet scores: saved with the game, and nothing reads it
 	std::string		mScript;                // +0xa64 "Move: n " commands: the test hook's input to the board
-	int				mScriptPos;             // +0xa80 (saved, never used)
+	int				mSavedZero;             // +0xa80 0 throughout: saved and loaded, and nothing reads it
 	Piece*			mCurPiece;              // +0xae8 the piece to place, or NULL
 	bool			mAnimateLights;         // +0xaec false while the tutorial builds a position
 	bool			mTimeTrial;             // +0xaed
@@ -104,25 +104,25 @@ public:
 	int				mBombX;                 // +0xd7c
 	int				mBombY;                 // +0xd80
 	int				mBombFrame;             // +0xd84
-	double			mOverFade;              // +0xd88 GAMEOVER's opacity
-	int				mOverTimer;             // +0xd90 updates until the score table
+	double			mGameOverFade;              // +0xd88 GAMEOVER's opacity
+	int				mGameOverTimer;             // +0xd90 updates until the score table
 	int				mSkillBase;             // +0xd94 skill * 5 - 5
 	int				mNumShapes;             // +0xd98 symbols in play (5..22)
 	int				mNumColors;             // +0xd9c colours in play (5..9, as the random range)
 	int				mBombChance;            // +0xda0 per mille
 	int				mSkullChance;           // +0xda4 per mille
 	MemoryImage*	mBgImage;               // +0xda8 the board without the pieces to place
-	MemoryImage*	mFxImage;               // +0xdac the discarded piece's picture (50 x 50)
-	Piece*			mFxPiece;               // +0xdb0 the discarded piece on its way to the forge
+	MemoryImage*	mDiscardImage;               // +0xdac the discarded piece's picture (50 x 50)
+	Piece*			mDiscardPiece;               // +0xdb0 the discarded piece on its way to the forge
 	bool			mTutorial;              // +0xdd0
-	int				mTutStep;               // +0xdd4 -1 before the first
-	int				mTutCount;              // +0xdd8 pieces placed in this step
+	int				mTutorialStep;               // +0xdd4 -1 before the first
+	int				mTutorialCount;              // +0xdd8 pieces placed in this step
 	std::list<BombSpark> mSparks;           // +0xddc
 	DWORD			mStartTick;             // +0xde8
 	int				mElapsed;               // +0xdec seconds before the last start
 	int				mTotalSeconds;          // +0xdf0 the game's length, when it ended
-	int				mPause;                 // +0xdf4 pauses
-	int				mTrialPause;            // +0xdf8 time trial: the pause that hides the board
+	int				mPauseCount;            // +0xdf4 how many pauses hold the game (a dialog, the cover)
+	int				mCoverCount;            // +0xdf8 how many of them cover the board: a key press in any game, a dialog in the time trial
 	int				mLastWarning;           // +0xdfc update of the last warning sound
 	int				mFullCount;             // +0xe00 updates with the forge full (time trial)
 	int				mRun;                   // +0xe04 pieces since the last forge
@@ -135,68 +135,70 @@ public:
 	int				mNewPieceDelay;         // +0xe38
 	int				mMouseX;                // +0xe3c
 	int				mMouseY;                // +0xe40
-	bool			mTutWaiting;            // +0xe44 a tutorial step's text waits for the continue button
+	bool			mTutorialWaiting;            // +0xe44 a tutorial step's text waits for the continue button
 	double			mRate;                  // +0xe48 points scale with the skill level (x2 in time trial)
 	int				mLastShape;             // +0xe60 the last piece made
 	int				mLastColor;             // +0xe64
 	ButtonWidget*	mButton;                // +0xe68 the button of the panel or tutorial step (ids 0, 1, 2)
-	WizardBox*		mHelpBox;               // +0xe6c the wizard with the messages
-	bool			mHelpShown;             // +0xe70
+	Wizard*		mWizard;               // +0xe6c the wizard with the messages
+	bool			mWizardShown;             // +0xe70
 
 public:
-	Board(AlchemyApp* theApp);              // 0x407ebe
+	Board(WinAlchApp* theApp);              // 0x407ebe
 	virtual ~Board();                       // 0x4026fa
 
 	// cells
-	static int		ColToX(int theCol) { return theCol * CELL + GRID_X; }           // 0x4014e6
-	static int		RowToY(int theRow) { return theRow * CELL + GRID_Y; }           // 0x401510
-	static int		XToCol(int theX);                                                // 0x4014f3
-	static int		YToRow(int theY);                                                // 0x40151d
+	static int		GetColX(int theCol) { return theCol * CELL + GRID_X; }           // 0x4014e6
+	static int		GetRowY(int theRow) { return theRow * CELL + GRID_Y; }           // 0x401510
+	static int		GetColAt(int theX);                                                // 0x4014f3
+	static int		GetRowAt(int theY);                                                // 0x40151d
 	int				CountPieces();                                                   // 0x401304
-	bool			CanPlace(Piece* thePiece, int theCol, int theRow, int* theReason); // 0x40153a
-	void			ComputeValid();                                                  // 0x401682
-	int				CountValid();                                                    // 0x4017ba
-	void			ClearGrid();                                                     // 0x4017dd
-	void			SetDifficulty();                                                 // 0x401220
-	Piece*			NewPiece();                                                      // 0x401324
-	void			NewCurrentPiece();                                               // 0x401c9b
-	void			PlacePiece(Piece* thePiece, int theCol, int theRow);             // 0x401d15
-	void			PlaceCurrentPiece();                                             // 0x406347
-	void			UseForge();                                                      // 0x405e31
-	void			UseForgeClicked();                                               // 0x4061d6
-	bool			CheckAllLit();                                                   // 0x4062e5
-	void			ShowHint();                                                      // 0x403c24
+	bool			ValidMove(Piece* thePiece, int theCol, int theRow, int* theReason); // 0x40153a
+	void			DetermineValidMoves();                                                  // 0x401682
+	int				GetNumPossibleMoves();                                                    // 0x4017ba
+	void			ResetBoard();                                                     // 0x4017dd
+	void			SetBoardVars();                                                 // 0x401220
+	Piece*			MakeRandomPiece();                                                      // 0x401324
+	void			NextMove();                                               // 0x401c9b
+	void			PutPiece(Piece* thePiece, int theCol, int theRow);             // 0x401d15
+	void			MakeMove();                                             // 0x406347
+	void			SkipMove();                                                      // 0x405e31
+	void			Discard();                                               // 0x4061d6
+	bool			CheckWin();                                                   // 0x4062e5
+	void			ShowPossibleMoves();                                                      // 0x403c24
 
 	// the game's course
-	void			ComputeRank();                                                   // 0x403ee5
+	void			GetGameStats();                                                   // 0x403ee5
 	void			GameOver();                                                      // 0x403f5c
-	void			GameWon();                                                       // 0x406209
-	void			BoardCleared();                                                  // 0x40400d
-	void			StartNextBoard();                                                // 0x402292
-	void			ShowHelpBox();                                                   // 0x40182f
-	bool			HasProgress();                                                   // 0x4010e2
-	void			Pause(bool isTrialMode);                                         // 0x401130
-	void			Resume(bool isTrialMode);                                        // 0x40118b
+	void			ClearBoard();                                                       // 0x406209
+	void			ShowBoardComplete();                                                  // 0x40400d
+	void			NextBoard();                                                // 0x402292
+	void			ShowWizard();                                                   // 0x40182f
+	bool			IsInProgress();                                                   // 0x4010e2
+	void			Pause(bool isCovered);                                         // 0x401130
+	void			Unpause(bool isCovered);                                        // 0x40118b
 
 	// the tutorial
-	void			AdvanceTutorial();                                               // 0x402fcf
+	void			NextTutorial();                                               // 0x402fcf
 
 	// the moves, for the record
-	void			RecordMove(int theIndex);                                        // 0x4011d5
-	void			RecordForge(bool isLastOne);                                     // 0x4011fb
-	void			RecordPlacement(int theCol, int theRow);                         // 0x402f42
+	void			EncodeMoveNum(int theIndex);                                        // 0x4011d5
+	void			EncodeDiscard(bool isLastOne);                                     // 0x4011fb
+	void			EncodeMove(int theCol, int theRow);                         // 0x402f42
 
 	// drawing
-	void			RedrawCell(int theCol, int theRow);                              // 0x401a82
-	void			RedrawAllCells();                                                // 0x40204a
-	void			DrawPieceImage(Graphics* g, Piece* thePiece, int theX, int theY); // 0x4019d1
-	void			DrawStatLine(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel, const SexyString& theValue); // 0x40187c
-	void			ShowMessage(const char* thePrefix, int theFirst = 1);            // 0x4114ff with the three strings thePrefix + "1".."3" (or from theFirst on)
+	void			RedrawBackground(int theCol, int theRow);                              // 0x401a82
+	void			RedrawBackground();                                                // 0x40204a
+	void			DrawAliasedPiece(Graphics* g, Piece* thePiece, int theX, int theY); // 0x4019d1
+	void			DrawColumn(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel, const SexyString& theValue); // 0x40187c
+	void			GiveHelp(const char* thePrefix, int theFirst = 1);               // port: WinAlchApp::GiveHelp with the texts thePrefix + "1".."3" (or from theFirst on), which each of the original's calls spells out
 
 	// the saved game
 	bool			SaveGame();                                                      // 0x402a44
 	bool			LoadGame();                                                      // 0x40589a
 	std::string		SerializeGame();
+	static bool		HasSavedGame();                                                  // 0x4010fc: savegame.dat opens
+	static bool		DeleteSavedGame();                                               // 0x40111e
 	static std::string	GetSaveGameFileName();                                       // "userdata\savegame.dat"
 
 	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;       // 0x401014

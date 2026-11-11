@@ -1,4 +1,4 @@
-// port(variant): the Jewel Quest gold board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9, stage 12). Not part of
+// port(variant): the Jewel Quest gold board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9). Not part of
 // the original game. Every gem cell a scored group takes turns gold (a blast's too, with gold.gild
 // "matchesAndBlasts"); the gold is the cell's, so it stays when the gems fall. A level ends when every cell of the goal
 // is gold: the gem cells, and the dirt cells with gold.countDirt (a dirt cell turns gold only once its last layer is

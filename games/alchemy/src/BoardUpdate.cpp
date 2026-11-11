@@ -1,11 +1,11 @@
 // The board's update: one step of everything that moves (see Board.h).
 
 #include "Board.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Piece.h"
 #include "Wizard.h"
-#include "Effects.h"
-#include "SidePanel.h"
+#include "BoardOverlay.h"
+#include "Sidebar.h"
 #include "MemoryImage.h"
 #include "WidgetManager.h"
 #include "Common.h"
@@ -88,7 +88,7 @@ static const std::vector<int>& LightOrder()
 // 0x406f2a
 void Board::Update()
 {
-	if (mPause > 0 || mTrialPause > 0)
+	if (mPauseCount > 0 || mCoverCount > 0)
 		return;
 
 	Widget::Update();
@@ -104,7 +104,7 @@ void Board::Update()
 			{
 				int aMove = atoi(mScript.substr(aPos + 6, aEnd - aPos - 6).c_str());
 				if (aMove == 0)
-					UseForgeClicked();
+					Discard();
 				else
 				{
 					int aCount = 0;
@@ -114,7 +114,7 @@ void Board::Update()
 							{
 								mCurPiece->mCol = aCol;
 								mCurPiece->mRow = aRow;
-								PlaceCurrentPiece();
+								MakeMove();
 							}
 				}
 				mScript.erase(0, aEnd + 1);
@@ -130,28 +130,28 @@ void Board::Update()
 	}
 
 	// the wizard: speaks when he is in, goes when he is out
-	if (mHelpShown)
+	if (mWizardShown)
 	{
-		if (mHelpBox->mFadeDir == 1 && mHelpBox->mAlpha == 1.0)
+		if (mWizard->mFadeDir == 1 && mWizard->mAlpha == 1.0)
 		{
 			// 0x407130: the game's end speaks with track 2 and its sound, anything else (a cleared board) with track 1
 			if (mState == STATE_GAME_OVER || mState == STATE_ENDING)
 			{
-				mHelpBox->Talk(2);
+				mWizard->Play(2);
 				mApp->PlaySample(SOUND_GAMEOVER);
 			}
 			else
 			{
-				mHelpBox->Talk(1);
+				mWizard->Play(1);
 				mApp->PlaySample(SOUND_LEVELCOMPLETE);
 			}
-			mHelpBox->mFadeDir = 0;
+			mWizard->mFadeDir = 0;
 		}
-		if (mHelpBox->mFadeDir == -1 && mHelpBox->mAlpha == 0.0)
+		if (mWizard->mFadeDir == -1 && mWizard->mAlpha == 0.0)
 		{
-			mWidgetManager->RemoveWidget(mHelpBox);
-			mHelpBox->mFadeDir = 0;
-			mHelpShown = false;
+			mWidgetManager->RemoveWidget(mWizard);
+			mWizard->mFadeDir = 0;
+			mWizardShown = false;
 		}
 	}
 
@@ -165,7 +165,7 @@ void Board::Update()
 		if (mUpdateCnt % 4 == 0)
 		{
 			bool isBig = (CrtRand() % 2) == 0;
-			mApp->mEffects->AddSparkle((int) (mX + aSpark.mX), (int) (mY + aSpark.mY), true, isBig);
+			mApp->mBoardOverlay->AddSparkle((int) (mX + aSpark.mX), (int) (mY + aSpark.mY), true, isBig);
 		}
 		aSpark.mLife--;
 		if (aSpark.mLife < 1)
@@ -182,15 +182,15 @@ void Board::Update()
 		if (mProgress < 3.0)
 		{
 			mFullCount = 0;
-			mApp->mSidePanel->SetFlashing(false);
+			mApp->mSidebar->FlashLava(false);
 		}
 		else
 		{
-			mApp->mSidePanel->SetFlashing(true);
+			mApp->mSidebar->FlashLava(true);
 			mFullCount++;
 			if (mFullCount > 0x95)
 			{
-				RecordForge(true);
+				EncodeDiscard(true);
 				GameOver();
 			}
 		}
@@ -269,7 +269,7 @@ void Board::Update()
 		{
 			int aY = CrtRand() % 0x12 + 0xe;
 			int aX = CrtRand() % 0x12 + 0xb1 + ((mBoardsCleared - 1) % 7) * 0x45;
-			mApp->mEffects->AddSparkle(aX, aY, false, true);
+			mApp->mBoardOverlay->AddSparkle(aX, aY, false, true);
 		}
 		mSparkle--;
 	}
@@ -296,11 +296,11 @@ void Board::Update()
 		mAnimPct += mAnimDir * 2;
 		if (mAnimPct < 100)
 		{
-			if (mAnimPct < 0 && !CheckAllLit())
+			if (mAnimPct < 0 && !CheckWin())
 			{
 				mState = STATE_PLAYING;
 				if (mTutorial)
-					AdvanceTutorial();
+					NextTutorial();
 			}
 		}
 		else
@@ -312,16 +312,16 @@ void Board::Update()
 				{
 					delete mGrid[aRow][mClearCol];
 					mGrid[aRow][mClearCol] = NULL;
-					RedrawCell(mClearCol, aRow);
+					RedrawBackground(mClearCol, aRow);
 				}
 			if (mClearRow != -1)
 				for (int aCol = 0; aCol < COLS; aCol++)
 				{
 					delete mGrid[mClearRow][aCol];
 					mGrid[mClearRow][aCol] = NULL;
-					RedrawCell(aCol, mClearRow);
+					RedrawBackground(aCol, mClearRow);
 				}
-			ComputeValid();
+			DetermineValidMoves();
 		}
 		MarkDirty();
 	}
@@ -346,7 +346,7 @@ void Board::Update()
 					}
 
 				if (aLeft.empty())
-					BoardCleared();
+					ShowBoardComplete();
 				else
 				{
 					for (int i = 0; i < 3; i++)
@@ -372,7 +372,7 @@ void Board::Update()
 					{
 						delete mGrid[aRow][aCol];
 						mGrid[aRow][aCol] = NULL;
-						RedrawCell(aCol, aRow);
+						RedrawBackground(aCol, aRow);
 					}
 		}
 	}
@@ -383,14 +383,14 @@ void Board::Update()
 		{
 			mApp->PlaySample(SOUND_GEMCHANGE);
 			mBoardsCleared++;
-			SetDifficulty();
+			SetBoardVars();
 			mSparkle = 0x96;
 			if (mCurPiece != NULL)
 				mCurPiece->mFollowMouse = true;
 			mHoverX = -1;
 			mHoverY = -1;
 			mState = STATE_PLAYING;
-			RedrawAllCells();
+			RedrawBackground();
 		}
 		MarkDirty();
 	}
@@ -420,40 +420,40 @@ void Board::Update()
 	}
 	else if (mState == STATE_GAME_OVER)
 	{
-		if (mOverFade < 1.0)
+		if (mGameOverFade < 1.0)
 		{
-			mOverFade += 0.01;
-			if (mOverFade >= 1.0)
-				mOverFade = 1.0;
+			mGameOverFade += 0.01;
+			if (mGameOverFade >= 1.0)
+				mGameOverFade = 1.0;
 			MarkDirty();
 		}
-		if (mOverTimer > 0)
+		if (mGameOverTimer > 0)
 		{
-			mOverTimer--;
-			if (mOverTimer == 0)
-				mApp->ShowHighScores();
+			mGameOverTimer--;
+			if (mGameOverTimer == 0)
+				mApp->DoGameOver();
 		}
 	}
 
 	// the discarded piece flies to the forge and melts there
-	if (mFxPiece != NULL)
+	if (mDiscardPiece != NULL)
 	{
 		MarkDirty();
-		mFxPiece->mFlyX += mFxPiece->mFlyVX;
-		mFxPiece->mFlyY += mFxPiece->mFlyVY;
-		bool hasArrived = (mFxPiece->mFlyVX <= 0.0 && mFxPiece->mFlyX <= 39.0) ||
-			(mFxPiece->mFlyVX >= 0.0 && mFxPiece->mFlyX >= 37.0);
+		mDiscardPiece->mFlyX += mDiscardPiece->mFlyVX;
+		mDiscardPiece->mFlyY += mDiscardPiece->mFlyVY;
+		bool hasArrived = (mDiscardPiece->mFlyVX <= 0.0 && mDiscardPiece->mFlyX <= 39.0) ||
+			(mDiscardPiece->mFlyVX >= 0.0 && mDiscardPiece->mFlyX >= 37.0);
 		if (hasArrived)
 		{
-			mFxPiece->mSpeed = 0;
-			mFxPiece->mSparkleAcc = 0;
-			if (mFxPiece->mShrink < 10000)
+			mDiscardPiece->mSpeed = 0;
+			mDiscardPiece->mSparkleAcc = 0;
+			if (mDiscardPiece->mShrink < 10000)
 			{
 				// each update the picture goes a little darker and redder, some pixels slide down, and everything is
 				// blurred sideways
 				const int aSize = 50;
 				const int aNum = aSize * aSize;
-				ulong* aBits = mFxImage->GetBits();
+				ulong* aBits = mDiscardImage->GetBits();
 				std::vector<int> aOrder(aNum);
 				for (int i = 0; i < aNum; i++)
 				{
@@ -470,7 +470,7 @@ void Board::Update()
 				for (int i = 0; i < aNum; i++)
 					std::swap(aOrder[i], aOrder[CrtRand() % aNum]);
 
-				int aCount = mFxPiece->mShrink;
+				int aCount = mDiscardPiece->mShrink;
 				if (aCount > aNum - 1)
 					aCount = aNum;
 				for (int i = 0; i < aCount; i++)
@@ -512,28 +512,28 @@ void Board::Update()
 					}
 				for (int i = 0; i < aNum; i++)
 					aBits[i] = aBlurred[i];
-				mFxImage->BitsChanged();
+				mDiscardImage->BitsChanged();
 
-				mFxPiece->mShrink += 0x28;
-				mFxPiece->mFlyX = 38.0;   // 0x407c3f: rdata 0x4e36d0 (the arrival test above uses 39.0, 0x4e3a78)
-				mFxPiece->mFlyY = (double) (mFxPiece->mShrink / 200 + 0x140);
-				mFxPiece->mFlyVX = 0;
-				mFxPiece->mFlyVY = 0;
+				mDiscardPiece->mShrink += 0x28;
+				mDiscardPiece->mFlyX = 38.0;   // 0x407c3f: rdata 0x4e36d0 (the arrival test above uses 39.0, 0x4e3a78)
+				mDiscardPiece->mFlyY = (double) (mDiscardPiece->mShrink / 200 + 0x140);
+				mDiscardPiece->mFlyVX = 0;
+				mDiscardPiece->mFlyVY = 0;
 			}
 			else
 			{
-				mWidgetManager->RemoveWidget(mFxPiece);
-				delete mFxPiece;
-				mFxPiece = NULL;
+				mWidgetManager->RemoveWidget(mDiscardPiece);
+				delete mDiscardPiece;
+				mDiscardPiece = NULL;
 			}
 		}
-		if (mFxPiece != NULL)
-			mFxPiece->Move((int) mFxPiece->mFlyX, (int) mFxPiece->mFlyY);
+		if (mDiscardPiece != NULL)
+			mDiscardPiece->Move((int) mDiscardPiece->mFlyX, (int) mDiscardPiece->mFlyY);
 	}
 
 	// nobody touched anything for 200 updates: a hint
 	if (mPristine && mUpdateCnt == 200)
-		ShowHint();
+		ShowPossibleMoves();
 
 	// the hint blinks
 	if (mHintTimer > 0)
@@ -552,10 +552,10 @@ void Board::Update()
 		mNewPieceDelay--;
 		if (mNewPieceDelay == 0)
 		{
-			if (mTutorial && mTutStep == 6)
-				AdvanceTutorial();
+			if (mTutorial && mTutorialStep == 6)
+				NextTutorial();
 			else
-				NewCurrentPiece();
+				NextMove();
 			MouseMove(mMouseX, mMouseY);
 			MarkDirty();
 		}

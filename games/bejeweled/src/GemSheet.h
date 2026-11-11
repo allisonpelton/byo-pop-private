@@ -1,7 +1,7 @@
 #ifndef __GEMSHEET_H__
 #define __GEMSHEET_H__
 
-// port(variant): more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2, stage 8). Not part of the original
+// port(variant): more gem colours (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.2). Not part of the original
 // game, which has art for 7. The gem sheet (images/gemsheet6) gives each colour 104 px: a 52 px row of 15 spin frames,
 // then a 52 px row of glow frames. A board of more colours (board.gemColors 8..12) needs more rows: a mod may ship a
 // taller sheet, and the rows it lacks are generated from a row it has, recoloured, on the 1x pixels and on the HD

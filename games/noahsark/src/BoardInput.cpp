@@ -15,8 +15,9 @@
 
 using namespace Sexy;
 
-// 0x402ec0: the path from (x1,y1) to (x2,y2) as trail nodes, one per cell, each with the corner shape it
-// needs (kind 0..3) or, for the last, the direction of the arrow. Leaves them in mTrail.
+// 0x402ec0: the path from (x1,y1) to (x2,y2) as trail nodes, one per cell, left in mTrail. (The original also works out each
+// node's kind of bend, 0..3, or the last one's arrow direction, and stores it in the node, where nothing reads it: the drawing
+// takes both from the neighbouring nodes. The port leaves that out.)
 bool Board::BuildTrail(int x1, int y1, int x2, int y2)
 {
 	ClearLink();
@@ -36,14 +37,11 @@ bool Board::BuildTrail(int x1, int y1, int x2, int y2)
 	int aCornerIndex = 0;
 	int aCornerX = x1;
 	int aCornerY = y1;
-	int aPrevDX = 0;
-	int aPrevDY = 0;
 	int aDX = 0;
 	int aDY = 0;
 	bool aDone = false;
 	while (!aDone)
 	{
-		int aOldDX = aDX;
 		if ((aCurX == x2) && (aCurY == y2))
 			aDone = true;
 		else
@@ -72,52 +70,10 @@ bool Board::BuildTrail(int x1, int y1, int x2, int y2)
 		aNode->mPixelY = CellTop(aCurY);
 		aNode->mCellX = aCurX;
 		aNode->mCellY = aCurY;
-
-		// the corner this cell turns: 0 straight or none, 1 .. 3 the three kinds of bend
-		int aKind = 0;
-		if ((aDX == 0) || (aOldDX == 0))
-		{
-			if ((aDY == 0) || (aPrevDY == 0))
-			{
-				if (((aDX < 1) || (aPrevDY >= 0)) && ((aOldDX >= 0) || (aDY < 1)))
-				{
-					if (((aDX < 1) || (aPrevDY < 1)) && ((aOldDX >= 0) || (aDY >= 0)))
-					{
-						if (((aDX < 0) && (aPrevDY < 0)) || ((aOldDX > 0) && (aDY > 0)))
-							aKind = 3;
-						else if (((aDX < 0) && (aPrevDY > 0)) || ((aOldDX > 0) && (aDY < 0)))
-							aKind = 2;
-					}
-					else
-						aKind = 1;
-				}
-				else
-					aKind = 0;
-			}
-			else
-				aKind = 1;
-		}
-		int aArrow = 0;
-		if (aDX < 0)
-			aArrow = 2;
-		else if (aDX < 1)
-		{
-			if (aDY < 0)
-				aArrow = 1;
-			else if (aDY > 0)
-				aArrow = 3;
-		}
-		aNode->mUnused14[0] = 0;
-		aNode->mUnused14[1] = aDone ? aArrow : aKind;
 		mTrail.push_back(aNode);
 
-		aPrevDX = aDX;
-		aPrevDY = aDY;
 		aCurX += aDX;
 		aCurY += aDY;
-		(void) aPrevDX;
-		// the original keeps the previous step in two more locals; the corner tests above read them
-		aOldDX = aDX;
 	}
 	return true;
 }

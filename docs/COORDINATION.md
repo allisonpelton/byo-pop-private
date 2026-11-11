@@ -115,6 +115,14 @@ typically like").
 - **The README's performance table (the user, 2026-11-10):** "Include in the readme a performance comparison table
   including load time, CPU, and memory usage for every game", port against original, from each game's performance
   numbers in its notes.
+- **Memory broken down, and a software path to test (the user, 2026-11-11):** "I'd want the more granular performance
+  reports then": every game's memory split into libraries, sound, graphics and game state, for the port and where it can
+  be read for the original, in the README's performance table. The framework answers a standard `memreport` test command
+  (pictures, sounds and music by their bytes, the process's totals, and what it held before reading a game file), and a
+  tool walks a process's memory regions (libraries, heap, mapped files), which works on an original too. "Software path
+  sounds interesting for a test, at least": measure a port drawing through SDL's software renderer with no Direct3D
+  device against the default (memory before any file, at the title and in play; processor time; frame time at the
+  game's size and full screen at 4K; the same pictures). A test only: no default changes without the user.
 - **Reports from the user's test notes:** each goes to its game's session with its next brief, in the user's words,
   and the session writes in its notes whatever it cannot fix. From the notes cleared on 2026-11-04: Bookworm
   Adventures, "Sound effects seem to come about a second after they should" (its pass found every sound at the
