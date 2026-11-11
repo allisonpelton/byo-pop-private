@@ -66,6 +66,7 @@ var ByopopSounds = (function () {
   }
 
   // ---- the games' files ----
+  var EXTS = [".ogg", ".wav", ".au", ".mp3"];
   // The table's entries whose files this game's folder holds (matched without regard to case), each group with those it holds
   function boardOf(game, entry) {
     var F = ByopopMusic.files;
@@ -75,7 +76,7 @@ var ByopopSounds = (function () {
         db.close();
         var have = {};
         rels.forEach(function (r) { have[r.toLowerCase()] = r; });
-        var groups = [], count = 0;
+        var groups = [], count = 0, presets = [];
         (entry.groups || []).forEach(function (g) {
           var sounds = [];
           g.sounds.forEach(function (s) {
@@ -84,7 +85,24 @@ var ByopopSounds = (function () {
           });
           if (sounds.length) { groups.push({ name: g.name, sounds: sounds }); count += sounds.length; }
         });
-        return count ? { game: game, groups: groups, count: count } : null;
+        // a preset's steps name their files with or without the extension (as a port's sound log names them): the first of
+        // the game's own extensions it has; a preset with a file missing is left out
+        function find(path) {
+          var p = String(path).toLowerCase();
+          if (have[p]) return have[p];
+          for (var i = 0; i < EXTS.length; i++) if (have[p + EXTS[i]]) return have[p + EXTS[i]];
+          return null;
+        }
+        (entry.presets || []).forEach(function (pr) {
+          var steps = [], whole = true;
+          pr.steps.forEach(function (s) {
+            var rel = find(s[0]), o = s[2] || {};
+            if (!rel) { whole = false; return; }
+            steps.push({ rel: rel, at: s[1], v: o.v || 0, p: o.p || 0, r: o.r || 1, loop: !!o.loop, end: o.end, ramp: o.ramp, pans: o.pans });
+          });
+          if (whole && steps.length) presets.push({ name: pr.name, when: pr.when || "", steps: steps });
+        });
+        return count ? { game: game, groups: groups, count: count, presets: presets } : null;
       }, function (e) { db.close(); throw e; });
     });
   }
@@ -201,6 +219,51 @@ var ByopopSounds = (function () {
         btn.title = s.name + "\n" + T("sounds.bad_file");
       });
     }
+    // A preset: every step's sound at its time from the press, on the audio clock, as the game's sound log had it: its volume
+    // and pan in hundredths of a decibel (DirectSound's units, the pan the other side's cut), its pitch as a rate, a loop
+    // stopped at its end, and the changes of volume and pan while it plays. Pressed again while it plays: it starts again.
+    function cB(v) { return Math.pow(10, v / 2000); }
+    function side(p) { return p > 0 ? 1 - cB(-p) : p < 0 ? cB(p) - 1 : 0; }
+    function playPreset(board, pr, btn) {
+      if (!audio()) return;
+      if (ctx.state === "suspended") { try { ctx.resume(); } catch (e) {} }
+      var at = ctx;
+      Promise.all(pr.steps.map(function (s) { return bufferOf(board, s.rel); })).then(function (bufs) {
+        if (ctx !== at) return;
+        (btn.sbSources || []).forEach(function (s) { try { s.stop(); } catch (e) {} });
+        var t0 = ctx.currentTime + 0.05, mine = [];
+        pr.steps.forEach(function (s, i) {
+          var src = ctx.createBufferSource(), g = ctx.createGain(), node = g, t = t0 + s.at / 1000;
+          src.buffer = bufs[i];
+          src.loop = s.loop;
+          src.playbackRate.value = s.r;
+          g.gain.setValueAtTime(cB(s.v), t);
+          (s.ramp || []).forEach(function (pt) { g.gain.linearRampToValueAtTime(cB(pt[1]), t0 + pt[0] / 1000); });
+          src.connect(g);
+          if ((s.p || s.pans) && ctx.createStereoPanner) {
+            var pan = ctx.createStereoPanner();
+            pan.pan.setValueAtTime(side(s.p), t);
+            (s.pans || []).forEach(function (pt) { pan.pan.setValueAtTime(side(pt[1]), t0 + pt[0] / 1000); });
+            g.connect(pan);
+            node = pan;
+          }
+          node.connect(gain);
+          src.onended = function () {
+            var k = live.indexOf(src);
+            if (k >= 0) live.splice(k, 1);
+          };
+          src.start(t);
+          if (s.end != null) src.stop(t0 + s.end / 1000);
+          live.push(src);
+          mine.push(src);
+        });
+        btn.sbSources = mine;
+        stats.started++;
+        stats.presets = (stats.presets || 0) + 1;
+      }, function () {
+        btn.title = pr.name + "\n" + T("sounds.bad_file");
+      });
+    }
     stopBtn.addEventListener("click", stopAll);
     function applyLevel() { if (gain) gain.gain.value = level(); }
     muteBtn.addEventListener("click", function () {
@@ -223,31 +286,41 @@ var ByopopSounds = (function () {
       grid.textContent = "";
       buttons = []; current = null;
       if (!board) return;
+      // the presets first, in a group box of their own: sequences the game plays, as it plays them
+      if (board.presets.length) grid.appendChild(groupBox(T("sounds.presets"), board.presets, function (pr, b) {
+        b.setAttribute("data-preset", pr.name);
+        b.addEventListener("click", function () { playPreset(board, pr, b); });
+      }));
       board.groups.forEach(function (g) {
-        // a group box: a fieldset named as its legend, so that screen readers give each button its group
-        var box = make("fieldset", "sb-group"), legend = make("legend", "sb-legend", g.name), row = make("div", "sb-row");
-        box.setAttribute("role", "group");
-        box.setAttribute("aria-label", g.name);
-        box.appendChild(legend);
-        g.sounds.forEach(function (s) {
-          var b = make("button", "sb-btn");
-          b.type = "button";
-          b.tabIndex = -1;
-          b.appendChild(make("span", "sb-name", s.name));
-          // named by its label; the tooltip adds when the game plays it (for screen readers, its description)
-          b.setAttribute("aria-label", s.name);
-          b.title = s.when ? s.name + "\n" + s.when : s.name;
+        grid.appendChild(groupBox(g.name, g.sounds, function (s, b) {
           b.setAttribute("data-file", s.rel);
           b.addEventListener("click", function () { play(board, s, b); });
-          b.addEventListener("focus", function () { setCurrent(b); });
-          row.appendChild(b);
-          buttons.push(b);
-        });
-        box.appendChild(row);
-        grid.appendChild(box);
+        }));
       });
       setCurrent(buttons[0] || null);
       say(T("sounds.count", { n: board.count }));
+    }
+    // a group box: a fieldset named as its legend, so that screen readers give each button its group; each button named by
+    // its label, the tooltip adding when the game plays it (for screen readers, its description)
+    function groupBox(name, items, wire) {
+      var box = make("fieldset", "sb-group"), legend = make("legend", "sb-legend", name), row = make("div", "sb-row");
+      box.setAttribute("role", "group");
+      box.setAttribute("aria-label", name);
+      box.appendChild(legend);
+      items.forEach(function (s) {
+        var b = make("button", "sb-btn");
+        b.type = "button";
+        b.tabIndex = -1;
+        b.appendChild(make("span", "sb-name", s.name));
+        b.setAttribute("aria-label", s.name);
+        b.title = s.when ? s.name + "\n" + s.when : s.name;
+        wire(s, b);
+        b.addEventListener("focus", function () { setCurrent(b); });
+        row.appendChild(b);
+        buttons.push(b);
+      });
+      box.appendChild(row);
+      return box;
     }
     // the grid's one tab stop: the button last focused (the first at first)
     function setCurrent(b) {

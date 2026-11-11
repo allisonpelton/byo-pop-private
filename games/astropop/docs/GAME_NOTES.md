@@ -239,8 +239,14 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
 
 ## 7. Fix candidates (original bugs and waits, kept in the port, for the fixes mod)
 
-- The OK button of the box that explains a weapon plays the one-second timer's tick after its click (an uninitialised sample number,
-  section 6): a stray sound; the mod would silence it.
+- The OK button of the box that explains a weapon plays the one-second timer's tick after its click (the sample number at +0x118,
+  section 6): a stray sound. Made: the fixes mod's toggle `weaponBoxTick` (`mods/fixes/mod.json`, read with `FixEnabled` in
+  `src/Fixes.cpp`; on in an enabled mod, so the box's OK is silent; with the mod off, as in the port, it ticks).
+  `games/astropop/tools/fixes_check.sh` proves it: the bot plays one game with real input (`realplay.py --charge 18000`, so the box
+  comes up) with no mods and with the mod, and the sound logs differ by that one play of `sounds/timer1`, the other sounds and the
+  game's end the same. That is the whole mod: phases one and two found no other bug or wait that only costs the player time (the
+  original's own clock decides nothing in a game's play: the seed is the only thing a run takes from outside). The web page ships the mod on
+  (`<game>-fixes/`, cmake/ByopopWeb.cmake).
 
 ## 8. Oddities (not chased)
 
@@ -251,14 +257,15 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
 - **Phase two, what still differs in the pictures** (found by the tours, judged one by one; the numbers are the largest per-channel
   differences in levels, 0 to 255; `IDENTICAL_PLAY.md` has the counts of every tour):
   - The ring of the atomic explosion (the Atomic Bomb weapon: cels of `IMAGE_ATOMIC_EXPLOSION`, one drawn at twice its size with
-    `DrawCelStretched`) has edges that differ in a few thousand pixels by up to 91 levels (w_spr g3700 91, g3800 47; ck13 g3650 49,
-    g3800 47). In 2D mode the original stretches through the DirectDraw image's own routine (`DDImage::StretchBlt` 0x4c68c0,
-    `SlowStretchBlt` 0x4b1bf0); the port stretches through the framework's `DDInterface::GetStretchCopy` /
-    `MemoryImage::StretchCopy`, whose rounding is another. The shared code owns it (a spec went to the coordinator); the game does
-    not copy the 2004 routine.
+    `DrawCelStretched`) differed at its edges by up to 91 levels (w_spr g3700, ck13 g3650 and others): the framework's
+    `WidgetManager` draws every widget with the fast stretch on in a 2D run and the 2004 one with it off (only the level-up text
+    asks for it, 0x40c8a0). Fixed by the shared option `gWidgetsDrawWithoutFastStretch`, which `AstroPopApp::Init` turns on; those
+    shots now differ by at most 7 levels.
   - The small particles and halos (the normal and additive blits of `DDImage`: 0x4ac1d0, 0x4b0f50 `NormalBlt`, 0x4ae3f0
-    `AdditiveBlt`) differ by up to about 22 levels where the 2004 arithmetic and the framework's round another way (2D mode only; in 3D
-    the card does it): that is most of the shots counted "faint" in the report. Shared code again; the same spec.
+    `AdditiveBlt`) differ by at most 11 levels (emerg1 g22200; 7 elsewhere) where the 2004 arithmetic truncates and the GPU rounds
+    (2D mode only; in 3D the card does it): that is most of the shots counted "faint" in the report. The port's 2D screen is the
+    GPU's, so matching it takes a software screen and the 2004 arithmetic (about 5,500 lines of x86 in the two functions, 16 and
+    32 bit, with and without a colour, transparent or not): shared code, not done, no difference that a person sees.
   - The title screen changes its picture (Vixx, Turbot, ...) every 600 updates of its own count. The port loads at the machine's speed
     (CLAUDE.md: loading is made fast in the port itself), so its title starts at another update than the original's and a shot at a fixed update
     can land on the other picture (the tour `menus` a01_title; the next shot, a02, matches). It is a timing of the loader, not a
@@ -276,13 +283,67 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
 1. The web build and its registrations (page.js, stores, profiles, saveimport, controls, sound tracks), the origrun row.
 2. The identical-play pass with `games/astropop/docs/IDENTICAL_PLAY.md`: phase one (plays identical) and phase two (looks
    identical, sound, focus, the web build, real-input driver play) are done; what still differs is listed in section 8 and in the
-   report. Waiting for the coordinator: the blit arithmetic of the 2004 `DDImage` (`NormalBlt`, `AdditiveBlt`) and its stretch
-   (`StretchBlt`, `SlowStretchBlt`) in shared code.
+   report. The stretch of the ring is mended by a shared option (section 8). What remains is the blit arithmetic of the 2004
+   `DDImage` (`NormalBlt`, `AdditiveBlt`): at most 11 levels, in shared code, not done (section 8).
    The music (a module stream) was not compared with the original's in phase two: its start, stop and focus handling remain to be
    checked, if origrun can see them.
 3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
-   waits for `docs/MOD_ROADMAP.md`'s turn. Still to do for the game to be done: the performance numbers and pass, the coverage check,
-   the readability pass (`docs/CODE_STANDARDS.md`), taking out code the game does not need.
+   waits for `docs/MOD_ROADMAP.md`'s turn. The coverage check is done (section 10). Still to do for the game to be done: the performance
+   numbers and pass, taking out code the game does not need, the readability pass (`docs/CODE_STANDARDS.md`), the check against the
+   PopCap Game Collection's copy, and a night run of the original in 3D for the screen wipe (section 10).
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
+
+## 10. The coverage check (2026-11-11; `docs/COVERAGE.md`, `games/astropop/coverage.txt`)
+
+**The runs.** The original ran on the host under origrun's `--coverage` (`--reg-map popcap`; the PopCap registry key wiped before each
+run and the player's profile put back by `reg import`) over three kinds of play: the scripted tours (menus, options and the second
+tour of them, halls, users, the second and third tour of the player list, the lost-data start, the quit and pause tours, the ships
+screen, the scrolling list), whole games that the port's own bot plays (`origcmp/record.py`, replayed as an origrun script: classic
+and survival from the first level, from later checkpoints, with every pilot and a charged weapon, the survival end with every mode
+unlocked) and the tours that had been made for the comparison itself. 43 runs between them reach 947 of the 1,383 functions of the
+game's own code (0x401000 to 0x48b7a0); the port defines 720 and leaves out 305 on purpose (library templates, compiler-made
+destructors, one-line helpers written inline, the framework's functions that the linker placed among the game's, overrides that nothing
+calls: each with its reason in `coverage.txt`).
+
+**What it found** (every gap in list one, the functions the original ran and the port had no counterpart for, and each fault found
+by reading list two against the export; each was then compared again with the original by a tour):
+- Deleting a player: the list of the box of names is rebuilt by the box's own function (0x489ba0, every player in the registry's
+  order), not by the list that puts the current player first; `ListDialog::RebuildList` is pure now and each box has its own.
+- The Hall of Fame's buttons click when they go down (0x435120), as the screens of the menu and of the characters do.
+- A menu button called its listener's mouse-enter and mouse-leave slots twice (the framework's `ButtonWidget` already calls them),
+  which made the secret order of hovers fail at its second step: the ships screen of section 8 now starts as in the original
+  (tour `ships1`, where the original's script gets `origcmd` lines for the keys that the port's has no button for).
+- The ships screen's background wash is half transparent (the original sets the colour's alpha to 0x80 after making it).
+- The options screen's two sliders are the 2004 kind (`Slider2004`): a press on the track outside the thumb does nothing and
+  `SetValue` does not clamp (`docs/FRAMEWORK_2004.md`, section 8; tour `opts2`).
+- The list box's page size is a float's worth: the original's x87 rounds `(height - 8) / line height` to 24 bits, and the port's
+  double put the lines of a scrolled list one pixel higher in three positions out of eight (found by the tour `scroll1`: the
+  arrows, the track, the thumb and a click on a line, then NEW with ten players, which shows the "too many players" box). `ListDialog::Resize`
+  rounds the page size to float and hands it to the scroll bar. Other 2004 games with a `ListWidget` may show the same shift.
+- `resgen.py` writes each resource group's function with the original's address, in the original's order (by name), and
+  `LoadImageById` (0x420ea0); `resgen.py --check` reads all 44 groups of the exe again against `Res.cpp` (the same resources, by
+  name, with the getter of their kind): all 44 agree. The 34 groups that no run loads (the pages of the pilots' stories, the end
+  scene, the More Games page) are covered by this check.
+- Addresses that named the wrong function (`GetPilotLevel` 0x40e930 was cited for its one-line helper, the Ships screen's and the
+  list box's destructors for their deleting wrappers) were corrected, so that the comments and the report agree.
+- The tour harness has `origcmd` (a command only the original's script gets), and the tours `users2`, `users3`, `resume1`, `ships1`,
+  `opts2`, `scroll1` and `lost1` (a start with players in the registry and no data files: the boxes that say a player's data was lost)
+  keep the findings above from coming back.
+
+**Read again** (list two: defined in the port and never reached by any run; each compared with the export function by function, with
+nothing found that differs): the Turbot and Sprocket brick events (0x401780, 0x4017a0, 0x4026d0, 0x402670, 0x402710), the overlay of the
+Turbot's power-up (0x4022f0), the brick kinds' settle, draw and activate functions (0x403420, 0x403860, 0x403930, 0x402b30, 0x402d20),
+the board's `RecordStep` (0x434570), `PulsePair::Update` (0x433850), the mutation counter's event (0x438e10), the piece-brick event
+(0x451430), the power brick's done event (0x45e920), the search for a move that is left (`AnalyseSecond` 0x453a50 and `RunTotal` 0x43a960 of `AnyMoveLeft`),
+the pause that a full field makes at its start (0x4329c0), the weapon box's key and height (0x483a20, 0x483b90), the dialog's line setters
+(0x4840c0, 0x487970, 0x4879d0, 0x4897b0), `SetMusicVolumeFloat` (0x408b70) and the four steps of the 3D screen wipe with its draw and its
+check (0x40b340, 0x40b430, 0x40b540, 0x40b5e0, 0x426370, 0x4264a0). The screen wipe plays only in 3D (`RedrawAfterDialog` closes the
+board first when the screen is not accelerated) and the original in Windows Sandbox has no Direct3D, so a run that reaches it is a
+night run on the visible desktop; it is listed under the next steps.
+
+**Candidates for taking out** (no play of the original reaches them and the port's own code never calls them; they go in the pass that
+takes out what the game does not need): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x4062b0), the fuel cell's `GetColumn` and `GetRow`
+(0x402a70, 0x402a80: slots of the brick's table that nothing calls), the application's `HandleCmdLineParam` (its one switch, `-mycrash`,
+sets a flag that only the crash report reads) and `DoDialog` overrides (0x40e060, 0x412360, which no code of the game or framework calls).

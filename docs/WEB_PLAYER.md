@@ -305,7 +305,9 @@ that game's, exactly as its own page's import card takes it. "Add games", the lo
 desktop go to the Setup window, which sorts and copies through the same queue.
 
 **Sorting** (`ByopopImport.sort` in `web/gameimport.js`) goes by the files first and the name second. A folder is a
-game's when it holds every one of the game's markers. A folder of several games ("PopCap Games") is looked into,
+game's when it holds every one of the game's markers. A marker may name alternatives, any one of which will do
+("WinTS.exe|TyperShark.exe": Typer Shark's exe in its Steam copy and in the PopCap Game Collection's), and the error for
+a folder without either names them as "WinTS.exe or TyperShark.exe". A folder of several games ("PopCap Games") is looked into,
 three levels deep at most. Where two games' markers are at the same place, the folder's name picks the one whose
 title, short name or target it matches, ignoring case, punctuation and "Deluxe", "PopCap" and "Games"; when the name
 cannot tell, the player is asked. On a phone, where no folder can be picked, .zip files are picked.
@@ -747,15 +749,44 @@ says their files are here.
 
 **Which files** hold a game's music is in `web/soundtracks.js`, by the game's id: path patterns in the game's folder,
 matched without regard to case. A module gives its subsongs as tunes (those under two seconds are left out as
-stings), and an Ogg Vorbis file is one tune. An entry may also have:
+stings), and an Ogg Vorbis or WAV file is one tune. An entry may also have:
 
 - `parts`: ranges of orders played as separate tracks (Bonnie's Bookstore's one module is nine tracks, from the
   track table in `games/bonnies/game/Music.cpp`).
 - `joined`: a playlist file and the path of its short Ogg pieces, decoded and played one after another (Pixelus and
   Rocket Mania; `AssembleMusic` in `games/rocketmania/src/AppMusic.cpp`).
 - `skip` (`"<file>#<n>"`), `names` (a plain name for a tune) and `level` ("Music levels").
+- `inside`: tunes kept inside a game's own files, read from the stored file each time they are listed or played. They
+  come either from a Windows module's resources that start with given bytes, which also name their format (the Mahjong
+  Escapes' MO3 modules in `Resource.dll`, named "Resource 335" by their ids), or from named entries of a zip archive (Ning
+  Po's music stream in its Python archive, stored or deflated, the latter through `DecompressionStream`). `tools/musictest.js`
+  checks both readers on files it makes. Tip Top's one MIDI piece is not listed: the player has no MIDI synthesiser.
+- `where`: where in the game its code plays a tune, named as a game music rip names it ("Main Menu", "Level Theme 1",
+  "Danger 2": Title Case, one place, at most 20 characters, several tunes of one place numbered in the order the game
+  reaches them, else the file's; the user, 2026-11-11: "Rip style please!"). It comes from the game's session reading
+  its code, or from the file names of an Ogg game whose files are named for their places.
+- `unused`: the tunes the game's code never plays.
+- `cuts` and `chains`: tracks split and grouped as the game really plays them (the user, 2026-11-11: "Group and
+  split"). `cuts: {"<file>#<n>": [order, ...]}` splits a subsong where the game's code starts a different tune
+  partway through it; the second piece is `"<file>#<n>@<order>"` (Big Money's level-up jingles and each mode's pause
+  music, Twist's loading tune and in-game tune 5). A cut order that the subsong never reaches becomes a tune from that
+  order to the end. `chains: {"<file>#<n>": ["<file>#<m>", ...]}` makes one track of parts that the game only ever
+  plays as jumps inside one tune (the Mahjong Escapes' game tune and its gold-tile jumps). Both play as segments of
+  orders, each timed by rendering it unheard.
+- `joined` with `pieces` (and an `id`) instead of a playlist: files played one after another as one track,
+  `loopFrom` the piece its loop goes back to (Noah's Ark's intro, then its loop).
 
-Tunes are named plainly, by file name and "part n". No invented titles.
+A WAV file is one tune too, decoded by the browser like an Ogg file and timed from its header. Word Harmony makes its
+music as it plays: the menu loops one WAV, and its rising-water mode steps a drum track through short pieces as the
+water rises, with one bridge between each. That is one track, "Rising Water", made of its pieces in the order the drum
+track steps through them, with no height. The single instrument samples its other modes pick at random are not
+tunes and are not listed. `tools/musictest.js` checks that every place in `web/soundtracks.js` is at most 20
+characters.
+
+Tunes are named plainly, by file name and "part n". No invented titles. Each line of the list shows the tune's place,
+or "Unused" struck through, and its format, the file's extension (MO3, IT, S3M, XM, OXM or OGG). The display's second
+line shows the same after the game's name, so a recorded Ogg track, which has no tracker, piano roll or score, is told
+apart from a module.
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm`
 (target `byopop_openmpt`, from `web/music/openmpt_web.c`). As `Platform::Mixer` picks them, an MO3 or OXM plays
@@ -774,38 +805,90 @@ libxmp-lite are in About.
 
 - **Storage:** `byopop-music-loop`, `byopop-music-mute`, `byopop-music-volume`, `byopop-music-vis` and
   `byopop-music-rows`.
+- **Long silent endings are skipped** (the user's notes, 2026-11-10: "Some of the short tracks have a bunch of dead air
+  at the end, where the tracker slows to a crawl"). When a module's tune starts, a second copy of it renders its last 60
+  seconds at 11,025 Hz, unheard, to find the last moment any sample reaches -60 dB (`trimEnd`, `scanEnd` in
+  `web/music.js`). Where more than 3 seconds of silence follow, the tune ends a second after that moment: it moves on to
+  the next tune there, or starts again there with repeat on, and its length in the list, the display and the seek bar
+  becomes the shorter one. A tune's length is known this way only once it has been played, and is kept for the page's
+  life. The scan takes 3 to 50 ms for an S3M or IT and about 0.2 to 0.3 s for an MO3 (mostly loading the copy), while
+  the tune is loading. Of the games' modules it shortens 13 tunes, among them Bejeweled Twist's bejeweledtwist24 parts 2
+  to 4 (25 seconds to 8 to 11), Big Money's parts 5 and 7, Dynomite's amazonas part 7, Mummy Maze's part 3 and
+  Alchemy's intro; the rest keep their lengths. Ogg tunes are not scanned.
 - **The piano roll** (the user, 2026-11-09: "add the piano roll too") is the view after the tracker, for a module
-  only, as the tracker is. Its notes are bars on a pitch grid: time runs left to right in rows, 4 pixels a row, with
-  the heard row under a fixed playhead a third of the way in, and pitch runs up the display. The C of each octave
-  has a faint line, and each instrument has one colour of twelve from the 16-colour palette (blue left out, too dark
-  on black). A note lasts until the next note, key off, cut or fade in its channel, or to its pattern's end. The
+  only, as the tracker is. Its notes are bars on a pitch grid: time runs left to right in rows, as wide as lets 64
+  rows (about a pattern) fill the display, 4 pixels at least (the user, 2026-11-11: "way too zoomed out"), with the
+  heard row under a fixed playhead a third of the way in, and pitch runs up the display. A margin at the left names
+  each C in the tracker's spelling (C-4), and every note where a semitone is 11 pixels high or more; the C of each
+  octave has a faint line, and the black keys' rows are a shade lighter where a semitone is 4 pixels or more. Each
+  pattern has a line every beat and a brighter one every bar, from its metre (below, as in the score), and a brighter
+  one still at its first row; the metre is a value at the top left. Each instrument has one colour of twelve from the 16-colour palette (blue
+  left out, too dark on black), and a bar carries its instrument's number as the cell writes it and its name, cut to
+  the bar's length, where there is room (10 pixels high, 15 wide); where the semitones are thinner, a key at the bottom
+  right gives each colour drawn its instruments' numbers and names, on one line or two, the names cut to 12 characters
+  at most and 6 at least, or left out where even that would not fit. The names (the user, 2026-11-11: "If there is any way to get instrument names, let's do
+  it") come from the decoder (`bm_names`) or the followed game (`byopop_music_names`): a module's instruments' names,
+  or its samples' where it has no instruments; only the instruments that play are ever shown, so a composer's message
+  written over unused sample slots stays out of sight, though not the lines of it on slots that play. A note lasts until the next note, key off, cut or fade in its channel, or to its pattern's end. The
   roll reads the cells the tracker reads (`rowText`, `byopop_music_row`), each pattern once. For the player's own
   tunes the decoder gives the pitch range at once (`bm_range`, the tune's lowest to highest note) and the order list
   (`bm_order_pattern`, `bm_pattern_rows`; a "+++" order is passed over), so the display is filled with the orders
   on either side. For a game's module, whose order list the page does not have, the range is that of the patterns
-  heard so far, so it can widen, and only the pattern heard before the current one is shown, at its left. The roll
+  heard so far, so it can widen; the pattern heard before the current one is shown at its left, and at its right the
+  patterns that followed it the last time the tune went on from it, so the right of the display fills once the tune
+  comes round again. The roll
   takes the splitter's height and is drawn only when its row, range or size changes.
-- **The score** (sheet music) is the view after the piano roll, for a module only. It draws the pattern heard in staff
+- **The score** (sheet music) is the view after the piano roll, for a module only. It draws the tune in staff
   notation with VexFlow 5.0.0 (`web/third_party/vexflow-bravura.js`, MIT, served as `vexflow/vexflow-bravura.js`,
   728,171 bytes with its fonts Bravura and Academico by Steinberg Media Technologies, SIL OFL 1.1; the licences are
   `web/third_party/vexflow.txt` and `bravura.txt`, served under `licenses/` and linked from the listing's footer).
-  The page fetches the file only when the score is first chosen, and draws once the music font is ready. Each
-  instrument the pattern plays has a staff in its piano-roll colour, the staff lines, bar lines, clefs and time
-  signatures in grey. A staff's clef is treble when its notes lie at G below middle C or higher on average, else
-  bass. An instrument that plays one pitch only, four times or more, is taken for a drum and drawn on a percussion
-  staff with x noteheads. A row is a sixteenth, four rows a beat, in 4/4 (libopenmpt does not give a module's rows
-  per beat), so a 64-row pattern is four bars on one line, and the next pattern takes its place as a page turns. A
-  tracker's C-5 is written as middle C. Within an instrument a note lasts until its channel's next note, key off, cut
-  or fade, or until the instrument's next note in any channel. Notes that start together are a chord, and a length
-  that no single note value gives, or a note held over a bar line, is tied notes. Beams follow VexFlow's own grouping,
-  and sharps are written as the bar needs them (VexFlow's rule for C major). Effects (slides, vibrato, volume) are
-  not drawn. A light bar marks the column heard, and the staves scroll up and down. Drawing a pattern takes about
-  100 ms of the page's time (Bejeweled's "1980-Autonomus", six staves of four bars), so each pattern drawn is kept,
-  32 at most, and a pattern that comes back is shown again at once. It works for a followed game's module as for
-  the player's own tunes.
+  The page fetches the file only when the score is first chosen, and draws once the music font is ready. It scrolls
+  instead of fitting the window's width (the user, 2026-11-11: "sheet music should scroll instead of fitting to window
+  width"): the patterns run on side by side, as on the piano roll (the orders on either side for the player's own tunes,
+  the one heard before and those that followed it for a game's), and slide past a playhead a third of the way in, while
+  the clefs and time signature stand still at the left. The scale is fixed by the display's height over the staves, 0.45
+  to 0.8, each row 26 pixels wide before scaling; the staves scroll up and down where they do not fit. Each pattern is
+  drawn once and kept (32 at most), as drawing one takes about 100 ms of the page's time, and at most one new pattern is
+  drawn a frame besides the heard one. Each instrument that the patterns on the display play (the heard one and those
+  either side of it) has a staff in its piano-roll colour, so the staves change at a pattern's end where the instruments
+  do and those sheets are drawn again (a whole tune can have a hundred instruments, Bejeweled Twist's), the staff lines,
+  bar lines, clefs and time signatures in grey. A staff's clef is treble when the instrument's notes in the tune (all of them for the
+  player's own, which the page reads through once; those heard so far for a game's) lie at G below middle C or higher
+  on average, else bass. An instrument that plays one pitch only, four times or more, is taken for a drum and
+  drawn on a percussion staff with x noteheads. A tracker's C-5 is written as middle C. Within an instrument a note lasts
+  until its channel's next note, key off, cut or fade, or until the instrument's next note in any channel. Notes that
+  start together are a chord, and a length that no single note value gives, or a note held over a bar line, is tied
+  notes. Beams follow VexFlow's own grouping, and sharps are written as the bar needs them (VexFlow's rule for C major).
+  Effects (slides, vibrato, volume) are not drawn.
+- **The metre** (the user, 2026-11-11: "not every pattern has 4 bars. Some have 8 or 12") sets the score's bars and the
+  piano roll's lines, and is shown on both as a value: the time signature, the note a row is, and where it came from
+  ("4/4 16TH FILE"). FILE is a pattern's rows per beat and per bar as the module stores them: an IT's row highlights
+  (its header, read by `byopop_it_meter` in `platform/ModuleText.h`, as libxmp-lite keeps none) or what libopenmpt reads
+  (an IT's, an MO3's), through `bm_meter` and `byopop_music_meter`; 4 and 16, libopenmpt's default and Impulse Tracker's, cannot
+  be told from a chosen 4 and 16 and count as none (every game's IT has them, so every game's tune takes NOTES). NOTES is found from the notes when nothing
+  is stored: the shortest bar of 8, 12, 16, 24 or 32 rows at which the channels' note onsets come round again (a channel
+  that repeats every 2, 3 or 4 rows, a hi-hat's, is left out), doubled while a bar would last under 1.2 seconds at the
+  speed and tempo playing (`bm_tempo`, the `speed` and `bpm` of `byopop_music_view`), with the beat that divides it into
+  2 to 4 beats nearest 110 a minute. DEFAULT, 4 rows a beat and 16 a bar, is where the notes repeat too little to tell
+  (half their onsets at best). A beat of 4 or 6 rows makes a row a sixteenth, 2 or 3 an eighth, 8 or 12 a thirty-second;
+  3, 6 and 12 are compound time, a beat a dotted quarter (6/8, 12/8). The bars run on: a pattern whose length is not a
+  whole number of bars ends on a short one.
 - **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, score, nothing. The spectrum is 24 bars from
-  40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
-  ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard; it never scrolls past the pattern's ends. Only
+  40 Hz to 16 kHz from an AnalyserNode connected only while it shows. It is steadied (the user, 2026-11-10: "a little too jittery"):
+  the analyser's smoothing is 0.8, a bar is the mean of its bins with their highest, rises over a couple of frames and
+  falls by time, about its whole height a second, and a peak holds half a second before it falls. The tracker, for a module, has a terse header
+  ("ORD 07  PAT 06  ROW 16/64"), a line over the columns (the user, 2026-11-11: labels on the columns) with each
+  channel's number and the name of the instrument it played last up to the heard row, cut to the column's width, or
+  the number alone where the column leaves fewer than 6 characters for the name, as the narrow cells do (XM,
+  MOD and S3M have no field for a channel's own name and libxmp-lite keeps none from an IT, so the instrument's name
+  stands in for it), and the rows around the one heard. A click on a channel's number mutes it and another brings it
+  back; a Ctrl-click (Cmd on a Mac) leaves that channel alone, and a Ctrl-click on the channel already alone brings
+  every channel back (the user's notes, 2026-11-10: "tracker labels and mute"). A muted channel's number is dimmed and
+  struck through; a new tune starts with none muted. The player's own tunes mute through the decoder (`bm_mute`:
+  libxmp-lite's `xmp_channel_mute`, libopenmpt's interactive interface's `set_channel_mute_status`), heard once the
+  second it has rendered ahead has played; a followed game's through its mixer (`byopop_music_mute`), at once. A game
+  built before that call, or a decoder cached from before `bm_mute`, does not mute, and the number stays as it was.
+  The tracker never scrolls past the pattern's ends. Only
   the channels that play a note somewhere are shown (`bm_used`); when they do not all fit, a scroll bar drawn by
   the player moves through them. An Ogg tune shows the spectrum instead. While the tracker shows, the decoder
   renders in 512-frame slices and notes its row before each; a closed view costs nothing.
@@ -841,14 +924,40 @@ for a game that is not heard; the position shown stays the game's own. Only one 
 the game last in front. The others' output node is disconnected from their speakers, not their page's mute, which is
 the player's own switch.
 
+**The game's own track (the user's notes, 2026-11-10: "The tracker sync should show what track is actually playing and
+its progress", "If possible, make the controls change what plays in game").** While a game is followed, Music finds the
+list's tune the game plays: one of that game's module tunes whose file has as many orders as the game's song, the same
+pattern at the order heard, and whose orders hold it (a range's, else the subsong that starts there or nearest before
+it; `tunesOf` keeps each file's order list and each tune's first order). The display then shows that tune as the
+player's own would be: its name, the game's icon from its files in place of the state (else its two letters on its
+colour, as in the Library), its time and its length, and the list marks it with a dotted outline; the follow tag stays.
+The time is the start of the order heard plus the rows since at the speed and tempo playing. A module libopenmpt plays
+gives each order's start from a copy of it, read once a tune. libxmp-lite's clock does not follow a jump, and finding
+the starts by seeking took 4 seconds for a 4-minute tune, so there the rows since the tune's first order count. That
+is exact while the tune keeps one tempo. The seek bar moves the game's song to the order and row at that time
+(`byopop_music_seek`). Previous and Next take it to the tune before or after in the same file, from its first order,
+Previous to the tune's own start after 3 seconds. The game may change the music again as it plays on, as its own code
+decides. Play, Pause and Stop stay the player's own. A game's music the list does not have (a stream, a module not
+found) shows its module's title, with no time. When the game is no longer followed, the display, the list and the seek
+bar are the player's own again.
+
 The game's side is a site hook in the platform layer: no game's code changes, and native builds do not compile it.
-`Platform::Mixer` answers four exported calls (`platform/Audio.cpp`):
+`Platform::Mixer` answers these exported calls (`platform/Audio.cpp`):
 
 - `byopop_music_song()`: the song the game plays (the loudest playing one, 0 for none).
 - `byopop_music_view(song)`: JSON with its kind (`module` or `stream`) and, for a module, its pattern, row, the
-  pattern's rows, channels, order and title.
+  pattern's rows, channels, order and title, the speed and tempo playing, and its orders.
+- `byopop_music_seek(song, order, row)`: the song moved to an order and row (Music's seek bar, Previous and Next while it
+  follows the game); 1 when done, 0 for a stream or a song not playing.
+- `byopop_music_meter(song, pattern)`: the pattern's rows per beat and per bar as the module stores them, beat << 16 |
+  bar, 0 for none.
 - `byopop_music_row(song, pattern, row)`: a row's cells separated by `|`.
 - `byopop_music_used(song)`: the channels that play a note anywhere.
+- `byopop_music_mute(song, channel, mute)`: a channel muted (1) or brought back (0), the tracker's header's click; 1
+  when done. It is the window's own, apart from anything the game sets.
+- `byopop_music_names(song)`: its instruments' names (its samples' where it has no instruments), a line each, "1A Bass"
+  (`platform/ModuleText.h`'s `byopop_name_line`, empty names left out); a game built before the call has none, and
+  the page then shows numbers only.
 
 A libxmp-lite module is read from its `xmp_module`, a libopenmpt one through `ModulePlayer`'s web-only `GetView`,
 `GetRowText`, `GetUsedChannels` and `GetTitle` (`platform/openmpt/OpenMPTPlayer.cpp`). Cells are written as Music's
@@ -873,6 +982,15 @@ on a click, Enter or Space; different sounds overlap. Each file is decoded once,
 decoder, stb_vorbis from `openmpt.wasm`, or our own reader for a Sun `.au` file). Closing the window stops what
 plays and drops the decoded sounds and the audio context. The grid is one tab stop. It is silent at `?silent=1` as
 the music player is, and is not shown under 760 pixels wide.
+
+A board may also have presets, in a group box of their own ("Sequences") before the others: sequences that sound in
+the game, played as the game plays them (the user, 2026-11-11: "preset sequences of sound effects for the soundboards
+based on sequences that sound off in game"), such as a cascade of each depth, a level up and the game over. Each is
+taken from a game the port's own bot played (`tools/playbymove`, the `move` command) with the sound log on
+(`BYOPOP_SOUNDLOG`): `tools/soundpreset.py <log> <first update> <last update>` turns that stretch of the log into a
+preset, every sound at its time (10 ms an update) with its volume, pan, pitch, loop, stop and its fades. The window
+schedules the steps on the audio clock; a preset pressed again starts again, and Stop stops it. A preset whose files
+are not all in the game's folder is left out. The names are rip style, as Music's places are.
 
 ### The splits timer
 

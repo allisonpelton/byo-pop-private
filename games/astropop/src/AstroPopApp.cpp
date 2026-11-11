@@ -81,7 +81,7 @@ AstroPopApp::AstroPopApp()
 	mMusicOrder = -1;
 }
 
-// 0x42dc30 slot 14
+// 0x42dc30 slot 14 (body 0x42d820)
 AstroPopApp::~AstroPopApp()
 {
 	delete mUser;
@@ -89,7 +89,7 @@ AstroPopApp::~AstroPopApp()
 		gApp = NULL;
 }
 
-// 0x408e90 slot 3
+// 0x408e90 slot 3 (and 0x4285c0, its entry through the ButtonListener part)
 void AstroPopApp::ButtonPress(int theId)
 {
 	PlaySample(SOUND_BUTTON_DOWN);
@@ -203,6 +203,10 @@ void AstroPopApp::Init()
 	// port: this game's MemoryImage::SlowStretchBlt (0x4b1bf0) divides the colour's weight by the alpha that is there, as the
 	// 1.4 framework's has commented out (a stretch onto transparent bits, as the loader's strips, keeps the colour at full strength)
 	gSlowStretchRenormalizesAlpha = true;
+
+	// port: the 2004 WidgetManager draws no widget with the fast stretch on; the level-up text asks for it itself
+	// (LevelUpText::DrawAt 0x40c8a0), and the atomic explosion's ring and the other stretches average (a 2D run)
+	gWidgetsDrawWithoutFastStretch = true;
 
 	SexyApp::Init();
 	LoadResourceManifest();   // 0x4d93f0

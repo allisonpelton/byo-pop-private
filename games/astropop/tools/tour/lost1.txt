@@ -1,0 +1,13 @@
+# Tour: players the registry lists whose data files are gone (run with a registry that lists Test and Gone and no users folder;
+# the coverage check: the box that tells a profile could not be read, from the start and from the choice of a player)
+3100 click 320 447
+3200 shot l01_start
+3250 click 320 340
+3300 shot l02_after_ok
+3350 click 326 93
+3390 shot l03_list
+3400 click 307 154
+3410 click 248 349
+3460 shot l04_lost_gone
+3500 click 320 340
+3550 shot l05_after_ok

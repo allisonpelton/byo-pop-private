@@ -537,7 +537,7 @@ void SevenSeasApp::SetMusicOrder(int theOrder, bool theFade)
 	mMusicInterface->PlayMusic(mMusicSlot, theOrder, false);
 }
 
-// 0x417320..: the pirate head (shown while the pirate talks)
+// 0x40a410 (the board's call) and 0x417320..: the pirate head (shown while the pirate talks)
 void SevenSeasApp::StartTalk()
 {
 	mTalkWidget->SetVisible(true);
@@ -965,7 +965,7 @@ void SevenSeasApp::CloseHelp()
 	}
 }
 
-// 0x41ac10 / 0x41ac40: the saved game is data/savegame.dat in the original, savegame.dat in the user folder here
+// 0x41f280: the saved game is data/savegame.dat in the original, savegame.dat in the user folder here
 bool SevenSeasApp::HasSavedGame()
 {
 	std::string aData;

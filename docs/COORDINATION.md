@@ -101,10 +101,12 @@ typically like").
 - **Twelve at work, flat out, and three early ports (the user, 2026-11-07):** "No limit on concurrent sessions while
   getting all current games to their finished state", run flat out to the 97% cap ("Flat out to the cap"). After 21
   sessions at work filled the machine and two crashed: "Too many sessions, some crashed. Set a comfortable limit to
-  avoid this happening again." The limit is 12 sessions at work besides the coordinator, where at work means in a turn
+  avoid this happening again." The limit is 8 sessions at work besides the coordinator (the user, 2026-11-11, after
+  12 had been set: "Resuming so many will probably cause more crashes. ... I'll tentatively say six"; later that day:
+  "Based on CPU and RAM usage it might be ok to run an extra session or two"), where at work means in a turn
   or waiting on a run of its own. Each session's own process holds about 0.6 GB even while idle, and its builds,
   decompiles, games and sandboxes come on top in bursts. Before waking one, the coordinator also checks the machine:
-  under 6 GB free, or over 80% of the commit limit, means waiting even below 12. A session past the limit waits idle
+  under 6 GB free, or over 80% of the commit limit, means waiting even below 6. A session past the limit waits idle
   with nothing running, on a background wait for its own file (`until [ -f <main checkout>/build/slots/<name>.go ]; do
   sleep 60; done; cat` the file). When a slot frees, the coordinator writes that file with any news for the session.
   Such a wake costs no message (the app's limit of 10 since the user last typed). A crashed session comes back only
@@ -256,7 +258,9 @@ typically like").
   it has had every step: the user's faults fixed; both phases of identical play, with the real-input play of CLAUDE.md
   ("Done means identical"); registration and the buttons that lead out of the game removed; its fixes mod; the
   readability pass; the coverage check; the performance pass; the other code it does not need taken out; and, for a
-  game ported from its Steam copy, the check against its PopCap Game Collection version. The coverage check and the
+  game ported from its Steam copy, the check against its PopCap Game Collection version; and its features on the site:
+  its tunes placed, grouped and split in Music, and its soundboard's presets (the user, 2026-11-11: "All these
+  accessory features should be added to our definition of done"). The coverage check and the
   performance pass are steps of each game's own finishing, in the order above where a game has not begun its
   readability pass (coverage, then performance, then readability, as the user ordered on 2026-11-03), and after it for
   the pilots. A performance measurement needs a quiet machine, so the coordinator gives each game a measuring slot when

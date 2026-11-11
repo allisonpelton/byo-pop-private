@@ -34,7 +34,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
   waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
   2026-11-03), its GetKeyState so that scripted Shift and Ctrl presses register and its GetLastInputInfo so that it
-  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), its registry calls so that what a copy writes under HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10), and its MessageBox and MessageBeep calls
+  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), its registry calls so that what a copy writes under HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10), its network calls so that a connection or download fails at once without leaving the machine, after a coverage run's random clicks reached Seven Seas' "Submit to Internet High Score List" ("Yes, block them", 2026-11-11), and its MessageBox and MessageBeep calls
   so that a message box is answered without showing or sounding ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
   private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
@@ -84,6 +84,13 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   for the web tour" sat idle for a day (2026-11-03). Stop only processes you started, identified by a command line inside your own folder or worktree;
   several sessions share this machine, so never stop a game exe by its name alone.
 - Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.
+- **Overnight, desktop and sound allowed (the user, 2026-11-11):** "from 10 PM to 8 AM you have my permission to run
+  any of the games on my desktop or sandbox with sound to test play". Between 22:00 and 08:00 local time a session may
+  run any game, port or original, on the visible desktop or in Windows Sandbox (`--sandbox-vgpu` and
+  `--sandbox-connect` included), with real sound, scripted and driven runs too; a run started in that window ends by
+  08:00. Everything else above still holds: at most 3 game processes, no link, "Buy" or "More Games" click, the
+  user's cursor and keyboard never touched (input posted to the game's own window), the window, registry and saves
+  put back as `docs/ORIGRUN.md` says, nothing left running. Outside those hours the rules above apply unchanged.
 
 ## Token economy (the user's rules, 2026-10-24)
 
@@ -107,13 +114,19 @@ Every call re-reads the whole context, so what costs is context times calls, and
 - **One session per game** owns `games/<game>/` on its own branch and worktree: the decompilation, all of its
   testing, and its mods. Game sessions do not edit another game's folder.
 - **The coordinator session** (`local_dba6c364-63c7-4e08-8ad1-0d086d673e52`, in the main checkout) owns the shared
-  code: `framework/`, `platform/`, `third_party/`, `web/`, `tools/`, `cmake/`, `docs/` and the top-level files. It
+  code: `framework/`, `platform/`, `third_party/`, `engines/`, `web/`, `tools/`, `cmake/`, `docs/` and the top-level files. It
   builds shared libraries and decompilation tooling, and it merges each game's branch into the trunk at that game's
   milestones, after checking that every game still builds and passes its own tests.
 - **Shared changes:** a game session that needs one sends the coordinator a message (SendMessage to the id above)
   with a precise spec: what, why, which files, how to test. A tiny shared fix it cannot wait for goes in its own
   commit titled `shared: ...`, so the coordinator can review it and carry it over. A game session also messages the
   coordinator when a milestone is ready to merge. The user directs the game-specific work.
+- **Shared engines (the user, 2026-11-11: "Share engines"):** sibling games built on the same engine keep one copy of
+  it under `engines/<library>/`, never one copy a game: Retro64 for Cosmic Bugs and Water Bugs, the Mahjong Escapes'
+  engine, and Bookworm Adventures' libraries (PopLua, PopAnim, jefflib, its Lua app and SWF). Each function's comment
+  gives every game's address; where the games' versions behave differently, each game sets which. A change there is
+  a shared change: `tools/check.sh --changed` runs every game that uses it, and each one's frozen baseline stays
+  unchanged.
 - **A new worktree** lacks the git-ignored game files, baselines, oracle cache and generated mods: run
   `tools/setup_worktree.sh` in it once (copies from the main checkout, no junctions). Cut it from the local `main`
   (the trunk), never from `origin/main`: that holds only the publish snapshots, which share no history with `main`, so
@@ -123,10 +136,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook breaks the build instead of
   silently never being called.
 - **Commits:** game sessions may commit on their own branch at verified milestones without asking the user each time.
-  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with the trailer
-  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; a session that runs on Fable 5.2 writes
-  `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>` instead. Use the user's email only for authorship, never anywhere
-  else.
+  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with a trailer naming the model
+  that wrote the commit, the one the session runs on when it commits: `Co-Authored-By: Claude Opus 5.5
+  <noreply@anthropic.com>`, `Claude Sonnet 5.5`, `Claude Fable 5.2` and so on (the user, 2026-11-11: "let's accurately
+  report which model authored a commit"). Use the user's email only for authorship, never anywhere else.
 - **Never push.** Only the coordinator publishes, and only as snapshots (the user, 2026-10-25):
   `python tools/publish.py --push` pushes one commit holding the trunk's tree without the paths in `.publishignore`
   and the `<!-- private -->` blocks of text files (`docs/PUBLISHING.md`). How to take a game's protection apart
@@ -243,8 +256,11 @@ Every call re-reads the whole context, so what costs is context times calls, and
   state." A game is done, and may go on the live site, only once it has been through all of them: the user's faults,
   both phases of identical play, registration and outbound buttons out, its fixes mod (the site serves every game with
   it on), the readability pass, the coverage check, the performance pass (the user, 2026-11-03), taking out the other
-  code it does not need, and, for a game ported from its Steam copy, the check against its PopCap Game Collection
-  version. So the coverage check and the performance pass come game by game, not after every game is done
+  code it does not need, for a game ported from its Steam copy the check against its PopCap Game Collection
+  version, and its features on the site (the user, 2026-11-11: "All these accessory features should be added to our
+  definition of done"): Music's entries for its tunes placed, grouped and split as the game plays them, with no place
+  its code can settle left blank, and its soundboard's presets of the sequences the game plays. The site builds them,
+  and the game's session answers the site's questions about its code. So the coverage check and the performance pass come game by game, not after every game is done
   (`docs/COORDINATION.md`). Modding, which waits, is the mods' own work: new mods and the changes waiting in
   `docs/MOD_ROADMAP.md`. Whatever games are done by 2026-12-31 go on the live site then; the rest follow when done,
   never hurried. A session may speed up its own port before its performance pass, at any time, so its `-fast` test runs go

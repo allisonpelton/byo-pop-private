@@ -815,10 +815,10 @@ the port's `Rect` has (0x402020). Nothing in this group is game logic the port n
   0x4446f0 and `AddChild` 0x4516a0, and `GameOverDialog::OrderInManagerChanged` 0x4380a0 (nothing reorders the dialog; the framework calls
   it only from `PutInfront` and its relatives).
 
-**Open.** `Board::BuildWaterImage` (0x440330, the sea as strips of triangles on a 3D accelerated screen) is the one function that is
-neither reached nor read again: every run of the original, in the sandbox and on the host, had the Options dialog's 3D box off
-(`Is3D` 0), so the 3D drawing of the original has not been compared with the port's at all, nor has any other 3D-only code. This is a gap of
-phase 2 as well (CLAUDE.md: 2D and 3D where both exist); it needs the original with 3D acceleration on, which the sandbox does not offer.
+**Was open, now closed (section 16).** `Board::BuildWaterImage` (0x440330, the sea as strips of triangles on a 3D accelerated screen) was
+the one function neither reached nor read again: every run of the original in the sandbox had the Options dialog's 3D box off (`Is3D` 0),
+because the sandbox's display never gave the original a Direct3D device. The original with 3D on ran later on the user's desktop (section 16):
+the sea, the board, the dialogs and the menus were compared in 3D, and `BuildWaterImage` was read against the original's pictures.
 
 **Cost.** The 23 runs took about 1 to 3 minutes of machine time each on the virtual clock. The five tours took the most work: their click
 positions come from the port's own pictures, and the host takes no shots. Every change to the sources was a comment; `tools/check.sh
@@ -950,3 +950,88 @@ Steam one (597 files, no `wints.exe`: the texts come from `typershark.exe`, whic
 **Not done, and one thing to know.** The Collection's own exe was not run: its code is the Steam game's, and a run could only show the
 title pictures again. The port's executable is also called `typershark.exe`, the name of the Collection's game: the installer that puts a
 native port beside the original (`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.
+
+## 16. The 3D drawing (2026-11-11)
+
+The user allowed two routes for the original with 3D on ("Yes, both routes", 2026-11-11): Windows Sandbox with the host's GPU first, the
+visible desktop if the original still fell back to 2D there. `docs/IDENTICAL_PLAY.md` ("The 3D drawing") has the results; this section has the
+facts a later session needs.
+
+**The sandbox did not give the original 3D.** Four variants of origrun's sandbox run (`--sandbox-vgpu`; with `--dgvoodoo`; with
+`--sandbox-connect`; both) all ran the original in 2D with `--3d on` asked: the byte `[[app+0x334]+0x10]` was 0 at update 5, and origrun
+ended with its exit code 3 ("the other mode", `docs/ORIGRUN.md`). Nothing more was tried there.
+
+**The desktop route** (`tools/phase2/visrun3d.py`, a run in the manner of BookWorm Adventures' `visrun.py`). A copy of the carved, patched game
+(`build/origrun/typershark-p2/game`, loading on the main thread, seed 1) runs in `build/ts-3d` with the stand-in's own variables and no host:
+`ORIGRUN_SOUND=stub` (silent), `ORIGRUN_REGMAP=popcap` (what the game writes under `HKLM\SOFTWARE\PopCap` lands under
+`HKCU\Software\PopCap\TyperShark`) and `ORIGRUN_CURSOR=scripted` (the script keeps the shared block `Local\origrun-cursor-<id>` that
+`tools/origrun/cursor.h` describes, so `GetCursorPos` returns the scripted position and the real cursor never moves). The runner stages the
+registry (`Is3D` 1, `ScreenMode` 0, the key exported first and put back afterwards, or deleted if it was not there), starts the game's one
+window without activating it, keeps it topmost, and for each step of a tour: waits for the update counter (`APP` 0x565380, `+0x4b8`) to reach
+the step's update, suspends the process (`NtSuspendProcess`), posts the input to the game's window (`PostMessage`: moves, clicks, keys,
+text, and the focus messages), lets it run, and for a shot waits until the draw counter shows the frame drawn (`+0x4a0` is 0), suspends
+again and reads the client with `PrintWindow` (`PW_RENDERFULLCONTENT`) of that window alone. It refuses a shot if another window overlaps the game's.
+The 3D flag was read at update 5 and at the end of every run: 1 each time.
+The original runs on the real clock, 100 updates a second (300 updates took 3.01 s in 3D and 3.05 s in 2D), so no step lands on its exact
+update: the runner logs the update each step landed at (`vis3d.steps.tsv`), and `mkport3d.py` makes the port's script from the *landed*
+updates (plus the port's one-update shift), so both get each input and each shot at the same update. A shot after an input waits one
+update, because a real-clock redraw at the input's own update would show the result of the input. `vis3d.sh <tour>` runs the whole chain
+(original on the desktop, the port's script, the port with `-fast -drawevery` and the fixture `port-3d`, whose registry.ini sets `Is3D` 1,
+and shotdiff); `vis3d.sh <tour> 2d` does the same with the original in 2D, for the differences that are the real clock's and not the
+3D drawing's. `tour_water.py` (a board with the sea shot every 60 updates) and `tour_pause.py` (one pause at an update, shots 4, 30 and
+80 updates after it) were written for it.
+
+**What the port does in 3D.** The port's 3D mode is the SDL accelerated renderer (`DDInterface::mIs3D`), chosen by `Is3D` in
+`registry.ini`. The sea's strips of triangles (`BuildWaterImage`, translated as read) draw as in the original, and the whole of tours M (menus,
+dialogs, options, hall, statistics), U, Q and T and the paused boards equal the original's.
+
+**One change, and its cause.** The original's Direct3D line drawing leaves out a line's last pixel (Direct3D's line rule: the end point is
+not drawn), where a 2D line draws it. The game draws lines in two places: the tab strip's divider (`TabbedWidget::Draw`) and the typing tutor's
+lines. With 3D on, a horizontal or vertical line was one pixel longer in the port. `TyperSharkDisplay` (in `WinWSApp.cpp`, made by
+`WinWSApp::CreateDDInterface`) overrides `DDInterface::DrawLine` when `mIs3D`: a horizontal line of more than one pixel ends one short on X, a
+vertical one on Y; a line of one pixel and a slanted line are left as the framework draws them (none of the game's lines is slanted).
+Without 3D nothing changes: `tools/check.sh typershark` is unchanged.
+
+**Open, and listed as oddities in `IDENTICAL_PLAY.md`.** (1) The sea's leftmost pixel column (x = 0, about 320 rows, one pixel wide) is up
+to 55 levels darker in blue in the port than the original, in every 3D shot with a sea; a candidate cause is the texture's addressing at
+u close to 0 in the shared `DDInterface::DrawTrianglesTex` (the vertices get +0.5; the original's device may pad where the framework wraps),
+which would be shared work. (2) Flat areas differ by at most 7 to 9 levels of 255 in 3D (the original's 3D picture is 2 to 3 levels
+brighter than its own 2D picture; the capture of its 2D picture is about 2 levels darker than the port's; the cause is not proven, 16-bit
+textures are the candidate). Both stay under shotdiff's tolerance of 8, except the column. (3) The real clock's differences, below.
+
+**What the real clock does.** The runs show differences that the same tours in 2D on the desktop show too, so they are not the 3D
+drawing's: the hover fade (a shot 3 updates after a move catches it half-faded), the dialog-open animation, the sharks', diver's and
+bubbles' sub-update phase on a running board, the caret's blink, the player list's scroll offset after ten players, the tutor's words per minute
+and the stats bars' growth (they read `mSecondTimer->Elapsed()`, milliseconds), and a board that has run on after a pause and a resume.
+A virtual-clock origrun with a window of its own would make all of them equal; none is a rendering difference.
+
+**Not compared in 3D:** the abyss and bonus levels, an idle game, the boards after a pause and a resume (the real clock again), and the
+original's single-precision rounding of x87 code in 3D (Twist found it in its own comparison; nothing here depends on it).
+
+## 17. Widgets drawn without the fast stretch (2026-11-11)
+
+AstroPop found that the 2004 `WidgetManager` never sets the fast stretch on a widget's Graphics, where the shared 1.3 one sets it on every
+widget (three places in `framework/WidgetManager.cpp`), so a stretch drawn by a widget came out nearest-neighbour. Typer Shark is on the same
+2004 framework, and its export shows the same: `WidgetManager::DrawScreen` (0x47d790) copies the screen's Graphics (`Graphics_copy` 0x48ff00),
+clips and translates it and calls the widget's DrawAll, and no function of the export sets the 2004 Graphics' fast-stretch byte (+0x49: the constructor
+0x48ffb0 clears it; `DrawImage_destsrc` 0x490570 hands it to the image's StretchBlt as the last argument). The only two writes of a byte at
++0x49 in the export are in `SexyAppBase`'s constructor and a `std::map` head node. So `WinWSApp::Init` sets
+`gWidgetsDrawWithoutFastStretch` (framework/WidgetManager.h, off by default; AstroPop's) before `SexyApp::Init`.
+
+*Result of the 2D tours.* Run with the exe before and the exe after (`tools/phase2/stretchcheck.sh`, pixel for pixel by `pngdiff.py`; the
+frozen exe with the flag off against the one with it on), 17 tours, 2779 shots: M 98, S 33, U 70, P 32, T 17, T2 23, Q 6, I 8, idle 78,
+H 24, the abyss 81, tutor lessons 17 and 18 (120 and 163), Expert 210, the bonus levels 364 and the two whole-adventure runs (680 and 772); the two-run tours R and D were not run again (their screens are tour M's).
+**No shot changed in any picture.** Five shots differ in a column or two at the window's right edge (639 or 638: the abyss' `012348_hint_25` and
+`016800_grid`, one Expert shot, one bonus and one adventure shot); the same shots differ between two runs of the same exe (the oddity "the
+window's last column" in `IDENTICAL_PLAY.md`: two runs of the old exe against each other gave 4 of those 5, and not the same ones in
+each run), so they are that, not the stretch. Nothing matches the original better or worse.
+
+*Why nothing changed, and what the tours do not show.* The game stretches a picture in two places only (a picture drawn into a rectangle of
+another size): the medal (97 by 133, drawn 66 by 90) on the statistics screen's adventure panel (`AdventurePanel::Draw`, a player who has
+finished an adventure) and in the end-of-adventure dialog (`WinGameDialog::Draw` 0x439390, the same medal and the ten gem and treasure pictures
+squeezed into 30 by 30 squares). No tour shows either: the statistics tours play a new player with no finished adventure, and the whole-adventure
+tours' shots (a grid every 1000 updates, and at the named events) caught no end-of-adventure dialog. The flag changes only these two draws and
+no picture of any tour, so the 2D tours cannot tell whether the original's averaged stretch is the port's. Left for a check with a profile that has
+finished an adventure in both programs (the medal on the statistics screen, and the dialog at the end of the adventure; what the original's
+`MemoryImage::SlowStretchBlt` does with a picture's alpha is not read here, as AstroPop's `gSlowStretchRenormalizesAlpha` is for its own exe).
+The flag stays on: it is what the original does.

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <emscripten.h>
 #include "libopenmpt/libopenmpt.h"
+#include "libopenmpt/libopenmpt_ext.h"
 #include <xmp.h>
 #include "../../platform/ModuleText.h"
 #include "../../platform/MusicLevels.h"
@@ -18,12 +19,16 @@
 
 /* One module: either renderer */
 typedef struct {
+  openmpt_module_ext* ext;    /* libopenmpt's module with its interfaces (mpt is its module) */
   openmpt_module* mpt;
+  openmpt_module_ext_interface_interactive interactive;   /* its channel mutes; has_interactive 0 when it has none */
+  int has_interactive;
   xmp_context xmp;
   int rate;       /* the rate libxmp-lite's player was started at */
   int sequence;   /* libxmp-lite's selected sequence */
   int loop;       /* libxmp-lite: repeat for ever */
   int ended;
+  int meter;      /* an IT's row highlights for libxmp-lite (rows per beat << 16 | per bar), 0 for none */
   short buf[4096 * 2];
 } bm_module;
 
@@ -47,19 +52,23 @@ EMSCRIPTEN_KEEPALIVE bm_module* bm_load(const void* data, int size) {
   bm_module* b = (bm_module*)calloc(1, sizeof(bm_module));
   if (!b) return 0;
   if (is_openmpt((const unsigned char*)data, size)) {
-    b->mpt = openmpt_module_create_from_memory2(data, (size_t)size, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-    if (!b->mpt) { free(b); return 0; }
+    b->ext = openmpt_module_ext_create_from_memory(data, (size_t)size, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    if (!b->ext) { free(b); return 0; }
+    b->mpt = openmpt_module_ext_get_module(b->ext);
+    b->has_interactive = openmpt_module_ext_get_interface(b->ext, LIBOPENMPT_EXT_C_INTERFACE_INTERACTIVE, &b->interactive,
+                                                          sizeof b->interactive) != 0;
     openmpt_module_set_render_param(b->mpt, OPENMPT_MODULE_RENDER_INTERPOLATIONFILTER_LENGTH, BYOPOP_OPENMPT_INTERPOLATION);
     openmpt_module_set_render_param(b->mpt, OPENMPT_MODULE_RENDER_STEREOSEPARATION_PERCENT, BYOPOP_OPENMPT_SEPARATION);
     return b;
   }
+  { int beat = 0, bar = 0; if (byopop_it_meter((const unsigned char*)data, size, &beat, &bar)) b->meter = beat << 16 | bar; }
   b->xmp = xmp_create_context();
   if (xmp_load_module_from_memory(b->xmp, data, size) != 0) { xmp_free_context(b->xmp); free(b); return 0; }
   xmp_start(b, 48000);
   return b;
 }
 EMSCRIPTEN_KEEPALIVE void bm_free(bm_module* b) {
-  if (b->mpt) openmpt_module_destroy(b->mpt);
+  if (b->ext) openmpt_module_ext_destroy(b->ext);
   if (b->xmp) { xmp_end_player(b->xmp); xmp_release_module(b->xmp); xmp_free_context(b->xmp); }
   free(b);
 }
@@ -286,6 +295,56 @@ EMSCRIPTEN_KEEPALIVE const char* bm_row_text(bm_module* b, int pattern, int row)
     row_text[at] = 0;
   }
   return row_text;
+}
+
+/* The module's instruments' names, a line each ("1A Bass\n", platform/ModuleText.h's byopop_name_line; empty names left
+   out): libopenmpt's instruments, or its samples where the module has none; libxmp-lite's instruments. The text lives
+   until the next call. */
+static char name_text[256 * 40 + 1];
+EMSCRIPTEN_KEEPALIVE const char* bm_names(bm_module* b) {
+  int at = 0;
+  name_text[0] = 0;
+  if (b->mpt) {
+    int ins = openmpt_module_get_num_instruments(b->mpt), n = ins > 0 ? ins : openmpt_module_get_num_samples(b->mpt);
+    for (int i = 0; i < n; i++) {
+      const char* name = ins > 0 ? openmpt_module_get_instrument_name(b->mpt, i) : openmpt_module_get_sample_name(b->mpt, i);
+      at = byopop_name_line(name_text, at, (int)sizeof name_text, i + 1, name);
+      if (name) openmpt_free_string(name);
+    }
+    return name_text;
+  }
+  byopop_xmp_names(info(b).mod, name_text, (int)sizeof name_text);
+  return name_text;
+}
+
+/* A pattern's rows per beat and per bar as the file stores them (beat << 16 | bar), 0 for none: libopenmpt's (an MO3's PRHI
+   chunk), except its own default 4 and 16, which it gives as well for a file that stores none; an IT's header for
+   libxmp-lite (ModuleText.h's byopop_it_meter). */
+EMSCRIPTEN_KEEPALIVE int bm_meter(bm_module* b, int pattern) {
+  if (b->mpt) {
+    int beat = openmpt_module_get_pattern_rows_per_beat(b->mpt, pattern), bar = openmpt_module_get_pattern_rows_per_measure(b->mpt, pattern);
+    return beat > 0 && bar >= beat && !(beat == 4 && bar == 16) ? beat << 16 | bar : 0;
+  }
+  return b->meter;
+}
+
+/* The current speed (ticks a row) and tempo (BPM) as speed << 16 | bpm: a row lasts speed * 2.5 / bpm seconds. */
+EMSCRIPTEN_KEEPALIVE int bm_tempo(bm_module* b) {
+  if (b->mpt) return openmpt_module_get_current_speed(b->mpt) << 16 | (int)(openmpt_module_get_current_tempo2(b->mpt) + 0.5);
+  struct xmp_frame_info fi;
+  xmp_get_frame_info(b->xmp, &fi);
+  return fi.speed << 16 | fi.bpm;
+}
+
+/* Mutes a channel (on 1) or brings it back (on 0), the tracker's header's click; 1 done, 0 not (a channel out of range, or
+   libopenmpt without its interactive interface). libxmp-lite's mutes last until its player starts again (a new tune). */
+EMSCRIPTEN_KEEPALIVE int bm_mute(bm_module* b, int channel, int on) {
+  if (b->mpt) {
+    if (!b->has_interactive || channel < 0 || channel >= openmpt_module_get_num_channels(b->mpt)) return 0;
+    return b->interactive.set_channel_mute_status(b->ext, channel, on ? 1 : 0) ? 1 : 0;
+  }
+  if (channel < 0 || channel >= info(b).mod->chn) return 0;
+  return xmp_channel_mute(b->xmp, channel, on ? 1 : 0) >= 0 ? 1 : 0;
 }
 
 /* Plays on from seconds into the selected subsong (the seek bar), the decoder at rate; the position it reached (libxmp-lite goes

@@ -21,7 +21,7 @@ ShipsScreen::ShipsScreen(MainMenu* theMenu)
 	mGo = new LevelUpText(IMAGE_GS_GO, 0);
 }
 
-// 0x436240
+// 0x434b60 (the body of the screen's deleting destructor): the lettering of "go" is the screen's own
 ShipsScreen::~ShipsScreen()
 {
 	delete mGo;
@@ -50,10 +50,13 @@ void DrawFlames(Graphics* g, int theY)
 
 }
 
-// 0x434bc0: the background, the four ships, their flames (drawn again brighter over themselves, additively) and the word
+// 0x434bc0: the background (the colour half transparent, so that the menu shows through it: the original sets the colour's alpha
+// to 0x80 after making it), the four ships, their flames (drawn again brighter over themselves, additively) and the word
 void ShipsScreen::Draw(Graphics* g)
 {
-	g->SetColor(Color((int) (gApp->HSLToRGB(mHue, 0xff, 0x80) | 0xff000000)));
+	Color aBackground((int) (gApp->HSLToRGB(mHue, 0xff, 0x80) | 0xff000000));
+	aBackground.mAlpha = 0x80;
+	g->SetColor(aBackground);
 	g->FillRect(0, 0, mWidth, mHeight);
 	Image* aShips[4] = {IMAGE_GS_SHIP1, IMAGE_GS_SHIP2, IMAGE_GS_SHIP3, IMAGE_GS_SHIP4};
 	for (int i = 0; i < 4; i++)

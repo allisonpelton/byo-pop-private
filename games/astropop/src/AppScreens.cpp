@@ -357,7 +357,7 @@ void AstroPopApp::ShowQuitDialog()
 	aDialog->Resize(0x140 - aWidth / 2, 0xf0 - aHeight / 2, aWidth, aHeight);
 }
 
-// 0x40bd70: the options box, in the colour set of the game's mode (+ 2) or, over the selector, 1. A game on pauses.
+// 0x40bd70 (its tail 0x40be20, shared with 0x40bea0, pauses the game and runs the box): the options box, in the colour set of the game's mode (+ 2) or, over the selector, 1. A game on pauses.
 void AstroPopApp::ShowOptions(bool theFromGame)
 {
 	mOpenDialogs++;
@@ -407,7 +407,7 @@ void AstroPopApp::ShowCheckpointDialog(int theLevel)
 // Not translated yet: each logs once so a test run shows that the button was reached
 #define APP_NOT_TRANSLATED(name, addr) 	do { static bool aLogged = false; if (!aLogged) { aLogged = true; SDL_Log("AstroPop: " name " not translated yet (" addr ")"); } } while (0)
 
-// 0x40bea0: the "how to play" box, in the colour set of the game's mode (+ 2) or, over the selector, 1. A game on pauses.
+// 0x40bea0 (and the tail 0x40be20): the "how to play" box, in the colour set of the game's mode (+ 2) or, over the selector, 1. A game on pauses.
 void AstroPopApp::ShowHelp()
 {
 	mOpenDialogs++;

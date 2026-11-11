@@ -14,63 +14,62 @@ namespace wb
 // A high score (0x24 bytes; nine at 0x46e250: eight shown, the ninth for the new score)
 struct HighScore
 {
-	char name[0x20];           // +0x00
-	int score;                 // +0x20
+	char mName[0x20];           // +0x00
+	int mScore;                 // +0x20
 };
 static_assert(sizeof(HighScore) == 0x24, "HighScore");
 
 // A font of the game file (the list at 0x470e4c; Font_Find gives its font by name)
 struct FontEntry
 {
-	FontEntry* next;           // +0x000
-	FontEntry* prev;           // +0x004
-	char name[0x20];           // +0x008
-	char strip[0x100];         // +0x028  Font_StripCut's image
-	char chars[0x100];         // +0x128  and characters
-	Font font;                 // +0x228
+	FontEntry* mNext;           // +0x000
+	FontEntry* mPrev;           // +0x004
+	char mName[0x20];           // +0x008
+	char mStrip[0x100];         // +0x028  Font_StripCut's image
+	char mChars[0x100];         // +0x128  and characters
+	Font mFont;                 // +0x228
 };
 
 // A player (0x44 bytes; 11 of them at 0x46df60)
 struct Profile
 {
-	char name[0x20];           // +0x00
-	int levelReached;          // +0x20
-	int autoFire;              // +0x24  the shooter mode (gAutoFire) the player last chose
-	int savedLevel;            // +0x28  the game in progress (0 when there is none)
-	int savedLives;            // +0x2c
-	int savedScore;            // +0x30
-	int beamsFired;            // +0x34
-	int riderHits;             // +0x38  beamriders that reached the ship
-	int kills;                 // +0x3c  enemies killed
-	int powerupsCaught;        // +0x40
+	char mName[0x20];           // +0x00
+	int mLevelReached;          // +0x20
+	int mAutoFire;              // +0x24  the shooter mode (gAutoFire) the player last chose
+	int mSavedLevel;            // +0x28  the game in progress (0 when there is none)
+	int mSavedLives;            // +0x2c
+	int mSavedScore;            // +0x30
+	int mBeamsFired;            // +0x34
+	int mRiderHits;             // +0x38  beamriders that reached the ship
+	int mKills;                 // +0x3c  enemies killed
+	int mPowerupsCaught;        // +0x40
 };
 static_assert(sizeof(Profile) == 0x44, "Profile");
 
 // A level's records (0x30 bytes, 1000 of them at 0x4623e0 by level number)
 struct LevelRecord
 {
-	char shotsName[0x14];      // +0x00
-	int fewestShots;           // +0x14
-	char fillName[0x14];       // +0x18
-	int bestFill;              // +0x2c  percent
+	char mShotsName[0x14];      // +0x00
+	int mFewestShots;           // +0x14
+	char mFillName[0x14];       // +0x18
+	int mBestFill;              // +0x2c  percent
 };
 static_assert(sizeof(LevelRecord) == 0x30, "LevelRecord");
 
 // A level set of the game file (the levels from start to end, with their song)
 struct LevelSet
 {
-	LevelSet* next;            // +0x00
-	LevelSet* prev;            // +0x04
-	char song[0x40];           // +0x08
-	int start;                 // +0x48
-	int end;                   // +0x4c
+	LevelSet* mNext;            // +0x00
+	LevelSet* mPrev;            // +0x04
+	char mSong[0x40];           // +0x08
+	int mStart;                 // +0x48
+	int mEnd;                   // +0x4c
 };
 
 extern char gSongName[0x40];               // 0x6e5ab0  a song to start, "" for none
 extern int gLogoCount;                     // 0x6e5af0
 extern int gGoTo;                          // 0x460034  the kind of screen to go to next
 extern int gEscape;                        // 0x46e5e4  Esc was pressed: a board asks whether to quit
-extern int gDemo;                          // 0x46e5c8  the game plays itself
 extern List<LevelSet> gLevelSets;          // 0x4700d4
 extern int gProfile;                       // 0x46e24c
 extern Profile gProfiles[11];              // 0x46df60
@@ -105,6 +104,7 @@ extern Image gBackBuffer;
 
 // The game's texts, read from the player's exe by address (WBGameText.cpp): false when none could be
 const char* GT(uint32_t theVA);
+constexpr uint32_t TEXT_EMPTY_PROFILE = 0x458ac4;                // the name of a profile slot nobody has used
 #define GTA(theVA) (theVA)
 bool LoadGameTexts();
 const char* Localize(const char* theText);                       // 0x4212f0
@@ -129,7 +129,8 @@ void GameInit();                                                 // 0x40d030
 void FreeAll();                                                  // 0x40d590
 void GoToScreen();                                               // 0x40d5e0: the screen of kind gGoTo
 void GameStep();                                                 // 0x40d890
-bool LeaveScreen();                                              // GameStep's change of screen to gGoTo's (false: no level is left)
+// GameStep's change of screen to gGoTo's (false: no level is left)
+bool LeaveScreen();
 void GameDraw();                                                 // 0x40d070
 // The start (WBStart.cpp)
 extern char gGameFile[0x100];              // 0x4622e0  the game file read next

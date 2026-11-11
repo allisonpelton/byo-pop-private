@@ -4,6 +4,7 @@
 #include "AstroPopApp.h"
 #include "Checkbox.h"
 #include "DialogButton.h"
+#include "Fixes.h"
 #include "GameText.h"
 #include "Graphics.h"
 #include "Image.h"
@@ -153,7 +154,7 @@ void PowerDialog::KeyChar(SexyChar theChar)
 		mApp->ButtonDepress(mId + 2000);
 }
 
-// 0x483b90 (slot 0xc8 of the box's vftable 0x56b8b8; the 400 that the base's 0x483a10 returns is not asked for): twice the
+// 0x483b90 (slot 0xc8 of the box's vftable 0x56b8b8; the 400 that the base class returns is not asked for): twice the
 // height of the weapon's pictures (all four pilots' pictures are as high as the Vixx's first) and 150 for the rest
 int PowerDialog::GetPreferredHeight(int theWidth)
 {
@@ -166,10 +167,12 @@ int PowerDialog::GetPreferredHeight(int theWidth)
 // sounds in the order of its resource map (by name), so number 0 is SOUND_1SEC_TIMER, the first of them (the sound log of a
 // whole game has its 40960-byte buffer 2, the one of timer1, played at the OK of this box: it is the first sound made). The
 // port numbers them in the order of the manifest, so it asks for that sound by name.
+// (fix "weaponBoxTick": the sound is not played)
 void PowerDialog::ButtonPress(int theId)
 {
 	Dialog::ButtonPress(theId);
-	mApp->PlaySample(SOUND_1SEC_TIMER);
+	if (!FixEnabled("weaponBoxTick"))
+		mApp->PlaySample(SOUND_1SEC_TIMER);
 }
 
 // 0x483b20: a tick or an untick draws the box again

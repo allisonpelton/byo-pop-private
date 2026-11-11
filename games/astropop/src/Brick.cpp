@@ -152,6 +152,8 @@ Brick::~Brick()
 // the events (listener part)
 //
 
+// The handlers of the listener part's vtable that only store the argument are the cases EVENT_21, EVENT_22, EVENT_25 and
+// EVENT_28 of the switch below: 0x402650, 0x402660, 0x401b90 and 0x401d40
 void Brick::OnEvent(int theEvent, EventListener* theSource, int theArg)
 {
 	(void) theSource;
@@ -316,7 +318,7 @@ void Brick::OnDie()
 	SetState(3);
 }
 
-// 0x4019d0 (listener) event 4
+// 0x4019d0 (listener) event 4 (and 0x402800, the listener part's entry that calls it)
 void Brick::OnStop()
 {
 	StopListeningToAll();
