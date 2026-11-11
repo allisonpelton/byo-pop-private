@@ -114,7 +114,7 @@ static void RestoreCheckpointScore(AstroPopApp* theApp)
 	theApp->mBoard->m1bd8 = theApp->mBoard->m1bdc;
 }
 
-// 0x431ac0
+// 0x431ac0 (and 0x432730, its entry through the ButtonListener part)
 void AstroPopApp::ButtonDepress(int theId)
 {
 	int aId = theId;

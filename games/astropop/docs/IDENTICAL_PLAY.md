@@ -370,5 +370,6 @@ classic game of 120 moves with real input, compares its state with the baseline'
 **Registration code** was out before this phase (GAME_NOTES section 5); the More Games panel went with this one.
 **Waiting for shared code:** the 2004 `DDImage` blit arithmetic (NormalBlt, AdditiveBlt) and its stretch (StretchBlt,
 SlowStretchBlt), the two differences above; both specs are with the coordinator. **Not done in this pass:** the music's state against
-the original's, the performance numbers, the coverage check, the readability pass and taking out the code the game does not need
-(GAME_NOTES section 9).
+the original's, the performance numbers, the readability pass and taking out the code the game does not need
+(GAME_NOTES section 9). The coverage check came after this pass and found six more differences, all in screens and boxes that no
+comparison had visited (GAME_NOTES section 10).

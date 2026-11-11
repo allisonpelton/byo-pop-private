@@ -131,6 +131,12 @@ void HallOfFame::Update()
 	}
 }
 
+// 0x435120 (the listener's): a button going down clicks, as in the screens of the menu and of the characters
+void HallOfFame::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_BUTTON_DOWN);
+}
+
 // 0x435140: the right button closes the screen, the left one turns the page and shows the picture of the other one
 void HallOfFame::ButtonDepress(int theId)
 {
