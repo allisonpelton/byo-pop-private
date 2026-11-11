@@ -111,11 +111,11 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
   the wait formula, the danger display (`CheckStackHeight`), the spawn thresholds (`FillTopRow`), the ramp interpolation
   (`UpdateRamp`), the stage bonuses and the speeds of the streaks and particles. What a single operation followed by a store into
   a float field computes is the same either way and was left as it was. The expressions of the drawing and screen code were
-  not looked at (phase two). The weapon cases found more of the same kind: `BeginPlay`'s count of the buried bricks a weapon
-  removes, `(int) ((1.0f - share) * count)`, was 19 in double and is 18 in the original (classic, seed 7, Sprocket, update
-  6369: one draw fewer); the meter's fill ratio `m1a14 / m1a18`, which is compared with a third and two thirds (`BoardFill`)
-  and with 1 (`BoardGone`), and the positions on the meter that a milestone truncates to whole pixels (`BoardEvents`); and the
-  speed of a warp star.
+  not looked at (phase two). A weapon case showed one more: `BeginPlay`'s count of the buried bricks a weapon removes,
+  `(int) ((1.0f - share) * count)`, was 19 in double and is 18 in the original (classic, seed 7, Sprocket, update 6369: one draw
+  fewer). Read for the same kind of expression after it, and changed without a run having shown a difference: the meter's fill
+  ratio `m1a14 / m1a18`, compared with a third and two thirds (`BoardFill`) and with 1 (`BoardGone`), the positions on the meter
+  that a milestone truncates to whole pixels (`BoardEvents`), and the speed of a warp star (`BoardWarp`).
 - A relative path of `XcfFile` (`HasKey`, `GetInt`: 0x412d00 and its neighbours) starts at the section under the cursor, and
   its first part may be the name of that section itself: a bonus level file is read with the paths `LEVEL\ROWn\Brickn` right
   after `Parse`, whose cursor stands on `LEVEL`. The first translation looked for the first part among the children only, found no
@@ -239,7 +239,9 @@ None found yet.
 ## 9. Next steps
 
 1. The web build and its registrations (page.js, stores, profiles, saveimport, controls, sound tracks), the origrun row.
-2. The identical-play pass, both phases, with `games/astropop/docs/IDENTICAL_PLAY.md`; real-input driver play.
+2. The identical-play pass with `games/astropop/docs/IDENTICAL_PLAY.md`: phase one (plays identical) is done, 38 games with the
+   four pilots' weapons and levels up to 33; phase two (looks identical, sound, focus, the web build) and real-input driver play
+   are not begun.
 3. The frozen baseline `build/baseline-astropop`, the fixes mod (or "none"), the performance numbers.
 4. Close the gap of the removed More Games button; the app's destructor does not delete its screens (as the original's).
 5. Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.

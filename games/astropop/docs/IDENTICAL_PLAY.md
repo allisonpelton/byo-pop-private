@@ -1,7 +1,8 @@
 # AstroPop Deluxe: the identical-play pass
 
 Phase one of the pass CLAUDE.md names: **plays identical**. With the same input, a series of games plays out the same in the
-original and the port, by the game's state and not by pictures. Phase two (screen by screen, sound, focus, the web build, the
+original and the port, by the game's state and not by pictures: 38 games, with all four pilots' weapons and levels up to 33, came
+out identical. Phase two (screen by screen, sound, focus, the web build, the
 real-input play of the whole game) is listed at the end and has not begun.
 
 ## How both sides are driven
@@ -38,35 +39,96 @@ brick of the tallest column, the psychic of Vixx takes the bricks lit under the 
 run by themselves while the bot waits. The pilot is the start button the script clicks on the pilot screen (`PILOT=n`).
 Turbot and Vixx have to be earned, so their cases start both games with one player who has them: the port makes the profile
 (`record.py --make-profile`: the file `users/data1.usr` and the player's registry keys), and the original gets the same file in
-its staged copy and the keys as a registry preset of the sandbox (`PROFILE=file`, `ini_to_reg.py`, origrun's `--reg`).
+its staged copy and the keys as a registry preset of the sandbox (`PROFILE=file`, `ini_to_reg.py`, origrun's `--reg`). A player
+is the file and the registry's `Users\<name>` keys together, and the original deletes every player when the registry's
+`SGFVersion` is missing, so the preset carries that value too (the original keeps its settings under HKLM, the port in its own file).
+
+**Later levels.** A game that the bot plays from the first level ends within the first four or five levels, so the later ones
+start from the checkpoints. A player whose best level is 4n offers, on the pilot screen, a box with two gates: the first level and
+the checkpoint, level 4n + 1. The profile of those cases has the best level of every pilot set to n times four (`BEST=n`), the
+bot's driver clicks the checkpoint's gate (the port's `state` reports where the gates are), and the box that the warp screen shows
+after every fourth level (the weapon's upgrade) is answered by a click on its button. Eight games start at levels 5, 9, 13, 17, 21,
+25, 29 and 33 with different pilots and are played through the next level or more.
 
 A comparison counts only when the original has really been at every step of the script: when origrun reports "counter N not
 reached within 30000 ms" (the machine was busy and the original ran slowly) the step was done at an earlier counter, and
-`run_original.sh` makes the run again (the last step, the mark that ends the script, is allowed to be out of reach). The
-original's watch log is raised to 400000 changes (origrun's default of 4000 cut a long game short once, and that looked like a
-difference).
+`run_original.sh` makes the run again (the last step, the mark that ends the script, is allowed to be out of reach: `compare.py`
+then compares up to the update the original had reached and says so in its verdict). The original's watch log is raised to 400000
+changes with `--watch-max`. That option did not reach a run in Windows Sandbox until the shared commit ea95b965: every sandbox run kept
+origrun's default of 4000 changes per watch, the log of a long game stopped there and looked like a generator that stopped
+(see "Oddities skipped"). `compare.py` now refuses a log with the line "4000 changes logged; no more", and it judges the update of
+every change as well as its value.
 
 ## What was compared
 
-Each row is one comparison with the final build: identical in all four watches over the whole game.
+Each row is one comparison with the final build (the trunk of 2026-11-11 merged): identical in all four watches over the whole game,
+every change at the same update with the same value. 38 games in all. "Moves" is what the bot played before it stopped (the limit
+given, or no scoring move left); the weapon's moves count among them.
 
-| game | seed | moves played | last update | end of the game |
+**Plain games, pilot Vector, from the first level** (12):
+
+| game | seed | moves | last update | end of the game |
 |---|---|---|---|---|
 | classic | 2 | 60 (the limit) | 8433 | level 1, 12440 points |
-| classic | 3 | 37 | 7929 | no move left (game over), 13580 points |
 | classic | 1 | 100 (the limit) | 10962 | through the first warp, level 2, 104330 points |
 | classic | 7 | 200 (the limit) | 15308 | through two warps and the story of level 3, 224810 points |
-| classic | 11 | 221 | 16080 | level 3 and a bonus round, no move left, 297790 points |
-| survival | 1 | 57 | 8604 | no move left, 44210 points |
+| classic | 3 | 300 (the limit) | 21155 | level 4, 436240 points |
+| classic | 11 | 600 (the limit) | 32579 | level 6, with the bonus rounds on the way, 812620 points |
+| classic | 13 | 600 (the limit) | 25323 | level 2, 120950 points (the game that was listed as an oddity) |
+| survival | 1 | 60 (the limit) | 8784 | 113000 points |
 | survival | 3 | 60 (the limit) | 8647 | 77600 points |
-| survival | 4 | 100 | 9970 | no move left, 105650 points |
-| survival | 5 | 152 | 12268 | no move left, 223110 points |
-| survival | 12 | 81 | 9769 | no move left, 153060 points |
-| survival | 14 | 57 | 8690 | no move left, 95220 points |
+| survival | 4 | 150 (the limit) | 12088 | 121390 points |
+| survival | 5 | 300 (the limit) | 18442 | 1288480 points |
+| survival | 12 | 600 (the limit) | 24906 | 2571340 points |
+| survival | 14 | 251 | 16012 | no move left, 137430 points |
 
-All eleven were run on the build that carries every change below (merged with the trunk of 2026-11-09), and each came out identical.
+**With the weapon charged, the four pilots** (18). The charge is full from the start in both games, the bot starts the weapon at
+once and plays it. Vector's laser and Sprocket's marked bricks are the pilots every player has; Turbot and Vixx are open in the
+profile both games start with.
 
-Not identical: classic, seed 13, 600 moves (see "Oddities skipped").
+| pilot | game | seed | moves | last update | end of the game |
+|---|---|---|---|---|---|
+| Vector | classic | 3 | 300 (the limit) | 8636 | 29090 points |
+| Vector | classic | 7 | 200 (the limit) | 6966 | 600 points |
+| Vector | classic | 11 | 260 | 8421 | no move left, 12130 points |
+| Vector | survival | 4 | 150 (the limit) | 6797 | 480 points |
+| Vector | survival | 5 | 300 (the limit) | 8838 | 27090 points |
+| Sprocket | classic | 3 | 200 (the limit) | 13959 | level 2, 49160 points |
+| Sprocket | classic | 7 | 200 (the limit) | 14124 | level 2, 47880 points |
+| Sprocket | survival | 4 | 150 (the limit) | 12041 | 156060 points |
+| Sprocket | survival | 5 | 296 | 18418 | no move left, 164520 points |
+| Turbot | classic | 3 | 100 (the limit) | 10872 | level 2, 55420 points |
+| Turbot | classic | 7 | 200 (the limit) | 15505 | level 3, 199070 points |
+| Turbot | survival | 4 | 150 (the limit) | 11026 | 23350 points |
+| Turbot | survival | 5 | 283 | 16902 | no move left, 124230 points |
+| Vixx | classic | 3 | 100 (the limit) | 6888 | 380 points |
+| Vixx | classic | 7 | 200 (the limit) | 10539 | level 2, 36960 points |
+| Vixx | classic | 11 | 600 (the limit) | 31163 | level 6, 705630 points |
+| Vixx | survival | 4 | 150 (the limit) | 7659 | 2060 points |
+| Vixx | survival | 5 | 300 (the limit) | 13222 | 219720 points |
+
+The weapon was started once in each of the 18 games (and the box that explains it answered). While a laser or a psychic runs the
+bot plays nothing but its shots (97 to 257 of them in a game), so several of those games end early with few points; Sprocket's and
+Turbot's weapons run by themselves and their games go on as plain ones. The generator changed between about 390 and 8700 times
+in these games.
+
+**Classic games from the checkpoints** (8): the game starts at level 5, 9, 13, 17, 21, 25, 29 or 33. There is no charge patch in
+these: the weapon came by itself in each of them, was started once and played as above.
+
+| start | pilot | seed | moves | last update | end of the game |
+|---|---|---|---|---|---|
+| level 5 | Vector | 21 | 600 (the limit) | 25764 | level 8, 813410 points |
+| level 9 | Vector | 22 | 546 | 19817 | level 10, no move left, 201350 points |
+| level 13 | Sprocket | 23 | 270 | 18712 | level 14, no move left, 180380 points |
+| level 17 | Vector | 24 | 447 | 13998 | level 17, no move left, 65210 points |
+| level 21 | Vixx | 25 | 368 | 15560 | level 21, no move left, 222490 points |
+| level 25 | Vector | 26 | 299 | 10167 | level 25, no move left, 113070 points |
+| level 29 | Turbot | 27 | 215 | 14290 | level 29, no move left, 91490 points |
+| level 33 | Vector | 28 | 470 | 14863 | level 33, no move left, 94290 points |
+
+Games that are not in the tables: the first rerun of survival 5 with Sprocket was compared up to update 18027 of 18418 because
+the original ran slowly and the end mark of its script was out of reach; the game is in the table after a second run that
+reached the end. Every other row was compared to its last update the first time.
 
 ## The changes the pass made
 
@@ -84,20 +146,28 @@ Every difference was found as the first update where the original and the port d
 | a rainbow brick drew a colour without removing the one it had shown | `UpdateRainbow` first erases the shown colour from the list (0x405f70) and ends the effect when none is left | the same |
 | a row came one update late (classic, seed 7, update 8186) | the original's x87 runs at 24 bits of precision (DirectDraw's setup never preserves the FPU): `m19cc + m930 * 20.0f` is 1046 there and 1045 in double | the expressions that the game truncates, compares or chains are computed in `float` (the wait for the next row, the danger display, the spawn thresholds, the ramp interpolation, the stage bonuses, the speeds of streaks and particles, the warp's speed); GAME_NOTES section 4 |
 | a bonus round was only its wall of stones (classic, seed 11, update 16047) | a relative path of `XcfFile` may start with the name of the cursor's own section; the bonus file is read with `LEVEL\ROWn\Brickn` right after `Parse` | `XcfFile::FindValueSection` accepts it |
+| Sprocket's weapon removed a brick too many (classic, seed 7, update 6369: 19 draws against 18) | the count of the buried bricks a weapon takes away is `(int) ((1.0f - share) * count)` in the x87 at 24 bits: 18 there, 19 in double | `BeginPlay` computes it in `float` (94adb53e) |
+| (no run had shown it) the brick-o-meter's ratio and positions, the speed of a warp star | read after the difference above, for the same kind of expression: the meter's fill ratio `m1a14 / m1a18` is rounded to a float before it is compared with a third, two thirds and 1, and the positions that a milestone truncates to whole pixels are float arithmetic | the ratio and those positions are computed in `float` (`BoardFill`, `BoardGone`, `BoardEvents`, `BoardWarp`; 94adb53e) |
 
-The tools changed as well: the comparison runs the original at least to the port's last update (the script used to end at the last
-input plus 60), the original's run is repeated when it was too slow, its watch log is large, and the bot plays the gate between
-two levels and the story screens (a game used to stand still at the first warp).
+GAME_NOTES section 4 holds the x87 reading of these rows. Once they were in, the four weapons, the box that explains one, the
+upgrade boxes and levels up to 33 played out the same in the original and the port in all the games above.
+
+The tools changed as well, and one of the changes was a fault of the test setup and not of the port: the comparison runs the
+original at least to the port's last update (the script used to end at the last input plus 60), the original's run is repeated when
+it was too slow or got no sandbox, the bot plays the gate between two levels, the story screens, the box of a weapon, the upgrade
+box and the checkpoint's box (a game used to stand still at the first warp), and the test command `unlock all` wrote an unlock value
+(0x57) that a profile refuses when it is loaded again; it writes 0x44 now (the port's own check was right).
 
 ## Oddities skipped
 
-Two. The original's loading on Windows 11 (GAME_NOTES, "Oddities") is worked around in the staged copy and not chased. And
-classic, seed 13, 600 moves: from update 15579 the bot's take-and-fire loop stands still on 18 bricks in both games, and at
-update 20512 the original's game generator stops moving for good while the port's keeps drawing 246 numbers for every hand brick, as
-the original did for the 170 rounds before (the hand brick is built, its particles exist, no draw happens). The investigation
-found the exact update, the generator's pointer and first word unchanged, the hand brick's fields as in the earlier rounds and
-the framework's generator code as in the port; the cause was not found within the hour, and it is written under "Oddities" in
-GAME_NOTES with what it would take. Reproduce it with `games/astropop/tools/origcmp/run_mode.sh classic 600 13`.
+One: the original's loading on Windows 11 (GAME_NOTES, "Oddities") is worked around in the staged copy and not chased.
+
+Withdrawn: classic, seed 13, 600 moves, which this report listed earlier as a game in which "the original's game generator stops
+at update 20512". It does not. The 4000th change that origrun logged for the generator's position was the one at update 20511, and
+origrun's log stops there because of its default cap, which the option `--watch-max` did not lift in a Windows Sandbox run (shared
+commit ea95b965). With the option forwarded the game is identical to its last update, 25323, with 5118 changes of the position
+(the classic game of seed 13 among the plain games). The comparison had taken a log that ended for a position that stopped; `compare.py`
+now refuses such a log.
 
 ## Deviations that remain
 
