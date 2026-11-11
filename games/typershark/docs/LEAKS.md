@@ -69,7 +69,7 @@ be held (`mTarget`).
 
 The "before" exe is the tree at HEAD (the commit before this job), the "after" exe is the tree with the fixes; both are normal
 builds, started with the same seed, script and user directory fixture under rundesk with `-fast`. The comparison is
-`build/ts-p1/r1/cmp_dirs.py`: every `-statelog` file byte for byte, every screenshot PNG by hash, and the update count of each run.
+`games/typershark/tools/leak/cmp_dirs.py`: every `-statelog` file byte for byte, every screenshot PNG by hash, and the update count of each run.
 
 | Batch | What | Result |
 |---|---|---|

@@ -14,4 +14,9 @@ for p in s["pairs"]:
     print(f"{p['name']:28s} {p['status']:6s} {p.get('diff_pct', 0):6.2f}% shift={p.get('shift')} {bx}" + (f" faint={fb}" if fb else ""))
 for w in s.get("warnings", []):
     print("WARN", w)
-print("only orig:", s.get("orig_only"), "only port:", s.get("port_only"))
+def short(names):
+    names = names or []
+    return names if len(names) <= 10 else "%d shots (the other side's were pruned or never taken)" % len(names)
+
+
+print("only orig:", short(s.get("orig_only")), "only port:", short(s.get("port_only")))

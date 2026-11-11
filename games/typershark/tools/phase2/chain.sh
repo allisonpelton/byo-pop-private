@@ -2,6 +2,8 @@
 # Run tours one after another: the port, the original in the sandbox, then shotdiff and a summary. Each argument is
 #   <name>[:seed[:timeout[:port args with + for spaces]]]    (the tour's scripts are build/ts-p2/<name>/{orig,port}.txt, made before)
 # e.g. games/typershark/tools/phase2/chain.sh m1 g_rt1:1:900
+# After each comparison the raw shots of the pairs found equal are deleted (prune.py; KEEP=1 keeps them): a tour that is run again
+# with SKIP_ORIG=1 or SKIP_PORT=1 then compares only the pairs that were flagged, and prune.py <name> --all clears a judged tour.
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
 cd "$ROOT"
@@ -14,4 +16,5 @@ for spec in "$@"; do
 	if [ -z "${SKIP_ORIG:-}" ]; then bash games/typershark/tools/phase2/runorig.sh "$N" "$SEED" "$LIM"; fi
 	python tools/shotdiff/shotdiff.py --game typershark --orig "build/ts-p2/$N/orig" --port "build/ts-p2/$N/port" --run "p2-$N" | tail -1
 	python games/typershark/tools/phase2/sumshot.py "p2-$N" | head -60
+	[ -n "${KEEP:-}" ] || python games/typershark/tools/phase2/prune.py "$N"
 done
