@@ -768,6 +768,107 @@ var ByopopSoundboards = {
       ["sounds/opentreasure.ogg", "Open treasure", "The ending of an adventure or classic game begins its fade"]
     ] },
   ] },
+  noahsark: {
+    presets: [
+      { name: "Pair Saved", when: "A pair of animals boards the ark", steps: [["sounds/pop", 0], ["sounds/combo1", 0], ["sounds/winpig", 70]]},
+      { name: "Third Combo", when: "A third pair of one kind in a row", steps: [["sounds/combo3", 0], ["sounds/pop", 0], ["sounds/winpig", 70]]},
+      { name: "Flood", when: "The water rises to the top", steps: [["sounds/warning", 0], ["sounds/thunder4", 360], ["sounds/warning", 1200], ["sounds/warning", 2400], ["sounds/warning", 3000], ["sounds/warning", 3600], ["sounds/warning", 4200], ["sounds/warning", 4800], ["sounds/thunder4", 4920], ["sounds/warning", 5400], ["sounds/thunder3", 5640], ["sounds/gameover", 10060]]}
+    ],
+    groups: [
+    { name: "Menus and dialogs", sounds: [
+      ["sounds/click.ogg", "Click", "A button is pressed anywhere in the game; also the tutorial dialog's demonstration clicks"],
+      ["sounds/levelupvoice.ogg", "Level up voice", "The next level screen opens"]
+    ] },
+    { name: "Picking animals", sounds: [
+      ["sounds/select.ogg", "Select", "An animal is picked, or a pair is linked or the link is extended"],
+      ["sounds/deselect.ogg", "Deselect", "The picked animal is put back (right click, or a click that cannot pick or join), a Puzzle swap is undone, or the undo mod is used"],
+      ["sounds/fallingclick.ogg", "Landing click", "Animals land after falling or refilling"]
+    ] },
+    { name: "Pairs and combos", sounds: [
+      ["sounds/pop.ogg", "Pop", "A pair is joined, a Stampede group is taken out, or a run of three is cleared; plays together with the animal's voice or a combo sound"],
+      ["sounds/combo1.ogg", "Combo 1", "A pair is joined and its animal kind differs from the last pair's: combo count restarts (plays with the pop)"],
+      ["sounds/combo2.ogg", "Combo 2", "A pair is joined: the 2nd pair in a row of the same animal kind (plays with the pop)"],
+      ["sounds/combo3.ogg", "Combo 3", "A pair is joined: the 3rd pair in a row of the same animal kind (plays with the pop)"],
+      ["sounds/combo4.ogg", "Combo 4", "A pair is joined: the 4th pair in a row of the same animal kind (plays with the pop)"],
+      ["sounds/combo5.ogg", "Combo 5", "A pair is joined: the 5th pair in a row of the same animal kind (plays with the pop)"],
+      ["sounds/combo6.ogg", "Combo 6", "A pair is joined: the 6th pair in a row of the same animal kind (plays with the pop)"],
+      ["sounds/combo7.ogg", "Combo 7", "A pair is joined: the 7th pair in a row of the same animal kind (plays with the pop)"],
+      ["sounds/combo8.ogg", "Combo 8", "A pair is joined: the 8th or any later pair in a row of the same animal kind (plays with the pop)"]
+    ] },
+    { name: "Animal voices", sounds: [
+      ["sounds/winpig.ogg", "Pig voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/winlion.ogg", "Lion voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/winfrog.ogg", "Frog voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/winelephant.ogg", "Elephant voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in; the tutorial's last step"],
+      ["sounds/wincow.ogg", "Cow voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/winhippo.ogg", "Hippo voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/winzebra.ogg", "Zebra voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/winmonkey.ogg", "Monkey voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/winmouse.ogg", "Mouse voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/winbeaver.ogg", "Beaver voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/wingator.ogg", "Gator voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/windog.ogg", "Dog voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"],
+      ["sounds/wincat.ogg", "Cat voice", "This animal is saved (a pair, a Stampede group or a Puzzle run of three); now and then while more of it fall in"]
+    ] },
+    { name: "Water and the ark", sounds: [
+      ["sounds/getready.ogg", "Get ready", "A level starts"],
+      ["sounds/thunder3.ogg", "Thunder 3", "Lightning strikes, at random while the water is high (one of two thunders, chosen at random)"],
+      ["sounds/thunder4.ogg", "Thunder 4", "Lightning strikes, at random while the water is high (one of two thunders, chosen at random)"],
+      ["sounds/warning.ogg", "Warning", "The water is close to the ark, repeated every 120 updates while it stays so; also when an animal is abandoned in the turn-based mode"],
+      ["sounds/abandon.ogg", "Abandon", "An animal pair is abandoned and points are taken off"]
+    ] },
+    { name: "Round end", sounds: [
+      ["sounds/levelup.au", "Level up", "The board is cleared and the round ends (not in the turn-based mode), or a new row is pushed in while the top row is not empty and the round is lost"],
+      ["sounds/gameover.ogg", "Game over", "The game is over and the high score box opens"]
+    ] },
+  ] },
+  pixelus: {
+    presets: [
+      { name: "Island Shore", when: "The island map is open", steps: [["sounds/Island - Lightning 03d", 0], ["sounds/Island - Ocean Surf 04b", 2100, {"v": -549}], ["sounds/Seagull 04b", 3300, {"v": -549}], ["sounds/Seagull 05", 3570, {"v": -549}], ["sounds/Island - Ocean Surf 04b", 10100, {"v": -549}], ["sounds/Seagull 05", 15730, {"v": -549}], ["sounds/Island - Lightning 03d", 16830, {"v": -304}], ["sounds/Island - Lightning 03d", 17730, {"v": -361}], ["sounds/Seagull 04b", 17840, {"v": -549}], ["sounds/Island - Ocean Surf 04b", 18100, {"v": -549}]]},
+      { name: "Temple Entry", when: "A temple is chosen on the island", steps: [["sounds/UI Island Click 01", 0, {"v": -549}], ["sounds/Pixelus Inside Temple v01", 0, {"v": -549}], ["sounds/Temple Mouseover 01", 0, {"v": -549}]]},
+      { name: "Puzzle Start", when: "A puzzle is chosen in a temple", steps: [["sounds/Temple Mouseover 01", 0, {"v": -549}], ["sounds/Pixelus Start of Puzzle v02", 10, {"v": -549}]]},
+      { name: "Puzzle Solved", when: "The last tile reaches its target", steps: [["sounds/Tile Moving 02d", 0, {"v": -549}], ["sounds/Pixelus Puzzle Completed Sting v01", 10, {"v": -549}], ["sounds/Tile Target 02c", 120, {"v": -549}]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["sounds/ui menu mouseover 02.ogg", "Menu hover", "The mouse comes onto a main menu button"],
+      ["sounds/ui menu click 01c.ogg", "Menu click", "A main menu button is pressed"],
+      ["sounds/ui little beep 05b.ogg", "Little beep", "A dialog or screen button is pressed (Continue, OK and the like), or a dialog's Yes or No"],
+      ["sounds/ui general click 02.ogg", "General click (unused)", "Never played"]
+    ] },
+    { name: "Island map", sounds: [
+      ["sounds/ui island mouseover 02.ogg", "Island hover", "The mouse rests on a temple on the island for 50 updates; its pitch follows which temple"],
+      ["sounds/ui island click 01.ogg", "Island click", "The mouse comes onto a temple's button on the island"],
+      ["sounds/pixelus temple screen v01.ogg", "Temple opens", "A new temple opens on the island map"],
+      ["sounds/seagull 05.ogg", "Seagull 1", "At random intervals while the island map is open"],
+      ["sounds/seagull 04b.ogg", "Seagull 2", "At random intervals while the island map is open"],
+      ["sounds/island - ocean surf 04b.ogg", "Ocean surf", "The island's waves roll in, every second wave cycle"],
+      ["sounds/island - lightning 02c.ogg", "Lightning 1", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume)"],
+      ["sounds/island - lightning 03d.ogg", "Lightning 2", "Lightning flashes on the island at random (one of two lightning sounds, chosen at random, at a random volume)"]
+    ] },
+    { name: "Temples", sounds: [
+      ["sounds/pixelus inside temple v01.ogg", "Inside the temple", "A temple's puzzle screen opens"],
+      ["sounds/temple mouseover 01.ogg", "Puzzle hover", "The mouse comes onto a puzzle's picture in a temple"],
+      ["sounds/chain breaking 01.ogg", "Chain breaks", "A temple's last puzzle becomes open (the chain on it breaks)"],
+      ["sounds/pixelus hint screen v01.ogg", "Hint screen (unused)", "Never played"],
+      ["sounds/hint popup 01.ogg", "Hint popup (unused)", "Never played"]
+    ] },
+    { name: "Puzzles", sounds: [
+      ["sounds/pixelus start of puzzle v02.ogg", "Puzzle starts", "A puzzle appears, once the help screen is gone"],
+      ["sounds/tile moving 02d.ogg", "Tile moves", "A tile is thrown in or pulled back, also in an undo and in the help screen's demonstration"],
+      ["sounds/tile target 02c.ogg", "Tile on target", "A tile comes to rest on a wanted cell or a start spot; also in the help screen's demonstration"],
+      ["sounds/tile non-target 02b.ogg", "Tile off target", "A tile comes to rest on a cell nobody wants"],
+      ["sounds/illegal blocked 03.ogg", "Blocked", "A click where the throw is blocked"],
+      ["sounds/illegal fixed 01c.ogg", "Fixed tile", "A click on a tile that is fixed and cannot be pulled"],
+      ["sounds/illegal nothing 01.ogg", "Nothing there", "A click that neither throws a tile nor pulls one"],
+      ["sounds/illegal none left 03b.ogg", "No tiles left", "A throw is tried with no tile left to throw"]
+    ] },
+    { name: "Completion", sounds: [
+      ["sounds/pixelus puzzle completed sting v01.ogg", "Puzzle done sting", "Every wanted cell holds a tile; the music fades out"],
+      ["sounds/pixelus temple completed sting v01.ogg", "Temple done sting", "The completion screen opens after a temple's last puzzle (completion modes other than 2 and 4)"],
+      ["sounds/pixelus game completed sting v01.ogg", "Game done sting", "The completion screen opens in completion mode 2 or 4"]
+    ] },
+  ] },
   rocketmania: {
     presets: [
       { name: "Rocket Launch", when: "A fuse reaches a rocket", steps: [["sounds/Fuse Burning 01d short", 0], ["sounds/Ba Ding 01b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Rocket Launch Woosh 03b", 460], ["sounds/Fuse Burning 01d short", 1520], ["sounds/Firework Explosion 04", 1950]]},
@@ -894,6 +995,63 @@ var ByopopSoundboards = {
       ["sounds/bonusdig.ogg", "Dig", "A square is dug on the bonus screen, with nothing special under it (panned by column)"],
       ["sounds/bonusgraves.ogg", "Graves near", "A dug square has graves in the neighbouring squares"],
       ["sounds/bonuslose.ogg", "Ghost", "A square holding a ghost is dug"]
+    ] },
+  ] },
+  typershark: {
+    presets: [
+      { name: "Treasure Streak", when: "The diver reaches the treasure and the streak begins", steps: [["sounds/treasure", 0], ["sounds/tone1", 60], ["sounds/diverenters", 60], ["sounds/tone1", 120], ["sounds/diverenters", 120], ["sounds/tone2", 180], ["sounds/diverenters", 180], ["sounds/tone2", 240], ["sounds/diverenters", 240], ["sounds/tone3", 290], ["sounds/diverenters", 290], ["sounds/tone3", 340], ["sounds/diverenters", 340], ["sounds/tone4", 390], ["sounds/diverenters", 390], ["sounds/tone4", 450], ["sounds/diverenters", 450], ["sounds/tone7", 800], ["sounds/diverenters", 800], ["sounds/tone8", 900], ["sounds/diverenters", 900], ["sounds/tone9", 960], ["sounds/diverenters", 960], ["sounds/tone10", 1140], ["sounds/tone11", 1190], ["sounds/tone12", 1300], ["sounds/diverenters", 1300], ["sounds/tone12", 1360], ["sounds/diverenters", 1360]]},
+      { name: "Set Sail", when: "A site is done and the ship sails on", steps: [["sounds/sonarping1", 0], ["sounds/shipmove", 90]]}
+    ],
+    groups: [
+    { name: "Menus and map", sounds: [
+      ["sounds/buttonclick.ogg", "Button click", "A button is pressed anywhere in the game: the menus, dialogs, the options dialog, the hint dialog and the typing tutor"],
+      ["sounds/shipmove.ogg", "Ship moves", "The ship moves one step along its route on the level map (every half second)"],
+      ["sounds/divebell1.ogg", "Dive bell", "The ship arrives at the end of its route on the map (up to three times)"],
+      ["sounds/wave_bonus.ogg", "Wave bonus 1", "A bronze medal ends a wave (under 80 percent); also when the options dialog's sound effects slider is released"]
+    ] },
+    { name: "Typing", sounds: [
+      ["sounds/type.ogg", "Type 1", "A correct letter is typed (one of three type sounds, at random); also in the clam bonus level and the typing tutor"],
+      ["sounds/type2.ogg", "Type 2", "A correct letter is typed (one of three type sounds, at random); also in the typing tutor"],
+      ["sounds/type3.ogg", "Type 3", "A correct letter is typed (one of three type sounds, at random); also in the typing tutor"],
+      ["sounds/wrong.ogg", "Wrong key", "A letter is typed that matches nothing, in the game, the clam bonus level or the typing tutor"],
+      ["sounds/emp.ogg", "EMP", "The EMP is fired with its charge full"]
+    ] },
+    { name: "Enemies and weapons", sounds: [
+      ["sounds/sharkhurt.ogg", "Shark hurt", "The black shark's word is finished but it still has words left"],
+      ["sounds/sharkdies.ogg", "Shark dies", "A shark is killed, or the black shark's last word is finished"],
+      ["sounds/piranhadies1.ogg", "Piranha dies", "A piranha is killed"],
+      ["sounds/jellyfish.ogg", "Jellyfish", "A bonus creature (jellyfish) is shocked"],
+      ["sounds/playerdies.ogg", "Diver bitten", "A shark or a piranha reaches the diver"],
+      ["sounds/torpedolaunch.ogg", "Torpedo launch", "The torpedo boss fires a torpedo"],
+      ["sounds/explosion.ogg", "Explosion", "A cannon ball or a torpedo explodes; repeats while the torpedo boss blows up"],
+      ["sounds/sonarping1.ogg", "Sonar ping", "The sonar sweep starts when a wave ends; repeats every two seconds during the torpedo boss fight"]
+    ] },
+    { name: "Waves and rewards", sounds: [
+      ["sounds/wave_bonus2.ogg", "Wave bonus 2", "A silver medal ends a wave (80 to 94 percent)"],
+      ["sounds/wave_bonus3.ogg", "Wave bonus 3", "A gold medal ends a wave (95 percent or more); also the first pair of clams found in the clam bonus level"],
+      ["sounds/wingem.ogg", "Gem", "A level is won (the diver is back at the bottom with the treasure); a secret treasure is found; a pair of matching clams is found in the clam bonus level"],
+      ["sounds/treasure.ogg", "Treasure", "The diver's air gauge fills at the treasure and the streak minigame starts; a clam with treasure is opened in the clam bonus level"],
+      ["sounds/bad.ogg", "Bad clam", "A clam with no treasure is opened in the clam bonus level"],
+      ["sounds/tone1.ogg", "Tone 1", "The streak minigame's 1st or 2nd word (the tone rises every two words)"],
+      ["sounds/tone2.ogg", "Tone 2", "The streak minigame's 3rd or 4th word; the 1st bonus creature of a wave shocked"],
+      ["sounds/tone3.ogg", "Tone 3", "The streak minigame's 5th or 6th word; the 2nd bonus creature of a wave shocked"],
+      ["sounds/tone4.ogg", "Tone 4", "The streak minigame's 7th or 8th word; the 3rd bonus creature of a wave shocked"],
+      ["sounds/tone5.ogg", "Tone 5", "The streak minigame's 9th or 10th word; the 4th bonus creature of a wave shocked"],
+      ["sounds/tone6.ogg", "Tone 6", "The streak minigame's 11th or 12th word; the 5th bonus creature of a wave shocked"],
+      ["sounds/tone7.ogg", "Tone 7", "The streak minigame's 13th or 14th word; the 6th bonus creature of a wave shocked"],
+      ["sounds/tone8.ogg", "Tone 8", "The streak minigame's 15th or 16th word; the 7th bonus creature of a wave shocked"],
+      ["sounds/tone9.ogg", "Tone 9", "The streak minigame's 17th or 18th word; the 8th bonus creature of a wave shocked"],
+      ["sounds/tone10.ogg", "Tone 10", "The streak minigame's 19th or 20th word; the 9th bonus creature of a wave shocked"],
+      ["sounds/tone11.ogg", "Tone 11", "The streak minigame's 21st or 22nd word; the 10th bonus creature of a wave shocked"],
+      ["sounds/tone12.ogg", "Tone 12", "The streak minigame's 23rd or 24th word; the 11th bonus creature of a wave shocked"],
+      ["sounds/tone13.ogg", "Tone 13", "The streak minigame's 25th or later word; the 12th or later bonus creature of a wave shocked"]
+    ] },
+    { name: "Diver and sea", sounds: [
+      ["sounds/diverenters.ogg", "Diver enters", "A level's board first updates; the diver enters the water; shark and piranha events and a finished streak word burst into bubbles"],
+      ["sounds/underwaterloop.ogg", "Underwater loop", "Loops while the game board is shown; its volume goes to zero while the game is paused"],
+      ["sounds/eerie1.au", "Eerie 1 (unused)", "Never played"],
+      ["sounds/eerie3.au", "Eerie 3 (unused)", "Never played"],
+      ["sounds/extralife.au", "Extra life (unused)", "Never played"]
     ] },
   ] }
 };
