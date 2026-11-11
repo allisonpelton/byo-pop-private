@@ -134,8 +134,8 @@ public:
 	bool			FindMolecules();								// 0x412280
 	void			AfterMove(bool theTimerTick);					// 0x4127c0
 	void			Magnetise();									// 0x412a80
-	void			Save(FILE* f);									// 0x40c9a0
-	void			Load(FILE* f);									// 0x40cd10
+	void			Save(FILE* theFile);							// 0x40c9a0
+	void			Load(FILE* theFile);							// 0x40cd10
 
 	// the widget
 	virtual void	Update() override;								// 0x412cd0

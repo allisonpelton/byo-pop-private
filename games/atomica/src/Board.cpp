@@ -132,30 +132,30 @@ void Meter::Add(int theAmount, int theCombo)
 }
 
 // 0x405990
-void Meter::Save(FILE* f)
+void Meter::Save(FILE* theFile)
 {
-	fwrite(&mLevel, 4, 1, f);
-	fwrite(&mValue, 4, 1, f);
-	fwrite(&mMax, 4, 1, f);
-	fwrite(&mTick, 4, 1, f);
-	fwrite(&mCountdown, 4, 1, f);
+	fwrite(&mLevel, 4, 1, theFile);
+	fwrite(&mValue, 4, 1, theFile);
+	fwrite(&mMax, 4, 1, theFile);
+	fwrite(&mTick, 4, 1, theFile);
+	fwrite(&mCountdown, 4, 1, theFile);
 	unsigned char aFull = mFull ? 1 : 0;
-	fwrite(&aFull, 1, 1, f);
-	fwrite(&mOverTick, 4, 1, f);
+	fwrite(&aFull, 1, 1, theFile);
+	fwrite(&mOverTick, 4, 1, theFile);
 }
 
 // 0x405a00
-void Meter::Load(FILE* f)
+void Meter::Load(FILE* theFile)
 {
-	fread(&mLevel, 4, 1, f);
-	fread(&mValue, 4, 1, f);
-	fread(&mMax, 4, 1, f);
-	fread(&mTick, 4, 1, f);
-	fread(&mCountdown, 4, 1, f);
+	fread(&mLevel, 4, 1, theFile);
+	fread(&mValue, 4, 1, theFile);
+	fread(&mMax, 4, 1, theFile);
+	fread(&mTick, 4, 1, theFile);
+	fread(&mCountdown, 4, 1, theFile);
 	unsigned char aFull = 0;
-	fread(&aFull, 1, 1, f);
+	fread(&aFull, 1, 1, theFile);
 	mFull = aFull != 0;
-	fread(&mOverTick, 4, 1, f);
+	fread(&mOverTick, 4, 1, theFile);
 	mShown = mValue;
 }
 
@@ -580,75 +580,75 @@ void Board::NextLevel()
 }
 
 // 0x432930
-void Board::Save(FILE* f)
+void Board::Save(FILE* theFile)
 {
-	fwrite(&mStartCountdown, 4, 1, f);
-	fwrite(&mBombPhase, 4, 1, f);
-	fwrite(&mBombFrame, 4, 1, f);
-	fwrite(&mProgress, 4, 1, f);
-	fwrite(&mPulse, 4, 1, f);
-	fwrite(&mPulseStep, 4, 1, f);
-	fwrite(&mNumColorsStart, 4, 1, f);
-	fwrite(&mMonitorSlide, 4, 1, f);
-	fwrite(&mGetReadyAlpha, 4, 1, f);
-	fwrite(&mGameOverAlpha, 4, 1, f);
-	fwrite(&mLevelUpAlpha, 4, 1, f);
-	fwrite(&mGeigerGlow, 4, 1, f);
-	fwrite(&mGeigerGlowStep, 4, 1, f);
-	fwrite(&mFreezeProgress, 4, 1, f);
-	fwrite(&mFreezeMoves, 4, 1, f);
-	fwrite(&mFreezeSwirlTimer, 4, 1, f);
-	fwrite(&mSavedZero, 4, 1, f);
-	fwrite(&mGhostGlow, 4, 1, f);
-	fwrite(&mGhostMoves, 4, 1, f);
-	fwrite(&mTint, 0x10, 1, f);
+	fwrite(&mStartCountdown, 4, 1, theFile);
+	fwrite(&mBombPhase, 4, 1, theFile);
+	fwrite(&mBombFrame, 4, 1, theFile);
+	fwrite(&mProgress, 4, 1, theFile);
+	fwrite(&mPulse, 4, 1, theFile);
+	fwrite(&mPulseStep, 4, 1, theFile);
+	fwrite(&mNumColorsStart, 4, 1, theFile);
+	fwrite(&mMonitorSlide, 4, 1, theFile);
+	fwrite(&mGetReadyAlpha, 4, 1, theFile);
+	fwrite(&mGameOverAlpha, 4, 1, theFile);
+	fwrite(&mLevelUpAlpha, 4, 1, theFile);
+	fwrite(&mGeigerGlow, 4, 1, theFile);
+	fwrite(&mGeigerGlowStep, 4, 1, theFile);
+	fwrite(&mFreezeProgress, 4, 1, theFile);
+	fwrite(&mFreezeMoves, 4, 1, theFile);
+	fwrite(&mFreezeSwirlTimer, 4, 1, theFile);
+	fwrite(&mSavedZero, 4, 1, theFile);
+	fwrite(&mGhostGlow, 4, 1, theFile);
+	fwrite(&mGhostMoves, 4, 1, theFile);
+	fwrite(&mTint, 0x10, 1, theFile);
 	unsigned char aTintOn = mTintOn ? 1 : 0;
-	fwrite(&aTintOn, 1, 1, f);
-	fwrite(mTintF, 4, 3, f);
-	fwrite(&mScore, 4, 1, f);
-	fwrite(&mBombSignAlpha, 4, 1, f);
-	fwrite(&mStatUpdates, 4, 7, f);
-	mMeter.Save(f);
-	mBonus->Save(f);
-	mGrid->Save(f);
-	fwrite(&mMeter.mMoleculesMade, 4, 1, f);
+	fwrite(&aTintOn, 1, 1, theFile);
+	fwrite(mTintF, 4, 3, theFile);
+	fwrite(&mScore, 4, 1, theFile);
+	fwrite(&mBombSignAlpha, 4, 1, theFile);
+	fwrite(&mStatUpdates, 4, 7, theFile);
+	mMeter.Save(theFile);
+	mBonus->Save(theFile);
+	mGrid->Save(theFile);
+	fwrite(&mMeter.mMoleculesMade, 4, 1, theFile);
 }
 
 // 0x433ca0
-void Board::Load(FILE* f)
+void Board::Load(FILE* theFile)
 {
 	mAtomicus->mMuted = true;
-	fread(&mStartCountdown, 4, 1, f);
-	fread(&mBombPhase, 4, 1, f);
-	fread(&mBombFrame, 4, 1, f);
-	fread(&mProgress, 4, 1, f);
-	fread(&mPulse, 4, 1, f);
-	fread(&mPulseStep, 4, 1, f);
-	fread(&mNumColorsStart, 4, 1, f);
-	fread(&mMonitorSlide, 4, 1, f);
-	fread(&mGetReadyAlpha, 4, 1, f);
-	fread(&mGameOverAlpha, 4, 1, f);
-	fread(&mLevelUpAlpha, 4, 1, f);
-	fread(&mGeigerGlow, 4, 1, f);
-	fread(&mGeigerGlowStep, 4, 1, f);
-	fread(&mFreezeProgress, 4, 1, f);
-	fread(&mFreezeMoves, 4, 1, f);
-	fread(&mFreezeSwirlTimer, 4, 1, f);
-	fread(&mSavedZero, 4, 1, f);
-	fread(&mGhostGlow, 4, 1, f);
-	fread(&mGhostMoves, 4, 1, f);
-	fread(&mTint, 0x10, 1, f);
+	fread(&mStartCountdown, 4, 1, theFile);
+	fread(&mBombPhase, 4, 1, theFile);
+	fread(&mBombFrame, 4, 1, theFile);
+	fread(&mProgress, 4, 1, theFile);
+	fread(&mPulse, 4, 1, theFile);
+	fread(&mPulseStep, 4, 1, theFile);
+	fread(&mNumColorsStart, 4, 1, theFile);
+	fread(&mMonitorSlide, 4, 1, theFile);
+	fread(&mGetReadyAlpha, 4, 1, theFile);
+	fread(&mGameOverAlpha, 4, 1, theFile);
+	fread(&mLevelUpAlpha, 4, 1, theFile);
+	fread(&mGeigerGlow, 4, 1, theFile);
+	fread(&mGeigerGlowStep, 4, 1, theFile);
+	fread(&mFreezeProgress, 4, 1, theFile);
+	fread(&mFreezeMoves, 4, 1, theFile);
+	fread(&mFreezeSwirlTimer, 4, 1, theFile);
+	fread(&mSavedZero, 4, 1, theFile);
+	fread(&mGhostGlow, 4, 1, theFile);
+	fread(&mGhostMoves, 4, 1, theFile);
+	fread(&mTint, 0x10, 1, theFile);
 	unsigned char aTintOn = 0;
-	fread(&aTintOn, 1, 1, f);
+	fread(&aTintOn, 1, 1, theFile);
 	mTintOn = aTintOn != 0;
-	fread(mTintF, 4, 3, f);
-	fread(&mScore, 4, 1, f);
-	fread(&mBombSignAlpha, 4, 1, f);
-	fread(&mStatUpdates, 4, 7, f);
-	mMeter.Load(f);
-	mBonus->Load(f);
-	mGrid->Load(f);
-	fread(&mMeter.mMoleculesMade, 4, 1, f);
+	fread(mTintF, 4, 3, theFile);
+	fread(&mScore, 4, 1, theFile);
+	fread(&mBombSignAlpha, 4, 1, theFile);
+	fread(&mStatUpdates, 4, 7, theFile);
+	mMeter.Load(theFile);
+	mBonus->Load(theFile);
+	mGrid->Load(theFile);
+	fread(&mMeter.mMoleculesMade, 4, 1, theFile);
 	mAtomicus->mMuted = false;
 }
 

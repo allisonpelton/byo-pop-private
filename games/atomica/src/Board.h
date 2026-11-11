@@ -49,8 +49,8 @@ public:
 	void	Update();			// 0x405820
 	void	Hit(int theAmount);	// 0x4058a0
 	void	Add(int theAmount, int theCombo);	// 0x4058f0
-	void	Save(FILE* f);		// 0x405990
-	void	Load(FILE* f);		// 0x405a00
+	void	Save(FILE* theFile);	// 0x405990
+	void	Load(FILE* theFile);	// 0x405a00
 };
 
 class Board : public Widget, public ButtonListener
@@ -147,8 +147,8 @@ public:
 	void	StartGhost(int theMoves);		// 0x4326c0
 	void	SetTint(int theR, int theG, int theB);	// 0x4328a0
 	void	NextLevel();					// 0x432b80
-	void	Save(FILE* f);					// 0x432930
-	void	Load(FILE* f);					// 0x433ca0
+	void	Save(FILE* theFile);			// 0x432930
+	void	Load(FILE* theFile);			// 0x433ca0
 };
 
 }

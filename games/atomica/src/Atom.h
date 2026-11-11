@@ -104,8 +104,8 @@ public:
 	virtual void	Draw(Graphics* g);					// 0x4037f0
 	virtual bool	IsElement() { return false; }		// 0x450070
 	virtual void	OnPlaced() {}						// 0x405b00
-	virtual void	Save(FILE* f);						// 0x4012c0
-	virtual void	Load(FILE* f);						// 0x403100
+	virtual void	Save(FILE* theFile);				// 0x4012c0
+	virtual void	Load(FILE* theFile);				// 0x403100
 };
 
 // The bonus atoms of the five elements (fire, water, earth, air, ether; three levels each): types 12 to 26
@@ -125,8 +125,8 @@ public:
 	virtual void	Draw(Graphics* g);					// 0x404b00
 	virtual bool	IsElement() { return true; }
 	virtual void	OnPlaced();							// 0x4055b0: the element's effect
-	virtual void	Save(FILE* f);						// 0x4049d0
-	virtual void	Load(FILE* f);						// 0x404a50
+	virtual void	Save(FILE* theFile);				// 0x4049d0
+	virtual void	Load(FILE* theFile);				// 0x404a50
 	void			ShatterIn();						// 0x4047e0
 	void			Fire(int theLevel);					// 0x404e30
 	void			Water(int theLevel);				// 0x404fd0
@@ -137,7 +137,7 @@ public:
 
 // 0x421b00: the compass angle in whole degrees from the first point to the second (0 up, 90 right)
 int			CompassAngle(int theX1, int theY1, int theX2, int theY2);
-// 0x4015.. : the frame of the chromium atom's pictures (0 the full size, then the shrunk ones)
+// part of 0x4028c0 and 0x428940: the frame of the chromium atom's pictures (0 the full size, then the shrunk ones)
 Sprite*		ChromiumFrame(AtomicaApp* theApp, int theFrame);
 // the chemical symbol the colour-blind option writes on an atom of a plain type (0 to 11)
 const std::string&	AtomSymbolText(int theType);

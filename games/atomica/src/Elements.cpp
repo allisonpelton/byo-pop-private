@@ -265,25 +265,25 @@ void ElementAtom::OnPlaced()
 }
 
 // 0x4049d0
-void ElementAtom::Save(FILE* f)
+void ElementAtom::Save(FILE* theFile)
 {
-	Atom::Save(f);
-	fwrite(&mPictureFrame, 4, 1, f);
-	fwrite(mFlicker, 4, 5, f);
-	fwrite(mFlickerStep, 4, 5, f);
-	fwrite(&mElement, 4, 1, f);
-	fwrite(&mLevel, 4, 1, f);
-	fwrite(&mElementSavedZero, 4, 1, f);
+	Atom::Save(theFile);
+	fwrite(&mPictureFrame, 4, 1, theFile);
+	fwrite(mFlicker, 4, 5, theFile);
+	fwrite(mFlickerStep, 4, 5, theFile);
+	fwrite(&mElement, 4, 1, theFile);
+	fwrite(&mLevel, 4, 1, theFile);
+	fwrite(&mElementSavedZero, 4, 1, theFile);
 }
 
 // 0x404a50
-void ElementAtom::Load(FILE* f)
+void ElementAtom::Load(FILE* theFile)
 {
-	Atom::Load(f);
-	fread(&mPictureFrame, 4, 1, f);
-	fread(mFlicker, 4, 5, f);
-	fread(mFlickerStep, 4, 5, f);
-	fread(&mElement, 4, 1, f);
-	fread(&mLevel, 4, 1, f);
-	fread(&mElementSavedZero, 4, 1, f);
+	Atom::Load(theFile);
+	fread(&mPictureFrame, 4, 1, theFile);
+	fread(mFlicker, 4, 5, theFile);
+	fread(mFlickerStep, 4, 5, theFile);
+	fread(&mElement, 4, 1, theFile);
+	fread(&mLevel, 4, 1, theFile);
+	fread(&mElementSavedZero, 4, 1, theFile);
 }

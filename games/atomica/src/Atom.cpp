@@ -964,65 +964,65 @@ void Atom::Draw(Graphics* g)
 }
 
 // 0x4012c0 / 0x403100: the fields of a saved game
-void Atom::Save(FILE* f)
+void Atom::Save(FILE* theFile)
 {
 	mDead = false;
-	fwrite(&mPre, 1, 1, f);
-	fwrite(&mPreStarted, 1, 1, f);
-	fwrite(&mDead, 1, 1, f);
-	fwrite(&mCol, 4, 2, f);
-	fwrite(&mX, 4, 2, f);
-	fwrite(&mPlaced, 1, 1, f);
-	fwrite(&mFollowing, 1, 1, f);
-	fwrite(&mColor, 4, 4, f);
-	fwrite(&mWobble, 4, 1, f);
-	fwrite(&mWobbleStep, 4, 1, f);
-	fwrite(&mType, 4, 1, f);
-	fwrite(&mSpawn, 4, 1, f);
-	fwrite(&mAlpha, 4, 1, f);
-	fwrite(&mFormsByItself, 1, 1, f);
-	fwrite(&mHidden, 1, 1, f);
-	fwrite(&mKind, 4, 1, f);
-	fwrite(&mKindArg, 4, 1, f);
-	fwrite(&mSpin, 4, 1, f);
-	fwrite(&mFade, 4, 1, f);
-	fwrite(&mGlow, 4, 1, f);
-	fwrite(&mGlowStep, 4, 1, f);
-	fwrite(&mNear, 1, 1, f);
-	fwrite(&mNearAlpha, 4, 1, f);
-	fwrite(&mIsElementAtom, 1, 1, f);
-	fwrite(&mShakeTime, 4, 1, f);
-	fwrite(&mShakeX, 4, 2, f);
+	fwrite(&mPre, 1, 1, theFile);
+	fwrite(&mPreStarted, 1, 1, theFile);
+	fwrite(&mDead, 1, 1, theFile);
+	fwrite(&mCol, 4, 2, theFile);
+	fwrite(&mX, 4, 2, theFile);
+	fwrite(&mPlaced, 1, 1, theFile);
+	fwrite(&mFollowing, 1, 1, theFile);
+	fwrite(&mColor, 4, 4, theFile);
+	fwrite(&mWobble, 4, 1, theFile);
+	fwrite(&mWobbleStep, 4, 1, theFile);
+	fwrite(&mType, 4, 1, theFile);
+	fwrite(&mSpawn, 4, 1, theFile);
+	fwrite(&mAlpha, 4, 1, theFile);
+	fwrite(&mFormsByItself, 1, 1, theFile);
+	fwrite(&mHidden, 1, 1, theFile);
+	fwrite(&mKind, 4, 1, theFile);
+	fwrite(&mKindArg, 4, 1, theFile);
+	fwrite(&mSpin, 4, 1, theFile);
+	fwrite(&mFade, 4, 1, theFile);
+	fwrite(&mGlow, 4, 1, theFile);
+	fwrite(&mGlowStep, 4, 1, theFile);
+	fwrite(&mNear, 1, 1, theFile);
+	fwrite(&mNearAlpha, 4, 1, theFile);
+	fwrite(&mIsElementAtom, 1, 1, theFile);
+	fwrite(&mShakeTime, 4, 1, theFile);
+	fwrite(&mShakeX, 4, 2, theFile);
 }
 
-void Atom::Load(FILE* f)
+void Atom::Load(FILE* theFile)
 {
-	fread(&mPre, 1, 1, f);
-	fread(&mPreStarted, 1, 1, f);
-	fread(&mDead, 1, 1, f);
-	fread(&mCol, 4, 2, f);
-	fread(&mX, 4, 2, f);
-	fread(&mPlaced, 1, 1, f);
-	fread(&mFollowing, 1, 1, f);
-	fread(&mColor, 4, 4, f);
-	fread(&mWobble, 4, 1, f);
-	fread(&mWobbleStep, 4, 1, f);
-	fread(&mType, 4, 1, f);
-	fread(&mSpawn, 4, 1, f);
-	fread(&mAlpha, 4, 1, f);
-	fread(&mFormsByItself, 1, 1, f);
-	fread(&mHidden, 1, 1, f);
-	fread(&mKind, 4, 1, f);
-	fread(&mKindArg, 4, 1, f);
-	fread(&mSpin, 4, 1, f);
-	fread(&mFade, 4, 1, f);
-	fread(&mGlow, 4, 1, f);
-	fread(&mGlowStep, 4, 1, f);
-	fread(&mNear, 1, 1, f);
-	fread(&mNearAlpha, 4, 1, f);
-	fread(&mIsElementAtom, 1, 1, f);
-	fread(&mShakeTime, 4, 1, f);
-	fread(&mShakeX, 4, 2, f);
+	fread(&mPre, 1, 1, theFile);
+	fread(&mPreStarted, 1, 1, theFile);
+	fread(&mDead, 1, 1, theFile);
+	fread(&mCol, 4, 2, theFile);
+	fread(&mX, 4, 2, theFile);
+	fread(&mPlaced, 1, 1, theFile);
+	fread(&mFollowing, 1, 1, theFile);
+	fread(&mColor, 4, 4, theFile);
+	fread(&mWobble, 4, 1, theFile);
+	fread(&mWobbleStep, 4, 1, theFile);
+	fread(&mType, 4, 1, theFile);
+	fread(&mSpawn, 4, 1, theFile);
+	fread(&mAlpha, 4, 1, theFile);
+	fread(&mFormsByItself, 1, 1, theFile);
+	fread(&mHidden, 1, 1, theFile);
+	fread(&mKind, 4, 1, theFile);
+	fread(&mKindArg, 4, 1, theFile);
+	fread(&mSpin, 4, 1, theFile);
+	fread(&mFade, 4, 1, theFile);
+	fread(&mGlow, 4, 1, theFile);
+	fread(&mGlowStep, 4, 1, theFile);
+	fread(&mNear, 1, 1, theFile);
+	fread(&mNearAlpha, 4, 1, theFile);
+	fread(&mIsElementAtom, 1, 1, theFile);
+	fread(&mShakeTime, 4, 1, theFile);
+	fread(&mShakeX, 4, 2, theFile);
 	mDead = false;
 	if (mPlaced)
 		PlaceAt(mCol, mRow, true);

@@ -249,139 +249,139 @@ void Grid::CheckHints()
 }
 
 // 0x40c9a0
-void Grid::Save(FILE* f)
+void Grid::Save(FILE* theFile)
 {
-	fwrite(&mPulse, 4, 1, f);
-	fwrite(&mPulseStep, 4, 1, f);
-	fwrite(&mSelectGlow, 4, 1, f);
+	fwrite(&mPulse, 4, 1, theFile);
+	fwrite(&mPulseStep, 4, 1, theFile);
+	fwrite(&mSelectGlow, 4, 1, theFile);
 	int aCount = mAtoms.Size();
-	fwrite(&aCount, 4, 1, f);
+	fwrite(&aCount, 4, 1, theFile);
 	mAtoms.Reset();
 	Atom* anAtom = mAtoms.Next();
 	while (anAtom != NULL)
 	{
 		unsigned char anElement = anAtom->IsElement() ? 1 : 0;
-		fwrite(&anElement, 1, 1, f);
-		anAtom->Save(f);
+		fwrite(&anElement, 1, 1, theFile);
+		anAtom->Save(theFile);
 		anAtom = mAtoms.Next();
 	}
-	fwrite(mCellState, 0x120, 1, f);
-	fwrite(&mCursorX, 4, 1, f);
-	fwrite(&mCursorY, 4, 1, f);
-	fwrite(&mCursorColor, 0x10, 1, f);
-	fwrite(&mNumColors, 4, 1, f);
-	fputc(mCheckMolecules ? 1 : 0, f);
-	fwrite(&mCombo, 4, 1, f);
-	fputc(mNoMoveLeft ? 1 : 0, f);
-	fputc(mGameOver ? 1 : 0, f);
-	fwrite(&mGameOverTick, 4, 1, f);
-	fputc(mFieldRevealed ? 1 : 0, f);
-	fputc(mRevealSaid ? 1 : 0, f);
-	fputc(mComboEnded ? 1 : 0, f);
-	fwrite(&mGeiger1, 4, 1, f);
-	fwrite(&mGeiger2, 4, 1, f);
-	fwrite(&mBiohazards, 4, 1, f);
-	fwrite(&mLevelUpdates, 4, 1, f);
-	fwrite(&mLevelSeconds, 4, 1, f);
-	fwrite(&mLevelAtoms, 4, 1, f);
-	fwrite(&mLevelMolecules, 4, 1, f);
-	fwrite(&mLevelBestCombo, 4, 1, f);
-	fwrite(&mLevelBonusMolecules, 4, 1, f);
-	fwrite(&mLevelBonusUpgrades, 4, 1, f);
-	fwrite(&mRoundTimer, 4, 1, f);
-	fwrite(&mRoundTime, 4, 1, f);
-	fwrite(&mCountDownTick, 4, 1, f);
-	fwrite(&mChromiumChance, 4, 1, f);
-	fwrite(&mBiohazardChance, 4, 1, f);
-	fwrite(&mAtomsPerRound, 4, 1, f);
-	fputc(mLevelSetUp ? 1 : 0, f);
-	fwrite(&mMeterFillStep, 4, 1, f);
-	fwrite(&mRounds, 4, 1, f);
-	fwrite(mHintShown, 0xff, 1, f);
-	fputc(mElementReady ? 1 : 0, f);
-	fputc(mReadyElement, f);
-	fputc(mBonusLevel ? 1 : 0, f);
-	fputc(mUnsolvable ? 1 : 0, f);
-	fwrite(&mBonusTick, 4, 1, f);
-	fwrite(&mArrowX, 4, 1, f);
-	fwrite(&mArrowY, 4, 1, f);
-	fwrite(&mMagnetTick, 4, 1, f);
-	fwrite(&mRadiation[0][0], 4, 1, f);	// the original writes 8 bytes from +0x4d0, so these four go twice
-	fwrite(mRadiation, 0x48, 1, f);
-	fputc(mRadiationRound ? 1 : 0, f);
-	fwrite(&mRadiationBlinkTimer, 4, 1, f);
-	fputc(mRadiationBlink ? 1 : 0, f);
+	fwrite(mCellState, 0x120, 1, theFile);
+	fwrite(&mCursorX, 4, 1, theFile);
+	fwrite(&mCursorY, 4, 1, theFile);
+	fwrite(&mCursorColor, 0x10, 1, theFile);
+	fwrite(&mNumColors, 4, 1, theFile);
+	fputc(mCheckMolecules ? 1 : 0, theFile);
+	fwrite(&mCombo, 4, 1, theFile);
+	fputc(mNoMoveLeft ? 1 : 0, theFile);
+	fputc(mGameOver ? 1 : 0, theFile);
+	fwrite(&mGameOverTick, 4, 1, theFile);
+	fputc(mFieldRevealed ? 1 : 0, theFile);
+	fputc(mRevealSaid ? 1 : 0, theFile);
+	fputc(mComboEnded ? 1 : 0, theFile);
+	fwrite(&mGeiger1, 4, 1, theFile);
+	fwrite(&mGeiger2, 4, 1, theFile);
+	fwrite(&mBiohazards, 4, 1, theFile);
+	fwrite(&mLevelUpdates, 4, 1, theFile);
+	fwrite(&mLevelSeconds, 4, 1, theFile);
+	fwrite(&mLevelAtoms, 4, 1, theFile);
+	fwrite(&mLevelMolecules, 4, 1, theFile);
+	fwrite(&mLevelBestCombo, 4, 1, theFile);
+	fwrite(&mLevelBonusMolecules, 4, 1, theFile);
+	fwrite(&mLevelBonusUpgrades, 4, 1, theFile);
+	fwrite(&mRoundTimer, 4, 1, theFile);
+	fwrite(&mRoundTime, 4, 1, theFile);
+	fwrite(&mCountDownTick, 4, 1, theFile);
+	fwrite(&mChromiumChance, 4, 1, theFile);
+	fwrite(&mBiohazardChance, 4, 1, theFile);
+	fwrite(&mAtomsPerRound, 4, 1, theFile);
+	fputc(mLevelSetUp ? 1 : 0, theFile);
+	fwrite(&mMeterFillStep, 4, 1, theFile);
+	fwrite(&mRounds, 4, 1, theFile);
+	fwrite(mHintShown, 0xff, 1, theFile);
+	fputc(mElementReady ? 1 : 0, theFile);
+	fputc(mReadyElement, theFile);
+	fputc(mBonusLevel ? 1 : 0, theFile);
+	fputc(mUnsolvable ? 1 : 0, theFile);
+	fwrite(&mBonusTick, 4, 1, theFile);
+	fwrite(&mArrowX, 4, 1, theFile);
+	fwrite(&mArrowY, 4, 1, theFile);
+	fwrite(&mMagnetTick, 4, 1, theFile);
+	fwrite(&mRadiation[0][0], 4, 1, theFile);	// the original writes 8 bytes from +0x4d0, so these four go twice
+	fwrite(mRadiation, 0x48, 1, theFile);
+	fputc(mRadiationRound ? 1 : 0, theFile);
+	fwrite(&mRadiationBlinkTimer, 4, 1, theFile);
+	fputc(mRadiationBlink ? 1 : 0, theFile);
 }
 
 // 0x40cd10
-void Grid::Load(FILE* f)
+void Grid::Load(FILE* theFile)
 {
-	fread(&mPulse, 4, 1, f);
-	fread(&mPulseStep, 4, 1, f);
-	fread(&mSelectGlow, 4, 1, f);
+	fread(&mPulse, 4, 1, theFile);
+	fread(&mPulseStep, 4, 1, theFile);
+	fread(&mSelectGlow, 4, 1, theFile);
 	int aCount = 0;
-	fread(&aCount, 4, 1, f);
+	fread(&aCount, 4, 1, theFile);
 	for (int i = 0; i < aCount; i++)
 	{
 		unsigned char anElement = 0;
-		fread(&anElement, 1, 1, f);
+		fread(&anElement, 1, 1, theFile);
 		Atom* anAtom;
 		if (anElement == 0)
 			anAtom = new Atom(this, 0, false);
 		else
 			anAtom = new ElementAtom(this, 0, true);
-		anAtom->Load(f);
+		anAtom->Load(theFile);
 	}
-	fread(mCellState, 0x120, 1, f);
+	fread(mCellState, 0x120, 1, theFile);
 	for (int aCol = 0; aCol < COLS; aCol++)
 		for (int aRow = 0; aRow < ROWS; aRow++)
 			if (mCellState[aCol][aRow] < 0)
 				mCellState[aCol][aRow] = 0;
-	fread(&mCursorX, 4, 1, f);
-	fread(&mCursorY, 4, 1, f);
-	fread(&mCursorColor, 0x10, 1, f);
-	fread(&mNumColors, 4, 1, f);
-	mCheckMolecules = fgetc(f) != 0;
-	fread(&mCombo, 4, 1, f);
-	mNoMoveLeft = fgetc(f) != 0;
-	mGameOver = fgetc(f) != 0;
-	fread(&mGameOverTick, 4, 1, f);
-	mFieldRevealed = fgetc(f) != 0;
-	mRevealSaid = fgetc(f) != 0;
-	mComboEnded = fgetc(f) != 0;
-	fread(&mGeiger1, 4, 1, f);
-	fread(&mGeiger2, 4, 1, f);
-	fread(&mBiohazards, 4, 1, f);
-	fread(&mLevelUpdates, 4, 1, f);
-	fread(&mLevelSeconds, 4, 1, f);
-	fread(&mLevelAtoms, 4, 1, f);
-	fread(&mLevelMolecules, 4, 1, f);
-	fread(&mLevelBestCombo, 4, 1, f);
-	fread(&mLevelBonusMolecules, 4, 1, f);
-	fread(&mLevelBonusUpgrades, 4, 1, f);
-	fread(&mRoundTimer, 4, 1, f);
-	fread(&mRoundTime, 4, 1, f);
-	fread(&mCountDownTick, 4, 1, f);
-	fread(&mChromiumChance, 4, 1, f);
-	fread(&mBiohazardChance, 4, 1, f);
-	fread(&mAtomsPerRound, 4, 1, f);
-	mLevelSetUp = fgetc(f) != 0;
-	fread(&mMeterFillStep, 4, 1, f);
-	fread(&mRounds, 4, 1, f);
-	fread(mHintShown, 0xff, 1, f);
-	mElementReady = fgetc(f) != 0;
-	mReadyElement = (unsigned char) fgetc(f);
-	mBonusLevel = fgetc(f) != 0;
-	mUnsolvable = fgetc(f) != 0;
-	fread(&mBonusTick, 4, 1, f);
-	fread(&mArrowX, 4, 1, f);
-	fread(&mArrowY, 4, 1, f);
-	fread(&mMagnetTick, 4, 1, f);
-	fread(&mRadiation[0][0], 4, 1, f);	// (overwritten by the next read)
-	fread(mRadiation, 0x48, 1, f);
-	mRadiationRound = fgetc(f) != 0;
-	fread(&mRadiationBlinkTimer, 4, 1, f);
-	mRadiationBlink = fgetc(f) != 0;
+	fread(&mCursorX, 4, 1, theFile);
+	fread(&mCursorY, 4, 1, theFile);
+	fread(&mCursorColor, 0x10, 1, theFile);
+	fread(&mNumColors, 4, 1, theFile);
+	mCheckMolecules = fgetc(theFile) != 0;
+	fread(&mCombo, 4, 1, theFile);
+	mNoMoveLeft = fgetc(theFile) != 0;
+	mGameOver = fgetc(theFile) != 0;
+	fread(&mGameOverTick, 4, 1, theFile);
+	mFieldRevealed = fgetc(theFile) != 0;
+	mRevealSaid = fgetc(theFile) != 0;
+	mComboEnded = fgetc(theFile) != 0;
+	fread(&mGeiger1, 4, 1, theFile);
+	fread(&mGeiger2, 4, 1, theFile);
+	fread(&mBiohazards, 4, 1, theFile);
+	fread(&mLevelUpdates, 4, 1, theFile);
+	fread(&mLevelSeconds, 4, 1, theFile);
+	fread(&mLevelAtoms, 4, 1, theFile);
+	fread(&mLevelMolecules, 4, 1, theFile);
+	fread(&mLevelBestCombo, 4, 1, theFile);
+	fread(&mLevelBonusMolecules, 4, 1, theFile);
+	fread(&mLevelBonusUpgrades, 4, 1, theFile);
+	fread(&mRoundTimer, 4, 1, theFile);
+	fread(&mRoundTime, 4, 1, theFile);
+	fread(&mCountDownTick, 4, 1, theFile);
+	fread(&mChromiumChance, 4, 1, theFile);
+	fread(&mBiohazardChance, 4, 1, theFile);
+	fread(&mAtomsPerRound, 4, 1, theFile);
+	mLevelSetUp = fgetc(theFile) != 0;
+	fread(&mMeterFillStep, 4, 1, theFile);
+	fread(&mRounds, 4, 1, theFile);
+	fread(mHintShown, 0xff, 1, theFile);
+	mElementReady = fgetc(theFile) != 0;
+	mReadyElement = (unsigned char) fgetc(theFile);
+	mBonusLevel = fgetc(theFile) != 0;
+	mUnsolvable = fgetc(theFile) != 0;
+	fread(&mBonusTick, 4, 1, theFile);
+	fread(&mArrowX, 4, 1, theFile);
+	fread(&mArrowY, 4, 1, theFile);
+	fread(&mMagnetTick, 4, 1, theFile);
+	fread(&mRadiation[0][0], 4, 1, theFile);	// (overwritten by the next read)
+	fread(mRadiation, 0x48, 1, theFile);
+	mRadiationRound = fgetc(theFile) != 0;
+	fread(&mRadiationBlinkTimer, 4, 1, theFile);
+	mRadiationBlink = fgetc(theFile) != 0;
 	mApp->mBoard->mNeedleTarget = (float) (mCombo * 0xc);
 	mSelected = NULL;
 }
