@@ -57,8 +57,12 @@ progress) and go on in a reloaded page.
 The bar and panels are ordinary HTML around the canvas. They reach the game in four ways:
 
 - **Function calls.** `platform/WebApi.cpp` exports `byopop_mods_open`, `byopop_mods_state`, `byopop_mods_edit` and
-  `byopop_mods_rescan`; `framework/ModMenu.cpp` exports `byopop_menu` and `byopop_restart`. The page calls them with
-  `Module.ccall`, and the game calls back through `Module.onModsChanged`.
+  `byopop_mods_rescan`; `framework/ModMenu.cpp` exports `byopop_menu`, `byopop_restart` and `byopop_quit`. The page calls
+  them with `Module.ccall`, and the game calls back through `Module.onModsChanged`. `byopop_quit` is for the Close of a
+  game's window: it calls the app's `QuitAsGame` hook (`SexyAppBase.h`), which shuts down at once by default and which
+  a game overrides to leave as its own Quit does (Bejeweled Twist plays its goodbye first). It returns 1 when a game
+  took the call and 0 when none runs; a build without the export is closed with `byopop_restart(1)`. The shutdown
+  reaches the page through `Module.onGameExit` either way.
 - **The screen's shape.** The stage is 4:3 unless the game calls `Module.onGameScreen(width, height)` before it makes
   its window (BookWorm's widescreen mod gives 854 x 480). SDL sizes the canvas to the stage.
 - **Files.** Adding a mod writes it into `/persist/mods` and syncs to IndexedDB; the game reads it at its next start.
@@ -1006,7 +1010,10 @@ A game page shows the panel while the setting `perf` is on (`web/perf.js`; off b
 game plays the same with it on, and with it off nothing of it runs. In a game's window on the one page it is part of
 the window, at the right of the game, and the window is that much wider (`sideWidth` in `web/shell.html`); nothing but
 the game and its mod menu is drawn over the game (the user, 2026-11-10), so the input display is in the window's
-status bar too. Each second it shows:
+status bar too. `?perf=1` on the listing's address or a game page's turns it on for that visit whatever the setting
+says (the one page passes it to its game windows), and a phone then does not go to full screen at Play, which would
+cover it. On a page under 600 pixels wide it is under the game, as wide as the page and scrolling in itself; on a
+small screen its Sound group comes first. Each second it shows:
 
 - **Frames:** frames per second and frame time, and the game's own time per frame, which the framework's frame hook
   passes (`sexyapp_test_frame`, `Module.byopopTestFrame`).

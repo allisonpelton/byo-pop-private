@@ -2251,5 +2251,17 @@ EMSCRIPTEN_KEEPALIVE const char* byopop_restart(int isConfirmed)
 	return sResult.c_str();
 }
 
+// The page's Close on a game's window: SexyAppBase::QuitAsGame, the game's own way out (Bejeweled Twist says goodbye
+// and shuts down when the voice ends). Returns 1 when a game was there to ask, 0 when none runs (or it is already
+// shutting down). The game's shutdown then reaches the page as any other does (Module.onGameExit).
+EMSCRIPTEN_KEEPALIVE int byopop_quit()
+{
+	SexyAppBase* anApp = gSexyAppBase;
+	if ((anApp == NULL) || (!anApp->mInitialized) || (anApp->mShutdown))
+		return 0;
+	anApp->QuitAsGame();
+	return 1;
+}
+
 }
 #endif

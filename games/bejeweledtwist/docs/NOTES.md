@@ -1386,3 +1386,17 @@ The game-text table was stale: a curve or text whose address `gametext.py` has n
 twelve curves ran out at once until the table was made again, and the rank badge's two texts of the coverage check had been
 empty too (its tip showed only the rank's name). The table is regenerated; 18 addresses nothing uses any more went out of it.
 `live.py` has three new steps for this: `challenge <x> <y>`, `after <n>` and `wait <n>`.
+
+## The site's Close says goodbye (2026-11-11)
+
+The user: "When using the window close dialog, it should wait for the Goodbye sound like quitting from the menu does." The
+menu's Quit, Yes (`Menu::DialogButtonDepress`, dialog 2) plays SOUND_VOICE_GOODBYE and waits for it in place before
+`Shutdown()`; a web build cannot wait in place (the sound plays only once the call returns), so that wait was compiled out on
+the web, and the site's Close shut the game down at once through the restart hook. Now the framework has
+`SexyAppBase::QuitAsGame` (by default `Shutdown()`), which the page calls through the export `byopop_quit`, and Twist
+overrides it: the voice starts, and `UpdateFrames` shuts the game down once it has ended (a voice that never ends is given
+1,000 updates), a second call meanwhile doing nothing. On the web the menu's Quit goes the same way; natively it is unchanged,
+and nothing native calls the hook (the suite's screens and baseline are as frozen). Seen in the Browser pane with `?silent=1`,
+where nothing can be heard, by the game's own log: `byopop_quit` at update 1437 logged "the goodbye voice started", then "ended
+after 139 updates; shutting down" (the voice is 1.405 s long), and the page's game ended. The site's own line that calls
+`byopop_quit` is the site session's.

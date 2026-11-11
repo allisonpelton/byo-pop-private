@@ -983,6 +983,16 @@ void WinTwistApp::ModalClose()
 		mBoard->Unpause(mBoard->mIsBlitzGame);
 }
 
+void WinTwistApp::QuitAsGame()
+{
+	if (mQuitAfterGoodbye)
+		return;
+	mGoodbyeSound = PlaySoundEx(SOUND_VOICE_GOODBYE, 0, 0, 0, false, true);
+	mGoodbyeUpdates = 0;
+	mQuitAfterGoodbye = true;
+	SDL_Log("QuitAsGame: the goodbye voice %s", mGoodbyeSound != nullptr ? "started" : "could not be played");
+}
+
 void WinTwistApp::UpdateFrames()
 {
 	// The credits are gone (Credits::Update): out of the widgets and deleted
@@ -992,6 +1002,20 @@ void WinTwistApp::UpdateFrames()
 		mCredits = nullptr;
 	}
 	SexyApp::UpdateFrames();
+	// port: QuitAsGame's deferred shutdown
+	if (mQuitAfterGoodbye) {
+		mGoodbyeUpdates++;
+		if (mGoodbyeSound == nullptr || !mGoodbyeSound->IsPlaying() || 1000 < mGoodbyeUpdates) {
+			if (mGoodbyeSound != nullptr) {
+				mGoodbyeSound->Release();
+				mGoodbyeSound = nullptr;
+			}
+			mQuitAfterGoodbye = false;
+			SDL_Log("QuitAsGame: the goodbye voice ended after %d updates; shutting down", mGoodbyeUpdates);
+			Shutdown();
+			return;
+		}
+	}
 	// port (tests): -audiocapture
 	if (!mAudioCaptureFileName.empty() && mAudioCapture == nullptr)
 		mAudioCapture = new AudioCapture(mAudioCaptureFileName);
