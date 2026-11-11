@@ -341,8 +341,8 @@ WaterBugsApp::WaterBugsApp()
 	mWholeScreen = false;
 	mDirtyLeft = mDirtyTop = r64::SCREEN_WIDTH;
 	mDirtyRight = mDirtyBottom = 0;
-	mMouseX = 400;
-	mMouseY = 300;
+	mMouseX = r64::SCREEN_CENTRE_X;
+	mMouseY = r64::SCREEN_CENTRE_Y;
 }
 
 WaterBugsApp::~WaterBugsApp()

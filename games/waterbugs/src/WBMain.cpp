@@ -229,7 +229,7 @@ void ResetProfiles()
 		std::strcpy(gProfiles[0].mName, GT(0x458acc));
 #ifdef __EMSCRIPTEN__
 	// the web page's player (framework/WebProfiles.h): under "fill" and "create" it names the first player
-	SiteFirstPlayer(gProfiles[0].name, 0x20);
+	SiteFirstPlayer(gProfiles[0].mName, 0x20);
 #endif
 	gProfiles[0].mLevelReached = 0;
 	gProfiles[0].mAutoFire = 1;
@@ -242,7 +242,7 @@ void ResetProfiles()
 	gProfiles[0].mPowerupsCaught = 0;
 	for (Profile* aProfile = gProfiles + 1; aProfile < gProfiles + 10; aProfile++)
 	{
-		std::strcpy(aProfile->mName, Localize(GT(0x458ac4)));
+		std::strcpy(aProfile->mName, Localize(GT(TEXT_EMPTY_PROFILE)));
 		aProfile->mLevelReached = 0;
 		aProfile->mAutoFire = gAutoFire;
 		aProfile->mSavedLevel = 0;

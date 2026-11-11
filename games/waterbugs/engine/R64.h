@@ -14,6 +14,8 @@ namespace r64
 // The screen: 800 by 600 pixels
 constexpr int SCREEN_WIDTH = 800;
 constexpr int SCREEN_HEIGHT = 600;
+constexpr int SCREEN_CENTRE_X = SCREEN_WIDTH / 2;
+constexpr int SCREEN_CENTRE_Y = SCREEN_HEIGHT / 2;
 
 // 0x34 bytes: bits per pixel and each component's mask, bit count, shift and loss (8 - bits).
 // Initialised by PixelFormat_Init (0x4012d0; 0x42e790 is the same code). A component reads as

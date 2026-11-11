@@ -209,7 +209,7 @@ public:
 		std::memset(mMark, 0, sizeof(mMark));
 		for (int c = 0; c < mCols; c++)
 			for (int r = 0; r < mRows; r++)
-				mOpen[c][r] = theLevel->mColumns[c][r].mKind == 0;
+				mOpen[c][r] = theLevel->mColumns[c][r].mKind == CELL_OPEN;
 		for (Enemy* e = theLevel->mEnemies.mHead; e != nullptr; e = Node_Next(e))
 		{
 			int c = (int)e->mX / CELL_SIZE;
@@ -826,7 +826,8 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 		{
 			std::string aRow;
 			for (int c = 0; c < aLevel->mCols && c < 50; c++)
-				aRow += aLevel->mColumns[c][r].mKind != 0 ? '#' : (aLevel->mColumns[c][r].mUnmarked == 0 ? '+' : '.');
+				aRow += aLevel->mColumns[c][r].mKind != CELL_OPEN ? '#' :
+					(aLevel->mColumns[c][r].mUnmarked == 0 ? '+' : '.');
 			for (Enemy* e = aLevel->mEnemies.mHead; e != nullptr; e = Node_Next(e))
 				if ((int)e->mY / CELL_SIZE == r && 0 <= (int)e->mX / CELL_SIZE && (int)e->mX / CELL_SIZE <
 					(int)aRow.size())

@@ -103,12 +103,12 @@ int main(int theArgc, char** theArgv)
 #ifdef __EMSCRIPTEN__
 	// port (web): its page (web/shell.html, games/waterbugs/web/page.js) mounts its own IndexedDB-backed folder,
 	// so Water Bugs' files never mix with the other games' on the same site
-	if (gameDir.empty())
-		gameDir = "/wbpersist/game";
-	if (userDir.empty())
-		userDir = "/wbpersist/userdata";
-	if (modsDir.empty())
-		modsDir = "/wbpersist/mods";
+	if (aGameDir.empty())
+		aGameDir = "/wbpersist/game";
+	if (anUserDir.empty())
+		anUserDir = "/wbpersist/userdata";
+	if (aModsDir.empty())
+		aModsDir = "/wbpersist/mods";
 #else
 	if (aGameDir.empty())
 		aGameDir = FindGameDir();

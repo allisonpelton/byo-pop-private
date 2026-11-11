@@ -145,8 +145,8 @@ void DrawLoadingScreen()
 	{
 		std::memset(gScreenBits, 0, gScreenPitch * SCREEN_HEIGHT);
 		Draw_FillBlend(gScreenBits, gScreenPitch, &gBackBuffer.mFmt, 0, 0, 0x31f, 0x257, 0, 0, 0, 0xb4);
-		Image_BlitSubRect(anImage, gScreenBits, gScreenPitch, Sys_ScreenFormat(), 400 - anImage->mW / 2,
-			300 - anImage->mH / 2, 0, 0, anImage->mW, anImage->mH);
+		Image_BlitSubRect(anImage, gScreenBits, gScreenPitch, Sys_ScreenFormat(), SCREEN_CENTRE_X - anImage->mW / 2,
+			SCREEN_CENTRE_Y - anImage->mH / 2, 0, 0, anImage->mW, anImage->mH);
 		UnlockScreen();
 	}
 	Present(0);

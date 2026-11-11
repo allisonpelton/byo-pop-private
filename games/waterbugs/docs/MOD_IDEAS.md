@@ -10,7 +10,7 @@ is. Everything here would be a mod of the port's own code and data, never anothe
 What the game is, for the list: a real-time game on a mouse. A ship moves with the pointer and a click fires a pair of
 beams that close a stretch of the board; a right click or the space bar switches the beams' aim. Bugs roam the board and
 cut a beam they touch; a fill that holds no bug stays, and a board is won at its quota (85% in the first ones, from the
-level file's `fillQuota`). The game keeps the player's lives, a score, two records per board (the fewest shots and the best
+level file's `mFillQuota`). The game keeps the player's lives, a score, two records per board (the fewest shots and the best
 fill, each with a name) and a Hall of Fame, and has a world map with the levels reached. It runs on a fixed 10 ms update
 clock with its own random numbers, so a game is its seed and its input. The screen is 800x600 and the art is drawn by
 software blitters into a 16-bit back buffer.

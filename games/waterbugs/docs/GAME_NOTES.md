@@ -9,7 +9,7 @@ and `ENGINE.md`, the differences from the exe in `DEVIATIONS.md`, and the compar
 ## The game's screens, as the test commands name them
 
 The engine moves between "levels" of a kind (`Level::kind`): 0 a board, or a world's story screen when it has no cells
-(`totalCells` is 0), 1 the main menu, 2 the name entry, 3 the high scores, 4 the credits, 5 and 6 the world map, 7 the Options,
+(`mTotalCells` is 0), 1 the main menu, 2 the name entry, 3 the high scores, 4 the credits, 5 and 6 the world map, 7 the Options,
 8 to 10 the nag screens, 0xb the results of a won level, 0xc and 0xd the help, 0xe a logo (about 2.15 s, and it ends by itself),
 0x10 the player list. `state` calls them `board`, `story`, `menu`, `nameentry`, `highscores`, `credits`, `map`, `map2`,
 `options`, `nag`, `complete`, `help`, `help2`, `logo`, `changeuser` and `loading` (before the first screen).
@@ -39,13 +39,13 @@ A command that is never given changes nothing and draws no random number. Each a
 | `grid` | the board as text, one line per row: `.` open, `+` open and marked by a pending beam, `#` not open, `e` a bug |
 
 **`state`.** Always: `screen`, `mode` (always `campaign`), `update` (the framework's), `frame` (the game's steps, ten to an
-update), `score`, `lives`, `level` (the board's number, -1 off a board), `reached` (`levelReached` of the player), `difficulty`,
+update), `score`, `lives`, `level` (the board's number, -1 off a board), `reached` (`mLevelReached` of the player), `difficulty`,
 `shootermode`, `rand` (the generator's state), `over` (the game has ended: the name entry, the high scores or the results after a
 board was up) and `busy` (the bot has nothing to press and waits). On a board: `percent` and `quota` (the fill and the fill to win),
 `board` (`cols`, `rows`, `state`, `gameover`, `shots`, `lines`, `cells`, `filled`, `weapons`, `texts`, and `ship`: `x`, `y`,
 `state`, `across`, `noauto`, `speed`), `mouse` and `pointer`, `powerups` as `[x, y, state]` and `enemies` as `[x, y, vx, vy, kind,
 state]`. On every other screen, and on a board with a requester up: `dialog` (a requester is up) and `items` as `[kind, x, y,
-name, lockedLevel]`, with `sets` as `[start, end]` for each world.
+name, mLockedLevel]`, with `sets` as `[start, end]` for each world.
 
 **`move`.** On a board the bot looks at every open cell and both directions of the beam through it and chooses the shot that
 fills the most, weighing how long the two beams take to stop and how early each bug could reach a beam that is still growing;
@@ -339,6 +339,83 @@ from before this phase. With a temporary count in the new delete, that run dropp
 screen kind with no crash. There is no AddressSanitizer for the i686 llvm-mingw build, so a heap error in the new
 destructor path would show only as a crash; the web build (`tools/check.sh build`) is built before the merge request.
 
+## The readability pass (2026-11-11)
+
+The pass of `docs/CODE_STANDARDS.md`. Nothing the port does changed (the proof is at the end), and
+`python tools/namecheck.py games/waterbugs` finds nothing. It has two exceptions, in `namecheck.txt`: `folder engine`
+(Retro64 is the game's own engine, beside `src`, so it is checked like the rest) and `allow offset gScreenFormat565`
+(the pixel format's name: red 5 bits, green 6, blue 5, which is not an offset). These notes use the new names; the
+sections above that report a past run (the performance figures, the coverage check) keep the names of their time.
+
+**Names.** Water Bugs has no Mac build, so every name comes from how the code uses the thing. The rules ran in this
+order. Rule 5: every one-letter name past ten lines of its declaration is a word (a blitter's `dstPitch`, `srcX`,
+`maskY`; `theWidth` and `theHeight` for the old `w` and `h`; the loops keep `i`, `j`, `k` and the coordinates
+`x`, `y`). Rule 2: no member or local is called unknown, and no field is named by its offset. Rule 4: the framework's
+prefixes on every member (`m`), parameter (`the`, `an`), local (`a`, `an`), global (`g`) and static (`s`), the
+constants and enum values in UPPER_CASE (`SCREEN_CLIP`, `OUTPUT_VOLUME`, `RAND_A`, `TRIAL_TIME_FIELD`). Rule 6: the
+host and mod files carry the port marker, and every function has its address or says it is the port's.
+
+**The prefixes came from clang-tidy.** `readability-identifier-naming` with the prefixes and `CamelCase` (without
+`*Case: CamelCase` it writes `thedst`) renamed every declaration and its uses, then a person repaired what it
+mangled. Four things to know for the next game: run it once for each translation unit with `--export-fixes` and apply
+all the files together with a small script (applying one file after the other, or exporting all units in one run, loses
+uses); `--header-filter` needs `.*waterbugs.*` (the paths have backslashes); a name that begins with its prefix's letter
+comes out wrong (`mask` became `mAsk`, `menu` `mEnu`, `mode` `mOde`, `max...` `mAx...`: a dozen names, repaired and
+checked by the compiler); and it does not reach `offsetof(...)` arguments, members of anonymous-namespace structs,
+or a member reached through a template (`aNode->mNext` in the list templates), which fail to compile and take a
+minute each to fix. It also does not compile what the native build leaves out: the `__EMSCRIPTEN__` blocks of
+`WBMain.cpp`, `WBMenu.cpp`, `WBText.cpp` and the whole of `SiteProfiles.cpp` kept their old names (`.name`, `->current`,
+`->font`) until the web build, `tools/check.sh build-web:waterbugs`, broke on them. The comments that named a renamed
+identifier were changed with a script that touches comments only.
+
+**Fields named for what they hold (rule 3).** `tools/splitfields.py waterbugs` finds no member declared twice at one
+offset, none that nothing writes, and three that nothing reads: the ship's `mSlowMotionTime` (+0x490) and
+`mHyperMotionTime` (+0x494), which the two power-ups set to 5000 and the original reads nowhere (the flags beside them
+are what its code tests), and a text's `mDormant` (+0x1c0, which `mLifetime` starts from). They are the original's and
+stay, with their comments saying that nothing reads them. The padding that keeps a struct's layout is named for the
+field it aligns (`mBonusPadding`, `mItemsPadding`, `mDragPadding`, `mLaunchSpeedPadding`, `mInputPadding`,
+`mWingsPadding`, `mPaletteNumberPadding`, `mWidthPadding`, `mEndPadding`, `mFontPadding`, `mOwnedPadding`,
+`mOffsetPadding`, `mCountPadding`). The tool's check of members that the export's functions touch under another name
+had nothing to compare: it reads definitions written `Class::method` with an address, and Water Bugs' are free
+functions (it found one).
+
+**Numbers named (rule 7).** Where one value meant one thing in many places it has a name:
+
+| names | what they are | uses |
+|---|---|---|
+| `SCREEN_WIDTH`, `SCREEN_HEIGHT`, `SCREEN_CENTRE_X`, `SCREEN_CENTRE_Y` (`engine/R64.h`) | the 800 by 600 screen and its middle | 140, in the game, the host and the engine |
+| `CELL_SIZE`, `CELL_HALF`, `GRID_COLUMNS`, `GRID_ROWS`, `BOARD_WIDTH`, `BOARD_HEIGHT` (`WBGame.h`) | the 16-pixel cell, half of it, the 50 by 37 board and its 800 by 592 pixels | 270: every position over 16 is a cell index |
+| `CellKind`: `CELL_OPEN`, `CELL_BEAM`, `CELL_LINE`, `CELL_EDGE`, `CELL_FILLED`, `CELL_SOLID` | what a cell is (`Cell::mKind`) | 145 |
+| `EnemyKind` (twenty names: `ENEMY_FROG`, `ENEMY_BUMP_ROLLER`, `ENEMY_CANNON_BALL`...) and `EnemyState`: `ENEMY_APPEARING`, `ENEMY_DYING`, `ENEMY_FADING`, `ENEMY_ALIVE` | what an enemy is and where it is in its life | 90 |
+| `PowerupKind` (fourteen names) and `WeaponKind`: `WEAPON_MISSILE`, `WEAPON_TIME_BOMB`, `WEAPON_MAGNET`, `WEAPON_ANCHOR` | what a power-up and a weapon are | 80 |
+| `TEXT_IDLE_FOREVER`, `TEXT_EMPTY_PROFILE` | a text's idle time of 0x986fc8 ms (about three hours: it stays until clicked away), and the text id of an unused profile slot's name | 30 |
+
+The kinds' meanings come from how the code uses them and from the comments the earlier passes wrote over the structs;
+two are judgements. `CELL_LINE` is what a beam leaves (the walkers follow it and the bump rollers push it), and a
+blast's rim is made of lines too; `CELL_BEAM` is a cell a growing beam crosses, which the capture turns into a line.
+The power-up kinds are named for the function each calls (the kind 1, `Powerup_FlipFlopper`, plays the "power down"
+sound); the test keys `0` to `9` and `A` to `D` make kinds 0 to 13, and any other number is the fast shot. The
+screen's size appears twice in `Obj_FromXml` and the text and emitter loaders as `x * 800 / 800`: the original scales the authored position by the
+screen's size over itself, and the port keeps both factors, now named. The shooter's range test (`16 < x < 784`, `16 < y < 584`) is the screen
+less a cell, not the board (592 is the board's bottom).
+
+What stays a number, each where its comment or the line makes it plain: the level kinds and the menu items' kinds (the
+`switch` cases of `MenuItem_Update` and the screens' own tables), the ship's and the objects' states, the draw kinds,
+the particle systems' colours and counts, times in milliseconds, speeds, scores and the points of a chain. They are
+the original's own tuning and appear once or twice each; naming them would be a list of constants nobody reads twice.
+
+**Lines.** Over 120 columns (tabs of 4) are wrapped at a comma or an operator, or the comment moved above the line;
+a few comment lines that begin with an address stay long.
+
+**The proof.** `tools/objsnap.py` took the game's objects before the first change (31 objects, 706 functions) and
+compares them after every part: each function's instructions with the names taken out, and the data bytes, which
+hold every string, log line and table. All of them are identical except one thing: the unit `WBPowerup.cpp` is one
+byte longer, in `.llvm_addrsig`, the table of the symbols whose address is taken (linker metadata, no instruction
+and no data; it lists symbols by their index in the object's symbol table, and the renames changed that table's
+order, which makes the table a byte longer). The comparison caught a slip on the way: the shooter's 584
+is the screen's height less a cell, not the board's 592 less a cell. `tools/check.sh waterbugs` (the suite against the frozen baseline) passes, and so do `tools/check.sh build` (every target
+and tool) and `build-web:waterbugs`; the web build matters because the native build compiles none of the
+`__EMSCRIPTEN__` blocks nor `SiteProfiles.cpp`, which is where the old names were still found.
 ## Coverage check (2026-11-08)
 
 The whole coverage check of `docs/COVERAGE.md`, after Ning Po's. origrun's `--coverage` recorded which of the original's

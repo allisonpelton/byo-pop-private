@@ -671,14 +671,14 @@ int MenuItem_Update(MenuItem* theItem)
 				// a player's slot: an empty one asks for a name, the current one goes back, another is chosen
 				strcpy(gSavedName, gProfiles[gProfile].mName);
 				gSavedProfile = aProfile;
-				if (strcmp(gProfiles[atol(theItem->mName)].mName, Localize(GT(0x458ac4))) == 0)
+				if (strcmp(gProfiles[atol(theItem->mName)].mName, Localize(GT(TEXT_EMPTY_PROFILE))) == 0)
 				{
 					theItem->mHot = 0;
 					gProfile = atol(theItem->mName);
 					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 2, Localize(GT(0x4596dc)), nullptr);
 #ifdef __EMSCRIPTEN__
 					// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
-					SiteFillName(&gLevels.current->menus.current->requesters.current->entry->input);
+					SiteFillName(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput);
 #endif
 				}
 				else if (gProfile == atol(theItem->mName))
@@ -702,7 +702,7 @@ int MenuItem_Update(MenuItem* theItem)
 				TextInput_SetText(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput,
 					gProfiles[gProfile].mName);
 #ifdef __EMSCRIPTEN__
-				SiteFillName(&gLevels.current->menus.current->requesters.current->entry->input);	// as above
+				SiteFillName(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput);	// as above
 #endif
 				break;
 			case 0x1d:
@@ -715,7 +715,7 @@ int MenuItem_Update(MenuItem* theItem)
 				int aPlayers = 0;
 				for (Profile* aSlot = gProfiles; aSlot < gProfiles + 10; aSlot++)
 				{
-					if (strcmp(aSlot->mName, Localize(GT(0x458ac4))) != 0)
+					if (strcmp(aSlot->mName, Localize(GT(TEXT_EMPTY_PROFILE))) != 0)
 						aPlayers = aPlayers + 1;
 				}
 				theItem->mHot = 0;
@@ -737,10 +737,10 @@ int MenuItem_Update(MenuItem* theItem)
 				// the delete's okay: the slot is emptied and the first player left is chosen
 				gProfiles[gProfile].mAutoFire = 1;
 				gProfiles[gProfile].mLevelReached = 0;
-				strcpy(gProfiles[gProfile].mName, Localize(GT(0x458ac4)));
+				strcpy(gProfiles[gProfile].mName, Localize(GT(TEXT_EMPTY_PROFILE)));
 				for (int i = 0; i < 10; i++)
 				{
-					if (strcmp(gProfiles[i].mName, Localize(GT(0x458ac4))) != 0)
+					if (strcmp(gProfiles[i].mName, Localize(GT(TEXT_EMPTY_PROFILE))) != 0)
 					{
 						gProfile = i;
 						i = 10;
@@ -958,8 +958,8 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	aRequester->mMidHandle = 1;
 	aRequester->mDirty = 1;
 	aRequester->mDrawKind = 1;
-	aRequester->mX = 400.0f;
-	aRequester->mY = 300.0f;
+	aRequester->mX = (float)SCREEN_CENTRE_X;
+	aRequester->mY = (float)SCREEN_CENTRE_Y;
 	aRequester->mDepth = 300;
 	Text_Append(&gLevels.mCurrent->mTexts);
 	aList->mCurrent->mTexts[0] = gLevels.mCurrent->mTexts.mCurrent;
@@ -970,11 +970,12 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	case 0:
 		// deleting the player
 		sprintf(aBuf, "%s%s,", Localize(GT(0x459634)), gProfiles[gProfile].mName);
-		Text_Make(aList->mCurrent->mTexts[0], aBuf, Font_Find("bonus_font"), 400, 0xfa, 0, 100, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], aBuf, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0xfa, 0, 100,
+			TEXT_IDLE_FOREVER, 500, 0, 0);
 		Requester_AddText(aList->mCurrent);
 		sprintf(aBuf, "%s", Localize(GT(0x45961c)));
-		Text_Make(aList->mCurrent->mTexts[aList->mCurrent->mTextCount], aBuf, Font_Find("bonus_font"), 400, 0x10c, 0,
-			100, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[aList->mCurrent->mTextCount], aBuf, Font_Find("bonus_font"), SCREEN_CENTRE_X,
+			0x10c, 0, 100, TEXT_IDLE_FOREVER, 500, 0, 0);
 		aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
@@ -984,16 +985,18 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		break;
 	case 1:
 		// a message to close
-		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 0, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0xfa, 0, 0,
+			TEXT_IDLE_FOREVER, 500, 0, 0);
 		if (theSecond != nullptr)
 		{
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, theSecond, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0x10c, 0, 100, TEXT_IDLE_FOREVER, 500,
+				0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
 		MenuItem_Append(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
-		Button_Setup(anItem, "okay", 400.0f, 330.0f);
+		Button_Setup(anItem, "okay", (float)SCREEN_CENTRE_X, 330.0f);
 		anItem->mMidHandle = 1;
 		anItem->mKind = 0x20;
 		strcpy(anItem->mName, GT(0x4595f0));
@@ -1012,7 +1015,8 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		TextInput_SetOutline(anInput, 0);
 		TextInput_SetOnEnter(anInput, Level_SetUserName);
 		anEntry->mState = 3;
-		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 0, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0xfa, 0, 0,
+			TEXT_IDLE_FOREVER, 500, 0, 0);
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
@@ -1022,11 +1026,13 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	}
 	case 3:
 		// leaving the game
-		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 100, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0xfa, 0, 100,
+			TEXT_IDLE_FOREVER, 500, 0, 0);
 		if (theSecond != nullptr)
 		{
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, theSecond, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0x10c, 0, 100, TEXT_IDLE_FOREVER, 500,
+				0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
 		MenuItem_Insert(&aList->mCurrent->mItems);
@@ -1043,51 +1049,62 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		aRequester->mAlpha = 0;
 		aRequester->mDrawKind = 4;
 		aRequester->mY = 260.0f;
-		Text_Make(aRequester->mTexts[0], theText, Font_Find("bonus_font"), 400, 0x5c, 0, 100, 0x986fc8, 500, 0, 0);
+		Text_Make(aRequester->mTexts[0], theText, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0x5c, 0, 100,
+			TEXT_IDLE_FOREVER, 500, 0, 0);
 		if (theSecond != nullptr)
 		{
 			Level* aLevel = gLevels.mCurrent;
 			LevelRecord* aRecord;
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, theSecond, Font_Find("bonus_font2"), 400, 0x87, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, theSecond, Font_Find("bonus_font2"), SCREEN_CENTRE_X, 0x87, 0, 0, TEXT_IDLE_FOREVER, 500,
+				0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			sprintf(aBuf, "%d%s", (aLevel->mFilledCells * 100) / aLevel->mTotalCells, "%");
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x98, 300, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0x98, 300, 0x32, TEXT_IDLE_FOREVER, 500, 0,
+				0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x4595ac), Font_Find("bonus_font2"), 400, 0xb4, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x4595ac), Font_Find("bonus_font2"), SCREEN_CENTRE_X, 0xb4, 0, 0, TEXT_IDLE_FOREVER,
+				500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aRecord = &gLevelRecords[gLevels.mCurrent->mNumber];
 			sprintf(aBuf, "%s, %d%s", aRecord->mFillName, aRecord->mBestFill, "%");
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0xc5, 600, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0xc5, 600, 0x32, TEXT_IDLE_FOREVER, 500, 0,
+				0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x45958c), Font_Find("bonus_font2"), 400, 0xeb, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x45958c), Font_Find("bonus_font2"), SCREEN_CENTRE_X, 0xeb, 0, 0, TEXT_IDLE_FOREVER,
+				500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			sprintf(aBuf, "%d", gLevels.mCurrent->mShots);
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0xfc, 900, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0xfc, 900, 0x32, TEXT_IDLE_FOREVER, 500, 0,
+				0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x45957c), Font_Find("bonus_font2"), 400, 0x118, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x45957c), Font_Find("bonus_font2"), SCREEN_CENTRE_X, 0x118, 0, 0, TEXT_IDLE_FOREVER,
+				500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aRecord = &gLevelRecords[gLevels.mCurrent->mNumber];
 			sprintf(aBuf, "%s, %d", aRecord->mShotsName, aRecord->mFewestShots);
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x129, 0x4b0, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0x129, 0x4b0, 0x32, TEXT_IDLE_FOREVER, 500,
+				0, 0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x459564), Font_Find("bonus_font2"), 400, 0x14f, 0, 0, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, GT(0x459564), Font_Find("bonus_font2"), SCREEN_CENTRE_X, 0x14f, 0, 0, TEXT_IDLE_FOREVER,
+				500, 0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 			sprintf(aBuf, "%d", gLevels.mCurrent->mBonus);
 			aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, aBuf, Font_Find("bonus_font"), 400, 0x160, 0x5dc, 0x32, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, aBuf, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0x160, 0x5dc, 0x32, TEXT_IDLE_FOREVER, 500,
+				0, 0);
 			aList->mCurrent->mTexts[aList->mCurrent->mTextCount]->mAppearSound = Sound_Find("audio\\pop.wav");
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
@@ -1099,7 +1116,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		anItem->mDrawKind = 1;
 		anItem->mFont = Font_Find("bonus_font");
 		anItem->mHotFont = Font_Find("bonus_font");
-		anItem->mX = 400.0f;
+		anItem->mX = (float)SCREEN_CENTRE_X;
 		anItem->mY = 416.0f;
 		anItem->mDepth = 0x15e;
 		anItem->mMidHandle = 1;
@@ -1110,18 +1127,20 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		anItem->mShowOnlyHot = 0;
 		{
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, GT(0x45954c), Font_Find("bonus_font"), 400, 400, 0, 300, 300, 300, 1, 0);
+			Text_Make(aText, GT(0x45954c), Font_Find("bonus_font"), SCREEN_CENTRE_X, 400, 0, 300, 300, 300, 1, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
 		return;
 	}
 	case 5:
 		// yes or no
-		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), 400, 0xfa, 0, 100, 0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[0], theText, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0xfa, 0, 100,
+			TEXT_IDLE_FOREVER, 500, 0, 0);
 		if (theSecond != nullptr)
 		{
 			Text* aText = Requester_AddText(aList->mCurrent);
-			Text_Make(aText, theSecond, Font_Find("bonus_font"), 400, 0x10c, 0, 100, 0x986fc8, 500, 0, 0);
+			Text_Make(aText, theSecond, Font_Find("bonus_font"), SCREEN_CENTRE_X, 0x10c, 0, 100, TEXT_IDLE_FOREVER, 500,
+				0, 0);
 			aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		}
 		MenuItem_Insert(&aList->mCurrent->mItems);
@@ -1165,7 +1184,7 @@ int Menu_Update(Menu* theMenu)
 	{
 		// a requester asking for a name stays up until it has one
 		const char* aName = gProfiles[gProfile].mName;
-		if (strcmp(aName, Localize(GT(0x458ac4))) == 0)
+		if (strcmp(aName, Localize(GT(TEXT_EMPTY_PROFILE))) == 0)
 			return 1;
 		if (aName[0] == 0)
 			return 1;

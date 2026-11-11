@@ -12,11 +12,24 @@
 namespace wb
 {
 
+// What a cell is (Cell::mKind): water the enemies and the beams move through, a cell a growing beam crosses, a line
+// (what a beam leaves; a blast's rim and what the bump rollers push are lines too), the board's edge, filled ground,
+// and solid (outside the board)
+enum CellKind
+{
+	CELL_OPEN = 0,
+	CELL_BEAM = 1,
+	CELL_LINE = 2,
+	CELL_EDGE = 3,
+	CELL_FILLED = 4,
+	CELL_SOLID = 5,
+};
+
 // A cell of the board, 16 by 16 pixels (0xe4 bytes; the loader makes each column with new[], 0x403580 constructs
 // a cell, 0x419c00 destroys one)
 struct Cell : Obj
 {
-	// kind +0x08: 0 open, 1 and 2 a beam's, 3 edge, 4 filled, 5 solid; state +0x0c: 3 still, 5 being captured,
+	// kind +0x08: a CellKind; state +0x0c: 3 still, 5 being captured,
 	// 6 waiting for the board's wave, 7 in the wave (which builds the board at the start, and takes it down when won)
 	int mRow;                   // +0xb0
 	int mCol;                   // +0xb4
@@ -58,12 +71,45 @@ void List_DeleteNode(Panel* thePanel);                           // 0x4125c0's d
 
 struct Beam;
 
+// What an enemy is (Enemy::mKind; Enemy_FromXml's tags, Enemy_Update's switch): the frog, the rollers, the walkers
+// and the shots (a cannon ball, a laser shot and a snake shooter's snake). The numbers are the original's, with
+// none at 0xf.
+enum EnemyKind
+{
+	ENEMY_FROG = 0,
+	ENEMY_BURST_ROLLER = 1,
+	ENEMY_BUMP_ROLLER = 2,
+	ENEMY_JELLYFISH_ROLLER = 3,
+	ENEMY_SPIN_ROLLER = 4,
+	ENEMY_TELEPORTER_ROLLER = 5,
+	ENEMY_TURN_ROLLER = 6,
+	ENEMY_LOBSTER_WALKER = 7,
+	ENEMY_SCURRY_WALKER = 8,
+	ENEMY_TURTLE_WALKER = 9,
+	ENEMY_LASER_WALKER = 10,
+	ENEMY_CANNON_WALKER = 0xb,
+	ENEMY_CRAB_WALKER = 0xc,
+	ENEMY_CANNON_BALL = 0xd,
+	ENEMY_LASER_SHOT = 0xe,
+	ENEMY_LINE_WALKER = 0x10,
+	ENEMY_ROLLER = 0x11,
+	ENEMY_SNAKE_SHOOTER = 0x12,
+	ENEMY_SNAKE = 0x13,
+	ENEMY_SMART_WALKER = 0x14,
+};
+
+// An enemy's life (Enemy::mState): it fades in with the cell under it, goes about, and dies (slowing down while its
+// dying animation plays, then fading out)
+enum EnemyState
+{
+	ENEMY_APPEARING = 0,
+	ENEMY_DYING = 1,
+	ENEMY_FADING = 2,
+	ENEMY_ALIVE = 3,
+};
+
 // An enemy (0x110 bytes, 0x405070 constructs one). The game file's enemy tags make a level's enemies, and outside
-// a level the defaults (gEnemyDefs) that random boards copy. kind +0x08 (Enemy_FromXml's tags, Enemy_Update's switch):
-// 0 frog, 1 burst_roller, 2 bump_roller, 3 jellyfish_roller, 4 spin_roller, 5 teleporter_roller, 6 turn_roller,
-// 7 lobster_walker, 8 scurry_walker, 9 turtle_walker, 10 laser_walker, 0xb cannon_walker, 0xc crab_walker,
-// 0x10 line_walker, 0x11 roller, 0x12 snake_shooter, 0x14 smart_walker, and the shots: 0xd a cannon ball, 0xe a laser
-// shot, 0x13 a snake shooter's snake; state +0x0c: 0 appearing, 1 and 2 dying, 3 about
+// a level the defaults (gEnemyDefs) that random boards copy. kind +0x08 an EnemyKind, state +0x0c an EnemyState
 struct Enemy : Obj
 {
 	Animation* mLeftAnim;       // +0xb0
@@ -220,9 +266,30 @@ struct Text : Obj
 // (the original's 0x6c8 less the four members of its TextInput that R64TextInput.h says the port leaves out)
 static_assert(sizeof(Text) == 0x6c8 - 16, "Text");
 
+// What a power-up does (Powerup::mKind; Powerup_Collect's switch): a weapon (the magnet, the time bomb, the anchor, the
+// missile), a change to the ship or the shots, or the extra life. Any other number is the fast shot. The test keys
+// '0' to '9' and 'A' to 'D' make kinds 0 to 13.
+enum PowerupKind
+{
+	POWERUP_FAST_SHOT = 0,
+	POWERUP_FLIP_FLOPPER = 1,
+	POWERUP_SLOW_MOTION = 2,
+	POWERUP_MAGNET = 3,
+	POWERUP_TIME_BOMB = 4,
+	POWERUP_SLOW_SHOT = 5,
+	POWERUP_INVINCIBUBBLE = 6,
+	POWERUP_ANCHOR = 7,
+	POWERUP_EXPLODE_WALKERS = 8,
+	POWERUP_EXPLODE_FLOATERS = 9,
+	POWERUP_MULTIPLIER = 10,
+	POWERUP_HYPER_MOTION = 11,
+	POWERUP_MISSILE = 12,
+	POWERUP_EXTRA_LIFE = 13,
+};
+
 // A power-up (0xd8 bytes; 0x418d60 makes one of a random kind, 0x418b20 destroys it; WBPowerup.cpp). It falls
-// from where an enemy died until the ship (under the player's control) touches it. kind +0x08 the effect (1
-// slow motion .. 0x11 a magnet, else a faster beam); state +0x0c 4 while it falls
+// from where an enemy died until the ship (under the player's control) touches it. kind +0x08 a PowerupKind;
+// state +0x0c 4 while it falls
 struct Powerup : Obj
 {
 	float mGravity;             // +0xb0  added to vy each update
@@ -230,10 +297,18 @@ struct Powerup : Obj
 	Obj* mAttached;             // +0xd4  follows it (nothing here sets one)
 };
 
+// What a weapon is (Weapon::mKind). The original also has 0 a mine and 3 an ice shot, which only the power-up kinds
+// 16 and 17 give, and nothing makes those: the port leaves them out.
+enum WeaponKind
+{
+	WEAPON_MISSILE = 1,
+	WEAPON_TIME_BOMB = 4,
+	WEAPON_MAGNET = 5,
+	WEAPON_ANCHOR = 6,
+};
+
 // A weapon a power-up gives (0xd8 bytes, in the level's list at +0x46c; WBPowerup.cpp). It orbits the ship
-// (state 3) until a click launches it (state 4) straight out the way it is from the ship. kind +0x08: 1 a missile,
-// 4 a time bomb, 5 a magnet, 6 an anchor (the original also has 0 a mine and 3 an ice shot, which only the power-up
-// kinds 16 and 17 give, and nothing makes those: the port leaves them out)
+// (state 3) until a click launches it (state 4) straight out the way it is from the ship. kind +0x08 a WeaponKind
 struct Weapon : Obj
 {
 	int mDragPadding;           // +0xb0  the four bytes before drag: nothing reads them
@@ -473,6 +548,9 @@ void Pointer_Insert(List<Obj>* theList);                         // 0x410870
 // 0x40da50: any object's attributes; 0 if its animation is missing
 int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);
 int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag); // 0x41fe30
+// A text's idle time that in effect never runs out (about three hours): it stays until it is clicked away
+constexpr int TEXT_IDLE_FOREVER = 0x986fc8;
+
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theDormant, int theFadeIn,
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink);  // 0x41f5d0
 void Text_Destroy(Text* theText);                                // 0x4109d0

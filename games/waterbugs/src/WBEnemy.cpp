@@ -37,32 +37,32 @@ void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag)
 	theEnemy->mDecay = (float)Xml_GetFloat(theTag, "decay");
 	theEnemy->mTurnSpeed = (float)Xml_GetFloat(theTag, "turn_speed");
 	if (IsType(theTag, "roller"))
-		theEnemy->mKind = 0x11;
+		theEnemy->mKind = ENEMY_ROLLER;
 	else if (IsType(theTag, "burst_roller"))
-		theEnemy->mKind = 1;
+		theEnemy->mKind = ENEMY_BURST_ROLLER;
 	else if (IsType(theTag, "jellyfish_roller"))
 	{
-		theEnemy->mKind = 3;
+		theEnemy->mKind = ENEMY_JELLYFISH_ROLLER;
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "bubble01");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "bubble02");
 	}
 	else if (IsType(theTag, "teleporter_roller"))
 	{
-		theEnemy->mKind = 5;
+		theEnemy->mKind = ENEMY_TELEPORTER_ROLLER;
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "bubble01");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "bubble02");
 	}
 	else if (IsType(theTag, "spin_roller"))
 	{
-		theEnemy->mKind = 4;
+		theEnemy->mKind = ENEMY_SPIN_ROLLER;
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_0");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_0");
 	}
 	else if (IsType(theTag, "turn_roller"))
-		theEnemy->mKind = 6;
+		theEnemy->mKind = ENEMY_TURN_ROLLER;
 	else if (IsType(theTag, "bump_roller"))
 	{
-		theEnemy->mKind = 2;
+		theEnemy->mKind = ENEMY_BUMP_ROLLER;
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_0");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_0");
 	}
@@ -70,60 +70,60 @@ void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag)
 	{
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "exp_0");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "exp_4");
-		theEnemy->mKind = 0x12;
+		theEnemy->mKind = ENEMY_SNAKE_SHOOTER;
 	}
 	else if (IsType(theTag, "line_walker"))
 	{
-		theEnemy->mKind = 0x10;
+		theEnemy->mKind = ENEMY_LINE_WALKER;
 		theEnemy->mShadow = 1;
 	}
 	else if (IsType(theTag, "scurry_walker"))
 	{
-		theEnemy->mKind = 8;
+		theEnemy->mKind = ENEMY_SCURRY_WALKER;
 		theEnemy->mShadow = 1;
 	}
 	else if (IsType(theTag, "smart_walker"))
 	{
-		theEnemy->mKind = 0x14;
+		theEnemy->mKind = ENEMY_SMART_WALKER;
 		theEnemy->mShadow = 1;
 	}
 	else if (IsType(theTag, "cannon_walker"))
 	{
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "smoke_0001");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "smoke_0009");
-		theEnemy->mKind = 0xb;
+		theEnemy->mKind = ENEMY_CANNON_WALKER;
 		theEnemy->mShadow = 1;
 	}
 	else if (IsType(theTag, "laser_walker"))
 	{
-		theEnemy->mKind = 10;
+		theEnemy->mKind = ENEMY_LASER_WALKER;
 		theEnemy->mShadow = 1;
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_4");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "crab_walker"))
 	{
-		theEnemy->mKind = 0xc;
+		theEnemy->mKind = ENEMY_CRAB_WALKER;
 		theEnemy->mShadow = 1;
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_4");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "lobster_walker"))
 	{
-		theEnemy->mKind = 7;
+		theEnemy->mKind = ENEMY_LOBSTER_WALKER;
 		theEnemy->mShadow = 1;
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "particle_4");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "particle_4");
 	}
 	else if (IsType(theTag, "turtle_walker"))
 	{
-		theEnemy->mKind = 9;
+		theEnemy->mKind = ENEMY_TURTLE_WALKER;
 		theEnemy->mShadow = 1;
 		theEnemy->mFirstParticle = Bank_IndexOf(&gArtBank, "exp_2");
 		theEnemy->mLastParticle = Bank_IndexOf(&gArtBank, "exp_4");
 	}
 	else if (IsType(theTag, "frog"))
-		theEnemy->mKind = 0;
+		theEnemy->mKind = ENEMY_FROG;
 	if (Xml_GetString(theTag, "left_animation") != nullptr)
 	{
 		theEnemy->mLeftAnim = Animation_Find(Xml_GetString(theTag, "left_animation"), &theEnemy->mFrameCount,
@@ -140,7 +140,7 @@ void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag)
 		theEnemy->mDownAnim = Animation_Find(Xml_GetString(theTag, "down_animation"), &theEnemy->mFrameCount,
 			&theEnemy->mFrameTime);
 	theEnemy->mBaseSpeed = theEnemy->mSpeed;
-	theEnemy->mState = 0;
+	theEnemy->mState = ENEMY_APPEARING;
 	theEnemy->mDepth = 3;
 	theEnemy->mBaseFrameTime = (float)theEnemy->mFrameTime;
 	theEnemy->mBaseAcceleration = theEnemy->mAcceleration;
@@ -168,25 +168,25 @@ int Enemy_Bounce(Enemy* theEnemy)
 {
 	int aCol = (int)theEnemy->mX / CELL_SIZE;
 	int aRow = (int)theEnemy->mY / CELL_SIZE;
-	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind == 0)
+	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind == CELL_OPEN)
 	{
 		Image* anImage = theEnemy->mImage;
 		int anAhead = (int)((double)((anImage->mW * Sign(theEnemy->mVx)) / 3) + (double)theEnemy->mX);
 		Cell* aCell = &gLevels.mCurrent->mColumns[anAhead / CELL_SIZE][aRow];
-		if (aCell->mKind != 0)
+		if (aCell->mKind != CELL_OPEN)
 		{
 			theEnemy->mHitCell = aCell;
 			theEnemy->mVx = -theEnemy->mVx;
 		}
 		anAhead = (int)((double)((anImage->mH * Sign(theEnemy->mVy)) / 3) + (double)theEnemy->mY);
 		aCell = &gLevels.mCurrent->mColumns[aCol][anAhead / CELL_SIZE];
-		if (aCell->mKind != 0)
+		if (aCell->mKind != CELL_OPEN)
 		{
 			theEnemy->mHitCell = aCell;
 			theEnemy->mVy = -theEnemy->mVy;
 		}
 	}
-	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind != 0)
+	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind != CELL_OPEN)
 	{
 		theEnemy->mVx = -theEnemy->mVx;
 		theEnemy->mVy = -theEnemy->mVy;
@@ -244,7 +244,7 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 			return &gLevels.mCurrent->mColumns[aLine + theOff][theAlong];
 		return &gLevels.mCurrent->mColumns[theAlong][aLine + theOff];
 	};
-	if (aCellAt(aStart, theD)->mKind != 4)
+	if (aCellAt(aStart, theD)->mKind != CELL_FILLED)
 		return;
 	bool anOk = true;
 	int aMin = 999;
@@ -279,7 +279,7 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 	for (int anAlong = aMin + 1; anAlong <= aMax + -1; anAlong++)
 	{
 		gLevels.mCurrent->mFilledCells = gLevels.mCurrent->mFilledCells + -1;
-		aCellAt(anAlong, 0)->mKind = 0;
+		aCellAt(anAlong, 0)->mKind = CELL_OPEN;
 		aCellAt(anAlong, 0)->mImage = gLevels.mCurrent->mEmpty;
 		Cell* aCell = aCellAt(anAlong, 0);
 		int aY = (int)aCell->mY;
@@ -287,7 +287,7 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 		Image* aBack = gLevels.mCurrent->mBackground;
 		Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, 0x10, 0x10);
 		Cell_Redraw(aCellAt(anAlong, 0));
-		aCellAt(anAlong, theD)->mKind = 2;
+		aCellAt(anAlong, theD)->mKind = CELL_LINE;
 		ParticleSystem_New();
 		int aLifetime = RandRange(700, 0x44c);
 		int aLast = Bank_IndexOf(&gArtBank, "exp_4");
@@ -325,12 +325,12 @@ int BumpRoller_Move(Enemy* theEnemy)
 	{
 		if (1.0f < theEnemy->mAge && Sign(theEnemy->mVx) != Sign(theEnemy->mPrevVx))
 		{
-			if (aHit->mKind == 2)
+			if (aHit->mKind == CELL_LINE)
 				BumpRoller_Push(aHit, Sign(theEnemy->mPrevVx), true);
 		}
 		else if (1.0f < theEnemy->mAge && Sign(theEnemy->mVy) != Sign(theEnemy->mPrevVy))
 		{
-			if (aHit->mKind == 2)
+			if (aHit->mKind == CELL_LINE)
 				BumpRoller_Push(aHit, Sign(theEnemy->mPrevVy), false);
 		}
 	}
@@ -422,7 +422,7 @@ int Frog_Move(Enemy* theEnemy)
 	int aSy = Sign(theEnemy->mVy);
 	int aRow = (int)theEnemy->mY / CELL_SIZE;
 	int aCol = (int)theEnemy->mX / CELL_SIZE;
-	if (gLevels.mCurrent->mColumns[aCol + aSx * 2][aRow + aSy * 2].mKind == 0)
+	if (gLevels.mCurrent->mColumns[aCol + aSx * 2][aRow + aSy * 2].mKind == CELL_OPEN)
 		return 1;
 	if (theEnemy->mVx < 0.0f)
 	{
@@ -449,7 +449,7 @@ int LaserShot_Move(Enemy* theEnemy)
 {
 	int aCol = (int)theEnemy->mX / CELL_SIZE;
 	int aRow = (int)theEnemy->mY / CELL_SIZE;
-	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind != 0)
+	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind != CELL_OPEN)
 	{
 		for (int n = 0x12; n != 0; n--)
 		{
@@ -611,7 +611,7 @@ int Enemy_Place(Enemy* theEnemy)
 			{
 				for (int c = aCol - 3; c < aCol + 3; c++)
 				{
-					if (gLevels.mCurrent->mColumns[c][r].mKind != 0)
+					if (gLevels.mCurrent->mColumns[c][r].mKind != CELL_OPEN)
 						aBlocked = true;
 				}
 			}
@@ -674,7 +674,7 @@ void TurnRoller_Move(Enemy* theEnemy)
 		float aX = (float)(((double)aShip->mX - theEnemy->mX) / 12000.0 + (double)theEnemy->mTurnSpeed * theEnemy->mVx);
 		float aY = (float)(((double)aShip->mY - theEnemy->mY) / 12000.0 + (double)theEnemy->mTurnSpeed * theEnemy->mVy);
 		List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnOther) {
-			if (theAnOther != theEnemy && theAnOther->mKind == 3)
+			if (theAnOther != theEnemy && theAnOther->mKind == ENEMY_JELLYFISH_ROLLER)
 			{
 				float aDx = theAnOther->mX - theEnemy->mX;
 				float aDy = theAnOther->mY - theEnemy->mY;
@@ -732,7 +732,7 @@ void Walker_Turn(Enemy* theEnemy)
 			if (aCol < 0x31)
 			{
 				aKind = gLevels.mCurrent->mColumns[aCol + 1][aRow].mKind;
-				if (aKind == 3 || aKind == 2)
+				if (aKind == CELL_EDGE || aKind == CELL_LINE)
 					theEnemy->mVx = theEnemy->mSpeed;
 			}
 			break;
@@ -740,7 +740,7 @@ void Walker_Turn(Enemy* theEnemy)
 			if (0 < aCol)
 			{
 				aKind = gLevels.mCurrent->mColumns[aCol - 1][aRow].mKind;
-				if (aKind == 3 || aKind == 2)
+				if (aKind == CELL_EDGE || aKind == CELL_LINE)
 					theEnemy->mVx = -theEnemy->mSpeed;
 			}
 			break;
@@ -748,7 +748,7 @@ void Walker_Turn(Enemy* theEnemy)
 			if (aRow < 0x24)
 			{
 				aKind = gLevels.mCurrent->mColumns[aCol][aRow + 1].mKind;
-				if (aKind == 3 || aKind == 2)
+				if (aKind == CELL_EDGE || aKind == CELL_LINE)
 					theEnemy->mVy = theEnemy->mSpeed;
 			}
 			break;
@@ -756,7 +756,7 @@ void Walker_Turn(Enemy* theEnemy)
 			if (0 < aRow)
 			{
 				aKind = gLevels.mCurrent->mColumns[aCol][aRow - 1].mKind;
-				if (aKind == 3 || aKind == 2)
+				if (aKind == CELL_EDGE || aKind == CELL_LINE)
 					theEnemy->mVy = -theEnemy->mSpeed;
 			}
 			break;
@@ -814,7 +814,7 @@ int Enemy_PlaceFirst(Enemy* theEnemy)
 		{
 			if (0x31 < aCol || 0x23 < (uint32_t)(aRow - 1))
 				break;
-			if (gLevels.mCurrent->mColumns[aCol][aRow].mKind == 3)
+			if (gLevels.mCurrent->mColumns[aCol][aRow].mKind == CELL_EDGE)
 			{
 				theEnemy->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
 				theEnemy->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
@@ -938,12 +938,12 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 		if (theEnemy->mVx == 0.0f)
 		{
 			if (((aMidY < theEnemy->mY && theEnemy->mOldY < aMidY) ||
-				(theEnemy->mY < aMidY && aMidY < theEnemy->mOldY)) && RandRange(0,
-				1) != 0 && (uint32_t)(aCol - 1) < 0x30)
+				(theEnemy->mY < aMidY && aMidY < theEnemy->mOldY)) &&
+				RandRange(0, 1) != 0 && (uint32_t)(aCol - 1) < 0x30)
 			{
 				int aRight = gLevels.mCurrent->mColumns[aCol + 1][aRow].mKind;
 				int aLeft = gLevels.mCurrent->mColumns[aCol - 1][aRow].mKind;
-				if (aRight == 3 || aRight == theKind || aLeft == 3 || aLeft == theKind)
+				if (aRight == CELL_EDGE || aRight == theKind || aLeft == CELL_EDGE || aLeft == theKind)
 				{
 					theEnemy->mX = (float)(((int)theEnemy->mX / CELL_SIZE) * CELL_SIZE + CELL_HALF);
 					theEnemy->mY = (float)(((int)theEnemy->mY / CELL_SIZE) * CELL_SIZE + CELL_HALF);
@@ -962,7 +962,7 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 		{
 			int aBelow = gLevels.mCurrent->mColumns[aCol][aRow + 1].mKind;
 			int anAbove = gLevels.mCurrent->mColumns[aCol][aRow - 1].mKind;
-			if (aBelow == 3 || aBelow == theKind || anAbove == 3 || anAbove == theKind)
+			if (aBelow == CELL_EDGE || aBelow == theKind || anAbove == CELL_EDGE || anAbove == theKind)
 			{
 				theEnemy->mX = (float)(((int)theEnemy->mX / CELL_SIZE) * CELL_SIZE + CELL_HALF);
 				theEnemy->mY = (float)(((int)theEnemy->mY / CELL_SIZE) * CELL_SIZE + CELL_HALF);
@@ -991,7 +991,7 @@ void Walker_Follow(Enemy* theEnemy, int theKind)
 		if (!aBlocked)
 		{
 			int aKind = gLevels.mCurrent->mColumns[aCol][aRow].mKind;
-			aBlocked = aKind != 3 && aKind != theKind;
+			aBlocked = aKind != CELL_EDGE && aKind != theKind;
 		}
 		if (aBlocked)
 		{
@@ -1017,7 +1017,7 @@ void Walker_Follow(Enemy* theEnemy, int theKind)
 		if (!aBlocked)
 		{
 			int aKind = gLevels.mCurrent->mColumns[aCol][aRow].mKind;
-			aBlocked = aKind != 3 && aKind != theKind;
+			aBlocked = aKind != CELL_EDGE && aKind != theKind;
 		}
 		if (aBlocked)
 		{
@@ -1072,7 +1072,7 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 	gProfiles[gProfile].mKills = gProfiles[gProfile].mKills + 1;
 	Obj_Explode(theEnemy, 0.0f, 0.0f);
 	int aKind = theEnemy->mKind;
-	if (aKind != 0x13 && aKind != 0xd && aKind != 0xe)
+	if (aKind != ENEMY_SNAKE && aKind != ENEMY_CANNON_BALL && aKind != ENEMY_LASER_SHOT)
 	{
 		int aPoints = gLevels.mCurrent->mChain * 100;
 		if (thePoints != 0)
@@ -1144,7 +1144,7 @@ int SnakeShooter_Move(Enemy* theEnemy)
 			anAngle = anAngle + -0x168;
 		int aX = (int)((double)CosDeg(anAngle) * 50.0 + (double)theEnemy->mX);
 		int aY = (int)((double)SinDeg(anAngle) * 50.0 + (double)theEnemy->mY);
-		if (gLevels.mCurrent->mColumns[aX / CELL_SIZE][aY / CELL_SIZE].mKind == 0)
+		if (gLevels.mCurrent->mColumns[aX / CELL_SIZE][aY / CELL_SIZE].mKind == CELL_OPEN)
 		{
 			Sound_Play(Sound_Find("audio\\canon.wav"));
 			theEnemy->mLastShot = theEnemy->mAge;
@@ -1153,8 +1153,8 @@ int SnakeShooter_Move(Enemy* theEnemy)
 			Enemy_CopyDef(aShot, theEnemy);
 			aShot->mAge = 0.0f;
 			aShot->mLifetime = 0.0f;
-			aShot->mKind = 0x13;
-			aShot->mState = 3;
+			aShot->mKind = ENEMY_SNAKE;
+			aShot->mState = ENEMY_ALIVE;
 			aShot->mAnim = Animation_Find("snake", &aShot->mFrameCount, &aShot->mFrameTime);
 			aShot->mDieAnim = Animation_Find("small_explo", &aShot->mDieFrameCount, &aShot->mDieFrameTime);
 			aShot->mDepth = theEnemy->mDepth + 1;
@@ -1198,7 +1198,7 @@ int Snake_Move(Enemy* theEnemy)
 		Enemy_Kill(theEnemy, 0);
 		Level_Blast((int)theEnemy->mX / CELL_SIZE, (int)theEnemy->mY / CELL_SIZE, 3);
 	}
-	if (gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind != 0)
+	if (gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind != CELL_OPEN)
 		Enemy_Kill(theEnemy, 0);
 	return 1;
 }
@@ -1228,7 +1228,7 @@ int CannonBall_Move(Enemy* theEnemy)
 int Walker_Move(Enemy* theEnemy, int theKind)
 {
 	if (2000.0f < theEnemy->mAge &&
-		gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind == 0)
+		gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind == CELL_OPEN)
 	{
 		Enemy_Kill(theEnemy, 0);
 		return 1;
@@ -1262,7 +1262,7 @@ void ScurryWalker_Move(Enemy* theEnemy)
 	theEnemy->mFrameTime = (int)((double)theEnemy->mBaseFrameTime * theEnemy->mBaseSpeed / theEnemy->mSpeed);
 	theEnemy->mVx = (float)Sign(theEnemy->mVx) * theEnemy->mSpeed;
 	theEnemy->mVy = (float)Sign(theEnemy->mVy) * theEnemy->mSpeed;
-	Walker_Move(theEnemy, 2);
+	Walker_Move(theEnemy, CELL_LINE);
 }
 
 // Kind 0x14: 1000 updates after it last did, turns towards the ship when that is within 150 pixels; slows (to a third
@@ -1314,7 +1314,7 @@ void SmartWalker_Move(Enemy* theEnemy)
 	theEnemy->mFrameTime = (int)((double)theEnemy->mBaseFrameTime * theEnemy->mBaseSpeed / theEnemy->mSpeed);
 	theEnemy->mVx = (float)Sign(theEnemy->mVx) * theEnemy->mSpeed;
 	theEnemy->mVy = (float)Sign(theEnemy->mVy) * theEnemy->mSpeed;
-	Walker_Move(theEnemy, 2);
+	Walker_Move(theEnemy, CELL_LINE);
 }
 
 // Kind 0xb: 4000 updates after its last shot, when the 9 by 9 cells 16 cells ahead of it hold 29 filled ones or
@@ -1332,7 +1332,7 @@ void CannonWalker_Move(Enemy* theEnemy)
 			for (int c = aCol - 4; c <= aCol + 4; c++)
 			{
 				if (aCount != 0 && -1 < c && c < aLevel->mCols && -1 < r && r < aLevel->mRows &&
-					(aLevel->mColumns[c][r].mKind == 4 || aLevel->mColumns[c][r].mKind == 2))
+					(aLevel->mColumns[c][r].mKind == CELL_FILLED || aLevel->mColumns[c][r].mKind == CELL_LINE))
 					aCount = aCount + 1;
 				// (sic: the original's reset can never happen)
 				else if (c < 0 && aLevel->mCols <= c && r < 0 && aLevel->mRows <= r)
@@ -1362,8 +1362,8 @@ void CannonWalker_Move(Enemy* theEnemy)
 			Enemy_Append(&gLevels.mCurrent->mEnemies);
 			Enemy* aBall = gLevels.mCurrent->mEnemies.mCurrent;
 			Enemy_CopyDef(aBall, theEnemy);
-			aBall->mKind = 0xd;
-			aBall->mState = 3;
+			aBall->mKind = ENEMY_CANNON_BALL;
+			aBall->mState = ENEMY_ALIVE;
 			aBall->mX = (float)((double)Sign(theEnemy->mVx) * 16.0 + (double)theEnemy->mX);
 			aBall->mY = (float)((double)Sign(theEnemy->mVy) * 16.0 + (double)theEnemy->mY);
 			aBall->mAge = 0.0f;
@@ -1379,7 +1379,7 @@ void CannonWalker_Move(Enemy* theEnemy)
 				Image_SetMidHandle(aBall->mAnim->mFrames[i]);
 		}
 	}
-	Walker_Move(theEnemy, 2);
+	Walker_Move(theEnemy, CELL_LINE);
 }
 
 // Kind 0xb: faces the ship across its way; 4000 updates after its last shot, while it is within the length of a
@@ -1417,7 +1417,7 @@ void LaserWalker_Move(Enemy* theEnemy)
 	}
 	if ((double)theEnemy->mAge <= (double)theEnemy->mLastShot + 4000.0)
 	{
-		Walker_Move(theEnemy, 2);
+		Walker_Move(theEnemy, CELL_LINE);
 		return;
 	}
 	bool aLinedUp = false;
@@ -1445,9 +1445,9 @@ void LaserWalker_Move(Enemy* theEnemy)
 			Enemy* aShot = gLevels.mCurrent->mEnemies.mCurrent;
 			Enemy_CopyDef(aShot, theEnemy);
 			aShot->mAge = 0.0f;
-			aShot->mState = 3;
+			aShot->mState = ENEMY_ALIVE;
 			aShot->mLifetime = 0.0f;
-			aShot->mKind = 0xe;
+			aShot->mKind = ENEMY_LASER_SHOT;
 			aShot->mMidHandle = 1;
 			aShot->mDepth = theEnemy->mDepth + 1;
 			aShot->mX = (float)((double)aDx * (double)theEnemy->mImage->mW * 0.5 + (double)theEnemy->mX);
@@ -1470,7 +1470,7 @@ void LaserWalker_Move(Enemy* theEnemy)
 				Image_SetMidHandle(aShot->mAnim->mFrames[i]);
 		}
 	}
-	Walker_Move(theEnemy, 2);
+	Walker_Move(theEnemy, CELL_LINE);
 }
 
 // Kind 0x13: walks the edges alone (kind 3), facing the ship across its way; at frame 12 of its animation it nips
@@ -1508,7 +1508,7 @@ int CrabWalker_Move(Enemy* theEnemy)
 			aDy = -1;
 		}
 	}
-	int aResult = Walker_Move(theEnemy, 3);
+	int aResult = Walker_Move(theEnemy, CELL_EDGE);
 	if (theEnemy->mFrameTimer == 0 && theEnemy->mFrame == 0xc)
 	{
 		int aCol = (int)theEnemy->mX / CELL_SIZE + aDx * 2;
@@ -1516,7 +1516,7 @@ int CrabWalker_Move(Enemy* theEnemy)
 		if (0x2d < (uint32_t)(aCol - 2) || 0x20 < (uint32_t)(aRow - 2))
 			return aResult;
 		int aKind = gLevels.mCurrent->mColumns[aCol][aRow].mKind;
-		if (aKind == 2 || aKind == 4)
+		if (aKind == CELL_LINE || aKind == CELL_FILLED)
 		{
 			// (the original works out a pan from x for a play call that takes none)
 			Sound_Play(Sound_Find("audio\\crab.wav"));
@@ -1544,7 +1544,7 @@ int CrabWalker_Move(Enemy* theEnemy)
 // Kind 0x15: its speed swings with the sine of an eighth of its age, its animation keeping step
 int LobsterWalker_Move(Enemy* theEnemy)
 {
-	int aResult = Walker_Move(theEnemy, 2);
+	int aResult = Walker_Move(theEnemy, CELL_LINE);
 	float aSin = SinDeg((int)((double)theEnemy->mAge * 0.125) % 0x168);
 	float aSpeed = (float)(((double)aSin + aSin + 1.0) / 20.0 + (double)theEnemy->mBaseSpeed);
 	theEnemy->mSpeed = aSpeed;
@@ -1577,7 +1577,7 @@ static void Turtle_Puff(Enemy* theEnemy, int theEndR, int theEndG, int theEndB)
 // walking it plays frames 29 on and puffs smoke behind it
 int TurtleWalker_Move(Enemy* theEnemy)
 {
-	int aResult = Walker_Move(theEnemy, 2);
+	int aResult = Walker_Move(theEnemy, CELL_LINE);
 	if (Sign(theEnemy->mPrevVx) != Sign(theEnemy->mVx))
 		theEnemy->mAge = 2000.0f;
 	theEnemy->mPrevVx = theEnemy->mVx;
@@ -1638,75 +1638,76 @@ int Enemy_Step(Enemy* theEnemy)
 		aResult = aResult | Obj_Update(theEnemy);
 		switch (theEnemy->mKind)
 		{
-		case 0:
+		case ENEMY_FROG:
 			Frog_Move(theEnemy);
 			break;
-		case 1:
+		case ENEMY_BURST_ROLLER:
 			BurstRoller_Move(theEnemy);
 			break;
-		case 2:
+		case ENEMY_BUMP_ROLLER:
 			BumpRoller_Move(theEnemy);
 			break;
-		case 3:
+		case ENEMY_JELLYFISH_ROLLER:
 			Jellyfish_Move(theEnemy);
 			break;
-		case 4:
+		case ENEMY_SPIN_ROLLER:
 			SpinRoller_Move(theEnemy);
 			break;
-		case 5:
+		case ENEMY_TELEPORTER_ROLLER:
 			Teleporter_Move(theEnemy);
 			break;
-		case 6:
+		case ENEMY_TURN_ROLLER:
 			TurnRoller_Move(theEnemy);
 			break;
-		case 7:
+		case ENEMY_LOBSTER_WALKER:
 			LobsterWalker_Move(theEnemy);
 			break;
-		case 8:
+		case ENEMY_SCURRY_WALKER:
 			ScurryWalker_Move(theEnemy);
 			break;
-		case 9:
+		case ENEMY_TURTLE_WALKER:
 			TurtleWalker_Move(theEnemy);
 			break;
-		case 10:
+		case ENEMY_LASER_WALKER:
 			LaserWalker_Move(theEnemy);
 			break;
-		case 0xb:
+		case ENEMY_CANNON_WALKER:
 			CannonWalker_Move(theEnemy);
 			break;
-		case 0xc:
+		case ENEMY_CRAB_WALKER:
 			CrabWalker_Move(theEnemy);
 			break;
-		case 0xd:
+		case ENEMY_CANNON_BALL:
 			CannonBall_Move(theEnemy);
 			break;
-		case 0xe:
+		case ENEMY_LASER_SHOT:
 			aResult = aResult & LaserShot_Move(theEnemy);
 			break;
-		case 0x10:
-			Walker_Move(theEnemy, 2);
+		case ENEMY_LINE_WALKER:
+			Walker_Move(theEnemy, CELL_LINE);
 			break;
-		case 0x11:
+		case ENEMY_ROLLER:
 			Enemy_Bounce(theEnemy);
 			break;
-		case 0x12:
+		case ENEMY_SNAKE_SHOOTER:
 			SnakeShooter_Move(theEnemy);
 			break;
-		case 0x13:
+		case ENEMY_SNAKE:
 			Snake_Move(theEnemy);
 			break;
-		case 0x14:
+		case ENEMY_SMART_WALKER:
 			SmartWalker_Move(theEnemy);
 			break;
 		}
 		Obj_UpdateEmitters(theEnemy);
-		Beam* aBeam = Obj_TouchedBeam(theEnemy, theEnemy->mKind == 0 ? 2 : 3, theEnemy->mKind == 0 ? 5 : 3);
-		if (aBeam == theEnemy->mLastBeam || theEnemy->mKind == 0x13 || theEnemy->mKind == 0xd ||
-			theEnemy->mKind == 0xe)
+		Beam* aBeam = Obj_TouchedBeam(theEnemy, theEnemy->mKind == ENEMY_FROG ? 2 : 3,
+			theEnemy->mKind == ENEMY_FROG ? 5 : 3);
+		if (aBeam == theEnemy->mLastBeam || theEnemy->mKind == ENEMY_SNAKE || theEnemy->mKind == ENEMY_CANNON_BALL ||
+			theEnemy->mKind == ENEMY_LASER_SHOT)
 		{
 			if (aBeam != nullptr)
 			{
-				if (theEnemy->mKind == 0xe)
+				if (theEnemy->mKind == ENEMY_LASER_SHOT)
 					aResult = aResult & LaserShot_HitBeams(theEnemy);
 				theEnemy->mLastBeam = aBeam;
 			}
@@ -1735,10 +1736,10 @@ int Enemy_Step(Enemy* theEnemy)
 		}
 		int aKind = theEnemy->mKind;
 		bool aDies = false;
-		if (aKind != 0xd)
+		if (aKind != ENEMY_CANNON_BALL)
 		{
 			int aCell = gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind;
-			aDies = aCell == 4 || (-1 < aKind && aKind < 7 && aCell == 2);
+			aDies = aCell == CELL_FILLED || (-1 < aKind && aKind < 7 && aCell == CELL_LINE);
 		}
 		if (!aDies)
 			aDies = 6 < aKind && aKind < 0xd && Enemy_NearCapture(theEnemy) != 0;
@@ -1766,7 +1767,7 @@ int Enemy_UpdateAppearing(Enemy* theEnemy)
 		theEnemy->mAlpha = anAlpha;
 		if (0xfe < anAlpha && Enemy_NearCapture(theEnemy) == 0)
 		{
-			theEnemy->mState = 3;
+			theEnemy->mState = ENEMY_ALIVE;
 			theEnemy->mDrawKind = 1;
 		}
 	}
@@ -1778,18 +1779,18 @@ int Enemy_Update(Enemy* theEnemy)
 	int aResult = 0;
 	switch (theEnemy->mState)
 	{
-	case 0:
+	case ENEMY_APPEARING:
 		aResult = Enemy_UpdateAppearing(theEnemy);
 		break;
-	case 1:
+	case ENEMY_DYING:
 		theEnemy->mAnim = theEnemy->mDieAnim;
 		theEnemy->mVx = (float)((double)theEnemy->mVx * 0.96);
 		theEnemy->mVy = (float)((double)theEnemy->mVy * 0.96);
 		[[fallthrough]];
-	case 2:
+	case ENEMY_FADING:
 		aResult = Obj_Update(theEnemy);
 		break;
-	case 3:
+	case ENEMY_ALIVE:
 		aResult = Enemy_Step(theEnemy);
 		break;
 	}

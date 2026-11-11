@@ -315,7 +315,7 @@ int Text_FromXml(Text* theText, const char* theXmlCursor, const XmlTag* theTag)
 			TextInput_SetCaseMode(anInput, 1);
 #ifdef __EMSCRIPTEN__
 			// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
-			SiteFillHighScore(anInput, theText->font);
+			SiteFillHighScore(anInput, theText->mFont);
 #endif
 			TextInput_SetFillColour(anInput, 100, 100, 100, 100);
 			TextInput_SetOutline(anInput, 0);

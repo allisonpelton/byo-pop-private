@@ -130,15 +130,15 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 						Cell* aCell = CellAt(x, y);
 						if (aClear == 0)
 						{
-							if (aCell->mKind == 0)
+							if (aCell->mKind == CELL_OPEN)
 							{
-								aCell->mKind = 5;
+								aCell->mKind = CELL_SOLID;
 								theLevel->mTotalCells = theLevel->mTotalCells + -1;
 							}
 						}
-						else if (aCell->mKind == 5)
+						else if (aCell->mKind == CELL_SOLID)
 						{
-							aCell->mKind = 0;
+							aCell->mKind = CELL_OPEN;
 							theLevel->mTotalCells = theLevel->mTotalCells + 1;
 						}
 					}
@@ -153,8 +153,8 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 			Cell* aCell = CellAt(x, y);
 			aCell->mCol = x;
 			aCell->mRow = y;
-			if (aCell->mKind == 0 && Cell_Touches(aCell, 5) != 0)
-				aCell->mKind = 3;
+			if (aCell->mKind == CELL_OPEN && Cell_Touches(aCell, CELL_SOLID) != 0)
+				aCell->mKind = CELL_EDGE;
 		}
 	}
 	bool aChanged;
@@ -166,20 +166,20 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 			for (int x = 0; x < GRID_COLUMNS; x++)
 			{
 				Cell* aCell = &theLevel->mColumns[x][y];
-				if (aCell->mKind == 3)
+				if (aCell->mKind == CELL_EDGE)
 				{
 					unsigned int aSolid = 0;
-					if (0 < x && theLevel->mColumns[x - 1][y].mKind == 5)
+					if (0 < x && theLevel->mColumns[x - 1][y].mKind == CELL_SOLID)
 						aSolid = 1;
-					if (x + 1 < GRID_COLUMNS && theLevel->mColumns[x + 1][y].mKind == 5)
+					if (x + 1 < GRID_COLUMNS && theLevel->mColumns[x + 1][y].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
-					if (0 < y && aCell[-1].mKind == 5)
+					if (0 < y && aCell[-1].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
-					if (y + 1 < GRID_ROWS && aCell[1].mKind == 5)
+					if (y + 1 < GRID_ROWS && aCell[1].mKind == CELL_SOLID)
 						aSolid = aSolid + 1;
 					if (2 < aSolid)
 					{
-						aCell->mKind = 5;
+						aCell->mKind = CELL_SOLID;
 						aCell->mImage = nullptr;
 						aChanged = true;
 					}
@@ -194,11 +194,11 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 		{
 			Cell* aCell = CellAt(x, y);
 			int aKind = aCell->mKind;
-			if (aKind == 0)
+			if (aKind == CELL_OPEN)
 				Cell_Set(aCell, ':', x, y);
-			else if (aKind == 3)
+			else if (aKind == CELL_EDGE)
 				Cell_Set(aCell, 'X', x, y);
-			else if (aKind == 5)
+			else if (aKind == CELL_SOLID)
 				Cell_Set(aCell, ' ', x, y);
 		}
 	}
@@ -349,7 +349,7 @@ void Level_MakeEdges(Level* theLevel)
 	{
 		for (int x = 0; x < gLevels.mCurrent->mCols; x++)
 		{
-			if (theLevel->mColumns[x][y].mKind == 3)
+			if (theLevel->mColumns[x][y].mKind == CELL_EDGE)
 				Cell_PickImage(&theLevel->mColumns[x][y]);
 		}
 	}
@@ -869,8 +869,8 @@ void Level_Won(Level* theLevel)
 	theLevel->mBonus = aBonus;
 	gScore = gScore + aBonus;
 	std::sprintf(aText, "^1%s", Localize(GT(0x4592f4)));
-	AddText(theLevel, aText, 400, 0xf0, 100, 300, 1000, 500, 0, 0);
-	List_Each(&theLevel->mEnemies, [](Enemy* theAnEnemy) { theAnEnemy->mState = 2; });
+	AddText(theLevel, aText, SCREEN_CENTRE_X, 0xf0, 100, 300, 1000, 500, 0, 0);
+	List_Each(&theLevel->mEnemies, [](Enemy* theAnEnemy) { theAnEnemy->mState = ENEMY_FADING; });
 	List_Each(&theLevel->mWeapons, [](Obj* theAnObj) { theAnObj->mState = 2; });
 	// the original steps through the enemies here, not the shooters: the current shooter is told once per enemy
 	if (theLevel->mShooters.mCurrent != nullptr)
@@ -1234,10 +1234,10 @@ void Level_ShowStart(Level* theLevel)
 		std::sprintf(aText, GT(0x458ebc), (int)theLevel->mTitle[0], (int)theLevel->mTitle[1], theLevel->mNumber);
 		List<Text>* aTexts = &theLevel->mTexts;
 		Text_Append(aTexts);
-		Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), 400, 200, 0, 200, 4000, 200, 0, 0);
+		Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), SCREEN_CENTRE_X, 200, 0, 200, 4000, 200, 0, 0);
 		std::sprintf(aText, GT(0x458e98), theLevel->mFillQuota, "%");
 		Text_Append(aTexts);
-		Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), 400, 0x104, 0, 200, 4000, 200, 0, 0);
+		Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), SCREEN_CENTRE_X, 0x104, 0, 200, 4000, 200, 0, 0);
 	}
 }
 
@@ -1315,7 +1315,8 @@ int Level_UpdatePaused(Level* theLevel)
 static void AddHint(Level* theLevel, const char* theString, int theY)
 {
 	Text_Append(&theLevel->mTexts);
-	Text_Make(theLevel->mTexts.mCurrent, theString, Font_Find("bonus_font"), 400, theY, 0, 200, 4000, 200, 0, 0);
+	Text_Make(theLevel->mTexts.mCurrent, theString, Font_Find("bonus_font"), SCREEN_CENTRE_X, theY, 0, 200, 4000, 200,
+		0, 0);
 }
 
 // 0x411b10: the first levels' hints, put up when a fill ends. They go by the level and the beam pairs that have
@@ -1410,10 +1411,10 @@ void Level_GameOver(Level* theLevel)
 	Text_Append(aTexts);
 	int aColour = RandRange(2, 9);
 	std::sprintf(aText, GT(0x4590cc), aColour);
-	Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), 400, 0xeb, 0, 500, 999999, 200, 0, 0);
+	Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), SCREEN_CENTRE_X, 0xeb, 0, 500, 999999, 200, 0, 0);
 	Text_Append(aTexts);
 	std::sprintf(aText, GT(0x4590b4), aColour);
-	Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), 400, 0x109, 100, 500, 999999, 200, 0, 0);
+	Text_Make(aTexts->mCurrent, aText, Font_Find("main_font"), SCREEN_CENTRE_X, 0x109, 100, 500, 999999, 200, 0, 0);
 	SaveProfiles();
 }
 
@@ -1466,7 +1467,7 @@ void Level_UpdateProgressStars()
 
 void Level_SetUserName(const char* theName)
 {
-	if (std::strlen(theName) != 0 && std::strcmp(theName, Localize(GT(0x458ac4))) != 0)
+	if (std::strlen(theName) != 0 && std::strcmp(theName, Localize(GT(TEXT_EMPTY_PROFILE))) != 0)
 	{
 		std::strcpy(gProfiles[gProfile].mName, theName);
 		gAutoFire = gProfiles[gProfile].mAutoFire;
