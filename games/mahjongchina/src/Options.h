@@ -63,7 +63,7 @@ public:
 class StyleToggle : public jb::Toggle
 {
 public:
-	int mBack;  // +0xf0 the frame of image 0x66
+	int mBack;  // +0xf0 the frame of IMAGE_SPECIAL_FACES
 
 	// 0x4157c0
 	StyleToggle(int theImage, int theBack, jb::RadioGroup* theGroup, int theId)

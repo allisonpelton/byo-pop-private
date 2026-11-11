@@ -514,8 +514,8 @@ int AlphaCompC(const uint8_t* theSrc, int theSrcPitch, int theSrcAlpha, const ui
 }
 
 // 0x4517f8 with interpolation 1, which goes to the general resize 0x4f8bf8. The source pixel of each destination
-// pixel here is the destination position divided by the factor; that mapping is not yet checked against 0x4f8bf8
-// (see docs/DEVIATIONS.md).
+// pixel here is the destination position divided by the factor; whether 0x4f8bf8 maps them so is not
+// known (docs/DEVIATIONS.md).
 void ResizeNearest(const uint8_t* theSrc, int theSrcWidth, int theSrcHeight, int theSrcPitch, int theSrcLeft,
 	int theSrcTop, int theSrcRight, int theSrcBottom, uint8_t* theDst, int theDstPitch, int theDstWidth,
 	int theDstHeight, double theFactorX, double theFactorY)

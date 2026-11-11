@@ -874,7 +874,7 @@ void Button::Init()
 		mHeight = anInfo.mHeight;
 		mFrameWidth = anInfo.mWidth / mFrames;
 	}
-	SetCursorKind(1, false);
+	SetCursorKind(CURSOR_KIND_HAND, false);
 	RegHover(true);
 	RegClick(true);
 	OnInit();

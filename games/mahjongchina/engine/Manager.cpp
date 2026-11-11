@@ -16,8 +16,8 @@ bool gLayerDeleted = false;
 bool gInvalidated = false;
 // 0x5d8ea0: the pauses asked for (0x42c110)
 static int gPauseRequests = 0;
-// 0x526a08: the full screen's "windowed" button (image 0x35 at 785, 4)
-static const Rect WINDOWED_BUTTON = {784, 0, 800, 16};
+// 0x526a08: the full screen's "windowed" button (EXE_IMAGE_WINDOWED_BUTTON at 785, 4)
+static const Rect WINDOWED_BUTTON = {784, 0, SCREEN_WIDTH, 16};
 
 static bool InList(ListNode* theHead, void* theObj)
 {
@@ -137,8 +137,8 @@ void Manager::Draw()
 				Rect aRect;
 				aRect.left = 0;
 				aRect.top = 0;
-				aRect.right = 800;
-				aRect.bottom = 600;
+				aRect.right = SCREEN_WIDTH;
+				aRect.bottom = SCREEN_HEIGHT;
 				if (mFadeAlpha == 0)
 					FillRect(&aRect, 0);
 				else
@@ -175,7 +175,7 @@ void Manager::Push(Layer* theLayer, bool theOverlay, bool theDarken, bool theAni
 		mCapture = nullptr;
 	}
 	mHover = nullptr;
-	SetCursor(4);
+	SetCursor(CURSOR_KIND_WAIT);
 	DeactivateTop(theDarken);
 	theLayer->SetManager(this);
 	mLayers.push_back(theLayer);
@@ -293,7 +293,7 @@ void Manager::SwitchTo(Layer* theLayer)
 {
 	mCapture = nullptr;
 	mHover = nullptr;
-	SetCursor(4);
+	SetCursor(CURSOR_KIND_WAIT);
 	DeactivateTop(false);
 	mFade = 1;
 	mFadeAlpha = 0xff;
@@ -336,7 +336,7 @@ void Manager::Replace(Layer* theLayer, bool theAnimateOut, bool theAnimateIn)
 {
 	mCapture = nullptr;
 	mHover = nullptr;
-	SetCursor(4);
+	SetCursor(CURSOR_KIND_WAIT);
 	if (!theAnimateOut)
 		PopNow(1);
 	else
@@ -409,7 +409,7 @@ void Manager::MouseMove(int theFlags, int theX, int theY)
 	}
 	else if (mCapture == nullptr)
 	{
-		SetCursor(1);
+		SetCursor(CURSOR_KIND_HAND);
 		aButton = true;
 		aOnButton = aButton;
 		for (ListNode* aNode = mMoves; aNode != nullptr; aNode = aNode->mNext)
@@ -450,7 +450,7 @@ void Manager::MouseMove(int theFlags, int theX, int theY)
 		}
 	}
 	if (!mCursorLocked && !aOnButton)
-		SetCursor(0);
+		SetCursor(CURSOR_KIND_ARROW);
 	if (mHover != nullptr)
 	{
 		mNextHover = nullptr;
@@ -645,7 +645,7 @@ void Manager::Activate(bool theActive)
 		{
 			if (mHover != nullptr)
 			{
-				SetCursor(0);
+				SetCursor(CURSOR_KIND_ARROW);
 				if (mHovers != nullptr)
 					SendHover(false, GetHost()->InputFlags());
 				mHover = nullptr;

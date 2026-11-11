@@ -541,7 +541,7 @@ void DialogFrame::Draw()
 		mSubtitleFont->DrawLeft(this, mMessageX, mMessageY, mMessage.c_str(), -1, 100, 100, 0xff);
 	if (mClickCmd != -1)
 	{
-		static const Rect SCREEN_RECT = {0, 0, 800, 600};  // 0x51c820
+		static const Rect SCREEN_RECT = {0, 0, jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT};  // 0x51c820
 		AddDirty(SCREEN_RECT);
 	}
 }

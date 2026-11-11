@@ -51,8 +51,8 @@ void Logo::Init()
 	{
 		ImageInfo anInfo;
 		GetImageInfo(FILE_IMAGE_SPLASH_LOGO, anInfo);
-		mX = (800 - anInfo.mWidth) / 2;
-		mY = (600 - anInfo.mHeight) / 3;
+		mX = (SCREEN_WIDTH - anInfo.mWidth) / 2;
+		mY = (SCREEN_HEIGHT - anInfo.mHeight) / 3;
 	}
 	RegUpdate(true);
 	mFont = GetExeFont(EXE_FONT_SPLASH, EXE_FONT_SPLASH_MAP);

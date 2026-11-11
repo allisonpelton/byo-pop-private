@@ -113,7 +113,7 @@ void Board::SetStyle(int theStyle)
 		int aKind = aColumn;
 		do
 		{
-			// The blank tile (0) and the kinds draw on the set's back; the key tile (0x2b) and the specials on their
+			// The blank tile (0) and the kinds draw on the set's back; the gold tile and the other magic tiles on their
 			// own backs
 			int aCell = aBack;
 			if (KIND_LAST_FLOWER < aKind)
@@ -474,7 +474,7 @@ void Board::Measure()
 {
 	Tile* aTile = mLayout.First();
 	int aBottom = 0;
-	int aLeft = 800;
+	int aLeft = jb::SCREEN_WIDTH;
 	int aRight = 0;
 	int aTop = 0x1c4;
 	while (aTile != nullptr)
@@ -495,7 +495,7 @@ void Board::Measure()
 			aBottom = aTile->mRect.bottom;
 		aTile = mLayout.Next();
 	}
-	mOffX = ((aLeft - aRight) + 800) / 2 - aLeft;
+	mOffX = ((aLeft - aRight) + jb::SCREEN_WIDTH) / 2 - aLeft;
 	// China drops Japan's -5 here
 	mOffY = ((aTop - aBottom) + 0x1c4) / 2 - aTop;
 }
@@ -689,7 +689,7 @@ void Board::DrawTile(Tile* theTile)
 	}
 	if (mFlightKind == 4 && theTile == mFlights[0]->mTile)
 	{
-		// The halves joining
+		// The key and the lock joining
 		Flight* aFlight = mFlights[0];
 		int aFrame = ((aFlight->mTime - aFlight->mLeft) * 0x12) / aFlight->mTime;
 		if (0x11 < aFrame)
@@ -949,7 +949,7 @@ bool Board::OnRButtonDown(int theFlags, int theX, int theY)
 	else
 	{
 		x = mOffX + aTile->mRect.right;
-		if (x < 800 - aSize[0])
+		if (x < jb::SCREEN_WIDTH - aSize[0])
 			y = (aTile->mRect.top - aSize[1] / 2) + aPos[1] + 0x1d + mOffY;
 		else
 		{
@@ -963,8 +963,8 @@ bool Board::OnRButtonDown(int theFlags, int theX, int theY)
 		y = 0x1fe - aSize[1];
 	if (x < 0)
 		x = 0;
-	else if (800 - aSize[1] < x)  // as the original: the height
-		x = 800 - aSize[1];
+	else if (jb::SCREEN_WIDTH - aSize[1] < x)  // as the original: the height
+		x = jb::SCREEN_WIDTH - aSize[1];
 	mTip->SetPos(x, y);
 	return false;
 }
@@ -1123,7 +1123,7 @@ void Board::EndTake()
 	ClearFlights();
 }
 
-// 0x40c9c0: the half flies onto the other and they join where it lies
+// 0x40c9c0: one of the key and the lock flies onto the other and they join where it lies
 void Board::TakeKeyAndLock(Tile* theTile, Tile* theOther)
 {
 	theTile->mTaken = mMove;
@@ -1202,7 +1202,7 @@ void Board::TakeJoker(Tile* theTile, Tile* theOther)
 	mFlightCount = aCount + 1;
 }
 
-// 0x40cd80: the other flies onto the linked tile, which takes its kind and flies to the tray as the wild tile
+// 0x40cd80: the other flies onto the magnet, which takes its kind and flies to the tray as the magnet
 void Board::TakeMagnet(Tile* theTile, Tile* theOther)
 {
 	theOther->mMagnetLink = theTile;
@@ -1271,7 +1271,7 @@ void Board::Undo()
 	int aCount = mLayout.GetTaken(mMove, aTiles, 0x29);
 	if (aCount == 1)
 	{
-		// The linked wild tile flies back, and the tile it took flies out of it
+		// The magnet flies back, and the tile it took flies out of it
 		aTiles[0]->mFree = true;
 		mFlights[0] = new Flight(aTiles[0], 0x2f, 0x16c, 0x1d6, 300);
 		mFlights[0]->SetTo(aTiles[0]->mMagnetLink->mRect.left + mOffX, aTiles[0]->mMagnetLink->mRect.top + mOffY);
@@ -1280,7 +1280,7 @@ void Board::Undo()
 	}
 	else if (2 < aCount)
 	{
-		// The wild tile and the tiles it took
+		// The joker and the tiles it took
 		if (0 < aCount)
 		{
 			Tile** aTile = aTiles;
@@ -1309,7 +1309,7 @@ void Board::Undo()
 	}
 	else if (aCount == 2 && (aTiles[0]->mKind == KIND_KEY || aTiles[1]->mKind == KIND_KEY))
 	{
-		// The halves
+		// The key and the lock
 		if (aTiles[0]->mKind != KIND_KEY)
 			UndoPair(aTiles[1], aTiles[0]);
 		else
@@ -1648,7 +1648,7 @@ set:
 	}
 }
 
-// 0x40dc00: the key tiles drop into the tray
+// 0x40dc00: the gold tiles drop into the tray
 void Board::EndRound()
 {
 	mEscaping = false;

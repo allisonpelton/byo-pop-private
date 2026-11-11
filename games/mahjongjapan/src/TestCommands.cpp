@@ -96,7 +96,7 @@ void ReplyError(const std::string& theCommand, const std::string& theReason)
 	Reply("ERROR " + theCommand + ": " + theReason);
 }
 
-// port: memreport <file>, for the performance pass: what the engine holds in memory, by image and by sound. An image keeps its
+// port: memreport <file>: what the engine holds in memory, by image and by sound. An image keeps its
 // DIB (its own bytes only when it decoded them: a BMP resource's are the resource's) and, once drawn, the 32-bit copy.
 void WriteMemReport(const std::string& thePath)
 {

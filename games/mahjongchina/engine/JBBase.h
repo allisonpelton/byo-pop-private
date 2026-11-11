@@ -12,6 +12,22 @@
 namespace jb
 {
 
+// The screen the engine draws: the original's 800x600 window or display mode
+enum
+{
+	SCREEN_WIDTH = 800,
+	SCREEN_HEIGHT = 600,
+};
+
+// The mouse cursor an object asks for (Object::SetCursorKind, Manager::SetCursor)
+enum
+{
+	CURSOR_KIND_ARROW = 0,
+	CURSOR_KIND_HAND = 1,
+	CURSOR_KIND_TEXT = 2,
+	CURSOR_KIND_WAIT = 4,
+};
+
 struct Rect
 {
 	int left = 0, top = 0, right = 0, bottom = 0;

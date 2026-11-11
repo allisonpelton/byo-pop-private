@@ -14,8 +14,8 @@ Display::Display()
 {
 	if (gScreen == nullptr)
 	{
-		gScreenPitch = 800 * 4;
-		gScreen = new uint8_t[(size_t)gScreenPitch * 600]();
+		gScreenPitch = SCREEN_WIDTH * 4;
+		gScreen = new uint8_t[(size_t)gScreenPitch * SCREEN_HEIGHT]();
 	}
 }
 

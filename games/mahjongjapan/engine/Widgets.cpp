@@ -115,7 +115,7 @@ ListBox::~ListBox()
 // 0x426cb0
 void ListBox::Init()
 {
-	SetCursorKind(1, false);
+	SetCursorKind(CURSOR_KIND_HAND, false);
 	RegHover(true);
 	RegMove(true);
 	RegClick(true);
@@ -232,10 +232,10 @@ void ListBox::OnMouseMove(int theFlags, int theX, int theY)
 		aCount = mRows;
 	if (1 < theX && theX < mWidth - 2 && theY < mRowHeight * aCount)
 	{
-		SetCursorKind(1, true);
+		SetCursorKind(CURSOR_KIND_HAND, true);
 		return;
 	}
-	SetCursorKind(0, true);
+	SetCursorKind(CURSOR_KIND_ARROW, true);
 }
 
 // 0x427150
@@ -523,7 +523,7 @@ void TextEdit::Init()
 	int aPeriod = 500 / mManager->GetPeriod();
 	mBlinkPeriod = aPeriod;
 	mBlinkCount = aPeriod;
-	SetCursorKind(2, false);
+	SetCursorKind(CURSOR_KIND_TEXT, false);
 	RegChar(true);
 	RegKey(true);
 	RegUpdate(true);

@@ -19,8 +19,8 @@ namespace mahjongjapan
 class Board;
 
 // One move: a pair of free tiles, or a free special tile and the tile it acts on (Board::CanSelect 0x40c350, CanPair
-// 0x40c3b0, Take 0x40c4d0): the key (0x2c) takes a lock (0x2d) that can be seen, the wild tile 0x2e every tile of
-// the kind of an ordinary tile that can be seen (TakeJoker 0x40cc10), and 0x2f takes such a tile and becomes its kind
+// 0x40c3b0, Take 0x40c4d0): the key takes a lock that can be seen, the joker every tile of
+// the kind of an ordinary tile that can be seen (TakeJoker 0x40cc10), and the magnet takes such a tile and becomes its kind
 // (TakeMagnet 0x40cd80)
 struct BotMove
 {
@@ -31,7 +31,7 @@ struct BotMove
 	int mX1 = 0, mY1 = 0;     // where a click picks each, in game coordinates
 	int mX2 = 0, mY2 = 0;
 	bool mSpecial = false;    // a special tile moves: the board ignores clicks while its flights last
-	bool mEnds = false;       // the move takes the key tiles (0x2b), which ends an escape level
+	bool mEnds = false;       // the move takes the gold tiles, which ends an escape level
 };
 
 class Bot
@@ -53,7 +53,7 @@ private:
 		int mFirst = -1;           // indexes of the copy's tiles
 		int mSecond = -1;
 		std::vector<int> mTaken;   // every tile the step takes
-		int mChanged = -1;         // 0x2f, which took the second's kind
+		int mChanged = -1;         // the magnet, which took the second's kind
 	};
 
 	Layout mCopy;

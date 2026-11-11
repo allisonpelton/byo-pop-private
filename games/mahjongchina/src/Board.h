@@ -3,7 +3,7 @@
 
 // The board (0x40a380..0x40e100, vtable 0x51cd08, 0xb78 bytes): the play layer's object that holds the layout and
 // the deal, draws the tiles, takes the pairs the player picks and flies them into the tray, undoes, shuffles, gives
-// hints, and plays the escape: the two key tiles (0x2b) end a round, and the tiles still on the board fly off for
+// hints, and plays the escape: the two gold tiles (KIND_GOLD) end a round, and the tiles still on the board fly off for
 // points. The play layer (PlayLayer.h, 0x404fe0) owns it and shows the score, time and moves it reports.
 
 #include "Deal.h"
@@ -50,7 +50,7 @@ public:
 // 0x40a480 (0x20 bytes): a tile flying, into the tray, back onto the board or off it
 struct Flight
 {
-	Tile* mTile;   // +0x00 null for a key tile drawn in the tray
+	Tile* mTile;   // +0x00 null for a gold tile drawn in the tray
 	int mKind;     // +0x04 the face drawn
 	int mFromX;    // +0x08
 	int mFromY;    // +0x0c
@@ -135,12 +135,12 @@ public:
 	uint32_t mIdleSince = 0;      // +0xb40 the last click (0: the first update sets it 15 s back)
 	int mKindsFree = 0;           // +0xb44 the kinds with a free pair
 	jb::Font* mFont = nullptr;    // +0xb48
-	bool mModeByte;               // +0xb4c the low byte of the mode (unused)
+	bool mModeByte;               // +0xb4c the low byte of the mode; nothing reads it
 	std::list<PointsText*> mTexts;  // +0xb50
-	int mMusicMove = -1;          // +0xb58 the move the key tiles' music started at
+	int mMusicMove = -1;          // +0xb58 the move the gold tiles' music started at
 	int mSelSound = -1;           // +0xb5c
 	bool mTipShown = false;       // +0xb60 a tip covers the board: it is still drawn
-	bool mTipGold = false;        // +0xb61 the key tiles' tip waits for both to be free
+	bool mTipGold = false;        // +0xb61 the gold tiles' tip waits for both to be free
 	bool mTipFlowers = false;     // +0xb62 the flowers' tip waits for a free flower
 	bool mHighlight = false;      // +0xb63 the tip's tiles bob
 	int mHighlightKind = 0;       // +0xb64
@@ -227,15 +227,15 @@ public:
 	void AddEscapePoints(Tile* theTile);
 	// 0x40c990
 	void EndTake();
-	// 0x40c9c0: the halves (0x2c with 0x2d)
+	// 0x40c9c0: the key takes a lock (KIND_KEY with KIND_LOCK)
 	void TakeKeyAndLock(Tile* theTile, Tile* theOther);
 	// 0x40cab0, 0x40cb60, 0x40cc00
 	void JoinKeyAndLock();
 	void FlyKeyAndLock();
 	void EndKeyAndLock();
-	// 0x40cc10: the wild tile (0x2e) takes every free tile of the other's kind
+	// 0x40cc10: the joker (KIND_JOKER) takes every free tile of the other's kind
 	void TakeJoker(Tile* theTile, Tile* theOther);
-	// 0x40cd80: the linked wild tile (0x2f) takes the other's kind
+	// 0x40cd80: the magnet (KIND_MAGNET) takes the other's kind
 	void TakeMagnet(Tile* theTile, Tile* theOther);
 	// 0x40ce30, 0x40ced0
 	void FlyMagnet();
@@ -252,13 +252,13 @@ public:
 	void EndUndo();
 	void UndoMagnet();
 	void EndUndoMagnet();
-	// 0x40d560: the free pairs counted, the hints' order, the tips and the key tiles' music
+	// 0x40d560: the free pairs counted, the hints' order, the tips and the gold tiles' music
 	void UpdateMoves();
 	// 0x40d6e0
 	void ShowHint(bool theAsked);
 	// 0x40d870
 	void StartHints();
-	// 0x40d8b0: the key tiles end the round
+	// 0x40d8b0: the gold tiles end the round
 	void TakeGold(Tile* theTile, Tile* theOther);
 	// 0x40da30, 0x40da70
 	void EndGold();

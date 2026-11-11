@@ -229,10 +229,10 @@ void LayoutBackdrop::Draw()
 // 0x401bb0
 void LayoutHeader::Draw()
 {
-	mTitleFont->DrawCentred(this, 0, 0x10, mTitle.c_str(), 800, 100, 100, 0xff);
+	mTitleFont->DrawCentred(this, 0, 0x10, mTitle.c_str(), jb::SCREEN_WIDTH, 100, 100, 0xff);
 	mPageFont->DrawLeft(this, 0x67, 0x233, mPrevPage.c_str(), -1, 100, 100, 0xff);
 	mPageFont->DrawRight(this, 0x2b5, 0x233, mNextPage.c_str(), 100, 100, 0xff);
-	mPlayedFont->DrawCentred(this, 0, 0x2a, mPlayed.c_str(), 800, 100, 100, 0xff);
+	mPlayedFont->DrawCentred(this, 0, 0x2a, mPlayed.c_str(), jb::SCREEN_WIDTH, 100, 100, 0xff);
 }
 
 // 0x401c60
@@ -300,7 +300,7 @@ void LayoutSlot::Init()
 	mCell.top = (mIndex / 3) * 0x93;
 	mCell.bottom = mCell.top + 0x93;
 	mFont = jb::GetDllFont(FONT_SMALL, FONT_SMALL_MAP);
-	SetCursorKind(1, false);
+	SetCursorKind(jb::CURSOR_KIND_HAND, false);
 	RegClick(true);
 	RegHover(true);
 	SetUserFlag(true);

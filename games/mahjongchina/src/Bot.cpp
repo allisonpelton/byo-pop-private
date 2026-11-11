@@ -48,7 +48,7 @@ std::string Bot::Key() const
 	return aKey;
 }
 
-// The goal: the key tiles taken in an escape level, else no tile left
+// The goal: the gold tiles taken in an escape level, else no tile left
 bool Bot::Done() const
 {
 	if (mGoldGoal)
@@ -163,7 +163,7 @@ bool Bot::CanClick(Tile* theTile)
 	return !aHigher || ClickPoint(theTile, x, y);
 }
 
-// The moves of the copy as it is, the ones nearest the key tiles first (an escape level), and for any other board in
+// The moves of the copy as it is, the ones nearest the gold tiles first (an escape level), and for any other board in
 // the board's order (or shuffled by the generator of a restart)
 void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 {

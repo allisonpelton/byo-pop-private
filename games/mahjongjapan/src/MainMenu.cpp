@@ -66,13 +66,13 @@ void PlayerButton::OnInit()
 // 0x411700
 void PlayerButton::DrawNormal()
 {
-	mFont->DrawCentred(this, 0, 0, mText.c_str(), 800, 100, 100, 0xff);
+	mFont->DrawCentred(this, 0, 0, mText.c_str(), jb::SCREEN_WIDTH, 100, 100, 0xff);
 }
 
 // 0x411730
 void PlayerButton::DrawHover()
 {
-	mHoverFont->DrawCentred(this, 0, 0, mText.c_str(), 800, 100, 100, 0xff);
+	mHoverFont->DrawCentred(this, 0, 0, mText.c_str(), jb::SCREEN_WIDTH, 100, 100, 0xff);
 }
 
 // 0x4117b0
@@ -80,7 +80,7 @@ void MenuBackdrop::Draw()
 {
 	DrawImage(0, 0, IMAGE_MENU_BACKGROUND, nullptr, true, 100, 100, 0xff);
 	std::string aText = jb::FormatDll(STRING_WELCOME, gUser.mName.c_str());
-	mFont->DrawCentred(this, 0, 0x1ec, aText.c_str(), 800, 100, 100, 0xff);
+	mFont->DrawCentred(this, 0, 0x1ec, aText.c_str(), jb::SCREEN_WIDTH, 100, 100, 0xff);
 }
 
 // 0x411860

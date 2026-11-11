@@ -117,7 +117,7 @@ void Panel::Draw()
 	mLabelFont->DrawRight(this, 0x2a8, 0x2e, mLabelBest.c_str(), 100, 100, 0xff);
 	mLabelFont->DrawCentred(this, 0x3b, 0x21b, mLabelPairs.c_str(), 0x2a, 100, 100, 0xff);
 	mLabelFont->DrawCentred(this, 0x3b, 0x23e, mLabelLeft.c_str(), 0x2a, 100, 100, 0xff);
-	mTitleFont->DrawCentred(this, 0, mMode == 1 ? 0x1e : 0x18, mTitle.c_str(), 800, 100, 100, 0xff);
+	mTitleFont->DrawCentred(this, 0, mMode == 1 ? 0x1e : 0x18, mTitle.c_str(), jb::SCREEN_WIDTH, 100, 100, 0xff);
 	if (!mStat1.empty())
 		mSmallFont->DrawRight(this, 0xf2, 0x2d, mStat1.c_str(), 100, 100, 0xff);
 	if (!mStat2.empty())
@@ -287,8 +287,8 @@ void Panel::AddSeconds(int theSeconds)
 // 0x40a1c0
 void PauseText::Draw()
 {
-	mFont->DrawLinesCentred(this, 0, 200, mText.c_str(), 800, mFont->GetLineHeight() - 1, 100, 100, 0xff);
-	jb::Rect aRect = {0, 0, 800, 600};
+	mFont->DrawLinesCentred(this, 0, 200, mText.c_str(), jb::SCREEN_WIDTH, mFont->GetLineHeight() - 1, 100, 100, 0xff);
+	jb::Rect aRect = {0, 0, jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT};
 	AddDirty(aRect);
 }
 

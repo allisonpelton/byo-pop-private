@@ -23,7 +23,7 @@ int gPairKinds;
 int gDealCount;  // 0x533630
 
 // The search (0x413d90): its state is in globals in the original
-static bool gSolveGold;            // 0x5335f8 a tile of kind 0x2b is among those taken
+static bool gSolveGold;            // 0x5335f8 a gold tile is among those taken
 static int gSolveKinded;           // 0x5335fc the tiles on the board with a kind
 static uint32_t gSolveLimit;       // 0x533600 ms
 static uint32_t gSolveStart;       // 0x533604
@@ -39,11 +39,11 @@ static int gSolveQuads;            // 0x533628 the pairs taken as halves of four
 static int gSolveTaken;            // 0x53362c
 static Tile* gPairOrder[400];      // 0x533704 the order's pairs, filled from the end
 static Tile* gQuadOrder[400];      // 0x533d44 the order's fours
-static Tile* gLocks[400];         // 0x534384 the tiles that match 0x2d
+static Tile* gLocks[400];         // 0x534384 the locks (the tiles that match KIND_LOCK)
 static Tile* gSolveFreed[400][20]; // 0x5349c4 the tiles a move frees, by depth
 static Tile* gSolveFree[400][400]; // 0x53c6c4 the free tiles, by depth
 
-// 0x413340: the two halves of a pair kind (0x2c and 0x2d), 0x2b with itself, the wild tiles 0x2e and 0x2f with any
+// 0x413340: the key with the lock, the gold tile with itself, the joker and the magnet with any
 // kind up to 0x2a, else as 0x413380
 bool TilesMatch(int theKind, int theOther)
 {
@@ -71,7 +71,7 @@ bool KindsMatch(int theKind, int theOther)
 	return theKind == theOther;
 }
 
-// 0x4133c0: suits 5-45 by their number, winds and dragons 50, seasons and flowers 100, 0x2b 1000
+// 0x4133c0: suits 5-45 by their number, winds and dragons 50, seasons and flowers 100, the gold tile 1000
 int KindPoints(int theKind)
 {
 	if (theKind < 0x1c)
@@ -565,9 +565,9 @@ void DealBonus(Tile* theTile, int theRange, int theBase)
 	} while (i < 4);
 }
 
-// 0x413d90: done when every tile has gone but the halves (0x2d) left, or, once the 0x2b tile has gone, when only
-// tiles with kinds are left. In a layout with kinds of its own a 0x2c pairs with any 0x2d on the board, 0x2e and
-// 0x2f go alone and 0x2d only with a 0x2c.
+// 0x413d90: done when every tile has gone but the locks left, or, once the gold tile has gone, when only
+// tiles with kinds are left. In a layout with kinds of its own a key pairs with any lock on the board, the joker and
+// the magnet go alone and a lock only with a key.
 bool Deal::Solve(int theDepth, int theCount, int theGroup)
 {
 	if (gLocksLeft + gSolveTaken == gDealCount || (gSolveGold && gSolveKinded + gSolveTaken == gDealCount))

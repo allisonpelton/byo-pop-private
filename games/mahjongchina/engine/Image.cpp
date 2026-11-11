@@ -476,7 +476,7 @@ bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 		aClip = true;
 	}
 	else
-		aClip = theY < 0 || 800 < theX + aWidth || 600 < aHeight + theY;
+		aClip = theY < 0 || SCREEN_WIDTH < theX + aWidth || SCREEN_HEIGHT < aHeight + theY;
 	if (aClip)
 	{
 		if (theY < 0)
@@ -486,10 +486,10 @@ bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 			aDst = aDst - aDstOffsetY;
 			aHeight = aHeight + aY;
 		}
-		if (800 < theX + aWidth)
-			aWidth = 800 - theX;
-		if (600 < aHeight + theY)
-			aHeight = 600 - theY;
+		if (SCREEN_WIDTH < theX + aWidth)
+			aWidth = SCREEN_WIDTH - theX;
+		if (SCREEN_HEIGHT < aHeight + theY)
+			aHeight = SCREEN_HEIGHT - theY;
 		if (aWidth < 1 || aHeight < 1)
 			return true;
 	}
@@ -777,7 +777,7 @@ bool Image::SaveBmp(const char* thePath)
 void ScreenFillRect(const Rect* theRect, uint32_t theColour)
 {
 	Rect aScreen;
-	SetRect(aScreen, 0, 0, 800, 600);
+	SetRect(aScreen, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	Rect aClipped;
 	const Rect* aRect = &aScreen;
 	if (theRect != nullptr)
@@ -799,7 +799,7 @@ void ScreenFillRectAlpha(Rect& theRect, int theAlpha, uint32_t theColour)
 		theAlpha = 0xff;
 	uint32_t aColour = theColour & 0xffffff;
 	Rect aScreen;
-	SetRect(aScreen, 0, 0, 800, 600);
+	SetRect(aScreen, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	IntersectRect(theRect, theRect, aScreen);
 	uint8_t* aDst = gScreen + theRect.top * gScreenPitch + theRect.left * 4;
 	int aWidth = theRect.right - theRect.left;

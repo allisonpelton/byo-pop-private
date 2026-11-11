@@ -150,12 +150,12 @@ void MapView::Draw()
 	if (aShown == 0 && 0 < mTextAlpha)
 	{
 		DrawImage(0x2a, 10, IMAGE_MAP_TEXT_SHADE, nullptr, true, 400, 400, mTextAlpha);
-		mIntroFont->DrawLinesCentred(this, 0, 200, mIntroText.c_str(), 800, 0x1a, 100, 100, mTextAlpha);
+		mIntroFont->DrawLinesCentred(this, 0, 200, mIntroText.c_str(), jb::SCREEN_WIDTH, 0x1a, 100, 100, mTextAlpha);
 	}
 	if (mNewStage && 0 < mTextAlpha)
 	{
 		DrawImage(0x80, 0x82, IMAGE_MAP_TEXT_TOP, nullptr, true, 100, 100, mTextAlpha);
-		mStageFont->DrawLinesCentred(this, 0, 0xec, mStageText.c_str(), 800, 0x26, 100, 100, mTextAlpha);
+		mStageFont->DrawLinesCentred(this, 0, 0xec, mStageText.c_str(), jb::SCREEN_WIDTH, 0x26, 100, 100, mTextAlpha);
 		DrawImage(0x80, 0x1a4, IMAGE_MAP_TEXT_BOTTOM, nullptr, true, 100, 100, mTextAlpha);
 	}
 }
@@ -303,10 +303,10 @@ void MapView::OnMouseMove(int theFlags, int theX, int theY)
 {
 	if (HitTest(theX, theY) != -1)
 	{
-		SetCursorKind(1, true);
+		SetCursorKind(jb::CURSOR_KIND_HAND, true);
 		return;
 	}
-	SetCursorKind(0, true);
+	SetCursorKind(jb::CURSOR_KIND_ARROW, true);
 }
 
 // 0x4100e0
@@ -359,11 +359,11 @@ bool MapCurtain::Update()
 		else
 			aX = mX + GetDelta();
 		mX = aX;
-		if (!mClosing ? -0x90 < aX : mX < 800)
+		if (!mClosing ? -0x90 < aX : mX < jb::SCREEN_WIDTH)
 		{
-			mClip.mRect = {0, 0, mX + 0x2e, 600};
+			mClip.mRect = {0, 0, mX + 0x2e, jb::SCREEN_HEIGHT};
 			mLayer->SetClip(&mClip);
-			mPlayClip.mRect = {mX + 0x6c, 0, 800, 600};
+			mPlayClip.mRect = {mX + 0x6c, 0, jb::SCREEN_WIDTH, jb::SCREEN_HEIGHT};
 			mPlay->SetClip(&mPlayClip);
 			return true;
 		}
@@ -387,7 +387,7 @@ void MapCurtain::Open()
 // 0x411350
 void MapCurtain::Close()
 {
-	mClip.mRect = {0, 0, 0, 600};
+	mClip.mRect = {0, 0, 0, jb::SCREEN_HEIGHT};
 	mLayer->SetClip(&mClip);
 	mClosing = true;
 	mX = -0xb8;

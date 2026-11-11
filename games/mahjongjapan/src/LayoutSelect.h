@@ -92,7 +92,7 @@ class LayoutHeader : public jb::Object
 public:
 	jb::Font* mTitleFont = nullptr;  // +0x90
 	jb::Font* mPageFont = nullptr;   // +0x94
-	std::string mTitle;              // +0x98 (0x10)
+	std::string mTitle;              // +0x98 (STRING_LAYOUTS_TITLE)
 	jb::Font* mPlayedFont = nullptr; // +0xa0
 	std::string mPrevPage;           // +0xa4
 	std::string mNextPage;           // +0xac
