@@ -106,6 +106,10 @@ tutorial's bubbles and the sticky-spots bubble, which takes updates, and to 4647
 | Skip the tutorial button, 7 pixels left and 3 up | 0x4106d0 places it at (305, 439) | the same |
 | Story portraits | 0x42ccf0: the backdrop is stretched over a 160 by 160 picture, the speaker is drawn on it by the same routine as the temple's (moved by the table at 0x53d660), the picture is scaled into a copy of the frame; the frames are at (10, 14) and (514, 156) | `StoryScreen::DrawSpeech` does the same through `DrawCharacter` |
 | The temple's puzzle thumbnails and the cave's click-here text | 0x4138d0, 0x413420, 0x4119e0 | `MakeMiniImage`, `TempleScreen::DrawThumbs` follow them |
+| The tutorial board lacked the teacher and showed Reset, Hint and Undo | 0x409880: the tutorial board hides the three buttons (the ninth puzzle keeps them) and creates the teacher, drawn by the same routine as the temple's figure | `Board` hides them and draws `DrawCharacter(mTeacher)` after the tutorial sidebar | f18817b8 |
+| The sweep picture's tiles sat 1 pixel off | 0x409880's draws of the gray tile take (x - 1, y - 1) | the same (u2560 from 14.4% to 1.9%) | f18817b8 |
+| Temple thumbnails: no glow near the mouse | 0x4119e0, 0x4100f0, 0x410ad0: with the mouse within 64 pixels, each 6 by 6 cell of the shape shows with alpha 255 - d^3 * 255 / 2^18 (d from the cell's middle to the pointer) | `TempleScreen::DrawThumbs` does the same | f18817b8 |
+| The tutorial's completed tablet showed the move count and the label | 0x41a66a: with the tutorial flag the tablet draws only its three lines (y 268, 293, 318; 283 and 308 once the tutorial is done) | `PuzzleCompletedScreen::DrawContent` the same | this pass |
 
 The frozen baseline (build/baseline-pixelus) was refreshed on 2026-11-08: the island now draws the application's generator as the
 original does (three draws in its constructor, then the lightning, gulls and surf timers), so the state logs differ from the
@@ -124,6 +128,8 @@ phase-one baseline only in their `apprand` lines; the game's own state and its d
 - The story portraits' inner picture (the Cyclops' head in the frame, 3% of the screen at u1700) differs at the head's edges:
   the figure's outline matches pixel for pixel, so the stretch filter of the framework's `DrawImage` into the frame differs from the original's
   (0x458da0 draws with the application's own stretch mode). Not chased; the same stretch is used wherever the original scales an image.
+- The completed tablet's picture (u2700, 7.6%) is drawn from the same cells but its stretch is blurrier than the original's crisp
+  grid, and the title's outline colour differs by a few levels: the same stretch filter as the story portraits; not chased.
 - The Skip the Tutorial log differs by about a pixel at its left cap and edges (resampling of the strip's frame).
 - Tile icons and the sliding trail are drawn slightly differently; the tile maker's pose differs by a frame.
 
