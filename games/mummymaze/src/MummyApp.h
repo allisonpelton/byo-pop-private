@@ -71,7 +71,6 @@ enum GameMode
 // Dialog ids (AddDialog / DoDialog / KillDialog)
 enum DialogId
 {
-	DIALOG_NEW_GAME = 0,
 	DIALOG_STARTED_TUTORIAL = 1,
 	DIALOG_QUIT = 2,
 	DIALOG_QUIT_TO_MAIN = 3,

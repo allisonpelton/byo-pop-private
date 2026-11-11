@@ -15,8 +15,11 @@ IMAGE_TABLE = 0x492410    # 165 pointers, up to the sounds' table
 SOUND_TABLE = 0x4926a4    # 25 pointers
 SOUND_END = 0x492708
 # the two pictures of the registration screen and the title's "registered version" medallion: the port has no registration
-# (CLAUDE.md, "Order of the work"), so they are neither named nor loaded, and the ids after them move up
-OMITTED_IMAGES = ("register", "registerrunes", "trialcircle")
+# (CLAUDE.md, "Order of the work"), so they are neither named nor loaded, and the ids after them move up. So do the two
+# pictures that only the Internet score list drew (internethighscore, dbuttonclear: 0x416540, 0x415e50, code the port has not
+# got). light6, light8 and light10, which no code names, stay: they are the explorer's fourth idle animation, reached as
+# readmap6 + size + 3 * kind.
+OMITTED_IMAGES = ("register", "registerrunes", "trialcircle", "internethighscore", "dbuttonclear")
 
 
 class Exe:

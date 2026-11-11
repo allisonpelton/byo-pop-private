@@ -163,8 +163,6 @@ const char* gImageNames[NUM_IMAGES] =
 	"nicetreasurestrip",
 	"pyramidfont",
 	"pyramidtext",
-	"internethighscore",
-	"dbuttonclear",
 	"gameovertext",
 	"beach",
 	"snake",
