@@ -1498,7 +1498,8 @@ var ByopopSoundboards = {
       ["ningpo.pyz|zip:nm_click.wav", "Tile selected", "A free tile is selected; also an arrow of the title screen is clicked"],
       ["ningpo.pyz|zip:nm_unclick.wav", "Tile deselected", "The selected tile is clicked again and deselected"],
       ["ningpo.pyz|zip:nm_blocked.ogg", "Blocked tile", "A tile that is not free is clicked, or a free tile that does not match the selected one"],
-      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken and the game goes on"]
+      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken and the game goes on"],
+      ["ningpo.pyz|zip:nm_youwin.ogg", "You win", "The last pair is taken"]
     ] },
     { name: "Buttons", sounds: [
       ["ningpo.pyz|zip:nm_hint.ogg", "Hint, shuffle, undo", "The hint button, the shuffle or the undo is used"]
