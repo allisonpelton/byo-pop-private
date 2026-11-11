@@ -157,6 +157,16 @@ check("either: missing in a known root", I.missingIn(spec("typershark"), ["data/
 check("either: dropped folders of both copies", brief(I.sort(ts("WinTS.exe").map((f) => ({ path: "Steam/" + f.path, read: f.read }))
   .concat(ts("TyperShark.exe").map((f) => ({ path: "Collection/" + f.path, read: f.read }))).concat(ts(null).map((f) => ({ path: "Bare/" + f.path, read: f.read }))))),
   { found: [["Steam", "typershark", "Steam/TS/", ["typershark"]], ["Collection", "typershark", "Collection/TS/", ["typershark"]]], rejected: ["Bare"] });
+// AstroPop's the same: WinAP.exe in its Steam copy, AstroPop.exe in the Collection's
+if (finished.indexOf("astropop") < 0) {
+  const js = fs.readFileSync(path.join(root, "games", "astropop", "web", "page.js"), "utf8");
+  vm.runInContext(`ByopopImport.add("astropop", "AstroPop Deluxe", function () {\n${js}\n  return PAGE;\n});`, ctx);
+}
+const ap = (exe) => files("AP/data/bonus-1.xcf", "AP/images/_galaxy1.gif", "AP/sounds/a.ogg").concat(exe ? files("AP/" + exe) : []);
+check("either: AstroPop's Steam exe", I.findRoot(spec("astropop"), ap("WinAP.exe"), false), "AP/");
+check("either: AstroPop's Collection exe", I.findRoot(spec("astropop"), ap("AstroPop.exe"), false), "AP/");
+check("either: AstroPop with neither exe", I.findRoot(spec("astropop"), ap(null), false), null);
+check("either: AstroPop with neither exe, named", I.missingMarkers(spec("astropop"), ap(null)), "WinAP.exe or AstroPop.exe");
 
 console.log(`gameimporttest: ${checks} checks, ${failed} failed`);
 process.exit(failed ? 1 : 0);

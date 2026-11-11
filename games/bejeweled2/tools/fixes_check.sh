@@ -21,7 +21,7 @@ OUT=build/fixes
 PROFILE=build/logs/bej2/profile
 MODS="-modsdir=$W/games/bejeweled2/mods"
 mkdir -p "$OUT"
-wait_slot() { until python tools/gamecount.py --limit "${GAMELIMIT:-3}" > /dev/null 2>&1; do sleep 15; done; }
+wait_slot() { until python tools/gamecount.py --limit "${GAMELIMIT:-6}" > /dev/null 2>&1; do sleep 15; done; }
 
 # the player with every mode unlocked (make_profile.py, 2D)
 if [ ! -d "$PROFILE/users" ]; then

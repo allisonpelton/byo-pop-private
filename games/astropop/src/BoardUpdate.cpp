@@ -18,64 +18,64 @@ void Board::Update()
 {
 	Widget::Update();
 
-	if (m8db)
+	if (mRecordingDemo)
 	{
-		if (!m948)
-			m94c++;
+		if (!mDemoRecordAction)
+			mDemoRecordArg++;
 		else
 		{
-			m948 = 0;
-			m94c = 1;
+			mDemoRecordAction = 0;
+			mDemoRecordArg = 1;
 		}
 	}
 
 	// a warp to the next stage is on the screen (and is not fading out already)
 	bool aWarpActive = true;
-	if (m230.empty() || !m230[0]->m1c || -m7ec < m7e8)
+	if (mHintSpots.empty() || !mHintSpots[0]->mActive || -mLevelUpPanelHeight < mLevelUpPanelY)
 		aWarpActive = false;
 
-	if (m8ff && (mUpdateCnt % 8) != 0)
+	if (mSlowMotion && (mUpdateCnt % 8) != 0)
 	{
-		if (m8db)
+		if (mRecordingDemo)
 			RecordStep(false);
 		return;
 	}
 
-	if (m901)
+	if (mScreenWiping)
 	{
-		if (m310->Check(m1a84))
+		if (mScreenWipe->Check(mScreenWipeSteps))
 			mApp->CloseBoard();
 		MarkDirty();
 		return;
 	}
 
-	if (m1924 >= 1)
+	if (mPauseCount >= 1)
 	{
 		// the stage's picture is covered by the warp: the field's cover slides down
-		m192c++;
-		if (m1928 < mHeight)
+		mPausedUpdates++;
+		if (mPauseDarkening < mHeight)
 		{
 			MarkDirty();
-			int aCover = m1928;
-			m1928 = aCover + 0x14;
+			int aCover = mPauseDarkening;
+			mPauseDarkening = aCover + 0x14;
 			if (mHeight < aCover + 0x14)
-				m1928 = mHeight;
+				mPauseDarkening = mHeight;
 			mOverlay.MarkDirtyFull();
 		}
 
-		if (m230.empty() || !m230[0]->m1c || m1924 != 1)
+		if (mHintSpots.empty() || !mHintSpots[0]->mActive || mPauseCount != 1)
 		{
-			if (m919)
+			if (mWeaponHintShown)
 			{
-				m808.Update(8);
+				mWeaponHintPulse.Update(8);
 				MarkDirtyFull();
 			}
 		}
-		else if (!m919)
+		else if (!mWeaponHintShown)
 			UpdateStageBackground();
 		else
 		{
-			m808.Update(8);
+			mWeaponHintPulse.Update(8);
 			MarkDirtyFull();
 		}
 
@@ -88,18 +88,18 @@ void Board::Update()
 		if (mApp->mHelpScreen != NULL)
 			return;
 
-		if (m8e1 && mApp->mFlag6fb && !mApp->mFlag6fc)
+		if (mFirstHelpPending && mApp->mShowHelpAtStart && !mApp->mHelpShown)
 		{
-			m8e1 = false;
+			mFirstHelpPending = false;
 			mApp->ShowFullScreenHelp();
 			return;
 		}
 
 		// the demo (the title's game plays by itself): one step of its script
-		if (m8dc)
+		if (mDemoPlaying)
 		{
-			unsigned int aSize = (unsigned int) m2d0.size();
-			unsigned int aStep = (unsigned int) m954;
+			unsigned int aSize = (unsigned int) mDemoSteps.size();
+			unsigned int aStep = (unsigned int) mDemoStepIndex;
 			if (aSize <= aStep)
 			{
 				ResetState();
@@ -108,21 +108,21 @@ void Board::Update()
 				return;
 			}
 
-			int anAction = m2d0[aStep].mAction;
+			int anAction = mDemoSteps[aStep].mAction;
 			if (anAction == 0)
 			{
-				int aWait = m95c;
-				m95c = aWait - 1;
+				int aWait = mDemoWaitLeft;
+				mDemoWaitLeft = aWait - 1;
 				if (aWait - 1 < 1)
-					m954 = aStep + 1;
+					mDemoStepIndex = aStep + 1;
 			}
 			else
 			{
-				m8dd = true;
+				mDemoInputActive = true;
 				if (anAction == 2)
-					MouseDown(m1958, m195c, 1);
+					MouseDown(mLastPointerX, mLastPointerY, 1);
 				else if (anAction == 1)
-					MouseDown(m1958, m195c, -1);
+					MouseDown(mLastPointerX, mLastPointerY, -1);
 				else
 				{
 					int aX = 0;
@@ -141,19 +141,19 @@ void Board::Update()
 					}
 					MouseMove(aX, 400);
 				}
-				unsigned int aNext = (unsigned int) m954 + 1;
-				m8dd = false;
-				m954 = (int) aNext;
-				if (aNext < (unsigned int) m2d0.size() && m2d0[aNext].mAction == 0)
-					m95c = m2d0[aNext].mArg;
+				unsigned int aNext = (unsigned int) mDemoStepIndex + 1;
+				mDemoInputActive = false;
+				mDemoStepIndex = (int) aNext;
+				if (aNext < (unsigned int) mDemoSteps.size() && mDemoSteps[aNext].mAction == 0)
+					mDemoWaitLeft = mDemoSteps[aNext].mArg;
 			}
 		}
 
-		if (!m8e0)
+		if (!mWelcomePlayed)
 		{
-			if (!m8dc)
+			if (!mDemoPlaying)
 			{
-				m8e0 = true;
+				mWelcomePlayed = true;
 				mApp->PlaySample(SOUND_VWELCOME);
 			}
 			if (!mApp->mEngineLoop->IsPlaying())
@@ -165,15 +165,15 @@ void Board::Update()
 		}
 
 		UpdateStates();
-		if (!gFlag5A5100 && m1a60 != 2 && !mFlag8E8 && m1940 > 1)
+		if (!gStateSaved && mGameType != 2 && !mGameOver && mLevelNumber > 1)
 			SaveGameState();
 		ShowThemeButtons();
-		if (m1a44 < 0)
+		if (mAtomicFlashAlpha < 0)
 			UpdateScenery();
-		if (mFlag8E8)
+		if (mGameOver)
 			UpdateGameOver();
 
-		if (m910 && m912 && (mUpdateCnt % 2) == 0)
+		if (mBonusRoundOn && mBricksRevealing && (mUpdateCnt % 2) == 0)
 			RevealBricks();
 
 		SweepSprockets();
@@ -181,40 +181,40 @@ void Board::Update()
 
 		if (IsSettled(false))
 			LevelComplete();
-		if (Fn46a810())
+		if (UpdateWarp())
 			return;
 
-		if (m8ea && !aWarpActive)
+		if (mStreaksFadingOut && !aWarpActive)
 			UpdateEffects();
 		UpdateAnimCounters();
-		if (m8e6)
+		if (mBackdropTintChanging)
 			FadeBackdrop();
 		UpdateBricks();
-		if (m1a60 == 2)
+		if (mGameType == 2)
 			UpdateRamp();
 
-		if ((mUpdateCnt % m19d4) == 0 && !mApp->mFlag658 && m1bbc <= mField193C && m8fc && m19d0 < m19cc - 200 && m19fc == 0)
-			m19d0++;
+		if ((mUpdateCnt % mRowReductionPeriod) == 0 && !mApp->mTutorialOn && mHardStage <= mStageNumber && mPlayStarted && mRowIntervalReduction < mRowInterval - 200 && mFreezeUpdatesLeft == 0)
+			mRowIntervalReduction++;
 
-		if (m930 < m934)
+		if (mStackDanger < mStackDangerPeak)
 		{
-			float aNew = m934 - 0.2f;
-			m934 = aNew;
-			if (aNew < m930)
-				m934 = m930;
+			float aNew = mStackDangerPeak - 0.2f;
+			mStackDangerPeak = aNew;
+			if (aNew < mStackDanger)
+				mStackDangerPeak = mStackDanger;
 		}
 
 		if (SpawnControl())
 			return;
 
 		// the floating texts
-		for (int i = 0; i < (int) m140.size(); i++)
+		for (int i = 0; i < (int) mFloatTexts.size(); i++)
 		{
-			m140[i]->Update();
-			if (m140[i]->mDone)
+			mFloatTexts[i]->Update();
+			if (mFloatTexts[i]->mDone)
 			{
-				delete m140[i];
-				m140.erase(m140.begin() + i);
+				delete mFloatTexts[i];
+				mFloatTexts.erase(mFloatTexts.begin() + i);
 				i--;
 			}
 		}
@@ -222,7 +222,7 @@ void Board::Update()
 		mSirenAnim.Update();
 
 		// the score on the display catches up with the score, faster the further behind it is
-		int aShown = m1970;
+		int aShown = mScoreShown;
 		int aScore = mScore;
 		if (aShown < aScore)
 		{
@@ -251,64 +251,64 @@ void Board::Update()
 				aShown += 100000;
 			else
 				aShown += 150000;
-			m1970 = aShown;
+			mScoreShown = aShown;
 			if (aScore <= aShown)
-				m1970 = aScore;
+				mScoreShown = aScore;
 		}
 
-		m420.Update();
-		if (m19fc == 0 && m8fc)
-			m19d8++;
+		mLaserAnim.Update();
+		if (mFreezeUpdatesLeft == 0 && mPlayStarted)
+			mRowTimer++;
 
 		UpdateExplosion();
 
 		// the blinking pictures
 		for (int i = 0; i < 40; i++)
 		{
-			md8[i].mCounter--;
-			if (md8[i].mCounter < -0x14)
-				md8[i].mCounter = 400;
-			md8[i].mAnim.Update();
+			mBeamSparks[i].mCounter--;
+			if (mBeamSparks[i].mCounter < -0x14)
+				mBeamSparks[i].mCounter = 400;
+			mBeamSparks[i].mAnim.Update();
 		}
 
-		if (m1a60 == 2)
+		if (mGameType == 2)
 			UpdateSparks();
 
-		if (mFlag8E8 && !m91e)
+		if (mGameOver && !mHighScoreSoundDone)
 		{
-			m964--;
-			if (m964 < 1)
+			mHighScoreSoundDelay--;
+			if (mHighScoreSoundDelay < 1)
 			{
-				m91e = true;
-				if (m1b30 == 0)
+				mHighScoreSoundDone = true;
+				if (mNewRecordRow == 0)
 					mApp->PlaySample(SOUND_NEW_HIGH_SCORE);
 			}
 		}
-		if (!m91f && m1b44 > 0)
+		if (!mNewRankDelayOver && mNewRankDelay > 0)
 		{
-			m1b44--;
-			if (m1b44 < 1)
-				m91f = true;
+			mNewRankDelay--;
+			if (mNewRankDelay < 1)
+				mNewRankDelayOver = true;
 		}
 
 		// with the left button held in the field of a classic game the click is repeated every update
-		if (mMode == 0 && m1958 > 0xa5 && m1958 < 0x25f && m1a34 == 1 && mApp->IsLeftButtonDown())
+		if (mMode == 0 && mLastPointerX > 0xa5 && mLastPointerX < 0x25f && mPowerupActive == 1 && mApp->IsLeftButtonDown())
 		{
-			bool aFlag = m90b;
-			m90b = true;
-			MouseDown(m1958, m195c, 1);
-			m90b = aFlag;
+			bool aFlag = mClickRepeating;
+			mClickRepeating = true;
+			MouseDown(mLastPointerX, mLastPointerY, 1);
+			mClickRepeating = aFlag;
 		}
 
-		for (unsigned int i = 0; i < m2b0.size(); i++)
-			m2b0[i]->Update();
+		for (unsigned int i = 0; i < mHintBoxes.size(); i++)
+			mHintBoxes[i]->Update();
 
-		if ((mUpdateCnt % 300) == 0 && m1a60 == 2)
+		if ((mUpdateCnt % 300) == 0 && mGameType == 2)
 			DeleteDoomedBricks();
 		MarkDirty();
 	}
 
-	if (m8db)
+	if (mRecordingDemo)
 		RecordStep(false);
 }
 
@@ -321,7 +321,7 @@ void Board::RevealBricks()
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick != NULL && !aBrick->mVisible)
 			{
 				aBrick->SetVisible(true);
@@ -333,15 +333,14 @@ void Board::RevealBricks()
 
 	for (unsigned int i = 0; i < mTargeted.size(); i++)
 		mTargeted[i]->StopFlash();
-	if (!m918)
+	if (!mBonusRevealDone)
 	{
-		m918 = true;
-		m1b78 = 300;
+		mBonusRevealDone = true;
 	}
 	mTargeted.clear();
-	m912 = false;
-	m90f = false;
-	m1b70 = 6000;
+	mBricksRevealing = false;
+	mClicksBlocked = false;
+	mBonusTimeLeft = 6000;
 	HighlightTargets();
 }
 
@@ -349,45 +348,45 @@ void Board::RevealBricks()
 // cell (event 0x18) or not (0x16)
 void Board::SweepSprockets()
 {
-	if (m1a34 != 1)
+	if (mPowerupActive != 1)
 		return;
-	if ((mUpdateCnt % 2) != 0 || mMode != 1 || m1a0.empty())
+	if ((mUpdateCnt % 2) != 0 || mMode != 1 || mAtomicMarkedBricks.empty())
 		return;
 
-	for (unsigned int aRow = 1; aRow < m314.size(); aRow++)
+	for (unsigned int aRow = 1; aRow < mFieldBricks.size(); aRow++)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
-			if (aBrick != NULL && !aBrick->mSprocketOn && !aBrick->mFlag190)
+			Brick* aBrick = mFieldBricks[aRow][aCol];
+			if (aBrick != NULL && !aBrick->mSprocketOn && !aBrick->mSprocketFading)
 			{
-				FireTo(aBrick, HasCell3(aCol, aRow, m1a0) ? 0x18 : 0x16);
+				FireTo(aBrick, HasCell3(aCol, aRow, mAtomicMarkedBricks) ? 0x18 : 0x16);
 				return;
 			}
 		}
 	}
 }
 
-// the same in mode 2 with the turbot bricks (events 0x19 and 0x17); the phase of m1b4c moves on once the list of the
+// the same in mode 2 with the turbot bricks (events 0x19 and 0x17); the phase of mTurbotPhase moves on once the list of the
 // marked cells is empty (or was)
 void Board::SweepTurbots()
 {
-	if (m1a34 != 1 || m1b4c == 1 || m1b4c == 3)
+	if (mPowerupActive != 1 || mTurbotPhase == 1 || mTurbotPhase == 3)
 		return;
 	if ((mUpdateCnt % 2) != 0 || mMode != 2)
 		return;
 
-	if (!mc8.empty())
+	if (!mTurbotMarkedCells.empty())
 	{
-		for (unsigned int aRow = 1; aRow < m314.size(); aRow++)
+		for (unsigned int aRow = 1; aRow < mFieldBricks.size(); aRow++)
 		{
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
-				Brick* aBrick = m314[aRow][aCol];
-				if (aBrick != NULL && !aBrick->mTurbotOn && !aBrick->mFlag193)
+				Brick* aBrick = mFieldBricks[aRow][aCol];
+				if (aBrick != NULL && !aBrick->mTurbotOn && !aBrick->mTurbotFading)
 				{
-					FireTo(aBrick, HasCell(aCol, aRow, mc8) ? 0x19 : 0x17);
-					if (!mc8.empty())
+					FireTo(aBrick, HasCell(aCol, aRow, mTurbotMarkedCells) ? 0x19 : 0x17);
+					if (!mTurbotMarkedCells.empty())
 						return;
 					goto Phase;
 				}
@@ -395,72 +394,71 @@ void Board::SweepTurbots()
 		}
 	}
 Phase:
-	if (m1b4c == 0)
-		m1b4c = 1;
-	else if (m1b4c == 2)
-		m1b4c = 3;
+	if (mTurbotPhase == 0)
+		mTurbotPhase = 1;
+	else if (mTurbotPhase == 2)
+		mTurbotPhase = 3;
 }
 
 // when the field is quiet and the time has come, the next piece drops; when there is no room left the game ends (if the
 // profile asks for it). Returns true when the update ends here.
 bool Board::SpawnControl()
 {
-	if (!(m8e3 && !m8e4 && !m910 && !m8ec && !m8eb && !m8ed && !m8ef && !m8f4))
+	if (!(mTopRowsAllowed && !mNewRowBouncing && !mBonusRoundOn && !mWarpCharging && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked))
 		return false;
 
 	int aTime;
-	if (m1a60 == 2)
-		aTime = m19cc;
+	if (mGameType == 2)
+		aTime = mRowInterval;
 	else
 	{
-		float aStage = (mField193C > 5) ? 0.0f : (float) (8 - mField193C);
-		aTime = (int) ((float) (m19cc - m19d0) + (aStage + aStage + 20.0f) * m930);
+		float aStage = (mStageNumber > 5) ? 0.0f : (float) (8 - mStageNumber);
+		aTime = (int) ((float) (mRowInterval - mRowIntervalReduction) + (aStage + aStage + 20.0f) * mStackDanger);
 	}
 
-	int aPhase = m1a34;
+	int aPhase = mPowerupActive;
 	if (aPhase == 0)
-		m1ab4--;
+		mExtraRowDelay--;
 
-	if (m1a68 == 0 && CountMovingBricks(false) == 0 && m1994 == 0 && !m8ea && (aPhase != 1 || m8fb) &&
-		((mMode == 0 && (aPhase != 1 || m91c)) || (mMode == 3 && (aPhase != 1 || m91b)) || aPhase == 0 || m8fb) &&
-		!mApp->mFlag658 && m8fc && mf8.empty() && m19fc < 1 && (aTime <= m19d8 || m1934 > 0))
+	if (mSupportedBrickCount == 0 && CountMovingBricks(false) == 0 && mTakenBrickCount == 0 && !mStreaksFadingOut && (aPhase != 1 || mFieldCleared) &&
+		((mMode == 0 && (aPhase != 1 || mLaserUsed)) || (mMode == 3 && (aPhase != 1 || mPsychicUsed)) || aPhase == 0 || mFieldCleared) &&
+		!mApp->mTutorialOn && mPlayStarted && mKillAllTypes.empty() && mFreezeUpdatesLeft < 1 && (aTime <= mRowTimer || mExtraRowsDue > 0))
 	{
-		int aWaited = m19d8;
-		int aSpare = m1934;
-		if (aSpare >= 1 && !m8fb && m1ab4 > 0 && aWaited < aTime)
+		int aWaited = mRowTimer;
+		int aSpare = mExtraRowsDue;
+		if (aSpare >= 1 && !mFieldCleared && mExtraRowDelay > 0 && aWaited < aTime)
 			return false;
 
-		if (m1ab4 < 0)
-			m1ab4 = 0;
+		if (mExtraRowDelay < 0)
+			mExtraRowDelay = 0;
 
-		if (m909)
+		if (mStackWarningActive)
 		{
-			m97c--;
-			if (m97c < 1)
-				m909 = false;
-			if (m909)
+			mStackWarningTimer--;
+			if (mStackWarningTimer < 1)
+				mStackWarningActive = false;
+			if (mStackWarningActive)
 				return false;
 		}
 
-		m8fe = false;
 		if (aWaited < aTime)
 		{
-			if (m1ab4 < 1)
+			if (mExtraRowDelay < 1)
 			{
-				m1934 = aSpare - 1;
-				if (m1934 >= 0)
-					m1ab4 = 100;
+				mExtraRowsDue = aSpare - 1;
+				if (mExtraRowsDue >= 0)
+					mExtraRowDelay = 100;
 				else
-					m1934 = 0;
+					mExtraRowsDue = 0;
 			}
 		}
 		else
 		{
-			m19d8 = 0;
+			mRowTimer = 0;
 			if (aSpare > 0)
 			{
-				m1934 = aSpare - 1;
-				m1ab4 = 100;
+				mExtraRowsDue = aSpare - 1;
+				mExtraRowDelay = 100;
 			}
 		}
 
@@ -468,15 +466,15 @@ bool Board::SpawnControl()
 		{
 			int aValue = 1;
 			mApp->mUser->GetInt(0x2e, &aValue);
-			if (aValue == 1 && m1bdc <= m1bd8)
+			if (aValue == 1 && mWeaponChargeMax <= mWeaponCharge)
 			{
 				Pause(true, false);
-				mOverlay.SetFlag78(true);
+				mOverlay.SetEmergencyPause(true);
 				return true;
 			}
 		}
 		AddTopRow();
-		m2b0[2]->SetShown(false);
+		mHintBoxes[2]->SetShown(false);
 		UpdateKlaxon();
 	}
 	return false;
@@ -487,15 +485,15 @@ bool Board::SpawnControl()
 void Board::UpdateExplosion()
 {
 	int aNumDone = 0;
-	for (int i = 0; i < (int) m1b0.size(); i++)
+	for (int i = 0; i < (int) mAtomicExplosions.size(); i++)
 	{
-		FrameAnim* anAnim = m1b0[i];
+		FrameAnim* anAnim = mAtomicExplosions[i];
 		anAnim->Update();
 		if (anAnim->mDone || (0 < anAnim->mMaxLoops && anAnim->mMaxLoops <= anAnim->mLoopCount))
 			aNumDone++;
-		if (i == 7 && anAnim->mNumFrames != 1 && anAnim->mFrame == 7 && !anAnim->mStopped && m1a40 == -1)
+		if (i == 7 && anAnim->mNumFrames != 1 && anAnim->mFrame == 7 && !anAnim->mStopped && mAtomicSymbolTimer == -1)
 		{
-			m1a40 = 0;
+			mAtomicSymbolTimer = 0;
 			anAnim->SetStopped(true);
 			anAnim->SetDelay(3);
 		}
@@ -503,42 +501,42 @@ void Board::UpdateExplosion()
 
 	if (aNumDone == 8)
 	{
-		m8f9 = true;
-		m1a40 = -1;
-		m1a44 = -1;
+		mAtomicBlastOver = true;
+		mAtomicSymbolTimer = -1;
+		mAtomicFlashAlpha = -1;
 		SetOverlayHidden(true);
-		for (unsigned int i = 0; i < m1b0.size(); i++)
-			delete m1b0[i];
-		m1b0.clear();
+		for (unsigned int i = 0; i < mAtomicExplosions.size(); i++)
+			delete mAtomicExplosions[i];
+		mAtomicExplosions.clear();
 	}
 
-	int aCount = (int) m1b0.size();
-	int aFade = m1a44;
+	int aCount = (int) mAtomicExplosions.size();
+	int aFade = mAtomicFlashAlpha;
 	if (aFade >= 0)
 	{
 		bool aSetFill = true;
 		if (aCount >= 1)
 		{
-			FrameAnim* aLast = m1b0[aCount - 1];
+			FrameAnim* aLast = mAtomicExplosions[aCount - 1];
 			int aCel = (aLast->mNumFrames == 1) ? 0 : aLast->mFrame;
 			if (aCel > IMAGE_ATOMIC_EXPLOSION->mNumCols / 2)
 			{
 				aFade += 10;
-				m1a44 = aFade;
+				mAtomicFlashAlpha = aFade;
 				if (aFade > 0xfe)
 				{
-					m1a44 = -1;
+					mAtomicFlashAlpha = -1;
 					SetOverlayHidden(true);
 				}
 				mOverlay.SetFill(255, 255, 255, aFade);
 				return;
 			}
 		}
-		if (aFade < 0 || aCount < 1 || m1b0[aCount - 1]->mStopped)
+		if (aFade < 0 || aCount < 1 || mAtomicExplosions[aCount - 1]->mStopped)
 			aSetFill = false;
 		if (aSetFill)
 		{
-			m1a44 = aFade + 1;
+			mAtomicFlashAlpha = aFade + 1;
 			mOverlay.SetFill(255, 255, 255, aFade + 1);
 		}
 	}
@@ -548,9 +546,9 @@ void Board::UpdateExplosion()
 // freed when done
 void Board::UpdateSparks()
 {
-	if (m1b40 > 0)
-		m1b40--;
-	if (m1b40 > 0 && (mUpdateCnt % 10) == 0)
+	if (mSurvivalBonusTimer > 0)
+		mSurvivalBonusTimer--;
+	if (mSurvivalBonusTimer > 0 && (mUpdateCnt % 10) == 0)
 	{
 		int aCol = 0;
 		int aSparkWidth = IMAGE_PARTICLE_WHITE->GetCelWidth();
@@ -567,7 +565,7 @@ void Board::UpdateSparks()
 				aParticle->SetX((float) ((aWidth + aRandom % 8) * aCol + 0xa6));
 				aParticle->SetY((float) (((int) AstroRand() % 500000000) % 10 + 0x11));
 				aParticle->SetImage(GetImageById(((int) AstroRand() % 500000000) % 5 + 0x23f), 5);
-				m2a0.push_back(aParticle);
+				mEnergySparks.push_back(aParticle);
 
 				aCol += mApp->Is3DAccelerated() ? 2 : 4;
 			}
@@ -575,17 +573,17 @@ void Board::UpdateSparks()
 		}
 	}
 
-	for (unsigned int i = 0; i < m2a0.size(); i++)
+	for (unsigned int i = 0; i < mEnergySparks.size(); i++)
 	{
-		m2a0[i]->Update();
-		if (m2a0[i]->mDone)
+		mEnergySparks[i]->Update();
+		if (mEnergySparks[i]->mDone)
 		{
-			delete m2a0[i];
-			m2a0.erase(m2a0.begin() + i);
+			delete mEnergySparks[i];
+			mEnergySparks.erase(mEnergySparks.begin() + i);
 			i--;
 		}
 	}
 
-	if (!mAnim620.mStopped)
-		mAnim620.Update();
+	if (!mSuperchargeBlastAnim.mStopped)
+		mSuperchargeBlastAnim.Update();
 }

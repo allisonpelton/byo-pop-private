@@ -164,6 +164,15 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .show-unsold input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 /* a game no store sells any more, unless its files are here (data-files, set by the files check) */
 .games.hide-unsold > li[data-unsold]:not([data-files=yes]) { display: none; }
+/* Find, in Desktop 95 only (the user, 2026-11-11: "the all games list should have search with typo tolerance"): a box with a
+   magnifier in the toolbar; the games it does not match are left out of the list while it holds anything */
+.find-games { display: none; }
+html.d95-desk .find-games { display: inline-flex; align-items: center; gap: 4px; margin: 0 8px 0 0; }
+html.d95-desk .find-games svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; }
+html.d95-desk .find-games input { width: 11em; min-width: 0; }
+html.d95-desk .games > li.find-miss { display: none; }
+/* a game's phase (development hosts only, web/phase.js): a line of the card, its steps in the tooltip */
+.games > li > .phase { margin: 2px 0 0; font-size: 12px; color: var(--muted); cursor: help; }
 .sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
 .sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
 .sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
@@ -331,12 +340,16 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
 .mu-tracker { display: flex; flex-direction: column; }
 .mu-tracker-rows { flex: 1 1 auto; min-height: 0; }
-.mu-tracker-head { flex: none; margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; opacity: .7; }
-/* a channel's number: a click mutes it (web/music.js); a muted one dimmed and struck through */
-.mu-ch { cursor: default; }
-.mu-ch:hover { text-decoration: underline; }
+.mu-tracker-head { flex: none; margin: 0; font: inherit; font-size: 10px; line-height: 16px; white-space: pre; overflow: hidden; opacity: .7; cursor: pointer; }
+/* a channel's column head (its number and instrument): a click mutes it (web/music.js), the whole head the target, lit
+   under the pointer and shown in reverse while pressed; a muted one dimmed and struck through */
+.mu-ch { display: inline-block; height: 16px; vertical-align: top; }
+.mu-ch:hover { background: rgba(255, 255, 255, .14); }
+.mu-ch:active { background: rgba(255, 255, 255, .3); box-shadow: inset 1px 1px 0 rgba(0, 0, 0, .7); }
 .mu-ch-off { opacity: .4; text-decoration: line-through; }
-.mu-ch-off:hover { text-decoration: line-through underline; }
+/* the effect column's button beside Repeat (web/music.js), its name in the button as the players of the time had */
+.mu-btn.mu-fx { font-size: 10px; font-weight: bold; padding: 0; }
+#music .mu-btn.mu-fx[hidden], .mu-btn.mu-fx[hidden] { display: none; }
 /* the tracker's scroll bar (web/music.js): an arrow at each end, a track and its thumb, in the display's colours */
 .mu-hbar { flex: none; display: flex; height: 12px; margin-top: 2px; }
 .mu-hbar[hidden] { display: none; }
@@ -348,8 +361,8 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-hb-track { flex: 1 1 auto; position: relative; margin: 0 2px; border-top: 1px dotted currentColor; border-bottom: 1px dotted currentColor; opacity: .7; }
 .mu-hb-thumb { position: absolute; top: 1px; bottom: 1px; background: currentColor; opacity: .6; }
 /* the display grows by the bar while the tracker has one, so the rows keep their room */
-.mu-vis:has(.mu-tracker:not([hidden])) { height: calc(24px + var(--mu-rows, 5) * 12px); }
-.mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(38px + var(--mu-rows, 5) * 12px); }
+.mu-vis:has(.mu-tracker:not([hidden])) { height: calc(28px + var(--mu-rows, 5) * 12px); }
+.mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(42px + var(--mu-rows, 5) * 12px); }
 /* the splitter between the player and the playlist (web/music.js): a band the height of a few pixels, its grip a pair of lines */
 .mu-split { height: 7px; margin: 0 0 4px; cursor: ns-resize; touch-action: none; position: relative; }
 .mu-split::before { content: ""; position: absolute; left: 50%; top: 2px; width: 24px; margin-left: -12px; height: 3px;
@@ -462,6 +475,8 @@ footer a { color: var(--accent); }
     <!-- Games no store sells any more (data-unsold) are hidden unless this is ticked or their files are here (the script below) -->
     <!-- Desktop 95's "Windows 95 games only": how many games it hides (web/skins.js) -->
     <p class="win95-count" id="win95-count" role="status" hidden></p>
+    <!-- Find (Desktop 95 only): the script after the sorting's -->
+    <label class="find-games"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><path d="M14.5 14.5 20 20"/></svg><input type="search" id="find-games" aria-label="{{index.find.label}}" placeholder="{{index.find.label}}" autocomplete="off" spellcheck="false"></label>
     <label class="show-unsold" id="show-unsold-label" hidden><input type="checkbox" id="show-unsold" aria-label="{{index.unsold}}"> {{index.unsold}}</label>
     <div class="toolbar-actions">
       <button type="button" class="add-games" id="add-games" hidden>{{index.add.button}}</button>
@@ -545,6 +560,7 @@ footer a { color: var(--accent); }
   <p>{{index.footer.about}}</p>
   <p>{{index.footer.trademarks}}</p>
   <p>{{index.footer.music_html}}</p>
+  <p>{{index.footer.tracker}}</p>
   <p>{{index.footer.credit_html}}</p>
 </footer>
 <script src="settingsicons.js"></script>
@@ -574,6 +590,7 @@ footer a { color: var(--accent); }
 <script src="addgames.js"></script>
 <!-- the Setup window: Desktop 95's wizard for adding many games at once, a new face on addgames.js's import -->
 <script src="setup.js"></script>
+<script src="phase.js"></script>
 <script src="library.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>
@@ -786,6 +803,40 @@ try {
     });
     if (wanted === "popular") apply(wanted, false);
   });
+})();
+</script>
+<script>
+// Find in the All games list (Desktop 95 only; the box and the hiding are drawn only there, index.html's style). Each word typed
+// is looked for in each game's title, letters and digits only, with a few typing slips allowed ("mumy maz", "bejewled"): the
+// fewest edits that turn the word into some stretch of the title, at most one for a word of four to six letters, two up to
+// nine, three beyond, none for a shorter one (whose slip would find too many). A game matches when every word does, in any order.
+(function () {
+  var box = document.getElementById("find-games"), list = document.querySelector("ul.games");
+  if (!box || !list) return;
+  function plain(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, ""); }
+  // the fewest edits that turn q into a stretch of t (an approximate substring search: a stretch may start anywhere for free)
+  function edits(q, t) {
+    var prev = [], cur, i, j;
+    for (j = 0; j <= t.length; j++) prev.push(0);
+    for (i = 1; i <= q.length; i++) {
+      cur = [i];
+      for (j = 1; j <= t.length; j++)
+        cur.push(Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (q.charAt(i - 1) === t.charAt(j - 1) ? 0 : 1)));
+      prev = cur;
+    }
+    return Math.min.apply(null, prev);
+  }
+  function slips(n) { return n < 4 ? 0 : n < 7 ? 1 : n < 10 ? 2 : 3; }
+  function run() {
+    var words = box.value.split(/\s+/).map(plain).filter(Boolean);
+    Array.prototype.forEach.call(list.children, function (li) {
+      if (li.tagName !== "LI") return;
+      var title = plain(li.getAttribute("data-title") || li.textContent);
+      var hit = words.every(function (w) { return edits(w, title) <= slips(w.length); });
+      li.classList.toggle("find-miss", !hit);
+    });
+  }
+  box.addEventListener("input", run);
 })();
 </script>
 <script>
@@ -1292,10 +1343,9 @@ try {
     // The chat: one window for every game (the user, 2026-11-09: "Let's just have a single chat window instead of waiting for
     // it to load with each game"), built when it first opens and kept running while games open and close. It sits at the
     // desktop's right edge, 300 pixels wide, so a game's window at the left and the chat are side by side from 1280 pixels
-    // wide; it comes up with the first game the page opens (unless "Show chat" is off) behind that game's window, and in
-    // front only when the player brings it there. What the player sends is tagged with the game in front (ByopopApps.frontGame),
-    // or with none while no game is open.
-    var chatEl = document.getElementById("chat"), chat = null, chatShown = false;
+    // wide; it opens only when the player opens it (its icon, the Pop menu or a game's View menu). What the player sends is
+    // tagged with the game in front (ByopopApps.frontGame), or with none while no game is open.
+    var chatEl = document.getElementById("chat"), chat = null;
     function startChat() {
       if (chat || !window.ByopopChat) return;
       try {
@@ -1316,15 +1366,10 @@ try {
       chatPic.innerHTML = '<path d="M4 5h16v11H9l-4 4v-4H4z"/>';
       d.add(chatEl, { id: "chat", title: ByopopStrings.t("game.chat.title"), closable: true, closed: true, lift: true, pic: chatPic,
         scroll: ".bpc-log", at: function (left, vw) { return [Math.max(left, vw - 312), top()]; } });
+      // it starts when the player first brings its window up, and only then: it never opens by itself (the user, 2026-11-11:
+      // "Stop chat from opening on its own")
       window.addEventListener("byopop-desk-active", function (ev) {
-        var id = ev.detail && ev.detail.id;
-        if (id === "chat") { startChat(); return; }
-        // a game's window: the chat comes up behind it, the first time
-        if (chatShown || !id || !/^app-/.test(id) || !window.ByopopApps || !ByopopApps.frontGame()) return;
-        chatShown = true;
-        var showChat = "on"; try { showChat = ByopopSettings.get("showChat"); } catch (e) {}
-        if (showChat === "off" || !d.find("chat").closed) return;
-        setTimeout(function () { d.openWin("chat"); d.openWin(id); }, 0);
+        if (ev.detail && ev.detail.id === "chat") startChat();
       });
     }
     d.add(document.querySelector("body > footer"), { id: "about", title: ByopopStrings.t("skin.desk.about"), closable: true, body: true,
@@ -1344,5 +1389,33 @@ try {
 </script>
 <!-- Desktop 95 in one page: the pages of the site as windows on the desktop (web/deskapps.js) -->
 <script src="deskapps.js"></script>
+<!-- A test's check of this page, on a development host only (127.0.0.1, localhost and the like: web/terms.js, devHost):
+     ?driver=tools/web/<name>.js fetches that shared driver from tools/webtest/serve.py's /__repo/ (tools/web/deskcheck.js,
+     the desktop's accessibility as a screen reader meets it) and runs it once the page has loaded; its result is
+     window.byopopDeskCheck.result, and the title ends with its verdict. Nothing on any other host, or without the parameter -->
+<script>
+try {
+  (function () {
+    var path = new URLSearchParams(location.search).get("driver");
+    if (!path || !/^tools\/web\/[A-Za-z0-9._-]+\.js$/.test(path) || !(window.ByopopTerms && ByopopTerms.devHost(location))) return;
+    var run = window.byopopDeskCheck = { result: undefined };
+    window.addEventListener("load", function () {
+      fetch("/__repo/" + path, { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error("driver " + path + ": " + r.status);
+        return r.text();
+      }).then(function (code) {
+        var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+        return new AsyncFunction("t", "args", code + "\n//# sourceURL=" + location.origin + "/__repo/" + path)(null, undefined);
+      }).then(function (v) {
+        run.result = v;
+        document.title += " | " + path.replace(/^.*\/|\.js$/g, "") + ": " + (v && !v.fail ? "PASS" : "FAIL");
+      }, function (e) {
+        run.result = { error: String(e && e.message || e) };
+        document.title += " | " + path.replace(/^.*\/|\.js$/g, "") + ": ERROR";
+      });
+    });
+  })();
+} catch (e) {}
+</script>
 </body>
 </html>

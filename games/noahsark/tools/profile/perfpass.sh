@@ -8,7 +8,7 @@ cd "$(dirname "$0")/../../../.."
 W=$(pwd -W)
 R=build/perf2/res; mkdir -p $R
 PERF=games/noahsark/tools/profile/perf.py
-room() { until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done; }
+room() { until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done; }
 log() { echo "$(date +%H:%M:%S) $*" >> $R/steps.log; }
 exe() { if [ "$1" = before ]; then echo "$W/build/perf2/before/noahsark.exe"; else echo "$W/build/native/noahsark.exe"; fi; }
 rm -f $R/steps.log $R/perfpass.done

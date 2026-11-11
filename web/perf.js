@@ -88,16 +88,38 @@ var ByopopPerf = (function () {
     }
     function draw() { st.draws++; }
     ["drawArrays", "drawElements", "drawArraysInstanced", "drawElementsInstanced", "drawRangeElements"].forEach(function (n) { wrap(n, draw); });
-    function texBytes(a, wi, hi) {
-      var src = a[a.length - 1];
-      if (a.length >= 8 && typeof a[wi] === "number") return a[wi] * a[hi] * 4;
-      return src && src.width ? src.width * src.height * 4 : 0;  // from an image, a canvas or ImageData
+    // a pixel's bytes from its format and type: the channels a format has, the bytes a type gives each; a packed type
+    // (5_6_5, 4_4_4_4, 5_5_5_1: 2 bytes; 2_10_10_10, 10F_11F_11F, 5_9_9_9, 24_8: 4) is the whole pixel; 4 when unknown
+    var CHANNELS = { 0x1908: 4, 0x1907: 3, 0x1906: 1, 0x1909: 1, 0x190A: 2, 0x1903: 1, 0x8227: 2, 0x8D94: 1, 0x8228: 2,
+      0x8D98: 3, 0x8D99: 4, 0x1902: 1, 0x84F9: 1 };
+    var TYPE_BYTES = { 0x1400: 1, 0x1401: 1, 0x1402: 2, 0x1403: 2, 0x1404: 4, 0x1405: 4, 0x1406: 4, 0x140B: 2, 0x8D61: 2 };
+    var PACKED = { 0x8363: 2, 0x8033: 2, 0x8034: 2, 0x8368: 4, 0x8C3B: 4, 0x8C3E: 4, 0x84FA: 4 };
+    function pixelBytes(format, type) {
+      if (PACKED[type]) return PACKED[type];
+      return CHANNELS[format] && TYPE_BYTES[type] ? CHANNELS[format] * TYPE_BYTES[type] : 4;
     }
-    wrap("texImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 3, 4); });
-    wrap("texSubImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 4, 5); });
-    function bufBytes(d) { return typeof d === "number" ? d : (d && d.byteLength) || 0; }
-    wrap("bufferData", function (a) { st.upBytes += bufBytes(a[1]); });
-    wrap("bufferSubData", function (a) { st.upBytes += bufBytes(a[2]); });
+    // texImage2D(target, level, internalformat, width, height, border, format, type, pixels[, offset]) and
+    // texSubImage2D(target, level, x, y, width, height, format, type, pixels[, offset]): width, height, format and type at
+    // wi, wi + 1, 6 and 7; from an image, a canvas or ImageData, (.., format, type, source) as the last three
+    function texBytes(a, wi) {
+      if (a.length >= 9 && typeof a[wi] === "number") return a[wi] * a[wi + 1] * pixelBytes(a[6], a[7]);
+      var src = a[a.length - 1];
+      return src && src.width ? src.width * src.height * pixelBytes(a[a.length - 3], a[a.length - 2]) : 0;
+    }
+    wrap("texImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 3); });
+    wrap("texSubImage2D", function (a) { st.uploads++; st.upBytes += texBytes(a, 4); });
+    // bufferData(target, size or data, usage[, srcOffset, length]) and bufferSubData(target, dstOffset, data[, srcOffset,
+    // length]): WebGL2's forms take a view and a part of it. Emscripten passes the whole wasm heap with an offset and a
+    // length, so the length (in the view's elements) is what goes up; without one, the view from srcOffset to its end.
+    function bufBytes(d, srcOffset, length) {
+      if (typeof d === "number") return d;
+      if (!d || !d.byteLength) return 0;
+      var each = d.BYTES_PER_ELEMENT || 1;
+      if (length) return length * each;
+      return Math.max(0, d.byteLength - (srcOffset || 0) * each);
+    }
+    wrap("bufferData", function (a) { st.upBytes += bufBytes(a[1], a[3], a[4]); });
+    wrap("bufferSubData", function (a) { st.upBytes += bufBytes(a[2], a[3], a[4]); });
     // the GPU's own time, only where the browser offers the query
     var isGl2 = typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext;
     var ext = null;
@@ -247,8 +269,12 @@ var ByopopPerf = (function () {
       dt.textContent = r[0]; dd.textContent = r[1];
       dl.appendChild(dt); dl.appendChild(dd);
     });
+    var was = body.offsetHeight;
     body.textContent = "";
     body.appendChild(dl);
+    // beside the game, a panel that grew (its readings come after "waiting") asks the window to fit it again (web/shell.html,
+    // sideHeight)
+    if (panel.classList.contains("perf-side") && body.offsetHeight > was) try { window.dispatchEvent(new CustomEvent("byopop-side")); } catch (e) {}
   }
   var STYLE =
     ".perf-panel { position: fixed; right: 12px; top: 60px; z-index: 9; width: 290px; max-height: calc(100vh - 80px); overflow: auto; box-sizing: border-box;\n" +
@@ -263,6 +289,13 @@ var ByopopPerf = (function () {
     ".perf-panel.perf-side { position: static; width: 250px; max-height: none; border-radius: 0; box-shadow: none; border-width: 0 0 0 1px;\n" +
     "  grid-column: 2; grid-row: 1 / 3; align-self: stretch; overflow: auto; }\n" +
     "html.perf-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto; }\n" +
+    // a game's own page with Desktop 95's desktop: the game's window (#main) keeps its title bar over both and its status bar
+    // under both, as a 1995 window's
+    "html.d95-desk:not(.d95-embed).perf-side #main { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto 1fr auto; }\n" +
+    "html.d95-desk:not(.d95-embed).perf-side #main > .d95-tb, html.d95-desk:not(.d95-embed).perf-side #main > .d95-statusbar { grid-column: 1 / -1; }\n" +
+    "html.d95-desk:not(.d95-embed).perf-side #main > .stage { grid-column: 1; grid-row: 2; }\n" +
+    "html.d95-desk:not(.d95-embed).perf-side #main > .d95-statusbar { grid-row: 4; }\n" +
+    "html.d95-desk:not(.d95-embed).perf-side #main > .perf-panel { grid-column: 2; grid-row: 2 / 4; }\n" +
     // a narrow page (a phone held upright): under the game, as wide as the page, scrolling in itself
     "@media (max-width: 600px) {\n" +
     "  .perf-panel.perf-side { grid-column: 1; grid-row: auto; width: auto; max-height: 40vh; border-width: 1px 0 0; }\n" +
@@ -288,9 +321,11 @@ var ByopopPerf = (function () {
     panel.appendChild(h); panel.appendChild(note); panel.appendChild(body);
     // In a game's window on the one page the panel is part of the window, at the right of the game, which it never covers; the
     // window grows by its width (the user, 2026-11-10: "The performance panel should expand the game window and be static to the
-    // right"; web/shell.html, sideWidth)
-    var main = document.getElementById("main");
-    if (document.documentElement.classList.contains("d95-embed") && main) {
+    // right"; web/shell.html, sideWidth). On a game's own page with Desktop 95's desktop the game's window is #main, which
+    // takes its size from what it holds, and the panel goes into it in the same way (a play-test, 2026-11-11, found it a window
+    // of its own at the desktop's right, there from the setup screen on, apart from the game's)
+    var main = document.getElementById("main"), cls = document.documentElement.classList;
+    if ((cls.contains("d95-embed") || cls.contains("d95-desk")) && main) {
       panel.classList.add("perf-side");
       main.appendChild(panel);
       return;

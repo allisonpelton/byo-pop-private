@@ -21,6 +21,9 @@ The checks (each one a rule of docs/CODE_STANDARDS.md):
   offset    a name that ends in its offset or address in place of the rest of its name: mScale288, mFlags1E4,
             mCamera144C, Rand85B970, Record1C (three or more upper-case hex characters with a digit among them, or two
             with a hex letter; 2D and 3D, lower-case tails and short numbers such as mSwapPiece1 or aCos36 are not)
+  hexname   a prefix followed by nothing but an offset or address: m70, m314, m1a34, mB0, g5E8A30 (a member with two
+            or more hex characters, another prefix with three or more, a digit among them; matrix cells m00 to m33,
+            2D and 3D, and words spelled in hex letters, three or more in a row as in aFade2, are not)
   comment   a comment that puts "unknown" in place of a name: "purpose unknown", "unknown field", "??", "no idea",
             "TODO: name"
   stage     a comment that names a development stage, milestone or phase by its number ("stage 7b", "phase 2",
@@ -73,6 +76,11 @@ STANDIN = re.compile(r"^(?:m|g|s|k|a|an|the)?_?(?:%s)_?(?:0x)?[0-9A-Fa-f]*[0-9][
 STANDIN_BARE = re.compile(r"^(?:m|g|s|a|an|the)(?:Temp|Tmp|Dummy|Foo|Blah|Stuff|Thing|Misc|Unused(?:[A-Z]\w*)?)$")
 # a word, then an offset or an address of upper-case hex in place of the rest of the name (not "2D" or "3D")
 OFFSET = re.compile(r"^(?:(?:m|g|s|k|a|an|the)[A-Z]|[A-Z])\w*?[a-z_]((?:0x)?[0-9A-F]{2,8})$")
+# a prefix and then only an offset or address, with a digit in it (m70, m1a34, mB0, g5E8A30); not a word spelled in hex
+# letters (three or more in a row, as in aFade2), a matrix cell (m00 to m33) or 2D and 3D
+HEXNAME = re.compile(r"^(?:m_?(?:0x)?(?![0-9A-Fa-f]*[A-Fa-f]{3})(?=[0-9A-Fa-f]*[0-9])[0-9A-Fa-f]{2,8}|"
+                     r"(?:g|s|k|a|an|the)_?(?:0x)?(?![0-9A-Fa-f]*[A-Fa-f]{3})(?=[0-9A-Fa-f]*[0-9])[0-9A-Fa-f]{3,8})$")
+HEXNAME_NOT = re.compile(r"^(?:m[0-3][0-3]|\w*[23][Dd])$")
 
 
 STAGE = re.compile(r"\b(?:stage|phase|milestone)[ -]?\d+[a-z]?\b", re.I)
@@ -253,6 +261,8 @@ def check_file(path, rel, cfg, findings, skipped):
             report("standin", number, name, "a generic word or a number in place of a name")
         elif is_offset_name(name):
             report("offset", number, name, "an offset or address in place of the rest of a name")
+        elif HEXNAME.match(name) and not HEXNAME_NOT.match(name):
+            report("hexname", number, name, "an offset or address in place of a name")
 
     for number, body in comments:
         m = COMMENT.search(body)

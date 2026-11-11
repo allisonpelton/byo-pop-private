@@ -75,6 +75,23 @@ may take out. Checked against both games' `src`, `test` and `mods` (2026-11-11):
 Cosmic Bugs' pass takes one of these out only after checking that none of its tests or its mods call it, and a function
 that no game reaches comes out of the shared copy for both games at once (a shared change, `tools/check.sh --changed`).
 
+## The Mahjong Escapes (`engines/jollybear` and `engines/mahjongescape`, Ancient Japan and Ancient China)
+
+The two exes are one game on JollyBear's engine, so both the engine and the game's code are shared. `engines/jollybear`
+is the engine, one library as Retro64 is. `engines/mahjongescape/src` is the game's code (the boards and layouts, the
+tiles' rules, the bot, the dialogs, the map, the play layer, the host app), in namespace `mahjong`, and
+`engines/mahjongescape/mahjongescape.cmake` builds it once for each game: each game's `CMakeLists.txt` calls
+`mahjongescape_game(<game> ...)`, with the game's own `src/` first on the include path. Each game's `src/` holds only
+what is its own: `Edition.h` (names as macros; counts, places, sizes and tables as constants; and switches for what only
+one edition has, such as `EDITION_DRAGON_CORNERS` or `EDITION_RESTART_BOX`), `Res.h`, `GameTextTable.inc`, and the
+functions the two exes do differently (`LevelDone`, the panel's `Draw`). So here the game sets which version runs at
+build time, through its `Edition.h`, not with a flag at start. Each game's folder keeps its data, docs, tools, web page,
+mods and settings files.
+
+The address tags pair the two exes by China's function match (`re/mahjongchina/compare/addrmap.tsv`, in the main
+checkout). A function only Ancient Japan's exe has (the restart box, inlined helpers, vtables) gives Japan's address
+alone.
+
 ## Adding another
 
 Move the folder to `engines/<name>/` with `git mv`, make one library of it, give each function's comment every game's

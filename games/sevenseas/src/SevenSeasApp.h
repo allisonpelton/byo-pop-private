@@ -110,7 +110,7 @@ public:
 	int						mMusicSlot;         // +0x4c8 which of the two music slots is playing
 	bool					mTutorial;          // +0x494 the tutorial game is on
 	int						mDifficulty;        // +0x498 1 beginner, 2 normal, 3 expert
-	bool					mFlag4c4;           // +0x4c4 the pirate's welcome (the heading and the spoken line at the first menu) until a game starts
+	bool					mPirateWelcome;     // +0x4c4 the pirate's welcome (the heading and the spoken line at the first menu) until a game starts
 	bool					mTalking;           // +0x4f0 the pirate is talking
 	TalkWidget*				mTalkWidget;        // +0x4ec the pirate head at the left
 	bool					mBonusNag;          // +0x4f1 registry BonusNag
@@ -182,8 +182,6 @@ public:
 	void					CloseHelp();
 	void					SetMusicOrder(int theOrder, bool theFade);
 	void					StartTalk();
-	void					StopTalk();
-	void					UpdateCursor();
 	bool					HasSavedGame();
 	void					DeleteSavedGame();
 	void					BuildArrows();

@@ -127,18 +127,48 @@ var ByopopSchemes = (function () {
   function stored(name, allowed, def) {
     try { var o = JSON.parse(window.localStorage.getItem(KEY) || "{}"), v = o && o[name]; return allowed.indexOf(v) >= 0 ? v : def; } catch (e) { return def; }
   }
+  // A pattern's pixel, and every 1995 pixel fill (the checkerboards of web/skins.css), is a whole number of the screen's own
+  // pixels: devicePixelRatio rounded, at least 1 (the user, 2026-11-11: "The background patterns don't work well with high
+  // DPI"). At 150% a CSS pixel is 1.5 of the screen's, so a pattern drawn at one CSS pixel came out blurred or uneven; it is
+  // 2 of them there, crisp, a little larger than one CSS pixel, as close as whole pixels allow. --d95-dot holds that size in
+  // CSS pixels for the stylesheet, and is kept as the ratio changes (a browser zoom, a window moved to another screen).
+  function dots() { return Math.max(1, Math.round(window.devicePixelRatio || 1)); }
+  function dotSize() { return dots() / (window.devicePixelRatio || 1); }
   function patternUri(rows) {
-    var rects = "";
-    rows.forEach(function (bits, y) { for (var x = 0; x < 8; x++) if (bits & (0x80 >> x)) rects += "<rect x='" + x + "' y='" + y + "' width='1' height='1'/>"; });
-    return "url(\"data:image/svg+xml," + "<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8' shape-rendering='crispEdges' fill='%23000' fill-opacity='.38'>" + rects + "</svg>\")";
+    var n = dots(), c = document.createElement("canvas");
+    c.width = c.height = 8 * n;
+    var g = c.getContext("2d");
+    if (!g) return "none";
+    g.fillStyle = "rgba(0,0,0,0.38)";
+    rows.forEach(function (bits, y) { for (var x = 0; x < 8; x++) if (bits & (0x80 >> x)) g.fillRect(x * n, y * n, n, n); });
+    return "url(\"" + c.toDataURL("image/png") + "\")";
   }
+  // the picture of a pattern for a preview (web/settings.js, the Appearance list): its CSS background image and tile size,
+  // or null for none
+  function patternPreview(id) {
+    if (!PATTERNS[id]) return null;
+    var tile = 8 * dotSize() + "px";
+    return { image: patternUri(PATTERNS[id]), size: tile + " " + tile };
+  }
+  function setDot() { try { document.documentElement.style.setProperty("--d95-dot", dotSize() + "px"); } catch (e) {} }
+  var ratioQuery = null;
+  function watchRatio() {
+    setDot();
+    if (!window.matchMedia) return;
+    if (ratioQuery && ratioQuery.removeEventListener) ratioQuery.removeEventListener("change", ratioChanged);
+    ratioQuery = window.matchMedia("(resolution: " + (window.devicePixelRatio || 1) + "dppx)");
+    if (ratioQuery.addEventListener) ratioQuery.addEventListener("change", ratioChanged);
+  }
+  function ratioChanged() { watchRatio(); backdrop(); }
   function picture() { try { return window.localStorage.getItem(WALL_KEY) || ""; } catch (e) { return ""; } }
   // the desktop is the listing's (and a game page's of its own); a page in a window of the one page has none to draw
   function backdrop() {
     var body = document.body;
     if (!body || window.top !== window) return;
     var layers = [], pat = stored("pattern", patternIds, "none"), wall = stored("wallpaper", wallpaperIds, "none"), fit = stored("wallpaperFit", FITS, "centre");
-    if (PATTERNS[pat]) layers.push({ image: patternUri(PATTERNS[pat]), repeat: "repeat", position: "0 0", size: "8px 8px" });
+    setDot();
+    var tile = 8 * dotSize() + "px";
+    if (PATTERNS[pat]) layers.push({ image: patternUri(PATTERNS[pat]), repeat: "repeat", position: "0 0", size: tile + " " + tile });
     if (TILES[wall]) layers.push({ image: "url(\"data:image/svg+xml," + TILES[wall] + "\")", repeat: "repeat", position: "0 0", size: "auto" });
     else if (wall === "own" && picture()) {
       layers.push({ image: "url(\"" + picture() + "\")", repeat: fit === "tile" ? "repeat" : "no-repeat", position: fit === "tile" ? "0 0" : "center",
@@ -210,6 +240,7 @@ var ByopopSchemes = (function () {
 
   if (typeof document !== "undefined") {
     apply();
+    watchRatio();
     if (document.body) backdrop(); else document.addEventListener("DOMContentLoaded", backdrop);
     window.addEventListener("byopop-setting", function (ev) {
       var n = ev.detail && ev.detail.name;
@@ -218,7 +249,7 @@ var ByopopSchemes = (function () {
     });
     window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === WALL_KEY || ev.key === null) { apply(); backdrop(); } });
   }
-  return { patterns: PATTERNS, patternIds: patternIds, wallpaperIds: wallpaperIds, fits: FITS, backdrop: backdrop, setPicture: setPicture,
+  return { patterns: PATTERNS, patternIds: patternIds, patternPreview: patternPreview, wallpaperIds: wallpaperIds, fits: FITS, backdrop: backdrop, setPicture: setPicture,
     clearPicture: clearPicture, chooser: chooser, picture: picture, LIST: LIST, ids: LIST.map(function (s) { return s.id; }), byId: byId, ends: ends, contrast: contrast, apply: apply, chosen: chosen };
 })();
 if (typeof module !== "undefined") module.exports = ByopopSchemes;

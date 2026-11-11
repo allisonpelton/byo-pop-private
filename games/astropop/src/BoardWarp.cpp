@@ -1,4 +1,4 @@
-// Board: the warp between two stages and the level-up panel (Fn46a810, 0x46a810: a long state machine that runs
+// Board: the warp between two stages and the level-up panel (UpdateWarp, 0x46a810: a long state machine that runs
 // instead of the rest of the update) and the streaks of the warp charge-up (0x439650).
 
 #include "Board.h"
@@ -16,187 +16,183 @@ using namespace Sexy;
 // 0x439650: the streaks of the warp charge-up grow and speed up (the 100 are stepped in groups of ten)
 void Board::UpdateStreaks()
 {
-	unsigned int aCount = (unsigned int) m170.size();
+	unsigned int aCount = (unsigned int) mStreaks.size();
 	if (aCount > 100)
 		aCount = 100;
 	for (unsigned int i = 0; i < aCount; i++)
 	{
-		StreakRec* aStreak = &m170[i];
+		StreakRec* aStreak = &mStreaks[i];
 		aStreak->mMargin += 3;
 		aStreak->mY += 3.0f;
 		if (aStreak->mMargin > 0x1e0)
 			aStreak->mMargin = 0x1e0;
-		aStreak->mSpeed += m917 ? 0.06f : 0.03f;
+		aStreak->mSpeed += mBonusWarpIn ? 0.06f : 0.03f;
 	}
 }
 
 // 0x46a810: true ends the update
-bool Board::Fn46a810()
+bool Board::UpdateWarp()
 {
-	mAnim460.Update();
-	mAnim5e0.Update();
+	mWarpGateAnim.Update();
+	mNewRankAnim.Update();
 	if (mUpdateCnt % 5 == 0)
 	{
-		m1b14++;
-		if (m1b14 >= IMAGE_CP_WARP_OVERLAY->mNumCols)
-			m1b14 = 0;
+		mWarpOverlayCel++;
+		if (mWarpOverlayCel >= IMAGE_CP_WARP_OVERLAY->mNumCols)
+			mWarpOverlayCel = 0;
 	}
 
 	// the level-up panel types its lines and the arms of the upgrade screen slide in
-	if ((m8ed || m8ef) && ((m1b2c != 2 && m1b2c != 4) || m91a))
+	if ((mWarpFlight || mAtWarpGate) && ((mLevelEndScreenKind != 2 && mLevelEndScreenKind != 4) || mUpgradeDialogDone))
 	{
-		if (!m8f4 && m1a60 == 1 && m7e8 < 0)
+		if (!mWarpGatePicked && mGameType == 1 && mLevelUpPanelY < 0)
 		{
-			m7e8 += 2;
-			if (m7e8 >= 0)
+			mLevelUpPanelY += 2;
+			if (mLevelUpPanelY >= 0)
 			{
-				m7e8 = 2;
+				mLevelUpPanelY = 2;
 				int aBest = 0;
 				mApp->mUser->GetInt(0x71, &aBest);
-				if (aBest < m1bd4)
+				if (aBest < mRankNumber)
 				{
-					m91f = false;
-					m1b44 = m921 ? 1 : 100;
-					mAnim5e0.SetStopped(false);
-					mApp->mUser->SetInt(0x71, m1bd4);
+					mNewRankDelayOver = false;
+					mNewRankDelay = mUpgradeDialogSeen ? 1 : 100;
+					mNewRankAnim.SetStopped(false);
+					mApp->mUser->SetInt(0x71, mRankNumber);
 					mApp->mUser->Save();
 				}
 			}
 		}
-		if (m7e8 >= 0 && m1a60 == 1)
+		if (mLevelUpPanelY >= 0 && mGameType == 1)
 		{
-			m7e8 = 0;
-			m90f = false;
-			if (m7f0 < 0)
-				m7f0 = 0;
+			mLevelUpPanelY = 0;
+			mClicksBlocked = false;
+			if (mLevelUpScanY < 0)
+				mLevelUpScanY = 0;
 			int aCnt = mUpdateCnt;
-			if (aCnt % m800 == 0 && (unsigned int) m7e0 >= (unsigned int) m7cc.size())
-				m804 = !m804;
-			if (aCnt % m7dc == 0 && (unsigned int) m7e0 < (unsigned int) m7cc.size())
+			if (aCnt % mLevelUpCursorInterval == 0 && (unsigned int) mLevelUpLineIndex >= (unsigned int) mLevelUpLines.size())
+				mLevelUpCursorShown = !mLevelUpCursorShown;
+			if (aCnt % mLevelUpTypeInterval == 0 && (unsigned int) mLevelUpLineIndex < (unsigned int) mLevelUpLines.size())
 			{
 				mApp->PlaySample(SOUND_COMPUTER_TEXT);
-				m7e4++;
-				if ((unsigned int) m7e4 >= (unsigned int) m7cc[m7e0].size())
+				mLevelUpLetterIndex++;
+				if ((unsigned int) mLevelUpLetterIndex >= (unsigned int) mLevelUpLines[mLevelUpLineIndex].size())
 				{
-					m7e4 = 0;
-					m7e0++;
+					mLevelUpLetterIndex = 0;
+					mLevelUpLineIndex++;
 				}
 			}
-			if (mUpdateCnt % m7fc == 0)
+			if (mUpdateCnt % mLevelUpScanInterval == 0)
 			{
-				int aPulse = m7f4;
-				if (aPulse < m7f8 && m7f0 == 0)
-					m7f4 = aPulse + 1;
+				int aPulse = mLevelUpScanHeight;
+				if (aPulse < mLevelUpScanMaxHeight && mLevelUpScanY == 0)
+					mLevelUpScanHeight = aPulse + 1;
 				else
 				{
-					m7f0++;
-					if (m7f0 + aPulse >= 0xbb)
+					mLevelUpScanY++;
+					if (mLevelUpScanY + aPulse >= 0xbb)
 					{
-						m7f4 = aPulse - 1;
-						if (m7f4 <= 0)
+						mLevelUpScanHeight = aPulse - 1;
+						if (mLevelUpScanHeight <= 0)
 						{
-							m7f4 = 0;
-							m7f0 = 0;
+							mLevelUpScanHeight = 0;
+							mLevelUpScanY = 0;
 						}
 					}
 				}
 			}
 		}
-		if (m1b2c == 2 || m1b2c == 4)
+		if (mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4)
 		{
-			m820 -= 4;
-			if (m820 < -IMAGE_UPGRADE_ARM->mWidth)
-				m820 = -IMAGE_UPGRADE_ARM->mWidth;
-			m87c += 4;
-			if (m87c > IMAGE_UPGRADE_HEAD->GetCelWidth() + 0x280)
-				m87c = IMAGE_UPGRADE_HEAD->GetCelWidth() + 0x280;
+			mLeftArmX -= 4;
+			if (mLeftArmX < -IMAGE_UPGRADE_ARM->mWidth)
+				mLeftArmX = -IMAGE_UPGRADE_ARM->mWidth;
+			mRightArmX += 4;
+			if (mRightArmX > IMAGE_UPGRADE_HEAD->GetCelWidth() + 0x280)
+				mRightArmX = IMAGE_UPGRADE_HEAD->GetCelWidth() + 0x280;
 		}
 	}
 
 	// the panel slides away
-	if (m8f4 || (m7e8 < 0 && m7e8 > -m7ec && !m8ed && !m8ef))
+	if (mWarpGatePicked || (mLevelUpPanelY < 0 && mLevelUpPanelY > -mLevelUpPanelHeight && !mWarpFlight && !mAtWarpGate))
 	{
-		m7e8 -= 2;
-		if (m7e8 <= -m7ec)
+		mLevelUpPanelY -= 2;
+		if (mLevelUpPanelY <= -mLevelUpPanelHeight)
 		{
-			m7e8 = -m7ec;
+			mLevelUpPanelY = -mLevelUpPanelHeight;
 			ShowThemeButtons();
 		}
 	}
 
 	// the warp stars fall
-	for (unsigned int i = 0; i < m150.size(); i++)
+	for (unsigned int i = 0; i < mWarpStars.size(); i++)
 	{
-		WarpStar* aStar = m150[i];
+		WarpStar* aStar = mWarpStars[i];
 		aStar->mAnim.Update();
 		aStar->mY += aStar->mSpeed;
 		if ((float) (mHeight + 0x32) < aStar->mY)
 			aStar->mY = (float) (((int) AstroRand() % 500000000) % 0x32 - 100);
 	}
 
-	if (m8ec)
+	if (mWarpCharging)
 	{
 		// the charge-up: the screen shakes, then the warp starts
-		m199c = ((int) AstroRand() % 500000000) % 0xb - 5;
-		m19a4 += 2;
-		if (m19a4 > 0xff)
+		mWarpShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
+		mWarpChargeAlpha += 2;
+		if (mWarpChargeAlpha > 0xff)
 		{
-			m19a4 = 0xff;
-			m8eb = true;
-			m8ed = false;
-			m8ec = false;
+			mWarpChargeAlpha = 0xff;
+			mWarpActive = true;
+			mWarpFlight = false;
+			mWarpCharging = false;
 			if (mApp->mHyperspaceLoop != NULL)
 				mApp->mHyperspaceLoop->Play(true, false);
 			if (mApp->mEngineLoop != NULL)
 				mApp->mEngineLoop->Stop();
 			Fire(9);
 		}
-		if (m19a4 == 0x96)
+		if (mWarpChargeAlpha == 0x96)
 			mApp->PlaySample(SOUND_WARP);
 		UpdateStreaks();
 		return false;
 	}
 
-	if (!m8eb)
+	if (!mWarpActive)
 		return false;
 
-	if (!m8ed)
+	if (!mWarpFlight)
 	{
-		if (!m8ef && !m8f4)
+		if (!mAtWarpGate && !mWarpGatePicked)
 		{
 			// the screen fades in white while the field flies away
-			if (mUpdateCnt % m1998 == 0 && m3d0.mAlpha >= 10 && m1954 < 7)
+			if (mUpdateCnt % mWarpFrameInterval == 0 && mOverlayFillColor.mAlpha >= 10 && mShipFrame < 7)
 			{
-				m1954++;
-				if (m1954 >= 5)
+				mShipFrame++;
+				if (mShipFrame >= 5)
 				{
 					mOverlay.SetFill(255, 255, 255, 255);
-					for (unsigned int i = 0; i < m140.size(); i++)
-						delete m140[i];
-					m140.clear();
+					for (unsigned int i = 0; i < mFloatTexts.size(); i++)
+						delete mFloatTexts[i];
+					mFloatTexts.clear();
 				}
 			}
-			m3d0.mAlpha++;
-			if (m3d0.mAlpha > 0x28)
+			mOverlayFillColor.mAlpha++;
+			if (mOverlayFillColor.mAlpha > 0x28)
 			{
-				m3d0.mAlpha = 0xff;
-				m8de = false;
-				mOverlay.SetFill(m3d0.mRed, m3d0.mGreen, m3d0.mBlue, m3d0.mAlpha);
-				m8ed = true;
-				m8f0 = true;
-				m1954 = 2;
-				for (unsigned int i = 0; i < 100 && i < m170.size(); i++)
-					m170[i].mFlag28 = false;
-				m8fa = true;
+				mOverlayFillColor.mAlpha = 0xff;
+				mLevelUpTextShown = false;
+				mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
+				mWarpFlight = true;
+				mShipInWarp = true;
+				mShipFrame = 2;
 				mApp->PlaySample(SOUND_WARP_ENGAGED);
 				ClearField();
-				m938 = -312.0f; // 0xc39c0000 (the asm at 0x46ae88)
+				mWarpShipY = -312.0f; // 0xc39c0000 (the asm at 0x46ae88)
 				for (int i = 0; i < 15; i++)
 				{
 					WarpStar* aStar = new WarpStar();
 					aStar->mX = 0;
 					aStar->mY = 0;
-					aStar->mField5C = 0;
 					aStar->mSpeed = 0;
 					aStar->mImage = NULL;
 					if (i < 5)
@@ -214,136 +210,135 @@ bool Board::Fn46a810()
 					else
 						aStar->mX = (float) (((int) AstroRand() % 500000000) % 0xdc);
 					aStar->mY = (float) (((int) AstroRand() % 500000000) % 0x32 - 100);
-					aStar->mField5C = 0;
 					aStar->mSpeed = (float) (((int) AstroRand() % 500000000) % 0x51) * 0.01f + 0.4f;
-					m150.push_back(aStar);
+					mWarpStars.push_back(aStar);
 				}
-				if (m1a0c < 4)
-					m198c = IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - 0x22 + m1a70;
+				if (mBestLevelReached < 4)
+					mShipX = IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - 0x22 + mSlowGateX;
 				else
-					m198c = 0x159;
-				if (m1b2c == 2 || m1b2c == 4)
+					mShipX = 0x159;
+				if (mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4)
 				{
-					m938 = 423.0f;
+					mWarpShipY = 423.0f;
 					mApp->ShowUpgradeDialog();
 					mApp->mWidgetManager->BringToFront(&mOverlay);
 				}
 			}
-			m19a8 += m19ac;
-			if (m19a8 > 0xff)
-				m19a8 = 0xff;
+			mWarpGlowAlpha += mWarpGlowStep;
+			if (mWarpGlowAlpha > 0xff)
+				mWarpGlowAlpha = 0xff;
 			return false;
 		}
-		else if (!m8ef)
+		else if (!mAtWarpGate)
 		{
-			if (m8f4)
+			if (mWarpGatePicked)
 			{
 				// the screen fades to white and the next stage begins
-				m3d0.mRed = 0xff;
-				m3d0.mGreen = 0xff;
-				m3d0.mBlue = 0xff;
-				m3d0.mAlpha += 6;
-				if (m3d0.mAlpha > 0xff)
+				mOverlayFillColor.mRed = 0xff;
+				mOverlayFillColor.mGreen = 0xff;
+				mOverlayFillColor.mBlue = 0xff;
+				mOverlayFillColor.mAlpha += 6;
+				if (mOverlayFillColor.mAlpha > 0xff)
 				{
-					m3d0.mAlpha = 0xff;
-					m3d0.mGreen = 0xff;
-					m3d0.mBlue = 0xff;
-					m3d0.mRed = 0xff;
-					m8eb = false;
-					m8f4 = false;
+					mOverlayFillColor.mAlpha = 0xff;
+					mOverlayFillColor.mGreen = 0xff;
+					mOverlayFillColor.mBlue = 0xff;
+					mOverlayFillColor.mRed = 0xff;
+					mWarpActive = false;
+					mWarpGatePicked = false;
 					if (mApp->mHyperspaceLoop != NULL)
 						mApp->mHyperspaceLoop->Stop();
 					if (mApp->mEngineLoop != NULL)
 						mApp->mEngineLoop->Play(true, false);
 					AstroRand();
-					int aSceneryId = mField193C % 3 + 0x18b;
-					std::string aName = GetStringIdById(m77c.mI30);
+					int aSceneryId = mStageNumber % 3 + 0x18b;
+					std::string aName = GetStringIdById(mSceneryLayer.mPictureId);
 					mApp->mResourceManager->DeleteImage(aName);
-					m77c.mImage = LoadImageById(mApp->mResourceManager, aSceneryId);
-					m77c.mI30 = aSceneryId;
-					m77c.mF24 = 0;
-					m77c.mF28 = -1.0f;
-					m77c.mCur[0] = 0;
-					m77c.mCur[1] = (float) (m77c.mImage->mHeight - 0x1e0);
-					m77c.mCur[2] = 640.0f;
-					m77c.mCur[3] = 480.0f;
-					m77c.mNext[0] = 0;
-					m77c.mNext[1] = 0;
-					m77c.mNext[2] = 640.0f;
-					m77c.mNext[3] = 0;
+					mSceneryLayer.mImage = LoadImageById(mApp->mResourceManager, aSceneryId);
+					mSceneryLayer.mPictureId = aSceneryId;
+					mSceneryLayer.mCurY = 0;
+					mSceneryLayer.mNextY = -1.0f;
+					mSceneryLayer.mCur[0] = 0;
+					mSceneryLayer.mCur[1] = (float) (mSceneryLayer.mImage->mHeight - 0x1e0);
+					mSceneryLayer.mCur[2] = 640.0f;
+					mSceneryLayer.mCur[3] = 480.0f;
+					mSceneryLayer.mNext[0] = 0;
+					mSceneryLayer.mNext[1] = 0;
+					mSceneryLayer.mNext[2] = 640.0f;
+					mSceneryLayer.mNext[3] = 0;
 					if (OpenStoryScreen())
 						return true;
 					mApp->PlaySample(SOUND_GET_READY);
 					LoadLevel(true);
-					m7e8 = -m7ec;
+					mLevelUpPanelY = -mLevelUpPanelHeight;
 				}
-				mOverlay.SetFill(m3d0.mRed, m3d0.mGreen, m3d0.mBlue, m3d0.mAlpha);
+				mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
 			}
 		}
 		else
 		{
 			// the warp has come out: the gate lights up
-			m199c = ((int) AstroRand() % 500000000) % 4 - 2;
-			m19e0 += 2;
-			if (m19e0 > 0xff)
-				m19e0 = 0xff;
-			if (!m8f1)
+			mWarpShakeX = ((int) AstroRand() % 500000000) % 4 - 2;
+			mWarpGateAlpha += 2;
+			if (mWarpGateAlpha > 0xff)
+				mWarpGateAlpha = 0xff;
+			if (!mPointerOverEasyGate)
 			{
-				m19e4 -= 8;
-				if (m19e4 < 0)
-					m19e4 = 0;
+				mEasyGateGlow -= 8;
+				if (mEasyGateGlow < 0)
+					mEasyGateGlow = 0;
 			}
 			else
 			{
-				m19e4 += 8;
-				if (m19e4 > 0xff)
-					m19e4 = 0xff;
+				mEasyGateGlow += 8;
+				if (mEasyGateGlow > 0xff)
+					mEasyGateGlow = 0xff;
 			}
-			if (!m8f2)
+			if (!mPointerOverSlowGate)
 			{
-				m19e8 -= 8;
-				if (m19e8 < 0)
-					m19e8 = 0;
-			}
-			else
-			{
-				m19e8 += 8;
-				if (m19e8 > 0xff)
-					m19e8 = 0xff;
-			}
-			if (!m8f3)
-			{
-				m19ec -= 8;
-				if (m19ec < 0)
-					m19ec = 0;
+				mSlowGateGlow -= 8;
+				if (mSlowGateGlow < 0)
+					mSlowGateGlow = 0;
 			}
 			else
 			{
-				m19ec += 8;
-				if (m19ec > 0xff)
-					m19ec = 0xff;
+				mSlowGateGlow += 8;
+				if (mSlowGateGlow > 0xff)
+					mSlowGateGlow = 0xff;
 			}
-			if (m1b2c == 2 || m1b2c == 4)
+			if (!mPointerOverFastGate)
 			{
-				if (!m91a && !m8f4)
+				mFastGateGlow -= 8;
+				if (mFastGateGlow < 0)
+					mFastGateGlow = 0;
+			}
+			else
+			{
+				mFastGateGlow += 8;
+				if (mFastGateGlow > 0xff)
+					mFastGateGlow = 0xff;
+			}
+			if (mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4)
+			{
+				if (!mUpgradeDialogDone && !mWarpGatePicked)
 				{
-					if (m820 < m828)
+					if (mLeftArmX < mLeftArmStopX)
 					{
-						m820 += 4;
-						if (m820 >= m828)
-							m820 = m828;
+						mLeftArmX += 4;
+						if (mLeftArmX >= mLeftArmStopX)
+							mLeftArmX = mLeftArmStopX;
 					}
 					else
-						mAnim83c.Update();
-					if (m87c <= m884)
+						mLeftHeadAnim.Update();
+					if (mRightArmX <= mRightArmStopX)
 					{
-						mAnim898.Update();
+						mRightHeadAnim.Update();
 						return false;
 					}
-					m87c -= 4;
-					if (m87c <= m884)
+					mRightArmX -= 4;
+					if (mRightArmX <= mRightArmStopX)
 					{
-						m87c = m884;
+						mRightArmX = mRightArmStopX;
 						return false;
 					}
 				}
@@ -354,28 +349,28 @@ bool Board::Fn46a810()
 	{
 		// the flight through the warp: the screen darkens and shakes until the end of the tunnel
 		// (x87 at 24 bits: every result is rounded to a float, see GAME_NOTES section 4)
-		float aStep = (m938 < 0.0f) ? 0.0f : m938 * 0.001f;
-		float aNew = (1.5f - aStep) + m938;
-		m938 = aNew;
+		float aStep = (mWarpShipY < 0.0f) ? 0.0f : mWarpShipY * 0.001f;
+		float aNew = (1.5f - aStep) + mWarpShipY;
+		mWarpShipY = aNew;
 		if (aNew > 423.0f)
-			m938 = 423.0f;
-		m199c = ((int) AstroRand() % 500000000) % 4 - 2;
-		if (m3d0.mAlpha > 0)
-			m3d0.mAlpha--;
-		if (m3d0.mBlue > 0)
-			m3d0.mBlue--;
-		if (m3d0.mGreen > 0)
-			m3d0.mGreen--;
-		mOverlay.SetFill(m3d0.mRed, m3d0.mGreen, m3d0.mBlue, m3d0.mAlpha);
-		if (m938 >= 423.0f && m3d0.mAlpha == 0 && m3d0.mGreen == 0 && m3d0.mBlue == 0)
+			mWarpShipY = 423.0f;
+		mWarpShakeX = ((int) AstroRand() % 500000000) % 4 - 2;
+		if (mOverlayFillColor.mAlpha > 0)
+			mOverlayFillColor.mAlpha--;
+		if (mOverlayFillColor.mBlue > 0)
+			mOverlayFillColor.mBlue--;
+		if (mOverlayFillColor.mGreen > 0)
+			mOverlayFillColor.mGreen--;
+		mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
+		if (mWarpShipY >= 423.0f && mOverlayFillColor.mAlpha == 0 && mOverlayFillColor.mGreen == 0 && mOverlayFillColor.mBlue == 0)
 		{
-			m938 = 423.0f;
-			m8ef = true;
-			m8ed = false;
-			m19e0 = 0;
-			m19ec = 0;
-			m19e8 = 0;
-			m19e4 = 0;
+			mWarpShipY = 423.0f;
+			mAtWarpGate = true;
+			mWarpFlight = false;
+			mWarpGateAlpha = 0;
+			mFastGateGlow = 0;
+			mSlowGateGlow = 0;
+			mEasyGateGlow = 0;
 			return false;
 		}
 	}

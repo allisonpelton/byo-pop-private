@@ -268,12 +268,51 @@ var ByopopSkin = (function () {
       mx.classList.toggle("d95-rs", m);
       mx.setAttribute("aria-label", TW(m ? "skin.desk.restore" : "skin.desk.maximize", w.el.getAttribute("data-d95-title") || ""));
     }
+    // What a screen reader makes of a window while the desktop is on: a region named by its title bar's heading. A panel the
+    // page shows as a tab elsewhere (Music, Settings and Settings' sections: role tabpanel, named by a tab the desktop hides)
+    // loses that role; a landmark of its own (main, footer, aside) keeps its role and takes the title as its name. A heading of
+    // the window's own that says the title again goes quiet: one only for screen readers (.pl-sr) is hidden, and a visible one
+    // (the chat's collapser) stops being a heading. Off the desktop every attribute is put back as it was.
+    var LANDMARKS = { MAIN: 1, FOOTER: 1, ASIDE: 1, NAV: 1, HEADER: 1, FORM: 1 };
+    function titleHeading(w) {
+      var hd = w.el.querySelector(":scope > .d95-tb > .d95-tb-text");
+      if (hd) return hd;
+      var hn = w.el.querySelector(":scope > .d95-handle");
+      if (hn && /^H[1-6]$/.test(hn.tagName)) return hn;
+      return hn ? hn.querySelector("h1, h2, h3, h4, h5, h6") : null;
+    }
+    function named(w, want) {
+      var el = w.el, hd = titleHeading(w);
+      if (want && hd) {
+        if (!w.aria) {
+          w.aria = { role: el.getAttribute("role"), by: el.getAttribute("aria-labelledby"), quiet: [] };
+          var text = (el.getAttribute("data-d95-title") || "").trim().toLowerCase();
+          Array.prototype.forEach.call(el.querySelectorAll("h1, h2, h3, h4, h5, h6"), function (h) {
+            if (h === hd || hd.contains(h) || h.contains(hd) || h.textContent.trim().toLowerCase().indexOf(text) !== 0 || !text) return;
+            w.aria.quiet.push({ h: h, hidden: h.hidden, role: h.getAttribute("role") });
+            if (h.classList.contains("pl-sr")) h.hidden = true; else h.setAttribute("role", "presentation");
+          });
+          if (w.aria.role === "tabpanel" || (!w.aria.role && !LANDMARKS[el.tagName])) el.setAttribute("role", "region");
+        }
+        if (!hd.id) hd.id = "d95-title-" + String(w.id).replace(/[^A-Za-z0-9_-]/g, "_");
+        el.setAttribute("aria-labelledby", hd.id);
+      } else if (!want && w.aria) {
+        var a = w.aria; w.aria = null;
+        if (a.role === null) el.removeAttribute("role"); else el.setAttribute("role", a.role);
+        if (a.by === null) el.removeAttribute("aria-labelledby"); else el.setAttribute("aria-labelledby", a.by);
+        a.quiet.forEach(function (q) {
+          q.h.hidden = q.hidden;
+          if (q.role === null) q.h.removeAttribute("role"); else q.h.setAttribute("role", q.role);
+        });
+      }
+    }
     // a window's title (the game's: its name and its mods), on its title bar and task bar button and in its buttons' names
     function setTitle(w, title) {
       if (w.el.getAttribute("data-d95-title") === title) return;
       w.el.setAttribute("data-d95-title", title);
-      var h = w.el.querySelector(".d95-tb > span.d95-tb-text");
+      var h = w.el.querySelector(".d95-tb > .d95-tb-text");
       if (h) h.textContent = title;
+      if (on) named(w, true);
       [["d95-mn", "skin.desk.minimize"], ["d95-mx", maxed(w) ? "skin.desk.restore" : "skin.desk.maximize"], ["d95-x", "skin.desk.close"], ["d95-sys", "skin.desk.menu"]].forEach(function (b) {
         var e = w.el.querySelector(".d95-tb > ." + b[0]);
         if (e) e.setAttribute("aria-label", TW(b[1], title));
@@ -411,8 +450,11 @@ var ByopopSkin = (function () {
         handle.className = "d95-tb";
         // a window's small icon at the title's left (o.icon, SVG markup: a Settings section's)
         if (o.icon) { var ti = document.createElement("i"); ti.className = "d95-tb-icon"; ti.setAttribute("aria-hidden", "true"); ti.innerHTML = o.icon; handle.appendChild(ti); }
-        var t = document.createElement("span");
+        // the title is the window's heading, under the page's one h1, so that a screen reader's heading keys go from window to
+        // window, and its name (named(), below)
+        var t = document.createElement("h2");
         t.className = "d95-tb-text";
+        t.id = "d95-title-" + String(o.id).replace(/[^A-Za-z0-9_-]/g, "_");
         t.textContent = o.title;
         handle.appendChild(t);
         // What's This? (o.whatsThis: a Settings section's window): Windows 95's "?" beside the window's other buttons. A press
@@ -530,7 +572,7 @@ var ByopopSkin = (function () {
       wins.push(w);
       // (a window opened only from another, as a Settings section from the Settings folder, has no icon on the desktop)
       if (!o.noIcon) addIcon(w, o.title);
-      if (on) { lift(w, true); layout(); }
+      if (on) { named(w, true); lift(w, true); layout(); }
       return w;
     }
     // ---- a window's scroll bar (the user, 2026-11-08: "It's not visible whether a window is scrollable") ----
@@ -1218,6 +1260,7 @@ var ByopopSkin = (function () {
       if (want === on) { if (on) { layout(); if (!active) activate(frontmost()); } return; }
       on = want;
       root.classList.toggle("d95-desk", on);
+      wins.forEach(function (w) { named(w, on); });
       if (on && !taskbar && !EMBED) taskbar = makeTaskbar();
       if (taskbar) taskbar.turn(on);
       if (on) wins.forEach(function (w) { if (w.unfold) w.unfold(); });

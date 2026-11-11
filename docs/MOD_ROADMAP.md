@@ -45,20 +45,21 @@ So each game gets one **fixes** mod, a fourth kind, and each of its settings is 
 bug of the original, or stops the original wasting the player's time or the machine's, and otherwise leaves the game
 as it was: its look, rules, sounds and pace of play. Slow loading is not one of them: it is mended in the port itself
 (the user, 2026-11-07: "Let's make faster loading a core part of the recomps instead of a mod"; CLAUDE.md, "Port
-first, unmodified"). A mod that trades the original's look or feel
-for speed or memory, like Bejeweled's `lean` with its lower frame rate, is not a fix: it stays a mod of its own and
-starts off as before.
+first, unmodified"). A mod that trades the original's look or feel for speed or memory, like Bejeweled's `lean` with
+its lower frame rate, is not a fix: it stays a mod of its own and starts off as before.
 
-The site starts each game with its fixes mod on and every fix in it turned on. The player can turn single fixes off in
-the mod menu, or the whole mod off to play the original as it was. The port itself stays the unmodified original, so a
-native build without the mods, the oracle and the frozen baselines all play the original, and the rules of CLAUDE.md
-("Port first, unmodified", "Done means identical") still hold for the port.
+The site starts each game with its fixes mod on. A fix starts on, except where the original's behaviour looks
+intended and is not widely known as a bug: such a fix starts off (`"default": false`), so the game does not look
+changed to someone who knows it (the user, 2026-11-11, of Bejeweled 2's podFade: "Off by default for functionality
+that seems intended but where the bug is not well known to be a bug"). The player can turn single fixes on or off in
+the mod menu, or the whole mod off to play the original as it was. The port itself stays the unmodified original
+(CLAUDE.md, "Port first, unmodified", "Done means identical").
 
 With the mod on, a game plays exactly the same way on every run: with the same seed and the same input, the same
 series of games, update for update. Nothing from outside the game's own updates (the machine's speed, load times, the
 heap, memory never set) changes play, as it does in Twist's original, whose autoplay moves 15 updates early or late
 from one run to the next (games/bejeweledtwist/docs/IDENTICAL_PLAY.md, "Oddities"). Memory faults are not fixes for
-the mod: the port fixes every leak of the original itself, mod or no mod (CLAUDE.md, "Done means identical").
+the mod: the port fixes every leak of the original itself.
 
 Bugs that break play are not fixes for the mod either (the user, 2026-11-07, of Seven Seas' dead squares: "That sort
 of bug shouldn't be part of a fix mod, IMO"; asked which bugs, they chose "bugs that break play"). Controls that stop
@@ -67,8 +68,7 @@ deviations. The fixes mod keeps the bugs that change how a game plays (its score
 only cost time.
 
 A game's fixes mod is part of its decompilation: the game is not done until the mod is made. A port that loads no
-mods yet (the
-`BYOPOP_WEB_NO_MODS` list in `cmake/ByopopWeb.cmake`) learns to load them first. Until a game's mod is made, a session
+mods yet (the `BYOPOP_WEB_NO_MODS` list in `cmake/ByopopWeb.cmake`) learns to load them first. Until then, a session
 that finds a fix keeps the original's behaviour in the port and lists the fix in its game's notes under "Fix
 candidates": what the original does, how to see it, and what the fix would change.
 
@@ -146,13 +146,11 @@ Bookworm Adventures:
 
 ## Standard mods for every game
 
-The user approved this list on 2026-10-26 as the mod plan of every game. A port is first the original game, unmodified
-and working like its exe; it adds nothing for later mods, not even hooks. In the game's mod phase (which waits until every
-PopCap game works in the browser, CLAUDE.md "Order of work") its session goes through this list, makes each mod that fits
-the game, and says in the game's README why it skipped any. Games that already have mods (Bejeweled, Big Money, BookWorm,
-Noah's Ark) make none of these until the user says every decomp runs in the browser to their satisfaction (2026-10-26).
-Each is a feature mod (or an example mod for a single
-Setting), under the mod rules in CLAUDE.md. Where a game already has one, it is named in brackets.
+The user approved this list on 2026-10-26 as the mod plan of every game. In a game's mod phase (CLAUDE.md, "Order of
+the work") its session goes through the list, makes each mod that fits the game, and says in the game's README why it
+skipped any. Games that already have mods (Bejeweled, Big Money, BookWorm, Noah's Ark) make none of these until the
+user says every decomp runs in the browser to their satisfaction (2026-10-26). Each is a feature mod (or an example
+mod for a single setting), under the mod rules above. Where a game already has one, it is named in brackets.
 
 **Moved to the site (the user, 2026-11-07: "Yes, move them").** Parts of items 8, 14, 15, 17 and 27 work the same in
 every game, from the input the page passes on, the canvas it draws on or the framework's clock, so they become site
@@ -184,7 +182,9 @@ Practice and help:
 10. Undo, in turn-based games (Bejeweled, BookWorm, Noah's Ark).
 11. Hints or a solver (BookWorm's word solver, Noah's Ark's move helper, Big Money's puzzle solver), and a bot that
     plays the game on screen (the user, 2026-11-07), all from the bot behind the `move` test command that the test
-    drivers use (`docs/TEST_COMMANDS.md`, "The bot behind `move`").
+    drivers use (`docs/TEST_COMMANDS.md`, "The bot behind `move`"). The site's screen saver plays each game with this
+    bot mod, through the hook in `docs/WEB_PLAYER.md`'s screen-saver section; a game joins its list once its bot mod
+    is made, in its modding phase (the user, 2026-11-11: "In the modding phase").
 12. Level select: start at any level or stage, with separate scores.
 13. Game stats: the game's numbers at game over, and lifetime totals (Bejeweled's stage 17, BookWorm's word journal).
 14. Speed control: a slower or faster game clock. A site setting now, through the framework's clock, for every port

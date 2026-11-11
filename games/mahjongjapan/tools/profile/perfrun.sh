@@ -22,7 +22,7 @@ WIN="${WIN:-20,50}"
 OFFSET="${OFFSET:-6}"      # the original's first click is this many seconds after the port's (perfscript.py); WIN moves with it for it
 ROOT="$(cygpath -m "$PWD")"
 mkdir -p "$OUT"
-waitroom() { until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done; }
+waitroom() { until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done; }
 if [ "$KIND" = port ]; then
 	python -I "$HERE/perfscript.py" "$CHECK" port "$OUT/port-script.txt"
 	for i in $(seq 1 "$RUNS"); do
