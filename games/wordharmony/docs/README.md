@@ -94,7 +94,7 @@ this build anyway).
 The identical-play pass (`IDENTICAL_PLAY.md`) adds the test switches `-statelog=<file>` (the game's values before and
 after every frame), `-soundlog=<file>` (each sound's start and stop with its frame and length) and `-splashhold` (the
 original's two seconds of splash, which the port otherwise skips, so that a run's updates line up with the original's),
-and its tools: `tools/identical` (phase one's cases, `steady.sh`, `sndcmp.py`), `tools/shots` (phase two's tours, natively
+and the coverage check's `-inputlog=<file>` (the mouse steps that `botplay` takes, as `-script` lines), and its tools: `tools/identical` (phase one's cases, `steady.sh`, `sndcmp.py`), `tools/shots` (phase two's tours, natively
 with `port.sh`, the web build under Node with `web.sh`, the original with `orig.sh`), `tools/realplay/play.py` (real
 window messages natively) and `tools/web/onegame.js` (real DOM input in the player-only page).
 
@@ -170,6 +170,94 @@ A second pair (B) was taken too; its port run met six game processes of other se
 frames fell to 22.8 a second), so it is left out and pair C replaces it. The original's B run: 77.8 MB, 55.5 MB, 5.05 s.
 The port needs about three to four times the original's processor time over the minute (17 to 23% of one core against
 4 to 6%) and two to three times its memory. Nothing has been done about either yet; that is the performance pass's.
+
+## Coverage check (2026-11-11)
+
+`docs/COVERAGE.md` describes the check. `coverage.txt` beside this folder is its settings file (the export, the sources, the
+two ranges of the exe's game code, and a `none` line with its reason for each function the port leaves out on purpose),
+`tools/coverage/run.sh` runs the original with origrun's `--coverage` on the export's 3432 functions, and
+`tools/extract_saf.py` unpacks `WHArchive.saf` into `re/wordharmony/saf`, where the layouts give the click positions.
+
+**The runs.** Eighteen runs of the original on the host, each a minute or two on the virtual clock: the five phase-two
+tours; three whole games that the port's bot played (`botplay`, with the new `-inputlog` writing every mouse step the bot
+took as a `-script` line) and the original replayed (TSUNAMI, RELAX and a saved THINK game); two runs of a UI driver (the
+help pages, the hint, wildcard and submit buttons, the spawn ball, pause, retry, save and quit, exit; the second without
+the wildcard click, see below); one run on the real clock with the silent stand-in, for the sound code; three runs that tick
+each mode's "don't show this screen again" box; a THINK game saved and then continued (the registry kept between the two
+runs); and a THINK run that waits out the level end's bonus count. The replays are not frame-exact: the bot calls the
+widgets' handlers inside an update and a script's click goes through the framework's event dispatch, so a replayed game
+drifts from the recorded one within a few hundred updates. That does not matter here, which asks only what code a run
+reaches; the comparisons of the identical-play pass stay the ones that prove the play.
+
+**The numbers.** The game's code (0x401000-0x445f40 and 0x453f80-0x45eda0) is 1562 functions. The five tours reached 1073
+of them and left 485 with no function in the port; the 18 runs together reached 1119 and leave none. The port defines 749
+of the 1562 and leaves 457 out on purpose. Of the 485, 51 were translated functions whose address was not above them
+(inlined helpers, constructors of the engine's value types, the sound system's slots, the window procedure): their
+addresses are now in the comments above the functions that hold them. The other 434, and 23 that later runs found, are
+`none` lines, sorted by what they are: the C++ library's templates (MSVC 7.1 `string`, `vector`, `list`, `map`, `deque`)
+that the port's own library replaces, the compiler's thunks, deleting destructors and virtual-base constructor halves, the
+Windows layer (window, message loop, DirectDraw, DirectSound and its wave readers, the archive's file and keyed MD5
+readers) that the framework and the platform replace, the registry helper, the libpng wrappers, the beta's play time
+upload and frame rate display, the exception classes' copies, and the main menu's game link. The 105 port functions that
+the first report found unreached are 84 now.
+
+**What it found.** Five differences between the port and the original, every one in a path that no comparison had played:
+
+| The difference | The original | The port did | Now |
+| --- | --- | --- | --- |
+| A key held down (the window procedure, 0x454510) | a key message with the repeat bit set is dropped | every repeat reached the game as a new press | a repeat of a key already down is dropped; a focus loss forgets the held keys |
+| The mouse position (0x454240) | clamped to the window, 800 by 600 | passed on as it came, so a drag outside the window gave positions beyond it | clamped for moves, presses and releases |
+| The bonus word's pick of every ball (`pickAll`, 0x412ca0) | each free ball is picked 0.1 s after the one before it | all at once | staggered as in the original |
+| An exception's message box (WinMain, 0x455567, 0x45559a, 0x45578a) | captioned "Exception" with the error icon; the text of the engine's own exception, else "Exception Code Honeysuckle" | captioned "Word Harmony", with the exception's text | the original's caption, icon and fixed text |
+| A press on the faded-out wildcard button (0x422850) | with no wildcard held it still makes one and the count goes to -1, which the next level's start turns into 2^32 letters: an exception and the end of the game | the same, as a `std::bad_alloc` at the same update (1939 of the UI driver's script) | no wildcard held, no press: a **deviation**, a crash of the original that the port does not keep (CLAUDE.md, "Port first, unmodified") |
+
+The first two came from reading 0x454240 and 0x454510 again for the functions that the first report listed as reached with
+no counterpart. The third came from reading `pickAll` for the unreached list (it needs a found word that makes the level's
+bonus word). The fourth and fifth came from the UI driver: its first run ended in the original's exception box after the
+RETRY click, because an earlier click at (705, 285) had pressed the wildcard button in a TSUNAMI game that held no wildcard;
+the port, given the same script, ended at the same update. `tools/check.sh wordharmony` still passes with its frozen
+baseline identical, as those paths are not in it.
+
+**The port functions that no run reached (84).** Judged one by one against the export's callers and by reading; none needs
+a run of its own:
+
+- *The screen saver* (5: `endProgram`, `startScreenSaver`, the saver's constructor, `mouseMove` and `keyDown`). The original
+  starts it from its command line, with a registry value that its installer writes under HKLM (`SaverInstallPath`), and stops
+  it at the first key or mouse move. CLAUDE.md allows changes only to PopCap's registry values, so it has no run; the port's
+  code was read against the export again and matches.
+- *Destructors* (14: `Game`, `WordBallSystem`, `BallArray`, `Ball`, `HighScores`, `WordTree`, `WordNode`, `AnagramNode`,
+  `Button`, `MusicSystem`, `MusicLayer`, `ParticleStream`, `SoundBank`, `HighScoreEntryLayout`). None ran in any run, which
+  between them ended levels, games and the program: the original leaves through `ExitProcess` and frees none of them.
+- *The level editor* (15: `Box::touches` and `Ramp::touches`, the obstacles' getters and setters, both `toXml`,
+  `Ball::setLetter`, `findObstacle`, and `randomLetters`, whose only caller is the editor's ball spawn). This build never
+  reaches the editor (README, "Status").
+- *Dead code of the original* (38: engine functions with no caller in the export, such as `Node::hitTest`, `dump` and
+  `parentToLocal`, `Container::start` and `stop`, `TextButton`'s text and mouse handlers, `Button::setBaseScale` and
+  `setFlash`, `SoundGroup`, `App::addImage`, `getFileFont` and `createFont`, `Font::loadFile`, the JitterListener's setters,
+  `Graphics::drawImage(x, y)`, `getColor` and `setColor`, `IntRect::offset` and `intersect`, `HostSound::halt` and `setPan`,
+  `HostSoundSystem::unload` and `unloadUnused`, `Follow::apply`, `HighScoreScreen::reset`).
+- *Code that no data of this build reaches* (5: `LayoutHandler::addInclude` and `addTextSub`, since no layout has an `include`
+  or a `textSub` element; `ParticleStream::setAnchor`, since none has an `anchor`; and the particle system's `stopEmitting`
+  with the stream's, since the data's `autoStop` is on the streams and never on a system).
+- *Read again against the export, which matches* (7): `queueLetters` with the HUD's `submitN` branch (a found word's letters
+  go back into the queue by its recycle button, THINK's only; phase one's list says this was never compared, and it still
+  has no run, because the recorded bot's THINK levels each take one word), `pickAll` (the slip above), `TextItem::setTime`
+  and `CongratsScreen::showResults` (the screen that finishing every RELAX level shows, reached through a virtual call; the
+  format and its two pad strings checked against the exe's bytes), `TextEffect::isDone` (every `allDone` call of these runs
+  met an empty list), `startsWith` (the XML reader's numeric entities, which no data file uses) and the catch of the engine's
+  own exception (0x455567).
+
+**Candidates for taking out** (step 3 of this pass, before the readability pass): the editor's functions above and the
+branches of live functions that only it reaches, `randomLetters`, the dead engine functions, and the layout and particle
+features that no data uses. None is removed yet.
+
+**Left open.** The recycle button and the bonus word's `pickAll` are the two paths of play that no comparison has run: the
+first needs a THINK level that takes several words, the second a found word that makes the bonus word. Both are read against
+the export. The original's wildcard crash is not kept (above).
+
+**Cost.** Roughly an hour of machine time for the 18 runs and the few thrown away, one to three game processes at a time,
+and a long session for the sorting (the 485 functions went into about 20 groups by a script that read their names, callers
+and sizes).
 
 ## Mods
 

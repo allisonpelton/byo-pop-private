@@ -38,6 +38,7 @@ bool maskHasAlpha(const std::vector<uint8_t>& theMask)
 
 }
 
+// 0x45e760, 0x45ea10: the image read from a PNG and its mask (the platform decodes both; the mask is read below)
 ScreenImage* wordharmony::decodeImage(const std::vector<uint8_t>& theData, const std::vector<uint8_t>* theMask)
 {
 	int aWidth = 0;
@@ -126,6 +127,8 @@ struct PixelOp
 	int mOpacity;  // 0-255
 	int mOffsetR, mOffsetG, mOffsetB;
 
+	// 0x45c780 and 0x45ce90: the pixel loops of the alpha-test and blend blitters, with the scanline helpers they share
+	// (0x4579c0, 0x4581c0, 0x458230, 0x458560, 0x458cb0)
 	inline void apply(uint32_t& theDest, uint32_t theSrc) const
 	{
 		int anAlpha = (int)(theSrc >> 24);
@@ -158,6 +161,7 @@ struct PixelOp
 // 0x45e2d0: the position with the state's translation, snapped (truncated) as the state says; the source rectangle
 // placed with its pivot at the position, scaled and rotated about it. Without a rotation a negative scale mirrors the
 // image inside the rectangle the positive scale would cover (as 0x45c070's unrotated path does).
+// (0x457930 and 0x457940 set the blit's flags and 0x4589e0 compares two floats: translated inline)
 void ScreenGraphics::drawImage(Image* theImage, const IntRect& theSrc, float x, float y)
 {
 	ScreenImage* anImage = static_cast<ScreenImage*>(theImage);
