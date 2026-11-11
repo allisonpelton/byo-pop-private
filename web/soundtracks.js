@@ -8,6 +8,10 @@
 //   skip    ["<file name>#<n>", ...]: tunes that are not tunes (n counts from 0 in the file's subsongs or parts)
 //   names   {"<file name>#<n>" or "<playlist name>": "<name>"}: plain names, never invented titles and never the game's own text
 //           at length; without one a tune is named after its file
+//   where   {"<file name>#<n>", "<file name>" (an Ogg file) or "<playlist name>": "<place>"}: where in the game its code plays
+//           the tune, as a short value ("Main menu", "Levels 1-5"), from the game's code (its session's answer) or, for an Ogg
+//           game, its file's name; shown beside the tune and in the display
+//   unused  ["<file name>#<n>", ...]: tunes the game's code never plays (left in its files), shown as such
 //   level   the level the game plays its modules at, where it is not the renderer's own (platform/MusicLevels.h):
 //           {bassAmplify: n} the BASS amplify it sets (0 to 100), {fmod3XM: true} FMOD 3's XM pre-amp. The renderer is the
 //           game's own (libopenmpt for MO3 and OXM, libxmp-lite for the rest: web/music/openmpt_web.c)
@@ -35,7 +39,12 @@ var ByopopSoundtracks = {
   typershark: { files: ["music/*.mo3"] },
   mummymaze: { files: ["music/*.it"] },
   // the Ogg games
-  bookwormadv2: { files: ["music/*.ogg"] },
+  bookwormadv2: {
+    files: ["music/*.ogg"],
+    where: { chinese_map: "Chinese world, map", chinese_level: "Chinese world, levels", chinese_boss: "Chinese world, boss",
+      fairy_tale_map: "Fairy tale world, map", fairy_tale_level: "Fairy tale world, levels", fairy_tale_boss: "Fairy tale world, boss",
+      scifi_map: "Sci-fi world, map", scifi_level: "Sci-fi world, levels", scifi_boss: "Sci-fi world, boss" }
+  },
   noahsark: { files: ["music/mainintro.ogg", "music/mainloop.ogg", "music/loading.ogg", "music/gameover.ogg"] },
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune
@@ -43,18 +52,21 @@ var ByopopSoundtracks = {
     files: ["sound/logo.ogg", "sound/music.oxm"],
     level: { fmod3XM: true },
     parts: { music: [[1, 18], [20, 52], [54, 82], [84, 99], [101, 126], [128, 150], [152, 168], [170, 196], [198, 220]] },
-    names: { "music#0": "Menu", "music#1": "In a game, 1", "music#2": "In a game, 2", "music#3": "In a game, 3",
-      "music#4": "In a game, 4", "music#5": "In a game, 5", "music#6": "In a game, 6", "music#7": "In a game, 7",
-      "music#8": "In a game, 8" }
+    where: { logo: "Logo", "music#0": "Main menu", "music#1": "In a game", "music#2": "In a game", "music#3": "In a game",
+      "music#4": "In a game", "music#5": "In a game", "music#6": "In a game", "music#7": "In a game", "music#8": "In a game" }
   },
   // Pixelus and Rocket Mania join their in-game (and Rocket Mania its menu) music from pieces by a playlist, as the games do
   pixelus: {
     files: ["music/pixelus *.ogg"],
-    joined: [{ playlist: "music/pixelus in-game playlist.txt", piece: "music/{}.ogg" }]
+    joined: [{ playlist: "music/pixelus in-game playlist.txt", piece: "music/{}.ogg" }],
+    where: { "pixelus main menu loop v02": "Main menu", "pixelus story screen loop v01": "Story screen",
+      "pixelus temple screen loop v01": "Temple screen", "pixelus in-game": "In a game" }
   },
   rocketmania: {
     files: ["music/* loop *.ogg"],
     joined: [{ playlist: "music/tubetricks menu one v02 playlist.txt", piece: "music/tubetricks menu one v02 {}.ogg" },
-      { playlist: "music/tubetricks in-game one v02 playlist.txt", piece: "music/tubetricks in-game one v02 {}.ogg" }]
+      { playlist: "music/tubetricks in-game one v02 playlist.txt", piece: "music/tubetricks in-game one v02 {}.ogg" }],
+    where: { "tubetricks menu one v02": "Main menu", "tubetricks in-game one v02": "In a game",
+      "tubetricks level up loop one v01": "Level up", "tubetricks game over loop one v01": "Game over" }
   }
 };

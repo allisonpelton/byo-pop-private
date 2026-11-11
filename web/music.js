@@ -149,6 +149,10 @@ var ByopopMusic = (function () {
   // ---------- the tunes ----------
   // A file's name without its folder and extension
   function baseName(rel) { return rel.split("/").pop().replace(/\.[^.]+$/, ""); }
+  // the display's second line for a tune: its game, where the game plays it (or that it never does) and its format
+  function subLine(t) {
+    return [t.game.title, t.unused ? T("music.unused") : t.where, t.format].filter(function (s) { return s; }).join(" · ");
+  }
   function clock(seconds) {
     var s = Math.round(seconds), m = Math.floor(s / 60);
     return T("music.duration", { min: m, sec: (s % 60 < 10 ? "0" : "") + (s % 60) });
@@ -167,12 +171,22 @@ var ByopopMusic = (function () {
       if (!db) return [];
       var prefix = game.persist + "/game/", tunes = [];
       function read(rel) { return readFile(db, prefix + rel); }
+      // a tune's format (its file's extension: MO3, IT, S3M, XM, OXM or OGG), where in the game it plays and whether the game
+      // never plays it, from the table
+      function placeOf(k, rel) {
+        k.format = (rel.match(/\.([^.\/]+)$/) || ["", ""])[1].toUpperCase();
+        var low = k.id.toLowerCase();
+        k.where = "";
+        Object.keys(entry.where || {}).forEach(function (w) { if (w.toLowerCase() === low) k.where = entry.where[w]; });
+        k.unused = (entry.unused || []).some(function (u) { return u.toLowerCase() === low; });
+      }
       function add(rel, list) {
         var kept = list.filter(function (k) { return k.seconds >= MIN_TUNE && (entry.skip || []).indexOf(k.id) < 0; });
         kept.forEach(function (k, j) {
           var named = entry.names && entry.names[k.id];
           k.game = game;
           k.name = named || (kept.length > 1 ? T("music.tune_part", { file: baseName(rel), n: j + 1 }) : baseName(rel));
+          placeOf(k, rel);
           tunes.push(k);
         });
       }
@@ -224,9 +238,10 @@ var ByopopMusic = (function () {
                   return read(rel).then(function (b) { seen[rel] = b ? oggSeconds(b) : 0; seconds += seen[rel]; });
                 });
               }, Promise.resolve()).then(function () {
-                var id = baseName(listRel).replace(/ playlist$/i, "");
-                tunes.push({ game: game, kind: "joined", keys: pieces.map(function (r) { return prefix + r; }), seconds: seconds,
-                  name: (entry.names && entry.names[id]) || id });
+                var id = baseName(listRel).replace(/ playlist$/i, ""), k = { game: game, kind: "joined", id: id,
+                  keys: pieces.map(function (r) { return prefix + r; }), seconds: seconds, name: (entry.names && entry.names[id]) || id };
+                placeOf(k, pieces[0]);
+                tunes.push(k);
               });
             });
           });
@@ -538,7 +553,7 @@ var ByopopMusic = (function () {
       var t = tunes[current];
       if (t && state !== "idle") {
         tuneEl.textContent = t.name;
-        gameEl.textContent = t.game.title;
+        gameEl.textContent = subLine(t);
         names.title = t.name + " — " + t.game.title;
       } else say("", "");
       shownTrack = null;
@@ -1906,7 +1921,7 @@ var ByopopMusic = (function () {
       var t = tunes[i];
       if (t) {
         tuneEl.textContent = t.name;
-        gameEl.textContent = t.game.title;
+        gameEl.textContent = subLine(t);
         names.title = t.name + " \u2014 " + t.game.title;
         var icon = null;
         // the game's icon from its files, as the Library shows it, else its two letters on its colour
@@ -2069,10 +2084,16 @@ var ByopopMusic = (function () {
           b.type = "button";
           b.setAttribute("data-tune", String(i));
           b.appendChild(make("span", "mu-num", String(g.items.indexOf(i) + 1)));
-          var name = make("span", "mu-name", tunes[i].name);
-          name.title = tunes[i].name;
+          var t = tunes[i], name = make("span", "mu-name", t.name);
+          name.title = t.name;
           b.appendChild(name);
-          b.appendChild(make("span", "mu-time", clock(tunes[i].seconds)));
+          // where the game plays it (or that it never does), and its format
+          var where = make("span", "mu-where", t.unused ? T("music.unused") : t.where);
+          where.title = where.textContent;
+          if (t.unused) where.classList.add("mu-unused");
+          b.appendChild(where);
+          b.appendChild(make("span", "mu-format", t.format || ""));
+          b.appendChild(make("span", "mu-time", clock(t.seconds)));
           b.addEventListener("click", function () { play(i); });
           li.appendChild(b);
           ol.appendChild(li);

@@ -754,8 +754,14 @@ stings), and an Ogg Vorbis file is one tune. An entry may also have:
 - `joined`: a playlist file and the path of its short Ogg pieces, decoded and played one after another (Pixelus and
   Rocket Mania; `AssembleMusic` in `games/rocketmania/src/AppMusic.cpp`).
 - `skip` (`"<file>#<n>"`), `names` (a plain name for a tune) and `level` ("Music levels").
+- `where`: where in the game its code plays a tune, as a short value ("Main menu", "Levels 1-5"). It comes from the
+  game's session reading its code, or from the file names of an Ogg game whose files are named for their places.
+- `unused`: the tunes the game's code never plays.
 
-Tunes are named plainly, by file name and "part n". No invented titles.
+Tunes are named plainly, by file name and "part n". No invented titles. Each line of the list shows the tune's place,
+or "Unused" struck through, and its format, the file's extension (MO3, IT, S3M, XM, OXM or OGG). The display's second
+line shows the same after the game's name, so a recorded Ogg track, which has no tracker, piano roll or score, is told
+apart from a module.
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm`
 (target `byopop_openmpt`, from `web/music/openmpt_web.c`). As `Platform::Mixer` picks them, an MO3 or OXM plays
