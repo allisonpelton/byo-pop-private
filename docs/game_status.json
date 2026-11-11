@@ -215,11 +215,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Collection check under way (the game is in the Collection)"
+      "now": null,
+      "note": ""
     },
     "typershark": {
       "title": "Typer Shark! Deluxe",
@@ -403,10 +404,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "performance",
       "note": ""
     },
     "waterbugs": {
