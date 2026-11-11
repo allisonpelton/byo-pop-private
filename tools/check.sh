@@ -246,8 +246,10 @@ BT_MENU="640866e0b565 da8353fcb954"  # the start's screens at 60 (the loader han
 # refrozen 2026-11-09: `state` gained keys (updates, is3d, flames), which changes every transcript, and ExplodeAt's accumulators and the
 # shock wave now test >= 1.0 as the original does, which moved the draws of the global generator after a flame burst: the states of
 # action, puzzle, endless, twilight, cognito and hidden are those of the old baseline, classic differs from level 3 on, hyper from level 4
-# and finity from level 3, all three identical to the original now, games/bejeweled2/docs/IDENTICAL_PLAY.md)
-declare -A BJ2_PLAYS=([classic]="db5f86896a6a:c7b95271c2bd" [action]="8c4464b2a214:950c77b82a20" [puzzle]="3eb1e831c2a2:e1f8b6960a69" [endless]="2baed41a71fa:6c7b27839583" [twilight]="fa068aa268d7:8059d707c87c" [hyper]="76f290fad630:7c808bde4f7b" [cognito]="423e83b40efb:db4f92024a35" [finity]="c46056c77bc5:2a61e9e4c56f" [hidden]="bbed92c6cb71:7afbbb32f140")
+# and finity from level 3, all three identical to the original now, games/bejeweled2/docs/IDENTICAL_PLAY.md;
+# the end screens of classic, puzzle, cognito and finity refrozen 2026-11-11: thirteen fields of the board that the port had declared
+# twice are one member each now, so a flame gem's stars turn and flicker and the intro puzzle marks its gems; no transcript changed)
+declare -A BJ2_PLAYS=([classic]="db5f86896a6a:7ccfdd5b8faf" [action]="8c4464b2a214:950c77b82a20" [puzzle]="3eb1e831c2a2:a8b0773b7f3f" [endless]="2baed41a71fa:6c7b27839583" [twilight]="fa068aa268d7:8059d707c87c" [hyper]="76f290fad630:7c808bde4f7b" [cognito]="423e83b40efb:b8dd13b43d05" [finity]="c46056c77bc5:b8d3b6f9cc57" [hidden]="bbed92c6cb71:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
