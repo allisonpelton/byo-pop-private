@@ -116,7 +116,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .ag-folder { font-weight: 600; }
 /* The terms of a game being added (web/addgames.js), as the game's own terms card shows them (web/shell.html) */
 .terms-dialog {
-  box-sizing: border-box; width: min(600px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 24px;
+  box-sizing: border-box; width: min(600px, calc(calc(100vw / var(--d95-z, 1)) - 32px)); max-height: calc(calc(100vh / var(--d95-z, 1)) - 32px); padding: 24px;
   background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius);
 }
 .terms-dialog[open] { display: grid; gap: 14px; }
@@ -207,7 +207,7 @@ a.tile + .ownrow:not(:has(.why)) { min-height: 0; }
 .why:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .why[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
 .why-pop {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; box-sizing: border-box; width: min(340px, calc(100vw - 32px));
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5; box-sizing: border-box; width: min(340px, calc(calc(100vw / var(--d95-z, 1)) - 32px));
   padding: 14px 16px; background: var(--panel); color: var(--fg); border: 1px solid var(--accent); border-radius: var(--radius);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); text-align: left; font-size: 13px;
 }
@@ -450,7 +450,7 @@ footer p { margin: 0 0 8px; }
 footer a { color: var(--accent); }
 </style>
 <!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
-<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script>
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script><script src="themedata.js"></script><script src="themes.js"></script>
 </head>
 <body>
 <header class="site-header">
@@ -563,6 +563,7 @@ footer a { color: var(--accent); }
   <p>{{index.footer.tracker}}</p>
   <p>{{index.footer.credit_html}}</p>
 </footer>
+<script src="saver.js"></script>
 <script src="settingsicons.js"></script>
 <script src="settings.js"></script>
 <script src="playcount.js"></script>
@@ -576,6 +577,7 @@ footer a { color: var(--accent); }
 <!-- the soundboard: Desktop 95's Sounds window (web/sounds.js) and its table of the games' sounds (web/soundboards.js) -->
 <script src="soundboards.js"></script>
 <script src="sounds.js"></script>
+<script src="trophies.js"></script>
 <!-- the splits timer: Desktop 95's Splits window, a stand-in for LiveSplit (web/splits.js) -->
 <script src="splits.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
@@ -583,6 +585,7 @@ footer a { color: var(--accent); }
 <script>var Module = {};</script>
 <script src="modpanel.js"></script>
 <script src="exeicon.js"></script>
+<script src="exeprobes.js"></script>
 <script src="gameimport.js"></script>
 <script src="import-games.js"></script>
 <script src="other-games.js"></script>
@@ -1003,7 +1006,7 @@ try {
     return x1 < 0 ? null : { im: im, x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
   }
   function fitIcon(img, url, small) {
-    var dpr = window.devicePixelRatio || 1, box = FACE;
+    var dpr = (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1), box = FACE;
     var key = url + "|" + small + "|" + box + "|" + dpr;
     img.setAttribute("data-fit", key);
     function put(f) {
@@ -1040,7 +1043,9 @@ try {
     });
   }
   var lastDpr = window.devicePixelRatio || 1;
-  window.addEventListener("resize", function () { var d = window.devicePixelRatio || 1; if (d !== lastDpr) { lastDpr = d; refit(); } });
+  function nowRatio() { return (window.ByopopSkin && ByopopSkin.ratio ? ByopopSkin.ratio() : window.devicePixelRatio || 1); }
+  window.addEventListener("resize", function () { var d = nowRatio(); if (d !== lastDpr) { lastDpr = d; refit(); } });
+  window.addEventListener("byopop-zoom", function () { lastDpr = nowRatio(); refit(); });
   function showPlayed(card, play) {
     var line = card.querySelector(".played");
     if (!play || !(play.plays > 0 || play.seconds > 0)) { if (line) line.hidden = true; return; }
@@ -1332,6 +1337,8 @@ try {
     // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
     if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
     // the splits timer (web/splits.js): Desktop 95 only, closed at first, its icon after the Sounds window's
+    // the trophy cabinet (web/trophies.js): the games' own records, Desktop 95 only, closed at first, its icon after the Sounds window's
+    if (window.ByopopTrophies) ByopopTrophies.attach(d, function (left, vw) { return [Math.max(left, vw - 620) - 100, top() + 40]; });
     if (window.ByopopSplits) ByopopSplits.attach(d, function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; });
     // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
     if (window.ByopopSetup) ByopopSetup.attach(d, function (left, vw) { return [Math.max(left, Math.round((vw - 560) / 2)), top() + 40]; });

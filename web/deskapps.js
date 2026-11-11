@@ -21,7 +21,9 @@ var ByopopApps = (function () {
   var apps = [], seq = 0, restoring = false;
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
   function on() { return !!(desk && desk.isOn()); }
-  function narrow() { return (document.documentElement.clientWidth || window.innerWidth) < NARROW; }
+  // the desktop's zoom (web/skins.js): the window's sizes are the screen's CSS pixels, a style's the page's
+  function zf() { try { return ByopopSkin.zoom(); } catch (e) { return 1; } }
+  function narrow() { return (document.documentElement.clientWidth || window.innerWidth) / zf() < NARROW; }
 
   // ---- what a link is ----
   // its address from the site's folder (null: another site's, or not a page); the key a window is known by is that address
@@ -105,6 +107,7 @@ var ByopopApps = (function () {
     d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(); } });
     d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(); });
     d.showModal();
+    try { desk.event("ding"); } catch (e) {}
     ok.focus();
   }
 
@@ -247,6 +250,7 @@ var ByopopApps = (function () {
     // its place, which the desktop would otherwise move to fit a window as wide as itself, comes back with it
     if (m && w) app.restoreAt = [w.x, w.y, w.placed];
     app.el.classList.toggle("d95-maxed", m);
+    try { desk.event(m ? "maximize" : "restore"); } catch (e) {}
     if (!m && w && app.restoreAt) { w.x = app.restoreAt[0]; w.y = app.restoreAt[1]; w.placed = app.restoreAt[2]; }
     desk.place(app.id);
   }
@@ -319,7 +323,7 @@ var ByopopApps = (function () {
     var inner = a.frame || a.el.querySelector(".d95-app-client");
     var cw = a.el.offsetWidth - inner.clientWidth, ch = a.el.offsetHeight - inner.clientHeight;
     var bar = document.querySelector(".d95-taskbar");
-    return { w: (document.documentElement.clientWidth || window.innerWidth) - 16 - cw, h: window.innerHeight - (bar ? bar.offsetHeight : 28) - 8 - ch };
+    return { w: (document.documentElement.clientWidth || window.innerWidth) / zf() - 16 - cw, h: window.innerHeight / zf() - (bar ? bar.offsetHeight : 28) - 8 - ch };
   }
   // the size a game wants (its screen at one pixel for each of the device's, and its window's frame and status bar): the window
   // takes it the first time, as far as the desktop has room
@@ -335,7 +339,7 @@ var ByopopApps = (function () {
     var inner = a.frame || a.el.querySelector(".d95-app-client");
     var cw = a.el.offsetWidth - inner.clientWidth, ch = a.el.offsetHeight - inner.clientHeight;
     var bar = document.querySelector(".d95-taskbar");
-    var roomW = (document.documentElement.clientWidth || window.innerWidth) - 16, roomH = window.innerHeight - (bar ? bar.offsetHeight : 28) - 8;
+    var roomW = (document.documentElement.clientWidth || window.innerWidth) / zf() - 16, roomH = window.innerHeight / zf() - (bar ? bar.offsetHeight : 28) - 8;
     a.el.style.width = Math.min(roomW, Math.round(w + cw)) + "px";
     a.el.style.height = Math.min(roomH, Math.round(h + ch)) + "px";
     desk.place(a.id);
