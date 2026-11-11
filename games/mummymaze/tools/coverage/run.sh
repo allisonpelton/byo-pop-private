@@ -13,7 +13,7 @@ COV="$R/build/coverage/mummymaze/functions.txt"
 # the host takes no shots: the scenarios' shot lines go (the updates the other lines are timed to stay the same)
 grep -v -E '(^|[[:space:]])(shot|waitshot|burst|record|hwmove|hwclick|hwrclick|hwkey)[[:space:]]' "$S" > "$H/$NAME.script.txt"
 S="$R/$H/$NAME.script.txt"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 # the play count (the original shows its register nag from ten plays on; the copy is patched to be the registered game, but a
 # run starts from zero all the same)
 reg add "HKLM\Software\WOW6432Node\PopCap\MummyMaze" //v TimesPlayed //t REG_DWORD //d 0 //f > /dev/null

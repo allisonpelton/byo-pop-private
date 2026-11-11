@@ -37,33 +37,28 @@ void PGRandom::seed(uint32_t theSeed)
 	mSeed = theSeed;
 }
 
-float PGRandom::nextFloat()
-{
-	return (float)((double)next(0xfffffffe) * 2.3283064e-10);
-}
-
 uint32_t PGRandom::next(uint32_t theMax)
 {
 	static const uint32_t kMag01[2] = {0, 0x9908b0df};  // 0x4692c8
 	if (mIndex > 0x26f)
 	{
-		uint32_t* p = mState;
+		uint32_t* aState = mState;
 		int i = 0xe3;
 		do
 		{
-			uint32_t y = ((p[1] ^ p[0]) & 0x7fffffff) ^ p[0];
+			uint32_t y = ((aState[1] ^ aState[0]) & 0x7fffffff) ^ aState[0];
 			i--;
-			p[0] = kMag01[y & 1] ^ (y >> 1) ^ p[0x18d];
-			p++;
+			aState[0] = kMag01[y & 1] ^ (y >> 1) ^ aState[0x18d];
+			aState++;
 		} while (i != 0);
 		i = 0x18c;
-		p = mState + 0xe3;
+		aState = mState + 0xe3;
 		do
 		{
-			uint32_t y = ((p[1] ^ p[0]) & 0x7fffffff) ^ p[0];
+			uint32_t y = ((aState[1] ^ aState[0]) & 0x7fffffff) ^ aState[0];
 			i--;
-			p[0] = kMag01[y & 1] ^ (y >> 1) ^ p[-0xe3];
-			p++;
+			aState[0] = kMag01[y & 1] ^ (y >> 1) ^ aState[-0xe3];
+			aState++;
 		} while (i != 0);
 		uint32_t y = ((mState[0] ^ mState[0x26f]) & 0x7fffffff) ^ mState[0x26f];
 		mIndex = 0;
@@ -325,12 +320,6 @@ void PGApp::addControl(PGControl* theControl)
 		theControl->setOwner(this);
 		mControls.push_front(theControl);
 	}
-}
-
-void PGApp::removeControl(PGControl* theControl)
-{
-	if (theControl != nullptr)
-		mControls.remove(theControl);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

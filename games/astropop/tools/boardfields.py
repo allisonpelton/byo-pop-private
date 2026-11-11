@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Keeps the member list of Board.h in step with the code.
+"""Keeps the member list of Board.h in step with the table of its fields.
 
-The Board is a god object (sizeof 0x1c0c in the original) whose members are named by their offset until the code
-that uses them says what they are: `m1a34` is the field at +0x1a34. docs/board_fields.tsv holds one line per member,
+The Board is a god object (sizeof 0x1c0c in the original). docs/board_fields.tsv holds one line per member,
 
     offset(hex) <TAB> type <TAB> name <TAB> comment
 
-and this script (1) adds a line (type int, name m<offset>) for every `m<hex offset>` token in src/Board*.cpp that
-the table does not know yet, (2) rewrites the part of Board.h between the BEGIN FIELDS and END FIELDS markers from
-the table, in offset order, with a default initialiser for scalar types. Renaming a member: change the name column
-and run `sed` over the sources, then run this script again.
+in the order of the original's object, and this script rewrites the part of Board.h between the BEGIN FIELDS and
+END FIELDS markers from the table, in offset order, with a default initialiser for scalar types. Every member
+has its name; the offset stays in the table and in the comment of the declaration. Renaming a member: change the
+name column, replace the name in the sources (whole word; a name that other classes also use needs the compiler
+to find the uses, see GAME_NOTES section 12), and run this script. Taking a member out: delete its line.
 
-    python games/astropop/tools/boardfields.py
+    python games/astropop/tools/boardfields.py [--add]
+
+--add also adds a line (type int, name m<offset>) for every `m<hex offset>` token in src/Board*.cpp that the table
+does not know (for a decompilation step that meets a field not yet in the table); a word such as "made" in a
+comment looks like one, so it is not done by default.
 """
 import glob
 import os
@@ -48,7 +52,8 @@ def main():
     known = {r[2].split("[")[0] for r in rows}
     offs = {int(r[0], 16) for r in rows}
     added = []
-    for f in sorted(glob.glob(os.path.join(SRC, "Board*.cpp"))):
+    # rows are added only on request: a word such as "made" in a comment looks like the field at +0xade
+    for f in (sorted(glob.glob(os.path.join(SRC, "Board*.cpp"))) if "--add" in sys.argv else []):
         txt = open(f, encoding="utf-8", errors="replace", newline="").read()
         for m in re.finditer(r"(?<![\w.>])m([0-9a-f]{2,4})\b", txt):
             off = int(m.group(1), 16)

@@ -300,7 +300,7 @@ void MainMenu::Update()
 	{
 		if (mUpdateCnt % 3 == 0 && mParticleLevel >= 0)
 		{
-			int n = 0;
+			int aNumMade = 0;
 			do
 			{
 				MenuParticle* aParticle = new MenuParticle();
@@ -314,8 +314,8 @@ void MainMenu::Update()
 				aParticle->mAnim.mHoldLast = true;
 				aParticle->mAnim.SetStopped(false);
 				mParticles.push_back(aParticle);
-				n++;
-			} while (n <= mParticleLevel);
+				aNumMade++;
+			} while (aNumMade <= mParticleLevel);
 		}
 	}
 

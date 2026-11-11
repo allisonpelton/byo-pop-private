@@ -77,10 +77,18 @@ var ByopopSounds = (function () {
         var have = {};
         rels.forEach(function (r) { have[r.toLowerCase()] = r; });
         var groups = [], count = 0, presets = [];
+        // a sound inside one of the game's files ("Resource.dll|pe:WAVE:<id>", "ningpo.pyz|zip:<name>",
+        // "TipTop.dat|tiptop:<name>"; ByopopMusic.files.read reads it out): there when that file is
+        function inside(path) {
+          var bar = path.indexOf("|");
+          if (bar < 0) return null;
+          var file = have[path.slice(0, bar).toLowerCase()];
+          return file ? file + path.slice(bar) : null;
+        }
         (entry.groups || []).forEach(function (g) {
           var sounds = [];
           g.sounds.forEach(function (s) {
-            var rel = have[String(s[0]).toLowerCase()];
+            var rel = String(s[0]).indexOf("|") >= 0 ? inside(String(s[0])) : have[String(s[0]).toLowerCase()];
             if (rel) sounds.push({ rel: rel, name: s[1], when: s[2] || "" });
           });
           if (sounds.length) { groups.push({ name: g.name, sounds: sounds }); count += sounds.length; }
@@ -88,6 +96,7 @@ var ByopopSounds = (function () {
         // a preset's steps name their files with or without the extension (as a port's sound log names them): the first of
         // the game's own extensions it has; a preset with a file missing is left out
         function find(path) {
+          if (String(path).indexOf("|") >= 0) return inside(String(path));
           var p = String(path).toLowerCase();
           if (have[p]) return have[p];
           for (var i = 0; i < EXTS.length; i++) if (have[p + EXTS[i]]) return have[p + EXTS[i]];

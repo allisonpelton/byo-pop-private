@@ -8,7 +8,7 @@ SCN="$1"; N="$2"; SEED="${3:-21}"; TO="${4:-120}"
 R="$(pwd -W)"; T="$R/games/mummymaze/tools"; D="$R/build/coverage/mummymaze/gap"; mkdir -p "$D/$N/port"
 python -I "$T/identical/p2.py" make "$SCN" "$N" "$D"
 if [ -n "$PORT" ]; then
-	until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+	until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 	U="$D/$N.user"; rm -rf "$U"; mkdir -p "$U"
 	[ -z "$SAVES" ] || cp "$SAVES"/*.sav "$U/"
 	"$R/build/native/rundesk.exe" "$R/build/native/mummymaze.exe" -userdir="$U" -fast -seed="$SEED" -script="$D/$N.port.txt" > "$D/$N.port.log" 2>&1

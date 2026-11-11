@@ -112,8 +112,8 @@ Ning Po took the first (2026-11-08; its `GAME_NOTES.md`, "Coverage check", is th
 2. Run the original with `--coverage`: the game's own identical-play runs first, then short runs for what they miss
    (every mode to its end, every dialog, the options, the high scores, losing and regaining the focus, quitting from
    each screen). A run on the virtual clock with no sound device skips the sound code, so give one run the real clock
-   and the silent stand-in. Each run is a game process like any other: at most 3 on the machine
-   (`python -I tools/gamecount.py --limit 3`), none during an oracle, and no link or "More Games" button clicked.
+   and the silent stand-in. Each run is a game process like any other: at most 6 on the machine
+   (`python -I tools/gamecount.py --limit 6`), and no link or "More Games" button clicked.
 3. Run `python -I tools/coverage.py report <game> <hits>...` and work through the report. A function reached with no
    counterpart gets one of three things: its address placed above the port function that holds it, a translation if
    it is missing, or a `none` line. A port function never reached is either given a run that reaches it, or read again

@@ -13,7 +13,8 @@ bool Sexy::FixEnabled(const char* theFix)
 		if (aMod->mId != kFixesMod)
 			continue;
 
-		// a toggle with no value stored has its default, which mod.json gives as on; a name mod.json lacks gives no value
+		// a toggle with no value stored has its default, which mod.json gives (on, or off for a fix of something that may be meant:
+		// "schools"); a name mod.json lacks gives no value
 		Platform::JsonValue aValue = Platform::ModManager::Get().GetLiveValue(kFixesMod, theFix);
 		return aValue.IsBool() && aValue.AsBool(false);
 	}

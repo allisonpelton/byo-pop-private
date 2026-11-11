@@ -13,9 +13,9 @@ using namespace Sexy;
 // 0x438a90: is a piece of this kind waiting to drop (the marks at +0x200 are pairs of a kind and a count)?
 bool Board::HasMarkOfType(int theType)
 {
-	for (unsigned int i = 0; i < m200.size(); i++)
+	for (unsigned int i = 0; i < mSuperchargeMarks.size(); i++)
 	{
-		if (m200[i].mType == theType && m200[i].mCount > 0)
+		if (mSuperchargeMarks[i].mType == theType && mSuperchargeMarks[i].mCount > 0)
 			return true;
 	}
 	return false;
@@ -24,10 +24,10 @@ bool Board::HasMarkOfType(int theType)
 // 0x438af0: the count of the first mark of this kind, 0 for none
 int Board::GetMarkCount(int theType)
 {
-	for (unsigned int i = 0; i < m200.size(); i++)
+	for (unsigned int i = 0; i < mSuperchargeMarks.size(); i++)
 	{
-		if (m200[i].mType == theType)
-			return m200[i].mCount;
+		if (mSuperchargeMarks[i].mType == theType)
+			return mSuperchargeMarks[i].mCount;
 	}
 	return 0;
 }
@@ -39,7 +39,7 @@ Brick* Board::LowestFallingBrick94(int theColumn)
 {
 	Brick* aLowest = NULL;
 	int aX = theColumn * 0x2c + 0xa6;
-	for (std::list<std::list<Brick*> >::iterator aGroup = m94.begin(); aGroup != m94.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFallingGroups.begin(); aGroup != mFallingGroups.end(); ++aGroup)
 	{
 		if (aGroup->empty() || aX != (int) aGroup->front()->mX)
 			continue;
@@ -59,7 +59,7 @@ Brick* Board::LowestFallingBrick7c(int theColumn)
 {
 	Brick* aLowest = NULL;
 	int aX = theColumn * 0x2c + 0xa6;
-	for (std::list<std::list<Brick*> >::iterator aGroup = m7c.begin(); aGroup != m7c.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFiredGroups.begin(); aGroup != mFiredGroups.end(); ++aGroup)
 	{
 		if (aGroup->empty() || aX != (int) aGroup->front()->mX)
 			continue;
@@ -79,7 +79,7 @@ Brick* Board::LowestFallingBrick7c(int theColumn)
 // sets.
 bool Board::ColumnReachesShip(int theX)
 {
-	int aLimit = 0x1a7 - (int) m70.size() * 0x19;
+	int aLimit = 0x1a7 - (int) mHeldBricks.size() * 0x19;
 	int aTop = -500;
 	int aFloor;
 	if (FindBottomRow(theX, true) + 1 > 0)
@@ -116,32 +116,32 @@ bool Board::ColumnReachesShip(int theX)
 // ends, else the targets of the piece in hand are marked again.
 void Board::AddTopRow()
 {
-	if (mFlag8E8 || mFlag8E9)
+	if (mGameOver || mLevelUpPhase)
 		return;
-	if (!(m19c0 != 0 || m8eb || m8ed || m8ef || m8f4 || m8ec || m1924 != 0 || !m94.empty() || !m7c.empty() ||
-		!ma0.empty() || !mf8.empty()))
+	if (!(mRowsLeftToPass != 0 || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mPauseCount != 0 || !mFallingGroups.empty() || !mFiredGroups.empty() ||
+		!mTakenBricks.empty() || !mKillAllTypes.empty()))
 		return;
 
 	bool aNoRoom = NoRoomLeft();
-	if (m1a34 == 1 && IsSettled(true) && aNoRoom)
+	if (mPowerupActive == 1 && IsSettled(true) && aNoRoom)
 		return;
-	if (m8dc && (unsigned int) m958 >= m344.size())
+	if (mDemoPlaying && (unsigned int) mDemoAddedRowIndex >= mDemoAddedRows.size())
 		return;
 
 	for (int aRow = 18; aRow >= 0; aRow--)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			if (m314[aRow][aCol] != NULL)
+			if (mFieldBricks[aRow][aCol] != NULL)
 			{
-				m314[aRow + 1][aCol] = m314[aRow][aCol];
-				m314[aRow][aCol] = NULL;
-				m314[aRow + 1][aCol]->StartBounce();
+				mFieldBricks[aRow + 1][aCol] = mFieldBricks[aRow][aCol];
+				mFieldBricks[aRow][aCol] = NULL;
+				mFieldBricks[aRow + 1][aCol]->StartBounce();
 			}
 		}
 	}
 
-	if (!m8dc)
+	if (!mDemoPlaying)
 		FillTopRow(true, false, true, true, 0);
 	else
 	{
@@ -149,7 +149,7 @@ void Board::AddTopRow()
 		for (int aCol = 0; aCol < 10; aCol++, anX += 0x2c)
 		{
 			Brick* aBrick = NULL;
-			int aType = m344[m958][aCol];
+			int aType = mDemoAddedRows[mDemoAddedRowIndex][aCol];
 			switch (aType)
 			{
 			case 0: case 1: case 2: case 3: case 4: case 5:
@@ -174,7 +174,7 @@ void Board::AddTopRow()
 				FireTo(aBrick, 0x28, 1);
 				break;
 			}
-			m314[0][aCol] = aBrick;
+			mFieldBricks[0][aCol] = aBrick;
 			if (aBrick != NULL)
 			{
 				int aMutated = aBrick->mMutated;
@@ -191,22 +191,22 @@ void Board::AddTopRow()
 				aBrick->StartBounce();
 			}
 		}
-		m958++;
+		mDemoAddedRowIndex++;
 	}
 
-	m8e4 = true;
-	if (!ColumnReachesShip(m198c))
+	mNewRowBouncing = true;
+	if (!ColumnReachesShip(mShipX))
 		HighlightTargets();
 	else
 		GameOver();
-	gFlag5A5100 = false;
+	gStateSaved = false;
 
-	if (m8db)
+	if (mRecordingDemo)
 	{
 		std::vector<int> aTypes;
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			Brick* aBrick = m314[0][aCol];
+			Brick* aBrick = mFieldBricks[0][aCol];
 			if (aBrick == NULL)
 				aTypes.push_back(-1);
 			else if (aBrick->mMutated == 1)
@@ -214,6 +214,6 @@ void Board::AddTopRow()
 			else
 				aTypes.push_back(aBrick->mType);
 		}
-		m344.push_back(aTypes);
+		mDemoAddedRows.push_back(aTypes);
 	}
 }

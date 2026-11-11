@@ -18,7 +18,7 @@ using namespace Sexy;
 // bottom of the field
 void Board::OnBrickLanded(Brick* theBrick)
 {
-	m1990--;
+	mHeldBricksNotLanded--;
 
 	std::string aText;
 	int aKind = theBrick->GetEffectiveType();
@@ -43,7 +43,7 @@ void Board::OnBrickLanded(Brick* theBrick)
 
 	if (!aText.empty())
 	{
-		m270.clear();
+		mSpecialBannerTexts.clear();
 		Font* aFont = FONT_DIALOG_BOX;
 		bool aDone = false;
 		int anX = -0x1e - aFont->StringWidth(aText);
@@ -56,17 +56,17 @@ void Board::OnBrickLanded(Brick* theBrick)
 			aDrawn.mY = 0x1cc;
 			aDrawn.mText = aText;
 			aDrawn.mFont = aFont;
-			m270.push_back(aDrawn);
+			mSpecialBannerTexts.push_back(aDrawn);
 			anX = anX + 0x1e + aFont->StringWidth(aText);
 		}
 		while (!aDone);
 	}
 
-	if (m1990 == 0)
+	if (mHeldBricksNotLanded == 0)
 	{
-		mApp->PlaySampleAt(SOUND_BLOCK_HIT_SHIP, (m198c - 0xa6) / 0x2c);
-		if (m1990 == 0)
-			m1bf8 = 0.0f;
+		mApp->PlaySampleAt(SOUND_BLOCK_HIT_SHIP, (mShipX - 0xa6) / 0x2c);
+		if (mHeldBricksNotLanded == 0)
+			mShipBounceY = 0.0f;
 	}
 }
 
@@ -74,19 +74,19 @@ void Board::OnBrickLanded(Brick* theBrick)
 // them to die afterwards, all at once (event 3). Used by the nukes and blasts, which take their bricks together.
 void Board::RemoveCells(const std::vector<CellRef>& theCells, Image* theImage)
 {
-	size_t anOldCount = ma0.size();
+	size_t anOldCount = mTakenBricks.size();
 	for (unsigned int i = 0; i < theCells.size(); i++)
 	{
-		Brick* aBrick = m314[theCells[i].mRow][theCells[i].mCol];
+		Brick* aBrick = mFieldBricks[theCells[i].mRow][theCells[i].mCol];
 		aBrick->SetParticleImages(theImage);
-		ma8.push_back(theCells[i]);
-		ma0.push_back(aBrick);
-		m314[theCells[i].mRow][theCells[i].mCol] = NULL;
-		m1994++;
+		mTakenCells.push_back(theCells[i]);
+		mTakenBricks.push_back(aBrick);
+		mFieldBricks[theCells[i].mRow][theCells[i].mCol] = NULL;
+		mTakenBrickCount++;
 	}
 	std::vector<Brick*> aNew;
 	size_t n = 0;
-	for (std::list<Brick*>::iterator i = ma0.begin(); i != ma0.end(); ++i, n++)
+	for (std::list<Brick*>::iterator i = mTakenBricks.begin(); i != mTakenBricks.end(); ++i, n++)
 	{
 		if (n >= anOldCount)
 			aNew.push_back(*i);
@@ -104,24 +104,24 @@ void Board::OnColumnNuke(Brick* theBrick)
 	AdvanceChain();
 	HideCellHint(theBrick);
 
-	bool aMode2 = mMode == 2 && m1a34 == 1;
-	bool aMode1 = mMode == 1 && m1a34 == 1;
+	bool aMode2 = mMode == 2 && mPowerupActive == 1;
+	bool aMode1 = mMode == 1 && mPowerupActive == 1;
 
 	unsigned int anIndex = 0;
-	std::list<Brick*>::iterator i = ma0.begin();
-	while (i != ma0.end() && *i != theBrick)
+	std::list<Brick*>::iterator i = mTakenBricks.begin();
+	while (i != mTakenBricks.end() && *i != theBrick)
 	{
 		++i;
 		anIndex++;
 	}
-	if (i == ma0.end())
+	if (i == mTakenBricks.end())
 		return;
 
-	int aCol = ma8[anIndex].mCol;
+	int aCol = mTakenCells[anIndex].mCol;
 	for (int aRow = 0x13; aRow > 0; aRow--)
 	{
-		if (m314[aRow][aCol] != NULL && !HasCell(aCol, aRow, mb8) &&
-			((aMode2 && !HasCell(aCol, aRow, mc8)) || (aMode1 && !HasCell3(aCol, aRow, m1a0)) || (!aMode2 && !aMode1)))
+		if (mFieldBricks[aRow][aCol] != NULL && !HasCell(aCol, aRow, mConnectedCells) &&
+			((aMode2 && !HasCell(aCol, aRow, mTurbotMarkedCells)) || (aMode1 && !HasCell3(aCol, aRow, mAtomicMarkedBricks)) || (!aMode2 && !aMode1)))
 		{
 			CellRef aCell;
 			aCell.mCol = aCol;
@@ -130,21 +130,21 @@ void Board::OnColumnNuke(Brick* theBrick)
 		}
 	}
 
-	size_t anOldCount = ma0.size();
+	size_t anOldCount = mTakenBricks.size();
 	for (unsigned int k = 0; k < aCells.size(); k++)
 	{
-		Brick* aBrick = m314[aCells[k].mRow][aCells[k].mCol];
+		Brick* aBrick = mFieldBricks[aCells[k].mRow][aCells[k].mCol];
 		if (aBrick->mMutated != 1 && aBrick->mType == 9 && ((SpecialBrick*) aBrick)->mStage == 2)
 			((SpecialBrick*) aBrick)->Crack(true);
 		aBrick->SetParticleImages(IMAGE_PARTICLE_FIREBALL);
-		ma8.push_back(aCells[k]);
-		ma0.push_back(aBrick);
-		m314[aCells[k].mRow][aCells[k].mCol] = NULL;
-		m1994++;
+		mTakenCells.push_back(aCells[k]);
+		mTakenBricks.push_back(aBrick);
+		mFieldBricks[aCells[k].mRow][aCells[k].mCol] = NULL;
+		mTakenBrickCount++;
 	}
 	std::vector<Brick*> aNew;
 	size_t n = 0;
-	for (std::list<Brick*>::iterator j = ma0.begin(); j != ma0.end(); ++j, n++)
+	for (std::list<Brick*>::iterator j = mTakenBricks.begin(); j != mTakenBricks.end(); ++j, n++)
 	{
 		if (n >= anOldCount)
 			aNew.push_back(*j);
@@ -160,28 +160,28 @@ void Board::OnBlast(Brick* theBrick, int theArg)
 {
 	std::vector<CellRef> aCells;
 
-	bool aMode2 = mMode == 2 && m1a34 == 1;
-	bool aMode1 = mMode == 1 && m1a34 == 1;
+	bool aMode2 = mMode == 2 && mPowerupActive == 1;
+	bool aMode1 = mMode == 1 && mPowerupActive == 1;
 
 	HideCellHint(theBrick);
 
 	// a cell that the modes 1 and 2 leave alone is not taken
 #define PASSES(c, r) \
-	(((aMode2 && !HasCell((c), (r), mc8)) || (aMode1 && !HasCell3((c), (r), m1a0))) || (!aMode2 && !aMode1))
+	(((aMode2 && !HasCell((c), (r), mTurbotMarkedCells)) || (aMode1 && !HasCell3((c), (r), mAtomicMarkedBricks))) || (!aMode2 && !aMode1))
 
 	unsigned int anIndex = 0;
-	std::list<Brick*>::iterator i = ma0.begin();
+	std::list<Brick*>::iterator i = mTakenBricks.begin();
 
-	if (theArg < 1 && theBrick->mFlag187)
+	if (theArg < 1 && theBrick->mBlastsOnPop)
 	{
-		while (i != ma0.end() && *i != theBrick)
+		while (i != mTakenBricks.end() && *i != theBrick)
 		{
 			++i;
 			anIndex++;
 		}
-		if (i == ma0.end())
+		if (i == mTakenBricks.end())
 			return;
-		BlastNeighbours(ma8[anIndex].mCol, ma8[anIndex].mRow, theBrick);
+		BlastNeighbours(mTakenCells[anIndex].mCol, mTakenCells[anIndex].mRow, theBrick);
 		return;
 	}
 
@@ -190,16 +190,16 @@ void Board::OnBlast(Brick* theBrick, int theArg)
 		if (theArg != 1)
 			return;
 		AdvanceChain();
-		while (i != ma0.end() && *i != theBrick)
+		while (i != mTakenBricks.end() && *i != theBrick)
 		{
 			++i;
 			anIndex++;
 		}
-		if (i == ma0.end())
+		if (i == mTakenBricks.end())
 			return;
 
-		int aCol = ma8[anIndex].mCol;
-		int aRow = ma8[anIndex].mRow;
+		int aCol = mTakenCells[anIndex].mCol;
+		int aRow = mTakenCells[anIndex].mRow;
 		int aFirstRow = aRow - 1;
 		if (aFirstRow < 1)
 			aFirstRow = 1;
@@ -208,20 +208,20 @@ void Board::OnBlast(Brick* theBrick, int theArg)
 			aFirstCol = 0;
 		if (aFirstRow > 0x12)
 			return;
-		for (int r = aFirstRow; r <= aRow + 1 && r < 0x13; r++)
+		for (int aNearRow = aFirstRow; aNearRow <= aRow + 1 && aNearRow < 0x13; aNearRow++)
 		{
-			for (int c = aFirstCol; c < 10 && c <= aCol + 1; c++)
+			for (int aNearCol = aFirstCol; aNearCol < 10 && aNearCol <= aCol + 1; aNearCol++)
 			{
 				Brick* aBrick;
-				if ((c != aCol || r != aRow) && PASSES(c, r) && (aBrick = m314[r][c]) != NULL)
+				if ((aNearCol != aCol || aNearRow != aRow) && PASSES(aNearCol, aNearRow) && (aBrick = mFieldBricks[aNearRow][aNearCol]) != NULL)
 				{
 					if (aBrick->mMutated != 1 && aBrick->mType == 9 && ((SpecialBrick*) aBrick)->mStage == 2)
 						((SpecialBrick*) aBrick)->Crack(true);
-					if (aBrick->IsIdle() && !HasCell(c, r, mb8))
+					if (aBrick->IsIdle() && !HasCell(aNearCol, aNearRow, mConnectedCells))
 					{
 						CellRef aCell;
-						aCell.mCol = c;
-						aCell.mRow = r;
+						aCell.mCol = aNearCol;
+						aCell.mRow = aNearRow;
 						aCells.push_back(aCell);
 					}
 				}
@@ -236,15 +236,15 @@ void Board::OnBlast(Brick* theBrick, int theArg)
 	// the row nuke: the row of the brick, every idle brick of it that is not taken already (the original looks at every
 	// entry of the list that is the brick, and there is one)
 	AdvanceChain();
-	for (; i != ma0.end(); ++i, anIndex++)
+	for (; i != mTakenBricks.end(); ++i, anIndex++)
 	{
 		if (*i == theBrick)
 		{
-			int aRow = ma8[anIndex].mRow;
+			int aRow = mTakenCells[anIndex].mRow;
 			for (int c = 0; c < 10; c++)
 			{
-				Brick* aBrick = m314[aRow][c];
-				if (aBrick != NULL && aBrick->IsIdle() && aBrick != theBrick && !HasCell(c, aRow, mb8) && PASSES(c, aRow))
+				Brick* aBrick = mFieldBricks[aRow][c];
+				if (aBrick != NULL && aBrick->IsIdle() && aBrick != theBrick && !HasCell(c, aRow, mConnectedCells) && PASSES(c, aRow))
 				{
 					if (aBrick->mMutated != 1 && aBrick->mType == 9 && ((SpecialBrick*) aBrick)->mStage == 2)
 						((SpecialBrick*) aBrick)->Crack(true);
