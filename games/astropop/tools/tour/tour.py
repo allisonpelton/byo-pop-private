@@ -30,6 +30,7 @@ def main():
     ap.add_argument('--delta-port', type=int, default=0)
     ap.add_argument('--move-delta-port', type=int, default=-1, help="the port's mouse moves only: what an input does starts one update earlier in the original than in the port at the same stamp (hover_timing.txt: the ramp of a lit panel; the credits' scroll), so the port's input is stamped one earlier")
     ap.add_argument('--click-delta-port', type=int, default=-1, help="the port's clicks, presses, releases and keys only (the same offset as --move-delta-port)")
+    ap.add_argument('--focus-delta-port', type=int, default=-1, help="the port's focus changes only")
     ap.add_argument('--shot-delta-orig', type=int, default=0, help="the original's shots only (a plain shot at N shows an earlier frame: see docs/ORIGRUN.md)")
     a = ap.parse_args()
     os.makedirs(os.path.join(a.out, 'port'), exist_ok=True)
@@ -63,7 +64,7 @@ def main():
             port.append('%d type %s' % (pu + a.click_delta_port, arg))
             orig.append('at %d text %s' % (ou, arg))
         elif cmd == 'focus':
-            port.append('%d focus %s' % (pu, 'lost' if arg == 'lose' else 'gained'))
+            port.append('%d focus %s' % (pu + a.focus_delta_port, 'lost' if arg == 'lose' else 'gained'))
             orig.append('at %d focus %s' % (ou, arg))
         elif cmd == 'quit':
             pass
