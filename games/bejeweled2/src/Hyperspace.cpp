@@ -113,7 +113,7 @@ Hyperspace::Hyperspace(WinDMApp* theApp)
 	}
 }
 
-// 0x5c7033: the lines of stars go with the vector
+// 0x5c7033, 0x5c6fa3 (the destructor proper: the lines of stars go with the vector, then Widget's)
 Hyperspace::~Hyperspace()
 {
 }

@@ -1,0 +1,43 @@
+# exploration (portshots.sh): Classic's board: the hint, the cheat words, the in-game options
+at 562 shot title
+at 566 move 320 401
+at 568 click 320 401
+at 811 move 164 105
+at 813 click 164 105
+at 1081 move 464 433
+at 1083 click 464 433
+at 1385 shot board
+at 1400 move 88 384
+at 1402 click 88 384
+at 1450 shot hint
+at 1470 text OLDSKOOL
+at 1490 shot oldskool
+at 1500 text OLDSKOOL
+at 1510 text COLORSWAP
+at 1530 shot colorswap
+at 1540 text XMAS
+at 1560 shot xmas
+at 1570 text NORMAL
+at 1580 text BLACKANDWHITE
+at 1600 shot bw
+at 1610 text NORMAL
+at 1620 text STARFIELD
+at 1640 shot starfield
+at 1650 text NETWORK
+at 1670 shot network
+at 1680 text NORMAL
+at 1690 text NAUSEA
+at 1710 shot nausea
+at 1720 text NOFRAME
+at 1740 shot noframe
+at 1750 text NORMAL
+at 1760 move 88 294
+at 1762 click 88 294
+at 1820 shot gm_options
+at 1830 key 27
+at 1890 shot gm_esc
+at 1900 move 88 294
+at 1902 click 88 294
+at 1960 move 310 342
+at 1962 click 310 342
+at 2040 shot gm_main

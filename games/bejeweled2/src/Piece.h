@@ -67,6 +67,7 @@ struct Effect
 	int				mFrame;         // +0x0c
 	int				mDelay;         // +0x10 updates to wait before the animation starts
 
+	// 0x594721 (the original's constructor does not set mDelay; the port zeroes it)
 	Effect() { mKind = 0; mX = 0; mY = 0; mFrame = 0; mDelay = 0; }
 };
 

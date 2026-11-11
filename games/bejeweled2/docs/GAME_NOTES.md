@@ -292,3 +292,57 @@ screen's width, which is a difference between two sizes and not a fault of eithe
 a picture to mend. `podFade` is the judgment call of the two: it mends what the code plainly meant, but it changes how a pod looks
 for a moment, and the original's look may be taken as intended, so it starts off (the rule above) and a user who wants the fade
 turns it on.
+
+## Coverage check (2026-11-11; `docs/COVERAGE.md`, `games/bejeweled2/coverage.txt`, `games/bejeweled2/tools/coverage/`)
+
+**Status: list one is empty and four faults are fixed; list two (the port's functions that no run reached) is still being worked down**
+(see "Open" below). The numbers are the game's own code, 0x5936ad to 0x5e3675: 2,095 functions.
+
+**The runs.** The original ran on the host under origrun's `--coverage`, one run at a time (`tools/coverage/run.sh`, `runall.sh`; the lists
+of runs are in `build/coverage/bejeweled2/list*.txt`, git-ignored). They are: the port's recorded plays of the modes converted to origrun
+scripts (`origcmp/to_origrun.py`: Classic, Action, Endless, Puzzle, Twilight, Hyper, Cognito, Finity, the dialogs and the help tour, the second
+tour), the resume and name-entry tours, the five 3D recordings under dgVoodoo2 (`HIRES=1`), a long Twilight play (`tools/coverage/record_plays.sh`),
+and scripts of this pass in `tools/coverage/scripts/`: `game_a` (a Classic board with the hint, every cheat word, the focus lost and regained, the
+in-game options, the window closed mid-game; also run on the real clock with the silent stand-in as `sound_a`), `opts_a`, `menu_a`, `title_q`,
+`menu_c` (the menu's Quit, scores, reset and every way out), `users_a` (create, rename and delete a user, each answered both ways) and `puzzle_a`
+(the puzzle from its first puzzle on, then the hint, the undo, the galaxy map: planets hovered and clicked, CLOSE MAP, WARP TO PLANET).
+The scripts' coordinates were found with `tools/coverage/portshots.sh`, which plays an origrun script in the port (same updates, `-fast`) and
+takes its `shot` lines. Things the first runs got wrong, so the next session need not find them again:
+- **The recordings are seed 909** (`record_port.sh ... 909`); the lists ran them at seed 1, where the boards are other boards: no move cleared a
+  gem, and 25 runs reached none of the clearing, scoring and game-over code. At 909 Classic changes the board's state 206 times.
+- A recorded play assumes the original's timing, so `run.sh` keeps each script's `at N` and first waits for the title's loaded flag
+  (`[[0x67ccd8]+0xe78]+0x9d >= 0x01000000`; the load progress at +0x90 reads 1.0 at update 35, long before) and makes a `mark`; a run whose
+  title loaded later than 30 updates before the first input is made again. The 2D game takes the Play click from update 566 on (the port's
+  recordings say 350: `record_plays.sh` passes `PLAY_AT=566`).
+- A list file must have LF line endings (a CR ended up in `CLOCK=real`).
+- The cheat words that reload every image (NORMAL after COLORSWAP or a colour screen) take no keys while they run: they come last in `game_a`.
+
+**Counts.** Before the sorting the runs reached 914 of the 2,095 functions and 537 of the reached ones had no definition in the port (list one);
+now they reach 1,021, the port defines 517, 574 are left out on purpose (`coverage.txt`, each with its reason: the standard library's
+instantiations, compiler-made destructors, the original's event recorder, outbound code, the loading thread, registration code) and list one
+is empty. 69 port functions are not yet reached (list two); 1,005 are neither reached nor defined (list three: exception-handling funclets,
+`Catch_All` blocks, registration and outbound code, the recorder).
+
+**What it found and fixed.** One Sonnet agent sorted list one in three parts (its detail lines in `build/coverage/bejeweled2/list1_res_*.tsv`);
+the gaps were checked against the export by hand:
+- `Board::MouseUp` (0x59596f, vtable slot 56) was not translated: the board's "button is down" flag (`m15f38`) stayed set after the first press
+  of a game, so `UpdateFalling` called `Board::MouseMove` at every idle update (the cursor back to the pointer). It clears the flag now.
+- `WinDMApp::KillDialog` (0x5dceb6, slot 76): when the last dialog is gone the board has the keyboard focus (the port left it to
+  `WidgetManager::RemoveBaseModal`'s restore). Translated.
+- `PuzzleStateOverlay::ButtonPress` (0x5d1b49): the galaxy map's dome button clicks (`SOUND_CLICK_DIALOG`) when it goes down. Translated.
+- `StarField::~StarField` (0x5d8fac) did not delete the nebula image that `Init` loads (one image leaked per STARFIELD/NETWORK toggle). Fixed.
+- Comments only: 30 addresses were put above the port functions that hold them (constructors and destructors, `CurvedVal`, `FancyBackdrop`,
+  the resource group functions in `Res.h`, which `resgen.py` now writes with their addresses).
+`tools/check.sh bejeweled2` (the bot's games in the nine modes, the frozen baseline) passes after the four changes: none changes a trace.
+Differences found and kept (no effect in play, listed for the readability pass): `BackdropsParser::Parse` has other error and end-of-file paths than the
+original (only a malformed `backdrops.xml` shows it); `~TitleScreen` leaves out the register link (registration code); the `Profile` and `Planet`
+constructors zero fields the original leaves unset; `Board::~Board` deletes the score texts from the front, the original from the back.
+
+**Open** (the next steps; `build/handoff.md` has the commands):
+- List two: record and run the long plays to their ends on the port and then the original (`record_plays.sh twilight action finity classic hyper`,
+  then `runall.sh` with a list line `c_<name> build/origrun/bej2_c_<name>.txt 909 900`): game over and its animation, the high-score name
+  entry, level transitions, lightning gems, `SmallExplodeAt`; a saved game's load (`record_port.sh load`, the profile `build/logs/bej2/save10`);
+  the puzzle's hint (`ShowPuzzleHint`, `ShowNextPuzzleMove`) and `UndoAll`; the main menu's shutdown timer and mouse-over; the full-screen toggle
+  (`SwitchScreenMode`, last: it changes the window). The puzzle pack selector shows only when the profile has more than one puzzle pack: a candidate
+  for taking out, kept (a feature some input reaches).
+- Then each function still unreached is read again against the export (`Read again`), and the rest are listed here as candidates.

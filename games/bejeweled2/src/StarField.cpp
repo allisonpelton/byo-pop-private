@@ -31,8 +31,10 @@ StarField::StarField()
 	mNetwork = false;
 }
 
+// 0x5d8fac: the nebula that Init loaded goes with the field (the original deletes it through its virtual destructor)
 StarField::~StarField()
 {
+	delete mImage;
 }
 
 // 0x5d9096: theWavy puts the board's wave over the nebula
