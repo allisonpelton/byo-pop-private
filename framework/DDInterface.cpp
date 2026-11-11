@@ -147,6 +147,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mFrameCount = 0;
 	mSoftwareStretch = false;
 	mSoftwareTransforms = false;
+	mKeepScreen = false;
 	mStretchUse = 0;
 
 	mCursorImage = NULL;
@@ -406,6 +407,8 @@ void DDInterface::BeginFrame()
 		return;
 
 	SetClip(NULL);
+	if (mKeepScreen)
+		return;
 	SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
 	SDL_RenderClear(mRenderer);
 }

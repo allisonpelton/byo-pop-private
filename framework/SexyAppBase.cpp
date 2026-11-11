@@ -4644,13 +4644,25 @@ bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolu
 {
 	MTAutoDisallowRand aDisallowRand;
 
-	mIsDrawing = true;
-	mDrawingLogicalShot = !fullResolution;
-	mDDInterface->BeginFrame();
-	mWidgetManager->MarkAllDirty();
-	mWidgetManager->DrawScreen();
-	mDrawingLogicalShot = false;
-	mIsDrawing = false;
+	if (mDDInterface->mKeepScreen)
+	{
+		// the screen keeps what the last frame drew (DDInterface::mKeepScreen), and a frame drawn again on top of itself would
+		// differ from the frame the game shows (an effect that adds to the screen would add twice): the picture is the screen as
+		// it is, after the frame that is due. A test run of such a game draws every update (-drawevery) to have the frame of
+		// each update.
+		if (mHasPendingDraw)
+			DrawDirtyStuff();
+	}
+	else
+	{
+		mIsDrawing = true;
+		mDrawingLogicalShot = !fullResolution;
+		mDDInterface->BeginFrame();
+		mWidgetManager->MarkAllDirty();
+		mWidgetManager->DrawScreen();
+		mDrawingLogicalShot = false;
+		mIsDrawing = false;
+	}
 
 	if (fullResolution)
 	{
