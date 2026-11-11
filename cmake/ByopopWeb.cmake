@@ -27,7 +27,7 @@ set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_op
   _byopop_cursor_set_copy
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_skiplogos _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
   _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json
-  _byopop_music_song _byopop_music_view _byopop_music_row _byopop_music_used)
+  _byopop_music_song _byopop_music_view _byopop_music_row _byopop_music_used _byopop_music_names _byopop_music_mute)
 set(BYOPOP_WEB_RUNTIME_METHODS FS callMain ccall)
 # the player-only test page's live command (framework/SexyAppBase.cpp, docs/TEST_COMMANDS.md "Sending them")
 list(APPEND BYOPOP_WEB_EXPORTED_FUNCTIONS _byopop_test_command)
