@@ -4,7 +4,7 @@
 // One cell of the board: an animal, a crate, a block or an empty space. Original: a 0x68-byte object made by
 // the `operator new(0x68)` blocks in Board.cpp (WinNoah.exe 0x401a50 and many other places); offsets below
 // are the original's. The grid holds one Piece per cell; a piece that moves (falls, slides along a path, is
-// shifted by a new row) is copied into the cell it reaches (FUN_004060d0 is the copy), so the port moves the
+// shifted by a new row) is copied into the cell it reaches (0x4060d0 is the copy), so the port moves the
 // object itself where the original copies and deletes.
 
 #include <vector>
@@ -15,8 +15,8 @@ namespace Sexy
 // Piece::mType
 enum PieceType
 {
-	PIECE_ANIMAL_LAST = 12,      // 0..12: the animal kinds (row index in images/animals)
-	PIECE_UNUSED = 13,           // 0xd: no animal, not empty (the "no animals left" test treats it as taken)
+	PIECE_ANIMAL_LAST = 12,      // 0..12: the animal kinds (row index in images/animals; the kind's sound is SOUND_WINPIG + kind)
+	NUM_ANIMALS = 13,
 	PIECE_EMPTY = 14,            // 0xe
 	PIECE_BLOCK = 15,            // 0xf: block.jpg, an obstacle that stays where it is
 	PIECE_CRATE = 16             // 0x10: crate.jpg, an obstacle that falls (strategy) with the animals
@@ -56,13 +56,13 @@ struct Piece
 	Piece*			mPartner;               // +0x3c the animal this one walks to
 	double			mScale;                 // +0x40 50.0
 	std::vector<PathNode*>	mPath;          // +0x48 (the original's std::vector of PathNode*)
-	bool			mMatchSwap;             // +0x58
+	bool			mInSwap;            // +0x58 one of the two animals of the puzzle swap in progress (the swap back finds them by it)
 	bool			mMatch;                 // +0x59 part of a run of three (puzzle mode)
 	int				mBlink;                 // +0x5c 0..4
 
 	Piece();
 	~Piece();
-	Piece(const Piece& theOther);           // FUN_004060d0: a copy (the path is deep copied)
+	Piece(const Piece& theOther);           // 0x4060d0: a copy (the path is deep copied)
 private:
 	Piece& operator=(const Piece&);
 };

@@ -1,3 +1,5 @@
+// port: the game's texts, read from the player's own executable by address (GameText.h)
+
 #include "GameText.h"
 #include "SexyAppBase.h"
 #include "platform/VFS.h"
@@ -39,13 +41,13 @@ std::map<unsigned int, SexyString>& Texts()
 // FNV-1a over the text's bytes (make_gametext.py computes the same)
 uint32_t TextHash(const char* theText, size_t theLength)
 {
-	uint32_t h = 2166136261u;
+	uint32_t aHash = 2166136261u;
 	for (size_t i = 0; i < theLength; i++)
 	{
-		h ^= (uint8_t) theText[i];
-		h *= 16777619u;
+		aHash ^= (uint8_t) theText[i];
+		aHash *= 16777619u;
 	}
-	return h;
+	return aHash;
 }
 
 uint32_t ReadU32(const std::vector<uint8_t>& theData, size_t theOffset)
@@ -100,9 +102,9 @@ struct PEImage
 	// File offset of a virtual address, or 0 when it is outside every section's raw data
 	size_t Offset(uint32_t theVA) const
 	{
-		for (const Section& s : mSections)
-			if ((theVA >= s.mVA) && (theVA < s.mVA + s.mRawSize))
-				return s.mRawPtr + (theVA - s.mVA);
+		for (const Section& aSection : mSections)
+			if ((theVA >= aSection.mVA) && (theVA < aSection.mVA + aSection.mRawSize))
+				return aSection.mRawPtr + (theVA - aSection.mVA);
 		return 0;
 	}
 };
