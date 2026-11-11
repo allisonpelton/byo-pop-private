@@ -191,22 +191,6 @@ void Piece::AddShards(float theSpeed, bool theSecondManager)
 	aManager->AddEffect(anEffect);
 }
 
-void Piece::AddDust()
-{
-	Effect* anEffect = gBoard->mFXManager->AllocEffect(12);
-	float anAngle = std::fabs(RandSigned() * kTwoPi);
-	float aDist = std::fabs((float)((double)RandSigned() * (double)gGemWidth * 0.5));
-	anEffect->mX = std::cos(anAngle) * aDist + (float)(gGemWidth / 2) + mX;
-	anEffect->mY = std::sin(anAngle) * aDist + (float)(gGemHeight / 2) + mY;
-	anEffect->mDX = (float)((double)std::cos(anAngle) * (double)(gApp->mScale * 0.1f) * aDist);
-	anEffect->mDY = (float)((double)std::sin(anAngle) * (double)(gApp->mScale * 0.1f) * aDist);
-	anEffect->mScale = 0.75f;
-	anEffect->mGravity = gApp->mScale * 0.01f;
-	anEffect->mAlpha = 0.5f;
-	anEffect->mDAlpha = -0.0025f;
-	gBoard->mFXManager->AddEffect(anEffect);
-}
-
 void Piece::GetCounterPos(int* theX, int* theY, float theRise)
 {
 	int aHeight = FONT_COUNTER->GetHeight();

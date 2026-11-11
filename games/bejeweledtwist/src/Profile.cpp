@@ -418,16 +418,6 @@ bool Profile::IsModeUnlocked(int theMode) const
 	return (mModesUnlocked & (1u << (theMode & 31))) != 0;
 }
 
-bool Profile::GetSavedBit(int theBit) const
-{
-	return (mSavedBits[theBit / 8] & (0x80 >> (theBit & 7))) != 0;
-}
-
-void Profile::SetSavedBit(int theBit)
-{
-	mSavedBits[theBit / 8] |= (unsigned char)(0x80 >> (theBit & 7));
-}
-
 SexyString Profile::GetName(int theIdx) const
 {
 	if (theIdx > -1 && theIdx < (int)mNames.size())

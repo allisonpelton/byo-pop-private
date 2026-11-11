@@ -1457,3 +1457,36 @@ and nothing native calls the hook (the suite's screens and baseline are as froze
 where nothing can be heard, by the game's own log: `byopop_quit` at update 1437 logged "the goodbye voice started", then "ended
 after 139 updates; shutting down" (the voice is 1.405 s long), and the page's game ended. The site's own line that calls
 `byopop_quit` is the site session's.
+
+## Code the port does not need (2026-11-11)
+
+The last step before a game is done (`docs/COORDINATION.md`), beyond the registration code and the buttons that lead out of
+the game ("Registration and outbound buttons" above). Two sources: the coverage check's candidates, code no play of the
+original can reach, and port code that nothing calls, found by setting every function defined under `src/` against every use
+of its name in the game (its `popanim/` too), the framework and the platform. Taken out, 140 lines and two generated
+functions of 164:
+
+- Never called in the original either (no caller in the export, no vtable slot): `BSpline::GetNextPoint` (0x6d7811),
+  `Profile::GetSavedBit` and `SetSavedBit` (0x733838, 0x73386e), and from the exe's generated resource code
+  `ExtractResourcesByName` (0x748fef) with the two group functions only it called, `ExtractDynamicResources` and
+  `ExtractVizResources` (0x73eb2e, 0x74879d; the custom resource manager loads those groups itself), and the accessors
+  `GetFontById`, `GetFontRefById`, `GetSoundRefById`, `GetIdByFont` and `GetIdBySound`. `tools/resgen.py` leaves them out too
+  (its output has drifted from the hand-kept `Res.cpp` in other ways, so the files were edited, not generated again).
+- Reached only through code that is itself left out: `Piece::AddDust` (0x7290db), which only the ice gem's blast in
+  `Board::BreakPiece` calls (ice gems cannot be made in the shipped game, and that branch was never ported), and the
+  visualizers' key slot, `Visualizer::Slot4` with `VizZenWheels`' answer to it (0x690af4), which only the VizManager's key
+  function asks (0x758034, no caller in the original and not ported).
+- Inline accessors nothing uses: `CurvedVal::SetRamp`, `SetInRange` and `GetOutValDelta`, `GoodTube::IsTimerStartedFull`,
+  `Profile::IsGemTypeUnlocked`.
+- The port's own: `ModFeatureEnabled` (ModFeatures), which no mod code calls.
+
+**Kept on purpose.** `CurvedVal::SetCurveRef` and the curve reference it sets (`CheckCurveChange` reads it on every step;
+nothing sets one, but it is the class's own mechanism, not a function on its own). `Board::PopAnimCommand`, which the
+animation player in `popanim/` calls. The fields the original sets and never reads, each named for what it holds, and the
+ones a save carries. The branches marked `NotPorted` (the ice gem, the angel gem's soul): they say what the original has
+there. The base `Traveller`'s empty `Update` and `Draw`, which the classes made from it override. Functions no coverage
+run reached but some play can (the replays, the fruit's shockwave, a game with no moves left, the help from a game): they
+were read again against the export in the coverage check and stay.
+
+**Proof.** Nothing the game runs changed: every function taken out had no caller. The native build passes with them gone
+(a call left anywhere would not link), and the suite's screens and baseline are as frozen.

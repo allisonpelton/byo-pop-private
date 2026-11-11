@@ -1115,21 +1115,15 @@ enum ResourceId {
 	RESOURCE_ID_MAX
 };
 
-bool ExtractResourcesByName(ResourceManager* theManager, const char* theName);  // 0x748fef
 Image* GetImageById(int theId);               // 0x73b609
-Font* GetFontById(int theId);                 // 0x73b61a
 int GetSoundById(int theId);                  // 0x73b62b
 int GetImageOffsetX(int theId);               // 0x73b63c: the image's x= in resources.xml
 int GetImageOffsetY(int theId);               // 0x73b64b
 Image** GetImageRefById(int theId);           // 0x73b65a
-Font** GetFontRefById(int theId);             // 0x73b669
-int* GetSoundRefById(int theId);              // 0x73b678
 const char* GetStringIdById(int theId);       // 0x73b687
 // 0x7490e0: the id of the resource with that name (as GetStringIdById gives it, upper case), RESOURCE_ID_MAX for none
 int GetIdByName(const char* theName);
 ResourceId GetIdByImage(Image* theImage);     // 0x73e690: RESOURCE_ID_MAX for one not from the manager
-ResourceId GetIdByFont(Font* theFont);        // 0x73e699
-ResourceId GetIdBySound(int theSound);        // 0x73e6a2
 
 // 2DOnly
 bool Extract2DOnlyResources(ResourceManager* theManager);  // 0x73eae6
@@ -1137,7 +1131,6 @@ extern Image* IMAGE_PLANET;
 extern Image* IMAGE_STATIC_SPACE;
 
 // Dynamic
-bool ExtractDynamicResources(ResourceManager* theManager);  // 0x73eb2e
 extern Font* FONT_600_BEACHHOUSE86;
 extern Font* FONT_600_BOMBPOP3;
 extern Font* FONT_600_CONTINUUMBOLD20;
@@ -2153,7 +2146,6 @@ extern Font* FONT_SCOREGLOW;
 extern Font* FONT_FLOATERS;
 
 // Viz
-bool ExtractVizResources(ResourceManager* theManager);  // 0x74879d
 extern Image* IMAGE_ZENDROP1;
 extern Image* IMAGE_ZENDROP2;
 extern Image* IMAGE_ZENDROP3;

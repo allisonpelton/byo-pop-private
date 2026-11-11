@@ -826,7 +826,6 @@ public:
 	void Init() override;                        // 0x690ac9
 	void Update() override;                      // 0x6913fe
 	void Draw(Graphics* g) override;             // 0x691533
-	bool Slot4(char theChar) override;           // 0x690af4: b, c, e, g and r
 	void NextLook() override;                    // 0x690ad3
 	void NewLevel() override;                    // 0x68f572
 	// slot 8 (0x691da5): the name for the debug text (the port's Visualizer has no slot 8, so this is not an override)
