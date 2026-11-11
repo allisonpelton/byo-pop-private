@@ -173,11 +173,11 @@ Board::Board(AtomicaApp* theApp) :
 	mMouseX = 0;
 	mMouseY = 0;
 	mTooltip[0] = 0;
-	mI16c = 0x163;
-	mI170 = 0;
-	mI174 = 0;
-	mI1c0 = 0;
-	mStat1c4 = mStat1c8 = mStat1cc = mStat1d0 = mStat1d4 = mStat1d8 = mStat1dc = 0;
+	mGetReadyAlpha = 0x163;
+	mGameOverAlpha = 0;
+	mLevelUpAlpha = 0;
+	mBombSignAlpha = 0;
+	mStatUpdates = mStatSavedZero = mStatAtoms = mStatMolecules = mStatBestCombo = mStatBonusMolecules = mStatBonusUpgrades = 0;
 	mTintOn = false;
 	mGeigerGlow = 0;
 	mGeigerGlowStep = 1.0f;
@@ -189,20 +189,20 @@ Board::Board(AtomicaApp* theApp) :
 	mBombFrame = 0;
 	mPulse = 0;
 	mPulseStep = 0.5f;
-	mI90 = 0;
+	mSwirlTimer = 0;
 	mAngle = 0;
-	mB98 = true;
+	mSwirlsCatchUp = true;
 	mDetail = 1;
-	mF8c = 50.0f;
-	mF0ac = 0;
+	mStartCountdown = 50.0f;
+	mNeedleTarget = 0;
 	mNeedle = 0;
 	mNeedleSpeed = 3.0f;
 	mNeedleTick = 0;
 	mNeedleBlink = false;
 	mMonitorSlide = 0xfa;
-	mI148 = mI14c = 0;
-	mF150 = 0;
-	mB164 = false;
+	mBombTimer = mBombAtomsPerStep = 0;
+	mBombChargePerAtom = 0;
+	mBombShake = false;
 	mMonitorSlide = 0xfa;
 
 	mButtonOptions = new ButtonWidget(0, this);
@@ -225,13 +225,13 @@ Board::Board(AtomicaApp* theApp) :
 
 	mFlicker = 0xff;
 	mAtomicus = new Atomicus(mApp);
-	mI184 = 0;
-	mI180 = 0;
-	mI194 = 0xff;
-	mI198 = 0;
+	mFreezeMoves = 0;
+	mFreezeProgress = 0;
+	mGhostGlow = 0xff;
+	mGhostMoves = 0;
 	mGlowSwirl = NULL;
-	mI18c = 0;
-	mI190 = 0;
+	mFreezeSwirlTimer = 0;
+	mSavedZero = 0;
 	mScore = 0;
 	mGeigerGlow = 0;
 	SetTint(0xff, 0xff, 0xff);
@@ -294,17 +294,17 @@ void Board::Start()
 	mApp->mWidgetManager->BringToFront(mButtonBomb);
 	mMeter.Init();
 	mNumColorsStart = 3;
-	mI148 = 0;
-	mI14c = 0;
+	mBombTimer = 0;
+	mBombAtomsPerStep = 0;
 	mBombOn = false;
 	mProgress = 0;
 	mBombPhase = 0;
 	mBombFrame = 0;
 	mPulse = 0;
 	mPulseStep = 0.5f;
-	mF8c = 50.0f;
+	mStartCountdown = 50.0f;
 	mFlash = Color(0, 0, 0, 255);
-	mF0ac = 0;
+	mNeedleTarget = 0;
 	mNeedle = 0;
 	mNeedleSpeed = 3.0f;
 	mNeedleTick = 0;
@@ -347,7 +347,7 @@ void Board::MouseMove(int x, int y)
 	if (mGrid != NULL)
 	{
 		mGrid->MouseMove(x - mGrid->mX, y - mGrid->mY);
-		mGrid->mI368 = 0;
+		mGrid->mHoverTick = 0;
 		mGrid->mTooltipAtom = NULL;
 	}
 	mMouseX = x;
@@ -399,17 +399,17 @@ void Board::CheckBomb()
 	if (!mBombOn)
 	{
 		int aCount = mGrid->CountAtoms(true);
-		if ((aCount != 0) && (mI174 < 1))
+		if ((aCount != 0) && (mLevelUpAlpha < 1))
 		{
 			mAtomicus->Say(9);
 			mBombOn = true;
-			mI148 = 0x4b;
+			mBombTimer = 0x4b;
 			if ((float) aCount <= mProgress)
-				mF150 = (mProgress * 1.5f) / (float) aCount;
+				mBombChargePerAtom = (mProgress * 1.5f) / (float) aCount;
 			else
-				mF150 = 1.0f;
-			mI14c = 2;
-			mF150 = mF150 * 0.75f;
+				mBombChargePerAtom = 1.0f;
+			mBombAtomsPerStep = 2;
+			mBombChargePerAtom = mBombChargePerAtom * 0.75f;
 		}
 	}
 }
@@ -417,13 +417,13 @@ void Board::CheckBomb()
 // 0x432360: a step of the bomb: it bursts atoms until its charge is used up
 void Board::StepBomb()
 {
-	mI148--;
-	if (mI148 < 0)
+	mBombTimer--;
+	if (mBombTimer < 0)
 	{
-		mB164 = true;
-		mI148 = 10;
+		mBombShake = true;
+		mBombTimer = 10;
 		int i = 0;
-		if (0 < mI14c)
+		if (0 < mBombAtomsPerStep)
 		{
 			while (true)
 			{
@@ -445,11 +445,11 @@ void Board::StepBomb()
 					}
 					aCandidates.Clear();
 				}
-				mProgress = mProgress - mF150;
+				mProgress = mProgress - mBombChargePerAtom;
 				if (mProgress <= 0.0f)
 					break;
 				i++;
-				if (mI14c <= i)
+				if (mBombAtomsPerStep <= i)
 					return;
 			}
 			mProgress = 0;
@@ -480,37 +480,37 @@ void Board::FloatScore(int theX, int theY, int thePoints, const Color& theColor)
 void Board::StartFreeze(int theMoves)
 {
 	mGlowSwirl = mSwirls.NextAfter(NULL, true);
-	mI184 = theMoves;
-	mI18c = 0;
-	if (mI180 < 1)
-		mI180 = 0;
+	mFreezeMoves = theMoves;
+	mFreezeSwirlTimer = 0;
+	if (mFreezeProgress < 1)
+		mFreezeProgress = 0;
 }
 
 // 0x432610
 void Board::StepFreeze()
 {
-	mI180++;
-	if (mI180 == 0x80)
+	mFreezeProgress++;
+	if (mFreezeProgress == 0x80)
 		mApp->mSndFreeze->Play();
-	if (0x9b < mI180)
-		mI180 = 0x9b;
-	mI18c--;
-	if (mI18c < 1)
+	if (0x9b < mFreezeProgress)
+		mFreezeProgress = 0x9b;
+	mFreezeSwirlTimer--;
+	if (mFreezeSwirlTimer < 1)
 	{
 		mGlowSwirl = mSwirls.NextAfter(mGlowSwirl, true);
-		mI18c = 10;
+		mFreezeSwirlTimer = 10;
 	}
 }
 
 // 0x432690
 void Board::CountDown()
 {
-	mI184--;
-	if (mI184 < 0)
-		mI184 = 0;
-	mI198--;
-	if (mI198 < 0)
-		mI198 = 0;
+	mFreezeMoves--;
+	if (mFreezeMoves < 0)
+		mFreezeMoves = 0;
+	mGhostMoves--;
+	if (mGhostMoves < 0)
+		mGhostMoves = 0;
 }
 
 // 0x4326e0: an update with the air element on: the counter of the glow goes down to 0x7f and, every third update, a cloud
@@ -518,9 +518,9 @@ void Board::CountDown()
 void Board::StepAir()
 {
 	static int sCounter = 0;	// the original's global at 0x4d40e8
-	mI194--;
-	if (mI194 < 0x7f)
-		mI194 = 0x7f;
+	mGhostGlow--;
+	if (mGhostGlow < 0x7f)
+		mGhostGlow = 0x7f;
 	if (sCounter == 0)
 	{
 		Sprite* aCloud = mApp->mCloud[mApp->mRand.Get(6, false)];
@@ -546,8 +546,8 @@ void Board::StepAir()
 // 0x4326c0: the air element: for some moves the atoms are no obstacle
 void Board::StartGhost(int theMoves)
 {
-	mI194 = 0xff;
-	mI198 = theMoves;
+	mGhostGlow = 0xff;
+	mGhostMoves = theMoves;
 }
 
 // 0x4328a0
@@ -573,7 +573,7 @@ void Board::NextLevel()
 {
 	mMeter.mLevel++;
 	mMeter.mMoleculesMade++;
-	mI16c = 400;
+	mGetReadyAlpha = 400;
 	for (int aCol = 0; aCol < Grid::COLS; aCol++)
 		for (int aRow = 0; aRow < Grid::ROWS; aRow++)
 			mGrid->mCellState[aCol][aRow] = -100000;
@@ -582,7 +582,7 @@ void Board::NextLevel()
 // 0x432930
 void Board::Save(FILE* f)
 {
-	fwrite(&mF8c, 4, 1, f);
+	fwrite(&mStartCountdown, 4, 1, f);
 	fwrite(&mBombPhase, 4, 1, f);
 	fwrite(&mBombFrame, 4, 1, f);
 	fwrite(&mProgress, 4, 1, f);
@@ -590,24 +590,24 @@ void Board::Save(FILE* f)
 	fwrite(&mPulseStep, 4, 1, f);
 	fwrite(&mNumColorsStart, 4, 1, f);
 	fwrite(&mMonitorSlide, 4, 1, f);
-	fwrite(&mI16c, 4, 1, f);
-	fwrite(&mI170, 4, 1, f);
-	fwrite(&mI174, 4, 1, f);
+	fwrite(&mGetReadyAlpha, 4, 1, f);
+	fwrite(&mGameOverAlpha, 4, 1, f);
+	fwrite(&mLevelUpAlpha, 4, 1, f);
 	fwrite(&mGeigerGlow, 4, 1, f);
 	fwrite(&mGeigerGlowStep, 4, 1, f);
-	fwrite(&mI180, 4, 1, f);
-	fwrite(&mI184, 4, 1, f);
-	fwrite(&mI18c, 4, 1, f);
-	fwrite(&mI190, 4, 1, f);
-	fwrite(&mI194, 4, 1, f);
-	fwrite(&mI198, 4, 1, f);
+	fwrite(&mFreezeProgress, 4, 1, f);
+	fwrite(&mFreezeMoves, 4, 1, f);
+	fwrite(&mFreezeSwirlTimer, 4, 1, f);
+	fwrite(&mSavedZero, 4, 1, f);
+	fwrite(&mGhostGlow, 4, 1, f);
+	fwrite(&mGhostMoves, 4, 1, f);
 	fwrite(&mTint, 0x10, 1, f);
 	unsigned char aTintOn = mTintOn ? 1 : 0;
 	fwrite(&aTintOn, 1, 1, f);
 	fwrite(mTintF, 4, 3, f);
 	fwrite(&mScore, 4, 1, f);
-	fwrite(&mI1c0, 4, 1, f);
-	fwrite(&mStat1c4, 4, 7, f);
+	fwrite(&mBombSignAlpha, 4, 1, f);
+	fwrite(&mStatUpdates, 4, 7, f);
 	mMeter.Save(f);
 	mBonus->Save(f);
 	mGrid->Save(f);
@@ -618,7 +618,7 @@ void Board::Save(FILE* f)
 void Board::Load(FILE* f)
 {
 	mAtomicus->mMuted = true;
-	fread(&mF8c, 4, 1, f);
+	fread(&mStartCountdown, 4, 1, f);
 	fread(&mBombPhase, 4, 1, f);
 	fread(&mBombFrame, 4, 1, f);
 	fread(&mProgress, 4, 1, f);
@@ -626,25 +626,25 @@ void Board::Load(FILE* f)
 	fread(&mPulseStep, 4, 1, f);
 	fread(&mNumColorsStart, 4, 1, f);
 	fread(&mMonitorSlide, 4, 1, f);
-	fread(&mI16c, 4, 1, f);
-	fread(&mI170, 4, 1, f);
-	fread(&mI174, 4, 1, f);
+	fread(&mGetReadyAlpha, 4, 1, f);
+	fread(&mGameOverAlpha, 4, 1, f);
+	fread(&mLevelUpAlpha, 4, 1, f);
 	fread(&mGeigerGlow, 4, 1, f);
 	fread(&mGeigerGlowStep, 4, 1, f);
-	fread(&mI180, 4, 1, f);
-	fread(&mI184, 4, 1, f);
-	fread(&mI18c, 4, 1, f);
-	fread(&mI190, 4, 1, f);
-	fread(&mI194, 4, 1, f);
-	fread(&mI198, 4, 1, f);
+	fread(&mFreezeProgress, 4, 1, f);
+	fread(&mFreezeMoves, 4, 1, f);
+	fread(&mFreezeSwirlTimer, 4, 1, f);
+	fread(&mSavedZero, 4, 1, f);
+	fread(&mGhostGlow, 4, 1, f);
+	fread(&mGhostMoves, 4, 1, f);
 	fread(&mTint, 0x10, 1, f);
 	unsigned char aTintOn = 0;
 	fread(&aTintOn, 1, 1, f);
 	mTintOn = aTintOn != 0;
 	fread(mTintF, 4, 3, f);
 	fread(&mScore, 4, 1, f);
-	fread(&mI1c0, 4, 1, f);
-	fread(&mStat1c4, 4, 7, f);
+	fread(&mBombSignAlpha, 4, 1, f);
+	fread(&mStatUpdates, 4, 7, f);
 	mMeter.Load(f);
 	mBonus->Load(f);
 	mGrid->Load(f);

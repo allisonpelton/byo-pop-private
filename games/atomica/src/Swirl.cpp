@@ -93,7 +93,7 @@ Swirl::~Swirl()
 // 0x427c70: it shrinks (a clone faster and faster), the centre moves toward its target, the atoms in it turn
 bool Swirl::Update()
 {
-	if ((0 < mBoard->mI184) && (mAtoms.Size() == 0) && !mBoard->mB98)
+	if ((0 < mBoard->mFreezeMoves) && (mAtoms.Size() == 0) && !mBoard->mSwirlsCatchUp)
 		return true;
 	mRadius = mRadius - mSpeed;
 	if (!mClone)
@@ -133,8 +133,8 @@ bool Swirl::Update()
 			anAtom->mFlySize = anAtom->mFlySize + 0.0015f;
 		anAtom->mFlyX = anAtom->mFlyX - anAtom->mFlyGrow * 0.33333334f;
 		anAtom->mFlyGrow = anAtom->mFlyGrow + 0.0033333332f;
-		if (anAtom->mF_b0 < anAtom->mFlyGrow)
-			anAtom->mFlyGrow = anAtom->mF_b0;
+		if (anAtom->mFlyGrowLimit < anAtom->mFlyGrow)
+			anAtom->mFlyGrow = anAtom->mFlyGrowLimit;
 		anAtom = mAtoms.Next();
 	}
 	return true;
@@ -293,11 +293,11 @@ void Swirl::Draw(Graphics* g, Swirl* thePrevious)
 	if (this != mBoard->mGlowSwirl)
 	{
 		// the field frozen: every swirl glows a little
-		float aLimit = (float) mBoard->mI180 * aShade;
+		float aLimit = (float) mBoard->mFreezeProgress * aShade;
 		aRed = ((float) aRed > aLimit) ? aRed : (int) aLimit;
-		aLimit = (float) mBoard->mI180 * aShade;
+		aLimit = (float) mBoard->mFreezeProgress * aShade;
 		aGreen = ((float) aGreen > aLimit) ? aGreen : (int) aLimit;
-		aLimit = (float) mBoard->mI180 * aShade;
+		aLimit = (float) mBoard->mFreezeProgress * aShade;
 		aBlueFlash = ((float) aBlueFlash > aLimit) ? aBlueFlash : (int) aLimit;
 	}
 	else

@@ -62,12 +62,12 @@ public:
 	ButtonWidget*	mButtonMenu;		// +0x80 id 2
 	ButtonWidget*	mButtonBomb;		// +0x88 id 1
 	PtrList<Widget>	mButtons;			// +0x5c
-	float			mF8c;				// +0x8c counts down from 50 at a game's start; at 0 the field is set up
-	int				mI90;				// +0x90 updates to the next swirl of the background
+	float			mStartCountdown;	// +0x8c counts down from 50 at a game's start; at 0 the field is set up
+	int				mSwirlTimer;		// +0x90 updates to the next swirl of the background
 	float			mAngle;				// +0x94 where the ring of the swirls starts (0.1 degree an update)
-	bool			mB98;				// +0x98 the swirls are brought up to date at the start of a game: the update goes on until one has gone
+	bool			mSwirlsCatchUp;		// +0x98 the swirls are brought up to date at the start of a game: the update goes on until one has gone
 	Color			mFlash;				// +0x9c fades to black by 5 an update
-	float			mF0ac;				// +0xac where the geiger needle goes (the combo times 12)
+	float			mNeedleTarget;		// +0xac where the geiger needle goes (the combo times 12)
 	float			mNeedle;			// +0xb0
 	float			mNeedleSpeed;		// +0xb4
 	int				mNeedleTick;		// +0xb8
@@ -87,36 +87,36 @@ public:
 	int				mNumColorsStart;	// +0x13c the colours the next game starts with
 	int				mMonitorSlide;		// +0x140
 	bool			mBombOn;			// +0x144 the bomb goes off
-	int				mI148;				// +0x148 updates to the next step of it
-	int				mI14c;				// +0x14c atoms it bursts a step
-	float			mF150;				// +0x150
+	int				mBombTimer;			// +0x148 updates to the bomb's next step
+	int				mBombAtomsPerStep;	// +0x14c atoms the bomb bursts a step
+	float			mBombChargePerAtom;	// +0x150 what a burst atom takes from the bomb's charge
 	Color			mBombTint;			// +0x154
-	bool			mB164;				// +0x164 the bomb's shake
+	bool			mBombShake;			// +0x164 the bomb's shake
 	BonusMolecules*	mBonus;				// +0x168
-	int				mI16c;				// +0x16c the level sign's alpha (0x163 at the start)
-	int				mI170;				// +0x170 the 'level complete' sign's alpha
-	int				mI174;				// +0x174
+	int				mGetReadyAlpha;		// +0x16c the 'get ready' sign's alpha (0x163 at the start)
+	int				mGameOverAlpha;		// +0x170 the 'game over' sign's alpha
+	int				mLevelUpAlpha;		// +0x174 the 'level up' sign's alpha
 	float			mGeigerGlow;		// +0x178
 	float			mGeigerGlowStep;	// +0x17c
-	int				mI180;				// +0x180 the freeze (water element): how far it has come
-	int				mI184;				// +0x184 the moves the field stays frozen
+	int				mFreezeProgress;	// +0x180 the freeze (water element): how far it has come
+	int				mFreezeMoves;		// +0x184 the moves the field stays frozen
 	Swirl*			mGlowSwirl;			// +0x188 the swirl the freeze has come to
-	int				mI18c;				// +0x18c
-	int				mI190;				// +0x190
-	int				mI194;				// +0x194
-	int				mI198;				// +0x198 the moves the atoms are no obstacle for the path (air element)
+	int				mFreezeSwirlTimer;	// +0x18c updates to the next swirl the freeze reaches (10)
+	int				mSavedZero;			// +0x190 0 throughout: saved and loaded, nothing reads it
+	int				mGhostGlow;			// +0x194 0xff, and down to 0x7f while the atoms are no obstacle
+	int				mGhostMoves;		// +0x198 the moves the atoms are no obstacle for the path (air element)
 	Color			mTint;				// +0x19c the colour cast of the field
 	bool			mTintOn;			// +0x1ac
 	float			mTintF[3];			// +0x1b0
 	int				mScore;				// +0x1bc
-	int				mI1c0;				// +0x1c0 the 'atomic bomb' sign's alpha
-	int				mStat1c4;			// +0x1c4 updates
-	int				mStat1c8;			// +0x1c8
-	int				mStat1cc;			// +0x1cc atoms in molecules
-	int				mStat1d0;			// +0x1d0 molecules
-	int				mStat1d4;			// +0x1d4 the biggest combo
-	int				mStat1d8;			// +0x1d8
-	int				mStat1dc;			// +0x1dc
+	int				mBombSignAlpha;		// +0x1c0 the 'atomic bomb' sign's alpha
+	int				mStatUpdates;		// +0x1c4 the game's totals for its end page (seven ints, saved as one block): updates played
+	int				mStatSavedZero;		// +0x1c8 0 throughout: saved and loaded, nothing reads or counts it
+	int				mStatAtoms;			// +0x1cc atoms in molecules
+	int				mStatMolecules;		// +0x1d0 molecules
+	int				mStatBestCombo;		// +0x1d4 the biggest combo
+	int				mStatBonusMolecules;	// +0x1d8 bonus molecules made
+	int				mStatBonusUpgrades;	// +0x1dc bonus molecules of a higher level made
 	char			mTooltip[0x100];	// +0x1e0
 	int				mMouseX;			// +0x2e0
 	int				mMouseY;			// +0x2e4

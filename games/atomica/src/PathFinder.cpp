@@ -84,7 +84,7 @@ bool PathFinder::Recurse(int theCol, int theRow, int theTargetCol, int theTarget
 				{
 					Atom* anAtom = mGrid->mCells[aCol][aRow];
 					if ((anAtom != NULL) && (!anAtom->mPre || ((mGrid->mApp->mMode == 0) && anAtom->mPreStarted)) &&
-						(mGrid->mApp->mBoard->mI198 < 1))
+						(mGrid->mApp->mBoard->mGhostMoves < 1))
 						break;
 				}
 				if (theWays < theMaxWays)

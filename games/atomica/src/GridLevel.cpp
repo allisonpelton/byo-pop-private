@@ -16,9 +16,9 @@ void Grid::Reset(int theNumColors)
 {
 	mArrowX = 0;
 	mArrowY = 0;
-	mI4d0 = 0;
+	mMagnetTick = 0;
 	mRadiationRound = false;
-	mB4b4 = 0;
+	mReadyElement = 0;
 	mUnsolvable = false;
 	mBonusTick = 0;
 	mAtoms.Reset();
@@ -30,12 +30,12 @@ void Grid::Reset(int theNumColors)
 	}
 	mAtoms.Clear();
 	mNumColors = theNumColors;
-	mB33d = false;
-	mI364 = 0;
-	mF394 = 300.0f;
-	mF390 = 300.0f;
-	mI398 = 0;
-	mB335 = true;
+	mRevealSaid = false;
+	mBiohazards = 0;
+	mRoundTime = 300.0f;
+	mRoundTimer = 300.0f;
+	mCountDownTick = 0;
+	mWhooshDue = true;
 	mSparkles.Clear();
 	int aCol = 0;
 	do
@@ -55,7 +55,7 @@ void Grid::Reset(int theNumColors)
 		} while (aRow < 8);
 		aCol++;
 	} while (aCol < 9);
-	mB33c = false;
+	mFieldRevealed = false;
 	mChromiumChance = 0;
 	mBiohazardChance = 0;
 	mAtoms.Clear();
@@ -86,7 +86,7 @@ void Grid::EndRound()
 			{
 				Atom* anAtom = new Atom(this, i % mNumColors, false);
 				if (i < 3)
-					anAtom->mFlag_ac = true;
+					anAtom->mFormsByItself = true;
 				anAtom->mHidden = true;
 				anAtom->PlaceRandom();
 				i++;
@@ -143,14 +143,14 @@ void Grid::EndRound()
 			{
 				Atom* aNewAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
 				if (i < 3)
-					aNewAtom->mFlag_ac = true;
+					aNewAtom->mFormsByItself = true;
 				aNewAtom->mHidden = true;
 				aNewAtom->PlaceRandom();
 				i++;
 			} while (i < 6);
 		}
 	}
-	mB3a8 = false;
+	mLevelSetUp = false;
 }
 
 // 0x40f860: the set-up of a level of the strategy mode: the number of colours, the chances of the special atoms, the
@@ -164,12 +164,12 @@ void Grid::StartLevel(int theLevel)
 	mApp->mBoard->mMeter.mFrozen = false;
 	mApp->mBoard->mBonus->mTarget = 3;
 	mApp->mBoard->mMeter.mValue = 0;
-	mB4c0 = false;
+	mBonusLevel = false;
 	if (theLevel % 5 == 0)
 		mApp->mMusicInterface->PlayMusic(0, 0x18, false);
 	else if ((theLevel % 5 == 1) && (theLevel != 1))
 		mApp->mMusicInterface->PlayMusic(0, 0xc, false);
-	mB3a8 = true;
+	mLevelSetUp = true;
 	mAtomsPerRound = 3;
 	mRounds = 0;
 	mRadiationRound = false;
@@ -179,19 +179,19 @@ void Grid::StartLevel(int theLevel)
 		mAtomsPerRound = 3;
 		anAtom = new Atom(this, 0, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(4, 3, true);
 		anAtom = new Atom(this, 0, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(5, 3, true);
 		anAtom = new Atom(this, 0, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(5, 4, true);
 		anAtom = new Atom(this, 0, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(1, 5, true);
 		mChromiumChance = 0;
 		mBiohazardChance = 0;
@@ -206,55 +206,55 @@ void Grid::StartLevel(int theLevel)
 		mBiohazardChance = 0;
 		anAtom = new Atom(this, 0, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(6, 2, true);
 		anAtom = new Atom(this, 0, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(7, 2, true);
 		anAtom = new Atom(this, 0, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(7, 3, true);
 		anAtom = new Atom(this, 0, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(5, 3, true);
 		anAtom = new Atom(this, 1, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(1, 1, true);
 		anAtom = new Atom(this, 1, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(2, 1, true);
 		anAtom = new Atom(this, 1, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(1, 2, true);
 		anAtom = new Atom(this, 1, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(3, 2, true);
 		anAtom = new Atom(this, 2, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(2, 5, true);
 		anAtom = new Atom(this, 2, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(2, 6, true);
 		anAtom = new Atom(this, 2, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(3, 6, true);
 		anAtom = new Atom(this, 2, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(3, 4, true);
 		anAtom = new Atom(this, 1, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->PlaceAt(7, 6, true);
 		anAtom = new Atom(this, 1, false);
 		anAtom->mHidden = true;
@@ -275,25 +275,25 @@ void Grid::StartLevel(int theLevel)
 		mChromiumChance = 0;
 		mBiohazardChance = 100.0f;
 		anAtom = new Atom(this, 0, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(4, 4, true);
 		mChromiumChance = 0;
 		mBiohazardChance = 0;
 		anAtom = new Atom(this, 0, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(4, 6, true);
 		anAtom = new Atom(this, 0, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(4, 2, true);
 		anAtom = new Atom(this, 0, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(6, 4, true);
 		anAtom = new Atom(this, 0, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(2, 4, true);
 		anAtom = new Atom(this, 1, false);
@@ -309,19 +309,19 @@ void Grid::StartLevel(int theLevel)
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(6, 6, true);
 		anAtom = new Atom(this, 2, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(1, 1, true);
 		anAtom = new Atom(this, 2, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(1, 7, true);
 		anAtom = new Atom(this, 2, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(7, 1, true);
 		anAtom = new Atom(this, 2, false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(7, 7, true);
 		mChromiumChance = 0;
@@ -334,45 +334,45 @@ void Grid::StartLevel(int theLevel)
 		mChromiumChance = 100.0f;
 		mBiohazardChance = 0;
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(3, 3, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(4, 3, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(5, 3, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(3, 4, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(4, 4, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(5, 4, true);
 		mChromiumChance = 0;
 		mBiohazardChance = 0;
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(1, 1, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(7, 1, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(1, 6, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceAt(7, 6, true);
 		anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
@@ -407,7 +407,7 @@ void Grid::StartLevel(int theLevel)
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -426,7 +426,7 @@ void Grid::StartLevel(int theLevel)
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -445,7 +445,7 @@ void Grid::StartLevel(int theLevel)
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -454,7 +454,7 @@ void Grid::StartLevel(int theLevel)
 		mChromiumChance = 5.0f;
 		mBiohazardChance = 0;
 		mArrowX = 0;
-		goto LAB_00411b93;
+		goto arrowDown;
 	case 9:
 		mChromiumChance = 0;
 		mBiohazardChance = 0;
@@ -465,13 +465,13 @@ void Grid::StartLevel(int theLevel)
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 8);
-		goto LAB_00410bd9;
+		goto chancesThree;
 	case 11:
 		mChromiumChance = 0;
 		mBiohazardChance = 0;
@@ -482,13 +482,13 @@ void Grid::StartLevel(int theLevel)
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 0xc);
-LAB_00410bd9:
+chancesThree:
 		mChromiumChance = 3.0f;
 		mBiohazardChance = 3.0f;
 		return;
@@ -502,7 +502,7 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -521,14 +521,14 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 0xc);
 		mChromiumChance = 3.0f;
-		goto LAB_00411d10;
+		goto biohazardFour;
 	case 14:
 		mRadiationRound = true;
 		mChromiumChance = 0;
@@ -540,13 +540,13 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 0xc);
-		goto LAB_00411599;
+		goto radiationCells;
 	case 16:
 		mAtomsPerRound = 3;
 		mChromiumChance = 0;
@@ -557,14 +557,14 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 0xf);
 		mChromiumChance = 6.0f;
-		goto LAB_00411d10;
+		goto biohazardFour;
 	case 17:
 		mChromiumChance = 0;
 		mBiohazardChance = 0;
@@ -575,7 +575,7 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -583,7 +583,7 @@ LAB_00410bd9:
 		} while (i < 8);
 		mBiohazardChance = 0;
 		mArrowX = 1;
-		goto LAB_00411376;
+		goto chromiumSixArrow;
 	case 18:
 		mChromiumChance = 0;
 		mBiohazardChance = 0;
@@ -594,14 +594,14 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 0xf);
 		mChromiumChance = 7.0f;
-		goto LAB_00411d10;
+		goto biohazardFour;
 	case 19:
 		mAtomsPerRound = 3;
 		mChromiumChance = 0;
@@ -611,7 +611,7 @@ LAB_00410bd9:
 		i = 0;
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
-			anAtom->mFlag_ac = true;
+			anAtom->mFormsByItself = true;
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
@@ -622,7 +622,7 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 3) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -639,7 +639,7 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -658,7 +658,7 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -677,7 +677,7 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -695,7 +695,7 @@ LAB_00410bd9:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -703,7 +703,7 @@ LAB_00410bd9:
 		} while (i < 8);
 		mBiohazardChance = 0;
 		mArrowX = 0;
-LAB_00411376:
+chromiumSixArrow:
 		mChromiumChance = 6.0f;
 		mArrowY = aArrowY;
 		mApp->mBoard->mBonus->mTarget = 3000;
@@ -718,7 +718,7 @@ LAB_00411376:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -737,7 +737,7 @@ LAB_00411376:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -755,13 +755,13 @@ LAB_00411376:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 0xc);
-LAB_00411599:
+radiationCells:
 		for (int aCol = 0; aCol < COLS; aCol++)
 			for (int aRow = 0; aRow < ROWS; aRow++)
 				mRadiation[aCol][aRow] = false;
@@ -796,13 +796,13 @@ LAB_00411599:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 8);
-		goto LAB_00411896;
+		goto arrowLeft;
 	case 31:
 		mChromiumChance = 0;
 		mBiohazardChance = 0;
@@ -813,7 +813,7 @@ LAB_00411599:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -830,7 +830,7 @@ LAB_00411599:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -847,13 +847,13 @@ LAB_00411599:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
 			i = i + 1;
 		} while (i < 8);
-LAB_00411896:
+arrowLeft:
 		mChromiumChance = 6.0f;
 		mBiohazardChance = 0;
 		mArrowX = -1;
@@ -870,7 +870,7 @@ LAB_00411896:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -889,7 +889,7 @@ LAB_00411896:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -906,7 +906,7 @@ LAB_00411896:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 9) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -925,7 +925,7 @@ LAB_00411896:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 5) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -934,7 +934,7 @@ LAB_00411896:
 		mChromiumChance = 6.0f;
 		mBiohazardChance = 0;
 		mArrowX = 0;
-LAB_00411b93:
+arrowDown:
 		mArrowY = 1;
 		mApp->mBoard->mBonus->mTarget = 3000;
 		return;
@@ -948,7 +948,7 @@ LAB_00411b93:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -965,7 +965,7 @@ LAB_00411b93:
 		do {
 		anAtom = new Atom(this, i % mNumColors, false);
 			if (i < 0xc) {
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 			}
 			anAtom->mHidden = true;
 			anAtom->PlaceRandom();
@@ -973,12 +973,12 @@ LAB_00411b93:
 		} while (i < 0xf);
 		break;
 	default:
-		goto switchD_default;
+		goto done;
 	}
 	mChromiumChance = 2.0f;
-LAB_00411d10:
+biohazardFour:
 	mBiohazardChance = 4.0f;
-switchD_default:
+done:
 	return;
 }
 
@@ -1001,13 +1001,13 @@ void Grid::SetupTimedLevel()
 	{
 		Atom* anAtom = new Atom(this, mApp->mRand.Get(mNumColors, false), false);
 		if (i < 0xc)
-			anAtom->mFlag_ac = true;
+			anAtom->mFormsByItself = true;
 		anAtom->mHidden = true;
 		anAtom->PlaceRandom();
 		i++;
 	} while (i < 0xf);
 	mChromiumChance = 0;
 	mBiohazardChance = 0;
-	mF3ac = 0.04f;
+	mMeterFillStep = 0.04f;
 	mRounds = 0;
 }

@@ -70,14 +70,14 @@ straight lines through free cells with as few turns as the cost allows (`PathFin
 
 The strategy mode's **level** needs `mMax` molecules (the board's meter, set by `StartLevel`); every fifth level is a bonus
 level (`SetupBonusLevel` 0x40dd10) with groups of four atoms of each colour; the radiation rounds mark cells that
-must be cleared. The action mode (`SetupTimedLevel` 0x40f730) has no rounds: a clock (`mF390`, 300 to 0) adds atoms and the
+must be cleared. The action mode (`SetupTimedLevel` 0x40f730) has no rounds: a clock (`mRoundTimer`, 300 to 0) adds atoms and the
 meter drains; a molecule empties it, and it fills when it runs out. The field is lost when more than 71 atoms stand on it.
 
 ## 5. The board
 
 The board draws the machine around the field and owns the meter, the atomic bomb (`mProgress` 0 to 48, `CheckBomb` 0x4322c0,
 `StepBomb` 0x432360: it bursts atoms until its charge is used up), Atomicus, the effects list and the floating scores.
-The level sign counts down from 0x163 (`mI16c`); the field is revealed by sparks (`Sparkle`, 0x41c5f0) that set the cells'
+The level sign counts down from 0x163 (`mGetReadyAlpha`); the field is revealed by sparks (`Sparkle`, 0x41c5f0) that set the cells'
 state from -100000 to 0x40 and the grid's update brings it to 255.
 
 ## 6. The tutorial boxes
@@ -106,7 +106,7 @@ triangles (0x4283a0, spans handed to `Image::FillScanLines`); its colour follows
 are absorbed flash it). An atom that leaves the field (`Atom::FlyAway`, 0x4027a0) gets a *clone* of the newest swirl (0x428870,
 drawn without a ring) and circles in it by polar coordinates (`mFlyX` the angle, `mFlySize` the part of the radius); when the clone
 goes, the atoms in it go with a flash and a sound. The constants that go on from one swirl to the next (the radius and angle of the
-next target, the next minimum radius) are globals of the program, not of the game. A new game starts with `mB98`, which repeats the
+next target, the next minimum radius) are globals of the program, not of the game. A new game starts with `mSwirlsCatchUp`, which repeats the
 swirl update until the first swirl has gone, so that the background is full from the first picture. Everything here uses the game's
 random numbers (the ring's jitter, the flicker of an atom's brightness), so the bot's results depend on it.
 The freeze (water element) walks `mGlowSwirl` along the list every ten steps; that swirl glows brighter.
@@ -121,7 +121,7 @@ and the doors close over it, each update `door = -1 - ftol(door * -0.95)`; when 
 down (`panelY = -1 - ftol(panelY * -0.9)`, `mSndSwoop` when it has arrived) while its contents fade in 3 a step. A game that
 starts (`ButtonPress`, the listener's slot 1; the board is made at once and stays under the menu) makes the panel go up by a tenth
 more of what it has gone each step and, when it is away, plays `mSndDoorOpen` and opens the doors by a quarter more each step;
-at 0x14a the app's `mB3eac` closes the menu (the board's update does it). "Main menu" after a game lets the panel drop out of
+at 0x14a the app's `mMenuDoorsOpen` closes the menu (the board's update does it). "Main menu" after a game lets the panel drop out of
 sight below the screen (a tenth more each step, `mSndSwoop` when it is under 480) and come back from above with the main page.
 `ButtonDepress` (slot 2) only handles the exit. The menu's music is song 1 (order 0x1f; 0x29 after a game), stopped by the
 menu's destructor; the game's is song 0. The box's "return" button plays its click on press and closes the box on release.

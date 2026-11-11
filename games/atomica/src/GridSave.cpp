@@ -40,7 +40,7 @@ void Grid::SetupBonusLevel(int theLevel)
 			{
 				anAtom = new Atom(this, aType, false);
 				anAtom->mHidden = true;
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 				do
 				{
 					do
@@ -75,7 +75,7 @@ void Grid::SetupBonusLevel(int theLevel)
 			{
 				anAtom = new Atom(this, aPairType, false);
 				anAtom->mHidden = true;
-				anAtom->mFlag_ac = true;
+				anAtom->mFormsByItself = true;
 				do
 				{
 					do
@@ -102,7 +102,7 @@ void Grid::SetupBonusLevel(int theLevel)
 			mChromiumChance = 100.0f;
 		anAtom = new Atom(this, aLastType, false);
 		anAtom->mHidden = true;
-		anAtom->mFlag_ac = true;
+		anAtom->mFormsByItself = true;
 		do
 		{
 			do
@@ -134,7 +134,7 @@ void Grid::SetupBonusLevel(int theLevel)
 				aNumAtoms++;
 	mApp->mBoard->mMeter.mMax = (float) (aNumAtoms - 1);
 	mApp->mBoard->mMeter.mValue = 0;
-	mB4c0 = true;
+	mBonusLevel = true;
 }
 
 namespace
@@ -230,18 +230,18 @@ void Grid::CheckHints()
 	if (!mHintShown[6] && (aBoard->mBonus->mX >= 0))
 		new HintBox(mApp, this, 6);
 	bool aShownElementHint = false;
-	if (!mHintShown[7] && mB4b3)
+	if (!mHintShown[7] && mElementReady)
 	{
 		new HintBox(mApp, this, 7);
 		aShownElementHint = true;
 	}
 	// an element atom wants to act: the box for its element
-	if ((mB4b4 != 0) && !aShownElementHint)
+	if ((mReadyElement != 0) && !aShownElementHint)
 	{
-		int anIndex = mB4b4 - 1;
+		int anIndex = mReadyElement - 1;
 		if ((anIndex >= 0) && (anIndex < 5) && !mHintShown[8 + anIndex])
 			new HintBox(mApp, this, 8 + anIndex);
-		mB4b4 = 0;
+		mReadyElement = 0;
 	}
 	// the field is filling up (not on a bonus level)
 	if (!mHintShown[0xf] && (0x24 < CountAtoms(false)) && ((aBoard->mMeter.mLevel == 0) || (aBoard->mMeter.mLevel % 5 != 0)))
@@ -270,47 +270,47 @@ void Grid::Save(FILE* f)
 	fwrite(&mCursorY, 4, 1, f);
 	fwrite(&mCursorColor, 0x10, 1, f);
 	fwrite(&mNumColors, 4, 1, f);
-	fputc(mB32c ? 1 : 0, f);
+	fputc(mCheckMolecules ? 1 : 0, f);
 	fwrite(&mCombo, 4, 1, f);
 	fputc(mNoMoveLeft ? 1 : 0, f);
-	fputc(mLevelOver ? 1 : 0, f);
-	fwrite(&mOverTick, 4, 1, f);
-	fputc(mB33c ? 1 : 0, f);
-	fputc(mB33d ? 1 : 0, f);
-	fputc(mB358 ? 1 : 0, f);
+	fputc(mGameOver ? 1 : 0, f);
+	fwrite(&mGameOverTick, 4, 1, f);
+	fputc(mFieldRevealed ? 1 : 0, f);
+	fputc(mRevealSaid ? 1 : 0, f);
+	fputc(mComboEnded ? 1 : 0, f);
 	fwrite(&mGeiger1, 4, 1, f);
 	fwrite(&mGeiger2, 4, 1, f);
-	fwrite(&mI364, 4, 1, f);
-	fwrite(&mStat374, 4, 1, f);
-	fwrite(&mStat378, 4, 1, f);
-	fwrite(&mStat37c, 4, 1, f);
-	fwrite(&mStat380, 4, 1, f);
-	fwrite(&mStat384, 4, 1, f);
-	fwrite(&mStat388, 4, 1, f);
-	fwrite(&mStat38c, 4, 1, f);
-	fwrite(&mF390, 4, 1, f);
-	fwrite(&mF394, 4, 1, f);
-	fwrite(&mI398, 4, 1, f);
+	fwrite(&mBiohazards, 4, 1, f);
+	fwrite(&mLevelUpdates, 4, 1, f);
+	fwrite(&mLevelSeconds, 4, 1, f);
+	fwrite(&mLevelAtoms, 4, 1, f);
+	fwrite(&mLevelMolecules, 4, 1, f);
+	fwrite(&mLevelBestCombo, 4, 1, f);
+	fwrite(&mLevelBonusMolecules, 4, 1, f);
+	fwrite(&mLevelBonusUpgrades, 4, 1, f);
+	fwrite(&mRoundTimer, 4, 1, f);
+	fwrite(&mRoundTime, 4, 1, f);
+	fwrite(&mCountDownTick, 4, 1, f);
 	fwrite(&mChromiumChance, 4, 1, f);
 	fwrite(&mBiohazardChance, 4, 1, f);
 	fwrite(&mAtomsPerRound, 4, 1, f);
-	fputc(mB3a8 ? 1 : 0, f);
-	fwrite(&mF3ac, 4, 1, f);
+	fputc(mLevelSetUp ? 1 : 0, f);
+	fwrite(&mMeterFillStep, 4, 1, f);
 	fwrite(&mRounds, 4, 1, f);
 	fwrite(mHintShown, 0xff, 1, f);
-	fputc(mB4b3 ? 1 : 0, f);
-	fputc(mB4b4, f);
-	fputc(mB4c0 ? 1 : 0, f);
+	fputc(mElementReady ? 1 : 0, f);
+	fputc(mReadyElement, f);
+	fputc(mBonusLevel ? 1 : 0, f);
 	fputc(mUnsolvable ? 1 : 0, f);
 	fwrite(&mBonusTick, 4, 1, f);
 	fwrite(&mArrowX, 4, 1, f);
 	fwrite(&mArrowY, 4, 1, f);
-	fwrite(&mI4d0, 4, 1, f);
+	fwrite(&mMagnetTick, 4, 1, f);
 	fwrite(&mRadiation[0][0], 4, 1, f);	// the original writes 8 bytes from +0x4d0, so these four go twice
 	fwrite(mRadiation, 0x48, 1, f);
 	fputc(mRadiationRound ? 1 : 0, f);
-	fwrite(&mI520, 4, 1, f);
-	fputc(mB524 ? 1 : 0, f);
+	fwrite(&mRadiationBlinkTimer, 4, 1, f);
+	fputc(mRadiationBlink ? 1 : 0, f);
 }
 
 // 0x40cd10
@@ -341,47 +341,47 @@ void Grid::Load(FILE* f)
 	fread(&mCursorY, 4, 1, f);
 	fread(&mCursorColor, 0x10, 1, f);
 	fread(&mNumColors, 4, 1, f);
-	mB32c = fgetc(f) != 0;
+	mCheckMolecules = fgetc(f) != 0;
 	fread(&mCombo, 4, 1, f);
 	mNoMoveLeft = fgetc(f) != 0;
-	mLevelOver = fgetc(f) != 0;
-	fread(&mOverTick, 4, 1, f);
-	mB33c = fgetc(f) != 0;
-	mB33d = fgetc(f) != 0;
-	mB358 = fgetc(f) != 0;
+	mGameOver = fgetc(f) != 0;
+	fread(&mGameOverTick, 4, 1, f);
+	mFieldRevealed = fgetc(f) != 0;
+	mRevealSaid = fgetc(f) != 0;
+	mComboEnded = fgetc(f) != 0;
 	fread(&mGeiger1, 4, 1, f);
 	fread(&mGeiger2, 4, 1, f);
-	fread(&mI364, 4, 1, f);
-	fread(&mStat374, 4, 1, f);
-	fread(&mStat378, 4, 1, f);
-	fread(&mStat37c, 4, 1, f);
-	fread(&mStat380, 4, 1, f);
-	fread(&mStat384, 4, 1, f);
-	fread(&mStat388, 4, 1, f);
-	fread(&mStat38c, 4, 1, f);
-	fread(&mF390, 4, 1, f);
-	fread(&mF394, 4, 1, f);
-	fread(&mI398, 4, 1, f);
+	fread(&mBiohazards, 4, 1, f);
+	fread(&mLevelUpdates, 4, 1, f);
+	fread(&mLevelSeconds, 4, 1, f);
+	fread(&mLevelAtoms, 4, 1, f);
+	fread(&mLevelMolecules, 4, 1, f);
+	fread(&mLevelBestCombo, 4, 1, f);
+	fread(&mLevelBonusMolecules, 4, 1, f);
+	fread(&mLevelBonusUpgrades, 4, 1, f);
+	fread(&mRoundTimer, 4, 1, f);
+	fread(&mRoundTime, 4, 1, f);
+	fread(&mCountDownTick, 4, 1, f);
 	fread(&mChromiumChance, 4, 1, f);
 	fread(&mBiohazardChance, 4, 1, f);
 	fread(&mAtomsPerRound, 4, 1, f);
-	mB3a8 = fgetc(f) != 0;
-	fread(&mF3ac, 4, 1, f);
+	mLevelSetUp = fgetc(f) != 0;
+	fread(&mMeterFillStep, 4, 1, f);
 	fread(&mRounds, 4, 1, f);
 	fread(mHintShown, 0xff, 1, f);
-	mB4b3 = fgetc(f) != 0;
-	mB4b4 = (unsigned char) fgetc(f);
-	mB4c0 = fgetc(f) != 0;
+	mElementReady = fgetc(f) != 0;
+	mReadyElement = (unsigned char) fgetc(f);
+	mBonusLevel = fgetc(f) != 0;
 	mUnsolvable = fgetc(f) != 0;
 	fread(&mBonusTick, 4, 1, f);
 	fread(&mArrowX, 4, 1, f);
 	fread(&mArrowY, 4, 1, f);
-	fread(&mI4d0, 4, 1, f);
+	fread(&mMagnetTick, 4, 1, f);
 	fread(&mRadiation[0][0], 4, 1, f);	// (overwritten by the next read)
 	fread(mRadiation, 0x48, 1, f);
 	mRadiationRound = fgetc(f) != 0;
-	fread(&mI520, 4, 1, f);
-	mB524 = fgetc(f) != 0;
-	mApp->mBoard->mF0ac = (float) (mCombo * 0xc);
+	fread(&mRadiationBlinkTimer, 4, 1, f);
+	mRadiationBlink = fgetc(f) != 0;
+	mApp->mBoard->mNeedleTarget = (float) (mCombo * 0xc);
 	mSelected = NULL;
 }

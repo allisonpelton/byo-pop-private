@@ -280,7 +280,7 @@ void LevelUpDialog::Draw(Graphics* g)
 
 	// the statistics: each line in green with its number over it in pale green
 	Font* aSmall = mApp->mMonitorFontSmall;
-	int aTime = mGrid->mStat378;
+	int aTime = mGrid->mLevelSeconds;
 	struct Line { const char* mFormat; unsigned int mLine; unsigned int mNumber; int mA; int mB; int mY; };
 	g->SetFont(aSmall);
 	g->SetColor(Color(0, 255, 0, 255));
@@ -288,15 +288,15 @@ void LevelUpDialog::Draw(Graphics* g)
 	g->SetColor(Color(0x9e, 255, 0x9e, 255));
 	DrawRight(g, aSmall, Format(GT(0x4afefc), aTime / 60, aTime % 60), 0xbb, 0xb6);
 	g->SetColor(Color(0, 255, 0, 255));
-	DrawRight(g, aSmall, Format(GT(0x4b04f0), mGrid->mStat37c), 0xbb, 0xc5);
+	DrawRight(g, aSmall, Format(GT(0x4b04f0), mGrid->mLevelAtoms), 0xbb, 0xc5);
 	g->SetColor(Color(0x9e, 255, 0x9e, 255));
-	DrawRight(g, aSmall, Format(GT(0x4aff20), mGrid->mStat37c), 0xbb, 0xc5);
+	DrawRight(g, aSmall, Format(GT(0x4aff20), mGrid->mLevelAtoms), 0xbb, 0xc5);
 	g->SetColor(Color(0, 255, 0, 255));
-	DrawRight(g, aSmall, Format(GT(0x4b04dc), mGrid->mStat380), 0xbb, 0xd4);
+	DrawRight(g, aSmall, Format(GT(0x4b04dc), mGrid->mLevelMolecules), 0xbb, 0xd4);
 	g->SetColor(Color(0x9e, 255, 0x9e, 255));
-	DrawRight(g, aSmall, Format(GT(0x4aff20), mGrid->mStat380), 0xbb, 0xd4);
+	DrawRight(g, aSmall, Format(GT(0x4aff20), mGrid->mLevelMolecules), 0xbb, 0xd4);
 
-	int aCombo = mGrid->mStat384 - 1;
+	int aCombo = mGrid->mLevelBestCombo - 1;
 	if (aCombo < 0)
 		aCombo = 0;
 	struct Pair { unsigned int mLabel; int mValue; const std::string* mFormat; int mY; };
@@ -309,12 +309,12 @@ void LevelUpDialog::Draw(Graphics* g)
 	const std::string& aBonusLabel = GT(0x4b04b8);
 	g->DrawString(aBonusLabel, 0xd6, 0xc5);
 	g->SetColor(Color(0x9e, 255, 0x9e, 255));
-	g->DrawString(Format(GT(0x4aff20), mGrid->mStat388), 0xd6 + aSmall->StringWidth(aBonusLabel), 0xc5);
+	g->DrawString(Format(GT(0x4aff20), mGrid->mLevelBonusMolecules), 0xd6 + aSmall->StringWidth(aBonusLabel), 0xc5);
 	g->SetColor(Color(0, 255, 0, 255));
 	const std::string& anUpgradeLabel = GT(0x4b04a4);
 	g->DrawString(anUpgradeLabel, 0xd6, 0xd4);
 	g->SetColor(Color(0x9e, 255, 0x9e, 255));
-	g->DrawString(Format(GT(0x4aff20), mGrid->mStat38c), 0xd6 + aSmall->StringWidth(anUpgradeLabel), 0xd4);
+	g->DrawString(Format(GT(0x4aff20), mGrid->mLevelBonusUpgrades), 0xd6 + aSmall->StringWidth(anUpgradeLabel), 0xd4);
 
 	// the rank
 	g->SetColor(Color(0, 255, 0, 255));

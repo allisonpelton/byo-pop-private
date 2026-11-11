@@ -104,9 +104,9 @@ std::string StateJson(AtomicaApp* theApp)
 	if ((b != NULL) && (b->mGrid != NULL))
 	{
 		Grid* g = b->mGrid;
-		s += ",\"level\":" + Num(b->mMeter.mLevel) + ",\"score\":" + Num(b->mScore) + ",\"molecules\":" + Num(b->mStat1d0) +
+		s += ",\"level\":" + Num(b->mMeter.mLevel) + ",\"score\":" + Num(b->mScore) + ",\"molecules\":" + Num(b->mStatMolecules) +
 			",\"atoms\":" + Num(g->CountAtoms(false)) + ",\"combo\":" + Num(g->mCombo) + ",\"meter\":" + Num((int) b->mMeter.mValue) +
-			",\"meterMax\":" + Num((int) b->mMeter.mMax) + ",\"levelOver\":" + (g->mLevelOver ? "true" : "false") +
+			",\"meterMax\":" + Num((int) b->mMeter.mMax) + ",\"levelOver\":" + (g->mGameOver ? "true" : "false") +
 			",\"held\":" + (g->mSelected != NULL ? "true" : "false") + ",\"hints\":" + Num((int) theApp->mHintBoxes.size());
 	}
 	else if (theApp->mMenu != NULL)
@@ -232,7 +232,7 @@ bool AtomicaApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		int aLevel = atoi(anArg.c_str());
 		if ((anArg.empty()) || (aLevel < 1) || (aLevel > 41))
 			Error(aLine, "level <1 to 41>");
-		else if ((mBoard == NULL) || (mBoard->mGrid == NULL) || mBoard->mGrid->mLevelOver)
+		else if ((mBoard == NULL) || (mBoard->mGrid == NULL) || mBoard->mGrid->mGameOver)
 			Error(aLine, "a game must be in progress");
 		else
 		{
@@ -241,7 +241,7 @@ bool AtomicaApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			b->mMeter.mLevel = aLevel;
 			b->mMeter.mMoleculesMade = aLevel;
 			b->mNumColorsStart = (aLevel + 2 > 11) ? 11 : aLevel + 2;
-			b->mI16c = 400;
+			b->mGetReadyAlpha = 400;
 			b->mMeter.Reset();
 			b->mMeter.mOverTick = 0;
 			b->mGrid->Reset(b->mNumColorsStart);
@@ -298,7 +298,7 @@ bool AtomicaApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (aName == "win")
 	{
-		if ((mBoard == NULL) || (mBoard->mGrid == NULL) || mBoard->mGrid->mLevelOver || mBoard->mMeter.mFull)
+		if ((mBoard == NULL) || (mBoard->mGrid == NULL) || mBoard->mGrid->mGameOver || mBoard->mMeter.mFull)
 			Error(aLine, "a level must be in progress");
 		else
 		{
@@ -311,13 +311,13 @@ bool AtomicaApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	}
 	if (aName == "lose")
 	{
-		if ((mBoard == NULL) || (mBoard->mGrid == NULL) || mBoard->mGrid->mLevelOver)
+		if ((mBoard == NULL) || (mBoard->mGrid == NULL) || mBoard->mGrid->mGameOver)
 			Error(aLine, "a game must be in progress");
 		else
 		{
 			// the field is full (Grid::AfterMove's ending, 0x4127c0)
-			mBoard->mGrid->mLevelOver = true;
-			mBoard->mGrid->mOverTick = 0;
+			mBoard->mGrid->mGameOver = true;
+			mBoard->mGrid->mGameOverTick = 0;
 			mBoard->mGrid->FlushStats();
 			Ok(aLine);
 		}

@@ -253,8 +253,8 @@ void AtomicaApp::AutoplayUpdate()
 	}
 	if ((s->mTick % 2000 == 0) && (mBoard != NULL) && (mBoard->mGrid != NULL))
 		Log(s, "update %d: score %d level %d moves %d atoms %d (f8c %g i16c %d b33c %d quiet %d sel %d pause %d)", s->mTick,
-			mBoard->mScore, mBoard->mMeter.mLevel, s->mMoves, mBoard->mGrid->CountAtoms(false), mBoard->mF8c, mBoard->mI16c,
-			(int) mBoard->mGrid->mB33c, (int) Quiet(mBoard->mGrid), mBoard->mGrid->mSelected != NULL, mPauseCount);
+			mBoard->mScore, mBoard->mMeter.mLevel, s->mMoves, mBoard->mGrid->CountAtoms(false), mBoard->mStartCountdown, mBoard->mGetReadyAlpha,
+			(int) mBoard->mGrid->mFieldRevealed, (int) Quiet(mBoard->mGrid), mBoard->mGrid->mSelected != NULL, mPauseCount);
 	if (s->mTick > mAutoplayCap)
 	{
 		Log(s, "cap reached at update %d: games %d", s->mTick, s->mGames);
@@ -347,7 +347,7 @@ void AtomicaApp::AutoplayUpdate()
 
 	Board* aBoard = mBoard;
 	Grid* aGrid = mBoard->mGrid;
-	if (aGrid->mLevelOver)
+	if (aGrid->mGameOver)
 	{
 		if (!s->mOverLogged)
 		{
@@ -414,8 +414,8 @@ void AtomicaApp::AutoplayUpdate()
 		return;
 	}
 	s->mLevelLogged = false;
-	if ((aBoard->mF8c > 0.0f) || (aBoard->mI16c > 4) || !aGrid->mB33c || !Quiet(aGrid) || (aGrid->mSelected != NULL) ||
-		(aBoard->mBombOn) || (aGrid->mCombo > 0 && aGrid->mB358 == false && s->mTick % 4 != 0))
+	if ((aBoard->mStartCountdown > 0.0f) || (aBoard->mGetReadyAlpha > 4) || !aGrid->mFieldRevealed || !Quiet(aGrid) || (aGrid->mSelected != NULL) ||
+		(aBoard->mBombOn) || (aGrid->mCombo > 0 && aGrid->mComboEnded == false && s->mTick % 4 != 0))
 		return;
 	if (mPauseCount > 0)
 		return;
@@ -784,7 +784,7 @@ std::string AtomicaApp::BotMoveJson()
 		return WaitJson("no board", 10);
 	Board* aBoard = mBoard;
 	Grid* aGrid = aBoard->mGrid;
-	if (aGrid->mLevelOver)
+	if (aGrid->mGameOver)
 		return WaitJson("game over", 20);
 
 	// a tutorial box: the check mark of every other one, then Continue
@@ -807,7 +807,7 @@ std::string AtomicaApp::BotMoveJson()
 	}
 	if (aBoard->mMeter.mFull)
 		return WaitJson("level made", 20);
-	if ((aBoard->mF8c > 0.0f) || (aBoard->mI16c > 4) || !aGrid->mB33c || !Quiet(aGrid) || aBoard->mBombOn || (mPauseCount > 0))
+	if ((aBoard->mStartCountdown > 0.0f) || (aBoard->mGetReadyAlpha > 4) || !aGrid->mFieldRevealed || !Quiet(aGrid) || aBoard->mBombOn || (mPauseCount > 0))
 		return WaitJson("atoms moving", 4);
 
 	// an atom is held: its cell is next

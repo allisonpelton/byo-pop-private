@@ -140,9 +140,9 @@ Atom::Atom(Grid* theGrid, int theType, bool theNoSpecial) :
 	mSpawn = 24.0f;
 	mFlyX = mFlySize = mFlyTurn = mFlyGrow = 0;
 	mAlpha = 0xff;
-	mFlag_ac = false;
+	mFormsByItself = false;
 	mHidden = false;
-	mF_b0 = 0;
+	mFlyGrowLimit = 0;
 	mBounce = 0;
 	mBounceStep = 1.0f;
 	mBounceTick = 0;
@@ -154,8 +154,8 @@ Atom::Atom(Grid* theGrid, int theType, bool theNoSpecial) :
 	mGlowStep = -2.5f;
 	mNear = false;
 	mNearAlpha = 0xff;
-	mFlag_e0 = false;
-	mE4 = mE8 = mEC = 0;
+	mIsElementAtom = false;
+	mShakeTime = mShakeX = mShakeY = 0;
 
 	bool aRing[5];		// which of the five rings of electrons the atom has (ring 0 is bVar2 of the original)
 	aRing[0] = true;
@@ -272,9 +272,9 @@ Atom::~Atom()
 		mGrid->mTooltipAtom = NULL;
 	if (mKind == KIND_BIOHAZARD)
 	{
-		mGrid->mI364--;
-		if (mGrid->mI364 < 0)
-			mGrid->mI364 = 0;
+		mGrid->mBiohazards--;
+		if (mGrid->mBiohazards < 0)
+			mGrid->mBiohazards = 0;
 	}
 	mElectrons.Reset();
 	Electron* anElectron = mElectrons.Next();
@@ -484,13 +484,13 @@ void Atom::Update()
 		{
 			if (0.0f < mSpawn)
 				mSpawn = mSpawn - 0.5f;
-			if ((mSpawn == 0.0f) && (mFlag_ac || aGrid->mNoMoveLeft))
+			if ((mSpawn == 0.0f) && (mFormsByItself || aGrid->mNoMoveLeft))
 				mPreStarted = true;
 		}
 		else if (mSpawn < 24.0f)
 		{
 			if (mSpawn == 0.0f)
-				aGrid->mB334 = true;
+				aGrid->mAppearSoundDue = true;
 			mSpawn = mSpawn + 0.5f;
 			if ((24.0f <= mSpawn) && (mApp->mMode == 1) && (aGrid->mAtoms.Size() > 0))
 			{
@@ -505,8 +505,8 @@ void Atom::Update()
 			if (24.0f <= mSpawn)
 			{
 				mPre = false;
-				aGrid->mB32c = true;
-				if ((mKind == KIND_BIOHAZARD) && (++aGrid->mI364 == 1))
+				aGrid->mCheckMolecules = true;
+				if ((mKind == KIND_BIOHAZARD) && (++aGrid->mBiohazards == 1))
 				{
 					int aMessage = mApp->mRand.Get(2, false);
 					mApp->mBoard->mAtomicus->Say(aMessage + 1);
@@ -624,7 +624,7 @@ void Atom::Update()
 	}
 
 	mNear = false;
-	if (mApp->mBoard->mI198 > 0)
+	if (mApp->mBoard->mGhostMoves > 0)
 		mNear = aGrid->mPathFinder->Contains(mCol, mRow);
 	if (mNear)
 	{
@@ -662,7 +662,7 @@ void Atom::FlyAway(Swirl* theTarget)
 	mY += mGrid->mY;
 	aCopy->Aim(mX, mY, &mFlyX, &mFlySize);
 	mFlyGrow = (float) mApp->mRand.Get(0x14, false) * 0.01f;
-	mF_b0 = (float) mApp->mRand.Get(0x32, false) * 0.01f + 1.5f;
+	mFlyGrowLimit = (float) mApp->mRand.Get(0x32, false) * 0.01f + 1.5f;
 	mFlyTurn = (float) mApp->mRand.Get(0x14, false) * 0.01f + 0.7f;
 	mGrid->mAtoms.Remove(this);
 	aCopy->mAtoms.Add(this);
@@ -849,9 +849,9 @@ void Atom::Draw(Graphics* g)
 			int aGlow = aGrid->mSelectGlow;
 			if (aGlow == 0)
 			{
-				if (aGrid->mLevelOver || aGrid->mUnsolvable)
+				if (aGrid->mGameOver || aGrid->mUnsolvable)
 				{
-					int aShake = aGrid->mOverTick / 0x19 + aGrid->mBonusTick / 0x19;
+					int aShake = aGrid->mGameOverTick / 0x19 + aGrid->mBonusTick / 0x19;
 					if (aShake < 6)
 					{
 						if (aShake < 1)
@@ -876,9 +876,9 @@ void Atom::Draw(Graphics* g)
 			else if (aGlow < 0xf0)
 			{
 				int aSpin = mAimAngle / 0x12;
-				if ((aGrid->mLevelOver || aGrid->mUnsolvable))
+				if ((aGrid->mGameOver || aGrid->mUnsolvable))
 				{
-					int aShake = aGrid->mOverTick / 0x19 + aGrid->mBonusTick / 0x19;
+					int aShake = aGrid->mGameOverTick / 0x19 + aGrid->mBonusTick / 0x19;
 					if (aShake < 6)
 					{
 						if (aShake < 1)
@@ -980,7 +980,7 @@ void Atom::Save(FILE* f)
 	fwrite(&mType, 4, 1, f);
 	fwrite(&mSpawn, 4, 1, f);
 	fwrite(&mAlpha, 4, 1, f);
-	fwrite(&mFlag_ac, 1, 1, f);
+	fwrite(&mFormsByItself, 1, 1, f);
 	fwrite(&mHidden, 1, 1, f);
 	fwrite(&mKind, 4, 1, f);
 	fwrite(&mKindArg, 4, 1, f);
@@ -990,9 +990,9 @@ void Atom::Save(FILE* f)
 	fwrite(&mGlowStep, 4, 1, f);
 	fwrite(&mNear, 1, 1, f);
 	fwrite(&mNearAlpha, 4, 1, f);
-	fwrite(&mFlag_e0, 1, 1, f);
-	fwrite(&mE4, 4, 1, f);
-	fwrite(&mE8, 4, 2, f);
+	fwrite(&mIsElementAtom, 1, 1, f);
+	fwrite(&mShakeTime, 4, 1, f);
+	fwrite(&mShakeX, 4, 2, f);
 }
 
 void Atom::Load(FILE* f)
@@ -1010,7 +1010,7 @@ void Atom::Load(FILE* f)
 	fread(&mType, 4, 1, f);
 	fread(&mSpawn, 4, 1, f);
 	fread(&mAlpha, 4, 1, f);
-	fread(&mFlag_ac, 1, 1, f);
+	fread(&mFormsByItself, 1, 1, f);
 	fread(&mHidden, 1, 1, f);
 	fread(&mKind, 4, 1, f);
 	fread(&mKindArg, 4, 1, f);
@@ -1020,9 +1020,9 @@ void Atom::Load(FILE* f)
 	fread(&mGlowStep, 4, 1, f);
 	fread(&mNear, 1, 1, f);
 	fread(&mNearAlpha, 4, 1, f);
-	fread(&mFlag_e0, 1, 1, f);
-	fread(&mE4, 4, 1, f);
-	fread(&mE8, 4, 2, f);
+	fread(&mIsElementAtom, 1, 1, f);
+	fread(&mShakeTime, 4, 1, f);
+	fread(&mShakeX, 4, 2, f);
 	mDead = false;
 	if (mPlaced)
 		PlaceAt(mCol, mRow, true);

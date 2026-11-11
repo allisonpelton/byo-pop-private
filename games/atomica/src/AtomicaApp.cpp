@@ -57,7 +57,7 @@ AtomicaApp::AtomicaApp()
 	mTraceState = NULL;
 	mMode = 0;
 	mExpertMode = 0;
-	mB3eac = false;
+	mMenuDoorsOpen = false;
 	mPauseCount = 0;
 	mShowSymbols = false;
 	mShowTips = true;

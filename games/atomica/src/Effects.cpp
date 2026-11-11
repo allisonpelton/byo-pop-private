@@ -522,7 +522,7 @@ void Bolt::DrawMiniLine(Graphics* g, int theX1, int theY1, int theX2, int theY2)
 // ---------------------------------------------------------------------------------------------------------
 // InfectBolt
 
-static int Wrap360(int theAngle)
+static int WrapDegrees(int theAngle)
 {
 	if (theAngle > 0x167)
 		theAngle -= 0x168;
@@ -573,14 +573,14 @@ bool InfectBolt::Update()
 	}
 	if (mMoving)
 	{
-		mAngle = Wrap360(mAngle + 8);
+		mAngle = WrapDegrees(mAngle + 8);
 		mEndX = (int) (SinDeg(mAngle) * mRadius + (float) mTargetX);
 		mEndY = (int) (NegCosDeg(mAngle) * mRadius + (float) mTargetY);
 		mRadius = mRadius + 0.28f;
 		int anAngle = CompassAngle(mStartX, mStartY, mEndX, mEndY);
 		mX1 = (int) (SinDeg(anAngle) * 24.0f + (float) mStartX);
 		mY1 = (int) (NegCosDeg(anAngle) * 24.0f + (float) mStartY);
-		int aDirection = Wrap360(mApp->mRand.Get(0x3c, true) + anAngle);
+		int aDirection = WrapDegrees(mApp->mRand.Get(0x3c, true) + anAngle);
 		Particle* aSpark = new Particle(mApp, mApp->mMiniSpark);
 		aSpark->mX = (float) mX1;
 		aSpark->mY = (float) mY1;
@@ -640,9 +640,9 @@ void InfectBolt::Draw(Graphics* g)
 	int aDX = mEndX - mX1;
 	int aDY = mEndY - mY1;
 	float aLength = sqrtf((float) (aDY * aDY + aDX * aDX)) * 0.25f;
-	int aJitter1 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle1);
-	int aJitter2 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle2);
-	int aJitter3 = Wrap360(mApp->mRand.Get(0x37, true) + aAngle3);
+	int aJitter1 = WrapDegrees(mApp->mRand.Get(0x37, true) + aAngle1);
+	int aJitter2 = WrapDegrees(mApp->mRand.Get(0x37, true) + aAngle2);
+	int aJitter3 = WrapDegrees(mApp->mRand.Get(0x37, true) + aAngle3);
 	float aAX = aLength * SinDeg(aJitter1) + (float) mX1;
 	float aAY = aLength * NegCosDeg(aJitter1) + (float) mY1;
 	float aBX = aLength * SinDeg(aJitter2) + (float) mEndX;

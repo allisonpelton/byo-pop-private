@@ -70,9 +70,9 @@ public:
 	float		mFlyTurn;			// +0x9c
 	float		mFlyGrow;			// +0xa0
 	int			mAlpha;				// +0xa8
-	bool		mFlag_ac;			// +0xac
+	bool		mFormsByItself;			// +0xac a pre-atom of a level's set-up: it forms without waiting for the round
 	bool		mHidden;			// +0xad hidden until the field's reveal wave reaches it
-	float		mF_b0;				// +0xb0
+	float		mFlyGrowLimit;			// +0xb0 how big a flown atom grows (1.5 to 2)
 	float		mBounce;			// +0xb4 0 to 5
 	float		mBounceStep;		// +0xb8
 	int			mBounceTick;		// +0xbc
@@ -84,8 +84,8 @@ public:
 	float		mGlowStep;			// +0xd4
 	bool		mNear;				// +0xd8
 	int			mNearAlpha;			// +0xdc
-	bool		mFlag_e0;			// +0xe0 (element atoms)
-	int			mE4, mE8, mEC;		// +0xe4 +0xe8 +0xec
+	bool		mIsElementAtom;			// +0xe0 an element atom
+	int			mShakeTime, mShakeX, mShakeY;	// +0xe4 +0xe8 +0xec a molecule's atom shakes for 50 updates, then flies away
 
 public:
 	// 0x4015d0: the grid's atom of a type; theNoSpecial: not a chromium or biohazard atom by chance
@@ -112,12 +112,12 @@ public:
 class ElementAtom : public Atom
 {
 public:
-	float		mF_f0;				// +0xf0
+	float		mPictureFrame;			// +0xf0 the frame of the element's picture, 0 to 16; past 8 the atom is ready to act
 	float		mFlicker[5];		// +0xf4 0 to 32
 	float		mFlickerStep[5];	// +0x108
 	int			mElement;			// +0x11c 0 fire, 1 water, 2 earth, 3 air, 4 ether
 	int			mLevel;				// +0x120 0 to 2
-	int			mF124;				// +0x124
+	int			mElementSavedZero;		// +0x124 0 throughout: saved and loaded, nothing reads it
 
 	ElementAtom(Grid* theGrid, int theType, bool theLoading = false);	// 0x4043d0
 	virtual ~ElementAtom();								// 0x404630

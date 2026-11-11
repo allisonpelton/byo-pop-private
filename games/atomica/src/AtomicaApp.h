@@ -71,7 +71,7 @@ public:
 
 	int				mMode;					// +0x3ea4 0 the strategy mode, 1 the action mode
 	int				mExpertMode;			// +0x3ea8 1: expert (double scores)
-	bool			mB3eac;					// +0x3eac the main menu is to be closed when the game updates
+	bool			mMenuDoorsOpen;		// +0x3eac the menu's doors stand open: the board closes the menu at its next update
 	int				mPauseCount;			// +0x4068 >0: the game is paused
 	bool			mShowSymbols;			// the atoms show their chemical symbols
 	bool			mShowTips;				// the tutorial boxes (the option 'disable hints' turns them off)

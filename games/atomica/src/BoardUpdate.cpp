@@ -16,17 +16,17 @@ using namespace Sexy;
 // 0x433080 / 0x41ffd0 / 0x425c30
 void Board::Update()
 {
-	if (mApp->mB3eac)
+	if (mApp->mMenuDoorsOpen)
 		mApp->CloseMenu();
 	MarkDirty();	// the original calls the widget's vtable slot 42 here, not Widget::Update
 	if (!mApp->mHasFocus || mApp->mMinimized || (mApp->mPauseCount > 0))
 		return;
 
-	if ((mF8c <= 10.0f) && mGrid->mB33c)
+	if ((mStartCountdown <= 10.0f) && mGrid->mFieldRevealed)
 	{
-		mI16c -= 2;
-		if (mI16c < 0)
-			mI16c = 0;
+		mGetReadyAlpha -= 2;
+		if (mGetReadyAlpha < 0)
+			mGetReadyAlpha = 0;
 	}
 
 	// the geiger counter's glow follows the combo
@@ -55,15 +55,15 @@ void Board::Update()
 		}
 	}
 
-	if (mGrid->mLevelOver)
+	if (mGrid->mGameOver)
 	{
-		if (mGrid->mOverTick < 0x12d)
-			mI170 = 0;
+		if (mGrid->mGameOverTick < 0x12d)
+			mGameOverAlpha = 0;
 		else
 		{
-			mI170 += 2;
-			if (0xff < mI170)
-				mI170 = 0xff;
+			mGameOverAlpha += 2;
+			if (0xff < mGameOverAlpha)
+				mGameOverAlpha = 0xff;
 		}
 	}
 	if ((0 < mMonitorSlide) && ((mMonitorSlide -= 3) < 0))
@@ -121,7 +121,7 @@ void Board::Update()
 	}
 
 	// the game starts after 100 updates (the 50 counts of a half)
-	if ((0.0f < mF8c) && ((mF8c -= 0.5f) == 0.0f))
+	if ((0.0f < mStartCountdown) && ((mStartCountdown -= 0.5f) == 0.0f))
 	{
 		mGrid->Reset(mNumColorsStart);
 		mGrid->mPulse = 100.0f;
@@ -176,18 +176,18 @@ void Board::Update()
 			{
 				mSwirls.Remove(aSwirl);
 				delete aSwirl;
-				mB98 = false;
+				mSwirlsCatchUp = false;
 			}
 			aSwirl = mSwirls.Next();
 		}
-		if ((mI184 < 1) || mB98)
-			mI90--;
-		if (mI90 < 1)
+		if ((mFreezeMoves < 1) || mSwirlsCatchUp)
+			mSwirlTimer--;
+		if (mSwirlTimer < 1)
 		{
 			mSwirls.Add(new Swirl(this));
-			mI90 = 0x5f;
+			mSwirlTimer = 0x5f;
 		}
-	} while (mB98);
+	} while (mSwirlsCatchUp);
 	mAngle = mAngle + 0.1f;
 	if (360.0f <= mAngle)
 		mAngle = mAngle - 360.0f;
@@ -204,7 +204,7 @@ void Board::Update()
 	}
 
 	// the geiger needle
-	if (mF0ac == 0.0f)
+	if (mNeedleTarget == 0.0f)
 	{
 		if (0.0f < mNeedle)
 			mNeedle = mNeedle - 1.0f;
@@ -213,7 +213,7 @@ void Board::Update()
 	{
 		float aNeedle = mNeedleSpeed * 0.33333334f + mNeedle;
 		mNeedle = aNeedle;
-		if (mF0ac < aNeedle)
+		if (mNeedleTarget < aNeedle)
 		{
 			float aSpeed = mNeedleSpeed - 0.22f;
 			mNeedleSpeed = aSpeed;
@@ -223,7 +223,7 @@ void Board::Update()
 			if (aSpeed < aLimit)
 				mNeedleSpeed = aLimit;
 		}
-		if (mNeedle < mF0ac)
+		if (mNeedle < mNeedleTarget)
 		{
 			float aSpeed = mNeedleSpeed + 0.22f;
 			mNeedleSpeed = aSpeed;
@@ -263,11 +263,11 @@ void Board::Update()
 		if (mMeter.mOverTick == 200)
 		{
 			mGrid->FlyAwayAll();
-			if (mGrid->mB4c0 && (mApp->mMode == 0))
+			if (mGrid->mBonusLevel && (mApp->mMode == 0))
 				FloatScore(mGrid->mWidth / 2 + mGrid->mX, mGrid->mHeight / 2 - 100 + mGrid->mY, mMeter.mLevel * 100,
 					Color(255, 255, 255, 255));
-			mI184 = 0;
-			mI198 = 0;
+			mFreezeMoves = 0;
+			mGhostMoves = 0;
 		}
 		if (mMeter.mOverTick == 0x226)
 			mApp->ShowLevelUp();
@@ -278,33 +278,33 @@ void Board::Update()
 		}
 		if ((mMeter.mOverTick < 0xb) || (199 < mMeter.mOverTick))
 		{
-			mI174 -= 2;
-			if (mI174 < 0)
-				mI174 = 0;
+			mLevelUpAlpha -= 2;
+			if (mLevelUpAlpha < 0)
+				mLevelUpAlpha = 0;
 		}
 		else
 		{
-			mI174 += 3;
-			if (0xff < mI174)
-				mI174 = 0xff;
+			mLevelUpAlpha += 3;
+			if (0xff < mLevelUpAlpha)
+				mLevelUpAlpha = 0xff;
 		}
 	}
 	else
 	{
-		mI174 -= 2;
-		if (mI174 < 0)
-			mI174 = 0;
+		mLevelUpAlpha -= 2;
+		if (mLevelUpAlpha < 0)
+			mLevelUpAlpha = 0;
 	}
 
 	// the bomb
 	if (mBombOn)
 	{
 		StepBomb();
-		if (mB164)
+		if (mBombShake)
 		{
-			mI1c0 += 5;
-			if (0xff < mI1c0)
-				mI1c0 = 0xff;
+			mBombSignAlpha += 5;
+			if (0xff < mBombSignAlpha)
+				mBombSignAlpha = 0xff;
 			mBombTint.mRed += 2;
 			mBombTint.mGreen -= 4;
 			mBombTint.mBlue -= 4;
@@ -319,10 +319,10 @@ void Board::Update()
 	}
 	else
 	{
-		mI1c0 -= 2;
-		if (mI1c0 < 0)
-			mI1c0 = 0;
-		mB164 = false;
+		mBombSignAlpha -= 2;
+		if (mBombSignAlpha < 0)
+			mBombSignAlpha = 0;
+		mBombShake = false;
 		mBombTint.mRed++;
 		mBombTint.mGreen++;
 		mBombTint.mBlue++;
@@ -338,23 +338,23 @@ void Board::Update()
 	mBonus->Update();
 
 	// the freeze
-	if (mI184 < 1)
+	if (mFreezeMoves < 1)
 	{
-		mI180--;
-		if (mI180 < 0)
-			mI180 = 0;
+		mFreezeProgress--;
+		if (mFreezeProgress < 0)
+			mFreezeProgress = 0;
 		mGlowSwirl = NULL;
 	}
 	else
 		StepFreeze();
 
 	// the air element: the atoms turn green
-	if (mI198 < 1)
+	if (mGhostMoves < 1)
 	{
-		mI194++;
-		if (0xff < mI194)
-			mI194 = 0xff;
-		if (0xfe < mI194)
+		mGhostGlow++;
+		if (0xff < mGhostGlow)
+			mGhostGlow = 0xff;
+		if (0xfe < mGhostGlow)
 			return;
 		mBombTint.mRed++;
 		mBombTint.mGreen++;
