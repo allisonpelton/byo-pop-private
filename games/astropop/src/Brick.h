@@ -178,10 +178,10 @@ public:
 	virtual void	OnBeginFall();                      // 0x401a20 event 9
 	void			OnEvent1E();                        // 0x4026d0
 	void			OnEvent14();                        // 0x401780
-	void			OnEvent16();                        // 0x4025d0
-	void			OnEvent17();                        // 0x402670
-	void			OnEvent18();                        // 0x402630
-	void			OnEvent19();                        // 0x402710
+	void			OnSprocketOn();                        // 0x4025d0
+	void			OnTurbotOn();                        // 0x402670
+	void			OnSprocketOff();                        // 0x402630
+	void			OnTurbotOff();                        // 0x402710
 	void			OnEvent20(int theArg);              // 0x401a60
 	virtual void	OnEvent2A(int theArg) { (void) theArg; }    // 0x4010b0: nothing (the power brick listens)
 

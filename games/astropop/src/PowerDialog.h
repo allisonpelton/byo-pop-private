@@ -6,7 +6,7 @@
 // bytes, constructor 0x484880, destructor 0x484210 (body 0x4839a0), vftable 0x56acc8, that nothing else uses, so the port
 // keeps the two as one). The box has the weapon's pictures in a row, each with two or three lines under it, a box to tick
 // that says the player does not want to see it again (ClosePowerDialog keeps the answer in the profile), and the footer
-// button OK that the Return, Space and Escape keys press too. It is 400 high, and as wide as its pictures need.
+// button OK that the Return, Space and Escape keys press too. It is twice as high as its pictures and 150 more, and as wide as its pictures need.
 // Offsets in the comments are the original's.
 
 #include "Text2004.h"
@@ -26,7 +26,7 @@ class MemoryImage;
 class PowerDialog : public Text2004<Dialog>, public CheckboxListener
 {
 public:
-	AstroPopApp*				mApp;       // +0x114 (+0x118: set to 0, never read)
+	AstroPopApp*				mApp;       // +0x114 (+0x118: set to 0, read by ButtonPress as a sample's number)
 	Checkbox*					mCheckbox;  // +0x11c "don't show this again": one picture in two halves, the ticked one on the right
 	std::vector<std::string>	mLines;     // +0x120 what is written under each picture
 	std::vector<Image*>			mImages;    // +0x130 the pictures of the weapon (the game's own, not owned)
@@ -42,7 +42,8 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x483bb0 (base 0x483ac0)
 	virtual void	Draw(Graphics* g) override;                                         // 0x489190 (base 0x489070)
 	virtual void	KeyChar(SexyChar theChar) override;                                 // 0x483a20
-	virtual int		GetPreferredHeight(int theWidth) override;                          // 0x483a10
+	virtual int		GetPreferredHeight(int theWidth) override;                          // 0x483b90
+	virtual void	ButtonPress(int theId) override;                                    // 0x483b50 (the box's listener at +0x58)
 	virtual void	CheckboxChecked(int theId, bool theChecked) override;               // 0x483b20 (the listener at +0x110)
 };
 

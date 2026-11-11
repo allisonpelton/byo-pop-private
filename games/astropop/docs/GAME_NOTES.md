@@ -67,9 +67,11 @@ hold the vectors of every kind of object, so most of the code is Board methods.
 ### 3b. Test commands
 
 `state`, `goto menu|classic [level [pilot]]|survival [pilot]`, `level`, `seed`, `unlock all`, `win`, `lose`, `move` (the
-port's bot, `BoardBot.cpp`) and `set score|level|stage|charge [N]|stories`. `set charge` charges the pilot's weapon (to N
-of its 18000, full without N) and `set stories` makes the profile hold every story as seen (the finale then follows story
-9 of any pilot); both exist only in the test hooks (docs/TEST_COMMANDS.md lists the standard ones). A game starts with the
+port's bot, `BoardBot.cpp`) and `set score|level|stage|charge [N]|chargestart N|stories`. `set charge` charges the pilot's
+weapon (to N of its 18000, full without N); `set chargestart N` makes every new board and every `ResetState` (the end of the
+demo) start with N of charge, as origrun's `tools/origrun/patches/astropop-charge.txt` does to the original (it stores 18000
+in the board's constructor and in `ResetState`), below 0 turns it off; `set stories` makes the profile hold every story as seen
+(the finale then follows story 9 of any pilot). All exist only in the test hooks (docs/TEST_COMMANDS.md lists the standard ones). A game starts with the
 full-screen help up: a script clicks Continue (320,440) first.
 
 `unlock all` opens the two pilots that have to be earned (Turbot and Vixx: bits 2 and 6 of the profile's value 0x30, with
@@ -103,15 +105,18 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
   the 423 test of UpdateState1, the `Listen(0)` test of SetTargetY, the -5 clamp of the wobble, the 9.0 test of the
   mutation timer); the identical-play pass found them by one brick that did not hear event 0 after a retarget.
 - **The original's x87 rounds every result to a float** (precision control 24 bits: DirectDraw's setup never preserves the
-  FPU, `docs/FRAMEWORK_2004.md`, "3D and the FPU"). Seen in a run of the original (classic, seed 7, update 8186): the
+  FPU, `docs/FRAMEWORK_2004.md`, "3D and the FPU", and the game itself sets it: `AstroPopApp::UpdateFrames` (0x408b20) reads the
+  control word with `__control87` and, when the precision is not `_PC_24` (0x20000 in MSVC's own constants; the port's comment
+  once read it as 53 bits), sets it before every batch of updates. Every update and every draw therefore runs at 24 bits; only the
+  start of the program, before the first UpdateFrames, runs at 53 bits, as the sine table of the app's constructor does). Seen in a run of the original (classic, seed 7, update 8186): the
   wait before the next row is `m19d8 = (int) (m19cc + m930 * 20.0f)` (0x46ec55: `FILD; FLD float; FMUL float; FADDP; _ftol`),
   with `m930` = 2.3f (2.29999995): in a full-precision x87 or in double the product is 45.999999 and the row waits 1045, in
   the original it is rounded to 46.0 and the row waits 1046, so a row came one update earlier. The port computes the
   expressions that the game truncates, compares or chains in `float` (an SSE float operation rounds like the 24-bit x87):
   the wait formula, the danger display (`CheckStackHeight`), the spawn thresholds (`FillTopRow`), the ramp interpolation
   (`UpdateRamp`), the stage bonuses and the speeds of the streaks and particles. What a single operation followed by a store into
-  a float field computes is the same either way and was left as it was. The expressions of the drawing and screen code were
-  not looked at (phase two). A weapon case showed one more: `BeginPlay`'s count of the buried bricks a weapon removes,
+  a float field computes is the same either way and was left as it was. The drawing and screen code was read in phase two for the same
+  expressions and written in `float` too (positions of the ship, bricks, streaks and texts, the gauge and the bars, the scenery layers, the banner's wave). A weapon case showed one more: `BeginPlay`'s count of the buried bricks a weapon removes,
   `(int) ((1.0f - share) * count)`, was 19 in double and is 18 in the original (classic, seed 7, Sprocket, update 6369: one draw
   fewer). Read for the same kind of expression after it, and changed without a run having shown a difference: the meter's fill
   ratio `m1a14 / m1a18`, compared with a third and two thirds (`BoardFill`) and with 1 (`BoardGone`), the positions on the meter
@@ -134,6 +139,12 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
 - The decompiled app offsets that matter so far: +0x628 Board, +0x62c 43 lists (12 bytes each, made by 0x4319b0),
   +0x640 loader screen, +0x644 MainMenu, +0x64c the screen over the selector, +0x658 / +0x6f9 / +0x6fa / +0x6fb flags set from
   the profile by ValidateUser 0x4285d0, +0x684 the player names, +0x690 the current profile, +0x6a8 the descriptor.
+
+- The particle constructor 0x4034a0 takes (speed, sideways speed, rise speed, angle, gravity, height); the call sites pass them in this
+  order except the spark emitter of a low brick (`Brick::UpdateSparks`, 0x406e20), which draws the sideways speed first and passes it
+  as the second argument and the speed, drawn second, as the first (the asm pushes the second draw last). The port had it the other
+  way until phase two, which drew every spark at another place in the shots from the first one (the draws, and so the games, were the
+  same). All eight call sites were read against the asm.
 
 ## 4b. The game's event bus (the key to the Board's structure)
 
@@ -210,38 +221,66 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
   descriptors and are not translated (the search stops at the last picture instead).
 - Memory leaks fixed: the credits screen's picture strip, the story screen's button strip, the three pictures of the supa
   weapon box (freed by the box), the hall of fame's personal draw with no user (guarded).
-- Test-only: the `move` bot, `set charge` and `set stories` (see 3b).
+- Test-only: the `move` bot, `set charge`, `set chargestart` and `set stories` (see 3b).
+
+- **The menu has no More Games panel** (a link out of the game, removed with its button): the three panels left in the right-hand
+  column (Hall of Fame, Options, Quit Game) are stretched vertically to fill its place, made when the menu is made from the
+  original's own pictures (`MainMenu`: the column, each panel's hover and press pictures and its hit mask, a linear mix of
+  the two rows each new row lies between); and the hidden sequence of hovers that shows the ships (Hall of Fame, Hall of Fame,
+  Classic, Hall of Fame, Survival, Survival, Hall of Fame, Options, More Games, Quit Game) loses its More Games step, so the
+  sequence ends Options, Quit Game. The pictures, sample and string of the button stay in the resource tables (they come from
+  the game's own manifest) and nothing reads them.
+
+- The original numbers its sounds by the order of its resource map (by name: `SOUND_1SEC_TIMER` is number 0), the port by the order
+  of the manifest. The one place where the original uses a literal number is the box that explains a weapon: the field at +0x118
+  of `PowerDialog`, never written after the constructor's 0, is the sample its button plays when it is pressed (0x483b50), so
+  that button plays `SOUND_1SEC_TIMER`, which the port asks for by name (`PowerDialog::ButtonPress`). The box's keys (Return,
+  Space, Escape) press nothing and play nothing, as in the original.
 
 ## 7. Fix candidates (original bugs and waits, kept in the port, for the fixes mod)
 
-None found yet.
+- The OK button of the box that explains a weapon plays the one-second timer's tick after its click (an uninitialised sample number,
+  section 6): a stray sound; the mod would silence it.
 
 ## 8. Oddities (not chased)
 
-- The selector's hidden hover sequence (Classic, Survival, Hall of Fame, Options... in order, then Quit) starts the screen
-  of ships flying off (`ShipsScreen`, translated); with the More Games button gone the sequence's first step is missing,
-  so the screen cannot be reached until the sequence is decided.
+- The menu's hidden hover sequence (Hall of Fame, Hall of Fame, Classic, Hall of Fame, Survival, Survival, Hall of Fame, Options,
+  More Games, Quit Game) starts the screen of ships flying off (`ShipsScreen`); the port's sequence has no More Games step (section 6),
+  so it ends Options, Quit Game and the screen is reached as before. The tours do not hover that way (their menus are clicked).
 
-- On the machine the pass runs on (Windows 11, build 26300) the original cannot load its fonts: the loading thread stops at
-  its task 203 of 206 with an unhandled exception, every time, after libpng warns about a palette. The three palette PNGs
-  of the game (`fonts/_Kiloton9.png`, `_Fusion16.png`, `_NeuropolX30outline.png`) are the only ones it has; the staged copy
-  that origrun runs (`games/astropop/tools/origcmp/stage_original.sh`) stores them as RGBA PNGs with the same pixels, and then
-  the original loads and runs. Found with origrun's `--coverage` (the functions the loading thread reached, in order: the
-  palette handling, then the unpack of a 2-bit palette row, then the exception filter). The port decodes the same files without
-  trouble. Not chased further (the user's copies on older Windows may be fine).
-
-- (Withdrawn, 2026-11-11.) Classic, seed 13, 600 moves was listed here as "the original's game generator stops moving at
-  update 20512". It does not: origrun logs at most 4000 changes of a watch unless `--watch-max` says more, the option did not
-  reach a run in Windows Sandbox, and the generator's position had changed 4000 times by that update. With the option
-  forwarded (ea95b965) the game is identical to its last update (25323; 5118 changes of the position), and `compare.py` now
-  refuses a log that was cut.
+- **Phase two, what still differs in the pictures** (found by the tours, judged one by one; the numbers are the largest per-channel
+  differences in levels, 0 to 255; `IDENTICAL_PLAY.md` has the counts of every tour):
+  - The ring of the atomic explosion (the Atomic Bomb weapon: cels of `IMAGE_ATOMIC_EXPLOSION`, one drawn at twice its size with
+    `DrawCelStretched`) has edges that differ in a few thousand pixels by up to 91 levels (w_spr g3700 91, g3800 47; ck13 g3650 49,
+    g3800 47). In 2D mode the original stretches through the DirectDraw image's own routine (`DDImage::StretchBlt` 0x4c68c0,
+    `SlowStretchBlt` 0x4b1bf0); the port stretches through the framework's `DDInterface::GetStretchCopy` /
+    `MemoryImage::StretchCopy`, whose rounding is another. The shared code owns it (a spec went to the coordinator); the game does
+    not copy the 2004 routine.
+  - The small particles and halos (the normal and additive blits of `DDImage`: 0x4ac1d0, 0x4b0f50 `NormalBlt`, 0x4ae3f0
+    `AdditiveBlt`) differ by up to about 22 levels where the 2004 arithmetic and the framework's round another way (2D mode only; in 3D
+    the card does it): that is most of the shots counted "faint" in the report. Shared code again; the same spec.
+  - The title screen changes its picture (Vixx, Turbot, ...) every 600 updates of its own count. The port loads at the machine's speed
+    (CLAUDE.md: loading is made fast in the port itself), so its title starts at another update than the original's and a shot at a fixed update
+    can land on the other picture (the tour `menus` a01_title; the next shot, a02, matches). It is a timing of the loader, not a
+    difference of the screen.
+  - A shot of the original lands "or-earlier" (`orig.landed.tsv`): when a thing moves quickly (a brick thrown up at the start of a
+    game, classic3 k3335) the two shots differ although the game does not; the tour `classic4` takes a shot at every update of the
+    same stretch, and all of them match.
+  - Web builds run with `fast=1` are not update-deterministic (frames are skipped, so a shot lands at an update a few later): the
+    web tours are compared with the native ones at the nearest update. The one difference above 20 levels is the pulse of a
+    mutating brick's biohazard mark (alpha plus or minus 3 each update, survend g7600, g7900, g8500, g8600). The Main Menu box's
+    "Yes" takes 80 to 100 updates to reach the menu (the box's fade); the web driver waits until it does.
 
 ## 9. Next steps
 
 1. The web build and its registrations (page.js, stores, profiles, saveimport, controls, sound tracks), the origrun row.
-2. The identical-play pass with `games/astropop/docs/IDENTICAL_PLAY.md`: phase one (plays identical) is done, 38 games with the
-   four pilots' weapons and levels up to 33; phase two (looks identical, sound, focus, the web build) and real-input driver play
-   are not begun.
-3. The frozen baseline `build/baseline-astropop`, the fixes mod (or "none"), the performance numbers.
-4. Close the gap of the removed More Games button; the app's destructor does not delete its screens (as the original's).
-5. Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
+2. The identical-play pass with `games/astropop/docs/IDENTICAL_PLAY.md`: phase one (plays identical) and phase two (looks
+   identical, sound, focus, the web build, real-input driver play) are done; what still differs is listed in section 8 and in the
+   report. Waiting for the coordinator: the blit arithmetic of the 2004 `DDImage` (`NormalBlt`, `AdditiveBlt`) and its stretch
+   (`StretchBlt`, `SlowStretchBlt`) in shared code.
+3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
+   waits for `docs/MOD_ROADMAP.md`'s turn. Still to do for the game to be done: the performance numbers and pass, the coverage check,
+   the readability pass (`docs/CODE_STANDARDS.md`), taking out code the game does not need.
+4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
+5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
+   code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.

@@ -327,6 +327,8 @@ private:
 
 extern bool gFlag5A5100;    // 0x5a5100
 
+extern float gTestChargeAtReset;   // a test's weapon charge for a new board and ResetState (BoardState.cpp), below 0: none
+
 class Board : public Text2004<Widget>, public EventListener
 {
 public:

@@ -165,10 +165,12 @@ void Brick::OnEvent(int theEvent, EventListener* theSource, int theArg)
 	case EVENT_BEGIN_FALL:	OnBeginFall(); break;
 	case EVENT_1E:			OnEvent1E(); break;
 	case EVENT_14:			OnEvent14(); break;
-	case EVENT_16:			OnEvent16(); break;
-	case EVENT_17:			OnEvent17(); break;
-	case EVENT_18:			OnEvent18(); break;
-	case EVENT_19:			OnEvent19(); break;
+	// the listener's vtable (0x55d500) has them in slots 25 to 28, which the event bus (0x40d820) calls for the events 0x16 to 0x19:
+	// the sprocket's light off, the turbot's off, the sprocket's on, the turbot's on
+	case EVENT_16:			OnSprocketOff(); break;
+	case EVENT_17:			OnTurbotOff(); break;
+	case EVENT_18:			OnSprocketOn(); break;
+	case EVENT_19:			OnTurbotOn(); break;
 	case EVENT_20:			OnEvent20(theArg); break;
 	case EVENT_21:			mSprocketLight = theArg; break;				// 0x402650
 	case EVENT_22:			mSprocketCel = theArg; break;				// 0x402660
@@ -352,8 +354,8 @@ void Brick::OnEvent14()
 	mSpeedY = 0;
 }
 
-// 0x4025d0 (listener), the list 0x16: the sprocket light goes on
-void Brick::OnEvent16()
+// 0x4025d0 (listener), the event 0x18: the sprocket light goes on
+void Brick::OnSprocketOn()
 {
 	mSprocketOn = true;
 	mFlag190 = false;
@@ -366,8 +368,8 @@ void Brick::OnEvent16()
 	Listen(0x22);
 }
 
-// 0x402670 (listener), the list 0x17: the turbot light goes on
-void Brick::OnEvent17()
+// 0x402670 (listener), the event 0x19: the turbot light goes on
+void Brick::OnTurbotOn()
 {
 	mTurbotOn = true;
 	mFlag193 = false;
@@ -381,16 +383,16 @@ void Brick::OnEvent17()
 	Listen(0x1e);
 }
 
-// 0x402630 (listener), the list 0x18: the sprocket light goes off
-void Brick::OnEvent18()
+// 0x402630 (listener), the event 0x16: the sprocket light goes off
+void Brick::OnSprocketOff()
 {
 	mSprocketOn = false;
 	mFlag190 = true;
 	mLightValue = 0xff;
 }
 
-// 0x402710 (listener), the list 0x19: the turbot light goes off
-void Brick::OnEvent19()
+// 0x402710 (listener), the event 0x17: the turbot light goes off
+void Brick::OnTurbotOff()
 {
 	mTurbotOn = false;
 	mFlag193 = true;
@@ -1087,8 +1089,10 @@ void Brick::UpdateSparks()
 	{
 		if (mTick % 0x32 == 0)
 		{
-			float aSpeed = -0.5f - (float) (AstroRand() % 0x4b) * 0.01f;
-			float aVX = (float) (AstroRand() % 100) * 0.001f - 0.5f;
+			// the six draws come in this order, and the constructor (0x4034a0) is given the second draw as its first
+			// argument (the speed) and the first draw as its second (the sideways speed): 0x406f93 and 0x406fc5-0x406fcb
+			float aVX = -0.5f - (float) (AstroRand() % 0x4b) * 0.01f;
+			float aSpeed = (float) (AstroRand() % 100) * 0.001f - 0.5f;
 			float aVY = -0.5f - (float) (AstroRand() % 0x5dc) * 0.001f;
 			float aGravity = (float) (AstroRand() % 0x259) * 0.001f + 0.55f;
 			float anAngle = (float) (AstroRand() % 0x2d);
@@ -1099,8 +1103,8 @@ void Brick::UpdateSparks()
 			aParticle->SetY((float) (AstroRand() % 0x19) + mY);
 			aParticle->SetImage(GetImageById(0x25b), 5);
 
-			aSpeed = (float) (AstroRand() % 0x4b) * 0.01f + 0.5f;
-			aVX = (float) (AstroRand() % 100) * 0.001f - 0.5f;
+			aVX = (float) (AstroRand() % 0x4b) * 0.01f + 0.5f;
+			aSpeed = (float) (AstroRand() % 100) * 0.001f - 0.5f;
 			aVY = -0.5f - (float) (AstroRand() % 0x5dc) * 0.001f;
 			aGravity = (float) (AstroRand() % 0x259) * 0.001f + 0.55f;
 			anAngle = (float) (AstroRand() % 0x2d);

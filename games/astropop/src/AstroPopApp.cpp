@@ -408,7 +408,8 @@ void AstroPopApp::LoadingThreadProc()
 	for (int i = 0; i < NUM_LOOP_SOUNDS; i++)
 		mLoopSounds[i] = mSoundManager->GetSoundInstance(GetSoundById(0x16a + i));
 
-	// The lightning flash images: IMAGE_WARP_FX_LIGHTENING drawn into a copy, the second copy flipped
+	// The lightning flash images: IMAGE_WARP_FX_LIGHTENING drawn into two copies, the first mirrored (each row left to right, 0x4cfb50), the second flipped
+	// (top to bottom, SexyApp::FlipImage)
 	mLightningImage2 = new MemoryImage(this);
 	mLightningImage = new MemoryImage(this);
 	mLightningImage2->Create(IMAGE_WARP_FX_LIGHTENING->mWidth, IMAGE_WARP_FX_LIGHTENING->mHeight);
@@ -419,7 +420,8 @@ void AstroPopApp::LoadingThreadProc()
 		Graphics g1(mLightningImage);
 		g1.DrawImage(IMAGE_WARP_FX_LIGHTENING, 0, 0);
 	}
-	FlipImage(mLightningImage2);   // 0x4cfb50 on mLightningImage (see GAME_NOTES: which of the two is flipped)
+	MirrorImage(mLightningImage);
+	FlipImage(mLightningImage2);
 
 	// Three 1 x 480 ramps (alpha = row / 2) in white, light grey and grey
 	for (int i = 0; i < 3; i++)
