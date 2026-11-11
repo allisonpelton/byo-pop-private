@@ -125,14 +125,12 @@ public:
 	bool					mPuzzleNoticeShown; // +0x4a9 the bonus round's how-to dialog has been shown
 	int						mGameScore;         // +0x474 score of the game in progress
 	int						mShownScore;        // +0x478 the score on the display, counting up to mGameScore
-	int						mFloodStart;        // +0x47c the water's level at the start of the level
 	int						mAnimalsSaved;      // +0x480
 	int						mComboCount;        // +0x484 pairs of a kind joined in a row at least twice
 	int						mBestCombo;         // +0x488
 	int						mSavedThisLevel;    // +0x48c animals saved on the level just ended (NextLevelWidget takes it)
 	bool					mShowHints;         // +0x490 registry ShowHints (the options dialog's check box)
 	bool					mShowTutorial;      // +0x491 registry ShowTutorial
-	DWORD					mGameStartTick;     // +0x494
 	SexyString				mLastScoreName;     // +0x498 registry LastScoreName
 	bool					mSoundTried[NUM_SOUNDS];   // port: the sound's file has been asked for (see LoadSoundOnce)
 	bool					mMainSongStarted;

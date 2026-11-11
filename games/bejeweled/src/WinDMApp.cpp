@@ -684,7 +684,7 @@ bool WinDMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	// port: the standard test commands (testhooks/TestCommands.cpp)
 	if (HandleTestCommand(theCommand))
 		return true;
-	// port(variant): gemsheet <file.png>, the gem sheet as loaded and grown (stage 8), its HD pixels to <file>@<n>x.png
+	// port(variant): gemsheet <file.png>, the gem sheet as loaded and grown, its HD pixels to <file>@<n>x.png
 	if ((theCommand.mCommand == "gemsheet") && (mImages != NULL) && (mImages[IMAGE_GEMSHEET] != NULL))
 	{
 		if (!GemSheet::WritePngs((MemoryImage*) mImages[IMAGE_GEMSHEET], theCommand.mArgs))
@@ -998,7 +998,7 @@ void WinDMApp::ButtonDepress(int theId)
 			mBoard->DeleteSavedGame();
 			break;
 
-		// port(variant): stage 13
+		// port(variant): watching a replay from the game
 		case DIALOG_CONFIRM_WATCH:
 			KillDialog(DIALOG_CONFIRM_WATCH);
 			StartWatch(mPendingWatch);

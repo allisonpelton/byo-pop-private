@@ -8,7 +8,7 @@
 
 using namespace Sexy;
 
-// A board position (Piece::mX) as the board's handlers take it, a window position: on a scaled board (stage 7)
+// A board position (Piece::mX) as the board's handlers take it, a window position: on a scaled board
 // scaled about the board window's corner, else itself (the game's autoplay bot does the same)
 static int ScreenX(Board* theBoard, int theX)
 {

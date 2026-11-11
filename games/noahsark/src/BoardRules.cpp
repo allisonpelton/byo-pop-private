@@ -278,9 +278,8 @@ void Board::TriggerNoMoves()
 }
 
 // 0x407bd0: add to the score and float the number up from a cell
-void Board::AddFloatingText(int thePoints, int theMultiplier, int theUnused, const Color& theColor, int theCellX, int theCellY)
+void Board::AddFloatingText(int thePoints, int theMultiplier, const Color& theColor, int theCellX, int theCellY)
 {
-	(void) theUnused;
 	if (thePoints < 1)
 		mApp->mGameScore += thePoints;
 	else
@@ -411,7 +410,7 @@ void Board::ConnectPair()
 		mComboShown = 0xc;
 	}
 
-	AddFloatingText(((mApp->mDifficulty / 4) + mApp->mLevel) * 10, mCombo, (int) mLink.size() - 1, aColor, p->mX, p->mY);
+	AddFloatingText(((mApp->mDifficulty / 4) + mApp->mLevel) * 10, mCombo, aColor, p->mX, p->mY);
 	mApp->mAnimalsSaved += 2;
 	mSelected = NULL;
 	for (size_t i = 0; i < mLink.size(); i++)
@@ -449,7 +448,7 @@ void Board::RemoveGroup()
 	int aCount = (int) mLink.size();
 	int aCellY = CellAtY(mMouseY);
 	int aCellX = CellAtX(mMouseX);
-	AddFloatingText((mFloodSpeed / 3 + 1) * aCount * 10, 1, 0, aColor, aCellX, aCellY);
+	AddFloatingText((mFloodSpeed / 3 + 1) * aCount * 10, 1, aColor, aCellX, aCellY);
 	for (size_t i = 0; i < mLink.size(); i++)
 		mApp->mSavedThisLevel++;
 	mLink.clear();
@@ -481,7 +480,7 @@ void Board::AbandonPair()
 		aPoints /= 2;
 		if (aPoints > 0x3b)
 			aPoints = 0x3c;
-		AddFloatingText(-aPoints, 1, 1, Color(0xb7, 0, 0), a->mX, a->mY);
+		AddFloatingText(-aPoints, 1, Color(0xb7, 0, 0), a->mX, a->mY);
 		mApp->PlaySample(SOUND_ABANDON);
 		if (mApp->mGameMode == GAMEMODE_STRATEGY)
 		{
@@ -508,7 +507,7 @@ void Board::AbandonPair()
 				aPoints /= 2;
 				if (aPoints > 0x3b)
 					aPoints = 0x3c;
-				AddFloatingText(-aPoints, 1, 1, Color(0xb7, 0, 0), b->mX, b->mY);
+				AddFloatingText(-aPoints, 1, Color(0xb7, 0, 0), b->mX, b->mY);
 				if (mApp->mGameMode == GAMEMODE_STRATEGY)
 				{
 					mApp->PlaySample(SOUND_WARNING);
@@ -533,7 +532,6 @@ void Board::EndRound()
 	if ((mApp->mGameMode == GAMEMODE_STRATEGY) && (mArkLevelY < mWaterY))
 	{
 		mState = BOARD_LEVEL_DONE;
-		mApp->mFloodStart = mWaterY;
 		mApp->ShowNextLevel();
 		return;
 	}
@@ -661,7 +659,7 @@ bool Board::MarkRuns(bool theAnimate)
 				p->mRemoved = true;
 				p->mPixelX = (float) CellLeft(x);
 				p->mPixelY = (float) CellTop(y);
-				AddFloatingText((mApp->mDifficulty + 1) * 10, 1, 0, AnimalColor(p->mType), x, y);
+				AddFloatingText((mApp->mDifficulty + 1) * 10, 1, AnimalColor(p->mType), x, y);
 				mWaterY += 1;
 				int aMax = mHeight - 0x14;
 				if (mWaterY > aMax)

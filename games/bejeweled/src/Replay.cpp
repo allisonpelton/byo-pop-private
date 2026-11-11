@@ -38,10 +38,10 @@ const size_t MOVE_SIZE = 3 * 4;
 const uint32_t TAG_GRAV = Replay::Tag("GRAV");
 const size_t GRAV_SIZE = 4 + 1;
 const uint32_t TAG_DIRT = Replay::Tag("DIRT"); // u8 leftFirst, then a byte a cell
-const uint32_t TAG_KIND = Replay::Tag("KIND"); // a byte a cell (stage 11)
-const uint32_t TAG_GOLD = Replay::Tag("GOLD"); // a byte a cell (stage 12)
-const uint32_t TAG_GTIM = Replay::Tag("GTIM"); // the level's time (stage 12)
-const uint32_t TAG_ARRW = Replay::Tag("ARRW"); // the counts, then a byte a cell (stage 18)
+const uint32_t TAG_KIND = Replay::Tag("KIND"); // a byte a cell
+const uint32_t TAG_GOLD = Replay::Tag("GOLD"); // a byte a cell
+const uint32_t TAG_GTIM = Replay::Tag("GTIM"); // the level's time
+const uint32_t TAG_ARRW = Replay::Tag("ARRW"); // the counts, then a byte a cell
 const size_t ARRW_FIXED = 4 + 4 + 1;
 const size_t SAVE_HEADER_FIXED = 4 + Replay::RULES_ID_SIZE + 2 + 2 + 4; // the version up to the mask
 
@@ -624,7 +624,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		}
 		else if (aTag == TAG_KIND)
 		{
-			// stage 11: a gem's kind (Specials::Kind: 0 normal, 1 flame, 2 lightning), 0 where there is no gem
+			// a gem's kind (Specials::Kind: 0 normal, 1 flame, 2 lightning), 0 where there is no gem
 			if (aSave.mHasKinds || (aLen != aCells))
 			{
 				anErr = aSave.mHasKinds ? std::string("KIND twice") : "KIND: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
@@ -645,7 +645,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		}
 		else if (aTag == TAG_GOLD)
 		{
-			// stage 12: 1 a gold cell, only on a gem cell of the save's mask
+			// 1 a gold cell, only on a gem cell of the save's mask
 			if (aSave.mHasGold || (aLen != aCells))
 			{
 				anErr = aSave.mHasGold ? std::string("GOLD twice") : "GOLD: " + std::to_string(aLen) + " bytes, not " + std::to_string(aCells);
@@ -666,7 +666,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		}
 		else if (aTag == TAG_GTIM)
 		{
-			// stage 12: the level's time left and its limit, in ticks (0 0: no limit)
+			// the level's time left and its limit, in ticks (0 0: no limit)
 			if (aSave.mHasGoldTime || (aLen != 8))
 			{
 				anErr = aSave.mHasGoldTime ? std::string("GTIM twice") : "GTIM: " + std::to_string(aLen) + " bytes, not 8";
@@ -683,7 +683,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 		}
 		else if (aTag == TAG_ARRW)
 		{
-			// stage 18: the moves toward the next arrow, the arrows cleared, a step due, then each gem's arrow (0 none,
+			// the moves toward the next arrow, the arrows cleared, a step due, then each gem's arrow (0 none,
 			// else its direction + 1), 0 where there is no gem
 			if (aSave.mHasArrows || (aLen != ARRW_FIXED + aCells))
 			{
@@ -712,7 +712,7 @@ bool Replay::ReadVariantSave(const std::string& theSave, VariantSave* theOut, st
 			}
 			aSave.mHasArrows = true;
 		}
-		// any other chunk: a later stage's, skipped
+		// any other chunk: a newer engine's, skipped
 	}
 	if (aPos != theSave.size())
 	{
@@ -853,7 +853,7 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 	SaveCheck aCheck(theSave);
 	const int64_t SCORE_MAX = 1000000000;   // far over any game's, and its sums and *340 bar products stay in an int
 	const int64_t LEVEL_MAX = 100000;
-	// A v2 save (stage 5): of the replay's rules and the board's shape, its chunks well-formed; the same fields
+	// A v2 save: of the replay's rules and the board's shape, its chunks well-formed; the same fields
 	// follow its header as a v1 save's version
 	VariantSave aVariant;
 	int aCols = theCols;
@@ -870,13 +870,13 @@ bool Replay::CheckSave(const std::string& theSave, int theCols, int theRows, std
 			aCheck.mError = "a v2 save of other rules than the replay's";
 		else if (theShapes != NULL)
 		{
-			// Stage 7: one of the rules' shapes, in its size and mask; its cells are read over that size
+			// One of the rules' shapes, in its size and mask; its cells are read over that size
 			if ((aVariant.mLevelShape < 0) || (aVariant.mLevelShape >= (int32_t) theShapes->size()))
 				aCheck.mError = "a v2 save of level shape " + std::to_string(aVariant.mLevelShape) + ", and the rules have " +
 					std::to_string(theShapes->size());
 			else
 			{
-				// a dirt cell may have lost its last layer (stage 7b)
+				// a dirt cell may have lost its last layer
 				const BoardLayout& aLayout = (*theShapes)[aVariant.mLevelShape];
 				if (!aLayout.FitsSaveMask(aVariant.mCols, aVariant.mRows, aVariant.mPlayable, aVariant.mHasDirt ? &aVariant.mDirtLayers : NULL))
 					aCheck.mError = "a v2 save of a " + std::to_string(aVariant.mCols) + "x" + std::to_string(aVariant.mRows) +
@@ -1052,7 +1052,7 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				}
 				break;
 			case OP_TWIST:
-				// stage 10: a block inside the board and a direction; whether the rules twist that way, and the four
+				// a block inside the board and a direction; whether the rules twist that way, and the four
 				// gems, are the player's gate (WatchController)
 				if (isOriginalRules || (anArgs[0] < 0) || (anArgs[0] + 1 >= theCols) || (anArgs[1] < 0) || (anArgs[1] + 1 >= theRows) || ((anArgs[2] != 1) && (anArgs[2] != -1)))
 				{
@@ -1075,7 +1075,7 @@ bool Replay::CheckPlayable(const File& theFile, int theCols, int theRows, std::s
 				}
 				break;
 			case OP_UNDO:
-				// stage 6: no arguments; whether the board may undo then is the player's gate (WatchController)
+				// no arguments; whether the board may undo then is the player's gate (WatchController)
 				break;
 			case OP_PAUSE:
 			case OP_UNPAUSE:

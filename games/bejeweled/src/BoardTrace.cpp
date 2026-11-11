@@ -21,7 +21,7 @@ void BoardTracer::AfterUpdate(Board* theBoard, int theUpdate)
 		PrintBoardTrace(theBoard, theUpdate);
 }
 
-// port(variant): the move lines of a board with twists or slides (stage 10, games/bejeweled/docs/CODE_MODS_DESIGN.md
+// port(variant): the move lines of a board with twists or slides (games/bejeweled/docs/CODE_MODS_DESIGN.md
 // 4.7), in MoveSet's order: a swap's as before; a twist's block, its direction, where the gem that makes the group
 // lands and comes from, and the click (a right click anticlockwise) on the point where the four gems meet; a slide's
 // line, its segment, k and that gem, and a drag along the segment that makes it (from a cell's centre k cells on, or
@@ -88,7 +88,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 		printf("TRACE   row %d:", aRow);
 		for (int aCol = 0; aCol < aBoard->mCols; aCol++)
 		{
-			// port(variant): a dirt cell (stage 7b) prints as -1 - its layers left (-2..-10), a hole and an empty cell as -1
+			// port(variant): a dirt cell prints as -1 - its layers left (-2..-10), a hole and an empty cell as -1
 			if (aBoard->mLayout.IsDirt(aCol, aRow))
 				printf(" %d", -1 - (int) aBoard->mLayout.mDirt[aRow][aCol]);
 			else
@@ -99,13 +99,13 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 	// port(variant): "user" for a seed the player chose; after the rows, which keep their place under the header
 	if (aBoard->mGameSeed != 0)
 		printf("TRACE   seed %u %s\n", (unsigned) aBoard->mGameSeed, aBoard->mUserSeeded ? "user" : "pergame");
-	// port(variant): a variant board's own state (stage 5: the moves that stood, the kept invalid moves; stage 6:
-	// the undos taken, on a board with undo; stage 7c: the direction the next fall takes and the flips so far, when
-	// the rules set a gravity rule; stage 7b: the dirt layers left in all and the side the next diagonal slide tries
-	// first, when the rules have dirt; stage 9: the groups of each kind the board scored but runs, with match rules;
-	// stage 11: the flame and lightning gems made and the blasts, with specials rules, then a line of the specials;
-	// stage 12: the gold cells of the goal and, with a time limit, the level's ticks left, then a line of the gold;
-	// stage 18: the moves toward the next arrow and the arrows cleared, then a line of the arrows)
+	// port(variant): a variant board's own state (the moves that stood, the kept invalid moves;
+	// the undos taken, on a board with undo; the direction the next fall takes and the flips so far, when
+	// the rules set a gravity rule; the dirt layers left in all and the side the next diagonal slide tries
+	// first, when the rules have dirt; the groups of each kind the board scored but runs, with match rules;
+	// the flame and lightning gems made and the blasts, with specials rules, then a line of the specials;
+	// the gold cells of the goal and, with a time limit, the level's ticks left, then a line of the gold;
+	// the moves toward the next arrow and the arrows cleared, then a line of the arrows)
 	if (aBoard->mVariant.mAny)
 	{
 		printf("TRACE   variant moves %d invalid %d", aBoard->mMoveCount, aBoard->mInvalidMoves);
@@ -130,7 +130,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 				aCounts[MatchFinder::GROUP_PLUS], aCounts[MatchFinder::GROUP_DIAGONAL_DOWN] + aCounts[MatchFinder::GROUP_DIAGONAL_UP],
 				aCounts[MatchFinder::GROUP_SHAPE]);
 		}
-		// stage 11: the specials made and the blasts, with specials rules; then the specials on the board, row-major
+		// the specials made and the blasts, with specials rules; then the specials on the board, row-major
 		if (aBoard->mVariant.mSpecials)
 			printf(" specials flame %d lightning %d blasts %d", aBoard->mSpecialsMade[Specials::KIND_FLAME],
 				aBoard->mSpecialsMade[Specials::KIND_LIGHTNING], aBoard->mBlastCount);
@@ -157,7 +157,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 			}
 			printf("\n");
 		}
-		// stage 12: a word a row, a character a cell: 1 gold, 0 a cell of the goal not yet gold, . a cell outside it
+		// a word a row, a character a cell: 1 gold, 0 a cell of the goal not yet gold, . a cell outside it
 		// (x: gold outside the goal, which no board makes)
 		if (aBoard->mVariant.mGold)
 		{
@@ -173,7 +173,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 			}
 			printf("\n");
 		}
-		// stage 18: each arrow, its direction and its cell, row-major
+		// each arrow, its direction and its cell, row-major
 		if (aBoard->mVariant.mArrows)
 		{
 			static const char* const kArrowNames[GameRules::NUM_ARROW_DIRECTIONS] = {"up", "right", "down", "left", "upRight",
@@ -191,7 +191,7 @@ void Sexy::PrintBoardTrace(Board* theBoard, int theUpdate)
 			printf("\n");
 		}
 	}
-	// The clicks are screen positions: on a scaled board (stage 7) the cell centres scaled into the window
+	// The clicks are screen positions: on a scaled board the cell centres scaled into the window
 	const BoardLayout& aLayout = aBoard->mLayout;
 	if (aBoard->mVariant.mMoves)
 	{

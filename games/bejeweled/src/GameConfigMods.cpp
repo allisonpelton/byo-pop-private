@@ -129,7 +129,7 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 	aKeys.insert(aKeys.end(), aLookKeys.begin(), aLookKeys.end());
 #endif
 	const size_t aNumRuleKeys = aKeys.size();
-	// The feature that is on but not in this build (stage 14's online scores)
+	// The feature that is on but not in this build (the online scores)
 	if (theFeatures.mLeaderboard)
 		aKeys.push_back("features.leaderboard");
 	for (size_t i = 0; i < aKeys.size(); i++)
@@ -167,7 +167,7 @@ static void AddBuildWarnings(const GameRules& theRules, const GameFeatures& theF
 		theStatus->mWarnings.push_back({theFeatures.mLiveSplitMod, "features.livesplit: desktop only, ignored"});
 #endif
 
-	// The gem sheet's generated rows (stage 8): what the imageOps get wrong
+	// The gem sheet's generated rows: what the imageOps get wrong
 	GemSheet::ModLooks(Platform::ModManager::Get().GetImageOps(), &theStatus->mWarnings);
 }
 

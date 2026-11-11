@@ -1,5 +1,5 @@
 // port(variant): board sizes and shapes (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3 and section 5), Board members.
-// Not part of the original game. Stage 7: a board of the rules' board.cols/rows/mask, or one shape per level
+// Not part of the original game. A board of the rules' board.cols/rows/mask, or one shape per level
 // (board.levels), simulated in logical 51-px space with the original constants (BoardLayout.h). The translated
 // functions dispatch here on a shape board (VariantFlags::mShape): NewBoard to NewBoardVariant, UpdateClearing's
 // refill to RefillMasked, SetupLevelData's tile loop to DrawVariantChecker; the constructor's tutorial loop gives way to
@@ -11,12 +11,12 @@
 // ApplyPendingLayout switches. A loaded save brings its level's shape (BoardSave.cpp, SetLoadedLayout), and the
 // background is rebuilt for its level and shape (RebuildLoadedBackground; the original keeps level 0's, 5.3).
 //
-// Gravity (stage 7c, 4.16): the falls (VariantFlags::mFall: UpdateFalling's loop, the refill, the fill, the
+// Gravity (CODE_MODS_DESIGN.md 4.16): the falls (VariantFlags::mFall: UpdateFalling's loop, the refill, the fill, the
 // fall-out and the game-over fall) run here in the direction GravityUp() gives, mirrored about the board's middle
 // row under up; down is the original algorithm line for line, and -forcevariant runs it at default rules.
 // "alternate" (Bejeweled 2's Twilight) starts up and flips at each settle that ends a move (OnGravitySettle).
 //
-// Dirt (stage 7b, 4.14): a dirt cell holds no gem and is a floor. UpdateClearing's refill becomes RefillDiagonal
+// Dirt (CODE_MODS_DESIGN.md 4.14): a dirt cell holds no gem and is a floor. UpdateClearing's refill becomes RefillDiagonal
 // (column segments between dirt cells, then diagonal slides into the cells under dirt), a scored run takes a layer
 // off each dirt cell next to it (ClearDirtNextToRun), and a cell whose last layer goes is a gem cell from then on.
 
@@ -348,7 +348,7 @@ void Board::SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape)
 
 // GameLoadedVariant on a shape board: the background of the loaded level and its shape, where the original keeps
 // the level-0 background it was made with (5.3). SetupLevelData draws it; the level parameters it would set are the
-// save's and stay, and so do the gold and its time (stage 12: the GOLD and GTIM chunks, ReadVariantChunks).
+// save's and stay, and so do the gold and its time (the GOLD and GTIM chunks, ReadVariantChunks).
 void Board::RebuildLoadedBackground()
 {
 	bool aBackgroundChanged = mBackgroundChanged;
@@ -377,7 +377,7 @@ void Board::RebuildLoadedBackground()
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Gravity (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16)
+// Gravity (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16)
 
 // "up", or "alternate" after an even number of flips (Twilight starts up). False on every board whose rules say
 // "down", -forcevariant included, so the flip, the guard and the upward branches stay off there.
@@ -527,7 +527,7 @@ bool Board::GameOverFallVariant()
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14)
+// Dirt (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14)
 
 // UpdateClearing's refill on a board with dirt: passes over the column segments (RefillSegmentsPass) until nothing
 // moves, then one gem slides diagonally into a cell no vertical fall reaches (SlideDiagonal), which opens a cell on
@@ -712,7 +712,7 @@ void Board::ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCel
 	ClearDirtLayers(aNext);
 }
 
-// Stage 11: the dirt cells of theCells (a blast's reach) lose a layer each, as ClearDirtNextToCells' neighbours
+// The dirt cells of theCells (a blast's reach) lose a layer each, as ClearDirtNextToCells' neighbours
 void Board::ClearDirtCells(const std::vector<std::pair<int, int> >& theCells)
 {
 	bool aCells[BoardLayout::MAX_ROWS][BoardLayout::MAX_COLS] = {};

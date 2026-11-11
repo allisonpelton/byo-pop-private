@@ -12,7 +12,7 @@
 // Events, against the previous update (the same board):
 //   GO          the board tick passes 150 (Board::Update plays SOUND_GO and shows GO or the instructions),
 //               on a board that did not resume a save (LoadGame does not restore mUpdateCnt, so a resumed
-//               board shows GO again; it is not counted) and is not a replay (Board::mPlaybackOnly, stage 3)
+//               board shows GO again; it is not counted) and is not a replay (Board::mPlaybackOnly)
 //   level clear the board enters STATE_BLACK_HOLE (DoWhirlpool) on an update its tick advanced
 //   game over   the board enters STATE_GAME_OVER (GameOver is the only setter); the cause is New Game
 //               (mNewGamePending), else time up (from STATE_PLAYING, the only state that checks the time),
@@ -294,7 +294,7 @@ void LiveSplitObserver::AfterUpdate(WinDMApp* theApp)
 	{
 		int aTick = aBoard->mUpdateCnt;
 		int aState = aBoard->mState;
-		// A board a replay drives (stage 3: WatchController's playback board): never a run start, flag 0x20
+		// A board a replay drives (WatchController's playback board): never a run start, flag 0x20
 		bool isReplay = aBoard->mPlaybackOnly;
 		// A LoadGame in this update (Board::GameLoadedVariant): it restored a state (a vortex too), not
 		// played into it
