@@ -253,10 +253,13 @@ html.game-loading:not(.d95-desk) .stage { visibility: hidden; }
 html.game-loading, html.game-loading * { cursor: progress !important; }
 html.player-only .stage-wrap { place-items: start; padding: 0; }
 html.player-only .stage { box-shadow: none !important; border-radius: 0; }
+/* the screen saver's page (?saver=1, web/saver.js): the game in the middle of a black screen */
+html.saver, html.saver body { background: #000000 !important; overflow: hidden; }
+html.saver .stage-wrap { place-items: center; min-height: 100vh; }
 /* byopop:game-css */
 </style>
 <!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
-<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script>
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script><script src="themedata.js"></script><script src="themes.js"></script>
 </head>
 <body>
 <a class="skip" id="skip-game" href="#canvas">{{game.skip}}</a>
@@ -391,6 +394,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 
 <!-- byopop:footer -->
 
+<script src="saver.js"></script>
 <script src="settingsicons.js"></script>
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
@@ -452,6 +456,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // staged assets and keeps everything in a test profile of its own (PERSIST and the Web Lock end in "-test"), apart from the
   // player's; without it, the page's own files and saves, as on the full page. Plays are not counted and the chat never starts.
   var PLAYER_ONLY = new URLSearchParams(location.search).get("player") === "1" && ByopopTerms.devHost(location);
+  // the screen saver's frame (web/saver.js): the player's own files of the game, and nothing written back, neither the game's
+  // saves (IDBFS, below) nor anything in this browser's storage, so its games leave no trace
+  var SAVER = PLAYER_ONLY && new URLSearchParams(location.search).get("saver") === "1";
+  if (SAVER) document.documentElement.classList.add("saver");
+  if (SAVER) try { var SP = Storage.prototype; SP.setItem = SP.removeItem = SP.clear = function () {}; } catch (e) {}
   // the page in a game's window on Desktop 95's one page (web/deskapps.js, ?embed=1): the game and its own windows, the
   // desktop's window frame around them
   var EMBED = !!(window.ByopopSkin && ByopopSkin.EMBED);
@@ -1006,6 +1015,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     return new Promise(function (resolve, reject) {
       fs.syncfs(true, function (err) { err ? reject(err) : resolve(); });
     }).then(function () {
+      // the screen saver writes nothing back: a sync to the database does nothing (SAVER, above)
+      if (SAVER) { var load = fs.syncfs; fs.syncfs = function (pop, cb) { if (typeof pop === "function") { cb = pop; pop = false; } if (pop) return load.call(fs, pop, cb); if (cb) cb(null); }; }
       [GAME, USER, MODS].concat(PAGE.replays ? [REPLAYS] : []).forEach(function (d) { try { fs.mkdirTree(d); } catch (e) {} });
       // Files written as the page was closed may only have reached the game's localStorage backup: bring them
       // back before this page reads the user dir (main() restores it again, which then changes nothing)

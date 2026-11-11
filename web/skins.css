@@ -923,6 +923,26 @@ html.d95-desk .lib-win button:focus-visible, html.d95-desk .lib-win input:focus-
 .lib-props-list { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 10px 14px; }
 .lib-props-list dt { color: #404040; }
 .lib-props-list dd { margin: 0; }
+/* the trophy cabinet (web/trophies.js) */
+html.d95-desk .tc-win { flex-direction: column; width: min(560px, calc(100vw / var(--d95-z, 1) - 140px)); height: 420px; overflow: hidden; }
+#trophies { display: none; }   /* off the desktop it has no place */
+html.d95-desk #trophies.tc-win:not(.d95-closed):not(.d95-min) { display: flex; }
+.tc-bar { display: flex; gap: 8px; align-items: center; padding: 6px 8px; flex: none; }
+.tc-bar label { display: flex; gap: 6px; align-items: center; }
+.tc-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0 8px 8px; }
+.tc-game { margin: 0 0 8px; padding: 4px 8px 8px; border: 1px solid #808080; box-shadow: 1px 1px 0 #ffffff inset, 1px 1px 0 #ffffff; }
+.tc-table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #808080; }
+.tc-table th, .tc-table td { padding: 1px 6px; text-align: left; font-weight: normal; white-space: nowrap; }
+.tc-table th { background: var(--panel); border: 1px solid; border-color: #ffffff #808080 #808080 #ffffff; }
+.tc-table tr.tc-first td { border-top: 1px solid #c0c0c0; }
+.tc-table .tc-num { text-align: right; }
+.tc-status { flex: none; }
+/* the screen saver (web/saver.js): the desktop dark, the game's frame filling it, every input the desktop's */
+.saver-shade { position: fixed; inset: 0; z-index: 2147483600; background: #000000; cursor: none; }
+.saver-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
+.lib-props-time { margin: 0 14px 10px; border-collapse: collapse; background: #ffffff; border: 1px solid #808080; }
+.lib-props-time th, .lib-props-time td { padding: 1px 8px; text-align: left; font-weight: normal; white-space: nowrap; }
+.lib-props-time tr:first-child th { background: var(--panel); border: 1px solid; border-color: #ffffff #808080 #808080 #ffffff; }
 .lib-props-row { display: flex; justify-content: flex-end; padding: 0 12px 10px; }
 .lib-props-row button { min-width: 72px; }
 /* narrow: the window maximized, as every window there; Last played and Year give way */

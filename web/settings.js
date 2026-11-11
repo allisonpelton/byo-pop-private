@@ -56,6 +56,11 @@ var ByopopSettings = (function () {
     pattern: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]), def: "none" },
     wallpaper: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]), def: "none" },
     wallpaperFit: { values: ["centre", "tile", "stretch"], def: "centre" },
+    // a desktop theme: one game's background, cursor and sounds (web/themes.js), site-wide
+    theme: { values: (typeof ByopopThemes !== "undefined" ? ByopopThemes.ids : ["none"]), def: "none" },
+    // the screen saver (web/saver.js), site-wide: a game with a bot, or none; the wait in minutes
+    saver: { values: (typeof ByopopSaver !== "undefined" ? ByopopSaver.ids : ["none"]), def: "none" },
+    saverWait: { values: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]), def: "5" },
     gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
@@ -258,6 +263,12 @@ var ByopopSettings = (function () {
       options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]).map(function (id) { return [id, T("settings.wallpaper." + id)]; }) },
     { name: "wallpaperFit", label: T("settings.wallpaperfit.label"), hint: T("settings.wallpaperfit.hint"),
       options: [["centre", T("settings.wallpaperfit.centre")], ["tile", T("settings.wallpaperfit.tile")], ["stretch", T("settings.wallpaperfit.stretch")]] },
+    // the themes of the games whose files are here, by the games' titles, read again whenever the list is shown or pressed (live)
+    { name: "theme", label: T("settings.theme.label"), live: true,
+      get options() {
+        var T2 = typeof ByopopThemes !== "undefined" ? ByopopThemes : null;
+        return [["none", T("settings.theme.none")]].concat(T2 ? T2.offered().map(function (id) { return [id, T2.title(id)]; }) : []);
+      } },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
     { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
       hint: T("settings.gamesopen.hint") },
@@ -268,6 +279,17 @@ var ByopopSettings = (function () {
     { name: "colorFilter", label: T("settings.colorfilter.label"), options: [["none", T("settings.colorfilter.none")], ["grey", T("settings.colorfilter.grey")],
       ["sepia", T("settings.colorfilter.sepia")], ["warm", T("settings.colorfilter.warm")], ["contrast", T("settings.colorfilter.contrast")], ["vivid", T("settings.colorfilter.vivid")], ["pal256", T("settings.colorfilter.pal256")], ["pal256d", T("settings.colorfilter.pal256d")]],
       hint: T("settings.colorfilter.hint") },
+    { section: "saver" },
+    // the games with a bot whose files are here (none on the live site yet), by the games' titles, read again as the theme's are
+    { name: "saver", label: T("settings.saver.label"), live: true,
+      get options() {
+        var S2 = typeof ByopopSaver !== "undefined" ? ByopopSaver : null, games = window.ByopopGames || [];
+        return [["none", T("settings.saver.none")]].concat(S2 ? S2.offered().map(function (id) {
+          var g = games.filter(function (x) { return x.id === id; })[0]; return [id, g ? g.title : id];
+        }) : []);
+      } },
+    { name: "saverWait", label: T("settings.saverwait.label"),
+      options: (typeof ByopopSaver !== "undefined" ? ByopopSaver.waits : ["5"]).map(function (m) { return [m, T("settings.saverwait.minutes", { n: m })]; }) },
     { section: "overlays" },
     { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
     { name: "inputDisplay", label: T("settings.inputdisplay.label"), hint: T("settings.inputdisplay.hint") },
@@ -612,9 +634,19 @@ var ByopopSettings = (function () {
     }
 
     // The effective value of a setting under the scope being edited, and what each control shows
+    // A live list (f.live: the games whose files are here) is filled again from f.options, so a game added after the window was
+    // drawn is in it; only when the list changed, so an open list is left alone
+    function refill(c) {
+      var f = c.field, now = f.options, sig = JSON.stringify(now);
+      if (!f.live || c.sig === sig) return;
+      c.sig = sig;
+      while (c.select.options.length > 1) c.select.removeChild(c.select.options[1]);
+      now.forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
+    }
     function show(name) {
       var c = controls[name], f = c.field;
       if (c.kind === "volume") { showVolume(c); return; }
+      if (f.live) refill(c);
       var own = gameId ? override(name, gameId) : null, inherited = globalValue(name);
       if (scope === "game") {
         c.select.hidden = false;
@@ -802,13 +834,28 @@ var ByopopSettings = (function () {
       c.select.id = id;
       var inherit = make("option"); inherit.value = "inherit";
       c.select.appendChild(inherit);
-      if (f.options) {
+      if (f.live) {
+        refill(c);
+        var again = function () { show(f.name); };
+        c.select.addEventListener("focus", again);
+        c.select.addEventListener("pointerdown", again);
+      } else if (f.options) {
         f.options.forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
       } else {
         [["on", T("settings.on")], ["off", T("settings.off")]].forEach(function (o) { var op = make("option", "", o[1]); op.value = o[0]; c.select.appendChild(op); });
       }
       c.select.setAttribute("data-setting", f.name);
       ctl.appendChild(c.select);
+      // the screen saver: Preview beside the list, as the 1995 Screen Saver page had (web/saver.js)
+      if (f.name === "saver" && typeof ByopopSaver !== "undefined") {
+        var pv = make("button", "bps-preview", T("settings.saver.preview"));
+        pv.type = "button";
+        pv.addEventListener("click", function () {
+          var v = c.select.value === "inherit" ? globalValue(f.name) : c.select.value;
+          if (v !== "none") ByopopSaver.preview(v);
+        });
+        ctl.appendChild(pv);
+      }
       // the pattern: a swatch beside the list that shows the chosen one over the desktop's colour, as a 1995 Pattern dialog did
       if (f.name === "pattern" && typeof ByopopSchemes !== "undefined" && ByopopSchemes.patternPreview) {
         c.swatch = make("span", "bps-swatch");

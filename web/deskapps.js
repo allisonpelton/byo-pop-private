@@ -107,6 +107,7 @@ var ByopopApps = (function () {
     d.addEventListener("keydown", function (ev) { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); done(); } });
     d.addEventListener("cancel", function (ev) { ev.preventDefault(); done(); });
     d.showModal();
+    try { desk.event("ding"); } catch (e) {}
     ok.focus();
   }
 
@@ -249,6 +250,7 @@ var ByopopApps = (function () {
     // its place, which the desktop would otherwise move to fit a window as wide as itself, comes back with it
     if (m && w) app.restoreAt = [w.x, w.y, w.placed];
     app.el.classList.toggle("d95-maxed", m);
+    try { desk.event(m ? "maximize" : "restore"); } catch (e) {}
     if (!m && w && app.restoreAt) { w.x = app.restoreAt[0]; w.y = app.restoreAt[1]; w.placed = app.restoreAt[2]; }
     desk.place(app.id);
   }

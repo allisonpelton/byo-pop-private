@@ -169,6 +169,10 @@ var ByopopSchemes = (function () {
     var layers = [], pat = stored("pattern", patternIds, "none"), wall = stored("wallpaper", wallpaperIds, "none"), fit = stored("wallpaperFit", FITS, "centre");
     setDot();
     var tile = 8 * dotSize() + "px";
+    // a desktop theme's wallpaper (web/themes.js) in place of the pattern and wallpaper, as the wallpaper's fit says
+    var themed = typeof ByopopThemes !== "undefined" ? ByopopThemes.wallpaper() : "";
+    if (themed) { pat = "none"; wall = "theme"; layers.push({ image: "url(\"" + themed + "\")", repeat: fit === "tile" ? "repeat" : "no-repeat",
+      position: fit === "tile" ? "0 0" : "center", size: fit === "stretch" ? "100% 100%" : "auto" }); }
     if (PATTERNS[pat]) layers.push({ image: patternUri(PATTERNS[pat]), repeat: "repeat", position: "0 0", size: tile + " " + tile });
     if (TILES[wall]) layers.push({ image: "url(\"data:image/svg+xml," + TILES[wall] + "\")", repeat: "repeat", position: "0 0", size: "auto" });
     else if (wall === "own" && picture()) {
@@ -247,7 +251,7 @@ var ByopopSchemes = (function () {
     window.addEventListener("byopop-setting", function (ev) {
       var n = ev.detail && ev.detail.name;
       if (n === "scheme") apply();
-      if (n === "pattern" || n === "wallpaper" || n === "wallpaperFit") backdrop();
+      if (n === "pattern" || n === "wallpaper" || n === "wallpaperFit" || n === "theme") backdrop();
     });
     window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === WALL_KEY || ev.key === null) { apply(); backdrop(); } });
   }

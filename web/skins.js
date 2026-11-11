@@ -226,7 +226,10 @@ var ByopopSkin = (function () {
     function drawn(w) { return { x: w.dx !== undefined ? w.dx : w.x, y: w.dy !== undefined ? w.dy : w.y }; }
     function commit(w) { var p = drawn(w); w.x = p.x; w.y = p.y; }
     function raise(w) { w.el.style.zIndex = String(++top); tasks(); }
+    // a window event, for a desktop theme's sounds (web/themes.js): open, close, minimize, restore, maximize, menu, ding
+    function deskEvent(what) { try { window.dispatchEvent(new CustomEvent("byopop-desk-event", { detail: { what: what } })); } catch (e) {} }
     function setClosed(w, c) {
+      if (!!c !== !!w.closed) deskEvent(c ? "close" : "open");
       w.closed = !!c;
       if (w.closed) w.min = false;
       w.el.classList.toggle("d95-closed", w.closed);
@@ -360,6 +363,7 @@ var ByopopSkin = (function () {
     // minimized: out of sight, its button on the task bar, which brings it back where it was
     function setMin(w, m) {
       if (m) closeAllMenus();
+      if (!!m !== !!w.min) deskEvent(m ? "minimize" : "restore");
       w.min = !!m;
       w.el.classList.toggle("d95-min", w.min);
       if (!w.min) { raise(w); place(w, true); }
@@ -1095,6 +1099,7 @@ var ByopopSkin = (function () {
     // left and right arrows open the menu beside it, side(-1 or 1)), done (called when it closes)
     function popMenu(from, entries, x, y, label, opts) {
       closeFavMenu(false);
+      deskEvent("menu");
       var m = document.createElement("div");
       m.className = "d95-menu d95-ctx"; m.setAttribute("role", "menu"); m.setAttribute("aria-label", label || "");
       entries.forEach(function (en) {
@@ -1362,6 +1367,7 @@ var ByopopSkin = (function () {
              // a window closed as its Close button closes it (its onClose, or closed and its afterClose)
              close: function (id) { var w = find(id); if (w && !w.closed) closeWin(w); },
              list: function () { return wins.map(function (w) { return { id: w.id, title: w.el.getAttribute("data-d95-title") || w.id, closed: !!w.closed }; }); },
+             event: deskEvent,
              menu: function (from, entries, x, y, label, opts) { popMenu(from, entries, x, y, label, opts); },
              closeMenus: closeAllMenus,
              raise: function (id) { var w = find(id); if (w && on) raise(w); },
