@@ -479,6 +479,25 @@ every text of the desktop at 11 pixels, unsmoothed, a few large texts at 22: the
 multiples, so a new part does not set a size of its own. It has one weight; bold is the same glyphs struck twice a
 pixel apart and a pixel wider, which is exactly how Windows made the bold of its bitmap font.
 
+**Colour schemes.** The setting `scheme` (Appearance, site-wide) picks one of nine schemes of our own, named after soda
+flavours; "Standard" is the look the site always had (the user, 2026-11-11, of the proposal's schemes and patterns:
+"Yes, 1 then 2"). `web/schemes.js` holds the table: for each scheme the desktop, the face of windows and buttons, its
+shadow and its soft light, the title bar (one colour, or two as a gradient: each scheme decides) and the selection.
+It sets them as variables on `<html>` (`--bg`, `--panel`, `--sk-lo`, `--sk-mid`, `--accent`, `--sk-title`, `--sk-band`),
+which `web/skins.css` draws from: a new rule there uses the variables, never the standard greys or blues as literals. The
+pictures skins.css holds as SVG in data addresses cannot read a variable, so for a scheme other than Standard their
+rules are written again with the scheme's colours (`uriRules`). White highlights, black edges and text sizes are the
+same in every scheme. `tools/schemetest.js` (in `unit-web`) checks every scheme: whole, named in the site's text, black
+and muted text and links on its face, white on its selection, title bar and desktop.
+
+**Pattern and wallpaper.** Three more settings of Appearance, site-wide, also in `web/schemes.js`: `pattern` (seven
+patterns of our own, 8 by 8 pixels in two colours, as rows of bits), `wallpaper` (three tiles of our own, drawn in
+translucent white and black so they suit every scheme, or "My picture") and `wallpaperFit` (centre, tile, stretch, for
+the player's picture). The picture is chosen with Browse under the settings (`ByopopSchemes.chooser`), drawn into a
+canvas, scaled to 1600 pixels at most and kept as a JPEG in localStorage `byopop-wallpaper`; it is never uploaded. The
+layers go on `<body>` of the page that has the desktop (not a page in a window of the one page). `tools/schemetest.js`
+checks the patterns' shape and that every choice is named.
+
 ### Desktop 95 in one page
 
 The whole site is one page, the listing's desktop (`web/deskapps.js`, `ByopopApps`). A game, its copyright page and

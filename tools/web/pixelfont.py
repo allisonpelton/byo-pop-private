@@ -5,7 +5,8 @@
 # shows it sharp with even spacing. This script takes its glyphs as the pixels they are on that grid and writes them as a new
 # font whose em is 11 pixels (so "font-size: 11px" is the size the 1995 desktop's text had, 13 pixels from ascent to descent),
 # every pixel a square of 100 units, with advances in whole pixels by one rule: to the end of the glyph's ink (its left bearing,
-# mostly one pixel, is the gap between letters); the digits all as wide as the widest; the space 3. To these it adds the characters the site uses that W95FA
+# mostly one pixel, is the gap between letters), with one more pixel for the capitals and marks in WIDER; the digits all as wide
+# as the widest; the space 3. To these it adds the characters the site uses that W95FA
 # lacks, drawn here by hand on the same grid (EXTRA below): our own drawings.
 #
 #   python tools/web/pixelfont.py            writes web/fonts/byopop-sans.woff
@@ -24,10 +25,14 @@ GRID = 12.5          # W95FA's pixels to the em
 PX = 100             # one pixel in font units; the em is 11 pixels
 ASCENT, DESCENT = 11, 2
 
+# The glyphs that get one more pixel of advance than the rule gives: the advance the 1995 system font gave them (the user,
+# 2026-11-11: "Match widths"), taken as numbers, as a metric-compatible font takes another's widths; no shape is changed.
+WIDER = "BDEGHIMNOQRSTU!.:"
+
 # The characters W95FA lacks, drawn here: the advance in pixels, the row of the first line counted down from the top of the
 # 13-pixel cell (row 10 stands on the baseline), and the lines, '#' a pixel.
 EXTRA = {
-    "`": (4, 2, [".#", "..#"]),
+    "`": (3, 2, [".#", "..#"]),
     "·": (3, 7, [".#"]),
     "×": (7, 5, [".#...#", "..#.#", "...#", "..#.#", ".#...#"]),
     "–": (6, 7, ["######"]),
@@ -68,6 +73,8 @@ def build():
     for ch, px in source_glyphs().items():
         # the advance: to one pixel past the ink (a glyph's own left bearing, mostly one pixel, is the gap before it)
         glyphs[ch] = (max(x for x, y in px) + 1, px)
+    for ch in WIDER:
+        glyphs[ch] = (glyphs[ch][0] + 1, glyphs[ch][1])
     digits = max(glyphs[d][0] for d in "0123456789")
     for d in "0123456789":
         glyphs[d] = (digits, glyphs[d][1])
