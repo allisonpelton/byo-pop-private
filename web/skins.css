@@ -325,7 +325,8 @@ html.d95-win95only .games > li[data-win95]:not([data-win95="yes"]), html.d95-win
 :root[data-skin="d95"] .mu-spectrum { --mu-bar: #00c000; --mu-peak: #ffff00; }
 :root[data-skin="d95"] .mu-follow { background: #00ff00; color: #000; }
 :root[data-skin="d95"] .mu-follow.mu-muted { background: var(--sk-lo); }
-/* the tracker's scroll bar is Windows 95's, 16 px high (its arrows the skin's own, below), and the display grows by it */
+/* the tracker's scroll bar is Windows 95's, 16 px high (its arrows the skin's own, below), and the display grows by it: the
+   position line (12 px), the channels' heads (16), the rows and the bar */
 /* the window gives the player its width: widening it shows more of the tracker's channels */
 :root[data-skin="d95"] .mu-list { max-width: none; }
 :root[data-skin="d95"] .mu-hbar { height: 16px; margin-top: 0; }
@@ -334,7 +335,7 @@ html.d95-win95only .games > li[data-win95]:not([data-win95="yes"]), html.d95-win
 :root[data-skin="d95"] .mu-hb-track { margin: 0; border: 0; opacity: 1; background: repeating-conic-gradient(var(--panel) 0 25%, #ffffff 0 50%) 0 0 / calc(var(--d95-dot, 1px) * 2) calc(var(--d95-dot, 1px) * 2); }
 :root[data-skin="d95"] .mu-hb-thumb { top: 0; bottom: 0; opacity: 1; background: var(--panel);
   box-shadow: inset -1px -1px #000000, inset 1px 1px var(--sk-mid), inset -2px -2px var(--sk-lo), inset 2px 2px #ffffff; }
-:root[data-skin="d95"] .mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(28px + var(--mu-rows, 5) * 12px); }
+:root[data-skin="d95"] .mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(44px + var(--mu-rows, 5) * 12px); }
 /* the Music window: the playlist takes what the player and the splitter leave, so a taller window shows more of it */
 html.d95-desk #music.d95-win .d95-body.d95-body { display: flex; flex-direction: column; overflow: clip; }
 html.d95-desk #music.d95-win .d95-body.d95-body + .d95-vbar { display: none; }

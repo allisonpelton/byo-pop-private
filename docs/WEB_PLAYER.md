@@ -441,7 +441,11 @@ which the browser keeps.
   `web/shell.html`). View lists the multiples, greying those without room; the choice is kept per game in
   `byopop-d95-scale` (0 for Fit window, the largest that fits however the window is sized). With none chosen, the
   setting `gameSize` decides: `one` (1x, the default) or `fit` (the largest that fits). The window cannot be dragged
-  smaller than its game (`ByopopEmbed.least`). The status bar shows the multiple as a value ("2x").
+  smaller than its game (`ByopopEmbed.least`). The status bar shows the multiple as a value ("2x"). The window's
+  height takes the status bar's height as laid out, rounded up (`statusBarHeight`), never `offsetHeight`, which
+  rounds a 20.3-pixel bar down and left the game's area a fraction short of the game: its scroll bars came and went
+  and a press on the game scrolled it up by that fraction (the user, 2026-11-11, of Twist's right-click). The canvas
+  is focused with `preventScroll` everywhere for the same reason.
 - **Loading.** The window is hidden until the game has made its window (`onGameScreen`) and drawn two frames, at
   most 20 seconds (`game-loading` and `game-unmade` on `<html>`), so it never shows at a wrong size first. Until
   then the setup wizard's cards stand on the desktop by themselves.
@@ -888,7 +892,9 @@ libxmp-lite are in About.
   channel's number and the name of the instrument it played last up to the heard row, cut to the column's width, or
   the number alone where the column leaves fewer than 6 characters for the name, as the narrow cells do (XM,
   MOD and S3M have no field for a channel's own name and libxmp-lite keeps none from an IT, so the instrument's name
-  stands in for it), and the rows around the one heard. A click on a channel's number mutes it and another brings it
+  stands in for it), and the rows around the one heard. A click on a channel's head (its number and instrument, the whole
+  column's width and 16 pixels high, lit under the pointer and pressed in while held; the user, 2026-11-11: "It's too hard
+  to click on the channel to toggle the mute") mutes it and another brings it
   back; a Ctrl-click (Cmd on a Mac) leaves that channel alone, and a Ctrl-click on the channel already alone brings
   every channel back (the user's notes, 2026-11-10: "tracker labels and mute"). A double-click does what a Ctrl-click does
   (the user, 2026-11-11: "Add double clicking a tracker channel to isolate its sound"): a plain click waits out a
@@ -899,8 +905,22 @@ libxmp-lite are in About.
   second it has rendered ahead has played; a followed game's through its mixer (`byopop_music_mute`), at once. A game
   built before that call, or a decoder cached from before `bm_mute`, does not mute, and the number stays as it was.
   The tracker never scrolls past the pattern's ends. Only
-  the channels that play a note somewhere are shown (`bm_used`); when they do not all fit, a scroll bar drawn by
-  the player moves through them. An Ogg tune shows the spectrum instead. While the tracker shows, the decoder
+  the channels that play a note somewhere in the tune itself are shown (the user, 2026-11-11: "Some songs seem to have
+  totally empty channels the whole way through. Possible to hide from tracker on a per-song basis?"): `tuneUsed` reads
+  the rows of the orders the tune plays, a range's, a subsong's from its first order to the next subsong's first, or a
+  cut or joined tune's segments, and a followed game's tune the same way from its timing table. A channel with commands
+  and no note counts as empty, its commands still described in the effect column. The columns kept keep their real
+  numbers, so a gap in them shows a channel left out (Bejeweled's second DataJack piece shows 01 and 04 to 08). Where a
+  tune's orders are not known the module's own list stands (`bm_used`). When the channels do not all fit, a scroll bar
+  drawn by the player moves through them, and the display grows by its height. The FX button beside the repeat button
+  (shown with the tracker, off by default, kept in the browser) adds an effect column at the right (the user,
+  2026-11-11: "add a brief English description of tracker commands when they appear in the song as an optional
+  column"): each row's commands in a few words, numbered by channel, those of channels scrolled out of view too ("02
+  Vol slide down 8", "01 Speed 3", "05 Note cut at tick 3"), the full list in the row's tooltip. It reads the
+  effect, the volume column where it holds more than a volume, and a note off, cut or fade. libxmp-lite's cells carry
+  libxmp's own effect numbers whatever the file's format; libopenmpt's carry the file's letter, read as MOD and XM's
+  where any effect in the tune is a digit and as S3M and IT's otherwise (`fxStyle`). The words are in `en.txt`
+  (`music.fx.*`), and the page's footer has a paragraph on reading a tracker. An Ogg tune shows the spectrum instead. While the tracker shows, the decoder
   renders in 512-frame slices and notes its row before each; a closed view costs nothing.
 - **The display's height** is set by a splitter (`role="separator"`) between the player and the playlist, in whole
   tracker rows from 5 to 64. Rows asked past the window's room grow the window downward
@@ -1252,7 +1272,10 @@ small screen its Sound group comes first. Each second it shows:
   bytes (`byopop_perf_json`, a read-only, web-only call made once a second); the JavaScript heap where the browser
   gives it; storage used and quota.
 - **Graphics:** draw calls per frame, uploads per second and bytes, and the renderer's name, counted by wrapping
-  the game's WebGL calls while the panel is on. GPU time per frame only where the browser offers
+  the game's WebGL calls while the panel is on. A buffer upload counts the length the call names: WebGL2's
+  `bufferData` and `bufferSubData` take a view, an offset and a length, and Emscripten passes the whole wasm heap as the
+  view, which once counted the heap for every upload (thousands of GB a second in Twist). A texture counts its pixels
+  times their size from its format and type (4 bytes when either is unknown). GPU time per frame only where the browser offers
   `EXT_disjoint_timer_query`. The panel never asks for a context before the game has made its own, since that
   would take the canvas from the game.
 - **Sound:** the context's `baseLatency` and `outputLatency`, the sound queued ahead and how often the queue ran
