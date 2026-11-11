@@ -63,7 +63,7 @@ enum DialogId
 	// 14 unused, 15 was the original's register nag (taken out)
 	DIALOG_CONFIRM_LOAD = 16,
 	// 17 to 19 were the original's update-check and registration dialogs (taken out)
-	// port(variant): stage 13 (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, 4.11, 8)
+	// port(variant): watching from the game and Extras (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.10, 4.11, 8)
 	DIALOG_EXTRAS = 30,                 // ExtrasDialog
 	DIALOG_REPLAYS = 31,                // ReplayBrowserDialog
 	DIALOG_CONFIRM_WATCH = 32,          // leave the game in progress to watch a replay
@@ -147,7 +147,7 @@ public:
 	//   script command "save <file>": writes the save a shutdown would write now (GetShutdownSaves) to
 	//                        <file> without touching the game, and its sidecar (when it has one) next to it
 	//                        under the sidecar's extension; it logs only when it cannot
-	//   script command "gemsheet <file.png>": port(variant): the gem sheet as grown for more colours (stage 8,
+	//   script command "gemsheet <file.png>": port(variant): the gem sheet as grown for more colours (
 	//                        GemSheet.h) to <file.png>, its HD pixels (a mod's @2x art) to <file>@<n>x.png
 	//   -codeccheck=<file>   port(variant): after every update, StateCodec's round trip (6.6) on the board:
 	//                        a line per settle and per failure, a summary at the end
@@ -236,7 +236,7 @@ public:
 	// board's RNG
 	void			ChooseBoardRng();
 
-	// port(variant): watching from the game (stage 13; WatchController.h, ReplayOverlay.h). WatchReplay asks to leave
+	// port(variant): watching from the game (WatchController.h, ReplayOverlay.h). WatchReplay asks to leave
 	// a game in progress (theFromDialogs: Options, Extras and the replay browser close first); StartWatch watches
 	// thePath in place of the game or of the last watch; EndWatch goes back to the player's game (Back, Esc, New Game,
 	// a mode button). The controller calls OnWatchBoard for each playback board it makes and OnWatchEnded when the
@@ -248,7 +248,7 @@ public:
 	void			OnWatchEnded();
 	void			RemoveReplayOverlay();
 	void			RemoveReplayStats();        // port(variant): the link and its page, before REPLAY END goes
-	// port(variant): Extras (stage 13; ExtrasDialog.h, ReplayBrowserDialog.h): Options shows its button while a feature
+	// port(variant): Extras (ExtrasDialog.h, ReplayBrowserDialog.h): Options shows its button while a feature
 	// mod adds to it; Play this seed asks like New Game over a game in progress
 	bool			HasExtras();
 	void			ShowExtrasDialog();

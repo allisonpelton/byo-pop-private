@@ -39,7 +39,7 @@ const uint8_t* FindResourceData(Module theModule, const char* theType, int theId
 std::string LoadDllString(int theId)
 {
 	std::string aText;
-	gHost->LoadString(Module::Dll, theId, aText);
+	gHost->LoadString(Module::DLL, theId, aText);
 	return aText;
 }
 
@@ -47,7 +47,7 @@ std::string LoadDllString(int theId)
 std::string LoadExeString(int theId)
 {
 	std::string aText;
-	gHost->LoadString(Module::Exe, theId, aText);
+	gHost->LoadString(Module::EXE, theId, aText);
 	return aText;
 }
 

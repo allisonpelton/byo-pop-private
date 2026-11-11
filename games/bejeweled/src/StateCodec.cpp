@@ -3,7 +3,7 @@
 //
 // The table is VisitBoard below: one call per field, in Board.h's declaration order, with its flags. The
 // same list drives the writer (FULL, LOGIC, SNAPSHOT, UNDO) and the SNAPSHOT and UNDO reader, so the two
-// cannot drift apart. A field added to Board needs a row here (and in the stage-0 list of testhooks/StateHash.cpp's
+// cannot drift apart. A field added to Board needs a row here (and in the frozen baseline's list of testhooks/StateHash.cpp's
 // LOGIC column if play reads it); its FULL bytes go after the existing ones only if the -tracehash
 // baselines are recorded again.
 
@@ -126,14 +126,14 @@ public:
 	void DerivedInt(const char* theName, int theValue, int theFlags) { if (Want(theFlags, theName)) PutInt(theValue); }
 	// A variant board's own field: in its encodings only (a board of the original rules encodes as before)
 	void VariantInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mAny) Int(theName, theValue, theFlags); }
-	// A gravity rule set's field (stage 7c): read from the rules, not from the flags -forcevariant sets, so a board of
+	// A gravity rule set's field: read from the rules, not from the flags -forcevariant sets, so a board of
 	// default rules encodes as before
 	void GravityInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Int(theName, theValue, theFlags); }
 	void GravityBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mRules.HasGravityRule()) Bool(theName, theValue, theFlags); }
-	// A twist or slide rule set's field (stage 10), read from the rules as the gravity rows
+	// A twist or slide rule set's field, read from the rules as the gravity rows
 	void MovesInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mRules.mMoves.mTypes & (GameRules::MOVE_TWIST | GameRules::MOVE_SLIDE)) Int(theName, theValue, theFlags); }
-	// A dirt rule set's rows (stage 7b), read from the rules as the gravity rows: the layers left on each cell (0 off dirt)
-	// A gold rule set's rows (stage 12): the level's time, and the gold cells (1 gold, 0 not)
+	// A dirt rule set's rows, read from the rules as the gravity rows: the layers left on each cell (0 off dirt)
+	// A gold rule set's rows: the level's time, and the gold cells (1 gold, 0 not)
 	void GoldInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mGold) Int(theName, theValue, theFlags); }
 	void GoldCells(int theFlags)
 	{
@@ -145,7 +145,7 @@ public:
 				PutByte(mBoard->mGold[aRow][aCol]);
 		}
 	}
-	// An arrow rule set's rows (stage 18): each gem's arrow (0 none, else its direction + 1; 0 where no gem), the counts,
+	// An arrow rule set's rows: each gem's arrow (0 none, else its direction + 1; 0 where no gem), the counts,
 	// and the steps of STATE_ARROW_STEPPING (their count, then each one's cells)
 	void ArrowInt(const char* theName, int& theValue, int theFlags) { if (mBoard->mVariant.mArrows) Int(theName, theValue, theFlags); }
 	void ArrowBool(const char* theName, bool& theValue, int theFlags) { if (mBoard->mVariant.mArrows) Bool(theName, theValue, theFlags); }
@@ -304,7 +304,7 @@ public:
 		}
 	}
 
-	// FULL: the stage-0 -tracehash list's own-RNG fields, only for a board with its own RNG. LOGIC: the RNG
+	// FULL: the frozen baseline's -tracehash list's own-RNG fields, only for a board with its own RNG. LOGIC: the RNG
 	// Board::Rand draws from, whatever it is. SNAPSHOT and UNDO: everything, with its presence.
 	void Rng(int theFlags)
 	{
@@ -725,38 +725,38 @@ template<class V> void VisitBoard(V& theVisitor, Board* theBoard)
 	theVisitor.Double("mBlackHoleLevel", theBoard->mBlackHoleLevel, FULL | LOGIC | SNAP | V2);
 	theVisitor.Bool("mLevelTextShown", theBoard->mLevelTextShown, FULL | LOGIC | SNAP | V2);
 	theVisitor.DerivedInt("mOrphanedPieces", (int) theBoard->mOrphanedPieces.size(), FULL | DERIVED);
-	// port(variant) members (stage 2: the board's RNG; mOwnRng, mGameSeed, mUserSeeded, mRanked, mBoardDraws,
+	// port(variant) members (the board's RNG; mOwnRng, mGameSeed, mUserSeeded, mRanked, mBoardDraws,
 	// mTakesPendingSeed). Not in the table: mRules, mVariant, mLayout (the rules snapshot and what follows
 	// from it), the recorder and playback members, mRngStart (replay bookkeeping), mBoardSerial and mResumed
-	// (the LiveSplit observer's bookkeeping, stage 2b: design 4.15 gives them no row)
+	// (the LiveSplit observer's bookkeeping: CODE_MODS_DESIGN.md 4.15 gives them no row)
 	theVisitor.Rng(FULL | LOGIC | SNAP | V2 | UNDO);
-	// Stage 5, the moves (the v2 save's MOVE chunk), on a variant board only. Not FULL: that stays the stage-0
+	// The moves (the v2 save's MOVE chunk), on a variant board only. Not FULL: that stays the frozen baseline's
 	// list and the board's own RNG, so a rule set that plays as the original (the oracle's inert cases) hashes
 	// as its reference; LOGIC (the replays' CHECK and END) and SNAPSHOT take them
 	theVisitor.VariantInt("mMoveCount", theBoard->mMoveCount, LOGIC | SNAP | V2 | UNDO);
 	theVisitor.VariantInt("mInvalidMoves", theBoard->mInvalidMoves, LOGIC | SNAP | V2 | UNDO);
 	theVisitor.VariantInt("mUndosUsed", theBoard->mUndosUsed, LOGIC | SNAP | V2);
-	// Stage 7, the level's shape (index into board.levels; the v2 save's header holds it). The layout itself follows
+	// The level's shape (index into board.levels; the v2 save's header holds it). The layout itself follows
 	// from the rules, this index and the dirt layers below (not in the table, like mLayout and mPendingLayout, which equals mLayout between
-	// ticks); not LOGIC, which has mLevel and the layout's size (so the replays' hashes of stage 6 still hold), nor
+	// ticks); not LOGIC, which has mLevel and the layout's size (so the hashes of replays recorded before the board shapes still hold), nor
 	// UNDO, since an undo never crosses a level
 	theVisitor.VariantInt("mLevelShape", theBoard->mLevelShape, SNAP | V2);
-	// Stage 7c, gravity (the v2 save's GRAV chunk), only when the rules set a gravity rule: FULL too, since no such
+	// Gravity (the v2 save's GRAV chunk), only when the rules set a gravity rule: FULL too, since no such
 	// rule set plays as the original; UNDO, since an undo restores the direction "alternate" points in
 	theVisitor.GravityInt("mGravityFlips", theBoard->mGravityFlips, FULL | LOGIC | SNAP | V2 | UNDO);
 	theVisitor.GravityBool("mGravityNoFlip", theBoard->mGravityNoFlip, FULL | LOGIC | SNAP | V2 | UNDO);
-	// Stage 7b, dirt (the v2 save's DIRT chunk), only when the rules have dirt: the layers left, which make mLayout
+	// Dirt (the v2 save's DIRT chunk), only when the rules have dirt: the layers left, which make mLayout
 	// differ from the level's mask, and the side the next diagonal slide tries first. FULL too, since no such rule set
 	// plays as the original; UNDO, since an undo brings the dirt back
 	theVisitor.DirtLayers(FULL | LOGIC | SNAP | V2 | UNDO);
 	theVisitor.DirtBool("mDiagonalLeftFirst", theBoard->mDiagonalLeftFirst, FULL | LOGIC | SNAP | V2 | UNDO);
-	// Stage 12, the gold board (the v2 save's GOLD and GTIM chunks), only when the rules have gold: the gold cells and the
+	// The gold board (the v2 save's GOLD and GTIM chunks), only when the rules have gold: the gold cells and the
 	// level's time. FULL too, since no such rule set plays as the original; UNDO, since an undo brings the gold back (and
 	// the time left with undo.restoreTime: Board::Undo)
 	theVisitor.GoldCells(FULL | LOGIC | SNAP | V2 | UNDO);
 	theVisitor.GoldInt("mGoldTicksLeft", theBoard->mGoldTicksLeft, FULL | LOGIC | SNAP | V2 | UNDO);
 	theVisitor.GoldInt("mGoldTickLimit", theBoard->mGoldTickLimit, FULL | LOGIC | SNAP | V2);
-	// Stage 10, twists and slides, only when the rules have them: the move of states 10..13 (the grid holds the board
+	// Twists and slides, only when the rules have them: the move of states 10..13 (the grid holds the board
 	// before it, so a save needs none of it: not V2) and its animation. FULL too, since no such rule set plays as the
 	// original; not UNDO, since an undo is taken in STATE_PLAYING
 	theVisitor.MovesInt("mMoveInPlay.mType", theBoard->mMoveInPlay.mType, FULL | LOGIC | SNAP);
@@ -768,7 +768,7 @@ template<class V> void VisitBoard(V& theVisitor, Board* theBoard)
 	theVisitor.MovesInt("mMoveTick", theBoard->mMoveTick, FULL | LOGIC | SNAP);
 	theVisitor.MovesInt("mSlideFrom", theBoard->mSlideFrom, FULL | LOGIC | SNAP);
 	theVisitor.MovesInt("mSlideTo", theBoard->mSlideTo, FULL | LOGIC | SNAP);
-	// Stage 18, arrow gems (the v2 save's ARRW chunk), only when the rules have them: each gem's arrow, the moves toward
+	// Arrow gems (the v2 save's ARRW chunk), only when the rules have them: each gem's arrow, the moves toward
 	// the next and the arrows cleared (the bonus's factor). FULL too, since no such rule set plays as the original; UNDO,
 	// since an undo brings the arrows back. The step a move made due, and STATE_ARROW_STEPPING's steps (the grid holds
 	// them done) with their animation: not UNDO, which is taken in STATE_PLAYING; a save holds the steps done

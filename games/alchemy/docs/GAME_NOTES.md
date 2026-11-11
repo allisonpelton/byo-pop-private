@@ -14,12 +14,12 @@ has the order the analysis went in and the tools.
 | 0x414887 the wizard's head (0x4e58b0, size 0x90), the speaking box | `Wizard.cpp` |
 | 0x408a8a the help screen (0x4e3b6c) | `HelpWidget.cpp` |
 | 0x4096c8 the all-time table (dialog, 0x4e3d58), 0x40bad1 the score table (0x4e417c, size 0x21c) | `Dialogs.cpp`, `HighScores.cpp` |
-| 0x40f987 the side panel (0x4e4b40, size 0x90: forge gauge, score, labels), 0x40c817 the selector (0x4e43a8, size 0xa4) | `SidePanel.cpp`, `Selector.cpp` |
+| 0x40f987 the side panel (0x4e4b40, size 0x90: forge gauge, score, labels), 0x40c817 the selector (0x4e43a8, size 0xa4) | `Sidebar.cpp`, `IntroScreen.cpp` |
 | 0x40d836 the options dialog (0x4e4540, size 0x144), 0x40ed00 the name entry (0x4e4880) | `Dialogs.cpp` |
 | 0x40e433 `Piece` (0x4e4798, size 200) | `Piece.cpp` |
 | 0x4103e2 the title screen (0x4e4c50, size 0x88) | `TitleScreen.cpp` |
-| 0x4118c9-0x414903 `AlchemyApp` (vtable 0x4e5160, 72 slots) | `AlchemyApp.cpp` (start-up, loading, registry, side-panel buttons), `AppScreens.cpp` (the screens' flow), `AlchemyApp.h` |
-| 0x40858e the effects overlay (0x4e3ab0, size 0x78: floating scores, sparkles, the help arrow) | `Effects.cpp` |
+| 0x4118c9-0x414903 `WinAlchApp` (vtable 0x4e5160, 72 slots) | `WinAlchApp.cpp` (start-up, loading, registry, side-panel buttons), `AppScreens.cpp` (the screens' flow), `WinAlchApp.h` |
+| 0x40858e the effects overlay (0x4e3ab0, size 0x78: floating scores, sparkles, the help arrow) | `BoardOverlay.cpp` |
 | 0x414000-0x47f000 the framework (2857 functions byte-match BookWorm's) | `framework/` with `sexycompat2004` |
 
 The unregistered game's screens (0x40f314 the register dialog and its kin, 0x413bdc and 0x413e12 the nags, 0x41351d and
@@ -33,17 +33,17 @@ the left 150 pixels. A piece (`Piece`) has a shape (22 symbols) and a colour (7)
 `mSkull` in the code) or a skull (a bomb that destroys a rune: `mBomb`). The piece to place hangs from the mouse (`Piece::Update` puts it 0x30 pixels up and left
 of the pointer) and the cell under its middle is the one it would go to (`Board::MouseMove`).
 
-**Placing** (`Board::CanPlace`, 0x40153a). The grey stone starts in the middle (col 4, row 3) and the first rune must touch it.
+**Placing** (`Board::ValidMove`, 0x40153a). The grey stone starts in the middle (col 4, row 3) and the first rune must touch it.
 Later a cell must touch a piece, and every piece it touches must share the new piece's colour or shape; a stone matches
 anything. A skull goes on a piece instead. The reasons a click fails choose the wizard's message (`INVALID_MOVE_*`).
 
 **Clearing.** Completing a row or a column makes it flash and go (the state `STATE_CLEARING`); a cell that was used stays lit,
 and when every cell is lit the board is won: the next board comes with more colours and shapes
-(`Board::SetDifficulty`: `colours = (level + 3) / 4 + 4`, `shapes = (level * 3) / 4 + 5`, the chance of a bomb or a stone per
+(`Board::SetBoardVars`: `colours = (level + 3) / 4 + 4`, `shapes = (level * 3) / 4 + 5`, the chance of a bomb or a stone per
 mille `35 - 3 * level`, where level is the skill's base (0, 5 or 10) plus the boards cleared).
 
 **The forge** (the gauge in the side panel, `Board::mProgress`) takes the piece that cannot be placed: the discard
-(`Board::UseForge`, 0x405e31) melts it and raises the heat; placing a piece cools it; at 3 the game ends. The strategic mode
+(`Board::SkipMove`, 0x405e31) melts it and raises the heat; placing a piece cools it; at 3 the game ends. The strategic mode
 fills it only by discards, the time trial mode also by itself (`mProgRate`, `mProgDecay`, from the four numbers of
 `data/diff.txt` and the boards cleared). The tutorial allows a discard only in step 6.
 
@@ -51,8 +51,8 @@ fills it only by discards, the time trial mode also by itself (`mProgRate`, `mPr
 level base. The rank names (`gRankNames` in `properties/default.xml`) come from the score; the cleared-board panel shows the
 next rank's score.
 
-**The tutorial** is 14 steps (`mTutStep` -1 to 13): the board is set up for each, the wizard says what to do and waits for a
-button (`mTutWaiting`), a wrong placement gets a message, the last step's button starts the real game.
+**The tutorial** is 14 steps (`mTutorialStep` -1 to 13): the board is set up for each, the wizard says what to do and waits for a
+button (`mTutorialWaiting`), a wrong placement gets a message, the last step's button starts the real game.
 
 ## 3. Files
 
@@ -74,7 +74,7 @@ button (`mTutWaiting`), a wrong placement gets a message, the last step's button
 - The game's clock is `GameTickCount` (the virtual clock under `-fast`) where the original calls `timeGetTime`, so test runs
   repeat exactly.
 - The 2004 `Dialog` places and wraps text differently from the port's: `Dialog2004` (the compat library) is used for every
-  dialog; `AllTimeDialog` returns the height 0x156 as the original's does.
+  dialog; `HighScoreDialog` returns the height 0x156 as the original's does.
 - The framework's `SexyApp` had a hook for the registration; the port acts registered (`mIsRegistered`) and shows no nag.
 - Where the decompiler drops the last arguments of a draw call (the selector's base picture, the dialogs' insets, the
   forge's back picture) the values come from the disassembly; each such place says so in a comment.
@@ -140,9 +140,9 @@ The pictures `cartoonstar` and `waitbar` that nothing in the port draws are not 
 the Board effect the first paragraph of this section calls never triggered, the second is loaded and never read by the original either
 (both are out too since 2026-11-09, section 10).
 
-`Board::mTrialPause` and `Pause(true)` are not registration: the name "trial" is the decompilation's, and the pause it counts is
+`Board::mCoverCount` and `Pause(true)` are not registration: the name "trial" is the decompilation's, and the pause it counts is
 the one that covers the board (`Board::Draw` draws the cover instead of the tiles, and the pause text when no dialog is up): any key press toggles it in every mode
-(`KeyChar`), and a dialog raises it in the time trial (`AlchemyApp::ModalOpen` passes the mode). They stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
+(`KeyChar`), and a dialog raises it in the time trial (`WinAlchApp::ModalOpen` passes the mode). They stay. Loading has no waits (the title screen's bar follows the loading thread, which runs
 once, with no pacing), so the rule on fast loading changes nothing here.
 
 **The colour-depth question (taken out 2026-11-09).** `DoColorDepthExplination` (0x413942) is a dialog (id 8, the strings
@@ -156,7 +156,7 @@ longer reads them. `mForceFullscreen` is `SexyAppBase`'s, shared with the other 
 
 ## 6. The standard test commands
 
-The port answers the standard test commands (`docs/TEST_COMMANDS.md`) in `AlchemyApp::HandleScriptCommand`
+The port answers the standard test commands (`docs/TEST_COMMANDS.md`) in `WinAlchApp::HandleScriptCommand`
 (`src/testhooks/Commands.cpp`). They are reachable only from a test: `-script` lines (`<update> <command>`), and the live
 channel (`-commands`, the web's `byopop.test.command`) once the framework has it. A game that is never given one is not changed:
 the suites and the frozen baseline play as before. Each command answers with one line on stdout (`OK <command>`,
@@ -169,7 +169,7 @@ the suites and the frozen baseline play as before. Each command answers with one
 | `level <n>` | Board n of the game being played: n - 1 boards cleared, an empty grid (a first board has its stone), the difficulty follows. |
 | `unlock all` | `ERROR`: the game has nothing locked. |
 | `set <name> <value>` | `score`, `forge` (0 to 3) or `boards` (boards cleared; the difficulty follows). |
-| `win` | Every tile lit: the board is won through `CheckAllLit` (the bonus, the pieces vanish, the panel). |
+| `win` | Every tile lit: the board is won through `CheckWin` (the bonus, the pieces vanish, the panel). |
 | `lose` | The forge overflows: the game ends through `GameOver` (the pieces shrink away, the table follows). |
 | `seed <n>` | Seeds the C library generator, which seeds the board's own generator at a game's start. |
 | `move` | `MOVE {json}`: the bot's next input, or `MOVE null` when it has none (the title still loads, the board is busy, a dialog the bot does not answer is up). Changes nothing, and draws none of the game's random numbers: the bot has a generator of its own, seeded from the position. |
@@ -193,14 +193,14 @@ where its fix matters, as a live value, so it needs no restart (a picture the bo
 
 | Toggle | The original | With the fix |
 |---|---|---|
-| `rims` | `Board::RedrawCell` (0x401a82) gives a lit tile a half-opaque rim where it borders an unlit one, but tests the left and top neighbours with `1 < col` and `1 < row` and the right and bottom ones with `col < 8` and `row < 7`: the first column and row get none on their inner side, while the last ones get theirs. | The tests are `0 < col` and `0 < row`: the edge between a lit tile of the second column (or row) and an unlit tile of the first has its rim, as every other edge. Only the one-pixel line at the second column's left edge and the second row's top edge differs. |
+| `rims` | `Board::RedrawBackground` (0x401a82) gives a lit tile a half-opaque rim where it borders an unlit one, but tests the left and top neighbours with `1 < col` and `1 < row` and the right and bottom ones with `col < 8` and `row < 7`: the first column and row get none on their inner side, while the last ones get theirs. | The tests are `0 < col` and `0 < row`: the edge between a lit tile of the second column (or row) and an unlit tile of the first has its rim, as every other edge. Only the one-pixel line at the second column's left edge and the second row's top edge differs. |
 | `continuedEnding` | `Board::LoadGame` (0x405b39) puts each piece of a continued game at its cell without the board's offset (150, 0) that every placed piece has until the next `Resize`, and the end-of-game shrink draws pieces from that position: in a game that was continued and then lost, the pieces shrink 150 pixels left of their tiles, half of them under the side panel, and the board looks emptied at once. | The pieces get the offset, and shrink away on their tiles as in a game that was not continued. |
 
 **Looked at, not made into toggles.** The port's `Board::~Board` counts a game as played when the forge is nearly full and the
 game has not ended (`mState != STATE_GAME_OVER`), but a game that is lost counts in `GameOver` and the board is in
 `STATE_ENDING` for the next second or so: leaving then counts it twice. The count only decides whether the selector still shows
 the tutorial's button (fewer than five games), and only a game left in that second is counted twice, so it is not a fix worth a
-toggle. A name entry that is accepted empty drops its score without a word (`HighScoreWidget::SetName`): that is the game's rule
+toggle. A name entry that is accepted empty drops its score without a word (`HighScoreWidget::NameEntered`): that is the game's rule
 for "no name", not a mistake the port can mend without making up what the original would have shown. The game's end is slow
 (about three seconds of shrinking and fading, then the table) and a click is ignored meanwhile, as in a board cleared (the
 pieces vanish three at a time): those are the game's animations, part of its pace, so they stay. Loading is already as fast as
@@ -471,12 +471,12 @@ hooks. The overrides of `SexyAppBase`'s hooks (`ShutdownHook`, `GetShutdownSaves
 file that nothing in the port reads (CONFIRM_SKILL_CHANGE1 and 2, COLOR_DEPTH_ERROR1 to 3, CONFIRM_UPDATE1 and 2 and the
 registration texts) are the game's data, not ours to edit.
 
-**Doubtful, for the user.**
+**Doubtful, and how each was settled (the coordinator, 2026-11-09).**
 - *The test hooks in the shipped game.* `src/testhooks/` (about 1,550 lines: the test commands, `-autoplay`, the bot, `memreport`) is
-  compiled into the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`). Taking it out of the
-  shipped build would need a build switch that the tests then turn on; nothing in the game depends on it.
+  compiled into the one executable that players get, reachable only from a test (`docs/TEST_COMMANDS.md`). They stay: the suites and
+  the frozen baseline run the very executable the site serves, and the rule is only that a test command is reachable from a test.
 - *Shared code.* `mForceFullscreen` and the registration members of `SexyApp` are the framework's (section 5); whether the
-  framework still needs them is the coordinator's, as a spec.
+  framework still needs them is the coordinator's, who has them in the queue.
 
 **Proof.** `tools/check.sh build alchemy` after the removals: the build passes and the suite's baseline is identical (strategic 12206,
 time trial 14641, the tutorial, the saved game, the rerun). The suite plays the game's logic, so the pictures were checked as well,
@@ -487,3 +487,82 @@ All 106 screenshots are byte for byte the same (17, 40, 35 and 14). A script als
 `AlchemyApp.cpp` before and after and finds every id still at the same file name, in the same order (63 against 63, 59 against 59),
 and the only arithmetic on ids (`IMAGE_LEVEL2 + n`, 43 to 50, and `IMAGE_WIZARDHEAD + n`, 21 to 25) stays inside runs that no
 removal cuts.
+
+## 11. The readability pass (2026-11-11)
+
+The pass of `docs/CODE_STANDARDS.md`. Nothing the port does changed (the proof is at the end), and
+`python tools/namecheck.py games/alchemy` finds nothing, with no exception needed. Sections 1 to 7 of these notes use the new
+names; sections 8 to 10, `IDENTICAL_PLAY.md` and `MAC_COMPARISON.md` are reports and keep the names of their time.
+
+**Names from the Mac build.** The Windows exe has no names for the game's classes, so the port's were the decompilation's guesses;
+the Mac build has the original's (`MAC_COMPARISON.md`), and `tools/macmatch.py` pairs 120 of the game's functions with them. Seven
+classes changed: `AlchemyApp` is `WinAlchApp`, `SelectorScreen` `IntroScreen`, `NameEntryDialog` `RecordScoreDialog`,
+`AllTimeDialog` `HighScoreDialog`, `EffectsWidget` `BoardOverlay`, `WizardBox` `Wizard` and `SidePanel` `Sidebar`, and their files
+follow (`WinAlchApp.cpp`, `IntroScreen.cpp`, `BoardOverlay.cpp`, `Sidebar.cpp`, with their headers), as do the fields named after
+them (`mIntroScreen`, `mBoardOverlay`, `mSidebar`, the board's `mWizard`) and `DIALOG_RECORD_SCORE`. The methods:
+
+| class | was | is |
+|---|---|---|
+| `Board` | `HasProgress`, `Resume`, `SetDifficulty`, `NewPiece`, `NewCurrentPiece` | `IsInProgress`, `Unpause`, `SetBoardVars`, `MakeRandomPiece`, `NextMove` |
+| | `RecordMove`, `RecordPlacement`, `RecordForge` | `EncodeMoveNum`, `EncodeMove`, `EncodeDiscard` |
+| | `ColToX`, `RowToY`, `XToCol`, `YToRow` | `GetColX`, `GetRowY`, `GetColAt`, `GetRowAt` |
+| | `CanPlace`, `ComputeValid`, `CountValid`, `ShowHint` | `ValidMove`, `DetermineValidMoves`, `GetNumPossibleMoves`, `ShowPossibleMoves` |
+| | `PlacePiece`, `PlaceCurrentPiece`, `UseForge`, `UseForgeClicked` | `PutPiece`, `MakeMove`, `SkipMove`, `Discard` |
+| | `ClearGrid`, `CheckAllLit`, `GameWon`, `BoardCleared`, `StartNextBoard` | `ResetBoard`, `CheckWin`, `ClearBoard`, `ShowBoardComplete`, `NextBoard` |
+| | `ComputeRank`, `AdvanceTutorial`, `ShowHelpBox` | `GetGameStats`, `NextTutorial`, `ShowWizard` |
+| | `RedrawCell`, `RedrawAllCells`, `DrawPieceImage`, `DrawStatLine` | `RedrawBackground` (both), `DrawAliasedPiece`, `DrawColumn` |
+| `WinAlchApp` | `StartGame`, `ShowSelector`, `TitleScreenDone`, `ConfirmLoad` | `NewGame`, `ShowIntroScreen`, `LoadingCompleted`, `TryConfirmLoad` |
+| | `ShowHelp`, `HideHelp`, `ShowOptions`, `ShowAllTimeScores`, `ShowNameEntry`, `ShowHighScores` | `DoHelp`, `RemoveHelpWidget`, `DoOptions`, `DoHighScoreDialog`, `DoRecordScoreDialog`, `DoGameOver` |
+| | `SetSkillLevel`, `SetTimeTrial`, `LoadImage`, `AddPanelButton` | `ChangeSkillLevel`, `ChangeTimeTrial`, `DoLoadImage`, `CreateControlButton` |
+| `HighScoreWidget` | `Load`, `Save`, `CheckScore`, `RankOf`, `SetName` | `ReadFromFile`, `WriteToFile`, `ProcessScoreStuff`, `GetScorePlace`, `NameEntered` |
+| others | `SelectorScreen::SetSkill`, `EffectsWidget::AddScorePopup`, `WizardBox::Talk` and `StopTalking`, `SidePanel::SetFlashing` | `IntroScreen::SetSkillLevel`, `BoardOverlay::FloatPoints`, `Wizard::Play` and `Stop`, `Sidebar::FlashLava` |
+
+One pairing of `MAC_COMPARISON.md` is corrected on the way: it took 0x4017dd for the Mac's `ClearBoard` by size, and 0x406209 with
+0x4062e5 for the two halves of `CheckWin`. macmatch pairs `ClearBoard` with 0x406209 by its calls (it is what `CheckWin` calls when
+every tile is lit: the board's pieces and tiles then vanish), so 0x4017dd, which empties the grid, is `ResetBoard`. Its size
+fits (132 bytes on the Mac against 82); `ClearBoard`'s 168 against 220 is below the usual ratio, so that pairing rests on the calls. macmatch had the two one-line cell functions the wrong way round (0x4014e6 adds the grid's x, 10, so it is `GetColX`;
+0x401510 adds its y, 0x27); the port follows the code.
+
+**Structure, as the original has it.** `HasSavedGame` (0x4010fc) and `DeleteSavedGame` (0x40111e) are `Board`'s, static since
+neither uses an object (the port had them in the app). The wizard's message is `WinAlchApp::GiveHelp` (0x4114ff), which takes the
+three texts; `Board::GiveHelp(prefix)` is the port's own helper that looks the three up, where each of the original's calls
+spells them out. `HighScoreWidget::GetDayNum` (0x409e60), `HighScoreWidget::DrawColumn` (0x409f01) and
+`RecordScoreDialog::DrawEditBox` (0x40eb9f) are members; the port had free functions.
+
+**Fields named for what they hold** (the Mac build carries no field names, so these come from their use). `Board`: `mPause` and
+`mTrialPause` are `mPauseCount` and `mCoverCount` (how many pauses hold the game, and how many of them cover the board: a key
+press in any game, a dialog in the time trial; `Pause` and `Unpause` take `isCovered`), `mScriptPos` is `mSavedZero` (0 throughout,
+saved and loaded, nothing reads it), `mRecord` is `mEncodedGame` (the game move by move for the original's internet scores: saved,
+nothing reads it), `mFxImage` and `mFxPiece` are `mDiscardImage` and `mDiscardPiece`, `mTutStep`, `mTutCount` and `mTutWaiting` are
+spelled out, `mOverFade` and `mOverTimer` are `mGameOverFade` and `mGameOverTimer`. `WinAlchApp`: `mSelectorFlag` is
+`mBeforeFirstGame` and `mDiff` is `mForgeRates` (the four numbers of `data\diff.txt`). The short locals of the test commands, of
+`GameText.cpp` and of the score table's drawing are words.
+
+**Numbers.** The board area's rectangle, written out in thirteen places (and its width in three more), is `BOARD_X`,
+`BOARD_WIDTH` (new) and `SCREEN_HEIGHT`;
+the 50 pixels of a piece's picture and of a frame of the symbol and skull sheets are `SYMBOL_SIZE`. The explosion sheet's 50-pixel
+frames in `Piece::Draw` are another thing and keep their number. Other coordinates are used once, beside the call that draws
+with them.
+
+**Addresses and comments.** Of the 35 functions without an address one came out (below); the others now name it, the original
+function they are part of (the save
+file's field helpers are part of `Board::SaveGame` and `LoadGame`, the score file's of `HighScoreWidget::WriteToFile`,
+`FlashColor` of `Board::Draw`), or carry the port marker; the test hooks' three files, `GameText.cpp` and `Fixes.cpp` carry it in
+their first comment. Comments point to these notes by section name, the app's header no longer names a file that does not exist
+(`AppButtons.cpp`), and two comments that named a pass of the work say what the thing is for instead.
+
+**What came out.** `BoardOverlay::Clear`, the port's own function that nothing called (section 10's scan had taken a call of
+`MemoryImage::Clear` for a call of it).
+
+**Left as it is.** The texts that test scripts and logs carry (`selector`, `name`, `alltime`, `cover` in the `state` command's
+answer) are formats and keep their spelling. `main.cpp` has the locals every game's `main.cpp` has. Flag parameters keep the
+framework's own `is` and `want` forms.
+
+**Proof.** Everything but the structure corrections and the removal was made first and compared by the object code: every one of
+the 25 units compiles to the same instructions as before the pass (`llvm-objdump -d` of each object, symbol names taken out, since a
+renamed class changes every mangled name). After the corrections seven units differ, the ones they touch (`WinAlchApp`,
+`AppScreens`, `Board`, `BoardSave`, `Dialogs`, `BoardOverlay`, `HighScores`), and the rest are the same. For those,
+`tools/check.sh build alchemy` passes with the baseline identical (strategic 12206, time trial 14641, the tutorial, the saved game
+loaded, the rerun), and the screen tours 1, 2, 5 and 7 (the title, selector, options, help and scores; a strategic game
+with its name entry and table; the tutorial; the wizard's messages), run before the pass and after it with the same script and
+seed, give 106 screenshots that are byte for byte the same.

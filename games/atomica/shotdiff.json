@@ -81,6 +81,16 @@
     {
       "rect": [
         265,
+        293,
+        241,
+        55
+      ],
+      "pairs": "b3450.png",
+      "label": "the options box of the original also holds 'Register' and 'More games at PopCap.com' buttons (the shareware sales links); the port is a game with no online features and no registration, so it leaves them out (docs/GAME_NOTES.md section 3)"
+    },
+    {
+      "rect": [
+        265,
         0,
         241,
         48

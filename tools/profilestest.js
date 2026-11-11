@@ -100,6 +100,10 @@ function same(name, a, b) { check(name, JSON.stringify(a) === JSON.stringify(b),
   same("a stored game value is read", S.get("fullscreen", "bejeweled"), "off");
   data["byopop-settings"] = JSON.stringify({ fullscreen: "sideways", startMusic: "loud", games: { bejeweled: { fullscreen: "huge", startSound: 700 } } });
   same("invalid stored values are ignored", [S.get("fullscreen"), S.get("startMusic"), S.get("fullscreen", "bejeweled"), S.get("startSound", "bejeweled")], ["game", 50, "game", 50]);
+  // the game speed: its listed values, and any number from 0.25 to 4, kept to two places
+  same("speed takes a number in its range", [S.set("speed", "1.337"), S.get("speed"), S.set("speed", 3), S.get("speed"), S.set("speed", "0.75"), S.get("speed")], [true, "1.34", true, "3", true, "0.75"]);
+  same("speed refuses a number out of range, and text", [S.set("speed", "9"), S.set("speed", "0.1"), S.set("speed", "fast"), S.get("speed")], [false, false, false, "0.75"]);
+  S.set("speed", "1");
 }
 
 // ---------- the old volume settings (mute, musicVolume, sfxVolume) become the starting volume ----------

@@ -10,14 +10,14 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 
 extern const int gPieceColors[9][3];   // rdata 0x4de390: r, g, b of the colours 0..6, white (blank block, bomb) and gray
 
 class Piece : public Widget
 {
 public:
-	AlchemyApp*		mApp;           // +0x58
+	WinAlchApp*		mApp;           // +0x58
 	Image*			mImage;         // +0x5c a picture to show instead (the discarded piece melting into the forge)
 	int				mCol;           // +0x60 the cell it hovers over or sits in
 	int				mRow;           // +0x64
@@ -40,7 +40,7 @@ public:
 	int				mBombFrame;     // +0xc0 0..31
 	bool			mSkull;         // +0xc4 the blank block
 
-	Piece(AlchemyApp* theApp);      // 0x40e433
+	Piece(WinAlchApp* theApp);      // 0x40e433
 
 	virtual void	Update() override;                  // 0x40e4c2
 	virtual void	Draw(Graphics* g) override;         // 0x40e773

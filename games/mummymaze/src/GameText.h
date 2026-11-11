@@ -2,7 +2,7 @@
 #define __MUMMYMAZE_GAMETEXT_H__
 
 // The texts Mummy Maze shows (dialogs, tutorial boxes, rank names, labels) are hard-coded in the original's
-// exe; there is no string file. port: by the user's decision (2026-10-19) no game text is in the repository:
+// exe; there is no string file. port: no game text is in the repository (it is the game's own):
 // the port reads every text at start-up from the player's own executable, by address, and a mod or language
 // pack can replace any of them.
 //
@@ -10,8 +10,8 @@
 //   the 1.1 game image, its length and a hash: no text.
 // - LoadGameTexts() finds WinMM.exe in the game folder, reads each text at its address and checks length
 //   and hash. A text that does not match (another version of the exe) stays empty and is logged.
-// - Code names a text by its address in the original: GT(0x00495524). Overrides: any string property named
-//   GT_<8 hex digits> (e.g. <String id="GT_00495998">...</String> in properties/texts.xml, from the game folder
+// - Code names a text by its address in the original: GT(0x00495510). Overrides: any string property named
+//   GT_<8 hex digits> (e.g. <String id="GT_00495510">...</String> in properties/texts.xml, from the game folder
 //   or a mod) replaces the text read from the exe.
 
 #include "Common.h"

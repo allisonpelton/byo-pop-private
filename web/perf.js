@@ -30,7 +30,13 @@ var ByopopPerf = (function () {
   var storage = null;
 
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
+  // ?perf=1 turns the panel on for this visit, whatever the setting says: the way in on a phone, where the setting is some menus
+  // away (the user, 2026-11-11: "I'll need a list of instructions that should pop it up for me"). The one page passes it on to
+  // its game windows (web/deskapps.js, frameUrl).
+  var ASKED = (function () { try { return new URLSearchParams(location.search).get("perf") === "1"; } catch (e) { return false; } })();
+  function small() { try { return window.matchMedia("(max-width: 600px), (max-height: 500px)").matches; } catch (e) { return false; } }
   function setting() {
+    if (ASKED) return "on";
     try {
       var o = JSON.parse(window.localStorage.getItem(KEY) || "{}"), g = pageGame && o.games && o.games[pageGame];
       if (g && (g.perf === "on" || g.perf === "off")) return g.perf;
@@ -232,6 +238,8 @@ var ByopopPerf = (function () {
     row("perf.latency", a ? ms(a.base * 1000) + " / " + ms(a.output * 1000) : T("perf.na"));
     row("perf.queued", a && typeof a.queued === "number" ? ms(a.queued) : T("perf.na"));
     row("perf.gaps", a && typeof a.gaps === "number" ? String(a.gaps) : T("perf.na"));
+    // on a small screen the Sound group comes first, where it is read without scrolling (it is the one asked for there)
+    if (small()) rows = rows.slice(-4).concat(rows.slice(0, -4));
     var dl = document.createElement("dl");
     rows.forEach(function (r) {
       if (r[1] === null) { var h = document.createElement("dt"); h.className = "perf-group"; h.textContent = r[0]; dl.appendChild(h); return; }
@@ -251,7 +259,18 @@ var ByopopPerf = (function () {
     ".perf-panel dt { color: var(--muted); }\n" +
     ".perf-panel dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }\n" +
     ".perf-panel dt.perf-group { grid-column: 1 / -1; color: var(--fg); font-weight: 700; margin-top: 6px; }\n" +
-    "html.player-only .perf-panel { display: none !important; }\n";
+    "html.player-only .perf-panel { display: none !important; }\n" +
+    ".perf-panel.perf-side { position: static; width: 250px; max-height: none; border-radius: 0; box-shadow: none; border-width: 0 0 0 1px;\n" +
+    "  grid-column: 2; grid-row: 1 / 3; align-self: stretch; overflow: auto; }\n" +
+    "html.perf-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto; }\n" +
+    // a narrow page (a phone held upright): under the game, as wide as the page, scrolling in itself
+    "@media (max-width: 600px) {\n" +
+    "  .perf-panel.perf-side { grid-column: 1; grid-row: auto; width: auto; max-height: 40vh; border-width: 1px 0 0; }\n" +
+    "  html.perf-side .stage-wrap { grid-template-columns: minmax(0, 1fr); }\n" +
+    "}\n" +
+    ".perf-panel.perf-side p { display: none; }\n" +
+    "html.perf-side.touch-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto auto; }\n" +
+    "html.perf-side.touch-side .stage-wrap > .bc-touch { grid-column: 3; }\n";
   function build() {
     if (panel) return;
     var style = document.createElement("style");
@@ -267,6 +286,15 @@ var ByopopPerf = (function () {
     body = document.createElement("div");
     body.textContent = T("perf.waiting");
     panel.appendChild(h); panel.appendChild(note); panel.appendChild(body);
+    // In a game's window on the one page the panel is part of the window, at the right of the game, which it never covers; the
+    // window grows by its width (the user, 2026-11-10: "The performance panel should expand the game window and be static to the
+    // right"; web/shell.html, sideWidth)
+    var main = document.getElementById("main");
+    if (document.documentElement.classList.contains("d95-embed") && main) {
+      panel.classList.add("perf-side");
+      main.appendChild(panel);
+      return;
+    }
     document.body.appendChild(panel);
     // a window of Desktop 95's desktop (web/skins.js), whose icon is there while the panel is
     try {
@@ -281,6 +309,7 @@ var ByopopPerf = (function () {
     hook();
     build();
     panel.hidden = false;
+    side();
     st = fresh();
     raf = requestAnimationFrame(onRaf);
     tick = setInterval(second, 1000);
@@ -306,6 +335,12 @@ var ByopopPerf = (function () {
     unwrapGl();
     st = null; last = null; storage = null; gpuMs = [];
     if (panel) { panel.hidden = true; body.textContent = T("perf.waiting"); }
+    side();
+  }
+  function side() {
+    var is = !!panel && !panel.hidden && panel.classList.contains("perf-side");
+    document.documentElement.classList.toggle("perf-side", is);
+    try { window.dispatchEvent(new CustomEvent("byopop-side")); } catch (e) {}
   }
   function sync() {
     if (!document.body || !document.getElementById("canvas")) return;

@@ -10,6 +10,8 @@
 
 #include "Support.h"
 
+#include <vector>
+
 namespace Sexy
 {
 
@@ -17,6 +19,7 @@ class AtomicaApp;
 class Board;
 class Atom;
 class Graphics;
+struct Span;
 
 class Swirl
 {
@@ -57,7 +60,7 @@ public:
 	void	Aim(int theX, int theY, float* theAngle, float* theRatio);	// 0x427ed0
 	Swirl*	Clone();						// 0x428870
 	void	Draw(Graphics* g, Swirl* thePrevious);	// 0x428940
-	void	DrawTriangle(Graphics* g, const int* theA, const int* theB, const int* theC, int theStride);	// 0x4283a0 with 0x427f50
+	void	DrawTriangle(std::vector<Span>& theSpans, const int* theA, const int* theB, const int* theC, int theStride);	// 0x4283a0 with 0x427f50
 };
 
 }

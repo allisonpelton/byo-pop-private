@@ -34,7 +34,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
   waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
   2026-11-03), its GetKeyState so that scripted Shift and Ctrl presses register and its GetLastInputInfo so that it
-  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), and its MessageBox and MessageBeep calls
+  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), its registry calls so that what a copy writes under HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10), and its MessageBox and MessageBeep calls
   so that a message box is answered without showing or sounding ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
   private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
@@ -90,9 +90,6 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 Every call re-reads the whole context, so what costs is context times calls, and a cache that expires while waiting
 (`docs/TOKEN_ECONOMY.md` has the measurements).
 - No workflows or parallel agents unless the user asks for them; mechanical work goes to one Sonnet agent.
-- **Fable only (the user, 2026-11-10, an experiment for the week):** "ONLY use the new Fable 5.2. Use it for
-  everything": every session and every agent it starts runs on Fable 5.2 (an Agent with `model: "fable"` or no model,
-  never Sonnet, Opus or Haiku) until the user ends the experiment (`docs/COORDINATION.md`, "Fable only").
 - A subagent never runs anything longer than about 4 minutes (the oracle, whole test suites, full builds,
   wait loops): its 5-minute cache expires and its whole context is written again. The owning session runs
   those, in the background, and waits for the notification instead of polling.
@@ -126,9 +123,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook breaks the build instead of
   silently never being called.
 - **Commits:** game sessions may commit on their own branch at verified milestones without asking the user each time.
-  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with a trailer
-  naming the model that did the work: `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>` during the Fable-only
-  experiment, `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` before it. Use the user's email only for authorship, never anywhere
+  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with the trailer
+  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; a session that runs on Fable 5.2 writes
+  `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>` instead. Use the user's email only for authorship, never anywhere
   else.
 - **Never push.** Only the coordinator publishes, and only as snapshots (the user, 2026-10-25):
   `python tools/publish.py --push` pushes one commit holding the trunk's tree without the paths in `.publishignore`
@@ -232,7 +229,7 @@ Every call re-reads the whole context, so what costs is context times calls, and
   the full standards for what constitutes readable and see that they actually make sense"); a second, more complex
   game (Bejeweled Twist) then takes them before every other game does ("Rules look good to start, but I'd want them
   tested on a more complex game before moving forward with them for EVERY game", 2026-11-08), and every other game
-  takes its pass once the user approves them after that. The pass leaves no unknown or unnamed variable, field, parameter, global or
+  takes its pass now that the user has approved them ("new standards approved", 2026-11-10, after the doc was cut to its rules and tools). The pass leaves no unknown or unnamed variable, field, parameter, global or
   constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port start after those
   passes, each taken all the way through, readability pass included: the easier ones side by side again and the harder
   ones from Chuzzle on two at a time after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning

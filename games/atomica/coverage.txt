@@ -67,8 +67,8 @@ none 00421af0 destructor of the sine and cosine table object (0x421a90): sets it
 none 00421c60 destructor of Atomicus' mouth object (0x421c40): sets its vtable only
 none 00421e80 destructor of the explosion effect (Effects.h:143): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
 none 00421ee0 scalar deleting destructor of Explosion: calls its destructor (0x421e80) and frees the object; the compiler makes it
-none 004220e0 ConfirmDialog::AddedToManager: only calls GameDialog::AddedToManager (0x416890); the port's ConfirmDialog inherits it
-none 004220f0 ConfirmDialog::RemovedFromManager: only calls GameDialog::RemovedFromManager (0x416940); the port's ConfirmDialog inherits it
+none 004220e0 a dialog's AddedToManager that only calls GameDialog::AddedToManager (0x416890), shared by the dialogs' vtables; the port's dialogs inherit GameDialog's
+none 004220f0 a dialog's RemovedFromManager that only calls GameDialog::RemovedFromManager (0x416940), shared by the dialogs' vtables; the port's dialogs inherit GameDialog's
 none 00422890 destructor of the nuke-flash effect (Effects.h:133): sets its vtable and calls the GameObj destructor (0x401020); the port's Effect destructors do that
 none 004228b0 scalar deleting destructor of NukeFlash: calls its destructor (0x422890) and frees the object; the compiler makes it
 none 00423470 scalar deleting destructor of OptionsDialog: calls its destructor (0x4229d0, ported as OptionsDialog::~OptionsDialog, DialogOptions.cpp:43) and frees the object; the compiler makes it
@@ -82,7 +82,7 @@ none 004292a0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037
 none 004293c0 std::string helper (MSVC 7.0, the string idioms of 0x403090-0x4037b0): operator+(string, char*); the port uses std::string
 none 00429670 calls Image slot 21 (MemoryImage::Palletize) on 24 pictures the loading thread has just loaded: it turns a picture of at most 255 colours into an 8-bit palette picture (same pixels, less memory) and leaves the others as they are; the port keeps 32-bit pictures
 none 004296b0 scalar deleting destructor of Sprite: calls its destructor (0x4295e0, ported as Sprite::~Sprite, Support.cpp:88) and frees the object; the compiler makes it
-none 00429960 SpriteMgr: stores the Graphics pointer a draw hands it (+0x20); nothing in the original reads it (Support.h:195)
+none 00429960 SpriteMgr: stores the Graphics pointer a draw hands it (+0x20); nothing in the original reads it, and the port's SpriteMgr keeps none
 none 00429e00 scalar deleting destructor of FloatyText: calls its destructor (0x429da0, ported as FloatyText::~FloatyText, Effects.cpp:305) and frees the object; the compiler makes it
 none 0042a2b0 HintBox override of Resize that only calls Widget::Resize with the same arguments; the port's constructor calls Widget::Resize (HintBox.cpp:81)
 none 0042a7e0 scalar deleting destructor of HintBox: calls its destructor (0x42a0b0, ported as HintBox::~HintBox, HintBox.cpp:247) and frees the object; the compiler makes it

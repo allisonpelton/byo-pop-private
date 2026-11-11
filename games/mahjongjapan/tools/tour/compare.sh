@@ -3,6 +3,7 @@
 # the exes of a "before" folder (mahjongjapan.exe, mahjongchina.exe; copy them there before a change) against
 # build/native's, and the before exe against a second run of itself (a tour that does not repeat proves nothing).
 #   build/native/rundesk.exe bash games/mahjongjapan/tools/tour/compare.sh <before folder> <out folder>
+# The before folder also needs the DLLs of build/native beside its exes (SDL2.dll and the runtime's).
 cd "$(dirname "$0")/../../../.." || exit 1
 here=games/mahjongjapan/tools/tour
 before="$1"; R="$2"

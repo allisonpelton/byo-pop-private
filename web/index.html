@@ -65,6 +65,10 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; }
 .soon .name { color: var(--muted); }
 .soon .badge { filter: saturate(0.35); box-shadow: none; }
 .own-soon { font-weight: 600; }
+/* Appearance's picture for the wallpaper (web/schemes.js, chooser): the picture kept, small, in a sunken frame */
+.sch-picture { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sch-picture-view { display: inline-block; width: 48px; height: 36px; background: var(--bg) center / cover no-repeat;
+  box-shadow: inset 1px 1px var(--sk-lo, #808080), inset -1px -1px var(--sk-hi, #fff); }
 /* a port still in progress opened on a development host (web/localsoon.js): the Coming soon look, a link, and this computer's
    icon beside "Coming soon" (a monitor on its stand, drawn here) */
 .games > li.soon-local { background: var(--bg); border-style: dashed; }
@@ -310,6 +314,9 @@ html:not(.d95-desk) #chat { display: none !important; }
 /* the game the views follow (web/music.js, "Following a game"): a tag over the view's top right corner */
 .mu-follow { position: absolute; top: 0; right: 0; max-width: 50%; padding: 0 3px; font-size: 10px; line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #c9b8ff; color: #0b0a10; }
 .mu-follow[hidden] { display: none; }
+/* the followed game is not heard: grey, the muted speaker before its name (a speaker and a cross, drawn here) */
+.mu-follow.mu-muted::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 3px; vertical-align: -1px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' shape-rendering='crispEdges'%3E%3Cpath d='M0 3h2l2-2v7l-2-2H0z'/%3E%3Cpath d='M5 3l3 3M8 3l-3 3' stroke='%23000' fill='none'/%3E%3C/svg%3E") no-repeat; }
 .mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
 .mu-tracker { display: flex; flex-direction: column; }
 .mu-tracker-rows { flex: 1 1 auto; min-height: 0; }
@@ -406,7 +413,7 @@ footer p { margin: 0 0 8px; }
 footer a { color: var(--accent); }
 </style>
 <!-- the site's look, Desktop 95 (web/skins.js sets <html data-skin="d95">; docs/WEB_PLAYER.md, "Desktop 95") -->
-<link rel="stylesheet" href="skins.css"><script src="skins.js"></script>
+<link rel="stylesheet" href="skins.css"><script src="skins.js"></script><script src="schemes.js"></script>
 </head>
 <body>
 <header class="site-header">
@@ -554,7 +561,16 @@ var siteSettingsView = null;
 function settingsHash(h) { return { "#players": "#settings-players", "#saves": "#settings-saves" }[h] || h; }
 try {
   siteSettingsView = ByopopSettings.render(document.getElementById("settings-controls"), {
-    extra: { input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
+    extra: { look: (function () {
+        // the wallpaper's own picture (web/schemes.js): Browse, the picture kept, Remove; a picture chosen becomes the wallpaper
+        try {
+          return ByopopSchemes.chooser(function (k) { return ByopopStrings.t(k); }, function (kept) {
+            ByopopSettings.set("wallpaper", kept ? "own" : (ByopopSettings.get("wallpaper") === "own" ? "none" : ByopopSettings.get("wallpaper")));
+            try { window.dispatchEvent(new CustomEvent("byopop-setting", { detail: { name: "wallpaper" } })); } catch (e) {}
+            if (siteSettingsView && siteSettingsView.refresh) siteSettingsView.refresh();
+          });
+        } catch (e) { return null; }
+      })(), input: document.getElementById("site-cursor"), players: document.getElementById("players-body"), saves: document.getElementById("saves-body") },
     section: (/^#settings-([a-z]+)$/.exec(settingsHash(location.hash)) || [])[1],
     openSection: function (id) { if (window.ByopopSkin && ByopopSkin.desk.show("set-" + id)) return; siteSettingsView.select(id, true); }
   });

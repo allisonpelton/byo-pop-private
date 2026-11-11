@@ -17,19 +17,19 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 class HighScoreWidget;
 
 // 0x4096c8 (size 0x464): the best score of the day and the five best of all time, for each kind of game
-class AllTimeDialog : public Dialog2004
+class HighScoreDialog : public Dialog2004
 {
 public:
 	HighScoreWidget*	mScores;                // +0x114 the table's data (the widget itself is never shown)
-	AlchemyApp*			mApp;                   // +0x118
+	WinAlchApp*			mApp;                   // +0x118
 
 public:
-	AllTimeDialog(AlchemyApp* theApp);
-	virtual ~AllTimeDialog();                   // 0x40965a
+	HighScoreDialog(WinAlchApp* theApp);
+	virtual ~HighScoreDialog();                   // 0x40965a
 
 	virtual int			GetPreferredHeight(int theWidth) override;                      // 0x4096a4: 0x156
 	virtual void		Draw(Graphics* g) override;                                     // 0x409854
@@ -41,7 +41,7 @@ public:
 class OptionsDialog : public Dialog2004, public SliderListener, public CheckboxListener
 {
 public:
-	AlchemyApp*			mApp;                   // +0x11c
+	WinAlchApp*			mApp;                   // +0x11c
 	Slider*				mMusicSlider;           // +0x120 id 0
 	Slider*				mSfxSlider;             // +0x124 id 1
 	Checkbox*			mFullscreenBox;         // +0x128
@@ -50,7 +50,7 @@ public:
 	DialogButton*		mHelpButton;            // +0x13c id 4
 
 public:
-	OptionsDialog(AlchemyApp* theApp);
+	OptionsDialog(WinAlchApp* theApp);
 	virtual ~OptionsDialog();                   // 0x40d528
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;       // 0x40d679
@@ -68,16 +68,17 @@ public:
 };
 
 // 0x40ed00 (size 0x12c): the name for a score of the table
-class NameEntryDialog : public Dialog2004, public EditListener
+class RecordScoreDialog : public Dialog2004, public EditListener
 {
 public:
-	AlchemyApp*			mApp;                   // +0x118
+	WinAlchApp*			mApp;                   // +0x118
 	EditWidget*			mEdit;                  // +0x11c
 
 public:
-	NameEntryDialog(AlchemyApp* theApp, const SexyString& theLines);
-	virtual ~NameEntryDialog();                 // 0x40ea5d
+	RecordScoreDialog(WinAlchApp* theApp, const SexyString& theLines);
+	virtual ~RecordScoreDialog();                 // 0x40ea5d
 
+	void				DrawEditBox(Graphics* g, const Rect& theRect);                  // 0x40eb9f
 	SexyString			GetName();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;       // 0x40eac0

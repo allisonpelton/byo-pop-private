@@ -1,7 +1,7 @@
 // The score table (see HighScores.h).
 
 #include "HighScores.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Board.h"
 #include "Buffer.h"
 #include "DialogButton.h"
@@ -24,7 +24,7 @@ using namespace Sexy;
 static const char* kScoreFileName = "userdata\\hiscores.dat";
 
 // 0x409e60: the day, for the best score of the day
-static int DayKey()
+int HighScoreWidget::GetDayNum()
 {
 	time_t aNow = time(NULL);
 	struct tm* aTime = localtime(&aNow);
@@ -40,12 +40,14 @@ static unsigned int ScoreCheck(int theScore, const std::string& theName)
 	return aCheck;
 }
 
+// Part of HighScoreWidget::WriteToFile (0x40a341): a number is four bytes, the low one first
 static void PutInt(std::string& theData, int theValue)
 {
 	for (int i = 0; i < 4; i++)
 		theData += (char) ((theValue >> (i * 8)) & 0xff);
 }
 
+// Part of HighScoreWidget::WriteToFile (0x40a341): a name is its length in two bytes, then its bytes
 static void PutName(std::string& theData, const std::string& theName)
 {
 	unsigned int aLength = (unsigned int) theName.length() & 0xffff;
@@ -54,6 +56,7 @@ static void PutName(std::string& theData, const std::string& theName)
 	theData.append(theName, 0, aLength);
 }
 
+// Part of HighScoreWidget::WriteToFile (0x40a341): a name, its score and their check
 static void PutScore(std::string& theData, const std::string& theName, int theScore)
 {
 	PutName(theData, theName);
@@ -104,7 +107,7 @@ struct ScoreFileReader
 };
 
 // 0x40bad1
-HighScoreWidget::HighScoreWidget(AlchemyApp* theApp)
+HighScoreWidget::HighScoreWidget(WinAlchApp* theApp)
 {
 	mApp = theApp;
 	mReveal = 0;
@@ -146,7 +149,7 @@ HighScoreWidget::HighScoreWidget(AlchemyApp* theApp)
 		}
 	}
 
-	Load();
+	ReadFromFile();
 }
 
 // 0x40be02
@@ -155,11 +158,11 @@ HighScoreWidget::~HighScoreWidget()
 	delete mBoardImage;
 	delete mTableImage;
 	delete mStartButton;
-	Save();
+	WriteToFile();
 }
 
 // 0x40a15a: a score whose check does not fit is cut to its last eight bits
-void HighScoreWidget::Load()
+void HighScoreWidget::ReadFromFile()
 {
 	Buffer aBuffer;
 	if (!mApp->ReadBufferFromFile(kScoreFileName, &aBuffer))
@@ -174,7 +177,7 @@ void HighScoreWidget::Load()
 		unsigned int aTodayCheck = (unsigned int) aReader.GetInt();
 		if (aReader.mFailed)
 			return;
-		if (aDay == DayKey() && aTodayCheck == ScoreCheck(aTodayScore, aTodayName))
+		if (aDay == GetDayNum() && aTodayCheck == ScoreCheck(aTodayScore, aTodayName))
 		{
 			mTodayName[aMode] = aTodayName;
 			mTodayScore[aMode] = aTodayScore;
@@ -194,12 +197,12 @@ void HighScoreWidget::Load()
 }
 
 // 0x40a341
-void HighScoreWidget::Save()
+void HighScoreWidget::WriteToFile()
 {
 	std::string aData;
 	for (int aMode = 0; aMode < NUM_MODES; aMode++)
 	{
-		PutInt(aData, DayKey());
+		PutInt(aData, GetDayNum());
 		PutScore(aData, mTodayName[aMode], mTodayScore[aMode]);
 		for (int i = 0; i < NUM_ENTRIES; i++)
 			PutScore(aData, mName[aMode][i], mScore[aMode][i]);
@@ -210,7 +213,7 @@ void HighScoreWidget::Save()
 }
 
 // 0x409e88: the place of a score in the table (the first one it is above, 1 to 5), or 0
-int HighScoreWidget::RankOf(int theMode, int theScore)
+int HighScoreWidget::GetScorePlace(int theMode, int theScore)
 {
 	int aRank = 0;
 	for (int i = NUM_ENTRIES - 1; i >= 0; i--)
@@ -220,13 +223,13 @@ int HighScoreWidget::RankOf(int theMode, int theScore)
 }
 
 // 0x40a57b: when the table is all shown, a score of the game that is in the table, or the best of the day, asks for a name
-void HighScoreWidget::CheckScore()
+void HighScoreWidget::ProcessScoreStuff()
 {
 	Board* aBoard = mApp->mBoard;
 	int aMode = aBoard->mTimeTrial ? 1 : 0;
 	int aScore = aBoard->mScore;
 	bool isBestOfDay = mTodayScore[aMode] < aScore;
-	int aRank = RankOf(aMode, aScore);
+	int aRank = GetScorePlace(aMode, aScore);
 	char aRankText[32];
 	sprintf(aRankText, "%d", aRank);
 
@@ -244,11 +247,11 @@ void HighScoreWidget::CheckScore()
 	else
 		aMessage = mApp->GetString("HIGH_SCORE_OF_THE_DAY1");
 
-	mApp->ShowNameEntry(aMessage);
+	mApp->DoRecordScoreDialog(aMessage);
 }
 
 // 0x40b9e8: the name that was asked for goes with the score of the game that ended
-void HighScoreWidget::SetName(const SexyString& theName)
+void HighScoreWidget::NameEntered(const SexyString& theName)
 {
 	if (theName.empty())
 		return;
@@ -256,7 +259,7 @@ void HighScoreWidget::SetName(const SexyString& theName)
 	Board* aBoard = mApp->mBoard;
 	int aMode = aBoard->mTimeTrial ? 1 : 0;
 	int aScore = aBoard->mScore;
-	int aRank = RankOf(aMode, aScore);
+	int aRank = GetScorePlace(aMode, aScore);
 
 	if (aScore > mTodayScore[aMode])
 	{
@@ -276,7 +279,7 @@ void HighScoreWidget::SetName(const SexyString& theName)
 	}
 
 	// (the original writes the file when the widget is deleted; a web page may be closed without that)
-	Save();
+	WriteToFile();
 }
 
 // 0x409eb3
@@ -294,7 +297,7 @@ void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // a line of the statistics: the label on the left and the value on the right (0x409f01; the baseline is the line's y)
-static void DrawLine(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel, const SexyString& theValue)
+void HighScoreWidget::DrawColumn(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel, const SexyString& theValue)
 {
 	g->DrawString(theLabel, theRect.mX + 0x10 + theDX, theRect.mY + theDY);
 	int aWidth = g->GetFont()->StringWidth(theValue);
@@ -329,30 +332,30 @@ void HighScoreWidget::Resize(int theX, int theY, int theWidth, int theHeight)
 		g.DrawImage(mBoardImage, 0, 0);
 		Graphics aClipped(g);
 		aClipped.ClipRect(0xd, 0x29, 0x1d0, 0x19c);
-		aClipped.DrawImageBox(Rect(0, 0x1e, 0x1ea, 0x1b2), mApp->mImages[IMAGE_DIALOG]);
+		aClipped.DrawImageBox(Rect(0, 0x1e, WinAlchApp::BOARD_WIDTH, 0x1b2), mApp->mImages[IMAGE_DIALOG]);
 
 		Board* aBoard = mApp->mBoard;
 		static const int anOffsets[5] = {-2, -1, 1, 2, 0};
 		Rect aRect(0x91, 0x44, 0x125, 0x56);
-		for (int r = 0; r < 5; r++)
+		for (int aRow = 0; aRow < 5; aRow++)
 		{
-			int anOffsetY = anOffsets[r];
-			for (int c = 0; c < 5; c++)
+			int anOffsetY = anOffsets[aRow];
+			for (int aCol = 0; aCol < 5; aCol++)
 			{
-				int aDX = anOffsets[c];
-				bool isLast = (r == 4 && c == 4);
+				int aDX = anOffsets[aCol];
+				bool isLast = (aRow == 4 && aCol == 4);
 				char aBuffer[64];
 
 				g.SetFont(mApp->mFont1);
 				g.SetColor(isLast ? Color(0xde, 0x8a, 8) : Color(0, 0, 0));
 				sprintf(aBuffer, "%2d:%02d", aBoard->mTotalSeconds / 60, aBoard->mTotalSeconds % 60);
-				DrawLine(&g, aRect, aDX, anOffsetY + 0xf, mApp->GetString("TOTAL_GAME_TIME"), aBuffer);
+				DrawColumn(&g, aRect, aDX, anOffsetY + 0xf, mApp->GetString("TOTAL_GAME_TIME"), aBuffer);
 				sprintf(aBuffer, "%d", aBoard->mBoardsCleared);
-				DrawLine(&g, aRect, aDX, anOffsetY + 0x26, mApp->GetString("HSWIDGET_BOARDS_CLEARED"), aBuffer);
+				DrawColumn(&g, aRect, aDX, anOffsetY + 0x26, mApp->GetString("HSWIDGET_BOARDS_CLEARED"), aBuffer);
 				sprintf(aBuffer, "%d", aBoard->mLongestRun);
-				DrawLine(&g, aRect, aDX, anOffsetY + 0x3d, mApp->GetString("HSWIDGET_LONGEST_RUN_WITHOUT_DISCARD"), aBuffer);
+				DrawColumn(&g, aRect, aDX, anOffsetY + 0x3d, mApp->GetString("HSWIDGET_LONGEST_RUN_WITHOUT_DISCARD"), aBuffer);
 				sprintf(aBuffer, "%d", aBoard->mScore);
-				DrawLine(&g, aRect, aDX, anOffsetY + 0x54, mApp->GetString("FINAL_SCORE"), aBuffer);
+				DrawColumn(&g, aRect, aDX, anOffsetY + 0x54, mApp->GetString("FINAL_SCORE"), aBuffer);
 
 				// the rank: its label, and its name after it, ending at the right edge of the statistics
 				g.SetFont(mApp->mAFont1);
@@ -448,9 +451,9 @@ void HighScoreWidget::Draw(Graphics* g)
 		aEdge.ClipRect(0xd, 0x29, 0x1d0, 0x19c);
 		int aEdgeY = (aBottom - aCellH) + 0x1e;
 		aEdge.DrawImage(aDialog, 0, aEdgeY, Rect(0, aCellH * 2, aCellW, aCellH));
-		int aRightX = 0x1ea - aCellW;
+		int aRightX = WinAlchApp::BOARD_WIDTH - aCellW;
 		aEdge.DrawImage(aDialog, aRightX, aEdgeY, Rect(aCellW * 2, aCellH * 2, aCellW, aCellH));
-		aEdge.ClipRect(aCellW, 0x1e, 0x1ea - aCellW * 2, aBottom);
+		aEdge.ClipRect(aCellW, 0x1e, WinAlchApp::BOARD_WIDTH - aCellW * 2, aBottom);
 		int aTiles = (aRightX - 1) / aCellW;
 		int aX = aCellW;
 		for (int i = 0; i < aTiles; i++)
@@ -473,7 +476,7 @@ void HighScoreWidget::Update()
 		if (mReveal >= mHeight)
 		{
 			mReveal = mHeight;
-			CheckScore();
+			ProcessScoreStuff();
 		}
 
 		int aEdge = mY - 0x1c + mReveal;
@@ -504,5 +507,5 @@ void HighScoreWidget::ButtonPress(int theId)
 void HighScoreWidget::ButtonDepress(int theId)
 {
 	if (theId == 1)
-		mApp->ShowSelector();
+		mApp->ShowIntroScreen();
 }
