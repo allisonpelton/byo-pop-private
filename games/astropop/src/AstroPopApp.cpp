@@ -204,6 +204,10 @@ void AstroPopApp::Init()
 	// 1.4 framework's has commented out (a stretch onto transparent bits, as the loader's strips, keeps the colour at full strength)
 	gSlowStretchRenormalizesAlpha = true;
 
+	// port: the 2004 WidgetManager draws no widget with the fast stretch on; the level-up text asks for it itself
+	// (LevelUpText::DrawAt 0x40c8a0), and the atomic explosion's ring and the other stretches average (a 2D run)
+	gWidgetsDrawWithoutFastStretch = true;
+
 	SexyApp::Init();
 	LoadResourceManifest();   // 0x4d93f0
 
