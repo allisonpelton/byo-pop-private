@@ -297,7 +297,8 @@ index.footer.music_html = The Music player plays the music from the game files y
   <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
   <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
   The desktop's text is set in
-  <a href="licenses/w95fa.txt" target="_blank" rel="noopener">W95FA<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Alina Sava.
+  <a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>,
+  made from W95FA by Alina Sava.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)

@@ -6,15 +6,16 @@
 
 /* ======================= Desktop 95: an affectionate parody of the 1995 desktop ======================= */
 /* Its text (the user, 2026-11-10, of a page that gets the 1995 look with plain CSS: "We shouldn't need to redraw ourselves"):
-   W95FA by Alina Sava (SIL OFL 1.1, web/licenses/w95fa.txt), the pixel shapes of the 1995 system font as outlines, sharp at 11
-   pixels and its whole multiples and unsmoothed. It has one weight: bold is the same glyphs struck twice a pixel apart, as
-   Windows made bold from a bitmap font (.d95-bold below; every bold in the desktop is told to be it). */
-@font-face { font-family: "W95FA"; src: url("fonts/w95fa.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: block; }
+   Byopop Sans (web/fonts/byopop-sans.woff, built by tools/web/pixelfont.py from W95FA by Alina Sava, SIL OFL 1.1;
+   web/licenses/byopop-sans.txt): the pixel shapes of the 1995 system font, one pixel of it one pixel of the screen at 11
+   pixels, 13 from ascent to descent, with whole-pixel advances. It has one weight: bold is the same glyphs struck twice a pixel
+   apart and a pixel wider, as Windows made bold from that bitmap font. */
+@font-face { font-family: "Byopop Sans"; src: url("fonts/byopop-sans.woff") format("woff"); font-weight: 100 900; font-style: normal; font-display: block; }
 /* Its windows (every part of a game's page a window on one desktop) are web/skins.js's and the page's; this is their look */
 :root[data-skin="d95"] {
   --bg: #008080; --panel: #c0c0c0; --panel-2: #c0c0c0; --fg: #000000; --muted: #3a3a3a; --line: #808080;
   --accent: #000080; --accent-fg: #ffffff; --ok: #005c2a; --warn: #6b3d00;
-  --font-ui: "W95FA", "MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif; --radius: 0px;
+  --font-ui: "Byopop Sans", "MS Sans Serif", "Microsoft Sans Serif", Tahoma, "Segoe UI", sans-serif; --radius: 0px;
   --sk-hi: #ffffff; --sk-lo: #808080; --sk-dk: #000000; --sk-mid: #dfdfdf; --sk-well: #ffffff;
   --sk-title: linear-gradient(90deg, #000080, #1084d0); --sk-title-fg: #ffffff; --sk-desk-fg: #ffffff;
 }
