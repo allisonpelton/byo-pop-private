@@ -171,7 +171,9 @@ struct Color
 	float r, g, b;
 
 	Color() : r(0), g(0), b(0) {}
+	// 0x43ed30
 	Color(float theR, float theG, float theB) : r(theR), g(theG), b(theB) {}
+	// 0x43ed50
 	void set(float theR, float theG, float theB)
 	{
 		r = theR;

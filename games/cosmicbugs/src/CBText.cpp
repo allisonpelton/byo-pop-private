@@ -50,6 +50,7 @@ void List_DeleteNode(Text* theText)
 	::operator delete(theText);
 }
 
+// 0x41f0e0
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theDormant, int theFadeIn,
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink)
 {

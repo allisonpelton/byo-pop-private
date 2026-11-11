@@ -306,6 +306,9 @@ game link went with its button.
 - **The hint search.** The original searches for hints on a thread; the port searches at once. Phase one's test patch makes
   the original do the same, so the comparisons agree; in real play the original's "no hint available" can show for a few
   frames at a level's start while its thread runs.
+- **The wildcard button.** A press on it while no wildcard is held is ignored. In the original it still makes a wildcard and
+  leaves the count at -1, which the next level's start turns into a loop of 2^32 letters and the game ends in its exception box
+  (found by the coverage check, `README.md`, "Coverage check"); a crash that a click on the faded-out button reaches is not kept.
 - **The game link** is gone with the button that the port never showed.
 - **Full screen and the focus.** The original's full screen is DirectDraw's own mode, and its window minimizes when the
   focus goes, so its frames stop until the player comes back. The port's full screen is the framework's borderless window

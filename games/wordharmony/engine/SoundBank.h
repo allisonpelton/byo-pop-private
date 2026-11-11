@@ -61,6 +61,7 @@ public:
 class SoundsHandler : public XmlHandler
 {
 public:
+	// 0x42bdf0
 	SoundsHandler() : mBank(nullptr) {}
 
 	void setBank(SoundBank* theBank) { mBank = theBank; }  // 0x42c1f0
