@@ -138,7 +138,7 @@ web/               the HTML shell the web builds use, and modpanel.js, every pag
 tools/             shared pipeline: build.sh, Ghidra scripts, symbol merging, .pak reader, rundesk
                    (invisible test runs), fwtest, smoke, publish.py (docs/PUBLISHING.md)
 docs/              notes shared by every game: framework identification, games survey, mod roadmap,
-                   mod settings and the mod menu, research
+                   mod settings and the mod menu
 games/<game>/      one game: src/ (the translated game code), docs/, mods/, tools/, CMakeLists.txt,
                    README.md
 assets/<game>/     your staged game files (git-ignored)
