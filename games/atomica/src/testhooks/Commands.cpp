@@ -67,8 +67,6 @@ const char* ScreenName(AtomicaApp* theApp)
 		return "options";
 	if (theApp->mQuitDialog != NULL)
 		return "quit";
-	if (theApp->mConfirmDialog != NULL)
-		return "confirm";
 	if (theApp->mHighScoresBox != NULL)
 		return "highscores";
 	if (theApp->mLevelUpDialog != NULL)

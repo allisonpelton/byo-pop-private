@@ -60,8 +60,7 @@ GameDialog::GameDialog(AtomicaApp* theApp, bool theCentered) :
 	mApp(theApp),
 	mManager(NULL),
 	mBoxX(0xb4),
-	mClosing(false),
-	mCentered(theCentered)
+	mClosing(false)
 {
 	mBoxY = -mApp->mDialogMonitor->mHeight;
 	mBoxEndY = mBoxY;
@@ -201,7 +200,9 @@ void GameDialog::DrawButton(Graphics* g, Widget* theButton, const std::string& t
 	aG.DrawLine(aX + theButton->mWidth, aY, aX + theButton->mWidth, aY + theButton->mHeight);
 	aG.DrawLine(aX, aY + theButton->mHeight, aX + theButton->mWidth, aY + theButton->mHeight);
 	aG.SetFont(mApp->mMonitorFontMedium);
-	aG.DrawString(theText, aX + (theButton->mWidth - mApp->mMonitorFontMedium->StringWidth(theText)) / 2,
+	// the half of the button less the half of the text, each halved by itself (a text of an odd width stands a pixel further right
+	// than the halved difference would put it)
+	aG.DrawString(theText, aX + theButton->mWidth / 2 - mApp->mMonitorFontMedium->StringWidth(theText) / 2,
 		aY + theButton->mHeight / 2 + 6);
 }
 
@@ -327,74 +328,4 @@ void LevelUpDialog::Draw(Graphics* g)
 		DrawRight(g, aSmall, Format(GT(0x4b048c), kRankScores[mRank + 1]), 0x140, 0x143);
 	}
 	mApp->mRank[mRank]->Draw(g, 0x46, 0xe1);
-}
-
-// ---------------------------------------------------------------------------------------------------------
-// ConfirmDialog
-
-// 0x421f90
-ConfirmDialog::ConfirmDialog(AtomicaApp* theApp) :
-	GameDialog(theApp, false)
-{
-	mYes = AddButton(0);
-	mNo = AddButton(1);
-}
-
-// 0x4220b0
-ConfirmDialog::~ConfirmDialog()
-{
-	mApp->mConfirmDialog = NULL;
-}
-
-// 0x422100
-void ConfirmDialog::Resize(int theX, int theY, int theWidth, int theHeight)
-{
-	GameDialog::Resize(theX, theY, theWidth, theHeight);
-	mYes->Resize(mX + 0x73, mY + 0x136, 0x4b, 0x1b);
-	mNo->Resize(mX + 0xd4, mY + 0x136, 0x4b, 0x1b);
-}
-
-// 0x422170: yes gives up the game, no goes back to it
-void ConfirmDialog::ButtonDepress(int theId)
-{
-	if (theId != 1)
-	{
-		if (theId != 0)
-			return;
-		mApp->EndGame();
-	}
-	mClosing = true;
-}
-
-// 0x4221d0
-void ConfirmDialog::Draw(Graphics* g)
-{
-	GameDialog::Draw(g);
-	g->SetFont(mApp->mMonitorFont);
-	g->SetColor(Color(0, 255, 0, 255));
-	const std::string& aTitle = GT(0x4b0668);
-	g->DrawString(aTitle, (mWidth / 2 - mApp->mMonitorFont->StringWidth(aTitle) / 2) - 10, 0xcd);
-	g->SetColor(Color(0, 255, 0, 0xaf));
-	const std::string& aLine1 = GT(0x4afb28);
-	g->DrawString(aLine1, (mWidth / 2 - mApp->mMonitorFont->StringWidth(aLine1) / 2) - 10, 0xf0);
-	const std::string& aLine2 = GT(0x4b064c);
-	g->DrawString(aLine2, (mWidth / 2 - mApp->mMonitorFont->StringWidth(aLine2) / 2) - 10,
-		mApp->mMonitorFont->GetHeight() + 0xed);
-	ButtonWidget* aButtons[2] = {mYes, mNo};
-	const std::string* aTexts[2] = {&GT(0x4b0648), NULL};
-	std::string aNo = "NO";
-	for (int i = 0; i < 2; i++)
-	{
-		ButtonWidget* aButton = aButtons[i];
-		g->SetColor(Color(0, 255, 0, 0x80));
-		if (aButton->mIsOver)
-			g->SetColor(Color(0, 255, 0, 255));
-		if (aButton->mIsDown)
-			g->SetColor(Color(0, 255, 0, 0xaf));
-		g->FillRect(aButton->mX - mX, aButton->mY - mY, aButton->mWidth, aButton->mHeight);
-		g->SetColor(Color(0, 0x32, 0, 255));
-		const std::string& aText = (i == 0) ? *aTexts[0] : aNo;
-		g->DrawString(aText, ((aButton->mWidth / 2 + aButton->mX) - mApp->mMonitorFont->StringWidth(aText) / 2) - mX,
-			(aButton->mY - mY) + 0x14);
-	}
 }
