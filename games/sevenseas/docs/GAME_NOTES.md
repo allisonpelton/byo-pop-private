@@ -333,18 +333,18 @@ dialog does not leave the game) and two with an access violation (below).
 `games/sevenseas/coverage.txt` sets the game's own code as one range, 0x401000 to 0x427870 (399 functions; the framework starts
 at the Widget at 0x427880). **The runs reached 362 of the 399. 0 are reached with no counterpart in the port**; at first 170 were.
 
-- **Placed: 12.** The addresses of functions the port translates inline or in another shape are now in the comment above the
+- **Placed: 13.** The addresses of functions the port translates inline or in another shape are now in the comment above the
   function that holds them: 0x40a410 (the board's StartTalk call), 0x40b0e5 (the second half of Undo, which Ghidra left outside
   the function), 0x419ab0 (the end of a talk), 0x426140 (the tail of the title's sparkle loop, likewise), 0x411190 and 0x4111c0
-  (the high-score screen's AddedToManager and RemovedFromManager: the original adds two buttons), 0x41f280 (HasSavedGame; the
+  (the high-score screen's AddedToManager and RemovedFromManager: the original adds two buttons), 0x412c80 (the high-score screen's button handler: its other branch, the score upload, is not ported), 0x41f280 (HasSavedGame; the
   comment said 0x41ac10), 0x418fc0 (the options dialog's SetColor, which the constructor's colours replace), and three the port
   had under the wrong address: the options dialog's slider handler is 0x4196f0 (the comment said 0x419730 / 0x419770), its
   buttons are 0x4197a0 (it said 0x4196f0), and the check box handler 0x419730 does nothing in the registered game.
-- **Left out on purpose: 195 `none` lines.** What the compiler made (40 static initializer stubs, 20 deleting destructors, 11
+- **Left out on purpose: 194 `none` lines.** What the compiler made (40 static initializer stubs, 20 deleting destructors, 11
   vtable thunks, 10 empty or constant functions), the original's std::string library (22), the support of the anims.txt parser
   0x41c960 (map and list instances, 46: the port parses into std containers), the destructors of dialogs and widgets (15),
   registration (the Register dialog and its page link, the number check, the windowed-mode nag of the unregistered game: 19) and
-  the online score submission (12: the "Submit to Internet High Score List" button, its dialog, the upload and the "High Score"
+  the online score submission (11: the "Submit to Internet High Score List" button, its dialog, the upload and the "High Score"
   answer; README.md lists it as not ported).
 - **A slip found: the click of the options and nag dialogs.** The original's OptionsDialog (0x419770) and NagDialog (0x40d280)
   override ButtonPress to play sample 0 after the base class. The base forwards only the footer button to the app, which clicks,
@@ -416,3 +416,27 @@ function defined in `src/` whose name appears nowhere else but its declaration, 
   `unlock`, which answers that the game has nothing locked.
 
 `tools/check.sh build sevenseas` passes with the baseline identical.
+
+## 15. Readability pass (2026-11-11)
+
+`python tools/namecheck.py games/sevenseas` reported 70 findings and now reports none; `tools/objsnap.py` shows that all 18
+objects (471 functions) compile to the same instructions as before the pass, and `tools/check.sh sevenseas` is unchanged
+(baseline identical). `tools/splitfields.py` has no per-function export folder to read here (only `functions.jsonl`), and
+reported no member declared twice.
+
+- **Names (rule 2).** `mFlag4c4` is `mPirateWelcome` (the pirate's welcome at the first menu, until a game starts) and
+  `mUnused_95008` is `mCellFlashFloor`, with a comment on what reads it (the glow's reach and the hint arrows) and that only the
+  level's reset writes it. The one-letter names that ran over 10 lines are `aState`, `aBoard`, `aCand`, `theBoard`, `aWriter`,
+  `aReader` and `thePos`.
+- **Addresses (rule 6).** 50 functions got an address or a `port:` marker. Addresses: the dialogs' and widgets' destructors and
+  the second hook of each pair that one comment named twice (`0x4190c0`, `0x4172e0`, `0x4261b0`, `0x40cb60`, `0x426670` and the
+  like), `ReadFromRegistry` 0x41c630, `ShowHelp` 0x421980, the demo's destructor 0x413700 and the high-score screen's button
+  handler 0x412c80 (which the coverage list had as the score upload, a branch it also holds). `port:` markers: the helpers the
+  original writes inline (the demo's `InitShip`, `Sink`, `DrawShip` and `DrawBall`, the board's heading and step helpers),
+  the framework hooks the original leaves to its base class, and the game-text reader. The test hooks' files carry the marker in
+  their first comment.
+- **Numbers (rule 7).** The pirate's lines and the bonus screen's losing sound are named (`SOUND_TALK...`, `SOUND_BONUSLOSE`)
+  where the code gave `PlaySample` their numbers (0xe to 0x16).
+- **Left as they are.** The music orders (`SetMusicOrder(0x10...)`), which no list of the game names, and the original's
+  geometry in hexadecimal, which each line's comment explains. The three copies of the heading helper (`StepHeading`,
+  `StepHeadingOf`, `HeadingFor`) are separate on purpose: each stands for the original's inline code at its own place.
