@@ -73,7 +73,6 @@ public:
 	int				mExpertMode;			// +0x3ea8 1: expert (double scores)
 	bool			mB3eac;					// +0x3eac the main menu is to be closed when the game updates
 	int				mPauseCount;			// +0x4068 >0: the game is paused
-	int				mI440;					// +0x440 a counter of the base app that the grid raises
 	bool			mShowSymbols;			// the atoms show their chemical symbols
 	bool			mShowTips;				// the tutorial boxes (the option 'disable hints' turns them off)
 	bool			mHintsShown[0xff];		// +0x406c the hints that were shown in earlier games

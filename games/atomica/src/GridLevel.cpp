@@ -72,8 +72,8 @@ void Grid::Reset(int theNumColors)
 void Grid::EndRound()
 {
 	mRounds++;
-	if ((mRounds == 4) && (mApp->mBoard->mMeter.mMoleculesMade == 1))
-		mApp->mI440++;
+	// (here the original counts the game as played, once its fourth round is over with one molecule made: the trial's count,
+	// the base app's +0x440, which only the title screen's free plays read)
 	if (mApp->mMode == 1)
 		return;
 	int aLevel = mApp->mBoard->mMeter.mLevel;

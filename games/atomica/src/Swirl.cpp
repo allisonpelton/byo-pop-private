@@ -31,7 +31,6 @@ namespace
 Swirl::Swirl(Board* theBoard) :
 	mBoard(theBoard),
 	mApp(theBoard->mApp),
-	m17f0(0),
 	mClone(false),
 	mShrink(1.0f)
 {
@@ -169,7 +168,6 @@ Swirl* Swirl::Clone()
 	aCopy->mMinRadius = mMinRadius;
 	memcpy(aCopy->mPoints, mPoints, sizeof(mPoints));
 	memcpy(aCopy->mJitter, mJitter, sizeof(mJitter));
-	aCopy->m17f0 = m17f0;
 	aCopy->mClone = mClone;
 	return aCopy;
 }

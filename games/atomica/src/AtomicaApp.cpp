@@ -59,7 +59,6 @@ AtomicaApp::AtomicaApp()
 	mExpertMode = 0;
 	mB3eac = false;
 	mPauseCount = 0;
-	mI440 = 0;
 	mShowSymbols = false;
 	mShowTips = true;
 	for (int i = 0; i < 0xff; i++)

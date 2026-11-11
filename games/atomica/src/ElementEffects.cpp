@@ -97,11 +97,11 @@ void EarthBolt::Draw(Graphics* g)
 Vortex::Vortex(AtomicaApp* theApp, int theX, int theY) :
 	Effect(theApp),
 	mLife(2000),
-	mMoving(false),
-	mFirst(NULL),
 	mAngleSpeed(0),
 	mAngleSpeedTarget(0),
-	mTimer(0)
+	mTimer(0),
+	mFirst(NULL),
+	mMoving(false)
 {
 	float aRadius = 10.0f;
 	for (int i = 0; i < 0x32; i++)

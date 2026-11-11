@@ -29,8 +29,8 @@ bool gGridBoardClicksOff = false;
 // 0x40e3e0
 Grid::Grid(AtomicaApp* theApp) :
 	mApp(theApp),
-	mGroupColor(0, 0, 0, 255),
-	mCursorColor(0, 0, 0, 255)
+	mCursorColor(0, 0, 0, 255),
+	mGroupColor(0, 0, 0, 255)
 {
 	mCursorX = 0;
 	mCursorY = 0;

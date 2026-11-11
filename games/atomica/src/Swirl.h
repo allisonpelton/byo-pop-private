@@ -42,7 +42,6 @@ public:
 	float			mMinRadius;		// +0x2c it goes when it has shrunk to this
 	int				mPoints[NUM_POINTS][2];		// +0x30 the ring's points (screen position)
 	int				mJitter[NUM_POINTS][2];		// +0xc10 what each is moved by (-7 to 7)
-	int				m17f0;			// +0x17f0 (a clone copies it; the original never sets it)
 	PtrList<Atom>	mAtoms;			// +0x17f4 the atoms that circle in it
 	bool			mClone;			// +0x180c a clone of a swirl for flown atoms: it draws no ring
 	float			mShrink;		// +0x1810 how fast a clone's shrinking speeds up

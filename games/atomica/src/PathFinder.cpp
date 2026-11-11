@@ -26,7 +26,6 @@ PathFinder::~PathFinder()
 // 0x424880
 void PathFinder::Reset()
 {
-	mD34 = -1;
 	mPath.Clear();
 	mPoints.Clear();
 }
