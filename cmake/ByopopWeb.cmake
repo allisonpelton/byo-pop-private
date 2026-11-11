@@ -23,7 +23,7 @@ if(EMSCRIPTEN)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${CMAKE_COMMAND} -E env BINARYEN_CORES=4")
 endif()
 set(BYOPOP_WEB_EXPORTED_FUNCTIONS _main _byopop_userdata_restore _byopop_mods_open _byopop_mods_state
-  _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_cursor _byopop_cursor_copy
+  _byopop_mods_edit _byopop_mods_rescan _byopop_menu _byopop_restart _byopop_quit _byopop_cursor _byopop_cursor_copy
   _byopop_cursor_set_copy
   _byopop_audio_mute _byopop_audio_muted _byopop_site_apply _byopop_site_tutorials _byopop_site_skiplogos _byopop_site_windowed _byopop_site_accel3d _byopop_mixer_gain
   _byopop_update_count _byopop_hold_updates_at _byopop_set_frame_budget _byopop_set_speed _byopop_speed _byopop_perf_json

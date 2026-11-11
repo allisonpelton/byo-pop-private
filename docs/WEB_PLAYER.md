@@ -60,8 +60,12 @@ four ways:
 
 - **Function calls.** `platform/WebApi.cpp` exports a few C functions (`byopop_mods_open`,
   `byopop_mods_state`, `byopop_mods_edit`, `byopop_mods_rescan`), and `framework/ModMenu.cpp` exports
-  `byopop_menu` and `byopop_restart`. The page calls them with `Module.ccall`. The game calls back
-  through `Module.onModsChanged` when the mods change.
+  `byopop_menu`, `byopop_restart` and `byopop_quit`. The page calls them with `Module.ccall`. The game calls back
+  through `Module.onModsChanged` when the mods change. `byopop_quit` is for the Close of a game's window: it calls
+  the app's `QuitAsGame` hook (`SexyAppBase.h`), which by default shuts down at once and which a game overrides to
+  leave as its own Quit does (Bejeweled Twist plays its goodbye and shuts down when the voice ends). It returns 1
+  when a game took the call and 0 when none runs; a build without the export is closed with `byopop_restart(1)` as
+  before. The shutdown reaches the page through `Module.onGameExit` either way.
 - **The screen's shape.** The stage is 4:3 unless the game calls `Module.onGameScreen(width, height)`
   before it makes its window: BookWorm's mod "widescreen" gives 854 x 480 (`SidePanel::TellPage`). The stage
   takes that shape and SDL sizes the canvas to it.
