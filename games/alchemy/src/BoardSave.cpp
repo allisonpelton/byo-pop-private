@@ -2,10 +2,10 @@
 // progress, read when the player chooses to continue, and deleted after it was read.
 
 #include "Board.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Piece.h"
 #include "Fixes.h"
-#include "SidePanel.h"
+#include "Sidebar.h"
 #include "WidgetManager.h"
 #include "Buffer.h"
 #include "PortCompat.h"
@@ -72,13 +72,13 @@ std::string Board::GetSaveGameFileName()
 bool Board::SaveGame()
 {
 	Pause(false);
-	Resume(false);
+	Unpause(false);
 
 	std::string aData = SerializeGame();
 	return mApp->WriteBytesToFile(GetSaveGameFileName(), aData.data(), (unsigned long) aData.size());
 }
 
-// The bytes SaveGame writes (also the web build's backup, AlchemyApp::GetShutdownSaves: it does not touch the clock)
+// The bytes SaveGame writes (also the web build's backup, WinAlchApp::GetShutdownSaves: it does not touch the clock)
 std::string Board::SerializeGame()
 {
 	Buffer aBuffer;
@@ -88,8 +88,8 @@ std::string Board::SerializeGame()
 	WriteBool(&aBuffer, mApp->mTimeTrial);
 	WriteRaw(&aBuffer, mState);
 	WriteText(&aBuffer, mRand.Serialize());
-	WriteText(&aBuffer, mRecord.ToWebString());
-	WriteRaw(&aBuffer, mScriptPos);
+	WriteText(&aBuffer, mEncodedGame.ToWebString());
+	WriteRaw(&aBuffer, mSavedZero);
 
 	WriteBool(&aBuffer, mCurPiece != NULL);
 	if (mCurPiece != NULL)
@@ -124,7 +124,7 @@ std::string Board::SerializeGame()
 
 	// the seconds so far, with the part of the game that is running now
 	int anElapsed = mElapsed;
-	if (mPause == 0)
+	if (mPauseCount == 0)
 		anElapsed += (int) ((GameTickCount() - mStartTick) / 1000);
 
 	WriteRaw(&aBuffer, mNumValid);
@@ -157,7 +157,7 @@ std::string Board::SerializeGame()
 	WriteRaw(&aBuffer, mRate);
 	WriteRaw(&aBuffer, mLastShape);
 	WriteRaw(&aBuffer, mLastColor);
-	WriteRaw(&aBuffer, mApp->mSidePanel->mScoreAnim);
+	WriteRaw(&aBuffer, mApp->mSidebar->mScoreAnim);
 
 	return std::string((const char*) aBuffer.GetDataPtr(), (size_t) aBuffer.GetDataLen());
 }
@@ -178,8 +178,8 @@ bool Board::LoadGame()
 	ReadBool(&aBuffer, &mApp->mTimeTrial);
 	ReadRaw(&aBuffer, &mState);
 	mRand.SRand(ReadText(&aBuffer));
-	mRecord.FromWebString(ReadText(&aBuffer));
-	ReadRaw(&aBuffer, &mScriptPos);
+	mEncodedGame.FromWebString(ReadText(&aBuffer));
+	ReadRaw(&aBuffer, &mSavedZero);
 
 	bool hasPiece = false;
 	ReadBool(&aBuffer, &hasPiece);
@@ -225,7 +225,7 @@ bool Board::LoadGame()
 				// 150 pixels left of the cells, out of the board's picture (fix "continuedEnding" gives the offset)
 				int aOffsetX = FixEnabled("continuedEnding") ? mX : 0;
 				int aOffsetY = FixEnabled("continuedEnding") ? mY : 0;
-				aPiece->Resize(ColToX(aPiece->mCol) + aOffsetX, RowToY(aPiece->mRow) + aOffsetY, 0x4b, 0x4b);
+				aPiece->Resize(GetColX(aPiece->mCol) + aOffsetX, GetRowY(aPiece->mRow) + aOffsetY, 0x4b, 0x4b);
 				mGrid[aRow][aCol] = aPiece;
 			}
 			ReadBool(&aBuffer, &mLit[aRow][aCol]);
@@ -263,24 +263,24 @@ bool Board::LoadGame()
 	ReadRaw(&aBuffer, &mRate);
 	ReadRaw(&aBuffer, &mLastShape);
 	ReadRaw(&aBuffer, &mLastColor);
-	ReadRaw(&aBuffer, &mApp->mSidePanel->mScoreAnim);
+	ReadRaw(&aBuffer, &mApp->mSidebar->mScoreAnim);
 
 	// a light that was dissolving in when the game was saved has no pictures: it is over
 	mLightOn = false;
 	mPristine = false;
 	mStartTick = GameTickCount();
-	ComputeValid();
-	RedrawAllCells();
+	DetermineValidMoves();
+	RedrawBackground();
 
 	if (mState == STATE_BOARD_CLEARED)
 	{
-		ComputeRank();
+		GetGameStats();
 		if (mCurPiece != NULL)
 		{
 			mCurPiece->SetVisible(false);
 			mCurPiece->mFollowMouse = false;
 		}
-		BoardCleared();
+		ShowBoardComplete();
 	}
 	return true;
 }

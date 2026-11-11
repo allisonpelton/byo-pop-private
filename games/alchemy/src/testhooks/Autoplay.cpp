@@ -2,13 +2,13 @@
 
 #include "Autoplay.h"
 #include "Bot.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Board.h"
 #include "Piece.h"
 #include "HighScores.h"
 #include "Dialogs.h"
 #include "TitleScreen.h"
-#include "Selector.h"
+#include "IntroScreen.h"
 #include "WidgetManager.h"
 #include "ButtonWidget.h"
 #include "Compat2004.h"
@@ -24,7 +24,7 @@
 
 using namespace Sexy;
 
-AutoplayBot::AutoplayBot(AlchemyApp* theApp, unsigned int theSeed)
+AutoplayBot::AutoplayBot(WinAlchApp* theApp, unsigned int theSeed)
 {
 	mApp = theApp;
 	mSeed = theSeed;
@@ -138,7 +138,7 @@ void AutoplayBot::Finish()
 void AutoplayBot::PlayBoard(Board* theBoard)
 {
 	// a key paused the game: another one goes on
-	if (mApp->mAutoplayUi && mApp->mAutoplayExtra > 0 && theBoard->mState == Board::STATE_PLAYING && (theBoard->mPause > 0 || theBoard->mTrialPause > 0))
+	if (mApp->mAutoplayUi && mApp->mAutoplayExtra > 0 && theBoard->mState == Board::STATE_PLAYING && (theBoard->mPauseCount > 0 || theBoard->mCoverCount > 0))
 	{
 		if (++mPausedFor >= 40)
 		{
@@ -147,14 +147,14 @@ void AutoplayBot::PlayBoard(Board* theBoard)
 		}
 		return;
 	}
-	if (theBoard->mState != Board::STATE_PLAYING || theBoard->mPause > 0 || theBoard->mTrialPause > 0)
+	if (theBoard->mState != Board::STATE_PLAYING || theBoard->mPauseCount > 0 || theBoard->mCoverCount > 0)
 		return;
 
 	// a tutorial step's text waits for the next button
-	if (theBoard->mTutorial && theBoard->mTutWaiting)
+	if (theBoard->mTutorial && theBoard->mTutorialWaiting)
 	{
-		Log("tutorial step %d at update %d", theBoard->mTutStep, mTick);
-		Shot("tutorial", theBoard->mTutStep);
+		Log("tutorial step %d at update %d", theBoard->mTutorialStep, mTick);
+		Shot("tutorial", theBoard->mTutorialStep);
 		if (mApp->mAutoplayUi)
 		{
 			if (theBoard->mButton == NULL)
@@ -308,11 +308,11 @@ void AutoplayBot::Update()
 	}
 
 	// a name for the score table
-	if (mApp->GetDialog(DIALOG_NAME_ENTRY) != NULL)
+	if (mApp->GetDialog(DIALOG_RECORD_SCORE) != NULL)
 	{
 		Log("name entered at update %d", mTick);
 		{
-			NameEntryDialog* aName = (NameEntryDialog*) mApp->GetDialog(DIALOG_NAME_ENTRY);
+			RecordScoreDialog* aName = (RecordScoreDialog*) mApp->GetDialog(DIALOG_RECORD_SCORE);
 			Point aDialogPos = aName->GetAbsPos();
 			Point anEditPos = aName->mEdit->GetAbsPos();
 			Point aYesPos = aName->mYesButton->GetAbsPos();
@@ -327,12 +327,12 @@ void AutoplayBot::Update()
 			Char('B');
 			Char('o');
 			Char('t');
-			ClickWidget(mApp->GetDialog(DIALOG_NAME_ENTRY)->mYesButton);
+			ClickWidget(mApp->GetDialog(DIALOG_RECORD_SCORE)->mYesButton);
 		}
 		else
 		{
-			((NameEntryDialog*) mApp->GetDialog(DIALOG_NAME_ENTRY))->mEdit->SetText("Bot");
-			mApp->ButtonDepress(DIALOG_NAME_ENTRY + 2000);
+			((RecordScoreDialog*) mApp->GetDialog(DIALOG_RECORD_SCORE))->mEdit->SetText("Bot");
+			mApp->ButtonDepress(DIALOG_RECORD_SCORE + 2000);
 		}
 		mWait = 5;
 		return;
@@ -355,7 +355,7 @@ void AutoplayBot::Update()
 	}
 
 	// the selector: the next game
-	if (mApp->mSelector != NULL)
+	if (mApp->mIntroScreen != NULL)
 	{
 		if (mGames >= mApp->mAutoplayGames)
 		{
@@ -372,14 +372,14 @@ void AutoplayBot::Update()
 			mLastState = -1;
 			mLastBoards = 0;
 			Log("game %d (tutorial) starts at update %d", mGames, mTick);
-			ClickWidget(mApp->mSelector->mTutorialPicButton);
+			ClickWidget(mApp->mIntroScreen->mTutorialPicButton);
 			mWait = 20;
 			return;
 		}
 		if (mApp->mAutoplayUi && mSelStep == 0 && mApp->mAutoplaySkill >= 0)
 		{
 			// the skill level's button, then the mode's, then (each two updates later) the start button
-			ClickWidget(mApp->mSelector->mSkillButtons[mApp->mAutoplaySkill]);
+			ClickWidget(mApp->mIntroScreen->mSkillButtons[mApp->mAutoplaySkill]);
 			mSelStep = 1;
 			mWait = 2;
 			return;
@@ -387,7 +387,7 @@ void AutoplayBot::Update()
 		if (mApp->mAutoplayUi && mSelStep <= 1)
 		{
 			bool aTrial = mApp->mAutoplayMode == "timetrial";
-			ClickWidget(aTrial ? (Widget*) mApp->mSelector->mTimeTrialButton : (Widget*) mApp->mSelector->mStrategicButton);
+			ClickWidget(aTrial ? (Widget*) mApp->mIntroScreen->mTimeTrialButton : (Widget*) mApp->mIntroScreen->mStrategicButton);
 			mSelStep = 2;
 			mWait = 2;
 			return;
@@ -402,12 +402,12 @@ void AutoplayBot::Update()
 		Shot("selector", mGames);
 		Log("game %d (%s) starts at update %d", mGames, mApp->mAutoplayMode.c_str(), mTick);
 		if (mApp->mAutoplayUi)
-			ClickWidget(mApp->mSelector->mStartButton);
+			ClickWidget(mApp->mIntroScreen->mStartButton);
 		else
 		{
 			mApp->mTutorialMode = (mApp->mAutoplayMode == "tutorial");
-			mApp->SetTimeTrial(mApp->mAutoplayMode == "timetrial");
-			mApp->StartGame();
+			mApp->ChangeTimeTrial(mApp->mAutoplayMode == "timetrial");
+			mApp->NewGame();
 		}
 		mWait = 20;
 		return;
@@ -457,7 +457,7 @@ void AutoplayBot::Update()
 	if (mTick % 500 == 0)
 	{
 		Log("update %d: state %d piece %d pause %d trialpause %d helpshown %d newpiecedelay %d moves %d forged %d", mTick, aBoard->mState,
-			aBoard->mCurPiece != NULL, aBoard->mPause, aBoard->mTrialPause, aBoard->mHelpShown, aBoard->mNewPieceDelay, mMoves, mForges);
+			aBoard->mCurPiece != NULL, aBoard->mPauseCount, aBoard->mCoverCount, aBoard->mWizardShown, aBoard->mNewPieceDelay, mMoves, mForges);
 		if (mTick % 2000 == 0)
 			Shot("tick", mTick);
 	}
@@ -465,7 +465,7 @@ void AutoplayBot::Update()
 	PlayBoard(aBoard);
 }
 
-StateLog::StateLog(AlchemyApp* theApp)
+StateLog::StateLog(WinAlchApp* theApp)
 {
 	mApp = theApp;
 	mFile = fopen(theApp->mStateLogFileName.c_str(), "w");
@@ -499,13 +499,13 @@ void StateLog::Update()
 		aValues[3] = aBoard->mDiscards;
 		aValues[4] = aBoard->mBoardsCleared;
 		aValues[7] = aBoard->mTimeTrial ? 1 : 0;
-		aValues[8] = aBoard->mTrialPause;
+		aValues[8] = aBoard->mCoverCount;
 		aValues[9] = aBoard->mFullCount;
-		aValues[10] = aBoard->mOverTimer;
+		aValues[10] = aBoard->mGameOverTimer;
 		aValues[11] = aBoard->mMultiMoves;
 		aValues[12] = aBoard->mRun;
 		aValues[13] = aBoard->mLongestRun;
-		aValues[14] = aBoard->mPause;
+		aValues[14] = aBoard->mPauseCount;
 		aValues[15] = aBoard->mNumShapes;
 		aValues[16] = aBoard->mNumColors;
 		aValues[17] = aBoard->mBombChance;
@@ -515,9 +515,9 @@ void StateLog::Update()
 		aValues[21] = aBoard->mNumValid;
 		aValues[22] = aBoard->mLastShape;
 		aValues[23] = aBoard->mTutorial ? 1 : 0;
-		aValues[24] = aBoard->mTutStep;
-		aValues[25] = aBoard->mTutCount;
-		aValues[26] = aBoard->mTutWaiting ? 1 : 0;
+		aValues[24] = aBoard->mTutorialStep;
+		aValues[25] = aBoard->mTutorialCount;
+		aValues[26] = aBoard->mTutorialWaiting ? 1 : 0;
 		aValues[27] = aBoard->mHintOn ? 1 : 0;
 		aValues[28] = aBoard->mHintTimer;
 		if (aBoard->mCurPiece != NULL)

@@ -1,11 +1,11 @@
 // The board's drawing and the statistics panel of a cleared board (see Board.h).
 
 #include "Board.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Piece.h"
 #include "Wizard.h"
-#include "Effects.h"
-#include "SidePanel.h"
+#include "BoardOverlay.h"
+#include "Sidebar.h"
 #include "DialogButton.h"
 #include "MemoryImage.h"
 #include "Graphics.h"
@@ -35,7 +35,7 @@ static Color FlashColor(int thePercent)
 // 0x404923
 void Board::Draw(Graphics* g)
 {
-	if (mTrialPause < 1)
+	if (mCoverCount < 1)
 		g->DrawImage(mBgImage, 0, 0);
 	else
 		g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
@@ -59,7 +59,7 @@ void Board::Draw(Graphics* g)
 	g->DrawString(aBuffer, 0xfc, 0x1d5);
 
 	// paused (time trial): the board is covered
-	if (mTrialPause != 0)
+	if (mCoverCount != 0)
 	{
 		if (mApp->mDialogMap.empty())
 		{
@@ -112,7 +112,7 @@ void Board::Draw(Graphics* g)
 				{
 					g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 					g->SetColor(Color(0x18, 0x18, 0x18));
-					g->FillRect(ColToX(aCol), RowToY(aRow), CELL, CELL);
+					g->FillRect(GetColX(aCol), GetRowY(aRow), CELL, CELL);
 					g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				}
 	}
@@ -122,7 +122,7 @@ void Board::Draw(Graphics* g)
 	{
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		g->SetColor(Color(0x18, 0x18, 0x18));
-		g->FillRect(ColToX(mHoverX), RowToY(mHoverY), CELL, CELL);
+		g->FillRect(GetColX(mHoverX), GetRowY(mHoverY), CELL, CELL);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 
@@ -136,13 +136,13 @@ void Board::Draw(Graphics* g)
 			{
 				if (mClearCol == -1)
 					continue;
-				aRect = Rect(ColToX(mClearCol), RowToY(0), CELL, ROWS * CELL);
+				aRect = Rect(GetColX(mClearCol), GetRowY(0), CELL, ROWS * CELL);
 			}
 			else
 			{
 				if (mClearRow == -1)
 					continue;
-				aRect = Rect(ColToX(0), RowToY(mClearRow), COLS * CELL, CELL);
+				aRect = Rect(GetColX(0), GetRowY(mClearRow), COLS * CELL, CELL);
 			}
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColor(FlashColor(mAnimPct));
@@ -158,14 +158,14 @@ void Board::Draw(Graphics* g)
 		for (int aRow = 0; aRow < ROWS; aRow++)
 			for (int aCol = 0; aCol < COLS; aCol++)
 				if (mFlash[aRow][aCol])
-					g->FillRect(ColToX(aCol), RowToY(aRow), CELL, CELL);
+					g->FillRect(GetColX(aCol), GetRowY(aRow), CELL, CELL);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 
 	// the tile that is lighting up, with its piece on top (the piece's colour pulses toward white)
 	if (mLightOn)
 	{
-		g->DrawImage(mLightOut, ColToX(mLightCol), RowToY(mLightRow));
+		g->DrawImage(mLightOut, GetColX(mLightCol), GetRowY(mLightRow));
 		Piece* aPiece = mGrid[mLightRow][mLightCol];
 		if (aPiece != NULL)
 		{
@@ -176,12 +176,12 @@ void Board::Draw(Graphics* g)
 				int aRed = (int) (gPieceColors[aPiece->mColor][0] * (1.0 - mLightMix) + mLightMix * 255.0);
 				g->SetColorizeImages(true);
 				g->SetColor(Color(aRed, aGreen, aBlue));
-				g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], ColToX(mLightCol) + 1, RowToY(mLightRow) + 1,
+				g->DrawImage(mApp->mImages[IMAGE_SYMBOLS], GetColX(mLightCol) + 1, GetRowY(mLightRow) + 1,
 					Rect(aPiece->mShape * 0x32, 0, 0x32, 0x32));
 				g->SetColorizeImages(false);
 			}
 			else
-				g->DrawImage(mApp->mImages[IMAGE_NULLBLOCK], ColToX(mLightCol), RowToY(mLightRow));
+				g->DrawImage(mApp->mImages[IMAGE_NULLBLOCK], GetColX(mLightCol), GetRowY(mLightRow));
 		}
 	}
 
@@ -208,7 +208,7 @@ void Board::Draw(Graphics* g)
 	else if (mState == STATE_GAME_OVER)
 	{
 		g->SetColorizeImages(true);
-		g->SetColor(Color(0xff, 0xff, 0xff, (int) (mOverFade * 255.0)));
+		g->SetColor(Color(0xff, 0xff, 0xff, (int) (mGameOverFade * 255.0)));
 		g->DrawImage(mApp->mImages[IMAGE_GAMEOVER], 0x72, 0xa4);
 		g->SetColorizeImages(false);
 	}
@@ -216,10 +216,10 @@ void Board::Draw(Graphics* g)
 
 // 0x40400d: the board is cleared: the statistics are written on the board, and a button starts the next one. The text
 // has a black outline of 24 copies around it.
-void Board::BoardCleared()
+void Board::ShowBoardComplete()
 {
 	mState = STATE_BOARD_CLEARED;
-	ShowHelpBox();
+	ShowWizard();
 
 	DialogButton* aButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], 0, this);
 	mButton = aButton;
@@ -262,20 +262,20 @@ void Board::BoardCleared()
 			if (isLast)
 				g.SetColor(Color(0xff, 0xa0, 0x3c));
 			sprintf(aBuffer, "%2d:%02d", mTotalSeconds / 60, mTotalSeconds % 60);
-			DrawStatLine(&g, aRect, aDX, aDY + 0x6e, mApp->GetString("CURRENT_GAME_TIME"), aBuffer);
+			DrawColumn(&g, aRect, aDX, aDY + 0x6e, mApp->GetString("CURRENT_GAME_TIME"), aBuffer);
 			sprintf(aBuffer, "%d", mBoardsCleared + 1);
-			DrawStatLine(&g, aRect, aDX, aDY + 0x82, mApp->GetString("BOARDS_CLEARED"), aBuffer);
+			DrawColumn(&g, aRect, aDX, aDY + 0x82, mApp->GetString("BOARDS_CLEARED"), aBuffer);
 			sprintf(aBuffer, "%d", mLongestRun);
-			DrawStatLine(&g, aRect, aDX, aDY + 0x96, mApp->GetString("LONGEST_RUN_WITHOUT_DISCARD"), aBuffer);
+			DrawColumn(&g, aRect, aDX, aDY + 0x96, mApp->GetString("LONGEST_RUN_WITHOUT_DISCARD"), aBuffer);
 			sprintf(aBuffer, "%d", mScore);
-			DrawStatLine(&g, aRect, aDX, aDY + 0xaa, mApp->GetString("CURRENT_SCORE"), aBuffer);
+			DrawColumn(&g, aRect, aDX, aDY + 0xaa, mApp->GetString("CURRENT_SCORE"), aBuffer);
 
 			// the rank and the score of the next one
 			if (isLast)
 				g.SetColor(Color(0xfc, 100, 0x34));
 			SexyString aRankLabel = mApp->GetString("CURRENT_RANKING");
 			SexyString aNextLabel = mApp->GetString("NEXT_RANK_AT");
-			DrawStatLine(&g, aRect, aDX, aDY + 0xd2, aRankLabel, aNextLabel);
+			DrawColumn(&g, aRect, aDX, aDY + 0xd2, aRankLabel, aNextLabel);
 			int aRankLabelWidth = g.GetFont()->StringWidth(aRankLabel);
 			int aNextLabelWidth = g.GetFont()->StringWidth(aNextLabel);
 

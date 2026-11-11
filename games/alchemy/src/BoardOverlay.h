@@ -11,7 +11,7 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 
 struct ScorePopup
 {
@@ -35,17 +35,17 @@ struct Sparkle
 	Sparkle() : mX(0), mY(0), mFrame(0), mFalls(false), mBig(false) {}
 };
 
-class EffectsWidget : public Widget
+class BoardOverlay : public Widget
 {
 public:
 	std::list<ScorePopup>	mPopups;        // +0x58
 	std::list<Sparkle>		mSparkles;      // +0x64
-	AlchemyApp*				mApp;           // +0x70
+	WinAlchApp*				mApp;           // +0x70
 	bool					mShowHelpArrow; // +0x74
 
-	EffectsWidget(AlchemyApp* theApp);      // 0x40858e
+	BoardOverlay(WinAlchApp* theApp);      // 0x40858e
 
-	void					AddScorePopup(int theX, int theY, int theValue);        // 0x408938
+	void					FloatPoints(int theX, int theY, int theValue);        // 0x408938
 	void					AddSparkle(int theX, int theY, bool isFalling, bool isBig); // 0x408970
 	void					Clear();
 

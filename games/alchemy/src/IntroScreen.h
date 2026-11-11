@@ -10,15 +10,15 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 class ButtonWidget;
 class MemoryImage;
-class WizardBox;
+class Wizard;
 
-class SelectorScreen : public Widget, public ButtonListener
+class IntroScreen : public Widget, public ButtonListener
 {
 public:
-	AlchemyApp*			mApp;                   // +0x60
+	WinAlchApp*			mApp;                   // +0x60
 	int					mSkill;                 // +0x64 1..3
 	bool				mTimeTrial;             // +0x68
 	ButtonWidget*		mStartButton;           // +0x6c id 0: new game
@@ -30,12 +30,12 @@ public:
 	MemoryImage*		mStrategicImage;        // +0x94
 	ButtonWidget*		mTimeTrialButton;       // +0x98 id 3
 	MemoryImage*		mTimeTrialImage;        // +0x9c
-	WizardBox*			mWizard;                // +0xa0
+	Wizard*			mWizard;                // +0xa0
 
-	SelectorScreen(AlchemyApp* theApp);                     // 0x40c817
-	virtual ~SelectorScreen();                              // 0x40c7fb
+	IntroScreen(WinAlchApp* theApp);                     // 0x40c817
+	virtual ~IntroScreen();                              // 0x40c7fb
 
-	void				SetSkill(int theSkill);             // 0x40c488
+	void				SetSkillLevel(int theSkill);             // 0x40c488
 	void				SetTimeTrial(bool isTimeTrial);     // 0x40c4c6
 
 	virtual void		Update() override;                  // 0x40c526

@@ -26,14 +26,14 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 class Board;
 class Widget;
 
 class AutoplayBot
 {
 public:
-	AlchemyApp*		mApp;
+	WinAlchApp*		mApp;
 	unsigned int	mSeed;
 	int				mTick;
 	int				mGames;             // games started
@@ -53,7 +53,7 @@ public:
 	int				mSelStep;           // -autoplayui: 0 the mode's button comes next, 1 the start button
 
 public:
-	AutoplayBot(AlchemyApp* theApp, unsigned int theSeed);
+	AutoplayBot(WinAlchApp* theApp, unsigned int theSeed);
 	~AutoplayBot();
 
 	void			Update();
@@ -79,13 +79,13 @@ private:
 class StateLog
 {
 public:
-	AlchemyApp*		mApp;
+	WinAlchApp*		mApp;
 	FILE*			mFile;
 	enum { NUM_FIELDS = 30 };
 	int				mLast[NUM_FIELDS];
 
 public:
-	StateLog(AlchemyApp* theApp);
+	StateLog(WinAlchApp* theApp);
 	~StateLog();
 
 	void			Update();

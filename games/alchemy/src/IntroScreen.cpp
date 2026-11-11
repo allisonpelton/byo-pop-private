@@ -1,7 +1,7 @@
-// The game selector (see Selector.h).
+// The game selector (see IntroScreen.h).
 
-#include "Selector.h"
-#include "AlchemyApp.h"
+#include "IntroScreen.h"
+#include "WinAlchApp.h"
 #include "Wizard.h"
 #include "ButtonWidget.h"
 #include "MemoryImage.h"
@@ -12,7 +12,7 @@
 using namespace Sexy;
 
 // 0x40c817
-SelectorScreen::SelectorScreen(AlchemyApp* theApp)
+IntroScreen::IntroScreen(WinAlchApp* theApp)
 {
 	mApp = theApp;
 
@@ -91,16 +91,16 @@ SelectorScreen::SelectorScreen(AlchemyApp* theApp)
 	mTimeTrialButton->mDoFinger = true;
 	mTimeTrialButton->mDownImage = mTimeTrialImage;
 
-	mWizard = new WizardBox(mApp);
+	mWizard = new Wizard(mApp);
 
 	mSkill = 1;
 	mTimeTrial = false;
-	SetSkill(mApp->mSkillLevel);
+	SetSkillLevel(mApp->mSkillLevel);
 	SetTimeTrial(mApp->mTimeTrial);
 }
 
 // 0x40c7fb (-> 0x40c3ca)
-SelectorScreen::~SelectorScreen()
+IntroScreen::~IntroScreen()
 {
 	delete mStartButton;
 	delete mTutorialPicButton;
@@ -118,7 +118,7 @@ SelectorScreen::~SelectorScreen()
 }
 
 // 0x40c488: the chosen skill's button shows its picture, the other two are blank until pressed
-void SelectorScreen::SetSkill(int theSkill)
+void IntroScreen::SetSkillLevel(int theSkill)
 {
 	mSkill = theSkill;
 	for (int i = 0; i < 3; i++)
@@ -129,7 +129,7 @@ void SelectorScreen::SetSkill(int theSkill)
 }
 
 // 0x40c4c6
-void SelectorScreen::SetTimeTrial(bool isTimeTrial)
+void IntroScreen::SetTimeTrial(bool isTimeTrial)
 {
 	mTimeTrial = isTimeTrial;
 	mStrategicButton->mButtonImage = isTimeTrial ? NULL : mStrategicImage;
@@ -139,19 +139,19 @@ void SelectorScreen::SetTimeTrial(bool isTimeTrial)
 }
 
 // 0x40c526: the first time the selector is up, the wizard greets the player a second in
-void SelectorScreen::Update()
+void IntroScreen::Update()
 {
 	Widget::Update();
 
-	if (mApp->mSelectorFlag && mUpdateCnt == 0x3c)
+	if (mApp->mBeforeFirstGame && mUpdateCnt == 0x3c)
 	{
 		mApp->PlaySample(SOUND_WELCOME);
-		mWizard->Talk(0);
+		mWizard->Play(0);
 	}
 }
 
 // 0x40c559
-void SelectorScreen::AddedToManager(WidgetManager* theWidgetManager)
+void IntroScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mStartButton);
@@ -165,7 +165,7 @@ void SelectorScreen::AddedToManager(WidgetManager* theWidgetManager)
 }
 
 // 0x40c5c8
-void SelectorScreen::RemovedFromManager(WidgetManager* theWidgetManager)
+void IntroScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mStartButton);
@@ -179,7 +179,7 @@ void SelectorScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // 0x40c637
-void SelectorScreen::Resize(int theX, int theY, int theWidth, int theHeight)
+void IntroScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
 
@@ -195,14 +195,14 @@ void SelectorScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 }
 
 // 0x40cefe
-void SelectorScreen::Draw(Graphics* g)
+void IntroScreen::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
 	g->DrawImage(mApp->mImages[IMAGE_GAMESELECTOR_BASE], 10, 0x23);
 
 	g->SetFont(mApp->mTitleFont);
 	g->SetColor(Color(255, 255, 255));
-	if (!mApp->mSelectorFlag)
+	if (!mApp->mBeforeFirstGame)
 	{
 		SexyString aText = mApp->GetString("NEW_GAME");
 		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 100);
@@ -263,26 +263,26 @@ void SelectorScreen::Draw(Graphics* g)
 }
 
 // 0x40c760: the click
-void SelectorScreen::ButtonPress(int theId)
+void IntroScreen::ButtonPress(int theId)
 {
 	mApp->PlaySample(SOUND_CLICK);
 }
 
 // 0x40c770
-void SelectorScreen::ButtonDepress(int theId)
+void IntroScreen::ButtonDepress(int theId)
 {
 	switch (theId)
 	{
 	case 0:
 		mApp->mTutorialMode = false;
-		mApp->SetTimeTrial(mTimeTrial);
-		mApp->SetSkillLevel(mSkill);
-		mApp->StartGame();
+		mApp->ChangeTimeTrial(mTimeTrial);
+		mApp->ChangeSkillLevel(mSkill);
+		mApp->NewGame();
 		break;
 	case 1:
 	case 4:
 		mApp->mTutorialMode = true;
-		mApp->StartGame();
+		mApp->NewGame();
 		break;
 	case 2:
 		SetTimeTrial(false);
@@ -292,7 +292,7 @@ void SelectorScreen::ButtonDepress(int theId)
 		break;
 	default:
 		if (theId > 10 && theId <= 13)
-			SetSkill(theId - 10);
+			SetSkillLevel(theId - 10);
 		break;
 	}
 }

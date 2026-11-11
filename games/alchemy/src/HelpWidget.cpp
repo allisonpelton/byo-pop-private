@@ -1,7 +1,7 @@
 // The help screen (see HelpWidget.h).
 
 #include "HelpWidget.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Board.h"
 #include "Graphics.h"
 #include "HyperlinkWidget.h"
@@ -12,7 +12,7 @@
 using namespace Sexy;
 
 // 0x408a8a
-HelpWidget::HelpWidget(AlchemyApp* theApp)
+HelpWidget::HelpWidget(WinAlchApp* theApp)
 {
 	mApp = theApp;
 
@@ -62,7 +62,7 @@ void HelpWidget::ButtonDepress(int theId)
 	if (theId == 0)
 		mApp->ConfirmTutorial();
 	else if (theId == 1)
-		mApp->HideHelp();
+		mApp->RemoveHelpWidget();
 }
 
 // 0x408cd7: three boxes of three symbols each, in colours, under the labels RIGHT, RIGHT and WRONG

@@ -1,7 +1,7 @@
 // The tutorial: the wizard explains the rules step by step on a board that is set up for each step (see Board.h).
 
 #include "Board.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Piece.h"
 #include "ButtonWidget.h"
 #include "DialogButton.h"
@@ -15,9 +15,9 @@ using namespace Sexy;
 
 // 0x402fcf: the next step. The odd steps after an action explain what happened and wait for the "next" button; the
 // others set up a position and let the player try.
-void Board::AdvanceTutorial()
+void Board::NextTutorial()
 {
-	mTutStep++;
+	mTutorialStep++;
 	mAnimateLights = false;
 	if (mButton != NULL)
 	{
@@ -32,14 +32,14 @@ void Board::AdvanceTutorial()
 
 	SexyString aText;
 	bool needButton = false;
-	switch (mTutStep)
+	switch (mTutorialStep)
 	{
 	case 0:
 		aText = mApp->GetString("TUTORIAL_FIRST_PIECE");
 		{
 			Piece* aPiece = new Piece(mApp);
 			aPiece->mSkull = true;
-			PlacePiece(aPiece, 4, 5);
+			PutPiece(aPiece, 4, 5);
 		}
 		break;
 	case 1:
@@ -56,7 +56,7 @@ void Board::AdvanceTutorial()
 	case 4:
 		{
 			aText = mApp->GetString("TUTORIAL_CLEAR_ROW");
-			ClearGrid();
+			ResetBoard();
 			static const int aColors[8] = {3, 3, 3, 4, 4, 5, 5, 5};
 			static const int aShapes[8] = {4, 2, 3, 3, 4, 4, 5, 6};
 			for (int i = 0; i < 8; i++)
@@ -64,7 +64,7 @@ void Board::AdvanceTutorial()
 				Piece* aPiece = new Piece(mApp);
 				aPiece->mColor = aColors[i];
 				aPiece->mShape = aShapes[i];
-				PlacePiece(aPiece, i, 5);
+				PutPiece(aPiece, i, 5);
 			}
 		}
 		break;
@@ -75,11 +75,11 @@ void Board::AdvanceTutorial()
 	case 6:
 		{
 			aText = mApp->GetString("TUTORIAL_USE_FORGE");
-			ClearGrid();
+			ResetBoard();
 			Piece* aPiece = new Piece(mApp);
 			aPiece->mColor = 2;
 			aPiece->mShape = 2;
-			PlacePiece(aPiece, 4, 6);
+			PutPiece(aPiece, 4, 6);
 		}
 		break;
 	case 7:
@@ -92,7 +92,7 @@ void Board::AdvanceTutorial()
 	case 9:
 		{
 			aText = mApp->GetString("TUTORIAL_BIG_MATCH");
-			ClearGrid();
+			ResetBoard();
 			// a block of 5 x 4 pieces (-1: none) in the rows 4 to 7, and the tiles of row 6 already lit
 			static const int aColors[20] = {1, -1, 4, 2, 0, 0, 3, 3, 5, -1, -1, 1, -1, 3, 2, 2, 1, -1, 6, 4};
 			static const int aShapes[20] = {0, -1, 1, 2, 6, 2, 2, 0, 7, -1, -1, 5, -1, 5, 4, 4, 2, -1, 3, 3};
@@ -103,7 +103,7 @@ void Board::AdvanceTutorial()
 				Piece* aPiece = new Piece(mApp);
 				aPiece->mShape = aShapes[k];
 				aPiece->mColor = aColors[k];
-				PlacePiece(aPiece, 2 + k % 5, 4 + k / 5);
+				PutPiece(aPiece, 2 + k % 5, 4 + k / 5);
 			}
 			for (int aCol = 0; aCol < COLS; aCol++)
 				mLit[6][aCol] = true;
@@ -126,7 +126,7 @@ void Board::AdvanceTutorial()
 	case 0xe:
 		{
 			aText = mApp->GetString("TUTORIAL_DONE");
-			ClearGrid();
+			ResetBoard();
 			DialogButton* aButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], 1, this);
 			mButton = aButton;
 			aButton->SetFont(mApp->mFont1);
@@ -150,11 +150,11 @@ void Board::AdvanceTutorial()
 	WriteWordWrapped2004(&g, Rect(0xa0, 0x40, mWidth - 0xc0, 0), aText, -1, -1);
 	g.DrawImage(mApp->mImages[IMAGE_WIZARDHEAD], -4, 0);
 
-	mTutCount = 0;
+	mTutorialCount = 0;
 	for (int aRow = 0; aRow < ROWS; aRow++)
 		for (int aCol = 0; aCol < COLS; aCol++)
 			if (mGrid[aRow][aCol] != NULL || mLit[aRow][aCol])
-				RedrawCell(aCol, aRow);
+				RedrawBackground(aCol, aRow);
 
 	if (needButton)
 	{
@@ -167,7 +167,7 @@ void Board::AdvanceTutorial()
 		mWidgetManager->PutInfront(aButton, this);
 	}
 
-	if (mTutStep == 0xe || needButton)
+	if (mTutorialStep == 0xe || needButton)
 	{
 		if (mCurPiece != NULL)
 		{
@@ -177,7 +177,7 @@ void Board::AdvanceTutorial()
 		mCurPiece = NULL;
 	}
 	else
-		NewCurrentPiece();
-	mTutWaiting = needButton;
+		NextMove();
+	mTutorialWaiting = needButton;
 	mAnimateLights = true;
 }

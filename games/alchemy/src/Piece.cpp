@@ -2,8 +2,8 @@
 
 #include "Piece.h"
 #include "Board.h"
-#include "Effects.h"
-#include "AlchemyApp.h"
+#include "BoardOverlay.h"
+#include "WinAlchApp.h"
 #include "WidgetManager.h"
 #include "Graphics.h"
 #include "MemoryImage.h"
@@ -21,7 +21,7 @@ const int Sexy::gPieceColors[9][3] =
 };
 
 // 0x40e433
-Piece::Piece(AlchemyApp* theApp)
+Piece::Piece(WinAlchApp* theApp)
 {
 	mApp = theApp;
 	mImage = NULL;
@@ -122,7 +122,7 @@ void Piece::Update()
 
 		// the piece stands in for the mouse pointer while the mouse is over the board
 		bool isHidden = !mWidgetManager->mMouseIn || mApp->mMinimized || !mApp->mDialogMap.empty() ||
-			(mApp->mBoard != NULL && mApp->mBoard->mTrialPause != 0) || mApp->mHelp != NULL ||
+			(mApp->mBoard != NULL && mApp->mBoard->mCoverCount != 0) || mApp->mHelp != NULL ||
 			(mX < 0x66 && (mY < 0x113 || mY > 0x16a));
 		SetVisible(!isHidden);
 	}
@@ -134,7 +134,7 @@ void Piece::Update()
 		bool isBig = (CrtRand() % 2) == 0;
 		int aY = CrtRand() % 0x22 + 0x14 + mY;
 		int aX = CrtRand() % 0x22 + 0x14 + mX;
-		mApp->mEffects->AddSparkle(aX, aY, true, isBig);
+		mApp->mBoardOverlay->AddSparkle(aX, aY, true, isBig);
 		mSparkleAcc -= 1.0;
 	}
 }

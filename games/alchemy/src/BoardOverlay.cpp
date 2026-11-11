@@ -1,7 +1,7 @@
-// The effects overlay (see Effects.h).
+// The effects overlay (see BoardOverlay.h).
 
-#include "Effects.h"
-#include "AlchemyApp.h"
+#include "BoardOverlay.h"
+#include "WinAlchApp.h"
 #include "Graphics.h"
 #include "ImageFont.h"
 
@@ -10,7 +10,7 @@
 using namespace Sexy;
 
 // 0x40858e
-EffectsWidget::EffectsWidget(AlchemyApp* theApp)
+BoardOverlay::BoardOverlay(WinAlchApp* theApp)
 {
 	mApp = theApp;
 	mShowHelpArrow = false;
@@ -18,14 +18,14 @@ EffectsWidget::EffectsWidget(AlchemyApp* theApp)
 	mMouseVisible = false;   // port: the overlay never takes the mouse (the original's hit test finds nothing to do)
 }
 
-void EffectsWidget::Clear()
+void BoardOverlay::Clear()
 {
 	mPopups.clear();
 	mSparkles.clear();
 }
 
 // 0x408938
-void EffectsWidget::AddScorePopup(int theX, int theY, int theValue)
+void BoardOverlay::FloatPoints(int theX, int theY, int theValue)
 {
 	ScorePopup aPopup;
 	aPopup.mX = theX;
@@ -37,7 +37,7 @@ void EffectsWidget::AddScorePopup(int theX, int theY, int theValue)
 }
 
 // 0x408970
-void EffectsWidget::AddSparkle(int theX, int theY, bool isFalling, bool isBig)
+void BoardOverlay::AddSparkle(int theX, int theY, bool isFalling, bool isBig)
 {
 	Sparkle aSparkle;
 	aSparkle.mX = theX;
@@ -49,7 +49,7 @@ void EffectsWidget::AddSparkle(int theX, int theY, bool isFalling, bool isBig)
 }
 
 // 0x40844f
-void EffectsWidget::Update()
+void BoardOverlay::Update()
 {
 	Widget::Update();
 
@@ -103,7 +103,7 @@ void EffectsWidget::Update()
 }
 
 // 0x4086e6
-void EffectsWidget::Draw(Graphics* g)
+void BoardOverlay::Draw(Graphics* g)
 {
 	if (mShowHelpArrow)
 		g->DrawImage(mApp->mImages[IMAGE_HELPARROW], 0x62, 0x15e);

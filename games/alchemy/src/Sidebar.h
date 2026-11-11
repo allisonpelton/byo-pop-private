@@ -3,7 +3,7 @@
 
 // The left 150 pixels of the screen (class 0x4e4b40, ctor 0x40f987, size 0x90): the forge gauge (a tank of red
 // liquid with a wave on top and rising bubbles), the score and the skill and mode labels. The buttons below are the
-// app's widgets (AlchemyApp::TitleScreenDone).
+// app's widgets (WinAlchApp::LoadingCompleted).
 
 #include "Widget.h"
 #include <list>
@@ -11,7 +11,7 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 
 struct Bubble
 {
@@ -25,10 +25,10 @@ struct Bubble
 	Bubble() : mX(0), mY(0), mAccum(0), mSpeed(0), mBurst(false), mFrame(0) {}
 };
 
-class SidePanel : public Widget
+class Sidebar : public Widget
 {
 public:
-	AlchemyApp*			mApp;           // +0x58
+	WinAlchApp*			mApp;           // +0x58
 	int					mFill;          // +0x60 the gauge's level in pixels, 0..0x5b
 	int					mHold;          // +0x64 updates the gauge waits before it moves
 	int					mBubbleScroll;  // +0x68 the liquid's picture scrolls up (mod 0x67)
@@ -40,9 +40,9 @@ public:
 	bool				mFlashOn;       // +0x8d
 	bool				mOnTarget;      // +0x8e the gauge shows the board's level
 
-	SidePanel(AlchemyApp* theApp);              // 0x40f987
+	Sidebar(WinAlchApp* theApp);              // 0x40f987
 
-	void				SetFlashing(bool isFlashing);       // 0x40f8bc
+	void				FlashLava(bool isFlashing);       // 0x40f8bc
 	virtual void		MouseDown(int x, int y, int theClickCount) override;    // 0x40f8d3
 	virtual void		Draw(Graphics* g) override;         // 0x40fa93
 	virtual void		Update() override;                  // 0x40fead

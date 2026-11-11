@@ -1,15 +1,15 @@
 // The application class of Alchemy Deluxe 1.6 (Alchemy.exe 0x4118c9-0x414903): construction, start-up, the loading
 // thread, the registry, and the side panel's buttons. The screens' flow (selector, board, dialogs) is in
-// AppScreens.cpp, the button handler in AppButtons.cpp. See AlchemyApp.h and docs/GAME_NOTES.md.
+// AppScreens.cpp, the button handler in AppButtons.cpp. See WinAlchApp.h and docs/GAME_NOTES.md.
 
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Board.h"
-#include "SidePanel.h"
+#include "Sidebar.h"
 #include "TitleScreen.h"
-#include "Effects.h"
+#include "BoardOverlay.h"
 #include "GameText.h"
 #include "HighScores.h"
-#include "Selector.h"
+#include "IntroScreen.h"
 #include "DDImage.h"
 #include "testhooks/Autoplay.h"
 #include "Compat2004.h"
@@ -31,7 +31,7 @@
 
 using namespace Sexy;
 
-AlchemyApp* Sexy::gApp = NULL;
+WinAlchApp* Sexy::gApp = NULL;
 
 // 0x5101f8: the image names; the file is images\<name> (the framework tries .gif, .jpg, .png and the "_" alpha masks)
 static const char* const gImageNames[NUM_IMAGES] =
@@ -54,7 +54,7 @@ static const char* const gSoundNames[NUM_SOUNDS] =
 };
 
 // 0x4118c9
-AlchemyApp::AlchemyApp()
+WinAlchApp::WinAlchApp()
 {
 	gApp = this;
 	mProdName = "Alchemy";
@@ -65,12 +65,12 @@ AlchemyApp::AlchemyApp()
 	mSkillLevel = 1;
 	mTimeTrial = false;
 	mTutorialMode = true;
-	mSelectorFlag = true;
-	mSelector = NULL;
+	mBeforeFirstGame = true;
+	mIntroScreen = NULL;
 	mTitleScreen = NULL;
 	mBoard = NULL;
-	mEffects = NULL;
-	mSidePanel = NULL;
+	mBoardOverlay = NULL;
+	mSidebar = NULL;
 	mAFont1 = NULL;
 	mFont1 = NULL;
 	mScoreFont = NULL;
@@ -89,7 +89,7 @@ AlchemyApp::AlchemyApp()
 		for (int j = 0; j < NUM_SHAPE_IMAGES; j++)
 			mShapeImages[i][j] = NULL;
 	for (int i = 0; i < 4; i++)
-		mDiff[i] = 0;
+		mForgeRates[i] = 0;
 
 	mAutoplay = false;
 	mAutoplaySeed = 0;
@@ -107,12 +107,12 @@ AlchemyApp::AlchemyApp()
 
 // 0x41159c: a game in progress is saved here (the web build does it in ShutdownHook, the app is never deleted there);
 // then the widgets are taken off the screen and deleted, and the images and fonts
-AlchemyApp::~AlchemyApp()
+WinAlchApp::~WinAlchApp()
 {
-	if (mBoard != NULL && mBoard->HasProgress())
+	if (mBoard != NULL && mBoard->IsInProgress())
 		mBoard->SaveGame();
 
-	HideHelp();
+	RemoveHelpWidget();
 
 	for (int i = 0; i < NUM_SHAPE_SIZES; i++)
 		for (int j = 0; j < NUM_SHAPE_IMAGES; j++)
@@ -128,25 +128,25 @@ AlchemyApp::~AlchemyApp()
 		mWidgetManager->RemoveWidget(mTitleScreen);
 		delete mTitleScreen;
 	}
-	if (mSelector != NULL)
+	if (mIntroScreen != NULL)
 	{
-		mWidgetManager->RemoveWidget(mSelector);
-		delete mSelector;
+		mWidgetManager->RemoveWidget(mIntroScreen);
+		delete mIntroScreen;
 	}
-	if (mEffects != NULL)
+	if (mBoardOverlay != NULL)
 	{
-		mWidgetManager->RemoveWidget(mEffects);
-		delete mEffects;
+		mWidgetManager->RemoveWidget(mBoardOverlay);
+		delete mBoardOverlay;
 	}
 	if (mBoard != NULL)
 	{
 		mWidgetManager->RemoveWidget(mBoard);
 		delete mBoard;
 	}
-	if (mSidePanel != NULL)
+	if (mSidebar != NULL)
 	{
-		mWidgetManager->RemoveWidget(mSidePanel);
-		delete mSidePanel;
+		mWidgetManager->RemoveWidget(mSidebar);
+		delete mSidebar;
 	}
 
 	for (std::list<ButtonWidget*>::iterator anItr = mButtons.begin(); anItr != mButtons.end(); ++anItr)
@@ -176,7 +176,7 @@ AlchemyApp::~AlchemyApp()
 }
 
 // port: test hooks (see testhooks/Autoplay.h). The original does not override UpdateFrames.
-void AlchemyApp::UpdateFrames()
+void WinAlchApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
 
@@ -195,11 +195,11 @@ void AlchemyApp::UpdateFrames()
 	}
 }
 
-// port (web): the save the original's ~AlchemyApp writes now (see SexyAppBase::UpdateUserDataBackup): savegame.dat of
+// port (web): the save the original's ~WinAlchApp writes now (see SexyAppBase::UpdateUserDataBackup): savegame.dat of
 // a game in progress
-void AlchemyApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
+void WinAlchApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 {
-	if (mBoard == NULL || !mBoard->HasProgress())
+	if (mBoard == NULL || !mBoard->IsInProgress())
 		return;
 
 	ShutdownSave aSave;
@@ -208,17 +208,17 @@ void AlchemyApp::GetShutdownSaves(std::vector<ShutdownSave>* theSaves)
 	theSaves->push_back(aSave);
 }
 
-// port (web): the original saves a game in progress only in ~AlchemyApp, and the web build never deletes the app;
+// port (web): the original saves a game in progress only in ~WinAlchApp, and the web build never deletes the app;
 // without this the save of a quit game would exist only in the localStorage backup (GetShutdownSaves)
-void AlchemyApp::ShutdownHook()
+void WinAlchApp::ShutdownHook()
 {
 #ifdef __EMSCRIPTEN__
-	if (mBoard != NULL && mBoard->HasProgress())
+	if (mBoard != NULL && mBoard->IsInProgress())
 		mBoard->SaveGame();
 #endif
 }
 
-void AlchemyApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
+void WinAlchApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-autoplay")
 	{
@@ -256,7 +256,7 @@ void AlchemyApp::HandleCmdLineParam(const std::string& theParamName, const std::
 
 // port: the 2004 SexyApp creates a BassMusicInterface (BASS 2.0): the port's music interface gets the full range
 // (docs/FRAMEWORK_2004.md section 6, 4.2)
-MusicInterface* AlchemyApp::CreateMusicInterface()
+MusicInterface* WinAlchApp::CreateMusicInterface()
 {
 	if (mNoSoundNeeded)
 		return new MusicInterface;
@@ -267,7 +267,7 @@ MusicInterface* AlchemyApp::CreateMusicInterface()
 }
 
 // 0x4123f1: images\<name>; a missing file ends the game with a message
-bool AlchemyApp::LoadImage(int theIndex)
+bool WinAlchApp::DoLoadImage(int theIndex)
 {
 	std::string aPath = std::string("images\\") + gImageNames[theIndex];
 	mImages[theIndex] = GetImage(aPath);
@@ -281,7 +281,7 @@ bool AlchemyApp::LoadImage(int theIndex)
 }
 
 // 0x412d69 slot 17
-void AlchemyApp::Init()
+void WinAlchApp::Init()
 {
 	SexyApp::Init();
 
@@ -303,7 +303,7 @@ void AlchemyApp::Init()
 
 	for (int i = 0; i < NUM_INIT_IMAGES; i++)
 	{
-		if (!LoadImage(i))
+		if (!DoLoadImage(i))
 		{
 			Shutdown();
 			return;
@@ -330,7 +330,7 @@ void AlchemyApp::Init()
 
 // 0x4124cf slot 18 (runs synchronously in the port): data\diff.txt, the remaining images, the sounds, three fonts,
 // the 20 sizes of the 24 piece pictures and the nine backdrops. mCompletedLoadingThreadTasks drives the title's bar.
-void AlchemyApp::LoadingThreadProc()
+void WinAlchApp::LoadingThreadProc()
 {
 	mNumLoadingThreadTasks = NUM_LOADING_TASKS;
 
@@ -343,14 +343,14 @@ void AlchemyApp::LoadingThreadProc()
 		for (int i = 0; i < 4; i++)
 		{
 			char* anEnd;
-			mDiff[i] = strtod(aPtr, &anEnd);
+			mForgeRates[i] = strtod(aPtr, &anEnd);
 			aPtr = anEnd;
 		}
 	}
 
 	for (int i = NUM_INIT_IMAGES; i < NUM_IMAGES; i++)
 	{
-		if (!LoadImage(i))
+		if (!DoLoadImage(i))
 			return;
 		mCompletedLoadingThreadTasks++;
 	}
@@ -442,7 +442,7 @@ void AlchemyApp::LoadingThreadProc()
 }
 
 // 0x411a41 slot 19
-void AlchemyApp::WriteToRegistry()
+void WinAlchApp::WriteToRegistry()
 {
 	SexyApp::WriteToRegistry();
 
@@ -453,7 +453,7 @@ void AlchemyApp::WriteToRegistry()
 }
 
 // 0x411b43 slot 20
-void AlchemyApp::ReadFromRegistry()
+void WinAlchApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
 
@@ -468,7 +468,7 @@ void AlchemyApp::ReadFromRegistry()
 }
 
 // 0x410bb6 slot 21: the plain dialog (black text on the parchment, gold buttons)
-Dialog* AlchemyApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
+Dialog* WinAlchApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
 	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
 {
 	Dialog* aDialog = new Dialog2004(mImages[IMAGE_DIALOG], mImages[IMAGE_DBUTTON], theDialogId, isModal,
@@ -485,7 +485,7 @@ Dialog* AlchemyApp::NewDialog(int theDialogId, bool isModal, const SexyString& t
 
 // 0x4143e3 + 0x41448f: a button of the side panel. The backdrop shows the button as it rests; the button draws only
 // its over and its down picture (two rows of the strip), and shows the hand.
-ButtonWidget* AlchemyApp::AddPanelButton(int theId, const Rect& theRect, Image* theStrip, const Rect& theOverRect,
+ButtonWidget* WinAlchApp::CreateControlButton(int theId, const Rect& theRect, Image* theStrip, const Rect& theOverRect,
 	const Rect& theDownRect)
 {
 	MemoryImage* anOverImage = CopyImage(theStrip, theOverRect);
@@ -505,23 +505,23 @@ ButtonWidget* AlchemyApp::AddPanelButton(int theId, const Rect& theRect, Image* 
 }
 
 // 0x4144f1: the title screen goes; the side panel, its buttons, the effects overlay and the selector come
-void AlchemyApp::TitleScreenDone()
+void WinAlchApp::LoadingCompleted()
 {
 	mWidgetManager->RemoveWidget(mTitleScreen);
 	SafeDeleteWidget(mTitleScreen);
 	mTitleScreen = NULL;
 
-	mSidePanel = new SidePanel(this);
-	mSidePanel->Resize(0, 0, BOARD_X, SCREEN_HEIGHT);
-	mWidgetManager->AddWidget(mSidePanel);
-	mSidePanel->MarkDirty();
+	mSidebar = new Sidebar(this);
+	mSidebar->Resize(0, 0, BOARD_X, SCREEN_HEIGHT);
+	mWidgetManager->AddWidget(mSidebar);
+	mSidebar->MarkDirty();
 
 	Image* aStrip = mImages[IMAGE_BUTTONSTRIP];
-	AddPanelButton(BUTTON_NEW_GAME, Rect(0x21, 0x6f, 0x51, 0x18), aStrip, Rect(0, 0xa8, 0x51, 0x18), Rect(0, 0x150, 0x51, 0x18));
-	AddPanelButton(BUTTON_OPTIONS, Rect(0x21, 0xe7, 0x51, 0x18), aStrip, Rect(0, 0xc0, 0x51, 0x18), Rect(0, 0x168, 0x51, 0x18));
-	AddPanelButton(BUTTON_FORGE, Rect(0x21, 0x112, 0x51, 0x18), aStrip, Rect(0, 0xd8, 0x51, 0x18), Rect(0, 0x180, 0x51, 0x18));
-	AddPanelButton(BUTTON_QUIT, Rect(0x22, 0x1b5, 0x4f, 0x19), mImages[IMAGE_QUITGAMESTRIP], Rect(0, 0x19, 0x4f, 0x19), Rect(0, 0x32, 0x4f, 0x19));
-	AddPanelButton(BUTTON_HINT, Rect(0x15, 0x19b, 0x19, 0x18), mImages[IMAGE_HELPSTRIP], Rect(0, 0x18, 0x19, 0x18), Rect(0, 0x30, 0x19, 0x18));
+	CreateControlButton(BUTTON_NEW_GAME, Rect(0x21, 0x6f, 0x51, 0x18), aStrip, Rect(0, 0xa8, 0x51, 0x18), Rect(0, 0x150, 0x51, 0x18));
+	CreateControlButton(BUTTON_OPTIONS, Rect(0x21, 0xe7, 0x51, 0x18), aStrip, Rect(0, 0xc0, 0x51, 0x18), Rect(0, 0x168, 0x51, 0x18));
+	CreateControlButton(BUTTON_FORGE, Rect(0x21, 0x112, 0x51, 0x18), aStrip, Rect(0, 0xd8, 0x51, 0x18), Rect(0, 0x180, 0x51, 0x18));
+	CreateControlButton(BUTTON_QUIT, Rect(0x22, 0x1b5, 0x4f, 0x19), mImages[IMAGE_QUITGAMESTRIP], Rect(0, 0x19, 0x4f, 0x19), Rect(0, 0x32, 0x4f, 0x19));
+	CreateControlButton(BUTTON_HINT, Rect(0x15, 0x19b, 0x19, 0x18), mImages[IMAGE_HELPSTRIP], Rect(0, 0x18, 0x19, 0x18), Rect(0, 0x30, 0x19, 0x18));
 
 	// the sound toggle: six frames of 26 x 25 cut from soundstrip, frames 4 and 5 for the button
 	for (int i = 0; i < 6; i++)
@@ -536,23 +536,23 @@ void AlchemyApp::TitleScreenDone()
 	mButtons.push_back(mSoundButton);
 	UpdateSoundButton();
 
-	mEffects = new EffectsWidget(this);
-	mEffects->Resize(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	mWidgetManager->AddWidget(mEffects);
+	mBoardOverlay = new BoardOverlay(this);
+	mBoardOverlay->Resize(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	mWidgetManager->AddWidget(mBoardOverlay);
 
-	SetTimeTrial(mTimeTrial);
-	SetSkillLevel(mSkillLevel);
-	ShowSelector();
+	ChangeTimeTrial(mTimeTrial);
+	ChangeSkillLevel(mSkillLevel);
+	ShowIntroScreen();
 
 	mMusicInterface->FadeOut(SONG_INTRO, true, 0.004);
 	mMusicInterface->FadeIn(SONG_PLAY, -1, 0.002, false);
 
 	if (HasSavedGame())
-		ConfirmLoad();
+		TryConfirmLoad();
 }
 
 // 0x410d2a slot 71: the sound toggle's frames follow the mute state
-void AlchemyApp::UpdateSoundButton()
+void WinAlchApp::UpdateSoundButton()
 {
 	if (mSoundButton == NULL)
 		return;
@@ -571,13 +571,13 @@ void AlchemyApp::UpdateSoundButton()
 }
 
 // 0x410d01
-void AlchemyApp::SetTimeTrial(bool isTimeTrial)
+void WinAlchApp::ChangeTimeTrial(bool isTimeTrial)
 {
 	mTimeTrial = isTimeTrial;
 }
 
 // 0x410ced
-void AlchemyApp::SetSkillLevel(int theSkill)
+void WinAlchApp::ChangeSkillLevel(int theSkill)
 {
 	mTutorialMode = false;
 	mSkillLevel = theSkill;

@@ -8,7 +8,7 @@
 file(GLOB ALCHEMY_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 # Test hooks (-autoplay): test code kept out of the game code (the autoplay bot has its own RNG)
 file(GLOB ALCHEMY_TESTHOOK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/testhooks/*.cpp)
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/AlchemyApp.cpp)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/WinAlchApp.cpp)
   add_executable(alchemy ${ALCHEMY_SOURCES} ${ALCHEMY_TESTHOOK_SOURCES})
   target_include_directories(alchemy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   target_link_libraries(alchemy PRIVATE sexyframework sexycompat2004)

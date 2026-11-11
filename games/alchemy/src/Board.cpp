@@ -1,12 +1,12 @@
 // The board's rules: the grid, the pieces, placing and forging, and how a game goes on and ends (see Board.h).
 
 #include "Board.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Piece.h"
 #include "Fixes.h"
 #include "Wizard.h"
-#include "Effects.h"
-#include "SidePanel.h"
+#include "BoardOverlay.h"
+#include "Sidebar.h"
 #include "ButtonWidget.h"
 #include "Dialog.h"
 #include "MemoryImage.h"
@@ -45,13 +45,13 @@ static int BitsRequired(int theNum)
 }
 
 // 0x407ebe
-Board::Board(AlchemyApp* theApp)
+Board::Board(WinAlchApp* theApp)
 {
 	mApp = theApp;
 	mState = STATE_PLAYING;
-	mScriptPos = 0;
+	mSavedZero = 0;
 	mCurPiece = NULL;
-	mFxPiece = NULL;
+	mDiscardPiece = NULL;
 	mButton = NULL;
 
 	// the original seeds its generator with two draws of the C library's rand()
@@ -60,13 +60,13 @@ Board::Board(AlchemyApp* theApp)
 	SeedMTRand2004(mRand, aSeed);
 
 	// the header of the record: what an internet score would be checked with
-	mRecord.WriteByte(1);
-	mRecord.WriteString("");
-	mRecord.WriteString("");
-	mRecord.WriteLong((long) aSeed);
-	mRecord.WriteBoolean(mApp->mTimeTrial);
-	mRecord.WriteNumBits(mApp->mSkillLevel, 2);
-	mRecord.WriteLong((long) time(NULL));
+	mEncodedGame.WriteByte(1);
+	mEncodedGame.WriteString("");
+	mEncodedGame.WriteString("");
+	mEncodedGame.WriteLong((long) aSeed);
+	mEncodedGame.WriteBoolean(mApp->mTimeTrial);
+	mEncodedGame.WriteNumBits(mApp->mSkillLevel, 2);
+	mEncodedGame.WriteLong((long) time(NULL));
 
 	for (int aRow = 0; aRow < ROWS; aRow++)
 		for (int aCol = 0; aCol < COLS; aCol++)
@@ -109,8 +109,8 @@ Board::Board(AlchemyApp* theApp)
 	mBombX = 0;
 	mBombY = 0;
 	mBombFrame = 0;
-	mOverFade = 0;
-	mOverTimer = 0;
+	mGameOverFade = 0;
+	mGameOverTimer = 0;
 
 	mLightBase = new MemoryImage(mApp);
 	mLightBase->Create(CELL, CELL);
@@ -124,18 +124,18 @@ Board::Board(AlchemyApp* theApp)
 
 	mSkillBase = mApp->mSkillLevel * 5 - 5;
 	mBgImage = new MemoryImage(mApp);
-	mFxImage = new MemoryImage(mApp);
-	mFxImage->Create(0x32, 0x32);
-	mFxImage->SetImageMode(true, true);
+	mDiscardImage = new MemoryImage(mApp);
+	mDiscardImage->Create(0x32, 0x32);
+	mDiscardImage->SetImageMode(true, true);
 
 	mTutorial = mApp->mTutorialMode;
-	mTutStep = mTutorial ? -1 : 0;
-	mTutCount = 0;
+	mTutorialStep = mTutorial ? -1 : 0;
+	mTutorialCount = 0;
 	mStartTick = GameTickCount();
 	mElapsed = 0;
 	mTotalSeconds = 0;
-	mPause = 0;
-	mTrialPause = 0;
+	mPauseCount = 0;
+	mCoverCount = 0;
 	mLastWarning = 0;
 	mFullCount = 0;
 	mRun = 0;
@@ -147,15 +147,15 @@ Board::Board(AlchemyApp* theApp)
 	mNewPieceDelay = 0;
 	mMouseX = 0;
 	mMouseY = 0;
-	mTutWaiting = false;
+	mTutorialWaiting = false;
 	mRate = 1.0;
 	mLastShape = -1;
 	mLastColor = -1;
-	mHelpShown = false;
+	mWizardShown = false;
 
-	SetDifficulty();
+	SetBoardVars();
 
-	mHelpBox = new WizardBox(mApp);
+	mWizard = new Wizard(mApp);
 
 	// a game starts with a blank block in the middle of the grid
 	if (!mApp->mTutorialMode)
@@ -163,21 +163,21 @@ Board::Board(AlchemyApp* theApp)
 		Piece* aPiece = new Piece(mApp);
 		aPiece->mCol = FIRST_COL;
 		aPiece->mRow = FIRST_ROW;
-		aPiece->mX = ColToX(FIRST_COL) + mX;
-		aPiece->mY = RowToY(FIRST_ROW) + mY;
+		aPiece->mX = GetColX(FIRST_COL) + mX;
+		aPiece->mY = GetRowY(FIRST_ROW) + mY;
 		aPiece->mSkull = true;
 		mGrid[FIRST_ROW][FIRST_COL] = aPiece;
 		mLit[FIRST_ROW][FIRST_COL] = true;
 	}
 
-	NewCurrentPiece();
+	NextMove();
 }
 
 // 0x4026fa
 Board::~Board()
 {
-	if (mApp->mSidePanel != NULL)
-		mApp->mSidePanel->SetFlashing(false);
+	if (mApp->mSidebar != NULL)
+		mApp->mSidebar->FlashLava(false);
 
 	// a game that was nearly lost counts as played
 	if (mProgress >= 2.9 && mState != STATE_GAME_OVER)
@@ -187,18 +187,18 @@ Board::~Board()
 		for (int aCol = 0; aCol < COLS; aCol++)
 			delete mGrid[aRow][aCol];
 	delete mCurPiece;
-	delete mFxPiece;
+	delete mDiscardPiece;
 	delete mButton;
-	delete mHelpBox;
+	delete mWizard;
 	delete mBgImage;
-	delete mFxImage;
+	delete mDiscardImage;
 	delete mLightBase;
 	delete mLightLit;
 	delete mLightOut;
 }
 
 // 0x4014f3
-int Board::XToCol(int theX)
+int Board::GetColAt(int theX)
 {
 	if (theX > 0xc)
 	{
@@ -210,7 +210,7 @@ int Board::XToCol(int theX)
 }
 
 // 0x40151d
-int Board::YToRow(int theY)
+int Board::GetRowAt(int theY)
 {
 	if (theY > 0x28)
 	{
@@ -234,7 +234,7 @@ int Board::CountPieces()
 
 // 0x401220: the skill sets the points, the number of boards cleared the pieces and the speed of the forge in
 // time trial mode
-void Board::SetDifficulty()
+void Board::SetBoardVars()
 {
 	if (mApp->mSkillLevel == 1)
 		mRate = 0.5;
@@ -246,8 +246,8 @@ void Board::SetDifficulty()
 		mRate = mRate * 2.0;
 
 	double aCleared = (double) mBoardsCleared;
-	mProgRate = (aCleared * mApp->mDiff[1] + mApp->mDiff[0]) * mRate;
-	mProgDecay = (aCleared * mApp->mDiff[3] + mApp->mDiff[2]) * mRate;
+	mProgRate = (aCleared * mApp->mForgeRates[1] + mApp->mForgeRates[0]) * mRate;
+	mProgDecay = (aCleared * mApp->mForgeRates[3] + mApp->mForgeRates[2]) * mRate;
 
 	int aLevel = mSkillBase + mBoardsCleared;
 	int aColors = (aLevel + 3) / 4 + 4;
@@ -266,7 +266,7 @@ void Board::SetDifficulty()
 }
 
 // 0x401324: a new piece, never the same shape and colour as the last
-Piece* Board::NewPiece()
+Piece* Board::MakeRandomPiece()
 {
 	while (true)
 	{
@@ -293,19 +293,19 @@ Piece* Board::NewPiece()
 		}
 		else
 		{
-			switch (mTutStep)
+			switch (mTutorialStep)
 			{
 			case 2:
-				if (mTutCount == 0)
+				if (mTutorialCount == 0)
 					aPiece->mColor = 1;
-				else if (mTutCount == 1)
+				else if (mTutorialCount == 1)
 					aPiece->mShape = 1;
-				else if (mTutCount == 2)
+				else if (mTutorialCount == 2)
 				{
 					aPiece->mColor = 2;
 					aPiece->mShape = 2;
 				}
-				else if (mTutCount == 3)
+				else if (mTutorialCount == 3)
 				{
 					aPiece->mColor = 3;
 					aPiece->mShape = 2;
@@ -345,7 +345,7 @@ Piece* Board::NewPiece()
 }
 
 // 0x401c9b: the piece to place is replaced by a new one that grows from nothing
-void Board::NewCurrentPiece()
+void Board::NextMove()
 {
 	if (mCurPiece != NULL)
 	{
@@ -353,20 +353,20 @@ void Board::NewCurrentPiece()
 			mWidgetManager->RemoveWidget(mCurPiece);
 		delete mCurPiece;
 	}
-	mCurPiece = NewPiece();
+	mCurPiece = MakeRandomPiece();
 	if (mWidgetManager != NULL)
 	{
 		mWidgetManager->AddWidget(mCurPiece);
-		mWidgetManager->PutBehind(mCurPiece, mApp->mEffects);
+		mWidgetManager->PutBehind(mCurPiece, mApp->mBoardOverlay);
 		mCurPiece->mShrink = 0x14;
 		mCurPiece->mShrinkDir = -1;
 	}
-	ComputeValid();
+	DetermineValidMoves();
 }
 
 // 0x40153a: reasons it does not fit: 0 outside, 1 no piece next to the cell, 2 and 3 a neighbour of another colour
 // and symbol (3: some others match), 4 the cell is taken, 5 (a bomb) there is nothing to blast
-bool Board::CanPlace(Piece* thePiece, int theCol, int theRow, int* theReason)
+bool Board::ValidMove(Piece* thePiece, int theCol, int theRow, int* theReason)
 {
 	if (thePiece == NULL)
 	{
@@ -427,14 +427,14 @@ bool Board::CanPlace(Piece* thePiece, int theCol, int theRow, int* theReason)
 }
 
 // 0x401682: where the piece fits; a piece that fits nowhere shows its red ring on the beginner level
-void Board::ComputeValid()
+void Board::DetermineValidMoves()
 {
 	mNumValid = 0;
 	int aReason;
 	for (int aRow = 0; aRow < ROWS; aRow++)
 		for (int aCol = 0; aCol < COLS; aCol++)
 		{
-			mValid[aRow][aCol] = CanPlace(mCurPiece, aCol, aRow, &aReason);
+			mValid[aRow][aCol] = ValidMove(mCurPiece, aCol, aRow, &aReason);
 			if (mValid[aRow][aCol])
 				mNumValid++;
 		}
@@ -444,7 +444,7 @@ void Board::ComputeValid()
 }
 
 // 0x4017ba
-int Board::CountValid()
+int Board::GetNumPossibleMoves()
 {
 	int aCount = 0;
 	for (int aRow = 0; aRow < ROWS; aRow++)
@@ -455,7 +455,7 @@ int Board::CountValid()
 }
 
 // 0x4017dd
-void Board::ClearGrid()
+void Board::ResetBoard()
 {
 	for (int aRow = 0; aRow < ROWS; aRow++)
 		for (int aCol = 0; aCol < COLS; aCol++)
@@ -469,72 +469,72 @@ void Board::ClearGrid()
 }
 
 // 0x40182f: the wizard slides in over the left of the board with a message
-void Board::ShowHelpBox()
+void Board::ShowWizard()
 {
-	mHelpBox->mFadeDir = 1;
-	mWidgetManager->AddWidget(mHelpBox);
-	mHelpBox->Resize(mX, mY, 0xae, 0xbc);
-	mHelpShown = true;
+	mWizard->mFadeDir = 1;
+	mWidgetManager->AddWidget(mWizard);
+	mWizard->Resize(mX, mY, 0xae, 0xbc);
+	mWizardShown = true;
 }
 
 // 0x4010e2: the player did something and the game is not over
-bool Board::HasProgress()
+bool Board::IsInProgress()
 {
 	return !mPristine && mState != STATE_GAME_OVER && !mTutorial;
 }
 
 // 0x401130: the clock stops (and in time trial mode the board is covered)
-void Board::Pause(bool isTrialMode)
+void Board::Pause(bool isCovered)
 {
-	if (mPause == 0)
+	if (mPauseCount == 0)
 	{
 		mElapsed += (GameTickCount() - mStartTick) / 1000;
 		MarkDirty();
 	}
-	if (isTrialMode)
+	if (isCovered)
 	{
-		if (mTrialPause == 0)
+		if (mCoverCount == 0)
 			MarkDirty();
-		mTrialPause++;
+		mCoverCount++;
 	}
-	mPause++;
+	mPauseCount++;
 }
 
 // 0x40118b
-void Board::Resume(bool isTrialMode)
+void Board::Unpause(bool isCovered)
 {
-	if (isTrialMode)
+	if (isCovered)
 	{
-		if (mTrialPause > 0)
+		if (mCoverCount > 0)
 		{
-			mTrialPause--;
-			if (mTrialPause < 1)
+			mCoverCount--;
+			if (mCoverCount < 1)
 				MarkDirty();
 		}
 	}
-	if (mPause > 0)
+	if (mPauseCount > 0)
 	{
-		mPause--;
-		if (mPause == 0)
+		mPauseCount--;
+		if (mPauseCount == 0)
 			mStartTick = GameTickCount();
 	}
 }
 
 // 0x4011d5: the index of the cell among the valid ones
-void Board::RecordMove(int theIndex)
+void Board::EncodeMoveNum(int theIndex)
 {
-	mRecord.WriteNumBits(theIndex, BitsRequired(mNumValid));
+	mEncodedGame.WriteNumBits(theIndex, BitsRequired(mNumValid));
 }
 
 // 0x4011fb: a forge is move 0
-void Board::RecordForge(bool isLastOne)
+void Board::EncodeDiscard(bool isLastOne)
 {
-	RecordMove(0);
-	mRecord.WriteNumBits(isLastOne ? 1 : 0, 1);
+	EncodeMoveNum(0);
+	mEncodedGame.WriteNumBits(isLastOne ? 1 : 0, 1);
 }
 
 // 0x402f42
-void Board::RecordPlacement(int theCol, int theRow)
+void Board::EncodeMove(int theCol, int theRow)
 {
 	int aCount = 0;
 	for (int aRow = 0; aRow < ROWS; aRow++)
@@ -544,7 +544,7 @@ void Board::RecordPlacement(int theCol, int theRow)
 				aCount++;
 			if (aCol == theCol && aRow == theRow)
 			{
-				RecordMove(aCount);
+				EncodeMoveNum(aCount);
 				return;
 			}
 		}
@@ -562,7 +562,7 @@ void Board::ShowMessage(const char* thePrefix, int theFirst)
 }
 
 // 0x40187c: a line of the statistics, the label on the left and the value on the right
-void Board::DrawStatLine(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel,
+void Board::DrawColumn(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel,
 	const SexyString& theValue)
 {
 	g->DrawString(theLabel, theRect.mX + 0x10 + theDX, g->GetFont()->GetAscent() + theRect.mY + theDY);
@@ -572,7 +572,7 @@ void Board::DrawStatLine(Graphics* g, const Rect& theRect, int theDX, int theDY,
 }
 
 // 0x4019d1: a piece in its cell (the blank block as it is, a symbol in its colour)
-void Board::DrawPieceImage(Graphics* g, Piece* thePiece, int theX, int theY)
+void Board::DrawAliasedPiece(Graphics* g, Piece* thePiece, int theX, int theY)
 {
 	if (thePiece->mSkull)
 	{
@@ -589,11 +589,11 @@ void Board::DrawPieceImage(Graphics* g, Piece* thePiece, int theX, int theY)
 
 // 0x401a82: a cell of the picture of the board: the backdrop, the level's overlay, the tile if it was used and the
 // piece. A lit tile has a half-opaque rim where it borders an unlit one.
-void Board::RedrawCell(int theCol, int theRow)
+void Board::RedrawBackground(int theCol, int theRow)
 {
 	Graphics g(mBgImage);
-	int aX = ColToX(theCol);
-	int aY = RowToY(theRow);
+	int aX = GetColX(theCol);
+	int aY = GetRowY(theRow);
 	g.ClipRect(aX, aY, CELL, CELL);
 	g.DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
 
@@ -634,24 +634,24 @@ void Board::RedrawCell(int theCol, int theRow)
 
 	Piece* aPiece = mGrid[theRow][theCol];
 	if (aPiece != NULL && mState != STATE_ENDING)
-		DrawPieceImage(&g, aPiece, aX, aY);
+		DrawAliasedPiece(&g, aPiece, aX, aY);
 }
 
 // 0x40204a
-void Board::RedrawAllCells()
+void Board::RedrawBackground()
 {
 	for (int aRow = 0; aRow < ROWS; aRow++)
 		for (int aCol = 0; aCol < COLS; aCol++)
-			RedrawCell(aCol, aRow);
+			RedrawBackground(aCol, aRow);
 }
 
 // 0x401d15: the piece goes into the cell; a tile that was not lit starts to glow in
-void Board::PlacePiece(Piece* thePiece, int theCol, int theRow)
+void Board::PutPiece(Piece* thePiece, int theCol, int theRow)
 {
 	bool wasLit = mLit[theRow][theCol];
 	mLit[theRow][theCol] = true;
 	mGrid[theRow][theCol] = NULL;
-	RedrawCell(theCol, theRow);
+	RedrawBackground(theCol, theRow);
 
 	if (!wasLit && mAnimateLights)
 	{
@@ -665,8 +665,8 @@ void Board::PlacePiece(Piece* thePiece, int theCol, int theRow)
 		mLightFade = 0;
 		mLightVariant = 0;
 
-		int aX = -ColToX(theCol);
-		int aY = -RowToY(theRow);
+		int aX = -GetColX(theCol);
+		int aY = -GetRowY(theRow);
 		{
 			Graphics g(mLightLit);
 			g.DrawImage(mBgImage, aX, aY);
@@ -686,21 +686,21 @@ void Board::PlacePiece(Piece* thePiece, int theCol, int theRow)
 	thePiece->mShrinkDir = 0;
 	thePiece->mCol = theCol;
 	thePiece->mRow = theRow;
-	thePiece->mX = ColToX(theCol) + mX;
-	thePiece->mY = RowToY(theRow) + mY;
-	RedrawCell(theCol, theRow);
+	thePiece->mX = GetColX(theCol) + mX;
+	thePiece->mY = GetRowY(theRow) + mY;
+	RedrawBackground(theCol, theRow);
 }
 
 // 0x406347: the piece is put down where it hovers
-void Board::PlaceCurrentPiece()
+void Board::MakeMove()
 {
 	bool isBombUsed = false;
 	int aCol = mCurPiece->mCol;
 	int aRow = mCurPiece->mRow;
-	RecordPlacement(aCol, aRow);
+	EncodeMove(aCol, aRow);
 
 	// the tutorial's row has to be finished in the one place
-	if (mTutorial && mTutStep == 4 && (aRow != 5 || aCol != 8))
+	if (mTutorial && mTutorialStep == 4 && (aRow != 5 || aCol != 8))
 	{
 		ShowMessage("TUTORIAL_CLEAR_ROW", 2);
 		return;
@@ -719,7 +719,7 @@ void Board::PlaceCurrentPiece()
 		mClearRow = -1;
 		bool isCleared = false;
 		bool wasLit = mLit[aRow][aCol];
-		PlacePiece(mCurPiece, aCol, aRow);
+		PutPiece(mCurPiece, aCol, aRow);
 
 		// the points: more for a piece that joins more pieces
 		static const int aNeighbors[4][2] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}};
@@ -774,7 +774,7 @@ void Board::PlaceCurrentPiece()
 
 		int aScore = (int) (aPoints * mRate);
 		mScore += aScore;
-		mApp->mEffects->AddScorePopup(mCurPiece->mX + 0x19, (mCurPiece->mY - mY) - 7, aScore);
+		mApp->mBoardOverlay->FloatPoints(mCurPiece->mX + 0x19, (mCurPiece->mY - mY) - 7, aScore);
 
 		if (!isCleared)
 			checkAllLit = true;
@@ -796,16 +796,16 @@ void Board::PlaceCurrentPiece()
 		delete mGrid[aRow][aCol];
 		mGrid[aRow][aCol] = NULL;
 		mBombOn = true;
-		mBombX = ColToX(aCol) - 6;
-		mBombY = RowToY(aRow) - 0x1e;
+		mBombX = GetColX(aCol) - 6;
+		mBombY = GetRowY(aRow) - 0x1e;
 		mBombFrame = 0;
 		for (int i = 0; i < 6; i++)
 		{
 			double anAngle = i * 1.0471966666666666;
 			BombSpark aSpark;
 			aSpark.mLife = 0x19;
-			aSpark.mX = ColToX(aCol) + 0x19;
-			aSpark.mY = RowToY(aRow) + 0x19;
+			aSpark.mX = GetColX(aCol) + 0x19;
+			aSpark.mY = GetRowY(aRow) + 0x19;
 			aSpark.mVX = cos(anAngle) * 6.0;
 			aSpark.mVY = sin(anAngle) * 6.0;
 			mSparks.push_back(aSpark);
@@ -814,7 +814,7 @@ void Board::PlaceCurrentPiece()
 		mApp->PlaySample(SOUND_SKULL);
 	}
 
-	mApp->mSidePanel->SetFlashing(false);
+	mApp->mSidebar->FlashLava(false);
 	MarkDirty();
 	mApp->PlaySample(SOUND_THUNK);
 
@@ -828,15 +828,15 @@ void Board::PlaceCurrentPiece()
 	}
 
 	// the cell and the lit cells around it look different now
-	RedrawCell(aCol, aRow);
+	RedrawBackground(aCol, aRow);
 	if (aCol > 0 && mLit[aRow][aCol - 1])
-		RedrawCell(aCol - 1, aRow);
+		RedrawBackground(aCol - 1, aRow);
 	if (aCol < 8 && mLit[aRow][aCol + 1])
-		RedrawCell(aCol + 1, aRow);
+		RedrawBackground(aCol + 1, aRow);
 	if (aRow > 0 && mLit[aRow - 1][aCol])
-		RedrawCell(aCol, aRow - 1);
+		RedrawBackground(aCol, aRow - 1);
 	if (aRow < 7 && mLit[aRow + 1][aCol])
-		RedrawCell(aCol, aRow + 1);
+		RedrawBackground(aCol, aRow + 1);
 
 	mWidgetManager->RemoveWidget(mCurPiece);
 	if (isBombUsed)
@@ -844,57 +844,57 @@ void Board::PlaceCurrentPiece()
 	mCurPiece = NULL;
 
 	if (!mTutorial)
-		NewCurrentPiece();
+		NextMove();
 	else
 	{
-		mTutCount++;
-		switch (mTutStep)
+		mTutorialCount++;
+		switch (mTutorialStep)
 		{
 		case 0:
 		case 7:
 		case 9:
 		case 0xb:
 		case 0xc:
-			AdvanceTutorial();
+			NextTutorial();
 			break;
 		case 2:
-			if (mTutCount != 4)
-				NewCurrentPiece();
+			if (mTutorialCount != 4)
+				NextMove();
 			else
-				AdvanceTutorial();
+				NextTutorial();
 			break;
 		case 4:
 			break;
 		default:
-			NewCurrentPiece();
+			NextMove();
 			break;
 		}
 	}
 
 	if (checkAllLit)
-		CheckAllLit();
+		CheckWin();
 
 	if (isBombUsed && mCurPiece != NULL)
 		mCurPiece->mDelay = 0x32;
 }
 
 // 0x405e31: the piece is thrown into the forge (a second piece of the same colours could not be thrown now)
-void Board::UseForge()
+void Board::SkipMove()
 {
 	if (mState != STATE_PLAYING || mCurPiece == NULL)
 		return;
 
-	if (mTutorial && mTutStep != 6)
+	if (mTutorial && mTutorialStep != 6)
 	{
 		ShowMessage("TUTORIAL_NO_DISCARD");
 		return;
 	}
 
-	if (mFxPiece != NULL)
+	if (mDiscardPiece != NULL)
 	{
-		mWidgetManager->RemoveWidget(mFxPiece);
-		delete mFxPiece;
-		mFxPiece = NULL;
+		mWidgetManager->RemoveWidget(mDiscardPiece);
+		delete mDiscardPiece;
+		mDiscardPiece = NULL;
 	}
 
 	if (mLongestRun < mRun)
@@ -902,52 +902,52 @@ void Board::UseForge()
 	mDiscards++;
 	mRun = 0;
 	mPristine = false;
-	if (mApp->mSidePanel->mOnTarget)
-		mApp->mSidePanel->mHold = 0x1e;
+	if (mApp->mSidebar->mOnTarget)
+		mApp->mSidebar->mHold = 0x1e;
 
-	mFxPiece = mCurPiece;
+	mDiscardPiece = mCurPiece;
 	mCurPiece->mFollowMouse = false;
 	mCurPiece->SetVisible(true);
-	mFxPiece->mFlyX = (double) mFxPiece->mX;
-	mFxPiece->mFlyY = (double) mFxPiece->mY;
-	mFxPiece->mFlyVX = (38.0 - mFxPiece->mFlyX) * 0.05;
-	mFxPiece->mFlyVY = (320.0 - mFxPiece->mFlyY) * 0.05;
-	mFxPiece->mSpeed = sqrt(mFxPiece->mFlyVY * mFxPiece->mFlyVY + mFxPiece->mFlyVX * mFxPiece->mFlyVX);
+	mDiscardPiece->mFlyX = (double) mDiscardPiece->mX;
+	mDiscardPiece->mFlyY = (double) mDiscardPiece->mY;
+	mDiscardPiece->mFlyVX = (38.0 - mDiscardPiece->mFlyX) * 0.05;
+	mDiscardPiece->mFlyVY = (320.0 - mDiscardPiece->mFlyY) * 0.05;
+	mDiscardPiece->mSpeed = sqrt(mDiscardPiece->mFlyVY * mDiscardPiece->mFlyVY + mDiscardPiece->mFlyVX * mDiscardPiece->mFlyVX);
 	mCurPiece = NULL;
 
 	// the piece's picture melts later: it is made here in a picture of its own
-	mFxImage->Clear();
+	mDiscardImage->Clear();
 	{
-		Graphics g(mFxImage);
-		if (!mFxPiece->mBomb)
+		Graphics g(mDiscardImage);
+		if (!mDiscardPiece->mBomb)
 		{
-			if (mFxPiece->mSkull)
+			if (mDiscardPiece->mSkull)
 				g.DrawImage(mApp->mImages[IMAGE_NULLBLOCK], 0, 0);
 			else
 			{
 				g.SetColorizeImages(true);
-				g.SetColor(Color(gPieceColors[mFxPiece->mColor][0], gPieceColors[mFxPiece->mColor][1],
-					gPieceColors[mFxPiece->mColor][2]));
-				g.DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0, 0, Rect(mFxPiece->mShape * 0x32, 0, 0x32, 0x32));
+				g.SetColor(Color(gPieceColors[mDiscardPiece->mColor][0], gPieceColors[mDiscardPiece->mColor][1],
+					gPieceColors[mDiscardPiece->mColor][2]));
+				g.DrawImage(mApp->mImages[IMAGE_SYMBOLS], 0, 0, Rect(mDiscardPiece->mShape * 0x32, 0, 0x32, 0x32));
 				g.SetColorizeImages(false);
 			}
 		}
 		else
 			g.DrawImage(mApp->mImages[IMAGE_SKULLS], 0, 0);
 	}
-	mFxImage->BitsChanged();
-	mFxPiece->mImage = mFxImage;
+	mDiscardImage->BitsChanged();
+	mDiscardPiece->mImage = mDiscardImage;
 
 	mProgress += mTimeTrial ? 0.5 : 1.0;
 	if ((mProgress >= 3.01 && !mTimeTrial) || mProgress >= 3.49)
 	{
-		RecordForge(true);
+		EncodeDiscard(true);
 		mProgress = 3.0;
 		GameOver();
 	}
 	else
 	{
-		RecordForge(false);
+		EncodeDiscard(false);
 		mNewPieceDelay = 0x19;
 		mApp->PlaySample(SOUND_MELT);
 		mCurPiece = NULL;
@@ -955,14 +955,14 @@ void Board::UseForge()
 }
 
 // 0x4061d6
-void Board::UseForgeClicked()
+void Board::Discard()
 {
 	if (mCurPiece != NULL)
-		UseForge();
+		SkipMove();
 }
 
 // 0x4062e5: every tile is lit: the board is won (with the points of the bonus)
-bool Board::CheckAllLit()
+bool Board::CheckWin()
 {
 	bool isAllLit = true;
 	for (int aRow = 0; aRow < ROWS; aRow++)
@@ -973,13 +973,13 @@ bool Board::CheckAllLit()
 	if (isAllLit)
 	{
 		mScore += (int) (((mBoardsCleared + 4) * 250) * mRate);
-		GameWon();
+		ClearBoard();
 	}
 	return isAllLit;
 }
 
 // 0x403c24: the hint costs points; it shows where the piece fits, or says why it does not
-void Board::ShowHint()
+void Board::ShowPossibleMoves()
 {
 	if (mState != STATE_PLAYING || mCurPiece == NULL || mTutorial)
 		return;
@@ -992,7 +992,7 @@ void Board::ShowHint()
 		ShowMessage("SKULL_BOMB");
 	else if (mCurPiece->mSkull)
 		ShowMessage("FOURWAY");
-	else if (CountValid() != 0)
+	else if (GetNumPossibleMoves() != 0)
 	{
 		mHintOn = true;
 		mHintTimer = 0xd2;
@@ -1003,7 +1003,7 @@ void Board::ShowHint()
 }
 
 // 0x403ee5: the rank for the score, and the score of the next one
-void Board::ComputeRank()
+void Board::GetGameStats()
 {
 	if (mLongestRun < mRun)
 		mLongestRun = mRun;
@@ -1026,16 +1026,16 @@ void Board::ComputeRank()
 // 0x403f5c: the forge overflowed (or the time ran out): the pieces shrink away
 void Board::GameOver()
 {
-	mOverFade = 0;
-	mOverTimer = 200;
-	ComputeRank();
-	ShowHelpBox();
-	mApp->mSidePanel->SetFlashing(false);
+	mGameOverFade = 0;
+	mGameOverTimer = 200;
+	GetGameStats();
+	ShowWizard();
+	mApp->mSidebar->FlashLava(false);
 	mApp->mTimesPlayed++;
-	mRecord.WriteLong(mScore);
+	mEncodedGame.WriteLong(mScore);
 	mLightOn = false;
 	mState = STATE_ENDING;
-	RedrawAllCells();
+	RedrawBackground();
 	if (mCurPiece != NULL)
 	{
 		mWidgetManager->RemoveWidget(mCurPiece);
@@ -1046,9 +1046,9 @@ void Board::GameOver()
 }
 
 // 0x406209: every tile of the board is lit
-void Board::GameWon()
+void Board::ClearBoard()
 {
-	ComputeRank();
+	GetGameStats();
 	mAnimDir = -1;
 	mHoverX = -1;
 	mHoverY = -1;
@@ -1065,18 +1065,18 @@ void Board::GameWon()
 }
 
 // 0x402292: the click on the statistics panel: the board is wiped and the next one fades in
-void Board::StartNextBoard()
+void Board::NextBoard()
 {
-	RedrawAllCells();
+	RedrawBackground();
 	mWidgetManager->RemoveWidget(mButton);
 	mApp->SafeDeleteWidget(mButton);
 	mButton = NULL;
 	mApp->PlaySample(SOUND_FINALVANISH2);
 	mNextBoardFade = 0;
 	mState = STATE_NEXT_BOARD;
-	mHelpBox->mFadeDir = -1;
+	mWizard->mFadeDir = -1;
 	memset(mLit, 0, sizeof(mLit));
-	ComputeValid();
+	DetermineValidMoves();
 }
 
 // 0x401014
@@ -1086,7 +1086,7 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	if (mCurPiece != NULL)
 	{
 		theWidgetManager->AddWidget(mCurPiece);
-		theWidgetManager->PutBehind(mCurPiece, mApp->mEffects);
+		theWidgetManager->PutBehind(mCurPiece, mApp->mBoardOverlay);
 	}
 }
 
@@ -1096,11 +1096,11 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 	Widget::RemovedFromManager(theWidgetManager);
 	if (mCurPiece != NULL)
 		theWidgetManager->RemoveWidget(mCurPiece);
-	if (mFxPiece != NULL)
-		theWidgetManager->RemoveWidget(mFxPiece);
+	if (mDiscardPiece != NULL)
+		theWidgetManager->RemoveWidget(mDiscardPiece);
 	if (mButton != NULL)
 		theWidgetManager->RemoveWidget(mButton);
-	theWidgetManager->RemoveWidget(mHelpBox);
+	theWidgetManager->RemoveWidget(mWizard);
 }
 
 // 0x40578f: the picture of the board is made when the size is known
@@ -1113,26 +1113,26 @@ void Board::Resize(int theX, int theY, int theWidth, int theHeight)
 		Graphics g(mBgImage);
 		g.DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0x96, 0, 0x1ea, 0x1e0));
 	}
-	RedrawAllCells();
+	RedrawBackground();
 
 	for (int aRow = 0; aRow < ROWS; aRow++)
 		for (int aCol = 0; aCol < COLS; aCol++)
 			if (mGrid[aRow][aCol] != NULL)
 			{
 				Piece* aPiece = mGrid[aRow][aCol];
-				aPiece->mX = ColToX(aPiece->mCol) + mX;
-				aPiece->mY = RowToY(aPiece->mRow) + mY;
+				aPiece->mX = GetColX(aPiece->mCol) + mX;
+				aPiece->mY = GetRowY(aPiece->mRow) + mY;
 			}
 
-	if (mTutorial && mTutStep == -1)
-		AdvanceTutorial();
+	if (mTutorial && mTutorialStep == -1)
+		NextTutorial();
 }
 
 // 0x4017a0: any key stops the clock and covers the board, the next one goes on
 void Board::KeyChar(SexyChar theChar)
 {
-	if (mTrialPause > 0)
-		Resume(true);
+	if (mCoverCount > 0)
+		Unpause(true);
 	else
 		Pause(true);
 }
@@ -1146,10 +1146,10 @@ void Board::MouseMove(int x, int y)
 	if (aPiece == NULL)
 		return;
 
-	int aCol = XToCol((aPiece->mX - mX) + 0x25);
-	int aRow = YToRow((aPiece->mY - mY) + 0x25);
+	int aCol = GetColAt((aPiece->mX - mX) + 0x25);
+	int aRow = GetRowAt((aPiece->mY - mY) + 0x25);
 	int aReason;
-	if (!CanPlace(aPiece, aCol, aRow, &aReason) || aPiece->mBomb)
+	if (!ValidMove(aPiece, aCol, aRow, &aReason) || aPiece->mBomb)
 	{
 		mHoverX = -1;
 		mHoverY = -1;
@@ -1168,9 +1168,9 @@ void Board::MouseDown(int x, int y, int theClickCount)
 {
 	Widget::MouseDown(x, y, theClickCount);
 
-	if (mTrialPause > 0)
+	if (mCoverCount > 0)
 	{
-		Resume(true);
+		Unpause(true);
 		return;
 	}
 	if (mCurPiece == NULL || mState != STATE_PLAYING)
@@ -1178,7 +1178,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 
 	if (theClickCount < 0)
 	{
-		UseForgeClicked();
+		Discard();
 		return;
 	}
 
@@ -1186,10 +1186,10 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	int aRow = mCurPiece->mRow;
 	int aCol = mCurPiece->mCol;
 	int aReason;
-	if (CanPlace(mCurPiece, aCol, aRow, &aReason))
+	if (ValidMove(mCurPiece, aCol, aRow, &aReason))
 	{
 		if (aCol > -1 && aCol < COLS && aRow > -1 && aRow < ROWS)
-			PlaceCurrentPiece();
+			MakeMove();
 		MouseMove(x, y);
 		return;
 	}
@@ -1234,14 +1234,14 @@ void Board::ButtonDepress(int theId)
 	switch (theId)
 	{
 	case 0:
-		StartNextBoard();
+		NextBoard();
 		break;
 	case 1:
 		mProgress = 0.0;
-		mApp->ShowSelector();
+		mApp->ShowIntroScreen();
 		break;
 	case 2:
-		AdvanceTutorial();
+		NextTutorial();
 		break;
 	}
 }
