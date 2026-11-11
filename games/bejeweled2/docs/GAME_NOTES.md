@@ -68,6 +68,13 @@ Each of these has no visible effect on play unless the entry says so.
   machine plays at 1024 by 768 where the original plays at 640 by 480. A test that wants the original's 2D size (the phase-one
   comparison, which runs the original on rundesk's desktop, where it has no 3D) sets `HighResolution=dword:0` in the registry file
   and `SDL_RENDER_DRIVER=software` (`Driver(is3d=False)`).
+- **On the web the screen is the display, and never too small** (web only). The original takes the screen's size from
+  `GetSystemMetrics` and uses it in three places: the Options dialog refuses the windowed game on a 640 wide screen and
+  asks to give up high resolution on one of 1024 or less, and `SwitchScreenMode` drops to 640 by 480 when a high resolution
+  game goes windowed there. Natively the port asks SDL for the display's usable bounds. In a browser those are the page's
+  inner size (`window.innerWidth`: the frame the game is shown in, which is 640 by 480 as the site's Desktop 95 window
+  starts), and the page scales the game's canvas to the room it has, so the web build takes the display's own size
+  (`screen.width` and `height`, SDL's desktop mode) and never less than 1280 by 1024: none of the three ever applies there.
 
 ## Test commands
 
@@ -99,6 +106,47 @@ plays a mode with real input in true 2D (below) and writes every input with its 
 script, `run_original.sh` runs the original on origrun's virtual clock with the same seed and those four watches, and `compare.py`
 lines the two lists of changes up. Not yet: `set` for other keys. `tools/playbymove/playbymove.py` plays every mode but the puzzle
 ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/realplay/full.py` is the real-input driver (its header says how it runs; `soak.py` is its first version).
+
+`state` also names, for the options dialog, its Main Menu button (`buttons.mainmenu`) and its three display checkboxes
+(`checks`: `fullscreen`, `accel` and `highres`, each the middle of the box and 1 when it is checked). `origcmp/record.py` has two
+more modes, `resume` (Classic left by its menu button and loaded again) and `load` (the saved game of the player's folder;
+`--hyper` swaps a hyper cube first), and `origcmp/make_save.py` makes such a folder: a player with a Classic game saved at a
+level (`level <n>`), flame gems and hyper cubes set in the file. `to_origrun.py --remap X,Y=X2,Y2` gives the original a click at
+its own place where the port's 640 by 480 dialog layout is not the original's.
+
+## The user's faults of 2026-11-10 (the local site)
+
+1. **The new-user box was not pre-filled with the site's player.** The game had no site hook. `src/SiteProfiles.cpp` (web only)
+   is one now, after Pixelus's: the roster is `Profile::mNames`, a name is fitted by typing it into a box with the dialog's font
+   and limits (12 characters, 200 pixels, letters, digits and spaces) and tidied as `CreateUserDialog::GetName` does, and
+   players are made, chosen, renamed and deleted with the functions the dialogs end in. `DoCreateUserDialog` types the site's
+   player into its box under "fill" and "create", and the four dialogs' ends report the roster. Checked in the Browser pane on
+   the test page: under "fill" the box held the site's name and OK made that player; under "create" the title led to the menu
+   with the player made and no dialog.
+2. **Full screen: "claims desktop resolution is too low for windowed mode".** The screen's size came from SDL's usable bounds,
+   which in a browser are the page's inner size: 640 wide in Desktop 95's game window as it starts, so the Options dialog
+   answered the unchecked Full Screen box with its message for a 640 wide desktop and checked the box again. See "On the web
+   the screen is the display" above. Checked in the pane with a 640 by 480 page: the box now toggles both ways with no message
+   and High Resolution stays on. That full screen "doesn't increase the resolution" is the page's: Desktop 95's full screen
+   shows the game at the largest whole multiple of its size that fits (`fitFullscreen` in `web/shell.html`), and for a 1024 by
+   768 game on a 3840 by 2160 screen that is 2, the same as a window can already have; told to the coordinator.
+3. **"Reloading graphics" at many transitions.** `DoMainMenu` reloaded whenever a game in progress was left (IDENTICAL_PLAY.md's
+   table of changes); with the screen read as 640 wide, each change of high resolution that the Options dialog asked for
+   reloaded as well.
+4. **The flame gem's silence and the scores.** The blast's sound was never played: one field declared twice (below). The scores
+   are the original's: `properties/config.xml` pays 1000 times the level's multiplier for a gem caught in a blast and 400 times
+   it for each gem a hyper cube strikes, 5,500 and 2,400 on levels 10 and 11, and the original paid the same amounts from the
+   same saved game (IDENTICAL_PLAY.md).
+
+**Fields declared twice.** The translation named some fields of the board in one file and left them as their offset in
+another, as two members: what one side wrote the other never read. Found by listing, for every `m<offset>` member, the
+functions of the export that touch that offset and whose translation does not name the member. The list covers `Board` only;
+the other classes wait for the readability pass, which leaves no offset names. They are one member each now:
+`mExplodeHappened` (+0x15e78: `ExplodeAt` sets it, the end of the update plays `SOUND_BOMB_EXPLODE` once),
+`mLastExplodeSoundTick` (+0x15e8c), `mFadeIn` (+0x15fb0), `mStarRot`, `mStarDrift` and `mStarPhase` (+0x15fc0, +0x15fc8,
++0x15fd0), `mSecretPuzzleCount`, `mSecretSolved` and `mSecretRun` (+0x17a4 to +0x17ac), `mSolutionFirstNode` (+0x18f0),
+`mSolutionMove` (+0x18fc), `m191c` (the port's `mHintTutorialShown` was never set) and `mIsPlanetIntro` (+0x191d, which the
+constructor does clear).
 
 ## Oddities (skipped, not chased)
 
@@ -133,6 +181,26 @@ ones with `--first "unlock all" --first "goto <mode>"`; `games/bejeweled2/tools/
   when a log has no board.
 - **The tunnel's triangles are drawn with tx = 1.0**: the original's wrapper passes a byte that stands for "blend" to the
   argument that moves the vertices in x, so every vertex is one pixel to the right. The port repeats it.
+
+- **A game resumed in the 3D game: the flame gems of the next level change land elsewhere.** Classic for 25 moves, the menu
+  button, Main Menu, Classic and "Load Game?" yes, then 25 moves (`record.py --mode resume`, `HIRES=1`): the original and the
+  port agree through the load and 22 moves; at the first level change after it the two flame gems that are carried over are
+  put on other squares, (0,2) and (2,3) in the original where the port puts them on (6,2) and (4,5), and a later clear
+  explodes in one and not the other. The global generator's words and position are equal up to that update and both sides
+  draw 67 numbers in it; the original's two picks are the draws one place later than the port's, as if the loaded board had
+  made one more of its one-a-update draws (the shooting star's, `Rand() % 6000`) before the whirlpool ended. At 640 by 480,
+  where both sides tick on the same update, the same flow is identical through two level changes, generator included, and
+  a fresh 3D game is identical through five level changes with flame gems, so it is a matter of when the 3D original's loop
+  takes the two dialog clicks of the way out and back in. Tried: the "Load Game?" click 0, 1, 2 and 3 updates later, and the
+  Main Menu click with and without its one-update shift. It would take the original's update count at each of those clicks
+  from inside its loop (a breakpoint, which origrun does not have).
+- **`UpdateStarRots` wraps the wrong angle** (0x596747): after it turns the second star back by 0.004 it tests the first
+  star's angle for being negative, which it never is, so the second angle runs on below zero for ever (harmless: the angle is
+  only drawn). The port repeats it.
+- **The port's 640 by 480 dialogs are the 1024 layout scaled.** The original lays a dialog out with the sizes of its 640 by 480
+  pictures, so its buttons stand elsewhere: the yes of "Load Game?" is at (257,203) in the original and at (257,222) in the
+  port, which is the original's Cancel row. For phase two (the 2D game's screens); the comparison gives the original its own
+  place for that click.
 
 ## Fix candidates (for the fixes mod)
 
