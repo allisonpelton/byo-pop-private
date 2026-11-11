@@ -53,10 +53,10 @@ installed copy (for example from Steam):
 | [Mahjong Escape: Ancient Japan](games/mahjongjapan/docs/README.md) | Opus | Done: identical, logos and links out, fixes mod, coverage check, performance pass, unneeded code out and the readability pass (its original is the Collection's own copy) | 2026-11-01 | 1 | $304 | | | $304 |
 | [Mahjong Escape: Ancient China](games/mahjongchina/docs/README.md) | Opus | As Ancient Japan, from its port (whose row holds most of its cost) | 2026-11-01 | 1 | $4 | | | $4 |
 | [Bonnie's Bookstore Deluxe](games/bonnies/README.md) | Opus | Identical, on New Crayon's engine; fixes mod and coverage check done; the performance pass next | 2026-11-01 | 1 | $230 | | | $230 |
-| [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Identical in 2D and 3D play, with PopAnim; registration out, fixes mod, readability pass (the standards' second test), coverage check, performance pass and unneeded code out; challenge mode's screens against the original still to compare | 2026-11-02 | 1 | $1,294 | | $6 | $1,300 |
+| [Bejeweled Twist](games/bejeweledtwist/docs/NOTES.md) | Opus | Done: identical in 2D and 3D play, with PopAnim, challenge mode included; registration out, fixes mod, readability pass (the standards' second test), coverage check, performance pass and unneeded code out (its 3D frame times were not measured against the original: runs on the visible desktop give no clean timing) | 2026-11-02 | 1 | $1,294 | | $6 | $1,300 |
 | [Bejeweled 2 Deluxe](games/bejeweled2/docs/IDENTICAL_PLAY.md) | Sonnet | Plays identical: every mode as the original at both sizes, the hidden mode, a puzzle pack and resumed games (one oddity: a game resumed in 3D differs after its first level change); registration and More Games out; the user's faults of 2026-11-10 fixed; phase two next | 2026-11-08 | | $254 | | | $254 |
 | [AstroPop Deluxe](games/astropop/docs/IDENTICAL_PLAY.md) | Sonnet | Plays identical: 38 games as the original, with every weapon and from checkpoints to level 33; phase two next | 2026-11-08 | | $322 | | | $322 |
-| Typer Shark! Deluxe | Sonnet | Identical in 2D: both phases done (every screen tour, sound and music, real input natively and on the web); registration out, fixes mod and coverage check done; the performance pass next; its 3D drawing not yet compared | 2026-11-09 | | $367 | | | $367 |
+| Typer Shark! Deluxe | Sonnet | Identical in 2D: both phases done (every screen tour, sound and music, real input natively and on the web); registration out, fixes mod, coverage check and performance pass done; unneeded code out next; its 3D drawing not yet compared | 2026-11-09 | | $367 | | | $367 |
 | Venice Deluxe, Heavy Weapon Deluxe, Hammer Heads Deluxe, Pizza Frenzy, Iggle Pop Deluxe, Feeding Frenzy Deluxe | Opus or Sonnet | Waiting for the readability passes; then side by side, in this order | | | under $1 each | | | |
 | Chuzzle Deluxe, Feeding Frenzy 2, Peggle Deluxe, Peggle Nights, Bejeweled 3, Banana Bugs, Gyromancer, Zuma's Revenge, Talismania Deluxe | | After those, two at a time | | | $19 | | | $19 |
 | Shared framework, tools and coordination | | | | | $1,012 | $167 | $927 | $2,105 |
@@ -111,7 +111,7 @@ asked.
 | Bejeweled Twist | 2.71 s | 10.81 s | 3.3 s a minute | 21.1 s a minute | 206 MB | 338 MB |
 | Bejeweled 2 Deluxe | | | | | | |
 | AstroPop Deluxe | | | | | | |
-| Typer Shark! Deluxe | | | | | | |
+| Typer Shark! Deluxe | 0.72 to 0.82 s | 0.76 to 1.28 s | 1.3 to 3.3 s in 20 s (median 2.2 s) | 1.5 s in 20 s | 86 to 89 MB | 49 to 51 MB |
 
 Every number comes from the game's own notes, its latest measurement there: the native port under rundesk and the
 original under origrun, back to back on one machine, windowed and silent, over the same scripted play, with the load
