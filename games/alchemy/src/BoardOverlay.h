@@ -1,5 +1,5 @@
-#ifndef __ALCHEMY_EFFECTS_H__
-#define __ALCHEMY_EFFECTS_H__
+#ifndef __ALCHEMY_BOARDOVERLAY_H__
+#define __ALCHEMY_BOARDOVERLAY_H__
 
 // The effects overlay (class 0x4e3ab0, ctor 0x40858e, size 0x78): a transparent widget over the whole screen that
 // draws the score numbers that float up from a cleared piece and the sparkles. The board adds to it (0x408938 and
@@ -11,7 +11,7 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 
 struct ScorePopup
 {
@@ -35,19 +35,18 @@ struct Sparkle
 	Sparkle() : mX(0), mY(0), mFrame(0), mFalls(false), mBig(false) {}
 };
 
-class EffectsWidget : public Widget
+class BoardOverlay : public Widget
 {
 public:
 	std::list<ScorePopup>	mPopups;        // +0x58
 	std::list<Sparkle>		mSparkles;      // +0x64
-	AlchemyApp*				mApp;           // +0x70
+	WinAlchApp*				mApp;           // +0x70
 	bool					mShowHelpArrow; // +0x74
 
-	EffectsWidget(AlchemyApp* theApp);      // 0x40858e
+	BoardOverlay(WinAlchApp* theApp);      // 0x40858e
 
-	void					AddScorePopup(int theX, int theY, int theValue);        // 0x408938
+	void					FloatPoints(int theX, int theY, int theValue);        // 0x408938
 	void					AddSparkle(int theX, int theY, bool isFalling, bool isBig); // 0x408970
-	void					Clear();
 
 	virtual void			Draw(Graphics* g) override;     // 0x4086e6
 	virtual void			Update() override;              // 0x40844f

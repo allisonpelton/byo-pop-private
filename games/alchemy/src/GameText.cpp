@@ -1,4 +1,4 @@
-// The texts read from the player's own executable (see GameText.h).
+// port: the texts read from the player's own executable (see GameText.h).
 
 #include "GameText.h"
 #include "platform/VFS.h"
@@ -118,11 +118,11 @@ struct PEImage
 		size_t aSection = aPE + 24 + anOptSize;
 		for (int i = 0; i < aNumSections; i++, aSection += 40)
 		{
-			Section s;
-			s.mVA = anImageBase + ReadU32(theData, aSection + 12);
-			s.mRawSize = ReadU32(theData, aSection + 16);
-			s.mRawPtr = ReadU32(theData, aSection + 20);
-			mSections.push_back(s);
+			Section aSectionInfo;
+			aSectionInfo.mVA = anImageBase + ReadU32(theData, aSection + 12);
+			aSectionInfo.mRawSize = ReadU32(theData, aSection + 16);
+			aSectionInfo.mRawPtr = ReadU32(theData, aSection + 20);
+			mSections.push_back(aSectionInfo);
 		}
 		return !mSections.empty();
 	}
@@ -141,12 +141,12 @@ struct PEImage
 size_t FindImage(const std::vector<uint8_t>& theData)
 {
 	static const char* const aMarkers[] = {"!popcapdrmprotect!", "!popcapcdprotect!"};
-	for (size_t m = 0; m < sizeof(aMarkers) / sizeof(aMarkers[0]); m++)
+	for (size_t aMarker = 0; aMarker < sizeof(aMarkers) / sizeof(aMarkers[0]); aMarker++)
 	{
-		size_t aMarkerLen = strlen(aMarkers[m]);
+		size_t aMarkerLen = strlen(aMarkers[aMarker]);
 		for (size_t i = 0; i + aMarkerLen < theData.size(); i++)
 		{
-			if ((theData[i] == '!') && (memcmp(&theData[i], aMarkers[m], aMarkerLen) == 0))
+			if ((theData[i] == '!') && (memcmp(&theData[i], aMarkers[aMarker], aMarkerLen) == 0))
 			{
 				size_t aBase = i + aMarkerLen;
 				while ((aBase + 1 < theData.size()) && !((theData[aBase] == 'M') && (theData[aBase + 1] == 'Z')))
@@ -193,27 +193,27 @@ bool Sexy::LoadGameTexts()
 	int aMatched = 0;
 	for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
 	{
-		const GameTextEntry& e = gGameTextEntries[anId];
-		size_t anOffset = anImage.Offset(e.mVA);
-		if ((anOffset != 0) && (anOffset + e.mLength < aData.size()) && (aData[anOffset + e.mLength] == 0) &&
-			(TextHash(&aData[anOffset], e.mLength) == e.mHash))
+		const GameTextEntry& anEntry = gGameTextEntries[anId];
+		size_t anOffset = anImage.Offset(anEntry.mVA);
+		if ((anOffset != 0) && (anOffset + anEntry.mLength < aData.size()) && (aData[anOffset + anEntry.mLength] == 0) &&
+			(TextHash(&aData[anOffset], anEntry.mLength) == anEntry.mHash))
 		{
-			aTexts[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+			aTexts[anEntry.mVA].assign((const char*) &aData[anOffset], anEntry.mLength);
 			aMatched++;
 		}
 	}
 	for (int anId = 0; anId < NUM_GAME_TABLES; anId++)
 	{
-		const GameTableEntry& e = gGameTableEntries[anId];
-		size_t anOffset = anImage.Offset(e.mVA);
-		if ((anOffset != 0) && (anOffset + e.mCount * 4 <= aData.size()) && (TextHash(&aData[anOffset], e.mCount * 4) == e.mHash))
+		const GameTableEntry& anEntry = gGameTableEntries[anId];
+		size_t anOffset = anImage.Offset(anEntry.mVA);
+		if ((anOffset != 0) && (anOffset + anEntry.mCount * 4 <= aData.size()) && (TextHash(&aData[anOffset], anEntry.mCount * 4) == anEntry.mHash))
 		{
-			std::vector<int>& aTable = Tables()[e.mVA];
-			for (uint32_t i = 0; i < e.mCount; i++)
+			std::vector<int>& aTable = Tables()[anEntry.mVA];
+			for (uint32_t i = 0; i < anEntry.mCount; i++)
 				aTable.push_back((int) ReadU32(aData, anOffset + i * 4));
 		}
 		else
-			SDL_Log("GameText: the table at 0x%x does not match this executable", e.mVA);
+			SDL_Log("GameText: the table at 0x%x does not match this executable", anEntry.mVA);
 	}
 	if (aMatched < NUM_GAME_TEXTS)
 		SDL_Log("GameText: %d of %d texts do not match this executable (Alchemy Deluxe 1.6 expected)",

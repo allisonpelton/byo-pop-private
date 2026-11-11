@@ -10,12 +10,12 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 
-class WizardBox : public Widget
+class Wizard : public Widget
 {
 public:
-	AlchemyApp*			mApp;           // +0x58
+	WinAlchApp*			mApp;           // +0x58
 	double				mAlpha;         // +0x60 0..1
 	int					mFadeDir;       // +0x68 1: fading in, -1: out, 0: still (the ctor starts it fading in)
 	double				mBobX;          // +0x70 phase of the sideways float
@@ -25,10 +25,10 @@ public:
 	int					mStep;          // +0x88 the step in the track
 	int					mTimer;         // +0x8c updates left in the step
 
-	WizardBox(AlchemyApp* theApp);      // 0x414887
+	Wizard(WinAlchApp* theApp);      // 0x414887
 
-	void				Talk(int theTrack);         // 0x4148ce
-	void				StopTalking();              // 0x414903
+	void				Play(int theTrack);         // 0x4148ce
+	void				Stop();              // 0x414903
 	virtual void		Update() override;          // 0x414912
 	virtual void		Draw(Graphics* g) override; // 0x414a7d
 };
