@@ -494,9 +494,9 @@ classes only), a pak reader (`main.pak`), a JPEG 2000 codec (`j2k-codec.dll`), a
 `Direct3DCreate8`; both builds have DirectDraw's), a bigger part of BASS's interface, a screensaver mode (`-screensaver`) and the Collection's game selector. Players: both
 builds name a player's file `users\data<N>.usr` and the hall of fame `users\datahs.usr`; the Collection's has a file for the player list as
 well, `users\users.dat` (empty in the disc's copy), and a `users\data<N>e.usr`, where the Steam build lists the players in the registry only
-(`Users\LastUserNum`, `Users\<name>\<id>`). No save of a Collection copy was at hand, so whether the port reads one is not known
-(`platform/saveimport.json`'s entry for AstroPop describes the Steam build's files and registry). The Steam build alone has the update
-check and its texts.
+(`Users\LastUserNum`, `Users\<name>\<id>`). No save of a Collection copy was at hand, so nothing tests one: the save import
+(`platform/saveimport.json`'s entry for AstroPop) covers only the Steam build's format, its files and its registry, and a Collection
+save is an open item. The Steam build alone has the update check and its texts.
 
 Of the 1,703 texts the port reads from the exe (`src/GameTextTable.inc`, by address in the Steam image), 1,677 are in the Collection's
 exe byte for byte, at other addresses. Of the 26 that are not, 15 are runs of three bytes of code that the table lists by accident, and the
@@ -551,7 +551,8 @@ Steam folder, the Collection's and a folder with neither as expected; `tools/gam
 **Not done.** The Collection's own exe was not run, so none of its screens was compared with the port's. Its code is another build's, and
 a run needs the watches of `origcmp` (the app's update counter, the board's score, the generators), which are addresses of the Steam image:
 a run of the Collection's game means finding them in its exe first. That exe has RTTI for the game's classes, so a Ghidra import of it
-(its functions paired with the Steam image's by strings and calls) would give the original's own class names as well; it is the route if
-the 2007 build's play is to be compared too. The Collection's Direct3D 8 drawing in 3D mode was not seen either (section 10, the screen wipe). The port's executable
+(its functions paired with the Steam image's by strings and calls) would be the route to compare the 2007 build's play; the coordinator
+decided against it (2026-11-11): the definition of done asks that the port work with the Collection's files, which it does, and the
+readability pass has named the classes. The Collection's Direct3D 8 drawing in 3D mode was not seen either (section 10, the screen wipe). The port's executable
 is called `astropop.exe`, the name of the Collection's game: the installer that puts a native port beside the original
 (`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.
