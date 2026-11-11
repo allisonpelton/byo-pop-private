@@ -579,9 +579,6 @@ time.under_minute = <1 min
 settings.game_default = Game default
 settings.on = On
 settings.off = Off
-# {default} is the "Game default" text above
-settings.about = These apply to every game. {default} leaves that setting to each game.
-settings.about_live = These apply to every game, the open one included. {default} leaves that setting to each game.
 # The settings' sections: the name of their row of tabs (and of Desktop 95's folder of their icons), each section's name, and
 # the name of a section's icon in the folder ({name}: the section's)
 settings.sections = Sections

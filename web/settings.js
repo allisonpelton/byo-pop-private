@@ -311,7 +311,7 @@ var ByopopSettings = (function () {
   var STYLE =
     ".bps { display: grid; gap: 4px; }\n" +
     ".bps p { margin: 0; }\n" +
-    ".bps-about, .bps-hint, .bps-msg { color: var(--muted); font-size: 13px; }\n" +
+    ".bps-hint, .bps-msg { color: var(--muted); font-size: 13px; }\n" +
     ".bps-group { margin: 12px 0 0; font-size: 12.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }\n" +
     // the sections' tabs: a row of small icons with their names, the shown one filled in; one section at a time
     ".bps-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 0 8px; border-bottom: 1px solid var(--line); }\n" +
@@ -493,7 +493,6 @@ var ByopopSettings = (function () {
     }
     container.textContent = "";
     container.classList.add("bps");
-    container.appendChild(make("p", "bps-about", T(opts.live ? "settings.about_live" : "settings.about", { default: GAME_DEFAULT })));
     var controls = {};
     var msg = make("p", "bps-msg");
     msg.setAttribute("role", "status");
