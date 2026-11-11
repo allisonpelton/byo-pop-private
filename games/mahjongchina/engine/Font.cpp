@@ -180,7 +180,8 @@ bool CharMap::Has(uint16_t theChar)
 	{
 		do
 		{
-			if (mRows[aRowIndex].mFirst <= theChar && (int)theChar < mRows[aRowIndex].mCount + (int)mRows[aRowIndex].mFirst)
+			if (mRows[aRowIndex].mFirst <= theChar &&
+				(int)theChar < mRows[aRowIndex].mCount + (int)mRows[aRowIndex].mFirst)
 				return true;
 			aRowIndex = aRowIndex + 1;
 		} while (aRowIndex < mUsed);

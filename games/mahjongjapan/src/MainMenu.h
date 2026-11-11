@@ -24,7 +24,8 @@ class MenuButton : public jb::Button
 {
 public:
 	jb::Font* mFont = nullptr;  // +0xe4
-	int mTextId;                // +0xe8 STRING_CLASSIC_HINT, else the escape's (STRING_ADVENTURE_BEGIN_HINT, or the next string once begun)
+	// +0xe8 STRING_CLASSIC_HINT, else the escape's (STRING_ADVENTURE_BEGIN_HINT, or the next string once begun)
+	int mTextId;
 	int mAlpha = 0;             // +0xec
 
 	// 0x4113b0

@@ -208,7 +208,8 @@ public:
 
 	void SetCursor(int theKind) override
 	{
-		gApp->SetCursor(theKind == jb::CURSOR_KIND_HAND ? CURSOR_HAND : theKind == jb::CURSOR_KIND_WAIT ? CURSOR_WAIT : CURSOR_POINTER);
+		gApp->SetCursor(theKind == jb::CURSOR_KIND_HAND ? CURSOR_HAND :
+			theKind == jb::CURSOR_KIND_WAIT ? CURSOR_WAIT : CURSOR_POINTER);
 	}
 
 	// the framework keeps the mouse's events going to the widget while a button is held

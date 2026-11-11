@@ -75,7 +75,8 @@ void Bot::Refresh(const std::vector<int>& theChanged, bool theBack)
 				continue;
 			int aDeltaX = abs(aTile->mX - aThat->mX);
 			int aDeltaY = abs(aTile->mY - aThat->mY);
-			if ((aTile->mZ == aThat->mZ && aDeltaX == 2 && aDeltaY <= 1) || (aTile->mZ == aThat->mZ - 1 && aDeltaX <= 1 && aDeltaY <= 1))
+			if ((aTile->mZ == aThat->mZ && aDeltaX == 2 && aDeltaY <= 1) ||
+				(aTile->mZ == aThat->mZ - 1 && aDeltaX <= 1 && aDeltaY <= 1))
 				mCopy.UpdateFree(aTile);
 		}
 	}
@@ -213,7 +214,8 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 		{
 			Tile* aFreeTile = mTiles[aFree[i]];
 			Tile* anOtherFree = mTiles[aFree[j]];
-			if (KIND_GOLD < aFreeTile->mKind || KIND_GOLD < anOtherFree->mKind || !TilesMatch(aFreeTile->mKind, anOtherFree->mKind))
+			if (KIND_GOLD < aFreeTile->mKind || KIND_GOLD < anOtherFree->mKind ||
+				!TilesMatch(aFreeTile->mKind, anOtherFree->mKind))
 				continue;
 			anAdd(aFree[i], aFree[j]);
 		}
@@ -225,7 +227,8 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 			Tile* aK = mTiles[aKeyTile];
 			int aDeltaX = abs(aK->mX - theLock->mX);
 			int aDeltaY = abs(aK->mY - theLock->mY);
-			if ((aK->mZ == theLock->mZ && aDeltaX == 2 && aDeltaY <= 1) || (aK->mZ + 1 == theLock->mZ && aDeltaX <= 1 && aDeltaY <= 1))
+			if ((aK->mZ == theLock->mZ && aDeltaX == 2 && aDeltaY <= 1) ||
+				(aK->mZ + 1 == theLock->mZ && aDeltaX <= 1 && aDeltaY <= 1))
 				return true;
 		}
 		return false;
@@ -239,7 +242,8 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 		{
 			Tile* aTarget = mTiles[j];
 			int aTargetX, aTargetY;
-			if (aTarget->mTaken != 0 || (int)j == i || !(aSpecial->mKind == KIND_KEY ? aTarget->mKind == KIND_LOCK : aTarget->mKind < KIND_GOLD))
+			if (aTarget->mTaken != 0 || (int)j == i ||
+				!(aSpecial->mKind == KIND_KEY ? aTarget->mKind == KIND_LOCK : aTarget->mKind < KIND_GOLD))
 				continue;
 			if (aSpecial->mKind == KIND_KEY && mOnlyGoalLocks && !aKeys.empty() && !aHoldsGoal(aTarget))
 				continue;

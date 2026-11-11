@@ -5,7 +5,8 @@
 // frame (0x403ab0, vtable 0x51c830): a scroll drawn from corners and edge pieces (images 0x114-0x11a) around a
 // stretched background (0x118), a title and a subtitle, up to ten texts that can appear late and fade in, and a
 // message shown for some seconds. Its buttons (0x4037b0, vtable 0x51c7b0) are either images of their own or a strip
-// of IMAGE_DIALOG_BUTTON_PARTS stretched to a width. YesNoBox (0x4034c0, vtable 0x51c784) asks yes or no and tells a listener.
+// of IMAGE_DIALOG_BUTTON_PARTS stretched to a width. YesNoBox (0x4034c0, vtable 0x51c784) asks yes or no and tells a
+// listener.
 
 #include "Animation.h"
 #include "Layer.h"

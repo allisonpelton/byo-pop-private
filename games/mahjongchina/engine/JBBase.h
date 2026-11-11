@@ -38,11 +38,26 @@ struct Point
 	int x = 0, y = 0;
 };
 
-inline void SetRect(Rect& theRect, int theLeft, int theTop, int theRight, int theBottom) { theRect.left = theLeft; theRect.top = theTop; theRect.right = theRight; theRect.bottom = theBottom; }
+inline void SetRect(Rect& theRect, int theLeft, int theTop, int theRight, int theBottom)
+{
+	theRect.left = theLeft;
+	theRect.top = theTop;
+	theRect.right = theRight;
+	theRect.bottom = theBottom;
+}
 inline void SetRectEmpty(Rect& theRect) { theRect = Rect(); }
 inline bool IsRectEmpty(const Rect& theRect) { return theRect.right <= theRect.left || theRect.bottom <= theRect.top; }
-inline void OffsetRect(Rect& theRect, int theDX, int theDY) { theRect.left += theDX; theRect.right += theDX; theRect.top += theDY; theRect.bottom += theDY; }
-inline bool PtInRect(const Rect& theRect, int x, int y) { return x >= theRect.left && x < theRect.right && y >= theRect.top && y < theRect.bottom; }
+inline void OffsetRect(Rect& theRect, int theDX, int theDY)
+{
+	theRect.left += theDX;
+	theRect.right += theDX;
+	theRect.top += theDY;
+	theRect.bottom += theDY;
+}
+inline bool PtInRect(const Rect& theRect, int x, int y)
+{
+	return x >= theRect.left && x < theRect.right && y >= theRect.top && y < theRect.bottom;
+}
 bool IntersectRect(Rect& theOut, const Rect& theA, const Rect& theB);
 bool UnionRect(Rect& theOut, const Rect& theA, const Rect& theB);
 int MulDiv(int theNumber, int theNumerator, int theDenominator);

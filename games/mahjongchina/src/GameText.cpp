@@ -132,7 +132,8 @@ bool mahjongchina::LoadGameTexts(const std::string& theFolder)
 			{
 				const GameTextEntry& anEntry = GAME_TEXT_ENTRIES[anId];
 				size_t anOffset = anImage.Offset(anEntry.mVA);
-				if (anOffset != 0 && anOffset + anEntry.mLength < aData.size() && aData[anOffset + anEntry.mLength] == 0 &&
+				if (anOffset != 0 && anOffset + anEntry.mLength < aData.size() &&
+					aData[anOffset + anEntry.mLength] == 0 &&
 					TextHash((const char*)&aData[anOffset], anEntry.mLength) == anEntry.mHash)
 				{
 					aTexts[anEntry.mVA].assign((const char*)&aData[anOffset], anEntry.mLength);

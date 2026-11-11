@@ -126,7 +126,9 @@ void WriteMemReport(const std::string& thePath)
 	size_t aCached = aRows.size();
 	for (const jb::Image* anImage : aDisplay->mCreated)
 		aAdd(-1, anImage);
-	std::sort(aRows.begin(), aRows.end(), [](const Row& theA, const Row& theB) { return theA.mOwned + theA.mPixels > theB.mOwned + theB.mPixels; });
+	std::sort(aRows.begin(), aRows.end(), [](const Row& theA, const Row& theB) {
+		return theA.mOwned + theA.mPixels > theB.mOwned + theB.mPixels;
+	});
 	fprintf(aFile, "images: %zu cached by id, %zu made to draw into; decoded bits %.2f MB, 32-bit copies %.2f MB\n", aCached,
 		aRows.size() - aCached, anOwned / 1048576.0, aPixels / 1048576.0);
 	for (const Row& aRow : aRows)

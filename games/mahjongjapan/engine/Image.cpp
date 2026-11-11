@@ -136,7 +136,8 @@ bool Image::Decode(const uint8_t* theData, uint32_t theSize, int theType)
 
 static int32_t ReadI32(const uint8_t* theBytes)
 {
-	return (int32_t)((uint32_t)theBytes[0] | ((uint32_t)theBytes[1] << 8) | ((uint32_t)theBytes[2] << 16) | ((uint32_t)theBytes[3] << 24));
+	return (int32_t)((uint32_t)theBytes[0] | ((uint32_t)theBytes[1] << 8) | ((uint32_t)theBytes[2] << 16) |
+		((uint32_t)theBytes[3] << 24));
 }
 
 static uint16_t ReadU16(const uint8_t* theBytes)
@@ -613,7 +614,8 @@ void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst,
 				int aRemaining = theWidth;
 				do
 				{
-					*aDstPixel = (uint32_t)aSrcPixel[0] | ((uint32_t)aSrcPixel[1] << 8) | ((uint32_t)aSrcPixel[2] << 16) | 0xff000000;
+					*aDstPixel = (uint32_t)aSrcPixel[0] | ((uint32_t)aSrcPixel[1] << 8) |
+						((uint32_t)aSrcPixel[2] << 16) | 0xff000000;
 					aSrcPixel = aSrcPixel + 3;
 					aDstPixel = aDstPixel + 1;
 					aRemaining = aRemaining - 1;
@@ -632,7 +634,8 @@ void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst,
 			int aRemaining = theWidth;
 			do
 			{
-				uint32_t aPixel = (uint32_t)aSrcPixel[0] | ((uint32_t)aSrcPixel[1] << 8) | ((uint32_t)aSrcPixel[2] << 16);
+				uint32_t aPixel = (uint32_t)aSrcPixel[0] | ((uint32_t)aSrcPixel[1] << 8) |
+					((uint32_t)aSrcPixel[2] << 16);
 				if (aPixel == mKey)
 					*aDstPixel = 0;
 				else

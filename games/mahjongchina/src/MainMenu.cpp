@@ -124,7 +124,8 @@ void MainMenu::Load()
 	aSmall->SetLabel(STRING_OPTIONS, FONT_MENU_SMALL_BUTTON, FONT_MENU_SMALL_BUTTON_MAP, 8, 0x6e, 0x1c, 2, 2, 0xff);
 	aSmall = new jb::Button(IMAGE_MENU_INSTRUCTIONS_BUTTON, 3, false);
 	Add(aSmall, 0x13c, 0x209);
-	aSmall->SetLabel(STRING_INSTRUCTIONS, FONT_MENU_SMALL_BUTTON, FONT_MENU_SMALL_BUTTON_MAP, 0xd, 0xaa, 0x1c, 2, 2, 0xff);
+	aSmall->SetLabel(STRING_INSTRUCTIONS, FONT_MENU_SMALL_BUTTON, FONT_MENU_SMALL_BUTTON_MAP, 0xd, 0xaa, 0x1c, 2, 2,
+		0xff);
 	aSmall = new jb::Button(IMAGE_MENU_EXIT_BUTTON, 3, false);
 	Add(aSmall, 0x20f, 0x209);
 	aSmall->SetLabel(STRING_EXIT, FONT_MENU_SMALL_BUTTON, FONT_MENU_SMALL_BUTTON_MAP, 0xd, 0x5a, 0x1c, 2, 2, 0xff);

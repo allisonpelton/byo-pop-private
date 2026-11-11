@@ -11,10 +11,17 @@ using namespace mahjongchina;
 namespace
 {
 
-uint16_t U16(const std::vector<uint8_t>& theData, size_t theOffset) { return theOffset + 2 <= theData.size() ? uint16_t(theData[theOffset] | theData[theOffset + 1] << 8) : 0; }
+uint16_t U16(const std::vector<uint8_t>& theData, size_t theOffset)
+{
+	return theOffset + 2 <= theData.size() ? uint16_t(theData[theOffset] | theData[theOffset + 1] << 8) : 0;
+}
+
 uint32_t U32(const std::vector<uint8_t>& theData, size_t theOffset)
 {
-	return theOffset + 4 <= theData.size() ? uint32_t(theData[theOffset] | theData[theOffset + 1] << 8 | theData[theOffset + 2] << 16 | uint32_t(theData[theOffset + 3]) << 24) : 0;
+	if (theOffset + 4 > theData.size())
+		return 0;
+	return uint32_t(theData[theOffset] | theData[theOffset + 1] << 8 | theData[theOffset + 2] << 16 |
+		uint32_t(theData[theOffset + 3]) << 24);
 }
 
 // UTF-16 to Windows-1252: the game's texts are English, so anything outside the code page becomes '?'
@@ -59,7 +66,10 @@ uint32_t PeResources::RvaToOffset(uint32_t theRva) const
 	uint32_t aSection = aPeHeader + 24 + U16(mData, aPeHeader + 20);
 	for (int i = 0; i < aSectionCount; i++, aSection += 40)
 	{
-		uint32_t aVirtualSize = U32(mData, aSection + 8), aVirtualAddress = U32(mData, aSection + 12), aRawSize = U32(mData, aSection + 16), aRawOffset = U32(mData, aSection + 20);
+		uint32_t aVirtualSize = U32(mData, aSection + 8);
+		uint32_t aVirtualAddress = U32(mData, aSection + 12);
+		uint32_t aRawSize = U32(mData, aSection + 16);
+		uint32_t aRawOffset = U32(mData, aSection + 20);
 		uint32_t aSpan = aVirtualSize > aRawSize ? aVirtualSize : aRawSize;
 		if (theRva >= aVirtualAddress && theRva < aVirtualAddress + aSpan)
 			return aRawOffset + theRva - aVirtualAddress;

@@ -64,7 +64,8 @@ bool TilesMatch(int theKind, int theOther)
 // 0x413380: the seasons match one another, so do the flowers, the rest only themselves
 bool KindsMatch(int theKind, int theOther)
 {
-	if (KIND_LAST_PLAIN < theKind && theKind < KIND_FIRST_FLOWER && KIND_LAST_PLAIN < theOther && theOther < KIND_FIRST_FLOWER)
+	if (KIND_LAST_PLAIN < theKind && theKind < KIND_FIRST_FLOWER && KIND_LAST_PLAIN < theOther &&
+		theOther < KIND_FIRST_FLOWER)
 		return true;
 	if (KIND_LAST_SEASON < theKind && theKind < KIND_GOLD && KIND_LAST_SEASON < theOther && theOther < KIND_GOLD)
 		return true;

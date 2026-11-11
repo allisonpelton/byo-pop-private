@@ -989,7 +989,8 @@ bool Board::CanSelect(Tile* theTile)
 		Tile* aSelected = mSelected;
 		if (theTile->mKind == KIND_LOCK)
 			return aSelected != nullptr && aSelected->mKind == KIND_KEY;
-		if (aSelected != nullptr && (aSelected->mKind == KIND_MAGNET || aSelected->mKind == KIND_JOKER) && theTile->mKind < KIND_GOLD)
+		if (aSelected != nullptr && (aSelected->mKind == KIND_MAGNET || aSelected->mKind == KIND_JOKER) &&
+			theTile->mKind < KIND_GOLD)
 			return true;
 	}
 	return theTile->mFree;

@@ -19,9 +19,9 @@ namespace mahjongchina
 class Board;
 
 // One move: a pair of free tiles, or a free special tile and the tile it acts on (Board::CanSelect 0x40c350, CanPair
-// 0x40c3b0, Take 0x40c4d0): the key takes a lock that can be seen, the joker every tile of
-// the kind of an ordinary tile that can be seen (TakeJoker 0x40cc10), and the magnet takes such a tile and becomes its kind
-// (TakeMagnet 0x40cd80)
+// 0x40c3b0, Take 0x40c4d0): the key takes a lock that can be seen, the joker every tile of the kind of an ordinary
+// tile that can be seen (TakeJoker 0x40cc10), and the magnet takes such a tile and becomes its kind (TakeMagnet
+// 0x40cd80)
 struct BotMove
 {
 	Tile* mFirst = nullptr;   // the live board's tiles

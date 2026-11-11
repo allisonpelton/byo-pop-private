@@ -123,7 +123,8 @@ void Panel::Draw()
 	mLabelFont->DrawRight(this, 700, 0x2e, mLabelBest.c_str(), 100, 100, 0xff);
 	mLabelFont->DrawCentred(this, 0x37, 0x21d, mLabelPairs.c_str(), 0x2a, 100, 100, 0xff);
 	mLabelFont->DrawCentred(this, 0x37, 0x240, mLabelLeft.c_str(), 0x2a, 100, 100, 0xff);
-	(mMode == 1 ? mEscapeTitleFont : mTitleFont)->DrawCentred(this, 0, 0x1b, mTitle.c_str(), jb::SCREEN_WIDTH, 100, 100, 0xff);
+	(mMode == 1 ? mEscapeTitleFont : mTitleFont)->DrawCentred(this, 0, 0x1b, mTitle.c_str(), jb::SCREEN_WIDTH, 100, 100,
+		0xff);
 	if (!mStat1.empty())
 		mSmallFont->DrawRight(this, 0x108, 0x32, mStat1.c_str(), 100, 100, 0xff);
 	if (!mStat2.empty())

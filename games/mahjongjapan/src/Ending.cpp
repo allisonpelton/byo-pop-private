@@ -19,8 +19,8 @@ static const int LINE_POS[12][2] = {
 void EndPicture::Draw()
 {
 	DrawImage(0, 0, IMAGE_ENDING_BACKGROUND, nullptr, true, 100, 100, 0xff);
-	mTitleFont->DrawLinesCentred(this, 0, 0x12, mTitle.c_str(), jb::SCREEN_WIDTH, mTitleFont->GetLineHeight() + 10, 100, 100,
-		0xff);
+	mTitleFont->DrawLinesCentred(this, 0, 0x12, mTitle.c_str(), jb::SCREEN_WIDTH, mTitleFont->GetLineHeight() + 10, 100,
+		100, 0xff);
 	if (mLine != 0)
 	{
 		DrawImage(0x72, 0x5a, IMAGE_ENDING_SHOWCASE, nullptr, true, 100, 100, 0xff);
