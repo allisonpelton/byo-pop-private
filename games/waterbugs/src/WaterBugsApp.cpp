@@ -33,7 +33,8 @@ const double OUTPUT_VOLUME = 0.6;
 
 r64::PixelFormat gScreenFormat565;
 
-// fixes mod, "steadyClock": the game's clock runs on the framework's updates (mFrameTime ms each) instead of the machine's
+// fixes mod, "steadyClock": the game's clock runs on the framework's updates (mFrameTime ms each) instead of the
+// machine's
 bool gSteadyClock = false;
 
 // The framework's side of the engine's system layer
@@ -45,9 +46,9 @@ public:
 		return Platform::VFS::Get().ReadAll(thePath, theData);
 	}
 
-	void AddUpdateRect(int x, int y, int w, int h) override
+	void AddUpdateRect(int x, int y, int theWidth, int theHeight) override
 	{
-		gApp->AddUpdateRect(x, y, w, h);
+		gApp->AddUpdateRect(x, y, theWidth, theHeight);
 	}
 
 	void SetMousePos(int x, int y) override
@@ -96,10 +97,10 @@ public:
 		return Byopop::SiteSkipLogos();
 	}
 
-	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus events: the
-	// game stops while the window is not the active one, natively and on the web (where the page's canvas losing the focus
-	// is the same). A test run's window may never be active, except in a -realinput run, where the file's focus lines are the
-	// only focus events there are (docs/REAL_INPUT.md)
+	// The original's activation (its WndProc's WM_ACTIVATEAPP) is the framework's mActive, set from SDL's focus events:
+	// the game stops while the window is not the active one, natively and on the web (where the page's canvas losing
+	// the focus is the same). A test run's window may never be active, except in a -realinput run, where the file's
+	// focus lines are the only focus events there are (docs/REAL_INPUT.md)
 	bool IsActive() override
 	{
 #ifdef __EMSCRIPTEN__
@@ -221,7 +222,8 @@ void BuildPixelsFromScreen16()
 		uint32_t aRed = (p >> 11) & 0x1f;
 		uint32_t aGreen = (p >> 5) & 0x3f;
 		uint32_t aBlue = p & 0x1f;
-		gPixelsFromScreen16[p] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) | (((aGreen << 2) | (aGreen >> 4)) << 8) |
+		gPixelsFromScreen16[p] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) |
+			(((aGreen << 2) | (aGreen >> 4)) << 8) |
 			((aBlue << 3) | (aBlue >> 2));
 	}
 }
@@ -233,7 +235,8 @@ WaterBugsWidget::WaterBugsWidget()
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(800, 600);
 	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
-	// alpha byte 0xff (Draw), so that it need not premultiply them pixel by pixel to upload them (the Mahjong ports' screen)
+	// alpha byte 0xff (Draw), so that it need not premultiply them pixel by pixel to upload them (the Mahjong ports'
+	// screen)
 	mScreenImage->SetImageMode(false, false);
 	mScreenImage->mUploadAsIs = true;
 	BuildPixelsFromScreen16();
@@ -380,7 +383,8 @@ void WaterBugsApp::Init()
 	// WinMain (0x42b340): cp.cfg, the screen in its mode, the sound, then the game
 	r64::LoadConfig();
 #ifdef __EMSCRIPTEN__
-	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu sets it
+	// the site's "Full screen at start: Windowed" (framework/WebSettings.h): the game's own option, set as its menu
+	// sets it
 	if (Byopop::SiteWindowed())
 		r64::Screen_SetFullscreen(0);
 #endif
@@ -414,16 +418,16 @@ void WaterBugsApp::RunFrame()
 	}
 }
 
-void WaterBugsApp::AddUpdateRect(int x, int y, int w, int h)
+void WaterBugsApp::AddUpdateRect(int x, int y, int theWidth, int theHeight)
 {
 	if (x < mDirtyLeft)
 		mDirtyLeft = x < 0 ? 0 : x;
 	if (y < mDirtyTop)
 		mDirtyTop = y < 0 ? 0 : y;
-	if (x + w > mDirtyRight)
-		mDirtyRight = x + w > 800 ? 800 : x + w;
-	if (y + h > mDirtyBottom)
-		mDirtyBottom = y + h > 600 ? 600 : y + h;
+	if (x + theWidth > mDirtyRight)
+		mDirtyRight = x + theWidth > 800 ? 800 : x + theWidth;
+	if (y + theHeight > mDirtyBottom)
+		mDirtyBottom = y + theHeight > 600 ? 600 : y + theHeight;
 }
 
 void WaterBugsApp::Present()
@@ -448,10 +452,10 @@ void WaterBugsApp::SetGameScreenMode(bool theFullscreen)
 	mApplyingGameMode = false;
 }
 
-// The original moves the system's pointer (0x428d70), and the pointer's move reaches the window as a mouse move. Where the
-// port does not move it (in a test run, on the web, with the window inactive) the warp goes to the framework as that
-// move: its widget manager passes on only moves from the position it knew, and a driver's pointer (-realinput) moves
-// with it, so that a move back to the point it moved to before the warp is a move again, as it is for a hand
+// The original moves the system's pointer (0x428d70), and the pointer's move reaches the window as a mouse move. Where
+// the port does not move it (in a test run, on the web, with the window inactive) the warp goes to the framework as
+// that move: its widget manager passes on only moves from the position it knew, and a driver's pointer (-realinput)
+// moves with it, so that a move back to the point it moved to before the warp is a move again, as it is for a hand
 void WaterBugsApp::WarpMouse(int x, int y)
 {
 	mMouseX = x;

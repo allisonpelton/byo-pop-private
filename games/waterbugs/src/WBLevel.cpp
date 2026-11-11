@@ -456,9 +456,10 @@ void Level_RedrawCells(Level* theLevel)
 
 int Level_IsPlaying(Level* theLevel)
 {
-	if ((theLevel->mKind != 0 || (theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr) ||
-			(theLevel->mPanels.mCurrent != nullptr && theLevel->mPanels.mCurrent->mY <= (float)gMouseY)) &&
-		100.0f < theLevel->mAge)
+	if ((theLevel->mKind != 0 ||
+		(theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr) ||
+		(theLevel->mPanels.mCurrent != nullptr && theLevel->mPanels.mCurrent->mY <= (float)gMouseY)) && 100.0f <
+		theLevel->mAge)
 		return 0;
 	return 1;
 }
@@ -978,7 +979,8 @@ int Level_Update(Level* theLevel)
 			{
 				if (theLevel->mKind == 0 && theLevel->mPowerups.mCurrent == nullptr && theLevel->mTotalCells != 0 &&
 					theLevel->mFillQuota <= (theLevel->mFilledCells * 100) / theLevel->mTotalCells &&
-					(theLevel->mMenus.mCurrent == nullptr || theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
+					(theLevel->mMenus.mCurrent == nullptr ||
+						theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
 					Level_Won(theLevel);
 				else
 				{

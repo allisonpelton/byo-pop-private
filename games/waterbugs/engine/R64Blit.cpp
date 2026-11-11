@@ -55,7 +55,8 @@ inline const uint16_t* SrcRow16(const uint8_t* theBits, int thePitch, int x, int
 	return (const uint16_t*)(theBits + thePitch * y + x * 2);
 }
 
-inline const uint8_t* MaskRow(const uint8_t* theMask, int thePitch, int theSrcX, int theSrcY, int theMaskX, int theMaskY)
+inline const uint8_t* MaskRow(const uint8_t* theMask, int thePitch, int theSrcX, int theSrcY, int theMaskX,
+	int theMaskY)
 {
 	return theMask + (theSrcY + theMaskY) * thePitch + theSrcX + theMaskX;
 }
@@ -69,8 +70,8 @@ inline const uint32_t* AlignRun(const uint8_t* p)
 } // namespace
 
 // 0x42fe50
-void Copy8(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, const uint8_t* theSrc, int theSrcX, int theSrcY, int theSrcPitch, int,
-	int theWidth, int theHeight)
+void Copy8(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, const uint8_t* theSrc, int theSrcX,
+	int theSrcY, int theSrcPitch, int, int theWidth, int theHeight)
 {
 	uint8_t* d = theDst + theDstY * theDstPitch + theDstX;
 	const uint8_t* s = theSrc + theSrcY * theSrcPitch + theSrcX;
@@ -87,8 +88,8 @@ void Copy8(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, cons
 }
 
 // 0x42fee0
-void Copy8Key(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, const uint8_t* theSrc, int theSrcX, int theSrcY, int theSrcPitch, int,
-	int theWidth, int theHeight)
+void Copy8Key(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, const uint8_t* theSrc, int theSrcX,
+	int theSrcY, int theSrcPitch, int, int theWidth, int theHeight)
 {
 	uint8_t* d = theDst + theDstY * theDstPitch + theDstX;
 	const uint8_t* s = theSrc + theSrcY * theSrcPitch + theSrcX;
@@ -107,7 +108,8 @@ void Copy8Key(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, c
 }
 
 // 0x42ffb0
-void Copy16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, int w, int theHeight)
+void Copy16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
+	int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
 	const uint8_t* s = theSrc + theSrcPitch * theSrcY + theSrcX * 2;
 	uint8_t* d = theDst + theDstPitch * theDstY + theDstX * 2;
@@ -115,7 +117,7 @@ void Copy16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const ui
 	{
 		do
 		{
-			memcpy(d, s, w * 2);
+			memcpy(d, s, theWidth * 2);
 			s += theSrcPitch;
 			d += theDstPitch;
 			theHeight--;
@@ -124,8 +126,9 @@ void Copy16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const ui
 }
 
 // 0x430020
-void Copy16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY,
-	const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
+void Copy16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
+	int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth,
+	int theHeight)
 {
 	const uint16_t* s = SrcRow16(theSrc, theSrcPitch, theSrcX, theSrcY);
 	uint16_t* d = Row16(theDst, theDstPitch, theDstX, theDstY);
@@ -142,8 +145,9 @@ void Copy16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, cons
 }
 
 // 0x430260
-void Fill16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, int theSrcX, int theSrcY, const uint8_t* theMask,
-	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight, uint16_t theColour)
+void Fill16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, int theSrcX,
+	int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight,
+	uint16_t theColour)
 {
 	uint16_t* d = Row16(theDst, theDstPitch, theDstX, theDstY);
 	const uint8_t* m = MaskRow(theMask, theMaskPitch, theSrcX, theSrcY, theMaskX, theMaskY);
@@ -162,11 +166,13 @@ void Fill16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int
 
 // 0x430870. At alpha 0xff it fills through the mask (0x430260) and then blends the same over it again, as the
 // original does (it does not return after the first pass).
-void Fill16MaskAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, int theSrcX, int theSrcY,
-	const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight, uint16_t theColour, uint8_t theAlpha)
+void Fill16MaskAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, int theSrcX,
+	int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight,
+	uint16_t theColour, uint8_t theAlpha)
 {
 	if (theAlpha == 0xff)
-		Fill16Mask(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrcX, theSrcY, theMask, theMaskPitch, theMaskX, theMaskY, theWidth, theHeight, theColour);
+		Fill16Mask(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrcX, theSrcY, theMask, theMaskPitch, theMaskX,
+			theMaskY, theWidth, theHeight, theColour);
 	uint16_t* aDstPixel = Row16(theDst, theDstPitch, theDstX, theDstY);
 	const uint8_t* m = MaskRow(theMask, theMaskPitch, theSrcX, theSrcY, theMaskX, theMaskY);
 	for (; 0 < theHeight; theHeight--)
@@ -183,8 +189,9 @@ void Fill16MaskAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt
 }
 
 // 0x430ef0
-void Blend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
+void Blend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch,
+	int theMaskX, int theMaskY, int theWidth, int theHeight)
 {
 	const uint16_t* s = SrcRow16(theSrc, theSrcPitch, theSrcX, theSrcY);
 	uint16_t* d = Row16(theDst, theDstPitch, theDstX, theDstY);
@@ -201,8 +208,9 @@ void Blend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, in
 }
 
 // 0x4315a0
-void Alpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
+void Alpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch,
+	int theMaskX, int theMaskY, int theWidth, int theHeight)
 {
 	const uint16_t* aSrcPixel = SrcRow16(theSrc, theSrcPitch, theSrcX, theSrcY);
 	uint16_t* aDstPixel = Row16(theDst, theDstPitch, theDstX, theDstY);
@@ -222,11 +230,13 @@ void Alpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, in
 }
 
 // 0x431d00. At alpha 0xff it draws Alpha16Mask (0x4315a0) and then blends over it again, as the original does.
-void Alpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc,
-	int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight, int theAlpha)
+void Alpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch,
+	int theMaskX, int theMaskY, int theWidth, int theHeight, int theAlpha)
 {
 	if (theAlpha == 0xff)
-		Alpha16Mask(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrc, theSrcPitch, theSrcX, theSrcY, theMask, theMaskPitch, theMaskX, theMaskY, theWidth, theHeight);
+		Alpha16Mask(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrc, theSrcPitch, theSrcX, theSrcY, theMask,
+			theMaskPitch, theMaskX, theMaskY, theWidth, theHeight);
 	const uint16_t* aSrcPixel = SrcRow16(theSrc, theSrcPitch, theSrcX, theSrcY);
 	uint16_t* aDstPixel = Row16(theDst, theDstPitch, theDstX, theDstY);
 	const uint8_t* aMaskPixel = MaskRow(theMask, theMaskPitch, theSrcX, theSrcY, theMaskX, theMaskY);
@@ -245,8 +255,9 @@ void Alpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt
 }
 
 // 0x432440
-void Add16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
+void Add16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch,
+	int theMaskX, int theMaskY, int theWidth, int theHeight)
 {
 	const uint16_t* s = SrcRow16(theSrc, theSrcPitch, theSrcX, theSrcY);
 	uint16_t* d = Row16(theDst, theDstPitch, theDstX, theDstY);
@@ -270,8 +281,9 @@ namespace
 // -sin(a+270)), both before the pixel is plotted. A pixel lands at its rounded position and also on the row
 // above when its y truncates there, which fills the gaps a rotation leaves.
 template <typename PlotFn>
-void RotateBody(int theDstStep, int theSpitchStep, int theWidth, int theHeight, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int x,
-	int y, int theAngle, const int* theClip, bool theFloatAngle, PlotFn thePlot)
+void RotateBody(int theDstStep, int theSpitchStep, int theWidth, int theHeight, const uint8_t* theMask,
+	int theMaskPitch, int theMaskX, int theMaskY, int x, int y, int theAngle, const int* theClip, bool theFloatAngle,
+	PlotFn thePlot)
 {
 	int aHalfW = theWidth / 2;
 	int aHalfH = theHeight / 2;
@@ -341,34 +353,36 @@ void RotateBody(int theDstStep, int theSpitchStep, int theWidth, int theHeight, 
 
 } // namespace
 
-void Rotate16(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int theSrcPitch, int w, int h, const uint8_t* theMask,
-	int theMaskPitch, int theMaskX, int theMaskY, int x, int y, int theAngle, const int* theClip)
+void Rotate16(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int theSrcPitch, int theWidth, int theHeight,
+	const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int x, int y, int theAngle,
+	const int* theClip)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* s = (const uint16_t*)theSrc;
-	RotateBody(theDstPitch / 2, theSrcPitch / 2, w, h, theMask, theMaskPitch, theMaskX, theMaskY, x, y, theAngle, theClip, false,
-		[&](int theAt, int theSrcIndex) { d[theAt] = s[theSrcIndex]; });
+	RotateBody(theDstPitch / 2, theSrcPitch / 2, theWidth, theHeight, theMask, theMaskPitch, theMaskX, theMaskY, x, y,
+		theAngle, theClip, false, [&](int theAt, int theSrcIndex) { d[theAt] = s[theSrcIndex]; });
 }
 
-void PalRotate16(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int w, int h,
-	const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int x, int y, int theAngle, const int* theClip)
+void PalRotate16(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int theSrcPitch, const Palette* thePal,
+	int theWidth, int theHeight, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int x, int y,
+	int theAngle, const int* theClip)
 {
 	uint16_t* d = (uint16_t*)theDst;
-	RotateBody(theDstPitch / 2, theSrcPitch, w, h, theMask, theMaskPitch, theMaskX, theMaskY, x, y, theAngle, theClip, false,
-		[&](int theAt, int theSrcIndex) { d[theAt] = thePal->mP16[theSrc[theSrcIndex]]; });
+	RotateBody(theDstPitch / 2, theSrcPitch, theWidth, theHeight, theMask, theMaskPitch, theMaskX, theMaskY, x, y,
+		theAngle, theClip, false, [&](int theAt, int theSrcIndex) { d[theAt] = thePal->mP16[theSrc[theSrcIndex]]; });
 }
 
 // 0x42d590: the source is its own mask (0 transparent)
-void Rotate8(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int theSrcPitch, int w, int h, int x, int y, int theAngle,
-	const int* theClip)
+void Rotate8(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int theSrcPitch, int theWidth, int theHeight,
+	int x, int y, int theAngle, const int* theClip)
 {
-	RotateBody(theDstPitch, theSrcPitch, w, h, theSrc, theSrcPitch, 0, 0, x, y, theAngle, theClip, true,
+	RotateBody(theDstPitch, theSrcPitch, theWidth, theHeight, theSrc, theSrcPitch, 0, 0, x, y, theAngle, theClip, true,
 		[&](int theAt, int theSrcIndex) { theDst[theAt] = theSrc[theSrcIndex]; });
 }
 
 // 0x432be0
-void Pal16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX,
-	int theSrcY, int theWidth, int theHeight)
+void Pal16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
+	const Palette* thePal, int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
 	const uint8_t* s = theSrc + theSrcPitch * theSrcY + theSrcX;
 	uint16_t* d = Row16(theDst, theDstPitch, theDstX, theDstY);
@@ -387,8 +401,9 @@ void Pal16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uin
 }
 
 // 0x432c70
-void Pal16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX,
-	int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
+void Pal16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
+	const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX,
+	int theMaskY, int theWidth, int theHeight)
 {
 	uint16_t* d = Row16(theDst, theDstPitch, theDstX, theDstY);
 	const uint16_t* p = thePal->mP16;
@@ -406,8 +421,9 @@ void Pal16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const
 }
 
 // 0x432ee0
-void PalBlend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
+void PalBlend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask,
+	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
 {
 	uint16_t* aDstPixel = Row16(theDst, theDstPitch, theDstX, theDstY);
 	const uint8_t* s = theSrc + theSrcPitch * theSrcY + theSrcX;
@@ -425,8 +441,9 @@ void PalBlend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
 }
 
 // 0x4335c0
-void PalAlpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
+void PalAlpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask,
+	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
 {
 	uint16_t* aDstPixel = Row16(theDst, theDstPitch, theDstX, theDstY);
 	const uint8_t* aSrcPixel = theSrc + theSrcPitch * theSrcY + theSrcX;
@@ -447,12 +464,13 @@ void PalAlpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
 }
 
 // 0x433db0. At alpha 0xff it draws PalAlpha16Mask (0x4335c0) and then blends over it again, as the original does.
-void PalAlpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc,
-	int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight,
-	int theAlpha)
+void PalAlpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask,
+	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight, int theAlpha)
 {
 	if (theAlpha == 0xff)
-		PalAlpha16Mask(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrc, theSrcPitch, thePal, theSrcX, theSrcY, theMask, theMaskPitch, theMaskX, theMaskY, theWidth, theHeight);
+		PalAlpha16Mask(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrc, theSrcPitch, thePal, theSrcX, theSrcY,
+			theMask, theMaskPitch, theMaskX, theMaskY, theWidth, theHeight);
 	uint16_t* aDstPixel = Row16(theDst, theDstPitch, theDstX, theDstY);
 	const uint8_t* aSrcPixel = theSrc + theSrcPitch * theSrcY + theSrcX;
 	const uint16_t* p = thePal->mP16;
@@ -472,16 +490,17 @@ void PalAlpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* the
 }
 
 // 0x434520
-void PalAdd16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int w, int h)
+void PalAdd16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask,
+	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
 {
 	uint16_t* d = Row16(theDst, theDstPitch, theDstX, theDstY);
 	const uint16_t* p = thePal->mP16;
 	const uint8_t* m = MaskRow(theMask, theMaskPitch, theSrcX, theSrcY, theMaskX, theMaskY);
 	const uint8_t* s = theSrc + theSrcPitch * theSrcY + theSrcX;
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 			if (m[i] != 0)
 				d[i] = Add(theFmt, p[s[i]], d[i]);
 		s += theSrcPitch;
@@ -496,7 +515,8 @@ namespace
 // The RLE blitters' walk (0x434d00 and the others): per row, from its first pixel to its width, runs of skip,
 // n blended pixels (theBlended with each one's alpha) and the solid ones (theSolid)
 template <typename BlendedFn, typename SolidFn>
-void RleWalk(int theDstPitch, int theSpitchStep, const uint8_t* theRle, BlendedFn theBlended, SolidFn theSolid, int theDst)
+void RleWalk(int theDstPitch, int theSpitchStep, const uint8_t* theRle, BlendedFn theBlended, SolidFn theSolid,
+	int theDst)
 {
 	const int* aHead = (const int*)theRle;
 	int aWidth = aHead[1];
@@ -531,8 +551,8 @@ void RleWalk(int theDstPitch, int theSpitchStep, const uint8_t* theRle, BlendedF
 } // namespace
 
 // 0x434d00
-void Rle16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const uint8_t* theRle)
+void Rle16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theDstX, int theDstY, const uint8_t* theSrc,
+	int theSrcPitch, const uint8_t* theRle)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* s = (const uint16_t*)theSrc;
@@ -541,7 +561,8 @@ void Rle16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theDstX
 }
 
 // 0x434e20
-void Rle16Fill(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theRle, uint16_t theColour)
+void Rle16Fill(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theRle, uint16_t theColour)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	RleWalk(theDstPitch, 0, theRle, [&](int theD, int, uint8_t a) { d[theD] = Blend(theFmt, theColour, d[theD], a); },
@@ -549,8 +570,8 @@ void Rle16Fill(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int 
 }
 
 // 0x434fe0. At alpha 0xff it fills (0x434e20) and then blends over it again, as the original does.
-void Rle16FillAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theRle,
-	uint16_t theColour, uint32_t theAlpha)
+void Rle16FillAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theRle, uint16_t theColour, uint32_t theAlpha)
 {
 	if (theAlpha == 0xff)
 		Rle16Fill(theDst, theDstPitch, theFmt, theDstX, theDstY, theRle, theColour);
@@ -571,28 +592,31 @@ void Rle16FillAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
 }
 
 // 0x435270: the solid pixels are blended at 0xff, not copied
-void Rle16Blend(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const uint8_t* theRle)
+void Rle16Blend(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const uint8_t* theRle)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* s = (const uint16_t*)theSrc;
-	RleWalk(theDstPitch, theSrcPitch / 2, theRle, [&](int theD, int theS, uint8_t a) { d[theD] = Blend(theFmt, s[theS], d[theD], a); },
-		[&](int theD, int theS) { d[theD] = Blend(theFmt, s[theS], d[theD], 0xff); }, theDstY * (theDstPitch / 2) + theDstX);
+	RleWalk(theDstPitch, theSrcPitch / 2, theRle,
+		[&](int theD, int theS, uint8_t a) { d[theD] = Blend(theFmt, s[theS], d[theD], a); },
+		[&](int theD, int theS) { d[theD] = Blend(theFmt, s[theS], d[theD], 0xff); },
+		theDstY * (theDstPitch / 2) + theDstX);
 }
 
 // 0x435500
-void Rle16Alpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const uint8_t* theRle)
+void Rle16Alpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const uint8_t* theRle)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* s = (const uint16_t*)theSrc;
-	RleWalk(theDstPitch, theSrcPitch / 2, theRle, [&](int theD, int theS, uint8_t a) { d[theD] = Blend(theFmt, s[theS], d[theD], a); },
+	RleWalk(theDstPitch, theSrcPitch / 2, theRle,
+		[&](int theD, int theS, uint8_t a) { d[theD] = Blend(theFmt, s[theS], d[theD], a); },
 		[&](int theD, int theS) { d[theD] = s[theS]; }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
 // 0x435700. At alpha 0xff it draws Rle16Alpha (0x435500) and then blends over it again, as the original does.
-void Rle16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const uint8_t* theRle, uint32_t theAlpha)
+void Rle16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const uint8_t* theRle, uint32_t theAlpha)
 {
 	if (theAlpha == 0xff)
 		Rle16Alpha(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrc, theSrcPitch, theRle);
@@ -614,18 +638,19 @@ void Rle16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
 }
 
 // 0x4359e0
-void Rle16Add(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const uint8_t* theRle)
+void Rle16Add(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const uint8_t* theRle)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* s = (const uint16_t*)theSrc;
-	RleWalk(theDstPitch, theSrcPitch / 2, theRle, [&](int theD, int theS, uint8_t) { d[theD] = Add(theFmt, s[theS], d[theD]); },
+	RleWalk(theDstPitch, theSrcPitch / 2, theRle,
+		[&](int theD, int theS, uint8_t) { d[theD] = Add(theFmt, s[theS], d[theD]); },
 		[&](int theD, int theS) { d[theD] = Add(theFmt, s[theS], d[theD]); }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
 // 0x435bf0
-void RlePal16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const Palette* thePal, const uint8_t* theRle)
+void RlePal16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theDstX, int theDstY, const uint8_t* theSrc,
+	int theSrcPitch, const Palette* thePal, const uint8_t* theRle)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* p = thePal->mP16;
@@ -634,28 +659,31 @@ void RlePal16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theD
 }
 
 // 0x435d10: the solid pixels are blended at 0xff, not copied
-void RlePal16Blend(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const Palette* thePal, const uint8_t* theRle)
+void RlePal16Blend(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, const uint8_t* theRle)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* p = thePal->mP16;
-	RleWalk(theDstPitch, theSrcPitch, theRle, [&](int theD, int theS, uint8_t a) { d[theD] = Blend(theFmt, p[theSrc[theS]], d[theD], a); },
-		[&](int theD, int theS) { d[theD] = Blend(theFmt, p[theSrc[theS]], d[theD], 0xff); }, theDstY * (theDstPitch / 2) + theDstX);
+	RleWalk(theDstPitch, theSrcPitch, theRle,
+		[&](int theD, int theS, uint8_t a) { d[theD] = Blend(theFmt, p[theSrc[theS]], d[theD], a); },
+		[&](int theD, int theS) { d[theD] = Blend(theFmt, p[theSrc[theS]], d[theD], 0xff); },
+		theDstY * (theDstPitch / 2) + theDstX);
 }
 
 // 0x435fb0
-void RlePal16Alpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const Palette* thePal, const uint8_t* theRle)
+void RlePal16Alpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, const uint8_t* theRle)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* p = thePal->mP16;
-	RleWalk(theDstPitch, theSrcPitch, theRle, [&](int theD, int theS, uint8_t a) { d[theD] = Blend(theFmt, p[theSrc[theS]], d[theD], a); },
+	RleWalk(theDstPitch, theSrcPitch, theRle,
+		[&](int theD, int theS, uint8_t a) { d[theD] = Blend(theFmt, p[theSrc[theS]], d[theD], a); },
 		[&](int theD, int theS) { d[theD] = p[theSrc[theS]]; }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
 // 0x4361b0. At alpha 0xff it draws RlePal16Alpha (0x435fb0) and then blends over it again, as the original does.
-void RlePal16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc,
-	int theSrcPitch, const Palette* thePal, const uint8_t* theRle, uint32_t theAlpha)
+void RlePal16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, const uint8_t* theRle, uint32_t theAlpha)
 {
 	if (theAlpha == 0xff)
 		RlePal16Alpha(theDst, theDstPitch, theFmt, theDstX, theDstY, theSrc, theSrcPitch, thePal, theRle);
@@ -677,13 +705,15 @@ void RlePal16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theF
 }
 
 // 0x436490
-void RlePal16Add(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
-	const Palette* thePal, const uint8_t* theRle)
+void RlePal16Add(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
+	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, const uint8_t* theRle)
 {
 	uint16_t* d = (uint16_t*)theDst;
 	const uint16_t* p = thePal->mP16;
-	RleWalk(theDstPitch, theSrcPitch, theRle, [&](int theD, int theS, uint8_t) { d[theD] = Add(theFmt, p[theSrc[theS]], d[theD]); },
-		[&](int theD, int theS) { d[theD] = Add(theFmt, p[theSrc[theS]], d[theD]); }, theDstY * (theDstPitch / 2) + theDstX);
+	RleWalk(theDstPitch, theSrcPitch, theRle,
+		[&](int theD, int theS, uint8_t) { d[theD] = Add(theFmt, p[theSrc[theS]], d[theD]); },
+		[&](int theD, int theS) { d[theD] = Add(theFmt, p[theSrc[theS]], d[theD]); },
+		theDstY * (theDstPitch / 2) + theDstX);
 }
 
 } // namespace r64

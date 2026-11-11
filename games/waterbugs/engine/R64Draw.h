@@ -68,15 +68,15 @@ struct Dirty
 
 void Dirty_Free(Dirty* theDirty);                                                     // 0x421990
 void Dirty_Init(Dirty* theDirty, int theCellW, int theCellH, int theMaxRects, int theMode); // 0x4219e0
-void Dirty_AddRect(Dirty* theDirty, int x, int y, int w, int h);                       // 0x421a20
+void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int theHeight);                       // 0x421a20
 void Dirty_Clear(Dirty* theDirty);                                                     // 0x421e40
-void Dirty_AddClipped(Dirty* theDirty, int x, int y, int w, int h, const int* theClip); // 0x421eb0
+void Dirty_AddClipped(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip); // 0x421eb0
 void Dirty_CopyTo(Dirty* theDirty, uint8_t* theDst, int theDPitch);                    // 0x421f40
 void Dirty_Alloc(Dirty* theDirty);                                                     // 0x422060
 void Dirty_SetSource(Dirty* theDirty, Image* theSource);                               // 0x4220d0
 // 0x422100, 0x4221b0, 0x422260: clip, tell the screen, add
 void Dirty_AddClippedRect(Dirty* theDirty, const int* theRect, const int* theClip);
-void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int w, int h, const int* theClip);
+void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip);
 void Dirty_AddClippedImage(Dirty* theDirty, int x, int y, const Image* theImage, const int* theClip);
 
 // 0x445090 (and shortsort 0x445000): the MSVC 2005 CRT's qsort, which DrawList_Flush relies on: its comparator
@@ -88,8 +88,8 @@ void Draw_SetTarget(uint8_t* theBits, int thePitch, int theW, int theH, const Pi
 // 0x42dd00: a line blended toward (r, g, b) by theAlpha/256, both ends drawn; 16-bit surfaces only
 void Draw_Line(int theX0, int theY0, int theX1, int theY1, int theRed, int theGreen, int theBlue, int theAlpha);
 // 0x42db10: a rectangle (inclusive) in a colour (black clears it)
-void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int theRight, int theBottom, int theR,
-	int theG, int theB);
+void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int theRight, int theBottom,
+	int theR, int theG, int theB);
 // 0x42db50: a rectangle (inclusive) blended toward a colour by theAlpha/256, unclipped
 void Draw_FillBlend(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
 	int theG, int theB, int theAlpha);
@@ -99,8 +99,8 @@ void Draw_FillBlendTarget(int l, int t, int r, int b, int theR, int theG, int th
 void Draw_FillBlendClipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int t,
 	int r, int b, int theR, int theG, int theB, int theAlpha);
 // 0x42dbd0: Draw_Line's drawing on a given surface, unclipped
-void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1, int r,
-	int g, int b, int theAlpha);
+void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1,
+	int r, int g, int b, int theAlpha);
 
 } // namespace r64
 

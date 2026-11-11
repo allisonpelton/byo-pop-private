@@ -266,14 +266,16 @@ void DrawList_Flush()
 			Image_BlitBlend(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY);
 			break;
 		case 3:
-			Image_BlitFill(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY, PackColour(aFormat, anIt.mR, anIt.mG, anIt.mB));
+			Image_BlitFill(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY,
+				PackColour(aFormat, anIt.mR, anIt.mG, anIt.mB));
 			break;
 		case 4:
-			Image_BlitAlphaFade(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY, (uint32_t)anIt.mAlpha);
+			Image_BlitAlphaFade(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY,
+				(uint32_t)anIt.mAlpha);
 			break;
 		case 5:
-			Image_BlitFillAlpha(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY, PackColour(aFormat, anIt.mR, anIt.mG, anIt.mB),
-				(uint32_t)(uint8_t)anIt.mAlpha);
+			Image_BlitFillAlpha(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY,
+				PackColour(aFormat, anIt.mR, anIt.mG, anIt.mB), (uint32_t)(uint8_t)anIt.mAlpha);
 			break;
 		case 6:
 			Image_BlitAdd(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY);
@@ -343,10 +345,10 @@ void Dirty_Init(Dirty* theDirty, int theCellW, int theCellH, int theMaxRects, in
 
 // 0x421a20: the rectangle's part in each cell it touches. A cell full of rectangles becomes one rectangle of the
 // whole cell, and the rest of that row of cells is skipped, as in the original.
-void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int h)
+void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int theHeight)
 {
 	int aRow = y / theDirty->mCellH;
-	int aBottomEdge = h + y;
+	int aBottomEdge = theHeight + y;
 	if (aRow <= aBottomEdge / theDirty->mCellH)
 	{
 		do
@@ -428,7 +430,8 @@ void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int h)
 									int anUb = aRects[3];
 									if (anUb <= aBottom)
 										anUb = aBottom;
-									int aSum = (aRects[3] - aRects[1]) * (aQr - aRects[0]) + (aBottom - aTop) * (aRight - aLeft);
+									int aSum = (aRects[3] - aRects[1]) * (aQr - aRects[0]) + (aBottom - aTop) *
+										(aRight - aLeft);
 									int aUnion = (anUb - anUt) * (anUr - anUl);
 									if (aUnion - aSum == 0 || aUnion < aSum)
 									{
@@ -485,10 +488,11 @@ void Dirty_Clear(Dirty* theDirty)
 }
 
 // 0x421eb0
-void Dirty_AddClipped(Dirty* theDirty, int x, int y, int w, int h, const int* theClip)
+void Dirty_AddClipped(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip)
 {
 	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
-	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, w, h, &aDstX, &aDstY, &aSrcX, &aSrcY, &aBlitWidth, &aBlitHeight) == 1)
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, theWidth, theHeight, &aDstX, &aDstY, &aSrcX,
+		&aSrcY, &aBlitWidth, &aBlitHeight) == 1)
 		Dirty_AddRect(theDirty, aDstX, aDstY, aBlitWidth, aBlitHeight);
 }
 
@@ -508,8 +512,8 @@ void Dirty_CopyTo(Dirty* theDirty, uint8_t* theDst, int theDPitch)
 				{
 					const int* q = theDirty->mCells[i].mRects + k * 4;
 					int aX = q[0] * theDirty->mBytesPerPixel;
-					Copy8(theDst, aX, q[1], theDPitch, 0, theDirty->mSource->mBits, aX, q[1], theDirty->mSource->mPitch, 0,
-						((q[2] - q[0]) + 1) * theDirty->mBytesPerPixel, (q[3] - q[1]) + 1);
+					Copy8(theDst, aX, q[1], theDPitch, 0, theDirty->mSource->mBits, aX, q[1], theDirty->mSource->mPitch,
+						0, ((q[2] - q[0]) + 1) * theDirty->mBytesPerPixel, (q[3] - q[1]) + 1);
 					q = theDirty->mCells[i].mRects + k * 4;
 					Sys_AddUpdateRect(q[0], q[1], (q[2] - q[0]) + 1, (q[3] - q[1]) + 1);
 					k++;
@@ -564,10 +568,11 @@ void Dirty_AddClippedRect(Dirty* theDirty, const int* theRect, const int* theCli
 }
 
 // 0x4221b0
-void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int w, int h, const int* theClip)
+void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip)
 {
 	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
-	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, w, h, &aDstX, &aDstY, &aSrcX, &aSrcY, &aBlitWidth, &aBlitHeight) == 1)
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, theWidth, theHeight, &aDstX, &aDstY, &aSrcX,
+		&aSrcY, &aBlitWidth, &aBlitHeight) == 1)
 	{
 		Sys_AddUpdateRect(aDstX, aDstY, aBlitWidth, aBlitHeight);
 		Dirty_AddRect(theDirty, aDstX, aDstY, aBlitWidth, aBlitHeight);

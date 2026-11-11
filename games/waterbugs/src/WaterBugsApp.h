@@ -67,7 +67,7 @@ public:
 	// One pass of the original's main loop
 	void RunFrame();
 	// The engine's requests (WaterBugsApp.cpp's SysHost)
-	void AddUpdateRect(int x, int y, int w, int h);
+	void AddUpdateRect(int x, int y, int theWidth, int theHeight);
 	void Present();
 	void SetGameScreenMode(bool theFullscreen);
 	void WarpMouse(int x, int y);

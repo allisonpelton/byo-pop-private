@@ -60,7 +60,8 @@ void Rand()
 {
 	gRandCalls++;
 	uint32_t aSeed = (uint32_t)gRandSeed;
-	gRandSeed = (int32_t)((aSeed % (uint32_t)RAND_Q) * (uint32_t)RAND_A - (aSeed / (uint32_t)RAND_Q) * (uint32_t)RAND_R);
+	gRandSeed = (int32_t)((aSeed % (uint32_t)RAND_Q) * (uint32_t)RAND_A - (aSeed / (uint32_t)RAND_Q) *
+		(uint32_t)RAND_R);
 }
 
 void SeedRand(int theSeed)
@@ -95,8 +96,9 @@ float Dist3(const float* a, const float* b)
 float SegmentDist3(const float* thePoint, const float* theStart, const float* theEnd)
 {
 	float aLen = Dist3(theEnd, theStart);
-	float t = (float)((((double)theEnd[2] - theStart[2]) * ((double)thePoint[2] - theStart[2]) + ((double)thePoint[0] - theStart[0]) * ((double)theEnd[0] - theStart[0]) +
-		((double)theEnd[1] - theStart[1]) * ((double)thePoint[1] - theStart[1])) / ((double)aLen * aLen));
+	float t = (float)((((double)theEnd[2] - theStart[2]) * ((double)thePoint[2] - theStart[2]) +
+		((double)thePoint[0] - theStart[0]) * ((double)theEnd[0] - theStart[0]) + ((double)theEnd[1] - theStart[1]) *
+		((double)thePoint[1] - theStart[1])) / ((double)aLen * aLen));
 	if (0.0f <= t && t <= 1.0f)
 	{
 		float q[3];

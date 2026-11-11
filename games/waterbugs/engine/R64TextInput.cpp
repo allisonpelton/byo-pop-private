@@ -153,8 +153,9 @@ void DrawText(TextInput* theInput, uint8_t* theDst, int theDPitch, const PixelFo
 	if (theInput->mActive == 0)
 		return;
 	if (theInput->mFillColour[3] != 0)
-		Draw_FillBlend(theDst, theDPitch, theFmt, theInput->mBox[0], theInput->mBox[1], theInput->mBox[2], theInput->mBox[3],
-			theInput->mFillColour[0], theInput->mFillColour[1], theInput->mFillColour[2], theInput->mFillColour[3]);
+		Draw_FillBlend(theDst, theDPitch, theFmt, theInput->mBox[0], theInput->mBox[1], theInput->mBox[2],
+			theInput->mBox[3], theInput->mFillColour[0], theInput->mFillColour[1], theInput->mFillColour[2],
+			theInput->mFillColour[3]);
 	if (theInput->mFrameColour[3] != 0)
 	{
 		const uint8_t* c = theInput->mFrameColour;
@@ -268,8 +269,8 @@ void TextInput_Clear(TextInput* theInput)
 }
 
 // 0x42c3b0
-void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char theColourCode, int theLeft, int theTop, int theRight,
-	int theBottom)
+void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char theColourCode, int theLeft, int theTop,
+	int theRight, int theBottom)
 {
 	if (theInput->mText != nullptr)
 	{
@@ -517,7 +518,8 @@ void TextInput_Update(TextInput* theInput, double theSeconds)
 				if (theInput->mScroll - Font_CharAdvance(theInput->mFont, theInput->mText[theInput->mCaret - 1]) < 0)
 					aScroll = 0;
 				else
-					aScroll = theInput->mScroll - Font_CharAdvance(theInput->mFont, theInput->mText[theInput->mCaret - 1]);
+					aScroll = theInput->mScroll - Font_CharAdvance(theInput->mFont,
+						theInput->mText[theInput->mCaret - 1]);
 				int i = theInput->mCaret - 1;
 				theInput->mScroll = aScroll;
 				if (i < theInput->mLength)

@@ -179,7 +179,8 @@ bool ReadScript(const char* thePath, std::vector<Event>& theEvents)
 			theEvents.push_back(e);
 	}
 	std::fclose(f);
-	std::stable_sort(theEvents.begin(), theEvents.end(), [](const Event& a, const Event& b) { return a.mTime < b.mTime; });
+	std::stable_sort(theEvents.begin(), theEvents.end(),
+		[](const Event& a, const Event& b) { return a.mTime < b.mTime; });
 	return true;
 }
 
@@ -275,20 +276,26 @@ int main(int argc, char** argv)
 			else if (e.mWhat == "state")
 			{
 				wb::Level* aLevel = wb::gLevels.mCurrent;
-				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, wb::gScore, wb::gLives,
-					wb::gLevelInSet, aLevel != nullptr ? aLevel->mFilledCells : -1, aLevel != nullptr ? aLevel->mFillQuota : -1);
-				std::printf("frame %d, %d random draws, seed 0x%x\n", wb::gFrame, wb::gRandCalls, (unsigned)wb::RandValue());  // the update counter (0x460a1c), for lining up with the original
+				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, wb::gScore,
+					wb::gLives, wb::gLevelInSet, aLevel != nullptr ? aLevel->mFilledCells : -1,
+					aLevel != nullptr ? aLevel->mFillQuota : -1);
+				// the update counter (0x460a1c), for lining up with the original
+				std::printf("frame %d, %d random draws, seed 0x%x\n", wb::gFrame, wb::gRandCalls,
+					(unsigned)wb::RandValue());
 					wb::Shooter* aShip = aLevel != nullptr ? aLevel->mShooters.mCurrent : nullptr;
 					if (aShip != nullptr)
-						std::printf("ship %d,%d state %d age %d mouse %d,%d\n", (int)aShip->mX, (int)aShip->mY, aShip->mState, (int)aShip->mAge, wb::gMouseX, wb::gMouseY);
+						std::printf("ship %d,%d state %d age %d mouse %d,%d\n", (int)aShip->mX, (int)aShip->mY,
+							aShip->mState, (int)aShip->mAge, wb::gMouseX, wb::gMouseY);
 			}
 			else if (e.mWhat == "lives")
 				wb::gLives = e.mA;  // a test shortcut: the lives left, to reach the game over
 			else if (e.mWhat == "score")
 				wb::gScore = e.mA;  // a test shortcut: a score for the high-score entry
 			else if (e.mWhat == "reached")
-				wb::gProfiles[wb::gProfile].mLevelReached = e.mA;  // a test shortcut: levels finished, so a game can be resumed
-			else if (e.mWhat == "die" && wb::gLevels.mCurrent != nullptr && wb::gLevels.mCurrent->mShooters.mCurrent != nullptr)
+				wb::gProfiles[wb::gProfile].mLevelReached = e.mA;  // a test shortcut: levels finished, so a game can be
+																   // resumed
+			else if (e.mWhat == "die" && wb::gLevels.mCurrent != nullptr &&
+				wb::gLevels.mCurrent->mShooters.mCurrent != nullptr)
 			{
 				// a test shortcut: an enemy's hit on the ship (Beam_UpdateRider's), to reach the game over
 				wb::Shooter_Hit(wb::gLevels.mCurrent->mShooters.mCurrent, 1.0f, 1.0f);
@@ -307,7 +314,8 @@ int main(int argc, char** argv)
 		aFrames++;
 		// (a frame is WB_FRAME_MS ms, 10 unless set: the original under origrun runs about a millisecond a frame. It is
 		// shortened to reach an event that falls inside it: the game steps a millisecond at a time)
-		static const uint32_t FRAME_MS = std::getenv("WB_FRAME_MS") != nullptr ? (uint32_t)std::atoi(std::getenv("WB_FRAME_MS")) : 10;
+		static const uint32_t FRAME_MS = std::getenv("WB_FRAME_MS") != nullptr ?
+			(uint32_t)std::atoi(std::getenv("WB_FRAME_MS")) : 10;
 		uint32_t aStep = FRAME_MS;
 		int aAfter = aByFrame ? wb::gFrame : (int)gHost.mTime;   // (the frame just run has moved the counter on)
 		if (aNext < anEvents.size() && anEvents[aNext].mTime > aAfter && anEvents[aNext].mTime < aAfter + (int)FRAME_MS)

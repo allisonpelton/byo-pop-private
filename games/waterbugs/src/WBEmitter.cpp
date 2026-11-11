@@ -8,9 +8,9 @@
 namespace wb
 {
 
-// (the original constructs each system and particle at start-up, 0x40c2c0 and the Obj base: the port's start as zeros, which
-// nothing reads differently: ParticleSystem_New and ParticleSystem_Add set what a system and a particle use, and neither is
-// updated by Obj_Update, the only reader of the base's loop and frame step)
+// (the original constructs each system and particle at start-up, 0x40c2c0 and the Obj base: the port's start as zeros,
+// which nothing reads differently: ParticleSystem_New and ParticleSystem_Add set what a system and a particle use, and
+// neither is updated by Obj_Update, the only reader of the base's loop and frame step)
 static ParticleSystem gSystems[4000];     // 0x62de20
 static int gSystemNext = 0;               // 0x478620
 static Particle gParticles[8000];         // 0x478628
@@ -65,9 +65,12 @@ void Particle_Draw(Particle* theParticle)
 	if (255.0 < anAlpha)
 		anAlpha = 255.0;
 	theParticle->mAlpha = (int)anAlpha;
-	theParticle->mR = (int)((double)(theParticle->mEndR - theParticle->mStartR) * (double)aLifeFraction + (double)theParticle->mStartR);
-	theParticle->mG = (int)((double)(theParticle->mEndG - theParticle->mStartG) * (double)aLifeFraction + (double)theParticle->mStartG);
-	theParticle->mB = (int)((double)(theParticle->mEndB - theParticle->mStartB) * (double)aLifeFraction + (double)theParticle->mStartB);
+	theParticle->mR = (int)((double)(theParticle->mEndR - theParticle->mStartR) * (double)aLifeFraction +
+		(double)theParticle->mStartR);
+	theParticle->mG = (int)((double)(theParticle->mEndG - theParticle->mStartG) * (double)aLifeFraction +
+		(double)theParticle->mStartG);
+	theParticle->mB = (int)((double)(theParticle->mEndB - theParticle->mStartB) * (double)aLifeFraction +
+		(double)theParticle->mStartB);
 	if (theParticle->mFrameTime == 0)
 	{
 		Animation* anAnim = theParticle->mAnim;
@@ -398,7 +401,8 @@ void Emitter_Update(Obj* theObj)
 	}
 	ParticleSystem_New();
 	ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, (float)x, (float)y, aVx, aVy, 0, aLast, 0, aStartR, aStartG,
-		aStartB, anEndR, anEndG, anEndB, anEmitter->mStartAlpha, anEmitter->mEndAlpha, anEmitter->mTime, 0.999f, 0.0f, anEmitter->mDrawKind);
+		aStartB, anEndR, anEndG, anEndB, anEmitter->mStartAlpha, anEmitter->mEndAlpha, anEmitter->mTime, 0.999f, 0.0f,
+			anEmitter->mDrawKind);
 	gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent->mAnim = anEmitter->mAnim;
 	ParticleSystem* aSystem = gLevels.mCurrent->mSystems.mCurrent;
 	aSystem->mParticles.mCurrent->mDepth = 0;

@@ -1,5 +1,5 @@
-// Loads Water Bugs' art banks the way GameMain does (water_art8.bbk raw, water_art.bbk converted to the 16-bit screen) and
-// draws every image of one onto 800x600 sheets through the engine's blitters, written as PNGs. "fonts" draws a line
+// Loads Water Bugs' art banks the way GameMain does (water_art8.bbk raw, water_art.bbk converted to the 16-bit screen)
+// and draws every image of one onto 800x600 sheets through the engine's blitters, written as PNGs. "fonts" draws a line
 // in each font water_bugs.xml names, plain, outlined and filled.
 //   waterbugs_banktest <gamedir> <outdir> [art|art8|fonts|anims] [first image]
 // Opens no window and plays no sound.
@@ -63,17 +63,17 @@ public:
 	}
 };
 
-void WritePng(const char* thePath, const uint16_t* theScreen, int w, int h)
+void WritePng(const char* thePath, const uint16_t* theScreen, int theWidth, int theHeight)
 {
-	std::vector<uint8_t> aRgb((size_t)w * h * 3);
-	for (int i = 0; i < w * h; i++)
+	std::vector<uint8_t> aRgb((size_t)theWidth * theHeight * 3);
+	for (int i = 0; i < theWidth * theHeight; i++)
 	{
 		uint16_t p = theScreen[i];
 		aRgb[i * 3] = (uint8_t)(((p >> 11) & 0x1f) << 3);
 		aRgb[i * 3 + 1] = (uint8_t)(((p >> 5) & 0x3f) << 2);
 		aRgb[i * 3 + 2] = (uint8_t)((p & 0x1f) << 3);
 	}
-	stbi_write_png(thePath, w, h, 3, aRgb.data(), w * 3);
+	stbi_write_png(thePath, theWidth, theHeight, 3, aRgb.data(), theWidth * 3);
 }
 
 
@@ -153,9 +153,9 @@ bool AnimFileExists(const char* theFile)
 	return Sys_FileExists(aPath.c_str());
 }
 
-// Every <animation> of water_bugs.xml loaded as the game loads it, the first frame of each drawn with its mask. water_bugs.xml
-// names a few files the game does not ship (they load no frame in the original either): those are counted as
-// missing; false when one that is there has no first frame.
+// Every <animation> of water_bugs.xml loaded as the game loads it, the first frame of each drawn with its mask.
+// water_bugs.xml names a few files the game does not ship (they load no frame in the original either): those are
+// counted as missing; false when one that is there has no first frame.
 bool DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 {
 	if (Bank_Load(&wb::gArtBank, "water_art.bbk", 1, theFmt) == 0)
@@ -184,7 +184,8 @@ bool DrawAnims(Bank* theArt, const PixelFormat* theFmt, const char* theOutDir)
 			continue;
 		wb::Animation* anAnim = wb::List_Append(&wb::gAnims, new wb::Animation());
 		wb::Animation_FromXml(anAnim, &aTag);
-		std::printf("anim %s file %s frames %d time %d\n", anAnim->mName, anAnim->mFile, anAnim->mCount, anAnim->mFrameTime);
+		std::printf("anim %s file %s frames %d time %d\n", anAnim->mName, anAnim->mFile, anAnim->mCount,
+			anAnim->mFrameTime);
 		if (anAnim->mCount < 1 || anAnim->mFrames[0] == nullptr)
 		{
 			if ((std::strstr(anAnim->mFile, ".eco") != nullptr || std::strstr(anAnim->mFile, ".tga") != nullptr) &&

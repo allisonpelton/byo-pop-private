@@ -171,8 +171,8 @@ long FileSize(const char* thePath)
 	return aSize;
 }
 
-// The current player's level, the trial's clock (a field the file keeps: the registered game's untouched 3600000) and the
-// players come last; the player's game in progress is
+// The current player's level, the trial's clock (a field the file keeps: the registered game's untouched 3600000) and
+// the players come last; the player's game in progress is
 // taken (or cleared, with no lives left) when on a board. The difficulty goes to the eleventh player's slot only
 // after the write, so the file has the one before.
 void SaveProfiles()
@@ -228,7 +228,8 @@ void ResetProfiles()
 	if (std::strlen(gProfiles[0].mName) == 0)
 		std::strcpy(gProfiles[0].mName, GT(0x458acc));
 #ifdef __EMSCRIPTEN__
-	SiteFirstPlayer(gProfiles[0].name, 0x20);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" it names the first player
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" it names the first player
+	SiteFirstPlayer(gProfiles[0].name, 0x20);
 #endif
 	gProfiles[0].mLevelReached = 0;
 	gProfiles[0].mAutoFire = 1;
@@ -315,7 +316,8 @@ void GameInit()
 	Cursors_Init();
 	LoadProfiles();
 #ifdef __EMSCRIPTEN__
-	SiteStart();	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
+	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
+	SiteStart();
 #endif
 	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, SCREEN_CLIP);
 }
@@ -390,8 +392,8 @@ void Screen_Redraw()
 					aMenus->mCurrent = Node_Next(aMenu);
 				}
 			}
-			Image_BlitRect(gLevels.mCurrent->mBackground, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, 0, 0,
-				0, 0, 800, 600);
+			Image_BlitRect(gLevels.mCurrent->mBackground, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, 0,
+				0, 0, 0, 800, 600);
 			if (10.0f < gLevels.mCurrent->mAge)
 				Level_RedrawCells(gLevels.mCurrent);
 			if (gLevels.mCurrent->mPanels.mCurrent != nullptr)
@@ -455,9 +457,11 @@ void GoToScreen()
 					Image_Copy(aLevel->mBackground, aBack);
 					List_Each(&aLevel->mMenus, [](Menu* theAMenu) {
 						theAMenu->mImage = nullptr;
-						if (theAMenu->mAnim != nullptr && gProfiles[gProfile].mLevelReached + 1 < theAMenu->mLockedLevel)
+						if (theAMenu->mAnim != nullptr && gProfiles[gProfile].mLevelReached + 1 <
+							theAMenu->mLockedLevel)
 						{
-							theAMenu->mAnim = Animation_Find(theAMenu->mLockedAnim, &theAMenu->mFrameCount, &theAMenu->mFrameTime);
+							theAMenu->mAnim = Animation_Find(theAMenu->mLockedAnim, &theAMenu->mFrameCount,
+								&theAMenu->mFrameTime);
 							theAMenu->mImage = Animation_Frame(theAMenu->mAnim, 0);
 						}
 						Menu_DrawToBackground(theAMenu);
@@ -525,8 +529,8 @@ bool LeaveScreen()
 	return true;
 }
 
-// port(site): the start-up logos are over once a screen that is not a logo has been up (the logos the menu can ask for later
-// are the game's, not the start-up's)
+// port(site): the start-up logos are over once a screen that is not a logo has been up (the logos the menu can ask for
+// later are the game's, not the start-up's)
 static bool gStartupLogosOver = false;
 
 void GameStep()
@@ -540,8 +544,9 @@ void GameStep()
 			LeaveScreen();
 		}
 	}
-	// port(site): the site's "Always skip start-up logos" does what Esc on the first logo does (below): the main menu at once.
-	// It is that path and no other, so the game reaches the menu in the state the original's skip leaves it in.
+	// port(site): the site's "Always skip start-up logos" does what Esc on the first logo does (below): the main menu
+	// at once. It is that path and no other, so the game reaches the menu in the state the original's skip leaves it
+	// in.
 	if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind != 0xe)
 		gStartupLogosOver = true;
 	else if (gLevels.mCurrent != nullptr && !gStartupLogosOver && Sys_SkipLogos())

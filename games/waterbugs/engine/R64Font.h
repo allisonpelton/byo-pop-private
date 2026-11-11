@@ -60,7 +60,8 @@ struct Font
 void Font_SetSpacing(Font* theFont, int theSpacing);                          // 0x422320
 void Font_SetClip(Font* theFont, int l, int t, int theRight, int theBottom);                 // 0x422340
 // 0x422370: the clip becomes {0, 0, w, h}
-void Font_SetTarget(Font* theFont, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, int w, int h);
+void Font_SetTarget(Font* theFont, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, int theWidth,
+	int theHeight);
 void Font_SetPalette(Font* theFont, Palette* thePalette);                     // 0x4223d0
 void Font_SetOutline(Font* theFont, Palette* thePalette);                     // 0x4223e0
 void Font_SetColour(Font* theFont, char theCode, Palette* thePalette);        // 0x4223f0

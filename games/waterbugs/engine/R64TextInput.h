@@ -74,7 +74,8 @@ void TextInput_SetOnEnter(TextInput* theInput, void (*theFunc)(const char*));   
 void TextInput_SetFocus(TextInput* theInput, int theFocused);                         // 0x42c640
 char* TextInput_GetText(TextInput* theInput);                                         // 0x42c660
 void TextInput_SetCaseMode(TextInput* theInput, int theMode);                         // 0x42c670
-void TextInput_Draw(TextInput* theInput, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, Dirty* theDirty); // 0x42cb50
+// 0x42cb50
+void TextInput_Draw(TextInput* theInput, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, Dirty* theDirty);
 void TextInput_SetText(TextInput* theInput, const char* theText);                     // 0x42ccf0
 void TextInput_Update(TextInput* theInput, double theSeconds);                        // 0x42cde0
 

@@ -647,7 +647,8 @@ int MenuItem_Update(MenuItem* theItem)
 						aStart = 1;
 					gLevelInSet = aStart - 1;
 				}
-				if (aReached == 0 || (gLevelInSet < gLevelSets.mCurrent->mStart && aReached + 1 <= gLevelSets.mCurrent->mEnd))
+				if (aReached == 0 || (gLevelInSet < gLevelSets.mCurrent->mStart && aReached +
+					1 <= gLevelSets.mCurrent->mEnd))
 				{
 					gProfiles[aProfile].mSavedLevel = 0;
 					gProfiles[aProfile].mSavedLives = 0;
@@ -861,7 +862,8 @@ void Menu_FromXml(Menu* theMenu, const char* theXmlCursor, const XmlTag* theTag)
 	{
 		int aCount;
 		int aFrameTime;
-		theMenu->mLogo = Animation_Frame(Animation_Find(Xml_GetString(theTag, "logo_animation"), &aCount, &aFrameTime), 0);
+		theMenu->mLogo = Animation_Frame(Animation_Find(Xml_GetString(theTag, "logo_animation"), &aCount, &aFrameTime),
+			0);
 		theMenu->mLogoX = (Xml_GetInt(theTag, "logo_x") * 800) / 800;
 		theMenu->mLogoY = (Xml_GetInt(theTag, "logo_y") * 600) / 600;
 	}
@@ -971,8 +973,8 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		Text_Make(aList->mCurrent->mTexts[0], aBuf, Font_Find("bonus_font"), 400, 0xfa, 0, 100, 0x986fc8, 500, 0, 0);
 		Requester_AddText(aList->mCurrent);
 		sprintf(aBuf, "%s", Localize(GT(0x45961c)));
-		Text_Make(aList->mCurrent->mTexts[aList->mCurrent->mTextCount], aBuf, Font_Find("bonus_font"), 400, 0x10c, 0, 100,
-			0x986fc8, 500, 0, 0);
+		Text_Make(aList->mCurrent->mTexts[aList->mCurrent->mTextCount], aBuf, Font_Find("bonus_font"), 400, 0x10c, 0,
+			100, 0x986fc8, 500, 0, 0);
 		aList->mCurrent->mTextCount = aList->mCurrent->mTextCount + 1;
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;

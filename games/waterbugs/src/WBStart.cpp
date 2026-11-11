@@ -238,7 +238,8 @@ void LoadGameFile()
 	}
 	if (gLevels.mCurrent != nullptr)
 		gLevels.mCurrent = gLevels.mHead;
-	// (the original never frees the file's buffer, and nothing keeps a pointer into it: every board file read leaked it)
+	// (the original never frees the file's buffer, and nothing keeps a pointer into it: every board file read leaked
+	// it)
 	std::free((void*)aData);
 }
 

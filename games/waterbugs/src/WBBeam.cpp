@@ -261,8 +261,9 @@ int Beam_Update(Beam* theBeam)
 				float aVy = (float)((double)SinDeg(anAngle) * 0.11999999731779099);
 				ParticleSystem_New();
 				Cell* aCell = gLevels.mCurrent->mColumns[0];
-				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theBeam->mX, theBeam->mY, aVx, aVy, aCell->mFirstParticle,
-					aCell->mLastParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x21c, 10, 400, 0.999f, 0.0f, 5);
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theBeam->mX, theBeam->mY, aVx, aVy,
+					aCell->mFirstParticle, aCell->mLastParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x21c, 10, 400,
+					0.999f, 0.0f, 5);
 			}
 		}
 		theBeam->mHit = 1;

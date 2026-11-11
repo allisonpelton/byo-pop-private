@@ -172,9 +172,9 @@ const char* Xml_ReadToken(const char* theCursor, char* theOut, int theLimit, int
 	if (theLimit == 0)
 		theLimit = 9999;
 	char aChar;
-	while (aChar = *theCursor, (aChar == '\0' || aChar == '\n' || aChar == '\r' || (aChar == '/' && theCursor[1] == '/') || (aChar == '\\' && theCursor[1] == '\\') ||
-					   aChar == '\t' || aChar == ' ') &&
-			*theCount < theLimit)
+	while (aChar = *theCursor,
+		(aChar == '\0' || aChar == '\n' || aChar == '\r' || (aChar == '/' && theCursor[1] == '/') ||
+		(aChar == '\\' && theCursor[1] == '\\') || aChar == '\t' || aChar == ' ') && *theCount < theLimit)
 	{
 		if ((aChar == '/' && theCursor[1] == '/') || (aChar == '\\' && theCursor[1] == '\\'))
 		{

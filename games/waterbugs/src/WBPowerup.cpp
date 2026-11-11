@@ -361,9 +361,11 @@ int Magnet_Pull(Weapon* theWeapon)
 				(float)theAnEnemy->mImage->mW) != 0.0)
 		{
 			if (theAnEnemy->mVx != 0.0f)
-				theAnEnemy->mX = (float)(((double)theWeapon->mX - (double)theAnEnemy->mX) / 300.0 + (double)theAnEnemy->mX);
+				theAnEnemy->mX = (float)(((double)theWeapon->mX - (double)theAnEnemy->mX) / 300.0 +
+					(double)theAnEnemy->mX);
 			if (theAnEnemy->mVy != 0.0f)
-				theAnEnemy->mY = (float)(((double)theWeapon->mY - (double)theAnEnemy->mY) / 300.0 + (double)theAnEnemy->mY);
+				theAnEnemy->mY = (float)(((double)theWeapon->mY - (double)theAnEnemy->mY) / 300.0 +
+					(double)theAnEnemy->mY);
 		}
 	});
 	return 1;
@@ -375,10 +377,11 @@ int Weapon_Blast(Weapon* theWeapon)
 	int aResult = 1;
 	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnEnemy) {
 		if (theAnEnemy->mState == 3 &&
-			CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 3), theAnEnemy->mX, theAnEnemy->mY,
-				(float)(theAnEnemy->mImage->mW / 3)) != 0.0)
+			CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 3), theAnEnemy->mX,
+				theAnEnemy->mY, (float)(theAnEnemy->mImage->mW / 3)) != 0.0)
 		{
-			theAnEnemy->mDieAnim = Animation_Find("second_explo", &theAnEnemy->mDieFrameCount, &theAnEnemy->mDieFrameTime);
+			theAnEnemy->mDieAnim = Animation_Find("second_explo", &theAnEnemy->mDieFrameCount,
+				&theAnEnemy->mDieFrameTime);
 			Enemy_Kill(theAnEnemy, 500);
 			aResult = 0;
 		}
@@ -403,8 +406,9 @@ int TimeBomb_Update(Weapon* theWeapon)
 			int aLifetime = RandRange(400, 500);
 			float aVy = (float)((double)RandRange(-0x32, 0x32) / 1200.0);
 			float aVx = (float)((double)RandRange(-0x32, 0x32) / 1200.0);
-			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, (float)((double)theWeapon->mX - 0.0), (float)aTop, aVx,
-				aVy, aParticle, aParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f, 5);
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, (float)((double)theWeapon->mX - 0.0), (float)aTop,
+				aVx, aVy, aParticle, aParticle, 0, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f,
+				5);
 		}
 		if ((int)theWeapon->mAge % 0xe6 == 0)
 		{
@@ -419,7 +423,8 @@ int TimeBomb_Update(Weapon* theWeapon)
 				CircleOverlap(theWeapon->mX, theWeapon->mY, 100.0f, theAnEnemy->mX, theAnEnemy->mY,
 					(float)(theAnEnemy->mImage->mW / 3)) != 0.0)
 			{
-				theAnEnemy->mDieAnim = Animation_Find("second_explo", &theAnEnemy->mDieFrameCount, &theAnEnemy->mDieFrameTime);
+				theAnEnemy->mDieAnim = Animation_Find("second_explo", &theAnEnemy->mDieFrameCount,
+					&theAnEnemy->mDieFrameTime);
 				Enemy_Kill(theAnEnemy, 500);
 			}
 		});
@@ -608,9 +613,8 @@ void Weapon_Orbit(Weapon* theWeapon)
 	theWeapon->mTooClose = 0;
 	theWeapon->mAlpha = 0xff;
 	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnEnemy) {
-		if (CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 2), theAnEnemy->mX, theAnEnemy->mY,
-				(float)(theAnEnemy->mImage->mW / 2)) != 0.0 &&
-			theWeapon->mKind != 4)
+		if (CircleOverlap(theWeapon->mX, theWeapon->mY, (float)(theWeapon->mImage->mW / 2), theAnEnemy->mX,
+			theAnEnemy->mY, (float)(theAnEnemy->mImage->mW / 2)) != 0.0 && theWeapon->mKind != 4)
 			theWeapon->mTooClose = 1;
 	});
 	Shooter* aShip = gLevels.mCurrent->mShooters.mCurrent;
@@ -685,7 +689,8 @@ void Panel_Setup(Panel* thePanel)
 	thePanel->mAnim = Animation_Find("panel", &thePanel->mFrameCount, &thePanel->mFrameTime);
 	List<Obj>* anItems = &thePanel->mItems;
 	Panel_AppendItem(anItems);
-	anItems->mCurrent->mAnim = Animation_Find("water_panel", &anItems->mCurrent->mFrameCount, &anItems->mCurrent->mFrameTime);
+	anItems->mCurrent->mAnim = Animation_Find("water_panel", &anItems->mCurrent->mFrameCount,
+		&anItems->mCurrent->mFrameTime);
 	anItems->mCurrent->mX = 656.0f;
 	anItems->mCurrent->mY = 531.0f;
 	anItems->mCurrent->mMidHandle = 0;

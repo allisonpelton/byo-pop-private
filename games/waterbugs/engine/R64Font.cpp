@@ -180,17 +180,18 @@ void Font_SetClip(Font* theFont, int l, int t, int r, int b)
 	theFont->mClip[3] = b;
 }
 
-void Font_SetTarget(Font* theFont, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, int w, int h)
+void Font_SetTarget(Font* theFont, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, int theWidth,
+	int theHeight)
 {
 	theFont->mDst = theDst;
 	theFont->mDstPitch = theDPitch;
 	theFont->mFmt = theFmt;
-	theFont->mDstW = w;
-	theFont->mDstH = h;
+	theFont->mDstW = theWidth;
+	theFont->mDstH = theHeight;
 	theFont->mClip[0] = 0;
 	theFont->mClip[1] = 0;
-	theFont->mClip[2] = w;
-	theFont->mClip[3] = h;
+	theFont->mClip[2] = theWidth;
+	theFont->mClip[3] = theHeight;
 }
 
 void Font_SetPalette(Font* theFont, Palette* thePalette)
@@ -336,7 +337,8 @@ int Font_Draw(Font* theFont, const char* theText, int x, int y, int theAlign)
 			else
 			{
 				Image_SetPalette(theFont->mGlyphs[aChar], theFont->mPalette);
-				Image_BlitMasked(theFont->mGlyphs[*aText], theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x, y);
+				Image_BlitMasked(theFont->mGlyphs[*aText], theFont->mDst, theFont->mDstPitch, theFont->mFmt,
+					theFont->mClip, x, y);
 				x = x + theFont->mGlyphs[*aText]->mOrigW + theFont->mSpacing;
 			}
 			aChar = aText[1];
@@ -347,8 +349,8 @@ int Font_Draw(Font* theFont, const char* theText, int x, int y, int theAlign)
 	return aWidth;
 }
 
-int Font_DrawFill(Font* theFont, const char* theText, int x, int y, int theAlign, uint8_t theRed, uint8_t theGreen, uint8_t theBlue,
-	uint32_t theAlpha)
+int Font_DrawFill(Font* theFont, const char* theText, int x, int y, int theAlign, uint8_t theRed, uint8_t theGreen,
+	uint8_t theBlue, uint32_t theAlpha)
 {
 	const uint8_t* aText = (const uint8_t*)theText;
 	int aWidth = Font_StringWidth(theFont, theText);
@@ -375,8 +377,8 @@ aligned:
 			{
 				Image_SetPalette(theFont->mGlyphs[aChar], theFont->mPalette);
 				const PixelFormat* f = theFont->mFmt;
-				Image_BlitFillAlpha(theFont->mGlyphs[*aText], theFont->mDst, theFont->mDstPitch, f, theFont->mClip, x, y,
-					PackColour(f, theRed, theGreen, theBlue), theAlpha);
+				Image_BlitFillAlpha(theFont->mGlyphs[*aText], theFont->mDst, theFont->mDstPitch, f, theFont->mClip, x,
+					y, PackColour(f, theRed, theGreen, theBlue), theAlpha);
 				x = x + theFont->mGlyphs[*aText]->mOrigW + theFont->mSpacing;
 			}
 			aChar = aText[1];
@@ -433,13 +435,13 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 				if (aGlyph->mHasMask == 1 && 8 < theFont->mFmt->mBpp)
 				{
 					if (theOutlinePass == 0)
-						Image_BlitAlphaFade(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x, y,
-							(uint32_t)theFont->mAlpha);
+						Image_BlitAlphaFade(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x,
+							y, (uint32_t)theFont->mAlpha);
 					else
 					{
 						Image_SetPalette(aGlyph->mMask, theFont->mPalette);
-						Image_BlitAlphaFade(aGlyph->mMask, theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x,
-							y, (uint32_t)theFont->mAlpha);
+						Image_BlitAlphaFade(aGlyph->mMask, theFont->mDst, theFont->mDstPitch, theFont->mFmt,
+							theFont->mClip, x, y, (uint32_t)theFont->mAlpha);
 					}
 				}
 				else
@@ -452,7 +454,8 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 	}
 	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
 	if (ClipBlit(theFont->mClip[0], theFont->mClip[1], theFont->mClip[2], theFont->mClip[3], theRect[0], theRect[1],
-			(theRect[2] - theRect[0]) + 1, (theRect[3] - theRect[1]) + 1, &aDstX, &aDstY, &aSrcX, &aSrcY, &aBlitWidth, &aBlitHeight) != 1)
+			(theRect[2] - theRect[0]) + 1, (theRect[3] - theRect[1]) + 1, &aDstX, &aDstY, &aSrcX, &aSrcY, &aBlitWidth,
+				&aBlitHeight) != 1)
 	{
 		theRect[0] = -1;
 		theRect[1] = -1;
@@ -510,8 +513,8 @@ int Font_StripCut(Font* theFont, const Bank* theBank, const char* theName, const
 			Image_Create(aMask, aWidth, theFont->mHeight, &aStrip->mMask->mFmt);
 			aGlyph->mMask->mPalette = aStrip->mMask->mPalette;
 			Image* aStripMask = aStrip->mMask;
-			Copy8(aGlyph->mMask->mBits, 0, 0, aGlyph->mMask->mPitch, 0, aStripMask->mBits, aStart, 0, aStripMask->mPitch, 0,
-				(int)(aStripMask->mFmt.mBpp >> 3) * aWidth, theFont->mHeight);
+			Copy8(aGlyph->mMask->mBits, 0, 0, aGlyph->mMask->mPitch, 0, aStripMask->mBits, aStart, 0,
+				aStripMask->mPitch, 0, (int)(aStripMask->mFmt.mBpp >> 3) * aWidth, theFont->mHeight);
 			Image* aMade = theFont->mOwned.mCurrent;
 			theFont->mGlyphs[(uint8_t)theChars[k]] = aMade;
 			int aBottom = aMade->mYOff + aMade->mH;

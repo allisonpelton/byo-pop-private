@@ -42,10 +42,10 @@ bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData)
 }
 
 // 0x429430
-void Sys_AddUpdateRect(int x, int y, int w, int h)
+void Sys_AddUpdateRect(int x, int y, int theWidth, int theHeight)
 {
 	if (gHost != nullptr)
-		gHost->AddUpdateRect(x, y, w, h);
+		gHost->AddUpdateRect(x, y, theWidth, theHeight);
 }
 
 // 0x428d70

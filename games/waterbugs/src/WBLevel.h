@@ -207,7 +207,8 @@ struct Text : Obj
 	int mFadeOut;               // +0x1b8  ms (also how long it takes once clicked away)
 	int mIdle;                  // +0x1bc  ms shown
 	int mDormant;               // +0x1c0  ms before it fades in
-	int mLoopTime;              // +0x1c4  ms gone before it fades in again (0: it is removed; WBLevel: clicked away with its neighbours)
+	int mLoopTime;              // +0x1c4 ms gone before it fades in again (0: it is removed; WBLevel: clicked away with
+								// its neighbours)
 	int mAlign;                 // +0x1c8  0 left, 1 right, 2 centred on x
 	int mRow;                   // +0x1cc  a high score's
 	int mBlink;                 // +0x1d0  ms; not 0: blinks while shown
@@ -465,10 +466,12 @@ void List_DeleteNode(Menu* theMenu);                             // 0x411250's d
 void Menu_FromXml(Menu* theMenu, const char* p, const XmlTag* theTag); // 0x415750
 void Menu_DrawToBackground(Menu* theMenu);                       // 0x413f70: its image and logo, about their middles
 int Menu_Update(Menu* theMenu);                                  // 0x417f20: 0 when its screen is done
-void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const char* theSecond); // 0x415d40: 0 delete the player, 1 a message, 2 a name, 3 quit, 4 a board's end, 5 resume
+// 0x415d40: 0 delete the player, 1 a message, 2 a name, 3 quit, 4 a board's end, 5 resume
+void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const char* theSecond);
 void Pointer_Append(List<Obj>* theList);                         // 0x410920
 void Pointer_Insert(List<Obj>* theList);                         // 0x410870
-int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);     // 0x40da50: any object's attributes; 0 if its animation is missing
+// 0x40da50: any object's attributes; 0 if its animation is missing
+int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag);
 int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag); // 0x41fe30
 void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, int theY, int theDormant, int theFadeIn,
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink);  // 0x41f5d0

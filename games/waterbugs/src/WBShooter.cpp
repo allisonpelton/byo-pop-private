@@ -67,8 +67,8 @@ void Shooter_Appear(Shooter* theShooter)
 				float aVy = (float)((double)SinDeg(anAngle) * (double)aStep);
 				ParticleSystem_New();
 				int aLifetime = RandRange(600, 0x4b0);
-				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theShooter->mX, theShooter->mY, aVx, aVy, 0, 0, 0,
-					0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theShooter->mX, theShooter->mY, aVx, aVy, 0, 0,
+					0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
 				Particle* aParticle = gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent;
 				aParticle->mAnim = Animation_Find("sparkles3", &aParticle->mFrameCount, &aFrameTimes[1]);
 				aParticle->mTint = RandRange(0, 7);
@@ -118,8 +118,8 @@ void Shooter_Appear(Shooter* theShooter)
 				ParticleSystem_New();
 				float aY = (float)RandRange(-4, 4) + theShooter->mChildren.mCurrent->mY;
 				float aX = (float)RandRange(-4, 4) + theShooter->mChildren.mCurrent->mX;
-				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, 0.0f, 0.0f, 0, 0, 0, 0xff, 0xff, 0xff, 0xff,
-					0xff, 0xff, 0x21c, 10, 400, 0.999f, 0.0002f, 5);
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, 0.0f, 0.0f, 0, 0, 0, 0xff, 0xff, 0xff,
+					0xff, 0xff, 0xff, 0x21c, 10, 400, 0.999f, 0.0002f, 5);
 				Particle* aParticle = gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent;
 				aParticle->mAnim = Animation_Find("sparkles3", &aParticle->mFrameCount, &aFrameTimes[0]);
 			}
@@ -263,8 +263,8 @@ int Shooter_EnemiesNear(Shooter* theShooter)
 {
 	int aCount = 0;
 	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnEnemy) {
-		if (CircleOverlap(theShooter->mX, theShooter->mY, (float)(theShooter->mImage->mH / 3), theAnEnemy->mX, theAnEnemy->mY,
-			(float)(theAnEnemy->mImage->mH / 3)) != 0.0)
+		if (CircleOverlap(theShooter->mX, theShooter->mY, (float)(theShooter->mImage->mH / 3), theAnEnemy->mX,
+			theAnEnemy->mY, (float)(theAnEnemy->mImage->mH / 3)) != 0.0)
 			aCount = aCount + 1;
 	});
 	return aCount;
@@ -404,13 +404,15 @@ void Shooter_Dying(Shooter* theShooter)
 	{
 		if (0 < gLives)
 		{
-			Animation* anAnim = Animation_Find(theShooter->mVertName, &theShooter->mFrameCount, &theShooter->mFrameTime);
+			Animation* anAnim = Animation_Find(theShooter->mVertName, &theShooter->mFrameCount,
+				&theShooter->mFrameTime);
 			theShooter->mVertAnim = anAnim;
 			theShooter->mAnim = anAnim;
 			theShooter->mWingsH.mAnim = Animation_Find("wings_horizontal", &theShooter->mWingsH.mFrameCount,
 				&theShooter->mWingsH.mFrameTime);
 			theShooter->mWingsH.mFrame = 0;
-			anAnim = Animation_Find("wings_vertical", &theShooter->mWingsV.mFrameCount, &theShooter->mWingsV.mFrameTime);
+			anAnim = Animation_Find("wings_vertical", &theShooter->mWingsV.mFrameCount,
+				&theShooter->mWingsV.mFrameTime);
 			theShooter->mAge = 0.0f;
 			theShooter->mWingsV.mFrame = 0;
 			theShooter->mFrame = 0;
@@ -526,7 +528,8 @@ void Shooter_Firing(Shooter* theShooter)
 }
 
 // 0x41e110: a click fires a beam each way from the middle of the cell under the ship, if it is open and not yet
-// reached by a flood; with an enemy on the ship it buzzes instead; once the filled share is past the quota, a click does nothing
+// reached by a flood; with an enemy on the ship it buzzes instead; once the filled share is past the quota, a click
+// does nothing
 void Shooter_Fire(Shooter* theShooter)
 {
 	if (Weapons_Orbiting() != 0)
@@ -565,12 +568,14 @@ void Shooter_Fire(Shooter* theShooter)
 				Image* anImage;
 				if (theShooter->mBeamAcross == 1)
 				{
-					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, -theShooter->mBeamSpeed, 0.0f);
+					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, -theShooter->mBeamSpeed,
+						0.0f);
 					anImage = gLevels.mCurrent->mBeamH;
 				}
 				else
 				{
-					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, 0.0f, -theShooter->mBeamSpeed);
+					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, 0.0f,
+						-theShooter->mBeamSpeed);
 					anImage = gLevels.mCurrent->mBeamV;
 				}
 				aBeams->mCurrent->mImage = anImage;
@@ -579,16 +584,18 @@ void Shooter_Fire(Shooter* theShooter)
 				aBeams->mCurrent->mY = theShooter->mY;
 				if (theShooter->mBeamAcross == 1)
 				{
-					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, theShooter->mBeamSpeed, 0.0f);
+					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, theShooter->mBeamSpeed,
+						0.0f);
 					aBeams->mCurrent->mImage = gLevels.mCurrent->mBeamH;
 					theShooter->mAnim = theShooter->mHorizShootAnim;
-					theShooter->mWingsH.mAnim = Animation_Find("wings_fire_horizontal", &theShooter->mWingsH.mFrameCount,
-						&theShooter->mWingsH.mFrameTime);
+					theShooter->mWingsH.mAnim = Animation_Find("wings_fire_horizontal",
+						&theShooter->mWingsH.mFrameCount, &theShooter->mWingsH.mFrameTime);
 					theShooter->mWingsH.mFrame = 0;
 				}
 				else
 				{
-					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, 0.0f, theShooter->mBeamSpeed);
+					Beam_Setup(aBeams->mCurrent, theShooter, theShooter->mX, theShooter->mY, 0.0f,
+						theShooter->mBeamSpeed);
 					aBeams->mCurrent->mImage = gLevels.mCurrent->mBeamV;
 					theShooter->mAnim = theShooter->mVertShootAnim;
 					theShooter->mWingsV.mAnim = Animation_Find("wings_fire_vertical", &theShooter->mWingsV.mFrameCount,
@@ -883,17 +890,17 @@ void Star_Draw(Obj* theStar)
 	const int* aDirtyClip;
 	if (aLevel->mPanels.mCurrent == nullptr)
 	{
-		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->mX + (double)aSwayX), (int)theStar->mY,
-			theStar->mDepth, theStar->mDrawKind, gScreenBits, gScreenPitch, theStar->mR, theStar->mG, theStar->mB,
-			theStar->mAlpha, &theStar->mAnim->mPalette, nullptr);
+		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->mX + (double)aSwayX),
+			(int)theStar->mY, theStar->mDepth, theStar->mDrawKind, gScreenBits, gScreenPitch, theStar->mR, theStar->mG,
+			theStar->mB, theStar->mAlpha, &theStar->mAnim->mPalette, nullptr);
 		anImage = theStar->mImage;
 		aDirtyClip = SCREEN_CLIP;
 	}
 	else
 	{
-		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->mX + (double)aSwayX), (int)theStar->mY,
-			theStar->mDepth, theStar->mDrawKind, gScreenBits, gScreenPitch, theStar->mR, theStar->mG, theStar->mB,
-			theStar->mAlpha, &theStar->mAnim->mPalette, aClip);
+		DrawList_Add(anImage, (uint32_t)(uintptr_t)theStar, (int)((double)theStar->mX + (double)aSwayX),
+			(int)theStar->mY, theStar->mDepth, theStar->mDrawKind, gScreenBits, gScreenPitch, theStar->mR, theStar->mG,
+			theStar->mB, theStar->mAlpha, &theStar->mAnim->mPalette, aClip);
 		anImage = theStar->mImage;
 		aDirtyClip = aClip;
 	}

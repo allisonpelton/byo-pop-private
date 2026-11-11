@@ -105,8 +105,8 @@ inline uint32_t Blend(uint32_t thePixel, uint32_t theTo, uint32_t theMask, uint3
 }
 
 // 0x441da0: the rectangle (inclusive) in the colour
-void Fill16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theLeft, int theTop, int theRight, int theBottom, uint8_t theR,
-	uint8_t theG, uint8_t theB)
+void Fill16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theLeft, int theTop, int theRight,
+	int theBottom, uint8_t theR, uint8_t theG, uint8_t theB)
 {
 	uint16_t aColour = (uint16_t)((uint32_t)(theB >> theFmt->mBLoss) << theFmt->mBShift |
 		(uint32_t)(theG >> theFmt->mGLoss) << theFmt->mGShift | (uint32_t)(theR >> theFmt->mRLoss) << theFmt->mRShift);
@@ -172,7 +172,8 @@ void FillBlend16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int 
 				do
 				{
 					uint32_t c = *p;
-					*p = (uint16_t)(Blend(c, (uint32_t)(theG >> theFmt->mGLoss) << theFmt->mGShift, theFmt->mGMask, theAlpha) |
+					*p = (uint16_t)(Blend(c, (uint32_t)(theG >> theFmt->mGLoss) << theFmt->mGShift, theFmt->mGMask,
+						theAlpha) |
 						Blend(c, aR, theFmt->mRMask, theAlpha) | Blend(c, aB, theFmt->mBMask, theAlpha));
 					n = n - 1;
 					p = p + 1;
@@ -185,8 +186,8 @@ void FillBlend16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int 
 }
 
 // 0x442000: FillBlend16 on the part inside theClip
-void FillBlend16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int theTop,
-	int theRight, int theBottom, uint8_t theR, uint8_t theG, uint8_t theB, uint8_t theAlpha)
+void FillBlend16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l,
+	int theTop, int theRight, int theBottom, uint8_t theR, uint8_t theG, uint8_t theB, uint8_t theAlpha)
 {
 	if (l <= theClip[2] && theClip[0] <= theRight && theTop <= theClip[3] && theClip[1] <= theBottom)
 	{
@@ -204,8 +205,8 @@ void FillBlend16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFm
 }
 
 // 0x442090: max(|dx|, |dy|) + 1 pixels, stepping along the longer axis
-void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1, uint8_t theRed,
-	uint8_t theGreen, uint8_t theBlue, uint8_t theAlpha)
+void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1,
+	uint8_t theRed, uint8_t theGreen, uint8_t theBlue, uint8_t theAlpha)
 {
 	int aRow = thePitch / 2;
 	uint32_t aR = (uint32_t)(theRed >> theFmt->mRLoss) << theFmt->mRShift;
@@ -267,7 +268,8 @@ void Line16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, co
 	int theX1, int theY1, int r, int g, int b, int theAlpha)
 {
 	if (ClipLine(&theX0, &theY0, &theX1, &theY1, theClip) != 0)
-		Line16(theBits, thePitch, theFmt, theX0, theY0, theX1, theY1, (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)theAlpha);
+		Line16(theBits, thePitch, theFmt, theX0, theY0, theX1, theY1, (uint8_t)r, (uint8_t)g, (uint8_t)b,
+			(uint8_t)theAlpha);
 }
 
 } // namespace
@@ -289,7 +291,8 @@ void Draw_SetTarget(uint8_t* theBits, int thePitch, int theW, int theH, const Pi
 void Draw_Line(int theX0, int theY0, int theX1, int theY1, int r, int g, int b, int theAlpha)
 {
 	if (gTargetFmt.mBpp == 16)
-		Line16Clipped(gTargetBits, gTargetPitch, &gTargetFmt, gTargetClip, theX0, theY0, theX1, theY1, r, g, b, theAlpha);
+		Line16Clipped(gTargetBits, gTargetPitch, &gTargetFmt, gTargetClip, theX0, theY0, theX1, theY1, r, g, b,
+			theAlpha);
 }
 
 void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
@@ -318,15 +321,16 @@ void Draw_FillBlendClipped(uint8_t* theBits, int thePitch, const PixelFormat* th
 	int theRight, int theBottom, int theR, int theG, int theB, int theAlpha)
 {
 	if (theFmt->mBpp == 0x10)
-		FillBlend16Clipped(theBits, thePitch, theFmt, theClip, l, t, theRight, theBottom, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB,
-			(uint8_t)theAlpha);
+		FillBlend16Clipped(theBits, thePitch, theFmt, theClip, l, t, theRight, theBottom, (uint8_t)theR, (uint8_t)theG,
+			(uint8_t)theB, (uint8_t)theAlpha);
 }
 
-void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1, int r,
-	int g, int b, int theAlpha)
+void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1,
+	int r, int g, int b, int theAlpha)
 {
 	if (theFmt->mBpp == 0x10)
-		Line16(theBits, thePitch, theFmt, theX0, theY0, theX1, theY1, (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)theAlpha);
+		Line16(theBits, thePitch, theFmt, theX0, theY0, theX1, theY1, (uint8_t)r, (uint8_t)g, (uint8_t)b,
+			(uint8_t)theAlpha);
 }
 
 } // namespace r64

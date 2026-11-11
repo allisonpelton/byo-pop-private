@@ -339,7 +339,8 @@ void ColourShift(uint32_t* thePixel, const PixelFormat* theFmt, char theRed, cha
 	uint8_t theMulR, uint8_t theMulG, uint8_t theMulB, int theSetR, int theSetG, int theSetB, int theShare);
 void SwapColours(Image* theImage, const char* theSwap);                    // 0x420be0
 double CircleOverlap(float theX1, float theY1, float theR1, float theX2, float theY2, float theR2); // 0x420c60
-int BoxOverlap(float theX1, float theY1, float theW1, float theH1, float theX2, float theY2, float theW2, float theH2); // 0x420cb0
+// 0x420cb0
+int BoxOverlap(float theX1, float theY1, float theW1, float theH1, float theX2, float theY2, float theW2, float theH2);
 void RotateImage(Image* theImage, int theAngle);                           // 0x420da0
 
 // Globals

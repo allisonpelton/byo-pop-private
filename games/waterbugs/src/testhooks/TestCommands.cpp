@@ -122,7 +122,8 @@ struct ItemRef
 	bool mRequester;
 };
 
-// the menu a requester is up on (the main menu's "resume your previous game?" is on its last menu, the others' on the current one)
+// the menu a requester is up on (the main menu's "resume your previous game?" is on its last menu, the others' on the
+// current one)
 Menu* RequesterMenu(Level* theLevel)
 {
 	if (theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr)
@@ -238,7 +239,8 @@ public:
 	}
 
 	// the open region about (sc, sr) outside the beam's cells: its cell count and enemies (the flood of Region_Count)
-	void Flood(int theSc, int theSr, int theCol, int theRow, int theAcross, int theLo, int theHi, int theGen, int& theCells, int& theEnemies)
+	void Flood(int theSc, int theSr, int theCol, int theRow, int theAcross, int theLo, int theHi, int theGen,
+		int& theCells, int& theEnemies)
 	{
 		theCells = 0;
 		theEnemies = 0;
@@ -258,7 +260,8 @@ public:
 			for (int d = 0; d < 4; d++)
 			{
 				int aNc = c + NEIGHBOUR_STEPS[d][0], aNr = r + NEIGHBOUR_STEPS[d][1];
-				if (Open(aNc, aNr) && mMark[aNc][aNr] != theGen && !OnLine(aNc, aNr, theCol, theRow, theAcross, theLo, theHi))
+				if (Open(aNc, aNr) && mMark[aNc][aNr] != theGen && !OnLine(aNc, aNr, theCol, theRow, theAcross, theLo,
+					theHi))
 				{
 					mMark[aNc][aNr] = theGen;
 					sAStack[aTop++] = aNc * 64 + aNr;
@@ -324,14 +327,17 @@ public:
 			double aRadius = anEnemy->mImage != nullptr ? anEnemy->mImage->mH / 3.0 : 8.0;
 			double aPx = std::min(std::max((double)anEnemy->mX, aLeft), aRight);
 			double aPy = std::min(std::max((double)anEnemy->mY, aTop), aBottom);
-			double aDist = std::sqrt(((double)anEnemy->mX - aPx) * ((double)anEnemy->mX - aPx) + ((double)anEnemy->mY - aPy) * ((double)anEnemy->mY - aPy)) - aRadius;
-			double v = std::sqrt((double)anEnemy->mVx * anEnemy->mVx + (double)anEnemy->mVy * anEnemy->mVy) * 1.3 + 0.02;
+			double aDist = std::sqrt(((double)anEnemy->mX - aPx) * ((double)anEnemy->mX - aPx) +
+				((double)anEnemy->mY - aPy) * ((double)anEnemy->mY - aPy)) - aRadius;
+			double v = std::sqrt((double)anEnemy->mVx * anEnemy->mVx + (double)anEnemy->mVy * anEnemy->mVy) * 1.3 +
+				0.02;
 			double t = std::max(0.0, aDist) / v;
 			double aAlong = theAcross != 0 ? aPx - aShotX : aPy - aShotY;
 			if (t < aShot.mTime && std::fabs(aAlong) <= aSpeed * t + 12.0)
 				aRisk += (aShot.mTime - t) / aShot.mTime;
 			// a bug in the band of the beam, anywhere along it, is cut by the beam unless it leaves the band first
-			double aPerp = theAcross != 0 ? std::fabs((double)anEnemy->mY - (theRow * 16.0 + 8.0)) : std::fabs((double)anEnemy->mX - (theCol * 16.0 + 8.0));
+			double aPerp = theAcross != 0 ? std::fabs((double)anEnemy->mY - (theRow * 16.0 + 8.0)) :
+				std::fabs((double)anEnemy->mX - (theCol * 16.0 + 8.0));
 			double aPos = theAcross != 0 ? (double)anEnemy->mX : (double)anEnemy->mY;
 			double aBandLow = (theAcross != 0 ? aShot.mLo : aShot.mLo) * 16.0 - aRadius;
 			double aBandHigh = (aShot.mHi + 1) * 16.0 + aRadius;
@@ -390,7 +396,8 @@ std::string ClickSteps(int theX, int theY, int theWait = 2)
 
 std::string MoveJson(const char* theKind, const std::string& theSteps, int theUpdates, const std::string& theExtra = "")
 {
-	return Fmt("MOVE {\"kind\":\"%s\",\"input\":[%s],\"updates\":%d", theKind, theSteps.c_str(), theUpdates) + theExtra + "}";
+	return Fmt("MOVE {\"kind\":\"%s\",\"input\":[%s],\"updates\":%d", theKind, theSteps.c_str(),
+		theUpdates) + theExtra + "}";
 }
 
 // the aim the bot keeps between its calls (the shot it moved the ship for), so that a fresh look at the board does not
@@ -512,7 +519,8 @@ std::string BoardMove(Level* theLevel, bool& theBusy)
 		Powerup* aPowerup = theLevel->mPowerups.mHead;
 		if (aPowerup != nullptr && aPowerup->mState == 4)
 		{
-			int aX = std::min(std::max((int)aPowerup->mX, 0), 799), aY = std::min(std::max((int)aPowerup->mY + 24, 0), 599);
+			int aX = std::min(std::max((int)aPowerup->mX, 0), 799),
+				aY = std::min(std::max((int)aPowerup->mY + 24, 0), 599);
 			if (std::abs(aX - aShipX) > 6 || std::abs(aY - aShipY) > 6)
 				return MoveJson("powerup", Fmt("{\"move\":[%d,%d]},{\"wait\":2}", aX, aY), 1);
 		}
@@ -537,13 +545,15 @@ std::string BoardMove(Level* theLevel, bool& theBusy)
 	Shot aTarget = (aKept.mValid && aKept.mScore >= 0.7 * aBest.mScore) ? aKept : aBest;
 	bool aAtTarget = aShipCol == aTarget.mCol && aShipRow == aTarget.mRow && aShip->mBeamAcross == aTarget.mAcross;
 	bool aHereBanned = gBan[aShip->mBeamAcross != 0 ? 1 : 0][aShip->mBeamAcross != 0 ? aShipRow : aShipCol] > 0;
-	if (aHere.mValid && !aHereBanned && (aAtTarget || (aHere.mScore >= 0.7 * aBest.mScore && aHere.mRisk <= aBest.mRisk + 0.05)))
+	if (aHere.mValid && !aHereBanned &&
+		(aAtTarget || (aHere.mScore >= 0.7 * aBest.mScore && aHere.mRisk <= aBest.mRisk + 0.05)))
 	{
 		gAim.mSet = false;
 		gLastShotAcross = aShip->mBeamAcross;
 		gLastShotLine = aShip->mBeamAcross != 0 ? aShipRow : aShipCol;
 		return MoveJson("shot", ClickSteps(aShipX, aShipY),
-			1, Fmt(",\"col\":%d,\"row\":%d,\"across\":%d,\"fill\":%d,\"risk\":%.2f", aShipCol, aShipRow, aShip->mBeamAcross, aHere.mFill, aHere.mRisk));
+			1, Fmt(",\"col\":%d,\"row\":%d,\"across\":%d,\"fill\":%d,\"risk\":%.2f", aShipCol, aShipRow,
+				aShip->mBeamAcross, aHere.mFill, aHere.mRisk));
 	}
 	int aTargetX = aTarget.mCol * 16 + 8, aTargetY = aTarget.mRow * 16 + 8;
 	if (aShipCol == aTarget.mCol && aShipRow == aTarget.mRow && aShip->mBeamAcross != aTarget.mAcross)
@@ -553,8 +563,7 @@ std::string BoardMove(Level* theLevel, bool& theBusy)
 		if (!anAuto || gWrongWay++ > 0)
 		{
 			gWrongWay = 0;
-			return MoveJson("turn", Fmt("{\"press\":[%d,%d],\"button\":\"right\"},{\"wait\":2},{\"release\":[%d,%d],\"button\":\"right\"}",
-				aShipX, aShipY, aShipX, aShipY), 2);
+			return MoveJson("turn", Fmt("{\"press\":[%d,%d],\"button\":\"right\"},{\"wait\":2},{\"release\":[%d,%d],\"button\":\"right\"}", aShipX, aShipY, aShipX, aShipY), 2);
 		}
 	}
 	else
@@ -563,11 +572,13 @@ std::string BoardMove(Level* theLevel, bool& theBusy)
 	gAim.mCol = aTarget.mCol;
 	gAim.mRow = aTarget.mRow;
 	gAim.mAcross = aTarget.mAcross;
-	double aDist = std::sqrt((double)(aTargetX - aShipX) * (aTargetX - aShipX) + (double)(aTargetY - aShipY) * (aTargetY - aShipY));
+	double aDist = std::sqrt((double)(aTargetX - aShipX) * (aTargetX - aShipX) + (double)(aTargetY - aShipY) *
+		(aTargetY - aShipY));
 	int aWait = 3 + (int)std::ceil(std::log2(std::max(1.0, aDist)));
 	return MoveJson("aim", Fmt("{\"move\":[%d,%d]},{\"wait\":%d}", aTargetX, aTargetY, aWait), 1,
-		Fmt(",\"col\":%d,\"row\":%d,\"across\":%d,\"fill\":%d,\"risk\":%.2f,\"here\":[%d,%d,%d,%d,%.1f]", aTarget.mCol, aTarget.mRow, aTarget.mAcross, aTarget.mFill, aTarget.mRisk,
-			aShipCol, aShipRow, aShip->mBeamAcross, aHere.mValid ? 1 : 0, aHere.mScore));
+		Fmt(",\"col\":%d,\"row\":%d,\"across\":%d,\"fill\":%d,\"risk\":%.2f,\"here\":[%d,%d,%d,%d,%.1f]", aTarget.mCol,
+			aTarget.mRow, aTarget.mAcross, aTarget.mFill, aTarget.mRisk, aShipCol, aShipRow, aShip->mBeamAcross,
+			aHere.mValid ? 1 : 0, aHere.mScore));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -598,7 +609,8 @@ std::string StateJson()
 		gPlayed = true;
 	std::string s = Fmt("{\"screen\":\"%s\",\"mode\":\"campaign\",\"update\":%d,\"frame\":%d,\"score\":%d,\"lives\":%d,\"level\":%d,\"reached\":%d,"
 		"\"difficulty\":%d,\"shootermode\":%d,\"rand\":%d,\"over\":%s",
-		ScreenName(aLevel), gUpdateCount, gFrame, gScore, gLives, aLevel != nullptr && aLevel->mKind == 0 && !IsStory(aLevel) ? aLevel->mNumber : -1,
+		ScreenName(aLevel), gUpdateCount, gFrame, gScore, gLives,
+			aLevel != nullptr && aLevel->mKind == 0 && !IsStory(aLevel) ? aLevel->mNumber : -1,
 		gProfiles[gProfile].mLevelReached, gDifficulty, gAutoFire, RandValue(), IsOver(aLevel) ? "true" : "false");
 	if (aLevel == nullptr)
 		return s + "}";
@@ -606,13 +618,13 @@ std::string StateJson()
 	if (aLevel->mKind == 0 && !IsStory(aLevel))
 	{
 		Shooter* aShip = aLevel->mShooters.mCurrent;
-		s += Fmt(",\"percent\":%d,\"quota\":%d", aLevel->mTotalCells > 0 ? (aLevel->mFilledCells * 100) / aLevel->mTotalCells : 0, aLevel->mFillQuota);
-		s += Fmt(",\"board\":{\"cols\":%d,\"rows\":%d,\"state\":%d,\"gameover\":%s,\"shots\":%d,\"lines\":%d,\"cells\":%d,\"filled\":%d,\"weapons\":%d,\"texts\":%d",
-			aLevel->mCols, aLevel->mRows, aLevel->mState, aLevel->mGameOver != 0 ? "true" : "false", aLevel->mShots, aLevel->mLines, aLevel->mTotalCells,
-			aLevel->mFilledCells, OrbitingWeapons(aLevel), aLevel->mTexts.mHead != nullptr ? 1 : 0);
+		s += Fmt(",\"percent\":%d,\"quota\":%d",
+			aLevel->mTotalCells > 0 ? (aLevel->mFilledCells * 100) / aLevel->mTotalCells : 0, aLevel->mFillQuota);
+		s += Fmt(",\"board\":{\"cols\":%d,\"rows\":%d,\"state\":%d,\"gameover\":%s,\"shots\":%d,\"lines\":%d,\"cells\":%d,\"filled\":%d,\"weapons\":%d,\"texts\":%d", aLevel->mCols, aLevel->mRows, aLevel->mState, aLevel->mGameOver != 0 ? "true" : "false", aLevel->mShots, aLevel->mLines, aLevel->mTotalCells, aLevel->mFilledCells, OrbitingWeapons(aLevel), aLevel->mTexts.mHead != nullptr ? 1 : 0);
 		if (aShip != nullptr)
-			s += Fmt(",\"ship\":{\"x\":%d,\"y\":%d,\"state\":%d,\"across\":%d,\"noauto\":%d,\"speed\":%.3f}", (int)aShip->mX, (int)aShip->mY, aShip->mState,
-				aShip->mBeamAcross, aShip->mNoAutoTurn, aShip->mBeamSpeed);
+			s += Fmt(",\"ship\":{\"x\":%d,\"y\":%d,\"state\":%d,\"across\":%d,\"noauto\":%d,\"speed\":%.3f}",
+				(int)aShip->mX, (int)aShip->mY, aShip->mState, aShip->mBeamAcross, aShip->mNoAutoTurn,
+				aShip->mBeamSpeed);
 		s += Fmt(",\"mouse\":[%d,%d],\"pointer\":[%d,%d]", gMouseX, gMouseY, gRealX, gRealY);
 		s += ",\"powerups\":[";
 		int p = 0;
@@ -622,7 +634,8 @@ std::string StateJson()
 		s += ",\"enemies\":[";
 		int n = 0;
 		for (Enemy* e = aLevel->mEnemies.mHead; e != nullptr && n < 60; e = Node_Next(e), n++)
-			s += Fmt("%s[%d,%d,%.3f,%.3f,%d,%d]", n > 0 ? "," : "", (int)e->mX, (int)e->mY, e->mVx, e->mVy, e->mKind, e->mState);
+			s += Fmt("%s[%d,%d,%.3f,%.3f,%d,%d]", n > 0 ? "," : "", (int)e->mX, (int)e->mY, e->mVx, e->mVy, e->mKind,
+				e->mState);
 		s += "]}";
 	}
 	if (aLevel->mKind != 0 || IsStory(aLevel) || HasRequester(aLevel))
@@ -633,7 +646,8 @@ std::string StateJson()
 		{
 			int x, y;
 			ItemPoint(anItems[i].mItem, x, y);
-			s += Fmt("%s[%d,%d,%d,%s,%d]", i > 0 ? "," : "", anItems[i].mItem->mKind, x, y, Quote(anItems[i].mItem->mName).c_str(), anItems[i].mMenu->mLockedLevel);
+			s += Fmt("%s[%d,%d,%d,%s,%d]", i > 0 ? "," : "", anItems[i].mItem->mKind, x, y,
+				Quote(anItems[i].mItem->mName).c_str(), anItems[i].mMenu->mLockedLevel);
 		}
 		s += "]";
 		s += ",\"sets\":[";
@@ -645,7 +659,8 @@ std::string StateJson()
 		// busy: the bot has nothing to do but wait (it is asked without being changed)
 		BotMemory aMemory = SaveBot();
 		bool aWaiting = false;
-		std::string aMove = (aLevel->mKind == 0 && !IsStory(aLevel)) ? BoardMove(aLevel, aWaiting) : MenuMove(aLevel, aWaiting);
+		std::string aMove = (aLevel->mKind == 0 && !IsStory(aLevel)) ? BoardMove(aLevel, aWaiting) : MenuMove(aLevel,
+			aWaiting);
 		RestoreBot(aMemory);
 		aBusy = aBusy || (aMove.empty() && aWaiting);
 	}
@@ -682,7 +697,8 @@ std::string MenuMove(Level* theLevel, bool& theBusy)
 		return "";
 	}
 	if (HasRequester(theLevel))
-		return ClickItem("dialog", anItems.back().mItem);	// the last button: not the yes of "resume your previous game?"
+		// the last button: not the yes of "resume your previous game?"
+		return ClickItem("dialog", anItems.back().mItem);
 	const ItemRef* aRef = nullptr;
 	switch (theLevel->mKind)
 	{
@@ -718,7 +734,8 @@ std::string MenuMove(Level* theLevel, bool& theBusy)
 
 int ScreenKind(const std::string& theName)
 {
-	static const struct { const char* mName; int mKind; } SCREEN_NAMES[] = {{"menu", 1}, {"title", 1}, {"options", 7}, {"help", 0xc},
+	static const struct { const char* mName; int mKind; } SCREEN_NAMES[] = {{"menu", 1}, {"title", 1}, {"options", 7},
+		{"help", 0xc},
 		{"help2", 0xd}, {"highscores", 3}, {"credits", 4}, {"map", 5}, {"changeuser", 0x10}, {"logo", 0xe}};
 	for (const auto& s : SCREEN_NAMES)
 		if (theName == s.mName)
@@ -752,7 +769,8 @@ void AddMemReportHolders(Platform::MemReport* theReport)
 		for (const r64::Image* anImage : aBank->mImages)
 			aAddRle(anImage->mMask != nullptr ? anImage->mMask : anImage->mAutoMask);
 		for (const Palette* aPalette : aBank->mPalettes)
-			aPaletteBytes += sizeof(Palette) + (aPalette->mP16 != nullptr ? 512 : 0) + (aPalette->mP32 != nullptr ? 1024 : 0);
+			aPaletteBytes += sizeof(Palette) + (aPalette->mP16 != nullptr ? 512 : 0) +
+				(aPalette->mP32 != nullptr ? 1024 : 0);
 		aPaletteBytes += aBank->mRawPalettes.size() * 0x400;
 	}
 	for (const Animation* anAnim = gAnims.mHead; anAnim != nullptr; anAnim = Node_Next(anAnim))
@@ -796,7 +814,8 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 	}
 	if (aName == "grid")
 	{
-		// the board as text, one line per row: '.' open, '+' open and already marked by the pending beam, '#' not open, 'e' a bug
+		// the board as text, one line per row: '.' open, '+' open and already marked by the pending beam, '#' not open,
+		// 'e' a bug
 		if (aLevel == nullptr || aLevel->mKind != 0)
 		{
 			ReplyError(theCommand, "there is no board");
@@ -850,8 +869,9 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 	}
 	if (aName == "level")
 	{
-		// board n of the game (0 is the first as well); the story screen that comes before a world's first board comes first.
-		// The game's own count of levels left behind is one less (Start after n boards played goes to board n + 1).
+		// board n of the game (0 is the first as well); the story screen that comes before a world's first board comes
+		// first. The game's own count of levels left behind is one less (Start after n boards played goes to board n +
+		// 1).
 		int aCount = std::max(std::atoi(theCommand.mArgs.c_str()), 1);
 		if (aLevel == nullptr)
 			ReplyError(theCommand, "the game has no screen yet");
@@ -862,8 +882,8 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 			bool aFromBoard = aLevel->mKind == 0;
 			if (aFromBoard)
 			{
-				// back to the main menu first, as Esc's quit does, so that the boards are read afresh (that reads the game
-				// file again, which makes the level sets new: the set is found after it)
+				// back to the main menu first, as Esc's quit does, so that the boards are read afresh (that reads the
+				// game file again, which makes the level sets new: the set is found after it)
 				gGoTo = 1;
 				LeaveScreen();
 			}

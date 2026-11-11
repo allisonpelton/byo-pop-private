@@ -19,7 +19,7 @@ public:
 	// A whole file of the game's; thePath is relative to the game's folder, with either separator
 	virtual bool ReadFile(const char* thePath, std::vector<uint8_t>& theData) = 0;
 	// 0x42ebc0 (through 0x429430): a rectangle of the screen that changed, for the next present
-	virtual void AddUpdateRect(int x, int y, int w, int h) {}
+	virtual void AddUpdateRect(int x, int y, int theWidth, int theHeight) {}
 	// 0x428d70: puts the mouse pointer at (x, y) of the game's screen (the original moves the system's)
 	virtual void SetMousePos(int x, int y) {}
 	// 0x42a320: where the mouse pointer is on the game's screen (the original reads the system's and takes off the

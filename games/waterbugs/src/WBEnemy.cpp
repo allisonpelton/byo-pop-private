@@ -223,8 +223,8 @@ int Jellyfish_Move(Enemy* theEnemy)
 			float aVx = (float)((double)RandRange(-10, 10) / 200.0);
 			float aY = (float)RandRange(-20, 0) + theEnemy->mY;
 			float aX = (float)((double)RandRange(-10, 10) + (double)theEnemy->mX + (double)(aSign * 3));
-			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aFirst, 0, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0x104, 10, aLifetime, 0.998f, -0.0003f, 5);
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aFirst, 0, 0xff, 0xff,
+				0xff, 0xff, 0xff, 0xff, 0x104, 10, aLifetime, 0.998f, -0.0003f, 5);
 		}
 	}
 	float aDecayed = theEnemy->mDecay * theEnemy->mVy;
@@ -364,8 +364,8 @@ void SpinRoller_Move(Enemy* theEnemy)
 			float aVx = (float)((double)RandRange(-50, 50) / 200.0);
 			float aY = (float)RandRange(-5, 5) + theEnemy->mY;
 			float aX = (float)RandRange(-5, 5) + theEnemy->mX;
-			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f, 5);
+			ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aX, aY, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
+				0xff, 0xff, 0xff, 0, 400, 10, aLifetime, 0.999f, 0.0003f, 5);
 		}
 		double aVx2 = (double)theEnemy->mVx * (double)theEnemy->mVx;
 		double aVy2 = (double)theEnemy->mVy * (double)theEnemy->mVy;
@@ -622,7 +622,8 @@ int Enemy_Place(Enemy* theEnemy)
 				if (Enemy_ClearOfRollers(theEnemy) != 0)
 				{
 					int anAngle = RandRange(0, 0x167);
-					float aSquare = (float)((double)theEnemy->mVx * theEnemy->mVx + (double)theEnemy->mVy * theEnemy->mVy);
+					float aSquare = (float)((double)theEnemy->mVx * theEnemy->mVx + (double)theEnemy->mVy *
+						theEnemy->mVy);
 					float aSpeed = (float)std::sqrt((double)aSquare);
 					theEnemy->mVx = CosDeg(anAngle) * aSpeed;
 					theEnemy->mVy = SinDeg(anAngle) * aSpeed;
@@ -773,7 +774,8 @@ int LaserShot_HitBeams(Enemy* theEnemy)
 	// (the original works out a pan from x for a play call that takes none)
 	Sound_Play(Sound_Find("audio\\beam_hit.wav"));
 	List_Each(&gLevels.mCurrent->mShooters.mCurrent->mBeams, [&](Beam* theABeam) {
-		int aLength = (int)(std::fabs((double)theABeam->mStartX - theABeam->mX) + std::fabs((double)theABeam->mStartY - theABeam->mY));
+		int aLength = (int)(std::fabs((double)theABeam->mStartX - theABeam->mX) +
+			std::fabs((double)theABeam->mStartY - theABeam->mY));
 		for (int i = 0; i < aLength; i++)
 		{
 			int anAngle = RandRange(0, 0x167);
@@ -844,8 +846,8 @@ static void Teleporter_Sparkles(Enemy* theEnemy)
 		float aVy = SinDeg(anAngle) * aScale;
 		ParticleSystem_New();
 		int aLifetime = RandRange(400, 900);
-		ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theEnemy->mX, theEnemy->mY, aVx, aVy, 0, 0, 0, 0xff, 0xff,
-			0xff, 0xff, 0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
+		ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, theEnemy->mX, theEnemy->mY, aVx, aVy, 0, 0, 0, 0xff,
+			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
 		Particle* aParticle = gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent;
 		int aFrameTime;
 		aParticle->mAnim = Animation_Find("sparkles3", &aParticle->mFrameCount, &aFrameTime);
@@ -935,8 +937,9 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 		float aMidY = (float)(aRow * 0x10 + 8);
 		if (theEnemy->mVx == 0.0f)
 		{
-			if (((aMidY < theEnemy->mY && theEnemy->mOldY < aMidY) || (theEnemy->mY < aMidY && aMidY < theEnemy->mOldY)) &&
-				RandRange(0, 1) != 0 && (uint32_t)(aCol - 1) < 0x30)
+			if (((aMidY < theEnemy->mY && theEnemy->mOldY < aMidY) ||
+				(theEnemy->mY < aMidY && aMidY < theEnemy->mOldY)) && RandRange(0,
+				1) != 0 && (uint32_t)(aCol - 1) < 0x30)
 			{
 				int aRight = gLevels.mCurrent->mColumns[aCol + 1][aRow].mKind;
 				int aLeft = gLevels.mCurrent->mColumns[aCol - 1][aRow].mKind;
@@ -954,8 +957,8 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 				}
 			}
 		}
-		else if (((aMidX < theEnemy->mX && theEnemy->mOldX < aMidX) || (theEnemy->mX < aMidX && aMidX < theEnemy->mOldX)) &&
-			RandRange(0, 1) != 0 && (uint32_t)(aRow - 1) < 0x23)
+		else if (((aMidX < theEnemy->mX && theEnemy->mOldX < aMidX) ||
+			(theEnemy->mX < aMidX && aMidX < theEnemy->mOldX)) && RandRange(0, 1) != 0 && (uint32_t)(aRow - 1) < 0x23)
 		{
 			int aBelow = gLevels.mCurrent->mColumns[aCol][aRow + 1].mKind;
 			int anAbove = gLevels.mCurrent->mColumns[aCol][aRow - 1].mKind;
@@ -1095,8 +1098,8 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 			gLevels.mCurrent->mTexts.mCurrent->mVy = -0.02f;
 		}
 		Text_Append(&gLevels.mCurrent->mTexts);
-		Text_Make(gLevels.mCurrent->mTexts.mCurrent, aText, Font_Find("bonus_font2"), (int)theEnemy->mX, (int)theEnemy->mY,
-			0, 0x28, 2000, 300, 0, 0);
+		Text_Make(gLevels.mCurrent->mTexts.mCurrent, aText, Font_Find("bonus_font2"), (int)theEnemy->mX,
+			(int)theEnemy->mY, 0, 0x28, 2000, 300, 0, 0);
 		gLevels.mCurrent->mTexts.mCurrent->mVy = -0.02f;
 		if (aPoints == (aPoints / 300) * 300)
 		{
@@ -1161,8 +1164,8 @@ int SnakeShooter_Move(Enemy* theEnemy)
 			aShot->mX = (float)((double)CosDeg(anAngle) * 50.0 + (double)theEnemy->mX);
 			aShot->mY = (float)((double)SinDeg(anAngle) * 50.0 + (double)theEnemy->mY);
 			Emitter_Append(&aShot->mEmitters);
-			Emitter_Setup(static_cast<Emitter*>(aShot->mEmitters.mCurrent), aShot, 0, 0, 0.0f, 0.0f, 0x28, 0, "spark", 2,
-				255.0f, 0.0f, 2000.0f);
+			Emitter_Setup(static_cast<Emitter*>(aShot->mEmitters.mCurrent), aShot, 0, 0, 0.0f, 0.0f, 0x28, 0, "spark",
+				2, 255.0f, 0.0f, 2000.0f);
 			for (int n = 0x28; n != 0; n--)
 			{
 				ParticleSystem_New();
@@ -1174,8 +1177,8 @@ int SnakeShooter_Move(Enemy* theEnemy)
 				float aVx = (float)((double)RandRange(-50, 50) / 1200.0 + (double)aShot->mVx);
 				float aPy = (float)RandRange(-5, 5) + aShot->mY;
 				float aPx = (float)RandRange(-5, 5) + aShot->mX;
-				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
-					0xe6, 100, 0x32, 0, 0xff, 10, aLifetime, aDrag, 0.0f, 5);
+				ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff,
+					0xff, 0xe6, 100, 0x32, 0, 0xff, 10, aLifetime, aDrag, 0.0f, 5);
 			}
 			gLevels.mCurrent->mEnemies.mCurrent = theEnemy;
 			for (int i = 0; i < aShot->mAnim->mCount; i++)
@@ -1274,8 +1277,10 @@ void SmartWalker_Move(Enemy* theEnemy)
 		if (aDx * aDx + aDy * aDy < 22500.0)
 		{
 			theEnemy->mLastShot = theEnemy->mAge;
-			theEnemy->mVx = std::fabs(theEnemy->mVx) * (float)Sign(gLevels.mCurrent->mShooters.mCurrent->mX - theEnemy->mX);
-			theEnemy->mVy = std::fabs(theEnemy->mVy) * (float)Sign(gLevels.mCurrent->mShooters.mCurrent->mY - theEnemy->mY);
+			theEnemy->mVx = std::fabs(theEnemy->mVx) *
+				(float)Sign(gLevels.mCurrent->mShooters.mCurrent->mX - theEnemy->mX);
+			theEnemy->mVy = std::fabs(theEnemy->mVy) *
+				(float)Sign(gLevels.mCurrent->mShooters.mCurrent->mY - theEnemy->mY);
 			Enemy_Face(theEnemy);
 		}
 	}
@@ -1716,7 +1721,8 @@ int Enemy_Step(Enemy* theEnemy)
 			{
 				Rider_Append(&aBeam->mRiders);
 				Rider_Setup(aBeam->mRiders.mCurrent, aBeam, theEnemy->mX, theEnemy->mY, theEnemy);
-				if ((float)(theEnemy->mLastZap + 1000) < theEnemy->mAge && gLevels.mCurrent->mShooters.mCurrent->mState == 5)
+				if ((float)(theEnemy->mLastZap + 1000) < theEnemy->mAge &&
+					gLevels.mCurrent->mShooters.mCurrent->mState == 5)
 				{
 					// (the original works out a pan from x for a play call that takes none)
 					Sound_Play(Sound_Find("audio\\electricity.wav"));
