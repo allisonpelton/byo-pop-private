@@ -70,7 +70,7 @@ void ShipsScreen::Draw(Graphics* g)
 	g->SetColorizeImages(false);
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 
-	if (mGo->m08 != 0)
+	if (mGo->mActive != 0)
 		mGo->DrawAt(g, 0x140, 0xf0);
 }
 
@@ -101,7 +101,7 @@ void ShipsScreen::Update()
 		mMenu->CloseGoScreen();
 		return;
 	}
-	if (mGo->m08 != 0)
+	if (mGo->mActive != 0)
 		mGo->Update();
 	MarkDirty();
 }

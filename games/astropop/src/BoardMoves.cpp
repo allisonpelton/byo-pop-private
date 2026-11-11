@@ -1,5 +1,5 @@
 // Board: the search for a move that is left (AnyMoveLeft, 0x459bc0, and its helpers 0x454170, 0x453a50, 0x4538d0, 0x433ce0,
-// 0x43a960). The game ends, or a new row comes, when no move can make a group of the size the mode breaks up (m1a54) out of
+// 0x43a960). The game ends, or a new row comes, when no move can make a group of the size the mode breaks up (mSetSize) out of
 // the bricks of one colour. A move is the taking of up to 6 same-coloured bricks from the foot of a column and the dropping
 // of them in another; the bricks the player holds count as a stack of their own. The search works on the stacks of one
 // colour at the foot of the columns (below the lowest stone, steel or virus brick of the column) and on the bricks above
@@ -134,13 +134,13 @@ void ExpandRuns(const std::vector<MoveRun>& theRuns, std::vector<CellRef>& theCe
 }
 
 // 0x4538d0: how many cells of the kind are joined to this one (up to theLimit), not counting the cells in theCells. The
-// gathering is done in the Board's own list (mb8, which keeps what was in it) and the list is put back as it was.
+// gathering is done in the Board's own list (mConnectedCells, which keeps what was in it) and the list is put back as it was.
 int CountConnected(Board* theBoard, int theKind, int theCol, int theRow, unsigned int theLimit, const std::vector<CellRef>& theCells)
 {
-	std::vector<CellRef> aSaved = theBoard->mb8;
+	std::vector<CellRef> aSaved = theBoard->mConnectedCells;
 	theBoard->CollectConnected(theKind, theCol, theRow, theLimit, false, &theCells, -1, -1);
-	int aCount = (int) theBoard->mb8.size();
-	theBoard->mb8 = aSaved;
+	int aCount = (int) theBoard->mConnectedCells.size();
+	theBoard->mConnectedCells = aSaved;
 	return aCount;
 }
 
@@ -154,10 +154,10 @@ bool AnalyseSecond(Board* theBoard, int theColour, const std::vector<MoveRun>& t
 	ExpandRuns(theRuns, aCells);
 
 	MoveSpot aSpot = theSpots[theIdx];
-	int aBase = CountConnected(theBoard, theColour, aSpot.mCol, aSpot.mRow2, (unsigned int) theBoard->m1a54, aCells);
+	int aBase = CountConnected(theBoard, theColour, aSpot.mCol, aSpot.mRow2, (unsigned int) theBoard->mSetSize, aCells);
 	std::vector<MoveRun> aRuns = theRuns;
 	unsigned int aNext = theIdx;
-	int aTarget = theBoard->m1a54;
+	int aTarget = theBoard->mSetSize;
 
 	if (RunTotal(theRuns) + aBase < aTarget)
 	{
@@ -194,7 +194,7 @@ bool AnalyseSecond(Board* theBoard, int theColour, const std::vector<MoveRun>& t
 							if (Partition(&theOnes, &theTwos, &theThrees, (aSpot.mRow2 - aFirst) - 1, false) &&
 								Partition(&theOnes, &theTwos, &theThrees, (aSpot.mRow2 - aSecond) - 1, false))
 							{
-								aTarget = theBoard->m1a54;
+								aTarget = theBoard->mSetSize;
 								int aJoined = CountConnected(theBoard, theColour, aOther.mCol, aOther.mRow2, (unsigned int) aTarget, aCells);
 								if (aTarget <= RunTotal(theRuns) + (aBase + aJoined))
 									return true;
@@ -212,7 +212,7 @@ bool AnalyseSecond(Board* theBoard, int theColour, const std::vector<MoveRun>& t
 									aFirst = 0;
 								if (Partition(&theOnes, &theTwos, &theThrees, (aSpot.mRow2 - aFirst) - 1, false))
 								{
-									aTarget = theBoard->m1a54;
+									aTarget = theBoard->mSetSize;
 									int aJoined = CountConnected(theBoard, theColour, aOther.mCol, aOther.mRow2, (unsigned int) aTarget, aCells);
 									if (aTarget <= RunTotal(theRuns) + aBase + aJoined)
 										return true;
@@ -228,7 +228,7 @@ bool AnalyseSecond(Board* theBoard, int theColour, const std::vector<MoveRun>& t
 									aFirst = 0;
 								if (Partition(&theOnes, &theTwos, &theThrees, (aSpot.mRow2 - aFirst) - 1, false))
 								{
-									aTarget = theBoard->m1a54;
+									aTarget = theBoard->mSetSize;
 									int aJoined = CountConnected(theBoard, theColour, aOther.mCol, aOther.mRow2, (unsigned int) aTarget, aCells);
 									if (aTarget <= RunTotal(theRuns) + aBase + aJoined)
 										return true;
@@ -242,7 +242,7 @@ bool AnalyseSecond(Board* theBoard, int theColour, const std::vector<MoveRun>& t
 								aFirst = 0;
 							if (Partition(&theOnes, &theTwos, &theThrees, (aOther.mRow2 - aFirst) - 1, false))
 							{
-								aTarget = theBoard->m1a54;
+								aTarget = theBoard->mSetSize;
 								int aJoined = CountConnected(theBoard, theColour, aOther.mCol, aOther.mRow2, (unsigned int) aTarget, aCells);
 								if (aTarget <= RunTotal(theRuns) + (aBase + aJoined))
 									return true;
@@ -253,7 +253,7 @@ bool AnalyseSecond(Board* theBoard, int theColour, const std::vector<MoveRun>& t
 			}
 		} while (RunTotal(theRuns) + aBase < aTarget);
 	}
-	return theBoard->m1a54 <= RunTotal(theRuns) + aBase;
+	return theBoard->mSetSize <= RunTotal(theRuns) + aBase;
 }
 
 // 0x454170: whether a stack put beside the spot makes the group big enough. The stacks that go there are made of the
@@ -280,8 +280,8 @@ bool AnalyseSpot(Board* theBoard, int theRow, int theColour, int theLimitRow, in
 	{
 		if (Partition(&theOnes, &theTwos, &theThrees, aCount, false))
 		{
-			int aJoined = CountConnected(theBoard, theColour, aSpot.mCol, aSpot.mRow2, (unsigned int) theBoard->m1a54, aCells);
-			if (theBoard->m1a54 <= aJoined + theTotal)
+			int aJoined = CountConnected(theBoard, theColour, aSpot.mCol, aSpot.mRow2, (unsigned int) theBoard->mSetSize, aCells);
+			if (theBoard->mSetSize <= aJoined + theTotal)
 				return true;
 			if (!aTriedSecond)
 			{
@@ -313,29 +313,29 @@ bool Board::AnyMoveLeft(bool* theFlag)
 	std::vector<MoveRun> aRuns;
 	std::vector<MoveSpot> aSpots;
 
-	if ((unsigned int) m70.size() >= (unsigned int) m1a54)
+	if ((unsigned int) mHeldBricks.size() >= (unsigned int) mSetSize)
 		return true;
 
-	if (!m70.empty())
+	if (!mHeldBricks.empty())
 	{
-		Brick* aHeld = m70.front();
+		Brick* aHeld = mHeldBricks.front();
 		if (aHeld->mMutated != 1 && IsToolKind(aHeld->mType))
 			return true;
 	}
 	if (theFlag != NULL)
 	{
 		*theFlag = true;
-		if (!m70.empty())
+		if (!mHeldBricks.empty())
 			*theFlag = false;
 	}
 
 	// the lowest obstacle of each column (rows 1 and up are looked at, from the foot of the field)
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
-		int aRows = (int) m314.size();
+		int aRows = (int) mFieldBricks.size();
 		for (int aRow = aRows - 1; aRow > 0; aRow--)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick != NULL && (aBrick->mMutated == 1 || aBrick->mType == 7 || aBrick->mType == 9))
 			{
 				aColTop[aCol] = aRow;
@@ -346,10 +346,10 @@ bool Board::AnyMoveLeft(bool* theFlag)
 
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
-		int aRows = (int) m314.size();
+		int aRows = (int) mFieldBricks.size();
 		for (int aRow = aRows - 1; aRow > 0; aRow--)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick == NULL)
 				continue;
 			if (theFlag != NULL)
@@ -373,14 +373,14 @@ bool Board::AnyMoveLeft(bool* theFlag)
 				if (aKey < 0 || aKey >= kCountSlots)
 					continue;
 				int aReached = ++aReach[aKey];
-				if (m1a54 <= aReached)
+				if (mSetSize <= aReached)
 					return true;
 
 				// a brick on one of the same colour is counted with that stack
-				int aRowTotal = (int) m314.size();
-				if (aRow != aRowTotal - 1 && m314[aRow + 1][aCol] != NULL)
+				int aRowTotal = (int) mFieldBricks.size();
+				if (aRow != aRowTotal - 1 && mFieldBricks[aRow + 1][aCol] != NULL)
 				{
-					Brick* aBelow = m314[aRow + 1][aCol];
+					Brick* aBelow = mFieldBricks[aRow + 1][aCol];
 					int aBelowKey = (aBelow->mMutated == 1) ? 0xc : aBelow->mType;
 					if (aBelowKey == aKey)
 						continue;
@@ -390,7 +390,7 @@ bool Board::AnyMoveLeft(bool* theFlag)
 				int aRunLen = 1;
 				for (int r = aRow - 1; r > 0; r--)
 				{
-					Brick* aUp = m314[r][aCol];
+					Brick* aUp = mFieldBricks[r][aCol];
 					if (aUp == NULL)
 						break;
 					int aUpKey = (aUp->mMutated == 1) ? 0xc : aUp->mType;
@@ -426,15 +426,15 @@ bool Board::AnyMoveLeft(bool* theFlag)
 	}
 
 	// the bricks in the hand are one more stack
-	if (!m70.empty())
+	if (!mHeldBricks.empty())
 	{
-		Brick* aHeld = m70.front();
+		Brick* aHeld = mHeldBricks.front();
 		int aKey = (aHeld->mMutated == 1) ? 0xc : aHeld->mType;
-		aCount[aKey] += (int) m70.size();
-		aReach[aKey] += (int) m70.size();
+		aCount[aKey] += (int) mHeldBricks.size();
+		aReach[aKey] += (int) mHeldBricks.size();
 		MoveRun aRun;
 		aRun.mColour = aKey;
-		aRun.mCount = (int) m70.size();
+		aRun.mCount = (int) mHeldBricks.size();
 		aRun.mCol = -1;
 		aRun.mRow = -1;
 		aRuns.push_back(aRun);
@@ -444,9 +444,9 @@ bool Board::AnyMoveLeft(bool* theFlag)
 	bool anyEnough = false;
 	for (int i = 0; i < kNumColours; i++)
 	{
-		if (aReach[i] >= m1a54)
+		if (aReach[i] >= mSetSize)
 			return true;
-		if (aCount[i] >= m1a54)
+		if (aCount[i] >= mSetSize)
 			anyEnough = true;
 	}
 	if (!anyEnough)
@@ -459,7 +459,7 @@ bool Board::AnyMoveLeft(bool* theFlag)
 		int aTotal = 0;
 		int aHistogram[8] = {1, 0, 0, 0, 0, 0, 0, 0};       // the stacks of the other colours by their size (1, 2, 3)
 
-		if (m1a54 <= aCount[aColour] && 0 < aReach[aColour])
+		if (mSetSize <= aCount[aColour] && 0 < aReach[aColour])
 		{
 			for (size_t i = 0; i < aRuns.size(); i++)
 			{
@@ -472,18 +472,18 @@ bool Board::AnyMoveLeft(bool* theFlag)
 					aHistogram[aRuns[i].mCount]++;
 			}
 
-			for (unsigned int s = 0; s < aSpots.size(); s++)
+			for (unsigned int aSpotIndex = 0; aSpotIndex < aSpots.size(); aSpotIndex++)
 			{
-				MoveSpot aSpot = aSpots[s];
+				MoveSpot aSpot = aSpots[aSpotIndex];
 				if (aSpot.mColour == aColour)
 				{
 					if (aSpot.mLeft &&
 						AnalyseSpot(this, aSpot.mRow, aColour, std::max(aColTop[aSpot.mCol - 1], 0), aTotal, aHistogram[1],
-									aHistogram[2], aHistogram[3], aColourRuns, aSpots, s, aColTop, -1))
+									aHistogram[2], aHistogram[3], aColourRuns, aSpots, aSpotIndex, aColTop, -1))
 						return true;
 					if (aSpot.mRight &&
 						AnalyseSpot(this, aSpot.mRow, aColour, std::max(aColTop[aSpot.mCol + 1], 0), aTotal, aHistogram[1],
-									aHistogram[2], aHistogram[3], aColourRuns, aSpots, s, aColTop, 1))
+									aHistogram[2], aHistogram[3], aColourRuns, aSpots, aSpotIndex, aColTop, 1))
 						return true;
 				}
 			}

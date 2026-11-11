@@ -43,8 +43,6 @@ public:
 	const PGRect* getRect() const { return &mRect; }          // 0x408970 (slot 0x2c)
 	// slot 0x30 (0x412480)
 	virtual void setPosition(const PGPoint* thePosition);
-	int getUserData() const { return mUserData; }             // 0x411fc0 (slot 0x34)
-	void setUserData(int theData) { mUserData = theData; }    // 0x411fd0 (slot 0x38)
 	void setName(const char* theName);                        // 0x411fa0 (slot 0x3c)
 	const char* getName() const { return mName; }             // 0x411f90 (slot 0x40)
 	// slot 0x44: the item's part inside theClip

@@ -18,14 +18,6 @@ void HCvarManager::registerVariable(const char* theName, const char* theValue, u
 	aVar.mFlags = theFlags;
 }
 
-// 0x413b3d
-void HCvarManager::setVariableString(const char* theName, const char* theValue)
-{
-	auto it = mVars.find(theName);
-	if (it != mVars.end())
-		it->second.mValue = theValue;
-}
-
 // 0x413b81
 int HCvarManager::getVariableInt(const char* theName)
 {

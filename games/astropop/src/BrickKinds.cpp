@@ -9,6 +9,7 @@
 
 using namespace Sexy;
 
+// port: a helper of the brick kinds
 Image* Brick::SafeImage(int theId)
 {
 	if (theId < 0 || theId >= RESOURCE_ID_MAX)
@@ -16,6 +17,7 @@ Image* Brick::SafeImage(int theId)
 	return GetImageById(theId);
 }
 
+// port: a helper of the brick kinds' Draw functions
 static bool IsDeathState(int theState)
 {
 	return theState == 3 || theState == 4 || theState == 6 || theState == 7;
@@ -30,10 +32,8 @@ KillAllBrick::KillAllBrick(Board* theBoard, EventBus* theBus, int theColumn) :
 	Brick(theBoard, theBus, theColumn)
 {
 	mSpecial = true;
-	mField234 = 0xff;
 	mDeathAnim.SetNumFrames(IMAGE_BRICK_KILLALL_RED_DEATH->mNumCols);
-	mNum1B0 = 7;
-	mField238 = false;
+	mChainCounted = false;
 }
 
 // 0x404850
@@ -47,7 +47,7 @@ void KillAllBrick::SetType(int theType)
 void KillAllBrick::OnDie()
 {
 	Brick::OnDie();
-	if (!mBoard->mFlag8E9 && !mBoard->mFlag8E8 && mMutated != 1)
+	if (!mBoard->mLevelUpPhase && !mBoard->mGameOver && mMutated != 1)
 		PlayBoardSound(SOUND_KILLALL_EXPLODE);
 }
 
@@ -73,7 +73,7 @@ void KillAllBrick::Draw(Graphics* g, bool theGlow)
 	if (mMutated == 1)
 		anImage = IMAGE_BRICK_MUTATOR;
 	else
-		anImage = SafeImage((gApp->mFlag6fa ? 0x227 : 0x221) + mType);
+		anImage = SafeImage((gApp->mColorblind ? 0x227 : 0x221) + mType);
 
 	if (mState == 2 && mImage != NULL)
 		anImage = TypeImage(mType, mSpecial);
@@ -180,7 +180,7 @@ void SpecialBrick::OnDie()
 	mShake = false;
 	SetState(3);
 
-	if (!mBoard->mFlag8E9 && !mBoard->mFlag8E8 && mMutated != 1)
+	if (!mBoard->mLevelUpPhase && !mBoard->mGameOver && mMutated != 1)
 	{
 		if (mType == 6)
 			PlayBoardSound(SOUND_STAR_EXPLODE);
@@ -192,7 +192,6 @@ void SpecialBrick::OnDie()
 	{
 		if (mMutated != 1)
 		{
-			mFlag17B = true;
 			return;
 		}
 	}
@@ -200,7 +199,6 @@ void SpecialBrick::OnDie()
 	{
 		if (mType == 0xb)
 			mFxAnim.SetStopped(false);
-		mFlag17B = false;
 		Fire(0x26, mBlastArg);
 		return;
 	}
@@ -428,7 +426,7 @@ FuelCell::FuelCell(Board* theBoard, EventBus* theBus) :
 	mAnim.SetNumFrames(IMAGE_FUELCELL->mNumCols);
 	mAnim.SetStopped(false);
 	mColorStep = 2;
-	mFlag240 = false;
+	mFiredFromShip = false;
 	mDeathAnim.SetDelay(4);
 	mDeathAnim.SetNumFrames(IMAGE_FUELCELL_DEATH->mNumCols);
 	mDeathAnim.mHoldLast = true;
@@ -548,24 +546,14 @@ void FuelCell::SetPlace(int theColumn, int theRow)
 	mRow = theRow;
 }
 
-void FuelCell::SetFlag240()
+void FuelCell::SetFiredFromShip()
 {
-	mFlag240 = true;
+	mFiredFromShip = true;
 }
 
-int FuelCell::GetColumn()
+bool FuelCell::WasFiredFromShip()
 {
-	return mColumn;
-}
-
-int FuelCell::GetRow()
-{
-	return mRow;
-}
-
-bool FuelCell::GetFlag240()
-{
-	return mFlag240;
+	return mFiredFromShip;
 }
 
 // 0x405340
@@ -687,7 +675,7 @@ void PowerBrick::OnSettle()
 }
 
 // 0x402d60 (listener) event 0x2a: the booster pauses and goes on
-void PowerBrick::OnEvent2A(int theArg)
+void PowerBrick::OnBoosterPause(int theArg)
 {
 	if (mType == 0xe)
 		mBoosterOff = theArg != 0;
@@ -802,7 +790,7 @@ void PowerBrick::SetType(int theType)
 			delete mParticles[i];
 		mParticles.clear();
 		mParticles.resize(mNumParticles + 0x23, NULL);
-		mBoosterTime0 = mBoosterTime0 + (mBoard->mField193C / 10) * 100;
+		mBoosterTime0 = mBoosterTime0 + (mBoard->mStageNumber / 10) * 100;
 		mBoosterTime = mBoosterTime0;
 		for (int i = 0; i < mNumParticles + 0x23; i++)
 		{
@@ -888,7 +876,7 @@ void PowerBrick::OnDie()
 		Fire(0xd);
 	}
 
-	if (!mBoard->mFlag8E9 && !mBoard->mFlag8E8)
+	if (!mBoard->mLevelUpPhase && !mBoard->mGameOver)
 	{
 		if (mType == 10)
 			PlayBoardSound(SOUND_FREEZE);

@@ -2090,7 +2090,9 @@ const char* const gResourceNames[RESOURCE_ID_MAX] = {
 }  // namespace
 
 Image* Sexy::GetImageById(int theId) { return *(Image**)gResources[theId]; }
+// port: the resource tables
 Font* Sexy::GetFontById(int theId) { return *(Font**)gResources[theId]; }
+// port: the resource tables
 int Sexy::GetSoundById(int theId) { return *(int*)gResources[theId]; }
 const char* Sexy::GetStringIdById(int theId) { return (unsigned)theId < RESOURCE_ID_MAX ? gResourceNames[theId] : ""; }
 
