@@ -3789,6 +3789,7 @@ static int sandbox_host_run(const char* selfDir, const char* script, int timeout
 	if (gStateExpr[0]) fprintf(rf,"state=%s\n",gStateExpr);
 	if (gEmptyExpr[0]) fprintf(rf,"empty=%s\n",gEmptyExpr);
 	for (int i=0;i<gWatchN;i++) fprintf(rf,"watch=%s\n",gWatchExpr[i]);
+	if (gWatchMax!=4000) fprintf(rf,"watchmax=%d\n",gWatchMax);
 	if (gGameArgs[0]) fprintf(rf,"arg=%s\n",gGameArgs);
 	if (gMode3dWant>=0) fprintf(rf,"3d=%s\n",gMode3dWant?"on":"off");
 	if (key3d && key3d[0]) fprintf(rf,"key3d=%s\n",key3d);
@@ -4305,6 +4306,7 @@ static int main_in_sandbox(const char* dir, int inSession, int probe)
 			else if (ieq(ln,"state")) lstrcpynA(gStateExpr,v,256);
 			else if (ieq(ln,"empty")) lstrcpynA(gEmptyExpr,v,256);
 			else if (ieq(ln,"watch") && gWatchN<4) lstrcpynA(gWatchExpr[gWatchN++],v,256);
+			else if (ieq(ln,"watchmax")) gWatchMax=atoi(v);
 			else if (ieq(ln,"arg")) { if (game_args_ok(v,1)) lstrcpynA(gGameArgs,v,sizeof(gGameArgs)); else logline("arg= refused: %s",v); }
 			else if (ieq(ln,"3d")) gMode3dWant = ieq(v,"on") ? 1 : 0;
 			else if (ieq(ln,"key3d")) lstrcpynA(key3d,v,256);

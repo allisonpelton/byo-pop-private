@@ -108,7 +108,9 @@ Options:
 - `--watch <expr>` — a value in the game's memory (read as 32 bits), logged at each change with the update counter:
   "watch 1: 48 -> 47 at update 2150", and "-" while it cannot be read (through a null pointer, say). Up to four, each
   polled every millisecond and logging at most 4000 changes (`--watch-max <n>` changes the cap, for a whole game's RNG
-  seed). It measures how many updates something lasts in the
+  seed; a watch that reaches it logs "watch N: 4000 changes logged; no more", and a comparison must treat that line as
+  the end of what it can compare, not as a value that stopped changing. Until 2026-11-10 the option did not reach a
+  `--sandbox` run, which kept the 4000). It measures how many updates something lasts in the
   original, such as a loading screen whose length follows the machine's speed (Bookworm Adventures' pilot watches its
   chapter load screen's timer and hands the count to the port). Measure with the update numbers, not by counting
   changes: after a held shot the game runs its catch-up updates back to back, faster than a poll, so a value can skip.
