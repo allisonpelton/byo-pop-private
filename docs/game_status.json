@@ -176,13 +176,14 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "site-features"
       ],
       "na": [
         "collection"
       ],
-      "now": "site-features",
-      "note": "Sound logs in; presets wait on the site"
+      "now": null,
+      "note": ""
     },
     "mahjongchina": {
       "title": "Mahjong Escape: Ancient China",
@@ -195,13 +196,14 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "site-features"
       ],
       "na": [
         "collection"
       ],
-      "now": "site-features",
-      "note": "Sound logs in; presets wait on the site"
+      "now": null,
+      "note": ""
     },
     "bejeweledtwist": {
       "title": "Bejeweled Twist",
