@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstring>
 #include <map>
+#include <set>
 #include <vector>
 
 using namespace Sexy;
@@ -109,6 +110,63 @@ struct PEImage
 	}
 };
 
+// The texts that are not at their address in this image (another build of the game, such as the PopCap Game
+// Collection's AstroPop.exe of 2007: the framework and the compiler are newer, the game's texts are the same and sit
+// at other addresses), found by their content: every zero-terminated run of bytes in the image and every tail of
+// it (the compiler pools texts that end the same) is looked up by length and hash. theFound says which entries are
+// already read; the others are filled in.
+int FindTextsByContent(const std::vector<uint8_t>& theData, const PEImage& theImage, std::vector<bool>& theFound,
+	std::map<unsigned int, SexyString>& theTexts)
+{
+	std::map<std::pair<uint32_t, uint32_t>, std::vector<int> > aWanted;
+	std::set<uint32_t> aLengths;
+	for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
+	{
+		if (!theFound[anId])
+		{
+			aWanted[std::make_pair(gGameTextEntries[anId].mLength, gGameTextEntries[anId].mHash)].push_back(anId);
+			aLengths.insert(gGameTextEntries[anId].mLength);
+		}
+	}
+	int aFoundNow = 0;
+	for (const PEImage::Section& aSection : theImage.mSections)
+	{
+		size_t aStart = theImage.mBase + aSection.mRawPtr;
+		size_t anEnd = aStart + aSection.mRawSize;
+		if (anEnd > theData.size())
+			anEnd = theData.size();
+		size_t aRunStart = aStart;
+		for (size_t i = aStart; i < anEnd; i++)
+		{
+			if (theData[i] != 0)
+				continue;
+			// the run [aRunStart, i) ends in a zero byte: each of its tails of a wanted length is a candidate
+			size_t aRunLength = i - aRunStart;
+			for (uint32_t aLength : aLengths)
+			{
+				if (aLength > aRunLength)
+					break;
+				const char* aText = (const char*) &theData[i - aLength];
+				std::map<std::pair<uint32_t, uint32_t>, std::vector<int> >::iterator anIt =
+					aWanted.find(std::make_pair(aLength, TextHash(aText, aLength)));
+				if (anIt == aWanted.end())
+					continue;
+				for (int anId : anIt->second)
+				{
+					if (!theFound[anId])
+					{
+						theFound[anId] = true;
+						theTexts[gGameTextEntries[anId].mVA].assign(aText, aLength);
+						aFoundNow++;
+					}
+				}
+			}
+			aRunStart = i + 1;
+		}
+	}
+	return aFoundNow;
+}
+
 }
 
 // port: the game's texts, loaded from the table that tools/make_gametext.py writes
@@ -117,10 +175,11 @@ bool Sexy::LoadGameTexts()
 	std::map<unsigned int, SexyString>& aTexts = Texts();
 	aTexts.clear();
 
-	// The retail launcher (WinAP.exe) or a carved game image (as tools/extract_game_exe.py writes it)
+	// The Steam copy's launcher (WinAP.exe), a carved game image (as tools/extract_game_exe.py writes it) or the PopCap
+	// Game Collection's AstroPop.exe (the game itself, no launcher)
 	std::vector<uint8_t> aData;
 	bool aRead = false;
-	const char* aNames[] = {"WinAP.exe", "AstroPopGame.exe"};
+	const char* aNames[] = {"WinAP.exe", "AstroPopGame.exe", "AstroPop.exe"};
 	for (const char* aName : aNames)
 	{
 		if (Platform::VFS::Get().ReadAll(aName, aData) && !aData.empty())
@@ -157,6 +216,7 @@ bool Sexy::LoadGameTexts()
 		PEImage anImage;
 		if (anImage.Parse(aData, aBase))
 		{
+			std::vector<bool> aFound(NUM_GAME_TEXTS, false);
 			for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
 			{
 				const GameTextEntry& e = gGameTextEntries[anId];
@@ -165,6 +225,7 @@ bool Sexy::LoadGameTexts()
 					(TextHash((const char*) &aData[anOffset], e.mLength) == e.mHash))
 				{
 					aTexts[e.mVA].assign((const char*) &aData[anOffset], e.mLength);
+					aFound[anId] = true;
 					aMatched++;
 				}
 				else
@@ -172,19 +233,28 @@ bool Sexy::LoadGameTexts()
 					aMismatched++;
 				}
 			}
+			if (aMismatched > 0)
+			{
+				// another build of the game (the PopCap Game Collection's): the texts are the same, at other addresses
+				int aFoundByContent = FindTextsByContent(aData, anImage, aFound, aTexts);
+				SDL_Log("GameText: %d of %d texts are not at their address in this executable; %d found by their content", aMismatched,
+					NUM_GAME_TEXTS, aFoundByContent);
+				aMatched += aFoundByContent;
+				aMismatched -= aFoundByContent;
+			}
 		}
 		else
 		{
-			SDL_Log("GameText: WinAP.exe is not an AstroPop executable");
+			SDL_Log("GameText: the executable of the game folder is not an AstroPop executable");
 		}
 	}
 	else
 	{
-		SDL_Log("GameText: WinAP.exe not found in the game folder; the game's texts are read from it");
+		SDL_Log("GameText: no WinAP.exe or AstroPop.exe in the game folder; the game's texts are read from it");
 	}
 	if (aMismatched > 0)
-		SDL_Log("GameText: %d of %d texts do not match this executable (AstroPop Deluxe 1.0 expected)", aMismatched,
-			NUM_GAME_TEXTS);
+		SDL_Log("GameText: %d of %d texts are not in this executable (AstroPop Deluxe 1.0's or the PopCap Game Collection's expected)",
+			aMismatched, NUM_GAME_TEXTS);
 
 	// Overrides from string properties (properties/texts.xml, mods)
 	if (gSexyAppBase != NULL)

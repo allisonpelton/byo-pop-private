@@ -289,8 +289,9 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    checked, if origrun can see them.
 3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
    waits for `docs/MOD_ROADMAP.md`'s turn. Done since: the coverage check and the removal of code the game does not need (section 10), the
-   performance pass (section 11) and the readability pass (section 12). Still to do for the game to be done: the check against the PopCap Game
-   Collection's copy, the music's state against the original's, and a night run of the original in 3D for the screen wipe (section 10).
+   performance pass (section 11), the readability pass (section 12) and the check against the PopCap Game Collection's copy (section 13: its exe is
+   another build; the port plays equal on its files). Still to do for the game to be done: the music's state against the original's, and a night
+   run of the original in 3D for the screen wipe (section 10).
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
@@ -470,3 +471,88 @@ level's break each belongs to is not settled), `mPowerBrickRowState`, `mFrameDim
 
 **To repeat or go on.** `python -I tools/namecheck.py games/astropop` lists what is left; `tools/objsnap.py snap|cmp astropop <json>`
 proves a rename by object code; a class's members are renamed by building with `-k 0` and fixing the errors at their positions.
+
+## 13. The PopCap Game Collection version (2026-11-11)
+
+The port was made from the Steam copy (WinAP.exe, the launcher with the game appended; the game carved out of it is
+`re/astropop/bin/AstroPopGame.exe`), so it is checked against the game's version on the PopCap Game Collection disc (`docs/COORDINATION.md`):
+the two versions compared, and the port run on the Collection's files. The procedure is Bejeweled's (its GAME_NOTES section 23) and Typer
+Shark's (its section 15); `tools/collection/` holds the tools.
+
+**Getting the files.** `unshield` (built for Bejeweled's check, `E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the disc
+image's cabinet, which was mounted read-only and dismounted afterwards. The group `AstroPopDeluxeComponent` came out: 920 files, 11 MB, in the
+main checkout's `re/_installers/AstroPopDeluxeCollection` (git-ignored). The copy has no launcher: `AstroPop.exe` is the game itself, beside
+`bass.dll`, `license.txt`, `readme.html` and the folders `data`, `fonts`, `images`, `music`, `properties`, `sounds` and `users`.
+
+**The exe is another build, unlike Bejeweled's and Typer Shark's.** Set beside the carved game image (`tools/collection/cmpexe.py`), the
+Collection's `AstroPop.exe` was linked on 2 July 2007 (the Steam game: 6 April 2004), is 2,295,088 bytes against 1,748,992, and has a bigger
+`.text` (1.84 MB against 1.43 MB), `.rdata`, `.data` and `.rsrc`; none of them is the Steam game's bytes with other addresses. Its strings
+(`tools/collection/textcmp.py`) say what changed: a newer compiler runtime (Dinkumware 1992-2004, the Steam build's is 1992-2001), RTTI
+for the game's own classes (`Grid`, `GridPiece`, `BonusGridPiece`, `FuelCellGridPiece`, `KillAllGridPiece`, `RadialKillGridPiece`,
+`Movement`, `StoryPanel`, `CharSelector`, `SUPAHintDialog`, `SUPAUpgradeDialog`, `GameSelector`, ...: the Steam image has it for the framework's
+classes only), a pak reader (`main.pak`), a JPEG 2000 codec (`j2k-codec.dll`), a Direct3D 8 path (`d3d8.dll`,
+`Direct3DCreate8`; both builds have DirectDraw's), a bigger part of BASS's interface, a screensaver mode (`-screensaver`) and the Collection's game selector. Players: both
+builds name a player's file `users\data<N>.usr` and the hall of fame `users\datahs.usr`; the Collection's has a file for the player list as
+well, `users\users.dat` (empty in the disc's copy), and a `users\data<N>e.usr`, where the Steam build lists the players in the registry only
+(`Users\LastUserNum`, `Users\<name>\<id>`). No save of a Collection copy was at hand, so nothing tests one: the save import
+(`platform/saveimport.json`'s entry for AstroPop) covers only the Steam build's format, its files and its registry, and a Collection
+save is an open item. The Steam build alone has the update check and its texts.
+
+Of the 1,703 texts the port reads from the exe (`src/GameTextTable.inc`, by address in the Steam image), 1,677 are in the Collection's
+exe byte for byte, at other addresses. Of the 26 that are not, 15 are runs of three bytes of code that the table lists by accident, and the
+others are framework strings that the Collection's build writes another way or no longer has: the source paths of the 2004 build's modifiable
+values, the registry key formats, the version "1.0", the two error texts of an old version's cleanup, and the warning text for a profile left in
+the registry by an old version (the one `UserProfile::ReadRegistry` shows for a profile below version 0.2: a player cannot meet it). Every
+text the game shows is the same.
+
+What is not known: whether the 2007 build plays exactly like the 2004 one. Its code differs throughout (another compiler and a newer
+framework), so no function was compared, and the Collection's own exe was not run (section 10 and the end of this section). What speaks for
+it: the game's texts, the levels (`data/bonus*.xcf`), the properties, the music and every picture and sound of the game are the same
+files, so the game it plays is the Steam game's data under a newer framework.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the Steam copy's 982 files and the Collection's 920, 854 are the same byte for byte: every
+level, sound, song and picture but the ones below. The Steam copy also has the launcher's files (`winap.exe`, `drm.swf`, `drm.xml`, `drmss.jpg`,
+`flash.ocx`), the player's own `users/data1.usr` and 67 `sounds/cached_*.wav`, which the port never asks for; the Collection also has
+`astropop.exe`, `users/users.dat` (the default player list) and the game selector's pictures (`gameselectorx.jpg`, `gs_moregames_*x*`,
+`gs_mouseover_help*`) that the game does not draw. The differences:
+
+- `images/loader_bg.jpg`, the picture of the loading screen and the title screen (`tools/collection/cmpimages.py`): another encoding (a
+  hundred thousand pixels differ, mostly by the encoder's noise) with PopCap's round logo and a TM mark at the top right and the bottom
+  right, where the Steam copy's has the flat "PopCap Games" logo. The port draws the file it is given.
+- The 14 pictures of `fonts/` (`_fusion*.png`, `_kiloton9.png`, `_neuropolx30*.png`, `_supernova20.png`): the same pixels (no pixel differs), stored
+  as RGBA where the Steam copy's are grey or palette pictures.
+- `properties/resources.xml`: the Collection lists the five pictures of the game selector more. The port's resource ids are the numbers of the
+  Steam image's list, so a resource that is not in it is never asked for.
+- `properties/partner.xml`: the same product name, registry key, `NoReg`, size and `DefaultWindowed`. The Collection's has `DontUpdate` false,
+  an `Offering` number and `VistaCompliant`; Steam's has a Steam id, a buy link and `NoPopLink`. The port does not read them.
+- The 35 `.sig` files (the signatures of the data files: 24 bytes each), `bass.dll` (the port plays music itself), the licence and the readme.
+
+**The port on the Collection's files** (`tools/collection/run.sh`). `stage_astropop_assets.py` stages a Collection folder as it does a Steam one
+(916 files, `astropop.exe` in place of `winap.exe`). The texts come from that exe: `GameText.cpp` takes `AstroPop.exe` beside `WinAP.exe`
+and `AstroPopGame.exe`, and a text that is not at its address in the Steam image is looked up by content (length and FNV hash, in every
+zero-terminated run of the exe and every tail of one, since the compiler pools texts that end alike). A run on the Collection logs
+"1703 of 1703 texts are not at their address; 1677 found by their content" and "26 not in this executable" (the 26 above); a run on the Steam
+copy reads every text at its address and logs nothing, as before. `main.cpp`'s check of a game folder takes either exe too, and so does
+the page importer (`games/astropop/web/page.js`: `WinAP.exe|AstroPop.exe` is one marker; an ad-hoc run of the importer's rules gave the
+Steam folder, the Collection's and a folder with neither as expected; `tools/gameimporttest.js` has no AstroPop line yet).
+- `tools/check.sh astropop` on the Collection's staging (`AP_EXE`): the three frozen games (classic from level 1, one from level 4, survival)
+  end in the states the check expects, and each plays move for move as the frozen baseline does on the Steam files.
+- The ten tours of phase two that need no original (menus, options, halls, users, classic1, ingame1, survend, quit1, ships1, emerg1: 190
+  screenshots, every dialog, the Options box with its sliders, the hall of fame, the players' list and deletion, whole games to their
+  ends, the secret ships screen and the Emergency panel; `tools/tour/tour.sh`, port only), each run once on each set of files from a fresh
+  profile folder with the same seed and input, compared by shotdiff: 188 pairs are equal, pixel for pixel. The other two are the title screen
+  and its hover (`a01_title`, `a02_title_hover` of the menus tour), which differ in the two places where the loading picture differs: the
+  round logo against the flat "PopCap Games" one (101 by 100 pixels at the bottom right) and the TM mark at the top right (15 by 10). Both are
+  the files' (the title screen draws `loader_bg.jpg`).
+- The web build under Node on the Collection's files (`wasmrun.js`: the page's code, no canvas): the menus and options tours, 32 pictures, each
+  within 6 levels of 255 of the native port's on the same files (the web build's usual difference: on the Steam files 17 of the 18 tours
+  differ by at most 9 levels, `IDENTICAL_PLAY.md`).
+
+**Not done.** The Collection's own exe was not run, so none of its screens was compared with the port's. Its code is another build's, and
+a run needs the watches of `origcmp` (the app's update counter, the board's score, the generators), which are addresses of the Steam image:
+a run of the Collection's game means finding them in its exe first. That exe has RTTI for the game's classes, so a Ghidra import of it
+(its functions paired with the Steam image's by strings and calls) would be the route to compare the 2007 build's play; the coordinator
+decided against it (2026-11-11): the definition of done asks that the port work with the Collection's files, which it does, and the
+readability pass has named the classes. The Collection's Direct3D 8 drawing in 3D mode was not seen either (section 10, the screen wipe). The port's executable
+is called `astropop.exe`, the name of the Collection's game: the installer that puts a native port beside the original
+(`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.

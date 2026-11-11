@@ -2,7 +2,7 @@
 //
 // Arguments (all optional):
 //   -gamedir=<dir>   folder containing the game's images/, data/, fonts/, sounds/, music/, properties/ and
-//                    WinAP.exe (read for the game's texts, never run)
+//                    WinAP.exe or AstroPop.exe (read for the game's texts, never run)
 //   -userdir=<dir>   writable folder for the players' data and registry.ini
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
 //   -nomods          start without any mods
@@ -50,10 +50,12 @@ static bool HasFlag(int argc, char** argv, const char* theFlag)
 	return false;
 }
 
-// The game's texts are read from the original's WinAP.exe (GameText.h), so it is part of the game folder
+// The game's texts are read from the original's WinAP.exe (the Steam copy) or AstroPop.exe (the PopCap Game
+// Collection's; GameText.h), so one of them is part of the game folder
 static bool LooksLikeGameDir(const std::string& theDir)
 {
-	return !Platform::VFS::FindCaseInsensitive(theDir, "winap.exe").empty() &&
+	return (!Platform::VFS::FindCaseInsensitive(theDir, "winap.exe").empty() ||
+			!Platform::VFS::FindCaseInsensitive(theDir, "astropop.exe").empty()) &&
 		!Platform::VFS::FindCaseInsensitive(theDir, "properties/resources.xml").empty() &&
 		!Platform::VFS::FindCaseInsensitive(theDir, "music/music.mo3").empty();
 }
@@ -134,7 +136,7 @@ int main(int argc, char** argv)
 	{
 		std::string msg = "Could not find the AstroPop Deluxe game files.\n\n"
 			"Run with -gamedir=\"<your AstroPop Deluxe folder>\" or copy the images, data, fonts, sounds, music "
-			"and properties folders and the original WinAP.exe (the game's texts are read from it) into an "
+			"and properties folders and the original WinAP.exe or AstroPop.exe (the game's texts are read from it) into an "
 			"assets/astropop folder next to the executable.";
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "AstroPop Deluxe", msg.c_str(), nullptr);
 		SDL_Log("%s", msg.c_str());
