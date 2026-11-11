@@ -1063,11 +1063,13 @@ var ByopopGameFiles = (function () {
 })();
 
 // How much each game was played in this browser (docs/WEB_PLAYER.md, "The listing page"): one localStorage item for the whole
-// site, "byopop-play", a JSON object from a game's id to {plays, seconds, last}. plays: how many times the game was started (a
-// restart of the game's own mod menu goes on with the same play). seconds: the time the game ran with its page shown and in the
-// focus, not paused, hidden or behind another window. last: the last day it was played, the player's own date as YYYY-MM-DD. A game
-// page writes it, the listing page shows it on the game's card, and the save backup keeps it (web/saves.js). Every read and write
-// is guarded: with storage blocked, nothing is counted.
+// site, "byopop-play", a JSON object from a game's id to {plays, seconds, first, last, by}. plays: how many times the game was
+// started (a restart of the game's own mod menu goes on with the same play). seconds: the time the game ran with its page shown
+// and in the focus, not paused, hidden or behind another window. first and last: the first and the last day it was played, the
+// player's own date as YYYY-MM-DD (first is blank for play counted before 2026-11-11). by: the same four for each site player
+// (web/profiles.js, by the player's id; "" for play with no player chosen), as the Library's Properties show them (the user,
+// 2026-11-11: playtime per profile). A game page writes it, the listing page shows it on the game's card and in the Library,
+// and the save backup keeps it (web/saves.js). Every read and write is guarded: with storage blocked, nothing is counted.
 var ByopopPlay = (function () {
   "use strict";
   var KEY = "byopop-play";
@@ -1077,32 +1079,40 @@ var ByopopPlay = (function () {
     return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
   }
   function count(n) { return (typeof n === "number" && isFinite(n) && n > 0) ? Math.floor(n) : 0; }
-  // id -> {plays, seconds, last}; {} when there is none or storage is blocked
+  function day(d) { return (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) ? d : ""; }
+  function plainObj(r) { return !!r && typeof r === "object" && !Array.isArray(r); }
+  function record(r) { return { plays: count(r.plays), seconds: count(r.seconds), first: day(r.first), last: day(r.last) }; }
+  // id -> {plays, seconds, first, last, by: {player id: {plays, seconds, first, last}}}; {} when there is none or storage is blocked
   function all() {
     var out = {};
     try {
       var s = store();
       var o = s ? JSON.parse(s.getItem(KEY) || "{}") : {};
-      if (o && typeof o === "object" && !Array.isArray(o)) {
+      if (plainObj(o)) {
         Object.keys(o).forEach(function (id) {
           var r = o[id];
-          if (!r || typeof r !== "object" || Array.isArray(r)) return;
-          out[id] = { plays: count(r.plays), seconds: count(r.seconds),
-            last: (typeof r.last === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.last)) ? r.last : "" };
+          if (!plainObj(r)) return;
+          out[id] = record(r);
+          out[id].by = {};
+          if (plainObj(r.by)) Object.keys(r.by).forEach(function (pid) {
+            if (/^[A-Za-z0-9_-]{0,40}$/.test(pid) && plainObj(r.by[pid])) out[id].by[pid] = record(r.by[pid]);
+          });
         });
       }
     } catch (e) {}
     return out;
   }
+  // the site player playing now: its id, "" with none (web/profiles.js)
+  function player() { try { var p = ByopopProfiles.current(); return p ? p.id : ""; } catch (e) { return ""; } }
   function change(id, fn) {
     if (!/^[a-z0-9_-]{1,40}$/.test(id)) return false;
     try {
       var s = store();
       if (!s) return false;
-      var o = all();
-      o[id] = o[id] || { plays: 0, seconds: 0, last: "" };
-      fn(o[id]);
-      o[id].last = today();
+      var o = all(), pid = player(), t = today();
+      o[id] = o[id] || { plays: 0, seconds: 0, first: "", last: "", by: {} };
+      var mine = o[id].by[pid] = o[id].by[pid] || { plays: 0, seconds: 0, first: "", last: "" };
+      [o[id], mine].forEach(function (r) { fn(r); if (!r.first) r.first = t; r.last = t; });
       s.setItem(KEY, JSON.stringify(o));
       return true;
     } catch (e) { return false; }
