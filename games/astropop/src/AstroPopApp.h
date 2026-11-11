@@ -122,6 +122,9 @@ public:
 	virtual MusicInterface* CreateMusicInterface() override;
 	// port: the game's texts are read from the player's own exe (GameText.h) before anything shows text
 	virtual void	InitPropertiesHook() override;
+	// port: in 2D mode (Is3D off) the original's screen is software: its stretches are DDImage's own (0x4c68c0), sampled and
+	// averaged by the CPU, where Direct3D (and the port's GPU) sample at pixel centres
+	virtual DDInterface* CreateDDInterface() override;
 
 	void			PlaySong(int theOrder);                     // 0x408b90
 	void			PlaySampleAt(int theSound, int theColumn);  // 0x408cc0 a sample panned by the column it happens in

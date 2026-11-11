@@ -1,5 +1,6 @@
 #include "AstroPopApp.h"
 #include "Compat2004.h"
+#include "DDInterface.h"
 #include "GameText.h"
 #include "Board.h"
 #include "HallOfFame.h"
@@ -168,6 +169,31 @@ void AstroPopApp::ListUsers()
 
 // the game's own generator (Particle.h)
 MTRand Sexy::gGameRand;
+
+// The display of a 2D run draws a stretch as the original's software screen does (DDImage::StretchBlt, 0x4c68c0): a fast one
+// samples the source in 16.16 steps from the rectangle's corner, the column stepped before it is read, and a non-fast one
+// is averaged into an image of the destination's size that is then blitted (DDInterface::mSoftwareStretch). In 3D the
+// original's textured quads, and the port's GPU, sample at pixel centres. Is3D can differ from one run to the next, so
+// the choice is made at each stretch.
+class AstroPopDisplay : public DDInterface
+{
+public:
+	AstroPopDisplay(SexyAppBase* theApp) : DDInterface(theApp)
+	{
+		mFastStretchPreAdd = true;
+	}
+
+	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false) override
+	{
+		mSoftwareStretch = !mIs3D;
+		DDInterface::StretchBlt(theImage, theDestRect, theSrcRect, theClipRect, theColor, theDrawMode, fastStretch, mirror);
+	}
+};
+
+DDInterface* AstroPopApp::CreateDDInterface()
+{
+	return new AstroPopDisplay(this);
+}
 
 // 0x42f170 slot 16
 void AstroPopApp::Init()
