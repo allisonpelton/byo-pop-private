@@ -157,6 +157,12 @@ public:
 	void Init() override;               // 0x7652cc
 	void LoadingThreadProc() override;  // 0x76497d
 	void UpdateFrames() override;       // 0x765f8d
+	// port (the site's Close, and the menu's Quit on the web): the goodbye voice, then Shutdown() once it has ended,
+	// from UpdateFrames, since a web build cannot wait in place as the menu's Quit does natively
+	void QuitAsGame() override;
+	SoundInstance* mGoodbyeSound = nullptr;  // port: the voice QuitAsGame waits for
+	int mGoodbyeUpdates = 0;                 // port: updates since it began (a voice that never ends is given 10 s)
+	bool mQuitAfterGoodbye = false;          // port: Shutdown() is due once the voice has ended
 	void GotFocus() override;           // 0x75f4f7: the board's focus pause ends
 	void LostFocus() override;          // 0x75f51e: the board pauses (shown in a timed game) while the window is away
 	void ModalOpen() override;          // 0x761359: a modal dialog pauses the board (shown in Blitz for a dialog below id 0x28)
