@@ -341,6 +341,7 @@ var ByopopSettings = (function () {
     "  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 0; max-width: 100%; }\n" +
     ".bps-ctl select { max-width: min(14em, 100%); }\n" +
     ".bps-ctl .bps-number { width: 4.5em; font: inherit; color: var(--fg); }" +
+    ".bps-ctl .bps-swatch { flex: none; width: 48px; height: 32px; margin-left: 6px; border: 2px inset var(--line, #808080); image-rendering: pixelated; }" +
     ".bps-ctl input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }\n" +
     ".bps-ctl select:focus-visible, .bps-ctl input:focus-visible, .bps-scope input:focus-visible, .bps-level input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n" +
     ".bps-row [disabled] { opacity: 0.5; }\n" +
@@ -642,6 +643,7 @@ var ByopopSettings = (function () {
         if (!listed && !(scope === "game" && own === null)) c.select.value = now;
         if (document.activeElement !== c.number) c.number.value = now;
       }
+      if (c.preview) c.preview();
       // in the all-games view, say that this game has a value of its own
       if (c.own) c.own.textContent = (scope === "all" && own !== null) ? T("settings.own", { value: words(f, own) }) : "";
     }
@@ -806,6 +808,19 @@ var ByopopSettings = (function () {
       }
       c.select.setAttribute("data-setting", f.name);
       ctl.appendChild(c.select);
+      // the pattern: a swatch beside the list that shows the chosen one over the desktop's colour, as a 1995 Pattern dialog did
+      if (f.name === "pattern" && typeof ByopopSchemes !== "undefined" && ByopopSchemes.patternPreview) {
+        c.swatch = make("span", "bps-swatch");
+        c.swatch.setAttribute("aria-hidden", "true");
+        ctl.appendChild(c.swatch);
+        c.preview = function () {
+          var v = c.select.value === "inherit" ? globalValue(f.name) : c.select.value, pv = ByopopSchemes.patternPreview(v);
+          c.swatch.style.backgroundColor = getComputedStyle(document.body).backgroundColor;
+          c.swatch.style.backgroundImage = pv ? pv.image : "none";
+          c.swatch.style.backgroundSize = pv ? pv.size : "";
+        };
+        c.select.addEventListener("input", c.preview);
+      }
       var num = DEFS[f.name] && DEFS[f.name].number;
       if (num && f.options) {
         c.custom = make("option"); c.custom.hidden = c.custom.disabled = true;

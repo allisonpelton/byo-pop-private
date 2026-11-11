@@ -612,6 +612,8 @@ html.d95-desk header.bar { display: none; }
 html.d95-desk .stage-wrap.d95-win .d95-statusbar { display: flex; gap: 2px; margin-top: 2px; font-size: 12px; }
 html.d95-desk .d95-statusbar > * { flex: 1 1 auto; min-width: 0; padding: 1px 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); color: var(--fg); }
+/* the speed (while not normal) and the window's scale: panes as wide as their values (web/controls.js, speedCell) */
+html.d95-desk .d95-statusbar > :is(.d95-speed, .d95-scale) { flex: none; }
 /* the maximize button: a window drawn in the small button */
 html.d95-desk .d95-mx { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; }
 html.d95-desk .d95-mx::after { content: ""; position: absolute; left: 3px; top: 2px; width: 7px; height: 6px; border: 1px solid var(--sk-dk); border-top-width: 2px; }
