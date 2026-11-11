@@ -774,6 +774,16 @@ libxmp-lite are in About.
 
 - **Storage:** `byopop-music-loop`, `byopop-music-mute`, `byopop-music-volume`, `byopop-music-vis` and
   `byopop-music-rows`.
+- **Long silent endings are skipped** (the user's notes, 2026-11-10: "Some of the short tracks have a bunch of dead air
+  at the end, where the tracker slows to a crawl"). When a module's tune starts, a second copy of it renders its last 60
+  seconds at 11,025 Hz, unheard, to find the last moment any sample reaches -60 dB (`trimEnd`, `scanEnd` in
+  `web/music.js`). Where more than 3 seconds of silence follow, the tune ends a second after that moment: it moves on to
+  the next tune there, or starts again there with repeat on, and its length in the list, the display and the seek bar
+  becomes the shorter one. A tune's length is known this way only once it has been played, and is kept for the page's
+  life. The scan takes 3 to 50 ms for an S3M or IT and about 0.2 to 0.3 s for an MO3 (mostly loading the copy), while
+  the tune is loading. Of the games' modules it shortens 13 tunes, among them Bejeweled Twist's bejeweledtwist24 parts 2
+  to 4 (25 seconds to 8 to 11), Big Money's parts 5 and 7, Dynomite's amazonas part 7, Mummy Maze's part 3 and
+  Alchemy's intro; the rest keep their lengths. Ogg tunes are not scanned.
 - **The piano roll** (the user, 2026-11-09: "add the piano roll too") is the view after the tracker, for a module
   only, as the tracker is. Its notes are bars on a pitch grid: time runs left to right in rows, as wide as lets 64
   rows (about a pattern) fill the display, 4 pixels at least (the user, 2026-11-11: "way too zoomed out"), with the

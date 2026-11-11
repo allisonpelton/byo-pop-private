@@ -620,14 +620,16 @@ var ByopopMusic = (function () {
     // gain: the game's own level for its modules (web/soundtracks.js's "level", platform/MusicLevels.h through the decoder)
     var viewBuf = 0;
     function moduleSource(m, range, gain, start) {
-      var again = false;
+      var again = false, stopAt = 0;
       if (range) { M._bm_loop(m, 1); M._bm_set_order(m, range[0]); }
       return {
         repeat: function (on) { again = on; if (!range) M._bm_loop(m, on ? 1 : 0); },
+        // where the tune ends instead of its own end, in seconds into it (a long silent ending cut: trimEnd), 0 for its own
+        stop: function (s) { stopAt = s; },
         next: function (frames, marks) {
-          if (range && M._bm_order(m) > range[1]) {
+          if ((range && M._bm_order(m) > range[1]) || (stopAt && M._bm_position(m) - start >= stopAt)) {
             if (!again) return null;
-            M._bm_set_order(m, range[0]);
+            if (range) M._bm_set_order(m, range[0]); else M._bm_seek(m, ctx.sampleRate, start);
           }
           var out = M._malloc(frames * 8), got = 0;
           if (!marks) got = M._bm_render(m, ctx.sampleRate, frames, out);
@@ -709,13 +711,55 @@ var ByopopMusic = (function () {
       if (level.fmod3XM) return M._bm_level_fmod3_xm();
       return 1;
     }
+    // A long silent ending skipped (the user's notes, 2026-11-10: "Some of the short tracks have a bunch of dead air at the end,
+    // where the tracker slows to a crawl. The ending silence should be skipped somehow if long."): when a module's tune starts,
+    // a second copy of it renders its last TRIM_SCAN seconds at TRIM_RATE, unheard, to find the last moment any sample reaches
+    // TRIM_LEVEL (-60 dB); where more than TRIM_LONG seconds of silence follow it, the tune ends TRIM_KEEP seconds after it, as
+    // it plays on and in the length shown (the list's, the clock's and the seek bar's), and with repeat on it starts again
+    // there. A tune's length is known this way once it has been played; trims holds them by tune for the page's life. Returns
+    // the new end in seconds into the tune, or 0 to keep its own.
+    var TRIM_SCAN = 60, TRIM_RATE = 11025, TRIM_LEVEL = 0.001, TRIM_LONG = 3, TRIM_KEEP = 1, trims = {};
+    function trimEnd(t, bytes) {
+      var key = t.keys[0] + "#" + (t.range ? t.range.join("-") : t.sub);
+      if (!(key in trims)) trims[key] = scanEnd(t, bytes);
+      var end = trims[key];
+      if (end && t.seconds !== end) {
+        t.seconds = end;
+        var shown = list && list.querySelector('[data-tune="' + tunes.indexOf(t) + '"] .mu-time');
+        if (shown) shown.textContent = clock(end);
+      }
+      return end;
+    }
+    function scanEnd(t, bytes) {
+      var m = bytes ? loadModule(M, bytes) : 0;
+      if (!m) return 0;
+      var out = M._malloc(4096 * 8), start = t.start || 0, last = -1, length = t.seconds;
+      try {
+        if (!t.range) M._bm_select(m, t.sub);
+        var from = Math.max(0, length - TRIM_SCAN);
+        M._bm_seek(m, TRIM_RATE, start + from);
+        for (var guard = 0; guard < 400; guard++) {
+          if (t.range && M._bm_order(m) > t.range[1]) break;
+          var at = M._bm_position(m) - start;
+          if (at >= length + 1) break;
+          var got = M._bm_render(m, TRIM_RATE, 4096, out);
+          if (got <= 0) break;
+          var a = M.HEAPF32.subarray(out >> 2, (out >> 2) + got * 2);
+          for (var i = a.length - 1; i >= 0; i--) if (a[i] > TRIM_LEVEL || a[i] < -TRIM_LEVEL) { last = at + (i >> 1) / TRIM_RATE; break; }
+          if (got < 4096) break;
+        }
+      } finally { M._free(out); M._bm_free(m); }
+      return last >= 0 && length - last > TRIM_LONG ? Math.round((last + TRIM_KEEP) * 100) / 100 : 0;
+    }
     // The source of a tune, from its files (a joined tune's pieces decoded once each, then put one after the other)
     function sourceOf(t, files) {
       if (t.kind === "module") {
         var m = files[0] ? loadModule(M, files[0]) : 0;
         if (!m) throw new Error("module");
         if (!t.range) M._bm_select(m, t.sub);
-        return Promise.resolve(moduleSource(m, t.range, levelGain(M, t.level), t.start || 0));
+        var src = moduleSource(m, t.range, levelGain(M, t.level), t.start || 0), end = trimEnd(t, files[0]);
+        if (end) src.stop(end);
+        return Promise.resolve(src);
       }
       var decoded = {};
       return t.keys.reduce(function (p, key, i) {
