@@ -196,7 +196,7 @@ bool Board::SaveGame()
 	PUT(aBuffer, m15e40);
 	PUT(aBuffer, m15e44);
 	PUT(aBuffer, m15e4c);
-	PUT(aBuffer, m15e50);
+	PUT(aBuffer, mCascadeCount);
 	PUT(aBuffer, m15e6c);
 	PUT(aBuffer, m15e70);
 	PUT(aBuffer, m15ee0);
@@ -303,7 +303,7 @@ bool Board::LoadGame()
 	GET(aBuffer, m15e44);
 	m15e48 = m15e44;
 	GET(aBuffer, m15e4c);
-	GET(aBuffer, m15e50);
+	GET(aBuffer, mCascadeCount);
 	GET(aBuffer, m15e6c);
 	GET(aBuffer, m15e70);
 	GET(aBuffer, m15ee0);

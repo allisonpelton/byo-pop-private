@@ -190,7 +190,6 @@ public:
 	double			mLevelValue;        // +0x15e28 the points of a cleared gem
 	int				mBackdropNum;       // +0x15f74
 	bool			mCheated;           // +0x165b0
-	int				mDoneClearingCount;
 	int				mPauseCount;        // +0x15ec0
 	int				mInterfacePauseCount; // +0x15ec4
 	int				mPlayStartTick;     // +0x15e0c the update count at which the running stretch started
@@ -312,7 +311,9 @@ public:
 	int				m15e14, m15e18;
 	int				mHintCountdown;     // +0x15e1c
 	double			m15e30, m15e38;
-	int				m15e40, m15e44, m15e48, m15e4c, m15e50, m15e54, m15e58;
+	int				m15e40, m15e44, m15e48, m15e4c;
+	int				mCascadeCount;      // +0x15e50 the clears that followed the move so far (DoneClearing counts, a swap clears it): the combo sound's step
+	int				m15e54, m15e58;
 	int				m15e6c, m15e70;
 	int				mChainCount;        // +0x15e74 the flame and bomb gems that exploded in this chain (reset by CheckMatches)
 	bool			mExplodeHappened;   // +0x15e78 a gem exploded in this update: Update plays the sound once

@@ -255,7 +255,7 @@ Board::Board(WinDMApp* theApp)
 	m15fa0 = 0.0;
 	m1728 = NULL;
 	m15e4c = 0;
-	m15e50 = 0;
+	mCascadeCount = 0;
 	m16020 = false;
 	m1964 = 0;
 	m1968 = 1;

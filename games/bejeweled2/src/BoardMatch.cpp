@@ -242,7 +242,7 @@ bool Board::FindSets()
 		mApp->PlaySample(aSound, aPan);
 		if (aMadeHypercube)
 			mApp->PlaySample(SOUND_HYPERGEM_CREATE, aPan);
-		int aCombo = m15e50;
+		int aCombo = mCascadeCount;
 		if (aCombo > 5)
 			aCombo = 5;
 		mApp->PlaySample(aCombo + SOUND_COMBO_1, aPan);
@@ -414,7 +414,7 @@ void Board::UpdateSwapping()
 		CommitSwap();
 		if (!mIsHyper || mHintCountdown > 100)
 		{
-			m15e50 = 0;
+			mCascadeCount = 0;
 			m15e4c = 0;
 		}
 		if (!mHyperSwap)

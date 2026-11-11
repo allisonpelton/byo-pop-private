@@ -141,9 +141,9 @@ its own place where the port's 640 by 480 dialog layout is not the original's.
 **Fields declared twice.** The translation named some fields of the board in one file and left them as their offset in
 another, as two members: what one side wrote the other never read. Found by listing, for every `m<offset>` member, the
 functions of the export that touch that offset and whose translation does not name the member. The list covers `Board` only;
-the other classes wait for the readability pass, which leaves no offset names. They are one member each now:
+the other classes wait for the readability pass, which leaves no offset names. A second pass looked for the offsets that the export reads as an index (`this[0x5794]`) and found the fourteenth. They are one member each now:
 `mExplodeHappened` (+0x15e78: `ExplodeAt` sets it, the end of the update plays `SOUND_BOMB_EXPLODE` once),
-`mLastExplodeSoundTick` (+0x15e8c), `mFadeIn` (+0x15fb0), `mStarRot`, `mStarDrift` and `mStarPhase` (+0x15fc0, +0x15fc8,
+`mLastExplodeSoundTick` (+0x15e8c), `mCascadeCount` (+0x15e50: `DoneClearing` counts the clears that follow a move, and the count picks the combo sound, which therefore never rose, and the best cascade of the player's statistics), `mFadeIn` (+0x15fb0), `mStarRot`, `mStarDrift` and `mStarPhase` (+0x15fc0, +0x15fc8,
 +0x15fd0), `mSecretPuzzleCount`, `mSecretSolved` and `mSecretRun` (+0x17a4 to +0x17ac), `mSolutionFirstNode` (+0x18f0),
 `mSolutionMove` (+0x18fc), `m191c` (the port's `mHintTutorialShown` was never set) and `mIsPlanetIntro` (+0x191d, which the
 constructor does clear).
