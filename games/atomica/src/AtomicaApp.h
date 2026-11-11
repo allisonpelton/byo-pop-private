@@ -275,7 +275,6 @@ public:
 	bool				HasSavedGame();
 	void				SaveGame();							// 0x405fc0
 	void				ResumeGame();						// 0x406060
-	void				DeleteSavedGame();
 	void				ShowQuit();							// 0x405bd0
 	void				ShowOptions();						// 0x405d00
 	void				ResetHints();

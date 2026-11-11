@@ -30,12 +30,9 @@ public:
 	Sprite*				mSponsor;               // +0xa0 sponsor
 	HyperlinkWidget*	mPlayLink;              // +0x84 id 1 "click here to play"
 	double				mProgress;              // +0x60 the loading bar's fill, 0..1
-	double				mShown;                 // +0x68 how much of the bar the link has seen
 	bool				mLinkShown;             // +0x70
-	bool				mClicked;               // +0x72 the link was clicked before loading had finished
 	float				mSlide;                 // +0xac the Deluxe sign slides in from the left (starts at -800)
 	int					mBlink;                 // +0x(DAT_004d40e4) a counter that runs 0..19
-	std::string			mLoadingText;           // +0xc4
 
 public:
 	TitleScreen(AtomicaApp* theApp);

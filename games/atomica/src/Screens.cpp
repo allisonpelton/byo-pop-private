@@ -23,9 +23,7 @@ using namespace Sexy;
 TitleScreen::TitleScreen(AtomicaApp* theApp) :
 	mApp(theApp),
 	mProgress(0.0),
-	mShown(0.0),
 	mLinkShown(false),
-	mClicked(false),
 	mSlide(-800.0f),
 	mBlink(0)
 {
@@ -199,11 +197,10 @@ void TitleScreen::Draw(Graphics* g)
 	}
 }
 
-// 0x42fc40: the play link starts the game's menus
+// 0x42fc40: the play link (id 1) starts the game's menus. The original's link with id 0 opens the registration box; the port
+// has no such link.
 void TitleScreen::ButtonDepress(int theId)
 {
-	if (theId == 0)
-		mClicked = true;
-	else
+	if (theId != 0)
 		mApp->TitleScreenDone();
 }
