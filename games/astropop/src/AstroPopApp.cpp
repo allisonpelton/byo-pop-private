@@ -135,7 +135,7 @@ void AstroPopApp::InitPropertiesHook()
 
 	LoadProperties("properties/texts.xml", false, false);
 	if (!LoadGameTexts())
-		SDL_Log("AstroPop: no game texts read from WinAP.exe (texts without an override stay empty)");
+		SDL_Log("AstroPop: no game texts read from WinAP.exe or AstroPop.exe (texts without an override stay empty)");
 
 	// The ten lines the quit dialog picks from (the original's constructor stores them, 0x562900 ...): read here, since the
 	// texts are loaded only now
