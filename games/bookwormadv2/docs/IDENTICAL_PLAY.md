@@ -151,3 +151,13 @@ Ported from Bookworm Adventures' (`TestHooks.cpp`, `GameApp::HandleDriverCommand
 ## Remaining deviations
 
 None known in the logic that was compared. Everything above "Not covered" is untested, not known to differ.
+
+## Registration and outbound buttons
+
+The port has no trial, nag, unlock or register path of its own (it was ported as the full game), and its main menu, options, credits and
+dialogs have no "More Games", buy or other button that leaves the game: no OpenURL or shell call exists in `src/`. What was left of the
+trial is removed: the `UpsellTrailer` resource group (its "buy now" and "no thanks" buttons, the "free trial expired" picture and sounds) and
+the main menu's "buy now" voice (`tools/resgen.py` leaves them out of `Res.h`/`Res.cpp`), the two trial dialogs (`DIALOG_NEW_PROFILE`,
+`DIALOG_TRIAL_COMPLETE`, which were never made) with their answers, the `mQueuedHydraLockout` flag with the checks on it (always false), and the
+comments about what the original did in its trial. Two functions stay because the original's scripts call them: the scripts' `QueuedHydraLockout`
+and `ShouldDoHydraLockout` (constants, `false`), so a script that asks still gets an answer.
