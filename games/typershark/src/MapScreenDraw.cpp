@@ -25,7 +25,7 @@ ScrollSmoother::ScrollSmoother()
 		mRing[i] = 0.0;
 	mValue = 0.0;
 	mIndex = 0;
-	mUnused = 0.0;
+	mZeroedAtStart = 0.0;
 	mPrevious = 0.0;
 }
 
@@ -73,7 +73,7 @@ void MapScreen::Draw(Graphics* g)
 		mSmoothX.Step(mScrollX);
 		mSmoothY.Step(mScrollY);
 	}
-	if (mContinueLink->mVisible == false && mFlag234 == false)
+	if (mContinueLink->mVisible == false && mFinalScrollStarted == false)
 		mSmoothText.Step(mPromptX);
 
 	g->DrawImage(mApp->mImages[IMAGE_MAPBG], (int)mSmoothX.mValue, (int)mSmoothY.mValue);
@@ -82,18 +82,18 @@ void MapScreen::Draw(Graphics* g)
 		g->FillRect(0, 0, mWidth, 0x1e);
 	g->SetFont(mApp->mFontMyriadCondensed14Bold);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	std::string aLevelText = StrFormat(GTC(0x0052fad4), mField1f8);
+	std::string aLevelText = StrFormat(GTC(0x0052fad4), mLevelNumberShown);
 	if (mFinal == false)
 		g->DrawString(aLevelText, 10, 0x13);
 	g->SetFont(mApp->mFontRockwell13);
 	g->SetColor(Color(0, 0xff, 0));
 	std::string aPromptText;
-	if (mFlag224 != false)
+	if (mLevelChosen != false)
 		aPromptText = GT(0x0052fab4) + mApp->GetShipName();		// 0x4292b0
 	else
 		aPromptText = GT(0x0052fa90);
 
-	if (mFlag234 == false)
+	if (mFinalScrollStarted == false)
 	{
 		if (mFinal == false)
 			g->DrawString(aPromptText, mApp->mFontMyriadCondensed14Bold->StringWidth(aLevelText) + 0x28, 0x13);
@@ -101,7 +101,7 @@ void MapScreen::Draw(Graphics* g)
 
 	if (mFinal != false)
 	{
-		if (mFlag234 == false)
+		if (mFinalScrollStarted == false)
 		{
 			g->SetColor(Color(0, 0, 0, 0xb4));
 			g->FillRect(100, 0x3c, 0x1b8, 0xcc);
@@ -109,7 +109,7 @@ void MapScreen::Draw(Graphics* g)
 			g->SetColor(Color(0xff, 0xff, 0xff));
 			Rect aGumboRect(mGumboFrame * 0x3c, 0, 0x3c, 0x3c);
 			g->DrawImage(mApp->mImages[IMAGE_GUMBO_SWIM], 0x80, 0x69, aGumboRect);
-			WriteString2004(g, StrFormat(GTC(0x0052fa7c), mField1f8), 0x78, 0x5f, 0x190, 0, true, 0, -1);
+			WriteString2004(g, StrFormat(GTC(0x0052fa7c), mLevelNumberShown), 0x78, 0x5f, 0x190, 0, true, 0, -1);
 			g->SetFont(mApp->mFontRockwell13);
 			WriteWordWrapped2004(g, Rect(0xcd, 0x73, 0x145, 0xc8), GT(0x0052f9f8),
 				mApp->mFontCourierFinalDraft15Bold->GetHeight(), -1);
@@ -136,7 +136,7 @@ void MapScreen::Draw(Graphics* g)
 		{
 			do
 			{
-				ProfilePair* aDot = mVector1c4[i];
+				ProfilePair* aDot = mRouteDots[i];
 				g->DrawImage(mApp->mImages[IMAGE_POINT], aDot->mFirst, aDot->mSecond);
 				i++;
 			} while (i < mDotsDone);
@@ -147,7 +147,7 @@ void MapScreen::Draw(Graphics* g)
 		{
 			do
 			{
-				ProfilePair* aDot = mVector1c4[i];
+				ProfilePair* aDot = mRouteDots[i];
 				g->DrawImage(mApp->mImages[IMAGE_POINT_GREEN], aDot->mFirst, aDot->mSecond);
 				i++;
 			} while (i < mDotIndex);
@@ -157,9 +157,9 @@ void MapScreen::Draw(Graphics* g)
 		unsigned int aDotIndex = mDotIndex;
 		while (true)
 		{
-			if (aDotIndex >= mVector1c4.size())
+			if (aDotIndex >= mRouteDots.size())
 				break;
-			ProfilePair* aDot = mVector1c4[aDotIndex];
+			ProfilePair* aDot = mRouteDots[aDotIndex];
 			g->DrawImage(mApp->mImages[IMAGE_POINT_GREEN], aDot->mFirst, aDot->mSecond);
 			aDotIndex++;
 		}
@@ -169,9 +169,9 @@ void MapScreen::Draw(Graphics* g)
 		unsigned int aOtherIndex = 0;
 		while (true)
 		{
-			if (aOtherIndex >= mVector198.size())
+			if (aOtherIndex >= mForkRouteDots.size())
 				break;
-			ProfilePair* aDot = mVector198[aOtherIndex];
+			ProfilePair* aDot = mForkRouteDots[aOtherIndex];
 			g->DrawImage(mApp->mImages[IMAGE_POINT_GREEN], aDot->mFirst, aDot->mSecond);
 			aOtherIndex++;
 		}
@@ -180,15 +180,15 @@ void MapScreen::Draw(Graphics* g)
 		// a stamp on every site sailed through but the ship's (the ship's is the last, or the one before while it sails on)
 		int aStamps;
 		if (mHeadingOn == false)
-			aStamps = (int)mVector1d4.size() - 1;
+			aStamps = (int)mRouteNodes.size() - 1;
 		else
-			aStamps = (int)mVector1d4.size() - 2;
+			aStamps = (int)mRouteNodes.size() - 2;
 		i = 0;
 		if (0 < aStamps)
 		{
 			do
 			{
-				MapNode* aNode = mVector1d4[i];
+				MapNode* aNode = mRouteNodes[i];
 				Image* aStamp = mApp->mImages[IMAGE_MAPSHIP];
 				g->DrawImage(aStamp, aNode->mX - aStamp->mWidth / 2, aNode->mY - aStamp->mHeight / 2);
 				i++;
@@ -198,7 +198,7 @@ void MapScreen::Draw(Graphics* g)
 		if (aStamps < 0)
 			aShipSite = 0;
 		Rect aShipRect(mShipFrame * 0x32, 0, 0x32, 0x2d);
-		MapNode* aShipNode = mVector1d4[aShipSite];
+		MapNode* aShipNode = mRouteNodes[aShipSite];
 		g->DrawImage(mApp->mImages[IMAGE_MAPSHIPCOLOR], aShipNode->mX - 0x19, aShipNode->mY - 0x16, aShipRect);
 	}
 
@@ -207,7 +207,7 @@ void MapScreen::Draw(Graphics* g)
 	g->SetColor(Color(0, 0, 0, 0xb4));
 	g->FillRect(Rect(0, mContinueLink->mY, mApp->mWidth, mApp->mHeight - mContinueLink->mY));
 
-	if (mContinueLink->mVisible == false && mFlag234 == false && mApp->GetDialog(DIALOG_MESSAGE) == NULL)
+	if (mContinueLink->mVisible == false && mFinalScrollStarted == false && mApp->GetDialog(DIALOG_MESSAGE) == NULL)
 	{
 		g->SetFont(mApp->mFontRockwell13);
 		g->SetColor(Color(0xff, 0xff, 0xff));

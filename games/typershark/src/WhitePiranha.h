@@ -21,7 +21,7 @@ namespace Sexy
 class WhitePiranha : public virtual Piranha
 {
 public:
-	std::string				mWord2;					// +0x08 the word taken on when mWord is finished; the Board fills it (SetWord2)
+	std::string				mSecondWord;					// +0x08 the word taken on when mWord is finished; the Board fills it (SetWord2)
 
 public:
 	WhitePiranha(WinWSApp* theApp, int theType);									// 0x410c70

@@ -1,0 +1,11 @@
+3100 click 320 447
+3150 type Test
+3180 key Return
+3260 shot e01_menu
+3300 click 535 160
+3380 shot e02_hof
+3400 click 320 300
+3450 shot e03_hof_click
+3500 click 110 190
+3600 shot e04_classic
+3700 shot e05_classic2

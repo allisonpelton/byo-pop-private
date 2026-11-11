@@ -40,12 +40,12 @@ public:
 	WSTimer*				mTimer;					// +0xf8 new in the constructor, paused (SetDisabled(true)), added to the widget manager; times the pauses in states 6 and 7
 	double					mFireInterval;			// +0x100 milliseconds between two volleys (the boss record's 0x40, 1000.0 in the abyss mode); not read by this class
 	int						mHitPoints;				// +0x108 hit points left (100 in the constructor, then the record's 0x48, 200 in the abyss mode); SetState(8) with none left kills the boss
-	int						mField10c;				// +0x10c the same value as mHitPoints from the constructor; nothing translated reads it
+	int						mMaxHitPoints;				// +0x10c the hit points the boss started with (the same value as mHitPoints from the constructor on; the subclass constructors set both): the boss's health bar in BoardDraw divides mHitPoints by it
 	double					mMinY;					// +0x110 the bobbing turns round below this (not set here; the subclass constructor sets it)
 	double					mMaxY;					// +0x118 and above this
 	double					mMinX;					// +0x120 the left end of the boss's way (floating in stops here; state 7 turns round)
 	double					mMaxX;					// +0x128 the right end of the sideways way in state 7
-	int						mField130;				// +0x130 not set here; TorpedoBoss's constructor sets it (the record's 0x4c, or 2)
+	int						mMinShots;				// +0x130 not set here; TorpedoBoss's constructor sets it (the record's MinMissiles at 0x4c, or 2), GhostShip and MechaSquid set 2: the fewest shots in a volley, the counterpart of mMaxShots; never read
 	int						mMaxShots;				// +0x134 not set here; TorpedoBoss's constructor sets it (the record's 0x50, or 3): how many shots at most are in flight
 	double					mBobVelY;				// +0x138 the bobbing speed (the record's 0x58, 0.2 in the abyss mode); turns sign at the ends of the way
 	double					mBobVelX;				// +0x140 the sideways speed of state 7, a copy of mBobVelY from the constructor

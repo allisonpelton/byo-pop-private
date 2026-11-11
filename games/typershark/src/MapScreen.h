@@ -39,7 +39,7 @@ struct MapNode
 	int						mX;				// +0x00 position of the site on the map
 	int						mY;				// +0x04
 	std::string				mText;			// +0x08 the tooltip text of the site (the name and what lives there)
-	int						mId;			// +0x24 the level (site) number, 0..35; the callers' mField24
+	int						mId;			// +0x24 the level (site) number, 0..35; the callers' mLevelReached
 	std::vector<int>		mLinks;			// +0x28 the sites reachable from here (ids); -1 on the last site
 	bool					mVisited;		// +0x38 the ship has been here (the callers' mFlag38)
 	bool					mDeadEnd;		// +0x39 a spur: once visited, the ship sails back by itself and the way in is closed
@@ -61,7 +61,7 @@ struct ScrollSmoother
 	double					mRing[6];		// +0x00 the last six differences of the target
 	double					mValue;			// +0x30 the eased value that Draw reads
 	int						mIndex;			// +0x38 next ring slot
-	double					mUnused;		// +0x40 zeroed by the constructor, never read
+	double					mZeroedAtStart;		// +0x40 a double that the constructor zeroes; nothing else writes or reads it
 	double					mPrevious;		// +0x48 the target of the last Draw
 
 	ScrollSmoother();						// the constructor's zeroing loops
@@ -84,30 +84,30 @@ public:
 	int						mPromptX;		// +0x180 target x of the prompt text (the window width: off screen); OnEnter
 	int						mPromptEndX;	// +0x184 where the prompt stops (ctor: half its width, minus 120)
 	int						mShipFrame;		// +0x188 0..5: the frame of the 50 by 45 ship strip, next every 11 updates
-	int						mDotsDone;		// +0x18c how many dots of mVector1c4 lie behind the ship
+	int						mDotsDone;		// +0x18c how many dots of mRouteDots lie behind the ship
 	bool					mShipArrived;	// +0x190 set when the ship has reached the chosen site (never read)
 	WSTimer*				mTimer;			// +0x194 the 500 ms step of the ship; owned, added to the manager
-	std::vector<ProfilePair*>	mVector198;	// +0x198 dots (owned) of the routes to the sites offered at a fork
-	std::map<int, MapNode*>	mMap1a8;		// +0x1a8 site number -> site; owned (the 36 sites)
-	std::vector<XWidget*>	mVector1b4;		// +0x1b4 the chests on the screen; owned by the widget manager's safe-delete
-	std::vector<ProfilePair*>	mVector1c4;	// +0x1c4 the dots (owned) of the route sailed so far and the chosen one; the app copies them to the profile
-	std::vector<MapNode*>	mVector1d4;		// +0x1d4 the sites sailed through, in order (the ship is at the last)
-	bool					mFlag1e4;		// +0x1e4 set by OnEnter (never read)
+	std::vector<ProfilePair*>	mForkRouteDots;	// +0x198 dots (owned) of the routes to the sites offered at a fork; Update makes them, OnEnter frees them, Draw shows them dim
+	std::map<int, MapNode*>	mNodesById;		// +0x1a8 site number -> site; owned (the 36 sites)
+	std::vector<XWidget*>	mChests;		// +0x1b4 the chests on the screen; owned by the widget manager's safe-delete
+	std::vector<ProfilePair*>	mRouteDots;	// +0x1c4 the dots (owned) of the route sailed so far and the chosen one; the app copies them to the profile
+	std::vector<MapNode*>	mRouteNodes;		// +0x1d4 the sites sailed through, in order (the ship is at the last)
+	bool					mOnEnterRan;		// +0x1e4 the constructor 0, OnEnter sets it; never read
 	int						mDotIndex;		// +0x1e8 the dot the ship has reached (counts with the timer)
-	bool					mFlag1ec;		// +0x1ec the choice at the ship's site has not been set up yet
+	bool					mChoicePending;		// +0x1ec the choice at the ship's site (the single way or the chests of the fork) has not been set up yet: OnEnter sets it, Update sets the choice up once and clears it
 	int						mArrivals;		// +0x1f0 how often the arrival bell has been counted since OnEnter
 	bool					mFinal;			// +0x1f4 the callers' SetFinalLevel flag: the map is on the whirlpool panel
-	int						mField1f8;		// +0x1f8 the level number shown at the top ("Level %d"); the callers set it from the profile
+	int						mLevelNumberShown;		// +0x1f8 the number in "Level %d" at the top and on the final panel: the constructor 0, OnEnter adds one each time the map shows again, ButtonDepress sets it to the saved game's level number plus one
 	int						mScrollX;		// +0x1fc target x of the map picture (the final scroll counts it down)
 	int						mScrollY;		// +0x200 target y (see ResetScroll: the original uses the width difference for both)
 	bool					mScrolling;		// +0x204 the final scroll is under way
-	bool					mHeadingOn;		// +0x205 the last site of mVector1d4 is the one being sailed to (the ship stamp is drawn one site back)
+	bool					mHeadingOn;		// +0x205 the last site of mRouteNodes is the one being sailed to (the ship stamp is drawn one site back)
 	std::string				mTipText;		// +0x208 an old tooltip text; nothing sets it (the original's Draw shows it when not empty)
-	bool					mFlag224;		// +0x224 a level is chosen (the start button works); the callers' name
+	bool					mLevelChosen;		// +0x224 a way on is chosen (a chest was clicked or the ship has a single way): the start button works and the prompt at the top says to press the space bar; the constructor true, Update clears it when it offers chests
 	int						mLevel;			// +0x228 the chosen level (site number), -1 while none; the callers' name
 	int						mTipX;			// +0x22c position of mTipText (never set)
 	int						mTipY;			// +0x230
-	bool					mFlag234;		// +0x234 the final scroll has run: the prompts are gone; the callers' name
+	bool					mFinalScrollStarted;		// +0x234 Update sets it on every tick of the final scroll (the prompts and the continue link are gone), OnEnter clears it; KeyChar and Draw read it, and the app's start and win-dialog buttons act only while it is set
 	char					mChosenLetter;	// +0x235 the letter of the chosen chest (' ' while none; 'A' for a single way)
 
 public:

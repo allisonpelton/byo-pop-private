@@ -67,7 +67,7 @@ WinWSApp::WinWSApp()
 	mTitle = "Typer Shark Deluxe " + mProductVersion;
 
 	mMessageDialog = NULL;
-	mDialog61c = NULL;
+	mDifficultyDialog = NULL;
 	mHintDialog = NULL;
 	mMenuScreen = NULL;
 	mMapScreen = NULL;
@@ -78,20 +78,20 @@ WinWSApp::WinWSApp()
 	mHighScoreCloseButton = NULL;
 	mMusic = NULL;
 	mLessonManager = NULL;
-	mFlag660 = false;
+	mQuitAsked = false;
 	mUsedUpperCount = 0;
 	mUsedLetterCount = 0;
-	mFlag670 = false;
-	mFlag671 = false;
+	mTypingTestAsked = false;
+	mCloseCallSeen = false;
 	mDeleteUserDialog = NULL;
 	mMusicSlot = 1;
 	mMusicOrder = -1;
 	mAbyssDepth = 0;
-	mFlag684 = false;
-	mFlag685 = false;
+	mLastAnswerYes = false;
+	mLastAnswerNo = false;
 	mOpenDialogCount = 0;
-	mFlag68c = false;
-	mFlag68d = false;
+	mEndGameAsked = false;
+	mContinueGameAsked = false;
 	mDifficulty = 0;
 	mLongWordLength = 0;
 	mTreasure = 0;
@@ -132,8 +132,8 @@ WinWSApp::WinWSApp()
 	mIsWindowed = true;
 	mAutoEnable3D = true;
 
-	mFlag8d8 = false;
-	mFlag8d9 = false;
+	mAdventureStarting = false;
+	mHighScoreScreenUp = false;
 	mStatusBar = NULL;
 	mSoundInstance38 = NULL;
 	mProfileMgr = NULL;
@@ -141,13 +141,13 @@ WinWSApp::WinWSApp()
 	mFastCPU = false;
 	mHintsAllowed = true;
 	mImages = NULL;
-	mFlag8f8 = true;
-	mField8fc = 0;
-	mField900 = 0;
-	mField904 = 0;
-	mField908 = 0;
-	mField90c = 0;
-	mFlag910 = false;
+	mTutorialUnseen = true;
+	mGameTimeSoFar = 0;
+	mTypingTimeSoFar = 0;
+	mPausedTimeSoFar = 0;
+	mLettersWrongSoFar = 0;
+	mLettersRightSoFar = 0;
+	mDeleteUserAsked = false;
 
 	mNumLoadingThreadTasks = NUM_LOADING_TASKS;
 }
@@ -405,8 +405,8 @@ void WinWSApp::Init()
 	if (mProfileMgr->GetCurrentUserName() != "")
 	{
 		mUser = mProfileMgr->LoadUser(mProfileMgr->GetCurrentUserName());   // 0x425f20
-		if ((mUser != NULL) && mUser->mFlag1dc)
-			mFlag8f8 = false;
+		if ((mUser != NULL) && mUser->mSeenTutorial)
+			mTutorialUnseen = false;
 	}
 
 	// the images the loading screen needs (the rest come in LoadingThreadProc): the cursors and the dialog parts
@@ -696,7 +696,7 @@ void WinWSApp::PauseMusic(bool thePause)
 // it wants one (the board after a hint, the tutor when the statistics close). The shared framework is 1.3, whose
 // RemoveBaseModal hands the focus back to the widget that had it. With that, the typing tutor, which stands still while it
 // has no focus (TypingTutor::LostFocus 0x442020), ran on under the statistics screen after the "view stats?" box, its
-// creatures swimming and drawing random numbers where the original's stand still (found by phase 2's statistics tour). So
+// creatures swimming and drawing random numbers where the original's stand still. So
 // the widget to give the focus back to is forgotten as the dialog is added.
 void WinWSApp::AddDialog(int theDialogId, Dialog* theDialog)
 {
@@ -916,7 +916,7 @@ void WinWSApp::MakeDerivedImages()
 			PalletizeImage(aCopy);
 			return aCopy;
 		}
-		// FUN_00412870: CopyImage, then Palletize
+		// 0x412870: CopyImage, then Palletize
 		static Image* Copy(WinWSApp* theApp, int theImage)
 		{
 			Image* aCopy = theApp->CopyImage(theApp->mImages[theImage]);

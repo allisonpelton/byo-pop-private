@@ -29,6 +29,8 @@ def convert(events, delta, tail, until=None, shifts=None, after=None, dialog_shi
                 lines.append('at %d move %d %d' % (at, x, y))
             else:
                 lines.append('at %d %s %d %d' % (at, 'rclick' if right else 'click', x, y))
+        elif w[0] == 'shot':
+            lines.append('at %d shot %s' % (at, w[1]))  # origrun takes it only inside Windows Sandbox (--sandbox)
         elif w[0] == 'type':
             lines.append('at %d text %s' % (at, ' '.join(w[1:])))
         elif w[0] == 'key':

@@ -5,8 +5,6 @@
 // Left out (registration, trial and update code, removed): the original's ids 0x190 (Register), 0x11b3, 0x11b5, 0x159b,
 // 0x159d, 0x38c4 (the update dialogs' buttons, which also opened the update URL), 0x3cac, 0x5fd4, 0xa28 and 0xe10, and its
 // trial-limit tests (0x41da80, 0x41d870) in the cases of 0x64, 0x65, 0x66, 0x67, 0x6a and 0x9c4. No id of this handler leads out.
-//
-// The fields of the other classes are named after their offsets (mFieldXXX, mFlagXXX) until their groups name them.
 
 #include "WinWSApp.h"
 #include "GameText.h"
@@ -68,30 +66,30 @@ void WinWSApp::ButtonDepress(int theId)
 		{
 			mOpenDialogCount--;
 			KillDialog(DIALOG_DIFFICULTY);
-			mDialog61c = NULL;
+			mDifficultyDialog = NULL;
 			mDifficulty = theId - 600;
-			mUser->mFlag230 = true;
+			mUser->mCompletionPending = true;
 
 			int i = 0;
 			do
 			{
-				mUser->mField234[i] = 0;
+				mUser->mGameGemsFound[i] = 0;
 				i++;
 			} while (i < 6);
 			i = 0;
 			do
 			{
-				mUser->mField24c[i] = 0;
+				mUser->mGameSecretsFound[i] = 0;
 				i++;
 			} while (i < 4);
 
-			if (mDifficulty != mUser->mField280)
+			if (mDifficulty != mUser->mVisitedDifficulty)
 			{
-				mUser->mField280 = mDifficulty;
+				mUser->mVisitedDifficulty = mDifficulty;
 				i = 0;
 				do
 				{
-					mUser->mField25c[i] = 0;
+					mUser->mVisitedLevels[i] = 0;
 					i++;
 				} while (i < 0x24);
 			}
@@ -107,22 +105,22 @@ void WinWSApp::ButtonDepress(int theId)
 				return;
 			}
 		}
-		mUser->SetField1f4(0);      // 0x412640
-		mUser->SetField1f8(0);      // 0x412650
+		mUser->SetGameSharksKilled(0);      // 0x412640
+		mUser->SetGamePiranhasKilled(0);      // 0x412650
 		CreateBoard();             // 0x42f3c0
 		return;
 
 	case 0x64:
 	{
-		mFlag8d8 = true;
-		mFlag8d9 = false;
-		int aSavedLevel = mUser->mField1c0;
+		mAdventureStarting = true;
+		mHighScoreScreenUp = false;
+		int aSavedLevel = mUser->mSavedLevel;
 		if ((aSavedLevel >= 1) && (aSavedLevel <= 0x23))
 		{
 			// a saved adventure game
-			mFlag68d = true;
-			int aDifficulty = mUser->mField1c4;
-			int aLevel = mUser->mField1c8;
+			mContinueGameAsked = true;
+			int aDifficulty = mUser->mSavedDifficulty;
+			int aLevel = mUser->mSavedLevelNumber;
 			std::string aText = StrFormat(GTC(0x0052d200), aLevel + 1, GetDifficultyName(aDifficulty).c_str());
 			ShowConfirmDialog(GT(0x0052d1ec), aText, "", true, GT(0x0052d1f8), GT(0x0052d1fc));     // "CONTINUE?", "YES", "NO"
 			return;
@@ -131,17 +129,17 @@ void WinWSApp::ButtonDepress(int theId)
 		{
 			// nothing saved: the difficulty dialog
 			mOpenDialogCount++;
-			mDialog61c = new DifficultyDialog(this);        // 0x43f0f0 (sizeof 0x158)
-			mDialog61c->Resize(0xaa, 0x28, 0x12c, mDialog61c->GetPreferredHeight(0));
-			AddDialog(DIALOG_DIFFICULTY, mDialog61c);
-			mWidgetManager->SetFocus(mDialog61c);
+			mDifficultyDialog = new DifficultyDialog(this);        // 0x43f0f0 (sizeof 0x158)
+			mDifficultyDialog->Resize(0xaa, 0x28, 0x12c, mDifficultyDialog->GetPreferredHeight(0));
+			AddDialog(DIALOG_DIFFICULTY, mDifficultyDialog);
+			mWidgetManager->SetFocus(mDifficultyDialog);
 			return;
 		}
 
 		// a saved game of the abyss mode (the level numbers above the adventure's)
-		mFlag68d = true;
-		int aDifficulty = mUser->mField1c4;
-		int aLevel = mUser->mField1c8;
+		mContinueGameAsked = true;
+		int aDifficulty = mUser->mSavedDifficulty;
+		int aLevel = mUser->mSavedLevelNumber;
 		std::string aText = StrFormat(GTC(0x0052d178), aLevel + 1, GetDifficultyName(aDifficulty).c_str());
 		ShowConfirmDialog(GT(0x0052d1ec), aText, "", true, GT(0x0052d1f8), GT(0x0052d1fc));
 		return;
@@ -161,13 +159,13 @@ void WinWSApp::ButtonDepress(int theId)
 			ShowMenuScreen();
 			return;
 		}
-		mTypingTutor->mFlag261 = false;
+		mTypingTutor->mViewStatsAsked = false;
 		mTypingTutor->SetVisible(true);
 		mWidgetManager->SetFocus(mTypingTutor);
 		return;
 
 	case DIALOG_HIGHSCORE_CLOSE:    // 0xccf: the Close This Screen button of the high score screen
-		mFlag8d9 = false;
+		mHighScoreScreenUp = false;
 		mWidgetManager->RemoveWidget(mHighScoreScreen);
 		if (mHighScoreScreen != NULL)
 			delete mHighScoreScreen;
@@ -189,7 +187,7 @@ void WinWSApp::ButtonDepress(int theId)
 		return;
 
 	case 0x1cf3:    // the map screen's start button
-		if (!mMapScreen->mFlag224)
+		if (!mMapScreen->mLevelChosen)
 			return;
 		ChangeMusic(0);
 		mMapScreen->ClearNodeWidgets();     // 0x443e20
@@ -202,7 +200,7 @@ void WinWSApp::ButtonDepress(int theId)
 
 	case 0x68:      // quit
 		ShowConfirmDialog(GT(0x0052d148), GT(0x0052d154), "", true, GT(0x0052d1f8), GT(0x0052d1fc));   // "LEAVING?", "Are you sure you wish to quit?", "YES", "NO"
-		mFlag660 = true;
+		mQuitAsked = true;
 		return;
 
 	case 0x69:
@@ -263,7 +261,7 @@ void WinWSApp::ButtonDepress(int theId)
 			mProfileMgr->SaveUser(mUser);                       // 0x420c60
 		}
 		KillDialog(DIALOG_SELECT_USER);
-		mFlag8f8 = (mUser->mFlag1dc == false);
+		mTutorialUnseen = (mUser->mSeenTutorial == false);
 		return;
 	}
 
@@ -277,7 +275,7 @@ void WinWSApp::ButtonDepress(int theId)
 	{
 		int aDepth = mAbyssModeDialog->mSelectedDepth;      // +0x130
 		mAbyssDepth = aDepth;
-		mUser->SetField1e4((aDepth / 1000) % 4 - 1);        // 0x4126e0
+		mUser->SetAbyssBossIndex((aDepth / 1000) % 4 - 1);        // 0x4126e0
 		CreateBoard();                                     // 0x42f3c0
 		if (aDepth > 0)
 			mBoard->SetDepth(aDepth);                       // 0x452cf0
@@ -287,17 +285,17 @@ void WinWSApp::ButtonDepress(int theId)
 	}
 
 	case 0xad9:     // the difficulty dialog's yes (id 0x309 + 2000)
-		mFlag8d8 = false;
-		mFlag8d9 = false;
+		mAdventureStarting = false;
+		mHighScoreScreenUp = false;
 		mOpenDialogCount--;
 		KillDialog(DIALOG_DIFFICULTY);
-		mDialog61c = NULL;
+		mDifficultyDialog = NULL;
 		return;
 
 	case 0xbc3:     // the hint box (id 0x3f3 + 2000)
 		mOpenDialogCount--;
-		mUser->mFlag1fc = !mHintDialog->mField124->IsChecked();     // +0x124: the "do not show hints" check box
-		mHintsAllowed = mUser->mFlag1fc;
+		mUser->mHintBoxesWanted = !mHintDialog->mDisableHintsCheckbox->IsChecked();     // +0x124: the "do not show hints" check box
+		mHintsAllowed = mUser->mHintBoxesWanted;
 		if ((mBoard != NULL) && (mBoard->mVisible))
 		{
 			mBoard->SetPaused(false);
@@ -314,7 +312,7 @@ void WinWSApp::ButtonDepress(int theId)
 			return;
 		if (mMapScreen->mDisabled)
 			return;
-		if (!mMapScreen->mFlag234)
+		if (!mMapScreen->mFinalScrollStarted)
 			return;
 		RestartBoard();       // 0x42ee10
 		return;
@@ -326,7 +324,7 @@ void WinWSApp::ButtonDepress(int theId)
 			return;
 		if (mMapScreen->mDisabled)
 			return;
-		if (!mMapScreen->mFlag234)
+		if (!mMapScreen->mFinalScrollStarted)
 			return;
 		KillDialog(DIALOG_WIN_GAME);
 		ButtonDepress(0x1cf3);      // slot 4
@@ -336,7 +334,7 @@ void WinWSApp::ButtonDepress(int theId)
 		mOpenDialogCount--;
 		KillDialog(DIALOG_MESSAGE);
 		mMessageDialog = NULL;
-		if (mFlag68c)
+		if (mEndGameAsked)
 		{
 			// the question that ends the game was answered "yes"
 			if (!mLessonManager->mAbyssMode)    // +0xa5
@@ -349,37 +347,37 @@ void WinWSApp::ButtonDepress(int theId)
 					aUser->mBestDepth = aDepth;
 				aUser->mLastDepth = aDepth;
 			}
-			mFlag684 = true;
-			mFlag685 = false;
-			mFlag68c = false;
+			mLastAnswerYes = true;
+			mLastAnswerNo = false;
+			mEndGameAsked = false;
 			ResetGame(false);       // 0x42a870
 			return;
 		}
-		if (mFlag660)
+		if (mQuitAsked)
 		{
 			// the quit question
-			mFlag684 = true;
-			mFlag685 = false;
+			mLastAnswerYes = true;
+			mLastAnswerNo = false;
 			Shutdown();             // slot 33
 			return;
 		}
-		if (mFlag910)
+		if (mDeleteUserAsked)
 		{
-			mFlag684 = true;
-			mFlag685 = false;
-			mFlag68c = false;
+			mLastAnswerYes = true;
+			mLastAnswerNo = false;
+			mEndGameAsked = false;
 			mDeleteUserDialog->DeleteSelectedUser();    // 0x43df60
 			KillDialog(DIALOG_DELETE_USER);
 			mDeleteUserDialog = NULL;
-			mFlag910 = false;
+			mDeleteUserAsked = false;
 			return;
 		}
 		if (mTypingTutor != NULL)
 		{
-			mFlag684 = true;
-			mFlag685 = false;
-			mFlag68c = false;
-			if (mTypingTutor->mFlag262)
+			mLastAnswerYes = true;
+			mLastAnswerNo = false;
+			mEndGameAsked = false;
+			if (mTypingTutor->mLeaveAsked)
 			{
 				mWidgetManager->RemoveWidget(mTypingTutor);
 				if (mTypingTutor != NULL)
@@ -388,7 +386,7 @@ void WinWSApp::ButtonDepress(int theId)
 				ResetGame(false);       // 0x42a870
 				return;
 			}
-			if (mTypingTutor->mFlag261)
+			if (mTypingTutor->mViewStatsAsked)
 			{
 				ShowStatsScreen(2);     // 0x41b9e0
 				return;
@@ -396,88 +394,88 @@ void WinWSApp::ButtonDepress(int theId)
 		}
 		else
 		{
-			if (mFlag670)
+			if (mTypingTestAsked)
 			{
-				mFlag670 = false;
-				mFlag685 = false;
-				mFlag68c = false;
+				mTypingTestAsked = false;
+				mLastAnswerNo = false;
+				mEndGameAsked = false;
 				ButtonDepress(0x66);    // slot 4: the typing test the new user is offered
 			}
-			else if (mFlag68d)
+			else if (mContinueGameAsked)
 			{
 				// the saved game is continued: the board starts with the state the profile holds
-				mFlag684 = true;
-				mFlag685 = false;
-				mFlag8d8 = false;
-				mFlag68d = false;
+				mLastAnswerYes = true;
+				mLastAnswerNo = false;
+				mAdventureStarting = false;
+				mContinueGameAsked = false;
 				mStats->mReserved[8] = 0;                       // +0x24
-				mDifficulty = mUser->mField1c4;
-				memcpy(&mStats->mReserved[1], &mUser->mDouble1b8, sizeof(double));     // +8
+				mDifficulty = mUser->mSavedDifficulty;
+				memcpy(&mStats->mReserved[1], &mUser->mSavedEmpCharge, sizeof(double));     // +8
 				mStats->mReserved[9] = 0;                       // +0x28
-				mStats->mReserved[0] = mUser->mField1c8;        // +4
-				mStats->mReserved[3] = mUser->mField1b0;        // +0x10
+				mStats->mReserved[0] = mUser->mSavedLevelNumber;        // +4
+				mStats->mReserved[3] = mUser->mSavedLives;        // +0x10
 				mStats->mReserved[5] = 0;                       // +0x18
 				mStats->mReserved[4] = 0;                       // +0x14
-				mStats->mPointsSoFar = mUser->mField1b4;        // +0
-				mField8fc = mUser->mField1cc;
-				mField900 = mUser->mField1e0;
-				mField908 = mUser->mField1d4;
-				mField90c = mUser->mField1d8;
-				mField904 = mUser->mField1d0;
-				mFlag8f8 = false;
+				mStats->mPointsSoFar = mUser->mSavedScore;        // +0
+				mGameTimeSoFar = mUser->mSavedGameTime;
+				mTypingTimeSoFar = mUser->mSavedTypingTime;
+				mLettersWrongSoFar = mUser->mSavedLettersWrong;
+				mLettersRightSoFar = mUser->mSavedLettersRight;
+				mPausedTimeSoFar = mUser->mSavedPausedTime;
+				mTutorialUnseen = false;
 				WriteToRegistry();      // slot 18
 				CreateBoard();         // 0x42f3c0
 				mBoard->StartGame(*mStats);     // 0x440130 (the 0x30-byte block by value)
-				if (mUser->mField1c0 < 100)
+				if (mUser->mSavedLevel < 100)
 				{
-					mLessonManager->SetLevel(mUser->mField1c0);     // 0x4309d0
-					if (mUser->mField1c0 >= 0x23)
+					mLessonManager->SetLevel(mUser->mSavedLevel);     // 0x4309d0
+					if (mUser->mSavedLevel >= 0x23)
 						mMapScreen->SetFinalLevel(true);            // 0x441080
 				}
 				else
 				{
 					mMapScreen->SetFinalLevel(true);
 					mMapScreen->ResetScroll();                  // 0x441030
-					mLessonManager->SetLevel(mUser->mField1c0 - 0x41);
-					mLessonManager->mEndlessCount = mUser->mField1e8;
+					mLessonManager->SetLevel(mUser->mSavedLevel - 0x41);
+					mLessonManager->mEndlessCount = mUser->mEndlessLevelsPlayed;
 					mLessonManager->SetLevel(-1);
 				}
-				mMapScreen->mField1f8 = mUser->mField1c8 + 1;
+				mMapScreen->mLevelNumberShown = mUser->mSavedLevelNumber + 1;
 				mBoard->SetLessonManager(mLessonManager);           // 0x451cb0
-				mFlag8f8 = (mUser->mFlag1dc == false);
+				mTutorialUnseen = (mUser->mSeenTutorial == false);
 
 				// the profile's lists go to the map screen
 				unsigned int i = 0;
-				if (mUser->mVector2a4.size() != 0)
+				if (mUser->mSavedRouteDots.size() != 0)
 				{
 					do
 					{
 						ProfilePair* aPair = new ProfilePair;
-						ProfilePair* aSource = mUser->mVector2a4[i];
+						ProfilePair* aSource = mUser->mSavedRouteDots[i];
 						aPair->mFirst = aSource->mFirst;
 						aPair->mSecond = aSource->mSecond;
-						mMapScreen->mVector1c4.push_back(aPair);
+						mMapScreen->mRouteDots.push_back(aPair);
 						i++;
-					} while (i < mUser->mVector2a4.size());
+					} while (i < mUser->mSavedRouteDots.size());
 				}
 				i = 0;
-				if (mUser->mVector2b4.size() != 0)
+				if (mUser->mSavedRouteNodeIds.size() != 0)
 				{
 					do
 					{
-						MapNode* aNode = mMapScreen->mMap1a8[mUser->mVector2b4[i]];     // 0x420280
-						mMapScreen->mVector1d4.push_back(aNode);
-						mMapScreen->mVector1d4[i]->mVisited = true;
+						MapNode* aNode = mMapScreen->mNodesById[mUser->mSavedRouteNodeIds[i]];     // 0x420280
+						mMapScreen->mRouteNodes.push_back(aNode);
+						mMapScreen->mRouteNodes[i]->mVisited = true;
 						i++;
-					} while (i < mUser->mVector2b4.size());
+					} while (i < mUser->mSavedRouteNodeIds.size());
 				}
 			}
 		}
 
 		// the common end (0x432922)
-		mFlag684 = true;
-		mFlag685 = false;
-		mFlag68c = false;
+		mLastAnswerYes = true;
+		mLastAnswerNo = false;
+		mEndGameAsked = false;
 		if ((mDifficulty == -1) && (mOptionsDialog == NULL))
 		{
 			CreateBoard();                     // 0x42f3c0
@@ -498,39 +496,39 @@ void WinWSApp::ButtonDepress(int theId)
 
 	case 0xdac:     // the message dialog's no (id 500 + 3000)
 		KillDialog(DIALOG_MESSAGE);
-		if (mFlag670)
+		if (mTypingTestAsked)
 			mUser->mLastLesson = 1;
 		mMessageDialog = NULL;
-		mFlag685 = true;
-		mFlag684 = false;
+		mLastAnswerNo = true;
+		mLastAnswerYes = false;
 		mOpenDialogCount--;
-		mFlag670 = false;
-		mFlag910 = false;
-		mFlag660 = false;
+		mTypingTestAsked = false;
+		mDeleteUserAsked = false;
+		mQuitAsked = false;
 		if (mTypingTutor != NULL)
 		{
-			mTypingTutor->mFlag261 = false;
+			mTypingTutor->mViewStatsAsked = false;
 			mTypingTutor->MarkDirty();
 			mWidgetManager->SetFocus(mTypingTutor);
 			return;
 		}
-		if (mFlag68d)
+		if (mContinueGameAsked)
 		{
 			// the saved game is not continued: the difficulty dialog
-			mFlag68d = false;
+			mContinueGameAsked = false;
 			mOpenDialogCount++;
-			mDialog61c = new DifficultyDialog(this);        // 0x43f0f0
-			mDialog61c->Resize(0xaa, 0x28, 0x12c, mDialog61c->GetPreferredHeight(0));
-			AddDialog(DIALOG_DIFFICULTY, mDialog61c);
+			mDifficultyDialog = new DifficultyDialog(this);        // 0x43f0f0
+			mDifficultyDialog->Resize(0xaa, 0x28, 0x12c, mDifficultyDialog->GetPreferredHeight(0));
+			AddDialog(DIALOG_DIFFICULTY, mDifficultyDialog);
 			return;
 		}
-		if ((mDifficulty == -1) && (!mFlag68c))
+		if ((mDifficulty == -1) && (!mEndGameAsked))
 		{
-			mFlag68c = false;
+			mEndGameAsked = false;
 			CreateBoard();     // 0x42f3c0
 			return;
 		}
-		mFlag68c = false;
+		mEndGameAsked = false;
 		if (mBoard == NULL)
 			return;
 		mBoard->SetPaused(false);
@@ -561,11 +559,11 @@ void WinWSApp::ButtonDepress(int theId)
 
 	case 0xc9:      // end this game
 	{
-		mFlag68c = true;
+		mEndGameAsked = true;
 		std::string aText;
 		if (!mLessonManager->mAbyssMode)
 		{
-			if (mBoard->mPlayer->mField114 == 0)
+			if (mBoard->mPlayer->mLevelNumber == 0)
 				aText = GT(0x0052d010);
 			else
 				aText = GT(0x0052cf98);
@@ -664,7 +662,7 @@ void WinWSApp::ButtonDepress(int theId)
 
 		KillDialog(DIALOG_NEW_USER);
 		UserProfile* aProfile = new UserProfile(this);      // 0x421f50 (sizeof 0x2c8)
-		mHintsAllowed = aProfile->mFlag1fc;
+		mHintsAllowed = aProfile->mHintBoxesWanted;
 		aProfile->SetName(aName);                           // 0x416380
 		aProfile->SetUserNumber(mProfileMgr->FirstFreeUserNumber());    // 0x412380, 0x413ff0
 		mUser = aProfile;
@@ -673,7 +671,7 @@ void WinWSApp::ButtonDepress(int theId)
 		mProfileMgr->RegisterDefaultUserName(aProfile->GetName());      // 0x419da0, 0x415060
 		KillDialog(DIALOG_SELECT_USER);
 		ShowConfirmDialog(GT(0x0052ce20), GT(0x0052ce30), "", false, GT(0x0052d1f8), GT(0x0052d1fc));  // "ASSESS WPM?", "YES", "NO"
-		mFlag670 = true;
+		mTypingTestAsked = true;
 		return;
 	}
 
@@ -705,8 +703,8 @@ void WinWSApp::ButtonDepress(int theId)
 		return;
 
 	case 0x67:      // the high scores button
-		mFlag8d8 = false;
-		mFlag8d9 = true;
+		mAdventureStarting = false;
+		mHighScoreScreenUp = true;
 		ShowHighScoreScreen();  // 0x41bbd0
 		return;
 	}

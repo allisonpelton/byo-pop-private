@@ -173,9 +173,9 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m894 = IMAGE_UPGRADE_HEAD;
 	m890 = IMAGE_UPGRADE_ARM;
 	m838 = mApp->CopyImage(IMAGE_UPGRADE_HEAD);
-	mApp->FlipImage(m838);
+	mApp->MirrorImage(m838);
 	m834 = mApp->CopyImage(IMAGE_UPGRADE_ARM);
-	mApp->FlipImage(m834);
+	mApp->MirrorImage(m834);
 	SetupUpgradeAnims();
 	m1b28 = 0;
 	m1b2c = 0;
@@ -338,7 +338,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1970 = 0;
 	mScore = 0;
 	m8ff = false;
-	m1bd8 = 0.0f;
+	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;   // (a test's charge, BoardState.cpp)
 	ResetGame();
 	if (m1a60 == 1)
 		SetupLevel1Rules();
@@ -562,8 +562,8 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	aSirenFxGraphics.DrawImage(IMAGE_SIREN_FX, 0, 0);
 	m2fc->Palletize();
 	m300->Palletize();
-	mApp->FlipImage(m2fc);
-	mApp->FlipImage(m300);
+	mApp->MirrorImage(m2fc);
+	mApp->MirrorImage(m300);
 	m2fc->mNumCols = IMAGE_SIREN->mNumCols;
 	m300->mNumCols = IMAGE_SIREN_FX->mNumCols;
 	for (int i = 0; i < 3; i++)

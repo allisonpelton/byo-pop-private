@@ -174,7 +174,8 @@ void Board::DoUpdate()
 	{
 		if (m1770)
 		{
-			mApp->mMusicInterface->FadeIn(mApp->mCurrentSong, 1, 0.005);
+			// the music interface's slot 0x30 is FadeOut (song, stop, speed): the song of the menu fades out and the pending offset starts the game's
+			mApp->mMusicInterface->FadeOut(mApp->mCurrentSong, true, 0.005);
 			mApp->mPendingMusicOffset = mApp->GetInteger(
 				(!mIsAction && !mIsPuzzle) ? "MUSICOFFSET_MAIN" : "MUSICOFFSET_ACTION");
 		}

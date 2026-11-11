@@ -59,10 +59,10 @@ bool Board::TryLetter(char theChar, Enemy* theEnemy)
 // 0x454e40: a key typed. Lower case is made upper case first. The branches, in order:
 //   the diver in state 7 (or in state 6 of a bonus level) and not paused: only the space bar does anything (back to the map);
 //   the space bar pauses (ButtonDepress 200) when the profile says so;
-//   a paused board, or a diver in a state that cannot type (only 0, 4, 5 and 9 can; 4 only while mFlag0f80 is clear) ignores it;
+//   a paused board, or a diver in a state that cannot type (only 0, 4, 5 and 9 can; 4 only while mScreenClear is clear) ignores it;
 //   Return fires the EMP (states 0, 9, 4): a banner says why not when it cannot (no charge, already on, or a boss);
 //   a bonus level (state 5): the letter opens the clam it is on (the memory game of pairs, three matches show the treasure);
-//   the streak minigame (state 5 outside a bonus level) compares the letter with mString0f10;
+//   the streak minigame (state 5 outside a bonus level) compares the letter with mBonusWord;
 //   otherwise the letter goes to the creature locked on, or to the first creature that takes it: sharks, then piranhas, then
 //   bonus creatures, then the boss's shots; none of them: a typo.
 void Board::KeyChar(SexyChar theChar)
@@ -102,11 +102,11 @@ void Board::KeyChar(SexyChar theChar)
 	aState = mPlayer->mState;
 	if (aState != 0 && aState != 5 && aState != 4 && aState != 9)
 		return;
-	if (aState == 4 && mFlag0f80)
+	if (aState == 4 && mScreenClear)
 		return;
 
 	// the EMP
-	if (aState == 0 || aState == 9 || (aState == 4 && !mFlag0f80))
+	if (aState == 0 || aState == 9 || (aState == 4 && !mScreenClear))
 	{
 		if (aChar == '\n' || aChar == '\r')
 		{
@@ -118,9 +118,9 @@ void Board::KeyChar(SexyChar theChar)
 				{
 					mPlayer->mEmpActive = true;
 					mFlashAlpha = 255;
-					mFlag0eb4 = true;
+					mEmpDraining = true;
 					mApp->PlaySample(SOUND_EMP);
-					mFlag0eb5 = true;
+					mEmpUsedInWave = true;
 					SetBannerText(GT(0x00530bec));
 					mApp->ChangeMusic(0);
 				}
@@ -202,34 +202,34 @@ void Board::KeyChar(SexyChar theChar)
 
 	if (mPlayer->mState == 5)
 	{
-		// the streak minigame: type mString0f10 in one go
-		unsigned int aPos = (unsigned int)mField0f2c;
+		// the streak minigame: type mBonusWord in one go
+		unsigned int aPos = (unsigned int)mBonusWordPos;
 		char aWanted = '\0';
-		if (aPos < mString0f10.size())			// port: the original indexes past the end of the cleared string
-			aWanted = mString0f10[aPos];
+		if (aPos < mBonusWord.size())			// port: the original indexes past the end of the cleared string
+			aWanted = mBonusWord[aPos];
 		if (aChar == aWanted)
 		{
 			if (aPos == 0)
 				mTypeTimer->Reset();
 			mApp->PlaySample((int)(gGameRand->NextNoAssert() % 3) + SOUND_TYPE);
-			mField0f70++;
-			mField0f68++;
-			mField0f2c++;
-			mFlag0d38 = true;
-			if ((unsigned int)mField0f2c < mString0f10.size())
+			mBonusLettersRight++;
+			mLettersRight++;
+			mBonusWordPos++;
+			mLetterTyped = true;
+			if ((unsigned int)mBonusWordPos < mBonusWord.size())
 				return;
 
 			// the whole string was typed
 			mTypeTime += mTypeTimer->Elapsed();
 			mPlayer->AddScore(GetStreakBonus());
-			mField0f0c += GetStreakBonus();
-			mString0f10 = "";
+			mBonusWordPoints += GetStreakBonus();
+			mBonusWord = "";
 			int aThird = mWidth / 3;
 			std::string aText = StrFormat(GTC(0x00530c5c), GetStreakBonus());		// "+%d PTS"
 			AddBonusText(aText, (int)(gGameRand->NextNoAssert() % (unsigned int)(mWidth - aThird)) + aThird / 2, 240, NULL);
 
-			mField0f30++;
-			int aStreaks = mField0f30;
+			mBonusWordCount++;
+			int aStreaks = mBonusWordCount;
 			if (aStreaks <= 2)
 				mApp->PlaySample(SOUND_TONE1);
 			else if (aStreaks <= 4)
@@ -270,17 +270,17 @@ void Board::KeyChar(SexyChar theChar)
 
 		// a typo in the streak
 		mApp->PlaySample(SOUND_WRONG);
-		mField0f74++;
-		mField0f6c++;
+		mBonusLettersWrong++;
+		mLettersWrong++;
 		std::string aMessage = StrFormat(GTC(0x00530c40), (int)aChar);
-		if (mField0f38 > 5.0)
-			mField0f38 = mField0f38 - 5.0;
+		if (mAirGauge > 5.0)
+			mAirGauge = mAirGauge - 5.0;
 		SetBannerText(aMessage);
 		return;
 	}
 
 	// the normal play
-	if (mFlag0f80 && mBoss == NULL)
+	if (mScreenClear && mBoss == NULL)
 		return;
 	if (mBoss != NULL && dynamic_cast<ProjectileBoss*>(mBoss)->mHitPoints == 0)
 		return;
@@ -295,24 +295,24 @@ void Board::KeyChar(SexyChar theChar)
 				mTarget->SetState(6);
 			std::string aMessage = StrFormat(GTC(0x00530c18), (int)aChar);
 			SetBannerText(aMessage);
-			if (mLessonManager->GetCurrentWaveType() != 1 && (mBoss == NULL || mBoss->mField0e4 == 0xf || mBoss->mField0e4 == 0xc))
-				mField0f6c++;
-			mField0f64++;
+			if (mLessonManager->GetCurrentWaveType() != 1 && (mBoss == NULL || mBoss->mEnemyType == 0xf || mBoss->mEnemyType == 0xc))
+				mLettersWrong++;
+			mWaveLettersWrong++;
 			if (mLessonManager->GetCurrentWaveType() == 1)
 			{
-				mField0e94++;
-				if (mField0e94 >= mLessonManager->GetLevelSettings()->mNumForPenalty)
+				mPenaltyTypoCount++;
+				if (mPenaltyTypoCount >= mLessonManager->GetLevelSettings()->mNumForPenalty)
 				{
-					mField0e94 = 0;
+					mPenaltyTypoCount = 0;
 					AddPiranha();
 				}
 			}
 			return;
 		}
-		if (mLessonManager->GetCurrentWaveType() != 1 && (mBoss == NULL || mBoss->mField0e4 == 0xf || mBoss->mField0e4 == 0xc))
-			mField0f68++;
-		mField0f60++;
-		mFlag0d38 = true;
+		if (mLessonManager->GetCurrentWaveType() != 1 && (mBoss == NULL || mBoss->mEnemyType == 0xf || mBoss->mEnemyType == 0xc))
+			mLettersRight++;
+		mWaveLettersRight++;
+		mLetterTyped = true;
 		return;
 	}
 
@@ -323,12 +323,12 @@ void Board::KeyChar(SexyChar theChar)
 		Enemy* aShark = mSharks[anIndex];
 		if ((double)mWidth > aShark->mX + 20.0 && aShark->mVisible && TryLetter(aChar, aShark))
 		{
-			mField0f60++;
-			mField0f68++;
-			mFlag0d38 = true;
+			mWaveLettersRight++;
+			mLettersRight++;
+			mLetterTyped = true;
 			mTypeTimer->Reset();
-			if (!mApp->mUser->mFlag1dc)
-				mFlag0ea8 = true;
+			if (!mApp->mUser->mSeenTutorial)
+				mHintFading = true;
 			break;
 		}
 		anIndex++;
@@ -341,8 +341,8 @@ void Board::KeyChar(SexyChar theChar)
 		if ((double)mWidth > aPiranha->mX + 20.0 && aPiranha->mVisible && TryLetter(aChar, aPiranha))
 		{
 			// a piranha takes one letter: it is not locked on
-			mField0f60++;
-			mFlag0d38 = true;
+			mWaveLettersRight++;
+			mLetterTyped = true;
 			mTarget = NULL;
 			mTyped = "";
 			return;
@@ -354,14 +354,14 @@ void Board::KeyChar(SexyChar theChar)
 	while (anIndex < mBonusCreatures.size())
 	{
 		Enemy* aBonus = mBonusCreatures[anIndex];
-		if ((double)mHeight > aBonus->mY + 20.0 && aBonus->mVisible && !aBonus->mFlag19 && TryLetter(aChar, aBonus))
+		if ((double)mHeight > aBonus->mY + 20.0 && aBonus->mVisible && !aBonus->mStealthy && TryLetter(aChar, aBonus))
 		{
-			mField0f60++;
-			mField0f68++;
-			mFlag0d38 = true;
+			mWaveLettersRight++;
+			mLettersRight++;
+			mLetterTyped = true;
 			mTypeTimer->Reset();
-			if (!mApp->mUser->mFlag1dc)
-				mFlag0ea8 = true;
+			if (!mApp->mUser->mSeenTutorial)
+				mHintFading = true;
 			break;
 		}
 		anIndex++;
@@ -376,10 +376,10 @@ void Board::KeyChar(SexyChar theChar)
 			Projectile* aShot = aBoss->mShots[aShotIndex];
 			if (aShot->mState == 0 && aShot->mVisible && TryLetter(aChar, aShot))
 			{
-				if (mBoss->mField0e4 == 0xf || mBoss->mField0e4 == 0xc)
-					mField0f68++;
-				mField0f60++;
-				mFlag0d38 = true;
+				if (mBoss->mEnemyType == 0xf || mBoss->mEnemyType == 0xc)
+					mLettersRight++;
+				mWaveLettersRight++;
+				mLetterTyped = true;
 				mTypeTimer->Reset();
 				break;
 			}
@@ -392,20 +392,20 @@ void Board::KeyChar(SexyChar theChar)
 
 	// no creature took the letter: a typo
 	mApp->PlaySample(SOUND_WRONG);
-	if (mLessonManager->GetCurrentWaveType() != 1 && (mBoss == NULL || mBoss->mField0e4 == 0xf || mBoss->mField0e4 == 0xc))
-		mField0f6c++;
-	mField0f64++;
+	if (mLessonManager->GetCurrentWaveType() != 1 && (mBoss == NULL || mBoss->mEnemyType == 0xf || mBoss->mEnemyType == 0xc))
+		mLettersWrong++;
+	mWaveLettersWrong++;
 	std::string aMessage = StrFormat(GTC(0x00530c18), (int)aChar);
 	SetBannerText(aMessage);
 	if (mLessonManager->GetCurrentWaveType() == 1)
 	{
-		mField0e94++;
-		if (mField0e94 >= mLessonManager->GetLevelSettings()->mNumForPenalty)
+		mPenaltyTypoCount++;
+		if (mPenaltyTypoCount >= mLessonManager->GetLevelSettings()->mNumForPenalty)
 		{
 			int aPlayerState = mPlayer->mState;
 			if (aPlayerState == 9 || aPlayerState == 0 || aPlayerState == 4)
 			{
-				mField0e94 = 0;
+				mPenaltyTypoCount = 0;
 				AddPiranha();
 			}
 		}

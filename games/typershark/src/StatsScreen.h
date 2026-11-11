@@ -9,11 +9,12 @@
 // Original: class Sexy::StatsScreen : public Widget, public ButtonListener (the listener sub-object is at +0x58 with its
 // own table 0x52f1f0), vftable 0x52f20c, constructor 0x45baa0, destructor body 0x4412a0 (deleting 0x441ee0).
 //
-// Not translated: the ButtonListener's slot-2 forwarder 0x449de0 (the base class ButtonListener::ButtonPress(id, count)
-// calls ButtonPress(id) in the port).
+// Not translated: the ButtonListener sub-object and its two functions, the forwarder 0x449de0 and ButtonPress 0x441320 (the
+// button-click sound). Nothing registers the screen as a listener (the pages use their own and the Close button is the app's),
+// and no play of the original reaches them, so the port's class is a Widget alone; the offsets in the field comments are the
+// original's.
 
 #include "Widget.h"
-#include "ButtonListener.h"
 
 namespace Sexy
 {
@@ -25,7 +26,7 @@ class TutorialPanel;
 class UserProfile;
 class WinWSApp;
 
-class StatsScreen : public Widget, public ButtonListener
+class StatsScreen : public Widget
 {
 public:
 	// the Widget part ends at +0x58, the ButtonListener part is +0x58 (its virtual table pointer)
@@ -41,9 +42,6 @@ public:
 
 	virtual void			AddedToManager(WidgetManager* theWidgetManager) override;		// 0x441330 slot 1
 	virtual void			RemovedFromManager(WidgetManager* theWidgetManager) override;	// 0x441360 slot 2
-	virtual void			ButtonPress(int theId) override;				// 0x441320 the listener's slot 3: the button-click sound
-
-	using ButtonListener::ButtonPress;
 
 	void					SetUser(UserProfile* theUser);					// 0x451050 gives the three pages the profile and sets the tutorial page to its last lesson
 };

@@ -8,6 +8,7 @@
 // port: the original also has a REGISTER button (+0x13c, id 7) and an Update button (+0x140, id 8) in it; they are left out
 // with the rest of the registration and update code, and the layout is the one the original takes without them.
 
+#include "Text2004.h"
 #include "Dialog.h"
 #include "SliderListener.h"
 #include "CheckboxListener.h"
@@ -19,7 +20,7 @@ class Slider;
 class Checkbox;
 class DialogButton;
 
-class OptionsDialog : public Dialog, public SliderListener, public CheckboxListener
+class OptionsDialog : public Text2004<Dialog>, public SliderListener, public CheckboxListener
 {
 public:
 	bool			mFromGame;          // +0x119 the box was opened in a game (the button that leaves it is there)

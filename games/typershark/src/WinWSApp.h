@@ -99,7 +99,7 @@ public:
 
 	// ---- data from +0x618 ----
 	KeyDialog*				mMessageDialog;         // +0x618 the plain message dialog (id 500) of 0x41bd80 / 0x41c4f0
-	Dialog*					mDialog61c;             // +0x61c set and cleared by ButtonDepress (0x431630)
+	Dialog*					mDifficultyDialog;             // +0x61c the difficulty dialog (DIALOG_DIFFICULTY): ButtonDepress (0x431630) makes it when an adventure starts with nothing to continue and sets it to NULL when the dialog closes
 	// +0x620 the register dialog: removed (registration)
 	HintDialog*				mHintDialog;            // +0x624 the hint box (id 0x3f3) of 0x41c8c0; ButtonDepress reads it
 	MenuScreen*				mMenuScreen;            // +0x628 (0x41d5c0)
@@ -113,22 +113,22 @@ public:
 	std::vector<int>		mPausedMusic;           // +0x648 (pad), +0x64c..+0x654 the songs LostFocus paused (0x426920)
 	MusicInterface*			mMusic;                 // +0x658 the app's own module music interface (a second one besides SexyAppBase::mMusicInterface)
 	LessonManager*			mLessonManager;         // +0x65c the lesson manager (0x4137d0 asks it IsBonusLevel; dtor 0x421c50)
-	bool					mFlag660;               // +0x660 ctor 0; read by 0x40c630 / 0x40cba0
+	bool					mQuitAsked;               // +0x660 ctor 0; set when the quit question is asked (button 0x68), cleared when it is answered; the message dialog's OK handler then shuts the game down
 	// +0x664 / +0x668: the letters the random-letter generator (0x41b4e0) has handed out
 	int						mUsedUpperCount;        // +0x664 how many of them are A..Z
 	int						mUsedLetterCount;       // +0x668 how many in all
 	// +0x66c the trial's play time, +0x672 the update check due and +0x673 a trial flag: removed (registration)
-	bool					mFlag670;               // +0x670 ctor 0
-	bool					mFlag671;               // +0x671 ctor 0
+	bool					mTypingTestAsked;               // +0x670 ctor 0; set when a new player is made and the "ASSESS WPM?" question is asked; yes starts the typing tutor, no sets the player's mLastLesson to 1
+	bool					mCloseCallSeen;               // +0x671 ctor 0; the Board sets it when the diver is eaten, when a shark or piranha is typed dead while the music is not the calm one, and when a bonus creature is typed dead near the diver; never read
 	DeleteUserDialog*		mDeleteUserDialog;      // +0x674 (0x4267d0)
 	int						mMusicSlot;             // +0x678 which of the two songs plays (ChangeMusic 0x414350); ctor 1
 	int						mMusicOrder;            // +0x67c the module order playing (ChangeMusic); ctor -1
 	int						mAbyssDepth;            // +0x680 ctor 0; the depth an abyss game starts at (a multiple of 400; ButtonDepress, SetDepth)
-	bool					mFlag684;               // +0x684 ctor 0; read by 0x42a870 / 0x42ee10
-	bool					mFlag685;               // +0x685 ctor 0; read by 0x42a870 / 0x42ee10
+	bool					mLastAnswerYes;               // +0x684 ctor 0; the message dialog's OK handler sets it, its no handler, ResetGame and RestartBoard clear it; never read
+	bool					mLastAnswerNo;               // +0x685 ctor 0; the message dialog's no handler sets it, its OK handler, ResetGame and RestartBoard clear it; never read
 	int						mOpenDialogCount;       // +0x688 dialogs open over the board (0x414150 adds one, the dialogs take it off)
-	bool					mFlag68c;               // +0x68c ctor 0
-	bool					mFlag68d;               // +0x68d ctor 0
+	bool					mEndGameAsked;               // +0x68c ctor 0; set when the "end this game" question (the board's button 0xc9) is asked; the OK handler then saves the progress and goes back to the menu
+	bool					mContinueGameAsked;               // +0x68d ctor 0; set when the "CONTINUE?" question about the profile's saved game is asked (button 0x64); yes restores the saved game, no opens the difficulty dialog
 	int						mDifficulty;            // +0x690 ctor 0; the difficulty button (0 easy .. 4 xtreme; 600 + id), -1 in an abyss game; LoadConfig reads it
 	std::string				mUsedLetters;           // +0x694 the letters handed out so far (0x41b4e0, 0x41d210)
 	int						mLongWordLength;        // +0x6b0 the length GetLongWord drew last
@@ -184,8 +184,8 @@ public:
 	ImageFont*				mFont12ptGlow;                  // +0x8d0 data\12ptfontglow.txt
 	ImageFont*				mFontCourierFinalDraft15Bold;   // +0x8d4 data\CourierFinalDraft15Bold.txt
 
-	bool					mFlag8d8;               // +0x8d8 ctor 0; 0x414020 clears it; read by 0x42f3c0, 0x431320, ButtonDepress
-	bool					mFlag8d9;               // +0x8d9 ctor 0
+	bool					mAdventureStarting;               // +0x8d8 ctor 0; the Adventure button (0x64) sets it, StartBoard, CreateBoard, the saved game's continue and the difficulty dialog's yes clear it; never read
+	bool					mHighScoreScreenUp;               // +0x8d9 ctor 0; the high score button (0x67) sets it, the Adventure button, the difficulty dialog's yes and the screen's close button clear it; never read
 	StatusBar*				mStatusBar;             // +0x8dc the status bar shown with the board (made by 0x42f2a0; removed with the board by 0x41d5c0)
 	SoundInstance*			mSoundInstance38;       // +0x8e0 GetSoundInstance(0x26)
 	UserProfileMgr*			mProfileMgr;            // +0x8e4 (Init; deleted by 0x41f090 then free)
@@ -194,13 +194,13 @@ public:
 	bool					mHintsAllowed;          // +0x8ed ctor 1; read by 0x412d70 / 0x41c8c0 / 0x43d6b0 (the hint boxes may show)
 	Image**					mImages;                // +0x8f0 one per ImageId (operator new(0x3e0) = 248 pointers)
 	// +0x8f4 the register picture: removed (registration)
-	bool					mFlag8f8;               // +0x8f8 ctor 1; Init clears it when the current user has a flag (+0x1dc) set
-	int						mField8fc;              // +0x8fc ctor-less; read by 0x426c60, 0x429450, 0x42a870, 0x42ee10, ButtonDepress
-	int						mField900;              // +0x900 same readers (and the board 0x44fe30)
-	int						mField904;              // +0x904
-	int						mField908;              // +0x908
-	int						mField90c;              // +0x90c
-	bool					mFlag910;               // +0x910 ctor 0
+	bool					mTutorialUnseen;               // +0x8f8 ctor 1; Init clears it when the current player has seen the tutorial (mSeenTutorial), choosing or making a player and continuing a saved game set it from mSeenTutorial; never read
+	int						mGameTimeSoFar;              // +0x8fc the play time (ms) of the levels finished in this game (ReturnToMap adds the board's game timer, stats word 7); the game-over dialog adds the running level's; saved as the profile's mSavedGameTime; ResetGame and RestartBoard clear it
+	int						mTypingTimeSoFar;              // +0x900 the typing time (ms) of the levels finished in this game: ReturnToMap adds the board's mTypeTime; the game-over and win dialogs show it; saved as the profile's mSavedTypingTime; ResetGame and RestartBoard clear it
+	int						mPausedTimeSoFar;              // +0x904 the board's paused time (stats word 6, Board::mPausedTime) after the last finished level; StartBoard gives it to the next board, which goes on from it; saved as the profile's mSavedPausedTime
+	int						mLettersWrongSoFar;              // +0x908 the letters typed wrong in the levels finished in this game (ReturnToMap adds the board's mLettersWrong, stats word 9); the game-over and win dialogs show it; saved as the profile's mSavedLettersWrong; ResetGame and RestartBoard clear it
+	int						mLettersRightSoFar;              // +0x90c the letters typed right in the levels finished in this game (ReturnToMap adds the board's mLettersRight, stats word 8); the game-over and win dialogs show it; saved as the profile's mSavedLettersRight; ResetGame and RestartBoard clear it
+	bool					mDeleteUserAsked;               // +0x910 ctor 0; DeleteUserDialog::ConfirmDelete sets it when it asks for the confirmation; the message dialog's OK handler then calls DeleteSelectedUser and clears it, the no handler clears it too
 	ImageVariantTable		mSharkImages;           // +0x914 [type][(variant, 0)]: the shark and toxic-shark images, some copies owned (FUN_004337a0)
 	ImageVariantTable		mPiranhaImages;         // +0x920 [type][(variant, 0)]: the piranha images
 	// (sizeof 0x930)
@@ -258,10 +258,8 @@ public:
 	void					ShowAbyssModeDialog();                                  // 0x4129a0 (dialog 0x451)
 	int						GetUserBestDepth();                                     // 0x412ae0 (the current user's deepest abyss depth)
 	void					RemoveMenuScreen();                                     // 0x412af0 (the widget at +0x628)
-	void					ActivateTypingTutor();                                  // 0x412c90 (ButtonDepress(0x58) of the tutor, then its focus)
 	void					MarkMenuScreenDirty();                                  // 0x412cc0
 	void					BringStatsCloseButtonToFront();                         // 0x412ce0
-	void					FocusTypingTutor();                                     // 0x412d00
 	void					SetUserHints(bool theHints);                            // 0x412d50 (the current user's hints setting)
 	bool					HintsEnabled();                                         // 0x412d70 (a user is chosen, has hints on, and the game allows them)
 	void					ShowOptions();                                          // 0x414150 (dialog 0x30a)

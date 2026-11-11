@@ -32,7 +32,7 @@ GameObject slots, the three Enemy slots, the states and the x87 compare rules; `
 | GameObject | 0x529394 (12 virtuals) | 0x4611b0 | the object part is 0xf0 bytes: position, velocity, state, frame counter for the 20-frame sprite sheets, the last six positions |
 | Enemy | 0x5298fc (3 virtuals: GetPoints, GetSpeed, TypeLetter) | 0x40a3f0 | dtor 0x4078b0; the word, its colours and fonts, the event queue `mEvents`; Enemy part 0xf0 bytes |
 | Shark | own part 1 virtual (0x401200) | 0x4101d0 | sizeof 0x210; GameObject part at +0x30, Enemy at +0x120; states 0 swim, 1 back, 2 dead, 3 dying, 4 chased off, 5 shocked, 6 hit |
-| BlackShark | 0x52979c | 0x410f50 | sizeof 0x240; a second word (`mWord2`); dtor 0x409d70 |
+| BlackShark | 0x52979c | 0x410f50 | sizeof 0x240; a second word (`mSecondWord`); dtor 0x409d70 |
 | RedShark | 0x529838 | 0x411400 | sizeof 0x260; a third word; dtor 0x409970 |
 | ToxicShark | 0x5296e8 | 0x4109e0 | sizeof 0x238; plain Shark base; the word scrambles; dtor 0x409bc0 |
 | GhostShark | vbtable 0x529fec | 0x4111b0 | Shark, Enemy and GameObject all virtual; only Draw is its own; dtor thunk 0x411350 |
@@ -155,7 +155,7 @@ boss's hit points and shot numbers). The adventure has 36 sites (0 to 35) on the
 cursor is `NextWave` 0x41eb40 and `NextLevel`. A bonus (treasure) level is a level with a `BonusLevel` tag. `SpawnWave`
 (0x455bf0) builds the creatures of the wave: it makes the class for each record, draws the word from the word lists by length
 and theme (`GetWord` 0x428d80, `GetThemeWord`), places them (`PlaceEnemies` 0x452050, `PlaceBonusCreatures` 0x442540) and builds
-the boss by its type. Black and red sharks get further words from the lists (`mWord2`, `mWord3`), a white piranha one more
+the boss by its type. Black and red sharks get further words from the lists (`mSecondWord`, `mThirdWord`), a white piranha one more
 letter.
 
 **Creatures.** Sharks swim in from the right, speed up near the left edge and bite the diver when they reach him (a life
@@ -181,13 +181,13 @@ export for 7, 0xb and 0xc).
 creature shows up (30 bubbles), 0xa a boss exists, 0xc a boss is beaten, 0x13 a shot hit the diver, 0x15 a shot is gone.
 Codes 9, 0xb, 0xd and 0x14 have no handler. `BOARD.md`, part 5, has the table.
 
-**Scoring.** A finished word scores the creature's points (`Enemy::mField54`), times `max(2, score / 600)` in an abyss game,
+**Scoring.** A finished word scores the creature's points (`Enemy::mWordPoints`), times `max(2, score / 600)` in an abyss game,
 and the Board adds them to the diver, the rating and a floating text; the EMP charge grows by 0.01. The diver gets a life
 each time the score reaches the next threshold (the first is 450000, 525000, 650000, 700000 or 900000 by difficulty, then
 larger steps; `Player::AddScore`). A group of words ends when every creature of the lists has finished dying; the Board shows
-a rating popup, counts a ramp (`mField0f38`) up to 240, and the diver enters the streak game: long words (`GetLongWord`,
+a rating popup, counts a ramp (`mAirGauge`) up to 240, and the diver enters the streak game: long words (`GetLongWord`,
 lengths from the level's `MinEndDiff` to `MaxEndDiff`) come one after another, each finished word bringing the next, against
-a countdown (`mField0f38` again, 0.1 an update, 0.12 in a treasure level, shortened by typing) and earn a streak bonus; then
+a countdown (`mAirGauge` again, 0.1 an update, 0.12 in a treasure level, shortened by typing) and earn a streak bonus; then
 come the level bonus, the treasure picture and the space bar. Typing speed and accuracy go into the profile's records at the end (`SaveProgress` 0x440580).
 
 **Bonus (treasure) level.** The floor holds 22 clams in four rows, each with a letter and a kind (0 empty, 1 and 2 pearls
@@ -197,7 +197,7 @@ open clam with it; after two pairs the next pearl that opens shows the treasure 
 pairing itself; the clam handler's event 3 only repeats it and never fires on its own (section 7, to check).
 
 **The abyss.** No map: the dive goes down in feet (`mScore` of the Board is the depth), the level changes every 200 feet
-(`SetDepth` 0x452cf0, `Update` 0x45c140), `SetDepth` makes the depth ruler's labels, a boss comes by `mField0d2c % 4`, the
+(`SetDepth` 0x452cf0, `Update` 0x45c140), `SetDepth` makes the depth ruler's labels, a boss comes by `mAbyssBossIndex % 4`, the
 diver has no lives (0), and the deepest depth is kept in the profile (`AnnoDomini`). The unregistered copy stopped an abyss
 game at a depth limit; that code is gone.
 
@@ -237,7 +237,7 @@ that the shared `SexyAppBase` never frees (no `SDL_Quit`; a spec for the coordin
 two statics.
 
 **Fields the original leaves unset, which the port zeroes.** `Player`'s constructor leaves `mHoseFrameUp`, `mHoseY` and
-`mAlpha` unset (0x461320; the one place where play could differ), the rating popup's `mBonus` and `mField34`, `Projectile`'s
+`mAlpha` unset (0x461320; the one place where play could differ), the rating popup's `mBonus` and `mNeverWritten`, `Projectile`'s
 `+0x14` and `+0x18`, `GameOverDialog`'s `+0x11c` until the Board fills it, `FadeButton`'s `+0xe4`, members of `MapScreen`,
 `StatusBar` (+0x64), `TitleScreen` (+0x58 to +0x70), `TabbedWidget`, `TutorialPanel` and `StatsScreen` until their later
 functions set them, the typing tutor's fields until `ResetLesson`, `OptionsDialog`'s `+0x124` (its `RemovedFromManager` hands it
@@ -273,7 +273,7 @@ for it, and changes nothing while an unused word is left; the state log is byte-
 **Translation errors found and fixed by phase 1** (the port had differed from the original; now it matches). `BlackShark` and
 `RedShark` `TypeLetter` (0x409fb0, 0x40b600): the original assigns the empty string to the further word it just took, which
 Ghidra's export leaves out, so the port's shark kept loading its second word for ever and the level never ended; fixed with
-`mWord2 = ""` and `mWord3 = ""`. `Board::Update` (0x45c140): the abyss goes to the next level every 200 feet, the port did it
+`mSecondWord = ""` and `mThirdWord = ""`. `Board::Update` (0x45c140): the abyss goes to the next level every 200 feet, the port did it
 every 100; fixed (`/ 200` in the two tests).
 
 **Quirks of the original that the port keeps** (address, what it does, how to see it):
@@ -289,8 +289,8 @@ every 100; fixed (`/ 200` in the two tests).
 - `Player::Update` (0x461740) state 1 has a branch for `y < 235` that the preceding test makes unreachable; the BlackShark
   state-5 branch in `SetState` is unreachable the same way.
 - `UserProfile::LoadDataFromDisk` (0x422630) appends the records it reads after the 35 the constructor made, so a loaded
-  profile holds 70 per group and `WriteDataToDisk` (0x4172f0) writes only the first 35; `WriteDataToDisk` stores `mField1ec`
-  where the loader reads `mField1b4`; `RegisterDefaultUserName` (0x419da0) always returns false. See a profile reloaded
+  profile holds 70 per group and `WriteDataToDisk` (0x4172f0) writes only the first 35; `WriteDataToDisk` stores `mSavedScoreBackup`
+  where the loader reads `mSavedScore`; `RegisterDefaultUserName` (0x419da0) always returns false. See a profile reloaded
   and saved again (section 10: a record fix would be invisible, so no toggle).
 - Map (`MapScreen.cpp`): `ResetScroll` 0x441030 sets both scroll targets from the width difference where the final panel's
   draw test (0x447cd3) compares with the height difference; site 35 has the link -1 and is kept away from `Update` 0x45af60 and
@@ -524,9 +524,9 @@ nothing and draws no random number; a comparison with the original never uses on
 | `goto <screen>` | `title`, `menu`, `options`, `credits`, `highscores`, `stats`, `tutor`, `map`, `adventure [0..4]` (the difficulty; default 2, Hard) and `abyss` (from the surface), through the game's own buttons; a player named Tester is made (or loaded) when there is none |
 | `level <n>` | in the adventure site 0 to 35 (the map is sailed as `OnLevelChosen` and the start button do; a fresh profile is given the tutorial mark first), in the abyss a depth in feet (`SetDepth`), in the tutor a lesson 0 to 18 (the next and previous buttons) |
 | `unlock all` | the 19 tutor-lesson marks, the tutorial mark, and a deepest abyss depth of at least 2400 |
-| `set score\|lives\|timer\|depth\|emp <n>` | the diver's score, lives (`mField110`), the game timer (milliseconds), the depth, the EMP charge (0 to 1); `set hints 0\|1` and `set tutorial 0\|1` need a player. `enemy` is read-only |
+| `set score\|lives\|timer\|depth\|emp <n>` | the diver's score, lives (`mLives`), the game timer (milliseconds), the depth, the EMP charge (0 to 1); `set hints 0\|1` and `set tutorial 0\|1` need a player. `enemy` is read-only |
 | `win` | the level is won now: the diver goes to the level-won state (0xc) as `Update` does at the bottom, with the level bonus; ERROR in the abyss, in a won or lost game |
-| `lose` | the last life goes now: `mField110` is set to 0 and `PlayerEaten` runs, which subtracts one and opens the game-over dialog |
+| `lose` | the last life goes now: `mLives` is set to 0 and `PlayerEaten` runs, which subtracts one and opens the game-over dialog |
 | `shot <file.png>` | the screen as the last draw left it, read back and saved without drawing again (needs `-drawevery`). The framework's `screenshot` draws every widget once more, and here a draw is a step: `Board::Draw` eases the two strips of sea and the rating popup once a draw, `MapScreen::Draw` the final scroll, and a widget painted over itself blends its half-transparent pixels again. The phase 2 tours take their shots with it |
 
 *The state.* `screen` (the topmost dialog's name, else `title`, `stats`, `highscores`, `tutor`, `board`, `map`, `menu`, `none`)
@@ -605,7 +605,7 @@ shots at the same updates with the mod off and on and lists the rectangles that 
   place among the four shown): reachable only in a task of six lines or more, since `mFirstLine` is set at every fourth line and the lines
   drawn run from it. The longest task of the 19 lessons has five lines, so the original never shows it. Not a toggle.
 - *The start of a level* (the black fade-in that `Update` counts down from 255 by 2 every other update, about 2.5 s, and the diver's
-  climb down in state 1, 1.2 to 2.4 s, while `KeyChar` ignores every key) and *the end of a group* (`mField0f38` ramps 0.96 an update
+  climb down in state 1, 1.2 to 2.4 s, while `KeyChar` ignores every key) and *the end of a group* (`mAirGauge` ramps 0.96 an update
   to 240 before the diver enters the streak game or the treasure, 2.5 s): the game's own animations and rhythm, part of its pace, as
   in Alchemy's notes. They also move every later update of a level, so the draws of the background bubbles and fish and the wave
   starts would move with them. They stay.
@@ -630,6 +630,323 @@ dialogs and screens other than the options dialog were not read for waits or fau
 
 ## 11. Performance
 
-Not measured yet: the performance pass is this game's own, later in its order of work (the coordinator, 2026-11-09), after the identical-play
-pass. It will model on `games/alchemy/tools/profile/perf.py` and Alchemy's "Performance" section: loading seconds, original and port;
-peak working set and private bytes, CPU time and the number of game processes over a scripted minute.
+The performance pass (2026-11-11). The port and the original were measured turn about over the same scripted play, the port was
+profiled in real time and without waiting, its memory was split by `memreport` and `tools/memmap.py`, and the web build was measured under
+Node and in the Browser pane. **No change was made to the port**: the profile finds no cost in the game's own code (below), and what it
+does find is in shared code and in the graphics driver; those went to the coordinator as a spec (section "Shared costs"). The machine was
+never quiet: one to three games of other sessions ran during every measurement and 24 to 66% of it was in use (`machine_busy`), so the
+figures are for comparing the two side by side, run by run; each cell lists the three pairs.
+
+**How.** `tools/profile/perf.py` starts a game and samples its process (every 0.1 s in real time, every 0.02 s without waiting): working
+set, private bytes, processor time; `tools/profile/pairs.sh` runs everything turn about, one game process at a time, and
+`tools/profile/summary.py` prints a line a run. The scenario is `build/ts-p2/rec/rt2.in.txt` (the adventure recording that phase 2 made with
+`tools/phase2/rec.py`: a new player named Tester, the Adventure button, Easy, the hint box, then the port's own typist playing the first
+levels from update 1,269), cut at update 7,000 in real time (70 s, "the stretch" is its last 2,000 updates, 20 s) and at 30,000 without
+waiting (the stretch is its last 10,000). In real time the port runs without `-fast` and the original on origrun's real clock; without
+waiting the port runs with `-fast` (it draws every tenth update) and again with `-fast -drawevery` (every update, which is what the
+original does on origrun's virtual clock, so that is the comparison of like with like) and the original on the virtual clock. The port is
+started under rundesk, the original by origrun (host run, scripted cursor, `--reg-map popcap`, a fresh users folder and registry key each
+run). The original loads in a thread on the wall clock: its script waits for the app's loading-completed flag (the byte at +0x525; `waitfor`
+reads a dword, so the wait is on the dword at +0x522 being 0x1000000 or more), marks the counter there and counts every update from the
+mark, and the load time is the time from the process's creation to that flag, read out of the game's memory. Each original run logs the
+board's state at the stretch's start and end (the peeks of phase 2); every run that counts shows the same four values, and a run whose
+game never got into play (no sharks) says `NOT PLAYED`.
+
+Two pitfalls of the first attempt, kept so they are not repeated. On the virtual clock the counter runs on while the loading thread works,
+so the counter at the flag was 1,556 in one run, 2,279 in another and 48,415 in a third, and in the last two the game sat in a state in
+which the scripted name and clicks did nothing (no sharks; 0.05 ms an update, 20,000 updates a second): the no-waiting runs of the original
+use phase 2's loading patch (`build/ts-p2/patches.txt`: the copy loads on the main thread, so that the first typed letters meet a loaded
+game; the stretch is the same game, checked by the state values) and only the load times come from the unpatched copy. And one of the nine
+real-time runs of the port (in the first, discarded set of pairs) ran at 74.5 updates a second instead of 98 to 99.5, the whole run
+taking 89.7 s instead of 71 s and using less processor time, on an otherwise idle machine; it was not seen again in the nine runs of the
+final set and is not explained (Windows' timer resolution on the hidden desktop is the first suspect).
+
+**In real time** (three pairs, 04:15 to 04:45 on 2026-11-11; "software" is the port with `SDL_RENDER_DRIVER=software`, a test of the
+renderer's cost and not a setting of the game):
+
+| | Original | Port | Port, software renderer |
+| --- | --- | --- | --- |
+| Processor time in the stretch (20 s) | 1.48, 1.62 and 1.55 s | 3.33, 1.28 and 2.22 s | 17.6, 16.9 and 17.6 s |
+| Updates a second in the stretch | 99.8, 99.5 and 100.0 | 99.5, 97.3 and 99.4 | 99.7, 98.8 and 99.4 |
+| Processor time, whole run (71 s) | 5.5, 5.9 and 5.7 s | 9.9, 4.4 and 8.1 s | 53.3, 53.2 and 54.7 s |
+| Peak private bytes / working set | 49.4 to 51.4 / 64.5 to 73.6 MB | 86.2 to 89.0 / 93.6 to 96.6 MB | 64.2 to 67.6 / 84.3 to 87.5 MB |
+
+**Without waiting** (30,000 updates; the stretch is updates 20,000 to 30,000):
+
+| | Original (virtual clock, loading patch) | Port `-fast` | Port `-fast -drawevery` | Port `-fast -drawevery`, software |
+| --- | --- | --- | --- | --- |
+| Processor time in the stretch | 7.4, 8.0 and 14.8 s | 0.47, 0.45 and 0.86 s | 2.1, 2.6 and 2.9 s | 103, 115 and 134 s |
+| Updates a second | 1,092, 972 and 567 | 17,398, 19,841 and 7,965 | 5,912, 4,912 and 4,481 | 96, 86 and 73 |
+| Processor time, whole run | 22.7, 23.8 and 33.8 s | 2.3, 2.1 and 3.7 s | 7.3, 8.8 and 11.3 s | 293, 302 and 407 s |
+| Peak private bytes / working set | 54.5 to 55.1 / 76.7 to 77.7 MB | 95.5 to 101.8 / 103 to 109 MB | 97.9 to 109.8 / 105 to 117 MB | 76.7 to 77.0 / 96.8 to 96.9 MB |
+
+An update with its draw costs the original about 0.8 ms of processor time (0.74 to 1.48 ms; the third run was on a machine 49% busy), the
+port 0.26 ms with Direct3D 11 (3 times less) and 0.047 ms when only every tenth update is drawn (17 times less): the port's `-fast` runs,
+which are the test runs, are far faster than the original's. With SDL's software renderer the same draw costs 10 to 13 ms, 14 times the
+original's, and holds 100 frames a second in real time only by using 88% of a core of this machine (below, "Shared costs").
+
+**Loading** (the original: process creation to the loading-completed flag, six runs, the first three with the real-time pairs; the port:
+creation to the first update, whose screenshot's file time marks it):
+
+| | Original | Port | Port, software renderer |
+| --- | --- | --- | --- |
+| Launch to loaded | 0.76, 0.81, 0.87, 0.95, 1.00 and 1.28 s | 0.72, 0.82 and 0.78 s | 0.53, 0.58 and 0.57 s |
+| Processor time to there | 0.75 to 0.95 s | 0.75 to 0.83 s | 0.58 to 0.62 s |
+| Working set / private bytes there | 65 to 73 / 49.6 to 51.0 MB | 84 to 93 / 83.5 to 85.9 MB | 70 to 81 / 58 to 61 MB |
+
+Loading takes the two about as long (the port's own log says "Resource Loading Time: 714 ms"); creating the Direct3D 11 device costs the
+port about 0.2 s and 20 to 25 MB.
+
+**Where the port's time goes.** `games/bejeweled/tools/profile/cpuprof.py` (cycles per thread, a flat profile by module and function)
+on the whole adventure recording (215,005 updates in 13 s under `-fast`): ntdll 51%, the Nvidia Direct3D 11 driver 19%, SDL 5%, win32u 4%,
+the game's exe 12%. Of the exe's 12%, a share is the load's decoders (below) and the biggest function of play is the framework's
+`ImageFont::DrawStringEx` at 2.5% of all cycles; `Board::Update` is 0.4% and `Board::Draw` 0.4%. In real time (5,000 updates, 52 s sampled,
+12.5 G cycles, 240 million a second) the main thread has 71% of the cycles, 83% of them in ntdll (system calls: the
+presentation of the frame and the sleeps), the driver's own thread 17.5%, the mixer's thread 3.5% and the game's exe 5%. What the
+player's machine spends is the display path, and the original's DirectDraw path spends about as much (1.5 s a stretch against the
+port's median of 2.2 s). The load (1.1 s sampled, 1.49 G cycles) is 46% in the exe: `_stbi__out_gif_code` 13.3% and `Sexy::Quantize8Bit`
+11.8% (the images are GIFs that are decoded to 32 bits and quantized back to 8), the audio and JPEG decoders about 10%, `imagehlp.dll`
+7.6% (called from a place not looked for), ntdll 29% (file and memory system calls).
+
+**Where the port's memory goes.** The framework's `memreport` command (`tools/profile/memmaps.py memreport`) at update 12,000 (in play):
+the process holds 85.2 MB private (working set 93.3 MB), of which 32.8 MB are libraries and devices (`privateAtStart`, before a game file
+is read), 20.6 MB the pictures' pixels (307 of them: 7.6 MB of 32-bit pixels, 12.1 MB of 8-bit indices and palettes, no second copies),
+5.2 MB the samples of 40 sounds and 1.0 MB the two module files of the music (libopenmpt keeps its own decoded copy), and 25.6 MB the rest:
+the game's own state, and the graphics driver (the same play under SDL's software renderer peaks at 64 to 68 MB private, about 20 MB less,
+so the driver is most of it). The framework's heap holds 43.5 MB in 56,693 blocks (163 of 64 KB or more hold 30.1 MB), 40.2 MB at the title
+(update 300) and 41.2 MB at update 1,600, so play adds about 3 MB (the pictures that get a texture, 13 at the title and 36 in play, and
+small blocks). The graphics device holds about 9 MB of textures more, which no process can read. `tools/memmap.py` of the original in
+play: 49.2 to 49.9 MB private bytes, 65 to 66 MB working set; its address space holds 57.1 MB of images (75 modules, shared with other
+processes: windows.storage 7.2, shell32 6.5, ntdll 4.2 ...), 10.2 MB of mapped files, 0.8 MB of stacks and 45 to 46 MB of private memory.
+What the original's private memory is made of (its pictures and sounds) was not split: it needs a hook in the original. The port holds
+about 37 MB more private bytes than the original in play (86 to 89 against 49 to 51 MB; the web build's wasm heap is 47 MB): the Direct3D
+11 driver is about 21 of them, and the rest is SDL, the framework's libraries and the pictures that it keeps after they are uploaded as
+textures (shared, section "Shared costs").
+
+**On the web.** Under Node (`perf.py web-minute`; the web build as the browser runs it, with no canvas, sound or GPU, SDL on its software
+renderer, `-fast -drawevery`): 30,000 updates in 93 s (88 s of processor time, 3.1 ms an update), the wasm heap 47.2 MB at the title
+(update 300), 68.0 MB at update 20,000 (the textures of the pictures are kept in the heap with no GPU). In the Browser pane (Chrome 156,
+the page's own timers, `tools/profile/webperf.js`, one run): the first frame takes 1.33 s (the load) and then the menu costs next to nothing
+(6 of its 319 frames draw anything); the map 0.81 ms a frame (3.7% of the thread); a level played by the port's bot, which types
+the sharks' words as real key events, 1.10 ms a frame, 3.1 ms at most, 5.0% of the thread, 916 frames for 2,006 updates in 20 s; the wasm
+heap 47.2 MB (37.5 MB in use) in every phase, 20.6 MB of it pictures and 5.2 MB sounds, the JavaScript heap 12 MB, no errors. The web build
+runs Typer Shark at a twentieth of a thread.
+
+**Shared costs** (sent to the coordinator; none of them is in this game's code):
+1. *The load's decoders.* A quarter of the load's processor time is two functions of shared code: the GIF decoder's per-pixel output
+   (`_stbi__out_gif_code`, 13%, stb) and `Sexy::Quantize8Bit` (12%, a binary search for every pixel; a cache of the last colour would answer
+   most pixels with the same table), and the quantizing is needed only because the GIF was decoded to 32 bits first. About 0.15 to 0.2 s of
+   a 0.75 s load, for every game that ships GIFs.
+2. *The software renderer.* 10 to 13 ms of processor time a frame at 640 by 480 (88% of a core in real time) against 0.26 ms with
+   Direct3D 11. A player whose machine has no usable GPU driver (a virtual machine, some remote sessions) would have the port fall back to
+   it (`DDInterface::Init`) and a slower machine would not hold 100 frames a second. Where the time goes in it was not looked for.
+3. *The Direct3D 11 driver* costs the process 20 to 25 MB and 0.2 s of start (see the loading table); a driver choice, no default changes
+   without the user.
+4. *The pixels kept after upload* (the framework's, known: here 20.6 MB of the 85).
+5. *`imagehlp.dll`* takes 7.6% of the load's cycles; the call is not in the game's code that was looked at.
+
+**Open.** (1) The original's private memory is not split into pictures, sounds and the rest. (2) The browser's frame time was measured once,
+in a pane that may have been hidden (the page's timers; the frame hook counts the game's own milliseconds, so the figures hold). (3) The
+one slow real-time run of the port (above).
+
+**To repeat.** `bash games/typershark/tools/profile/pairs.sh <out dir> [pairs]` from the worktree root (about 11 minutes a pair; the
+software-renderer run without waiting takes 5 minutes; `WORK_END` and `WORK_STRETCH` change the no-waiting scenario), then
+`python -I games/typershark/tools/profile/summary.py <out dir>/runs.txt`; `memmaps.py memreport|port|orig <out dir>` for the memory,
+`perf.py web-minute <out dir>` for Node and `webperf.js` in the Browser pane (`python tools/webtest/serve.py --port <p>`, then
+`typershark.html?player=1&assets=1&silent=1&driver=games/typershark/tools/profile/webperf.js`). The original needs the copy under
+`build/origrun/typershark/game`, origrun's `typershark.cfg` and `patches/typershark.txt` (section 8) and phase 2's `build/ts-p2/patches.txt`.
+The raw samples were deleted once these figures were written.
+
+## 12. Coverage check (2026-11-11)
+
+The whole coverage check of the game (`docs/COVERAGE.md`): origrun's `--coverage` recorded which of the original's functions ran, in 23
+runs on the host (`games/typershark/tools/coverage/run.sh`, `all.sh`; the hits in `build/coverage/typershark/hits/`), all on the virtual
+clock with the scripted cursor, the registry map (`--reg-map popcap`) and phase 2's loading patch unless said:
+
+- phase 2's tours replayed without their shots: M, S, U, H, T, the idle game, tutor lessons 17 and 18, the abyss, the explore, bonus and
+  whole-adventure games (g_exp, g_bon1, g_rt2) and the restart pair (rs_a, rs_b);
+- the sound comparison's run on the real clock with the silent recording stand-in (`snd`), so that the sound code runs;
+- a run with no users folder at all (`nouser`), and a run with the loading patch off, which lets the title screen draw (`title`);
+- five new tours, each also compared with the original in the sandbox by shotdiff (all equal, `IDENTICAL_PLAY.md`, rows P, T2, Q, D, I) and
+  then run on the host: `tour_more.py` (P), `tour_stats.py st2 more` (T2), `tour_test.py` (Q), `missing.sh` (D: the run on the host is `mda`,
+  then `users/user0.dat` deleted, then `mdb`) and `tour_idle2.py` (I).
+
+Every run ended with the game exiting normally. The game's own code is the range 0x401000-0x462290 of the exe, 1095 functions; the rest is
+the C runtime and the libraries the exe holds. The first report of the phase 2 runs gave 863 functions reached and the last gives 914.
+
+**Reached in the original with no counterpart in the port: 308 at first, none at the end.**
+
+- **Placed: 5.** Functions the port translates inside another function (the export cuts three constructors in two, at 0x40a413, 0x410c93 and
+  0x40ea73; a second cut of one at 0x427967; and `CopyImage` before `Palletize` at 0x412870) got their address in the comment above the
+  function that holds them. Comment edits only (Enemy.cpp, MechaTorpedo.cpp, WhitePiranha.cpp, UserProfileMgr.cpp, WinWSApp.cpp).
+- **Left out on purpose: 306, as `none` lines in `coverage.txt` with their reasons.** The vtordisp thunks and base-class forwarders of
+  virtual functions, the parts and deleting forms of the entity classes' destructors, standard library code for the game's types
+  (strings, vectors, the maps of pictures, streams), small helpers the port writes in line (each named in the comment of the function that
+  holds it), the registration, trial and update-check code (removed), and `WinMain`'s callee, which the platform layer's `main` replaces.
+- **No missing game logic was found.** No function of the original that ran was missing from the port.
+
+**Reached by neither the runs nor the port: 159, all `none` lines too** (the report lists them as the third kind): the compiler's exception
+handler blocks (44), vtordisp thunks (24), destructors (7), standard library helpers (64), the registration, money and update dialogs and
+what only they call (19: 0x414020, 0x41b030, 0x41b230, 0x41c1c0 and the `RegisterDialog` and `MoneyDialog` members), and the rect test that
+the port's `Rect` has (0x402020). Nothing in this group is game logic the port needs.
+
+**Defined in the port, never reached: 32 at first, 22 at the end.** The five new tours were made to reach part of this list:
+
+- *Reached by the new runs (10).* The hint box's `KeyChar` (the space bar closes it; found by tour P, whose first version failed, since
+  the port's scripted `key 32` sends no character and the typed space is `char SPACE`), the status bar's resting tooltip, the statistics
+  page's Previous Lesson (0x44b070), the plain message dialog 0x41bd80 and `KeyDialog`'s `AddOkKey` and `RemoveCancelKey` (the typing
+  test's "Test Completed!", the error of a missing data file), `UserProfileMgr::SaveUser` and `GetDefaultUserNumber` (the same error),
+  `TitleScreen::Draw`, and `RestartBoard` (the game-over box's PLAY AGAIN in an adventure). All of them are equal to the original in the
+  pictures. The runs also showed that tour U's delete dialog answers never ran in the sandbox (its clicks missed the OK button, so the
+  question box was never opened); tour P runs the whole flow, equal in all its pairs.
+- *Read again against the export, equal.* `CountKill` (0x4123a0, a boss kill of the abyss: no run killed one), `ResetScroll` (0x441030,
+  reached by continuing a finished adventure, level 100 or later), `XWidget::MouseEnter` and `MouseLeave` (a chest of the map screen under
+  the resting mouse: the runs click the chests, none rests on one). `ShowNoWindowedModeMessage` (0x41d030) shows the message dialog when the
+  framework's `mForceFullscreen` is set, which the original's window code sets only when the desktop's colour depth cannot give a window;
+  no machine of ours does. Its body (the pause, the counter, the dialog 0x30b, the fonts, the spacing and the insets) agrees with the export.
+- *Compiler-made, kept.* The deleting destructors `ProjectileBoss` 0x4083c0, `Projectile` 0x4098e0 and `TabPanel` 0x444700: the objects
+  they free are not freed through that slot in a run (the stats pages live until the exit).
+- *Candidates for taking out code the port does not need (13), no play of the original reaches them and the port has no caller; taken out
+  in the removal pass, section 13:* `GameObject::SetState` 0x4010e0 and `Projectile::HitsTarget` 0x4018c0 (bases that every class overrides),
+  `BlackShark::GetWord2` 0x407030 and `RedShark::GetWord3` 0x407170 (the original reads the fields where the port calls the accessor: replace
+  by the field), `ActivateTypingTutor` 0x412c90 and `FocusTypingTutor` 0x412d00 (their only caller was the register dialog), the
+  `GetPreferredHeight` of `HintDialog` 0x438170 and `OptionsDialog` 0x438650 (no one asks them), `StatsScreen::ButtonPress` 0x441320
+  (nothing registers the screen as a listener; the comment says so), `FadeButton::Resize(const Rect&)` 0x441c10, `TabPanel::GetChild`
+  0x4446f0 and `AddChild` 0x4516a0, and `GameOverDialog::OrderInManagerChanged` 0x4380a0 (nothing reorders the dialog; the framework calls
+  it only from `PutInfront` and its relatives).
+
+**Open.** `Board::BuildWaterImage` (0x440330, the sea as strips of triangles on a 3D accelerated screen) is the one function that is
+neither reached nor read again: every run of the original, in the sandbox and on the host, had the Options dialog's 3D box off
+(`Is3D` 0), so the 3D drawing of the original has not been compared with the port's at all, nor has any other 3D-only code. This is a gap of
+phase 2 as well (CLAUDE.md: 2D and 3D where both exist); it needs the original with 3D acceleration on, which the sandbox does not offer.
+
+**Cost.** The 23 runs took about 1 to 3 minutes of machine time each on the virtual clock. The five tours took the most work: their click
+positions come from the port's own pictures, and the host takes no shots. Every change to the sources was a comment; `tools/check.sh
+typershark` was run for them.
+
+## 13. Removal of code the port does not need (2026-11-11)
+
+The 13 functions that section 12 lists as candidates are out of the port: the original's own code for each of them ran in none of the
+23 coverage runs, and nothing in the port called it. Each has a `none` line in `coverage.txt` with its reason, and the report now
+lists 478 functions left out on purpose (306 and 159 as before, and these 13), none reached by the original without a counterpart,
+and 9 defined in the port and never reached (22 before): the deleting destructors, `UserProfile::CountKill`, `ShowNoWindowedModeMessage`,
+`Board::BuildWaterImage`, `ResetScroll` and `XWidget::MouseEnter` and `MouseLeave`, all of section 12's other lists.
+
+| Original | What the port did | Now |
+|---|---|---|
+| `GameObject::SetState` 0x4010e0 (`mState = theState`) | the base's body | no `SetState` in `GameObject`; `Enemy` declares it pure (every creature class overrides it) and `Player` declares its own. Bubbles, background fish and bonus texts are never given a state |
+| `Projectile::HitsTarget` 0x4018c0 | the base's box test | pure; `Torpedo` and the shots below it have their own |
+| `BlackShark::GetWord2` 0x407030, `RedShark::GetWord3` 0x407170 | accessors that return a copy | the four callers (`BoardUpdate.cpp`, `BoardWaves.cpp`) read `mSecondWord` and `mThirdWord`, as the original does |
+| `ActivateTypingTutor` 0x412c90, `FocusTypingTutor` 0x412d00 | `WinWSApp` members | gone (their only caller was the register dialog, removed in the registration phase) |
+| `HintDialog` 0x438170 and `OptionsDialog` 0x438650 `GetPreferredHeight` | constants 400 and 438 | gone: `SexyAppBase::AddDialog` asks only a dialog whose width is 0, and both boxes are sized when they are made |
+| `StatsScreen::ButtonPress` 0x441320 | the button-click sound | gone, and with it the class's `ButtonListener` base: nothing registers the screen as a listener, so the port's class is a `Widget` alone |
+| `FadeButton::Resize(const Rect&)` 0x441c10 | an override that placed the tooltip | gone: `Widget::Resize(const Rect&)` forwards to the four-argument one, which does it; `PositionTooltip`, now with one caller, went back into it |
+| `TabPanel::GetChild` 0x4446f0 and `AddChild` 0x4516a0 | two virtuals | gone (the panels fill `mChildren` themselves) |
+| `GameOverDialog::OrderInManagerChanged` 0x4380a0 | put the two buttons in front | gone: `Dialog`'s does the same |
+
+Every change keeps the draw order and every other behaviour: `tools/check.sh build typershark` passes (the whole native build, tools
+included, and the 13 games' state-log hashes equal to `regress_expected.txt` and to the frozen baseline's), and the web build compiles. The
+other games' builds are unaffected (nothing outside `games/typershark/` changed). A removed function that a later mod needs comes back from
+section 12's addresses.
+
+## 14. Readability pass (2026-11-11)
+
+The port's names now come from the original or from what the code does with them (`docs/CODE_STANDARDS.md`); nothing the port does
+changed. `tools/namecheck.py games/typershark` found 1,362 faults before the pass (1,265 stand-in names such as `mField1c0`, `mFlag13c`,
+`mVector1b4` and `theField1b0`; 47 names ending in an offset; 20 functions with no address or `port:` marker; 14 one-letter names
+kept over more than 10 lines; 10 comments that name a development stage; 6 that say "unknown") and finds none now; the three
+lines it still allows are the names `PHASE1.md` and `tools/phase1` (`namecheck.txt`).
+
+What changed, by kind:
+
+| Kind | What |
+|---|---|
+| Members | 177 renamed (declarations and about 1,300 uses), among them every stand-in and offset-named member of `Board`, `Player`, `Enemy` and its subclasses, `LessonManager`, `MapScreen`, `HudBar`, `OptionsDialog`, `HintDialog`, `TypingTutor`, `TutorialPanel`, `UserProfile` and `WinWSApp`. A name says what the member holds (`mLevelTitleTimer`, `mSonarTopRightImage`, `mRouteDots`, `mSavedScoreBackup`); the offset stays in the comment on its line, where every field already carried it. |
+| Functions | `UserProfile`'s `SetField1e4`, `ClearFields1cc`, `SetGroupField8` and the other six that were named for an offset are now `SetAbyssBossIndex`, `ClearSavedGameTotals`, `RecordGroupLevel`, `SetEndlessLevelsPlayed`, `SetGameSharksKilled`, `SetGamePiranhasKilled`, `GetAbyssBossIndex`, and two getters that return `mLessonOutcome[2]` and `mSecretsFound[2]` (below). |
+| Parameters and locals | the `UserProfile` parameters named for fields (`theField1b0`, `theDouble1b8`, ...) are the field they store; `aUnusedWord`, `aField24` and `aWord2` in `BoardUpdate.cpp` and `UserProfileMgr.cpp`; the one-letter names in `testhooks/*` and `GameObject.cpp` that ran over 10 lines. |
+| Addresses | every function now names its address or carries a `port:` marker; `GameObject::Draw`'s `// 0x461270` comment is on `RecordHistory`, where the export puts that body, and `Draw` says so. |
+| Comments | the stage numbers ("phase 1", "milestone 2") and the word "unknown" are out of the comments; the old names in comments and in `docs/*.md` (over 200 places) follow the renames, except in `ASSUMED.md` lines 15 and 28, which say which export name each role replaced. The headers of `WinWSAppButtons.cpp` and `WinWSAppGame.cpp` no longer say the other classes' fields are named for their offsets. |
+
+The renames were made by the compiler, not by search and replace: `tools/readability/rename.py` renames a member at its declaration, compiles
+all 90 units with `-fsyntax-only` and replaces the old name exactly where the compiler reports it missing, with the class taken from the
+error (two classes that share a member name never mix); `scoped.py` renames a local or a parameter inside its scope and skips comments and
+strings; `comments.py` gives the new names to the comments and docs that still carry the old ones and lists the names two classes
+declared differently, which were edited by hand (`mField1c0`, `mFlag13c`, `mField124`, `mField1f8`). Names came from subagents (one at a time, reading only) that
+worked from each field's uses, its comment and the screen text it feeds; their maps were reviewed before they were applied.
+
+**Proof.** `python tools/objsnap.py cmp typershark` against a snapshot taken before the pass: 90 objects, 1,689 functions, 0 objects
+differ (code, `.rdata` and `.data` are identical byte for byte). `tools/check.sh build typershark`: the native build and the 13 games'
+state-log hashes match `regress_expected.txt` and the frozen baseline. `build-web:typershark` builds. No string literal of the sources
+changed (the changed lines' literals were compared one against the other: the differences are quotes inside comments).
+
+**Names that are guesses**, each marked in its comment: `mAlwaysTrueA`, `mAlwaysTrueB`, `mAlwaysTrueC`, `mAlwaysFalseA`, `mAlwaysFalseB`
+and `mAlwaysZero` (members that the original sets once and never reads; named for the value the constructor gives them), `mAlpha` in `BonusCreature`,
+`mSpareButton`, `mSpareDialogFlag` (`TypingTutor`'s `+0x260`, see below), `mLevelNumber` and `mEnemyType` (the spawn's kind, also the boss kind in the
+abyss), `mAlignmentGap`, `mCloseCallSeen`, `mUnreadTimer`, `mTreasureTimer` and `mBonusWord` (the air-tank round's word, named from the
+neighbours `mBonusWordPos` and `mBonusWordCount` and from the screen text "Bonus words"), `mNodesById`, `mRouteDots` and `mRouteNodes`
+(the code calls a map site a node and a site alike). `UserProfile::GetLessonTwoOutcome` and `GetNecklacesFound` stand where the port once had
+`GetField9c` and `GetField8c` at 0x412340 and 0x412350: the original's functions at those addresses are `LessonManager`'s `GetCurrentWaveType` and `GetLevel`
+(the port has them there already), and nothing calls the `UserProfile` copies, which read two unrelated fields. They are kept, named for what they return,
+until a removal pass takes them out.
+
+**`tools/splitfields.py`** (the check for two members of a class at one offset, never written and written without being read) reports
+three members as written in the export and none as a fault: `Board`'s `mUnreadTimer` +0x58 (the function at 0x45c140 writes `param_1 + 0x58`
+on an `int*`, which is byte 0x160, the wave strength `mWaveAmp`, not the board's timer), `TutorialPanel`'s `mAxisMax` +0xa8 (written in
+`ButtonDepress`, which the export places on the listener sub-object at +0x140, so its `this + 0xa8` is +0x1e8) and `TypingTutor`'s
+`mSpareDialogFlag` (+0x260: `KeyChar` writes `this[0x98]` on a one-byte `TypingTutor` type, the byte at +0x98, a different field). The 11 it lists
+as read only are fields that the export reaches by another path (a pointer the port keeps in a member, a sub-object's `this`); none is
+a field that the original writes and the port never sets, which is what the check is for.
+
+## 15. The PopCap Game Collection version (2026-11-11)
+
+The port was made from the Steam copy (WinTS.exe, the launcher with the game appended), so it is checked against the game's version on
+the PopCap Game Collection disc (2009; `docs/COORDINATION.md`): the two versions compared, and the port run on the Collection's files. The
+procedure is Bejeweled's (its GAME_NOTES section 23); `tools/collection/` holds the tools.
+
+**Getting the files.** `unshield` (built for Bejeweled's check, `E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the
+disc image's cabinet, which was mounted read-only and dismounted afterwards. The group `TyperSharkDeluxeComponent` came out: 617 files, 6.7 MB,
+in the main checkout's `re/_installers/TyperSharkDeluxeCollection` (git-ignored). The copy has no launcher: `TyperShark.exe` is the
+game itself, beside `bass.dll`, `license.txt`, `readme.html`, `register.tpl` and the folders `data`, `images`, `music`, `properties`, `sounds`
+and `users`.
+
+**The exe is the same build.** Set beside the game carved from Steam's WinTS.exe (`re/typershark/bin/TyperSharkGame.exe`;
+`tools/collection/cmpexe.py`), the Collection's `TyperShark.exe` has the same link time (20 April 2004, 20:00:28) and the same
+sections. `.text` and `.data` are byte for byte the same, `.rdata` differs in 8 bytes (an eight-digit stamp at 0x535f68), and the resources differ: the
+Collection's exe carries more icon sizes (`.rsrc` is 159,744 bytes against 28,672). The header's checksum and a few other header bytes differ, and a signature of
+5,432 bytes follows the last section. So everything the decompilation, the identical-play pass and the coverage check found holds for the
+Collection's game too, and no code was compared further.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the Steam copy's 619 files and the Collection's 617, 606 are the same byte for byte:
+every picture, sound, song and data file but the ones below. The differences:
+
+- `images/titlescreen.jpg`, `barandlogo.gif` and `_barandlogo.gif`, which `TitleScreen::Draw` draws (`tools/collection/cmpimages.py`).
+  The Steam copy's title picture has no logo and its bar picture carries the flat "PopCap Games" logo at the bottom right; the Collection's
+  title picture is another encoding with PopCap's round logo and a TM mark (at the top right and the bottom right), and its bar picture has no logo. The
+  port draws the files it is given.
+- `images/_statusbarfont.png`: the same 6,110 pixels, stored as RGBA where Steam's is a palette picture.
+- `properties/partner.xml`: the registry key is the same (`PopCap\TyperShark`), as are `NoReg`, the product name and `DefaultWindowed`, the only
+  settings the port reads (`SexyApp::InitPropertiesHook`). The Collection's `DontUpdate` is false and it has an `Offering` number; Steam's has a
+  Steam id, a buy link and `NumOptionsLinks`. The update check, the links and the buy link are not in the port.
+- The licence and readme, `register.tpl` and the launcher's own files (`WinTS.exe`, `Flash.ocx`, `drm.*`) differ or exist on one side only.
+- `users/user.idx`, which only the Collection ships: the default score table. It is the file the port writes at its first run in everything but
+  the random number after the version (the port's run: 101; the Collection's: 128; both are in the range 0x60 to 0x84 that
+  `SaveHighScores` draws from), so the tables the port makes (`LoadDefaultHighScores`) are the Collection's, name for name and score for score.
+  The staging tool does not copy `users`: the port keeps the players' data in its own folder.
+
+**The port on the Collection's files** (`tools/collection/run.sh`). `stage_typershark_assets.py` stages a Collection folder as it does a
+Steam one (597 files, no `wints.exe`: the texts come from `typershark.exe`, which `GameText.cpp` and `main.cpp` now accept beside `WinTS.exe`).
+- `tools/regress.py` with the Collection's staging: the 13 games' state-log hashes are `regress_expected.txt`'s, as on the Steam files.
+- The tours M (98 screenshots: the first start, the menu and its hovers, the dialogs, Options, the credits, the statistics, the Hall of Fame), H (24: an abyss game to its game over, the Hall of
+  Fame) and I (8: the idle adventure game to its game over, and the second game), each run once on each set of files from a fresh profile folder, compared by shotdiff:
+  all 130 pairs are equal, pixel for pixel. A `-fast` run's loading ends before its first update, so the title screen is never drawn in it; the
+  test command `goto title` shows it, and its three shots (`tools/collection/tour_title.py`) differ in the two places where the pictures differ: the
+  logo at the bottom right (a flat "PopCap Games" against the round logo) and the TM mark at the top right. Both are the files'.
+- The web build under Node on the Collection's files (the page's code, no canvas): the title and menu tours, 101 pictures, equal to the native
+  port's on the same files to within 3 levels of 255, the web build's usual difference (section 6). The page's importer
+  (`web/page.js`) takes the Collection's folder: `TyperShark.exe` or `WinTS.exe` at the top is copied, and neither is a marker any more, since a
+  marker cannot name two files; a folder with neither would import and show no texts (logged), where it used to be refused. A shared marker
+  with alternatives (`WinTS.exe|TyperShark.exe`) would restore the check; it is waiting for the coordinator.
+
+**Not done, and one thing to know.** The Collection's own exe was not run: its code is the Steam game's, and a run could only show the
+title pictures again. The port's executable is also called `typershark.exe`, the name of the Collection's game: the installer that puts a
+native port beside the original (`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.

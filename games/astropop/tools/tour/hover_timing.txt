@@ -1,0 +1,22 @@
+# Hover timing: a move to Classic after the menu is up, a shot at each of the next updates
+3000 shot b00_title
+3100 click 320 447
+3150 type Test
+3180 key Return
+3260 shot b01_menu
+3270 move 110 190
+3270 shot c00
+3271 shot c01
+3272 shot c02
+3273 shot c03
+3274 shot c04
+3275 shot c05
+3276 shot c06
+3277 shot c07
+3278 shot c08
+3279 shot c09
+3280 shot c10
+3281 shot c11
+3282 shot c12
+3283 shot c13
+3284 shot c14

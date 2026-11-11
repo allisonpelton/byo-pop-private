@@ -102,19 +102,19 @@ std::string Sexy::TestScreen(WinWSApp* theApp, std::string* theBase)
 // the class name of an object from its type_info name (Itanium "N4Sexy9RedSharkE", plain "9RedShark" or MSVC "class Sexy::RedShark")
 static std::string ClassName(const char* theName)
 {
-	const char* p = theName;
+	const char* aCursor = theName;
 	std::string aLast;
-	if (*p == 'N' || (*p >= '0' && *p <= '9'))
+	if (*aCursor == 'N' || (*aCursor >= '0' && *aCursor <= '9'))
 	{
-		if (*p == 'N')
-			p++;
-		while (*p >= '0' && *p <= '9')
+		if (*aCursor == 'N')
+			aCursor++;
+		while (*aCursor >= '0' && *aCursor <= '9')
 		{
 			int aLength = 0;
-			while (*p >= '0' && *p <= '9')
-				aLength = aLength * 10 + (*p++ - '0');
-			aLast.assign(p, strnlen(p, (size_t) aLength));
-			p += aLast.size();
+			while (*aCursor >= '0' && *aCursor <= '9')
+				aLength = aLength * 10 + (*aCursor++ - '0');
+			aLast.assign(aCursor, strnlen(aCursor, (size_t) aLength));
+			aCursor += aLast.size();
 		}
 		return aLast;
 	}
@@ -126,46 +126,46 @@ static std::string ClassName(const char* theName)
 
 static BotCreature MakeCreature(Board* theBoard, Enemy* theEnemy, const char* theList)
 {
-	BotCreature c;
-	c.mKind = ClassName(typeid(*theEnemy).name());
-	c.mList = theList;
-	c.mWord = theEnemy->mWord;
-	c.mIsTarget = theBoard->mTarget == theEnemy;
-	c.mTyped = c.mIsTarget ? (int) theBoard->mTyped.size() : theEnemy->mNumTyped;
-	c.mX = theEnemy->mX;
-	c.mY = theEnemy->mY;
-	c.mState = theEnemy->mState;
-	c.mVisible = theEnemy->mVisible;
-	c.mBlocked = theEnemy->mFlag19;
-	return c;
+	BotCreature aCreature;
+	aCreature.mKind = ClassName(typeid(*theEnemy).name());
+	aCreature.mList = theList;
+	aCreature.mWord = theEnemy->mWord;
+	aCreature.mIsTarget = theBoard->mTarget == theEnemy;
+	aCreature.mTyped = aCreature.mIsTarget ? (int) theBoard->mTyped.size() : theEnemy->mNumTyped;
+	aCreature.mX = theEnemy->mX;
+	aCreature.mY = theEnemy->mY;
+	aCreature.mState = theEnemy->mState;
+	aCreature.mVisible = theEnemy->mVisible;
+	aCreature.mBlocked = theEnemy->mStealthy;
+	return aCreature;
 }
 
-std::vector<BotCreature> Sexy::TestCollectCreatures(Board* b)
+std::vector<BotCreature> Sexy::TestCollectCreatures(Board* theBoard)
 {
 	std::vector<BotCreature> aList;
-	for (size_t i = 0; i < b->mSharks.size(); i++)
-		aList.push_back(MakeCreature(b, b->mSharks[i], "sharks"));
-	for (size_t i = 0; i < b->mPiranhas.size(); i++)
-		aList.push_back(MakeCreature(b, b->mPiranhas[i], "piranhas"));
-	for (size_t i = 0; i < b->mClams.size(); i++)
+	for (size_t i = 0; i < theBoard->mSharks.size(); i++)
+		aList.push_back(MakeCreature(theBoard, theBoard->mSharks[i], "sharks"));
+	for (size_t i = 0; i < theBoard->mPiranhas.size(); i++)
+		aList.push_back(MakeCreature(theBoard, theBoard->mPiranhas[i], "piranhas"));
+	for (size_t i = 0; i < theBoard->mClams.size(); i++)
 	{
-		BotCreature c = MakeCreature(b, b->mClams[i], "clams");
-		Clam* aClam = dynamic_cast<Clam*>(b->mClams[i]);
+		BotCreature c = MakeCreature(theBoard, theBoard->mClams[i], "clams");
+		Clam* aClam = dynamic_cast<Clam*>(theBoard->mClams[i]);
 		c.mType = aClam != NULL ? aClam->mType : -1;
-		c.mIsTarget = b->mOpenClam == b->mClams[i];
+		c.mIsTarget = theBoard->mOpenClam == theBoard->mClams[i];
 		aList.push_back(c);
 	}
-	for (size_t i = 0; i < b->mBonusCreatures.size(); i++)
-		aList.push_back(MakeCreature(b, b->mBonusCreatures[i], "bonus"));
-	if (b->mBoss != NULL)
+	for (size_t i = 0; i < theBoard->mBonusCreatures.size(); i++)
+		aList.push_back(MakeCreature(theBoard, theBoard->mBonusCreatures[i], "bonus"));
+	if (theBoard->mBoss != NULL)
 	{
-		aList.push_back(MakeCreature(b, b->mBoss, "boss"));
-		ProjectileBoss* aBoss = dynamic_cast<ProjectileBoss*>(b->mBoss);
+		aList.push_back(MakeCreature(theBoard, theBoard->mBoss, "boss"));
+		ProjectileBoss* aBoss = dynamic_cast<ProjectileBoss*>(theBoard->mBoss);
 		if (aBoss != NULL)
 		{
 			aList.back().mType = aBoss->mHitPoints;		// a boss's hit points
 			for (size_t i = 0; i < aBoss->mShots.size(); i++)
-				aList.push_back(MakeCreature(b, aBoss->mShots[i], "shots"));
+				aList.push_back(MakeCreature(theBoard, aBoss->mShots[i], "shots"));
 		}
 	}
 	return aList;
@@ -190,9 +190,9 @@ static bool ButtonCentre(Dialog* theDialog, DialogButton* theButton, int* theX, 
 
 BoardSnapshot Sexy::TestTakeSnapshot(WinWSApp* app)
 {
-	BoardSnapshot s;
-	s.mWidth = app->mWidth;
-	s.mHeight = app->mHeight;
+	BoardSnapshot aSnapshot;
+	aSnapshot.mWidth = app->mWidth;
+	aSnapshot.mHeight = app->mHeight;
 
 	// a dialog over everything: the obvious step is the OK of a one-button message or hint box
 	std::string aDialogName;
@@ -203,58 +203,58 @@ BoardSnapshot Sexy::TestTakeSnapshot(WinWSApp* app)
 		if ((aDialogName == "message" || aDialogName == "hint" || aDialogName == "credits" || aDialogName == "nowindowed") &&
 			aDialog->mNoButton == NULL && ButtonCentre(aDialog, aDialog->mYesButton, &aX, &aY))
 		{
-			s.mPromptWhat = "dialog";
-			s.mPrompt.push_back(BotStep::Click(aX, aY));
-			s.mPrompt.push_back(BotStep::Wait(1));
+			aSnapshot.mPromptWhat = "dialog";
+			aSnapshot.mPrompt.push_back(BotStep::Click(aX, aY));
+			aSnapshot.mPrompt.push_back(BotStep::Wait(1));
 		}
-		return s;
+		return aSnapshot;
 	}
 
-	Board* b = app->mBoard;
-	if (b != NULL && b->mVisible)
+	Board* aBoard = app->mBoard;
+	if (aBoard != NULL && aBoard->mVisible)
 	{
-		if (b->mPaused || app->mLessonManager == NULL)
-			return s;
-		int aState = b->mPlayer->mState;
+		if (aBoard->mPaused || app->mLessonManager == NULL)
+			return aSnapshot;
+		int aState = aBoard->mPlayer->mState;
 		bool aBonusLevel = app->mLessonManager->IsBonusLevel();
 		if (aState == 7 || (aState == 6 && aBonusLevel))
 		{
 			// the level is won: the space bar goes back to the map
-			s.mPromptWhat = "continue";
-			s.mPrompt.push_back(BotStep::Key(" "));
-			s.mPrompt.push_back(BotStep::Wait(1));
-			return s;
+			aSnapshot.mPromptWhat = "continue";
+			aSnapshot.mPrompt.push_back(BotStep::Key(" "));
+			aSnapshot.mPrompt.push_back(BotStep::Wait(1));
+			return aSnapshot;
 		}
 		if (aState != 0 && aState != 5 && aState != 4 && aState != 9)
-			return s;
-		if (aState == 4 && b->mFlag0f80)
-			return s;
+			return aSnapshot;
+		if (aState == 4 && aBoard->mScreenClear)
+			return aSnapshot;
 
-		std::vector<BotCreature> aAll = TestCollectCreatures(b);
+		std::vector<BotCreature> aAll = TestCollectCreatures(aBoard);
 		if (aBonusLevel)
 		{
 			if (aState != 5)
-				return s;
-			s.mPhase = BoardSnapshot::PHASE_CLAMS;
+				return aSnapshot;
+			aSnapshot.mPhase = BoardSnapshot::PHASE_CLAMS;
 			for (size_t i = 0; i < aAll.size(); i++)
 				if (aAll[i].mList == "clams")
-					s.mClams.push_back(aAll[i]);
-			return s;
+					aSnapshot.mClams.push_back(aAll[i]);
+			return aSnapshot;
 		}
 		if (aState == 5)
 		{
-			s.mPhase = BoardSnapshot::PHASE_STREAK;
-			s.mStreakText = b->mString0f10;
-			s.mStreakPos = b->mField0f2c;
-			return s;
+			aSnapshot.mPhase = BoardSnapshot::PHASE_STREAK;
+			aSnapshot.mStreakText = aBoard->mBonusWord;
+			aSnapshot.mStreakPos = aBoard->mBonusWordPos;
+			return aSnapshot;
 		}
-		if (b->mFlag0f80 && b->mBoss == NULL)
-			return s;
-		if (b->mBoss != NULL)
+		if (aBoard->mScreenClear && aBoard->mBoss == NULL)
+			return aSnapshot;
+		if (aBoard->mBoss != NULL)
 		{
-			ProjectileBoss* aBoss = dynamic_cast<ProjectileBoss*>(b->mBoss);
+			ProjectileBoss* aBoss = dynamic_cast<ProjectileBoss*>(aBoard->mBoss);
 			if (aBoss != NULL && aBoss->mHitPoints == 0)
-				return s;
+				return aSnapshot;
 		}
 
 		// the creatures in the order KeyChar tries them: sharks, piranhas, bonus creatures, boss shots
@@ -264,31 +264,31 @@ BoardSnapshot Sexy::TestTakeSnapshot(WinWSApp* app)
 				if (aAll[i].mList == aOrder[aList])
 				{
 					if (aAll[i].mIsTarget)
-						s.mTarget = (int) s.mCreatures.size();
-					s.mCreatures.push_back(aAll[i]);
+						aSnapshot.mTarget = (int) aSnapshot.mCreatures.size();
+					aSnapshot.mCreatures.push_back(aAll[i]);
 				}
-		s.mTypedCount = (int) b->mTyped.size();
-		s.mPhase = BoardSnapshot::PHASE_WORDS;
-		return s;
+		aSnapshot.mTypedCount = (int) aBoard->mTyped.size();
+		aSnapshot.mPhase = BoardSnapshot::PHASE_WORDS;
+		return aSnapshot;
 	}
 
 	MapScreen* aMap = app->mMapScreen;
 	if (aMap != NULL && aMap->mVisible && !aMap->mDisabled)
 	{
-		if (aMap->mFlag224)
+		if (aMap->mLevelChosen)
 		{
-			s.mPromptWhat = "map";
-			s.mPrompt.push_back(BotStep::Key(" "));
-			s.mPrompt.push_back(BotStep::Wait(1));
+			aSnapshot.mPromptWhat = "map";
+			aSnapshot.mPrompt.push_back(BotStep::Key(" "));
+			aSnapshot.mPrompt.push_back(BotStep::Wait(1));
 		}
-		else if (!aMap->mFlag234 && !aMap->mVector1b4.empty())
+		else if (!aMap->mFinalScrollStarted && !aMap->mChests.empty())
 		{
 			// a fork: the chest's letter picks the way
-			s.mPromptWhat = "map";
-			s.mPrompt.push_back(BotStep::Key(std::string(1, aMap->mVector1b4[0]->mLetter)));
-			s.mPrompt.push_back(BotStep::Wait(1));
+			aSnapshot.mPromptWhat = "map";
+			aSnapshot.mPrompt.push_back(BotStep::Key(std::string(1, aMap->mChests[0]->mLetter)));
+			aSnapshot.mPrompt.push_back(BotStep::Wait(1));
 		}
-		return s;
+		return aSnapshot;
 	}
 
 	// the typing tutor: the rest of the line that is being typed
@@ -299,13 +299,13 @@ BoardSnapshot Sexy::TestTakeSnapshot(WinWSApp* app)
 		TutorExercise* anExercise = aTutor->mLesson->mTasks[aTutor->mTask];
 		if (anExercise->mCurText < (int) anExercise->mTexts.size())
 		{
-			s.mPhase = BoardSnapshot::PHASE_STREAK;
-			s.mPromptWhat = "tutor";
-			s.mStreakText = anExercise->mTexts[anExercise->mCurText];
-			s.mStreakPos = anExercise->mCurChar;
+			aSnapshot.mPhase = BoardSnapshot::PHASE_STREAK;
+			aSnapshot.mPromptWhat = "tutor";
+			aSnapshot.mStreakText = anExercise->mTexts[anExercise->mCurText];
+			aSnapshot.mStreakPos = anExercise->mCurChar;
 		}
 	}
-	return s;
+	return aSnapshot;
 }
 
 static void AddInt(std::string& theJson, const char* theKey, int theValue)
@@ -348,7 +348,7 @@ std::string Sexy::TestStateJson(WinWSApp* app)
 	if (app->mUser != NULL)
 		AddString(j, "user", app->mUser->mName);
 
-	Board* b = app->mBoard;
+	Board* aBoard = app->mBoard;
 	LessonManager* aLessons = app->mLessonManager;
 	TypingTutor* aTutor = app->mTypingTutor;
 	bool aAbyss = aLessons != NULL && aLessons->mAbyssMode;
@@ -367,52 +367,52 @@ std::string Sexy::TestStateJson(WinWSApp* app)
 
 	bool aOver = app->GetDialog(DIALOG_GAME_OVER) != NULL || app->GetDialog(DIALOG_WIN_GAME) != NULL;
 
-	if (b != NULL)
+	if (aBoard != NULL)
 	{
-		Player* p = b->mPlayer;
+		Player* p = aBoard->mPlayer;
 		AddInt(j, "score", p->mScore);
-		AddInt(j, "lives", p->mField110);
-		AddInt(j, "depth", b->mScore);
-		AddInt(j, "timer", b->mGameTimer->Elapsed());
-		AddInt(j, "typeTime", b->mTypeTime);
+		AddInt(j, "lives", p->mLives);
+		AddInt(j, "depth", aBoard->mScore);
+		AddInt(j, "timer", aBoard->mGameTimer->Elapsed());
+		AddInt(j, "typeTime", aBoard->mTypeTime);
 		AddInt(j, "diver", p->mState);
 		AddDouble(j, "emp", p->mEmpCharge);
-		AddBool(j, "paused", b->mPaused);
+		AddBool(j, "paused", aBoard->mPaused);
 		AddBool(j, "won", p->mState == 7 || p->mState == 0xc || (p->mState == 6 && aLessons != NULL && aLessons->IsBonusLevel()));
-		int aEnemies = (int) (b->mSharks.size() + b->mPiranhas.size() + b->mClams.size() + b->mBonusCreatures.size());
-		if (b->mBoss != NULL)
+		int aEnemies = (int) (aBoard->mSharks.size() + aBoard->mPiranhas.size() + aBoard->mClams.size() + aBoard->mBonusCreatures.size());
+		if (aBoard->mBoss != NULL)
 			aEnemies++;
 		AddInt(j, "enemy", aEnemies);
 
 		j += ",\"board\":{";
 		j += "\"width\":" + StrFormat("%d", app->mWidth);
-		AddString(j, "typed", b->mTyped);
-		AddBool(j, "clear", b->mFlag0f80);		// no wave on the screen (the next one is due, or the keys are ignored)
-		AddDouble(j, "divePos", b->mDivePos);
-		AddDouble(j, "floorY", b->mField0e10);
-		AddInt(j, "oceanDepth", b->mOceanDepth);
+		AddString(j, "typed", aBoard->mTyped);
+		AddBool(j, "clear", aBoard->mScreenClear);		// no wave on the screen (the next one is due, or the keys are ignored)
+		AddDouble(j, "divePos", aBoard->mDivePos);
+		AddDouble(j, "floorY", aBoard->mOceanFloorY);
+		AddInt(j, "oceanDepth", aBoard->mOceanDepth);
 		AddBool(j, "canType", TestTakeSnapshot(app).mPhase != BoardSnapshot::PHASE_NONE);
-		if (b->mBannerLife > 0 && !b->mBannerText.empty())
-			AddString(j, "banner", b->mBannerText);
+		if (aBoard->mBannerLife > 0 && !aBoard->mBannerText.empty())
+			AddString(j, "banner", aBoard->mBannerText);
 		j += ",\"creatures\":[";
-		std::vector<BotCreature> aAll = TestCollectCreatures(b);
+		std::vector<BotCreature> aAll = TestCollectCreatures(aBoard);
 		for (size_t i = 0; i < aAll.size(); i++)
 		{
-			const BotCreature& c = aAll[i];
+			const BotCreature& aCreature = aAll[i];
 			if (i > 0)
 				j += ",";
-			j += "{\"kind\":" + JsonQuote(c.mKind);
-			AddString(j, "list", c.mList);
-			AddString(j, "word", c.mWord);
-			AddInt(j, "typed", c.mTyped);
-			AddDouble(j, "x", c.mX);
-			AddDouble(j, "y", c.mY);
-			AddInt(j, "state", c.mState);
-			AddBool(j, "target", c.mIsTarget);
-			if (c.mList == "clams")
-				AddInt(j, "type", c.mType);
-			if (c.mList == "boss")
-				AddInt(j, "hp", c.mType);
+			j += "{\"kind\":" + JsonQuote(aCreature.mKind);
+			AddString(j, "list", aCreature.mList);
+			AddString(j, "word", aCreature.mWord);
+			AddInt(j, "typed", aCreature.mTyped);
+			AddDouble(j, "x", aCreature.mX);
+			AddDouble(j, "y", aCreature.mY);
+			AddInt(j, "state", aCreature.mState);
+			AddBool(j, "target", aCreature.mIsTarget);
+			if (aCreature.mList == "clams")
+				AddInt(j, "type", aCreature.mType);
+			if (aCreature.mList == "boss")
+				AddInt(j, "hp", aCreature.mType);
 			j += "}";
 		}
 		j += "]}";
@@ -433,10 +433,10 @@ std::string Sexy::TestStateJson(WinWSApp* app)
 	MapScreen* aMap = app->mMapScreen;
 	if (aMap != NULL && aMap->mVisible)
 	{
-		j += StrFormat(",\"map\":{\"chosen\":%d,\"arrived\":%s,\"final\":%s,\"chests\":\"", aMap->mLevel, aMap->mFlag224 ? "true" : "false",
+		j += StrFormat(",\"map\":{\"chosen\":%d,\"arrived\":%s,\"final\":%s,\"chests\":\"", aMap->mLevel, aMap->mLevelChosen ? "true" : "false",
 			aMap->mFinal ? "true" : "false");
-		for (size_t i = 0; i < aMap->mVector1b4.size(); i++)
-			j += aMap->mVector1b4[i]->mLetter;
+		for (size_t i = 0; i < aMap->mChests.size(); i++)
+			j += aMap->mChests[i]->mLetter;
 		j += "\"}";
 	}
 

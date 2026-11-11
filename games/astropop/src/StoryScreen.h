@@ -9,6 +9,7 @@
 // followed by the finale: four scenes of three pictures each with their texts, and then all four pilots in one
 // picture. Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "ButtonListener.h"
 #include "Color.h"
 #include "FrameAnim.h"
@@ -61,7 +62,7 @@ struct StoryEntry
 	StoryPage*		mPageB;
 };
 
-class StoryScreen : public Widget, public ButtonListener
+class StoryScreen : public Text2004<Widget>, public ButtonListener
 {
 public:
 	enum

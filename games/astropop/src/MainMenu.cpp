@@ -10,24 +10,88 @@
 #include "WidgetManager.h"
 #include "Res.h"
 #include <cstdlib>
+#include <cstring>
 
 using namespace Sexy;
 
 namespace
 {
-	// The rectangles of the five button hit areas and the user button (static data at 0x59da98 / 0x59daf8): x, y, w, h
-	const int kButtonRects[MainMenu::NUM_BUTTONS][4] = {
-		{0,   0x73,  0xdb, 0x9f},
-		{0,   0x111, 0xda, 0x9e},
-		{430, 0x73,  0xd2, 0x55},
-		{430, 0xc8,  0xd2, 0x49},
-		{430, 0x111, 0xd2, 0x4f},
-		{430, 0x160, 0xd2, 0x5b}
+	// The right-hand column of panels in the picture of the menu: the original stacks four (Hall of Fame, Options, More
+	// Games, Quit Game) from y 115 to y 443. The port has no More Games button, a link out of the game, so the three
+	// that remain are stretched to fill the column: the picture of each panel, its hover and press pictures and its hit mask.
+	const int kColumnX = 430;
+	const int kColumnY = 0x73;
+	const int kColumnWidth = 0xd2;
+	const int kColumnHeight = 328;
+
+	// One of the five buttons
+	struct ButtonSpec
+	{
+		int		mId;                    // the button's id
+		int		mResource;              // its number among the original's six (the ids of its pictures add it: More Games was 4)
+		int		mRect[4];               // its hit area in the menu (static data at 0x59da98): x, y, w, h; for the panels of the column the stretched one
+		int		mSourceY;               // a panel of the column: its rows in the original's picture of the menu (0 for the others)
+		int		mSourceHeight;
+		int		mPitch;                 // the pitch the sample that names it is shifted by
+		int*	mSound;                 // the sample that names it, played on a hover
+	};
+
+	const ButtonSpec kButtons[MainMenu::NUM_BUTTONS] = {
+		{MainMenu::BUTTON_ID_CLASSIC,      0, {0,   0x73,  0xdb, 0x9f}, 0,     0,  7,  &SOUND_CLASSIC_GAME},
+		{MainMenu::BUTTON_ID_SURVIVAL,     1, {0,   0x111, 0xda, 0x9e}, 0,     0,  4,  &SOUND_SURVIVAL_GAME},
+		{MainMenu::BUTTON_ID_HALL_OF_FAME, 2, {430, 0x73,  0xd2, 112},  0x73,  85, 9,  &SOUND_HALL_OF_FAME},
+		{MainMenu::BUTTON_ID_OPTIONS,      3, {430, 227,   0xd2, 96},   0xc8,  73, 14, &SOUND_OPTIONS},
+		{MainMenu::BUTTON_ID_QUIT,         5, {430, 323,   0xd2, 120},  0x160, 91, 9,  &SOUND_QUIT_GAME}
 	};
 	const int kUserButtonRect[4] = {0xe3, 0x55, 0xc7, 0x11};
 
-	// The sample each button plays on a hover and the pitch it is shifted by
-	const int kHoverPitch[MainMenu::NUM_BUTTONS] = {7, 4, 9, 14, 13, 9};
+	// The picture that shows what a panel stands for, by the panel (0 is the centre piece, which has its own)
+	const int kPanelImage[MainMenu::NUM_PANELS] = {-1, IMAGE_GS_MOUSEOVER_ARCADE_ID, IMAGE_GS_MOUSEOVER_SURVIVAL_ID,
+		IMAGE_GS_MOUSEOVER_HALL_ID, IMAGE_GS_MOUSEOVER_OPTIONS_ID, IMAGE_GS_MOUSEOVER_QUIT_ID};
+
+	// Rows theSrcY .. theSrcY + theSrcH - 1 of the pixels at theSrc (theSrcX on, theW across), stretched to theDestH rows
+	// at theDest: each channel of a new row is the linear mix of the two rows of the picture it lies between
+	void StretchRows(const ulong* theSrc, int theSrcPitch, int theSrcX, int theSrcY, int theSrcH, int theW, ulong* theDest,
+					 int theDestPitch, int theDestH)
+	{
+		for (int y = 0; y < theDestH; y++)
+		{
+			float aPos = ((float) y + 0.5f) * (float) theSrcH / (float) theDestH - 0.5f;
+			if (aPos < 0.0f)
+				aPos = 0.0f;
+			if (aPos > (float) (theSrcH - 1))
+				aPos = (float) (theSrcH - 1);
+			int aRow = (int) aPos;
+			int aNext = (aRow + 1 < theSrcH) ? aRow + 1 : aRow;
+			int aWeight = (int) ((aPos - (float) aRow) * 256.0f);
+			const ulong* aUpper = theSrc + (theSrcY + aRow) * theSrcPitch + theSrcX;
+			const ulong* aLower = theSrc + (theSrcY + aNext) * theSrcPitch + theSrcX;
+			ulong* aOut = theDest + y * theDestPitch;
+			for (int x = 0; x < theW; x++)
+			{
+				ulong aPixel = 0;
+				for (int aShift = 0; aShift < 32; aShift += 8)
+				{
+					int anUpper = (int) ((aUpper[x] >> aShift) & 0xff);
+					int aLower2 = (int) ((aLower[x] >> aShift) & 0xff);
+					aPixel |= (ulong) ((anUpper * (256 - aWeight) + aLower2 * aWeight + 128) >> 8) << aShift;
+				}
+				aOut[x] = aPixel;
+			}
+		}
+	}
+
+	// A picture of a panel (the whole of it) stretched to theHeight rows
+	MemoryImage* StretchedCopy(AstroPopApp* theApp, Image* thePicture, int theHeight)
+	{
+		MemoryImage* aSource = (MemoryImage*) thePicture;
+		MemoryImage* aCopy = new MemoryImage(theApp);
+		aCopy->Create(aSource->GetWidth(), theHeight);
+		StretchRows(aSource->GetBits(), aSource->GetWidth(), 0, 0, aSource->GetHeight(), aSource->GetWidth(), aCopy->GetBits(),
+					aCopy->GetWidth(), theHeight);
+		aCopy->BitsChanged();
+		return aCopy;
+	}
 }
 
 // 0x454ee0
@@ -39,32 +103,57 @@ MainMenu::MainMenu(AstroPopApp* theApp)
 	mGoScreen = NULL;
 	mButtons.resize(NUM_BUTTONS, NULL);
 
+	// the picture of the column: the stretched panels, in the place of the four of the original's picture of the menu
+	mColumn = new MemoryImage(theApp);
+	mColumn->Create(kColumnWidth, kColumnHeight);
+	MemoryImage* aSelector = (MemoryImage*) IMAGE_GAME_SELECTOR;
+
 	for (int i = 0; i < NUM_BUTTONS; i++)
 	{
-		if (i == 4) // More Games: left out
-			continue;
+		const ButtonSpec& aSpec = kButtons[i];
+		bool isStretched = aSpec.mSourceHeight != 0;
+		int aRectHeight = aSpec.mRect[3];
 
-		AstroButton* aButton = new AstroButton(BUTTON_ID_BASE + i, this);
+		AstroButton* aButton = new AstroButton(aSpec.mId, this);
 		aButton->mButtonImage = NULL;
-		aButton->mOverImage = GetImageById(IMAGE_GS_ARCADE_OVER_ID + i);
-		aButton->mAnimOver.SetNumFrames(aButton->mOverImage->mNumCols);
-		aButton->mAnimOver.SetDelay(10);
-		aButton->mDownImage = GetImageById(IMAGE_GS_ARCADE_DOWN_ID + i);
-		aButton->mHasAlpha = true;
-		aButton->mHasTransparencies = true;
-
-		MemoryImage* aMask = (MemoryImage*) GetImageById(IMAGE_GS_ARCADE_MASK_ID + i);
+		aButton->mOverImage = GetImageById(IMAGE_GS_ARCADE_OVER_ID + aSpec.mResource);
+		aButton->mDownImage = GetImageById(IMAGE_GS_ARCADE_DOWN_ID + aSpec.mResource);
+		MemoryImage* aMask = (MemoryImage*) GetImageById(IMAGE_GS_ARCADE_MASK_ID + aSpec.mResource);
 		aButton->mHitMask = (int*) aMask->GetBits();
 		aButton->mHitMaskWidth = aMask->GetWidth();
 
-		aButton->Resize(Rect(kButtonRects[i][0], kButtonRects[i][1], kButtonRects[i][2], kButtonRects[i][3]));
-		// the voice that names the button, shifted by the button's pitch (the table runs in the order of the buttons)
-		static int* const kHoverSound[NUM_BUTTONS] = {&SOUND_CLASSIC_GAME, &SOUND_SURVIVAL_GAME, &SOUND_HALL_OF_FAME,
-			&SOUND_OPTIONS, &SOUND_MORE_GAMES, &SOUND_QUIT_GAME};
-		aButton->mSoundId = *kHoverSound[i];
-		aButton->mSoundPitch = kHoverPitch[i];
+		if (isStretched)
+		{
+			StretchRows(aSelector->GetBits(), aSelector->GetWidth(), kColumnX, aSpec.mSourceY, aSpec.mSourceHeight,
+						kColumnWidth, mColumn->GetBits() + (aSpec.mRect[1] - kColumnY) * kColumnWidth, kColumnWidth, aRectHeight);
+
+			mOwnedImages.push_back(StretchedCopy(theApp, aButton->mOverImage, aRectHeight));
+			aButton->mOverImage = mOwnedImages.back();
+			mOwnedImages.push_back(StretchedCopy(theApp, aButton->mDownImage, aRectHeight));
+			aButton->mDownImage = mOwnedImages.back();
+
+			// (the pixel of the mask a row of the stretched button stands on: the nearest)
+			std::vector<int>& aStretchedMask = mOwnedMasks[i];
+			aStretchedMask.resize((size_t) aMask->GetWidth() * aRectHeight);
+			for (int y = 0; y < aRectHeight; y++)
+				memcpy(&aStretchedMask[(size_t) y * aMask->GetWidth()],
+					   aMask->GetBits() + (size_t) ((y * aMask->GetHeight()) / aRectHeight) * aMask->GetWidth(),
+					   aMask->GetWidth() * sizeof(int));
+			aButton->mHitMask = &aStretchedMask[0];
+		}
+
+		aButton->mAnimOver.SetNumFrames(aButton->mOverImage->mNumCols);
+		aButton->mAnimOver.SetDelay(10);
+		aButton->mHasAlpha = true;
+		aButton->mHasTransparencies = true;
+
+		aButton->Resize(Rect(aSpec.mRect[0], aSpec.mRect[1], aSpec.mRect[2], aRectHeight));
+		// the voice that names the button, shifted by the button's pitch
+		aButton->mSoundId = *aSpec.mSound;
+		aButton->mSoundPitch = aSpec.mPitch;
 		mButtons[i] = aButton;
 	}
+	mColumn->BitsChanged();
 
 	mUserButton = new AstroButton(BUTTON_ID_USER, this);
 	mUserButton->mButtonImage = IMAGE_GS_SELECT_USER_NORMAL;
@@ -96,6 +185,9 @@ MainMenu::~MainMenu()
 		delete mGoScreen;
 	}
 	delete mUserButton;
+	for (size_t i = 0; i < mOwnedImages.size(); i++)
+		delete mOwnedImages[i];
+	delete mColumn;
 }
 
 // 0x43c230
@@ -104,8 +196,6 @@ void MainMenu::AddedToManager(WidgetManager* theWidgetManager)
 	Widget::AddedToManager(theWidgetManager);
 	for (int i = 0; i < NUM_BUTTONS; i++)
 	{
-		if (mButtons[i] == NULL)
-			continue;
 		theWidgetManager->AddWidget(mButtons[i]);
 		theWidgetManager->BringToFront(mButtons[i]);
 	}
@@ -118,10 +208,7 @@ void MainMenu::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
 	for (int i = 0; i < NUM_BUTTONS; i++)
-	{
-		if (mButtons[i] != NULL)
-			theWidgetManager->RemoveWidget(mButtons[i]);
-	}
+		theWidgetManager->RemoveWidget(mButtons[i]);
 	theWidgetManager->RemoveWidget(mUserButton);
 }
 
@@ -131,6 +218,7 @@ void MainMenu::Draw(Graphics* g)
 	std::string aName = GT(0x5649d4); // New User
 
 	g->DrawImage(IMAGE_GAME_SELECTOR, 0, 0);
+	g->DrawImage(mColumn, kColumnX, kColumnY);
 	g->SetColor(Color(255, 255, 255));
 	g->SetFont(GetFontById(0x120));
 	if (mApp->mUser != NULL)
@@ -146,7 +234,7 @@ void MainMenu::Draw(Graphics* g)
 			if (i == 0)
 				g->DrawImage(IMAGE_GS_CENTER_PIECE, 0xdb, 0xb1);
 			else
-				g->DrawImage(GetImageById(i + 0xc6), 199, 0xe7);
+				g->DrawImage(GetImageById(kPanelImage[i]), 199, 0xe7);
 			g->SetColorizeImages(false);
 		}
 	}
@@ -239,7 +327,7 @@ void MainMenu::Update()
 			float aSpeed = mHovering ? ((float) mParticleLevel * 0.5f + 1.0f) * 1.0f : 1.0f;
 			if (aSpeed > 1.5f)
 				aSpeed = 1.5f;
-			aParticle->mY = (int) ((double) aParticle->mY - (double) aSpeed);
+			aParticle->mY = (int) ((float) aParticle->mY - aSpeed);
 		}
 		aParticle->mAlpha -= 2;
 		aParticle->mAnim.Update();
@@ -285,12 +373,12 @@ void MainMenu::ButtonPress(int theId)
 void MainMenu::ButtonMouseEnter(int theId)
 {
 	int aPanel = 4;
-	if (theId == 0xfa9)
+	if (theId == BUTTON_ID_CLASSIC)
 	{
 		mHoverStep = (mHoverStep == 1) ? 2 : -5;
 		aPanel = 1;
 	}
-	else if (theId == 0xfaa)
+	else if (theId == BUTTON_ID_SURVIVAL)
 	{
 		if (mHoverStep == 3)
 			mHoverStep = 4;
@@ -298,7 +386,7 @@ void MainMenu::ButtonMouseEnter(int theId)
 			mHoverStep = (mHoverStep == 4) ? 5 : -5;
 		aPanel = 2;
 	}
-	else if (theId == 0xfab)
+	else if (theId == BUTTON_ID_HALL_OF_FAME)
 	{
 		aPanel = 3;
 		if (mHoverStep < 0)
@@ -310,22 +398,17 @@ void MainMenu::ButtonMouseEnter(int theId)
 		else
 			mHoverStep = (mHoverStep == 5) ? 6 : -5;
 	}
-	else if (theId == 0xfac)
+	else if (theId == BUTTON_ID_OPTIONS)
 		mHoverStep = (mHoverStep == 6) ? 7 : -5;
-	else if (theId == 0xfad)
-	{
-		aPanel = 5;
-		mHoverStep = (mHoverStep == 7) ? 8 : -5;
-	}
 	else
 	{
-		if (theId != 0xfae)
+		if (theId != BUTTON_ID_QUIT)
 			return;
 		int aStep = mHoverStep;
 		mHoverStep = -5;
-		if (aStep == 8)
+		if (aStep == 7)     // (the original's sequence has one more step, More Games between Options and Quit Game)
 			mEasterPending = true;
-		aPanel = 6;
+		aPanel = 5;
 	}
 
 	for (int i = 0; i < NUM_PANELS; i++)
@@ -337,21 +420,19 @@ void MainMenu::ButtonMouseEnter(int theId)
 void MainMenu::ButtonMouseLeave(int theId)
 {
 	int aPanel;
-	if (theId == 0xfa9)
+	if (theId == BUTTON_ID_CLASSIC)
 		aPanel = 1;
-	else if (theId == 0xfaa)
+	else if (theId == BUTTON_ID_SURVIVAL)
 		aPanel = 2;
-	else if (theId == 0xfab)
+	else if (theId == BUTTON_ID_HALL_OF_FAME)
 		aPanel = 3;
-	else if (theId == 0xfac)
+	else if (theId == BUTTON_ID_OPTIONS)
 		aPanel = 4;
-	else if (theId == 0xfad)
-		aPanel = 5;
 	else
 	{
-		if (theId != 0xfae)
+		if (theId != BUTTON_ID_QUIT)
 			return;
-		aPanel = 6;
+		aPanel = 5;
 	}
 	mSpeed[aPanel] = -8;
 	mSpeed[0] = 12;
@@ -399,7 +480,6 @@ void MainMenu::ButtonDepress(int theId)
 				mApp->ShowUserSelect();
 			else if (theId == BUTTON_ID_OPTIONS)
 				mApp->ShowOptions(false);
-			// BUTTON_ID_MORE_GAMES (0xfad): a link out of the game, left out
 		}
 		mApp->mWidgetManager->SetFocus(this);
 	}

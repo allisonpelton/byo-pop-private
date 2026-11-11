@@ -2,8 +2,8 @@
 
 Phase one of the pass CLAUDE.md names: **plays identical**. With the same input, a series of games plays out the same in the
 original and the port, by the game's state and not by pictures: 38 games, with all four pilots' weapons and levels up to 33, came
-out identical. Phase two (screen by screen, sound, focus, the web build, the
-real-input play of the whole game) is listed at the end and has not begun.
+out identical. Phase two, **looks identical** (screen by screen, the sound, the focus, the web build and the whole game played with
+real input), is the last section.
 
 ## How both sides are driven
 
@@ -174,9 +174,193 @@ now refuses such a log.
 See GAME_NOTES section 6. The loading is the machine's speed (the original's loading thread is run in one go); the bonus-file
 check and the signature checks are left out.
 
-## Phase two, not begun
+## Phase two: looks identical
 
-The screens one by one with `tools/shotdiff` (the New User dialog's line and height among them), the sound and the focus, the
-web build, the Hall of Fame and credits screens (their star draws have not been compared), the x87 compares of the drawing and
-screen code (GAME_NOTES section 9), the frozen baseline `build/baseline-astropop`, the fixes mod (or "none"), the performance
-numbers and the whole game played with real input only, natively and in the browser, windowed and full screen, in 2D and 3D.
+The second phase CLAUDE.md names: the screens, dialogs and texts, the sound, the focus, the web build and the whole game played with
+real input only. Phase one had shown that the games play out the same; phase two found where the pictures, the sounds and the pages
+did not, and fixed them (the changes are listed below). The numbers are from the final build, the native exe of commit `65795b0b`
+(frozen as `build/baseline-astropop`) and the web build of the same sources.
+
+### How the screens were compared
+
+A **tour** is a script of inputs and shots (`games/astropop/tools/tour/`: `<update> click|rclick|move|down|up|key|type|focus|shot|portcmd`)
+that both sides run with the same seed: the port natively under rundesk with `-fast -drawevery -realinput`, the original on origrun's
+virtual clock in a Windows Sandbox copy (`tour.sh <name> <tour>`). The shots are compared by `tools/shotdiff`; `report.py` adds the
+raw pixels that shotdiff hides as faint (differences below its 3x3 blur and 32 levels: it counts those over 8 levels and says where
+they are), after lifting the original's capture by the 2 levels every origrun capture lacks. Four kinds of tour:
+
+- **the menus**: `menus`, `options`, `halls`, `users` (the title, the new player box, the main menu with each button lit, the player
+  list; the options box, its hints warning, the help box and its second page, the credits; the hall of fame, both pages, and the pilot
+  screens with each pilot lit; the new user box with its error box, a second player and the delete box);
+- **the start of a game** (`classic1` to `classic5`: the first 3,400 updates, the warp, the first bricks, the pop effect, each
+  at one-update steps where the picture moves fast), **a game to level 3** (`classic6`), the pause and the focus (`pause1`: space,
+  losing and regaining the focus, space again, Escape), the level-up text's line (`line1`), the in-game Options box and what it leads
+  to (`ingame1`: each button lit, Reset Hints and its warning, Help, Credits, Main Menu and its End Game box), the Quit Game box
+  (`quit1`), a survival game (`surv1`) and its end (`survend`), a classic game left to itself until the Emergency panel and ACTIVATE
+  (`emerg1`), and a lost game with the hints off up to the end screen, a new game and out by the options box (`loss1`);
+- **the four weapons** from a full charge: `w_vec`, `w_spr`, `w_tur`, `w_vix` (the weapons of Vector, Sprocket, Turbot and Vixx, up to
+  300 moves, a shot every 100 updates; the weapon's box and its OK button included);
+- **a game from each checkpoint** (`ck5`, `ck9`, ... `ck33`: levels 5, 9, 13, 17, 21, 25, 29 and 33 with different pilots, 200 moves
+  each, a shot every 100 updates), which show every kind of brick, the weapon upgrades and the stories.
+
+The port's weapon charge is set as the original's patch list has it (`portcmd set chargestart 18000`, GAME_NOTES 3b).
+
+### The counts
+
+For each tour: the pairs of shots, those that match to the pixel, those that differ only faintly (below what shotdiff shows a reviewer;
+nearly all of these are the blit arithmetic below, up to about 22 levels) and those that differ, and of the last how many differ only in
+the menu's right-hand column, which has no More Games panel in the port by design (GAME_NOTES section 6). The last column is the
+web build against the native one on the same tour (`webshots.sh`: the tour's `-realinput` script run under Node on `build/web`, the
+two sides' shots compared): the largest difference in any channel, in levels.
+
+| tour | pairs | match | faint | differ | menu column | other | web against native |
+|---|---|---|---|---|---|---|---|
+| menus | 14 | 1 | 0 | 13 | 12 | a01_title | 6 |
+| options | 18 | 4 | 0 | 14 | 14 | | 4 |
+| halls | 15 | 12 | 0 | 3 | 3 | | 2 |
+| users | 13 | 0 | 0 | 13 | 13 | | 5 |
+| classic1 | 24 | 4 | 19 | 1 | 1 | | 9 |
+| classic2 | 18 | 0 | 18 | 0 | 0 | | 9 |
+| classic3 | 28 | 10 | 17 | 1 | 0 | k3335 | 8 |
+| classic4 | 20 | 18 | 2 | 0 | 0 | | 5 |
+| classic5 | 14 | 0 | 14 | 0 | 0 | | 8 |
+| classic6 | 73 | 9 | 64 | 0 | 0 | | 9 |
+| pause1 | 9 | 7 | 2 | 0 | 0 | | 7 |
+| ingame1 | 29 | 25 | 0 | 4 | 4 | | 4 |
+| quit1 | 7 | 0 | 0 | 7 | 7 | | 4 |
+| line1 | 15 | 0 | 15 | 0 | 0 | | 7 |
+| surv1 | 41 | 1 | 39 | 1 | 1 | | 8 |
+| survend | 30 | 8 | 19 | 3 | 3 | | 211 (see below) |
+| emerg1 | 30 | 3 | 27 | 0 | 0 | | 4 |
+| loss1 | 34 | 18 | 14 | 2 | 2 | | 4 |
+| w_vec | 26 | 4 | 21 | 1 | 1 | | |
+| w_spr | 79 | 9 | 69 | 1 | 1 | | |
+| w_tur | 95 | 21 | 74 | 0 | 0 | | |
+| w_vix | 45 | 8 | 37 | 0 | 0 | | |
+| ck5 | 6 | 2 | 4 | 0 | 0 | | |
+| ck9 | 6 | 2 | 4 | 0 | 0 | | |
+| ck13 | 63 | 4 | 59 | 0 | 0 | | |
+| ck17 | 6 | 1 | 5 | 0 | 0 | | |
+| ck21 | 23 | 1 | 22 | 0 | 0 | | |
+| ck25 | 6 | 1 | 5 | 0 | 0 | | |
+| ck29 | 44 | 3 | 41 | 0 | 0 | | |
+| ck33 | 6 | 1 | 5 | 0 | 0 | | |
+
+(The weapon and checkpoint games are native only; the web build plays the same bot's games in the driver runs below.)
+
+**Every differing shot is judged.** All the shots counted as differing except two are the menu's right-hand column (a box of
+210 x 326 pixels where the original has its More Games panel and the port stretches the other three: it shows in every screen that
+has the menu behind it). The two others are timing of the harness and not of the game:
+
+- `menus` a01_title: the title screen changes its picture (Vixx, Turbot, ...) every 600 updates of its own count. The port loads at
+  the machine's speed (CLAUDE.md: loading is made fast in the port itself), so its title starts at another update than the original's
+  and a shot at the fixed update 3000 lands on the other picture; the next shot, 70 updates later, matches.
+- `classic3` k3335: a brick thrown up at the start of a game moves some 90 pixels in the update that the shot lands on, and the
+  original's shot landed "or-earlier" (`orig.landed.tsv`: origrun's counter is read between frames). `classic4` takes a shot at every
+  update of the same stretch (3322 to 3345) and 18 of its 20 match, the other two faintly.
+
+**The faint shots.** After the fixes below, nothing in them is visible to a reviewer; the raw check finds three kinds of residue:
+
+- the 2D blits: `DDImage::NormalBlt` (0x4ac1d0, 0x4b0f50) and `AdditiveBlt` (0x4ae3f0) of 2004 round the blend of a halo, a particle
+  or a faded brick in another way than the framework's blit, by up to about 22 levels (the original in the sandbox runs without
+  Direct3D, as the port's tours do with `Is3D=0`). The functions are in `re/astropop/asm_fw/`; this is shared code, and a spec went to
+  the coordinator;
+- the ring of the atomic explosion, the Atomic Bomb weapon, drawn at twice the size of a cel with `DrawCelStretched`: the edges differ
+  in a few thousand pixels by up to 91 levels (w_spr g3700 91, g3800 47; ck13 g3650 49, g3800 47), since the original stretches
+  through `DDImage::StretchBlt` 0x4c68c0 / `SlowStretchBlt` 0x4b1bf0 and the port through the framework's `GetStretchCopy`. Shared code
+  again (the same message);
+- one or two single pixels (classic1 g4500 and classic6 g7048: two pixels at (563, 296) over 200 levels).
+
+**Web against native.** Seventeen of the eighteen tours differ by at most 9 levels in any pixel; the largest count of pixels over 6
+levels in any shot is 15 (surv1). The exception is `survend`: at four shots (g7600, g7900, g8500, g8600) a mutating brick's
+biohazard mark, whose alpha pulses by 3 levels per update, is at another phase (a 25 x 24 box, up to 211 levels). A web run with
+`fast=1` skips frames, so a shot lands some updates away from the native one; the pulse is the only thing in the tours that moves
+slowly enough to tell.
+
+### Sound and focus
+
+**Sound effects** (`soundtour.sh`, `soundcmp.py`): the port's own sound log (`BYOPOP_SOUNDLOG`: every sample loaded and every play with
+its volume, pan and loop) against origrun's `logs/sound.log` (the duplicates of loaded buffers and their play calls, volume and pan as
+the last calls set them), the samples named by their size and rate. The recorded game of the tour `ck29` (the title, the Classic
+button, a game from the level-29 checkpoint through to update 9,746, from update 3,100 on): **889 plays in each, the same sample, the
+same volume, pan and loop for every one, and the same update to within the constant 3 updates by which the two logs' counters
+differ** (478 of the plays at exactly 3, the others within 2): no difference. The comparison cannot tell apart samples of the same
+size and rate (the mouse-over samples, two zaps), and it does not cover the music (a module stream, `music\music.mo3`): the music's
+start, stop and loss of the focus were **not** compared with the original in this pass.
+
+**Focus**: the tour `pause1` (space, the focus lost and regained, space, Escape) matches the original in 7 shots and faintly in 2, with
+no differing shot, natively, and by at most 7 levels in the web build; the real-input runs below lose and regain the focus five moves
+into a game natively (`paused=1`, then `paused=0`) and in the page (`blur` and `focus` events: the game pauses and runs on).
+
+### Real input only
+
+The port's own bot (the `move` test command) chooses every move; `games/astropop/tools/realplay.py` natively (posted mouse and
+key events through the window, as `visrun` does, under rundesk, `-fast`) and `games/astropop/tools/web/onegame.js` in the page
+(real DOM events on the canvas through the page's test kit, in the Browser pane with `?silent=1`, `requestAnimationFrame` shimmed)
+send them. Each run starts at the title, clicks the link, types the player's name (a wrong letter and a Backspace first), clicks the
+mode's button, the pilot, the help's button, plays, and with `--lose N` ends the game (the test command `lose`), clicks the end
+screen's Continue, clears a hint box at the start of the new game if one is up, and leaves by the options box (Escape, Main Menu, Yes).
+Nothing is played by a person; a screenshot is only a check of what is drawn.
+
+| run | result |
+|---|---|
+| native classic, 120 moves, Vector | level 2, 170,240 points, 5,768 updates |
+| native survival, 600 moves | a long game: 2,398,860 points, 18,870 updates, no error |
+| native classic, 400 moves, then `lose` | level 4, 508,120 points; Continue starts a game at the checkpoint ("Continue from level 5?"), its hint box cleared, then the menu |
+| native classic, Sprocket, 60 moves; Turbot and Vixx (a profile that has them), 60 moves each | levels 2, 2 and 1 (39,860, 31,240 and 7,380 points) |
+| native, focus lost and regained after 5 moves | paused 1, then 0, play goes on |
+| native, full screen (Alt+Enter, 1280 x 960 to 2560 x 1920 and back), classic and survival | both play 60 moves in full screen and leave it |
+| native, 3D (Direct3D) classic and survival, 60 moves | both play (level 1, 12,260 and 73,780 points) |
+| native, a classic and a survival game lost after 40 moves, Continue, Main Menu, Yes | the menu |
+| web page, survival, 400 moves | the game ended (over) at move 304, Continue, the menu: no error |
+| web page, classic, 500 moves, `lose`, canvas at 2 x (the pointer lands at scaled points as in full screen, which the pane cannot enter) | Continue from level 5, the hint box cleared, the menu; no error |
+| web page, classic, 300 moves, `focus=1`, canvas at 2 x, `lose` | the game paused when the focus was lost and ran on when it came back; the menu |
+
+The first runs of a deep game found that it continues from its checkpoint and opens the hint box of a new brick (a paused game): both
+drivers now clear it with the bot's moves, as a player clicks its OK. That is the original's behaviour; there is no difference in the
+game.
+
+**The page** itself takes the shared page check (`tools/web/pagecheck.js` with the game's table `games/astropop/tools/web/pagecheck.js`:
+focus against the native build, the keys the page keeps from the browser, the pointer at other sizes, a second copy, a reload mid-game): 11
+pass, 0 fail and 1 information.
+
+### The changes the phase made
+
+| the difference | its cause in the original | what the port does now | commit |
+|---|---|---|---|
+| the New User box, the player list's scroll bar and the options labels | the original draws them with its own 2004 text writers | the same writers | 32455cd6 |
+| the board's overlay (the fade, the pause, hint, weapon and Emergency panels), the demo link's colours, the level text's arithmetic | the asm of those routines | translated as the asm has them | cc6a03e9 |
+| the ship entered from -313, the rank medal's size, the rank names and the last quit line | the original enters from -312 and computes the medal at 24 bits; the names and the line are in the exe and were not in the port's text table | -312, the 24-bit size, the names and the line read from the exe | c0fb4503 |
+| a game saved at the warp screen put the ship at y 420 | 0x4687f3 stores 423 | 423 | 30de8f29 |
+| a 2D run stretched with the GPU's pixel-centre sampling: the level-up text's line and 1-pixel edges were off | `DDImage::StretchBlt` 0x4c68c0 steps in 16.16 fixed point, the column first; its non-fast path averages into a copy | AstroPop's display stretches the same way in 2D mode | 5a640255 |
+| the loader's tinted strip and the rank medal had the wrong alpha | `SlowStretchBlt` renormalizes the alpha | the same | 398a897e |
+| the fireball's colour faded green first | `SetFadeBlue` (0x402880) sets the blue's step (+0x5c) | the blue's | f9dec516 |
+| the Quit Game box had no goodbye line | the ten lines are read once the game texts are loaded, and the port's constructor ran before | read when the texts are loaded | c7cc784a |
+| float positions, bars, streaks, the scenery and the text were drawn at another rounding | the x87 control word is set to 24 bits by `UpdateFrames` (0x408b20) and the drawing code computes in single precision | the port sets `_PC_24` in `UpdateFrames` and computes the drawing and screen code in `float` as the asm does (every `TEST AH` site of the audit in GAME_NOTES section 9 read) | 4a1b9e7b |
+| the main menu has a More Games panel | a link out of the game | no panel: the three panels left are stretched to fill its place (GAME_NOTES section 6), the hidden hover sequence skips its step | 4a1b9e7b |
+| the siren, the lightning pair, the upgrade head and the arm were upside down | 0x4cfb50 is `MirrorImage` (left to right), the port called `FlipImage` | `MirrorImage` | 65795b0b |
+| the Fusion Warhead's atoms came from the wrong bricks, and a sprocket and a turbot overlay were never switched | the brick's event listener (vtable 0x55d500 slots 25 to 28) reads events 0x16, 0x17, 0x18, 0x19 as sprocket off, turbot off, sprocket on, turbot on | the four events do that | 65795b0b |
+| the weapon's box was 400 high and its OK button silent | vftable 0x56b8b8 slot 0xc8 is 0x483b90: twice the picture's height plus 0x96 (370); the button plays the sample at +0x118, which is 0 and, in the original's alphabetical numbering, the one-second timer's tick | 370; the tick, asked for by name (the port numbers by manifest order); a fix candidate for the mod | 65795b0b |
+| every spark of a low brick flew from another place (emerg1 and ck29: tens of shots) | `Brick::UpdateSparks` 0x406e20 hands the particle's constructor its second draw first and its first draw second; the other seven call sites do not | the same order (all eight call sites read against the asm; the draws, and so the games, were always the same) | 65795b0b |
+
+The tools changed too: `gamerun.sh` plays a recorded game and takes its shots, `freeze.sh` copies the exe for a long tour,
+`webshots.sh` runs a tour on the web build, `soundtour.sh` the sound, `gametour.py --charge` and `record.py --charge` send
+`set chargestart`, and `realplay.py` and `onegame.js` are the real-input drivers.
+
+### Oddities skipped and what still differs
+
+GAME_NOTES section 8 has each one. In short: the 2D blit and stretch arithmetic of `DDImage` (above; shared code), the title's
+slide timing and the original's early landing of a fast shot (harness), the biohazard pulse of a web run (frames skipped), and
+the original's font loading on Windows 11 (worked around in the staged copy). Apart from the blends above (a few levels at the edge of a
+halo, up to 91 levels at the edge of the explosion ring) nothing in a screen, a sound effect or a page differs in the tours.
+
+### The fixes mod, the baseline, the rest
+
+**Fixes mod:** one candidate, listed in GAME_NOTES section 7 (the weapon box's OK button ticks); the mod waits for
+`docs/MOD_ROADMAP.md`'s turn. **Baseline:** `build/baseline-astropop` is the exe of `65795b0b`; `tools/check.sh astropop` plays a
+classic game of 120 moves with real input, compares its state with the baseline's, and passes; `tools/check.sh build` passes.
+**Registration code** was out before this phase (GAME_NOTES section 5); the More Games panel went with this one.
+**Waiting for shared code:** the 2004 `DDImage` blit arithmetic (NormalBlt, AdditiveBlt) and its stretch (StretchBlt,
+SlowStretchBlt), the two differences above; both specs are with the coordinator. **Not done in this pass:** the music's state against
+the original's, the performance numbers, the coverage check, the readability pass and taking out the code the game does not need
+(GAME_NOTES section 9).

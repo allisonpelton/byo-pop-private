@@ -6,6 +6,7 @@
 // from the selector, of the game), and the bricks, ten of them with a picture and a line, five on each of the two other pages.
 // The first button is CLOSE, the second MORE... goes on to the next page. Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "Dialog.h"
 #include <string>
 #include <vector>
@@ -15,7 +16,7 @@ namespace Sexy
 
 class AstroPopApp;
 
-class HelpDialog : public Dialog
+class HelpDialog : public Text2004<Dialog>
 {
 public:
 	// a brick with its picture and the line that tells what it does (0x20 bytes in the original)

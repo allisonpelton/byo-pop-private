@@ -1,0 +1,65 @@
+# a classic game left to itself with the hints off (four moves, then the options box: Allow Hints off): the rows reach the ship, the game over, the end screen (Continue, Menu), a new game, and out by the options box
+3101 click 320 447
+3162 type Test
+3167 key Return
+3228 click 100 190
+3289 click 80 418
+3350 click 320 440
+3372 click 391 345
+3427 move 188 440
+3428 click 188 440
+3434 move 584 440
+3435 rclick 584 440
+3489 move 584 440
+3490 click 584 440
+3496 move 188 440
+3497 rclick 188 440
+3518 move 276 440
+3519 click 276 440
+3525 move 188 440
+3526 rclick 188 440
+3600 key Escape
+3650 click 356 228
+3680 shot g3680
+3720 click 410 388
+3760 shot g3760
+4000 shot g4000
+4000 shot g4000
+6000 shot g6000
+8000 shot g8000
+10000 shot g10000
+12000 shot g12000
+14000 shot g14000
+16000 shot g16000
+18000 shot g18000
+20000 shot g20000
+20150 shot g20150
+20300 shot g20300
+20350 shot g20350
+20400 shot g20400
+20450 shot g20450
+20500 shot g20500
+20550 shot g20550
+20600 shot g20600
+20650 shot g20650
+20700 shot g20700
+20750 shot g20750
+20800 shot g20800
+20900 shot g20900
+21000 shot g21000
+21050 move 278 449
+21080 shot hContinue
+21100 move 490 449
+21130 shot hMenu
+21150 click 278 449
+21200 shot r21200
+21400 shot r21400
+21420 click 320 440
+21480 shot r21480
+21550 key Escape
+21590 shot r21590
+21600 click 230 388
+21640 shot r21640
+21650 click 255 279
+21720 shot r21720
+21900 shot r21900

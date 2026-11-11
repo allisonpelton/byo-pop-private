@@ -101,10 +101,11 @@ typically like").
 - **Twelve at work, flat out, and three early ports (the user, 2026-11-07):** "No limit on concurrent sessions while
   getting all current games to their finished state", run flat out to the 97% cap ("Flat out to the cap"). After 21
   sessions at work filled the machine and two crashed: "Too many sessions, some crashed. Set a comfortable limit to
-  avoid this happening again." The limit is 12 sessions at work besides the coordinator, where at work means in a turn
+  avoid this happening again." The limit is 6 sessions at work besides the coordinator (the user, 2026-11-11, after
+  12 had been set: "Resuming so many will probably cause more crashes. ... I'll tentatively say six"), where at work means in a turn
   or waiting on a run of its own. Each session's own process holds about 0.6 GB even while idle, and its builds,
   decompiles, games and sandboxes come on top in bursts. Before waking one, the coordinator also checks the machine:
-  under 6 GB free, or over 80% of the commit limit, means waiting even below 12. A session past the limit waits idle
+  under 6 GB free, or over 80% of the commit limit, means waiting even below 6. A session past the limit waits idle
   with nothing running, on a background wait for its own file (`until [ -f <main checkout>/build/slots/<name>.go ]; do
   sleep 60; done; cat` the file). When a slot frees, the coordinator writes that file with any news for the session.
   Such a wake costs no message (the app's limit of 10 since the user last typed). A crashed session comes back only
@@ -117,6 +118,14 @@ typically like").
 - **The README's performance table (the user, 2026-11-10):** "Include in the readme a performance comparison table
   including load time, CPU, and memory usage for every game", port against original, from each game's performance
   numbers in its notes.
+- **Shared costs found by Typer Shark's performance pass (2026-11-11; its GAME_NOTES section 11, "Shared costs"):**
+  about a quarter of a load's processor time goes to GIFs, decoded to 32 bits (`_stbi__out_gif_code`, 13%) and
+  quantized back to 8 (`Sexy::Quantize8Bit`, 12%, a binary search for each pixel; a cache of the last colour gives the
+  identical table), 0.15 to 0.2 s of a 0.75 s load in any game with GIFs; SDL's software renderer, which
+  `DDInterface::Init` falls back to without a GPU, costs 10 to 13 ms a frame at 640x480 against 0.26 ms with
+  Direct3D 11; the Direct3D 11 device costs a process 20 to 25 MB and about 0.2 s of start; the framework keeps an
+  image's pixels after their upload (20.6 of this game's 85 MB); imagehlp.dll takes 7.6% of the load's cycles from a
+  call site not yet found. None is fixed yet.
 - **A shared cost found by Atomica's performance pass (2026-11-11):** `DDInterface::FillScanLines` hands every row to
   SDL as its own rectangle. Atomica's tunnel sends about 21,000 a frame, which costs about 58 MB of private bytes in
   the driver (under every renderer) and over a quarter of the game's processor time. Joining rows that touch could

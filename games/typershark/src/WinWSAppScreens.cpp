@@ -1,5 +1,5 @@
-// WinWSAppScreens.cpp: the screens and dialogs the app shows (the original's unnamed WinWSApp methods between 0x4128a0
-// and 0x431320): the menu, map, board, statistics and high score screens, the user dialogs, the message and hint
+// WinWSAppScreens.cpp: the screens and dialogs the app shows (the original's WinWSApp methods between 0x4128a0
+// and 0x431320, which the export lists by address only): the menu, map, board, statistics and high score screens, the user dialogs, the message and hint
 // dialogs and the level introductions. The button handler (0x431630) is in WinWSAppButtons.cpp.
 
 #include "WinWSApp.h"
@@ -79,14 +79,6 @@ void WinWSApp::RemoveMenuScreen()
 	}
 }
 
-// 0x412c90: the typing tutor's own ButtonListener (the object at +0x58, slot 4 = ButtonDepress) gets button 0x58, then the
-// tutor takes the focus. The original does not test mTypingTutor.
-void WinWSApp::ActivateTypingTutor()
-{
-	mTypingTutor->ButtonDepress(0x58);
-	mWidgetManager->SetFocus(mTypingTutor);
-}
-
 // 0x412cc0: slot 46 (MarkDirty)
 void WinWSApp::MarkMenuScreenDirty()
 {
@@ -99,13 +91,6 @@ void WinWSApp::BringStatsCloseButtonToFront()
 {
 	if (mStatsCloseButton != NULL)
 		mWidgetManager->BringToFront(mStatsCloseButton);
-}
-
-// 0x412d00
-void WinWSApp::FocusTypingTutor()
-{
-	if (mTypingTutor != NULL)
-		mWidgetManager->SetFocus(mTypingTutor);
 }
 
 // 0x412d50: the current user's hints setting
@@ -426,7 +411,7 @@ void WinWSApp::ShowHintDialog(std::string theLines, std::string theHeader)
 	mHintDialog->SetLinesFont(mFontRockwell13);
 	mHintDialog->mSpaceAfterHeader = 0x19;
 	mHintDialog->mContentInsets = Insets(0x28, 0x14, 0x28, 0x28);
-	mHintDialog->mField120 = 5;         // +0x120 (the hint dialog's own field; the dialog group names it)
+	mHintDialog->mButtonSample = 5;         // +0x120 (the hint dialog's own field; the dialog group names it)
 	mHintDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0, 0, 0));
 	mHintDialog->SetColor(Dialog::COLOR_HEADER, Color(0, 0, 0));
 	mHintDialog->SetColor(Dialog::COLOR_LINES, Color(0, 0, 0));
@@ -565,7 +550,7 @@ void WinWSApp::ShowMapScreen()
 // 0x431320: starts a game: the map screen steps aside and a new board comes
 void WinWSApp::StartBoard()
 {
-	mFlag8d8 = false;
+	mAdventureStarting = false;
 	mMapScreen->SetVisible(false);
 	mMapScreen->SetDisabled(true);
 
@@ -594,7 +579,7 @@ void WinWSApp::StartBoard()
 	mBoard->SetLessonManager(mLessonManager);   // 0x451cb0
 	mBoard->Resize(0, 0, mWidth, mHeight);
 	mStats->mReserved[0]++;                     // +4: the number of games started
-	mStats->mReserved[6] = mField904;           // +0x1c
+	mStats->mReserved[6] = mPausedTimeSoFar;           // +0x1c
 	mBoard->StartGame(*mStats);                 // 0x440130 (the 0x30-byte block by value)
 	mWidgetManager->AddWidget(mBoard);
 	mBoard->SetVisible(true);

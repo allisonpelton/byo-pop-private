@@ -986,7 +986,9 @@ answers on stdout with one line. A run that gives none is unchanged (the suite's
   below under "Saving on the way out") into `<dir>`, each file by its name, and answers `SHUTDOWNSAVES <names>`, so a test
   compares it with what a quit writes. `gem <row> <col> flame` makes the gem there a flame gem at once (the piece's own
   MakePower, as a match of four does, without the board's stats; ERROR with no gem there or a busy board), so a driver
-  sets flame gems off with a real twist (realplay/live.py's `flame` step).
+  sets flame gems off with a real twist (realplay/live.py's `flame` step). `autoplaychallenge` makes -autoplay's mode
+  the challenges (2), which its command line cannot name: the mode select then opens the challenge menu, a script clicks
+  the planet, and -autoplay plays the challenge (below, "Challenges against the original").
 
 ## Saving on the way out
 
@@ -1052,6 +1054,52 @@ is reported in IDENTICAL_PLAY.md.
   the constructor registers SWTri's drawers as the original's does (0x766ce7 calls 0x50f7e0); without them SWTri drew
   nothing, the tutorial's click-now arrows among it. Additive matrix and triangle draws still go through SDL, since
   1.3's SWTri has no additive triangles (Twist's has, 0x60d250's flag 0x80). It costs about 2 ms a frame.
+
+## Challenges against the original (2026-11-11)
+
+Challenge mode was compared in five 2D runs in origrun's sandbox (seed 1234) and in three 3D runs on the visible
+desktop (the user, 2026-11-11: "3D testing for Twist approved"). In each, a saved profile sets the challenge's
+state; a script clicks a planet, and the game's own autoplay plays the challenge. The original's copy takes a test patch
+that makes its -autoplay=classic play challenges. The port takes the `autoplaychallenge` test command. The 2D runs:
+A wins Detonator and shows the bar's new stage; B opens the Tube Menu and Restart Challenge, says Yes, then wins the
+timed Firestorm; C plays a three-minute highest-single-move challenge; E plays a one-move challenge (destroy 12 gems in
+one move); F plays a timed 30-flame-gem challenge to its game over. The original's update N is the port's N - 842 (the original's main menu
+is made at 847, the port's at 4); sound lines up at the original's virtual ms / 10 - 845. Shots were compared by
+shotdiff; sound by soundcmp and the gaps between plays.
+
+**Fixed by the comparison:**
+- The challenge bar's curves were swapped: the lock that a new stage opens wipes by the curve at +0x248 (0x6df324),
+  and the new number's glow fades by 1 minus the one at +0x1d8 (0x6df21c). The port had them the other way round, so
+  the lock and number moved at the wrong times. (`mLockWipe`, `mNewNumberGlow`.)
+- A Twist dialog button drew cel 0 whatever its state: DrawImageBox gets the whole cel (0x422980, its row the cel
+  over the columns), and IMAGE_SIZEABLEBUTTON is one column of three rows, so pressed and hover never showed.
+- "CHALLENGE COMPLETE" zoomed one update ahead in every script shot: its curve counts the app's updates, and a
+  script's shot ran after the count moved. The framework's mid-update shots now draw with the count one lower
+  (shared, SaveScreenshotMidUpdate).
+- An additive software stretch drew its black background (the board's picture at a challenge's end): the software
+  stretch now blits with the draw's colour and mode, as 0x41a3e0 does (shared).
+
+**What differs and why.** Every box shotdiff still flags in A, B, C, E and F was looked at: smoke, sparks, the
+moon's flame ring, flame fire, the game-over gems' fall and the original's own mouse pointer, which origrun draws
+into its shots. The effects draw from the global Rand, which in the original moves from run to run (a coal gem's
+ember counter starts from the heap; see "Oddities"). The boards, which come from the board's own generator, match
+in every run through the end. The `-fast` clock changes none of this: F rerun in real time gave the same pictures
+pixel for pixel. The picked planet's name seems to flash in over five updates. It does not: the original draws
+nothing for six updates after the click's slow update, catching up, and its frames 1900 to 1905 are the same picture.
+Sound: the same events in order in every run. The original's runs end with a few more "stop" lines, its shutdown
+stopping sounds still playing; the port logs no stops at exit.
+
+**3D on the visible desktop** (`build/bjt/v3d/visrun_twist.py`, Bookworm Adventures' visrun with `--users`,
+`peek`, `chain`). The original runs on the real clock, so a shot lands some updates after the one asked for,
+and during the load as many as 50: there the original makes many updates for each frame it draws. A shot holds the
+game 60 ms, so the frames the card has queued reach the window first. The port's shots were then taken at the
+updates the original's landed at, with each click just after the shot before it. By state, the load matches update
+for update: the menu's mOpen, the hyperspace's states and the crystal curves (visrun's peeks). By picture, the load,
+the Options and Restart Challenge dialogs, the win, the bar and the rank's star match. The tube's white fly-in is the
+original's too: the sidebar shader's constant c0.z is the tube's blend plus 1 minus its alpha. Left unmatched: the
+nebula turns on its own real-time clock; the volume sliders show the user's own saved volumes; and once the shots have
+slowed the original, its clicks land a few updates off, so its later boards part from the port's. No 3D
+performance pairs were taken: real-time visible runs give no clean timing.
 
 ## Sound
 
@@ -1382,9 +1430,9 @@ leaving it out). It does not prove that a counterpart is right; only a compariso
 reached" there means "no run of mine reached it", not "the game works without it". Challenge mode shows the gap: its functions
 were reached and had counterparts, and it still had four faults (below), because none of its screens had ever been compared
 with the original by pictures. Neither phase of `IDENTICAL_PLAY.md` has a challenge-mode comparison in it. Compared since
-(2026-11-10, in 2D): the challenge menu at rest, and the load from the planet's click to the first "GO!". Still never compared:
-the win's message, the trophy and the planets' progress after it, a failed challenge, the timed and the night challenges, the
-in-game options' restart of a challenge, a saved challenge continued, and everything of challenge mode in 3D.
+(2026-11-10, in 2D): the challenge menu at rest, and the load from the planet's click to the first "GO!". The rest (the win's
+message and what follows it, a failed challenge, the timed and the night challenges, restart and continue, and challenge mode
+in 3D) was compared on 2026-11-11: "Challenges against the original".
 
 **Open.** For the tool (sent to the coordinator): coverage inside Windows Sandbox, so that the 3D code, and runs that need
 shots, can be recorded. The rank badge's tip against the original: three sandbox runs with the user's player staged (2026-11-11) did not get a
@@ -1436,8 +1484,8 @@ numbers, the load matched but for three things, masked or left. The original's c
 not (a mask at the pointer's place). The sun's flames round the moon and the glints on a few gems as the board settles differ
 in shape and moment: both draw random numbers on their own, apart from the board's, which matched gem for gem (masks). And the
 picked planet's name flashes in over the five updates between the press and the release in the port, while the original's five
-captures there are identical and brighter; whether the original shows the name at once or the sandbox captured one frame five
-times was not settled, and it is left open here.
+captures there are identical and brighter; the original draws nothing for those updates, so its captures repeat
+one frame (settled 2026-11-11, "Challenges against the original").
 
 The game-text table was stale: a curve or text whose address `gametext.py` has not listed reads as empty, so the 3D branch's
 twelve curves ran out at once until the table was made again, and the rank badge's two texts of the coverage check had been

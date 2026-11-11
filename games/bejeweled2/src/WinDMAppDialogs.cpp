@@ -67,6 +67,12 @@ Dialog* WinDMApp::ShowMessage(int theDialogId, const std::string& theHeader, con
 	return DoDialog(theDialogId, true, theHeader, theLines, "OK", theButtonMode);
 }
 
+// 0x5dc1cf: a button that the app listens to goes down with the click sound
+void WinDMApp::ButtonPress(int theId)
+{
+	PlaySample(SOUND_CLICK);
+}
+
 // 0x5e1ed9: a button of a dialog was pressed and let go
 void WinDMApp::ButtonDepress(int theId)
 {

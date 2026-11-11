@@ -9,6 +9,7 @@
 // button on the left turns the page, one on the right closes the screen (the application does that: CloseHallOfFame).
 // Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "ButtonListener.h"
 #include "Color.h"
 #include "Widget.h"
@@ -22,7 +23,7 @@ class AstroButton;
 class AstroPopApp;
 class Font;
 
-class HallOfFame : public Widget, public ButtonListener
+class HallOfFame : public Text2004<Widget>, public ButtonListener
 {
 public:
 	enum

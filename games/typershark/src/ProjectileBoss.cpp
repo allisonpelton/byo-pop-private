@@ -18,12 +18,12 @@ ProjectileBoss::ProjectileBoss(WinWSApp* theApp, GameObject* thePlayer, LessonMa
 	mTimer(NULL),
 	mFireInterval(0.0),
 	mHitPoints(0),
-	mField10c(0),
+	mMaxHitPoints(0),
 	mMinY(0.0),
 	mMaxY(0.0),
 	mMinX(0.0),
 	mMaxX(0.0),
-	mField130(0),
+	mMinShots(0),
 	mMaxShots(0),
 	mBobVelY(0.0),
 	mBobVelX(0.0),
@@ -38,20 +38,20 @@ ProjectileBoss::ProjectileBoss(WinWSApp* theApp, GameObject* thePlayer, LessonMa
 	mTimer = new WSTimer();
 	mTimer->SetDisabled(true);
 	mApp->mWidgetManager->AddWidget(mTimer);
-	mField10c = 100;
+	mMaxHitPoints = 100;
 	mHitPoints = 100;
 	mConfig = theConfig;
 	if (mConfig->mAbyssMode == 0)
 	{
 		mFireInterval = mConfig->GetEnemyRecord(0)->mFireInterval;
-		mField10c = mConfig->GetEnemyRecord(0)->mHitPoints;
-		mHitPoints = mField10c;
+		mMaxHitPoints = mConfig->GetEnemyRecord(0)->mHitPoints;
+		mHitPoints = mMaxHitPoints;
 		mBobVelY = mConfig->GetEnemyRecord(0)->mBobSpeed;
 	}
 	else
 	{
 		mFireInterval = 1000.0;
-		mField10c = 200;
+		mMaxHitPoints = 200;
 		mHitPoints = 200;
 		mBobVelY = 0.2;
 	}
@@ -132,8 +132,8 @@ void ProjectileBoss::Update()
 			else
 			{
 				mFrame = 0;
-				if (!mFlag18)
-					mFlag18 = true;
+				if (!mDeathFinished)
+					mDeathFinished = true;
 			}
 		}
 	}

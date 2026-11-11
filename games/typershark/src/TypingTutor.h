@@ -74,7 +74,7 @@ public:
 	int						mLessonTime;		// +0x10 <LESSONTIME> seconds the lesson lasts (-1: no limit); the original leaves it unset when the tag is missing
 	std::string				mDescription;		// +0x14 <DESCRIPTION> the text at the right of the panel
 	std::vector<TutorExercise*> mTasks;			// +0x30 (begin at +0x34)
-	int						mUserState;			// +0x40 the user's result for the lesson: -1 not finished yet, 0 failed, 1 passed (UserProfile::mField94)
+	int						mUserState;			// +0x40 the user's result for the lesson: -1 not finished yet, 0 failed, 1 passed (UserProfile::mLessonOutcome)
 
 public:
 	TutorLesson();								// 0x420bd0 (the caller then sets the first four ints to -1)
@@ -102,7 +102,7 @@ class TypingTutor : public Widget, public ButtonListener
 public:
 	enum
 	{
-		NEXT_BUTTON_ID = 0x58,				// the next lesson (also what the app sends to start the tutor: ActivateTypingTutor)
+		NEXT_BUTTON_ID = 0x58,				// the next lesson
 		PREV_BUTTON_ID = 0x59,				// the previous lesson
 		MENU_BUTTON_ID = 0x5a,				// back to the menu (asks first)
 		OPTIONS_BUTTON_ID = 0x5b			// the options dialog
@@ -148,9 +148,9 @@ public:
 	int						mFirstLine;			// +0x254 the first of the four lines that are shown
 	int						mPauseCount;		// +0x258 above 0 while the window has lost the focus or a dialog is up
 	WinWSApp*				mApp;				// +0x25c
-	bool					mFlag260;			// +0x260 constructor 0, never read
-	bool					mFlag261;			// +0x261 the "view stats" dialog is up; the app reads it in ButtonDepress
-	bool					mFlag262;			// +0x262 the "quit" or "test completed" dialog is up; the app reads it in ButtonDepress
+	bool					mSpareDialogFlag;			// +0x260 constructor 0, never read or set again (the third of the three dialog flags at +0x260 to +0x262)
+	bool					mViewStatsAsked;			// +0x261 the "VIEW STATS?" question is up (Finish sets it after a lesson; the app clears it on no and when the stats screen closes, and its yes handler opens the stats screen)
+	bool					mLeaveAsked;			// +0x262 the "Test Completed!" box or the "QUIT?" question is up (Finish and the menu button set it); the app's OK or yes handler then removes the tutor and goes back to the menu
 
 public:
 	TypingTutor(WinWSApp* theApp);														// 0x460b30

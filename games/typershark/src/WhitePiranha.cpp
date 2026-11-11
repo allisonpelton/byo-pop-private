@@ -9,7 +9,7 @@ using namespace Sexy;
 // Not translated (vtordisp thunks): 0x410e30, 0x410e40, 0x410e50, 0x410e60, 0x410f30, 0x410f40 (jump to Piranha's and
 // GameObject's functions with the pointer adjusted), 0x410ed0 (deleting destructor)
 
-// 0x410c70: Piranha (0x40fca0, GameObject 0x4611b0 and Enemy 0x40a3f0 first), then the WhitePiranha part
+// 0x410c70: Piranha (0x40fca0, GameObject 0x4611b0 and Enemy 0x40a3f0 first), then the WhitePiranha part (the export cuts it in two at 0x410c93)
 WhitePiranha::WhitePiranha(WinWSApp* theApp, int theType) :
 	Piranha(theApp, theType)
 {
@@ -26,16 +26,16 @@ WhitePiranha::~WhitePiranha()
 // 0x410e70: the one place where the second word is set from outside, by a string passed by value
 void WhitePiranha::SetWord2(std::string theWord)
 {
-	mWord2 = theWord;
+	mSecondWord = theWord;
 }
 
 // 0x405f50 (Piranha part slot 0): true while swimming (state 0); in the other states only when there is a word and
-// mFlag50 is not set. (Piranha::IsSwimming also wants the piranha visible.)
+// mKilledByEmp is not set. (Piranha::IsSwimming also wants the piranha visible.)
 bool WhitePiranha::IsSwimming()
 {
 	if (mState != 0)
 	{
-		if (mWord.empty() || mFlag50)
+		if (mWord.empty() || mKilledByEmp)
 			return false;
 	}
 	return true;
@@ -48,7 +48,7 @@ void WhitePiranha::SetState(int theState)
 	Piranha::SetState(theState);
 	if (theState == 3)
 	{
-		if (!mWord.empty() && !mFlag50)
+		if (!mWord.empty() && !mKilledByEmp)
 		{
 			mFrameDelay = 5;
 			mVelY = 0.0;
@@ -63,12 +63,12 @@ void WhitePiranha::SetState(int theState)
 }
 
 // 0x40d9c0: replaces Enemy::TypeLetter and does not count a letter up. Event 1 is pushed. With a second word it
-// becomes the word (mNumTyped 0) and mWord2 is cleared; without one the creature lets go of its target and the word
-// is cleared, with mNumTyped counted down by one. The points of the word that is left (mField54) are worked out last
+// becomes the word (mNumTyped 0) and mSecondWord is cleared; without one the creature lets go of its target and the word
+// is cleared, with mNumTyped counted down by one. The points of the word that is left (mWordPoints) are worked out last
 void WhitePiranha::TypeLetter()
 {
 	mEvents.push_back(1);
-	if (mWord2.empty())
+	if (mSecondWord.empty())
 	{
 		ReleaseTarget();
 		if (mAttacker != NULL)
@@ -78,10 +78,10 @@ void WhitePiranha::TypeLetter()
 	}
 	else
 	{
-		mWord = mWord2;
+		mWord = mSecondWord;
 		mNumTyped = 0;
-		mWord2 = "";
+		mSecondWord = "";
 	}
 	if (!mWord.empty())
-		mField54 = GetPoints();
+		mWordPoints = GetPoints();
 }

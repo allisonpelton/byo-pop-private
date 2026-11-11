@@ -15,7 +15,7 @@ using namespace Sexy;
 // 0x48ab10: the box is of the colour set it is given (the game's mode + 2, or 1 from the selector). The lines of the first
 // page are those of the game that is on: none (from the selector: all the rules), the classic game (m1a60 is 1) or the other.
 HelpDialog::HelpDialog(int theColourSet, AstroPopApp* theApp) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x79, true, GT(0x0056b554), std::string(), std::string(), 1)
+	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x79, true, GT(0x0056b554), std::string(), std::string(), 1)
 {
 	mApp = theApp;
 	m134 = 0;
@@ -63,7 +63,10 @@ HelpDialog::HelpDialog(int theColourSet, AstroPopApp* theApp) :
 	theApp->MakeDialogImages(anInsetColor, aButtonColor, &anInsetImage, &aButtonImage, true);
 	mComponentImage = anInsetImage;
 
+	// the 2004 Dialog reads the button height from the button picture at each use (GetPreferredHeight 0x4e91d0 and Resize); the
+	// port keeps the height it took at construction, so it follows the picture that replaces it
 	mYesButton->mComponentImage = aButtonImage;
+	mButtonHeight = aButtonImage->mHeight;
 	mYesButton->mNormalRect = Rect(0, 0, 0x78, 0x21);
 	mYesButton->mOverRect = Rect(0x78, 0, 0x78, 0x21);
 	mYesButton->mDownRect = Rect(0xf0, 0, 0x78, 0x21);

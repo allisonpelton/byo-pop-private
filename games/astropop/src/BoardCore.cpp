@@ -414,37 +414,37 @@ bool Board::HasCell3(int theCol, int theRow, const std::vector<CellRef3>& theCel
 // 0x4333c0: one step of a scrolling layer of the scenery. The layer moves when the update count is a multiple of its
 // period, faster the more the stage has speed (m938 of the boost, m1c00 of the other mode). The picture it shows
 // counts down in mCur[1]; the picture that follows slides in on mNext until it fills the screen. The arithmetic is the
-// x87's, kept in double until a number is stored.
+// x87's at 24 bits: every sum and product is a float, and the compares read the rounded values.
 void Board::StepScrollLayer(ScrollLayer* theLayer)
 {
 	if (mUpdateCnt % theLayer->mPeriod != 0)
 		return;
 
-	double aSpeed = 0.0;
+	float aSpeed = 0.0f;
 	if (m8eb && m938 > 0.0f)
 	{
-		aSpeed = (double) m938 * (double) 0.02f;
-		if (aSpeed > 9.0)
-			aSpeed = 9.0;
+		aSpeed = m938 * 0.02f;
+		if (aSpeed > 9.0f)
+			aSpeed = 9.0f;
 	}
 	else if (m917)
 	{
-		aSpeed = (double) m1c00;
-		if (aSpeed > 9.0)
-			aSpeed = 9.0;
+		aSpeed = m1c00;
+		if (aSpeed > 9.0f)
+			aSpeed = 9.0f;
 	}
 
-	double aStep;
+	float aStep;
 	if (!m8eb && !m917)
-		aStep = (double) theLayer->mSpeed;
+		aStep = theLayer->mSpeed;
 	else
-		aStep = ((m8eb ? 10.0 : 13.0) - aSpeed) + (double) theLayer->mSpeed;
+		aStep = ((m8eb ? 10.0f : 13.0f) - aSpeed) + theLayer->mSpeed;
 
 	if (theLayer->mCur[1] > 0.0f)
 	{
-		double aRest = (double) theLayer->mCur[1] - aStep;
-		theLayer->mCur[1] = (float) aRest;
-		if (aRest <= 0.0)
+		float aRest = theLayer->mCur[1] - aStep;
+		theLayer->mCur[1] = aRest;
+		if (aRest <= 0.0f)
 		{
 			theLayer->mCur[1] = 0.0f;
 			theLayer->mF28 = 0.0f;
@@ -454,13 +454,13 @@ void Board::StepScrollLayer(ScrollLayer* theLayer)
 		return;
 	}
 
-	double aHeight = (double) mHeight;
-	if (aHeight > (double) theLayer->mF24)
+	float aHeight = (float) mHeight;
+	if (aHeight > theLayer->mF24)
 	{
-		theLayer->mNext[1] = (float) ((double) theLayer->mNext[1] - aStep);
-		theLayer->mNext[3] = (float) (aStep + (double) theLayer->mNext[3]);
-		double aPlace = aStep + (double) theLayer->mF24;
-		theLayer->mF24 = (float) aPlace;
+		theLayer->mNext[1] = theLayer->mNext[1] - aStep;
+		theLayer->mNext[3] = aStep + theLayer->mNext[3];
+		float aPlace = aStep + theLayer->mF24;
+		theLayer->mF24 = aPlace;
 		if (aPlace >= aHeight)
 		{
 			memcpy(theLayer->mCur, theLayer->mNext, sizeof(theLayer->mCur));

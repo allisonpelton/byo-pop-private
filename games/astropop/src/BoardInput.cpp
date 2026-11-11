@@ -92,8 +92,8 @@ void Board::AddedToManager(WidgetManager* theManager)
 		m2e0 = aLink;
 		aLink->mUnderlineSize = 1;
 		aLink->SetFont(GetFontById(0xb1));
-		aLink->mColor = Color(0xff, 0xff, 0xff);
-		aLink->mOverColor = Color(200, 200, 200);
+		aLink->mOverColor = Color(0xff, 0xff, 0xff);
+		aLink->mColor = Color(200, 200, 200);
 		aLink->mLabel = GT(0x005654ec);
 		int aWidth = aLink->mFont->StringWidth(aLink->mLabel);
 		int aHeight = aLink->mFont->GetHeight();

@@ -1,7 +1,7 @@
 // Board: the helpers of the drawing (DrawCel and DrawCelStretched, the game's own picture-cel calls) and the backdrop
 // (0x437bd0). Draw itself (0x461e50) is in BoardDrawLayers.cpp, with the parts it is made of; the other sub-draws each
-// have a file of their own. The original works out its positions on the x87 stack, in extended precision; the sums here
-// are done in double before they are cut to a whole pixel, as _ftol does.
+// have a file of their own. The original works out its positions on the x87 stack at 24 bits of precision (UpdateFrames sets
+// it): every sum is a float before it is cut to a whole pixel, as _ftol does.
 
 #include "Board.h"
 #include "AstroPopApp.h"
@@ -135,9 +135,10 @@ void Board::DrawBackdrop(Graphics* g)
 				if (aMargin > 0)
 				{
 					int aLength = aMargin;
-					if (480.0 < (double) aY - (double) aMargin)
-						aLength = (int) (480.0 - ((double) aY - (double) aMargin));
-					g->DrawImage(aStreak.mImage, aPixelX, (int) ((double) aY - (double) aStreak.mMargin), Rect(0, 0, 1, aLength));
+					float aTailTop = aY - (float) aMargin;    // (x87 at 24 bits: a float)
+					if (480.0f < aTailTop)
+						aLength = (int) (480.0f - aTailTop);
+					g->DrawImage(aStreak.mImage, aPixelX, (int) (aY - (float) aStreak.mMargin), Rect(0, 0, 1, aLength));
 					continue;
 				}
 				aTailUp = m8ed || m8ea || (m917 && m1bc0 == 3);
@@ -148,9 +149,10 @@ void Board::DrawBackdrop(Graphics* g)
 		if (aTailUp && aMargin > 0)
 		{
 			int aLength = aMargin;
-			if (480.0 < (double) aY - (double) aMargin)
-				aLength = (int) (480.0 - ((double) aY - (double) aMargin));
-			g->DrawImage(aStreak.mImage, aPixelX, (int) ((double) aY - (double) aStreak.mMargin),
+			float aTailTop = aY - (float) aMargin;
+			if (480.0f < aTailTop)
+				aLength = (int) (480.0f - aTailTop);
+			g->DrawImage(aStreak.mImage, aPixelX, (int) (aY - (float) aStreak.mMargin),
 				Rect(0, 0x1e0 - aStreak.mMargin, 1, aLength));
 		}
 	}

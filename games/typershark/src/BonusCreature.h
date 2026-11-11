@@ -29,7 +29,7 @@ class Graphics;
 class BonusCreature : public Enemy
 {
 public:
-	int						mField0e8;				// +0xe8 constructor 0xff (not read by this class)
+	int						mAlpha;				// +0xe8 constructor 0xff (the full alpha the creature starts with; not read by this class)
 	double					mQuarterVelY;			// +0xf0 constructor 0; SetVelY stores a quarter of the speed (not read by this class)
 	int						mFrameOffset;			// +0xf8 mFrame * mFrameWidth: the x of the source rectangle in the picture
 

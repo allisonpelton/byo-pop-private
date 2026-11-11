@@ -276,7 +276,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			m8ef = true;
 			m19f0 = 0;
 			unsigned int aDraw = AstroRand();
-			m938 = 420.0f;
+			m938 = 423.0f; // 0x43d38000 at 0x4687f3
 			m19f4 = (((int) aDraw % 500000000) % 200) + 100;
 			m3c0 = Color(100, 100, 100);
 			m1ab8 = 10;

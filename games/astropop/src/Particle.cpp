@@ -68,10 +68,11 @@ void Particle::SetColors(const Color& theColor, const Color& theTarget)
 	mTarget[3] = theTarget.mAlpha;
 }
 
+// 0x402880: the blue falls first; once it has got to its target the green's step is -8 (Update)
 void Particle::SetFadeBlue()
 {
 	mFade = true;
-	mStep[1] = -8;
+	mStep[2] = -8;
 }
 
 void Particle::SetX(float theX)

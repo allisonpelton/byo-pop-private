@@ -103,7 +103,7 @@ TutorLesson* TutorLessons::PrevLesson()
 {
 	// (the original tests mCurrent == 0 first and does nothing with the result)
 	mCurrent = mCurrent - 1;
-	mLessons[mCurrent]->mUserState = mApp->mUser->mField94[mCurrent];
+	mLessons[mCurrent]->mUserState = mApp->mUser->mLessonOutcome[mCurrent];
 	return mLessons[mCurrent];
 }
 
@@ -125,7 +125,7 @@ TutorLesson* TutorLessons::NextLesson()
 	mCurrent = mCurrent + 1;
 	if (!mLessons.empty() && ((unsigned int) mCurrent < mLessons.size()))
 	{
-		mLessons[mCurrent]->mUserState = mApp->mUser->mField94[mCurrent];
+		mLessons[mCurrent]->mUserState = mApp->mUser->mLessonOutcome[mCurrent];
 		return mLessons[mCurrent];
 	}
 
@@ -147,7 +147,7 @@ TutorLesson* TutorLessons::NextLesson()
 			if (inTask)
 				delete aTask;					// leak fix (the original leaks this): the last task was never closed, so it is in no lesson
 			if (!mLessons.empty() && ((unsigned int) mCurrent < mLessons.size()))
-				mLessons[mCurrent]->mUserState = mApp->mUser->mField94[mCurrent];
+				mLessons[mCurrent]->mUserState = mApp->mUser->mLessonOutcome[mCurrent];
 			if (mLessons.empty())
 				return NULL;					// port: the original reads the element before the list
 			return mLessons.back();
@@ -348,7 +348,7 @@ TutorLesson* TutorLessons::NextLesson()
 // number of runs (the stats screen shows the total over the runs)
 void UserProfile::RecordTutorWPM(int theValue, int theLesson)
 {
-	StatRecord& aRecord = mRecordsE0[theLesson];
+	StatRecord& aRecord = mLessonRecords[theLesson];
 	if (aRecord.mField[0] < theValue)
 		aRecord.mField[0] = theValue;
 	aRecord.mField[2] = aRecord.mField[2] + theValue;
@@ -359,7 +359,7 @@ void UserProfile::RecordTutorWPM(int theValue, int theLesson)
 // 0x413c50: the same for the adjusted words per minute (mField[4..7])
 void UserProfile::RecordTutorAdjustedWPM(int theValue, int theLesson)
 {
-	StatRecord& aRecord = mRecordsE0[theLesson];
+	StatRecord& aRecord = mLessonRecords[theLesson];
 	if (aRecord.mField[4] < theValue)
 		aRecord.mField[4] = theValue;
 	aRecord.mField[6] = aRecord.mField[6] + theValue;
@@ -370,7 +370,7 @@ void UserProfile::RecordTutorAdjustedWPM(int theValue, int theLesson)
 // 0x413cb0: the same for the accuracy (mField[8..11])
 void UserProfile::RecordTutorAccuracy(int theValue, int theLesson)
 {
-	StatRecord& aRecord = mRecordsE0[theLesson];
+	StatRecord& aRecord = mLessonRecords[theLesson];
 	if (aRecord.mField[8] < theValue)
 		aRecord.mField[8] = theValue;
 	aRecord.mField[10] = aRecord.mField[10] + theValue;

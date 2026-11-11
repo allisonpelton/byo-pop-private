@@ -1,0 +1,22 @@
+3000 shot e00_title
+3100 click 320 447
+3150 type Test
+3180 key Return
+3260 shot e01_menu
+3300 click 535 250
+3350 shot e02_options
+3360 click 153 248
+3380 shot e03_colorblind
+3390 click 356 224
+3410 shot e04_hints_off
+3420 click 229 296
+3450 shot e05_resethints
+3470 click 408 296
+3520 shot e06_help
+3540 click 320 389
+3570 shot e07_afterhelp
+3600 click 320 329
+3700 shot e08_credits
+3900 shot e09_credits_later
+4000 key Escape
+4050 shot e10_after_credits

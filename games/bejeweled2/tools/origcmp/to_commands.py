@@ -21,6 +21,7 @@ def main():
     ap.add_argument('--delta', type=int, default=1, help='run the lines this many updates earlier (calibration)')
     ap.add_argument('--nosparkle', action='store_true')
     ap.add_argument('--first', type=int, default=1, help='the update at which the first lines of the file run')
+    ap.add_argument('--shots', default=None, help="a folder (relative to the game's working directory): each `shot <name>` of the recording becomes `screenshot <folder>/<name>.png`, run at the update after the recording's one, as the driver's state reply and then its screenshot command are")
     a = ap.parse_args()
     ev = json.load(open(a.events))
     lines = []
@@ -31,11 +32,14 @@ def main():
     for u, cmd, *_ in ev['events']:
         if a.until is not None and u > a.until:
             break
-        want = u - a.delta
+        shot = cmd.startswith('shot ')
+        if shot and a.shots is None:
+            continue
+        want = u - a.delta + (1 if shot else 0)
         if want > cur:
             lines.append('wait %d' % (want - cur))
             cur = want
-        lines.append(cmd)
+        lines.append('screenshot %s/%s.png' % (a.shots, cmd[5:]) if shot else cmd)
     lines.append('quit')
     with open(a.out, 'w') as f:
         f.write('\n'.join(lines) + '\n')

@@ -22,8 +22,8 @@ HintDialog::HintDialog(WinWSApp* theApp, int theId, const SexyString& theDialogH
 	mApp(theApp),
 	mCheckedImage(NULL),
 	mUncheckedImage(NULL),
-	mField120(0),
-	mField124(NULL)
+	mButtonSample(0),
+	mDisableHintsCheckbox(NULL)
 {
 	mTextAlign = -1;
 	int aHeight = theCheckedImage->GetHeight();
@@ -39,10 +39,10 @@ HintDialog::HintDialog(WinWSApp* theApp, int theId, const SexyString& theDialogH
 	Graphics anUncheckedGraphics(mUncheckedImage);
 	anUncheckedGraphics.DrawImage(theCheckedImage, 0, 0);
 
-	mField124 = new Checkbox(mUncheckedImage, mCheckedImage, 0, this);
-	mField124->Resize(mContentInsets.mLeft + 10 + mX, mYesButton->mY - mYesButton->mHeight,
+	mDisableHintsCheckbox = new Checkbox(mUncheckedImage, mCheckedImage, 0, this);
+	mDisableHintsCheckbox->Resize(mContentInsets.mLeft + 10 + mX, mYesButton->mY - mYesButton->mHeight,
 		theCheckedImage->GetWidth() / 2, theCheckedImage->GetHeight());
-	mField124->SetChecked(false, true);
+	mDisableHintsCheckbox->SetChecked(false, true);
 
 	SetHeaderFont(mApp->mFontRockwell13Bold);
 	SetLinesFont(mApp->mFontRockwell13);
@@ -52,7 +52,7 @@ HintDialog::HintDialog(WinWSApp* theApp, int theId, const SexyString& theDialogH
 // 0x4380e0 (body; the scalar deleting destructor is 0x438f40): the check box and its two pictures go
 HintDialog::~HintDialog()
 {
-	delete mField124;
+	delete mDisableHintsCheckbox;
 	delete mUncheckedImage;
 	delete mCheckedImage;
 }
@@ -61,21 +61,21 @@ HintDialog::~HintDialog()
 void HintDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
-	theWidgetManager->AddWidget(mField124);
+	theWidgetManager->AddWidget(mDisableHintsCheckbox);
 }
 
 // 0x4381f0 slot 2
 void HintDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
-	theWidgetManager->RemoveWidget(mField124);
+	theWidgetManager->RemoveWidget(mDisableHintsCheckbox);
 }
 
 // 0x438220 slot 13: the check box sits 20 pixels above the button's top edge less its height
 void HintDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
-	Checkbox* aCheckbox = mField124;
+	Checkbox* aCheckbox = mDisableHintsCheckbox;
 	aCheckbox->Resize(mContentInsets.mLeft + 10 + mX, (mYesButton->mY - mYesButton->mHeight) - 0x14, aCheckbox->mWidth,
 		aCheckbox->mHeight);
 }
@@ -85,13 +85,13 @@ void HintDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 void HintDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
-	int aHeight = mField124->mHeight;
+	int aHeight = mDisableHintsCheckbox->mHeight;
 	int aY = mY;
-	int aCheckY = mField124->mY;
+	int aCheckY = mDisableHintsCheckbox->mY;
 	int aTextY = (aHeight - aY) + aCheckY - 8;
 	g->SetFont(mLinesFont);
 	g->SetColor(mColors[COLOR_LINES]);
-	g->DrawString(GT(0x0052e868), (mField124->mWidth - mX) + mField124->mX + 5, aTextY);
+	g->DrawString(GT(0x0052e868), (mDisableHintsCheckbox->mWidth - mX) + mDisableHintsCheckbox->mX + 5, aTextY);
 }
 
 // 0x438180 slot 20: enter, space and escape press the footer button (the app's ButtonDepress with the dialog id + 2000)
@@ -101,15 +101,9 @@ void HintDialog::KeyChar(SexyChar theChar)
 		mApp->ButtonDepress(mId + ID_YES_2004);
 }
 
-// 0x438170 slot 50: the preferred height is fixed (ShowHintDialog sizes the box itself and never asks)
-int HintDialog::GetPreferredHeight(int theWidth)
-{
-	return 400;
-}
-
-// 0x438280 (ButtonListener slot 3): the click goes to the app, then the sample in mField120 plays
+// 0x438280 (ButtonListener slot 3): the click goes to the app, then the sample in mButtonSample plays
 void HintDialog::ButtonPress(int theId)
 {
 	Dialog2004::ButtonPress(theId);
-	mApp->PlaySample(mField120);
+	mApp->PlaySample(mButtonSample);
 }

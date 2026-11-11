@@ -10,6 +10,7 @@
 // copy is not registered).
 // Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "Widget.h"
 #include "ButtonListener.h"
 #include <vector>
@@ -21,7 +22,7 @@ class AstroPopApp;
 class AstroButton;
 class Image;
 
-class CharSelector : public Widget, public ButtonListener
+class CharSelector : public Text2004<Widget>, public ButtonListener
 {
 public:
 	enum

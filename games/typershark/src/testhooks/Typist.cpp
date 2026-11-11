@@ -1,5 +1,5 @@
-// port: test hook -typist=<file>[;every=K][;start=U][;stop=U][;typo=N][;enter=U] (phase 1 of the identical-play pass,
-// games/typershark/tools/phase1): the game's own bot (Bot.cpp) plays by script lines and writes down every line it plays, so the
+// port: test hook -typist=<file>[;every=K][;start=U][;stop=U][;typo=N][;enter=U] (the comparison of the game's logic with the
+// original's, games/typershark/tools/phase1): the game's own bot (Bot.cpp) plays by script lines and writes down every line it plays, so the
 // same inputs can be sent to the original at the same updates. Each line is `<update> char <c>` or `<update> click <x> <y>`,
 // as -script takes them (the framework's script path: the line of update N runs before update N).
 //   every=K   a letter every K updates (default 1)       start=U   no input before update U
@@ -204,9 +204,9 @@ char MixedClamLetter(const BoardSnapshot& s)
 char ChooseChest(MapScreen* theMap)
 {
 	for (size_t w = 0; w < gTypist.mWant.size(); w++)
-		for (size_t i = 0; i < theMap->mVector1b4.size(); i++)
-			if (theMap->mVector1b4[i]->mLevel == gTypist.mWant[w])
-				return theMap->mVector1b4[i]->mLetter;
+		for (size_t i = 0; i < theMap->mChests.size(); i++)
+			if (theMap->mChests[i]->mLevel == gTypist.mWant[w])
+				return theMap->mChests[i]->mLetter;
 	return 0;
 }
 
@@ -263,12 +263,12 @@ void Sexy::TestTypistStep(WinWSApp* app)
 		}
 		else if (++gTypist.mTutorStuck > 20)
 			return;
-		char c = t->mExpectedChar;
+		char aChar = t->mExpectedChar;
 		if (gTypist.mTutorErrEvery > 0 && ++gTypist.mTutorKeys % gTypist.mTutorErrEvery == 0)
 		{
 			static const char aWrong[] = " \rqz!";
 			char w = aWrong[(gTypist.mTutorKeys / gTypist.mTutorErrEvery) % 5];
-			if (w == c)
+			if (w == aChar)
 				w = 'k';
 			if (w == ' ')
 				Play(app, aNext, "char", "SPACE");
@@ -278,12 +278,12 @@ void Sexy::TestTypistStep(WinWSApp* app)
 				Play(app, aNext, "char", std::string(1, w));
 			return;
 		}
-		if (c == ' ')
+		if (aChar == ' ')
 			Play(app, aNext, "char", "SPACE");
-		else if (c == '\r' || c == '\n')
+		else if (aChar == '\r' || aChar == '\n')
 			Play(app, aNext, "key", "RETURN");
 		else
-			Play(app, aNext, "char", std::string(1, c));
+			Play(app, aNext, "char", std::string(1, aChar));
 		return;
 	}
 	if (app->mBoard == NULL && app->GetDialog(DIALOG_MESSAGE) == NULL)

@@ -92,8 +92,9 @@ void TwistDialogButton::Draw(Graphics* g)
 		aCel = aCelCount - 1;
 	g->SetColorizeImages(true);
 	g->SetColor(Color(255, 255, 255, (int)(mAlpha * 255.0)));
-	// 0x422980: the box from one cel of the image
-	g->DrawImageBox(mComponentImage->GetCelRect(aCel % mComponentImage->mNumCols), Rect(0, 0, mWidth, mHeight),
+	// 0x422980: the box from one cel of the image, its row the cel over the columns (passed in edi) and its column the
+	// remainder
+	g->DrawImageBox(mComponentImage->GetCelRect(aCel), Rect(0, 0, mWidth, mHeight),
 		mComponentImage);
 	g->SetColorizeImages(false);
 

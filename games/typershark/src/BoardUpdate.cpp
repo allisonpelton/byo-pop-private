@@ -12,8 +12,8 @@
 // the GameObject part is a plain delete.
 //
 // What the dialog class (job D1) must offer, as PlayerEaten uses it: GameOverDialog(WinWSApp*, Player*, bool theEndless, int,
-// int, int, int theScore) (ctor 0x43adb0), the int mField11c (+0x11c), the std::string mRankTitle (+0x128) and the int
-// mField144 (+0x144, set only in an endless game). HudBar (job B2) must offer Update() (0x441760). StatusBar (job W1) must
+// int, int, int theScore) (ctor 0x43adb0), the int mGameTime (+0x11c), the std::string mRankTitle (+0x128) and the int
+// mDepth (+0x144, set only in an endless game). HudBar (job B2) must offer Update() (0x441760). StatusBar (job W1) must
 // offer HideButtons() (0x441f10: hides its buttons and sends the widget at +0x68 to the back) and ShowButton(bool)
 // (0x441f80: shows or hides that one widget, in front or at the back).
 
@@ -51,7 +51,7 @@ using namespace Sexy;
 // 0x43fd30
 bool Board::IsBelowSurface()
 {
-	if (mLessonManager->LastWaveIsBoss() && mPlayer->mFlag118 == false && mPlayer->mState == 0)
+	if (mLessonManager->LastWaveIsBoss() && mPlayer->mDiveActive == false && mPlayer->mState == 0)
 	{
 		if ((double)mSurfaceHeight < mDivePos)
 		{
@@ -62,12 +62,12 @@ bool Board::IsBelowSurface()
 	return false;
 }
 
-// 0x43fd90: the percent of the letters typed right (mField0f60 right, mField0f64 wrong) picks the popup: a bronze, silver or
+// 0x43fd90: the percent of the letters typed right (mWaveLettersRight right, mWaveLettersWrong wrong) picks the popup: a bronze, silver or
 // gold medal; from 95 percent up the popup also pays a bonus that grows with the streak, the diver's level and the game's
 // difficulty (or, in an abyss game, the depth)
 void Board::ShowRating()
 {
-	int aPercent = (int)((double)mField0f60 / ((double)mField0f64 + (double)mField0f60) * 100.0);
+	int aPercent = (int)((double)mWaveLettersRight / ((double)mWaveLettersWrong + (double)mWaveLettersRight) * 100.0);
 	RatingPopup* aRating = mRating;
 	if (aPercent < 0x5f)
 	{
@@ -105,7 +105,7 @@ void Board::ShowRating()
 	int aStreak = aPopup->mStreak;
 	if (aStreak > 10)
 		aStreak = 10;
-	int aLevelFactor = mPlayer->mField114;
+	int aLevelFactor = mPlayer->mLevelNumber;
 	if (aLevelFactor > 10)
 		aLevelFactor = 10;
 	else
@@ -136,7 +136,7 @@ void Board::ShowRating()
 void Board::ResetPiranhaSpeed()
 {
 	mPiranhaSpeed = 1.0;
-	mField0e94 = 0;
+	mPenaltyTypoCount = 0;
 }
 
 // 0x4408d0: four pairs of offsets (a creature's spot on the treasure picture?) for each treasure of the game (10 to 15)
@@ -313,7 +313,7 @@ void Board::ShowTreasure()
 	mApp->mWidgetManager->BringToFront(mContinueLink);
 	mContinueLink->SetDisabled(false);
 	mContinueLink->SetVisible(true);
-	mApp->mUser->mField25c[mLessonManager->GetLevel()] = 1;
+	mApp->mUser->mVisitedLevels[mLessonManager->GetLevel()] = 1;
 	unsigned long aRand = gGameRand->NextNoAssert();
 	mApp->mUser->CountSecretFound(aRand & 3);
 	mTreasureImage = mApp->mImages[IMAGE_SECRET_CROWN_LRG + (aRand & 3)];
@@ -364,11 +364,11 @@ bool Board::AvoidWordOverlap(Enemy* theEnemy)
 			aRect.mY = (int)anOther->mY;
 			aRect.mHeight = anOther->GetFrameHeight();
 			aCharWidth = mApp->mFontMyriadCondensed14Bold->StringWidth("A");
-			int aRecordType = anOther->mField0e4;
+			int aRecordType = anOther->mEnemyType;
 			if (aRecordType == 1 || aRecordType == 10)
 			{
 				BlackShark* aBlackShark = dynamic_cast<BlackShark*>(anOther);
-				bool aHasWord2 = aBlackShark->GetWord2() != "";
+				bool aHasWord2 = aBlackShark->mSecondWord != "";
 				if (aHasWord2)
 				{
 					std::string aWord = anOther->mWord;
@@ -381,15 +381,15 @@ bool Board::AvoidWordOverlap(Enemy* theEnemy)
 			{
 				RedShark* aRedShark = dynamic_cast<RedShark*>(anOther);
 				aRect.mWidth = anOther->GetFrameWidth();
-				if (aRedShark->GetWord2() != "")
+				if (aRedShark->mSecondWord != "")
 				{
 					std::string aWord = anOther->mWord;
 					aRect.mWidth = aRect.mWidth + ((int)aWord.size() + 1) * aCharWidth;
 				}
-				if (aRedShark->GetWord3() != "")
+				if (aRedShark->mThirdWord != "")
 				{
-					std::string aWord2 = aRedShark->GetWord2();
-					aRect.mWidth = aRect.mWidth + ((int)aWord2.size() + 1) * aCharWidth;
+					std::string aSecondWord = aRedShark->mSecondWord;
+					aRect.mWidth = aRect.mWidth + ((int)aSecondWord.size() + 1) * aCharWidth;
 				}
 			}
 			else
@@ -448,29 +448,29 @@ std::string Board::PickClamWord()
 	return aWord;
 }
 
-// 0x44fe30: the diver lost a life (his count is mField110): without lives the result is recorded and the game-over dialog
+// 0x44fe30: the diver lost a life (his count is mLives): without lives the result is recorded and the game-over dialog
 // is made; otherwise he starts again at the top of the screen (state 1)
 void Board::PlayerEaten()
 {
-	mPlayer->mField110 = mPlayer->mField110 - 1;
-	if (mPlayer->mField110 < 0)
+	mPlayer->mLives = mPlayer->mLives - 1;
+	if (mPlayer->mLives < 0)
 	{
 		mApp->mUser->RecordResultWithDouble(true, -1, -1, -1.0, -1, -10, -1);
-		mApp->mUser->ClearFields1cc();
+		mApp->mUser->ClearSavedGameTotals();
 		mStats.mReserved[7] = mGameTimer->Elapsed();		// Board +0xe40, word 8 of GetStats' block
 		SaveProgress(true, true);
 		if (mOceanDepth == -1)
 		{
-			mGameOverDialog = new GameOverDialog(mApp, mPlayer, true, mApp->mField900 + mTypeTime,
-				mApp->mField90c + mField0f68, mApp->mField908 + mField0f6c, mScore);
-			mGameOverDialog->mField144 = mScore;
+			mGameOverDialog = new GameOverDialog(mApp, mPlayer, true, mApp->mTypingTimeSoFar + mTypeTime,
+				mApp->mLettersRightSoFar + mLettersRight, mApp->mLettersWrongSoFar + mLettersWrong, mScore);
+			mGameOverDialog->mDepth = mScore;
 		}
 		else
 		{
-			mGameOverDialog = new GameOverDialog(mApp, mPlayer, false, mApp->mField900 + mTypeTime,
-				mApp->mField90c + mField0f68, mApp->mField908 + mField0f6c, mScore);
+			mGameOverDialog = new GameOverDialog(mApp, mPlayer, false, mApp->mTypingTimeSoFar + mTypeTime,
+				mApp->mLettersRightSoFar + mLettersRight, mApp->mLettersWrongSoFar + mLettersWrong, mScore);
 		}
-		mGameOverDialog->mField11c = mApp->mField8fc + mStats.mReserved[7];
+		mGameOverDialog->mGameTime = mApp->mGameTimeSoFar + mStats.mReserved[7];
 		mGameOverDialog->mRankTitle = GetRankTitle();
 		mApp->ChangeMusic(0x1e);
 		SetPaused(true);
@@ -478,18 +478,18 @@ void Board::PlayerEaten()
 		mApp->AddDialog(DIALOG_GAME_OVER, mGameOverDialog);
 		return;
 	}
-	mApp->mFlag671 = true;
+	mApp->mCloseCallSeen = true;
 	mTarget = NULL;
 	mTyped = "";
 	mPlayer->SetState(1);
 	ResetPiranhaSpeed();
 	mRatingTimer->Reset();
-	mFlag0f80 = true;
-	if ((double)mHeight < mField0e10 && mBoss == NULL)
+	mScreenClear = true;
+	if ((double)mHeight < mOceanFloorY && mBoss == NULL)
 	{
-		mTimer0e50->SetDisabled(false);
-		mTimer0e50->Reset();
-		mField0e54 = 0xff;
+		mLevelTitleTimer->SetDisabled(false);
+		mLevelTitleTimer->Reset();
+		mLevelTitleAlpha = 0xff;
 	}
 }
 
@@ -508,9 +508,9 @@ void Board::Update()
 		mFirstUpdate = false;
 		mApp->PlaySample(SOUND_DIVERENTERS);
 		if (mLessonManager->GetLevel() > 0)
-			mApp->mUser->mField25c[mLessonManager->GetLevel()] = 1;
+			mApp->mUser->mVisitedLevels[mLessonManager->GetLevel()] = 1;
 		mApp->SaveGameProgress(false, true);
-		mField0d2c = mApp->mUser->GetField1e4();
+		mAbyssBossIndex = mApp->mUser->GetAbyssBossIndex();
 	}
 	mHudBar->Update();
 
@@ -523,8 +523,8 @@ void Board::Update()
 			{
 				mApp->SetCursor(0);
 				mApp->ShowLevelIntro();
-				mField0e54 = mApp->mUser->mFlag1dc ? 255 : 0;
-				mTimer0e50->SetDisabled(false);
+				mLevelTitleAlpha = mApp->mUser->mSeenTutorial ? 255 : 0;
+				mLevelTitleTimer->SetDisabled(false);
 			}
 			mFadeAlpha = mFadeAlpha - 2;
 			if (mFadeAlpha < 0)
@@ -561,35 +561,35 @@ void Board::Update()
 	if (mPlayer->mState == 7)
 	{
 		// the sonar sweep over the sea while the diver is in state 7: a new picture every sixth tick
-		if (mField0ef8 != 0xff)
+		if (mSonarAlpha != 0xff)
 			return;
 		if (mUpdateCnt % 6 != 0)
 			return;
-		if (mField0ee4 > 0x10)
+		if (mSonarStep > 0x10)
 			return;
-		if (mField0ee4 == 0)
+		if (mSonarStep == 0)
 			mApp->PlaySample(SOUND_SONARPING1);
-		mField0ee4 = mField0ee4 + 1;
-		int aStep = mField0ee4;
+		mSonarStep = mSonarStep + 1;
+		int aStep = mSonarStep;
 		if (aStep <= 4)
-			mImage0ee8 = mApp->mImages[IMAGE_SONAR_SWEEP_0 + aStep];
+			mSonarTopRightImage = mApp->mImages[IMAGE_SONAR_SWEEP_0 + aStep];
 		else if (aStep <= 8)
 		{
-			mImage0ee8 = NULL;
-			mImage0eec = mApp->mImages[IMAGE_SONAR_SWEEP_1 + aStep];
+			mSonarTopRightImage = NULL;
+			mSonarBottomRightImage = mApp->mImages[IMAGE_SONAR_SWEEP_1 + aStep];
 		}
 		else if (aStep <= 0xc)
 		{
-			mImage0eec = NULL;
-			mImage0ef0 = mApp->mSonarSweepImages[aStep - 8];
+			mSonarBottomRightImage = NULL;
+			mSonarBottomLeftImage = mApp->mSonarSweepImages[aStep - 8];
 		}
 		else if (aStep <= 0x10)
 		{
-			mImage0ef0 = NULL;
-			mImage0ef4 = mApp->mSonarSweep2Images[aStep - 12];
+			mSonarBottomLeftImage = NULL;
+			mSonarTopLeftImage = mApp->mSonarSweep2Images[aStep - 12];
 		}
 		else
-			mImage0ef4 = NULL;
+			mSonarTopLeftImage = NULL;
 		MarkDirty();
 		return;
 	}
@@ -605,8 +605,8 @@ void Board::Update()
 	else
 	{
 		// the first time the charge is full, the hint box about the Shark Zapper comes up
-		if (!(mPlayer->mEmpCharge < 1.0) && mFlag0f80 && !IsBelowSurface() && mFadeAlpha < 5 && mApp->HintsEnabled()
-			&& !mLessonManager->IsBonusLevel() && mField0e54 == 0 && (mPlayer->mState == 0 || mPlayer->mState == 1))
+		if (!(mPlayer->mEmpCharge < 1.0) && mScreenClear && !IsBelowSurface() && mFadeAlpha < 5 && mApp->HintsEnabled()
+			&& !mLessonManager->IsBonusLevel() && mLevelTitleAlpha == 0 && (mPlayer->mState == 0 || mPlayer->mState == 1))
 		{
 			mApp->ShowHintDialog(GT(0x005316f0), GT(0x0052b520));
 			mApp->SetUserHints(false);
@@ -622,12 +622,12 @@ void Board::Update()
 	}
 
 	// the charge drains by 0.01 a tick after the zap
-	if (mFlag0eb4)
+	if (mEmpDraining)
 	{
 		double aCharge = mPlayer->mEmpCharge - 0.01;
 		if (aCharge <= 0.0)
 		{
-			mFlag0eb4 = false;
+			mEmpDraining = false;
 			aCharge = 0.0;
 		}
 		mPlayer->mEmpCharge = aCharge;
@@ -686,31 +686,31 @@ void Board::Update()
 	if (mPlayer->mState == 0 && mBoss != NULL && mBoss->mState != 3)
 	{
 		mPlayer->SetState(9);
-		mPlayer->SetFlag118(false);
+		mPlayer->SetDiveActive(false);
 	}
 
-	if (mPlayer->mFlag118)
+	if (mPlayer->mDiveActive)
 	{
-		if (!mApp->mUser->mFlag1dc)
-			mPlayer->SetFlag118(false);
+		if (!mApp->mUser->mSeenTutorial)
+			mPlayer->SetDiveActive(false);
 		else
 		{
 			// the climb down is over: in a lesson with a boss at the end, the dive stops once the ocean floor is in view
 			if (!mLessonManager->mAbyssMode && (mPlayer->mState == 0 || mPlayer->mState == 1))
 			{
 				double aBottom = (double)(mHeight - mApp->mImages[IMAGE_STATUSBARX]->GetHeight());
-				if (!(aBottom < mField0e10) && mLessonManager->LastWaveIsBoss() && !mFlag0ebc && !mLessonManager->IsEndless())
-					mPlayer->SetFlag118(false);
+				if (!(aBottom < mOceanFloorY) && mLessonManager->LastWaveIsBoss() && !mBossBeaten && !mLessonManager->IsEndless())
+					mPlayer->SetDiveActive(false);
 			}
 
 			// the small number in the corner fades out two seconds after the fade-in
-			if (mTimer0e50->Elapsed() >= 2000)
+			if (mLevelTitleTimer->Elapsed() >= 2000)
 			{
-				mField0e54 = mField0e54 - 3;
-				if (mField0e54 <= 0)
+				mLevelTitleAlpha = mLevelTitleAlpha - 3;
+				if (mLevelTitleAlpha <= 0)
 				{
-					mField0e54 = 0;
-					mTimer0e50->SetDisabled(true);
+					mLevelTitleAlpha = 0;
+					mLevelTitleTimer->SetDisabled(true);
 				}
 			}
 
@@ -721,8 +721,8 @@ void Board::Update()
 			{
 				double aNewY = mBgLayers[i].mY - mDiverSpeed;
 				mBgLayers[i].mY = aNewY;
-				if (!(-(double)mField0f84 < aNewY))
-					mBgLayers[i].mY = (double)(mField0f84 * 2) + aNewY;
+				if (!(-(double)mWaterImageHeight < aNewY))
+					mBgLayers[i].mY = (double)(mWaterImageHeight * 2) + aNewY;
 			}
 
 			// the labels of the depth ruler scroll up too; one that has left the top is deleted, one that the diver has
@@ -748,12 +748,12 @@ void Board::Update()
 							mScore = mDepthMarkers[aMarkerIdx]->mDepth;
 							if (mScore % 1000 == 0)
 							{
-								if (mLessonManager->mAbyssMode && mBoss == NULL && !mFlag0d28)
+								if (mLessonManager->mAbyssMode && mBoss == NULL && !mAbyssBossDue)
 								{
-									int aCount = mField0d2c + 1;
-									mFlag0d28 = true;
-									mField0d2c = aCount;
-									mApp->mUser->SetField1e4(aCount);
+									int aCount = mAbyssBossIndex + 1;
+									mAbyssBossDue = true;
+									mAbyssBossIndex = aCount;
+									mApp->mUser->SetAbyssBossIndex(aCount);
 								}
 							}
 							if (mScore % 400 == 0)
@@ -800,11 +800,11 @@ void Board::Update()
 				}
 			}
 
-			if (!(mField0e10 == -1.0))
+			if (!(mOceanFloorY == -1.0))
 			{
 				int aFloorLimit = mHeight - mApp->mImages[IMAGE_OCEANFLOOR]->GetHeight()
 					- mApp->mImages[IMAGE_STATUSBARX]->GetHeight() + 10;
-				if (!((double)aFloorLimit < mField0e10))
+				if (!((double)aFloorLimit < mOceanFloorY))
 				{
 					// the ocean floor is in reach
 					if (mPlayer->mState == 0 && !(mPlayer->mY < 235.0))
@@ -871,43 +871,43 @@ void Board::Update()
 					else if (mPlayer->mState == 0xb && !(mPlayer->mY < 235.0))
 					{
 						// the diver is back at the bottom after the treasure: the level is won
-						mPlayer->SetFlag118(false);
+						mPlayer->SetDiveActive(false);
 						mPlayer->SetState(0xc);
 						mEmpTimer->SetDisabled(true);
-						mTimer0f00->SetDisabled(false);
-						mTimer0f00->Reset();
+						mTreasureTimer->SetDisabled(false);
+						mTreasureTimer->Reset();
 						mApp->PlaySample(SOUND_WINGEM);
 						mStats.mReserved[7] = mGameTimer->Elapsed();		// Board +0xe40
 						mPlayer->AddScore(GetLevelBonus());
 					}
 					else
-						mPlayer->SetFlag118(false);
+						mPlayer->SetDiveActive(false);
 				}
 				else
 				{
 					// the floor is still below: the sea pictures scroll up with the dive (the far ones slower, the near ones faster)
-					mField0e10 = mField0e10 - mDiverSpeed;
+					mOceanFloorY = mOceanFloorY - mDiverSpeed;
 					double aNear = (double)(mHeight - mApp->mImages[IMAGE_STATUSBARX]->GetHeight());
-					if (aNear > mField0d20)
+					if (aNear > mFarMountainsY)
 					{
-						mField0d10 = mField0d10 - (mDiverSpeed + mDiverSpeed);
-						mField0d18 = mField0d18 - mDiverSpeed * 1.8;
-						mField0d20 = mField0d20 - mDiverSpeed * 1.6;
+						mNearMountainsY = mNearMountainsY - (mDiverSpeed + mDiverSpeed);
+						mMidMountainsY = mMidMountainsY - mDiverSpeed * 1.8;
+						mFarMountainsY = mFarMountainsY - mDiverSpeed * 1.6;
 					}
 					else
 					{
-						mField0d10 = mField0d10 - mDiverSpeed;
-						mField0d18 = mField0d18 - mDiverSpeed;
-						mField0d20 = mField0d20 - mDiverSpeed;
+						mNearMountainsY = mNearMountainsY - mDiverSpeed;
+						mMidMountainsY = mMidMountainsY - mDiverSpeed;
+						mFarMountainsY = mFarMountainsY - mDiverSpeed;
 					}
 				}
 			}
 			else
 			{
 				// no ocean floor (endless): every 200 feet of depth the lesson goes on to the next level (0x45c140: score / 200)
-				if (mScore / 200 > mField1c0 / 200 && mFlag0f80)
+				if (mScore / 200 > mLessonStepDepth / 200 && mScreenClear)
 				{
-					mField1c0 = mScore;
+					mLessonStepDepth = mScore;
 					mLessonManager->NextLevel();
 					bool aGoOn = true;
 					if (mLessonManager->mAbyssMode)
@@ -926,13 +926,13 @@ void Board::Update()
 	{
 		if (mPlayer->mState == 1 || mPlayer->mState == 9)
 		{
-			if (mTimer0e50->Elapsed() >= 2000)
+			if (mLevelTitleTimer->Elapsed() >= 2000)
 			{
-				mField0e54 = mField0e54 - 3;
-				if (mField0e54 <= 0)
+				mLevelTitleAlpha = mLevelTitleAlpha - 3;
+				if (mLevelTitleAlpha <= 0)
 				{
-					mField0e54 = 0;
-					mTimer0e50->SetDisabled(true);
+					mLevelTitleAlpha = 0;
+					mLevelTitleTimer->SetDisabled(true);
 				}
 			}
 		}
@@ -941,7 +941,7 @@ void Board::Update()
 	if (mPlayer->mState == 4)
 	{
 		// the diver waits at the bottom of the screen for the creatures of the wave to leave
-		if (!mFlag0f80)
+		if (!mScreenClear)
 		{
 			if (!(mBoss != NULL && mBoss->mState == 3))
 			{
@@ -997,19 +997,19 @@ void Board::Update()
 				}
 				if (aCount == 0)
 				{
-					mFlag0f80 = true;
+					mScreenClear = true;
 					mRatingTimer->SetDisabled(true);
 					ShowRating();
 				}
 			}
 		}
-		if (mFlag0f80)
+		if (mScreenClear)
 		{
 			if (mRating->mAlpha == 0)
 			{
 				mApp->ChangeMusic(0x22);
-				mField0f38 = mField0f38 + 0.96;
-				if (!(mField0f38 < 240.0))
+				mAirGauge = mAirGauge + 0.96;
+				if (!(mAirGauge < 240.0))
 				{
 					mPlayer->SetState(5);
 					mApp->PlaySample(SOUND_TREASURE);
@@ -1035,42 +1035,42 @@ void Board::Update()
 		// the wave is over and the screen is empty: the treasure level (or the level's end) comes
 		if (!mLessonManager->IsBonusLevel())
 		{
-			if (mString0f10 == "")
+			if (mBonusWord == "")
 			{
-				mString0f10 = mApp->GetLongWord(mLessonManager->GetLevelSettings()->mMinEndDiff,
+				mBonusWord = mApp->GetLongWord(mLessonManager->GetLevelSettings()->mMinEndDiff,
 					mLessonManager->GetLevelSettings()->mMaxEndDiff);
-				mField0f2c = 0;
+				mBonusWordPos = 0;
 			}
 		}
 		if (mLessonManager->IsBonusLevel())
-			mField0f38 = mField0f38 - 0.12;
+			mAirGauge = mAirGauge - 0.12;
 		else
-			mField0f38 = mField0f38 - 0.1;
-		if (mField0f38 <= 0.0)
+			mAirGauge = mAirGauge - 0.1;
+		if (mAirGauge <= 0.0)
 		{
-			mField0f38 = 0.0;
+			mAirGauge = 0.0;
 			mPlayer->SetState(6);
 			mEmpTimer->SetDisabled(true);
 			int aSpot = (int)(gGameRand->NextNoAssert() & 3);
-			GetSpotOffset(&mField0ec0[0], &mField0ec0[1], aSpot);
+			GetSpotOffset(&mSparkles[0], &mSparkles[1], aSpot);
 			aSpot++;
 			if (aSpot >= 4)
 				aSpot = 0;
-			GetSpotOffset(&mField0ec0[3], &mField0ec0[4], aSpot);
+			GetSpotOffset(&mSparkles[3], &mSparkles[4], aSpot);
 			aSpot++;
 			if (aSpot >= 4)
 				aSpot = 0;
-			GetSpotOffset(&mField0ec0[6], &mField0ec0[7], aSpot);
+			GetSpotOffset(&mSparkles[6], &mSparkles[7], aSpot);
 			if (!mLessonManager->IsBonusLevel())
 			{
-				if (mField0f0c > mApp->mUser->mField64)
-					mApp->mUser->mField64 = mField0f0c;
+				if (mBonusWordPoints > mApp->mUser->mBestBonusWordPoints)
+					mApp->mUser->mBestBonusWordPoints = mBonusWordPoints;
 				mApp->mUser->CountGemFound(mApp->GetTreasureIndex() - 10);
-				if (mField0f30 > mApp->mUser->mBestTreasureWords)
-					mApp->mUser->mBestTreasureWords = mField0f30;
+				if (mBonusWordCount > mApp->mUser->mBestTreasureWords)
+					mApp->mUser->mBestTreasureWords = mBonusWordCount;
 				mPlayer->AddScore(GetLevelBonus());
-				mTimer0f00->SetDisabled(false);
-				mTimer0f00->Reset();
+				mTreasureTimer->SetDisabled(false);
+				mTreasureTimer->Reset();
 				mApp->mProfileMgr->WriteUserProfileToRegistry(mApp->mUser, false, false);
 				mApp->PlaySample(SOUND_WINGEM);
 				mStats.mReserved[7] = mGameTimer->Elapsed();		// Board +0xe40
@@ -1079,27 +1079,27 @@ void Board::Update()
 				ShowTreasure();
 		}
 
-		// the glow (mField0f44 between 170 and 255) pulses in the last third of the countdown, faster in the last sixth
-		double aProgress = mField0f38 * 0.004166666666666667;
+		// the glow (mAirFillAlpha between 170 and 255) pulses in the last third of the countdown, faster in the last sixth
+		double aProgress = mAirGauge * 0.004166666666666667;
 		if (aProgress <= 0.33333)
 		{
 			int aStep = (aProgress <= 0.1666666) ? 8 : 4;
-			if (mFlag0f40)
+			if (mAirFillRising)
 			{
-				mField0f44 = mField0f44 + aStep;
-				if (mField0f44 > 0xff)
+				mAirFillAlpha = mAirFillAlpha + aStep;
+				if (mAirFillAlpha > 0xff)
 				{
-					mFlag0f40 = false;
-					mField0f44 = 0xff;
+					mAirFillRising = false;
+					mAirFillAlpha = 0xff;
 				}
 			}
 			else
 			{
-				mField0f44 = mField0f44 - aStep;
-				if (!(mField0f44 >= 0xaa))
+				mAirFillAlpha = mAirFillAlpha - aStep;
+				if (!(mAirFillAlpha >= 0xaa))
 				{
-					mFlag0f40 = true;
-					mField0f44 = 0xaa;
+					mAirFillRising = true;
+					mAirFillAlpha = 0xaa;
 				}
 			}
 		}
@@ -1109,35 +1109,35 @@ void Board::Update()
 		// the treasure is shown (6) or the level is won (0xc)
 		if (mUpdateCnt % 11 == 0)
 		{
-			mField0f48 = mField0f48 + 1;
-			if (mField0f48 >= 10)
-				mField0f48 = 0;
+			mTreasureFrame = mTreasureFrame + 1;
+			if (mTreasureFrame >= 10)
+				mTreasureFrame = 0;
 		}
 		if (mLessonManager->IsBonusLevel())
 			mApp->ChangeMusic(0x11);
-		if (mTimer0f00->Elapsed() >= 0xbb8)
+		if (mTreasureTimer->Elapsed() >= 0xbb8)
 		{
-			mTimer0f00->SetDisabled(true);
-			mFlag0f08 = true;
+			mTreasureTimer->SetDisabled(true);
+			mTreasureFading = true;
 		}
 		if (mUpdateCnt % 10 == 0)
 		{
-			mField0ec0[2] = mField0ec0[2] + 1;
-			if (mField0ec0[2] >= 14)
-				mField0ec0[2] = 0;
-			mField0ec0[5] = mField0ec0[5] + 1;
-			if (mField0ec0[5] >= 14)
-				mField0ec0[5] = 0;
-			mField0ec0[8] = mField0ec0[8] + 1;
-			if (mField0ec0[8] >= 14)
-				mField0ec0[8] = 0;
+			mSparkles[2] = mSparkles[2] + 1;
+			if (mSparkles[2] >= 14)
+				mSparkles[2] = 0;
+			mSparkles[5] = mSparkles[5] + 1;
+			if (mSparkles[5] >= 14)
+				mSparkles[5] = 0;
+			mSparkles[8] = mSparkles[8] + 1;
+			if (mSparkles[8] >= 14)
+				mSparkles[8] = 0;
 		}
-		if (mFlag0f08)
+		if (mTreasureFading)
 		{
-			mField0f04 = mField0f04 - 1;
-			if (mField0f04 <= 0)
+			mTreasureAlpha = mTreasureAlpha - 1;
+			if (mTreasureAlpha <= 0)
 			{
-				mField0f04 = 0;
+				mTreasureAlpha = 0;
 				mPlayer->SetState(7);
 				if (mApp->mStatusBar != NULL)
 				{
@@ -1151,10 +1151,10 @@ void Board::Update()
 				mApp->mWidgetManager->BringToFront(mContinueLink);
 				mContinueLink->SetDisabled(false);
 				mContinueLink->SetVisible(true);
-				int aPercent = (int)((double)mField0f68 / ((double)mField0f6c + (double)mField0f68) * 100.0);
+				int aPercent = (int)((double)mLettersRight / ((double)mLettersWrong + (double)mLettersRight) * 100.0);
 				if (aPercent >= 0x5f)
 				{
-					mField0e8c = mField0e8c + 1;
+					mAccurateLevels = mAccurateLevels + 1;
 					mPlayer->AddScore(GetFinishBonus());
 				}
 				SaveProgress(true, false);
@@ -1188,31 +1188,31 @@ void Board::Update()
 	}
 
 	// the opening hint ("Type the words on the sharks...") fades once the player knows the game
-	if (!mApp->mUser->mFlag1dc && mFlag0ea8)
+	if (!mApp->mUser->mSeenTutorial && mHintFading)
 	{
-		mField0ea4 = mField0ea4 - 2;
-		if (mField0ea4 <= 0)
+		mHintAlpha = mHintAlpha - 2;
+		if (mHintAlpha <= 0)
 		{
-			mField0ea4 = 0;
-			mFlag0ea8 = false;
+			mHintAlpha = 0;
+			mHintFading = false;
 		}
 	}
 
 	// a new wave is sent when the screen is clear (or, in the first level, once the diver has dived half way)
-	if (mFlag0f80)
+	if (mScreenClear)
 	{
-		if (!mFlag0ebc && mPlayer->mState == 0
-			&& ((double)mHeight <= mField0e10 || mOceanDepth == -1)
+		if (!mBossBeaten && mPlayer->mState == 0
+			&& ((double)mHeight <= mOceanFloorY || mOceanDepth == -1)
 			&& mBoss == NULL
-			&& ((double)(mSurfaceHeight >> 1) < mDivePos || !mApp->mUser->mFlag1dc))
+			&& ((double)(mSurfaceHeight >> 1) < mDivePos || !mApp->mUser->mSeenTutorial))
 			SpawnWave();
-		if (mFlag0f80 && !mFlag0ebc && mPlayer->mState == 0 && !mPlayer->mFlag118 && mBoss == NULL
+		if (mScreenClear && !mBossBeaten && mPlayer->mState == 0 && !mPlayer->mDiveActive && mBoss == NULL
 			&& mLessonManager->LastWaveIsBoss() && CountActiveLists() == 0)
 			SpawnWave();
 	}
 
 	// the creatures: the sharks first, then the piranhas, the clams and the bonus creatures
-	mFlag0efc = false;
+	mCreaturePassDone = false;
 	double aEmpLimit = (double)(int)mPlayer->mEmpX + 16.0;		// the EMP wave and the creatures it has reached
 	unsigned int aSharkIdx = 0;
 	while (aSharkIdx < mSharks.size())
@@ -1228,8 +1228,8 @@ void Board::Update()
 		{
 			if (mPlayer->mEmpActive && aEnemy->mX <= aEmpLimit && aEnemy->mState == 0)
 			{
-				mPlayer->AddScore(aEnemy->mField54);
-				aEnemy->mFlag50 = true;
+				mPlayer->AddScore(aEnemy->mWordPoints);
+				aEnemy->mKilledByEmp = true;
 				aEnemy->ReleaseTarget();
 				aEnemy->SetState(5);
 				aEnemy->mEvents.push_back(1);
@@ -1249,11 +1249,11 @@ void Board::Update()
 		{
 			// a shark that has died is moved to the front of the list once (the index stays, so the next one is looked at
 			// from the same place)
-			if (aEnemy->mFlag08)
+			if (aEnemy->mMovedToFront)
 				aSharkIdx++;
 			else if (aEnemy->mState == 3)
 			{
-				aEnemy->mFlag08 = true;
+				aEnemy->mMovedToFront = true;
 				mSharks.erase(mSharks.begin() + aSharkIdx);
 				mSharks.insert(mSharks.begin(), aEnemy);
 			}
@@ -1276,8 +1276,8 @@ void Board::Update()
 		{
 			if (mPlayer->mEmpActive && aEnemy->mX <= aEmpLimit && aEnemy->mState == 0)
 			{
-				mPlayer->AddScore(aEnemy->mField54);
-				aEnemy->mFlag50 = true;
+				mPlayer->AddScore(aEnemy->mWordPoints);
+				aEnemy->mKilledByEmp = true;
 				aEnemy->ReleaseTarget();
 				aEnemy->SetState(5);
 				aEnemy->mEvents.push_back(1);
@@ -1299,11 +1299,11 @@ void Board::Update()
 			int aPiranhaState = aEnemy->mState;
 			if (aPiranhaState == 2)
 				aPiranhaIdx++;
-			else if (aEnemy->mFlag08)
+			else if (aEnemy->mMovedToFront)
 				aPiranhaIdx++;
 			else if (aPiranhaState == 3)
 			{
-				aEnemy->mFlag08 = true;
+				aEnemy->mMovedToFront = true;
 				mPiranhas.erase(mPiranhas.begin() + aPiranhaIdx);
 				mPiranhas.insert(mPiranhas.begin(), aEnemy);
 			}
@@ -1337,7 +1337,7 @@ void Board::Update()
 			if (mPlayer->mEmpActive && aBonus->mX <= aEmpLimit && (double)mHeight > aBonus->mY && aBonus->mState == 0)
 			{
 				mPlayer->AddScore(200);
-				aBonus->mFlag50 = true;
+				aBonus->mKilledByEmp = true;
 				aBonus->SetState(3);
 				aBonus->mEvents.push_back(1);
 				mApp->ChangeMusic(0);

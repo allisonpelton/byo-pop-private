@@ -1,0 +1,39 @@
+# Tour 2: the options box with its check boxes, the hints warning, the help box and its second page, the credits
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 535 250
+3350 shot o01_options
+3360 click 153 248
+3380 shot o02_colorblind
+3390 click 356 224
+3410 shot o03_hintsoff
+3420 click 229 296
+3450 shot o04_warning
+3455 move 384 285
+3475 shot o05_warn_hover_no
+3480 click 384 285
+3510 shot o06_warn_closed
+3520 click 229 296
+3550 click 253 285
+3580 shot o07_warn_yes
+3600 click 408 296
+3650 shot o08_help
+3655 move 413 387
+3675 shot o09_help_more_hover
+3680 click 413 387
+3730 shot o10_help_more
+3740 move 224 387
+3760 shot o11_help_close_hover
+3770 click 224 387
+3820 shot o12_after_help
+3830 click 320 329
+3890 shot o13_credits1
+4090 shot o14_credits2
+4400 shot o15_credits3
+4410 move 569 463
+4430 shot o16_credits_back_hover
+4440 click 569 463
+4500 shot o17_after_credits
+4510 click 320 389
+4560 shot o18_closed

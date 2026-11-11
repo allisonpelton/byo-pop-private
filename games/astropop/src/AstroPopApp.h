@@ -81,8 +81,8 @@ public:
 	UserProfile*				mUser;              // +0x690 the current player (NULL for none)
 	SoundInstance*				mEngineLoop;        // +0x694 SOUND_ENGINE_LOOP
 	SoundInstance*				mHyperspaceLoop;    // +0x698 SOUND_HYPERSPACE_LOOP
-	MemoryImage*				mLightningImage;    // +0x6a0 IMAGE_WARP_FX_LIGHTENING, flipped copy
-	MemoryImage*				mLightningImage2;   // +0x6a4 the same, drawn as it is
+	MemoryImage*				mLightningImage;    // +0x6a0 IMAGE_WARP_FX_LIGHTENING, mirrored copy (left to right)
+	MemoryImage*				mLightningImage2;   // +0x6a4 the same, flipped (top to bottom)
 	XcfFile*					mDescriptor;        // +0x6a8 data\descriptor.xcf: the level settings (LoadDescriptor)
 	std::vector<HallEntry>		mHall;              // +0x6c4 the hall of fame (0x2c bytes an entry), kept in users\datahs.usr
 	int							mClassicPilot;      // +0x6d4 the pilot the player chose for the classic mode (the Board's mode)
@@ -122,6 +122,9 @@ public:
 	virtual MusicInterface* CreateMusicInterface() override;
 	// port: the game's texts are read from the player's own exe (GameText.h) before anything shows text
 	virtual void	InitPropertiesHook() override;
+	// port: in 2D mode (Is3D off) the original's screen is software: its stretches are DDImage's own (0x4c68c0), sampled and
+	// averaged by the CPU, where Direct3D (and the port's GPU) sample at pixel centres
+	virtual DDInterface* CreateDDInterface() override;
 
 	void			PlaySong(int theOrder);                     // 0x408b90
 	void			PlaySampleAt(int theSound, int theColumn);  // 0x408cc0 a sample panned by the column it happens in

@@ -52,7 +52,7 @@ int WinGameDialog::GetPreferredHeight(int theWidth)
 }
 
 // One of the ten pictures of the bottom rows: the gem or treasure in a 30 by 30 square, and the count the user has under it
-// (the text is grey while there is none). The original has this block ten times in Draw; the picture is read from the app each
+// (the text is grey while there is none). The original has this block ten times in Draw 0x439390; the picture is read from the app each
 // time, and the colour is made before the text.
 static void DrawCollectedItem(Graphics* g, Image* theImage, int theX, int theY, int theCount, int theTextX, int theTextY)
 {
@@ -87,7 +87,7 @@ void WinGameDialog::Draw(Graphics* g)
 	UserProfile* aUser = mApp->mUser;
 	int aAccuracy = (int)(((double)aCharsTyped / (double)aTotal) * 100.0);
 	int anAdjustedWPM = (int)(aWPM * 0.75 - aMistakesPerMinute);
-	std::string aText = StrFormat(GTC(0x0052e148), mApp->GetPointsSoFar(), aUser->mField1f4, aUser->mField1f8,
+	std::string aText = StrFormat(GTC(0x0052e148), mApp->GetPointsSoFar(), aUser->mGameSharksKilled, aUser->mGamePiranhasKilled,
 		anAdjustedWPM, aAccuracy);
 
 	int aTextY = (((mContentInsets.mTop - mHeaderFont->GetAscentPadding()) + mHeaderFont->GetAscent()) +
@@ -112,14 +112,14 @@ void WinGameDialog::Draw(Graphics* g)
 	}
 
 	// the six gems, then the four treasures: two rows, five columns 0x50 apart
-	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_GREEN], mContentInsets.mLeft, 0x10e, mApp->mUser->mField234[0], 0x4b, 0x124);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_ORANGE], mContentInsets.mLeft, 0x131, mApp->mUser->mField234[1], 0x4b, 0x147);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_PURPLE], mContentInsets.mLeft + 0x50, 0x10e, mApp->mUser->mField234[2], 0x9b, 0x124);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_RED], mContentInsets.mLeft + 0x50, 0x131, mApp->mUser->mField234[3], 0x9b, 0x147);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_WHITE], mContentInsets.mLeft + 0xa0, 0x10e, mApp->mUser->mField234[4], 0xeb, 0x124);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_YELLOW], mContentInsets.mLeft + 0xa0, 0x131, mApp->mUser->mField234[5], 0xeb, 0x147);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_SECRET_CROWN], mContentInsets.mLeft + 0xf0, 0x10e, mApp->mUser->mField24c[0], 0x13b, 0x124);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_SECRET_FIGURINE], mContentInsets.mLeft + 0xf0, 0x131, mApp->mUser->mField24c[1], 0x13b, 0x147);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_SECRET_NECKLACE], mContentInsets.mLeft + 0x140, 0x10e, mApp->mUser->mField24c[2], 0x18b, 0x124);
-	DrawCollectedItem(g, mApp->mImages[IMAGE_SECRET_SCEPTER], mContentInsets.mLeft + 0x140, 0x131, mApp->mUser->mField24c[3], 0x18b, 0x147);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_GREEN], mContentInsets.mLeft, 0x10e, mApp->mUser->mGameGemsFound[0], 0x4b, 0x124);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_ORANGE], mContentInsets.mLeft, 0x131, mApp->mUser->mGameGemsFound[1], 0x4b, 0x147);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_PURPLE], mContentInsets.mLeft + 0x50, 0x10e, mApp->mUser->mGameGemsFound[2], 0x9b, 0x124);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_RED], mContentInsets.mLeft + 0x50, 0x131, mApp->mUser->mGameGemsFound[3], 0x9b, 0x147);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_WHITE], mContentInsets.mLeft + 0xa0, 0x10e, mApp->mUser->mGameGemsFound[4], 0xeb, 0x124);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_GEM_YELLOW], mContentInsets.mLeft + 0xa0, 0x131, mApp->mUser->mGameGemsFound[5], 0xeb, 0x147);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_SECRET_CROWN], mContentInsets.mLeft + 0xf0, 0x10e, mApp->mUser->mGameSecretsFound[0], 0x13b, 0x124);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_SECRET_FIGURINE], mContentInsets.mLeft + 0xf0, 0x131, mApp->mUser->mGameSecretsFound[1], 0x13b, 0x147);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_SECRET_NECKLACE], mContentInsets.mLeft + 0x140, 0x10e, mApp->mUser->mGameSecretsFound[2], 0x18b, 0x124);
+	DrawCollectedItem(g, mApp->mImages[IMAGE_SECRET_SCEPTER], mContentInsets.mLeft + 0x140, 0x131, mApp->mUser->mGameSecretsFound[3], 0x18b, 0x147);
 }

@@ -46,7 +46,8 @@ public:
 	virtual int				GetFrameHeight() { return mFrameHeight; }			// slot 4 0x461510
 	virtual void			SetX(double x) { mX = x; }							// slot 5 0x4010a0
 	virtual void			SetY(double y) { mY = y; }							// slot 6 0x4010c0
-	virtual void			SetState(int theState) { mState = theState; }		// slot 7 0x4010e0
+	// slot 7 is SetState: Enemy and Player declare it. The base body (0x4010e0, mState = theState) ran in no play of the
+	// original, since every creature that is given a state overrides it, so it is not translated.
 	virtual void			SetVisible(bool theVisible)							// slot 8 0x4010f0
 	{
 		mVisible = theVisible;

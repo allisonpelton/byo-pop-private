@@ -27,6 +27,7 @@ ap.add_argument("--difficulty", type=int, default=0)
 ap.add_argument("--abyss", action="store_true")
 ap.add_argument("--tutor", action="store_true")
 ap.add_argument("--next", type=int, default=0)
+ap.add_argument("--prev", type=int, default=0, help="Previous Lesson clicks in the tutor (one goes from lesson 1 to the typing test, lesson 0)")
 ap.add_argument("--seed", type=int, default=1)
 ap.add_argument("--exe", default=os.path.join(ROOT, "build", "native", "typershark.exe"))
 a = ap.parse_args()
@@ -34,7 +35,8 @@ B = a.base
 steps = spread_text(B, "Tester") + [(B + 20, "click", 347, 228), (B + 40, "click", 392, 341)]
 if a.tutor:
     steps += [(B + 70, "click", 510, 290)] + [(B + 100 + 10 * i, "click", 612, 395) for i in range(a.next)]
-    start = B + 130 + 10 * a.next
+    steps += [(B + 100 + 10 * i, "click", 492, 396) for i in range(a.prev)]
+    start = B + 130 + 10 * max(a.next, a.prev)
     typist = a.typist + (";" if a.typist else "") + f"start={start}"
 elif a.abyss:
     steps += [(B + 70, "click", 510, 165)]

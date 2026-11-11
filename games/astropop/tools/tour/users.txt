@@ -1,0 +1,33 @@
+# Tour 4: the player list, the new user box with its error box, a second player, the delete box
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 click 326 93
+3340 shot u01_list
+3350 click 248 309
+3390 shot u02_newbox
+3400 click 249 332
+3440 shot u03_invalid
+3450 click 320 329
+3490 shot u04_newbox_again
+3500 type Test
+3520 key Return
+3560 shot u05_dup_invalid
+3570 click 320 329
+3610 shot u06_after_invalid
+3620 click 389 332
+3660 shot u07_cancel
+3670 click 248 309
+3710 type Ann
+3720 key Return
+3780 shot u08_menu_ann
+3790 click 326 93
+3830 shot u09_list2
+3835 move 390 309
+3850 shot u09b_hover_delete
+3860 click 390 309
+3900 shot u10_deletewho
+3910 click 307 263
+3930 shot u11_selected
+3940 click 248 397
+3990 shot u12_after_ok

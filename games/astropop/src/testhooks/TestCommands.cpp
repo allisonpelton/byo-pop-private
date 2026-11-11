@@ -258,6 +258,16 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 
 	if (theCommand.mCommand == "set")
 	{
+		// the weapon's charge for every new board and every new game or level (the original's patch list for the weapon tours
+		// stores 18000 in the board's constructor and in ResetState: `set chargestart 18000`), kept until `set chargestart -1`
+		if (theCommand.mArgs.compare(0, 11, "chargestart") == 0)
+		{
+			int aStart = -1;
+			ReadInts(theCommand.mArgs.size() > 11 ? theCommand.mArgs.substr(11) : std::string(), &aStart, 1);
+			gTestChargeAtReset = (float) aStart;
+			ReplyOK(theCommand);
+			return true;
+		}
 		if (mBoard == NULL)
 		{
 			ReplyError(theCommand, "needs a game");

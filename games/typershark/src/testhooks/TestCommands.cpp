@@ -86,17 +86,17 @@ void CloseDialogs(WinWSApp* app)
 		if (app->GetDialog(gTestDialogs[i].mId) != NULL)
 			app->KillDialog(gTestDialogs[i].mId);
 	app->mMessageDialog = NULL;
-	app->mDialog61c = NULL;
+	app->mDifficultyDialog = NULL;
 	app->mHintDialog = NULL;
 	app->mAbyssModeDialog = NULL;
 	app->mOptionsDialog = NULL;
 	app->mDeleteUserDialog = NULL;
 	app->mOpenDialogCount = 0;
-	app->mFlag660 = false;
-	app->mFlag670 = false;
-	app->mFlag68c = false;
-	app->mFlag68d = false;
-	app->mFlag910 = false;
+	app->mQuitAsked = false;
+	app->mTypingTestAsked = false;
+	app->mEndGameAsked = false;
+	app->mContinueGameAsked = false;
+	app->mDeleteUserAsked = false;
 }
 
 // back to the menu screen from wherever the game is, by the game's own ways: the title screen's play button, the Close buttons
@@ -135,7 +135,7 @@ bool EnsureUser(WinWSApp* app, std::string* theError)
 		app->mProfileMgr->RegisterDefaultUserName("Tester");
 		app->mUser = app->mProfileMgr->LoadUser("Tester");
 		if (app->mUser != NULL)
-			app->mFlag8f8 = (app->mUser->mFlag1dc == false);
+			app->mTutorialUnseen = (app->mUser->mSeenTutorial == false);
 	}
 	else
 	{
@@ -492,7 +492,7 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		{
 			// as the "CONTINUE?" dialog's yes does: a new board, then the depth
 			mAbyssDepth = aLevel;
-			mUser->SetField1e4((aLevel / 1000) % 4 - 1);
+			mUser->SetAbyssBossIndex((aLevel / 1000) % 4 - 1);
 			CreateBoard();
 			if (aLevel > 0)
 				mBoard->SetDepth(aLevel);
@@ -505,12 +505,12 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "the adventure has the sites 0..35");
 			return true;
 		}
-		if (aLevel > 0 && !mUser->mFlag1dc)
+		if (aLevel > 0 && !mUser->mSeenTutorial)
 		{
 			// a player who has not killed the tutorial's two sharks (the first level's words) never gets a wave on the other
 			// levels: the dive waits for them. The tutorial counts as seen.
-			mUser->mFlag1dc = true;
-			mFlag8f8 = false;
+			mUser->mSeenTutorial = true;
+			mTutorialUnseen = false;
 			mProfileMgr->WriteUserProfileToRegistry(mUser, false, false);
 		}
 		// the level in progress ends as it does when the diver reaches the surface (ReturnToMap: the board's results go to the
@@ -520,7 +520,7 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReturnToMap();
 		mMapScreen->mLevel = aLevel;
 		mMapScreen->OnLevelChosen();
-		mMapScreen->mFlag224 = true;
+		mMapScreen->mLevelChosen = true;
 		ButtonDepress(0x1cf3);
 		Reply("OK level " + anArgs);
 		return true;
@@ -541,9 +541,9 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		// the game has no locked levels: the map is sailed, so what a profile holds is the typing lessons passed and the deepest
 		// abyss depth (the lines of the "CONTINUE?" dialog)
 		for (int i = 0; i < 19; i++)
-			mUser->mField94[i] = 1;
-		mUser->mFlag1dc = true;		// the opening tutorial (the two sharks of the first level) is seen
-		mFlag8f8 = false;
+			mUser->mLessonOutcome[i] = 1;
+		mUser->mSeenTutorial = true;		// the opening tutorial (the two sharks of the first level) is seen
+		mTutorialUnseen = false;
 		if (mUser->mBestDepth < 2400)
 			mUser->mBestDepth = 2400;
 		mProfileMgr->WriteUserProfileToRegistry(mUser, false, false);
@@ -576,8 +576,8 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				ReplyError(theCommand, "set tutorial 0|1, with a player");
 				return true;
 			}
-			mUser->mFlag1dc = aNumber != 0;
-			mFlag8f8 = (mUser->mFlag1dc == false);
+			mUser->mSeenTutorial = aNumber != 0;
+			mTutorialUnseen = (mUser->mSeenTutorial == false);
 			mProfileMgr->WriteUserProfileToRegistry(mUser, false, false);
 			Reply("OK set " + anArgs);
 			return true;
@@ -595,7 +595,7 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (aFirst == "score")
 			mBoard->mPlayer->SetScore((int) aReal);
 		else if (aFirst == "lives")
-			mBoard->mPlayer->mField110 = (int) aReal;
+			mBoard->mPlayer->mLives = (int) aReal;
 		else if (aFirst == "timer")
 			mBoard->mGameTimer->mStart = mBoard->mGameTimer->mUpdateCnt - (int) aReal - mBoard->mGameTimer->mPausedTotal;
 		else if (aFirst == "depth")
@@ -618,8 +618,8 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "the abyss has no level end (use lose, or set depth)");
 			return true;
 		}
-		Board* b = mBoard;
-		int aState = b->mPlayer->mState;
+		Board* aBoard = mBoard;
+		int aState = aBoard->mPlayer->mState;
 		if (aState == 8 || GetDialog(DIALOG_GAME_OVER) != NULL)
 		{
 			ReplyError(theCommand, "the game is over");
@@ -631,14 +631,14 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		// the level-won state, as Board::Update enters it when the diver is back at the bottom after the treasure
-		b->mPlayer->SetFlag118(false);
-		b->mPlayer->SetState(0xc);
-		b->mEmpTimer->SetDisabled(true);
-		b->mTimer0f00->SetDisabled(false);
-		b->mTimer0f00->Reset();
+		aBoard->mPlayer->SetDiveActive(false);
+		aBoard->mPlayer->SetState(0xc);
+		aBoard->mEmpTimer->SetDisabled(true);
+		aBoard->mTreasureTimer->SetDisabled(false);
+		aBoard->mTreasureTimer->Reset();
 		PlaySample(SOUND_WINGEM);
-		b->mStats.mReserved[7] = b->mGameTimer->Elapsed();
-		b->mPlayer->AddScore(b->GetLevelBonus());
+		aBoard->mStats.mReserved[7] = aBoard->mGameTimer->Elapsed();
+		aBoard->mPlayer->AddScore(aBoard->GetLevelBonus());
 		Reply("OK win");
 		return true;
 	}
@@ -656,7 +656,7 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		// the last life: the diver is eaten with none left, which opens the game-over dialog
-		mBoard->mPlayer->mField110 = 0;
+		mBoard->mPlayer->mLives = 0;
 		mBoard->PlayerEaten();
 		Reply("OK lose");
 		return true;

@@ -64,7 +64,7 @@ DialogButton* OptionsDialog::MakeButton(int theId, const char* theLabel)
 // 0x4850a0: the box is of the colour set it is given (the game's mode + 2, or 1 with no game), and its boxes show what is
 // set now. The footer button is the box's own CLOSE; in a game it is "Resume Game".
 OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) :
-	Dialog(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x66, true, "OPTIONS", std::string(), "CLOSE", 3)
+	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x66, true, "OPTIONS", std::string(), "CLOSE", 3)
 {
 	mColourSet = theColourSet;
 
@@ -80,7 +80,10 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	MemoryImage* aButtonImage = NULL;
 	gApp->MakeDialogImages(anInsetColor, aButtonColor, &anInsetImage, &aButtonImage, false);
 	mComponentImage = anInsetImage;
+	// the 2004 Dialog reads the button height from the button picture at each use (GetPreferredHeight 0x4e91d0 and Resize); the
+	// port keeps the height it took at construction, so it follows the picture that replaces it
 	mYesButton->mComponentImage = aButtonImage;
+	mButtonHeight = aButtonImage->mHeight;
 
 	mMusicSlider = new Slider(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 0, this);
 	mMusicSlider->SetValue(gApp->GetMusicVolume());
@@ -233,8 +236,8 @@ int OptionsDialog::GetPreferredHeight(int theWidth)
 void OptionsDialog::DrawCheckLabel(Graphics* g, const std::string& theText, Checkbox* theCheck)
 {
 	Font* aFont = g->GetFont();
-	int aHeight = aFont->GetHeight();
-	g->DrawString(theText, (theCheck->mWidth + theCheck->mX) - mX, aHeight + 10 + (theCheck->mY - mY));
+	int anAscent = aFont->GetAscent(); // the original calls the font's slot 1 (+4), the ascent, not its height (slot 4)
+	g->DrawString(theText, (theCheck->mWidth + theCheck->mX) - mX, anAscent + 10 + (theCheck->mY - mY));
 }
 
 // 0x485d40
@@ -249,8 +252,8 @@ void OptionsDialog::Draw(Graphics* g)
 	g->SetFont(aFont);
 	g->SetColor(mColors[COLOR_LINES]);
 	int aLeft = mContentInsets.mLeft + mBackgroundInsets.mLeft;
-	g->DrawString("Music", aLeft, ((mMusicSlider->mHeight + mMusicSlider->mY) - mY) - aFont->GetHeight());
-	g->DrawString(GT(0x0056b148), aLeft, ((mSoundSlider->mHeight + mSoundSlider->mY) - mY) - aFont->GetHeight());
+	g->DrawString("Music", aLeft, ((mMusicSlider->mHeight + mMusicSlider->mY) - mY) - aFont->GetAscent());
+	g->DrawString(GT(0x0056b148), aLeft, ((mSoundSlider->mHeight + mSoundSlider->mY) - mY) - aFont->GetAscent());
 	DrawCheckLabel(g, "Fullscreen", mFullscreenCheck);
 	DrawCheckLabel(g, GT(0x0056b12c), mCursorCheck);
 	DrawCheckLabel(g, GT(0x0056b114), mAccelCheck);

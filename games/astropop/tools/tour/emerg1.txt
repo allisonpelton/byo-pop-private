@@ -1,0 +1,52 @@
+# a classic game left to itself (four moves, then nothing): the rows come down to the ship, the Emergency panel, then ACTIVATE
+3101 click 320 447
+3162 type Test
+3167 key Return
+3228 click 100 190
+3289 click 80 418
+3350 click 320 440
+3372 click 391 345
+3427 move 188 440
+3428 click 188 440
+3434 move 584 440
+3435 rclick 584 440
+3489 move 584 440
+3490 click 584 440
+3496 move 188 440
+3497 rclick 188 440
+3518 move 276 440
+3519 click 276 440
+3525 move 188 440
+3526 rclick 188 440
+4000 shot g4000
+6000 shot g6000
+8000 shot g8000
+10000 shot g10000
+12000 shot g12000
+14000 shot g14000
+16000 shot g16000
+18000 shot g18000
+20000 shot g20000
+22200 shot g22200
+22300 shot g22300
+22400 shot g22400
+22500 shot g22500
+22600 shot g22600
+22700 shot g22700
+22800 shot g22800
+22900 shot g22900
+23000 shot g23000
+23150 move 62 235
+23180 shot hov
+23200 click 62 235
+23230 shot a23230
+23260 shot a23260
+23300 shot a23300
+23400 shot a23400
+23500 shot a23500
+23600 shot a23600
+23800 shot a23800
+24100 shot a24100
+24500 shot a24500
+25000 shot a25000
+26000 shot a26000

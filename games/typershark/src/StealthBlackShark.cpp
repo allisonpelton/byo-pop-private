@@ -16,7 +16,7 @@ StealthBlackShark::StealthBlackShark(WinWSApp* theApp) :
 	StealthShark(theApp),
 	BlackShark(theApp)
 {
-	mFlag19 = true;
+	mStealthy = true;
 	mStealthImages.resize(6);
 	mStealthImages[0] = mApp->mSharkImages[9][0];
 	mStealthImages[2] = mApp->mSharkImages[9][2];
@@ -46,14 +46,14 @@ void StealthBlackShark::SetState(int theState)
 	BlackShark::SetState(theState);
 	if (mState == 0)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[0];
 		else
 			mImage = mImages[0];
 	}
 	else if (mState == 3)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[2];
 		else
 			mImage = mImages[2];

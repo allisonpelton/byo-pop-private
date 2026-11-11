@@ -9,6 +9,10 @@ target_include_directories(bejeweled2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(bejeweled2 PRIVATE sexyframework sexycompat2004 sexyopenmpt)
 if(NOT MSVC)
   target_compile_options(bejeweled2 PRIVATE -Wall -Wno-overloaded-virtual -Wno-unused-private-field)
+  # The original's int arithmetic wraps (x86 imul and add), and the game depends on it: Finity's score runs past 2^31 within a few
+  # levels, and the timer bar's ((score - target) * 0x2c4) / 2 wraps negative, which the compiler would otherwise fold into
+  # (score - target) * 0x2c4 / 2 with no wrap. With -fwrapv the port computes the wrapped value as the original does.
+  target_compile_options(bejeweled2 PRIVATE -fwrapv)
 endif()
 if(EMSCRIPTEN)
   # A double out of the int range converts as on x86 (cvttsd2si: INT_MIN, NaN too), not as wasm's saturating

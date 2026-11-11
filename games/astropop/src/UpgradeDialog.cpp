@@ -138,7 +138,7 @@ void UpgradeDialog::Draw(Graphics* g)
 		{
 			if (i == 2 && !aHasThird)
 				break;
-			int aWidth = (int) ((double) IMAGE_UPGRADE_BAR->mWidth * (double) mBarNow[i]);
+			int aWidth = (int) ((float) IMAGE_UPGRADE_BAR->mWidth * mBarNow[i]);
 			g->DrawImage(IMAGE_UPGRADE_BAR, mBarSpot[i].mX + aOverlayX, mBarSpot[i].mY + aOverlayY,
 						 Rect(0, 0, aWidth, IMAGE_UPGRADE_BAR->mHeight));
 		}
@@ -174,9 +174,9 @@ void UpgradeDialog::Update()
 	for (int i = 0; i < NUM_BARS; i++)
 	{
 		int aBar = kOrder[i];
-		double aSum = (double) mBarNow[aBar] + (double) 0.002f;
-		mBarNow[aBar] = (float) aSum;
-		if (aSum > (double) mBarGoal[aBar])
+		float aSum = mBarNow[aBar] + 0.002f;
+		mBarNow[aBar] = aSum;
+		if (aSum > mBarGoal[aBar])
 			mBarNow[aBar] = mBarGoal[aBar];
 	}
 }

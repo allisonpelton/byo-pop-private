@@ -35,7 +35,6 @@ public:
 	virtual void			RemovedFromManager(WidgetManager* theWidgetManager) override;	// 0x440eb0 slot 2
 	virtual void			OrderInManagerChanged() override;				// 0x440ee0 slot 3
 	virtual void			SetDisabled(bool isDisabled) override;			// 0x441d40 slot 10
-	virtual void			Resize(const Rect& theRect) override;			// 0x441c10 slot 12
 	virtual void			Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x441ca0 slot 13
 	virtual void			Draw(Graphics* g) override;						// 0x446b10 slot 16
 	virtual void			Update() override;								// 0x440d60 slot 17
@@ -48,9 +47,6 @@ public:
 
 	using ButtonWidget::MouseUp;
 	using ButtonWidget::MouseDown;
-
-private:
-	void					PositionTooltip();								// the tail shared by both Resize overloads
 };
 
 }

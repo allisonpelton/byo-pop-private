@@ -7,14 +7,15 @@
     persist: "/tspersist",
     lock: "typer-shark-deluxe-instance",
     gameDirs: ["images", "data", "sounds", "music", "properties"],
-    // WinTS.exe (the game's texts are read from it; it is never run) sits at the top of the game folder
-    gameFiles: ["wints.exe"],
-    markers: ["data/twords.txt", "images/titlescreen.jpg", "wints.exe"],
-    markerText: "data/twords.txt, images/titlescreen.jpg and WinTS.exe",
+    // WinTS.exe (the Steam copy) or TyperShark.exe (the PopCap Game Collection's copy) sits at the top of the game folder: the
+    // game's texts are read from it and it is never run. A marker cannot name two files, so neither exe is a marker.
+    gameFiles: ["wints.exe", "typershark.exe"],
+    markers: ["data/twords.txt", "images/titlescreen.jpg"],
+    markerText: "data/twords.txt and images/titlescreen.jpg",
     importHtml: 'Choose the game\'s install folder (for the retail version: <span class="mono">Program Files/PopCap ' +
       'Games/Typer Shark Deluxe</span>) or a .zip of it. Only the <span class="mono">images, data, sounds, music, ' +
-      'properties</span> folders and <span class="mono">WinTS.exe</span> (the game\'s texts are read from ' +
-      'it; it is never run) are copied.',
+      'properties</span> folders and <span class="mono">WinTS.exe</span> (<span class="mono">TyperShark.exe</span> in the ' +
+      'Collection\'s copy; the game\'s texts are read from it, it is never run) are copied.',
     modsIntro: "Mods replace game files: images, sounds, music, word lists or level files in the same folders the game uses " +
       "(for example data/twords.txt), plus an optional mod.json.",
     seeds: false

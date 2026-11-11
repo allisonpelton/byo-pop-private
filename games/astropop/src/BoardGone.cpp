@@ -246,7 +246,7 @@ void Board::OnBrickGone(Brick* theBrick)
 			AstroRand();
 
 		// the bricks that were taken go to the list that frees them
-		float aBonusX = 308.0f;
+		float aBonusX = 310.0f;   // (0x439b0000; the first brick overwrites both, so they are never used)
 		float aBonusY = 260.0f;
 		int anIndex = 0;
 		for (std::list<Brick*>::iterator i = ma0.begin(); i != ma0.end(); ++i, anIndex++)
