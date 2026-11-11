@@ -2,6 +2,7 @@
 
 #include "App.h"
 #include "Display.h"
+#include "EngineRes.h"
 #include "Host.h"
 #include "Layer.h"
 #include "Object.h"
@@ -16,7 +17,7 @@ bool gInvalidated = false;
 // 0x5d8ea0: the pauses asked for (0x42c110)
 static int gPauseRequests = 0;
 // 0x526a08: the full screen's "windowed" button (image 0x35 at 785, 4)
-static const Rect kWindowedButton = {784, 0, 800, 16};
+static const Rect WINDOWED_BUTTON = {784, 0, 800, 16};
 
 static bool InList(ListNode* theHead, void* theObj)
 {
@@ -77,12 +78,12 @@ bool Manager::Init(bool theFullScreen, int thePeriod)
 	mLastFrame = TickCount();
 	if (!SetMode(theFullScreen, true))
 		return false;
-	PreloadExeImage(0x35);
-	PreloadExeImage(0x46);
-	PreloadExeImage(0x47);
-	PreloadExeImage(0x49);
-	PreloadExeImage(0x48);
-	PreloadExeImage(0x4a);
+	PreloadExeImage(EXE_IMAGE_WINDOWED_BUTTON);
+	PreloadExeImage(EXE_IMAGE_CURSOR_HAND);
+	PreloadExeImage(EXE_IMAGE_CURSOR_ARROW);
+	PreloadExeImage(EXE_IMAGE_CURSOR_HAND_SECOND);
+	PreloadExeImage(EXE_IMAGE_CURSOR_TEXT);
+	PreloadExeImage(EXE_IMAGE_CURSOR_ARROW_SECOND);
 	mSound->Init();
 	mStart = TickCount();
 	mPaceBase = TickCount();
@@ -225,29 +226,29 @@ Layer* Manager::PopNow(int theCount)
 	if (mLayers.empty())
 		return nullptr;
 	int aCount = 0;
-	int p = (int)mLayers.size() - 1;
+	int aPos = (int)mLayers.size() - 1;
 	if (0 < theCount)
 	{
 		do
 		{
-			if (p < 0)
+			if (aPos < 0)
 				return nullptr;
-			Layer* aLayer = mLayers[p];
+			Layer* aLayer = mLayers[aPos];
 			if (!InList(mTransitions, aLayer) || !aLayer->IsFadingOut())
 			{
 				DeleteLayer(aLayer, true);
-				mLayers.erase(mLayers.begin() + p);
+				mLayers.erase(mLayers.begin() + aPos);
 				aCount = aCount + 1;
 			}
-			p = p - 1;
+			aPos = aPos - 1;
 		} while (aCount < theCount);
 	}
-	while (0 <= p)
+	while (0 <= aPos)
 	{
-		Layer* aLayer = mLayers[p];
+		Layer* aLayer = mLayers[aPos];
 		if (!InList(mTransitions, aLayer) || !aLayer->IsFadingOut())
 			return aLayer;
-		p = p - 1;
+		aPos = aPos - 1;
 	}
 	return nullptr;
 }
@@ -256,14 +257,14 @@ Layer* Manager::PopNow(int theCount)
 Layer* Manager::PopAnimated(int theCount)
 {
 	int aCount = 0;
-	size_t p = mLayers.size();
+	size_t aPos = mLayers.size();
 	if (0 < theCount)
 	{
 		do
 		{
-			if (p == 0)
+			if (aPos == 0)
 				return nullptr;
-			Layer* aLayer = mLayers[p - 1];
+			Layer* aLayer = mLayers[aPos - 1];
 			if (!InList(mTransitions, aLayer) || !aLayer->IsFadingOut())
 			{
 				aLayer->SetActive(false, false);
@@ -272,15 +273,15 @@ Layer* Manager::PopAnimated(int theCount)
 				aLayer->StartFade(1);
 				aCount = aCount + 1;
 			}
-			p = p - 1;
+			aPos = aPos - 1;
 		} while (aCount < theCount);
 	}
-	while (p != 0)
+	while (aPos != 0)
 	{
-		Layer* aLayer = mLayers[p - 1];
+		Layer* aLayer = mLayers[aPos - 1];
 		if (!InList(mTransitions, aLayer) || !aLayer->IsFadingOut())
 			return aLayer;
-		p = p - 1;
+		aPos = aPos - 1;
 	}
 	return nullptr;
 }
@@ -390,7 +391,7 @@ void Manager::MouseMove(int theFlags, int theX, int theY)
 	}
 	bool aOnButton = false;
 	bool aButton = false;
-	if (!gFullScreen || !PtInRect(kWindowedButton, theX, theY))
+	if (!gFullScreen || !PtInRect(WINDOWED_BUTTON, theX, theY))
 	{
 		aOnButton = aButton;
 		if (mCapture == nullptr)
@@ -484,7 +485,7 @@ void Manager::LButtonDown(int theFlags, int theX, int theY)
 		while (aNode != nullptr && (!PtInRect(((Object*)aNode->mObj)->mDirty, theX, theY) ||
 			!((Object*)aNode->mObj)->DispatchMouse(0x201, theFlags, theX, theY)))
 			aNode = aNode->mNext;
-		if (gFullScreen && PtInRect(kWindowedButton, theX, theY))
+		if (gFullScreen && PtInRect(WINDOWED_BUTTON, theX, theY))
 			SetFullScreen(false, true);
 		Draw();
 		return;
@@ -1020,13 +1021,13 @@ bool Manager::LoadFileImage(int theId, const char* thePath)
 // 0x42c6d0
 void Manager::PreloadExeImage(int theId)
 {
-	mDisplay->Preload(theId, Module::Exe);
+	mDisplay->Preload(theId, Module::EXE);
 }
 
 // 0x42c6f0
 void Manager::PreloadDllImage(int theId)
 {
-	mDisplay->Preload(theId, Module::Dll);
+	mDisplay->Preload(theId, Module::DLL);
 }
 
 // 0x42c710

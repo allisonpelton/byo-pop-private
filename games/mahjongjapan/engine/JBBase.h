@@ -22,14 +22,14 @@ struct Point
 	int x = 0, y = 0;
 };
 
-inline void SetRect(Rect& r, int l, int t, int rr, int b) { r.left = l; r.top = t; r.right = rr; r.bottom = b; }
-inline void SetRectEmpty(Rect& r) { r = Rect(); }
-inline bool IsRectEmpty(const Rect& r) { return r.right <= r.left || r.bottom <= r.top; }
-inline void OffsetRect(Rect& r, int dx, int dy) { r.left += dx; r.right += dx; r.top += dy; r.bottom += dy; }
-inline bool PtInRect(const Rect& r, int x, int y) { return x >= r.left && x < r.right && y >= r.top && y < r.bottom; }
-bool IntersectRect(Rect& out, const Rect& a, const Rect& b);
-bool UnionRect(Rect& out, const Rect& a, const Rect& b);
-int MulDiv(int a, int b, int c);
+inline void SetRect(Rect& theRect, int theLeft, int theTop, int theRight, int theBottom) { theRect.left = theLeft; theRect.top = theTop; theRect.right = theRight; theRect.bottom = theBottom; }
+inline void SetRectEmpty(Rect& theRect) { theRect = Rect(); }
+inline bool IsRectEmpty(const Rect& theRect) { return theRect.right <= theRect.left || theRect.bottom <= theRect.top; }
+inline void OffsetRect(Rect& theRect, int theDX, int theDY) { theRect.left += theDX; theRect.right += theDX; theRect.top += theDY; theRect.bottom += theDY; }
+inline bool PtInRect(const Rect& theRect, int x, int y) { return x >= theRect.left && x < theRect.right && y >= theRect.top && y < theRect.bottom; }
+bool IntersectRect(Rect& theOut, const Rect& theA, const Rect& theB);
+bool UnionRect(Rect& theOut, const Rect& theA, const Rect& theB);
+int MulDiv(int theNumber, int theNumerator, int theDenominator);
 
 // The C runtime's generator (srand 0x417d95, rand 0x417d9f)
 void CrtSrand(unsigned int theSeed);
@@ -49,11 +49,11 @@ extern bool gFastStart;
 
 // The module a resource comes from: the exe, or Resource.dll (the original's HMODULE; null meant the app's
 // Resource.dll, app +0x30)
-enum class Module { Exe, Dll };
+enum class Module { EXE, DLL };
 // FindResourceA, SizeofResource and LockResource: the bytes of a resource, or nullptr (the app provides it)
 const uint8_t* FindResourceData(Module theModule, const char* theType, int theId, uint32_t* theSize);
 // isspace for the C locale (CString's TrimLeft and TrimRight)
-inline bool IsSpace(char c) { return c == ' ' || (c >= '\t' && c <= '\r'); }
+inline bool IsSpace(char theChar) { return theChar == ' ' || (theChar >= '\t' && theChar <= '\r'); }
 
 // The engine's CString helpers, on std::string
 // 0x422a00: the text from thePos to the next theSep (or to the end); thePos moves past the separator, or to the
@@ -88,7 +88,7 @@ std::string LoadDllString(int theId);
 std::string LoadExeString(int theId);
 
 // lstrcmpiA / _stricmp for ASCII
-int StrICmp(const char* a, const char* b);
+int StrICmp(const char* theA, const char* theB);
 
 // A node of the engine's linked lists (0xc bytes)
 struct ListNode

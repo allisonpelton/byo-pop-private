@@ -1,4 +1,4 @@
-// The port's host for Mahjong Escape: Ancient Japan (see MahjongApp.h).
+// port: the host for Mahjong Escape: Ancient Japan (see MahjongApp.h).
 
 #include "MahjongApp.h"
 
@@ -124,7 +124,7 @@ public:
 	const uint8_t* FindResource(jb::Module theModule, const char* theTypeName, int theTypeId, int theId,
 		uint32_t* theSize) override
 	{
-		const mahjongjapan::PeResources& aFile = theModule == jb::Module::Dll ? mDll : mExe;
+		const mahjongjapan::PeResources& aFile = theModule == jb::Module::DLL ? mDll : mExe;
 		if (theTypeName != nullptr)
 			return aFile.Find(mahjongjapan::PeResources::Key(theTypeName),
 				mahjongjapan::PeResources::Key((uint32_t)theId), theSize);
@@ -134,7 +134,7 @@ public:
 
 	bool LoadString(jb::Module theModule, int theId, std::string& theText) override
 	{
-		return (theModule == jb::Module::Dll ? mDll : mExe).LoadString((uint32_t)theId, theText);
+		return (theModule == jb::Module::DLL ? mDll : mExe).LoadString((uint32_t)theId, theText);
 	}
 
 	// the registry keys are read from the same emulated registry
@@ -569,13 +569,13 @@ void MahjongApp::LostFocus()
 }
 
 // Alt+Enter and the web page's full screen button change the mode as the options' check box does
-void MahjongApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+void MahjongApp::SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce)
 {
-	if (mApplyingGameMode || !mGameStarted || mGameEnded || force)
+	if (mApplyingGameMode || !mGameStarted || mGameEnded || theForce)
 	{
-		SexyAppBase::SwitchScreenMode(wantWindowed, is3d, force);
+		SexyAppBase::SwitchScreenMode(theWantWindowed, theIs3d, theForce);
 		return;
 	}
-	if (wantWindowed != mIsWindowed)
-		mGame->mManager.SetFullScreen(!wantWindowed, true);
+	if (theWantWindowed != mIsWindowed)
+		mGame->mManager.SetFullScreen(!theWantWindowed, true);
 }

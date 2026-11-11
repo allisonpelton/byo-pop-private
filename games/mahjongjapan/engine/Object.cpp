@@ -1,6 +1,7 @@
 #include "Object.h"
 
 #include "Display.h"
+#include "EngineRes.h"
 #include "Font.h"
 #include "Layer.h"
 #include "Manager.h"
@@ -199,7 +200,7 @@ void Object::SetClip(RegionRect* theRegion)
 void Object::DrawImage(int theX, int theY, int theImageId, const Rect* theSrc, bool theRelative, int theScaleX,
 	int theScaleY, int theAlpha)
 {
-	Image* anImage = mManager->GetImage(theImageId, Module::Dll);
+	Image* anImage = mManager->GetImage(theImageId, Module::DLL);
 	if (anImage != nullptr)
 		DrawWorker(0, theX, theY, anImage, theRelative, 0, theSrc, theScaleX, theScaleY, theAlpha);
 }
@@ -215,7 +216,7 @@ void Object::DrawImagePtr(int theX, int theY, Image* theImage, const Rect* theSr
 void Object::DrawImageKeyed(int theX, int theY, int theImageId, uint32_t theKey, const Rect* theSrc,
 	bool theRelative, int theScaleX, int theScaleY, int theAlpha)
 {
-	Image* anImage = mManager->GetImage(theImageId, Module::Dll);
+	Image* anImage = mManager->GetImage(theImageId, Module::DLL);
 	if (anImage != nullptr)
 		DrawWorker(1, theX, theY, anImage, theRelative, theKey, theSrc, theScaleX, theScaleY, theAlpha);
 }
@@ -817,13 +818,13 @@ void GetImageInfo(int theImageId, ImageInfo& theInfo)
 // 0x41f120
 Font* GetExeFont(int theImageId, int theTextId)
 {
-	return gManager->GetFont(theImageId, theTextId, Module::Exe);
+	return gManager->GetFont(theImageId, theTextId, Module::EXE);
 }
 
 // 0x41f150
 Font* GetDllFont(int theImageId, int theTextId)
 {
-	return gManager->GetFont(theImageId, theTextId, Module::Dll);
+	return gManager->GetFont(theImageId, theTextId, Module::DLL);
 }
 
 // 0x41f180
@@ -1038,7 +1039,7 @@ void Button::DrawLabelDisabled()
 bool Button::OnLButtonDown(int theFlags, int theX, int theY)
 {
 	mPressed = true;
-	PlaySound(0x69);
+	PlaySound(SOUND_CLICK);
 	Capture(true);
 	Invalidate();
 	return true;

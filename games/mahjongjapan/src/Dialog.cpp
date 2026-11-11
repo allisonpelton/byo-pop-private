@@ -3,6 +3,7 @@
 #include "App.h"
 #include "Font.h"
 #include "Manager.h"
+#include "Res.h"
 
 #include <cstdio>
 
@@ -110,7 +111,7 @@ bool YesNoBox::OnCommand(int theCmd)
 }
 
 // 0x4037b0
-DialogButton::DialogButton(int theCmd) : Button(0x129, 4, false), mImage(true)
+DialogButton::DialogButton(int theCmd) : Button(IMAGE_DIALOG_BUTTON, 4, false), mImage(true)
 {
 	SetCmd(theCmd);
 }
@@ -131,10 +132,10 @@ void DialogButton::SetText(int theStringId)
 {
 	if (!mImage)
 	{
-		SetLabel(theStringId, 0xa0, 0x9f, -4, mMiddles * 8 + 0x5e, 0x16, 2, 2, 0xff);
+		SetLabel(theStringId, FONT_BUTTON, FONT_BUTTON_MAP, -4, mMiddles * 8 + 0x5e, 0x16, 2, 2, 0xff);
 		return;
 	}
-	SetLabel(theStringId, 0xa0, 0x9f, 0, GetFrameWidth() - 6, 0x15, 2, 2, 0xff);
+	SetLabel(theStringId, FONT_BUTTON, FONT_BUTTON_MAP, 0, GetFrameWidth() - 6, 0x15, 2, 2, 0xff);
 }
 
 // 0x403900
@@ -193,7 +194,7 @@ void DialogButton::DrawStrip(int theLeft)
 	aRect.top = 0;
 	aRect.bottom = 0x2a;
 	aRect.right = theLeft + 0x2e;
-	DrawImage(0, 0, 0x11f, &aRect, true, 100, 100, 0xff);
+	DrawImage(0, 0, IMAGE_DIALOG_BUTTON_PARTS, &aRect, true, 100, 100, 0xff);
 	aRect.right = theLeft + 0x36;
 	int x = 0x2e;
 	int i = 0;
@@ -204,7 +205,7 @@ void DialogButton::DrawStrip(int theLeft)
 	{
 		do
 		{
-			DrawImage(x, 0, 0x11f, &aRect, true, 100, 100, 0xff);
+			DrawImage(x, 0, IMAGE_DIALOG_BUTTON_PARTS, &aRect, true, 100, 100, 0xff);
 			x = x + 8;
 			i = i + 1;
 		} while (i < mMiddles);
@@ -213,7 +214,7 @@ void DialogButton::DrawStrip(int theLeft)
 	aRect.right = theLeft + 0x66;
 	aRect.top = 0;
 	aRect.bottom = 0x2a;
-	DrawImage(x, 0, 0x11f, &aRect, true, 100, 100, 0xff);
+	DrawImage(x, 0, IMAGE_DIALOG_BUTTON_PARTS, &aRect, true, 100, 100, 0xff);
 }
 
 // 0x403ab0
@@ -244,7 +245,7 @@ void DialogFrame::Draw()
 {
 	if (!mLaidOut)
 		Layout();
-	DrawImage(mLeft, mTop, 0x118, nullptr, true, mScaleX, mScaleY, 0xff);
+	DrawImage(mLeft, mTop, IMAGE_DIALOG_PAPER, nullptr, true, mScaleX, mScaleY, 0xff);
 	Rect aRect;
 	aRect.left = 0;
 	aRect.top = 0;
@@ -255,14 +256,14 @@ void DialogFrame::Draw()
 		aCorner = 0x40;
 		aRect.right = 0x40;
 		aRect.bottom = 0x40;
-		anImage = 0x11a;
+		anImage = IMAGE_DIALOG_CORNERS;
 	}
 	else
 	{
 		aCorner = 0x54;
 		aRect.right = 0x54;
 		aRect.bottom = 0x54;
-		anImage = 0x115;
+		anImage = IMAGE_DIALOG_CORNERS_LARGE;
 	}
 	DrawImage(0, 0, anImage, &aRect, true, 100, 100, 0xff);
 	int i = 0;
@@ -278,7 +279,7 @@ void DialogFrame::Draw()
 				aRect.top = 0;
 				aRect.right = 0xd6;
 				aRect.bottom = 0xb;
-				DrawImage(x, 0xc, 0x116, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, 0xc, IMAGE_DIALOG_EDGES, &aRect, true, 100, 100, 0xff);
 				x = x + 0x30;
 			}
 			else if (aKind == 2)
@@ -287,7 +288,7 @@ void DialogFrame::Draw()
 				aRect.top = 0;
 				aRect.right = 0xa6;
 				aRect.bottom = 0xb;
-				DrawImage(x, 0xc, 0x116, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, 0xc, IMAGE_DIALOG_EDGES, &aRect, true, 100, 100, 0xff);
 				x = x + 0x47;
 			}
 			else
@@ -296,7 +297,7 @@ void DialogFrame::Draw()
 				aRect.top = 0;
 				aRect.right = 0x5f;
 				aRect.bottom = 0xb;
-				DrawImage(x, 0xc, 0x116, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, 0xc, IMAGE_DIALOG_EDGES, &aRect, true, 100, 100, 0xff);
 				x = x + 0x5f;
 			}
 			i = i + 1;
@@ -309,7 +310,7 @@ void DialogFrame::Draw()
 		aRect.top = 0;
 		aRect.right = 0x80;
 		aRect.bottom = 0x40;
-		DrawImage(x, 0, 0x11a, &aRect, true, 100, 100, 0xff);
+		DrawImage(x, 0, IMAGE_DIALOG_CORNERS, &aRect, true, 100, 100, 0xff);
 		x = x + 0x40;
 		aRightY = 0x40;
 	}
@@ -319,7 +320,7 @@ void DialogFrame::Draw()
 		aRect.bottom = 0x54;
 		aRect.top = 0;
 		aRect.right = 0xa8;
-		DrawImage(x, 0, 0x115, &aRect, true, 100, 100, 0xff);
+		DrawImage(x, 0, IMAGE_DIALOG_CORNERS_LARGE, &aRect, true, 100, 100, 0xff);
 		x = x + 0x54;
 		aRightY = 0x54;
 	}
@@ -336,7 +337,7 @@ void DialogFrame::Draw()
 				aRect.left = 0x18;
 				aRect.right = 0x24;
 				aRect.bottom = 0x2a;
-				DrawImage(0x12, y, 0x114, &aRect, true, 100, 100, 0xff);
+				DrawImage(0x12, y, IMAGE_DIALOG_SIDES, &aRect, true, 100, 100, 0xff);
 				y = y + 0x2a;
 			}
 			else if (aKind == 2)
@@ -345,7 +346,7 @@ void DialogFrame::Draw()
 				aRect.top = 0;
 				aRect.right = 0x18;
 				aRect.bottom = 0x3f;
-				DrawImage(0x12, y, 0x114, &aRect, true, 100, 100, 0xff);
+				DrawImage(0x12, y, IMAGE_DIALOG_SIDES, &aRect, true, 100, 100, 0xff);
 				y = y + 0x3f;
 			}
 			else
@@ -354,7 +355,7 @@ void DialogFrame::Draw()
 				aRect.top = 0;
 				aRect.right = 0xc;
 				aRect.bottom = 0x54;
-				DrawImage(0x12, y, 0x114, &aRect, true, 100, 100, 0xff);
+				DrawImage(0x12, y, IMAGE_DIALOG_SIDES, &aRect, true, 100, 100, 0xff);
 				y = y + 0x54;
 			}
 			i = i + 1;
@@ -373,7 +374,7 @@ void DialogFrame::Draw()
 				aRect.left = 0x18;
 				aRect.right = 0x24;
 				aRect.bottom = 0x2a;
-				DrawImage(x, aRightY, 0x114, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, aRightY, IMAGE_DIALOG_SIDES, &aRect, true, 100, 100, 0xff);
 				aRightY = aRightY + 0x2a;
 			}
 			else if (aKind == 2)
@@ -382,7 +383,7 @@ void DialogFrame::Draw()
 				aRect.top = 0;
 				aRect.right = 0x18;
 				aRect.bottom = 0x3f;
-				DrawImage(x, aRightY, 0x114, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, aRightY, IMAGE_DIALOG_SIDES, &aRect, true, 100, 100, 0xff);
 				aRightY = aRightY + 0x3f;
 			}
 			else
@@ -391,7 +392,7 @@ void DialogFrame::Draw()
 				aRect.top = 0;
 				aRect.right = 0xc;
 				aRect.bottom = 0x54;
-				DrawImage(x, aRightY, 0x114, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, aRightY, IMAGE_DIALOG_SIDES, &aRect, true, 100, 100, 0xff);
 				aRightY = aRightY + 0x54;
 			}
 			i = i + 1;
@@ -404,7 +405,7 @@ void DialogFrame::Draw()
 		aRect.top = 0x40;
 		aRect.right = 0x40;
 		aRect.bottom = 0x80;
-		DrawImage(0, y, 0x11a, &aRect, true, 100, 100, 0xff);
+		DrawImage(0, y, IMAGE_DIALOG_CORNERS, &aRect, true, 100, 100, 0xff);
 		y = y + 0x40;
 	}
 	else
@@ -412,7 +413,7 @@ void DialogFrame::Draw()
 		aRect.top = 0x54;
 		aRect.right = 0x54;
 		aRect.bottom = 0xa8;
-		DrawImage(0, y, 0x115, &aRect, true, 100, 100, 0xff);
+		DrawImage(0, y, IMAGE_DIALOG_CORNERS_LARGE, &aRect, true, 100, 100, 0xff);
 		x = 0x54;
 		y = y + 0x54;
 	}
@@ -428,7 +429,7 @@ void DialogFrame::Draw()
 				aRect.top = 0xb;
 				aRect.right = 0xd6;
 				aRect.bottom = 0x16;
-				DrawImage(x, y - 0x19, 0x116, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, y - 0x19, IMAGE_DIALOG_EDGES, &aRect, true, 100, 100, 0xff);
 				x = x + 0x30;
 			}
 			else if (aKind == 2)
@@ -437,7 +438,7 @@ void DialogFrame::Draw()
 				aRect.top = 0xb;
 				aRect.right = 0xa6;
 				aRect.bottom = 0x16;
-				DrawImage(x, y - 0x19, 0x116, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, y - 0x19, IMAGE_DIALOG_EDGES, &aRect, true, 100, 100, 0xff);
 				x = x + 0x47;
 			}
 			else
@@ -446,7 +447,7 @@ void DialogFrame::Draw()
 				aRect.top = 0xb;
 				aRect.right = 0x5f;
 				aRect.bottom = 0x16;
-				DrawImage(x, y - 0x19, 0x116, &aRect, true, 100, 100, 0xff);
+				DrawImage(x, y - 0x19, IMAGE_DIALOG_EDGES, &aRect, true, 100, 100, 0xff);
 				x = x + 0x5f;
 			}
 			i = i + 1;
@@ -458,7 +459,7 @@ void DialogFrame::Draw()
 		aRect.top = 0x40;
 		aRect.right = 0x80;
 		aRect.bottom = 0x80;
-		anImage = 0x11a;
+		anImage = IMAGE_DIALOG_CORNERS;
 		y = y - 0x40;
 	}
 	else
@@ -467,7 +468,7 @@ void DialogFrame::Draw()
 		aRect.bottom = 0xa8;
 		aRect.left = 0x54;
 		aRect.top = 0x54;
-		anImage = 0x115;
+		anImage = IMAGE_DIALOG_CORNERS_LARGE;
 		y = y - 0x54;
 	}
 	DrawImage(x, y, anImage, &aRect, true, 100, 100, 0xff);
@@ -504,18 +505,18 @@ void DialogFrame::Draw()
 		mSubtitleFont->DrawLeft(this, mMessageX, mMessageY, mMessage.c_str(), -1, 100, 100, 0xff);
 	if (mClickCmd != -1)
 	{
-		static const Rect kScreen = {0, 0, 800, 600};  // 0x51c820
-		AddDirty(kScreen);
+		static const Rect SCREEN_RECT = {0, 0, 800, 600};  // 0x51c820
+		AddDirty(SCREEN_RECT);
 	}
 }
 
 // 0x4045e0
 void DialogFrame::Init()
 {
-	mSubtitleFont = GetDllFont(0x11c, 0x11b);
-	mTitleFont = GetDllFont(0x11e, 0x11d);
-	mTextFont = GetDllFont(0x122, 0x121);
-	mAltFont = GetDllFont(0x133, 0x132);
+	mSubtitleFont = GetDllFont(FONT_CAPTION, FONT_CAPTION_MAP);
+	mTitleFont = GetDllFont(FONT_HEADING, FONT_HEADING_MAP);
+	mTextFont = GetDllFont(FONT_TEXT, FONT_TEXT_MAP);
+	mAltFont = GetDllFont(FONT_TEXT_ALT, FONT_TEXT_ALT_MAP);
 }
 
 // 0x404650: the message's time (its first update starts it)
@@ -587,12 +588,12 @@ int CopyEdgeList(int*& theList, const int* theSource)
 		delete[] theList;
 	int aCount = 0;
 	int aKind = *theSource;
-	const int* p = theSource;
+	const int* aKindSlot = theSource;
 	while (aKind != 0)
 	{
-		p = p + 1;
+		aKindSlot = aKindSlot + 1;
 		aCount = aCount + 1;
-		aKind = *p;
+		aKind = *aKindSlot;
 	}
 	theList = new int[aCount];
 	int i = 0;
@@ -640,17 +641,17 @@ edges:
 	mTop = 0x15;
 	if (0 < aCount)
 	{
-		int* p = mEdges[0];
+		int* anEdge = mEdges[0];
 		do
 		{
 			int aHeight;
-			if (*p == 3)
+			if (*anEdge == 3)
 				aHeight = mHeight + 0x54;
-			else if (*p == 2)
+			else if (*anEdge == 2)
 				aHeight = mHeight + 0x3f;
 			else
 				aHeight = mHeight + 0x2a;
-			p = p + 1;
+			anEdge = anEdge + 1;
 			aCount = aCount - 1;
 			mHeight = aHeight;
 		} while (aCount != 0);
@@ -658,17 +659,17 @@ edges:
 	aCount = mEdgeCounts[2];
 	if (0 < aCount)
 	{
-		int* p = mEdges[2];
+		int* anEdge = mEdges[2];
 		do
 		{
 			int aWidth;
-			if (*p == 3)
+			if (*anEdge == 3)
 				aWidth = mWidth + 0x5f;
-			else if (*p == 2)
+			else if (*anEdge == 2)
 				aWidth = mWidth + 0x47;
 			else
 				aWidth = mWidth + 0x30;
-			p = p + 1;
+			anEdge = anEdge + 1;
 			aCount = aCount - 1;
 			mWidth = aWidth;
 		} while (aCount != 0);

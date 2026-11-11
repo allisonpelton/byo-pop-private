@@ -134,14 +134,14 @@ bool Image::Decode(const uint8_t* theData, uint32_t theSize, int theType)
 	return false;
 }
 
-static int32_t ReadI32(const uint8_t* p)
+static int32_t ReadI32(const uint8_t* theBytes)
 {
-	return (int32_t)((uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24));
+	return (int32_t)((uint32_t)theBytes[0] | ((uint32_t)theBytes[1] << 8) | ((uint32_t)theBytes[2] << 16) | ((uint32_t)theBytes[3] << 24));
 }
 
-static uint16_t ReadU16(const uint8_t* p)
+static uint16_t ReadU16(const uint8_t* theBytes)
 {
-	return (uint16_t)(p[0] | (p[1] << 8));
+	return (uint16_t)(theBytes[0] | (theBytes[1] << 8));
 }
 
 // 0x42d110: the pixels stay in the resource, after the header (biSize bytes; no palette)
@@ -522,17 +522,17 @@ bool Image::Blit(int theX, int theY, const Rect& theSrc, int theScaleX, int theS
 		int y = aHeight;
 		do
 		{
-			const uint32_t* s = (const uint32_t*)aSrc;
-			uint32_t* d = (uint32_t*)aDst;
-			int n = aWidth;
+			const uint32_t* aSrcPixel = (const uint32_t*)aSrc;
+			uint32_t* aDstPixel = (uint32_t*)aDst;
+			int aRemaining = aWidth;
 			do
 			{
-				if ((*s & 0xff000000) != 0)
-					*d = *s | 0xff000000;
-				s = s + 1;
-				d = d + 1;
-				n = n - 1;
-			} while (n != 0);
+				if ((*aSrcPixel & 0xff000000) != 0)
+					*aDstPixel = *aSrcPixel | 0xff000000;
+				aSrcPixel = aSrcPixel + 1;
+				aDstPixel = aDstPixel + 1;
+				aRemaining = aRemaining - 1;
+			} while (aRemaining != 0);
 			aSrc = aSrc + aSrcPitch;
 			aDst = aDst + theDstPitch;
 			y = y - 1;
@@ -608,16 +608,16 @@ void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst,
 			do
 			{
 				// 0x438ef0
-				const uint8_t* s = theSrc;
-				uint32_t* d = (uint32_t*)theDst;
-				int n = theWidth;
+				const uint8_t* aSrcPixel = theSrc;
+				uint32_t* aDstPixel = (uint32_t*)theDst;
+				int aRemaining = theWidth;
 				do
 				{
-					*d = (uint32_t)s[0] | ((uint32_t)s[1] << 8) | ((uint32_t)s[2] << 16) | 0xff000000;
-					s = s + 3;
-					d = d + 1;
-					n = n - 1;
-				} while (n != 0);
+					*aDstPixel = (uint32_t)aSrcPixel[0] | ((uint32_t)aSrcPixel[1] << 8) | ((uint32_t)aSrcPixel[2] << 16) | 0xff000000;
+					aSrcPixel = aSrcPixel + 3;
+					aDstPixel = aDstPixel + 1;
+					aRemaining = aRemaining - 1;
+				} while (aRemaining != 0);
 				theSrc = theSrc + theSrcPitch;
 				theDst = theDst - theDstPitch;
 				theHeight = theHeight - 1;
@@ -627,20 +627,20 @@ void Image::ConvertRows(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst,
 		do
 		{
 			// 0x438f20
-			const uint8_t* s = theSrc;
-			uint32_t* d = (uint32_t*)theDst;
-			int n = theWidth;
+			const uint8_t* aSrcPixel = theSrc;
+			uint32_t* aDstPixel = (uint32_t*)theDst;
+			int aRemaining = theWidth;
 			do
 			{
-				uint32_t aPixel = (uint32_t)s[0] | ((uint32_t)s[1] << 8) | ((uint32_t)s[2] << 16);
+				uint32_t aPixel = (uint32_t)aSrcPixel[0] | ((uint32_t)aSrcPixel[1] << 8) | ((uint32_t)aSrcPixel[2] << 16);
 				if (aPixel == mKey)
-					*d = 0;
+					*aDstPixel = 0;
 				else
-					*d = aPixel | 0xff000000;
-				s = s + 3;
-				d = d + 1;
-				n = n - 1;
-			} while (n != 0);
+					*aDstPixel = aPixel | 0xff000000;
+				aSrcPixel = aSrcPixel + 3;
+				aDstPixel = aDstPixel + 1;
+				aRemaining = aRemaining - 1;
+			} while (aRemaining != 0);
 			theSrc = theSrc + theSrcPitch;
 			theDst = theDst - theDstPitch;
 			theHeight = theHeight - 1;
@@ -700,7 +700,7 @@ void Image::FlipRows()
 // 0x42ecd0
 bool Image::LoadDll(int theId)
 {
-	if (LoadResource(theId, Module::Dll))
+	if (LoadResource(theId, Module::DLL))
 	{
 		Prepare();
 		return true;
@@ -738,33 +738,33 @@ bool Image::SaveBmp(const char* thePath)
 	std::vector<uint8_t> aPixels((size_t)aPitch * mHeight, 0);
 	for (int y = 0; y < mHeight; y++)
 	{
-		const uint8_t* s = mBits + (size_t)y * mPitch;
-		uint8_t* d = aPixels.data() + (size_t)y * aPitch;
+		const uint8_t* aSrcPixel = mBits + (size_t)y * mPitch;
+		uint8_t* aDstPixel = aPixels.data() + (size_t)y * aPitch;
 		for (int x = 0; x < mWidth; x++)
 		{
-			d[0] = s[0];
-			d[1] = s[1];
-			d[2] = s[2];
-			s = s + mBitCount / 8;
-			d = d + 3;
+			aDstPixel[0] = aSrcPixel[0];
+			aDstPixel[1] = aSrcPixel[1];
+			aDstPixel[2] = aSrcPixel[2];
+			aSrcPixel = aSrcPixel + mBitCount / 8;
+			aDstPixel = aDstPixel + 3;
 		}
 	}
 	uint8_t aHeader[0x36] = {};
 	uint32_t aSize = (uint32_t)aPixels.size();
-	auto Put32 = [&](int o, uint32_t v) {
-		aHeader[o] = (uint8_t)v;
-		aHeader[o + 1] = (uint8_t)(v >> 8);
-		aHeader[o + 2] = (uint8_t)(v >> 16);
-		aHeader[o + 3] = (uint8_t)(v >> 24);
+	auto aPut32 = [&](int theOffset, uint32_t theValue) {
+		aHeader[theOffset] = (uint8_t)theValue;
+		aHeader[theOffset + 1] = (uint8_t)(theValue >> 8);
+		aHeader[theOffset + 2] = (uint8_t)(theValue >> 16);
+		aHeader[theOffset + 3] = (uint8_t)(theValue >> 24);
 	};
 	aHeader[0] = 'B';
 	aHeader[1] = 'M';
-	Put32(2, aSize + 0x36);
-	Put32(10, 0x36);
-	Put32(14, 0x28);
-	Put32(18, (uint32_t)mWidth);
-	Put32(22, (uint32_t)mHeight);
-	Put32(34, aSize);
+	aPut32(2, aSize + 0x36);
+	aPut32(10, 0x36);
+	aPut32(14, 0x28);
+	aPut32(18, (uint32_t)mWidth);
+	aPut32(22, (uint32_t)mHeight);
+	aPut32(34, aSize);
 	aHeader[26] = 1;
 	aHeader[28] = 0x18;
 	bool aResult = fwrite(aHeader, 1, 0x0e, aFile) == 0x0e && fwrite(aHeader + 0x0e, 1, 0x28, aFile) == 0x28 &&

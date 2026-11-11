@@ -108,7 +108,7 @@ void AddKind(int* theCounts, int theSize, int* theEmpty, int* theFull)
 	}
 	aPick = jb::CrtRand() % aRange;
 pick:
-	int n = 0;
+	int aSeen = 0;
 	int i = 0;
 	do
 	{
@@ -117,7 +117,7 @@ pick:
 			if (theCounts[i] != 0)
 				goto used;
 		take:
-			if (n == aPick)
+			if (aSeen == aPick)
 			{
 				if (theCounts[i] == 0)
 					*theEmpty = *theEmpty - 1;
@@ -127,7 +127,7 @@ pick:
 					*theFull = *theFull + 1;
 				return;
 			}
-			n = n + 1;
+			aSeen = aSeen + 1;
 		}
 		else
 		{
@@ -209,17 +209,17 @@ void Deal::Start(Layout* theLayout, int theQuadPercent, int theMove, bool theRed
 	int aFree = mLayout->GetFree(gSolveFree[0], 400);
 	if (0 < aFree)
 	{
-		Tile** p = gSolveFree[0];
-		int n = aFree;
+		Tile** aSlot = gSolveFree[0];
+		int aRemaining = aFree;
 		do
 		{
-			int r = aFree == 0 ? 0 : jb::CrtRand() % aFree;
-			Tile* aTile = *p;
-			*p = gSolveFree[0][r];
-			p = p + 1;
-			n = n - 1;
-			gSolveFree[0][r] = aTile;
-		} while (n != 0);
+			int aRandom = aFree == 0 ? 0 : jb::CrtRand() % aFree;
+			Tile* aTile = *aSlot;
+			*aSlot = gSolveFree[0][aRandom];
+			aSlot = aSlot + 1;
+			aRemaining = aRemaining - 1;
+			gSolveFree[0][aRandom] = aTile;
+		} while (aRemaining != 0);
 	}
 	if (Solve(0, aFree, 0))
 		DealOrder();
@@ -369,18 +369,18 @@ void Deal::Distribute(int theTiles)
 		int aDealt = 0;
 		if (0 < aSeasonTotal)
 		{
-			int* p = aBonus;
+			int* aBonusSlot = aBonus;
 			do
 			{
-				if (aBonus + 8 <= p || *p < 1)
+				if (aBonus + 8 <= aBonusSlot || *aBonusSlot < 1)
 				{
 					aDealt = aDealt + 1;
 					gBonusCounts[i % 4] = gBonusCounts[i % 4] + 1;
 				}
 				else
-					*p = *p - 1;
+					*aBonusSlot = *aBonusSlot - 1;
 				i = i + 1;
-				p = p + 1;
+				aBonusSlot = aBonusSlot + 1;
 			} while (aDealt < aSeasonTotal);
 		}
 		int aFlowerTotal = gKindCounts[35];
@@ -388,18 +388,18 @@ void Deal::Distribute(int theTiles)
 		aDealt = 0;
 		if (0 < aFlowerTotal)
 		{
-			int* p = aBonus + 4;
+			int* aBonusSlot = aBonus + 4;
 			do
 			{
-				if (aBonus + 8 <= p || *p < 1)
+				if (aBonus + 8 <= aBonusSlot || *aBonusSlot < 1)
 				{
 					aDealt = aDealt + 1;
 					gBonusCounts[4 + i % 4] = gBonusCounts[4 + i % 4] + 1;
 				}
 				else
-					*p = *p - 1;
+					*aBonusSlot = *aBonusSlot - 1;
 				i = i + 1;
-				p = p + 1;
+				aBonusSlot = aBonusSlot + 1;
 			} while (aDealt < aFlowerTotal);
 		}
 	}
@@ -411,14 +411,14 @@ void Deal::DealOrder()
 {
 	int aPairs = 0;
 	int aQuads = 0;
-	int* p = gKindCounts;
+	int* aCountSlot = gKindCounts;
 	do
 	{
-		int aCount = *p;
-		p = p + 1;
+		int aCount = *aCountSlot;
+		aCountSlot = aCountSlot + 1;
 		aQuads = aQuads + aCount / 4;
 		aPairs = aPairs + aCount / 2;
-	} while (p < gKindCounts + 0x24);
+	} while (aCountSlot < gKindCounts + 0x24);
 	int i = 0;
 	if (0 < gQuadTiles)
 	{
@@ -460,9 +460,9 @@ void DealKind(Tile** theTiles, int theSize, int* theLeft)
 	int aPick = 0;
 	if (aLeft != 0)
 		aPick = jb::CrtRand() % aLeft;
-	int n = 0;
+	int aSeen = 0;
 	int k = 0;
-	while (gKindCounts[k] < theSize || (n = n + gKindCounts[k] / theSize, n <= aPick))
+	while (gKindCounts[k] < theSize || (aSeen = aSeen + gKindCounts[k] / theSize, aSeen <= aPick))
 	{
 		k = k + 1;
 		if (k == 0x24)
@@ -509,13 +509,13 @@ void DealOne(Tile* theTile, int* theLeft)
 		aPick = 0;
 	else
 		aPick = jb::CrtRand() % aLeft;
-	int n = 0;
+	int aSeen = 0;
 	do
 	{
 		int k = 0;
 		do
 		{
-			if (0 < gKindCounts[k] && (n = n + gKindCounts[k], aPick < n))
+			if (0 < gKindCounts[k] && (aSeen = aSeen + gKindCounts[k], aPick < aSeen))
 			{
 				if (k == 0x22)
 					DealBonus(theTile, gKindCounts[34], 0x23);
@@ -542,19 +542,19 @@ void DealBonus(Tile* theTile, int theRange, int theBase)
 		aPick = jb::CrtRand() % theRange;
 	int i = 0;
 	int aFirst = theBase != 0x23 ? 4 : 0;
-	int n = 0;
-	int* p = gBonusCounts + aFirst;
+	int aSeen = 0;
+	int* aCountSlot = gBonusCounts + aFirst;
 	do
 	{
-		n = n + *p;
-		if (aPick < n)
+		aSeen = aSeen + *aCountSlot;
+		if (aPick < aSeen)
 		{
 			gBonusCounts[aFirst + i] = gBonusCounts[aFirst + i] - 1;
 			theTile->mKind = i + theBase;
 			return;
 		}
 		i = i + 1;
-		p = p + 1;
+		aCountSlot = aCountSlot + 1;
 	} while (i < 4);
 }
 
@@ -574,10 +574,10 @@ bool Deal::Solve(int theDepth, int theCount, int theGroup)
 	int i = 0;
 	if (0 < theCount)
 	{
-		Tile** p = gSolveFree[theDepth];
+		Tile** aSlot = gSolveFree[theDepth];
 		do
 		{
-			Tile* aTile = *p;
+			Tile* aTile = *aSlot;
 			if (!SolveInTime())
 				return false;
 			if (mLayout->mHasCounts)
@@ -620,22 +620,22 @@ bool Deal::Solve(int theDepth, int theCount, int theGroup)
 				int j = i + 1;
 				if (j < theCount)
 				{
-					Tile** q = p + 1;
+					Tile** anOtherSlot = aSlot + 1;
 					do
 					{
-						Tile* anOther = *q;
+						Tile* anOther = *anOtherSlot;
 						if (!SolveInTime())
 							return false;
 						if (KindsMatch(aTile->mKind, anOther->mKind) &&
 							Take(aTile, anOther, theCount, theDepth, theGroup))
 							return true;
 						j = j + 1;
-						q = q + 1;
+						anOtherSlot = anOtherSlot + 1;
 					} while (j < theCount);
 				}
 			}
 		next:
-			p = p + 1;
+			aSlot = aSlot + 1;
 			i = i + 1;
 		} while (i < theCount);
 	}
@@ -688,20 +688,20 @@ bool Deal::Take(Tile* theTile, Tile* theOther, int theCount, int theDepth, int t
 	if (0 < theCount)
 	{
 		Tile** aTo = gSolveFree[theDepth + 1];
-		Tile** p = gSolveFree[theDepth];
-		int n = theCount;
+		Tile** aFrom = gSolveFree[theDepth];
+		int aRemaining = theCount;
 		do
 		{
-			Tile* aTile = *p;
+			Tile* aTile = *aFrom;
 			if (aTile != theTile && aTile != theOther)
 			{
 				*aTo = aTile;
 				aNext = aNext + 1;
 				aTo = aTo + 1;
 			}
-			p = p + 1;
-			n = n - 1;
-		} while (n != 0);
+			aFrom = aFrom + 1;
+			aRemaining = aRemaining - 1;
+		} while (aRemaining != 0);
 	}
 	int anOld = aNext;
 	Tile** aFreed = gSolveFreed[theDepth];
@@ -716,21 +716,21 @@ bool Deal::Take(Tile* theTile, Tile* theOther, int theCount, int theDepth, int t
 	int aRange = anOld + (mQuadPercent * aFreedCount) / 100;
 	if (0 < aHalf)
 	{
-		Tile** p = gSolveFree[theDepth + 1];
-		int n = aHalf;
+		Tile** aSlot = gSolveFree[theDepth + 1];
+		int aRemaining = aHalf;
 		do
 		{
-			int r;
+			int aRandom;
 			if (aRange == 0)
-				r = 0;
+				aRandom = 0;
 			else
-				r = jb::CrtRand() % aRange;
-			Tile* aTile = *p;
-			p = p + 1;
-			*(p - 1) = gSolveFree[theDepth + 1][r];
-			gSolveFree[theDepth + 1][r] = aTile;
-			n = n - 1;
-		} while (n != 0);
+				aRandom = jb::CrtRand() % aRange;
+			Tile* aTile = *aSlot;
+			aSlot = aSlot + 1;
+			*(aSlot - 1) = gSolveFree[theDepth + 1][aRandom];
+			gSolveFree[theDepth + 1][aRandom] = aTile;
+			aRemaining = aRemaining - 1;
+		} while (aRemaining != 0);
 	}
 	int aFlags = 0;
 	Tile* aThird = nullptr;
@@ -778,17 +778,17 @@ bool Deal::Take(Tile* theTile, Tile* theOther, int theCount, int theDepth, int t
 		else
 			gSolveKinded = gSolveKinded + 1;
 	}
-	int n = aFreedCount;
-	if (0 < n)
+	int aRemaining = aFreedCount;
+	if (0 < aRemaining)
 	{
-		Tile** p = aFreed;
+		Tile** aSlot = aFreed;
 		do
 		{
-			Tile* aTile = *p;
-			p = p + 1;
-			n = n - 1;
+			Tile* aTile = *aSlot;
+			aSlot = aSlot + 1;
+			aRemaining = aRemaining - 1;
 			aTile->mFree = false;
-		} while (n != 0);
+		} while (aRemaining != 0);
 	}
 	if (0 < aFlags)
 	{
@@ -843,10 +843,10 @@ int Deal::Group(Tile* theTile, Tile* theOther, Tile* theThird, int* theGroup)
 			goto done;
 		}
 		{
-			int r = jb::CrtRand();
+			int aRandom = jb::CrtRand();
 			theTile->mGroup = anId;
 			theOther->mGroup = anId;
-			if (r % 100 < mQuadPercent)
+			if (aRandom % 100 < mQuadPercent)
 				goto clear;
 			*theGroup = anId;
 		}

@@ -69,7 +69,7 @@ void Layout::Reset(bool theKinds)
 	{
 		Tile* aTile = (Tile*)aNode->mObj;
 		aTile->mTaken = 0;
-		aTile->m3c = 0;
+		aTile->mLiftStart = 0;
 		if (theKinds && !aTile->mPreset)
 			aTile->mKind = 0;
 	}
@@ -273,7 +273,7 @@ int Layout::UpdateNeighbours(Tile** theTiles, int theNum, Tile** theOut, int the
 	if (0 < theNum)
 	{
 		int i = 0;
-		int n = theNum;
+		int aRemaining = theNum;
 		do
 		{
 			aX[i] = theTiles[i]->mX;
@@ -283,8 +283,8 @@ int Layout::UpdateNeighbours(Tile** theTiles, int theNum, Tile** theOut, int the
 			if (aTop < z)
 				aTop = z;
 			i = i + 1;
-			n = n - 1;
-		} while (n != 0);
+			aRemaining = aRemaining - 1;
+		} while (aRemaining != 0);
 	}
 	if (aNode != nullptr)
 	{
@@ -302,10 +302,10 @@ int Layout::UpdateNeighbours(Tile** theTiles, int theNum, Tile** theOut, int the
 				int k = 0;
 				do
 				{
-					int kz = aZ[k];
-					if ((z == kz - 1 && aX[k] - 1 <= x && x <= aX[k] + 1 && aY[k] - 1 <= y && y <= aY[k] + 1) ||
-						(z == kz && ((x == aX[k] - 2 && aY[k] - 1 <= y && y <= aY[k] + 1) ||
-							(z == kz && x == aX[k] + 2 && aY[k] - 1 <= y && y <= aY[k] + 1))))
+					int aGivenZ = aZ[k];
+					if ((z == aGivenZ - 1 && aX[k] - 1 <= x && x <= aX[k] + 1 && aY[k] - 1 <= y && y <= aY[k] + 1) ||
+						(z == aGivenZ && ((x == aX[k] - 2 && aY[k] - 1 <= y && y <= aY[k] + 1) ||
+							(z == aGivenZ && x == aX[k] + 2 && aY[k] - 1 <= y && y <= aY[k] + 1))))
 					{
 						if (IsFree(x, y, z) == theFree)
 						{
@@ -397,18 +397,18 @@ void Layout::CountMoves(int* thePairs, int* theLeft, int* theKinds)
 			}
 		}
 	}
-	int* p = aCounts;
-	int n = 0x2c;
+	int* aCountSlot = aCounts;
+	int aRemaining = 0x2c;
 	do
 	{
-		if (1 < *p)
+		if (1 < *aCountSlot)
 		{
-			*thePairs = *thePairs + *p / 2;
+			*thePairs = *thePairs + *aCountSlot / 2;
 			*theKinds = *theKinds + 1;
 		}
-		p = p + 1;
-		n = n - 1;
-	} while (n != 0);
+		aCountSlot = aCountSlot + 1;
+		aRemaining = aRemaining - 1;
+	} while (aRemaining != 0);
 }
 
 // 0x414df0
@@ -494,14 +494,14 @@ int Layout::GetPairsOf(int theIndex, Tile** theTiles, int theMax)
 			aCounts[aKind] = aCounts[aKind] + 1;
 		}
 	}
-	int n = 0;
+	int aSeen = 0;
 	int aKind = 0;
-	int* p = aCounts;
+	int* aCountSlot = aCounts;
 	do
 	{
-		if (1 < *p)
+		if (1 < *aCountSlot)
 		{
-			if (theIndex == n)
+			if (theIndex == aSeen)
 			{
 				if (aKind < 0x2c)
 				{
@@ -521,10 +521,10 @@ int Layout::GetPairsOf(int theIndex, Tile** theTiles, int theMax)
 				}
 				return 0;
 			}
-			n = n + 1;
+			aSeen = aSeen + 1;
 		}
 		aKind = aKind + 1;
-		p = p + 1;
+		aCountSlot = aCountSlot + 1;
 	} while (aKind < 0x2c);
 	return 0;
 }
@@ -611,12 +611,12 @@ int Layout::GetCounts(int* theCounts)
 }
 
 // 0x415110: the LAYOUTS resource of the module the app keeps at +0x30 (Resource.dll)
-// 0x424960 inlined here: the getter of that module (jb::Module::Dll)
+// 0x424960 inlined here: the getter of that module (jb::Module::DLL)
 bool Layout::Load(int theId)
 {
 	jb::Stream aStream;
 	uint32_t aSize = 0;
-	const uint8_t* aData = jb::FindResourceData(jb::Module::Dll, "LAYOUTS", theId & 0xffff, &aSize);
+	const uint8_t* aData = jb::FindResourceData(jb::Module::DLL, "LAYOUTS", theId & 0xffff, &aSize);
 	if (aData == nullptr)
 		return false;
 	aStream.OpenReadMemory(aData, (int)aSize);
@@ -706,14 +706,14 @@ bool Layout::IsVisible(Tile* theTile)
 	int i = 0;
 	do
 	{
-		char* p = aMask + i;
-		int n = 0x28;
+		char* aCell = aMask + i;
+		int aRemaining = 0x28;
 		do
 		{
-			*p = 1;
-			p = p + 0x32;
-			n = n - 1;
-		} while (n != 0);
+			*aCell = 1;
+			aCell = aCell + 0x32;
+			aRemaining = aRemaining - 1;
+		} while (aRemaining != 0);
 		i = i + 1;
 	} while (i < 0x32);
 	jb::ListNode* aNode = mHead;
@@ -738,14 +738,14 @@ bool Layout::IsVisible(Tile* theTile)
 			{
 				if (anOver.left < anOver.right)
 				{
-					int n = anOver.right - anOver.left;
-					char* p = aMask + y + anOver.left * 0x32;
+					int aRemaining = anOver.right - anOver.left;
+					char* aCell = aMask + y + anOver.left * 0x32;
 					do
 					{
-						*p = 0;
-						p = p + 0x32;
-						n = n - 1;
-					} while (n != 0);
+						*aCell = 0;
+						aCell = aCell + 0x32;
+						aRemaining = aRemaining - 1;
+					} while (aRemaining != 0);
 				}
 			}
 			aCovered = true;
@@ -758,13 +758,13 @@ bool Layout::IsVisible(Tile* theTile)
 	do
 	{
 		int x = 0;
-		char* p = aMask + i;
+		char* aCell = aMask + i;
 		do
 		{
-			if (*p != 0)
+			if (*aCell != 0)
 				return true;
 			x = x + 1;
-			p = p + 0x32;
+			aCell = aCell + 0x32;
 		} while (x < 0x28);
 		i = i + 1;
 	} while (i <= 0x31);

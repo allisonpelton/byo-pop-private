@@ -96,12 +96,12 @@ bool CharMap::ParseKerns(const std::string& theLine, int thePos)
 {
 	int aLen = (int)theLine.size();
 	uint16_t aChar = (uint16_t)ParseNumber(Tokenize(theLine, ',', thePos));
-	int r = 0;
+	int aRowIndex = 0;
 	if (0 < mUsed)
 	{
 		do
 		{
-			Row& aRow = mRows[r];
+			Row& aRow = mRows[aRowIndex];
 			if (aRow.mFirst <= aChar && (int)aChar < aRow.mCount + (int)aRow.mFirst)
 			{
 				int anIndex = aChar - aRow.mFirst;
@@ -126,8 +126,8 @@ bool CharMap::ParseKerns(const std::string& theLine, int thePos)
 				} while (thePos < aLen);
 				return true;
 			}
-			r = r + 1;
-		} while (r < mUsed);
+			aRowIndex = aRowIndex + 1;
+		} while (aRowIndex < mUsed);
 	}
 	return false;
 }
@@ -135,16 +135,16 @@ bool CharMap::ParseKerns(const std::string& theLine, int thePos)
 // 0x42f4b0
 bool CharMap::Lookup(uint16_t theChar, uint16_t theNext, Glyph& theGlyph)
 {
-	int r = 0;
+	int aRowIndex = 0;
 	if (0 < mUsed)
 	{
 		do
 		{
-			Row& aRow = mRows[r];
+			Row& aRow = mRows[aRowIndex];
 			if (aRow.mFirst <= theChar && (int)theChar < aRow.mCount + (int)aRow.mFirst)
 			{
 				int anIndex = theChar - aRow.mFirst;
-				theGlyph.mRow = r;
+				theGlyph.mRow = aRowIndex;
 				theGlyph.mX = aRow.mX[anIndex];
 				theGlyph.mKern = 0;
 				theGlyph.mWidth = aRow.mWidths[anIndex];
@@ -164,8 +164,8 @@ bool CharMap::Lookup(uint16_t theChar, uint16_t theNext, Glyph& theGlyph)
 				}
 				return true;
 			}
-			r = r + 1;
-		} while (r < mUsed);
+			aRowIndex = aRowIndex + 1;
+		} while (aRowIndex < mUsed);
 	}
 	return false;
 }
@@ -175,15 +175,15 @@ bool CharMap::Has(uint16_t theChar)
 {
 	if (theChar == ' ')
 		return true;
-	int r = 0;
+	int aRowIndex = 0;
 	if (0 < mUsed)
 	{
 		do
 		{
-			if (mRows[r].mFirst <= theChar && (int)theChar < mRows[r].mCount + (int)mRows[r].mFirst)
+			if (mRows[aRowIndex].mFirst <= theChar && (int)theChar < mRows[aRowIndex].mCount + (int)mRows[aRowIndex].mFirst)
 				return true;
-			r = r + 1;
-		} while (r < mUsed);
+			aRowIndex = aRowIndex + 1;
+		} while (aRowIndex < mUsed);
 	}
 	return false;
 }

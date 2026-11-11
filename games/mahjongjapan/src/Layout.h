@@ -29,8 +29,8 @@ public:
 	int mFromX = 0;        // +0x30 where it flies in from (0x40b780); the original leaves it unset until then
 	int mFromY = 0;        // +0x34
 	bool mFree = false;    // +0x38 it can be taken (0x414c20); the original leaves it unset until the first test
-	bool mFlag39 = false;  // +0x39
-	int m3c = 0;           // +0x3c
+	bool mBobsAsHint = false;  // +0x39 the lift is a hint's bob, not an undo's settle
+	int mLiftStart = 0;    // +0x3c when its lift began (a hint's bob, an undo's settle); 0 for none
 	int mGroup = 0;        // +0x40 the deal's pairing: the tiles of a pair or a four share it, -1 for a kind given
 	bool mQuad = false;    // +0x44 the deal's pair is half of a four
 

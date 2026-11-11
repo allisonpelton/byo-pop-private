@@ -39,14 +39,14 @@ public:
 	const uint8_t* FindResource(jb::Module theModule, const char* theTypeName, int theTypeId, int theId,
 		uint32_t* theSize) override
 	{
-		const PeResources& aFile = theModule == jb::Module::Dll ? mDll : mExe;
+		const PeResources& aFile = theModule == jb::Module::DLL ? mDll : mExe;
 		if (theTypeName != nullptr)
 			return aFile.Find(PeResources::Key(theTypeName), PeResources::Key((uint32_t)theId), theSize);
 		return aFile.Find(PeResources::Key((uint32_t)theTypeId), PeResources::Key((uint32_t)theId), theSize);
 	}
 	bool LoadString(jb::Module theModule, int theId, std::string& theText) override
 	{
-		return (theModule == jb::Module::Dll ? mDll : mExe).LoadString((uint32_t)theId, theText);
+		return (theModule == jb::Module::DLL ? mDll : mExe).LoadString((uint32_t)theId, theText);
 	}
 	bool RegReadInt(const char*, const char*, bool, int&) override { return false; }
 	bool RegWriteInt(const char*, const char*, int) override { return false; }
@@ -464,7 +464,7 @@ extern "C" int SDL_main(int argc, char** argv)
 			430, 431, 432, 433, 434, 435, 436, 579, 580, 581, 582, 583, 584, 585, 578};
 		int aStage = atoi(argv[3]);
 		jb::TextResource aText;
-		if (aStage < 1 || 60 < aStage || !aText.Load(0x17f, 0, jb::Module::Dll))
+		if (aStage < 1 || 60 < aStage || !aText.Load(0x17f, 0, jb::Module::DLL))
 			return 2;
 		std::string aLine;
 		int aPos = 0;

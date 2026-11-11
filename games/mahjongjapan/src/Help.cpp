@@ -3,6 +3,7 @@
 #include "Font.h"
 #include "JBBase.h"
 #include "Manager.h"
+#include "Res.h"
 
 namespace mahjongjapan
 {
@@ -10,10 +11,10 @@ namespace mahjongjapan
 // 0x40eac0
 void HelpExample::Init()
 {
-	mPointsText = jb::LoadDllString(0x5e);
-	mTimeText = jb::LoadDllString(0x67);
+	mPointsText = jb::LoadDllString(STRING_PICTURE_FREE_TILE);
+	mTimeText = jb::LoadDllString(STRING_PICTURE_NOT_FREE);
 	int aPos = 0;
-	std::string aText = jb::LoadDllString(0x69);
+	std::string aText = jb::LoadDllString(STRING_PICTURE_SEASON_NAME);
 	std::string* aName = mNames1;
 	int i = 4;
 	do
@@ -23,7 +24,7 @@ void HelpExample::Init()
 		i = i - 1;
 	} while (i != 0);
 	aPos = 0;
-	aText = jb::LoadDllString(0x5d);
+	aText = jb::LoadDllString(STRING_PICTURE_FLOWER_NAME);
 	aName = mNames2;
 	i = 4;
 	do
@@ -32,7 +33,7 @@ void HelpExample::Init()
 		aName = aName + 1;
 		i = i - 1;
 	} while (i != 0);
-	mFont = jb::GetDllFont(0x133, 0x132);
+	mFont = jb::GetDllFont(FONT_TEXT_ALT, FONT_TEXT_ALT_MAP);
 }
 
 // 0x40ebf0 (the points example draws text 0x5e in three places and 0x67 in one, as the original does)
@@ -96,7 +97,7 @@ void HelpExample::DrawSpecial(int theX, int theY, int theKind)
 	aRect.right = aRect.left + 0x30;
 	aRect.top = 0;
 	aRect.bottom = 0x3a;
-	DrawImageKeyed(theX, theY, 0x66, 0xff00ff, &aRect, true, 100, 100, 0xff);
+	DrawImageKeyed(theX, theY, IMAGE_SPECIAL_FACES, 0xff00ff, &aRect, true, 100, 100, 0xff);
 }
 
 // 0x40efa0
@@ -107,7 +108,7 @@ void HelpExample::DrawTile(int theX, int theY, int theKind)
 	aRect.top = 0;
 	aRect.right = 0x30;
 	aRect.bottom = 0x3a;
-	DrawImageKeyed(theX, theY, 0x66, 0xff00ff, &aRect, true, 100, 100, 0xff);
+	DrawImageKeyed(theX, theY, IMAGE_SPECIAL_FACES, 0xff00ff, &aRect, true, 100, 100, 0xff);
 	aRect.left = ((theKind - 1) % 6) * 0x26;
 	aRect.right = aRect.left + 0x26;
 	aRect.top = ((theKind - 1) / 6) * 0x30;
@@ -126,11 +127,11 @@ void HelpFree::Create()
 	SetEdges(aLeft, aRight, aTop, aBottom);
 	DialogButton* anOk = new DialogButton(1);
 	Add(anOk, 200, 0x14a);
-	anOk->SetText(0x43);
-	mPrevious = new jb::Button(0x162, 4, false);
+	anOk->SetText(STRING_TIP_DONE);
+	mPrevious = new jb::Button(IMAGE_HELP_PREV_BUTTON, 4, false);
 	Add(mPrevious, 0x32, 0x147);
 	mPrevious->SetEnabled(false);
-	mNext = new jb::Button(0x163, 4, false);
+	mNext = new jb::Button(IMAGE_HELP_NEXT_BUTTON, 4, false);
 	Add(mNext, 0x17c, 0x147);
 	mExample = new HelpExample(0xd7);
 	Add(mExample, 0x61, 0x9b);
@@ -172,28 +173,28 @@ void HelpFree::ShowPage()
 	switch (mPage)
 	{
 	case 0:
-		SetTitle(0x45);
-		AddText(0x44, 1, 0x32, 0x50, false);
+		SetTitle(STRING_HELP_OVERVIEW_TITLE);
+		AddText(STRING_HELP_OVERVIEW_TEXT, 1, 0x32, 0x50, false);
 		mExample->mExample = 1;
 		break;
 	case 1:
-		SetTitle(0x5c);
-		AddText(0x5b, 1, 0x28, 0x50, false);
+		SetTitle(STRING_HELP_FAMILIES_TITLE);
+		AddText(STRING_HELP_FAMILIES_TEXT, 1, 0x28, 0x50, false);
 		mExample->mExample = 2;
 		break;
 	case 2:
-		SetTitle(0x49);
-		AddText(0x48, 1, 0x2d, 0x55, false);
+		SetTitle(STRING_HELP_HINT_TITLE);
+		AddText(STRING_HELP_HINT_TEXT, 1, 0x2d, 0x55, false);
 		mExample->mExample = 0;
 		break;
 	case 3:
-		SetTitle(0x47);
-		AddText(0x46, 1, 0x2d, 0x55, false);
+		SetTitle(STRING_HELP_SAVED_TITLE);
+		AddText(STRING_HELP_SAVED_TEXT, 1, 0x2d, 0x55, false);
 		mExample->mExample = 0;
 		break;
 	case 4:
-		SetTitle(0x4b);
-		AddText(0x4a, 1, 0x32, 0x55, false);
+		SetTitle(STRING_HELP_TIPS_TITLE);
+		AddText(STRING_HELP_TIPS_TEXT, 1, 0x32, 0x55, false);
 		mExample->mExample = 0;
 	}
 	mPrevious->SetEnabled(mPage != 0);
@@ -211,11 +212,11 @@ void HelpEscape::Create()
 	SetEdges(aLeft, aRight, aTop, aBottom);
 	DialogButton* anOk = new DialogButton(1);
 	Add(anOk, 200, 0x14a);
-	anOk->SetText(0x4c);
-	mPrevious = new jb::Button(0x162, 4, false);
+	anOk->SetText(STRING_HELP_DONE);
+	mPrevious = new jb::Button(IMAGE_HELP_PREV_BUTTON, 4, false);
 	Add(mPrevious, 0x32, 0x147);
 	mPrevious->SetEnabled(false);
-	mNext = new jb::Button(0x163, 4, false);
+	mNext = new jb::Button(IMAGE_HELP_NEXT_BUTTON, 4, false);
 	Add(mNext, 0x17c, 0x147);
 	mExample = new HelpExample(0x65);
 	Add(mExample, 0x61, 0x9b);
@@ -257,38 +258,38 @@ void HelpEscape::ShowPage()
 	switch (mPage)
 	{
 	case 0:
-		SetTitle(0x56);
-		AddText(0x54, 1, 0xa0, 0x5f, false);
-		AddText(0x55, 1, 0x32, 0xd2, false);
+		SetTitle(STRING_HELP_ADVENTURE_TITLE);
+		AddText(STRING_HELP_ADVENTURE_GOAL, 1, 0xa0, 0x5f, false);
+		AddText(STRING_HELP_ADVENTURE_TEXT, 1, 0x32, 0xd2, false);
 		mExample->mExample = 3;
 		break;
 	case 1:
-		SetTitle(0x5a);
-		AddText(0x59, 1, 0x32, 0x50, false);
+		SetTitle(STRING_HELP_MATCHING_TITLE);
+		AddText(STRING_HELP_MATCHING_TEXT, 1, 0x32, 0x50, false);
 		mExample->mExample = 4;
 		break;
 	case 2:
-		SetTitle(0x5c);
-		AddText(0x5b, 1, 0x28, 0x50, false);
+		SetTitle(STRING_HELP_FAMILIES_TITLE);
+		AddText(STRING_HELP_FAMILIES_TEXT, 1, 0x28, 0x50, false);
 		mExample->mExample = 5;
 		break;
 	case 3:
-		SetTitle(0x53);
-		AddText(0x4d, 1, 0x32, 0x55, false);
-		AddText(0x4e, 1, 0x9b, 0x87, false);
-		AddText(0x4f, 1, 0x9b, 0xf0, false);
+		SetTitle(STRING_HELP_MAGIC_TITLE);
+		AddText(STRING_HELP_MAGIC_INTRO, 1, 0x32, 0x55, false);
+		AddText(STRING_HELP_MAGIC_GOLD, 1, 0x9b, 0x87, false);
+		AddText(STRING_HELP_MAGIC_KEY, 1, 0x9b, 0xf0, false);
 		mExample->mExample = 6;
 		break;
 	case 4:
-		SetTitle(0x53);
-		AddText(0x50, 1, 0x7d, 0x5f, false);
-		AddText(0x51, 1, 0x7d, 0xd2, false);
-		AddText(0x52, 1, 0x37, 0x136, false);
+		SetTitle(STRING_HELP_MAGIC_TITLE);
+		AddText(STRING_HELP_MAGIC_MAGNET, 1, 0x7d, 0x5f, false);
+		AddText(STRING_HELP_MAGIC_JOKER, 1, 0x7d, 0xd2, false);
+		AddText(STRING_HELP_MAGIC_HINT, 1, 0x37, 0x136, false);
 		mExample->mExample = 7;
 		break;
 	case 5:
-		SetTitle(0x58);
-		AddText(0x57, 1, 0x32, 100, false);
+		SetTitle(STRING_HELP_SCORING_TITLE);
+		AddText(STRING_HELP_SCORING_TEXT, 1, 0x32, 100, false);
 		mExample->mExample = 0;
 	}
 	mPrevious->SetEnabled(mPage != 0);
@@ -299,9 +300,9 @@ void HelpEscape::ShowPage()
 void HelpPicture::Draw()
 {
 	if (mPicture == 1)
-		DrawImage(9, 1, 0x164, nullptr, true, 100, 100, 0xff);
+		DrawImage(9, 1, IMAGE_HELP_MAP_PICTURE, nullptr, true, 100, 100, 0xff);
 	else if (mPicture == 2)
-		DrawImage(0, 0, 0x165, nullptr, true, 100, 100, 0xff);
+		DrawImage(0, 0, IMAGE_HELP_LAYOUT_PICTURE, nullptr, true, 100, 100, 0xff);
 }
 
 // 0x40f0b0
@@ -315,11 +316,11 @@ void HelpMenu::Create()
 	SetEdges(aLeft, aRight, aTop, aBottom);
 	DialogButton* anOk = new DialogButton(1);
 	Add(anOk, 200, 0x134);
-	anOk->SetText(0x61);
-	mPrevious = new jb::Button(0x162, 4, false);
+	anOk->SetText(STRING_HELP_MENU_DONE);
+	mPrevious = new jb::Button(IMAGE_HELP_PREV_BUTTON, 4, false);
 	Add(mPrevious, 0x32, 0x131);
 	mPrevious->SetEnabled(false);
-	mNext = new jb::Button(0x163, 4, false);
+	mNext = new jb::Button(IMAGE_HELP_NEXT_BUTTON, 4, false);
 	Add(mNext, 0x17c, 0x131);
 	mPicture = new HelpPicture();
 	Add(mPicture, 0x96, 0xaa);
@@ -361,23 +362,23 @@ void HelpMenu::ShowPage()
 	switch (mPage)
 	{
 	case 0:
-		SetTitle(99);
-		AddText(0x62, 0, 0x28, 0x50, false);
+		SetTitle(STRING_HELP_INTRO_TITLE);
+		AddText(STRING_HELP_INTRO_TEXT, 0, 0x28, 0x50, false);
 		mPicture->mPicture = 1;
 		break;
 	case 1:
-		SetTitle(0x60);
-		AddText(0x5f, 0, 0x28, 0x50, false);
+		SetTitle(STRING_HELP_CLASSIC_TITLE);
+		AddText(STRING_HELP_CLASSIC_TEXT, 0, 0x28, 0x50, false);
 		mPicture->mPicture = 2;
 		break;
 	case 2:
-		SetTitle(0x66);
-		AddText(100, 1, 0x32, 0x55, false);
+		SetTitle(STRING_HELP_HINTS_TITLE);
+		AddText(STRING_HELP_HINTS_TEXT, 1, 0x32, 0x55, false);
 		mPicture->mPicture = 0;
 		break;
 	case 3:
-		SetTitle(0x66);
-		AddText(0x65, 1, 0x32, 0x55, false);
+		SetTitle(STRING_HELP_HINTS_TITLE);
+		AddText(STRING_HELP_HINTS_MORE, 1, 0x32, 0x55, false);
 		mPicture->mPicture = 0;
 	}
 	mPrevious->SetEnabled(mPage != 0);

@@ -109,15 +109,15 @@ void OverRow(const uint8_t* theSrc, const uint8_t* theUnder, uint8_t* theDst, in
 			{
 				uint32_t anAlpha = theSrc[i + 3];
 				uint32_t anUnderAlpha = theUnder[i + 3];
-				int c = 0;
+				int aChannel = 0;
 				do
 				{
-					uint32_t aSrc = theSrc[i + c] * anAlpha;
-					uint32_t anUnder = Div255(theUnder[i + c] * anUnderAlpha);
+					uint32_t aSrc = theSrc[i + aChannel] * anAlpha;
+					uint32_t anUnder = Div255(theUnder[i + aChannel] * anUnderAlpha);
 					anUnder = anUnder * (0xff - anAlpha);
-					theDst[i + c] = (uint8_t)(Div255(aSrc) + Div255(anUnder));
-					c = c + 1;
-				} while (c < 3);
+					theDst[i + aChannel] = (uint8_t)(Div255(aSrc) + Div255(anUnder));
+					aChannel = aChannel + 1;
+				} while (aChannel < 3);
 				uint32_t aRest = anUnderAlpha * (0xff - anAlpha);
 				theDst[i + 3] = (uint8_t)(anAlpha + Div255(aRest));
 				i = i + 4;
@@ -146,14 +146,14 @@ void OverRow(const uint8_t* theSrc, const uint8_t* theUnder, uint8_t* theDst, in
 			else
 			{
 				uint32_t anUnderAlpha = theUnder[i + 3];
-				int c = 0;
+				int aChannel = 0;
 				do
 				{
-					uint32_t anUnder = theUnder[i + c] * (0xff - anAlpha);
-					int aSum = (int)(theSrc[i + c] + Div255(anUnder));
-					theDst[i + c] = 0xff < aSum ? 0xff : (uint8_t)aSum;
-					c = c + 1;
-				} while (c < 3);
+					uint32_t anUnder = theUnder[i + aChannel] * (0xff - anAlpha);
+					int aSum = (int)(theSrc[i + aChannel] + Div255(anUnder));
+					theDst[i + aChannel] = 0xff < aSum ? 0xff : (uint8_t)aSum;
+					aChannel = aChannel + 1;
+				} while (aChannel < 3);
 				uint32_t aRest = anUnderAlpha * (0xff - anAlpha);
 				theDst[i + 3] = (uint8_t)(anAlpha + Div255(aRest));
 			}
@@ -369,23 +369,23 @@ int AddCRgb(const uint8_t* theValue, uint8_t* theDst, int theDstPitch, int theWi
 					uint8_t aB = theValue[0];
 					uint8_t aG = theValue[1];
 					uint8_t aR = theValue[2];
-					uint8_t* p = theDst;
+					uint8_t* aPixel = theDst;
 					do
 					{
-						uint32_t b = (uint32_t)p[0] + aB;
-						uint32_t g = (uint32_t)p[1] + aG;
-						uint32_t r = (uint32_t)p[2] + aR;
-						if (0xfe < b)
-							b = 0xff;
-						p[0] = (uint8_t)b;
-						if (0xfe < g)
-							g = 0xff;
-						p[1] = (uint8_t)g;
-						if (0xfe < r)
-							r = 0xff;
-						p[2] = (uint8_t)r;
-						p = p + 4;
-					} while (p < theDst + theWidth * 4);
+						uint32_t aBlue = (uint32_t)aPixel[0] + aB;
+						uint32_t aGreen = (uint32_t)aPixel[1] + aG;
+						uint32_t aRed = (uint32_t)aPixel[2] + aR;
+						if (0xfe < aBlue)
+							aBlue = 0xff;
+						aPixel[0] = (uint8_t)aBlue;
+						if (0xfe < aGreen)
+							aGreen = 0xff;
+						aPixel[1] = (uint8_t)aGreen;
+						if (0xfe < aRed)
+							aRed = 0xff;
+						aPixel[2] = (uint8_t)aRed;
+						aPixel = aPixel + 4;
+					} while (aPixel < theDst + theWidth * 4);
 				}
 				theDst = theDst + theDstPitch;
 				y = y + 1;
@@ -526,17 +526,17 @@ void ResizeNearest(const uint8_t* theSrc, int theSrcWidth, int theSrcHeight, int
 		return;
 	for (int y = 0; y < theDstHeight; y++)
 	{
-		int sy = theSrcTop + (int)(y / theFactorY);
-		if (theSrcBottom <= sy)
-			sy = theSrcBottom - 1;
-		const uint32_t* aRow = (const uint32_t*)(theSrc + (size_t)sy * theSrcPitch);
+		int aSrcY = theSrcTop + (int)(y / theFactorY);
+		if (theSrcBottom <= aSrcY)
+			aSrcY = theSrcBottom - 1;
+		const uint32_t* aRow = (const uint32_t*)(theSrc + (size_t)aSrcY * theSrcPitch);
 		uint32_t* anOut = (uint32_t*)(theDst + (size_t)y * theDstPitch);
 		for (int x = 0; x < theDstWidth; x++)
 		{
-			int sx = theSrcLeft + (int)(x / theFactorX);
-			if (theSrcRight <= sx)
-				sx = theSrcRight - 1;
-			anOut[x] = aRow[sx];
+			int aSrcX = theSrcLeft + (int)(x / theFactorX);
+			if (theSrcRight <= aSrcX)
+				aSrcX = theSrcRight - 1;
+			anOut[x] = aRow[aSrcX];
 		}
 	}
 }

@@ -6,6 +6,7 @@
 #include "Layer.h"
 #include "Manager.h"
 #include "PlayLayer.h"
+#include "Res.h"
 #include "Stream.h"
 #include "User.h"
 
@@ -69,32 +70,32 @@ void Board::SetStyle(int theStyle)
 	{
 	case 0:
 		aFaces = 0x65;
-		mSelImage = 0xb2;
+		mSelImage = IMAGE_FACES_IVORY_SELECTED;
 		aBack = 0;
 		break;
 	default:
 		aFaces = 0xd7;
-		mSelImage = 0xd6;
+		mSelImage = IMAGE_FACES_GREEN_SELECTED;
 		aBack = 0;
 		break;
 	case 2:
 		aFaces = 0x139;
-		mSelImage = 0x13a;
+		mSelImage = IMAGE_FACES_RED_SELECTED;
 		aBack = 6;
 		break;
 	case 3:
 		aFaces = 0x13b;
-		mSelImage = 0x13c;
+		mSelImage = IMAGE_FACES_BLACK_SELECTED;
 		aBack = 7;
 		break;
 	case 4:
 		aFaces = 0x13d;
-		mSelImage = 0x13e;
+		mSelImage = IMAGE_FACES_PAINTED_SELECTED;
 		aBack = 0;
 		break;
 	case 5:
 		aFaces = 0x13f;
-		mSelImage = 0x138;
+		mSelImage = IMAGE_FACES_NUMBERS_SELECTED;
 		aBack = 0;
 		break;
 	}
@@ -102,7 +103,7 @@ void Board::SetStyle(int theStyle)
 	if (mTiles == nullptr)
 		mTiles = jb::CreateImage(0x120, 0x1d0);
 	mTiles->Fill(0xff00ff);
-	jb::Image* aBacks = jb::LoadDllImageKeyed(0x66, 0xff00ff);
+	jb::Image* aBacks = jb::LoadDllImageKeyed(IMAGE_SPECIAL_FACES, 0xff00ff);
 	jb::Image* aFaceImage = jb::LoadDllImage(aFaces);
 	int aColumn = 0;
 	int x = 0;
@@ -163,28 +164,28 @@ void Board::SetLayout(int theLayoutId, int theQuadPercent, uint32_t theSeed)
 // 0x40aa70
 void Board::Init()
 {
-	mManager->PreloadDllImage(0x66);
-	mManager->PreloadDllImage(0xd9);
-	mManager->PreloadDllImage(0xb6);
-	mManager->PreloadDllImage(0xd1);
-	mManager->PreloadDllImage(0xb3);
-	mManager->PreloadDllImage(0xce);
-	mManager->PreloadDllImage(0xb1);
-	mManager->PreloadDllImage(0xb8);
-	jb::LoadSound(0xaf, false);
-	jb::LoadSound(0xae, false);
-	jb::LoadSound(0xb0, false);
-	jb::LoadSound(0x160, false);
-	jb::LoadSound(0x15b, true);
-	jb::LoadSound(0x15c, true);
-	jb::LoadSound(0x17a, true);
-	jb::LoadSound(0x15d, false);
-	jb::LoadSound(0x15f, false);
-	jb::LoadSound(0x179, false);
-	jb::LoadSound(0x178, true);
-	jb::LoadSound(0x17b, false);
-	jb::LoadSound(0x15e, false);
-	mFont = jb::GetDllFont(0xd9, 0xd8);
+	mManager->PreloadDllImage(IMAGE_SPECIAL_FACES);
+	mManager->PreloadDllImage(FONT_POINTS);
+	mManager->PreloadDllImage(IMAGE_KEY_FRAMES);
+	mManager->PreloadDllImage(IMAGE_KEY);
+	mManager->PreloadDllImage(IMAGE_LOCK_FRAMES);
+	mManager->PreloadDllImage(IMAGE_GOLD_FRAMES);
+	mManager->PreloadDllImage(IMAGE_JOKER_FRAMES);
+	mManager->PreloadDllImage(IMAGE_MAGNET_FRAMES);
+	jb::LoadSound(SOUND_SELECT, false);
+	jb::LoadSound(SOUND_NOT_FREE, false);
+	jb::LoadSound(SOUND_MATCH, false);
+	jb::LoadSound(SOUND_BONUS, false);
+	jb::LoadSound(SOUND_JOKER_LOOP, true);
+	jb::LoadSound(SOUND_MAGNET_LOOP, true);
+	jb::LoadSound(SOUND_KEY_LOOP, true);
+	jb::LoadSound(SOUND_SHUFFLE, false);
+	jb::LoadSound(SOUND_UNDO, false);
+	jb::LoadSound(SOUND_GOLD_MATCH, false);
+	jb::LoadSound(SOUND_FLY_OFF_LOOP, true);
+	jb::LoadSound(SOUND_JOIN, false);
+	jb::LoadSound(SOUND_DEAL, false);
+	mFont = jb::GetDllFont(FONT_POINTS, FONT_POINTS_MAP);
 	RegUpdate(true);
 	RegClick(true);
 	RegLayerCmd(true);
@@ -221,8 +222,8 @@ void Board::LoadLayout()
 	{
 		ErrorBox* aBox = new ErrorBox();
 		jb::gManager->Push(aBox, true, false, true);
-		aBox->SetTitle(0x6b);
-		aBox->AddText(0x6a, 0, 0, 0x5a, false);
+		aBox->SetTitle(STRING_ERROR_TITLE);
+		aBox->AddText(STRING_NO_LAYOUT_TEXT, 0, 0, 0x5a, false);
 		return;
 	}
 	Measure();
@@ -236,8 +237,8 @@ void Board::ClearHints()
 	{
 		do
 		{
-			mHints[i]->mFlag39 = false;
-			mHints[i]->m3c = 0;
+			mHints[i]->mBobsAsHint = false;
+			mHints[i]->mLiftStart = 0;
 			i++;
 		} while (i < mHintCount);
 	}
@@ -293,7 +294,7 @@ void Board::Start(bool theDeal, bool theKeep, bool theNewSeed)
 	mMusicMove = -1;
 	UpdateMoves();
 	jb::gManager->StopSoundsExcept(-1);
-	jb::PlaySound(0x15e);
+	jb::PlaySound(SOUND_DEAL);
 }
 
 // 0x40af70
@@ -303,9 +304,9 @@ void Board::Shuffle()
 	mPhaseTime = 500;
 	mPhaseLeft = 500;
 	mPhase = 1;
-	jb::PlaySound(0x15d);
+	jb::PlaySound(SOUND_SHUFFLE);
 	ClearSelection();
-	std::string aText = jb::LoadDllString(0x91);
+	std::string aText = jb::LoadDllString(STRING_BONUS_SECONDS);
 	mTexts.push_back(new PointsText(aText.c_str(), 0x244, 0x1bf));
 	GetPlayLayer()->AddSeconds(0x14);
 }
@@ -344,7 +345,7 @@ void Board::Draw()
 		if (mFlightKind == 4)
 		{
 			jb::Rect aSrc = {0x118, 0, 0x140, 0x32};
-			DrawImage(0x164, 0x1d7, 0xb6, &aSrc, true, 100, 100, 0xff);
+			DrawImage(0x164, 0x1d7, IMAGE_KEY_FRAMES, &aSrc, true, 100, 100, 0xff);
 		}
 	}
 	if (0 < mTray[1])
@@ -406,12 +407,12 @@ void Board::DrawFlight(Flight* theFlight)
 	if (theFlight->mKind == 0x2c)
 	{
 		jb::Rect aSrc = {0x60, 0, 0x90, 0x3a};
-		DrawImageKeyed(x, y, 0x66, 0xff00ff, &aSrc, true, 100, 100, 0xff);
+		DrawImageKeyed(x, y, IMAGE_SPECIAL_FACES, 0xff00ff, &aSrc, true, 100, 100, 0xff);
 		aSrc = {0x118, 0, 0x140, 0x32};
-		DrawImage(x + 7, y + 1, 0xb6, &aSrc, true, 100, 100, 0xff);
+		DrawImage(x + 7, y + 1, IMAGE_KEY_FRAMES, &aSrc, true, 100, 100, 0xff);
 		return;
 	}
-	DrawImage(x + 7, y + 1, 0xd1, nullptr, true, 100, 100, 0xff);
+	DrawImage(x + 7, y + 1, IMAGE_KEY, nullptr, true, 100, 100, 0xff);
 }
 
 // 0x40b500
@@ -622,14 +623,14 @@ void Board::DrawTile(Tile* theTile)
 		y = ((theTile->mRect.top - theTile->mFromY) * aGone) / aTime + mOffY;
 	}
 	y += aDY;
-	if (theTile->m3c != 0)
+	if (theTile->mLiftStart != 0)
 	{
-		if (!theTile->mFlag39)
+		if (!theTile->mBobsAsHint)
 		{
 			// A tile put back by an undo settles
-			int aLift = 0xd - (int)((uint32_t)(GetTime() - theTile->m3c) / 0x1e);
+			int aLift = 0xd - (int)((uint32_t)(GetTime() - theTile->mLiftStart) / 0x1e);
 			if (aLift < 1)
-				theTile->m3c = 0;
+				theTile->mLiftStart = 0;
 			else
 			{
 				x += aLift;
@@ -640,7 +641,7 @@ void Board::DrawTile(Tile* theTile)
 		else
 		{
 			// A hint's tiles bob three times
-			uint32_t aStep = (uint32_t)(GetTime() - theTile->m3c) / 0x26;
+			uint32_t aStep = (uint32_t)(GetTime() - theTile->mLiftStart) / 0x26;
 			if (aStep < 0x24)
 			{
 				aStep %= 0xc;
@@ -684,7 +685,7 @@ void Board::DrawTile(Tile* theTile)
 		aSrc.right = aSrc.left + 0x28;
 		aSrc.top = 0;
 		aSrc.bottom = 0x32;
-		DrawImage(x + 7, y + 1, 0xb3, &aSrc, true, 100, 100, 0xff);
+		DrawImage(x + 7, y + 1, IMAGE_LOCK_FRAMES, &aSrc, true, 100, 100, 0xff);
 	}
 }
 
@@ -816,21 +817,21 @@ bool Board::Update()
 	if (!mTexts.empty())
 	{
 		aChanged = true;
-		auto it = mTexts.begin();
+		auto anIt = mTexts.begin();
 		do
 		{
-			PointsText* aText = *it;
+			PointsText* aText = *anIt;
 			int aDelta = GetDelta();
 			int aLeft = aText->mLeft;
 			aText->mLeft = aLeft - aDelta;
 			if (aLeft - aDelta < 0)
 			{
 				delete aText;
-				it = mTexts.erase(it);
+				anIt = mTexts.erase(anIt);
 			}
 			else
-				++it;
-		} while (it != mTexts.end());
+				++anIt;
+		} while (anIt != mTexts.end());
 	}
 	if (mIdleSince != 0)
 	{
@@ -883,11 +884,11 @@ bool Board::OnLButtonDown(int theFlags, int theX, int theY)
 					mSelected = aTile;
 					StartSelAnim();
 				}
-				jb::PlaySound(0xaf);
+				jb::PlaySound(SOUND_SELECT);
 				jb::Invalidate();
 				return true;
 			}
-			jb::PlaySound(0xae);
+			jb::PlaySound(SOUND_NOT_FREE);
 		}
 	}
 	return true;
@@ -1000,22 +1001,22 @@ void Board::StartSelAnim()
 	{
 	case 0x2b:
 		mSelFrames = 7;
-		mSelAnim = 0xce;
+		mSelAnim = IMAGE_GOLD_FRAMES;
 		break;
 	case 0x2c:
 		mSelFrames = 7;
-		mSelAnim = 0xb6;
-		mSelSound = 0x17a;
+		mSelAnim = IMAGE_KEY_FRAMES;
+		mSelSound = SOUND_KEY_LOOP;
 		break;
 	case 0x2e:
 		mSelFrames = 7;
-		mSelAnim = 0xb1;
-		mSelSound = 0x15b;
+		mSelAnim = IMAGE_JOKER_FRAMES;
+		mSelSound = SOUND_JOKER_LOOP;
 		break;
 	case 0x2f:
 		mSelFrames = 7;
-		mSelAnim = 0xb8;
-		mSelSound = 0x15c;
+		mSelAnim = IMAGE_MAGNET_FRAMES;
+		mSelSound = SOUND_MAGNET_LOOP;
 		break;
 	}
 	if (mSelSound != -1)
@@ -1037,15 +1038,15 @@ void Board::Take(Tile* theTile, Tile* theOther)
 			return;
 		case 0x2c:
 			TakeHalves(theTile, theOther);
-			jb::PlaySound(0xb0);
+			jb::PlaySound(SOUND_MATCH);
 			return;
 		case 0x2e:
 			TakeWild(theTile, theOther);
-			jb::PlaySound(0xb0);
+			jb::PlaySound(SOUND_MATCH);
 			return;
 		case 0x2f:
 			TakeLinked(theTile, theOther);
-			jb::PlaySound(0xb0);
+			jb::PlaySound(SOUND_MATCH);
 			return;
 		}
 	}
@@ -1070,7 +1071,7 @@ void Board::Take(Tile* theTile, Tile* theOther)
 	mFlights[0]->SetTo(0x15c, 0x1d6);
 	mFlights[1]->SetTo(0x18e, 0x1d6);
 	AddPoints(theOther, 2, true);
-	jb::PlaySound(0xb0);
+	jb::PlaySound(SOUND_MATCH);
 }
 
 // 0x40c6a0
@@ -1082,10 +1083,10 @@ void Board::AddPoints(Tile* theTile, int theCount, bool theBonus)
 		mTexts.push_back(new PointsText(aPoints, mOffX + theTile->mRect.left, mOffY + theTile->mRect.top));
 		if (theBonus && KindsMatch(theTile->mKind, mTray[0]))
 		{
-			std::string aText = jb::LoadDllString(0xc);
+			std::string aText = jb::LoadDllString(STRING_BONUS_POINTS);
 			mTexts.push_back(new PointsText(aText.c_str(), mOffX + 0x32 + theTile->mRect.left,
 				mOffY + 0x1a + theTile->mRect.top));
-			jb::PlaySound(0x160);
+			jb::PlaySound(SOUND_BONUS);
 			aPoints += 500;
 		}
 		GetPlayLayer()->AddScore(aPoints);
@@ -1132,7 +1133,7 @@ void Board::JoinHalves()
 	mFlights[0]->SetTo(mOffX + aTile->mRect.left, mOffY + aTile->mRect.top);
 	mFlightCount = 1;
 	mFlightKind = 4;
-	jb::PlaySound(0x17b);
+	jb::PlaySound(SOUND_JOIN);
 }
 
 // 0x40cb60
@@ -1318,7 +1319,7 @@ void Board::Undo()
 	UpdateTray();
 	if (mTray[0] < 0x2b && KindsMatch(mTray[0], aKind))
 		GetPlayLayer()->AddScore(-500);
-	jb::PlaySound(0x15f);
+	jb::PlaySound(SOUND_UNDO);
 }
 
 // 0x40d1f0
@@ -1400,7 +1401,7 @@ void Board::EndUndo()
 			else
 				mLayout.UpdateFree(aBack);
 			(*aTile)->mTaken = 0;
-			(*aTile)->m3c = GetTime();
+			(*aTile)->mLiftStart = GetTime();
 			i++;
 			aFlight++;
 			aTile++;
@@ -1432,7 +1433,7 @@ void Board::EndUndoLinked()
 {
 	Tile* aTile = mFlights[0]->mTile;
 	aTile->mTaken = 0;
-	aTile->m3c = GetTime();
+	aTile->mLiftStart = GetTime();
 	mLayout.UpdateNeighbours(aTile, nullptr, nullptr, 0, false);
 	mLayout.UpdateFree(aTile);
 	UpdateMoves();
@@ -1535,8 +1536,8 @@ void Board::StartHints()
 	{
 		do
 		{
-			mHints[i]->mFlag39 = true;
-			mHints[i]->m3c = GetTime();
+			mHints[i]->mBobsAsHint = true;
+			mHints[i]->mLiftStart = GetTime();
 			i++;
 		} while (i < mHintCount);
 	}
@@ -1571,7 +1572,7 @@ void Board::TakeKeys(Tile* theTile, Tile* theOther)
 	mFlights[0]->SetTo(0x15c, 0x172);
 	mFlights[1]->SetTo(0x18e, 0x172);
 	AddPoints(theOther, 2, false);
-	jb::PlaySound(0x179);
+	jb::PlaySound(SOUND_GOLD_MATCH);
 	jb::gManager->SetMusicLoop(4, 8);
 }
 
@@ -1583,7 +1584,7 @@ void Board::EndKeys()
 		FlyOff();
 		mEscaping = true;
 		mFlightKind = 10;
-		jb::PlaySound(0x178);
+		jb::PlaySound(SOUND_FLY_OFF_LOOP);
 		return;
 	}
 	ClearFlights();

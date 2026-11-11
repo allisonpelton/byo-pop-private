@@ -1,5 +1,6 @@
 #include "LayoutSelect.h"
 
+#include "EngineRes.h"
 #include "Font.h"
 #include "GameDialogs.h"
 #include "Globals.h"
@@ -9,6 +10,7 @@
 #include "Manager.h"
 #include "MapLayer.h"
 #include "PlayLayer.h"
+#include "Res.h"
 #include "User.h"
 
 #include <cstdio>
@@ -49,31 +51,31 @@ void BackgroundPicture::DrawNormal()
 	if (mBackground != -1)
 	{
 		jb::Rect aRect = {0, 0, 0xc3, 5};
-		DrawImage(0, 0, 0x142, &aRect, true, 100, 100, 0xff);
+		DrawImage(0, 0, IMAGE_BACKGROUND_LOCK, &aRect, true, 100, 100, 0xff);
 		aRect = {0, 0x6f, 0xc3, 0x75};
-		DrawImage(0, 0x6f, 0x142, &aRect, true, 100, 100, 0xff);
+		DrawImage(0, 0x6f, IMAGE_BACKGROUND_LOCK, &aRect, true, 100, 100, 0xff);
 		aRect = {0, 5, 4, 0x6f};
-		DrawImage(0, 5, 0x142, &aRect, true, 100, 100, 0xff);
+		DrawImage(0, 5, IMAGE_BACKGROUND_LOCK, &aRect, true, 100, 100, 0xff);
 		aRect = {0xbd, 5, 0xc3, 0x6f};
-		DrawImage(0xbd, 5, 0x142, &aRect, true, 100, 100, 0xff);
+		DrawImage(0xbd, 5, IMAGE_BACKGROUND_LOCK, &aRect, true, 100, 100, 0xff);
 		aRect.left = (mBackground % 3) * 0xba;
 		aRect.right = aRect.left + 0xb9;
 		aRect.top = (mBackground / 3) * 0x6b;
 		aRect.bottom = aRect.top + 0x6a;
-		DrawImage(4, 5, 0x14e, &aRect, true, 100, 100, 0xff);
+		DrawImage(4, 5, IMAGE_BACKGROUND_THUMBS, &aRect, true, 100, 100, 0xff);
 		SetTrackDirty(false);
 		if (IsChecked())
-			DrawImage(-0xd, -0xc, 0x141, nullptr, true, 100, 100, 0xff);
+			DrawImage(-0xd, -0xc, IMAGE_BACKGROUND_GLOW, nullptr, true, 100, 100, 0xff);
 		SetTrackDirty(true);
 		return;
 	}
-	DrawImage(0, 0, 0x142, nullptr, true, 100, 100, 0xff);
+	DrawImage(0, 0, IMAGE_BACKGROUND_LOCK, nullptr, true, 100, 100, 0xff);
 }
 
 // 0x401250
 bool BackgroundPicture::OnLButtonDblClk(int theFlags, int theX, int theY)
 {
-	jb::PlaySound(0x69);
+	jb::PlaySound(jb::SOUND_CLICK);
 	((BackgroundBox*)mLayer)->Apply();
 	return true;
 }
@@ -87,17 +89,17 @@ void BackgroundBox::Create()
 	int aBottom[] = {2, 3, 3, 3, 1, 3, 2, 0};
 	SetCorners(0, 1, 1, 0);
 	SetEdges(aLeft, aRight, aTop, aBottom);
-	SetTitle(0xb);
-	jb::Toggle* aCycle = new jb::Toggle(0x12a, &mGroup, 10);
+	SetTitle(STRING_BACKGROUND_TITLE);
+	jb::Toggle* aCycle = new jb::Toggle(IMAGE_CHECK_BOX, &mGroup, 10);
 	Add(aCycle, 0x2e, 0x32);
-	jb::SetCheckLabel(aCycle, 10, 0x122, 0x121, 0x20, 0x1f, 0xff);
+	jb::SetCheckLabel(aCycle, STRING_RANDOM_BACKGROUND, FONT_TEXT, FONT_TEXT_MAP, 0x20, 0x1f, 0xff);
 	mPictures[0] = new BackgroundPicture(&mGroup, 0);
 	Add(mPictures[0], 0x2e, 0x61);
 	mPictures[1] = new BackgroundPicture(&mGroup, 1);
 	Add(mPictures[1], 0xf6, 0x61);
 	mPictures[2] = new BackgroundPicture(&mGroup, 2);
 	Add(mPictures[2], 0x1be, 0x61);
-	mUp = new jb::Button(0x125, 4, false);
+	mUp = new jb::Button(IMAGE_SCROLL_UP, 4, false);
 	Add(mUp, 0x286, 0x63);
 	mPictures[3] = new BackgroundPicture(&mGroup, 3);
 	Add(mPictures[3], 0x2e, 0xda);
@@ -105,14 +107,14 @@ void BackgroundBox::Create()
 	Add(mPictures[4], 0xf6, 0xda);
 	mPictures[5] = new BackgroundPicture(&mGroup, 5);
 	Add(mPictures[5], 0x1be, 0xda);
-	mDown = new jb::Button(0x126, 4, false);
+	mDown = new jb::Button(IMAGE_SCROLL_DOWN, 4, false);
 	Add(mDown, 0x286, 0x138);
 	DialogButton* aButton = new DialogButton(0, 0x66);
 	Add(aButton, 0xfb, 0x159);
-	aButton->SetText(9);
+	aButton->SetText(STRING_OK);
 	aButton = new DialogButton(1, 0x66);
 	Add(aButton, 0x173, 0x159);
-	aButton->SetText(8);
+	aButton->SetText(STRING_CANCEL);
 	int aBackground = gUser.mBackground;
 	if (aBackground == -1)
 	{
@@ -221,7 +223,7 @@ void BackgroundBox::Apply()
 // 0x401a50
 void LayoutBackdrop::Draw()
 {
-	DrawImage(0, 0, 0xbe, nullptr, true, 100, 100, 0xff);
+	DrawImage(0, 0, IMAGE_LAYOUTS_BACKGROUND, nullptr, true, 100, 100, 0xff);
 }
 
 // 0x401bb0
@@ -236,10 +238,10 @@ void LayoutHeader::Draw()
 // 0x401c60
 void LayoutHeader::Init()
 {
-	mTitle = jb::LoadDllString(0x10);
-	mTitleFont = jb::GetDllFont(199, 200);
-	mPageFont = jb::GetDllFont(0xcb, 0xca);
-	mPlayedFont = jb::GetDllFont(0xcb, 0xca);
+	mTitle = jb::LoadDllString(STRING_LAYOUTS_TITLE);
+	mTitleFont = jb::GetDllFont(FONT_LAYOUTS_TITLE, FONT_LAYOUTS_TITLE_MAP);
+	mPageFont = jb::GetDllFont(FONT_CLOCK, FONT_CLOCK_MAP);
+	mPlayedFont = jb::GetDllFont(FONT_CLOCK, FONT_CLOCK_MAP);
 	int aLeft = mCount;
 	int aPlayed = 0;
 	if (0 < aLeft)
@@ -254,7 +256,7 @@ void LayoutHeader::Init()
 		} while (aLeft != 0);
 		if (0 < aPlayed)
 		{
-			mPlayed = jb::FormatDll(0x14, aPlayed, mCount);
+			mPlayed = jb::FormatDll(STRING_LAYOUTS_COMPLETED, aPlayed, mCount);
 			return;
 		}
 	}
@@ -281,13 +283,13 @@ void LayoutSlot::Draw()
 {
 	DrawImage(0, 0, mSelected ? 0xbc : 0xc3, nullptr, true, 100, 100, 0xff);
 	if (mState == 1)
-		DrawImageKeyed(0, 0, 0xff02, 0xff00ff, &mCell, true, 100, 100, 0xff);
+		DrawImageKeyed(0, 0, FILE_IMAGE_SAVED_BOARD, 0xff00ff, &mCell, true, 100, 100, 0xff);
 	else if (mState == 2)
 		DrawImagePtr(0, 0, mSheet, &mCell, true, 100, 100, 0xff);
 	mFont->DrawCentred(this, 0, 0xb, mName.c_str(), 0xc1, 100, 100, 0xff);
 	mFont->DrawCentred(this, 0, 0x8f, mInfo.c_str(), 0xc1, 100, 100, 0xff);
 	if (mHasBest)
-		DrawImage(0x7d, 0, 0x171, nullptr, true, 100, 100, 0xff);
+		DrawImage(0x7d, 0, IMAGE_WON_RIBBON, nullptr, true, 100, 100, 0xff);
 }
 
 // 0x401fc0
@@ -297,7 +299,7 @@ void LayoutSlot::Init()
 	mCell.right = mCell.left + 0xc1;
 	mCell.top = (mIndex / 3) * 0x93;
 	mCell.bottom = mCell.top + 0x93;
-	mFont = jb::GetDllFont(0xa3, 0xa2);
+	mFont = jb::GetDllFont(FONT_SMALL, FONT_SMALL_MAP);
 	SetCursorKind(1, false);
 	RegClick(true);
 	RegHover(true);
@@ -311,7 +313,7 @@ bool LayoutSlot::OnLButtonDown(int theFlags, int theX, int theY)
 	{
 		((LayoutSelect*)mLayer)->Select(mIndex);
 		mSelected = true;
-		jb::PlaySound(0x69);
+		jb::PlaySound(jb::SOUND_CLICK);
 	}
 	return true;
 }
@@ -321,7 +323,7 @@ bool LayoutSlot::OnLButtonDblClk(int theFlags, int theX, int theY)
 {
 	if (mState != 0)
 	{
-		jb::PlaySound(0x69);
+		jb::PlaySound(jb::SOUND_CLICK);
 		((LayoutSelect*)mLayer)->Choose(mIndex);
 	}
 	return true;
@@ -357,16 +359,16 @@ void LayoutSlot::SetInfo(int theLayout)
 	if (!jb::FileExists(aPath.c_str()))
 	{
 		if (!mHasBest)
-			mInfo = jb::FormatDll(0x12, mTiles, mFree);
+			mInfo = jb::FormatDll(STRING_LAYOUT_TILES, mTiles, mFree);
 		else
 		{
 			std::string aTime = jb::FormatTime(gUser.mBestTimes[theLayout]);
-			mInfo = jb::FormatDll(0x11, aTime.c_str());
+			mInfo = jb::FormatDll(STRING_LAYOUT_WON, aTime.c_str());
 		}
 	}
 	else
 	{
-		mInfo = jb::LoadDllString(0x15);
+		mInfo = jb::LoadDllString(STRING_LAYOUT_SAVED);
 		mSaved = true;
 	}
 }
@@ -384,21 +386,21 @@ void LayoutSlot::SetLayout(jb::Image* theSheet, int theLayoutId, int theLayout)
 {
 	mSheet = theSheet;
 	theSheet->BeginDrawing();
-	jb::Image* aBack = jb::LoadDllImageKeyed(0xbb, 0xff00ff);
-	jb::Image* aFaces = jb::LoadDllImage(0xba);
+	jb::Image* aBack = jb::LoadDllImageKeyed(IMAGE_THUMB_TILE, 0xff00ff);
+	jb::Image* aFaces = jb::LoadDllImage(IMAGE_THUMB_FACES);
 	Layout aLayout;
 	if (!aLayout.Load(theLayoutId))
 	{
 		ErrorBox* aBox = new ErrorBox();
 		jb::gManager->Push(aBox, true, false, true);
-		aBox->SetTitle(0x6b);
-		aBox->AddText(0x6a, 0, 0, 0x5a, false);
+		aBox->SetTitle(STRING_ERROR_TITLE);
+		aBox->AddText(STRING_NO_LAYOUT_TEXT, 0, 0, 0x5a, false);
 	}
 	else
 	{
 		Measure(aLayout);
 		LayoutSelect* aSelect = (LayoutSelect*)mLayer;
-		mName = jb::FormatDll(0x13, aSelect->mPage + mIndex + 1, aLayout.mName.c_str());
+		mName = jb::FormatDll(STRING_LAYOUT_NUMBERED, aSelect->mPage + mIndex + 1, aLayout.mName.c_str());
 		SetInfo(theLayout);
 		jb::Rect aBackRect = {0, 0, 0xc, 0xf};
 		Tile* aTile = aLayout.First();
@@ -495,20 +497,20 @@ void LayoutSelect::Load()
 			aColumn++;
 		} while (aColumn < 3);
 	}
-	jb::Button* aButton = new jb::Button(0xc1, 4, false);
+	jb::Button* aButton = new jb::Button(IMAGE_LAYOUTS_PREV_BUTTON, 4, false);
 	Add(aButton, 0x32, 0x21d);
 	aButton->SetShowDisabled(false);
-	aButton = new jb::Button(0xc2, 4, false);
+	aButton = new jb::Button(IMAGE_LAYOUTS_NEXT_BUTTON, 4, false);
 	Add(aButton, 0x2ba, 0x21d);
 	aButton->SetShowDisabled(false);
-	aButton = new jb::Button(0xc5, 3, false);
+	aButton = new jb::Button(IMAGE_LAYOUTS_MENU_BUTTON, 3, false);
 	Add(aButton, 0xd3, 0x22a);
-	aButton->SetLabel(0xe, 0xa0, 0x9f, 0, 0x8c, 0x19, 2, 2, 0xff);
+	aButton->SetLabel(STRING_LAYOUTS_MAIN_MENU, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x8c, 0x19, 2, 2, 0xff);
 	if (0 < gLayoutCount)
 	{
-		aButton = new jb::Button(0xc4, 3, false);
+		aButton = new jb::Button(IMAGE_LAYOUTS_PLAY_BUTTON, 3, false);
 		Add(aButton, 0x1b2, 0x22a);
-		aButton->SetLabel(0xf, 0xa0, 0x9f, 0, 0xa4, 0x19, 2, 2, 0xff);
+		aButton->SetLabel(STRING_PLAY_LAYOUT, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0xa4, 0x19, 2, 2, 0xff);
 		if (gLayoutCount < gUser.mSelectedLayout)
 			gUser.mSelectedLayout = 0;
 		int aPage = gUser.mSelectedLayout / 9;
@@ -518,9 +520,9 @@ void LayoutSelect::Load()
 		Add(mHeader, 0, 0);
 		ShowPage();
 	}
-	int aMusic = 0x151;
+	int aMusic = MUSIC_LAYOUTS_2;
 	if (gMusicTurn == 1)
-		aMusic = 0x150;
+		aMusic = MUSIC_LAYOUTS_1;
 	jb::gManager->LoadMusic(aMusic);
 	jb::gManager->PlayMusic(aMusic, false, 0x44c, 0);
 	gMusicTurn = gMusicTurn + 1;
@@ -602,10 +604,10 @@ void LayoutSelect::Choose(int theSlot)
 	mSelected = theSlot;
 	if (mSlots[theSlot]->mSaved)
 	{
-		YesNoBox* aBox = new YesNoBox(this, 2, 1, 0x8c, 0x8d, false, 0x78, 0x78);
+		YesNoBox* aBox = new YesNoBox(this, 2, 1, STRING_CONTINUE, STRING_RESTART, false, 0x78, 0x78);
 		jb::gManager->Push(aBox, true, true, true);
-		aBox->SetTitle(0x8e);
-		aBox->AddText(0x8b, 0, 0, 0x5a, false);
+		aBox->SetTitle(STRING_SAVED_GAME_TITLE);
+		aBox->AddText(STRING_SAVED_GAME_TEXT, 0, 0, 0x5a, false);
 		return;
 	}
 	Start(false);
@@ -642,7 +644,7 @@ void LayoutSelect::Start(bool theResume)
 // 0x402fa0
 void LayoutSelect::LoadSheet()
 {
-	jb::gManager->FreeImage(0xff02);
+	jb::gManager->FreeImage(FILE_IMAGE_SAVED_BOARD);
 	int i = 9;
 	LayoutSlot** aSlot = mSlots;
 	do
@@ -654,7 +656,7 @@ void LayoutSelect::LoadSheet()
 	std::string aBmp;
 	std::string aTxt;
 	GetSlotFiles(aBmp, aTxt, mPage);
-	if (jb::gManager->LoadFileImage(0xff02, aBmp.c_str()))
+	if (jb::gManager->LoadFileImage(FILE_IMAGE_SAVED_BOARD, aBmp.c_str()))
 	{
 		FILE* aFile = fopen(aTxt.c_str(), "rt");
 		if (aFile != nullptr)
@@ -678,7 +680,7 @@ void LayoutSelect::LoadSheet()
 			fclose(aFile);
 			return;
 		}
-		jb::gManager->FreeImage(0xff02);
+		jb::gManager->FreeImage(FILE_IMAGE_SAVED_BOARD);
 	}
 	if (mSheet == nullptr)
 		mSheet = jb::CreateImage(0x243, 0x1b9);

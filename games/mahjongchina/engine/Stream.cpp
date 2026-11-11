@@ -13,10 +13,10 @@ static void MakeCrcTable()
 {
 	for (uint32_t i = 0; i < 256; i++)
 	{
-		uint32_t c = i;
+		uint32_t aCrc = i;
 		for (int k = 0; k < 8; k++)
-			c = (c & 1) ? (c >> 1) ^ 0xedb88320u : c >> 1;
-		gCrcTable[i] = c;
+			aCrc = (aCrc & 1) ? (aCrc >> 1) ^ 0xedb88320u : aCrc >> 1;
+		gCrcTable[i] = aCrc;
 	}
 	gCrcTableMade = true;
 }
@@ -235,11 +235,11 @@ void Stream::Int(int& theValue)
 	}
 	if (mMode == 2)
 	{
-		uint32_t a = (uint8_t)GetByte();
-		uint32_t b = (uint8_t)GetByte();
-		uint32_t c = (uint8_t)GetByte();
-		uint32_t d = (uint8_t)GetByte();
-		theValue = (int)((((a << 8) | b) << 8 | c) << 8 | d);
+		uint32_t aFirst = (uint8_t)GetByte();
+		uint32_t aSecond = (uint8_t)GetByte();
+		uint32_t aThird = (uint8_t)GetByte();
+		uint32_t aFourth = (uint8_t)GetByte();
+		theValue = (int)((((aFirst << 8) | aSecond) << 8 | aThird) << 8 | aFourth);
 	}
 }
 

@@ -11,7 +11,7 @@ namespace mahjongjapan
 {
 
 // the positions all the searches of one call may try before the bot goes on without a plan
-static const long kBudget = 100000;
+static const long SEARCH_BUDGET = 100000;
 
 // A copy of the live board's tiles: all of them in the board's order, the ones taken marked taken, each with the
 // kind it has now and where it is drawn
@@ -73,9 +73,9 @@ void Bot::Refresh(const std::vector<int>& theChanged, bool theBack)
 		{
 			if (aTile->mTaken != 0 || aTile == aThat)
 				continue;
-			int dx = abs(aTile->mX - aThat->mX);
-			int dy = abs(aTile->mY - aThat->mY);
-			if ((aTile->mZ == aThat->mZ && dx == 2 && dy <= 1) || (aTile->mZ == aThat->mZ - 1 && dx <= 1 && dy <= 1))
+			int aDeltaX = abs(aTile->mX - aThat->mX);
+			int aDeltaY = abs(aTile->mY - aThat->mY);
+			if ((aTile->mZ == aThat->mZ && aDeltaX == 2 && aDeltaY <= 1) || (aTile->mZ == aThat->mZ - 1 && aDeltaX <= 1 && aDeltaY <= 1))
 				mCopy.UpdateFree(aTile);
 		}
 	}
@@ -127,8 +127,8 @@ bool Bot::ClickPoint(Tile* theTile, int& theX, int& theY)
 	for (int y = theTile->mRect.top + 26; y < theTile->mRect.bottom; y += 3)
 		for (int x = theTile->mRect.left + 24; x < theTile->mRect.right; x += 3)
 		{
-			int z = -1, tx, ty;
-			if (mCopy.HitTest(x, y, &z, &tx, &ty) == theTile)
+			int z = -1, aTileX, aTileY;
+			if (mCopy.HitTest(x, y, &z, &aTileX, &aTileY) == theTile)
 			{
 				theX = x;
 				theY = y;
@@ -138,8 +138,8 @@ bool Bot::ClickPoint(Tile* theTile, int& theX, int& theY)
 	for (int y = theTile->mRect.top; y < theTile->mRect.bottom; y++)
 		for (int x = theTile->mRect.left; x < theTile->mRect.right; x++)
 		{
-			int z = -1, tx, ty;
-			if (mCopy.HitTest(x, y, &z, &tx, &ty) == theTile)
+			int z = -1, aTileX, aTileY;
+			if (mCopy.HitTest(x, y, &z, &aTileX, &aTileY) == theTile)
 			{
 				theX = x;
 				theY = y;
@@ -211,9 +211,9 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 	for (size_t i = 0; i < aFree.size(); i++)
 		for (size_t j = i + 1; j < aFree.size(); j++)
 		{
-			Tile* a = mTiles[aFree[i]];
-			Tile* b = mTiles[aFree[j]];
-			if (0x2b < a->mKind || 0x2b < b->mKind || !TilesMatch(a->mKind, b->mKind))
+			Tile* aFreeTile = mTiles[aFree[i]];
+			Tile* anOtherFree = mTiles[aFree[j]];
+			if (0x2b < aFreeTile->mKind || 0x2b < anOtherFree->mKind || !TilesMatch(aFreeTile->mKind, anOtherFree->mKind))
 				continue;
 			anAdd(aFree[i], aFree[j]);
 		}
@@ -223,27 +223,27 @@ void Bot::Moves(std::vector<std::pair<int, Step>>& theMoves)
 		for (int aKeyTile : aKeys)
 		{
 			Tile* aK = mTiles[aKeyTile];
-			int dx = abs(aK->mX - theLock->mX);
-			int dy = abs(aK->mY - theLock->mY);
-			if ((aK->mZ == theLock->mZ && dx == 2 && dy <= 1) || (aK->mZ + 1 == theLock->mZ && dx <= 1 && dy <= 1))
+			int aDeltaX = abs(aK->mX - theLock->mX);
+			int aDeltaY = abs(aK->mY - theLock->mY);
+			if ((aK->mZ == theLock->mZ && aDeltaX == 2 && aDeltaY <= 1) || (aK->mZ + 1 == theLock->mZ && aDeltaX <= 1 && aDeltaY <= 1))
 				return true;
 		}
 		return false;
 	};
 	for (int i : aFree)
 	{
-		Tile* a = mTiles[i];
-		if (a->mKind < 0x2c || a->mKind == 0x2d)
+		Tile* aSpecial = mTiles[i];
+		if (aSpecial->mKind < 0x2c || aSpecial->mKind == 0x2d)
 			continue;
 		for (size_t j = 0; j < mTiles.size(); j++)
 		{
-			Tile* b = mTiles[j];
-			int bx, by;
-			if (b->mTaken != 0 || (int)j == i || !(a->mKind == 0x2c ? b->mKind == 0x2d : b->mKind < 0x2b))
+			Tile* aTarget = mTiles[j];
+			int aTargetX, aTargetY;
+			if (aTarget->mTaken != 0 || (int)j == i || !(aSpecial->mKind == 0x2c ? aTarget->mKind == 0x2d : aTarget->mKind < 0x2b))
 				continue;
-			if (a->mKind == 0x2c && mOnlyGoalLocks && !aKeys.empty() && !aHoldsGoal(b))
+			if (aSpecial->mKind == 0x2c && mOnlyGoalLocks && !aKeys.empty() && !aHoldsGoal(aTarget))
 				continue;
-			if (mCopy.IsVisible(b) && ClickPoint(b, bx, by))
+			if (mCopy.IsVisible(aTarget) && ClickPoint(aTarget, aTargetX, aTargetY))
 				anAdd(i, (int)j);
 		}
 	}
@@ -294,7 +294,7 @@ bool Bot::Search()
 {
 	bool aSolved = false;
 	long aSpent = 0;
-	for (int aTry = 0; !aSolved && aTry < 60 && aSpent < kBudget; aTry++)
+	for (int aTry = 0; !aSolved && aTry < 60 && aSpent < SEARCH_BUDGET; aTry++)
 	{
 		mSteps.clear();
 		mDead.clear();
@@ -323,17 +323,17 @@ bool Bot::Describe(Board& theBoard, const Step& theStep, BotMove& theMove)
 	Tile* aSecond = mTiles[theStep.mSecond];
 	int aPos[2];
 	theBoard.GetScreenPos(aPos);
-	int x1, y1, x2, y2;
-	if (!ClickPoint(aFirst, x1, y1) || !ClickPoint(aSecond, x2, y2))
+	int aFirstX, aFirstY, aSecondX, aSecondY;
+	if (!ClickPoint(aFirst, aFirstX, aFirstY) || !ClickPoint(aSecond, aSecondX, aSecondY))
 		return false;
 	theMove.mFirst = mLive[theStep.mFirst];
 	theMove.mSecond = mLive[theStep.mSecond];
 	theMove.mFirstKind = aFirst->mKind;
 	theMove.mSecondKind = aSecond->mKind;
-	theMove.mX1 = aPos[0] + theBoard.mOffX + x1;
-	theMove.mY1 = aPos[1] + theBoard.mOffY + y1;
-	theMove.mX2 = aPos[0] + theBoard.mOffX + x2;
-	theMove.mY2 = aPos[1] + theBoard.mOffY + y2;
+	theMove.mX1 = aPos[0] + theBoard.mOffX + aFirstX;
+	theMove.mY1 = aPos[1] + theBoard.mOffY + aFirstY;
+	theMove.mX2 = aPos[0] + theBoard.mOffX + aSecondX;
+	theMove.mY2 = aPos[1] + theBoard.mOffY + aSecondY;
 	theMove.mSpecial = 0x2b < aFirst->mKind;
 	theMove.mEnds = aFirst->mKind == 0x2b;
 	return true;

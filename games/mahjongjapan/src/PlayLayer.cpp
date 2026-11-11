@@ -8,6 +8,7 @@
 #include "MainMenu.h"
 #include "Manager.h"
 #include "MapLayer.h"
+#include "Res.h"
 #include "Stream.h"
 #include "User.h"
 
@@ -60,9 +61,9 @@ void ShadeBox::Draw()
 // 0x4068c0
 void ShadeBox::OnInit()
 {
-	mFont = jb::GetDllFont(0xd5, 0xd4);
-	mLine1 = jb::LoadDllString(0x8f);
-	mLine2 = jb::LoadDllString(0x90);
+	mFont = jb::GetDllFont(FONT_LABEL, FONT_LABEL_MAP);
+	mLine1 = jb::LoadDllString(STRING_SHOW);
+	mLine2 = jb::LoadDllString(STRING_FREE_TILES);
 }
 
 // 0x406900
@@ -93,19 +94,19 @@ void Panel::Draw()
 	int anImage;
 	if (mMode == 0)
 	{
-		DrawImage(0, 0, 0x7f, nullptr, true, 100, 100, 0xff);
-		DrawImage(0, 0x41, 0x7d, nullptr, true, 100, 100, 0xff);
-		DrawImage(0, 0x1ef, 0x80, nullptr, true, 100, 100, 0xff);
-		DrawImage(0, 0x1ff, 0x7e, nullptr, true, 100, 100, 0xff);
-		DrawImage(0, 0x4d, 0x235, nullptr, true, 100, 100, 0xff);
-		anImage = 0x234;
+		DrawImage(0, 0, IMAGE_PANEL_TOP, nullptr, true, 100, 100, 0xff);
+		DrawImage(0, 0x41, IMAGE_PANEL_TOP_SHADOW, nullptr, true, 100, 100, 0xff);
+		DrawImage(0, 0x1ef, IMAGE_PANEL_BOTTOM_EDGE, nullptr, true, 100, 100, 0xff);
+		DrawImage(0, 0x1ff, IMAGE_PANEL_BOTTOM, nullptr, true, 100, 100, 0xff);
+		DrawImage(0, 0x4d, IMAGE_PANEL_LEFT_EDGE, nullptr, true, 100, 100, 0xff);
+		anImage = IMAGE_PANEL_RIGHT_EDGE;
 		aY = 0x4d;
 		aX = 0x316;
 	}
 	else
 	{
-		DrawImage(0, 0, 0x105, nullptr, true, 100, 100, 0xff);
-		anImage = 0x113;
+		DrawImage(0, 0, IMAGE_PANEL_TOP_WIDE, nullptr, true, 100, 100, 0xff);
+		anImage = IMAGE_PANEL_BOTTOM_WIDE;
 		aY = 0x1ff;
 		aX = 0;
 	}
@@ -134,46 +135,46 @@ void Panel::Draw()
 		int aWidth = 0x124 / mSteps;
 		jb::Rect aRect = {0, 0, mStep * aWidth + 6, 0xe};
 		if (0 < mStep)
-			DrawImage(0xfe, 0x22, 0xfd, &aRect, true, 100, 100, 0xff);
+			DrawImage(0xfe, 0x22, IMAGE_PROGRESS_BAR, &aRect, true, 100, 100, 0xff);
 		int i = 1;
 		if (1 < mSteps)
 		{
 			int anX = aWidth + 0xfc;
 			do
 			{
-				DrawImage(anX, 0x26, 0xff, nullptr, true, 100, 100, 0xff);
+				DrawImage(anX, 0x26, IMAGE_PROGRESS_TICK, nullptr, true, 100, 100, 0xff);
 				i++;
 				anX += aWidth;
 			} while (i < mSteps);
 		}
 		if (0 < mStep)
-			DrawImage(mStep * aWidth + 0xfd, 0x20, 0xfe, nullptr, true, 100, 100, 0xff);
+			DrawImage(mStep * aWidth + 0xfd, 0x20, IMAGE_PROGRESS_MARKER, nullptr, true, 100, 100, 0xff);
 	}
 }
 
 // 0x409970
 void Panel::Init()
 {
-	mLabelTime = jb::LoadDllString(0xa1);
-	mLabelScore = jb::LoadDllString(0x9e);
-	mLabelBest = jb::LoadDllString(0x98);
-	mLabelPairs = jb::LoadDllString(0x9a);
-	mLabelLeft = jb::LoadDllString(0xa0);
-	mClockFont = jb::GetDllFont(0xcb, 0xca);
-	mSmallFont = jb::GetDllFont(0xa3, 0xa2);
-	mTitleFont = jb::GetDllFont(0xd2, 0xd3);
-	mLabelFont = jb::GetDllFont(0xd5, 0xd4);
-	mManager->PreloadDllImage(0xa3);
-	mManager->PreloadDllImage(0x7f);
-	mManager->PreloadDllImage(0x7d);
-	mManager->PreloadDllImage(0x80);
-	mManager->PreloadDllImage(0x7e);
-	mManager->PreloadDllImage(0xfd);
-	mManager->PreloadDllImage(0xff);
-	mManager->PreloadDllImage(0xfe);
-	mManager->PreloadDllImage(0xcb);
-	mManager->PreloadDllImage(0xd2);
-	mManager->PreloadDllImage(0xd5);
+	mLabelTime = jb::LoadDllString(STRING_PANEL_TIME);
+	mLabelScore = jb::LoadDllString(STRING_PANEL_SCORE);
+	mLabelBest = jb::LoadDllString(STRING_PANEL_BEST);
+	mLabelPairs = jb::LoadDllString(STRING_PANEL_MATCHES);
+	mLabelLeft = jb::LoadDllString(STRING_PANEL_TILES);
+	mClockFont = jb::GetDllFont(FONT_CLOCK, FONT_CLOCK_MAP);
+	mSmallFont = jb::GetDllFont(FONT_SMALL, FONT_SMALL_MAP);
+	mTitleFont = jb::GetDllFont(FONT_TITLE, FONT_TITLE_MAP);
+	mLabelFont = jb::GetDllFont(FONT_LABEL, FONT_LABEL_MAP);
+	mManager->PreloadDllImage(FONT_SMALL);
+	mManager->PreloadDllImage(IMAGE_PANEL_TOP);
+	mManager->PreloadDllImage(IMAGE_PANEL_TOP_SHADOW);
+	mManager->PreloadDllImage(IMAGE_PANEL_BOTTOM_EDGE);
+	mManager->PreloadDllImage(IMAGE_PANEL_BOTTOM);
+	mManager->PreloadDllImage(IMAGE_PROGRESS_BAR);
+	mManager->PreloadDllImage(IMAGE_PROGRESS_TICK);
+	mManager->PreloadDllImage(IMAGE_PROGRESS_MARKER);
+	mManager->PreloadDllImage(FONT_CLOCK);
+	mManager->PreloadDllImage(FONT_TITLE);
+	mManager->PreloadDllImage(FONT_LABEL);
 	RegUpdate(true);
 }
 
@@ -198,13 +199,13 @@ void Panel::SetLevel(const char* theTitle, int theStat1, int theStat2)
 {
 	mTitle = theTitle;
 	if (theStat1 < 0)
-		mStat1 = jb::FormatDll(7, -theStat1);
+		mStat1 = jb::FormatDll(STRING_YEAR_BC, -theStat1);
 	else
-		mStat1 = jb::FormatDll(6, theStat1);
+		mStat1 = jb::FormatDll(STRING_YEAR_AD, theStat1);
 	if (theStat2 < 0)
-		mStat2 = jb::FormatDll(7, -theStat2);
+		mStat2 = jb::FormatDll(STRING_YEAR_BC, -theStat2);
 	else
-		mStat2 = jb::FormatDll(6, theStat2);
+		mStat2 = jb::FormatDll(STRING_YEAR_AD, theStat2);
 }
 
 // 0x409b90
@@ -225,7 +226,7 @@ void Panel::SetBestTime(int theSeconds)
 {
 	if (theSeconds == 36000)
 	{
-		mBestTime = jb::LoadDllString(0x27);
+		mBestTime = jb::LoadDllString(STRING_NO_TIME);
 		return;
 	}
 	mBestTime = jb::FormatTime(theSeconds);
@@ -294,8 +295,8 @@ void PauseText::Draw()
 // 0x40a240 (it also reads the manager's period, unused)
 void PauseText::Init()
 {
-	mText = jb::LoadDllString(0x28);
-	mFont = jb::GetDllFont(0x11e, 0x11d);
+	mText = jb::LoadDllString(STRING_PAUSED);
+	mFont = jb::GetDllFont(FONT_HEADING, FONT_HEADING_MAP);
 	RegClick(true);
 	jb::gManager->PauseMusic(true);
 }
@@ -352,10 +353,10 @@ void PlayLayer::PlayNext()
 		StartLayout(false);
 	else
 	{
-		YesNoBox* aBox = new YesNoBox(this, 2, 0x1e, 0x8c, 0x8d, false, 0x78, 0x78);
+		YesNoBox* aBox = new YesNoBox(this, 2, 0x1e, STRING_CONTINUE, STRING_RESTART, false, 0x78, 0x78);
 		jb::gManager->Push(aBox, true, true, true);
-		aBox->SetTitle(0x8e);
-		aBox->AddText(0x8b, 0, 0, 0x5a, false);
+		aBox->SetTitle(STRING_SAVED_GAME_TITLE);
+		aBox->AddText(STRING_SAVED_GAME_TEXT, 0, 0, 0x5a, false);
 	}
 }
 
@@ -368,7 +369,7 @@ void PlayLayer::StartLayout(bool theResume)
 	mPanel->SetBestTime(gUser.mBestTimes[mLevel]);
 	mPanel->SetBestScore(gUser.mBestScores[mLevel]);
 	mBoard->LoadLayout();
-	std::string aTitle = jb::FormatDll(0x13, mLevel + 1, mBoard->GetLayoutName().c_str());
+	std::string aTitle = jb::FormatDll(STRING_LAYOUT_NUMBERED, mLevel + 1, mBoard->GetLayoutName().c_str());
 	mPanel->SetTitle(aTitle.c_str());
 	ResetGame();
 	Begin();
@@ -386,7 +387,7 @@ void PlayLayer::StartLevel(int theLevel, bool theResume, int theLayoutId, const 
 	mPanel->SetBestTime(gUser.mEscBestTimes[mLevel]);
 	mPanel->SetBestScore(gUser.mEscBestScores[mLevel]);
 	mBoard->LoadLayout();
-	mBackground->mImage = gBackgrounds[theBackground + 9];
+	mBackground->mImage = BACKGROUNDS[theBackground + 9];
 	mLevelTitle = theLevelTitle;
 	mTip = -1;
 	int aProgress = gUser.mProgress;
@@ -469,7 +470,7 @@ void PlayLayer::Load()
 		Add(mUndo, 0xf9, 0x222);
 	else
 		Add(mUndo, 0xf8, 0x21c);
-	mUndo->SetLabel(0xa2, 0xa0, 0x9f, 0, 0x55, 0x18, 2, 2, 0x40);
+	mUndo->SetLabel(STRING_PANEL_UNDO, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x55, 0x18, 2, 2, 0x40);
 	mUndo->SetEnabled(false);
 
 	mHint = new jb::Button(mMode != 0 ? 0x108 : 0x90, 4, false);
@@ -477,7 +478,7 @@ void PlayLayer::Load()
 		Add(mHint, 0x1c8, 0x222);
 	else
 		Add(mHint, 0x1ca, 0x21c);
-	mHint->SetLabel(0x99, 0xa0, 0x9f, 0, 0x56, 0x17, 2, 2, 0x40);
+	mHint->SetLabel(STRING_PANEL_HINT, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x56, 0x17, 2, 2, 0x40);
 	mHint->SetEnabled(false);
 
 	mShuffle = new jb::Button(mMode != 0 ? 0x10c : 0x94, 4, false);
@@ -485,7 +486,7 @@ void PlayLayer::Load()
 		Add(mShuffle, 0x225, 0x222);
 	else
 		Add(mShuffle, 0x227, 0x21c);
-	mShuffle->SetLabel(0x9f, 0xa0, 0x9f, 0, 0x66, 0x17, 2, 2, 0x40);
+	mShuffle->SetLabel(STRING_PANEL_SHUFFLE, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x66, 0x17, 2, 2, 0x40);
 	mShuffle->SetEnabled(false);
 
 	mMenu = new jb::Button(mMode != 0 ? 0x109 : 0x91, 4, false);
@@ -493,7 +494,7 @@ void PlayLayer::Load()
 		Add(mMenu, 0x2ad, 0x213);
 	else
 		Add(mMenu, 0x2b4, 0x20f);
-	mMenu->SetLabel(0x9b, 0xa0, 0x9f, 0, 0x5a, 0x14, 2, 2, 0x40);
+	mMenu->SetLabel(STRING_PANEL_MENU, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x5a, 0x14, 2, 2, 0x40);
 	mMenu->SetEnabled(false);
 
 	mPause = new jb::Button(mMode != 0 ? 0x10a : 0x92, 4, false);
@@ -501,14 +502,14 @@ void PlayLayer::Load()
 		Add(mPause, 0x2ad, 0x235);
 	else
 		Add(mPause, 0x2b4, 0x231);
-	mPause->SetLabel(0x9c, 0xa0, 0x9f, 0, 0x5a, 0x14, 2, 2, 0x40);
+	mPause->SetLabel(STRING_PANEL_PAUSE, FONT_BUTTON, FONT_BUTTON_MAP, 0, 0x5a, 0x14, 2, 2, 0x40);
 	mPause->SetEnabled(false);
 
 	mBoard = new Board(mMode);
 	Add(mBoard, 0, 0x42);
 	SetStyle();
 	if (mMode == 0)
-		jb::gManager->LoadMusic(0x153);
+		jb::gManager->LoadMusic(MUSIC_GAME);
 }
 
 // 0x405a00
@@ -633,7 +634,7 @@ void PlayLayer::OnEntered()
 	if (mMode == 0)
 	{
 		jb::gManager->Push(new MapLayer(this), false, false, false);
-		jb::gManager->PlayMusic(0x153, false, 0x44c, gUser.mProgress % 2 != 0 ? 0 : 10);
+		jb::gManager->PlayMusic(MUSIC_GAME, false, 0x44c, gUser.mProgress % 2 != 0 ? 0 : 10);
 		return;
 	}
 	mBoard->SetLayout(mLayoutId, gUser.mQuadPercent, 0xffffffff);
@@ -651,7 +652,7 @@ void PlayLayer::NextBackground()
 {
 	if (gUser.mBackground != -1)
 	{
-		mBackground->mImage = gBackgrounds[gUser.mBackground];
+		mBackground->mImage = BACKGROUNDS[gUser.mBackground];
 		return;
 	}
 	gBgCycle = gBgCycle + 1;
@@ -662,7 +663,7 @@ void PlayLayer::NextBackground()
 	}
 	gBgCycle = 0;
 chosen:
-	mBackground->mImage = gBackgrounds[gBgCycle];
+	mBackground->mImage = BACKGROUNDS[gBgCycle];
 }
 
 // 0x405f00

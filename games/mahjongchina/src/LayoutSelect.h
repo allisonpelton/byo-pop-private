@@ -9,6 +9,7 @@
 #include "Dialog.h"
 #include "Layer.h"
 #include "Object.h"
+#include "Res.h"
 
 #include <string>
 
@@ -35,7 +36,7 @@ public:
 	int mBackground = -1;  // +0xf0 the background shown, -1 none
 
 	// 0x401000
-	BackgroundPicture(jb::RadioGroup* theGroup, int theId) : Toggle(0x142, theGroup, theId) {}
+	BackgroundPicture(jb::RadioGroup* theGroup, int theId) : Toggle(IMAGE_BACKGROUND_LOCK, theGroup, theId) {}
 	// 0x401030, 0x401050
 	~BackgroundPicture() override {}
 
