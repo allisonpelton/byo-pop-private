@@ -464,13 +464,6 @@ int MenuItem_Update(MenuItem* theItem)
 	int aTop = 0;
 	int aResult = 1;
 	int aBottom = 0;
-	if (gDemo != 0)
-	{
-		// the demo clicks about at random
-		gLevels.current->clicked = RandRange(0, 0x14) == 0 ? 1 : 0;
-		gMouseX = RandRange(0, 799);
-		gMouseY = RandRange(0, 599);
-	}
 	if (theItem->anim == nullptr)
 	{
 		// round its name
@@ -524,19 +517,13 @@ int MenuItem_Update(MenuItem* theItem)
 				SaveProfiles();
 				break;
 			case 2:
-				if (gDemo == 0)
-				{
-					aResult = 0;
-					gGoTo = 7;
-				}
+				aResult = 0;
+				gGoTo = 7;
 				break;
 			case 3:
 				SaveProfiles();
-				if (gDemo == 0)
-				{
-					aResult = 0;
-					gQuit = 1;
-				}
+				aResult = 0;
+				gQuit = 1;
 				break;
 			case 4:
 				aResult = 0;
@@ -590,7 +577,7 @@ int MenuItem_Update(MenuItem* theItem)
 				SaveProfiles();
 				break;
 			case 0x12:
-				gLives = gDemo != 0 ? 299 : 6;
+				gLives = 6;
 				aResult = 0;
 				gScore = 0;
 				if (gProfiles[gProfile].levelReached == 0 || gProfiles[gProfile].savedLives < 1)
@@ -796,7 +783,7 @@ int MenuItem_Update(MenuItem* theItem)
 			}
 			case 0x23:
 				aResult = 0;
-				gLives = gDemo != 0 ? 299 : 6;
+				gLives = 6;
 				gScore = 0;
 				gGoTo = (gProfiles[gProfile].levelReached == 0 ? 1 : 0) * 8 + 5;
 				break;
@@ -1017,7 +1004,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		Text* anEntry = aList->current->entry;
 		anEntry->font = Font_Find("bonus_font");
 		TextInput* anInput = &anEntry->input;
-		TextInput_Init(anInput, nullptr, nullptr, Font_Find("bonus_font"), 0xc, 4, 0x113, 0x113, 0x20d, 300);
+		TextInput_Init(anInput, Font_Find("bonus_font"), 0xc, 4, 0x113, 0x113, 0x20d, 300);
 		TextInput_SetFocus(anInput, 1);
 		TextInput_SetFillColour(anInput, 100, 100, 100, 100);
 		TextInput_SetOutline(anInput, 0);

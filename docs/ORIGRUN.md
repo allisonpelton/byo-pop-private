@@ -638,6 +638,11 @@ and input posted to that window, never through the user's cursor or keyboard. Bo
 short path: it builds absolute paths in a 256-byte stack buffer, so a copy under a worktree's long path dies at
 start with STATUS_STACK_BUFFER_OVERRUN (0xC0000409).
 
+Typer Shark's 3D comparison (2026-11-11, `games/typershark/tools/phase2/visrun3d.py`) ran the same way with no host
+wrapper: the stand-in's stub sound (`ORIGRUN_SOUND=stub`), its registry map (`ORIGRUN_REGMAP=popcap`) and the scripted
+cursor (`ORIGRUN_CURSOR=scripted` with `ORIGRUN_CURSOR_ID`), the window shown without activation, and the process suspended
+while an input is posted and a shot read, so each step lands on a whole update. All four sandbox variants had run it in 2D.
+
 **dgVoodoo2** implements DirectDraw and Direct3D 7 over Direct3D 11. Its source is its author's GitHub releases
 page, `github.com/dege-diosg/dgVoodoo2/releases`; version 2.87.5 (`dgVoodoo2_87_5.zip`, 9,268,078 bytes, SHA-256
 `5ffde6927f7355ca3fdd5d785b581256a8e6539fa13e395a891ade6ba1040850`) was downloaded with the user's OK and is

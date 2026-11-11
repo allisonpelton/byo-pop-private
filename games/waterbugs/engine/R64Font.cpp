@@ -11,10 +11,11 @@ namespace r64
 {
 
 #if UINTPTR_MAX == 0xffffffff
-static_assert(offsetof(Font, colours) == 0x420, "Font layout");
-static_assert(offsetof(Font, buf) == 0x824, "Font layout");
-static_assert(offsetof(Font, texture) == 0xd50, "Font layout");
-static_assert(sizeof(Font) == 0xd6c, "Font layout");
+// (the original's offsets less what R64Font.h says the port leaves out: 4 bytes after +0x408, 20 after +0xd5f)
+static_assert(offsetof(Font, colours) == 0x420 - 4, "Font layout");
+static_assert(offsetof(Font, buf) == 0x824 - 4, "Font layout");
+static_assert(offsetof(Font, owned) == 0xd60 - 20, "Font layout");
+static_assert(sizeof(Font) == 0xd6c - 20, "Font layout");
 #endif
 
 namespace
@@ -147,7 +148,6 @@ Font::Font()
 	std::memset(glyphs, 0, sizeof(glyphs));
 	spaceWidth = 4;
 	spacing = 1;
-	clipped = 0;
 	clip[0] = clip[1] = clip[2] = clip[3] = 0;
 	height = 0;
 	std::memset(colours, 0, sizeof(colours));
@@ -164,21 +164,12 @@ Font::Font()
 	dstW = 0;
 	dstH = 0;
 	std::memset(unkc4c, 0, sizeof(unkc4c));
-	texture = nullptr;
-	textureX = 0;
-	textureY = 0;
-	maskTarget = nullptr;
 	alpha = 0xff;
 }
 
 void Font_SetSpacing(Font* theFont, int theSpacing)
 {
 	theFont->spacing = theSpacing;
-}
-
-void Font_SetClipped(Font* theFont, int theClipped)
-{
-	theFont->clipped = theClipped;
 }
 
 void Font_SetClip(Font* theFont, int l, int t, int r, int b)
@@ -235,14 +226,9 @@ void Font_SetEscapes(Font* theFont, int theEscapes)
 
 void Font_ResetStyle(Font* theFont)
 {
-	theFont->clipped = 0;
 	theFont->palette = nullptr;
 	theFont->align = 0;
 	theFont->outline = nullptr;
-	theFont->texture = nullptr;
-	theFont->textureX = 0;
-	theFont->textureY = 0;
-	theFont->maskTarget = nullptr;
 }
 
 int Font_CharWidth(const Font* theFont, char c)
@@ -338,30 +324,7 @@ int Font_Draw(Font* theFont, const char* theText, int x, int y, int theAlign)
 	else if (theAlign == 2)
 		x = x - aWidth / 2;
 	uint8_t c = *p;
-	if (theFont->clipped == 0)
-	{
-		if (c != 0)
-		{
-			do
-			{
-				if (theFont->glyphs[c] == nullptr)
-				{
-					if (c == ' ')
-						x = x + theFont->spacing + theFont->spaceWidth;
-				}
-				else
-				{
-					Image_SetPalette(theFont->glyphs[c], theFont->palette);
-					Image_BlitUnclipped(theFont->glyphs[*p], theFont->dst, theFont->dpitch, theFont->fmt, x, y);
-					x = x + theFont->glyphs[*p]->origW + theFont->spacing;
-				}
-				c = p[1];
-				p = p + 1;
-			} while (c != 0);
-			return aWidth;
-		}
-	}
-	else if (c != 0)
+	if (c != 0)
 	{
 		do
 		{
@@ -399,29 +362,7 @@ int Font_DrawFill(Font* theFont, const char* theText, int x, int y, int theAlign
 	x = x - aShift;
 aligned:
 	uint8_t c = *p;
-	if (theFont->clipped == 0)
-	{
-		while (c != 0)
-		{
-			if (theFont->glyphs[c] == nullptr)
-			{
-				if (c == ' ')
-					x = x + theFont->spacing + theFont->spaceWidth;
-			}
-			else
-			{
-				Image_SetPalette(theFont->glyphs[c], theFont->palette);
-				const PixelFormat* f = theFont->fmt;
-				Image* aGlyph = theFont->glyphs[*p];
-				Image_FillAlphaRect(aGlyph, theFont->dst, theFont->dpitch, f, x, y, 0, 0, aGlyph->w, aGlyph->h,
-					PackColour(f, r, g, b), theAlpha);
-				x = x + theFont->glyphs[*p]->origW + theFont->spacing;
-			}
-			p = p + 1;
-			c = *p;
-		}
-	}
-	else if (c != 0)
+	if (c != 0)
 	{
 		do
 		{
@@ -446,9 +387,8 @@ aligned:
 	return aWidth;
 }
 
-// The unclipped loop returns its rectangle as it is; the clipped one clips it to the font's clip at the end. A
-// glyph with a mask on a screen over 8 bits is drawn faded at the font's alpha: the glyph itself, the texture
-// through its mask (where that meets the glyph, and in the clipped loop the clip), or on an outline pass its mask.
+// The rectangle is clipped to the font's clip at the end. A glyph with a mask on a screen over 8 bits is drawn
+// faded at the font's alpha: the glyph itself, or on an outline pass its mask.
 int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* theText, int theOutlinePass)
 {
 	const uint8_t* p = (const uint8_t*)theText;
@@ -462,80 +402,6 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 		x = x - aWidth;
 	else if (theFont->align == 2)
 		x = x - aWidth / 2;
-	if (theFont->clipped == 0)
-	{
-		uint8_t c = *p;
-		do
-		{
-			if (c == 0)
-				return theRect;
-			if (theFont->escapes == 1 && *p == '^')
-			{
-				c = p[1];
-				p = p + 1;
-				if (c == 0)
-					return theRect;
-				if (theFont->outlining == 0)
-				{
-					theFont->colourCode = (int)c;
-					theFont->palette = ColourOf(theFont, (char)c);
-				}
-			}
-			else
-			{
-				c = *p;
-				Image* aGlyph = theFont->glyphs[c];
-				if (aGlyph == nullptr)
-				{
-					if (c == ' ')
-						x = x + theFont->spacing + theFont->spaceWidth;
-				}
-				else
-				{
-					GrowRect(theRect, aFirst, aGlyph, x, y);
-					Image_SetPalette(aGlyph, theFont->palette);
-					if (aGlyph->hasMask == 1 && 8 < theFont->fmt->bpp)
-					{
-						if (theOutlinePass == 0)
-						{
-							if (theFont->texture == nullptr)
-								Image_BlitAlphaFadeUnclipped(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, x, y,
-									(uint32_t)theFont->alpha);
-							else
-							{
-								int aGlyphRect[4];
-								aGlyphRect[0] = Image_DrawX(aGlyph) + x;
-								aGlyphRect[1] = Image_DrawY(aGlyph) + y;
-								aGlyphRect[2] = aGlyph->w + -1 + aGlyphRect[0];
-								aGlyphRect[3] = aGlyph->h + -1 + aGlyphRect[1];
-								Image_SetMask(theFont->texture, aGlyph->mask, -theFont->textureX, -theFont->textureY);
-								Image_SetPalette(theFont->texture, theFont->palette);
-								int ty = Image_DrawY(aGlyph) + (y - theFont->textureY);
-								int tx = Image_DrawX(aGlyph);
-								Image_BlitAlphaFade(theFont->texture, theFont->dst, theFont->dpitch, theFont->fmt,
-									aGlyphRect, tx + (x - theFont->textureX), ty, (uint32_t)theFont->alpha);
-							}
-						}
-						else
-						{
-							Image_SetPalette(aGlyph->mask, theFont->palette);
-							Image_BlitAlphaFadeUnclipped(aGlyph->mask, theFont->dst, theFont->dpitch, theFont->fmt, x, y,
-								(uint32_t)theFont->alpha);
-						}
-						Image* aTarget = theFont->maskTarget;
-						if (aTarget != nullptr)
-							Image_AddMaskUnclipped(theFont->glyphs[*p], aTarget->bits, aTarget->pitch, &aTarget->fmt,
-								x, y);
-					}
-					else
-						Image_BlitUnclipped(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, x, y);
-					x = x + theFont->glyphs[*p]->origW + theFont->spacing;
-				}
-			}
-			p = p + 1;
-			c = *p;
-		} while (true);
-	}
 	uint8_t c = *p;
 	while (c != 0)
 	{
@@ -567,42 +433,14 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 				if (aGlyph->hasMask == 1 && 8 < theFont->fmt->bpp)
 				{
 					if (theOutlinePass == 0)
-					{
-						if (theFont->texture == nullptr)
-							Image_BlitAlphaFade(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y,
-								(uint32_t)theFont->alpha);
-						else
-						{
-							int aGlyphRect[4];
-							aGlyphRect[0] = Image_DrawX(aGlyph) + x;
-							aGlyphRect[1] = Image_DrawY(aGlyph) + y;
-							aGlyphRect[2] = aGlyphRect[0] + -1 + aGlyph->w;
-							aGlyphRect[3] = aGlyph->h + -1 + aGlyphRect[1];
-							if (Rect_Overlap(aGlyphRect[0], aGlyphRect[1], aGlyphRect[2], aGlyphRect[3], theFont->clip[0],
-									theFont->clip[1], theFont->clip[2], theFont->clip[3]) != 0)
-							{
-								int aBoth[4];
-								Rect_Intersect(aBoth, aGlyphRect[0], aGlyphRect[1], aGlyphRect[2], aGlyphRect[3],
-									theFont->clip[0], theFont->clip[1], theFont->clip[2], theFont->clip[3]);
-								Image_SetMask(theFont->texture, aGlyph->mask, -theFont->textureX, -theFont->textureY);
-								Image_SetPalette(theFont->texture, theFont->palette);
-								int ty = Image_DrawY(aGlyph) + (y - theFont->textureY);
-								int tx = Image_DrawX(aGlyph);
-								Image_BlitAlphaFade(theFont->texture, theFont->dst, theFont->dpitch, theFont->fmt, aBoth,
-									tx + (x - theFont->textureX), ty, (uint32_t)theFont->alpha);
-							}
-						}
-					}
+						Image_BlitAlphaFade(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y,
+							(uint32_t)theFont->alpha);
 					else
 					{
 						Image_SetPalette(aGlyph->mask, theFont->palette);
 						Image_BlitAlphaFade(aGlyph->mask, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x,
 							y, (uint32_t)theFont->alpha);
 					}
-					Image* aTarget = theFont->maskTarget;
-					if (aTarget != nullptr)
-						Image_AddMask(theFont->glyphs[*p], aTarget->bits, aTarget->pitch, &aTarget->fmt, theFont->clip,
-							x, y);
 				}
 				else
 					Image_BlitMasked(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y);
@@ -777,7 +615,6 @@ void Font_Clear(Font* theFont)
 	std::memset(theFont->glyphs, 0, sizeof(theFont->glyphs));
 	theFont->spaceWidth = 0;
 	theFont->spacing = 0;
-	theFont->clipped = 0;
 	theFont->clip[0] = 0;
 	theFont->clip[1] = 0;
 	theFont->clip[2] = 0;

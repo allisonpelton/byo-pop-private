@@ -159,29 +159,6 @@ Animation::~Animation()
 	}
 }
 
-void Animation_FreeMasks(Animation* theAnim)
-{
-	int i = 0;
-	if (0 < theAnim->count)
-	{
-		do
-		{
-			if (theAnim->frames[i]->hasMask != 0)
-			{
-				Image* aMask = theAnim->frames[i]->mask;
-				if (aMask != nullptr)
-				{
-					Image_Destroy(aMask);
-					delete aMask;
-				}
-				theAnim->frames[i]->mask = nullptr;
-				theAnim->frames[i]->hasMask = 0;
-			}
-			i++;
-		} while (i < theAnim->count);
-	}
-}
-
 // Each tint starts as the FLIC's colours. On a 16-bit screen eight of them recolour the green-dominant entries
 // (the fourth's result is worked out and dropped, as in the original, so it stays the plain colours like the
 // sixth); on other screens the FLIC's own colours have their blue-dominant entries changed instead.
@@ -261,26 +238,21 @@ Animation* Animation_Find(const char* theName, int* theCount, int* theFrameTime)
 	}
 }
 
-int Animation_Load(Animation* theAnim, int theReload)
+int Animation_Load(Animation* theAnim)
 {
 	char* aFile = theAnim->file;
 	if (std::strstr(aFile, ".eco") == nullptr && std::strstr(aFile, ".tga") == nullptr)
 	{
 		int anIndex = Bank_IndexOf(&gArtBank, aFile);
-		if (anIndex < 1)
-		{
-			Log("%s\n");
-			if (anIndex == 0)
-				return 0;
-		}
+		if (anIndex == 0)
+			return 0;
 		int i = 0;
 		if (0 < theAnim->count)
 		{
 			do
 			{
 				Image* aSrc = Bank_ImageAt(&gArtBank, (uint32_t)(anIndex + i));
-				if (theReload == 0)
-					theAnim->frames[i] = new Image();
+				theAnim->frames[i] = new Image();
 				Image_Copy(theAnim->frames[i], aSrc);
 				if (aSrc->hasMask != 0)
 				{
@@ -327,8 +299,7 @@ int Animation_Load(Animation* theAnim, int theReload)
 						Animation_BuildTints(theAnim);
 					}
 					aWork->palette = &theAnim->palette;
-					if (theReload == 0)
-						theAnim->frames[i] = new Image();
+					theAnim->frames[i] = new Image();
 					Image_Copy(theAnim->frames[i], aWork);
 					Image_SetPalette(theAnim->frames[i], &theAnim->palette);
 					i++;
@@ -400,8 +371,7 @@ int Animation_Load(Animation* theAnim, int theReload)
 			Image_Create(aWork, aTga.width, aTga.height, &aFmt);
 			Copy8(aWork->bits, 0, 0, aWork->pitch, 0, aTga.bits, 0, 0, aTga.pitch, 0, aTga.width * 4, aTga.height);
 			Image_ConvertTo(aWork, Sys_ScreenFormat(), nullptr);
-			if (theReload == 0)
-				theAnim->frames[0] = new Image();
+			theAnim->frames[0] = new Image();
 			Image_Copy(theAnim->frames[0], aWork);
 			Image_Destroy(aWork);
 			delete aWork;
@@ -464,28 +434,6 @@ int Animation_Load(Animation* theAnim, int theReload)
 	return 1;
 }
 
-void Animation_ReloadAll()
-{
-	Animation* anAnim = gAnims.head;
-	if (gAnims.current != nullptr)
-	{
-		while (true)
-		{
-			gAnims.current = anAnim;
-			Animation_FreeMasks(anAnim);
-			Animation_Load(gAnims.current, 1);
-			if (gAnims.current == nullptr)
-				break;
-			if (gAnims.current->next == nullptr)
-			{
-				gAnims.current = gAnims.head;
-				return;
-			}
-			anAnim = gAnims.current->next;
-		}
-	}
-}
-
 namespace
 {
 
@@ -524,7 +472,7 @@ int Animation_FromXml(Animation* theAnim, const XmlTag* theTag)
 		CopyString(theAnim->swap2, sizeof(theAnim->swap2), Xml_GetString(theTag, "swap2"));
 	if (Xml_GetString(theTag, "swap3") != nullptr)
 		CopyString(theAnim->swap3, sizeof(theAnim->swap3), Xml_GetString(theTag, "swap3"));
-	return Animation_Load(theAnim, 0);
+	return Animation_Load(theAnim);
 }
 
 } // namespace wb

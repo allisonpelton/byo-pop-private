@@ -201,6 +201,144 @@ working set than the original during the minute (about 20 MB of it at the menu a
 the port's against about 7 MB to the original's); the performance pass looks at where it goes. Neither run fell behind real
 time. The page's load time was not measured.
 
+## The performance pass (2026-11-11)
+
+**What the profile showed.** `games/bejeweled/tools/profile/cpuprof.py` (every thread's instruction pointer about once a
+millisecond, weighted by cycles) under rundesk, on the port in real time over the load and 36 s of the first board: 68% of the
+cycles are in ntdll (the system's calls on the game's behalf: the present, the driver), 13% in the exe. Of the exe's share the
+game's own code is small: `DDInterface::PrepareTexture` (the framework's upload of the 800x600 screen, 6.6% of all cycles) and
+`WaterBugsWidget::Draw` (the 16-bit screen widened to the framework's 32 bits, 3.0%) come first, then the engine's blitters
+(`Alpha16MaskFade` 0.9%). On a dense late board under `-fast` (level 300, 9200 updates in 5.4 s, about 1700 updates a second) the
+game's own code is 62% of the cycles and `Alpha16MaskFade`, the fading cell blit, is 24.5% of them; that matters only to how fast a
+test runs (a real-time minute spends about 3 to 4% of a core there), and it was not changed. The start (the process to the first
+frame) is the framework's window and graphics device for about 300 ms, then the game's own `GameStart` for 175 ms (the art banks
+45 to 60 ms, the game file with its 77 animations 120 to 136 ms; five runs); the original took 1.0 s for its loading and the port
+0.5 to 0.6 s of "Resource Loading Time", so the loading stands as it is.
+
+**What changed.**
+- The widget's screen picture (`WaterBugsWidget`) is opaque and uploaded as it is, as the Mahjong ports' screen is: `SetImageMode(false,
+  false)` so that the framework does not look through the 480000 pixels for alpha after each change, and `mUploadAsIs` so that it
+  does not premultiply them pixel by pixel in strips before the upload (every alpha byte is 0xff, where premultiplying changes
+  nothing). The 16-bit pixels are widened by a 65536-entry table (`gPixelsFromScreen16`, 256 KB, made once) instead of three shifts
+  and two ORs a pixel. The pixels that reach the screen are the same.
+- `memreport` (docs/TEST_COMMANDS.md): the framework answers it (the screen picture, the sounds and songs); the engine's own
+  holders are added by `wb::AddMemReportHolders` (`src/testhooks/TestCommands.cpp`, from `WaterBugsApp::AddMemReportHolders`): the
+  art banks' pixels and masks, the animations' frames and masks, the run-length masks, the palettes and animation records, and the
+  back buffer.
+- `tools/profile/cputime.py` (one real-time scripted run's processor time, every thread, and the peaks) and `pairs.sh` (two exes
+  alternated over one script) for the comparison below.
+
+**Proof that play is unchanged.** A windowed `-fast` run of 5000 updates (the start, a world, a board, random shots; seed 11) gave
+byte-identical PNGs at 8 points (updates 100 to 4900) from the build before and the build after, and `tools/check.sh waterbugs`
+passes with every frozen value as before (the scripted game and its rerun, the window run twice, the loss, the three screens' hashes).
+
+**Numbers.** One real-time scripted run (the start, a world, the first board, random shots; 25.7 s of wall time, with 1 to 3 other sessions'
+games running), the processor time of the process (kernel plus user, every thread), the build before
+and the build after alternated:
+
+| Processor time of the run | Before | After |
+|---|---|---|
+| Runs (s) | 5.77, 5.80, 6.80, 5.42, 7.28 | 4.08, 5.03, 4.80, 4.64 |
+| Median | 5.80 s (22% of a core) | 4.72 s (18% of a core) |
+
+That is 18% less processor time (the 7.28 and the 4.08 ran while a second chain of this session's runs overlapped them; without them
+the medians are 5.77 and 4.80). The pairs of the alternation alone: 5.77 against 5.03, 6.80 against 4.80, 5.42 against 4.80. Peak
+working set (158 to 167 MB) and peak private bytes (157 to 163 MB) are the same in both.
+
+**Where the memory is.** `memreport` at the main menu (private bytes 132.8 MB; 35.6 MB of them were there before the game read a
+file, the libraries, the window and the graphics device): the art banks 27.5 MB (the converted pixels and their 8-bit masks, one
+block of 26.2 MB), the animations' 1058 frames 16.1 MB and their masks 5.7 MB, the run-length masks 4.5 MB, palettes and animation
+records 1.9 MB, the back buffer 1.0 MB, the framework's screen picture 1.9 MB, the sounds 0.15 MB (the game file names only three)
+and one song; the song's player holds about 3.5 MB (measured by leaving the load out). That is about 62 MB of the 97 MB the game added; the
+rest, about 35 MB, is what the report cannot see: the heap's slack between the many frames, the driver's and the libraries' own
+allocations after the start (`tools/memmap.py` finds 99.6 MB of private memory in 134 allocations, the largest 26.2 MB the art
+bank and 15.8 and 12.7 MB the heap segments of the frames, the 22 allocations between 256 KB and 1 MB 20 MB). The original holds
+90 to 93 MB at the same place with no graphics device, so the port's extra is mostly that device (35.6 MB before the first file)
+and the real-time frames' driver memory: the 33 MB that the first screen after the menu adds in a real-time run is not the game's
+(a `-fast` run, which presents far fewer frames, adds 4 MB there). The game's own data is the original's.
+
+**Not done, and why.**
+- *Decoding the animations when first used (as Mummy Maze's and Noah's Ark's pictures are).* A count of the animations whose frames
+  a first board asks for found 42 of the 77, 14.6 of their 21.8 MB, so the gain would be about 7 MB of memory (4% of the private
+  bytes) and about 40 ms of the start; `Animation_Find` also has to give the frame count at once (a FLIC's own count replaces the
+  file's `num_frames`, and the mask file's count replaces that), so the headers would have to be read at the start anyway. Left
+  as it is.
+- *Sounds on first play:* three sounds, 0.15 MB; nothing to win.
+- *The blitters* (`Alpha16MaskFade`, `RlePal16Alpha`), only a faster `-fast`.
+
+**Shared costs seen here, for the coordinator** (the ones already listed in docs/COORDINATION.md hold for this game too):
+`DDInterface::PrepareTexture` still hands the whole 800x600 texture to SDL for each drawn frame (1.9 MB, at 60 frames a second),
+though the game knows which rectangle changed (`mDirtyLeft` to `mDirtyBottom`); a partial upload (or a streaming texture) in the
+framework would help the games that draw from a software screen. imagehlp.dll takes 9.4% of the start's cycles on the main thread
+(the profile of the first 2.2 s), also still without a call site. The graphics device is 35.6 MB of private bytes before the game
+reads a file.
+
+## Unneeded code taken out (2026-11-11)
+
+The coverage check's list of candidates (44, below) is dealt with: 1,099 lines out of 34 files, 168 in. What counted as unneeded
+is code that no input reaches: nothing in the shipped files, nothing the player or a test key can do. Code that only some input
+reaches (a value of the game file's own language that the shipped files do not use) stays, as `docs/COVERAGE.md` says; the
+second list below gives each case and why.
+
+**Taken out.**
+
+- *The demo mode.* The original's `gDemo` flag is never assigned in its code, so the branches that let the program play for
+  the player are dead: the ship's own steering and guides (`Shooter_Control` and its neighbours), the pointer's, the menu
+  item's, the Level update's and the won-level test's demo branches, the demo's lives and elapsed time, and the flag that kept
+  the message pump running for it (`gPumpMessages`).
+- *The sweepers power-up* (kind 15, reachable only through the demo): `Powerup_Sweepers` 0x4189b0, `Sweeper_Push` 0x41c4a0,
+  `Sweeper_Draw` 0x41cfb0, `Sweeper_Spark`, the ship's flag 4 branches that only it set, and the ship's sweeper Obj and
+  particle member.
+- *The water mine and the freeze* (power-up kinds 16 and 17: the kinds table holds 0 to 13 and the test keys make 0 to 13,
+  so nothing makes either): the weapons of kind 0 and 3 (their set-up, move and launch-sound cases), `Ice_Freeze` 0x41a430,
+  `Enemy_Freeze` 0x406e20, `Enemy_UpdateIce` 0x406f50, the enemy's ice capsule (the member at +0x10c and the dozen places that
+  tested it), and the two cases in `Powerup_Collect` and `Powerup_Init`.
+- *The fonts' unclipped drawing.* Every font that is drawn has its flag for clipping set (the loader and the text input set it,
+  and the four fonts that never get it are never drawn), so the three drawing functions lost their unclipped loops, and the flag
+  (0x422330) with them. The font's texture and mask target (+0xd50 to +0xd5f) are never set to anything but null, so their
+  branches went too. With them went what only they called: `Image_BlitUnclipped` 0x423d80, `Image_BlitAlphaFadeUnclipped`
+  0x424910, `Image_SetMask` 0x423a90, `Rect_Overlap` 0x42bdb0, `Rect_Intersect` 0x42c0a0, `Image_AddMaskUnclipped` 0x424ed0,
+  `Image_AddMask` 0x424f30, `AddMask8` 0x42e240 and `Image_FillAlphaRect` 0x425270.
+- *The text input's own surface* (`DrawOwn` 0x42cad0): the game always passes null for it, so the surface, its background, the
+  active-last-time flag and the redraw flag are gone, and `TextInput_Init` has two parameters fewer.
+- *The display re-open* (F7, Alt+Enter, F8 and the VIDEO button in the original make it convert every image again):
+  `Animation_ReloadAll` 0x402670, `Animation_FreeMasks` 0x4015c0 and `Bank_Reconvert` 0x428640, and the reload flag of
+  `Animation_Load`. The port's host switches the window itself and never loses the screen; `Screen_SetFullscreen` (0x4293c0) is
+  that switch and stays.
+- *Functions with no caller:* `Obj_ClearChildren` 0x403480, `ParseHex3` 0x4206d0, `Log` 0x429240 (an empty function; its one
+  call is gone), `Sys_Sleep` 0x428d00 (the same), `DrawList_Count`, `Sys_Host`, `SetScreenLostCallback` 0x4293a0, `Xml_Reset`
+  0x41ee70 (what it did is `Xml_NextTag`'s start and the destructor's free; the address now sits above the destructor), and
+  `Particles_Init` with `ParticleSystem_Init` (0x40c2c0: the original's start-up construction of the pools, which the port's
+  zeroed statics replace; a pooled particle or system is set up in full by `ParticleSystem_Add` and `ParticleSystem_New`, and
+  only `Obj_Update` reads the base's other defaults, which particles never go through).
+
+The structs that mirror the original's lose the members above, so `Shooter`, `Enemy`, `Font`, `TextInput` and `Text` (which
+ends in a `TextInput`) are smaller than the original's, and their `static_assert`s and the notes beside them say by how much.
+`coverage.txt` gains three `none` lines (0x40c2c0, 0x422330 and 0x4293a0, the three the original runs).
+
+**Kept, because some input reaches it.** The draw kinds 3 and 6 (the game file's `blit_type="solid"` and `"add"`) with the
+add-blend family and the fill blitter they call (0x432440, 0x434520, 0x4359e0, 0x436490, 0x424cc0, 0x4241f0); the blitters for
+image formats the shipped art does not use (0x42fee0, 0x430020, 0x434d00, 0x435bf0, 0x432970, 0x434a80, 0x401a80), since
+the art's formats are the game file's; the enemy kinds 0x10, 0x12, 0x13 and 0x14 and their `Enemy_FromXml` branches (0x408de0,
+0x409160, 0x409480); hex colours (`ParseHex4` 0x4205f0, in `Obj_FromXml`) and swapped colours (`SwapColours` 0x420be0); the
+panel tag (0x418050); the `.tga` branch and `Image_ConvertTo` (0x423b20); the FLI delta chunk (0x40c670); and the name entry's
+on-screen keys (`MenuItem_TypeKey` 0x4159c0 and `Key_Push` 0x428fb0), which an item of type `hs_stuff` in any screen of the
+game file reaches (the shipped screen that holds them is never shown: the original's screen change, 0x40d5e0, turns the
+name-entry screen into the high-score table).
+
+**Found on the way: the level's destructor was never called.** The original's list of levels (0x4011a0) runs the level's
+destructor, 0x413b70, on each level it drops: it unlinks the fills and particle systems, deletes the cells' columns and the
+background, and empties every list. The port had translated it (`Level_Destroy`) but deleted a level as a plain object, so
+a dropped level's columns, background and lists were never freed (the coverage check matched the destructor by its address
+and missed that nothing called it, as it had for the shooter's). `List_DeleteNode(Level*)` now calls it. Play does not change.
+
+**Proof.** Every Water Bugs target builds, `tools/check.sh waterbugs` passes with the frozen baseline unchanged (the scripted
+game, its rerun, the windowed exe twice, the lost game, the three screen hashes), and a six-game cycle of the headless runner
+(start a game, lose it, the high scores, Esc, again; about 3.5 minutes of game time) plays out with the same state lines as the runner
+from before this phase. With a temporary count in the new delete, that run dropped 3,666 boards and six of each other
+screen kind with no crash. There is no AddressSanitizer for the i686 llvm-mingw build, so a heap error in the new
+destructor path would show only as a crash; the web build (`tools/check.sh build`) is built before the merge request.
+
 ## Coverage check (2026-11-08)
 
 The whole coverage check of `docs/COVERAGE.md`, after Ning Po's. origrun's `--coverage` recorded which of the original's
@@ -273,8 +411,9 @@ comment named the wrong function), which are corrected.
   again, and the original then converts all its images (0x4015c0, 0x402670, 0x428640, and the button's handler 0x4293c0).
   Not run: it changes the machine's display mode, which the user is working on. The port's host switches the window itself
   (listed under the full screen above), never loses the screen, and does not call these three; they match the export, and
-  are candidates for taking out (or for wiring in, if the port is to keep a screen format of its own).
-- **Candidates for taking out unneeded code: 44.** No play of the original can reach these; they were not removed now.
+  were taken out on 2026-11-11 (`Screen_SetFullscreen`, the host's switch, stays).
+- **Candidates for taking out unneeded code: 44.** No play of the original can reach these; they were not removed now (taken
+  out or kept on 2026-11-11, "Unneeded code taken out" above).
   - The sweepers power-up (kind 15; no key reaches it and the data never gives it): 0x4189b0, `Sweeper_Push` 0x41c4a0,
     `Sweeper_Draw` 0x41cfb0, and the ship flag 4 branches that only it sets.
   - The mine and ice weapons (kinds 16 and 17, which no table gives) with `Ice_Freeze` 0x41a430, `Enemy_Freeze` 0x406e20

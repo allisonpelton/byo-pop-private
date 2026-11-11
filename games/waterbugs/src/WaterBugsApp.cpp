@@ -208,10 +208,35 @@ WaterBugsHost gHost;
 
 } // namespace
 
+namespace
+{
+
+// A 5-6-5 pixel as the framework's 32-bit picture holds it: opaque, each component widened by repeating its top bits
+uint32_t gPixelsFromScreen16[65536];
+
+void BuildPixelsFromScreen16()
+{
+	for (uint32_t p = 0; p < 65536; p++)
+	{
+		uint32_t aRed = (p >> 11) & 0x1f;
+		uint32_t aGreen = (p >> 5) & 0x3f;
+		uint32_t aBlue = p & 0x1f;
+		gPixelsFromScreen16[p] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) | (((aGreen << 2) | (aGreen >> 4)) << 8) |
+			((aBlue << 3) | (aBlue >> 2));
+	}
+}
+
+} // namespace
+
 WaterBugsWidget::WaterBugsWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
 	mScreenImage->Create(800, 600);
+	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
+	// alpha byte 0xff (Draw), so that it need not premultiply them pixel by pixel to upload them (the Mahjong ports' screen)
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
+	BuildPixelsFromScreen16();
 	mWantsFocus = true;
 }
 
@@ -247,14 +272,7 @@ void WaterBugsWidget::Draw(Graphics* g)
 			const uint16_t* aSrc = &anApp->mScreen[y * 800];
 			ulong* aDst = &aBits[y * 800];
 			for (int x = l; x < r; x++)
-			{
-				uint32_t p = aSrc[x];
-				uint32_t aRed = (p >> 11) & 0x1f;
-				uint32_t aGreen = (p >> 5) & 0x3f;
-				uint32_t aBlue = p & 0x1f;
-				aDst[x] = 0xff000000 | (((aRed << 3) | (aRed >> 2)) << 16) | (((aGreen << 2) | (aGreen >> 4)) << 8) |
-					((aBlue << 3) | (aBlue >> 2));
-			}
+				aDst[x] = gPixelsFromScreen16[aSrc[x]];
 		}
 		mScreenImage->BitsChanged();
 		anApp->mPresented = false;
@@ -510,4 +528,9 @@ bool WaterBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (wb::HandleTestCommand(this, theCommand))
 		return true;
 	return SexyAppBase::HandleScriptCommand(theCommand);
+}
+
+void WaterBugsApp::AddMemReportHolders(Platform::MemReport* theReport)
+{
+	wb::AddMemReportHolders(theReport);
 }

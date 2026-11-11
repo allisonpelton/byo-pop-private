@@ -273,14 +273,10 @@ int GameFrame()
 	if (PumpMessages() == 0)
 		return 1;
 	gElapsedMs = (int)TimeMs() - gLastTime;
-	if (gElapsedMs < 0)
-		Sys_Sleep(1);
 	if (0x200 < gElapsedMs)
 		gElapsedMs = gLastElapsed;
 	int aNow = (int)TimeMs();
 	gLastElapsed = gElapsedMs;
-	if (gDemo != 0)
-		gElapsedMs = 0xca;
 	gLastTime = aNow;
 	int aMode = Screen_Fullscreen();
 	if (gLastMode != aMode)
@@ -356,7 +352,6 @@ int Font_LoadXml(const char*, const XmlTag* theTag)
 	}
 	Font_SetAlign(&gFonts.current->font, 0);
 	Font_SetSpacing(&gFonts.current->font, Xml_GetInt(theTag, "spacing"));
-	Font_SetClipped(&gFonts.current->font, 1);
 	Font_SetEscapes(&gFonts.current->font, 1);
 	std::strcpy(gFonts.current->name, Xml_GetString(theTag, "name"));
 	std::strcpy(gFonts.current->strip, Xml_GetString(theTag, "face"));

@@ -38,7 +38,6 @@ void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, 
 void DrawList_Flush();
 // 0x421980
 void DrawList_Clear();
-int DrawList_Count();
 
 // 0x34 bytes (gDirty at 0x472a7c): the 800x600 screen in cells, each with its changed rectangles (mode 1: one
 // bounding rectangle per cell; else up to maxRects, merged where that does not grow them)

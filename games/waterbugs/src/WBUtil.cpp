@@ -52,18 +52,6 @@ void ParseHex4(const char* theText, int* a, int* b, int* c, int* d)
 	*d = (int)v;
 }
 
-void ParseHex3(const char* theText, int* a, int* b, int* c)
-{
-	char aPairs[3][3] = {{theText[0], theText[1], 0}, {theText[2], theText[3], 0}, {theText[4], theText[5], 0}};
-	unsigned v = 0;
-	std::sscanf(aPairs[0], "%x", &v);
-	*a = (int)v;
-	std::sscanf(aPairs[1], "%x", &v);
-	*b = (int)v;
-	std::sscanf(aPairs[2], "%x", &v);
-	*c = (int)v;
-}
-
 int gRandCalls = 0;   // (the port's: how many draws so far, for lining the port up with the original)
 
 // 0x420770: Schrage's step with the original's constants (q = 2), in 32-bit wrapping arithmetic. The seed is divided
@@ -277,11 +265,6 @@ void RotateImage(Image* theImage, int theAngle)
 	}
 	Image_Destroy(aCopy);
 	delete aCopy;
-}
-
-void Log(const char* theFormat, ...)
-{
-	(void)theFormat;
 }
 
 } // namespace wb

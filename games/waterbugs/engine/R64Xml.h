@@ -45,8 +45,6 @@ const char* Xml_GetString(const XmlTag* theTag, const char* theName);
 int Xml_GetInt(const XmlTag* theTag, const char* theName);
 // 0x404fe0: an attribute's value through atof, or 0
 double Xml_GetFloat(const XmlTag* theTag, const char* theName);
-// 0x41ee70: forgets the tag and frees its attributes
-void Xml_Reset(XmlTag* theTag);
 
 } // namespace r64
 

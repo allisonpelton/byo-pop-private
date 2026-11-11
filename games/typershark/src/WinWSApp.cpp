@@ -23,6 +23,7 @@
 #include "DialogButton.h"
 #include "ImageFont.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "SDLMusicInterface.h"
@@ -646,6 +647,35 @@ void WinWSApp::GotFocus()
 	PauseMusic(false);
 	if (mBoard != NULL)
 		mBoard->SetPaused(false);   // 0x442100
+}
+
+// The display of a 3D run draws a line as the original's Direct3D does: its last pixel is not drawn. The original's 3D screen (found
+// by running it on the desktop, GAME_NOTES.md "The 3D drawing") ends the divider under a tab's title one pixel short of the
+// 2D screen's, where MemoryImage::DrawLine sets both end points. Only horizontal and vertical lines are cut (the game draws no
+// other, and the rule for a slanted one was not seen); a line of one pixel is left alone.
+class TyperSharkDisplay : public DDInterface
+{
+public:
+	TyperSharkDisplay(SexyAppBase* theApp) : DDInterface(theApp)
+	{
+	}
+
+	virtual void DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode, bool antiAlias) override
+	{
+		if (mIs3D)
+		{
+			if ((theStartY == theEndY) && (theStartX != theEndX))
+				theEndX += (theEndX > theStartX) ? -1.0 : 1.0;
+			else if ((theStartX == theEndX) && (theStartY != theEndY))
+				theEndY += (theEndY > theStartY) ? -1.0 : 1.0;
+		}
+		DDInterface::DrawLine(theStartX, theStartY, theEndX, theEndY, theColor, theDrawMode, antiAlias);
+	}
+};
+
+DDInterface* WinWSApp::CreateDDInterface()
+{
+	return new TyperSharkDisplay(this);
 }
 
 // port: the 2004 SexyApp creates a BassMusicInterface (BASS 2.0), which sets the module music's global volume to the

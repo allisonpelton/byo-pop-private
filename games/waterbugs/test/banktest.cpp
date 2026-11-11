@@ -109,7 +109,6 @@ bool DrawFonts(Bank* theArt, Bank* theArt8, const PixelFormat* theFmt, const cha
 			Font_LoadFromBank(aFont, aBank, aFace);
 		Font_SetTarget(aFont, (uint8_t*)aScreen.data(), W * 2, theFmt, W - 1, H - 1);
 		Font_SetSpacing(aFont, Xml_GetInt(&aTag, "spacing"));
-		Font_SetClipped(aFont, 1);
 		Font_SetEscapes(aFont, 1);
 		int aRect[4];
 		Font_DrawOutlined(aFont, aRect, 4, y, "0123456789 ABCDEFGHIJ abcdefghij");

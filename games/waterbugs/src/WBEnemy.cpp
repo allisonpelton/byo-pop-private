@@ -16,7 +16,6 @@ Enemy* Enemy_Init(Enemy* theEnemy)
 	Obj_Init(theEnemy);
 	theEnemy->lastShot = 0.0f;
 	theEnemy->shield = nullptr;
-	theEnemy->ice = nullptr;
 	theEnemy->phase = 0;
 	int aTime = RandRange(2000, 3000);
 	theEnemy->lastTurn = 0;
@@ -151,8 +150,6 @@ void Enemy_Draw(Enemy* theEnemy)
 {
 	if (theEnemy->shield != nullptr)
 		Obj_Draw(theEnemy->shield);
-	if (theEnemy->ice != nullptr)
-		Obj_Draw(theEnemy->ice);
 	Obj_Draw(theEnemy);
 }
 
@@ -200,8 +197,6 @@ int Enemy_Bounce(Enemy* theEnemy)
 // Speeds up over frames 6 to 10 of its animation, the decay slowing it the rest of the time
 int BurstRoller_Move(Enemy* theEnemy)
 {
-	if (theEnemy->ice != nullptr)
-		return 0;
 	theEnemy->acceleration = (theEnemy->frame < 6 || 10 < theEnemy->frame) ? 1.0002f : 1.0141f;
 	float aDecayed = theEnemy->decay * theEnemy->vx;
 	theEnemy->vx = aDecayed * theEnemy->acceleration;
@@ -213,8 +208,6 @@ int BurstRoller_Move(Enemy* theEnemy)
 // Sinks, and over frames 40 to 65 rises, now and then letting a bubble go
 int Jellyfish_Move(Enemy* theEnemy)
 {
-	if (theEnemy->ice != nullptr)
-		return 0;
 	if (theEnemy->frame < 0x28 || 0x41 < theEnemy->frame)
 		theEnemy->acceleration = 0.00058f;
 	else
@@ -361,7 +354,7 @@ void SpinRoller_Move(Enemy* theEnemy)
 	else if (aPhase == 1)
 	{
 		theEnemy->acceleration = theEnemy->baseAcceleration;
-		if (theEnemy->ice == nullptr && RandRange(1, 10) == 1)
+		if (RandRange(1, 10) == 1)
 		{
 			ParticleSystem_New();
 			int aLifetime = RandRange(400, 500);
@@ -550,65 +543,6 @@ void Enemy_Shield(Enemy* theEnemy)
 	theEnemy->shield->frame = 0;
 }
 
-void Enemy_Freeze(Enemy* theEnemy)
-{
-	if (theEnemy->ice == nullptr)
-	{
-		Sound_Play(Sound_Find("audio\\ice.wav"));
-		Obj* anIce = (Obj*)::operator new(sizeof(Obj));
-		Obj_Init(anIce);
-		theEnemy->ice = anIce;
-		anIce->x = theEnemy->x;
-		theEnemy->ice->y = theEnemy->y;
-		theEnemy->ice->vx = 0.0f;
-		theEnemy->ice->vy = 0.0f;
-		theEnemy->ice->anim = Animation_Find("ice_capsule", &theEnemy->ice->frameCount, &theEnemy->ice->frameTime);
-		theEnemy->ice->midHandle = 1;
-		theEnemy->ice->drawKind = 1;
-		theEnemy->ice->dirty = 1;
-		theEnemy->ice->depth = 4;
-		theEnemy->ice->oneShot = 1;
-	}
-}
-
-// The capsule forms (a one-shot animation), holds on its last frame (frame time 10000) and plays backwards to melt
-void Enemy_UpdateIce(Enemy* theEnemy)
-{
-	Obj* anIce = theEnemy->ice;
-	if (anIce == nullptr)
-		return;
-	theEnemy->frameTimer = 0;
-	theEnemy->x = anIce->x;
-	theEnemy->y = anIce->y;
-	if (Obj_Update(anIce) != 0)
-		return;
-	anIce = theEnemy->ice;
-	if (anIce->frameTime != 10000)
-	{
-		if (anIce->frameStep == 1)
-		{
-			// (sic: the original sets the frame timer twice)
-			anIce->frameTimer = anIce->anim->count + -1;
-			theEnemy->ice->frameTimer = 0;
-			theEnemy->ice->frameTime = 10000;
-			return;
-		}
-		if (anIce->frameTime != 10000)
-		{
-			if (anIce != nullptr)
-				Obj_Delete(anIce);
-			theEnemy->ice = nullptr;
-			return;
-		}
-	}
-	anIce->frameTime = anIce->anim->frameTime;
-	theEnemy->ice->frameStep = -1;
-	theEnemy->ice->frameTimer = 0;
-	theEnemy->ice->frame = theEnemy->ice->anim->count + -1;
-	if (theEnemy->alpha == 0xff)
-		Sound_Play(Sound_Find("audio\\ice.wav"));
-}
-
 // 0x407070: No other roller (kind 0x11 or 0x12) within 120 pixels
 int Enemy_ClearOfRollers(Enemy* theEnemy)
 {
@@ -719,8 +653,6 @@ void Enemy_Destroy(Enemy* theEnemy)
 {
 	if (theEnemy->shield != nullptr)
 		Obj_Delete(theEnemy->shield);
-	if (theEnemy->ice != nullptr)
-		Obj_Delete(theEnemy->ice);
 	Obj_Destroy(theEnemy);
 }
 
@@ -925,8 +857,6 @@ static void Teleporter_Sparkles(Enemy* theEnemy)
 // 2000; then plays on, and past frame 48 vanishes in sparkles to come back somewhere else, a trail of them between
 int Teleporter_Move(Enemy* theEnemy)
 {
-	if (theEnemy->ice != nullptr)
-		return 0;
 	if (theEnemy->phase == 0)
 	{
 		if (theEnemy->age <= 5000.0f)
@@ -1137,9 +1067,6 @@ int gKillCount = 0; // 0x478608: the kills since a power-up was last allowed (ev
 void Enemy_Kill(Enemy* theEnemy, int thePoints)
 {
 	gProfiles[gProfile].kills = gProfiles[gProfile].kills + 1;
-	if (theEnemy->ice != nullptr)
-		Obj_Delete(theEnemy->ice);
-	theEnemy->ice = nullptr;
 	Obj_Explode(theEnemy, 0.0f, 0.0f);
 	int aKind = theEnemy->kind;
 	if (aKind != 0x13 && aKind != 0xd && aKind != 0xe)
@@ -1703,75 +1630,72 @@ int Enemy_Step(Enemy* theEnemy)
 			return 1;
 		}
 		aResult = aResult | Obj_Update(theEnemy);
-		if (theEnemy->ice == nullptr)
+		switch (theEnemy->kind)
 		{
-			switch (theEnemy->kind)
-			{
-			case 0:
-				Frog_Move(theEnemy);
-				break;
-			case 1:
-				BurstRoller_Move(theEnemy);
-				break;
-			case 2:
-				BumpRoller_Move(theEnemy);
-				break;
-			case 3:
-				Jellyfish_Move(theEnemy);
-				break;
-			case 4:
-				SpinRoller_Move(theEnemy);
-				break;
-			case 5:
-				Teleporter_Move(theEnemy);
-				break;
-			case 6:
-				TurnRoller_Move(theEnemy);
-				break;
-			case 7:
-				LobsterWalker_Move(theEnemy);
-				break;
-			case 8:
-				ScurryWalker_Move(theEnemy);
-				break;
-			case 9:
-				TurtleWalker_Move(theEnemy);
-				break;
-			case 10:
-				LaserWalker_Move(theEnemy);
-				break;
-			case 0xb:
-				CannonWalker_Move(theEnemy);
-				break;
-			case 0xc:
-				CrabWalker_Move(theEnemy);
-				break;
-			case 0xd:
-				CannonBall_Move(theEnemy);
-				break;
-			case 0xe:
-				aResult = aResult & LaserShot_Move(theEnemy);
-				break;
-			case 0x10:
-				Walker_Move(theEnemy, 2);
-				break;
-			case 0x11:
-				Enemy_Bounce(theEnemy);
-				break;
-			case 0x12:
-				SnakeShooter_Move(theEnemy);
-				break;
-			case 0x13:
-				Snake_Move(theEnemy);
-				break;
-			case 0x14:
-				SmartWalker_Move(theEnemy);
-				break;
-			}
-			Obj_UpdateEmitters(theEnemy);
+		case 0:
+			Frog_Move(theEnemy);
+			break;
+		case 1:
+			BurstRoller_Move(theEnemy);
+			break;
+		case 2:
+			BumpRoller_Move(theEnemy);
+			break;
+		case 3:
+			Jellyfish_Move(theEnemy);
+			break;
+		case 4:
+			SpinRoller_Move(theEnemy);
+			break;
+		case 5:
+			Teleporter_Move(theEnemy);
+			break;
+		case 6:
+			TurnRoller_Move(theEnemy);
+			break;
+		case 7:
+			LobsterWalker_Move(theEnemy);
+			break;
+		case 8:
+			ScurryWalker_Move(theEnemy);
+			break;
+		case 9:
+			TurtleWalker_Move(theEnemy);
+			break;
+		case 10:
+			LaserWalker_Move(theEnemy);
+			break;
+		case 0xb:
+			CannonWalker_Move(theEnemy);
+			break;
+		case 0xc:
+			CrabWalker_Move(theEnemy);
+			break;
+		case 0xd:
+			CannonBall_Move(theEnemy);
+			break;
+		case 0xe:
+			aResult = aResult & LaserShot_Move(theEnemy);
+			break;
+		case 0x10:
+			Walker_Move(theEnemy, 2);
+			break;
+		case 0x11:
+			Enemy_Bounce(theEnemy);
+			break;
+		case 0x12:
+			SnakeShooter_Move(theEnemy);
+			break;
+		case 0x13:
+			Snake_Move(theEnemy);
+			break;
+		case 0x14:
+			SmartWalker_Move(theEnemy);
+			break;
 		}
+		Obj_UpdateEmitters(theEnemy);
 		Beam* aBeam = Obj_TouchedBeam(theEnemy, theEnemy->kind == 0 ? 2 : 3, theEnemy->kind == 0 ? 5 : 3);
-		if (aBeam == theEnemy->lastBeam || theEnemy->ice != nullptr || theEnemy->kind == 0x13 || theEnemy->kind == 0xd ||
+		if (aBeam == theEnemy->lastBeam || theEnemy->kind == 0x13 || theEnemy->kind == 0xd ||
 			theEnemy->kind == 0xe)
 		{
 			if (aBeam != nullptr)
@@ -1815,9 +1739,6 @@ int Enemy_Step(Enemy* theEnemy)
 		{
 			if (theEnemy->shield != nullptr)
 				Obj_Delete(theEnemy->shield);
-			if (theEnemy->ice != nullptr)
-				Obj_Delete(theEnemy->ice);
-			theEnemy->ice = nullptr;
 			theEnemy->shield = nullptr;
 			Enemy_Kill(theEnemy, 0);
 		}
@@ -1866,7 +1787,6 @@ int Enemy_Update(Enemy* theEnemy)
 		break;
 	}
 	Enemy_UpdateShield(theEnemy);
-	Enemy_UpdateIce(theEnemy);
 	return aResult;
 }
 

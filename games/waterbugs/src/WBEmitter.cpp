@@ -8,18 +8,13 @@
 namespace wb
 {
 
+// (the original constructs each system and particle at start-up, 0x40c2c0 and the Obj base: the port's start as zeros, which
+// nothing reads differently: ParticleSystem_New and ParticleSystem_Add set what a system and a particle use, and neither is
+// updated by Obj_Update, the only reader of the base's loop and frame step)
 static ParticleSystem gSystems[4000];     // 0x62de20
 static int gSystemNext = 0;               // 0x478620
 static Particle gParticles[8000];         // 0x478628
 static int gParticleNext = 0;             // 0x478624
-
-void Particles_Init()
-{
-	for (ParticleSystem& aSystem : gSystems)
-		ParticleSystem_Init(&aSystem);
-	for (Particle& aParticle : gParticles)
-		Obj_Init(&aParticle);
-}
 
 int Particle_Update(Particle* theParticle)
 {
@@ -313,13 +308,6 @@ int ParticleSystem_Update(ParticleSystem* theSystem)
 		}
 	}
 	return 1;
-}
-
-ParticleSystem* ParticleSystem_Init(ParticleSystem* theSystem)
-{
-	Obj_Init(theSystem);
-	List_Init(&theSystem->particles);
-	return theSystem;
 }
 
 // 0x40b940's colour jitter: the colour moved by up to the variance and kept in 0..255, where (as in the original's
