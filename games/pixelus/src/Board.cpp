@@ -1,5 +1,6 @@
 #include "Board.h"
 #include "Character.h"
+#include "TempleScreen.h"
 #include "PixelusApp.h"
 #include "TileMaster.h"
 #include "LevelData.h"
@@ -96,6 +97,16 @@ Board::Board(PixelusApp* theApp, const std::string& theLevelName, int thePuzzleI
 
 	if (mTutorial)
 		mTeacher = new Character(mApp, 0, NULL, 2);
+	// 0x409880: in the tutorial the sidebar holds the cyclops and his text, and the buttons that are not needed are hidden (all
+	// three, except in the last puzzle, which teaches them)
+	if (mTutorial && mPuzzleIndex != 8)
+	{
+		mResetButton->SetVisible(false);
+		if (mHintButton != NULL)
+			mHintButton->SetVisible(false);
+		if (mUndoButton != NULL)
+			mUndoButton->SetVisible(false);
+	}
 
 	if (LoadPuzzle())
 		Restore();
@@ -976,7 +987,7 @@ void Board::DrawTile(Graphics* g, GridObject* theObject)
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		int aShine = (int) (sin(theObject->mIdle * PI / 100.0) * 120.0 * aAlpha / 255.0);
 		g->SetColor(Color(255, 255, 255, aShine));
-		g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX, aY);
+		g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX - 1, aY - 1);	// 0x422ab0: its picture has a one pixel margin, as the wanted back has
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 
@@ -990,7 +1001,7 @@ void Board::DrawTile(Graphics* g, GridObject* theObject)
 			g->SetColorizeImages(true);
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColor(Color(255, 255, 0x80, (int) (aStrength * aAlpha * (80.0 / 255.0))));
-			g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX, aY);
+			g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX - 1, aY - 1);	// 0x422ab0: its picture has a one pixel margin, as the wanted back has
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		}
 	}
@@ -1127,7 +1138,7 @@ void Board::DrawGrid(Graphics* g)
 				unsigned int aColor = mGrid->mPicture[r][c];
 				g->SetColorizeImages(true);
 				g->SetColor(Color((aColor >> 16) & 0xff, (aColor >> 8) & 0xff, aColor & 0xff, mAlpha));
-				g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX, aY);
+				g->DrawImage(mApp->mImages[IMAGE_GRAYTILE_20X20], aX - 1, aY - 1);	// 0x422ab0: its picture has a one pixel margin, as the wanted back has
 				g->SetColorizeImages(mAlpha < 255);
 				g->SetColor(Color(255, 255, 255, mAlpha));
 				continue;
@@ -1214,6 +1225,9 @@ void Board::DrawSidebar(Graphics* g)
 		Rect aRect(0x11, aTop, 0x82, 0xbf);
 		const SexyString& aText = mGrid->mDone ? GT(0x50c454) : GT(aTutorialTexts[std::max(0, std::min(8, mPuzzleIndex))]);
 		WriteWordWrapped2004(g, aRect, aText, g->GetFont()->GetHeight() + 2, 0);
+		// 0x404be0 ends the tutorial's sidebar with the teacher
+		if (mTeacher != NULL)
+			DrawCharacter(mApp, mTeacher, g);
 	}
 
 	if (mExpert && (!mTutorial || mPuzzleIndex == 8))

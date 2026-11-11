@@ -515,6 +515,28 @@ void TempleScreen::DrawThumbs(Graphics* g)
 				g->DrawImage(mApp->mImages[IMAGE_PUZZLELIGHT], aX - 4, aY - 4);
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				g->SetColorizeImages(false);
+				// 0x410ad0, 0x4100f0: while the mouse is within 64 pixels of the picture, the cells of its shape that are near the
+				// pointer shine through (alpha 255 - d^3 * 255 / 2^18 for a cell's centre d pixels from the pointer, d under 64)
+				int aMouseX = mApp->mWidgetManager->mLastMouseX, aMouseY = mApp->mWidgetManager->mLastMouseY;
+				if (aThumb.mShape != NULL && aMouseX >= aX - 0x40 && aMouseX < aX - 0x40 + 0xe0 && aMouseY >= aY - 0x40 && aMouseY < aY - 0x40 + 0xe0)
+				{
+					g->SetColorizeImages(true);
+					for (int aCellX = 0; aCellX < 16; aCellX++)
+						for (int aCellY = 0; aCellY < 16; aCellY++)
+						{
+							int aDX = aX + aCellX * 6 + 3 - aMouseX, aDY = aY + aCellY * 6 + 3 - aMouseY;
+							int aDistance = (int) sqrt((double) (aDX * aDX + aDY * aDY));
+							if (aDistance >= 0x40)
+								continue;
+							int aCube = aDistance * aDistance * aDistance * 0xff;
+							int anAlpha = 0xff - ((aCube + ((aCube >> 31) & 0x3ffff)) >> 18);
+							if (anAlpha <= 0)
+								continue;
+							g->SetColor(Color(255, 255, 255, anAlpha));
+							g->DrawImage(aThumb.mShape, aX + aCellX * 6, aY + aCellY * 6, Rect(aCellX * 6, aCellY * 6, 6, 6));
+						}
+					g->SetColorizeImages(false);
+				}
 			}
 			else
 			{

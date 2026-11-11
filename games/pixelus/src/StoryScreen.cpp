@@ -197,7 +197,7 @@ void StoryScreen::DrawSpeech(Graphics* g, const Speech& theSpeech, int theOrdina
 		aFramed.DrawImage(theSpeech.mPortrait, Rect(1, 1, theSpeech.mFramed->GetWidth() - 2, theSpeech.mFramed->GetHeight() - 2),
 			Rect(0, 0, 0xa0, 0xa0));
 		aFramed.DrawImage(aFrame, 0, 0);
-		g->DrawImage(theSpeech.mFramed, aFrameX, aY - 3);
+		g->DrawImage(theSpeech.mFramed, aFrameX, aY);
 	}
 
 	// 0x42ccf0: what is said, a line at a time, each 0.5 s after the one before, in black on the bubble
