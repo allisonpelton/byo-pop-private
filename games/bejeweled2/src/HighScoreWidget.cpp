@@ -445,7 +445,7 @@ void HighScoreWidget::ButtonDepress(int theId)
 			}
 			else
 				mApp->mBoard->Show();
-			mApp->mMusicInterface->FadeIn(mApp->mCurrentSong, 1, 0.006);
+			mApp->mMusicInterface->FadeOut(mApp->mCurrentSong, true, 0.006);  // slot 0x30 of the music interface
 			mApp->mPendingMusicOffset = mApp->GetInteger("MUSICOFFSET_MAIN_MENU");
 		}
 		if (mApp->mMainMenu != nullptr)

@@ -117,6 +117,9 @@ def tour(d, a):
                         for k in 'bcd':
                             d.ok('wait 20')
                             d.shot('dialog40' + k)
+                        for k in range(14):  # and its four pages (675 updates each) one after the other
+                            d.ok('wait 200')
+                            d.shot('dialog40p%02d' % k)
                     continue
                 if top == 36:
                     d.key('Escape')
@@ -208,12 +211,62 @@ def tourload(d, a):
     return dict(loaded=True)
 
 
+def tourdialogs(d, a):
+    """The dialogs that no other tour reaches (`--mode tour:dialogs`, PROFILE = make_profile.py's player): "Quit?", the user list with its
+    Rename, Delete and create dialogs, and the high scores' reset question, each shot once it stands still and answered No."""
+    def menu():
+        s = full.until(d, lambda s: full.menu_ready(s) and not s['dialogs'], 'the menu', 600)
+        d.ok('wait 60')
+        return full.until(d, lambda s: full.menu_ready(s) and not s['dialogs'], 'the menu', 60)
+
+    def dialog(ident, name, wait=60):
+        s = full.until(d, lambda s: ident in s['dialogs'] and (s.get('buttons') or {}).get('no'), 'dialog %d' % ident, 120)
+        d.ok('wait %d' % wait)
+        d.shot(name)
+        return d.state()
+
+    def answer_no():
+        d.click(d.state()['buttons']['no'])
+        d.ok('wait 60')
+
+    s = menu()
+    d.click(s['widgets']['quit'])
+    dialog(1, 'quit')
+    answer_no()
+    s = menu()
+    d.click(s['widgets']['user'])
+    s = dialog(32, 'users')
+    d.click(s['buttons']['row1'])
+    d.ok('wait 30')
+    d.shot('users-sel')
+    d.click(d.state()['buttons']['rename'])
+    dialog(29, 'rename')
+    answer_no()
+    d.click(d.state()['buttons']['delete'])
+    dialog(30, 'delete')
+    answer_no()
+    d.click(d.state()['buttons']['row0'])
+    dialog(27, 'create')
+    answer_no()
+    answer_no()  # the list's own Cancel
+    s = menu()
+    d.click(s['widgets']['scores'])
+    s = full.until(d, lambda s: s['screen'] == 'highscores' and not s['dialogs'] and 'again' in (s.get('widgets') or {}), 'the high scores', 120)
+    d.ok('wait 60')
+    d.click(d.state()['widgets']['again'])
+    dialog(33, 'reset')
+    answer_no()
+    return {}
+
+
 def tourmode(d, a):
     """One game mode's screens (`--mode tour:<mode>`, the player of make_profile.py with every mode unlocked): the menu (the secret
     menu for a secret mode), every message and screen in front of the board, the board, the board after --moves moves with five
     shots along each level change, and, for a timed mode, the end screen. One shot each once the screen stands still. The original
     gets the same inputs at the same updates, one mode a run: it crashes in the sandbox when its options dialog closes."""
     mode = a.mode.split(':', 1)[1]
+    if mode == 'dialogs':
+        return tourdialogs(d, a)
     seen = set()
 
     def settle(pred, screens=False):
@@ -240,6 +293,7 @@ def tourmode(d, a):
                     d.shot('screen-' + s['screen'])
                     continue
                 d.idle()
+        d.shot('stuck')
         raise SystemExit('the screen did not settle: ' + full.describe(d.state()))
 
     s = settle(full.menu_ready)
@@ -270,8 +324,18 @@ def tourmode(d, a):
             for k in range(5):
                 d.ok('wait 40')
                 d.shot('level%s-%d' % (level, k))
+    if mode in full.PUZZLE_MODES:
+        settle(lambda s: s['screen'] == 'game' and s.get('phase') in ('idle', 'puzzle solved'), screens=True)
+    if mode in full.PUZZLE_MODES and d.state().get('phase') == 'puzzle solved':
+        # the world is complete: the pod asks for a click on WARP (at the same place in every size of the game's layout, in game pixels)
+        d.ok('wait 200')
+        d.shot('solved')
+        d.click([95, 103])
+        for k in range(8):
+            d.ok('wait 40')
+            d.shot('warp%d' % k)
     if not d.state().get('over'):
-        settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle')
+        settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle', screens=True)
         d.shot('board-played')
         for _ in range(400 if mode in ('action', 'hyper') else 0):  # the timed modes end by themselves
             if d.state().get('over'):

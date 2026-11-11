@@ -2,6 +2,7 @@
 # Runs the original (a copy staged under build/origrun/bej2) through origrun on the virtual clock with the pinned seed, scripted
 # input and the four board watches, once there is room for another game process (CLAUDE.md: at most 3 at a time).
 #   run_original.sh <script.txt> <log> [seed] [timeout]
+# ORIG_RUN=<name> runs the copy under build/origrun/<name> (a second copy, e.g. with the BASS proxy beside it for a sound comparison).
 # ORIGRUN_ARGS="--dgvoodoo E:/retools/dgVoodoo2_87_5 --3d on" adds origrun options (the 3D, 1024 by 768 original).
 # WATCHES="expr expr ..." replaces all four watches (no spaces inside an expression).
 # W2=0x67d910 reads the global generator's index in the place of the level (the port's watch 5).
@@ -36,7 +37,7 @@ fi
 # first run after another one, in 2D and 3D alike, and a second run is as the first should have been. Retried up to twice.
 for try in 1 2 3; do
   setup_state
-  build/origrun-bin/origrun.exe --game bejeweled2 --run bej2 --exe "$PWD/build/origrun/bej2/game/Bejeweled2Game.exe"     --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" $ORIGRUN_ARGS "${W[@]}" --script "$script" > "$log" 2>&1
+  build/origrun-bin/origrun.exe --game bejeweled2 --run ${ORIG_RUN:-bej2} --exe "$PWD/build/origrun/${ORIG_RUN:-bej2}/game/Bejeweled2Game.exe"     --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" $ORIGRUN_ARGS "${W[@]}" --script "$script" > "$log" 2>&1
   rc=$?
   [ -n "$WATCHES" ] && exit $rc
   # BOARD_BY=<update>: the board must be there by then (run_mode.sh: the mode's click + 100); a secret mode's board came at update 4796 in one run

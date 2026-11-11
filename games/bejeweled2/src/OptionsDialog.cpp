@@ -405,7 +405,7 @@ void OptionsDialog::ButtonDepress(int theId)
 			mApp->mMainMenu->Show();
 			mApp->mMainMenu->mBackdropClear = true;
 		}
-		mApp->mMusicInterface->FadeIn(mApp->mCurrentSong, 1, 0.006);
+		mApp->mMusicInterface->FadeOut(mApp->mCurrentSong, true, 0.006);  // slot 0x30 of the music interface
 		mApp->mPendingMusicOffset = mApp->GetInteger("MUSICOFFSET_MAIN_MENU");
 	}
 	// ids 11 (Register), 13 and 100 to 199 (PopCap's pages) and 14 (Update Check) are not ported

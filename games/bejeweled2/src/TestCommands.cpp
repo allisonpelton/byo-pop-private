@@ -13,6 +13,7 @@
 #include "TitleScreen.h"
 #include "Profile.h"
 #include "UserDialogs.h"
+#include "ListWidget.h"
 #include "HelpScreen.h"
 #include "OptionsDialog.h"
 #include "HyperlinkWidget.h"
@@ -276,22 +277,32 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		for (DialogMap::iterator anItr = mDialogMap.begin(); anItr != mDialogMap.end(); ++anItr)
 			aDialogs += StrFormat(aDialogs.empty() ? "%d" : ",%d", anItr->first);
 		aLine += ",\"dialogs\":[" + aDialogs + "]";
-		// the buttons of the dialog that is on top (the highest id), the middle of each, in game pixels
+		// the buttons of the dialog that is in front (the one opened last: the user list's Rename, Delete and create dialogs
+		// have lower ids than the list), the middle of each, in game pixels
 		if (!mDialogMap.empty())
 		{
-			Dialog* aDialog = mDialogMap.rbegin()->second;
+			Dialog* aDialog = mDialogList.empty() ? mDialogMap.rbegin()->second : mDialogList.back();
 			std::string aButtons;
-			// the options dialog's second button, which leaves a game for the menu
+			// the options dialog's second button, which leaves a game for the menu, and its How To Play button; the user list's
+			// Rename and Delete buttons
 			OptionsDialog* anOptions = dynamic_cast<OptionsDialog*>(aDialog);
-			Widget* aList[3] = {aDialog->mYesButton, aDialog->mNoButton, anOptions != NULL ? (Widget*)anOptions->mMainMenuButton : NULL};
-			const char* aNames[3] = {"yes", "no", "mainmenu"};
-			for (int i = 0; i < 3; i++)
+			UserDialog* aUsers = dynamic_cast<UserDialog*>(aDialog);
+			Widget* aList[6] = {aDialog->mYesButton, aDialog->mNoButton, anOptions != NULL ? (Widget*)anOptions->mMainMenuButton : NULL,
+				anOptions != NULL ? (Widget*)anOptions->mHelpButton : NULL, aUsers != NULL ? (Widget*)aUsers->mRenameButton : NULL,
+				aUsers != NULL ? (Widget*)aUsers->mDeleteButton : NULL};
+			const char* aNames[6] = {"yes", "no", "mainmenu", "help", "rename", "delete"};
+			for (int i = 0; i < 6; i++)
 			{
 				if (aList[i] == NULL || !aList[i]->mVisible)
 					continue;
 				aButtons += StrFormat("%s\"%s\":[%d,%d]", aButtons.empty() ? "" : ",", aNames[i],
 					aList[i]->mX + aList[i]->mWidth / 2, aList[i]->mY + aList[i]->mHeight / 2);
 			}
+			// the user list's first two lines: the one that creates a player and the first player
+			if (aUsers != NULL)
+				for (int i = 0; i < 2; i++)
+					aButtons += StrFormat(",\"row%d\":[%d,%d]", i, aUsers->mList->mX + aUsers->mList->mWidth / 2,
+						aUsers->mList->mY + aUsers->mList->mItemHeight * i + aUsers->mList->mItemHeight / 2 + 2);
 			aLine += ",\"buttons\":{" + aButtons + "}";
 			// the options dialog's three display checkboxes: the middle of each and whether it is checked
 			if (anOptions != NULL)
@@ -505,8 +516,16 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 			ReplyError(theCommand, "a dialog does not close");
 			return true;
 		}
-		// menu (the modes were taken above)
-		if (mMainMenu == NULL || mBoard != NULL)
+		// menu (the modes were taken above). From a game it is the options dialog's Main Menu button (0x5cc563): the board hides,
+		// the menu is made (DoMainMenu keeps the board unless a cheat changed its pictures) and slides in
+		if (aScreen == "game" && mBoard != NULL)
+		{
+			mBoard->Hide();
+			DoMainMenu();
+			mMainMenu->Show();
+			mMainMenu->mBackdropClear = true;
+		}
+		else if (mMainMenu == NULL || mBoard != NULL)
 			DoMainMenu();
 		ReplyOK(theCommand);
 		return true;
