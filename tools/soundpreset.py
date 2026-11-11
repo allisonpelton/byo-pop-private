@@ -1,11 +1,12 @@
 """tools/soundpreset.py: a soundboard preset (web/soundboards.js, "presets") from a stretch of a port's sound log.
 
     python tools/soundpreset.py <sound.log> <first update> <last update> [--files <prefix>] [--skip <a,b>] [--name <name>]
-        [--when <text>]
+        [--when <text>] [--ms <ms an update>]
 
 A port writes the sound log when BYOPOP_SOUNDLOG names a file (framework/SDLSoundManager.h): each line is the update it
 happened on and the event. Every sound the game plays from <first update> to <last update> becomes a step, at its time
-from the first play (10 ms an update, the framework's frame time), with its volume and pan (hundredths of a decibel, as
+from the first play (--ms an update: 10, the framework's frame time, unless the game's own is 5, as the Mahjong
+Escapes' is), with its volume and pan (hundredths of a decibel, as
 logged; the volume relative to the loudest play in the log, so the game's sound effects level drops out), its pitch,
 whether it loops, when it is stopped (only when that is before it would end by itself) and every change of its volume
 or pan while it plays. Prints the preset as one line of JavaScript for the table. <prefix> is put before each file name
@@ -44,6 +45,7 @@ def main():
     ap.add_argument("--skip", default="")
     ap.add_argument("--name", default="Preset")
     ap.add_argument("--when", default="")
+    ap.add_argument("--ms", type=int, default=10)
     a = ap.parse_args()
 
     names, length = {}, {}
@@ -77,7 +79,7 @@ def main():
             m = re.search(r"vol=(-?\d+) pan=(-?\d+) pitch=([-\d.]+) loop=(\d)", rest)
             if t0 is None:
                 t0 = u
-            step = {"file": a.files + name, "at": (u - t0) * 10, "sid": sid, "u": u, "len": secs}
+            step = {"file": a.files + name, "at": (u - t0) * a.ms, "sid": sid, "u": u, "len": secs}
             v, p, r, loop = min(0, int(m.group(1))) - base, int(m.group(2)), float(m.group(3)), m.group(4) == "1"
             if v:
                 step["v"] = v
@@ -94,7 +96,7 @@ def main():
             s = live[inst]
             if u > a.last and kind != "stop":
                 continue
-            at = (u - t0) * 10
+            at = (u - t0) * a.ms
             if kind == "stop":
                 natural = s["at"] + s["len"] * 1000 / s.get("r", 1)
                 if s.get("loop") or at < natural - 10:
@@ -113,7 +115,7 @@ def main():
     # a loop still playing at the end of the stretch stops there
     for s in live.values():
         if s.get("loop") and "end" not in s:
-            s["end"] = (a.last - t0) * 10
+            s["end"] = (a.last - t0) * a.ms
     # (a loop that starts as the stretch ends would not be heard)
     steps = [s for s in steps if not (s.get("loop") and s["end"] <= s["at"])]
     if not steps:
