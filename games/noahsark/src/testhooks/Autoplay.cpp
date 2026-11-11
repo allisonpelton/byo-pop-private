@@ -481,7 +481,7 @@ void NoahApp::StateLogUpdate()
 			{
 				Piece* aPiece = mBoard->mGrid[x][y];
 				int aType = (aPiece == NULL) ? PIECE_EMPTY : aPiece->mType;
-				aRow[x] = (aType == PIECE_EMPTY) ? '.' : (aType == PIECE_BLOCK) ? 'X' : (aType == PIECE_CRATE) ? 'Y' : (char) ((aType < 10) ? ('0' + aType) : ('A' + aType - 10));
+				aRow[x] = (aType == PIECE_EMPTY) ? '.' : (aType == PIECE_CRATE) ? 'X' : (aType == PIECE_BLOCK) ? 'Y' : (char) ((aType < 10) ? ('0' + aType) : ('A' + aType - 10));
 			}
 			aRow[9] = 0;
 			fprintf(aLog->mFile, "grid %d %s\n", y, aRow);

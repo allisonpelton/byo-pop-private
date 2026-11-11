@@ -196,8 +196,8 @@ void Board::NewLevel()
 		return;
 	}
 
-	int aKinds = 0xd;                                   // animal kinds: 0..aKinds-1... (local_8)
-	if (mFloodSpeed + 3 < 0xe)
+	int aKinds = NUM_ANIMALS;                           // the level's animals are of kinds 0 .. aKinds - 1
+	if (mFloodSpeed + 3 < NUM_ANIMALS + 1)
 		aKinds = mFloodSpeed + 3;
 	int aMode = mApp->mGameMode;
 	if (aMode == GAMEMODE_PUZZLE)
@@ -372,7 +372,7 @@ void Board::InitGrid()
 	ClearLink();
 }
 
-// 0x401ce0 / 0x401d90: crates (0xf) and blocks (0x10) on random empty cells
+// 0x401ce0 / 0x401d90: blocks and crates on random empty cells
 void Board::PlaceBlocks(int theCount)
 {
 	while (theCount > 0)
@@ -385,7 +385,7 @@ void Board::PlaceBlocks(int theCount)
 			y = Rand9();
 		}
 		theCount--;
-		mGrid[x][y]->mType = PIECE_CRATE;
+		mGrid[x][y]->mType = PIECE_BLOCK;
 	}
 }
 
@@ -401,7 +401,7 @@ void Board::PlaceCrates(int theCount)
 			y = Rand9();
 		}
 		theCount--;
-		mGrid[x][y]->mType = PIECE_BLOCK;
+		mGrid[x][y]->mType = PIECE_CRATE;
 	}
 }
 
@@ -445,7 +445,7 @@ void Board::EnsureMoves()
 		bool aAnyPair = false;
 		for (int x = 0; x < 9; x++)
 			for (int y = 0; y < 9; y++)
-				if ((mClone[x][y]->mType < 0xd) && TryRemoveClonePair(mClone[x][y]))
+				if ((mClone[x][y]->mType < NUM_ANIMALS) && TryRemoveClonePair(mClone[x][y]))
 					aAnyPair = true;
 		if (!aAnyPair)
 			SwapRandom();
@@ -490,7 +490,7 @@ bool Board::TryRemoveClonePair(Piece* thePiece)
 					for (int aAboveY = aOtherY - 1; aAboveY >= 0; aAboveY--)
 					{
 						int aType = mClone[aOtherX][aAboveY]->mType;
-						if ((aType < 0xd) || (aType == PIECE_BLOCK))
+						if ((aType < NUM_ANIMALS) || (aType == PIECE_CRATE))
 						{
 							Piece* aBelow = mClone[aOtherX][aAboveY + 1];
 							if (aBelow->mType == PIECE_EMPTY)
@@ -506,7 +506,7 @@ bool Board::TryRemoveClonePair(Piece* thePiece)
 					for (int aAboveY = aPieceY - 1; aAboveY >= 0; aAboveY--)
 					{
 						int aType = mClone[aPieceX][aAboveY]->mType;
-						if ((aType < 0xd) || (aType == PIECE_BLOCK))
+						if ((aType < NUM_ANIMALS) || (aType == PIECE_CRATE))
 						{
 							Piece* aBelow = mClone[aPieceX][aAboveY + 1];
 							if (aBelow->mType == PIECE_EMPTY)
@@ -531,7 +531,7 @@ bool Board::AllClonesGone()
 {
 	for (int x = 0; x < 9; x++)
 		for (int y = 0; y < 9; y++)
-			if (mClone[x][y]->mType < 0xd)
+			if (mClone[x][y]->mType < NUM_ANIMALS)
 				return false;
 	return true;
 }
@@ -540,12 +540,12 @@ bool Board::AllClonesGone()
 void Board::SwapRandom()
 {
 	Piece* aFirst = mClone[Rand9()][Rand9()];
-	while ((aFirst->mType > 0xc) && (aFirst->mType != PIECE_BLOCK))
+	while ((aFirst->mType > PIECE_ANIMAL_LAST) && (aFirst->mType != PIECE_CRATE))
 		aFirst = mClone[Rand9()][Rand9()];
 	for (;;)
 	{
 		Piece* aSecond = mClone[Rand9()][Rand9()];
-		if ((aSecond->mType > 0xc) && (aSecond->mType != PIECE_BLOCK))
+		if ((aSecond->mType > PIECE_ANIMAL_LAST) && (aSecond->mType != PIECE_CRATE))
 			continue;
 		if (aSecond->mType != aFirst->mType)
 		{
@@ -742,7 +742,7 @@ bool Board::SearchPath(int x, int y, int theToX, int theToY, int theDepth, int t
 			{
 				Piece* aPiece = mGrid[aNextX][aNextY];
 				int aType = aPiece->mType;
-				if (((aType < 0xd) || (aType == PIECE_CRATE) || (aType == PIECE_BLOCK)) && !aPiece->mRemoved && !aPiece->mFading)
+				if (((aType < NUM_ANIMALS) || (aType == PIECE_BLOCK) || (aType == PIECE_CRATE)) && !aPiece->mRemoved && !aPiece->mFading)
 					break;
 			}
 			if (theDepth < theMaxDepth)

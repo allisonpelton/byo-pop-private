@@ -83,7 +83,7 @@ bool Board::ModBoardSettled()
 				continue;
 			if (aPiece->mMoving || aPiece->mRemoved || aPiece->mFading)
 				return false;
-			if ((aPiece->mType < 0xd) && ((aPiece->mOffsetX != 0) || (aPiece->mOffsetY != 0)))
+			if ((aPiece->mType < NUM_ANIMALS) && ((aPiece->mOffsetX != 0) || (aPiece->mOffsetY != 0)))
 				return false;
 		}
 	}

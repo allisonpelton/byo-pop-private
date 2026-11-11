@@ -225,7 +225,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 				{
 					Piece* aPiece = aBoard->mGrid[x][y];
 					int aType = (aPiece == NULL) ? PIECE_EMPTY : aPiece->mType;
-					aRows += (aType == PIECE_EMPTY) ? '.' : (aType == PIECE_BLOCK) ? 'X' : (aType == PIECE_CRATE) ? 'Y' : (char) ((aType < 10) ? ('0' + aType) : ('A' + aType - 10));
+					aRows += (aType == PIECE_EMPTY) ? '.' : (aType == PIECE_CRATE) ? 'X' : (aType == PIECE_BLOCK) ? 'Y' : (char) ((aType < 10) ? ('0' + aType) : ('A' + aType - 10));
 				}
 				aRows += "\"";
 			}
@@ -387,7 +387,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 			// every animal saved: the board clear, the round ends as the game ends it
 			for (int x = 0; x < 9; x++)
 				for (int y = 0; y < 9; y++)
-					if (aBoard->mGrid[x][y]->mType < 0xd)
+					if (aBoard->mGrid[x][y]->mType < NUM_ANIMALS)
 						aBoard->mGrid[x][y]->mType = PIECE_EMPTY;
 		}
 		else

@@ -183,7 +183,7 @@ void Board::Update()
 			if (!aPiece->mMoving)
 			{
 				// strategy and puzzle: an animal with room below falls
-				if (mGravity && ((aPiece->mType < 0xd) || (aPiece->mType == PIECE_BLOCK)) && !aPiece->mRemoved && !aPiece->mFading &&
+				if (mGravity && ((aPiece->mType < NUM_ANIMALS) || (aPiece->mType == PIECE_CRATE)) && !aPiece->mRemoved && !aPiece->mFading &&
 					((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) && (y < 8))
 				{
 					Piece* aBelow = mGrid[x][y + 1];
@@ -327,7 +327,7 @@ void Board::Update()
 							AddSparkle(aSparkleX, aSparkleY);
 						}
 						if (mState != BOARD_ABANDON)
-							anApp->PlaySample(aPiece->mType + 1);
+							anApp->PlaySample(SOUND_WINPIG + aPiece->mType);
 					}
 				}
 				else
@@ -382,13 +382,13 @@ void Board::Update()
 			if (aPiece->mType == PIECE_EMPTY)
 			{
 				int aKinds = anApp->mLevel + 3;
-				if (aKinds < 0xe)
+				if (aKinds < NUM_ANIMALS + 1)
 				{
 					if (aKinds < 7)
 						aKinds = 7;
 				}
 				else
-					aKinds = 0xd;
+					aKinds = NUM_ANIMALS;
 				aPiece->mType = CrtRand() % aKinds;
 				aPiece->mFallSpeed = 1;
 				aPiece->mY = 0;
@@ -545,8 +545,8 @@ void Board::Update()
 				Piece* aPiece = mGrid[x][y];
 				if (CrtRand() % 100 == 0)
 					aPiece->mSelected = !aPiece->mSelected;
-				if ((CrtRand() % 0x6d6 == 0) && (aPiece->mOffsetY < 0) && aPiece->mPending && (aPiece->mType < 0xd))
-					anApp->PlaySample(aPiece->mType + 1);
+				if ((CrtRand() % 0x6d6 == 0) && (aPiece->mOffsetY < 0) && aPiece->mPending && (aPiece->mType < NUM_ANIMALS))
+					anApp->PlaySample(SOUND_WINPIG + aPiece->mType);
 				if ((aPiece->mOffsetY < 0) && aPiece->mPending)
 				{
 					if ((mUpdateCnt & 1) == 0)

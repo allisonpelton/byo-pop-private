@@ -515,15 +515,14 @@ void Board::Draw(Graphics* g)
 				int aY = CellTop(y) + aPiece->mOffsetY;
 				int aType = aPiece->mType;
 				bool aQuiet = !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving;
-				if ((aType == PIECE_BLOCK) || (aType == PIECE_CRATE))
+				if ((aType == PIECE_CRATE) || (aType == PIECE_BLOCK))
 				{
 					if ((aPiece->mAlpha < 0xff) && (mState == BOARD_LEVEL_DONE))
 					{
 						aX += (int) (sin(y * 0.5 + mUpdateCnt * 0.06666666666666667) * (64.0f - aPiece->mAlpha * 0.25f));   // 0x409d1e: the sway grows as the piece fades
 						aY += 14;
 					}
-					// the original's first group of obstacles (0x401ce0, the ones the port numbers 0x10) shows block.jpg, its second the crate
-					g->DrawImage(anImages[(aType == PIECE_BLOCK) ? IMAGE_CRATE : IMAGE_BLOCK], aX, aY);
+					g->DrawImage(anImages[(aType == PIECE_CRATE) ? IMAGE_CRATE : IMAGE_BLOCK], aX, aY);
 					continue;
 				}
 				if ((aType == PIECE_EMPTY) || !aQuiet)

@@ -15,11 +15,11 @@ namespace Sexy
 // Piece::mType
 enum PieceType
 {
-	PIECE_ANIMAL_LAST = 12,      // 0..12: the animal kinds (row index in images/animals)
-	PIECE_UNUSED = 13,           // 0xd: no animal, not empty (the "no animals left" test treats it as taken)
+	PIECE_ANIMAL_LAST = 12,      // 0..12: the animal kinds (row index in images/animals; the kind's sound is SOUND_WINPIG + kind)
+	NUM_ANIMALS = 13,
 	PIECE_EMPTY = 14,            // 0xe
-	PIECE_BLOCK = 15,            // 0xf: block.jpg, an obstacle that stays where it is
-	PIECE_CRATE = 16             // 0x10: crate.jpg, an obstacle that falls (strategy) with the animals
+	PIECE_CRATE = 15,            // crate.jpg, an obstacle that falls (strategy) with the animals
+	PIECE_BLOCK = 16             // block.jpg, an obstacle that stays where it is
 };
 
 // A point of a piece's path (0x20 bytes in the original: pixel x, pixel y, cell x, cell y, and at +0x18 the kind of bend or arrow

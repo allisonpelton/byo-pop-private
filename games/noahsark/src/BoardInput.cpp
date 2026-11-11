@@ -260,7 +260,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 		ConnectPair();
 		if (mSelected == NULL)
 		{
-			if ((aClicked->mType < 0xd) && !aClicked->mRemoved && !aClicked->mFading && !aClicked->mMoving)
+			if ((aClicked->mType < NUM_ANIMALS) && !aClicked->mRemoved && !aClicked->mFading && !aClicked->mMoving)
 			{
 				mSelected = aClicked;
 				mApp->PlaySample(SOUND_SELECT);
@@ -296,7 +296,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 			mApp->PlaySample(SOUND_SELECT);
 			return;
 		}
-		if ((aClicked->mType < 0xd) && !aClicked->mMoving && !aClicked->mRemoved)
+		if ((aClicked->mType < NUM_ANIMALS) && !aClicked->mMoving && !aClicked->mRemoved)
 		{
 			mSelected = aClicked;
 			mApp->PlaySample(SOUND_SELECT);
@@ -313,7 +313,7 @@ void Board::MouseDownImpl(int x, int y, int theClickCount)
 		if (mState != BOARD_PLAYING)
 			return;
 		Piece* aClicked = mGrid[aCellX][aCellY];
-		if ((aClicked->mType < 0xd) && !aClicked->mRemoved && !aClicked->mFading && !aClicked->mMoving)
+		if ((aClicked->mType < NUM_ANIMALS) && !aClicked->mRemoved && !aClicked->mFading && !aClicked->mMoving)
 		{
 			mSelected = aClicked;
 			mApp->PlaySample(SOUND_SELECT);
@@ -411,7 +411,7 @@ void Board::MouseDrag(int x, int y)
 		ClearHint();
 	if (mSelected == aPiece)
 		return;
-	if (aPiece->mType > 0xc)
+	if (aPiece->mType > PIECE_ANIMAL_LAST)
 		return;
 
 	if (mApp->mGameMode != GAMEMODE_PUZZLE)
@@ -485,7 +485,7 @@ void Board::MouseDrag(int x, int y)
 			return;
 		if (mState != BOARD_PLAYING)
 			return;
-		if ((aPiece->mType < 0xd) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
+		if ((aPiece->mType < NUM_ANIMALS) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
 		{
 			mSelected = aPiece;
 			mApp->PlaySample(SOUND_SELECT);

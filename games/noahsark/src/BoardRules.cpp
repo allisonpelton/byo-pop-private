@@ -26,8 +26,8 @@ Color Board::AnimalColor(int theType)
 {
 	if (theType < 0)
 		theType = 0;
-	if (theType > 12)
-		theType = 12;
+	if (theType > PIECE_ANIMAL_LAST)
+		theType = PIECE_ANIMAL_LAST;
 	return Color(gAnimalColors[theType][0], gAnimalColors[theType][1], gAnimalColors[theType][2]);
 }
 
@@ -64,7 +64,7 @@ bool Board::BoardCleared()
 		for (int y = 0; y < 9; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
-			if ((aPiece->mType < 0xd) || aPiece->mRemoved || aPiece->mMoving || aPiece->mFading)
+			if ((aPiece->mType < NUM_ANIMALS) || aPiece->mRemoved || aPiece->mMoving || aPiece->mFading)
 				return false;
 		}
 	return true;
@@ -78,7 +78,7 @@ int Board::AnimalCount()
 		for (int y = 0; y < 9; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
-			if ((aPiece->mType < 0xd) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
+			if ((aPiece->mType < NUM_ANIMALS) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
 				aCount++;
 		}
 	return aCount;
@@ -152,7 +152,7 @@ bool Board::HasMove()
 			for (int y = 0; y < 9; y++)
 			{
 				Piece* aPiece = mGrid[x][y];
-				if ((aPiece->mType < 0xd) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving && HasPartner(aPiece, x, y))
+				if ((aPiece->mType < NUM_ANIMALS) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving && HasPartner(aPiece, x, y))
 					return true;
 			}
 		}
@@ -239,7 +239,7 @@ void Board::ShowHint()
 	{
 		Piece* aFirst = mGrid[CrtRand() % 9][CrtRand() % 9];
 		Piece* aSecond = mGrid[CrtRand() % 9][CrtRand() % 9];
-		while ((aFirst->mType > 0xc) || (aSecond->mType > 0xc) || (aSecond->mType != aFirst->mType) || ((aSecond->mX == aFirst->mX) && (aSecond->mY == aFirst->mY)) ||
+		while ((aFirst->mType > PIECE_ANIMAL_LAST) || (aSecond->mType > PIECE_ANIMAL_LAST) || (aSecond->mType != aFirst->mType) || ((aSecond->mX == aFirst->mX) && (aSecond->mY == aFirst->mY)) ||
 			!Reachable(aFirst, aSecond))
 		{
 			aSecond = mGrid[CrtRand() % 9][CrtRand() % 9];
@@ -444,7 +444,7 @@ void Board::RemoveGroup()
 		aType = aPiece->mType;
 	}
 	mApp->PlaySample(SOUND_POP);
-	mApp->PlaySample(aType + 1);
+	mApp->PlaySample(SOUND_WINPIG + aType);
 	int aCount = (int) mLink.size();
 	int aCellY = CellAtY(mMouseY);
 	int aCellX = CellAtX(mMouseX);
@@ -466,7 +466,7 @@ void Board::AbandonPair()
 		mAbandonIndex++;
 		// the original walks the cells in column-major order of a transposed index: x = i % 9, y = i / 9
 		aFirst = mGrid[mAbandonIndex % 9][mAbandonIndex / 9];
-		if ((aFirst->mType <= 0xc) && !aFirst->mFading && !aFirst->mRemoved)
+		if ((aFirst->mType <= PIECE_ANIMAL_LAST) && !aFirst->mFading && !aFirst->mRemoved)
 			break;
 	}
 	aFirst->mFading = true;
@@ -563,7 +563,7 @@ void Board::HighlightGroup(int theX, int theY)
 	if ((theX >= 0) && (theX < 9) && (theY >= 0) && (theY < 9))
 	{
 		Piece* aPiece = mGrid[theX][theY];
-		if ((aPiece != NULL) && (aPiece->mType < 0xd) && !aPiece->mRemoved)
+		if ((aPiece != NULL) && (aPiece->mType < NUM_ANIMALS) && !aPiece->mRemoved)
 		{
 			mLink.push_back(aPiece);
 			FloodGroup(theX, theY);
@@ -624,7 +624,7 @@ bool Board::MarkRuns(bool theAnimate)
 				if (!aOther->mRemoved && !aThird->mRemoved && (aOther->mType == aType) && (aThird->mType == aType))
 				{
 					if (!aPiece->mMatch)
-						mApp->PlaySample(aType + 1);
+						mApp->PlaySample(SOUND_WINPIG + aType);
 					aFound = true;
 					aPiece->mMatch = aOther->mMatch = aThird->mMatch = true;
 				}
@@ -636,7 +636,7 @@ bool Board::MarkRuns(bool theAnimate)
 				if (!aOther->mRemoved && !aThird->mRemoved && (aOther->mType == aType) && (aThird->mType == aType))
 				{
 					if (!aPiece->mMatch)
-						mApp->PlaySample(aType + 1);
+						mApp->PlaySample(SOUND_WINPIG + aType);
 					aFound = true;
 					aPiece->mMatch = aOther->mMatch = aThird->mMatch = true;
 				}
@@ -753,8 +753,8 @@ void Board::PushRow()
 			aPiece->mPixelY = (float) CellTop(8);
 			aPiece->mFallSpeed = 1;
 			int aKinds = mNewRowKinds;
-			if (aKinds > 0xc)
-				aKinds = 0xd;
+			if (aKinds > NUM_ANIMALS - 1)
+				aKinds = NUM_ANIMALS;
 			aNext->mType = CrtRand() % aKinds;
 			aNext->mOffsetY = 0x32;
 		}

@@ -20,7 +20,7 @@ int BotRand(unsigned int& theSeed, int theRange)
 
 bool BotQuiet(Piece* thePiece)
 {
-	return (thePiece->mType < 0xd) && !thePiece->mRemoved && !thePiece->mFading && !thePiece->mMoving && (thePiece->mOffsetX == 0) && (thePiece->mOffsetY == 0);
+	return (thePiece->mType < NUM_ANIMALS) && !thePiece->mRemoved && !thePiece->mFading && !thePiece->mMoving && (thePiece->mOffsetX == 0) && (thePiece->mOffsetY == 0);
 }
 
 bool BotBoardSettled(Board* theBoard)
@@ -29,7 +29,7 @@ bool BotBoardSettled(Board* theBoard)
 		return false;
 	for (int x = 0; x < 9; x++)
 		for (int y = 0; y < 9; y++)
-			if (theBoard->mGrid[x][y]->mMoving || ((theBoard->mGrid[x][y]->mOffsetY != 0) && (theBoard->mGrid[x][y]->mType < 0xd)) || theBoard->mGrid[x][y]->mRemoved)
+			if (theBoard->mGrid[x][y]->mMoving || ((theBoard->mGrid[x][y]->mOffsetY != 0) && (theBoard->mGrid[x][y]->mType < NUM_ANIMALS)) || theBoard->mGrid[x][y]->mRemoved)
 				return false;
 	return true;
 }
