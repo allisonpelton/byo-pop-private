@@ -1,0 +1,13 @@
+{
+  "id": "fixes",
+  "name": "Fixes",
+  "version": "1.0",
+  "author": "byo-pop",
+  "description": "Mends small faults of the original Bejeweled 2 Deluxe and leaves the game as it was: its rules, scores, look, sounds and pace. Each fix is a toggle; turn the whole mod off to play the original exactly as it was.",
+  "settings": [
+    { "id": "tunnelEdge", "label": "The tunnel stays where its points are", "type": "bool", "default": true,
+      "help": "The original draws the 3D hyperspace tunnel's triangles one pixel to the right of where their points are: its drawing routine takes the one that stands for \"blend\" for the distance to move the vertices by. On: the tunnel is drawn where it is, with no pixel's shift." },
+    { "id": "podFade", "label": "A puzzle pod's unlit picture fades out", "type": "bool", "default": true,
+      "help": "When a pod lights up on the puzzle world's map, the original fades the lit picture in over an unlit one that stays fully drawn, because the unlit one is drawn with the settings that ignore its fade. On: the unlit picture fades out as the lit one fades in." }
+  ]
+}
