@@ -136,7 +136,7 @@ bool MMApp::AdventureName(int theSlot, SexyString& theName)
 	return true;
 }
 
-// 0x41bb10's friend 0x41bc80: the file goes
+// 0x41bc80: the file of a slot goes (the dialog of 0x41bb10 asks which)
 void MMApp::DeleteGame(int theSlot)
 {
 	Platform::RemoveUserFile(AdventureFileName(theSlot));
@@ -388,7 +388,8 @@ MapWidget::MapWidget(MMApp* theApp, int theSlot, bool theCheckEntry) :
 	mApp->DoMusic(0x43, true);
 }
 
-// 0x417010, 0x417c10 (on arrival): the ENTER button's picture is a 0x118 x 0x2d crop of the buttons' sheet, the upper row for
+// port: a piece of the constructor and of Update on arrival (0x417010, 0x417c10): the ENTER button's picture is a 0x118 x
+// 0x2d crop of the buttons' sheet, the upper row for
 // a pyramid with no chamber done, the lower one after that (the original's button owns the copy that CopyImage made)
 void MapWidget::CropEnterButton()
 {
@@ -981,7 +982,8 @@ void MMApp::AdventureCaught()
 	KillMap();
 }
 
-// 0x413950 (cases 2 and 3) and 0x42a3d0 (case 13): the way out of a maze to the map: the time played in it is added
+// 0x413950 (cases 2 and 3), 0x42a3d0 (case 13) and 0x4201e0 (case 0x7d3, Quit to Main): the way out of a maze: the saved
+// adventure is read into a map, the time played in the maze is added, and the map goes again, which writes the file
 void MMApp::AdventureLeave()
 {
 	MapWidget* aMap = new MapWidget(this, mCurrentSlot, false);
