@@ -182,7 +182,9 @@ Practice and help:
 10. Undo, in turn-based games (Bejeweled, BookWorm, Noah's Ark).
 11. Hints or a solver (BookWorm's word solver, Noah's Ark's move helper, Big Money's puzzle solver), and a bot that
     plays the game on screen (the user, 2026-11-07), all from the bot behind the `move` test command that the test
-    drivers use (`docs/TEST_COMMANDS.md`, "The bot behind `move`").
+    drivers use (`docs/TEST_COMMANDS.md`, "The bot behind `move`"). The site's screen saver plays each game with this
+    bot mod, through the hook in `docs/WEB_PLAYER.md`'s screen-saver section; a game joins its list once its bot mod
+    is made, in its modding phase (the user, 2026-11-11: "In the modding phase").
 12. Level select: start at any level or stage, with separate scores.
 13. Game stats: the game's numbers at game over, and lifetime totals (Bejeweled's stage 17, BookWorm's word journal).
 14. Speed control: a slower or faster game clock. A site setting now, through the framework's clock, for every port
