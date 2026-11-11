@@ -1486,7 +1486,11 @@ var ByopopSoundboards = {
       ["sounds/opentreasure.ogg", "Open treasure", "The ending of an adventure or classic game begins its fade"]
     ] },
   ] },
-  ningpo: { groups: [
+  ningpo: {
+    presets: [
+      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_match.ogg", 0], ["ningpo.pyz|zip:nm_youwin.ogg", 500]]}
+    ],
+    groups: [
     { name: "Menus", sounds: [
       ["ningpo.pyz|zip:nm_guiclick.wav", "Screen click", "A button of a screen or dialog is pressed (also pause, new game, and the like)"]
     ] },
