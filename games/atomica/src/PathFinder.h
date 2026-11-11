@@ -25,8 +25,7 @@ public:
 	int				mBestCost;			// +0x2fc
 	int				mSearches;			// +0x300
 	int				mLength;			// +0x304 pixel length of the route
-	int				mD34, mD38;			// +0x34 +0x38
-	bool			mB3c;				// +0x3c
+	int				mD34;				// +0x34
 
 	PathFinder(Grid* theGrid);						// 0x424900
 	~PathFinder();									// 0x424970
