@@ -11,6 +11,7 @@ and the pairs that differ are listed with the rectangle of the difference: a fix
 The menu steps are the ones of tools/phase1 (a name typed, the WPM question's No, Adventure, Easy), at the same updates.
 """
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -52,6 +53,10 @@ def run(what, with_mod, script_lines, seed, typist, out_dir):
     args = [RUNDESK, EXE, "-fast", "-seed=%d" % seed, "-userdir=" + ud, "-script=" + script, "-typist=" + os.path.join(out_dir, side + ".typist.txt") + ";" + typist]
     if with_mod:
         args.append("-modsdir=" + make_mods())
+        # every toggle on: `schools` starts off (the fixes mod's rule of 2026-11-11), so the "on" run turns the mod's toggles on itself
+        manifest = json.load(open(os.path.join(HERE, "..", "mods", "fixes", "mod.json")))
+        values = {s["id"]: True for s in manifest["settings"] if s["type"] == "bool"}
+        json.dump({"v": 1, "mods": {"fixes": values}}, open(os.path.join(ud, "mod-settings.json"), "w"))
     wait_room()
     subprocess.call(args, stdout=open(os.path.join(out_dir, side + ".out"), "w"), stderr=subprocess.STDOUT)
     return shots
