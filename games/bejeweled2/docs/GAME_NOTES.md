@@ -16,7 +16,8 @@ Each of these has no visible effect on play unless the entry says so.
 
 - **Registration, trial and online code is left out.** No registration or unlock path, no trial counters (TitleScreen's
   trial logic, the nag screen before play, `DoPregameNag`), no announcement or update check, no "More Games" button
-  (MainMenu), no PopCap pages (OptionsDialog's Register, PopCap page and Update Check buttons and the Automatic Update
+  (MainMenu; the 3D game's picture of the gadgets, `IMAGE_MAIN_GADGETS`, holds the button's pill, so `MainMenu::Draw` leaves the
+  rectangle round it, (600,660) to the right and bottom edges of (788,768) in the 1024 layout, out of that picture; the 2D game's has none), no PopCap pages (OptionsDialog's Register, PopCap page and Update Check buttons and the Automatic Update
   checkbox; `mAlwaysUpdate` is no longer set). OptionsDialog's Main Menu button with no board calls Shutdown in the original
   (a branch that cannot be reached); the port has no such branch.
 - **The title's Play link makes no click sound.** TitleScreen's ButtonPress (0x5d9b0e) plays the click only while the
@@ -44,7 +45,8 @@ Each of these has no visible effect on play unless the entry says so.
   backdrop that the XMAS cheat replaces, and PuzzleStateOverlay's dome image (`mDomeImage`) are freed.
 - **Uninitialised state is zeroed**: the ranges of a `Piece` that the original never sets, a ShockWave's grow flag (set
   true, as the original's uninitialised byte happens to be), `PuzzlePod::mIndex` (0 until the overlay's constructor sets it)
-  and the tunnel rings' size, and points' x and y in Hyperspace (DoUpdate sets them before they are read).
+  and the tunnel rings' size, and points' x and y in Hyperspace (DoUpdate sets them before they are read). A new player's
+  `Profile` counters (+0x7c, +0x80, +0x84, +0x8c, which open the secret modes) are zero as well (see Oddities).
 - **The board's memory is zeroed** (`Board::operator new`). The original's constructor leaves some sixty members unset (for
   example `mChainCount`, the swap and hint phases, the slide values), which the first game reads as zero from fresh memory and a
   later game reads as the last board's leftovers; the port always reads zero.
@@ -183,10 +185,35 @@ constructor does clear).
 - **Hyperspace::Update2d's star lines depend on the screen's width** (0x5c7532): each new line takes `Rand() % mWidth`, so a jump
   at 640 by 480 (the original without 3D) draws different numbers than the port's 2D at 1024 by 768 scaled down. No 2D run
   has shown a difference from it so far; the 3D game (both at 1024 by 768) needs no such care.
+- **A new player's profile in the original has garbage counters, and the secret mode's "?" button shows on the new player's
+  menu.** `Profile`'s constructor (0x5d0716) never sets the four counters at +0x7c, +0x80, +0x84 and +0x8c that `IsModeUnlocked`
+  tests (the thresholds are 17 levels, 8, 80 and 280), so a profile made with `new` holds what the heap had: in the 3D tour
+  of 2026-11-11 the four read 1280262991, 1752396605, 1330794496 and 1096766031 (`visrun.py`'s `profile` command), which are past
+  every threshold, and the 3D menu then shows the secret button (the "?" at (372,531) in the new player's first menu shot, 18 thousand
+  pixels). Which counters are past their thresholds depends on the allocator, and no run shows it twice the same way; the port
+  zeroes them (a new player has no secret mode), as the 2D tours' menus show it, where a fresh heap read as zero. To see it, run
+  `run_tour_visible.sh` (IDENTICAL_PLAY.md, the 3D game) and read the "newuser" pair. Not chased: matching a heap's leftovers
+  would take values measured from runs.
 - **A click on a dialog reaches the 3D original one update after the port's** (not a bug of either): in the original's 3D loop the
   board resumes its ticks one update after a dialog's button was clicked, where the port resumes at once. The comparison tool
   gives the original those inputs one update earlier (`to_origrun.py --dialog-shift -1`, `run_mode.sh` does it with `HIRES=1`; the Escape key that closes a hint dialog is the exception: it reaches the board's resume at the same update as the port's, and a shifted one resumes it an update early, which moved the carried-over flame gem's pick by one draw of the global generator),
   and the watch lines of the 3D original then fall one update after the port's (its loop) with the same values in the same order.
+  The same holds for the click that closes the first game's help screen in the visible-desktop 3D tour (IDENTICAL_PLAY.md, "The 3D game"):
+  visrun reads the update each input landed at, and the replay gives that one click (`landed_to_events.py --shift 2127 2130 1`) the later update.
+- **The original's pointer is never over its window in the visible-desktop 3D runs, so no gem glows under it.** The Board's hover glow
+  (`BoardUpdate.cpp`: a gem under `mMouseX/mMouseY` gains 0.045 a update, the step 0.0625) needs the pointer in the window, and the
+  tool posts clicks to the window without moving the real cursor, so the original's `mMouseX/mMouseY` stay at -1,-1 (and the board
+  re-reads `mLastMouseX/mLastMouseY` itself when it becomes idle, BoardLogic.cpp:423). The port's replayed pointer stays where its last
+  click was, so a shot taken straight after a click had a gem glowing that the original's did not. The replay therefore moves the pointer
+  out of the window and sends a leave one update after each click (`landed_to_events.py --leave-after 1`). Not a difference of play: a
+  person's cursor over the board glows the same gem in both.
+- **A gem or two differ in the loaded 3D board's slide.** In the visible-desktop 3D tour (`run_tour_visible.sh`, with shots every 2
+  updates of the whirlpool and the slide added to the recording; the run's events were `t3d_events.json` in the scratch logs), the gem
+  at the board's bottom right has its facets in other places in the original's shot than in the port's, in 8 of the 13 shots from
+  update 3806 to 3830 (3810 to 3826, a swirl-shaped patch of 100 to 500 pixels), and the shots are identical before, after and at rest. Its cause
+  was not found. The difference is small against the board's own motion in the same region (the region changes about ten times as
+  much between two shots), so another frame of a gem's own animation is unlikely and a filter on a moving gem (Direct3D 7's against
+  Direct3D 11's, at a fractional position) is the likelier cause; neither was tested. Not chased.
 - **The original's first run after another one sometimes never creates a board** (seen a few times, in 2D and 3D alike, as a
   state watch that stays at its title value); a second run is as the first should have been. `run_original.sh` runs again
   when a log has no board.
