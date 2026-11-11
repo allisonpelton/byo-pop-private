@@ -64,6 +64,19 @@ Three things about the method had to be put right before the game tours meant an
   off, sea pixels a level apart). The port's shots are now taken by its own test command `shot`, which reads the screen back
   without drawing (3897691a). With it the map's eased scroll reads the same values in both programs at all 16 updates sampled.
 
+*How the typed input reached the original.* Every character a tour types is a `WM_CHAR` that origrun posts to the original's window
+at an update of the virtual clock (`at <update> text <c>`, one character an update; a key the game reads as a key down goes as `key`).
+It needs no focus and nothing from the real keyboard. In the sandbox it arrived in every text box and every mode: the new-player
+box (the name's letters appear one an update in the original's shots as in the port's, and a wrong letter followed by Backspace
+comes out the same), the ten players of tour U, the tutor's lessons, and the letters typed at the creatures, for which the port's
+own typist wrote the recording that both sides were then given (the original's boards, scores and lives then agree with the port's
+update for update: phase 1, by `--watch` values). Typing was not taken as delivered because the message was posted. It was checked
+by what it did: the pictures after each typed character, the player files each side wrote (tour R: the same byte for byte) and the
+game state after the typing. On the host the first characters were lost until the script waited for the game's loading flag: the
+original's loading thread runs on the wall clock, so a busy machine let the characters of update 1000 reach the title screen. The
+host runs (the sound comparison, the restart tour's reruns) take phase 2's loading patch, which makes the copy load in one go on its
+main thread, so the input starts on a loaded game.
+
 ### Tours and results
 
 | Tour | What it shows | Pairs | Equal | Faint only |
@@ -72,7 +85,8 @@ Three things about the method had to be put right before the game tours meant an
 | S | a saved adventure: the board, pause, options and quit in a game, the menu's "continue?" with No and Yes | 33 | 31 | 2 |
 | U | the players: ten players made one after another, the "who are you?" list as it grows, its delete line, the delete dialog, a player picked | 70 | 70 | 0 |
 | R | quit, start again, carry on (two runs of each program, below) | 18 | 18 | 0 |
-HALL_ROW
+| H | an abyss game over, the Hall of Fame with the player's line, the abyss button's continue list, the board from 400 feet | 24 | 24 | 0 |
+| T | the statistics screen with a lesson played: the "view stats?" box at the end of tutor lesson 18, Yes, each of the three views, Close, the tutor after it | 17 | 17 | 0 |
 | idle | an idle game to the game over | 78 | 78 | 0 |
 | abyss | the abyss with its bonus creatures and hints | 81 | 79 | 2 |
 | tutor 17, tutor 18 | two typing tutor lessons (the keyboard picture, the hands, the finger rings, the results) | 283 | 283 | 0 |
@@ -98,6 +112,13 @@ judged:
 | --- | --- | --- | --- |
 | The cannon balls of the ghost ship and of the squid showed on one frame in twelve, and a ball sent back was never seen | 0x407a90 draws frame `mFrame` of a picture whose frames lie one below the other (74 wide, 44 apart) | the same rectangle (the port had its x and y swapped) | 3897691a |
 | The typing tutor's ring for the right middle and ring fingers sat 8 and 5 pixels too far left | 0x45e810 adds 8 and 5 to the ring's x for those two finger groups | adds them | 3897691a |
+| After a lesson the tutor ran on under the statistics screen (its creatures swam and drew random numbers), and after Close it was a few updates ahead | the 2004 framework gives no widget the focus back when a modal dialog closes, and the tutor stands still while it has no focus (`TypingTutor::LostFocus` 0x442020); the shared framework is 1.3, whose `RemoveBaseModal` hands the focus back | `WinWSApp::AddDialog` forgets the widget that would get it, as the dialog is added | COMMIT |
+
+The last change was found by tour T: its views were equal, and the two pictures after Close differed (the tutor's creatures in other
+places). Its cause is in the framework, not in the tutor's code, so the change is small, and it was checked the other way as well:
+the tours with a dialog in them (M, S, U, H, the idle game, the abyss, tutor lesson 18: 547 shots) give the same pictures with the
+exe before the change and the one after, and only the two pictures of tour T differ between them, to the original's. With the
+change tour T is equal in all 17 pairs, and `regress.py` still matches the frozen baseline in all 13 games.
 
 Three candidates from the reading were judged against the original's pictures and are no faults: the options dialog's Credits button
 (equal in every pair), the keyboard picture's lit keys (equal; the mod's `tutorKeyboard` toggle mends what both show wrong) and the

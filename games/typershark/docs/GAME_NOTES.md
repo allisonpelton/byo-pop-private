@@ -341,6 +341,14 @@ so whenever anything is dirty every widget's `Draw` runs. Two things follow, bot
   22, at most 15 levels apart). With one draw an update the port's eased values equal the original's exactly: the map's
   last scroll read -4.0 at target -5 up to -60/-58 at rest in both, at all 16 updates sampled.
 
+**No focus comes back when a modal dialog closes** (`WinWSApp::AddDialog`; found by phase 2's statistics tour). The 2004
+framework's `SetBaseModal` (0x439200) takes the focus from the widget under the dialog and `KillDialog` (0x482f90) removes
+the dialog, handing the focus to nobody; the game sets it itself where it wants one. The shared framework is 1.3, whose
+`RemoveBaseModal` returns the focus to the widget that had it before, so the typing tutor, which stands still while it has no
+focus (`TypingTutor::LostFocus` 0x442020), ran on under the statistics screen. `AddDialog` now forgets the widget the
+framework would refocus. No other screen of the 547 shots of the dialog tours changed; a spec for the shared framework (a
+flag for the 2004 behaviour) is with the coordinator.
+
 ## 6. Comparison with the original
 
 **Phase 1 (plays identical), `PHASE1.md`.** The original ran on origrun's virtual clock with the seed pinned; its memory was
