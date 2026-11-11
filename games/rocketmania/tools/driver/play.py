@@ -8,7 +8,7 @@
 import argparse, json, os, re, subprocess, sys, time
 
 ap = argparse.ArgumentParser()
-ap.add_argument('--play', type=int, default=90)
+ap.add_argument('--play', type=int, default=90, help='seconds of play after which `lose` ends a game; 0: games end by themselves')
 ap.add_argument('--fast', action='store_true')
 ap.add_argument('--probe', action='store_true')
 ap.add_argument('--trace', action='store_true')
@@ -147,7 +147,7 @@ try:
                 focus_done = True
                 ok('focus lost'); time.sleep(0.3); a = state().get('paused'); ok('focus gained'); time.sleep(0.3); b = state().get('paused')
                 results.append('focus: paused %s after the loss, %s after the regain' % (a, b))
-        if was_board and not lost and time.time() - board_t0 > args.play and 'dialog' not in s:
+        if was_board and not lost and args.play > 0 and time.time() - board_t0 > args.play and 'dialog' not in s:
             lost = True
             ok('lose')
         m = move()

@@ -491,15 +491,19 @@ void Board::DrawTop(Graphics* g, Piece* thePiece)
 	g->SetColorizeImages(false);
 }
 
-// 0x41e530: the next tile (arcade mode)
+// 0x41e530: the next tile (arcade mode). It slides down from 42 pixels above its place as the fall timer runs (it stops 32
+// pixels down when the column's top cell is taken), always dim. The decompilation drops the x87 code that computes the slide.
 void Board::DrawSpare(Graphics* g, Piece* thePiece)
 {
 	g->SetColorizeImages(true);
 	g->SetColor(Color(100, 100, 100));
+	int aFallen = Ftol((double) m2e0 / (double) m444 * 42.0);
+	if (mGrid[0][thePiece->mColumn] != NULL && 0x20 < aFallen)
+		aFallen = 0x20;
 	int aWarning = m44c % 100;
 	if (m44c < 500)
 		g->SetColor(Color(0xff - aWarning, 99 - aWarning, 99 - aWarning));
-	g->DrawImage(mApp->mPieces[thePiece->mKind][thePiece->mRotation][6], Ftol(thePiece->mX), Ftol(thePiece->mY));
+	g->DrawImage(mApp->mPieces[thePiece->mKind][thePiece->mRotation][6], Ftol(thePiece->mX), Ftol((double) aFallen + thePiece->mY - 42.0));
 	g->SetColorizeImages(false);
 }
 
@@ -514,7 +518,7 @@ void Board::DrawRocket(Graphics* g, int theIndex, int theX, int theY)
 }
 
 // 0x41ec20: the fuses on the left and the rocket launchers on the right. A fuse is a frame of the ten-frame flame strip,
-// and the frame depends on the row's height, so that the fuses do not flicker in step. A rocket fades in over its first 155
+// and the frame depends on the row's height, so that the fuses do not flicker in step. A rocket fades and slides in over its first 155
 // updates; it shows dimmer when the tile next to it does not open towards it.
 void Board::DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn)
 {
@@ -536,8 +540,9 @@ void Board::DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn)
 		int aY = Ftol(thePiece->mY);
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		int aFrame = ((mUpdateCnt % 100) / 10 + aY % 7 + aY % 5 + aY % 3) % 10;
-		g->DrawImage(aStrip, Ftol((double) theColumn + thePiece->mX - 7.0), Ftol((double) theColumn + thePiece->mY - 8.0),
-			Rect(aFrame * (aWidth / 10), 0, aWidth / 10, aHeight));
+		// the frame is centred on the 42-wide cell, then moved up and left by the original's two constants (7 and 8)
+		g->DrawImage(aStrip, Ftol((double) ((0x2a - aWidth / 10) / 2) + thePiece->mX - 7.0),
+			Ftol((double) ((0x2a - aHeight) / 2) + thePiece->mY - 8.0), Rect(aFrame * (aWidth / 10), 0, aWidth / 10, aHeight));
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		g->SetColorizeImages(false);
 		return;
@@ -550,8 +555,10 @@ void Board::DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn)
 		else
 			g->SetColor(Color(170, 170, 170, anAge + 100));
 		g->SetColorizeImages(true);
-		int aY = Ftol((double) theColumn * 0.2 + thePiece->mY - 77.0);
-		int aX = Ftol((double) theColumn * 0.4 + thePiece->mX + 1.0);
+		// the rocket slides in from down and to the right: 0.2 and 0.4 of a pixel for each of the 155 updates it has left
+		int aLeft = 0x9b - anAge;
+		int aY = Ftol((double) aLeft * 0.2 + thePiece->mY - 77.0);
+		int aX = Ftol((double) aLeft * 0.4 + thePiece->mX + 1.0);
 		DrawRocket(g, thePiece->mIndex, aX, aY);
 		g->SetColorizeImages(false);
 		return;
@@ -562,14 +569,15 @@ void Board::DrawEdge(Graphics* g, Piece* thePiece, int theRow, int theColumn)
 	g->SetColorizeImages(false);
 }
 
-// 0x41d420: the pieces that move about, first pass. A falling tile is drawn greyed (colour 120, 100, 120); a flash is a
-// picture strip's frame (kind 2 the 42-wide dust strip, the others the match-flame strip, frame m7c).
+// 0x41d420: the pieces that move about, first pass. A falling tile is drawn in its plain picture: the original sets the
+// colour 120, 100, 120 but never turns the colouring of images on, so the colour touches only what is drawn later without
+// one of its own; a flash is a picture strip's frame (kind 2 the 42-wide dust strip, the others the match-flame strip,
+// frame m7c).
 void Board::DrawMover(Graphics* g, Piece* thePiece)
 {
 	int aType = thePiece->mType;
 	if (aType == 0 || aType == 2)
 	{
-		g->SetColorizeImages(true);
 		g->SetColor(Color(0x78, 100, 0x78));
 		g->DrawImage(mApp->mPieces[thePiece->mKind][thePiece->mRotation][6], Ftol(thePiece->mX), Ftol(thePiece->mY));
 		g->SetColorizeImages(false);
@@ -741,7 +749,7 @@ void Board::DrawSpecial(Graphics* g, Piece* thePiece)
 	case 2:
 	case 3:
 	{
-		static const int sImages[5] = { 0x55, 0x56, 0x57, 0x58, 0x59 };
+		static const int sImages[5] = { IMAGE_GEM01, IMAGE_GEM02, IMAGE_GEM03, IMAGE_GEM04, IMAGE_GEM05 };
 		Image* anImage = anImages[sImages[thePiece->mIndex >= 0 && thePiece->mIndex < 5 ? thePiece->mIndex : 0]];
 		int anAge = thePiece->mBorn - mUpdateCnt;
 		bool aStretch = false;
