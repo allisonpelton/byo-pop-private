@@ -23,9 +23,10 @@ The rules a session follows:
 - Hooks of Windows functions inside a copy that the user has allowed: its time reads ("Yes, hook them",
   2026-11-02) and timed waits ("Yes, waits too", 2026-11-03), for the virtual clock; `GetCursorPos` ("Yes, hook
   it", 2026-11-03); `MessageBox` and `MessageBeep` ("Yes, hook them", 2026-11-03); `GetKeyState` and
-  `GetLastInputInfo` (both "Yes, hook it", 2026-11-09); and its registry calls, so that what a copy writes under
+  `GetLastInputInfo` (both "Yes, hook it", 2026-11-09); its registry calls, so that what a copy writes under
   HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10; not
-  built yet). Any other hook needs the user's OK first.
+  built yet); and its network calls, so that a connection or download fails at once and nothing leaves the machine
+  ("Yes, block them", 2026-11-11: "The network block"). Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
@@ -56,7 +57,7 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 | `--sound stub` | The default: the silent stand-in, which accepts and logs every call. |
 | `--sound nodriver` | The stand-in reports no sound device (`DSERR_NODRIVER`): for a game's very first run. BASS is then never started either, so the game plays nothing. |
 | `--sound wav` | The silent stand-in also records what the game plays ("Recording sound"). |
-| `--sound real` | No stand-in: the real audio device (speakers off first). The audio watch still mutes each of the game's sessions as it appears and reports a `SOUND LEAK`. Without the stand-in there is no virtual clock, scripted cursor or keys, coverage, last-input hook or message-box hook. |
+| `--sound real` | No stand-in: the real audio device (speakers off first). The audio watch still mutes each of the game's sessions as it appears and reports a `SOUND LEAK`. Without the stand-in there is no virtual clock, scripted cursor or keys, coverage, last-input hook, message-box hook or network block (the RESULT line says so: "The network block"). |
 | `--timeout <sec>` | Wall-clock cap from the game's launch (default 120, at most 3600). |
 | `--fresh` | Only a note to re-copy: delete `build/origrun/<run>` first to force a clean copy. |
 | `--copy-only` | Stage the copy and print its folder and exe without launching, to prepare it by hand before `--exe`. |
@@ -159,6 +160,12 @@ without a sign: gate the first click on the game's own state (`at`, `waitfor`), 
    (class `#32770`) of the game's process, and the boxes of a run with `--msgbox show` or `--sound real`: it logs
    the caption, text, buttons and time, then posts `BM_CLICK` to the button a `msgbox` rule names, else to the
    default button.
+7. **Nothing leaves the machine.** The stand-in makes the copy's network calls (WinSock, WinINet, URLMon, WinHTTP)
+   fail at once, in every run that loads it, on the host and in the sandbox, with no switch to turn it off
+   ("The network block"). Every blocked call is a `NET BLOCKED` line in the run's log, and the RESULT line has a
+   `NET` entry: the count of calls blocked, "no network call from the game", or that the block was not in the game.
+   Checked by `tools/origrun/nettest.sh` (part of `tools/check.sh origrun`): a test exe calls every hooked function
+   and each one fails and is logged. Not covered: the gaps listed under "The network block".
 
 The registry and saves are **not** redirected on the host: a host run writes the game's settings and trial state
 to the real registry and save folders, which the user permitted. A `--sandbox` run keeps all of it inside the
@@ -519,6 +526,63 @@ puts a jump to its own function at the start of user32's `GetLastInputInfo`, in 
 that never loads the stand-in (`--sound real`, or a game that loads no DirectSound from its folder) is not
 hooked: run those while the user is at the machine.
 
+## The network block (always on)
+
+The user allowed it on 2026-11-11 ("Yes, block them"). Two of Seven Seas' coverage runs clicked its original's
+"Submit to Internet High Score List" row by random input, on the host, which has a network (a sandbox has none).
+Every run that loads the stand-in therefore blocks the copy's network calls, with no option to turn it off:
+a connection or download fails at once, never reaches the network and takes no time.
+
+**What is blocked** (`tools/origrun/net.c`; the functions a game of 2001 to 2010 uses to reach a server or fetch a URL,
+and what each returns, with the matching last error):
+
+| Library | Functions | Returns |
+|---|---|---|
+| WinSock (`ws2_32.dll`, `wsock32.dll`) | `connect`, `WSAConnect`, `WSAConnectByNameA/W`, `sendto`, `WSASendTo` | `SOCKET_ERROR` or `FALSE`, `WSAENETUNREACH` (10051) |
+| | `gethostbyname`, `getaddrinfo`, `GetAddrInfoW` (`wship6.dll`'s too) | `NULL` or `WSAHOST_NOT_FOUND` (11001) |
+| | `WSAAsyncGetHostByName` | `NULL`, `WSAENETDOWN` (10050) |
+| WinINet (`wininet.dll`) | `InternetOpenA/W`, `InternetOpenUrlA/W`, `InternetConnectA/W`, `HttpSendRequestA/W`, `HttpSendRequestExA/W` | `NULL` or `FALSE`, `ERROR_INTERNET_CANNOT_CONNECT` (12029) |
+| URLMon (`urlmon.dll`) | `URLDownloadToFileA/W`, `URLDownloadToCacheFileA/W` | `INET_E_DOWNLOAD_FAILURE` (0x800C0008) |
+| | `URLOpenStreamA/W`, `URLOpenPullStreamA/W`, `URLOpenBlockingStreamA/W` | `INET_E_CANNOT_CONNECT` (0x800C0004), `*stream` set to `NULL` |
+| WinHTTP (`winhttp.dll`) | `WinHttpOpen`, `WinHttpConnect`, `WinHttpSendRequest` | `NULL` or `FALSE`, 12029 |
+
+The hooks are plain stdcall functions that never call Windows' own: no packet is made, no DNS name is asked for and no
+socket is touched. `socket` and `closesocket` still work, so a game that opens a socket before it connects sees the
+connection fail and not the open. Seven Seas' original imports `wsock32` by ordinal (its `shutdown`); no original of
+ours has been seen to import `urlmon` or `winhttp`, so those two are tested only by the test exe.
+
+**How the calls are caught.** Not by the import table: the games import `wsock32` by ordinal, and a library loaded later
+or a `GetProcAddress` lookup would be missed. The first five bytes of each function inside the DLL itself become a jump to
+the hook (the way "The last-input hook" does it), so every caller in the process reaches it, whatever it imported, in
+the copy's process only. A forwarded export (`wsock32`'s `connect` forwards to `ws2_32`'s) is left alone, since the
+function it forwards to is patched on its own. The libraries mapped when the stand-in loads are patched at once, without
+loading anything (the loader lock is held); a library that loads later is patched when it loads (the loader tells the
+stand-in: `LdrRegisterDllNotification`), and the module scan that the clock's and the message boxes' hooks make
+(`hooks_rescan`) looks again. The stand-in pins itself in the process, since the jumps point into it.
+
+**What a run shows.** The stand-in writes one line to `logs/net.log` for each blocked call, in one `WriteFile`:
+
+    pid 31164: NET BLOCKED InternetOpenUrlA http://example.invalid/scores?name=x
+
+a host, an address and port, or a URL, whichever the call has, and `network block installed` once a process has the
+hooks in. origrun copies the lines of this run (the log appends across runs of one run folder) into its own log and
+puts one entry in the RESULT line:
+
+    RESULT: NET: 3 network calls of the game blocked and logged (above, and logs/net.log); each failed at once and nothing left the machine through it
+    RESULT: NET: no network call from the game; the block was in place in 1 process
+    RESULT: NET: the stand-in's network block was not in the game (it loads no DirectSound from its folder, or --sound real): its network calls were not blocked
+
+The `NET BLOCKED` lines are in the run's log too, ahead of the RESULT lines. A game that loads no stand-in has no
+block: a script for it clicks nothing that could connect.
+
+**Gaps.** Not blocked: `ConnectEx`, `WSAConnectByList`, `GetAddrInfoEx` and `getnameinfo`; `bind`, `listen` and `accept`
+(an inbound socket opens a port on the machine, though nothing in the games does); WinINet's FTP and Gopher calls and
+`InternetCheckConnection` / `InternetGetConnectedState`, which only read state; `ShellExecute`, `WinExec`,
+`CreateProcess` and URL protocol launches, which start a browser or the Steam client ("Gaps / next steps"); named
+pipes, RPC and every other transport. A game that never loads the stand-in, and `--sound real` runs, get no block.
+A blocked call fails at once, so a game that asks again until it gets an answer asks at full speed: a script should
+not wait for a network answer.
+
 ## The registry map (`--reg-map popcap`)
 
 A PopCap game of 2004 keeps its settings and players under `HKEY_LOCAL_MACHINE\SOFTWARE\PopCap\<Game>` (Typer Shark: the
@@ -718,7 +782,8 @@ Preparing a wrapped or Steam copy to run under origrun:
 ## Gaps / next steps
 
 - **No guard against URL or program launches.** Nothing blocks an original that calls `ShellExecute`, `WinExec`
-  or `CreateProcess` (a "More Games" `steam://` link, say). The only safeguard is the rule at the top.
+  or `CreateProcess` (a "More Games" `steam://` link, say). The only safeguard is the rule at the top; "The network
+  block" stops a copy's own connections and downloads, not a launched browser or program.
 - **A shown box's own sound still plays**, in a run with `--msgbox show` or `--sound real`, in a game that never
   loads the stand-in, and for boxes called through `GetProcAddress`.
 - **`PlaySound`** is not hooked. From the game's process it plays in the default audio session, which is muted;
