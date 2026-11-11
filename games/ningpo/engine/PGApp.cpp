@@ -37,11 +37,6 @@ void PGRandom::seed(uint32_t theSeed)
 	mSeed = theSeed;
 }
 
-float PGRandom::nextFloat()
-{
-	return (float)((double)next(0xfffffffe) * 2.3283064e-10);
-}
-
 uint32_t PGRandom::next(uint32_t theMax)
 {
 	static const uint32_t kMag01[2] = {0, 0x9908b0df};  // 0x4692c8
@@ -325,12 +320,6 @@ void PGApp::addControl(PGControl* theControl)
 		theControl->setOwner(this);
 		mControls.push_front(theControl);
 	}
-}
-
-void PGApp::removeControl(PGControl* theControl)
-{
-	if (theControl != nullptr)
-		mControls.remove(theControl);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

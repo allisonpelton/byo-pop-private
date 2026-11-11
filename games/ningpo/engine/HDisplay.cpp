@@ -294,25 +294,6 @@ HSurface* HDisplay::createSurface(const HImage& theImage)
 	return aSurface;
 }
 
-// 0x423ed0
-HSurface* HDisplay::copySurface(const HSurface* theSurface)
-{
-	HSurface* aSurface = new HSurface();
-	aSurface->mWidth = theSurface->mWidth;
-	aSurface->mHeight = theSurface->mHeight;
-	aSurface->mBpp = theSurface->mBpp;
-	aSurface->mPitch = aSurface->mWidth * (aSurface->mBpp / 8);
-	int aCount = aSurface->mWidth * aSurface->mHeight;
-	if (theSurface->mAlpha != nullptr)
-	{
-		aSurface->mAlpha = new uint8_t[aCount > 0 ? aCount : 1];
-		memcpy(aSurface->mAlpha, theSurface->mAlpha, aCount);
-	}
-	aSurface->mPixels = new uint16_t[aCount > 0 ? aCount : 1];
-	memcpy(aSurface->mPixels, theSurface->mPixels, (size_t)aCount * (aSurface->mBpp / 8));
-	return aSurface;
-}
-
 // 0x423e60
 void HDisplay::freeSurface(HSurface* theSurface)
 {
@@ -407,16 +388,6 @@ static unsigned int Factor2(int theKind)
 		break;
 	}
 	return 0xff;
-}
-
-// 0x423aa0
-void HDisplay::setBlendFlag(int theIndex, char theValue)
-{
-	if ((char)gConst[theIndex + 2] != theValue)
-	{
-		gConst[theIndex + 2] = (uint8_t)theValue;
-		SetBlendState(gSrc1, gSrc2, gSrcInvert, gConst[0], gDest1, gDest2, gDestInvert, gConst[1], gOp);
-	}
 }
 
 // 0x423b80: one pixel

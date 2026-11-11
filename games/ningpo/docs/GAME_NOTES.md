@@ -215,3 +215,13 @@ runs should have reached.
 **What it cost.** The seven runs took about 15 minutes of machine time, one game process at a time. One Sonnet agent
 placed and sorted the 253 functions in 7.5 minutes and 178,000 tokens. This session read the export, wrote the runs
 and checked the agent's work over about two hours; its own tokens were not counted.
+
+
+### Unneeded code taken out (2026-11-11)
+
+Of the 22 candidates above, taken out: `PGRandom::nextFloat`, `PGApp::removeControl`,
+`HCvarManager::setVariableString`, `HDisplay::copySurface` and `setBlendFlag`, `PGSprite::clone`, and the dialog
+items' `getUserData` and `setUserData`. Each had no caller. `tools/check.sh ningpo` (baseline identical) and
+`build-web:ningpo` pass. Kept: `PGSprite::create` from an image (the options dialog's background uses it), the dialog
+items' other default virtuals (they fill vtable slots the original's items fill; no code is behind them but a
+return), the PNG loader (one branch of the shared image loader, a few lines), `NingPo::~NingPo` and `PGAlert`.
