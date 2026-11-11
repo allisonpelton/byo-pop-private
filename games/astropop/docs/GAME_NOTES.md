@@ -338,12 +338,86 @@ Turbot's power-up (0x4022f0), the brick kinds' settle, draw and activate functio
 the board's `RecordStep` (0x434570), `PulsePair::Update` (0x433850), the mutation counter's event (0x438e10), the piece-brick event
 (0x451430), the power brick's done event (0x45e920), the search for a move that is left (`AnalyseSecond` 0x453a50 and `RunTotal` 0x43a960 of `AnyMoveLeft`),
 the pause that a full field makes at its start (0x4329c0), the weapon box's key and height (0x483a20, 0x483b90), the dialog's line setters
-(0x4840c0, 0x487970, 0x4879d0, 0x4897b0), `SetMusicVolumeFloat` (0x408b70) and the four steps of the 3D screen wipe with its draw and its
+(0x4840c0, 0x487970, 0x4879d0, 0x4897b0) and the four steps of the 3D screen wipe with its draw and its
 check (0x40b340, 0x40b430, 0x40b540, 0x40b5e0, 0x426370, 0x4264a0). The screen wipe plays only in 3D (`RedrawAfterDialog` closes the
 board first when the screen is not accelerated) and the original in Windows Sandbox has no Direct3D, so a run that reaches it is a
 night run on the visible desktop; it is listed under the next steps.
 
-**Candidates for taking out** (no play of the original reaches them and the port's own code never calls them; they go in the pass that
-takes out what the game does not need): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x4062b0), the fuel cell's `GetColumn` and `GetRow`
-(0x402a70, 0x402a80: slots of the brick's table that nothing calls), the application's `HandleCmdLineParam` (its one switch, `-mycrash`,
-sets a flag that only the crash report reads) and `DoDialog` overrides (0x40e060, 0x412360, which no code of the game or framework calls).
+**Taken out** (2026-11-11, in the pass that removes what the game does not need; no play of the original reaches them and the port's
+own code never called them): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x4062b0), the fuel cell's `GetColumn` and `GetRow` (0x402a70,
+0x402a80: slots of the brick's table that nothing calls), the application's `SetMusicVolumeFloat` (0x408b70, a virtual of the game
+that nothing calls), its `HandleCmdLineParam` (0x40e060: its one switch, `-mycrash`, sets a flag that only the crash report reads, so the
+port now passes `-mycrash` on like any other argument) and `DoDialog` (0x412360, which no code of the game or framework calls). Each has
+a `none` line in `coverage.txt`. Left in: the fuel cell's `SetFlag240`, which `BoardInput.cpp` calls.
+
+## 11. Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass")
+
+**Method.** `games/astropop/tools/profile/perf.py` and `pairs.sh` (as Atomica's and Typer Shark's): the port and the original play the
+same game turn about, one process at a time. The game is `scenario/classic11.json`, the inputs of a recorded classic game (seed 11: the
+title's link, the name, the mode, the pilot, then 60 moves, 5,636 updates), replayed by the port as `-realinput` lines and by origrun
+as script lines; the run was checked to play the recorded game (the same score watch). "The stretch" is the 2,000 updates before the last
+input (20 s of play). Every run samples the game's process every 0.1 s (working set, private bytes, processor time) and records how many
+game processes of other sessions ran at its start and end: the machine was never quiet (0.4 to 0.65 of it busy, 1 to 6 other game
+processes), so a figure is a median of three, with its range. Real time is `PERF_CLOCK=real` (the port without `-fast`, origrun on its
+real clock: what a player's machine does); without it neither waits (the port's `-fast`, origrun's virtual clock: the work a test run
+does). The load is the time from the creation of the process to the title taking input (the port asks `state`; the original's
+loading-thread flag is read out of its memory). Memory is private bytes in MiB.
+
+| Three pairs, 2026-11-11 | Original | Port |
+|---|---|---|
+| Load to the title | 0.94 to 1.33 s (median 1.22) | 0.93 to 1.07 s (median 1.02) |
+| Private bytes at the title | 68.6 to 73.3 | 93.5 to 98 |
+| Real time, the stretch's processor time (20 s) | 3.70 to 4.31 s (median 3.72) | 1.83 to 2.23 s (median 1.84) |
+| Real time, the whole run (58 s) | 6.33 to 7.09 s | 4.05 to 4.48 s |
+| Updates a second in the stretch (real time) | 100 | 99.4 to 100.0 |
+| Peak private bytes of the run | 81.7 to 84.4 | 147.9 to 150.6 |
+| No waiting, the whole run's processor time | 5.03 to 5.83 s | 1.47 to 1.56 s |
+| No waiting, the stretch (2,030 updates) | 2.84 to 3.48 s | 0.11 to 0.12 s (7,500 to 8,000 updates a second) |
+| Peak private bytes of the run without waiting | 82.3 to 85.7 | 161 to 165 |
+
+The port loads about as fast as the original and plays on about half of its processor time (a tenth of a core in real time); the one
+cost it has more of is memory, 65 MiB more at the peak.
+
+**Where the port's processor time goes** (`games/bejeweled/tools/profile/cpuprof.py`, cycles by module and function). The run without
+waiting (4.31 G cycles, the load and 2,030 updates) is almost all load: ntdll 41% (file and memory system calls), the exe 28%, win32u 9%,
+`imagehlp.dll` 5%, the C library 4.8%, the Nvidia driver 4.4%, `Windows.Storage.dll` 3.4%. Of the exe's 28%: the JPEG decoder (`_ycc_rgb_convert`
+5.0%, `_jpeg_idct_islow` 2.5%, the Huffman steps another 3%), `Sexy::Quantize8Bit` 4.7% and the GIF decoder `_stbi__out_gif_code`
+1.8% (the GIFs are decoded to 32 bits and quantized back to 8), the Vorbis decoder of the sounds (`_inverse_mdct`, `_vorbis_decode_packet`,
+`_decode_residue`: about 2.5% together), `Platform::DecodeImage` 1.5%. The game's own code (`Brick::Retire`, `Board`, the drawing)
+shows at 0.1% each: two thousand updates cost 0.12 s.
+In real time (one run over the scenario, 17.0 G cycles in 59.6 s sampled, 285 million a second over every thread) the exe is 6.1% of the
+cycles, ntdll 78% (system calls and waits: the frame's presentation and the sleeps), win32u 5.6%, the Nvidia Direct3D 11 driver 4.9%,
+`imagehlp.dll` 1.7%. The main thread has 53% of the cycles (69% of them in ntdll, 11% in the exe) and the driver's own thread 16%; nine more
+threads of 2 to 3% each are all waits. Inside the exe the biggest functions are still the load's decoders (`Quantize8Bit`, `_stbi__out_gif_code`,
+the JPEG and Vorbis decoders, 0.2 to 0.6% each); what play costs is `Board::DrawFrame` and `ImageFont::DrawStringEx`, 0.1% each. What a
+player's machine spends on this game is the display path, not the game's code, and the original's DirectDraw path spends more of it.
+
+**Where the port's memory goes.** The framework's `memreport` command (a game command in a `-realinput` script) at the title, the main
+menu, a game just begun and the game over (`build/logs/ap/perf/mem`, scratch): 352 pictures at the title (38.1 MB of 32-bit pixels, 4.2 MB
+of palettes, 20 of them with a texture, 3.3 MB), 570 at the end (49 MB of pixels, 209 textures, 16.7 MB); the sounds are 73 (11.6 MB of
+samples, all at the title); the framework's heap is 60.1 MB at the title, 71.1 MB in a game and 75.2 MB at its end (private bytes
+96.6 at the title, 126.8 MB at the end of the game). What the game itself loads when a game starts: the background `nebula2` (640x960),
+`help_bg` twice, about 25 pictures its code makes (mirrors, the laser, the galaxy) and the textures of the ones the board draws. The
+original's private bytes are 71 MB at the title and 82 to 86 MB at the peak, so the port holds about 22 MB more at the title and
+65 MB more at the peak. The title's difference is what Typer Shark found (its section 11): the Direct3D 11 device, 20 to 25 MB.
+The rest of the peak is the start of a game, where private bytes rise from 98 MB to a peak of 158 MB within three seconds (about 38 s
+into the run) and fall back to 132 MB: the heap grows by 9 MB and the textures' estimate by 10 MB, so most of the rise is below the game's
+heap, in the display path, the same as Bejeweled Twist's jump at a level-up (`docs/COORDINATION.md`).
+
+**Shared costs** (none of them is in this game's code; sent to the coordinator in one message):
+1. *The load's decoders*, as in Typer Shark: `Quantize8Bit` and the GIF decoder together 6.5% of a run's cycles, 0.15 to 0.2 s of the load.
+2. *`imagehlp.dll`*, 5% of the cycles of a run without waiting, from a call site not yet found (Typer Shark 7.6%).
+3. *The Direct3D 11 device and the pixels the framework keeps after upload* (the 22 MB the port holds more at the title).
+4. *The start of a game raises private memory by 60 MB for a few seconds* (AstroPop, in 2D, 2026-11-11): the same shape as Twist's
+   level-up jump, below the heap. To find it: count texture creations in the display layer during the first second of a game
+   (`astropop.exe -realinput=<script> -seed=11` with `memreport` before and after the first board).
+
+**Nothing was changed in the game's code for speed.** The port already does less than the original on every figure but memory; the only
+AstroPop-side memory it could save is by loading fewer pictures at the start of a game or freeing the ones that were drawn once (the
+`nebula` backgrounds), which the original does not do and which would change what a game loads, so it was left as it is. The frozen
+baseline (`tools/check.sh astropop`) is unchanged by this pass: it added only the profile tools and notes.
+
+**To repeat.** `bash games/astropop/tools/profile/pairs.sh <out dir> [pairs]` from the worktree root (about 3 minutes a pair when the
+machine has a free slot; it waits for one), `BEFORE_EXE=<name>` adds a run of an exe kept in `build/native` from before a change; the
+memory split is the standard `memreport <file>` test command (`docs/TEST_COMMANDS.md`) put into a `-realinput` script at the points
+wanted. The raw samples were deleted once these figures were written.
