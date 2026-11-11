@@ -62,7 +62,21 @@ var ByopopMusic = (function () {
     });
     return found;
   }
+  // A stored file's bytes, or null. A key "<file>|pe:<type>:<id>" is that resource of that Windows module, and "<file>|zip:<name>" that entry of that zip archive: tunes a game keeps inside its own files
   function readFile(db, key) {
+    var bar = key.indexOf("|");
+    if (bar >= 0) {
+      var pick = key.slice(bar + 1);
+      return readFile(db, key.slice(0, bar)).then(function (bytes) {
+        if (!bytes) return null;
+        if (pick.indexOf("pe:") === 0) {
+          var r = peResources(bytes).filter(function (x) { return "pe:" + x.type + ":" + x.id === pick; })[0];
+          return r ? r.bytes : null;
+        }
+        if (pick.indexOf("zip:") === 0) return zipEntry(bytes, pick.slice(4));
+        return null;
+      });
+    }
     return new Promise(function (resolve, reject) {
       var r = db.transaction(DB_STORE, "readonly").objectStore(DB_STORE).get(key);
       r.onerror = function () { reject(r.error); };
@@ -71,6 +85,68 @@ var ByopopMusic = (function () {
         resolve(c ? (c instanceof Uint8Array ? c : new Uint8Array(c)) : null);
       };
     });
+  }
+  // A Windows module's resources, in the order its resource directory lists them: [{ type, id, bytes }] (type and id the
+  // numbers, or the names, of its first two levels); [] where it has none or is not one
+  function peResources(bytes) {
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), out = [];
+    try {
+      if (dv.getUint16(0, true) !== 0x5a4d) return out;
+      var pe = dv.getUint32(0x3c, true);
+      if (dv.getUint32(pe, true) !== 0x4550) return out;
+      var sections = dv.getUint16(pe + 6, true), opt = pe + 24, optSize = dv.getUint16(pe + 20, true);
+      var dirs = opt + (dv.getUint16(opt, true) === 0x20b ? 112 : 96), rsrc = dv.getUint32(dirs + 16, true);
+      if (!rsrc) return out;
+      var table = [];
+      for (var s = 0; s < sections; s++) {
+        var h = opt + optSize + s * 40;
+        table.push({ va: dv.getUint32(h + 12, true), size: Math.max(dv.getUint32(h + 8, true), dv.getUint32(h + 16, true)), raw: dv.getUint32(h + 20, true) });
+      }
+      var at = function (rva) {
+        for (var i = 0; i < table.length; i++) if (rva >= table[i].va && rva < table[i].va + table[i].size) return rva - table[i].va + table[i].raw;
+        return -1;
+      };
+      var base = at(rsrc);
+      if (base < 0) return out;
+      var nameOf = function (v) {
+        if (!(v & 0x80000000)) return v;
+        var o = base + (v & 0x7fffffff), n = dv.getUint16(o, true), s2 = "";
+        for (var i = 0; i < n; i++) s2 += String.fromCharCode(dv.getUint16(o + 2 + i * 2, true));
+        return s2;
+      };
+      var walk = function (dir, path) {
+        var n = dv.getUint16(base + dir + 12, true) + dv.getUint16(base + dir + 14, true);
+        for (var i = 0; i < n; i++) {
+          var e = base + dir + 16 + i * 8, name = nameOf(dv.getUint32(e, true)), to = dv.getUint32(e + 4, true);
+          if (to & 0x80000000) { if (path.length < 2) walk(to & 0x7fffffff, path.concat([name])); continue; }
+          var off = at(dv.getUint32(base + to, true)), size = dv.getUint32(base + to + 4, true);
+          if (off >= 0 && off + size <= bytes.length) out.push({ type: path[0], id: path[1], bytes: bytes.subarray(off, off + size) });
+        }
+      };
+      walk(0, []);
+    } catch (e) {}
+    return out;
+  }
+  // A zip archive's entry by name (stored or deflated), or null
+  function zipEntry(bytes, name) {
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), end = -1;
+    for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { end = i; break; }
+    if (end < 0) return Promise.resolve(null);
+    var n = dv.getUint16(end + 10, true), c = dv.getUint32(end + 16, true), low = name.toLowerCase();
+    for (var k = 0; k < n && c + 46 <= bytes.length; k++) {
+      var method = dv.getUint16(c + 10, true), size = dv.getUint32(c + 20, true), nl = dv.getUint16(c + 28, true);
+      var extra = dv.getUint16(c + 30, true), note = dv.getUint16(c + 32, true), local = dv.getUint32(c + 42, true);
+      var entry = new TextDecoder("latin1").decode(bytes.subarray(c + 46, c + 46 + nl));
+      if (entry.toLowerCase() === low) {
+        var from = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true), data = bytes.subarray(from, from + size);
+        if (method === 0) return Promise.resolve(data);
+        if (method !== 8 || typeof DecompressionStream === "undefined") return Promise.resolve(null);
+        return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()
+          .then(function (b) { return new Uint8Array(b); }, function () { return null; });
+      }
+      c += 46 + nl + extra + note;
+    }
+    return Promise.resolve(null);
   }
   // The pieces a playlist joins, in order (Rocket Mania and Pixelus; games/rocketmania/src/AppMusic.cpp): three header lines,
   // then the first word of each line names a piece; blank lines do not count
@@ -148,7 +224,15 @@ var ByopopMusic = (function () {
 
   // ---------- the tunes ----------
   // A file's name without its folder and extension
-  function baseName(rel) { return rel.split("/").pop().replace(/\.[^.]+$/, ""); }
+  function baseName(rel) {
+    var bar = rel.indexOf("|");
+    if (bar >= 0) {
+      // a file inside a file: a zip entry's own name, or a resource's module and id ("resource 335")
+      var pick = rel.slice(bar + 1);
+      return pick.indexOf("zip:") === 0 ? baseName(pick.slice(4)) : baseName(rel.slice(0, bar)) + " " + pick.split(":").pop();
+    }
+    return rel.split("/").pop().replace(/\.[^.]+$/, "");
+  }
   // the display's second line for a tune: its game, where the game plays it (or that it never does) and its format
   function subLine(t) {
     return [t.game.title, t.unused ? T("music.unused") : t.where, t.format].filter(function (s) { return s; }).join(" · ");
@@ -173,8 +257,9 @@ var ByopopMusic = (function () {
       function read(rel) { return readFile(db, prefix + rel); }
       // a tune's format (its file's extension: MO3, IT, S3M, XM, OXM or OGG), where in the game it plays and whether the game
       // never plays it, from the table
+      var formats = {};   // a resource's format, by its key, from its first bytes
       function placeOf(k, rel) {
-        k.format = (rel.match(/\.([^.\/]+)$/) || ["", ""])[1].toUpperCase();
+        k.format = formats[rel] || (rel.match(/\.([^.\/]+)$/) || ["", ""])[1].toUpperCase();
         var low = k.id.toLowerCase();
         k.where = "";
         Object.keys(entry.where || {}).forEach(function (w) { if (w.toLowerCase() === low) k.where = entry.where[w]; });
@@ -191,7 +276,27 @@ var ByopopMusic = (function () {
         });
       }
       return gameFiles(db, game.persist).then(function (rels) {
-        var steps = matching(rels, entry.files).map(function (rel) {
+        var steps = matching(rels, entry.files).map(fileStep);
+        // tunes inside a game's files: a Windows module's resources that start with the magic given (their format), and a zip
+        // archive's entries
+        (entry.inside || []).forEach(function (n) {
+          var rel = findRel(rels, n.file);
+          if (!rel) return;
+          if (n.zip) { n.zip.forEach(function (name) { steps.push(fileStep(rel + "|zip:" + name)); }); return; }
+          steps.push(function () {
+            return read(rel).then(function (bytes) {
+              if (!bytes) return;
+              return peResources(bytes).filter(function (r) {
+                return new TextDecoder("latin1").decode(r.bytes.subarray(0, n.magic.length)) === n.magic;
+              }).reduce(function (p, r) {
+                var key = rel + "|pe:" + r.type + ":" + r.id;
+                formats[key] = n.magic.toUpperCase();
+                return p.then(fileStep(key));
+              }, Promise.resolve());
+            });
+          });
+        });
+        function fileStep(rel) {
           return function () {
             return read(rel).then(function (bytes) {
               if (!bytes) return;
@@ -222,7 +327,7 @@ var ByopopMusic = (function () {
               add(rel, list);
             });
           };
-        });
+        }
         (entry.joined || []).forEach(function (j) {
           steps.push(function () {
             var listRel = findRel(rels, j.playlist);

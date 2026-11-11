@@ -754,6 +754,12 @@ stings), and an Ogg Vorbis file is one tune. An entry may also have:
 - `joined`: a playlist file and the path of its short Ogg pieces, decoded and played one after another (Pixelus and
   Rocket Mania; `AssembleMusic` in `games/rocketmania/src/AppMusic.cpp`).
 - `skip` (`"<file>#<n>"`), `names` (a plain name for a tune) and `level` ("Music levels").
+- `inside`: tunes kept inside a game's own files, read from the stored file each time they are listed or played. They
+  come either from a Windows module's resources that start with given bytes, which also name their format (the Mahjong
+  Escapes' MO3 modules in `Resource.dll`, named "Resource 335" by their ids), or from named entries of a zip archive (Ning
+  Po's music stream in its Python archive, stored or deflated, the latter through `DecompressionStream`). `tools/musictest.js`
+  checks both readers on files it makes. Tip Top's MIDI music and Word Harmony's WAV pieces are not listed: the player has
+  no MIDI synthesiser, and how Word Harmony layers its pieces waits on its code.
 - `where`: where in the game its code plays a tune, as a short value ("Main menu", "Levels 1-5"). It comes from the
   game's session reading its code, or from the file names of an Ogg game whose files are named for their places.
 - `unused`: the tunes the game's code never plays.

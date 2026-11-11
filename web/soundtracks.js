@@ -8,6 +8,9 @@
 //   skip    ["<file name>#<n>", ...]: tunes that are not tunes (n counts from 0 in the file's subsongs or parts)
 //   names   {"<file name>#<n>" or "<playlist name>": "<name>"}: plain names, never invented titles and never the game's own text
 //           at length; without one a tune is named after its file
+//   inside  tunes kept inside a game's file: [{file: "<path>", magic: "<first bytes>"}] its resources (a Windows module's)
+//           that start with those bytes, the magic naming their format, or [{file: "<path>", zip: ["<entry>", ...]}] those
+//           entries of a zip archive; each is then a file as above
 //   where   {"<file name>#<n>", "<file name>" (an Ogg file) or "<playlist name>": "<place>"}: where in the game its code plays
 //           the tune, as a short value ("Main menu", "Levels 1-5"), from the game's code (its session's answer) or, for an Ogg
 //           game, its file's name; shown beside the tune and in the display
@@ -38,6 +41,11 @@ var ByopopSoundtracks = {
   // Typer Shark's one module (wordshar.mo3) holds every tune, which the game starts at an order of it (ChangeMusic); its subsongs stand for them
   typershark: { files: ["music/*.mo3"] },
   mummymaze: { files: ["music/*.it"] },
+  // tunes inside the games' own files: the Mahjong Escapes keep two MO3 modules among Resource.dll's resources, Ning Po its
+  // one music stream in its Python archive
+  mahjongchina: { inside: [{ file: "resource.dll", magic: "MO3" }] },
+  mahjongjapan: { inside: [{ file: "resource.dll", magic: "MO3" }] },
+  ningpo: { inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg"] }] },
   // the Ogg games
   bookwormadv2: {
     files: ["music/*.ogg"],
