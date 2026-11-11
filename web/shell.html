@@ -395,6 +395,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
 <script src="settings.js"></script>
 <script src="profiles.js"></script>
 <script src="exeicon.js"></script>
+<script src="exeprobes.js"></script>
 <script src="gameimport.js"></script>
 <script src="other-games.js"></script>
 <script src="chat-games.js"></script>
@@ -1158,6 +1159,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function copyGame(entries, root) {
     var W = web(), msg = $("import-msg");
     var wanted = ByopopImport.pick(PAGE, entries, root, W.fs.safeRel);
+    // an exe the port can't read its texts from is refused before anything is copied (web/gameimport.js, exeUnreadable)
+    return ByopopImport.exeUnreadable(PAGE.id, wanted).then(function (bad) {
+      if (bad) { importMessage(ByopopStrings.t("game.import.exe", {exe: bad}), true); return false; }
+      return copyChecked(W, msg, wanted, entries, root);
+    });
+  }
+  function copyChecked(W, msg, wanted, entries, root) {
     var done = 0;
     importProgress(0, wanted.length);
     msg.textContent = ByopopStrings.t("game.import.copying", {count: wanted.length});
