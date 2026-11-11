@@ -1,0 +1,87 @@
+# tools/coverage.py's settings for BookWorm Deluxe (docs/COVERAGE.md).
+export re/bookworm/gh/functions.jsonl
+src games/bookworm/src
+# The game's own code, from BWGameSelector's first function to WordBalloon::SetText, the last function of the game's
+# modules in the export (re/bookworm/game_region.txt); the WidgetManager and Widget code after it, and the C runtime,
+# the libraries and the framework between and after the game's modules, are ported once for every game.
+game 00401000-00437510
+# Game code the port leaves out on purpose (the first report's list: registration, the online high scores and update
+# check, compiler- and library-made code; the notes' "Coverage check" has the reasons).
+none 00401935 Catch@00401935: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004019cd Catch@004019cd: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0040664b Catch@0040664b: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00408583 Catch@00408583: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0040858f Catch@0040858f: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00411881 Catch@00411881: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00411b0e Catch@00411b0e: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041249c Catch@0041249c: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00412d66 Catch@00412d66: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00416723 Catch@00416723: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041672f Catch@0041672f: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004168ce Catch@004168ce: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00416996 Catch@00416996: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00417e50 Catch@00417e50: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00418358 Catch@00418358: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00418417 Catch@00418417: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041a790 Catch@0041a790: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041bc53 Catch@0041bc53: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041bc5f Catch@0041bc5f: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 0041d3ce Catch@0041d3ce: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004206e3 Catch@004206e3: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004206ef Catch@004206ef: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00422c0c Catch@00422c0c: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00423c62 Catch@00423c62: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004323c5 Catch@004323c5: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 004324e5 Catch@004324e5: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
+none 00401540 operator_delete_thunk: the C++ runtime's operator delete, which the port's own delete is
+none 00401560 Sexy::ButtonListener::ButtonPress_idcc: the framework's empty default (framework/ButtonListener.h has it)
+none 00401a00 std_string_equals_cstr: the C++ library's std::string, linked into the game's range, which the port's own std::string replaces
+none 00401b10 std_string_append_substr: the C++ library's std::string, linked into the game's range, which the port's own std::string replaces
+none 00401f40 std_string_append_chars: the C++ library's std::string, linked into the game's range, which the port's own std::string replaces
+none 00406800 std_string_concat_cstr_str: the C++ library's std::string, linked into the game's range, which the port's own std::string replaces
+none 00412360 std_string_substr: the C++ library's std::string, linked into the game's range, which the port's own std::string replaces
+none 004036d0 empty_stub_ret0: an empty virtual or listener default of the original's classes, which the port's headers declare without a body
+none 0041dfa0 empty_stub_ret12: an empty virtual or listener default of the original's classes, which the port's headers declare without a body
+none 004220f0 empty_stub_ret8: an empty virtual or listener default of the original's classes, which the port's headers declare without a body
+none 00421850 stub_return_true: an empty virtual or listener default of the original's classes, which the port's headers declare without a body
+none 004292c0 stub_return_true_2args: an empty virtual or listener default of the original's classes, which the port's headers declare without a body
+none 0040fe80 WinMain: the platform layer's main starts the game (src/main.cpp)
+none 00412080 HighScoreEntry::HighScoreEntry_copy: the compiler's copy constructor
+none 0041c9c0 ifstream::vbase_dtor: the C++ library's stream code
+none 0041cb40 ios::lock: the C++ library's stream code
+none 0041cb60 ios::unlock: the C++ library's stream code
+none 00413cb0 BookWormApp::ShowRegisterDialog: registration code, removed with the rest of it
+none 00413f30 BookWormApp::ShowInvalidCodeDialog: registration code
+none 00431b50-00432500 RegisterDialog: registration code, removed with the rest of it (the Catch funclets inside it too)
+none 00414080 BookWormApp::ShowAliasDialog: the alias dialog of the online high scores, an online feature the port leaves out
+none 00415a20 BookWormApp::ConfirmInternetConnect: the question before the online high scores connect, an online feature
+none 00415c40 BookWormApp::AskForUpdateCheck: the online update check, which leads out of the game
+none 00415de0 BookWormApp::DoUpdateCheck: the online update check, which leads out of the game
+none 004216e0 MapTableIndex: the online high scores' reply parser's helper
+none 00421f30 FameWidget::KillErrorDialog: the online high scores' error dialog
+none 00421f40 FameWidget::KillWarningDialog: the online high scores' warning dialog
+none 00422f20 StringToLowerInPlace: the online high scores' name matching
+none 00423fd0 FameWidget::ShowWaitDialog: the online high scores' wait dialog
+none 004241d0 FameWidget::StartNetTransfer: the online high scores' transfer
+none 004249d0 FameWidget::MarkNewPlaces: the online high scores' new places
+none 004262b0 FameWidget::ShowErrorDialog: the online high scores' error dialog
+none 004264f0 FameWidget::ShowWarningDialog: the online high scores' warning dialog
+none 00426ab0 FameWidget::AddNewPlace: the online high scores' new places
+none 00427550 FameWidget::AddNetScore: the online high scores' reply
+none 00427650 FameWidget::ParseServerReply: the online high scores' reply
+none 00428f50-00429710 GetStringDialog: the alias dialog of the online high scores, an online feature the port leaves out
+none 00435e20-00436110 WaitDialog: the online high scores' wait dialog
+none 0042b4c0-0042b590 ImagelessButton: the hidden RESUBMIT button of the online high scores (never shown; FameWidget.cpp says it is not ported), with its dtor and Draw
+none 0042b730-0042b8c0 LabelWidget (its Draw, dtor and ctor; only GetStringDialog, the online high scores' alias dialog, creates one) and 0x42b870, the MarkDirty that the linker shared between LabelWidget and EditWidget, which only picks the full or the partial dirty mark by the text colour's alpha and has no effect on a port that draws whole frames (the framework's EditWidget uses Widget::MarkDirty)
+none 00430be0 Sexy::Rect::Contains(const Point&): the framework's Rect::Contains (framework/Rect.h), inline in the original's OverlayWidget::Update
+none 00436340 WordBalloon::SetDisabled: only jumps to Widget's, so the port does not override it (WordBalloon.h)
+none 00436350 WordBalloon::SetVisible: only jumps to Widget's, so the port does not override it (WordBalloon.h)
+none 004363b0 WordBalloon::AddedToManager: only jumps to Widget's, so the port does not override it (WordBalloon.h)
+none 004363c0 WordBalloon::RemovedFromManager: only jumps to Widget's, so the port does not override it (WordBalloon.h)
+none 00425880 FameWidget::DrawInternetScores: the Hall of Fame's internet tab, drawn from the online high scores' downloaded tables (the port has no online scores; FameWidget::Draw says so)
+none 00416090 BookWormApp::GetGameSEHInfo: the text of the original's crash report (the exception handler's extra lines); the port reports errors its own way
+none 004336f0 TitleScreen::ShowTrialExpiredDialog: the trial's "time is up" dialog, taken out with the registration code
+none 004059f0 WordScore::scalar_deleting_dtor: the compiler's deleting variant of the destructor (0x4051d0); a WordScore is a member of the Board and is never deleted through its vtable
+none 0042e3a0 Math::scalar_deleting_dtor: the compiler's deleting variant; the Math member of BookWormApp is never deleted through its vtable
+none 0041f280 Effect::scalar_deleting_dtor: the compiler's deleting variant for the base class, which no object has as its own type (every effect is a Sparkle, an Ember or a FlyingPieceList)
+none 0042e450 MoneyDialog::scalar_deleting_dtor: the compiler's deleting variant; no dialog is a bare MoneyDialog (its subclasses have their own)

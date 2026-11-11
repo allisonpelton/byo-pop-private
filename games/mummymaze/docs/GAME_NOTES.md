@@ -188,6 +188,26 @@ What the original does that the fixes mod (`mods/fixes`, below) mends, and what 
   the key was used earlier in the turn. The search of the Ankh and of Abandon Hope (`DoSolutionHelper`) flips it only for a winner that moved
   and the key not used yet. `solverFight` flips it in the other cases too. No bot game of the suite (1200 chambers) meets the case, so
   it is checked against the board's code and not by a played game.
+- **Made: a quick tap of an arrow key** (2026-11-11, from a play-test through the site in which an agent's arrow presses, real key
+  events of one millisecond, never moved the explorer after the first). The board does not react to a key press: at every update
+  `Board::UpdateExplorer` (0x406f10) reads the widget manager's key table (+0x84 Space, +0x89 Left, +0x8a Up, +0x8b Right, +0x8c
+  Down: the table of `KeyDown` and `KeyUp`, which the message loop fills before an update). A key pressed and let go between two
+  updates is never seen, in the original and in the port alike; the press of a hand (50 ms and more) is. The events that arrive
+  between two frames are all applied at the start of the next one, before its updates, so a tap that begins and ends between two
+  frame starts is lost on the page (a frame is 16.7 ms there); the original's message pump runs before every pass of its loop and
+  an update is due every 10 ms, so its window is shorter. Measured in the
+  player-only page with the DOM's own events, in real time, a key held 0, 4 or 10 ms was dropped 15 times of 15 and a key held
+  16 or 30 ms taken 10 of 10 (the same trials with a key held for one frame: 17 of 17 taken, at every moment of a turn). `keyTaps`
+  keeps a press that was let go before an update ran for the update after it (`Board::KeyDown`, `mTapKeys`, read through `KEY_WEST`
+  and its fellows): a press that the original sees is seen exactly as before, and a press that it would have lost moves the
+  explorer once. The suite's baseline is unchanged (without the mod `mTapKeys` is never set). What a key does during a turn is the
+  original's: a press while the pieces move is kept for the next turn (`UpdateExplorer`'s second block), and the last one wins; the
+  original in Windows Sandbox and the port take the presses of `tools/identical/scenarios/keyq.txt` (during his walk, right after
+  he stops, during the mummy's turns) the same way, 7 shots matching. With the mod on the page took 36 of 36 second presses held 0
+  to 16 ms and 3 of 4 real key events (the fourth came 4 ms after another: two taps inside one update count as two keys held, and
+  `UpdateExplorer` takes Left, Right, Up, Down in that order). `CanMove` refuses a step onto a living mummy's cell, so a key back
+  toward a mummy that followed him moves nothing, in either game (`IDENTICAL_PLAY.md`, "The key-press check"). The driver is
+  `tools/web/keytiming.js` (real time, the page's own events).
 - **Not a fix: the Ankh works only on the 6 x 6 mazes** (`CheckSolvable` returns for size 7 and over). It is a design limit of 2002
   (the search is too slow on the larger mazes there), and turning it on for the others gives the player information the game never
   gave: a mod, not a fix (`MOD_IDEAS.md`).
@@ -196,7 +216,7 @@ What the original does that the fixes mod (`mods/fixes`, below) mends, and what 
 
 ## The fixes mod (`mods/fixes`)
 
-`mod.json` with the feature `fixes` and one bool setting for each fix, `gameClock` and `solverFight`, both on by default and applied
+`mod.json` with the feature `fixes` and one bool setting for each fix, `gameClock`, `solverFight` and `keyTaps`, all on by default and applied
 at a restart (the game reads them once, in `Init`: a chamber never changes its clock halfway). `src/ModFixes.cpp` reads them; without
 the mod every fix is off and the game is the original. The site ships it beside the page and starts the game with it on
 (`cmake/ByopopWeb.cmake`); natively it is a folder in `mods-mummymaze`, or in a `-modsdir`. It does not split the high scores

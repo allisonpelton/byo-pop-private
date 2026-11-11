@@ -18,7 +18,9 @@ class ScreenImage : public engine::Image
 {
 public:
 	ScreenImage(int theWidth, int theHeight) : mWidth(theWidth), mHeight(theHeight), mBits(theWidth * theHeight) {}
+	// 0x4572a0
 	int getWidth() override { return mWidth; }
+	// 0x4572b0
 	int getHeight() override { return mHeight; }
 
 	int mWidth;
@@ -33,6 +35,7 @@ ScreenImage* decodeImage(const std::vector<uint8_t>& theData, const std::vector<
 class ScreenGraphics : public engine::Graphics
 {
 public:
+	// 0x45dcb0
 	ScreenGraphics(uint32_t* theBits, int theWidth, int theHeight)
 		: mBits(theBits), mWidth(theWidth), mHeight(theHeight) {}
 

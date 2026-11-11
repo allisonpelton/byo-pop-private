@@ -179,8 +179,10 @@ series (`CB_WATCH=1`) is identical for a natural start, for Esc at the first log
 
 ## Mods
 
-One, `mods/fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"), with a toggle for each of two fixes, both on in the site's
-copy. The port itself stays the original: `CBFixes.h` holds the toggles, all off until `CosmicBugsApp::Init` has read
+One, `mods/fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"), with a toggle for each of two fixes: `shieldFlash` starts on and
+`walkerTurnMemory` starts off (the coordinator's judgement of 2026-11-11 under the rule that a fix starts on unless the
+original's behaviour looks intended and is not widely known as a bug: the up-and-down walkers' quick turns read as a
+designed enemy pattern, so the player turns that fix on). The port itself stays the original: `CBFixes.h` holds the toggles, all off until `CosmicBugsApp::Init` has read
 the enabled mod's settings (`LoadFixes`), so the headless runner, the suite and the frozen baseline never see them.
 `walkerTurnMemory`: a walking bug that comes to a side way turns onto it half the time, and not again for five seconds
 (`Walker_TurnAtJunction`); the original keeps that turn's time only for turns off a horizontal way, so a bug going up
@@ -254,6 +256,87 @@ plainly: the port loads as fast as the original and, unlike the unpatched origin
 holds about 40 MB more and uses about three times the processor time (a fifth of a core against a twentieth), which is for the
 performance pass (the framework's frame loop, the renderer's full-frame upload and the audio mixer are the places to look).
 The port's runs also have the test channel's two input files polled.
+
+## Coverage check (2026-11-11)
+
+The check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran in 33 runs of a copy under
+`build/origrun`, each invisible and silent under rundesk and on the virtual clock (the main loop's wait patched as for the
+performance runs). `games/cosmicbugs/tools/coverage` holds the drivers (`run.sh` for one run, `worlds.sh`, `over.sh`,
+`powerups.sh`, their helpers `hover.py` and `addkeys.py`, and the hand-written origrun scripts in `scripts/`). The runs were the
+suite's own plays (`a1`, `g1` to `g4`, `k1`); `menus` (the title's items and every screen behind them); `users` (the player list:
+add, rename, delete with one player and with two, choose another); `quit` (the closing screen, answered MAYBE LATER, never
+BUY NOW); `esc` (Esc on the title, the high scores, the options and the credits); `options` (the options screen's items one
+by one, never VIDEO, which changes the display mode); `focus` (focus lost and regained on the title, a board, the pause and a
+game over); `w0` to `w8` and `wu0` to `wu8` (from a save with every board unlocked, one run for each world of the select-world
+screen with 400 s of `tools/play/gen.py`'s random play, the `wu` runs after twelve clicks on the slider page's up arrow, which
+starts the world at its last level, where the enemy and power-up kinds are most; `w4` was lost to an edited script and `wu4`
+covers its world); `over1` and `over8` (games that end: a copy patched to start with one life and to always earn a high-score
+entry, so the game over, the entry and the Hall of Fame are shown); `pw1` and `pw2` (the original's test keys 0 to 9 and A to D
+held in turn, which set a power-up's kind while one is made; neither run made one, since a power-up is chance, so they added
+nothing).
+
+What the runs showed about driving the original: a click that arrives in the update of its own mouse move is lost, so every menu
+click has the pointer on its button 300 updates earlier (`hover.py`); a font item takes a click only inside its box, which starts
+a pixel under its y in the game file and is as tall as the text, so clicks go about 10 pixels under y (the options items, the
+instructions' PLAY at 563, the entry's done button at 520); and a held drag of the select-level slider's handle never set the
+game's sliding flag (0x6e5bf8), cause not found, so the up arrow's clicks step the level instead.
+
+The game's own code (`game 00401000-004428b0` in `coverage.txt`) has 741 functions. The runs reached 532 of them (494 after the
+first ten runs), the port defines 547 and 56 are left out on purpose.
+
+**Reached in the original with no counterpart in the port: 67 at the first look, 0 now.** Most were code the port translated
+inline or in another shape, now with its address in the comment above the function that holds it (the list templates' instances
+in `CBGame.h`, the emitter and particle set-up, the text maker, the start-up code above `CosmicBugsApp::Init`, the Obj
+destructors); comments only. 56 are left out on purpose as `none` lines in `coverage.txt`, each with its reason (the engine is
+Water Bugs' too, so these are the reasons of that game's check, found through the two exes' function match: std::list and
+container instances, the per-format blitter wrappers, the DirectDraw display layer and the window code, the timer object, `FixPath`,
+the trial's text, an empty function the main loop calls). One was missing logic: the Shooter's destructor (0x411d70) and its
+list delete (0x411f50). The original's list of shooters runs the destructor on each node when a level is left, destroying
+the five Objs the ship holds and deleting the beams still in flight, where the port deleted a shooter as a plain Obj and a beam
+in the air when the player left a board was never freed. `Shooter_Destroy` and `List_DeleteNode(Shooter*)` (`CBShooter.cpp`) are
+new, and `Beam_Destroy` (which writes through the level's current shooter for a lone beam, as the original does) skips that write
+when there is no shooter. Play does not change: `tools/check.sh cosmicbugs` passes unchanged.
+
+**Defined in the port, never reached: 71.** One Sonnet agent read each of the 41 that hold Cosmic Bugs' own logic again against
+the export: all match. Looking at them it found two boundary differences among the code around the list that use the x87 compare
+Ghidra prints as `a < b != (b == a)` (that is `a <= b`): `Enemy_Step` (0x40a650) leaves when the enemy's y is 592.0 or more (the
+port only when it was above 592.0) and `Rider_Update` (0x402a00) goes on only while y is under 592.0 (the port while it was 592.0 or
+under). Both are fixed (`CBEnemy.cpp`, `CBBeam.cpp`); it matters only for a float of exactly 592.0, and the suite and the frozen
+baseline are unchanged. The other uses of the pattern (0x41ba40, 0x41e2c0, 0x419d20, 0x41c390) were already right. It also
+found two stale comments (`Log`'s and the name key's), now corrected: the original's 0x428d60 only formats a string and hands it to
+the debugger (the log.txt append is 0x428db0, whose callers are in the untranslated network code), and `MenuItem_TypeKey` clears
+one byte after its 16-character buffer, the port four, with the same string. The 71, by why no run reached them:
+
+- Values of the game file's own language that the shipped files do not use (they stay, as the game reads any file): the enemy
+  kinds jellyfish (0x4057c0), frog (0x406790), teleporter (0x407e60), crab (0x409e60), lobster (0x40a100) and turtle walkers
+  (0x40a1f0), which no shipped level uses; the panel tag (0x417d40); hex colours and swapped colours (`ParseHex4` 0x420110,
+  `ParseHex3` 0x4201f0, `SwapColours` 0x420700); the FLIC chunk 0x40c480 (the art's own FLICs never held it).
+- Power-ups no run made: the effects of the kinds 0, 3, 4, 5, 7, 8, 9, 10, 12 and 13 (0x418440 to 0x418610, 0x418810, 0x418860,
+  the ice shot 0x419fb0 with `Enemy_Freeze` 0x406d70, the sweepers 0x41c390 and 0x41cea0). The kinds table and the test keys
+  make kinds 0 to 13, so a run that gets a power-up made and touched by a beam would reach them; one is made when an enemy
+  dies while the fill is below the quota (30 %), and the random play found kind 6 (the missile, 0x418720) only. Re-read:
+  all match.
+- The display-mode change, which the runs left alone because it changes the machine's display mode: `Animation_ReloadAll`
+  0x4025c0, `Animation_FreeMasks` 0x401510, `Bank_Reconvert` 0x428160, the fonts' reload 0x40cef0, and `Screen_SetFullscreen`
+  0x428ee0 (F7, Alt+Enter and the VIDEO item reach them). The port's host switches the window itself and never loses the
+  screen, so these are candidates for taking out.
+- Engine code that no game's code calls, which `docs/ENGINES.md` ("What only Cosmic Bugs' copy had") lists for the removal pass: the fonts' unclipped drawing and their texture and mask target (every drawn font has its clip flag set; `Image_BlitUnclipped` 0x4238a0, the unclipped alpha and mask blits 0x423d10, 0x4247e0, 0x424d90, 0x42dd60, `Image_SetMask` 0x4235b0, the rectangle tests 0x42b8d0 and 0x42bbc0), the text input's own surface (0x42c5f0) and `Bank_Reconvert` (0x428160, in the display-mode item above).
+- Engine code the runs did not reach that is not on that list, and so stays until Water Bugs' own check agrees: the blitters of the pixel formats the shipped art does not use (0x42fa00 to 0x435fb0 and the image functions that feed them), the 32-bit palette packing 0x4019d0 (the 16-bit one is reached), `Image_ConvertTo` 0x423640, the glyph cutting `Font_StripCut` 0x422cf0 with 0x422c60 and 0x424f90, and the font bounded draw's helpers 0x424430, 0x4249f0 and 0x424a50.
+- Code no input reaches: the power-up kinds 14 to 17 (anchor, the two explode-alls, magnet: the kinds table gives 0 to 10, the
+  test keys 0 to 13): `Powerup_ExplodeWalkers` 0x4185d0, `Powerup_ExplodeFloaters` 0x418590, the two weapons they hand out
+  (the anchor, weapon kind 6: 0x4188b0, 0x419be0; the magnet, kind 5: 0x418770, 0x419a60, 0x419d20) and their cases. The
+  demo mode: `gDemo` is never assigned in the original, so its 17 branches in the port are dead. The name entry's on-screen
+  keys (`MenuItem_TypeKey` 0x415580, `Key_Push` 0x428ad0): `HighScore_Entered` clicks the entry screen's buttons itself in its
+  first update, so the screen goes on to the Hall of Fame before a key can be clicked. `Sys_Sleep` (0x428820, which the
+  patched wait skipped) and `gPumpMessages` stay.
+- The quit requester's other half (0x416d70), the empty-list clear (0x40f040, whose callers are unwind funclets) and `Log`
+  (0x428db0, which only the untranslated network code calls).
+
+These go to the unneeded-code pass next: the demo flag, the kinds 14 to 17 and their weapons, the display-mode change code,
+the name entry's keys, and the engine functions of `docs/ENGINES.md` (a shared commit), proved by `tools/check.sh --changed main`.
+
+Fixes mod: the review of the mod before this pass ended with the coordinator's ruling that `walkerTurnMemory` starts off (the
+walkers' quick turns can read as a designed pattern) and `shieldFlash` stays on; `mods/fixes/mod.json` has both.
 
 ## Where the work was hard
 

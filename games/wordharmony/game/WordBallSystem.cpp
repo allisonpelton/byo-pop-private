@@ -602,16 +602,20 @@ void WordBallSystem::removeBall(unsigned int theIndex)
 	aBall->removeAllChildren();
 }
 
-// 0x412ca0
+// 0x412ca0: every free ball picked, each 0.1 s after the one before it
 void WordBallSystem::pickAll()
 {
 	unsigned int i = 0;
+	float aDelay = 0.0f;
 	if (mCount != 0)
 	{
 		do
 		{
 			if (getBall(i)->mState == BALL_FREE)
-				pickBall(i, 0.0f);
+			{
+				pickBall(i, aDelay);
+				aDelay += 0.1f;
+			}
 			i++;
 		} while (i < mCount);
 	}

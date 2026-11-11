@@ -51,7 +51,7 @@ void List_Init(List<T>* theList)
 	theList->tail = nullptr;
 }
 
-// 0x420b10 and the like: a new node at the tail, made current
+// 0x420b10 and the like: a new node at the tail, made current. 0x4108c0 is one (the level's key map is another)
 template <class T>
 T* List_Append(List<T>* theList, T* theNode)
 {
@@ -87,7 +87,10 @@ void List_DeleteNode(T* theNode)
 }
 
 // 0x401000 and the like: deletes the current node; the one after it (else before it) becomes current. False when
-// the list is empty.
+// the list is empty. 0x401000, 0x401100, 0x401180, 0x411120, 0x411240, 0x411f50 and 0x441770 are instances of it: for
+// gAnims, gLevels (whose nodes end in the level's destructor 0x413730: List_DeleteNode(Level*)), gFonts, the level's
+// power-ups, the nodes that end in the Obj destructor 0x419780, its shooters, and nodes freed without a destructor
+// (gLevelSets and others)
 template <class T>
 bool List_RemoveCurrent(List<T>* theList)
 {
@@ -336,7 +339,8 @@ void SwapColours(Image* theImage, const char* theSwap);                    // 0x
 double CircleOverlap(float x1, float y1, float r1, float x2, float y2, float r2); // 0x420780
 int BoxOverlap(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2); // 0x4207d0
 void RotateImage(Image* theImage, int theAngle);                           // 0x4208c0
-// 0x428d60: the original appends to log.txt
+// 0x428d60: the original only formats its text (vsprintf) and hands it to OutputDebugStringA; the append to log.txt is
+// 0x428db0, which nothing translated calls (its callers are the untranslated network packet manager's shutdown)
 void Log(const char* theFormat, ...);
 
 // Globals

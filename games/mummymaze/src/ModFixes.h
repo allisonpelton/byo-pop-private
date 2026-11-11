@@ -13,8 +13,9 @@ struct FixSettings
 {
 	bool		mGameClock;		// a chamber's time (bonus, adventure time) is counted in updates, not by the machine's clock
 	bool		mSolverFight;	// the search for a way out counts the gate flip of a fight between the mummies on the key stone
+	bool		mKeyTaps;		// a press of an arrow key or Space that is let go before an update ran still moves the explorer
 
-	FixSettings() : mGameClock(false), mSolverFight(false) {}
+	FixSettings() : mGameClock(false), mSolverFight(false), mKeyTaps(false) {}
 };
 
 FixSettings		LoadFixSettings();
