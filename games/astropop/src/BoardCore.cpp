@@ -446,7 +446,7 @@ void Board::StepScrollLayer(ScrollLayer* theLayer)
 		if (aRest <= 0.0f)
 		{
 			theLayer->mCur[1] = 0.0f;
-			theLayer->mF28 = 0.0f;
+			theLayer->mNextY = 0.0f;
 			theLayer->mNext[3] = 0.0f;
 			theLayer->mNext[1] = (float) theLayer->mImage->mHeight;
 		}
@@ -454,16 +454,16 @@ void Board::StepScrollLayer(ScrollLayer* theLayer)
 	}
 
 	float aHeight = (float) mHeight;
-	if (aHeight > theLayer->mF24)
+	if (aHeight > theLayer->mCurY)
 	{
 		theLayer->mNext[1] = theLayer->mNext[1] - aStep;
 		theLayer->mNext[3] = aStep + theLayer->mNext[3];
-		float aPlace = aStep + theLayer->mF24;
-		theLayer->mF24 = aPlace;
+		float aPlace = aStep + theLayer->mCurY;
+		theLayer->mCurY = aPlace;
 		if (aPlace >= aHeight)
 		{
 			memcpy(theLayer->mCur, theLayer->mNext, sizeof(theLayer->mCur));
-			theLayer->mF24 = 0.0f;
+			theLayer->mCurY = 0.0f;
 			theLayer->mNext[3] = 0.0f;
 		}
 	}

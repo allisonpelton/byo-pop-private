@@ -83,10 +83,10 @@ struct ScrollLayer
 	Image*	mImage;             // +0x00
 	float	mCur[4];            // +0x04 the picture now on the screen (mCur[1] counts down to its end)
 	float	mNext[4];           // +0x14 the picture that follows (mNext[1] the place to start from)
-	float	mF24;               // +0x24
-	float	mF28;               // +0x28
+	float	mCurY; // +0x24 the y at which the current picture (mCur) is drawn, 0 when it is at the top; the layer steps it down until it passes the screen's height
+	float	mNextY; // +0x28 the y at which the picture that follows (mNext) is drawn; -1 while there is none
 	int		mPeriod;            // +0x2c the layer steps every mPeriod updates
-	int		mI30;               // +0x30
+	int		mPictureId; // +0x30 the id of the picture the layer shows (0x18c at the start; the warp sets the scenery's)
 	float	mSpeed;             // +0x34
 
 	ScrollLayer()               // 0x436100
@@ -97,11 +97,11 @@ struct ScrollLayer
 			mCur[i] = 0;
 			mNext[i] = 0;
 		}
-		mF24 = -1234.0f;
-		mF28 = -1234.0f;
+		mCurY = -1234.0f;
+		mNextY = -1234.0f;
 		mSpeed = -1234.0f;
 		mPeriod = 500000000;
-		mI30 = 500000000;
+		mPictureId = 500000000;
 	}
 };
 

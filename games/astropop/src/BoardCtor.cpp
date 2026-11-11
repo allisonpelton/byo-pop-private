@@ -411,9 +411,9 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		if (anId != 0x18c)
 			mApp->mResourceManager->DeleteImage(GetStringIdById(anId));
 	}
-	mSceneryLayer.mI30 = 0x18c;
-	mSceneryLayer.mF24 = 0.0f;
-	mSceneryLayer.mF28 = -1.0f;
+	mSceneryLayer.mPictureId = 0x18c;
+	mSceneryLayer.mCurY = 0.0f;
+	mSceneryLayer.mNextY = -1.0f;
 	mSceneryLayer.mCur[0] = 0.0f;
 	mSceneryLayer.mCur[1] = (float) (mSceneryLayer.mImage->mHeight - 0x1e0);
 	mSceneryLayer.mCur[2] = 640.0f;

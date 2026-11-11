@@ -68,9 +68,9 @@ void Board::DrawBackdrop(Graphics* g)
 	if (!mWarpFlight && !mAtWarpGate && !mWarpGatePicked)
 	{
 		// the scenery: the picture now on the screen and the one that follows it
-		g->DrawImage(mSceneryLayer.mImage, (int) mSceneryX, (int) mSceneryLayer.mF24, FloatRect(mSceneryLayer.mCur));
+		g->DrawImage(mSceneryLayer.mImage, (int) mSceneryX, (int) mSceneryLayer.mCurY, FloatRect(mSceneryLayer.mCur));
 		if (mSceneryLayer.mNext[3] > 0.0f)
-			g->DrawImage(mSceneryLayer.mImage, (int) mSceneryX, (int) mSceneryLayer.mF28, FloatRect(mSceneryLayer.mNext));
+			g->DrawImage(mSceneryLayer.mImage, (int) mSceneryX, (int) mSceneryLayer.mNextY, FloatRect(mSceneryLayer.mNext));
 	}
 	else
 	{
@@ -86,9 +86,9 @@ void Board::DrawBackdrop(Graphics* g)
 				if (anOffset > 0x78)
 					g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 				PlanetRec& aPlanet = mPlanets[anOffset / 0x3c];
-				g->DrawImage(aPlanet.mImage, (int) aPlanet.mRangeStart, (int) aPlanet.mF24, FloatRect(aPlanet.mCur));
+				g->DrawImage(aPlanet.mImage, (int) aPlanet.mRangeStart, (int) aPlanet.mCurY, FloatRect(aPlanet.mCur));
 				if (aPlanet.mNext[3] > 0.0f)
-					g->DrawImage(aPlanet.mImage, (int) aPlanet.mRangeStart, (int) aPlanet.mF28, FloatRect(aPlanet.mNext));
+					g->DrawImage(aPlanet.mImage, (int) aPlanet.mRangeStart, (int) aPlanet.mNextY, FloatRect(aPlanet.mNext));
 				if (anOffset > 0x78)
 					g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			}

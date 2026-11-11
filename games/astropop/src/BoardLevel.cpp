@@ -359,8 +359,8 @@ void Board::SetupWarpLayers()
 		aLayer.mImage = anImage;
 		aLayer.mPeriod = 1;
 		aLayer.mSpeed = aLayers[i].mSpeed;
-		aLayer.mF24 = 0.0f;
-		aLayer.mF28 = -1.0f;
+		aLayer.mCurY = 0.0f;
+		aLayer.mNextY = -1.0f;
 		aLayer.mRangeStart = aLayers[i].mRangeStart;
 		aLayer.mCur[0] = 0.0f;
 		aLayer.mCur[1] = (float) (anImage->mHeight - 0x1e0);

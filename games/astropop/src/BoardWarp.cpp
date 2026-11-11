@@ -252,12 +252,12 @@ bool Board::UpdateWarp()
 						mApp->mEngineLoop->Play(true, false);
 					AstroRand();
 					int aSceneryId = mStageNumber % 3 + 0x18b;
-					std::string aName = GetStringIdById(mSceneryLayer.mI30);
+					std::string aName = GetStringIdById(mSceneryLayer.mPictureId);
 					mApp->mResourceManager->DeleteImage(aName);
 					mSceneryLayer.mImage = LoadImageById(mApp->mResourceManager, aSceneryId);
-					mSceneryLayer.mI30 = aSceneryId;
-					mSceneryLayer.mF24 = 0;
-					mSceneryLayer.mF28 = -1.0f;
+					mSceneryLayer.mPictureId = aSceneryId;
+					mSceneryLayer.mCurY = 0;
+					mSceneryLayer.mNextY = -1.0f;
 					mSceneryLayer.mCur[0] = 0;
 					mSceneryLayer.mCur[1] = (float) (mSceneryLayer.mImage->mHeight - 0x1e0);
 					mSceneryLayer.mCur[2] = 640.0f;
