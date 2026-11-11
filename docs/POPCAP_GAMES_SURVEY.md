@@ -3,8 +3,7 @@
 The facts about each PopCap game on the user's machines, and a few that PopCap published or that run on its
 engines, with the plan for the games still to port. The rules (which games, in what order, how many sessions at
 once, which model) are in [COORDINATION.md](COORDINATION.md), "Which games, in what order"; this document gives
-the facts behind them. Six of the first games went through the full Ghidra pipeline; the others were read
-statically or through `tools/triage_popcap.py`, so their code sizes are address-range estimates. Bejeweled
+the facts behind them. Code sizes of games not yet decompiled are address-range estimates from `tools/triage_popcap.py`. Bejeweled
 Deluxe, the first port, is the baseline every effort is measured against.
 
 ## 1. Where things stand
@@ -57,21 +56,20 @@ another's engine goes after it. Efforts are the estimates without references (3.
 
 A game with another PC decompilation in progress, or an active modding community, is still built, but published
 neither in the GitHub snapshot nor on the website (the user, 2026-10-26; COORDINATION.md, "Which games, and where
-they are published"). Decompilations of a phone or console build don't count, and neither do a handful of mods
-or one person's tool. In the "Published" column, "yes" is the snapshot and the website; "no" is neither, with the
-game's folder in `.publishignore`; "web only" is the website, with the folder in `.publishignore`. Zuma's Revenge
-is the one "web only" game, while the user learns more about a PC decompilation in progress (2026-10-26). Every
-ported game is published. Appendix B has the evidence.
+they are published"). Decompilations of a phone or console build don't count, nor do a handful of mods or one
+person's tool. In the "Published" column, "yes" is the snapshot and the website; "no" is neither, with the
+game's folder in `.publishignore`; "web only" is the website, with the folder in `.publishignore`: Zuma's
+Revenge, while the user learns more about a PC decompilation in progress (2026-10-26). Appendix B has the
+evidence.
 
 ### Peggle Extreme and Peggle World of Warcraft Edition
 
 The user took these two out of the order on 2026-10-26: a comparison of their programs and paks with Deluxe's
-and Nights' found no gameplay change, only presentation. Extreme adds a headcrab on Bjorn and Striders to the
-main menu, its logo to the loading screen, the Heavy popping in after a good shot, four voice lines each for a
-won and a lost level, and a teleport sound. World of Warcraft Edition is Nights cut down to two masters, with an
-animated main menu, a dragon loading screen and its own texts. What their own code draws becomes settings of the
-Peggle Deluxe and Nights ports, unpublished with them. Theme mods of the original games with their sounds, menus
-and art are already made, outside the repository.
+and Nights' found no gameplay change, only presentation (Extreme: a headcrab on Bjorn and Striders on the main
+menu, its logo on the loading screen, the Heavy popping in after a good shot, voice lines for won and lost
+levels, a teleport sound; World of Warcraft Edition: Nights cut down to two masters, with an animated main menu,
+a dragon loading screen and its own texts). What their own code draws becomes settings of the Peggle Deluxe and
+Nights ports, unpublished with them. Theme mods of the original games are already made, outside the repository.
 
 ### After PopCap's games
 
@@ -84,17 +82,15 @@ facts.
 
 ### 3.1 The Bejeweled method
 
-[RE_NOTES.md](../games/bejeweled/docs/RE_NOTES.md) describes it. **Carve** the real game PE out of PopCap's DRM
-wrapper (`tools/extract_game_exe.py`; it and `tools/triage_popcap.py` are private tools). **Analyse** it with
-Ghidra 12 headless, which recovers C++ classes from RTTI and exports every decompiled function into the
-git-ignored `re/<game>/` (`tools/ghidra_import.sh`). **Identify the framework** by matching functions against the
-public SexyAppFramework trees (1.2, 1.3, 1.34): of Bejeweled's 1 MB `.text`, only about 60 KB was game code.
-**Translate** the game classes function by function onto the portable SAF 1.3 in `framework/`, each function
-annotated with its original address.
-
-Later ports added two habits. Names carry over from an earlier port's export by byte matching
-(`tools/funcmatch.py`), and each game keeps its names in `games/<game>/docs/symbols/`. A game not on the
-SexyAppFramework gets its engine translated apart from the game, on the same platform layer.
+[RE_NOTES.md](../games/bejeweled/docs/RE_NOTES.md) describes it: carve the game PE out of PopCap's DRM wrapper
+(`tools/extract_game_exe.py`; it and `tools/triage_popcap.py` are private tools), analyse it with Ghidra 12
+headless (RTTI class recovery, every function exported into the git-ignored `re/<game>/` by
+`tools/ghidra_import.sh`), identify the framework by matching against the public SexyAppFramework trees (1.2,
+1.3, 1.34; of Bejeweled's 1 MB `.text`, only about 60 KB was game code), and translate the game classes
+function by function onto the portable SAF 1.3 in `framework/`, each function annotated with its original
+address. Later ports carry names over from an earlier port's export by byte matching (`tools/funcmatch.py`),
+each game keeping its names in `games/<game>/docs/symbols/`; a game not on the SexyAppFramework gets its engine
+translated apart from the game, on the same platform layer.
 
 ### 3.2 What makes a good candidate
 
@@ -151,7 +147,7 @@ API; the game PE runs from 0x591a2 to the end of the file (1,495,040 bytes).
 
 The `.luc` Lua files in the `drm/` folders belong to the wrappers, not the games, so Venice needs no PopLua.
 
-**Ghidra on VS.NET 2002 (MSVC 7.0) binaries.** `tools/ghidra_import.sh` and `tools/rtti_msvc70.py` handle four
+**Ghidra on VS.NET 2002 (MSVC 7.0) binaries.** `tools/ghidra_import.sh` and `tools/rtti_msvc70.py` handle two
 problems; of the games still to port, Heavy Weapon and Chuzzle are VS.NET 2002 builds.
 - Ghidra 12's RTTI analyzer and `RecoverClassesFromRTTIScript` recover **no classes**: MSVC 7.0 writes 24-byte
   BaseClassDescriptors without the `pClassDescriptor` field, and Ghidra rejects them. `tools/rtti_msvc70.py` reads
@@ -159,12 +155,9 @@ problems; of the games still to port, Heavy Weapon and Chuzzle are VS.NET 2002 b
 - The "Non-Returning Functions - Discovered" analyzer marks the `_free`/`operator delete` thunks as noreturn,
   which truncated about 2,225 call sites in BookWorm's first export. `MSVC70=1` disables it
   (`tools/ghidra_scripts/DisableNoReturnDiscovery.java`).
-- `ApplySymbols.java` failed under the pipeline's JDK 21 with "class file version 67.0" when a class compiled by
-  JDK 23 was cached in Ghidra's script bundle.
-- `analyzeHeadless.bat` breaks `-scriptPath` on `;`, so all scripts are in one directory, `tools/ghidra_scripts/`.
 
-On a large binary (Bookworm Adventures) `RecoverClassesFromRTTIScript` was still running after 50 minutes;
-`CLASS_RECOVERY=0` skips it, and auto-analysis still names the RTTI classes and vtables.
+On a large binary `RecoverClassesFromRTTIScript` can run for an hour; `CLASS_RECOVERY=0` skips it, and
+auto-analysis still names the RTTI classes and vtables.
 
 ### 3.5 Framework generations, and where each is ported
 
@@ -200,7 +193,7 @@ the game that needed it first until a second game moves it to shared code.
 | Component | Built, and where | Remaining games that need it |
 |---|---|---|
 | MO3 music with order-position jumps | libopenmpt (`third_party/libopenmpt`) through `platform/openmpt/OpenMPTPlayer.h` (the library `sexyopenmpt`). Only MO3 goes through it; S3M, IT and XM stay on libxmp-lite. | Heavy Weapon, Chuzzle, Feeding Frenzy 2, Peggle Deluxe and Nights, Bejeweled 3, Zuma's Revenge |
-| JPEG 2000 (`.jp2`) | OpenJPEG (`third_party/openjpeg`) through `platform/openjpeg/JP2Decoder.h` (`sexyopenjpeg`), decoding at run time. Its rounding was changed to match the originals' decoder for the 5/3 wavelet; [BYO-POP.md](../third_party/openjpeg/BYO-POP.md) asks the Peggles, Zuma's Revenge and Bejeweled 3 to check their own files first. | Peggle Deluxe (217 files) and Nights (273), Zuma's Revenge (2,633), Bejeweled 3 (4,557), Banana Bugs |
+| JPEG 2000 (`.jp2`) | OpenJPEG (`third_party/openjpeg`) through `platform/openjpeg/JP2Decoder.h` (`sexyopenjpeg`), decoding at run time. [BYO-POP.md](../third_party/openjpeg/BYO-POP.md) says what changed and asks the Peggles, Zuma's Revenge and Bejeweled 3 to check their own files first. | Peggle Deluxe (217 files) and Nights (273), Zuma's Revenge (2,633), Bejeweled 3 (4,557), Banana Bugs |
 | Flash SWF | A player of our own for the SWF 7 and 8 cutscenes of both Bookworm Adventures games, `games/bookwormadv/swf/` (copied in `games/bookwormadv2/swf/`). | Heavy Weapon (3 cutscenes), Hammer Heads (how-to-play) |
 | Pre-1.2 framework layers | Built up to April 2004 (3.5). | Heavy Weapon (its 2005 layout, not yet mapped) |
 | PopAnim (`.pam`) player | v1 in `games/bookwormadv/popanim/`, v1-3 in `games/bookwormadv2/popanim/`, and Volume 2's with Twist's two extra scales in `games/bejeweledtwist/popanim/`. | Bejeweled 3, Zuma's Revenge |
@@ -281,14 +274,14 @@ layout guide the port, and the PC exe stays the authority for behaviour. Publish
 
 ### 5.1 Venice Deluxe
 
-**Sonnet, published, ~5x.** One of the user's installers (2026-10-24). The game inside the wrapper `Venice.exe`
+**Sonnet, published, ~5x.** The game inside the wrapper `Venice.exe`
 is 1,978,368 bytes, linked 2007-06-06, with about 1.59 MB of code. It is on SAF of the ~1.3 generation with
 PakInterface, of Bejeweled's year: its RTTI names 43 `Sexy::` classes and the pak and library classes but no
 game class, so the game's classes are found from their constructors, as Alchemy's were. Whether its vtables
 match Bejeweled's, as Bejeweled 2's do, is the first thing to measure, since `framework/` is Bejeweled's. Data:
 `main.pak` (XOR 0xF7; `tools/popcap_pak.py` reads it) with 861 PNG, XML, JPG and OGG files; no `resources.xml`.
-It has no PopLua (checked 2026-11-04: its 15 `.luc` scripts are the wrapper's); the ~5x estimate assumed PopLua
-and stands as a first guess.
+It has no PopLua (its 15 `.luc` scripts are the wrapper's); the ~5x estimate assumed PopLua and stands as a first
+guess.
 
 ### 5.2 Heavy Weapon Deluxe
 
@@ -400,7 +393,7 @@ linked 2007-07-16 with VS2005: ~750 KB of game code in about 70 classes, on SAF 
 with ModVal tunable strings left in. Data: `main.pak` (11 MB) with 217 `.jp2` images (check their wavelet first,
 3.6), 62 binary `levels/*.dat` files, ConfigParser `.cfg` files and fonts; loose `music/PeggleBeats.mo3` and 2
 OGG. The Mac build is `re/peggle/deluxe/mac/` (Peggle 1.0.5, a name list of about 12,300 lines), and Ghidra
-exports of all four Peggle images (2026-10-26) are in `re/peggle/<edition>/gh/` (deluxe, extreme, nights, wow).
+exports of all four Peggle images are in `re/peggle/<edition>/gh/` (deluxe, extreme, nights, wow).
 Unpublished: another decompilation is in progress and the modding is strong (Appendix B), so `games/peggle*` is
 in `.publishignore`. Extreme's presentation becomes settings of this port.
 
@@ -435,14 +428,12 @@ some of the game's, the quest goals among them.
 
 ### 5.15 Banana Bugs
 
-**Opus, published, ~15x, DIRECT.** Added on 2026-10-25.
+**Opus, published, ~15x, DIRECT.** Installed in `C:\Program Files (x86)\PopCap Games\Banana Bugs`; the installer
+is unpacked, unrun, in `re/_installers/BananaBugsSetup/`.
 
-- **Copy:** installed in `C:\Program Files (x86)\PopCap Games\Banana Bugs`; the installer (`BananaBugsSetup.exe`,
-  82 MB) is unpacked, unrun, in `re/_installers/BananaBugsSetup/`.
 - **Image:** the only game here behind PopCap's 2010 DRM: `BananaBugs.exe` is the launcher, and the game is the
-  encrypted `BananaBugs.dat`. A clear image, made from the installed copy on 2026-11-04, is
-  `re/bananabugs/bin/BananaBugsGame.exe`, with a `README.txt` on where each file came from; how the scheme works
-  and the tool that undoes it stay private. It was linked 2010-04-09 with VS2005 (v1.0.0.7, 2,413,936 bytes): a
+  encrypted `BananaBugs.dat`. A clear image is `re/bananabugs/bin/BananaBugsGame.exe`, with a `README.txt` on where each file came from; how
+  the scheme works and the tool that undoes it stay private. It was linked 2010-04-09 with VS2005 (v1.0.0.7, 2,413,936 bytes): a
   1.87 MB `.text` with 6,946 functions in Ghidra, libraries included (the export is in `re/bananabugs/game/`),
   and 170 RTTI names, about 85 of them the game's own classes (the bugs and their `BugBrain` AIs, twenty `Bonus`
   classes, the board, the map and its buildings).
@@ -461,9 +452,6 @@ some of the game's, the quest goals among them.
   would keep its frames and the site would swap them on a timer (check that the cursor still changes while the
   mouse is still, keep to the 128 px limit, keep the cost small). Both are shared code: the Banana Bugs session
   sends the coordinator a spec.
-- **Other copies (2026-11-04):** PopCap's own installer of June 2010 (identical files), Shockwave.com's
-  installer and Big Fish Games' build in a repack from the Internet Archive stay in the Downloads folder. None
-  holds a clear game image, so nothing was saved from them.
 
 <!-- private -->
 
@@ -538,29 +526,26 @@ Feeding Frenzy 2 has built the second-generation engine.
 <!-- private: - `Talismania.exe` is the 2006-08-22 DRM wrapper. The game PE is carved to `re/talismania/bin/TalismaniaGame.exe`. -->
 - `Talismania.exe` (4,678,050 bytes) is the 2006-08-22 DRM wrapper. The game PE is at 0x591a2 (4,313,088 bytes), carved to `re/talismania/bin/TalismaniaGame.exe`.
 <!-- /private -->
-- The game PE was linked 2006-07-28 with VS2005 RTM and LTCG (392 LTCG objects). Its internal name is "Atlantis"
-  (`AtlantisGameMgr.cpp`).
-- The game talks to the wrapper over registered-message IPC (`PopCapDRM_*`), and saves go to the registry plus a
-  hashed blob. Both need stubbing or replacing.
+- The game PE was linked 2006-07-28 with VS2005 RTM and LTCG; its internal name is "Atlantis"
+  (`AtlantisGameMgr.cpp`). It talks to the wrapper over registered-message IPC (`PopCapDRM_*`), and saves go to the
+  registry plus a hashed blob; both need stubbing or replacing.
 
-**Developer and engine.** By RocketJump Games (Wes Cumberland, the credited sole programmer), with design and
-production from ex-Sprout Iggle Pop staff. The engine is **Sprout Games' second-generation engine**, not
-SexyAppFramework: the namespaces `engine` (62 classes: a Java-style Object, Reader, Runnable, Thread, Scene,
-ScreenLayout, ArchiveLoader/ArchiveToc, ParticleSystem, Splat, QDParser), `dxdriver` (16), `simplesound` and
-`simplesounddx` (12), `shape` (collision), sigslot for events, and about 70 global framework classes such as
-GenericApplication, Theme, SplinePath, SurfaceCombiner, PixelCombiner, StateMgr, SoundMgr and BassMusicPlayer.
-Feeding Frenzy 2 has almost the same engine (59/62, 16/16, 12/12 and about 70 shared framework classes).
-Rendering is 800x600 DirectDraw 7 through a software DrawContext with BltFx, PixelFx and WaveFx effects. The
-public libraries are sigslot (public domain), zlib 1.1.4, libpng 1.2.5, libjpeg 6b, libogg/libvorbis and
-libtheora; BASS is a closed DLL; the engine has its own XML parser.
+**Developer and engine.** By RocketJump Games, with design and production from ex-Sprout Iggle Pop staff. The
+engine is **Sprout Games' second-generation engine**, not SexyAppFramework: the namespaces `engine` (62
+classes: a Java-style Object, Reader, Runnable, Thread, Scene, ScreenLayout, ArchiveLoader/ArchiveToc,
+ParticleSystem, Splat, QDParser), `dxdriver` (16), `simplesound` and `simplesounddx` (12), `shape` (collision),
+sigslot for events, and about 70 global framework classes such as GenericApplication, Theme, SplinePath,
+SurfaceCombiner, StateMgr, SoundMgr and BassMusicPlayer. Feeding Frenzy 2 has almost the same engine (59/62,
+16/16, 12/12 and about 70 shared framework classes). Rendering is 800x600 DirectDraw 7 through a software
+DrawContext with BltFx, PixelFx and WaveFx effects. The public libraries are sigslot, zlib 1.1.4, libpng 1.2.5,
+libjpeg 6b, libogg/libvorbis and libtheora; BASS is a closed DLL; the engine has its own XML parser.
 
-**Code.** 34,453 functions, 2.97 MB, with full RTTI (841 type descriptors, 836 vtables). The game part
-(~0x401000-0x5f6000) has 325 game classes with 4,813 RTTI-attributed methods (384 KB, about 100K decompiled
-lines), 7,795 unattributed functions (1.18 MB, about two thirds of them template duplicates; about 520 KB after
-deduplication) and 655 checked-STL functions. The realistic translation target is **150-200K decompiled lines**,
-against Bejeweled's 12.7K; the engine adds about 100K, including the software blitters. The game has 12 cell
-types, paths, pots and the Gameboard, the GameLevel, BonusLevel and AtlantisChapter state machines, map and
-building construction, a narrator and journal, the HUD, and about 40 `*ClassLoader` XML data loaders.
+**Code.** 34,453 functions, 2.97 MB, with full RTTI. The game part has 325 game classes with 4,813
+RTTI-attributed methods (384 KB), 7,795 unattributed functions (1.18 MB, about two thirds template duplicates)
+and 655 checked-STL functions. The realistic translation target is **150-200K decompiled lines**, against
+Bejeweled's 12.7K; the engine adds about 100K, including the software blitters. The game has 12 cell types,
+paths, pots and the Gameboard, the GameLevel, BonusLevel and AtlantisChapter state machines, map and building
+construction, a narrator and journal, the HUD, and about 40 `*ClassLoader` XML data loaders.
 
 **Data formats.**
 - **`Talismania.saf`** (11.5 MB) is a **Sprout Archive File**, decoded and checked byte for byte in the survey:
@@ -583,12 +568,11 @@ these archives, to the user's fork, https://github.com/allisonpelton/Popcap_.SAF
 2026-11-04; COORDINATION.md, "Publishing").
 
 **Plan.** Translate the game classes on Feeding Frenzy 2's engine, starting from the RTTI-named state machines
-(GameLevel, AtlantisChapter, the CBaseCell family, Gameboard) and the `*ClassLoader` XML parsers, which must
-reproduce every attribute exactly. Merge each JPEG with its mask; play `.theora` through libtheora and the music
-through the platform's OGG path instead of BASS; draw at 800x600; keep saves in files instead of the registry
-and the hash blob; and make the loading thread (`ILoadingThread`) synchronous or cooperative for WASM. What
-makes it large: 325 classes plus about 1.2 MB of unattributed code, much of it template bloat to tell apart from
-real logic, LTCG inlining of engine helpers into game functions, and the 448 XML files. None of it is a blocker.
+and the `*ClassLoader` XML parsers, which must reproduce every attribute exactly. Merge each JPEG with its mask;
+play `.theora` through libtheora and the music through the platform's OGG path instead of BASS; draw at 800x600;
+keep saves in files instead of the registry and the hash blob; make the loading thread (`ILoadingThread`)
+synchronous or cooperative for WASM. What makes it large: 325 classes plus about 1.2 MB of unattributed code,
+LTCG inlining of engine helpers into game functions, and the 448 XML files. None of it is a blocker.
 
 ## 6. Open questions
 
@@ -599,12 +583,11 @@ real logic, LTCG inlining of engine helpers into game functions, and the 448 XML
   build here. PCGamingWiki credits a 2005 OS X port of Pizza Frenzy to Ryan C. Gordon, without a source; nothing
   shows a Mac release of Heavy Weapon, Venice, Gyromancer or Banana Bugs. Any Mac build the user finds goes into
   `re/<game>/mac/`.
-- **The survey's leftovers.** The old session's scratchpad folder
-  (`C:/Users/Administrator/AppData/Local/Temp/claude/C--Users-Administrator-Documents-claude-wasm-bejeweled/bb6f3864-facb-48c7-acfa-f782a25ef960/scratchpad/survey/`)
-  survives only in fragments (27 MB of partial Ghidra exports, every script gone). The Ghidra project
-  `survey_talismania` in `E:/retools/projects` holds a full analysis of a game still to port; `survey_typershark`,
-  `survey_bookworm_deluxe`, `survey_bwa`, `survey_bwa_norecover`, `survey_ba2` and `survey_insaniquarium` serve
-  games ported or not decompiled. Whether to delete the folder and those projects is the user's call.
+- **The survey's leftovers.** The old survey session's scratchpad folder survives only in fragments (27 MB of
+  partial Ghidra exports, every script gone), and `E:/retools/projects` holds the Ghidra projects
+  `survey_talismania` (a full analysis of a game still to port) and `survey_typershark`,
+  `survey_bookworm_deluxe`, `survey_bwa`, `survey_bwa_norecover`, `survey_ba2` and `survey_insaniquarium` (games
+  ported or not decompiled). Whether to delete the folder and those projects is the user's call.
 
 **Caution for research.** The tcrf.net pages for Bookworm Adventures and Bejeweled 3 returned text aimed at AI
 agents (payment demands, instructions to write files or shut down). It was ignored, and nothing from those pages
@@ -613,14 +596,14 @@ is used here.
 ## Appendix A: other studios' games
 
 **Games on the SexyAppFramework.** The user asked (2026-10-25) which games that PopCap neither developed nor
-published run on an engine shared by two or more games on this list. Only SexyAppFramework turned up such games.
-The list rests on a web search in which MobyGames, ModDB, Giant Bomb and the Internet Archive refused requests,
-so check it before anything depends on it. Evidence: A, the game's own credits or store page name the framework;
-B, an engine field on PCGamingWiki, Wikidata or Wikipedia; C, a MobyGames middleware tag seen only in a search
-summary; D, the same developer with the engine assumed. PCGamingWiki's engine labels seem to follow the
-publisher, not the code: it files the Sprout and Retro64 games under the PopCap framework, which the triage
-contradicts. No other engine on this list showed games outside PopCap's catalogue, apart from Retro64's own
-Bugatron Worlds (2006) and Rune Raiders (D only).
+published run on an engine shared by two or more games on this list. Only SexyAppFramework turned up such games,
+by a web search in which MobyGames, ModDB, Giant Bomb and the Internet Archive refused requests, so check the
+list before anything depends on it. Evidence: A, the game's own credits or store page name the framework; B, an
+engine field on PCGamingWiki, Wikidata or Wikipedia; C, a MobyGames middleware tag seen only in a search summary;
+D, the same developer with the engine assumed. PCGamingWiki's engine labels seem to follow the publisher, not the
+code (it files the Sprout and Retro64 games under the PopCap framework, which the triage contradicts). No other
+engine on this list showed games outside PopCap's catalogue, apart from Retro64's own Bugatron Worlds (2006) and
+Rune Raiders (D only).
 
 | Game | Year | Developer | Kind of game | Evidence |
 |---|---|---|---|---|
@@ -685,11 +668,10 @@ app 946010, 78 MB). Forever is a 4.4 MB native exe, `tastyplanet4.exe`, on SDL2 
 
 ## Appendix B: other projects and modding communities
 
-Checked on 2026-10-26 for the publishing rule (section 2). "Active" means mods or tools since late 2024:
-"strong" is many authors or regular releases, "thin" a handful, often from one person. Dates are the last
-activity seen. "None found" means GitHub, GameBanana and Nexus showed nothing; Reddit, ModDB and Discord servers
-were not read. No port reads any of these projects (CLAUDE.md, "No references"); they matter only for where a
-port is published.
+Checked on 2026-10-26 for the publishing rule (section 2). "Active" means mods or tools since late 2024; "strong"
+is many authors or regular releases, "thin" a handful, often from one person. Dates are the last activity seen.
+"None found" means GitHub, GameBanana and Nexus showed nothing; Reddit, ModDB and Discord were not read. No port
+reads any of these projects (CLAUDE.md, "No references").
 
 | Game | Other decompilation or remake | Modding | Result |
 |---|---|---|---|

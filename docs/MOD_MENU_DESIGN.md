@@ -96,21 +96,15 @@ restart, scripting.
 
 ### 2.3 Files
 
-| File | Contents |
-|---|---|
-| `platform/ModSettings.h/.cpp` | SDL-free: schema parsing and validation, value normalisation, placeholder resolution, level and score derivation, key entries |
-| `platform/ModManager.*` | `Apply` on effective manifests; the desired state and its edits (`EditEnable`, `EditMove`, `EditSetting`, `EditReset`, `EditForget`); pending and the score keys; `CommitNextGameValues`, `GetLiveValue`, `SetNextGameFilter`; the change serial; the state JSON for the panel and `-dumpmods` |
-| `platform/UserFiles.*` | `WriteUserFileAtomic`; the "user data changed" callback |
-| `platform/Relaunch.*` | `Relaunch(args, gameName)` (Windows `CreateProcessW`) |
-| `platform/WebApi.cpp` | web only: the exported functions of 4.5 that need no running game |
-| `framework/ModMenu.*` | the widget: pages, controls, scrolling, keyboard, text editing, confirmations, the look; `byopop_menu` and `byopop_restart` |
-| `framework/BuiltinFont.*` | a Latin-1 bitmap font (a `Font` subclass) |
-| `framework/SexyAppBase.*` | F2, `OpenModMenu`, `RequestRestart` and its virtuals (6.3), the script command `modmenu`, the exit info on the web |
-| `web/modpanel.js` | the Mods panel of every game's page, `Session` (restarts, autostart, the rescue) and the file and zip helpers; appended with `--post-js`, it leaves `Module.byopop` |
-| `web/shell.html` | every game's page: restores the backup before it reads anything, handles restart and autostart |
-| `cmake/ByopopWeb.cmake` | `byopop_web_game`, one function for every game's web link options: the shell, `--post-js`, the exported functions and runtime methods |
-| `tools/rundesk/rundesk.c` | runs its child in a job object and returns when the whole job has ended, so a relaunched game stays on the invisible desktop |
-| `tools/modsettingstest/`, `tools/modmenutest/`, `tools/fixtures/mods/settings-demo/` | the tests of 7.3 and their fixture mod, which is JSON only |
+Each file's header says what it holds. What is not obvious from the names: `platform/UserFiles.*` has
+`WriteUserFileAtomic` and the "user data changed" callback; `platform/Relaunch.*` has `Relaunch(args, gameName)`
+(Windows `CreateProcessW`); `platform/WebApi.cpp` is web only and holds the exported functions of 4.5 that need
+no running game; `web/modpanel.js` is appended with `--post-js` and leaves `Module.byopop`; `web/shell.html`
+restores the backup before it reads anything and handles restart and autostart; `cmake/ByopopWeb.cmake` has
+`byopop_web_game`, one function for every game's web link options (shell, `--post-js`, exported functions,
+runtime methods); `tools/rundesk/rundesk.c` runs its child in a job object and returns when the whole job has
+ended, so a relaunched game stays on the invisible desktop; `tools/modsettingstest/`, `tools/modmenutest/` and
+the JSON-only fixture mod `tools/fixtures/mods/settings-demo/` are the tests of 7.3.
 
 ## 3. `settings` in mod.json
 
@@ -119,14 +113,9 @@ applies", "High scores and saves"). Here is what the code adds to it.
 
 ### 3.1 Example
 
-The example is the fixture mod, `tools/fixtures/mods/settings-demo/mod.json`. In Bejeweled its settings behave
-so:
-
-| Setting(s) | Used in | Applies | Scores |
-|---|---|---|---|
-| `minRun`, `undo`, `undoDepth`, `shape` | `rules` | at the next game | score-affecting |
-| `replays` | `features` | at the next game | not score-affecting |
-| `praise`, `music` | `strings`, `files` | at a restart | cosmetic |
+The example is the fixture mod, `tools/fixtures/mods/settings-demo/mod.json`. In Bejeweled its `rules` settings
+apply at the next game and score; its `features` setting applies at the next game and does not score; its
+`strings` and `files` settings apply at a restart and are cosmetic.
 
 ### 3.2 Setting keys
 
@@ -138,25 +127,16 @@ already holds its effective value.
 
 ### 3.3 Types
 
-| Type | Stored as | Canonical text (score key and `map` lookup) |
-|---|---|---|
-| bool | `true` / `false` | `true` / `false` |
-| int | integer | decimal |
-| float | number | the 16 hex digits of the IEEE bits of the snapped value; no `map` |
-| choice | the choice's `value` | a string as it is, a number in decimal, a bool as `true`/`false` |
-| text | a UTF-8 string | the Latin-1 bytes with `%`, `&`, `=`, `?`, `;` and non-printable bytes escaped; no `map` |
-| color | lower-case `#rrggbb` or `#rrggbbaa` | the text itself; no `map` |
-
-Floats are snapped to `min + k*step` in scaled integers, so a value equals its JSON literal, and both platforms
-compute in IEEE double without fast-math: the bits are identical natively and in wasm, and no `printf`
-formatting takes part in the key.
+Canonical text, used by the score key and the `map` lookup: bool `true`/`false`; int decimal; float the 16 hex
+digits of the IEEE bits of the snapped value (no `map`); choice a string as it is, a number in decimal, a bool
+as `true`/`false`; text the Latin-1 bytes with `%`, `&`, `=`, `?`, `;` and non-printable bytes escaped (no
+`map`); color the lower-case text itself (no `map`). Floats are snapped to `min + k*step` in scaled integers,
+so a value equals its JSON literal, and both platforms compute in IEEE double without fast-math: the bits are
+identical natively and in wasm, and no `printf` formatting takes part in the key.
 
 ### 3.4 Placeholders
 
-A placeholder is an object whose only keys are `$setting`, `map` and `as`. It replaces itself, as a member value
-or an array element; there is no interpolation inside strings. `{"$omit": true}` removes a member or element,
-and `null` keeps its meaning in the data. `as: "string"` gives the text the menu shows (a float with its
-decimals), not the canonical text.
+Placeholders are described in MOD_MENU.md; `as: "string"` gives the text the menu shows, not the canonical text.
 
 `ModSettings::Resolve` runs in `ModManager::Apply`, and again in the next-game commit (6.2), over each enabled
 mod's manifest after its `tunables` and `rules` files are read. The result is the **effective manifest**, and
@@ -167,8 +147,7 @@ its manifest.
 On an error (an undeclared setting, a `map` with neither the value nor `"*"`, a wrong `as`, a placeholder in a
 forbidden key, nesting deeper than 8) the top-level key that holds the placeholder is ignored for that mod, as a
 mod whose rules fail their own checks is treated, and the error shows in the menu and in `mods-status.json`.
-The rules for paths and strings (no text or colour value as a file name, no map entry outside the mod folder,
-no `%` in a text used under `strings`) are in MOD_MENU.md; `LoadProperties` checks the keys whose game text has
+The rules for paths and strings are in MOD_MENU.md; `LoadProperties` checks the keys whose game text has
 printf conversions and replaces a mod text with other conversions by the game's, with a log line.
 
 ### 3.5 When a value applies (the derived level)
@@ -190,15 +169,10 @@ wrong `enabledIf` is ignored and an `apply` looser than the derived level gives 
 a `map` on a float, text or colour, or with keys that cannot match, is a placeholder error (3.4).
 `tools/modsettingstest` has every case.
 
-Stored values are normalised as they are read. Normalising never writes the file:
-
-| Stored value | Result |
-|---|---|
-| wrong type; a choice that no longer exists | the default, with a warning |
-| outside the range | clamped, with a warning |
-| a float off a step | snapped to the nearest step |
-| text too long | cut to `maxLength` |
-| characters outside the charset | replaced with `?` |
+Stored values are normalised as they are read, and normalising never writes the file: a wrong type, or a choice
+that no longer exists, gives the default, with a warning; a value outside the range is clamped, with a warning;
+a float off a step snaps to the nearest step; text too long is cut to `maxLength`; characters outside the
+charset become `?`.
 
 ### 3.7 Score key and RulesId
 
@@ -260,52 +234,49 @@ already initialised (`-sINVOKE_RUN=0`).
 
 `cmake/ByopopWeb.cmake` lists them all in `-sEXPORTED_FUNCTIONS`.
 
-| Function | In | What it does |
-|---|---|---|
-| `byopop_userdata_restore(dir)` | `platform/WebApi.cpp` | at boot, before any read (4.4) |
-| `byopop_mods_open(userDir, modsDir)` | | before `callMain`: sets the folders and scans the desired state |
-| `byopop_mods_state()` | | returns the state JSON |
-| `byopop_mods_edit(json)` | | `{op: "enable"\|"move"\|"set"\|"reset"\|"forget", mod, on?, delta?, setting?, value?}`; returns `""` or an error message |
-| `byopop_mods_rescan()` | | after a mod is added or removed |
-| `byopop_menu(on)` | `framework/ModMenu.cpp` | 1, 0 or -1 (toggle); returns 1 or 0 (open or not), or -1 when no game runs |
-| `byopop_restart(confirmed)` | | returns `{"result": "started"\|"confirm"\|"blocked"\|"none", "message"}`, so the page can ask the game's question |
+`byopop_userdata_restore(dir)` runs at boot before any read (4.4); `byopop_mods_open(userDir, modsDir)` before
+`callMain` sets the folders and scans the desired state; `byopop_mods_state()` returns the state JSON;
+`byopop_mods_edit(json)` takes `{op: "enable"|"move"|"set"|"reset"|"forget", mod, on?, delta?, setting?,
+value?}` and returns `""` or an error message; `byopop_mods_rescan()` follows a mod added or removed. These five
+are in `platform/WebApi.cpp`. `byopop_menu(on)` (`framework/ModMenu.cpp`) takes 1, 0 or -1 (toggle) and returns
+1 or 0 (open or not), or -1 when no game runs; `byopop_restart(confirmed)` returns `{"result":
+"started"|"confirm"|"blocked"|"none", "message"}`, so the page can ask the game's question.
 
 Events from the game to the page: `Module.onModsChanged()` (posted with `setTimeout`, never called inside an
 edit; several changes make one call), `Module.onModMenuFocus(text)` (5.6), `Module.onModPanel` (the menu's
 **Add or remove mods** button), `Module.onGameLoaded` (the rescue) and `Module.onGameExit(info)` (6.5).
 
-The state JSON, which `-dumpmods` and `modmenu dump` also write, has `running`, `nomods`, `dir`, the three score
-keys (2.2), `pending` (the labels waiting for a restart and for the next game) and, for each mod, its manifest
-fields, `enabled`, `applied`, `pending`, `scores`, `features`, `hasSettings`, `settingsFile`, `errors`,
-`warnings` and its settings: each with its declaration, `value`, `applied`, `level`, `scores`, `enabled`,
-`pending` and `noPercent`.
+The state JSON, which `-dumpmods` and `modmenu dump` also write, has the three score keys (2.2), `pending` (the
+labels waiting for a restart and for the next game) and, for each mod and each of its settings, the declaration,
+`value`, `applied`, `level`, `scores`, `enabled`, `pending`, `errors` and `warnings`; the fields are in
+`ModManager.cpp`.
 
 While the game runs, the panel and the in-game menu edit one in-memory model, so there is no two-writer
 problem. The panel reads everything through this API; the pages have no copy of the mod scan, the order or the
 gameplay tags, and no longer read `mods-status.json`.
 
-**The panel** (decision 4) lists the installed mods with their state, tags and errors and has **Add mod
-folder**, **Add mod .zip** and **Remove**; before the game starts also **Play without mods**; and, while the
-game runs and something waits, "Restart to apply: ..." with **Restart game**. The tool bar's Mods button opens
-the in-game menu while the game runs, and the panel before that.
+**The panel** (decision 4; `web/modpanel.js` has the rest) lists the installed mods with their state, tags and
+errors and has Add mod folder, Add mod .zip and Remove; before the game starts also Play without mods; and,
+while the game runs and something waits, "Restart to apply: ..." with Restart game. The tool bar's Mods button
+opens the in-game menu while the game runs, and the panel before that.
 
 - **Adding.** One upload may hold many mods: every folder in it with a `mod.json` or one of the game's folders
   is a mod, the outer one where they nest (`importMods`); paths that would leave the mod folder are dropped. A
   new version of a mod in use is staged in `<persist>/mods-incoming/<folder>` and replaces the folder at the
   next boot. Adding a mod cancels a queued removal of its folder.
 - **Removing.** A mod not in use is deleted at once, and `{"op": "forget"}` (`ModManager::EditForget`) takes its
-  id out of `mods.json`, so the same mod added later starts on; its values in `mod-settings.json` stay. A mod
-  the running game uses is turned off and queued in localStorage (`byopop-pending-remove:<game>`), because the
-  game may still read its files: the page deletes and forgets it at the next boot, before `byopop_mods_open`.
-  The panel offers **Keep** until then, and turning the mod on again in the menu counts as Keep.
-- **Input.** Keys typed in a panel or on the tool bar stop there; F2 on the tool bar still reaches the game and
-  moves the focus to it. Esc and F2 close a panel, and opening one leaves fullscreen. While a panel is open, a
-  press on the game closes the panel and reaches nothing else; its release and click are dropped too.
+  id out of `mods.json`, so the same mod added later starts on; its values stay. A mod the running game uses is
+  turned off and queued in localStorage (`byopop-pending-remove:<game>`), because the game may still read its
+  files: the page deletes and forgets it at the next boot, before `byopop_mods_open`. The panel offers Keep
+  until then, and turning the mod on again in the menu counts as Keep.
+- **Input.** Keys typed in a panel or on the tool bar stop there; F2 on the tool bar still reaches the game.
+  While a panel is open, a press on the game closes the panel and reaches nothing else; its release and click
+  are dropped too.
 - **The rescue.** The page marks a start with mods in localStorage (`byopop-starting:<game>`) and clears the
   mark when the game has loaded (`Module.onGameLoaded`, an `EM_JS` call in `SexyAppBase::DoUpdateFrames`) or
   quits. A mark found at the next boot means that start never finished: the page does not autostart and offers
-  **Play without mods**. `Module.onAbort` shows "The game stopped" with the same button, which reloads and
-  starts once with `-nomods`. Natively the only rescue before start is `-nomods`.
+  Play without mods. `Module.onAbort` shows "The game stopped" with the same button, which reloads and starts
+  once with `-nomods`. Natively the only rescue before start is `-nomods`.
 
 ### 4.6 Native: hand edits and two processes
 
@@ -331,18 +302,12 @@ changes, and each keeps its own applied state.
 
 ### 5.2 Pages
 
-The layout is in logical 640x480; the panel is `Rect(40, 24, 560, 432)`.
+The layout is in logical 640x480; the panel is `Rect(40, 24, 560, 432)`; the rest is in `framework/ModMenu.cpp`.
+The list page's checkbox box and 4 px around it are the only part of a row a click switches; "Settings" (or
+"About" for a mod without settings) opens the mod's page, as Enter does. Banner rows at the top say mods are off
+for this run or that `mod-settings.json` could not be read. An int has a slider when the range has at most 200
+steps, and a colour steps through a 16-colour palette.
 
-- **List page.** A row is 44 px tall and six are visible, with a 12 px scrollbar. A row has a checkbox (the box
-  and 4 px around it are the only part a click switches), the name and version, the badges SCORES, FEATURES,
-  ERROR and RESTART or NEXT GAME, a second line (author and description, or the first message), ▲ and ▼, and
-  "Settings" or, for a mod without settings, "About"; both open the mod's page, as Enter does. Banner rows at
-  the top say that mods are off for this run or that `mod-settings.json` could not be read. On the web the page
-  also has **Add or remove mods**.
-- **Mod page.** Every mod has one, with its whole description. A setting row is 30 px tall and nine are
-  visible; the label column is 230 px and the control column 270 px. An int has a slider beside its `-` value
-  `+` when the range has at most 200 steps, and a colour steps through a 16-colour palette. Each row has one
-  keyboard control, and its buttons, slider, arrows, field and checkbox are mouse targets.
 - **A click on a label or a row only focuses it** (the user, 2026-10-25: label and row clicks switched too
   easily); only the checkbox switches a bool or a mod.
 - **The message slot** under the content of every page is 34 px, two lines, reserved even when empty: on the
@@ -357,9 +322,8 @@ The layout is in logical 640x480; the panel is `Rect(40, 24, 560, 432)`.
 
 ### 5.3 Look
 
-One look for every game (decision 2), in `framework/ModMenu.cpp`, created when the menu first opens and drawn
-only with `FillRect`, `DrawRect` and `DrawLine`: a black backdrop at alpha 160, the panel `#1e2230` with a 1 px
-`#8a93b8` border, text white, dim `#b7bdd2`, focus ring `#ffd34d`, error `#ff6b6b`, warning `#ffb347`.
+One look for every game (decision 2), in `framework/ModMenu.cpp` (its colours are there), created when the menu
+first opens and drawn only with `FillRect`, `DrawRect` and `DrawLine`.
 
 The built-in font has a 12 px cell with an 8 px cap height and proportional advances. ASCII 32..126 is drawn by
 hand, and Latin-1 160..255 is composed from a base glyph and a diacritic table. Bold is drawn twice, one pixel
@@ -386,10 +350,9 @@ with "..." and shown in full in the footer when its row is focused. The menu's o
 
 ### 5.5 Input
 
-The keys are in MOD_MENU.md. Tab steps through every focusable control. The mouse clicks, scrolls with the
-wheel, drags a slider's thumb, and scrolls a list by a press that moves more than 6 px vertically; the hand
-cursor shows over what a click changes. SDL turns touches into mouse events, and hit targets are at least
-24 px. Text fields take `KeyChar` and `SDL_TEXTINPUT`, limited to their `charset` and `maxLength`.
+The keys are in MOD_MENU.md. A press that moves more than 6 px vertically scrolls a list; SDL turns touches into
+mouse events, and hit targets are at least 24 px. Text fields take `KeyChar` and `SDL_TEXTINPUT`, limited to
+their `charset` and `maxLength`.
 
 ### 5.6 Accessibility
 
@@ -429,10 +392,9 @@ in the font) and cached strings stand in the way.
 3. **Each `Board` snapshots its save and sidecar names** in its constructor (`ScopedSaveGameFileName`), and
    `SaveGame`, `~Board`, `WinDMApp::Shutdown` and `GetShutdownSaves` use the snapshot: `NewGame` deletes the old
    board deferred and calls `Load` right after, so a static name would put the old game's save under the new
-   key.
-4. **The users of `GetScoreKey()` and of scoped file names** were audited for this: `Board.cpp`,
-   `HighScoreWidget.cpp` (which keeps its own file name), `GameConfigMods.cpp` and `LiveSplitObserver.cpp`.
-5. **The mod sign.** `IsLiveSplitOnly` reads the effective manifest and ignores `settings`, so a livesplit mod
+   key. The other users of `GetScoreKey()` and of scoped file names (`Board.cpp`, `HighScoreWidget.cpp`, which
+   keeps its own file name, `GameConfigMods.cpp` and `LiveSplitObserver.cpp`) were audited for this.
+4. **The mod sign.** `IsLiveSplitOnly` reads the effective manifest and ignores `settings`, so a livesplit mod
    that gains options stays sign-free.
 
 The next-game filter is `GameConfig::IsNextGamePath`: every path under `rules`, `tunables` and `features` except
@@ -460,18 +422,9 @@ that overrides them says `override`.
 
 ### 6.4 Native relaunch
 
-A game's `main` ends with (`platform/Relaunch.h`):
-
-```cpp
-anApp->Shutdown();
-std::vector<std::string> aRestartArgs;
-bool restart = anApp->TakeRelaunch(&aRestartArgs);
-delete anApp;
-if (restart) Platform::Relaunch(aRestartArgs, "Bejeweled Deluxe");
-```
-
-Bejeweled, Bejeweled 2, Bejeweled Twist and Big Money have these lines. In a game without them, Restart game
-shuts the game down, saved as on Quit, and does not start it again.
+A game's `main` ends with the lines in `platform/Relaunch.h` (`Shutdown`, `TakeRelaunch(&args)`, `delete`, then
+`Platform::Relaunch(args, name)`). Bejeweled, Bejeweled 2, Bejeweled Twist and Big Money have them. In a game
+without them, Restart game shuts the game down, saved as on Quit, and does not start it again.
 
 `Relaunch` takes the exe from `GetModuleFileNameW`, converts the UTF-8 arguments to UTF-16 with MSVCRT quoting
 and calls `CreateProcessW` in the current directory with no inherited handles. On failure it says "Could not
@@ -506,57 +459,50 @@ running LiveSplit run (the ASL's `exit`). rundesk waits for the whole job, so a 
 
 ### 6.6 Games in progress
 
-| Case | What happens |
-|---|---|
-| restart, score key unchanged | the game is saved at shutdown, and "Continue your game?" is offered after the restart |
-| restart, key changed (a gameplay mod toggled, or a restart-level gameplay value) | the game is saved under the old key; the confirmation and the note at the change say so; it comes back when those mods or values are switched back |
-| a next-game gameplay value while a game is in progress or saved (Bejeweled) | held back (6.2); it never strands the game |
-| quit, or the tab closed, with restart-level changes pending | the changes are in the files and apply at the next start |
-| the page killed without unload events | the localStorage backup holds the save and both settings files |
-| the relaunch fails | the game was saved before the attempt, and a message says to start it again |
+A restart with the score key unchanged saves the game at shutdown and offers "Continue your game?" afterwards. A
+restart that changes the key (a gameplay mod toggled, or a restart-level gameplay value) saves it under the old
+key; the confirmation and the note at the change say so, and it comes back when those mods or values are
+switched back. A next-game gameplay value while a game is in progress or saved (Bejeweled) is held back (6.2),
+so it never strands the game. A quit or closed tab with restart-level changes pending leaves them in the files
+for the next start; a page killed without unload events leaves the save and both settings files in the
+localStorage backup; a failed relaunch leaves the game saved, with a message to start it again.
 
 ## 7. Fidelity and tests
 
 ### 7.1 Why nothing changes without the menu
 
-- The hotkey is on the real-input path only; scripted runs drop real input first, and no oracle or autoplay
-  script sends F2.
-- Nothing is created before the menu first opens: no menu, no font.
-- Loading is unchanged for mods without `settings`: the effective manifest is the manifest, so the tunables,
-  rules and features JSON, the RulesId and the score key are identical; a missing `mod-settings.json` gives no
-  read error, no log line and no write.
-- A game's Options button appears only when a mod has settings (8.2, 8.3), and none of the oracle's mods has.
-- The next-game commit returns at once when nothing is pending, and each board's snapshot names equal the static
-  names.
-- The proofs are the games' own comparisons (Bejeweled's oracle in all three variants, Big Money's script and
-  autoplay comparisons) and `fwtest`.
+The hotkey is on the real-input path only; scripted runs drop real input first, and no oracle or autoplay
+script sends F2. Nothing is created before the menu first opens: no menu, no font. Loading is unchanged for mods
+without `settings`: the effective manifest is the manifest, so the tunables, rules and features JSON, the
+RulesId and the score key are identical, and a missing `mod-settings.json` gives no read error, no log line and
+no write. A game's Options button appears only when a mod has settings (8.2, 8.3), and none of the oracle's mods
+has. The next-game commit returns at once when nothing is pending, and each board's snapshot names equal the
+static names. The proofs are the games' own comparisons (Bejeweled's oracle in all three variants, Big Money's
+script and autoplay comparisons) and `fwtest`.
 
 ### 7.2 Script commands and switches
 
 The `modmenu` commands are framework commands in `RunScript`, so every game has them: `open`, `close`,
-`page <modId>|list` (which opens the menu too), `enable <modId> 0|1`, `move <modId> -1|1`,
-`set <modId> <settingId> <value as JSON>`, `reset <modId>`, `restart [confirm]` (in a test run the shutdown save
-and a `restart: <args>` log line) and `dump <file>` (the state JSON). Their syntax is in
-`framework/SexyAppBase.h`.
-
-They use the UI's own functions: edits write the user dir, and page changes redraw. Keys inside the menu use
-`key UP|DOWN|LEFT|RIGHT|RETURN|ESCAPE`, `keydown`/`keyup` and `char x`; clicks use `click x y` at the layout
-coordinates of 5.2; `#` inside `"..."` is not a comment. **`key F2` deliberately does not toggle the menu**: it
-goes to `WidgetManager::KeyDown`, not to `HandleEvent`, and the hotkey is tested in `fwtest`. `-dumpmods` prints
-the state JSON and exits before the window opens. With `BYOPOP_RELAUNCH_TEST_ARGS` set, a test run really
-relaunches, with the kept arguments plus these (for example a second `-script` that ends in `quit`), under the
-same rundesk.
+`page <modId>|list` (which opens the menu too), `enable`, `move`, `set`, `reset`, `restart [confirm]` and
+`dump <file>` (the state JSON); their syntax is in `framework/SexyAppBase.h`. They use the UI's own functions:
+edits write the user dir, and page changes redraw. Keys inside the menu use `key UP|DOWN|LEFT|RIGHT|RETURN|ESCAPE`,
+`keydown`/`keyup` and `char x`; clicks use `click x y` at the layout coordinates of 5.2; `#` inside `"..."` is
+not a comment. **`key F2` deliberately does not toggle the menu**: it goes to `WidgetManager::KeyDown`, not to
+`HandleEvent`, and the hotkey is tested in `fwtest`. `-dumpmods` prints the state JSON and exits before the
+window opens. With `BYOPOP_RELAUNCH_TEST_ARGS` set, a test run really relaunches, with the kept arguments plus
+these (for example a second `-script` that ends in `quit`), under the same rundesk.
 
 ### 7.3 Tests
 
-| Test | Checks |
-|---|---|
-| `tools/modsettingstest` (native, and wasm under Node) | every validation case of 3.6 and the stored-value rules; placeholder resolution (map, as, the null and `$omit` rules, nesting, errors); level derivation; score-key vectors, including `example-relaxed@1.0` giving 58ebd9d7 with and without a defaults-only settings block; float bits equal on native and wasm; `DiffOwner` agrees with `VFS::Resolve` |
-| `tools/modmenutest/run_tests.sh` (scripted runs of a game with the fixture mod) | screens of the list, a mod page and the confirmations; the exact bytes of `mod-settings.json` and `mods.json` after edits, unknown keys kept, no write for a no-op, nothing written in the mods dir; keyboard-only use; opening and closing the menu mid-game leaves the trace as Options does; Bejeweled's next-game values (a value set mid-game leaves the running trace unchanged, is held while a game is saved, and commits at a fresh game); the restart in Bejeweled and Big Money (the shutdown save, the kept arguments, the value applied in the second run, and a real relaunch under rundesk with `BYOPOP_RELAUNCH_TEST_ARGS`) |
-| `tools/modmenutest/check_no_rand.py` | static: no `Rand` in the menu's sources (5.4) |
-| `fwtest` | SDL key events through `HandleEvent`: an F2 key-down toggles the menu; with modifiers, as a repeat or in script mode it does not |
-| the games' own comparisons | identity without the menu (7.1) |
-| the web pages, in the Browser pane with `?silent=1` | the panel's state equals native `-dumpmods`; F2 opens the menu; restart, autostart and Continue; a changed value survives a tab closed without unload events |
+The tests' own headers say what each checks: `tools/modsettingstest` (native, and wasm under Node: validation,
+placeholders, levels, score-key vectors such as `example-relaxed@1.0` giving 58ebd9d7 with and without a
+defaults-only settings block, float bits equal on both, `DiffOwner` agreeing with `VFS::Resolve`),
+`tools/modmenutest/run_tests.sh` (scripted games with the fixture mod: screens, the exact bytes of the two
+files after edits, keyboard-only use, the trace unchanged by opening the menu mid-game, Bejeweled's next-game
+values, restarts including a real relaunch under rundesk), `tools/modmenutest/check_no_rand.py` (5.4) and
+`fwtest` (an F2 key-down toggles the menu; with modifiers, as a repeat or in script mode it does not). The web
+pages in the Browser pane with `?silent=1` check that the panel's state equals native `-dumpmods`, F2, restart,
+autostart and Continue, and that a changed value survives a tab closed without unload events.
 
 ## 8. Per-game integration
 
@@ -573,8 +519,7 @@ menu from the framework: F2 opens it on any screen, and on the web its page is t
   has settings; otherwise the row is the original. It gates on an enabled mod, not on an installed one as Big
   Money does: the oracle's examples case has `example-settings` installed but off, and its Options screens must
   not change. While a feature mod adds to Extras (`WinDMApp::HasExtras`; not a mod that only turns on
-  `features.livesplit`), the slot holds the Extras button instead, and the Extras dialog (`ExtrasDialog.h`) has
-  the "Mods..." button while an enabled mod has settings.
+  `features.livesplit`), the slot holds the Extras button, and the Extras dialog has the "Mods..." button.
 - **Next-game values and per-board names:** 6.2. Main sets the next-game filter before `Refresh`.
 - **`GetModMessages`:** the rules errors, dropped mods and warnings of `RulesStatus` per mod, as of the last new
   game; a mod's page shows them.
@@ -604,9 +549,9 @@ menu from the framework: F2 opens it on any screen, and on the web its page is t
 
 ### 8.4 BookWorm (BookWorm session, M7)
 
-The stage as planned is not built: `games/bookworm/src/main.cpp` has no relaunch lines and no `-dumpmods`, so
-Restart game shuts BookWorm down, saved as on Quit, and does not start it again, and Options has no MODS button.
-What BookWorm has: the shared part (8.1), the menu on F2 and the shared web page; its high scores and saved
-games kept apart by the score key (`ScoreKeySuffix`, `games/bookworm/src/ModFeatures.h`); and feature mods whose
-settings it reads live (`GetLiveValue`). A mod that changes its word list or other play data must count for the
-key (`"affectsScores": true`).
+`games/bookworm/src/main.cpp` has no relaunch lines and no `-dumpmods`, so Restart game shuts BookWorm down,
+saved as on Quit, and does not start it again, and Options has no MODS button. What BookWorm has: the shared
+part (8.1), the menu on F2 and the shared web page; its high scores and saved games kept apart by the score key
+(`ScoreKeySuffix`, `games/bookworm/src/ModFeatures.h`); and feature mods whose settings it reads live
+(`GetLiveValue`). A mod that changes its word list or other play data must count for the key
+(`"affectsScores": true`).
