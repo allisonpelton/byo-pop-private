@@ -21,8 +21,8 @@ class Piranha : public Enemy
 {
 public:
 	bool					mPlayedSound;			// +0x10 the sound of coming in was played (Update, state 1)
-	bool					mFlag11;				// +0x11 ctor 0
-	bool					mFlag12;				// +0x12 ctor 0
+	bool					mAlwaysFalseA;				// +0x11 constructor false; never read and never set again
+	bool					mAlwaysFalseB;				// +0x12 constructor false; never read and never set again
 	int						mType;					// +0x14 constructor argument 2
 	double					mSavedVelX;				// +0x18 the speed to come back to after the dash; -1 = none yet
 	bool					mEntered;				// +0x20 state 1 has brought the fish on to the screen

@@ -10,7 +10,9 @@
 // their own, 0x450dc0 for the abyss and adventure panels and 0x450a50 for the tutorial panel).
 //
 // Not translated: the allocator code of the vector<Widget*> (0x4511c0 push_back shared with the TabbedWidget's
-// vector<TabPanel*>), the destructor's thunk and deleting destructors (the C++ destructor chain).
+// vector<TabPanel*>), the destructor's thunk and deleting destructors (the C++ destructor chain), and slots 48 and 49,
+// AddChild 0x4516a0 (that push_back) and GetChild 0x4446f0, which no play of the original reaches (the panels fill mChildren
+// themselves).
 
 #include "Widget.h"
 #include <vector>
@@ -36,8 +38,6 @@ public:
 	virtual void			RemovedFromManager(WidgetManager* theWidgetManager) override;	// 0x43fbe0 slot 2 (calls the base only)
 
 	virtual void			SetShown(bool theShow);							// 0x442a10 slot 47 the TabbedWidget calls it on a tab change
-	virtual void			AddChild(Widget* theChild);						// 0x4516a0 slot 48
-	virtual Widget*			GetChild(int theIndex);							// 0x4446f0 slot 49
 
 	void					BringChildrenToFront();							// 0x442aa0 the TabbedWidget calls it after adding the panels
 };

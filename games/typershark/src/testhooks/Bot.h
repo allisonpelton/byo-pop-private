@@ -37,7 +37,7 @@ struct BotCreature
 	double		mY;
 	int			mState;
 	bool		mVisible;
-	bool		mBlocked;		// a bonus creature's mFlag19: Board::KeyChar skips it
+	bool		mBlocked;		// a bonus creature's mStealthy: Board::KeyChar skips it
 	bool		mIsTarget;		// the board is locked on it
 	int			mType;			// a clam's kind (0 a dud, 1 and 2 pair up), -1 for the others
 

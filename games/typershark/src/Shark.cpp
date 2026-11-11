@@ -26,9 +26,9 @@ Shark::Shark(WinWSApp* theApp) :
 	mTextOffsetX = 11;
 	mFrameDelay = 8;
 	mState = 0;
-	mFlagD0 = false;
+	mBiteEventSent = false;
 	mNumFrames = 20;
-	mFlag1a = false;
+	mPlayerDiesSoundPlayed = false;
 	mFrame = gGameRand->NextNoAssert() % mNumFrames;
 	mTextColor = Color(0, 0, 0);
 	mTypedColor = Color(255, 255, 100);
@@ -43,6 +43,7 @@ Shark::Shark(WinWSApp* theApp) :
 	mFrameOffset = 0;
 }
 
+// port: nothing to free here; the compiler's destructor chain does the rest
 Shark::~Shark()
 {
 }
@@ -66,9 +67,9 @@ void Shark::Update()
 			if (mState == 3)
 			{
 				mFrame = 5;
-				if (!mFlag18)
+				if (!mDeathFinished)
 				{
-					mFlag18 = true;
+					mDeathFinished = true;
 					mEvents.push_back(6);
 				}
 			}
@@ -135,19 +136,19 @@ void Shark::Update()
 	else if (mState == 1 && !mEntered)
 	{
 		mX += mVelX;
-		if (!mFlagD0)
+		if (!mBiteEventSent)
 		{
 			if (mX >= -70.0)
 			{
-				if (!mFlag1a)
+				if (!mPlayerDiesSoundPlayed)
 				{
 					mApp->PlaySample(SOUND_PLAYERDIES);
-					mFlag1a = true;
+					mPlayerDiesSoundPlayed = true;
 				}
 				if (mX >= -110.0)
 				{
 					mEvents.push_back(2);
-					mFlagD0 = true;
+					mBiteEventSent = true;
 					mEntered = true;
 				}
 			}
@@ -159,7 +160,7 @@ void Shark::Update()
 	{
 		if (mState == 5)
 		{
-			if (mField2c <= 0)
+			if (mShockTogglesLeft <= 0)
 			{
 				mVelY = 1.0;
 				mFrameDelay = 4;
@@ -167,12 +168,12 @@ void Shark::Update()
 				SetState(3);
 				return;
 			}
-			if (mTick % mField28 == 0)
+			if (mTick % mShockPeriod == 0)
 			{
-				mFlag30 = !mFlag30;
-				mField2c--;
+				mShockShowing = !mShockShowing;
+				mShockTogglesLeft--;
 			}
-			if (mFlag30)
+			if (mShockShowing)
 			{
 				mFrameHeight = mApp->mImages[IMAGE_SHARKSHOCK]->GetHeight();
 				mFrameWidth = mApp->mImages[IMAGE_SHARKSHOCK]->GetWidth();
@@ -273,8 +274,8 @@ void Shark::SetState(int theState)
 			mFlashPeriod = 5;
 			mFlashCount = 10;
 			mImage = mImages[0];
-			mFlag30 = false;
-			mField2c = 0;
+			mShockShowing = false;
+			mShockTogglesLeft = 0;
 			mFrameOffset = mFrame * mFrameWidth;
 			return;
 		}
@@ -283,10 +284,10 @@ void Shark::SetState(int theState)
 		{
 			mFrameOffset = 0;
 			mFrame = 0;
-			mFlag30 = true;
-			mField28 = 7;
-			mField2c = 6;
-			if (!mFlag50)
+			mShockShowing = true;
+			mShockPeriod = 7;
+			mShockTogglesLeft = 6;
+			if (!mKilledByEmp)
 				mApp->PlaySample(SOUND_SHARKDIES);
 			mFrameHeight = mImages[1]->GetHeight();
 			mFrameWidth = mImages[1]->GetWidth();
@@ -314,8 +315,8 @@ void Shark::SetState(int theState)
 	mFlashCount = 0;
 	if (theState != 5)
 	{
-		mFlag30 = false;
-		mField2c = 0;
+		mShockShowing = false;
+		mShockTogglesLeft = 0;
 	}
 	mFrameOffset = mFrame * mFrameWidth;
 }

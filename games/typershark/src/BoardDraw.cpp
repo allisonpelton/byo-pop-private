@@ -80,8 +80,8 @@ void Sexy::DrawTwoColorString(Graphics* g, int theX, int theY, const std::string
 int Board::GetLevelBonus()
 {
 	int aFactor = 11;
-	if (mPlayer->mField114 < 12)
-		aFactor = mPlayer->mField114 + 1;
+	if (mPlayer->mLevelNumber < 12)
+		aFactor = mPlayer->mLevelNumber + 1;
 	int aBonus = (mApp->mDifficulty + 1) * aFactor * 1000;
 	if (aBonus > 60000)
 		aBonus = 60000;
@@ -105,8 +105,8 @@ int Board::GetBossBonus()
 	return 100000;
 }
 
-// 0x43ff90: the words per minute of the level, adjusted for the mistakes (mField0f68 is the count of the letters typed right and
-// mField0f6c the count of the mistakes: the quotient with a fifth of a word per letter). The two branches differ only in
+// 0x43ff90: the words per minute of the level, adjusted for the mistakes (mLettersRight is the count of the letters typed right and
+// mLettersWrong the count of the mistakes: the quotient with a fifth of a word per letter). The two branches differ only in
 // how the first product is rounded; the original computes the inverse of the minutes once and keeps it.
 int Board::GetTypingSpeed()
 {
@@ -114,11 +114,11 @@ int Board::GetTypingSpeed()
 	double anInverse = 1.0 / aMinutes;
 	double aWords;
 	if (aMinutes < 1.0)
-		aWords = ((double)mField0f68 * anInverse * 0.2) / (anInverse * aMinutes);
+		aWords = ((double)mLettersRight * anInverse * 0.2) / (anInverse * aMinutes);
 	else
-		aWords = (double)mField0f68 * 0.2 * anInverse;
+		aWords = (double)mLettersRight * 0.2 * anInverse;
 	int aWordCount = Ftol(aWords);
-	return Ftol((double)aWordCount * 0.75 - (double)mField0f6c * 0.2 * anInverse);
+	return Ftol((double)aWordCount * 0.75 - (double)mLettersWrong * 0.2 * anInverse);
 }
 
 // 0x440010: the next rank's score: the steps of 150000 up to 0x594390, then the five fixed ones; -5 once the top is reached
@@ -142,10 +142,10 @@ int Board::GetNextGoal()
 // 500) plus 3000, at most 100000
 int Board::GetFinishBonus()
 {
-	int aWords = mField0e8c;
+	int aWords = mAccurateLevels;
 	if (aWords > 6)
 		aWords = 6;
-	int aLevelFactor = mPlayer->mField114;
+	int aLevelFactor = mPlayer->mLevelNumber;
 	if (aLevelFactor > 8)
 		aLevelFactor = 8;
 	else
@@ -163,15 +163,15 @@ int Board::GetStreakBonus()
 	switch (mApp->mDifficulty)
 	{
 	case 0:
-		return (mField0f30 + 1) * 50;
+		return (mBonusWordCount + 1) * 50;
 	case 1:
-		return mField0f30 * 100 + 150;
+		return mBonusWordCount * 100 + 150;
 	case 2:
-		return mField0f30 * 250 + 450;
+		return mBonusWordCount * 250 + 450;
 	case 3:
-		return mField0f30 * 600 + 1000;
+		return mBonusWordCount * 600 + 1000;
 	case 4:
-		return mField0f30 * 1050 + 3800;
+		return mBonusWordCount * 1050 + 3800;
 	}
 	return 0;
 }
@@ -343,7 +343,7 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the sea
-	if (mField0d20 > -70.0 || mLessonManager->IsBonusLevel())
+	if (mFarMountainsY > -70.0 || mLessonManager->IsBonusLevel())
 	{
 		if (mApp->Is3DAccelerated() && mFastCPU && mFadeAlpha <= 0xaa)
 			BuildWaterImage(g);
@@ -360,17 +360,17 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the three mountain ranges and the floor, or in a bonus level the sand and the coral shelf
-	if ((double)mHeight > mField0e10 && mField0e10 != -1.0 && !mLessonManager->IsBonusLevel())
+	if ((double)mHeight > mOceanFloorY && mOceanFloorY != -1.0 && !mLessonManager->IsBonusLevel())
 	{
-		g->DrawImage(mApp->mImages[IMAGE_MOUNTAIN3], 0, (int)mField0d20);
-		g->DrawImage(mApp->mImages[IMAGE_MOUNTAIN2], 0, (int)mField0d18);
-		g->DrawImage(mApp->mImages[IMAGE_MOUNTAIN1], 0, (int)mField0d10);
-		g->DrawImage(mApp->mImages[IMAGE_OCEANFLOOR], 0, (int)mField0e10);
+		g->DrawImage(mApp->mImages[IMAGE_MOUNTAIN3], 0, (int)mFarMountainsY);
+		g->DrawImage(mApp->mImages[IMAGE_MOUNTAIN2], 0, (int)mMidMountainsY);
+		g->DrawImage(mApp->mImages[IMAGE_MOUNTAIN1], 0, (int)mNearMountainsY);
+		g->DrawImage(mApp->mImages[IMAGE_OCEANFLOOR], 0, (int)mOceanFloorY);
 	}
 	else if (mLessonManager->IsBonusLevel())
 	{
-		g->DrawImage(mApp->mImages[IMAGE_SAND], 0, (int)mField0e10);
-		g->DrawImage(mApp->mImages[IMAGE_CORALSHELF], 0x7e, (int)mField0e10);
+		g->DrawImage(mApp->mImages[IMAGE_SAND], 0, (int)mOceanFloorY);
+		g->DrawImage(mApp->mImages[IMAGE_CORALSHELF], 0x7e, (int)mOceanFloorY);
 	}
 
 	for (unsigned int i = 0; i < mBackgroundFish.size(); i++)
@@ -391,10 +391,10 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the hint of the first game: while the player has not seen the tutorial, the diver is in state 0
-	if (!mApp->mUser->mFlag1dc && mPlayer->mState == 0)
+	if (!mApp->mUser->mSeenTutorial && mPlayer->mState == 0)
 	{
 		g->SetFont(mApp->mFontRockwell13);
-		g->SetColor(Color(255, 255, 255, mField0ea4));
+		g->SetColor(Color(255, 255, 255, mHintAlpha));
 		WriteCenteredLine(g, 0x91, GT(0x005306b4));
 		WriteCenteredLine(g, (int)((double)g->GetFont()->GetHeight() + 145.0), GT(0x00530680));
 	}
@@ -509,7 +509,7 @@ void Board::Draw(Graphics* g)
 	}
 
 	int aState = mPlayer->mState;
-	if (aState == 4 && mFlag0f80 && mRating->mAlpha == 0)
+	if (aState == 4 && mScreenClear && mRating->mAlpha == 0)
 	{
 		// state 4, the bonus level of the air tank (or of the clams): the instructions, then the tank that fills up
 		g->SetFont(mApp->mFontRockwell13);
@@ -539,8 +539,8 @@ void Board::Draw(Graphics* g)
 		Image* aGauge = mApp->mImages[IMAGE_AIRGAUGE];
 		int aGaugeX = mWidth / 2 - aGauge->GetWidth() / 2;
 		g->DrawImage(aGauge, aGaugeX, aTankY);
-		g->SetColor(Color(0, 255, 0, mField0f44));
-		g->FillRect(aGaugeX + 0x13, aTankY + 7, (int)mField0f38, 0xf);
+		g->SetColor(Color(0, 255, 0, mAirFillAlpha));
+		g->FillRect(aGaugeX + 0x13, aTankY + 7, (int)mAirGauge, 0xf);
 		g->SetFont(mApp->mFontRockwell13);
 		g->SetColor(Color(255, 255, 255));
 		std::string aTankText = GT(0x005305e8);		// "FILLING UP AIR TANK!"
@@ -559,7 +559,7 @@ void Board::Draw(Graphics* g)
 			std::string aText = GT(0x00530600);		// "Type as many words as you can before your air runs out!"
 			g->SetColor(Color(255, 255, 255));
 			WriteCenteredLine(g, g->GetFont()->GetHeight() + mSurfaceHeight, aText);
-			if (mString0f10 != "" && !mPaused)
+			if (mBonusWord != "" && !mPaused)
 			{
 				// the value of the word under the diver, then the word with the part typed in another colour
 				g->SetFont(mApp->mFontRockwell13);
@@ -568,8 +568,8 @@ void Board::Draw(Graphics* g)
 				DrawTwoColorString(g, 0, mFloorY - aFontHeight * 4, GT(0x00530580), Color(0, 255, 0), mApp->mFontRockwell13,		// "Word value: "
 					aValue + GT(0x00530590), Color(255, 194, 0), mApp->mFontRockwell13, mWidth, true);								// " pts"
 				aFontHeight = mApp->mFontMyriadCondensed28BoldGL->GetHeight();
-				std::string aRest = mString0f10.substr(mField0f2c, mString0f10.length());
-				std::string aDone = mString0f10.substr(0, mField0f2c);
+				std::string aRest = mBonusWord.substr(mBonusWordPos, mBonusWord.length());
+				std::string aDone = mBonusWord.substr(0, mBonusWordPos);
 				DrawTwoColorString(g, 0, mFloorY - aFontHeight * 2, aDone, Color(0, 230, 0), mApp->mFontMyriadCondensed28BoldGL,
 					aRest, Color(255, 255, 255), mApp->mFontMyriadCondensed28Bold, mWidth, true);
 			}
@@ -590,8 +590,8 @@ void Board::Draw(Graphics* g)
 		Image* aGauge = mApp->mImages[IMAGE_AIRGAUGE];
 		int aGaugeX = mWidth / 2 - aGauge->GetWidth() / 2;
 		g->DrawImage(aGauge, aGaugeX, aTankY);
-		g->SetColor(Color(0, 255, 0, mField0f44));
-		g->FillRect(aGaugeX + 0x13, aTankY + 7, (int)mField0f38, 0xf);
+		g->SetColor(Color(0, 255, 0, mAirFillAlpha));
+		g->FillRect(aGaugeX + 0x13, aTankY + 7, (int)mAirGauge, 0xf);
 	}
 	else if (aState == 6 || aState == 0xc)
 	{
@@ -600,33 +600,33 @@ void Board::Draw(Graphics* g)
 		if (!mLessonManager->IsBonusLevel())
 		{
 			g->SetFont(aFont);
-			g->SetColor(Color(255, 255, 255, mField0f04));
+			g->SetColor(Color(255, 255, 255, mTreasureAlpha));
 			WriteCenteredLine(g, 0x41, GT(0x00530438));		// "You found"
 			int anAscent = g->GetFont()->GetAscent();
-			if (mFlag0f08)
+			if (mTreasureFading)
 			{
 				g->SetColorizeImages(true);
-				g->SetColor(Color(255, 255, 255, mField0f04));
+				g->SetColor(Color(255, 255, 255, mTreasureAlpha));
 			}
 			int aTreasureIndex = mApp->GetTreasureIndex();
 			Image* aTreasure = mApp->mImages[aTreasureIndex];
 			int aTreasureX = (mWidth >> 1) - (aTreasure->mWidth >> 1);
 			int aTreasureY = (int)((double)anAscent + 65.0);
 			g->DrawImage(mApp->mImages[mApp->GetTreasureIndex()], aTreasureX, aTreasureY);
-			if (mFlag0f08)
+			if (mTreasureFading)
 				g->SetColorizeImages(false);
 
-			// three sparkles (the position and the frame of each are mField0ec0, in groups of three)
+			// three sparkles (the position and the frame of each are mSparkles, in groups of three)
 			g->SetDrawMode(1);
-			g->SetColor(Color(255, 255, 255, mField0f04));
+			g->SetColor(Color(255, 255, 255, mTreasureAlpha));
 			g->SetColorizeImages(true);
 			Image* aSparkle = mApp->mImages[IMAGE_SPARKLE_LARGE];
-			Rect aSrc1(mField0ec0[2] * 40, 0, 0x28, aSparkle->mHeight);
-			g->DrawImage(mApp->mImages[IMAGE_SPARKLE_LARGE], mField0ec0[0] + aTreasureX, mField0ec0[1] + aTreasureY, aSrc1);
-			Rect aSrc2(mField0ec0[5] * 40, 0, 0x28, mApp->mImages[IMAGE_SPARKLE_LARGE]->mHeight);
-			g->DrawImage(mApp->mImages[IMAGE_SPARKLE_LARGE], mField0ec0[3] + aTreasureX, mField0ec0[4] + aTreasureY, aSrc2);
-			Rect aSrc3(mField0ec0[8] * 40, 0, 0x28, mApp->mImages[IMAGE_SPARKLE_LARGE]->mHeight);
-			g->DrawImage(mApp->mImages[IMAGE_SPARKLE_LARGE], mField0ec0[6] + aTreasureX, mField0ec0[7] + aTreasureY, aSrc3);
+			Rect aSrc1(mSparkles[2] * 40, 0, 0x28, aSparkle->mHeight);
+			g->DrawImage(mApp->mImages[IMAGE_SPARKLE_LARGE], mSparkles[0] + aTreasureX, mSparkles[1] + aTreasureY, aSrc1);
+			Rect aSrc2(mSparkles[5] * 40, 0, 0x28, mApp->mImages[IMAGE_SPARKLE_LARGE]->mHeight);
+			g->DrawImage(mApp->mImages[IMAGE_SPARKLE_LARGE], mSparkles[3] + aTreasureX, mSparkles[4] + aTreasureY, aSrc2);
+			Rect aSrc3(mSparkles[8] * 40, 0, 0x28, mApp->mImages[IMAGE_SPARKLE_LARGE]->mHeight);
+			g->DrawImage(mApp->mImages[IMAGE_SPARKLE_LARGE], mSparkles[6] + aTreasureX, mSparkles[7] + aTreasureY, aSrc3);
 			g->SetColorizeImages(false);
 			g->SetDrawMode(0);
 
@@ -634,22 +634,22 @@ void Board::Draw(Graphics* g)
 			std::string aTreasureName = mApp->GetTreasureName();
 			std::string aGemName = mApp->GetGemName();
 			std::string aText = GT(0x00530430) + aGemName + " " + aTreasureName + "!";
-			g->SetColor(Color(255, 255, 255, mField0f04));
+			g->SetColor(Color(255, 255, 255, mTreasureAlpha));
 			WriteCenteredLine(g, (int)((double)mApp->mImages[mApp->GetTreasureIndex()]->mHeight + (double)anAscent + 120.0), aText);
 
 			aText = StrFormat(GTC(0x00530424), GetLevelBonus());		// "+%d pts"
-			g->SetColor(Color(0, 255, 0, mField0f04));
+			g->SetColor(Color(0, 255, 0, mTreasureAlpha));
 			WriteCenteredLine(g, (int)((double)mApp->mImages[mApp->GetTreasureIndex()]->mHeight + (double)(anAscent * 2) + 120.0), aText);
 
-			g->SetColor(Color(255, 255, 255, mField0f04));
+			g->SetColor(Color(255, 255, 255, mTreasureAlpha));
 			if (mPlayer->mState == 0xc)
 				aText = StrFormat(GTC(0x00530410), GetBossBonus());		// "Bonus points: %d"
 			else
-				aText = StrFormat(GTC(0x00530400), mField0f30);			// "Bonus words: %d"
+				aText = StrFormat(GTC(0x00530400), mBonusWordCount);			// "Bonus words: %d"
 			WriteCenteredLine(g, (int)((double)mApp->mImages[mApp->GetTreasureIndex()]->mHeight + (double)(anAscent * 3) + 120.0), aText);
 			if (mPlayer->mState != 0xc)
 			{
-				aText = StrFormat(GTC(0x00530410), mField0f0c);
+				aText = StrFormat(GTC(0x00530410), mBonusWordPoints);
 				WriteCenteredLine(g, (int)((double)mApp->mImages[mApp->GetTreasureIndex()]->mHeight + (double)(anAscent * 4) + 120.0), aText);
 			}
 		}
@@ -671,11 +671,11 @@ void Board::Draw(Graphics* g)
 	else if (aState == 7)
 	{
 		// state 7, the level is complete: the sonar screen with the typing speed, the accuracy, the bonus and the rank
-		int aAccuracy = Ftol((double)mField0f68 / (double)(mField0f6c + mField0f68) * 100.0);
+		int aAccuracy = Ftol((double)mLettersRight / (double)(mLettersWrong + mLettersRight) * 100.0);
 		g->SetColor(Color(0, 0, 0, 0x80));
 		g->FillRect(0, 0x19, mWidth, (int)((double)mHeight - 25.0));
 		Image* aSonar = mApp->mImages[IMAGE_SONAR_BG];
-		if (mField0ef8 == 0xff)
+		if (mSonarAlpha == 0xff)
 		{
 			g->DrawImage(aSonar, 0x140 - (aSonar->mWidth >> 1), 0x17);
 			g->SetFont(mApp->mFontMyriadCondensed14Bold);
@@ -706,10 +706,10 @@ void Board::Draw(Graphics* g)
 					g->SetFont(mApp->mFont12pt);
 					g->SetColor(Color(0x3c, 0xa0, 0x78));
 					g->DrawString(StrFormat(GTC(0x005304c0), GetFinishBonus()), 0xbe, aLineY);		// "Accuracy Bonus +%d points "
-					if (mField0e8c > 1)
+					if (mAccurateLevels > 1)
 					{
 						aLineY = aLineY + mApp->mFontMyriadCondensed14Bold->GetAscent();
-						g->DrawString(StrFormat(GTC(0x0053049c), mField0e8c), 0xbe, aLineY);			// "95%% or higher accuracy %d times"
+						g->DrawString(StrFormat(GTC(0x0053049c), mAccurateLevels), 0xbe, aLineY);			// "95%% or higher accuracy %d times"
 					}
 				}
 			}
@@ -736,26 +736,26 @@ void Board::Draw(Graphics* g)
 				aNext = StrFormat(GTC(0x00530444), GetNextGoal());	// "Next rank at %d points"
 			g->DrawString(aNext, 0xbe, aLineY);
 			int aSonarX = 0x140 - (aSonar->mWidth >> 1);
-			if (mImage0ee8 != NULL)
-				g->DrawImage(mImage0ee8, aSonarX + 0xb6, 0x32);
-			if (mImage0eec != NULL)
-				g->DrawImage(mImage0eec, aSonarX + 0xb6, 0xcd);
-			if (mImage0ef0 != NULL)
-				g->DrawImage(mImage0ef0, aSonarX + 0x1b, 0xcd);
-			if (mImage0ef4 != NULL)
-				g->DrawImage(mImage0ef4, aSonarX + 0x1b, 0x32);
+			if (mSonarTopRightImage != NULL)
+				g->DrawImage(mSonarTopRightImage, aSonarX + 0xb6, 0x32);
+			if (mSonarBottomRightImage != NULL)
+				g->DrawImage(mSonarBottomRightImage, aSonarX + 0xb6, 0xcd);
+			if (mSonarBottomLeftImage != NULL)
+				g->DrawImage(mSonarBottomLeftImage, aSonarX + 0x1b, 0xcd);
+			if (mSonarTopLeftImage != NULL)
+				g->DrawImage(mSonarTopLeftImage, aSonarX + 0x1b, 0x32);
 		}
 		else
 		{
 			// the sonar pictures fade in before the text appears
 			int aSonarX = 0x140 - (aSonar->mWidth >> 1);
 			g->SetColorizeImages(true);
-			g->SetColor(Color(255, 255, 255, mField0ef8));
-			g->DrawImage(mImage0ee8, aSonarX + 0xb6, 0x32);
-			g->DrawImage(mImage0eec, aSonarX + 0xb6, 0xcd);
+			g->SetColor(Color(255, 255, 255, mSonarAlpha));
+			g->DrawImage(mSonarTopRightImage, aSonarX + 0xb6, 0x32);
+			g->DrawImage(mSonarBottomRightImage, aSonarX + 0xb6, 0xcd);
 			aSonarX = aSonarX + 0x1b;
-			g->DrawImage(mImage0ef0, aSonarX, 0xcd);
-			g->DrawImage(mImage0ef4, aSonarX, 0x32);
+			g->DrawImage(mSonarBottomLeftImage, aSonarX, 0xcd);
+			g->DrawImage(mSonarTopLeftImage, aSonarX, 0x32);
 			g->SetColorizeImages(false);
 		}
 	}
@@ -764,7 +764,7 @@ void Board::Draw(Graphics* g)
 	ProjectileBoss* aBoss = dynamic_cast<ProjectileBoss*>(mBoss);
 	if (mBoss != NULL && aBoss->mHitPoints > 0)
 	{
-		double aRatio = (double)aBoss->mHitPoints / (double)aBoss->mField10c;
+		double aRatio = (double)aBoss->mHitPoints / (double)aBoss->mMaxHitPoints;
 		g->DrawImage(mApp->mImages[IMAGE_BOSS_METER], 0x7c, 0x26);
 		Rect aSrc(0, 0, (int)(aRatio * 294.0), 0x14);
 		g->DrawImage(mApp->mImages[IMAGE_BOSS_METER_FILL], 0xa0, 0x30, aSrc);
@@ -814,12 +814,12 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the title that fades out after the level starts: "Level N" (a picture), or in a bonus level the secret level's name
-	if (mField0e54 > 0 && !mPaused)
+	if (mLevelTitleAlpha > 0 && !mPaused)
 	{
 		if (!mLessonManager->IsBonusLevel())
 		{
 			g->SetColorizeImages(true);
-			g->SetColor(Color(255, 255, 255, mField0e54));
+			g->SetColor(Color(255, 255, 255, mLevelTitleAlpha));
 			Rect aSrc(0, 0, 400, 0x32);
 			g->DrawImage(mApp->mImages[IMAGE_TEXTOVERS], (mWidth >> 1) - 200, ((mHeight - 0x18) >> 1) - 0x19, aSrc);
 			g->SetColorizeImages(false);
@@ -827,7 +827,7 @@ void Board::Draw(Graphics* g)
 		else
 		{
 			g->SetFont(mApp->mFontSwissCheesed24);
-			g->SetColor(Color(0xfd, 0xa0, 0x3d, mField0e54));
+			g->SetColor(Color(0xfd, 0xa0, 0x3d, mLevelTitleAlpha));
 			WriteCenteredLine(g, (mHeight >> 1) - (mApp->mFontSwissCheesed24->GetHeight() >> 1), GT(0x005305d4));		// "SECRET BONUS LEVEL!"
 		}
 	}

@@ -16,7 +16,7 @@ StealthRedShark::StealthRedShark(WinWSApp* theApp) :
 	RedShark(theApp),
 	StealthShark(theApp)
 {
-	mFlag19 = true;
+	mStealthy = true;
 	mTypedColor = Color(255, 255, 255);
 	mTextColor = Color(0, 0, 0);
 	mStealthImages.resize(6);
@@ -47,14 +47,14 @@ void StealthRedShark::SetState(int theState)
 	BlackShark::SetState(theState);
 	if (mState == 0)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[0];
 		else
 			mImage = mImages[0];
 	}
 	else if (mState == 3)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[2];
 		else
 			mImage = mImages[2];

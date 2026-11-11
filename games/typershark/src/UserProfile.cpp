@@ -17,6 +17,7 @@ static void WriteFileInt(Buffer& theBuffer, int theValue)
 	theBuffer.WriteString(StrFormat("%d", theValue));
 }
 
+// port: a number of the profile file, which holds each as text
 static int ReadFileInt(Buffer& theBuffer)
 {
 	return (int)atol(theBuffer.ReadString().c_str());
@@ -28,14 +29,14 @@ void UserProfile::InitDefaults()
 {
 	int i;
 
-	mFlag1fc = true;
-	mField1e4 = -1;
-	mFlag1dc = false;
-	mField1ec = 0;
-	mField1e8 = 0;
+	mHintBoxesWanted = true;
+	mAbyssBossIndex = -1;
+	mSeenTutorial = false;
+	mSavedScoreBackup = 0;
+	mEndlessLevelsPlayed = 0;
 	mSpacePauses = false;
-	mField1f4 = 0;
-	mField1f8 = 0;
+	mGameSharksKilled = 0;
+	mGamePiranhasKilled = 0;
 	mName = "";
 	mUserNumber = 0;
 	mBestDepth = 0;
@@ -48,64 +49,64 @@ void UserProfile::InitDefaults()
 	mKillCount[3] = 0;
 	mAbyssSharksKilled = 0;
 	mAbyssPiranhasKilled = 0;
-	mField280 = 0;
+	mVisitedDifficulty = 0;
 	mGameVersion = mApp->mProductVersion;       // 0x3b8 of the app
 	mLastLesson = 0;
 	for (i = 0; i < 0x24; i++)
-		mField25c[i] = 0;
+		mVisitedLevels[i] = 0;
 	mLastScore = 0;
 	mLastMode = 0;
 	mLastDepth = 0;
-	mField0c = 0;
+	mLastLevelReached = 0;
 	mGamesCompleted = 0;
-	mFlag284 = false;
-	mField1c0 = -1;
-	mDouble1b8 = -1.0;                          // 0xbff00000 in the high half
-	mField1b4 = -1;
-	mField1c4 = -1;
-	mField1c8 = 0;                              // port: neither constructor stores +0x1c8 (new memory); zero here
+	mOpenChestHintSeen = false;
+	mSavedLevel = -1;
+	mSavedEmpCharge = -1.0;                          // 0xbff00000 in the high half
+	mSavedScore = -1;
+	mSavedDifficulty = -1;
+	mSavedLevelNumber = 0;                              // port: neither constructor stores +0x1c8 (new memory); zero here
 	mShowHints = true;
-	mField1b0 = -1;
-	mField1d0 = -1;
-	mField1cc = -1;
-	mField1e0 = 0;
-	mField1d4 = -1;
-	mField1d8 = -1;
-	mFlag230 = true;
-	mVector2b4.clear();
-	mVector2a4.clear();
+	mSavedLives = -1;
+	mSavedPausedTime = -1;
+	mSavedGameTime = -1;
+	mSavedTypingTime = 0;
+	mSavedLettersWrong = -1;
+	mSavedLettersRight = -1;
+	mCompletionPending = true;
+	mSavedRouteNodeIds.clear();
+	mSavedRouteDots.clear();
 	for (i = 0; i < 10; i++)
 		mWPM[i] = 0;
-	mField228 = 0;
+	mNextWPMIndex = 0;
 
 	for (int g = 0; g < 6; g++)
 	{
-		mGroups[g].mField0 = 0;
+		mGroups[g].mBestLevel = 0;
 		mGroups[g].mBestScore = 0;
-		mGroups[g].mField8 = 0;
+		mGroups[g].mLastLevel = 0;
 		mGroups[g].mLastScore = 0;
 		mGroups[g].mRecords.clear();
 		for (i = 0; i < NUM_GROUP_RECORDS; i++)
 			mGroups[g].mRecords.push_back(StatRecord());
 	}
 
-	mRecordsE0.clear();
+	mLessonRecords.clear();
 	for (i = 0; i < NUM_RECORDS_E0; i++)
 	{
-		mField94[i] = -1;
-		mRecordsE0.push_back(StatRecord());
+		mLessonOutcome[i] = -1;
+		mLessonRecords.push_back(StatRecord());
 	}
-	mField64 = 0;
+	mBestBonusWordPoints = 0;
 	mBestTreasureWords = 0;
 	for (i = 0; i < 6; i++)
 	{
 		mGemsFound[i] = 0;
-		mField234[i] = 0;
+		mGameGemsFound[i] = 0;
 	}
 	for (i = 0; i < 4; i++)
 	{
 		mSecretsFound[i] = 0;
-		mField24c[i] = 0;
+		mGameSecretsFound[i] = 0;
 	}
 }
 
@@ -143,9 +144,9 @@ UserProfile::~UserProfile()
 	unsigned int i = 0;
 	while (true)
 	{
-		if (i >= mVector2a4.size())
+		if (i >= mSavedRouteDots.size())
 			break;
-		delete mVector2a4[i];
+		delete mSavedRouteDots[i];
 		i++;
 	}
 }
@@ -169,21 +170,21 @@ void UserProfile::SetUserNumber(int theNumber)
 }
 
 // 0x412340
-int UserProfile::GetField9c()
+int UserProfile::GetLessonTwoOutcome()
 {
-	return mField94[2];
+	return mLessonOutcome[2];
 }
 
 // 0x412350
-int UserProfile::GetField8c()
+int UserProfile::GetNecklacesFound()
 {
 	return mSecretsFound[2];
 }
 
 // 0x412390
-void UserProfile::SetField1e8(int theValue)
+void UserProfile::SetEndlessLevelsPlayed(int theValue)
 {
-	mField1e8 = theValue;
+	mEndlessLevelsPlayed = theValue;
 }
 
 // 0x4123a0: one more kill of the creature type (only the types 0xc, 0xe, 0xf and 0x10 are counted)
@@ -208,11 +209,11 @@ void UserProfile::CountKill(int theType)
 // 0x4123f0: the speed goes into the ring of the last ten
 void UserProfile::AddWPM(int theSpeed)
 {
-	mWPM[mField228] = theSpeed;
-	int anIndex = mField228 + 1;
-	mField228 = anIndex;
+	mWPM[mNextWPMIndex] = theSpeed;
+	int anIndex = mNextWPMIndex + 1;
+	mNextWPMIndex = anIndex;
 	if (9 < anIndex)
-		mField228 = 0;
+		mNextWPMIndex = 0;
 }
 
 // 0x4124d0: the kill count of the creature type; any other type gives the type minus 0xc (the switch's default leaves
@@ -234,36 +235,36 @@ int UserProfile::GetKillCount(int theType)
 	return aDelta;
 }
 
-// 0x412520: the saved game with the level configuration's double (nothing is stored when theField1c4 is -1)
-void UserProfile::RecordResultWithDouble(bool theFlag, int theField1b0, int theField1b4, double theDouble1b8,
-	int theField1c0, int theField1c4, int theField1c8)
+// 0x412520: the saved game with the level configuration's double (nothing is stored when theSavedDifficulty is -1)
+void UserProfile::RecordResultWithDouble(bool theStoreScore, int theSavedLives, int theSavedScore, double theSavedEmpCharge,
+	int theSavedLevel, int theSavedDifficulty, int theSavedLevelNumber)
 {
-	if (theField1c4 != -1)
+	if (theSavedDifficulty != -1)
 	{
-		mField1b0 = theField1b0;
-		if (!theFlag)
-			theField1b4 = mField1ec;
-		mField1b4 = theField1b4;
-		mDouble1b8 = theDouble1b8;
-		mField1c4 = theField1c4;
-		mField1c0 = theField1c0;
-		mField1c8 = theField1c8;
+		mSavedLives = theSavedLives;
+		if (!theStoreScore)
+			theSavedScore = mSavedScoreBackup;
+		mSavedScore = theSavedScore;
+		mSavedEmpCharge = theSavedEmpCharge;
+		mSavedDifficulty = theSavedDifficulty;
+		mSavedLevel = theSavedLevel;
+		mSavedLevelNumber = theSavedLevelNumber;
 	}
 }
 
-// 0x412580: the same without the double (nothing is stored when theField1c4 is -1)
-void UserProfile::RecordResult(bool theFlag, int theField1b0, int theField1b4, int theField1c0, int theField1c4,
-	int theField1c8)
+// 0x412580: the same without the double (nothing is stored when theSavedDifficulty is -1)
+void UserProfile::RecordResult(bool theStoreScore, int theSavedLives, int theSavedScore, int theSavedLevel, int theSavedDifficulty,
+	int theSavedLevelNumber)
 {
-	if (theField1c4 != -1)
+	if (theSavedDifficulty != -1)
 	{
-		mField1b0 = theField1b0;
-		if (!theFlag)
-			theField1b4 = mField1ec;
-		mField1b4 = theField1b4;
-		mField1c4 = theField1c4;
-		mField1c0 = theField1c0;
-		mField1c8 = theField1c8;
+		mSavedLives = theSavedLives;
+		if (!theStoreScore)
+			theSavedScore = mSavedScoreBackup;
+		mSavedScore = theSavedScore;
+		mSavedDifficulty = theSavedDifficulty;
+		mSavedLevel = theSavedLevel;
+		mSavedLevelNumber = theSavedLevelNumber;
 	}
 }
 
@@ -288,7 +289,7 @@ int UserProfile::GetBestScore()
 // 0x413d10: the lesson's record holds the sum of the speeds at +8 and the number of runs at +0xc
 int UserProfile::GetAverageWPM(int theLesson)
 {
-	StatRecord& aRecord = mRecordsE0[theLesson];
+	StatRecord& aRecord = mLessonRecords[theLesson];
 	int aRuns = aRecord.mField[3];
 	if (aRuns == 0)
 		return 0;
@@ -298,7 +299,7 @@ int UserProfile::GetAverageWPM(int theLesson)
 // 0x413d40: the sum of the adjusted speeds is at +0x18, the number of runs at +0x1c
 int UserProfile::GetAverageAdjustedWPM(int theLesson)
 {
-	StatRecord& aRecord = mRecordsE0[theLesson];
+	StatRecord& aRecord = mLessonRecords[theLesson];
 	int aRuns = aRecord.mField[7];
 	if (aRuns == 0)
 		return 0;
@@ -308,7 +309,7 @@ int UserProfile::GetAverageAdjustedWPM(int theLesson)
 // 0x413d70: the sum of the accuracies is at +0x28, the number of runs at +0x2c
 int UserProfile::GetAverageAccuracy(int theLesson)
 {
-	StatRecord& aRecord = mRecordsE0[theLesson];
+	StatRecord& aRecord = mLessonRecords[theLesson];
 	int aRuns = aRecord.mField[11];
 	if (aRuns == 0)
 		return 0;
@@ -321,23 +322,23 @@ void UserProfile::CountSharkKilled(bool theAbyss)
 	if (!theAbyss)
 	{
 		mSharksKilled = mSharksKilled + 1;
-		mField1f4 = mField1f4 + 1;
+		mGameSharksKilled = mGameSharksKilled + 1;
 		return;
 	}
 	mAbyssSharksKilled = mAbyssSharksKilled + 1;
-	mField1f4 = mField1f4 + 1;
+	mGameSharksKilled = mGameSharksKilled + 1;
 }
 
 // 0x412640
-void UserProfile::SetField1f4(int theValue)
+void UserProfile::SetGameSharksKilled(int theValue)
 {
-	mField1f4 = theValue;
+	mGameSharksKilled = theValue;
 }
 
 // 0x412650
-void UserProfile::SetField1f8(int theValue)
+void UserProfile::SetGamePiranhasKilled(int theValue)
 {
-	mField1f8 = theValue;
+	mGamePiranhasKilled = theValue;
 }
 
 // 0x412660: a piranha killed (in the abyss mode or not), counted for the profile and for the round
@@ -346,66 +347,66 @@ void UserProfile::CountPiranhaKilled(bool theAbyss)
 	if (!theAbyss)
 	{
 		mPiranhasKilled = mPiranhasKilled + 1;
-		mField1f8 = mField1f8 + 1;
+		mGamePiranhasKilled = mGamePiranhasKilled + 1;
 		return;
 	}
 	mAbyssPiranhasKilled = mAbyssPiranhasKilled + 1;
-	mField1f8 = mField1f8 + 1;
+	mGamePiranhasKilled = mGamePiranhasKilled + 1;
 }
 
-// 0x412690: one more in mGemsFound[theIndex] and in mField234[theIndex] (the registry GTT<i>)
+// 0x412690: one more in mGemsFound[theIndex] and in mGameGemsFound[theIndex] (the registry GTT<i>)
 void UserProfile::CountGemFound(int theIndex)
 {
 	mGemsFound[theIndex] = mGemsFound[theIndex] + 1;
-	mField234[theIndex] = mField234[theIndex] + 1;
+	mGameGemsFound[theIndex] = mGameGemsFound[theIndex] + 1;
 }
 
-// 0x4126b0: one more in mSecretsFound[theIndex] and in mField24c[theIndex] (the registry SGTT<i>)
+// 0x4126b0: one more in mSecretsFound[theIndex] and in mGameSecretsFound[theIndex] (the registry SGTT<i>)
 void UserProfile::CountSecretFound(int theIndex)
 {
 	mSecretsFound[theIndex] = mSecretsFound[theIndex] + 1;
-	mField24c[theIndex] = mField24c[theIndex] + 1;
+	mGameSecretsFound[theIndex] = mGameSecretsFound[theIndex] + 1;
 }
 
 // 0x4126d0
-int UserProfile::GetField1e4()
+int UserProfile::GetAbyssBossIndex()
 {
-	return mField1e4;
+	return mAbyssBossIndex;
 }
 
 // 0x4126e0
-void UserProfile::SetField1e4(int theValue)
+void UserProfile::SetAbyssBossIndex(int theValue)
 {
-	mField1e4 = theValue;
+	mAbyssBossIndex = theValue;
 }
 
 // 0x4126f0
-void UserProfile::ClearFields1cc()
+void UserProfile::ClearSavedGameTotals()
 {
-	mField1e0 = 0;
-	mField1cc = 0;
-	mField1d0 = 0;
-	mField1d8 = 0;
-	mField1d4 = 0;
+	mSavedTypingTime = 0;
+	mSavedGameTime = 0;
+	mSavedPausedTime = 0;
+	mSavedLettersRight = 0;
+	mSavedLettersWrong = 0;
 }
 
 // 0x412720: the value of the mode's group, and its best
-void UserProfile::SetGroupField8(int theGroup, int theValue)
+void UserProfile::RecordGroupLevel(int theGroup, int theValue)
 {
-	mGroups[theGroup].mField8 = theValue;
-	if (mGroups[theGroup].mField0 < theValue)
-		mGroups[theGroup].mField0 = theValue;
+	mGroups[theGroup].mLastLevel = theValue;
+	if (mGroups[theGroup].mBestLevel < theValue)
+		mGroups[theGroup].mBestLevel = theValue;
 }
 
 // 0x412750: the result of a game of the mode (5 is the abyss mode, kept as -1 in mLastMode): the profile's last score
 // and the mode's last and best score
-void UserProfile::SetLastGame(int theMode, int theScore, int theField0c)
+void UserProfile::SetLastGame(int theMode, int theScore, int theLevelReached)
 {
 	if (theMode == 5)
 		mLastMode = -1;
 	else
 		mLastMode = theMode;
-	mField0c = theField0c;
+	mLastLevelReached = theLevelReached;
 	mLastScore = theScore;
 	mGroups[theMode].mLastScore = theScore;
 	if (mGroups[theMode].mBestScore < theScore)
@@ -452,11 +453,11 @@ void UserProfile::SetSpacePauses(bool theValue)
 }
 
 // 0x4172f0: the profile's data file users\user<N>.dat. Every number is the text of "%d". Order: the version; for each of
-// the six stat groups four ints and 35 records of twelve ints; mField94 (19); the 19 records at +0xe0; mField64; mGemsFound
-// (6); mSecretsFound (4); mBestTreasureWords; mField1b0; mField1ec; the double * 100 as an int; mField1c0 to mField1d8; the number of
-// map pairs and the pairs; the number of node ids and the ids; mField1e0; the four kill counts.
-// theCopyField1b4 makes mField1ec the value of mField1b4 first.
-void UserProfile::WriteDataToDisk(bool theCopyField1b4)
+// the six stat groups four ints and 35 records of twelve ints; mLessonOutcome (19); the 19 records at +0xe0; mBestBonusWordPoints; mGemsFound
+// (6); mSecretsFound (4); mBestTreasureWords; mSavedLives; mSavedScoreBackup; the double * 100 as an int; mSavedLevel to mSavedLettersRight; the number of
+// map pairs and the pairs; the number of node ids and the ids; mSavedTypingTime; the four kill counts.
+// theCopyScoreToBackup makes mSavedScoreBackup the value of mSavedScore first.
+void UserProfile::WriteDataToDisk(bool theCopyScoreToBackup)
 {
 	Buffer aBuffer;
 	int g;
@@ -469,9 +470,9 @@ void UserProfile::WriteDataToDisk(bool theCopyField1b4)
 	g = 0;
 	do
 	{
-		WriteFileInt(aBuffer, mGroups[g].mField0);
+		WriteFileInt(aBuffer, mGroups[g].mBestLevel);
 		WriteFileInt(aBuffer, mGroups[g].mBestScore);
-		WriteFileInt(aBuffer, mGroups[g].mField8);
+		WriteFileInt(aBuffer, mGroups[g].mLastLevel);
 		WriteFileInt(aBuffer, mGroups[g].mLastScore);
 		i = 0;
 		do
@@ -485,59 +486,59 @@ void UserProfile::WriteDataToDisk(bool theCopyField1b4)
 	} while (g < 6);
 
 	for (i = 0; i < 0x13; i++)
-		WriteFileInt(aBuffer, mField94[i]);
+		WriteFileInt(aBuffer, mLessonOutcome[i]);
 
 	i = 0;
 	do
 	{
-		StatRecord aRecord = mRecordsE0[i];
+		StatRecord aRecord = mLessonRecords[i];
 		for (int k = 0; k < 12; k++)
 			WriteFileInt(aBuffer, aRecord.mField[k]);
 		i++;
 	} while (i < NUM_RECORDS_E0);
 
-	WriteFileInt(aBuffer, mField64);
+	WriteFileInt(aBuffer, mBestBonusWordPoints);
 	for (i = 0; i < 6; i++)
 		WriteFileInt(aBuffer, mGemsFound[i]);
 	for (i = 0; i < 4; i++)
 		WriteFileInt(aBuffer, mSecretsFound[i]);
 	WriteFileInt(aBuffer, mBestTreasureWords);
 
-	if (theCopyField1b4)
-		mField1ec = mField1b4;
-	WriteFileInt(aBuffer, mField1b0);
-	WriteFileInt(aBuffer, mField1ec);
-	WriteFileInt(aBuffer, (int)(mDouble1b8 * 100.0));       // _ftol
-	WriteFileInt(aBuffer, mField1c0);
-	WriteFileInt(aBuffer, mField1c4);
-	WriteFileInt(aBuffer, mField1c8);
-	WriteFileInt(aBuffer, mField1cc);
-	WriteFileInt(aBuffer, mField1d0);
-	WriteFileInt(aBuffer, mField1d4);
-	WriteFileInt(aBuffer, mField1d8);
+	if (theCopyScoreToBackup)
+		mSavedScoreBackup = mSavedScore;
+	WriteFileInt(aBuffer, mSavedLives);
+	WriteFileInt(aBuffer, mSavedScoreBackup);
+	WriteFileInt(aBuffer, (int)(mSavedEmpCharge * 100.0));       // _ftol
+	WriteFileInt(aBuffer, mSavedLevel);
+	WriteFileInt(aBuffer, mSavedDifficulty);
+	WriteFileInt(aBuffer, mSavedLevelNumber);
+	WriteFileInt(aBuffer, mSavedGameTime);
+	WriteFileInt(aBuffer, mSavedPausedTime);
+	WriteFileInt(aBuffer, mSavedLettersWrong);
+	WriteFileInt(aBuffer, mSavedLettersRight);
 
-	WriteFileInt(aBuffer, (int)mVector2a4.size());
+	WriteFileInt(aBuffer, (int)mSavedRouteDots.size());
 	unsigned int aPairIndex = 0;
 	while (true)
 	{
-		if (aPairIndex >= mVector2a4.size())
+		if (aPairIndex >= mSavedRouteDots.size())
 			break;
-		WriteFileInt(aBuffer, mVector2a4[aPairIndex]->mFirst);
-		WriteFileInt(aBuffer, mVector2a4[aPairIndex]->mSecond);
+		WriteFileInt(aBuffer, mSavedRouteDots[aPairIndex]->mFirst);
+		WriteFileInt(aBuffer, mSavedRouteDots[aPairIndex]->mSecond);
 		aPairIndex++;
 	}
 
-	WriteFileInt(aBuffer, (int)mVector2b4.size());
+	WriteFileInt(aBuffer, (int)mSavedRouteNodeIds.size());
 	unsigned int aNodeIndex = 0;
 	while (true)
 	{
-		if (aNodeIndex >= mVector2b4.size())
+		if (aNodeIndex >= mSavedRouteNodeIds.size())
 			break;
-		WriteFileInt(aBuffer, mVector2b4[aNodeIndex]);
+		WriteFileInt(aBuffer, mSavedRouteNodeIds[aNodeIndex]);
 		aNodeIndex++;
 	}
 
-	WriteFileInt(aBuffer, mField1e0);
+	WriteFileInt(aBuffer, mSavedTypingTime);
 	for (i = 0; i < 4; i++)
 		WriteFileInt(aBuffer, mKillCount[i]);
 
@@ -560,7 +561,7 @@ bool UserProfile::LoadDataFromDisk()
 	if (!mApp->ReadBufferFromFile(StrFormat("users\\user%d.dat", mUserNumber), &aBuffer, false))
 		return false;
 
-	mField64 = 0;
+	mBestBonusWordPoints = 0;
 	mBestTreasureWords = 0;
 	for (i = 0; i < 6; i++)
 		mGemsFound[i] = 0;
@@ -578,9 +579,9 @@ bool UserProfile::LoadDataFromDisk()
 	g = 0;
 	do
 	{
-		mGroups[g].mField0 = ReadFileInt(aBuffer);
+		mGroups[g].mBestLevel = ReadFileInt(aBuffer);
 		mGroups[g].mBestScore = ReadFileInt(aBuffer);
-		mGroups[g].mField8 = ReadFileInt(aBuffer);
+		mGroups[g].mLastLevel = ReadFileInt(aBuffer);
 		mGroups[g].mLastScore = ReadFileInt(aBuffer);
 		i = 0;
 		do
@@ -595,21 +596,21 @@ bool UserProfile::LoadDataFromDisk()
 	} while (g < 6);
 
 	for (i = 0; i < 0x13; i++)
-		mField94[i] = ReadFileInt(aBuffer);
+		mLessonOutcome[i] = ReadFileInt(aBuffer);
 
-	mRecordsE0.clear();
+	mLessonRecords.clear();
 	i = 0;
 	do
 	{
-		mRecordsE0.push_back(StatRecord());
+		mLessonRecords.push_back(StatRecord());
 		for (int k = 0; k < 12; k++)
 		{
-			mRecordsE0[i].mField[k] = ReadFileInt(aBuffer);
+			mLessonRecords[i].mField[k] = ReadFileInt(aBuffer);
 			if (aBuffer.AtEnd())
 			{
-				mRecordsE0.clear();
+				mLessonRecords.clear();
 				for (int j = 0; j < NUM_RECORDS_E0; j++)
-					mRecordsE0.push_back(StatRecord());
+					mLessonRecords.push_back(StatRecord());
 				return true;
 			}
 		}
@@ -617,7 +618,7 @@ bool UserProfile::LoadDataFromDisk()
 	} while (i < NUM_RECORDS_E0);
 
 	if (!aBuffer.AtEnd())
-		mField64 = ReadFileInt(aBuffer);
+		mBestBonusWordPoints = ReadFileInt(aBuffer);
 	if (!aBuffer.AtEnd())
 	{
 		for (i = 0; i < 6; i++)
@@ -632,45 +633,45 @@ bool UserProfile::LoadDataFromDisk()
 		mBestTreasureWords = ReadFileInt(aBuffer);
 
 	if (!aBuffer.AtEnd())
-		mField1b0 = ReadFileInt(aBuffer);
+		mSavedLives = ReadFileInt(aBuffer);
 	else
-		mField1b0 = -1;
+		mSavedLives = -1;
 	if (!aBuffer.AtEnd())
-		mField1b4 = ReadFileInt(aBuffer);
+		mSavedScore = ReadFileInt(aBuffer);
 	else
-		mField1b4 = -1;
+		mSavedScore = -1;
 	if (!aBuffer.AtEnd())
-		mDouble1b8 = (double)ReadFileInt(aBuffer) * 0.01;
+		mSavedEmpCharge = (double)ReadFileInt(aBuffer) * 0.01;
 	else
-		mDouble1b8 = -1.0;
+		mSavedEmpCharge = -1.0;
 	if (!aBuffer.AtEnd())
-		mField1c0 = ReadFileInt(aBuffer);
+		mSavedLevel = ReadFileInt(aBuffer);
 	else
-		mField1c0 = -1;
+		mSavedLevel = -1;
 	if (!aBuffer.AtEnd())
-		mField1c4 = ReadFileInt(aBuffer);
+		mSavedDifficulty = ReadFileInt(aBuffer);
 	else
-		mField1c4 = -1;
+		mSavedDifficulty = -1;
 	if (!aBuffer.AtEnd())
-		mField1c8 = ReadFileInt(aBuffer);
+		mSavedLevelNumber = ReadFileInt(aBuffer);
 	else
-		mField1c8 = -1;
+		mSavedLevelNumber = -1;
 	if (!aBuffer.AtEnd())
-		mField1cc = ReadFileInt(aBuffer);
+		mSavedGameTime = ReadFileInt(aBuffer);
 	else
-		mField1cc = -1;
+		mSavedGameTime = -1;
 	if (!aBuffer.AtEnd())
-		mField1d0 = ReadFileInt(aBuffer);
+		mSavedPausedTime = ReadFileInt(aBuffer);
 	else
-		mField1d0 = -1;
+		mSavedPausedTime = -1;
 	if (!aBuffer.AtEnd())
-		mField1d4 = ReadFileInt(aBuffer);
+		mSavedLettersWrong = ReadFileInt(aBuffer);
 	else
-		mField1d4 = -1;
+		mSavedLettersWrong = -1;
 	if (!aBuffer.AtEnd())
-		mField1d8 = ReadFileInt(aBuffer);
+		mSavedLettersRight = ReadFileInt(aBuffer);
 	else
-		mField1d8 = -1;
+		mSavedLettersRight = -1;
 
 	if (!aBuffer.AtEnd())
 	{
@@ -685,7 +686,7 @@ bool UserProfile::LoadDataFromDisk()
 				aPair->mSecond = 0;
 				aPair->mFirst = ReadFileInt(aBuffer);
 				aPair->mSecond = ReadFileInt(aBuffer);
-				mVector2a4.push_back(aPair);
+				mSavedRouteDots.push_back(aPair);
 				aPairsLeft--;
 			} while (aPairsLeft != 0);
 		}
@@ -695,14 +696,14 @@ bool UserProfile::LoadDataFromDisk()
 			int aNodesLeft = aNodeCount;
 			do
 			{
-				mVector2b4.push_back(ReadFileInt(aBuffer));
+				mSavedRouteNodeIds.push_back(ReadFileInt(aBuffer));
 				aNodesLeft--;
 			} while (aNodesLeft != 0);
 		}
 	}
 
 	if (!aBuffer.AtEnd())
-		mField1e0 = ReadFileInt(aBuffer);
+		mSavedTypingTime = ReadFileInt(aBuffer);
 	if (!aBuffer.AtEnd())
 	{
 		for (i = 0; i < 4; i++)

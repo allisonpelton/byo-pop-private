@@ -37,14 +37,14 @@ MechaShark::MechaShark(WinWSApp* theApp, GameObject* thePlayer, LessonManager* t
 	if (mConfig->mAbyssMode != 0)
 	{
 		mShotSpeedMax = mShotSpeedMax + 0.1;
-		mField10c = 200;
+		mMaxHitPoints = 200;
 		mHitPoints = 200;
 		mMinWordLength = 4;
 		mMaxWordLength = 5;
 		int aScore = mApp->mBoard->mScore;	// +0x1c4 of the board: the score
 		if (aScore >= 11000)
 		{
-			mField10c = 400;
+			mMaxHitPoints = 400;
 			mHitPoints = 400;
 			mMinWordLength = 7;
 			mMaxWordLength = 7;
@@ -52,14 +52,14 @@ MechaShark::MechaShark(WinWSApp* theApp, GameObject* thePlayer, LessonManager* t
 		else if (aScore >= 8000)
 		{
 			mMinWordLength = 6;
-			mField10c = 300;
+			mMaxHitPoints = 300;
 			mHitPoints = 300;
 			mMaxWordLength = 7;
 		}
 		else if (aScore > 5000)
 		{
 			mMinWordLength = 5;
-			mField10c = 300;
+			mMaxHitPoints = 300;
 			mHitPoints = 300;
 			mMaxWordLength = 7;
 		}

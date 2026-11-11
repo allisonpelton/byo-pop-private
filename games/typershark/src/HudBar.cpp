@@ -14,7 +14,7 @@ HudBar::HudBar(Player* thePlayer, WinWSApp* theApp)
 {
 	mPlayer = thePlayer;
 	mApp = theApp;
-	mField18 = 0;
+	mAlwaysZero = 0;
 	mFont = theApp->mFontRockwell13;
 	mFlashStep = 0;
 	mFadingUp = true;
@@ -26,7 +26,7 @@ HudBar::HudBar(Player* thePlayer, WinWSApp* theApp)
 // is marked dirty on every tick of the flash
 void HudBar::Update()
 {
-	if (mPlayer->mFlag13d)
+	if (mPlayer->mExtraLifeFlashing)
 	{
 		if (mFadingUp)
 		{
@@ -47,7 +47,7 @@ void HudBar::Update()
 				mFlashStep++;
 				if (mFlashStep >= 4)
 				{
-					mPlayer->mFlag13d = false;
+					mPlayer->mExtraLifeFlashing = false;
 					mFlashStep = 0;
 					mAlpha = 0;
 					mFadingUp = true;
@@ -71,10 +71,10 @@ void HudBar::Draw(Graphics* g)
 	g->SetFont(mFont);
 	g->SetColor(Color(0xc8, 0xc8, 0xc8));
 
-	if (mPlayer->mField110 < 0)
+	if (mPlayer->mLives < 0)
 		aText = GT(0x0052fda8);			// "Game Over!"
 	else
-		aText = StrFormat(GTC(0x0052fd98), mPlayer->mField110);			// "Lives left: %d"
+		aText = StrFormat(GTC(0x0052fd98), mPlayer->mLives);			// "Lives left: %d"
 
 	Board* aBoard = mApp->mBoard;
 	aBoard->WriteString(g, aText, -5, mFont->GetAscent() + 2, mApp->mWidth, 1, true, 0, -1);
@@ -83,7 +83,7 @@ void HudBar::Draw(Graphics* g)
 
 	std::string aLevelText;
 	if (mApp->mDifficulty != -1)
-		aLevelText = StrFormat(GTC(0x0052fd60), mPlayer->mField114 + 1, mPlayer->mScore);			// "^FFFFFF^LEVEL: ^C8C8C8^%d     ^FFFFFF^%d ^C8C8C8^Points"
+		aLevelText = StrFormat(GTC(0x0052fd60), mPlayer->mLevelNumber + 1, mPlayer->mScore);			// "^FFFFFF^LEVEL: ^C8C8C8^%d     ^FFFFFF^%d ^C8C8C8^Points"
 	else
 		aLevelText = StrFormat(GTC(0x0052fcf8), mApp->mBoard->mScore, mPlayer->mScore);			// "^FFFFFF^LEVEL: ^C8C8C8^Abyss     ^C8C8C8^Depth: ^FFFFFF^%d ^C8C8C8^feet     ^FFFFFF^%d ^C8C8C8^Points"
 	aText = aLevelText;
@@ -91,9 +91,9 @@ void HudBar::Draw(Graphics* g)
 	aBoard = mApp->mBoard;
 	aBoard->WriteString(g, aText, 2, mFont->GetAscent() + 2, -1, -1, true, 0, -1);
 
-	if (mPlayer->mFlag13d)
+	if (mPlayer->mExtraLifeFlashing)
 	{
-		std::string aPlainText = StrFormat(GTC(0x0052fcdc), mPlayer->mField114 + 1, mPlayer->mScore);			// "LEVEL: %d     %d Points"
+		std::string aPlainText = StrFormat(GTC(0x0052fcdc), mPlayer->mLevelNumber + 1, mPlayer->mScore);			// "LEVEL: %d     %d Points"
 		g->SetColor(Color(0, 0xff, 0, mAlpha));
 		std::string anExtraLife = GT(0x0052fcd0);			// "EXTRA LIFE!"
 		int aY = mFont->GetAscent() + 2;

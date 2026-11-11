@@ -1,0 +1,3 @@
+at 0 focus regain
+at 3000 mark
+quit

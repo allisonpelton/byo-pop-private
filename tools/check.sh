@@ -244,7 +244,8 @@ DY_GAME="board mode 0 score 10 eggs 12 cells ec5704d5"
 BT_CLASSIC="88e59f1eea61 291f70580d89 dd8e6206d1bf 0bc138035904"  # the first 12 hex digits of the sha256 of the Classic game's screens at 656, 2156, 3656 and 5156: the frozen baseline
 BT_BLITZ="8ef83c337f3e 9c9ceb17343f e69ac2a54d49 cdf1d61302d0 43b0fcda6095"  # the same for the Blitz game's at 2656, 5156, 7156 (the explosion), 7606 (space, on the way to the scores) and 8156 (the high scores)
 BT_TAKEOFF="47403df7d011 ad4911ad47f5 8897f35d0a74 663d148b1243 0248d7e39673"  # the 3D Classic game's level-up take-off at 2780, 2900, 2940, 2980 and 3020: the tube becoming the ship and the old board's cube leaving to the right and away (checked against the original on the user's desktop, 2026-11-08)
-BT_MENU="640866e0b565 da8353fcb954"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone):
+BT_MENU="02beec06fa7d da8353fcb954"  # the start's screens at 60 (the loader handing over, the menu's Play drawn) and 160 (the menu, the loader gone;
+# the screen at 60 changed with 952429de, a script's shot drawn with its update's count, which moves the loader's fades):
 # the port only (its loader moved on to the original's hand-over, 2026-11-08), so not against the older baseline
 # Bejeweled 2 Deluxe: per mode, the first 12 hex digits of the sha256 of the bot's transcript (every state and move, tools/playbymove's
 # driver.txt without its screenshot line) and of its end screen, for the steps in BJ2_STEPS: the frozen baseline (Twilight's end screen

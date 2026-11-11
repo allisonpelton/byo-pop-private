@@ -6,7 +6,7 @@
 // (the level, the wave, the endless levels that come after level 35). The app owns one (WinWSApp::mLessonManager, +0x65c)
 // and hands it to the Board and to the bosses.
 //
-// Original: an unnamed class (no virtual functions, so no RTTI name; the port keeps the name LessonManager that the first
+// Original: a class with no name in the export (no virtual functions, so no RTTI name; the port keeps the name LessonManager that the first
 // translation jobs gave it), constructor 0x4270e0, sizeof 0xc0, destructor body 0x421c50 (frees the records and the set).
 // NOT to be confused with RTTI's Sexy::LessonManager (vftable 0x52c728, destructor body 0x427300, deleting destructor
 // 0x429900): that is the typing tutor's lesson list (data\lessonN.xml), made by the TypingTutor constructor 0x460b30; it is
@@ -73,7 +73,7 @@ enum EnemyType
 struct EnemyRecord
 {
 	int				mType;					// +0x00 EnemyType
-	int				mField04;				// +0x04 never set by the parser
+	int				mAlignmentGap;				// +0x04 the four bytes between mType and the 8-aligned mMinSpeed; the parser never sets it and nothing reads it (the constructor zeroes it)
 	double			mMinSpeed;				// +0x08 <MinSpeed> (adjusted by the wave's type, the enemy's type and the difficulty)
 	double			mMaxSpeed;				// +0x10 <MaxSpeed> (adjusted the same way)
 	int				mKnockBack;				// +0x18 the wave's knock-back at the time the enemy was opened
@@ -94,7 +94,7 @@ struct EnemyRecord
 	double			mShotSpeedMax;			// +0x68 <MaxMissileSpeed> + 0.3
 
 	// port: the original's operator new(0x70) is not cleared; the parser sets the fields it does not mention below
-	EnemyRecord() : mType(0), mField04(0), mMinSpeed(0), mMaxSpeed(0), mKnockBack(0), mWordMinLength(0), mWordMaxLength(0),
+	EnemyRecord() : mType(0), mAlignmentGap(0), mMinSpeed(0), mMaxSpeed(0), mKnockBack(0), mWordMinLength(0), mWordMaxLength(0),
 		mLetterDelay(0), mMinNumber(0), mMaxNumber(0), mThemeRandom(false), mThemeMin(0), mThemeMax(0), mFireInterval(0),
 		mHitPoints(0), mMinMissiles(0), mMaxMissiles(0), mBobSpeed(0), mShotSpeedMin(0), mShotSpeedMax(0) {}
 };
@@ -123,7 +123,7 @@ struct LevelSettings
 	int				mKnockBack;				// +0x10 <KnockBack>
 	int				mMinDiff;				// +0x14 <MinDiff>
 	int				mMaxDiff;				// +0x18 <MaxDiff>
-	int				mField1c;				// +0x1c not used by the parser
+	int				mAlignmentGap;				// +0x1c the four bytes between mMaxDiff and the 8-aligned mDiverSpeed; the parser never reads or sets it (the copy for the endless levels sets it to 0)
 	double			mDiverSpeed;			// +0x20 <DiverSpeed> (the Board reads it: the diver's speed)
 	int				mMinEndDiff;			// +0x28 <MinEndDiff>
 	int				mMaxEndDiff;			// +0x2c <MaxEndDiff>
@@ -138,7 +138,7 @@ struct LevelSettings
 	double			mPenaltySpeed;			// +0x50 <PenaltySpeed> (LoadConfig starts it at 1.0)
 	double			mPenaltySpeedIncrease;	// +0x58 <PenaltySpeedIncrease>
 
-	LevelSettings() : mMinSpeed(0), mMaxSpeed(0), mKnockBack(0), mMinDiff(0), mMaxDiff(0), mField1c(0), mDiverSpeed(0),
+	LevelSettings() : mMinSpeed(0), mMaxSpeed(0), mKnockBack(0), mMinDiff(0), mMaxDiff(0), mAlignmentGap(0), mDiverSpeed(0),
 		mMinEndDiff(0), mMaxEndDiff(0), mTreasureSecs(0), mTimeDelay(0), mMapDelay(0), mMinCol(0), mMaxCol(0),
 		mLetterDelay(0), mNumForPenalty(0), mOceanDepth(0), mPenaltySpeed(0), mPenaltySpeedIncrease(0) {}
 };
@@ -147,12 +147,12 @@ struct LevelSettings
 struct LevelRecord
 {
 	bool						mBonusLevel;	// +0x00 <BonusLevel> present: a treasure level
-	int							mField04;		// +0x04 never set
+	int							mAlignmentGap;		// +0x04 the bytes between mBonusLevel and the 8-aligned mSettings; never set or read (the constructor zeroes it)
 	LevelSettings				mSettings;		// +0x08 .. +0x67
 	int							mFirstWave;		// +0x68 <FirstWave>: the index of the wave that tag was in (0 until it is read)
 	std::vector<WaveRecord*>	mWaves;			// +0x6c (pad), +0x70 begin, +0x74 end, +0x78 capacity
 
-	LevelRecord() : mBonusLevel(false), mField04(0), mFirstWave(0) {}
+	LevelRecord() : mBonusLevel(false), mAlignmentGap(0), mFirstWave(0) {}
 };
 
 class LessonManager
@@ -172,7 +172,7 @@ public:
 	int							mCurrentWaveType;		// +0x9c the type of the wave NextWave chose (getter 0x412340)
 	int							mCurrentWave;			// +0xa0 the index of that wave
 	bool						mAbyssMode;				// +0xa5 the file had <AbyssMode>
-	int							mEndlessCount;			// +0xa8 how many endless levels were started (getter 0x412370; was mField0a8)
+	int							mEndlessCount;			// +0xa8 how many endless levels were started (getter 0x412370)
 	std::set<int>				mUsedWaves;				// +0xac the waves of the level that were played (head +0xb0, size +0xb4); +0xb8 is the iterator the original keeps of the last find
 
 public:

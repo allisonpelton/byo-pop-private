@@ -53,18 +53,6 @@ void TabPanel::SetShown(bool theShow)
 	mShown = theShow;
 }
 
-// 0x4516a0 slot 48
-void TabPanel::AddChild(Widget* theChild)
-{
-	mChildren.push_back(theChild);
-}
-
-// 0x4446f0 slot 49
-Widget* TabPanel::GetChild(int theIndex)
-{
-	return mChildren[theIndex];
-}
-
 // 0x442aa0
 void TabPanel::BringChildrenToFront()
 {

@@ -130,14 +130,14 @@ void XWidget::MouseLeave()
 }
 
 // added for W1
-// 0x458cb0 slot 27 (no Widget::MouseDown): the owner is the map screen. A click on an X is noted (mFlag224); if no level
+// 0x458cb0 slot 27 (no Widget::MouseDown): the owner is the map screen. A click on an X is noted (mLevelChosen); if no level
 // has been chosen yet, this X stops fading (alpha 255), the owner's "continue" link shows, the owner takes this X's level
 // and letter as the chosen ones and starts the level (a method of the map screen, written by its job: it takes the other
 // X widgets away and sets up the level's route)
 void XWidget::MouseDown(int x, int y, int theClickCount)
 {
 	MapScreen* aMap = (MapScreen*)mOwner;
-	aMap->mFlag224 = true;
+	aMap->mLevelChosen = true;
 	if (aMap->mLevel == -1)
 	{
 		mAlpha = 0xff;

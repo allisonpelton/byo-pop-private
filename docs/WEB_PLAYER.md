@@ -785,7 +785,25 @@ libxmp-lite are in About.
   on either side. For a game's module, whose order list the page does not have, the range is that of the patterns
   heard so far, so it can widen, and only the pattern heard before the current one is shown, at its left. The roll
   takes the splitter's height and is drawn only when its row, range or size changes.
-- **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, nothing. The spectrum is 24 bars from
+- **The score** (sheet music) is the view after the piano roll, for a module only. It draws the pattern heard in staff
+  notation with VexFlow 5.0.0 (`web/third_party/vexflow-bravura.js`, MIT, served as `vexflow/vexflow-bravura.js`,
+  728,171 bytes with its fonts Bravura and Academico by Steinberg Media Technologies, SIL OFL 1.1; the licences are
+  `web/third_party/vexflow.txt` and `bravura.txt`, served under `licenses/` and linked from the listing's footer).
+  The page fetches the file only when the score is first chosen, and draws once the music font is ready. Each
+  instrument the pattern plays has a staff in its piano-roll colour, the staff lines, bar lines, clefs and time
+  signatures in grey. A staff's clef is treble when its notes lie at G below middle C or higher on average, else
+  bass. An instrument that plays one pitch only, four times or more, is taken for a drum and drawn on a percussion
+  staff with x noteheads. A row is a sixteenth, four rows a beat, in 4/4 (libopenmpt does not give a module's rows
+  per beat), so a 64-row pattern is four bars on one line, and the next pattern takes its place as a page turns. A
+  tracker's C-5 is written as middle C. Within an instrument a note lasts until its channel's next note, key off, cut
+  or fade, or until the instrument's next note in any channel. Notes that start together are a chord, and a length
+  that no single note value gives, or a note held over a bar line, is tied notes. Beams follow VexFlow's own grouping,
+  and sharps are written as the bar needs them (VexFlow's rule for C major). Effects (slides, vibrato, volume) are
+  not drawn. A light bar marks the column heard, and the staves scroll up and down. Drawing a pattern takes about
+  100 ms of the page's time (Bejeweled's "1980-Autonomus", six staves of four bars), so each pattern drawn is kept,
+  32 at most, and a pattern that comes back is shown again at once. It works for a followed game's module as for
+  the player's own tunes.
+- **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, score, nothing. The spectrum is 24 bars from
   40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
   ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard; it never scrolls past the pattern's ends. Only
   the channels that play a note somewhere are shown (`bm_used`); when they do not all fit, a scroll bar drawn by
@@ -855,6 +873,52 @@ on a click, Enter or Space; different sounds overlap. Each file is decoded once,
 decoder, stb_vorbis from `openmpt.wasm`, or our own reader for a Sun `.au` file). Closing the window stops what
 plays and drops the decoded sounds and the audio context. The grid is one tab stop. It is silent at `?silent=1` as
 the music player is, and is not shown under 760 pixels wide.
+
+### The splits timer
+
+The Splits window (`web/splits.js`) is a stand-in for LiveSplit, so that a speedrun can be timed on the site (the
+user: "a LiveSplit stand-in on the site so that people really could do speedruns on it"). It is in Desktop 95 only,
+under the Pop menu and as a desktop icon, closed at first. It holds one set of splits at a time: a game, a category,
+a start time (LiveSplit's offset), the attempt count and the segments, each with the personal best's split time and
+the best segment time, in Real Time and Game Time. Every set is kept in this browser's IndexedDB (`byopop-splits`,
+one record a game and category), the last one opened comes back with the page (`byopop-splits-last`), and the
+options are in `byopop-splits-options`.
+
+The window shows the game and category with the attempt count, a row for each segment (the one being run selected)
+with its delta and its time (the split's once it is done, the comparison's before), the big timer, the previous
+segment's delta against the comparison and the sum of best segments. Ahead is green, behind red, a segment faster
+than its best gold, and a finished run that is a new personal best blue; a paused timer is grey.
+
+- **File:** New (Edit Splits on a blank set), Open (a list box of the kept sets, with Delete), Save, Import Splits
+  and Export Splits. Import reads a LiveSplit `.lss` file: the game and category names, the offset, the attempt
+  count and each segment's name, its "Personal Best" split time and its best segment time, in both methods; the
+  rest of the file (icons, history, metadata, autosplitter settings) is not kept. Export hands the player a `.lss`
+  file with the same parts, indented as LiveSplit writes it; a round trip keeps every time to LiveSplit's 100 ns.
+- **Edit:** Edit Splits, a dialog with the names, the start time, the attempt count and a grid of the segments
+  (name, split time, best segment) in the method being timed, with Insert Above, Insert Below, Remove, Move Up and
+  Move Down. A time is read again only when its text was changed, so one left alone keeps its precision.
+- **Control:** Start or Split, Undo Split, Skip Split, Pause or Resume, Reset, each with its hotkey shown.
+- **Options:** Hotkeys (a dialog: a button for each action takes the next key pressed, Backspace clears it, and
+  "Global hotkeys" turns them all off), the comparison (Personal Best or Best Segments) and the timing method (Real
+  Time or Game Time).
+
+The attempt count goes up at each start. Reset with a finished run faster than the personal best (in the method
+being timed; a first finished run always is) makes it the personal best, as LiveSplit does at Reset, so an undone
+last split never leaves a wrong one. If the attempt beat any best segment, in either method, a Windows 95 message
+box asks whether to keep the new golds. File and Edit are off while a run is going.
+
+Real Time is `performance.now`. Game Time is the update count of the game window in front when the run starts
+(`byopop_update_count`) since that start, times the game's update step (10 ms; 5 ms in the Mahjong games); a game
+without the count, or a run started with no game window, has none, shown as a dash. Pausing the timer pauses Real
+Time only: the game's updates go on, as LiveSplit's Game Time follows the game.
+
+The hotkeys are Num 1 split, Num 3 reset, Num 8 undo and Num 2 skip at first, Pause has none. They are heard on the
+page and in every game window (same origin; a listener is added to each window's frame as it appears), and never
+taken from the game: the key still reaches it. They are ignored while a dialog of the window is open, while the
+focus is in a text field of the page, with Ctrl, Alt or Meta held, and while the Splits window is closed.
+
+No web build has the LiveSplit block that desktop builds have (Bejeweled's `features.livesplit` is desktop only), so
+there is no autosplitting here, and the run timer the site once had is gone (it was removed earlier).
 
 ### Music levels
 

@@ -332,7 +332,7 @@ void ChallengeButton::Update()
 		gApp->mMainMenu->mChallengeMenu->UpdateProgress(false, false);
 	mEclipseFade.IncInVal();
 	mTextFade.IncInVal();
-	mOldNumberGlow.IncInVal();
+	mLockWipe.IncInVal();
 	mBarGlow.IncInVal();
 	int aPulses = mPulsesLeft;
 	if (0 < aPulses || 0.0f < mPulse) {
@@ -751,7 +751,7 @@ void ChallengeButton::Draw(Graphics* g)
 				aSource = Rect(0, 0, IMAGE_MOONMETER_LOCK->mWidth, IMAGE_MOONMETER_LOCK->mHeight);
 				if (aCell == mStage) {
 					// the lock the new stage opens wipes away from the top
-					aSource.mY = Ftol(mNewNumberGlow.GetOutVal() * (double)aSource.mHeight + (double)aSource.mY);
+					aSource.mY = Ftol(mLockWipe.GetOutVal() * (double)aSource.mHeight + (double)aSource.mY);
 					aSource.mHeight = aSource.mHeight - aSource.mY;
 					aYShift = (aSource.mY + (aSource.mY >> 31 & 3)) >> 2;
 				}
@@ -760,7 +760,7 @@ void ChallengeButton::Draw(Graphics* g)
 			// the cell of the challenge the planet starts: its glowing number
 			aCellImage = aGlowNumbers;
 			aSource = aGlowNumbers->GetCelRect(aCell);
-			g->SetColor(Color(255, 255, 255, Ftol((1.0 - mOldNumberGlow.GetOutVal()) * aBarAlpha)));
+			g->SetColor(Color(255, 255, 255, Ftol((1.0 - mNewNumberGlow.GetOutVal()) * aBarAlpha)));
 		}
 		int aDrawY = Ftol(((double)aBarY - (double)(aSource.mHeight / 2)) + (double)aYShift + 0.0);
 		int aDrawX = Ftol(((double)aCellLeft + aHalfCell) - (double)(aSource.mWidth / 2));
@@ -794,7 +794,7 @@ void ChallengeButton::Draw(Graphics* g)
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColor(Color(255, 255, 255, Ftol(mBarGlow.GetOutVal() * aBarAlpha)));
 	Rect aLockSource = IMAGE_MOONMETER_LOCK->GetCelRect(0);
-	aLockSource.mY = Ftol(mOldNumberGlow.GetOutVal() * (double)aLockSource.mHeight + (double)aLockSource.mY);
+	aLockSource.mY = Ftol(mLockWipe.GetOutVal() * (double)aLockSource.mHeight + (double)aLockSource.mY);
 	aLockSource.mHeight = aLockSource.mHeight - aLockSource.mY;
 	int aLockShift = (aLockSource.mY + (aLockSource.mY >> 31 & 3)) >> 2;
 	int aLockY = Ftol(((double)aBarY - (double)(aLockSource.mHeight / 2)) + (double)aLockShift + 0.0);
@@ -1287,7 +1287,7 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 				} else if (!theAnimate || aStage == 1) {
 					aButton->mBarFill.SetConstant(0.0);
 					aButton->mNewNumberGlow.SetConstant(0.0);
-					aButton->mOldNumberGlow.SetConstant(0.0);
+					aButton->mLockWipe.SetConstant(0.0);
 					aButton->mBarGlow.SetConstant(0.0);
 					aButton->mStage = aStage;
 				} else {
@@ -1296,7 +1296,7 @@ int ChallengeMenu::UpdateProgress(bool theAnimate, bool theClearTips)
 					gApp->PlaySample(SOUND_CHALLENGE_UNLOCK);
 					aButton->mBarFill.SetCurve(GTS(0x7e0558));
 					aButton->mNewNumberGlow.SetCurve(GTS(0x7e04c4));
-					aButton->mOldNumberGlow.SetCurve(GTS(0x7e045c));
+					aButton->mLockWipe.SetCurve(GTS(0x7e045c));
 					aButton->mBarGlow.SetCurve(GTS(0x7e0420));
 				}
 			}

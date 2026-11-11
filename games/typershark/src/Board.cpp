@@ -36,7 +36,7 @@ using namespace Sexy;
 
 // 0x4544b0: the fields are set in the original's order. The Widget part comes first (Widget(), then the vftable), then the
 // zeroed BgLayers and lists, the nine WSTimers are made one after another among the other fields, and the two random
-// numbers of mField0ec0 are drawn from gGameRand in the middle of it.
+// numbers of mSparkles are drawn from gGameRand in the middle of it.
 Board::Board(WinWSApp* theApp)
 {
 	// the two BgLayers (0x170 to 0x1b0) are zeroed first
@@ -48,47 +48,47 @@ Board::Board(WinWSApp* theApp)
 		aLayerBytes += sizeof(BgLayer);
 		i--;
 	}
-	// mRecordsByType (0x1b0, an empty std::map), the lists, the strings mTyped, mBannerText and mString0f10 and mDepthMarkers
+	// mRecordsByType (0x1b0, an empty std::map), the lists, the strings mTyped, mBannerText and mBonusWord and mDepthMarkers
 	// are empty (the std containers make them)
 	mApp = theApp;
 
-	mTimer58 = new WSTimer();
+	mUnreadTimer = new WSTimer();
 	mDrawCount = 0;
 	mUpdateCount = 0;
-	mField060 = 0;
-	mFlag0d28 = false;
-	mField0d2c = -1;
+	mAlwaysZero = 0;
+	mAbyssBossDue = false;
+	mAbyssBossIndex = -1;
 	mFastCPU = mApp->mFastCPU;
 	mDivePosMarked = 0.0;
 	mFirstUpdate = true;
 	mScore = 0;
-	mField1c0 = 0;
+	mLessonStepDepth = 0;
 	mWavePhase1 = 0;
 	mWavePhase2 = 0;
-	mRating = new RatingPopup();		// port: zero-initialised; the original leaves mBonus (+0x2c) and mField34 (+0x34) unset
+	mRating = new RatingPopup();		// port: zero-initialised; the original leaves mBonus (+0x2c) and mNeverWritten (+0x34) unset
 	mDivePos = 1.0;
 	mPausedTime = 0;
 	mPaused = false;
-	mField0d64 = 0;
+	mBonusCreaturesKilled = 0;
 	mOpenClam = NULL;
 	mPairsFound = 0;
-	mFlag0ebc = false;
+	mBossBeaten = false;
 	mPauseTimer = new WSTimer();
 	if (mApp->mLessonManager == NULL || !mApp->mLessonManager->mAbyssMode)
 		mEmpInterval = 2500;
 	else
 		mEmpInterval = 1250;
-	mFlag0f80 = true;
+	mScreenClear = true;
 	mRating->mPercent = 0;
 	mRating->mSmoothY = 0.0;		// the original stores two zero dwords at +0x08 and +0x0c
-	mFlag0d60 = false;
+	mAlwaysFalse = false;
 	mPlayer = new Player(mApp);
 	mFadeAlpha = 255;
-	mField0ee4 = 0;
-	mImage0ee8 = mApp->mImages[IMAGE_SONAR_SWEEP_0];
-	mImage0eec = mApp->mImages[IMAGE_SONAR_SWEEP2_0];
-	mImage0ef0 = mApp->mSonarSweepImages[0];
-	mImage0ef4 = mApp->mSonarSweep2Images[0];
+	mSonarStep = 0;
+	mSonarTopRightImage = mApp->mImages[IMAGE_SONAR_SWEEP_0];
+	mSonarBottomRightImage = mApp->mImages[IMAGE_SONAR_SWEEP2_0];
+	mSonarBottomLeftImage = mApp->mSonarSweepImages[0];
+	mSonarTopLeftImage = mApp->mSonarSweep2Images[0];
 	// the table of sines (360 entries of sin(i * 1/pi)), made with fsin
 	int aSinIndex = 0;
 	do
@@ -102,10 +102,10 @@ Board::Board(WinWSApp* theApp)
 	mTarget = NULL;
 	mFloorY = mApp->mHeight - mApp->mImages[IMAGE_STATUSBARX]->mHeight;
 	mRatingTimer = new WSTimer();
-	mField0f64 = 0;
-	mField0f60 = 0;
-	mField0f6c = 0;
-	mField0f68 = 0;
+	mWaveLettersWrong = 0;
+	mWaveLettersRight = 0;
+	mLettersWrong = 0;
+	mLettersRight = 0;
 	mRating->mAlpha = 0;
 	mRating->mX = (double)(mWidth / 2);
 	mRating->mY = (double)mHeight;
@@ -114,58 +114,58 @@ Board::Board(WinWSApp* theApp)
 	mRating->mPoints = 0;
 	mTypeTimer = new WSTimer();
 	mFlashAlpha = 0;
-	mFlag0efc = false;
+	mCreaturePassDone = false;
 	mTypeTime = 0;
-	mTimer0e50 = new WSTimer();
-	mTimer0e50->SetDisabled(true);
-	mField0e54 = 0;
-	if (!mApp->mUser->mFlag1dc)		// the original reads the current user here and stores 0 again
-		mField0e54 = 0;
-	mField0ef8 = 255;
+	mLevelTitleTimer = new WSTimer();
+	mLevelTitleTimer->SetDisabled(true);
+	mLevelTitleAlpha = 0;
+	if (!mApp->mUser->mSeenTutorial)		// the original reads the current user here and stores 0 again
+		mLevelTitleAlpha = 0;
+	mSonarAlpha = 255;
 	mBannerTimer = new WSTimer();
 	mBannerLife = 0;
-	mField0e94 = 0;
+	mPenaltyTypoCount = 0;
 	mPiranhaSpeed = 1.0;
 	mPiranhaCount = 0;
-	mField0ea4 = 255;
-	mFlag0ea8 = false;
-	mFlag0eb4 = false;
-	mFlag0eb5 = false;
+	mHintAlpha = 255;
+	mHintFading = false;
+	mEmpDraining = false;
+	mEmpUsedInWave = false;
 	mPauseCount = 0;
-	mFlag0d38 = false;
+	mLetterTyped = false;
 	mBoss = NULL;
-	mField0ec0[1] = 0;
-	mField0ec0[0] = 0;
-	mField0ec0[2] = 0;
-	mField0ec0[4] = 0;
-	mField0ec0[3] = 0;
-	mField0ec0[5] = (int)(gGameRand->NextNoAssert() & 3) + 4;
-	mField0ec0[7] = 0;
-	mField0ec0[6] = 0;
-	mField0ec0[8] = (int)(gGameRand->NextNoAssert() & 3) + 8;
-	mField0f70 = 0;
-	mField0f74 = 0;
-	mField0f2c = 0;
-	mField0f30 = 0;
-	mFlag0f40 = false;
-	mField0f0c = 0;
-	mField0f44 = 255;
-	mTimer0f00 = new WSTimer();
-	mTimer0f00->SetDisabled(true);
-	mField0f38 = 0.0;
-	mField0f04 = 255;
-	mFlag0f08 = false;
-	mField0f48 = 0;
+	mSparkles[1] = 0;
+	mSparkles[0] = 0;
+	mSparkles[2] = 0;
+	mSparkles[4] = 0;
+	mSparkles[3] = 0;
+	mSparkles[5] = (int)(gGameRand->NextNoAssert() & 3) + 4;
+	mSparkles[7] = 0;
+	mSparkles[6] = 0;
+	mSparkles[8] = (int)(gGameRand->NextNoAssert() & 3) + 8;
+	mBonusLettersRight = 0;
+	mBonusLettersWrong = 0;
+	mBonusWordPos = 0;
+	mBonusWordCount = 0;
+	mAirFillRising = false;
+	mBonusWordPoints = 0;
+	mAirFillAlpha = 255;
+	mTreasureTimer = new WSTimer();
+	mTreasureTimer->SetDisabled(true);
+	mAirGauge = 0.0;
+	mTreasureAlpha = 255;
+	mTreasureFading = false;
+	mTreasureFrame = 0;
 	mGameTimer = new WSTimer();
 	mGameTimer->SetDisabled(true);
-	mField0e90 = mPlayer->mScore;
-	mField0e8c = 0;
+	mStartScore = mPlayer->mScore;
+	mAccurateLevels = 0;
 	mEmpTimer = new WSTimer();
-	mField0e10 = (double)mHeight;
-	mField0d20 = mField0e10;
-	mField0d18 = mField0e10;
-	mField0d10 = mField0e10;
-	mField0f84 = mApp->mImages[IMAGE_WATER1]->mHeight;
+	mOceanFloorY = (double)mHeight;
+	mFarMountainsY = mOceanFloorY;
+	mMidMountainsY = mOceanFloorY;
+	mNearMountainsY = mOceanFloorY;
+	mWaterImageHeight = mApp->mImages[IMAGE_WATER1]->mHeight;
 	mSurfaceHeight = mApp->mImages[IMAGE_TOPBACKGROUND]->mHeight;
 	((MemoryImage*)mApp->mImages[IMAGE_WATER1])->mD3DFlags = 1;		// the Direct3D image flag 1: the texture is made in the fewest pieces
 	mHudBar = new HudBar(mPlayer, mApp);
@@ -280,18 +280,18 @@ Board::~Board()
 		delete mRatingTimer;
 	if (mTypeTimer != NULL)
 		delete mTypeTimer;
-	if (mTimer0e50 != NULL)
-		delete mTimer0e50;
+	if (mLevelTitleTimer != NULL)
+		delete mLevelTitleTimer;
 	if (mBannerTimer != NULL)
 		delete mBannerTimer;
-	if (mTimer0f00 != NULL)
-		delete mTimer0f00;
+	if (mTreasureTimer != NULL)
+		delete mTreasureTimer;
 	if (mGameTimer != NULL)
 		delete mGameTimer;
 	if (mEmpTimer != NULL)
 		delete mEmpTimer;
-	if (mTimer58 != NULL)		// port: the original never deletes this timer (a leak of a WSTimer, 0x64 bytes)
-		delete mTimer58;
+	if (mUnreadTimer != NULL)		// port: the original never deletes this timer (a leak of a WSTimer, 0x64 bytes)
+		delete mUnreadTimer;
 
 	// the strings, the other lists and mRecordsByType (the enemy records belong to the lesson) go with the members
 }
@@ -320,12 +320,12 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mPauseTimer);
 	theWidgetManager->AddWidget(mRatingTimer);
 	theWidgetManager->AddWidget(mTypeTimer);
-	theWidgetManager->AddWidget(mTimer0e50);
+	theWidgetManager->AddWidget(mLevelTitleTimer);
 	theWidgetManager->AddWidget(mBannerTimer);
-	theWidgetManager->AddWidget(mTimer0f00);
+	theWidgetManager->AddWidget(mTreasureTimer);
 	theWidgetManager->AddWidget(mGameTimer);
 	theWidgetManager->AddWidget(mEmpTimer);
-	theWidgetManager->AddWidget(mTimer58);
+	theWidgetManager->AddWidget(mUnreadTimer);
 }
 
 // 0x43fbf0 slot 2
@@ -337,12 +337,12 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mPauseTimer);
 	theWidgetManager->RemoveWidget(mRatingTimer);
 	theWidgetManager->RemoveWidget(mTypeTimer);
-	theWidgetManager->RemoveWidget(mTimer0e50);
+	theWidgetManager->RemoveWidget(mLevelTitleTimer);
 	theWidgetManager->RemoveWidget(mBannerTimer);
-	theWidgetManager->RemoveWidget(mTimer0f00);
+	theWidgetManager->RemoveWidget(mTreasureTimer);
 	theWidgetManager->RemoveWidget(mGameTimer);
 	theWidgetManager->RemoveWidget(mEmpTimer);
-	theWidgetManager->RemoveWidget(mTimer58);
+	theWidgetManager->RemoveWidget(mUnreadTimer);
 }
 
 // 0x4401b0 slot 4: the link follows while the diver is in state 7; showing the board restarts a paused game timer, gives
@@ -404,7 +404,7 @@ void Board::MouseMove(int x, int y)
 // 0x440b70: false while the sonar sweep of diver state 7 has gone past its last picture
 bool Board::IsHudActive()
 {
-	if (mPlayer->mState == 7 && mField0ee4 > 0x10)
+	if (mPlayer->mState == 7 && mSonarStep > 0x10)
 		return false;
 	return true;
 }

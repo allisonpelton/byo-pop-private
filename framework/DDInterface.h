@@ -132,6 +132,9 @@ public:
 	// caller fills and draws only its top-left theWidth x theHeight. At most kTransformCacheSize are kept, the least
 	// recently used going first, so a texture is not made for every draw.
 	MemoryImage* GetTransformCopy(int theWidth, int theHeight);
+	// A stretched copy of theSrcRect at theWidth x theHeight (the software stretch, below); DDImage draws a stretch into
+	// a picture of its own through it too
+	MemoryImage* GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast);
 
 protected:
 	// The stretched copies: at most kStretchCacheSize and kCopyCacheBytes of pixels (the transform copies have their own
@@ -159,7 +162,6 @@ protected:
 	std::vector<TransformCopyEntry> mTransformCopies;
 	std::vector<StretchCopyEntry> mStretchCopies;
 	unsigned int mStretchUse;
-	MemoryImage* GetStretchCopy(MemoryImage* theSource, const Rect& theSrcRect, int theWidth, int theHeight, bool fast);
 	void ClearStretchCopies();
 
 protected:

@@ -37,7 +37,7 @@ void MapScreen::Update()
 	int anEnd = mApp->mWidth - mApp->mImages[IMAGE_MAPBG]->mWidth;
 	if (mScrolling != false && mScrollX >= anEnd && mScrollY > anEnd)
 	{
-		mFlag234 = true;
+		mFinalScrollStarted = true;
 		mContinueLink->SetVisible(false);
 		mContinueLink->SetDisabled(true);
 		int aScrollX = mScrollX - 1;
@@ -50,16 +50,16 @@ void MapScreen::Update()
 			if (aScrollY <= anEnd)
 			{
 				mScrollY = anEnd;
-				if (mApp->mUser->mFlag230 != false)
+				if (mApp->mUser->mCompletionPending != false)
 				{
 					mApp->mUser->mGamesCompleted = mApp->mUser->mGamesCompleted + 1;
-					mApp->mUser->mFlag230 = false;
+					mApp->mUser->mCompletionPending = false;
 					mApp->mProfileMgr->WriteUserProfileToRegistry(mApp->mUser, false, false);		// 0x41f1d0
 				}
 				WinGameDialog* aDialog = new WinGameDialog(mApp);		// 0x43a4f0
-				aDialog->mTime = mApp->mField900;
-				aDialog->mMistakes = mApp->mField908;
-				aDialog->mCharsTyped = mApp->mField90c;
+				aDialog->mTime = mApp->mTypingTimeSoFar;
+				aDialog->mMistakes = mApp->mLettersWrongSoFar;
+				aDialog->mCharsTyped = mApp->mLettersRightSoFar;
 				aDialog->Resize(0x5a, 0, 0x1cc, aDialog->GetPreferredHeight(4));
 				mApp->AddDialog(DIALOG_WIN_GAME, aDialog);
 				mScrolling = false;
@@ -90,7 +90,7 @@ void MapScreen::Update()
 		bool aSingleWay = false;
 		while (true)
 		{
-			MapNode* aLast = mVector1d4.back();
+			MapNode* aLast = mRouteNodes.back();
 			if (aLink >= aLast->mLinks.size())
 				break;
 			if (aLast->mLinks[aLink] == -1)
@@ -98,7 +98,7 @@ void MapScreen::Update()
 				aSingleWay = true;
 				break;
 			}
-			if (mMap1a8[mVector1d4.back()->mLinks[aLink]]->mVisited == false)
+			if (mNodesById[mRouteNodes.back()->mLinks[aLink]]->mVisited == false)
 				anUnvisited = anUnvisited + 1;
 			aLink++;
 		}
@@ -106,21 +106,21 @@ void MapScreen::Update()
 		if (aSingleWay != false || anUnvisited == 1)
 		{
 			// 0x45b00f: one way on
-			if (mFlag1ec != false)
+			if (mChoicePending != false)
 			{
-				mFlag224 = true;
-				MapNode* aLast = mVector1d4.back();
-				mDotsDone = mVector1c4.size();
-				MapAddRoutePoints(aLast, mMap1a8[aLast->mLinks[0]], mVector1c4);		// 0x4537b0
-				mVector1d4.push_back(mMap1a8[aLast->mLinks[0]]);
-				mLevel = mVector1d4.back()->mId;
+				mLevelChosen = true;
+				MapNode* aLast = mRouteNodes.back();
+				mDotsDone = mRouteDots.size();
+				MapAddRoutePoints(aLast, mNodesById[aLast->mLinks[0]], mRouteDots);		// 0x4537b0
+				mRouteNodes.push_back(mNodesById[aLast->mLinks[0]]);
+				mLevel = mRouteNodes.back()->mId;
 				mChosenLetter = 'A';
 				mTimer->SetDisabled(false);
-				mFlag1ec = false;
+				mChoicePending = false;
 
-				MapNode* aNode = mVector1d4.back();
+				MapNode* aNode = mRouteNodes.back();
 				XWidget* aChest;
-				if (mApp->mUser->mField25c[aNode->mId] != 0)
+				if (mApp->mUser->mVisitedLevels[aNode->mId] != 0)
 					aChest = new XWidget(mApp, this, mApp->mImages[IMAGE_MAPCHEST_A_OPEN], 'A');
 				else
 					aChest = new XWidget(mApp, this, mApp->mImages[IMAGE_MAPCHEST_A], 'A');
@@ -130,11 +130,11 @@ void MapScreen::Update()
 				aChest->Resize(aNode->mX - aImage->mWidth / 2, aNode->mY - aImage->mHeight / 2, aImage->mWidth, aImage->mHeight);
 				mApp->mWidgetManager->AddWidget(aChest);
 				aChest->SetVisible(true);
-				mVector1b4.push_back(aChest);
+				mChests.push_back(aChest);
 				unsigned int i = 0;
-				while (i < mVector1b4.size())
+				while (i < mChests.size())
 				{
-					mApp->mWidgetManager->BringToFront(mVector1b4[i]->mTooltip);
+					mApp->mWidgetManager->BringToFront(mChests[i]->mTooltip);
 					i++;
 				}
 				mApp->mWidgetManager->BringToFront(aChest);
@@ -142,7 +142,7 @@ void MapScreen::Update()
 				if (mHintPending != false)
 				{
 					mHintPending = false;
-					mApp->mUser->mFlag284 = true;
+					mApp->mUser->mOpenChestHintSeen = true;
 					mApp->mProfileMgr->WriteUserProfileToRegistry(mApp->mUser, false, true);		// 0x41f1d0
 					mApp->ShowMessageDialog(GT(0x00531464), GT(0x00531470), GT(0x0052b4d0), true);		// 0x41bd80
 				}
@@ -151,32 +151,32 @@ void MapScreen::Update()
 		else
 		{
 			// 0x45b372: no way or several: a chest on each unvisited site
-			if (mFlag1ec != false)
+			if (mChoicePending != false)
 			{
-				mFlag224 = false;
-				mDotsDone = mVector1c4.size();
+				mLevelChosen = false;
+				mDotsDone = mRouteDots.size();
 				unsigned int aWay = 0;
 				while (true)
 				{
-					MapNode* aLast = mVector1d4.back();
+					MapNode* aLast = mRouteNodes.back();
 					if (aWay >= aLast->mLinks.size())
 						break;
-					if (mMap1a8[mVector1d4.back()->mLinks[aWay]]->mVisited == false)
-						MapAddRoutePoints(mVector1d4.back(), mMap1a8[mVector1d4.back()->mLinks[aWay]], mVector198);		// 0x4537b0
+					if (mNodesById[mRouteNodes.back()->mLinks[aWay]]->mVisited == false)
+						MapAddRoutePoints(mRouteNodes.back(), mNodesById[mRouteNodes.back()->mLinks[aWay]], mForkRouteDots);		// 0x4537b0
 					aWay++;
 				}
 
 				aWay = 0;
 				while (true)
 				{
-					MapNode* aLast = mVector1d4.back();
+					MapNode* aLast = mRouteNodes.back();
 					if (aWay >= aLast->mLinks.size())
 						break;
-					if (mMap1a8[mVector1d4.back()->mLinks[aWay]]->mVisited == false)
+					if (mNodesById[mRouteNodes.back()->mLinks[aWay]]->mVisited == false)
 					{
-						MapNode* aNode = mMap1a8[mVector1d4.back()->mLinks[aWay]];
+						MapNode* aNode = mNodesById[mRouteNodes.back()->mLinks[aWay]];
 						XWidget* aChest;
-						if (mApp->mUser->mField25c[aNode->mId] != 0)
+						if (mApp->mUser->mVisitedLevels[aNode->mId] != 0)
 							aChest = new XWidget(mApp, this, mApp->mImages[IMAGE_MAPCHEST_A_OPEN + aWay], (char)(aWay + 'A'));
 						else
 							aChest = new XWidget(mApp, this, mApp->mImages[IMAGE_MAPCHEST_A + aWay], (char)(aWay + 'A'));
@@ -187,7 +187,7 @@ void MapScreen::Update()
 						aChest->Resize(aNode->mX - aImage->mWidth / 2, aNode->mY - aImage->mHeight / 2, aImage->mWidth, aImage->mHeight);
 						mApp->mWidgetManager->AddWidget(aChest);
 						aChest->SetVisible(true);
-						mVector1b4.push_back(aChest);
+						mChests.push_back(aChest);
 						mApp->mWidgetManager->BringToFront(aChest);
 					}
 					aWay++;
@@ -195,7 +195,7 @@ void MapScreen::Update()
 
 				// 0x45b72d: with two or more chests, the letters and pictures are given from the left to the right by a
 				// selection of the three smallest x (the original's way; more than three would not be ordered)
-				if (mVector1b4.size() >= 2)
+				if (mChests.size() >= 2)
 				{
 					int aBestX = 9999;
 					int aSlots[3];
@@ -207,9 +207,9 @@ void MapScreen::Update()
 					unsigned int aChestIndex = 0;
 					while (true)
 					{
-						if (aChestIndex >= mVector1b4.size())
+						if (aChestIndex >= mChests.size())
 							break;
-						int aX = mVector1b4[aChestIndex]->mX;
+						int aX = mChests[aChestIndex]->mX;
 						if (aX < aBestX)
 						{
 							aSlots[2] = aSecond;
@@ -237,31 +237,31 @@ void MapScreen::Update()
 					unsigned int aRank = 0;
 					while (true)
 					{
-						if (aRank >= mVector1b4.size())
+						if (aRank >= mChests.size())
 							break;
-						XWidget* aChest = mVector1b4[aSlots[aRank]];
-						if (mApp->mUser->mField25c[aChest->mLevel] != 0)
+						XWidget* aChest = mChests[aSlots[aRank]];
+						if (mApp->mUser->mVisitedLevels[aChest->mLevel] != 0)
 							aChest->mImage = mApp->mImages[IMAGE_MAPCHEST_A_OPEN + aRank];
 						else
 							aChest->mImage = mApp->mImages[IMAGE_MAPCHEST_A + aRank];
-						mVector1b4[aSlots[aRank]]->mLetter = (char)(aRank + 'A');
+						mChests[aSlots[aRank]]->mLetter = (char)(aRank + 'A');
 						aRank++;
 					}
 				}
 
 				unsigned int i = 0;
-				while (i < mVector1b4.size())
+				while (i < mChests.size())
 				{
-					mApp->mWidgetManager->BringToFront(mVector1b4[i]->mTooltip);
+					mApp->mWidgetManager->BringToFront(mChests[i]->mTooltip);
 					i++;
 				}
 				mHeadingOn = false;
-				mFlag1ec = false;
+				mChoicePending = false;
 				mContinueLink->SetVisible(false);
 				if (mHintPending != false)
 				{
 					mHintPending = false;
-					mApp->mUser->mFlag284 = true;
+					mApp->mUser->mOpenChestHintSeen = true;
 					mApp->mProfileMgr->WriteUserProfileToRegistry(mApp->mUser, false, true);		// 0x41f1d0
 					mApp->ShowMessageDialog(GT(0x00531464), GT(0x005313b8), "", true);		// 0x41bd80 (the button text is the empty string at 0x5297a0)
 				}
@@ -273,7 +273,7 @@ void MapScreen::Update()
 	if (mTimer->Elapsed() >= 500)
 	{
 		mDotIndex = mDotIndex + 1;
-		if (mDotIndex < (int)mVector1c4.size())
+		if (mDotIndex < (int)mRouteDots.size())
 		{
 			MarkDirty();
 			mTimer->Reset();
@@ -281,7 +281,7 @@ void MapScreen::Update()
 		}
 		else
 		{
-			mDotIndex = mVector1c4.size();
+			mDotIndex = mRouteDots.size();
 			if (mLevel != -1)
 				mShipArrived = true;
 			mArrivals = mArrivals + 1;

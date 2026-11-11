@@ -32,12 +32,6 @@ RedShark::~RedShark()
 {
 }
 
-// 0x407170: returns a copy of the string at +0x24
-std::string RedShark::GetWord3()
-{
-	return mWord3;
-}
-
 // 0x40b600: BlackShark::TypeLetter with a third word: when mWord is finished the second word is taken, when that is
 // empty the third one; with both empty the word is cleared and the creature lets go of its target. The word taken is
 // emptied (the export drops that assignment, see BlackShark::TypeLetter)
@@ -46,11 +40,11 @@ void RedShark::TypeLetter()
 	mNumTyped++;
 	if (mNumTyped == (int)mWord.size())
 	{
-		mField54 = GetPoints();
+		mWordPoints = GetPoints();
 		mEvents.push_back(1);
-		if (mWord2.empty())
+		if (mSecondWord.empty())
 		{
-			if (mWord3.empty())
+			if (mThirdWord.empty())
 			{
 				mTyped = "";
 				mRemaining = "";
@@ -60,15 +54,15 @@ void RedShark::TypeLetter()
 					mAttacker->SetTarget(NULL);
 				return;
 			}
-			mWord = mWord3;
+			mWord = mThirdWord;
 			mNumTyped = 0;
-			mWord3 = "";		// used up, as the code at 0x40b850 does (the export leaves the line out)
+			mThirdWord = "";		// used up, as the code at 0x40b850 does (the export leaves the line out)
 		}
 		else
 		{
-			mWord = mWord2;
+			mWord = mSecondWord;
 			mNumTyped = 0;
-			mWord2 = "";		// used up, as the code at 0x40b711 does (the export leaves the line out)
+			mSecondWord = "";		// used up, as the code at 0x40b711 does (the export leaves the line out)
 		}
 	}
 	mTyped = mWord.substr(0, mNumTyped);

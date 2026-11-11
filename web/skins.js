@@ -785,7 +785,7 @@ var ByopopSkin = (function () {
           // the Setup window (web/setup.js), for adding games
           win("setup", T("setup.pop"));
           win("library");
-          settings("tab-settings"); win("tab-music"); win("sounds"); win("chat");
+          settings("tab-settings"); win("tab-music"); win("sounds"); win("splits"); win("chat");
         } else {
           settings("panel-settings");
           [["music", "index.tabs.music"], ["sounds", "sounds.title"]].forEach(function (m) {

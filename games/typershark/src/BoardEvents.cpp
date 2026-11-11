@@ -23,13 +23,14 @@
 
 using namespace Sexy;
 
-// The creatures of the lists ask their own slot 0 (Shark::IsSwimming, Piranha::IsSwimming) through the Shark or Piranha
+// port: the creatures of the lists ask their own slot 0 (Shark::IsSwimming, Piranha::IsSwimming) through the Shark or Piranha
 // part of the original's object.
 static bool IsSharkSwimming(Enemy* theEnemy)
 {
 	return dynamic_cast<Shark*>(theEnemy)->IsSwimming();
 }
 
+// port: the same for a Piranha
 static bool IsPiranhaSwimming(Enemy* theEnemy)
 {
 	return dynamic_cast<Piranha*>(theEnemy)->IsSwimming();
@@ -48,7 +49,7 @@ bool Board::HandleSharkEvents(Enemy* theEnemy)
 			int aState = mPlayer->mState;
 			if (aState != 3 && aState != 2)
 			{
-				mPlayer->mFlag144 = true;
+				mPlayer->mBittenByShark = true;
 				mPlayer->SetState(3);
 			}
 		}
@@ -130,7 +131,7 @@ bool Board::HandleSharkEvents(Enemy* theEnemy)
 
 			if (!aStillDying)
 			{
-				mFlag0f80 = true;
+				mScreenClear = true;
 				i = 0;
 				while (i < mSharks.size())
 				{
@@ -140,8 +141,8 @@ bool Board::HandleSharkEvents(Enemy* theEnemy)
 
 				if (CountActiveLists() == 1)
 				{
-					mFlag0f80 = true;
-					if (!mFlag0eb5 && !mRating->mActive)
+					mScreenClear = true;
+					if (!mEmpUsedInWave && !mRating->mActive)
 					{
 						mRatingTimer->SetDisabled(true);
 						ShowRating();
@@ -150,11 +151,11 @@ bool Board::HandleSharkEvents(Enemy* theEnemy)
 						mRatingTimer->Reset();
 
 					UserProfile* aUser = mApp->mUser;
-					if (!aUser->mFlag1dc)
+					if (!aUser->mSeenTutorial)
 					{
-						aUser->mFlag1dc = true;
+						aUser->mSeenTutorial = true;
 						mApp->mProfileMgr->WriteUserProfileToRegistry(aUser, false, false);
-						mPlayer->SetFlag118(true);
+						mPlayer->SetDiveActive(true);
 					}
 				}
 			}
@@ -162,7 +163,7 @@ bool Board::HandleSharkEvents(Enemy* theEnemy)
 		else if (anEvent == 1)
 		{
 			// the word is finished: it is worth the points of the word, times score / 600 (at least 2) in an abyss game
-			int aPoints = theEnemy->mField54;
+			int aPoints = theEnemy->mWordPoints;
 			if (mLessonManager->mAbyssMode)
 			{
 				int aFactor = mScore / 600;
@@ -171,7 +172,7 @@ bool Board::HandleSharkEvents(Enemy* theEnemy)
 				aPoints = aFactor * aPoints;
 			}
 
-			if (!mFlag0eb5)
+			if (!mEmpUsedInWave)
 				mTypeTime = mTypeTime + mTypeTimer->Elapsed();
 
 			mRating->mPoints += aPoints;
@@ -186,7 +187,7 @@ bool Board::HandleSharkEvents(Enemy* theEnemy)
 			// back to the quiet music once no swimming shark is near the diver any more
 			if (mApp->mMusicOrder != 0)
 			{
-				mApp->mFlag671 = true;
+				mApp->mCloseCallSeen = true;
 				bool aNear = false;
 				unsigned int i = 0;
 				while (i < mSharks.size())
@@ -228,7 +229,7 @@ bool Board::HandlePiranhaEvents(Enemy* theEnemy)
 			int aState = mPlayer->mState;
 			if (aState != 3 && aState != 2)
 			{
-				mPlayer->mFlag144 = false;
+				mPlayer->mBittenByShark = false;
 				mPlayer->SetState(3);
 			}
 		}
@@ -297,7 +298,7 @@ bool Board::HandlePiranhaEvents(Enemy* theEnemy)
 
 			if (!aStillDying)
 			{
-				mFlag0f80 = true;
+				mScreenClear = true;
 				i = 0;
 				while (i < mPiranhas.size())
 				{
@@ -307,8 +308,8 @@ bool Board::HandlePiranhaEvents(Enemy* theEnemy)
 
 				if (CountActiveLists() == 1)
 				{
-					mFlag0f80 = true;
-					if (!mFlag0eb5 && !mRating->mActive)
+					mScreenClear = true;
+					if (!mEmpUsedInWave && !mRating->mActive)
 					{
 						mRatingTimer->SetDisabled(true);
 						ShowRating();
@@ -320,7 +321,7 @@ bool Board::HandlePiranhaEvents(Enemy* theEnemy)
 		}
 		else if (anEvent == 1)
 		{
-			int aPoints = theEnemy->mField54;
+			int aPoints = theEnemy->mWordPoints;
 			if (mLessonManager->mAbyssMode)
 			{
 				int aFactor = mScore / 600;
@@ -340,7 +341,7 @@ bool Board::HandlePiranhaEvents(Enemy* theEnemy)
 
 			if (mApp->mMusicOrder != 0)
 			{
-				mApp->mFlag671 = true;
+				mApp->mCloseCallSeen = true;
 				bool aNear = false;
 				unsigned int i = 0;
 				while (i < mPiranhas.size())
@@ -429,7 +430,7 @@ bool Board::HandleClamEvents(Enemy* theEnemy)
 
 // 0x4582c0: the bonus creatures' event loop. 5 the creature left the screen (removed and deleted; unlike the shark loops
 // it returns false when the creature is not in the list), 6 it died (the group may be over), 1 its word was finished:
-// 200 points for the first, 400 for the second... (mField0d64 counts them), a rising tone, the EMP charge grows
+// 200 points for the first, 400 for the second... (mBonusCreaturesKilled counts them), a rising tone, the EMP charge grows
 bool Board::HandleBonusCreatureEvents(Enemy* theEnemy)
 {
 	int anEvent = theEnemy->PopEvent();
@@ -479,7 +480,7 @@ bool Board::HandleBonusCreatureEvents(Enemy* theEnemy)
 
 			if (!aStillDying)
 			{
-				mFlag0f80 = true;
+				mScreenClear = true;
 				i = 0;
 				while (i < mBonusCreatures.size())
 				{
@@ -489,8 +490,8 @@ bool Board::HandleBonusCreatureEvents(Enemy* theEnemy)
 
 				if (CountActiveLists() == 1)
 				{
-					mFlag0f80 = true;
-					if (!mFlag0eb5 && !mRating->mActive)
+					mScreenClear = true;
+					if (!mEmpUsedInWave && !mRating->mActive)
 					{
 						mRatingTimer->SetDisabled(true);
 						ShowRating();
@@ -502,11 +503,11 @@ bool Board::HandleBonusCreatureEvents(Enemy* theEnemy)
 		}
 		else if (anEvent == 1)
 		{
-			if (!mFlag0eb5)
+			if (!mEmpUsedInWave)
 				mTypeTime = mTypeTime + mTypeTimer->Elapsed();
 
-			mField0d64 = mField0d64 + 1;
-			int aCount = mField0d64;
+			mBonusCreaturesKilled = mBonusCreaturesKilled + 1;
+			int aCount = mBonusCreaturesKilled;
 			int aPoints = aCount * 200;
 			if (mLessonManager->mAbyssMode)
 			{
@@ -558,7 +559,7 @@ bool Board::HandleBossEvents(Enemy* theEnemy)
 		{
 			if (mTarget != NULL)
 			{
-				int aPoints = mTarget->mField54;
+				int aPoints = mTarget->mWordPoints;
 				if (mLessonManager->mAbyssMode)
 				{
 					int aFactor = mScore / 600;
@@ -577,7 +578,7 @@ bool Board::HandleBossEvents(Enemy* theEnemy)
 
 				AddBonusText(StrFormat(GTC(0x00530c5c), aPoints), (int)mTarget->mX, (int)mTarget->mY);
 				if (mTarget->mX <= 160.0)
-					mApp->mFlag671 = true;
+					mApp->mCloseCallSeen = true;
 				mTarget = NULL;
 			}
 		}
@@ -647,7 +648,7 @@ bool Board::HandleBossEvents(Enemy* theEnemy)
 			if (!mLessonManager->mAbyssMode)
 				mApp->mUser->mBossesKilled = mApp->mUser->mBossesKilled + 1;
 			else
-				mApp->mUser->CountKill(mBoss->mField0e4);
+				mApp->mUser->CountKill(mBoss->mEnemyType);
 
 			mTarget = NULL;
 			mTyped = "";
@@ -658,14 +659,14 @@ bool Board::HandleBossEvents(Enemy* theEnemy)
 			if (mPlayer->mState == 9)
 			{
 				if (!mLessonManager->mAbyssMode)
-					mFlag0ebc = true;
+					mBossBeaten = true;
 				else
 					mApp->ChangeMusic(0);
 
-				mFlag0f80 = true;
+				mScreenClear = true;
 				mPlayer->SetState(0);
 				mPlayer->AddScore(GetBossBonus());
-				mPlayer->SetFlag118(true);
+				mPlayer->SetDiveActive(true);
 			}
 		}
 		else if (anEvent == 10)

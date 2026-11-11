@@ -47,34 +47,34 @@ MechaSquid::MechaSquid(WinWSApp* theApp, GameObject* thePlayer, LessonManager* t
 	if (mConfig->mAbyssMode != 0)
 	{
 		double aMore = 0.0;
-		mField10c = 250;
+		mMaxHitPoints = 250;
 		mHitPoints = 250;
 		int aScore = mApp->mBoard->mScore;	// +0x1c4 of the board: the score
 		if (aScore >= 12000)
 		{
 			aMore = 1.7;
-			mField10c = 400;
+			mMaxHitPoints = 400;
 			mHitPoints = 400;
 		}
 		else if (aScore >= 9000)
 		{
 			aMore = 1.3;
-			mField10c = 300;
+			mMaxHitPoints = 300;
 			mHitPoints = 300;
 		}
 		else if (aScore >= 6000)
 		{
 			aMore = 0.9;
-			mField10c = 300;
+			mMaxHitPoints = 300;
 			mHitPoints = 300;
 		}
 		else if (aScore > 4000)
 		{
-			mField10c = 250;
+			mMaxHitPoints = 250;
 			aMore = 0.8;
 			mHitPoints = 250;
 		}
-		mField130 = 2;
+		mMinShots = 2;
 		mMaxShots = 3;
 		mShotSpeedMin = 0.7 + aMore;
 		mShotSpeedMax = aMore + 0.8;

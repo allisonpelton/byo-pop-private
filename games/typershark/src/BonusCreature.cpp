@@ -16,7 +16,7 @@ using namespace Sexy;
 // 0x40db40: GameObject (0x4611b0) and Enemy (0x40a3f0) first. The first frame is drawn from the game's generator
 BonusCreature::BonusCreature(WinWSApp* theApp) :
 	Enemy(theApp),
-	mField0e8(0xff),
+	mAlpha(0xff),
 	mQuarterVelY(0.0),
 	mFrameOffset(0)
 {
@@ -32,7 +32,7 @@ BonusCreature::BonusCreature(WinWSApp* theApp) :
 	mImage = mImages[0];
 	mTypedFont = mApp->mFont12pt;
 	mFont = mApp->mFont12pt;
-	mFlag19 = false;
+	mStealthy = false;
 }
 
 BonusCreature::~BonusCreature()
@@ -55,9 +55,9 @@ void BonusCreature::Update()
 				if (mState == 3)
 				{
 					mFrame = 7;
-					if (!mFlag18)
+					if (!mDeathFinished)
 					{
-						mFlag18 = true;
+						mDeathFinished = true;
 						mEvents.push_back(6);
 						mEvents.push_back(5);
 					}
@@ -73,7 +73,7 @@ void BonusCreature::Update()
 		{
 			mState = 3;
 			mFrame = 0;
-			mFlag18 = true;
+			mDeathFinished = true;
 			mEvents.push_back(6);
 			mEvents.push_back(5);
 		}
@@ -131,7 +131,7 @@ void BonusCreature::Draw(Graphics* g)
 }
 
 // 0x406180 slot 7: state 3 swaps to the death picture (8 frames, 3 ticks each, the creature moved 12 left and 20 up so
-// the bigger picture is centred), plays the jellyfish sound unless mFlag50 is set; state 0 restores the swim picture
+// the bigger picture is centred), plays the jellyfish sound unless mKilledByEmp is set; state 0 restores the swim picture
 void BonusCreature::SetState(int theState)
 {
 	mState = theState;
@@ -139,7 +139,7 @@ void BonusCreature::SetState(int theState)
 	{
 		mImage = mImages[2];
 		mFrameOffset = 0;
-		if (!mFlag50)
+		if (!mKilledByEmp)
 			mApp->PlaySample(SOUND_JELLYFISH);
 		mFrame = 0;
 		mFrameDelay = 3;

@@ -117,6 +117,14 @@ typically like").
 - **The README's performance table (the user, 2026-11-10):** "Include in the readme a performance comparison table
   including load time, CPU, and memory usage for every game", port against original, from each game's performance
   numbers in its notes.
+- **Shared costs found by Typer Shark's performance pass (2026-11-11; its GAME_NOTES section 11, "Shared costs"):**
+  about a quarter of a load's processor time goes to GIFs, decoded to 32 bits (`_stbi__out_gif_code`, 13%) and
+  quantized back to 8 (`Sexy::Quantize8Bit`, 12%, a binary search for each pixel; a cache of the last colour gives the
+  identical table), 0.15 to 0.2 s of a 0.75 s load in any game with GIFs; SDL's software renderer, which
+  `DDInterface::Init` falls back to without a GPU, costs 10 to 13 ms a frame at 640x480 against 0.26 ms with
+  Direct3D 11; the Direct3D 11 device costs a process 20 to 25 MB and about 0.2 s of start; the framework keeps an
+  image's pixels after their upload (20.6 of this game's 85 MB); imagehlp.dll takes 7.6% of the load's cycles from a
+  call site not yet found. None is fixed yet.
 - **A shared cost found by Atomica's performance pass (2026-11-11):** `DDInterface::FillScanLines` hands every row to
   SDL as its own rectangle. Atomica's tunnel sends about 21,000 a frame, which costs about 58 MB of private bytes in
   the driver (under every renderer) and over a quarter of the game's processor time. Joining rows that touch could

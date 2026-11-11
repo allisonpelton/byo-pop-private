@@ -22,9 +22,9 @@ Projectile::Projectile(WinWSApp* theApp, GameObject* theHitTarget, GameObject* t
 	mNumFrames = 1;
 	mFrameDelay = 11;
 	mState = 0;
-	mFlag1b = true;
-	mFlag1c = true;
-	mFlag1d = true;
+	mAlwaysTrueA = true;
+	mAlwaysTrueB = true;
+	mAlwaysTrueC = true;
 }
 
 Projectile::~Projectile()
@@ -56,26 +56,9 @@ bool Projectile::HitsPlayer()
 	return false;
 }
 
-// 0x4018c0: a shot flying right (mVelX > 0) has hit its target when the boxes overlap in x (the shot's width, the
-// target's GetFrameWidth) and when the shot's y lies inside the target's y range (the shot's height is not used here)
-bool Projectile::HitsTarget()
-{
-	if (mVelX > 0.0)
-	{
-		if ((double)mFrameWidth + mX >= mHitTarget->mX)
-		{
-			if ((double)mHitTarget->GetFrameWidth() + mHitTarget->mX >= mX)
-			{
-				if (mY >= mHitTarget->mY)
-				{
-					if ((double)mHitTarget->GetFrameHeight() + mHitTarget->mY >= mY)
-						return true;
-				}
-			}
-		}
-	}
-	return false;
-}
+// HitsTarget (slot 1, 0x4018c0, a shot flying right has hit its target when the boxes overlap) is not translated: no play of the
+// original reaches it, and Torpedo and the shots below it (CannonBall, MechaTorpedo, SquidCannonBall) each have their own, so
+// Projectile leaves it pure.
 
 // 0x40adf0: nothing while invisible. State 3 (hit) does nothing more, state 4 (a shot knocked back: the speed falls
 // by 0.05 a tick) only watches the edges; any other state tests, in this order, the hit on the player (event 0x13,

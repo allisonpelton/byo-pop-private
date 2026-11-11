@@ -310,7 +310,12 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-spectrum { display: block; width: 100%; height: 100%; --mu-bar: #a383ff; --mu-peak: #ece8f6; }
 .mu-tracker { height: 100%; overflow: hidden; }
 .mu-piano { display: block; width: 100%; height: 100%; }
-.mu-spectrum[hidden], .mu-tracker[hidden], .mu-piano[hidden] { display: none; }
+.mu-score { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
+.mu-score-sheet { position: relative; }
+.mu-score-svg svg { display: block; }
+.mu-score-head { position: absolute; top: 0; width: 6px; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
+.mu-score-head[hidden] { display: none; }
+.mu-spectrum[hidden], .mu-tracker[hidden], .mu-piano[hidden], .mu-score[hidden] { display: none; }
 .mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
 /* the game the views follow (web/music.js, "Following a game"): a tag over the view's top right corner */
 .mu-follow { position: absolute; top: 0; right: 0; max-width: 50%; padding: 0 3px; font-size: 10px; line-height: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #c9b8ff; color: #0b0a10; }
@@ -537,6 +542,8 @@ footer a { color: var(--accent); }
 <!-- the soundboard: Desktop 95's Sounds window (web/sounds.js) and its table of the games' sounds (web/soundboards.js) -->
 <script src="soundboards.js"></script>
 <script src="sounds.js"></script>
+<!-- the splits timer: Desktop 95's Splits window, a stand-in for LiveSplit (web/splits.js) -->
+<script src="splits.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
      import rules and each listed game's page.js (import-games.js, written by the build) -->
 <script>var Module = {};</script>
@@ -1255,6 +1262,8 @@ try {
     });
     // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
     if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
+    // the splits timer (web/splits.js): Desktop 95 only, closed at first, its icon after the Sounds window's
+    if (window.ByopopSplits) ByopopSplits.attach(d, function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; });
     // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
     if (window.ByopopSetup) ByopopSetup.attach(d, function (left, vw) { return [Math.max(left, Math.round((vw - 560) / 2)), top() + 40]; });
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>

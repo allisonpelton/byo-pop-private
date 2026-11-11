@@ -26,8 +26,8 @@ public:
 	WinWSApp*				mApp;					// +0x114 constructor argument
 	MemoryImage*			mCheckedImage;			// +0x118 the right half of the check box picture (the checked box)
 	MemoryImage*			mUncheckedImage;		// +0x11c the left half
-	int						mField120;				// +0x120 the sample every button press plays (WinWSApp::ShowHintDialog sets 5, the button click)
-	Checkbox*				mField124;				// +0x124 the "disable hints" check box
+	int						mButtonSample;				// +0x120 the sample every button press plays (WinWSApp::ShowHintDialog sets 5, the button click)
+	Checkbox*				mDisableHintsCheckbox;				// +0x124 the "disable hints" check box
 
 public:
 	HintDialog(WinWSApp* theApp, int theId, const SexyString& theDialogHeader, const SexyString& theDialogLines,
@@ -39,7 +39,7 @@ public:
 	virtual void			Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x438220 slot 13
 	virtual void			Draw(Graphics* g) override;								// 0x43bbe0 slot 16
 	virtual void			KeyChar(SexyChar theChar) override;						// 0x438180 slot 20
-	virtual int				GetPreferredHeight(int theWidth) override;				// 0x438170 slot 50 (always 400)
+	// slot 50, GetPreferredHeight (0x438170, always 400), is not translated: ShowHintDialog sizes the box itself and nothing asks
 
 	virtual void			ButtonPress(int theId) override;						// 0x438280 ButtonListener (+0x58) slot 3
 

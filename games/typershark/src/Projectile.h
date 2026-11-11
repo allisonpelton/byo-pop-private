@@ -40,7 +40,7 @@ public:
 	virtual ~Projectile();															// deleting destructor 0x4098e0
 
 	virtual bool			HitsPlayer();											// own slot 0, 0x401820
-	virtual bool			HitsTarget();											// own slot 1, 0x4018c0
+	virtual bool			HitsTarget() = 0;										// own slot 1: the base (0x4018c0) is not translated, every shot has its own
 
 	virtual void			Update() override;										// GameObject slot 1, 0x40adf0
 	virtual void			Draw(Graphics* g) override;								// slot 2, 0x4017f0

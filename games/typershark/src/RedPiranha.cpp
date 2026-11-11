@@ -23,6 +23,7 @@ RedPiranha::RedPiranha(WinWSApp* theApp, int theType) :
 	mImage = mImages[0];
 }
 
+// port: nothing to free here; the compiler's destructor chain does the rest
 RedPiranha::~RedPiranha()
 {
 }

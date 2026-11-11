@@ -17,7 +17,7 @@ StealthWhitePiranha::StealthWhitePiranha(WinWSApp* theApp, int theType) :
 	StealthPiranha(theApp, theType),
 	WhitePiranha(theApp, theType)
 {
-	mFlag19 = true;
+	mStealthy = true;
 	mStealthImages.resize(6);
 	mStealthImages[0] = mApp->mPiranhaImages[7][0];
 	mStealthImages[2] = mApp->mPiranhaImages[7][2];
@@ -37,7 +37,7 @@ void StealthWhitePiranha::SetState(int theState)
 	WhitePiranha::SetState(theState);
 	if (mState == 0)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[0];
 		else
 			mImage = mImages[0];
@@ -46,7 +46,7 @@ void StealthWhitePiranha::SetState(int theState)
 	}
 	else if (mState == 3)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[2];
 		else
 			mImage = mImages[2];

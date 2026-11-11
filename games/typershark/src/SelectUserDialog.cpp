@@ -115,7 +115,7 @@ void SelectUserDialog::ButtonDepress(int theId)
 				}
 				mApp->mProfileMgr->RegisterDefaultUserName(aProfile->GetName());	// 0x419da0, 0x415060
 				mApp->mUser = aProfile;									// +0x8e8
-				mApp->mHintsAllowed = aProfile->mFlag1fc;				// +0x8ed
+				mApp->mHintsAllowed = aProfile->mHintBoxesWanted;				// +0x8ed
 				mApp->MarkMenuScreenDirty();							// 0x412cc0
 			}
 		}

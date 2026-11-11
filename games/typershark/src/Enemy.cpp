@@ -4,29 +4,29 @@
 
 using namespace Sexy;
 
-// 0x40a3f0: GameObject (0x4611b0) first, then the Enemy part
+// 0x40a3f0: GameObject (0x4611b0) first, then the Enemy part (0x40a413 is the export's second entry into its middle)
 Enemy::Enemy(WinWSApp* theApp) :
-	mFlag08(false),
+	mMovedToFront(false),
 	mApp(theApp),
 	mTarget(NULL),
 	mAttacker(NULL),
-	mFlag18(false),
-	mFlag19(false),
-	mFlag1a(false),
-	mFlag1b(true),
-	mFlag1c(true),
-	mFlag1d(true),
+	mDeathFinished(false),
+	mStealthy(false),
+	mPlayerDiesSoundPlayed(false),
+	mAlwaysTrueA(true),
+	mAlwaysTrueB(true),
+	mAlwaysTrueC(true),
 	mTextOffsetY(0),
 	mTextOffsetX(0),
-	mField28(0),
-	mField2c(0),
-	mFlag30(false),
-	mFlag50(false),
-	mField54(0),
+	mShockPeriod(0),
+	mShockTogglesLeft(0),
+	mShockShowing(false),
+	mKilledByEmp(false),
+	mWordPoints(0),
 	mNumTyped(0),
 	mImages(6, (Image*)NULL),
 	mImage(NULL),
-	mFlagD0(false)
+	mBiteEventSent(false)
 {
 	mFont = mApp->mFontMyriadCondensed15;
 	mTypedFont = mApp->mFontMyriadCondensed15b;
@@ -136,13 +136,13 @@ bool Enemy::HasEvent(int theEvent)
 void Enemy::SetWord(const std::string& theWord)
 {
 	mWord = theWord;
-	mField54 = GetPoints();
+	mWordPoints = GetPoints();
 }
 
-// 0x401230: the death animation of a dying creature (state 3) has played to its end (mFlag18 is set when it does)
+// 0x401230: the death animation of a dying creature (state 3) has played to its end (mDeathFinished is set when it does)
 bool Enemy::IsDeathFinished()
 {
-	if (mState == 3 && mFlag18)
+	if (mState == 3 && mDeathFinished)
 		return true;
 	return false;
 }

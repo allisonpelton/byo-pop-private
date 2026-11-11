@@ -1,0 +1,2 @@
+allow stage PHASE1 -- the name of the file docs/PHASE1.md
+allow stage phase1 -- the name of the folder games/typershark/tools/phase1

@@ -97,13 +97,6 @@ void StatsScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mTabs);
 }
 
-// 0x441320 (the listener sub-object's slot 3): the app plays the button-click sound (sample 5). Nothing registers this screen
-// as a listener; the original's pages use their own and the Close button is the app's
-void StatsScreen::ButtonPress(int theId)
-{
-	mApp->PlaySample(SOUND_BUTTONCLICK);
-}
-
 // 0x451050: the pages get the profile; the tutorial page is advanced to the lesson the profile ended with
 void StatsScreen::SetUser(UserProfile* theUser)
 {
