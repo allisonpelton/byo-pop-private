@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Copy the game data the Typer Shark port needs out of a legally owned Typer Shark! Deluxe install.
+"""Copy the game data the Typer Shark port needs out of a legally owned Typer Shark! Deluxe install (the Steam copy, with WinTS.exe, or
+the PopCap Game Collection's, with TyperShark.exe).
 
 The port never ships PopCap's assets (images, fonts, sounds, music, level and word files) or the game's texts (read at
-start-up from the user's own WinTS.exe, see games/typershark/src/GameText.h); every build stages them from the user's own
+start-up from the user's own WinTS.exe or TyperShark.exe, see games/typershark/src/GameText.h); every build stages them from the user's own
 copy into the git-ignored assets/typershark/ folder (the native exe finds it next to itself or up to two levels up).
 
     python games/typershark/tools/stage_typershark_assets.py ["A:/SteamLibrary/steamapps/common/Typer Shark Deluxe"] [--out assets/typershark]
@@ -22,30 +23,31 @@ DEFAULT_INSTALLS = [
     r"C:\Program Files (x86)\PopCap Games\Typer Shark Deluxe",
 ]
 
-# Folders and files the game reads at runtime. WinTS.exe (the launcher with the game appended) is read for the game's
-# texts only, never run. Not copied: Flash.ocx, drm.swf, drm.xml and drmss.jpg (the launcher's screens), bass.dll
-# (the port plays music itself), the uninstaller, readme/licence, the properties signature, and the player's own data.
+# Folders and files the game reads at runtime. WinTS.exe (the Steam copy's launcher with the game appended) or TyperShark.exe (the
+# Collection's game, with no launcher) is read for the game's texts only, never run. Not copied: Flash.ocx, drm.swf, drm.xml and
+# drmss.jpg (the launcher's screens), bass.dll (the port plays music itself), the uninstaller, readme/licence, register.tpl, the
+# properties signature, and the player's own data (the users folder, which the Collection's copy ships with the default score table).
 DIRS = ["images", "data", "sounds", "music", "properties"]
-FILES = ["WinTS.exe"]
+FILES = ["WinTS.exe", "TyperShark.exe"]
 # Pictures only the original's registration code used (the register dialog's picture, the title screen's stamps and its register
 # and continue buttons): the port has none of that code, so they are not staged (a picture's alpha mask, _name.gif, goes with it).
 SKIP_IMAGES = {"register", "stamp_registered", "stamp_trial", "title_register", "title_register_over", "title_continue",
                "title_continue_over"}
-REQUIRED = ["wints.exe", "data/twords.txt", "data/easy-cfg.xml", "images/titlescreen.jpg", "music/wordshar.mo3",
+REQUIRED = ["data/twords.txt", "data/easy-cfg.xml", "images/titlescreen.jpg", "music/wordshar.mo3",
             "properties/partner.xml"]
 
 
 def find_install(explicit):
     candidates = [explicit] if explicit else DEFAULT_INSTALLS
     for c in candidates:
-        if c and os.path.isfile(os.path.join(c, "WinTS.exe")) and os.path.isdir(os.path.join(c, "images")):
+        if c and any(os.path.isfile(os.path.join(c, f)) for f in FILES) and os.path.isdir(os.path.join(c, "images")):
             return c
     return None
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("install", nargs="?", help="Typer Shark! Deluxe install folder (contains WinTS.exe)")
+    ap.add_argument("install", nargs="?", help="Typer Shark! Deluxe install folder (contains WinTS.exe, or TyperShark.exe in the Collection's copy)")
     ap.add_argument("--out", default=os.path.join(ROOT, "assets", "typershark"))
     args = ap.parse_args()
 
@@ -81,6 +83,8 @@ def main():
             count += 1
 
     missing = [r for r in REQUIRED if not os.path.isfile(os.path.join(out, r))]
+    if not any(os.path.isfile(os.path.join(out, f.lower())) for f in FILES):
+        missing.append("wints.exe or typershark.exe")
     if missing:
         sys.exit(f"Staged {count} files but required files are missing: {missing}")
     print(f"Staged {count} files from {src} -> {out}")
