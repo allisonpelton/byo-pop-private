@@ -11,7 +11,7 @@ H=build/coverage/dynomite/hits; mkdir -p "$H"
 R="build/origrun/$(basename "$OG_STAGE")"
 python $TOOLS/toorig.py "$S" -1 > "$H/$NAME.orig.txt"
 rm -f "$R/coverage.txt"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 ARGS="--coverage $(win "$PWD/build/coverage/dynomite/functions.txt")"
 if [ -n "$REAL" ]; then
 	# orig.sh's settings with the real clock: origrun's last --clock wins

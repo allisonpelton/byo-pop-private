@@ -26,7 +26,6 @@ TitleScreen::TitleScreen(FossilizedApp* theApp)
 	mPlayLink->mColor = Color(0xff, 0xff, 0);
 	mPlayLink->mLabel = mApp->GetString("CLICK_HERE_TO_PLAY");
 
-	mUnused90 = 0;
 }
 
 // 0x4388d0

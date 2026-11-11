@@ -247,7 +247,8 @@ None so far (docs/MOD_ROADMAP.md, "The fixes mod"). Both phases of the identical
 bug of the original that changes play (its scores, timing or rules) and no wait that only costs the player time; the
 loading already runs at the machine's speed in the port. So the port has no fixes mod yet, and no mod loading. One
 thing could become a fix of the port itself rather than of the mod: if the original's tutorial also stalls after a
-match at step 45 (`IDENTICAL_PLAY.md`, "Oddities"), that is a soft lock.
+match at step 45 that clears the eggs past the line, that is a soft lock. A three-egg match there goes on in both
+programs; the clearing match was not found for the original (`IDENTICAL_PLAY.md`, "Oddities").
 
 ## 6. Performance (measured 2026-11-08, original and port back to back)
 
@@ -275,8 +276,42 @@ updates from there (the original's counter reached 8864 of them before origrun q
 | port, run B | 92.0 MB | 91.8 MB | 4.6 s |
 
 The port uses well under half the original's processor time for the same minute of play, and holds about 28 MB more
-private memory; where that memory goes was not looked into, which is the performance pass's work. No speed-up of the
-port's own has been made yet.
+private memory.
+
+### The performance pass (2026-11-11)
+
+The machine was never quiet that day (other sessions ran three to six game processes throughout), so the comparison
+above stands, and what follows is the port alone.
+
+**Where the port's time goes.** Bejeweled's sampler (`games/bejeweled/tools/profile/cpuprof.py`) ran the port under
+rundesk on the scripted minute's input with `-fast -drawevery`, every update drawn and nothing waited: 10.0 G cycles in
+41 s. 48% are in ntdll (the system's calls, two thirds of them on the main thread and the rest on the GPU driver's own
+thread), 17% in the NVIDIA driver, 6% in win32u and 4% in SDL. 16% are the port's exe, and most of that is loading's decoders (the GIFs 2.6%,
+Ogg Vorbis about 3%, JPEG under 1%) and the framework's drawing (`PolyFill` 1.5%, `DrawImage` 1%, the textured quads
+0.6%). The game's own code is under 2%: the board's draw 0.4% and its update 0.2%, the cells and the side bar less.
+(`CellButton::Update` shows 1.3%, but it only forwards a held button's tick, so those are samples landing beside it.)
+Nothing in the game's own code is worth speeding up. The costs that are there are shared ones already listed in
+`docs/COORDINATION.md` (the GIF decode and its quantizing back to 8 bits, imagehlp, `SDL_RenderPresent`), for the
+framework to fix once for every game.
+
+**Memory.** The port's 28 MB of private bytes over the original's are two of those shared costs: the Direct3D 11 device
+(20 to 25 MB a process) and the images' pixels, which the framework keeps after their upload.
+
+**Leaks.** `tools/profile/leakcheck.sh` builds the port with `tools/profile/leakhook.cpp` (a scratch build, never
+shipped), plays each of its cases once with one round and once with two, and lists the callers whose live blocks grew
+with the second round. Two leaks of the original were found and are fixed in the port: the stick of dynamite that a
+placed egg replaces (`EggGrid::Place`, 0x416590, takes it off the list and never deletes it; 2d9eb014), and the save
+dialog's empty slot picture and its cell, Save button and Cancel button, which its destructor (0x433420) never deletes,
+so each showing of the dialog leaked them. The growth left is caches (the registry's text, the file finder's names, the
+string tables) and blocks of the screen each run ends on (the eggs of the board in play).
+
+**The web build.** `tools/profile/webperf.js` drove the player-only page in the Browser pane (Chrome 156, the pane
+hidden, its frames given by a 16 ms timer) at the game's own speed: the title clicked through, eight seconds on the main
+menu, then twenty seconds of Endless played by the bot through `move` (54 shots). On the menu 23 of 382 frames drew
+(only what changed is drawn), at 0.11 ms a frame and 1.9 ms at most, 0.5% of the real time. In play every frame drew, at
+1.9 ms a frame and 19.4 ms at most (on a machine busy with other sessions' games), 9.4% of the real time. The wasm
+heap stands at 46 MB, 44 of it in use: the 149 images' pixels are 34.6 MB and the 41 sounds 3.8 MB, the same images kept
+after their upload as natively. The JavaScript heap is 12 MB. No error was logged. Nothing there needs speeding up.
 
 ## 7. The PopCap Game Collection version (2026-11-11)
 
@@ -309,3 +344,56 @@ but these:
   (`fossil.hs`, `timetrial.hs`), `stomped/readme.txt`, and 38 `sounds/cached_*.wav`. Those are the original's own cache:
   its sound manager (0x495db0) loads `cached_<name>.wav` when it exists, else the sound's own file, and passes a decoded
   Ogg or MP3 to 0x4943e0 under the cached name, so a Collection install makes them on its first run. The port decodes the Ogg files and reads no cached file.
+
+## 8. Removal of code the port does not need (2026-11-11)
+
+The registration code and the buttons that lead out of the game went earlier (`README.md`, "Registration and loading").
+A scan of the port for what nothing calls or uses (every function defined in `src/` whose name appears nowhere but its
+declaration, every picture the app loads and nothing draws, every field nothing reads, checked against the export)
+found, and took out:
+
+- `FossilizedApp::PumpLoading`, the port's own, which nothing called; `CeilingSpeed::ResetSpeed` (0x435dc0), which
+  nothing calls in the port or in the original (Ghidra found no caller and made no function there).
+- The update check's wait bar, `images/waitbar` (+0x1224): the original draws it only in its online update check
+  (0x41f4c0), which the port does not have.
+- Two cells of the main menu's signs that the original cuts and never draws ("select the game you want to play" and
+  "select a difficulty level", +0x12fc and +0x1300). Their two steps of the loading count stay, so the bar reaches the
+  original's 394.
+- The count of games that lasted a minute (+0x4d8), which only the unregistered copy's screens read.
+- Fields nothing touches or only clears: the main menu's +0x64, +0x238 and +0x274, the title's +0x90 and the
+  two spare ints of each cell the ceiling check visits.
+- The parameter of Stomped's `LoadGrid` (0x40eef0) and `NextPuzzle` (0x40fc30), which the original's functions do not
+  take (Ghidra's listing gave them one, and every call passed 1).
+
+Kept on purpose: the fields that only a saved game holds (the board's +0x64, the launcher's +0x1c, +0x30 and +0xa5c,
+the fire prompt's +0xc and +0x1c, Steggy's +0x28 and +0x2c, the Fossil Challenge's +0x264), since the saved game's
+format stays the original's; each is named for what it holds and says that nothing reads it. The staging tool no
+longer copies the 38 `sounds/cached_*.wav` the original writes on its first run (section 7), which the port never read.
+
+## 9. The readability pass (2026-11-11)
+
+`tools/namecheck.py games/dynomite` went from 1130 findings to none. There is no Mac build of Dynomite, so every name
+comes from how the code uses the thing, read in the port and checked in the export where the port's uses left it
+open.
+
+- **61 stand-in names** (`mField70` and the like, 1085 uses) named for what they hold: the board's play field
+  (`mPlayWidth`, `mPlayHalfWidth`, `mPlayMiddleX`, `mLineY`), its game's end (`mLosing`, `mGameOver`, `mGameOverShown`,
+  `mGameOverDelay`, `mPanelTop`), the shot (`mFireBlocked`, `mPlaying`, `mShotCount`, `mFiredThisRound`, `mAvoidColor`,
+  `mLastFiredColor`, `mInputLocked` for the tutorial), the ceiling (`mCeilingGoal`, `mCeilingAtGoal`), the grid's
+  `mAlarmDue`, `mCeilingDrawn`, `mKeepPastRight` and `mShowPastLine`, the launcher's hand, band, aim path and arrow,
+  and the rest. A field that is saved and loaded and that nothing reads (section 8) says so; three hold 0 throughout
+  and are `mSavedZero`, after Alchemy's and Atomica's.
+- **The picture cells** named for what they show (`mPicNextButton`, `mPicBackButton`, `mPicPlayButton` and their
+  hover cells, `mPicNewGameIcon`, `mPicPanicIcon`, `mPicWelcomeSign`, `mPicStartNewGameSign`, the side bar's
+  `mPicMenuButton`, `mPicOptionsButton`, `mPicExitButton`, `mPicMuseumButton`), and the side bar's numbered buttons
+  (`mButton1`, `mButton2`, `mButton5`) as `mOptionsButton`, `mExitButton` and `mMuseumButton`.
+- **Nine functions** given their original's address or the port marker: the helpers split out of `Dynomite::Load`
+  (0x405590), the main menu's constructor (0x424e90), `PuzzleListWidget::LoadPacks` (0x4312b0) and `Tutorial::Step`
+  (0x43b2c0) name it; `WarpToBoard` names the two places the original does it inline; the memory file and the game
+  texts are the port's.
+- **Seven one-letter names** that lived past ten lines, and the comments that named a renamed field by its offset.
+
+The renames are proved by the object code (`tools/objsnap.py`): every object of the game compiles to the same
+instructions before and after, but for `DynomiteStomped.cpp`, where the dropped parameter of section 8 changes the
+calls. `tools/splitfields.py dynomite` finds no member declared twice; its "never written" members are character
+arrays filled by `strcpy`, and its read-only offsets are calls through the virtual table.

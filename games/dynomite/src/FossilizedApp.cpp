@@ -67,9 +67,8 @@ FossilizedApp::FossilizedApp()
 	// bytes after the strings in a saved game are the same from run to run
 	memset(mSaveMode, 0, sizeof(mSaveMode));
 	memset(mSaveName, 0, sizeof(mSaveName));
-	mField1090 = 0;
+	mChosenPack = 0;
 	mLockCursor = false;
-	mField4d8 = 0;
 	mPackFile[0] = 0;
 	mPuzzleSkills = 0;
 	mBoard = NULL;
@@ -147,7 +146,6 @@ void FossilizedApp::Init()
 	mSndEgglands = new GameSound(this, "sounds\\egglands");
 	mPicDialog = new Pic(this, "images\\dialog", false);
 	mPicDbutton = new Pic(this, "images\\dbutton", false);
-	mPicWaitbar = new Pic(this, "images\\waitbar", false);
 	mTinyFont = NULL;
 	mTitleScreen = new TitleScreen(this);
 	mTitleScreen->Resize(0, 0, mWidth, mHeight);
@@ -186,7 +184,8 @@ void FossilizedApp::TitleScreenDone()
 	ShowMainMenu();
 }
 
-// the window's rectangle has its frame, so in a window its middle lies above the game's by half the title bar
+// port: split out of the main menu's 0x42af50 and 0x424d10, which do it inline. The window's rectangle has its
+// frame, so in a window its middle lies above the game's by half the title bar
 void FossilizedApp::WarpToBoard()
 {
 	int aTop = 0;
@@ -253,7 +252,7 @@ void FossilizedApp::MenuButton()
 	}
 	if (mBoard != NULL)
 	{
-		if (mBoard->mField131 == true)
+		if (mBoard->mGameOver == true)
 		{
 			ShowMainMenu();
 			return;
@@ -433,7 +432,7 @@ void FossilizedApp::ReadFromRegistry()
 	if (RegistryReadInteger("GameType", &aValue))
 		mGameMode = aValue;
 	if (RegistryReadInteger("StompedLevel", &aValue))
-		mField1090 = aValue;
+		mChosenPack = aValue;
 	std::string aName;
 	if (RegistryReadString("LastScoreName", &aName))
 		mLastScoreName = aName;
@@ -447,8 +446,8 @@ void FossilizedApp::WriteToRegistry()
 	RegistryWriteInteger("FossilGameType", mFossilKind);
 	RegistryWriteInteger("SkillLevel", mSkill);
 	RegistryWriteInteger("GameType", mGameMode);
-	RegistryWriteInteger("StompedLevel", mField1090);
-	RegistryWriteInteger("StompedLevel", mField1090);
+	RegistryWriteInteger("StompedLevel", mChosenPack);
+	RegistryWriteInteger("StompedLevel", mChosenPack);
 	if (mLastScoreName.length() != 0)
 		RegistryWriteString("LastScoreName", mLastScoreName);
 }
@@ -604,14 +603,14 @@ void FossilizedApp::ButtonDepress(int theId)
 	}
 }
 
-// 0x419040
+// 0x419040: the tutorial in place of the main menu (the board, if any, is taken down but its pointer kept)
 void FossilizedApp::StartTutorial()
 {
-	if (mTutor != NULL)
+	if (mIntroScreen != NULL)
 	{
-		mWidgetManager->RemoveWidget(mTutor);
-		SafeDeleteWidget(mTutor);
-		mTutor = NULL;
+		mWidgetManager->RemoveWidget(mIntroScreen);
+		SafeDeleteWidget(mIntroScreen);
+		mIntroScreen = NULL;
 	}
 	if (mBoard != NULL)
 	{
@@ -635,17 +634,6 @@ void FossilizedApp::LoadSavedGame(const char* theFile)
 		mBoard->SkipSaveHeader();
 		mBoard->Load();
 		mBoard->CloseSaveFile();
-	}
-}
-
-// port: the loading runs in the main thread, so the loader draws the title screen now and then
-void FossilizedApp::PumpLoading()
-{
-	if (mTitleScreen != NULL)
-	{
-		mTitleScreen->mProgress = GetLoadingThreadProgress();
-		mTitleScreen->MarkDirty();
-		DrawDirtyStuff();
 	}
 }
 

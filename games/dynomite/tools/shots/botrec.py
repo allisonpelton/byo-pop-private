@@ -15,9 +15,10 @@ waits for the table. After --moves moves (default 400) the bot's shots give way 
 the bot is still winning (Endless and Panic, IDENTICAL_PLAY.md, "Played with real input"). With --shots a screenshot
 line goes into the script before each button move, 40 updates after each new step of the tutorial, every 50 shots, at
 the game's end, in the name dialog and at the table. With --match45 the bot's first shot at the tutorial's step 45 is
-the one a player would make (`move any`, which makes a match; IDENTICAL_PLAY.md, "Oddities"), and the run ends 3000
+the one a player would make (`matchmove`, which makes a match; IDENTICAL_PLAY.md, "Oddities"), and the run ends 3000
 updates later.
 """
+import atexit
 import json
 import os
 import subprocess
@@ -52,9 +53,24 @@ commands = os.path.join(run, 'commands.txt')
 open(commands, 'wb').close()
 logname = os.path.join(run, 'game.log')
 log = open(logname, 'wb')
-proc = subprocess.Popen(['build/native/rundesk.exe', 'build/native/dynomite.exe', '-gamedir=assets/dynomite',
+proc = subprocess.Popen([os.path.abspath('build/native/rundesk.exe'), os.path.abspath('build/native/dynomite.exe'),
+                         '-gamedir=assets/dynomite',
                          '-userdir=' + os.path.join(run, 'user'), '-seed=%d' % seed, '-fast', '-drawevery',
                          '-commands=' + commands, '-hold'], stdout=log, stderr=subprocess.STDOUT)
+
+
+def end_port():
+    """On any exit (an error included), the held port is told to quit, and stopped if it does not."""
+    if proc.poll() is None:
+        with open(commands, 'ab') as f:
+            f.write(b'quit\n')
+        try:
+            proc.wait(15)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
+atexit.register(end_port)
 reader = open(logname, 'rb')
 partial = b''
 script = []
@@ -82,7 +98,7 @@ def send(*ls):
         for raw in lines():
             t = raw[6:] if raw.startswith('INFO: ') else raw
             w = want[0].split()[0]
-            if (w == 'state' and t.startswith('STATE ')) or (w == 'move' and t.startswith('MOVE ')) or \
+            if (w == 'state' and t.startswith('STATE ')) or (w in ('move', 'matchmove') and t.startswith('MOVE ')) or \
                     t.startswith('OK ' + w) or t.startswith('ERROR ' + w):
                 if t.startswith('ERROR'):
                     raise SystemExit('botrec: ' + t)
@@ -160,7 +176,7 @@ while True:
     if mode != 'tutorial' and moves >= maxmoves:
         m = 'MOVE {"kind":"up","input":[{"click":[400,60]}]}'	# straight up from the slingshot
     else:
-        m = send('move any' if any45 else 'move')[0]
+        m = send('matchmove' if any45 else 'move')[0]
     if m == 'MOVE null':
         nulls += 1
         if nulls > 200:

@@ -69,6 +69,26 @@
       ],
       "pairs": "over.png",
       "label": "the name box's caret, which blinks on the edit box's own count from when it got the focus (IDENTICAL_PLAY.md, \"Phase 2: what remains\")"
+    },
+    {
+      "rect": [
+        340,
+        370,
+        120,
+        40
+      ],
+      "pairs": "step027.png",
+      "label": "the slingshot's band seven updates after a shot: Launcher::DrawBand (0x401a10) draws the band round the flying egg and lets go of it in the same draw once the egg is above y 388, which it is in update 26598 in both programs (the original 387.3, the port 387.6); the port's screenshot draws the screen again after that frame, so it shows the band let go, where the original's shows the frame itself; in play both draw that frame with the band round the egg (IDENTICAL_PLAY.md, \"Phase 2: what remains\")"
+    },
+    {
+      "rect": [
+        396,
+        0,
+        34,
+        12
+      ],
+      "pairs": "step027.png",
+      "label": "the tutorial's bonus baby egg and its stick at the top, shaken on every draw by rand() % 9 - 4 (EggGrid::Draw, 0x417760), and the port's screenshot is a draw of its own (as t2's resumed shots)"
     }
   ]
 }

@@ -4,7 +4,7 @@
 # each pair of scripts below in it, once with one round of play and once with two, each ending on the same screen, and
 # writes the live allocations at exit by caller (build/leak/<case>-<1|2>.txt); "report" prints, for each case, the
 # callers whose live blocks grew with the second round, named by the function that holds the call (llvm-nm on the exe).
-# Each run is one game process under rundesk with -fast -drawevery, one at a time.
+# Each run is one game process under rundesk with -fast -drawevery, one at a time. ONLY="<case> ..." runs those cases.
 source "$(dirname "$0")/../identical/common.sh"
 LM=${LLVM_MINGW_ROOT:-E:/retools/llvm-mingw-20261006-ucrt-x86_64}
 OUTD=build/leak
@@ -32,6 +32,7 @@ build)
 run)
 	for c in "${CASES[@]}"; do
 		set -- ${c%%|*}; NAME=$1; SEED=$2; R=$3; shift 3; ONE="$*"; TWO="${c#*|}"
+		[ -z "$ONLY" ] || [[ " $ONLY " == *" $NAME "* ]] || continue
 		for n in 1 2; do
 			D=$OUTD/$NAME-$n; rm -rf "$D"; mkdir -p "$D/user"
 			PARTS="$ONE"; [ $n = 2 ] && PARTS="$ONE $TWO"

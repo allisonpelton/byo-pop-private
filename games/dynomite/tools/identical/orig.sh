@@ -4,9 +4,11 @@
 # rundesk itself. The game's high-score files, saved games and pack copy are removed first (KEEP_SAVE=1 keeps the saved
 # games a test put there; SAVE=<file> puts one there as SLOT0.SAV), and its registry key is set to the values port.sh
 # gives the port (settings.reg), so every run starts from the same state. HS=1 puts mkhs.py's low tables in its folder.
-# ORIG_ARGS adds origrun options (a coverage run's --coverage <list>). The log is on stdout.
+# ORIG_ARGS adds origrun options (a coverage run's --coverage <list>). It takes the host lock first (common.sh: the original
+# runs one copy at a time). The log is on stdout.
 source "$(dirname "$0")/common.sh"
 S="$1"; SEED="$2"; T="$3"; shift 3
+hostlock
 rm -f "$OG_GAME"/*.HS "$OG_GAME"/*.hs "$OG_GAME/STOMPED.TMP"
 [ -n "$KEEP_SAVE" ] || rm -f "$OG_GAME"/SLOT*.SAV
 [ -n "$SAVE" ] && cp "$SAVE" "$OG_GAME/SLOT0.SAV"
