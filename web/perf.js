@@ -251,7 +251,12 @@ var ByopopPerf = (function () {
     ".perf-panel dt { color: var(--muted); }\n" +
     ".perf-panel dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-family: ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }\n" +
     ".perf-panel dt.perf-group { grid-column: 1 / -1; color: var(--fg); font-weight: 700; margin-top: 6px; }\n" +
-    "html.player-only .perf-panel { display: none !important; }\n";
+    "html.player-only .perf-panel { display: none !important; }\n" +
+    ".perf-panel.perf-side { position: static; width: 250px; max-height: none; border-radius: 0; box-shadow: none; border-width: 0 0 0 1px;\n" +
+    "  grid-column: 2; grid-row: 1 / 3; align-self: stretch; overflow: auto; }\n" +
+    "html.perf-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto; }\n" +
+    "html.perf-side.touch-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto auto; }\n" +
+    "html.perf-side.touch-side .stage-wrap > .bc-touch { grid-column: 3; }\n";
   function build() {
     if (panel) return;
     var style = document.createElement("style");
@@ -267,6 +272,15 @@ var ByopopPerf = (function () {
     body = document.createElement("div");
     body.textContent = T("perf.waiting");
     panel.appendChild(h); panel.appendChild(note); panel.appendChild(body);
+    // In a game's window on the one page the panel is part of the window, at the right of the game, which it never covers; the
+    // window grows by its width (the user, 2026-11-10: "The performance panel should expand the game window and be static to the
+    // right"; web/shell.html, sideWidth)
+    var main = document.getElementById("main");
+    if (document.documentElement.classList.contains("d95-embed") && main) {
+      panel.classList.add("perf-side");
+      main.appendChild(panel);
+      return;
+    }
     document.body.appendChild(panel);
     // a window of Desktop 95's desktop (web/skins.js), whose icon is there while the panel is
     try {
@@ -281,6 +295,7 @@ var ByopopPerf = (function () {
     hook();
     build();
     panel.hidden = false;
+    side();
     st = fresh();
     raf = requestAnimationFrame(onRaf);
     tick = setInterval(second, 1000);
@@ -306,6 +321,12 @@ var ByopopPerf = (function () {
     unwrapGl();
     st = null; last = null; storage = null; gpuMs = [];
     if (panel) { panel.hidden = true; body.textContent = T("perf.waiting"); }
+    side();
+  }
+  function side() {
+    var is = !!panel && !panel.hidden && panel.classList.contains("perf-side");
+    document.documentElement.classList.toggle("perf-side", is);
+    try { window.dispatchEvent(new CustomEvent("byopop-side")); } catch (e) {}
   }
   function sync() {
     if (!document.body || !document.getElementById("canvas")) return;

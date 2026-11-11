@@ -463,6 +463,13 @@ to the control that last had the focus there. A window that takes the focus come
 the task bar the arrows move between items. Once the game's canvas has the focus it gets every key, Tab too; F6
 leaves it.
 
+**Its text.** W95FA by Alina Sava (SIL OFL 1.1; `web/fonts/w95fa.woff2`, 7,880 bytes, the Latin subset of
+`@fontsource/win95fa` 5.3.0, with `web/licenses/w95fa.txt`; the user's OK for the download, 2026-11-11). `web/skins.css`
+sets every text of the desktop at 11 pixels, unsmoothed, a few large texts at 22: the font is sharp only at 11 and its
+multiples, so a new part does not set a size of its own. It has one weight; bold is the same glyphs struck twice a
+pixel apart. It lacks the arrows, the multiplication sign, the ellipsis, the dashes, the middle dot, the fractions and
+the copyright and trademark signs, which fall back to the next font in `--font-ui`.
+
 ### Desktop 95 in one page
 
 The whole site is one page, the listing's desktop (`web/deskapps.js`, `ByopopApps`). A game, its copyright page and
@@ -996,7 +1003,10 @@ are the game's to handle.
 ## The performance panel
 
 A game page shows the panel while the setting `perf` is on (`web/perf.js`; off by default). It only reads, so the
-game plays the same with it on, and with it off nothing of it runs. Each second it shows:
+game plays the same with it on, and with it off nothing of it runs. In a game's window on the one page it is part of
+the window, at the right of the game, and the window is that much wider (`sideWidth` in `web/shell.html`); nothing but
+the game and its mod menu is drawn over the game (the user, 2026-11-10), so the input display is in the window's
+status bar too. Each second it shows:
 
 - **Frames:** frames per second and frame time, and the game's own time per frame, which the framework's frame hook
   passes (`sexyapp_test_frame`, `Module.byopopTestFrame`).
@@ -1063,7 +1073,8 @@ perfect mode off"):
 
 ### Game speed
 
-`speed` (0.5, 0.75, 1, 1.25, 1.5, 2) sets `SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed`
+`speed` (the listed 0.5 to 2, or any number from 0.25 to 4 typed in the field beside the list; the user, 2026-11-10:
+"Allow game speed to be set to any arbitrary value") sets `SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed`
 (`framework/SexyAppBase.cpp`), from the frame hook once the application exists. At 1 nothing is called, so unmodded
 play is unchanged. It does not reach games whose own host runs their loop (Bonnie's Bookstore, Ning Po), nor a
 timer a game reads from the wall clock. Music and sounds keep their own speed.
@@ -1087,7 +1098,9 @@ Mahjongs) are left as they are.
 
 ### Always skip start-up logos
 
-`skipLogos` has the games go straight past their start-up logos (the PopCap logo, a publisher's or developer's
+`skipLogos` ("Skip start-up logos after the first launch") never applies to a game's first launch in this browser,
+which shows its logos once (the user, 2026-11-10); the page keeps the games launched in `byopop-logos-seen`. After
+that it has the games go straight past their start-up logos (the PopCap logo, a publisher's or developer's
 logo, a "presents" splash; not the loading bar or the title's own animation), each as a click or key on it would,
 so play afterwards is the same. The page tells the game before it starts: `byopop_site_skiplogos(1)` before
 `callMain` (`framework/WebSettings.cpp`). A game reads `Byopop::SiteSkipLogos()` (`framework/WebSettings.h`), which

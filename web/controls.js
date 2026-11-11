@@ -212,7 +212,12 @@ var ByopopControls = (function () {
       display.className = "bc-display";
       display.setAttribute("aria-hidden", "true");
       display.hidden = true;
-      stage.appendChild(display);
+      // never over the game's picture (the user, 2026-11-10: "Never show anything but the game itself (and the mod menu) inside the
+      // game"): in the game window's status bar where there is one, else under the game
+      var bar = document.querySelector(".d95-statusbar"), main = document.getElementById("main");
+      if (bar && bar.offsetHeight) { display.classList.add("bc-in-bar"); bar.appendChild(display); }
+      else if (main) { display.classList.add("bc-under"); main.appendChild(display); }
+      else stage.appendChild(display);
     }
   }
 
@@ -440,7 +445,9 @@ var ByopopControls = (function () {
     drawPanel();
   }
 
-  var STYLE = ".bc-display { position: absolute; bottom: 6px; left: 6px; z-index: 2; pointer-events: none; display: flex; gap: 4px; flex-wrap: wrap; }" +
+  var STYLE = ".bc-display.bc-in-bar, .bc-display.bc-under { position: static; flex: 0 1 auto; }" +
+    ".bc-display.bc-in-bar span, .bc-display.bc-under span { background: none; color: inherit; text-shadow: none; padding: 0 4px; border: 1px solid currentColor; border-radius: 0; font-size: 11px; }" +
+    ".bc-display { position: absolute; bottom: 6px; left: 6px; z-index: 2; pointer-events: none; display: flex; gap: 4px; flex-wrap: wrap; }" +
     ".bc-display span { padding: 2px 7px; border-radius: 4px; font: 600 13px/1.3 ui-monospace, Consolas, monospace; color: #fff;" +
     " background: rgba(0, 0, 0, 0.6); text-shadow: 0 1px 1px #000; }" +
     ".bc-touch { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 8px 16px; touch-action: none; }" +
