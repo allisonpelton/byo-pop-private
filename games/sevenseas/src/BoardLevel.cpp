@@ -25,6 +25,7 @@ static Ship* NewShip()
 }
 
 // the caller's part of a ship's initialisation, which follows the inlined constructor (and draws the phase again)
+// port: a helper; the original writes it out inline where it is used
 static void InitShip(Ship* theShip, int theType, int theX, int theY)
 {
 	theShip->mX = theX;
@@ -135,7 +136,7 @@ void Board::NewGame(bool theLoad)
 	mSavedLevels = 1;
 	mLives = 3;
 	mLevelOver = false;
-	mApp->mFlag4c4 = false;
+	mApp->mPirateWelcome = false;
 	mSeconds = 0;
 	mStartTick = GameTickCount();
 	mKills = 0;
@@ -159,7 +160,7 @@ void Board::NewLevel()
 	for (int i = 0; i < GRID * GRID; i++)
 		(&mPoints[0][0])[i] = 0;
 	mDirty = true;
-	mUnused_95008 = 0;
+	mCellFlashFloor = 0;
 
 	if (!AllPortsDone())
 	{

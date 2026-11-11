@@ -119,10 +119,10 @@ void Cursors_Init()
 		Palette_Gradient(&gColourCodes[i], 200, 0xff, (uint8_t)c[3], (uint8_t)c[4], (uint8_t)c[5], (uint8_t)c[6],
 			(uint8_t)c[7], (uint8_t)c[8]);
 		const PixelFormat* aFmt = Sys_ScreenFormat();
-		if (aFmt->bpp == 0x10)
-			PixelFormat_PackPalette16(aFmt, gColourCodes[i].p16, gColourCodes[i].rgb, 0x100);
+		if (aFmt->mBpp == 0x10)
+			PixelFormat_PackPalette16(aFmt, gColourCodes[i].mP16, gColourCodes[i].mRgb, 0x100);
 		else
-			PixelFormat_PackPalette32(aFmt, gColourCodes[i].p32, gColourCodes[i].rgb, 0x100);
+			PixelFormat_PackPalette32(aFmt, gColourCodes[i].mP32, gColourCodes[i].mRgb, 0x100);
 	}
 	Font* aFonts[4] = {&gFontSmall, &gFontTreb11, &gFontTreb20, &gFontIcon};
 	for (int i = 0; i < 4; i++)
@@ -327,7 +327,7 @@ void GameDraw()
 	if (Screen_Lock() != 0)
 	{
 		Dirty_CopyTo(&gDirty, gScreenBits, gScreenPitch);
-		Draw_SetTarget(gScreenBits, gScreenPitch, gScreenLock.w, gScreenLock.h, &gBackBuffer.fmt);
+		Draw_SetTarget(gScreenBits, gScreenPitch, gScreenLock.mW, gScreenLock.mH, &gBackBuffer.mFmt);
 		if (gLevels.current != nullptr)
 			Level_Draw(gLevels.current);
 		UnlockScreen();
@@ -341,16 +341,16 @@ void Menu_DrawToBackground(Menu* theMenu)
 	{
 		Image* anImage = theMenu->image;
 		Image* aBack = gLevels.current->background;
-		int aY = (int)((double)theMenu->y - (double)(anImage->h / 2));
-		int aX = (int)((double)theMenu->x - (double)(anImage->w / 2));
-		Image_BlitAlpha(anImage, aBack->bits, aBack->pitch, &aBack->fmt, kScreenClip, aX, aY);
+		int aY = (int)((double)theMenu->y - (double)(anImage->mH / 2));
+		int aX = (int)((double)theMenu->x - (double)(anImage->mW / 2));
+		Image_BlitAlpha(anImage, aBack->mBits, aBack->mPitch, &aBack->mFmt, kScreenClip, aX, aY);
 	}
 	if (theMenu->logo != nullptr)
 	{
 		Image* aLogo = theMenu->logo;
 		Image* aBack = gLevels.current->background;
-		Image_BlitAlpha(aLogo, aBack->bits, aBack->pitch, &aBack->fmt, kScreenClip, theMenu->logoX - aLogo->w / 2,
-			theMenu->logoY - aLogo->h / 2);
+		Image_BlitAlpha(aLogo, aBack->mBits, aBack->mPitch, &aBack->mFmt, kScreenClip, theMenu->logoX - aLogo->mW / 2,
+			theMenu->logoY - aLogo->mH / 2);
 	}
 }
 
@@ -361,8 +361,8 @@ void Screen_Redraw()
 	if (gLevels.current != nullptr && gLevels.current->background != nullptr && gLevels.current->seed == 0)
 	{
 		Image_Copy(&gBackBuffer, gLevels.current->background);
-		Font_SetTarget(&gFontSmall, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
+		Font_SetTarget(&gFontSmall, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
 		Font_SetClipped(&gFontSmall, 1);
 		// (the background covers both texts just after, so the original never shows them; 16 is the screen's
 		// bits per pixel, 0x460008)
@@ -373,7 +373,7 @@ void Screen_Redraw()
 		if (gLevels.current != nullptr)
 		{
 			List_Each(&gLevels.current->menus, Menu_DrawToBackground);
-			Image_BlitRect(gLevels.current->background, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, 0, 0,
+			Image_BlitRect(gLevels.current->background, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, 0, 0,
 				0, 0, 800, 600);
 			if (10.0f < gLevels.current->age)
 				Level_RedrawCells(gLevels.current);

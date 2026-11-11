@@ -309,8 +309,9 @@ int Text_FromXml(Text* theText, const char* theXmlCursor, const XmlTag* theTag)
 			int aWidth = Xml_GetInt(theTag, "width");
 			int aY = (Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT;
 			TextInput* anInput = &theText->mInput;
-			TextInput_Init(anInput, theText->mFont, 0x10, 4, (aX * SCREEN_WIDTH) / SCREEN_WIDTH - aWidth / 2, aY,
-				aWidth / 2 + (aX * SCREEN_WIDTH) / SCREEN_WIDTH, aY + 0x1e);
+			TextInput_Init(anInput, nullptr, nullptr, theText->mFont, 0x10, 4,
+				(aX * SCREEN_WIDTH) / SCREEN_WIDTH - aWidth / 2, aY, aWidth / 2 + (aX * SCREEN_WIDTH) / SCREEN_WIDTH,
+				aY + 0x1e);
 			TextInput_SetFocus(anInput, 1);
 			TextInput_SetCaseMode(anInput, 1);
 #ifdef __EMSCRIPTEN__

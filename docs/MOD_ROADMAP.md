@@ -49,7 +49,10 @@ first, unmodified"). A mod that trades the original's look or feel
 for speed or memory, like Bejeweled's `lean` with its lower frame rate, is not a fix: it stays a mod of its own and
 starts off as before.
 
-The site starts each game with its fixes mod on and every fix in it turned on. The player can turn single fixes off in
+The site starts each game with its fixes mod on. A fix starts on, except where the original's behaviour looks
+intended and is not widely known as a bug: such a fix starts off (`"default": false`), so the game does not look
+changed to someone who knows it (the user, 2026-11-11, of Bejeweled 2's podFade: "Off by default for functionality
+that seems intended but where the bug is not well known to be a bug"). The player can turn single fixes on or off in
 the mod menu, or the whole mod off to play the original as it was. The port itself stays the unmodified original, so a
 native build without the mods, the oracle and the frozen baselines all play the original, and the rules of CLAUDE.md
 ("Port first, unmodified", "Done means identical") still hold for the port.

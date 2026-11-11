@@ -109,8 +109,8 @@ void Emitter_Setup(Emitter* theEmitter, Obj* theParent, int theX, int theY, floa
 	theEmitter->parent = theParent;
 	theEmitter->kind = theKind;
 	theEmitter->anim = Animation_Find(theAnim, &theEmitter->frameCount, &theEmitter->frameTime);
-	theEmitter->oldX = (float)(theX - Animation_Frame(theEmitter->parent->anim, 0)->w / 2);
-	int aHeight = Animation_Frame(theEmitter->parent->anim, 0)->h;
+	theEmitter->oldX = (float)(theX - Animation_Frame(theEmitter->parent->anim, 0)->mW / 2);
+	int aHeight = Animation_Frame(theEmitter->parent->anim, 0)->mH;
 	theEmitter->frequency = theFrequency;
 	theEmitter->rotation = theRotation;
 	theEmitter->oldY = (float)(theY - aHeight / 2);

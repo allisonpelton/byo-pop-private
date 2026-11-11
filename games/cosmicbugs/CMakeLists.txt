@@ -1,32 +1,24 @@
 # Cosmic Bugs (Retro64, 2007; games/cosmicbugs) on the shared platform layer. Cosmic Bugs runs on Retro64's own
 # engine (plain C over global state: images and banks, software blitters, fonts, dirty rectangles, XML data files),
-# not the SexyAppFramework: engine/ is that engine, translated and mapped onto the platform, and src/ is the game on
-# top of it (games/cosmicbugs/docs). The SexyAppFramework only hosts the app: its window, clock, input and sound
+# not the SexyAppFramework: engines/retro64 is that engine, translated and mapped onto the platform (one copy,
+# shared with Water Bugs), and src/ is the game on top of it (games/cosmicbugs/docs). The SexyAppFramework only hosts the app: its window, clock, input and sound
 # device, and the 800x600 16-bit screen the game draws into.
-file(GLOB COSMICBUGS_ENGINE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/engine/*.cpp)
 file(GLOB COSMICBUGS_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 # The host (the app and main) goes in the exe; the headless runner has a host of its own. SiteProfiles.cpp (the web page's
 # players, framework/WebProfiles.h) is for the web exe only: it needs the framework, which this library does not link
 list(FILTER COSMICBUGS_SOURCES EXCLUDE REGEX "/(CosmicBugsApp|main|SiteProfiles)\\.cpp$")
 
-add_library(cosmicbugsengine STATIC ${COSMICBUGS_ENGINE_SOURCES})
-target_include_directories(cosmicbugsengine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine)
-target_link_libraries(cosmicbugsengine PUBLIC stb)
-if(NOT MSVC)
-  target_compile_options(cosmicbugsengine PRIVATE -Wall)
-endif()
-
 # The game's code over the engine
 add_library(cosmicbugsgame STATIC ${COSMICBUGS_SOURCES})
 target_include_directories(cosmicbugsgame PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(cosmicbugsgame PUBLIC cosmicbugsengine)
+target_link_libraries(cosmicbugsgame PUBLIC retro64)
 if(NOT MSVC)
   target_compile_options(cosmicbugsgame PRIVATE -Wall)
 endif()
 
 # The game under the framework's app host
 add_executable(cosmicbugs ${CMAKE_CURRENT_SOURCE_DIR}/src/CosmicBugsApp.cpp ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
-target_link_libraries(cosmicbugs PRIVATE cosmicbugsgame cosmicbugsengine sexyframework sexycompat2004 sexyopenmpt stb)
+target_link_libraries(cosmicbugs PRIVATE cosmicbugsgame retro64 sexyframework sexycompat2004 sexyopenmpt stb)
 if(NOT MSVC)
   target_compile_options(cosmicbugs PRIVATE -Wall)
 endif()
@@ -45,9 +37,9 @@ endif()
 # clock of its own with scripted input
 if(NOT EMSCRIPTEN)
   add_executable(cosmicbugs_banktest test/banktest.cpp)
-  target_link_libraries(cosmicbugs_banktest PRIVATE cosmicbugsgame cosmicbugsengine stb)
+  target_link_libraries(cosmicbugs_banktest PRIVATE cosmicbugsgame retro64 stb)
   add_executable(cosmicbugs_run test/gamerun.cpp)
-  target_link_libraries(cosmicbugs_run PRIVATE cosmicbugsgame cosmicbugsengine stb)
+  target_link_libraries(cosmicbugs_run PRIVATE cosmicbugsgame retro64 stb)
   if(WIN32)
     add_custom_command(TARGET cosmicbugs_banktest POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PORT_RUNTIME_DLLS} $<TARGET_FILE_DIR:cosmicbugs_banktest>
