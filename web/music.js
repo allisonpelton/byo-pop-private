@@ -1024,6 +1024,10 @@ var ByopopMusic = (function () {
       followEl.title = tip;
     }
     window.addEventListener("byopop-desk-active", function () { if (onScreen()) tick(); });
+    // back from another tab: the frame that ran as the page was hidden ended the loop (nothing seen, nothing followed), so it starts
+    // again here (the user, 2026-11-10: "when you switch back, the tracker window has to be activated again to resume")
+    document.addEventListener("visibilitychange", function () { if (onScreen()) tick(); });
+    window.addEventListener("pageshow", function () { if (onScreen()) tick(); });
 
     playBtn.addEventListener("click", function () {
       if (state === "playing" || state === "loading") pause();

@@ -99,10 +99,7 @@ Board::Board(NoahApp* theApp, bool theContinue)
 	mAbandonAlpha = 0;
 	mAbandonIndex = -1;
 	mAbandonCount = 0;
-	mFlag14 = false;
 	mArkLeaving = false;
-	mPathStartX = mPathStartY = -1;
-	mPathValid = false;
 	mSelected = NULL;
 	mState = BOARD_GET_READY;
 	mState314 = mLastInputTick = mStartTick = mState320 = mState324 = mLastMoveTick = mState330 = 0;
@@ -287,7 +284,6 @@ void Board::NewLevel()
 	{
 		int aWater = (0xd2 - mFloodSpeed) * 2;
 		mWaterY = aWater;
-		mApp->mFloodStart = aWater;                 // app+0x47c
 		mWaterTargetY = mWaterY;
 	}
 	mCombo = 1;
@@ -315,7 +311,6 @@ void Board::NewLevel()
 	mArkStage = 0;
 	mNoahFrame = 0;
 	mNoahSprite = IMAGE_NOAH_HAPPY_STILL1;
-	mFlag14 = false;
 	mArkLeaving = false;
 	if ((mApp->mLevel > 1) && (mApp->mGameMode != GAMEMODE_STRATEGY))
 		mWaterY = 0;
@@ -631,9 +626,6 @@ bool Board::CloneReachable(Piece* a, Piece* b)
 // 0x403910: forget the path preview and the highlight flags
 void Board::ClearLink()
 {
-	mPathStartX = -1;
-	mPathStartY = -1;
-	mPathValid = false;
 	for (size_t i = 0; i < mTrail.size(); i++)
 		delete mTrail[i];
 	mTrail.clear();

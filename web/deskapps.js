@@ -158,7 +158,7 @@ var ByopopApps = (function () {
     // the title bar's icon, which opens the control menu: a game's cap, a document's page
     var icon = document.createElement("i");
     icon.className = kind === "game" ? "d95-sys-cap" : "d95-sys-doc"; icon.setAttribute("aria-hidden", "true");
-    desk.add(el, { id: id, title: title, closable: true, menu: true, menuIcon: icon, noIcon: true,
+    desk.add(el, { id: id, keep: "app:" + pathOf(key), title: title, closable: true, menu: true, menuIcon: icon, noIcon: true,
       onClose: function () { closeApp(app); },
       maximize: kind === "game" ? function () { maximize(app); } : null,
       // a game's window is never dragged smaller than its game (the user, 2026-11-09: "Don't allow a window to be dragged smaller

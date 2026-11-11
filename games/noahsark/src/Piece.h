@@ -22,15 +22,14 @@ enum PieceType
 	PIECE_CRATE = 16             // 0x10: crate.jpg, an obstacle that falls (strategy) with the animals
 };
 
-// A point of a piece's path (0x20 bytes in the original: pixel x, pixel y, cell x, cell y, a kind)
+// A point of a piece's path (0x20 bytes in the original: pixel x, pixel y, cell x, cell y, and at +0x18 the kind of bend or arrow
+// that the trail's builder 0x402ec0 works out and nothing reads: the port keeps neither the field nor the working out)
 struct PathNode
 {
 	int				mPixelX;                // +0x00
 	int				mPixelY;                // +0x04
-	int				mUnused8;               // +0x08
 	int				mCellX;                 // +0x0c
 	int				mCellY;                 // +0x10
-	int				mUnused14[3];           // +0x14
 };
 
 struct Piece
@@ -60,7 +59,6 @@ struct Piece
 	bool			mMatchSwap;             // +0x58
 	bool			mMatch;                 // +0x59 part of a run of three (puzzle mode)
 	int				mBlink;                 // +0x5c 0..4
-	bool			mUnused60;              // +0x60
 
 	Piece();
 	~Piece();
