@@ -375,6 +375,7 @@ public:
 	virtual void	MouseMove(int x, int y) override;               // 0x5956c9
 	virtual void	MouseLeave() override;                          // 0x59578c
 	virtual void	KeyChar(SexyChar theChar) override;             // 0x59d5df
+	virtual void	ButtonPress(int theId) override;                // 0x596bc2: the click sound
 	virtual void	ButtonDepress(int theId) override;              // 0x5ad35c
 
 	// geometry

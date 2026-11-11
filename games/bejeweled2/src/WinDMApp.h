@@ -164,6 +164,7 @@ public:
 	virtual void	UpdateFrames() override;                        // 0x5e13f3
 	virtual void	WriteToRegistry() override;                     // 0x5de7bb
 	virtual void	ReadFromRegistry() override;                    // 0x5de9ba
+	virtual void	ButtonPress(int theId) override;                // 0x5dc1cf: the click sound
 	virtual void	ButtonDepress(int theId) override;              // 0x5e1ed9
 	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines,
 						const SexyString& theDialogFooter, int theButtonMode) override; // 0x5dce51

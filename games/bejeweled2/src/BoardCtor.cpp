@@ -410,6 +410,12 @@ Board::~Board()
 	// (the lists, vectors and strings of the board go with the object)
 }
 
+// 0x596bc2: a button of the board (the menu and hint buttons) goes down with the click sound
+void Board::ButtonPress(int theId)
+{
+	mApp->PlaySample(SOUND_CLICK);
+}
+
 // the ButtonListener hook (0x5ad347 is its thunk; 0x5ad35c the body)
 void Board::ButtonDepress(int theId)
 {
