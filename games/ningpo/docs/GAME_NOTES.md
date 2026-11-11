@@ -130,6 +130,22 @@ folder.
 The port holds about 23 MB more at its peak than the original and uses less than half its processor time. Why was
 not examined; both are for the performance pass (`docs/COORDINATION.md`).
 
+### The performance pass (2026-11-11)
+
+Where the port's memory goes, from the test command `memreport` (`NingPoApp::AddMemReportHolders`; the framework's
+own figures plus Ning Po's holders), in a game: private bytes 54.0 MB, of which 30.0 MB were there before the game
+began (the framework, SDL, the D3D11 device and the process's libraries: shared costs, `docs/COORDINATION.md`). The
+rest, about 24 MB, holds Ning Po's sprite surfaces (114 of them, 15-bit pixels and the alpha bytes: 6.4 MB), the
+whole music track decoded (5.6 MB, only once a game has started), the decoded sounds (0.3 MB), the 15-bit back buffer
+(0.6 MB), the framework's picture of the screen (1.2 MB) and the heap and code. Graphics are thus about 8 MB, sound
+about 6 MB, game state under 1 MB. The title screen holds 52.7 MB (the track not yet decoded).
+
+Changed: `NingPoWidget::Draw` converts the 15-bit back buffer to the framework's 32-bit picture with a 32768-entry
+table instead of per-pixel shifts (the same values, so every screenshot is unchanged). `tools/check.sh ningpo`:
+baseline identical. Not changed: decoding the music track whole (streaming it needs the shared audio code: a spec
+for the coordinator if wanted) and the 22 MB the framework itself holds, which are known shared costs.
+
+
 ## Coverage check (2026-11-08)
 
 The first whole coverage check of a game (`docs/COVERAGE.md`). origrun's `--coverage` recorded which of the original's
@@ -199,3 +215,23 @@ runs should have reached.
 **What it cost.** The seven runs took about 15 minutes of machine time, one game process at a time. One Sonnet agent
 placed and sorted the 253 functions in 7.5 minutes and 178,000 tokens. This session read the export, wrote the runs
 and checked the agent's work over about two hours; its own tokens were not counted.
+
+
+### Unneeded code taken out (2026-11-11)
+
+Of the 22 candidates above, taken out: `PGRandom::nextFloat`, `PGApp::removeControl`,
+`HCvarManager::setVariableString`, `HDisplay::copySurface` and `setBlendFlag`, `PGSprite::clone`, and the dialog
+items' `getUserData` and `setUserData`. Each had no caller. `tools/check.sh ningpo` (baseline identical) and
+`build-web:ningpo` pass. Kept: `PGSprite::create` from an image (the options dialog's background uses it), the dialog
+items' other default virtuals (they fill vtable slots the original's items fill; no code is behind them but a
+return), the PNG loader (one branch of the shared image loader, a few lines), `NingPo::~NingPo` and `PGAlert`.
+
+
+### Readability pass (2026-11-11)
+
+`python tools/namecheck.py games/ningpo` (with `folder engine` in `namecheck.txt`, since the Pyrogon engine sits beside
+`src/`) found 39 names and missing markers: 26 port-only functions (the widget, the application, the text lookup) now
+carry a `port:` comment, eight one-letter names in `HDisplay.cpp`, `PGApp.cpp` and `Board.cpp` are named, and the four
+gaps of `PGEvent` are named for where they sit. Now 0 findings. `splitfields` finds no member declared twice. A rename
+changes no layout; `tools/check.sh ningpo build-web:ningpo` pass with the baseline identical. A fixes mod is not needed:
+no fix candidate was found in any pass.
