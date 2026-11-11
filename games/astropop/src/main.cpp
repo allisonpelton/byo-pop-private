@@ -11,6 +11,7 @@
 
 #include "AstroPopApp.h"
 #include "platform/ModManager.h"
+#include "platform/openmpt/OpenMPTPlayer.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -153,6 +154,10 @@ int main(int argc, char** argv)
 	if (!HasFlag(argc, argv, "nomods"))
 		Platform::ModManager::Get().Refresh();
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
+
+	// The music is one MO3 module played by order position (BASS in the original): libopenmpt. Without this the module
+	// does not load and the game plays no music
+	Platform::RegisterOpenMPTModules();
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
 	static AstroPopApp* anApp = new AstroPopApp();
