@@ -1,5 +1,6 @@
 #include "Widgets.h"
 
+#include "EngineRes.h"
 #include "Font.h"
 #include "Host.h"
 #include "Layer.h"
@@ -19,7 +20,7 @@ Slider::Slider(int theImage, int theMinX, int theMaxX) : Button(theImage, 2, fal
 // 0x430a70: dragged along its row
 bool Slider::OnLButtonDown(int theFlags, int theX, int theY)
 {
-	PlaySound(0x69);
+	PlaySound(SOUND_CLICK);
 	mManager->StartDrag(this, 3, mMinX, mY, mMaxX, mY);
 	return true;
 }
@@ -114,7 +115,7 @@ ListBox::~ListBox()
 // 0x426cb0
 void ListBox::Init()
 {
-	SetCursorKind(1, false);
+	SetCursorKind(CURSOR_KIND_HAND, false);
 	RegHover(true);
 	RegMove(true);
 	RegClick(true);
@@ -231,10 +232,10 @@ void ListBox::OnMouseMove(int theFlags, int theX, int theY)
 		aCount = mRows;
 	if (1 < theX && theX < mWidth - 2 && theY < mRowHeight * aCount)
 	{
-		SetCursorKind(1, true);
+		SetCursorKind(CURSOR_KIND_HAND, true);
 		return;
 	}
-	SetCursorKind(0, true);
+	SetCursorKind(CURSOR_KIND_ARROW, true);
 }
 
 // 0x427150
@@ -245,7 +246,7 @@ bool ListBox::OnLButtonDown(int theFlags, int theX, int theY)
 		unsigned int aRow = (unsigned int)(theY / mRowHeight);
 		if (!mItems.empty() && aRow < (unsigned int)mItems.size() && (int)aRow < mRows)
 		{
-			PlaySound(0x69);
+			PlaySound(SOUND_CLICK);
 			if ((int)aRow < mFixed)
 				mSelected = (int)aRow;
 			else
@@ -374,17 +375,17 @@ void ListBox::ClearItems()
 }
 
 // IsCharAlphaNumericA in the Western code page (1252)
-static bool IsAlphaNumeric(uint8_t c)
+static bool IsAlphaNumeric(uint8_t theChar)
 {
-	if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+	if ((theChar >= '0' && theChar <= '9') || (theChar >= 'A' && theChar <= 'Z') || (theChar >= 'a' && theChar <= 'z'))
 		return true;
-	switch (c)
+	switch (theChar)
 	{
 	case 0x83: case 0x8a: case 0x8c: case 0x8e: case 0x9a: case 0x9c: case 0x9e: case 0x9f:
 	case 0xaa: case 0xb2: case 0xb3: case 0xb5: case 0xb9: case 0xba:
 		return true;
 	}
-	return c >= 0xc0 && c != 0xd7 && c != 0xf7;
+	return theChar >= 0xc0 && theChar != 0xd7 && theChar != 0xf7;
 }
 
 // GetKeyState(VK_SHIFT) and GetKeyState(VK_CONTROL)
@@ -522,7 +523,7 @@ void TextEdit::Init()
 	int aPeriod = 500 / mManager->GetPeriod();
 	mBlinkPeriod = aPeriod;
 	mBlinkCount = aPeriod;
-	SetCursorKind(2, false);
+	SetCursorKind(CURSOR_KIND_TEXT, false);
 	RegChar(true);
 	RegKey(true);
 	RegUpdate(true);

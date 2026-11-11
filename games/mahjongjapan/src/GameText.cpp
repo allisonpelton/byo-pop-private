@@ -1,3 +1,5 @@
+// port: the exe's few strings that the player sees, read from the player's own exe by address (GameText.h).
+
 #include "GameText.h"
 
 #include <SDL.h>
@@ -16,7 +18,7 @@ struct GameTextEntry
 	uint32_t mHash;
 };
 
-const GameTextEntry gGameTextEntries[] =
+const GameTextEntry GAME_TEXT_ENTRIES[] =
 {
 #define GAMETEXT(theVA, theLength, theHash) {theVA, theLength, theHash},
 #include "GameTextTable.inc"
@@ -24,7 +26,7 @@ const GameTextEntry gGameTextEntries[] =
 	{0, 0, 0}
 };
 
-const int NUM_GAME_TEXTS = (int)(sizeof(gGameTextEntries) / sizeof(gGameTextEntries[0])) - 1;
+const int NUM_GAME_TEXTS = (int)(sizeof(GAME_TEXT_ENTRIES) / sizeof(GAME_TEXT_ENTRIES[0])) - 1;
 
 std::map<uint32_t, std::string>& Texts()
 {
@@ -34,13 +36,13 @@ std::map<uint32_t, std::string>& Texts()
 
 uint32_t TextHash(const char* theText, size_t theLength)
 {
-	uint32_t h = 2166136261u;
+	uint32_t aHash = 2166136261u;
 	for (size_t i = 0; i < theLength; i++)
 	{
-		h ^= (uint8_t)theText[i];
-		h *= 16777619u;
+		aHash ^= (uint8_t)theText[i];
+		aHash *= 16777619u;
 	}
-	return h;
+	return aHash;
 }
 
 uint32_t ReadU32(const std::vector<uint8_t>& theData, size_t theOffset)
@@ -82,20 +84,20 @@ struct PEImage
 		size_t aSection = aPE + 24 + anOptSize;
 		for (int i = 0; i < aNumSections; i++, aSection += 40)
 		{
-			Section s;
-			s.mVA = mImageBase + ReadU32(theData, aSection + 12);
-			s.mRawSize = ReadU32(theData, aSection + 16);
-			s.mRawPtr = ReadU32(theData, aSection + 20);
-			mSections.push_back(s);
+			Section aParsed;
+			aParsed.mVA = mImageBase + ReadU32(theData, aSection + 12);
+			aParsed.mRawSize = ReadU32(theData, aSection + 16);
+			aParsed.mRawPtr = ReadU32(theData, aSection + 20);
+			mSections.push_back(aParsed);
 		}
 		return !mSections.empty();
 	}
 
 	size_t Offset(uint32_t theVA) const
 	{
-		for (const Section& s : mSections)
-			if (theVA >= s.mVA && theVA < s.mVA + s.mRawSize)
-				return s.mRawPtr + (theVA - s.mVA);
+		for (const Section& aSection : mSections)
+			if (theVA >= aSection.mVA && theVA < aSection.mVA + aSection.mRawSize)
+				return aSection.mRawPtr + (theVA - aSection.mVA);
 		return 0;
 	}
 };
@@ -128,12 +130,13 @@ bool mahjongjapan::LoadGameTexts(const std::string& theFolder)
 		{
 			for (int anId = 0; anId < NUM_GAME_TEXTS; anId++)
 			{
-				const GameTextEntry& e = gGameTextEntries[anId];
-				size_t anOffset = anImage.Offset(e.mVA);
-				if (anOffset != 0 && anOffset + e.mLength < aData.size() && aData[anOffset + e.mLength] == 0 &&
-					TextHash((const char*)&aData[anOffset], e.mLength) == e.mHash)
+				const GameTextEntry& anEntry = GAME_TEXT_ENTRIES[anId];
+				size_t anOffset = anImage.Offset(anEntry.mVA);
+				if (anOffset != 0 && anOffset + anEntry.mLength < aData.size() &&
+					aData[anOffset + anEntry.mLength] == 0 &&
+					TextHash((const char*)&aData[anOffset], anEntry.mLength) == anEntry.mHash)
 				{
-					aTexts[e.mVA].assign((const char*)&aData[anOffset], e.mLength);
+					aTexts[anEntry.mVA].assign((const char*)&aData[anOffset], anEntry.mLength);
 					aMatched++;
 				}
 				else

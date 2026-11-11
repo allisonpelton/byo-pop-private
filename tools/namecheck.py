@@ -2,6 +2,7 @@
 """Find unnamed and unknown identifiers in a port's source (docs/CODE_STANDARDS.md, "Names").
 
     python tools/namecheck.py games/<game>               checks games/<game>/src, with games/<game>/namecheck.txt
+                                                         (and the folders its "folder" lines add)
     python tools/namecheck.py games/<game> --list        also prints every allowed and exempted finding
     python tools/namecheck.py <file or folder>... --config <file>
     python tools/namecheck.py --selftest                 the checker on its own small cases
@@ -44,6 +45,9 @@ reason is an error, so every exception says why it is there:
   port-file <path glob>                 every function in those files is the port's own (as a marker would say)
   short-span <lines>                    how far a one-letter name may reach before it is a finding (default 10)
   addr-skip <name regex>                function names the addr check skips (helpers local to one function)
+  folder <name>                         another source folder of the game, checked with src/ when the game folder is
+                                        given (a port with an engine of its own beside src/); its files are listed
+                                        and matched as <name>/<file>
 """
 import argparse, fnmatch, os, re, sys
 
@@ -154,6 +158,7 @@ class Config:
         self.short_ok = []    # (glob, set of letters)
         self.port_files = []
         self.addr_skip = []
+        self.folders = []     # more folders of the game folder to check
         self.short_span = 10
 
     @staticmethod
@@ -181,6 +186,8 @@ class Config:
                 cfg.short_span = int(rule[1])
             elif kind == "addr-skip" and len(rule) == 2:
                 cfg.addr_skip.append(re.compile("^(?:%s)$" % rule[1]))
+            elif kind == "folder" and len(rule) == 2:
+                cfg.folders.append(rule[1])
             else:
                 raise ValueError("%s:%d: cannot read rule %r" % (path, number, text))
         return cfg
@@ -444,7 +451,27 @@ def selftest():
             if got != sorted(expected):
                 failures += 1
                 print("selftest case %d: expected %s, got %s" % (index, sorted(expected), got))
-    print("namecheck selftest: %d of %d cases %s" % (len(SELFTEST) - failures, len(SELFTEST),
+        # a game folder: its src/ alone, then with a "folder" line that adds its engine/, then one that names no folder
+        game = os.path.join(folder, "game")
+        for name, source in (("src/a.cpp", "// 0x401000\nvoid F()\n{\n}\n"), ("engine/b.cpp", "int mUnknown;\n")):
+            os.makedirs(os.path.dirname(os.path.join(game, name)), exist_ok=True)
+            with open(os.path.join(game, name), "w", encoding="utf-8", newline="\n") as f:
+                f.write(source)
+        folder_cases = [("", [], 1), ("folder engine -- the engine is the game's too\n", ["engine/b.cpp unknown mUnknown"], 2),
+                        ("folder nowhere -- no such folder\n", "error", 0)]
+        for rules, expected, files in folder_cases:
+            with open(os.path.join(game, "namecheck.txt"), "w", encoding="utf-8", newline="\n") as f:
+                f.write(rules)
+            try:
+                findings, skipped, count, config = run([game])
+                got = ["%s %s %s" % (f[0], f[2], f[3]) for f in findings]
+            except ValueError:
+                got, count = "error", 0
+            if got != expected or count != files:
+                failures += 1
+                print("selftest folder case %r: expected %s in %d files, got %s in %d" % (rules, expected, files, got, count))
+    total = len(SELFTEST) + len(folder_cases)
+    print("namecheck selftest: %d of %d cases %s" % (total - failures, total,
                                                        "pass" if not failures else "pass, %d fail" % failures))
     return 1 if failures else 0
 
@@ -453,28 +480,53 @@ def main():
     if sys.argv[1:] == ["--selftest"]:
         return selftest()
     ap = argparse.ArgumentParser(description="Find unnamed and unknown identifiers (docs/CODE_STANDARDS.md).")
-    ap.add_argument("paths", nargs="+", help="a game folder (games/<game>: its src/ and namecheck.txt) or files and folders")
+    ap.add_argument("paths", nargs="+", help="a game folder (games/<game>: its src/, the folders its namecheck.txt adds, and that file) or files and folders")
     ap.add_argument("--config", help="the rules file (default: <game folder>/namecheck.txt)")
     ap.add_argument("--list", action="store_true", help="also print the findings the config allows or exempts")
     ap.add_argument("--checks", help="comma-separated checks to run (default: all)")
     args = ap.parse_args()
 
+    wanted = set(args.checks.split(",")) if args.checks else None
+    try:
+        findings, skipped, count, config = run(args.paths, args.config, wanted)
+    except ValueError as e:
+        print("namecheck: " + str(e))
+        return 2
+    for rel, number, check, name, why in findings:
+        print("%s:%d: [%s] %s: %s" % (rel, number, check, name, why))
+    if args.list:
+        for rel, number, check, name, why in skipped:
+            print("%s:%d: [%s] %s: allowed by the config" % (rel, number, check, name))
+    tally = {}
+    for f in findings:
+        tally[f[2]] = tally.get(f[2], 0) + 1
+    summary = ", ".join("%s %d" % kv for kv in sorted(tally.items())) or "none"
+    print("namecheck: %d findings in %d files (%s); %d allowed by %s" %
+          (len(findings), count, summary, len(skipped), config if config and os.path.exists(config) else "no config"))
+    return 1 if findings else 0
+
+
+def run(paths, config=None, wanted=None):
+    """Check the paths: the findings, the findings the config allows, the number of files and the config's path.
+    A game folder (one with a src/ in it) stands for its src/ and for the folders its config's "folder" lines name."""
     base = None
     targets = []
-    for p in args.paths:
+    for p in paths:
         if os.path.isdir(os.path.join(p, "src")):
             base = base or p
             targets.append(os.path.join(p, "src"))
         else:
             targets.append(p)
-    config = args.config or (os.path.join(base, "namecheck.txt") if base else None)
-    try:
-        cfg = Config.load(config)
-    except ValueError as e:
-        print("namecheck: " + str(e))
-        return 2
+    config = config or (os.path.join(base, "namecheck.txt") if base else None)
+    cfg = Config.load(config)
+    if base:
+        for name in cfg.folders:
+            folder = os.path.join(base, name)
+            if not os.path.isdir(folder):
+                raise ValueError("%s: folder %s is not in %s" % (config, name, base))
+            if folder not in targets:
+                targets.append(folder)
     root = base or os.path.commonpath([os.path.abspath(t) for t in targets])
-    wanted = set(args.checks.split(",")) if args.checks else None
 
     findings, skipped = [], []
     count = 0
@@ -496,18 +548,7 @@ def main():
     if wanted:
         findings = [f for f in findings if f[2] in wanted]
         skipped = [f for f in skipped if f[2] in wanted]
-    for rel, number, check, name, why in findings:
-        print("%s:%d: [%s] %s: %s" % (rel, number, check, name, why))
-    if args.list:
-        for rel, number, check, name, why in skipped:
-            print("%s:%d: [%s] %s: allowed by the config" % (rel, number, check, name))
-    tally = {}
-    for f in findings:
-        tally[f[2]] = tally.get(f[2], 0) + 1
-    summary = ", ".join("%s %d" % kv for kv in sorted(tally.items())) or "none"
-    print("namecheck: %d findings in %d files (%s); %d allowed by %s" %
-          (len(findings), count, summary, len(skipped), config if config and os.path.exists(config) else "no config"))
-    return 1 if findings else 0
+    return findings, skipped, count, config
 
 
 if __name__ == "__main__":

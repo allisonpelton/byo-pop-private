@@ -260,3 +260,22 @@ kept"). The test hooks are the same 1,300 lines as Japan's.
 failed, 31 pairs, the three screens as frozen, a rerun identical. The screen tour of Japan's `tools/tour/` (it runs
 either game) against the exe built before the removals: 20 screenshots, all byte for byte the same (16 distinct images),
 and the before exe's rerun the same too.
+
+## The readability pass (2026-11-11)
+
+The pass is Ancient Japan's, made here the same way (its section of this name has the rules, each kind of change and the
+method): the same 206 renames by scope, the tile's `mBobsAsHint` and `mLiftStart`, the magic tiles' code in the game's own
+words (`TakeGold`, `TakeKeyAndLock`, `TakeJoker`, `TakeMagnet` and the names built on them), the tile kinds, the flight
+kinds and phases, the screen size and the cursor kinds, the port markers, the comments and the wrapped lines.
+`python tools/namecheck.py games/mahjongchina` has no finding (its `namecheck.txt` adds `engine/` to the check).
+
+The resource names are China's own where its resources are: `src/Res.h` names the 350 ids its code uses, in 602 places.
+An id that both games have means the same thing in both (the string tables match but for five strings Japan adds and
+two China uses, and a picture of the same id is the same part at another size), so those share Japan's names. China's
+own are the bamboo frame and corners of the play panel, the dialog's knots and dragons, the level-done box, its menu
+lanterns, five fonts and a third piece of layout music.
+
+**Proof.** The object code of the 39 object files of the native build (1,735 functions, names taken out, and the data
+sections' bytes) is the same as before the pass. `tools/check.sh mahjongchina` passes (178 layouts, 31 pairs, the screens
+as frozen, a rerun identical), the screen tour's 20 screenshots match the exe from before the pass byte for byte, and
+the web target builds.
