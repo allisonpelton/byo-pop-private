@@ -13,18 +13,18 @@ struct XmlTag
 {
 	struct Attr
 	{
-		char name[0x100];
-		char value[0x100];
+		char mName[0x100];
+		char mValue[0x100];
 	};
 
-	Attr* attrs;        // +0x000  malloc'd, grown by doubling
-	int count;          // +0x004
-	int capacity;       // +0x008
-	char name[0x100];   // +0x00c  "/" first for a closing tag
-	const char* text;   // +0x10c  what follows an opening tag up to the next '<'
-	int textLen;        // +0x110
-	int closing;        // +0x114
-	int empty;          // +0x118  the tag ends with "/>"
+	Attr* mAttrs;        // +0x000  malloc'd, grown by doubling
+	int mCount;          // +0x004
+	int mCapacity;       // +0x008
+	char mName[0x100];   // +0x00c  "/" first for a closing tag
+	const char* mText;   // +0x10c  what follows an opening tag up to the next '<'
+	int mTextLen;        // +0x110
+	int mClosing;        // +0x114
+	int mEmpty;          // +0x118  the tag ends with "/>"
 
 	XmlTag();
 	~XmlTag();
@@ -38,15 +38,13 @@ struct XmlTag
 const char* Xml_NextTag(const char* p, XmlTag* theTag);
 // 0x42d7b0: the next token of text (whitespace, "//" and "\\" comments skip), at most limit characters (0: 9999)
 // counted in *count across calls; returns where reading stopped
-const char* Xml_ReadToken(const char* p, char* out, int limit, int* count);
+const char* Xml_ReadToken(const char* p, char* theOut, int theLimit, int* theCount);
 // 0x401420: an attribute's value, or null
 const char* Xml_GetString(const XmlTag* theTag, const char* theName);
 // 0x4014a0: an attribute's value through atol, or 0
 int Xml_GetInt(const XmlTag* theTag, const char* theName);
 // 0x404fe0: an attribute's value through atof, or 0
 double Xml_GetFloat(const XmlTag* theTag, const char* theName);
-// 0x41ee70: forgets the tag and frees its attributes
-void Xml_Reset(XmlTag* theTag);
 
 } // namespace r64
 

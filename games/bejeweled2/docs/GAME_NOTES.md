@@ -16,7 +16,8 @@ Each of these has no visible effect on play unless the entry says so.
 
 - **Registration, trial and online code is left out.** No registration or unlock path, no trial counters (TitleScreen's
   trial logic, the nag screen before play, `DoPregameNag`), no announcement or update check, no "More Games" button
-  (MainMenu), no PopCap pages (OptionsDialog's Register, PopCap page and Update Check buttons and the Automatic Update
+  (MainMenu; the 3D game's picture of the gadgets, `IMAGE_MAIN_GADGETS`, holds the button's pill, so `MainMenu::Draw` leaves the
+  rectangle round it, (600,660) to the right and bottom edges of (788,768) in the 1024 layout, out of that picture; the 2D game's has none), no PopCap pages (OptionsDialog's Register, PopCap page and Update Check buttons and the Automatic Update
   checkbox; `mAlwaysUpdate` is no longer set). OptionsDialog's Main Menu button with no board calls Shutdown in the original
   (a branch that cannot be reached); the port has no such branch.
 - **The title's Play link makes no click sound.** TitleScreen's ButtonPress (0x5d9b0e) plays the click only while the
@@ -44,7 +45,8 @@ Each of these has no visible effect on play unless the entry says so.
   backdrop that the XMAS cheat replaces, and PuzzleStateOverlay's dome image (`mDomeImage`) are freed.
 - **Uninitialised state is zeroed**: the ranges of a `Piece` that the original never sets, a ShockWave's grow flag (set
   true, as the original's uninitialised byte happens to be), `PuzzlePod::mIndex` (0 until the overlay's constructor sets it)
-  and the tunnel rings' size, and points' x and y in Hyperspace (DoUpdate sets them before they are read).
+  and the tunnel rings' size, and points' x and y in Hyperspace (DoUpdate sets them before they are read). A new player's
+  `Profile` counters (+0x7c, +0x80, +0x84, +0x8c, which open the secret modes) are zero as well (see Oddities).
 - **The board's memory is zeroed** (`Board::operator new`). The original's constructor leaves some sixty members unset (for
   example `mChainCount`, the swap and hint phases, the slide values), which the first game reads as zero from fresh memory and a
   later game reads as the last board's leftovers; the port always reads zero.
@@ -169,7 +171,7 @@ constructor does clear).
 - **galaxy.xml's case mismatch**: one file name is "26. green right.bpz" where the file is "26. Green right.bpz" (Windows
   does not care).
 - **PuzzleStateOverlay::DrawFront** draws the unlit pods picture on `g` (colorize off) while it sets the alpha on a copy of
-  the Graphics, so the alpha does not apply. The port repeats it.
+  the Graphics, so the alpha does not apply. The port repeats it (the fixes mod's `podFade` mends it).
 - **NewBoard reads freed gems** (0x597efd): it frees the 64 gems of the old board without clearing their pointers and
   then makes the new gems one square at a time, asking HasSet after every colour it draws, so HasSet looks at the
   freed gems of the squares that are not made yet. Their memory holds what the allocator left there. The port clears
@@ -183,15 +185,41 @@ constructor does clear).
 - **Hyperspace::Update2d's star lines depend on the screen's width** (0x5c7532): each new line takes `Rand() % mWidth`, so a jump
   at 640 by 480 (the original without 3D) draws different numbers than the port's 2D at 1024 by 768 scaled down. No 2D run
   has shown a difference from it so far; the 3D game (both at 1024 by 768) needs no such care.
+- **A new player's profile in the original has garbage counters, and the secret mode's "?" button shows on the new player's
+  menu.** `Profile`'s constructor (0x5d0716) never sets the four counters at +0x7c, +0x80, +0x84 and +0x8c that `IsModeUnlocked`
+  tests (the thresholds are 17 levels, 8, 80 and 280), so a profile made with `new` holds what the heap had: in the 3D tour
+  of 2026-11-11 the four read 1280262991, 1752396605, 1330794496 and 1096766031 (`visrun.py`'s `profile` command), which are past
+  every threshold, and the 3D menu then shows the secret button (the "?" at (372,531) in the new player's first menu shot, 18 thousand
+  pixels). Which counters are past their thresholds depends on the allocator, and no run shows it twice the same way; the port
+  zeroes them (a new player has no secret mode), as the 2D tours' menus show it, where a fresh heap read as zero. To see it, run
+  `run_tour_visible.sh` (IDENTICAL_PLAY.md, the 3D game) and read the "newuser" pair. Not chased: matching a heap's leftovers
+  would take values measured from runs.
 - **A click on a dialog reaches the 3D original one update after the port's** (not a bug of either): in the original's 3D loop the
   board resumes its ticks one update after a dialog's button was clicked, where the port resumes at once. The comparison tool
   gives the original those inputs one update earlier (`to_origrun.py --dialog-shift -1`, `run_mode.sh` does it with `HIRES=1`; the Escape key that closes a hint dialog is the exception: it reaches the board's resume at the same update as the port's, and a shifted one resumes it an update early, which moved the carried-over flame gem's pick by one draw of the global generator),
   and the watch lines of the 3D original then fall one update after the port's (its loop) with the same values in the same order.
+  The same holds for the click that closes the first game's help screen in the visible-desktop 3D tour (IDENTICAL_PLAY.md, "The 3D game"):
+  visrun reads the update each input landed at, and the replay gives that one click (`landed_to_events.py --shift 2127 2130 1`) the later update.
+- **The original's pointer is never over its window in the visible-desktop 3D runs, so no gem glows under it.** The Board's hover glow
+  (`BoardUpdate.cpp`: a gem under `mMouseX/mMouseY` gains 0.045 a update, the step 0.0625) needs the pointer in the window, and the
+  tool posts clicks to the window without moving the real cursor, so the original's `mMouseX/mMouseY` stay at -1,-1 (and the board
+  re-reads `mLastMouseX/mLastMouseY` itself when it becomes idle, BoardLogic.cpp:423). The port's replayed pointer stays where its last
+  click was, so a shot taken straight after a click had a gem glowing that the original's did not. The replay therefore moves the pointer
+  out of the window and sends a leave one update after each click (`landed_to_events.py --leave-after 1`). Not a difference of play: a
+  person's cursor over the board glows the same gem in both.
+- **A gem or two differ in the loaded 3D board's slide.** In the visible-desktop 3D tour (`run_tour_visible.sh`, with shots every 2
+  updates of the whirlpool and the slide added to the recording; the run's events were `t3d_events.json` in the scratch logs), the gem
+  at the board's bottom right has its facets in other places in the original's shot than in the port's, in 8 of the 13 shots from
+  update 3806 to 3830 (3810 to 3826, a swirl-shaped patch of 100 to 500 pixels), and the shots are identical before, after and at rest. Its cause
+  was not found. The difference is small against the board's own motion in the same region (the region changes about ten times as
+  much between two shots), so another frame of a gem's own animation is unlikely and a filter on a moving gem (Direct3D 7's against
+  Direct3D 11's, at a fractional position) is the likelier cause; neither was tested. Not chased.
 - **The original's first run after another one sometimes never creates a board** (seen a few times, in 2D and 3D alike, as a
   state watch that stays at its title value); a second run is as the first should have been. `run_original.sh` runs again
   when a log has no board.
 - **The tunnel's triangles are drawn with tx = 1.0**: the original's wrapper passes a byte that stands for "blend" to the
-  argument that moves the vertices in x, so every vertex is one pixel to the right. The port repeats it.
+  argument that moves the vertices in x, so every vertex is one pixel to the right. The port repeats it (the fixes mod's `tunnelEdge`
+  mends it).
 
 - **A game resumed in the 3D game: the flame gems of the next level change land elsewhere.** Classic for 25 moves, the menu
   button, Main Menu, Classic and "Load Game?" yes, then 25 moves (`record.py --mode resume`, `HIRES=1`): the original and the
@@ -227,6 +255,36 @@ constructor does clear).
   C library's seed in the original (per-thread data) would tell. Not chased (CLAUDE.md, "Oddities are not chased"); to see it, run the tour
   (`record_port.sh tour:finity 12 <dir> 909` with `PROFILE=`, then `run_tour_original.sh`) and `tools/shotdiff`.
 
-## Fix candidates (for the fixes mod)
+## The fixes mod and the fix candidates
 
-None. Phase two compared every screen, sound and tour and found no bug of the original that the port keeps.
+`mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, on by default on the
+site, off when a test must play as the original does (`-nomods`, or no mods folder). The port reads a toggle with `FixEnabled("<id>")`
+(`Fixes.h`, the mod manager's live value), so the original's behaviour stays in the code as it was and each fix is one branch.
+Before it the port loaded no mods at all: `main.cpp` now sets the mods folder (`-modsdir=<dir>`, by default `mods-bejeweled2` beside
+the exe, `/bej2persist/mods` on the web) and reads it unless `-nomods` is given; the framework's mod menu (F2) and the site's page
+(which installs the shipped `bejeweled2-fixes/` on) do the rest, as for every game that loads mods.
+
+| Toggle | The fault in the original | What the fix does |
+| --- | --- | --- |
+| `tunnelEdge` | The 3D hyperspace tunnel's triangles are drawn one pixel to the right of their points: the original's drawing routine takes the one that stands for "blend" for the distance to move the vertices in x (`Hyperspace::Draw3dPortal`, 0x5c620e). | The tunnel is drawn with no shift. Three quarters of a tunnel frame's pixels change (591 thousand of 786 thousand at update 1902), since the whole tunnel moves a pixel. |
+| `podFade` | `PuzzleStateOverlay::DrawFront` (0x5d2004) sets the alpha of an unlit pod's picture on a copy of the Graphics and draws that picture with the Graphics whose colorizing is off, so the picture never fades: the lit one fades in over an unlit one that stays fully drawn. | The unlit picture is drawn with the copy, so it fades out as the lit one fades in. Over the 250 updates of a pod lighting (puzzle solved) the pod dips darker, the dome's dark backdrop showing through, then ends as the original's does. |
+
+`tools/fixes_check.sh` plays a Hyper tour (the tunnel is on screen from the board's state 10 to the new board's, 310 updates here) and
+a Puzzle tour (a solved puzzle lights its pod) in 3D under `-fast -drawevery` with the same seed, with the mod absent (`-nomods`), on,
+all toggles off, and all on but one, and compares the shots and the board's trace: in all of them the trace is the original's (15,060
+lines in the Hyper tour, 2,583 in the Puzzle tour), the shots with every toggle off are the original's, `tunnelEdge` changes the six
+shots along the tunnel (updates 1822 to 2022) and `podFade` the three shots of the pod's fade (1594 to 1674), by 4,000 pixels each, inside
+the pod's 83 by 69 box. With every toggle off the port is the original (`tools/check.sh bejeweled2`, with no mods folder, plays as before).
+
+What was checked for more fixes, and left as it is. *Bugs that break play* (controls that stop working, a soft lock, a crash, a lost
+save): none in the real-input play-through of every mode (`IDENTICAL_PLAY.md`, "Real input"). *Run-to-run variation* (the machine's
+speed, the heap, memory never set): the game's code reads no clock; the one thing that came from the heap, the new player's
+secret-mode counters, is zeroed in the port (see Deviations); and the bot's games in the nine modes replay identically from the same seed
+(`tools/check.sh bejeweled2`). *Waits that only cost the player time*: the loading is the
+port's own (done in line, at the machine's speed); what is left is the original's scenes, which an update of the game follows
+(the whirlpool that opens a board, and at a level's end the whirlpool, the tunnel and the new board's show, 38, 310 and 50
+updates in the Hyper tour, each ending in a screen the player plays on), so no toggle shortens them. *Other faults of the original that the port repeats* (the oddities below): `UpdateStarRots`
+runs a star's angle below zero, which is only drawn, so nothing shows; the star lines of Hyperspace's 2D jump depend on the
+screen's width, which is a difference between two sizes and not a fault of either; and the two above are the only ones with
+a picture to mend. `podFade` is the judgment call of the two: it mends what the code plainly meant, but it changes how a pod looks
+for a moment, so a user who prefers the original's look turns it off, or drops it.

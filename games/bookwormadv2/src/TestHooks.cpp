@@ -65,6 +65,7 @@
 #include "WidgetManager.h"
 #include "FadeButton.h"
 #include "GameApp.h"
+#include "MusicInterface.h"
 #include "GameDialog.h"
 #include "GameText.h"
 #include "Lex.h"
@@ -630,6 +631,13 @@ bool GameApp::HandleDriverCommand(const ScriptCommand& theCommand)
 			                   mProfile->GetInt("CurrentBook"), mProfile->GetInt("CurrentChapter"));
 		aJson += StrFormat(",\"curtain\":%s,\"dialogs\":%d,\"talk\":%s", aCurtainBusy ? "true" : "false",
 		                   (int)mDialogMap.size(), ShowingConversationPanel() ? "true" : "false");
+		if (mMusicInterface != nullptr) {
+			// the music: the last song the scripts asked for (PlaySong) and whether that or a module song (SongPlayer) plays
+			bool aPlaying = mMusicInterface->IsPlaying(mLastSongId);
+			if (mSongPlayer != nullptr && mSongPlayer->mCurrentSong != -1)
+				aPlaying = aPlaying || mMusicInterface->IsPlaying(mSongPlayer->mCurrentSong);
+			aJson += StrFormat(",\"song\":%d,\"playing\":%s", mLastSongId, aPlaying ? "true" : "false");
+		}
 		if (aScreen == "title" && mTitleScreen != nullptr)  // the startup load over: the title takes its click
 			aJson += StrFormat(",\"loaded\":%s", mTitleScreen->mLoaded ? "true" : "false");
 		std::string aValue;

@@ -23,6 +23,7 @@
 #include "DialogButton.h"
 #include "ImageFont.h"
 #include "DDImage.h"
+#include "DDInterface.h"
 #include "MemoryImage.h"
 #include "MusicInterface.h"
 #include "SDLMusicInterface.h"
@@ -364,6 +365,11 @@ bool WinWSApp::LoadFont(ImageFont*& theFont, const char* thePath)
 // 0x428500 slot 16
 void WinWSApp::Init()
 {
+	// port: the 2004 WidgetManager::DrawScreen (0x47d790) copies the screen's Graphics, clips and translates it and draws the widget;
+	// it never sets the fast stretch (the 2004 Graphics keeps it in the byte at +0x49, the constructor clears it, and nothing in the
+	// game's code sets it), so a widget's stretched picture averages. The shared 1.3 WidgetManager sets it on every widget
+	gWidgetsDrawWithoutFastStretch = true;
+
 	SexyApp::Init();
 
 	// port: the 2004 SexyApp::Init seeds the C library generator with srand(GetTickCount()); -seed=N test runs seed it
@@ -646,6 +652,35 @@ void WinWSApp::GotFocus()
 	PauseMusic(false);
 	if (mBoard != NULL)
 		mBoard->SetPaused(false);   // 0x442100
+}
+
+// The display of a 3D run draws a line as the original's Direct3D does: its last pixel is not drawn. The original's 3D screen (found
+// by running it on the desktop, GAME_NOTES.md "The 3D drawing") ends the divider under a tab's title one pixel short of the
+// 2D screen's, where MemoryImage::DrawLine sets both end points. Only horizontal and vertical lines are cut (the game draws no
+// other, and the rule for a slanted one was not seen); a line of one pixel is left alone.
+class TyperSharkDisplay : public DDInterface
+{
+public:
+	TyperSharkDisplay(SexyAppBase* theApp) : DDInterface(theApp)
+	{
+	}
+
+	virtual void DrawLine(double theStartX, double theStartY, double theEndX, double theEndY, const Color& theColor, int theDrawMode, bool antiAlias) override
+	{
+		if (mIs3D)
+		{
+			if ((theStartY == theEndY) && (theStartX != theEndX))
+				theEndX += (theEndX > theStartX) ? -1.0 : 1.0;
+			else if ((theStartX == theEndX) && (theStartY != theEndY))
+				theEndY += (theEndY > theStartY) ? -1.0 : 1.0;
+		}
+		DDInterface::DrawLine(theStartX, theStartY, theEndX, theEndY, theColor, theDrawMode, antiAlias);
+	}
+};
+
+DDInterface* WinWSApp::CreateDDInterface()
+{
+	return new TyperSharkDisplay(this);
 }
 
 // port: the 2004 SexyApp creates a BassMusicInterface (BASS 2.0), which sets the module music's global volume to the

@@ -1,0 +1,203 @@
+# tools/coverage.py's settings for Seven Seas Deluxe (docs/COVERAGE.md).
+export re/sevenseas/gh/functions.jsonl
+src games/sevenseas/src
+# The game's own code (GAME_NOTES.md, section 1): 0x401000 to the last function before the framework's Widget at 0x427880.
+# The rest of the exe is the PopCap framework (SexyAppFramework, ported once in framework/), the C++ library and the DirectX / FMOD imports.
+game 00401000-00427870
+# Game code the port leaves out on purpose, found by the coverage check of 2026-11-11 (GAME_NOTES.md, "Coverage check"): what the compiler made, the
+# original's std library instances, the anims.txt parser's containers, the destructors, registration, and the online score submission.
+none 00401260 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00405640 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 00405650 a constant or empty function (an unused hook of a base class): nothing to port
+none 0040be40 a std::string copy (substring) instance of the original's library
+none 0040bf00 a std::string copy (substring) instance of the original's library
+none 0040c020 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c070 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c080 a constant or empty function (an unused hook of a base class): nothing to port
+none 0040c090 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c0b0 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c0f0 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c2f0 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c310 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c430 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c500 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c550 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c5a0 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c5d0 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c670 a constant or empty function (an unused hook of a base class): nothing to port
+none 0040c680 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c700 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 0040c790 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0040c7b0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0040c7c0 a constant or empty function (an unused hook of a base class): nothing to port
+none 0040ca90 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 0040cab0 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 0040cb20 a constant or empty function (an unused hook of a base class): nothing to port
+none 0040cb30 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 0040cb60 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 0040d280 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 0040d2f0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0040d310 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0040d320 a constant or empty function (an unused hook of a base class): nothing to port
+none 0040d740 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 0040f780 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0040f7a0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0040fa50 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 0040fa70 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 0040ff40 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0040ff60 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004103e0 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00410400 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 00410420 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 00412c80 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00412fc0 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00413000 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 00413150 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 00413280 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004132a0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004136e0 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00413700 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 00416130 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00416150 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00416160 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00416690 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 004166b0 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00416740 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00416790 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 004167d0 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00416860 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00416890 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004168b0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004168c0 a constant or empty function (an unused hook of a base class): nothing to port
+none 004168d0 a std::string release helper (decrements the shared buffer's count, frees at zero)
+none 00416d30 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00416d50 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 004175a0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004175c0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00417730 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00417750 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 00417a00 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00417a20 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00417c50 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00417c70 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 00418730 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00418750 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00418ea0 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00418ec0 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 004199b0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004199d0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004199e0 a constant or empty function (an unused hook of a base class): nothing to port
+none 00419a40 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00419a60 NextLevelDialog's destructor: the port's members destroy themselves
+none 00419f10 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00419f30 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041a1d0 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 0041a1f0 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 0041a600 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041a620 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041a640 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041a650 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041aac0 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 0041aae0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041ab90 a constant or empty function (an unused hook of a base class): nothing to port
+none 0041aba0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041abe0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041ac20 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041acb0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041ae30 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b2f0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b320 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b450 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b490 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041b4b0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041b4c0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b4d0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b4e0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b4f0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b500 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 0041b530 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041b550 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041bbd0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041bbf0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0041bec0 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 0041bee0 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 0041bf50 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 0041d140 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 0041d160 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 0041d190 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 0041f340 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00420cf0 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 00420e40 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 00421180 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00421360 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
+none 00421620 registration: the Register dialog, its page link, the number check and the windowed-mode nag of the unregistered game: taken out (GAME_NOTES.md section 5)
+none 00422400 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422480 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004225a0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004225c0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004225d0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004225e0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422640 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422660 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00422690 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422730 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422800 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422990 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004229e0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422a40 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422bb0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422cf0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422e60 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00422fa0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00423030 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00423050 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00423110 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004233e0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00423940 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00423a30 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00423ae0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00423df0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424320 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004243d0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424480 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424790 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004247b0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004247f0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424820 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004248e0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004249a0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424a60 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424b20 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424bd0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424c80 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424db0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00424f00 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00425060 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00425090 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00425190 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004252e0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 00425450 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 004254a0 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
+none 00425510 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00425530 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004255a0 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 004255c0 support code of the datanims.txt parser 0x41c960 (map and list template instances, a critical section helper): the port parses into std containers (SevenSeasApp.cpp, Anims.h)
+none 004255e0 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 004255f0 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 00425600 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 00425660 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 00425670 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 004256c0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004256e0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00425b60 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 00426290 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 004262b0 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00426590 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
+none 004265b0 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
+none 00426630 a constant or empty function (an unused hook of a base class): nothing to port
+none 00426640 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 00426670 a vtable thunk that forwards to the base class's method: the port overrides only where the game does
+none 00427850 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 00427870 a static initializer stub the compiler made (sets a guard flag and registers an atexit destructor): the port has no static objects of the game
+none 0040c6d9 an exception funclet of the std::string library (a catch block of string_grow)
+none 004223e0 a critical section helper of the library, called by the anims.txt parser

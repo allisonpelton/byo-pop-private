@@ -35,11 +35,6 @@ void Sys_SetHost(SysHost* theHost)
 	gHost = theHost;
 }
 
-SysHost* Sys_Host()
-{
-	return gHost;
-}
-
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData)
 {
 	theData.clear();
@@ -47,13 +42,11 @@ bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData)
 }
 
 // 0x429430
-void Sys_AddUpdateRect(int x, int y, int w, int h)
+void Sys_AddUpdateRect(int x, int y, int theWidth, int theHeight)
 {
 	if (gHost != nullptr)
-		gHost->AddUpdateRect(x, y, w, h);
+		gHost->AddUpdateRect(x, y, theWidth, theHeight);
 }
-
-int gPumpMessages = 0;
 
 // 0x428d70
 void Sys_SetMousePos(int x, int y)
@@ -297,16 +290,6 @@ bool Sys_SkipLogos()
 	return gHost != nullptr && gHost->SkipLogos();
 }
 
-// (SleepEx; the port's frames are the host's, so nothing waits)
-void Sys_Sleep(int)
-{
-}
-
-// (0x7081b0: the port never loses the screen, see PumpMessages)
-void SetScreenLostCallback(void (*)(const PixelFormat*))
-{
-}
-
 void SetScreenChangeCallback(void (*theCallback)())
 {
 	gScreenChange = theCallback;
@@ -354,11 +337,11 @@ int LockScreen(ScreenLock* theLock)
 	int aPitch = 0;
 	if (gHost == nullptr || !gHost->LockScreen(&aBits, &aPitch))
 		return 0;
-	theLock->unk00 = 0;
-	theLock->w = 800;
-	theLock->h = 600;
-	theLock->pitch = aPitch;
-	theLock->bits = aBits;
+	theLock->mWidthPadding = 0;
+	theLock->mW = 800;
+	theLock->mH = 600;
+	theLock->mPitch = aPitch;
+	theLock->mBits = aBits;
 	return 1;
 }
 
@@ -374,7 +357,7 @@ int PumpMessages()
 {
 	if (gHost != nullptr)
 		Sys_Activate(gHost->IsActive() ? 1 : 0);
-	if (gPumpMessages != 1 && gActive == 0)
+	if (gActive == 0)
 		return 0;
 	if (gToggleCentered == 1)
 	{
@@ -519,20 +502,20 @@ void Sound_SetOn(int theOn)
 
 int SoundList_Find(SoundList* theList, const char* thePath)
 {
-	if (theList->current == nullptr)
+	if (theList->mCurrent == nullptr)
 		return 0;
-	theList->current = theList->head;
+	theList->mCurrent = theList->mHead;
 	for (;;)
 	{
-		SoundEntry* anEntry = theList->current;
-		if (std::strcmp(thePath, anEntry->name) == 0)
-			return anEntry->sound;
-		if (anEntry->next == nullptr)
+		SoundEntry* anEntry = theList->mCurrent;
+		if (std::strcmp(thePath, anEntry->mName) == 0)
+			return anEntry->mSound;
+		if (anEntry->mNext == nullptr)
 		{
-			theList->current = theList->head;
+			theList->mCurrent = theList->mHead;
 			return 0;
 		}
-		theList->current = anEntry->next;
+		theList->mCurrent = anEntry->mNext;
 	}
 }
 
@@ -543,45 +526,45 @@ namespace
 void SoundList_Append(SoundList* theList)
 {
 	SoundEntry* anEntry = new SoundEntry();
-	if (theList->current != nullptr)
+	if (theList->mCurrent != nullptr)
 	{
-		anEntry->prev = theList->tail;
-		anEntry->next = nullptr;
-		theList->tail->next = anEntry;
-		theList->current = anEntry;
-		theList->tail = anEntry;
+		anEntry->mPrev = theList->mTail;
+		anEntry->mNext = nullptr;
+		theList->mTail->mNext = anEntry;
+		theList->mCurrent = anEntry;
+		theList->mTail = anEntry;
 		return;
 	}
-	anEntry->next = nullptr;
-	anEntry->prev = nullptr;
-	theList->head = anEntry;
-	theList->current = anEntry;
-	theList->tail = anEntry;
+	anEntry->mNext = nullptr;
+	anEntry->mPrev = nullptr;
+	theList->mHead = anEntry;
+	theList->mCurrent = anEntry;
+	theList->mTail = anEntry;
 }
 
 // 0x428bb0: the entry for thePath, appended when the list has none; null when it was there (it is current then)
 SoundEntry* SoundList_Add(SoundList* theList, const char* thePath)
 {
-	if (theList->current != nullptr)
+	if (theList->mCurrent != nullptr)
 	{
-		theList->current = theList->head;
+		theList->mCurrent = theList->mHead;
 		for (;;)
 		{
-			SoundEntry* anEntry = theList->current;
-			if (std::strcmp(thePath, anEntry->name) == 0)
+			SoundEntry* anEntry = theList->mCurrent;
+			if (std::strcmp(thePath, anEntry->mName) == 0)
 				return nullptr;
-			if (anEntry->next == nullptr)
+			if (anEntry->mNext == nullptr)
 			{
-				theList->current = theList->head;
+				theList->mCurrent = theList->mHead;
 				break;
 			}
-			theList->current = anEntry->next;
+			theList->mCurrent = anEntry->mNext;
 		}
 	}
 	SoundList_Append(theList);
-	std::strcpy(theList->current->name, thePath);
-	theList->count = theList->count + 1;
-	return theList->current;
+	std::strcpy(theList->mCurrent->mName, thePath);
+	theList->mCount = theList->mCount + 1;
+	return theList->mCurrent;
 }
 
 } // namespace
@@ -592,10 +575,10 @@ int SoundList_Load(SoundList* theList, const char* thePath)
 	if (anEntry != nullptr)
 	{
 		int aSound = Sample_Load(thePath);
-		anEntry->sound = aSound;
+		anEntry->mSound = aSound;
 		return aSound;
 	}
-	return theList->current->sound;
+	return theList->mCurrent->mSound;
 }
 
 // BASS's music volume is a percentage

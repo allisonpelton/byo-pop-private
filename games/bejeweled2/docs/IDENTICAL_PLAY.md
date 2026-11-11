@@ -116,6 +116,7 @@ Phase two asks that every screen, dialog and text look as the original's does, t
 that focus loss and regain do the same, and that the web build and the real input paths work. Nothing here changes how the
 game plays but one wrap-around (Finity's timer bar, below): the bot's games in every mode (`tools/check.sh bejeweled2`) have the
 frozen baseline's transcripts but for four lines of the start, where the menu slides in, and the baseline is refrozen with them.
+The 3D game (1024 by 768), which the sandbox cannot run, was compared afterwards on the visible desktop ("The 3D game", below).
 
 ### What was compared, and how
 
@@ -197,16 +198,74 @@ in 2D and 3D, windowed and full screen: all four runs end "full: ok" with the fi
 **Focus** is the page check's: the window loses and regains the focus, and the page's answers are checked against the native
 build's (`tools/web/pagecheck_native.py`), as the page check's table lists them.
 
+### The 3D game (1024 by 768)
+
+**Where it ran.** The original's 3D game needs a Direct3D device that neither Windows Sandbox nor rundesk's desktop gives it
+(docs/ORIGRUN.md, "Hardware acceleration"): with `--sandbox --sandbox-vgpu --sandbox-connect` the game moves to the user session,
+whose Microsoft Remote Display Adapter fails Direct3D 7's CreateDevice, and the original runs its 2D game. The user allowed the
+visible desktop as the second route ("Yes, both routes", 2026-11-11), on terms that `origcmp/visrun.py` keeps: a copy under
+`build/`, silent (origrun's sound stand-in mutes the copy's audio sessions), the picture taken only by `PrintWindow` from the game's own
+window, input posted to that window and never through the cursor or the keyboard, no link, Buy or More Games button clicked, and the
+window, the game's registry key and its users folder put back afterwards.
+
+**How.** The port's 3D tour (`record_port.sh tour`, 16 shots: the title, the new player's screen, the welcome box, the menu, the high
+scores, the options dialog from the menu and over a game, the How To Play screen's four pages, the first board and the board after
+its moves, the menu again, "Load Game?" and the loaded board) is turned into an origrun script, and `visrun.py` plays it with the
+original on the virtual clock as the 2D runs do (the game held at an update counter, an input read in the next update, a shot taken
+when nothing is left to draw). Two things differ from the sandbox runs. The title's loading runs on the wall clock, so the update at
+which the Play link shows differs from run to run: a `gate` waits for the title's loaded flag and moves every later command on by the
+updates that took, and the Play click lands at a fixed update, since the board's seed is the generator's state there. And the port is
+given the updates at which each input really landed: `visrun.py` writes `landed.tsv`, `landed_to_events.py` turns the recording into
+events at those updates, and the port replays them (`to_commands.py --shots`; `bejeweled2.exe -commands -realinput -hold -fast
+-drawevery -seed=909 -trace` under rundesk, in Direct3D 11 through SDL). `run_tour_visible.sh` runs all of it, then shotdiff. Two
+rules of the replay come from what the original does on the desktop: the click that closes the first game's help screen goes one
+update later (`--shift`, the 3D loop's click timing, GAME_NOTES, "Oddities"), and the pointer leaves the window after each click
+(`--leave-after 1`), since the real cursor is never over the original's window and no gem glows under it.
+
+| Difference | Cause in the original | What the port does now | Commit |
+| --- | --- | --- | --- |
+| The 3D whirlpool, as it opens at a game's start and over a loaded game, showed a hole across the board's top once its progress passed about two thirds | the original's Direct3D textures use clamp addressing, and the portal draws the board's backdrop through a window whose source starts above the picture (`EffectOverlay`); SDL's Direct3D 11 renderer draws no pixel of a quad whose texture coordinates go negative | `DDInterface::DrawTexturedQuad` cuts an axis-aligned 3D quad where its coordinates cross 0 and 1 and draws the part outside as a strip of the edge texels | 38ecf46f (shared) |
+| The 3D menu showed the More Games button's empty pill, which the original covers with the button | the 3D game's picture of the gadgets (`IMAGE_MAIN_GADGETS`) has the pill baked in | `MainMenu::Draw` draws the picture in three pieces and leaves the pill out, as the 2D game's menu has none (the button itself is out by the user's decision) | 16b906be |
+
+The comparison tools came with these commits (`origcmp/visrun.py`, `landed_to_events.py`, `run_tour_visible.sh`).
+
+**What is identical now.** The tour's 16 shots against the original's (`t3g`): 6 identical (the How To Play screen's four pages, the
+options dialog over a game and the loaded board), 4 identical but for a few hundred to a thousand pixels under 42 levels (the title,
+the first board, the high scores and the board after its moves), and 6 that differ by one button only: the More Games button the
+original draws (the menu, the options dialog and the welcome box over it, "Load Game?" and the menu after it), and in the first of
+them (the new player's screen) also the "?" button of the secret modes, which the original's uninitialised profile counters put on its
+menu (GAME_NOTES, "Oddities"). The animated stretches were compared frame by frame in a second run of the original (`t3d`, 54 shots
+with the 16 above): the whirlpool opening over the loaded game (17 frames, updates 3724 to 3740), the board as it shows (9 frames,
+2420 to 2436) and the loaded board's slide (13 frames, 3806 to 3830). Of them 10 shots are identical, 19 only faint, and 25 differ,
+and the differences are the More Games button (the six menu-family shots above and 8 whirlpool frames, over the pill's 167 by 61
+pixels), the "?" button, a gem or two of the loaded board in 8 of the slide's 13 frames (an oddity, below) and a strip 6 pixels
+high and 162 to 179 wide across the board at the end of its show (3 frames, 32 to 62 pixels over the threshold). Before the clamp
+(38ecf46f) the whirlpool's frames from update 3727 differed in boxes 600 to 800 pixels wide, a hole in the board's backdrop. Every
+shot's boxes were looked at, the faint ones through their size and spread: a few hundred pixels scattered over a picture, or one
+box over the board's big text, with deltas under 60 levels. Direct3D 11's filter against Direct3D 7's is the likely cause, which
+was not tested.
+
+**Not compared in 3D.** The 3D game's sounds and music (they run through the code the 2D game's do, which was compared and
+matches, and the visible desktop runs are silent); the web build's 3D pictures (it shares the clamp, but was not run against
+the original); full screen; and the eight modes' boards (the tour's board is Classic's, and every mode's logic is identical from
+phase one). The 2D shots' pass (above) covers every screen at 640 by 480.
+
 ### Differences that stay (phase two)
 
 - **Finity's pictures** differ in small details from the first shot after level 2's clear and widely in the cascades of the later
   levels, where overlapping popups of millions cover the board; every state, the generator's index at every update (compared to update
   8716), the sounds and the music are the original's, so the difference is in what only Finity draws (the bomb, the rock, the wildcard
   destroyer) or in the popups' arithmetic. Not chased (GAME_NOTES, "Oddities"), with how to see it.
-- **The 3D game's screens** were not compared with the original's in phase two: the original at 1024 by 768 needs the user's leave
-  for its captures, which the coordinator has been asked for, and the 3D tour is recorded (`build/logs/bej2/t3_tour`). The 3D game's
-  logic is identical (phase one), its sounds go through the code the 2D game's do, and its real-input play passes.
-- **The empty More Games pill** (above), and the title's one click sound (above).
+- **The More Games button** is out by the user's decision, so the 640 by 480 menu's 99 by 26 pill and the 3D menu's pill, which the
+  original draws with its label, are boxes of every menu-family shot, in 2D and 3D (the 3D whirlpool's frames over the menu too).
+  The title's one click sound is above.
+- **The "?" button on the new player's first menu in the 3D original** (the profile's uninitialised counters; GAME_NOTES, "Oddities"):
+  the port zeroes them, so the secret modes' button is not there. It shows on the 3D original's first menu shot only.
+- **A gem or two of the loaded board during its slide** (3D, updates 3810 to 3826, 8 of 13 shots, 100 to 500 pixels each): a gem
+  at the board's bottom right has its facets in other places; at rest and after the slide the shots are identical. Not chased
+  (GAME_NOTES, "Oddities").
+- **The 3D tour's hover and first click timing** are shaped by the replay, not the port: the pointer leaves the window after each
+  click and the help screen's click goes one update later, as the original's runs on the desktop do (GAME_NOTES, "Oddities").
 
 ### Performance numbers
 

@@ -23,7 +23,7 @@ float gBeamSpeed = 0.14f;              // 0x460038
 int gFirstWeapon = 1;                  // 0x46003c
 int gLives = 6;                        // 0x460040
 // The save file's field for the trial's clock: the registered game never changes it (0x460044), so the file keeps it
-const int kTrialField = 3600000;
+const int TRIAL_TIME_FIELD = 3600000;
 int gCursorShown = 1;                  // 0x460874
 int gFrame = 1;                        // 0x460a1c
 // And the zeroed (0x4623e0..)
@@ -33,7 +33,6 @@ int gProfile = 0;                      // 0x46e24c
 HighScore gHighScores[9];              // 0x46e250
 int gMouseX = 0;                       // 0x46e5bc
 int gMouseY = 0;                       // 0x46e5c0
-int gDemo = 0;                         // 0x46e5c8
 int gQuit = 0;                         // 0x46e5d0
 int gFirstRun = 0;                     // 0x46e5d4
 int gDifficulty = 0;                   // 0x46e5e0
@@ -59,7 +58,7 @@ namespace
 
 // 0x4608a0: the colour codes' three colours each: 0..200 shades from the first to the second, 200..255 from the
 // second to the third
-const int kColourCodes[10][9] = {
+const int COLOUR_CODES[10][9] = {
 	{0, 0, 0, 3, 3, 3, 6, 6, 6},
 	{0, 0, 0, 180, 180, 180, 255, 255, 255},
 	{40, 0, 0, 220, 0, 0, 255, 255, 255},
@@ -73,14 +72,14 @@ const int kColourCodes[10][9] = {
 };
 
 // 0x458b14..0x458ad4: the default high scores' names (the code copies each literal in place)
-const uint32_t kDefaultNames[8] = {GTA(0x458b14), GTA(0x458b0c), GTA(0x458b04), GTA(0x458afc), GTA(0x458af4),
+const uint32_t DEFAULT_NAMES[8] = {GTA(0x458b14), GTA(0x458b0c), GTA(0x458b04), GTA(0x458afc), GTA(0x458af4),
 	GTA(0x458aec), GTA(0x458ae0), GTA(0x458ad4)};
-const int kDefaultScores[8] = {120000, 80000, 70000, 60000, 50000, 40000, 20000, 10000};
+const int DEFAULT_SCORES[8] = {120000, 80000, 70000, 60000, 50000, 40000, 20000, 10000};
 
 // 0x40cfe0: the higher score first (never "equal", so CrtQsort's order of ties is the original's)
 int CompareHighScores(const void* a, const void* b)
 {
-	return ((const HighScore*)a)->score < ((const HighScore*)b)->score ? 1 : -1;
+	return ((const HighScore*)a)->mScore < ((const HighScore*)b)->mScore ? 1 : -1;
 }
 
 } // namespace
@@ -114,16 +113,16 @@ void Cursors_Init()
 	Cursor_Set(0);
 	for (int i = 0; i < 10; i++)
 	{
-		const int* c = kColourCodes[i];
+		const int* c = COLOUR_CODES[i];
 		Palette_Gradient(&gColourCodes[i], 0, 200, (uint8_t)c[0], (uint8_t)c[1], (uint8_t)c[2], (uint8_t)c[3],
 			(uint8_t)c[4], (uint8_t)c[5]);
 		Palette_Gradient(&gColourCodes[i], 200, 0xff, (uint8_t)c[3], (uint8_t)c[4], (uint8_t)c[5], (uint8_t)c[6],
 			(uint8_t)c[7], (uint8_t)c[8]);
 		const PixelFormat* aFmt = Sys_ScreenFormat();
-		if (aFmt->bpp == 0x10)
-			PixelFormat_PackPalette16(aFmt, gColourCodes[i].p16, gColourCodes[i].rgb, 0x100);
+		if (aFmt->mBpp == 0x10)
+			PixelFormat_PackPalette16(aFmt, gColourCodes[i].mP16, gColourCodes[i].mRgb, 0x100);
 		else
-			PixelFormat_PackPalette32(aFmt, gColourCodes[i].p32, gColourCodes[i].rgb, 0x100);
+			PixelFormat_PackPalette32(aFmt, gColourCodes[i].mP32, gColourCodes[i].mRgb, 0x100);
 	}
 	Font* aFonts[4] = {&gFontSmall, &gFontTreb11, &gFontTreb20, &gFontIcon};
 	for (int i = 0; i < 4; i++)
@@ -142,20 +141,20 @@ void Cursors_Init()
 // The walk stays at the font found, else goes back to the first
 Font* Font_Find(const char* theName)
 {
-	FontEntry* anEntry = gFonts.head;
-	if (gFonts.current == nullptr)
+	FontEntry* anEntry = gFonts.mHead;
+	if (gFonts.mCurrent == nullptr)
 		return nullptr;
 	for (;;)
 	{
-		gFonts.current = anEntry;
-		if (std::strcmp(theName, anEntry->name) == 0)
-			return &anEntry->font;
-		if (anEntry->next == nullptr)
+		gFonts.mCurrent = anEntry;
+		if (std::strcmp(theName, anEntry->mName) == 0)
+			return &anEntry->mFont;
+		if (anEntry->mNext == nullptr)
 		{
-			gFonts.current = gFonts.head;
+			gFonts.mCurrent = gFonts.mHead;
 			return nullptr;
 		}
-		anEntry = anEntry->next;
+		anEntry = anEntry->mNext;
 	}
 }
 
@@ -172,8 +171,8 @@ long FileSize(const char* thePath)
 	return aSize;
 }
 
-// The current player's level, the trial's clock (a field the file keeps: the registered game's untouched 3600000) and the
-// players come last; the player's game in progress is
+// The current player's level, the trial's clock (a field the file keeps: the registered game's untouched 3600000) and
+// the players come last; the player's game in progress is
 // taken (or cleared, with no lives left) when on a board. The difficulty goes to the eleventh player's slot only
 // after the write, so the file has the one before.
 void SaveProfiles()
@@ -182,30 +181,30 @@ void SaveProfiles()
 	if (aFile != nullptr)
 	{
 		std::fwrite(gHighScores, 0x24, 8, aFile);
-		std::fwrite(&gProfiles[gProfile].levelReached, 4, 1, aFile);
-		std::fwrite(&kTrialField, 4, 1, aFile);
+		std::fwrite(&gProfiles[gProfile].mLevelReached, 4, 1, aFile);
+		std::fwrite(&TRIAL_TIME_FIELD, 4, 1, aFile);
 		std::fwrite(&gAutoFire, 4, 1, aFile);
 		Profile* aProfile = &gProfiles[gProfile];
-		aProfile->autoFire = gAutoFire;
-		if (gLevels.current != nullptr && gLevels.current->kind == 0)
+		aProfile->mAutoFire = gAutoFire;
+		if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == 0)
 		{
 			if (gLives < 1)
 			{
-				aProfile->savedLevel = 0;
-				aProfile->savedScore = 0;
-				aProfile->savedLives = 0;
+				aProfile->mSavedLevel = 0;
+				aProfile->mSavedScore = 0;
+				aProfile->mSavedLives = 0;
 			}
 			else
 			{
-				aProfile->savedLevel = gLevels.current->number;
-				aProfile->savedScore = gScore;
-				aProfile->savedLives = gLives;
+				aProfile->mSavedLevel = gLevels.mCurrent->mNumber;
+				aProfile->mSavedScore = gScore;
+				aProfile->mSavedLives = gLives;
 			}
 		}
 		std::fwrite(&gProfile, 4, 1, aFile);
 		std::fwrite(gProfiles, 0x44, 0xb, aFile);
 		std::fwrite(gLevelRecords, 0x30, 1000, aFile);
-		gProfiles[10].riderHits = gDifficulty;
+		gProfiles[10].mRiderHits = gDifficulty;
 		std::fclose(aFile);
 		Sys_SaveDone();
 	}
@@ -220,55 +219,56 @@ void ResetProfiles()
 {
 	for (int i = 0; i < 8; i++)
 	{
-		std::strcpy(gHighScores[i].name, GT(kDefaultNames[i]));
-		gHighScores[i].score = kDefaultScores[i];
+		std::strcpy(gHighScores[i].mName, GT(DEFAULT_NAMES[i]));
+		gHighScores[i].mScore = DEFAULT_SCORES[i];
 	}
 	gProfile = 0;
-	gProfiles[0].name[0] = 0;
-	Sys_UserName(gProfiles[0].name, 0x20);
-	if (std::strlen(gProfiles[0].name) == 0)
-		std::strcpy(gProfiles[0].name, GT(0x458acc));
+	gProfiles[0].mName[0] = 0;
+	Sys_UserName(gProfiles[0].mName, 0x20);
+	if (std::strlen(gProfiles[0].mName) == 0)
+		std::strcpy(gProfiles[0].mName, GT(0x458acc));
 #ifdef __EMSCRIPTEN__
-	SiteFirstPlayer(gProfiles[0].name, 0x20);	// the web page's player (framework/WebProfiles.h): under "fill" and "create" it names the first player
+	// the web page's player (framework/WebProfiles.h): under "fill" and "create" it names the first player
+	SiteFirstPlayer(gProfiles[0].mName, 0x20);
 #endif
-	gProfiles[0].levelReached = 0;
-	gProfiles[0].autoFire = 1;
-	gProfiles[0].savedLevel = 0;
-	gProfiles[0].savedLives = 0;
-	gProfiles[0].savedScore = 0;
-	gProfiles[0].riderHits = 0;
-	gProfiles[0].kills = 0;
-	gProfiles[0].beamsFired = 0;
-	gProfiles[0].powerupsCaught = 0;
+	gProfiles[0].mLevelReached = 0;
+	gProfiles[0].mAutoFire = 1;
+	gProfiles[0].mSavedLevel = 0;
+	gProfiles[0].mSavedLives = 0;
+	gProfiles[0].mSavedScore = 0;
+	gProfiles[0].mRiderHits = 0;
+	gProfiles[0].mKills = 0;
+	gProfiles[0].mBeamsFired = 0;
+	gProfiles[0].mPowerupsCaught = 0;
 	for (Profile* aProfile = gProfiles + 1; aProfile < gProfiles + 10; aProfile++)
 	{
-		std::strcpy(aProfile->name, Localize(GT(0x458ac4)));
-		aProfile->levelReached = 0;
-		aProfile->autoFire = gAutoFire;
-		aProfile->savedLevel = 0;
-		aProfile->savedLives = 0;
-		aProfile->savedScore = 0;
-		aProfile->riderHits = 0;
-		aProfile->kills = 0;
-		aProfile->beamsFired = 0;
-		aProfile->powerupsCaught = 0;
+		std::strcpy(aProfile->mName, Localize(GT(TEXT_EMPTY_PROFILE)));
+		aProfile->mLevelReached = 0;
+		aProfile->mAutoFire = gAutoFire;
+		aProfile->mSavedLevel = 0;
+		aProfile->mSavedLives = 0;
+		aProfile->mSavedScore = 0;
+		aProfile->mRiderHits = 0;
+		aProfile->mKills = 0;
+		aProfile->mBeamsFired = 0;
+		aProfile->mPowerupsCaught = 0;
 	}
-	Sys_UserName(gProfiles[10].name, 0x20);
-	gProfiles[10].levelReached = 0;
-	gProfiles[10].autoFire = 1;
-	gProfiles[10].savedLevel = 0;
-	gProfiles[10].savedLives = 0;
-	gProfiles[10].savedScore = 0;
-	gProfiles[10].riderHits = 0;
-	gProfiles[10].kills = 0;
-	gProfiles[10].beamsFired = 0;
-	gProfiles[10].powerupsCaught = 0;
+	Sys_UserName(gProfiles[10].mName, 0x20);
+	gProfiles[10].mLevelReached = 0;
+	gProfiles[10].mAutoFire = 1;
+	gProfiles[10].mSavedLevel = 0;
+	gProfiles[10].mSavedLives = 0;
+	gProfiles[10].mSavedScore = 0;
+	gProfiles[10].mRiderHits = 0;
+	gProfiles[10].mKills = 0;
+	gProfiles[10].mBeamsFired = 0;
+	gProfiles[10].mPowerupsCaught = 0;
 	for (LevelRecord* aRecord = gLevelRecords; aRecord < gLevelRecords + 1000; aRecord++)
 	{
-		aRecord->fillName[0] = 0;
-		aRecord->bestFill = 0;
-		aRecord->shotsName[0] = 0;
-		aRecord->fewestShots = 999;
+		aRecord->mFillName[0] = 0;
+		aRecord->mBestFill = 0;
+		aRecord->mShotsName[0] = 0;
+		aRecord->mFewestShots = 999;
 	}
 	SaveProfiles();
 }
@@ -278,8 +278,8 @@ void LoadProfiles()
 {
 	long aSize = FileSize(Sys_SavePath("cb.dat"));
 	FILE* aFile = std::fopen(Sys_SavePath("cb.dat"), "rb");
-	gHighScores[8].name[0] = 0;
-	gHighScores[8].score = 0;
+	gHighScores[8].mName[0] = 0;
+	gHighScores[8].mScore = 0;
 	if (aFile == nullptr || aSize != 0xbf9c)
 	{
 		if (aFile != nullptr)
@@ -290,7 +290,7 @@ void LoadProfiles()
 	else
 	{
 		std::fread(gHighScores, 0x24, 8, aFile);
-		std::fread(&gProfiles[gProfile].levelReached, 4, 1, aFile);
+		std::fread(&gProfiles[gProfile].mLevelReached, 4, 1, aFile);
 		int aTrialField;
 		std::fread(&aTrialField, 4, 1, aFile);
 		std::fread(&gAutoFire, 4, 1, aFile);
@@ -298,8 +298,8 @@ void LoadProfiles()
 		std::fread(gProfiles, 0x44, 0xb, aFile);
 		std::fread(gLevelRecords, 0x30, 1000, aFile);
 		std::fclose(aFile);
-		gAutoFire = gProfiles[gProfile].autoFire;
-		gDifficulty = gProfiles[10].riderHits;
+		gAutoFire = gProfiles[gProfile].mAutoFire;
+		gDifficulty = gProfiles[10].mRiderHits;
 		// (the original closes the file a second time here)
 	}
 }
@@ -316,9 +316,10 @@ void GameInit()
 	Cursors_Init();
 	LoadProfiles();
 #ifdef __EMSCRIPTEN__
-	SiteStart();	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
+	// the web page's players (framework/WebProfiles.h): the slots are read; what the page queued for them is applied
+	SiteStart();
 #endif
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, kScreenClip);
+	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 }
 
 // The screen's dirty parts from the back buffer, then the level over them
@@ -327,9 +328,9 @@ void GameDraw()
 	if (Screen_Lock() != 0)
 	{
 		Dirty_CopyTo(&gDirty, gScreenBits, gScreenPitch);
-		Draw_SetTarget(gScreenBits, gScreenPitch, gScreenLock.w, gScreenLock.h, &gBackBuffer.fmt);
-		if (gLevels.current != nullptr)
-			Level_Draw(gLevels.current);
+		Draw_SetTarget(gScreenBits, gScreenPitch, gScreenLock.mW, gScreenLock.mH, &gBackBuffer.mFmt);
+		if (gLevels.mCurrent != nullptr)
+			Level_Draw(gLevels.mCurrent);
 		UnlockScreen();
 	}
 }
@@ -337,20 +338,20 @@ void GameDraw()
 // Onto the level's background
 void Menu_DrawToBackground(Menu* theMenu)
 {
-	if (theMenu->image != nullptr)
+	if (theMenu->mImage != nullptr)
 	{
-		Image* anImage = theMenu->image;
-		Image* aBack = gLevels.current->background;
-		int aY = (int)((double)theMenu->y - (double)(anImage->h / 2));
-		int aX = (int)((double)theMenu->x - (double)(anImage->w / 2));
-		Image_BlitAlpha(anImage, aBack->bits, aBack->pitch, &aBack->fmt, kScreenClip, aX, aY);
+		Image* anImage = theMenu->mImage;
+		Image* aBack = gLevels.mCurrent->mBackground;
+		int aY = (int)((double)theMenu->mY - (double)(anImage->mH / 2));
+		int aX = (int)((double)theMenu->mX - (double)(anImage->mW / 2));
+		Image_BlitAlpha(anImage, aBack->mBits, aBack->mPitch, &aBack->mFmt, SCREEN_CLIP, aX, aY);
 	}
-	if (theMenu->logo != nullptr)
+	if (theMenu->mLogo != nullptr)
 	{
-		Image* aLogo = theMenu->logo;
-		Image* aBack = gLevels.current->background;
-		Image_BlitAlpha(aLogo, aBack->bits, aBack->pitch, &aBack->fmt, kScreenClip, theMenu->logoX - aLogo->w / 2,
-			theMenu->logoY - aLogo->h / 2);
+		Image* aLogo = theMenu->mLogo;
+		Image* aBack = gLevels.mCurrent->mBackground;
+		Image_BlitAlpha(aLogo, aBack->mBits, aBack->mPitch, &aBack->mFmt, SCREEN_CLIP, theMenu->mLogoX - aLogo->mW / 2,
+			theMenu->mLogoY - aLogo->mH / 2);
 	}
 }
 
@@ -358,48 +359,47 @@ void Menu_DrawToBackground(Menu* theMenu)
 // little, and its panel
 void Screen_Redraw()
 {
-	if (gLevels.current != nullptr && gLevels.current->background != nullptr && gLevels.current->seed == 0)
+	if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mBackground != nullptr && gLevels.mCurrent->mSeed == 0)
 	{
-		Image_Copy(&gBackBuffer, gLevels.current->background);
-		Font_SetTarget(&gFontSmall, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, gBackBuffer.w,
-			gBackBuffer.h);
-		Font_SetClipped(&gFontSmall, 1);
+		Image_Copy(&gBackBuffer, gLevels.mCurrent->mBackground);
+		Font_SetTarget(&gFontSmall, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, gBackBuffer.mW,
+			gBackBuffer.mH);
 		// (the background covers both texts just after, so the original never shows them; 16 is the screen's
 		// bits per pixel, 0x460008)
 		Font_Draw(&gFontSmall, GT(0x458b3c), 10, 0x244, 0);
 		char aText[256];
-		std::snprintf(aText, sizeof(aText), GT(0x458b24), 800, 600, 16);
+		std::snprintf(aText, sizeof(aText), GT(0x458b24), SCREEN_WIDTH, SCREEN_HEIGHT, 16);
 		Font_Draw(&gFontSmall, aText, 10, 0x24e, 0);
-		if (gLevels.current != nullptr)
+		if (gLevels.mCurrent != nullptr)
 		{
 			// From the current menu on, not from the first: the walk starts where the list's current is (the menu
 			// that is up) and ends with the first current again, so the earlier menus' images are not drawn over
 			// the background once more (a translucent edge would brighten with every pass)
-			List<Menu>* aMenus = &gLevels.current->menus;
-			if (aMenus->current != nullptr)
+			List<Menu>* aMenus = &gLevels.mCurrent->mMenus;
+			if (aMenus->mCurrent != nullptr)
 			{
 				while (true)
 				{
-					Menu_DrawToBackground(aMenus->current);
-					Menu* aMenu = aMenus->current;
+					Menu_DrawToBackground(aMenus->mCurrent);
+					Menu* aMenu = aMenus->mCurrent;
 					if (aMenu == nullptr)
 						break;
-					if (aMenu->next == nullptr)
+					if (aMenu->mNext == nullptr)
 					{
-						aMenus->current = aMenus->head;
+						aMenus->mCurrent = aMenus->mHead;
 						break;
 					}
-					aMenus->current = Node_Next(aMenu);
+					aMenus->mCurrent = Node_Next(aMenu);
 				}
 			}
-			Image_BlitRect(gLevels.current->background, gBackBuffer.bits, gBackBuffer.pitch, &gBackBuffer.fmt, 0, 0,
-				0, 0, 800, 600);
-			if (10.0f < gLevels.current->age)
-				Level_RedrawCells(gLevels.current);
-			if (gLevels.current->panels.current != nullptr)
-				Panel_Draw(gLevels.current->panels.current, 0);
+			Image_BlitRect(gLevels.mCurrent->mBackground, gBackBuffer.mBits, gBackBuffer.mPitch, &gBackBuffer.mFmt, 0,
+				0, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+			if (10.0f < gLevels.mCurrent->mAge)
+				Level_RedrawCells(gLevels.mCurrent);
+			if (gLevels.mCurrent->mPanels.mCurrent != nullptr)
+				Panel_Draw(gLevels.mCurrent->mPanels.mCurrent, 0);
 		}
-		Dirty_AddClippedShown(&gDirty, 0, 0, 800, 600, kScreenClip);
+		Dirty_AddClippedShown(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 	}
 }
 
@@ -431,59 +431,61 @@ void GoToScreen()
 {
 	if (gGoTo == 2)
 	{
-		gHighScores[8].score = gScore;
+		gHighScores[8].mScore = gScore;
 		gGoTo = 3;
-		std::strcpy(gHighScores[8].name, gProfiles[gProfile].name);
+		std::strcpy(gHighScores[8].mName, gProfiles[gProfile].mName);
 		SortHighScores();
 	}
 	for (;;)
 	{
-		if (gLevels.current != nullptr)
+		if (gLevels.mCurrent != nullptr)
 		{
-			for (Level* aLevel = gLevels.head;; aLevel = Node_Next(aLevel))
+			for (Level* aLevel = gLevels.mHead;; aLevel = Node_Next(aLevel))
 			{
-				if (aLevel->kind == gGoTo)
+				if (aLevel->mKind == gGoTo)
 				{
-					gLevels.current = aLevel;
+					gLevels.mCurrent = aLevel;
 					if (gGoTo != 5)
 						return;
-					if (aLevel->background != nullptr)
+					if (aLevel->mBackground != nullptr)
 					{
-						Image_Destroy(aLevel->background);
-						::operator delete(aLevel->background);
+						Image_Destroy(aLevel->mBackground);
+						::operator delete(aLevel->mBackground);
 					}
-					Image* aBack = Bank_FindImage2(&gArtBank, aLevel->backImage);
-					aLevel->background = new Image;
-					Image_Copy(aLevel->background, aBack);
-					List_Each(&aLevel->menus, [](Menu* aMenu) {
-						aMenu->image = nullptr;
-						if (aMenu->anim != nullptr && gProfiles[gProfile].levelReached + 1 < aMenu->lockedLevel)
+					Image* aBack = Bank_FindImage2(&gArtBank, aLevel->mBackImage);
+					aLevel->mBackground = new Image;
+					Image_Copy(aLevel->mBackground, aBack);
+					List_Each(&aLevel->mMenus, [](Menu* theAMenu) {
+						theAMenu->mImage = nullptr;
+						if (theAMenu->mAnim != nullptr && gProfiles[gProfile].mLevelReached + 1 <
+							theAMenu->mLockedLevel)
 						{
-							aMenu->anim = Animation_Find(aMenu->lockedAnim, &aMenu->frameCount, &aMenu->frameTime);
-							aMenu->image = Animation_Frame(aMenu->anim, 0);
+							theAMenu->mAnim = Animation_Find(theAMenu->mLockedAnim, &theAMenu->mFrameCount,
+								&theAMenu->mFrameTime);
+							theAMenu->mImage = Animation_Frame(theAMenu->mAnim, 0);
 						}
-						Menu_DrawToBackground(aMenu);
+						Menu_DrawToBackground(theAMenu);
 					});
 					return;
 				}
-				if (aLevel->next == nullptr)
+				if (aLevel->mNext == nullptr)
 					break;
 			}
-			gLevels.current = gLevels.head;
+			gLevels.mCurrent = gLevels.mHead;
 		}
 		DrawLoadingScreen();
 		Music_Free();
-		if (gLevelSets.current == nullptr || gLevelInSet == gLevelSets.current->start + -1)
+		if (gLevelSets.mCurrent == nullptr || gLevelInSet == gLevelSets.mCurrent->mStart + -1)
 		{
 			FreeAll();
 			LoadGameFile();
 		}
 		else
 		{
-			Music_Load(gLevelSets.current->song);
+			Music_Load(gLevelSets.mCurrent->mSong);
 			FreeAll();
 			LoadGameFile();
-			if (gLevels.current->kind == 0)
+			if (gLevels.mCurrent->mKind == 0)
 			{
 				Music_SetVolume(0xdc);
 				Music_Play();
@@ -502,55 +504,56 @@ void GoToScreen()
 // (gEscape); elsewhere it goes to the main menu.
 bool LeaveScreen()
 {
-	if (gLevels.current->kind == 0 || gLevels.current->kind == 0xe)
+	if (gLevels.mCurrent->mKind == 0 || gLevels.mCurrent->mKind == 0xe)
 		List_RemoveCurrent(&gLevels);
 	else
-		Level_UnlinkAll(gLevels.current);
+		Level_UnlinkAll(gLevels.mCurrent);
 	GoToScreen();
-	if (gLevels.current->kind == 0)
+	if (gLevels.mCurrent->mKind == 0)
 	{
 		for (; gLevelInSet != 0; gLevelInSet = gLevelInSet + -1)
 		{
-			if (gLevels.current != nullptr)
-				gLevels.current = gLevels.head;
-			if (gLevels.current->musicPending != 0)
+			if (gLevels.mCurrent != nullptr)
+				gLevels.mCurrent = gLevels.mHead;
+			if (gLevels.mCurrent->mMusicPending != 0)
 				gLevelInSet = gLevelInSet + 1;
 			List_RemoveCurrent(&gLevels);
-			if (gLevels.current != nullptr)
-				gLevels.current = gLevels.head;
+			if (gLevels.mCurrent != nullptr)
+				gLevels.mCurrent = gLevels.mHead;
 		}
-		Level_StartSong(gLevels.current, 0);
+		Level_StartSong(gLevels.mCurrent, 0);
 	}
-	if (gLevels.current == nullptr)
+	if (gLevels.mCurrent == nullptr)
 		return false;
 	Screen_Redraw();
 	return true;
 }
 
-// port(site): the start-up logos are over once a screen that is not a logo has been up (the logos the menu can ask for later
-// are the game's, not the start-up's)
+// port(site): the start-up logos are over once a screen that is not a logo has been up (the logos the menu can ask for
+// later are the game's, not the start-up's)
 static bool gStartupLogosOver = false;
 
 void GameStep()
 {
 	gFrame = gFrame + 1;
-	if (gLevels.current != nullptr)
+	if (gLevels.mCurrent != nullptr)
 	{
-		if (Level_Update(gLevels.current) == 0 || Key_Pressed(0xbe) != 0)
+		if (Level_Update(gLevels.mCurrent) == 0 || Key_Pressed(0xbe) != 0)
 		{
 			// (a screen left: the next one, or the end of the game file's levels)
 			LeaveScreen();
 		}
 	}
-	// port(site): the site's "Always skip start-up logos" does what Esc on the first logo does (below): the main menu at once.
-	// It is that path and no other, so the game reaches the menu in the state the original's skip leaves it in.
-	if (gLevels.current != nullptr && gLevels.current->kind != 0xe)
+	// port(site): the site's "Always skip start-up logos" does what Esc on the first logo does (below): the main menu
+	// at once. It is that path and no other, so the game reaches the menu in the state the original's skip leaves it
+	// in.
+	if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind != 0xe)
 		gStartupLogosOver = true;
-	else if (gLevels.current != nullptr && !gStartupLogosOver && Sys_SkipLogos())
+	else if (gLevels.mCurrent != nullptr && !gStartupLogosOver && Sys_SkipLogos())
 	{
 		gGoTo = 1;
 		GoToScreen();
-		if (gLevels.current != nullptr)
+		if (gLevels.mCurrent != nullptr)
 			Screen_Redraw();
 		return;
 	}
@@ -559,19 +562,19 @@ void GameStep()
 		gEscape = 0;
 		return;
 	}
-	if (gLevels.current != nullptr && gLevels.current->kind == 1)
+	if (gLevels.mCurrent != nullptr && gLevels.mCurrent->mKind == 1)
 	{
 		gQuit = 1;
 		return;
 	}
-	if (gLevels.current->kind == 0)
+	if (gLevels.mCurrent->mKind == 0)
 	{
 		gEscape = 1;
 		return;
 	}
 	gGoTo = 1;
 	GoToScreen();
-	if (gLevels.current != nullptr)
+	if (gLevels.mCurrent != nullptr)
 		Screen_Redraw();
 }
 
