@@ -239,8 +239,14 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
 
 ## 7. Fix candidates (original bugs and waits, kept in the port, for the fixes mod)
 
-- The OK button of the box that explains a weapon plays the one-second timer's tick after its click (an uninitialised sample number,
-  section 6): a stray sound; the mod would silence it.
+- The OK button of the box that explains a weapon plays the one-second timer's tick after its click (the sample number at +0x118,
+  section 6): a stray sound. Made: the fixes mod's toggle `weaponBoxTick` (`mods/fixes/mod.json`, read with `FixEnabled` in
+  `src/Fixes.cpp`; on in an enabled mod, so the box's OK is silent; with the mod off, as in the port, it ticks).
+  `games/astropop/tools/fixes_check.sh` proves it: the bot plays one game with real input (`realplay.py --charge 18000`, so the box
+  comes up) with no mods and with the mod, and the sound logs differ by that one play of `sounds/timer1`, the other sounds and the
+  game's end the same. That is the whole mod: the port has no other bug or wait that only costs the player time (a clock
+  decides nothing in a game's play; the seed is the only thing a run takes from outside). The web page ships the mod on
+  (`<game>-fixes/`, cmake/ByopopWeb.cmake).
 
 ## 8. Oddities (not chased)
 
@@ -251,14 +257,15 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
 - **Phase two, what still differs in the pictures** (found by the tours, judged one by one; the numbers are the largest per-channel
   differences in levels, 0 to 255; `IDENTICAL_PLAY.md` has the counts of every tour):
   - The ring of the atomic explosion (the Atomic Bomb weapon: cels of `IMAGE_ATOMIC_EXPLOSION`, one drawn at twice its size with
-    `DrawCelStretched`) has edges that differ in a few thousand pixels by up to 91 levels (w_spr g3700 91, g3800 47; ck13 g3650 49,
-    g3800 47). In 2D mode the original stretches through the DirectDraw image's own routine (`DDImage::StretchBlt` 0x4c68c0,
-    `SlowStretchBlt` 0x4b1bf0); the port stretches through the framework's `DDInterface::GetStretchCopy` /
-    `MemoryImage::StretchCopy`, whose rounding is another. The shared code owns it (a spec went to the coordinator); the game does
-    not copy the 2004 routine.
+    `DrawCelStretched`) differed at its edges by up to 91 levels (w_spr g3700, ck13 g3650 and others): the framework's
+    `WidgetManager` draws every widget with the fast stretch on in a 2D run and the 2004 one with it off (only the level-up text
+    asks for it, 0x40c8a0). Fixed by the shared option `gWidgetsDrawWithoutFastStretch`, which `AstroPopApp::Init` turns on; those
+    shots now differ by at most 7 levels.
   - The small particles and halos (the normal and additive blits of `DDImage`: 0x4ac1d0, 0x4b0f50 `NormalBlt`, 0x4ae3f0
-    `AdditiveBlt`) differ by up to about 22 levels where the 2004 arithmetic and the framework's round another way (2D mode only; in 3D
-    the card does it): that is most of the shots counted "faint" in the report. Shared code again; the same spec.
+    `AdditiveBlt`) differ by at most 11 levels (emerg1 g22200; 7 elsewhere) where the 2004 arithmetic truncates and the GPU rounds
+    (2D mode only; in 3D the card does it): that is most of the shots counted "faint" in the report. The port's 2D screen is the
+    GPU's, so matching it takes a software screen and the 2004 arithmetic (about 5,500 lines of x86 in the two functions, 16 and
+    32 bit, with and without a colour, transparent or not): shared code, not done, no difference that a person sees.
   - The title screen changes its picture (Vixx, Turbot, ...) every 600 updates of its own count. The port loads at the machine's speed
     (CLAUDE.md: loading is made fast in the port itself), so its title starts at another update than the original's and a shot at a fixed update
     can land on the other picture (the tour `menus` a01_title; the next shot, a02, matches). It is a timing of the loader, not a
@@ -276,8 +283,8 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
 1. The web build and its registrations (page.js, stores, profiles, saveimport, controls, sound tracks), the origrun row.
 2. The identical-play pass with `games/astropop/docs/IDENTICAL_PLAY.md`: phase one (plays identical) and phase two (looks
    identical, sound, focus, the web build, real-input driver play) are done; what still differs is listed in section 8 and in the
-   report. Waiting for the coordinator: the blit arithmetic of the 2004 `DDImage` (`NormalBlt`, `AdditiveBlt`) and its stretch
-   (`StretchBlt`, `SlowStretchBlt`) in shared code.
+   report. The stretch of the ring is mended by a shared option (section 8). What remains is the blit arithmetic of the 2004
+   `DDImage` (`NormalBlt`, `AdditiveBlt`): at most 11 levels, in shared code, not done (section 8).
    The music (a module stream) was not compared with the original's in phase two: its start, stop and focus handling remain to be
    checked, if origrun can see them.
 3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
