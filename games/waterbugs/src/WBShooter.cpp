@@ -1,5 +1,5 @@
 // The player's ship (0x41b340..0x41e800): it comes in, follows the mouse, fires a pair of beams along its row or
-// column and, when both have stopped, fills the smaller side; the sweeper and the invincibubble are its extras.
+// column and, when both have stopped, fills the smaller side; the invincibubble is its extra.
 // The weapons that orbit it (0x41a910..0x41b290) go with the power-ups.
 
 #include "WBLevel.h"
@@ -46,8 +46,7 @@ void Shooter_Turn(Shooter* theShooter)
 void Shooter_Appear(Shooter* theShooter)
 {
 	int aDummy[2];
-	if (gDemo == 0)
-		Sys_SetMousePos(400, 300);
+	Sys_SetMousePos(400, 300);
 	theShooter->x = 400.0f;
 	theShooter->y = 300.0f;
 	if (theShooter->age == 1.0f)
@@ -198,12 +197,10 @@ void Shooter_Fill(Shooter* theShooter, Cell* theCell)
 
 // 0x41bb40: the open span about the ship along its row (theLeft to theRight) and its column (theTop to theBottom):
 // each end walks 16 pixels a step to the first cell not open, then back a pixel a step onto an open one. All four
-// are 0 when the ship is within 16 pixels of the screen's edge; the demo leaves them as they are. Every walk's
+// are 0 when the ship is within 16 pixels of the screen's edge. Every walk's
 // guard checks the left end's column and the top end's row, as the original's do.
 void Shooter_Extents(Shooter* theShooter, float* theLeft, float* theTop, float* theRight, float* theBottom)
 {
-	if (gDemo != 0)
-		return;
 	if (16.0f < theShooter->x && theShooter->x < 784.0f && 16.0f < theShooter->y && theShooter->y < 584.0f)
 	{
 		float aLeft = 0.0f <= theShooter->x ? theShooter->x : 0.0f;
@@ -343,104 +340,10 @@ int Shooter_Measure(Shooter* theShooter, Cell* theCell, int* theEnemies, int* th
 	return aCells;
 }
 
-// One of the sweeper's sparks, 5 pixels either way about (theX, theY)
-void Sweeper_Spark(Shooter* theShooter, double theX, double theY)
-{
-	ParticleSystem_New();
-	int aParticle = theShooter->particle;
-	int aLifetime = RandRange(500, 600);
-	float aVy = (float)((double)RandRange(-0x32, 0x32) / 400.0);
-	float aVx = (float)((double)RandRange(-0x32, 0x32) / 400.0);
-	float aY = (float)((double)RandRange(-5, 5) + theY);
-	float aX = (float)((double)RandRange(-5, 5) + theX);
-	ParticleSystem_Add(gLevels.current->systems.current, aX, aY, aVx, aVy, aParticle, aParticle, 0, 0xff, 0xff, 0xff,
-		0x80, 0x80, 0xff, 400, 10, aLifetime, 0.999f, 0.0004f, 5);
-}
-
-// 0x41c4a0: the sweeper rides the ends of the open span about the ship (16 pixels further out); an enemy in the
-// span that crossed the ship's line since the last update goes back to its side of it, turned round
-void Sweeper_Push(Shooter* theShooter)
-{
-	if (theShooter->x < 1.0f || 799.0f <= theShooter->x || theShooter->y < 1.0f || 591.0f < theShooter->y ||
-		theShooter->state != 3 || Weapons_Orbiting() != 0)
-		return;
-	Obj_Update(&theShooter->sweeper);
-	float aLeft;
-	float aTop;
-	float aRight;
-	float aBottom;
-	Shooter_Extents(theShooter, &aLeft, &aTop, &aRight, &aBottom);
-	aLeft = aLeft - 16.0f;
-	aTop = aTop - 16.0f;
-	aRight = aRight + 16.0f;
-	aBottom = aBottom + 16.0f;
-	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		int aCol = (int)anEnemy->x / 16;
-		int aRow = (int)anEnemy->y / 16;
-		int aKind = gLevels.current->columns[aCol][aRow].kind;
-		if (theShooter->beamAcross == 1)
-		{
-			if (aLeft < anEnemy->x && anEnemy->x < aRight)
-			{
-				float aLine = theShooter->y <= 568.0 ? theShooter->y : 568.0f;
-				if (anEnemy->oldY < theShooter->oldY && aLine < anEnemy->y)
-				{
-					anEnemy->vy = -anEnemy->vy;
-					while (aLine < anEnemy->y && gLevels.current->columns[aCol][(int)((double)aLine - 1.0 +
-						(double)anEnemy->vy) / 16].kind == aKind)
-						anEnemy->y = anEnemy->y - 1.0f;
-				}
-				else if (theShooter->oldY < anEnemy->oldY && anEnemy->y < aLine)
-				{
-					anEnemy->vy = -anEnemy->vy;
-					while (anEnemy->y < aLine && gLevels.current->columns[aCol][(int)((double)aLine + 1.0 +
-						(double)anEnemy->vy) / 16].kind == aKind)
-						anEnemy->y = anEnemy->y + 1.0f;
-				}
-			}
-		}
-		else if (aTop < anEnemy->y && anEnemy->y < aBottom)
-		{
-			float aLine = theShooter->x <= 776.0 ? theShooter->x : 776.0f;
-			if (anEnemy->oldX < theShooter->oldX && aLine < anEnemy->x)
-			{
-				anEnemy->vx = -anEnemy->vx;
-				while (aLine < anEnemy->x && gLevels.current->columns[(int)((double)aLine - 1.0 +
-					(double)anEnemy->vx) / 16][aRow].kind == aKind)
-					anEnemy->x = anEnemy->x - 1.0f;
-			}
-			else if (theShooter->oldX < anEnemy->oldX && anEnemy->x < aLine)
-			{
-				anEnemy->vx = -anEnemy->vx;
-				while (anEnemy->x < aLine && gLevels.current->columns[(int)((double)aLine + 1.0 +
-					(double)anEnemy->vx) / 16][aRow].kind == aKind)
-					anEnemy->x = anEnemy->x + 1.0f;
-			}
-		}
-	});
-	if (theShooter->beamAcross == 1)
-	{
-		if (RandRange(1, 0xf) == 1)
-		{
-			Sweeper_Spark(theShooter, (double)aLeft + 8.0, (double)theShooter->y);
-			Sweeper_Spark(theShooter, (double)aRight - 8.0, (double)theShooter->y);
-		}
-	}
-	else if (RandRange(1, 0xf) == 1)
-	{
-		Sweeper_Spark(theShooter, (double)theShooter->x, (double)aTop + 8.0);
-		Sweeper_Spark(theShooter, (double)theShooter->x, (double)aBottom - 8.0);
-	}
-}
-
 // 0x41cd90: the aiming guides along the open span, 11 lines across the beams' path, fainter at the edges
 void Shooter_Guides(Shooter* theShooter)
 {
-	if (gDemo != 0)
-		return;
 	int anAlpha = 5;
-	if ((theShooter->flags & 4) != 0)
-		anAlpha = 0x1e;
 	if (theShooter->state != 3 || Weapons_Orbiting() != 0)
 		return;
 	if (theShooter->beamAcross == 1)
@@ -469,36 +372,9 @@ void Shooter_Guides(Shooter* theShooter)
 		(int)((double)theShooter->extBottom - (double)theShooter->extTop + 1.0), kScreenClip);
 }
 
-// 0x41cfb0: the sweeper at both ends of the span
-void Sweeper_Draw(Shooter* theShooter)
-{
-	if (theShooter->state != 3 || Weapons_Orbiting() != 0)
-		return;
-	Dirty_AddClippedShown(&gDirty, (int)((double)theShooter->extLeft - 2.0), (int)((double)theShooter->extTop - 2.0),
-		(int)((double)theShooter->extRight - (double)theShooter->extLeft + 4.0),
-		(int)((double)theShooter->extBottom - (double)theShooter->extTop + 4.0), kScreenClip);
-	Obj* aSweeper = &theShooter->sweeper;
-	if (theShooter->beamAcross == 1)
-	{
-		aSweeper->y = theShooter->y;
-		aSweeper->x = theShooter->extLeft - 8.0f;
-		Obj_Draw(aSweeper);
-		aSweeper->x = theShooter->extRight + 8.0f;
-		Obj_Draw(aSweeper);
-		return;
-	}
-	aSweeper->x = theShooter->x;
-	aSweeper->y = theShooter->extTop - 8.0f;
-	Obj_Draw(aSweeper);
-	aSweeper->y = theShooter->extBottom + 8.0f;
-	Obj_Draw(aSweeper);
-}
-
 // 0x41d2e0
 void Shooter_UpdateExtras(Shooter* theShooter)
 {
-	if (theShooter->state == 3 && (theShooter->flags & 4) != 0)
-		Sweeper_Push(theShooter);
 	if ((theShooter->flags & 0x10) != 0)
 	{
 		theShooter->bubble.x = theShooter->x;
@@ -513,8 +389,6 @@ void Shooter_UpdateExtras(Shooter* theShooter)
 // 0x41d340
 void Shooter_DrawExtras(Shooter* theShooter)
 {
-	if ((theShooter->flags & 4) != 0)
-		Sweeper_Draw(theShooter);
 	if ((theShooter->flags & 0x10) != 0)
 		Obj_Draw(&theShooter->bubble);
 }
@@ -738,19 +612,10 @@ void Shooter_Control(Shooter* theShooter)
 	if (gAutoFire == 0)
 		theShooter->noAutoTurn = 1;
 	int aTurn = gLevels.current->rightClicked;
-	if (gDemo == 0)
-	{
-		double aX = ((double)gMouseX + (double)theShooter->x) * 0.5;
-		theShooter->x = (float)(799.0 < aX ? 799.0 : (aX < 0.0 ? 0.0 : aX));
-		double aY = ((double)gMouseY + (double)theShooter->y) * 0.5;
-		theShooter->y = (float)(599.0 < aY ? 599.0 : (aY < 0.0 ? 0.0 : aY));
-	}
-	else
-	{
-		theShooter->x = (float)RandRange(0, 799);
-		theShooter->y = (float)RandRange(0, 599);
-		RandRange(1, 1000);
-	}
+	double aX = ((double)gMouseX + (double)theShooter->x) * 0.5;
+	theShooter->x = (float)(799.0 < aX ? 799.0 : (aX < 0.0 ? 0.0 : aX));
+	double aY = ((double)gMouseY + (double)theShooter->y) * 0.5;
+	theShooter->y = (float)(599.0 < aY ? 599.0 : (aY < 0.0 ? 0.0 : aY));
 	Shooter_Fire(theShooter);
 	Shooter_UpdateExtras(theShooter);
 	Shooter_Extents(theShooter, &theShooter->extLeft, &theShooter->extTop, &theShooter->extRight,
@@ -817,12 +682,6 @@ void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag)
 	theShooter->wingsV.depth = 5;
 	theShooter->wingsH.depth = 5;
 	theShooter->shadow = 1;
-	Obj_Copy(&theShooter->sweeper, theShooter);
-	theShooter->sweeper.anim = Animation_Find("sweeper", &theShooter->sweeper.frameCount,
-		&theShooter->sweeper.frameTime);
-	theShooter->sweeper.depth = 2;
-	theShooter->sweeper.alpha = 0xff;
-	theShooter->particle = Bank_IndexOf(&gArtBank, "particle_0");
 }
 
 void Shooter_Setup(Shooter* theShooter)
@@ -853,15 +712,9 @@ void Shooter_Setup(Shooter* theShooter)
 	theShooter->wingsV.depth = 5;
 	theShooter->wingsH.depth = 5;
 	theShooter->shadow = 1;
-	Obj_Copy(&theShooter->sweeper, theShooter);
-	theShooter->sweeper.anim = Animation_Find("sweeper", &theShooter->sweeper.frameCount,
-		&theShooter->sweeper.frameTime);
-	theShooter->sweeper.depth = 2;
-	theShooter->sweeper.alpha = 0xff;
 	theShooter->bubble.anim = Animation_Find("invincibubble", &theShooter->bubble.frameCount,
 		&theShooter->bubble.frameTime);
 	theShooter->bubble.depth = 10;
-	theShooter->particle = Bank_IndexOf(&gArtBank, "particle_0");
 	theShooter->anim = theShooter->vertAnim;
 	if (theShooter->vertAnim != nullptr)
 		theShooter->image = Animation_Frame(theShooter->vertAnim, 0);
@@ -898,8 +751,7 @@ void Shooter_DropBeams(Shooter* theShooter)
 	theShooter->wingsV.anim = Animation_Find("wings_vertical", &theShooter->wingsV.frameCount,
 		&theShooter->wingsV.frameTime);
 	theShooter->wingsV.frame = 0;
-	if (gDemo == 0)
-		Sys_SetMousePos((int)theShooter->x, (int)theShooter->y);
+	Sys_SetMousePos((int)theShooter->x, (int)theShooter->y);
 	theShooter->noAutoTurn = 0;
 	// turned twice: the orientation stays, and the ship's animation is its plain one again
 	Shooter_Turn(theShooter);
@@ -937,7 +789,6 @@ Shooter* Shooter_Init(Shooter* theShooter)
 	List_Init(&theShooter->beams);
 	Obj_Init(&theShooter->wingsH);
 	Obj_Init(&theShooter->wingsV);
-	Obj_Init(&theShooter->sweeper);
 	Obj_Init(&theShooter->unk320);
 	Obj_Init(&theShooter->bubble);
 	theShooter->appearTime = 700.0f;
@@ -945,20 +796,18 @@ Shooter* Shooter_Init(Shooter* theShooter)
 	theShooter->state = 4;
 	theShooter->depth = 4;
 	theShooter->flags = 0;
-	theShooter->particle = 0;
 	theShooter->noAutoTurn = 0;
 	theShooter->cellPoints = 1;
 	theShooter->beamSpeed = (float)((double)gBeamSpeed - (double)gDifficulty * (double)0.05f);
 	return theShooter;
 }
 
-// 0x412360: the five Objs it holds are destroyed, the beams still in the air are deleted (the list steps from its
+// 0x412360: the four Objs it holds are destroyed, the beams still in the air are deleted (the list steps from its
 // head), then the base
 void Shooter_Destroy(Shooter* theShooter)
 {
 	Obj_Destroy(&theShooter->bubble);
 	Obj_Destroy(&theShooter->unk320);
-	Obj_Destroy(&theShooter->sweeper);
 	Obj_Destroy(&theShooter->wingsV);
 	Obj_Destroy(&theShooter->wingsH);
 	if (theShooter->beams.current != nullptr)

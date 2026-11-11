@@ -12,6 +12,9 @@ game 00401000-00442cf0
 # compiler-made globals.
 none 00401410 an empty function (returns at once), called from the level's draw and the main loop; the port leaves the calls out (WBLevel.cpp and WBPowerup.cpp say so)
 none 0040c2e0 ParticleSystem's destructor (run through 0x4112d0): unlinks its pooled particles, then the Obj destructor; the port's ParticleSystems are entries of the static pool gSystems that Level_UnlinkAll unlinks and nothing deletes
+none 0040c2c0 constructs one ParticleSystem of the static pool (the Obj base and its particle list; no caller in the export: the start-up table runs it, with the base's constructor on each of the pooled particles); the port's pools are zero-initialised statics, and ParticleSystem_New and ParticleSystem_Add set every field a system and a particle use (nothing else reads the base's defaults of either)
+none 00422330 sets a font's flag for unclipped drawing, which the original's loader and the text input set to 1 for every font it draws; the port has no unclipped drawing and no flag (R64Font.h)
+none 004293a0 registers the callback that the original runs after PumpMessages opened the screen again with the screen's format (0x41f350 sets it at the start); the port never loses the screen, so nothing registers one (SetScreenChangeCallback, 0x4293b0, is kept)
 none 004104b0 the trial's "Free Trial Remaining" clock text (drawn only while unregistered); the port is the registered game, with no trial code
 none 004254b0 a one-call wrapper of the Image constructor 0x423980; the port makes an Image with Image() (new Image, Image_Free's reset) directly
 none 00425dd0 returns this+4, the address of the bank's image list for Font_LoadFromBank; the port reads Bank::images (a std::vector) directly
@@ -40,7 +43,7 @@ none 00429bb0 wrapper that picks the 16-, 24- or 32-bit run-length blend blitter
 none 00429bf0 wrapper that picks the 16-, 24- or 32-bit run-length alpha blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls Rle16Alpha
 none 00429c30 wrapper that picks the 16-, 24- or 32-bit run-length faded-alpha blitter by the destination's format; the port's BlitAlphaFadeAt tests Is16(fmt) and calls Rle16AlphaFade
 none 00429cb0 wrapper that picks the 16-, 24- or 32-bit palette-to-screen blitter by the destination's format; the port's Image_Blit tests Is16(fmt) and calls Pal16
-none 00429d90 wrapper that picks the 16-, 24- or 32-bit palette-with-mask blitter by the destination's format; the port's Image_BlitUnclipped, Image_BlitMasked and Image_BlitSubRect test Is16(fmt) and call Pal16Mask
+none 00429d90 wrapper that picks the 16-, 24- or 32-bit palette-with-mask blitter by the destination's format; the port's Image_BlitMasked and Image_BlitSubRect test Is16(fmt) and call Pal16Mask
 none 00429eb0 wrapper that picks the 16-, 24- or 32-bit palette masked-blend blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls PalBlend16Mask
 none 00429ef0 wrapper that picks the 16-, 24- or 32-bit palette masked-alpha blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls PalAlpha16Mask
 none 00429f30 wrapper that picks the 16-, 24- or 32-bit palette masked faded-alpha blitter by the destination's format; the port's BlitAlphaFadeAt tests Is16(fmt) and calls PalAlpha16MaskFade

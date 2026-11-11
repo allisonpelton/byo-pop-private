@@ -70,7 +70,6 @@ extern char gSongName[0x40];               // 0x6e5ab0  a song to start, "" for 
 extern int gLogoCount;                     // 0x6e5af0
 extern int gGoTo;                          // 0x460034  the kind of screen to go to next
 extern int gEscape;                        // 0x46e5e4  Esc was pressed: a board asks whether to quit
-extern int gDemo;                          // 0x46e5c8  the game plays itself
 extern List<LevelSet> gLevelSets;          // 0x4700d4
 extern int gProfile;                       // 0x46e24c
 extern Profile gProfiles[11];              // 0x46df60

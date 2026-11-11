@@ -117,7 +117,7 @@ int Rider_Update(Rider* theRider)
 				float aHitY = (float)((double)theRider->vy / 12.0);
 				float aHitX = (float)((double)theRider->vx / 6.0);
 				Shooter_Hit(aShooter, aHitX, aHitY);
-				if (gLives != 0 && gDemo == 0)
+				if (gLives != 0)
 					gLives = gLives - 1;
 				gProfiles[gProfile].riderHits = gProfiles[gProfile].riderHits + 1;
 			}

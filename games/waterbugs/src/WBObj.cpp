@@ -180,11 +180,6 @@ void Obj_UpdateEmitters(Obj* theObj)
 	List_Each(&theObj->emitters, [](Obj* anEmitter) { Emitter_Update(anEmitter); });
 }
 
-void Obj_ClearChildren(List<Obj>* theList)
-{
-	List_Clear(theList);
-}
-
 void Obj_Copy(Obj* theObj, const Obj* theFrom)
 {
 	theObj->kind = theFrom->kind;

@@ -35,11 +35,6 @@ void Sys_SetHost(SysHost* theHost)
 	gHost = theHost;
 }
 
-SysHost* Sys_Host()
-{
-	return gHost;
-}
-
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData)
 {
 	theData.clear();
@@ -52,8 +47,6 @@ void Sys_AddUpdateRect(int x, int y, int w, int h)
 	if (gHost != nullptr)
 		gHost->AddUpdateRect(x, y, w, h);
 }
-
-int gPumpMessages = 0;
 
 // 0x428d70
 void Sys_SetMousePos(int x, int y)
@@ -297,16 +290,6 @@ bool Sys_SkipLogos()
 	return gHost != nullptr && gHost->SkipLogos();
 }
 
-// (SleepEx; the port's frames are the host's, so nothing waits)
-void Sys_Sleep(int)
-{
-}
-
-// (0x7081b0: the port never loses the screen, see PumpMessages)
-void SetScreenLostCallback(void (*)(const PixelFormat*))
-{
-}
-
 void SetScreenChangeCallback(void (*theCallback)())
 {
 	gScreenChange = theCallback;
@@ -374,7 +357,7 @@ int PumpMessages()
 {
 	if (gHost != nullptr)
 		Sys_Activate(gHost->IsActive() ? 1 : 0);
-	if (gPumpMessages != 1 && gActive == 0)
+	if (gActive == 0)
 		return 0;
 	if (gToggleCentered == 1)
 	{
