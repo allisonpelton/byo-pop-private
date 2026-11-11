@@ -40,8 +40,8 @@ public:
 	// UpdateProgress (0x6e0ddb) sets them
 	int mStage = 0;                 // +0x164: the challenge the planet starts (from 1)
 	CurvedVal mBarFill;             // +0x168: the bar's fill grows by it when a stage is done
-	CurvedVal mNewNumberGlow;       // +0x1d8: the lock and the new number glow
-	CurvedVal mOldNumberGlow;       // +0x248: the old number's glow and the lock's wipe
+	CurvedVal mNewNumberGlow;       // +0x1d8: the new number glows and the old one fades
+	CurvedVal mLockWipe;            // +0x248: the opened lock wipes away from the top
 	CurvedVal mBarGlow;             // +0x2b8: the additive glow of the bar
 	CurvedVal mDim;                 // +0x328: 1 darkens the planet and its text (the planet is closed or opening)
 	CurvedVal mStageStep;           // +0x398: stepped; nothing here reads it

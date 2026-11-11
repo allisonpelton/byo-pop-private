@@ -1264,6 +1264,13 @@ bool WinTwistApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		mAutoPlayMode = -1;
 		return true;
 	}
+	// "autoplaychallenge" makes -autoplay's mode the challenges (2), which its command line cannot name: the mode select
+	// then opens the challenge menu, where a script picks the planet, and -autoplay plays the challenge. The original's
+	// copy gets the same from a test patch of its -autoplay=classic (NOTES.md, "Challenges against the original")
+	if (theCommand.mCommand == "autoplaychallenge") {
+		mAutoPlayMode = 2;
+		return true;
+	}
 	// "shutdownsaves <dir>" writes what a page going away would keep (GetShutdownSaves), each file by its own name into
 	// <dir>, so a test can compare it with what a quit writes
 	if (theCommand.mCommand == "shutdownsaves") {

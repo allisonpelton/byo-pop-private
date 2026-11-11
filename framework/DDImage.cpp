@@ -345,6 +345,25 @@ void DDImage::StretchBlt(Image* theImage, const Rect& theDestRect, const Rect& t
 		return;
 	}
 
+	// port: with the software stretch (DDInterface::mSoftwareStretch), a stretch into a picture without alpha or
+	// transparency is drawn as the original's software DDImage::StretchBlt (0x41a3e0) draws it: the source stretched to
+	// the destination's size, then blitted with the draw's colour, mode and clip. MemoryImage::StretchBlt keeps neither
+	// colour nor mode, so an additive stretch drew its black background (Bejeweled Twist's picture of the board at a
+	// challenge's end)
+	MemoryImage* aSource = dynamic_cast<MemoryImage*>(theImage);
+	if ((mDDInterface != NULL) && mDDInterface->mSoftwareStretch && (aSource != NULL) && !mHasAlpha && !mHasTrans &&
+		(theDestRect.mWidth > 0) && (theDestRect.mHeight > 0))
+	{
+		MemoryImage* aCopy = mDDInterface->GetStretchCopy(aSource, theSrcRect, theDestRect.mWidth, theDestRect.mHeight, fastStretch);
+		if (aCopy != NULL)
+		{
+			Rect aDest = theDestRect.Intersection(theClipRect);
+			if ((aDest.mWidth > 0) && (aDest.mHeight > 0))
+				MemoryImage::Blt(aCopy, aDest.mX, aDest.mY, Rect(aDest.mX - theDestRect.mX, aDest.mY - theDestRect.mY, aDest.mWidth, aDest.mHeight), theColor, theDrawMode);
+			return;
+		}
+	}
+
 	MemoryImage::StretchBlt(theImage, theDestRect, theSrcRect, theClipRect, theColor, theDrawMode, fastStretch);
 }
 
