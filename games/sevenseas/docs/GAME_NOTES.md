@@ -453,7 +453,7 @@ four files only the Collection has are the licence, the readme, the score templa
 `WinSS.exe` (both 720,896 bytes, the same sections) 7 bytes differ, all in `.text`: one byte at 0x42ce4e (`mov [ebp+0x32c], bl` in the
 port's copy, `cl` in the Collection's) and six at 0x42ded0, where the port's copy has eight NOPs and the Collection's has
 `xor eax,eax; inc eax; ret 8`, a function that returns 1: both are in the framework's code, at addresses above the game's own code
-(0x401000 to 0x427870), and the port's copy is the one origrun's patch list had touched. `.rdata` and `.data`, where the texts are, are the
+(0x401000 to 0x427870); the port's copy looks patched there (the NOPs), the Collection's is the unpatched code. `.rdata` and `.data`, where the texts are, are the
 same, so every text of `GameText.cpp` matches by address and hash.
 
 **The port on the Collection's files.** With the Collection's `WinSS.exe` in the staged folder, `tools/check.sh sevenseas` gives
