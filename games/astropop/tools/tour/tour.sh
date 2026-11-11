@@ -17,7 +17,7 @@ mkdir -p "$D"
 [ -z "${SKIP_PORT:-}${SKIP_ORIG:-}" ] && rm -rf "$D"/*
 mkdir -p "$D"
 python -I games/astropop/tools/tour/tour.py "$TOUR" "$D" "$@" || exit 2
-wait_room() { for i in $(seq 1 240); do python tools/gamecount.py --limit 3 > /dev/null && return; sleep 15; done; }
+wait_room() { for i in $(seq 1 240); do python tools/gamecount.py --limit 6 > /dev/null && return; sleep 15; done; }
 if [ -z "${SKIP_PORT:-}" ]; then
   rm -rf "$D/port" "$D/user"; mkdir -p "$D/port" "$D/user"
   if [ -n "${PORT_USER:-}" ]; then cp -r "$PORT_USER"/. "$D/user"/; else printf '[SOFTWARE\\PopCap\\AstroPop]\nIs3D=dword:0\nScreenMode=dword:0\n' > "$D/user/registry.ini"; fi

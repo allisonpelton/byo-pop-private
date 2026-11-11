@@ -1,6 +1,6 @@
 #!/bin/bash
 # Runs the original (the copy staged by stage_original.sh under build/origrun/apc) through origrun on the virtual clock with the
-# pinned seed, scripted input and the four watches, once there is room for another game process (CLAUDE.md: at most 3 at a time).
+# pinned seed, scripted input and the four watches, once there is room for another game process (CLAUDE.md: at most 6 on the machine, 3 of them mine).
 #   run_original.sh <script.txt> <log> [seed] [timeout]
 # The run is inside Windows Sandbox (origrun --sandbox): a first run, with none of this machine's registry, which the original
 # reads from HKLM and origrun cannot change (on the host the game starts as the user "Allison"'s machine leaves it, and the
@@ -34,7 +34,7 @@ SBX=--sandbox; [ -n "$ORIG_HOST" ] && SBX=
 st=0
 for try in $(seq 1 "$tries"); do
   for i in $(seq 1 120); do
-    python tools/gamecount.py --limit 3 > /dev/null && break
+    python tools/gamecount.py --limit 6 > /dev/null && break
     sleep 15
   done
   [ -z "$KEEP_STATE" ] && rm -f build/origrun/$run/game/users/*
