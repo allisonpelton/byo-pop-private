@@ -722,7 +722,6 @@ void SevenSeasApp::EndTutorial()
 	KillDialog(DIALOG_QUIT);
 	KillDialog(DIALOG_OPTIONS);
 	KillDialog(DIALOG_HIGH_SCORES);
-	KillDialog(DIALOG_REGISTER);
 	if (HasSavedGame())
 	{
 		ShowContinueDialog();
