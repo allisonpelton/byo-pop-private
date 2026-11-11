@@ -72,9 +72,9 @@ struct Image
 	uint8_t* mRawPalette;    // +0x7c  an 8-bit bank image's colours as the .bbk lists them (Bank_AssignRawPalettes)
 	Palette* mDefPalette;    // +0x80
 	int mHasMask;            // +0x84
-	Image* mAsk;            // +0x88  8 bits per pixel
-	int mAskX;              // +0x8c
-	int mAskY;              // +0x90
+	Image* mMask;            // +0x88  8 bits per pixel
+	int mMaskX;              // +0x8c
+	int mMaskY;              // +0x90
 	Image* mDefMask;         // +0x94
 	uint8_t* mRle;           // +0x98  the mask's runs (Image_BuildRle), when this image is a mask
 	char mName[0x34];        // +0x9c  "None"
@@ -83,7 +83,7 @@ struct Image
 	int mPaletteNumberPadding;  // +0xd8  the four bytes before paletteNumber: nothing reads them
 	int mPaletteNumber;      // +0xdc
 	int mIsMask;             // +0xe0
-	int mAskNamed;              // +0xe4
+	int mMaskNamed;              // +0xe4
 	Image* mAutoMask;        // +0xe8
 	int mBankDataSize;       // +0xec
 	int mBankPitch;          // +0xf0

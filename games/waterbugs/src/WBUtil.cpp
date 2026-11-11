@@ -229,11 +229,11 @@ void RotateImage(Image* theImage, int theAngle)
 	{
 		aCopy->mHasMask = 1;
 		Image* aMask = new Image();
-		aCopy->mAsk = aMask;
-		Image_Copy(aMask, theImage->mAsk);
+		aCopy->mMask = aMask;
+		Image_Copy(aMask, theImage->mMask);
 	}
 	Fill8(theImage->mBits, theImage->mPitch, 0, 0, theImage->mW + -1, theImage->mH + -1, 0);
-	Fill8(theImage->mAsk->mBits, theImage->mAsk->mPitch, 0, 0, theImage->mW + -1, theImage->mH + -1, 0);
+	Fill8(theImage->mMask->mBits, theImage->mMask->mPitch, 0, 0, theImage->mW + -1, theImage->mH + -1, 0);
 	int aCx = theImage->mW / 2;
 	int aCy = theImage->mH / 2;
 	bool aTurn = true;
@@ -255,13 +255,13 @@ void RotateImage(Image* theImage, int theAngle)
 		aTurn = false;
 	if (aTurn)
 	{
-		Image* aMask = theImage->mAsk;
-		Image_BlitRotated(aCopy->mAsk, aMask->mBits, aMask->mPitch, &aMask->mFmt, aCx, aCy, theAngle, aMask->mClip);
+		Image* aMask = theImage->mMask;
+		Image_BlitRotated(aCopy->mMask, aMask->mBits, aMask->mPitch, &aMask->mFmt, aCx, aCy, theAngle, aMask->mClip);
 	}
-	if (aCopy->mHasMask != 0 && aCopy->mAsk != nullptr)
+	if (aCopy->mHasMask != 0 && aCopy->mMask != nullptr)
 	{
-		Image_Destroy(aCopy->mAsk);
-		delete aCopy->mAsk;
+		Image_Destroy(aCopy->mMask);
+		delete aCopy->mMask;
 	}
 	Image_Destroy(aCopy);
 	delete aCopy;

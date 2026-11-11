@@ -199,9 +199,9 @@ void Image_Init(Image* theImg)
 	std::memset(theImg->mName, 0, sizeof(theImg->mName));
 	std::memcpy(theImg->mName, "None", 4);
 	theImg->mHasMask = 0;
-	theImg->mAsk = nullptr;
-	theImg->mAskX = 0;
-	theImg->mAskY = 0;
+	theImg->mMask = nullptr;
+	theImg->mMaskX = 0;
+	theImg->mMaskY = 0;
 	theImg->mDefMask = nullptr;
 	theImg->mRle = nullptr;
 	theImg->mFileName = nullptr;
@@ -209,7 +209,7 @@ void Image_Init(Image* theImg)
 	theImg->mPaletteNumberPadding = 0;
 	theImg->mPaletteNumber = 0;
 	theImg->mIsMask = 0;
-	theImg->mAskNamed = 0;
+	theImg->mMaskNamed = 0;
 	theImg->mAutoMask = nullptr;
 	theImg->mBankDataSize = 0;
 	theImg->mBankPitch = 0;
@@ -282,7 +282,7 @@ void Image_FreeRle(Image* theImg)
 // 0x425470: whether column x of the mask has a pixel that is not 0
 int Image_MaskColumnSet(const Image* theImg, int x)
 {
-	const Image* aMask = theImg->mAsk;
+	const Image* aMask = theImg->mMask;
 	if (aMask == nullptr)
 		return 0;
 	int i = 0;
@@ -440,21 +440,21 @@ void Image_BlitMasked(Image* theImg, uint8_t* theDst, int theDstPitch, const Pix
 	}
 	else if (theImg->mHasMask == 1)
 	{
-		const uint8_t* aRle = theImg->mAsk->mRle;
-		if (aRle == nullptr || theImg->mAskX != 0 || theImg->mAskY != 0 || w != theImg->mW || h != theImg->mH)
+		const uint8_t* aRle = theImg->mMask->mRle;
+		if (aRle == nullptr || theImg->mMaskX != 0 || theImg->mMaskY != 0 || w != theImg->mW || h != theImg->mH)
 		{
 			if (theImg->mFmt.mBpp != 8)
 			{
 				if (Is16(theFmt)) // 0x429750
-					Copy16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, theImg->mAsk->mBits, theImg->mAsk->mPitch,
-						theImg->mAskX, theImg->mAskY, w, h);
+					Copy16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, theImg->mMask->mBits, theImg->mMask->mPitch,
+						theImg->mMaskX, theImg->mMaskY, w, h);
 				return;
 			}
 			if (theImg->mPalette != nullptr)
 			{
 				if (Is16(theFmt)) // 0x429d90
-					Pal16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY, theImg->mAsk->mBits,
-						theImg->mAsk->mPitch, theImg->mAskX, theImg->mAskY, w, h);
+					Pal16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY, theImg->mMask->mBits,
+						theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, w, h);
 				return;
 			}
 		}
@@ -498,17 +498,17 @@ void Image_BlitFill(Image* theImg, uint8_t* theDst, int theDstPitch, const Pixel
 		int aMaskPitch, aMaskX, aMaskY;
 		if (theImg->mHasMask == 1)
 		{
-			const uint8_t* aRle = theImg->mAsk->mRle;
-			if (aRle != nullptr && theImg->mAskX == 0 && theImg->mAskY == 0 && w == theImg->mW && h == theImg->mH)
+			const uint8_t* aRle = theImg->mMask->mRle;
+			if (aRle != nullptr && theImg->mMaskX == 0 && theImg->mMaskY == 0 && w == theImg->mW && h == theImg->mH)
 			{
 				if (Is16(theFmt)) // 0x429b30
 					Rle16Fill(theDst, theDstPitch, theFmt, aDstX, aDstY, aRle, (uint16_t)theColour);
 				return;
 			}
-			aMaskY = theImg->mAskY;
-			aMaskX = theImg->mAskX;
-			aMaskPitch = theImg->mAsk->mPitch;
-			aMask = theImg->mAsk->mBits;
+			aMaskY = theImg->mMaskY;
+			aMaskX = theImg->mMaskX;
+			aMaskPitch = theImg->mMask->mPitch;
+			aMask = theImg->mMask->mBits;
 		}
 		else
 		{
@@ -540,17 +540,17 @@ void Image_BlitFillAlpha(Image* theImg, uint8_t* theDst, int theDstPitch, const 
 		int aMaskPitch, aMaskX, aMaskY;
 		if (theImg->mHasMask == 1)
 		{
-			const uint8_t* aRle = theImg->mAsk->mRle;
-			if (aRle != nullptr && theImg->mAskX == 0 && theImg->mAskY == 0 && w == theImg->mW && h == theImg->mH)
+			const uint8_t* aRle = theImg->mMask->mRle;
+			if (aRle != nullptr && theImg->mMaskX == 0 && theImg->mMaskY == 0 && w == theImg->mW && h == theImg->mH)
 			{
 				if (Is16(theFmt)) // 0x429b70
 					Rle16FillAlpha(theDst, theDstPitch, theFmt, aDstX, aDstY, aRle, (uint16_t)theColour, theAlpha & 0xff);
 				return;
 			}
-			aMaskY = theImg->mAskY;
-			aMaskX = theImg->mAskX;
-			aMaskPitch = theImg->mAsk->mPitch;
-			aMask = theImg->mAsk->mBits;
+			aMaskY = theImg->mMaskY;
+			aMaskX = theImg->mMaskX;
+			aMaskPitch = theImg->mMask->mPitch;
+			aMask = theImg->mMask->mBits;
 		}
 		else
 		{
@@ -589,10 +589,10 @@ void BlitMaskedKind(MaskedKind theKind, Image* theImg, uint8_t* theDst, int theD
 		theFmt = &theImg->mFmt;
 	if (!(0 < w && 0 < h && theFmt->mBpp != 8 && theImg->mHasMask == 1))
 		return;
-	const uint8_t* aRle = theImg->mAsk->mRle;
-	const uint8_t* aMaskPixel = theImg->mAsk->mBits;
-	int aMp = theImg->mAsk->mPitch;
-	if (aRle == nullptr || theImg->mAskX != 0 || theImg->mAskY != 0 || w != theImg->mW || h != theImg->mH)
+	const uint8_t* aRle = theImg->mMask->mRle;
+	const uint8_t* aMaskPixel = theImg->mMask->mBits;
+	int aMp = theImg->mMask->mPitch;
+	if (aRle == nullptr || theImg->mMaskX != 0 || theImg->mMaskY != 0 || w != theImg->mW || h != theImg->mH)
 	{
 		if (theImg->mFmt.mBpp == 8)
 		{
@@ -600,25 +600,25 @@ void BlitMaskedKind(MaskedKind theKind, Image* theImg, uint8_t* theDst, int theD
 			{
 				if (theKind == BLEND) // 0x429eb0
 					PalBlend16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp,
-						theImg->mAskX, theImg->mAskY, w, h);
+						theImg->mMaskX, theImg->mMaskY, w, h);
 				else if (theKind == ALPHA) // 0x429ef0
 					PalAlpha16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp,
-						theImg->mAskX, theImg->mAskY, w, h);
+						theImg->mMaskX, theImg->mMaskY, w, h);
 				else // 0x429f70
 					PalAdd16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp,
-						theImg->mAskX, theImg->mAskY, w, h);
+						theImg->mMaskX, theImg->mMaskY, w, h);
 			}
 		}
 		else if (Is16(theFmt))
 		{
 			if (theKind == BLEND) // 0x4298e0
-				Blend16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mAskX, theImg->mAskY, w,
+				Blend16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w,
 					h);
 			else if (theKind == ALPHA) // 0x429920
-				Alpha16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mAskX, theImg->mAskY, w,
+				Alpha16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w,
 					h);
 			else // 0x4299a0
-				Add16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mAskX, theImg->mAskY, w, h);
+				Add16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
 		}
 	}
 	else if (theImg->mFmt.mBpp != 8)
@@ -648,19 +648,19 @@ void BlitMaskedKind(MaskedKind theKind, Image* theImg, uint8_t* theDst, int theD
 void BlitAlphaFadeAt(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, int theSrcX, int theSrcY,
 	int theWidth, int theHeight, bool theWhole, uint32_t theAlpha)
 {
-	const uint8_t* aRle = theImg->mAsk->mRle;
-	const uint8_t* aMaskPixel = theImg->mAsk->mBits;
-	int aMp = theImg->mAsk->mPitch;
-	if (aRle == nullptr || theImg->mAskX != 0 || theImg->mAskY != 0 || !theWhole)
+	const uint8_t* aRle = theImg->mMask->mRle;
+	const uint8_t* aMaskPixel = theImg->mMask->mBits;
+	int aMp = theImg->mMask->mPitch;
+	if (aRle == nullptr || theImg->mMaskX != 0 || theImg->mMaskY != 0 || !theWhole)
 	{
 		if (theImg->mFmt.mBpp == 8)
 		{
 			if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429f30
 				PalAlpha16MaskFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX, theSrcY, aMaskPixel, aMp,
-					theImg->mAskX, theImg->mAskY, theWidth, theHeight, (int)theAlpha);
+					theImg->mMaskX, theImg->mMaskY, theWidth, theHeight, (int)theAlpha);
 		}
 		else if (Is16(theFmt)) // 0x429960
-			Alpha16MaskFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX, theSrcY, aMaskPixel, aMp, theImg->mAskX, theImg->mAskY, theWidth,
+			Alpha16MaskFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX, theSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, theWidth,
 				theHeight, (int)theAlpha);
 	}
 	else if (theImg->mFmt.mBpp != 8)
@@ -739,13 +739,13 @@ void Image_BlitSubRect(Image* theImg, uint8_t* theDst, int theDstPitch, const Pi
 		if (theImg->mFmt.mBpp != 8)
 		{
 			if (Is16(theFmt)) // 0x429750
-				Copy16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX, theSrcY, theImg->mAsk->mBits, theImg->mAsk->mPitch,
-					theImg->mAskX, theImg->mAskY, theWidth, theHeight);
+				Copy16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX, theSrcY, theImg->mMask->mBits, theImg->mMask->mPitch,
+					theImg->mMaskX, theImg->mMaskY, theWidth, theHeight);
 			return;
 		}
 		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429d90
-			Pal16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX, theSrcY, theImg->mAsk->mBits,
-				theImg->mAsk->mPitch, theImg->mAskX, theImg->mAskY, theWidth, theHeight);
+			Pal16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX, theSrcY, theImg->mMask->mBits,
+				theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, theWidth, theHeight);
 	}
 	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr && Is16(theFmt)) // 0x429d90
 		Pal16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX, theSrcY, theImg->mBits, theImg->mPitch, 0, 0, theWidth, theHeight);
@@ -767,13 +767,13 @@ void Image_BlitRotated(Image* theImg, uint8_t* theDst, int theDstPitch, const Pi
 		if (theImg->mFmt.mBpp != 8)
 		{
 			if (Is16(theFmt)) // 0x4299e0
-				Rotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mW, theImg->mH, theImg->mAsk->mBits, theImg->mAsk->mPitch,
-					theImg->mAskX, theImg->mAskY, x, y, theAngle, theClip);
+				Rotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mW, theImg->mH, theImg->mMask->mBits, theImg->mMask->mPitch,
+					theImg->mMaskX, theImg->mMaskY, x, y, theAngle, theClip);
 			return;
 		}
 		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429fb0
-			PalRotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mPalette, theImg->mW, theImg->mH, theImg->mAsk->mBits,
-				theImg->mAsk->mPitch, theImg->mAskX, theImg->mAskY, x, y, theAngle, theClip);
+			PalRotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mPalette, theImg->mW, theImg->mH, theImg->mMask->mBits,
+				theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, x, y, theAngle, theClip);
 	}
 	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr && Is16(theFmt)) // 0x429fb0
 		PalRotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mPalette, theImg->mW, theImg->mH, theImg->mBits, theImg->mPitch, 0, 0, x, y,

@@ -46,7 +46,7 @@ int Particle_Update(Particle* theParticle)
 		{
 			Image* anImage = Bank_ImageAt(&gArtBank, theParticle->mFirstImage + theParticle->mFrame);
 			theParticle->mImage = anImage;
-			if (theParticle->mIdHandle != 0)
+			if (theParticle->mMidHandle != 0)
 				Image_SetMidHandle(anImage);
 		}
 	}
@@ -227,7 +227,7 @@ void ParticleSystem_Add(ParticleSystem* theSystem, float theX, float theY, float
 	aParticle->mState = 0;
 	aParticle->mFrame = 0;
 	aParticle->mFrameTimer = 0;
-	aParticle->mIdHandle = 0;
+	aParticle->mMidHandle = 0;
 	aParticle->mAge = 0.0f;
 	aParticle->mAnim = nullptr;
 	aParticle->mX = theX;
@@ -252,7 +252,7 @@ void ParticleSystem_Add(ParticleSystem* theSystem, float theX, float theY, float
 	aParticle->mDrag = theDrag;
 	aParticle->mGravity = theGravity;
 	aParticle->mDrawKind = theDrawKind;
-	aParticle->mIdHandle = 1;
+	aParticle->mMidHandle = 1;
 	aParticle->mDirty = 1;
 	aParticle->mOwner = theSystem;
 	if (theSystem->mParticles.mCurrent == theSystem->mParticles.mHead)

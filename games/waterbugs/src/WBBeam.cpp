@@ -42,7 +42,7 @@ void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float 
 		theBeam->mHarpoon.mAnim = Animation_Find(aTip, &theBeam->mHarpoon.mFrameCount, &theBeam->mHarpoon.mFrameTime);
 	theBeam->mHarpoon.mDrawKind = 1;
 	theBeam->mHarpoon.mX = theBeam->mX;
-	theBeam->mHarpoon.mIdHandle = 1;
+	theBeam->mHarpoon.mMidHandle = 1;
 	theBeam->mHarpoon.mDirty = 1;
 	theBeam->mHarpoon.mY = theBeam->mY;
 	theBeam->mHarpoon.mDepth = 7;

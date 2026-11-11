@@ -118,16 +118,16 @@ const char* ScreenName(const Level* theLevel)
 struct ItemRef
 {
 	MenuItem* mItem;
-	Menu* mEnu;
+	Menu* mMenu;
 	bool mRequester;
 };
 
 // the menu a requester is up on (the main menu's "resume your previous game?" is on its last menu, the others' on the current one)
 Menu* RequesterMenu(Level* theLevel)
 {
-	if (theLevel->mEnus.mCurrent != nullptr && theLevel->mEnus.mCurrent->mRequesters.mCurrent != nullptr)
-		return theLevel->mEnus.mCurrent;
-	for (Menu* aMenu = theLevel->mEnus.mHead; aMenu != nullptr; aMenu = Node_Next(aMenu))
+	if (theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr)
+		return theLevel->mMenus.mCurrent;
+	for (Menu* aMenu = theLevel->mMenus.mHead; aMenu != nullptr; aMenu = Node_Next(aMenu))
 		if (aMenu->mRequesters.mCurrent != nullptr)
 			return aMenu;
 	return nullptr;
@@ -144,7 +144,7 @@ std::vector<ItemRef> ActiveItems(Level* theLevel)
 			aResult.push_back({anItem, aRequester, true});
 		return aResult;
 	}
-	for (Menu* aMenu = theLevel->mEnus.mHead; aMenu != nullptr; aMenu = Node_Next(aMenu))
+	for (Menu* aMenu = theLevel->mMenus.mHead; aMenu != nullptr; aMenu = Node_Next(aMenu))
 		for (MenuItem* anItem = aMenu->mItems.mHead; anItem != nullptr; anItem = Node_Next(anItem))
 			aResult.push_back({anItem, aMenu, false});
 	return aResult;
@@ -633,7 +633,7 @@ std::string StateJson()
 		{
 			int x, y;
 			ItemPoint(anItems[i].mItem, x, y);
-			s += Fmt("%s[%d,%d,%d,%s,%d]", i > 0 ? "," : "", anItems[i].mItem->mKind, x, y, Quote(anItems[i].mItem->mName).c_str(), anItems[i].mEnu->mLockedLevel);
+			s += Fmt("%s[%d,%d,%d,%s,%d]", i > 0 ? "," : "", anItems[i].mItem->mKind, x, y, Quote(anItems[i].mItem->mName).c_str(), anItems[i].mMenu->mLockedLevel);
 		}
 		s += "]";
 		s += ",\"sets\":[";
@@ -702,8 +702,8 @@ std::string MenuMove(Level* theLevel, bool& theBusy)
 		// the world map: the furthest world that is open (its first level is no further than the next one to play)
 		const ItemRef* aBest = nullptr;
 		for (const ItemRef& i : anItems)
-			if (i.mItem->mKind == 0x18 && i.mEnu->mLockedLevel <= gProfiles[gProfile].mLevelReached + 1 &&
-				(aBest == nullptr || i.mEnu->mLockedLevel > aBest->mEnu->mLockedLevel))
+			if (i.mItem->mKind == 0x18 && i.mMenu->mLockedLevel <= gProfiles[gProfile].mLevelReached + 1 &&
+				(aBest == nullptr || i.mMenu->mLockedLevel > aBest->mMenu->mLockedLevel))
 				aBest = &i;
 		if (aBest != nullptr)
 			return ClickItem("world", aBest->mItem);
@@ -750,7 +750,7 @@ void AddMemReportHolders(Platform::MemReport* theReport)
 	for (const Bank* aBank : {&gArtBank, &gArt8Bank})
 	{
 		for (const r64::Image* anImage : aBank->mImages)
-			aAddRle(anImage->mAsk != nullptr ? anImage->mAsk : anImage->mAutoMask);
+			aAddRle(anImage->mMask != nullptr ? anImage->mMask : anImage->mAutoMask);
 		for (const Palette* aPalette : aBank->mPalettes)
 			aPaletteBytes += sizeof(Palette) + (aPalette->mP16 != nullptr ? 512 : 0) + (aPalette->mP32 != nullptr ? 1024 : 0);
 		aPaletteBytes += aBank->mRawPalettes.size() * 0x400;
@@ -766,11 +766,11 @@ void AddMemReportHolders(Platform::MemReport* theReport)
 			aFrames++;
 			if (aFrame->mNotOwned == 0)
 				aFrameBytes += (size_t)aFrame->mDataSize;
-			if (aFrame->mHasMask != 0 && aFrame->mAsk != nullptr)
+			if (aFrame->mHasMask != 0 && aFrame->mMask != nullptr)
 			{
-				if (aFrame->mAsk->mNotOwned == 0)
-					aMaskBytes += (size_t)aFrame->mAsk->mDataSize;
-				aAddRle(aFrame->mAsk);
+				if (aFrame->mMask->mNotOwned == 0)
+					aMaskBytes += (size_t)aFrame->mMask->mDataSize;
+				aAddRle(aFrame->mMask);
 			}
 		}
 	}

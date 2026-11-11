@@ -42,7 +42,7 @@ void Obj_Init(Obj* theObj)
 	theObj->mFrameTime = 0;
 	theObj->mFrame = 0;
 	theObj->mFrameTimer = 0;
-	theObj->mIdHandle = 0;
+	theObj->mMidHandle = 0;
 	theObj->mOneShot = 0;
 	theObj->mShadow = 0;
 	theObj->mLoop = 1;
@@ -111,7 +111,7 @@ stepped:
 	{
 		Image* anImage = Animation_Frame(theObj->mAnim, theObj->mFrame);
 		theObj->mImage = anImage;
-		if (theObj->mIdHandle != 0)
+		if (theObj->mMidHandle != 0)
 			Image_SetMidHandle(anImage);
 	}
 	if (theObj->mState == 2)
@@ -213,7 +213,7 @@ void Obj_Copy(Obj* theObj, const Obj* theFrom)
 	theObj->mOneShot = theFrom->mOneShot;
 	theObj->mExploSound = theFrom->mExploSound;
 	theObj->mAppearSound = theFrom->mAppearSound;
-	theObj->mIdHandle = theFrom->mIdHandle;
+	theObj->mMidHandle = theFrom->mMidHandle;
 }
 
 
@@ -234,7 +234,7 @@ int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag)
 	if (theObj->mAnim != nullptr)
 		theObj->mImage = Animation_Frame(theObj->mAnim, 0);
 	if (Xml_GetString(theTag, "mid_handle") != nullptr)
-		theObj->mIdHandle = 1;
+		theObj->mMidHandle = 1;
 	theObj->mY = 0.0f;
 	theObj->mX = 0.0f;
 	if (Xml_GetString(theTag, "x") != nullptr)

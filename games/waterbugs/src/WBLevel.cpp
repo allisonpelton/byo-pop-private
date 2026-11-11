@@ -456,7 +456,7 @@ void Level_RedrawCells(Level* theLevel)
 
 int Level_IsPlaying(Level* theLevel)
 {
-	if ((theLevel->mKind != 0 || (theLevel->mEnus.mCurrent != nullptr && theLevel->mEnus.mCurrent->mRequesters.mCurrent != nullptr) ||
+	if ((theLevel->mKind != 0 || (theLevel->mMenus.mCurrent != nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent != nullptr) ||
 			(theLevel->mPanels.mCurrent != nullptr && theLevel->mPanels.mCurrent->mY <= (float)gMouseY)) &&
 		100.0f < theLevel->mAge)
 		return 0;
@@ -564,7 +564,7 @@ Level* Level_Init(Level* theLevel)
 	List_Init(&theLevel->mPowerups);
 	List_Init(&theLevel->mStars);
 	List_Init(&theLevel->mTexts);
-	List_Init(&theLevel->mEnus);
+	List_Init(&theLevel->mMenus);
 	List_Init(&theLevel->mPointers);
 	List_Init(&theLevel->mWeapons);
 	theLevel->mTotalCells = 0;
@@ -584,7 +584,7 @@ Level* Level_Init(Level* theLevel)
 	for (int i = 0; i < 50; i++)
 		theLevel->mColumns[i] = nullptr;
 	theLevel->mBonus = 0;
-	theLevel->mUsicPending = 0;
+	theLevel->mMusicPending = 0;
 	return theLevel;
 }
 
@@ -603,7 +603,7 @@ void Level_Destroy(Level* theLevel)
 	}
 	List_Clear(&theLevel->mWeapons);
 	List_Clear(&theLevel->mPointers);
-	List_Clear(&theLevel->mEnus);
+	List_Clear(&theLevel->mMenus);
 	List_Clear(&theLevel->mTexts);
 	List_Clear(&theLevel->mStars);
 	List_Clear(&theLevel->mPowerups);
@@ -744,8 +744,8 @@ void Level_Load(Level* theLevel, const char* theXmlCursor, XmlTag* theTag)
 		}
 		else if (std::strcmp(aName, "menu") == 0)
 		{
-			Menu_Append(&theLevel->mEnus);
-			Menu_FromXml(theLevel->mEnus.mCurrent, theXmlCursor, theTag);
+			Menu_Append(&theLevel->mMenus);
+			Menu_FromXml(theLevel->mMenus.mCurrent, theXmlCursor, theTag);
 		}
 		else if (std::strcmp(aName, "pointer") == 0)
 		{
@@ -902,9 +902,9 @@ int Level_Update(Level* theLevel)
 		return 0;
 	}
 	// Esc on a board asks whether to quit, unless a requester is open already
-	if (gEscape != 0 && theLevel->mKind == 0 && theLevel->mEnus.mCurrent != nullptr &&
-		theLevel->mEnus.mCurrent->mRequesters.mCurrent == nullptr)
-		MenuItem_ConfirmQuit(theLevel->mEnus.mCurrent->mItems.mCurrent);
+	if (gEscape != 0 && theLevel->mKind == 0 && theLevel->mMenus.mCurrent != nullptr &&
+		theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr)
+		MenuItem_ConfirmQuit(theLevel->mMenus.mCurrent->mItems.mCurrent);
 	if (theLevel->mState == 2)
 		return Level_UpdatePaused(theLevel);
 	theLevel->mClicked = Mouse_Pressed(1);
@@ -916,7 +916,7 @@ int Level_Update(Level* theLevel)
 	theLevel->mRightClicked = aRight;
 	if (theLevel->mSeed == 0)
 	{
-		if (theLevel->mUsicPending != 0)
+		if (theLevel->mMusicPending != 0)
 		{
 			List_Each(&gLevelSets, [&](LevelSet* theASet) {
 				if (theASet->mStart == theLevel->mNumber + 1)
@@ -930,7 +930,7 @@ int Level_Update(Level* theLevel)
 					gSongName[0] = 0;
 				}
 			});
-			theLevel->mUsicPending = 0;
+			theLevel->mMusicPending = 0;
 		}
 	}
 	else
@@ -963,7 +963,7 @@ int Level_Update(Level* theLevel)
 		if (Text_Update(theAText) == 0)
 			List_RemoveCurrent(&theLevel->mTexts);
 	});
-	List_Each(&theLevel->mEnus, [&](Menu* theAMenu) { aResult = aResult & Menu_Update(theAMenu); });
+	List_Each(&theLevel->mMenus, [&](Menu* theAMenu) { aResult = aResult & Menu_Update(theAMenu); });
 	if (theLevel->mPanels.mCurrent != nullptr)
 	{
 		theLevel->mPanels.mCurrent = theLevel->mPanels.mHead;
@@ -978,7 +978,7 @@ int Level_Update(Level* theLevel)
 			{
 				if (theLevel->mKind == 0 && theLevel->mPowerups.mCurrent == nullptr && theLevel->mTotalCells != 0 &&
 					theLevel->mFillQuota <= (theLevel->mFilledCells * 100) / theLevel->mTotalCells &&
-					(theLevel->mEnus.mCurrent == nullptr || theLevel->mEnus.mCurrent->mRequesters.mCurrent == nullptr))
+					(theLevel->mMenus.mCurrent == nullptr || theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr))
 					Level_Won(theLevel);
 				else
 				{
@@ -1014,8 +1014,8 @@ int Level_Update(Level* theLevel)
 			if (aFills->mCurrent == nullptr)
 			{
 				// the texts gone, the results requester comes up
-				if (theLevel->mTexts.mHead == nullptr && theLevel->mEnus.mCurrent->mRequesters.mCurrent == nullptr)
-					Menu_ShowRequester(theLevel->mEnus.mCurrent, 4, Localize(GT(0x4592c8)), Localize(GT(0x4592dc)));
+				if (theLevel->mTexts.mHead == nullptr && theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr)
+					Menu_ShowRequester(theLevel->mMenus.mCurrent, 4, Localize(GT(0x4592c8)), Localize(GT(0x4592dc)));
 			}
 			else
 			{
@@ -1036,10 +1036,10 @@ int Level_Update(Level* theLevel)
 					aShown = 5 < theAText->mNext->mState;
 					theAText = theLevel->mTexts.mCurrent;
 				}
-				if (theLevel->mClicked != 0 && theLevel->mEnus.mCurrent->mRequesters.mCurrent == nullptr && aShown)
+				if (theLevel->mClicked != 0 && theLevel->mMenus.mCurrent->mRequesters.mCurrent == nullptr && aShown)
 				{
 					Texts_RemoveAll(&theLevel->mTexts);
-					Menu_ShowRequester(theLevel->mEnus.mCurrent, 4, Localize(GT(0x4592c8)), Localize(GT(0x4592dc)));
+					Menu_ShowRequester(theLevel->mMenus.mCurrent, 4, Localize(GT(0x4592c8)), Localize(GT(0x4592dc)));
 				}
 			});
 		}
@@ -1075,7 +1075,7 @@ void Level_Draw(Level* theLevel)
 		theLevel->mPanels.mCurrent = theLevel->mPanels.mHead;
 		Panel_Draw(theLevel->mPanels.mHead, theLevel->mAge < 300.0f);
 	}
-	List_Each(&theLevel->mEnus, [](Menu* theAMenu) { Menu_Draw(theAMenu); });
+	List_Each(&theLevel->mMenus, [](Menu* theAMenu) { Menu_Draw(theAMenu); });
 	DrawList_Flush();
 	// the first orbiting one (state 3) says so when an enemy is too close to launch it, and ends the walk
 	List_Each(&theLevel->mWeapons, [&](Weapon* theAWeapon) {
@@ -1114,7 +1114,7 @@ void Level_AddStars(Level* theLevel)
 		aList->mCurrent->mVy = (float)((double)RandRange(0x14, 0x32) / 25.0 * 0.035);
 		aList->mCurrent->mVy = -aList->mCurrent->mVy;
 		aList->mCurrent->mDrawKind = 2;
-		aList->mCurrent->mIdHandle = 1;
+		aList->mCurrent->mMidHandle = 1;
 		aList->mCurrent->mDirty = 1;
 		std::sprintf(aName, "bubble%d", RandRange(1, 3));
 		Animation* anAnim = Animation_Find(aName, &aList->mCurrent->mFrameCount, &aList->mCurrent->mFrameTime);
@@ -1286,7 +1286,7 @@ int Level_UpdatePaused(Level* theLevel)
 		if (Text_Update(theAText) == 0)
 			List_RemoveCurrent(&theLevel->mTexts);
 	});
-	List<Menu>* aMenus = &theLevel->mEnus;
+	List<Menu>* aMenus = &theLevel->mMenus;
 	if (aMenus->mCurrent != nullptr)
 	{
 		aMenus->mCurrent = aMenus->mHead;
@@ -1331,7 +1331,7 @@ void Level_Tutorial(Level* theLevel)
 		return;
 	}
 	int aLines = theLevel->mLines;
-	if (aLines == 0 && aNumber == 1 && theLevel->mEnus.mCurrent != nullptr)
+	if (aLines == 0 && aNumber == 1 && theLevel->mMenus.mCurrent != nullptr)
 	{
 		Texts_RemoveAll(aTexts);
 		AddHint(theLevel, Localize(GT(0x459084)), 0xe6);
@@ -1439,7 +1439,7 @@ void List_DeleteNode(Panel* thePanel)
 // furthest one reached
 void Level_UpdateProgressStars()
 {
-	for (Obj* anItem = gLevels.mCurrent->mEnus.mCurrent->mItems.mHead; anItem != nullptr; anItem = anItem->mNext)
+	for (Obj* anItem = gLevels.mCurrent->mMenus.mCurrent->mItems.mHead; anItem != nullptr; anItem = anItem->mNext)
 	{
 		if (anItem->mKind == 0x15)
 		{

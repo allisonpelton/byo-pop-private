@@ -90,7 +90,7 @@ void Shooter_Appear(Shooter* theShooter)
 			Panel_AppendItem(aChildren);
 			aChildren->mCurrent->mAnim =
 				Animation_Find("sparkles1", &aChildren->mCurrent->mFrameCount, &aChildren->mCurrent->mFrameTime);
-			aChildren->mCurrent->mIdHandle = 1;
+			aChildren->mCurrent->mMidHandle = 1;
 			aChildren->mCurrent->mDirty = 1;
 			aChildren->mCurrent->mDrawKind = 4;
 			aSparklesLeft = aSparklesLeft - 1;
@@ -381,7 +381,7 @@ void Shooter_UpdateExtras(Shooter* theShooter)
 		theShooter->mBubble.mDrawKind = 1;
 		theShooter->mBubble.mDirty = 1;
 		theShooter->mBubble.mY = theShooter->mY;
-		theShooter->mBubble.mIdHandle = 1;
+		theShooter->mBubble.mMidHandle = 1;
 		Obj_Update(&theShooter->mBubble);
 	}
 }
@@ -686,7 +686,7 @@ void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag)
 
 void Shooter_Setup(Shooter* theShooter)
 {
-	theShooter->mIdHandle = 1;
+	theShooter->mMidHandle = 1;
 	theShooter->mDirty = 1;
 	theShooter->mDrawKind = 4;
 	theShooter->mDieAnim = Animation_Find("generic_explo", &theShooter->mDieFrameCount, &theShooter->mDieFrameTime);

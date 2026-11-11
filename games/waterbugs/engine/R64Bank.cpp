@@ -38,7 +38,7 @@ void SelfMask8(Bank* theBank)
 		{
 			anImage->mHasMask = 1;
 			anImage->mDefMask = anImage;
-			anImage->mAsk = anImage->mDefMask;
+			anImage->mMask = anImage->mDefMask;
 		}
 	}
 }
@@ -107,7 +107,7 @@ Bank::~Bank()
 // 0x4261b0: forgets everything without freeing it
 void Bank_Reset(Bank* theBank)
 {
-	theBank->mOde = 0;
+	theBank->mMode = 0;
 	theBank->mImages.clear();
 	theBank->mRawPalettes.clear();
 	theBank->mPalettesBuilt = 0;
@@ -330,9 +330,9 @@ int Bank_LoadConverted(Bank* theBank, const char* thePath, const PixelFormat* th
 			std::strncat(aMask->mName, anImage->mName, sizeof(aMask->mName) - 1 - std::strlen(aMask->mName));
 			aMask->mDefMask = aMask;
 			aMask->mHasMask = 1;
-			aMask->mAsk = aMask;
+			aMask->mMask = aMask;
 			anImage->mDefMask = anImage->mAutoMask;
-			anImage->mAsk = anImage->mDefMask;
+			anImage->mMask = anImage->mDefMask;
 			aCursor = aCursor + aMaskSize;
 			anImage->mHasMask = 1;
 		}
@@ -345,7 +345,7 @@ int Bank_LinkMasks(Bank* theBank)
 {
 	for (Image* aMaskImage : theBank->mImages)
 	{
-		if (aMaskImage->mAskNamed == 1 && 5 < std::strlen(aMaskImage->mName) &&
+		if (aMaskImage->mMaskNamed == 1 && 5 < std::strlen(aMaskImage->mName) &&
 			std::strncmp(aMaskImage->mName, "mask_", 5) == 0)
 		{
 			char aTarget[0x400];
@@ -356,7 +356,7 @@ int Bank_LinkMasks(Bank* theBank)
 				{
 					anImage->mHasMask = 1;
 					anImage->mDefMask = aMaskImage;
-					anImage->mAsk = anImage->mDefMask;
+					anImage->mMask = anImage->mDefMask;
 				}
 			}
 		}
@@ -524,7 +524,7 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 		if (5 < std::strlen(anImage->mName) && std::strncmp(anImage->mName, "mask_", 5) == 0)
 		{
 			anImage->mIsMask = 1;
-			anImage->mAskNamed = 1;
+			anImage->mMaskNamed = 1;
 		}
 		anImage->mBankDataSize = anImage->mDataSize;
 		anImage->mBankPitch = anImage->mPitch;
@@ -594,7 +594,7 @@ int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat
 	SelfMask8(theBank);
 	if (Bank_LinkMasks(theBank) == 0)
 		return 0;
-	theBank->mOde = theMode;
+	theBank->mMode = theMode;
 	return 1;
 }
 

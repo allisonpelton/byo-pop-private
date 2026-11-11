@@ -54,8 +54,8 @@ struct Dirty
 	int mCellH;         // +0x08
 	int mCols;          // +0x0c
 	int mRows;          // +0x10
-	int mOde;          // +0x14
-	int mAxRects;      // +0x18
+	int mMode;          // +0x14
+	int mMaxRects;      // +0x18
 	Image* mSource;     // +0x1c  the back buffer
 	int mSrcRect[4];    // +0x20
 	int mBytesPerPixel; // +0x30

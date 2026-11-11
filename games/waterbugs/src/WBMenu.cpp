@@ -81,7 +81,7 @@ void MenuItem_Append(List<MenuItem>* theList)
 void Button_Setup(MenuItem* theItem, const char* theAnim, float x, float y)
 {
 	theItem->mDirty = 1;
-	theItem->mIdHandle = 1;
+	theItem->mMidHandle = 1;
 	theItem->mDrawKind = 1;
 	theItem->mAnim = Animation_Find(theAnim, &theItem->mFrameCount, &theItem->mFrameTime);
 	theItem->mImage = Animation_Frame(theItem->mAnim, 0);
@@ -249,7 +249,7 @@ void MenuItem_Draw(MenuItem* theItem)
 	int aHot = theItem->mHot;
 	if (aHot == 0 && theItem->mShowOnlyHot == 1)
 		return;
-	if (gProfiles[gProfile].mLevelReached + 1 < gLevels.mCurrent->mEnus.mCurrent->mLockedLevel)
+	if (gProfiles[gProfile].mLevelReached + 1 < gLevels.mCurrent->mMenus.mCurrent->mLockedLevel)
 		return;
 	if (theItem->mAnim != nullptr)
 	{
@@ -448,7 +448,7 @@ void MenuItem_ConfirmQuit(MenuItem* theItem)
 	strcpy(gSavedName, gProfiles[gProfile].mName);
 	gSavedProfile = aProfile;
 	const char* aSecond = Localize(GT(0x459668));
-	Menu_ShowRequester(gLevels.mCurrent->mEnus.mCurrent, 3, Localize(GT(0x45964c)), aSecond);
+	Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 3, Localize(GT(0x45964c)), aSecond);
 	gLevels.mCurrent->mState = 2;
 	theItem->mHot = 0;
 }
@@ -497,7 +497,7 @@ int MenuItem_Update(MenuItem* theItem)
 	{
 		theItem->mHot = 1;
 		if ((gLevels.mCurrent->mClicked != 0 &&
-				gLevels.mCurrent->mEnus.mCurrent->mLockedLevel <= gProfiles[gProfile].mLevelReached + 1) ||
+				gLevels.mCurrent->mMenus.mCurrent->mLockedLevel <= gProfiles[gProfile].mLevelReached + 1) ||
 			theItem->mAutoClick != 0)
 		{
 			Sound_Play(Sound_Find("audio\\click.wav"));
@@ -583,7 +583,7 @@ int MenuItem_Update(MenuItem* theItem)
 				if (gProfiles[gProfile].mLevelReached == 0 || gProfiles[gProfile].mSavedLives < 1)
 					gGoTo = 5;
 				else
-					Menu_ShowRequester(gLevels.mCurrent->mEnus.mTail, 5, GT(0x459728), GT(0x459744));
+					Menu_ShowRequester(gLevels.mCurrent->mMenus.mTail, 5, GT(0x459728), GT(0x459744));
 				break;
 			case 0x13:
 			{
@@ -630,7 +630,7 @@ int MenuItem_Update(MenuItem* theItem)
 					gLevelSets.mCurrent = gLevelSets.mHead;
 					do
 					{
-						int aLocked = aLevel->mEnus.mCurrent->mLockedLevel;
+						int aLocked = aLevel->mMenus.mCurrent->mLockedLevel;
 						if (gLevelSets.mCurrent->mStart <= aLocked && aLocked <= gLevelSets.mCurrent->mEnd)
 						{
 							gWorldChanged = 1;
@@ -674,7 +674,7 @@ int MenuItem_Update(MenuItem* theItem)
 				{
 					theItem->mHot = 0;
 					gProfile = atol(theItem->mName);
-					Menu_ShowRequester(gLevels.mCurrent->mEnus.mCurrent, 2, Localize(GT(0x4596dc)), nullptr);
+					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 2, Localize(GT(0x4596dc)), nullptr);
 #ifdef __EMSCRIPTEN__
 					// the web page's player (framework/WebProfiles.h): under "fill" and "create" the box starts with it
 					SiteFillName(&gLevels.current->menus.current->requesters.current->entry->input);
@@ -697,8 +697,8 @@ int MenuItem_Update(MenuItem* theItem)
 				gSavedProfile = gProfile;
 				strcpy(gSavedName, gProfiles[gProfile].mName);
 				gProfiles[gProfile].mName[0] = 0;
-				Menu_ShowRequester(gLevels.mCurrent->mEnus.mCurrent, 2, Localize(GT(0x4596c4)), nullptr);
-				TextInput_SetText(&gLevels.mCurrent->mEnus.mCurrent->mRequesters.mCurrent->mEntry->mInput,
+				Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 2, Localize(GT(0x4596c4)), nullptr);
+				TextInput_SetText(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput,
 					gProfiles[gProfile].mName);
 #ifdef __EMSCRIPTEN__
 				SiteFillName(&gLevels.current->menus.current->requesters.current->entry->input);	// as above
@@ -706,7 +706,7 @@ int MenuItem_Update(MenuItem* theItem)
 				break;
 			case 0x1d:
 				Level_SetUserName(
-					TextInput_GetText(&gLevels.mCurrent->mEnus.mCurrent->mRequesters.mCurrent->mEntry->mInput));
+					TextInput_GetText(&gLevels.mCurrent->mMenus.mCurrent->mRequesters.mCurrent->mEntry->mInput));
 				break;
 			case 0x1e:
 			{
@@ -723,12 +723,12 @@ int MenuItem_Update(MenuItem* theItem)
 				{
 					strcpy(gSavedName, gProfiles[gProfile].mName);
 					const char* aSecond = Localize(GT(0x45969c));
-					Menu_ShowRequester(gLevels.mCurrent->mEnus.mCurrent, 1, Localize(GT(0x459684)), aSecond);
+					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 1, Localize(GT(0x459684)), aSecond);
 				}
 				else
 				{
 					strcpy(gSavedName, gProfiles[gProfile].mName);
-					Menu_ShowRequester(gLevels.mCurrent->mEnus.mCurrent, 0, GT(0x4596b8), nullptr);
+					Menu_ShowRequester(gLevels.mCurrent->mMenus.mCurrent, 0, GT(0x4596b8), nullptr);
 				}
 				break;
 			}
@@ -789,7 +789,7 @@ int MenuItem_Update(MenuItem* theItem)
 				break;
 			}
 		}
-		if (gLevels.mCurrent->mEnus.mCurrent->mLockedLevel <= gProfiles[gProfile].mLevelReached + 1 &&
+		if (gLevels.mCurrent->mMenus.mCurrent->mLockedLevel <= gProfiles[gProfile].mLevelReached + 1 &&
 			RandRange(1, 0x1e) == 1)
 		{
 			// a bubble at the mouse
@@ -836,7 +836,7 @@ void MenuItem_Insert(List<MenuItem>* theList)
 void HighScore_Entered(const char*)
 {
 	// the high-score screen's buttons go on by themselves
-	List_Each(&gLevels.mCurrent->mEnus, [](Menu* theAMenu) {
+	List_Each(&gLevels.mCurrent->mMenus, [](Menu* theAMenu) {
 		List_Each(&theAMenu->mItems, [](MenuItem* theAnItem) {
 			int aKind = theAnItem->mKind;
 			if (aKind == 9 || aKind == 1 || aKind == 0x19)
@@ -953,7 +953,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	aRequester->mState = theKind;
 	aRequester->mAnim = Animation_Find("requester", &aRequester->mFrameCount, &aRequester->mFrameTime);
 	aRequester->mImage = Animation_Frame(aRequester->mAnim, 0);
-	aRequester->mIdHandle = 1;
+	aRequester->mMidHandle = 1;
 	aRequester->mDirty = 1;
 	aRequester->mDrawKind = 1;
 	aRequester->mX = 400.0f;
@@ -977,7 +977,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
-		anItem->mIdHandle = 1;
+		anItem->mMidHandle = 1;
 		anItem->mKind = 0x1f;
 		break;
 	case 1:
@@ -992,7 +992,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		MenuItem_Append(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 400.0f, 330.0f);
-		anItem->mIdHandle = 1;
+		anItem->mMidHandle = 1;
 		anItem->mKind = 0x20;
 		strcpy(anItem->mName, GT(0x4595f0));
 		return;
@@ -1014,7 +1014,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
-		anItem->mIdHandle = 1;
+		anItem->mMidHandle = 1;
 		anItem->mKind = 0x1d;
 		break;
 	}
@@ -1030,7 +1030,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "okay", 340.0f, 330.0f);
-		anItem->mIdHandle = 1;
+		anItem->mMidHandle = 1;
 		anItem->mKind = 0x19;
 		break;
 	case 4:
@@ -1093,14 +1093,14 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		MenuItem_Append(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		anItem->mDirty = 1;
-		anItem->mIdHandle = 1;
+		anItem->mMidHandle = 1;
 		anItem->mDrawKind = 1;
 		anItem->mFont = Font_Find("bonus_font");
 		anItem->mHotFont = Font_Find("bonus_font");
 		anItem->mX = 400.0f;
 		anItem->mY = 416.0f;
 		anItem->mDepth = 0x15e;
-		anItem->mIdHandle = 1;
+		anItem->mMidHandle = 1;
 		anItem->mKind = 8;
 		anItem->mName[0] = ' ';
 		anItem->mName[1] = 0;
@@ -1125,13 +1125,13 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 		MenuItem_Insert(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "yes", 340.0f, 330.0f);
-		anItem->mIdHandle = 1;
+		anItem->mMidHandle = 1;
 		anItem->mKind = 0x22;
 		strcpy(anItem->mName, GT(0x416750));
 		MenuItem_Append(&aList->mCurrent->mItems);
 		anItem = aList->mCurrent->mItems.mCurrent;
 		Button_Setup(anItem, "no", 460.0f, 330.0f);
-		anItem->mIdHandle = 1;
+		anItem->mMidHandle = 1;
 		anItem->mKind = 0x23;
 		strcpy(anItem->mName, GT(0x4595e4));
 		return;
@@ -1143,7 +1143,7 @@ void Menu_ShowRequester(Menu* theMenu, int theKind, const char* theText, const c
 	MenuItem_Append(&aList->mCurrent->mItems);
 	anItem = aList->mCurrent->mItems.mCurrent;
 	Button_Setup(anItem, "cancel", 460.0f, 330.0f);
-	anItem->mIdHandle = 1;
+	anItem->mMidHandle = 1;
 	anItem->mKind = 0x20;
 	strcpy(anItem->mName, GT(0x4595f0));
 }

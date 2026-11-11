@@ -256,7 +256,7 @@ void TextInput_Clear(TextInput* theInput)
 	theInput->mEntered = 0;
 	theInput->mTyped = 0;
 	theInput->mClickedIn = 0;
-	theInput->mAxLength = 0;
+	theInput->mMaxLength = 0;
 	theInput->mLength = 0;
 	theInput->mText = nullptr;
 	theInput->mScroll = 0;
@@ -318,7 +318,7 @@ void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char t
 	else
 		aChar = 'A';
 	theInput->mCaretWidth = Font_CharAdvance(theInput->mFont, aChar);
-	theInput->mAxLength = theMaxLength;
+	theInput->mMaxLength = theMaxLength;
 	theInput->mOnEnter = nullptr;
 	theInput->mOnKey = nullptr;
 	theInput->mOnFocus = nullptr;
@@ -327,7 +327,7 @@ void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char t
 	theInput->mClickedIn = 0;
 	theInput->mLength = 0;
 	theInput->mText = (char*)malloc(theMaxLength + 1);
-	memset(theInput->mText, 0, theInput->mAxLength + 1);
+	memset(theInput->mText, 0, theInput->mMaxLength + 1);
 	theInput->mScroll = 0;
 	theInput->mPressed = 0;
 	// The original clears 0x100 entries here, the last of them noFocus
@@ -394,7 +394,7 @@ void TextInput_Draw(TextInput* theInput, uint8_t* theDst, int theDPitch, const P
 
 void TextInput_SetText(TextInput* theInput, const char* theText)
 {
-	memset(theInput->mText, 0, theInput->mAxLength + 1);
+	memset(theInput->mText, 0, theInput->mMaxLength + 1);
 	theInput->mLength = 0;
 	theInput->mCaret = 0;
 	strcpy(theInput->mText, theText);
@@ -477,7 +477,7 @@ void TextInput_Update(TextInput* theInput, double theSeconds)
 					aChar = Shifted(aChar);
 			}
 			if (theInput->mBlocked[aChar] == 0 && 0 < Font_CharWidth(theInput->mFont, (char)aChar) &&
-				theInput->mLength < theInput->mAxLength)
+				theInput->mLength < theInput->mMaxLength)
 			{
 				int aCaret = theInput->mCaret;
 				if (aCaret == theInput->mLength)
@@ -488,7 +488,7 @@ void TextInput_Update(TextInput* theInput, double theSeconds)
 				}
 				else
 				{
-					int i = theInput->mAxLength - 1;
+					int i = theInput->mMaxLength - 1;
 					if (aCaret < i)
 					{
 						do

@@ -437,8 +437,8 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 							(uint32_t)theFont->mAlpha);
 					else
 					{
-						Image_SetPalette(aGlyph->mAsk, theFont->mPalette);
-						Image_BlitAlphaFade(aGlyph->mAsk, theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x,
+						Image_SetPalette(aGlyph->mMask, theFont->mPalette);
+						Image_BlitAlphaFade(aGlyph->mMask, theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x,
 							y, (uint32_t)theFont->mAlpha);
 					}
 				}
@@ -505,12 +505,12 @@ int Font_StripCut(Font* theFont, const Bank* theBank, const char* theName, const
 			Copy8(aGlyph->mBits, 0, 0, aGlyph->mPitch, 0, aStrip->mBits, (int)(aStrip->mFmt.mBpp >> 3) * aStart, 0,
 				aStrip->mPitch, 0, (int)(aStrip->mFmt.mBpp >> 3) * aWidth, theFont->mHeight);
 			Image* aMask = new Image();
-			aGlyph->mAsk = aMask;
+			aGlyph->mMask = aMask;
 			aGlyph->mHasMask = 1;
-			Image_Create(aMask, aWidth, theFont->mHeight, &aStrip->mAsk->mFmt);
-			aGlyph->mAsk->mPalette = aStrip->mAsk->mPalette;
-			Image* aStripMask = aStrip->mAsk;
-			Copy8(aGlyph->mAsk->mBits, 0, 0, aGlyph->mAsk->mPitch, 0, aStripMask->mBits, aStart, 0, aStripMask->mPitch, 0,
+			Image_Create(aMask, aWidth, theFont->mHeight, &aStrip->mMask->mFmt);
+			aGlyph->mMask->mPalette = aStrip->mMask->mPalette;
+			Image* aStripMask = aStrip->mMask;
+			Copy8(aGlyph->mMask->mBits, 0, 0, aGlyph->mMask->mPitch, 0, aStripMask->mBits, aStart, 0, aStripMask->mPitch, 0,
 				(int)(aStripMask->mFmt.mBpp >> 3) * aWidth, theFont->mHeight);
 			Image* aMade = theFont->mOwned.mCurrent;
 			theFont->mGlyphs[(uint8_t)theChars[k]] = aMade;
@@ -524,10 +524,10 @@ int Font_StripCut(Font* theFont, const Bank* theBank, const char* theName, const
 	Image* aSpace = theFont->mOwned.mCurrent;
 	Image_Create(aSpace, theFont->mOwned.mHead->mW / 2, theFont->mHeight, &aStrip->mFmt);
 	Image* aMask = new Image();
-	aSpace->mAsk = aMask;
+	aSpace->mMask = aMask;
 	aSpace->mHasMask = 1;
-	Image_Create(aMask, theFont->mOwned.mHead->mW / 2, theFont->mHeight, &aStrip->mAsk->mFmt);
-	aSpace->mAsk->mPalette = aStrip->mAsk->mPalette;
+	Image_Create(aMask, theFont->mOwned.mHead->mW / 2, theFont->mHeight, &aStrip->mMask->mFmt);
+	aSpace->mMask->mPalette = aStrip->mMask->mPalette;
 	Image* aMade = theFont->mOwned.mCurrent;
 	theFont->mGlyphs[' '] = aMade;
 	int aBottom = aMade->mYOff + aMade->mH;

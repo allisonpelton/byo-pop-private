@@ -198,7 +198,7 @@ void LoadGameFile()
 			if (Xml_GetInt(&aTag, "skip") == 0)
 				aNumber = aNumber + 1;
 			else
-				gLevels.mCurrent->mUsicPending = 1;
+				gLevels.mCurrent->mMusicPending = 1;
 			gLevels.mCurrent->mNumber = aNumber;
 			Level_Load(gLevels.mCurrent, aCursor, &aTag);
 		}

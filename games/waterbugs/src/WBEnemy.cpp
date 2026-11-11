@@ -534,7 +534,7 @@ void Enemy_Shield(Enemy* theEnemy)
 		theEnemy->mShield->mVy = 0.0f;
 		theEnemy->mShield->mAnim = Animation_Find("enemy_shield", &theEnemy->mShield->mFrameCount,
 			&theEnemy->mShield->mFrameTime);
-		theEnemy->mShield->mIdHandle = 1;
+		theEnemy->mShield->mMidHandle = 1;
 		theEnemy->mShield->mDrawKind = 2;
 		theEnemy->mShield->mDirty = 1;
 		theEnemy->mShield->mOneShot = 1;
@@ -1155,7 +1155,7 @@ int SnakeShooter_Move(Enemy* theEnemy)
 			aShot->mAnim = Animation_Find("snake", &aShot->mFrameCount, &aShot->mFrameTime);
 			aShot->mDieAnim = Animation_Find("small_explo", &aShot->mDieFrameCount, &aShot->mDieFrameTime);
 			aShot->mDepth = theEnemy->mDepth + 1;
-			aShot->mIdHandle = 1;
+			aShot->mMidHandle = 1;
 			aShot->mVx = (float)((double)CosDeg(anAngle) * 0.3499999940395355);
 			aShot->mVy = (float)((double)SinDeg(anAngle) * 0.3499999940395355);
 			aShot->mX = (float)((double)CosDeg(anAngle) * 50.0 + (double)theEnemy->mX);
@@ -1367,7 +1367,7 @@ void CannonWalker_Move(Enemy* theEnemy)
 			aBall->mVy = (float)((double)Sign(theEnemy->mVy) * 240.0 / 1500.0);
 			aBall->mAnim = Animation_Find("cannon_ball", &aBall->mFrameCount, &aBall->mFrameTime);
 			aBall->mDepth = theEnemy->mDepth + 1;
-			aBall->mIdHandle = 1;
+			aBall->mMidHandle = 1;
 			aBall->mDieAnim = Animation_Find("small_explo", &aBall->mDieFrameCount, &aBall->mDieFrameTime);
 			gLevels.mCurrent->mEnemies.mCurrent = theEnemy;
 			for (int i = 0; i < aBall->mAnim->mCount; i++)
@@ -1443,7 +1443,7 @@ void LaserWalker_Move(Enemy* theEnemy)
 			aShot->mState = 3;
 			aShot->mLifetime = 0.0f;
 			aShot->mKind = 0xe;
-			aShot->mIdHandle = 1;
+			aShot->mMidHandle = 1;
 			aShot->mDepth = theEnemy->mDepth + 1;
 			aShot->mX = (float)((double)aDx * (double)theEnemy->mImage->mW * 0.5 + (double)theEnemy->mX);
 			aShot->mY = (float)((double)aDy * (double)theEnemy->mImage->mH * 0.5 + (double)theEnemy->mY);

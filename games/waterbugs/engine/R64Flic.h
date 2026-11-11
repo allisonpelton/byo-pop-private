@@ -23,8 +23,8 @@ struct Flic
 	uint32_t mOffset;    // +0x0c  of the next frame's header, from the handle
 	uint16_t mFd;        // +0x10  0: read from memory (the port only reads from memory)
 	uint16_t mEndPadding;       // +0x12  nothing reads it
-	uint8_t* mEm;       // the port's
-	uint32_t mEmSize;
+	uint8_t* mMem;       // the port's
+	uint32_t mMemSize;
 };
 
 extern uint8_t gFlicPalette[0x300]; // 0x6e57a0: r, g, b per index

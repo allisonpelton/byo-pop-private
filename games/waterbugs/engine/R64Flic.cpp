@@ -271,8 +271,8 @@ Flic* Flic_Open(const uint8_t* theFile, size_t theFileSize)
 	if (aSize < 0x14)
 		return nullptr;
 	Flic* aFlic = new Flic();
-	aFlic->mEm = (uint8_t*)std::calloc(aSize, 1);
-	aFlic->mEmSize = aSize;
+	aFlic->mMem = (uint8_t*)std::calloc(aSize, 1);
+	aFlic->mMemSize = aSize;
 	aFlic->mFrames = U16(theFile + 6);
 	aFlic->mWidth = U16(theFile + 8);
 	aFlic->mHeight = U16(theFile + 0xa);
@@ -295,7 +295,7 @@ Flic* Flic_Open(const uint8_t* theFile, size_t theFileSize)
 		size_t n = theFileSize - aPos;
 		if (n > aSize - 0x14)
 			n = aSize - 0x14;
-		std::memcpy(aFlic->mEm + 0x14, theFile + aPos, n);
+		std::memcpy(aFlic->mMem + 0x14, theFile + aPos, n);
 	}
 	return aFlic;
 }
@@ -303,8 +303,8 @@ Flic* Flic_Open(const uint8_t* theFile, size_t theFileSize)
 // A frame or chunk that would run past the block ends the frame here (the original reads on)
 void Flic_NextFrame(Flic* theFlic, uint8_t* theDst, int theDPitch)
 {
-	uint8_t* aMem = theFlic->mEm;
-	uint32_t anEnd = theFlic->mEmSize;
+	uint8_t* aMem = theFlic->mMem;
+	uint32_t anEnd = theFlic->mMemSize;
 	if (theFlic->mOffset + 16 > anEnd)
 		return;
 	uint8_t* aFrame = aMem + theFlic->mOffset;
@@ -355,7 +355,7 @@ void Flic_NextFrame(Flic* theFlic, uint8_t* theDst, int theDPitch)
 
 void Flic_Close(Flic* theFlic)
 {
-	std::free(theFlic->mEm);
+	std::free(theFlic->mMem);
 	delete theFlic;
 }
 

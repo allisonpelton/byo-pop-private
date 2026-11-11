@@ -139,13 +139,13 @@ Animation::~Animation()
 			{
 				if (aFrame->mHasMask != 0)
 				{
-					Image_FreeRle(aFrame->mAsk);
-					if (mFrames[i]->mAsk != nullptr)
+					Image_FreeRle(aFrame->mMask);
+					if (mFrames[i]->mMask != nullptr)
 					{
-						Image_Destroy(mFrames[i]->mAsk);
-						delete mFrames[i]->mAsk;
+						Image_Destroy(mFrames[i]->mMask);
+						delete mFrames[i]->mMask;
 					}
-					mFrames[i]->mAsk = nullptr;
+					mFrames[i]->mMask = nullptr;
 				}
 				if (mFrames[i] != nullptr)
 				{
@@ -257,8 +257,8 @@ int Animation_Load(Animation* theAnim)
 				if (aSrc->mHasMask != 0)
 				{
 					theAnim->mFrames[i]->mHasMask = 1;
-					theAnim->mFrames[i]->mAsk = new Image();
-					Image_Copy(theAnim->mFrames[i]->mAsk, aSrc->mAsk);
+					theAnim->mFrames[i]->mMask = new Image();
+					Image_Copy(theAnim->mFrames[i]->mMask, aSrc->mMask);
 				}
 				i++;
 			} while (i < theAnim->mCount);
@@ -334,16 +334,16 @@ int Animation_Load(Animation* theAnim)
 						Flic_NextFrame(aFlic, aWork->mBits, (uint16_t)aWork->mPitch);
 						Image* aFrame = theAnim->mFrames[k];
 						aFrame->mHasMask = 1;
-						aFrame->mAsk = new Image();
-						Image_Copy(aFrame->mAsk, aWork);
+						aFrame->mMask = new Image();
+						Image_Copy(aFrame->mMask, aWork);
 						uint32_t j = 0;
-						if (aFrame->mAsk->mDataSize != 0)
+						if (aFrame->mMask->mDataSize != 0)
 						{
 							do
 							{
-								aFrame->mAsk->mBits[j] = gFlicPalette[(uint32_t)aFrame->mAsk->mBits[j] * 3];
+								aFrame->mMask->mBits[j] = gFlicPalette[(uint32_t)aFrame->mMask->mBits[j] * 3];
 								j++;
-							} while (j < (uint32_t)aFrame->mAsk->mDataSize);
+							} while (j < (uint32_t)aFrame->mMask->mDataSize);
 						}
 						k++;
 					} while (k < (int)(uint32_t)aFlic->mFrames);
@@ -398,8 +398,8 @@ int Animation_Load(Animation* theAnim)
 					y++;
 				} while (y < aTga.mHeight);
 			}
-			theAnim->mFrames[0]->mAsk = new Image();
-			Image_Copy(theAnim->mFrames[0]->mAsk, aMask);
+			theAnim->mFrames[0]->mMask = new Image();
+			Image_Copy(theAnim->mFrames[0]->mMask, aMask);
 			theAnim->mFrames[0]->mHasMask = 1;
 			Image_Destroy(aMask);
 			delete aMask;
@@ -415,7 +415,7 @@ int Animation_Load(Animation* theAnim)
 			if ((aFrame->mW == aFrame->mH || theAnim->mRotation == 0xb4) && theAnim->mRotation != 0)
 				RotateImage(aFrame, theAnim->mRotation);
 			if (theAnim->mFrames[i]->mHasMask != 0)
-				Image_BuildRle(theAnim->mFrames[i]->mAsk);
+				Image_BuildRle(theAnim->mFrames[i]->mMask);
 			i++;
 		} while (i < theAnim->mCount);
 	}

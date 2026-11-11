@@ -16,7 +16,7 @@ namespace r64
 // The original's lists are MSVC std::lists, read by position (0x426430, 0x426480); vectors read the same.
 struct Bank
 {
-	int mOde;                           // +0x00  Bank_Load's mode
+	int mMode;                           // +0x00  Bank_Load's mode
 	std::vector<Image*> mImages;         // +0x04  (+0x10 is the same as an array, for Bank_ImageAt)
 	std::vector<uint8_t*> mRawPalettes;  // +0x14  {r, g, b, unused} x 256 as the .bbk lists them
 	int mPalettesBuilt;                  // +0x20

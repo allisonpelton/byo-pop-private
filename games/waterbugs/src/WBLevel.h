@@ -305,7 +305,7 @@ struct Level : Obj
 	int mLines;                       // +0x3d4  beam pairs that have stopped
 	int mBonus;                       // +0x3d8
 	int mBonusPadding[2];             // +0x3dc, +0x3e0  the eight bytes after bonus: nothing reads them
-	int mUsicPending;                // +0x3e4
+	int mMusicPending;                // +0x3e4
 	List<Shooter> mShooters;          // +0x3e8
 	List<Cell> mFills;                // +0x3f4  cells being filled (the columns own them)
 	List<ParticleSystem> mSystems;    // +0x400
@@ -315,7 +315,7 @@ struct Level : Obj
 	List<Powerup> mPowerups;          // +0x430
 	List<Obj> mStars;                 // +0x43c
 	List<Text> mTexts;                // +0x448
-	List<Menu> mEnus;                // +0x454
+	List<Menu> mMenus;                // +0x454
 	List<Obj> mPointers;              // +0x460
 	List<Weapon> mWeapons;            // +0x46c
 };

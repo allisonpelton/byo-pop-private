@@ -51,7 +51,7 @@ struct Obj
 	int mOneShot;               // +0xa0  the animation's end (either way) finishes the object
 	int mExploSound;            // +0xa4  -1: none
 	int mAppearSound;           // +0xa8  a text's, played with a burst of bubbles as it fades in (0: none)
-	int mIdHandle;             // +0xac  each frame is drawn about its middle
+	int mMidHandle;             // +0xac  each frame is drawn about its middle
 };
 
 void Obj_Init(Obj* theObj);                                      // 0x40f230

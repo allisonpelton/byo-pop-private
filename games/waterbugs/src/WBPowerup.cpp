@@ -597,7 +597,7 @@ void Weapon_Setup(Weapon* theWeapon, float x, float y, float theRadius, int theK
 	}
 	theWeapon->mDirty = 1;
 	theWeapon->mDrawKind = 4;
-	theWeapon->mIdHandle = 1;
+	theWeapon->mMidHandle = 1;
 	Weapon_TakeSlot(theWeapon);
 }
 
@@ -688,18 +688,18 @@ void Panel_Setup(Panel* thePanel)
 	anItems->mCurrent->mAnim = Animation_Find("water_panel", &anItems->mCurrent->mFrameCount, &anItems->mCurrent->mFrameTime);
 	anItems->mCurrent->mX = 656.0f;
 	anItems->mCurrent->mY = 531.0f;
-	anItems->mCurrent->mIdHandle = 0;
+	anItems->mCurrent->mMidHandle = 0;
 	anItems->mCurrent->mDrawKind = 1;
 	thePanel->mDrawKind = 0;
-	Menu_Insert(&gLevels.mCurrent->mEnus);
-	MenuItem_Insert(&gLevels.mCurrent->mEnus.mCurrent->mItems);
-	MenuItem* aQuit = gLevels.mCurrent->mEnus.mCurrent->mItems.mCurrent;
+	Menu_Insert(&gLevels.mCurrent->mMenus);
+	MenuItem_Insert(&gLevels.mCurrent->mMenus.mCurrent->mItems);
+	MenuItem* aQuit = gLevels.mCurrent->mMenus.mCurrent->mItems.mCurrent;
 	aQuit->mX = 549.0f;
 	std::strcpy(aQuit->mName, "aaa");
 	aQuit->mY = 567.0f;
 	aQuit->mFont = Font_Find("main_font");
 	aQuit->mAnim = Animation_Find("quit", &aQuit->mFrameCount, &aQuit->mFrameTime);
-	aQuit->mIdHandle = 1;
+	aQuit->mMidHandle = 1;
 	aQuit->mDrawKind = 1;
 	aQuit->mDirty = 1;
 	aQuit->mKind = 0x21;
@@ -905,7 +905,7 @@ Powerup* Powerup_Init(Powerup* thePowerup)
 	thePowerup->mImage = anAnim->mFrames[0];
 	thePowerup->mDrawKind = 1;
 	thePowerup->mDirty = 1;
-	thePowerup->mIdHandle = 1;
+	thePowerup->mMidHandle = 1;
 	int aSide = Sign(thePowerup->mX - 400.0f);
 	thePowerup->mShadow = 1;
 	thePowerup->mAlpha = 0xff;

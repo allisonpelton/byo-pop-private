@@ -295,8 +295,8 @@ void DrawList_Clear()
 Dirty::Dirty()
 {
 	mCells = nullptr;
-	mOde = 0;
-	mAxRects = 400;
+	mMode = 0;
+	mMaxRects = 400;
 	mCellW = 800;
 	mCellH = 600;
 	mCols = 1;
@@ -333,8 +333,8 @@ void Dirty_Free(Dirty* theDirty)
 // 0x4219e0
 void Dirty_Init(Dirty* theDirty, int theCellW, int theCellH, int theMaxRects, int theMode)
 {
-	theDirty->mOde = theMode;
-	theDirty->mAxRects = theMaxRects;
+	theDirty->mMode = theMode;
+	theDirty->mMaxRects = theMaxRects;
 	theDirty->mCellH = theCellH;
 	theDirty->mCellW = theCellW;
 	theDirty->mCols = 800 / theCellW;
@@ -377,7 +377,7 @@ void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int h)
 					if (theDirty->mCellH * (aRow + 1) + -1 <= aBottom)
 						aBottom = theDirty->mCellH * (aRow + 1) + -1;
 					Dirty::Cell& aCell = theDirty->mCells[theDirty->mCols * aRow + aCol];
-					if (theDirty->mOde == 1)
+					if (theDirty->mMode == 1)
 					{
 						int* aRects = aCell.mRects;
 						if (aLeft < aRects[0])
@@ -396,7 +396,7 @@ void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int h)
 					else
 					{
 						int aCount = aCell.mCount;
-						if (theDirty->mAxRects <= aCount)
+						if (theDirty->mMaxRects <= aCount)
 						{
 							aCell.mCount = 1;
 							aCell.mRects[0] = theDirty->mCellW * aCol;
@@ -472,7 +472,7 @@ void Dirty_Clear(Dirty* theDirty)
 		do
 		{
 			theDirty->mCells[i].mCount = 0;
-			if (theDirty->mOde == 1)
+			if (theDirty->mMode == 1)
 			{
 				theDirty->mCells[i].mRects[0] = 999999;
 				theDirty->mCells[i].mRects[1] = 999999;
@@ -533,7 +533,7 @@ void Dirty_Alloc(Dirty* theDirty)
 		int i = 0;
 		do
 		{
-			theDirty->mCells[i].mRects = (int*)std::malloc((size_t)theDirty->mAxRects << 4);
+			theDirty->mCells[i].mRects = (int*)std::malloc((size_t)theDirty->mMaxRects << 4);
 			i++;
 		} while (i < theDirty->mRows * theDirty->mCols);
 	}

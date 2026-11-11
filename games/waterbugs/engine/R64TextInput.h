@@ -48,7 +48,7 @@ struct TextInput
 	int mEntered;               // +0xbc  this update: return was pressed
 	int mTyped;                 // +0xc0  this update: a key was taken
 	int mClickedIn;             // +0xc4  this update: a click focused it
-	int mAxLength;             // +0xc8
+	int mMaxLength;             // +0xc8
 	int mLength;                // +0xcc
 	char* mText;                // +0xd0  maxLength + 1 bytes
 	int mScroll;                // +0xd4  pixels of the text left of the box

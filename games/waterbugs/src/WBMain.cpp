@@ -373,7 +373,7 @@ void Screen_Redraw()
 			// From the current menu on, not from the first: the walk starts where the list's current is (the menu
 			// that is up) and ends with the first current again, so the earlier menus' images are not drawn over
 			// the background once more (a translucent edge would brighten with every pass)
-			List<Menu>* aMenus = &gLevels.mCurrent->mEnus;
+			List<Menu>* aMenus = &gLevels.mCurrent->mMenus;
 			if (aMenus->mCurrent != nullptr)
 			{
 				while (true)
@@ -453,7 +453,7 @@ void GoToScreen()
 					Image* aBack = Bank_FindImage2(&gArtBank, aLevel->mBackImage);
 					aLevel->mBackground = new Image;
 					Image_Copy(aLevel->mBackground, aBack);
-					List_Each(&aLevel->mEnus, [](Menu* theAMenu) {
+					List_Each(&aLevel->mMenus, [](Menu* theAMenu) {
 						theAMenu->mImage = nullptr;
 						if (theAMenu->mAnim != nullptr && gProfiles[gProfile].mLevelReached + 1 < theAMenu->mLockedLevel)
 						{
@@ -511,7 +511,7 @@ bool LeaveScreen()
 		{
 			if (gLevels.mCurrent != nullptr)
 				gLevels.mCurrent = gLevels.mHead;
-			if (gLevels.mCurrent->mUsicPending != 0)
+			if (gLevels.mCurrent->mMusicPending != 0)
 				gLevelInSet = gLevelInSet + 1;
 			List_RemoveCurrent(&gLevels);
 			if (gLevels.mCurrent != nullptr)
