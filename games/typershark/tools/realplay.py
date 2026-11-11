@@ -95,14 +95,30 @@ def click_lines(p):
     return ["move game %d %d" % (x - 6, y - 6), "wait 2", "move game %d %d" % (x, y), "wait 2", "click game %d %d" % (x, y), "wait 2"]
 
 
+def key_line(k):
+    """playbymove's line for a key; a character that is no letter or digit is typed in quotes: in a commands file a # starts a
+    comment, so `type #` typed nothing and the typing tutor's lesson 10 (the first with # in it) never went on"""
+    line = pbm.key_line(k)
+    if line.startswith("type ") and not k.isalnum():
+        return 'type "%s"' % k
+    return line
+
+
+def quoted(line):
+    """a `type` line of playbymove's with one character that is no letter or digit, in quotes (see key_line)"""
+    if line.startswith("type ") and len(line) == 6 and not line[5].isalnum():
+        return 'type "%s"' % line[5]
+    return line
+
+
 def key_lines(k):
-    return [pbm.key_line(k)]
+    return [key_line(k)]
 
 
 def type_lines(text):
     out = []
     for c in text:
-        out += [pbm.key_line(c), "wait 1"]
+        out += [key_line(c), "wait 1"]
     return out
 
 
@@ -185,7 +201,7 @@ class Run:
 
     def play_lines(self, m):
         """a move's steps as -realinput lines, one update apart (tools/playbymove: "wait 1" between two steps that are not waits)"""
-        lines = pbm.move_lines(m)
+        lines = [quoted(l) for l in pbm.move_lines(m)]
         batch = []
         for line in lines:
             if batch and not batch[-1].startswith("wait ") and not line.startswith("wait "):

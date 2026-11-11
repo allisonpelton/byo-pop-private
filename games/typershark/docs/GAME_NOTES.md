@@ -295,7 +295,7 @@ every 100; fixed (`/ 200` in the two tests).
 - Map (`MapScreen.cpp`): `ResetScroll` 0x441030 sets both scroll targets from the width difference where the final panel's
   draw test (0x447cd3) compares with the height difference; site 35 has the link -1 and is kept away from `Update` 0x45af60 and
   `SetVisible` 0x450ec0 only by the final-level flag; `OnLevelChosen` 0x4538e0 reads the list at size - 2; a dead end moves
-  the site before it behind it (section 10: the final panel is still to judge).
+  the site before it behind it (section 10: the final panel was judged in phase 2 and is no fault).
 - Typing tutor: `KeyChar` 0x460680 takes a Return, newline or space at the first or last character of a line as neither right
   nor wrong; `Update` 0x4601a0 has a creature branch above y = 160 in state 1 that the loop never takes; the seconds timer
   restarts at each second so an overshoot is lost; a lesson that ends within its first second divides by zero in `Finish`
@@ -320,6 +320,26 @@ every 100; fixed (`/ 200` in the two tests).
 - `AvoidWordOverlap` 0x446110 counts its loop by the size of the bonus-text list (+0xdb8) and indexes the bonus-creature list
   (+0xdc8) with it; the port stops at the end of the list it indexes (section 7).
 - Events 9, 0xb, 0xd and 0x14 have no handler in the Board; `HandleClamEvents` event 3 never scores on its own.
+
+**A frame is drawn whole (the shared framework; found by phase 2).** The original's widget manager repaints only the widgets
+that are marked dirty, on top of the picture that is already there (`WidgetManager::DrawScreen` 0x47d790). The shared
+framework draws a frame whole or not at all (`SexyAppBase::DrawDirtyStuff`: a GPU back buffer does not keep the last frame),
+so whenever anything is dirty every widget's `Draw` runs. Two things follow, both below what shotdiff counts as visible:
+
+- *The status bar's meter edge.* While the board itself is not repainted but the bar is (the mouse rests on one of the
+  bar's three buttons, whose `FadeButton::Update` marks what lies under it dirty every update; the bonus level's intro and
+  the level-end tally, where `StatusBar::Update` marks the bar and `Board::Update` returns early), the original paints the
+  bar's picture over itself again and again, and its half-transparent pixels (one row under the charge meter and one
+  column right of it, 250 pixels) end up as the picture's own colour. The port paints the board first and the bar once,
+  so those pixels keep one blend with what lies under them: 10 to 24 levels of 255 darker. Measured on the bonus intro:
+  the bar's picture there is (144, 157, 158) at 83% opacity over black, the port shows (121, 132, 133), one blend, the
+  original (141, 154, 155), two or more.
+- *The sea's two strips, the rating popup and the map's last scroll ease once a draw* (`Board::Draw` 0x44d200,
+  `MapScreen::Draw` 0x447400: the average of the last six changes of the target, a draw at a time). In the original a
+  strip stops easing when the board is no longer repainted and can rest a pixel short; in the port the board is drawn
+  with every frame and the strip reaches its place. In the phase 2 tours that is a handful of sea pixels a shot (at most
+  22, at most 15 levels apart). With one draw an update the port's eased values equal the original's exactly: the map's
+  last scroll read -4.0 at target -5 up to -60/-58 at rest in both, at all 16 updates sampled.
 
 ## 6. Comparison with the original
 
@@ -581,11 +601,11 @@ shots at the same updates with the mod off and on and lists the rectangles that 
   not stopping the timer (the same in the original, and they do not hold the player); the streak game and the treasure level's own
   timers (the game's rules, not waits); the registration code (gone).
 
-**Still to judge (phase 2).** *The map's final panel* (`ResetScroll` 0x441030 against the draw test 0x447cd3): both scroll targets
-are set from the width difference where the draw test compares with the height difference, so the ship of the final panel shows
-only if the two differences are equal, and a fix that sets the vertical target from the height difference would also move the
-panel's picture. Whether the original's final panel shows the ship, and how it is scrolled, is for the phase 2 map comparison to
-say; until then it stays a candidate and is not in the mod. Nothing was found in the reading done for the sharks, piranhas, clams,
+**Judged in phase 2.** *The map's final panel* (`ResetScroll` 0x441030 against the draw test 0x447cd3): both scroll targets
+are set from the width difference where the draw test compares with the height difference. The map picture is 700 by 540 and the
+window 640 by 480, so both differences are -60, the test holds and the ship shows. The original's final panel and the port's are
+equal in the whole-adventure tour (the panel after level 35 and through the endless levels, 52 pairs), and the eased scroll reads
+the same values in both (section 5). No fault, nothing for the mod. Nothing was found in the reading done for the sharks, piranhas, clams,
 bonus creatures and bosses (equal to the original in phase 1's runs, which does not exclude a wait) and the high score tables; the
 dialogs and screens other than the options dialog were not read for waits or faults.
 
