@@ -1,4 +1,4 @@
-// Test hooks: the autoplay bot (-autoplay=<seed>). It plays whole games through the board's mouse handler and the
+// port: test hooks: the autoplay bot (-autoplay=<seed>). It plays whole games through the board's mouse handler and the
 // app's buttons, so everything the game does for a player runs: ships move and fire, levels and the bonus screens
 // come and go, the game ends and the score goes to the high-score list. The bot has its own random numbers (the
 // game's use the C library generator, seeded by -seed), so the same -seed and -autoplay always make the same
@@ -87,22 +87,22 @@ void SevenSeasApp::HandleCmdLineParam(const std::string& theParamName, const std
 namespace
 {
 
-void Log(AutoplayState* s, const char* theFormat, ...)
+void Log(AutoplayState* theState, const char* theFormat, ...)
 {
-	if (s->mLog == NULL)
+	if (theState->mLog == NULL)
 		return;
 	va_list args;
 	va_start(args, theFormat);
-	vfprintf(s->mLog, theFormat, args);
+	vfprintf(theState->mLog, theFormat, args);
 	va_end(args);
-	fputc('\n', s->mLog);
-	fflush(s->mLog);
+	fputc('\n', theState->mLog);
+	fflush(theState->mLog);
 }
 
 // a click on a cell of the board (the cell's middle, in the board's own coordinates)
-void ClickCell(Board* b, int x, int y)
+void ClickCell(Board* theBoard, int x, int y)
 {
-	b->MouseDown(Board::CellToPixel(x) + 21, Board::CellToPixel(y) + 21 + 12, 1);
+	theBoard->MouseDown(Board::CellToPixel(x) + 21, Board::CellToPixel(y) + 21 + 12, 1);
 }
 
 }
@@ -110,21 +110,21 @@ void ClickCell(Board* b, int x, int y)
 // the bot, once per update
 void SevenSeasApp::AutoplayUpdate()
 {
-	AutoplayState* s = mAutoplayState;
-	if (s == NULL)
+	AutoplayState* aState = mAutoplayState;
+	if (aState == NULL)
 		return;
-	if (s->mLog == NULL && !mAutoplayLog.empty())
-		s->mLog = fopen(mAutoplayLog.c_str(), "w");
-	s->mTick++;
-	if (s->mTick >= mAutoplayCap)
+	if (aState->mLog == NULL && !mAutoplayLog.empty())
+		aState->mLog = fopen(mAutoplayLog.c_str(), "w");
+	aState->mTick++;
+	if (aState->mTick >= mAutoplayCap)
 	{
-		Log(s, "cap reached at update %d", s->mTick);
+		Log(aState, "cap reached at update %d", aState->mTick);
 		Shutdown();
 		return;
 	}
-	if (s->mWait > 0)
+	if (aState->mWait > 0)
 	{
-		s->mWait--;
+		aState->mWait--;
 		return;
 	}
 
@@ -134,24 +134,24 @@ void SevenSeasApp::AutoplayUpdate()
 		if (mTitleScreen->mPlayShown)
 		{
 			mTitleScreen->ButtonDepress(1);
-			s->mWait = 20;
+			aState->mWait = 20;
 		}
 		return;
 	}
 	// the dialogs: each is answered at once (the first of each kind is photographed: their sizes are checked by eye)
 	for (int anId = 0; anId < 32; anId++)
 	{
-		if ((GetDialog(anId) != NULL) && !(s->mDialogShots & (1u << anId)) && !mAutoplayShots.empty())
+		if ((GetDialog(anId) != NULL) && !(aState->mDialogShots & (1u << anId)) && !mAutoplayShots.empty())
 		{
-			s->mDialogShots |= 1u << anId;
+			aState->mDialogShots |= 1u << anId;
 			SaveScreenshot(StrFormat("%s-dialog%d.png", mAutoplayShots.c_str(), anId));
 		}
 	}
 	if (GetDialog(DIALOG_NEXT_LEVEL) != NULL)
 	{
-		Log(s, "level %d done, score %d", mBoard->mLevel, mBoard->mScore);
+		Log(aState, "level %d done, score %d", mBoard->mLevel, mBoard->mScore);
 		ButtonDepress(2000 + DIALOG_NEXT_LEVEL);
-		s->mWait = 5;
+		aState->mWait = 5;
 		return;
 	}
 	static const int kAnswers[] = {DIALOG_RECORD_SCORE, DIALOG_BONUS_NAG, DIALOG_WARNING, DIALOG_HIGH_SCORES};
@@ -160,27 +160,27 @@ void SevenSeasApp::AutoplayUpdate()
 		if (GetDialog(kAnswers[i]) != NULL)
 		{
 			ButtonDepress(2000 + kAnswers[i]);
-			s->mWait = 5;
+			aState->mWait = 5;
 			return;
 		}
 	}
 	if (GetDialog(DIALOG_OPTIONS) != NULL)
 	{
 		// the options dialog (photographed above), then its high scores (answered above), then it is closed
-		if (s->mOptionsStage == 1)
+		if (aState->mOptionsStage == 1)
 		{
-			s->mOptionsStage = 2;
+			aState->mOptionsStage = 2;
 			((OptionsDialog*) GetDialog(DIALOG_OPTIONS))->ButtonDepress(2);
 		}
 		else
 			ButtonDepress(2000 + DIALOG_OPTIONS);
-		s->mWait = 5;
+		aState->mWait = 5;
 		return;
 	}
 	if (GetDialog(DIALOG_CONTINUE) != NULL)
 	{
 		ButtonDepress(3000 + DIALOG_CONTINUE);
-		s->mWait = 5;
+		aState->mWait = 5;
 		return;
 	}
 	if (GetDialogCount() > 0)
@@ -188,7 +188,7 @@ void SevenSeasApp::AutoplayUpdate()
 	if (mMapWidget != NULL)
 	{
 		((MapWidget*) mMapWidget)->ButtonDepress(100);
-		s->mWait = 5;
+		aState->mWait = 5;
 		return;
 	}
 
@@ -196,7 +196,7 @@ void SevenSeasApp::AutoplayUpdate()
 	if (mDemoWidget != NULL)
 	{
 		mDemoWidget->ButtonDepress(1);
-		s->mWait = 5;
+		aState->mWait = 5;
 		return;
 	}
 
@@ -205,21 +205,21 @@ void SevenSeasApp::AutoplayUpdate()
 	{
 		if (!mIntroWidget->mStarting)
 		{
-			if (!mAutoplayShots.empty() && (s->mOptionsStage == 0))
+			if (!mAutoplayShots.empty() && (aState->mOptionsStage == 0))
 			{
-				s->mOptionsStage = 1;
+				aState->mOptionsStage = 1;
 				ShowOptions();
-				s->mWait = 3;
+				aState->mWait = 3;
 				return;
 			}
-			mIntroWidget->SetDifficulty((mAutoplayDiff >= 1) && (mAutoplayDiff <= 3) ? mAutoplayDiff : 1 + s->Rand(3));
+			mIntroWidget->SetDifficulty((mAutoplayDiff >= 1) && (mAutoplayDiff <= 3) ? mAutoplayDiff : 1 + aState->Rand(3));
 			mIntroWidget->ButtonDepress(0);
-			s->mGames++;
-			s->mGameOverLogged = false;
-			s->mGameOverShot = false;
-			s->mLastLevel = 0;
-			s->mMoves = 0;
-			Log(s, "game %d started, difficulty %d", s->mGames, mIntroWidget->mDifficulty);
+			aState->mGames++;
+			aState->mGameOverLogged = false;
+			aState->mGameOverShot = false;
+			aState->mLastLevel = 0;
+			aState->mMoves = 0;
+			Log(aState, "game %d started, difficulty %d", aState->mGames, mIntroWidget->mDifficulty);
 		}
 		return;
 	}
@@ -227,90 +227,90 @@ void SevenSeasApp::AutoplayUpdate()
 	// the game is over: the list of scores
 	if (mHighScoreWidget != NULL)
 	{
-		if (!s->mGameOverLogged)
+		if (!aState->mGameOverLogged)
 		{
-			s->mGameOverLogged = true;
-			Log(s, "game %d over at update %d: score %d level %d moves %d", s->mGames, s->mTick, mBoard != NULL ? mBoard->mScore : 0,
-				mBoard != NULL ? mBoard->mLevel : 0, s->mMoves);
-			s->mWait = 10;
+			aState->mGameOverLogged = true;
+			Log(aState, "game %d over at update %d: score %d level %d moves %d", aState->mGames, aState->mTick, mBoard != NULL ? mBoard->mScore : 0,
+				mBoard != NULL ? mBoard->mLevel : 0, aState->mMoves);
+			aState->mWait = 10;
 			return;
 		}
 		// the screen is shown from the top down; the name dialog (if the score earned a place) comes at the end
 		if (mHighScoreWidget->mReveal < mHighScoreWidget->mHeight)
 			return;
-		if (!s->mGameOverShot)
+		if (!aState->mGameOverShot)
 		{
-			s->mGameOverShot = true;
+			aState->mGameOverShot = true;
 			if (!mAutoplayShots.empty())
-				SaveScreenshot(StrFormat("%s-over%d.png", mAutoplayShots.c_str(), s->mGames));
-			s->mWait = 10;
+				SaveScreenshot(StrFormat("%s-over%d.png", mAutoplayShots.c_str(), aState->mGames));
+			aState->mWait = 10;
 			return;
 		}
-		if (s->mGames >= mAutoplayGames)
+		if (aState->mGames >= mAutoplayGames)
 		{
 			Shutdown();
 			return;
 		}
 		mHighScoreWidget->ButtonDepress(1);
-		s->mWait = 10;
+		aState->mWait = 10;
 		return;
 	}
 
-	Board* b = mBoard;
-	if (b == NULL)
+	Board* aBoard = mBoard;
+	if (aBoard == NULL)
 		return;
-	if ((mAutoplayLevel > 1) && (b->mLevel == 1) && (s->mLastLevel == 0))
+	if ((mAutoplayLevel > 1) && (aBoard->mLevel == 1) && (aState->mLastLevel == 0))
 	{
 		// a test of the later levels: the game starts at the given one
-		b->mLevel = mAutoplayLevel - 1;
-		b->NewLevel();
+		aBoard->mLevel = mAutoplayLevel - 1;
+		aBoard->NewLevel();
 	}
-	if (b->mLevel != s->mLastLevel)
+	if (aBoard->mLevel != aState->mLastLevel)
 	{
-		s->mLastLevel = b->mLevel;
-		Log(s, "level %d at update %d, lives %d, score %d", b->mLevel, s->mTick, b->mLives, b->mScore);
+		aState->mLastLevel = aBoard->mLevel;
+		Log(aState, "level %d at update %d, lives %d, score %d", aBoard->mLevel, aState->mTick, aBoard->mLives, aBoard->mScore);
 	}
-	if (b->mState == STATE_LEVEL_END)
+	if (aBoard->mState == STATE_LEVEL_END)
 		return;
-	if (b->mBonus)
+	if (aBoard->mBonus)
 	{
 		// the bonus screen: dig in a random square (a click after the result continues)
-		if (b->mBonusState != 0)
+		if (aBoard->mBonusState != 0)
 		{
-			b->MouseDown(Board::CellToPixel(5), Board::CellToPixel(5) + 12, 1);
-			s->mWait = 10;
+			aBoard->MouseDown(Board::CellToPixel(5), Board::CellToPixel(5) + 12, 1);
+			aState->mWait = 10;
 		}
 		else
-			b->MouseDown(Board::CellToPixel(1 + s->Rand(9)) + 5 + 21, Board::CellToPixel(1 + s->Rand(9)) + 0x12 + 21, 1);
+			aBoard->MouseDown(Board::CellToPixel(1 + aState->Rand(9)) + 5 + 21, Board::CellToPixel(1 + aState->Rand(9)) + 0x12 + 21, 1);
 		return;
 	}
-	if (((b->mState != STATE_IDLE) && (b->mState != STATE_BLINK)) || b->mLevelOver)
+	if (((aBoard->mState != STATE_IDLE) && (aBoard->mState != STATE_BLINK)) || aBoard->mLevelOver)
 		return;
 	// the hint boxes of the beginner's game do not hold the bot up: it plays anyway
 
 	// the bot's choice (Bot.h): a broadside when a ship could be hit, else a move to a safe cell
-	BotChoice aChoice = ChooseBotMove(b, s->mSeed);
-	ClickCell(b, aChoice.mX, aChoice.mY);
+	BotChoice aChoice = ChooseBotMove(aBoard, aState->mSeed);
+	ClickCell(aBoard, aChoice.mX, aChoice.mY);
 	if (aChoice.mKind != BotChoice::STAY)
-		s->mMoves++;
-	s->mWait = 4;
+		aState->mMoves++;
+	aState->mWait = 4;
 }
 
 // the bot's choice of a move
-BotChoice Sexy::ChooseBotMove(Board* b, unsigned int& theSeed)
+BotChoice Sexy::ChooseBotMove(Board* theBoard, unsigned int& theSeed)
 {
 	AutoplayState aDice;
 	aDice.mSeed = theSeed;
 	BotChoice aResult;
 	aResult.mKind = BotChoice::STAY;
-	aResult.mX = b->mPlayerX;
-	aResult.mY = b->mPlayerY;
+	aResult.mX = theBoard->mPlayerX;
+	aResult.mY = theBoard->mPlayerY;
 
 	// the ships that could be shot from here: any enemy on the two broadside lines (within three cells)
 	int aTargets = 0;
-	for (std::list<Ship*>::iterator anItr = b->mShips.begin(); anItr != b->mShips.end(); ++anItr)
+	for (std::list<Ship*>::iterator anItr = theBoard->mShips.begin(); anItr != theBoard->mShips.end(); ++anItr)
 	{
-		if (b->CanFireAt(b->mPlayerX, b->mPlayerY, b->mHeading, (*anItr)->mX, (*anItr)->mY, 3))
+		if (theBoard->CanFireAt(theBoard->mPlayerX, theBoard->mPlayerY, theBoard->mHeading, (*anItr)->mX, (*anItr)->mY, 3))
 			aTargets++;
 	}
 	if ((aTargets > 0) && (aDice.Rand(4) != 0))
@@ -326,24 +326,24 @@ BotChoice Sexy::ChooseBotMove(Board* b, unsigned int& theSeed)
 	for (int dx = -1; dx <= 1; dx++)
 		for (int dy = -1; dy <= 1; dy++)
 		{
-			int nx = b->mPlayerX + dx;
-			int ny = b->mPlayerY + dy;
-			if (((dx == 0) && (dy == 0)) || (nx < 0) || (nx > 10) || (ny < 0) || (ny > 10) || !b->CellFree(nx, ny))
+			int nx = theBoard->mPlayerX + dx;
+			int ny = theBoard->mPlayerY + dy;
+			if (((dx == 0) && (dy == 0)) || (nx < 0) || (nx > 10) || (ny < 0) || (ny > 10) || !theBoard->CellFree(nx, ny))
 				continue;
-			Cand c;
-			c.mX = nx;
-			c.mY = ny;
-			c.mSafe = 1000;
-			for (std::list<Ship*>::iterator anItr = b->mShips.begin(); anItr != b->mShips.end(); ++anItr)
-				c.mSafe = std::min(c.mSafe, std::max(abs((*anItr)->mX - nx), abs((*anItr)->mY - ny)));
+			Cand aCand;
+			aCand.mX = nx;
+			aCand.mY = ny;
+			aCand.mSafe = 1000;
+			for (std::list<Ship*>::iterator anItr = theBoard->mShips.begin(); anItr != theBoard->mShips.end(); ++anItr)
+				aCand.mSafe = std::min(aCand.mSafe, std::max(abs((*anItr)->mX - nx), abs((*anItr)->mY - ny)));
 			// the heading after the move: 0 up, 4 right, 8 down, 0xc left, the diagonals between
 			static const int kHeading[3][3] = {{0xe, 0xc, 0xa}, {0, 0, 8}, {2, 4, 6}};
 			int aHeading = kHeading[dx + 1][dy + 1];
-			c.mTargets = 0;
-			for (std::list<Ship*>::iterator anItr = b->mShips.begin(); anItr != b->mShips.end(); ++anItr)
-				if (b->CanFireAt(nx, ny, aHeading, (*anItr)->mX, (*anItr)->mY, 3))
-					c.mTargets++;
-			aCands.push_back(c);
+			aCand.mTargets = 0;
+			for (std::list<Ship*>::iterator anItr = theBoard->mShips.begin(); anItr != theBoard->mShips.end(); ++anItr)
+				if (theBoard->CanFireAt(nx, ny, aHeading, (*anItr)->mX, (*anItr)->mY, 3))
+					aCand.mTargets++;
+			aCands.push_back(aCand);
 		}
 	if (aCands.empty())
 	{
@@ -372,8 +372,8 @@ BotChoice Sexy::ChooseBotMove(Board* b, unsigned int& theSeed)
 }
 
 // the click on a cell's middle: the board's own coordinates (the rows start 12 down) and the board's place in the window
-void Sexy::BotCellToGame(Board* b, int theCellX, int theCellY, int* theGameX, int* theGameY)
+void Sexy::BotCellToGame(Board* theBoard, int theCellX, int theCellY, int* theGameX, int* theGameY)
 {
-	*theGameX = b->mX + Board::CellToPixel(theCellX) + 21;
-	*theGameY = b->mY + Board::CellToPixel(theCellY) + 21 + 12;
+	*theGameX = theBoard->mX + Board::CellToPixel(theCellX) + 21;
+	*theGameY = theBoard->mY + Board::CellToPixel(theCellY) + 21 + 12;
 }

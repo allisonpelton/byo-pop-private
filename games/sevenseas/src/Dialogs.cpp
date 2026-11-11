@@ -107,6 +107,7 @@ OptionsDialog::OptionsDialog(SevenSeasApp* theApp) :
 	mCursorsCheckbox->SetChecked(mApp->mCustomCursorsEnabled, false);
 }
 
+// 0x418ec0
 OptionsDialog::~OptionsDialog()
 {
 	delete mHelpButton;
@@ -117,7 +118,7 @@ OptionsDialog::~OptionsDialog()
 	delete mCursorsCheckbox;
 }
 
-// 0x419030 / 0x4190c0
+// 0x419030
 void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
@@ -129,6 +130,7 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mFullscreenCheckbox);
 }
 
+// 0x4190c0
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -339,6 +341,7 @@ RecordScoreDialog::RecordScoreDialog(SevenSeasApp* theApp, const SexyString& the
 #endif
 }
 
+// 0x41a1f0
 RecordScoreDialog::~RecordScoreDialog()
 {
 	delete mNameEdit;
@@ -352,6 +355,7 @@ void RecordScoreDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->SetFocus(mNameEdit);
 }
 
+// port: takes the name box off the manager
 void RecordScoreDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -396,12 +400,14 @@ void RecordScoreDialog::Draw(Graphics* g)
 	g->DrawString(GT(0x004a5964), mNameEdit->mX - mX, (mNameEdit->mY - mY) - 0x10);
 }
 
+// port: the framework hook, which the original leaves to its base class
 void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 {
 	(void) theId;
 	(void) theString;
 }
 
+// port: the framework hook, which the original leaves to its base class
 bool RecordScoreDialog::AllowChar(int theId, SexyChar theChar)
 {
 	(void) theId;
@@ -426,6 +432,7 @@ HighScoreDialog::HighScoreDialog(SevenSeasApp* theApp) :
 	SetColor(COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
 }
 
+// 0x40fa70
 HighScoreDialog::~HighScoreDialog()
 {
 	delete mScores;
@@ -491,17 +498,20 @@ NagDialog::NagDialog(SevenSeasApp* theApp, int theDialogId, int theWhich) :
 	mCheckbox->SetChecked(false, false);
 }
 
+// 0x40cab0 (the bonus screen's) and 0x4265b0 (the warnings')
 NagDialog::~NagDialog()
 {
 	delete mCheckbox;
 }
 
+// 0x40cb30 (the bonus screen's) and 0x426640 (the warnings')
 void NagDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mCheckbox);
 }
 
+// 0x40cb60 (the bonus screen's) and 0x426670 (the warnings')
 void NagDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -518,10 +528,11 @@ void NagDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 		mCheckbox->Resize(mX + 0x41, mY + 200, 0x14, 0x14);
 }
 
+// 0x40cb20 (the bonus screen's) and 0x426630 (the warnings')
 int NagDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
-	return (mWhich < 0) ? 0x1ae : 0x136;   // 0x40cb20 (the bonus screen's) and 0x426630 (the warnings')
+	return (mWhich < 0) ? 0x1ae : 0x136;
 }
 
 // 0x40d2b0: the mouse position goes to the side panel too
