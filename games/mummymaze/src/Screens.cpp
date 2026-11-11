@@ -395,7 +395,9 @@ GamePanel::GamePanel(MummyApp* theApp) :
 		mLinks[0]->SetDisabled(true);
 		mLinks[1]->SetDisabled(true);
 	}
-	mFade = 0.0;
+	// the fade starts at 1 (the two halves of the double, 0 and 0x3ff00000): the board stays in view behind the panel until
+	// the player leaves for the main menu
+	mFade = 1.0;
 	mLeaving = false;
 	SetVisible(true);
 }
