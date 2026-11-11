@@ -6,8 +6,9 @@ the original) stay in game.log.
 
     python games/bejeweled2/tools/origcmp/record.py --exe <exe> --userdir <a new folder> --out <dir> --mode classic [--moves 60]
 
---mode is a game mode, `hidden`, `resume` (Classic left by its menu button and loaded again) or `load` (the saved game of the
-player's folder, which make_save.py makes; --hyper swaps a hyper cube first).
+--mode is a game mode, `hidden`, `resume` (Classic left by its menu button and loaded again), `load` (the saved game of the
+player's folder, which make_save.py makes; --hyper swaps a hyper cube first) or `tour` (phase two's first screens, each shot
+when it stands still; the original takes the same shots at the same updates in Windows Sandbox).
 
 Writes <out>/events.json ({"play": the update of the title's play click, "events": [[update, "command line"], ...]}) and
 <out>/game.log. Runs under rundesk (the Driver does that), held, fast and seeded.
@@ -40,6 +41,13 @@ class Recorder(Driver):
             # port does (to_origrun.py --dialog-shift)
             self.events.append([s['updates'] + 1, line] + ([1] if s.get('dialogs') else []))
         super().ok(line)
+
+    def shot(self, name):
+        """A screenshot of the port, noted with its update so that the original is captured at the same one (to_origrun.py
+        writes `at <update> shot <name>`, which origrun takes only inside Windows Sandbox)."""
+        s = self.state()
+        self.events.append([s['updates'] + 1, 'shot ' + name])
+        return super().shot(name)
 
 
 def start_hidden(d):
@@ -80,6 +88,64 @@ def resume(d, a):
     full.start_mode(d, 'classic')
     r2 = full.play(d, 'classic', a.moves, a.out)
     return dict(r2, first=r1)
+
+
+def tour(d, a):
+    """Phase two's first screens, one shot each once the screen stands still: the new player's welcome, the menu, the
+    messages in front of the first game, the board, the options dialog over a game, and "Load Game?" on the way back in.
+    (The title and the new-user dialog are shot by main, before the menu.)"""
+    seen = set()
+
+    def settle(pred, what, shots=True):
+        while True:
+            s = d.state()
+            if s['dialogs']:
+                top = max(s['dialogs'])
+                if shots and top not in seen:
+                    seen.add(top)
+                    d.ok('wait 60')
+                    d.shot('dialog%d' % top)
+                    continue
+                if top == 36:
+                    d.key('Escape')
+                    d.ok('wait 3')
+                else:
+                    full.handle_dialog(d, s)
+            elif pred(s):
+                return s
+            else:
+                d.idle()
+
+    s = settle(full.menu_ready, 'the menu')
+    d.ok('wait 120')
+    s = settle(full.menu_ready, 'the menu')
+    d.shot('menu')
+    d.click(s['widgets']['classic'])
+    settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle', 'the board')
+    d.ok('wait 60')
+    d.shot('board')
+    r = full.play(d, 'classic', a.moves, a.out)
+    s = settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle', 'the board')
+    d.shot('board-played')
+    d.click(s['widgets']['menu'])
+    s = full.until(d, lambda s: 2 in s['dialogs'] and 'mainmenu' in (s.get('buttons') or {}), 'the options dialog', 60)
+    d.ok('wait 60')
+    d.shot('options')
+    s = d.state()
+    d.click(s['buttons']['mainmenu'])
+    s = settle(full.menu_ready, 'the menu')
+    d.ok('wait 100')
+    d.shot('menu-back')
+    d.click(d.state()['widgets']['classic'])
+    s = full.until(d, lambda s: 17 in s['dialogs'], 'the load dialog', 60)
+    d.ok('wait 60')
+    d.shot('loadgame')
+    s = d.state()
+    d.click(s['buttons']['yes'])
+    settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle', 'the loaded board')
+    d.ok('wait 60')
+    d.shot('board-loaded')
+    return r
 
 
 def swap_hyper(d):
@@ -144,11 +210,20 @@ def main():
         s = d.state()
         if s['updates'] < a.play_at - 1:
             d.ok('wait %d' % (a.play_at - 1 - s['updates']))  # the original and the port then get every input at the same update
-        full.to_menu(d)
-        play = d.events[0][0]
+        if a.mode == 'tour':
+            d.ok('wait 60')
+            d.shot('title')
+            d.click(d.state()['widgets']['play'])
+            s = full.until(d, lambda s: 27 in s['dialogs'], 'the new-user dialog', 60)
+            d.ok('wait 60')
+            d.shot('newuser')
+        full.to_menu(d) if a.mode != 'tour' else (d.type(full.NAME), d.key('Return'))
+        play = next(u for u, c, *_ in d.events if c.startswith('click'))
         loaded = None
         if a.mode == 'hidden':
             start_hidden(d)
+        elif a.mode == 'tour':
+            toured = tour(d, a)
         elif a.mode == 'load':
             loaded, load_start = load(d, a)
         elif a.mode == 'resume':
@@ -161,6 +236,8 @@ def main():
         if a.mode == 'load':
             r = loaded
             start = load_start
+        elif a.mode == 'tour':
+            r = toured
         elif a.mode == 'resume':
             r = resume(d, a)
         else:
