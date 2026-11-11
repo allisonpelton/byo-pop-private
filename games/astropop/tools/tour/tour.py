@@ -35,6 +35,8 @@ def main():
     os.makedirs(os.path.join(a.out, 'port'), exist_ok=True)
     absout = os.path.abspath(a.out).replace(os.sep, '/')
     port, orig = [], []
+    # the original's first input waits for the game's own loaded state (docs/ORIGRUN.md: its loading can finish later than a fixed update count)
+    orig.append('waitfor [0x5dc220]+0x50c == 0x10101 120000')
     last = 0
     for ln in open(a.tour):
         ln = ln.split('#')[0].strip()

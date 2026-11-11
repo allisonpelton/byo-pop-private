@@ -302,7 +302,7 @@ struct PulsePair
 
 // The widget over the field (constructor 0x4327c0, vtable 0x563e28): it fades the field to a colour, shows the PAUSED
 // text and the screens' darkening. The Board keeps it at +0x660 and points it back at itself (+0x7c).
-class BoardOverlay : public Widget
+class BoardOverlay : public Text2004<Widget>
 {
 public:
 	Color			mColor58;           // +0x58 (white, clear)
@@ -314,6 +314,15 @@ public:
 	BoardOverlay();                                     // 0x4327c0
 	void			SetFill(int theRed, int theGreen, int theBlue, int theAlpha);   // 0x432990
 	void			SetFlag78(bool theFlag) { mFlag78 = theFlag; }                  // 0x4329c0
+
+	// (the original also has MouseMove, 0x4329d0, and IsPointVisible, 0x436140; the widget is not mouse-visible, so neither is called)
+	void			Update() override;                                              // 0x432930
+	void			Draw(Graphics* g) override;                                     // 0x43fc10 (BoardOverlay.cpp)
+
+private:
+	void			DrawHint(Graphics* g);
+	void			DrawWeaponHint(Graphics* g);
+	void			DrawEmergency(Graphics* g);
 };
 
 extern bool gFlag5A5100;    // 0x5a5100
