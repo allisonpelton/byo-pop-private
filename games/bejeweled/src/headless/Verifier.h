@@ -50,7 +50,7 @@ enum
 };
 int				Difftest(uint32_t theFirst, uint32_t theLast, int theTicks, int theModes, bool isVerbose, std::string* theReport);
 
-// Mirrortest (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16): board.gravity "up" is the vertical mirror of
+// Mirrortest (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16): board.gravity "up" is the vertical mirror of
 // "down". Per seed, on a vertically asymmetric mask and its mirror, the upward fill and refill from one RNG state are
 // the mirrors of the downward ones (colours, rows, positions, draws); then, on the full 8x8 and on that mask, a down
 // board and an up board restored from its mirrored state play mirrored moves (at most theMoves, normal mode), and at

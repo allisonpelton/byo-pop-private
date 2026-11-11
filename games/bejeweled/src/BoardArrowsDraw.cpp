@@ -1,4 +1,4 @@
-// port(variant): arrow gems' drawing (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20, stage 18; the rules are in
+// port(variant): arrow gems' drawing (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20; the rules are in
 // BoardArrows.cpp). Not part of the original game. Apart from the board's rules so the verifier, which draws nothing,
 // need not build the art: it has empty ones (headless/HeadlessShims.cpp).
 
