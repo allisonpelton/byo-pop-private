@@ -84,11 +84,11 @@ void Board::Pause(bool theStart, bool theFlag)
 					mApp->mWidgetManager->BringToFront(mMenuButton);
 				}
 				mApp->mWidgetManager->SetFocus(this);
-				if (m6e4 != NULL)
-					m6e4->SetVolume(1.0);
-				if (m8df)
+				if (mPauseMutedSound != NULL)
+					mPauseMutedSound->SetVolume(1.0);
+				if (mStartWeaponAfterPause)
 				{
-					m8df = false;
+					mStartWeaponAfterPause = false;
 					BeginPlay();
 				}
 			}
@@ -105,8 +105,8 @@ void Board::Pause(bool theStart, bool theFlag)
 	m1af0 = mUpdateCnt;
 	mApp->SetLoopSoundsMuted(true);
 	SetOverlayHidden(false);
-	if (m6e4 != NULL)
-		m6e4->SetVolume(0.0);
+	if (mPauseMutedSound != NULL)
+		mPauseMutedSound->SetVolume(0.0);
 	SoundInstance* aKlaxon = mApp->mLoopSounds[7];
 	if (aKlaxon->IsPlaying())
 		aKlaxon->SetVolume(0.0);
@@ -129,38 +129,38 @@ void Board::Pause(bool theStart, bool theFlag)
 // 0x437910: the pictures of the theme button and the checkbox are made again in the colour of the stage
 void Board::RecolorThemeButtons()
 {
-	delete m74c->mOverImage;
-	delete m74c->mDownImage;
-	delete m74c->mButtonImage;
-	delete m750->mUncheckedImage;
+	delete mHintOkButton->mOverImage;
+	delete mHintOkButton->mDownImage;
+	delete mHintOkButton->mButtonImage;
+	delete mHintOffCheckbox->mUncheckedImage;
 
 	StageBg* aStage = mHintSpots[0]->mBg;
 	Color aColor(aStage->mColor1.mRed, aStage->mColor1.mGreen, aStage->mColor1.mBlue);
-	m74c->mDownImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_DOWN, aColor);
-	m74c->mOverImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_OVER, aColor);
-	m74c->mButtonImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_UP, aColor);
+	mHintOkButton->mDownImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_DOWN, aColor);
+	mHintOkButton->mOverImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_OVER, aColor);
+	mHintOkButton->mButtonImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_UP, aColor);
 	if (aColor.mRed != 0)
 		aColor.mRed = 0xff;
 	if (aColor.mGreen != 0)
 		aColor.mGreen = 0xff;
 	if (aColor.mBlue != 0)
 		aColor.mBlue = 0xff;
-	m750->mUncheckedImage = mApp->CreateColorizedImage(IMAGE_TH_CHECKBOX, aColor);
-	m750->mCheckedImage = m750->mUncheckedImage;
+	mHintOffCheckbox->mUncheckedImage = mApp->CreateColorizedImage(IMAGE_TH_CHECKBOX, aColor);
+	mHintOffCheckbox->mCheckedImage = mHintOffCheckbox->mUncheckedImage;
 }
 
 // 0x45ab90: once the warp has faded in, the theme buttons (to keep or change the stage's colour theme) appear
 void Board::ShowThemeButtons()
 {
-	if (!mHintSpots.empty() && mHintSpots[0]->m1c && m7e8 <= -m7ec)
+	if (!mHintSpots.empty() && mHintSpots[0]->mActive && mLevelUpPanelY <= -mLevelUpPanelHeight)
 	{
 		Pause(true, false);
 		RecolorThemeButtons();
-		m74c->Resize(0x1c2, (IMAGE_TH_STRIP->mHeight - IMAGE_TH_CHECKBOX->mHeight) + 0xa9, IMAGE_TH_BTN_OVER->mWidth, IMAGE_TH_BTN_OVER->mHeight);
-		m750->SetVisible(true);
-		m74c->SetVisible(true);
-		mApp->mWidgetManager->BringToFront(m74c);
-		mApp->mWidgetManager->BringToFront(m750);
+		mHintOkButton->Resize(0x1c2, (IMAGE_TH_STRIP->mHeight - IMAGE_TH_CHECKBOX->mHeight) + 0xa9, IMAGE_TH_BTN_OVER->mWidth, IMAGE_TH_BTN_OVER->mHeight);
+		mHintOffCheckbox->SetVisible(true);
+		mHintOkButton->SetVisible(true);
+		mApp->mWidgetManager->BringToFront(mHintOkButton);
+		mApp->mWidgetManager->BringToFront(mHintOffCheckbox);
 	}
 }
 
@@ -292,7 +292,7 @@ void Board::BeginPlay()
 							mTurbotMarkedCells.push_back(aCell);
 							if (4 < m1a8c)
 							{
-								aBrick->mFlag187 = true;
+								aBrick->mBlastsOnPop = true;
 								aBrick->AdvanceParticleCount();
 							}
 						}
@@ -317,10 +317,10 @@ void Board::BeginPlay()
 		}
 
 		mApp->PlaySample(SOUND_POWER_ACTIVATED);
-		m6fc = 0;
-		m6f4 = 0;
-		m6f0 = 0;
-		m6f8 = 0x35;
+		mShipShimmerHeight = 0;
+		mShipShimmerY = 0;
+		mShipShimmerX = 0;
+		mShipShimmerWidth = 0x35;
 		if (!m8fc)
 		{
 			if (mMode != 1 && mMode != 2)
@@ -371,7 +371,7 @@ void Board::DismissHint()
 {
 	if (m919)
 	{
-		m74c->SetVisible(false);
+		mHintOkButton->SetVisible(false);
 		mApp->mUser->SetInt(mMode + 0x2a, 0);
 		mApp->mUser->Save();
 		m919 = false;
@@ -382,7 +382,7 @@ void Board::DismissHint()
 	size_t i = 0;
 	while (!mHintSpots.empty() && i < mHintSpots.size())
 	{
-		if (mHintSpots[i]->m1c)
+		if (mHintSpots[i]->mActive)
 			break;
 		i++;
 	}
@@ -390,10 +390,10 @@ void Board::DismissHint()
 	{
 		HintSpot* aSpot = mHintSpots[i];
 		mApp->mUser->SetInt(aSpot->mId + 1, 1);
-		if (m750->mChecked)
+		if (mHintOffCheckbox->mChecked)
 		{
 			mApp->mUser->SetInt(aSpot->mId, 0);
-			m750->mChecked = false;
+			mHintOffCheckbox->mChecked = false;
 			while (mHintSpots.size() > 1)
 			{
 				delete mHintSpots[1];
@@ -401,8 +401,8 @@ void Board::DismissHint()
 			}
 		}
 		mApp->mUser->Save();
-		m74c->SetVisible(false);
-		m750->SetVisible(false);
+		mHintOkButton->SetVisible(false);
+		mHintOffCheckbox->SetVisible(false);
 		// (the original takes the panel by its index i, which the loop above may have emptied the vector below; the panel
 		// that is up is always the first, so both are the same)
 		mHintSpots.erase(std::find(mHintSpots.begin(), mHintSpots.end(), aSpot));
@@ -412,11 +412,11 @@ void Board::DismissHint()
 	if (!mHintSpots.empty())
 	{
 		RecolorThemeButtons();
-		mHintSpots[0]->m1c = true;
-		m74c->SetVisible(true);
-		m750->SetVisible(true);
-		mApp->mWidgetManager->BringToFront(m750);
-		mApp->mWidgetManager->BringToFront(m74c);
+		mHintSpots[0]->mActive = true;
+		mHintOkButton->SetVisible(true);
+		mHintOffCheckbox->SetVisible(true);
+		mApp->mWidgetManager->BringToFront(mHintOffCheckbox);
+		mApp->mWidgetManager->BringToFront(mHintOkButton);
 		return;
 	}
 	Pause(false, true);
@@ -425,7 +425,7 @@ void Board::DismissHint()
 // 0x4347c0: the overlay's button (0xfa7) closes the picture over the field and the field is clear again
 void Board::CloseOverlay()
 {
-	m8d8 = true;
+	mDemoEnding = true;
 	m978 = 0;
 	mApp->mWidgetManager->RemoveWidget(mDemoStartLink);
 	mApp->SafeDeleteWidget(mDemoStartLink);

@@ -169,7 +169,7 @@ void Board::ClearBonus()
 	aBonus = aBonus - aBonus % 50;
 
 	std::string aText = StrFormat(GTC(0x5652f8), aBonus);
-	m7c8++;
+	mFieldsCleared++;
 	int aWidth = FONT_POINTS->StringWidth(aText);
 	FloatText* aFloat = new FloatText(aText, FONT_POINTS, (float) (0x182 - aWidth / 2), 250.0f, 300, 10.0f);
 	mFloatTexts.push_back(aFloat);

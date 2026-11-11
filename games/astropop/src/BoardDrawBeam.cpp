@@ -130,7 +130,7 @@ void Board::DrawBeam(Graphics* g)
 		for (int i = 0; i < 40; i++)
 		{
 			BlinkRec& aRec = mBeamSparks[i];
-			int aX = aRec.m00;
+			int aX = aRec.mX;
 			int aY = aRec.mCounter;
 			int anAlpha = aY / 2;
 			if (anAlpha > 0xff)

@@ -347,14 +347,14 @@ void Board::UpdateStates()
 		if (m1ac0 > 0)
 			m1ac0--;
 
-		if (m8de)
+		if (mLevelUpTextShown)
 		{
-			m778->Update();
-			if (m778->m08 == 0)
-				m8de = false;
+			mLevelUpText->Update();
+			if (mLevelUpText->mActive == 0)
+				mLevelUpTextShown = false;
 		}
 
-		mAnim560.Update();
+		mBoosterAnim.Update();
 
 		if (!m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && m19fc < 1)
 		{
@@ -373,15 +373,15 @@ void Board::UpdateStates()
 				m1960 = -1;
 		}
 
-		if (!m8d8 || !m8dc)
+		if (!mDemoEnding || !mDemoPlaying)
 		{
-			if (m8d9)
+			if (mFadingFromWhite)
 			{
 				m978 -= 6;
 				if (m978 < 1)
 				{
 					m978 = 0;
-					m8d9 = false;
+					mFadingFromWhite = false;
 				}
 				mOverlay.SetFill(0xff, 0xff, 0xff, m978);
 			}
@@ -395,13 +395,13 @@ void Board::UpdateStates()
 					delete mFloatTexts[i];
 				mFloatTexts.clear();
 				m978 = 0xff;
-				m8dc = false;
-				m8d8 = false;
+				mDemoPlaying = false;
+				mDemoEnding = false;
 				ClearField();
 				ResetState();
 				ResetGame();
 				LoadLevel(true);
-				m8d9 = true;
+				mFadingFromWhite = true;
 			}
 			mOverlay.SetFill(0xff, 0xff, 0xff, m978);
 		}
@@ -517,8 +517,8 @@ void Board::UpdateStates()
 			m19b4++;
 			if (m19b4 > 0 && m19b4 % 6000 == 0 && m1a60 == 2)
 			{
-				m8de = true;
-				delete m778;
+				mLevelUpTextShown = true;
+				delete mLevelUpText;
 
 				int aMinutes = m19b4 / 6000;
 				std::string aText;
@@ -537,8 +537,8 @@ void Board::UpdateStates()
 				g.SetFont(aFont);
 				g.DrawString(aText, 0, aFont->GetAscent());
 
-				m778 = new LevelUpText(anImage, 0);
-				m778->m04 = true;
+				mLevelUpText = new LevelUpText(anImage, 0);
+				mLevelUpText->m04 = true;
 				mApp->PlaySample(SOUND_WORDSWOOSH);
 			}
 		}
@@ -612,7 +612,7 @@ void Board::UpdateStates()
 			mSpecialCooldowns[i]--;
 	}
 
-	if (mApp->mFlag658)
+	if (mApp->mTutorialOn)
 	{
 		if (m1a5c > 0)
 			m1a58++;

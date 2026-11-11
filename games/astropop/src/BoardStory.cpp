@@ -125,15 +125,15 @@ bool Board::OpenStoryScreen()
 			mApp->mUser->Save();
 		}
 
-		m754 = new StoryScreen(mApp, aNumber, mMode, aNumber <= aSeen, false);
+		mStoryScreen = new StoryScreen(mApp, aNumber, mMode, aNumber <= aSeen, false);
 		LoadStoryPages();
-		m754->SetPageA(anEntry->mPageA);
-		m754->SetPageB(anEntry->mPageB);
-		m754->Resize(0, 0, 0x280, 0x1e0);
+		mStoryScreen->SetPageA(anEntry->mPageA);
+		mStoryScreen->SetPageB(anEntry->mPageB);
+		mStoryScreen->Resize(0, 0, 0x280, 0x1e0);
 		Pause(true, false);
-		mApp->mWidgetManager->AddWidget(m754);
+		mApp->mWidgetManager->AddWidget(mStoryScreen);
 		mApp->SetCursor(0);
-		mApp->mWidgetManager->SetFocus(m754);
+		mApp->mWidgetManager->SetFocus(mStoryScreen);
 		mApp->PlaySong(5);
 		return true;
 	}
@@ -183,14 +183,14 @@ void Board::LoadStoryPages()
 		aPrefixFormat = "TP%d_";
 		break;
 	}
-	m72c = StrFormat(aGroupFormat, aStoryNumber + 1);
+	mStoryResourceGroup = StrFormat(aGroupFormat, aStoryNumber + 1);
 	std::string aPrefix = std::string("IMAGE_STORY_") + StrFormat(aPrefixFormat, aStoryNumber + 1);
 
-	mApp->mResourceManager->StartLoadResources(m72c);
+	mApp->mResourceManager->StartLoadResources(mStoryResourceGroup);
 	while (mApp->mResourceManager->LoadNextResource())
 	{
 	}
-	if (mApp->mResourceManager->HadError() || !ExtractResourcesByName(mApp->mResourceManager, m72c.c_str()))
+	if (mApp->mResourceManager->HadError() || !ExtractResourcesByName(mApp->mResourceManager, mStoryResourceGroup.c_str()))
 	{
 		mApp->ShowResourceError(false);
 		mApp->Shutdown();
@@ -243,10 +243,10 @@ void Board::LoadStoryPages()
 // 0x469030: the story is over and the level starts
 void Board::CloseStory()
 {
-	mApp->mWidgetManager->RemoveWidget(m754);
-	mApp->SafeDeleteWidget(m754);
+	mApp->mWidgetManager->RemoveWidget(mStoryScreen);
+	mApp->SafeDeleteWidget(mStoryScreen);
 	bool aSaved = m1c09;
-	m754 = NULL;
+	mStoryScreen = NULL;
 	m1c09 = true;
 	Pause(false, false);
 	mApp->PlaySong(9);
@@ -256,5 +256,5 @@ void Board::CloseStory()
 	mApp->mHyperspaceLoop->SetVolume(1.0);
 	mApp->mEngineLoop->Play(true, false);
 	LoadLevel(true);
-	m7e8 = -m7ec;
+	mLevelUpPanelY = -mLevelUpPanelHeight;
 }

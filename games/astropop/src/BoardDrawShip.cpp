@@ -49,14 +49,14 @@ void Board::DrawShip(Graphics* g)
 		int aShipX = anOffset + aX;
 		DrawCel(g, aShip, aShipX, (int) aShipY, aCel);
 
-		if (m1a34 == 1 && m6fc > 0)
+		if (m1a34 == 1 && mShipShimmerHeight > 0)
 		{
 			// the charge of the weapon, over the ship
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, m8ea ? m1b38 : 0xff));
-			Rect aSrc(aShip->mWidth / aShip->mNumCols * aCel + m6f0, m6f4, m6f8, m6fc);
-			g->DrawImage(aShip, m6f0 + anOffset + aX, (int) ((float) m6f4 + (float) aShipY), aSrc);
+			Rect aSrc(aShip->mWidth / aShip->mNumCols * aCel + mShipShimmerX, mShipShimmerY, mShipShimmerWidth, mShipShimmerHeight);
+			g->DrawImage(aShip, mShipShimmerX + anOffset + aX, (int) ((float) mShipShimmerY + (float) aShipY), aSrc);
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			g->SetColorizeImages(false);
 		}

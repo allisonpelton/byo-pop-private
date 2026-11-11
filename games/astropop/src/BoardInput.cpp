@@ -77,16 +77,16 @@ void Board::AddedToManager(WidgetManager* theManager)
 	theManager->AddWidget(mHelpButton);
 	theManager->BringToFront(mHelpButton);
 
-	theManager->AddWidget(m74c);
-	m74c->SetVisible(false);
-	theManager->AddWidget(m750);
-	m750->SetVisible(false);
+	theManager->AddWidget(mHintOkButton);
+	mHintOkButton->SetVisible(false);
+	theManager->AddWidget(mHintOffCheckbox);
+	mHintOffCheckbox->SetVisible(false);
 	theManager->AddWidget(&mOverlay);
 	theManager->BringToFront(&mOverlay);
 	SetOverlayHidden(true);
 	theManager->SetFocus(this);
 
-	if (m8dc)
+	if (mDemoPlaying)
 	{
 		// the demo invites the player to start a game
 		HyperlinkWidget* aLink = new HyperlinkWidget(0xfa7, mApp);
@@ -111,8 +111,8 @@ void Board::RemovedFromManager(WidgetManager* theManager)
 {
 	Widget::RemovedFromManager(theManager);
 
-	if (m754 != NULL)
-		theManager->RemoveWidget(m754);
+	if (mStoryScreen != NULL)
+		theManager->RemoveWidget(mStoryScreen);
 	if (!mFieldButtons.empty() && mFieldButtons[0] != NULL)
 		theManager->RemoveWidget(mFieldButtons[0]);
 	if (mDemoStartLink != NULL)
@@ -123,10 +123,10 @@ void Board::RemovedFromManager(WidgetManager* theManager)
 		theManager->RemoveWidget(mMenuButton);
 	if (mContinueButton != NULL)
 		theManager->RemoveWidget(mContinueButton);
-	if (m74c != NULL)
-		theManager->RemoveWidget(m74c);
-	if (m750 != NULL)
-		theManager->RemoveWidget(m750);
+	if (mHintOkButton != NULL)
+		theManager->RemoveWidget(mHintOkButton);
+	if (mHintOffCheckbox != NULL)
+		theManager->RemoveWidget(mHintOffCheckbox);
 	theManager->RemoveWidget(&mOverlay);
 }
 
@@ -161,7 +161,7 @@ void Board::KeyChar(SexyChar theChar)
 	if (theChar == ' ')
 	{
 		bool aFlag = false;
-		if (!mHintSpots.empty() && mHintSpots[0]->m1c && !m8ea && !(m7e8 > -m7ec))
+		if (!mHintSpots.empty() && mHintSpots[0]->mActive && !m8ea && !(mLevelUpPanelY > -mLevelUpPanelHeight))
 		{
 			aFlag = true;
 			if (m1924 > 0 && !m919)
@@ -173,7 +173,7 @@ void Board::KeyChar(SexyChar theChar)
 	}
 	else if (theChar == 'z' || theChar == 'Z')
 	{
-		if (m8dc)
+		if (mDemoPlaying)
 			return;
 		int aCol = (m198c - 0xa6) / 0x2c;
 		if (aCol >= 1 && aCol <= 9)
@@ -181,7 +181,7 @@ void Board::KeyChar(SexyChar theChar)
 	}
 	else if (theChar == 'x' || theChar == 'X')
 	{
-		if (m8dc)
+		if (mDemoPlaying)
 			return;
 		int aCol = (m198c - 0xa6) / 0x2c;
 		if (aCol >= 0 && aCol <= 8)
@@ -193,7 +193,7 @@ void Board::KeyChar(SexyChar theChar)
 // button of the field, Return starts the play
 void Board::KeyDown(KeyCode theKey)
 {
-	if (m8eb || m8ed || m8ef || m8f4 || m8ec || mFlag8E9 || mFlag8E8 || m1924 != 0 || m8dc)
+	if (m8eb || m8ed || m8ef || m8f4 || m8ec || mFlag8E9 || mFlag8E8 || m1924 != 0 || mDemoPlaying)
 		return;
 
 	if (theKey == 0x25)
@@ -256,7 +256,7 @@ void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 	(void) x;
 	(void) y;
 	(void) theClickCount;
-	if (mApp->mHelpScreen == NULL && theBtnNum == 2 && (!m8dc || m8dd) && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec &&
+	if (mApp->mHelpScreen == NULL && theBtnNum == 2 && (!mDemoPlaying || mDemoInputActive) && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec &&
 		!mFlag8E9 && !mFlag8E8 && m1924 == 0 && !m8e4 && m1bd8 == m1bdc && m1a34 == 0)
 		StartByHand();
 }
@@ -268,7 +268,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	if (mApp->mHelpScreen != NULL)
 		return;
 
-	if (m1924 == 1 && !m919 && (mHintSpots.empty() || !mHintSpots[0]->m1c))
+	if (m1924 == 1 && !m919 && (mHintSpots.empty() || !mHintSpots[0]->mActive))
 	{
 		// the game is paused: a click goes on with it
 		if (mOverlay.mFlag78)
@@ -278,13 +278,13 @@ void Board::MouseDown(int x, int y, int theClickCount)
 			mOverlay.SetFlag78(false);
 			mApp->mUser->SetInt(0x2e, 0);
 			mApp->mUser->Save();
-			m8df = true;
+			mStartWeaponAfterPause = true;
 		}
 		Pause(false, false);
 		return;
 	}
 
-	if ((m8dc && !m8dd) || m90f)
+	if ((mDemoPlaying && !mDemoInputActive) || m90f)
 		return;
 
 	Widget::MouseDown(x, y, theClickCount);
@@ -296,7 +296,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		m974 = 0;
 
 	if (!(!mFlag8E8 && (!mFlag8E9 || m8ef) && !m8ec && !m8f4 && (!m8eb || m8ef) && !m8ea &&
-		(m8eb || m8ed || m8ef || m7ec + m7e8 <= 0) && m1924 == 0 && !(mMode == 1 && m1a34 == 1) &&
+		(m8eb || m8ed || m8ef || mLevelUpPanelHeight + mLevelUpPanelY <= 0) && m1924 == 0 && !(mMode == 1 && m1a34 == 1) &&
 		!(mMode == 2 && m1a34 == 1) && m1af4 != mUpdateCnt))
 		return;
 
@@ -386,7 +386,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	{
 		if (m1a08 < 1 || x < m1a74 || m1a74 + 0x78 < x || m195c < 0xe1 || aGateHeight + 0xf5 < m195c)
 			return;
-		m1b28 = Fn433130(m1a08 / 2 + 1);
+		m1b28 = UpgradeScreenKind(m1a08 / 2 + 1);
 		mApp->PlaySample(SOUND_BUTTON_DOWN);
 		if (mField193C < m1a08)
 		{
@@ -427,7 +427,7 @@ void Board::MouseMove(int x, int y)
 	m1958 = x;
 	m195c = y;
 
-	if (m8dc && !m8dd)
+	if (mDemoPlaying && !mDemoInputActive)
 		return;
 	if (mFlag8E8)
 		return;
@@ -443,7 +443,7 @@ void Board::MouseMove(int x, int y)
 		return;
 	if (m8ea)
 		return;
-	if (!m8eb && !m8ed && !m8ef && m7ec + m7e8 > 0)
+	if (!m8eb && !m8ed && !m8ef && mLevelUpPanelHeight + mLevelUpPanelY > 0)
 		return;
 	if (m1924 != 0 && !mOverlay.mFlag78)
 		return;
@@ -548,7 +548,7 @@ void Board::MouseMove(int x, int y)
 				}
 			}
 
-			if (m8db)
+			if (mRecordingDemo)
 			{
 				m948 = (unsigned char) (0xc - aNewCol);
 				m94c = 0;
@@ -636,7 +636,7 @@ void Board::MouseMove(int x, int y)
 		}
 	}
 
-	if (!m8dc)
+	if (!mDemoPlaying)
 		mApp->SetCursor(0);
 
 	if (599 < m1958)
@@ -1001,7 +1001,7 @@ void Board::PickUp()
 
 	if (aCaught)
 	{
-		if (m8db)
+		if (mRecordingDemo)
 		{
 			m948 = 2;
 			m94c = (mHeldBricks.front()->GetEffectiveType() * 0x100 - (int) aStartSize) + (int) mHeldBricks.size();
@@ -1055,7 +1055,7 @@ void Board::PickUp()
 				if ((aKind >= 0 && aKind <= 5 && !aCell->IsJammed()) || aKind == 7 || aKind == 9 ||
 					aCell->mMutated == 0 || aCell->mMutated == 1)
 				{
-					aCell->mFlag187 = true;
+					aCell->mBlastsOnPop = true;
 					aCell->AdvanceParticleCount();
 				}
 				RemoveBrick(aCell, aCol, aRow, true);
@@ -1085,13 +1085,13 @@ void Board::PickUp()
 
 		// the hints of the first stages go on a step (a picture of the stage is shown once it has been taken)
 		unsigned int aStage = (unsigned int) mField193C;
-		if ((aStage < mStageHintPanels.size() && !mStageHintPanels[aStage]->mf0) || m90a)
+		if ((aStage < mStageHintPanels.size() && !mStageHintPanels[aStage]->mFadedOut) || m90a)
 		{
 			if ((aStage == 1 || m90a) && mStageHintPanels.size() > 1)
 			{
 				StageBg* aBg = mStageHintPanels[1];
 				StageBg* aNext = aBg->mNext;
-				if (aNext != NULL && aNext->mNext != NULL && !m8dc)
+				if (aNext != NULL && aNext->mNext != NULL && !mDemoPlaying)
 				{
 					delete aBg;
 					mStageHintPanels[1] = aNext;
@@ -1100,7 +1100,7 @@ void Board::PickUp()
 				}
 			}
 			else if (aStage != 1 && !m90a)
-				mStageHintPanels[aStage]->m118 = -8;
+				mStageHintPanels[aStage]->mPanelAlphaStep = -8;
 		}
 		if (mField193C < 2 || m90a)
 		{
@@ -1146,7 +1146,7 @@ void Board::PickUp()
 				break;
 		}
 
-		if (m8db)
+		if (mRecordingDemo)
 		{
 			m948 = 2;
 			m94c = mHeldBricks.front()->GetEffectiveType() * 0x100 + (int) mHeldBricks.size();
@@ -1176,7 +1176,7 @@ void Board::PickUp()
 			if ((aKind >= 0 && aKind <= 5 && !aCell->IsJammed()) || aKind == 7 || aKind == 9 ||
 				aCell->mMutated == 0 || aCell->mMutated == 1)
 			{
-				aCell->mFlag187 = true;
+				aCell->mBlastsOnPop = true;
 				aCell->AdvanceParticleCount();
 			}
 			RemoveBrick(aCell, aCol, aRow, true);
@@ -1204,7 +1204,7 @@ void Board::PickUp()
 		Brick* aPicked = mFieldBricks[aPickRow][aCol];
 		if (aPicked == NULL || !MatchesHand(aPicked) || !aPicked->IsIdle() || IsToolKind(aPicked->GetEffectiveType()))
 			break;
-		if (mApp->mFlag658)
+		if (mApp->mTutorialOn)
 		{
 			m1a5c++;
 			if (m1a58 < 1000 && m1a5c == 2)
@@ -1220,7 +1220,7 @@ void Board::PickUp()
 		aPickRow--;
 	} while (aPickRow > 0);
 
-	if (m8db && mHeldBricks.size() != aStartSize)
+	if (mRecordingDemo && mHeldBricks.size() != aStartSize)
 	{
 		m948 = 2;
 		m94c = (mHeldBricks.front()->GetEffectiveType() * 0x100 - (int) aStartSize) + (int) mHeldBricks.size();
@@ -1242,10 +1242,10 @@ void Board::FirePiece()
 	if ((unsigned int) mHeldBricks.size() <= aCount)
 		aCount = (unsigned int) mHeldBricks.size();
 
-	if (mApp->mFlag658)
+	if (mApp->mTutorialOn)
 	{
 		mApp->mUser->SetInt(0x11, 0);
-		mApp->mFlag658 = false;
+		mApp->mTutorialOn = false;
 		mApp->mUser->Save();
 	}
 
@@ -1290,7 +1290,7 @@ void Board::FirePiece()
 				((PowerBrick*) aBrick)->Activate();
 				mHeldBricks.clear();
 				aBrick->SetParticleX((float) m198c);
-				if (!aBrick->mFlag18C)
+				if (!aBrick->mLanded)
 					m1990--;
 				int aNukeCol = (m198c - 0xa6) / 0x2c;
 				mApp->PlaySample(SOUND_COLUMN_KILLER);
@@ -1329,10 +1329,10 @@ void Board::FirePiece()
 			aBrick->SetVisible(false);
 		aGroup.push_back(aBrick);
 		if (aKind == 6 || aKind == 8 || aKind == 10 || aKind == 0xe || aKind == 0xb)
-			aBrick->mFlag18A = true;
+			aBrick->mGoesOffOnArrival = true;
 		if (aBrick->mMutated != 1 && aBrick->mType == 8)
-			((FuelCell*) aBrick)->SetFlag240();
-		if (aBrick->mState == 2 && !aBrick->mFlag18C)
+			((FuelCell*) aBrick)->SetFiredFromShip();
+		if (aBrick->mState == 2 && !aBrick->mLanded)
 			aBrick->Finish();
 		else
 			FireTo(aBrick, 1);
@@ -1347,7 +1347,7 @@ void Board::FirePiece()
 	}
 
 	mFiredGroups.push_back(aGroup);
-	if (m8db)
+	if (mRecordingDemo)
 	{
 		m948 = 1;
 		m94c = aFrontKind * 0x100 + (int) aSize;

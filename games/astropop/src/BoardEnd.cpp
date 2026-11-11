@@ -17,7 +17,7 @@ using namespace Sexy;
 // 0x45e680: one update of the end of a game (the Board's Update calls it while mFlag8E8 is set).
 void Board::UpdateGameOver()
 {
-	mAnim5a0.Update();
+	mResultPulseAnim.Update();
 	m1b34 = (m1b34 + 4) & 0xff;
 	if (m905)
 		return;
@@ -102,11 +102,11 @@ void Board::UpdateGameOver()
 void Board::CreateEndButtons()
 {
 	m91d = true;
-	mAnim5a0.SetNumFrames(0x1f);
-	mAnim5a0.SetDelay(1);
-	mAnim5a0.mPingPong = true;
-	mAnim5a0.mHoldLast = false;
-	mAnim5a0.SetStopped(false);
+	mResultPulseAnim.SetNumFrames(0x1f);
+	mResultPulseAnim.SetDelay(1);
+	mResultPulseAnim.mPingPong = true;
+	mResultPulseAnim.mHoldLast = false;
+	mResultPulseAnim.SetStopped(false);
 
 	AstroButton* aContinue = new AstroButton(0xfa4, mApp);
 	mContinueButton = aContinue;
@@ -226,7 +226,7 @@ void Board::GameOver()
 			m1b6c = -1;
 		else
 			m1b6c = (aBestLevel / 4) * 4;
-		mApp->mUser->GetInt(0x5d, &m7c4);
+		mApp->mUser->GetInt(0x5d, &mBestChain);
 		mApp->mUser->SetInt(0x5d, 0);
 		mApp->mUser->ResetHintsShown();
 		SaveFinalScore();

@@ -67,12 +67,12 @@ public:
 	MainMenu*					mMainMenu;          // +0x644 the game selector (ShowMainMenu)
 	Widget*						mHallScreen;        // +0x648 the hall of fame (ShowHallOfFame), NULL for none
 	LoaderScreen*				mLoaderScreen;      // +0x640 Init .. the title (the original ctor leaves it uninitialised)
-	Widget*						mScreen650;         // +0x650 the screen shown over the selector (pilot choice, hall of fame ...); ShowMainMenu removes it
-	Widget*						mScreen654;         // +0x654 the story screen (0x428f10), removed by its button 0xfb6
-	bool						mFlag658;           // +0x658 ValidateUser: profile setting 0x11 (1 when missing) is not 0
+	Widget*						mCharSelector;      // +0x650 the pilot choice screen, shown over the selector; ShowMainMenu removes it
+	Widget*						mCreditsScreen;     // +0x654 the credits screen (0x428f10), removed by its button 0xfb6
+	bool						mTutorialOn;        // +0x658 the pilot still has the tutorial (profile setting 0x11, 1 when missing); cleared and saved at the first move
 	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
-	int							mTimer664;          // +0x664 counted down by UpdateFrames
+	int							mComboPingTimer;    // +0x664 updates before the combo ping may sound again (PlayComboPing sets 45); UpdateFrames counts it down
 	int							mGameUpdates;       // +0x668 counted by the Board's Update while a game runs
 	Font*						mDialogFont;        // +0x66c FONT_DIALOG_BOX, set when the loading thread ends
 	MemoryImage*				mGradient[3];       // +0x674 +0x678 +0x67c 1 x 480 white, grey and dark ramps
@@ -85,10 +85,10 @@ public:
 	XcfFile*					mDescriptor;        // +0x6a8 data\descriptor.xcf: the level settings (LoadDescriptor)
 	std::vector<HallEntry>		mHall;              // +0x6c4 the hall of fame (0x2c bytes an entry), kept in users\datahs.usr
 	int							mClassicPilot;      // +0x6d4 the pilot the player chose for the classic mode (the Board's mode)
-	bool						mFlag6f9;           // +0x6f9 ValidateUser: profile setting 0x13 (1 when missing) is not 0
-	bool						mFlag6fa;           // +0x6fa ValidateUser: profile setting 0x72 is 1
-	bool						mFlag6fb;           // +0x6fb ValidateUser: profile setting 0x73 (1 when missing) is 1
-	bool						mFlag6fc;           // +0x6fc (set by the help screen; read by the Board's Update)
+	bool						mHintsOn;           // +0x6f9 the hints option (profile setting 0x13, 1 when missing)
+	bool						mColorblind;        // +0x6fa the colour-blind option (profile setting 0x72 is 1)
+	bool						mShowHelpAtStart;   // +0x6fb the help screen is shown when a game starts (profile setting 0x73, 1 when missing, is 1)
+	bool						mHelpShown;         // +0x6fc the help screen has been shown for this game (set by the help screen; the Board waits for it)
 	Widget*						mHelpScreen;        // +0x69c the full-screen help (ShowFullScreenHelp), NULL for none
 	int							mMusicSlot;         // +0x6d8 the slot that plays (0 or 1)
 	int							mMusicOrder;        // +0x6dc the song position (order) that plays, -1 for none

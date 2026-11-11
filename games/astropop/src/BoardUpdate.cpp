@@ -18,7 +18,7 @@ void Board::Update()
 {
 	Widget::Update();
 
-	if (m8db)
+	if (mRecordingDemo)
 	{
 		if (!m948)
 			m94c++;
@@ -31,12 +31,12 @@ void Board::Update()
 
 	// a warp to the next stage is on the screen (and is not fading out already)
 	bool aWarpActive = true;
-	if (mHintSpots.empty() || !mHintSpots[0]->m1c || -m7ec < m7e8)
+	if (mHintSpots.empty() || !mHintSpots[0]->mActive || -mLevelUpPanelHeight < mLevelUpPanelY)
 		aWarpActive = false;
 
 	if (m8ff && (mUpdateCnt % 8) != 0)
 	{
-		if (m8db)
+		if (mRecordingDemo)
 			RecordStep(false);
 		return;
 	}
@@ -63,11 +63,11 @@ void Board::Update()
 			mOverlay.MarkDirtyFull();
 		}
 
-		if (mHintSpots.empty() || !mHintSpots[0]->m1c || m1924 != 1)
+		if (mHintSpots.empty() || !mHintSpots[0]->mActive || m1924 != 1)
 		{
 			if (m919)
 			{
-				m808.Update(8);
+				mWeaponHintPulse.Update(8);
 				MarkDirtyFull();
 			}
 		}
@@ -75,7 +75,7 @@ void Board::Update()
 			UpdateStageBackground();
 		else
 		{
-			m808.Update(8);
+			mWeaponHintPulse.Update(8);
 			MarkDirtyFull();
 		}
 
@@ -88,15 +88,15 @@ void Board::Update()
 		if (mApp->mHelpScreen != NULL)
 			return;
 
-		if (m8e1 && mApp->mFlag6fb && !mApp->mFlag6fc)
+		if (mFirstHelpPending && mApp->mShowHelpAtStart && !mApp->mHelpShown)
 		{
-			m8e1 = false;
+			mFirstHelpPending = false;
 			mApp->ShowFullScreenHelp();
 			return;
 		}
 
 		// the demo (the title's game plays by itself): one step of its script
-		if (m8dc)
+		if (mDemoPlaying)
 		{
 			unsigned int aSize = (unsigned int) mDemoSteps.size();
 			unsigned int aStep = (unsigned int) m954;
@@ -118,7 +118,7 @@ void Board::Update()
 			}
 			else
 			{
-				m8dd = true;
+				mDemoInputActive = true;
 				if (anAction == 2)
 					MouseDown(m1958, m195c, 1);
 				else if (anAction == 1)
@@ -142,18 +142,18 @@ void Board::Update()
 					MouseMove(aX, 400);
 				}
 				unsigned int aNext = (unsigned int) m954 + 1;
-				m8dd = false;
+				mDemoInputActive = false;
 				m954 = (int) aNext;
 				if (aNext < (unsigned int) mDemoSteps.size() && mDemoSteps[aNext].mAction == 0)
 					m95c = mDemoSteps[aNext].mArg;
 			}
 		}
 
-		if (!m8e0)
+		if (!mWelcomePlayed)
 		{
-			if (!m8dc)
+			if (!mDemoPlaying)
 			{
-				m8e0 = true;
+				mWelcomePlayed = true;
 				mApp->PlaySample(SOUND_VWELCOME);
 			}
 			if (!mApp->mEngineLoop->IsPlaying())
@@ -181,7 +181,7 @@ void Board::Update()
 
 		if (IsSettled(false))
 			LevelComplete();
-		if (Fn46a810())
+		if (UpdateWarp())
 			return;
 
 		if (m8ea && !aWarpActive)
@@ -193,7 +193,7 @@ void Board::Update()
 		if (m1a60 == 2)
 			UpdateRamp();
 
-		if ((mUpdateCnt % m19d4) == 0 && !mApp->mFlag658 && m1bbc <= mField193C && m8fc && m19d0 < m19cc - 200 && m19fc == 0)
+		if ((mUpdateCnt % m19d4) == 0 && !mApp->mTutorialOn && m1bbc <= mField193C && m8fc && m19d0 < m19cc - 200 && m19fc == 0)
 			m19d0++;
 
 		if (m930 < m934)
@@ -308,7 +308,7 @@ void Board::Update()
 		MarkDirty();
 	}
 
-	if (m8db)
+	if (mRecordingDemo)
 		RecordStep(false);
 }
 
@@ -359,7 +359,7 @@ void Board::SweepSprockets()
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
 			Brick* aBrick = mFieldBricks[aRow][aCol];
-			if (aBrick != NULL && !aBrick->mSprocketOn && !aBrick->mFlag190)
+			if (aBrick != NULL && !aBrick->mSprocketOn && !aBrick->mSprocketFading)
 			{
 				FireTo(aBrick, HasCell3(aCol, aRow, mAtomicMarkedBricks) ? 0x18 : 0x16);
 				return;
@@ -384,7 +384,7 @@ void Board::SweepTurbots()
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
 				Brick* aBrick = mFieldBricks[aRow][aCol];
-				if (aBrick != NULL && !aBrick->mTurbotOn && !aBrick->mFlag193)
+				if (aBrick != NULL && !aBrick->mTurbotOn && !aBrick->mTurbotFading)
 				{
 					FireTo(aBrick, HasCell(aCol, aRow, mTurbotMarkedCells) ? 0x19 : 0x17);
 					if (!mTurbotMarkedCells.empty())
@@ -423,7 +423,7 @@ bool Board::SpawnControl()
 
 	if (m1a68 == 0 && CountMovingBricks(false) == 0 && m1994 == 0 && !m8ea && (aPhase != 1 || m8fb) &&
 		((mMode == 0 && (aPhase != 1 || m91c)) || (mMode == 3 && (aPhase != 1 || m91b)) || aPhase == 0 || m8fb) &&
-		!mApp->mFlag658 && m8fc && mKillAllTypes.empty() && m19fc < 1 && (aTime <= m19d8 || m1934 > 0))
+		!mApp->mTutorialOn && m8fc && mKillAllTypes.empty() && m19fc < 1 && (aTime <= m19d8 || m1934 > 0))
 	{
 		int aWaited = m19d8;
 		int aSpare = m1934;
@@ -586,6 +586,6 @@ void Board::UpdateSparks()
 		}
 	}
 
-	if (!mAnim620.mStopped)
-		mAnim620.Update();
+	if (!mSuperchargeBlastAnim.mStopped)
+		mSuperchargeBlastAnim.Update();
 }

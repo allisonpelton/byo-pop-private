@@ -83,7 +83,7 @@ void Board::DrawWarpScreen(Graphics* g)
 		}
 	}
 
-	if (Fn433130(m1940 + 1) == 0)
+	if (UpgradeScreenKind(m1940 + 1) == 0)
 		aText = kClickForNext;
 	if ((m1940 + 1) % 4 == 0 && m1b28 != 3 && m1b28 != 4)
 		aSrc = Rect(aCelWidth * 2, 0, aCelWidth, aPlanetHeight);
@@ -95,7 +95,7 @@ void Board::DrawWarpScreen(Graphics* g)
 	std::string aFastText = kClickForNext;
 	if (m1a08 > 0)
 	{
-		switch (Fn433130(m1a08 / 2 + 1))
+		switch (UpgradeScreenKind(m1a08 / 2 + 1))
 		{
 		case 1:
 			aFastText = kForBonusRound;

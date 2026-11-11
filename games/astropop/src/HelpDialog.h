@@ -29,7 +29,7 @@ public:
 	AstroPopApp*				mApp;       // +0x110
 	std::vector<Item>			mItems;     // +0x114 the bricks of the two last pages
 	std::vector<std::string>	mLines;     // +0x124 the rules of the first page
-	int							mPlayedBonusStages;       // +0x134 (0: nothing in the original sets it)
+	int							mLinesTopOffset; // +0x134 added to the top of the lines (0: nothing in the original sets it)
 	int							mTextIndent;    // +0x138 where the text of a brick starts: the width of the fuel cell and 10
 	int							mPage;      // +0x13c 0: the rules, 1 and 2: the bricks
 

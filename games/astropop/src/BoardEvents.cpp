@@ -53,7 +53,7 @@ void Board::HideCellHint(Brick* theBrick)
 	int aCol = CellColumn(theBrick->mX);
 	int aRow = CellRow(theBrick->mY);
 	HintBox* aBox = mHintBoxes[2];
-	if (aBox->m21 && aBox->m60 == aCol && aBox->m64 == aRow)
+	if (aBox->mShown && aBox->m60 == aCol && aBox->m64 == aRow)
 		aBox->SetShown(false);
 }
 
@@ -77,13 +77,13 @@ void Board::AdvanceChain()
 	m1b18 = 100;
 	if (m1a24 < aChain && !m910)
 		m1a24 = aChain;
-	if (m7c4 < aChain && !m910 && !m917)
+	if (mBestChain < aChain && !m910 && !m917)
 	{
-		m7c4 = aChain;
+		mBestChain = aChain;
 		int aBest = 0;
 		mApp->mUser->GetInt(0x5d, &aBest);
-		if (aBest < m7c4)
-			mApp->mUser->SetInt(0x5d, m7c4);
+		if (aBest < mBestChain)
+			mApp->mUser->SetInt(0x5d, mBestChain);
 	}
 	aChain = m1980;
 	if (aChain > 3 && m1bbc <= mField193C && m1a60 != 2)
@@ -339,7 +339,7 @@ void Board::OnFreezeBomb(Brick* theBrick)
 void Board::OnBrickPopped(Brick* theBrick)
 {
 	HideCellHint(theBrick);
-	if (theBrick->mFlag187)
+	if (theBrick->mBlastsOnPop)
 	{
 		unsigned int anIndex = 0;
 		for (std::list<Brick*>::iterator i = mTakenBricks.begin(); i != mTakenBricks.end(); ++i, anIndex++)
@@ -361,7 +361,7 @@ void Board::OnColourBrickDie(Brick* theBrick, int theType)
 {
 	if (theBrick->mMutated == 1)
 		return;
-	if (!theBrick->mFlag187 && !HasMarkOfType(theType))
+	if (!theBrick->mBlastsOnPop && !HasMarkOfType(theType))
 		return;
 	unsigned int anIndex = 0;
 	for (std::list<Brick*>::iterator i = mTakenBricks.begin(); i != mTakenBricks.end(); ++i, anIndex++)
@@ -380,7 +380,7 @@ void Board::OnKillAllDone(Brick* theBrick, int theType)
 	mKillAllTypes.push_back(theType);
 	OnBrickGone(theBrick);
 	HideCellHint(theBrick);
-	if (!static_cast<KillAllBrick*>(theBrick)->mField238)
+	if (!static_cast<KillAllBrick*>(theBrick)->mChainCounted)
 		AdvanceChain();
 }
 
@@ -435,7 +435,7 @@ void Board::OnBrickBounced(Brick* theBrick)
 		for (unsigned int aRow = 0; !mFieldBricks.empty() && aRow < mFieldBricks.size() && mFieldBricks[aRow][aCol] != NULL; aRow++)
 			mFieldBricks[aRow][aCol]->mBounceFire = false;
 		if (!mHintSpots.empty())
-			mHintSpots[0]->m1c = true;
+			mHintSpots[0]->mActive = true;
 	}
 	if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
 		HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), true);
@@ -638,17 +638,17 @@ void Board::OnHyperBrick(Brick* theBrick)
 		mFloatTexts.push_back(aFloat);
 		aFloat = mFloatTexts.back();
 		aFloat->mNoFade = true;
-		aFloat->m18 = 200;
+		aFloat->mAlphaDelay = 200;
 
 		m928 = (float) m1a14 / (float) m1a18;
 		if (!(m928 <= 1.0f))
 			m928 = 1.0f;
 		float aFill = m928 * 444.0f;
 		float aTop = 444.0f - aFill;
-		m70c = (int) ((float) aY - aTop);
-		m708 = 0x17;
-		m700 = 0;
-		m704 = (int) aTop;
+		mBrickometerRiseDistance = (int) ((float) aY - aTop);
+		mBrickometerRiseSteps = 0x17;
+		mBrickometerRiseStep = 0;
+		mBrickometerRiseTop = (int) aTop;
 		m1b20 = (int) (492.0f - aFill);
 	}
 	else
@@ -660,19 +660,19 @@ void Board::OnHyperBrick(Brick* theBrick)
 			m1b70 = 6000;
 		int aNow = (int) (444.0f - (float) m1b70 * 0.00016666666488163173f * 444.0f);
 		float aFill = m928 * 444.0f;
-		m70c = aWas - aNow;
-		m708 = 0x17;
-		m700 = 0;
-		m704 = aNow;
+		mBrickometerRiseDistance = aWas - aNow;
+		mBrickometerRiseSteps = 0x17;
+		mBrickometerRiseStep = 0;
+		mBrickometerRiseTop = aNow;
 		m1b20 = (int) (492.0f - aFill);
 	}
 
-	mAnim560.SetDelay(1);
-	mAnim560.SetNumFrames(0x1f);
-	mAnim560.mPingPong = true;
-	mAnim560.Reset();
-	mAnim560.SetStopped(false);
-	mAnim560.mMaxLoops = 0x14;
-	mAnim560.mLoopCount = 0;
+	mBoosterAnim.SetDelay(1);
+	mBoosterAnim.SetNumFrames(0x1f);
+	mBoosterAnim.mPingPong = true;
+	mBoosterAnim.Reset();
+	mBoosterAnim.SetStopped(false);
+	mBoosterAnim.mMaxLoops = 0x14;
+	mBoosterAnim.mLoopCount = 0;
 	static_cast<PowerBrick*>(theBrick)->mBoosterY = m1b20;
 }

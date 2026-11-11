@@ -16,7 +16,7 @@ float Sexy::gTestChargeAtReset = -1.0f;
 // 0x4346c0: the numbers a new game (or a new level) starts from
 void Board::ResetState()
 {
-	m8e0 = false;
+	mWelcomePlayed = false;
 	m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
 	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;
 	m92c = 0;
@@ -58,16 +58,16 @@ void Board::UpdateEffects()
 	mOverlayFillColor.mAlpha -= 2;
 	if (mOverlayFillColor.mAlpha < 0)
 	{
-		if (mHintSpots.empty() || mHintSpots[0]->m1c == 0 || -m7ec < m7e8)
+		if (mHintSpots.empty() || mHintSpots[0]->mActive == 0 || -mLevelUpPanelHeight < mLevelUpPanelY)
 			SetOverlayHidden(true);
 		mOverlayFillColor.mAlpha = 0;
 	}
 	mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
 
-	int anOld = m77c.mPeriod;
-	m77c.mPeriod = anOld + 1;
+	int anOld = mSceneryLayer.mPeriod;
+	mSceneryLayer.mPeriod = anOld + 1;
 	if (1 < anOld)
-		m77c.mPeriod = 1;
+		mSceneryLayer.mPeriod = 1;
 
 	int aNumDone = 0;
 	for (int i = 0; i < 100; i++)
@@ -132,7 +132,7 @@ void Board::SetNextLevelScore()
 }
 
 // 0x433b90: points are added to the score; the best score of the mode is kept in the profile, and the points are
-// counted for the stats (m7bc while m910 is off, else m7b8 unless m916 holds them back)
+// counted for the stats (mPlayPoints while m910 is off, else mBonusRoundPoints unless m916 holds them back)
 void Board::AddScore(int thePoints, bool theForce)
 {
 	mScore += thePoints;
@@ -142,11 +142,11 @@ void Board::AddScore(int thePoints, bool theForce)
 		mApp->mUser->SetInt(mMode, mScore);
 	if (!m910)
 	{
-		m7bc += thePoints;
+		mPlayPoints += thePoints;
 		return;
 	}
 	if (!m916 || theForce)
-		m7b8 += thePoints;
+		mBonusRoundPoints += thePoints;
 }
 
 // the best of a stat is kept in the profile (setting 0x5d)
@@ -234,8 +234,8 @@ void Board::SaveGameState()
 			aUser->SetInt(0x62, 0);
 			aUser->SetInt(0x5b, 0);
 			aUser->SetInt(0x60, m19b4);
-			aUser->SetInt(0x5c, m7bc);
-			SaveBestStat(aUser, m7c4);
+			aUser->SetInt(0x5c, mPlayPoints);
+			SaveBestStat(aUser, mBestChain);
 			if (mSuperchargeMarks.empty())
 				aUser->SetInt(0x59, -1);
 			else
@@ -252,11 +252,11 @@ void Board::SaveGameState()
 			aUser->SetInt(0x57, m1b70);
 			aUser->SetInt(0x58, 0);
 			aUser->SetInt(0x5b, 0);
-			aUser->SetInt(0x62, m7b8);
+			aUser->SetInt(0x62, mBonusRoundPoints);
 			aUser->SetInt(0x61, m1978);
-			aUser->SetInt(0x5c, m7bc);
+			aUser->SetInt(0x5c, mPlayPoints);
 			aUser->SetInt(0x60, m19b4);
-			SaveBestStat(aUser, m7c4);
+			SaveBestStat(aUser, mBestChain);
 			if (mSuperchargeMarks.empty())
 			{
 				aUser->SetInt(0x59, -1);
@@ -274,11 +274,11 @@ void Board::SaveGameState()
 		aUser->SetInt(0x58, 1);
 		aUser->SetInt(0x5b, 0);
 		aUser->SetInt(0x57, 0);
-		aUser->SetInt(0x62, m7b8);
+		aUser->SetInt(0x62, mBonusRoundPoints);
 		aUser->SetInt(0x61, m1978);
-		aUser->SetInt(0x5c, m7bc);
+		aUser->SetInt(0x5c, mPlayPoints);
 		aUser->SetInt(0x60, m19b4);
-		SaveBestStat(aUser, m7c4);
+		SaveBestStat(aUser, mBestChain);
 		if (m1b2c != 1)
 			return;
 		aUser->SetInt(0x5f, (m1ba4 - m1b9c) + m960);
@@ -290,9 +290,9 @@ void Board::SaveGameState()
 	aUser->SetInt(0x57, 0);
 	aUser->SetInt(0x62, 0);
 	aUser->SetInt(0x61, m1978);
-	aUser->SetInt(0x5c, m7bc);
+	aUser->SetInt(0x5c, mPlayPoints);
 	aUser->SetInt(0x60, m19b4);
-	SaveBestStat(aUser, m7c4);
+	SaveBestStat(aUser, mBestChain);
 }
 
 bool Sexy::gFlag5A5100 = false;   // 0x5a5100: set by SaveGameState, cleared by the callback at +0x60 and others (meaning not found yet)

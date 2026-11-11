@@ -30,16 +30,16 @@ static void StopTargetFlashes(std::vector<Brick*>& theTargeted)
 void Board::OnBrickArrived(Brick* theBrick)
 {
 	std::vector<CellRef> aPlaced;       // the cells the bricks of the groups were put in, in the order of the groups
-	bool aFlag = false;                 // "a set was made" (the byte [EBP+0xb] of the original, which also holds the first value of mFlag188)
+	bool aFlag = false;                 // "a set was made" (the byte [EBP+0xb] of the original, which also holds the first value of mSupported)
 
 	theBrick->StopShake();
 	theBrick->StopFade();
 
 	if (m8e4)
 	{
-		aFlag = theBrick->mFlag188;
+		aFlag = theBrick->mSupported;
 		theBrick->SetTargetY((int) theBrick->mTargetY);
-		if (!aFlag && theBrick->mFlag188 && theBrick->mSupport == NULL)
+		if (!aFlag && theBrick->mSupported && theBrick->mSupport == NULL)
 		{
 			int aRow = 0;
 			if ((int) theBrick->mY >= 0x22)
@@ -80,7 +80,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 				Brick* aBrick = *aBrickIt;
 				int aType = aBrick->mType;
 				if (aBrick->mMutated != 1 && (aType == 6 || aType == 8 || aType == 10 || aType == 0xe || aType == 0xb || aType == 0xd) &&
-					aBrick->mFlag18A)
+					aBrick->mGoesOffOnArrival)
 				{
 					mFieldBricks[aBottom + 1][aCol] = aBrick;
 					FireTo(aBrick, 0);
@@ -156,7 +156,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 						{
 							Brick* aBrick = mFieldBricks[mConnectedCells[k].mRow][mConnectedCells[k].mCol];
 							if (aBrick->mSpecial && aBrick->mMutated != 1)
-								static_cast<KillAllBrick*>(aBrick)->mField238 = true;
+								static_cast<KillAllBrick*>(aBrick)->mChainCounted = true;
 						}
 						mApp->PlaySampleAt(SOUND_EXPLODE1, mConnectedCells[0].mCol);
 						for (unsigned int k = 0; k < aBefore.size(); k++)
@@ -168,7 +168,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 
 		// the tutorial's first hint is dropped when it is the last but one
-		if ((mField193C == 1 || m90a) && !m8dc && !aFlag)
+		if ((mField193C == 1 || m90a) && !mDemoPlaying && !aFlag)
 		{
 			StageBg* aBg = mStageHintPanels[1];
 			if (aBg->mNext != NULL && aBg->mNext->mNext == NULL)
@@ -199,7 +199,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 			aLastKind = aKind;
 		}
 
-		if ((mField193C == 1 || m90a) && !m8dc)
+		if ((mField193C == 1 || m90a) && !mDemoPlaying)
 		{
 			if (mConnectedCells.size() >= (unsigned int) m1a54)
 			{
@@ -210,8 +210,8 @@ void Board::OnBrickArrived(Brick* theBrick)
 					aBg->mNext = NULL;
 				}
 				aBg = mStageHintPanels[1];
-				aBg->m118 = -8;
-				aBg->m10c = -8;
+				aBg->mPanelAlphaStep = -8;
+				aBg->mPicAlphaStep = -8;
 				if (!m8fc)
 					Fire(0x2a, 0);
 				m8fc = true;
@@ -286,7 +286,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
 			HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), false);
 		if (mMode == 2 && !m907 && m1a34 == 0 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
-			Fn4335e0();
+			BeginClearWait();
 		CheckSparseField();
 
 		// a field with no move left (the out flag of AnyMoveLeft is the byte that held "a set was made")

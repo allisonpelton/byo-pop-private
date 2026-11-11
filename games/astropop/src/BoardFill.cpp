@@ -332,7 +332,7 @@ void Board::ShowHint(int theKind, int theCol, int theRow, bool theFlag)
 	{
 	case 0: case 1: case 2: case 3: case 4: case 5:
 		aHint->mBg = mHintPanels[8];
-		aHint->mBg->m5c = GetImageById(theKind + (mApp->mFlag6fa ? 0x227 : 0x221));
+		aHint->mBg->mOverPic = GetImageById(theKind + (mApp->mColorblind ? 0x227 : 0x221));
 		aHint->mId = 0x22;
 		break;
 	case 6:		aHint->mBg = mHintPanels[2];		aHint->mId = 0x24;	break;
@@ -390,7 +390,7 @@ void Board::ShowHint(int theKind, int theCol, int theRow, bool theFlag)
 				aHint->mHole.push_back(Rect(aHint->mRingX, 0, aRingWidth, aHint->mRingY));
 				int aBelowY = aRingHeight + aHint->mRingY;
 				aHint->mHole.push_back(Rect(aHint->mRingX, aBelowY, aRingWidth, 0x1e0 - aBelowY));
-				aHint->m1c = theFlag;
+				aHint->mActive = theFlag;
 				aHint->mArrowTop = (0xb4 - IMAGE_TH_ARROWHEAD->mHeight) - aHint->mArrowY;
 				mHintSpots.push_back(aHint);
 				return;

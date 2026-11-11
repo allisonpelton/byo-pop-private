@@ -167,31 +167,31 @@ void Board::RecordStep(bool theForce)
 		m950 = m94c;
 	else if (m949 == 0)
 	{
-		m758.WriteByte(0);
+		mDemoRecordBuffer.WriteByte(0);
 		unsigned int aRuns = m950 / 0xff;
 		char aCount = (char) aRuns;
 		uchar aLast;
 		if (aCount == 0 || m950 < 0x100)
 		{
-			m758.WriteByte(1);
+			mDemoRecordBuffer.WriteByte(1);
 			aLast = (uchar) m950;
 		}
 		else
 		{
-			m758.WriteByte((uchar) (aCount + 1));
+			mDemoRecordBuffer.WriteByte((uchar) (aCount + 1));
 			for (aRuns = aRuns & 0xff; aRuns != 0; aRuns--)
-				m758.WriteByte(0xff);
+				mDemoRecordBuffer.WriteByte(0xff);
 			aLast = (uchar) (m950 + aCount);
 		}
-		m758.WriteByte(aLast);
+		mDemoRecordBuffer.WriteByte(aLast);
 	}
 
 	uchar aState = m948;
 	if (aState == 2 || aState == 1)
 	{
-		m758.WriteByte(aState);
+		mDemoRecordBuffer.WriteByte(aState);
 		aState = (uchar) (m94c >> 8);
-		m758.WriteByte((uchar) (m94c & 7));
+		mDemoRecordBuffer.WriteByte((uchar) (m94c & 7));
 	}
 	else if (aState == 0)
 	{
@@ -199,7 +199,7 @@ void Board::RecordStep(bool theForce)
 		m950 = m94c;
 		return;
 	}
-	m758.WriteByte(aState);
+	mDemoRecordBuffer.WriteByte(aState);
 
 	m949 = m948;
 	m950 = m94c;
@@ -380,7 +380,7 @@ int Board::CountMovingBricks(bool theStrict)
 			Brick* aBrick = *aBrickIt;
 			if (aBrick->mY != aBrick->mTargetY || aBrick->mState != 1)
 			{
-				if (!theStrict || !aBrick->mFlag188 || aBrick->mY > aBrick->mTargetY)
+				if (!theStrict || !aBrick->mSupported || aBrick->mY > aBrick->mTargetY)
 					aCount++;
 			}
 		}
@@ -475,7 +475,7 @@ void Board::UpdateScenery()
 {
 	if (!m8ed && !m8ef && !m8f4)
 	{
-		StepScrollLayer(&m77c);
+		StepScrollLayer(&mSceneryLayer);
 
 		for (size_t i = 0; i < mBackdropStars.size(); i++)
 		{
@@ -662,84 +662,84 @@ Brick* Board::CreatePowerBrick(int theType)
 // PulsePair, a third one fading the picture away
 void Board::UpdateStageBackground()
 {
-	if (!((unsigned int) mField193C < mStageHintPanels.size() || m90a || (!mHintSpots.empty() && mHintSpots[0]->m1c != 0)))
+	if (!((unsigned int) mField193C < mStageHintPanels.size() || m90a || (!mHintSpots.empty() && mHintSpots[0]->mActive != 0)))
 		return;
 
 	StageBg* aBg;
-	if (mHintSpots.empty() || mHintSpots[0]->m1c == 0)
+	if (mHintSpots.empty() || mHintSpots[0]->mActive == 0)
 		aBg = mStageHintPanels[m90a ? 1 : mField193C];
 	else
 		aBg = mHintSpots[0]->mBg;
 
-	if (aBg->mf0 != 0)
+	if (aBg->mFadedOut != 0)
 		return;
 
-	aBg->mHeldBricks.Update();
-	aBg->mb0.Update();
+	aBg->mPicAnim.Update();
+	aBg->mOverPicAnim.Update();
 
-	if (aBg->m10c != 0)
+	if (aBg->mPicAlphaStep != 0)
 	{
-		aBg->m100 += aBg->m10c;
-		if (aBg->m100 < 0)
+		aBg->mPicAlpha += aBg->mPicAlphaStep;
+		if (aBg->mPicAlpha < 0)
 		{
-			aBg->m10c = 0;
-			aBg->m100 = 0;
+			aBg->mPicAlphaStep = 0;
+			aBg->mPicAlpha = 0;
 		}
-		if (aBg->m100 > 0xff)
+		if (aBg->mPicAlpha > 0xff)
 		{
-			aBg->m10c = 0;
-			aBg->m100 = 0xff;
+			aBg->mPicAlphaStep = 0;
+			aBg->mPicAlpha = 0xff;
 		}
 	}
 
-	if (aBg->m118 != 0)
+	if (aBg->mPanelAlphaStep != 0)
 	{
-		aBg->m114 += aBg->m118;
-		if (aBg->m114 < 0)
+		aBg->mPanelAlpha += aBg->mPanelAlphaStep;
+		if (aBg->mPanelAlpha < 0)
 		{
-			aBg->m118 = 0;
-			aBg->m114 = 0;
-			aBg->mf0 = 1;
+			aBg->mPanelAlphaStep = 0;
+			aBg->mPanelAlpha = 0;
+			aBg->mFadedOut = 1;
 		}
-		if (aBg->m114 > 0xff)
+		if (aBg->mPanelAlpha > 0xff)
 		{
-			aBg->m118 = 0;
-			aBg->m114 = 0xff;
+			aBg->mPanelAlphaStep = 0;
+			aBg->mPanelAlpha = 0xff;
 		}
 	}
 
-	if (aBg->m5c != 0)
+	if (aBg->mOverPic != 0)
 	{
-		if (aBg->m110 != 0)
+		if (aBg->mOverPicAlphaStep != 0)
 		{
-			aBg->m104 += aBg->m110;
-			if (aBg->m104 < 0)
+			aBg->mOverPicAlpha += aBg->mOverPicAlphaStep;
+			if (aBg->mOverPicAlpha < 0)
 			{
-				aBg->m110 = 0;
-				aBg->m104 = 0;
+				aBg->mOverPicAlphaStep = 0;
+				aBg->mOverPicAlpha = 0;
 			}
-			if (aBg->m104 > 0xff)
+			if (aBg->mOverPicAlpha > 0xff)
 			{
-				aBg->m110 = 0;
-				aBg->m104 = 0xff;
+				aBg->mOverPicAlphaStep = 0;
+				aBg->mOverPicAlpha = 0xff;
 			}
 		}
 
-		int aWait = aBg->mFadedBricks;
+		int aWait = aBg->mCrossfadeTimer;
 		if (aWait < 1)
 		{
-			if ((aBg->m100 == 0 || aBg->m100 == 0xff) && (aBg->m104 == 0 || aBg->m104 == 0xff) &&
-				aBg->m10c == 0 && aBg->m110 == 0 && aWait == 0)
-				aBg->mFadedBricks = 200;
+			if ((aBg->mPicAlpha == 0 || aBg->mPicAlpha == 0xff) && (aBg->mOverPicAlpha == 0 || aBg->mOverPicAlpha == 0xff) &&
+				aBg->mPicAlphaStep == 0 && aBg->mOverPicAlphaStep == 0 && aWait == 0)
+				aBg->mCrossfadeTimer = 200;
 		}
 		else
 		{
-			aBg->mFadedBricks = aWait - 1;
+			aBg->mCrossfadeTimer = aWait - 1;
 			if (aWait - 1 < 1)
 			{
-				aBg->mFadedBricks = 0;
-				aBg->m10c = ((((aBg->m100 != 0xff) ? 1 : 0) - 1) & -16) + 8;
-				aBg->m110 = ((((aBg->m104 != 0xff) ? 1 : 0) - 1) & -16) + 8;
+				aBg->mCrossfadeTimer = 0;
+				aBg->mPicAlphaStep = ((((aBg->mPicAlpha != 0xff) ? 1 : 0) - 1) & -16) + 8;
+				aBg->mOverPicAlphaStep = ((((aBg->mOverPicAlpha != 0xff) ? 1 : 0) - 1) & -16) + 8;
 			}
 		}
 	}

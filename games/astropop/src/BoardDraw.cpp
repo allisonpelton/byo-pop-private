@@ -68,9 +68,9 @@ void Board::DrawBackdrop(Graphics* g)
 	if (!m8ed && !m8ef && !m8f4)
 	{
 		// the scenery: the picture now on the screen and the one that follows it
-		g->DrawImage(m77c.mImage, (int) m7b4, (int) m77c.mF24, FloatRect(m77c.mCur));
-		if (m77c.mNext[3] > 0.0f)
-			g->DrawImage(m77c.mImage, (int) m7b4, (int) m77c.mF28, FloatRect(m77c.mNext));
+		g->DrawImage(mSceneryLayer.mImage, (int) mSceneryX, (int) mSceneryLayer.mF24, FloatRect(mSceneryLayer.mCur));
+		if (mSceneryLayer.mNext[3] > 0.0f)
+			g->DrawImage(mSceneryLayer.mImage, (int) mSceneryX, (int) mSceneryLayer.mF28, FloatRect(mSceneryLayer.mNext));
 	}
 	else
 	{

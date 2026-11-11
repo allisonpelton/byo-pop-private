@@ -33,7 +33,7 @@ AstroDialog::AstroDialog(AstroPopApp* theApp, int theId, Image* thePicture, int 
 	mPicture = thePicture;
 	mImageTop = theImageTop;
 	Setup(theApp, theColoured, theInsetColor, theButtonColor);
-	m110 = theImageTop;
+	mTitleEndY = theImageTop;
 }
 
 // 0x483ee0
@@ -81,12 +81,12 @@ void AstroDialog::Setup(AstroPopApp* theApp, bool theColoured, const Color& theI
 	mState = 8;
 	mCursorOn = true;
 	// (the members the original leaves to the first Resize)
-	m110 = 0;
-	m114 = 0;
-	m118 = 0;
-	m11c = 0;
-	m120 = 0;
-	m124 = 0;
+	mTitleEndY = 0;
+	mBoxEndY = 0;
+	mTitleY = 0;
+	mTitleX = 0;
+	mBoxX = 0;
+	mBoxY = 0;
 }
 
 // 0x48a640 (body 0x48a030)
@@ -113,16 +113,16 @@ void AstroDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	Dialog::Resize(theX, theY, theWidth, theHeight);
 	if (!mSettled)
 	{
-		m110 = mContentInsets.mTop + mBackgroundInsets.mTop + mImageTop;
+		mTitleEndY = mContentInsets.mTop + mBackgroundInsets.mTop + mImageTop;
 		if (mPicture == NULL)
-			m110 += mHeaderFont->GetAscent() - mHeaderFont->GetAscentPadding();
+			mTitleEndY += mHeaderFont->GetAscent() - mHeaderFont->GetAscentPadding();
 		else
-			m110 = mImageTop;
-		m114 = 0;
-		m120 = 0;
-		m124 = 0x1e0;
-		m11c = mWidth / 2 - HeaderWidth() / 2;
-		m118 = m114 - 0x1e0 + m110;
+			mTitleEndY = mImageTop;
+		mBoxEndY = 0;
+		mBoxX = 0;
+		mBoxY = 0x1e0;
+		mTitleX = mWidth / 2 - HeaderWidth() / 2;
+		mTitleY = mBoxEndY - 0x1e0 + mTitleEndY;
 	}
 }
 
@@ -150,11 +150,11 @@ void AstroDialog::SetAnimated(bool theAnimated)
 		mState = 3;
 		mSettled = true;
 		mClip = true;
-		m120 = 0;
-		m11c = mWidth / 2 - HeaderWidth() / 2;
+		mBoxX = 0;
+		mTitleX = mWidth / 2 - HeaderWidth() / 2;
 		int aTop = (mPicture == NULL) ? 0x19 : mImageTop;
-		m118 = aTop;
-		m124 = aTop + 0x19;
+		mTitleY = aTop;
+		mBoxY = aTop + 0x19;
 		if (mYesButton != NULL)
 			mYesButton->SetVisible(true);
 		if (mNoButton != NULL)
@@ -178,11 +178,11 @@ void AstroDialog::MouseDrag(int x, int y)
 	if (mSettled)
 	{
 		Dialog::MouseDrag(x, y);
-		m120 = 0;
-		m11c = mWidth / 2 - HeaderWidth() / 2;
+		mBoxX = 0;
+		mTitleX = mWidth / 2 - HeaderWidth() / 2;
 		int aTop = (mPicture == NULL) ? 0x19 : mImageTop;
-		m118 = aTop;
-		m124 = aTop + 0x19;
+		mTitleY = aTop;
+		mBoxY = aTop + 0x19;
 	}
 }
 
@@ -223,7 +223,7 @@ void AstroDialog::Draw(Graphics* g)
 	if (!mSettled)
 	{
 		// the box on its way in: the inset picture and the frame, the title on it
-		Rect aRect(m120, m124, mWidth - mBackgroundInsets.mRight - mBackgroundInsets.mLeft,
+		Rect aRect(mBoxX, mBoxY, mWidth - mBackgroundInsets.mRight - mBackgroundInsets.mLeft,
 				   mHeight - mBackgroundInsets.mTop - mBackgroundInsets.mBottom);
 		g->DrawImageBox(aRect, mComponentImage);
 		g->DrawImageBox(aRect, IMAGE_DIALOG);
@@ -231,10 +231,10 @@ void AstroDialog::Draw(Graphics* g)
 		{
 			g->SetFont(mHeaderFont);
 			g->SetColor(mColors[COLOR_HEADER]);
-			WriteCenteredLine(g, m118, mDialogHeader);
+			WriteCenteredLine(g, mTitleY, mDialogHeader);
 		}
 		else
-			g->DrawImage(mPicture, m11c, m118);
+			g->DrawImage(mPicture, mTitleX, mTitleY);
 	}
 	else
 	{
@@ -243,7 +243,7 @@ void AstroDialog::Draw(Graphics* g)
 				   mHeight - mBackgroundInsets.mBottom - mBackgroundInsets.mTop);
 		g->DrawImageBox(aRect, IMAGE_DIALOG);
 		if (mPicture != NULL)
-			g->DrawImage(mPicture, m11c, m118);
+			g->DrawImage(mPicture, mTitleX, mTitleY);
 	}
 
 	if (mTyping && mSettled)
@@ -327,51 +327,51 @@ void AstroDialog::Update()
 
 	if (mState == 8)
 	{
-		int aTitle = m118;
-		int aBox = m124;
-		m118 = aTitle + 8;
-		m124 = aBox - 8;
-		if (m110 <= aTitle + 8)
-			m118 = m110;
-		if (aBox - 8 <= m114)
-			m124 = m114;
-		if (m124 == m114 && m118 == m110)
+		int aTitle = mTitleY;
+		int aBox = mBoxY;
+		mTitleY = aTitle + 8;
+		mBoxY = aBox - 8;
+		if (mTitleEndY <= aTitle + 8)
+			mTitleY = mTitleEndY;
+		if (aBox - 8 <= mBoxEndY)
+			mBoxY = mBoxEndY;
+		if (mBoxY == mBoxEndY && mTitleY == mTitleEndY)
 			mState = 4;
 	}
 	else if (mState == 4)
 	{
-		int aTitle = m118;
-		int aBox = m124;
-		int aTitleLimit = m110 - 0x28;
-		m118 = aTitle - 4;
-		m124 = aBox + 4;
+		int aTitle = mTitleY;
+		int aBox = mBoxY;
+		int aTitleLimit = mTitleEndY - 0x28;
+		mTitleY = aTitle - 4;
+		mBoxY = aBox + 4;
 		if (aTitle - 4 <= aTitleLimit)
-			m118 = aTitleLimit;
-		int aBoxLimit = m114 + 0x28;
+			mTitleY = aTitleLimit;
+		int aBoxLimit = mBoxEndY + 0x28;
 		if (aBoxLimit <= aBox + 4)
-			m124 = aBoxLimit;
-		if (m124 == aBoxLimit && m118 == aTitleLimit)
+			mBoxY = aBoxLimit;
+		if (mBoxY == aBoxLimit && mTitleY == aTitleLimit)
 			mState = 3;
 	}
 	else if (mState == 3)
 	{
-		int aTitle = m118;
-		int aBox = m124;
-		m118 = aTitle + 3;
-		m124 = aBox - 3;
-		if (m110 <= aTitle + 3)
-			m118 = m110;
-		if (aBox - 3 <= m114)
-			m124 = m114;
-		if (m124 == m114 && m118 == m110)
+		int aTitle = mTitleY;
+		int aBox = mBoxY;
+		mTitleY = aTitle + 3;
+		mBoxY = aBox - 3;
+		if (mTitleEndY <= aTitle + 3)
+			mTitleY = mTitleEndY;
+		if (aBox - 3 <= mBoxEndY)
+			mBoxY = mBoxEndY;
+		if (mBoxY == mBoxEndY && mTitleY == mTitleEndY)
 		{
 			mSettled = true;
 			mClip = true;
-			m120 = 0;
-			m11c = mWidth / 2 - HeaderWidth() / 2;
+			mBoxX = 0;
+			mTitleX = mWidth / 2 - HeaderWidth() / 2;
 			int aTop = (mPicture == NULL) ? 0x19 : mImageTop;
-			m118 = aTop;
-			m124 = aTop + 0x19;
+			mTitleY = aTop;
+			mBoxY = aTop + 0x19;
 			if (mYesButton != NULL)
 				mYesButton->SetVisible(true);
 			if (mNoButton != NULL)

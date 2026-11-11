@@ -45,24 +45,24 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 	if ((unsigned int) mField193C < aStageCount)
 	{
 		StageBg* aBg = mStageHintPanels[mField193C];
-		aBg->m118 = 0;
-		aBg->m114 = 0xff;
-		aBg->m110 = 0;
-		aBg->m10c = 0;
-		aBg->m100 = 0xff;
-		aBg->m104 = 0;
+		aBg->mPanelAlphaStep = 0;
+		aBg->mPanelAlpha = 0xff;
+		aBg->mOverPicAlphaStep = 0;
+		aBg->mPicAlphaStep = 0;
+		aBg->mPicAlpha = 0xff;
+		aBg->mOverPicAlpha = 0;
 	}
-	if (!mHintSpots.empty() && mHintSpots[0]->m1c)
+	if (!mHintSpots.empty() && mHintSpots[0]->mActive)
 	{
 		StageBg* aBg = mHintSpots[0]->mBg;
-		aBg->m100 = 0xff;
-		aBg->m114 = 0xff;
-		aBg->mFadedBricks = 0;
-		aBg->m118 = 0;
-		aBg->m10c = 0;
-		aBg->m110 = 0;
-		aBg->m104 = 0;
-		aBg->mf0 = false;
+		aBg->mPicAlpha = 0xff;
+		aBg->mPanelAlpha = 0xff;
+		aBg->mCrossfadeTimer = 0;
+		aBg->mPanelAlphaStep = 0;
+		aBg->mPicAlphaStep = 0;
+		aBg->mOverPicAlphaStep = 0;
+		aBg->mOverPicAlpha = 0;
+		aBg->mFadedOut = false;
 	}
 	if (m1bd8 == m1bdc)
 	{
@@ -78,10 +78,10 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 	m1bd8 = theSetting50;
 	m19b8 = theSetting54;
 	UserProfile* aUser = mApp->mUser;
-	aUser->GetInt(0x5c, &m7bc);
+	aUser->GetInt(0x5c, &mPlayPoints);
 	aUser->GetInt(0x60, &m19b4);
 	aUser->GetInt(0x61, &m1978);
-	aUser->GetInt(0x62, &m7b8);
+	aUser->GetInt(0x62, &mBonusRoundPoints);
 	int aBonusLevel = 0;
 	aUser->GetInt(0x5b, &aBonusLevel);
 	int aBetweenLevels = 0;
@@ -101,18 +101,18 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			{
 				m1b2c = 0;
 				aUser->GetInt(99, &m1b2c);
-				m1b28 = Fn433130(m1940 + 1);
+				m1b28 = UpgradeScreenKind(m1940 + 1);
 			}
 			else
 			{
 				// ... or in a bonus round, with the bricks it has left
 				m1b2c = 0;
 				aUser->GetInt(99, &m1b2c);
-				m1b28 = Fn433130(m1940 + 1);
+				m1b28 = UpgradeScreenKind(m1940 + 1);
 				m1b70 = aBrokenBricks;
 				m910 = true;
 				mFlag8E9 = false;
-				aUser->GetInt(0x5d, &m7c4);
+				aUser->GetInt(0x5d, &mBestChain);
 				SetNextLevelScore();
 				m1b88 = 0;
 				m1b8c = 0;
@@ -257,7 +257,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			int aWaiting = 0;
 			if (aUser->GetInt(0x65, &aWaiting))
 			{
-				Fn4335e0();
+				BeginClearWait();
 				m19fc = aWaiting;
 			}
 			int aValue198c = m198c;
@@ -287,52 +287,52 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			m19e4 = 0;
 			m1b2c = 0;
 			aUser->GetInt(99, &m1b2c);
-			m1b28 = Fn433130(m1940 + 1);
+			m1b28 = UpgradeScreenKind(m1940 + 1);
 			if (m1a0c < 4)
 				m198c = IMAGE_SLOW_WARP_GATE->mWidth / 2 - 0x1a + m1a70;
 			else
 				m198c = 0x159;
-			aUser->GetInt(0x5c, &m7bc);
-			aUser->GetInt(0x5d, &m7c4);
+			aUser->GetInt(0x5c, &mPlayPoints);
+			aUser->GetInt(0x5d, &mBestChain);
 			int aBonus = 0;
 			aUser->GetInt(0x5f, &aBonus);
 
 			// the panel of what the player has got so far
-			std::vector<std::string>().swap(m7cc);
-			m7cc.push_back(GT(0x00565728) + FormatNumber(m7bc));
-			m7cc.push_back(StrFormat(GTC(0x00565714), m7c4));
+			std::vector<std::string>().swap(mLevelUpLines);
+			mLevelUpLines.push_back(GT(0x00565728) + FormatNumber(mPlayPoints));
+			mLevelUpLines.push_back(StrFormat(GTC(0x00565714), mBestChain));
 			int aSeconds = (m19b4 / 100) % 0x3c;
 			if (aSeconds < 10)
-				m7cc.push_back(StrFormat(GTC(0x005656f8), m19b4 / 6000, aSeconds));
+				mLevelUpLines.push_back(StrFormat(GTC(0x005656f8), m19b4 / 6000, aSeconds));
 			else
-				m7cc.push_back(StrFormat(GTC(0x005656dc), m19b4 / 6000, aSeconds));
+				mLevelUpLines.push_back(StrFormat(GTC(0x005656dc), m19b4 / 6000, aSeconds));
 			std::string aRankName = mApp->GetRankName(mScore, &m1bd4);
 			if (mRankImage != NULL)
 				delete mRankImage;
 			mRankImage = mApp->MakeRankImage(m1bd4, 0x50);
 			if (m1b2c == 1)
 			{
-				mScore = m7bc + m7b8 + m1978 + aBonus;
+				mScore = mPlayPoints + mBonusRoundPoints + m1978 + aBonus;
 				m1970 = mScore;
-				m7cc.push_back(StrFormat(GTC(0x005660ac), FormatNumber(mScore).c_str()));
+				mLevelUpLines.push_back(StrFormat(GTC(0x005660ac), FormatNumber(mScore).c_str()));
 			}
 			int aToNext = mApp->PointsToNextRank(mScore);
 			if (aToNext == -1)
-				m7cc.push_back(GT(0x0056569c));
+				mLevelUpLines.push_back(GT(0x0056569c));
 			else
-				m7cc.push_back(StrFormat(GTC(0x005656b4), FormatNumber(aToNext + mScore).c_str()));
+				mLevelUpLines.push_back(StrFormat(GTC(0x005656b4), FormatNumber(aToNext + mScore).c_str()));
 			m8f0 = true;
-			m7dc = 5;
-			m800 = 0x19;
-			m804 = true;
-			m7f4 = 0;
-			m7fc = 2;
-			m7ec = 0xce;
-			m7f0 = -0xce;
-			m7f8 = 10;
-			m7e8 = 0;
-			m7e4 = 0;
-			m7e0 = (int) m7cc.size();
+			mLevelUpTypeInterval = 5;
+			mLevelUpCursorInterval = 0x19;
+			mLevelUpCursorShown = true;
+			mLevelUpScanHeight = 0;
+			mLevelUpScanInterval = 2;
+			mLevelUpPanelHeight = 0xce;
+			mLevelUpScanY = -0xce;
+			mLevelUpScanMaxHeight = 10;
+			mLevelUpPanelY = 0;
+			mLevelUpLetterIndex = 0;
+			mLevelUpLineIndex = (int) mLevelUpLines.size();
 			SetupWarpLayers();
 			int aStreakIndex = 0;
 			do
@@ -403,7 +403,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		StartBonusRound(aStage);
 		m1b2c = 0;
 		aUser->GetInt(99, &m1b2c);
-		m1b28 = Fn433130(m1940 + 1);
+		m1b28 = UpgradeScreenKind(m1940 + 1);
 		MarkRec aMark;
 		aMark.mType = -1;
 		aMark.mCount = -1;
@@ -423,7 +423,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		int aWaiting = 0;
 		if (aUser->GetInt(0x65, &aWaiting))
 		{
-			Fn4335e0();
+			BeginClearWait();
 			m19fc = aWaiting;
 		}
 		int aValue198c = m198c;

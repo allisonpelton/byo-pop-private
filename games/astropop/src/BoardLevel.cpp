@@ -25,7 +25,7 @@ void Board::PayComboBonus()
 		int aPoints = m196c * m1980;
 		AddScore(aPoints, true);
 
-		FloatText* aText = new FloatText(StrFormat(GTC(0x5652d0), aPoints), FONT_POINTS, (float) m6e8, (float) (m6ec + 0x19), false);
+		FloatText* aText = new FloatText(StrFormat(GTC(0x5652d0), aPoints), FONT_POINTS, (float) mPointsTextX, (float) (mPointsTextY + 0x19), false);
 		mFloatTexts.push_back(aText);
 
 		if (m1a14 < m1a18 && !m916)
@@ -154,9 +154,9 @@ void Board::LevelComplete()
 		return;
 	}
 
-	m8de = true;
-	delete m778;
-	m778 = new LevelUpText(IMAGE_LEVELUP_TEXT, 0);
+	mLevelUpTextShown = true;
+	delete mLevelUpText;
+	mLevelUpText = new LevelUpText(IMAGE_LEVELUP_TEXT, 0);
 	mFlag8E9 = true;
 	m1944 = 0;
 	mApp->PlaySample(SOUND_LEVEL_COMPLETE);
@@ -198,7 +198,7 @@ static const UpgradeRec kUpgrades[4][9] =
 // level opens a mode (level 8 of mode 0 unlocks mode 3, level 16 of mode 1 unlocks mode 2) that is still locked;
 // 4 or 2: every fourth level, while the profile's count of the upgrade is at its step (4 with the mode to unlock); 1: the
 // levels before a multiple of four, unless the screen shown now was kind 1; else 0.
-int Board::Fn433130(int theLevel)
+int Board::UpgradeScreenKind(int theLevel)
 {
 	int aUnlock = 0;
 	if ((mMode == 0 && theLevel == 8 && !mApp->mUser->HasModeUnlocked(3)) ||
@@ -255,29 +255,29 @@ std::string Board::FormatNumber(int theNumber)
 // 0x434200: the picture of the upgrade screen is set up: the head and the arm, each with a frame animation
 void Board::SetupUpgradeAnims()
 {
-	m87c = 0x294;
-	m880 = 0x1a0;
-	m884 = 0x1cf;
-	m888 = 0x1a0;
-	m894 = IMAGE_UPGRADE_HEAD;
-	m890 = IMAGE_UPGRADE_ARM;
-	mAnim898.Reset();
-	mAnim898.SetNumFrames(IMAGE_UPGRADE_HEAD->mNumCols);
-	mAnim898.SetDelay(6);
-	mAnim898.mHoldLast = false;
-	mAnim898.SetRange(0x10, 0x15);
+	mRightArmX = 0x294;
+	mRightArmY = 0x1a0;
+	mRightArmStopX = 0x1cf;
+	mRightArmStopY = 0x1a0;
+	mRightHeadImage = IMAGE_UPGRADE_HEAD;
+	mRightArmImage = IMAGE_UPGRADE_ARM;
+	mRightHeadAnim.Reset();
+	mRightHeadAnim.SetNumFrames(IMAGE_UPGRADE_HEAD->mNumCols);
+	mRightHeadAnim.SetDelay(6);
+	mRightHeadAnim.mHoldLast = false;
+	mRightHeadAnim.SetRange(0x10, 0x15);
 
-	m820 = -IMAGE_UPGRADE_ARM->mWidth;
-	m824 = 0x1a0;
-	m828 = 0x82;
-	m82c = 0x1a0;
-	m830 = true;
-	mAnim83c.Reset();
-	mAnim83c.SetNumFrames(IMAGE_UPGRADE_HEAD->mNumCols);
-	mAnim83c.SetDelay(6);
-	mAnim83c.mHoldLast = false;
-	mAnim83c.SetDirection(-1);
-	mAnim83c.SetRange(0, 5);
+	mLeftArmX = -IMAGE_UPGRADE_ARM->mWidth;
+	mLeftArmY = 0x1a0;
+	mLeftArmStopX = 0x82;
+	mLeftArmStopY = 0x1a0;
+	mLeftArmImagesOwned = true;
+	mLeftHeadAnim.Reset();
+	mLeftHeadAnim.SetNumFrames(IMAGE_UPGRADE_HEAD->mNumCols);
+	mLeftHeadAnim.SetDelay(6);
+	mLeftHeadAnim.mHoldLast = false;
+	mLeftHeadAnim.SetDirection(-1);
+	mLeftHeadAnim.SetRange(0, 5);
 }
 
 // 0x432b50: the weapon levels of the player (profile settings 0x33 + mode, 0x3b + mode, and 0x37 or 0x3a) set how fast
@@ -458,30 +458,30 @@ void Board::StartLevelUp()
 	mWarpGateAnim.SetStopped(false);
 
 	// the lines of the panel
-	m7e4 = 0;
-	m7e0 = 0;
-	std::vector<std::string>().swap(m7cc);
-	m7cc.push_back(GT(0x565728) + FormatNumber(m7bc));
-	m7cc.push_back(StrFormat(GTC(0x565714), m7c4));
+	mLevelUpLetterIndex = 0;
+	mLevelUpLineIndex = 0;
+	std::vector<std::string>().swap(mLevelUpLines);
+	mLevelUpLines.push_back(GT(0x565728) + FormatNumber(mPlayPoints));
+	mLevelUpLines.push_back(StrFormat(GTC(0x565714), mBestChain));
 	int aSeconds = (m19b4 / 100) % 0x3c;
 	int aMinutes = m19b4 / 6000;
 	if (aSeconds < 10)
-		m7cc.push_back(StrFormat(GTC(0x5656f8), aMinutes, aSeconds));
+		mLevelUpLines.push_back(StrFormat(GTC(0x5656f8), aMinutes, aSeconds));
 	else
-		m7cc.push_back(StrFormat(GTC(0x5656dc), aMinutes, aSeconds));
+		mLevelUpLines.push_back(StrFormat(GTC(0x5656dc), aMinutes, aSeconds));
 
 	mApp->GetRankName(mScore, &m1bd4);
 	delete mRankImage;
 	mRankImage = mApp->MakeRankImage(m1bd4, 0x50);
 
 	if (m1b2c == 1)
-		m7cc.push_back(StrFormat(GTC(0x5656c8), FormatNumber(m1ba4 - m1b9c + m960).c_str()));
+		mLevelUpLines.push_back(StrFormat(GTC(0x5656c8), FormatNumber(m1ba4 - m1b9c + m960).c_str()));
 
 	int aPointsToNext = mApp->PointsToNextRank(mScore);
 	if (aPointsToNext == -1)
-		m7cc.push_back(GT(0x56569c));
+		mLevelUpLines.push_back(GT(0x56569c));
 	else
-		m7cc.push_back(StrFormat(GTC(0x5656b4), FormatNumber(aPointsToNext + mScore).c_str()));
+		mLevelUpLines.push_back(StrFormat(GTC(0x5656b4), FormatNumber(aPointsToNext + mScore).c_str()));
 
 	// the streaks of the backdrop take the colour of their kind
 	for (unsigned int i = 0; i < mStreaks.size() && i < 100; i++)
@@ -496,14 +496,14 @@ void Board::StartLevelUp()
 			aStreak.mColor = Color(0xfa, 0xfa, 0xfa);
 	}
 
-	m7dc = 5;
-	m800 = 0x19;
-	m804 = true;
-	m7f4 = 0;
-	m7fc = 2;
-	m7ec = 0xce;
-	m7f0 = -206;
-	m7f8 = 10;
-	m7e8 = -206;
+	mLevelUpTypeInterval = 5;
+	mLevelUpCursorInterval = 0x19;
+	mLevelUpCursorShown = true;
+	mLevelUpScanHeight = 0;
+	mLevelUpScanInterval = 2;
+	mLevelUpPanelHeight = 0xce;
+	mLevelUpScanY = -206;
+	mLevelUpScanMaxHeight = 10;
+	mLevelUpPanelY = -206;
 	SetupWarpLayers();
 }

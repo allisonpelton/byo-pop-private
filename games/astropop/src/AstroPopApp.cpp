@@ -42,24 +42,24 @@ AstroPopApp::AstroPopApp()
 
 	mBoard = NULL;
 	mDescriptor = NULL;
-	mFlag658 = false;
-	mFlag6f9 = false;
-	mFlag6fa = false;
-	mFlag6fb = false;
+	mTutorialOn = false;
+	mHintsOn = false;
+	mColorblind = false;
+	mShowHelpAtStart = false;
 	mMainMenu = NULL;
 	mHallScreen = NULL;
-	mScreen650 = NULL;
-	mScreen654 = NULL;
+	mCharSelector = NULL;
+	mCreditsScreen = NULL;
 	mLoaderScreen = NULL;
 	mOldSavesDeleted = false;
 	mOldScoresDeleted = false;
-	mTimer664 = 0;
+	mComboPingTimer = 0;
 	mGameUpdates = 0;
 	mClassicPilot = 0;
 	mSurvivalPilot = 0;
 	mOpenDialogs = 0;
 	mPilot6e8 = -1;
-	mFlag6fc = false;
+	mHelpShown = false;
 	mHelpScreen = NULL;
 	mDialogFont = NULL;
 	for (int i = 0; i < 3; i++)
@@ -101,8 +101,8 @@ void AstroPopApp::ButtonPress(int theId)
 void AstroPopApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
-	if (mTimer664 > 0)
-		mTimer664--;
+	if (mComboPingTimer > 0)
+		mComboPingTimer--;
 	if (mTraceMode)
 		TraceUpdate();
 }
@@ -598,15 +598,15 @@ void AstroPopApp::PlaySamplePitched(int theSound, int thePitch)
 // 0x409250
 void AstroPopApp::PlayComboPing(int thePitch)
 {
-	if (mTimer664 < 1)
+	if (mComboPingTimer < 1)
 	{
 		PlaySamplePitched(SOUND_COMBO_PING, thePitch);
-		mTimer664 = 0x2d;
+		mComboPingTimer = 0x2d;
 	}
 }
 
 // 0x42c910: the thirty bonus level files data\bonus<n>.xcf are read and their signatures checked. The port leaves the check
-// out (docs/GAME_NOTES.md, 5): the Board reads the file of a bonus round itself when the round starts (m748), and the
+// out (docs/GAME_NOTES.md, 5): the Board reads the file of a bonus round itself when the round starts (mBonusRoundFile), and the
 // loading screen's progress counts the step.
 bool AstroPopApp::LoadBonusLevels()
 {

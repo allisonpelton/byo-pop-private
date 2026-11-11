@@ -18,11 +18,11 @@ using namespace Sexy;
 // last list. theGlow is the second pass, which draws the glow of the bricks that have one.
 void Board::DrawBricks(Graphics* g, bool theGlow)
 {
-	bool aDraw = m1924 < 1 || (!mHintSpots.empty() && mHintSpots[0]->m1c) || mApp->mFlag658;
+	bool aDraw = m1924 < 1 || (!mHintSpots.empty() && mHintSpots[0]->mActive) || mApp->mTutorialOn;
 	if (!aDraw)
 		return;
 
-	for (int aRow = m8da ? 1 : 0; aRow < 19; aRow++)
+	for (int aRow = mBonusFieldLoaded ? 1 : 0; aRow < 19; aRow++)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{

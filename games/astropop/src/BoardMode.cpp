@@ -12,7 +12,7 @@
 using namespace Sexy;
 
 // 0x4335e0: the field waits to be cleared
-void Board::Fn4335e0()
+void Board::BeginClearWait()
 {
 	m19fc = 1000;
 	Fire(0x28, 1);
@@ -44,7 +44,7 @@ void Board::UpdateSpecialMode()
 	if (m1a34 == 0)
 	{
 		// no bonus runs: the meter fills while the field is quiet
-		if (!m910 && !m917 && m8fc && m1bd8 < m1bdc && !mApp->mFlag658)
+		if (!m910 && !m917 && m8fc && m1bd8 < m1bdc && !mApp->mTutorialOn)
 		{
 			if (m1bd8 < m1bdc)
 				m1bd8 = m1be4 + m1bd8;
@@ -62,7 +62,7 @@ void Board::UpdateSpecialMode()
 			return;
 		if (m1afc != 0)
 			return;
-		if (mApp->mFlag658)
+		if (mApp->mTutorialOn)
 			return;
 		if (!m8fc)
 			return;
@@ -80,24 +80,24 @@ void Board::UpdateSpecialMode()
 	if (mMode == 3 && !m91b)
 		return;
 	m1bd8 = m1bd8 - m1be0;
-	if (m6f4 == 0)
+	if (mShipShimmerY == 0)
 	{
-		m6fc += 2;
-		if (m6fc > 0x34)
+		mShipShimmerHeight += 2;
+		if (mShipShimmerHeight > 0x34)
 		{
-			m6f4 = 1;
-			m6fc = 0x33;
+			mShipShimmerY = 1;
+			mShipShimmerHeight = 0x33;
 		}
 	}
 	else
 	{
-		m6f4 += 2;
-		if (m6f4 < 0x34)
-			m6fc = 0x34 - m6f4;
+		mShipShimmerY += 2;
+		if (mShipShimmerY < 0x34)
+			mShipShimmerHeight = 0x34 - mShipShimmerY;
 		else
 		{
-			m6f4 = 0;
-			m6fc = 0;
+			mShipShimmerY = 0;
+			mShipShimmerHeight = 0;
 		}
 	}
 
@@ -121,7 +121,7 @@ void Board::UpdateSpecialMode()
 			std::vector<CellRef>().swap(mHoverCells);
 		}
 		if (mMode == 2 && !m907 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
-			Fn4335e0();
+			BeginClearWait();
 		if (!mSirenAnim.mStopped)
 			m1ab8 = 8;
 		m1ac0 = PickSpawnDelay();
@@ -232,7 +232,7 @@ void Board::UpdateSpecialMode()
 				{
 					Brick* aBrick = mFieldBricks[aRowIndex][aColIndex];
 					if (aBrick != NULL)
-						aBrick->mFlag190 = false;
+						aBrick->mSprocketFading = false;
 				}
 			}
 			m1ac0 = PickSpawnDelay();

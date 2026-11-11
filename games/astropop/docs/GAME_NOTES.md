@@ -348,7 +348,7 @@ own code never called them): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x406
 0x402a80: slots of the brick's table that nothing calls), the application's `SetMusicVolumeFloat` (0x408b70, a virtual of the game
 that nothing calls), its `HandleCmdLineParam` (0x40e060: its one switch, `-mycrash`, sets a flag that only the crash report reads, so the
 port now passes `-mycrash` on like any other argument) and `DoDialog` (0x412360, which no code of the game or framework calls). Each has
-a `none` line in `coverage.txt`. Left in: the fuel cell's `SetFlag240`, which `BoardInput.cpp` calls.
+a `none` line in `coverage.txt`. Left in: the fuel cell's `SetFiredFromShip`, which `BoardInput.cpp` calls.
 
 ## 11. Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass")
 

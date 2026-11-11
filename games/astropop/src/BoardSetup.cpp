@@ -39,7 +39,7 @@ static StageBg* NewPanel(Image* thePic, Image* theIcon, int theX, int theY, bool
 {
 	StageBg* aPanel = new StageBg();
 	aPanel->mPic = thePic;
-	aPanel->m5c = theIcon;
+	aPanel->mOverPic = theIcon;
 	aPanel->mX = theX;
 	aPanel->mY = theY;
 	if (theHasSecond)
@@ -62,15 +62,15 @@ void Board::SetupHints()
 	// the grab hint, chained to the release hint and the match hint
 	StageBg* aGrab = new StageBg();
 	aGrab->mPic = IMAGE_TUT_MOUSE_LEFT;
-	aGrab->mHeldBricks.SetNumFrames(IMAGE_TUT_MOUSE_LEFT->mNumCols);
-	aGrab->mHeldBricks.SetDelay(0x32);
-	aGrab->mHeldBricks.SetStopped(false);
-	aGrab->mHeldBricks.mHoldLast = false;
+	aGrab->mPicAnim.SetNumFrames(IMAGE_TUT_MOUSE_LEFT->mNumCols);
+	aGrab->mPicAnim.SetDelay(0x32);
+	aGrab->mPicAnim.SetStopped(false);
+	aGrab->mPicAnim.mHoldLast = false;
 	aGrab->mX = 0x1fe;
 	aGrab->mY = 0x129;
 	aGrab->mText = GT(0x566964);
 	aGrab->mTitle = GT(0x56695c);
-	aGrab->mfc = 300;
+	aGrab->mTextX = 300;
 	aGrab->mColor2 = Color(0, 0xff, 0xf);
 	aGrab->mColor1 = Color(0x1c, 0xf6, 0x4f);
 	mHintPanels.push_back(aGrab);
@@ -79,17 +79,17 @@ void Board::SetupHints()
 
 	StageBg* aRelease = new StageBg();
 	aRelease->mPic = IMAGE_TUT_MOUSE_RIGHT;
-	aRelease->m114 = 0xff;
-	aRelease->m100 = 0xff;
-	aRelease->mHeldBricks.SetNumFrames(IMAGE_TUT_MOUSE_RIGHT->mNumCols);
-	aRelease->mHeldBricks.SetDelay(0x32);
-	aRelease->mHeldBricks.SetStopped(false);
-	aRelease->mHeldBricks.mHoldLast = false;
+	aRelease->mPanelAlpha = 0xff;
+	aRelease->mPicAlpha = 0xff;
+	aRelease->mPicAnim.SetNumFrames(IMAGE_TUT_MOUSE_RIGHT->mNumCols);
+	aRelease->mPicAnim.SetDelay(0x32);
+	aRelease->mPicAnim.SetStopped(false);
+	aRelease->mPicAnim.mHoldLast = false;
 	aRelease->mX = 0x1fe;
 	aRelease->mY = 0x129;
 	aRelease->mText = GT(0x566940);
 	aRelease->mTitle = GT(0x566938);
-	aRelease->mfc = 300;
+	aRelease->mTextX = 300;
 	aRelease->mColor2 = Color(5, 0x5e, 0xb0);
 	aRelease->mColor1 = Color(0x1c, 0x78, 0xf6);
 	mHintPanels[0]->mNext = aRelease;
@@ -98,11 +98,11 @@ void Board::SetupHints()
 	aMatch->mPic = IMAGE_TH_MATCH;
 	aMatch->mX = 0x1fe;
 	aMatch->mY = 0x11c;
-	aMatch->m114 = 0xff;
-	aMatch->m100 = 0xff;
+	aMatch->mPanelAlpha = 0xff;
+	aMatch->mPicAlpha = 0xff;
 	aMatch->mText = GT(0x566904);
 	aMatch->mTitle = GT(0x5668fc);
-	aMatch->mfc = 300;
+	aMatch->mTextX = 300;
 	aMatch->mColor2 = Color(0xf0, 0, 0xff);
 	aMatch->mColor1 = Color(0xff, 0, 0xfa);
 	mHintPanels[0]->mNext->mNext = aMatch;
@@ -111,7 +111,7 @@ void Board::SetupHints()
 	StageBg* aPanel;
 
 	aPanel = NewPanel(IMAGE_TH_BONUS, IMAGE_FUELCELL, 0x118, 0x11c, true, 0x5668b0, 0x5668c0, Color(0, 0x87, 0xcd), Color(0, 0x34, 0xaa));
-	aPanel->mf4 = 0x8c;
+	aPanel->mTitleWidth = 0x8c;
 	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_RADIAL, IMAGE_BRICK_RADIAL, 0x118, 0x11c, true, 0x566868, 0x566874, Color(0xff, 0xd2, 0), Color(0xe2, 0xa0, 0));
 	mHintPanels.push_back(aPanel);
@@ -141,9 +141,9 @@ void Board::SetupHints()
 		for (StageBg* aStage = mHintPanels[i]; aStage != NULL; aStage = aStage->mNext)
 		{
 			g.SetFont(GetFontById(0x121));
-			aStage->m120 = WriteWordWrapped(&g, Rect(0x8c, 0x11e, 0x96, 0x3c), aStage->mTitle, -1, 0);
+			aStage->mTitleHeight = WriteWordWrapped(&g, Rect(0x8c, 0x11e, 0x96, 0x3c), aStage->mTitle, -1, 0);
 			g.SetFont(GetFontById(0xb1));
-			aStage->m124 = WriteWordWrapped(&g, Rect(300, 0x11a, 0xd2, 0x3c), aStage->mText, -1, 0);
+			aStage->mTextHeight = WriteWordWrapped(&g, Rect(300, 0x11a, 0xd2, 0x3c), aStage->mText, -1, 0);
 		}
 	}
 
@@ -450,15 +450,15 @@ void Board::AdvanceLevel(bool theSave)
 			}
 
 			aValue = 0;
-			if (m1a24 < m7c4)
-				m1a24 = m7c4;
+			if (m1a24 < mBestChain)
+				m1a24 = mBestChain;
 			aUser->GetInt(0xc, &aValue);
-			if (aValue < m7c4)
+			if (aValue < mBestChain)
 				aUser->SetInt(0xc, aValue);     // (no-op as well)
 
 			aValue = 0;
 			aUser->GetInt(0x2f, &aValue);
-			aValue += m7c8;
+			aValue += mFieldsCleared;
 			aUser->SetInt(0x2f, aValue);
 		}
 		aUser->Save();

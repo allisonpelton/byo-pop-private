@@ -16,7 +16,7 @@ void Board::LoadLevel(bool theFromRules)
 {
 	XcfFile aFile;
 
-	m8da = false;
+	mBonusFieldLoaded = false;
 	mWarpGateAnim.SetStopped(true);
 	ClearField();
 	m1930 = -1;
@@ -155,31 +155,31 @@ void Board::LoadLevel(bool theFromRules)
 	if ((unsigned int) mField193C < mStageHintPanels.size())
 	{
 		StageBg* aBg = mStageHintPanels[mField193C];
-		aBg->m100 = 0xff;
-		aBg->m114 = 0xff;
-		aBg->mFadedBricks = 0;
-		aBg->m118 = 0;
-		aBg->m10c = 0;
-		aBg->m110 = 0;
-		aBg->m104 = 0;
-		aBg->mf0 = 0;
+		aBg->mPicAlpha = 0xff;
+		aBg->mPanelAlpha = 0xff;
+		aBg->mCrossfadeTimer = 0;
+		aBg->mPanelAlphaStep = 0;
+		aBg->mPicAlphaStep = 0;
+		aBg->mOverPicAlphaStep = 0;
+		aBg->mOverPicAlpha = 0;
+		aBg->mFadedOut = 0;
 	}
-	if (!mHintSpots.empty() && mHintSpots[0]->m1c)
+	if (!mHintSpots.empty() && mHintSpots[0]->mActive)
 	{
 		StageBg* aBg = mHintSpots[0]->mBg;
-		aBg->m100 = 0xff;
-		aBg->m114 = 0xff;
-		aBg->mFadedBricks = 0;
-		aBg->m118 = 0;
-		aBg->m10c = 0;
-		aBg->m110 = 0;
-		aBg->m104 = 0;
-		aBg->mf0 = 0;
+		aBg->mPicAlpha = 0xff;
+		aBg->mPanelAlpha = 0xff;
+		aBg->mCrossfadeTimer = 0;
+		aBg->mPanelAlphaStep = 0;
+		aBg->mPicAlphaStep = 0;
+		aBg->mOverPicAlphaStep = 0;
+		aBg->mOverPicAlpha = 0;
+		aBg->mFadedOut = 0;
 	}
 	if (m1a60 == 1)
 	{
 		m1b2c = m1b28;
-		m1b28 = Fn433130(m1940 + 1);
+		m1b28 = UpgradeScreenKind(m1940 + 1);
 	}
 	Fire(0x2a, 1);
 }

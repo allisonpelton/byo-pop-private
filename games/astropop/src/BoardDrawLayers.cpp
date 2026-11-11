@@ -62,8 +62,8 @@ void Board::Draw(Graphics* g)
 	DrawUpgradeArm(g);
 	DrawSurvivalIntro(g);
 	DrawFrame(g);
-	if (m8de)
-		m778->Draw(g);
+	if (mLevelUpTextShown)
+		mLevelUpText->Draw(g);
 
 	DrawLogo(g);
 	DrawSupaBrackets(g);
@@ -120,7 +120,7 @@ void Board::Draw(Graphics* g)
 	if (m8ef && m1a60 == 1)
 		DrawWarpScreen(g);
 
-	if (mApp->mFlag6f9 && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && !m916 &&
+	if (mApp->mHintsOn && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && !m916 &&
 		(!m910 || m913))
 	{
 		for (unsigned int i = 0; i < mHintBoxes.size(); i++)
@@ -216,7 +216,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 	}
 
 	// the pop-up of a hint is open
-	bool aHintOpen = !mHintSpots.empty() && mHintSpots[0]->m1c && !(-m7ec < m7e8);
+	bool aHintOpen = !mHintSpots.empty() && mHintSpots[0]->mActive && !(-mLevelUpPanelHeight < mLevelUpPanelY);
 	if (!m922 || aHintOpen)
 	{
 		if (-1 < m1960 && m923 && (!m8eb || m8ec) && !m8ed && !m8ef && !m8f4 && !m8ec && !aHintOpen && m1a60 == 1 && 1 < m1940)
@@ -413,12 +413,12 @@ void Board::DrawUpgradeArm(Graphics* g)
 	if (!((m1b2c == 2 || m1b2c == 4) && (m8ef || m8ed)))
 		return;
 
-	g->DrawImage(m834, m820, m824);
-	g->DrawImage(m890, m87c, m880);
+	g->DrawImage(mLeftArmImage, mLeftArmX, mLeftArmY);
+	g->DrawImage(mRightArmImage, mRightArmX, mRightArmY);
 	int anArmWidth = IMAGE_UPGRADE_ARM->mWidth;
 	int aHeadWidth = IMAGE_UPGRADE_HEAD->GetCelWidth();
-	DrawCel(g, m838, m820 + anArmWidth, m824, mAnim83c.GetCel());
-	DrawCel(g, m894, m87c - aHeadWidth, m880, mAnim898.GetCel());
+	DrawCel(g, mLeftHeadImage, mLeftArmX + anArmWidth, mLeftArmY, mLeftHeadAnim.GetCel());
+	DrawCel(g, mRightHeadImage, mRightArmX - aHeadWidth, mRightArmY, mRightHeadAnim.GetCel());
 }
 
 // the introduction of the second game type
@@ -666,7 +666,7 @@ void Board::DrawSurvivalBonus(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawTestTexts(Graphics* g)
 {
-	if (m8db && mUpdateCnt % 0x28 < 0x14)
+	if (mRecordingDemo && mUpdateCnt % 0x28 < 0x14)
 	{
 		std::string aText = GT(0x00565a90);
 		g->SetFont(GetFontById(FONT_DIALOG_BOX_ID));
@@ -676,7 +676,7 @@ void Board::DrawTestTexts(Graphics* g)
 		g->DrawString(aText, 0x1f6, 0x19f);
 	}
 
-	if (m8dc)
+	if (mDemoPlaying)
 	{
 		int aPhase = mUpdateCnt % 0x80;
 		if (0x3f < aPhase)

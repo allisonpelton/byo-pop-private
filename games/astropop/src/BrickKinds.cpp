@@ -34,7 +34,7 @@ KillAllBrick::KillAllBrick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mSpecial = true;
 	mField234 = 0xff;
 	mDeathAnim.SetNumFrames(IMAGE_BRICK_KILLALL_RED_DEATH->mNumCols);
-	mField238 = false;
+	mChainCounted = false;
 }
 
 // 0x404850
@@ -74,7 +74,7 @@ void KillAllBrick::Draw(Graphics* g, bool theGlow)
 	if (mMutated == 1)
 		anImage = IMAGE_BRICK_MUTATOR;
 	else
-		anImage = SafeImage((gApp->mFlag6fa ? 0x227 : 0x221) + mType);
+		anImage = SafeImage((gApp->mColorblind ? 0x227 : 0x221) + mType);
 
 	if (mState == 2 && mImage != NULL)
 		anImage = TypeImage(mType, mSpecial);
@@ -427,7 +427,7 @@ FuelCell::FuelCell(Board* theBoard, EventBus* theBus) :
 	mAnim.SetNumFrames(IMAGE_FUELCELL->mNumCols);
 	mAnim.SetStopped(false);
 	mColorStep = 2;
-	mFlag240 = false;
+	mFiredFromShip = false;
 	mDeathAnim.SetDelay(4);
 	mDeathAnim.SetNumFrames(IMAGE_FUELCELL_DEATH->mNumCols);
 	mDeathAnim.mHoldLast = true;
@@ -547,14 +547,14 @@ void FuelCell::SetPlace(int theColumn, int theRow)
 	mRow = theRow;
 }
 
-void FuelCell::SetFlag240()
+void FuelCell::SetFiredFromShip()
 {
-	mFlag240 = true;
+	mFiredFromShip = true;
 }
 
-bool FuelCell::GetFlag240()
+bool FuelCell::WasFiredFromShip()
 {
-	return mFlag240;
+	return mFiredFromShip;
 }
 
 // 0x405340
@@ -676,7 +676,7 @@ void PowerBrick::OnSettle()
 }
 
 // 0x402d60 (listener) event 0x2a: the booster pauses and goes on
-void PowerBrick::OnEvent2A(int theArg)
+void PowerBrick::OnBoosterPause(int theArg)
 {
 	if (mType == 0xe)
 		mBoosterOff = theArg != 0;

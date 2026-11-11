@@ -26,8 +26,8 @@ void Board::DrawFrame(Graphics* g)
 	}
 	else
 	{
-		if (m7e8 != 0)
-			g->DrawImage(IMAGE_BRICK_GENERATOR_UI, m1a80 + 0x98, -(m7ec + m7e8));
+		if (mLevelUpPanelY != 0)
+			g->DrawImage(IMAGE_BRICK_GENERATOR_UI, m1a80 + 0x98, -(mLevelUpPanelHeight + mLevelUpPanelY));
 
 		if (aDim)
 		{
@@ -35,7 +35,7 @@ void Board::DrawFrame(Graphics* g)
 			int aShade = 0xff - m1b3c;
 			g->SetColor(Color(aShade, aShade, aShade));
 		}
-		if (m8dc)
+		if (mDemoPlaying)
 		{
 			// the two dark bars behind the recording texts
 			g->SetColor(Color(0, 0, 0, 200));
@@ -245,7 +245,7 @@ void Board::DrawFrame(Graphics* g)
 		Image* aLights = IMAGE_SUPA_BUTTON_LIGHTS_OFF;
 		Image* aButton = NULL;
 		int aGlowAlpha = 0;
-		bool aPanelOut = !mHintSpots.empty() && mHintSpots[0]->m1c && m7e8 <= -m7ec;    // a hint panel is up over the field
+		bool aPanelOut = !mHintSpots.empty() && mHintSpots[0]->mActive && mLevelUpPanelY <= -mLevelUpPanelHeight;    // a hint panel is up over the field
 		if (m1b48 > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
 		{
 			int aX = m1958;
@@ -334,8 +334,8 @@ void Board::DrawFrame(Graphics* g)
 		if (m910 || m917)
 			g->SetColorizeImages(false);
 
-		if (!mAnim620.mStopped)
-			DrawCel(g, IMAGE_FUELCELL_DEATH, 0x217, 0x30, (mAnim620.mNumFrames == 1) ? 0 : mAnim620.mFrame);
+		if (!mSuperchargeBlastAnim.mStopped)
+			DrawCel(g, IMAGE_FUELCELL_DEATH, 0x217, 0x30, (mSuperchargeBlastAnim.mNumFrames == 1) ? 0 : mSuperchargeBlastAnim.mFrame);
 
 		if (aDim)
 		{

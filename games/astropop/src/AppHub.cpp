@@ -192,7 +192,7 @@ void AstroPopApp::ButtonDepress(int theId)
 			break;
 		case 0x844:     // 116: continue the saved game
 			CloseDialog(0x74);
-			mFlag6fc = false;
+			mHelpShown = false;
 			StartGame(true);
 			break;
 		case 0x845:     // 117: the hints are on again (and then the box goes like 103 .. 105)
@@ -209,7 +209,7 @@ void AstroPopApp::ButtonDepress(int theId)
 			mUser->Save();
 			int aValue = 1;
 			mUser->GetInt(0x73, &aValue);
-			mFlag6fb = (aValue == 1);
+			mShowHelpAtStart = (aValue == 1);
 			CloseDialog(theId - 2000);
 			break;
 		}
@@ -289,7 +289,7 @@ void AstroPopApp::ButtonDepress(int theId)
 			mUser->ResetHintsShown();
 			mUser->ResetGame();
 			mUser->Save();
-			mFlag6fc = false;
+			mHelpShown = false;
 			StartGame(false);
 			break;
 		case 0x78:
@@ -322,7 +322,7 @@ void AstroPopApp::ButtonDepress(int theId)
 		if (mBoard->m1a60 != 1)
 		{
 			StartSurvivalGame(mSurvivalPilot);
-			mFlag6fc = true;
+			mHelpShown = true;
 			break;
 		}
 		mUser->SetInt(0x71, 0);
@@ -333,7 +333,7 @@ void AstroPopApp::ButtonDepress(int theId)
 			if (((aBest + ((aBest >> 31) & 3)) >> 2) * 4 > 3)
 				RestoreCheckpointScore(this);
 		}
-		mFlag6fc = true;
+		mHelpShown = true;
 		break;
 	case 0xfa5:     // back to the selector
 		BackToSelector(this);
@@ -349,9 +349,9 @@ void AstroPopApp::ButtonDepress(int theId)
 		CloseFullScreenHelp();
 		break;
 	case 0xfb6:     // the story screen is closed
-		SafeDeleteWidget(mScreen654);
-		mWidgetManager->RemoveWidget(mScreen654);
-		mScreen654 = NULL;
+		SafeDeleteWidget(mCreditsScreen);
+		mWidgetManager->RemoveWidget(mCreditsScreen);
+		mCreditsScreen = NULL;
 		if (mBoard == NULL)
 			ShowMainMenu();
 		break;

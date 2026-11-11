@@ -156,13 +156,13 @@ std::string WaitMove()
 // port: the bot (a test driver's view of the game); the original has none
 int Board::BotBusyReason()
 {
-	if (m8dc && !m8dd)
+	if (mDemoPlaying && !mDemoInputActive)
 		return 1;
 	if (m901 || m8ec || m916 || m8f4 || m8ea)
 		return 2;
 	if (m8eb && !m8ef)
 		return 3;
-	if (!m8eb && !m8ed && !m8ef && m7ec + m7e8 > 0)
+	if (!m8eb && !m8ed && !m8ef && mLevelUpPanelHeight + mLevelUpPanelY > 0)
 		return 4;
 	if (m1924 != 0 || mFlag8E9 || m1990 > 0)
 		return 5;
@@ -194,19 +194,19 @@ std::string Board::BotMove()
 	}
 
 	// a hint that waits to be read is put away with its button
-	if (m74c != NULL && m74c->mVisible && (m919 || (!mHintSpots.empty() && mHintSpots[0]->m1c)))
+	if (mHintOkButton != NULL && mHintOkButton->mVisible && (m919 || (!mHintSpots.empty() && mHintSpots[0]->mActive)))
 		return "{\"kind\":\"hint\"," +
-			   Steps(StrFormat("{\"click\":[%d,%d]}", m74c->mX + m74c->mWidth / 2, m74c->mY + m74c->mHeight / 2)) + "}";
+			   Steps(StrFormat("{\"click\":[%d,%d]}", mHintOkButton->mX + mHintOkButton->mWidth / 2, mHintOkButton->mY + mHintOkButton->mHeight / 2)) + "}";
 
 	// the tutorial's demo plays by itself; the link it shows (to start a game) ends it
-	if (m8dc && mDemoStartLink != NULL && mDemoStartLink->mVisible)
+	if (mDemoPlaying && mDemoStartLink != NULL && mDemoStartLink->mVisible)
 		return "{\"kind\":\"demo\",\"updates\":10," +
 			   Steps(StrFormat("{\"click\":[%d,%d]}", mDemoStartLink->mX + mDemoStartLink->mWidth / 2, mDemoStartLink->mY + mDemoStartLink->mHeight / 2)) + "}";
 
 	// the story that comes before a level: a click brings all of it in, then its button takes it away
-	if (m754 != NULL)
+	if (mStoryScreen != NULL)
 	{
-		AstroButton* aStoryButton = m754->mButton;
+		AstroButton* aStoryButton = mStoryScreen->mButton;
 		if (aStoryButton == NULL)
 			return WaitMove();
 		if (!aStoryButton->mVisible)
@@ -225,7 +225,7 @@ std::string Board::BotMove()
 	}
 
 	// the warp screen between two levels waits for a click on its first panel (the next level) once the screen is up
-	if (m8ef && m1a60 == 1 && m7e8 >= 0 && !m8f4)
+	if (m8ef && m1a60 == 1 && mLevelUpPanelY >= 0 && !m8f4)
 		return "{\"kind\":\"gate\",\"updates\":10," +
 			   Steps(StrFormat("{\"click\":[%d,%d]}", m1a70 + 0x3c, 0xe1 + 0x14)) + "}";
 
@@ -242,7 +242,7 @@ std::string Board::BotMove()
 		return WaitMove();
 
 	// the weapon of the pilot, charged: the Return key starts it (the middle button and the start button do the same)
-	if (m1a34 == 0 && m1bd8 == m1bdc && !m8e4 && !m910 && !m8dc)
+	if (m1a34 == 0 && m1bd8 == m1bdc && !m8e4 && !m910 && !mDemoPlaying)
 		return "{\"kind\":\"weapon\",\"updates\":10," + Steps("{\"key\":\"Return\"}") + "}";
 
 	FieldGrid aGrid;

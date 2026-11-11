@@ -109,7 +109,7 @@ void Board::BuildField()
 	unsigned int aRow = 0;
 	m95c = 0;
 	m954 = 0;
-	m8dd = false;
+	mDemoInputActive = false;
 	m958 = 0;
 	m8fc = true;
 	ClearField();

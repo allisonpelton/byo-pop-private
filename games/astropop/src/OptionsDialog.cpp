@@ -101,7 +101,7 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	mCursorCheck->mChecked = gApp->mCustomCursorsEnabled;
 	mAccelCheck->mChecked = gApp->Is3DAccelerated();
 	mHintsCheck->mChecked = theHints;
-	mColorblindCheck->mChecked = gApp->mFlag6fa;
+	mColorblindCheck->mChecked = gApp->mColorblind;
 
 	mHintsResetButton = MakeButton(9, GTC(0x0056b08c));
 	mCreditsButton = MakeButton(0xb, "Credits");

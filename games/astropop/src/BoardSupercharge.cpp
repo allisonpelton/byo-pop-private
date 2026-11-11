@@ -65,7 +65,7 @@ void Board::AnnounceText(const std::string& theText)
 	FloatText* aText = new FloatText(theText, GetFontById(0xb1), (float) aX, (float) aY, false);
 	mFloatTexts.push_back(aText);
 	aText->mNoFade = true;
-	aText->m18 = 200;
+	aText->mAlphaDelay = 200;
 }
 
 // 0x45ac80 (the original returns the cell of the brick that was picked, which no caller reads). theCheck is the
@@ -277,11 +277,11 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 
 	if (theCheck)
 	{
-		mAnim620.Reset();
-		mAnim620.SetDelay(7);
-		mAnim620.SetNumFrames(IMAGE_FUELCELL_DEATH->mNumCols);
-		mAnim620.mHoldLast = true;
-		mAnim620.SetStopped(false);
+		mSuperchargeBlastAnim.Reset();
+		mSuperchargeBlastAnim.SetDelay(7);
+		mSuperchargeBlastAnim.SetNumFrames(IMAGE_FUELCELL_DEATH->mNumCols);
+		mSuperchargeBlastAnim.mHoldLast = true;
+		mSuperchargeBlastAnim.SetStopped(false);
 		m1b40 = 200;
 	}
 

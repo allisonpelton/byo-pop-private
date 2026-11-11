@@ -14,7 +14,7 @@ class KillAllBrick : public Brick
 {
 public:
 	int				mField234;          // +0x234 255
-	bool			mField238;          // +0x238
+	bool			mChainCounted;      // +0x238 the brick went with a connected set that already advanced the chain, so OnKillAllDone does not advance it again
 
 	KillAllBrick(Board* theBoard, EventBus* theBus, int theColumn);
 	virtual void	OnDie() override;                                   // 0x404c60
@@ -47,7 +47,7 @@ public:
 	int				mRow;               // +0x234 -1
 	int				mColorPhase;        // +0x238 0 .. 5 the tint's walk round the colour wheel (6: not tinted)
 	int				mColorStep;         // +0x23c 2 (4 once it has settled)
-	bool			mFlag240;           // +0x240
+	bool			mFiredFromShip;     // +0x240 the cell was shot up by the ship; when it goes it supercharges the colour above it
 	Color			mTint;              // +0x244 starts red
 
 	FuelCell(Board* theBoard, EventBus* theBus);
@@ -58,8 +58,8 @@ public:
 	virtual void	Draw(Graphics* g, bool theGlow) override;           // 0x405340
 	virtual void	DrawAt(Graphics* g, bool theGlow, float theX, float theY) override;  // 0x402b30
 	virtual void	SetPlace(int theColumn, int theRow);                // 0x407ce0 slot 27
-	virtual void	SetFlag240();                                       // 0x407d00 slot 28
-	virtual bool	GetFlag240();                                       // 0x407d10 slot 31
+	virtual void	SetFiredFromShip();                                 // 0x407d00 slot 28: sets mFiredFromShip (BoardInput, when a group is fired)
+	virtual bool	WasFiredFromShip();                                // 0x407d10 slot 31: mFiredFromShip (BoardGone: the supercharge of the colour above)
 };
 
 // Freeze (10), column nuke (0xd) and booster (0xe) (constructor 0x407d80, sizeof 0x24c, vtables 0x55da30 / 0x55d988)
@@ -79,7 +79,7 @@ public:
 	virtual void	OnSpawn() override;                                 // 0x4039c0
 	virtual void	OnSettle() override;                                // 0x403930
 	virtual void	OnDie() override;                                   // 0x408340
-	virtual void	OnEvent2A(int theArg) override;                     // 0x402d60
+	virtual void	OnBoosterPause(int theArg) override;                 // 0x402d60 event 0x2a: a booster brick pauses and goes on (the power brick listens)
 	virtual void	UpdateState0() override;                            // 0x402be0
 	virtual bool	Update() override;                                  // 0x4038c0
 	virtual void	SetType(int theType) override;                      // 0x407e80

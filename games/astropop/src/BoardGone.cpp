@@ -59,16 +59,16 @@ void Board::OnBrickGone(Brick* theBrick)
 		m196c += aPoints;
 		if (!m910)
 			AddScore(aPoints, false);
-		if (m6e8 == -1 && m6ec == -1)
+		if (mPointsTextX == -1 && mPointsTextY == -1)
 		{
-			m6e8 = (int) theBrick->mX;
-			m6ec = (int) theBrick->mY;
+			mPointsTextX = (int) theBrick->mX;
+			mPointsTextY = (int) theBrick->mY;
 		}
 	}
 
-	m7c0++;
+	mBricksGoneCount++;
 	if (theBrick->mMutated != 1 && theBrick->mType == 10)
-		Fn4335e0();
+		BeginClearWait();
 	m1994--;
 
 	if (!mFlag8E8)
@@ -103,7 +103,7 @@ void Board::OnBrickGone(Brick* theBrick)
 
 				if (!aText.empty() && m1a60 != 2 && (!m8eb || m8ec) && !m8ed && !m8ef && !m8f4 && !m8ec)
 				{
-					delete m778;
+					delete mLevelUpText;
 
 					MemoryImage* anImage = new MemoryImage(mApp);
 					Font* aFont = GetFontById(0xb2);
@@ -117,9 +117,9 @@ void Board::OnBrickGone(Brick* theBrick)
 					g.DrawString(aText, anImage->GetWidth() / 2 - aFont->StringWidth(aText) / 2, aFont->GetAscent());
 					g.DrawString(aTail, 0, aFont->GetAscent() + aFont->GetHeight() - 10);
 
-					m8de = true;
-					m778 = new LevelUpText(anImage, 0);
-					m778->m04 = true;
+					mLevelUpTextShown = true;
+					mLevelUpText = new LevelUpText(anImage, 0);
+					mLevelUpText->m04 = true;
 					mApp->PlaySample(SOUND_WORDSWOOSH);
 					mStageMeterAnim.Reset();
 					mStageMeterAnim.SetStopped(false);
@@ -274,7 +274,7 @@ void Board::OnBrickGone(Brick* theBrick)
 					anAbove = mFieldBricks[aRow - 1][aCol];
 
 				int aColour = -1;
-				if (((FuelCell*) aBrick)->GetFlag240() && aRow > 1 && anAbove != NULL)
+				if (((FuelCell*) aBrick)->WasFiredFromShip() && aRow > 1 && anAbove != NULL)
 				{
 					if (anAbove->mMutated != 1 && (anAbove->mSpecial || (anAbove->mType >= 0 && anAbove->mType <= 5)))
 						aColour = anAbove->mType;
@@ -333,10 +333,10 @@ void Board::OnBrickGone(Brick* theBrick)
 		// what the bricks of this removal were worth, where the first of them was
 		if (m19dc > 0 && !m910)
 		{
-			FloatText* aFloat = new FloatText(StrFormat(GTC(0x56617c), m19dc), FONT_POINTS, (float) m6e8, (float) m6ec, false);
+			FloatText* aFloat = new FloatText(StrFormat(GTC(0x56617c), m19dc), FONT_POINTS, (float) mPointsTextX, (float) mPointsTextY, false);
 			mFloatTexts.push_back(aFloat);
-			m6e8 = -1;
-			m6ec = -1;
+			mPointsTextX = -1;
+			mPointsTextY = -1;
 		}
 		m19dc = 0;
 		CheckSparseField();
@@ -346,7 +346,7 @@ void Board::OnBrickGone(Brick* theBrick)
 		HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), false);
 
 	if (mMode == 2 && !m907 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
-		Fn4335e0();
+		BeginClearWait();
 
 	// a field with no move left (the out flag of AnyMoveLeft is a byte of the original's frame that nothing set before)
 	if (m910 && mKillAllTypes.empty() && !m912 && !m911 && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 &&

@@ -45,7 +45,7 @@ const char* ScreenName(AstroPopApp* theApp)
 {
 	if (theApp->mBoard != NULL)
 		return "game";
-	if (theApp->mScreen650 != NULL)
+	if (theApp->mCharSelector != NULL)
 		return "screen";
 	if (theApp->mMainMenu != NULL && theApp->mMainMenu->mWidgetManager != NULL)
 		return "menu";

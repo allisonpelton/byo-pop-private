@@ -52,7 +52,7 @@ void Board::DrawEndPage(Graphics* g)
 			// the result of the game that has ended is lit up
 			if (aRow == m1b30)
 			{
-				g->SetColor(Color(0xff, 0xff, 0xff, mAnim5a0.GetCel() + 0x28));
+				g->SetColor(Color(0xff, 0xff, 0xff, mResultPulseAnim.GetCel() + 0x28));
 				g->FillRect(0xb0, aY, 0x1a4, IMAGE_PERSONAL_VECTOR_GAUGE->mHeight);
 				g->SetColorizeImages(true);
 				g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
@@ -126,7 +126,7 @@ void Board::DrawEndPage(Graphics* g)
 
 	aLineY += aFont->GetAscent() * 2;
 	WriteString(g, GT(0x00565ca0), 0xe8, aLineY, -1, -1, true, 0, -1);
-	WriteString(g, StrFormat(GTC(0x00565d18), m7c4), 0x21f, aLineY, -1, 1, true, 0, -1);
+	WriteString(g, StrFormat(GTC(0x00565d18), mBestChain), 0x21f, aLineY, -1, 1, true, 0, -1);
 
 	aLineY += aFont->GetAscent() * 2;
 	if (m1a60 == 1)

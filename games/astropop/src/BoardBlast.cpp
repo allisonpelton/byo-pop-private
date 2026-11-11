@@ -172,7 +172,7 @@ void Board::OnBlast(Brick* theBrick, int theArg)
 	unsigned int anIndex = 0;
 	std::list<Brick*>::iterator i = mTakenBricks.begin();
 
-	if (theArg < 1 && theBrick->mFlag187)
+	if (theArg < 1 && theBrick->mBlastsOnPop)
 	{
 		while (i != mTakenBricks.end() && *i != theBrick)
 		{

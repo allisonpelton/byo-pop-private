@@ -69,76 +69,76 @@ f8	std::vector<int>	mKillAllTypes	the brick kinds of the kill-all bricks that ar
 4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
 4e0	FrameAnim	mStageMeterAnim	reset when the stage's brick count reaches a quarter, a half or three quarters and when a booster adds to it; nothing updates or reads it
 520	FrameAnim	mTurbotPowerupAnim	the turbot power-up animation (IMAGE_TURBOT_POWERUP, mode 2 only), drawn at the ship while the bonus runs
-560	FrameAnim	mAnim560	?
-5a0	FrameAnim	mAnim5a0	the end buttons slide in with it (SetNumFrames 0x1f)
-5e0	FrameAnim	mAnim5e0	?
-620	FrameAnim	mAnim620
-660	BoardOverlay	mOverlay	the widget over the field
-6e4	SoundInstance*	m6e4
-6e8	int	m6e8	?
-6ec	int	m6ec	?
-6f0	int	m6f0
-6f4	int	m6f4
-6f8	int	m6f8
-6fc	int	m6fc
-700	int	m700	the meter's text, step of its move (OnHyperBrick)
-704	int	m704	the meter's text, top
-708	int	m708	the meter's text, steps
-70c	int	m70c	the meter's text, distance
-710	std::string	m710	the text of the supa weapon prompt
-72c	std::string	m72c
-748	XcfFile*	m748	the file of the bonus round (bonus<n>.xcf)
-74c	AstroButton*	m74c	the theme button (id 0xfa2)
-750	Checkbox*	m750	the theme checkbox (id 0xfa3)
-754	StoryScreen*	m754	?
-758	Buffer	m758	the replay recording (RecordStep)
-778	LevelUpText*	m778	the level-up picture
-77c	ScrollLayer	m77c	the scenery layer
-7b4	float	m7b4	the scenery layer's x position
-7b8	int	m7b8	?
-7bc	int	m7bc	?
-7c0	int	m7c0	?
-7c4	int	m7c4	?
-7c8	int	m7c8	?
-7cc	std::vector<std::string>	m7cc	the lines of the level-up panel
-7dc	int	m7dc	?
-7e0	int	m7e0	?
-7e4	int	m7e4	?
-7e8	int	m7e8	?
-7ec	int	m7ec	?
-7f0	int	m7f0	?
-7f4	int	m7f4	?
-7f8	int	m7f8	?
-7fc	int	m7fc	?
-800	int	m800	?
-804	bool	m804
-808	PulsePair	m808
-820	int	m820	?
-824	int	m824	?
-828	int	m828	?
-82c	int	m82c	?
-830	bool	m830
-834	MemoryImage*	m834	a flipped copy of the upgrade arm
-838	MemoryImage*	m838	a flipped copy of the upgrade head
-83c	FrameAnim	mAnim83c
-87c	int	m87c	?
-880	int	m880	?
-884	int	m884	?
-888	int	m888	?
-88c	bool	m88c
-890	Image*	m890	IMAGE_UPGRADE_ARM
-894	Image*	m894	IMAGE_UPGRADE_HEAD
-898	FrameAnim	mAnim898
-8d8	bool	m8d8	?
-8d9	bool	m8d9	?
-8da	bool	m8da
-8db	bool	m8db	the game is being recorded (RecordStep)
-8dc	bool	m8dc	the demo plays
-8dd	bool	m8dd	?
-8de	bool	m8de	?
-8df	bool	m8df
-8e0	bool	m8e0	?
-8e1	bool	m8e1
+560	FrameAnim	mBoosterAnim	restarted when a booster brick adds to the brickometer (OnHyperBrick: 31 frames, ping-pong, 20 loops) and updated every update; nothing draws it
+5a0	FrameAnim	mResultPulseAnim	pulse of the end of a game (CreateEndButtons restarts it: 31 frames, ping-pong); its cel sets the alpha of the bar lit behind the player's result in the end page
+5e0	FrameAnim	mNewRankAnim	flash of a new rank: stopped by ResetGame, started when the rank beats the profile's best (Fn46a810); DrawHud flashes the rank's name red by its frame
+620	FrameAnim	mSuperchargeBlastAnim	the fuel cell blast (IMAGE_FUELCELL_DEATH) drawn at the top right: UpdateSupercharge starts it when called with its check set (7 updates a cel, holds the last cel)
+660	BoardOverlay	mOverlay	the widget over the field (BoardOverlay): fades the field to its fill colour, draws the pause box, the hint panels and the weapon hint; added over the Board's widgets
+6e4	SoundInstance*	mPauseMutedSound	a sound that Pause silences (volume 0) and the end of the pause restores (1.0); the destructor releases it; the port never assigns it, so it stays NULL
+6e8	int	mPointsTextX	x of the brick that went first in the current removal, where its points text floats (OnBrickGone sets it, -1 when none; PayComboBonus also uses it)
+6ec	int	mPointsTextY	y of the brick that went first in the current removal, where its points text floats (OnBrickGone sets it, -1 when none; PayComboBonus uses it plus 25)
+6f0	int	mShipShimmerX	left edge of the white band that sweeps over the ship while a bonus runs (DrawShip); always 0, set when the weapon starts
+6f4	int	mShipShimmerY	top of the shimmer band in the ship's picture: 0 while the band grows, then 1 and up by 2 an update to 52, when the band starts again (UpdateSpecialMode)
+6f8	int	mShipShimmerWidth	width of the shimmer band: 53 (set when the weapon starts, never changes)
+6fc	int	mShipShimmerHeight	height of the shimmer band: grows by 2 an update with the top at 0, then is 52 minus the top as the top moves down; the band is drawn while above 0
+700	int	mBrickometerRiseStep	step counter of the brickometer's rise (set to 0 by OnHyperBrick); nothing reads it
+704	int	mBrickometerRiseTop	y of the brickometer's top after OnHyperBrick filled it (444 minus its height); nothing reads it
+708	int	mBrickometerRiseSteps	number of steps (23) of the brickometer's rise that OnHyperBrick sets up; nothing reads it
+70c	int	mBrickometerRiseDistance	how far the brickometer's top rose in pixels, old top minus new top (OnHyperBrick); nothing reads it
+710	std::string	mWeaponHintText	the text of the weapon prompt (a game text set when the Board is made); nothing reads it
+72c	std::string	mStoryResourceGroup	name of the resource group of the story pages being shown (the pilot's Page<n> group that OpenStoryScreen loads)
+748	XcfFile*	mBonusRoundFile	the file of the bonus round (data\bonus<n>.xcf) that StartBonusRound reads; the Board owns it and deletes it
+74c	AstroButton*	mHintOkButton	the OK button of a hint panel (id 0xfa2), coloured like the stage (RecolorThemeButtons); shown with the hint, hidden when DismissHint ends it
+750	Checkbox*	mHintOffCheckbox	the check box of a hint panel (id 0xfa3) that switches the hints off (DismissHint reads it); coloured like the stage
+754	StoryScreen*	mStoryScreen	the story screen over the Board (OpenStoryScreen makes it; the end of the story removes it); NULL when none
+758	Buffer	mDemoRecordBuffer	the demo's recording: RecordStep appends bytes for the changes of the input state and the update counts between them; nothing reads it
+778	LevelUpText*	mLevelUpText	the text that swooshes in over the field: the level-complete picture, a text at a quarter, half or three quarters of a stage, a minute of a survival game
+77c	ScrollLayer	mSceneryLayer	the scenery behind the field: one of three pictures chosen by stage, scrolled down by StepScrollLayer, loaded again after each warp
+7b4	float	mSceneryX	x at which the scenery picture is drawn (DrawBackdrop); nothing writes it, so it is always 0
+7b8	int	mBonusRoundPoints	points scored in a bonus round (AddScore while one runs; a forced add always counts); saved in the profile as setting 0x62; part of the total the panel shows
+7bc	int	mPlayPoints	points scored outside bonus rounds (AddScore), saved in the profile as setting 0x5c; first line of the level-up panel
+7c0	int	mBricksGoneCount	bricks gone since the game began (OnBrickGone counts each; ResetGame clears it); nothing reads it
+7c4	int	mBestChain	the longest chain of sets in this game (AdvanceChain); also kept in the profile as setting 0x5d; second line of the level-up panel
+7c8	int	mFieldsCleared	fields cleared in this game (ClearBonus counts each); added to the profile's total of setting 0x2f when the game ends
+7cc	std::vector<std::string>	mLevelUpLines	the lines the level-up panel types out: points, best chain, time, the total score when a bonus round follows, the points the next rank needs
+7dc	int	mLevelUpTypeInterval	updates between two letters typed in the level-up panel (5, set when the panel is made)
+7e0	int	mLevelUpLineIndex	index of the level-up panel's line being typed; the lines before it are done, and past the last line it stays at the line count
+7e4	int	mLevelUpLetterIndex	index of the last typed letter of the line being typed (DrawHud shows that many plus one letters of it)
+7e8	int	mLevelUpPanelY	y of the level-up panel (IMAGE_HUD_UI): the negative of its height while hidden above the screen, 0 when down; slides 2 an update (Fn46a810)
+7ec	int	mLevelUpPanelHeight	height of the level-up panel: 206, so it slides in from that far above the screen (the brick generator's panel moves out as it comes in)
+7f0	int	mLevelUpScanY	y of the green bar that scans down the level-up panel (3D only, DrawHud): held above the panel until it is down, then from 0 down to 187
+7f4	int	mLevelUpScanHeight	height of the scan bar: grows to mLevelUpScanMaxHeight at the top, then the bar moves down and shrinks away at the bottom (0 when off)
+7f8	int	mLevelUpScanMaxHeight	the greatest height of the scan bar: 10
+7fc	int	mLevelUpScanInterval	updates between steps of the scan bar: 2
+800	int	mLevelUpCursorInterval	updates between blinks of the cursor once every line of the level-up panel is typed: 25
+804	bool	mLevelUpCursorShown	the cursor after the typed letters of the level-up panel is drawn (blinks every mLevelUpCursorInterval updates once the lines are all typed)
+808	PulsePair	mWeaponHintPulse	the two alphas (0 to 255, swinging in turns, PulsePair::Update) of the two pictures of the pilot's weapon in the weapon hint (DrawWeaponHint)
+820	int	mLeftArmX	x of the left arm of the upgrade screen: slides in from minus its width to its stop and out again (Fn46a810)
+824	int	mLeftArmY	y of the left arm and its head on the upgrade screen: 416
+828	int	mLeftArmStopX	x where the left arm stops sliding in: 130 (SetupUpgradeAnims)
+82c	int	mLeftArmStopY	y that SetupUpgradeAnims sets for the left arm's stop: 416; nothing reads it
+830	bool	mLeftArmImagesOwned	the flipped copies of the arm and head (the left arm's pictures) belong to the Board and the destructor deletes them; set by SetupUpgradeAnims
+834	MemoryImage*	mLeftArmImage	flipped copy of the upgrade arm picture (made when the Board is made): the arm that slides in from the left
+838	MemoryImage*	mLeftHeadImage	flipped copy of the upgrade head picture: the head on the left arm, drawn with the cel of mLeftHeadAnim
+83c	FrameAnim	mLeftHeadAnim	animation of the left arm's head: cels 0 to 5, backwards, 6 updates a cel; runs once the arm has stopped (Fn46a810)
+87c	int	mRightArmX	x of the right arm of the upgrade screen: starts at 660, past the right edge, slides in to its stop and out again (Fn46a810)
+880	int	mRightArmY	y of the right arm and its head on the upgrade screen: 416
+884	int	mRightArmStopX	x where the right arm stops sliding in: 463 (SetupUpgradeAnims)
+888	int	mRightArmStopY	y that SetupUpgradeAnims sets for the right arm's stop: 416; nothing reads it
+88c	bool	mRightArmImagesOwned	the destructor deletes the right arm's pictures when it is set; nothing sets it (they are the resource's pictures)
+890	Image*	mRightArmImage	the upgrade arm picture (IMAGE_UPGRADE_ARM, the resource's own) of the arm that slides in from the right
+894	Image*	mRightHeadImage	the upgrade head picture (IMAGE_UPGRADE_HEAD, the resource's own): the head of the right arm, drawn with the cel of mRightHeadAnim
+898	FrameAnim	mRightHeadAnim	animation of the right arm's head: cels 16 to 21, 6 updates a cel; runs once the arm has stopped (Fn46a810)
+8d8	bool	mDemoEnding	the demo is ending: CloseOverlay sets it, the white overlay fades in, then the demo stops and a new game starts (Update)
+8d9	bool	mFadingFromWhite	after the demo ends the white overlay fades out again (its alpha falls by 6 an update); cleared when it is clear
+8da	bool	mBonusFieldLoaded	a bonus round's field has been loaded (StartBonusRound sets it, LoadLevel clears it); DrawBricks then leaves out row 0
+8db	bool	mRecordingDemo	the game is being recorded as a demo (a red box flashes, RecordStep writes each update's input); the port never sets it
+8dc	bool	mDemoPlaying	the demo plays: the title's game plays by itself from mDemoSteps and real input is ignored; the end fade clears it
+8dd	bool	mDemoInputActive	set while a demo step sends its own click or pointer move to the input handlers, which ignore input while the demo plays unless it is set
+8de	bool	mLevelUpTextShown	the level-up text is on the screen: it is updated and drawn while this is set; set when a new one starts, cleared when its animation is done
+8df	bool	mStartWeaponAfterPause	set when a click on the weapon prompt ends the pause (MouseDown); at the end of that pause Pause calls BeginPlay once
+8e0	bool	mWelcomePlayed	the welcome voice has played in this game (Update plays it once no demo runs, and starts the engine loop); ResetState clears it
+8e1	bool	mFirstHelpPending	the full-screen help is still to show once (copied from the application's help flag when the Board is made); Update shows it and clears this
 8e2	bool	m8e2
 8e3	bool	m8e3	?
 8e4	bool	m8e4	?

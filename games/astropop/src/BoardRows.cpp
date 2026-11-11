@@ -125,7 +125,7 @@ void Board::AddTopRow()
 	bool aNoRoom = NoRoomLeft();
 	if (m1a34 == 1 && IsSettled(true) && aNoRoom)
 		return;
-	if (m8dc && (unsigned int) m958 >= mDemoAddedRows.size())
+	if (mDemoPlaying && (unsigned int) m958 >= mDemoAddedRows.size())
 		return;
 
 	for (int aRow = 18; aRow >= 0; aRow--)
@@ -141,7 +141,7 @@ void Board::AddTopRow()
 		}
 	}
 
-	if (!m8dc)
+	if (!mDemoPlaying)
 		FillTopRow(true, false, true, true, 0);
 	else
 	{
@@ -201,7 +201,7 @@ void Board::AddTopRow()
 		GameOver();
 	gFlag5A5100 = false;
 
-	if (m8db)
+	if (mRecordingDemo)
 	{
 		std::vector<int> aTypes;
 		for (int aCol = 0; aCol < 10; aCol++)

@@ -16,7 +16,7 @@ using namespace Sexy;
 // level, later one of the stages -2 to 30, and a stage is not picked again until thirty have been played.
 void Board::StartBonusRound(int theStage)
 {
-	m8da = true;
+	mBonusFieldLoaded = true;
 
 	if (theStage == -1)
 	{
@@ -70,14 +70,14 @@ void Board::StartBonusRound(int theStage)
 	}
 	m911 = false;
 
-	delete m748;
-	m748 = new XcfFile();
+	delete mBonusRoundFile;
+	mBonusRoundFile = new XcfFile();
 	std::string aFileName = StrFormat("data\\bonus%d.xcf", theStage);
-	m748->AddKeyName("Brick");
-	int aResult = m748->Parse(aFileName);
+	mBonusRoundFile->AddKeyName("Brick");
+	int aResult = mBonusRoundFile->Parse(aFileName);
 	if (aResult != 0)
 	{
-		mApp->Popup(StrFormat("There was an error loading the file: %s. Error number: %d, line %d", aFileName.c_str(), aResult, m748->mLine));
+		mApp->Popup(StrFormat("There was an error loading the file: %s. Error number: %d, line %d", aFileName.c_str(), aResult, mBonusRoundFile->mLine));
 		mApp->mShutdown = true;
 		return;
 	}
@@ -114,13 +114,13 @@ void Board::StartBonusRound(int theStage)
 		for (int aCol = 0; aX < 0x25e; aCol++)
 		{
 			std::string aPath = StrFormat("LEVEL\\ROW%d\\Brick%d", aRow, aCol);
-			if (!m748->HasKey(aPath))
+			if (!mBonusRoundFile->HasKey(aPath))
 			{
 				mApp->mUser->SetInt(100, m1b98);
 				return;
 			}
 
-			long aKind = m748->GetInt(aPath);
+			long aKind = mBonusRoundFile->GetInt(aPath);
 			if (aKind != -1)
 			{
 				Brick* aBrick = NULL;

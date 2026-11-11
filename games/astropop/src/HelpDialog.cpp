@@ -18,7 +18,7 @@ HelpDialog::HelpDialog(int theColourSet, AstroPopApp* theApp) :
 	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x79, true, GT(0x0056b554), std::string(), std::string(), 1)
 {
 	mApp = theApp;
-	mPlayedBonusStages = 0;
+	mLinesTopOffset = 0;
 	mTextIndent = IMAGE_FUELCELL->mWidth + 10;
 	mPage = 0;
 
@@ -130,7 +130,7 @@ void HelpDialog::Draw(Graphics* g)
 		int aUsed = 0;
 		for (size_t i = 0; i < mLines.size(); i++)
 		{
-			int aTop = mPlayedBonusStages + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed;
+			int aTop = mLinesTopOffset + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed;
 			g->SetColor(Color(0xff, 0xff, 0xff));
 			g->FillRect(mContentInsets.mLeft, aTop, 8, 8);
 			Rect aRect(mContentInsets.mLeft + 0x10, aTop - 4, ((mWidth - mContentInsets.mRight) - mContentInsets.mLeft) - 0x10,
@@ -141,7 +141,7 @@ void HelpDialog::Draw(Graphics* g)
 
 		std::string aMore = GT(0x56b50c);
 		Rect aRect(mContentInsets.mLeft,
-				   mPlayedBonusStages - 10 + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed,
+				   mLinesTopOffset - 10 + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed,
 				   ((mWidth - mContentInsets.mRight) - mContentInsets.mLeft) - 0x10, mHeight);
 		WriteWordWrapped(g, aRect, aMore, -1, 0);
 	}
@@ -156,7 +156,7 @@ void HelpDialog::Draw(Graphics* g)
 		for (unsigned int i = aStart; i < anEnd; i++)
 		{
 			Image* anImage = mItems[i].mImage;
-			int aTop = mPlayedBonusStages + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed;
+			int aTop = mLinesTopOffset + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed;
 			g->DrawImageCel(anImage, mContentInsets.mLeft, aTop, 0);
 			Rect aRect(mTextIndent + mContentInsets.mLeft, aTop,
 					   ((mWidth - mTextIndent) - mContentInsets.mLeft) - mContentInsets.mRight, 0);

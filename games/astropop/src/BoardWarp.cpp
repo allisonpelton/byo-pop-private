@@ -1,4 +1,4 @@
-// Board: the warp between two stages and the level-up panel (Fn46a810, 0x46a810: a long state machine that runs
+// Board: the warp between two stages and the level-up panel (UpdateWarp, 0x46a810: a long state machine that runs
 // instead of the rest of the update) and the streaks of the warp charge-up (0x439650).
 
 #include "Board.h"
@@ -31,10 +31,10 @@ void Board::UpdateStreaks()
 }
 
 // 0x46a810: true ends the update
-bool Board::Fn46a810()
+bool Board::UpdateWarp()
 {
 	mWarpGateAnim.Update();
-	mAnim5e0.Update();
+	mNewRankAnim.Update();
 	if (mUpdateCnt % 5 == 0)
 	{
 		m1b14++;
@@ -45,58 +45,58 @@ bool Board::Fn46a810()
 	// the level-up panel types its lines and the arms of the upgrade screen slide in
 	if ((m8ed || m8ef) && ((m1b2c != 2 && m1b2c != 4) || m91a))
 	{
-		if (!m8f4 && m1a60 == 1 && m7e8 < 0)
+		if (!m8f4 && m1a60 == 1 && mLevelUpPanelY < 0)
 		{
-			m7e8 += 2;
-			if (m7e8 >= 0)
+			mLevelUpPanelY += 2;
+			if (mLevelUpPanelY >= 0)
 			{
-				m7e8 = 2;
+				mLevelUpPanelY = 2;
 				int aBest = 0;
 				mApp->mUser->GetInt(0x71, &aBest);
 				if (aBest < m1bd4)
 				{
 					m91f = false;
 					m1b44 = m921 ? 1 : 100;
-					mAnim5e0.SetStopped(false);
+					mNewRankAnim.SetStopped(false);
 					mApp->mUser->SetInt(0x71, m1bd4);
 					mApp->mUser->Save();
 				}
 			}
 		}
-		if (m7e8 >= 0 && m1a60 == 1)
+		if (mLevelUpPanelY >= 0 && m1a60 == 1)
 		{
-			m7e8 = 0;
+			mLevelUpPanelY = 0;
 			m90f = false;
-			if (m7f0 < 0)
-				m7f0 = 0;
+			if (mLevelUpScanY < 0)
+				mLevelUpScanY = 0;
 			int aCnt = mUpdateCnt;
-			if (aCnt % m800 == 0 && (unsigned int) m7e0 >= (unsigned int) m7cc.size())
-				m804 = !m804;
-			if (aCnt % m7dc == 0 && (unsigned int) m7e0 < (unsigned int) m7cc.size())
+			if (aCnt % mLevelUpCursorInterval == 0 && (unsigned int) mLevelUpLineIndex >= (unsigned int) mLevelUpLines.size())
+				mLevelUpCursorShown = !mLevelUpCursorShown;
+			if (aCnt % mLevelUpTypeInterval == 0 && (unsigned int) mLevelUpLineIndex < (unsigned int) mLevelUpLines.size())
 			{
 				mApp->PlaySample(SOUND_COMPUTER_TEXT);
-				m7e4++;
-				if ((unsigned int) m7e4 >= (unsigned int) m7cc[m7e0].size())
+				mLevelUpLetterIndex++;
+				if ((unsigned int) mLevelUpLetterIndex >= (unsigned int) mLevelUpLines[mLevelUpLineIndex].size())
 				{
-					m7e4 = 0;
-					m7e0++;
+					mLevelUpLetterIndex = 0;
+					mLevelUpLineIndex++;
 				}
 			}
-			if (mUpdateCnt % m7fc == 0)
+			if (mUpdateCnt % mLevelUpScanInterval == 0)
 			{
-				int aPulse = m7f4;
-				if (aPulse < m7f8 && m7f0 == 0)
-					m7f4 = aPulse + 1;
+				int aPulse = mLevelUpScanHeight;
+				if (aPulse < mLevelUpScanMaxHeight && mLevelUpScanY == 0)
+					mLevelUpScanHeight = aPulse + 1;
 				else
 				{
-					m7f0++;
-					if (m7f0 + aPulse >= 0xbb)
+					mLevelUpScanY++;
+					if (mLevelUpScanY + aPulse >= 0xbb)
 					{
-						m7f4 = aPulse - 1;
-						if (m7f4 <= 0)
+						mLevelUpScanHeight = aPulse - 1;
+						if (mLevelUpScanHeight <= 0)
 						{
-							m7f4 = 0;
-							m7f0 = 0;
+							mLevelUpScanHeight = 0;
+							mLevelUpScanY = 0;
 						}
 					}
 				}
@@ -104,22 +104,22 @@ bool Board::Fn46a810()
 		}
 		if (m1b2c == 2 || m1b2c == 4)
 		{
-			m820 -= 4;
-			if (m820 < -IMAGE_UPGRADE_ARM->mWidth)
-				m820 = -IMAGE_UPGRADE_ARM->mWidth;
-			m87c += 4;
-			if (m87c > IMAGE_UPGRADE_HEAD->GetCelWidth() + 0x280)
-				m87c = IMAGE_UPGRADE_HEAD->GetCelWidth() + 0x280;
+			mLeftArmX -= 4;
+			if (mLeftArmX < -IMAGE_UPGRADE_ARM->mWidth)
+				mLeftArmX = -IMAGE_UPGRADE_ARM->mWidth;
+			mRightArmX += 4;
+			if (mRightArmX > IMAGE_UPGRADE_HEAD->GetCelWidth() + 0x280)
+				mRightArmX = IMAGE_UPGRADE_HEAD->GetCelWidth() + 0x280;
 		}
 	}
 
 	// the panel slides away
-	if (m8f4 || (m7e8 < 0 && m7e8 > -m7ec && !m8ed && !m8ef))
+	if (m8f4 || (mLevelUpPanelY < 0 && mLevelUpPanelY > -mLevelUpPanelHeight && !m8ed && !m8ef))
 	{
-		m7e8 -= 2;
-		if (m7e8 <= -m7ec)
+		mLevelUpPanelY -= 2;
+		if (mLevelUpPanelY <= -mLevelUpPanelHeight)
 		{
-			m7e8 = -m7ec;
+			mLevelUpPanelY = -mLevelUpPanelHeight;
 			ShowThemeButtons();
 		}
 	}
@@ -180,7 +180,7 @@ bool Board::Fn46a810()
 			if (mOverlayFillColor.mAlpha > 0x28)
 			{
 				mOverlayFillColor.mAlpha = 0xff;
-				m8de = false;
+				mLevelUpTextShown = false;
 				mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
 				m8ed = true;
 				m8f0 = true;
@@ -257,25 +257,25 @@ bool Board::Fn46a810()
 						mApp->mEngineLoop->Play(true, false);
 					AstroRand();
 					int aSceneryId = mField193C % 3 + 0x18b;
-					std::string aName = GetStringIdById(m77c.mI30);
+					std::string aName = GetStringIdById(mSceneryLayer.mI30);
 					mApp->mResourceManager->DeleteImage(aName);
-					m77c.mImage = LoadImageById(mApp->mResourceManager, aSceneryId);
-					m77c.mI30 = aSceneryId;
-					m77c.mF24 = 0;
-					m77c.mF28 = -1.0f;
-					m77c.mCur[0] = 0;
-					m77c.mCur[1] = (float) (m77c.mImage->mHeight - 0x1e0);
-					m77c.mCur[2] = 640.0f;
-					m77c.mCur[3] = 480.0f;
-					m77c.mNext[0] = 0;
-					m77c.mNext[1] = 0;
-					m77c.mNext[2] = 640.0f;
-					m77c.mNext[3] = 0;
+					mSceneryLayer.mImage = LoadImageById(mApp->mResourceManager, aSceneryId);
+					mSceneryLayer.mI30 = aSceneryId;
+					mSceneryLayer.mF24 = 0;
+					mSceneryLayer.mF28 = -1.0f;
+					mSceneryLayer.mCur[0] = 0;
+					mSceneryLayer.mCur[1] = (float) (mSceneryLayer.mImage->mHeight - 0x1e0);
+					mSceneryLayer.mCur[2] = 640.0f;
+					mSceneryLayer.mCur[3] = 480.0f;
+					mSceneryLayer.mNext[0] = 0;
+					mSceneryLayer.mNext[1] = 0;
+					mSceneryLayer.mNext[2] = 640.0f;
+					mSceneryLayer.mNext[3] = 0;
 					if (OpenStoryScreen())
 						return true;
 					mApp->PlaySample(SOUND_GET_READY);
 					LoadLevel(true);
-					m7e8 = -m7ec;
+					mLevelUpPanelY = -mLevelUpPanelHeight;
 				}
 				mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
 			}
@@ -327,23 +327,23 @@ bool Board::Fn46a810()
 			{
 				if (!m91a && !m8f4)
 				{
-					if (m820 < m828)
+					if (mLeftArmX < mLeftArmStopX)
 					{
-						m820 += 4;
-						if (m820 >= m828)
-							m820 = m828;
+						mLeftArmX += 4;
+						if (mLeftArmX >= mLeftArmStopX)
+							mLeftArmX = mLeftArmStopX;
 					}
 					else
-						mAnim83c.Update();
-					if (m87c <= m884)
+						mLeftHeadAnim.Update();
+					if (mRightArmX <= mRightArmStopX)
 					{
-						mAnim898.Update();
+						mRightHeadAnim.Update();
 						return false;
 					}
-					m87c -= 4;
-					if (m87c <= m884)
+					mRightArmX -= 4;
+					if (mRightArmX <= mRightArmStopX)
 					{
-						m87c = m884;
+						mRightArmX = mRightArmStopX;
 						return false;
 					}
 				}

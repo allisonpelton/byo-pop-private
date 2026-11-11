@@ -16,7 +16,7 @@ using namespace Sexy;
 // and the text)
 void Board::DrawStageBg(Graphics* g)
 {
-	if (m8dc)
+	if (mDemoPlaying)
 		return;
 
 	unsigned int aCount = (unsigned int) mStageHintPanels.size();
@@ -25,47 +25,47 @@ void Board::DrawStageBg(Graphics* g)
 
 	unsigned int anIndex = m90a ? 1U : (unsigned int) mField193C;
 	StageBg* aBg = mStageHintPanels[anIndex];
-	if (aBg->mf0)
+	if (aBg->mFadedOut)
 		return;
 
 	g->SetColorizeImages(true);
-	g->SetColor(Color(aBg->mColor2.mRed, aBg->mColor2.mGreen, aBg->mColor2.mBlue, aBg->m114));
+	g->SetColor(Color(aBg->mColor2.mRed, aBg->mColor2.mGreen, aBg->mColor2.mBlue, aBg->mPanelAlpha));
 	g->DrawImage(IMAGE_TH_STRIP, 0, 0xb4, Rect(0, 0, IMAGE_TH_STRIP->mWidth, 0x35));
 
-	int anAlpha = aBg->m100;
+	int anAlpha = aBg->mPicAlpha;
 	if (anAlpha > 0)
 	{
-		if (aBg->m118 < 0 && aBg->m114 <= anAlpha)
-			anAlpha = aBg->m114;
+		if (aBg->mPanelAlphaStep < 0 && aBg->mPanelAlpha <= anAlpha)
+			anAlpha = aBg->mPanelAlpha;
 		int aHeight = aBg->mPic->mHeight;
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-		DrawCel(g, aBg->mPic, aBg->mX, 0x1a - aHeight / 2 + 0xb4, (aBg->mHeldBricks.mNumFrames == 1) ? 0 : aBg->mHeldBricks.mFrame);
+		DrawCel(g, aBg->mPic, aBg->mX, 0x1a - aHeight / 2 + 0xb4, (aBg->mPicAnim.mNumFrames == 1) ? 0 : aBg->mPicAnim.mFrame);
 	}
 
-	if (aBg->m5c != NULL && aBg->m104 > 0)
+	if (aBg->mOverPic != NULL && aBg->mOverPicAlpha > 0)
 	{
-		anAlpha = aBg->m104;
-		if (aBg->m118 < 0 && aBg->m114 <= anAlpha)
-			anAlpha = aBg->m114;
-		int aCelWidth = aBg->m5c->mWidth / aBg->m5c->mNumCols;
-		int aPicY = 0x1a - aBg->m5c->mHeight / 2;
+		anAlpha = aBg->mOverPicAlpha;
+		if (aBg->mPanelAlphaStep < 0 && aBg->mPanelAlpha <= anAlpha)
+			anAlpha = aBg->mPanelAlpha;
+		int aCelWidth = aBg->mOverPic->mWidth / aBg->mOverPic->mNumCols;
+		int aPicY = 0x1a - aBg->mOverPic->mHeight / 2;
 		int aPicX = aBg->mPic->mWidth / 2 + aBg->mX - aCelWidth / 2;
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-		DrawCel(g, aBg->m5c, aPicX, aPicY + 0xb4, (aBg->mb0.mNumFrames == 1) ? 0 : aBg->mb0.mFrame);
+		DrawCel(g, aBg->mOverPic, aPicX, aPicY + 0xb4, (aBg->mOverPicAnim.mNumFrames == 1) ? 0 : aBg->mOverPicAnim.mFrame);
 	}
 
 	g->SetColorizeImages(false);
 
 	g->SetFont(GetFontById(FONT_NEURO30_ID));
-	g->SetColor(Color(aBg->mColor1.mRed, aBg->mColor1.mGreen, aBg->mColor1.mBlue, aBg->m114));
+	g->SetColor(Color(aBg->mColor1.mRed, aBg->mColor1.mGreen, aBg->mColor1.mBlue, aBg->mPanelAlpha));
 	Font* aFont = g->GetFont();
-	int aTitleY = (-(aBg->m120 / 2) - (aFont->GetHeight() - aFont->GetAscent()) / 2) + 0xd4;
+	int aTitleY = (-(aBg->mTitleHeight / 2) - (aFont->GetHeight() - aFont->GetAscent()) / 2) + 0xd4;
 	WriteWordWrapped(g, Rect(0x96, aTitleY, 0x96, 0x3c), aBg->mTitle, -1, 0);
 
 	g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
-	g->SetColor(Color(0xff, 0xff, 0xff, aBg->m114));
+	g->SetColor(Color(0xff, 0xff, 0xff, aBg->mPanelAlpha));
 	aFont = g->GetFont();
-	int aTextY = (-(aBg->m124 / 2) - aFont->GetAscent() / 2) + 0xd4;
+	int aTextY = (-(aBg->mTextHeight / 2) - aFont->GetAscent() / 2) + 0xd4;
 	WriteWordWrapped(g, Rect(300, aTextY, 0xd2, 0x3c), aBg->mText, -1, 0);
 }
 

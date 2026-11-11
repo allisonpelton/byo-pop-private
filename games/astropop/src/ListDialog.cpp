@@ -37,7 +37,7 @@ ListDialog::ListDialog(AstroPopApp* theApp, int theId, const std::string& theHea
 	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, theId, true, theHeader, theLines, std::string(), 2)
 {
 	mApp = theApp;
-	m11c = 0xf;
+	mListTopOffset = 0xf;
 
 	mList = new ListWidget(0, GetFontById(0xb0), this);
 	mList->mDrawOutline = true;
@@ -123,7 +123,7 @@ void ListDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	RebuildList();
 
 	int aListHeight = mList->mFont->GetHeight() * 8 + 9;
-	int aListY = m11c + mSpaceAfterHeader + mContentInsets.mTop + theY;
+	int aListY = mListTopOffset + mSpaceAfterHeader + mContentInsets.mTop + theY;
 	mList->Resize(mX + 0x28, aListY, mWidth - 0x69, aListHeight);
 
 	// port: the original's x87 rounds every result to a float (docs/GAME_NOTES.md, "The original's x87 rounds every result to a
@@ -331,7 +331,7 @@ void UserSelectDialog::ButtonDepress(int theId)
 DeleteUserDialog::DeleteUserDialog(AstroPopApp* theApp) :
 	ListDialog(theApp, 0x6e, GT(0x0056b3a0), GT(0x56b3b0))
 {
-	m11c = mList->mFont->GetHeight() * 7;
+	mListTopOffset = mList->mFont->GetHeight() * 7;
 }
 
 // 0x484b80 (body 0x484830)

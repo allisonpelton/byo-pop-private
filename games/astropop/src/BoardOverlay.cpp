@@ -33,7 +33,7 @@ void BoardOverlay::Draw(Graphics* g)
 	Board* aBoard = mBoard;
 
 	// a hint of the tutorial is showing: the first of the Board's hints is lit and the pause timer has run out
-	bool aHintShown = !aBoard->mHintSpots.empty() && aBoard->mHintSpots[0]->m1c && !(-aBoard->m7ec < aBoard->m7e8);
+	bool aHintShown = !aBoard->mHintSpots.empty() && aBoard->mHintSpots[0]->mActive && !(-aBoard->mLevelUpPanelHeight < aBoard->mLevelUpPanelY);
 
 	if (aBoard->m1924 < 1 && !aHintShown && !mFlag78)
 	{
@@ -124,30 +124,30 @@ void BoardOverlay::DrawHint(Graphics* g)
 	if (aSpot->mArrowTop > 0)
 		g->FillRect(aSpot->mArrowX + 0x14, IMAGE_TH_ARROWHEAD->mHeight + aSpot->mArrowY, IMAGE_TH_ARROWHEAD->mWidth - 0x28, aSpot->mArrowTop);
 
-	g->SetColor(Color(aBg->mColor2.mRed, aBg->mColor2.mGreen, aBg->mColor2.mBlue, aBg->m114));
+	g->SetColor(Color(aBg->mColor2.mRed, aBg->mColor2.mGreen, aBg->mColor2.mBlue, aBg->mPanelAlpha));
 	g->DrawImage(IMAGE_TH_STRIP, 0, 0xb4);
 
-	int anAlpha = aBg->m100;
+	int anAlpha = aBg->mPicAlpha;
 	if (anAlpha > 0)
 	{
-		if (aBg->m118 < 0 && aBg->m114 <= anAlpha)
-			anAlpha = aBg->m114;
+		if (aBg->mPanelAlphaStep < 0 && aBg->mPanelAlpha <= anAlpha)
+			anAlpha = aBg->mPanelAlpha;
 		int aPicHeight = aBg->mPic->mHeight;
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-		int aCel = (aBg->mHeldBricks.mNumFrames == 1) ? 0 : aBg->mHeldBricks.mFrame;
+		int aCel = (aBg->mPicAnim.mNumFrames == 1) ? 0 : aBg->mPicAnim.mFrame;
 		DrawCel(g, aBg->mPic, aBg->mX, 0xd8 - aPicHeight / 2, aCel);
 	}
 
-	Image* aPicture = aBg->m5c;
-	if (aPicture != NULL && aBg->m104 > 0)
+	Image* aPicture = aBg->mOverPic;
+	if (aPicture != NULL && aBg->mOverPicAlpha > 0)
 	{
-		int aPictureAlpha = aBg->m104;
-		if (aBg->m118 < 0 && aBg->m114 <= aPictureAlpha)
-			aPictureAlpha = aBg->m114;
+		int aPictureAlpha = aBg->mOverPicAlpha;
+		if (aBg->mPanelAlphaStep < 0 && aBg->mPanelAlpha <= aPictureAlpha)
+			aPictureAlpha = aBg->mPanelAlpha;
 		int aPictureTop = 0x24 - aPicture->mHeight / 2;
 		int aCelWidth = aPicture->mWidth / aPicture->mNumCols;
 		g->SetColor(Color(0xff, 0xff, 0xff, aPictureAlpha));
-		int aCel = (aBg->mb0.mNumFrames == 1) ? 0 : aBg->mb0.mFrame;
+		int aCel = (aBg->mOverPicAnim.mNumFrames == 1) ? 0 : aBg->mOverPicAnim.mFrame;
 		DrawCel(g, aPicture, (aBg->mPic->mWidth / 2 + aBg->mX) - aCelWidth / 2, aPictureTop + 0xb4, aCel);
 	}
 	g->SetColorizeImages(false);
@@ -155,21 +155,21 @@ void BoardOverlay::DrawHint(Graphics* g)
 	// the title in the first colour, the text in white
 	Font* aTitleFont = GetFontById(0x121);
 	g->SetFont(aTitleFont);
-	g->SetColor(Color(aBg->mColor1.mRed, aBg->mColor1.mGreen, aBg->mColor1.mBlue, aBg->m114));
+	g->SetColor(Color(aBg->mColor1.mRed, aBg->mColor1.mGreen, aBg->mColor1.mBlue, aBg->mPanelAlpha));
 	int aTitleAscent = aTitleFont->GetAscent();
 	int aTitleHeight = aTitleFont->GetHeight();
-	WriteWordWrapped(g, Rect(aBg->mKillAllTypes, (-(aBg->m120 / 2) - (aTitleHeight - aTitleAscent) / 2) + 0xe0, aBg->mf4, 0x3c), aBg->mTitle, -1, 0);
+	WriteWordWrapped(g, Rect(aBg->mTitleX, (-(aBg->mTitleHeight / 2) - (aTitleHeight - aTitleAscent) / 2) + 0xe0, aBg->mTitleWidth, 0x3c), aBg->mTitle, -1, 0);
 
 	Font* aTextFont = GetFontById(0xb1);
 	g->SetFont(aTextFont);
-	g->SetColor(Color(0xff, 0xff, 0xff, aBg->m114));
+	g->SetColor(Color(0xff, 0xff, 0xff, aBg->mPanelAlpha));
 	int aTextAscent = aTextFont->GetAscent();
-	WriteWordWrapped(g, Rect(aBg->mfc, (-(aBg->m124 / 2) - aTextAscent / 2) + 0xe0, 0xd2, 0x3c), aBg->mText, -1, 0);
+	WriteWordWrapped(g, Rect(aBg->mTextX, (-(aBg->mTextHeight / 2) - aTextAscent / 2) + 0xe0, 0xd2, 0x3c), aBg->mText, -1, 0);
 
 	// the label of the check box that turns the hints off
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	g->SetFont(GetFontById(0xb1));
-	Checkbox* aCheck = aBoard->m750;
+	Checkbox* aCheck = aBoard->mHintOffCheckbox;
 	g->DrawString(GT(0x5644d8), IMAGE_TH_CHECKBOX->mWidth / 2 + 10 + aCheck->mX, aTextAscent + aCheck->mY);
 }
 
@@ -244,14 +244,14 @@ void BoardOverlay::DrawWeaponHint(Graphics* g)
 	WriteWordWrapped(g, Rect(300, (-(aTextLines / 2) - aTextAscent / 2) + 99, 0xd2, 0x7a), aText, -1, 0);
 
 	g->SetColorizeImages(true);
-	if (aBoard->m808.mA > 0 && aPicture1 != NULL)
+	if (aBoard->mWeaponHintPulse.mA > 0 && aPicture1 != NULL)
 	{
-		g->SetColor(Color(0xff, 0xff, 0xff, aBoard->m808.mA));
+		g->SetColor(Color(0xff, 0xff, 0xff, aBoard->mWeaponHintPulse.mA));
 		g->DrawImage(aPicture1, 0x210, 0x5d - aPicture1->mHeight / 2);
 	}
-	if (aBoard->m808.mB > 0 && aPicture2 != NULL)
+	if (aBoard->mWeaponHintPulse.mB > 0 && aPicture2 != NULL)
 	{
-		g->SetColor(Color(0xff, 0xff, 0xff, aBoard->m808.mB));
+		g->SetColor(Color(0xff, 0xff, 0xff, aBoard->mWeaponHintPulse.mB));
 		g->DrawImage(aPicture2, 0x210, 0x5d - aPicture2->mHeight / 2);
 	}
 	g->SetColorizeImages(false);

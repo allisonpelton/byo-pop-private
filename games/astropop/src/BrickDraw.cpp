@@ -12,7 +12,7 @@ using namespace Sexy;
 // 0x4092c0 on an id the game can have: 0x214 + type for the standard bricks
 Image* Brick::TypeImage(int theType, bool theSpecial)
 {
-	int anId = (gApp->mFlag6fa ? 0x21a : 0x214) + (theSpecial ? 0xd : 0) + theType;
+	int anId = (gApp->mColorblind ? 0x21a : 0x214) + (theSpecial ? 0xd : 0) + theType;
 	if (anId < 0 || anId >= RESOURCE_ID_MAX)
 		return NULL;
 	return GetImageById(anId);
@@ -106,13 +106,13 @@ void Brick::DrawOverlays(Graphics* g, int theShakeX, int theShakeY)
 // the light of 0x404360: the brick drawn again, additive and tinted grey
 void Brick::DrawLightPass(Graphics* g, Image* theImage, int theCel, int theShakeX, int theShakeY)
 {
-	if (mLight < 0 && !mFlag185 && !mFlag190 && !mFlag193)
+	if (mLight < 0 && !mFading && !mSprocketFading && !mTurbotFading)
 		return;
 
 	int aLight = mLight;
-	if (mFlag190 || mFlag193)
+	if (mSprocketFading || mTurbotFading)
 		aLight = mLightValue;
-	else if (mFlag185)
+	else if (mFading)
 		aLight = mFade;
 
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -153,7 +153,7 @@ void Brick::DrawAt(Graphics* g, bool theGlow, float theX, float theY)
 	g->SetColorizeImages(false);
 	if (!mGlowAnim.mStopped)
 	{
-		if (mFlag194)
+		if (mGlowTranslucent)
 		{
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, mGlowAlpha));
@@ -175,7 +175,7 @@ void Brick::DrawGlow(Graphics* g)
 	g->DrawImage(mGlowImage, (int) ((float) mX - 1.0f + aShakeX), (int) ((float) mY - 1.0f + mOffsetY + aShakeY));
 	if (!mGlowAnim.mStopped)
 	{
-		if (mFlag194)
+		if (mGlowTranslucent)
 		{
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, mGlowAlpha));
