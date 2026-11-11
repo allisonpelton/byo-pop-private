@@ -93,11 +93,13 @@ var ByopopSoundtracks = {
       "music#8": "Credits", "music#9": "Monster Battle", "music#10": "Monster Map", "music#11": "Monster Boss",
       "music#12": "Main Menu", "music#14": "Mini-Games", "music#15": "Game Over" }
   },
-  // the game changes song by level (cosmo1 from the start)
+  // as Water Bugs (its session's reading of CBLevel.cpp, CBMain.cpp and bugs.xml, 2026-11-11): cosmo1 through the logos,
+  // title and menus; a board the song of its level set, 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again by
+  // hundreds from cosmo4 at 100; a new song only at a set's first level, and cosmo1 again on leaving a board
   cosmicbugs: {
     files: ["audio/*.mo3"],
-    where: { "cosmo1#0": "Level Theme 1", "cosmo3#0": "Level Theme 2", "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4",
-      "cosmo4#0": "Level Theme 5" }
+    where: { "cosmo1#0": "Main Menu", "cosmo4#0": "Level Theme 1", "cosmo3#0": "Level Theme 2",
+      "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4" }
   },
   // the menus play cosmo1; each set of levels its own song, the sets' songs repeating (its session's reading, 2026-11-11):
   // 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again from cosmo4 at 100 (Level_SetBackground's own song
