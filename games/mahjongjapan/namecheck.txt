@@ -1,5 +1,6 @@
 # tools/namecheck.py's exceptions for Mahjong Escape (docs/CODE_STANDARDS.md). One rule a line, each with its reason.
 
-folder engine -- the port's translation of the original's own engine, beside src and part of the game's code
+engine jollybear -- JollyBear, the original's own engine, translated once for both Mahjong Escapes (engines/jollybear) and part of the game's code
+engine mahjongescape -- the game's code the two Mahjong Escapes share (engines/mahjongescape/src), beside src (the edition's own)
 allow offset Div255 -- a division by 255, the number it divides by, not an offset or address
 allow offset AppendCp1252 -- the code page's name, Windows-1252, not an offset or address

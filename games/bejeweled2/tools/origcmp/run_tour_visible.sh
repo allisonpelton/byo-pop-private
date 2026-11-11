@@ -21,7 +21,7 @@ LDARGS=${LDARGS---leave-after 1}
 mkdir -p build/visrun build/origrun
 
 # at most three game processes on the machine (docs/COORDINATION.md): wait for a free place
-wait_slot() { for i in $(seq 1 360); do python tools/gamecount.py --limit 3 > /dev/null && return 0; sleep 15; done; return 1; }
+wait_slot() { for i in $(seq 1 360); do python tools/gamecount.py --limit 6 > /dev/null && return 0; sleep 15; done; return 1; }
 
 if [ -z "$portonly" ]; then
   script=build/origrun/bej2_$tag.txt

@@ -653,12 +653,14 @@ static void patch_new_modules(void)
 // 16 ms), from the clock's waits and the cursor's and message-box hooks' calls, whichever thread they come from (one at
 // a time).
 static LONG gScanBusy;   // a scan of the module list is running (the install's own, or a rescan)
+void net_rescan(void);   // net.c: the network block's own look at the DLLs mapped since
 void hooks_rescan(void)
 {
 	ULONGLONG t = GetTickCount64();
 	if (t - gModScanAt < 15 || InterlockedExchange(&gScanBusy, 1)) return;
 	gModScanAt = t;
 	patch_new_modules();
+	net_rescan();
 	InterlockedExchange(&gScanBusy, 0);
 }
 

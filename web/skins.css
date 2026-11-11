@@ -362,6 +362,9 @@ html.d95-desk #music.d95-win .mu > .d95-client { flex: 1 1 auto; min-height: 60p
 html.d95-desk .d95-tb { display: flex; align-items: center; gap: 6px; background: var(--sk-title); color: var(--sk-title-fg);
   padding: 2px 3px 2px 6px; font-weight: bold; min-height: 18px; white-space: nowrap; overflow: hidden; }
 html.d95-desk .d95-tb > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* the window's title, its heading (web/skins.js, named): drawn as the title bar's text it always was */
+html.d95-desk .d95-tb > h2.d95-tb-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; padding: 0;
+  font: inherit; color: inherit; background: none; border: 0; }
 html.d95-desk .d95-handle { cursor: default; touch-action: none; -webkit-user-select: none; user-select: none; }
 html.d95-dragging, html.d95-dragging * { -webkit-user-select: none !important; user-select: none !important; }
 /* the minimize button: the underscore, at the bottom of a small raised button */
@@ -609,6 +612,8 @@ html.d95-desk header.bar { display: none; }
 html.d95-desk .stage-wrap.d95-win .d95-statusbar { display: flex; gap: 2px; margin-top: 2px; font-size: 12px; }
 html.d95-desk .d95-statusbar > * { flex: 1 1 auto; min-width: 0; padding: 1px 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
   box-shadow: inset 1px 1px var(--sk-lo), inset -1px -1px var(--sk-hi); color: var(--fg); }
+/* the speed (while not normal) and the window's scale: panes as wide as their values (web/controls.js, speedCell) */
+html.d95-desk .d95-statusbar > :is(.d95-speed, .d95-scale) { flex: none; }
 /* the maximize button: a window drawn in the small button */
 html.d95-desk .d95-mx { width: 16px; height: 14px; padding: 0; flex: none; position: relative; margin-right: -4px; }
 html.d95-desk .d95-mx::after { content: ""; position: absolute; left: 3px; top: 2px; width: 7px; height: 6px; border: 1px solid var(--sk-dk); border-top-width: 2px; }
@@ -665,7 +670,7 @@ img { -webkit-user-drag: none; }
    terms, the settings' explanations */
 :root[data-skin="d95"] body { -webkit-user-select: none; user-select: none; }
 :root[data-skin="d95"] :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=button]):not([type=submit]), textarea,
-  [contenteditable], .bpc-log, .terms, .byopop-footer, body > footer, .bps-hint, .bps-pop, .bps-about, .bps-msg, .card p, .wiz-card p,
+  [contenteditable], .bpc-log, .terms, .byopop-footer, body > footer, .bps-hint, .bps-pop, .bps-msg, .card p, .wiz-card p,
   .page-notes, .notes, .game-notes, article) { -webkit-user-select: text; user-select: text; }
 :root[data-skin="d95"] :is(.d95-tb, .d95-icon, .bps-icon, button, label) { -webkit-user-select: none; user-select: none; }
 

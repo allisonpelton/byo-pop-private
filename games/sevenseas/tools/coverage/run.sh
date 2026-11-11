@@ -10,7 +10,7 @@ RUN="cov$NAME"; OG="$R/build/origrun-bin/origrun.exe"
 COV="$R/build/coverage/sevenseas/functions.txt"
 grep -v -E '(^|[[:space:]])(shot|waitshot|burst|record|hwmove|hwclick|hwrclick|hwkey)[[:space:]]' "$S" > "$H/$NAME.script.txt"
 S="$R/$H/$NAME.script.txt"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 rm -rf "build/origrun/$RUN"
 # SAVE=<savegame.dat> puts a saved game into the copy first (the port writes the original's format: tools/coverage/README in
 # GAME_NOTES "Coverage check"), and the run then uses that copy
