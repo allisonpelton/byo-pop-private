@@ -1034,7 +1034,8 @@ A game page shows the panel while the setting `perf` is on (`web/perf.js`; off b
 game plays the same with it on, and with it off nothing of it runs. In a game's window on the one page it is part of
 the window, at the right of the game, and the window is that much wider (`sideWidth` in `web/shell.html`); nothing but
 the game and its mod menu is drawn over the game (the user, 2026-11-10), so the input display is in the window's
-status bar too. `?perf=1` on the listing's address or a game page's turns it on for that visit whatever the setting
+status bar too. A game window's View menu shows and hides it ("Performance panel", ticked while it shows; the user,
+2026-11-11: "it's difficult to show/hide the performance panel on mobile"), as the game's own setting. `?perf=1` on the listing's address or a game page's turns it on for that visit whatever the setting
 says (the one page passes it to its game windows), and a phone then does not go to full screen at Play, which would
 cover it. On a page under 600 pixels wide it is under the game, as wide as the page and scrolling in itself; on a
 small screen its Sound group comes first. Each second it shows:
@@ -1097,7 +1098,9 @@ perfect mode off"):
   wizard's art column (a media query at 600 pixels, phone or not).
 - The touch keys (`web/controls.js`) always have a keyboard button: it puts the focus in a text field kept out of
   sight, so the screen keyboard comes up, and what is typed goes to the game's canvas as key events (letters, Backspace,
-  Enter).
+  Enter). The field is read-only except while the button has it open, and a touch anywhere else closes it: the game's
+  touch handlers cancel a touch's default, so the focus never left the field by itself, and a phone brought the keyboard
+  back for a tap on the game, which then missed its button (the user, 2026-11-11, tapping a profile to switch players).
 - The setting "Touch keys position" (`touchPlace`: automatic, under, beside) puts the keys in a column at the right of
   the game; automatic does so while the page is wider than tall. In full screen the keys stay on the screen and the
   game keeps clear of them (`--touch-w`, `--touch-h`, `fitFullscreen`).

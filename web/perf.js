@@ -348,7 +348,8 @@ var ByopopPerf = (function () {
     if (setting() === "on") start(); else stop();
   }
   function setGame(id) { pageGame = id || null; sync(); }
-  window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "perf") sync(); });
+  // a choice made on the page (the window's View menu, Settings) wins over ?perf=1 from then on, so the panel can be put away
+  window.addEventListener("byopop-setting", function (ev) { if (ev.detail && ev.detail.name === "perf") { ASKED = false; sync(); } });
   window.addEventListener("storage", function (ev) { if (ev.key === KEY || ev.key === null) sync(); });
   return { setGame: setGame, sync: sync, isOn: function () { return on; }, reading: function () { return last; } };
 })();
