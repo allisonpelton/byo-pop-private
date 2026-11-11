@@ -1768,7 +1768,7 @@ void ChallengeMenu::DrawSunAndTexts(Graphics* g)
 	// registration code, left out)
 }
 
-// 0x6dfe2a: the camera's zoom
+// 0x6dfe2a: the camera's zoom, which steps mCameraStackIndex only while mClicksBlocked is set, and nothing sets it
 void ChallengeMenu::MouseWheel(int theDelta)
 {
 	(void)theDelta;

@@ -134,7 +134,7 @@ public:
 		float mAngle = 0.0f;  // +8
 	};
 	struct Sprite {  // 0x14 bytes
-		float mX = 0.0f, mY = 0.0f, mVX = 0.0f, mVY = 0.0f, mSeed = 0.0f;
+		float mX = 0.0f, mY = 0.0f, mVX = 0.0f, mVY = 0.0f;  // (+0x10: a fifth rand draw that nothing reads, left out)
 	};
 	int mCount = 0;                    // +0x24
 	Sprite mSprites[500];              // +0x28 (the original has a pointer to each)

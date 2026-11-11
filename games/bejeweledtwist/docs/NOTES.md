@@ -1463,8 +1463,8 @@ after 139 updates; shutting down" (the voice is 1.405 s long), and the page's ga
 The last step before a game is done (`docs/COORDINATION.md`), beyond the registration code and the buttons that lead out of
 the game ("Registration and outbound buttons" above). Two sources: the coverage check's candidates, code no play of the
 original can reach, and port code that nothing calls, found by setting every function defined under `src/` against every use
-of its name in the game (its `popanim/` too), the framework and the platform. Taken out, 140 lines and two generated
-functions of 164:
+of its name in the game (its `popanim/` too), the framework and the platform, and the fields `tools/splitfields.py` found
+set and never read (below). Taken out, about 320 lines of `src/` in all:
 
 - Never called in the original either (no caller in the export, no vtable slot): `BSpline::GetNextPoint` (0x6d7811),
   `Profile::GetSavedBit` and `SetSavedBit` (0x733838, 0x73386e), and from the exe's generated resource code
@@ -1479,6 +1479,9 @@ functions of 164:
 - Inline accessors nothing uses: `CurvedVal::SetRamp`, `SetInRange` and `GetOutValDelta`, `GoodTube::IsTimerStartedFull`,
   `Profile::IsGemTypeUnlocked`.
 - The port's own: `ModFeatureEnabled` (ModFeatures), which no mod code calls.
+- Fields the original sets and never reads, with the code that only set them: the cell's mark of a gem that cannot move
+  under the cursor's corners (+0x10 of a cell, set and cleared in `UpdateGame`, 0x6d090f; the export has no read of it), and
+  the wind cloud's fifth value per sprite (+0x10 of a sprite, 0x6928e8), whose rand draw stays so the draws keep their order.
 
 **Kept on purpose.** `CurvedVal::SetCurveRef` and the curve reference it sets (`CheckCurveChange` reads it on every step;
 nothing sets one, but it is the class's own mechanism, not a function on its own). `Board::PopAnimCommand`, which the
@@ -1490,3 +1493,25 @@ were read again against the export in the coverage check and stay.
 
 **Proof.** Nothing the game runs changed: every function taken out had no caller. The native build passes with them gone
 (a call left anywhere would not link), and the suite's screens and baseline are as frozen.
+
+**The field check.** `python tools/splitfields.py bejeweledtwist --export <main>/re/bejeweledtwist/gh` (2026-11-11), which looks
+for one field of the original declared as two members, found no split. Its findings, each read in the port and the export:
+
+- "export", 176 members in 186 functions (106 written there): all but seven are `Board` members in 0x6d090f, which the port
+  translates as `UpdateGame` with its parts (`UpdateGeodes`, `UpdateJump`, `UpdateToolTips` and others) and the tool reads as
+  `UpdateGeodes` alone, the first of them to carry the address; the same for `DrawGrid`, one part of 0x6caa13. Every one of
+  those members is named, and written where the export writes it, elsewhere in that update or that drawing. The other seven:
+  0x733774 is the profile's `mAchievementBits |= 1 << n`, inline in `EndJump`, so its +0x164 is the profile's, not the
+  board's `mClearedOnNewLevel`. 0x71c18f is `Hyperspace::StartChallenge`, whose `mState` and `mTransition` the port sets
+  before it calls `StartChallenge3D`; the +0x6b8 it reads is `mJumpClock`, whose offset comment sits on a line of three
+  members, which the tool gives to the first. 0x6dfe2a, the challenge menu's `MouseWheel`, steps `mCameraStackIndex` only
+  while `mClicksBlocked` is set, which nothing sets, so the port's empty function does the same. 0x7627ea, the volume ramp
+  inline in `WinTwistApp::Init`, reads the board only to call 0x6c6469 on it when there is one, and at `Init` there is none.
+- "never written", 3: `Blob::mOwner` and the music `Track`'s `mSongId` and `mTrackId` are set in their constructors'
+  initializer lists, which the tool does not read as writes.
+- "write only", 2: the cell's mark and the sprite's fifth value above, set and never read in the original too; taken out.
+
+**Pictures and sounds.** No resource id, global or file name went: the two group functions taken out were empty (resources.xml
+lists nothing in the Dynamic and Viz groups that the manager extracts through them), and the accessors work on any id. Since no
+id was removed, no run of ids reached by arithmetic (`IMAGE_..._ID + n`) can have lost a member. The change adds no quoted
+string and changes none, so no name a file, a save or the properties look up was renamed.
