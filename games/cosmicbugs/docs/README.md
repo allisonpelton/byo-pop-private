@@ -257,6 +257,65 @@ holds about 40 MB more and uses about three times the processor time (a fifth of
 performance pass (the framework's frame loop, the renderer's full-frame upload and the audio mixer are the places to look).
 The port's runs also have the test channel's two input files polled.
 
+## The performance pass (2026-11-11)
+
+**What the profile showed.** `tools/perf/cpuprof.py` (every thread's instruction pointer about once a millisecond, weighted by the
+cycles it used, with a `CALLERS=1` addition that names the exe function and the DLL on a sample's stack) under rundesk, on the port
+in real time over the load and 25 s of the first board: 68 to 77% of the cycles are in ntdll, 10 to 14% in the exe, and the exe's
+share is mostly `DDInterface::PrepareTexture` (5 to 7%) and `CosmicBugsWidget::Draw` (2 to 3%). The ntdll samples have d3d11.dll and
+the Nvidia driver's nvwgf2um.dll on their stacks and no frame of the game's, and one address, the return from
+`ZwWaitForSingleObject`, holds 54% of the cycles on two threads. That address is where a thread that works in short bursts stands
+when the sampler looks, not where the cycles were spent (a `SPIN=1` run that looks every few microseconds gave the same picture),
+so the profile alone could not say what to change. Timers around the calls (QueryThreadCycleTime before and after, in a scratch
+build that was not kept) did. The game ran 60 frames a second (the framework's updates are 100 Hz, but it presents with the
+display), and a frame cost the main thread about 4.4M cycles: the 565 to 32-bit widening in `CosmicBugsWidget::Draw` about 1.0M
+(the dirty rectangle covers 87% of the screen on a board, so uploading only the changed part would save little), the framework's
+`PrepareTexture` 2.0M (0.8M the eight strips' `SDL_UpdateTexture` calls and 1.2M the copy and premultiply of every pixel that
+comes before them), `SDL_RenderPresent` 0.37M, the game's own steps and drawing into the 16-bit screen about 0.4M, and the polling below 0.6M. The rest of
+the process's cycles, 40 to 45%, are other threads: the Nvidia driver's worker, which the uploads and presents feed, and the audio
+mixer. The polling is the two input files that a test channel looks at (`PollLiveCommands`: 0.34M cycles a call, 100 calls a second), an
+eighth of the main thread's cycles; a player's run has no such files, so `perf.py` now drives the port by a
+`-script`, which the framework reads once.
+
+**What changed.** The widget's screen picture is opaque and uploaded as it is, as Water Bugs' and the Mahjong ports' screens are
+(`SetImageMode(false, false)`, `mUploadAsIs`): the framework no longer looks through the 480000 pixels for alpha after each change
+or copies and premultiplies them in strips before the upload (every alpha byte is 0xff, where premultiplying changes nothing), and
+the 16-bit pixels are widened by a 65536-entry table (256 KB, made once) instead of three shifts and two ORs a pixel. The pixels
+that reach the screen are the same.
+
+**Proof that play is unchanged.** `tools/perf/shots.py` runs the frozen exe from before and the new one over one scripted play
+(`-fast -drawevery`: the logo, the title, the instructions page, the first board and nine clicks into it) and compares 14
+screenshots byte for byte: 14 of 14 the same. `tools/check.sh cosmicbugs` passes with every frozen value as before (the scripted
+game and its rerun, the window run twice, the plays against the baseline).
+
+**Numbers.** `tools/perf/alt.sh 3 orig=orig before=port:<the frozen exe> after=port` alternated the original (a pass every 16 ms),
+the port before and the port after, three rounds, in real time on the same timeline as above and with 3 to 6 other sessions' games
+running; the cycles are QueryThreadCycleTime's, summed over every thread of the process (`perf.py summary`):
+
+| Median of 3 | Original, 60 Hz | Port before | Port after |
+|---|---|---|---|
+| Title, 9 s: Mcycles a second | 312 | 540 | 400 |
+| First board, 30 s: Mcycles a second | 113 | 426 | 276 |
+| The board's busiest thread (main), Mcycles a second | 113 | 230 | 166 |
+| The board's processor time, share of a core | 5.4% | 20.3% | 13.1% |
+| Launch to the first update (s) | 0.75 | 1.06 | 0.99 |
+| Peak working set, private bytes (MB) | 85, 72 | 130, 131 | 131, 132 |
+
+A board now takes 35% fewer cycles (the main thread 28% fewer) and the title 26% fewer. The runs: board 426, 419, 440 before and
+240, 276, 318 after; the original 107, 113, 114. The original's cycles are the main thread's only: origrun's stand-in mixes no sound
+and the original's display is a software blit into DirectDraw, with no graphics driver worker. Its memory is smaller, as in the earlier
+measurement; the port's did not change (the table is 0.25 MB).
+Loading stands as it was: the port loads in about a second where the original takes 0.75 s, within the machine's noise.
+
+**What is left, and for the coordinator.** The port still takes about 2.4 times the original's cycles on a board, and the part that
+is not the main thread (100 Hz of the Nvidia driver's worker, which the whole-screen upload and the present feed) cannot be cut from
+the game. The shared costs that remain are the ones in docs/COORDINATION.md: `PrepareTexture` still hands the whole 800x600
+texture to SDL for each drawn frame (here the changed part is 87% of it, so a partial upload would cut only a little; a streaming
+texture, or an RGB565 one if the renderers took it, would cut the bytes), and a test run's `PollLiveCommands` costs 0.34M cycles
+at every 10 ms update to look at a file that does not change (a poll every tenth update, or on a change notification, would spare a
+`-fast` test run that cost; a player's run never has it). A frame cap or a lower present rate would cut the driver's share, but it
+would change what the player sees, so it would be a mod.
+
 ## Coverage check (2026-11-11)
 
 The check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran in 33 runs of a copy under
