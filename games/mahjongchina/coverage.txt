@@ -53,26 +53,26 @@ none 0042ab80 static initializer of a global CString (run by the CRT) or its ate
 none 0042ab90 static initializer of a global CString (run by the CRT) or its atexit registration: the port's globals are std::string
 none 0042ac30 static initializer of a global CString (run by the CRT) or its atexit registration: the port's globals are std::string
 none 0042acc0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
-none 0042ad80 the message loop (GetMessage, PeekMessage, WM_QUIT): the framework's main loop calls MahjongApp::RunFrame (src/MahjongApp.cpp)
+none 0042ad80 the message loop (GetMessage, PeekMessage, WM_QUIT): the framework's main loop calls MahjongApp::RunFrame (engines/mahjongescape/src/MahjongApp.cpp)
 none 00430680 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
 none 004308a0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
 none 00416530 std::vector insert of n copies of a 4-byte element (MSVC 6 library): the port uses std::vector
-none 00428ed0 WinMain: main() in src/main.cpp and MahjongApp::Init replace it
+none 00428ed0 WinMain: main() in engines/mahjongescape/src/main.cpp and MahjongApp::Init replace it
 none 00428fb0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
-none 00429300 registry key open and create under Software/JollyBear: Host::Reg* on the framework's registry replaces it (src/MahjongApp.cpp)
-none 004293b0 registry key open and create under Software/JollyBear: Host::Reg* on the framework's registry replaces it (src/MahjongApp.cpp)
-none 00429410 registry key open and create under Software/JollyBear: Host::Reg* on the framework's registry replaces it (src/MahjongApp.cpp)
+none 00429300 registry key open and create under Software/JollyBear: Host::Reg* on the framework's registry replaces it (engines/mahjongescape/src/MahjongApp.cpp)
+none 004293b0 registry key open and create under Software/JollyBear: Host::Reg* on the framework's registry replaces it (engines/mahjongescape/src/MahjongApp.cpp)
+none 00429410 registry key open and create under Software/JollyBear: Host::Reg* on the framework's registry replaces it (engines/mahjongescape/src/MahjongApp.cpp)
 none 00429530 AppBase's default message loop (GetMessage, then Exit): the framework's main loop replaces it
 none 004295a0 registers the window class: the framework's SDL window replaces it
 none 004297f0 base name of the exe's path (GetModuleFileName): SetupNames names the exe MahjongEscapeAJ directly (engine/App.cpp)
 none 00429a70 Windows version test (NT, XP) for the folder and security calls: not needed
-none 00429b20 SHGetFolderPath for a CSIDL, creating the folders: Host::FolderPath and the framework's VFS replace it (src/MahjongApp.cpp)
+none 00429b20 SHGetFolderPath for a CSIDL, creating the folders: Host::FolderPath and the framework's VFS replace it (engines/mahjongescape/src/MahjongApp.cpp)
 none 00429ca0 folder creation with a world-access security descriptor (CreateDirectory, ConvertStringSecurityDescriptor, LocalFree): the framework's VFS creates the folders
 none 00429ce0 folder creation with a world-access security descriptor (CreateDirectory, ConvertStringSecurityDescriptor, LocalFree): the framework's VFS creates the folders
 none 00429d50 folder creation with a world-access security descriptor (CreateDirectory, ConvertStringSecurityDescriptor, LocalFree): the framework's VFS creates the folders
 none 004202c0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
 none 00422110 keeps the DirectDraw display's window position when the window moves: the platform replaces the display
-none 00422740 mouse buttons, Shift and Ctrl by GetKeyState: Host::InputFlags (MahjongApp::InputFlags, src/MahjongApp.cpp)
+none 00422740 mouse buttons, Shift and Ctrl by GetKeyState: Host::InputFlags (MahjongApp::InputFlags, engines/mahjongescape/src/MahjongApp.cpp)
 none 00422820 static wrapper that forwards one call to the manager, the app, the display or a stream: the port calls the target directly
 none 00422a80 software cursor of the accelerated display and the pointer's position in the window (GetCursorPos): the host's cursor and Host::GetMousePos replace it (engine/Manager.cpp, 0x42a820)
 none 00422c10 software cursor of the accelerated display and the pointer's position in the window (GetCursorPos): the host's cursor and Host::GetMousePos replace it (engine/Manager.cpp, 0x42a820)
@@ -89,44 +89,44 @@ none 00432860 constructor of the Attachment base (sets its vtable only): the por
 none 00435490 constructor of a character map's kerning record: the port's struct is filled in place
 none 004355d0 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
 none 0042a540 scalar deleting destructor (calls the destructor, then operator delete): the port's virtual destructors and delete do it
-none 0042a560 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 004305f0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437640 Alt+Enter toggles full screen: the framework's Alt+Enter handling calls MahjongApp::SwitchScreenMode (src/MahjongApp.cpp)
-none 00435220 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00435b60 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437670 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437690 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437780 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 004377f0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437800 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437810 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437830 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437840 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437850 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437860 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
+none 0042a560 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 004305f0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437640 Alt+Enter toggles full screen: the framework's Alt+Enter handling calls MahjongApp::SwitchScreenMode (engines/mahjongescape/src/MahjongApp.cpp)
+none 00435220 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00435b60 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437670 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437690 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437780 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 004377f0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437800 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437810 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437830 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437840 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437850 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437860 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
 none 00435c30 CPUID check that picks the MMX or SSE blitters: the port's blit library is plain C++ (engine/Blit.cpp)
 none 00435c90 CPUID check that picks the MMX or SSE blitters: the port's blit library is plain C++ (engine/Blit.cpp)
 none 00435d00 CPUID check that picks the MMX or SSE blitters: the port's blit library is plain C++ (engine/Blit.cpp)
 none 0042abd0 static initializer of the crash handler object or its atexit registration: the crash handler is left out
 none 0042abe0 static initializer of the crash handler object or its atexit registration: the crash handler is left out
-none 00434a50 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00435190 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 004351c0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 004351d0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 004351e0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 004351f0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00435210 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00435230 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00435260 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00435272 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00437880 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00435310 MessageBoxA with a text or a string id: Host::MessageBox (src/MahjongApp.cpp)
-none 00435330 MessageBoxA with a text or a string id: Host::MessageBox (src/MahjongApp.cpp)
-none 00435390 MessageBoxA with a text or a string id: Host::MessageBox (src/MahjongApp.cpp)
-none 004353e0 MessageBoxA with a text or a string id: Host::MessageBox (src/MahjongApp.cpp)
-none 00435430 SetCursor with the window's cursor: Host::SetCursor (src/MahjongApp.cpp)
-none 00435450 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
-none 00435480 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (src/MahjongApp.cpp) takes its events
+none 00434a50 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00435190 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 004351c0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 004351d0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 004351e0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 004351f0 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00435210 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00435230 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00435260 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00435272 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00437880 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00435310 MessageBoxA with a text or a string id: Host::MessageBox (engines/mahjongescape/src/MahjongApp.cpp)
+none 00435330 MessageBoxA with a text or a string id: Host::MessageBox (engines/mahjongescape/src/MahjongApp.cpp)
+none 00435390 MessageBoxA with a text or a string id: Host::MessageBox (engines/mahjongescape/src/MahjongApp.cpp)
+none 004353e0 MessageBoxA with a text or a string id: Host::MessageBox (engines/mahjongescape/src/MahjongApp.cpp)
+none 00435430 SetCursor with the window's cursor: Host::SetCursor (engines/mahjongescape/src/MahjongApp.cpp)
+none 00435450 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
+none 00435480 the window (0x42f990, base 0x4306c0, procedure 0x42ff30): the framework's SDL window replaces it, MahjongWidget (engines/mahjongescape/src/MahjongApp.cpp) takes its events
 # The functions of this exe's device layer and libraries that lie within its game ranges (the linker put them among the engine's code);
 # found as the pairs of Ancient Japan's functions outside its game ranges (re/mahjongchina/compare/addrmap.tsv).
 none 0042ba30-0042d4a0 the exe's device layer, which Ancient Japan's exe keeps after its game code (0x431a70..0x438000, the display and the sound object): the platform replaces it

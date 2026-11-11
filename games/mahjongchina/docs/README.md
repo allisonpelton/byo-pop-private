@@ -91,12 +91,12 @@ The web build plays the suite's level under Node (`games/bejeweled/tools/verify/
 as the native build, apart from the full-screen corner button, which a run without `registry.ini` shows natively.
 
 **The standard test commands and the real-input drivers (2026-11-08).** The port answers `state`, `goto`, `level`, `unlock all`,
-`set`, `win` and `move` (`GAME_NOTES.md`, "The standard test commands, the fixes mod and the finishing pass"), the files being Ancient Japan's, copied by `syncbot.sh`, `move` from the port's own bot (`src/Bot.cpp`).
+`set`, `win` and `move` (`GAME_NOTES.md`, "The standard test commands, the fixes mod and the finishing pass"), the files being the code both games share (`engines/mahjongescape/src`), `move` from the port's own bot (`engines/mahjongescape/src/Bot.cpp`).
 `games/mahjongjapan/tools/realplay/drive.py` (one script for both games: `--game japan` or `--game china`) plays the game with real SDL events
 under rundesk: the menu, the help, a new player, the whole adventure to the ending, a classic game by the bot, every button
 of the board and of the in-game menu, a second classic game, the focus lost and regained, Quit; `--fullscreen` does it from
 Alt+Enter. `tools/web/realplay.js` plays the web build through the DOM's events (`?driver=`). `tools/realplay/modtest.py`
-checks the fixes mod, `perfload.py` times the launch, `syncbot.sh` copies the bot and the commands to the other game.
+checks the fixes mod, `perfload.py` times the launch.
 The game opens at its main menu; `-logos` keeps the original's two logo screens and the black before them (`GAME_NOTES.md`,
 "The start"), as `tools/check.sh` and any comparison with the original run it.
 

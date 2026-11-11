@@ -73,12 +73,12 @@ other and with the frozen hashes in `check.sh` (`MJ_SHOTS`), which are the regre
 script clicks no link.
 
 **The standard test commands and the real-input drivers (2026-11-08).** The port answers `state`, `goto`, `level`, `unlock all`,
-`set`, `win` and `move` (`GAME_NOTES.md`, "The standard test commands"), `move` from the port's own bot (`src/Bot.cpp`).
+`set`, `win` and `move` (`GAME_NOTES.md`, "The standard test commands"), `move` from the port's own bot (`engines/mahjongescape/src/Bot.cpp`).
 `tools/realplay/drive.py` (one script for both games: `--game japan` or `--game china`) plays the game with real SDL events
 under rundesk: the menu, the help, a new player, the whole adventure to the ending, a classic game by the bot, every button
 of the board and of the in-game menu, a second classic game, the focus lost and regained, Quit; `--fullscreen` does it from
 Alt+Enter. `tools/web/realplay.js` plays the web build through the DOM's events (`?driver=`). `tools/realplay/modtest.py`
-checks the fixes mod, `perfload.py` times the launch, `syncbot.sh` copies the bot and the commands to the other game.
+checks the fixes mod, `perfload.py` times the launch.
 The game opens at its main menu; `-logos` keeps the original's two logo screens and the black before them (`GAME_NOTES.md`,
 "The start"), as `tools/check.sh` and any comparison with the original run it.
 

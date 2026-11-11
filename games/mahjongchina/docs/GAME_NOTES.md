@@ -41,8 +41,8 @@ drawn centred on their places. `Resource.dll` holds 178 layouts: 52 for the adve
 
 ## The standard test commands, the fixes mod and the finishing pass (2026-11-08)
 
-China's finishing pass is Japan's, done once for both (the same code, so the same files: `src/Bot.cpp`, `src/Bot.h` and
-`src/TestCommands.cpp` are copied from Japan's by `games/mahjongjapan/tools/realplay/syncbot.sh`). `games/mahjongjapan/docs/GAME_NOTES.md`
+China's finishing pass is Japan's, done once for both (the same code, so the same files: `Bot.cpp`, `Bot.h` and
+`TestCommands.cpp` are one copy in `engines/mahjongescape/src`). `games/mahjongjapan/docs/GAME_NOTES.md`
 describes each of them; this section says what differs here.
 
 - **The standard test commands** (`docs/TEST_COMMANDS.md`) are Japan's: `state`, `goto`, `level`, `unlock all`, `set`, `win`,
@@ -73,7 +73,7 @@ describes each of them; this section says what differs here.
 
 The performance pass, made once for both games (`games/mahjongjapan/docs/GAME_NOTES.md`, "Performance", describes the method, the
 profile and each change; the code is the same, so the changes are the same files: `engines/jollybear/Blit.cpp`, `engines/mahjongescape/src/MahjongApp.cpp`,
-`src/TestCommands.cpp`, and the shared `MemoryImage::mUploadAsIs`, which this port sets on the screen image too). Measured as
+`engines/mahjongescape/src/TestCommands.cpp`, and the shared `MemoryImage::mUploadAsIs`, which this port sets on the screen image too). Measured as
 Japan's: the minute of play of `tools/check.sh mahjongchina` (the menu, a new player, Dynasty Adventure stage 1 won by the
 solver's clicks, back to the map), the processor time in the window 20 s to 50 s, runs made in turn, the original through
 origrun (3 runs), the port before and after the pass (5 runs each, alternating, the last batch of the pass).

@@ -15,7 +15,7 @@ the help pages, the tips and the yes/no questions.
 The game's resources are in two modules. `Resource.dll` holds the pictures, the sounds, the music, the 222 layouts
 (`LAYOUTS` resources: 60 for the escape, 162 for the classic game) and the longer texts (`TXT`). The exe holds the
 string tables of the menus and dialogs and two pictures named in its folder (`SplashLogo.bmp`, `MenuLogo.bmp`). The
-port reads both modules with its own PE parser (`src/PeResources.cpp`) and never runs either. The game's texts are
+port reads both modules with its own PE parser (`engines/mahjongescape/src/PeResources.cpp`) and never runs either. The game's texts are
 read from them when the game runs; the few the port needs from the exe's code are named by address in
 `src/GameTextTable.inc` (made by `tools/make_gametext.py`) and are never copied into the repository.
 
@@ -64,7 +64,7 @@ and no buy screen.
 
 The port answers the standard commands (`docs/TEST_COMMANDS.md`) from a test's `-script`, its live channel
 (`-commands=<file>`, `byopop_test_command` on the web) or `-realinput`, through `HandleScriptCommand` in
-`src/TestCommands.cpp`. A command that is never given changes nothing: no draw of the game's random numbers and no state.
+`engines/mahjongescape/src/TestCommands.cpp`. A command that is never given changes nothing: no draw of the game's random numbers and no state.
 
 | Command | What it does |
 |---|---|
@@ -76,8 +76,7 @@ The port answers the standard commands (`docs/TEST_COMMANDS.md`) from a test's `
 | `move` | `MOVE {json}`: the bot's next move and the real input that makes it (below); changes nothing. |
 | `lose`, `seed <n>` | `ERROR`: a game here is never lost (a board with no pair offers the shuffle), and every deal has its seed from the game's own clock (the fixes mod's `-gameseed` is the seed). |
 
-**The bot behind `move`** (`src/Bot.cpp`, one file for both games; `tools/realplay/syncbot.sh` copies it into China's
-folder) works on a copy of the board's layout with the game's own rules for a free tile and a pair. It searches depth
+**The bot behind `move`** (`engines/mahjongescape/src/Bot.cpp`, one file for both games) works on a copy of the board's layout with the game's own rules for a free tile and a pair. It searches depth
 first for a series of pairs that ends the game (the two Magic Gold Tiles of an escape stage, the empty board of a classic
 game), remembers the positions that proved dead, and starts again with another order of the pairs and a larger budget
 when one try fails, up to 60 tries. The key (0x2c) takes the lock (0x2d) it opens, and the wild tiles (0x2e, 0x2f) pair as
@@ -213,7 +212,7 @@ frozen baseline passes with every picture and checksum the same):
   pixel (alpha 255) is stored as it is, which is what the sums give (`Div255(x * 255) == x`), an empty one (all four bytes
   0) leaves the pixel under it. `CopyRgb` and `SetRgb` take a pixel as one word instead of three bytes. 12000 random cases
   of `tools/profile/blittest.cpp` compare each function with the original loops byte for byte.
-- **The screen's way to the widget** (`src/MahjongApp.cpp`, `MahjongHost::Present`): the engine's buffer went into a vector
+- **The screen's way to the widget** (`engines/mahjongescape/src/MahjongApp.cpp`, `MahjongHost::Present`): the engine's buffer went into a vector
   first and from there into the widget's image with a pass over 480000 pixels for alpha; it now goes in one pass, the alpha
   byte set as it is written, and the vector is gone (1.92 MB less).
 - **`MemoryImage::mUploadAsIs`** (shared: commit de23422d, off by default, so no other game changes): `DDInterface::PrepareTexture`
@@ -221,7 +220,7 @@ frozen baseline passes with every picture and checksum the same):
   renderer the machine has; for the screen image, which is opaque, a premultiplied pixel is the same pixel, so both ports
   set the flag and the image goes up in one `SDL_UpdateTexture` call as it is. The widget's draw went from 2.3 to 3.2 G
   cycles per 60 s to 1.0 to 1.4.
-- **`memreport <file>`** (a test command of this port, `src/TestCommands.cpp`, only from a test): what the engine holds,
+- **`memreport <file>`** (a test command of this port, `engines/mahjongescape/src/TestCommands.cpp`, only from a test): what the engine holds,
   by image and by sound (decoded bits and 32-bit copies, sounds and their bytes), the process's working set and private bytes,
   and which music modules are loaded. It prints no number of the game's state and draws nothing.
 
