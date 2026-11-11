@@ -182,8 +182,6 @@ public:
 	void					CloseHelp();
 	void					SetMusicOrder(int theOrder, bool theFade);
 	void					StartTalk();
-	void					StopTalk();
-	void					UpdateCursor();
 	bool					HasSavedGame();
 	void					DeleteSavedGame();
 	void					BuildArrows();

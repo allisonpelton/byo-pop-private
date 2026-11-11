@@ -394,3 +394,25 @@ code is.
 A slip: this profile run was started while 3 other game processes were running, so the machine held 4 for 92 s; the
 count is checked before a run's start, and the run's exit code was not read before starting. Nothing else ran, and the run's
 files (`build/perf`) are small.
+
+## 14. Removal of code the port does not need (2026-11-11)
+
+What the coverage check (section 12) found: every function of the game that play can reach is in the port, and the original's
+code the port leaves out is listed there. The other way round, a scan of the port for what nothing calls or uses (every member
+function defined in `src/` whose name appears nowhere else but its declaration, and every id of `Res.h` named once) found:
+
+- **Taken out:** the dialog ids of the Register dialog, its invalid-code box, the high-score note, the online score submission
+  and the windowed-mode nag (`DIALOG_REGISTER`, `REG_INVALID`, `HIGH_SCORE_NOTE`, `SUBMIT_SCORE`, `NO_WINDOWED`) and a
+  `KillDialog(DIALOG_REGISTER)` of a dialog the port does not have (commit 74d0c0fb); `SevenSeasApp::UpdateCursor`, an empty
+  function nothing called, and `StopTalk`, which nothing called.
+- **Kept on purpose:** the resource table (`Res.cpp`, `Res.h`) holds every image and sound of the original's list in its order
+  and with its ids, since the names are looked up in that order; 12 images and 9 sounds of it nothing in the game's code names
+  (the online score's picture, the pirate's other mouths and the talking sounds, which are reached by the id plus a number, and
+  a few fonts and sprites). Dropping the picture of the removed online score button would renumber every id after it for 40 KB
+  of memory; not done.
+- **Left alone:** the Treasure Island and warning nags are the registered game's own dialogs (they stay), and the registry
+  values `BonusNag`, `Warn*Nag` are theirs. The registration and outbound-button removal was done earlier (section 8's list);
+  a search of `src/` for register, trial, unlock and URL finds only the framework's registry hooks and the test command
+  `unlock`, which answers that the game has nothing locked.
+
+`tools/check.sh build sevenseas` passes with the baseline identical.

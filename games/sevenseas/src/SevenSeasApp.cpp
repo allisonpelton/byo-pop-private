@@ -514,11 +514,6 @@ void SevenSeasApp::LostFocus()
 	SexyApp::LostFocus();
 }
 
-// 0x420350: the cursor of the game (the images that Init registered are shown by the framework)
-void SevenSeasApp::UpdateCursor()
-{
-}
-
 // 0x420550: music from an order of the game's module; the two slots take turns so that one can fade out as the
 // other fades in
 void SevenSeasApp::SetMusicOrder(int theOrder, bool theFade)
@@ -543,11 +538,6 @@ void SevenSeasApp::StartTalk()
 	mTalkWidget->SetVisible(true);
 	mTalkWidget->mMode = 1;
 	mTalking = true;
-}
-
-void SevenSeasApp::StopTalk()
-{
-	mTalkWidget->mMode = -1;
 }
 
 // 0x41d750: a picture button; the copies of the pictures belong to the button
