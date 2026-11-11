@@ -1,4 +1,4 @@
-// Board.cpp, part 2: joining pairs, scoring, hints, the end of a level and the small effects
+// The Board, part 2 of 6: joining pairs, scoring, hints, the end of a level and the small effects
 // (WinNoah.exe 0x4060d0-0x4090d0).
 
 #include "Board.h"
@@ -15,13 +15,14 @@
 
 using namespace Sexy;
 
-// DAT_00494120: the colour of each animal kind (the score text and the trail)
+// 0x494120: the colour of each animal kind (the score text and the trail)
 static const int gAnimalColors[13][3] =
 {
 	{245, 131, 130}, {253, 207, 23}, {235, 255, 235}, {18, 109, 153}, {190, 190, 190}, {213, 161, 235}, {89, 89, 89},
 	{253, 197, 140}, {224, 224, 224}, {74, 42, 3}, {171, 246, 127}, {181, 1, 2}, {255, 173, 1}
 };
 
+// port: the colour of a kind from the table above, the kind held to the thirteen animals
 Color Board::AnimalColor(int theType)
 {
 	if (theType < 0)
@@ -50,8 +51,8 @@ void Board::ClearLinkList()
 // 0x4075d0: no animal flashes; the idle clock restarts
 void Board::ClearHint()
 {
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			if (mGrid[x][y] != NULL)
 				mGrid[x][y]->mFlash = false;
 	mLastMoveTick = mUpdateCnt;
@@ -60,8 +61,8 @@ void Board::ClearHint()
 // 0x406a20: no animal left anywhere (nothing on the board counts as one)
 bool Board::BoardCleared()
 {
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if ((aPiece->mType < NUM_ANIMALS) || aPiece->mRemoved || aPiece->mMoving || aPiece->mFading)
@@ -74,8 +75,8 @@ bool Board::BoardCleared()
 int Board::AnimalCount()
 {
 	int aCount = 0;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if ((aPiece->mType < NUM_ANIMALS) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
@@ -88,8 +89,8 @@ int Board::AnimalCount()
 bool Board::AnyWaiting()
 {
 	bool aResult = false;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			if ((mGrid[x][y]->mOffsetY < 0) && !mGrid[x][y]->mPending)
 				aResult = true;
 	return aResult;
@@ -101,8 +102,8 @@ void Board::ReleaseWaiting()
 	bool aDone = false;
 	do
 	{
-		int x = CrtRand() % 9;
-		for (int y = 8; y >= 0; y--)
+		int x = CrtRand() % GRID_SIZE;
+		for (int y = GRID_LAST; y >= 0; y--)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if (!aDone && (aPiece->mOffsetY < 0) && !aPiece->mPending)
@@ -119,8 +120,8 @@ void Board::ReleaseWaiting()
 bool Board::AnyFalling()
 {
 	bool aResult = false;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			if ((mGrid[x][y]->mOffsetY < 0) || (mGrid[x][y]->mFallSpeed > 1))
 				aResult = true;
 	return aResult;
@@ -129,9 +130,9 @@ bool Board::AnyFalling()
 // 0x406cd0: does another animal of the piece's kind exist that can reach it?
 bool Board::HasPartner(Piece* thePiece, int theX, int theY)
 {
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aOther = mGrid[x][y];
 			if (!aOther->mFading && !aOther->mRemoved && !aOther->mMoving && (aOther != thePiece) && (aOther->mType == thePiece->mType) &&
@@ -147,9 +148,9 @@ bool Board::HasMove()
 {
 	if (mApp->mGameMode != GAMEMODE_PUZZLE)
 	{
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
-			for (int y = 0; y < 9; y++)
+			for (int y = 0; y < GRID_SIZE; y++)
 			{
 				Piece* aPiece = mGrid[x][y];
 				if ((aPiece->mType < NUM_ANIMALS) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving && HasPartner(aPiece, x, y))
@@ -160,9 +161,9 @@ bool Board::HasMove()
 	}
 
 	static const int aDirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			if (mGrid[x][y] == NULL)
 				continue;
@@ -170,18 +171,18 @@ bool Board::HasMove()
 			{
 				int aNextX = x + aDirs[aDir][0];
 				int aNextY = y + aDirs[aDir][1];
-				if ((aNextX < 0) || (aNextX > 8) || (aNextY < 0) || (aNextY > 8))
+				if ((aNextX < 0) || (aNextX > GRID_LAST) || (aNextY < 0) || (aNextY > GRID_LAST))
 					continue;
 				std::swap(mGrid[x][y], mGrid[aNextX][aNextY]);
 				int aType = mGrid[x][y]->mType;
 				int aLeft = x, aRight = x, aUp = y, aDown = y;
 				while ((aLeft > 0) && (mGrid[aLeft - 1][y] != NULL) && (mGrid[aLeft - 1][y]->mType == aType))
 					aLeft--;
-				while ((aRight < 8) && (mGrid[aRight + 1][y] != NULL) && (mGrid[aRight + 1][y]->mType == aType))
+				while ((aRight < GRID_LAST) && (mGrid[aRight + 1][y] != NULL) && (mGrid[aRight + 1][y]->mType == aType))
 					aRight++;
 				while ((aUp > 0) && (mGrid[x][aUp - 1] != NULL) && (mGrid[x][aUp - 1]->mType == aType))
 					aUp--;
-				while ((aDown < 8) && (mGrid[x][aDown + 1] != NULL) && (mGrid[x][aDown + 1]->mType == aType))
+				while ((aDown < GRID_LAST) && (mGrid[x][aDown + 1] != NULL) && (mGrid[x][aDown + 1]->mType == aType))
 					aDown++;
 				std::swap(mGrid[x][y], mGrid[aNextX][aNextY]);
 				if ((aRight - aLeft > 1) || (aDown - aUp > 1))
@@ -203,26 +204,26 @@ void Board::ShowHint()
 	while (mApp->mGameMode == GAMEMODE_PUZZLE)
 	{
 		static const int aDirs[4][2] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-		int x = CrtRand() % 9;
-		int y = CrtRand() % 9;
+		int x = CrtRand() % GRID_SIZE;
+		int y = CrtRand() % GRID_SIZE;
 		if (mGrid[x][y] == NULL)
 			continue;
 		for (int aDir = 0; aDir < 4 && !aDone; aDir++)
 		{
 			int aNextX = x + aDirs[aDir][0];
 			int aNextY = y + aDirs[aDir][1];
-			if ((aNextX < 0) || (aNextX > 8) || (aNextY < 0) || (aNextY > 8))
+			if ((aNextX < 0) || (aNextX > GRID_LAST) || (aNextY < 0) || (aNextY > GRID_LAST))
 				continue;
 			std::swap(mGrid[x][y], mGrid[aNextX][aNextY]);
 			int aType = mGrid[x][y]->mType;
 			int aLeft = x, aRight = x, aUp = y, aDown = y;
 			while ((aLeft > 0) && (mGrid[aLeft - 1][y] != NULL) && (mGrid[aLeft - 1][y]->mType == aType))
 				aLeft--;
-			while ((aRight < 8) && (mGrid[aRight + 1][y] != NULL) && (mGrid[aRight + 1][y]->mType == aType))
+			while ((aRight < GRID_LAST) && (mGrid[aRight + 1][y] != NULL) && (mGrid[aRight + 1][y]->mType == aType))
 				aRight++;
 			while ((aUp > 0) && (mGrid[x][aUp - 1] != NULL) && (mGrid[x][aUp - 1]->mType == aType))
 				aUp--;
-			while ((aDown < 8) && (mGrid[x][aDown + 1] != NULL) && (mGrid[x][aDown + 1]->mType == aType))
+			while ((aDown < GRID_LAST) && (mGrid[x][aDown + 1] != NULL) && (mGrid[x][aDown + 1]->mType == aType))
 				aDown++;
 			std::swap(mGrid[x][y], mGrid[aNextX][aNextY]);
 			if ((aRight - aLeft > 1) || (aDown - aUp > 1))
@@ -237,13 +238,13 @@ void Board::ShowHint()
 	}
 
 	{
-		Piece* aFirst = mGrid[CrtRand() % 9][CrtRand() % 9];
-		Piece* aSecond = mGrid[CrtRand() % 9][CrtRand() % 9];
+		Piece* aFirst = mGrid[CrtRand() % GRID_SIZE][CrtRand() % GRID_SIZE];
+		Piece* aSecond = mGrid[CrtRand() % GRID_SIZE][CrtRand() % GRID_SIZE];
 		while ((aFirst->mType > PIECE_ANIMAL_LAST) || (aSecond->mType > PIECE_ANIMAL_LAST) || (aSecond->mType != aFirst->mType) || ((aSecond->mX == aFirst->mX) && (aSecond->mY == aFirst->mY)) ||
 			!Reachable(aFirst, aSecond))
 		{
-			aSecond = mGrid[CrtRand() % 9][CrtRand() % 9];
-			aFirst = mGrid[CrtRand() % 9][CrtRand() % 9];
+			aSecond = mGrid[CrtRand() % GRID_SIZE][CrtRand() % GRID_SIZE];
+			aFirst = mGrid[CrtRand() % GRID_SIZE][CrtRand() % GRID_SIZE];
 		}
 		aSecond->mFlash = true;
 		aFirst->mFlash = true;
@@ -351,7 +352,7 @@ void Board::UpdateSparkles()
 }
 
 // 0x407600: the pair in mLink has been joined: score it (a run of the same kind scores a combo and lowers the
-// // water), and let both walk towards each other along their paths. The assignments to mShownCombo and mComboTextTimer
+// water), and let both walk towards each other along their paths. The assignments to mShownCombo and mComboTextTimer
 // are the original's small setter, 0x407440.
 void Board::ConnectPair()
 {
@@ -464,8 +465,8 @@ void Board::AbandonPair()
 		if (mAbandonIndex > 0x4f)
 			goto finished;
 		mAbandonIndex++;
-		// the original walks the cells in column-major order of a transposed index: x = i % 9, y = i / 9
-		aFirst = mGrid[mAbandonIndex % 9][mAbandonIndex / 9];
+		// the original walks the cells in column-major order of a transposed index: x = i % GRID_SIZE, y = i / GRID_SIZE
+		aFirst = mGrid[mAbandonIndex % GRID_SIZE][mAbandonIndex / GRID_SIZE];
 		if ((aFirst->mType <= PIECE_ANIMAL_LAST) && !aFirst->mFading && !aFirst->mRemoved)
 			break;
 	}
@@ -493,7 +494,7 @@ void Board::AbandonPair()
 		// the original counts from -1 and tests "0x4f < i" before it increments: cells 0 to 80, the last one included
 		for (int i = 0; i <= 0x50; i++)
 		{
-			Piece* aSecond = mGrid[i % 9][i / 9];
+			Piece* aSecond = mGrid[i % GRID_SIZE][i / GRID_SIZE];
 			if ((aSecond->mType == aFirst->mType) && !aSecond->mFading && !aSecond->mRemoved)
 			{
 				aSecond->mFading = true;
@@ -560,7 +561,7 @@ void Board::GameOver()
 void Board::HighlightGroup(int theX, int theY)
 {
 	ClearLinkList();
-	if ((theX >= 0) && (theX < 9) && (theY >= 0) && (theY < 9))
+	if ((theX >= 0) && (theX < GRID_SIZE) && (theY >= 0) && (theY < GRID_SIZE))
 	{
 		Piece* aPiece = mGrid[theX][theY];
 		if ((aPiece != NULL) && (aPiece->mType < NUM_ANIMALS) && !aPiece->mRemoved)
@@ -589,7 +590,7 @@ void Board::FloodGroup(int theX, int theY)
 				continue;
 			int aNextX = theX + aOffsetX;
 			int aNextY = theY + aOffsetY;
-			if ((aNextX < 0) || (aNextX > 8) || (aNextY < 0) || (aNextY > 8))
+			if ((aNextX < 0) || (aNextX > GRID_LAST) || (aNextY < 0) || (aNextY > GRID_LAST))
 				continue;
 			Piece* aOther = mGrid[aNextX][aNextY];
 			bool aListed = std::find(mLink.begin(), mLink.end(), aOther) != mLink.end();
@@ -607,9 +608,9 @@ void Board::FloodGroup(int theX, int theY)
 bool Board::MarkRuns(bool theAnimate)
 {
 	bool aFound = false;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			int aType = aPiece->mType;
@@ -644,9 +645,9 @@ bool Board::MarkRuns(bool theAnimate)
 		}
 	}
 
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if (!aPiece->mMatch)
@@ -672,7 +673,7 @@ bool Board::MarkRuns(bool theAnimate)
 		}
 	}
 
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
 		Piece* aPiece = mGrid[x][0];
 		if (aPiece->mType == PIECE_EMPTY)
@@ -681,7 +682,7 @@ bool Board::MarkRuns(bool theAnimate)
 			aPiece->mFallSpeed = 1;
 			aPiece->mY = 0;
 			aPiece->mPixelY = (float) CellTop(0);
-			aPiece->mOffsetY = -0x32;
+			aPiece->mOffsetY = -CELL_SIZE;
 			if (mGrid[x][1]->mOffsetY < 0)
 				aPiece->mOffsetY += mGrid[x][1]->mOffsetY;
 			aPiece->mAlpha = 0xff;
@@ -707,9 +708,9 @@ void Board::PushRow()
 	}
 	else
 	{
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
-			for (int y = 0; y < 8; y++)
+			for (int y = 0; y < GRID_LAST; y++)
 			{
 				Piece* aUpper = mGrid[x][y];
 				Piece* aLower = mGrid[x][y + 1];
@@ -727,36 +728,36 @@ void Board::PushRow()
 				std::swap(aUpper->mAlpha, aLower->mAlpha);
 				std::swap(aUpper->mFallSpeed, aLower->mFallSpeed);
 				aUpper->mType = aLower->mType;
-				aUpper->mOffsetY = aLower->mOffsetY + 0x32;
+				aUpper->mOffsetY = aLower->mOffsetY + CELL_SIZE;
 				aUpper->mPixelX = aLower->mPixelX;
 				aUpper->mPixelY = aLower->mPixelY;
 				aLower->mType = PIECE_EMPTY;
-				aLower->mOffsetY = aUpperOffsetY - 0x32;
+				aLower->mOffsetY = aUpperOffsetY - CELL_SIZE;
 				aLower->mPixelX = aUpperPixelX;
 				aLower->mPixelY = aUpperPixelY;
 			}
 		}
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
-			Piece* aPiece = mGrid[x][8];
+			Piece* aPiece = mGrid[x][GRID_LAST];
 			Piece* aNext = mNextRow[x];
 			aPiece->mType = aNext->mType;
 			aPiece->mRemoved = false;
 			aPiece->mMoving = false;
 			aPiece->mFading = false;
-			aPiece->mOffsetY = 0x32;
+			aPiece->mOffsetY = CELL_SIZE;
 			aPiece->mOffsetX = 0;
 			aPiece->mAlpha = 0xff;
 			aPiece->mX = x;
-			aPiece->mY = 8;
+			aPiece->mY = GRID_LAST;
 			aPiece->mPixelX = (float) CellLeft(x);
-			aPiece->mPixelY = (float) CellTop(8);
+			aPiece->mPixelY = (float) CellTop(GRID_LAST);
 			aPiece->mFallSpeed = 1;
 			int aKinds = mNewRowKinds;
 			if (aKinds > NUM_ANIMALS - 1)
 				aKinds = NUM_ANIMALS;
 			aNext->mType = CrtRand() % aKinds;
-			aNext->mOffsetY = 0x32;
+			aNext->mOffsetY = CELL_SIZE;
 		}
 		int aCellY = CellAtY(mMouseY);
 		int aCellX = CellAtX(mMouseX);

@@ -1,4 +1,4 @@
-// Entry point for the Noah's Ark Deluxe port (native and Emscripten).
+// port: the entry point of Noah's Ark Deluxe, native and Emscripten.
 //
 // Arguments (all optional):
 //   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/ and WinNoah.exe (read for the

@@ -1,4 +1,4 @@
-// Test hooks: the autoplay bot (-autoplay=1). It plays whole games by calling the board's mouse handlers, so
+// port: test hooks: the autoplay bot (-autoplay=1). It plays whole games by calling the board's mouse handlers, so
 // everything the game does for a player runs: pairs are linked, scored and taken in, rows rise, levels and the
 // bonus round come and go, the game ends and the score goes to the high-score list. The bot has its own
 // random numbers (the game's use the C library generator, seeded by -seed), so the same -seed and -autoplay
@@ -227,8 +227,8 @@ void NoahApp::AutoplayUpdate()
 	if (mBoard != NULL)
 	{
 		int aMoving = 0, aFirstX = -1, aFirstY = -1;
-		for (int x = 0; x < 9; x++)
-			for (int y = 0; y < 9; y++)
+		for (int x = 0; x < Board::GRID_SIZE; x++)
+			for (int y = 0; y < Board::GRID_SIZE; y++)
 				if ((mBoard->mGrid[x][y] != NULL) && mBoard->mGrid[x][y]->mMoving)
 				{
 					if (aMoving == 0)
@@ -474,16 +474,16 @@ void NoahApp::StateLogUpdate()
 	fprintf(aLog->mFile, "update %d: state %d score %d level %d mode %d\n", mUpdateCount, aState, mGameScore, mLevel, mGameMode);
 	if ((aState != aLog->mState) && (mBoard != NULL))
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < Board::GRID_SIZE; y++)
 		{
-			char aRow[10];
-			for (int x = 0; x < 9; x++)
+			char aRow[Board::GRID_SIZE + 1];
+			for (int x = 0; x < Board::GRID_SIZE; x++)
 			{
 				Piece* aPiece = mBoard->mGrid[x][y];
 				int aType = (aPiece == NULL) ? PIECE_EMPTY : aPiece->mType;
 				aRow[x] = (aType == PIECE_EMPTY) ? '.' : (aType == PIECE_CRATE) ? 'X' : (aType == PIECE_BLOCK) ? 'Y' : (char) ((aType < 10) ? ('0' + aType) : ('A' + aType - 10));
 			}
-			aRow[9] = 0;
+			aRow[Board::GRID_SIZE] = 0;
 			fprintf(aLog->mFile, "grid %d %s\n", y, aRow);
 		}
 	}

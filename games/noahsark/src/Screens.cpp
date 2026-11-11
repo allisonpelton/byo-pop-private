@@ -51,13 +51,14 @@ TitleScreen::~TitleScreen()
 	delete mPlayLink;
 }
 
-// 0x420460 / 0x420490
+// 0x420460
 void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
+// 0x420490
 void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -307,12 +308,14 @@ NextLevelWidget::~NextLevelWidget()
 	delete mBackground;
 }
 
+// 0x4165d0 (the game-over screen shares it): the link comes with the widget
 void NextLevelWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mNextLink);
 }
 
+// 0x4126b0 (shared too)
 void NextLevelWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -349,6 +352,7 @@ void NextLevelWidget::ButtonDepress(int theId)
 	mApp->RemoveNextLevel();
 }
 
+// port: a line of text centred on a width (the original writes the same three calls out, 0x4151f0)
 static void DrawCentered(Graphics* g, Font* theFont, const SexyString& theText, int theWidth, int theY, const Color& theColor)
 {
 	g->SetFont(theFont);
@@ -478,12 +482,14 @@ HighScoreWidget::~HighScoreWidget()
 	delete mMenuLink;
 }
 
+// 0x4165d0
 void HighScoreWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mMenuLink);
 }
 
+// 0x4126b0
 void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

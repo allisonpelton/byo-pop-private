@@ -1,4 +1,4 @@
-// Board.cpp, part 1: construction, the level generator, the pairing rule and the path search
+// The Board, part 1 of 6: construction, the level generator, the pairing rule and the path search
 // (WinNoah.exe 0x401000-0x403a90, 0x406a20-0x406cd0, 0x40e280-0x40e300).
 
 #include "Board.h"
@@ -15,32 +15,34 @@
 
 using namespace Sexy;
 
-// 0x40e2c0 / 0x40e300: the cell under a pixel, -1 outside the board
+// 0x40e2c0: the column under a pixel, -1 outside the board
 int Board::CellAtX(int thePixelX)
 {
 	if (thePixelX >= CellLeft(0))
 	{
-		int aCell = (thePixelX - CellLeft(0)) / 50;
-		if (aCell < 9)
+		int aCell = (thePixelX - CellLeft(0)) / CELL_SIZE;
+		if (aCell < GRID_SIZE)
 			return aCell;
 	}
 	return -1;
 }
 
+// 0x40e300: the row under a pixel
 int Board::CellAtY(int thePixelY)
 {
 	if (thePixelY >= CellTop(0))
 	{
-		int aCell = (thePixelY - CellTop(0)) / 50;
-		if (aCell < 9)
+		int aCell = (thePixelY - CellTop(0)) / CELL_SIZE;
+		if (aCell < GRID_SIZE)
 			return aCell;
 	}
 	return -1;
 }
 
+// port: a column or a row from the C library's generator, which the original writes out at each place
 static inline int Rand9()
 {
-	return CrtRand() % 9;
+	return CrtRand() % Board::GRID_SIZE;
 }
 
 // 0x401000
@@ -51,14 +53,14 @@ Board::Board(NoahApp* theApp, bool theContinue)
 	mTidePercent = 100;
 	mLoadedGame = theContinue;       // +0xd90 (the original passes the flag on to every vector's allocator byte too)
 	mMouseX = mMouseY = 0;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			mGrid[x][y] = NULL;
 			mClone[x][y] = NULL;
 			mCost[x][y] = 0;
 		}
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 		mNextRow[x] = NULL;
 
 	mUpdateCnt = 0;                  // +0x40
@@ -138,14 +140,14 @@ Board::Board(NoahApp* theApp, bool theContinue)
 // it then runs its InitGrid, which makes 90 new pieces that nothing frees. The port frees everything it owns.
 Board::~Board()
 {
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			delete mGrid[x][y];
 			mGrid[x][y] = NULL;
 		}
 	FreeClones();
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
 		delete mNextRow[x];
 		mNextRow[x] = NULL;
@@ -236,10 +238,10 @@ void Board::NewLevel()
 	if (aMode == GAMEMODE_STAMPEDE)
 	{
 		// four rows of animals of three kinds (the bottom ones, y 5 to 8), and the row waiting below
-		for (int x = 0; x < 9; x++)
-			for (int y = 5; y < 9; y++)
+		for (int x = 0; x < GRID_SIZE; x++)
+			for (int y = 5; y < GRID_SIZE; y++)
 				mGrid[x][y]->mType = CrtRand() % aKinds;
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 			mNextRow[x]->mType = CrtRand() % aKinds;
 	}
 	else
@@ -273,8 +275,8 @@ void Board::NewLevel()
 	if ((aMode != GAMEMODE_PUZZLE) && (aMode != GAMEMODE_STAMPEDE))
 		EnsureMoves();
 
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			mGrid[x][y]->mX = x;
 			mGrid[x][y]->mY = y;
@@ -338,9 +340,9 @@ void Board::NewLevel()
 void Board::InitGrid()
 {
 	ClearLinkList();
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			delete mGrid[x][y];
 			Piece* aPiece = new Piece();
@@ -355,7 +357,7 @@ void Board::InitGrid()
 			aPiece->mPartner = NULL;
 		}
 	}
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
 		delete mNextRow[x];
 		Piece* aPiece = new Piece();
@@ -367,7 +369,7 @@ void Board::InitGrid()
 		aPiece->mPixelX = (float) CellLeft(x);
 		aPiece->mPixelY = (float) CellTop(0);
 		aPiece->mType = PIECE_EMPTY;
-		aPiece->mOffsetY = 0x32;
+		aPiece->mOffsetY = CELL_SIZE;
 	}
 	ClearLink();
 }
@@ -410,13 +412,13 @@ void Board::PlaceCrates(int theCount)
 bool Board::CheckSolvable()
 {
 	RebuildClones();
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			if (mClone[x][y]->mType == PIECE_EMPTY)
 				mClone[x][y]->mType = 4;
 	int aFailed = 0;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			if ((mClone[x][y]->mType == 4) && (aFailed < 2))
 				if (!TryRemoveClonePair(mClone[x][y]))
 					aFailed++;
@@ -427,8 +429,8 @@ bool Board::CheckSolvable()
 int Board::CountEmpty()
 {
 	int aCount = 0;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			if (mGrid[x][y]->mType == PIECE_EMPTY)
 				aCount++;
 	return aCount;
@@ -443,8 +445,8 @@ void Board::EnsureMoves()
 	while (AllClonesGone() == false)
 	{
 		bool aAnyPair = false;
-		for (int x = 0; x < 9; x++)
-			for (int y = 0; y < 9; y++)
+		for (int x = 0; x < GRID_SIZE; x++)
+			for (int y = 0; y < GRID_SIZE; y++)
 				if ((mClone[x][y]->mType < NUM_ANIMALS) && TryRemoveClonePair(mClone[x][y]))
 					aAnyPair = true;
 		if (!aAnyPair)
@@ -456,15 +458,15 @@ void Board::EnsureMoves()
 void Board::RebuildClones()
 {
 	FreeClones();
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			mClone[x][y] = new Piece(*mGrid[x][y]);
 }
 
 void Board::FreeClones()
 {
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			delete mClone[x][y];
 			mClone[x][y] = NULL;
@@ -476,9 +478,9 @@ void Board::FreeClones()
 bool Board::TryRemoveClonePair(Piece* thePiece)
 {
 	bool aDone = false;
-	for (int aOtherX = 0; aOtherX < 9 && !aDone; aOtherX++)
+	for (int aOtherX = 0; aOtherX < GRID_SIZE && !aDone; aOtherX++)
 	{
-		for (int aOtherY = 0; aOtherY < 9 && !aDone; aOtherY++)
+		for (int aOtherY = 0; aOtherY < GRID_SIZE && !aDone; aOtherY++)
 		{
 			Piece* aOther = mClone[aOtherX][aOtherY];
 			if ((aOther != thePiece) && (aOther->mType == thePiece->mType) && CloneReachable(aOther, thePiece))
@@ -529,8 +531,8 @@ bool Board::TryRemoveClonePair(Piece* thePiece)
 // 0x402590: no animal left in the clones
 bool Board::AllClonesGone()
 {
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			if (mClone[x][y]->mType < NUM_ANIMALS)
 				return false;
 	return true;
@@ -561,7 +563,7 @@ void Board::SwapRandom()
 // cells whose animal is leaving). The real grid also lets a piece walk through one that is moving; the clones do not.
 bool Board::Reachable(Piece* theFrom, Piece* theTo)
 {
-	bool aSeen[9][9];
+	bool aSeen[GRID_SIZE][GRID_SIZE];
 	memset(aSeen, 0, sizeof(aSeen));
 	std::queue<std::pair<int, int> > aOpen;
 	aOpen.push(std::make_pair(theFrom->mX, theFrom->mY));
@@ -576,7 +578,7 @@ bool Board::Reachable(Piece* theFrom, Piece* theTo)
 		{
 			int aNextX = aCell.first + aDX[aDir];
 			int aNextY = aCell.second + aDY[aDir];
-			if ((aNextX < 0) || (aNextX > 8) || (aNextY < 0) || (aNextY > 8) || aSeen[aNextX][aNextY])
+			if ((aNextX < 0) || (aNextX > GRID_LAST) || (aNextY < 0) || (aNextY > GRID_LAST) || aSeen[aNextX][aNextY])
 				continue;
 			Piece* aPiece = mGrid[aNextX][aNextY];
 			if (aPiece == theTo)
@@ -593,7 +595,7 @@ bool Board::Reachable(Piece* theFrom, Piece* theTo)
 
 bool Board::CloneReachable(Piece* theFrom, Piece* theTo)
 {
-	bool aSeen[9][9];
+	bool aSeen[GRID_SIZE][GRID_SIZE];
 	memset(aSeen, 0, sizeof(aSeen));
 	std::queue<std::pair<int, int> > aOpen;
 	aOpen.push(std::make_pair(theFrom->mX, theFrom->mY));
@@ -608,7 +610,7 @@ bool Board::CloneReachable(Piece* theFrom, Piece* theTo)
 		{
 			int aNextX = aCell.first + aDX[aDir];
 			int aNextY = aCell.second + aDY[aDir];
-			if ((aNextX < 0) || (aNextX > 8) || (aNextY < 0) || (aNextY > 8) || aSeen[aNextX][aNextY])
+			if ((aNextX < 0) || (aNextX > GRID_LAST) || (aNextY < 0) || (aNextY > GRID_LAST) || aSeen[aNextX][aNextY])
 				continue;
 			Piece* aPiece = mClone[aNextX][aNextY];
 			if (aPiece == theTo)
@@ -632,8 +634,8 @@ void Board::ClearLink()
 	for (size_t i = 0; i < mPixelPath.size(); i++)
 		delete mPixelPath[i];
 	mPixelPath.clear();
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			if (mGrid[x][y] != NULL)
 				mGrid[x][y]->mSelected = false;
 }
@@ -641,7 +643,7 @@ void Board::ClearLink()
 // 0x403a00 / 0x403a50: is row / column empty of pieces that count?
 bool Board::RowEmpty(int theRow)
 {
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
 		Piece* aPiece = mGrid[x][theRow];
 		if ((aPiece != NULL) && (aPiece->mType != PIECE_EMPTY) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
@@ -652,7 +654,7 @@ bool Board::RowEmpty(int theRow)
 
 bool Board::ColumnEmpty(int theColumn)
 {
-	for (int y = 0; y < 9; y++)
+	for (int y = 0; y < GRID_SIZE; y++)
 	{
 		Piece* aPiece = mGrid[theColumn][y];
 		if ((aPiece != NULL) && (aPiece->mType != PIECE_EMPTY) && !aPiece->mRemoved && !aPiece->mFading && !aPiece->mMoving)
@@ -666,8 +668,8 @@ bool Board::ColumnEmpty(int theColumn)
 bool Board::FindPath(int theFromX, int theFromY, int theToX, int theToY, int theMaxSegments, bool theWantPath)
 {
 	ClearLink();
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < GRID_SIZE; x++)
+		for (int y = 0; y < GRID_SIZE; y++)
 			mCost[x][y] = 999999;
 	mBestCost = 100000;
 	mPathSegments = -1;
@@ -718,7 +720,7 @@ bool Board::SearchPath(int x, int y, int theToX, int theToY, int theDepth, int t
 		while (aNextX >= 0)
 		{
 			aNextY += aStepY;
-			if ((aNextY < 0) || (aNextX > 8) || (aNextY > 8))
+			if ((aNextY < 0) || (aNextX > GRID_LAST) || (aNextY > GRID_LAST))
 				break;
 			mSteps++;
 			if ((aNextX == theToX) && (aNextY == theToY))

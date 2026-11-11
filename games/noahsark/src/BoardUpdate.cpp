@@ -1,4 +1,4 @@
-// Board.cpp, part 4: the per-tick update (WinNoah.exe 0x403d60, Board::vf18). One tick is 10 ms of the
+// The Board, part 4 of 6: the per-tick update (WinNoah.exe 0x403d60, Board::Update). One tick is 10 ms of the
 // framework's update clock; mUpdateCnt (+0x40) counts them.
 
 #include "Board.h"
@@ -141,9 +141,9 @@ void Board::Update()
 	}
 
 	bool aSettled = true;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 8; y >= 0; y--)
+		for (int y = GRID_LAST; y >= 0; y--)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if (aPiece == NULL)
@@ -184,7 +184,7 @@ void Board::Update()
 			{
 				// strategy and puzzle: an animal with room below falls
 				if (mGravity && ((aPiece->mType < NUM_ANIMALS) || (aPiece->mType == PIECE_CRATE)) && !aPiece->mRemoved && !aPiece->mFading &&
-					((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) && (y < 8))
+					((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) && (y < GRID_LAST))
 				{
 					Piece* aBelow = mGrid[x][y + 1];
 					if ((aBelow->mType == PIECE_EMPTY) || aBelow->mRemoved || aBelow->mFading ||
@@ -235,8 +235,8 @@ void Board::Update()
 						if (aLower->mFallSpeed < -5)
 							aLower->mFallSpeed = -6;
 						aLower->mY++;                       // the new piece keeps the copied position: a walking animal's own cell is not the slot it is in
-						aLower->mPixelY += 50.0f;
-						aLower->mOffsetY -= 0x32;
+						aLower->mPixelY += (float) CELL_SIZE;
+						aLower->mOffsetY -= CELL_SIZE;
 						aSettled = false;
 					}
 				}
@@ -262,22 +262,22 @@ void Board::Update()
 									PathNode* aNode = aPiece->mPath[aPiece->mPathIndex];
 									if (aNode->mCellX < aPiece->mX)
 									{
-										aPiece->mOffsetX = 0x32;
+										aPiece->mOffsetX = CELL_SIZE;
 										aPiece->mX--;
 									}
 									else if (aPiece->mX < aNode->mCellX)
 									{
-										aPiece->mOffsetX = -0x32;
+										aPiece->mOffsetX = -CELL_SIZE;
 										aPiece->mX++;
 									}
 									else if (aNode->mCellY < aPiece->mY)
 									{
-										aPiece->mOffsetY = 0x32;
+										aPiece->mOffsetY = CELL_SIZE;
 										aPiece->mY--;
 									}
 									else if (aPiece->mY < aNode->mCellY)
 									{
-										aPiece->mOffsetY = -0x32;
+										aPiece->mOffsetY = -CELL_SIZE;
 										aPiece->mY++;
 									}
 									else
@@ -376,7 +376,7 @@ void Board::Update()
 	// puzzle: new animals drop into the holes at the top
 	if (anApp->mGameMode == GAMEMODE_PUZZLE)
 	{
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
 			Piece* aPiece = mGrid[x][0];
 			if (aPiece->mType == PIECE_EMPTY)
@@ -393,7 +393,7 @@ void Board::Update()
 				aPiece->mFallSpeed = 1;
 				aPiece->mY = 0;
 				aPiece->mPixelY = (float) CellTop(0);
-				aPiece->mOffsetY = -0x32;
+				aPiece->mOffsetY = -CELL_SIZE;
 				if (mGrid[x][1]->mOffsetY < 0)
 					aPiece->mOffsetY += mGrid[x][1]->mOffsetY;
 				aSettled = false;
@@ -405,7 +405,7 @@ void Board::Update()
 	// stampede: the waiting row rises and the board is pushed up; empty columns close in on the middle
 	if ((anApp->mGameMode == GAMEMODE_STAMPEDE) && (mState == BOARD_PLAYING))
 	{
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
 			int aStep = 10 - (mRowCount / 4);
 			int aInterval = (aStep > 2) ? aStep : 3;
@@ -414,20 +414,20 @@ void Board::Update()
 		}
 		if (mNextRow[0]->mOffsetY < 1)
 			PushRow();
-		for (int x = 5; x < 9; x++)
+		for (int x = 5; x < GRID_SIZE; x++)
 		{
 			if (!ColumnEmpty(x) && ColumnEmpty(x - 1))
 			{
-				for (int y = 0; y < 9; y++)
-					ExchangeContents(mGrid[x - 1][y], mGrid[x][y], 0x32, -0x32, false);
+				for (int y = 0; y < GRID_SIZE; y++)
+					ExchangeContents(mGrid[x - 1][y], mGrid[x][y], CELL_SIZE, -CELL_SIZE, false);
 			}
 		}
 		for (int x = 3; x >= 0; x--)
 		{
 			if (!ColumnEmpty(x) && ColumnEmpty(x + 1))
 			{
-				for (int y = 0; y < 9; y++)
-					ExchangeContents(mGrid[x + 1][y], mGrid[x][y], -0x32, -0x32, true);
+				for (int y = 0; y < GRID_SIZE; y++)
+					ExchangeContents(mGrid[x + 1][y], mGrid[x][y], -CELL_SIZE, -CELL_SIZE, true);
 			}
 		}
 	}
@@ -454,8 +454,8 @@ void Board::Update()
 			mState = BOARD_SWAP_BACK;
 			Piece* aFirst = NULL;
 			Piece* aLast = NULL;
-			for (int x = 0; x < 9; x++)
-				for (int y = 0; y < 9; y++)
+			for (int x = 0; x < GRID_SIZE; x++)
+				for (int y = 0; y < GRID_SIZE; y++)
 				{
 					Piece* aPiece = mGrid[x][y];
 					if (aPiece->mInSwap)
@@ -474,26 +474,26 @@ void Board::Update()
 				aLast->mType = aType;
 				if (aFirst->mX < aLast->mX)
 				{
-					aFirst->mOffsetX += 0x32;
-					aLast->mOffsetX -= 0x32;
+					aFirst->mOffsetX += CELL_SIZE;
+					aLast->mOffsetX -= CELL_SIZE;
 				}
 				else if (aFirst->mX != aLast->mX)
 				{
-					aFirst->mOffsetX -= 0x32;
-					aLast->mOffsetX += 0x32;
+					aFirst->mOffsetX -= CELL_SIZE;
+					aLast->mOffsetX += CELL_SIZE;
 				}
 				if (aFirst->mY < aLast->mY)
 				{
 					aSettled = false;
-					aFirst->mOffsetY += 0x32;
-					aLast->mOffsetY -= 0x32;
+					aFirst->mOffsetY += CELL_SIZE;
+					aLast->mOffsetY -= CELL_SIZE;
 				}
 				else
 				{
 					if (aFirst->mY != aLast->mY)
 					{
-						aFirst->mOffsetY -= 0x32;
-						aLast->mOffsetY += 0x32;
+						aFirst->mOffsetY -= CELL_SIZE;
+						aLast->mOffsetY += CELL_SIZE;
 					}
 					aSettled = false;
 				}
@@ -505,8 +505,8 @@ void Board::Update()
 				mState = BOARD_SETTLE;
 			anApp->PlaySample(SOUND_POP);
 		}
-		for (int x = 0; x < 9; x++)
-			for (int y = 0; y < 9; y++)
+		for (int x = 0; x < GRID_SIZE; x++)
+			for (int y = 0; y < GRID_SIZE; y++)
 				mGrid[x][y]->mInSwap = false;
 	}
 	if ((mState == BOARD_SWAP_BACK) && aSettled)
@@ -538,9 +538,9 @@ void Board::Update()
 			mArkY = aArk;
 		}
 		mShowGetReady = true;
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
-			for (int y = 0; y < 9; y++)
+			for (int y = 0; y < GRID_SIZE; y++)
 			{
 				Piece* aPiece = mGrid[x][y];
 				if (CrtRand() % 100 == 0)
@@ -571,8 +571,8 @@ void Board::Update()
 		}
 		if (!AnyFalling() && !anApp->ResyncHold())
 		{
-			for (int x = 0; x < 9; x++)
-				for (int y = 0; y < 9; y++)
+			for (int x = 0; x < GRID_SIZE; x++)
+				for (int y = 0; y < GRID_SIZE; y++)
 					mGrid[x][y]->mSelected = false;
 			if ((anApp->mGameMode == GAMEMODE_PUZZLE) && MarkRuns(true))
 			{
@@ -596,9 +596,9 @@ void Board::Update()
 	}
 
 	// animals that were taken in fly to the ark; the abandoned fade away
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if (!aPiece->mRemoved)
@@ -858,8 +858,8 @@ void Board::Update()
 				mArkStage++;
 			if (!BoardCleared() && !mLeftBehindFading)
 			{
-				for (int x = 0; x < 9; x++)
-					for (int y = 0; y < 9; y++)
+				for (int x = 0; x < GRID_SIZE; x++)
+					for (int y = 0; y < GRID_SIZE; y++)
 						mGrid[x][y]->mAlpha = 0xfa;
 				mLeftBehindFading = true;
 			}

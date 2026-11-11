@@ -1,8 +1,8 @@
 #ifndef __NOAH_BOARD_H__
 #define __NOAH_BOARD_H__
 
-// Board.cpp / BoardUpdate.cpp / BoardDraw.cpp: the playfield of Noah's Ark Deluxe (WinNoah.exe 0x401000-0x410bf0,
-// 100 functions). Behaviour spec: docs/GAME_NOTES.md section 4.
+// The playfield of Noah's Ark Deluxe (WinNoah.exe 0x401000-0x410bf0, 100 functions), in six files: BoardLevel.cpp,
+// BoardRules.cpp, BoardInput.cpp, BoardUpdate.cpp, BoardDraw.cpp and BoardSave.cpp. Behaviour spec: docs/GAME_NOTES.md section 4.
 //
 // Original: class Sexy::Board : public Sexy::Widget, public Sexy::ButtonListener, sizeof 0x1108 (operator new
 // in NoahApp::StartGame 0x418460), vftable 0x488368, ctor 0x401000, deleting dtor 0x401310. Offsets are the
@@ -83,12 +83,19 @@ struct FloatingText
 class Board : public Widget
 {
 public:
+	enum
+	{
+		GRID_SIZE = 9,           // the board is nine cells by nine
+		GRID_LAST = 8,           // its last column and its bottom row
+		CELL_SIZE = 50           // a cell, and an animal's picture, is 50 pixels square
+	};
+
 	NoahApp*				mApp;               // +0x50
 	int						mMouseX;            // +0x54 where the mouse last was
 	int						mMouseY;            // +0x58
-	Piece*					mGrid[9][9];        // +0x5c [x][y]
-	Piece*					mNextRow[9];        // +0x1a0 the row that rises into a strategy board (y offset 0x32)
-	Piece*					mClone[9][9];       // +0x1c4 the level generator's copy (CheckSolvable)
+	Piece*					mGrid[GRID_SIZE][GRID_SIZE];        // +0x5c [x][y]
+	Piece*					mNextRow[GRID_SIZE];        // +0x1a0 the row that rises into a strategy board (y offset 0x32)
+	Piece*					mClone[GRID_SIZE][GRID_SIZE];       // +0x1c4 the level generator's copy (CheckSolvable)
 	Piece*					mSelected;          // +0x308 the animal the player has picked
 	bool					mPaused;            // +0x30c
 	int						mState;             // +0x310 BoardState
@@ -153,7 +160,7 @@ public:
 	std::vector<PathNode*>	mPixelPath;         // +0xe04
 	bool					mArkLeaving;        // +0xe15 (the original only ever writes +0xe14 and +0xe18 to +0xe20: the port has no such fields)
 	int						mPathCells[50][2];  // +0xe24 the cells of the path found
-	int						mCost[9][9];        // +0xfb4
+	int						mCost[GRID_SIZE][GRID_SIZE];        // +0xfb4
 	int						mPathSegments;      // +0x10f8
 	int						mBestCost;          // +0x10fc
 	int						mSteps;             // +0x1100
@@ -182,11 +189,11 @@ public:
 	using Widget::MouseUp;
 
 	// cells and pixels (0x40e280, 0x40e2a0, 0x40e2c0, 0x40e300)
-	static int				CellLeft(int theX) { return theX * 50 + 178; }
-	static int				CellTop(int theY) { return theY * 50 + 16; }
+	static int				CellLeft(int theX) { return theX * CELL_SIZE + 178; }
+	static int				CellTop(int theY) { return theY * CELL_SIZE + 16; }
 	static int				CellAtX(int thePixelX);
 	static int				CellAtY(int thePixelY);
-	static Color			AnimalColor(int theType);       // DAT_00494120
+	static Color			AnimalColor(int theType);       // port: from the table at 0x494120
 
 	// BoardLevel.cpp
 	void					NewLevel();                     // 0x401580

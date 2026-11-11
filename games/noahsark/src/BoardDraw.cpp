@@ -1,4 +1,4 @@
-// Board.cpp, part 5: drawing (WinNoah.exe 0x4092a0 Board::vf17 and its helpers 0x408810, 0x408ce0, 0x409180,
+// The Board, part 5 of 6: drawing (WinNoah.exe 0x4092a0, Board::Draw, and its helpers 0x408810, 0x408ce0, 0x409180,
 // 0x40bfa0, 0x40c180, 0x40c460, 0x40c8a0, 0x407fa0).
 
 #include "Board.h"
@@ -275,6 +275,7 @@ void Board::DrawTrailNodes(Graphics* g, const std::vector<PathNode*>& theNodes, 
 	}
 }
 
+// part of 0x40c8a0 and 0x40c460: the arrow on a trail's last cell, pointing the way of the last step
 void Board::DrawTrailArrow(Graphics* g, PathNode* theLast, PathNode* thePrev, const Color& theTint)
 {
 	int aX = CellLeft(theLast->mCellX);
@@ -346,9 +347,9 @@ void Board::DrawPreview(Graphics* g, bool theSecondPass)
 void Board::DrawWalkingTrails(Graphics* g)
 {
 	g->SetColorizeImages(false);
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if (!aPiece->mMoving || !aPiece->mFacingRight || aPiece->mPath.size() < 3)
@@ -365,7 +366,7 @@ void Board::DrawWalkingTrails(Graphics* g)
 	}
 }
 
-// the outlined caption in the middle of the board ("Get Ready!", "No More Moves!", "PAUSED")
+// part of 0x4092a0: the outlined caption in the middle of the board ("Get Ready!", "No More Moves!", "PAUSED")
 void Board::DrawBanner(Graphics* g, const SexyString& theText)
 {
 	g->SetFont(mApp->mFonts[FONT_BIG]);
@@ -504,9 +505,9 @@ void Board::Draw(Graphics* g)
 	if (!mPaused && anApp->mHasFocus)
 	{
 		// the animals and obstacles that stand still (the walking, leaving and abandoned are drawn later)
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
-			for (int y = 0; y < 9; y++)
+			for (int y = 0; y < GRID_SIZE; y++)
 			{
 				Piece* aPiece = mGrid[x][y];
 				if (aPiece == NULL)
@@ -533,7 +534,7 @@ void Board::Draw(Graphics* g)
 					aY += 14;
 				}
 				Graphics aClip(*g);
-				aClip.ClipRect(aX, aY, 0x32, 0x32);
+				aClip.ClipRect(aX, aY, CELL_SIZE, CELL_SIZE);
 				if (aPiece->mAlpha < 0xff)
 				{
 					aClip.SetColorizeImages(true);
@@ -561,20 +562,20 @@ void Board::Draw(Graphics* g)
 				}
 				else
 					aRow = 5;
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY - aRow * 0x32);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * CELL_SIZE, aY - aRow * CELL_SIZE);
 				aClip.SetColorizeImages(false);
 			}
 		}
 		// the Stampede's waiting row
 		if ((anApp->mGameMode == GAMEMODE_STAMPEDE) && (mState == BOARD_PLAYING))
 		{
-			for (int x = 0; x < 9; x++)
+			for (int x = 0; x < GRID_SIZE; x++)
 			{
 				int aX = CellLeft(x);
-				int aY = CellTop(9) + mNextRow[x]->mOffsetY;
+				int aY = CellTop(GRID_SIZE) + mNextRow[x]->mOffsetY;
 				Graphics aClip(*g);
-				aClip.ClipRect(aX, aY, 0x32, 0x32);
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - mNextRow[x]->mType * 0x32, aY - 0x32 * 2 + 0x32 * 2 - 0x32 * 0);
+				aClip.ClipRect(aX, aY, CELL_SIZE, CELL_SIZE);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - mNextRow[x]->mType * CELL_SIZE, aY - CELL_SIZE * 2 + CELL_SIZE * 2 - CELL_SIZE * 0);
 			}
 		}
 	}
@@ -586,9 +587,9 @@ void Board::Draw(Graphics* g)
 	DrawWalkingTrails(g);
 
 	// the animals that walk, are taken in or are abandoned
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if ((aPiece == NULL) || (aPiece->mType == PIECE_EMPTY))
@@ -607,7 +608,7 @@ void Board::Draw(Graphics* g)
 					aY += 6;
 				}
 				Graphics aClip(*g);
-				aClip.ClipRect(aX, aY, 0x32, 0x32);
+				aClip.ClipRect(aX, aY, CELL_SIZE, CELL_SIZE);
 				if (aPiece->mAlpha < 0xff)
 				{
 					aClip.SetColorizeImages(true);
@@ -618,7 +619,7 @@ void Board::Draw(Graphics* g)
 					aClip.SetColorizeImages(true);
 					aClip.SetColor(Color(mFlashPulse, mFlashPulse, mFlashPulse));
 				}
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * CELL_SIZE, aY);
 				aClip.SetColorizeImages(false);
 				continue;
 			}
@@ -650,13 +651,13 @@ void Board::Draw(Graphics* g)
 				{
 					Graphics aStretch(&aStretched);
 					aStretch.SetFastStretch(true);
-					aStretch.DrawImage(anImages[IMAGE_ANIMALS], Rect(0, 0, aSize, aSize), Rect(aType * 0x32, 0xfa, 0x32, 0x32));
+					aStretch.DrawImage(anImages[IMAGE_ANIMALS], Rect(0, 0, aSize, aSize), Rect(aType * CELL_SIZE, 0xfa, CELL_SIZE, CELL_SIZE));
 				}
 				aClip.DrawImage(&aStretched, aX, aY);
 			}
 			else if (aPiece->mFading)
 			{
-				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * 0x32, aY - 0x15e);
+				aClip.DrawImage(anImages[IMAGE_ANIMALS], aX - aType * CELL_SIZE, aY - 0x15e);
 			}
 			aClip.SetColorizeImages(false);
 		}

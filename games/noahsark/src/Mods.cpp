@@ -74,9 +74,9 @@ bool Board::ModBoardSettled()
 {
 	if (!mLink.empty())
 		return false;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			if (aPiece == NULL)
@@ -126,9 +126,9 @@ bool Board::ModUndo()
 	ClearLinkList();
 	ClearLink();
 	mSelected = NULL;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			for (size_t i = 0; i < aPiece->mPath.size(); i++)
@@ -162,9 +162,9 @@ void Board::ModShowMove()
 		return;
 	Piece* aFirst = NULL;
 	Piece* aSecond = NULL;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			if (mGrid[x][y]->mFlash)
 			{

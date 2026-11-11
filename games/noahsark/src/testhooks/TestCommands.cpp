@@ -1,4 +1,4 @@
-// Test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
+// port: test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
 // channel through HandleScriptCommand. A command that is never given changes nothing. Each answers on stdout with one
 // line: STATE {...}, MOVE {...}|null, OK <command> or ERROR <command>: <reason>.
 //
@@ -218,10 +218,10 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 			aLine += StrFormat(",\"paused\":%s", aBoard->mPaused ? "true" : "false");           // a dialog has paused the board
 			// the board: a row a string, a cell a letter (. empty, X block, Y crate, 0-9 and A-D the animals)
 			std::string aRows;
-			for (int y = 0; y < 9; y++)
+			for (int y = 0; y < Board::GRID_SIZE; y++)
 			{
 				aRows += (y == 0) ? "\"" : ",\"";
-				for (int x = 0; x < 9; x++)
+				for (int x = 0; x < Board::GRID_SIZE; x++)
 				{
 					Piece* aPiece = aBoard->mGrid[x][y];
 					int aType = (aPiece == NULL) ? PIECE_EMPTY : aPiece->mType;
@@ -385,8 +385,8 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 		if (aCommand == "win")
 		{
 			// every animal saved: the board clear, the round ends as the game ends it
-			for (int x = 0; x < 9; x++)
-				for (int y = 0; y < 9; y++)
+			for (int x = 0; x < Board::GRID_SIZE; x++)
+				for (int y = 0; y < Board::GRID_SIZE; y++)
 					if (aBoard->mGrid[x][y]->mType < NUM_ANIMALS)
 						aBoard->mGrid[x][y]->mType = PIECE_EMPTY;
 		}

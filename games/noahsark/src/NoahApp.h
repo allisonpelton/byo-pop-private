@@ -70,7 +70,7 @@ enum GameMode
 {
 	GAMEMODE_ACTION = 1,         // "Flood" in the web version: the water rises in real time
 	GAMEMODE_STRATEGY = 3,       // "Freefall": turn based, the animals fall
-	GAMEMODE_PUZZLE = 4,         // swap adjacent animals to make rows of three (a time limit in the trial)
+	GAMEMODE_PUZZLE = 4,         // swap adjacent animals to make rows of three
 	GAMEMODE_STAMPEDE = 5        // the bonus round after every third level (the mode is kept in mSavedGameMode)
 };
 
@@ -155,7 +155,6 @@ public:
 	virtual void			PlaySample(int theSoundNum) override;
 	virtual void			PlaySample(int theSoundNum, int thePan) override;
 	virtual void			LoadingThreadProc() override;
-	virtual void			LoadingThreadCompleted() override;
 	virtual void			WriteToRegistry() override;
 	virtual void			ReadFromRegistry() override;
 	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,

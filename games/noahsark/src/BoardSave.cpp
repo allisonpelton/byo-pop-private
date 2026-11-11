@@ -1,4 +1,4 @@
-// Board.cpp, part 6: the saved game (WinNoah.exe 0x40d3c0 loads it, 0x40dbe0 writes it to data//savegame.dat)
+// The Board, part 6 of 6: the saved game (WinNoah.exe 0x40d3c0 loads it, 0x40dbe0 writes it to data/savegame.dat)
 // and the small text helpers.
 //
 // The original's file is version 2: the generator state as a string, then the board's fields one by one and
@@ -88,6 +88,7 @@ public:
 
 }
 
+// port: a text with its %d filled in (the original prints into a buffer with the C library's sprintf)
 SexyString Sexy::FormatText(const SexyString& theFormat, int theValue)
 {
 	// the original passes the text to sprintf; a text with "%d" gets the number, any other text stays as it is
@@ -113,6 +114,7 @@ const SexyString& Board::HintLine(int theIndex, int theLine)
 	return GT(aLines[theIndex][theLine]);
 }
 
+// port: the saved game's name in the user folder (data/savegame.dat in the original)
 std::string Board::SavePath()
 {
 	// port(mod): games played with mods that change play have their own saved game
@@ -194,9 +196,9 @@ std::string Board::SaveState()
 	aWriter.Int(mApp->mLevel);
 	aWriter.Int(mApp->mDifficulty);
 	aWriter.Int(mFloodSpeed);
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			aWriter.Byte(aPiece->mInSwap);
@@ -234,6 +236,7 @@ bool Board::LoadGame()
 	return LoadState(aData);
 }
 
+// part of 0x40d3c0: the board from a saved game's content (port(mod): also from the undo mod's snapshots)
 bool Board::LoadState(const std::string& theData)
 {
 	Reader aReader;
@@ -299,9 +302,9 @@ bool Board::LoadState(const std::string& theData)
 	mApp->mLevel = aReader.Int();
 	mApp->mDifficulty = aReader.Int();
 	mFloodSpeed = aReader.Int();
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			Piece* aPiece = mGrid[x][y];
 			aPiece->mInSwap = aReader.Byte();
@@ -329,6 +332,7 @@ bool Board::LoadState(const std::string& theData)
 	return aReader.mOk;
 }
 
+// port: a text with its two %d filled in
 SexyString Sexy::FormatText2(const SexyString& theFormat, int theFirst, int theSecond)
 {
 	// "%d:%d" style texts (the level-up panel's time)

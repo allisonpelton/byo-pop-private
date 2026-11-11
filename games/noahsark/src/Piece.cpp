@@ -20,6 +20,7 @@ Piece::Piece() :
 {
 }
 
+// port: a piece's path goes with it (the original frees the nodes at each place it deletes a piece)
 Piece::~Piece()
 {
 	for (size_t i = 0; i < mPath.size(); i++)

@@ -4,7 +4,7 @@
 // One cell of the board: an animal, a crate, a block or an empty space. Original: a 0x68-byte object made by
 // the `operator new(0x68)` blocks in Board.cpp (WinNoah.exe 0x401a50 and many other places); offsets below
 // are the original's. The grid holds one Piece per cell; a piece that moves (falls, slides along a path, is
-// shifted by a new row) is copied into the cell it reaches (FUN_004060d0 is the copy), so the port moves the
+// shifted by a new row) is copied into the cell it reaches (0x4060d0 is the copy), so the port moves the
 // object itself where the original copies and deletes.
 
 #include <vector>
@@ -62,7 +62,7 @@ struct Piece
 
 	Piece();
 	~Piece();
-	Piece(const Piece& theOther);           // FUN_004060d0: a copy (the path is deep copied)
+	Piece(const Piece& theOther);           // 0x4060d0: a copy (the path is deep copied)
 private:
 	Piece& operator=(const Piece&);
 };

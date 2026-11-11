@@ -133,6 +133,7 @@ HighScoreDialog::HighScoreDialog(NoahApp* theApp) :
 	SetColor(COLOR_HEADER, Color(0xff, 0xff, 0xff));
 }
 
+// 0x411730: slot 47 of the original, a function that only returns 0x12c
 int HighScoreDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
@@ -209,6 +210,7 @@ void RecordScoreDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->SetFocus(mNameEdit);
 }
 
+// 0x420a30 (the Tutorial dialog shares it): the widget of the dialog leaves with it
 void RecordScoreDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -264,6 +266,7 @@ void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 	mApp->ButtonDepress(mId + 2000);
 }
 
+// port: the characters the name box takes (the 2002 EditListener has no such hook: its edit widget chooses them itself)
 bool RecordScoreDialog::AllowChar(int theId, SexyChar theChar)
 {
 	(void) theId;
@@ -284,7 +287,7 @@ OptionsDialog::OptionsDialog(NoahApp* theApp) :
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
 
-	// (the original's Register and Web buttons, ids 1 and 3, are gone; the others keep their ids)
+	// (the original also has a Register and a Web button, ids 1 and 3, which the port leaves out; the others keep their ids)
 	struct Spec { DialogButton** mButton; int mId; unsigned int mText; };
 	Spec aSpecs[3] =
 	{
@@ -368,7 +371,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aContent = (mWidth - mContentInsets.mRight) - mContentInsets.mLeft;
 	int aHalf = (aContent - 6) / 2;
 	int aFooterY = (mYesButton != NULL) ? mYesButton->mY : mY + mHeight - 0x50;
-	// Help and Scores side by side, Credits across: the rows of Register and Web are gone, the dialog is that much shorter
+	// Help and Scores side by side, Credits across: the port has no rows of Register and Web, and its dialog is that much shorter
 	mHelpButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x54, aHalf, 0x24);
 	mScoresButton->Resize(mX + mContentInsets.mLeft + 6 + aHalf, aFooterY - 0x54, aHalf, 0x24);
 	mCreditsButton->Resize(mX + mContentInsets.mLeft, aFooterY - 0x2a, aContent, 0x24);
@@ -378,6 +381,7 @@ void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mHintsCheckbox->Resize(mX + 0x30, mY + 0xc2, 0x24, 0x25);
 }
 
+// 0x4209f0: slot 47 of the original (0x1b6 there: the port is shorter by the row of the Web button)
 int OptionsDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
@@ -497,6 +501,7 @@ void TutorialDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mAgainCheckbox);
 }
 
+// 0x420a30
 void TutorialDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
@@ -510,6 +515,7 @@ void TutorialDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	mAgainCheckbox->Resize(mX + 0x30, mY + mWidth - 0x3c, 0x24, 0x25);   // the width, not the height: as the original has it
 }
 
+// 0x4209f0
 int TutorialDialog::GetPreferredHeight(int theWidth)
 {
 	(void) theWidth;
