@@ -195,6 +195,10 @@ Two games found later are encrypted: Banana Bugs behind PopCap's 2010 DRM and Gy
 clear image ([5.16](#516-gyromancer)), and Banana Bugs' launcher keeps everything its `.dat` needs inside the file,
 so the private tool above writes the clear exe without running anything ([5.15](#515-banana-bugs)).
 
+Bejeweled's wrapper, as measured: `WinBej.exe` (2,972,712 bytes, SHA-256
+`a16fa32d6603f12843fce14153eecb5278cc907cc46aa862248229f5563b8376`) holds the game image at file offset `0x17b1a2`,
+length `0x15aa86` (1,419,910 bytes, SHA-256 `6257a77f0e54f65b5cdbe36faf1ee6872189a700b05e5ed608ae545c0649466e`).
+
 <!-- /private -->
 
 The `.luc` Lua files in the `drm/` folders belong to the wrappers, not the games. Alchemy's and Venice's scripts are
