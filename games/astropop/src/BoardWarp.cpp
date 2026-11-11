@@ -26,7 +26,7 @@ void Board::UpdateStreaks()
 		aStreak->mY += 3.0f;
 		if (aStreak->mMargin > 0x1e0)
 			aStreak->mMargin = 0x1e0;
-		aStreak->mSpeed += m917 ? 0.06f : 0.03f;
+		aStreak->mSpeed += mBonusWarpIn ? 0.06f : 0.03f;
 	}
 }
 
@@ -43,9 +43,9 @@ bool Board::UpdateWarp()
 	}
 
 	// the level-up panel types its lines and the arms of the upgrade screen slide in
-	if ((m8ed || m8ef) && ((m1b2c != 2 && m1b2c != 4) || m91a))
+	if ((mWarpFlight || mAtWarpGate) && ((m1b2c != 2 && m1b2c != 4) || mUpgradeDialogDone))
 	{
-		if (!m8f4 && m1a60 == 1 && mLevelUpPanelY < 0)
+		if (!mWarpGatePicked && m1a60 == 1 && mLevelUpPanelY < 0)
 		{
 			mLevelUpPanelY += 2;
 			if (mLevelUpPanelY >= 0)
@@ -55,8 +55,8 @@ bool Board::UpdateWarp()
 				mApp->mUser->GetInt(0x71, &aBest);
 				if (aBest < m1bd4)
 				{
-					m91f = false;
-					m1b44 = m921 ? 1 : 100;
+					mNewRankDelayOver = false;
+					m1b44 = mUpgradeDialogSeen ? 1 : 100;
 					mNewRankAnim.SetStopped(false);
 					mApp->mUser->SetInt(0x71, m1bd4);
 					mApp->mUser->Save();
@@ -66,7 +66,7 @@ bool Board::UpdateWarp()
 		if (mLevelUpPanelY >= 0 && m1a60 == 1)
 		{
 			mLevelUpPanelY = 0;
-			m90f = false;
+			mClicksBlocked = false;
 			if (mLevelUpScanY < 0)
 				mLevelUpScanY = 0;
 			int aCnt = mUpdateCnt;
@@ -114,7 +114,7 @@ bool Board::UpdateWarp()
 	}
 
 	// the panel slides away
-	if (m8f4 || (mLevelUpPanelY < 0 && mLevelUpPanelY > -mLevelUpPanelHeight && !m8ed && !m8ef))
+	if (mWarpGatePicked || (mLevelUpPanelY < 0 && mLevelUpPanelY > -mLevelUpPanelHeight && !mWarpFlight && !mAtWarpGate))
 	{
 		mLevelUpPanelY -= 2;
 		if (mLevelUpPanelY <= -mLevelUpPanelHeight)
@@ -134,7 +134,7 @@ bool Board::UpdateWarp()
 			aStar->mY = (float) (((int) AstroRand() % 500000000) % 0x32 - 100);
 	}
 
-	if (m8ec)
+	if (mWarpCharging)
 	{
 		// the charge-up: the screen shakes, then the warp starts
 		m199c = ((int) AstroRand() % 500000000) % 0xb - 5;
@@ -142,9 +142,9 @@ bool Board::UpdateWarp()
 		if (m19a4 > 0xff)
 		{
 			m19a4 = 0xff;
-			m8eb = true;
-			m8ed = false;
-			m8ec = false;
+			mWarpActive = true;
+			mWarpFlight = false;
+			mWarpCharging = false;
 			if (mApp->mHyperspaceLoop != NULL)
 				mApp->mHyperspaceLoop->Play(true, false);
 			if (mApp->mEngineLoop != NULL)
@@ -157,12 +157,12 @@ bool Board::UpdateWarp()
 		return false;
 	}
 
-	if (!m8eb)
+	if (!mWarpActive)
 		return false;
 
-	if (!m8ed)
+	if (!mWarpFlight)
 	{
-		if (!m8ef && !m8f4)
+		if (!mAtWarpGate && !mWarpGatePicked)
 		{
 			// the screen fades in white while the field flies away
 			if (mUpdateCnt % m1998 == 0 && mOverlayFillColor.mAlpha >= 10 && m1954 < 7)
@@ -182,12 +182,12 @@ bool Board::UpdateWarp()
 				mOverlayFillColor.mAlpha = 0xff;
 				mLevelUpTextShown = false;
 				mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
-				m8ed = true;
-				m8f0 = true;
+				mWarpFlight = true;
+				mShipInWarp = true;
 				m1954 = 2;
 				for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
 					mStreaks[i].mFlag28 = false;
-				m8fa = true;
+				mWarpEngaged = true;
 				mApp->PlaySample(SOUND_WARP_ENGAGED);
 				ClearField();
 				m938 = -312.0f; // 0xc39c0000 (the asm at 0x46ae88)
@@ -234,9 +234,9 @@ bool Board::UpdateWarp()
 				m19a8 = 0xff;
 			return false;
 		}
-		else if (!m8ef)
+		else if (!mAtWarpGate)
 		{
-			if (m8f4)
+			if (mWarpGatePicked)
 			{
 				// the screen fades to white and the next stage begins
 				mOverlayFillColor.mRed = 0xff;
@@ -249,8 +249,8 @@ bool Board::UpdateWarp()
 					mOverlayFillColor.mGreen = 0xff;
 					mOverlayFillColor.mBlue = 0xff;
 					mOverlayFillColor.mRed = 0xff;
-					m8eb = false;
-					m8f4 = false;
+					mWarpActive = false;
+					mWarpGatePicked = false;
 					if (mApp->mHyperspaceLoop != NULL)
 						mApp->mHyperspaceLoop->Stop();
 					if (mApp->mEngineLoop != NULL)
@@ -287,7 +287,7 @@ bool Board::UpdateWarp()
 			m19e0 += 2;
 			if (m19e0 > 0xff)
 				m19e0 = 0xff;
-			if (!m8f1)
+			if (!mPointerOverEasyGate)
 			{
 				m19e4 -= 8;
 				if (m19e4 < 0)
@@ -299,7 +299,7 @@ bool Board::UpdateWarp()
 				if (m19e4 > 0xff)
 					m19e4 = 0xff;
 			}
-			if (!m8f2)
+			if (!mPointerOverSlowGate)
 			{
 				m19e8 -= 8;
 				if (m19e8 < 0)
@@ -311,7 +311,7 @@ bool Board::UpdateWarp()
 				if (m19e8 > 0xff)
 					m19e8 = 0xff;
 			}
-			if (!m8f3)
+			if (!mPointerOverFastGate)
 			{
 				m19ec -= 8;
 				if (m19ec < 0)
@@ -325,7 +325,7 @@ bool Board::UpdateWarp()
 			}
 			if (m1b2c == 2 || m1b2c == 4)
 			{
-				if (!m91a && !m8f4)
+				if (!mUpgradeDialogDone && !mWarpGatePicked)
 				{
 					if (mLeftArmX < mLeftArmStopX)
 					{
@@ -370,8 +370,8 @@ bool Board::UpdateWarp()
 		if (m938 >= 423.0f && mOverlayFillColor.mAlpha == 0 && mOverlayFillColor.mGreen == 0 && mOverlayFillColor.mBlue == 0)
 		{
 			m938 = 423.0f;
-			m8ef = true;
-			m8ed = false;
+			mAtWarpGate = true;
+			mWarpFlight = false;
 			m19e0 = 0;
 			m19ec = 0;
 			m19e8 = 0;

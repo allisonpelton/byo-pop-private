@@ -20,7 +20,7 @@ using namespace Sexy;
 // sample (one for each length, up to 8) plays. (The original takes a parameter that it never reads.)
 void Board::PayComboBonus()
 {
-	if (m1980 > 1 && (!m910 || m917))
+	if (m1980 > 1 && (!mBonusRoundOn || mBonusWarpIn))
 	{
 		int aPoints = m196c * m1980;
 		AddScore(aPoints, true);
@@ -28,7 +28,7 @@ void Board::PayComboBonus()
 		FloatText* aText = new FloatText(StrFormat(GTC(0x5652d0), aPoints), FONT_POINTS, (float) mPointsTextX, (float) (mPointsTextY + 0x19), false);
 		mFloatTexts.push_back(aText);
 
-		if (m1a14 < m1a18 && !m916)
+		if (m1a14 < m1a18 && !mClearCountRunning)
 		{
 			int aSound = m1980 - 2 + SOUND_VCOMBO1;
 			if (aSound >= SOUND_VCOMBO1 + 8)
@@ -47,7 +47,7 @@ void Board::PayComboBonus()
 // comes and the level-up phase is set up.
 void Board::LevelComplete()
 {
-	if (m900)
+	if (mLevelCompleteBlocked)
 		return;
 
 	SoundInstance* aKlaxon = mApp->mLoopSounds[7];
@@ -71,7 +71,7 @@ void Board::LevelComplete()
 	for (std::list<Brick*>::iterator anItr = mHeldBricks.begin(); anItr != mHeldBricks.end(); ++anItr)
 		mDoomedBricks.insert(*anItr);
 	mHeldBricks.clear();
-	m923 = true;
+	mStageTextEnabled = true;
 	std::vector<MarkRec>().swap(mSuperchargeMarks);
 	for (unsigned int i = 0; i < mFadedBricks.size(); i++)
 	{
@@ -87,8 +87,8 @@ void Board::LevelComplete()
 	}
 	mBackdropTint = Color(100, 100, 100);
 	m1990 = 0;
-	m92c = 0.0f;
-	m8e5 = true;
+	mBrickometerDrain = 0.0f;
+	mPickUpButtonDown = true;
 	if (m1ad4 != 0)
 		m1ad4 = 6;
 	m1b1c++;
@@ -99,11 +99,11 @@ void Board::LevelComplete()
 	if (m1a60 == 1 && m1b2c == 1)
 	{
 		mApp->PlaySample(SOUND_BONUS_ROUND);
-		m90f = true;
-		m910 = true;
+		mClicksBlocked = true;
+		mBonusRoundOn = true;
 		SetNextLevelScore();
 		Fire(0x28, 1);
-		mFlag8E9 = false;
+		mLevelUpPhase = false;
 		m19fc = 0;
 		m1aa8 = 0;
 		m1aa4 = 0;
@@ -122,16 +122,16 @@ void Board::LevelComplete()
 		m1ba8 = 0;
 		m1bb0 = 0;
 		m1bac = 0;
-		m916 = false;
-		m912 = false;
-		m914 = false;
-		m915 = false;
+		mClearCountRunning = false;
+		mBricksRevealing = false;
+		mBonusRoundLoaded = false;
+		mBonusFadingOut = false;
 		m1b74 = 0;
 		m1b7c = 0;
 		m1b78 = 200;
 		m1b70 = -1;
-		m918 = false;
-		m917 = true;
+		mBonusRevealDone = false;
+		mBonusWarpIn = true;
 		m1bc0 = 1;
 		m1bc4 = 0;
 		// (the original also reads the volume of the hyperspace loop and drops the number)
@@ -157,7 +157,7 @@ void Board::LevelComplete()
 	mLevelUpTextShown = true;
 	delete mLevelUpText;
 	mLevelUpText = new LevelUpText(IMAGE_LEVELUP_TEXT, 0);
-	mFlag8E9 = true;
+	mLevelUpPhase = true;
 	m1944 = 0;
 	mApp->PlaySample(SOUND_LEVEL_COMPLETE);
 	mApp->PlaySample(SOUND_WORDSWOOSH);
@@ -385,11 +385,11 @@ void Board::StartLevelUp()
 {
 	m1aa8 = 0;
 	m1aa4 = 0;
-	m8ec = true;
-	m8ed = false;
+	mWarpCharging = true;
+	mWarpFlight = false;
 	m19a4 = 0;
 	m1954 = 0;
-	m8ef = false;
+	mAtWarpGate = false;
 	mOverlayFillColor = Color(0xff, 0xff, 0xff, 0);
 	mOverlay.SetFill(0xff, 0xff, 0xff, 0);
 	SetOverlayHidden(false);

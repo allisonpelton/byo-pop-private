@@ -20,10 +20,10 @@ using namespace Sexy;
 // ends the siren animation stops, the song goes back and the pace of the pieces is chosen again.
 void Board::UpdateAlertFlash()
 {
-	if (m970 < 0xe || m910)
+	if (m970 < 0xe || mBonusRoundOn)
 	{
 		mAlertLevel = 1;
-		if (m1aac > 0 && !m910)
+		if (m1aac > 0 && !mBonusRoundOn)
 		{
 			m1aac -= 6;
 			if (m1aac < 0)
@@ -61,7 +61,7 @@ void Board::UpdateAlertFlash()
 				m1aac = 0xff;
 		}
 
-		if (m1a34 == 1 || m1bd8 < m1bdc || m8eb || m8ed || m8ef || m8f4 || m8ec || mFlag8E9 || mFlag8E8 || m1924 != 0 ||
+		if (m1a34 == 1 || m1bd8 < m1bdc || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || m1924 != 0 ||
 			m1b3c > 0x7f)
 		{
 			if (m1b3c > 0)
@@ -75,7 +75,7 @@ void Board::UpdateAlertFlash()
 			m1b3c++;
 
 		if (m1b3c > 0 && mUpdateCnt % 0x32 == 0)
-			m920 = !m920;
+			mSupaButtonLit = !mSupaButtonLit;
 	}
 
 	if (m1a98 > -500000000)
@@ -197,8 +197,8 @@ void Board::UpdateStartBanner()
 				m1ae0 = 0;
 			m1ae8 = 0;
 			m1ad4 = 6;
-			if (m910)
-				m911 = true;
+			if (mBonusRoundOn)
+				mStartBannerDoneInBonus = true;
 		}
 	}
 	else if (m1ad4 == 6)
@@ -219,7 +219,7 @@ void Board::UpdateStartBanner()
 void Board::PayTimeBonus()
 {
 	int aBonus = 0;
-	if (m910)
+	if (mBonusRoundOn)
 		return;
 
 	int aTime = m1a2c;
@@ -277,7 +277,7 @@ void Board::PayTimeBonus()
 
 	if (m1a2c > 0x2bc)
 	{
-		m8f8 = false;
+		mTimeBonusRunning = false;
 		m1a30 = 0;
 		m1a2c = 0;
 		m1a50 = 0;
@@ -292,7 +292,7 @@ void Board::UpdateFreeze()
 	if (m19fc <= 0)
 		return;
 
-	if (m8fc)
+	if (mPlayStarted)
 		m19fc--;
 
 	if (mUpdateCnt % 0x19 == 0)
@@ -356,7 +356,7 @@ void Board::UpdateStates()
 
 		mBoosterAnim.Update();
 
-		if (!m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && m19fc < 1)
+		if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0 && m19fc < 1)
 		{
 			if (m1b5c > 0)
 			{
@@ -484,7 +484,7 @@ void Board::UpdateStates()
 				m1afc = 0;
 			}
 			else if (m1afc % 0x14 == 0)
-				m924 = !m924;
+				mComboTextVisible = !mComboTextVisible;
 		}
 
 		if (m1b18 > 0)
@@ -500,19 +500,19 @@ void Board::UpdateStates()
 
 	UpdateAlertFlash();
 
-	bool aCalm = !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0;
+	bool aCalm = !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0;
 	if (aCalm)
 		UpdateFreeze();
 
-	if (m8eb || m8ed || m8ef || m8f4 || m8ec || (!mFlag8E9 && !mFlag8E8 && m1924 == 0))
+	if (mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || (!mLevelUpPhase && !mGameOver && m1924 == 0))
 		UpdateStartBanner();
 
-	if (m8eb || m8ed || m8ef || m8f4 || m8ec || mFlag8E9 || mFlag8E8 || m1924 != 0 || !m8fc)
+	if (mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || m1924 != 0 || !mPlayStarted)
 		goto Finish;
 
-	if (!m910 && !m917)
+	if (!mBonusRoundOn && !mBonusWarpIn)
 	{
-		if (m1a60 == 1 || (mMode != 3 && mMode != 0) || m1a34 != 1 || m91b || m91c)
+		if (m1a60 == 1 || (mMode != 3 && mMode != 0) || m1a34 != 1 || mPsychicUsed || mLaserUsed)
 		{
 			m19b4++;
 			if (m19b4 > 0 && m19b4 % 6000 == 0 && m1a60 == 2)
@@ -575,7 +575,7 @@ void Board::UpdateStates()
 		}
 	}
 
-	if (m1a34 == 0 && m1bbc <= mField193C && m8fc && m19fc < 1 && (m1b08--, m1b08 < 1))
+	if (m1a34 == 0 && m1bbc <= mField193C && mPlayStarted && m19fc < 1 && (m1b08--, m1b08 < 1))
 	{
 		int aHalf = m1b0c / 2;
 		m1b0c = aHalf;
@@ -629,7 +629,7 @@ Finish:
 			m1928 = 0;
 	}
 
-	if (m8fc)
+	if (mPlayStarted)
 	{
 		for (unsigned int i = 0; i < mSuperchargeMarks.size(); )
 		{
@@ -656,7 +656,7 @@ Finish:
 		}
 	}
 
-	if (m8f8)
+	if (mTimeBonusRunning)
 	{
 		m1a2c++;
 		PayTimeBonus();

@@ -19,14 +19,14 @@ void Board::ResetState()
 	mWelcomePlayed = false;
 	m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
 	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;
-	m92c = 0;
-	m928 = 0;
+	mBrickometerDrain = 0;
+	mBrickometerFill = 0;
 	m1abc = 0;
 	m1ab8 = 4;
 	m1ac0 = PickSpawnDelay();
 	m1af4 = 0;
 	m1af0 = 0;
-	m90b = false;
+	mClickRepeating = false;
 	m19b8 = 0;
 	m1b00 = 0;
 	m1afc = 0;
@@ -35,11 +35,11 @@ void Board::ResetState()
 	m1970 = 0;
 	mHandKindBrick = NULL;
 	m198c = 0xa6;
-	m920 = false;
+	mSupaButtonLit = false;
 	m1954 = 2;
-	m8ea = false;
+	mStreaksFadingOut = false;
 	m1a34 = 0;
-	m8fc = false;
+	mPlayStarted = false;
 	m1a7c = -1;
 	mSirenAnim.SetNumFrames(IMAGE_SIREN->mNumCols);
 	mSirenAnim.SetDelay(8);
@@ -84,7 +84,7 @@ void Board::UpdateEffects()
 			aStreak->mSpeed = aStreak->mMinSpeed;
 	}
 	if (aNumDone == 100)
-		m8ea = false;
+		mStreaksFadingOut = false;
 
 	int aPhase = m1954;
 	m19b0++;
@@ -99,13 +99,13 @@ void Board::UpdateEffects()
 		}
 	}
 
-	if (0.0f < m92c)
+	if (0.0f < mBrickometerDrain)
 	{
-		float aValue = m92c - 0.0076f;
-		m92c = aValue;
+		float aValue = mBrickometerDrain - 0.0076f;
+		mBrickometerDrain = aValue;
 		if (aValue < 0.0f)
-			m92c = 0;
-		m928 = m92c;
+			mBrickometerDrain = 0;
+		mBrickometerFill = mBrickometerDrain;
 	}
 }
 
@@ -132,7 +132,7 @@ void Board::SetNextLevelScore()
 }
 
 // 0x433b90: points are added to the score; the best score of the mode is kept in the profile, and the points are
-// counted for the stats (mPlayPoints while m910 is off, else mBonusRoundPoints unless m916 holds them back)
+// counted for the stats (mPlayPoints while mBonusRoundOn is off, else mBonusRoundPoints unless mClearCountRunning holds them back)
 void Board::AddScore(int thePoints, bool theForce)
 {
 	mScore += thePoints;
@@ -140,12 +140,12 @@ void Board::AddScore(int thePoints, bool theForce)
 	mApp->mUser->GetInt(mMode, &aBest);
 	if (aBest < mScore)
 		mApp->mUser->SetInt(mMode, mScore);
-	if (!m910)
+	if (!mBonusRoundOn)
 	{
 		mPlayPoints += thePoints;
 		return;
 	}
-	if (!m916 || theForce)
+	if (!mClearCountRunning || theForce)
 		mBonusRoundPoints += thePoints;
 }
 
@@ -170,7 +170,7 @@ void Board::SaveGameState()
 		return;
 	if (!mHeldBricks.empty())
 		return;
-	if (m8e4)
+	if (mNewRowBouncing)
 		return;
 	if (!mFallingGroups.empty())
 		return;
@@ -189,8 +189,8 @@ void Board::SaveGameState()
 
 	UserProfile* aUser = mApp->mUser;
 	gFlag5A5100 = true;
-	bool aIdle = !m8eb && !m8ec && !m8ed && !m8ef && !m8f4;
-	if (!m916 && aIdle && !m917 && !m912)
+	bool aIdle = !mWarpActive && !mWarpCharging && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked;
+	if (!mClearCountRunning && aIdle && !mBonusWarpIn && !mBricksRevealing)
 	{
 		if (!mFieldBricks.empty())
 		{
@@ -220,11 +220,11 @@ void Board::SaveGameState()
 	}
 
 	// which of the four sets of settings is written: the classic game (A: nothing running, no 912/917), the timed
-	// mode (Y, m910 on), the others (W), or the game's end (Z, m917 or m912). The original tests the same flags in a
+	// mode (Y, mBonusRoundOn on), the others (W), or the game's end (Z, mBonusWarpIn or mBricksRevealing). The original tests the same flags in a
 	// tangle of jumps (and a return that no combination of them reaches); this is the same decision.
-	if (!m917 && !m912)
+	if (!mBonusWarpIn && !mBricksRevealing)
 	{
-		if (!m910 && !m916 && aIdle)
+		if (!mBonusRoundOn && !mClearCountRunning && aIdle)
 		{
 			StoreProgress();
 			aUser->SetInt(0x56, m1a14);
@@ -246,7 +246,7 @@ void Board::SaveGameState()
 			aUser->SetInt(0x65, m19fc);
 			return;
 		}
-		if (m910 && !m916 && aIdle)
+		if (mBonusRoundOn && !mClearCountRunning && aIdle)
 		{
 			StoreProgress();
 			aUser->SetInt(0x57, m1b70);

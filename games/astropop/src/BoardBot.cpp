@@ -158,13 +158,13 @@ int Board::BotBusyReason()
 {
 	if (mDemoPlaying && !mDemoInputActive)
 		return 1;
-	if (m901 || m8ec || m916 || m8f4 || m8ea)
+	if (mScreenWiping || mWarpCharging || mClearCountRunning || mWarpGatePicked || mStreaksFadingOut)
 		return 2;
-	if (m8eb && !m8ef)
+	if (mWarpActive && !mAtWarpGate)
 		return 3;
-	if (!m8eb && !m8ed && !m8ef && mLevelUpPanelHeight + mLevelUpPanelY > 0)
+	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && mLevelUpPanelHeight + mLevelUpPanelY > 0)
 		return 4;
-	if (m1924 != 0 || mFlag8E9 || m1990 > 0)
+	if (m1924 != 0 || mLevelUpPhase || m1990 > 0)
 		return 5;
 	if (CountMovingBricks(false) > 0)
 		return 6;
@@ -182,7 +182,7 @@ bool Board::BotBusy()
 // port: the bot (a test driver's view of the game); the original has none
 std::string Board::BotMove()
 {
-	if (mFlag8E8)
+	if (mGameOver)
 		return "null";
 
 	// the picture of how to play that a game opens with is closed with its button
@@ -194,7 +194,7 @@ std::string Board::BotMove()
 	}
 
 	// a hint that waits to be read is put away with its button
-	if (mHintOkButton != NULL && mHintOkButton->mVisible && (m919 || (!mHintSpots.empty() && mHintSpots[0]->mActive)))
+	if (mHintOkButton != NULL && mHintOkButton->mVisible && (mWeaponHintShown || (!mHintSpots.empty() && mHintSpots[0]->mActive)))
 		return "{\"kind\":\"hint\"," +
 			   Steps(StrFormat("{\"click\":[%d,%d]}", mHintOkButton->mX + mHintOkButton->mWidth / 2, mHintOkButton->mY + mHintOkButton->mHeight / 2)) + "}";
 
@@ -225,7 +225,7 @@ std::string Board::BotMove()
 	}
 
 	// the warp screen between two levels waits for a click on its first panel (the next level) once the screen is up
-	if (m8ef && m1a60 == 1 && mLevelUpPanelY >= 0 && !m8f4)
+	if (mAtWarpGate && m1a60 == 1 && mLevelUpPanelY >= 0 && !mWarpGatePicked)
 		return "{\"kind\":\"gate\",\"updates\":10," +
 			   Steps(StrFormat("{\"click\":[%d,%d]}", m1a70 + 0x3c, 0xe1 + 0x14)) + "}";
 
@@ -242,7 +242,7 @@ std::string Board::BotMove()
 		return WaitMove();
 
 	// the weapon of the pilot, charged: the Return key starts it (the middle button and the start button do the same)
-	if (m1a34 == 0 && m1bd8 == m1bdc && !m8e4 && !m910 && !mDemoPlaying)
+	if (m1a34 == 0 && m1bd8 == m1bdc && !mNewRowBouncing && !mBonusRoundOn && !mDemoPlaying)
 		return "{\"kind\":\"weapon\",\"updates\":10," + Steps("{\"key\":\"Return\"}") + "}";
 
 	FieldGrid aGrid;

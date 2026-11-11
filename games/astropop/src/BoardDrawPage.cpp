@@ -1,4 +1,4 @@
-// Board: the page at the end of a game (the part of Draw at 0x461e50 that m91d turns on): the player's five best results of
+// Board: the page at the end of a game (the part of Draw at 0x461e50 that mEndPageShown turns on): the player's five best results of
 // the mode, each with its pilot and a gauge, and under them the totals of the game that has ended.
 
 #include "Board.h"

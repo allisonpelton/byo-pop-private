@@ -26,13 +26,13 @@ void Board::DrawBeam(Graphics* g)
 	bool aIsFuel = FirstPieceIsType(8);
 	Image* aBeam = IMAGE_BEAM;
 
-	if (m916)
+	if (mClearCountRunning)
 		return;
-	if (m8eb || m8ec || m8ed || mFlag8E8)
+	if (mWarpActive || mWarpCharging || mWarpFlight || mGameOver)
 	{
-		if (!m8f0)
+		if (!mShipInWarp)
 			return;
-		if (mFlag8E8)
+		if (mGameOver)
 			return;
 		if (m1a60 != 1)
 			return;
@@ -115,7 +115,7 @@ void Board::DrawBeam(Graphics* g)
 	// the wide beams stand on the ship; the others hang from the top (and are not drawn on the warp screens)
 	if (aIsFreeze || aIsFuel)
 		g->DrawImage(aBeam, m198c - aBeam->GetWidth() / 2 + 0x1a, 0x1ca - aBeam->mHeight);
-	else if (!m8f0)
+	else if (!mShipInWarp)
 		g->DrawImage(aBeam, m198c, 0);
 
 	if (mBackdropTint != Color(100, 100, 100) || aIsFreeze || aIsFuel)

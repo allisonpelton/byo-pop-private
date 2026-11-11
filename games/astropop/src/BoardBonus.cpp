@@ -53,7 +53,7 @@ void Board::StartBonusRound(int theStage)
 		}
 	}
 	mPlayedBonusStages.insert(theStage);
-	m913 = false;
+	mBonusRoundStarted = false;
 
 	// the old field goes (the bricks are deleted later)
 	for (unsigned int aRow = 0; aRow < mFieldBricks.size(); aRow++)
@@ -68,7 +68,7 @@ void Board::StartBonusRound(int theStage)
 			}
 		}
 	}
-	m911 = false;
+	mStartBannerDoneInBonus = false;
 
 	delete mBonusRoundFile;
 	mBonusRoundFile = new XcfFile();
@@ -94,7 +94,7 @@ void Board::StartBonusRound(int theStage)
 
 	mApp->mUser->SetInt(0x3f, theStage);
 	m1a80 = 0;
-	m914 = true;
+	mBonusRoundLoaded = true;
 	m1b74 = 0xff;
 
 	// the top row is a wall of stones
@@ -175,7 +175,7 @@ void Board::StartBonusRound(int theStage)
 				aBrick->SetParticleY((float) (aY > 4 ? aY + 5 : aY));
 				mFieldBricks[aRow][aCol] = aBrick;
 				aBrick->SetVisible(false);
-				m912 = true;
+				mBricksRevealing = true;
 			}
 			aX += 0x2c;
 		}

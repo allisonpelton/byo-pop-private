@@ -128,7 +128,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 			Fire(0x25, 0xff);
 			aText += GT(0x00565548);
 			aText = Capitals(aText);
-			if (!m910 || !aNoColourBrick)
+			if (!mBonusRoundOn || !aNoColourBrick)
 				AnnounceText(aText);
 			return;
 		}
@@ -140,7 +140,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 			bool aPickNew = false;
 			if (theColour == -1)
 			{
-				if (m910 && !aMarkedOnField)
+				if (mBonusRoundOn && !aMarkedOnField)
 				{
 					// nothing of the colour is left: the mark goes
 					std::vector<MarkRec>().swap(mSuperchargeMarks);
@@ -163,7 +163,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 
 			if (!aPickNew)
 			{
-				if ((!m910 || !aNoColourBrick) && mSuperchargeMarks[0].mType != anOld)
+				if ((!mBonusRoundOn || !aNoColourBrick) && mSuperchargeMarks[0].mType != anOld)
 					AnnounceText(ColourName(mSuperchargeMarks[0].mType, true) + GT(0x00565530));
 				return;
 			}
@@ -187,7 +187,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 		{
 			if (mSuperchargeMarks[i].mActive)
 			{
-				if (!m910 || !aNoColourBrick)
+				if (!mBonusRoundOn || !aNoColourBrick)
 					AnnounceText(aText + GT(0x00565530));
 				return;
 			}
@@ -296,6 +296,6 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 	}
 	aText += GT(0x00565548);
 	aText = Capitals(aText);
-	if (!m910 || !aNoColourBrick)
+	if (!mBonusRoundOn || !aNoColourBrick)
 		AnnounceText(aText);
 }

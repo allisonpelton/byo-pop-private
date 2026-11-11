@@ -16,7 +16,7 @@ using namespace Sexy;
 // 0x440f70
 void Board::DrawHud(Graphics* g)
 {
-	if (m8ed || m8ef)
+	if (mWarpFlight || mAtWarpGate)
 	{
 		if (mLevelUpScanHeight > 0 && mApp->Is3DAccelerated())
 		{
@@ -28,7 +28,7 @@ void Board::DrawHud(Graphics* g)
 	else if (mLevelUpPanelY != -mLevelUpPanelHeight)
 		g->DrawImage(IMAGE_HUD_UI, 0x7d, mLevelUpPanelY);
 
-	if ((!m8ed && !m8ef) || mLevelUpPanelY != 0)
+	if ((!mWarpFlight && !mAtWarpGate) || mLevelUpPanelY != 0)
 		return;
 
 	g->DrawImage(IMAGE_STATS_TEXT, 0xc6, 0x1e);

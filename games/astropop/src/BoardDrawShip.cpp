@@ -28,13 +28,13 @@ void Board::DrawShip(Graphics* g)
 	Image* aWarp = GetImageById(mMode + 0x17b);
 	Image* aWarpJet = GetImageById(mMode + 0x17f);
 
-	bool aShipVisible = (!m8eb && !mFlag8E8 && !m8ed && !m8ec && !m8ea) || (m8ea && m1954 == 2) || m8f0;
+	bool aShipVisible = (!mWarpActive && !mGameOver && !mWarpFlight && !mWarpCharging && !mStreaksFadingOut) || (mStreaksFadingOut && m1954 == 2) || mShipInWarp;
 	if (aShipVisible)
 	{
 		int anOffset = 0;
-		if (m8f0 || m917)
+		if (mShipInWarp || mBonusWarpIn)
 			anOffset = m199c;
-		if (m8f0)
+		if (mShipInWarp)
 			anOffset += 0xd;
 
 		int aCel;
@@ -45,7 +45,7 @@ void Board::DrawShip(Graphics* g)
 		if (m194c == 2)
 			aCel = 2;
 
-		float aShipY = m8f0 ? m938 : (float) aY;
+		float aShipY = mShipInWarp ? m938 : (float) aY;
 		int aShipX = anOffset + aX;
 		DrawCel(g, aShip, aShipX, (int) aShipY, aCel);
 
@@ -54,7 +54,7 @@ void Board::DrawShip(Graphics* g)
 			// the charge of the weapon, over the ship
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColorizeImages(true);
-			g->SetColor(Color(0xff, 0xff, 0xff, m8ea ? m1b38 : 0xff));
+			g->SetColor(Color(0xff, 0xff, 0xff, mStreaksFadingOut ? m1b38 : 0xff));
 			Rect aSrc(aShip->mWidth / aShip->mNumCols * aCel + mShipShimmerX, mShipShimmerY, mShipShimmerWidth, mShipShimmerHeight);
 			g->DrawImage(aShip, mShipShimmerX + anOffset + aX, (int) ((float) mShipShimmerY + (float) aShipY), aSrc);
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -63,20 +63,20 @@ void Board::DrawShip(Graphics* g)
 
 		// the flame
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		if (m8ea)
+		if (mStreaksFadingOut)
 		{
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, m1b38));
 		}
-		float aFlameY = m8f0 ? m938 : (float) aY;
+		float aFlameY = mShipInWarp ? m938 : (float) aY;
 		DrawCel(g, aFlame, aShipX + 3, (int) (aFlameY + 36.0f), kShipCels[kFlameCels + m1950]);
-		if (m8ea)
+		if (mStreaksFadingOut)
 			g->SetColorizeImages(false);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 	else
 	{
-		if (m8ec && !mFlag8E8)
+		if (mWarpCharging && !mGameOver)
 		{
 			// the ship leaves through the warp: its jet and flame flash
 			DrawCel(g, aWarp, m199c + aX, aY - m19a0 - 0x15c, 0);
@@ -88,10 +88,10 @@ void Board::DrawShip(Graphics* g)
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			g->SetColorizeImages(false);
 		}
-		else if (!m8ed && !mFlag8E8)
+		else if (!mWarpFlight && !mGameOver)
 		{
 			bool aDraw = true;
-			if (!m8ea)
+			if (!mStreaksFadingOut)
 			{
 				if (m1954 >= 8)
 					aDraw = false;
@@ -100,7 +100,7 @@ void Board::DrawShip(Graphics* g)
 				aDraw = false;
 			if (aDraw)
 			{
-				if (m8ea)
+				if (mStreaksFadingOut)
 					aY += 0x64;
 				DrawCel(g, aWarp, aX, aY - m19a0 - 0x15c, m1954);
 				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -138,7 +138,7 @@ void Board::DrawShip(Graphics* g)
 	}
 
 	// the pieces the ship holds, over each other; the pieces that are tools are drawn in one pass
-	if (!m916)
+	if (!mClearCountRunning)
 	{
 		bool aGlow = false;
 		for (int aPass = 0; aPass < 2; aPass++)

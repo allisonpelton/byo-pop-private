@@ -21,7 +21,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 {
 	m1bdc = 25600.0f;
 	m940 = theSetting52;
-	m923 = false;
+	mStageTextEnabled = false;
 	ApplyWeaponLevels();
 	mApp->mEngineLoop->SetVolume(1.0);
 	mApp->mHyperspaceLoop->SetVolume(1.0);
@@ -95,7 +95,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			m1a14 = 0;
 			aUser->GetInt(0x56, &m1a14);
 			int aBrokenBricks = 0;
-			m928 = (float) m1a14 / (float) m1a18;
+			mBrickometerFill = (float) m1a14 / (float) m1a18;
 			aUser->GetInt(0x57, &aBrokenBricks);
 			if (aBrokenBricks < 1)
 			{
@@ -110,8 +110,8 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				aUser->GetInt(99, &m1b2c);
 				m1b28 = UpgradeScreenKind(m1940 + 1);
 				m1b70 = aBrokenBricks;
-				m910 = true;
-				mFlag8E9 = false;
+				mBonusRoundOn = true;
+				mLevelUpPhase = false;
 				aUser->GetInt(0x5d, &mBestChain);
 				SetNextLevelScore();
 				m1b88 = 0;
@@ -124,18 +124,18 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				m1ba4 = 0;
 				m1bb0 = 0;
 				m1bac = 0;
-				m916 = false;
-				m915 = false;
-				m914 = true;
-				m918 = false;
+				mClearCountRunning = false;
+				mBonusFadingOut = false;
+				mBonusRoundLoaded = true;
+				mBonusRevealDone = false;
 				m1b74 = 0;
 				m1b7c = 0;
 				m1b78 = 200;
 				std::string aBanner = GT(0x005647cc);
 				m1bd0 = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
-				m8fc = true;
-				m922 = false;
-				m917 = false;
+				mPlayStarted = true;
+				mStartedFromCheckpoint = false;
+				mBonusWarpIn = false;
 				m1bc0 = 0;
 				m1bc4 = 0;
 				mApp->mHyperspaceLoop->Play(true, false);
@@ -270,9 +270,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		else if (0 < aBetweenLevels)
 		{
 			// a game saved at the warp screen
-			m8ea = false;
-			m8eb = true;
-			m8ef = true;
+			mStreaksFadingOut = false;
+			mWarpActive = true;
+			mAtWarpGate = true;
 			m19f0 = 0;
 			unsigned int aDraw = AstroRand();
 			m938 = 423.0f; // 0x43d38000 at 0x4687f3
@@ -321,7 +321,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				mLevelUpLines.push_back(GT(0x0056569c));
 			else
 				mLevelUpLines.push_back(StrFormat(GTC(0x005656b4), FormatNumber(aToNext + mScore).c_str()));
-			m8f0 = true;
+			mShipInWarp = true;
 			mLevelUpTypeInterval = 5;
 			mLevelUpCursorInterval = 0x19;
 			mLevelUpCursorShown = true;
@@ -343,14 +343,14 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				aStreakIndex++;
 			}
 			while (aStreakIndex < 100);
-			m928 = 1.0f;
+			mBrickometerFill = 1.0f;
 		}
 	}
 	else if (0 < aBonusLevel && aBetweenLevels == 0)
 	{
 		// a game saved in the bonus round of a level
-		m910 = true;
-		mFlag8E9 = false;
+		mBonusRoundOn = true;
+		mLevelUpPhase = false;
 		m1b88 = 0;
 		m1b8c = 0;
 		m1b94 = 0;
@@ -361,21 +361,21 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		m1ba4 = 0;
 		m1bb0 = 0;
 		m1bac = 0;
-		m90f = true;
-		m916 = false;
-		m914 = false;
-		m915 = false;
+		mClicksBlocked = true;
+		mClearCountRunning = false;
+		mBonusRoundLoaded = false;
+		mBonusFadingOut = false;
 		m1b74 = 0;
 		m1b7c = 0;
 		m1b78 = 200;
 		SetNextLevelScore();
 		m1b70 = -1;
-		m918 = false;
+		mBonusRevealDone = false;
 		std::string aBanner = GT(0x005647cc);
 		m1bd0 = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
-		m8fc = true;
-		m922 = false;
-		m917 = false;
+		mPlayStarted = true;
+		mStartedFromCheckpoint = false;
+		mBonusWarpIn = false;
 		m1bc0 = 0;
 		m1bc4 = 0;
 		mApp->mHyperspaceLoop->Play(true, false);
@@ -395,7 +395,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			aStreakIndex++;
 		}
 		while (aStreakIndex < 100);
-		m912 = true;
+		mBricksRevealing = true;
 		int aStage = -1;
 		aUser->GetInt(0x3f, &aStage);
 		if (aStage < 1)
@@ -432,7 +432,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 	}
 	m1b98 = 0;
 	aUser->GetInt(100, &m1b98);
-	m91a = true;
+	mUpgradeDialogDone = true;
 	if (m1bdc <= m1bd8)
 		m1b48 = 0;
 }

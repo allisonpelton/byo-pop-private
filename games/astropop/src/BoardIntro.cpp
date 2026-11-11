@@ -14,7 +14,7 @@ using namespace Sexy;
 // 0x466e80 (3168 bytes)
 void Board::UpdateIntroAndTally()
 {
-	if (m917)
+	if (mBonusWarpIn)
 	{
 		int aPhase = m1bc0;
 		if (aPhase == 1)
@@ -63,7 +63,7 @@ void Board::UpdateIntroAndTally()
 					else if (aStreak->mKind == 2)
 						aStreak->mColor = Color(250, 250, 0);
 				}
-				m912 = true;
+				mBricksRevealing = true;
 				StartBonusRound(-1);
 			}
 		}
@@ -118,22 +118,22 @@ void Board::UpdateIntroAndTally()
 				if (aStarsDone == (int) mBackdropStars.size() && m1bc8 < 1)
 				{
 					m1bc0 = 0;
-					m917 = false;
+					mBonusWarpIn = false;
 				}
 			}
 		}
 	}
 
-	bool aTimeUp = m910;
+	bool aTimeUp = mBonusRoundOn;
 	if (aTimeUp)
 	{
-		if (m1ad4 == 0 && m915)
+		if (m1ad4 == 0 && mBonusFadingOut)
 		{
 			m1b74 -= 2;
 			if (m1b74 < 1)
 			{
 				m1b74 = 0;
-				m915 = false;
+				mBonusFadingOut = false;
 			}
 		}
 		if (m1ad4 == 0 && m1b7c > 0)
@@ -147,10 +147,10 @@ void Board::UpdateIntroAndTally()
 		}
 	}
 
-	if (!m917 && m1ad4 == 0 && m913 && !m916)
+	if (!mBonusWarpIn && m1ad4 == 0 && mBonusRoundStarted && !mClearCountRunning)
 	{
 		// the time runs out: when everything has settled the clear count starts
-		if (aTimeUp && !m911 && !m912)
+		if (aTimeUp && !mStartBannerDoneInBonus && !mBricksRevealing)
 		{
 			if (m1b70 > 0)
 				m1b70--;
@@ -159,7 +159,7 @@ void Board::UpdateIntroAndTally()
 			if (m1b70 < 1 && CountMovingBricks(false) == 0 && mKillAllTypes.empty() && m1994 == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 			{
 				m1b70 = 0;
-				m90f = true;
+				mClicksBlocked = true;
 				m1b7c = 400;
 				BuildBanner(GT(0x566054), m1b7c, FONT_NEURO30);
 				StartClearCount();
@@ -167,7 +167,7 @@ void Board::UpdateIntroAndTally()
 		}
 		return;
 	}
-	if (!m916)
+	if (!mClearCountRunning)
 		return;
 
 	// the tally
@@ -316,9 +316,9 @@ void Board::UpdateIntroAndTally()
 			if (m1b90 < 1)
 			{
 				// the tally is over: the bricks left on the field are given up and the next stage begins
-				m916 = false;
-				m910 = false;
-				m90f = false;
+				mClearCountRunning = false;
+				mBonusRoundOn = false;
+				mClicksBlocked = false;
 				for (std::list<Brick*>::iterator anItr = mHeldBricks.begin(); anItr != mHeldBricks.end(); ++anItr)
 				{
 					mDoomedBricks.insert(*anItr);

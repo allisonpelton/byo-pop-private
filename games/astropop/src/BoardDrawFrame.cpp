@@ -18,7 +18,7 @@ void Board::DrawFrame(Graphics* g)
 	int aTick = (m1924 < 1) ? mUpdateCnt : m1af0;
 	bool aDim = m1b3c > 0;                  // the screen fades out: the frame goes dark with it
 
-	if (mFlag8E8)
+	if (mGameOver)
 	{
 		g->DrawImage(IMAGE_UI_MANGLED_L, m1a80, 0);
 		g->DrawImage(IMAGE_UI_MANGLED_R, m1a80 + 600, 0);
@@ -50,10 +50,10 @@ void Board::DrawFrame(Graphics* g)
 
 		// the brickometer: how full it is (the progress of the level, or the time of a survival game), and its colour
 		float aFill;
-		if (m910)
+		if (mBonusRoundOn)
 			aFill = 1.0f;
 		else if (m1a60 == 1)
-			aFill = m928;
+			aFill = mBrickometerFill;
 		else if (m1a60 == 2)
 			aFill = (float) (m1a14 % 300) * 0.0033333334f;
 		else
@@ -82,9 +82,9 @@ void Board::DrawFrame(Graphics* g)
 			aGaugeColor = Color(0xff, 0, aBlue);
 		}
 
-		if ((m8eb && !m8ec) || m8ed || m8ef || m8f4 || m8ec || m910 || m917 || m916)
+		if ((mWarpActive && !mWarpCharging) || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mBonusRoundOn || mBonusWarpIn || mClearCountRunning)
 			aGaugeColor = Color(0x7f, 0x7f, 0x7f);
-		if ((m8ec || (m917 && m1bc0 < 3)) && mUpdateCnt % 0x1e < 0xf && (m1b2c != 1 || m917))
+		if ((mWarpCharging || (mBonusWarpIn && m1bc0 < 3)) && mUpdateCnt % 0x1e < 0xf && (m1b2c != 1 || mBonusWarpIn))
 			aGaugeColor = Color(0xff, 0xff, 0xff);
 
 		g->SetColor(Color(0, 0, 0));
@@ -207,7 +207,7 @@ void Board::DrawFrame(Graphics* g)
 		}
 
 		// the time left of a bonus round, across the top of the field
-		if (m910 && m19fc < 0x3d && (m1bc0 == 0 || m1bc0 > 1))
+		if (mBonusRoundOn && m19fc < 0x3d && (m1bc0 == 0 || m1bc0 > 1))
 		{
 			g->SetColor(Color(0, 0, 0, 0xff));
 			g->FillRect(0xa7, 4, 0x1b7, 0x17);
@@ -229,7 +229,7 @@ void Board::DrawFrame(Graphics* g)
 			g->DrawString(StrFormat("%d", aSeconds), aFont->StringWidth(aLabel) + 0xf0, 0x14);
 		}
 
-		if ((m8eb && !m8ec) || m8ed || m8ef || m8f4 || m8ec)
+		if ((mWarpActive && !mWarpCharging) || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging)
 		{
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			DrawCel(g, IMAGE_CP_WARP_OVERLAY, m1a80, 0x131, m1b14);
@@ -254,7 +254,7 @@ void Board::DrawFrame(Graphics* g)
 			bool aOverPause = mOverlay.mFlag78 && aX >= -4 && aX <= -4 + 152 && aY >= 194 && aY <= 194 + 102;
 			if (aOverStart || aOverPause)
 			{
-				bool aBusy = m8ec || m8eb || m8ed || m8ef || m8f4 || aPanelOut || m910 || m917 || m916;
+				bool aBusy = mWarpCharging || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || aPanelOut || mBonusRoundOn || mBonusWarpIn || mClearCountRunning;
 				if (mApp->IsLeftButtonDown() && !aBusy)
 					aButton = IMAGE_SUPA_BUTTON_DOWN;
 				else if (aBusy)
@@ -268,12 +268,12 @@ void Board::DrawFrame(Graphics* g)
 				if (aDim)
 				{
 					aGlowAlpha = 0;
-					aLights = m920 ? IMAGE_SUPA_BUTTON_LIGHTS_ON : IMAGE_SUPA_BUTTON_LIGHTS_OFF;
+					aLights = mSupaButtonLit ? IMAGE_SUPA_BUTTON_LIGHTS_ON : IMAGE_SUPA_BUTTON_LIGHTS_OFF;
 				}
 			}
 			else if (aDim && m1a34 == 0)
 			{
-				if (m920)
+				if (mSupaButtonLit)
 				{
 					aLights = IMAGE_SUPA_BUTTON_LIGHTS_ON;
 					aButton = IMAGE_SUPA_BUTTON_ALERT;
@@ -290,7 +290,7 @@ void Board::DrawFrame(Graphics* g)
 			}
 		}
 
-		bool aLocked = m910 || m917 || m8ec || m8eb || m8ed || m8ef || m8f4;     // the gauge and the button are dimmed
+		bool aLocked = mBonusRoundOn || mBonusWarpIn || mWarpCharging || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked;     // the gauge and the button are dimmed
 		if (!aLocked)
 		{
 			g->DrawImage(aGauge, m1a80 + 3, 0xde, Rect(0, 0, aGaugeWidth, aGauge->mHeight));
@@ -331,7 +331,7 @@ void Board::DrawFrame(Graphics* g)
 			}
 		}
 
-		if (m910 || m917)
+		if (mBonusRoundOn || mBonusWarpIn)
 			g->SetColorizeImages(false);
 
 		if (!mSuperchargeBlastAnim.mStopped)

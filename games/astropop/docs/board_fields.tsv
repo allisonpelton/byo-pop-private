@@ -139,76 +139,76 @@ f8	std::vector<int>	mKillAllTypes	the brick kinds of the kill-all bricks that ar
 8df	bool	mStartWeaponAfterPause	set when a click on the weapon prompt ends the pause (MouseDown); at the end of that pause Pause calls BeginPlay once
 8e0	bool	mWelcomePlayed	the welcome voice has played in this game (Update plays it once no demo runs, and starts the engine loop); ResetState clears it
 8e1	bool	mFirstHelpPending	the full-screen help is still to show once (copied from the application's help flag when the Board is made); Update shows it and clears this
-8e2	bool	m8e2
-8e3	bool	m8e3	?
-8e4	bool	m8e4	?
-8e5	bool	m8e5	?
-8e6	bool	m8e6	?
-8e7	bool	m8e7	?
-8e8	bool	mFlag8E8
-8e9	bool	mFlag8E9
-8ea	bool	m8ea	the streaks are fading out
-8eb	bool	m8eb
-8ec	bool	m8ec
-8ed	bool	m8ed
-8ee	bool	m8ee	?
-8ef	bool	m8ef
-8f0	bool	m8f0	?
-8f1	bool	m8f1	?
-8f2	bool	m8f2	?
-8f3	bool	m8f3	?
-8f4	bool	m8f4
-8f5	bool	m8f5	?
-8f6	bool	m8f6	?
-8f7	bool	m8f7
-8f8	bool	m8f8	?
-8f9	bool	m8f9	?
-8fa	bool	m8fa	?
-8fb	bool	m8fb	?
-8fc	bool	m8fc	?
-8fd	bool	m8fd	?
-8fe	bool	m8fe	?
-8ff	bool	m8ff
-900	bool	m900
-901	bool	m901	?
-902	bool	m902
-903	bool	m903
-904	bool	m904
-905	bool	m905	?
-906	bool	m906
-907	bool	m907	?
-908	bool	m908	the result is in the hall of fame
-909	bool	m909	?
-90a	bool	m90a
-90b	bool	m90b	?
-90c	bool	m90c
-90d	bool	m90d	?
-90e	bool	m90e	?
-90f	bool	m90f
-910	bool	m910
-911	bool	m911	?
-912	bool	m912	?
-913	bool	m913
-914	bool	m914
-915	bool	m915
-916	bool	m916	?
-917	bool	m917
-918	bool	m918
-919	bool	m919
-91a	bool	m91a	?
-91b	bool	m91b	?
-91c	bool	m91c	?
-91d	bool	m91d	the end buttons exist
-91e	bool	m91e	?
-91f	bool	m91f	?
-920	bool	m920	?
-921	bool	m921	?
-922	bool	m922
-923	bool	m923
-924	bool	m924	?
-928	float	m928
-92c	float	m92c	?
-930	float	m930	?
+8e2	bool	mUnusedClearedInCtor	set to false by the constructor only; nothing else writes or reads it
+8e3	bool	mTopRowsAllowed	gate of SpawnControl: ResetGame sets it and nothing clears it; a new top row comes only while it is set (and no bounce, bonus, warp or end runs)
+8e4	bool	mNewRowBouncing	AddTopRow sets it when the new top row starts to bounce, OnBrickBounced clears it once the row is still; meanwhile no new row, start or save
+8e5	bool	mPickUpButtonDown	the pick-up button (down key or left mouse button) is held; PickUp refuses without it; MouseUp and clicks that are no pick-up clear it
+8e6	bool	mBackdropTintChanging	the backdrop's tint is still moving to the colour of the first held brick: set when the hand changes (PickUpDone, nukes), cleared by FadeBackdrop on arrival
+8e7	bool	mGameWasReset	ResetGame sets it; nothing clears or reads it
+8e8	bool	mGameOver	the game is over: GameOver sets it and ResetGame clears it; Update runs UpdateGameOver meanwhile, input stops and SaveFinalScore stores the result
+8e9	bool	mLevelUpPhase	the level is complete and the level-up screen with the warp follows: LevelComplete sets it (not for a bonus round), ResetGame clears it; input and new rows wait
+8ea	bool	mStreaksFadingOut	the warp streaks are fading out after a stage is loaded (LoadLevel sets it, UpdateEffects clears it when all 100 have shrunk away); input and new rows wait
+8eb	bool	mWarpActive	the warp to the next stage is under way, from the end of its charge-up until the next stage is loaded (UpdateWarp); the hyperspace loop plays
+8ec	bool	mWarpCharging	the charge-up before the warp: StartLevelUp sets it, the screen shakes and the white rises until UpdateWarp starts the warp
+8ed	bool	mWarpFlight	the flight through the warp tunnel: the field has flown away, stars fall, the screen darkens and shakes until the gate comes out (UpdateWarp)
+8ee	bool	mFuelCellDue	a fuel cell is to go into the next new top row: set after a long chain (OnBrickArrived, OnBrickGone), cleared by FillTopRow when it picks the column
+8ef	bool	mAtWarpGate	the warp has come out at its gate screen: the gates light up under the pointer and a click on one picks the next stage (UpdateWarp, MouseMove)
+8f0	bool	mShipInWarp	the ship is drawn flying with the warp at the warp's own height instead of at the pointer; UpdateWarp sets it when the white-out ends
+8f1	bool	mPointerOverEasyGate	the pointer is over the easy gate of the warp screen and lights it; MouseMove only ever clears it, so it stays false
+8f2	bool	mPointerOverSlowGate	the pointer is over the slow gate of the warp screen (MouseMove sets it, UpdateWarp raises that gate's light while it is set)
+8f3	bool	mPointerOverFastGate	the pointer is over the fast gate of the warp screen, which exists only on later stages (MouseMove sets it, UpdateWarp raises that gate's light)
+8f4	bool	mWarpGatePicked	a gate of the warp screen has been clicked (MouseDown): the screen fades to white and UpdateWarp then loads the next stage
+8f5	bool	mHundredLeftSoundPlayed	the sound for the last hundred bricks of the stage (SOUND_LEVEL_UP1) has played; OnBrickGone sets it, ResetGame clears it
+8f6	bool	mFiftyLeftSoundPlayed	the sound for the last fifty bricks of the stage (SOUND_LEVEL_UP2) has played; OnBrickGone sets it, ResetGame clears it
+8f7	bool	mPauseTextWanted	Pause's second argument: true for a pause that losing the window's focus makes, false for one that a box makes; the overlay writes its pause texts only while it is set
+8f8	bool	mTimeBonusRunning	the time bonus window is open: AdvanceChain opens it with the stage's first set, PayTimeBonus pays for 3 to 6 quick sets, it closes after 700 updates
+8f9	bool	mAtomicBlastOver	the atomic blast animations are through (UpdateExplosion sets it), so the marked bricks of the mode 1 bonus go; UpdateSpecialMode clears it
+8fa	bool	mWarpEngaged	set when the warp's white-out ends (SOUND_WARP_ENGAGED plays, the field is cleared); ResetGame clears it; nothing reads it
+8fb	bool	mFieldCleared	nothing is left in rows 1 to 19 once everything has settled (ClearBonus is paid); FillTopRow and ResetGame clear it; the next row waits for it in a bonus
+8fc	bool	mPlayStarted	the game has really begun: the first pick-up, shot, set or weapon start sets it (event 0x2a fires once); rows, countdowns and the freeze wait for it
+8fd	bool	mUnusedClearedInReset	ResetGame clears it; nothing else writes or reads it
+8fe	bool	mSetMadeSinceTopRow	a set of enough bricks was made (OnBrickArrived plays its sound); SpawnControl clears it when the next top row is due; nothing reads it
+8ff	bool	mSlowMotion	when set only every eighth Update does the game's work (the others only record the demo step); nothing ever sets it
+900	bool	mLevelCompleteBlocked	LevelComplete returns at once while it is set; the constructor clears it and nothing sets it
+901	bool	mScreenWiping	the end-of-game screen wipe runs: Update waits for the wipe to end and then closes the board, Draw only draws the wipe; RedrawAfterDialog sets it
+902	bool	mWipeImageCaptured	cleared by the constructor and when RedrawAfterDialog starts to draw the screen into the wipe's picture; nothing reads it
+903	bool	mWipeImageUsed	cleared by the constructor and once RedrawAfterDialog has drawn the screen into the wipe's picture; nothing reads it
+904	bool	mWipeCreated	the constructor sets it once the screen picture and the wipe are made; nothing reads it
+905	bool	mGameOverAnimDone	the end-of-game blasts and fades are through (UpdateGameOver sets it, then makes the end buttons); UpdateGameOver returns at once while it is set
+906	bool	mMeterPaused	while set the weapon meter does not run down in UpdateSpecialMode; the constructor clears it and nothing sets it
+907	bool	mClearWaitStarted	mode 2: the wait for the field to be cleared has begun (BeginClearWait); set by ResetGame, cleared when the weapon starts so that the next quiet field begins it
+908	bool	mInHallOfFame	whether the game's result got into the hall of fame (AddHallOfFame's answer in SaveFinalScore and GameOver); nothing reads it
+909	bool	mStackWarningActive	the warning of a too high stack at the ship's column is on (CheckShipColumn sets it, 400 updates); SpawnControl holds the next top row back meanwhile
+90a	bool	mTutorialStageForced	the first stage's tutorial hints apply whatever the stage number is; the constructor clears it and nothing sets it
+90b	bool	mClickRepeating	set while Update repeats the held left button's click (classic game, weapon on); the pick-up sounds stay silent then; ResetState clears it
+90c	bool	mUnusedFlagFromCtor	the constructor clears it; nothing else writes or reads it
+90d	bool	mUnusedFlagFromReset	ResetGame clears it; nothing else writes or reads it
+90e	bool	mBoosterDue	a booster brick is to go into the next new top row: set by AdvanceChain (long chain) and PayTimeBonus, cleared by FillTopRow when it picks the column
+90f	bool	mClicksBlocked	while set MouseDown ignores the buttons and MouseUp keeps the pick-up flag: set when a bonus round starts, a box closes or the screen is redrawn after a box
+910	bool	mBonusRoundOn	a bonus round is on (from LevelComplete's bonus branch or a restored bonus game until its tally ends): no meter, no stage counting, bricks from a bonus file
+911	bool	mStartBannerDoneInBonus	set by UpdateStartBanner when the start banner has run through while a bonus round is on; StartBonusRound and ResetGame clear it; it holds back the round's no-move end
+912	bool	mBricksRevealing	the bonus round's bricks are still being shown one by one (StartBonusRound sets it, RevealBricks clears it); the first click and the end checks wait
+913	bool	mBonusRoundStarted	the player's first click has started the bonus round after its bricks appeared (MouseDown, event 0x28 fired); StartBonusRound clears it; the time runs from it
+914	bool	mBonusRoundLoaded	StartBonusRound sets it once the round's file is read; LevelComplete and the restore clear it; nothing reads it
+915	bool	mBonusFadingOut	while set UpdateIntroAndTally lowers the bonus fade value by 2 an update to 0; nothing ever sets it
+916	bool	mClearCountRunning	the count-down that pays the bricks left over runs (StartClearCount sets it, the tally's end clears it); the held pieces stand over the stack and clicks do nothing
+917	bool	mBonusWarpIn	the warp into a bonus round is running (LevelComplete sets it; UpdateIntroAndTally steps it through three parts before StartBonusRound); the screen is white
+918	bool	mBonusRevealDone	set once the bonus round's bricks have all appeared (RevealBricks, which also sets the banner's count to 300); a new bonus round clears it; only RevealBricks reads it
+919	bool	mWeaponHintShown	the pilot's weapon hint is the panel the overlay shows instead of a stage hint (DrawWeaponHint); DismissHint clears it; nothing sets it
+91a	bool	mUpgradeDialogDone	the upgrade dialog has been closed (TakeFocus; a restored game starts with it set); UpdateWarp waits for it before the gate screen goes on and DrawWarpScreen draws
+91b	bool	mPsychicUsed	mode 3: the psychic has taken bricks in this weapon run (PopPsychic sets it, UpdateSpecialMode clears it); meter and the time wait for it, a dark strip shows until then
+91c	bool	mLaserUsed	mode 0: the laser has taken a brick in this weapon run (PickUp sets it, UpdateSpecialMode clears it); the meter runs down and the time counts only then
+91d	bool	mEndPageShown	the end page is on the screen: CreateEndButtons sets it, Draw then calls DrawEndPage (the best results and the two buttons)
+91e	bool	mHighScoreSoundDone	set once the delay after the game's end (a counter of 200 updates) is over and the new-high-score sound has played if the result was the best (Update)
+91f	bool	mNewRankDelayOver	the wait before the new rank's flash is over: UpdateWarp clears it when the level beats the best one and starts the wait, Update sets it when the wait ends
+920	bool	mSupaButtonLit	the weapon button's alert lights are on: toggled every 50 updates while the blink counter runs (UpdateAlertFlash), DrawFrame chooses the lit or the dark picture
+921	bool	mUpgradeDialogSeen	an upgrade dialog has been closed in this game (TakeFocus sets it, ResetGame clears it); UpdateWarp then makes the new rank's flash wait 1 update instead of 100
+922	bool	mStartedFromCheckpoint	the game began at a level checkpoint (the constructor's flag, from StartClassic); the first play action clears it; DrawGoalBanners writes the stage text only while clear
+923	bool	mStageTextEnabled	the stage's brick-count text may be drawn over the field: false for a new game at level 1 and for a restored game, true once a level is done or the game starts higher
+924	bool	mComboTextVisible	the combo counter's "x<n>" text blinks: UpdateStates toggles it every 20 updates while the combo display timer runs; a combo below 6 is always drawn
+928	float	mBrickometerFill	how full the brickometer is, 0 to 1: bricks gone over the stage's goal (OnBrickGone); a warp pick starts it at 0.98 and it drains; 0 in a timed game
+92c	float	mBrickometerDrain	the level the brickometer drains from after a warp pick (0.98, falling 0.0076 an update in UpdateEffects; mBrickometerFill follows it); 0 when idle
+930	float	mStackDanger	the danger of the stack: mean column height plus half the distance of the highest column from it (CheckStackHeight); scales the wait for the next top row
 934	float	m934	?
 938	float	m938
 93c	float	m93c

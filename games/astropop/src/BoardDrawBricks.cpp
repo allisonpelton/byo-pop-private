@@ -47,14 +47,14 @@ void Board::DrawBricks(Graphics* g, bool theGlow)
 		(*aBrick)->Draw(g, theGlow);
 }
 
-// 0x443fd0: while the tally runs (m916) the held pieces stand over the stack and a dark bar closes in from each side;
+// 0x443fd0: while the tally runs (mClearCountRunning) the held pieces stand over the stack and a dark bar closes in from each side;
 // the introduction of a bonus round (and of the second game type's stages) puts the rules over the field.
 void Board::DrawBonusIntro(Graphics* g)
 {
 	int aPieceX = m198c - 5;
 	int aBaseY = (int) (m1bf8 + 423.0f);
 
-	if (m916)
+	if (mClearCountRunning)
 	{
 		for (int aPass = 0; aPass < 2; aPass++)
 		{
@@ -72,7 +72,7 @@ void Board::DrawBonusIntro(Graphics* g)
 		g->FillRect(mWidth - m1b88, 0xa0, m1b88, 0xe1);
 	}
 
-	if (((m1bc0 == 2 && m1bc8 == 0xff) || m1bc0 == 3) && !m913 || (m910 && !m917 && !m913))
+	if (((m1bc0 == 2 && m1bc8 == 0xff) || m1bc0 == 3) && !mBonusRoundStarted || (mBonusRoundOn && !mBonusWarpIn && !mBonusRoundStarted))
 	{
 		g->SetColor(Color(0, 0, 0, 0xdc));
 		g->FillRect(0, 0xa0, mWidth, 0xc3);
@@ -90,7 +90,7 @@ void Board::DrawBonusIntro(Graphics* g)
 		WriteString(g, GT(0x005647cc), 0xa6, aY, 0x1b8, 0, true, 0, -1);
 		aY += g->GetFont()->GetHeight() * 2;
 
-		if (!m912 && !m913 && !m917)
+		if (!mBricksRevealing && !mBonusRoundStarted && !mBonusWarpIn)
 		{
 			int aPhase = mUpdateCnt % 0x80;
 			if (aPhase > 0x3f)

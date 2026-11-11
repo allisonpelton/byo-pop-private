@@ -65,7 +65,7 @@ void Board::DrawBackdrop(Graphics* g)
 {
 	bool is3D = mApp->Is3DAccelerated();
 
-	if (!m8ed && !m8ef && !m8f4)
+	if (!mWarpFlight && !mAtWarpGate && !mWarpGatePicked)
 	{
 		// the scenery: the picture now on the screen and the one that follows it
 		g->DrawImage(mSceneryLayer.mImage, (int) mSceneryX, (int) mSceneryLayer.mF24, FloatRect(mSceneryLayer.mCur));
@@ -96,7 +96,7 @@ void Board::DrawBackdrop(Graphics* g)
 		} while (anOffset < 300);
 	}
 
-	if (m19f0 > 0 && (m8ed || m8ef || m8f4) && mWarpLightningImage != NULL && is3D)
+	if (m19f0 > 0 && (mWarpFlight || mAtWarpGate || mWarpGatePicked) && mWarpLightningImage != NULL && is3D)
 	{
 		g->SetColorizeImages(true);
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -126,11 +126,11 @@ void Board::DrawBackdrop(Graphics* g)
 		int aPixelX = (int) anX;
 		g->FillRect(aPixelX, (int) aY, 1, 1);
 
-		bool aTailDown = m8ec || m8eb || (m917 && (m1bc0 == 1 || m1bc0 == 2));
-		bool aTailUp = m8ed || m8ea || (m917 && m1bc0 == 3);
+		bool aTailDown = mWarpCharging || mWarpActive || (mBonusWarpIn && (m1bc0 == 1 || m1bc0 == 2));
+		bool aTailUp = mWarpFlight || mStreaksFadingOut || (mBonusWarpIn && m1bc0 == 3);
 		if (aTailDown)
 		{
-			if (!m8ed)
+			if (!mWarpFlight)
 			{
 				if (aMargin > 0)
 				{
@@ -141,7 +141,7 @@ void Board::DrawBackdrop(Graphics* g)
 					g->DrawImage(aStreak.mImage, aPixelX, (int) (aY - (float) aStreak.mMargin), Rect(0, 0, 1, aLength));
 					continue;
 				}
-				aTailUp = m8ed || m8ea || (m917 && m1bc0 == 3);
+				aTailUp = mWarpFlight || mStreaksFadingOut || (mBonusWarpIn && m1bc0 == 3);
 			}
 			else
 				aTailUp = true;
@@ -158,7 +158,7 @@ void Board::DrawBackdrop(Graphics* g)
 	}
 
 	// the stars
-	if (!m8ed && !m8ef && !m8f4 && !mFlag8E8 && is3D)
+	if (!mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mGameOver && is3D)
 	{
 		for (int i = 0; i < (int) mBackdropStars.size(); i++)
 		{

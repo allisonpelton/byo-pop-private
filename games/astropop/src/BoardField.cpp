@@ -111,7 +111,7 @@ void Board::BuildField()
 	m954 = 0;
 	mDemoInputActive = false;
 	m958 = 0;
-	m8fc = true;
+	mPlayStarted = true;
 	ClearField();
 	int aY = 4;
 	while (aRow < mDemoLayout.size())

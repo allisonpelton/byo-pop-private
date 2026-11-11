@@ -44,7 +44,7 @@ void BoardOverlay::Draw(Graphics* g)
 	}
 
 	// the flash of lightning of the freeze (3D only)
-	if (gApp->Is3DAccelerated() && aBoard->m19f0 / 4 > 0 && (aBoard->m8ed || aBoard->m8ef || aBoard->m8f4))
+	if (gApp->Is3DAccelerated() && aBoard->m19f0 / 4 > 0 && (aBoard->mWarpFlight || aBoard->mAtWarpGate || aBoard->mWarpGatePicked))
 	{
 		g->SetColor(Color(200, 200, 200, aBoard->m19f0 / 4));
 		g->FillRect(0, 0, mWidth, mHeight);
@@ -58,7 +58,7 @@ void BoardOverlay::Draw(Graphics* g)
 	}
 	else
 	{
-		if (!aHintShown && !mFlag78 && !aBoard->m919)
+		if (!aHintShown && !mFlag78 && !aBoard->mWeaponHintShown)
 		{
 			// the pause: the field darkens and says so
 			if (aBoard->m1928 > 0)
@@ -69,9 +69,9 @@ void BoardOverlay::Draw(Graphics* g)
 				g->SetColor(Color(0, 0, 0, aShade));
 				g->FillRect(0, 0, mWidth, mHeight);
 			}
-			if (!aBoard->m8f7)
+			if (!aBoard->mPauseTextWanted)
 				return;
-			if (aBoard->m901)
+			if (aBoard->mScreenWiping)
 				return;
 			if (gApp->mOpenDialogs != 0)
 				return;
@@ -82,16 +82,16 @@ void BoardOverlay::Draw(Graphics* g)
 			return;
 		}
 
-		if (!mFlag78 && aHintShown && !aBoard->m919)
+		if (!mFlag78 && aHintShown && !aBoard->mWeaponHintShown)
 			DrawHint(g);
-		else if (!mFlag78 && aBoard->m919)
+		else if (!mFlag78 && aBoard->mWeaponHintShown)
 			DrawWeaponHint(g);
 		else if (mFlag78)
 			DrawEmergency(g);
 	}
 
 	// a hint over the streaks that fade out (the end of a stage)
-	if (aHintShown && aBoard->m8ea)
+	if (aHintShown && aBoard->mStreaksFadingOut)
 	{
 		g->SetColor(mFill);
 		g->FillRect(0, 0, mWidth, mHeight);

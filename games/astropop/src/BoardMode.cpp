@@ -16,7 +16,7 @@ void Board::BeginClearWait()
 {
 	m19fc = 1000;
 	Fire(0x28, 1);
-	m907 = true;
+	mClearWaitStarted = true;
 }
 
 // 0x46f010 (4339 bytes)
@@ -44,7 +44,7 @@ void Board::UpdateSpecialMode()
 	if (m1a34 == 0)
 	{
 		// no bonus runs: the meter fills while the field is quiet
-		if (!m910 && !m917 && m8fc && m1bd8 < m1bdc && !mApp->mTutorialOn)
+		if (!mBonusRoundOn && !mBonusWarpIn && mPlayStarted && m1bd8 < m1bdc && !mApp->mTutorialOn)
 		{
 			if (m1bd8 < m1bdc)
 				m1bd8 = m1be4 + m1bd8;
@@ -56,7 +56,7 @@ void Board::UpdateSpecialMode()
 			mApp->PlaySample(SOUND_POWERUP);
 			return;
 		}
-		if (m910)
+		if (mBonusRoundOn)
 			return;
 		if (m1bd8 != m1bdc)
 			return;
@@ -64,20 +64,20 @@ void Board::UpdateSpecialMode()
 			return;
 		if (mApp->mTutorialOn)
 			return;
-		if (!m8fc)
+		if (!mPlayStarted)
 			return;
-		m91b = false;
-		m91c = false;
+		mPsychicUsed = false;
+		mLaserUsed = false;
 		mMeterFullAnim.Update();
 		return;
 	}
 
 	// a bonus runs: the meter runs down
-	if (m906)
+	if (mMeterPaused)
 		return;
-	if (mMode == 0 && !m91c)
+	if (mMode == 0 && !mLaserUsed)
 		return;
-	if (mMode == 3 && !m91b)
+	if (mMode == 3 && !mPsychicUsed)
 		return;
 	m1bd8 = m1bd8 - m1be0;
 	if (mShipShimmerY == 0)
@@ -120,7 +120,7 @@ void Board::UpdateSpecialMode()
 			}
 			std::vector<CellRef>().swap(mHoverCells);
 		}
-		if (mMode == 2 && !m907 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
+		if (mMode == 2 && !mClearWaitStarted && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 			BeginClearWait();
 		if (!mSirenAnim.mStopped)
 			m1ab8 = 8;
@@ -201,11 +201,11 @@ void Board::UpdateSpecialMode()
 			Fire(0x22, m1b24);
 		}
 
-		if (m8f9)
+		if (mAtomicBlastOver)
 		{
 			// the meter has run out: the bricks that were marked go (the original also filled a list of their cells
 			// that nothing read)
-			m8f9 = false;
+			mAtomicBlastOver = false;
 			for (unsigned int i = 0; i < mAtomicMarkedBricks.size(); i++)
 			{
 				int aCol = mAtomicMarkedBricks[i].mCol;

@@ -48,7 +48,7 @@ void KillAllBrick::SetType(int theType)
 void KillAllBrick::OnDie()
 {
 	Brick::OnDie();
-	if (!mBoard->mFlag8E9 && !mBoard->mFlag8E8 && mMutated != 1)
+	if (!mBoard->mLevelUpPhase && !mBoard->mGameOver && mMutated != 1)
 		PlayBoardSound(SOUND_KILLALL_EXPLODE);
 }
 
@@ -181,7 +181,7 @@ void SpecialBrick::OnDie()
 	mShake = false;
 	SetState(3);
 
-	if (!mBoard->mFlag8E9 && !mBoard->mFlag8E8 && mMutated != 1)
+	if (!mBoard->mLevelUpPhase && !mBoard->mGameOver && mMutated != 1)
 	{
 		if (mType == 6)
 			PlayBoardSound(SOUND_STAR_EXPLODE);
@@ -877,7 +877,7 @@ void PowerBrick::OnDie()
 		Fire(0xd);
 	}
 
-	if (!mBoard->mFlag8E9 && !mBoard->mFlag8E8)
+	if (!mBoard->mLevelUpPhase && !mBoard->mGameOver)
 	{
 		if (mType == 10)
 			PlayBoardSound(SOUND_FREEZE);

@@ -22,7 +22,7 @@ void Board::LoadLevel(bool theFromRules)
 	m1930 = -1;
 	memset(&m984, 0, sizeof(m984));
 	ResetGame();
-	m8ea = true;
+	mStreaksFadingOut = true;
 	m1b38 = 0;
 	mApp->SetCursor(CURSOR_POINTER);
 	if (!theFromRules)

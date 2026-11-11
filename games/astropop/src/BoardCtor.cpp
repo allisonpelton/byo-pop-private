@@ -132,7 +132,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		mHintBoxes[i]->mHideTime = 800;
 	}
 	mHintBoxes[2]->mShowTime = 100;
-	m922 = theFlag;
+	mStartedFromCheckpoint = theFlag;
 	m960 = 0;
 	mStartWeaponAfterPause = false;
 	m1b6c = 0;
@@ -148,12 +148,12 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mContinueButton = NULL;
 	mMenuButton = NULL;
 	m1be4 = 0;
-	m913 = false;
+	mBonusRoundStarted = false;
 	m1b30 = -1;
 	m1bb8 = 0;
-	m911 = false;
-	m910 = false;
-	m90f = false;
+	mStartBannerDoneInBonus = false;
+	mBonusRoundOn = false;
+	mClicksBlocked = false;
 	m1b1c = 0;
 	m1b0c = 0;
 	m1b08 = 0;
@@ -161,12 +161,12 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1b14 = 0;
 	if (theLevel == 1 && theNewGame)
 	{
-		m923 = false;
+		mStageTextEnabled = false;
 		mApp->mUser->SetInt(0x71, 0);
 	}
 	else
 	{
-		m923 = true;
+		mStageTextEnabled = true;
 		m1b1c = theLevel - 1;
 	}
 	mStoryScreen = 0;
@@ -179,25 +179,25 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	SetupUpgradeAnims();
 	m1b28 = 0;
 	m1b2c = 0;
-	m8e2 = false;
+	mUnusedClearedInCtor = false;
 	mBannerWaveImage = NULL;
 	mBannerTextImage = NULL;
-	m928 = 0.0f;
-	m92c = 0.0f;
-	m912 = false;
+	mBrickometerFill = 0.0f;
+	mBrickometerDrain = 0.0f;
+	mBricksRevealing = false;
 	mBonusRoundFile = 0;
 	m1abc = 0;
 	m970 = 0;
-	m90c = false;
+	mUnusedFlagFromCtor = false;
 	m1ab8 = 4;
 	m1ac0 = PickSpawnDelay();
-	m914 = false;
-	m915 = false;
+	mBonusRoundLoaded = false;
+	mBonusFadingOut = false;
 	m1b74 = 0;
 	m1b7c = 0;
 	m1b40 = 0;
 	m1b50 = 0;
-	m919 = false;
+	mWeaponHintShown = false;
 	int aHalfBoost = 1;
 	mApp->mUser->GetInt(mMode + 0x2a, &aHalfBoost);
 	m1c08 = (aHalfBoost == 1);
@@ -217,7 +217,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1bc8 = 0;
 	m1bd0 = 0;
 	m1bcc = 0;
-	m918 = false;
+	mBonusRevealDone = false;
 
 	// the theme checkbox and button of the warp screen (their pictures are made when the stage's colour is known)
 	mHintOffCheckbox = new Checkbox(NULL, NULL, 0xfa3, NULL);
@@ -238,11 +238,11 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1b4c = 0;
 	m1b34 = 0;
 	m1b20 = 0;
-	m91d = false;
+	mEndPageShown = false;
 	m1b84 = 0;
 	m1b80 = 0;
 	m944 = 0.0f;
-	m916 = false;
+	mClearCountRunning = false;
 	m1b70 = -1;
 	m1b0c = 500000000;
 	m1afc = 0;
@@ -262,7 +262,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aModeImage = 0x1c0;
 	for (size_t i = 0; i < mPhasePictures.size(); i++)
 		mPhasePictures[i] = LoadImageById(mApp->mResourceManager, aModeImage + (int) i);
-	m90b = false;
+	mClickRepeating = false;
 	m1aa0 = 0;
 	mPlanets.resize(5);
 	mStreaks.resize(100);
@@ -273,10 +273,10 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m19b8 = 0;
 	m1b78 = 0;
 	m1ab0 = 0;
-	m906 = false;
-	m908 = false;
+	mMeterPaused = false;
+	mInHallOfFame = false;
 	m1a24 = 0;
-	m90a = false;
+	mTutorialStageForced = false;
 
 	mMeterFullAnim.SetNumFrames(0x3f);
 	mMeterFullAnim.SetDelay(1);
@@ -318,7 +318,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		mFieldBricks[i].resize(10, (Brick*) NULL);
 	m1a54 = 4;
 	mPauseMutedSound = NULL;
-	m900 = false;
+	mLevelCompleteBlocked = false;
 	mWarpGateAnim.SetNumFrames(1);
 	mWarpGateAnim.SetDelay(0xc);
 	mWarpGateAnim.mHoldLast = false;
@@ -337,7 +337,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m197c = 10000;
 	m1970 = 0;
 	mScore = 0;
-	m8ff = false;
+	mSlowMotion = false;
 	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;   // (a test's charge, BoardState.cpp)
 	ResetGame();
 	if (m1a60 == 1)
@@ -396,7 +396,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aStreak.mY = (float) (((int) AstroRand() % 500000000) % (mApp->mHeight - 4) + 4);
 	}
 
-	m920 = false;
+	mSupaButtonLit = false;
 	m1930 = 0;
 	SetupHints();
 	if (1 < theLevel * 2 - 2)
@@ -413,7 +413,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	if ((theFlags & 0xff) != 0 && !theDemo)
 		LoadLevel(true);
 	m1954 = 2;
-	m8ea = false;
+	mStreaksFadingOut = false;
 
 	// the scenery layer; the pictures of the three ids around it are released (the layer's own stays)
 	mSceneryLayer.mImage = LoadImageById(mApp->mResourceManager, 0x18c);
@@ -451,7 +451,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m19f8 = 500000000;
 	m19f4 = 500000000;
 	m19f0 = 500000000;
-	m8f7 = true;
+	mPauseTextWanted = true;
 	mFieldButtons[0] = NULL;
 	mHelpButton = NULL;
 	m1a58 = 0;
@@ -525,9 +525,9 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		mBeamSparks.push_back(aBlink);
 	}
 	mApp->PlaySong(9);
-	m903 = false;
-	m902 = false;
-	m901 = false;
+	mWipeImageUsed = false;
+	mWipeImageCaptured = false;
+	mScreenWiping = false;
 	m980 = -1;
 
 	// the picture of the field that the wipe at the end of a game takes away, and the wipe
@@ -545,7 +545,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mScreenWipe->SetImage(mScreenImage, false);
 	mScreenWipe->SetKind(m980);
 	m1a78 = 0;
-	m904 = true;
+	mWipeCreated = true;
 	m1a7c = -1;
 	mSirenAnim.SetNumFrames(IMAGE_SIREN->mNumCols);
 	mSirenAnim.SetDelay(8);

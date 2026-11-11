@@ -109,8 +109,8 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
   control word with `__control87` and, when the precision is not `_PC_24` (0x20000 in MSVC's own constants; the port's comment
   once read it as 53 bits), sets it before every batch of updates. Every update and every draw therefore runs at 24 bits; only the
   start of the program, before the first UpdateFrames, runs at 53 bits, as the sine table of the app's constructor does). Seen in a run of the original (classic, seed 7, update 8186): the
-  wait before the next row is `m19d8 = (int) (m19cc + m930 * 20.0f)` (0x46ec55: `FILD; FLD float; FMUL float; FADDP; _ftol`),
-  with `m930` = 2.3f (2.29999995): in a full-precision x87 or in double the product is 45.999999 and the row waits 1045, in
+  wait before the next row is `m19d8 = (int) (m19cc + mStackDanger * 20.0f)` (0x46ec55: `FILD; FLD float; FMUL float; FADDP; _ftol`),
+  with `mStackDanger` = 2.3f (2.29999995): in a full-precision x87 or in double the product is 45.999999 and the row waits 1045, in
   the original it is rounded to 46.0 and the row waits 1046, so a row came one update earlier. The port computes the
   expressions that the game truncates, compares or chains in `float` (an SSE float operation rounds like the 24-bit x87):
   the wait formula, the danger display (`CheckStackHeight`), the spawn thresholds (`FillTopRow`), the ramp interpolation

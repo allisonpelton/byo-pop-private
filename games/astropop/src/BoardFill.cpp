@@ -220,7 +220,7 @@ void Board::CollectConnected(int theKind, int theCol, int theRow, unsigned int t
 }
 
 // 0x43d630: after a new row: the height of the stacks is looked at. The highest stack and the sum of all are kept for the
-// danger display (m930, m934); a stack of 14 or more starts the siren; bricks of columns with room again stop shaking.
+// danger display (mStackDanger, m934); a stack of 14 or more starts the siren; bricks of columns with room again stop shaking.
 // Returns the height of the highest stack.
 int Board::CheckStackHeight()
 {
@@ -236,8 +236,8 @@ int Board::CheckStackHeight()
 	UpdateKlaxon();
 
 	int aHighest = (int) aMax;
-	if (aHighest >= 0xe && (double) m970 != (double) aMax && !m910 && (!m8eb || m8ec) && !m8ed && !m8ef && !m8f4 &&
-		!m8ec)
+	if (aHighest >= 0xe && (double) m970 != (double) aMax && !mBonusRoundOn && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked &&
+		!mWarpCharging)
 	{
 		int aValue = 2 - ((int) (18.0 - (double) aMax - 4.0)) * 3;
 		if (m1aa4 < 0)
@@ -262,7 +262,7 @@ int Board::CheckStackHeight()
 
 	float aTenth = (float) aSum * 0.1f;
 	float aDanger = aTenth + fabsf(aMax - aTenth) * 0.5f;
-	m930 = aDanger;
+	mStackDanger = aDanger;
 	if (aDanger > m934)
 		m934 = aDanger;
 
@@ -287,7 +287,7 @@ int Board::CheckStackHeight()
 }
 
 // 0x43d400: when the stack in the column of the ship is too high for the piece in hand (modes 0 and 3, or when no mode 1
-// or 2 play is on), the column shakes and the warning of m909 starts (it counts down m97c); with room again both end.
+// or 2 play is on), the column shakes and the warning of mStackWarningActive starts (it counts down m97c); with room again both end.
 void Board::CheckShipColumn()
 {
 	if (mMode == 0 || mMode == 3 || m1a34 == 0)
@@ -296,7 +296,7 @@ void Board::CheckShipColumn()
 		int aDepth = ColumnDepth(aCol);
 		if (aDepth * 0x19 + 0x1d < (int) mHeldBricks.size() * -0x19 + 0x1a7)
 		{
-			m909 = false;
+			mStackWarningActive = false;
 			m97c = 0;
 		}
 		else
@@ -309,7 +309,7 @@ void Board::CheckShipColumn()
 			}
 			if (m97c == 0)
 			{
-				m909 = true;
+				mStackWarningActive = true;
 				m97c = 400;
 				return;
 			}
@@ -324,7 +324,7 @@ void Board::CheckShipColumn()
 // rectangles that darken the rest of the screen.
 void Board::ShowHint(int theKind, int theCol, int theRow, bool theFlag)
 {
-	if (m910 || m917 || m1a60 != 1)
+	if (mBonusRoundOn || mBonusWarpIn || m1a60 != 1)
 		return;
 
 	HintSpot* aHint = new HintSpot();
@@ -414,7 +414,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 	if (!theTutorial || mField193C > 0x15 || m1a60 != 1)
 		aTutorial = false;
 
-	m8fb = false;
+	mFieldCleared = false;
 	int aPhase = 2;
 	if (m1a60 == 2)
 		aPhase = 0;
@@ -524,16 +524,16 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 		int aFuelCol = -1;
 		int aPowerCol = -1;
 		bool aMadeLast = false;
-		if (m8ee)
+		if (mFuelCellDue)
 			aFuelCol = ((int) AstroRand() % 500000000) % 10;
 		else
 		{
 			if (m1b10 == aPhase && m1b10 > 0)
 				aPowerCol = ((int) AstroRand() % 500000000) % 10;
-			else if (m90e)
+			else if (mBoosterDue)
 			{
 				unsigned int aRand = AstroRand();
-				m90e = false;
+				mBoosterDue = false;
 				aPowerCol = ((int) aRand % 500000000) % 10;
 			}
 		}
@@ -668,7 +668,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			{
 				mFieldBricks[theRow][aCol] = CreateFuelCell(500, 5);
 				aMadeLast = true;
-				m8ee = false;
+				mFuelCellDue = false;
 				aCode = -1;
 				ShowHint(8, aCol, aHintRow, !theFromTop);
 			}
@@ -732,7 +732,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 						mFieldBricks[theRow][aCol] = CreateMutator();
 						aHintKind = 0xc;
 						aMadeLast = false;
-						if (!m8fc)
+						if (!mPlayStarted)
 							FireTo(mFieldBricks[theRow][aCol], 0x28, 1);
 						if (aTutorial && (mField193C == 0xe || mField193C == 0xf))
 							aTutorial = false;

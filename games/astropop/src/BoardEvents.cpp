@@ -61,7 +61,7 @@ void Board::HideCellHint(Brick* theBrick)
 // game and of the profile are kept
 void Board::AdvanceChain()
 {
-	if (m910)
+	if (mBonusRoundOn)
 		return;
 
 	int anOld = m1980;
@@ -75,9 +75,9 @@ void Board::AdvanceChain()
 	}
 	int aChain = m1980;
 	m1b18 = 100;
-	if (m1a24 < aChain && !m910)
+	if (m1a24 < aChain && !mBonusRoundOn)
 		m1a24 = aChain;
-	if (mBestChain < aChain && !m910 && !m917)
+	if (mBestChain < aChain && !mBonusRoundOn && !mBonusWarpIn)
 	{
 		mBestChain = aChain;
 		int aBest = 0;
@@ -87,7 +87,7 @@ void Board::AdvanceChain()
 	}
 	aChain = m1980;
 	if (aChain > 3 && m1bbc <= mField193C && m1a60 != 2)
-		m90e = true;
+		mBoosterDue = true;
 	if (aChain > 2)
 	{
 		m1ab8 = 10;
@@ -109,13 +109,13 @@ void Board::AdvanceChain()
 		m1afc = 300;
 		if (aChain > 5)
 		{
-			m924 = true;
+			mComboTextVisible = true;
 			m1afc = 600;
 		}
 	}
 	if (m1a50 == 1)
 	{
-		m8f8 = true;
+		mTimeBonusRunning = true;
 		m1a2c = 0;
 	}
 }
@@ -413,7 +413,7 @@ void Board::OnPieceBrickHit(Brick* theBrick)
 }
 
 // 0x458770 event 0xb: a brick has finished its bounce. When the whole top row is at rest the pause that began with the
-// bounces is over (m8e4), the bricks of the column no longer announce their bounce, and the tutorial's first hint wakes
+// bounces is over (mNewRowBouncing), the bricks of the column no longer announce their bounce, and the tutorial's first hint wakes
 void Board::OnBrickBounced(Brick* theBrick)
 {
 	m19d8 = 0;
@@ -430,7 +430,7 @@ void Board::OnBrickBounced(Brick* theBrick)
 	}
 	if (aAllStill)
 	{
-		m8e4 = false;
+		mNewRowBouncing = false;
 		int aCol = CellColumn(theBrick->mX);
 		for (unsigned int aRow = 0; !mFieldBricks.empty() && aRow < mFieldBricks.size() && mFieldBricks[aRow][aCol] != NULL; aRow++)
 			mFieldBricks[aRow][aCol]->mBounceFire = false;
@@ -445,7 +445,7 @@ void Board::OnBrickBounced(Brick* theBrick)
 void Board::OnPowerBrickDone(Brick* theBrick)
 {
 	(void) theBrick;
-	if (m910 && mKillAllTypes.empty() && !m912 && !m911 && m1b7c == 0 && m1994 == 0)
+	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && m1994 == 0)
 	{
 		bool aFlag = false;
 		if (CountMovingBricks(false) == 0 && mFiredGroups.empty() && mFallingGroups.empty() && !AnyMoveLeft(&aFlag))
@@ -549,7 +549,7 @@ void Board::OnMutatorSpread(Brick* theBrick)
 		mFieldBricks[aRow][aCol]->StartMutatorCountdown();
 
 		// the field may be stuck now
-		if (!m910 || !mKillAllTypes.empty() || m912 || m911 || m1b7c != 0 || m1994 != 0 || !mFiredGroups.empty() || !mFallingGroups.empty())
+		if (!mBonusRoundOn || !mKillAllTypes.empty() || mBricksRevealing || mStartBannerDoneInBonus || m1b7c != 0 || m1994 != 0 || !mFiredGroups.empty() || !mFallingGroups.empty())
 			return;
 		bool aFlag = false;
 		if (AnyMoveLeft(&aFlag))
@@ -621,7 +621,7 @@ void Board::OnHyperBrick(Brick* theBrick)
 	AdvanceChain();
 	HideCellHint(theBrick);
 
-	if (!m910)
+	if (!mBonusRoundOn)
 	{
 		int aMax = m1a18;
 		m1a14 += (int) ((float) aMax * 0.15f);
@@ -631,7 +631,7 @@ void Board::OnHyperBrick(Brick* theBrick)
 		mStageMeterAnim.SetStopped(false);
 		mApp->PlaySample(SOUND_BRICK_MILESTONE);
 
-		int aY = (int) (444.0f - m928 * 444.0f);
+		int aY = (int) (444.0f - mBrickometerFill * 444.0f);
 		std::string aText = GT(0x5652e4);
 		int aWidth = FONT_DIALOG_BOX_BTN->StringWidth(aText);
 		FloatText* aFloat = new FloatText(aText, FONT_DIALOG_BOX_BTN, (float) (600 - aWidth), (float) aY, true);
@@ -640,10 +640,10 @@ void Board::OnHyperBrick(Brick* theBrick)
 		aFloat->mNoFade = true;
 		aFloat->mAlphaDelay = 200;
 
-		m928 = (float) m1a14 / (float) m1a18;
-		if (!(m928 <= 1.0f))
-			m928 = 1.0f;
-		float aFill = m928 * 444.0f;
+		mBrickometerFill = (float) m1a14 / (float) m1a18;
+		if (!(mBrickometerFill <= 1.0f))
+			mBrickometerFill = 1.0f;
+		float aFill = mBrickometerFill * 444.0f;
 		float aTop = 444.0f - aFill;
 		mBrickometerRiseDistance = (int) ((float) aY - aTop);
 		mBrickometerRiseSteps = 0x17;
@@ -659,7 +659,7 @@ void Board::OnHyperBrick(Brick* theBrick)
 		if (m1b70 >= 6000)
 			m1b70 = 6000;
 		int aNow = (int) (444.0f - (float) m1b70 * 0.00016666666488163173f * 444.0f);
-		float aFill = m928 * 444.0f;
+		float aFill = mBrickometerFill * 444.0f;
 		mBrickometerRiseDistance = aWas - aNow;
 		mBrickometerRiseSteps = 0x17;
 		mBrickometerRiseStep = 0;

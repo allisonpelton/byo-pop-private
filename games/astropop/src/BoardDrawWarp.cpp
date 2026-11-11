@@ -21,7 +21,7 @@ using namespace Sexy;
 // 0x442c70
 void Board::DrawWarpScreen(Graphics* g)
 {
-	if ((m1b2c == 2 || m1b2c == 4 || m1b2c == 3) && !m91a)
+	if ((m1b2c == 2 || m1b2c == 4 || m1b2c == 3) && !mUpgradeDialogDone)
 		return;
 
 	if (m19e0 < 0xff)

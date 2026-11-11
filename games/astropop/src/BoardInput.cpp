@@ -138,14 +138,14 @@ void Board::RemovedFromManager(WidgetManager* theManager)
 // port: inlined in the original (the Return key, the middle button, the start button)
 void Board::StartByHand()
 {
-	if (!m910 && CountMovingBricks(false) == 0 && mFallingGroups.empty() && mFiredGroups.empty() && m1990 == 0)
+	if (!mBonusRoundOn && CountMovingBricks(false) == 0 && mFallingGroups.empty() && mFiredGroups.empty() && m1990 == 0)
 	{
-		if (m1c08 && !m917)
+		if (m1c08 && !mBonusWarpIn)
 			mApp->ShowPowerDialog();
 		else
 			BeginPlay();
 	}
-	else if (!m90b)
+	else if (!mClickRepeating)
 		mApp->PlaySample(SOUND_CANT_CLICK);
 }
 
@@ -161,14 +161,14 @@ void Board::KeyChar(SexyChar theChar)
 	if (theChar == ' ')
 	{
 		bool aFlag = false;
-		if (!mHintSpots.empty() && mHintSpots[0]->mActive && !m8ea && !(mLevelUpPanelY > -mLevelUpPanelHeight))
+		if (!mHintSpots.empty() && mHintSpots[0]->mActive && !mStreaksFadingOut && !(mLevelUpPanelY > -mLevelUpPanelHeight))
 		{
 			aFlag = true;
-			if (m1924 > 0 && !m919)
+			if (m1924 > 0 && !mWeaponHintShown)
 				return;
 		}
 
-		if (!mOverlay.mFlag78 && (aFlag || !m919 || m1924 < 1))
+		if (!mOverlay.mFlag78 && (aFlag || !mWeaponHintShown || m1924 < 1))
 			Pause(m1924 == 0, true);
 	}
 	else if (theChar == 'z' || theChar == 'Z')
@@ -193,7 +193,7 @@ void Board::KeyChar(SexyChar theChar)
 // button of the field, Return starts the play
 void Board::KeyDown(KeyCode theKey)
 {
-	if (m8eb || m8ed || m8ef || m8f4 || m8ec || mFlag8E9 || mFlag8E8 || m1924 != 0 || mDemoPlaying)
+	if (mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || m1924 != 0 || mDemoPlaying)
 		return;
 
 	if (theKey == 0x25)
@@ -210,14 +210,14 @@ void Board::KeyDown(KeyCode theKey)
 	}
 	else if (theKey == 0x28)
 	{
-		m8e5 = true;
+		mPickUpButtonDown = true;
 		PickUp();
 	}
 	else if (theKey == 0x26)
 		FirePiece();
 	else if (theKey == 0x1b)
 		mApp->ButtonDepress(0xfa1);
-	else if (theKey == 0xd && !mApp->mWidgetManager->mKeyDown[0x12] && !m8e4 && m1bd8 == m1bdc && m1a34 == 0)
+	else if (theKey == 0xd && !mApp->mWidgetManager->mKeyDown[0x12] && !mNewRowBouncing && m1bd8 == m1bdc && m1a34 == 0)
 		StartByHand();
 }
 
@@ -245,9 +245,9 @@ void Board::MouseUp(int x, int y, int theClickCount)
 	if (m974 < 0)
 		m974 = 0;
 
-	if (!mFlag8E8 && !m90f && (!mFlag8E9 || m8ef) && m1af4 != mUpdateCnt && !m8ec && !m8f4 && (!m8eb || m8ef) && !m8ea &&
+	if (!mGameOver && !mClicksBlocked && (!mLevelUpPhase || mAtWarpGate) && m1af4 != mUpdateCnt && !mWarpCharging && !mWarpGatePicked && (!mWarpActive || mAtWarpGate) && !mStreaksFadingOut &&
 		m1924 == 0)
-		m8e5 = false;
+		mPickUpButtonDown = false;
 }
 
 // 0x458170: the middle button starts the play, as the Return key does
@@ -256,8 +256,8 @@ void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 	(void) x;
 	(void) y;
 	(void) theClickCount;
-	if (mApp->mHelpScreen == NULL && theBtnNum == 2 && (!mDemoPlaying || mDemoInputActive) && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec &&
-		!mFlag8E9 && !mFlag8E8 && m1924 == 0 && !m8e4 && m1bd8 == m1bdc && m1a34 == 0)
+	if (mApp->mHelpScreen == NULL && theBtnNum == 2 && (!mDemoPlaying || mDemoInputActive) && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging &&
+		!mLevelUpPhase && !mGameOver && m1924 == 0 && !mNewRowBouncing && m1bd8 == m1bdc && m1a34 == 0)
 		StartByHand();
 }
 
@@ -268,7 +268,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	if (mApp->mHelpScreen != NULL)
 		return;
 
-	if (m1924 == 1 && !m919 && (mHintSpots.empty() || !mHintSpots[0]->mActive))
+	if (m1924 == 1 && !mWeaponHintShown && (mHintSpots.empty() || !mHintSpots[0]->mActive))
 	{
 		// the game is paused: a click goes on with it
 		if (mOverlay.mFlag78)
@@ -284,7 +284,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		return;
 	}
 
-	if ((mDemoPlaying && !mDemoInputActive) || m90f)
+	if ((mDemoPlaying && !mDemoInputActive) || mClicksBlocked)
 		return;
 
 	Widget::MouseDown(x, y, theClickCount);
@@ -295,33 +295,33 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	else if (theClickCount == -1)
 		m974 = 0;
 
-	if (!(!mFlag8E8 && (!mFlag8E9 || m8ef) && !m8ec && !m8f4 && (!m8eb || m8ef) && !m8ea &&
-		(m8eb || m8ed || m8ef || mLevelUpPanelHeight + mLevelUpPanelY <= 0) && m1924 == 0 && !(mMode == 1 && m1a34 == 1) &&
+	if (!(!mGameOver && (!mLevelUpPhase || mAtWarpGate) && !mWarpCharging && !mWarpGatePicked && (!mWarpActive || mAtWarpGate) && !mStreaksFadingOut &&
+		(mWarpActive || mWarpFlight || mAtWarpGate || mLevelUpPanelHeight + mLevelUpPanelY <= 0) && m1924 == 0 && !(mMode == 1 && m1a34 == 1) &&
 		!(mMode == 2 && m1a34 == 1) && m1af4 != mUpdateCnt))
 		return;
 
-	if (!m913 && !m912 && m910)
+	if (!mBonusRoundStarted && !mBricksRevealing && mBonusRoundOn)
 	{
-		m913 = true;
+		mBonusRoundStarted = true;
 		Fire(0x28, 0);
 		return;
 	}
 
-	m8e5 = false;
+	mPickUpButtonDown = false;
 	m1988 = 0;
 
-	if (!m8ef)
+	if (!mAtWarpGate)
 	{
 		if (theClickCount == 1)
 		{
-			if (!m916)
+			if (!mClearCountRunning)
 			{
-				if (!m8eb && !m8ed && !mFlag8E9 && !m8e4 && m1bd8 == m1bdc && PointInRect(x, y, kStartRect) && m1a34 == 0)
+				if (!mWarpActive && !mWarpFlight && !mLevelUpPhase && !mNewRowBouncing && m1bd8 == m1bdc && PointInRect(x, y, kStartRect) && m1a34 == 0)
 				{
 					StartByHand();
 					return;
 				}
-				m8e5 = true;
+				mPickUpButtonDown = true;
 				PickUp();
 				return;
 			}
@@ -345,7 +345,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 					m1bb4 = (aLeft >= 200000) ? 4000 : 2000;
 			}
 		}
-		else if (theClickCount == -1 && !m916)
+		else if (theClickCount == -1 && !mClearCountRunning)
 		{
 			mApp->PlaySample(SOUND_RIGHT_CLICK);
 			FirePiece();
@@ -378,8 +378,8 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		m1940 = mField193C / 2 + 1;
 		mOverlayFillColor.mAlpha = 0;
 		mOverlayFillColor.mRed = 0;
-		m8f4 = true;
-		m8ef = false;
+		mWarpGatePicked = true;
+		mAtWarpGate = false;
 		mOverlay.SetFill(0, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, 0);
 	}
 	else
@@ -406,14 +406,14 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		MarkHintsSeen(m1940);
 		mOverlayFillColor.mAlpha = 0;
 		mOverlayFillColor.mRed = 0;
-		m8f4 = true;
-		m8ef = false;
+		mWarpGatePicked = true;
+		mAtWarpGate = false;
 		mOverlay.SetFill(0, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, 0);
 	}
 
 	SetOverlayHidden(false);
-	m928 = 0.98f;
-	m92c = 0.98f;
+	mBrickometerFill = 0.98f;
+	mBrickometerDrain = 0.98f;
 	if (m1a60 == 1)
 		m1978 = mScore;
 	m1954 = GetImageById(mMode + 0x17b)->mNumCols - 1;
@@ -429,26 +429,26 @@ void Board::MouseMove(int x, int y)
 
 	if (mDemoPlaying && !mDemoInputActive)
 		return;
-	if (mFlag8E8)
+	if (mGameOver)
 		return;
-	if (m901)
+	if (mScreenWiping)
 		return;
-	if (m8ec)
+	if (mWarpCharging)
 		return;
-	if (m916)
+	if (mClearCountRunning)
 		return;
-	if (m8f4)
+	if (mWarpGatePicked)
 		return;
-	if (m8eb && !m8ef)
+	if (mWarpActive && !mAtWarpGate)
 		return;
-	if (m8ea)
+	if (mStreaksFadingOut)
 		return;
-	if (!m8eb && !m8ed && !m8ef && mLevelUpPanelHeight + mLevelUpPanelY > 0)
+	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && mLevelUpPanelHeight + mLevelUpPanelY > 0)
 		return;
 	if (m1924 != 0 && !mOverlay.mFlag78)
 		return;
 
-	if (!m8ef && !mOverlay.mFlag78)
+	if (!mAtWarpGate && !mOverlay.mFlag78)
 	{
 		int aX = x;
 		if (aX < 0xa6)
@@ -518,10 +518,10 @@ void Board::MouseMove(int x, int y)
 			if (aBlocked)
 			{
 				m198c = aStopCol * 0x2c + 0xa6;
-				if (!m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 &&
-					PointInRect(m1958, m195c, kStartRect) && m1a34 == 0 && !m910)
+				if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0 &&
+					PointInRect(m1958, m195c, kStartRect) && m1a34 == 0 && !mBonusRoundOn)
 				{
-					if (m1bdc <= m1bd8 && !m8e4)
+					if (m1bdc <= m1bd8 && !mNewRowBouncing)
 						mApp->SetCursor(1);
 					mHintBoxes[0]->SetShown(true);
 					mHintBoxes[0]->mX = m1958 + 10;
@@ -537,7 +537,7 @@ void Board::MouseMove(int x, int y)
 			// a column that shakes (its stack reaches the top) stops when the pointer leaves it
 			int aCol = (m198c - 0xa6) / 0x2c;
 			Brick* aTop = mFieldBricks[0][aCol];
-			if (aTop != NULL && aTop->mShake && ColumnDepth(aCol) + 2 < 0x12 && !m917 && !m8ec)
+			if (aTop != NULL && aTop->mShake && ColumnDepth(aCol) + 2 < 0x12 && !mBonusWarpIn && !mWarpCharging)
 			{
 				for (int aRow = 0; aRow < 20; aRow++)
 				{
@@ -556,7 +556,7 @@ void Board::MouseMove(int x, int y)
 			}
 			m198c = aNewCol * 0x2c + 0xa6;
 			UpdateKlaxon();
-			if (!m912)
+			if (!mBricksRevealing)
 			{
 				for (size_t i = 0; i < mTargeted.size(); i++)
 					mTargeted[i]->StopFlash();
@@ -570,16 +570,16 @@ void Board::MouseMove(int x, int y)
 	}
 
 	int aGateHeight = IMAGE_EASY_WARP_GATE->GetCelHeight();
-	bool aWarp = m8ef;
+	bool aWarp = mAtWarpGate;
 	if (aWarp)
 	{
 		// the warp screen: the pointer turns to a hand over the two panels
 		if (m1a70 <= m1958 && m1958 <= m1a70 + 0x78 && 0xe0 < m195c && m195c <= aGateHeight + 0xf5)
 		{
 			m1ab0 = 2;
-			m8f1 = false;
-			m8f2 = true;
-			m8f3 = false;
+			mPointerOverEasyGate = false;
+			mPointerOverSlowGate = true;
+			mPointerOverFastGate = false;
 			mApp->SetCursor(1);
 			return;
 		}
@@ -587,9 +587,9 @@ void Board::MouseMove(int x, int y)
 			m195c <= aGateHeight + 0xf5)
 		{
 			m1ab0 = 3;
-			m8f1 = false;
-			m8f2 = false;
-			m8f3 = true;
+			mPointerOverEasyGate = false;
+			mPointerOverSlowGate = false;
+			mPointerOverFastGate = true;
 			mApp->SetCursor(1);
 			return;
 		}
@@ -618,14 +618,14 @@ void Board::MouseMove(int x, int y)
 	}
 
 	m1ab0 = 0;
-	m8f3 = false;
-	m8f2 = false;
-	m8f1 = false;
-	if (!m8eb && !m8ed && !aWarp && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0)
+	mPointerOverFastGate = false;
+	mPointerOverSlowGate = false;
+	mPointerOverEasyGate = false;
+	if (!mWarpActive && !mWarpFlight && !aWarp && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0)
 	{
-		if (PointInRect(m1958, m195c, kStartRect) && m1a34 == 0 && !m910)
+		if (PointInRect(m1958, m195c, kStartRect) && m1a34 == 0 && !mBonusRoundOn)
 		{
-			if (m1bdc <= m1bd8 && !m8e4)
+			if (m1bdc <= m1bd8 && !mNewRowBouncing)
 				mApp->SetCursor(1);
 			mHintBoxes[0]->SetShown(true);
 			mHintBoxes[0]->mX = m1958 + 10;
@@ -641,7 +641,7 @@ void Board::MouseMove(int x, int y)
 
 	if (599 < m1958)
 	{
-		if (!m910)
+		if (!mBonusRoundOn)
 		{
 			// beyond the field: the box of the stats follows the pointer
 			mHintBoxes[1]->SetShown(true);
@@ -664,9 +664,9 @@ void Board::MouseMove(int x, int y)
 	// over the field: the box of the brick under the pointer
 	if (m1958 < 0xa6 || 0x25d < m1958)
 		return;
-	if (m8eb || m8ed || aWarp || m8f4 || m8ec || mFlag8E9 || mFlag8E8 || m1924 != 0)
+	if (mWarpActive || mWarpFlight || aWarp || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || m1924 != 0)
 		return;
-	if (m910 && m195c < 0x22)
+	if (mBonusRoundOn && m195c < 0x22)
 		return;
 
 	int aCol = (m1958 - 0xa6) / 0x2c;
@@ -835,7 +835,7 @@ static bool CatchFromGroups(Board* theBoard, std::list<std::list<Brick*> >& theG
 					}
 					if (aBrick->mMutated == 1 || aBrick->mType == 7 || aBrick->mType == 0xc || aBrick->mType == 9)
 					{
-						if (!theBoard->m90b)
+						if (!theBoard->mClickRepeating)
 							theBoard->mApp->PlaySample(SOUND_CANT_CLICK);
 						anOk = false;
 						break;
@@ -899,11 +899,11 @@ bool Board::CatchFrom94(bool* theOk)
 // (the end of 0x472360, at 0x47324a) the sound of the click, and the checks that every pick up ends with
 void Board::PickUpDone(bool theFail)
 {
-	if (!m90b)
+	if (!mClickRepeating)
 		mApp->PlaySample(theFail ? SOUND_CANT_CLICK : SOUND_LEFT_CLICK);
 	else if (theFail)
 		mApp->PlaySample(SOUND_CANT_CLICK);
-	m8e6 = true;
+	mBackdropTintChanging = true;
 	CheckStackHeight();
 	CheckShipColumn();
 }
@@ -913,9 +913,9 @@ void Board::PickUpDone(bool theFail)
 // order of two assignments and in the list of the lit cells being emptied).
 void Board::PopPsychic(bool theHandEmpty)
 {
-	if (!mFiredGroups.empty() || m1994 > 0 || CountMovingBricks(false) > 0 || m8e4 || mHoverCells.empty())
+	if (!mFiredGroups.empty() || m1994 > 0 || CountMovingBricks(false) > 0 || mNewRowBouncing || mHoverCells.empty())
 	{
-		if (!m90b)
+		if (!mClickRepeating)
 			mApp->PlaySample(SOUND_CANT_CLICK);
 		return;
 	}
@@ -940,7 +940,7 @@ void Board::PopPsychic(bool theHandEmpty)
 	}
 	if (aTargets.empty())
 	{
-		if (!m90b)
+		if (!mClickRepeating)
 			mApp->PlaySample(SOUND_CANT_CLICK);
 		return;
 	}
@@ -955,7 +955,7 @@ void Board::PopPsychic(bool theHandEmpty)
 	}
 
 	mApp->PlaySample(SOUND_PSYCHIC);
-	m91b = true;
+	mPsychicUsed = true;
 	for (size_t i = 0; i < aTargets.size(); i++)
 	{
 		int aCol = aTargets[i].mCol;
@@ -980,10 +980,10 @@ void Board::PickUp()
 {
 	bool anOk = true;
 
-	if (!m8e5 || m8ea || m1990 > 0 || (mHeldBricks.size() >= 6 && m1a34 == 0) ||
+	if (!mPickUpButtonDown || mStreaksFadingOut || m1990 > 0 || (mHeldBricks.size() >= 6 && m1a34 == 0) ||
 		(m1a34 == 1 && (mMode == 1 || mMode == 2)))
 	{
-		if (!m90b)
+		if (!mClickRepeating)
 			mApp->PlaySample(SOUND_CANT_CLICK);
 		return;
 	}
@@ -1019,7 +1019,7 @@ void Board::PickUp()
 	CellRef anEmptied = LowestEmptiedCell(aCol);
 	if (anEmptied.mCol != -1 || anEmptied.mRow != -1)
 	{
-		if (!m90b)
+		if (!mClickRepeating)
 			mApp->PlaySample(SOUND_CANT_CLICK);
 		return;
 	}
@@ -1049,7 +1049,7 @@ void Board::PickUp()
 				return;
 			if (aCell->IsIdle())
 			{
-				m91c = true;
+				mLaserUsed = true;
 				m1aec = 0x19;
 				int aKind = aCell->GetEffectiveType();
 				if ((aKind >= 0 && aKind <= 5 && !aCell->IsJammed()) || aKind == 7 || aKind == 9 ||
@@ -1077,7 +1077,7 @@ void Board::PickUp()
 		int aCellKind = aCell->GetEffectiveType();
 		if (aCell->mMutated == 1 || aCellKind == 7 || aCellKind == 0xc || aCellKind == 9)
 		{
-			if (!m90b)
+			if (!mClickRepeating)
 				mApp->PlaySample(SOUND_CANT_CLICK);
 			return;
 		}
@@ -1085,9 +1085,9 @@ void Board::PickUp()
 
 		// the hints of the first stages go on a step (a picture of the stage is shown once it has been taken)
 		unsigned int aStage = (unsigned int) mField193C;
-		if ((aStage < mStageHintPanels.size() && !mStageHintPanels[aStage]->mFadedOut) || m90a)
+		if ((aStage < mStageHintPanels.size() && !mStageHintPanels[aStage]->mFadedOut) || mTutorialStageForced)
 		{
-			if ((aStage == 1 || m90a) && mStageHintPanels.size() > 1)
+			if ((aStage == 1 || mTutorialStageForced) && mStageHintPanels.size() > 1)
 			{
 				StageBg* aBg = mStageHintPanels[1];
 				StageBg* aNext = aBg->mNext;
@@ -1099,24 +1099,24 @@ void Board::PickUp()
 						mHintPanels[0] = aNext;
 				}
 			}
-			else if (aStage != 1 && !m90a)
+			else if (aStage != 1 && !mTutorialStageForced)
 				mStageHintPanels[aStage]->mPanelAlphaStep = -8;
 		}
-		if (mField193C < 2 || m90a)
+		if (mField193C < 2 || mTutorialStageForced)
 		{
-			if (m1a60 == 2 && !m8fc && m1960 == 0)
+			if (m1a60 == 2 && !mPlayStarted && m1960 == 0)
 				m1960 = 0xff;
 		}
 		else
 		{
-			if (!m8fc)
+			if (!mPlayStarted)
 			{
 				Fire(0x2a, 0);
 				Fire(0x28, 0);
 				m1960 = 0xff;
 			}
-			m8fc = true;
-			m922 = false;
+			mPlayStarted = true;
+			mStartedFromCheckpoint = false;
 		}
 
 		// the bricks of the kind, up from the bottom of the stack
@@ -1159,7 +1159,7 @@ void Board::PickUp()
 	// ---- bricks in hand
 	if (aRow < 1)
 	{
-		if (!m90b)
+		if (!mClickRepeating)
 			mApp->PlaySample(SOUND_CANT_CLICK);
 		return;
 	}
@@ -1171,7 +1171,7 @@ void Board::PickUp()
 		Brick* aCell = mFieldBricks[aRow][aCol];
 		if (aCell->IsIdle())
 		{
-			m91c = true;
+			mLaserUsed = true;
 			int aKind = aCell->GetEffectiveType();
 			if ((aKind >= 0 && aKind <= 5 && !aCell->IsJammed()) || aKind == 7 || aKind == 9 ||
 				aCell->mMutated == 0 || aCell->mMutated == 1)
@@ -1233,7 +1233,7 @@ void Board::PickUp()
 // bottom of the screen up to the top of the stack; a column nuke in hand is fired instead of shot.
 void Board::FirePiece()
 {
-	if (CountMovingBricks(false) >= 1 || mHeldBricks.empty() || m916)
+	if (CountMovingBricks(false) >= 1 || mHeldBricks.empty() || mClearCountRunning)
 		return;
 
 	int aRow = FindBottomRow(m198c, true) + 1;
@@ -1307,7 +1307,7 @@ void Board::FirePiece()
 				if (mHandKindBrick != NULL)
 					mDoomedBricks.insert(mHandKindBrick);
 				mHandKindBrick = NULL;
-				m8e6 = true;
+				mBackdropTintChanging = true;
 				mSpecialBannerTexts.clear();
 			}
 			return;
@@ -1315,7 +1315,7 @@ void Board::FirePiece()
 
 		if (0x1a7 - (int) mHeldBricks.size() * 0x19 < aY)
 		{
-			if (!m90b)
+			if (!mClickRepeating)
 				mApp->PlaySample(SOUND_CANT_CLICK);
 			return;
 		}
@@ -1358,6 +1358,6 @@ void Board::FirePiece()
 		mDoomedBricks.insert(mHandKindBrick);
 	mHandKindBrick = NULL;
 	mHeldBricks.clear();
-	m8e6 = true;
+	mBackdropTintChanging = true;
 	mSpecialBannerTexts.clear();
 }

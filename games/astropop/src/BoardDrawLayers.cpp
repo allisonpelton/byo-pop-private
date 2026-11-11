@@ -27,7 +27,7 @@ void Board::Draw(Graphics* g)
 	// (the original asks the application if it has 3D here and does nothing with the answer)
 	int aCount = (m1924 < 1) ? mUpdateCnt : m1af0;
 
-	if (m901)
+	if (mScreenWiping)
 	{
 		mScreenWipe->Draw(g, 0, 0);
 		return;
@@ -42,21 +42,21 @@ void Board::Draw(Graphics* g)
 		DrawCel(g, IMAGE_PLAYER1_LASER, m198c, 0, mLaserAnim.GetCel());
 
 	DrawBricks(g, false);
-	if (!m8ed)
+	if (!mWarpFlight)
 		DrawBricks(g, true);
 
 	DrawGoalBanners(g, aCount);
 	DrawCrosshair(g);
 	DrawBonusIntro(g);
 	DrawExplosions(g);
-	if (mFlag8E8)
+	if (mGameOver)
 		DrawEndSparks(g);
-	if (m91d)
+	if (mEndPageShown)
 		DrawEndPage(g);
 	DrawSnow(g);
 
-	if ((m1a60 == 1 || m90a) &&
-		((!m8eb && (m8ed || (!m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0))) || m8ed))
+	if ((m1a60 == 1 || mTutorialStageForced) &&
+		((!mWarpActive && (mWarpFlight || (!mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0))) || mWarpFlight))
 		DrawStageBg(g);
 
 	DrawUpgradeArm(g);
@@ -70,7 +70,7 @@ void Board::Draw(Graphics* g)
 	DrawFreezeFx(g);
 	DrawSirens(g);
 
-	if (!m917 || m1bc8 == 0 || 0 < m1bc8)
+	if (!mBonusWarpIn || m1bc8 == 0 || 0 < m1bc8)
 		DrawShip(g);
 	if (m1a60 == 1)
 		DrawHud(g);
@@ -109,19 +109,19 @@ void Board::Draw(Graphics* g)
 	if (mMode == 2 && -IMAGE_TURBOT_WAVE->mHeight < m1a48)
 		g->DrawImage(IMAGE_TURBOT_WAVE, 0x8a, m1a48);
 
-	if (m910 && 0 < m1b7c)
+	if (mBonusRoundOn && 0 < m1b7c)
 	{
 		AnimateBanner();
 		g->DrawImage(mBannerWaveImage, 0x182 - mBannerWaveImage->GetWidth() / 2, 0xf0 - mBannerWaveImage->GetHeight() / 2);
 	}
 
-	if (m916)
+	if (mClearCountRunning)
 		DrawBonusStats(g);
-	if (m8ef && m1a60 == 1)
+	if (mAtWarpGate && m1a60 == 1)
 		DrawWarpScreen(g);
 
-	if (mApp->mHintsOn && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && !m916 &&
-		(!m910 || m913))
+	if (mApp->mHintsOn && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0 && !mClearCountRunning &&
+		(!mBonusRoundOn || mBonusRoundStarted))
 	{
 		for (unsigned int i = 0; i < mHintBoxes.size(); i++)
 			mHintBoxes[i]->Draw(g);
@@ -137,7 +137,7 @@ void Board::Draw(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawDangerZone(Graphics* g)
 {
-	if (!(!m910 && (13 < m970 || 0 < m1aac) && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0))
+	if (!(!mBonusRoundOn && (13 < m970 || 0 < m1aac) && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0))
 		return;
 
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -159,7 +159,7 @@ void Board::DrawDangerZone(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawModeTexts(Graphics* g)
 {
-	if (mFlag8E8)
+	if (mGameOver)
 		return;
 
 	if (m1a34 == 1)
@@ -173,7 +173,7 @@ void Board::DrawModeTexts(Graphics* g)
 			g->DrawString(mBonusBannerTexts[i].mText, mBonusBannerTexts[i].mX, mBonusBannerTexts[i].mY);
 		}
 	}
-	else if (!m916 && m1990 == 0 && !mSpecialBannerTexts.empty())
+	else if (!mClearCountRunning && m1990 == 0 && !mSpecialBannerTexts.empty())
 	{
 		Color aColor((int) (mApp->HSLToRGB(m1b04, 0xff, 0x80) | 0xff000000));
 		g->SetColor(aColor);
@@ -196,7 +196,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 	if (99 < aPulse)
 		aPulse = 200 - aPulse;
 
-	if (m1a34 == 1 && !m91b && !m91c && !mFlag8E8)
+	if (m1a34 == 1 && !mPsychicUsed && !mLaserUsed && !mGameOver)
 	{
 		g->SetColor(Color(0, 0, 0, 0x80));
 		g->FillRect(Rect(0, 0xe6, mWidth, 0x14));
@@ -217,9 +217,9 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 
 	// the pop-up of a hint is open
 	bool aHintOpen = !mHintSpots.empty() && mHintSpots[0]->mActive && !(-mLevelUpPanelHeight < mLevelUpPanelY);
-	if (!m922 || aHintOpen)
+	if (!mStartedFromCheckpoint || aHintOpen)
 	{
-		if (-1 < m1960 && m923 && (!m8eb || m8ec) && !m8ed && !m8ef && !m8f4 && !m8ec && !aHintOpen && m1a60 == 1 && 1 < m1940)
+		if (-1 < m1960 && mStageTextEnabled && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !aHintOpen && m1a60 == 1 && 1 < m1940)
 		{
 			int aTextAlpha;
 			int aFillAlpha;
@@ -285,7 +285,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawCrosshair(Graphics* g)
 {
-	if (mFlag8E8)
+	if (mGameOver)
 		return;
 
 	int aCol;
@@ -410,7 +410,7 @@ void Board::DrawSnow(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawUpgradeArm(Graphics* g)
 {
-	if (!((m1b2c == 2 || m1b2c == 4) && (m8ef || m8ed)))
+	if (!((m1b2c == 2 || m1b2c == 4) && (mAtWarpGate || mWarpFlight)))
 		return;
 
 	g->DrawImage(mLeftArmImage, mLeftArmX, mLeftArmY);
@@ -425,7 +425,7 @@ void Board::DrawUpgradeArm(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawSurvivalIntro(Graphics* g)
 {
-	if (!(m1a60 == 2 && !m8fc))
+	if (!(m1a60 == 2 && !mPlayStarted))
 		return;
 
 	int anAlpha = m1960;
@@ -480,7 +480,7 @@ void Board::DrawSurvivalIntro(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawLogo(Graphics* g)
 {
-	if (m1afc < 1 || mFlag8E8 || m910)
+	if (m1afc < 1 || mGameOver || mBonusRoundOn)
 	{
 		Image* aLogo = (m1a60 != 2) ? IMAGE_UI_LOGO_CLASSIC : IMAGE_UI_LOGO_SURVIVAL;
 		g->DrawImage(aLogo, m1a80, 0x1d);
@@ -503,7 +503,7 @@ void Board::DrawLogo(Graphics* g)
 		g->DrawImage(IMAGE_UI_SCREEN_YELLOW, 0, 0);
 		aFont = (0x13 < m1b00) ? FONT_LARGE_COMBO_YELLOW : FONT_COMBO_YELLOW;
 	}
-	if (m1b00 < 6 || m924)
+	if (m1b00 < 6 || mComboTextVisible)
 	{
 		g->DrawImage(IMAGE_COMBO_LIST, 0xd, 0x10, aSrc);
 		std::string aText = StrFormat("x%d", m1b00);
@@ -525,7 +525,7 @@ static const int kBonusTextWidths[11] = {40, 77, 117, 154, 194, 216, 256, 293, 3
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawSupaBrackets(Graphics* g)
 {
-	if (m1ad4 == 0 || mFlag8E8)
+	if (m1ad4 == 0 || mGameOver)
 		return;
 
 	int aShift = -m1adc;
@@ -545,7 +545,7 @@ void Board::DrawSupaBrackets(Graphics* g)
 	{
 		Image* aTitle;
 		int aWidth;
-		if (!m910)
+		if (!mBonusRoundOn)
 		{
 			aWidth = kSupaTextWidths[m1acc];
 			aTitle = IMAGE_SUPA_WEAPON_TEXT;
@@ -568,7 +568,7 @@ void Board::DrawSupaBrackets(Graphics* g)
 			aName = GT(0x00565afc);
 		else if (mMode == 3)
 			aName = GT(0x00565aec);
-		if (m910)
+		if (mBonusRoundOn)
 			aName = GT(0x00565ae0);
 		Font* aFont = GetFontById(FONT_NEURO30_ID);
 		g->SetFont(aFont);
@@ -602,7 +602,7 @@ void Board::DrawFreezeFx(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawSirens(Graphics* g)
 {
-	if (mSirenAnim.mStopped || mFlag8E8)
+	if (mSirenAnim.mStopped || mGameOver)
 		return;
 
 	int aCel = mSirenAnim.GetCel();

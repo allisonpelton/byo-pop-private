@@ -20,10 +20,10 @@ void Board::DrawStageBg(Graphics* g)
 		return;
 
 	unsigned int aCount = (unsigned int) mStageHintPanels.size();
-	if ((unsigned int) mField193C >= aCount && !m90a)
+	if ((unsigned int) mField193C >= aCount && !mTutorialStageForced)
 		return;
 
-	unsigned int anIndex = m90a ? 1U : (unsigned int) mField193C;
+	unsigned int anIndex = mTutorialStageForced ? 1U : (unsigned int) mField193C;
 	StageBg* aBg = mStageHintPanels[anIndex];
 	if (aBg->mFadedOut)
 		return;

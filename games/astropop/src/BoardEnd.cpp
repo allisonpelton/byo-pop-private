@@ -14,12 +14,12 @@
 
 using namespace Sexy;
 
-// 0x45e680: one update of the end of a game (the Board's Update calls it while mFlag8E8 is set).
+// 0x45e680: one update of the end of a game (the Board's Update calls it while mGameOver is set).
 void Board::UpdateGameOver()
 {
 	mResultPulseAnim.Update();
 	m1b34 = (m1b34 + 4) & 0xff;
-	if (m905)
+	if (mGameOverAnimDone)
 		return;
 
 	if (m1948 > 0)
@@ -91,7 +91,7 @@ void Board::UpdateGameOver()
 		return;
 	if (m1948 != 0)
 		return;
-	m905 = true;
+	mGameOverAnimDone = true;
 	if (m1a60 == 1 || m1a60 == 2)
 		CreateEndButtons();
 }
@@ -101,7 +101,7 @@ void Board::UpdateGameOver()
 // the port frees it once the buttons have their copies.
 void Board::CreateEndButtons()
 {
-	m91d = true;
+	mEndPageShown = true;
 	mResultPulseAnim.SetNumFrames(0x1f);
 	mResultPulseAnim.SetDelay(1);
 	mResultPulseAnim.mPingPong = true;
@@ -172,11 +172,11 @@ int Board::WeaponLevelSum()
 // record lists (and the saved game is dropped); when the game is left in the middle the progress is stored instead.
 void Board::SaveFinalScore()
 {
-	if (mFlag8E8)
+	if (mGameOver)
 	{
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);
-		m908 = mApp->AddHallOfFame(aName, mScore, m1940, mMode, 1);
+		mInHallOfFame = mApp->AddHallOfFame(aName, mScore, m1940, mMode, 1);
 
 		int aBest = mScore;
 		mApp->mUser->GetInt(mMode, &aBest);
@@ -210,7 +210,7 @@ void Board::GameOver()
 	// (the original writes a line with the level to its trace list)
 	mApp->PlaySample(SOUND_VGAMEOVER);
 	mApp->PlaySample(SOUND_MEGA_EXPLOSION);
-	mFlag8E8 = true;
+	mGameOver = true;
 	for (unsigned int i = 0; i < mFieldButtons.size(); i++)
 		mFieldButtons[i]->SetDisabled(true);
 	mHelpButton->SetDisabled(true);
@@ -245,7 +245,7 @@ void Board::GameOver()
 
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);
-		m908 = mApp->AddHallOfFame(aName, mScore, m19b8 / 100, mMode, 2);
+		mInHallOfFame = mApp->AddHallOfFame(aName, mScore, m19b8 / 100, mMode, 2);
 
 		int aBestTime = 0;
 		mApp->mUser->GetInt(mMode + 0x67, &aBestTime);

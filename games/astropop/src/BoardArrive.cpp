@@ -35,7 +35,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 	theBrick->StopShake();
 	theBrick->StopFade();
 
-	if (m8e4)
+	if (mNewRowBouncing)
 	{
 		aFlag = theBrick->mSupported;
 		theBrick->SetTargetY((int) theBrick->mTargetY);
@@ -58,7 +58,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 	}
 
-	if (!m8e4 && CountMovingBricks(true) == 0)
+	if (!mNewRowBouncing && CountMovingBricks(true) == 0)
 	{
 		if (m1994 > 0)
 			return;
@@ -88,10 +88,10 @@ void Board::OnBrickArrived(Brick* theBrick)
 					HighlightTargets();
 					CheckStackHeight();
 					CheckShipColumn();
-					if (!m8fc)
+					if (!mPlayStarted)
 						Fire(0x2a, 0);
-					m8fc = true;
-					m922 = false;
+					mPlayStarted = true;
+					mStartedFromCheckpoint = false;
 					RemoveBrick(aBrick, aCol, aBottom + 1, false);
 					DropUnsupported(mTakenCells);
 					aGroup->erase(aBrickIt);
@@ -168,7 +168,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 
 		// the tutorial's first hint is dropped when it is the last but one
-		if ((mField193C == 1 || m90a) && !mDemoPlaying && !aFlag)
+		if ((mField193C == 1 || mTutorialStageForced) && !mDemoPlaying && !aFlag)
 		{
 			StageBg* aBg = mStageHintPanels[1];
 			if (aBg->mNext != NULL && aBg->mNext->mNext == NULL)
@@ -199,7 +199,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 			aLastKind = aKind;
 		}
 
-		if ((mField193C == 1 || m90a) && !mDemoPlaying)
+		if ((mField193C == 1 || mTutorialStageForced) && !mDemoPlaying)
 		{
 			if (mConnectedCells.size() >= (unsigned int) m1a54)
 			{
@@ -212,10 +212,10 @@ void Board::OnBrickArrived(Brick* theBrick)
 				aBg = mStageHintPanels[1];
 				aBg->mPanelAlphaStep = -8;
 				aBg->mPicAlphaStep = -8;
-				if (!m8fc)
+				if (!mPlayStarted)
 					Fire(0x2a, 0);
-				m8fc = true;
-				m922 = false;
+				mPlayStarted = true;
+				mStartedFromCheckpoint = false;
 			}
 		}
 
@@ -240,22 +240,22 @@ void Board::OnBrickArrived(Brick* theBrick)
 						aBrickIndex--;
 						++aPickBrick;
 					}
-					if (!m911)
+					if (!mStartBannerDoneInBonus)
 						mApp->PlaySampleAt(SOUND_BLOCK_HIT_BLOCK, ((int) (*aPickBrick)->mX - 0xa6) / 0x2c);
 				}
 				if (m1980 > 1 && mKillAllTypes.empty() && m1980 > 2 && (mField193C > 1 || m1a60 == 2))
-					m8ee = true;
+					mFuelCellDue = true;
 				if (mKillAllTypes.empty() && !AnyMoveLeft(NULL))
 				{
 					if (m19fc < 0x3d)
-						m19d8 = (int) ((float) m19cc + m930 * 20.0f);
+						m19d8 = (int) ((float) m19cc + mStackDanger * 20.0f);
 					else
 						m19fc = 0x3c;
 				}
 			}
 			else
 			{
-				m8fe = true;
+				mSetMadeSinceTopRow = true;
 				unsigned int anIndex = mConnectedCells.empty() ? 0 : (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mConnectedCells.size();
 				if (!HasMarkOfType(aLastKind))
 					mApp->PlaySampleAt(SOUND_MADE_SET, mConnectedCells[anIndex].mCol);
@@ -265,7 +265,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 		else
 		{
-			m8fe = true;
+			mSetMadeSinceTopRow = true;
 			unsigned int anIndex = (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mConnectedCells.size();
 			if (!HasMarkOfType(aLastKind))
 				mApp->PlaySampleAt(SOUND_MADE_BIG_SET, mConnectedCells[anIndex].mCol);
@@ -285,12 +285,12 @@ void Board::OnBrickArrived(Brick* theBrick)
 		CheckShipColumn();
 		if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
 			HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), false);
-		if (mMode == 2 && !m907 && m1a34 == 0 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
+		if (mMode == 2 && !mClearWaitStarted && m1a34 == 0 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 			BeginClearWait();
 		CheckSparseField();
 
 		// a field with no move left (the out flag of AnyMoveLeft is the byte that held "a set was made")
-		if (m910 && mKillAllTypes.empty() && !m912 && !m911 && m1b7c == 0 && m1994 == 0 && mFiredGroups.empty() && mFallingGroups.empty() &&
+		if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && m1994 == 0 && mFiredGroups.empty() && mFallingGroups.empty() &&
 			!AnyMoveLeft(&aFlag))
 		{
 			if (!aFlag)
@@ -334,7 +334,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		if (mKillAllTypes.empty() && !AnyMoveLeft(NULL))
 		{
 			if (m19fc < 0x3d)
-				m19d8 = (int) ((float) m19cc + m930 * 20.0f);
+				m19d8 = (int) ((float) m19cc + mStackDanger * 20.0f);
 			else
 				m19fc = 0x3c;
 		}

@@ -184,8 +184,8 @@ void Board::ClearBonus()
 // level's bonus score +0x960 for each brick, at most all of it).
 void Board::StartClearCount()
 {
-	m916 = true;
-	m90f = false;
+	mClearCountRunning = true;
+	mClicksBlocked = false;
 	m1b88 = 0;
 	m1b8c = 0;
 	if (mHandKindBrick != NULL)
@@ -273,13 +273,13 @@ void Board::UpdateBricks()
 		if (m1980 > 1 && mTakenCells.empty() && mFallingGroups.empty())
 		{
 			if (m1980 > 2 && (mField193C > 1 || m1a60 == 2))
-				m8ee = true;
+				mFuelCellDue = true;
 			if (m19fc > 0x3c && !AnyMoveLeft(NULL))
 			{
 				if (m19fc > 0x3c)
 					m19fc = 0x3c;
 				else
-					m19d8 = (int) ((float) m19cc + m930 * 20.0f);
+					m19d8 = (int) ((float) m19cc + mStackDanger * 20.0f);
 			}
 		}
 
@@ -288,9 +288,9 @@ void Board::UpdateBricks()
 		if (!aRemoved)
 		{
 			bool aFlag = false;
-			if (m910)
+			if (mBonusRoundOn)
 			{
-				if (!m912 && !m911 && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 && mFiredGroups.empty() &&
+				if (!mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 && mFiredGroups.empty() &&
 					mFallingGroups.empty() && !AnyMoveLeft(&aFlag))
 				{
 					if (!aFlag)
@@ -304,7 +304,7 @@ void Board::UpdateBricks()
 			}
 			else if (mFiredGroups.empty() && mFallingGroups.empty() && mTakenBricks.empty() && mKillAllTypes.empty() && CountMovingBricks(false) == 0)
 			{
-				m8fb = true;
+				mFieldCleared = true;
 				for (unsigned int aRow = 1; aRow < mFieldBricks.size(); aRow++)
 				{
 					int aCol = 0;
@@ -312,11 +312,11 @@ void Board::UpdateBricks()
 						aCol++;
 					if (aCol < 10)
 					{
-						m8fb = false;
+						mFieldCleared = false;
 						break;
 					}
 				}
-				if (m8fb)
+				if (mFieldCleared)
 					ClearBonus();
 			}
 		}
@@ -435,7 +435,7 @@ void Board::DropUnsupported(std::vector<CellRef>& theCells)
 		std::list<Brick*> aList;
 
 		bool aGo = true;
-		if (aRow != 0 && !(m910 && aRow == 1))
+		if (aRow != 0 && !(mBonusRoundOn && aRow == 1))
 		{
 			Brick* anAbove = mFieldBricks[aRow - 1][aCol];
 			aGo = (anAbove != NULL && anAbove->IsIdle());

@@ -116,9 +116,9 @@ bool Board::ColumnReachesShip(int theX)
 // ends, else the targets of the piece in hand are marked again.
 void Board::AddTopRow()
 {
-	if (mFlag8E8 || mFlag8E9)
+	if (mGameOver || mLevelUpPhase)
 		return;
-	if (!(m19c0 != 0 || m8eb || m8ed || m8ef || m8f4 || m8ec || m1924 != 0 || !mFallingGroups.empty() || !mFiredGroups.empty() ||
+	if (!(m19c0 != 0 || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || m1924 != 0 || !mFallingGroups.empty() || !mFiredGroups.empty() ||
 		!mTakenBricks.empty() || !mKillAllTypes.empty()))
 		return;
 
@@ -194,7 +194,7 @@ void Board::AddTopRow()
 		m958++;
 	}
 
-	m8e4 = true;
+	mNewRowBouncing = true;
 	if (!ColumnReachesShip(m198c))
 		HighlightTargets();
 	else

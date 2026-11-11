@@ -35,7 +35,7 @@ void Board::SortCells(std::vector<CellRef>& theCells)
 // and of the hyperspace go by it)
 bool Board::HasWarpState() const
 {
-	if ((!m8eb || m8ec) && !m8ed && !m8ef && !m8f4)
+	if ((!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked)
 		return false;
 	return true;
 }
@@ -45,7 +45,7 @@ bool Board::HasWarpState() const
 // stops the sounds and hides the buttons and only the last resumes them.
 void Board::Pause(bool theStart, bool theFlag)
 {
-	m8f7 = theFlag;
+	mPauseTextWanted = theFlag;
 	if (!theStart || mApp->GetDialog(100) != NULL)
 	{
 		if (mApp->GetDialog(100) == NULL)
@@ -66,7 +66,7 @@ void Board::Pause(bool theStart, bool theFlag)
 				m1928 = 0;
 				if (!mOverlay.mFlag80)
 					SetOverlayHidden(true);
-				if (!mFlag8E8)
+				if (!mGameOver)
 				{
 					mFieldButtons[0]->SetDisabled(false);
 					mFieldButtons[0]->SetVisible(true);
@@ -181,7 +181,7 @@ void Board::BeginPlay()
 		{
 			Fire(0x28, 1);
 			Fire(0x2a, 1);
-			m8f9 = false;
+			mAtomicBlastOver = false;
 
 			// the idle bricks with free space under them (or on the bottom row) and those that are buried
 			std::vector<CellRef> anExposed;
@@ -270,7 +270,7 @@ void Board::BeginPlay()
 			m1a48 = mHeight;
 			mTurbotPowerupAnim.SetStopped(false);
 			m1aa0 = 0;
-			m907 = false;
+			mClearWaitStarted = false;
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
 				for (int aRow = 1; aRow < 0x14; aRow++)
@@ -321,18 +321,18 @@ void Board::BeginPlay()
 		mShipShimmerY = 0;
 		mShipShimmerX = 0;
 		mShipShimmerWidth = 0x35;
-		if (!m8fc)
+		if (!mPlayStarted)
 		{
 			if (mMode != 1 && mMode != 2)
 			{
 				Fire(0x2a, 0);
 				Fire(0x28, 0);
 			}
-			if (!m8fc)
+			if (!mPlayStarted)
 				m1960 = 0xff;
 		}
-		m8fc = true;
-		m922 = false;
+		mPlayStarted = true;
+		mStartedFromCheckpoint = false;
 		m1b24 = 0;
 		m1ab8 = 6;
 		m1ac0 = PickSpawnDelay();
@@ -351,30 +351,30 @@ void Board::BeginPlay()
 			return;
 		}
 	}
-	else if (!m90b)
+	else if (!mClickRepeating)
 		mApp->PlaySample(SOUND_CANT_CLICK);
 }
 
 // 0x4342f0: a box is gone and the Board takes the keyboard back
 void Board::TakeFocus()
 {
-	m91a = true;
-	m90f = true;
+	mUpgradeDialogDone = true;
+	mClicksBlocked = true;
 	mApp->mWidgetManager->SetFocus(this);
-	m921 = true;
+	mUpgradeDialogSeen = true;
 }
 
-// 0x45a930: the OK of a hint panel (or of the theme's own panel, m919). The hint is marked as seen in the profile; when its
+// 0x45a930: the OK of a hint panel (or of the theme's own panel, mWeaponHintShown). The hint is marked as seen in the profile; when its
 // checkbox is ticked the hint is also switched off (and the panels after it go, as they are about the same thing). The next
 // panel, if there is one, takes its place; with none the game goes on.
 void Board::DismissHint()
 {
-	if (m919)
+	if (mWeaponHintShown)
 	{
 		mHintOkButton->SetVisible(false);
 		mApp->mUser->SetInt(mMode + 0x2a, 0);
 		mApp->mUser->Save();
-		m919 = false;
+		mWeaponHintShown = false;
 		Pause(false, true);
 		return;
 	}
@@ -444,15 +444,15 @@ void Board::RedrawAfterDialog()
 		aLoop->Stop();
 	if (!mApp->Is3DAccelerated())
 		mApp->CloseBoard();
-	m902 = false;
-	m901 = false;
+	mWipeImageCaptured = false;
+	mScreenWiping = false;
 	if (mOverlay.mColor58 != mOverlay.mFill)
 		mOverlay.MarkDirty();
 	MarkDirty();
 	((MemoryImage*) mScreenImage)->SetImageMode(false, false);
 	mApp->mWidgetManager->DrawWidgetsTo(mScreenGraphics);
 	((MemoryImage*) mScreenImage)->SetImageMode(true, true);
-	m903 = false;
-	m901 = true;
-	m90f = true;
+	mWipeImageUsed = false;
+	mScreenWiping = true;
+	mClicksBlocked = true;
 }

@@ -271,7 +271,7 @@ void Board::FadeBackdrop()
 	StepToward(mBackdropTint.mBlue, aBlue);
 
 	if (mBackdropTint.mRed == aRed && mBackdropTint.mGreen == aGreen && mBackdropTint.mBlue == aBlue)
-		m8e6 = false;
+		mBackdropTintChanging = false;
 }
 
 // 0x437a50: the speed table. The time played (m19b4) picks the row it lies in; the values of the game's speed are
@@ -420,13 +420,13 @@ void Board::StepScrollLayer(ScrollLayer* theLayer)
 		return;
 
 	float aSpeed = 0.0f;
-	if (m8eb && m938 > 0.0f)
+	if (mWarpActive && m938 > 0.0f)
 	{
 		aSpeed = m938 * 0.02f;
 		if (aSpeed > 9.0f)
 			aSpeed = 9.0f;
 	}
-	else if (m917)
+	else if (mBonusWarpIn)
 	{
 		aSpeed = m1c00;
 		if (aSpeed > 9.0f)
@@ -434,10 +434,10 @@ void Board::StepScrollLayer(ScrollLayer* theLayer)
 	}
 
 	float aStep;
-	if (!m8eb && !m917)
+	if (!mWarpActive && !mBonusWarpIn)
 		aStep = theLayer->mSpeed;
 	else
-		aStep = ((m8eb ? 10.0f : 13.0f) - aSpeed) + theLayer->mSpeed;
+		aStep = ((mWarpActive ? 10.0f : 13.0f) - aSpeed) + theLayer->mSpeed;
 
 	if (theLayer->mCur[1] > 0.0f)
 	{
@@ -470,18 +470,18 @@ void Board::StepScrollLayer(ScrollLayer* theLayer)
 }
 
 // 0x43a1f0: the scenery. The layer at +0x77c and the stars move in the plain game; the planets, the lightning and the
-// 100 streaks in the others (m8ed, m8ef, m8f4); the streaks always. The lightning draws from the game's random numbers.
+// 100 streaks in the others (mWarpFlight, mAtWarpGate, mWarpGatePicked); the streaks always. The lightning draws from the game's random numbers.
 void Board::UpdateScenery()
 {
-	if (!m8ed && !m8ef && !m8f4)
+	if (!mWarpFlight && !mAtWarpGate && !mWarpGatePicked)
 	{
 		StepScrollLayer(&mSceneryLayer);
 
 		for (size_t i = 0; i < mBackdropStars.size(); i++)
 		{
-			bool aSpecial = m917 && (m1bc0 == 1 || m1bc0 == 2);
+			bool aSpecial = mBonusWarpIn && (m1bc0 == 1 || m1bc0 == 2);
 			StarRec& aStar = mBackdropStars[i];
-			if (m8eb || aSpecial)
+			if (mWarpActive || aSpecial)
 			{
 				aStar.mSpeed = (float) ((double) aStar.mSpeed + (double) 0.05f);
 				if (aSpecial && !(aStar.mSpeed < 4.0f))
@@ -542,7 +542,7 @@ void Board::UpdateScenery()
 		if (aHeight < (double) aStreak.mY)
 		{
 			bool aRespawn;
-			if (!m8eb && !m8ec && !m8ed && !m917)
+			if (!mWarpActive && !mWarpCharging && !mWarpFlight && !mBonusWarpIn)
 				aRespawn = true;
 			else
 				aRespawn = (double) (aStreak.mMargin + mHeight) <= (double) aStreak.mY;
@@ -570,7 +570,7 @@ void Board::StoreProgress()
 // 0x43b9c0: the klaxon plays while the field has no room left for the next piece
 void Board::UpdateKlaxon()
 {
-	if (!m910 && !m917 && !m8ec && !m8eb && !m8ed && !m8ef && !m8f4 && !m901)
+	if (!mBonusRoundOn && !mBonusWarpIn && !mWarpCharging && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mScreenWiping)
 	{
 		SoundInstance* aKlaxon = mApp->mLoopSounds[7];
 		if (!NoRoomLeft())
@@ -590,8 +590,8 @@ void Board::UpdateKlaxon()
 bool Board::IsSettled(bool theAssumeIdle)
 {
 	bool aIdle = theAssumeIdle ? true : (m1a34 == 0);
-	if (!m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && m1a60 != 2 && aIdle &&
-		!m910 && m928 == 1.0f && m1990 == 0 && mFallingGroups.empty() && mFiredGroups.empty())
+	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0 && m1a60 != 2 && aIdle &&
+		!mBonusRoundOn && mBrickometerFill == 1.0f && m1990 == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 	{
 		if (CountMovingBricks(false) == 0 && mAtomicMarkedBricks.empty() && mTakenBricks.empty() && mKillAllTypes.empty())
 			return true;
@@ -662,12 +662,12 @@ Brick* Board::CreatePowerBrick(int theType)
 // PulsePair, a third one fading the picture away
 void Board::UpdateStageBackground()
 {
-	if (!((unsigned int) mField193C < mStageHintPanels.size() || m90a || (!mHintSpots.empty() && mHintSpots[0]->mActive != 0)))
+	if (!((unsigned int) mField193C < mStageHintPanels.size() || mTutorialStageForced || (!mHintSpots.empty() && mHintSpots[0]->mActive != 0)))
 		return;
 
 	StageBg* aBg;
 	if (mHintSpots.empty() || mHintSpots[0]->mActive == 0)
-		aBg = mStageHintPanels[m90a ? 1 : mField193C];
+		aBg = mStageHintPanels[mTutorialStageForced ? 1 : mField193C];
 	else
 		aBg = mHintSpots[0]->mBg;
 
