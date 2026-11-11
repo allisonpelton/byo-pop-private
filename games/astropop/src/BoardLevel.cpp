@@ -92,7 +92,7 @@ void Board::LevelComplete()
 	if (m1ad4 != 0)
 		m1ad4 = 6;
 	m1b1c++;
-	gFlag5A5100 = false;
+	gStateSaved = false;
 	if (m1980 > 1)
 		PayComboBonus();
 

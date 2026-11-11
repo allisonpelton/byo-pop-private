@@ -22,8 +22,8 @@ BoardOverlay::BoardOverlay()        // 0x4327c0
 	mColor58 = mFill;
 	mHasAlpha = true;
 	mHasTransparencies = true;
-	mFlag78 = false;
-	mFlag80 = false;
+	mEmergencyPause = false;
+	mShownWhileRunning = false;
 	mMouseVisible = false;
 }
 
@@ -141,7 +141,7 @@ void Board::SetOverlayHidden(bool theHide)
 	{
 		mOverlay.SetVisible(false);
 		mOverlay.SetDisabled(true);
-		mOverlay.mFlag80 = false;
+		mOverlay.mShownWhileRunning = false;
 		mOverlay.SetFill(mOverlay.mFill.mRed, mOverlay.mFill.mGreen, mOverlay.mFill.mBlue, 0);
 		return;
 	}
@@ -149,7 +149,7 @@ void Board::SetOverlayHidden(bool theHide)
 	mOverlay.SetVisible(true);
 	mOverlay.SetDisabled(false);
 	if (m1924 < 1)
-		mOverlay.mFlag80 = true;
+		mOverlay.mShownWhileRunning = true;
 }
 
 // 0x434570: the replay recording. The input state (m948, with its second byte (m94c >> 8)) is written when it changes, with

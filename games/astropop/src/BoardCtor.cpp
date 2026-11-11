@@ -749,7 +749,7 @@ void Board::OnFiring(int theEvent)
 	case 0x26:
 	case 0x27:
 	case 0x29:
-		gFlag5A5100 = false;
+		gStateSaved = false;
 		break;
 	}
 }

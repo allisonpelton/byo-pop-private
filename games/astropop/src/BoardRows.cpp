@@ -199,7 +199,7 @@ void Board::AddTopRow()
 		HighlightTargets();
 	else
 		GameOver();
-	gFlag5A5100 = false;
+	gStateSaved = false;
 
 	if (mRecordingDemo)
 	{

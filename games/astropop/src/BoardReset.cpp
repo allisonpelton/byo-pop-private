@@ -40,7 +40,7 @@ void Board::ResetGame()
 	mStartBannerDoneInBonus = false;
 	mPsychicUsed = false;
 	mLaserUsed = false;
-	gFlag5A5100 = false;
+	gStateSaved = false;
 	m1b24 = 0;
 	mBonusWarpIn = false;
 	m1984 = 0;

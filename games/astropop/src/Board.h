@@ -307,13 +307,13 @@ class BoardOverlay : public Text2004<Widget>
 public:
 	Color			mColor58;           // +0x58 (white, clear)
 	Color			mFill;              // +0x68 the colour the overlay fills the field with
-	bool			mFlag78;            // +0x78
+	bool			mEmergencyPause;            // +0x78 the game is paused because no room is left (the user's setting 0x2e is 1): the overlay draws the emergency panel and a click in the pause rectangle goes on
 	Board*			mBoard;             // +0x7c
-	bool			mFlag80;            // +0x80
+	bool			mShownWhileRunning;            // +0x80 set when the overlay is shown while no pause is on; the end of a pause hides the overlay unless this is set
 
 	BoardOverlay();                                     // 0x4327c0
 	void			SetFill(int theRed, int theGreen, int theBlue, int theAlpha);   // 0x432990
-	void			SetFlag78(bool theFlag) { mFlag78 = theFlag; }                  // 0x4329c0
+	void			SetEmergencyPause(bool theFlag) { mEmergencyPause = theFlag; }                  // 0x4329c0
 
 	// (the original's widget class also has two overrides that the port leaves to Widget: a mouse-move one and an
 	// is-point-visible one; the widget is not mouse-visible, so neither is ever called)
@@ -326,7 +326,7 @@ private:
 	void			DrawEmergency(Graphics* g);
 };
 
-extern bool gFlag5A5100;    // 0x5a5100
+extern bool gStateSaved;    // the quiet state of the game was saved (SaveGameState sets it); the bricks' moves clear it, and the update saves again only when it is clear
 
 extern float gTestChargeAtReset;   // a test's weapon charge for a new board and ResetState (BoardState.cpp), below 0: none
 

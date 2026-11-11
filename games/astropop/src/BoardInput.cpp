@@ -168,7 +168,7 @@ void Board::KeyChar(SexyChar theChar)
 				return;
 		}
 
-		if (!mOverlay.mFlag78 && (aFlag || !mWeaponHintShown || m1924 < 1))
+		if (!mOverlay.mEmergencyPause && (aFlag || !mWeaponHintShown || m1924 < 1))
 			Pause(m1924 == 0, true);
 	}
 	else if (theChar == 'z' || theChar == 'Z')
@@ -271,11 +271,11 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	if (m1924 == 1 && !mWeaponHintShown && (mHintSpots.empty() || !mHintSpots[0]->mActive))
 	{
 		// the game is paused: a click goes on with it
-		if (mOverlay.mFlag78)
+		if (mOverlay.mEmergencyPause)
 		{
 			if (!PointInRect(x, y, kPauseRect))
 				return;
-			mOverlay.SetFlag78(false);
+			mOverlay.SetEmergencyPause(false);
 			mApp->mUser->SetInt(0x2e, 0);
 			mApp->mUser->Save();
 			mStartWeaponAfterPause = true;
@@ -445,10 +445,10 @@ void Board::MouseMove(int x, int y)
 		return;
 	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && mLevelUpPanelHeight + mLevelUpPanelY > 0)
 		return;
-	if (m1924 != 0 && !mOverlay.mFlag78)
+	if (m1924 != 0 && !mOverlay.mEmergencyPause)
 		return;
 
-	if (!mAtWarpGate && !mOverlay.mFlag78)
+	if (!mAtWarpGate && !mOverlay.mEmergencyPause)
 	{
 		int aX = x;
 		if (aX < 0xa6)
@@ -595,7 +595,7 @@ void Board::MouseMove(int x, int y)
 		}
 	}
 
-	if (mOverlay.mFlag78)
+	if (mOverlay.mEmergencyPause)
 	{
 		// the pause hint: the pointer is a hand over its box
 		bool anInside = PointInRect(m1958, m195c, kPauseRect);

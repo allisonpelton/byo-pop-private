@@ -251,7 +251,7 @@ void Board::DrawFrame(Graphics* g)
 			int aX = m1958;
 			int aY = m195c;
 			bool aOverStart = aX >= 18 && aX <= 126 && aY >= 225 && aY <= 253 && m1a34 == 0;
-			bool aOverPause = mOverlay.mFlag78 && aX >= -4 && aX <= -4 + 152 && aY >= 194 && aY <= 194 + 102;
+			bool aOverPause = mOverlay.mEmergencyPause && aX >= -4 && aX <= -4 + 152 && aY >= 194 && aY <= 194 + 102;
 			if (aOverStart || aOverPause)
 			{
 				bool aBusy = mWarpCharging || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || aPanelOut || mBonusRoundOn || mBonusWarpIn || mClearCountRunning;

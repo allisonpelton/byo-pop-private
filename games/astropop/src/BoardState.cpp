@@ -188,7 +188,7 @@ void Board::SaveGameState()
 		return;
 
 	UserProfile* aUser = mApp->mUser;
-	gFlag5A5100 = true;
+	gStateSaved = true;
 	bool aIdle = !mWarpActive && !mWarpCharging && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked;
 	if (!mClearCountRunning && aIdle && !mBonusWarpIn && !mBricksRevealing)
 	{
@@ -295,4 +295,4 @@ void Board::SaveGameState()
 	SaveBestStat(aUser, mBestChain);
 }
 
-bool Sexy::gFlag5A5100 = false;   // 0x5a5100: set by SaveGameState, cleared by the callback at +0x60 and others (meaning not found yet)
+bool Sexy::gStateSaved = false;   // 0x5a5100: set by SaveGameState once it passes its quiet-field checks; the callback at +0x60 and the code that moves bricks clear it

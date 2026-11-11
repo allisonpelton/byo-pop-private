@@ -155,7 +155,7 @@ void Board::UpdateIntroAndTally()
 			if (m1b70 > 0)
 				m1b70--;
 			if (m1b70 % 100 == 0 && m1b70 > 0)
-				gFlag5A5100 = false;
+				gStateSaved = false;
 			if (m1b70 < 1 && CountMovingBricks(false) == 0 && mKillAllTypes.empty() && m1994 == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 			{
 				m1b70 = 0;

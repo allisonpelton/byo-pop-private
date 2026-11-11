@@ -35,7 +35,7 @@ void BoardOverlay::Draw(Graphics* g)
 	// a hint of the tutorial is showing: the first of the Board's hints is lit and the pause timer has run out
 	bool aHintShown = !aBoard->mHintSpots.empty() && aBoard->mHintSpots[0]->mActive && !(-aBoard->mLevelUpPanelHeight < aBoard->mLevelUpPanelY);
 
-	if (aBoard->m1924 < 1 && !aHintShown && !mFlag78)
+	if (aBoard->m1924 < 1 && !aHintShown && !mEmergencyPause)
 	{
 		g->SetColor(mFill);
 		g->FillRect(0, 0, mWidth, mHeight);
@@ -58,7 +58,7 @@ void BoardOverlay::Draw(Graphics* g)
 	}
 	else
 	{
-		if (!aHintShown && !mFlag78 && !aBoard->mWeaponHintShown)
+		if (!aHintShown && !mEmergencyPause && !aBoard->mWeaponHintShown)
 		{
 			// the pause: the field darkens and says so
 			if (aBoard->m1928 > 0)
@@ -82,11 +82,11 @@ void BoardOverlay::Draw(Graphics* g)
 			return;
 		}
 
-		if (!mFlag78 && aHintShown && !aBoard->mWeaponHintShown)
+		if (!mEmergencyPause && aHintShown && !aBoard->mWeaponHintShown)
 			DrawHint(g);
-		else if (!mFlag78 && aBoard->mWeaponHintShown)
+		else if (!mEmergencyPause && aBoard->mWeaponHintShown)
 			DrawWeaponHint(g);
-		else if (mFlag78)
+		else if (mEmergencyPause)
 			DrawEmergency(g);
 	}
 

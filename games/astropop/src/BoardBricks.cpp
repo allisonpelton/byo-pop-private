@@ -219,7 +219,7 @@ void Board::StartClearCount()
 	m1bb4 = aStep;
 	m1ba4 = (m1b94 == 0) ? m960 : 0;
 	SaveGameState();
-	gFlag5A5100 = false;
+	gStateSaved = false;
 }
 
 // 0x46e9b0: one update of every brick. First the bricks of the field step (rows 0 to 18). If a kill is asked for (the

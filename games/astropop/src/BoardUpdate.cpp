@@ -165,7 +165,7 @@ void Board::Update()
 		}
 
 		UpdateStates();
-		if (!gFlag5A5100 && m1a60 != 2 && !mGameOver && m1940 > 1)
+		if (!gStateSaved && m1a60 != 2 && !mGameOver && m1940 > 1)
 			SaveGameState();
 		ShowThemeButtons();
 		if (m1a44 < 0)
@@ -471,7 +471,7 @@ bool Board::SpawnControl()
 			if (aValue == 1 && m1bdc <= m1bd8)
 			{
 				Pause(true, false);
-				mOverlay.SetFlag78(true);
+				mOverlay.SetEmergencyPause(true);
 				return true;
 			}
 		}
