@@ -12,10 +12,12 @@
 #include "platform/ImageLoader.h"
 #include "platform/MusicLevels.h"
 #include "platform/VFS.h"
+#include "SDLSoundManager.h"
 
 #include <SDL.h>
 #include <stb_image.h>
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <deque>
@@ -153,12 +155,15 @@ struct Channel
 	bool mPaused = false;
 	float mGain = 1.0f;
 	int mFrequency = 0;
+	int mSfxID = 0;   // port: the sample's number in the sound log (BYOPOP_SOUNDLOG), as the framework's sounds have
+	int mLogNum = 0;  // port: this play's number in the log
 };
 
 // FMOD 3's sample: the decoded sound
 struct SampleHandle
 {
 	std::shared_ptr<Platform::SoundData> mData;
+	int mSfxID = 0;   // port: the number the sound log gives the sample
 };
 
 // The framework's side of bonnies::Host
@@ -601,6 +606,22 @@ public:
 
 	// FMOD 3 on the platform's mixer
 
+	// port: BYOPOP_SOUNDLOG, the sound log the framework's sounds write (Sexy::SoundLog, framework/SDLSoundManager.h),
+	// in the same lines: "load <id> <file> frames= rate= ch=" for a sample, "instance <id> #<n>" when a channel takes it,
+	// "play <id> #<n> vol= pan= pitch= loop=" when FSOUND_SetPaused starts it, "volume", "pitch" and "stop" lines for the
+	// channel after that. FMOD 3's volume (0-255) is a straight gain, logged as DirectSound's hundredths of a decibel,
+	// which the framework's volume is; it has no pan (always 0) and the game plays no loop. A sample's number is never
+	// reused, so a file's name in the log stays unambiguous.
+	int mNextSfxID = 0;
+	int mNextLogNum = 0;
+
+	static int LogVolume(float theGain)
+	{
+		if (!(theGain > 0.0f))
+			return -10000;
+		return std::max(-10000, (int)std::lround(2000.0 * std::log10((double)theGain)));
+	}
+
 	void* loadSample(const std::string& thePath) override
 	{
 		std::shared_ptr<Platform::SoundData> aData = Platform::Mixer::Get().LoadSound(thePath);
@@ -608,6 +629,9 @@ public:
 			return nullptr;
 		SampleHandle* aSample = new SampleHandle();
 		aSample->mData = aData;
+		aSample->mSfxID = mNextSfxID++;
+		SoundLog("load %d %s frames=%d rate=%d ch=%d", aSample->mSfxID, thePath.c_str(), (int)aData->mFrames, aData->mRate,
+			aData->mChannels);
 		return aSample;
 	}
 
@@ -621,11 +645,19 @@ public:
 			if (aChannel.mData == aSample->mData)
 			{
 				if (aChannel.mVoice >= 0)
-					Platform::Mixer::Get().StopVoice(aChannel.mVoice);
+					stopVoice(aChannel);
 				aChannel = Channel();
 			}
 		}
 		delete aSample;
+	}
+
+	// the voice of a channel stopped (the sound log's "stop": the framework logs one whenever a started sound is stopped,
+	// also when it had ended by itself)
+	void stopVoice(const Channel& theChannel)
+	{
+		SoundLog("stop %d #%d", theChannel.mSfxID, theChannel.mLogNum);
+		Platform::Mixer::Get().StopVoice(theChannel.mVoice);
 	}
 
 	bool channelBusy(const Channel& theChannel)
@@ -652,6 +684,9 @@ public:
 				aChannel.mData = aSample->mData;
 				aChannel.mPaused = true;
 				aChannel.mFrequency = aSample->mData->mRate;
+				aChannel.mSfxID = aSample->mSfxID;
+				aChannel.mLogNum = ++mNextLogNum;
+				SoundLog("instance %d #%d", aChannel.mSfxID, aChannel.mLogNum);
 				return i;
 			}
 		}
@@ -682,6 +717,7 @@ public:
 		if (aChannel == nullptr)
 			return;
 		aChannel->mFrequency = theFrequency;
+		SoundLog("pitch %d #%d %.4f", aChannel->mSfxID, aChannel->mLogNum, pitch(*aChannel));
 		if (aChannel->mVoice >= 0)
 			Platform::Mixer::Get().SetVoicePitch(aChannel->mVoice, pitch(*aChannel));
 	}
@@ -692,6 +728,8 @@ public:
 		if (aChannel == nullptr)
 			return;
 		aChannel->mGain = std::max(0, std::min(255, theVolume)) / 255.0f;
+		if (SoundLogOn())
+			SoundLog("volume %d #%d %d", aChannel->mSfxID, aChannel->mLogNum, LogVolume(aChannel->mGain));
 		if (aChannel->mVoice >= 0)
 			Platform::Mixer::Get().SetVoiceGain(aChannel->mVoice, aChannel->mGain, aChannel->mGain);
 	}
@@ -702,6 +740,9 @@ public:
 		if (aChannel == nullptr || thePaused || !aChannel->mPaused)
 			return;
 		aChannel->mPaused = false;
+		if (SoundLogOn())
+			SoundLog("play %d #%d vol=%d pan=0 pitch=%.4f loop=0", aChannel->mSfxID, aChannel->mLogNum,
+				LogVolume(aChannel->mGain), pitch(*aChannel));
 		aChannel->mVoice = Platform::Mixer::Get().StartVoice(aChannel->mData, aChannel->mGain, aChannel->mGain,
 			pitch(*aChannel), false);
 	}
@@ -712,7 +753,7 @@ public:
 		if (aChannel == nullptr)
 			return;
 		if (aChannel->mVoice >= 0)
-			Platform::Mixer::Get().StopVoice(aChannel->mVoice);
+			stopVoice(*aChannel);
 		*aChannel = Channel();
 	}
 
