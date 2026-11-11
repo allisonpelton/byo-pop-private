@@ -15,7 +15,9 @@ var ByopopSplits = (function () {
   "use strict";
   var DB = "byopop-splits", STORE = "runs", LAST_KEY = "byopop-splits-last", OPT_KEY = "byopop-splits-options";
   var KEYS = ["split", "reset", "undo", "skip", "pause"];
-  var DEFAULT_KEYS = { split: "Numpad1", reset: "Numpad3", undo: "Numpad8", skip: "Numpad2", pause: "" };
+  // each action's name in the Hotkeys dialog (whole keys, which the strings test finds)
+  var KEY_LABELS = { split: "splits.key_split", reset: "splits.key_reset", undo: "splits.key_undo", skip: "splits.key_skip", pause: "splits.key_pause" };
+  var DEFAULT_KEYS ={ split: "Numpad1", reset: "Numpad3", undo: "Numpad8", skip: "Numpad2", pause: "" };
   // the games whose update step is not the framework's 10 ms (MahjongApp.cpp sets mFrameTime 5)
   var STEP = { mahjongchina: 5, mahjongjapan: 5 };
   function T(k, o) { try { return ByopopStrings.t(k, o); } catch (e) { return k; } }
@@ -554,7 +556,7 @@ var ByopopSplits = (function () {
       d.body.appendChild(on);
       var tbl = make("div", "spl-keygrid");
       KEYS.forEach(function (a) {
-        var l = make("span", null, T("splits.key_" + a)), b = make("button", "spl-keybtn", keyName(keys[a])); b.type = "button";
+        var l = make("span", null, T(KEY_LABELS[a])), b = make("button", "spl-keybtn", keyName(keys[a])); b.type = "button";
         b.addEventListener("click", function () {
           if (capture) capture.b.textContent = keyName(keys[capture.a]);
           capture = { a: a, b: b }; b.textContent = "…";
