@@ -65,7 +65,7 @@ void GameDialog::MouseMove(int x, int y)
 // ---------------------------------------------------------------------------------------------------------
 // OptionsDialog
 
-// 0x418760
+// 0x418760 (0x418fc0, the dialog's SetColor, passes the button text colour on to its own buttons: the constructor sets theirs)
 OptionsDialog::OptionsDialog(SevenSeasApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_OPTIONSBUTTON], DIALOG_OPTIONS, true,
 		GT(0x004a3f6c), "", GT(0x004a3590), BUTTONS_FOOTER),
@@ -186,7 +186,16 @@ void OptionsDialog::Draw(Graphics* g)
 	g->SetColorizeImages(false);
 }
 
-// 0x4196f0: the buttons of the dialog (the footer button is the app's: ButtonDepress(2004))
+// 0x419770: a press clicks once more than the app's ButtonPress does for the footer button (the original's override plays
+// sample 0 after the base class, which has the footer's press go to the app and click; found by the coverage check)
+void OptionsDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_CLICK);
+}
+
+// 0x4197a0: the buttons of the dialog (the footer button is the app's: ButtonDepress(2004)); the original's ids 1 (Register)
+// and 3 (the PopCap site) are taken out
 void OptionsDialog::ButtonDepress(int theId)
 {
 	Dialog2004::ButtonDepress(theId);
@@ -201,7 +210,7 @@ void OptionsDialog::ButtonDepress(int theId)
 	}
 }
 
-// 0x419730 / 0x419770
+// 0x4196f0 (0x419730, the check box handler, only has the unregistered game's nag to show for the Fullscreen box)
 void OptionsDialog::SliderVal(int theId, double theVal)
 {
 	if (theId == 0)
@@ -520,6 +529,13 @@ void NagDialog::MouseMove(int x, int y)
 {
 	Dialog2004::MouseMove(x, y);
 	mApp->FollowMouse(mX + x, mY + y);
+}
+
+// 0x40d280: a press clicks once more than the app's ButtonPress does for the footer button (as OptionsDialog::ButtonPress)
+void NagDialog::ButtonPress(int theId)
+{
+	Dialog2004::ButtonPress(theId);
+	mApp->PlaySample(SOUND_CLICK);
 }
 
 // 0x40cbe0 / 0x4266f0: the framed box, the title in white (the warnings: BEWARE!) and the text in gold, every line
