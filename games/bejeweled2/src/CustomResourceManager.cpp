@@ -2,6 +2,7 @@
 #include "CustomResourceManager.h"
 
 #include "DDImage.h"
+#include "ImageFont.h"
 #include "SexyAppBase.h"
 #include "WinDMApp.h"
 
@@ -123,13 +124,26 @@ bool CustomResourceManager::DoLoadImage(ImageRes* theRes)
 	return aLoaded;
 }
 
-// 0x5b4f8c
+// 0x5b4f8c: a font with an "sm_path" takes that descriptor in the 640 by 480 game; one without takes the same descriptor at
+// five eighths of its size (an ImageFont scaled by 0.625; the white-on-alpha fonts, whose path says "wh_", scale their
+// images as white)
 bool CustomResourceManager::DoLoadFont(FontRes* theRes)
 {
 	if (HasAttribute(theRes->mXMLAttributes, "sm_path"))
 	{
 		const char* aKey = (mApp->mWidth == 640) ? "sm_path" : "path";
 		theRes->mPath = "data\\" + SexyStringToStringFast(theRes->mXMLAttributes[aKey]);
+		return ResourceManager::DoLoadFont(theRes);
 	}
-	return ResourceManager::DoLoadFont(theRes);
+	if (mApp->mWidth != 640)
+		return ResourceManager::DoLoadFont(theRes);
+
+	ImageFont* aFont = new ImageFont(mApp, theRes->mPath);
+	if (theRes->mPath.find("wh_") != std::string::npos)
+		aFont->mForceScaledImagesWhite = true;
+	aFont->SetScale(0.625);
+	aFont->Prepare();
+	// the original lists the font's layers here (a no-op copy of each layer's image reference) and does no more
+	theRes->mFont = aFont;
+	return true;
 }

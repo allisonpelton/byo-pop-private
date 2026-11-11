@@ -7,8 +7,9 @@ the original) stay in game.log.
     python games/bejeweled2/tools/origcmp/record.py --exe <exe> --userdir <a new folder> --out <dir> --mode classic [--moves 60]
 
 --mode is a game mode, `hidden`, `resume` (Classic left by its menu button and loaded again), `load` (the saved game of the
-player's folder, which make_save.py makes; --hyper swaps a hyper cube first) or `tour` (phase two's first screens, each shot
-when it stands still; the original takes the same shots at the same updates in Windows Sandbox).
+player's folder, which make_save.py makes; --hyper swaps a hyper cube first), `tour` (phase two's first screens, each shot
+when it stands still; the original takes the same shots at the same updates in Windows Sandbox) or `tourload` (the same for a
+saved game: PROFILE=<make_save.py's folder>, the menu, "Load Game?" and the loaded board).
 
 Writes <out>/events.json ({"play": the update of the title's play click, "events": [[update, "command line"], ...]}) and
 <out>/game.log. Runs under rundesk (the Driver does that), held, fast and seeded.
@@ -46,7 +47,9 @@ class Recorder(Driver):
         """A screenshot of the port, noted with its update so that the original is captured at the same one (to_origrun.py
         writes `at <update> shot <name>`, which origrun takes only inside Windows Sandbox)."""
         s = self.state()
-        self.events.append([s['updates'] + 1, 'shot ' + name])
+        # the picture is the frame already drawn for the update the state reply names (an input, sent after it, runs one update
+        # later); the slide of the How To Play page showed it: with +1 the port's frame lagged the original's by one update
+        self.events.append([s['updates'], 'shot ' + name])
         return super().shot(name)
 
 
@@ -103,8 +106,17 @@ def tour(d, a):
                 top = max(s['dialogs'])
                 if shots and top not in seen:
                     seen.add(top)
+                    if top == 40 and os.environ.get('TOUR_FINE'):  # the slide's own curve, a shot every few updates (the port only)
+                        for k in range(24):
+                            d.shot('fine%02d' % k)
+                            d.ok('wait 2')
+                        continue
                     d.ok('wait 60')
                     d.shot('dialog%d' % top)
+                    if top == 40:  # the How To Play page slides in over about 100 updates: three more shots along it
+                        for k in 'bcd':
+                            d.ok('wait 20')
+                            d.shot('dialog40' + k)
                     continue
                 if top == 36:
                     d.key('Escape')
@@ -120,6 +132,21 @@ def tour(d, a):
     d.ok('wait 120')
     s = settle(full.menu_ready, 'the menu')
     d.shot('menu')
+    # the high scores, and the options dialog opened from the menu (its Done button is the yes), each shot once it stands still
+    d.click(s['widgets']['scores'])
+    full.until(d, lambda s: s['screen'] == 'highscores' and not s['dialogs'], 'the high scores', 60)
+    d.ok('wait 120')
+    d.shot('scores')
+    d.click(d.state()['widgets']['back'])
+    s = settle(full.menu_ready, 'the menu')
+    d.ok('wait 60')
+    d.click(s['widgets']['options'])
+    s = full.until(d, lambda s: 2 in s['dialogs'] and 'yes' in (s.get('buttons') or {}), 'the options dialog', 60)
+    d.ok('wait 60')
+    d.shot('options-menu')
+    d.click(d.state()['buttons']['yes'])
+    s = settle(full.menu_ready, 'the menu')
+    d.ok('wait 60')
     d.click(s['widgets']['classic'])
     settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle', 'the board')
     d.ok('wait 60')
@@ -146,6 +173,39 @@ def tour(d, a):
     d.ok('wait 60')
     d.shot('board-loaded')
     return r
+
+
+def tourload(d, a):
+    """The screens of a saved game (PROFILE, from make_save.py; the original gets the same player staged in Windows Sandbox): the
+    title, the welcome back, the menu, "Load Game?" and the loaded board, each shot once it stands still."""
+    s = full.until(d, lambda s: full.menu_ready(s) and not s['dialogs'], 'the menu', 600)
+    d.ok('wait 120')
+    s = full.until(d, lambda s: full.menu_ready(s) and not s['dialogs'], 'the menu', 60)
+    d.shot('menu')
+    d.click(s['widgets']['classic'])
+    s = full.until(d, lambda s: 17 in s['dialogs'], 'the load dialog', 60)
+    d.ok('wait 60')
+    d.shot('loadgame')
+    d.click(d.state()['buttons']['yes'])
+    seen = set()
+    for _ in range(3000):  # the messages in front of a loaded game (a flame gem's, a hyper cube's) are shot once each and answered
+        s = d.state()
+        if s['dialogs']:
+            top = max(s['dialogs'])
+            if top not in seen:
+                seen.add(top)
+                d.ok('wait 60')
+                d.shot('dialog%d' % top)
+            full.handle_dialog(d, s)
+        elif s['screen'] == 'game' and s.get('phase') == 'idle':
+            break
+        else:
+            d.idle()
+    else:
+        raise SystemExit('the loaded board did not settle: ' + json.dumps(d.state()))
+    d.ok('wait 60')
+    d.shot('board-loaded')
+    return dict(loaded=True)
 
 
 def swap_hyper(d):
@@ -210,6 +270,9 @@ def main():
         s = d.state()
         if s['updates'] < a.play_at - 1:
             d.ok('wait %d' % (a.play_at - 1 - s['updates']))  # the original and the port then get every input at the same update
+        if a.mode == 'tourload':
+            d.ok('wait 60')
+            d.shot('title')
         if a.mode == 'tour':
             d.ok('wait 60')
             d.shot('title')
@@ -224,6 +287,8 @@ def main():
             start_hidden(d)
         elif a.mode == 'tour':
             toured = tour(d, a)
+        elif a.mode == 'tourload':
+            toured = tourload(d, a)
         elif a.mode == 'load':
             loaded, load_start = load(d, a)
         elif a.mode == 'resume':
@@ -236,7 +301,7 @@ def main():
         if a.mode == 'load':
             r = loaded
             start = load_start
-        elif a.mode == 'tour':
+        elif a.mode in ('tour', 'tourload'):
             r = toured
         elif a.mode == 'resume':
             r = resume(d, a)
