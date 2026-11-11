@@ -623,7 +623,9 @@ void RocketApp::ShowGameSelector()
 		mHead->SetSlide(false);
 		mHead->Move(250, -300);
 		mBoard->mState = 3;
+		// 0x42e9f0: the board leaves the widget manager and is deleted (the port left it behind: 100 KB a game)
 		mWidgetManager->RemoveWidget((Widget*) mBoard);
+		SafeDeleteWidget(mBoard);
 		mBoard = NULL;
 	}
 	if (mGameSelector != NULL)

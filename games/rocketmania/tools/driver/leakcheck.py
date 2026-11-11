@@ -20,10 +20,12 @@ user = os.path.join(out, 'user')
 subprocess.run(['cmd', '/c', 'rmdir', '/s', '/q', user], capture_output=True)
 open(cmd_path, 'w').close()
 os.remove(cmd_path)
+empty = os.path.join(out, 'empty.txt')
+open(empty, 'w').close()
 open(log_path, 'w').close()
 logf = open(log_path, 'wb')
 rundesk = os.path.abspath('build/native/rundesk.exe')
-proc = subprocess.Popen([rundesk, os.path.abspath(args.exe), '-commands=' + cmd_path, '-fast', '-seed=1', '-userdir=' + user],
+proc = subprocess.Popen([rundesk, os.path.abspath(args.exe), '-commands=' + cmd_path, '-realinput=' + empty, '-fast', '-seed=1', '-userdir=' + user],
                         stdout=logf, stderr=subprocess.STDOUT)
 
 
@@ -95,10 +97,14 @@ try:
         ok('click game 320 451')
         time.sleep(0.5)
     sizes = []
+    ROTATION = ('arcade', 'classic', 'strategy', 'options', 'highscores', 'credits', 'lost')
     for c in range(args.cycles):
-        mode = ('arcade', 'classic', 'strategy')[c % 3]
-        ok('goto %s 2' % mode)
-        ok('wait %d' % args.updates) if False else time.sleep(args.updates * 0.004)
+        mode = ROTATION[c % len(ROTATION)]
+        ok('goto %s 2' % ('arcade' if mode == 'lost' else mode) if mode in ('arcade', 'classic', 'strategy', 'lost') else 'goto %s' % mode)
+        time.sleep(args.updates * 0.004)
+        if mode == 'lost':   # the game over flow: the level-up screen, buy rockets, the high-score name box
+            ok('lose')
+            time.sleep(args.updates * 0.004)
         ok('goto menu')
         time.sleep(0.3)
         b = private_bytes(pid)

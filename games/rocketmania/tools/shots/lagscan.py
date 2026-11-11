@@ -80,6 +80,13 @@ for name, n in zip(names, labels):
     res = []
     shift = None
     ign = None
+    pn = frame(n)
+    if pn is not None:
+        # the alignment comes from the label's own frame, whatever the first frame of the window shows
+        a, b, _, _ = shotdiff.client_areas(oi, pn, cfg)
+        if a.shape == b.shape:
+            ign = shotdiff.ignore_mask(a.shape[:2], masks)
+            shift = shotdiff.search_shift(a, b, ign, args.tol, 8)
     for k in range(max(1, n - args.window), n + args.ahead + 1):
         pi = frame(k)
         if pi is None:

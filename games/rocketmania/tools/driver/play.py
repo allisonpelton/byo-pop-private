@@ -19,6 +19,7 @@ ap.add_argument('--diff', type=int, default=2)
 ap.add_argument('--out', default='build/ph2/driver')
 ap.add_argument('--timeout', type=int, default=900)
 ap.add_argument('--exe', default='build/native/rocketmania.exe')
+ap.add_argument('--reg', default='', help='settings the run starts with, "Name=value,..." as port.sh takes them (Is3D=0 starts in 2D)')
 args = ap.parse_args()
 
 out = os.path.abspath(args.out)
@@ -28,6 +29,12 @@ cmd_path = os.path.join(out, 'commands.txt')
 empty = os.path.join(out, 'empty.txt')
 user = os.path.join(out, 'user')
 subprocess.run(['cmd', '/c', 'rmdir', '/s', '/q', user], capture_output=True)
+if args.reg:
+    os.makedirs(user)
+    with open(os.path.join(user, 'registry.ini'), 'w') as f:
+        f.write('; Settings (emulated Windows registry, HKEY_CURRENT_USER)\n\n[SOFTWARE\\PopCap\\RocketMania]\n')
+        for kv in args.reg.split(','):
+            f.write('%s=dword:%s\n' % tuple(kv.split('=')))
 for p in (cmd_path, empty, log_path):
     open(p, 'w').close()
 os.remove(cmd_path)
