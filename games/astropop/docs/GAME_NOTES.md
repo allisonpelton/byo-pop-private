@@ -244,8 +244,8 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
   `src/Fixes.cpp`; on in an enabled mod, so the box's OK is silent; with the mod off, as in the port, it ticks).
   `games/astropop/tools/fixes_check.sh` proves it: the bot plays one game with real input (`realplay.py --charge 18000`, so the box
   comes up) with no mods and with the mod, and the sound logs differ by that one play of `sounds/timer1`, the other sounds and the
-  game's end the same. That is the whole mod: the port has no other bug or wait that only costs the player time (a clock
-  decides nothing in a game's play; the seed is the only thing a run takes from outside). The web page ships the mod on
+  game's end the same. That is the whole mod: phases one and two found no other bug or wait that only costs the player time (the
+  original's own clock decides nothing in a game's play: the seed is the only thing a run takes from outside). The web page ships the mod on
   (`<game>-fixes/`, cmake/ByopopWeb.cmake).
 
 ## 8. Oddities (not chased)
