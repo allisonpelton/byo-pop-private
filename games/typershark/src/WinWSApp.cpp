@@ -691,6 +691,21 @@ void WinWSApp::PauseMusic(bool thePause)
 	mPausedMusic.clear();   // (the original frees the vector's memory)
 }
 
+// port: the 2004 framework gives no widget the focus back when a modal dialog closes. Its SetBaseModal (0x439200) takes the
+// focus from the widget under the dialog, KillDialog (0x482f90) removes the dialog, and the game sets the focus itself where
+// it wants one (the board after a hint, the tutor when the statistics close). The shared framework is 1.3, whose
+// RemoveBaseModal hands the focus back to the widget that had it. With that, the typing tutor, which stands still while it
+// has no focus (TypingTutor::LostFocus 0x442020), ran on under the statistics screen after the "view stats?" box, its
+// creatures swimming and drawing random numbers where the original's stand still (found by phase 2's statistics tour). So
+// the widget to give the focus back to is forgotten as the dialog is added.
+void WinWSApp::AddDialog(int theDialogId, Dialog* theDialog)
+{
+	SexyApp::AddDialog(theDialogId, theDialog);
+	if (theDialog->IsModal() && !mWidgetManager->mPreModalInfoList.empty() &&
+		mWidgetManager->mPreModalInfoList.back().mBaseModalWidget == theDialog)
+		mWidgetManager->mPreModalInfoList.back().mPrevFocusWidget = NULL;
+}
+
 // 0x414350: plays module order theOrder on the other of the two songs and stops the one that plays; false when it is
 // already playing (or the board is in a mode that keeps its music). The orders: 0x11 menu, 0x2e map, 0x25 / 0x2b
 // board themes, 0x22 ...

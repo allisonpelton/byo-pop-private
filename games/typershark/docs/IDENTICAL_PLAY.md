@@ -1,100 +1,212 @@
 # Typer Shark: identical play
 
-Phase 1 (the game's logic) is in `PHASE1.md`. This file holds the phase 2 pass, the screens. Status: started, not finished. The
-menu screens are compared and identical; the game tours (board, creatures, bosses, map, typing tutor, game over, win dialog) are
-written and recorded but their originals were not run, so nothing of them is judged yet. The next session takes up from "What is
-left".
+The report of the identical-play pass, for the user. Phase 1 compared how the game plays (its state, update by update), phase 2
+how it looks and sounds (screens by shotdiff, sound, focus, the web build, play with real mouse and key events). The working
+notes of phase 1 are in `PHASE1.md`; the code facts are in `GAME_NOTES.md` (deviations in section 5, oddities in section 7).
 
-## Phase 2: screens
+## Phase 1: the game plays the same
+
+### What was compared, and how
+
+The original (Typer Shark Deluxe 1.02, the exe carved from the Steam copy) ran under origrun on its virtual clock with its random
+seed pinned; its memory was read at chosen updates (`at <N> peek`). The port ran with `-fast -seed=S -statelog`. Both got the same
+input at the same updates, from the same empty `users` folder and the same menu flow (a new player, no typing test, the mode's
+button). `tools/phase1/cmp.py` set the two side by side update by update: the update count, score, lives, the level timer's three raw
+values, the pause and hint flags, the letters typed, the dive, the diver's state, the zapper's charge, the game generator's index
+(every number drawn), and for each creature its kind, word, position, state and letters typed, in list order, the clam pairs,
+the end-of-level countdown, the difficulty, the typo counter and the wave type. No pictures in this phase.
+
+The games played: the menu to the first board; level 1 with three seeds; levels 1 to 3 with three seeds; an idle game to the game
+over; typos in levels 1 and 2; black sharks in levels 3 and 4; the first 25 levels of an Easy adventure and on to level 34 (every
+shark and piranha kind, the torpedo boss, the mecha shark, the mecha squid; 153190 updates, none of 11064 reads differ); the zapper;
+the abyss with three seeds (to 484 and 544 feet); the typing tutor's lessons 1, 12, 13, 15 and 17 to their ends, two of them with
+wrong keys; a treasure level with its 22 clams; Hard with every fifth letter wrong; Expert and Hard penalty piranhas; and the whole
+Easy adventure by a second route through every boss, the last level, the end-of-adventure dialog and the endless levels, to update
+200000. Every field read was equal, and where the scenario compared them the `users` folders were equal byte for byte at the end.
+
+### Changes
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| A black or red shark took its second word again once it was typed and never died, so a level with one never ended | `BlackShark::TypeLetter` 0x409fb0 and `RedShark::TypeLetter` 0x40b600 empty the word they take; Ghidra's export left that statement out | empties it (`mWord2 = ""`, `mWord3 = ""`) | be952da8 |
+| The abyss went to the next level every 100 feet | `Board::Update` 0x45c140 compares depth / 200 | `/ 200` | be952da8 |
+| The end-of-level word picker hung once every word of the list was used (found as an oddity, then fixed: it is a soft lock) | `GetLongWord` loops until it finds an unused word | stops when none is left | ce5f631b |
+
+### Oddities (not chased) and what was not compared
+
+A new profile's file holds an uninitialised number in the original (`UserProfile` +0x1c8) where the port writes 0: the file is 8 to
+10 bytes longer in the original, and nothing reads the number back before it is set. To see it: a new player, one tutor lesson,
+compare `user0.dat`. The other oddities and the quirks the port keeps are listed in `GAME_NOTES.md`, sections 5 and 7.
+
+Not compared in phase 1: the round-2 scenarios with seeds 2 and 3, Normal and X-Treme (the same code with other numbers from the
+level file), a level jump on a fresh profile, and the registry values. A saved game and the "continue?" question were left for phase
+2 (below).
+
+## Phase 2: it looks and sounds the same
 
 ### Method
 
-Both programs get the same input at the same updates. A tour is one list of steps (`games/typershark/tools/phase2/p2lib.py`) that is
-written twice: as an origrun script for the original (`at <update> click|move|text|key|shot|peek`) and as a `-script` for the port
-(the port's line N+1 matches origrun's `at N`; at one update a shot comes before the inputs of that update on both sides). The original
-runs only inside Windows Sandbox (`origrun --sandbox`, the virtual clock, the scripted cursor, update-timed shots; run name
-`typershark-p2`); the port runs under rundesk with `-fast -drawevery` from a users folder fixture whose registry holds `ScreenMode 0`
-and `Is3D 0`, so that its Options dialog starts where a sandbox run's does (windowed, no 3D). The 640x480 client is cut from the
-original's 646x509 capture, and the pairs are compared by `tools/shotdiff` with `games/typershark/shotdiff.json`. The state of the
-original at a shot can be read with `at N peek <expr>` and set beside the port's state log.
+A tour is one list of steps (`tools/phase2/p2lib.py`) written twice: an origrun script for the original and a `-script` for the
+port, with the shots at the same updates. The original runs inside Windows Sandbox (the only place origrun takes shots) on the
+virtual clock with the scripted cursor; the port runs under rundesk with `-fast -drawevery`, windowed and without 3D as a sandbox
+run is. The 640x480 client is cut from the original's capture and the pairs go through `tools/shotdiff`; only the boxes it flags
+were looked at. The original's capture is 2 levels of 255 darker on every channel than the port's picture everywhere (white is 253),
+which shotdiff's tolerance takes in.
 
-<!-- private: The original's loading thread runs on the wall clock, so on the virtual clock the title screen was still loading when the
-script began. A scratch patch list (git-ignored, under build/ts-p2) makes the loading in the copy run in one go. -->
-The copy of the original is started with a patch list kept outside the repository: its loading runs in one go (the port loads in one
-go by the user's rule), the other patches are those of phase 1's runs.
-<!-- /private -->
+Three things about the method had to be put right before the game tours meant anything, and each first showed as a difference:
 
-### Tour M: the menus (98 pairs, 98 match)
+- *The original was given the port's users folder* (an environment variable that both run scripts read), found no `users/user.idx`,
+  wrote one and drew a random number for it, and so played another game from the first board on. `runorig.sh` now takes the
+  original's folder from its own variable (862ab070).
+- *The port's shots were one input ahead* in the tours written before the shot-before-input order was fixed in the generator.
+- *The framework's `screenshot` command draws the screen once more.* In this game a draw is a step: the sea's two strips, the
+  rating popup and the map's last scroll ease once a draw, so every shot put the port a step ahead (the arch on the map one pixel
+  off, sea pixels a level apart). The port's shots are now taken by its own test command `shot`, which reads the screen back
+  without drawing (3897691a). With it the map's eased scroll reads the same values in both programs at all 16 updates sampled.
 
-The scenario: a first start (no profile), the NEW USER dialog at several updates, a name typed a letter an update (a shot after each of
-the first ones, then later for the caret), the "assess WPM" question and its No, the menu, the cursor over each button and link (the
-Adventure, Abyss and Typing Tutor buttons, the Hall of Fame, Options and Quit buttons, the "not you" and statistics links, away),
-the Options dialog (open, hover, Enable Fx off and on, Custom Cursors on and off, Space bar pauses, both sliders dragged, Credits and
-its dialog, Done), the Hall of Fame (empty), the three statistics tabs, the difficulty dialog with the cursor over each button and its
-Cancel. Title shots at updates 5, 30, 100 and 300. All 98 pairs match with no ignore rectangle.
+### Tours and results
 
-| Screen | Result |
-| --- | --- |
-| Title, loading | match |
-| NEW USER dialog, empty and typed (caret) | match |
-| Assess WPM question | match |
-| Menu and every hover state | match |
-| Options dialog (every checkbox state, sliders, Credits dialog, Done) | match |
-| Hall of Fame (empty) | match |
-| Statistics (three tabs) | match |
-| Difficulty dialog (every button hovered, Cancel) | match |
+| Tour | What it shows | Pairs | Equal | Faint only |
+| --- | --- | --- | --- | --- |
+| M | title, new player, the WPM question, the menu and every hover, options (every box, both sliders, credits), hall of fame, statistics, the difficulty dialog | 98 | 98 | 0 |
+| S | a saved adventure: the board, pause, options and quit in a game, the menu's "continue?" with No and Yes | 33 | 31 | 2 |
+| U | the players: ten players made one after another, the "who are you?" list as it grows, its delete line, the delete dialog, a player picked | 70 | 70 | 0 |
+| R | quit, start again, carry on (two runs of each program, below) | 18 | 18 | 0 |
+HALL_ROW
+| idle | an idle game to the game over | 78 | 78 | 0 |
+| abyss | the abyss with its bonus creatures and hints | 81 | 79 | 2 |
+| tutor 17, tutor 18 | two typing tutor lessons (the keyboard picture, the hands, the finger rings, the results) | 283 | 283 | 0 |
+| expert | Expert with penalty piranhas, stealth sharks and piranhas | 210 | 149 | 61 |
+| bonus | Hard with treasure levels, clams, torpedoes, the level-end tally and the rank | 364 | 257 | 107 |
+| whole adventure | every level of an Easy adventure: every map, the bosses, the end-of-adventure dialog, the endless levels | 772 | 460 | 312 |
 
-Two things that first showed as differences and are not screen differences:
+No pair differs visibly. "Faint" is a box below shotdiff's visibility threshold; every faint box is one of three kinds, all
+judged:
 
-- The port's Options dialog showed Fullscreen and Hardware Acceleration checked. The port's shots came from a run that started with
-  the framework's registry defaults, a sandbox run is windowed and without 3D. With the fixture registry (`ScreenMode 0`, `Is3D 0`)
-  the dialogs match. An environment difference, no code change.
-- The original's capture holds the cursor the game draws itself when "Custom Cursors" is on (the image cursors, drawn into the window by
-  the DDInterface at `SetCursorImage`/`DrawCursorTo`; `EnforceCursor` 0x4aba70 draws them only when +0x52b, the option, or +0x541, the
-  demo-playback flag, is set). The port's `screenshot` command renders the widgets to the screen image and never draws the cursor (the
-  framework draws it in `DDInterface::Present`, after the capture). A tour that turns the option on shows a cursor box of 27x26 or
-  19x27 pixels at the mouse position in every later shot. The tour turns the option off again right after the Options shots, so the
-  remaining 98 pairs hold no cursor. With the option off, the original sets the system cursor, and its capture does not hold that.
-  A probe (`at N peek`) of the original on the menu read +0x52b = 0, +0x541 = 0 and cursor number 1 (hand) over the Adventure button.
+- *The status bar's meter edge* (404 boxes; 250 pixels, 10 to 24 levels of 255). While the board is not repainted and the bar is,
+  the original paints the bar's half-transparent picture over itself again; the port draws every frame whole, the board first, and
+  blends the bar once. A deviation of the shared framework, listed in `GAME_NOTES.md` section 5 with the measured colours.
+- *A few pixels of the sea* (183 boxes; at most 22 pixels, at most 15 levels). The same cause: the sea's strips ease once a draw,
+  the original stops easing when the board is not repainted and can rest a pixel short.
+- *The window's last column* (12 boxes; 1 to 10 pixels in column 638 or 639 where a creature is entering at the right edge). Two
+  runs of the port itself differ in these same pixels when a shot was taken the update before, so the column is not stable in the
+  port's own screen read-back. Not chased: an oddity of the comparison, below visibility (see Oddities).
 
-### Shared-code notes for the coordinator (specs, no change made)
+### Changes
 
-1. A `screenshot` variant that draws `DDInterface::DrawCursor`'s image into the capture would let a tour compare the custom cursor too.
-   Until then the original's custom cursor in a shot is not comparable.
-2. With "Custom Cursors" off the original sets its own system cursors: the hand and the drag hand are made by `CreateCursor` in the
-   SexyApp constructor (32x32 monochrome masks at 0x561788/0x561808 with hotspot (11,4), and 0x561888/0x561908 with hotspot
-   (15,10)). The framework's `SetSystemCursor` (framework/SexyAppBase.cpp, near line 268) uses SDL's system hand for both, so the
-   pointer over a button is Windows' hand, not the game's. It is the standard SexyAppFramework hand and drag cursor, so the fix is
-   shared: build the two cursors with `SDL_CreateCursor` from the framework's own hand data.
-3. Under rundesk the port's window reports a fullscreen flag at start (`SDL_WINDOWEVENT_SIZE_CHANGED` sets `mIsWindowed` from the
-   window's flags, line 2177), so a run without a registry fixture saves `ScreenMode 1`. To check in a normal window whether the first
-   start is windowed.
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| The cannon balls of the ghost ship and of the squid showed on one frame in twelve, and a ball sent back was never seen | 0x407a90 draws frame `mFrame` of a picture whose frames lie one below the other (74 wide, 44 apart) | the same rectangle (the port had its x and y swapped) | 3897691a |
+| The typing tutor's ring for the right middle and ring fingers sat 8 and 5 pixels too far left | 0x45e810 adds 8 and 5 to the ring's x for those two finger groups | adds them | 3897691a |
 
-### Candidates (GAME_NOTES.md section 10)
+Three candidates from the reading were judged against the original's pictures and are no faults: the options dialog's Credits button
+(equal in every pair), the keyboard picture's lit keys (equal; the mod's `tutorKeyboard` toggle mends what both show wrong) and the
+map's final panel (both scroll differences are -60, the ship shows, equal in 52 pairs).
 
-- F-8, the Options dialog's Credits button: the port and the original match in every Options pair (open, hover, pressed), so the port
-  keeps the original's look. The Credits label is drawn in the same white as the Done label in the original's shots. Not changed.
-- F-4 (tutor lines from the fifth line of a task), F-5 (keyboard picture keys 8, `*`, `{ } _ | \`) and F-6 (the final map panel's
-  ship): not yet judged, the original's tutor and map tours were not run. The tour `g_tut18` (lesson 18, a `tfirst` of 4 is reached) and
-  the whole-adventure tour `g_rt2` hold the shots; the symbol keys need a longer tutor recording (`rec.py ... --next 30` or more).
+### Quit, start again, carry on
 
-### What is left (written, not run on the original)
+Tour S asks "continue?" within one run. Tour R ends the program in between (`tools/phase2/tour_restart.py`, `restart.sh`). Run A
+plays an Easy adventure into level 2, presses QUIT and Yes, and the program ends on the menu. Run B starts each program again
+from what its own run A left: the port from its user folder, the original from its `users` folder and the registry values origrun
+exported after run A, put back as presets. In run B the menu greets the player without the new-player dialog, Adventure asks
+"continue?" with the saved level and difficulty, and Yes goes on in level 2 with the same score (47801) and lives (2). All 4 pairs
+of run A and all 14 of run B are equal, and the original's save file after run A is the port's byte for byte.
 
-Tours in `build/ts-p2/<name>/{orig,port}.txt` (git-ignored; regenerate with `tour_menu.py`, `tour_users.py`, `tour_saved.py`,
-`tour_game.py <name> <tag>` from `rec.py` recordings): `u1` (the players: ten users, Select User with the Delete line and the Delete
-dialog; the coordinates in `tour_users.py` are from the port's layout and not yet calibrated against pictures), `s1` (a saved
-adventure: the CONTINUE? dialog, pause, options in a game, the quit confirmation; the port side was run, 33 shots), `g_idle` (game over;
-the port side was run, 78 shots), `g_abyss`, `g_tutor17`, `g_tut18`, `g_exp` (penalty piranhas), `g_bon1` (clams), `g_rt2` (the whole
-adventure: maps, bosses, the win dialog). `queue.sh ports|origs <name>...` runs a list of tours as one stream, and `chain.sh` runs the
-port, the original and the diff of one tour. Not started: the abyss CONTINUE? dialog (needs a best depth of 400 feet: `abyss2` is
-recorded, the game-over click and the Abyss click remain to be written), the Hall of Fame with entries, rank titles by level-end screens.
-Run the port with `USERS=port-win` (the windowed, software fixture; make it from `port-clean` plus a `registry.ini` with `ScreenMode`
-and `Is3D` at `dword:0`) so that its Options dialogs match.
+origrun's registry map (`--reg-map popcap`, built in this pass after the user's OK of 2026-11-10: a copy's HKLM\SOFTWARE\PopCap
+keys go to HKCU, so that an unelevated copy on the host keeps its values between runs; `docs/ORIGRUN.md`) was tested on the host:
+a first run wrote 108 values, a second run of the same copy found 95 of the 103 it read. The pictures above were made without it,
+because inside the sandbox the copy writes HKLM itself. One run A with the map on in the sandbox ended a key press behind (still on
+the map when the port was in level 2), with the same registry values at its end; one run is not enough to say the map caused it,
+and it was not chased.
 
-### Oddities
+Two faults of the tools showed up as differences on the way, none of the game: `runorig.sh` copied the users folder a run left
+into the folder of an earlier run, so run B first started from a stale save and offered no "continue?" (fixed: the folder is
+cleared first); and on the host the original's loading thread runs on the wall clock, so with a busy machine the recording's first
+keys (update 1000) reached the title screen instead of the new-player dialog (the host runs now take phase 2's loading patch).
 
-None found so far.
+### Sound
 
-### Awaiting the user's review
+The same input on both sides: a new player, the menu, an Easy adventure through level 1, the map and the start of level 2
+(14200 updates). The original ran on the host with origrun's recording stand-in, which logs every sample play, and with a logging
+stand-in for its BASS, which logs the music calls (`tools/phase2/sound.sh`; Big Money's `bassproxy`, built without the one function
+this game's BASS lacks). The port wrote its own sound log.
 
-Nothing yet: every pair of tour M matches.
+- *Sound effects:* 40 sounds loaded on both sides, none differs; 1169 plays on both sides, the same sounds in the same order with
+  the same volume, pan and pitch.
+- *Music:* the port played none. Its one module (`music\Wordshar.mo3`, played from seven order positions on two alternating
+  songs) never loaded, because the game did not register the module player, and nobody had heard it: every test run is silent.
+  Once it loaded, the second fault showed: at a change of music the original fades the playing song out under the new one, the port
+  cut it off. After both fixes the two sides are equal event for event: 850 music events each (the plays with their order
+  positions, every volume step of every fade, the stops).
+
+| Difference | Cause in the original | The port now | Commit |
+| --- | --- | --- | --- |
+| No music at all, natively and on the web | BASS loads the MO3 module | `main` registers the module player (libopenmpt), as the other MO3 games' do | 955c6812 |
+| The song that played stopped at once when the music changed | `ChangeMusic` 0x414350 fades it out at the new song's speed and stops it when it is silent (0x4144e7) | the same (the test of the speed was the wrong way round) | 955c6812 |
+
+### Focus
+
+Losing and regaining the focus was compared in two ways. In the tours the window's focus was taken and given back with the game in
+play (tour S and the real-input runs below): the game pauses, shows its pause state and goes on, and the pairs around it are equal.
+In the page check the web page hidden and shown again changes the same state keys as the native window's `focus lose` and
+`focus regain` (paused and the timer while away; the hint box afterwards).
+
+### The web build
+
+*Pictures.* The web build ran four tours under Node from the same scripts as the native port, and the shots were compared with
+no tolerance at all (`tools/phase2/webshots.sh`): the menus (98 pairs), the whole adventure (772), tutor lesson 18 (163) and the
+abyss (81). Every pair is equal to within 6 levels of 255 (most within 3), which is the two builds' picture decoding. Three frames
+hold one to four pixels that differ more, all of the "last column" kind described under Oddities; the one in the adventure tour
+did not come back when its frame was shot alone.
+
+*Music on the page.* After the fix the page's mixer follows the module (its title, 19 channels, the order position moving).
+
+*The page check* (`tools/web/pagecheck.js` with `games/typershark/tools/web/pagecheck.js`): 11 lines pass, none fails. The page
+hidden and shown again mid-game changes the same state as the native window losing and regaining the focus; the keys the game takes
+stay out of the browser (the space bar, Backspace, the quote and the slash among them); the pointer lands on the right game pixel
+with the canvas drawn at 0.75, 1.5 and 2 times its size; a second copy of the page waits for the first; and after a reload mid-game
+the saves are back and the game in progress is kept. Return and Escape are not in the table's key list: the shared page does not
+cancel their keydown, and a browser does nothing with either on the canvas. That finding is with the coordinator.
+
+### Play with real mouse and key events
+
+Scripts, the typing bot and runs under Node never pass the real input path, so code played every mode through it: a driver reads the
+game's state from the test command `state`, takes its move from the port's own bot (`move`) and sends it as real events
+(`tools/realplay.py`: SDL events into the native window under rundesk; `tools/web/onegame.js`: DOM events in the page). From a first
+start each run types the player's name (a wrong letter and a Backspace first), answers the dialogs and plays the mode to its end.
+
+| Run | Where | Result |
+| --- | --- | --- |
+| Adventure, Easy, to the end | native, windowed | won: 8068 moves |
+| Adventure, Hard, to the end | native, full screen (Alt+Enter), focus lost and regained | won: 6862 moves |
+| Abyss to the game over | native, windowed | 2500 moves, levels 0 to 7 |
+| Abyss to the game over | native, full screen, focus lost and regained | 1200 moves |
+| Typing tutor, all 18 lessons, the statistics screen, back to the menu | native, windowed | 321 moves |
+| Typing tutor, 3 lessons | native, full screen, focus lost and regained | passed |
+| Adventure, Easy, to the end, and the endless levels | web page | won |
+| Adventure, Hard, to the end | web page | won: 6884 moves, 11 levels, no errors |
+| Abyss to the game over | web page, the canvas at twice its size, focus lost and regained | 600 moves |
+| Typing tutor, all 18 lessons | web page | 321 moves, the same count as natively |
+
+One fault of the driver, none of the game: a `#` in a commands file starts a comment, so the native driver typed nothing for the
+tutor's first `#` and lesson 10 stood still; it now sends such characters in quotes.
+
+### Oddities (not chased)
+
+- *The window's last column.* Where a creature crosses the right edge, up to 10 pixels of column 639 differ between the original
+  and the port, and between two runs of the port when one took a shot an update earlier. To see it: the abyss tour's shots
+  `012348_hint_25` and `016800_grid`. It would take finding what in the port's screen read-back touches that column; the pixels are
+  below what shotdiff counts as visible.
+- *The custom cursor in a shot.* The original's capture holds the cursor the game draws itself when "Custom Cursors" is on; the
+  port's shot does not. The menu tour turns the option off again after the options shots. A spec for a shot that includes the
+  cursor is with the coordinator.
+
+### Deviations that remain
+
+Each is without a visible effect and is listed with its reason in `GAME_NOTES.md`, section 5: the memory leaks fixed, loading in one
+go, the frame drawn whole (the two faint kinds above), the three fixes of phase 1 that mend a level that could not end, and the
+registration code that is gone.
+
+### For the user's review
+
+Nothing: no pair is left that the session could not judge.

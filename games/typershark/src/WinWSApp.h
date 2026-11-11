@@ -224,6 +224,7 @@ public:
 	virtual void			GotFocus() override;                                    // 0x426a10 slot 62
 	virtual void			LostFocus() override;                                   // 0x4269e0 slot 63
 	virtual MusicInterface*	CreateMusicInterface() override;                        // port: the module music interface (BASS in the original)
+	virtual void			AddDialog(int theDialogId, Dialog* theDialog) override;  // port: no focus comes back when a dialog closes (WinWSApp.cpp)
 
 	// ---- test hooks (src/testhooks/; docs/TEST_COMMANDS.md): reached only from a test's -script / -commands lines and the
 	// -statelog option, never by a normal run ----
