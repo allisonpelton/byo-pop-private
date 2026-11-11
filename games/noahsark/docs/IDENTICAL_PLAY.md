@@ -370,6 +370,6 @@ Enter in the high-score name box did nothing in the port. The original's handler
 the app, so Enter records the name; the port's was an empty function, and no run of the three phases, nor of the coverage check,
 had pressed Enter there (the bot and the replays click OK). The port now does the same as the original. It was checked with a
 script in the port (a score set, the game lost, a name typed, Enter: the high-score list follows, with the name in `hiscores.dat`);
-the original's function was read in the disassembly, eight instructions, and not run. The same script, quitting at the name entry
+the original's side was read in the disassembly (the edit widget's key functions and the dialog's handler; `GAME_NOTES.md`, section 13) and not run: scripted keys did not reach the original in the runs that tried. The same script, quitting at the name entry
 without pressing Enter, also showed a crash of the port at exit, which is fixed (the app's destructor takes its screens out of the
 widget manager before deleting them).
