@@ -69,7 +69,7 @@ inline const uint32_t* AlignRun(const uint8_t* p)
 
 } // namespace
 
-// 0x42fe50
+// 0x42f970 (cosmicbugs), 0x42fe50 (waterbugs)
 void Copy8(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, const uint8_t* theSrc, int theSrcX,
 	int theSrcY, int theSrcPitch, int, int theWidth, int theHeight)
 {
@@ -87,7 +87,7 @@ void Copy8(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, cons
 	}
 }
 
-// 0x42fee0
+// 0x42fa00 (cosmicbugs), 0x42fee0 (waterbugs)
 void Copy8Key(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, const uint8_t* theSrc, int theSrcX,
 	int theSrcY, int theSrcPitch, int, int theWidth, int theHeight)
 {
@@ -107,7 +107,7 @@ void Copy8Key(uint8_t* theDst, int theDstX, int theDstY, int theDstPitch, int, c
 	}
 }
 
-// 0x42ffb0
+// 0x42fad0 (cosmicbugs), 0x42ffb0 (waterbugs)
 void Copy16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
 	int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
@@ -125,7 +125,7 @@ void Copy16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const ui
 	}
 }
 
-// 0x430020
+// 0x42fb40 (cosmicbugs), 0x430020 (waterbugs)
 void Copy16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
 	int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth,
 	int theHeight)
@@ -144,7 +144,7 @@ void Copy16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, cons
 	}
 }
 
-// 0x430260
+// 0x42fd80 (cosmicbugs), 0x430260 (waterbugs)
 void Fill16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, int theSrcX,
 	int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight,
 	uint16_t theColour)
@@ -164,7 +164,8 @@ void Fill16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int
 	}
 }
 
-// 0x430870. At alpha 0xff it fills through the mask (0x430260) and then blends the same over it again, as the
+// 0x430390 (cosmicbugs), 0x430870 (waterbugs). At alpha 0xff it fills through the mask (0x42fd80 (cosmicbugs),
+// 0x430260 (waterbugs)) and then blends the same over it again, as the
 // original does (it does not return after the first pass).
 void Fill16MaskAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY, int theSrcX,
 	int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight,
@@ -188,7 +189,7 @@ void Fill16MaskAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt
 	}
 }
 
-// 0x430ef0
+// 0x430a10 (cosmicbugs), 0x430ef0 (waterbugs)
 void Blend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch,
 	int theMaskX, int theMaskY, int theWidth, int theHeight)
@@ -207,7 +208,7 @@ void Blend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, in
 	}
 }
 
-// 0x4315a0
+// 0x4310c0 (cosmicbugs), 0x4315a0 (waterbugs)
 void Alpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch,
 	int theMaskX, int theMaskY, int theWidth, int theHeight)
@@ -229,7 +230,8 @@ void Alpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, in
 	}
 }
 
-// 0x431d00. At alpha 0xff it draws Alpha16Mask (0x4315a0) and then blends over it again, as the original does.
+// 0x431820 (cosmicbugs), 0x431d00 (waterbugs). At alpha 0xff it draws Alpha16Mask (0x4310c0 (cosmicbugs),
+// 0x4315a0 (waterbugs)) and then blends over it again, as the original does.
 void Alpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch,
 	int theMaskX, int theMaskY, int theWidth, int theHeight, int theAlpha)
@@ -254,7 +256,7 @@ void Alpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt
 	}
 }
 
-// 0x432440
+// 0x431f60 (cosmicbugs), 0x432440 (waterbugs)
 void Add16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch,
 	int theMaskX, int theMaskY, int theWidth, int theHeight)
@@ -276,7 +278,8 @@ void Add16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int 
 namespace
 {
 
-// 0x432970 and 0x434a80 (the body both share). The image's corner is found from its centre (x, y) at the angle
+// 0x432490 (cosmicbugs), 0x432970 (waterbugs) and 0x4345a0 (cosmicbugs), 0x434a80 (waterbugs) (the body both share).
+// The image's corner is found from its centre (x, y) at the angle
 // of its half diagonal; each row then steps along (cos a, -sin a) and each row's start along (cos(a+270),
 // -sin(a+270)), both before the pixel is plotted. A pixel lands at its rounded position and also on the row
 // above when its y truncates there, which fills the gaps a rotation leaves.
@@ -291,7 +294,8 @@ void RotateBody(int theDstStep, int theSpitchStep, int theWidth, int theHeight, 
 	int aY0 = y - aHalfH;
 	const uint8_t* aMaskRow = theMask + theMaskY * theMaskPitch + theMaskX;
 	int aDeg;
-	if (theFloatAngle) // 0x42d590 rounds the arc tangent and the angle in degrees to floats
+	// 0x42d0b0 (cosmicbugs), 0x42d590 (waterbugs) rounds the arc tangent and the angle in degrees to floats
+	if (theFloatAngle)
 		aDeg = (int)(float)(((double)(float)std::atan2((double)(y - aY0), (double)(x - aX0)) * 180.0) / 3.1415927);
 	else
 		aDeg = (int)((std::atan2((double)(y - aY0), (double)(x - aX0)) * 180.0) / 3.1415927);
@@ -372,7 +376,7 @@ void PalRotate16(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int th
 		theAngle, theClip, false, [&](int theAt, int theSrcIndex) { d[theAt] = thePal->mP16[theSrc[theSrcIndex]]; });
 }
 
-// 0x42d590: the source is its own mask (0 transparent)
+// 0x42d0b0 (cosmicbugs), 0x42d590 (waterbugs): the source is its own mask (0 transparent)
 void Rotate8(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int theSrcPitch, int theWidth, int theHeight,
 	int x, int y, int theAngle, const int* theClip)
 {
@@ -380,7 +384,7 @@ void Rotate8(uint8_t* theDst, int theDstPitch, const uint8_t* theSrc, int theSrc
 		[&](int theAt, int theSrcIndex) { theDst[theAt] = theSrc[theSrcIndex]; });
 }
 
-// 0x432be0
+// 0x432700 (cosmicbugs), 0x432be0 (waterbugs)
 void Pal16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
 	const Palette* thePal, int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
@@ -400,7 +404,7 @@ void Pal16(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uin
 	}
 }
 
-// 0x432c70
+// 0x432790 (cosmicbugs), 0x432c70 (waterbugs)
 void Pal16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
 	const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask, int theMaskPitch, int theMaskX,
 	int theMaskY, int theWidth, int theHeight)
@@ -420,7 +424,7 @@ void Pal16Mask(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const
 	}
 }
 
-// 0x432ee0
+// 0x432a00 (cosmicbugs), 0x432ee0 (waterbugs)
 void PalBlend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask,
 	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
@@ -440,7 +444,7 @@ void PalBlend16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
 	}
 }
 
-// 0x4335c0
+// 0x4330e0 (cosmicbugs), 0x4335c0 (waterbugs)
 void PalAlpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask,
 	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
@@ -463,7 +467,8 @@ void PalAlpha16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
 	}
 }
 
-// 0x433db0. At alpha 0xff it draws PalAlpha16Mask (0x4335c0) and then blends over it again, as the original does.
+// 0x4338d0 (cosmicbugs), 0x433db0 (waterbugs). At alpha 0xff it draws PalAlpha16Mask (0x4330e0 (cosmicbugs),
+// 0x4335c0 (waterbugs)) and then blends over it again, as the original does.
 void PalAlpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask,
 	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight, int theAlpha)
@@ -489,7 +494,7 @@ void PalAlpha16MaskFade(uint8_t* theDst, int theDstPitch, const PixelFormat* the
 	}
 }
 
-// 0x434520
+// 0x434040 (cosmicbugs), 0x434520 (waterbugs)
 void PalAdd16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, int theSrcX, int theSrcY, const uint8_t* theMask,
 	int theMaskPitch, int theMaskX, int theMaskY, int theWidth, int theHeight)
@@ -512,8 +517,8 @@ void PalAdd16Mask(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, i
 namespace
 {
 
-// The RLE blitters' walk (0x434d00 and the others): per row, from its first pixel to its width, runs of skip,
-// n blended pixels (theBlended with each one's alpha) and the solid ones (theSolid)
+// The RLE blitters' walk (0x434820 (cosmicbugs), 0x434d00 (waterbugs) and the others): per row, from its first pixel to
+// its width, runs of skip, n blended pixels (theBlended with each one's alpha) and the solid ones (theSolid)
 template <typename BlendedFn, typename SolidFn>
 void RleWalk(int theDstPitch, int theSpitchStep, const uint8_t* theRle, BlendedFn theBlended, SolidFn theSolid,
 	int theDst)
@@ -550,7 +555,7 @@ void RleWalk(int theDstPitch, int theSpitchStep, const uint8_t* theRle, BlendedF
 
 } // namespace
 
-// 0x434d00
+// 0x434820 (cosmicbugs), 0x434d00 (waterbugs)
 void Rle16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theDstX, int theDstY, const uint8_t* theSrc,
 	int theSrcPitch, const uint8_t* theRle)
 {
@@ -560,7 +565,7 @@ void Rle16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theDstX
 		[&](int theD, int theS) { d[theD] = s[theS]; }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x434e20
+// 0x434940 (cosmicbugs), 0x434e20 (waterbugs)
 void Rle16Fill(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theRle, uint16_t theColour)
 {
@@ -569,7 +574,8 @@ void Rle16Fill(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int 
 		[&](int theD, int) { d[theD] = theColour; }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x434fe0. At alpha 0xff it fills (0x434e20) and then blends over it again, as the original does.
+// 0x434b00 (cosmicbugs), 0x434fe0 (waterbugs). At alpha 0xff it fills (0x434940 (cosmicbugs), 0x434e20 (waterbugs)) and
+// then blends over it again, as the original does.
 void Rle16FillAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theRle, uint16_t theColour, uint32_t theAlpha)
 {
@@ -591,7 +597,7 @@ void Rle16FillAlpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
 		theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x435270: the solid pixels are blended at 0xff, not copied
+// 0x434d90 (cosmicbugs), 0x435270 (waterbugs): the solid pixels are blended at 0xff, not copied
 void Rle16Blend(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const uint8_t* theRle)
 {
@@ -603,7 +609,7 @@ void Rle16Blend(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int
 		theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x435500
+// 0x435020 (cosmicbugs), 0x435500 (waterbugs)
 void Rle16Alpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const uint8_t* theRle)
 {
@@ -614,7 +620,8 @@ void Rle16Alpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int
 		[&](int theD, int theS) { d[theD] = s[theS]; }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x435700. At alpha 0xff it draws Rle16Alpha (0x435500) and then blends over it again, as the original does.
+// 0x435220 (cosmicbugs), 0x435700 (waterbugs). At alpha 0xff it draws Rle16Alpha (0x435020 (cosmicbugs),
+// 0x435500 (waterbugs)) and then blends over it again, as the original does.
 void Rle16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const uint8_t* theRle, uint32_t theAlpha)
 {
@@ -637,7 +644,7 @@ void Rle16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
 		theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x4359e0
+// 0x435500 (cosmicbugs), 0x4359e0 (waterbugs)
 void Rle16Add(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const uint8_t* theRle)
 {
@@ -648,7 +655,7 @@ void Rle16Add(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int t
 		[&](int theD, int theS) { d[theD] = Add(theFmt, s[theS], d[theD]); }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x435bf0
+// 0x435710 (cosmicbugs), 0x435bf0 (waterbugs)
 void RlePal16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theDstX, int theDstY, const uint8_t* theSrc,
 	int theSrcPitch, const Palette* thePal, const uint8_t* theRle)
 {
@@ -658,7 +665,7 @@ void RlePal16Copy(uint8_t* theDst, int theDstPitch, const PixelFormat*, int theD
 		[&](int theD, int theS) { d[theD] = p[theSrc[theS]]; }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x435d10: the solid pixels are blended at 0xff, not copied
+// 0x435830 (cosmicbugs), 0x435d10 (waterbugs): the solid pixels are blended at 0xff, not copied
 void RlePal16Blend(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, const uint8_t* theRle)
 {
@@ -670,7 +677,7 @@ void RlePal16Blend(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, 
 		theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x435fb0
+// 0x435ad0 (cosmicbugs), 0x435fb0 (waterbugs)
 void RlePal16Alpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, const uint8_t* theRle)
 {
@@ -681,7 +688,8 @@ void RlePal16Alpha(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, 
 		[&](int theD, int theS) { d[theD] = p[theSrc[theS]]; }, theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x4361b0. At alpha 0xff it draws RlePal16Alpha (0x435fb0) and then blends over it again, as the original does.
+// 0x435cd0 (cosmicbugs), 0x4361b0 (waterbugs). At alpha 0xff it draws RlePal16Alpha (0x435ad0 (cosmicbugs),
+// 0x435fb0 (waterbugs)) and then blends over it again, as the original does.
 void RlePal16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, const uint8_t* theRle, uint32_t theAlpha)
 {
@@ -704,7 +712,7 @@ void RlePal16AlphaFade(uint8_t* theDst, int theDstPitch, const PixelFormat* theF
 		theDstY * (theDstPitch / 2) + theDstX);
 }
 
-// 0x436490
+// 0x435fb0 (cosmicbugs), 0x436490 (waterbugs)
 void RlePal16Add(uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX, int theDstY,
 	const uint8_t* theSrc, int theSrcPitch, const Palette* thePal, const uint8_t* theRle)
 {

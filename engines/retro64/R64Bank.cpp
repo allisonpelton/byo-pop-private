@@ -45,7 +45,7 @@ void SelfMask8(Bank* theBank)
 
 } // namespace
 
-// 0x401a80
+// 0x4019d0 (cosmicbugs), 0x401a80 (waterbugs)
 int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* theDst, const uint8_t* theRgb, int theCount)
 {
 	if (theDst != nullptr && theRgb != nullptr && -1 < theCount)
@@ -68,7 +68,7 @@ int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* theDst, const
 	return 0;
 }
 
-// 0x401b10
+// 0x401a60 (cosmicbugs), 0x401b10 (waterbugs)
 int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* theDst, const uint8_t* theRgb, int theCount)
 {
 	if (theDst != nullptr && theRgb != nullptr && -1 < theCount)
@@ -91,20 +91,20 @@ int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* theDst, const
 	return 0;
 }
 
-// 0x427790
+// 0x427300 (cosmicbugs), 0x427790 (waterbugs)
 Bank::Bank()
 {
 	std::memset(mDataPath, 0, sizeof(mDataPath));
 	Bank_Reset(this);
 }
 
-// 0x427560
+// 0x4270d0 (cosmicbugs), 0x427560 (waterbugs)
 Bank::~Bank()
 {
 	Bank_Clear(this);
 }
 
-// 0x4261b0: forgets everything without freeing it
+// 0x425cd0 (cosmicbugs), 0x4261b0 (waterbugs): forgets everything without freeing it
 void Bank_Reset(Bank* theBank)
 {
 	theBank->mMode = 0;
@@ -116,7 +116,7 @@ void Bank_Reset(Bank* theBank)
 	theBank->mData = nullptr;
 }
 
-// 0x426250
+// 0x425d70 (cosmicbugs), 0x426250 (waterbugs)
 void Bank_Clear(Bank* theBank)
 {
 	for (Image* anImage : theBank->mImages)
@@ -139,7 +139,8 @@ void Bank_Clear(Bank* theBank)
 	Bank_Reset(theBank);
 }
 
-// 0x425de0: grows the data to theSize and clears it (1 even when malloc fails, as in the original)
+// 0x425900 (cosmicbugs), 0x425de0 (waterbugs): grows the data to theSize and clears it (1 even when malloc fails, as in
+// the original)
 int Bank_Alloc(Bank* theBank, uint32_t theSize)
 {
 	if (theBank->mDataSize < theSize)
@@ -155,7 +156,7 @@ int Bank_Alloc(Bank* theBank, uint32_t theSize)
 	return 1;
 }
 
-// 0x425eb0
+// 0x4259d0 (cosmicbugs), 0x425eb0 (waterbugs)
 Image* Bank_ImageAt(const Bank* theBank, uint32_t theIndex)
 {
 	if (theIndex < theBank->mImages.size())
@@ -163,13 +164,13 @@ Image* Bank_ImageAt(const Bank* theBank, uint32_t theIndex)
 	return nullptr;
 }
 
-// 0x425ed0
+// 0x4259f0 (cosmicbugs), 0x425ed0 (waterbugs)
 int Bank_Count(const Bank* theBank)
 {
 	return (int)theBank->mImages.size();
 }
 
-// 0x426430 (a negative index finds nothing)
+// 0x425f50 (cosmicbugs), 0x426430 (waterbugs) (a negative index finds nothing)
 uint8_t* Bank_RawPaletteAt(const Bank* theBank, uint32_t theIndex)
 {
 	if ((int)theIndex < 0 || theBank->mRawPalettes.size() <= theIndex)
@@ -177,7 +178,7 @@ uint8_t* Bank_RawPaletteAt(const Bank* theBank, uint32_t theIndex)
 	return theBank->mRawPalettes[theIndex];
 }
 
-// 0x426480
+// 0x425fa0 (cosmicbugs), 0x426480 (waterbugs)
 Palette* Bank_PaletteAt(const Bank* theBank, uint32_t theIndex)
 {
 	if ((int)theIndex < 0 || theBank->mPalettes.size() <= theIndex)
@@ -185,7 +186,8 @@ Palette* Bank_PaletteAt(const Bank* theBank, uint32_t theIndex)
 	return theBank->mPalettes[theIndex];
 }
 
-// 0x4264d0: the file as it is; each image's bits follow the last one's (pitch x height)
+// 0x425ff0 (cosmicbugs), 0x4264d0 (waterbugs): the file as it is; each image's bits follow the last one's (pitch x
+// height)
 int Bank_LoadRaw(Bank* theBank, const char* thePath)
 {
 	std::vector<uint8_t> aFile;
@@ -206,9 +208,9 @@ int Bank_LoadRaw(Bank* theBank, const char* thePath)
 	return 0;
 }
 
-// 0x4265d0: each image converted to theFmt, and for a screen deeper than 8 bits a mask beside it: an 8-bit image's
-// pixels that are not 0, or a 32-bit image's alpha. Images named mask_* stay as they are. The original reads the
-// file one image at a time; a size of 0 fails there (fread returns 0), and does here.
+// 0x4260f0 (cosmicbugs), 0x4265d0 (waterbugs): each image converted to theFmt, and for a screen deeper than 8 bits a
+// mask beside it: an 8-bit image's pixels that are not 0, or a 32-bit image's alpha. Images named mask_* stay as they
+// are. The original reads the file one image at a time; a size of 0 fails there (fread returns 0), and does here.
 int Bank_LoadConverted(Bank* theBank, const char* thePath, const PixelFormat* theFmt)
 {
 	uint32_t aBpp = (uint32_t)theFmt->mBpp;
@@ -340,7 +342,7 @@ int Bank_LoadConverted(Bank* theBank, const char* thePath, const PixelFormat* th
 	return 1;
 }
 
-// 0x427050: an image named mask_<name> becomes the mask of each image named <name>
+// 0x426b70 (cosmicbugs), 0x427050 (waterbugs): an image named mask_<name> becomes the mask of each image named <name>
 int Bank_LinkMasks(Bank* theBank)
 {
 	for (Image* aMaskImage : theBank->mImages)
@@ -364,7 +366,7 @@ int Bank_LinkMasks(Bank* theBank)
 	return 1;
 }
 
-// 0x427270
+// 0x426d90 (cosmicbugs), 0x427270 (waterbugs)
 int Bank_AssignPalettes(Bank* theBank)
 {
 	for (Image* anImage : theBank->mImages)
@@ -379,7 +381,7 @@ int Bank_AssignPalettes(Bank* theBank)
 	return 1;
 }
 
-// 0x427340
+// 0x426e60 (cosmicbugs), 0x427340 (waterbugs)
 int Bank_AssignRawPalettes(Bank* theBank)
 {
 	for (Image* anImage : theBank->mImages)
@@ -390,7 +392,8 @@ int Bank_AssignRawPalettes(Bank* theBank)
 	return 1;
 }
 
-// 0x4273d0: from the first image whose name starts with theName's first letter, the first named theName
+// 0x426ef0 (cosmicbugs), 0x4273d0 (waterbugs): from the first image whose name starts with theName's first letter, the
+// first named theName
 Image* Bank_FindImage(const Bank* theBank, const char* theName, int* theIndex)
 {
 	if (theName == nullptr)
@@ -422,7 +425,7 @@ Image* Bank_FindImage(const Bank* theBank, const char* theName, int* theIndex)
 	return nullptr;
 }
 
-// 0x4275c0
+// 0x427130 (cosmicbugs), 0x4275c0 (waterbugs)
 int Bank_IndexOf(const Bank* theBank, const char* theName)
 {
 	int anIndex;
@@ -431,7 +434,7 @@ int Bank_IndexOf(const Bank* theBank, const char* theName)
 	return -1;
 }
 
-// 0x427820
+// 0x427390 (cosmicbugs), 0x427820 (waterbugs)
 Image* Bank_FindImage2(const Bank* theBank, const char* theName)
 {
 	int anIndex;
@@ -441,13 +444,13 @@ Image* Bank_FindImage2(const Bank* theBank, const char* theName)
 	return nullptr;
 }
 
-// 0x427c20: the first time makes a Palette per raw one and gives the 8-bit images theirs; every time converts the
-// raw colours to theFmt (16-bit, else 32-bit)
+// 0x427740 (cosmicbugs), 0x427c20 (waterbugs): the first time makes a Palette per raw one and gives the 8-bit images
+// theirs; every time converts the raw colours to theFmt (16-bit, else 32-bit)
 int Bank_BuildPalettes(Bank* theBank, const PixelFormat* theFmt)
 {
 	if (theBank->mPalettesBuilt == 0)
 	{
-		theBank->mPalettes.clear(); // 0x425ee0: the list's nodes, not the palettes
+		theBank->mPalettes.clear(); // 0x425a00 (cosmicbugs), 0x425ee0 (waterbugs): the list's nodes, not the palettes
 		for (size_t i = 0; i < theBank->mRawPalettes.size(); i++)
 			theBank->mPalettes.push_back(new Palette());
 		Bank_AssignPalettes(theBank);
@@ -467,8 +470,9 @@ int Bank_BuildPalettes(Bank* theBank, const PixelFormat* theFmt)
 	return 1;
 }
 
-// 0x427df0: reads the .bbk. The datafile is found beside it; each IMAGE becomes an Image whose bits the bank will
-// own, each PALETTE 256 colours (a palette's unused entries are 0 here, unset memory in the original).
+// 0x427910 (cosmicbugs), 0x427df0 (waterbugs): reads the .bbk. The datafile is found beside it; each IMAGE becomes an
+// Image whose bits the bank will own, each PALETTE 256 colours (a palette's unused entries are 0 here, unset memory in
+// the original).
 int Bank_ParseXml(Bank* theBank, const char* thePath)
 {
 	XmlTag aTag;
@@ -570,7 +574,7 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 	return 1;
 }
 
-// 0x4284f0
+// 0x428010 (cosmicbugs), 0x4284f0 (waterbugs)
 int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat* theFmt)
 {
 	if (Bank_ParseXml(theBank, thePath) == 0)
@@ -595,6 +599,21 @@ int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat
 	if (Bank_LinkMasks(theBank) == 0)
 		return 0;
 	theBank->mMode = theMode;
+	return 1;
+}
+
+// 0x428160 (cosmicbugs), 0x428640 (waterbugs): after the screen's format changed
+int Bank_Reconvert(Bank* theBank, const PixelFormat* theFmt)
+{
+	if (theBank->mPalettesBuilt == 1 && Bank_BuildPalettes(theBank, theFmt) == 0)
+		return 0;
+	if (theBank->mMode != 1)
+		return 1;
+	if (Bank_LoadConverted(theBank, theBank->mDataPath, theFmt) == 0)
+		return 0;
+	SelfMask8(theBank);
+	if (Bank_LinkMasks(theBank) == 0)
+		return 0;
 	return 1;
 }
 

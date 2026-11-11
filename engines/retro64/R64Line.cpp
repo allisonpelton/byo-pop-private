@@ -1,6 +1,8 @@
-// Retro64's lines and rectangles (0x42d1f0..0x42dd00, and the 16-bit drawers 0x441da0..0x4422e0): Draw_SetTarget names
+// Retro64's lines and rectangles (0x42cd10..0x42d820 (cosmicbugs), 0x42d1f0..0x42dd00 (waterbugs), and the 16-bit
+// drawers 0x441960..0x441ea0 (cosmicbugs), 0x441da0..0x4422e0 (waterbugs)): Draw_SetTarget names
 // the surface, Draw_Line draws on it clipped, each pixel blended toward the colour by alpha/256; the others draw on the
-// surface they are given. The original also has 24- and 32-bit drawers (0x442370.., 0x442870..); the port's screen is
+// surface they are given. The original also has 24- and 32-bit drawers (0x441f30 (cosmicbugs), 0x442370 (waterbugs)..,
+// 0x442430 (cosmicbugs), 0x442870 (waterbugs)..); the port's screen is
 // 16-bit, so only those are translated, and the dispatchers do nothing at other depths.
 
 #include "R64Draw.h"
@@ -13,14 +15,14 @@ namespace r64
 namespace
 {
 
-uint8_t* gTargetBits = nullptr;   // 0x71ddc4
-int gTargetPitch = 0;             // 0x71ddc8
-[[maybe_unused]] int gTargetW = 0;  // 0x71ddcc  (no line reads these two)
-[[maybe_unused]] int gTargetH = 0;  // 0x71ddd0
-int gTargetClip[4] = {0, 0, 0, 0}; // 0x71ddd4  left, top, right, bottom (inclusive)
-PixelFormat gTargetFmt = {};      // 0x70a4f4
+uint8_t* gTargetBits = nullptr;   // 0x71ddc4 (cosmicbugs), 0x71de44 (waterbugs)
+int gTargetPitch = 0;             // 0x71ddc8 (cosmicbugs), 0x71de48 (waterbugs)
+[[maybe_unused]] int gTargetW = 0;  // 0x71ddcc (cosmicbugs), 0x71de4c (waterbugs)  (no line reads these two)
+[[maybe_unused]] int gTargetH = 0;  // 0x71ddd0 (cosmicbugs), 0x71de50 (waterbugs)
+int gTargetClip[4] = {0, 0, 0, 0}; // 0x71ddd4 (cosmicbugs), 0x71de54 (waterbugs)  left, top, right, bottom (inclusive)
+PixelFormat gTargetFmt = {};      // 0x70a4f4 (cosmicbugs), 0x70a574 (waterbugs)
 
-// 0x42d250: Cohen-Sutherland's outcode (1 below, 2 above, 4 right, 8 left)
+// 0x42cd70 (cosmicbugs), 0x42d250 (waterbugs): Cohen-Sutherland's outcode (1 below, 2 above, 4 right, 8 left)
 int OutCode(double x, double y, double theLeft, double theRight, double theTop, double theBottom)
 {
 	int aCode = 0;
@@ -35,7 +37,8 @@ int OutCode(double x, double y, double theLeft, double theRight, double theTop, 
 	return aCode;
 }
 
-// 0x42d2b0: 0 when the line misses the clip; the ends move onto it, cut to whole pixels
+// 0x42cdd0 (cosmicbugs), 0x42d2b0 (waterbugs): 0 when the line misses the clip; the ends move onto it, cut to whole
+// pixels
 int ClipLine(int* theX0, int* theY0, int* theX1, int* theY1, const int* theClip)
 {
 	double anAx0 = *theX0;
@@ -104,7 +107,7 @@ inline uint32_t Blend(uint32_t thePixel, uint32_t theTo, uint32_t theMask, uint3
 	return ((theTo - (thePixel & theMask)) * theAlpha >> 8) + (thePixel & theMask) & theMask;
 }
 
-// 0x441da0: the rectangle (inclusive) in the colour
+// 0x441960 (cosmicbugs), 0x441da0 (waterbugs): the rectangle (inclusive) in the colour
 void Fill16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theLeft, int theTop, int theRight,
 	int theBottom, uint8_t theR, uint8_t theG, uint8_t theB)
 {
@@ -152,7 +155,7 @@ void Fill16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theLe
 	}
 }
 
-// 0x441eb0: the rectangle (inclusive) blended toward the colour by theAlpha/256
+// 0x441a70 (cosmicbugs), 0x441eb0 (waterbugs): the rectangle (inclusive) blended toward the colour by theAlpha/256
 void FillBlend16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, uint8_t theR,
 	uint8_t theG, uint8_t theB, uint8_t theAlpha)
 {
@@ -185,7 +188,7 @@ void FillBlend16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int 
 	}
 }
 
-// 0x442000: FillBlend16 on the part inside theClip
+// 0x441bc0 (cosmicbugs), 0x442000 (waterbugs): FillBlend16 on the part inside theClip
 void FillBlend16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l,
 	int theTop, int theRight, int theBottom, uint8_t theR, uint8_t theG, uint8_t theB, uint8_t theAlpha)
 {
@@ -204,7 +207,7 @@ void FillBlend16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFm
 	}
 }
 
-// 0x442090: max(|dx|, |dy|) + 1 pixels, stepping along the longer axis
+// 0x441c50 (cosmicbugs), 0x442090 (waterbugs): max(|dx|, |dy|) + 1 pixels, stepping along the longer axis
 void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1,
 	uint8_t theRed, uint8_t theGreen, uint8_t theBlue, uint8_t theAlpha)
 {
@@ -263,7 +266,7 @@ void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0
 	}
 }
 
-// 0x4422e0
+// 0x441ea0 (cosmicbugs), 0x4422e0 (waterbugs)
 void Line16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int theX0, int theY0,
 	int theX1, int theY1, int r, int g, int b, int theAlpha)
 {

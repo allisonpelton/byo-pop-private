@@ -109,10 +109,10 @@ void FlicPath(char* theOut, size_t theSize, const char* theFormat, const char* t
 
 Animation::Animation()
 {
-	std::memset(palette.rgb, 0, sizeof(palette.rgb));
-	palette.p16 = (uint16_t*)palette.conv;
-	palette.p32 = (uint32_t*)palette.conv;
-	std::memset(palette.conv, 0, sizeof(palette.conv));
+	std::memset(palette.mRgb, 0, sizeof(palette.mRgb));
+	palette.mP16 = (uint16_t*)palette.mConv;
+	palette.mP32 = (uint32_t*)palette.mConv;
+	std::memset(palette.mConv, 0, sizeof(palette.mConv));
 	swap1[0] = 0;
 	swap2[0] = 0;
 	swap3[0] = 0;
@@ -137,15 +137,15 @@ Animation::~Animation()
 			Image* aFrame = frames[i];
 			if (aFrame != nullptr)
 			{
-				if (aFrame->hasMask != 0)
+				if (aFrame->mHasMask != 0)
 				{
-					Image_FreeRle(aFrame->mask);
-					if (frames[i]->mask != nullptr)
+					Image_FreeRle(aFrame->mMask);
+					if (frames[i]->mMask != nullptr)
 					{
-						Image_Destroy(frames[i]->mask);
-						delete frames[i]->mask;
+						Image_Destroy(frames[i]->mMask);
+						delete frames[i]->mMask;
 					}
-					frames[i]->mask = nullptr;
+					frames[i]->mMask = nullptr;
 				}
 				if (frames[i] != nullptr)
 				{
@@ -166,16 +166,16 @@ void Animation_FreeMasks(Animation* theAnim)
 	{
 		do
 		{
-			if (theAnim->frames[i]->hasMask != 0)
+			if (theAnim->frames[i]->mHasMask != 0)
 			{
-				Image* aMask = theAnim->frames[i]->mask;
+				Image* aMask = theAnim->frames[i]->mMask;
 				if (aMask != nullptr)
 				{
 					Image_Destroy(aMask);
 					delete aMask;
 				}
-				theAnim->frames[i]->mask = nullptr;
-				theAnim->frames[i]->hasMask = 0;
+				theAnim->frames[i]->mMask = nullptr;
+				theAnim->frames[i]->mHasMask = 0;
 			}
 			i++;
 		} while (i < theAnim->count);
@@ -193,42 +193,42 @@ void Animation_BuildTints(Animation* theAnim)
 	{
 		for (int k = 0; k < 10; k++)
 		{
-			std::memcpy((uint8_t*)theAnim->tints[k].p32 + i * 4, (uint8_t*)theAnim->palette.p32 + i * 4, 4);
-			std::memcpy((uint8_t*)theAnim->tints[k].p16 + i * 2, (uint8_t*)theAnim->palette.p16 + i * 2, 2);
+			std::memcpy((uint8_t*)theAnim->tints[k].mP32 + i * 4, (uint8_t*)theAnim->palette.mP32 + i * 4, 4);
+			std::memcpy((uint8_t*)theAnim->tints[k].mP16 + i * 2, (uint8_t*)theAnim->palette.mP16 + i * 2, 2);
 		}
-		if (f->bpp == 0x10)
+		if (f->mBpp == 0x10)
 		{
 			uint32_t v;
-			v = theAnim->palette.p16[i];
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0x3c, 0x3c, 0x3c, 0, 0, 0, 0x5a);
-			theAnim->tints[0].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
+			theAnim->tints[0].mP16[i] = (uint16_t)v;
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0xff, 0xff, 0xff, 0, 0, 0, 0x5a);
-			theAnim->tints[1].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
+			theAnim->tints[1].mP16[i] = (uint16_t)v;
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0x6e, 0x50, 0x50, 1, 0, 0, 0x5a);
-			theAnim->tints[2].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
+			theAnim->tints[2].mP16[i] = (uint16_t)v;
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0x73, 0x73, 0x3c, 1, 0, 0, 0x5a);
-			v = theAnim->palette.p16[i];
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0x5a);
-			theAnim->tints[4].p16[i] = (uint16_t)v;
-			theAnim->tints[5].p16[i] = theAnim->palette.p16[i];
-			v = theAnim->palette.p16[i];
+			theAnim->tints[4].mP16[i] = (uint16_t)v;
+			theAnim->tints[5].mP16[i] = theAnim->palette.mP16[i];
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0x5a);
-			theAnim->tints[6].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
+			theAnim->tints[6].mP16[i] = (uint16_t)v;
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0x5a);
-			theAnim->tints[7].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
+			theAnim->tints[7].mP16[i] = (uint16_t)v;
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0x5a, 0x46, 0x6e, 1, 0, 1, 0x5a);
-			theAnim->tints[8].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
+			theAnim->tints[8].mP16[i] = (uint16_t)v;
+			v = theAnim->palette.mP16[i];
 			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0x5a);
-			theAnim->tints[9].p16[i] = (uint16_t)v;
+			theAnim->tints[9].mP16[i] = (uint16_t)v;
 		}
 		else
-			ColourShift(&theAnim->palette.p32[i], f, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0x5a);
+			ColourShift(&theAnim->palette.mP32[i], f, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0x5a);
 		i++;
 	} while (i < 0x100);
 }
@@ -282,11 +282,11 @@ int Animation_Load(Animation* theAnim, int theReload)
 				if (theReload == 0)
 					theAnim->frames[i] = new Image();
 				Image_Copy(theAnim->frames[i], aSrc);
-				if (aSrc->hasMask != 0)
+				if (aSrc->mHasMask != 0)
 				{
-					theAnim->frames[i]->hasMask = 1;
-					theAnim->frames[i]->mask = new Image();
-					Image_Copy(theAnim->frames[i]->mask, aSrc->mask);
+					theAnim->frames[i]->mHasMask = 1;
+					theAnim->frames[i]->mMask = new Image();
+					Image_Copy(theAnim->frames[i]->mMask, aSrc->mMask);
 				}
 				i++;
 			} while (i < theAnim->count);
@@ -300,39 +300,39 @@ int Animation_Load(Animation* theAnim, int theReload)
 		if (Sys_ReadFile(aPath, aData))
 		{
 			Flic* aFlic = Flic_Open(aData.data(), aData.size());
-			theAnim->count = aFlic->frames;
+			theAnim->count = aFlic->mFrames;
 			PixelFormat aFmt;
 			PixelFormat_Init(&aFmt, 8, 0, 0, 0);
 			Image* aWork = new Image();
-			Image_Create(aWork, aFlic->width, aFlic->height, &aFmt);
+			Image_Create(aWork, aFlic->mWidth, aFlic->mHeight, &aFmt);
 			int i = 0;
-			if (aFlic->frames != 0)
+			if (aFlic->mFrames != 0)
 			{
 				do
 				{
-					Flic_NextFrame(aFlic, aWork->bits, (uint16_t)aWork->pitch);
+					Flic_NextFrame(aFlic, aWork->mBits, (uint16_t)aWork->mPitch);
 					if (i == 0)
 					{
 						for (int c = 0; c < 0x100; c++)
 						{
-							theAnim->palette.rgb[c * 4] = gFlicPalette[c * 3];
-							theAnim->palette.rgb[c * 4 + 1] = gFlicPalette[c * 3 + 1];
-							theAnim->palette.rgb[c * 4 + 2] = gFlicPalette[c * 3 + 2];
+							theAnim->palette.mRgb[c * 4] = gFlicPalette[c * 3];
+							theAnim->palette.mRgb[c * 4 + 1] = gFlicPalette[c * 3 + 1];
+							theAnim->palette.mRgb[c * 4 + 2] = gFlicPalette[c * 3 + 2];
 						}
 						const PixelFormat* f = Sys_ScreenFormat();
-						if (f->bpp == 0x10)
-							PixelFormat_PackPalette16(f, theAnim->palette.p16, theAnim->palette.rgb, 0x100);
+						if (f->mBpp == 0x10)
+							PixelFormat_PackPalette16(f, theAnim->palette.mP16, theAnim->palette.mRgb, 0x100);
 						else
-							PixelFormat_PackPalette32(f, theAnim->palette.p32, theAnim->palette.rgb, 0x100);
+							PixelFormat_PackPalette32(f, theAnim->palette.mP32, theAnim->palette.mRgb, 0x100);
 						Animation_BuildTints(theAnim);
 					}
-					aWork->palette = &theAnim->palette;
+					aWork->mPalette = &theAnim->palette;
 					if (theReload == 0)
 						theAnim->frames[i] = new Image();
 					Image_Copy(theAnim->frames[i], aWork);
 					Image_SetPalette(theAnim->frames[i], &theAnim->palette);
 					i++;
-				} while (i < (int)(uint32_t)aFlic->frames);
+				} while (i < (int)(uint32_t)aFlic->mFrames);
 			}
 			Flic_Close(aFlic);
 			FlicPath(aPath, sizeof(aPath), "animations/mask_%s", theAnim->file);
@@ -345,37 +345,37 @@ int Animation_Load(Animation* theAnim, int theReload)
 					do
 					{
 						k++;
-						theAnim->frames[k - 1]->hasMask = 0;
+						theAnim->frames[k - 1]->mHasMask = 0;
 					} while (k < theAnim->count);
 				}
 			}
 			else
 			{
-				std::memset(aWork->bits, 0, (size_t)aWork->dataSize);
-				aWork->palette = &gGreyPalette;
+				std::memset(aWork->mBits, 0, (size_t)aWork->mDataSize);
+				aWork->mPalette = &gGreyPalette;
 				aFlic = Flic_Open(aMaskData.data(), aMaskData.size());
-				theAnim->count = aFlic->frames;
+				theAnim->count = aFlic->mFrames;
 				int k = 0;
-				if (aFlic->frames != 0)
+				if (aFlic->mFrames != 0)
 				{
 					do
 					{
-						Flic_NextFrame(aFlic, aWork->bits, (uint16_t)aWork->pitch);
+						Flic_NextFrame(aFlic, aWork->mBits, (uint16_t)aWork->mPitch);
 						Image* aFrame = theAnim->frames[k];
-						aFrame->hasMask = 1;
-						aFrame->mask = new Image();
-						Image_Copy(aFrame->mask, aWork);
+						aFrame->mHasMask = 1;
+						aFrame->mMask = new Image();
+						Image_Copy(aFrame->mMask, aWork);
 						uint32_t j = 0;
-						if (aFrame->mask->dataSize != 0)
+						if (aFrame->mMask->mDataSize != 0)
 						{
 							do
 							{
-								aFrame->mask->bits[j] = gFlicPalette[(uint32_t)aFrame->mask->bits[j] * 3];
+								aFrame->mMask->mBits[j] = gFlicPalette[(uint32_t)aFrame->mMask->mBits[j] * 3];
 								j++;
-							} while (j < (uint32_t)aFrame->mask->dataSize);
+							} while (j < (uint32_t)aFrame->mMask->mDataSize);
 						}
 						k++;
-					} while (k < (int)(uint32_t)aFlic->frames);
+					} while (k < (int)(uint32_t)aFlic->mFrames);
 				}
 				Flic_Close(aFlic);
 			}
@@ -398,7 +398,7 @@ int Animation_Load(Animation* theAnim, int theReload)
 			PixelFormat_Init(&aFmt, aTga.bpp, aTga.rMask, aTga.gMask, aTga.bMask);
 			Image* aWork = new Image();
 			Image_Create(aWork, aTga.width, aTga.height, &aFmt);
-			Copy8(aWork->bits, 0, 0, aWork->pitch, 0, aTga.bits, 0, 0, aTga.pitch, 0, aTga.width * 4, aTga.height);
+			Copy8(aWork->mBits, 0, 0, aWork->mPitch, 0, aTga.bits, 0, 0, aTga.pitch, 0, aTga.width * 4, aTga.height);
 			Image_ConvertTo(aWork, Sys_ScreenFormat(), nullptr);
 			if (theReload == 0)
 				theAnim->frames[0] = new Image();
@@ -408,7 +408,7 @@ int Animation_Load(Animation* theAnim, int theReload)
 			PixelFormat_Init(&aFmt, 8, 0, 0, 0);
 			Image* aMask = new Image();
 			Image_Create(aMask, aTga.width, aTga.height, &aFmt);
-			aMask->palette = &gGreyPalette;
+			aMask->mPalette = &gGreyPalette;
 			int y = 0;
 			if (0 < aTga.height)
 			{
@@ -421,16 +421,16 @@ int Animation_Load(Animation* theAnim, int theReload)
 						{
 							uint32_t aPixel;
 							std::memcpy(&aPixel, aTga.bits + ((y * aTga.pitch) / 4 + x) * 4, 4);
-							aMask->bits[aMask->pitch * y + x] = (uint8_t)(aPixel >> 0x18);
+							aMask->mBits[aMask->mPitch * y + x] = (uint8_t)(aPixel >> 0x18);
 							x++;
 						} while (x < aTga.width);
 					}
 					y++;
 				} while (y < aTga.height);
 			}
-			theAnim->frames[0]->mask = new Image();
-			Image_Copy(theAnim->frames[0]->mask, aMask);
-			theAnim->frames[0]->hasMask = 1;
+			theAnim->frames[0]->mMask = new Image();
+			Image_Copy(theAnim->frames[0]->mMask, aMask);
+			theAnim->frames[0]->mHasMask = 1;
 			Image_Destroy(aMask);
 			delete aMask;
 		}
@@ -442,10 +442,10 @@ int Animation_Load(Animation* theAnim, int theReload)
 		do
 		{
 			Image* aFrame = theAnim->frames[i];
-			if ((aFrame->w == aFrame->h || theAnim->rotation == 0xb4) && theAnim->rotation != 0)
+			if ((aFrame->mW == aFrame->mH || theAnim->rotation == 0xb4) && theAnim->rotation != 0)
 				RotateImage(aFrame, theAnim->rotation);
-			if (theAnim->frames[i]->hasMask != 0)
-				Image_BuildRle(theAnim->frames[i]->mask);
+			if (theAnim->frames[i]->mHasMask != 0)
+				Image_BuildRle(theAnim->frames[i]->mMask);
 			i++;
 		} while (i < theAnim->count);
 	}
@@ -506,9 +506,9 @@ int Animation_FromXml(Animation* theAnim, const XmlTag* theTag)
 		do
 		{
 			uint8_t v = (uint8_t)i;
-			gGreyPalette.rgb[i * 4] = v;
-			gGreyPalette.rgb[i * 4 + 1] = v;
-			gGreyPalette.rgb[i * 4 + 2] = v;
+			gGreyPalette.mRgb[i * 4] = v;
+			gGreyPalette.mRgb[i * 4 + 1] = v;
+			gGreyPalette.mRgb[i * 4 + 2] = v;
 			i++;
 		} while (i < 0x100);
 		gGreyPaletteUnset = 0;

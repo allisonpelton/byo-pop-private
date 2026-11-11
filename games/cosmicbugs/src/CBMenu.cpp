@@ -211,10 +211,10 @@ void MenuItem_FromXml(MenuItem* theItem, const char* p, const XmlTag* theTag)
 void MenuItem_Slide(MenuItem* theItem)
 {
 	Image* anImage = theItem->image;
-	float aHalfW = (float)(anImage->w / 2);
+	float aHalfW = (float)(anImage->mW / 2);
 	int aLeft = (int)((double)theItem->x - (double)aHalfW);
 	int aRight = (int)((double)aHalfW + (double)theItem->x);
-	float aHalfH = (float)(anImage->h / 2);
+	float aHalfH = (float)(anImage->mH / 2);
 	int aTop = (int)((double)theItem->y - (double)aHalfH);
 	int aBottom = (int)((double)aHalfH + (double)theItem->y);
 	int aHeld = Mouse_State(1);
@@ -345,10 +345,10 @@ void MenuItem_Draw(MenuItem* theItem)
 	if (theItem->hot == 0 || (aFont = theItem->hotFont) == nullptr)
 		aFont = theItem->font;
 	Font_SetEscapes(aFont, 1);
-	Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.fmt, gBackBuffer.w, gBackBuffer.h);
+	Font_SetTarget(aFont, gScreenBits, gScreenPitch, &gBackBuffer.mFmt, gBackBuffer.mW, gBackBuffer.mH);
 	Font_SetPalette(aFont, nullptr);
-	aFont->alpha = 0xff;
-	aFont->align = 2;
+	aFont->mAlpha = 0xff;
+	aFont->mAlign = 2;
 	// a shadow a sixth of the font's height down and right
 	uint32_t aShadowAlpha = 0x4b0 / Font_Height(theItem->font);
 	int aShadowY = (int)((double)(Font_Height(theItem->font) / 6) + (double)theItem->y);
@@ -486,10 +486,10 @@ int MenuItem_Update(MenuItem* theItem)
 		Image* anImage = theItem->image;
 		if (anImage != nullptr)
 		{
-			float aHalfW = (float)(anImage->w / 2);
+			float aHalfW = (float)(anImage->mW / 2);
 			aLeft = (int)((double)theItem->x - (double)aHalfW);
 			aRight = (int)((double)aHalfW + (double)theItem->x);
-			float aHalfH = (float)(anImage->h / 2);
+			float aHalfH = (float)(anImage->mH / 2);
 			aTop = (int)((double)theItem->y - (double)aHalfH);
 			aBottom = (int)((double)aHalfH + (double)theItem->y);
 		}
@@ -861,9 +861,9 @@ void Menu_FromXml(Menu* theMenu, const char* p, const XmlTag* theTag)
 	}
 	Menu_DrawToBackground(theMenu);
 	XmlTag* aTag = const_cast<XmlTag*>(theTag);
-	while (strcmp(aTag->name, "/menu") != 0)
+	while (strcmp(aTag->mName, "/menu") != 0)
 	{
-		if (strcmp(aTag->name, "menu_item") == 0)
+		if (strcmp(aTag->mName, "menu_item") == 0)
 		{
 			MenuItem_Append(&theMenu->items);
 			MenuItem_FromXml(theMenu->items.current, p, aTag);

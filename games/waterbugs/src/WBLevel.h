@@ -263,8 +263,7 @@ struct Text : Obj
 	int mInputPadding;          // +0x1dc  the four bytes before input: nothing reads them
 	TextInput mInput;           // +0x1e0  a high score's name entry
 };
-// (the original's 0x6c8 less the four members of its TextInput that R64TextInput.h says the port leaves out)
-static_assert(sizeof(Text) == 0x6c8 - 16, "Text");
+static_assert(sizeof(Text) == 0x6c8, "Text");
 
 // What a power-up does (Powerup::mKind; Powerup_Collect's switch): a weapon (the magnet, the time bomb, the anchor, the
 // missile), a change to the ship or the shots, or the extra life. Any other number is the fast shot. The test keys

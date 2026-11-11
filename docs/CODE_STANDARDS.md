@@ -28,7 +28,9 @@ Two things hold above every rule:
 6. **Every function names its address, or says it is the port's** (checked): `// 0x4cd287` above the definition or on
    its declaration, or a `port:` marker (`port(variant):` for a code mod's path, `port(mods):` for a mod hook). A helper
    split out of an original function names that function. A file whose first comment carries the marker needs none on
-   each function.
+   each function. In an engine that games share (`engines/<name>`, `docs/ENGINES.md`) each address names its game, with
+   the game's folder name: `// 0x40c2e0 (cosmicbugs), 0x40c4d0 (waterbugs)`, a range as `0x40c1a0..0x40c890 (cosmicbugs)`;
+   a game's checks read its own and pass over the other games', and a function only one game has gives only its address.
 7. **A number gets a name** when the same value means the same thing in more than one place, or when the line and its
    comment do not make its meaning plain.
 8. **Comments describe the code as it is:** what it does and why, the original's behaviour, why the port departs from
@@ -45,7 +47,9 @@ Two things hold above every rule:
   `allow stage` line), and exits nonzero on any finding. `--list` also
   prints what the exceptions allow, and `--checks` picks checks. Exceptions go in `games/<game>/namecheck.txt`, one a
   line, each with its reason after ` -- `. A `folder <name>` line there adds another source folder of the game to the
-  check, for a port that has an engine of its own beside `src/` (Mahjong Escape's `engine/`).
+  check, for a port that has an engine of its own beside `src/` (Mahjong Escape's `engine/`); an `engine <name>` line
+  adds a shared engine, `engines/<name>`, and runs its comments through the `tag` check as well (an address without its
+  game's tag in a shared engine is a finding).
 - `python tools/splitfields.py <game> --export <the export's per-function folder>` lists members that may be one
   field declared twice (the same offset under two names), read but never assigned, or touched by the original's
   function and never named in its translation. Each finding is a place to read, not a fault; a pass judges them all.

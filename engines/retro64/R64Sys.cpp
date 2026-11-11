@@ -12,21 +12,21 @@ namespace
 {
 
 SysHost* gHost = nullptr;
-const PixelFormat* gScreenFormat = nullptr; // 0x46e5b8
+const PixelFormat* gScreenFormat = nullptr; // 0x46e5b8 (cosmicbugs), 0x46e5b8 (waterbugs)
 
-// 0x7078c0..0x707e6c in the original's order, because Key_Push writes past its queue: the queue (100 keys, Key_Pop
-// takes from the newest down and wraps to the top), the right button's press latch, the keys held from 0x707a68,
-// and the queue's count
+// 0x7078c0..0x707e6c (cosmicbugs), 0x707940..0x707eec (waterbugs) in the original's order, because Key_Push writes past
+// its queue: the queue (100 keys, Key_Pop takes from the newest down and wraps to the top), the right button's press
+// latch, the keys held from 0x707a68 (cosmicbugs), 0x707ae8 (waterbugs), and the queue's count
 int gInput[363];
-int* const gKeyQueue = gInput;               // 0x7078c0
-int& gRightLatch = gInput[105];              // 0x707a64
-int* const gKeysDown = gInput + 106;         // 0x707a68  [255]
-int& gKeyCount = gInput[362];                // 0x707e68
-int gMouseLeft = 0;                          // 0x708158
-int gMouseRight = 0;                         // 0x708190
-int gMouseMiddle = 0;                        // 0x708114
-int gLeftLatch = 0;                          // 0x708118
-int gMiddleLatch = 0;                        // 0x707f7c
+int* const gKeyQueue = gInput;               // 0x7078c0 (cosmicbugs), 0x707940 (waterbugs)
+int& gRightLatch = gInput[105];              // 0x707a64 (cosmicbugs), 0x707ae4 (waterbugs)
+int* const gKeysDown = gInput + 106;         // 0x707a68 (cosmicbugs), 0x707ae8 (waterbugs)  [255]
+int& gKeyCount = gInput[362];                // 0x707e68 (cosmicbugs), 0x707ee8 (waterbugs)
+int gMouseLeft = 0;                          // 0x708158 (cosmicbugs), 0x7081d8 (waterbugs)
+int gMouseRight = 0;                         // 0x708190 (cosmicbugs), 0x708210 (waterbugs)
+int gMouseMiddle = 0;                        // 0x708114 (cosmicbugs), 0x708194 (waterbugs)
+int gLeftLatch = 0;                          // 0x708118 (cosmicbugs), 0x708198 (waterbugs)
+int gMiddleLatch = 0;                        // 0x707f7c (cosmicbugs), 0x707ffc (waterbugs)
 
 } // namespace
 
@@ -35,20 +35,27 @@ void Sys_SetHost(SysHost* theHost)
 	gHost = theHost;
 }
 
+SysHost* Sys_Host()
+{
+	return gHost;
+}
+
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData)
 {
 	theData.clear();
 	return gHost != nullptr && gHost->ReadFile(thePath, theData);
 }
 
-// 0x429430
+// 0x428f50 (cosmicbugs), 0x429430 (waterbugs)
 void Sys_AddUpdateRect(int x, int y, int theWidth, int theHeight)
 {
 	if (gHost != nullptr)
 		gHost->AddUpdateRect(x, y, theWidth, theHeight);
 }
 
-// 0x428d70
+int gPumpMessages = 0;
+
+// 0x428890 (cosmicbugs), 0x428d70 (waterbugs)
 void Sys_SetMousePos(int x, int y)
 {
 	if (gHost != nullptr)
@@ -142,7 +149,7 @@ int Key_Down(int theKey)
 	return gKeysDown[theKey] != 0;
 }
 
-// 0x429020: Sys_KeyEvent sets a slot to 1 only from 0, so a held key answers once
+// 0x428b40 (cosmicbugs), 0x429020 (waterbugs): Sys_KeyEvent sets a slot to 1 only from 0, so a held key answers once
 int Key_Pressed(int theKey)
 {
 	if (gKeysDown[theKey] == 1)
@@ -164,8 +171,8 @@ void Mouse_Update(int* x, int* y)
 	}
 }
 
-// WndProc's (0x42ac80) WM_KEYDOWN and WM_KEYUP: F5 turns the sound on or off, F6 the music, F7 switches between the
-// window and the full screen, F8 between stretched and centred
+// WndProc's (0x42a7a0 (cosmicbugs), 0x42ac80 (waterbugs)) WM_KEYDOWN and WM_KEYUP: F5 turns the sound on or off, F6 the
+// music, F7 switches between the window and the full screen, F8 between stretched and centred
 void Sys_KeyEvent(int theKey, int theDown)
 {
 	if (theKey < 0 || theKey > 0xfe)
@@ -260,18 +267,22 @@ void Sys_UserName(char* theName, int theSize)
 namespace
 {
 
-int gFullscreen = 1;                         // 0x460b14
-int gWaveOn = 1;                             // 0x460b18
-int gMusicOn = 1;                            // 0x460b1c
-int gActive = 1;                             // 0x707a50  the window is the active one
-int gSoundReady = 0;                         // 0x707a54  BASS started (the port: a host)
-int gCentered = 0;                           // 0x7081a0  cp.cfg's desktopResolution
-int gReopen = 0;                             // 0x7081a4  the screen is opened again at the next PumpMessages
-int gMusic = 0;                              // 0x7081ac  a music is loaded
-void (*gScreenChange)() = nullptr;           // 0x7081b4
-int gToggleFullscreen = 0;                   // 0x7081bc
-int gToggleCentered = 0;                     // 0x7081c0
-std::vector<int> gSamples;                   // 0x7081c4  the host's ids, by the game's
+int gFullscreen = 1;                         // 0x460b14 (cosmicbugs), 0x460b14 (waterbugs)
+int gWaveOn = 1;                             // 0x460b18 (cosmicbugs), 0x460b18 (waterbugs)
+int gMusicOn = 1;                            // 0x460b1c (cosmicbugs), 0x460b1c (waterbugs)
+// 0x707a50 (cosmicbugs), 0x707ad0 (waterbugs)  the window is the active one
+int gActive = 1;
+// 0x707a54 (cosmicbugs), 0x707ad4 (waterbugs)  BASS started (the port: a host)
+int gSoundReady = 0;
+int gCentered = 0;                           // 0x7081a0 (cosmicbugs), 0x708220 (waterbugs)  cp.cfg's desktopResolution
+// 0x7081a4 (cosmicbugs), 0x708224 (waterbugs)  the screen is opened again at the next PumpMessages
+int gReopen = 0;
+int gMusic = 0;                              // 0x7081ac (cosmicbugs), 0x70822c (waterbugs)  a music is loaded
+void (*gScreenChange)() = nullptr;           // 0x7081b4 (cosmicbugs), 0x708234 (waterbugs)
+int gToggleFullscreen = 0;                   // 0x7081bc (cosmicbugs), 0x70823c (waterbugs)
+int gToggleCentered = 0;                     // 0x7081c0 (cosmicbugs), 0x708240 (waterbugs)
+// 0x7081c4 (cosmicbugs), 0x708244 (waterbugs)  the host's ids, by the game's
+std::vector<int> gSamples;
 
 } // namespace
 
@@ -290,6 +301,18 @@ bool Sys_SkipLogos()
 	return gHost != nullptr && gHost->SkipLogos();
 }
 
+// 0x428820 (cosmicbugs), 0x428d00 (waterbugs): SleepEx; the port's frames are the host's, so nothing waits
+void Sys_Sleep(int)
+{
+}
+
+// 0x428ec0 (cosmicbugs), 0x4293a0 (waterbugs): the callback the original runs after PumpMessages opened the screen
+// again; the port never loses the screen, so nothing runs it
+void SetScreenLostCallback(void (*)(const PixelFormat*))
+{
+}
+
+// 0x428ed0 (cosmicbugs), 0x4293b0 (waterbugs): called after PumpMessages opened the screen again
 void SetScreenChangeCallback(void (*theCallback)())
 {
 	gScreenChange = theCallback;
@@ -357,7 +380,7 @@ int PumpMessages()
 {
 	if (gHost != nullptr)
 		Sys_Activate(gHost->IsActive() ? 1 : 0);
-	if (gActive == 0)
+	if (gPumpMessages != 1 && gActive == 0)
 		return 0;
 	if (gToggleCentered == 1)
 	{
@@ -434,7 +457,7 @@ void SaveConfig()
 	Sys_SaveDone();
 }
 
-// 0x42aaf0
+// 0x42a610 (cosmicbugs), 0x42aaf0 (waterbugs)
 int Sound_Pause()
 {
 	if (gSoundReady != 0)
@@ -522,7 +545,7 @@ int SoundList_Find(SoundList* theList, const char* thePath)
 namespace
 {
 
-// 0x428ad0: a new entry at the tail, made current
+// 0x4285f0 (cosmicbugs), 0x428ad0 (waterbugs): a new entry at the tail, made current
 void SoundList_Append(SoundList* theList)
 {
 	SoundEntry* anEntry = new SoundEntry();
@@ -542,7 +565,8 @@ void SoundList_Append(SoundList* theList)
 	theList->mTail = anEntry;
 }
 
-// 0x428bb0: the entry for thePath, appended when the list has none; null when it was there (it is current then)
+// 0x4286d0 (cosmicbugs), 0x428bb0 (waterbugs): the entry for thePath, appended when the list has none; null when it was
+// there (it is current then)
 SoundEntry* SoundList_Add(SoundList* theList, const char* thePath)
 {
 	if (theList->mCurrent != nullptr)
