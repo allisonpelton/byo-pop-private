@@ -488,6 +488,7 @@ nothing and draws no random number; a comparison with the original never uses on
 | `set score\|lives\|timer\|depth\|emp <n>` | the diver's score, lives (`mField110`), the game timer (milliseconds), the depth, the EMP charge (0 to 1); `set hints 0\|1` and `set tutorial 0\|1` need a player. `enemy` is read-only |
 | `win` | the level is won now: the diver goes to the level-won state (0xc) as `Update` does at the bottom, with the level bonus; ERROR in the abyss, in a won or lost game |
 | `lose` | the last life goes now: `mField110` is set to 0 and `PlayerEaten` runs, which subtracts one and opens the game-over dialog |
+| `shot <file.png>` | the screen as the last draw left it, read back and saved without drawing again (needs `-drawevery`). The framework's `screenshot` draws every widget once more, and here a draw is a step: `Board::Draw` eases the two strips of sea and the rating popup once a draw, `MapScreen::Draw` the final scroll, and a widget painted over itself blends its half-transparent pixels again. The phase 2 tours take their shots with it |
 
 *The state.* `screen` (the topmost dialog's name, else `title`, `stats`, `highscores`, `tutor`, `board`, `map`, `menu`, `none`)
 and `base` (the screen under a dialog); `dialogHeader` and `dialogLines`; `user`; `mode` (`adventure`, `abyss`, `tutor`);

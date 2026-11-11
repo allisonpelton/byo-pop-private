@@ -3,7 +3,10 @@
 
 A step is (update, kind, args...). The update is the original's update counter (`at <update> ...`); the port's line runs one number
 later (tsp.PORT_SHIFT: an origrun input at counter N is read by update N+1, a port script line N runs before update N, and a shot
-the same: origrun's `at N shot` shows the frame that update N drew, the port's line N+1 draws the state after update N).
+the same: origrun's `at N shot` shows the frame that update N drew, the port's line N+1 saves the frame that update N drew).
+The port's shots are its own test command `shot`, which reads the screen back without drawing again (the framework's `screenshot`
+draws every widget once more, and Board::Draw and MapScreen::Draw each ease something a step per draw, so it put the port a step
+ahead of the original with every shot); it needs -drawevery, which chain.sh passes.
 Kinds: click x y [k], rclick x y, move x y, down x y, up x y, key vk, type text (one character an update), text1 c,
 shot name (shots/<name>.png in the original, <dir>/port/<name>.png in the port), raw 'orig line' 'port line'.
 """
@@ -98,7 +101,7 @@ class Tour:
                     port.append(f"{pu} char {c}")
             elif kind == "shot":
                 orig.append(f"at {u} shot {st[2]}")
-                port.append(f"{pu} screenshot {pd}/{st[2]}.png")
+                port.append(f"{pu} shot {pd}/{st[2]}.png")
             elif kind == "raw":
                 orig.append(f"at {u} {st[2]}" if st[2] else "")
                 port.append(f"{pu} {st[3]}" if st[3] else "")

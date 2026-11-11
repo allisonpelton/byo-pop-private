@@ -178,7 +178,15 @@ void TypingTutor::SetupHighlight()
 	if (aFinger != -1)
 	{
 		mFingers[aFinger].mImage = mApp->mImages[IMAGE_FINGER0X + aFinger];
-		mLabels.push_back(TutorSprite(mApp->mImages[IMAGE_GLOWRING], aLabel, mFingers[aFinger].mX, mFingers[aFinger].mY));
+		// the ring is put at the finger's place, 8 to the right for finger 6 (the keys , < i k 8 *) and 5 to the right for finger 7
+		// (the keys . > l o 9 (), as the original does it in its finger switch (0x45e810: x + 8 at 0x1b4, x + 5 at 0x1dc); the phase 2
+		// typing tutor tour found the rings of those keys a few pixels left of the original's
+		int aRingX = mFingers[aFinger].mX;
+		if (aFinger == 6)
+			aRingX += 8;
+		else if (aFinger == 7)
+			aRingX += 5;
+		mLabels.push_back(TutorSprite(mApp->mImages[IMAGE_GLOWRING], aLabel, aRingX, mFingers[aFinger].mY));
 	}
 
 	// the key that lights (the picture, its place on the keyboard picture); the capital letters and the characters outside
