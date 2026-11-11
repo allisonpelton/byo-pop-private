@@ -983,6 +983,15 @@ decoder, stb_vorbis from `openmpt.wasm`, or our own reader for a Sun `.au` file)
 plays and drops the decoded sounds and the audio context. The grid is one tab stop. It is silent at `?silent=1` as
 the music player is, and is not shown under 760 pixels wide.
 
+A board may also have presets, in a group box of their own ("Sequences") before the others: sequences that sound in
+the game, played as the game plays them (the user, 2026-11-11: "preset sequences of sound effects for the soundboards
+based on sequences that sound off in game"), such as a cascade of each depth, a level up and the game over. Each is
+taken from a game the port's own bot played (`tools/playbymove`, the `move` command) with the sound log on
+(`BYOPOP_SOUNDLOG`): `tools/soundpreset.py <log> <first update> <last update>` turns that stretch of the log into a
+preset, every sound at its time (10 ms an update) with its volume, pan, pitch, loop, stop and its fades. The window
+schedules the steps on the audio clock; a preset pressed again starts again, and Stop stops it. A preset whose files
+are not all in the game's folder is left out. The names are rip style, as Music's places are.
+
 ### The splits timer
 
 The Splits window (`web/splits.js`) is a stand-in for LiveSplit, so that a speedrun can be timed on the site (the

@@ -195,6 +195,26 @@ function protracker() {
   }
   check("cuts: every piece named is cut", orphans.length === 0, orphans);
   check("chains: no part placed on its own", chained.length === 0, chained);
+
+  // the soundboards' presets (web/soundboards.js): rip-style names (Title Case, at most 20 characters), steps in time order,
+  // and every step's file a sound on the game's own board (with or without its extension)
+  const boards = new Function(fs.readFileSync(path.join(__dirname, "../web/soundboards.js"), "utf8") + "\nreturn ByopopSoundboards;")();
+  const badNames = [], unordered = [], offBoard = [];
+  let presetCount = 0;
+  for (const g of Object.keys(boards)) {
+    const listed = new Set();
+    for (const gr of boards[g].groups) for (const s of gr.sounds) listed.add(s[0].toLowerCase().replace(/\.(ogg|wav|au|mp3)$/, ""));
+    for (const pr of boards[g].presets || []) {
+      presetCount++;
+      // (a count, "x5", is the one word that starts small: "Cascade x5", the coordinator's example of 2026-11-11)
+      if (pr.name.length > 20 || pr.name.split(" ").some((w) => !/^([A-Z0-9]|x\d+$)/.test(w) && w !== "of")) badNames.push(g + " " + pr.name);
+      for (let i = 1; i < pr.steps.length; i++) if (pr.steps[i][1] < pr.steps[i - 1][1]) { unordered.push(g + " " + pr.name); break; }
+      for (const st of pr.steps) if (!listed.has(st[0].toLowerCase().replace(/\.(ogg|wav|au|mp3)$/, ""))) offBoard.push(g + " " + pr.name + " " + st[0]);
+    }
+  }
+  check("presets: " + presetCount + " named rip style", presetCount > 0 && badNames.length === 0, badNames);
+  check("presets: steps in time order", unordered.length === 0, unordered);
+  check("presets: every file on the game's board", offBoard.length === 0, offBoard);
   console.log("musictest: " + checks + " checks, " + failed + " failed" + (mo3 ? "" : " (no MO3 staged: libxmp-lite only)"));
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.log("musictest: " + (e && e.stack || e)); process.exit(1); });

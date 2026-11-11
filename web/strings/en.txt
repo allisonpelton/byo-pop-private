@@ -1325,6 +1325,7 @@ sounds.none = None of the games you added has sounds the board can play yet.
 sounds.st_error = Error
 sounds.failed = The sounds could not be read.
 sounds.bad_file = This file could not be played.
+sounds.presets = Sequences
 splits.title = Splits
 splits.segment1 = Level 1
 splits.prev = Previous Segment
