@@ -272,7 +272,7 @@ var ByopopMusic = (function () {
     return svg;
   }
   var VIS_KEY = "byopop-music-vis", MUTE_KEY = "byopop-music-mute";
-  var VIS = ["spectrum", "tracker", "off"];  // what the display's lower half shows; a click on it goes to the next
+  var VIS = ["spectrum", "tracker", "piano", "off"];  // what the display's lower half shows; a click on it goes to the next
   var SLICE = 512;           // frames between two looks at the decoder's row while the tracker view is shown
   // The display's height, in the tracker's rows (the user, 2026-11-09: "increase how many rows show in the tracker"): five at
   // least, the one heard in the middle; the spectrum takes the same height. The splitter under the player sets it, and it is
@@ -287,7 +287,7 @@ var ByopopMusic = (function () {
     // the decoder was in its patterns every SLICE frames; shifted as the worklet uses a chunk up, at the context's time then
     var heads = [], shiftedAt = 0;
     var state = "idle";  // idle | loading | playing | paused
-    var scanned = false, loop = false, volume = 80, muted = false, vis = "spectrum", trackerOn = false, spectrumOn = false;
+    var scanned = false, loop = false, volume = 80, muted = false, vis = "spectrum", trackerOn = false, pianoOn = false, spectrumOn = false;
     try { loop = localStorage.getItem(LOOP_KEY) === "1"; muted = localStorage.getItem(MUTE_KEY) === "1"; } catch (e) {}
     try { var v = parseInt(localStorage.getItem(VOLUME_KEY), 10); if (v >= 0 && v <= 100) volume = v; } catch (e) {}
     try { var kept = localStorage.getItem(VIS_KEY); if (VIS.indexOf(kept) >= 0) vis = kept; } catch (e) {}
@@ -330,7 +330,10 @@ var ByopopMusic = (function () {
     hbTrack.appendChild(hbThumb);
     [hbLeft, hbTrack, hbRight].forEach(function (e) { trackerScroll.appendChild(e); });
     tracker.appendChild(trackerAt); tracker.appendChild(trackerRows); tracker.appendChild(trackerScroll);
-    visEl.appendChild(spectrum); visEl.appendChild(tracker);
+    var piano = make("canvas", "mu-piano");
+    piano.setAttribute("aria-hidden", "true");
+    piano.hidden = true;
+    visEl.appendChild(spectrum); visEl.appendChild(tracker); visEl.appendChild(piano);
     // the game the views follow (below, "Following a game"), over the view's top right corner
     var followEl = make("span", "mu-follow", "");
     followEl.hidden = true;
@@ -480,11 +483,14 @@ var ByopopMusic = (function () {
     // The view the display shows: the chosen one, but the spectrum where a tune has no patterns (Ogg)
     function applyVis() {
       var wasSpectrum = spectrumOn;
-      trackerOn = vis === "tracker" && (follow ? follow.view.kind === "module" : isModule());
-      spectrumOn = vis === "spectrum" || (vis === "tracker" && !trackerOn);
+      var patterned = follow ? follow.view.kind === "module" : isModule();
+      trackerOn = vis === "tracker" && patterned;
+      pianoOn = vis === "piano" && patterned;
+      spectrumOn = vis === "spectrum" || ((vis === "tracker" || vis === "piano") && !patterned);
       tracker.hidden = !trackerOn;
+      piano.hidden = !pianoOn;
       spectrum.hidden = !spectrumOn;
-      var label = T({ spectrum: "music.vis_spectrum", tracker: "music.vis_tracker", off: "music.vis_off" }[vis]);
+      var label = T({ spectrum: "music.vis_spectrum", tracker: "music.vis_tracker", piano: "music.vis_piano", off: "music.vis_off" }[vis]);
       visEl.setAttribute("aria-label", label);
       visEl.title = label;
       if (spectrumOn !== wasSpectrum) route();
@@ -639,6 +645,19 @@ var ByopopMusic = (function () {
           M._free(buf);
           return list;
         },
+        // the lowest and highest note anywhere in it (1 is C-0), or null for none
+        range: function () {
+          var buf = M._malloc(8);
+          M._bm_range(m, buf);
+          var lo = M.HEAP32[buf >> 2], hi = M.HEAP32[(buf >> 2) + 1];
+          M._free(buf);
+          return lo ? [lo, hi] : null;
+        },
+        // the pattern an order plays and its rows; "skip" for a marker the player passes over; null past the end
+        orderPattern: function (order) {
+          var p = M._bm_order_pattern(m, order);
+          return p >= 0 ? [p, M._bm_pattern_rows(m, p)] : p === -2 ? "skip" : null;
+        },
         free: function () { M._bm_free(m); }
       };
     }
@@ -691,7 +710,7 @@ var ByopopMusic = (function () {
       });
     }
     // the tracker view wants the decoder's rows: shown, on the screen, and the tune a module's
-    function marking() { return trackerOn && isModule() && onScreen(); }
+    function marking() { return (trackerOn || pianoOn) && isModule() && onScreen(); }
     // Keeps AHEAD chunks queued in the worklet while playing
     function fill() {
       if (state !== "playing" || !source || ended) return;
@@ -722,7 +741,7 @@ var ByopopMusic = (function () {
     function unload() {
       if (source) { source.free(); source = null; }
       flush();
-      rowCache = {}; usedChannels = null; firstChannel = 0;
+      rowCache = {}; usedChannels = null; firstChannel = 0; rollReset();
     }
     function play(i) {
       var t = tunes[i];
@@ -897,6 +916,112 @@ var ByopopMusic = (function () {
       trackerScroll.hidden = shown >= used.length;
       placeThumb();
     }
+    // The piano roll (the user, 2026-11-09: "add the piano roll too"): the notes as bars on a pitch grid, time running left to
+    // right in rows with the heard row at a fixed playhead, pitch up the display, one colour for each instrument. A note lasts
+    // until the next note, key off, cut or fade in its channel, or to its pattern's end. It reads the cells the tracker reads,
+    // each pattern once (its notes kept), and shows the pattern heard with the orders on either side of it (for a game's module,
+    // whose order list the page does not have, the pattern heard before it and none after). The pitch range is the
+    // tune's own lowest to highest note: the player's own decoder gives it at once; for a game's module it is the notes of the
+    // patterns heard so far, so it can widen while the tune plays.
+    var ROLL = ["#00ff00", "#ffff00", "#00ffff", "#ff00ff", "#ff0000", "#ffffff", "#c0c0c0", "#808000", "#008080", "#800080",
+      "#008000", "#800000"];   // the instruments' colours, the bright and the dark of the 16-colour palette (no blue: too dark on black)
+    var NAMES = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+    var roll = null;   // { id, patterns: {pattern: {rows, notes: [[start, end, pitch, colour]]}}, lo, hi, exact, before: [pattern, rows] }
+    function rollReset() { roll = null; }
+    // a cell's note: its pitch (1 is C-0), "off" for a key off, cut or fade, or null; and its instrument's colour, or -1
+    function noteOf(cell) {
+      var n = cell.charAt(0), acc = cell.charAt(1), oct = cell.charAt(2);
+      if (n === "=" || n === "^" || n === "~") return { pitch: "off" };
+      if (!(n in NAMES) || !(oct >= "0" && oct <= "9")) return null;
+      var ins = cell.slice(4, 6), num = /^\d+$/.test(ins) ? parseInt(ins, 10) : parseInt(ins, 16);
+      return { pitch: NAMES[n] + (acc === "#" ? 1 : 0) + 12 * (+oct) + 1, colour: num > 0 ? (num - 1) % ROLL.length : -1 };
+    }
+    function rollPattern(feed, pattern, rows) {
+      var k = String(pattern);
+      if (roll.patterns[k]) return roll.patterns[k];
+      var notes = [], open = {}, last = roll.instrument;
+      for (var r = 0; r < rows; r++) {
+        var cells = feed.rowAt(pattern, r).split("|");
+        for (var c = 0; c < cells.length; c++) {
+          var n = noteOf(cells[c] || "");
+          if (!n) continue;
+          if (open[c]) { open[c][1] = r; open[c] = null; }
+          if (n.pitch === "off") continue;
+          if (n.colour >= 0) last[c] = n.colour;
+          var note = [r, rows, n.pitch, last[c] >= 0 ? last[c] : c % ROLL.length];
+          notes.push(note);
+          open[c] = note;
+          if (!roll.exact) { roll.lo = roll.lo ? Math.min(roll.lo, n.pitch) : n.pitch; roll.hi = Math.max(roll.hi || 0, n.pitch); }
+        }
+      }
+      return (roll.patterns[k] = { rows: rows, notes: notes });
+    }
+    function drawPiano() {
+      if (piano.hidden) return;
+      var feed = trackerFeed();
+      if (!feed) return;
+      var mark = feed.mark;
+      if (!roll || roll.id !== feed.id) {
+        roll = { id: feed.id, patterns: {}, instrument: {}, lo: 0, hi: 0, exact: false, before: null, at: null, shown: "" };
+        var range = !follow && source && source.range ? source.range() : null;
+        if (range) { roll.lo = range[0]; roll.hi = range[1]; roll.exact = true; }
+      }
+      // the patterns on either side of the one heard: the orders before and after it where the decoder knows the order list (the
+      // player's own tunes), else, for a game's module, the last one heard before it and none after
+      var w = piano.clientWidth, hgt = piano.clientHeight, dpr = window.devicePixelRatio || 1;
+      // a row is 4 pixels wide; the playhead a third of the way in
+      var col = 4, head = Math.floor(w / 3 / col) * col;
+      var now = rollPattern(feed, mark[1], mark[3]), parts = [[now, 0]];
+      if (!follow && source && source.orderPattern) {
+        // the orders before and after, as many as the display holds
+        for (var o = mark[5] - 1, shift = 0; head + (shift - mark[2]) * col > 0; o--) {
+          var b = source.orderPattern(o);
+          if (b === "skip") continue;
+          if (!b || !b[1]) break;
+          var bp = rollPattern(feed, b[0], b[1]);
+          shift -= bp.rows;
+          parts.push([bp, shift]);
+        }
+        for (var o2 = mark[5] + 1, shift2 = now.rows; head + (shift2 - mark[2]) * col < w; o2++) {
+          var a = source.orderPattern(o2);
+          if (a === "skip") continue;
+          if (!a || !a[1]) break;
+          var ap = rollPattern(feed, a[0], a[1]);
+          parts.push([ap, shift2]);
+          shift2 += ap.rows;
+        }
+      } else {
+        if (roll.at && roll.at[0] !== mark[1]) roll.before = roll.at;
+        if (roll.before) { var bp2 = rollPattern(feed, roll.before[0], roll.before[1]); parts.push([bp2, -bp2.rows]); }
+      }
+      roll.at = [mark[1], mark[3]];
+      if (!w || !hgt || !roll.hi) return;
+      var key = [mark[1], mark[2], mark[5], roll.before && roll.before[0], roll.lo, roll.hi, w, hgt].join(":");
+      if (key === roll.shown) return;
+      roll.shown = key;
+      if (piano.width !== Math.round(w * dpr) || piano.height !== Math.round(hgt * dpr)) { piano.width = Math.round(w * dpr); piano.height = Math.round(hgt * dpr); }
+      var g = piano.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, w, hgt);
+      // a semitone as high as the display allows, a pixel at least
+      var span = roll.hi - roll.lo + 1, step = Math.max(1, Math.floor((hgt - 2) / span)), base = Math.floor((hgt + span * step) / 2);
+      function y(pitch) { return base - (pitch - roll.lo + 1) * step; }
+      // the octaves' C rows, faintly
+      g.fillStyle = "#003000";
+      for (var p = roll.lo; p <= roll.hi; p++) if ((p - 1) % 12 === 0) g.fillRect(0, y(p) + step - 1, w, 1);
+      function bars(pat, shift) {
+        pat.notes.forEach(function (n) {
+          var x0 = head + (n[0] + shift - mark[2]) * col, x1 = head + (n[1] + shift - mark[2]) * col - 1;
+          if (x1 < 0 || x0 > w) return;
+          g.fillStyle = ROLL[n[3]];
+          g.fillRect(x0, y(n[2]), Math.max(1, x1 - x0), step);
+        });
+      }
+      parts.forEach(function (part) { bars(part[0], part[1]); });
+      // the playhead, over the heard row
+      g.fillStyle = "rgba(255, 255, 255, 0.35)";
+      g.fillRect(head, 0, col, hgt);
+    }
     // The spectrum: BARS bars over 40 Hz to 16 kHz spaced as the ear hears them, each with a peak that falls back
     var bins = null, peaks = [], levels = [];
     function drawSpectrum() {
@@ -936,7 +1061,7 @@ var ByopopMusic = (function () {
         ticking = false;
         showTime();
         var seen = onScreen(), front = seen ? frontGame() : null;
-        if (seen) { followGame(front); drawTracker(); drawSpectrum(); } else unfollow();
+        if (seen) { followGame(front); drawTracker(); drawPiano(); drawSpectrum(); } else unfollow();
         var settling = levels.some(function (l, i) { return l > 0.001 || peaks[i] > 0.001; });
         if (state === "playing" || front || (!spectrum.hidden && settling)) { ticking = true; requestAnimationFrame(frame); }
         // game windows open but none in front (all minimized, say): a look twice a second, so one restored is followed again
@@ -999,6 +1124,7 @@ var ByopopMusic = (function () {
       untap();
       follow = null;
       firstChannel = 0; shownRow = "";
+      rollReset();
       applyVis();
       showFollowed();
     }
