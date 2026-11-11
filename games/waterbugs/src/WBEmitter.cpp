@@ -25,13 +25,13 @@ int Particle_Update(Particle* theParticle)
 	theParticle->y = theParticle->vy + theParticle->y;
 	if (theParticle->frameTime != 0)
 	{
-		int n = theParticle->frameCount;
-		if (0 < n && (theParticle->frameTimer = theParticle->frameTimer + 1,
+		int aFrameCount = theParticle->frameCount;
+		if (0 < aFrameCount && (theParticle->frameTimer = theParticle->frameTimer + 1,
 						 theParticle->frameTime <= theParticle->frameTimer))
 		{
 			theParticle->frame = theParticle->frame + 1;
 			theParticle->frameTimer = 0;
-			if (n <= theParticle->frame)
+			if (aFrameCount <= theParticle->frame)
 			{
 				if (theParticle->oneShot == 0)
 					theParticle->frame = 0;
@@ -42,7 +42,7 @@ int Particle_Update(Particle* theParticle)
 				}
 			}
 		}
-		if (n != 0)
+		if (aFrameCount != 0)
 		{
 			Image* anImage = Bank_ImageAt(&gArtBank, theParticle->firstImage + theParticle->frame);
 			theParticle->image = anImage;
@@ -59,28 +59,28 @@ int Particle_Update(Particle* theParticle)
 
 void Particle_Draw(Particle* theParticle)
 {
-	float t = theParticle->age / theParticle->lifetime;
-	double anAlpha = (double)(theParticle->endAlpha - theParticle->startAlpha) * (double)t +
+	float aLifeFraction = theParticle->age / theParticle->lifetime;
+	double anAlpha = (double)(theParticle->endAlpha - theParticle->startAlpha) * (double)aLifeFraction +
 		(double)theParticle->startAlpha;
 	if (255.0 < anAlpha)
 		anAlpha = 255.0;
 	theParticle->alpha = (int)anAlpha;
-	theParticle->r = (int)((double)(theParticle->endR - theParticle->startR) * (double)t + (double)theParticle->startR);
-	theParticle->g = (int)((double)(theParticle->endG - theParticle->startG) * (double)t + (double)theParticle->startG);
-	theParticle->b = (int)((double)(theParticle->endB - theParticle->startB) * (double)t + (double)theParticle->startB);
+	theParticle->r = (int)((double)(theParticle->endR - theParticle->startR) * (double)aLifeFraction + (double)theParticle->startR);
+	theParticle->g = (int)((double)(theParticle->endG - theParticle->startG) * (double)aLifeFraction + (double)theParticle->startG);
+	theParticle->b = (int)((double)(theParticle->endB - theParticle->startB) * (double)aLifeFraction + (double)theParticle->startB);
 	if (theParticle->frameTime == 0)
 	{
 		Animation* anAnim = theParticle->anim;
 		if (anAnim == nullptr)
 		{
 			// a 64-bit fistp with the rounding set to truncate
-			int aFrame = (int)(int64_t)((double)t * (double)theParticle->frameCount);
+			int aFrame = (int)(int64_t)((double)aLifeFraction * (double)theParticle->frameCount);
 			theParticle->image = Bank_ImageAt(&gArtBank, aFrame + theParticle->firstImage);
 		}
 		else
 		{
 			float aLast = (float)((double)theParticle->frameCount - 1.0);
-			theParticle->image = Animation_Frame(anAnim, (int)((double)t * (double)aLast));
+			theParticle->image = Animation_Frame(anAnim, (int)((double)aLifeFraction * (double)aLast));
 		}
 	}
 	if (theParticle->image == nullptr)
@@ -221,40 +221,40 @@ void ParticleSystem_Add(ParticleSystem* theSystem, float theX, float theY, float
 	gParticleNext = gParticleNext + 1;
 	if (7999 < gParticleNext)
 		gParticleNext = 0;
-	Particle* p = theSystem->particles.current;
-	p->image = nullptr;
-	p->kind = 0;
-	p->state = 0;
-	p->frame = 0;
-	p->frameTimer = 0;
-	p->midHandle = 0;
-	p->age = 0.0f;
-	p->anim = nullptr;
-	p->x = theX;
-	p->y = theY;
-	p->depth = 8;
-	p->oldX = theX;
-	p->oldY = theY;
-	p->vx = theVx;
-	p->vy = theVy;
-	p->firstImage = theFirstImage;
-	p->frameCount = (theLastImage - theFirstImage) + 1;
-	p->frameTime = theFrameTime;
-	p->startR = theStartR;
-	p->startG = theStartG;
-	p->startB = theStartB;
-	p->endR = theEndR;
-	p->endG = theEndG;
-	p->endB = theEndB;
-	p->startAlpha = theStartAlpha;
-	p->endAlpha = theEndAlpha;
-	p->lifetime = (float)theLifetime;
-	p->drag = theDrag;
-	p->gravity = theGravity;
-	p->drawKind = theDrawKind;
-	p->midHandle = 1;
-	p->dirty = 1;
-	p->owner = theSystem;
+	Particle* aParticle = theSystem->particles.current;
+	aParticle->image = nullptr;
+	aParticle->kind = 0;
+	aParticle->state = 0;
+	aParticle->frame = 0;
+	aParticle->frameTimer = 0;
+	aParticle->midHandle = 0;
+	aParticle->age = 0.0f;
+	aParticle->anim = nullptr;
+	aParticle->x = theX;
+	aParticle->y = theY;
+	aParticle->depth = 8;
+	aParticle->oldX = theX;
+	aParticle->oldY = theY;
+	aParticle->vx = theVx;
+	aParticle->vy = theVy;
+	aParticle->firstImage = theFirstImage;
+	aParticle->frameCount = (theLastImage - theFirstImage) + 1;
+	aParticle->frameTime = theFrameTime;
+	aParticle->startR = theStartR;
+	aParticle->startG = theStartG;
+	aParticle->startB = theStartB;
+	aParticle->endR = theEndR;
+	aParticle->endG = theEndG;
+	aParticle->endB = theEndB;
+	aParticle->startAlpha = theStartAlpha;
+	aParticle->endAlpha = theEndAlpha;
+	aParticle->lifetime = (float)theLifetime;
+	aParticle->drag = theDrag;
+	aParticle->gravity = theGravity;
+	aParticle->drawKind = theDrawKind;
+	aParticle->midHandle = 1;
+	aParticle->dirty = 1;
+	aParticle->owner = theSystem;
 	if (theSystem->particles.current == theSystem->particles.head)
 	{
 		theSystem->x = theX;
@@ -324,59 +324,59 @@ static int JitterColour(int theColour, int theVariance)
 
 void Emitter_Update(Obj* theObj)
 {
-	Emitter* e = static_cast<Emitter*>(theObj);
-	float anAge = (float)((double)e->age + 1.0);
-	e->age = anAge;
+	Emitter* anEmitter = static_cast<Emitter*>(theObj);
+	float anAge = (float)((double)anEmitter->age + 1.0);
+	anEmitter->age = anAge;
 	int n = (int)anAge;
-	if (n % e->frequency != 0)
+	if (n % anEmitter->frequency != 0)
 		return;
-	Obj* aParent = e->parent;
-	int aBaseX = (int)((double)aParent->x + (double)e->oldX);
-	int aBaseY = (int)((double)aParent->y + (double)e->oldY);
-	float aVx = e->vx;
-	float aVy = e->vy;
-	int aStartR = e->startR;
-	int aStartG = e->startG;
-	int aStartB = e->startB;
-	int anEndR = e->endR;
-	int anEndG = e->endG;
-	int anEndB = e->endB;
-	int aLast = e->frameCount - 1;
+	Obj* aParent = anEmitter->parent;
+	int aBaseX = (int)((double)aParent->x + (double)anEmitter->oldX);
+	int aBaseY = (int)((double)aParent->y + (double)anEmitter->oldY);
+	float aVx = anEmitter->vx;
+	float aVy = anEmitter->vy;
+	int aStartR = anEmitter->startR;
+	int aStartG = anEmitter->startG;
+	int aStartB = anEmitter->startB;
+	int anEndR = anEmitter->endR;
+	int anEndG = anEmitter->endG;
+	int anEndB = anEmitter->endB;
+	int aLast = anEmitter->frameCount - 1;
 	int x;
 	int y;
-	if (e->kind == 0)
+	if (anEmitter->kind == 0)
 	{
-		int anAngle = (aParent->frame * e->rotation) / aParent->anim->count;
-		int rx = (int)((double)CosDeg(anAngle) * e->oldX - (double)SinDeg(anAngle) * e->oldY);
-		int ry = (int)((double)SinDeg(anAngle) * e->oldX + (double)CosDeg(anAngle) * e->oldY);
-		x = (int)((double)rx + (double)e->parent->x);
-		y = (int)((double)ry + (double)e->parent->y);
-		float sx = e->vx;
-		float sy = e->vy;
-		if (e->vx < 0.0f)
+		int anAngle = (aParent->frame * anEmitter->rotation) / aParent->anim->count;
+		int rx = (int)((double)CosDeg(anAngle) * anEmitter->oldX - (double)SinDeg(anAngle) * anEmitter->oldY);
+		int ry = (int)((double)SinDeg(anAngle) * anEmitter->oldX + (double)CosDeg(anAngle) * anEmitter->oldY);
+		x = (int)((double)rx + (double)anEmitter->parent->x);
+		y = (int)((double)ry + (double)anEmitter->parent->y);
+		float sx = anEmitter->vx;
+		float sy = anEmitter->vy;
+		if (anEmitter->vx < 0.0f)
 		{
 			// a spread: both speeds drawn from the x speed's range
-			int aHigh = (int)(-(double)e->vx * 1000.0);
-			int aLow = (int)(1000.0 * (double)e->vx);
+			int aHigh = (int)(-(double)anEmitter->vx * 1000.0);
+			int aLow = (int)(1000.0 * (double)anEmitter->vx);
 			sx = (float)((double)RandRange(aLow, aHigh) / 1000.0);
-			aHigh = (int)(-(double)e->vx * 1000.0);
-			aLow = (int)(1000.0 * (double)e->vx);
+			aHigh = (int)(-(double)anEmitter->vx * 1000.0);
+			aLow = (int)(1000.0 * (double)anEmitter->vx);
 			sy = (float)((double)RandRange(aLow, aHigh) / 1000.0);
 		}
-		aVx = (float)((double)CosDeg(anAngle) * sx + (double)e->parent->vx - (double)SinDeg(anAngle) * sy);
-		aVy = (float)((double)SinDeg(anAngle) * sx + (double)e->parent->vy + (double)CosDeg(anAngle) * sy);
+		aVx = (float)((double)CosDeg(anAngle) * sx + (double)anEmitter->parent->vx - (double)SinDeg(anAngle) * sy);
+		aVy = (float)((double)SinDeg(anAngle) * sx + (double)anEmitter->parent->vy + (double)CosDeg(anAngle) * sy);
 	}
 	else
 	{
-		if (e->kind == 1)
+		if (anEmitter->kind == 1)
 		{
 			RandMod(360);
-			float aVx1000 = (float)((double)aVx * 1000.0);
-			float aVy1000 = (float)((double)aVy * 1000.0);
-			int aHigh = (int)aVx1000;
-			aVx = (float)((double)RandRange((int)-aVx1000, aHigh) / 1000.0 + (double)e->parent->vx);
-			aHigh = (int)aVy1000;
-			aVy = (float)((double)RandRange((int)-aVy1000, aHigh) / 1000.0 + (double)e->parent->vy);
+			float aVxMilli = (float)((double)aVx * 1000.0);
+			float aVyMilli = (float)((double)aVy * 1000.0);
+			int aHigh = (int)aVxMilli;
+			aVx = (float)((double)RandRange((int)-aVxMilli, aHigh) / 1000.0 + (double)anEmitter->parent->vx);
+			aHigh = (int)aVyMilli;
+			aVy = (float)((double)RandRange((int)-aVyMilli, aHigh) / 1000.0 + (double)anEmitter->parent->vy);
 			aHigh = (int)aVx;
 			x = (int)((double)RandRange((int)-aVx, aHigh) / 1000.0 + (double)aBaseX);
 			aHigh = (int)aVy;
@@ -389,17 +389,17 @@ void Emitter_Update(Obj* theObj)
 			x = (int)aParent->x;
 			y = (int)aParent->y;
 		}
-		aStartR = JitterColour(e->startR, e->variance);
-		aStartG = JitterColour(e->startG, e->variance);
-		aStartB = JitterColour(e->startB, e->variance);
-		anEndR = JitterColour(e->endR, e->variance);
-		anEndG = JitterColour(e->endG, e->variance);
-		anEndB = JitterColour(e->endB, e->variance);
+		aStartR = JitterColour(anEmitter->startR, anEmitter->variance);
+		aStartG = JitterColour(anEmitter->startG, anEmitter->variance);
+		aStartB = JitterColour(anEmitter->startB, anEmitter->variance);
+		anEndR = JitterColour(anEmitter->endR, anEmitter->variance);
+		anEndG = JitterColour(anEmitter->endG, anEmitter->variance);
+		anEndB = JitterColour(anEmitter->endB, anEmitter->variance);
 	}
 	ParticleSystem_New();
 	ParticleSystem_Add(gLevels.current->systems.current, (float)x, (float)y, aVx, aVy, 0, aLast, 0, aStartR, aStartG,
-		aStartB, anEndR, anEndG, anEndB, e->startAlpha, e->endAlpha, e->time, 0.999f, 0.0f, e->drawKind);
-	gLevels.current->systems.current->particles.current->anim = e->anim;
+		aStartB, anEndR, anEndG, anEndB, anEmitter->startAlpha, anEmitter->endAlpha, anEmitter->time, 0.999f, 0.0f, anEmitter->drawKind);
+	gLevels.current->systems.current->particles.current->anim = anEmitter->anim;
 	ParticleSystem* aSystem = gLevels.current->systems.current;
 	aSystem->particles.current->depth = 0;
 }

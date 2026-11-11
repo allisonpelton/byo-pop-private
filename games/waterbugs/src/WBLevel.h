@@ -105,7 +105,7 @@ struct Beam : Obj
 	Shooter* owner;            // +0xb8
 	int hit;                   // +0xbc
 	List<Rider> riders;        // +0xc0
-	Obj unkcc;                 // +0xcc
+	Obj harpoon;               // +0xcc  at the head, going the same way
 };
 static_assert(sizeof(Beam) == 0x17c, "Beam");
 
@@ -131,17 +131,17 @@ struct Shooter : Obj
 	Animation* vertAnim;       // +0x100
 	Animation* horizShootAnim; // +0x104
 	Animation* vertShootAnim;  // +0x108
-	int unk10c;                // +0x10c
+	int wingsPadding;          // +0x10c  the four bytes before wingsH: nothing reads them
 	Obj wingsH;                // +0x110  drawn over the ship while no weapon orbits it
 	Obj wingsV;                // +0x1c0
-	Obj unk320;                // +0x320
+	Obj idleObj;                // +0x320
 	Obj bubble;                // +0x3d0  (flag 0x10) the invincibubble
 	int beamAcross;            // +0x480  1: the beams go left and right
 	float appearTime;          // +0x484  updates the ship takes to come in
 	float beamSpeed;           // +0x488
 	int flags;                 // +0x48c  8: it turns by itself, 0x10: invincible
-	int unk490;                // +0x490
-	int unk494;                // +0x494
+	int slowMotionTime;                // +0x490
+	int hyperMotionTime;                // +0x494
 	int drillSound;            // +0x498
 	int fireAge;               // +0x49c  its age when it last fired
 	int hitSound;              // +0x4a0  clank_sound: a beam meets a wall
@@ -184,7 +184,7 @@ struct Menu : Obj
 	Image* logo;               // +0xb0  logo_animation's first frame, drawn about (logoX, logoY)
 	int logoX;                 // +0xb4
 	int logoY;                 // +0xb8
-	int unkbc;                 // +0xbc
+	int itemsPadding;          // +0xbc  the four bytes before items: nothing reads them
 	List<MenuItem> items;      // +0xc0
 	int lockedLevel;           // +0xcc  shown with locked_animation until the player reaches this level
 	char lockedAnim[0x80];     // +0xd0
@@ -213,7 +213,7 @@ struct Text : Obj
 	int blink;                 // +0x1d0  ms; not 0: blinks while shown
 	int firstParticle;         // +0x1d4  the art bank images its bubbles are drawn with
 	int lastParticle;          // +0x1d8
-	int unk1dc;                // +0x1dc
+	int inputPadding;          // +0x1dc  the four bytes before input: nothing reads them
 	TextInput input;           // +0x1e0  a high score's name entry
 };
 // (the original's 0x6c8 less the four members of its TextInput that R64TextInput.h says the port leaves out)
@@ -235,9 +235,9 @@ struct Powerup : Obj
 // kinds 16 and 17 give, and nothing makes those: the port leaves them out)
 struct Weapon : Obj
 {
-	int unkb0;                 // +0xb0
+	int dragPadding;           // +0xb0  the four bytes before drag: nothing reads them
 	float drag;                // +0xb4  the speed is multiplied by it each update once launched
-	int unkb8;                 // +0xb8
+	int launchSpeedPadding;    // +0xb8  the four bytes before launchSpeed: nothing reads them
 	float launchSpeed;         // +0xbc
 	int across;                // +0xc0  the ship's beamAcross at the last update
 	int particle;              // +0xc4  particle_0's index in the art bank
@@ -254,8 +254,8 @@ struct KeyMapNode
 {
 	KeyMapNode* next;          // +0x00
 	KeyMapNode* prev;          // +0x04
-	int a;                     // +0x08
-	int b;                     // +0x0c
+	int col;                   // +0x08  where the key code stands
+	int row;                   // +0x0c
 	char key;                  // +0x10
 };
 
@@ -297,15 +297,14 @@ struct Level : Obj
 	int totalCells;                  // +0x3b4  the open cells at the start
 	int filledCells;                 // +0x3b8
 	int fillQuota;                   // +0x3bc  percent
-	int unk3c0;                      // +0x3c0
+	int floodedCells;                      // +0x3c0
 	int fillSound;                   // +0x3c4
 	int fillEndSound;                // +0x3c8
 	int symmetry;                    // +0x3cc  a random board's
 	int shots;                       // +0x3d0  beams fired (the level's record keeps the fewest)
 	int lines;                       // +0x3d4  beam pairs that have stopped
 	int bonus;                       // +0x3d8
-	int unk3dc;                      // +0x3dc
-	int unk3e0;                      // +0x3e0
+	int bonusPadding[2];             // +0x3dc, +0x3e0  the eight bytes after bonus: nothing reads them
 	int musicPending;                // +0x3e4
 	List<Shooter> shooters;          // +0x3e8
 	List<Cell> fills;                // +0x3f4  cells being filled (the columns own them)
@@ -332,7 +331,7 @@ void Level_Destroy(Level* theLevel);                             // 0x413b70
 void List_DeleteNode(Level* theLevel);                           // 0x4011a0's delete
 // 0x412640: the level tag in theTag, the game file read on from p (null: theTag is all there is, the board is
 // random and its cells are not made)
-void Level_Load(Level* theLevel, const char* p, XmlTag* theTag);
+void Level_Load(Level* theLevel, const char* theXmlCursor, XmlTag* theTag);
 int Level_Update(Level* theLevel);                               // 0x412f50: 0 when it is left
 void Level_SetBackground(Level* theLevel);                       // 0x40f340: and the song, by the level number
 void Level_StartSong(Level* theLevel, int thePlay);              // 0x40f6b0
@@ -347,8 +346,8 @@ void Level_DefaultFillImages(Level* theLevel);                   // 0x410210
 int PortalCount();                                               // 0x410360
 void Level_RedrawCells(Level* theLevel);                         // 0x4103c0
 int Level_IsPlaying(Level* theLevel);                            // 0x4105c0
-void Level_AddKey(Level* theLevel, char theKey, int theA, int theB); // 0x410b50
-void Level_FindKey(Level* theLevel, char theKey, int* theA, int* theB); // 0x410b90
+void Level_AddKey(Level* theLevel, char theKey, int theCol, int theRow); // 0x410b50
+void Level_FindKey(Level* theLevel, char theKey, int* theCol, int* theRow); // 0x410b90
 void Level_AddPointer(Level* theLevel);                          // 0x410c10
 void Level_UnlinkAll(Level* theLevel);                           // 0x410a20
 void Level_UpdateProgressStars();                                // 0x413dd0
@@ -391,7 +390,7 @@ int Fill_Update(Cell* theCell);                                  // 0x404da0: 0 
 void Panel_Append(List<Panel>* theList);                         // 0x412490
 void Panel_Setup(Panel* thePanel);                               // 0x4182a0
 void Panel_AppendItem(List<Obj>* theList);                       // 0x418170: a new item at the tail, made current
-void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag); // 0x418050
+void Panel_FromXml(Panel* thePanel, const char* theXmlCursor, const XmlTag* theTag); // 0x418050
 void Panel_Draw(Panel* thePanel, int theAll);                    // 0x4184e0
 void Panel_Update(Panel* thePanel);                              // 0x418470
 void Shooter_Insert(List<Shooter>* theList);                     // 0x410740
@@ -399,14 +398,14 @@ Shooter* Shooter_Init(Shooter* theShooter);                      // 0x41da80
 void Shooter_Destroy(Shooter* theShooter);                       // 0x412360
 void List_DeleteNode(Shooter* theShooter);                       // 0x412540's delete
 void Shooter_Setup(Shooter* theShooter);                         // 0x41b570
-void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag); // 0x41b340
+void Shooter_FromXml(Shooter* theShooter, const char* theXmlCursor, const XmlTag* theTag); // 0x41b340
 int Shooter_Update(Shooter* theShooter);                         // 0x41e740
 void Shooter_Hit(Shooter* theShooter, float theVx, float theVy);  // 0x41bfe0: a beamrider reached it
 void Beams_RemoveAll(List<Beam>* theList);                       // 0x411830
 void Enemy_Insert(List<Enemy>* theList);                         // 0x410610
 // Enemies (WBEnemy.cpp)
 Enemy* Enemy_Init(Enemy* theEnemy);                              // 0x405070
-void Enemy_FromXml(Enemy* theEnemy, const char* p, const XmlTag* theTag); // 0x4050f0
+void Enemy_FromXml(Enemy* theEnemy, const char* theXmlCursor, const XmlTag* theTag); // 0x4050f0
 void Enemy_Draw(Enemy* theEnemy);                                // 0x405660
 int Enemy_Bounce(Enemy* theEnemy);                               // 0x405690: off cells that are not open
 int BurstRoller_Move(Enemy* theEnemy);                           // 0x405800

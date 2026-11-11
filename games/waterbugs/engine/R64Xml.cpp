@@ -36,7 +36,7 @@ XmlTag::~XmlTag()
 
 // 0x42d8a0. The names and values have no bound in the original; the port cuts them at 0xff characters and stops at
 // the buffer's end.
-const char* Xml_NextTag(const char* p, XmlTag* theTag)
+const char* Xml_NextTag(const char* theCursor, XmlTag* theTag)
 {
 	theTag->count = 0;
 	theTag->name[0] = '\0';
@@ -44,61 +44,61 @@ const char* Xml_NextTag(const char* p, XmlTag* theTag)
 	theTag->textLen = 0;
 	theTag->closing = 0;
 	theTag->empty = 0;
-	char c = *p;
-	while (c != '<')
+	char aChar = *theCursor;
+	while (aChar != '<')
 	{
-		if (c == '\0')
-			return p;
-		p++;
-		c = *p;
+		if (aChar == '\0')
+			return theCursor;
+		theCursor++;
+		aChar = *theCursor;
 	}
 	do
 	{
 		do
 		{
-			c = p[1];
-			p++;
-		} while (c == ' ');
-	} while (c == '\n' || c == '\r' || c == '\t');
-	int n = 0;
-	while (c != ' ' && c != '>' && c != '\n' && c != '\r' && c != '\t' && c != '\0')
+			aChar = theCursor[1];
+			theCursor++;
+		} while (aChar == ' ');
+	} while (aChar == '\n' || aChar == '\r' || aChar == '\t');
+	int aNameLength = 0;
+	while (aChar != ' ' && aChar != '>' && aChar != '\n' && aChar != '\r' && aChar != '\t' && aChar != '\0')
 	{
-		p++;
-		if (n < 0xff)
-			theTag->name[n++] = c;
-		c = *p;
+		theCursor++;
+		if (aNameLength < 0xff)
+			theTag->name[aNameLength++] = aChar;
+		aChar = *theCursor;
 	}
-	theTag->name[n] = '\0';
+	theTag->name[aNameLength] = '\0';
 	if (theTag->name[0] == '/')
 		theTag->closing = 1;
-	for (; IsSpace(*p); p++)
+	for (; IsSpace(*theCursor); theCursor++)
 	{
 	}
-	c = *p;
+	aChar = *theCursor;
 	while (true)
 	{
-		if (c == '/' || c == '>' || c == '\0')
+		if (aChar == '/' || aChar == '>' || aChar == '\0')
 		{
-			if (c == '/')
+			if (aChar == '/')
 			{
 				theTag->empty = 1;
-				p++;
+				theCursor++;
 			}
-			if (*p == '>')
-				p++;
+			if (*theCursor == '>')
+				theCursor++;
 			if (theTag->closing == 0 && theTag->empty == 0)
 			{
-				theTag->text = p;
+				theTag->text = theCursor;
 				theTag->textLen = 0;
-				c = *p;
-				while (c != '<' && c != '\0')
+				aChar = *theCursor;
+				while (aChar != '<' && aChar != '\0')
 				{
 					theTag->textLen = theTag->textLen + 1;
-					p++;
-					c = *p;
+					theCursor++;
+					aChar = *theCursor;
 				}
 			}
-			return p;
+			return theCursor;
 		}
 		theTag->count = theTag->count + 1;
 		int aCap = theTag->capacity;
@@ -118,52 +118,52 @@ const char* Xml_NextTag(const char* p, XmlTag* theTag)
 			theTag->attrs = aNew;
 		}
 		XmlTag::Attr& anAttr = theTag->attrs[theTag->count - 1];
-		n = 0;
-		c = *p;
-		while (c != ' ' && c != '=' && c != '\n' && c != '\r' && c != '\t' && c != '\0')
+		aNameLength = 0;
+		aChar = *theCursor;
+		while (aChar != ' ' && aChar != '=' && aChar != '\n' && aChar != '\r' && aChar != '\t' && aChar != '\0')
 		{
-			p++;
-			if (n < 0xff)
-				anAttr.name[n++] = c;
-			c = *p;
+			theCursor++;
+			if (aNameLength < 0xff)
+				anAttr.name[aNameLength++] = aChar;
+			aChar = *theCursor;
 		}
-		anAttr.name[n] = '\0';
-		for (; IsSpace(*p); p++)
+		anAttr.name[aNameLength] = '\0';
+		for (; IsSpace(*theCursor); theCursor++)
 		{
 		}
-		if (*p == '=')
-			p++;
-		c = *p;
-		while (IsSpace(c))
+		if (*theCursor == '=')
+			theCursor++;
+		aChar = *theCursor;
+		while (IsSpace(aChar))
 		{
-			p++;
-			c = *p;
+			theCursor++;
+			aChar = *theCursor;
 		}
-		if (c == '"')
-			p++;
-		n = 0;
-		c = *p;
-		while (c != '"' && c != '\0')
+		if (aChar == '"')
+			theCursor++;
+		aNameLength = 0;
+		aChar = *theCursor;
+		while (aChar != '"' && aChar != '\0')
 		{
-			p++;
-			if (n < 0xff)
-				anAttr.value[n++] = c;
-			c = *p;
+			theCursor++;
+			if (aNameLength < 0xff)
+				anAttr.value[aNameLength++] = aChar;
+			aChar = *theCursor;
 		}
-		anAttr.value[n] = '\0';
-		if (*p == '"')
-			p++;
-		c = *p;
-		while (IsSpace(c))
+		anAttr.value[aNameLength] = '\0';
+		if (*theCursor == '"')
+			theCursor++;
+		aChar = *theCursor;
+		while (IsSpace(aChar))
 		{
-			p++;
-			c = *p;
+			theCursor++;
+			aChar = *theCursor;
 		}
 	}
 }
 
 // 0x42d7b0
-const char* Xml_ReadToken(const char* p, char* out, int limit, int* count)
+const char* Xml_ReadToken(const char* theCursor, char* out, int limit, int* count)
 {
 	int i = 0;
 	int aLocal = 0;
@@ -171,52 +171,52 @@ const char* Xml_ReadToken(const char* p, char* out, int limit, int* count)
 		count = &aLocal;
 	if (limit == 0)
 		limit = 9999;
-	char c;
-	while (c = *p, (c == '\0' || c == '\n' || c == '\r' || (c == '/' && p[1] == '/') || (c == '\\' && p[1] == '\\') ||
-					   c == '\t' || c == ' ') &&
+	char aChar;
+	while (aChar = *theCursor, (aChar == '\0' || aChar == '\n' || aChar == '\r' || (aChar == '/' && theCursor[1] == '/') || (aChar == '\\' && theCursor[1] == '\\') ||
+					   aChar == '\t' || aChar == ' ') &&
 			*count < limit)
 	{
-		if ((c == '/' && p[1] == '/') || (c == '\\' && p[1] == '\\'))
+		if ((aChar == '/' && theCursor[1] == '/') || (aChar == '\\' && theCursor[1] == '\\'))
 		{
-			while (c != '\n' && c != '\r')
+			while (aChar != '\n' && aChar != '\r')
 			{
 				*count = *count + 1;
-				p++;
-				c = *p;
+				theCursor++;
+				aChar = *theCursor;
 			}
 		}
-		p++;
+		theCursor++;
 		*count = *count + 1;
 	}
-	c = *p;
-	if (c != '\0')
+	aChar = *theCursor;
+	if (aChar != '\0')
 	{
-		while (c != '\n' && c != '\r')
+		while (aChar != '\n' && aChar != '\r')
 		{
 			bool aStop;
-			if (c == '/')
-				aStop = p[1] == '/';
-			else if (c == '\\')
-				aStop = p[1] == '\\';
+			if (aChar == '/')
+				aStop = theCursor[1] == '/';
+			else if (aChar == '\\')
+				aStop = theCursor[1] == '\\';
 			else
 			{
-				if (c == '\t')
+				if (aChar == '\t')
 					break;
-				aStop = c == ' ';
+				aStop = aChar == ' ';
 			}
 			if (aStop || limit <= *count)
 				break;
-			out[i] = c;
+			out[i] = aChar;
 			*count = *count + 1;
-			c = p[1];
-			p++;
+			aChar = theCursor[1];
+			theCursor++;
 			i++;
-			if (c == '\0')
+			if (aChar == '\0')
 				break;
 		}
 	}
 	out[i] = '\0';
-	return p;
+	return theCursor;
 }
 
 // 0x401420

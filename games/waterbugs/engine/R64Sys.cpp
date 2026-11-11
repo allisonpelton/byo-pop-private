@@ -337,7 +337,7 @@ int LockScreen(ScreenLock* theLock)
 	int aPitch = 0;
 	if (gHost == nullptr || !gHost->LockScreen(&aBits, &aPitch))
 		return 0;
-	theLock->unk00 = 0;
+	theLock->widthPadding = 0;
 	theLock->w = 800;
 	theLock->h = 600;
 	theLock->pitch = aPitch;

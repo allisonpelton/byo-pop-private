@@ -65,26 +65,26 @@ void Obj_Delete(Obj* theObj)
 
 int Obj_Update(Obj* theObj)
 {
-	int n = theObj->frameCount;
+	int aFrameCount = theObj->frameCount;
 	theObj->oldX = theObj->x;
 	theObj->oldY = theObj->y;
 	int aResult = 1;
 	theObj->x = theObj->vx + theObj->x;
 	theObj->y = theObj->vy + theObj->y;
-	if (0 < n && (theObj->frameTimer = theObj->frameTimer + 1, theObj->frameTime <= theObj->frameTimer))
+	if (0 < aFrameCount && (theObj->frameTimer = theObj->frameTimer + 1, theObj->frameTime <= theObj->frameTimer))
 	{
 		theObj->frame = theObj->frame + theObj->frameStep;
-		int f = theObj->frame;
+		int aFrame = theObj->frame;
 		theObj->frameTimer = 0;
-		if (f < n)
+		if (aFrame < aFrameCount)
 		{
-			if (-1 < f)
+			if (-1 < aFrame)
 				goto stepped;
 			if (theObj->oneShot == 0)
-				f = n + -1;
+				aFrame = aFrameCount + -1;
 			else
 			{
-				f = f + 1;
+				aFrame = aFrame + 1;
 				aResult = 0;
 			}
 		}
@@ -94,20 +94,20 @@ int Obj_Update(Obj* theObj)
 			{
 				if (theObj->loop == 0)
 				{
-					theObj->frame = n + -1;
+					theObj->frame = aFrameCount + -1;
 					theObj->state = 2;
 				}
 				else
 					theObj->frame = 0;
 				goto stepped;
 			}
-			f = f + -1;
+			aFrame = aFrame + -1;
 			aResult = 0;
 		}
-		theObj->frame = f;
+		theObj->frame = aFrame;
 	}
 stepped:
-	if (n != 0)
+	if (aFrameCount != 0)
 	{
 		Image* anImage = Animation_Frame(theObj->anim, theObj->frame);
 		theObj->image = anImage;

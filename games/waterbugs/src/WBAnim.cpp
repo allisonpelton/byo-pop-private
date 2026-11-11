@@ -164,7 +164,7 @@ Animation::~Animation()
 // sixth); on other screens the FLIC's own colours have their blue-dominant entries changed instead.
 void Animation_BuildTints(Animation* theAnim)
 {
-	const PixelFormat* f = Sys_ScreenFormat();
+	const PixelFormat* aFormat = Sys_ScreenFormat();
 	int i = 0;
 	do
 	{
@@ -173,39 +173,39 @@ void Animation_BuildTints(Animation* theAnim)
 			std::memcpy((uint8_t*)theAnim->tints[k].p32 + i * 4, (uint8_t*)theAnim->palette.p32 + i * 4, 4);
 			std::memcpy((uint8_t*)theAnim->tints[k].p16 + i * 2, (uint8_t*)theAnim->palette.p16 + i * 2, 2);
 		}
-		if (f->bpp == 0x10)
+		if (aFormat->bpp == 0x10)
 		{
-			uint32_t v;
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0x3c, 0x3c, 0x3c, 0, 0, 0, 0x5a);
-			theAnim->tints[0].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0xff, 0xff, 0xff, 0, 0, 0, 0x5a);
-			theAnim->tints[1].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0x5a);
-			theAnim->tints[2].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0x5a);
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0x5a);
-			theAnim->tints[4].p16[i] = (uint16_t)v;
+			uint32_t aPixel;
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0x3c, 0x3c, 0x3c, 0, 0, 0, 0x5a);
+			theAnim->tints[0].p16[i] = (uint16_t)aPixel;
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0xff, 0xff, 0xff, 0, 0, 0, 0x5a);
+			theAnim->tints[1].p16[i] = (uint16_t)aPixel;
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0x5a);
+			theAnim->tints[2].p16[i] = (uint16_t)aPixel;
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0x5a);
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0x5a);
+			theAnim->tints[4].p16[i] = (uint16_t)aPixel;
 			theAnim->tints[5].p16[i] = theAnim->palette.p16[i];
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0x5a);
-			theAnim->tints[6].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0x5a);
-			theAnim->tints[7].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0x5a, 0x46, 0x6e, 1, 0, 1, 0x5a);
-			theAnim->tints[8].p16[i] = (uint16_t)v;
-			v = theAnim->palette.p16[i];
-			ColourShift(&v, f, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0x5a);
-			theAnim->tints[9].p16[i] = (uint16_t)v;
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0x5a);
+			theAnim->tints[6].p16[i] = (uint16_t)aPixel;
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0x5a);
+			theAnim->tints[7].p16[i] = (uint16_t)aPixel;
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0x5a, 0x46, 0x6e, 1, 0, 1, 0x5a);
+			theAnim->tints[8].p16[i] = (uint16_t)aPixel;
+			aPixel = theAnim->palette.p16[i];
+			ColourShift(&aPixel, aFormat, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0x5a);
+			theAnim->tints[9].p16[i] = (uint16_t)aPixel;
 		}
 		else
-			ColourShift(&theAnim->palette.p32[i], f, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0x5a);
+			ColourShift(&theAnim->palette.p32[i], aFormat, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0x5a);
 		i++;
 	} while (i < 0x100);
 }

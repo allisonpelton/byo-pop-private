@@ -205,7 +205,7 @@ void Cell_Flood(Cell* theCell)
 	int aCol = theCell->col;
 	theCell->unmarked = 0;
 	int aRow = theCell->row;
-	gLevels.current->unk3c0 = gLevels.current->unk3c0 + 1;
+	gLevels.current->floodedCells = gLevels.current->floodedCells + 1;
 	for (int r = aRow - 1; r <= aRow + 1; r++)
 	{
 		for (int k = aCol - 1; k <= aCol + 1; k++)
@@ -225,7 +225,7 @@ void Cell_Flood(Cell* theCell)
 // corners; beams by theirs
 int Cell_PickImage(Cell* theCell)
 {
-	uint32_t m = Cell_SameNeighbours(theCell);
+	uint32_t aNeighbourMask = Cell_SameNeighbours(theCell);
 	Level* aLevel = gLevels.current;
 	int aKind = theCell->kind;
 	if (aKind == 0)
@@ -235,29 +235,29 @@ int Cell_PickImage(Cell* theCell)
 	}
 	if (aKind == 3)
 	{
-		uint32_t aLeft = m & 8;
-		if (aLeft != 0 && (m & 0x20) != 0)
+		uint32_t aLeft = aNeighbourMask & 8;
+		if (aLeft != 0 && (aNeighbourMask & 0x20) != 0)
 		{
 			theCell->image = Animation_Frame(aLevel->hTiles, aLevel->hPattern[theCell->col % aLevel->hPatternCount]);
 			return 1;
 		}
-		uint32_t anUp = m & 2;
-		if (anUp != 0 && (int8_t)m < 0)
+		uint32_t anUp = aNeighbourMask & 2;
+		if (anUp != 0 && (int8_t)aNeighbourMask < 0)
 		{
 			theCell->image = Animation_Frame(aLevel->vTiles, aLevel->vPattern[theCell->row % aLevel->vPatternCount]);
 			return 1;
 		}
-		if ((m & 0x20) != 0 && (int8_t)m < 0)
+		if ((aNeighbourMask & 0x20) != 0 && (int8_t)aNeighbourMask < 0)
 		{
 			theCell->image = Animation_Frame(aLevel->cornerTiles, theCell->col % aLevel->cornerTileCount);
 			return 1;
 		}
-		if (aLeft != 0 && (int8_t)m < 0)
+		if (aLeft != 0 && (int8_t)aNeighbourMask < 0)
 		{
 			theCell->image = Animation_Frame(aLevel->cornerTiles, 0);
 			return 1;
 		}
-		if ((m & 0x20) != 0 && anUp != 0)
+		if ((aNeighbourMask & 0x20) != 0 && anUp != 0)
 		{
 			theCell->image = Animation_Frame(aLevel->cornerTiles, 0);
 			return 1;
@@ -270,16 +270,16 @@ int Cell_PickImage(Cell* theCell)
 	}
 	else if (aKind == 1 || aKind == 2)
 	{
-		uint32_t aDown = m & 0x80;
-		if (aDown == 0 || (m & 8) == 0)
+		uint32_t aDown = aNeighbourMask & 0x80;
+		if (aDown == 0 || (aNeighbourMask & 8) == 0)
 		{
-			uint32_t anUp = m & 2;
-			if (anUp != 0 && (m & 8) != 0)
+			uint32_t anUp = aNeighbourMask & 2;
+			if (anUp != 0 && (aNeighbourMask & 8) != 0)
 			{
 				theCell->image = aLevel->beamMiddle;
 				return 1;
 			}
-			uint32_t aRight = m & 0x20;
+			uint32_t aRight = aNeighbourMask & 0x20;
 			if (aRight != 0 && anUp != 0)
 			{
 				theCell->image = aLevel->beamMiddle;
@@ -289,7 +289,7 @@ int Cell_PickImage(Cell* theCell)
 			{
 				if (anUp == 0 && aDown == 0)
 				{
-					if ((m & 8) == 0 && aRight == 0)
+					if ((aNeighbourMask & 8) == 0 && aRight == 0)
 						return 1;
 					theCell->image = aLevel->beamH;
 					return 1;

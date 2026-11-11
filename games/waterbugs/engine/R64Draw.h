@@ -33,7 +33,7 @@ struct DrawItem
 
 // 0x421550: queues a sprite (null clip: the whole screen); nothing past 2000
 void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, int theKind, uint8_t* theDst,
-	int theDPitch, int r, int g, int b, int theAlpha, Palette* thePalette, const int* theClip);
+	int theDPitch, int theRed, int theGreen, int theBlue, int theAlpha, Palette* thePalette, const int* theClip);
 // 0x4216b0: sorts by depth and draws with the screen's format
 void DrawList_Flush();
 // 0x421980
@@ -86,9 +86,9 @@ void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(c
 // R64Line.cpp. 0x42d1f0: the surface lines go to (clipped to all of it; a null format keeps the last one)
 void Draw_SetTarget(uint8_t* theBits, int thePitch, int theW, int theH, const PixelFormat* theFmt);
 // 0x42dd00: a line blended toward (r, g, b) by theAlpha/256, both ends drawn; 16-bit surfaces only
-void Draw_Line(int x0, int y0, int x1, int y1, int r, int g, int b, int theAlpha);
+void Draw_Line(int x0, int y0, int x1, int y1, int theRed, int theGreen, int theBlue, int theAlpha);
 // 0x42db10: a rectangle (inclusive) in a colour (black clears it)
-void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
+void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int theRight, int theBottom, int theR,
 	int theG, int theB);
 // 0x42db50: a rectangle (inclusive) blended toward a colour by theAlpha/256, unclipped
 void Draw_FillBlend(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,

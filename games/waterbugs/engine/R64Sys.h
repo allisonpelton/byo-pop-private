@@ -75,7 +75,7 @@ const char* Sys_SavePath(const char* theName);
 void Sys_SaveDone();
 void Sys_UserName(char* theName, int theSize);
 // 0x429430
-void Sys_AddUpdateRect(int x, int y, int w, int h);
+void Sys_AddUpdateRect(int x, int y, int theWidth, int theHeight);
 // 0x428d70
 void Sys_SetMousePos(int x, int y);
 // The input (0x428eb0..0x429000), which the window's messages fill: the mouse buttons held, the keys held (by
@@ -98,7 +98,7 @@ void Sys_SetScreenFormat(const PixelFormat* theFmt);
 // The screen (0x429350..0x4294d0) and the window's messages
 struct ScreenLock
 {
-	int unk00;
+	int widthPadding;          // +0x00  nothing reads it
 	int w;                     // +0x04
 	int h;                     // +0x08
 	int pitch;                 // +0x0c
@@ -139,9 +139,9 @@ struct SoundList
 	SoundEntry* current;       // +0x00
 	SoundEntry* head;          // +0x04
 	SoundEntry* tail;          // +0x08
-	void* unk0c;
+	void* countPadding;        // the four bytes before count: nothing reads them
 	int count;                 // +0x10
-	int unk14;
+	int endPadding;            // nothing reads it
 };
 int Sample_Load(const char* thePath);    // 0x42b850: its id, -1 when it cannot be loaded
 int Sound_Play(int theSound);            // 0x42a490

@@ -17,8 +17,7 @@ namespace r64
 // here.
 struct TextInput
 {
-	int unk00;                 // +0x00
-	int unk04;                 // +0x04
+	int fontPadding[2];        // +0x00, +0x04  nothing reads them
 	Font* font;                // +0x10
 	int x;                     // +0x14
 	int y;                     // +0x18
@@ -58,7 +57,7 @@ struct TextInput
 	int blocked[255];          // +0xe0  by character: 1 not typable here (nothing here blocks any)
 	int noFocus;               // +0x4dc  1: clicks are ignored and it drops the focus at each update (nothing sets it)
 	int caseMode;              // +0x4e0  0 as typed, 1 capitals, 2 small letters (shift for the rest)
-	int unk4e4;                // +0x4e4
+	int endPadding;            // +0x4e4  nothing reads it
 
 	TextInput();  // 0x42ca90
 	~TextInput(); // 0x42caa0

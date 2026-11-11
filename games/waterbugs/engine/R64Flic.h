@@ -19,10 +19,10 @@ struct Flic
 	uint16_t height;    // +0x04
 	uint16_t speed;     // +0x06  in 1/70 s
 	uint16_t frame;     // +0x08  frames decoded since the first (the ring frame included)
-	uint16_t unk0a;     // +0x0a
+	uint16_t offsetPadding;    // +0x0a  the two bytes before offset: nothing reads them
 	uint32_t offset;    // +0x0c  of the next frame's header, from the handle
 	uint16_t fd;        // +0x10  0: read from memory (the port only reads from memory)
-	uint16_t unk12;     // +0x12
+	uint16_t endPadding;       // +0x12  nothing reads it
 	uint8_t* mem;       // the port's
 	uint32_t memSize;
 };

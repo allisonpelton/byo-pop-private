@@ -845,9 +845,9 @@ void HighScore_Entered(const char*)
 	});
 }
 
-void Menu_FromXml(Menu* theMenu, const char* p, const XmlTag* theTag)
+void Menu_FromXml(Menu* theMenu, const char* theXmlCursor, const XmlTag* theTag)
 {
-	Obj_FromXml(theMenu, p, theTag);
+	Obj_FromXml(theMenu, theXmlCursor, theTag);
 	theMenu->logo = nullptr;
 	theMenu->lockedLevel = Xml_GetInt(theTag, "locked_level");
 	if (Xml_GetString(theTag, "locked_animation") != nullptr)
@@ -872,9 +872,9 @@ void Menu_FromXml(Menu* theMenu, const char* p, const XmlTag* theTag)
 		if (strcmp(aTag->name, "menu_item") == 0)
 		{
 			MenuItem_Append(&theMenu->items);
-			MenuItem_FromXml(theMenu->items.current, p, aTag);
+			MenuItem_FromXml(theMenu->items.current, theXmlCursor, aTag);
 		}
-		p = Xml_NextTag(p, aTag);
+		theXmlCursor = Xml_NextTag(theXmlCursor, aTag);
 	}
 }
 

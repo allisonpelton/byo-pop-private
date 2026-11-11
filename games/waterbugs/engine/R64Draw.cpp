@@ -34,18 +34,18 @@ int CompareDepth(const void* a, const void* b)
 	return ((const DrawItem*)a)->depth > ((const DrawItem*)b)->depth ? 1 : -1;
 }
 
-void SwapBytes(uint8_t* a, uint8_t* b, size_t theWidth)
+void SwapBytes(uint8_t* theFirst, uint8_t* theSecond, size_t theWidth)
 {
-	if (a != b)
+	if (theFirst != theSecond)
 	{
 		size_t n = theWidth;
 		do
 		{
-			uint8_t t = *a;
-			*a = *b;
-			*b = t;
-			a++;
-			b++;
+			uint8_t t = *theFirst;
+			*theFirst = *theSecond;
+			*theSecond = t;
+			theFirst++;
+			theSecond++;
 			n--;
 		} while (n != 0);
 	}
@@ -182,7 +182,7 @@ void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(c
 
 // 0x421550
 void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, int theKind, uint8_t* theDst,
-	int theDPitch, int r, int g, int b, int theAlpha, Palette* thePalette, const int* theClip)
+	int theDPitch, int theRed, int theGreen, int theBlue, int theAlpha, Palette* thePalette, const int* theClip)
 {
 	if (gDrawCount < 2000)
 	{
@@ -195,9 +195,9 @@ void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, 
 		anItem.kind = theKind;
 		anItem.dst = theDst;
 		anItem.dpitch = theDPitch;
-		anItem.r = r;
-		anItem.g = g;
-		anItem.b = b;
+		anItem.r = theRed;
+		anItem.g = theGreen;
+		anItem.b = theBlue;
 		anItem.alpha = theAlpha;
 		anItem.palette = thePalette;
 		const int* aClip = theClip != nullptr ? theClip : kScreenClip;
@@ -223,19 +223,19 @@ void DrawList_Flush()
 		aSwapped = false;
 		if (0 < k)
 		{
-			DrawItem* a = &gDrawItems[0];
+			DrawItem* anItem = &gDrawItems[0];
 			DrawItem* b = &gDrawItems[aGap];
 			do
 			{
-				if (b->depth < a->depth || (a->depth == b->depth && b->seq < a->seq))
+				if (b->depth < anItem->depth || (anItem->depth == b->depth && b->seq < anItem->seq))
 				{
-					DrawItem t = *a;
-					*a = *b;
+					DrawItem t = *anItem;
+					*anItem = *b;
 					*b = t;
 					aSwapped = true;
 				}
 				b++;
-				a++;
+				anItem++;
 				k--;
 				aNum = gDrawCount;
 			} while (k != 0);
@@ -248,7 +248,7 @@ void DrawList_Flush()
 		gDrawCount = 0;
 		return;
 	}
-	const PixelFormat* f = Sys_ScreenFormat();
+	const PixelFormat* aFormat = Sys_ScreenFormat();
 	do
 	{
 		DrawItem& it = gDrawItems[i];
@@ -257,26 +257,26 @@ void DrawList_Flush()
 		switch (it.kind)
 		{
 		case 0:
-			Image_Blit(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y);
+			Image_Blit(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y);
 			break;
 		case 1:
-			Image_BlitAlpha(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y);
+			Image_BlitAlpha(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y);
 			break;
 		case 2:
-			Image_BlitBlend(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y);
+			Image_BlitBlend(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y);
 			break;
 		case 3:
-			Image_BlitFill(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y, PackColour(f, it.r, it.g, it.b));
+			Image_BlitFill(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y, PackColour(aFormat, it.r, it.g, it.b));
 			break;
 		case 4:
-			Image_BlitAlphaFade(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y, (uint32_t)it.alpha);
+			Image_BlitAlphaFade(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y, (uint32_t)it.alpha);
 			break;
 		case 5:
-			Image_BlitFillAlpha(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y, PackColour(f, it.r, it.g, it.b),
+			Image_BlitFillAlpha(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y, PackColour(aFormat, it.r, it.g, it.b),
 				(uint32_t)(uint8_t)it.alpha);
 			break;
 		case 6:
-			Image_BlitAdd(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y);
+			Image_BlitAdd(it.image, it.dst, it.dpitch, aFormat, it.clip, it.x, it.y);
 			break;
 		}
 		i++;
@@ -343,7 +343,7 @@ void Dirty_Init(Dirty* theDirty, int theCellW, int theCellH, int theMaxRects, in
 
 // 0x421a20: the rectangle's part in each cell it touches. A cell full of rectangles becomes one rectangle of the
 // whole cell, and the rest of that row of cells is skipped, as in the original.
-void Dirty_AddRect(Dirty* theDirty, int x, int y, int w, int h)
+void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int h)
 {
 	int aRow = y / theDirty->cellH;
 	int aBottomEdge = h + y;
@@ -355,7 +355,7 @@ void Dirty_AddRect(Dirty* theDirty, int x, int y, int w, int h)
 				return;
 			int aCellW = theDirty->cellW;
 			int aCol = x / aCellW;
-			int aRightEdge = w + x;
+			int aRightEdge = theWidth + x;
 			int aNextCol = aCol;
 			if (aCol <= aRightEdge / aCellW)
 			{
@@ -364,33 +364,33 @@ void Dirty_AddRect(Dirty* theDirty, int x, int y, int w, int h)
 					aNextCol = aNextCol + 1;
 					if (theDirty->cols <= aCol)
 						break;
-					int l = x;
+					int aLeft = x;
 					if (x <= aCellW * aCol)
-						l = aCellW * aCol;
-					int t = y;
+						aLeft = aCellW * aCol;
+					int aTop = y;
 					if (y <= theDirty->cellH * aRow)
-						t = theDirty->cellH * aRow;
-					int r = aRightEdge + -1;
-					if (theDirty->cellW * aNextCol + -1 <= r)
-						r = theDirty->cellW * aNextCol + -1;
-					int b = aBottomEdge + -1;
-					if (theDirty->cellH * (aRow + 1) + -1 <= b)
-						b = theDirty->cellH * (aRow + 1) + -1;
+						aTop = theDirty->cellH * aRow;
+					int aRight = aRightEdge + -1;
+					if (theDirty->cellW * aNextCol + -1 <= aRight)
+						aRight = theDirty->cellW * aNextCol + -1;
+					int aBottom = aBottomEdge + -1;
+					if (theDirty->cellH * (aRow + 1) + -1 <= aBottom)
+						aBottom = theDirty->cellH * (aRow + 1) + -1;
 					Dirty::Cell& aCell = theDirty->cells[theDirty->cols * aRow + aCol];
 					if (theDirty->mode == 1)
 					{
-						int* q = aCell.rects;
-						if (l < q[0])
-							q[0] = l;
-						if (q[1] <= t)
-							t = q[1];
-						q[1] = t;
-						if (r <= q[2])
-							r = q[2];
-						q[2] = r;
-						if (b <= q[3])
-							b = q[3];
-						q[3] = b;
+						int* aRects = aCell.rects;
+						if (aLeft < aRects[0])
+							aRects[0] = aLeft;
+						if (aRects[1] <= aTop)
+							aTop = aRects[1];
+						aRects[1] = aTop;
+						if (aRight <= aRects[2])
+							aRight = aRects[2];
+						aRects[2] = aRight;
+						if (aBottom <= aRects[3])
+							aBottom = aRects[3];
+						aRects[3] = aBottom;
 						aCell.count = 1;
 					}
 					else
@@ -409,48 +409,48 @@ void Dirty_AddRect(Dirty* theDirty, int x, int y, int w, int h)
 						int aFound = 0;
 						if (0 < aCount)
 						{
-							int* q = aCell.rects;
+							int* aRects = aCell.rects;
 							do
 							{
 								aFound = i;
-								int qr = q[2];
-								if (l <= qr && q[0] <= r && t <= q[3] && q[1] <= b)
+								int qr = aRects[2];
+								if (aLeft <= qr && aRects[0] <= aRight && aTop <= aRects[3] && aRects[1] <= aBottom)
 								{
-									int ul = q[0];
-									if (l <= ul)
-										ul = l;
+									int ul = aRects[0];
+									if (aLeft <= ul)
+										ul = aLeft;
 									int ur = qr;
-									if (qr <= r)
-										ur = r;
-									int ut = q[1];
-									if (t <= ut)
-										ut = t;
-									int ub = q[3];
-									if (ub <= b)
-										ub = b;
-									int aSum = (q[3] - q[1]) * (qr - q[0]) + (b - t) * (r - l);
+									if (qr <= aRight)
+										ur = aRight;
+									int ut = aRects[1];
+									if (aTop <= ut)
+										ut = aTop;
+									int ub = aRects[3];
+									if (ub <= aBottom)
+										ub = aBottom;
+									int aSum = (aRects[3] - aRects[1]) * (qr - aRects[0]) + (aBottom - aTop) * (aRight - aLeft);
 									int aUnion = (ub - ut) * (ur - ul);
 									if (aUnion - aSum == 0 || aUnion < aSum)
 									{
-										q[0] = ul;
-										q[2] = ur;
-										q[1] = ut;
-										q[3] = ub;
+										aRects[0] = ul;
+										aRects[2] = ur;
+										aRects[1] = ut;
+										aRects[3] = ub;
 										break;
 									}
 								}
 								i++;
 								aFound = i;
-								q += 4;
+								aRects += 4;
 							} while (i < aCount);
 						}
 						if (aFound == aCell.count)
 						{
 							int* q = aCell.rects + aFound * 4;
-							q[0] = l;
-							q[2] = r;
-							q[1] = t;
-							q[3] = b;
+							q[0] = aLeft;
+							q[2] = aRight;
+							q[1] = aTop;
+							q[3] = aBottom;
 							aCell.count = aCell.count + 1;
 						}
 					}

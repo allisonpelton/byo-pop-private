@@ -1,4 +1,4 @@
-// The port's host for Water Bugs (see WaterBugsApp.h).
+// port: the host for Water Bugs (see WaterBugsApp.h).
 
 #include "WaterBugsApp.h"
 #include "ModFeatures.h"
@@ -258,10 +258,10 @@ void WaterBugsWidget::Draw(Graphics* g)
 	WaterBugsApp* anApp = gApp;
 	if (anApp->mPresented)
 	{
-		int l = 0, t = 0, r = 800, b = 600;
+		int aLeft = 0, t = 0, r = 800, b = 600;
 		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
 		{
-			l = anApp->mDirtyLeft;
+			aLeft = anApp->mDirtyLeft;
 			t = anApp->mDirtyTop;
 			r = anApp->mDirtyRight;
 			b = anApp->mDirtyBottom;
@@ -271,7 +271,7 @@ void WaterBugsWidget::Draw(Graphics* g)
 		{
 			const uint16_t* aSrc = &anApp->mScreen[y * 800];
 			ulong* aDst = &aBits[y * 800];
-			for (int x = l; x < r; x++)
+			for (int x = aLeft; x < r; x++)
 				aDst[x] = gPixelsFromScreen16[aSrc[x]];
 		}
 		mScreenImage->BitsChanged();

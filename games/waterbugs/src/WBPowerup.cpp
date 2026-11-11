@@ -81,7 +81,7 @@ void Powerup_SlowMotion()
 {
 	Shooter* aShip = gLevels.current->shooters.current;
 	aShip->flags = aShip->flags | 1;
-	gLevels.current->shooters.current->unk490 = 5000;
+	gLevels.current->shooters.current->slowMotionTime = 5000;
 }
 
 // 0x418980
@@ -89,7 +89,7 @@ void Powerup_HyperMotion()
 {
 	Shooter* aShip = gLevels.current->shooters.current;
 	aShip->flags = aShip->flags | 2;
-	gLevels.current->shooters.current->unk494 = 5000;
+	gLevels.current->shooters.current->hyperMotionTime = 5000;
 }
 
 // 0x4189d0
@@ -645,7 +645,7 @@ void Panel_AppendItem(List<Obj>* theList)
 	List_Append(theList, anItem);
 }
 
-void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag)
+void Panel_FromXml(Panel* thePanel, const char* theXmlCursor, const XmlTag* theTag)
 {
 	thePanel->percentX = Xml_GetInt(theTag, "percent_x");
 	thePanel->percentY = Xml_GetInt(theTag, "percent_y");
@@ -659,7 +659,7 @@ void Panel_FromXml(Panel* thePanel, const char* p, const XmlTag* theTag)
 	thePanel->livesFont = Font_Find(Xml_GetString(theTag, "lives_font"));
 	thePanel->scoreFont = Font_Find(Xml_GetString(theTag, "score_font"));
 	thePanel->levelFont = Font_Find(Xml_GetString(theTag, "level_font"));
-	Obj_FromXml(thePanel, p, theTag);
+	Obj_FromXml(thePanel, theXmlCursor, theTag);
 	thePanel->dirty = 0;
 }
 

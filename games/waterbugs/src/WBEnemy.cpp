@@ -239,12 +239,12 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 {
 	int aLine = theInX ? theHit->col : theHit->row;
 	int aStart = theInX ? theHit->row : theHit->col;
-	auto C = [&](int theAlong, int theOff) -> Cell* {
+	auto aCellAt = [&](int theAlong, int theOff) -> Cell* {
 		if (theInX)
 			return &gLevels.current->columns[aLine + theOff][theAlong];
 		return &gLevels.current->columns[theAlong][aLine + theOff];
 	};
-	if (C(aStart, theD)->kind != 4)
+	if (aCellAt(aStart, theD)->kind != 4)
 		return;
 	bool anOk = true;
 	int aMin = 999;
@@ -255,12 +255,12 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 		int aBefore, anOn, aBehind, aBehind2;
 		while (true)
 		{
-			if (C(anAlong, 0)->state == 5)
+			if (aCellAt(anAlong, 0)->state == 5)
 				anOk = false;
-			aBefore = C(anAlong, -theD)->kind;
-			anOn = C(anAlong, 0)->kind;
-			aBehind = C(anAlong, theD)->kind;
-			aBehind2 = C(anAlong, theD * 2)->kind;
+			aBefore = aCellAt(anAlong, -theD)->kind;
+			anOn = aCellAt(anAlong, 0)->kind;
+			aBehind = aCellAt(anAlong, theD)->kind;
+			aBehind2 = aCellAt(anAlong, theD * 2)->kind;
 			if (aBefore != 0 || anOn != 2 || aBehind != 4 || aBehind2 != 4)
 				break;
 			anAlong = anAlong + aDir;
@@ -279,15 +279,15 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 	for (int anAlong = aMin + 1; anAlong <= aMax + -1; anAlong++)
 	{
 		gLevels.current->filledCells = gLevels.current->filledCells + -1;
-		C(anAlong, 0)->kind = 0;
-		C(anAlong, 0)->image = gLevels.current->empty;
-		Cell* aCell = C(anAlong, 0);
+		aCellAt(anAlong, 0)->kind = 0;
+		aCellAt(anAlong, 0)->image = gLevels.current->empty;
+		Cell* aCell = aCellAt(anAlong, 0);
 		int aY = (int)aCell->y;
 		int aX = (int)aCell->x;
 		Image* aBack = gLevels.current->background;
 		Copy16(gBackBuffer.bits, gBackBuffer.pitch, aX, aY, aBack->bits, aBack->pitch, aX, aY, 0x10, 0x10);
-		Cell_Redraw(C(anAlong, 0));
-		C(anAlong, theD)->kind = 2;
+		Cell_Redraw(aCellAt(anAlong, 0));
+		aCellAt(anAlong, theD)->kind = 2;
 		ParticleSystem_New();
 		int aLifetime = RandRange(700, 0x44c);
 		int aLast = Bank_IndexOf(&gArtBank, "exp_4");
@@ -295,23 +295,23 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 		aFirst = aFirst + RandRange(0, 3);
 		float aVy = (float)((double)RandRange(-100, 100) / 1000.0);
 		float aVx = (float)((double)RandRange(-100, 100) / 1000.0);
-		float aPy = (float)RandRange(-10, 10) + C(anAlong, 0)->y;
-		float aPx = (float)RandRange(-10, 10) + C(anAlong, 0)->x;
+		float aPy = (float)RandRange(-10, 10) + aCellAt(anAlong, 0)->y;
+		float aPx = (float)RandRange(-10, 10) + aCellAt(anAlong, 0)->x;
 		ParticleSystem_Add(gLevels.current->systems.current, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
 			0xe7, 0xa6, 0x39, 0x21c, 10, aLifetime, 1.0f, 0.0f, 5);
 	}
 	for (int anAlong = aMin; anAlong <= aMax; anAlong++)
 	{
-		Cell_PickImage(C(anAlong, theD));
-		Cell_Redraw(C(anAlong, theD));
-		Cell* aCell = C(anAlong, theD);
+		Cell_PickImage(aCellAt(anAlong, theD));
+		Cell_Redraw(aCellAt(anAlong, theD));
+		Cell* aCell = aCellAt(anAlong, theD);
 		Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kScreenClip);
 		if (anAlong == aMin || anAlong == aMax)
 		{
-			Cell_PickImage(C(anAlong, 0));
-			Cell_Redraw(C(anAlong, 0));
+			Cell_PickImage(aCellAt(anAlong, 0));
+			Cell_Redraw(aCellAt(anAlong, 0));
 		}
-		aCell = C(anAlong, 0);
+		aCell = aCellAt(anAlong, 0);
 		Dirty_AddClippedShown(&gDirty, (int)aCell->x, (int)aCell->y, 0x10, 0x10, kScreenClip);
 	}
 }
@@ -1122,7 +1122,7 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 			return;
 		}
 		if ((gKillCount == 2 || gKillCount == 4) &&
-			((gLevels.current->unk3c0 + gLevels.current->filledCells) * 100) / gLevels.current->totalCells <
+			((gLevels.current->floodedCells + gLevels.current->filledCells) * 100) / gLevels.current->totalCells <
 				gLevels.current->fillQuota)
 			Powerup_Insert(&gLevels.current->powerups);
 	}

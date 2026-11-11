@@ -37,19 +37,19 @@ uint8_t* ReadWholeFile(const char* thePath, size_t* theSize)
 	return aBuf;
 }
 
-void ParseHex4(const char* theText, int* a, int* b, int* c, int* d)
+void ParseHex4(const char* theText, int* theRed, int* theGreen, int* theBlue, int* theAlpha)
 {
 	char aPairs[4][3] = {{theText[0], theText[1], 0}, {theText[2], theText[3], 0}, {theText[4], theText[5], 0},
 		{theText[6], theText[7], 0}};
 	unsigned v = 0;
 	std::sscanf(aPairs[0], "%x", &v);
-	*a = (int)v;
+	*theRed = (int)v;
 	std::sscanf(aPairs[1], "%x", &v);
-	*b = (int)v;
+	*theGreen = (int)v;
 	std::sscanf(aPairs[2], "%x", &v);
-	*c = (int)v;
+	*theBlue = (int)v;
 	std::sscanf(aPairs[3], "%x", &v);
-	*d = (int)v;
+	*theAlpha = (int)v;
 }
 
 int gRandCalls = 0;   // (the port's: how many draws so far, for lining the port up with the original)
@@ -92,24 +92,24 @@ float Dist3(const float* a, const float* b)
 	return (float)std::sqrt(dz * dz + dx * dx + dy * dy);
 }
 
-float SegmentDist3(const float* p, const float* a, const float* b)
+float SegmentDist3(const float* thePoint, const float* theStart, const float* theEnd)
 {
-	float aLen = Dist3(b, a);
-	float t = (float)((((double)b[2] - a[2]) * ((double)p[2] - a[2]) + ((double)p[0] - a[0]) * ((double)b[0] - a[0]) +
-		((double)b[1] - a[1]) * ((double)p[1] - a[1])) / ((double)aLen * aLen));
+	float aLen = Dist3(theEnd, theStart);
+	float t = (float)((((double)theEnd[2] - theStart[2]) * ((double)thePoint[2] - theStart[2]) + ((double)thePoint[0] - theStart[0]) * ((double)theEnd[0] - theStart[0]) +
+		((double)theEnd[1] - theStart[1]) * ((double)thePoint[1] - theStart[1])) / ((double)aLen * aLen));
 	if (0.0f <= t && t <= 1.0f)
 	{
 		float q[3];
-		q[0] = (float)(a[0] + (double)t * ((double)b[0] - a[0]));
-		q[1] = (float)(((double)b[1] - a[1]) * t + a[1]);
-		q[2] = (float)(((double)b[2] - a[2]) * t + a[2]);
-		return Dist3(p, q);
+		q[0] = (float)(theStart[0] + (double)t * ((double)theEnd[0] - theStart[0]));
+		q[1] = (float)(((double)theEnd[1] - theStart[1]) * t + theStart[1]);
+		q[2] = (float)(((double)theEnd[2] - theStart[2]) * t + theStart[2]);
+		return Dist3(thePoint, q);
 	}
-	float d1 = Dist3(p, a);
-	float d2 = Dist3(p, b);
+	float d1 = Dist3(thePoint, theStart);
+	float d2 = Dist3(thePoint, theEnd);
 	if (d1 < d2)
-		b = a;
-	return Dist3(p, b);
+		theEnd = theStart;
+	return Dist3(thePoint, theEnd);
 }
 
 float SegmentDist(float px, float py, float ax, float ay, float bx, float by)
@@ -123,37 +123,37 @@ float SegmentDist(float px, float py, float ax, float ay, float bx, float by)
 void ColourShift(uint32_t* thePixel, const PixelFormat* theFmt, char theRed, char theGreen, char theBlue,
 	uint8_t theMulR, uint8_t theMulG, uint8_t theMulB, int theSetR, int theSetG, int theSetB, int theShare)
 {
-	uint32_t v = *thePixel;
-	uint8_t r = (uint8_t)(((theFmt->rMask & v) >> (theFmt->rShift & 0x1f)) << (theFmt->rLoss & 0x1f));
-	uint8_t g = (uint8_t)(((theFmt->gMask & v) >> (theFmt->gShift & 0x1f)) << (theFmt->gLoss & 0x1f));
-	uint8_t b = (uint8_t)(((theFmt->bMask & v) >> (theFmt->bShift & 0x1f)) << (theFmt->bLoss & 0x1f));
+	uint32_t aPixelValue = *thePixel;
+	uint8_t aRed = (uint8_t)(((theFmt->rMask & aPixelValue) >> (theFmt->rShift & 0x1f)) << (theFmt->rLoss & 0x1f));
+	uint8_t aGreen = (uint8_t)(((theFmt->gMask & aPixelValue) >> (theFmt->gShift & 0x1f)) << (theFmt->gLoss & 0x1f));
+	uint8_t aBlue = (uint8_t)(((theFmt->bMask & aPixelValue) >> (theFmt->bShift & 0x1f)) << (theFmt->bLoss & 0x1f));
 	bool aChanged = false;
 	bool aRedChanged = false;
-	uint32_t aB = b;
+	uint32_t aB = aBlue;
 	uint32_t aTop = (uint32_t)(uint8_t)theRed;
-	uint8_t aR = r;
-	if (theRed != 0 && (int)((g * 100) / theShare) < (int)r && (int)((b * 100) / theShare) < (int)r)
+	uint8_t aR = aRed;
+	if (theRed != 0 && (int)((aGreen * 100) / theShare) < (int)aRed && (int)((aBlue * 100) / theShare) < (int)aRed)
 	{
 		aChanged = true;
 		aRedChanged = true;
-		aTop = r;
-		aR = (uint8_t)(((uint32_t)b + g) / 2);
+		aTop = aRed;
+		aR = (uint8_t)(((uint32_t)aBlue + aGreen) / 2);
 	}
-	uint8_t aG = g;
+	uint8_t aG = aGreen;
 	if (theGreen != 0)
 	{
 		aChanged = aRedChanged;
-		if ((int)((b * 100) / theShare) < (int)g && (int)((r * 100) / theShare) < (int)g)
+		if ((int)((aBlue * 100) / theShare) < (int)aGreen && (int)((aRed * 100) / theShare) < (int)aGreen)
 		{
-			aTop = g;
-			aG = (uint8_t)(((uint32_t)r + b) / 2);
+			aTop = aGreen;
+			aG = (uint8_t)(((uint32_t)aRed + aBlue) / 2);
 			aChanged = true;
 		}
 	}
-	if (theBlue != 0 && (int)((g * 100) / theShare) < (int)b && (int)((r * 100) / theShare) < (int)b)
+	if (theBlue != 0 && (int)((aGreen * 100) / theShare) < (int)aBlue && (int)((aRed * 100) / theShare) < (int)aBlue)
 	{
-		aB = ((uint32_t)r + g) / 2;
-		aTop = b;
+		aB = ((uint32_t)aRed + aGreen) / 2;
+		aTop = aBlue;
 	}
 	else if (!aChanged)
 		return;

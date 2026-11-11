@@ -28,7 +28,7 @@ void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float 
 		aName = "shooter_beam_up";
 	if (aName != nullptr)
 		theBeam->anim = Animation_Find(aName, &theBeam->frameCount, &theBeam->frameTime);
-	// Water Bugs' beam has a harpoon at its head (unkcc), going the same way
+	// Water Bugs' beam has a harpoon at its head, going the same way
 	const char* aTip = nullptr;
 	if (0.0f < theVx)
 		aTip = "harpoon_right";
@@ -39,15 +39,15 @@ void Beam_Setup(Beam* theBeam, Shooter* theOwner, float theX, float theY, float 
 	else if (theVy < 0.0f)
 		aTip = "harpoon_up";
 	if (aTip != nullptr)
-		theBeam->unkcc.anim = Animation_Find(aTip, &theBeam->unkcc.frameCount, &theBeam->unkcc.frameTime);
-	theBeam->unkcc.drawKind = 1;
-	theBeam->unkcc.x = theBeam->x;
-	theBeam->unkcc.midHandle = 1;
-	theBeam->unkcc.dirty = 1;
-	theBeam->unkcc.y = theBeam->y;
-	theBeam->unkcc.depth = 7;
-	theBeam->unkcc.vx = theBeam->vx;
-	theBeam->unkcc.vy = theBeam->vy;
+		theBeam->harpoon.anim = Animation_Find(aTip, &theBeam->harpoon.frameCount, &theBeam->harpoon.frameTime);
+	theBeam->harpoon.drawKind = 1;
+	theBeam->harpoon.x = theBeam->x;
+	theBeam->harpoon.midHandle = 1;
+	theBeam->harpoon.dirty = 1;
+	theBeam->harpoon.y = theBeam->y;
+	theBeam->harpoon.depth = 7;
+	theBeam->harpoon.vx = theBeam->vx;
+	theBeam->harpoon.vy = theBeam->vy;
 }
 
 // It starts on the beam level with the enemy and runs the other way at twice the beam's speed
@@ -209,7 +209,7 @@ void Beam_DrawTo(Beam* theBeam, uint8_t* theDst, int theDPitch)
 riders:
 	List_Each(&theBeam->riders, [](Rider* aRider) { Obj_Draw(aRider); });
 	if (theBeam->hit == 0)
-		Obj_Draw(&theBeam->unkcc);
+		Obj_Draw(&theBeam->harpoon);
 }
 
 void Beam_Draw(Beam* theBeam)
@@ -227,7 +227,7 @@ static int Sign(float theValue)
 }
 
 // 0x4031f0: the head moves on while the cell ahead is open; the first time it is not, the beam pops in a ring of
-// particles; the harpoon (unkcc) follows it, four pixels behind
+// particles; the harpoon follows it, four pixels behind
 int Beam_Update(Beam* theBeam)
 {
 	int aResult = 1;
@@ -275,9 +275,9 @@ int Beam_Update(Beam* theBeam)
 	});
 	// the tip follows the head, four pixels behind
 	if (theBeam->hit == 0)
-		Obj_Update(&theBeam->unkcc);
-	theBeam->unkcc.x = (float)((double)theBeam->x - (double)Sign(theBeam->vx) * 4.0);
-	theBeam->unkcc.y = (float)((double)theBeam->y - (double)Sign(theBeam->vy) * 4.0);
+		Obj_Update(&theBeam->harpoon);
+	theBeam->harpoon.x = (float)((double)theBeam->x - (double)Sign(theBeam->vx) * 4.0);
+	theBeam->harpoon.y = (float)((double)theBeam->y - (double)Sign(theBeam->vy) * 4.0);
 	return aResult;
 }
 
@@ -294,7 +294,7 @@ void Beam_Destroy(Beam* theBeam)
 			aSpeed = aShooter->beamSpeed;
 		aShooter->beamSpeed = (float)aSpeed;
 	}
-	Obj_Destroy(&theBeam->unkcc);
+	Obj_Destroy(&theBeam->harpoon);
 	List_Clear(&theBeam->riders);
 	Obj_Destroy(theBeam);
 }
@@ -309,7 +309,7 @@ Beam* Beam_Init(Beam* theBeam)
 {
 	Obj_Init(theBeam);
 	List_Init(&theBeam->riders);
-	Obj_Init(&theBeam->unkcc);
+	Obj_Init(&theBeam->harpoon);
 	return theBeam;
 }
 

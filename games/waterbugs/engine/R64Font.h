@@ -49,7 +49,7 @@ struct Font
 	int dstH;                  // +0xc40
 	Palette* palette;          // +0xc44  the glyphs' palette (null: each glyph's own)
 	const PixelFormat* fmt;    // +0xc48  the target's
-	uint8_t unkc4c[0x104];     // +0xc4c
+	uint8_t ownedPadding[0x104]; // +0xc4c  the bytes before owned: nothing reads them
 	ImageList owned;           // +0xd60  the glyphs Font_StripCut made
 
 	Font();  // 0x423820
@@ -58,7 +58,7 @@ struct Font
 };
 
 void Font_SetSpacing(Font* theFont, int theSpacing);                          // 0x422320
-void Font_SetClip(Font* theFont, int l, int t, int r, int b);                 // 0x422340
+void Font_SetClip(Font* theFont, int l, int t, int theRight, int theBottom);                 // 0x422340
 // 0x422370: the clip becomes {0, 0, w, h}
 void Font_SetTarget(Font* theFont, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, int w, int h);
 void Font_SetPalette(Font* theFont, Palette* thePalette);                     // 0x4223d0

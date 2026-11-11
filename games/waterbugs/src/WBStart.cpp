@@ -164,7 +164,7 @@ void LoadGameFile()
 	if (anEco != nullptr)
 		std::memcpy(anEco, ".xml", 4);
 	const char* aData = (const char*)ReadWholeFile(gGameFile, &aSize);
-	const char* p = Xml_NextTag(aData, &aTag);
+	const char* aCursor = Xml_NextTag(aData, &aTag);
 	while (std::strcmp(aTag.name, "/game") != 0)
 	{
 		if (std::strcmp(aTag.name, "animation") == 0)
@@ -200,12 +200,12 @@ void LoadGameFile()
 			else
 				gLevels.current->musicPending = 1;
 			gLevels.current->number = aNumber;
-			Level_Load(gLevels.current, p, &aTag);
+			Level_Load(gLevels.current, aCursor, &aTag);
 		}
 		else if (std::strcmp(aTag.name, "enemy") == 0)
 		{
 			Enemy_Append(&gEnemyDefs);
-			Enemy_FromXml(gEnemyDefs.current, p, &aTag);
+			Enemy_FromXml(gEnemyDefs.current, aCursor, &aTag);
 		}
 		else if (std::strcmp(aTag.name, "emitter") == 0)
 		{
@@ -213,7 +213,7 @@ void LoadGameFile()
 			Emitter_FromXml((Emitter*)gEnemyDefs.current->emitters.current, &aTag);
 		}
 		else if (std::strcmp(aTag.name, "font") == 0)
-			Font_LoadXml(p, &aTag);
+			Font_LoadXml(aCursor, &aTag);
 		else if (std::strcmp(aTag.name, "song") == 0)
 		{
 			Music_Load(Xml_GetString(&aTag, "name"));
@@ -234,7 +234,7 @@ void LoadGameFile()
 			gLevelSets.current->end = Xml_GetInt(&aTag, "end_range");
 			std::strcpy(gLevelSets.current->song, Xml_GetString(&aTag, "song"));
 		}
-		p = Xml_NextTag(p, &aTag);
+		aCursor = Xml_NextTag(aCursor, &aTag);
 	}
 	if (gLevels.current != nullptr)
 		gLevels.current = gLevels.head;

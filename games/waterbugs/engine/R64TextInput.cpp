@@ -81,60 +81,60 @@ uint8_t VkToChar(uint8_t theKey)
 }
 
 // 0x42c780: the character shift makes of one (on a US keyboard)
-uint8_t Shifted(uint8_t c)
+uint8_t Shifted(uint8_t theChar)
 {
-	if ((uint8_t)(c - 0x30) < 10)
+	if ((uint8_t)(theChar - 0x30) < 10)
 	{
-		if (c == '0')
+		if (theChar == '0')
 			return ')';
-		if (c == '1')
+		if (theChar == '1')
 			return '!';
-		if (c == '2')
+		if (theChar == '2')
 			return '@';
-		if (c == '3')
+		if (theChar == '3')
 			return '#';
-		if (c == '4')
+		if (theChar == '4')
 			return '$';
-		if (c == '5')
+		if (theChar == '5')
 			return '%';
-		if (c == '6')
+		if (theChar == '6')
 			return '^';
-		if (c == '7')
+		if (theChar == '7')
 			return '&';
-		if (c == '8')
+		if (theChar == '8')
 			return '*';
-		if (c == '9')
+		if (theChar == '9')
 			return '(';
 	}
 	else
 	{
-		if ((uint8_t)(c - 0x61) < 0x1a)
-			return c - 0x20;
-		if (c == ' ')
+		if ((uint8_t)(theChar - 0x61) < 0x1a)
+			return theChar - 0x20;
+		if (theChar == ' ')
 			return ' ';
-		if (c == ',')
+		if (theChar == ',')
 			return '<';
-		if (c == '.')
+		if (theChar == '.')
 			return '>';
-		if (c == '-')
+		if (theChar == '-')
 			return '_';
-		if (c == '=')
+		if (theChar == '=')
 			return '+';
-		if (c == '[')
+		if (theChar == '[')
 			return '{';
-		if (c == ']')
+		if (theChar == ']')
 			return '}';
-		if (c == '\\')
+		if (theChar == '\\')
 			return '|';
-		if (c == ';')
+		if (theChar == ';')
 			return ':';
-		if (c == '\'')
+		if (theChar == '\'')
 			return '"';
-		if (c == '/')
+		if (theChar == '/')
 			return '?';
-		c = c == '`' ? '~' : 0;
+		theChar = theChar == '`' ? '~' : 0;
 	}
-	return c;
+	return theChar;
 }
 
 // 0x42c870: 1 for the keys that type a character
@@ -268,8 +268,8 @@ void TextInput_Clear(TextInput* theInput)
 }
 
 // 0x42c3b0
-void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char theColourCode, int l, int t, int r,
-	int b)
+void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char theColourCode, int theLeft, int theTop, int theRight,
+	int theBottom)
 {
 	if (theInput->text != nullptr)
 	{
@@ -279,22 +279,22 @@ void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char t
 	TextInput_Clear(theInput);
 	theInput->font = theFont;
 	theInput->colourCode = theColourCode;
-	theInput->w = (r - l) + 1;
-	theInput->box[0] = l;
-	theInput->box[2] = r;
-	theInput->x = l;
-	theInput->box[1] = t;
-	theInput->box[3] = b;
-	theInput->y = t;
+	theInput->w = (theRight - theLeft) + 1;
+	theInput->box[0] = theLeft;
+	theInput->box[2] = theRight;
+	theInput->x = theLeft;
+	theInput->box[1] = theTop;
+	theInput->box[3] = theBottom;
+	theInput->y = theTop;
 	theInput->frame[0] = theInput->box[0];
 	theInput->frame[1] = theInput->box[1];
 	theInput->active = 1;
 	theInput->frame[2] = theInput->box[2];
-	theInput->frame[3] = b;
+	theInput->frame[3] = theBottom;
 	theInput->inner[0] = theInput->frame[0] + 1;
 	theInput->inner[1] = theInput->frame[1] + 1;
 	theInput->inner[2] = theInput->frame[2] - 1;
-	theInput->h = (b - t) + 1;
+	theInput->h = (theBottom - theTop) + 1;
 	theInput->inner[3] = theInput->frame[3] - 1;
 	theInput->textRect[0] = theInput->frame[0] + 4;
 	theInput->padX = 4;
@@ -459,30 +459,30 @@ void TextInput_Update(TextInput* theInput, double theSeconds)
 		theInput->caretOn = 1;
 		if (IsTypable(aCode) == 1)
 		{
-			uint8_t c = VkToChar(aCode);
+			uint8_t aChar = VkToChar(aCode);
 			int aMode = theInput->caseMode;
 			if (aMode == 0)
 			{
 				if (Key_Down(0x10) != 0)
-					c = Shifted(c);
+					aChar = Shifted(aChar);
 			}
 			else if (aMode == 1)
 			{
-				if ((uint8_t)(c - 0x61) <= 0x19 || Key_Down(0x10) != 0)
-					c = Shifted(c);
+				if ((uint8_t)(aChar - 0x61) <= 0x19 || Key_Down(0x10) != 0)
+					aChar = Shifted(aChar);
 			}
-			else if (aMode == 2 && (c < 0x61 || 0x7a < c))
+			else if (aMode == 2 && (aChar < 0x61 || 0x7a < aChar))
 			{
 				if (Key_Down(0x10) != 0)
-					c = Shifted(c);
+					aChar = Shifted(aChar);
 			}
-			if (theInput->blocked[c] == 0 && 0 < Font_CharWidth(theInput->font, (char)c) &&
+			if (theInput->blocked[aChar] == 0 && 0 < Font_CharWidth(theInput->font, (char)aChar) &&
 				theInput->length < theInput->maxLength)
 			{
 				int aCaret = theInput->caret;
 				if (aCaret == theInput->length)
 				{
-					theInput->text[aCaret] = (char)c;
+					theInput->text[aCaret] = (char)aChar;
 					theInput->length = theInput->length + 1;
 					theInput->caret = theInput->caret + 1;
 				}
@@ -497,7 +497,7 @@ void TextInput_Update(TextInput* theInput, double theSeconds)
 							i = i - 1;
 						} while (theInput->caret < i);
 					}
-					theInput->text[theInput->caret] = (char)c;
+					theInput->text[theInput->caret] = (char)aChar;
 					theInput->length = theInput->length + 1;
 					theInput->caret = theInput->caret + 1;
 				}

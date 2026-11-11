@@ -14,54 +14,54 @@ List<Enemy> gEnemyDefs;
 // The default song and background of a level number: the song changes only at the first level of its range
 void Level_SetBackground(Level* theLevel)
 {
-	int n = theLevel->number;
+	int aLevelNumber = theLevel->number;
 	const char* aSong = nullptr;
 	const char* aBack;
-	if (499 < n)
+	if (499 < aLevelNumber)
 	{
-		if (n == 500)
+		if (aLevelNumber == 500)
 			aSong = "audio\\cosmo4.mo3";
 		aBack = "finalshowdown";
 	}
-	else if (399 < n)
+	else if (399 < aLevelNumber)
 	{
-		if (n == 400)
+		if (aLevelNumber == 400)
 			aSong = "audio\\cosmo5.mo3";
 		aBack = "facility";
 	}
-	else if (299 < n)
+	else if (299 < aLevelNumber)
 	{
-		if (n == 300)
+		if (aLevelNumber == 300)
 			aSong = "audio\\cosmo2.mo3";
 		aBack = "arctic";
 	}
-	else if (199 < n)
+	else if (199 < aLevelNumber)
 	{
-		if (n == 200)
+		if (aLevelNumber == 200)
 			aSong = "audio\\cosmo3.mo3";
 		aBack = "minefield";
 	}
-	else if (99 < n)
+	else if (99 < aLevelNumber)
 	{
-		if (n == 100)
+		if (aLevelNumber == 100)
 			aSong = "audio\\cosmo4.mo3";
 		aBack = "lostcity";
 	}
-	else if (0x31 < n)
+	else if (0x31 < aLevelNumber)
 	{
-		if (n == 0x32)
+		if (aLevelNumber == 0x32)
 			aSong = "audio\\cosmo5.mo3";
 		aBack = "pirateship";
 	}
-	else if (0x13 < n)
+	else if (0x13 < aLevelNumber)
 	{
-		if (n == 0x14)
+		if (aLevelNumber == 0x14)
 			aSong = "audio\\cosmo2.mo3";
 		aBack = "coralreef";
 	}
-	else if (9 < n)
+	else if (9 < aLevelNumber)
 	{
-		if (n == 10)
+		if (aLevelNumber == 10)
 			aSong = "audio\\cosmo3.mo3";
 		aBack = "kelpjungle";
 	}
@@ -210,23 +210,23 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 // theB are the level file's numbers, at least 4 each, theC and theD are 5 and 6, and the tints stay 0.
 void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* theD, int* theE, int* theF)
 {
-	int n = theLevel->number;
-	if (n == 1)
+	int aLevelNumber = theLevel->number;
+	if (aLevelNumber == 1)
 	{
 		*theA = 0;
 		*theB = 0;
 	}
-	else if (n == 2)
+	else if (aLevelNumber == 2)
 	{
 		*theA = 0;
 		*theB = 1;
 	}
-	else if (n == 3)
+	else if (aLevelNumber == 3)
 	{
 		*theA = 0;
 		*theB = 2;
 	}
-	else if (n == 4 || n == 5 || n == 6)
+	else if (aLevelNumber == 4 || aLevelNumber == 5 || aLevelNumber == 6)
 	{
 		*theA = 2;
 		*theB = 2;
@@ -236,7 +236,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 5;
 		return;
 	}
-	else if (7 <= n && n < 10)
+	else if (7 <= aLevelNumber && aLevelNumber < 10)
 	{
 		*theA = 3;
 		*theB = 2;
@@ -246,7 +246,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 5;
 		return;
 	}
-	else if (10 <= n && n <= 0xe)
+	else if (10 <= aLevelNumber && aLevelNumber <= 0xe)
 	{
 		*theA = 4;
 		*theB = 3;
@@ -256,7 +256,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 7;
 		return;
 	}
-	else if (0xf <= n && n <= 0x13)
+	else if (0xf <= aLevelNumber && aLevelNumber <= 0x13)
 	{
 		*theA = 4;
 		*theB = 4;
@@ -266,7 +266,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 7;
 		return;
 	}
-	else if (0x14 <= n && n <= 0x18)
+	else if (0x14 <= aLevelNumber && aLevelNumber <= 0x18)
 	{
 		*theA = 6;
 		*theB = 4;
@@ -276,7 +276,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 6;
 		return;
 	}
-	else if (0x19 <= n && n <= 0x1d)
+	else if (0x19 <= aLevelNumber && aLevelNumber <= 0x1d)
 	{
 		*theA = 6;
 		*theB = 5;
@@ -286,7 +286,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 6;
 		return;
 	}
-	else if (0x1e <= n && n <= 0x22)
+	else if (0x1e <= aLevelNumber && aLevelNumber <= 0x22)
 	{
 		*theA = 8;
 		*theB = 5;
@@ -296,7 +296,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 1;
 		return;
 	}
-	else if (0x23 <= n && n <= 0x31)
+	else if (0x23 <= aLevelNumber && aLevelNumber <= 0x31)
 	{
 		*theA = 8;
 		*theB = 6;
@@ -306,7 +306,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 1;
 		return;
 	}
-	else if (0x32 <= n && n <= 0x3c)
+	else if (0x32 <= aLevelNumber && aLevelNumber <= 0x3c)
 	{
 		*theA = 8;
 		*theB = 6;
@@ -316,7 +316,7 @@ void Level_EnemyCounts(Level* theLevel, int* theA, int* theB, int* theC, int* th
 		*theF = 9;
 		return;
 	}
-	else if (0x3c <= n && n <= 0x46)
+	else if (0x3c <= aLevelNumber && aLevelNumber <= 0x46)
 	{
 		*theA = 8;
 		*theB = 6;
@@ -488,22 +488,22 @@ void Shooter_Insert(List<Shooter>* theList)
 	List_InsertBefore(theList, Shooter_Init(aShooter));
 }
 
-void Level_AddKey(Level* theLevel, char theKey, int theA, int theB)
+void Level_AddKey(Level* theLevel, char theKey, int theCol, int theRow)
 {
 	List<KeyMapNode>* aList = &theLevel->keyMap;
 	List_Append(aList, new KeyMapNode);
 	aList->current->key = theKey;
-	aList->current->a = theA;
-	aList->current->b = theB;
+	aList->current->col = theCol;
+	aList->current->row = theRow;
 }
 
-void Level_FindKey(Level* theLevel, char theKey, int* theA, int* theB)
+void Level_FindKey(Level* theLevel, char theKey, int* theCol, int* theRow)
 {
 	List_Each(&theLevel->keyMap, [&](KeyMapNode* aNode) {
 		if (aNode->key == theKey)
 		{
-			*theA = aNode->a;
-			*theB = theLevel->keyMap.current->b;
+			*theCol = aNode->col;
+			*theRow = theLevel->keyMap.current->row;
 		}
 	});
 }
@@ -575,7 +575,7 @@ Level* Level_Init(Level* theLevel)
 	theLevel->gameOver = 0;
 	theLevel->fillSound = 0;
 	theLevel->fillEndSound = 0;
-	theLevel->unk3c0 = 0;
+	theLevel->floodedCells = 0;
 	theLevel->seed = 0;
 	theLevel->shots = 0;
 	theLevel->lines = 0;
@@ -623,11 +623,11 @@ void List_DeleteNode(Level* theLevel)
 	::operator delete((void*)theLevel);
 }
 
-void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
+void Level_Load(Level* theLevel, const char* theXmlCursor, XmlTag* theTag)
 {
 	char aType[32];
 	int aRow = 0;
-	if (p != nullptr)
+	if (theXmlCursor != nullptr)
 	{
 		for (int i = 0; i < 50; i++)
 			theLevel->columns[i] = Cells_New();
@@ -639,7 +639,7 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 		theLevel->background = new Image;
 		Image_Copy(theLevel->background, aBack);
 	}
-	if (p != nullptr && Xml_GetString(theTag, "type") != nullptr)
+	if (theXmlCursor != nullptr && Xml_GetString(theTag, "type") != nullptr)
 	{
 		std::strcpy(aType, Xml_GetString(theTag, "type"));
 		if (std::strcmp(aType, "credits") == 0)
@@ -704,7 +704,7 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 	Level_SetPatterns(theLevel, aH, aV);
 	int aNoPanel = Xml_GetInt(theTag, "no_panel");
 	int aNoStars = Xml_GetInt(theTag, "no_stars");
-	while (p != nullptr && std::strcmp(theTag->name, "/level") != 0)
+	while (theXmlCursor != nullptr && std::strcmp(theTag->name, "/level") != 0)
 	{
 		const char* aName = theTag->name;
 		if (std::strcmp(aName, "row") == 0 && aRow < theLevel->rows)
@@ -725,17 +725,17 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 		else if (std::strcmp(aName, "shooter") == 0)
 		{
 			Shooter_Insert(&theLevel->shooters);
-			Shooter_FromXml(theLevel->shooters.current, p, theTag);
+			Shooter_FromXml(theLevel->shooters.current, theXmlCursor, theTag);
 		}
 		else if (std::strcmp(aName, "panel") == 0)
 		{
 			Panel_Append(&theLevel->panels);
-			Panel_FromXml(theLevel->panels.current, p, theTag);
+			Panel_FromXml(theLevel->panels.current, theXmlCursor, theTag);
 		}
 		else if (std::strcmp(aName, "enemy") == 0)
 		{
 			Enemy_Insert(&theLevel->enemies);
-			Enemy_FromXml(theLevel->enemies.current, p, theTag);
+			Enemy_FromXml(theLevel->enemies.current, theXmlCursor, theTag);
 		}
 		else if (std::strcmp(aName, "emitter") == 0)
 		{
@@ -745,12 +745,12 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 		else if (std::strcmp(aName, "menu") == 0)
 		{
 			Menu_Append(&theLevel->menus);
-			Menu_FromXml(theLevel->menus.current, p, theTag);
+			Menu_FromXml(theLevel->menus.current, theXmlCursor, theTag);
 		}
 		else if (std::strcmp(aName, "pointer") == 0)
 		{
 			Pointer_Append(&theLevel->pointers);
-			Obj_FromXml(theLevel->pointers.current, p, theTag);
+			Obj_FromXml(theLevel->pointers.current, theXmlCursor, theTag);
 		}
 		else if (std::strcmp(aName, "text") == 0)
 		{
@@ -758,30 +758,30 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 			if (Xml_GetInt(theTag, "fv") == 0)
 			{
 				Text_Append(&theLevel->texts);
-				if (Text_FromXml(theLevel->texts.current, p, theTag) == 0)
+				if (Text_FromXml(theLevel->texts.current, theXmlCursor, theTag) == 0)
 					List_RemoveCurrent(&theLevel->texts);
 			}
 		}
 		else if (std::strcmp(aName, "stars") == 0)
 		{
-			int n = Xml_GetInt(theTag, "number");
-			if (0 < n)
+			int aNumber = Xml_GetInt(theTag, "number");
+			if (0 < aNumber)
 			{
 				do
 				{
 					Star_Append(&theLevel->stars);
-					Obj_FromXml(theLevel->stars.current, p, theTag);
+					Obj_FromXml(theLevel->stars.current, theXmlCursor, theTag);
 					theLevel->stars.current->x = (float)RandRange(0, 800);
 					theLevel->stars.current->y = (float)RandRange(0, 0x250);
 					Obj* aStar = theLevel->stars.current;
 					aStar->vx = (float)((double)RandRange(0x14, 0x32) / 25.0 * (double)aStar->vx);
-					n = n + -1;
-				} while (n != 0);
+					aNumber = aNumber + -1;
+				} while (aNumber != 0);
 			}
 		}
-		p = Xml_NextTag(p, theTag);
+		theXmlCursor = Xml_NextTag(theXmlCursor, theTag);
 	}
-	if (p == nullptr)
+	if (theXmlCursor == nullptr)
 	{
 		theLevel->numWalkers = (CrtRand() % 5) * 2 + 2;
 		theLevel->numRollers = (CrtRand() % 5) * 2 + 2;
@@ -802,7 +802,7 @@ void Level_Load(Level* theLevel, const char* p, XmlTag* theTag)
 	}
 	if (theLevel->stars.current == nullptr && aNoStars == 0)
 		Level_AddStars(theLevel);
-	if (p != nullptr)
+	if (theXmlCursor != nullptr)
 	{
 		for (int y = 1; y < gLevels.current->rows + -1; y++)
 		{
@@ -983,7 +983,7 @@ int Level_Update(Level* theLevel)
 				else
 				{
 					theLevel->chain = 1;
-					theLevel->unk3c0 = 0;
+					theLevel->floodedCells = 0;
 				}
 			}
 			else
@@ -1105,7 +1105,7 @@ void Level_AddStars(Level* theLevel)
 {
 	List<Obj>* aList = &theLevel->stars;
 	char aName[32];
-	int n = 0x28;
+	int aStarsLeft = 0x28;
 	do
 	{
 		Star_Append(aList);
@@ -1118,9 +1118,9 @@ void Level_AddStars(Level* theLevel)
 		aList->current->dirty = 1;
 		std::sprintf(aName, "bubble%d", RandRange(1, 3));
 		Animation* anAnim = Animation_Find(aName, &aList->current->frameCount, &aList->current->frameTime);
-		n = n + -1;
+		aStarsLeft = aStarsLeft + -1;
 		aList->current->anim = anAnim;
-	} while (n != 0);
+	} while (aStarsLeft != 0);
 }
 
 // The first walk places mirrored pairs (kinds 7 on), the second single enemies (kinds 0 on); an enemy that finds no

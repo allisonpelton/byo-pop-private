@@ -207,7 +207,7 @@ int Text_Update(Text* theText)
 void Text_Draw(Text* theText)
 {
 	int aState = theText->state;
-	float t = theText->age / theText->lifetime;
+	float aLifeFraction = theText->age / theText->lifetime;
 	if (aState == 3)
 	{
 		TextInput_Draw(&theText->input, gScreenBits, gScreenPitch, Sys_ScreenFormat(), &gDirty);
@@ -216,15 +216,15 @@ void Text_Draw(Text* theText)
 	if (aState == 6)
 	{
 		int aBlink = theText->blink;
-		t = 1.0f;
+		aLifeFraction = 1.0f;
 		if (aBlink != 0 && aBlink / 2 < (int)theText->age % aBlink)
 			return;
 	}
 	else if (aState == 7)
-		t = 1.0f - t;
+		aLifeFraction = 1.0f - aLifeFraction;
 	if (aState == 4 || aState == 8)
 		return;
-	theText->alpha = (int)((double)t * 255.0);
+	theText->alpha = (int)((double)aLifeFraction * 255.0);
 	if (theText->anim != nullptr)
 	{
 		theText->shadow = 1;
@@ -260,7 +260,7 @@ void Text_Draw(Text* theText)
 	Dirty_AddClippedShown(&gDirty, aLeft, aTop, aW, aH, kScreenClip);
 }
 
-int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag)
+int Text_FromXml(Text* theText, const char* theXmlCursor, const XmlTag* theTag)
 {
 	char aBuf[0x80];
 	if (Xml_GetString(theTag, "type") != nullptr)
@@ -336,7 +336,7 @@ int Text_FromXml(Text* theText, const char* p, const XmlTag* theTag)
 			Xml_GetInt(theTag, "fade_out_time"), 0, 0);
 		return 1;
 	}
-	if (Obj_FromXml(theText, p, theTag) == 0)
+	if (Obj_FromXml(theText, theXmlCursor, theTag) == 0)
 		return 0;
 	Text_Make(theText, Xml_GetString(theTag, "text"), Font_Find(Xml_GetString(theTag, "font")), (int)theText->x,
 		(int)theText->y, Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"),

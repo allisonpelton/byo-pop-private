@@ -70,69 +70,69 @@ inline const uint32_t* AlignRun(const uint8_t* p)
 
 // 0x42fe50
 void Copy8(uint8_t* dst, int dx, int dy, int dpitch, int, const uint8_t* src, int sx, int sy, int spitch, int,
-	int w, int h)
+	int theWidth, int theHeight)
 {
 	uint8_t* d = dst + dy * dpitch + dx;
 	const uint8_t* s = src + sy * spitch + sx;
-	if (w != 0 && h != 0)
+	if (theWidth != 0 && theHeight != 0)
 	{
 		do
 		{
-			memcpy(d, s, w);
+			memcpy(d, s, theWidth);
 			s += spitch;
 			d += dpitch;
-			h--;
-		} while (h != 0);
+			theHeight--;
+		} while (theHeight != 0);
 	}
 }
 
 // 0x42fee0
 void Copy8Key(uint8_t* dst, int dx, int dy, int dpitch, int, const uint8_t* src, int sx, int sy, int spitch, int,
-	int w, int h)
+	int theWidth, int theHeight)
 {
 	uint8_t* d = dst + dy * dpitch + dx;
 	const uint8_t* s = src + sy * spitch + sx;
-	if (w != 0)
+	if (theWidth != 0)
 	{
 		do
 		{
-			for (int i = 0; i < w; i++)
+			for (int i = 0; i < theWidth; i++)
 				if (s[i] != 0)
 					d[i] = s[i];
 			s += spitch;
 			d += dpitch;
-			h--;
-		} while (h != 0);
+			theHeight--;
+		} while (theHeight != 0);
 	}
 }
 
 // 0x42ffb0
-void Copy16(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w, int h)
+void Copy16(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w, int theHeight)
 {
 	const uint8_t* s = src + spitch * sy + sx * 2;
 	uint8_t* d = dst + dpitch * dy + dx * 2;
-	if (0 < h)
+	if (0 < theHeight)
 	{
 		do
 		{
 			memcpy(d, s, w * 2);
 			s += spitch;
 			d += dpitch;
-			h--;
-		} while (h != 0);
+			theHeight--;
+		} while (theHeight != 0);
 	}
 }
 
 // 0x430020
 void Copy16Mask(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy,
-	const uint8_t* mask, int mpitch, int mx, int my, int w, int h)
+	const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight)
 {
 	const uint16_t* s = SrcRow16(src, spitch, sx, sy);
 	uint16_t* d = Row16(dst, dpitch, dx, dy);
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 			if (m[i] != 0)
 				d[i] = s[i];
 		s += spitch / 2;
@@ -143,13 +143,13 @@ void Copy16Mask(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, in
 
 // 0x430260
 void Fill16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy, const uint8_t* mask,
-	int mpitch, int mx, int my, int w, int h, uint16_t colour)
+	int mpitch, int mx, int my, int theWidth, int theHeight, uint16_t colour)
 {
 	uint16_t* d = Row16(dst, dpitch, dx, dy);
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 		{
 			uint8_t a = m[i];
 			if (a != 0)
@@ -163,35 +163,35 @@ void Fill16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy
 // 0x430870. At alpha 0xff it fills through the mask (0x430260) and then blends the same over it again, as the
 // original does (it does not return after the first pass).
 void Fill16MaskAlpha(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	const uint8_t* mask, int mpitch, int mx, int my, int w, int h, uint16_t colour, uint8_t alpha)
+	const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight, uint16_t colour, uint8_t alpha)
 {
 	if (alpha == 0xff)
-		Fill16Mask(dst, dpitch, fmt, dx, dy, sx, sy, mask, mpitch, mx, my, w, h, colour);
-	uint16_t* d = Row16(dst, dpitch, dx, dy);
+		Fill16Mask(dst, dpitch, fmt, dx, dy, sx, sy, mask, mpitch, mx, my, theWidth, theHeight, colour);
+	uint16_t* aDstPixel = Row16(dst, dpitch, dx, dy);
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 		{
 			uint32_t a = (uint32_t)m[i] * alpha >> 8;
 			if ((uint8_t)a != 0)
-				d[i] = Blend(fmt, colour, d[i], a);
+				aDstPixel[i] = Blend(fmt, colour, aDstPixel[i], a);
 		}
 		m += mpitch;
-		d += dpitch / 2;
+		aDstPixel += dpitch / 2;
 	}
 }
 
 // 0x430ef0
 void Blend16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
-	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h)
+	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight)
 {
 	const uint16_t* s = SrcRow16(src, spitch, sx, sy);
 	uint16_t* d = Row16(dst, dpitch, dx, dy);
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 			if (m[i] != 0)
 				d[i] = Blend(fmt, s[i], d[i], m[i]);
 		s += spitch / 2;
@@ -202,58 +202,58 @@ void Blend16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int d
 
 // 0x4315a0
 void Alpha16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
-	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h)
+	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight)
 {
-	const uint16_t* s = SrcRow16(src, spitch, sx, sy);
-	uint16_t* d = Row16(dst, dpitch, dx, dy);
+	const uint16_t* aSrcPixel = SrcRow16(src, spitch, sx, sy);
+	uint16_t* aDstPixel = Row16(dst, dpitch, dx, dy);
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 		{
 			uint8_t a = m[i];
 			if (a != 0)
-				d[i] = a == 0xff ? s[i] : Blend(fmt, s[i], d[i], a);
+				aDstPixel[i] = a == 0xff ? aSrcPixel[i] : Blend(fmt, aSrcPixel[i], aDstPixel[i], a);
 		}
-		s += spitch / 2;
+		aSrcPixel += spitch / 2;
 		m += mpitch;
-		d += dpitch / 2;
+		aDstPixel += dpitch / 2;
 	}
 }
 
 // 0x431d00. At alpha 0xff it draws Alpha16Mask (0x4315a0) and then blends over it again, as the original does.
 void Alpha16MaskFade(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src,
-	int spitch, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h, int alpha)
+	int spitch, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight, int alpha)
 {
 	if (alpha == 0xff)
-		Alpha16Mask(dst, dpitch, fmt, dx, dy, src, spitch, sx, sy, mask, mpitch, mx, my, w, h);
-	const uint16_t* s = SrcRow16(src, spitch, sx, sy);
-	uint16_t* d = Row16(dst, dpitch, dx, dy);
-	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+		Alpha16Mask(dst, dpitch, fmt, dx, dy, src, spitch, sx, sy, mask, mpitch, mx, my, theWidth, theHeight);
+	const uint16_t* aSrcPixel = SrcRow16(src, spitch, sx, sy);
+	uint16_t* aDstPixel = Row16(dst, dpitch, dx, dy);
+	const uint8_t* aMaskPixel = MaskRow(mask, mpitch, sx, sy, mx, my);
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 		{
-			uint32_t a = (uint32_t)m[i] * (uint32_t)alpha >> 8;
+			uint32_t a = (uint32_t)aMaskPixel[i] * (uint32_t)alpha >> 8;
 			if ((uint8_t)a != 0)
-				d[i] = Blend(fmt, s[i], d[i], a & 0xff);
+				aDstPixel[i] = Blend(fmt, aSrcPixel[i], aDstPixel[i], a & 0xff);
 		}
-		s += spitch / 2;
-		d += dpitch / 2;
-		m += mpitch;
+		aSrcPixel += spitch / 2;
+		aDstPixel += dpitch / 2;
+		aMaskPixel += mpitch;
 	}
 }
 
 // 0x432440
 void Add16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
-	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h)
+	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight)
 {
 	const uint16_t* s = SrcRow16(src, spitch, sx, sy);
 	uint16_t* d = Row16(dst, dpitch, dx, dy);
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 			if (m[i] != 0)
 				d[i] = Add(fmt, s[i], d[i]);
 		s += spitch / 2;
@@ -270,11 +270,11 @@ namespace
 // -sin(a+270)), both before the pixel is plotted. A pixel lands at its rounded position and also on the row
 // above when its y truncates there, which fills the gaps a rotation leaves.
 template <typename PlotFn>
-void RotateBody(int dstStep, int spitchStep, int w, int h, const uint8_t* mask, int mpitch, int mx, int my, int x,
+void RotateBody(int dstStep, int spitchStep, int theWidth, int theHeight, const uint8_t* mask, int mpitch, int mx, int my, int x,
 	int y, int angle, const int* clip, bool theFloatAngle, PlotFn thePlot)
 {
-	int aHalfW = w / 2;
-	int aHalfH = h / 2;
+	int aHalfW = theWidth / 2;
+	int aHalfH = theHeight / 2;
 	int x0 = x - aHalfW;
 	int y0 = y - aHalfH;
 	const uint8_t* aMaskRow = mask + my * mpitch + mx;
@@ -297,16 +297,16 @@ void RotateBody(int dstStep, int spitchStep, int w, int h, const uint8_t* mask, 
 	int aCol = 0;
 	int aSrcRow = 0;
 	int aSrc = 0;
-	const uint8_t* m = aMaskRow;
-	for (int aRows = h; aRows > 0; aRows--)
+	const uint8_t* aMaskPixel = aMaskRow;
+	for (int aRows = theHeight; aRows > 0; aRows--)
 	{
 		double cx = aRowX;
 		double cy = aRowY;
-		for (int aCols = w; aCols > 0; aCols--)
+		for (int aCols = theWidth; aCols > 0; aCols--)
 		{
 			cx = cx + aCos;
 			cy = cy + aSin;
-			if (*m != 0)
+			if (*aMaskPixel != 0)
 			{
 				int px = (int)(cx + 0.5);
 				int py = (int)(cy + 0.5);
@@ -320,15 +320,15 @@ void RotateBody(int dstStep, int spitchStep, int w, int h, const uint8_t* mask, 
 				}
 			}
 			aCol++;
-			if (aCol < w)
+			if (aCol < theWidth)
 			{
 				aSrc++;
-				m++;
+				aMaskPixel++;
 			}
 			else
 			{
 				aMaskRow += mpitch;
-				m = aMaskRow;
+				aMaskPixel = aMaskRow;
 				aSrcRow += spitchStep;
 				aSrc = aSrcRow;
 				aCol = 0;
@@ -368,35 +368,35 @@ void Rotate8(uint8_t* dst, int dpitch, const uint8_t* src, int spitch, int w, in
 
 // 0x432be0
 void Pal16(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, const Palette* pal, int sx,
-	int sy, int w, int h)
+	int sy, int theWidth, int theHeight)
 {
 	const uint8_t* s = src + spitch * sy + sx;
 	uint16_t* d = Row16(dst, dpitch, dx, dy);
 	const uint16_t* p = pal->p16;
-	if (0 < h)
+	if (0 < theHeight)
 	{
 		do
 		{
-			for (int i = 0; i < w; i++)
+			for (int i = 0; i < theWidth; i++)
 				d[i] = p[s[i]];
 			s += spitch;
 			d += dpitch / 2;
-			h--;
-		} while (h != 0);
+			theHeight--;
+		} while (theHeight != 0);
 	}
 }
 
 // 0x432c70
 void Pal16Mask(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, const Palette* pal, int sx,
-	int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h)
+	int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight)
 {
 	uint16_t* d = Row16(dst, dpitch, dx, dy);
 	const uint16_t* p = pal->p16;
 	const uint8_t* s = src + spitch * sy + sx;
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 			if (m[i] != 0)
 				d[i] = p[s[i]];
 		s += spitch;
@@ -407,67 +407,67 @@ void Pal16Mask(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int
 
 // 0x432ee0
 void PalBlend16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
-	const Palette* pal, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h)
+	const Palette* pal, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight)
 {
-	uint16_t* d = Row16(dst, dpitch, dx, dy);
+	uint16_t* aDstPixel = Row16(dst, dpitch, dx, dy);
 	const uint8_t* s = src + spitch * sy + sx;
 	const uint16_t* p = pal->p16;
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 			if (m[i] != 0)
-				d[i] = Blend(fmt, p[s[i]], d[i], m[i]);
+				aDstPixel[i] = Blend(fmt, p[s[i]], aDstPixel[i], m[i]);
 		m += mpitch;
 		s += spitch;
-		d += dpitch / 2;
+		aDstPixel += dpitch / 2;
 	}
 }
 
 // 0x4335c0
 void PalAlpha16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
-	const Palette* pal, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h)
+	const Palette* pal, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight)
 {
-	uint16_t* d = Row16(dst, dpitch, dx, dy);
-	const uint8_t* s = src + spitch * sy + sx;
+	uint16_t* aDstPixel = Row16(dst, dpitch, dx, dy);
+	const uint8_t* aSrcPixel = src + spitch * sy + sx;
 	const uint16_t* p = pal->p16;
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 		{
 			uint8_t a = m[i];
 			if (a != 0)
-				d[i] = a == 0xff ? p[s[i]] : Blend(fmt, p[s[i]], d[i], a);
+				aDstPixel[i] = a == 0xff ? p[aSrcPixel[i]] : Blend(fmt, p[aSrcPixel[i]], aDstPixel[i], a);
 		}
 		m += mpitch;
-		s += spitch;
-		d += dpitch / 2;
+		aSrcPixel += spitch;
+		aDstPixel += dpitch / 2;
 	}
 }
 
 // 0x433db0. At alpha 0xff it draws PalAlpha16Mask (0x4335c0) and then blends over it again, as the original does.
 void PalAlpha16MaskFade(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src,
-	int spitch, const Palette* pal, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h,
+	int spitch, const Palette* pal, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight,
 	int alpha)
 {
 	if (alpha == 0xff)
-		PalAlpha16Mask(dst, dpitch, fmt, dx, dy, src, spitch, pal, sx, sy, mask, mpitch, mx, my, w, h);
-	uint16_t* d = Row16(dst, dpitch, dx, dy);
-	const uint8_t* s = src + spitch * sy + sx;
+		PalAlpha16Mask(dst, dpitch, fmt, dx, dy, src, spitch, pal, sx, sy, mask, mpitch, mx, my, theWidth, theHeight);
+	uint16_t* aDstPixel = Row16(dst, dpitch, dx, dy);
+	const uint8_t* aSrcPixel = src + spitch * sy + sx;
 	const uint16_t* p = pal->p16;
 	const uint8_t* m = MaskRow(mask, mpitch, sx, sy, mx, my);
-	for (; 0 < h; h--)
+	for (; 0 < theHeight; theHeight--)
 	{
-		for (int i = 0; i < w; i++)
+		for (int i = 0; i < theWidth; i++)
 		{
 			uint32_t a = (uint32_t)m[i] * (uint32_t)alpha >> 8;
 			if ((uint8_t)a != 0)
-				d[i] = Blend(fmt, p[s[i]], d[i], a & 0xff);
+				aDstPixel[i] = Blend(fmt, p[aSrcPixel[i]], aDstPixel[i], a & 0xff);
 		}
 		m += mpitch;
-		s += spitch;
-		d += dpitch / 2;
+		aSrcPixel += spitch;
+		aDstPixel += dpitch / 2;
 	}
 }
 
@@ -501,27 +501,27 @@ void RleWalk(int dpitch, int spitchStep, const uint8_t* rle, BlendedFn theBlende
 	const int* aHead = (const int*)rle;
 	int aWidth = aHead[1];
 	int aRows = aHead[2];
-	const uint32_t* p = (const uint32_t*)(rle + 0xc);
+	const uint32_t* aRun = (const uint32_t*)(rle + 0xc);
 	int aRowDst = theDst;
 	int aRowSrc = 0;
 	for (; aRows != 0; aRows--)
 	{
-		int d = aRowDst;
-		int s = aRowSrc;
+		int aDstPos = aRowDst;
+		int aSrcPos = aRowSrc;
 		int anEnd = aRowDst + aWidth;
-		while (d < anEnd)
+		while (aDstPos < anEnd)
 		{
-			d += (int)p[0];
-			s += (int)p[0];
-			uint32_t n = p[1];
-			const uint8_t* a = (const uint8_t*)(p + 2);
+			aDstPos += (int)aRun[0];
+			aSrcPos += (int)aRun[0];
+			uint32_t n = aRun[1];
+			const uint8_t* a = (const uint8_t*)(aRun + 2);
 			for (uint32_t i = 0; i < n; i++)
-				theBlended(d++, s++, a[i]);
-			p = AlignRun(a + n);
-			uint32_t aSolid = *p;
+				theBlended(aDstPos++, aSrcPos++, a[i]);
+			aRun = AlignRun(a + n);
+			uint32_t aSolid = *aRun;
 			for (uint32_t i = 0; i < aSolid; i++)
-				theSolid(d++, s++);
-			p++;
+				theSolid(aDstPos++, aSrcPos++);
+			aRun++;
 		}
 		aRowDst += dpitch / 2;
 		aRowSrc += spitchStep;
@@ -554,18 +554,18 @@ void Rle16FillAlpha(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, in
 {
 	if (alpha == 0xff)
 		Rle16Fill(dst, dpitch, fmt, dx, dy, rle, colour);
-	uint16_t* d = (uint16_t*)dst;
+	uint16_t* aDstPixel = (uint16_t*)dst;
 	RleWalk(dpitch, 0, rle,
 		[&](int theD, int, uint8_t a)
 		{
 			uint32_t aa = a * alpha;
 			if ((uint8_t)(aa >> 8) != 0)
-				d[theD] = Blend(fmt, colour, d[theD], aa >> 8 & 0xff);
+				aDstPixel[theD] = Blend(fmt, colour, aDstPixel[theD], aa >> 8 & 0xff);
 		},
 		[&](int theD, int)
 		{
 			if ((uint8_t)alpha != 0)
-				d[theD] = Blend(fmt, colour, d[theD], alpha & 0xff);
+				aDstPixel[theD] = Blend(fmt, colour, aDstPixel[theD], alpha & 0xff);
 		},
 		dy * (dpitch / 2) + dx);
 }
@@ -596,19 +596,19 @@ void Rle16AlphaFade(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, in
 {
 	if (alpha == 0xff)
 		Rle16Alpha(dst, dpitch, fmt, dx, dy, src, spitch, rle);
-	uint16_t* d = (uint16_t*)dst;
-	const uint16_t* s = (const uint16_t*)src;
+	uint16_t* aDstPixel = (uint16_t*)dst;
+	const uint16_t* aSrcPixel = (const uint16_t*)src;
 	RleWalk(dpitch, spitch / 2, rle,
 		[&](int theD, int theS, uint8_t a)
 		{
 			uint32_t aa = a * alpha;
 			if ((uint8_t)(aa >> 8) != 0)
-				d[theD] = Blend(fmt, s[theS], d[theD], aa >> 8 & 0xff);
+				aDstPixel[theD] = Blend(fmt, aSrcPixel[theS], aDstPixel[theD], aa >> 8 & 0xff);
 		},
 		[&](int theD, int theS)
 		{
 			if ((uint8_t)alpha != 0)
-				d[theD] = Blend(fmt, s[theS], d[theD], alpha & 0xff);
+				aDstPixel[theD] = Blend(fmt, aSrcPixel[theS], aDstPixel[theD], alpha & 0xff);
 		},
 		dy * (dpitch / 2) + dx);
 }
@@ -659,19 +659,19 @@ void RlePal16AlphaFade(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx,
 {
 	if (alpha == 0xff)
 		RlePal16Alpha(dst, dpitch, fmt, dx, dy, src, spitch, pal, rle);
-	uint16_t* d = (uint16_t*)dst;
-	const uint16_t* p = pal->p16;
+	uint16_t* aDstPixel = (uint16_t*)dst;
+	const uint16_t* aPalette = pal->p16;
 	RleWalk(dpitch, spitch, rle,
 		[&](int theD, int theS, uint8_t a)
 		{
 			uint32_t aa = a * alpha;
 			if ((uint8_t)(aa >> 8) != 0)
-				d[theD] = Blend(fmt, p[src[theS]], d[theD], aa >> 8 & 0xff);
+				aDstPixel[theD] = Blend(fmt, aPalette[src[theS]], aDstPixel[theD], aa >> 8 & 0xff);
 		},
 		[&](int theD, int theS)
 		{
 			if ((uint8_t)alpha != 0)
-				d[theD] = Blend(fmt, p[src[theS]], d[theD], alpha & 0xff);
+				aDstPixel[theD] = Blend(fmt, aPalette[src[theS]], aDstPixel[theD], alpha & 0xff);
 		},
 		dy * (dpitch / 2) + dx);
 }

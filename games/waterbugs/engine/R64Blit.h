@@ -23,46 +23,46 @@ struct Palette;
 
 // 0x42fe50: an 8-bit copy
 void Copy8(uint8_t* dst, int dx, int dy, int dpitch, int, const uint8_t* src, int sx, int sy, int spitch, int,
-	int w, int h);
+	int theWidth, int theHeight);
 // 0x42fee0: an 8-bit copy where 0 is transparent
 void Copy8Key(uint8_t* dst, int dx, int dy, int dpitch, int, const uint8_t* src, int sx, int sy, int spitch, int,
-	int w, int h);
+	int theWidth, int theHeight);
 
 // 0x42ffb0: a 16-bit copy
-void Copy16(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w, int h);
+void Copy16(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int theWidth, int theHeight);
 // 0x430020: a 16-bit copy where the mask is not 0
 void Copy16Mask(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy,
-	const uint8_t* mask, int mpitch, int mx, int my, int w, int h);
+	const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight);
 // 0x430260: a colour through a mask
 void Fill16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy, const uint8_t* mask,
-	int mpitch, int mx, int my, int w, int h, uint16_t colour);
+	int mpitch, int mx, int my, int theWidth, int theHeight, uint16_t colour);
 // 0x430870: a colour through a mask, faded by alpha
 void Fill16MaskAlpha(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	const uint8_t* mask, int mpitch, int mx, int my, int w, int h, uint16_t colour, uint8_t alpha);
+	const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight, uint16_t colour, uint8_t alpha);
 // 0x430ef0: a blend through a mask (0xff blends too)
 void Blend16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
-	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h);
+	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight);
 // 0x4315a0: a blend through a mask, 0xff copies
 void Alpha16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
-	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h);
+	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight);
 // 0x431d00: Alpha16Mask faded by alpha
 void Alpha16MaskFade(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src,
-	int spitch, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h, int alpha);
+	int spitch, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight, int alpha);
 // 0x432440: additive where the mask is not 0
 void Add16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
-	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h);
+	int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight);
 // 0x432970: rotated by angle degrees about (x, y), where the mask is not 0, clipped to clip (inclusive)
-void Rotate16(uint8_t* dst, int dpitch, const uint8_t* src, int spitch, int w, int h, const uint8_t* mask,
+void Rotate16(uint8_t* dst, int dpitch, const uint8_t* src, int spitch, int theWidth, int theHeight, const uint8_t* mask,
 	int mpitch, int mx, int my, int x, int y, int angle, const int* clip);
 // 0x42d590: Rotate16 for an 8-bit source and destination, where the source is not 0
-void Rotate8(uint8_t* dst, int dpitch, const uint8_t* src, int spitch, int w, int h, int x, int y, int angle,
+void Rotate8(uint8_t* dst, int dpitch, const uint8_t* src, int spitch, int theWidth, int theHeight, int x, int y, int angle,
 	const int* clip);
 // 0x432be0: 8-bit through its palette
 void Pal16(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, const Palette* pal, int sx,
-	int sy, int w, int h);
+	int sy, int theWidth, int theHeight);
 // 0x432c70: 8-bit through its palette where the mask is not 0
 void Pal16Mask(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, const Palette* pal, int sx,
-	int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h);
+	int sy, const uint8_t* mask, int mpitch, int mx, int my, int theWidth, int theHeight);
 // 0x432ee0, 0x4335c0, 0x433db0, 0x434520: the 8-bit sources' Blend16Mask, Alpha16Mask, Alpha16MaskFade, Add16Mask
 void PalBlend16Mask(uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, const uint8_t* src, int spitch,
 	const Palette* pal, int sx, int sy, const uint8_t* mask, int mpitch, int mx, int my, int w, int h);

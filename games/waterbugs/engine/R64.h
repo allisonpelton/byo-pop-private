@@ -80,10 +80,10 @@ struct Image
 	char name[0x34];        // +0x9c  "None"
 	char* fileName;         // +0xd0
 	int notOwned;           // +0xd4  the bits belong to a bank
-	int unkd8;              // +0xd8
+	int paletteNumberPadding;  // +0xd8  the four bytes before paletteNumber: nothing reads them
 	int paletteNumber;      // +0xdc
 	int isMask;             // +0xe0
-	int unke4;              // +0xe4
+	int maskNamed;              // +0xe4
 	Image* autoMask;        // +0xe8
 	int bankDataSize;       // +0xec
 	int bankPitch;          // +0xf0
@@ -106,8 +106,8 @@ struct RleHeader
 // Image_Destroy plus delete stands for Image_Destroy plus free)
 void Image_Init(Image* img);
 void Image_Free(Image* img);                                                 // 0x4254c0
-void Image_Create(Image* img, int w, int h, const PixelFormat* fmt);         // 0x425520
-void Image_CreateCopy(Image* img, const uint8_t* src, int spitch, int w, int h, const PixelFormat* fmt); // 0x4255d0
+void Image_Create(Image* img, int theWidth, int theHeight, const PixelFormat* fmt);         // 0x425520
+void Image_CreateCopy(Image* img, const uint8_t* src, int spitch, int theWidth, int theHeight, const PixelFormat* fmt); // 0x4255d0
 void Image_BuildRle(Image* img);                                             // 0x425630
 void Image_Destroy(Image* img);                                              // 0x425d00
 void Image_Copy(Image* img, const Image* src);                               // 0x425d60
@@ -135,14 +135,14 @@ void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dpitch, const PixelFormat
 	uint32_t alpha);                                                         // 0x424a90
 void Image_BlitAdd(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y); // 0x424cc0
 void Image_BlitRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	int w, int h);                                                           // 0x425010
+	int theWidth, int theHeight);                                                           // 0x425010
 void Image_BlitSubRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	int w, int h);                                                           // 0x4250f0
+	int theWidth, int theHeight);                                                           // 0x4250f0
 void Image_BlitRotated(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y, int angle,
 	const int* clip);                                                        // 0x4252f0
 
 // 0x42bfb0: clips a w x h rectangle at (x, y) to {clipL, clipT, clipR, clipB} (inclusive); 1 when some of it is left
-int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int w, int h, int* outX, int* outY,
+int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int theWidth, int theHeight, int* outX, int* outY,
 	int* outSx, int* outSy, int* outW, int* outH);
 // 0x42c0f0: a palette's colours theFrom to theTo (either way, both included) shade from one colour to the other
 void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, uint8_t g0, uint8_t b0, uint8_t r1,

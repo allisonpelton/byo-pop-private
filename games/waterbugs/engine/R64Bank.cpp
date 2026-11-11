@@ -46,12 +46,12 @@ void SelfMask8(Bank* theBank)
 } // namespace
 
 // 0x401a80
-int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* dst, const uint8_t* rgb, int n)
+int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* dst, const uint8_t* rgb, int theCount)
 {
-	if (dst != nullptr && rgb != nullptr && -1 < n)
+	if (dst != nullptr && rgb != nullptr && -1 < theCount)
 	{
 		int i = 0;
-		if (0 < n)
+		if (0 < theCount)
 		{
 			const uint8_t* p = rgb + 1;
 			do
@@ -61,7 +61,7 @@ int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* dst, const ui
 					(uint32_t)(p[1] >> (theFmt->bLoss & 0x1f)) << (theFmt->bShift & 0x1f) |
 					(uint32_t)(*p >> (theFmt->gLoss & 0x1f)) << (theFmt->gShift & 0x1f);
 				p += 4;
-			} while (i < n);
+			} while (i < theCount);
 		}
 		return 1;
 	}
@@ -69,12 +69,12 @@ int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* dst, const ui
 }
 
 // 0x401b10
-int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* dst, const uint8_t* rgb, int n)
+int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* dst, const uint8_t* rgb, int theCount)
 {
-	if (dst != nullptr && rgb != nullptr && -1 < n)
+	if (dst != nullptr && rgb != nullptr && -1 < theCount)
 	{
 		int i = 0;
-		if (0 < n)
+		if (0 < theCount)
 		{
 			const uint8_t* p = rgb + 1;
 			do
@@ -84,7 +84,7 @@ int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* dst, const ui
 					(uint32_t)(p[1] >> (theFmt->bLoss & 0x1f)) << (theFmt->bShift & 0x1f) |
 					(uint32_t)(*p >> (theFmt->gLoss & 0x1f)) << (theFmt->gShift & 0x1f));
 				p += 4;
-			} while (i < n);
+			} while (i < theCount);
 		}
 		return 1;
 	}
@@ -345,7 +345,7 @@ int Bank_LinkMasks(Bank* theBank)
 {
 	for (Image* aMaskImage : theBank->images)
 	{
-		if (aMaskImage->unke4 == 1 && 5 < std::strlen(aMaskImage->name) &&
+		if (aMaskImage->maskNamed == 1 && 5 < std::strlen(aMaskImage->name) &&
 			std::strncmp(aMaskImage->name, "mask_", 5) == 0)
 		{
 			char aTarget[0x400];
@@ -477,8 +477,8 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 	if (!Sys_ReadFile(thePath, aFile))
 		return 0;
 	aFile.push_back(0);
-	const char* p = (const char*)aFile.data();
-	p = Xml_NextTag(p, &aTag);
+	const char* aCursor = (const char*)aFile.data();
+	aCursor = Xml_NextTag(aCursor, &aTag);
 	const char* aDataFile = Xml_GetString(&aTag, "datafile");
 	if (aDataFile == nullptr)
 		return 0;
@@ -499,8 +499,8 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 	CopyName(theBank->dataPath, sizeof(theBank->dataPath), aDir);
 	std::strncat(theBank->dataPath, aDataFile, sizeof(theBank->dataPath) - 1 - std::strlen(theBank->dataPath));
 
-	p = Xml_NextTag(p, &aTag); // IMAGELIST
-	p = Xml_NextTag(p, &aTag);
+	aCursor = Xml_NextTag(aCursor, &aTag); // IMAGELIST
+	aCursor = Xml_NextTag(aCursor, &aTag);
 	while (std::strcmp(aTag.name, "IMAGE") == 0)
 	{
 		Image* anImage = new Image();
@@ -524,7 +524,7 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 		if (5 < std::strlen(anImage->name) && std::strncmp(anImage->name, "mask_", 5) == 0)
 		{
 			anImage->isMask = 1;
-			anImage->unke4 = 1;
+			anImage->maskNamed = 1;
 		}
 		anImage->bankDataSize = anImage->dataSize;
 		anImage->bankPitch = anImage->pitch;
@@ -534,18 +534,18 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 		anImage->clip[2] = anImage->w + -1;
 		anImage->clip[3] = anImage->h + -1;
 		theBank->images.push_back(anImage);
-		p = Xml_NextTag(p, &aTag);
+		aCursor = Xml_NextTag(aCursor, &aTag);
 	}
-	const char* aNext = Xml_NextTag(p, &aTag);
+	const char* aNext = Xml_NextTag(aCursor, &aTag);
 	if (std::strcmp(aTag.name, "PALETTELIST") == 0)
 	{
-		p = Xml_NextTag(aNext, &aTag);
+		aCursor = Xml_NextTag(aNext, &aTag);
 		while (std::strcmp(aTag.name, "PALETTE") == 0)
 		{
 			int aCount = 0;
 			uint8_t* aPalette = (uint8_t*)std::calloc(1, 0x400);
-			int n = Xml_GetInt(&aTag, "colorsUsed");
-			if (0 < n)
+			int aColourCount = Xml_GetInt(&aTag, "colorsUsed");
+			if (0 < aColourCount)
 			{
 				uint8_t* aColour = aPalette + 2;
 				const char* aText = aTag.text;
@@ -559,12 +559,12 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 					aText = Xml_ReadToken(aText, aToken, aTag.textLen, &aCount);
 					*aColour = (uint8_t)std::atol(aToken);
 					aColour += 4;
-					n--;
-				} while (n != 0);
+					aColourCount--;
+				} while (aColourCount != 0);
 			}
 			theBank->rawPalettes.push_back(aPalette);
-			aNext = Xml_NextTag(p, &aTag); // /PALETTE
-			p = Xml_NextTag(aNext, &aTag);
+			aNext = Xml_NextTag(aCursor, &aTag); // /PALETTE
+			aCursor = Xml_NextTag(aNext, &aTag);
 		}
 	}
 	return 1;

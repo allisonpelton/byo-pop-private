@@ -45,19 +45,19 @@ void Shooter_Turn(Shooter* theShooter)
 // of sparkles marks its arrival
 void Shooter_Appear(Shooter* theShooter)
 {
-	int aDummy[2];
+	int aFrameTimes[2];
 	Sys_SetMousePos(400, 300);
 	theShooter->x = 400.0f;
 	theShooter->y = 300.0f;
 	if (theShooter->age == 1.0f)
 		Level_ShowStart(gLevels.current);
-	aDummy[1] = 0;
+	aFrameTimes[1] = 0;
 	if (theShooter->appearTime <= theShooter->age)
 	{
 		if (theShooter->appearTime == theShooter->age)
 		{
 			theShooter->drawKind = 4;
-			int n = 0x78;
+			int aSparksLeft = 0x78;
 			do
 			{
 				int anAngle = RandRange(0, 0x167);
@@ -70,10 +70,10 @@ void Shooter_Appear(Shooter* theShooter)
 				ParticleSystem_Add(gLevels.current->systems.current, theShooter->x, theShooter->y, aVx, aVy, 0, 0, 0,
 					0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, aLifetime, 1.0f, 0.0f, 4);
 				Particle* aParticle = gLevels.current->systems.current->particles.current;
-				aParticle->anim = Animation_Find("sparkles3", &aParticle->frameCount, &aDummy[1]);
+				aParticle->anim = Animation_Find("sparkles3", &aParticle->frameCount, &aFrameTimes[1]);
 				aParticle->tint = RandRange(0, 7);
-				n = n - 1;
-			} while (n != 0);
+				aSparksLeft = aSparksLeft - 1;
+			} while (aSparksLeft != 0);
 			theShooter->alpha = 0xff;
 			theShooter->state = 3;
 			while (List_RemoveCurrent(&theShooter->children))
@@ -84,7 +84,7 @@ void Shooter_Appear(Shooter* theShooter)
 	if (theShooter->age == 1.0f)
 	{
 		List<Obj>* aChildren = &theShooter->children;
-		int n = 4;
+		int aSparklesLeft = 4;
 		do
 		{
 			Panel_AppendItem(aChildren);
@@ -93,9 +93,9 @@ void Shooter_Appear(Shooter* theShooter)
 			aChildren->current->midHandle = 1;
 			aChildren->current->dirty = 1;
 			aChildren->current->drawKind = 4;
-			n = n - 1;
+			aSparklesLeft = aSparklesLeft - 1;
 			aChildren->current->alpha = 0xff;
-		} while (n != 0);
+		} while (aSparklesLeft != 0);
 	}
 	float aRatio = theShooter->age / theShooter->appearTime;
 	theShooter->alpha = (int)aRatio;
@@ -121,7 +121,7 @@ void Shooter_Appear(Shooter* theShooter)
 				ParticleSystem_Add(gLevels.current->systems.current, aX, aY, 0.0f, 0.0f, 0, 0, 0, 0xff, 0xff, 0xff, 0xff,
 					0xff, 0xff, 0x21c, 10, 400, 0.999f, 0.0002f, 5);
 				Particle* aParticle = gLevels.current->systems.current->particles.current;
-				aParticle->anim = Animation_Find("sparkles3", &aParticle->frameCount, &aDummy[0]);
+				aParticle->anim = Animation_Find("sparkles3", &aParticle->frameCount, &aFrameTimes[0]);
 			}
 			aCurrent = theShooter->children.current;
 			aSpin = aSpin + 0x5a;
@@ -789,7 +789,7 @@ Shooter* Shooter_Init(Shooter* theShooter)
 	List_Init(&theShooter->beams);
 	Obj_Init(&theShooter->wingsH);
 	Obj_Init(&theShooter->wingsV);
-	Obj_Init(&theShooter->unk320);
+	Obj_Init(&theShooter->idleObj);
 	Obj_Init(&theShooter->bubble);
 	theShooter->appearTime = 700.0f;
 	theShooter->beamAcross = 1;
@@ -807,7 +807,7 @@ Shooter* Shooter_Init(Shooter* theShooter)
 void Shooter_Destroy(Shooter* theShooter)
 {
 	Obj_Destroy(&theShooter->bubble);
-	Obj_Destroy(&theShooter->unk320);
+	Obj_Destroy(&theShooter->idleObj);
 	Obj_Destroy(&theShooter->wingsV);
 	Obj_Destroy(&theShooter->wingsH);
 	if (theShooter->beams.current != nullptr)

@@ -274,97 +274,97 @@ public:
 
 	Shot Evaluate(int col, int row, int across)
 	{
-		Shot s;
-		s.col = col;
-		s.row = row;
-		s.across = across;
+		Shot aShot;
+		aShot.col = col;
+		aShot.row = row;
+		aShot.across = across;
 		if (!Open(col, row) || mLevel->columns[col][row].unmarked == 0)
-			return s;
-		Stretch(col, row, across, s.lo, s.hi);
+			return aShot;
+		Stretch(col, row, across, aShot.lo, aShot.hi);
 		int aGenA = ++mGen;
 		int aSideAC = across != 0 ? col : col - 1, aSideAR = across != 0 ? row - 1 : row;
 		int aSideBC = across != 0 ? col : col + 1, aSideBR = across != 0 ? row + 1 : row;
 		int anEnemiesA = 0, anEnemiesB = 0;
-		Flood(aSideAC, aSideAR, col, row, across, s.lo, s.hi, aGenA, s.cellsA, anEnemiesA);
-		if (s.cellsA == 0 || s.cellsB < 0)
-			return s;
+		Flood(aSideAC, aSideAR, col, row, across, aShot.lo, aShot.hi, aGenA, aShot.cellsA, anEnemiesA);
+		if (aShot.cellsA == 0 || aShot.cellsB < 0)
+			return aShot;
 		if (Open(aSideBC, aSideBR) && mMark[aSideBC][aSideBR] == aGenA)
-			return s;		// the beam does not part the two sides
+			return aShot;		// the beam does not part the two sides
 		int aGenB = ++mGen;
-		Flood(aSideBC, aSideBR, col, row, across, s.lo, s.hi, aGenB, s.cellsB, anEnemiesB);
-		if (s.cellsB == 0)
-			return s;
+		Flood(aSideBC, aSideBR, col, row, across, aShot.lo, aShot.hi, aGenB, aShot.cellsB, anEnemiesB);
+		if (aShot.cellsB == 0)
+			return aShot;
 		if (mLevel->number > 2 && anEnemiesA == 0 && anEnemiesB == 0)
-			s.fill = s.cellsA + s.cellsB;
+			aShot.fill = aShot.cellsA + aShot.cellsB;
 		else
-			s.fill = std::min(s.cellsA, s.cellsB);
-		s.valid = true;
+			aShot.fill = std::min(aShot.cellsA, aShot.cellsB);
+		aShot.valid = true;
 		// the time the beams take, and the bugs that could reach a growing beam before they stop
 		double aSpeed = mShip->beamSpeed > 0.01f ? mShip->beamSpeed : 0.14f;
 		double aHalfLow = (col - 0) * 16.0 + 8.0, aHalfHigh = 0;
 		double aShotX = col * 16.0 + 8.0, aShotY = row * 16.0 + 8.0;
 		if (across != 0)
 		{
-			aHalfLow = aShotX - s.lo * 16.0;
-			aHalfHigh = (s.hi + 1) * 16.0 - aShotX;
+			aHalfLow = aShotX - aShot.lo * 16.0;
+			aHalfHigh = (aShot.hi + 1) * 16.0 - aShotX;
 		}
 		else
 		{
-			aHalfLow = aShotY - s.lo * 16.0;
-			aHalfHigh = (s.hi + 1) * 16.0 - aShotY;
+			aHalfLow = aShotY - aShot.lo * 16.0;
+			aHalfHigh = (aShot.hi + 1) * 16.0 - aShotY;
 		}
-		s.time = std::max(aHalfLow, aHalfHigh) / aSpeed;
-		double aLeft = across != 0 ? s.lo * 16.0 : col * 16.0 + 4.0;
-		double aRight = across != 0 ? (s.hi + 1) * 16.0 : col * 16.0 + 12.0;
-		double aTop = across != 0 ? row * 16.0 + 4.0 : s.lo * 16.0;
-		double aBottom = across != 0 ? row * 16.0 + 12.0 : (s.hi + 1) * 16.0;
+		aShot.time = std::max(aHalfLow, aHalfHigh) / aSpeed;
+		double aLeft = across != 0 ? aShot.lo * 16.0 : col * 16.0 + 4.0;
+		double aRight = across != 0 ? (aShot.hi + 1) * 16.0 : col * 16.0 + 12.0;
+		double aTop = across != 0 ? row * 16.0 + 4.0 : aShot.lo * 16.0;
+		double aBottom = across != 0 ? row * 16.0 + 12.0 : (aShot.hi + 1) * 16.0;
 		double aRisk = 0;
-		for (Enemy* e = mLevel->enemies.head; e != nullptr; e = Node_Next(e))
+		for (Enemy* anEnemy = mLevel->enemies.head; anEnemy != nullptr; anEnemy = Node_Next(anEnemy))
 		{
-			double aRadius = e->image != nullptr ? e->image->h / 3.0 : 8.0;
-			double px = std::min(std::max((double)e->x, aLeft), aRight);
-			double py = std::min(std::max((double)e->y, aTop), aBottom);
-			double aDist = std::sqrt(((double)e->x - px) * ((double)e->x - px) + ((double)e->y - py) * ((double)e->y - py)) - aRadius;
-			double v = std::sqrt((double)e->vx * e->vx + (double)e->vy * e->vy) * 1.3 + 0.02;
+			double aRadius = anEnemy->image != nullptr ? anEnemy->image->h / 3.0 : 8.0;
+			double px = std::min(std::max((double)anEnemy->x, aLeft), aRight);
+			double py = std::min(std::max((double)anEnemy->y, aTop), aBottom);
+			double aDist = std::sqrt(((double)anEnemy->x - px) * ((double)anEnemy->x - px) + ((double)anEnemy->y - py) * ((double)anEnemy->y - py)) - aRadius;
+			double v = std::sqrt((double)anEnemy->vx * anEnemy->vx + (double)anEnemy->vy * anEnemy->vy) * 1.3 + 0.02;
 			double t = std::max(0.0, aDist) / v;
 			double aAlong = across != 0 ? px - aShotX : py - aShotY;
-			if (t < s.time && std::fabs(aAlong) <= aSpeed * t + 12.0)
-				aRisk += (s.time - t) / s.time;
+			if (t < aShot.time && std::fabs(aAlong) <= aSpeed * t + 12.0)
+				aRisk += (aShot.time - t) / aShot.time;
 			// a bug in the band of the beam, anywhere along it, is cut by the beam unless it leaves the band first
-			double aPerp = across != 0 ? std::fabs((double)e->y - (row * 16.0 + 8.0)) : std::fabs((double)e->x - (col * 16.0 + 8.0));
-			double aPos = across != 0 ? (double)e->x : (double)e->y;
-			double aBandLow = (across != 0 ? s.lo : s.lo) * 16.0 - aRadius;
-			double aBandHigh = (s.hi + 1) * 16.0 + aRadius;
+			double aPerp = across != 0 ? std::fabs((double)anEnemy->y - (row * 16.0 + 8.0)) : std::fabs((double)anEnemy->x - (col * 16.0 + 8.0));
+			double aPos = across != 0 ? (double)anEnemy->x : (double)anEnemy->y;
+			double aBandLow = (across != 0 ? aShot.lo : aShot.lo) * 16.0 - aRadius;
+			double aBandHigh = (aShot.hi + 1) * 16.0 + aRadius;
 			if (aPerp <= aRadius + 10.0 && aBandLow <= aPos && aPos <= aBandHigh)
 				aRisk += 1.0;
 		}
-		s.risk = aRisk;
-		double aFill = std::min<double>(s.fill, 400);
-		s.score = (aRisk < 0.03) ? aFill : aFill * std::max(0.0, 1.0 - aRisk * 2.0) - 1000.0;
-		return s;
+		aShot.risk = aRisk;
+		double aFill = std::min<double>(aShot.fill, 400);
+		aShot.score = (aRisk < 0.03) ? aFill : aFill * std::max(0.0, 1.0 - aRisk * 2.0) - 1000.0;
+		return aShot;
 	}
 
 	// the best shot on the board: every second cell, both ways (or the way the ship turns itself)
 	Shot Best(bool theAuto)
 	{
 		Shot aBest;
-		for (int c = 1; c < mCols - 1; c += 2)
+		for (int aCol = 1; aCol < mCols - 1; aCol += 2)
 		{
-			for (int r = 1; r < mRows - 1; r += 2)
+			for (int aRow = 1; aRow < mRows - 1; aRow += 2)
 			{
-				if (!mOpen[c][r])
+				if (!mOpen[aCol][aRow])
 					continue;
 				int aLoA, aHiA, aLoD, aHiD;
-				Stretch(c, r, 1, aLoA, aHiA);
-				Stretch(c, r, 0, aLoD, aHiD);
+				Stretch(aCol, aRow, 1, aLoA, aHiA);
+				Stretch(aCol, aRow, 0, aLoD, aHiD);
 				int aSpanA = aHiA - aLoA, aSpanD = aHiD - aLoD;
 				for (int across = 0; across < 2; across++)
 				{
-					if (gBan[across][across != 0 ? r : c] > 0)
+					if (gBan[across][across != 0 ? aRow : aCol] > 0)
 						continue;
 					if (theAuto && ((across != 0 && aSpanA > aSpanD) || (across == 0 && aSpanD > aSpanA)))
 						continue;
-					Shot s = Evaluate(c, r, across);
+					Shot s = Evaluate(aCol, aRow, across);
 					if (s.valid && (!aBest.valid || s.score > aBest.score))
 						aBest = s;
 				}
@@ -683,19 +683,19 @@ std::string MenuMove(Level* theLevel, bool& theBusy)
 	}
 	if (HasRequester(theLevel))
 		return ClickItem("dialog", anItems.back().item);	// the last button: not the yes of "resume your previous game?"
-	const ItemRef* r = nullptr;
+	const ItemRef* aRef = nullptr;
 	switch (theLevel->kind)
 	{
 	case 1:
-		r = FindKind(anItems, 0x12);
-		if (r != nullptr)
-			return ClickItem("start", r->item);
+		aRef = FindKind(anItems, 0x12);
+		if (aRef != nullptr)
+			return ClickItem("start", aRef->item);
 		break;
 	case 0:
 		// a world's story screen: its start button
-		r = FindKind(anItems, 1);
-		if (r != nullptr)
-			return ClickItem("story", r->item);
+		aRef = FindKind(anItems, 1);
+		if (aRef != nullptr)
+			return ClickItem("story", aRef->item);
 		break;
 	case 5:
 	{
@@ -852,10 +852,10 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 	{
 		// board n of the game (0 is the first as well); the story screen that comes before a world's first board comes first.
 		// The game's own count of levels left behind is one less (Start after n boards played goes to board n + 1).
-		int n = std::max(std::atoi(theCommand.mArgs.c_str()), 1);
+		int aCount = std::max(std::atoi(theCommand.mArgs.c_str()), 1);
 		if (aLevel == nullptr)
 			ReplyError(theCommand, "the game has no screen yet");
-		else if (SetOfLevel(n) == nullptr)
+		else if (SetOfLevel(aCount) == nullptr)
 			ReplyError(theCommand, "no such level");
 		else
 		{
@@ -872,8 +872,8 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 				gLives = 6;
 				gScore = 0;
 			}
-			gLevelSets.current = SetOfLevel(n);
-			gLevelInSet = n - 1;
+			gLevelSets.current = SetOfLevel(aCount);
+			gLevelInSet = aCount - 1;
 			gGoTo = 0;
 			gPlayed = true;
 			if (!LeaveScreen())
