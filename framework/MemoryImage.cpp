@@ -14,6 +14,7 @@
 using namespace Sexy;
 
 bool (*Sexy::gMemoryImageRecoverBits)(MemoryImage* theImage) = NULL;
+bool Sexy::gSlowStretchRenormalizesAlpha = false;
 
 // port: helpers for drawing on HD pixels (see BeginHDMirror at the end of this file)
 namespace
