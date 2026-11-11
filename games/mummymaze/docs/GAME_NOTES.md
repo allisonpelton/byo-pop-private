@@ -39,25 +39,35 @@ Maze files: `data\mazes\B-<n>.dat`, 101 files of 1506 bytes (bit-packed walls, s
 
 ## Classes (constructor, vtable)
 
+The names are the Mac build's (`docs/CODE_STANDARDS.md`, rule 1); the port's classes carry them.
+
 | Class | Ctor | Vtable | Role |
 |---|---|---|---|
-| (dialog) | 0x401000 | 0x481338 | adventure slot chooser (new game, continue, delete, cancel) |
-| (screen) | 0x401ca0 | 0x481400 | victory screen |
+| AdventureDialog | 0x401000 | 0x481338 | the saved adventures: a slot to play, Delete Game, Cancel |
+| BeachWidget | 0x401ca0 | 0x481400 | the victory screen (a HighScoreWidget over the beach picture) |
 | Board | 0x403e80 | 0x4814d4 | the maze |
-| (dialog) | 0x412750 | 0x481620 | choose a game to delete |
-| (panel) | 0x412ea0 | 0x4816e4 | in-game buttons |
-| (screen) | 0x413c30 | 0x48179c | high scores |
-| | 0x414290 | 0x481860 | small |
-| (screen) | 0x4143a0 | 0x481910 | high scores table |
-| | 0x415e50 | 0x4819d0 | name entry dialog |
-| (menu) | 0x4165a0 | 0x481a94 | main menu |
-| (map) | 0x417010 | 0x482690 | world map |
-| MMApp | 0x419bb0 | 0x482748 | application |
-| Player | 0x426e70 | 0x482b40 | the explorer (positions itself on the nearest edge) |
+| DeleteDialog | 0x412750 | 0x481620 | choose a saved adventure to delete |
+| GameOverWidget | 0x412ea0 | 0x4816e4 | the scroll of a lost explorer with its four links (a TombstoneWidget) |
+| HighScoreDialog | 0x413c30 | 0x48179c | the high scores as a dialog of the options |
+| HighScoreSlide | 0x414290 | 0x481860 | the game-over parchment that comes down over the high scores |
+| HighScoreWidget | 0x4143a0 | 0x481910 | the high score table |
+| InternetScoreDialog | 0x415e50 | 0x4819d0 | the Internet score list (not in the port) |
+| IntroScreen | 0x4165a0 | 0x481a94 | the main menu (a TombstoneWidget) |
+| MapWidget | 0x417010 | 0x482690 | the adventure's world map |
+| MMApp | 0x419bb0 | 0x482748 | the application |
 | Mummy | 0x421b40 | 0x482828 | white and red mummies (id in +0x74) |
-| Scorp | 0x429120 | 0x482e20 | scorpion |
-
-(The table is filled in as the classes are read.)
+| NameDialog | 0x421db0 | | the name of a new adventure |
+| NextLevelWidget | 0x422480 | | the level-complete screen |
+| OptionsDialog | 0x4250f0 | | the options |
+| Player | 0x426e70 | 0x482b40 | the explorer (positions itself on the nearest edge) |
+| PyramidButton | 0x427050 | | a pyramid of the world map |
+| RecordScoreDialog | 0x427dc0 | | the name for a high score |
+| RegisterDialog | 0x4284a0 | | registration (not in the port) |
+| Scorp | 0x429120 | 0x482e20 | the scorpion |
+| Sidebar | 0x4291d0 | | the panel left of the maze: the score, the buttons, the pyramid's map |
+| TitleScreen | 0x42a5f0 | | the title with its loading bar |
+| TombstoneWidget | 0x42b390 | | the scroll that the main menu and the lost panel come down on |
+| WarningDialog | 0x42b720 | | a tip |
 
 ## The board (0x403e80; Widget + ButtonListener at +0x4c; object 0xec8 bytes)
 
@@ -495,3 +505,89 @@ nine phase-two scenarios that need no saved game (the menu, the options and thei
 tutorial, an adventure, the focus) run on both with the same script and seed under `-fast`. All 114 screenshots are byte for
 byte the same. A script reads `Res.h` and `Res.cpp` before and after and finds every id still at the same file name in the
 same order (162 against 160), and the four runs of ids ending where they ended.
+
+## The readability pass (2026-11-11)
+
+The rules are `docs/CODE_STANDARDS.md`; `python tools/namecheck.py games/mummymaze` checks the ones a tool can check and has no
+finding (105 when the pass began: 50 functions without an address or a port marker, 38 one-letter names, 17 uses of a stand-in
+name), with no exception file. Nothing the port does changed, but for the one difference from the original that the pass found
+(below).
+
+**Names from the Mac build.** The Mac build of the game (`re/mummymaze/mac`, git-ignored) still has its symbols.
+`tools/macmatch.py` pairs 232 of its 445 game functions with the PC export, and its symbols run in the PC's address order, class
+by class, which names the functions between two pairs as well. Sixteen classes take the Mac's names: `MummyApp` is `MMApp`,
+`WorldMap` `MapWidget`, `SidePanel` `Sidebar`, `Explorer` `Player`, `Scorpion` `Scorp`, `MainMenu` `IntroScreen`, `ScrollScreen`
+`TombstoneWidget`, `GamePanel` `GameOverWidget`, `GameOverScroll` `HighScoreSlide`, `HighScoreScreen` `HighScoreWidget`,
+`VictoryScreen` `BeachWidget`, `LevelCompleteScreen` `NextLevelWidget`, `TipDialog` `WarningDialog`, `NewAdventureDialog`
+`NameDialog`, `AdventureSlotsDialog` `AdventureDialog` and `DeleteAdventureDialog` `DeleteDialog`. The files keep their names
+(`MummyApp.cpp` holds `MMApp`). 79 functions follow:
+
+- Board: `StartLevel` is `NewGame`, `Lose` `DoGameOver`, `PushUndo` `DoNewTurn`, `Undo` `UndoMove`, `ClearUndo` `ClearMoves`,
+  `ClearVisited` `ClearCheckedList`, `ClearSolution` `ClearSolutionList`, `Retry` `ResetMaze`, `Solve` `DoSolution`, `SolveRec`
+  `DoSolutionHelper`, `ProcessClick` `DoProcessQueue`, `ResetIdle` `DoResetIdles`, `CanExplorerMove` `CanMove` (the Mac has the
+  two as overloads), `UpdateScorpion` `UpdateScorp`, `DrawSolving` `DrawWaitDialog`, `DrawTutorialText` `DrawTutorialDialog`,
+  `DrawBoard` `DrawBoardStuff`, `DrawFront` `DrawMinimalBoardStuff`, `DrawEnding` `DrawTreasure`, `DrawMummy` `DrawMummies`,
+  `DrawScorpion` `DrawScorp`, `ToggleGate` `FlipGate`, `LoadMaze` `LoadMap`, `SetupEnding` `LoadTreasureMap`, `SetupTutorial`
+  `LoadTutorialMap`, `PlanMummies` `SetMummiesInMotion`, `PlanScorpion` `SetScorpInMotion`, `DrawMoveHint` `DrawArrow`,
+  `AgeHover` `UpdateArrows`, `ClearHover` `ClearArrows`, `PixelX` `GetXAt`, `PixelY` `GetYAt`, `CellX` `GetColAt`, `CellY`
+  `GetRowAt`, `Pan` `GetPanAt`, `SaveClassic` `SaveGame` and `DeleteClassicSave` `DeleteSavedGame`.
+- MMApp: `ShowMainMenu` is `DoIntro`, `ShowGamePanel` `DoGameOver`, `RemoveGamePanel` `KillGameOver`, `OnLevelComplete`
+  `DoNextLevel`, `ShowTip` `DoWarning`, `RemoveLevelComplete` `KillNextLevel`, `ShowAdventureSlots` `DoAdventure`,
+  `ShowDeleteAdventure` `DoDeleteDialog`, `DeleteAdventure` `DeleteGame`, `LoadAdventure` `DoMap`, `RemoveWorldMap` `KillMap`,
+  `RemoveBoard` `KillBoard`, `RemoveGameOverScroll` `KillHighScoreSlide`, `StartTutorial` `DoTutorial`,
+  `StartClassicOrContinue` `TryConfirmLoad`, `LoadClassic` `LoadGame`, `ClassicSaveExists` `HasSavedGame`, `ShowQuitDialog`
+  `ConfirmQuit`, `ShowQuitToMainDialog` `ConfirmQuitToMain`, `LoadImage` `DoLoadImage`, `StartBoardScreen` `NewGame`,
+  `ShowVictory` `DoBeach`, `TitleDone` `LoadingCompleted`, `SetMusicOrder` `DoMusic`, `ShowOptions` `DoOptions`,
+  `ShowBadSaveMessage` `DoVersionError`, `ShowRecordScore` `DoRecordScoreDialog`, `ShowHighScoreDialog` `DoHighScoreDialog` and
+  `ShowAnkhHelp` `DoAnkhExplanation` (the Mac spells it "Explination").
+- MapWidget: `Open` is `ActivatePyramid`, `NextHop` `FindBest`, `Measure` `FindDists`, `Save` `SaveGame`, `Unlock`
+  `OpenNewPyramids`. HighScoreWidget: `Load` is `ReadFromFile`, `Save` `WriteToFile`, `RankOf` `GetScorePlace`, `AskName`
+  `ProcessScoreStuff`, `SetName` `NameEntered`. The pieces: `Mummy::StartIdle` is `DoIdle`, and `OnArrived` of all three is
+  `CheckGate`. `DrawNameBox` is `DrawEditBox`.
+
+The port's own helpers keep their names (`DoMessage`, `GetChaseState`, `DrawTrapBlock`, `DrawNearWalls`, `AdventureCaught`,
+`FindWay` and the like), each marked as the port's with the function it is a piece of. The Mac build's `AddAnim`, `FindAnim` and
+`GiveHelp` have no place in the PC's order: they are the Mac version's own. This file carries the new names throughout;
+`IDENTICAL_PLAY.md` and `README.md` keep the names of their time.
+
+**Fields.** Board's fields that were named by an offset or a number: `mFlagEc0` is `mTipShown`, `mFlagEc1` `mIntroPlaying`,
+`m270` `mSolveTick`, `m274` `mUnsolvableTick`, `mDeathTimer` `mTrapDeathTimer`, `mDeathTimer2` `mStungTimer`, `mFade2`
+`mRiseFade` and `mPlayNowButton0` `mTutorialStepButton`, each with a comment that says what it holds. (The fields nothing reads
+went in "Code the port does not need".)
+
+**One-letter names.** 38 variables used far from their declaration got words: `Mummy* m` is `aMummy`, `Player* e`
+`anExplorer`, `Scorp* s` `aScorpion`, `ChaseState s` `aState`, `UndoState u` `anUndo`, the test hooks' `Board* b` `aBoard`,
+`MMApp* a` `theApp` and `AutoplayState* s` `aState`; the two box-drawing functions' `w` and `h` are `theWidth` and
+`theHeight`.
+
+**Numbers.** The game modes compared as numbers 61 times (`aMode != 2 && aMode != 3`, `mGameMode > 3`) carry their names
+(`MODE_ADVENTURE_DONE`, `MODE_CLASSIC_DONE`, `MODE_TUTORIAL`, and the new `MODE_TUTORIAL_LAST`); the rectangle that 15 messages
+take is `MESSAGE_X`, `MESSAGE_Y`, `MESSAGE_WIDTH`; the hard-coded boards' outer walls are `WALL_WEST` and its three fellows.
+
+**Addresses and comments.** Every function names its address or says it is the port's. The addresses came from the exe's
+vtables where the port had one comment for several functions or none: the compiler keeps one copy of identical code, so
+`NameDialog`'s `AddedToManager` and `RemovedFromManager` are `RecordScoreDialog`'s (0x428090, 0x4280c0), and the press of the
+title, the side panel, the level-complete screen and the high scores is the world map's (0x418a90, a click). `GameLevels.cpp`,
+`GameText.cpp`, `ModFixes.cpp` and the two test-hook files carry the port marker in their first comment. Comments that held a
+date or a stage of the work say what the code does. The table of classes above is the Mac's, with every class's constructor.
+The coverage report with these addresses lists two port functions as never reached, 0x413f10 and its deleting form 0x413ef0:
+they are `HighScoreDialog`'s destructor, which no run reached because none closes that dialog; read against the export, it
+deletes the list at +0xc0 and ends in the dialog's own destructor, as the port's does.
+
+**What the pass found.** A comment in `NextLevelWidget::Draw` (0x422b00) said that the adventure's lines were "not ported yet",
+and they were not: the level-complete screen of the adventure left out the plural endings of its time line (the original adds
+the text at 0x4923f4 to "hour", "minute" and "second" unless the number is 1, and the punctuation at 0x494f54 after the
+minutes) and the two lines that follow, which tell of the chamber that comes next (a switch over the chamber: fourteen pairs of
+lines at 0x13f and 0x15d, and one line at 0x14e before the pyramid's last). Phase two had never photographed that screen: its
+adventure scenario takes a picture every 250 updates and the bot leaves the screen between two of them. The port draws all of
+it now; the text table has the 31 texts (269 entries).
+
+**Proof.** A rename is proved by the object code. The 23 object files were disassembled before and after each step
+(`llvm-objdump -d -r`): the instructions are the same, and all 5281 relocations name the same symbols once the renames are
+applied to the names before, so every call still goes to the function it went to. The variables', fields', constants' and
+comments' steps leave every object as it was, instructions and relocations, but the two the fix above changes
+(`Screens2.cpp`, and `GameText.cpp` for its longer table). No quoted string of the sources changed (603 before and after), so
+no log line or file format did. `tools/check.sh build mummymaze` passes with the baseline identical, the web build builds, and
+the trap's 150 frames still compare as they did. The fix was compared with the original: the adventure's level-complete screen
+after the first chamber, five photographs between updates 2500 and 2900, matches pixel for pixel, natively (5 of 5 against the
+original in Windows Sandbox) and in the web build under Node (5 of 5 against the native port).

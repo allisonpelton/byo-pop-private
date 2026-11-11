@@ -65,7 +65,16 @@ enum GameMode
 	MODE_ADVENTURE = 1,
 	MODE_ADVENTURE_DONE = 2,     // an adventure game that has been won (the reward board)
 	MODE_CLASSIC_DONE = 3,       // a classic game that has been won
-	MODE_TUTORIAL = 4            // 4 to 8: the parts of the tutorial
+	MODE_TUTORIAL = 4,           // 4 to 8: the parts of the tutorial
+	MODE_TUTORIAL_LAST = 8
+};
+
+// where the game's plain messages stand (most DoMessage calls)
+enum
+{
+	MESSAGE_X = 0xa2,
+	MESSAGE_Y = 0x52,
+	MESSAGE_WIDTH = 0x13c
 };
 
 // Dialog ids (AddDialog / DoDialog / KillDialog)

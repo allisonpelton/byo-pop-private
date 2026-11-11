@@ -27,6 +27,7 @@ using namespace Sexy;
 // ---------------------------------------------------------------------------------------------------------
 // NextLevelWidget
 
+// port: one of the level-complete screen's two links, which its constructor makes the same way (0x422480)
 static HyperlinkWidget* MakeYellowLink(MMApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel)
 {
 	HyperlinkWidget* aLink = new HyperlinkWidget(theId, theListener);
@@ -148,12 +149,24 @@ void NextLevelWidget::Update()
 
 void DrawNinePatch(Graphics* g, Image* theImage, int theW, int theH);
 
+// port: a line of text centred in a width
 static void DrawCentered(Graphics* g, const SexyString& theText, int theWidth, int theY)
 {
 	g->DrawString(theText, (theWidth - g->GetFont()->StringWidth(theText)) / 2, theY);
 }
 
-// 0x422b00: the picture of the explorer, the lines of the result, and the rank (the adventure shows the total time)
+// the adventure's two lines about the chamber that comes next, by the chamber just done (the cases of 0x422b00's switch;
+// the pyramid's last chamber but one has a single line of its own)
+static const unsigned kNextChamberText[14][2] =
+{
+	{0x00494f20, 0x00494f04}, {0x00494eec, 0x00494ecc}, {0x00494ebc, 0x00494ea4}, {0x00494e8c, 0x00494e74},
+	{0x00494e5c, 0x00494e38}, {0x00494e18, 0x00494df8}, {0x00494de4, 0x00494dcc}, {0x00494db8, 0x00494da4},
+	{0x00494d88, 0x00494d70}, {0x00494d54, 0x00494d3c}, {0x00494d24, 0x00494d08}, {0x00494cec, 0x00494ccc},
+	{0x00494cbc, 0x00494ca4}, {0x00494c7c, 0x00494c60}
+};
+
+// 0x422b00: the picture of the explorer, the lines of the result, and the rank (the adventure shows the total time and
+// the way on)
 void NextLevelWidget::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], -0x96, 0);
@@ -228,7 +241,8 @@ void NextLevelWidget::Draw(Graphics* g)
 	}
 	else
 	{
-		// the adventure: the time of the whole game so far (the lines below it are not ported yet)
+		// the adventure: the time of the whole game so far, each number's word with its plural ending (the text at
+		// 0x4923f4) unless the number is 1, and the punctuation at 0x494f54 after the minutes
 		int aTotal = (int) mApp->mTotalTime;
 		int aHours = aTotal / 3600;
 		int aMins = (aTotal / 60) % 60;
@@ -236,16 +250,34 @@ void NextLevelWidget::Draw(Graphics* g)
 		char aLine[200];
 		sprintf(aLine, GTC(0x00494f64), aHours);
 		SexyString aText = aLine;
+		if (aHours != 1)
+			aText += GT(0x004923f4);
 		sprintf(aLine, GTC(0x00494f58), aMins);
 		aText += aLine;
+		if (aMins != 1)
+			aText += GT(0x004923f4);
+		aText += GT(0x00494f54);
 		aX = (mWidth - g->GetFont()->StringWidth(aText)) / 2;
 		g->SetColor(Color(0xff, 0x7c, 0));
 		g->DrawString(aText, aX, 0xdc);
 		g->SetColor(Color(0xd6, 0x55, 0));
 		g->DrawString(GT(0x00494f48), aX, 0xdc);
 		sprintf(aLine, GTC(0x00494f38), aSeconds);
+		aText = aLine;
+		if (aSeconds != 1)
+			aText += GT(0x004923f4);
 		g->SetColor(Color(0xff, 0x7c, 0));
-		DrawCentered(g, aLine, mWidth, 0x104);
+		DrawCentered(g, aText, mWidth, 0x104);
+		// the way on: two lines for the chamber that comes next, one before the pyramid's last
+		g->SetColor(Color(0xc2, 0x2c, 0x14));
+		int aChamber = mApp->mAdvChamber;
+		if (aChamber >= 0 && aChamber < 14)
+		{
+			DrawCentered(g, GT(kNextChamberText[aChamber][0]), mWidth, 0x13f);
+			DrawCentered(g, GT(kNextChamberText[aChamber][1]), mWidth, 0x15d);
+		}
+		else if (aChamber == 14)
+			DrawCentered(g, GT(0x00494c3c), mWidth, 0x14e);
 	}
 }
 
@@ -284,6 +316,7 @@ void NextLevelWidget::ButtonDepress(int theId)
 	mApp->KillNextLevel();
 }
 
+// 0x418a90: the click
 void NextLevelWidget::ButtonPress(int theId)
 {
 	(void) theId;
@@ -389,6 +422,7 @@ void HighScoreWidget::ReadFromFile()
 	}
 }
 
+// 0x4148e0
 void HighScoreWidget::WriteToFile()
 {
 	std::string aData;
@@ -426,6 +460,7 @@ HighScoreSlide::HighScoreSlide(MMApp* theApp) :
 {
 }
 
+// 0x4142e0 (its deleting form 0x4142c0)
 HighScoreSlide::~HighScoreSlide()
 {
 }
@@ -572,6 +607,7 @@ void HighScoreWidget::ButtonDepress(int theId)
 		mApp->DoIntro(0, true);
 }
 
+// 0x418a90: the click
 void HighScoreWidget::ButtonPress(int theId)
 {
 	(void) theId;
@@ -587,6 +623,7 @@ BeachWidget::BeachWidget(MMApp* theApp) :
 {
 }
 
+// 0x402190 (its deleting form 0x402150)
 BeachWidget::~BeachWidget()
 {
 }

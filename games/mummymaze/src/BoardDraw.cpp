@@ -28,7 +28,7 @@ using namespace Sexy;
 
 #define IMG(theId) (mApp->mImages[theId])
 
-// a picture clipped to a rectangle (the original makes a Graphics from the parent, clips it and draws)
+// port: a picture clipped to a rectangle (the original makes a Graphics from the parent, clips it and draws)
 void Board::DrawClipped(Graphics* g, Image* theImage, int theX, int theY, int theClipX, int theClipY, int theClipW, int theClipH)
 {
 	Graphics gc(*g);
@@ -138,13 +138,13 @@ void Board::DrawTutorialDialog(int x, int y, int theWidth, int theHeight, Graphi
 void Board::DrawArrow(int x1, int y1, int x2, int y2, Graphics* g)
 {
 	int aMode = mApp->mGameMode;
-	if (aMode == 2 || aMode == 3)
+	if (aMode == MODE_ADVENTURE_DONE || aMode == MODE_CLASSIC_DONE)
 		return;
 	if (x2 < 0 || x2 > 10 || y2 < 0 || y2 > 10)
 		return;
 	if (!CanMove(x1, y1, x2, y2, true, mGateClosed))
 		return;
-	if (aMode > 3)
+	if (aMode >= MODE_TUTORIAL)
 		return;
 	if (mRiseFade < 1.0)
 		return;
@@ -384,7 +384,7 @@ void Board::DrawExplorer(Graphics* g)
 	int aPX = (int) ((double) GetXAt(anExplorer->mX) + (double) (anExplorer->mTargetX - anExplorer->mX) * anExplorer->mProgress);
 	int aPY = (int) ((double) GetYAt(anExplorer->mY) + (double) (anExplorer->mTargetY - anExplorer->mY) * anExplorer->mProgress);
 	int aMode = mApp->mGameMode;
-	if (aMode == 2 || aMode == 3)
+	if (aMode == MODE_ADVENTURE_DONE || aMode == MODE_CLASSIC_DONE)
 		aPX -= 0x1e;
 	if (mState == STATE_ENTER)
 	{
@@ -774,7 +774,7 @@ void Board::DrawBoardStuff(Graphics* g, bool theWithExplorer)
 
 	// the ending scene's stairs and treasure chest
 	int aMode = mApp->mGameMode;
-	if (aMode == 2 || aMode == 3)
+	if (aMode == MODE_ADVENTURE_DONE || aMode == MODE_CLASSIC_DONE)
 	{
 		Graphics gc(*g);
 		gc.ClipRect(GetXAt(2) + 0x1e, GetYAt(6), 0x3c, 0x42);
@@ -793,7 +793,7 @@ void Board::DrawBoardStuff(Graphics* g, bool theWithExplorer)
 				DrawArrow(mExplorer->mX, mExplorer->mY, x, y, g);
 			if (x == mClickX && y == mClickY)
 				DrawArrow(mExplorer->mTargetX, mExplorer->mTargetY, x, y, g);
-			if (mApp->mGameMode > 3 && x == mExplorer->mX && y == mExplorer->mY)
+			if (mApp->mGameMode >= MODE_TUTORIAL && x == mExplorer->mX && y == mExplorer->mY)
 				DrawTutorialArrow(mExplorer->mX, mExplorer->mY, g);
 			int aFlags = (y >= 0 && y < MAX_SIZE) ? mCells[x][y] : 0;
 			if (y < 0 || mSize - 1 <= y)
@@ -957,7 +957,7 @@ void Board::DrawBoardStuff(Graphics* g, bool theWithExplorer)
 	// the second loop: the trap's block, and the near half of the walls over the figures
 	DrawNearWalls(&gm, g);
 	g->Translate(-10, 0);
-	if (mApp->mGameMode > 3)
+	if (mApp->mGameMode >= MODE_TUTORIAL)
 		DrawTutorialDialog(0, GetXAt(5) + 0x11, mWidth, (mHeight - GetXAt(5)) - 0x11, g);
 }
 
@@ -1183,7 +1183,7 @@ void Board::DrawMinimalBoardStuff(Graphics* g)
 	// the second pass: the near half of the walls once more, over the figures
 	DrawNearWalls(&gm);
 	g->Translate(-10, 0);
-	if (mApp->mGameMode > 3)
+	if (mApp->mGameMode >= MODE_TUTORIAL)
 		DrawTutorialDialog(0, GetXAt(5) + 0x11, mWidth, (mHeight - GetXAt(5)) - 0x11, g);
 }
 
@@ -1208,7 +1208,7 @@ void Board::Draw(Graphics* g)
 			DrawMinimalBoardStuff(g);
 		if (mState == STATE_ENDING_FADE || mState == STATE_ENDING)
 			g->SetColorizeImages(false);
-		if (mFade >= 1.0 && mApp->mShowClock && aMode < 2 && mState != STATE_LOST && !mShowingSolution)
+		if (mFade >= 1.0 && mApp->mShowClock && aMode < MODE_ADVENTURE_DONE && mState != STATE_LOST && !mShowingSolution)
 		{
 			g->SetFont(mApp->mFont1);
 			g->SetColor(Color(0, 0xff, 0));
@@ -1289,7 +1289,7 @@ void Board::Draw(Graphics* g)
 			g->SetColorizeImages(false);
 		}
 	}
-	if (aMode != 2 && aMode != 3 && mDark)
+	if (aMode != MODE_ADVENTURE_DONE && aMode != MODE_CLASSIC_DONE && mDark)
 		DrawDark(g);
 	if (mState == STATE_SOLVING)
 		DrawWaitDialog(0x91, 0xb4, 200, 0x78, g);

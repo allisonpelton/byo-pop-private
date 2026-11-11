@@ -116,6 +116,7 @@ MMApp::~MMApp()
 	delete mPyramidFont;
 }
 
+// port: the table of the pictures: none is decoded until the game asks for it
 ImageTable::ImageTable(MMApp* theApp) :
 	mApp(theApp)
 {
@@ -123,6 +124,7 @@ ImageTable::ImageTable(MMApp* theApp) :
 		mImages[i] = NULL;
 }
 
+// port: a picture's first use decodes it
 Image* ImageTable::Load(int theId)
 {
 	Image* anImage = mApp->DoLoadImage(theId);
@@ -189,8 +191,8 @@ void MMApp::Init()
 }
 
 // port: a sound is decoded when it is first played; the original decodes all of them in its loading thread (0x41dd60), a
-// fifth of the load. One that is not there stays silent. The one MP3 (pummel) needs a decoder the platform has not got yet:
-// that sound stays silent.
+// fifth of the load. One that is not there stays silent, and so does the one MP3 (pummel) while the platform has no
+// decoder for it.
 void MMApp::LoadSoundOnce(int theSoundNum)
 {
 	if (theSoundNum < 0 || theSoundNum >= NUM_SOUNDS || mSoundTried[theSoundNum] || mSoundManager == NULL)
@@ -199,12 +201,14 @@ void MMApp::LoadSoundOnce(int theSoundNum)
 	mSoundManager->LoadSound(theSoundNum, std::string("sounds\\") + gSoundNames[theSoundNum]);
 }
 
+// port: a sound's first play loads it (LoadSoundOnce)
 void MMApp::PlaySample(int theSoundNum)
 {
 	LoadSoundOnce(theSoundNum);
 	SexyApp::PlaySample(theSoundNum);
 }
 
+// port: the same, for a panned sound
 void MMApp::PlaySample(int theSoundNum, int thePan)
 {
 	LoadSoundOnce(theSoundNum);
@@ -243,7 +247,7 @@ void MMApp::LoadingThreadProc()
 	}
 }
 
-// 0x41a3c0 / 0x41a620: the registry values of the game
+// 0x41a3c0: the registry values of the game
 void MMApp::WriteToRegistry()
 {
 	SexyApp::WriteToRegistry();
@@ -262,6 +266,7 @@ void MMApp::WriteToRegistry()
 	RegistryWriteInteger("AnkhNag", mTipAnkh ? 1 : 0);
 }
 
+// 0x41a620
 void MMApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
@@ -307,7 +312,7 @@ Dialog* MMApp::NewDialog(int theDialogId, bool isModal, const SexyString& theDia
 	aDialog->SetColor(Dialog::COLOR_LINES, Color(0x2e, 0x14, 0));
 	aDialog->SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
 	aDialog->mContentInsets = Insets(0x26, 0x26, 0x26, 0x26);
-	aDialog->Resize(0xa2, 0x52, 0x13c, aDialog->GetPreferredHeight(0x13c));
+	aDialog->Resize(MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH, aDialog->GetPreferredHeight(MESSAGE_WIDTH));
 	return aDialog;
 }
 
@@ -327,6 +332,7 @@ void MMApp::UpdateFrames()
 		AutoplayUpdate();
 }
 
+// port: the test bot's options (-autoplay and the ones that go with it)
 void MMApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-autoplay")

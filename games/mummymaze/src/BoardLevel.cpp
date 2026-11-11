@@ -23,6 +23,7 @@ using namespace Sexy;
 #include "GameLevels.h"
 #include "Tables.inc"
 
+// port: the order std::set keeps the visited states in (the original keeps a list and compares the fields, 0x404f60)
 bool ChaseState::operator<(const ChaseState& theOther) const
 {
 	if (mExplorerX != theOther.mExplorerX) return mExplorerX < theOther.mExplorerX;
@@ -39,9 +40,10 @@ bool ChaseState::operator<(const ChaseState& theOther) const
 	return mGateClosed < theOther.mGateClosed;
 }
 
-bool ChaseState::operator==(const ChaseState& o) const
+// port: the same fields, for the search
+bool ChaseState::operator==(const ChaseState& theOther) const
 {
-	return !(*this < o) && !(o < *this);
+	return !(*this < theOther) && !(theOther < *this);
 }
 
 // The state the solver starts from: where everything is now (0x4050b0: the record built from the live objects)
@@ -243,7 +245,7 @@ void Board::NewGame()
 	mState = STATE_ENTER;
 	mClickX = mClickY = 99;
 	mTipShown = false;
-	if (mApp->mGameMode > 3)
+	if (mApp->mGameMode >= MODE_TUTORIAL)
 		mTipShown = true;
 	if (((mMummies[0] != NULL) && (mMummies[1] != NULL)) && !mTipShown && mMummies[0]->mAlive && mMummies[1]->mAlive)
 		mApp->DoWarning(0);
@@ -328,7 +330,7 @@ void Board::DoNewTurn()
 // 0x404be0: take back the last move
 void Board::UndoMove()
 {
-	if (mUndo.empty() || mApp->mGameMode >= 2 || mState == STATE_DONE || mShowingSolution || mApp->mHighScores != NULL)
+	if (mUndo.empty() || mApp->mGameMode >= MODE_ADVENTURE_DONE || mState == STATE_DONE || mShowingSolution || mApp->mHighScores != NULL)
 		return;
 	const UndoState anUndo = mUndo.front();
 	mExplorer->mX = anUndo.mExplorerX;
@@ -387,7 +389,7 @@ void Board::ClearSolutionList()
 // 0x404ef0: take every move back
 void Board::ResetMaze()
 {
-	if (mApp->mGameMode < 2 && !mShowingSolution && mState != STATE_DONE && mApp->mHighScores == NULL &&
+	if (mApp->mGameMode < MODE_ADVENTURE_DONE && !mShowingSolution && mState != STATE_DONE && mApp->mHighScores == NULL &&
 		mApp->mLevelComplete == NULL)
 	{
 		mSolvable = true;
@@ -805,6 +807,7 @@ void Board::LoadMap()
 
 #include "TutorialMazes.inc"
 
+// port: what both hard-coded boards start from: a 6 x 6 maze with its outer walls only
 static void ClearToBorders(Board* theBoard)
 {
 	theBoard->mShowingSolution = false;
@@ -817,13 +820,13 @@ static void ClearToBorders(Board* theBoard)
 		{
 			theBoard->mCells[x][y] = 0;
 			if (x == 0)
-				theBoard->mCells[0][y] = 8;
+				theBoard->mCells[0][y] = WALL_WEST;
 			if (x == theBoard->mSize - 1)
-				theBoard->mCells[x][y] |= 4;
+				theBoard->mCells[x][y] |= WALL_EAST;
 			if (y == 0)
-				theBoard->mCells[x][0] |= 1;
+				theBoard->mCells[x][0] |= WALL_NORTH;
 			if (y == theBoard->mSize - 1)
-				theBoard->mCells[x][y] |= 2;
+				theBoard->mCells[x][y] |= WALL_SOUTH;
 		}
 	}
 }

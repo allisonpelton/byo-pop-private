@@ -194,7 +194,7 @@ void MMApp::TryConfirmLoad()
 		mScore = 0;
 		return;
 	}
-	DoMessage(DIALOG_CONTINUE, GT(0x00494068), GT(0x00494074), 1, 0xa2, 0x52, 0x13c);
+	DoMessage(DIALOG_CONTINUE, GT(0x00494068), GT(0x00494074), 1, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 }
 
 // 0x41c3c0: the tutorial
@@ -221,7 +221,7 @@ void MMApp::DoTutorial()
 // 0x41cc30
 void MMApp::ConfirmQuit()
 {
-	DoMessage(DIALOG_QUIT, "", GT(0x00494140), 1, 0xa2, 0x52, 0x13c);
+	DoMessage(DIALOG_QUIT, "", GT(0x00494140), 1, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 }
 
 // 0x41cfb0: the way back to the menu, with the question that goes with the state of the game
@@ -240,11 +240,11 @@ void MMApp::ConfirmQuitToMain()
 	else if (mLevelComplete == NULL)
 	{
 		if (mBoard == NULL)
-			aLines = (mGameMode != 2 && mGameMode != 3) ? GT(0x004941e0) : GT(0x00494228);
-		else if (mGameMode < 2)
+			aLines = (mGameMode != MODE_ADVENTURE_DONE && mGameMode != MODE_CLASSIC_DONE) ? GT(0x004941e0) : GT(0x00494228);
+		else if (mGameMode < MODE_ADVENTURE_DONE)
 			aLines = (mBoard->mShowingSolution) ? GT(0x00494290) : GT(0x00494228);
 		else
-			aLines = (mGameMode != 2 && mGameMode != 3) ? GT(0x004941e0) : GT(0x00494228);
+			aLines = (mGameMode != MODE_ADVENTURE_DONE && mGameMode != MODE_CLASSIC_DONE) ? GT(0x004941e0) : GT(0x00494228);
 	}
 	else
 		aLines = GT(0x00494290);
@@ -289,7 +289,7 @@ Dialog* MMApp::NewDialogOf(Dialog* theDialog)
 	return theDialog;
 }
 
-// 0x41b5b0: a tip, if it has not been switched off (the demo's reminder, number 7, is not ported: this game is registered)
+// 0x41b5b0: a tip, if it has not been switched off (the original's number 7 is the demo's reminder, registration, which the port has not got)
 void MMApp::DoWarning(int theWhich)
 {
 	bool* aFlags[7] = {&mTipTwoMummies, &mTipGate, &mTipTrap, &mTipRed, &mTipScorpion, &mTipDark, &mTipAnkh};
@@ -307,7 +307,7 @@ void MMApp::DoAnkhExplanation(bool theSolvable)
 {
 	if (mBoard == NULL || mBoard->mSize != 6 || !mShowAnkh)
 		return;
-	DoMessage(DIALOG_ANKH, GT(0x004947a4), GT(theSolvable ? 0x004947b0 : 0x00494700), 3, 0xa2, 0x52, 0x13c);
+	DoMessage(DIALOG_ANKH, GT(0x004947a4), GT(theSolvable ? 0x004947b0 : 0x00494700), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 }
 
 // 0x41e890: the game is won
@@ -434,7 +434,7 @@ void MMApp::ButtonDepress(int theId)
 		}
 		if (!aValid)
 		{
-			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x004945f8), 3, 0xa2, 0x52, 0x13c);
+			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x004945f8), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 			break;
 		}
 		bool aUsed = false;
@@ -446,7 +446,7 @@ void MMApp::ButtonDepress(int theId)
 		}
 		if (aUsed)
 		{
-			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x00494644), 3, 0xa2, 0x52, 0x13c);
+			DoMessage(DIALOG_NAME_INVALID, GT(0x004945e8), GT(0x00494644), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 			break;
 		}
 		CreateAdventure(mCurrentSlot, aName);
@@ -458,7 +458,7 @@ void MMApp::ButtonDepress(int theId)
 	case 2000 + DIALOG_RECORD_SCORE:
 	{
 		RecordScoreDialog* aDialog = (RecordScoreDialog*) GetDialog(DIALOG_RECORD_SCORE);
-		if (mGameMode == 3)
+		if (mGameMode == MODE_CLASSIC_DONE)
 		{
 			if (mVictory != NULL)
 				mVictory->NameEntered(aDialog->mNameEdit->mString);

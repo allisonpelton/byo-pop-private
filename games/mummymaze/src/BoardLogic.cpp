@@ -29,7 +29,7 @@ using namespace Sexy;
 #define KEY_NORTH(m)	((m)->mKeyDown[KEYCODE_UP])
 #define KEY_SOUTH(m)	((m)->mKeyDown[KEYCODE_DOWN])
 
-// 0x4064b0, 0x4064f0, 0x406530: the three buttons come and go with the board
+// 0x4064b0: the three buttons come and go with the board
 void Board::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -38,6 +38,7 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mContinueLink);
 }
 
+// 0x4064f0
 void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -46,6 +47,7 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 	theWidgetManager->RemoveWidget(mContinueLink);
 }
 
+// 0x406530
 void Board::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
@@ -178,7 +180,8 @@ void Board::KeyStep(int theX, int theY)
 		FlipGate();
 }
 
-// the sound of a step: the footsteps of the speed setting, panned by the column
+// port: the sound of a step, which the original plays in place (0x4065b0, 0x406f10): the footsteps of the speed
+// setting, panned by the column
 void Board::MoveSound(int theCell)
 {
 	int aSpeed = mApp->mSpeed;
@@ -233,7 +236,7 @@ void Board::DoProcessQueue()
 	Player* anExplorer = mExplorer;
 	if ((mCells[anExplorer->mX][anExplorer->mY] & EXIT_ANY) == 0)
 	{
-		if (!mShowingSolution && mApp->mGameMode < 4)
+		if (!mShowingSolution && mApp->mGameMode < MODE_TUTORIAL)
 		{
 			mState = STATE_EXPLORER;
 			if (mClickX == anExplorer->mX && mClickY == anExplorer->mY)
@@ -314,9 +317,9 @@ void Board::UpdateExplorer()
 		{
 			if (!aFighting && mRiseFade >= 1.0)
 			{
-				if (aMode != 2 && aMode != 3)
+				if (aMode != MODE_ADVENTURE_DONE && aMode != MODE_CLASSIC_DONE)
 					mState = STATE_EXPLORER;
-				if (!mShowingSolution && aMode != 2 && aMode != 3)
+				if (!mShowingSolution && aMode != MODE_ADVENTURE_DONE && aMode != MODE_CLASSIC_DONE)
 				{
 					bool aMoved = false;
 					bool aChosen = true;
@@ -327,7 +330,7 @@ void Board::UpdateExplorer()
 						{
 							if (CanMove(anExplorer->mX - 1, anExplorer->mY, true))
 							{
-								if (aMode < 4 || kTutorialMove[mTutorialStep] == 1)
+								if (aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 1)
 								{
 									DoNewTurn();
 									mExplorer->mDir = 3;
@@ -346,7 +349,7 @@ void Board::UpdateExplorer()
 							{
 								if (CanMove(mExplorer->mX + 1, mExplorer->mY, true))
 								{
-									if (aMode < 4 || kTutorialMove[mTutorialStep] == 2)
+									if (aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 2)
 									{
 										DoNewTurn();
 										mExplorer->mDir = 1;
@@ -366,7 +369,7 @@ void Board::UpdateExplorer()
 							{
 								if (CanMove(mExplorer->mX, mExplorer->mY - 1, true))
 								{
-									if (aMode < 4 || kTutorialMove[mTutorialStep] == 0)
+									if (aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 0)
 									{
 										DoNewTurn();
 										mExplorer->mDir = 0;
@@ -385,7 +388,7 @@ void Board::UpdateExplorer()
 							if (KEY_SOUTH(aMgr))
 							{
 								if (CanMove(mExplorer->mX, mExplorer->mY + 1, true) &&
-									(aMode < 4 || kTutorialMove[mTutorialStep] == 3))
+									(aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 3))
 								{
 									DoNewTurn();
 									mExplorer->mDir = 2;
@@ -399,7 +402,7 @@ void Board::UpdateExplorer()
 							mState = STATE_READY;
 						(void) aChosen;
 					}
-					else if (aMode < 4 || kTutorialMove[mTutorialStep] == 4)
+					else if (aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 4)
 					{
 						DoNewTurn();
 						SetScorpInMotion();
@@ -444,7 +447,7 @@ void Board::UpdateExplorer()
 		{
 			// the explorer is on the exit: he walks out
 			mState = STATE_EXPLORER;
-			if (!mShowingSolution && aMode < 4)
+			if (!mShowingSolution && aMode < MODE_TUTORIAL)
 				mApp->PlaySample(SOUND_FINISHEDLEVEL);
 			int aFlags = mCells[mExplorer->mX][mExplorer->mY];
 			if (aFlags & EXIT_NORTH)
@@ -477,7 +480,7 @@ void Board::UpdateExplorer()
 	else if (mState == STATE_EXPLORER || mState == STATE_SCORPION || mState == STATE_MUMMY1 || mState == STATE_MUMMY2)
 	{
 		// a key pressed while the pieces move is kept for the next turn
-		if (!mShowingSolution && aMode != 2 && aMode != 3)
+		if (!mShowingSolution && aMode != MODE_ADVENTURE_DONE && aMode != MODE_CLASSIC_DONE)
 		{
 			if (KEY_WAIT(aMgr))
 			{
@@ -536,7 +539,7 @@ void Board::UpdateExplorer()
 	if (mState == STATE_EXPLORER)
 	{
 		// the walk: the progress counts up to a cell (a quicker walk through the ending board)
-		if (aMode == 2 || aMode == 3)
+		if (aMode == MODE_ADVENTURE_DONE || aMode == MODE_CLASSIC_DONE)
 			mExplorer->mProgress = mExplorer->mProgress + 1.0;
 		else
 			mExplorer->mProgress = (double) mCellSize / (60.0 / (double) mApp->mSpeed) + mExplorer->mProgress;
@@ -632,12 +635,12 @@ L_finish:
 			DoGameOver();
 			return;
 		}
-		if (aMode < 4)
+		if (aMode < MODE_TUTORIAL)
 		{
 			mApp->DoNextLevel();
 			return;
 		}
-		if (aMode != 6 && aMode != 8)
+		if (aMode != MODE_TUTORIAL + 2 && aMode != MODE_TUTORIAL + 4)
 		{
 			mApp->mGameMode = aMode + 1;
 			NewGame();

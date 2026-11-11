@@ -39,6 +39,7 @@ using namespace Sexy;
 // ---------------------------------------------------------------------------------------------------------
 // the files
 
+// port: the file of a slot's saved adventure
 static std::string AdventureFileName(int theSlot)
 {
 	char aBuf[32];
@@ -46,6 +47,7 @@ static std::string AdventureFileName(int theSlot)
 	return aBuf;
 }
 
+// port: whether a slot holds a saved adventure
 bool MMApp::AdventureExists(int theSlot)
 {
 	std::string aData;
@@ -123,7 +125,7 @@ void PutString(std::string& theData, const std::string& theString)
 
 }
 
-// the name that a saved adventure carries ("" when there is none)
+// port: the name that a saved adventure carries ("" when there is none)
 bool MMApp::AdventureName(int theSlot, SexyString& theName)
 {
 	std::string aData;
@@ -227,11 +229,11 @@ void PyramidButton::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 	if (aMap == NULL)
 		return;
 	if (mId == 15 && aMap->mProgress[14] < 0)
-		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x00495348), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x00495348), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 	else if (aMap->mProgress[mId - 1] < 0)
-		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x004952b4), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x004952b4), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 	else if (aMap->mProgress[mId - 1] == 0xf)
-		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x00495270), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_MAP_MESSAGE, "", GT(0x00495270), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 	MarkDirty();
 }
 
@@ -244,11 +246,13 @@ void PyramidButton::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 		mButtonListener->ButtonDepress(mId);
 }
 
+// port: a spot of the world map that answers clicks and draws nothing (the stats, the player's name, the chest)
 MapHotspot::MapHotspot(int theId, ButtonListener* theListener) :
 	ButtonWidget(theId, theListener)
 {
 }
 
+// port: the map's own picture shows the spot
 void MapHotspot::Draw(Graphics* g)
 {
 	(void) g;
@@ -511,7 +515,7 @@ int MapWidget::FindBest(int theFrom, int theTo)
 	return aNext;
 }
 
-// the pyramids that can be entered (open and not solved) answer clicks again
+// port: a helper of the world map: the pyramids that can be entered (open and not solved) answer clicks again
 void MapWidget::EnableOpenPyramids()
 {
 	for (int i = 0; i < 15; i++)
@@ -815,7 +819,7 @@ void MapWidget::ButtonDepress(int theId)
 		if (mApp->mDeaths != 1)
 			aText += "s";
 		aText += ".";
-		mApp->DoMessage(DIALOG_ADV_INFO, GT(0x00492350), aText, 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_ADV_INFO, GT(0x00492350), aText, 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		return;
 	}
 	case 0x33:
@@ -824,11 +828,11 @@ void MapWidget::ButtonDepress(int theId)
 		mApp->AdventureName(mApp->mCurrentSlot, aName);
 		char aBuf[200];
 		sprintf(aBuf, GTC(0x00492338), aName.c_str());
-		mApp->DoMessage(DIALOG_ADV_INFO, GT(0x00492240), aBuf, 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_ADV_INFO, GT(0x00492240), aBuf, 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		return;
 	}
 	case 0x34:
-		mApp->DoMessage(DIALOG_INTRO, GT(0x004922d4), GT(0x004922e0), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_INTRO, GT(0x004922d4), GT(0x004922e0), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		return;
 	case 99:
 		// into the pyramid that the marker stands on
@@ -912,6 +916,7 @@ void MMApp::DoAdventure()
 	}
 }
 
+// port: the box that asks for a new adventure's name (the piece of 0x41bcc0 that opens it for a slot with no game)
 void MMApp::ShowNewAdventure()
 {
 	NameDialog* aDialog = (NameDialog*) NewDialogOf(new NameDialog(this));
@@ -924,7 +929,7 @@ void MMApp::ShowNewAdventure()
 // 0x41f0d0: the message of a saved game that cannot be read
 void MMApp::DoVersionError()
 {
-	DoMessage(DIALOG_BAD_SAVE, GT(0x004944bc), GT(0x004944d0), 3, 0xa2, 0x52, 0x13c);
+	DoMessage(DIALOG_BAD_SAVE, GT(0x004944bc), GT(0x004944d0), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 }
 
 // 0x41bb10: the games to delete

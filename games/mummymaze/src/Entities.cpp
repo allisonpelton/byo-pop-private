@@ -165,6 +165,7 @@ void Mummy::DoIdle()
 	mDirty = true;
 }
 
+// port: one mummy's part of Board::DoResetIdles (0x407960)
 void Mummy::ResetIdle()
 {
 	mIdleTimer = 0;

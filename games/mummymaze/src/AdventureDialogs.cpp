@@ -16,7 +16,7 @@
 
 using namespace Sexy;
 
-// the label of a slot: the name that the saved game carries, or NEW GAME
+// port: the label of a slot, for the constructor (0x401000): the name that the saved game carries, or NEW GAME
 static SexyString SlotLabel(MMApp* theApp, int theSlot)
 {
 	SexyString aName;
@@ -218,6 +218,7 @@ NameDialog::~NameDialog()
 	delete mNameEdit;
 }
 
+// 0x428090: the compiler keeps one copy of this code for this dialog and RecordScoreDialog
 void NameDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
@@ -225,6 +226,7 @@ void NameDialog::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->SetFocus(mNameEdit);
 }
 
+// 0x4280c0: one copy with RecordScoreDialog, in the same way
 void NameDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);

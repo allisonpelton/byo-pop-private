@@ -185,13 +185,13 @@ void OptionsDialog::ButtonDepress(int theId)
 	switch (theId)
 	{
 	case 0:
-		mApp->DoMessage(DIALOG_STARTED_TUTORIAL, GT(0x00492228), GT(0x004940f8), 1, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_STARTED_TUTORIAL, GT(0x00492228), GT(0x004940f8), 1, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		break;
 	case 2:
 		mApp->DoHighScoreDialog();
 		break;
 	case 4:
-		mApp->DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, 0xa2, 0x52, 0x13c);
+		mApp->DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		break;
 	}
 }
@@ -233,6 +233,7 @@ HighScoreDialog::HighScoreDialog(MMApp* theApp) :
 	SetColor(Dialog::COLOR_HEADER, Color(0x66, 0x5c, 0x38));
 }
 
+// 0x413f10 (its deleting form 0x413ef0)
 HighScoreDialog::~HighScoreDialog()
 {
 	delete mScores;

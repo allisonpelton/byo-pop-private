@@ -377,7 +377,7 @@ void Board::UpdateMummies()
 		SetMummiesInMotion();
 		return;
 	}
-	if (mApp->mGameMode >= 4)
+	if (mApp->mGameMode >= MODE_TUTORIAL)
 	{
 		mTutorialStep++;
 		int v = kTutorialMove[mTutorialStep];
@@ -558,13 +558,13 @@ void Board::Update()
 	if (mUpdateCnt - mTimeBase == 0x4b)
 	{
 		int aMode = mApp->mGameMode;
-		if (aMode != 2 && aMode != 3)
+		if (aMode != MODE_ADVENTURE_DONE && aMode != MODE_CLASSIC_DONE)
 			mApp->PlaySample(SOUND_TOMBSLIDE);
 	}
 	if (mUpdateCnt - mTimeBase == 0xa5)
 	{
 		int aMode = mApp->mGameMode;
-		if (aMode != 2 && aMode != 3)
+		if (aMode != MODE_ADVENTURE_DONE && aMode != MODE_CLASSIC_DONE)
 			mApp->PlaySample(SOUND_MUMMYHOWL);
 	}
 	if (mUpdateCnt - mTimeBase < 0xa5)
@@ -572,9 +572,9 @@ void Board::Update()
 	if (mIntroPlaying && 0xa4 < mUpdateCnt - mTimeBase)
 	{
 		int aMode = mApp->mGameMode;
-		if (aMode != 2 && aMode != 3)
+		if (aMode != MODE_ADVENTURE_DONE && aMode != MODE_CLASSIC_DONE)
 		{
-			if (aMode > 3)
+			if (aMode >= MODE_TUTORIAL)
 				mTutorialStepButton->SetVisible(true);
 			mIntroPlaying = false;
 		}
@@ -658,7 +658,7 @@ void Board::Update()
 	if (mState != STATE_ENTER)
 	{
 		int aMode = mApp->mGameMode;
-		if (aMode != 2 && aMode != 3)
+		if (aMode != MODE_ADVENTURE_DONE && aMode != MODE_CLASSIC_DONE)
 		{
 			double aFade = (double) (mUpdateCnt - mTimeBase) * 0.01;
 			if (aFade < 0.0)
@@ -734,7 +734,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	if (mRiseFade < 1.0)
 		return;
 	int aMode = mApp->mGameMode;
-	if (aMode == 2 || aMode == 3)
+	if (aMode == MODE_ADVENTURE_DONE || aMode == MODE_CLASSIC_DONE)
 		return;
 	for (int i = 0; i < 2; i++)
 		if (mMummies[i] != NULL && mMummies[i]->mFighting)
@@ -787,7 +787,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	bool aMoved = false;
 	if (GetColAt(aPixelX) == anExplorer->mX && GetRowAt(y) == anExplorer->mY)
 	{
-		if (aMode < 4 || kTutorialMove[mTutorialStep] == 4)
+		if (aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 4)
 		{
 			DoNewTurn();
 			SetScorpInMotion();
@@ -798,7 +798,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	{
 		if (GetColAt(aPixelX) == anExplorer->mX - 1 && GetRowAt(y) == anExplorer->mY && CanMove(anExplorer->mX - 1, anExplorer->mY, true))
 		{
-			if (aMode < 4 || kTutorialMove[mTutorialStep] == 1)
+			if (aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 1)
 			{
 				DoNewTurn();
 				mExplorer->mDir = 3;
@@ -808,7 +808,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		}
 		else if (GetColAt(aPixelX) == anExplorer->mX + 1 && GetRowAt(y) == anExplorer->mY && CanMove(anExplorer->mX + 1, anExplorer->mY, true))
 		{
-			if (aMode < 4 || kTutorialMove[mTutorialStep] == 2)
+			if (aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 2)
 			{
 				DoNewTurn();
 				mExplorer->mDir = 1;
@@ -818,7 +818,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		}
 		else if (GetColAt(aPixelX) == anExplorer->mX && GetRowAt(y) == anExplorer->mY - 1 && CanMove(anExplorer->mX, anExplorer->mY - 1, true))
 		{
-			if (aMode < 4 || kTutorialMove[mTutorialStep] == 0)
+			if (aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 0)
 			{
 				DoNewTurn();
 				mExplorer->mDir = 0;
@@ -827,7 +827,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 			}
 		}
 		else if (GetColAt(aPixelX) == anExplorer->mX && GetRowAt(y) == anExplorer->mY + 1 && CanMove(anExplorer->mX, anExplorer->mY + 1, true) &&
-			(aMode < 4 || kTutorialMove[mTutorialStep] == 3))
+			(aMode < MODE_TUTORIAL || kTutorialMove[mTutorialStep] == 3))
 		{
 			DoNewTurn();
 			mExplorer->mDir = 2;

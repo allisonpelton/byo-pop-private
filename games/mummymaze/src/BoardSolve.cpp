@@ -15,7 +15,8 @@
 
 using namespace Sexy;
 
-// one mummy's step in the search: the same rules as Board::SetMummiesInMotion, on a copy of the state
+// port: one mummy's step in the search (a piece of 0x405580): the same rules as Board::SetMummiesInMotion, on a copy
+// of the state
 void Board::StepMummy(ChaseState& theState, int theIndex)
 {
 	int& x = theState.mMummyX[theIndex];
@@ -48,7 +49,7 @@ void Board::StepMummy(ChaseState& theState, int theIndex)
 	}
 }
 
-// the scorpion's step (the same rules; it dies when it leaves the maze)
+// port: the scorpion's step in the search (the same rules; it dies when it leaves the maze)
 void Board::StepScorpion(ChaseState& theState)
 {
 	int& x = theState.mScorpionX;

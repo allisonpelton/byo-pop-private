@@ -26,6 +26,7 @@ using namespace Sexy;
 #include "GameLevels.h"
 #include "Tables.inc"
 
+// port: the saved classic game's file in the user folder
 static std::string ClassicSavePath()
 {
 	return "classic.sav";

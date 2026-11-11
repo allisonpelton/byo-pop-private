@@ -46,13 +46,14 @@ TitleScreen::~TitleScreen()
 	delete mPlayLink;
 }
 
-// 0x42b250 / 0x42b280
+// 0x42b250
 void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
+// 0x42b280
 void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -122,6 +123,7 @@ void TitleScreen::ButtonDepress(int theId)
 	mApp->LoadingCompleted();
 }
 
+// 0x418a90: the click (the compiler keeps one copy for every screen whose press only clicks)
 void TitleScreen::ButtonPress(int theId)
 {
 	(void) theId;
@@ -154,6 +156,7 @@ void TombstoneWidget::ButtonPress(int theId)
 	mApp->PlaySample(SOUND_CLICK);
 }
 
+// port: the scroll has no link of its own; the screens built on it answer theirs
 void TombstoneWidget::ButtonDepress(int theId)
 {
 	(void) theId;
@@ -240,6 +243,7 @@ void TombstoneWidget::Update()
 // ---------------------------------------------------------------------------------------------------------
 // IntroScreen
 
+// port: a link of the main menu or the game-over scroll, which the two constructors make the same way (0x4165a0, 0x412ea0)
 static HyperlinkWidget* MakeMenuLink(MMApp* theApp, int theId, ButtonListener* theListener, const SexyString& theLabel)
 {
 	HyperlinkWidget* aLink = new HyperlinkWidget(theId, theListener);
@@ -289,7 +293,7 @@ IntroScreen::~IntroScreen()
 		delete mLinks[i];
 }
 
-// 0x416e00 / 0x416e40
+// 0x416e00
 void IntroScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	TombstoneWidget::AddedToManager(theWidgetManager);
@@ -297,6 +301,7 @@ void IntroScreen::AddedToManager(WidgetManager* theWidgetManager)
 		theWidgetManager->AddWidget(mLinks[i]);
 }
 
+// 0x416e40
 void IntroScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	TombstoneWidget::RemovedFromManager(theWidgetManager);
@@ -567,7 +572,7 @@ Sidebar::~Sidebar()
 	}
 }
 
-// 0x42a2a0 / 0x42a2f0
+// 0x42a2a0
 void Sidebar::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -575,6 +580,7 @@ void Sidebar::AddedToManager(WidgetManager* theWidgetManager)
 		theWidgetManager->AddWidget(mButtons[i]);
 }
 
+// 0x42a2f0
 void Sidebar::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -712,7 +718,7 @@ void Sidebar::Draw(Graphics* g)
 		g->DrawString(aNumberStr, (0x2a - aNumberWidth) / 2 + 0xf, 0x15d);
 	}
 	// the Ankh
-	if (aBoard != NULL && (aMode == 8 || (aMode < 2 && mApp->mShowAnkh)) && aBoard->mSize == 6)
+	if (aBoard != NULL && (aMode == MODE_TUTORIAL + 4 || (aMode < MODE_ADVENTURE_DONE && mApp->mShowAnkh)) && aBoard->mSize == 6)
 	{
 		int aY = aBoard->mSolvable ? 0 : 0x6a;
 		g->DrawImage(mApp->mImages[IMAGE_ANKH], 0x5d, 0x141, Rect(0, aY, 0x2d, 0x35));
@@ -765,6 +771,7 @@ void Sidebar::ButtonDepress(int theId)
 	}
 }
 
+// 0x418a90: the click
 void Sidebar::ButtonPress(int theId)
 {
 	(void) theId;

@@ -1,4 +1,4 @@
-// Test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
+// port: test hooks: the standard test commands (docs/TEST_COMMANDS.md), reached only from a test's -script or live command
 // channel (-commands, byopop_test_command) through HandleScriptCommand. A command that is never given changes nothing:
 // no random number is drawn and no state moves. Each answers on stdout with one line: STATE {...}, MOVE {...} or
 // MOVE null, OK <command> or ERROR <command>: <reason>.
@@ -325,7 +325,7 @@ std::string BotMove(MMApp* theApp)
 		return Move("wait", "", 20);
 
 	// the tutorial: the button that is showing, or the move the table allows
-	if (theApp->mGameMode >= MODE_TUTORIAL && theApp->mGameMode <= 8)
+	if (theApp->mGameMode >= MODE_TUTORIAL && theApp->mGameMode <= MODE_TUTORIAL_LAST)
 	{
 		if (aBoard->mState != STATE_READY || aBoard->mStungTimer >= 0 || aBoard->mRiseFade < 1.0)
 			return Move("wait", "", 5);
@@ -496,7 +496,7 @@ bool MMApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else if (anArgs == "highscores")
 			DoHighScoreDialog();
 		else if (anArgs == "credits")
-			DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, 0xa2, 0x52, 0x13c);
+			DoMessage(DIALOG_CREDITS, GT(0x00495158), GT(0x00495160), 3, MESSAGE_X, MESSAGE_Y, MESSAGE_WIDTH);
 		else
 		{
 			ReplyError(theCommand, "unknown screen");

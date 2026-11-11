@@ -1,4 +1,4 @@
-// Test hooks: the autoplay bot (-autoplay=<seed>), kept apart from the game code. It plays whole classic games through
+// port: test hooks: the autoplay bot (-autoplay=<seed>), kept apart from the game code. It plays whole classic games through
 // the keys the board reads and the buttons of the screens, so everything the game does for a player runs: the
 // explorer walks, the mummies and the scorpion answer, chambers and pyramids come and go, the score and the high-score
 // list are kept. The bot has its own random numbers (the game's use the C library generator, seeded by -seed), so the
@@ -154,7 +154,7 @@ void MMApp::AutoplayUpdate()
 	aState->mTick++;
 	if (aState->mTrace && aState->mLog != NULL)
 	{
-		// the values phase one of the identical-play pass compares with the original's (origrun --watch of the same
+		// the values the identical-play comparison reads beside the original's (origrun --watch of the same
 		// expressions: the app's score, chamber and pyramid, the board's maze, file and state, the explorer, the
 		// mummies and the scorpion by cell); a number is logged as the original's 32 bits, "-" for a missing object
 		Board* aBoard = mBoard;
@@ -510,7 +510,7 @@ void MMApp::AutoplayUpdate()
 		return;
 
 	// the tutorial: the move the table allows, or the button that is showing
-	if (mGameMode >= MODE_TUTORIAL && mGameMode <= 8)
+	if (mGameMode >= MODE_TUTORIAL && mGameMode <= MODE_TUTORIAL_LAST)
 	{
 		Board* aBoard = mBoard;
 		if (aBoard->mState != STATE_READY || aBoard->mStungTimer >= 0 || aBoard->mRiseFade < 1.0)
