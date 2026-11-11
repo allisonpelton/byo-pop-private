@@ -60,16 +60,11 @@ enum DialogId
 	DIALOG_QUIT = 2,
 	DIALOG_OPTIONS = 4,
 	DIALOG_NEXT_LEVEL = 5,       // level complete
-	DIALOG_REGISTER = 6,
-	DIALOG_REG_INVALID = 7,
-	DIALOG_HIGH_SCORE_NOTE = 8,
 	DIALOG_RECORD_SCORE = 10,
-	DIALOG_SUBMIT_SCORE = 11,
 	DIALOG_HIGH_SCORES = 12,
 	DIALOG_BONUS_NAG = 13,
 	DIALOG_WARNING = 14,
-	DIALOG_CONTINUE = 15,        // "do you want to continue your last game?"
-	DIALOG_NO_WINDOWED = 16
+	DIALOG_CONTINUE = 15         // "do you want to continue your last game?"
 };
 
 // Button ids (the sidebar's, the screens')
