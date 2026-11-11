@@ -268,11 +268,12 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
       "now": "site-features",
-      "note": "Collection check under way; presets wait on the site"
+      "note": "Presets wait on the site"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -344,10 +345,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "performance",
       "note": ""
     },
     "bigmoney": {
@@ -386,10 +388,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "performance",
       "note": ""
     },
     "cosmicbugs": {
