@@ -1,0 +1,5 @@
+# the profile bosschapter2 (book 4, the map after chapter 1's boss: chapter 2 next, whose boss is Old MacDonald): the main menu, Adventure, the map's Enter button, then the test hooks play it
+3000 click 245 325
+4500 click 400 575
+6500 soak 30000
+31600 quit
