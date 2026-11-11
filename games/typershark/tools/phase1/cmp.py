@@ -165,7 +165,7 @@ def read_port(path):
 def gamecount_wait():
     import time
     for _ in range(120):
-        if subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit', '3'],
+        if subprocess.call([sys.executable, os.path.join(ROOT, 'tools', 'gamecount.py'), '--limit', '6'],
                            stdout=subprocess.DEVNULL) == 0:
             return
         time.sleep(10)
