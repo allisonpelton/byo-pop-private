@@ -70,6 +70,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
   on itself forever and blocks every other agent. How to run the oracle (its variants, cache and partial runs):
   `docs/BUILDS.md`, "Running the oracle".
+- **Disk (the user, 2026-11-10: "You need to make some free space in the repo!!"):** every worktree is on the small C:
+  drive (11 GB were free; one worktree held 22 GB, 18 of them one game's comparison outputs). A session deletes a run's
+  outputs (shots, logs, traces, staged copies of an original it no longer runs) once their result is judged and written
+  into the game's notes, keeps its worktree's `build/` under about 3 GB, and checks its size before each merge request.
+  What is worth keeping is the summary in the notes, never the raw files.
 - Leave nothing running: loops started in the background end before you finish. Stopping a task can leave its loop's
   shells alive and still starting runs (Ning Po, 2026-11-03), so afterwards look for processes whose command line is
   inside your folder and stop them by id.
