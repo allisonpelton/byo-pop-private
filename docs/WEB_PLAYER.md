@@ -774,6 +774,16 @@ libxmp-lite are in About.
 
 - **Storage:** `byopop-music-loop`, `byopop-music-mute`, `byopop-music-volume`, `byopop-music-vis` and
   `byopop-music-rows`.
+- **Long silent endings are skipped** (the user's notes, 2026-11-10: "Some of the short tracks have a bunch of dead air
+  at the end, where the tracker slows to a crawl"). When a module's tune starts, a second copy of it renders its last 60
+  seconds at 11,025 Hz, unheard, to find the last moment any sample reaches -60 dB (`trimEnd`, `scanEnd` in
+  `web/music.js`). Where more than 3 seconds of silence follow, the tune ends a second after that moment: it moves on to
+  the next tune there, or starts again there with repeat on, and its length in the list, the display and the seek bar
+  becomes the shorter one. A tune's length is known this way only once it has been played, and is kept for the page's
+  life. The scan takes 3 to 50 ms for an S3M or IT and about 0.2 to 0.3 s for an MO3 (mostly loading the copy), while
+  the tune is loading. Of the games' modules it shortens 13 tunes, among them Bejeweled Twist's bejeweledtwist24 parts 2
+  to 4 (25 seconds to 8 to 11), Big Money's parts 5 and 7, Dynomite's amazonas part 7, Mummy Maze's part 3 and
+  Alchemy's intro; the rest keep their lengths. Ogg tunes are not scanned.
 - **The piano roll** (the user, 2026-11-09: "add the piano roll too") is the view after the tracker, for a module
   only, as the tracker is. Its notes are bars on a pitch grid: time runs left to right in rows, as wide as lets 64
   rows (about a pattern) fill the display, 4 pixels at least (the user, 2026-11-11: "way too zoomed out"), with the
@@ -833,7 +843,9 @@ libxmp-lite are in About.
   3, 6 and 12 are compound time, a beat a dotted quarter (6/8, 12/8). The bars run on: a pattern whose length is not a
   whole number of bars ends on a short one.
 - **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, score, nothing. The spectrum is 24 bars from
-  40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
+  40 Hz to 16 kHz from an AnalyserNode connected only while it shows. It is steadied (the user, 2026-11-10: "a little too jittery"):
+  the analyser's smoothing is 0.8, a bar is the mean of its bins with their highest, rises over a couple of frames and
+  falls by time, about its whole height a second, and a peak holds half a second before it falls. The tracker, for a module, has a terse header
   ("ORD 07  PAT 06  ROW 16/64"), a line over the columns (the user, 2026-11-11: labels on the columns) with each
   channel's number and the name of the instrument it played last up to the heard row, cut to the column's width, or
   the number alone where the column leaves fewer than 6 characters for the name, as the narrow cells do (XM,

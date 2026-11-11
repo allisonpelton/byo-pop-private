@@ -609,7 +609,7 @@ var ByopopMusic = (function () {
       try { node.disconnect(); } catch (e) {}
       if (analyser) { try { analyser.disconnect(); } catch (e) {} }
       if (spectrumOn) {
-        if (!analyser) { analyser = ctx.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.5; analyser.minDecibels = -85; analyser.maxDecibels = -15; }
+        if (!analyser) { analyser = ctx.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = SMOOTHING; analyser.minDecibels = -85; analyser.maxDecibels = -15; }
         node.connect(analyser);
         analyser.connect(gain);
       } else node.connect(gain);
@@ -620,14 +620,16 @@ var ByopopMusic = (function () {
     // gain: the game's own level for its modules (web/soundtracks.js's "level", platform/MusicLevels.h through the decoder)
     var viewBuf = 0;
     function moduleSource(m, range, gain, start) {
-      var again = false;
+      var again = false, stopAt = 0;
       if (range) { M._bm_loop(m, 1); M._bm_set_order(m, range[0]); }
       return {
         repeat: function (on) { again = on; if (!range) M._bm_loop(m, on ? 1 : 0); },
+        // where the tune ends instead of its own end, in seconds into it (a long silent ending cut: trimEnd), 0 for its own
+        stop: function (s) { stopAt = s; },
         next: function (frames, marks) {
-          if (range && M._bm_order(m) > range[1]) {
+          if ((range && M._bm_order(m) > range[1]) || (stopAt && M._bm_position(m) - start >= stopAt)) {
             if (!again) return null;
-            M._bm_set_order(m, range[0]);
+            if (range) M._bm_set_order(m, range[0]); else M._bm_seek(m, ctx.sampleRate, start);
           }
           var out = M._malloc(frames * 8), got = 0;
           if (!marks) got = M._bm_render(m, ctx.sampleRate, frames, out);
@@ -709,13 +711,55 @@ var ByopopMusic = (function () {
       if (level.fmod3XM) return M._bm_level_fmod3_xm();
       return 1;
     }
+    // A long silent ending skipped (the user's notes, 2026-11-10: "Some of the short tracks have a bunch of dead air at the end,
+    // where the tracker slows to a crawl. The ending silence should be skipped somehow if long."): when a module's tune starts,
+    // a second copy of it renders its last TRIM_SCAN seconds at TRIM_RATE, unheard, to find the last moment any sample reaches
+    // TRIM_LEVEL (-60 dB); where more than TRIM_LONG seconds of silence follow it, the tune ends TRIM_KEEP seconds after it, as
+    // it plays on and in the length shown (the list's, the clock's and the seek bar's), and with repeat on it starts again
+    // there. A tune's length is known this way once it has been played; trims holds them by tune for the page's life. Returns
+    // the new end in seconds into the tune, or 0 to keep its own.
+    var TRIM_SCAN = 60, TRIM_RATE = 11025, TRIM_LEVEL = 0.001, TRIM_LONG = 3, TRIM_KEEP = 1, trims = {};
+    function trimEnd(t, bytes) {
+      var key = t.keys[0] + "#" + (t.range ? t.range.join("-") : t.sub);
+      if (!(key in trims)) trims[key] = scanEnd(t, bytes);
+      var end = trims[key];
+      if (end && t.seconds !== end) {
+        t.seconds = end;
+        var shown = list && list.querySelector('[data-tune="' + tunes.indexOf(t) + '"] .mu-time');
+        if (shown) shown.textContent = clock(end);
+      }
+      return end;
+    }
+    function scanEnd(t, bytes) {
+      var m = bytes ? loadModule(M, bytes) : 0;
+      if (!m) return 0;
+      var out = M._malloc(4096 * 8), start = t.start || 0, last = -1, length = t.seconds;
+      try {
+        if (!t.range) M._bm_select(m, t.sub);
+        var from = Math.max(0, length - TRIM_SCAN);
+        M._bm_seek(m, TRIM_RATE, start + from);
+        for (var guard = 0; guard < 400; guard++) {
+          if (t.range && M._bm_order(m) > t.range[1]) break;
+          var at = M._bm_position(m) - start;
+          if (at >= length + 1) break;
+          var got = M._bm_render(m, TRIM_RATE, 4096, out);
+          if (got <= 0) break;
+          var a = M.HEAPF32.subarray(out >> 2, (out >> 2) + got * 2);
+          for (var i = a.length - 1; i >= 0; i--) if (a[i] > TRIM_LEVEL || a[i] < -TRIM_LEVEL) { last = at + (i >> 1) / TRIM_RATE; break; }
+          if (got < 4096) break;
+        }
+      } finally { M._free(out); M._bm_free(m); }
+      return last >= 0 && length - last > TRIM_LONG ? Math.round((last + TRIM_KEEP) * 100) / 100 : 0;
+    }
     // The source of a tune, from its files (a joined tune's pieces decoded once each, then put one after the other)
     function sourceOf(t, files) {
       if (t.kind === "module") {
         var m = files[0] ? loadModule(M, files[0]) : 0;
         if (!m) throw new Error("module");
         if (!t.range) M._bm_select(m, t.sub);
-        return Promise.resolve(moduleSource(m, t.range, levelGain(M, t.level), t.start || 0));
+        var src = moduleSource(m, t.range, levelGain(M, t.level), t.start || 0), end = trimEnd(t, files[0]);
+        if (end) src.stop(end);
+        return Promise.resolve(src);
       }
       var decoded = {};
       return t.keys.reduce(function (p, key, i) {
@@ -1592,8 +1636,13 @@ var ByopopMusic = (function () {
       scoreHead.style.height = height + "px";
       scoreMeter.textContent = sig.label;
     }
-    // The spectrum: BARS bars over 40 Hz to 16 kHz spaced as the ear hears them, each with a peak that falls back
-    var bins = null, peaks = [], levels = [];
+    // The spectrum: BARS bars over 40 Hz to 16 kHz spaced as the ear hears them, each with a peak that falls back. Steadied (the
+    // user, 2026-11-10: "a little too jittery. Something to do with dropoff speed, maybe?"): the analyser averages over more of
+    // its past frames (SMOOTHING), a bar takes the mean of its bins with their highest (the lowest bars cover a bin or two, so
+    // their highest alone jumps), rises over a couple of frames, and falls by time (FALL a second, the whole height in about a
+    // second whatever the frame rate) instead of by frame; a peak holds PEAK_HOLD seconds, then falls at PEAK_FALL
+    var SMOOTHING = 0.8, RISE = 0.6, FALL = 1.1, PEAK_HOLD = 0.5, PEAK_FALL = 0.5;
+    var bins = null, peaks = [], levels = [], held = [], lastSpectrum = 0;
     function drawSpectrum() {
       // the followed game's own output where it is tapped, else the player's own analyser
       var tap = follow && follow.tap, an = tap ? tap.an : analyser, live = tap ? true : state === "playing", rate = tap ? tap.rate : ctx && ctx.sampleRate;
@@ -1607,13 +1656,16 @@ var ByopopMusic = (function () {
       var barColour = cs.getPropertyValue("--mu-bar").trim() || cs.color, peakColour = cs.getPropertyValue("--mu-peak").trim() || barColour;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, hgt);
+      var now = performance.now(), dt = lastSpectrum ? Math.min(0.1, (now - lastSpectrum) / 1000) : 0;
+      lastSpectrum = now;
       var hz = rate / an.fftSize, gap = 2, bw = (w - gap * (BARS + 1)) / BARS;
       for (var i = 0; i < BARS; i++) {
-        var lo = 40 * Math.pow(400, i / BARS), hi = 40 * Math.pow(400, (i + 1) / BARS), v = 0;
-        for (var b = Math.floor(lo / hz); b <= Math.min(bins.length - 1, Math.ceil(hi / hz)); b++) v = Math.max(v, bins[b]);
-        var level = v / 255;
-        levels[i] = Math.max(level, (levels[i] || 0) - 0.04);
-        peaks[i] = Math.max(levels[i], (peaks[i] || 0) - 0.01);
+        var lo = 40 * Math.pow(400, i / BARS), hi = 40 * Math.pow(400, (i + 1) / BARS), v = 0, sum = 0, n = 0;
+        for (var b = Math.floor(lo / hz); b <= Math.min(bins.length - 1, Math.ceil(hi / hz)); b++) { v = Math.max(v, bins[b]); sum += bins[b]; n++; }
+        var level = n ? (v + sum / n) / 2 / 255 : 0, was = levels[i] || 0;
+        levels[i] = level > was ? was + (level - was) * RISE : Math.max(level, was - FALL * dt);
+        if (levels[i] >= (peaks[i] || 0)) { peaks[i] = levels[i]; held[i] = PEAK_HOLD; }
+        else if ((held[i] -= dt) <= 0) peaks[i] = Math.max(levels[i], peaks[i] - PEAK_FALL * dt);
         var x = gap + i * (bw + gap), bh = Math.round(levels[i] * (hgt - 4));
         g.fillStyle = barColour;
         g.fillRect(x, hgt - bh, bw, bh);
@@ -1679,7 +1731,7 @@ var ByopopMusic = (function () {
         untap();
         if (!out || !out.node || !gctx || gctx.state === "closed") return;
         var an = gctx.createAnalyser();
-        an.fftSize = 2048; an.smoothingTimeConstant = 0.5; an.minDecibels = -85; an.maxDecibels = -15;
+        an.fftSize = 2048; an.smoothingTimeConstant = SMOOTHING; an.minDecibels = -85; an.maxDecibels = -15;
         out.node.connect(an);
         follow.tap = { an: an, node: out.node, rate: gctx.sampleRate };
       } catch (e) {}
