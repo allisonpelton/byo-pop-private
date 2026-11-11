@@ -92,20 +92,79 @@ the game it played.
 
 ## Performance
 
-Measured 2026-11-08 with `tools/perf.py` (its docstring has the commands), the original and the port back to back:
-original, port, original, port. The original ran under origrun on its real clock, from a fresh copy of the installed
-game each run, with its seed pinned as the port's `-seed=1`. The port ran natively under rundesk without `-fast` and
-without mods. Both played the same tour: the port's `tools/tour_test.txt` by its updates, the original's
-`tools/origrun/tour.txt` by the clock. The script samples the game's process every 0.1 s from outside: working set,
-private bytes, and kernel plus user time. The original's menu and board are read from its memory, the application at
-0x4752a0 with its state at +0x200; the port's come from the live channel's `state`.
+### The performance pass (2026-11-11)
 
-**The machine was not quiet.** One or two game processes of other sessions ran throughout, and the machine was 28 to 49 %
-busy. The performance pass will measure again on a quiet machine.
+`tools/perf.py` (its docstring has the commands) plays the same tour in the original and the port, in real time and
+without mods: the port's `tools/tour_test.txt` by its updates, the original's `tools/origrun/tour.txt` by the clock,
+the original under origrun on its real clock from a fresh copy of the installed game with its seed pinned as the port's
+`-seed=1`. Every 0.1 s it reads the game's process from outside: working set, private bytes, kernel plus user time and,
+since this pass, the cycles the process's threads ran (`QueryProcessCycleTime`). "Loaded" is the time from the
+process's creation to the main menu, the first screen that takes input other than the click that hurries a logo;
+nobody clicks the logos, so both sides sit through the same logo times, which come from the game's own data. "The
+minute" is the 60 s from the first board, while the tour plays the tutorial's words.
 
-**Loading.** "Loaded" here means from the process's creation to the main menu, the first screen that takes input other
-than the click that hurries a logo. Nobody clicks the logos, so both sides sit through the same logo times, which come
-from the game's own data.
+**The machine was not quiet and could not be made so.** Every run had 3 to 6 game processes of other sessions beside it
+and the machine was 56 to 91 % busy (median 72 %). A busy machine stretches a process's seconds (a shared core, a
+slower clock) and not the cycles it runs, so the comparison is in cycles, in runs alternated in rounds (original, the
+port after this pass, the port before it), four rounds, with the median and the range of the four:
+
+| | Original | Port before | Port after |
+|---|---|---|---|
+| To the main menu | 7.8 s (6.7 to 15.2) | 6.4 s (6.1 to 8.7) | 6.7 s (6.4 to 7.1) |
+| The minute: cycles | 10.8 G (9.6 to 12.6) | 21.6 G (21.4 to 24.4) | 15.4 G (12.5 to 17.9) |
+| The minute: processor time | 5.1 s (4.9 to 5.9) | 10.1 s (9.6 to 11.8) | 7.3 s (5.6 to 8.6) |
+| Peak private bytes in the minute | 54.8 MB | 83.2 MB | 82.9 MB |
+
+"Port before" is the build of the commit before this pass (`b6573bea`). On this machine the original's 3.3 s of
+processor time a minute (2026-11-08) was 5.1 s, which is why the table says what the same runs gave, not the old
+figures. The port now runs 1.4 times the original's cycles, where it ran 2.0 times.
+
+**Where the port's cycles went.** A sampler of the threads' instruction pointers (Bejeweled's
+`tools/profile/cpuprof.py`) says only where a thread is when it is stopped, and the game's threads are mostly in waits,
+so it showed little but waits (its per-thread totals did hold: the main thread ran about 70 % of the process's cycles,
+the graphics driver's thread 15 %). What worked was counting cycles inside the host's own calls
+(`QueryThreadCycleTime` around the sleep, the pump and the screen's `Draw`, in a temporary build). Per second of the
+first board the main thread ran 200 M cycles. 113 M were the game's own update and drawing (the translated code, which
+the original runs too), and 86 M were inside the sleeps, where the framework runs: 41 M of them the copy of the game's
+800x600 screen into a picture, 31 times a second at 1.3 M cycles. Two things were wasted there.
+
+- **Looking through the picture for alpha.** The framework's picture of the screen was an ordinary one, so after each
+  change it looked through all its 480,000 pixels for transparency and premultiplied and converted it in strips on its
+  way to the graphics device. Every pixel is drawn opaque (the copy sets alpha 255), so the picture is now said to be
+  opaque and uploaded as it is (`SetImageMode(false, false)`, `mUploadAsIs`, as the Mahjong ports' screen is). That took
+  the minute from 21.6 G to about 18.5 G cycles (six runs, 14.7 to 21.6).
+- **Showing a screen that had not changed.** The game presents its screen about 30 times a second whether or not
+  anything moved, and in the tutorial's board, which waits for the player, two presents in three matched the one before
+  (1,513 of 2,364). The widget now compares the game's screen with the picture's last copy (`BonniesWidget::Update`,
+  in blocks the vector instructions handle) and, when they match, marks nothing dirty, so nothing is copied, uploaded
+  or presented. The comparison is on the pixels, so what is on screen is the same as before; the frozen baseline is
+  identical. That took it to 15.4 G.
+
+What is left is the shared code's: the framework's 100 updates a second, the presents of the screens that did change,
+the graphics driver's thread (10 % of the cycles after this, 16 % before), the audio mixer's thread (about 4 %), and
+the 34 MB of private bytes the process holds before it reads a game file. A dirty-rectangle copy of the screens that
+did change was left out: the game's own rectangles cover most of the screen, and a stale rectangle would show what the
+original's own SDL screen would not.
+
+**Loading.** The port loads at the original's speed: from the process's creation to the menu it takes the logos'
+5.6 s and about a second more, and its `loadResources` takes 0.24 to 0.37 s on a quiet machine (0.5 to 1.2 s on this
+one), read from its log. With "Always skip start-up logos" (`-skiplogos`) the menu comes after about 1 s. There was
+nothing to take out of it. The 12.9 s of the first measurement was the busy machine; the run-to-run range of the original
+here is as wide (6.7 to 15.2 s).
+
+**Memory.** The `memreport` test command (`DEVIATIONS.md`, "Test commands") splits the port's memory at the first
+board of the tour: 83 MB private, of which 34 MB were there before any game file was read (SDL, the graphics device and
+its driver, the audio device, libopenmpt) and 49 MB are the game's. In that: the resource cache's images 15.4 MB (82
+pictures at four bytes a pixel, which are the original's own SDL surfaces too), the dictionary 2.9 MB (121,664 words, two
+tables), the samples 0.9 MB (decoded to 16 bits), the engine's screen buffer 1.8 MB, the framework's picture of the
+screen 1.8 MB with its texture 1.8 MB, the music's module file 1.8 MB and its player. The process heap held 44.7 MB, its
+largest blocks pictures. Nothing in it is a leak or a copy to take out; the 28 MB the port holds beyond the original's
+55 MB is about the 34 MB of libraries and devices that the framework's graphics and audio start with, which is shared
+code.
+
+### The first measurement (2026-11-08)
+
+The original and the port back to back, original, port, original, port, on a machine 28 to 49 % busy:
 
 | To the main menu | Original | Port |
 |---|---|---|
@@ -113,25 +172,15 @@ from the game's own data.
 | Without a script (`build/modtest/startup.py`, two runs) | not measured | 6.11 s, 6.15 s |
 | With "Always skip start-up logos" (`-skiplogos`) | (no such setting) | 0.98 s, 1.17 s |
 
-Most of that is the logos (about 5.6 s). The port's own start takes about 0.5 s to its first frame, and its
-`loadResources` 0.24 to 0.37 s, read from its log. Its 12.89 s run was the busy machine: in the script-free runs straight
-after, the port reached the menu in 6.1 s both times.
-
-**The scripted minute.** The minute is the 60 s from the first board, while the tour plays the tutorial's words.
-
 | The minute from the first board | Original A | Original B | Port A | Port B |
 |---|---|---|---|---|
 | Peak working set | 69.9 MB | 79.6 MB | 97.0 MB | 93.8 MB |
 | Peak private bytes | 56.0 MB | 58.3 MB | 89.4 MB | 87.4 MB |
 | Processor time | 3.28 s | 3.41 s | 8.50 s | 7.08 s |
-| Other game processes (start, end) | 1, 1 | 1, 2 | 1, 1 | 2, 1 |
 
-The port uses more of both. It holds about 30 MB more private memory, and it takes twice the processor time or more:
-the causes were not looked into. That belongs to the performance pass, as does a quiet machine.
-
-An earlier round anchored the minute at the menu, and it was dropped. The original's clock-timed tour clicked before a
-slow menu (12.4 s) had appeared, so that run idled through its minute (2.1 s of processor time). The files are in
-`build/perf/old-*`.
+The original's menu and board are read from its memory, the application at 0x4752a0 with its state at +0x200; the
+port's come from the live channel's `state`. An earlier round anchored the minute at the menu and was dropped: the
+original's clock-timed tour clicked before a slow menu (12.4 s) had appeared, so that run idled through its minute.
 
 **Not measured: the web build's load.** The only place to time a page is the Browser pane, which is hidden. There a
 page's frames and timers run only through the test shims, so no load time taken there would mean anything. The web

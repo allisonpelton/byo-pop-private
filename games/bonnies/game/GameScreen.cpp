@@ -3004,6 +3004,17 @@ static std::string testJsonState()
 	return aText + "}";
 }
 
+void memoryHolders(std::vector<std::pair<std::string, size_t>>* theRows)
+{
+	if (gResources == nullptr)
+		return;
+	Resources::MemoryUse aUse = Resources::memoryUse();
+	theRows->push_back({"images in the cache (" + std::to_string(aUse.mImageCount) + ", 32 bits; the fonts' are among them)",
+		aUse.mImageBytes});
+	if (gDictionary != nullptr)
+		theRows->push_back({"dictionary (" + std::to_string(gDictionary->mCount) + " words)", gDictionary->memoryBytes()});
+}
+
 static bool testInPlay()
 {
 	return gBonnies != nullptr && gBonnies->mState == 3 && gGameScreen != nullptr && gGame != nullptr &&
