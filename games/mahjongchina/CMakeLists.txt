@@ -3,15 +3,7 @@
 # engine/ is that engine, translated and mapped onto the platform, and src/ is the translation of the game on top of
 # it. The SexyAppFramework only hosts the app: its window, clock, input and sound device, and the 800x600 screen the
 # game draws into.
-file(GLOB MAHJONGCHINA_ENGINE_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/engine/*.cpp)
 file(GLOB MAHJONGCHINA_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-
-add_library(mahjongchinaengine STATIC ${MAHJONGCHINA_ENGINE_SOURCES})
-target_include_directories(mahjongchinaengine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine)
-target_link_libraries(mahjongchinaengine PUBLIC sexyframework sexyopenmpt stb)
-if(NOT MSVC)
-  target_compile_options(mahjongchinaengine PRIVATE -Wall -Wno-unused-private-field)
-endif()
 
 # The game's translation is a library of its own, so it builds before the host app (MahjongApp.cpp, main.cpp) exists
 set(MAHJONGCHINA_HOST_SOURCES ${MAHJONGCHINA_SOURCES})
@@ -19,7 +11,7 @@ list(FILTER MAHJONGCHINA_SOURCES EXCLUDE REGEX "/(MahjongApp|main|TestCommands|M
 list(FILTER MAHJONGCHINA_HOST_SOURCES INCLUDE REGEX "/(MahjongApp|main|TestCommands|ModFeatures)\\.cpp$")
 add_library(mahjongchinagame STATIC ${MAHJONGCHINA_SOURCES})
 target_include_directories(mahjongchinagame PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(mahjongchinagame PUBLIC mahjongchinaengine)
+target_link_libraries(mahjongchinagame PUBLIC jollybearengine)
 if(NOT MSVC)
   target_compile_options(mahjongchinagame PRIVATE -Wall -Wno-unused-private-field)
 endif()
@@ -32,7 +24,7 @@ endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/src/MahjongApp.cpp)
   add_executable(mahjongchina ${MAHJONGCHINA_HOST_SOURCES})
-  target_link_libraries(mahjongchina PRIVATE mahjongchinagame mahjongchinaengine sexyframework sexyopenmpt stb)
+  target_link_libraries(mahjongchina PRIVATE mahjongchinagame jollybearengine sexyframework sexyopenmpt stb)
   if(NOT MSVC)
     target_compile_options(mahjongchina PRIVATE -Wall -Wno-unused-private-field)
   endif()

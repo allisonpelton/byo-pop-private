@@ -468,6 +468,7 @@ void MahjongApp::Init()
 	// (SexyAppBase::MakeWindow); the page's full screen button and the options switch it later
 	gHost.RegWriteInt(nullptr, "FullScreen", 0);
 #endif
+	jb::gExeName = "MahjongEscapeAJ";
 	mGame = new mahjongjapan::MahjongGame();
 	if (!mGame->Init())
 	{
