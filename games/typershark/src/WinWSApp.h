@@ -258,10 +258,8 @@ public:
 	void					ShowAbyssModeDialog();                                  // 0x4129a0 (dialog 0x451)
 	int						GetUserBestDepth();                                     // 0x412ae0 (the current user's deepest abyss depth)
 	void					RemoveMenuScreen();                                     // 0x412af0 (the widget at +0x628)
-	void					ActivateTypingTutor();                                  // 0x412c90 (ButtonDepress(0x58) of the tutor, then its focus)
 	void					MarkMenuScreenDirty();                                  // 0x412cc0
 	void					BringStatsCloseButtonToFront();                         // 0x412ce0
-	void					FocusTypingTutor();                                     // 0x412d00
 	void					SetUserHints(bool theHints);                            // 0x412d50 (the current user's hints setting)
 	bool					HintsEnabled();                                         // 0x412d70 (a user is chosen, has hints on, and the game allows them)
 	void					ShowOptions();                                          // 0x414150 (dialog 0x30a)

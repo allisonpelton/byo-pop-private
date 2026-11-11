@@ -32,12 +32,6 @@ RedShark::~RedShark()
 {
 }
 
-// 0x407170: returns a copy of the string at +0x24
-std::string RedShark::GetWord3()
-{
-	return mWord3;
-}
-
 // 0x40b600: BlackShark::TypeLetter with a third word: when mWord is finished the second word is taken, when that is
 // empty the third one; with both empty the word is cleared and the creature lets go of its target. The word taken is
 // emptied (the export drops that assignment, see BlackShark::TypeLetter)

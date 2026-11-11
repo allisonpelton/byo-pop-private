@@ -116,12 +116,6 @@ OptionsDialog::~OptionsDialog()
 	delete m3DCheckbox;
 }
 
-// 0x438650 slot 50: ignores the width and the Dialog formula
-int OptionsDialog::GetPreferredHeight(int theWidth)
-{
-	return 0x1b6;
-}
-
 // 0x438660 slot 7. Quirk: the button text colour (index 3) goes to the Credits button as index 3 of the button's own
 // colours, not as its label colour (0); the dialog's own SetColor(0, black) in the constructor does not reach it. The
 // original passes the literal 3 (the first control gets the argument itself, which is the same).

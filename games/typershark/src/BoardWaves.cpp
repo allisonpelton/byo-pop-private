@@ -202,7 +202,7 @@ void Board::PlaceEnemies(int theFirstNew)
 				if (aPrevType == 1 || aPrevType == 10)
 					aWordWidth = (int)(aPrev->mWord.size() + 1) * aTextWidth;
 				else if (aPrevType == 2 || aPrevType == 9)
-					aWordWidth = (int)(aPrev->mWord.size() + dynamic_cast<RedShark*>(aPrev)->GetWord2().size() + 2) * aTextWidth;
+					aWordWidth = (int)(aPrev->mWord.size() + dynamic_cast<RedShark*>(aPrev)->mWord2.size() + 2) * aTextWidth;
 				else
 					aWordWidth = 0;
 			}

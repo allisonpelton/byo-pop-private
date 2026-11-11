@@ -21,13 +21,12 @@ namespace Sexy
 class BlackShark : public virtual Shark
 {
 public:
-	std::string				mWord2;					// +0x08 the word taken on when mWord is finished; the Board fills it (nothing here does)
+	std::string				mWord2;					// +0x08 the word taken on when mWord is finished; the Board fills it (nothing here does). The original has an accessor (own slot 0, 0x407030, a copy) that no play reaches: it reads the field, as the port does
 
 public:
 	BlackShark(WinWSApp* theApp);													// 0x410f50
 	virtual ~BlackShark();															// deleting destructor 0x409d70
 
-	virtual std::string		GetWord2();												// own slot 0, 0x407030: a copy of mWord2
 	virtual bool			IsSwimming() override;									// Shark part slot 0, 0x4035f0
 	virtual void			SetState(int theState) override;						// GameObject slot 7, 0x4065d0
 	virtual void			TypeLetter() override;									// Enemy slot 2, 0x409fb0

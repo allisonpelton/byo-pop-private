@@ -30,12 +30,6 @@ BlackShark::~BlackShark()
 {
 }
 
-// 0x407030: returns a copy of the string at +8
-std::string BlackShark::GetWord2()
-{
-	return mWord2;
-}
-
 // 0x4035f0 (Shark part slot 0): Shark::IsSwimming also answers true for a shark that is not swimming but still has a
 // word, unless mFlag50 is set
 bool BlackShark::IsSwimming()

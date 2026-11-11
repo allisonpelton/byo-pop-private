@@ -50,7 +50,7 @@ public:
 
 	virtual void			Update() override;										// slot 1, 0x461740
 	virtual void			Draw(Graphics* g) override;								// slot 2, 0x461f00
-	virtual void			SetState(int theState) override;						// slot 7, 0x461520
+	virtual void			SetState(int theState);									// GameObject slot 7, 0x461520
 
 	void					AddScore(int theScore);									// 0x4619d0 (the export names it a Board function)
 	void					SetFlag118(bool theFlag) { mFlag118 = theFlag; }		// 0x461b40

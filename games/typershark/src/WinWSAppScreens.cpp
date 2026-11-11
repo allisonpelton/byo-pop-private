@@ -79,14 +79,6 @@ void WinWSApp::RemoveMenuScreen()
 	}
 }
 
-// 0x412c90: the typing tutor's own ButtonListener (the object at +0x58, slot 4 = ButtonDepress) gets button 0x58, then the
-// tutor takes the focus. The original does not test mTypingTutor.
-void WinWSApp::ActivateTypingTutor()
-{
-	mTypingTutor->ButtonDepress(0x58);
-	mWidgetManager->SetFocus(mTypingTutor);
-}
-
 // 0x412cc0: slot 46 (MarkDirty)
 void WinWSApp::MarkMenuScreenDirty()
 {
@@ -99,13 +91,6 @@ void WinWSApp::BringStatsCloseButtonToFront()
 {
 	if (mStatsCloseButton != NULL)
 		mWidgetManager->BringToFront(mStatsCloseButton);
-}
-
-// 0x412d00
-void WinWSApp::FocusTypingTutor()
-{
-	if (mTypingTutor != NULL)
-		mWidgetManager->SetFocus(mTypingTutor);
 }
 
 // 0x412d50: the current user's hints setting
