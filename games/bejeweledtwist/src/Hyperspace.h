@@ -146,8 +146,8 @@ public:
 	using Widget::DrawOverlay;
 
 	// 0x71c18f: the jump from a picked challenge's planet into the game (state 3, transition 11). The planet's place
-	// (the three floats it gets) only aims the 3D camera at it
-	void StartChallenge();
+	// on the screen (three floats, the third not used) aims the 3D flight at it
+	void StartChallenge(float theX, float theY, float theZ);
 	// 0x7181b3: sets up the jump theTransition (0 none) and the level's world
 	void SetTransition(int theTransition);
 	// 0x714883: the end of a game, space coming back over the board (transition 13, state 12)
@@ -179,6 +179,7 @@ public:
 	void DrawTravellers(Graphics* g);         // 0x710f5b: the souls of the last level's special gems, put on the screen
 	void MakeCrystals();                      // 0x717dd6
 	void SetTransition3D(int theTransition);  // 0x7181b3's gD3DInterface branches
+	void StartChallenge3D(float theX, float theY);  // 0x71c18f's gD3DInterface branch
 	void SetWorldCurves(int theWorld);        // 0x718d8e's cases
 	void Update3D();                          // 0x715c21's gD3DInterface branches
 	void UpdateWorld3D();                     // 0x716e2f: crystals, camera, ship and saucer

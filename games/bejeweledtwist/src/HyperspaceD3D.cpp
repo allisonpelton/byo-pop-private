@@ -1149,6 +1149,51 @@ void ResetJumpCurves(Hyperspace* theSpace)
 	theSpace->mBoardBrightness.SetConstant(0.0);
 }
 
+// 0x71c18f with gD3DInterface set: the flight from the challenge menu to the picked planet. The crystals fly from the
+// planet's place on the screen (in units of 380 art pixels from the middle, y up), the saucer orbits on the jump's
+// clock, the camera's path and the sidebar's turns start at rest, and the VizManager's picture for the challenge is
+// drawn into the jump's picture, which space shows instead of the VizManager.
+void Hyperspace::StartChallenge3D(float theX, float theY)
+{
+	mLevel = 0;
+	ResetJumpCurves(this);
+	mIs3D = true;
+	mCrystalSpin.SetCurve(GTS(0x7e6490));
+	mCrystalSize.SetCurve(GTS(0x7e6464));
+	mEngineFire.SetCurve(GTS(0x7e6434));
+	mEngineGlow.SetCurve(GTS(0x7e640c), &mEngineFire);
+	mConeAlpha.SetCurve(GTS(0x7e63d4), &mJumpClock);
+	mJumpClock.SetCurve(GTS(0x7e63a4));
+	mOrbitX.SetCurve(GTS(0x7e6380), &mJumpClock);
+	mOrbitY.SetCurve(GTS(0x7e635c), &mJumpClock);
+	mOrbitZ.SetCurve(GTS(0x7e6334), &mJumpClock);
+	mCameraPathX.SetConstant(0.0);
+	mCameraPathY.SetConstant(0.0);
+	mCameraPathZ.SetConstant(0.0);
+	mSidebarTurnX.SetConstant(0.0);
+	mSidebarTurnZ.SetConstant(0.0);
+	mSidebarTurnY.SetConstant(0.0);
+	mSidebarBehind.SetConstant(0.0);
+	mSidebarShake.SetConstant(0.0);
+	mCameraSlerp.SetCurve(GTS(0x7e6308));
+	mCrystalGrow.SetCurve(GTS(0x7e62dc));
+	float aUnit = (float)((double)gApp->mScale * 380.0);
+	float aPerUnit = 1.0f / aUnit;
+	mCrystalDirection[0] = (double)((theX - (float)(mWidth / 2)) * aPerUnit);
+	mCrystalDirection[1] = (double)-((theY - (float)(mHeight / 2)) * aPerUnit);
+	mCrystalDirection[2] = 0.0;
+	mCrystalStep.SetCurve(GTS(0x7e62b4));
+	mDrawsOwnBackground = true;
+	ChooseViz(true);
+	{
+		Graphics aG(mOldPicture);
+		gApp->mVizManager->Draw(&aG);
+		gApp->mVizManager->SetVisible(false);
+	}
+	mFirstHalfPending = false;
+	mIs3D = false;
+}
+
 void Hyperspace::SetTransition3D(int theTransition)
 {
 	// 0x7181b3 (the caller stored mTransition, +0x150); the gD3DInterface == 0 branches are SetTransition's own

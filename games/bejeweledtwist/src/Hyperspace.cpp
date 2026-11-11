@@ -315,17 +315,21 @@ void Hyperspace::DrawOverlay(Graphics* g)
 	}
 }
 
-void Hyperspace::StartChallenge()
+void Hyperspace::StartChallenge(float theX, float theY, float theZ)
 {
+	(void)theZ;
 	mState = 3;
 	mTransition = 11;
-	// The 2D branch only (the 3D one flies the camera in to the planet)
-	mFirstHalfPending = false;
-	ChooseViz(false);
-	mJumpLength.SetCurve(GTS(0x7e6288));
-	mBoardBrightness.SetCurve(GTS(0x7e6258));
-	gBoard->mTubeSlide.SetCurve(GTS(0x7e6228));
-	gBoard->Update();
+	if (gD3DInterface != nullptr) {
+		StartChallenge3D(theX, theY);
+	} else {
+		mFirstHalfPending = false;
+		ChooseViz(true);
+		mJumpLength.SetCurve(GTS(0x7e6288));
+		mBoardBrightness.SetCurve(GTS(0x7e6258));
+		gBoard->mTubeSlide.SetCurve(GTS(0x7e6228));
+		gBoard->Update();
+	}
 	SetTransition(11);
 }
 
