@@ -156,6 +156,12 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   as before.
   JPEG: IJG libjpeg, the library the games use, replaces stb_image for JPEG images ("Add IJG libjpeg"; the download of
   jpegsrc.v6b.tar.gz from ijg.org approved), so no game lists a JPEG deviation.
+- **After every game is done: gamepads (the user, 2026-11-10):** "Once all games are done, I want to add native gamepad
+  support to every game. I also want to support the Wii Remote in particular." Not before; it is shared framework work
+  with a layout per game.
+- **The README's performance table (the user, 2026-11-10):** "Include in the readme a performance comparison table
+  including load time, CPU, and memory usage for every game", port against original, from each game's performance
+  numbers in its notes.
 - **Reports still open from the user's test notes (cleared 2026-11-04):** each goes to its game's session with its
   next brief. Bookworm Adventures: "Sound effects seem to come about a second after they should." Its pass found every
   sound at the original's update natively, so check the web build, where the user plays. Its smashed tile "looks
