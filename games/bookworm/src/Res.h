@@ -305,12 +305,9 @@ enum DialogId
 	DIALOG_UNUSED_3 = 3,                    // never created; killed by StartGame / ShowGameSelector
 	// 4 the trial-expired dialog: taken out
 	DIALOG_CONTINUE = 5,                    // continue the saved game? (SelectGameMode)
-	DIALOG_INTERNET_REQUIRED = 6,           // internet high scores (not ported)
-	DIALOG_ASK_UPDATE_CHECK = 7,            // update check (not ported)
-	DIALOG_UPDATE_CHECK = 8,                // UpdateCheckDialog (not ported)
+	// 6 the internet connection question, 7 and 8 the update check: not ported (online features)
 	// 9 the invalid registration code: taken out
-	DIALOG_OPENING_BROWSER = 11,            // wait message (OpenURL)
-	DIALOG_URL_FAILED = 12,                 // the URL to open by hand (URLOpenFailed)
+	// 11 the wait message of OpenURL and 12 the URL to open by hand (URLOpenFailed): taken out
 	DIALOG_QUIT = 13,                       // quit confirmation (ShowQuitDialog)
 	DIALOG_HINT = 15,                       // HintDialog (ShowHint) and the Board's can't-scramble messages
 	DIALOG_CREDITS = 16,                    // CreditsDialog
@@ -320,14 +317,8 @@ enum DialogId
 	DIALOG_DELETE_USER = 20,                // DeleteUserDialog
 	DIALOG_CONFIRM_DELETE_USER = 21,        // delete confirmation (DeleteUserDialog)
 	DIALOG_NEW_USER = 22,                   // NewUserDialog
-	DIALOG_ALIAS = 23,                      // GetStringDialog (internet alias, not ported)
-	DIALOG_NAME_TAKEN = 24,                 // FameWidget resubmit message (not ported)
-	DIALOG_CONNECTING = 25,                 // FameWidget wait dialog (not ported)
-	DIALOG_IHS_ERROR = 26,                  // FameWidget error (not ported)
-	DIALOG_IHS_WARNING = 27,                // FameWidget warning (not ported)
-	DIALOG_LEAVE_GAME = 28,                 // leave-game confirmation (GoToMainMenu)
-	DIALOG_UPDATE_AVAILABLE = 10008,        // UpdateCheckDialog results (framework, not ported)
-	DIALOG_UPDATE_NONE = 20008
+	// 23 the internet alias, 24 to 27 the Hall of Fame's resubmit message, wait dialog, error and warning: not ported
+	DIALOG_LEAVE_GAME = 28                  // leave-game confirmation (GoToMainMenu)
 };
 
 // Button ids heard by more than one class

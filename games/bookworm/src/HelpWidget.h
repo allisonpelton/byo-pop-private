@@ -54,7 +54,7 @@ public:
 	virtual ~HelpWidget();                                          // 0x4297e0 (scalar deleting dtor 0x429d60) slot 0
 	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;  // 0x429d90 slot 1
 	virtual void	RemovedFromManager(WidgetManager* theWidgetManager) override; // 0x4298d0 slot 2
-	virtual void	OrderInManagerChanged() override;               // 0x429940 slot 3
+	// 0x429940 slot 3 OrderInManagerChanged: never called, not ported
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override; // 0x429990 slot 13
 	virtual void	Draw(Graphics* g) override;                     // 0x42a420 slot 16
 	virtual void	Update() override;                              // 0x429a50 slot 17

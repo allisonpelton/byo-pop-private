@@ -140,8 +140,6 @@ const char* DialogName(int theId)
 	{
 	case DIALOG_OPTIONS: return "options";
 	case DIALOG_CONTINUE: return "continue";
-	case DIALOG_OPENING_BROWSER: return "browser";
-	case DIALOG_URL_FAILED: return "url";
 	case DIALOG_QUIT: return "quit";
 	case DIALOG_HINT: return "hint";
 	case DIALOG_CREDITS: return "credits";
