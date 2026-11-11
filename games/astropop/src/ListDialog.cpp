@@ -76,7 +76,7 @@ void ListDialog::MakeButtonImages()
 	}
 }
 
-// 0x484b20 (body 0x484610): the scroll bar, the list, the box's picture and the buttons' picture are the box's own
+// 0x484610 (the body of the base class's deleting destructor): the scroll bar, the list, the box's picture and the buttons' picture are the box's own
 ListDialog::~ListDialog()
 {
 	delete mScrollbar;
@@ -124,6 +124,14 @@ void ListDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 	int aListHeight = mList->mFont->GetHeight() * 8 + 9;
 	int aListY = m11c + mSpaceAfterHeader + mContentInsets.mTop + theY;
 	mList->Resize(mX + 0x28, aListY, mWidth - 0x69, aListHeight);
+
+	// port: the original's x87 rounds every result to a float (docs/GAME_NOTES.md, "The original's x87 rounds every result to a
+	// float"), so the page size the list works out ((height - 8) / item height, 105 / 13 here) and gives the scroll bar is a
+	// float's worth. The list at its last position, where its top is the maximum less the page size, then has its rows on
+	// whole pixels with the value's error on the side that the truncation drops; with the page size at full precision the
+	// error lies on the other side, and the lines of a scrolled list came one pixel higher in three rows out of eight.
+	mList->mPageSize = (double) (float) mList->mPageSize;
+	mScrollbar->SetPageSize(mList->mPageSize);
 	mScrollbar->ResizeScrollbar(mWidth - 0x41 + mX, aListY, 0x19, aListHeight);
 
 	if (mYesButton != NULL)
@@ -192,11 +200,12 @@ void ListDialog::ListClicked(int theId, int theIdx, int theClickCount)
 		ButtonDepress(ID_YES);
 }
 
-// 0x48a810: the list is made again out of the application's players: the current player first, the others after it in the
-// order of the registry. The scroll bar starts at one line and the list's own AddLine sets it from there.
+// 0x48a810 (slot 52 of the choice's box; the delete box has 0x489ba0 and the base class a pure virtual): the list is made
+// again out of the application's players: the current player first, the others after it in the order of the registry. The
+// scroll bar starts at one line and the list's own AddLine sets it from there.
 // port: the line colours are kept as long as the lines (the original's list has no colour for the line it inserts in
 // front, and none at all when the current player is the only one)
-void ListDialog::RebuildList()
+void UserSelectDialog::RebuildList()
 {
 	mList->mLines.clear();
 	mList->mLineColors.clear();
@@ -326,4 +335,21 @@ DeleteUserDialog::DeleteUserDialog(AstroPopApp* theApp) :
 // 0x484b80 (body 0x484830)
 DeleteUserDialog::~DeleteUserDialog()
 {
+}
+
+// 0x489ba0 (slot 52): the list is made again out of every player of the application, in the order of the registry (the
+// current player is not put first, as the choice's box does). The scroll bar starts at no lines and AddLine's own count
+// follows.
+// port: the line colours are kept as long as the lines, as in the choice's box
+void DeleteUserDialog::RebuildList()
+{
+	mList->mLines.clear();
+	mList->mLineColors.clear();
+	mScrollbar->mMaxValue = 0.0;
+
+	for (size_t i = 0; i < mApp->mUserNames.size(); i++)
+	{
+		mScrollbar->mMaxValue += 1.0;
+		mList->AddLine(mApp->mUserNames[i], false);
+	}
 }

@@ -32,6 +32,7 @@ The exit code is 0 when it stopped on "over" or the step limit, 1 otherwise.
 """
 
 import argparse
+import atexit
 import json
 import os
 import re
@@ -73,6 +74,9 @@ class Game:
             cmd = [os.path.join(ROOT, "build", "native", "rundesk.exe")] + cmd
         self.log = open(self.logname, "wb")
         self.proc = subprocess.Popen(cmd, stdout=self.log, stderr=subprocess.STDOUT)
+        # a driver that ends on an exception outside its try never calls finish(); the game, held by -hold, would
+        # keep its slot under rundesk for good
+        atexit.register(self.stop)
         self.reader = open(self.logname, "rb")
         self.partial = b""
 
@@ -126,6 +130,17 @@ class Game:
         self.transcript.flush()
         return answers
 
+    def stop(self):
+        """Ends the run and every process under it (rundesk and the game) if it still runs"""
+        if self.proc.poll() is None:
+            subprocess.call(["taskkill", "/T", "/F", "/PID", str(self.proc.pid)],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            try:
+                self.proc.wait(10)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+                self.proc.wait()
+
     def finish(self, shot):
         try:
             if shot and self.proc.poll() is None:
@@ -138,8 +153,7 @@ class Game:
             try:
                 self.proc.wait(30)
             except subprocess.TimeoutExpired:
-                self.proc.kill()
-                self.proc.wait()
+                self.stop()
         self.transcript.close()
         self.log.close()
         self.reader.close()

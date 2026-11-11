@@ -85,9 +85,10 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	mYesButton->mComponentImage = aButtonImage;
 	mButtonHeight = aButtonImage->mHeight;
 
-	mMusicSlider = new Slider(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 0, this);
+	// the 2004 slider: a press on the track outside the thumb does nothing, and SetValue does not clamp (docs/FRAMEWORK_2004.md, section 8)
+	mMusicSlider = new Slider2004(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 0, this);
 	mMusicSlider->SetValue(gApp->GetMusicVolume());
-	mSoundSlider = new Slider(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 1, this);
+	mSoundSlider = new Slider2004(IMAGE_SLIDER_TRACK, IMAGE_SLIDER_THUMB, 1, this);
 	mSoundSlider->SetValue(gApp->GetSfxVolume());
 
 	mFullscreenCheck = MakeCheckbox(2, this);
@@ -185,7 +186,7 @@ void OptionsDialog::RemovedFromManager(WidgetManager* theManager)
 		theManager->RemoveWidget(mLeaveButton);
 }
 
-// 0x4826d0: the sliders at the top, the boxes in two columns under them, then the buttons
+// 0x4826d0 (with its three small sums 0x482670, 0x482690 and 0x4826b0, written inline): the sliders at the top, the boxes in two columns under them, then the buttons
 void OptionsDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog::Resize(theX, theY, theWidth, theHeight);

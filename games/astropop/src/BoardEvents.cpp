@@ -16,6 +16,7 @@
 using namespace Sexy;
 
 // The Board's listener part gets the events it listened to in its constructor. The source of each is a brick.
+// (The cases 0x10 and 0x11 are the counter handlers 0x433cc0 and 0x433cd0.)
 void Board::OnEvent(int theEvent, EventListener* theSource, int theArg)
 {
 	Brick* aBrick = static_cast<Brick*>(theSource);
@@ -564,7 +565,7 @@ void Board::OnMutatorSpread(Brick* theBrick)
 }
 
 // 0x44bba0 event 0x13: a booster has run out. Its brick, if it is in the field, is replaced by a new random brick in the
-// same place (the booster's time is cut to one update when it is not to be replaced)
+// same place (the booster's time is cut to one update when it is not to be replaced: the one-store setter 0x402d10)
 void Board::OnBoosterEnd(Brick* theBrick)
 {
 	bool aKeep = theBrick->mState != 0 || theBrick->mBouncing || theBrick->mBounceY != 0.0f ||

@@ -31,7 +31,7 @@ public:
 
 public:
 	ListDialog(AstroPopApp* theApp, int theId, const std::string& theHeader, const std::string& theLines);   // 0x486570
-	virtual ~ListDialog();                                                  // 0x484b20 (body 0x484610)
+	virtual ~ListDialog();                                                  // 0x484610
 
 	virtual void	AddedToManager(WidgetManager* theManager) override;     // 0x482f50
 	virtual void	RemovedFromManager(WidgetManager* theManager) override; // 0x482fa0
@@ -42,7 +42,7 @@ public:
 	virtual void	ButtonDepress(int theId) override;                      // 0x4868c0 the OK takes the selected name
 
 	virtual void	ListClicked(int theId, int theIdx, int theClickCount) override;     // 0x486a00
-	virtual void	RebuildList();                                          // 0x48a810 (slot 52): the names of the players
+	virtual void	RebuildList() = 0;                                      // slot 52 (the class's own is a pure virtual): the names of the players
 	virtual void	SelectByName(const std::string& theName);              // 0x484760 (slot 53): the line with this name is selected
 
 protected:
@@ -65,6 +65,7 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;   // 0x483000
 	virtual int		GetPreferredHeight(int theWidth) override;              // 0x4830c0
 	virtual void	ButtonDepress(int theId) override;                      // 0x486ea0 NEW and DELETE answer at once
+	virtual void	RebuildList() override;                                 // 0x48a810 (slot 52): the current player first
 
 private:
 	void			StyleButton(DialogButton* theButton);
@@ -76,6 +77,8 @@ class DeleteUserDialog : public ListDialog
 public:
 	DeleteUserDialog(AstroPopApp* theApp);                                  // 0x486f20
 	virtual ~DeleteUserDialog();                                            // 0x484b80 (body 0x484830)
+
+	virtual void	RebuildList() override;                                 // 0x489ba0 (slot 52): every player, in the registry's order
 };
 
 }

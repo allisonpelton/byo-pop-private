@@ -11,7 +11,8 @@ const Color kPressedTrackColor(0x30, 0x30, 0x30);
 
 }
 
-AstroScrollbutton::AstroScrollbutton(int theId, ButtonListener* theButtonListener) : ScrollbuttonWidget(theId, theButtonListener)
+// 0x435640
+AstroScrollbutton::AstroScrollbutton(int theId, ButtonListener* theButtonListener) :ScrollbuttonWidget(theId, theButtonListener)
 {
 }
 

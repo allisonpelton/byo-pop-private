@@ -209,7 +209,7 @@ void Board::DrawCellArrow(int theFromX, int theFromY, int theX, int theY, bool t
 					g3.SetColor(Color(0xff, aGreen, 0));
 					int aReach;
 					if (!mApp->mTutorial)
-						aReach = (mCellFlash[theY][theX] - mUnused_95008) * 3;
+						aReach = (mCellFlash[theY][theX] - mCellFlashFloor) * 3;
 					else
 						aReach = mCellFlash[theY][theX] * 3;
 					if (aReach > aRange * CELL_SIZE)
@@ -611,7 +611,7 @@ void Board::Draw(Graphics* g)
 		{
 			for (int aX = 0; aX < GRID; aX++)
 				for (int aY = 0; aY < GRID; aY++)
-					if (mUnused_95008 < mCellFlash[aX][aY])
+					if (mCellFlashFloor < mCellFlash[aX][aY])
 						DrawCellArrow(mPlayerX, mPlayerY, aX, aY, true, g);
 		}
 	}
@@ -738,6 +738,7 @@ void Board::Draw(Graphics* g)
 }
 
 // the bonus screen (digging for the treasure; 9 x 9 squares)
+// port: split out of Board::Draw 0x406400
 void Board::DrawBonus(Graphics* g)
 {
 	Image** anImages = mApp->mImages;
@@ -876,6 +877,7 @@ void Board::DrawBonus(Graphics* g)
 	}
 }
 
+// port: the tutorial's hint text, drawn through one call
 void Board::DrawHintLine(Graphics* g, const SexyString& theText, int theX, int theY)
 {
 	g->DrawString(theText, theX, theY);

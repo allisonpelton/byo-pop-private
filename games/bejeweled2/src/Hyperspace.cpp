@@ -15,6 +15,7 @@
 #include "DDInterface.h"
 #include "TriVertex.h"
 #include "Common.h"
+#include "Fixes.h"
 #include "Compat2004.h"
 #include <math.h>
 
@@ -622,11 +623,12 @@ void Hyperspace::Draw3dPortal(Graphics* g)
 					if (mReady)
 						aTexture = aLayer == 0 ? IMAGE_HYPERSPACE : IMAGE_WARP_LINES;
 					// the original draws a triangle at a time with x moved by 1 (it passes the 1 that stands for "blend"
-					// to the float that moves the vertices)
+					// to the float that moves the vertices); the fixes mod's "tunnelEdge" leaves the tunnel where its points are
+					float aMoveX = FixEnabled("tunnelEdge") ? 0.0f : 1.0f;
 					TriVertex aFirst[1][3] = {{aVerts[0], aVerts[1], aVerts[2]}};
-					mApp->mDDInterface->DrawTrianglesTex(aTexture, aFirst, 1, NULL, Color(aGrey, aGrey, aGrey, 255), 1, 1.0f, 0.0f, true);
+					mApp->mDDInterface->DrawTrianglesTex(aTexture, aFirst, 1, NULL, Color(aGrey, aGrey, aGrey, 255), 1, aMoveX, 0.0f, true);
 					TriVertex aSecond[1][3] = {{aVerts[1], aVerts[2], aVerts[3]}};
-					mApp->mDDInterface->DrawTrianglesTex(aTexture, aSecond, 1, NULL, Color(aGrey, aGrey, aGrey, 255), 1, 1.0f, 0.0f, true);
+					mApp->mDDInterface->DrawTrianglesTex(aTexture, aSecond, 1, NULL, Color(aGrey, aGrey, aGrey, 255), 1, aMoveX, 0.0f, true);
 				}
 			}
 		}

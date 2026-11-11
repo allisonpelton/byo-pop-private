@@ -702,7 +702,22 @@ void MainMenu::Draw(Graphics* g)
 	int anOffset = (int)mApp->ScaleNum(mSlide.GetOutVal(), 0.0);
 	if (!mBackdropClear && mBackdropImage != NULL)
 		g->DrawImage(mBackdropImage, 0, 0);
-	g->DrawImage(IMAGE_MAIN_GADGETS, 0, anOffset);
+	if (is3d)
+	{
+		// the 3D game's picture of the gadgets holds the pill of the "More Games" button, which the port leaves out (the button's
+		// label is the button's own picture), so the rectangle round the pill is the one part of it that is not drawn; the 2D game's
+		// picture has no such pill
+		int aCutLeft = mApp->ScaleNum(600, 0);
+		int aCutRight = mApp->ScaleNum(788, 0);
+		int aCutTop = mApp->ScaleNum(660, 0);
+		int aWidth = IMAGE_MAIN_GADGETS->mWidth;
+		int aHeight = IMAGE_MAIN_GADGETS->mHeight;
+		g->DrawImage(IMAGE_MAIN_GADGETS, 0, anOffset, Rect(0, 0, aCutLeft, aHeight));
+		g->DrawImage(IMAGE_MAIN_GADGETS, aCutRight, anOffset, Rect(aCutRight, 0, aWidth - aCutRight, aHeight));
+		g->DrawImage(IMAGE_MAIN_GADGETS, aCutLeft, anOffset, Rect(aCutLeft, 0, aCutRight - aCutLeft, aCutTop));
+	}
+	else
+		g->DrawImage(IMAGE_MAIN_GADGETS, 0, anOffset);
 	if (mSecretShown)
 		g->DrawImage(IMAGE_MAIN_SECRET_FRAME, mApp->ScaleNum(0x174, 0), mApp->ScaleNum(0x213, 0) + anOffset);
 

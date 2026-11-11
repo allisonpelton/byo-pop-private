@@ -80,8 +80,8 @@ int EnemiesOnShip(Shooter* theShip)
 {
 	int aCount = 0;
 	List_Each(&gLevels.current->enemies, [&](Enemy* anEnemy) {
-		if (CircleOverlap(theShip->x, theShip->y, (float)(theShip->image->h / 3), anEnemy->x, anEnemy->y,
-				(float)(anEnemy->image->h / 3)) != 0.0)
+		if (CircleOverlap(theShip->x, theShip->y, (float)(theShip->image->mH / 3), anEnemy->x, anEnemy->y,
+				(float)(anEnemy->image->mH / 3)) != 0.0)
 			aCount = aCount + 1;
 	});
 	return aCount;
@@ -320,7 +320,7 @@ bool Safe(Level* theLevel, const Grid& theGrid, int theCol, int theRow, bool the
 	List_Each(&theLevel->enemies, [&](Enemy* anEnemy) {
 		if (!aSafe || anEnemy->image == nullptr || anEnemy->ice != nullptr)
 			return;
-		float aRadius = std::min((float)anEnemy->image->w * 0.5f, 22.0f);
+		float aRadius = std::min((float)anEnemy->image->mW * 0.5f, 22.0f);
 		float aLx = theAcross ? aLo : aSx;
 		float aLy = theAcross ? aSy : aLo;
 		float aHx = theAcross ? aHi : aSx;

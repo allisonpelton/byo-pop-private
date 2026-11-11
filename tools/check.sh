@@ -152,8 +152,10 @@
 #                the frozen build/baseline-typershark/typershark.exe's (the quick form runs the 5 shortest games, about a minute;
 #                the whole set several minutes)
 #   oracle       Bejeweled's oracle three ways (compare.sh --variants default,forcevariant,novariants); over
-#                ten minutes, so never in a subagent; refuses to start while another oracle runs
-# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark; all = every suite, builds first.
+#                ten minutes, so never in a subagent; refuses to start while another oracle runs. Not in `all`: it
+#                compares Bejeweled's game logic with the original's, which a change outside games/bejeweled leaves as
+#                Bejeweled's frozen baseline (verify) already proves; merge mode runs it when games/bejeweled changes
+# Sets: quick = build unit; games = bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark; all = every suite but the oracle, builds first.
 #
 # Prints "PASS <suite> (<seconds>s): <summary>" or "FAIL <suite> (<seconds>s): <summary> -> <log>" for each,
 # then "check: N passed, M failed". Exits 0 only when all passed. Logs: build/logs/check/<suite>.txt (and
@@ -178,6 +180,8 @@
 #   games/<g>/**   build, unit, the game's own suites (bejeweled: build-nov verify modmenu livesplit oracle; bigmoney:
 #                  bigmoney livesplit; bookworm: bookworm livesplit; any other game: the suite of its name, if there is one)
 #                  and the web build of that game only (build-web:<g>; Bejeweled's also rulestest and bejeweled_verify)
+#   engines/<e>/** a shared engine (docs/ENGINES.md): build, unit, the suites of every game whose CMakeLists.txt names the
+#                  engine (retro64: cosmicbugs and waterbugs), and the web build of those games only
 #   web/**, cmake/ByopopWeb.cmake, cmake/ByopopStores.cmake, platform/saveimport.json
 #                  build-web and unit-web (seconds when only the listing page changed, but a change to web/modpanel.js,
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
@@ -271,7 +275,9 @@ QUICK_ENV="${CHECK_QUICK:-0}"  # 1: every suite named runs its quick form
 
 # The suites in the order `all` runs them (origrun is not in `all`), and the game suites among them
 GAME_SUITES=(bookworm bigmoney noahsark atomica alchemy sevenseas pixelus bookwormadv bookwormadv2 tiptop mummymaze ningpo wordharmony cosmicbugs waterbugs rocketmania dynomite mahjongjapan mahjongchina bonnies bejeweledtwist bejeweled2 astropop typershark)
-ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
+# the oracle is left out of `all` and of shared code's "every suite" (the user, 2026-11-11: "Seems like the Bejeweled oracle
+# is causing a lot of slowdown for no benefit"); it runs when games/bejeweled changes, or when named
+ALL_SUITES=(build build-web build-nov unit unit-web gpu verify modmenu livesplit "${GAME_SUITES[@]}")
 ORDER=(build build-web build-nov unit unit-web gpu origrun verify modmenu livesplit "${GAME_SUITES[@]}" oracle)
 known_suite() { case " ${ORDER[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 is_game_suite() { case " ${GAME_SUITES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
@@ -297,7 +303,7 @@ area_of() {  # <path>: sets AREA to the folder a path is listed under in the pla
 	top="${p%%/*}"; rest="${p#*/}"
 	if [ "$top" = "$p" ]; then AREA="$p"; return; fi
 	case "$top" in
-		games|tools) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$p"; fi ;;
+		games|tools|engines) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$p"; fi ;;
 		platform|third_party) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$top"; fi ;;
 		cmake) AREA="$p" ;;
 		*) AREA="$top" ;;
@@ -322,6 +328,15 @@ pick() {
 }
 
 web_add() { [ -n "${WEB_SEEN[$1]:-}" ] || { WEB_SEEN[$1]=1; WEB_T+=("$1"); }; }  # <target>: a web target to build (when the whole web build is not chosen)
+
+# engine_games <engine>: the games built on a shared engine (engines/<engine>), found by the engine's name in their
+# CMakeLists.txt
+engine_games() {
+	local f
+	for f in games/*/CMakeLists.txt; do
+		grep -q "\b$1\b" "$f" && { f="${f#games/}"; echo "${f%%/*}"; }
+	done
+}
 
 # game_suites <game>: sets GS to the suites that test the game, besides build and unit
 game_suites() {
@@ -353,6 +368,14 @@ classify() {  # <path>: chooses the suites a changed file needs
 				note build-web "$AREA" "$p"
 				if [ "$g" = bejeweled ]; then web_add bejeweled; web_add rulestest; web_add bejeweled_verify; else web_add "$g"; fi
 			fi ;;
+		engines/*/*)  # a shared engine (docs/ENGINES.md): the suites of every game that is built on it
+			x="${p#engines/}"; x="${x%%/*}"
+			pick build "$AREA" "$p"; pick unit "$AREA" "$p"
+			for g in $(engine_games "$x"); do
+				game_suites "$g"
+				for s in $GS; do pick "$s" "$AREA" "$p"; done
+				if [ -f "games/$g/CMakeLists.txt" ]; then note build-web "$AREA" "$p"; web_add "$g"; fi
+			done ;;
 		web/*|cmake/ByopopWeb.cmake|cmake/ByopopStores.cmake)
 			pick build-web "$AREA" "$p"; pick unit-web "$AREA" "$p"
 			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses,
@@ -530,7 +553,7 @@ done
 case "$JOBS" in
 	1|2|3) ;;
 	""|0|*[!0-9]*) echo "check.sh: --jobs takes 1, 2 or 3" >&2; exit 2 ;;
-	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes at a time CLAUDE.md allows; using 3" >&2; JOBS=3 ;;
+	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes one check may take (CLAUDE.md); using 3" >&2; JOBS=3 ;;
 esac
 
 if [ -n "$CHANGED" ]; then

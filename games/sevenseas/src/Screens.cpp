@@ -53,13 +53,14 @@ TitleScreen::~TitleScreen()
 	delete mPlayLink;
 }
 
-// 0x426180 / 0x4261b0
+// 0x426180
 void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
+// 0x4261b0
 void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -74,7 +75,7 @@ void TitleScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 	mPlayLink->Resize((mWidth - aWidth) / 2, 0x177, aWidth, 0x18);
 }
 
-// 0x425fb0
+// 0x425fb0 (0x426140, the sparkle's new place, is the tail of its loop, which Ghidra left outside the function)
 void TitleScreen::Update()
 {
 	Widget::Update();
@@ -163,6 +164,7 @@ IntroWidget::IntroWidget(SevenSeasApp* theApp) :
 	mStarting = false;
 }
 
+// 0x416d50
 IntroWidget::~IntroWidget()
 {
 	delete mPlayButton;
@@ -182,7 +184,7 @@ void IntroWidget::SetDifficulty(int theDifficulty)
 	}
 }
 
-// 0x417290 / 0x4172e0
+// 0x417290
 void IntroWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
@@ -192,6 +194,7 @@ void IntroWidget::AddedToManager(WidgetManager* theWidgetManager)
 		theWidgetManager->AddWidget(mWheels[i]);
 }
 
+// 0x4172e0
 void IntroWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -217,9 +220,9 @@ void IntroWidget::Update()
 {
 	Widget::Update();
 	// the pirate welcomes the player: the first time the menu shows after the program starts
-	if (mApp->mFlag4c4 && (mUpdateCnt == 0x3c))
+	if (mApp->mPirateWelcome && (mUpdateCnt == 0x3c))
 	{
-		mApp->PlaySample(0xf);
+		mApp->PlaySample(SOUND_TALKWELCOMETOSEVENSEAS);
 		mApp->mTalkWidget->SetMouth(0);
 	}
 	if ((mUpdateCnt > 0x3c) && !mApp->mTalkWidget->mTalkingNow)
@@ -252,7 +255,7 @@ void IntroWidget::Draw(Graphics* g)
 	g->DrawImage(anImages[IMAGE_INTROSCREEN], 0, 0);
 	g->SetFont(mApp->mFonts[FONT_MT22]);
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	if (!mApp->mFlag4c4)
+	if (!mApp->mPirateWelcome)
 	{
 		SexyString aText = GT(0x004a3c58);
 		g->DrawString(aText, 0x12a - g->GetFont()->StringWidth(aText) / 2, 0x32);
@@ -292,17 +295,17 @@ void IntroWidget::ButtonDepress(int theId)
 		if (aTalk == 0)
 		{
 			mApp->mTalkWidget->SetMouth(5);
-			mApp->PlaySample(0x13);
+			mApp->PlaySample(SOUND_TALKHOISTSAIL);
 		}
 		else if (aTalk == 1)
 		{
 			mApp->mTalkWidget->SetMouth(6);
-			mApp->PlaySample(0x14);
+			mApp->PlaySample(SOUND_TALKALLHANDS);
 		}
 		else if (aTalk == 2)
 		{
 			mApp->mTalkWidget->SetMouth(7);
-			mApp->PlaySample(0x15);
+			mApp->PlaySample(SOUND_TALKAYEAYE);
 		}
 		if (theId == 0)
 		{
@@ -357,15 +360,18 @@ MapWidget::MapWidget(SevenSeasApp* theApp) :
 	mApp->SetCursor(0);
 }
 
+// 0x417750
 MapWidget::~MapWidget()
 {
 }
 
+// port: the framework hook; the map adds nothing of its own to the manager
 void MapWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 }
 
+// port: the framework hook
 void MapWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -604,7 +610,7 @@ void TalkWidget::SetMouth(int theSet)
 	mStepTime = kMouthSteps[theSet][0][1];
 }
 
-// 0x419ce0
+// 0x419ce0 (0x419ab0, the end of a talk: the flag off and a redraw, is inline in it)
 void TalkWidget::Update()
 {
 	Widget::Update();
@@ -713,6 +719,7 @@ static const int kRankThresholds[18] = {100, 200, 500, 1000, 2000, 4000, 6000, 8
 // 0x4a3608..: Wharf Rat ... Grand Admiral: the rank names are read from the exe by their addresses
 static const unsigned int kRankNameAddr[9] = {0x4a3708, 0x4a36f4, 0x4a36e0, 0x4a36cc, 0x4a36b8, 0x4a36a4, 0x4a3684, 0x4a3668, 0x4a3650};
 
+// port: the rank names are read from the exe by their addresses (above)
 const char* HighScoreWidget::RankName(int theScore)
 {
 	int aIdx = 0;
@@ -750,17 +757,20 @@ HighScoreWidget::HighScoreWidget(SevenSeasApp* theApp) :
 	LoadScores();
 }
 
+// port: the destructor; the original's only runs its members' destructors
 HighScoreWidget::~HighScoreWidget()
 {
 	delete mNewGameButton;
 }
 
+// 0x411190: the original adds two buttons, the New Game button and the one that submits the score online (not ported)
 void HighScoreWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mNewGameButton);
 }
 
+// 0x4111c0
 void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
@@ -985,6 +995,7 @@ void HighScoreWidget::Draw(Graphics* g)
 	}
 }
 
+// 0x412c80: the New Game button shows the menu (the original's other button, the online score submission, is not ported)
 void HighScoreWidget::ButtonDepress(int theId)
 {
 	if (theId == 1)
@@ -1011,35 +1022,35 @@ void HighScoreWidget::LoadScores()
 	bool aOk = true;
 	struct Local
 	{
-		static int Int(const std::string& d, size_t& p, bool& ok)
+		static int Int(const std::string& d, size_t& thePos, bool& ok)
 		{
 			int v = 0;
-			if (p + 4 > d.size())
+			if (thePos + 4 > d.size())
 				ok = false;
 			else
 			{
-				memcpy(&v, d.data() + p, 4);
-				p += 4;
+				memcpy(&v, d.data() + thePos, 4);
+				thePos += 4;
 			}
 			return v;
 		}
-		static std::string Name(const std::string& d, size_t& p, bool& ok)
+		static std::string Name(const std::string& d, size_t& thePos, bool& ok)
 		{
-			if (p + 2 > d.size())
+			if (thePos + 2 > d.size())
 			{
 				ok = false;
 				return "";
 			}
 			unsigned short aLen;
-			memcpy(&aLen, d.data() + p, 2);
-			p += 2;
-			if (p + aLen > d.size())
+			memcpy(&aLen, d.data() + thePos, 2);
+			thePos += 2;
+			if (thePos + aLen > d.size())
 			{
 				ok = false;
 				return "";
 			}
-			std::string s = d.substr(p, aLen);
-			p += aLen;
+			std::string s = d.substr(thePos, aLen);
+			thePos += aLen;
 			return s;
 		}
 		static unsigned int Check(const std::string& name, int score)

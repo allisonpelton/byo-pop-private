@@ -288,8 +288,62 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    The music (a module stream) was not compared with the original's in phase two: its start, stop and focus handling remain to be
    checked, if origrun can see them.
 3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
-   waits for `docs/MOD_ROADMAP.md`'s turn. Still to do for the game to be done: the performance numbers and pass, the coverage check,
-   the readability pass (`docs/CODE_STANDARDS.md`), taking out code the game does not need.
+   waits for `docs/MOD_ROADMAP.md`'s turn. The coverage check is done (section 10). Still to do for the game to be done: the performance
+   numbers and pass, taking out code the game does not need, the readability pass (`docs/CODE_STANDARDS.md`), the check against the
+   PopCap Game Collection's copy, and a night run of the original in 3D for the screen wipe (section 10).
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
+
+## 10. The coverage check (2026-11-11; `docs/COVERAGE.md`, `games/astropop/coverage.txt`)
+
+**The runs.** The original ran on the host under origrun's `--coverage` (`--reg-map popcap`; the PopCap registry key wiped before each
+run and the player's profile put back by `reg import`) over three kinds of play: the scripted tours (menus, options and the second
+tour of them, halls, users, the second and third tour of the player list, the lost-data start, the quit and pause tours, the ships
+screen, the scrolling list), whole games that the port's own bot plays (`origcmp/record.py`, replayed as an origrun script: classic
+and survival from the first level, from later checkpoints, with every pilot and a charged weapon, the survival end with every mode
+unlocked) and the tours that had been made for the comparison itself. 43 runs between them reach 947 of the 1,383 functions of the
+game's own code (0x401000 to 0x48b7a0); the port defines 720 and leaves out 305 on purpose (library templates, compiler-made
+destructors, one-line helpers written inline, the framework's functions that the linker placed among the game's, overrides that nothing
+calls: each with its reason in `coverage.txt`).
+
+**What it found** (every gap in list one, the functions the original ran and the port had no counterpart for, and each fault found
+by reading list two against the export; each was then compared again with the original by a tour):
+- Deleting a player: the list of the box of names is rebuilt by the box's own function (0x489ba0, every player in the registry's
+  order), not by the list that puts the current player first; `ListDialog::RebuildList` is pure now and each box has its own.
+- The Hall of Fame's buttons click when they go down (0x435120), as the screens of the menu and of the characters do.
+- A menu button called its listener's mouse-enter and mouse-leave slots twice (the framework's `ButtonWidget` already calls them),
+  which made the secret order of hovers fail at its second step: the ships screen of section 8 now starts as in the original
+  (tour `ships1`, where the original's script gets `origcmd` lines for the keys that the port's has no button for).
+- The ships screen's background wash is half transparent (the original sets the colour's alpha to 0x80 after making it).
+- The options screen's two sliders are the 2004 kind (`Slider2004`): a press on the track outside the thumb does nothing and
+  `SetValue` does not clamp (`docs/FRAMEWORK_2004.md`, section 8; tour `opts2`).
+- The list box's page size is a float's worth: the original's x87 rounds `(height - 8) / line height` to 24 bits, and the port's
+  double put the lines of a scrolled list one pixel higher in three positions out of eight (found by the tour `scroll1`: the
+  arrows, the track, the thumb and a click on a line, then NEW with ten players, which shows the "too many players" box). `ListDialog::Resize`
+  rounds the page size to float and hands it to the scroll bar. Other 2004 games with a `ListWidget` may show the same shift.
+- `resgen.py` writes each resource group's function with the original's address, in the original's order (by name), and
+  `LoadImageById` (0x420ea0); `resgen.py --check` reads all 44 groups of the exe again against `Res.cpp` (the same resources, by
+  name, with the getter of their kind): all 44 agree. The 34 groups that no run loads (the pages of the pilots' stories, the end
+  scene, the More Games page) are covered by this check.
+- Addresses that named the wrong function (`GetPilotLevel` 0x40e930 was cited for its one-line helper, the Ships screen's and the
+  list box's destructors for their deleting wrappers) were corrected, so that the comments and the report agree.
+- The tour harness has `origcmd` (a command only the original's script gets), and the tours `users2`, `users3`, `resume1`, `ships1`,
+  `opts2`, `scroll1` and `lost1` (a start with players in the registry and no data files: the boxes that say a player's data was lost)
+  keep the findings above from coming back.
+
+**Read again** (list two: defined in the port and never reached by any run; each compared with the export function by function, with
+nothing found that differs): the Turbot and Sprocket brick events (0x401780, 0x4017a0, 0x4026d0, 0x402670, 0x402710), the overlay of the
+Turbot's power-up (0x4022f0), the brick kinds' settle, draw and activate functions (0x403420, 0x403860, 0x403930, 0x402b30, 0x402d20),
+the board's `RecordStep` (0x434570), `PulsePair::Update` (0x433850), the mutation counter's event (0x438e10), the piece-brick event
+(0x451430), the power brick's done event (0x45e920), the search for a move that is left (`AnalyseSecond` 0x453a50 and `RunTotal` 0x43a960 of `AnyMoveLeft`),
+the pause that a full field makes at its start (0x4329c0), the weapon box's key and height (0x483a20, 0x483b90), the dialog's line setters
+(0x4840c0, 0x487970, 0x4879d0, 0x4897b0), `SetMusicVolumeFloat` (0x408b70) and the four steps of the 3D screen wipe with its draw and its
+check (0x40b340, 0x40b430, 0x40b540, 0x40b5e0, 0x426370, 0x4264a0). The screen wipe plays only in 3D (`RedrawAfterDialog` closes the
+board first when the screen is not accelerated) and the original in Windows Sandbox has no Direct3D, so a run that reaches it is a
+night run on the visible desktop; it is listed under the next steps.
+
+**Candidates for taking out** (no play of the original reaches them and the port's own code never calls them; they go in the pass that
+takes out what the game does not need): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x4062b0), the fuel cell's `GetColumn` and `GetRow`
+(0x402a70, 0x402a80: slots of the brick's table that nothing calls), the application's `HandleCmdLineParam` (its one switch, `-mycrash`,
+sets a flag that only the crash report reads) and `DoDialog` overrides (0x40e060, 0x412360, which no code of the game or framework calls).

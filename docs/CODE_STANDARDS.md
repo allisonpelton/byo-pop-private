@@ -16,7 +16,8 @@ Two things hold above every rule:
    carry (a save's field names, a script command) is a format and keeps its spelling.
 2. **Every name says what it holds** (checked). No decompiler names (`local_1c`, `param_2`, `DAT_00506560`,
    `FUN_004cb182`), no `mUnknown` or `mUnk`, no generic word with a number (`mPad04`, `aInt3`, `aDummy`), no word
-   followed by an offset or address (`mScale288`, `Rand85B970`), and no comment that says "unknown" in place of a name.
+   followed by an offset or address (`mScale288`, `Rand85B970`), no prefix followed by nothing but one (`m70`, `m1a34`),
+   and no comment that says "unknown" in place of a name.
    A number that carries meaning is fine (`mSwapPiece1`).
 3. **A field nobody reads** is named for what it holds, and its comment says that nothing reads it. It comes out only
    where nothing depends on it: a save's layout, a struct written raw, a state hash and the order of random draws all
@@ -28,7 +29,9 @@ Two things hold above every rule:
 6. **Every function names its address, or says it is the port's** (checked): `// 0x4cd287` above the definition or on
    its declaration, or a `port:` marker (`port(variant):` for a code mod's path, `port(mods):` for a mod hook). A helper
    split out of an original function names that function. A file whose first comment carries the marker needs none on
-   each function.
+   each function. In an engine that games share (`engines/<name>`, `docs/ENGINES.md`) each address names its game, with
+   the game's folder name: `// 0x40c2e0 (cosmicbugs), 0x40c4d0 (waterbugs)`, a range as `0x40c1a0..0x40c890 (cosmicbugs)`;
+   a game's checks read its own and pass over the other games', and a function only one game has gives only its address.
 7. **A number gets a name** when the same value means the same thing in more than one place, or when the line and its
    comment do not make its meaning plain.
 8. **Comments describe the code as it is:** what it does and why, the original's behaviour, why the port departs from
@@ -40,12 +43,14 @@ Two things hold above every rule:
 
 ## Tools
 
-- `python tools/namecheck.py games/<game>` checks rules 2, 5 and 6, and rule 8's stage labels (its `stage` check: a
+- `python tools/namecheck.py games/<game>` checks rules 2 (its `hexname` check finds the bare offset names), 5 and 6, and rule 8's stage labels (its `stage` check: a
   comment with "stage", "phase" or "milestone" and a number; where that is the game's own word or a file's name, an
   `allow stage` line), and exits nonzero on any finding. `--list` also
   prints what the exceptions allow, and `--checks` picks checks. Exceptions go in `games/<game>/namecheck.txt`, one a
   line, each with its reason after ` -- `. A `folder <name>` line there adds another source folder of the game to the
-  check, for a port that has an engine of its own beside `src/` (Mahjong Escape's `engine/`).
+  check, for a port that has code of its own beside `src/`; an `engine <name>` line
+  adds a shared engine, `engines/<name>`, and runs its comments through the `tag` check as well (an address without its
+  game's tag in a shared engine is a finding).
 - `python tools/splitfields.py <game> --export <the export's per-function folder>` lists members that may be one
   field declared twice (the same offset under two names), read but never assigned, or touched by the original's
   function and never named in its translation. Each finding is a place to read, not a fault; a pass judges them all.
@@ -59,6 +64,12 @@ Two things hold above every rule:
   confused.
 - A whole-word rename also reaches quoted strings and log lines, which the object-code comparison does not show:
   check separately that no string of the sources changed.
+- The native build compiles none of a game's web-only code (`__EMSCRIPTEN__` blocks, files only the web build lists),
+  so neither the compiler-driven renames nor objsnap reach it: run `tools/check.sh build-web:<game>` after the renames
+  (Water Bugs' found old names there). Its notes ("The readability pass") have a clang-tidy recipe for renaming every
+  member, parameter, local and global at once.
+- splitfields' export check pairs only `Class::method` definitions with their addresses, so it finds little in a port
+  written as free functions (Water Bugs, Cosmic Bugs).
 - The coverage check reads rule 6's addresses (`docs/COVERAGE.md`).
 
 Each game's notes record what its pass changed.

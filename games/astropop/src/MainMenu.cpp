@@ -94,7 +94,7 @@ namespace
 	}
 }
 
-// 0x454ee0
+// 0x454ee0 (each button's hit mask and its width are set by 0x434aa0, here two assignments)
 MainMenu::MainMenu(AstroPopApp* theApp)
 {
 	mParticleLevel = 0;
