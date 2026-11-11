@@ -134,7 +134,7 @@ public:
 		float mAngle = 0.0f;  // +8
 	};
 	struct Sprite {  // 0x14 bytes
-		float mX = 0.0f, mY = 0.0f, mVX = 0.0f, mVY = 0.0f, mSeed = 0.0f;
+		float mX = 0.0f, mY = 0.0f, mVX = 0.0f, mVY = 0.0f;  // (+0x10: a fifth rand draw that nothing reads, left out)
 	};
 	int mCount = 0;                    // +0x24
 	Sprite mSprites[500];              // +0x28 (the original has a pointer to each)
@@ -826,7 +826,6 @@ public:
 	void Init() override;                        // 0x690ac9
 	void Update() override;                      // 0x6913fe
 	void Draw(Graphics* g) override;             // 0x691533
-	bool Slot4(char theChar) override;           // 0x690af4: b, c, e, g and r
 	void NextLook() override;                    // 0x690ad3
 	void NewLevel() override;                    // 0x68f572
 	// slot 8 (0x691da5): the name for the debug text (the port's Visualizer has no slot 8, so this is not an override)

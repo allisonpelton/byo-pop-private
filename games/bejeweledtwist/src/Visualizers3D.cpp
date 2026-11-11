@@ -716,8 +716,7 @@ void WindCloud::Init()
 		aSprite->mVX = (float)((1.0 - (double)(float)(aRand % 2000) / 1000.0) * 1.2);
 		aRand = CrtRand();
 		aSprite->mVY = (float)((1.0 - (double)(float)(aRand % 2000) / 1000.0) * 1.2);
-		aRand = CrtRand();
-		aSprite->mSeed = (float)(aRand % 800);
+		CrtRand();  // the draw for +0x10, which nothing reads, kept for the order of the draws
 		aSprite++;
 		aCount--;
 	} while (aCount != 0);

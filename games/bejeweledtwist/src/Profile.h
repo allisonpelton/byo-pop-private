@@ -97,15 +97,12 @@ public:
 
 	static std::string GetUserFolder(const SexyString& theName);  // 0x73400c: "<app data>users\<file name>"
 
-	bool IsGemTypeUnlocked(int theBit) const { return (mGemTypesUnlocked & (1u << (theBit & 31))) != 0; }
 	void SetGemTypeUnlocked(int theBit, bool on);           // 0x7337f8
 	bool HasSeenTip(int theBit) const { return (mTipsSeen & (1u << (theBit & 31))) != 0; }  // 0x733897
 	void SetTipSeen(int theBit, bool on);           // 0x7338b6
-	bool GetSavedBit(int theBit) const;               // 0x733838
                                       // 0x73378b: the mode is open to the player (mModesUnlocked's bit); blitz never in an unregistered copy
 	bool IsModeUnlocked(int theMode) const;
 	void UnlockMode(int theMode) { mModesUnlocked |= 1u << (theMode & 31); }  // 0x7337c2
-	void SetSavedBit(int theBit);                     // 0x73386e
 };
 
 }  // namespace Sexy

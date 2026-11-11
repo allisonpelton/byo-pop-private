@@ -240,7 +240,6 @@ public:
 	void SetTimeFull(int theValue) { mTimeFull = theValue; }  // 0x702b6a
 	void SetShowTenths(bool on) { mShowTenths = on; }         // 0x702bce
 	bool IsIdle() { return mBonusTimer <= 0.0f && !(0.0f < mBestPulse) && !(0.0f < mBestPulseOut); }  // 0x702bde
-	bool IsTimerStartedFull() { return mTimeKind == 4; }         // 0x702b7a
 	void SetTime(int theTime, bool theAtOnce);     // 0x7036eb: blitz's time; theAtOnce shows it at once
 	void StartTimer(bool theFull, bool theDrawTime);  // 0x707329
 	void SetColor(const Color& theColor, bool theAtOnce);   // 0x70c8b6: the cycle runs from the last colour to it
