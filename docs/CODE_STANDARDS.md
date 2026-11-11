@@ -40,7 +40,9 @@ Two things hold above every rule:
 
 ## Tools
 
-- `python tools/namecheck.py games/<game>` checks rules 2, 5 and 6 and exits nonzero on any finding. `--list` also
+- `python tools/namecheck.py games/<game>` checks rules 2, 5 and 6, and rule 8's stage labels (its `stage` check: a
+  comment with "stage", "phase" or "milestone" and a number; where that is the game's own word or a file's name, an
+  `allow stage` line), and exits nonzero on any finding. `--list` also
   prints what the exceptions allow, and `--checks` picks checks. Exceptions go in `games/<game>/namecheck.txt`, one a
   line, each with its reason after ` -- `.
 - `tools/macmatch.py` pairs a Mac build's names with the export's functions (`docs/MACMATCH.md`).
