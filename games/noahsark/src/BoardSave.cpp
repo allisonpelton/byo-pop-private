@@ -113,12 +113,6 @@ const SexyString& Board::HintLine(int theIndex, int theLine)
 	return GT(aLines[theIndex][theLine]);
 }
 
-// the saved game numbers the two obstacles the other way round: the port's 0xf (PlaceCrates) is the original's 0x10 there
-static int FileType(int theType)
-{
-	return (theType == 0xf) ? 0x10 : ((theType == 0x10) ? 0xf : theType);
-}
-
 std::string Board::SavePath()
 {
 	// port(mod): games played with mods that change play have their own saved game
@@ -210,7 +204,7 @@ std::string Board::SaveState()
 			aWriter.Int(aPiece->mX);
 			aWriter.Int(aPiece->mAlpha);
 			aWriter.Byte(aPiece->mPending);
-			aWriter.Int(FileType(aPiece->mType));
+			aWriter.Int(aPiece->mType);
 			aWriter.Byte(aPiece->mSelected);
 			aWriter.Int(aPiece->mDestX);
 			aWriter.Int(aPiece->mDestY);
@@ -315,7 +309,7 @@ bool Board::LoadState(const std::string& theData)
 			aPiece->mX = aReader.Int();
 			aPiece->mAlpha = aReader.Int();
 			aPiece->mPending = aReader.Byte();
-			aPiece->mType = FileType(aReader.Int());
+			aPiece->mType = aReader.Int();
 			aPiece->mSelected = aReader.Byte();
 			aPiece->mDestX = aReader.Int();
 			aPiece->mDestY = aReader.Int();
