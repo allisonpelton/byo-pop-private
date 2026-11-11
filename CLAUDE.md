@@ -39,8 +39,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
   private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
   and its MessageBeep calls with no sound, unless `--msgbox show` (a box then rings, as do boxes called through
-  GetProcAddress, `--sound real` runs and games that never load the stand-in; `docs/ORIGRUN.md`). It has no guard
-  against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
+  GetProcAddress, `--sound real` runs and games that never load the stand-in; `docs/ORIGRUN.md`). Its network block
+  and launch guard fail a copy's connections and its ShellExecute, WinExec and CreateProcess launches, but not a COM
+  launch or a game that never loads the stand-in, so a script still never clicks a link, "Buy" or "More Games"
+  button. When a run really
   needs real sound, the user turns the speakers off for a short stretch or overnight. An original counts as a game
   process.
 - Open web builds in the Browser pane only with `?silent=1`, e.g. `http://127.0.0.1:18766/bejeweled.html?silent=1`
@@ -108,6 +110,14 @@ Every call re-reads the whole context, so what costs is context times calls, and
   or one Bash command with the reads separated by `echo ---`.
 - Test with `tools/check.sh <suite>...` (`--help` lists them): one line per suite, logs in files.
 - Give an agent the files and sections it needs, so it need not read the design docs to find them.
+- **Cleared between steps (2026-11-11; the user: "If you find ways to work more efficiently, take them").** Re-reading
+  its own conversation is about two thirds of what a session spends: about 230k tokens a call across sessions that
+  day, against about 70k for a fresh one. A session is cleared at each pause between steps. That pause is either a
+  merge request sent, or nothing of its own running in the background with its work safe in the tree. At that pause it
+  writes `build/handoff.md` in its worktree (git-ignored), under about 150 lines of facts: the step and what done looks
+  like, what is committed, what is half done with the exact next actions, the commands and flags it runs, what it waits
+  for, open questions, and what its notes do not say yet. It then tells the coordinator, who clears it and has it
+  continue from the note. Monitors notify when a run ends, not on progress lines.
 
 ## Sessions, ownership and git
 

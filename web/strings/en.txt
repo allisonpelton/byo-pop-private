@@ -34,6 +34,7 @@ library.col.status = Status
 library.col.time = Play time
 library.col.last = Last played
 library.col.year = Year
+library.col.phase = Phase
 library.status.ready = Ready
 library.status.files = Needs your files
 library.status.soon = Coming soon
@@ -50,6 +51,10 @@ library.menu.props = Properties
 library.props.title = {game} Properties
 library.props.released = Released
 library.props.plays = Plays
+library.props.first = First played
+library.props.player = Player
+library.props.no_player = (none)
+library.props.removed = (removed)
 library.props.win95 = Windows 95
 library.props.yes = Yes
 library.props.no = No
@@ -75,6 +80,8 @@ skin.apps.about = About {game}
 skin.apps.empty = (Empty)
 skin.apps.fit = Fit window
 skin.apps.scale = {n}x
+skin.apps.scale_tip = Window size
+skin.apps.speed = Speed {n}
 skin.apps.scan_off = No scanlines
 skin.apps.scan_light = Light scanlines
 skin.apps.scan_strong = Strong scanlines
@@ -147,6 +154,25 @@ settings.wallpaper.remove = Remove
 settings.wallpaper.kept = A picture is kept
 settings.wallpaper.none_kept = No picture kept
 settings.wallpaperfit.label = Display
+settings.theme.label = Theme
+trophies.title = Trophy Cabinet
+trophies.player = Player:
+trophies.everyone = (All)
+trophies.today = Today
+trophies.col.table = Table
+trophies.col.place = #
+trophies.col.name = Name
+trophies.col.score = Score
+trophies.col.time = Time
+trophies.escape = Escape {n}
+trophies.count = {n} games
+settings.section.saver = Screen Saver
+settings.saver.label = Screen Saver
+settings.saver.none = (None)
+settings.saver.preview = Preview
+settings.saverwait.label = Wait
+settings.saverwait.minutes = {n} min
+settings.theme.none = (None)
 settings.wallpaperfit.hint = How a picture of your own sits on the desktop.
 settings.wallpaperfit.centre = Centre
 settings.wallpaperfit.tile = Tile
@@ -271,6 +297,13 @@ index.sort.said_time = Sorted by play time
 index.sort.said_plays = Sorted by plays
 index.sort.said_popular = Sorted by most popular
 index.unsold = Show games no longer sold
+index.find.label = Find
+# A game's phase on the listing, development hosts only (web/phase.js): "Done" when no step is left; the tooltip's lines
+# ({steps}: the step names, joined by commas)
+phase.done = Done
+phase.tip.done = Done: {steps}
+phase.tip.left = Left: {steps}
+phase.tip.na = Not needed: {steps}
 index.add.button = Add games
 index.bin.label = Forget a game's files
 index.bin.tooltip = Recycle bin: drop a game's cap here to forget its files
@@ -492,6 +525,7 @@ game.import.unpacking = Unpacking {names}…
 # {done} of {total} files copied so far
 game.import.progress_text = {done} of {total} files
 # {markers} names the files that make a folder the game's install (from the game's page), {title} the game
+game.import.exe = This copy's {exe} can't be read. The Steam or PopCap copy works.
 game.import.wrong_folder = Missing files: {markers}. Pick the {title} install folder
   itself.
 # A folder that holds a game the site recognises but does not play (cmake/ByopopOthers.cmake): elsewhere is followed by a link to
@@ -549,7 +583,7 @@ game.files.forget_ask_running = This removes the copied game files from the brow
   game closes first; a game in progress is saved.
 game.files.remove = Remove files
 
-game.settings.title = Settings: site-wide overrides
+game.settings.title = Settings
 game.settings.close = Close
 game.settings.player = The site’s player is {name}.
 game.settings.no_player = The site has no player yet.
@@ -569,9 +603,6 @@ time.under_minute = <1 min
 settings.game_default = Game default
 settings.on = On
 settings.off = Off
-# {default} is the "Game default" text above
-settings.about = Site-wide settings. {default} to use per-game settings.
-settings.about_live = Site-wide settings. {default} to use per-game settings.
 # The settings' sections: the name of their row of tabs (and of Desktop 95's folder of their icons), each section's name, and
 # the name of a section's icon in the folder ({name}: the section's)
 settings.sections = Sections
@@ -635,7 +666,7 @@ settings.pixelperfect.hint = The game at its own resolution, each pixel sharp, i
 
 # In a game's panel: the choice of whose settings the controls change
 settings.scope.legend = Change the settings for
-settings.scope.all = All games (site-wide)
+settings.scope.all = All games
 settings.scope.game = This game only
 # {name} is the game's name
 settings.scope.game_note = For {name} only.
@@ -676,6 +707,8 @@ import.err.no_locks = This browser can't tell whether {title}'s page is open, so
 import.err.working = This page is still working on {title}. Wait for it to finish and try again.
 import.err.in_use = {title}'s files are in use, by its page in another tab or window or by this page. Close
   the game's page, or wait, and try again.
+# a copy whose exe the port can't read its texts from (web/gameimport.js, exeUnreadable): one line, no more
+import.err.exe = This copy's {exe} can't be read. The Steam or PopCap copy works.
 import.err.wrong_folder = That folder doesn't hold {title}'s {markers}.
 import.say.unpacking = Unpacking…
 import.say.copying = Copying {count} files…

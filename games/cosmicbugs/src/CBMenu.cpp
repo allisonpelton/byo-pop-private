@@ -429,7 +429,7 @@ void MenuItem_TypeKey(MenuItem* theItem)
 			if (TextInput_GetText(anInput) != nullptr)
 				strcpy(aName, TextInput_GetText(anInput));
 			strcat(aName, aKey);
-			// (the original's buffer holds 16 characters; the word after it is cleared)
+			// (the original's buffer holds 16 characters; the byte after it is cleared, here four: the string is the same)
 			memset(aName + 16, 0, 4);
 			TextInput_SetText(anInput, aName);
 		}

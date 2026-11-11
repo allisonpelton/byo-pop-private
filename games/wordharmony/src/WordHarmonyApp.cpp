@@ -36,6 +36,9 @@ unsigned int gTestSeed = 0;
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
 
+// 0x48a450, the text WinMain shows for an exception that is not the engine's own (0x45559a)
+const char* const kUnknownException = "Exception Code Honeysuckle";
+
 // The framework's side of engine::Host
 class WordHarmonyHost : public engine::Host
 {
@@ -139,6 +142,7 @@ public:
 
 	void showMessage(const char* theCaption, const char* theText) override { gApp->MsgBox(theText, theCaption); }
 
+	// 0x443ca0: the sound system of the window (DirectSound)
 	engine::SoundSystem* createSoundSystem() override { return new wordharmony::HostSoundSystem(); }
 
 	std::string commandLine() override { return gApp->mCommandLine; }
@@ -150,6 +154,7 @@ WordHarmonyHost gHost;
 
 // The widget: the window procedure (0x455ac0) and the screen
 
+// 0x455a50: the window class made and registered (the widget is the framework's window's one widget)
 WordHarmonyWidget::WordHarmonyWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
@@ -158,6 +163,7 @@ WordHarmonyWidget::WordHarmonyWidget()
 	mLastLoop = gApp->GetClockTime();
 	mAccumulated = 0;
 	mLastSoundTick = gApp->mSteadyClock ? (DWORD)(gApp->mUpdateCount * gApp->mFrameTime) : mLastLoop;
+	ClearKeys();
 }
 
 WordHarmonyWidget::~WordHarmonyWidget()
@@ -214,23 +220,61 @@ void WordHarmonyWidget::Draw(Graphics* g)
 	g->DrawImage(mScreenImage, 0, 0);
 }
 
-// WM_KEYDOWN and WM_KEYUP: the virtual key
+void WordHarmonyWidget::ClearKeys()
+{
+	std::memset(mKeyIsDown, 0, sizeof(mKeyIsDown));
+}
+
+// The window procedure (0x454510), WM_KEYDOWN and WM_KEYUP: the virtual key. A WM_KEYDOWN whose bit 30 is set (the key
+// was already down: an auto-repeat) goes nowhere; the framework sends every repeat, so the widget keeps which keys are
+// down.
 void WordHarmonyWidget::KeyDown(KeyCode theKey)
 {
-	if (gApp->mEngineRunning)
-		engine::App::instance()->getRootWindow()->keyDown((int)theKey);
+	int aKey = (int)theKey;
+	bool aRepeat = false;
+	if (aKey >= 0 && aKey < 256)
+	{
+		aRepeat = mKeyIsDown[aKey];
+		mKeyIsDown[aKey] = true;
+	}
+	if (!aRepeat && gApp->mEngineRunning)
+		engine::App::instance()->getRootWindow()->keyDown(aKey);
 }
 
 void WordHarmonyWidget::KeyUp(KeyCode theKey)
 {
+	int aKey = (int)theKey;
+	if (aKey >= 0 && aKey < 256)
+		mKeyIsDown[aKey] = false;
 	if (gApp->mEngineRunning)
-		engine::App::instance()->getRootWindow()->keyUp((int)theKey);
+		engine::App::instance()->getRootWindow()->keyUp(aKey);
+}
+
+namespace
+{
+
+// 0x454240 (the limits are the window's width and height, 0x4386a0 and 0x4386b0): every mouse position the window procedure passes on is held inside the window (0 to its width less one and
+// its height less one; the window's +0xbc and +0xc0 are the 800x600 the window was made with): a drag that has left the
+// window, with the mouse captured, keeps its last place on the edge
+engine::Point clampToScreen(int x, int y)
+{
+	if (x < 0)
+		x = 0;
+	else if (x > SCREEN_WIDTH - 1)
+		x = SCREEN_WIDTH - 1;
+	if (y < 0)
+		y = 0;
+	else if (y > SCREEN_HEIGHT - 1)
+		y = SCREEN_HEIGHT - 1;
+	return engine::Point((float)x, (float)y);
+}
+
 }
 
 void WordHarmonyWidget::MouseMove(int x, int y)
 {
 	if (gApp->mEngineRunning)
-		engine::App::instance()->getRootWindow()->handleMouseMove(engine::Point((float)x, (float)y));
+		engine::App::instance()->getRootWindow()->handleMouseMove(clampToScreen(x, y));
 }
 
 void WordHarmonyWidget::MouseDrag(int x, int y)
@@ -245,9 +289,9 @@ void WordHarmonyWidget::MouseDown(int x, int y, int theBtnNum, int theClickCount
 		return;
 	engine::Window* aRoot = engine::App::instance()->getRootWindow();
 	if (theBtnNum == 0)
-		aRoot->handleMouseDown(engine::Point((float)x, (float)y));
+		aRoot->handleMouseDown(clampToScreen(x, y));
 	else if (theBtnNum == 1)
-		aRoot->handleRightDown(engine::Point((float)x, (float)y));
+		aRoot->handleRightDown(clampToScreen(x, y));
 }
 
 void WordHarmonyWidget::MouseUp(int x, int y, int theBtnNum, int theClickCount)
@@ -256,9 +300,9 @@ void WordHarmonyWidget::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 		return;
 	engine::Window* aRoot = engine::App::instance()->getRootWindow();
 	if (theBtnNum == 0)
-		aRoot->handleMouseUp(engine::Point((float)x, (float)y));
+		aRoot->handleMouseUp(clampToScreen(x, y));
 	else if (theBtnNum == 1)
-		aRoot->handleRightUp(engine::Point((float)x, (float)y));
+		aRoot->handleRightUp(clampToScreen(x, y));
 }
 
 // The app
@@ -305,7 +349,7 @@ void WordHarmonyApp::SetGameCommandLine(int argc, char** argv)
 	}
 }
 
-// WinMain (0x4552b0) up to its loop: the controller made and started
+// WinMain (0x4552b0) up to its loop: the controller made (0x407370) and started
 void WordHarmonyApp::Init()
 {
 	SexyAppBase::Init();
@@ -327,9 +371,13 @@ void WordHarmonyApp::Init()
 		engine::App::instance()->start(new Game());
 		mEngineRunning = true;
 	}
-	catch (const std::exception& e)
+	catch (const engine::Exception& e)
 	{
 		EngineFailed(e.what());
+	}
+	catch (...)
+	{
+		EngineFailed(kUnknownException);
 	}
 }
 
@@ -351,9 +399,14 @@ void WordHarmonyApp::RunFrame()
 		if (mStateLog != nullptr)
 			LogState();
 	}
-	catch (const std::exception& e)
+	catch (const engine::Exception& e)
 	{
 		EngineFailed(e.what());
+		return;
+	}
+	catch (...)
+	{
+		EngineFailed(kUnknownException);
 		return;
 	}
 	if (mQuitRequested)
@@ -371,6 +424,11 @@ void WordHarmonyApp::HandleCmdLineParam(const std::string& theParamName, const s
 	if (theParamName == "-statelog")
 	{
 		mStateLog = fopen(theParamValue.c_str(), "w");
+		return;
+	}
+	if (theParamName == "-inputlog")
+	{
+		mInputLog = fopen(theParamValue.c_str(), "w");
 		return;
 	}
 	if (theParamName == "-seed")
@@ -451,11 +509,14 @@ void WordHarmonyApp::LogState()
 	fflush(mStateLog);
 }
 
+// WinMain's catch blocks (0x455567 and 0x45559a, around a frame; 0x45578a shows the box): the engine's own exception shows
+// its message, anything else (a failed allocation, say) the fixed text of kUnknownException (0x45559a); the box is captioned
+// "Exception" with the error icon, and the loop ends
 void WordHarmonyApp::EngineFailed(const char* theWhat)
 {
 	SDL_Log("Word Harmony: %s", theWhat);
 	mEngineRunning = false;
-	MsgBox(theWhat, "Word Harmony");
+	MsgBox(theWhat, "Exception", MB_ICONERROR);
 	Shutdown();
 }
 
@@ -488,6 +549,8 @@ void WordHarmonyApp::GotFocus()
 void WordHarmonyApp::LostFocus()
 {
 	SexyAppBase::LostFocus();
+	if (mWidget != nullptr)
+		mWidget->ClearKeys();
 	if (mEngineRunning)
 		engine::App::instance()->getController()->activate(false);
 }

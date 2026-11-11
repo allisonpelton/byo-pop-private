@@ -27,6 +27,7 @@ class Graphics;
 class DialogButton;
 class WidgetManager;
 class Character;
+class MemoryImage;
 
 class StoryScreen : public Widget, public ButtonListener
 {
@@ -51,6 +52,8 @@ public:
 		std::vector<std::string> mLines;
 		int						mY;				// +0
 		double					mStart;			// +0x10 seconds into the screen when it comes in
+		MemoryImage*			mPortrait;		// +0x34 the speaker as drawn (160 by 160), +0x38 the frame with it
+		MemoryImage*			mFramed;
 		Character*				mCharacter;		// +0x30 the speaker's moods (0x42e110), which move from half a second after it comes in
 	};
 

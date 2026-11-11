@@ -235,3 +235,33 @@ carry a `port:` comment, eight one-letter names in `HDisplay.cpp`, `PGApp.cpp` a
 gaps of `PGEvent` are named for where they sit. Now 0 findings. `splitfields` finds no member declared twice. A rename
 changes no layout; `tools/check.sh ningpo build-web:ningpo` pass with the baseline identical. A fixes mod is not needed:
 no fix candidate was found in any pass.
+
+
+### The sound log (2026-11-11)
+
+`BYOPOP_SOUNDLOG=<file>` makes `PGSoundManager` and `HMixer` (`engine/HAudio.cpp`) write the framework's lines: `load`
+(with the sound's slot), `instance` and `play` (volume byte, pan byte, pitch 1.0000, loop), and `stop` (from
+`stopAll`; a sound that ends by itself writes none). The music writes no lines. With the log on and off
+`tools/check.sh ningpo` stays baseline identical. A recording: `BYOPOP_SOUNDLOG=<file> build/native/rundesk.exe python
+games/ningpo/tools/realplay/drive.py <dir> --games 2` (two bot-played games, 259 lines, 119 plays of the 9 sounds).
+
+
+## The PopCap Game Collection version (2026-11-11)
+
+The user's PopCap Game Collection disc holds Ning Po (`unshield` on the read-only mounted image, group
+`NingPoMahJongDeluxeComponent`: four files, `Ningpo.exe`, `ningpo.pyz`, `license.txt`, `readme.txt`; the layout and the
+names are the staged copy's, so the site's import needs no second name). Compared with the staged copy:
+
+- `ningpo.pyz` is the same file byte for byte (3,115,811 bytes).
+- `Ningpo.exe` has the same size (491,520 bytes) and the same link time stamp, and differs in 31 bytes of code only:
+  no text or table the port reads moves, since `GameText.cpp` reads the texts from the exe by address and the two exes
+  agree on all of them.
+<!-- private -->
+  The 31 bytes are one run at file offset 0x5ce3 in `.text`. There the Steam copy's function tests a call's result
+  and goes on to the registration dialog or the next call; the Collection's returns true at once and pads with nops:
+  it is the registration check (the one the port never had), taken out in a copy the disc registers.
+<!-- /private -->
+
+The port on the Collection's files (`-gamedir` the extracted folder, the suite's scripted game, `-fast -seed=7`, under
+rundesk): the first best time (`HS:0x0`) and the four screenshots (over, name, best, title) are byte for byte those of
+the same run on the staged copy. No change to the port was needed, and the frozen baseline is unchanged.

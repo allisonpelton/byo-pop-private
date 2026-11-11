@@ -1,11 +1,12 @@
 #!/bin/bash
-# orig.sh <origrun script> <seed> <timeout s> <name> [<name> ...]: the original on a script, under rundesk, on origrun's
+# orig.sh <origrun script> <seed> <timeout s> <name> [<name> ...]: the original on a script, under rundesk (origrun starts the game there itself), on origrun's
 # virtual clock and scripted cursor, watching up to four of the values in values.txt (origrun --watch). Every run starts
 # as a first run does: a fresh copy of setup.sh's master and no HKCU\Software\PopCap\BookWorm (the user allows changing
 # PopCap games' registry values, CLAUDE.md). Before the key is removed it is exported to build/identical/regbackup/, so
 # nothing the original wrote there is lost for good. KEEP_SAVE=1 keeps the copy and the key a run before left (a saved
 # game, the high scores); ORIG_SAVE=<dir> copies a folder's files into the fresh copy. The log is on stdout, and after
-# it the high-score tables the run left, as lines "scores: <reg query's line>".
+# it the high-score tables the run left, as lines "scores: <reg query's line>". CLOCK=real runs on the wall clock instead
+# (the coverage run that makes the sound code run, tools/coverage/run.sh).
 source "$(dirname "$0")/common.sh"
 S="$1"; SEED="$2"; T="$3"; shift 3
 if [ -z "$KEEP_SAVE" ]; then
@@ -25,9 +26,9 @@ for n in "$@"; do
 	e="${e//B/[$APP+0x1160]}"
 	W+=(--watch "${e//APP/$APP}")
 done
-"$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$OG_GAME/BookwormGame.exe")" --run "$(basename "$OG_STAGE")" \
-	--script "$(win "$S")" --clock virtual --cursor scripted --counter "$COUNTER" --update-ms 10 --seed "$SEED" \
-	--patches tools/origrun/patches/bookworm.txt --timeout "$T" --watch-max 20000 "${W[@]}"
+"$(win "$ORIGRUN")" --exe "$(win "$OG_GAME/BookwormGame.exe")" --run "$(basename "$OG_STAGE")" \
+	--script "$(win "$S")" --clock "${CLOCK:-virtual}" --cursor scripted --counter "$COUNTER" --update-ms 10 --seed "$SEED" \
+	--patches tools/origrun/patches/bookworm.txt --timeout "$T" --watch-max 20000 ${COVERAGE:+--coverage "$COVERAGE"} "${W[@]}"
 st=$?
 # the high-score tables the run left (setup.sh's patches keep them in HKCU), for hiscore.py
 reg query "$REGKEY\Scores" 2> /dev/null | sed 's/^/scores: /'

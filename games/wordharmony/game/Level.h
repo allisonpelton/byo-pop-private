@@ -68,6 +68,7 @@ public:
 class LevelHandler : public engine::XmlHandler
 {
 public:
+	// 0x41ccd0
 	LevelHandler() : mLevels(nullptr), mLevel(nullptr) {}
 
 	// 0x41ce30: the levels of theFile added to theLevels

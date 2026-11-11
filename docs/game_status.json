@@ -1,0 +1,507 @@
+{
+  "updated": "2026-11-11",
+  "steps": [
+    {
+      "id": "port",
+      "label": "Ported"
+    },
+    {
+      "id": "identical-play",
+      "label": "Plays identical"
+    },
+    {
+      "id": "registration-out",
+      "label": "Registration out"
+    },
+    {
+      "id": "identical-look",
+      "label": "Looks identical"
+    },
+    {
+      "id": "fixes-mod",
+      "label": "Fixes mod"
+    },
+    {
+      "id": "coverage",
+      "label": "Coverage"
+    },
+    {
+      "id": "performance",
+      "label": "Performance"
+    },
+    {
+      "id": "unneeded-code",
+      "label": "Unneeded code"
+    },
+    {
+      "id": "readability",
+      "label": "Readability"
+    },
+    {
+      "id": "collection",
+      "label": "Collection check"
+    },
+    {
+      "id": "site-features",
+      "label": "Site features"
+    }
+  ],
+  "games": {
+    "bejeweled": {
+      "title": "Bejeweled Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "site-features"
+      ],
+      "na": [],
+      "now": null,
+      "note": ""
+    },
+    "alchemy": {
+      "title": "Alchemy Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "site-features"
+      ],
+      "na": [
+        "collection"
+      ],
+      "now": null,
+      "note": ""
+    },
+    "noahsark": {
+      "title": "Noah's Ark Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "site-features"
+      ],
+      "na": [
+        "collection"
+      ],
+      "now": null,
+      "note": ""
+    },
+    "atomica": {
+      "title": "Atomica Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "site-features"
+      ],
+      "na": [
+        "collection"
+      ],
+      "now": null,
+      "note": ""
+    },
+    "mummymaze": {
+      "title": "Mummy Maze Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "site-features"
+      ],
+      "na": [
+        "collection"
+      ],
+      "now": null,
+      "note": ""
+    },
+    "sevenseas": {
+      "title": "Seven Seas Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "site-features"
+      ],
+      "na": [],
+      "now": null,
+      "note": ""
+    },
+    "mahjongjapan": {
+      "title": "Mahjong Escape: Ancient Japan",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "site-features"
+      ],
+      "na": [
+        "collection"
+      ],
+      "now": null,
+      "note": ""
+    },
+    "mahjongchina": {
+      "title": "Mahjong Escape: Ancient China",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "site-features"
+      ],
+      "na": [
+        "collection"
+      ],
+      "now": null,
+      "note": ""
+    },
+    "bejeweledtwist": {
+      "title": "Bejeweled Twist",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "site-features",
+        "collection"
+      ],
+      "na": [],
+      "now": null,
+      "note": ""
+    },
+    "typershark": {
+      "title": "Typer Shark! Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "site-features"
+      ],
+      "na": [],
+      "now": "identical-look",
+      "note": "Medal screens still to compare"
+    },
+    "astropop": {
+      "title": "AstroPop Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection",
+        "site-features"
+      ],
+      "na": [],
+      "now": "identical-look",
+      "note": "Music-state comparison; the port had played no music"
+    },
+    "ningpo": {
+      "title": "Ning Po Mahjong Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "collection"
+      ],
+      "na": [],
+      "now": "site-features",
+      "note": "Presets wait on the site"
+    },
+    "pixelus": {
+      "title": "Pixelus Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "fixes-mod",
+        "site-features"
+      ],
+      "na": [],
+      "now": "identical-look",
+      "note": "Screen fixes under way"
+    },
+    "rocketmania": {
+      "title": "Rocket Mania Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "site-features"
+      ],
+      "na": [],
+      "now": "identical-look",
+      "note": "A few comparisons open"
+    },
+    "dynomite": {
+      "title": "Dynomite Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "fixes-mod",
+        "site-features"
+      ],
+      "na": [],
+      "now": "identical-look",
+      "note": "Last differences open"
+    },
+    "bookwormadv2": {
+      "title": "Bookworm Adventures Volume 2",
+      "done": [
+        "port",
+        "site-features"
+      ],
+      "na": [],
+      "now": "identical-play",
+      "note": "Bot stuck in prologue; later chapters open"
+    },
+    "bookwormadv": {
+      "title": "Bookworm Adventures Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "site-features"
+      ],
+      "na": [],
+      "now": "coverage",
+      "note": ""
+    },
+    "bookworm": {
+      "title": "BookWorm Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "site-features",
+        "coverage",
+        "performance"
+      ],
+      "na": [],
+      "now": "unneeded-code",
+      "note": "Collection check to do (the Collection exe is another build)"
+    },
+    "bigmoney": {
+      "title": "Big Money Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "site-features"
+      ],
+      "na": [],
+      "now": "performance",
+      "note": ""
+    },
+    "tiptop": {
+      "title": "TipTop Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod"
+      ],
+      "na": [],
+      "now": "coverage",
+      "note": "No soundboard or tunes yet"
+    },
+    "wordharmony": {
+      "title": "Word Harmony",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "site-features",
+        "coverage"
+      ],
+      "na": [],
+      "now": "performance",
+      "note": ""
+    },
+    "cosmicbugs": {
+      "title": "Cosmic Bugs",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "site-features",
+        "coverage"
+      ],
+      "na": [],
+      "now": "performance",
+      "note": ""
+    },
+    "waterbugs": {
+      "title": "Water Bugs",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance",
+        "unneeded-code",
+        "readability",
+        "site-features"
+      ],
+      "na": [],
+      "now": "collection",
+      "note": "Collection check under way (the game is in the Collection)"
+    },
+    "bonnies": {
+      "title": "Bonnie's Bookstore Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "coverage",
+        "performance"
+      ],
+      "na": [],
+      "now": "unneeded-code",
+      "note": "Collection check to do (the Collection exe is another build)"
+    },
+    "bejeweled2": {
+      "title": "Bejeweled 2 Deluxe",
+      "done": [
+        "port",
+        "identical-play",
+        "registration-out",
+        "identical-look",
+        "fixes-mod",
+        "site-features"
+      ],
+      "na": [],
+      "now": "coverage",
+      "note": ""
+    },
+    "venice": {
+      "title": "Venice Deluxe",
+      "done": [],
+      "na": [],
+      "now": null,
+      "note": "Not started"
+    },
+    "heavyweapon": {
+      "title": "Heavy Weapon Deluxe",
+      "done": [],
+      "na": [],
+      "now": null,
+      "note": "Not started"
+    },
+    "hammerheads": {
+      "title": "Hammer Heads Deluxe",
+      "done": [],
+      "na": [],
+      "now": null,
+      "note": "Not started"
+    },
+    "pizzafrenzy": {
+      "title": "Pizza Frenzy",
+      "done": [],
+      "na": [],
+      "now": null,
+      "note": "Not started"
+    },
+    "igglepop": {
+      "title": "Iggle Pop Deluxe",
+      "done": [],
+      "na": [],
+      "now": null,
+      "note": "Not started"
+    },
+    "feedingfrenzy": {
+      "title": "Feeding Frenzy Deluxe",
+      "done": [],
+      "na": [],
+      "now": null,
+      "note": "Not started"
+    }
+  }
+}

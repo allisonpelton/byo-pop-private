@@ -585,7 +585,13 @@ var ByopopSoundboards = {
       ["sounds/bad.ogg", "Bad", "Loaded, never played"]
     ] },
   ] },
-  bonnies: { groups: [
+  bonnies: {
+    presets: [
+      { name: "Level Up", when: "A level's last word", steps: [["Sound/Level_Up_Quick", 0], ["Sound/Word_06", 0], ["Sound/Level_Up", 1440, {"v": -194}], ["Sound/AddPoint", 2940, {"v": -796, "r": 2.0}], ["Sound/AddPoint", 3000, {"v": -796, "r": 2.07}], ["Sound/AddPoint", 3090, {"v": -796, "r": 2.14}], ["Sound/AddPoint", 3150, {"v": -796, "r": 2.21}], ["Sound/AddPoint", 3210, {"v": -796, "r": 2.28}], ["Sound/AddPoint", 3300, {"v": -796, "r": 2.35}], ["Sound/AddPoint", 3360, {"v": -796, "r": 2.42}], ["Sound/AddPoint", 3420, {"v": -796, "r": 2.49}], ["Sound/AddPoint", 3480, {"v": -796, "r": 2.56}], ["Sound/AddPoint", 3540, {"v": -796, "r": 2.63}], ["Sound/AddPoint", 3600, {"v": -796, "r": 2.7}], ["Sound/AddPoint", 3660, {"v": -796, "r": 2.77}], ["Sound/AddPoint", 3720, {"v": -796, "r": 2.84}], ["Sound/AddPoint", 3780, {"v": -796, "r": 2.91}], ["Sound/AddPoint", 3840, {"v": -796, "r": 2.98}], ["Sound/AddPoint", 3900, {"v": -796, "r": 3.05}], ["Sound/AddPoint", 3960, {"v": -796, "r": 3.12}], ["Sound/AddPoint", 4020, {"v": -796, "r": 3.19}], ["Sound/AddPoint", 4080, {"v": -796, "r": 3.26}], ["Sound/AddPoint", 4110, {"v": -796, "r": 3.33}], ["Sound/AddPoint", 4170, {"v": -796, "r": 3.4}], ["Sound/AddPoint", 4230, {"v": -796, "r": 3.47}], ["Sound/AddPoint", 4290, {"v": -796, "r": 3.54}], ["Sound/AddPoint", 4320, {"v": -796, "r": 3.61}], ["Sound/AddPoint", 4380, {"v": -796, "r": 3.68}], ["Sound/AddPoint", 4440, {"v": -796, "r": 3.75}], ["Sound/AddPoint", 4470, {"v": -796, "r": 3.82}], ["Sound/AddPoint", 4530, {"v": -796, "r": 3.89}], ["Sound/AddPoint", 4560, {"v": -796, "r": 3.96}], ["Sound/AddPoint", 4620, {"v": -796, "r": 4.03}], ["Sound/AddPoint", 4650, {"v": -796, "r": 4.1}], ["Sound/AddPoint", 4710, {"v": -796, "r": 4.17}], ["Sound/AddPoint", 4740, {"v": -796, "r": 4.24}], ["Sound/AddPoint", 4800, {"v": -796, "r": 4.31}], ["Sound/AddPoint", 4830, {"v": -796, "r": 4.38}], ["Sound/AddPoint", 4860, {"v": -796, "r": 4.45}], ["Sound/AddPoint", 4920, {"v": -796, "r": 4.52}], ["Sound/AddPoint", 4950, {"v": -796, "r": 4.59}], ["Sound/AddPoint", 4980, {"v": -796, "r": 4.66}], ["Sound/AddPoint", 5040, {"v": -796, "r": 4.73}], ["Sound/AddPoint", 5070, {"v": -796, "r": 4.8}], ["Sound/AddPoint", 5100, {"v": -796, "r": 4.87}], ["Sound/AddPoint", 5130, {"v": -796, "r": 4.94}], ["Sound/AddPoint", 5160, {"v": -796, "r": 5.01}], ["Sound/AddPoint", 5220, {"v": -796, "r": 5.08}], ["Sound/AddPoint", 5250, {"v": -796, "r": 5.15}], ["Sound/AddPoint", 5280, {"v": -796, "r": 5.22}], ["Sound/AddPoint", 5310, {"v": -796, "r": 5.29}], ["Sound/AddPoint", 5340, {"v": -796, "r": 5.36}], ["Sound/AddPoint", 5370, {"v": -796, "r": 5.43}], ["Sound/AddPoint", 5400, {"v": -796, "r": 5.5}], ["Sound/AddPoint", 5430, {"v": -796, "r": 5.57}], ["Sound/AddPoint", 5490, {"v": -796, "r": 5.64}], ["Sound/AddPoint", 5520, {"v": -796, "r": 5.71}], ["Sound/AddPoint", 5550, {"v": -796, "r": 5.78}], ["Sound/AddPoint", 5580, {"v": -796, "r": 5.85}], ["Sound/AddPoint", 5610, {"v": -796, "r": 5.92}], ["Sound/AddPoint", 5640, {"v": -796, "r": 5.99}], ["Sound/AddPoint", 5670, {"v": -796, "r": 6.06}]]},
+      { name: "Typewriter", when: "A story page types itself", steps: [["Sound/Type_01", 0, {"v": -699}], ["Sound/Type_01", 60, {"v": -699}], ["Sound/Type_02", 120, {"v": -699}], ["Sound/type_space_01", 150, {"v": -699}], ["Sound/Type_03", 330, {"v": -699}], ["Sound/Type_02", 390, {"v": -699}], ["Sound/Type_02", 450, {"v": -699}], ["Sound/Type_01", 540, {"v": -699}], ["Sound/Type_01", 600, {"v": -699}], ["Sound/type_space_01", 630, {"v": -699}], ["Sound/Type_02", 780, {"v": -699}], ["Sound/Type_03", 870, {"v": -699}], ["Sound/type_space_01", 900, {"v": -699}], ["Sound/Type_01", 1050, {"v": -699}], ["Sound/Type_02", 1140, {"v": -699}], ["Sound/Type_01", 1200, {"v": -699}], ["Sound/Type_01", 1260, {"v": -699}], ["Sound/Type_01", 1320, {"v": -699}], ["Sound/Type_02", 1410, {"v": -699}], ["Sound/type_space_01", 1440, {"v": -699}], ["Sound/Type_01", 1590, {"v": -699}], ["Sound/Type_02", 1680, {"v": -699}], ["Sound/Type_02", 1740, {"v": -699}], ["Sound/Type_03", 1830, {"v": -699}], ["Sound/Type_02", 1920, {"v": -699}], ["Sound/type_space_01", 1950, {"v": -699}], ["Sound/Type_01", 2070, {"v": -699}], ["Sound/Type_03", 2160, {"v": -699}], ["Sound/Type_01", 2220, {"v": -699}], ["Sound/typewriter_carriagereturn_01", 2250, {"v": -605}]]},
+      { name: "Blocker Fallout", when: "A word takes a blocker off the shelf", steps: [["Sound/Word_04", 0], ["Sound/Blocker_Fallout", 810, {"v": -378}]]}
+    ],
+    groups: [
     { name: "Buttons and menus", sounds: [
       ["Sound/Button_Press.ogg", "Button press", "A button without a sound of its own is pressed"],
       ["Sound/Button_Release.ogg", "Button release", "A button without a sound of its own is released"],
@@ -705,6 +711,557 @@ var ByopopSoundboards = {
       ["sounds/goldtile.ogg", "Volume test", "The Options' sound effects slider is let go"]
     ] }
   ] },
+  bookwormadv: {
+    presets: [
+      { name: "Word Attack", when: "Lex's word hits: the bites, the blow and the foe's cry", steps: [["sounds/bite_01", 0, {"v": -146}], ["sounds/bite_01", 140, {"v": -146}], ["sounds/bite_01", 270, {"v": -146}], ["sounds/bite_01", 400, {"v": -146}], ["sounds/bite_01", 500, {"v": -146}], ["sounds/largeimpact_01", 600, {"v": -146}], ["sounds/moan_01", 640, {"v": -146}], ["sounds/humanmalegrunt2", 640, {"v": -146}], ["sounds/SwordSpearImpact_WithWoosh", 640, {"v": -146}]]},
+      { name: "Level Up", when: "A fire word finishes a foe, and Lex levels up", steps: [["sounds/largeimpact_01", 0, {"v": -146}], ["sounds/GiantGruntDry1", 0, {"v": -146}], ["sounds/GiantGruntEcho2", 0, {"v": -146}], ["sounds/fire6", 0, {"v": -146}], ["sounds/XPGain4", 3340, {"v": -146, "loop": 1, "end": 4830, "ramp": [[4330, -165], [4490, -509], [4620, -913], [4720, -1392], [4760, -1673], [4790, -1950], [4800, -10000]]}], ["sounds/crowdcheer", 4330], ["sounds/firework1", 5920, {"v": -146}], ["sounds/firework2", 6510, {"v": -146}], ["sounds/lex_levelup", 6560, {"v": -146}]]},
+      { name: "Battle Won", when: "The last foe falls and a treasure is won", steps: [["sounds/largeimpact_01", 0, {"v": -146}], ["sounds/GiantGruntDry1", 0, {"v": -146}], ["sounds/GiantGruntEcho2", 0, {"v": -146}], ["sounds/fire6", 0, {"v": -146}], ["sounds/purify2", 4080, {"v": -146}], ["sounds/XPGain4", 5380, {"v": -146, "loop": 1, "end": 7790, "ramp": [[7290, -165], [7450, -509], [7580, -913], [7680, -1392], [7720, -1673], [7750, -1950], [7760, -10000]]}], ["sounds/newtreasure", 8280, {"v": -146}], ["sounds/firework2", 8780, {"v": -146}], ["sounds/crowdcheer", 8780]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["sounds/click1.ogg", "Click 1", "A button is pressed in a dialog, the options screen, the stats book or the treasure screen"],
+      ["sounds/click2.ogg", "Click 2", "A main menu, Hall of Fame, mini-game menu or options button is pressed, or a button on the board"],
+      ["sounds/lex_chomp.ogg", "Lex chomps", "Lex chomps on the title screen while the game loads, and once more as he walks off"],
+      ["sounds/textreadblip.wav", "Text blip", "Every other letter is typed out while a conversation line is shown"]
+    ] },
+    { name: "Main menu voices", sounds: [
+      ["sounds/v_adventure.ogg", "\"Adventure\"", "Lex reacts when the pointer moves onto the Adventure item of the main menu"],
+      ["sounds/v_arena.ogg", "\"Arena\"", "Lex reacts when the pointer moves onto the Arena item of the main menu"],
+      ["sounds/v_clipsandgiggles.ogg", "\"Clips and Giggles\"", "Lex reacts when the pointer moves onto the film reel item of the main menu"],
+      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The quit confirmation opens on the main menu"],
+      ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
+      ["sounds/v_minigames.ogg", "\"Mini-games\"", "Lex reacts when the pointer moves onto the Mini-games item of the main menu"],
+      ["sounds/v_options.ogg", "\"Options\"", "Lex reacts when the pointer moves onto the Options item of the main menu"],
+      ["sounds/v_quit.ogg", "\"Quit\"", "Lex reacts when the pointer moves onto the Quit item of the main menu"],
+      ["sounds/v_tomeofknowledge.ogg", "\"Tome of Knowledge\"", "Lex reacts when the pointer moves onto the Tome of Knowledge item of the main menu"],
+      ["sounds/v_welcometobookwormadventures.ogg", "Welcome greeting", "Lex greets the player when the title screen gives way to the main menu"]
+    ] },
+    { name: "Word play", sounds: [
+      ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, or a potion is clicked while it cannot be used"],
+      ["sounds/gemspawn.ogg", "Gem appears", "A gem appears on a tile (the tutorial, the letter mini-games and some creatures do this)"],
+      ["sounds/lex_astonishing.ogg", "\"Astonishing\"", "Lex praises a spelled word, chosen by its word power (a mini-game uses it too)"],
+      ["sounds/lex_awesome.ogg", "\"Awesome\"", "Lex praises a spelled word, chosen by its word power"],
+      ["sounds/lex_excellent.ogg", "\"Excellent\"", "Lex praises a spelled word, chosen by its word power (a mini-game uses it too)"],
+      ["sounds/lex_fantastic.ogg", "\"Fantastic\"", "Lex praises a spelled word, chosen by its word power"],
+      ["sounds/lex_good.ogg", "\"Good\"", "Lex praises a spelled word, chosen by its word power"],
+      ["sounds/lex_incredible.ogg", "\"Incredible\"", "The Word Master mini-game plays it"],
+      ["sounds/lex_nice.ogg", "\"Nice\"", "Lex praises a spelled word, chosen by its word power (the Mirage Lex fight and a mini-game use it too)"],
+      ["sounds/lex_verygood.ogg", "\"Very good\"", "Lex praises a spelled word, chosen by its word power (a mini-game uses it too)"],
+      ["sounds/lex_watchout.ogg", "\"Watch out\"", "The Word Master mini-game and the Mirage Lex fight play it"],
+      ["sounds/lex_wow.ogg", "\"Wow\"", "Lex praises a spelled word, chosen by its word power (the Mirage Lex fight uses it too)"],
+      ["sounds/sheepbleat.ogg", "Sheep bleat", "A hidden word is spelled; also a sheep, ewe, ram or goat creature bleats"],
+      ["sounds/sloooowdown.ogg", "Slow down", "A hidden word is spelled outside the mini-games"],
+      ["sounds/tile_select.ogg", "Tile select", "A letter tile is picked on the board, or a potion is picked by its number key"],
+      ["sounds/v_cashmoney.ogg", "\"Cash money\"", "A hidden word is spelled"],
+      ["sounds/v_iloveyou.ogg", "\"I love you\"", "A hidden word is spelled"],
+      ["sounds/v_scramble.ogg", "\"Scramble\"", "The board is scrambled because no word can be made"],
+      ["sounds/word_power.ogg", "Word power", "A strong word is spelled and its word-power bonus is shown"]
+    ] },
+    { name: "Lex", sounds: [
+      ["sounds/lex_burp.ogg", "Lex burps", "A hidden word is spelled, or Lex burps in an idle animation"],
+      ["sounds/v_giggle1.ogg", "Giggle 1", "Lex giggles in an idle animation"],
+      ["sounds/v_giggle2.ogg", "Giggle 2", "Lex giggles in an idle animation"],
+      ["sounds/v_sneeze.ogg", "Sneeze", "Lex sneezes in an idle animation"]
+    ] },
+    { name: "Lex attacks", sounds: [
+      ["sounds/bite_01.ogg", "Bite", "Lex bites in an attack; the Bayou Beast, Bog Serpent, Connystein, Wolfman and Codex fights use it too"],
+      ["sounds/bluntimpact_dry.wav", "Blunt impact", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
+      ["sounds/bluntimpact_withwoosh.ogg", "Blunt with woosh", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
+      ["sounds/fire3.ogg", "Fire attack 3", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
+      ["sounds/fire6.ogg", "Fire attack 6", "Lex's word attack lands (his default attack and many creatures' fights use it)"],
+      ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "Lex's word attack lands (his default attack and many creatures' fights use it)"]
+    ] },
+    { name: "Battle", sounds: [
+      ["sounds/low_health.wav", "Low health", "Lex has little health left, in a fight or in a mini-game"],
+      ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "A boss fight begins, after the boss has opened it"],
+      ["sounds/warpin.ogg", "Warp in", "Lex warps into a chapter, or a mirage creature appears"],
+      ["sounds/warpout.ogg", "Warp out", "Lex warps out of a chapter"]
+    ] },
+    { name: "Rewards", sounds: [
+      ["sounds/chaching.ogg", "Cash register", "Coins are counted up in a mini-game; the Mirage Trojan fight uses it too"],
+      ["sounds/crowdcheer.ogg", "Crowd cheers", "A fight is won, a level is gained or a mini-game ends well"],
+      ["sounds/firework1.ogg", "Firework 1", "The level-up effect and fight-won effect fire a rocket"],
+      ["sounds/firework2.ogg", "Firework 2", "The level-up effect and fight-won effect fire a rocket"],
+      ["sounds/lex_levelup.ogg", "\"Level up\"", "Lex gains a level"],
+      ["sounds/newtreasure.ogg", "New treasure", "A treasure is won at the end of a fight, or shown on the treasure screen"],
+      ["sounds/vo_annihilated.ogg", "\"Annihilated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_crushed.ogg", "\"Crushed\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_decimated.ogg", "\"Decimated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_destroyed.ogg", "\"Destroyed\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_obliterated.ogg", "\"Obliterated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_vanquished.ogg", "\"Vanquished\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_whomped.ogg", "\"Whomped\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/xpgain4.ogg", "Experience counts", "The experience stream flows into Lex at a level-up, a fight end or a gravestone"]
+    ] },
+    { name: "Potions", sounds: [
+      ["sounds/heal2.ogg", "Health potion", "Lex drinks a health potion"],
+      ["sounds/healpotionused_02.ogg", "Creature heals", "A creature heals itself (about thirty creatures)"],
+      ["sounds/potionpickup.ogg", "Potion pickup", "A potion is picked up from a gravestone"],
+      ["sounds/powerdown_01.ogg", "Power down", "A creature weakens the attack of Lex, or a boosted attack ends"],
+      ["sounds/powerup3.ogg", "Attack potion", "Lex uses an attack potion, or the Codex fight"],
+      ["sounds/poweruppotion_02.ogg", "Power up", "A creature or Lex powers up (a damage boost)"],
+      ["sounds/purify2.ogg", "Purify", "A purify potion is used, or a creature cures its ailment"],
+      ["sounds/weaken3.ogg", "Weaken effect", "The weaken effect is put on an attack"]
+    ] },
+    { name: "Tile effects", sounds: [
+      ["sounds/boardfrozen_01.ogg", "Board frozen", "A creature freezes the board"],
+      ["sounds/boardstunned_01.ogg", "Board stunned", "A creature stuns the board so no word can be made"],
+      ["sounds/fire1.ogg", "Fire effect", "A fire effect begins (about ten creatures)"],
+      ["sounds/ice1.ogg", "Frozen effect", "A frozen effect begins"],
+      ["sounds/ice4.ogg", "Petrify effect", "A petrify effect begins"],
+      ["sounds/lightning_attack_01.ogg", "Lightning", "A lightning attack lands (Circe, Hydra, Sea Elemental and wizards)"],
+      ["sounds/lockit.ogg", "Tile locked", "A creature locks tiles (about a dozen creatures)"],
+      ["sounds/petrify_attack_01.ogg", "Tiles petrified", "A creature turns tiles to stone (Basilisk, Medusa and others)"],
+      ["sounds/poison1.ogg", "Poison effect", "A poison effect begins"],
+      ["sounds/poison_attack_01.ogg", "Tiles poisoned", "A creature poisons tiles (about thirty creatures)"],
+      ["sounds/tiles_plagued_01.ogg", "Tiles plagued", "A creature plagues tiles"],
+      ["sounds/tiles_smashed_01.ogg", "Tiles smashed", "A creature smashes tiles (about fifty creatures)"]
+    ] },
+    { name: "Mini-games", sounds: [
+      ["sounds/count.wav", "Counting tick", "A score or timer counts up in a mini-game"],
+      ["sounds/v_go.ogg", "\"Go\"", "A mini-game countdown ends"],
+      ["sounds/v_newminigame.ogg", "\"New mini-game\"", "A new mini-game is unlocked"],
+      ["sounds/v_one.ogg", "\"One\"", "A mini-game countdown goes on"],
+      ["sounds/v_three.ogg", "\"Three\"", "A mini-game countdown starts"],
+      ["sounds/v_two.ogg", "\"Two\"", "A mini-game countdown goes on"]
+    ] },
+    { name: "Human voices", sounds: [
+      ["sounds/female seduce.ogg", "Female seduce", "Death sound of Mirage Trojan"],
+      ["sounds/female_groan_01.ogg", "Female groan 1", "Opening sound of Hateful Housemaid; Death sound of Hateful Housemaid, Connystein, Quag Hag; Attack or hit of Scylla, Siren, Circe and 9 more (Arena too)"],
+      ["sounds/female_groan_02.ogg", "Female groan 2", "Death sound of Scylla, Sea Witch, Siren and 9 more; Attack or hit of Mysterious Assassin (Arena too)"],
+      ["sounds/female_mmm.ogg", "Female mmm", "Opening sound of Siren, Circe, Dryad; Death sound of Mirage Skeleton; Attack or hit of Vampire Mistress (Arena too)"],
+      ["sounds/female_ooh.ogg", "Female ooh", "Opening sound of Helead, Naiad, Vampire Mistress; Attack or hit of Siren"],
+      ["sounds/humanmalegrunt2.ogg", "Human male grunt 2", "Death sound of Alexander, Polydamas, Trojan Captain and 11 more; Attack or hit of Snake Charmer, Thieves 2-3, Frankenstein (Arena too)"],
+      ["sounds/humanmalegrunt3.ogg", "Human male grunt 3", "Death sound of Snake Charmer, Thieves 2-3, Summoner and 1 more; Attack or hit of Cutthroat, Thief 1, Deck Swabber and 1 more (Arena too)"],
+      ["sounds/male_anger.ogg", "Male anger", "Opening sound of Polydamas, Trojan Captain, Bandit and 6 more; Attack or hit of Cannoneer, Angry Mob, Eternal Wanderer and 2 more (Arena too)"],
+      ["sounds/male_laugh.ogg", "Male laugh", "Opening sound of Alexander, Centaur Warrior, Satyr and 1 more; Attack or hit of Pharaoh of Old, Dread Pirate Al-Robarts (Arena too)"],
+      ["sounds/male_laugh2.ogg", "Male laugh 2", "Opening sound of Trojan Warrior, Centaur Archer, Sword Swallower and 3 more; Attack or hit of Pharaoh of Old, Crazy Murray (Arena too)"],
+      ["sounds/male_low_anger.ogg", "Male low anger", "Opening sound of Thieves 4-5; Death sound of Nessus, Embalmed Guardian, Cannoneer and 2 more; Attack or hit of Firebreather, Pharaoh of Old, Twisted Vizier (Arena too)"],
+      ["sounds/male_low_pain.ogg", "Male low pain", "Death sound of Firebreather; Attack or hit of Nessus, Thieves 4-5, Shaitan and 1 more (Arena too)"],
+      ["sounds/male_low_warcry.ogg", "Male low warcry", "Opening sound of Nessus, Firebreather, Cannoneer and 5 more; Death sound of Thieves 4-5; Attack or hit of Shaitan (Arena too)"],
+      ["sounds/male_pain.ogg", "Male pain", "Death sound of Swashbuckler, Warrenstein, Fallen Swashbuckler Hero; Attack or hit of Bandit, Sword Swallower, Thieves 9-11 and 3 more (Arena too)"],
+      ["sounds/moan_01.ogg", "Moan 1", "Death sound of Bandit, Sword Swallower, Highwayman; Attack or hit of Alexander, Polydamas, Trojan Captain and 8 more (Arena too)"],
+      ["sounds/witch_groan_01.ogg", "Witch groan 1", "Opening sound of Deino, Enyo, Pemphredo; Death sound of Haggard Heckler; Attack or hit of Wandering Hag, Connystein, Quag Hag"],
+      ["sounds/witchy_laugh_01.ogg", "Witchy laugh 1", "Opening sound of Haggard Heckler, Quag Hag; Attack or hit of Deino, Enyo, Pemphredo and 1 more"],
+      ["sounds/witchy_laugh_02.ogg", "Witchy laugh 2", "Opening sound of Scylla, Sea Witch, Harpy and 3 more; Death sound of Deino, Enyo, Pemphredo; Attack or hit of Mirage Skeleton, Haggard Heckler"]
+    ] },
+    { name: "Animals", sounds: [
+      ["sounds/bat_death_01.ogg", "Bat death 1", "Attack or hit of Mama Roc (Arena too)"],
+      ["sounds/dog_barking_01.ogg", "Dog barking 1", "Opening sound of Thieves 6-8, Wolf Pack; Attack or hit of Orthrus, Flying Wolf, Carrion Dog"],
+      ["sounds/dog_barking_02.ogg", "Dog barking 2", "Opening sound of War Hound, Enchanted Hound, Flying Wolf; Attack or hit of Thieves 6-8, Undead Hound"],
+      ["sounds/dog_whimper_01.ogg", "Dog whimper 1", "Death sound of War Hound, Enchanted Hound, Wolf Pack and 1 more; Attack or hit of Thieves 6-8"],
+      ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "Opening sound of Enchanted Eagle, Griffon, Bronze Stymphalian and 3 more; Death sound of Bronze Stymphalian, Steel Stymphalian, Roc Hatchling; Attack or hit of Mama Roc (Arena too)"],
+      ["sounds/feline_whimper_01.ogg", "Feline whimper 1", "Opening sound of Carrion Dog; Death sound of Bilge Dog, Flying Wolf; Attack or hit of Enchanted Lion, Nemean Lion, Wolfman (Arena too)"],
+      ["sounds/feline_whimper_02.ogg", "Feline whimper 2", "Opening sound of Orthrus, Undead Hound, Bilge Dog; Death sound of Nemean Lion; Attack or hit of Cerberus, Wolfman, Codex (Arena too)"],
+      ["sounds/generic_slosh_02.ogg", "Generic slosh 2", "Opening sound of Sea Elemental, Air Spirit; Attack or hit of Helead, Deck Swabber, Hateful Housemaid and 2 more"],
+      ["sounds/pig_squeal_01.ogg", "Pig squeal 1", "Opening sound of Calydonian Boar, Erymanthian Boar; Death sound of Plagued Pork"],
+      ["sounds/pig_squeal_02.ogg", "Pig squeal 2", "Opening sound of Flying Pig, Plagued Pork, Were-Pig; Death sound of Calydonian Boar, Erymanthian Boar, Flying Pig; Attack or hit of Enchanted Scorpion"],
+      ["sounds/snake_hiss_01.ogg", "Snake hiss 1", "Opening sound of Sea Serpent, Enchanted Scorpion, Enchanted Serpent and 6 more; Death sound of Flying Snake"],
+      ["sounds/wolf_howl_01.ogg", "Wolf howl 1", "Death sound of Orthrus, Thieves 6-8, Undead Hound; Attack or hit of Flying Wolf, Wolf Pack"]
+    ] },
+    { name: "Beasts and giants", sounds: [
+      ["sounds/dragon_bite.ogg", "Dragon bite", "Opening sound of Bayou Beast; Attack or hit of Hydra, Basilisk, Greater Basilisk and 1 more"],
+      ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Hydra, Basilisk, Greater Basilisk and 2 more; Attack or hit of The Mummy (Arena too)"],
+      ["sounds/dragon_pain.ogg", "Dragon pain", "Attack or hit of Kraken, Basilisk, Greater Basilisk and 2 more (Arena too)"],
+      ["sounds/dragon_roar.ogg", "Dragon roar", "Opening sound of Kraken, Hydra, Basilisk and 2 more; Attack or hit of Kraken, Bilge Dog"],
+      ["sounds/elephant_01.ogg", "Elephant 1", "Opening sound of Elephant, Mirage Skeleton"],
+      ["sounds/elephant_death_01.ogg", "Elephant death 1", "Opening sound of Bull Elephant"],
+      ["sounds/elephant_death_02.ogg", "Elephant death 2", "Death sound of Elephant"],
+      ["sounds/elephant_death_03.ogg", "Elephant death 3", "Death sound of Bull Elephant"],
+      ["sounds/generic_animal_grumble_01.ogg", "Generic animal grumble 1", "Opening sound of Cerberus, Minotaur, Nemean Lion; Death sound of Chimera, Minotaur (Arena too)"],
+      ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "Opening sound of Cyclops Herder, Cyclops Warrior; Attack or hit of Polyphemus, Manticore, Minotaur and 1 more (Arena too)"],
+      ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Death sound of Cyclops Herder, Cyclops Warrior, Polyphemus and 1 more; Attack or hit of The Creature (Arena too)"],
+      ["sounds/kubwa_barh.ogg", "Kubwa barh", "Attack or hit of Thieves 12-14 (Arena too)"],
+      ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "Used in the Arena fights"],
+      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "Opening sound of Thieves 12-14 (Arena too)"],
+      ["sounds/kubwa_roar.ogg", "Kubwa roar", "Death sound of Thieves 12-14 (Arena too)"],
+      ["sounds/roar_01.ogg", "Roar 1", "Opening sound of Charybdis, Enchanted Lion, Phantom and 2 more; Attack or hit of Griffon (Arena too)"]
+    ] },
+    { name: "Spirits and magic", sounds: [
+      ["sounds/fading_ghostly_wail_01.ogg", "Fading ghostly wail 1", "Opening sound of Banshee, Manes, Tombstone Gargoyle and 1 more; Death sound of Medusa, Sphinx, Flying Armor; Attack or hit of Phantom, Grim (Arena too)"],
+      ["sounds/fading_ghostly_wail_02.ogg", "Fading ghostly wail 2", "Opening sound of Medusa, Flying Armor, Necromancer; Death sound of Charybdis, Banshee, Manes and 4 more; Attack or hit of Hypnotist (Arena too)"],
+      ["sounds/fading_ghostly_wail_03.ogg", "Fading ghostly wail 3", "Opening sound of Shade, Specter, Embalmed Guardian and 1 more; Death sound of Mummified Servant, Tombstone Gargoyle, Gargoyle; Attack or hit of Manes, Grim (Arena too)"],
+      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "Attack or hit of Circe, Dryad, Helead and 3 more (Arena too)"],
+      ["sounds/skeleton_warcry_01.ogg", "Skeleton warcry 1", "Opening sound of Limping Leper, Disturbed Skeleton, Ghoul Minion"],
+      ["sounds/sonic_attack_02.ogg", "Sonic attack 2", "Opening sound of Hypnotist; Death sound of Mirage Nymph; Attack or hit of Shade, Specter, Snake Charmer and 5 more (Arena too)"],
+      ["sounds/wail_03.ogg", "Wail 3", "Opening sound of Parkerstein; Death sound of Necromancer; Attack or hit of Phantom, Shade, Specter"],
+      ["sounds/wail_05.ogg", "Wail 5", "Death sound of Cerberus; Attack or hit of Codex (Arena too)"]
+    ] },
+    { name: "Attacks and impacts", sounds: [
+      ["sounds/arrow_shot_01.ogg", "Arrow shot 1", "Attack or hit of Alexander, Polydamas, Centaur Archer and 4 more (Arena too)"],
+      ["sounds/bowfiring.ogg", "Bow firing", "Opening sound of Unliving Archer; Attack or hit of Fallen Huntress Hero"],
+      ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Cernian Hind, Enchanted Eagle, Enchanted Lion and 14 more; Attack or hit of Thieves 12-14, Calydonian Boar, Centaur Warrior and 25 more (Arena too)"],
+      ["sounds/slicing_attack_01.ogg", "Slicing attack 1", "Opening sound of Mysterious Assassin, Fallen Warrior Hero, Vampire Cultist; Attack or hit of Trojan Captain, Trojan Warrior, Sea Witch and 29 more (Arena too)"],
+      ["sounds/slicing_attack_02.ogg", "Slicing attack 2", "Opening sound of Unliving Brute; Attack or hit of War Hound, Scylla, Enchanted Eagle and 25 more (Arena too)"],
+      ["sounds/slump_small_01.ogg", "Slump small 1", "Death sound of Mirage Goat, Limping Leper, Unliving Archer and 1 more; Attack or hit of Firebreather, Mummified Servant, Mirage Skeleton and 13 more (Arena too)"],
+      ["sounds/smallimpact_01.ogg", "Small impact 1", "Death sound of Enormous Serpent, Angry Ram, Enchanted Ram and 4 more; Attack or hit of Bilge Dog, Dread Pirate Al-Robarts, Bull Elephant and 21 more (Arena too)"],
+      ["sounds/swordspearimpact.ogg", "Sword spear impact", "Opening sound of Fearful Farmer, Grave Robber; Attack or hit of Polydamas, Trojan Spearman, Flying Armor (Arena too)"],
+      ["sounds/swordspearimpact_dry.ogg", "Sword spear impact dry", "Death sound of Mr. Blobs; Attack or hit of Crazy Murray, Flying Pig, Flying Snake and 1 more (Arena too)"]
+    ] },
+    { name: "Codex and Nemesis", sounds: [
+      ["sounds/codex_flinch.ogg", "Codex flinch", "Attack or hit of Codex"],
+      ["sounds/codex_laugh.ogg", "Codex laugh", "A Codex animation of the last chapter laughs"],
+      ["sounds/codex_nyah.ogg", "Codex nyah", "A Codex animation of the last chapter taunts"],
+      ["sounds/lexbeam.ogg", "Lex beam", "Lex's beam animation in the fight with the Codex"],
+      ["sounds/nemesis_laugh.ogg", "Nemesis laugh", "The animation of Cassandra and the Nemesis laughs"],
+      ["sounds/v_autological.ogg", "\"Autological\"", "Lex says it in the animation of the Codex fight"]
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/lex_autological.ogg", "\"Autological\"", "The game never plays it"],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it"],
+      ["sounds/v_buynow.ogg", "\"Buy now\"", "The game never plays it"],
+      ["sounds/vo_routed.ogg", "\"Routed\"", "The game never plays it"]
+    ] },
+  ] },
+  bookwormadv2: {
+    presets: [
+      { name: "Battle Start", when: "A battle opens: the fireworks, the warm-up call and the cymbal", steps: [["sounds/firework2", 0], ["sounds/v_warmup", 0], ["sounds/cymbalcrash", 4310]]},
+      { name: "Fire Hit", when: "A fire word hits the foe: the blow, the flames and the cymbal", steps: [["sounds/largeimpact_01", 0], ["sounds/smallimpact_01", 0], ["sounds/fire6", 0], ["sounds/cymbalcrash", 2110]]},
+      { name: "Low Health", when: "A foe's blow leaves Lex low, and the alarm starts", steps: [["sounds/largeimpact_01", 0], ["sounds/low_health", 210, {"end": 650}], ["sounds/low_health", 650, {"end": 1090}], ["sounds/low_health", 1090]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["sounds/click1.ogg", "Click 1", "A button is pressed in a dialog, the options screen, the stats book or the treasure screen"],
+      ["sounds/click2.ogg", "Click 2", "A main menu, Hall of Fame, mini-game menu or options button is pressed, or a button on the board"],
+      ["sounds/lex_chomp.ogg", "Lex chomps", "Lex chomps on the title screen while the game loads, and once more as he walks off"],
+      ["sounds/textreadtype01.ogg", "Text blip", "Every other letter is typed out while a conversation line is shown"]
+    ] },
+    { name: "Main menu voices", sounds: [
+      ["sounds/v_adventure.ogg", "\"Adventure\"", "Lex reacts when the pointer moves onto the Adventure item of the main menu"],
+      ["sounds/v_arena.ogg", "\"Arena\"", "Lex reacts when the pointer moves onto the Arena item of the main menu"],
+      ["sounds/v_dontleaveme.ogg", "\"Don't leave me\"", "The quit confirmation opens on the main menu"],
+      ["sounds/v_halloffame.ogg", "\"Hall of Fame\"", "Lex reacts when the pointer moves onto the Hall of Fame item of the main menu"],
+      ["sounds/v_minigames.ogg", "\"Mini-games\"", "Lex reacts when the pointer moves onto the Mini-games item of the main menu"],
+      ["sounds/v_options.ogg", "\"Options\"", "Lex reacts when the pointer moves onto the Options item of the main menu"],
+      ["sounds/v_quit.ogg", "\"Quit\"", "Lex reacts when the pointer moves onto the Quit item of the main menu"],
+      ["sounds/v_tomeofknowledge.ogg", "\"Tome of Knowledge\"", "Lex reacts when the pointer moves onto the Tome of Knowledge item of the main menu"],
+      ["sounds/v_welcometobookwormadventures.ogg", "Welcome greeting", "Lex greets the player when the title screen gives way to the main menu"]
+    ] },
+    { name: "Word play", sounds: [
+      ["sounds/buzzer.ogg", "Word refused", "A word is refused in timed mode, submit is pressed with no valid word, a potion is clicked while it cannot be used, or in the Muta Words mini-game"],
+      ["sounds/gemspawn.ogg", "Gem appears", "A gem appears on a tile (the tutorial, the letter mini-games and some creatures do this)"],
+      ["sounds/lex_astonishing.ogg", "\"Astonishing\"", "Lex praises a spelled word, chosen by its word power (a mini-game uses it too)"],
+      ["sounds/lex_awesome.ogg", "\"Awesome\"", "Lex praises a spelled word, chosen by its word power (the previous Lex fight uses it too)"],
+      ["sounds/lex_excellent.ogg", "\"Excellent\"", "Lex praises a spelled word, chosen by its word power (a mini-game uses it too)"],
+      ["sounds/lex_fantastic.ogg", "\"Fantastic\"", "Lex praises a spelled word, chosen by its word power"],
+      ["sounds/lex_good.ogg", "\"Good\"", "Lex praises a spelled word, chosen by its word power"],
+      ["sounds/lex_incredible.ogg", "\"Incredible\"", "The Word Master mini-game plays it"],
+      ["sounds/lex_nice.ogg", "\"Nice\"", "Lex praises a spelled word, chosen by its word power (the Mirage Lex fight and a mini-game use it too)"],
+      ["sounds/lex_verygood.ogg", "\"Very good\"", "Lex praises a spelled word, chosen by its word power (a mini-game uses it too)"],
+      ["sounds/lex_watchout.ogg", "\"Watch out\"", "The Word Master mini-game plays it"],
+      ["sounds/lex_wow.ogg", "\"Wow\"", "Lex praises a spelled word, chosen by its word power (the previous Lex fight uses it too)"],
+      ["sounds/rainbowspawn.ogg", "Rainbow tile appears", "A rainbow tile appears on the board"],
+      ["sounds/scroll.ogg", "Word scroll", "The word scroll moves in a mini-game"],
+      ["sounds/tile_select.ogg", "Tile select", "A letter tile is picked on the board, or a potion is picked by its number key"],
+      ["sounds/tile_undo.ogg", "Tile taken back", "A tile is taken back off the word (a tutorial step does it too)"],
+      ["sounds/v_scramble.ogg", "\"Scramble\"", "The board is scrambled because no word can be made"],
+      ["sounds/warptileshimmer.ogg", "Warp tile shimmer", "A warp tile shimmers on the board"],
+      ["sounds/word_power.ogg", "Word power", "A strong word is spelled and its word-power bonus is shown"]
+    ] },
+    { name: "Hidden words", sounds: [
+      ["sounds/lex_burp.ogg", "Lex burps", "A hidden word is spelled, or Lex burps in an idle animation"],
+      ["sounds/sheepbleat.ogg", "Sheep bleat", "A hidden word is spelled; also a sheep, ram or sheep-like creature bleats"],
+      ["sounds/v_bythepowerofgreyskull.ogg", "Greyskull line", "A hidden word is spelled"],
+      ["sounds/v_cashmoney.ogg", "\"Cash money\"", "A hidden word is spelled"],
+      ["sounds/v_crazydelicious.ogg", "Crazy delicious", "A hidden word is spelled"],
+      ["sounds/v_iloveyou.ogg", "\"I love you\"", "A hidden word is spelled"],
+      ["sounds/v_wormofbookcraft.ogg", "Worm of Bookcraft", "A hidden word is spelled"]
+    ] },
+    { name: "Lex", sounds: [
+      ["sounds/lexdeath.ogg", "Lex is defeated", "Lex is defeated in a fight"],
+      ["sounds/lexwalkloop.ogg", "Lex walks", "Lex walks, a looping footstep sound, in fights and at the level-up effect"],
+      ["sounds/v_giggle1.ogg", "Giggle 1", "Lex giggles in an idle animation"],
+      ["sounds/v_giggle2.ogg", "Giggle 2", "Lex giggles in an idle animation, or in the main menu"],
+      ["sounds/v_heehee.ogg", "\"Hee hee\"", "Lex giggles in his idle animation"],
+      ["sounds/v_hiccup.ogg", "Hiccup", "Lex hiccups in his idle animation"],
+      ["sounds/v_howlongcanittaketogotothebathroom.ogg", "Bathroom line", "Lex says it when the player has been idle a while in a fight"],
+      ["sounds/v_ifyoudontstartplayingagainsoon.ogg", "Start playing line", "Lex says it when the player has been idle a while in a fight"],
+      ["sounds/v_sneeze.ogg", "Sneeze", "Lex sneezes in his idle animation"],
+      ["sounds/v_wakeupsleepyhead.ogg", "Wake up line", "Lex says it when the player has been idle a while in a fight"]
+    ] },
+    { name: "Lex attacks", sounds: [
+      ["sounds/bite_01.ogg", "Bite", "Lex bites in his own animation, and in the Caterpillar, Dormouse, Mrs. Sprat, Walrus, dance battle and Mech Hound fights"],
+      ["sounds/bluntimpact_dry.ogg", "Blunt impact", "Lex's word attack lands; effect animations and the Hen fight use it too"],
+      ["sounds/bluntimpact_withwoosh.ogg", "Blunt with woosh", "Lex's word attack lands; some creatures use it too"],
+      ["sounds/bowlstrike.ogg", "Bowl strike", "Lex's own animation strikes with a bowl"],
+      ["sounds/fire3.ogg", "Fire attack 3", "Lex's word attack lands; many creatures' fire attacks use it too"],
+      ["sounds/fire6.ogg", "Fire attack 6", "Lex's word attack lands; many creatures' fire attacks use it too"],
+      ["sounds/swordspearimpact_withwoosh.ogg", "Sword with woosh", "Lex's word attack lands; many creatures use it too"]
+    ] },
+    { name: "Battle", sounds: [
+      ["sounds/low_health.ogg", "Low health", "Lex has little health left, in a fight or in a mini-game"],
+      ["sounds/v_bossbattle.ogg", "\"Boss battle\"", "A boss fight begins, after the boss has opened it"],
+      ["sounds/v_survivalbattle.ogg", "\"Survival battle\"", "A survival-style fight against the Hydra opens"],
+      ["sounds/v_warmup.ogg", "\"Warm up\"", "The warm-up fight of the first chapter opens"],
+      ["sounds/warpin.ogg", "Warp in", "Lex warps into a chapter"],
+      ["sounds/warpout.ogg", "Warp out", "Lex warps out of a chapter; the main menu Lex uses it too"]
+    ] },
+    { name: "Dance battle", sounds: [
+      ["sounds/camera2.ogg", "Camera flash", "The dance animation flashes a camera"],
+      ["sounds/crowdcheer1.ogg", "Crowd cheer", "The dance animation cheers"],
+      ["sounds/dancedeath.ogg", "Dance ends", "The dance battle ends"],
+      ["sounds/danceengage.ogg", "Dance opens", "The dance battle opens"],
+      ["sounds/robot-e.ogg", "Robot E", "The dance animation plays it"],
+      ["sounds/robot-l.ogg", "Robot L", "The dance animation plays it"],
+      ["sounds/robot-lex.ogg", "Robot Lex", "The dance animation plays it"],
+      ["sounds/robot-x.ogg", "Robot X", "The dance animation plays it"],
+      ["sounds/v_dancebattle.ogg", "\"Dance battle\"", "The dance battle chapter of book 6 opens"]
+    ] },
+    { name: "Rewards", sounds: [
+      ["sounds/chaching.ogg", "Cash register", "Coins are counted up in a mini-game; the Mirage Trojan fight uses it too"],
+      ["sounds/crowdcheer.ogg", "Crowd cheers", "A fight is won, a level is gained or a mini-game ends well"],
+      ["sounds/firework1.ogg", "Firework 1", "The level-up effect and fight-won effect fire a rocket"],
+      ["sounds/firework2.ogg", "Firework 2", "The level-up effect and fight-won effect fire a rocket"],
+      ["sounds/lex_levelup.ogg", "\"Level up\"", "Lex gains a level"],
+      ["sounds/newtreasure.ogg", "New treasure", "A treasure is won at the end of a fight, or shown on the treasure screen"],
+      ["sounds/v_newbadge.ogg", "\"New badge\"", "A badge is earned"],
+      ["sounds/v_newcompanion.ogg", "\"New companion\"", "A new companion is earned at the end of a fight"],
+      ["sounds/vo_annihilated.ogg", "\"Annihilated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_crushed.ogg", "\"Crushed\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_decimated.ogg", "\"Decimated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_destroyed.ogg", "\"Destroyed\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_obliterated.ogg", "\"Obliterated\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_vanquished.ogg", "\"Vanquished\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/vo_whomped.ogg", "\"Whomped\"", "A fight is won with overkill damage, announced with this word"],
+      ["sounds/xpgain4.ogg", "Experience counts", "The experience stream flows into Lex at a level-up, a fight end or a gravestone"]
+    ] },
+    { name: "Potions", sounds: [
+      ["sounds/heal2.ogg", "Health potion", "Lex drinks a health potion"],
+      ["sounds/healpotionused_02.ogg", "Creature heals", "A creature heals itself (about thirty creatures)"],
+      ["sounds/potionpickup.ogg", "Potion pickup", "A potion is picked up from a gravestone"],
+      ["sounds/powerdown_01.ogg", "Power down", "A creature weakens the attack of Lex, or a boosted attack ends"],
+      ["sounds/powerup3.ogg", "Attack potion", "Lex uses an attack potion, or the Codex fight"],
+      ["sounds/poweruppotion_02.ogg", "Power up", "A creature or Lex powers up (a damage boost)"],
+      ["sounds/purify2.ogg", "Purify", "A purify potion is used, or a creature cures its ailment"],
+      ["sounds/weaken3.ogg", "Weaken effect", "The weaken effect is put on an attack"]
+    ] },
+    { name: "Tile effects", sounds: [
+      ["sounds/boardfrozen_01.ogg", "Board frozen", "A creature freezes the board"],
+      ["sounds/boardstunned_01.ogg", "Board stunned", "A creature stuns the board so no word can be made"],
+      ["sounds/fire1.ogg", "Fire effect", "A fire effect begins (about ten creatures)"],
+      ["sounds/ice1.ogg", "Frozen effect", "A frozen effect begins"],
+      ["sounds/ice4.ogg", "Petrify effect", "A petrify effect begins"],
+      ["sounds/lightning_attack_01.ogg", "Lightning", "A lightning attack lands (Circe, Hydra, Sea Elemental and wizards)"],
+      ["sounds/lockit.ogg", "Tile locked", "A creature locks tiles (about a dozen creatures)"],
+      ["sounds/petrify_attack_01.ogg", "Tiles petrified", "A creature turns tiles to stone (Basilisk, Medusa and others)"],
+      ["sounds/poison1.ogg", "Poison effect", "A poison effect begins"],
+      ["sounds/poison_attack_01.ogg", "Tiles poisoned", "A creature poisons tiles (about thirty creatures)"],
+      ["sounds/tiles_plagued_01.ogg", "Tiles plagued", "A creature plagues tiles"],
+      ["sounds/tiles_smashed_01.ogg", "Tiles smashed", "A creature smashes tiles (about fifty creatures)"]
+    ] },
+    { name: "Companions and tiles", sounds: [
+      ["sounds/eggtimer.ogg", "Egg timer", "Mother Goose sets her egg timer"],
+      ["sounds/herbertshield.ogg", "Herbert shield", "Herbert puts up his shield"],
+      ["sounds/lmhiya.ogg", "\"Hiya\"", "Master Wong attacks"],
+      ["sounds/madhat_reverb.ogg", "Mad Hat effect", "The Mad Hat effect plays"],
+      ["sounds/mkxform.ogg", "Monkey King transforms", "The Monkey King companion transforms"],
+      ["sounds/skullupgrade.ogg", "Skull upgrade", "The skeleton skull companion is upgraded"],
+      ["sounds/timehelmet_reverb.ogg", "Time Helmet effect", "The Time Helmet effect plays"]
+    ] },
+    { name: "Cutscenes", sounds: [
+      ["sounds/cheshirecat.ogg", "Cheshire cat", "The Cheshire Cat cutscene of book 4 plays"],
+      ["sounds/cymbalcrash.ogg", "Cymbal crash", "Stuffy the toy plays his animation"],
+      ["sounds/emperorandking2_light_v2.ogg", "Emperor light", "A cutscene of book 5 plays"],
+      ["sounds/emperorandking2_stinger_v2.ogg", "Emperor stinger", "A cutscene of book 5 plays"],
+      ["sounds/mothergoosestewpot.ogg", "Mother Goose stewpot", "The Mother Goose cutscene of book 4 plays"],
+      ["sounds/shackles_break.ogg", "Shackles break", "A cutscene of book 5 or 6 breaks chains"],
+      ["sounds/sifu_beatdown.ogg", "Sifu beat down", "The beat-down cutscene of book 5 plays"],
+      ["sounds/skeleskullrevives.ogg", "Skull revives", "The skeleton skull cutscene of book 6 plays"]
+    ] },
+    { name: "Mini-games", sounds: [
+      ["sounds/count.ogg", "Counting tick", "A score or timer counts up in a mini-game"],
+      ["sounds/newminigame.ogg", "New mini-game sting", "A new mini-game is unlocked"],
+      ["sounds/v_go.ogg", "\"Go\"", "A mini-game countdown ends"],
+      ["sounds/v_newminigame.ogg", "\"New mini-game\"", "A new mini-game is unlocked"],
+      ["sounds/v_one.ogg", "\"One\"", "A mini-game countdown goes on"],
+      ["sounds/v_three.ogg", "\"Three\"", "A mini-game countdown starts"],
+      ["sounds/v_two.ogg", "\"Two\"", "A mini-game countdown goes on"]
+    ] },
+    { name: "Human voices", sounds: [
+      ["sounds/dopeyattack1a.ogg", "Dopey attack 1a", "Opening sound of Tweedledee, Tweedledum, The Deuce and 5 more; Attack or hit of Angry Loyim"],
+      ["sounds/dopeyimpact2a.ogg", "Dopey impact 2a", "Death sound of Tweedledee, Tweedledum, Walrus and 7 more"],
+      ["sounds/female seduce.ogg", "Female seduce", "Opening sound of Stepfield Wife, Summerspeak (Arena too)"],
+      ["sounds/female_groan_01.ogg", "Female groan 1", "Opening sound of Anna Karenina; Attack or hit of Queen of Hearts, Stepfield Wife (Arena too)"],
+      ["sounds/female_groan_02.ogg", "Female groan 2", "Opening sound of Mrs. Sprat, Gretel; Death sound of Gretel, Stepfield Wife, Anna Karenina; Attack or hit of Queen of Hearts, Summerspeak (Arena too)"],
+      ["sounds/female_mmm.ogg", "Female mmm", "Opening sound of Witch"],
+      ["sounds/female_ooh.ogg", "Female ooh", "Opening sound of Strangling Ghost; Attack or hit of Summerspeak"],
+      ["sounds/humanmalegrunt2.ogg", "Human male grunt 2", "Death sound of Imperial Sergeant, Rogue Hacker; Attack or hit of Swindler, Gluttonous Monk, Greedy Monk and 2 more"],
+      ["sounds/humanmalegrunt3.ogg", "Human male grunt 3", "Death sound of Swindler, Imperial Captain; Attack or hit of Prideful Monk, Slothful Monk, Imperial Sergeant and 1 more (Arena too)"],
+      ["sounds/male_anger.ogg", "Male anger", "Opening sound of Swindler, Prideful Monk, Wrathful Monk and 4 more; Death sound of Odysseus; Attack or hit of Greedy Monk, Futurcom Tour Guide (Arena too)"],
+      ["sounds/male_laugh.ogg", "Male laugh", "Opening sound of Old MacDonald, Hansel, King of Hearts and 7 more; Death sound of Mad Hatter; Attack or hit of Swindler, Caterpillar, March Hare and 4 more (Arena too)"],
+      ["sounds/male_laugh2.ogg", "Male laugh 2", "Opening sound of Gingerbread Man, Mad Hatter, March Hare and 5 more; Attack or hit of Swindler, Hansel, Caterpillar and 2 more (Arena too)"],
+      ["sounds/male_low_anger.ogg", "Male low anger", "Opening sound of Revenant, Thought Cop; Attack or hit of South King, West King, Mutant (Arena too)"],
+      ["sounds/male_low_pain.ogg", "Male low pain", "Death sound of Old MacDonald, Wrathful Monk, Broken Brother and 3 more; Attack or hit of Gluttonous Monk, Stricken Ghost, East King and 4 more (Arena too)"],
+      ["sounds/male_low_warcry.ogg", "Male low warcry", "Opening sound of Broken Brother, Book Burner; Attack or hit of Imperial Captain, Sifu Sekkeen (Arena too)"],
+      ["sounds/male_pain.ogg", "Male pain", "Death sound of Gingerbread Man, Hansel, Carpenter and 12 more; Attack or hit of Old MacDonald (Arena too)"],
+      ["sounds/witch_groan_01.ogg", "Witch groan 1", "Death sound of Witch; Attack or hit of Grandma (Arena too)"],
+      ["sounds/witchy_laugh_01.ogg", "Witchy laugh 1", "Attack or hit of Grandma, Queen of Hearts (Arena too)"],
+      ["sounds/witchy_laugh_02.ogg", "Witchy laugh 2", "Opening sound of Grandma; Attack or hit of Witch, Queen of Hearts (Arena too)"]
+    ] },
+    { name: "Farm animals", sounds: [
+      ["sounds/bovineattack1.ogg", "Bovine attack 1", "Opening sound of Space Cow, Cow; Attack or hit of Marsling"],
+      ["sounds/bovineattack2.ogg", "Bovine attack 2", "Attack or hit of Space Cow, Cow, Old MacDonald (Arena too)"],
+      ["sounds/bovineimpact1.ogg", "Bovine impact 1", "Death sound of Space Cow, Cow"],
+      ["sounds/chickenattack1.ogg", "Chicken attack 1", "Opening sound of Chicken, The Hen, Year of the Rooster"],
+      ["sounds/chickenattack2.ogg", "Chicken attack 2", "Attack or hit of Chicken"],
+      ["sounds/chickenimpact4.ogg", "Chicken impact 4", "Death sound of Chicken; Attack or hit of The Hen"],
+      ["sounds/donkeybray.ogg", "Donkey bray", "Opening sound of Donkey of Guizhou"],
+      ["sounds/donkeyimpact2.ogg", "Donkey impact 2", "Death sound of Donkey of Guizhou"],
+      ["sounds/generic_animal_grumble_01.ogg", "Generic animal grumble 1", "Opening sound of Year of the Horse"],
+      ["sounds/pig_squeal_01.ogg", "Pig squeal 1", "Opening sound of Stick Pig; Attack or hit of Brick Pig"],
+      ["sounds/pig_squeal_02.ogg", "Pig squeal 2", "Opening sound of Pig Monster; Death sound of Pig, Pig Monster, Warpig; Attack or hit of Straw Pig"],
+      ["sounds/pigattack2.ogg", "Pig attack 2", "Opening sound of Pig, Straw Pig, Warpig; Attack or hit of Brick Pig, Stick Pig, Pig Monster"],
+      ["sounds/pigattack3.ogg", "Pig attack 3", "Opening sound of Brick Pig; Attack or hit of Pig, Stick Pig, Straw Pig"]
+    ] },
+    { name: "Wild animals", sounds: [
+      ["sounds/bearattack1.ogg", "Bear attack 1", "Attack or hit of Baby Bear, Mama Bear, Papa Bear and 1 more (Arena too)"],
+      ["sounds/bearimpact.ogg", "Bear impact", "Death sound of Baby Bear, Mama Bear; Attack or hit of Papa Bear, War Bear (Arena too)"],
+      ["sounds/bearroar.ogg", "Bear roar", "Opening sound of Baby Bear, Mama Bear, War Bear and 2 more; Attack or hit of Papa Bear (Arena too)"],
+      ["sounds/dog_barking_01.ogg", "Dog barking 1", "Death sound of Year of the Dog; Attack or hit of Big Bad Wolf, Erlang Shen (Arena too)"],
+      ["sounds/dog_barking_02.ogg", "Dog barking 2", "Opening sound of Year of the Dog, Mech Hound; Attack or hit of Big Bad Wolf (Arena too)"],
+      ["sounds/dog_whimper_01.ogg", "Dog whimper 1", "Death sound of Big Bad Wolf (Arena too)"],
+      ["sounds/feline_whimper_01.ogg", "Feline whimper 1", "Opening sound of Cat, Earless Tiger, Elder Tiger Demon and 2 more; Death sound of Earless Tiger, Elder Tiger Demon, Tailless Tiger (Arena too)"],
+      ["sounds/feline_whimper_02.ogg", "Feline whimper 2", "Death sound of Cat, Kxitty; Attack or hit of Earless Tiger, Elder Tiger Demon, Tailless Tiger (Arena too)"],
+      ["sounds/generic_slosh_02.ogg", "Generic slosh 2", "Death sound of Mrs. Sprat"],
+      ["sounds/monkeyattack2.ogg", "Monkey attack 2", "Attack or hit of Monkey King, Monolisk, Mutant Ape (Arena too)"],
+      ["sounds/monkeyattack4.ogg", "Monkey attack 4", "Attack or hit of Monkey King, Ape"],
+      ["sounds/monkeychallenge.ogg", "Monkey challenge", "Opening sound of Ape, Mutant Ape; Attack or hit of Monkey King, Monkey King (Arena)"],
+      ["sounds/snake_hiss_01.ogg", "Snake hiss 1", "Opening sound of Year of the Snake; Death sound of Year of the Snake"],
+      ["sounds/wolf_howl_01.ogg", "Wolf howl 1", "Opening sound of Big Bad Wolf; Death sound of Grandma; Attack or hit of Year of the Dog (Arena too)"]
+    ] },
+    { name: "Beasts and giants", sounds: [
+      ["sounds/dragon_bite.ogg", "Dragon bite", "Attack or hit of Jabberwocky, Dragon Guard, Dragon King and 2 more (Arena too)"],
+      ["sounds/dragon_death.ogg", "Dragon death", "Death sound of Jabberwocky, Dragon Guard, Dragon King and 2 more (Arena too)"],
+      ["sounds/dragon_pain.ogg", "Dragon pain", "Opening sound of Jabberwocky, Dragon Guard, Dragon King and 2 more; Attack or hit of Jabberwocky, Dragon Guard, Dragon King and 3 more (Arena too)"],
+      ["sounds/giantgruntecho2.ogg", "Giant grunt echo 2", "Opening sound of Giant; Death sound of Giant (Arena too)"],
+      ["sounds/kubwa_roar.ogg", "Kubwa roar", "Attack or hit of Giant (Arena too)"],
+      ["sounds/monsterattack2.ogg", "Monster attack 2", "Attack or hit of Bull Demon King (Arena too)"],
+      ["sounds/monsterchallenge1.ogg", "Monster challenge 1", "Opening sound of Bull Demon King (Arena too)"],
+      ["sounds/monsterimpact2.ogg", "Monster impact 2", "Death sound of Bull Demon King (Arena too)"],
+      ["sounds/ogreattack1.ogg", "Ogre attack 1", "Attack or hit of Radioactive Mutant, Troglock King (Arena too)"],
+      ["sounds/ogreattack2.ogg", "Ogre attack 2", "Attack or hit of Radioactive Mutant Ape, Troglock King (Arena too)"],
+      ["sounds/ogrechallenge.ogg", "Ogre challenge", "Opening sound of Radioactive Mutant Ape; Attack or hit of Tweedledee, Tweedledum, Troglock King (Arena too)"],
+      ["sounds/ogrechallengelong.ogg", "Ogre challenge long", "Opening sound of Radioactive Mutant; Attack or hit of Troglock King (Arena too)"],
+      ["sounds/ogreimpact1.ogg", "Ogre impact 1", "Attack or hit of Tweedledee, Tweedledum, Radioactive Mutant"],
+      ["sounds/ogreimpact1alt.ogg", "Ogre impact 1 alt", "Death sound of Radioactive Mutant; Attack or hit of Radioactive Mutant Ape (Arena too)"],
+      ["sounds/ogreimpact2.ogg", "Ogre impact 2", "Death sound of Radioactive Mutant Ape, Troglock King (Arena too)"]
+    ] },
+    { name: "Spirits and magic", sounds: [
+      ["sounds/fading_ghostly_wail_01.ogg", "Fading ghostly wail 1", "Opening sound of Tree Demon, Qin Demon, Screaming Sutra; Death sound of Screaming Sutra"],
+      ["sounds/fading_ghostly_wail_02.ogg", "Fading ghostly wail 2", "Death sound of Stricken Ghost, Tree Demon; Attack or hit of Revenant, Strangling Ghost"],
+      ["sounds/fading_ghostly_wail_03.ogg", "Fading ghostly wail 3", "Death sound of Strangling Ghost; Attack or hit of Stricken Ghost, Tree Demon"],
+      ["sounds/skeleton_warcry_01.ogg", "Skeleton warcry 1", "Opening sound of White Bone Spirit; Death sound of White Bone Spirit"],
+      ["sounds/smokeyattack1.ogg", "Smokey attack 1", "Opening sound of Caterpillar, Caterpillar (Arena), Marsling; Attack or hit of Stuffy, Stricken Ghost, Monkey King and 4 more (Arena too)"],
+      ["sounds/smokeyattack2.ogg", "Smokey attack 2", "Death sound of Caterpillar (Arena); Attack or hit of Gingerbread Man, Gretel, Witch and 11 more (Arena too)"],
+      ["sounds/smokeyimpact.ogg", "Smokey impact", "Death sound of Caterpillar, Marsling, Summerspeak; Attack or hit of Strangling Ghost, Data Node (Arena too)"],
+      ["sounds/sonic_attack_02.ogg", "Sonic attack 2", "Opening sound of East King, Erlang Shen, North King and 2 more; Death sound of East King, Erlang Shen, North King and 2 more; Attack or hit of Gluttonous Monk, Greedy Monk, Prideful Monk and 12 more (Arena too)"],
+      ["sounds/sparkleattack3.ogg", "Sparkle attack 3", "Opening sound of Moon, Door, Gold and 5 more; Death sound of Moon, Door, Gold and 4 more; Attack or hit of Monkey King, Data Node, Ice Hammer and 2 more (Arena too)"],
+      ["sounds/wail_03.ogg", "Wail 3", "Attack or hit of Broken Brother"],
+      ["sounds/wail_05.ogg", "Wail 5", "Opening sound of Stricken Ghost"]
+    ] },
+    { name: "Robots and sci-fi", sounds: [
+      ["sounds/roboticattack1.ogg", "Robotic attack 1", "Attack or hit of Duplicant, R. Giskeel, Robert and 3 more (Arena too)"],
+      ["sounds/roboticchallenge2.ogg", "Robotic challenge 2", "Opening sound of Overliege, Duplicant, R. Giskeel and 2 more; Attack or hit of Bigger Brother (Arena too)"],
+      ["sounds/roboticimpact2.ogg", "Robotic impact 2", "Death sound of Overliege; Attack or hit of Berzerkoid, Duplicant, R. Giskeel and 3 more (Arena too)"],
+      ["sounds/scifilaser1.ogg", "Sci-filaser 1", "Attack or hit of Berzerkoid, Kxitty, Marsling and 9 more (Arena too)"],
+      ["sounds/scifimech1.ogg", "Sci-fimech 1", "Opening sound of Berzerkoid, Computer Virus; Death sound of Computer Virus; Attack or hit of Overliege, Bigger Brother, The Machine (Arena too)"],
+      ["sounds/scifimech2.ogg", "Sci-fimech 2", "Opening sound of Data Node; Death sound of Berzerkoid, Duplicant, R. Giskeel and 3 more; Attack or hit of Overliege, Skeletrox (Arena too)"],
+      ["sounds/scifiteleport2.ogg", "Sci-fiteleport 2", "Death sound of Monolisk; Attack or hit of Berzerkoid, Computer Virus, Data Node and 3 more (Arena too)"]
+    ] },
+    { name: "Plates, strings and squeaks", sounds: [
+      ["sounds/plateattack2.ogg", "Plate attack 2", "Opening sound of Dish and Spoon; Attack or hit of Mad Hatter, Stepfield Wife (Arena too)"],
+      ["sounds/plateattack3.ogg", "Plate attack 3", "Death sound of Dish and Spoon (Arena too)"],
+      ["sounds/plateattack4.ogg", "Plate attack 4", "Opening sound of Cold Porridge, Hot Porridge, Teacups and 1 more (Arena too)"],
+      ["sounds/plateimpact4.ogg", "Plate impact 4", "Death sound of Teapot; Attack or hit of Dish and Spoon (Arena too)"],
+      ["sounds/plateimpact5.ogg", "Plate impact 5", "Death sound of Cold Porridge, Hot Porridge, Teacups; Attack or hit of Dish and Spoon (Arena too)"],
+      ["sounds/plateimpact6.ogg", "Plate impact 6", "Attack or hit of Dish and Spoon (Arena too)"],
+      ["sounds/squeakymamattack1.ogg", "Squeaky mam attack 1", "Opening sound of Low Demon; Attack or hit of Dormouse, March Hare (Arena too)"],
+      ["sounds/squeakymamattack2.ogg", "Squeaky mam attack 2", "Opening sound of Dormouse, Flamingo Hedgehog"],
+      ["sounds/squeakymamdie1.ogg", "Squeaky mamdie 1", "Death sound of Dormouse, March Hare, Flamingo Hedgehog and 1 more; Attack or hit of Mad Hatter (Arena too)"],
+      ["sounds/stringattackfiddlebow.ogg", "String attack fiddle bow", "Opening sound of Fiddle; Attack or hit of Qin Demon, East King (Arena too)"],
+      ["sounds/stringattackzither.ogg", "String attackzither", "Attack or hit of Qin Demon, East King"],
+      ["sounds/stringdeath.ogg", "String death", "Death sound of Fiddle, Qin Demon"],
+      ["sounds/stringimpact1alt.ogg", "String impact 1 alt", "Attack or hit of Fiddle"]
+    ] },
+    { name: "Attacks and impacts", sounds: [
+      ["sounds/arrow_shot_01.ogg", "Arrow shot 1", "Attack or hit of Erlang Shen, Odysseus (Arena too)"],
+      ["sounds/explosion1.ogg", "Explosion 1", "Attack or hit of Chicken, The Hen, Gingerbread House and 5 more"],
+      ["sounds/explosion3.ogg", "Explosion 3", "Attack or hit of The Hen, Gingerbread House, Radioactive Mutant Ape and 1 more (Arena too)"],
+      ["sounds/largeimpact_01.ogg", "Large impact 1", "Death sound of Stick Pig, Straw Pig, War Bear and 3 more; Attack or hit of Stuffy, Carpenter, Cat and 49 more"],
+      ["sounds/miscimpact1.ogg", "Misc impact 1", "Death sound of Ape, Mutant Ape; Attack or hit of Grandma, Sifu Sekkeen, Year of the Dog and 4 more (Arena too)"],
+      ["sounds/miscimpact2.ogg", "Misc impact 2", "Death sound of Brick Pig; Attack or hit of Giant, Mrs. Sprat, Sifu Sekkeen and 4 more (Arena too)"],
+      ["sounds/multiexplosion1.ogg", "Multiexplosion 1", "Death sound of The Machine"],
+      ["sounds/slicing_attack_01.ogg", "Slicing attack 1", "Attack or hit of Carpenter, Walrus, King of Hearts and 5 more (Arena too)"],
+      ["sounds/slicing_attack_02.ogg", "Slicing attack 2", "Attack or hit of Old MacDonald, Carpenter, Queen of Hearts and 4 more (Arena too)"],
+      ["sounds/slump_small_01.ogg", "Slump small 1", "Opening sound of Gingerbread House, Seahorse Captain, Shrimp Soldier; Death sound of Gingerbread House"],
+      ["sounds/smallimpact_01.ogg", "Small impact 1", "Death sound of Candlestick; Attack or hit of Stuffy, Baby Bear, Big Bad Wolf and 71 more"],
+      ["sounds/swordspearimpact.ogg", "Sword spear impact", "Attack or hit of Sword, South King"],
+      ["sounds/swordspearimpact_dry.ogg", "Sword spear impact dry", "Attack or hit of Broken Brother, Revenant, War"],
+      ["sounds/wetimpact1.ogg", "Wet impact 1", "Death sound of Seahorse Captain, Shark Sergeant, Shrimp Soldier; Attack or hit of Cold Porridge, Pig Monster, Year of the Snake and 1 more"],
+      ["sounds/wetimpact4.ogg", "Wet impact 4", "Attack or hit of Mrs. Sprat, Shark Sergeant, Shrimp Soldier and 2 more"]
+    ] },
+    { name: "Unused", sounds: [
+      ["sounds/bat_death_01.ogg", "Bat death 1", "The game never plays it"],
+      ["sounds/bowfiring.ogg", "Bow firing", "The game never plays it"],
+      ["sounds/codex_flinch.ogg", "Codex flinch", "The game never plays it"],
+      ["sounds/codex_laugh.ogg", "Codex laugh", "The game never plays it"],
+      ["sounds/codex_nyah.ogg", "Codex nyah", "The game never plays it"],
+      ["sounds/curtainsclose.ogg", "Curtainsclose", "The game never plays it"],
+      ["sounds/curtainscloseclap.ogg", "Curtainscloseclap", "The game never plays it"],
+      ["sounds/curtainsopen.ogg", "Curtainsopen", "The game never plays it"],
+      ["sounds/curtainsopenclap.ogg", "Curtainsopenclap", "The game never plays it"],
+      ["sounds/dragon_roar.ogg", "Dragon roar", "The game never plays it"],
+      ["sounds/eagle_cry_01.ogg", "Eagle cry 1", "The game never plays it"],
+      ["sounds/elephant_01.ogg", "Elephant 1", "The game never plays it"],
+      ["sounds/elephant_death_01.ogg", "Elephant death 1", "The game never plays it"],
+      ["sounds/elephant_death_02.ogg", "Elephant death 2", "The game never plays it"],
+      ["sounds/elephant_death_03.ogg", "Elephant death 3", "The game never plays it"],
+      ["sounds/giantgruntdry1.ogg", "Giant grunt dry 1", "The game never plays it"],
+      ["sounds/kubwa_barh.ogg", "Kubwa barh", "The game never plays it"],
+      ["sounds/kubwa_greeting.ogg", "Kubwa greeting", "The game never plays it"],
+      ["sounds/kubwa_greeting2.ogg", "Kubwa greeting 2", "The game never plays it"],
+      ["sounds/lex_autological.ogg", "\"Autological\"", "The game never plays it"],
+      ["sounds/lex_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it"],
+      ["sounds/lexbeam.ogg", "Lex beam", "The game never plays it"],
+      ["sounds/lextravelloop.ogg", "Lextravel loop", "The game never plays it"],
+      ["sounds/moan_01.ogg", "Moan 1", "The game never plays it"],
+      ["sounds/nemesis_laugh.ogg", "Nemesis laugh", "The game never plays it"],
+      ["sounds/plateimpact3.ogg", "Plate impact 3", "The game never plays it"],
+      ["sounds/pulsing_attack_01.ogg", "Pulsing attack 1", "The game never plays it"],
+      ["sounds/roar_01.ogg", "Roar 1", "The game never plays it"],
+      ["sounds/sloooowdown.ogg", "Sloooowdown", "The game never plays it"],
+      ["sounds/textreadblip.ogg", "Textreadblip", "The game never plays it"],
+      ["sounds/textreadtype02.ogg", "Textreadtype 02", "The game never plays it"],
+      ["sounds/textreadtype03.ogg", "Textreadtype 03", "The game never plays it"],
+      ["sounds/textreadtype04.ogg", "Textreadtype 04", "The game never plays it"],
+      ["sounds/textreadtype05.ogg", "Textreadtype 05", "The game never plays it"],
+      ["sounds/textreadtype06.ogg", "Textreadtype 06", "The game never plays it"],
+      ["sounds/textreadtype07.ogg", "Textreadtype 07", "The game never plays it"],
+      ["sounds/textreadtype08.ogg", "Textreadtype 08", "The game never plays it"],
+      ["sounds/textreadtype09.ogg", "Textreadtype 09", "The game never plays it"],
+      ["sounds/textreadtype10.ogg", "Textreadtype 10", "The game never plays it"],
+      ["sounds/v_astonishing.ogg", "\"Astonishing\"", "The game never plays it"],
+      ["sounds/v_autological.ogg", "\"Autological\"", "The game never plays it"],
+      ["sounds/v_awesome.ogg", "\"Awesome\"", "The game never plays it"],
+      ["sounds/v_buynow.ogg", "\"Buy now\"", "The game never plays it"],
+      ["sounds/v_clipsandgiggles.ogg", "\"Clips and giggles\"", "The game never plays it"],
+      ["sounds/v_excellent.ogg", "\"Excellent\"", "The game never plays it"],
+      ["sounds/v_fantastic.ogg", "\"Fantastic\"", "The game never plays it"],
+      ["sounds/v_good.ogg", "\"Good\"", "The game never plays it"],
+      ["sounds/v_illbeback.ogg", "\"I'll be back\"", "The game never plays it"],
+      ["sounds/v_incredible.ogg", "\"Incredible\"", "The game never plays it"],
+      ["sounds/v_letsgo.ogg", "\"Let's go\"", "The game never plays it"],
+      ["sounds/v_levelup.ogg", "\"Levelup\"", "The game never plays it"],
+      ["sounds/v_newtreasure.ogg", "\"New treasure\"", "The game never plays it"],
+      ["sounds/v_nice.ogg", "\"Nice\"", "The game never plays it"],
+      ["sounds/v_timeforbed.ogg", "\"Time for bed\"", "The game never plays it"],
+      ["sounds/v_unbelievable.ogg", "\"Unbelievable\"", "The game never plays it"],
+      ["sounds/v_verygood.ogg", "\"Very good\"", "The game never plays it"],
+      ["sounds/v_watchout.ogg", "\"Watch out\"", "The game never plays it"],
+      ["sounds/v_wow.ogg", "\"Wow\"", "The game never plays it"],
+      ["sounds/vo_routed.ogg", "\"Routed\"", "The game never plays it"]
+    ] },
+  ] },
   cosmicbugs: {
     presets: [
       { name: "Kill Chain", when: "Bugs shot one after another", steps: [["audio/explosion1", 0], ["audio/exp300", 0], ["audio/explosion1", 510], ["audio/exp400", 510], ["audio/explosion1", 790], ["audio/exp500", 790], ["audio/explosion1", 1250], ["audio/exp600", 1250], ["audio/powerup", 1800]]}
@@ -819,6 +1376,103 @@ var ByopopSoundboards = {
       ["sounds/mama2.ogg", "Mama 2 (unused)", "Never played"]
     ] },
   ] },
+  mahjongchina: {
+    // presets from the sound logs of the Mahjong session's driven runs (5 ms an update; mahjong-soundlogs/INDEX.md)
+    presets: [
+      { name: "Pair", when: "A free tile is selected, then its partner", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 210]]},
+      { name: "Not Free", when: "A pair is taken, then a covered tile is clicked", steps: [["Resource.dll|pe:WAVE:176", 0], ["Resource.dll|pe:WAVE:174", 205]]},
+      { name: "Bonus", when: "A pair that matches the tray's tile", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:352", 205], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Gold Match", when: "A gold pair is matched", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:377", 205]]},
+      { name: "Level Clear", when: "The last tiles have flown off; the map comes back", steps: [["Resource.dll|pe:WAVE:373", 0], ["Resource.dll|pe:WAVE:340", 585], ["Resource.dll|pe:WAVE:381", 1575]]},
+      { name: "Key", when: "A key tile is selected, matched and joins its lock", steps: [["Resource.dll|pe:WAVE:378", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205], ["Resource.dll|pe:WAVE:379", 615]]},
+      { name: "Magnet", when: "A magnet tile is selected and matched", steps: [["Resource.dll|pe:WAVE:348", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Joker", when: "A joker tile is selected and matched", steps: [["Resource.dll|pe:WAVE:347", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Undo", when: "The Undo button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:351", 0]]},
+      { name: "Shuffle", when: "The Shuffle button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:349", 0]]},
+      { name: "Ending", when: "The last stage's text goes, then the ending's fanfare", steps: [["Resource.dll|pe:WAVE:382", 0], ["Resource.dll|pe:WAVE:373", 2300]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
+    ] },
+    { name: "Tiles", sounds: [
+      ["Resource.dll|pe:WAVE:175", "Tile selected", "A free tile is clicked and becomes the selected one"],
+      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A tile that is not free is clicked"],
+      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, also by a key, joker or magnet tile"],
+      ["Resource.dll|pe:WAVE:349", "Shuffle", "The tiles are shuffled"],
+      ["Resource.dll|pe:WAVE:350", "Deal", "A new board is dealt at the start of a game"],
+      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back"]
+    ] },
+    { name: "Special tiles", sounds: [
+      ["Resource.dll|pe:WAVE:347", "Joker loop", "Plays on a loop while a joker tile is selected"],
+      ["Resource.dll|pe:WAVE:348", "Magnet loop", "Plays on a loop while a magnet tile is selected"],
+      ["Resource.dll|pe:WAVE:378", "Key loop", "Plays on a loop while a key tile is selected"],
+      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key tile is taken and joins the lock"],
+      ["Resource.dll|pe:WAVE:377", "Gold match", "A gold pair is matched"],
+      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "Plays on a loop as the remaining tiles fly off after a gold match"],
+      ["Resource.dll|pe:WAVE:352", "Bonus", "The pair taken matches the tray's tile and scores a bonus"]
+    ] },
+    { name: "Map", sounds: [
+      ["Resource.dll|pe:WAVE:340", "Map curtain", "A level is started from the map, or the map steps back, with the curtain moving"],
+      ["Resource.dll|pe:WAVE:381", "Map move", "The map moves on to the next level"],
+      ["Resource.dll|pe:WAVE:380", "New stage", "The map moves on into a new stage"],
+      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The new stage's text has faded out"]
+    ] },
+    { name: "Level end", sounds: [
+      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog of a layout is shown"],
+      ["Resource.dll|pe:WAVE:373", "Ending fanfare", "The ending screen opens after the last level"]
+    ] },
+    { name: "Unused", sounds: [
+      ["Resource.dll|pe:WAVE:106", "Unused MP3", "The game never plays it; its code never refers to the resource"]
+    ] },
+  ] },
+  mahjongjapan: {
+    // presets from the sound logs of the Mahjong session's driven runs (5 ms an update; mahjong-soundlogs/INDEX.md)
+    presets: [
+      { name: "Pair", when: "A free tile is selected, then its partner", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 210]]},
+      { name: "Not Free", when: "A pair is taken, then a covered tile is clicked", steps: [["Resource.dll|pe:WAVE:176", 0], ["Resource.dll|pe:WAVE:174", 205]]},
+      { name: "Bonus", when: "A pair that matches the tray's tile", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:352", 205], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Gold Match", when: "A gold pair is matched", steps: [["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:377", 205]]},
+      { name: "Level Clear", when: "The last tiles have flown off; the map comes back", steps: [["Resource.dll|pe:WAVE:373", 0], ["Resource.dll|pe:WAVE:340", 485], ["Resource.dll|pe:WAVE:381", 1475]]},
+      { name: "Key", when: "A key tile is selected, matched and joins its lock", steps: [["Resource.dll|pe:WAVE:378", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205], ["Resource.dll|pe:WAVE:379", 610]]},
+      { name: "Magnet", when: "A magnet tile is selected and matched", steps: [["Resource.dll|pe:WAVE:348", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Joker", when: "A joker tile is selected and matched", steps: [["Resource.dll|pe:WAVE:347", 0, {"loop": 1, "end": 205}], ["Resource.dll|pe:WAVE:175", 0], ["Resource.dll|pe:WAVE:176", 205]]},
+      { name: "Undo", when: "The Undo button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:351", 0]]},
+      { name: "Shuffle", when: "The Shuffle button", steps: [["Resource.dll|pe:WAVE:105", 0], ["Resource.dll|pe:WAVE:349", 0]]},
+      { name: "Ending", when: "The last stage's text goes, then the ending's fanfare", steps: [["Resource.dll|pe:WAVE:382", 0], ["Resource.dll|pe:WAVE:373", 2300]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["Resource.dll|pe:WAVE:105", "Click", "A button or other control of a screen is pressed; also the layout and map screens' clicks"]
+    ] },
+    { name: "Tiles", sounds: [
+      ["Resource.dll|pe:WAVE:175", "Tile selected", "A free tile is clicked and becomes the selected one"],
+      ["Resource.dll|pe:WAVE:174", "Tile blocked", "A tile that is not free is clicked"],
+      ["Resource.dll|pe:WAVE:176", "Pair matched", "Two matching tiles are taken, also by a key, joker or magnet tile"],
+      ["Resource.dll|pe:WAVE:349", "Shuffle", "The tiles are shuffled"],
+      ["Resource.dll|pe:WAVE:350", "Deal", "A new board is dealt at the start of a game"],
+      ["Resource.dll|pe:WAVE:351", "Undo", "A move is taken back"]
+    ] },
+    { name: "Special tiles", sounds: [
+      ["Resource.dll|pe:WAVE:347", "Joker loop", "Plays on a loop while a joker tile is selected"],
+      ["Resource.dll|pe:WAVE:348", "Magnet loop", "Plays on a loop while a magnet tile is selected"],
+      ["Resource.dll|pe:WAVE:378", "Key loop", "Plays on a loop while a key tile is selected"],
+      ["Resource.dll|pe:WAVE:379", "Key joins lock", "A key tile is taken and joins the lock"],
+      ["Resource.dll|pe:WAVE:377", "Gold match", "A gold pair is matched"],
+      ["Resource.dll|pe:WAVE:376", "Fly-off loop", "Plays on a loop as the remaining tiles fly off after a gold match"],
+      ["Resource.dll|pe:WAVE:352", "Bonus", "The pair taken matches the tray's tile and scores a bonus"]
+    ] },
+    { name: "Map", sounds: [
+      ["Resource.dll|pe:WAVE:340", "Map curtain", "A level is started from the map, or the map steps back, with the curtain moving"],
+      ["Resource.dll|pe:WAVE:381", "Map move", "The map moves on to the next level"],
+      ["Resource.dll|pe:WAVE:380", "New stage", "The map moves on into a new stage"],
+      ["Resource.dll|pe:WAVE:382", "Stage text gone", "The new stage's text has faded out"]
+    ] },
+    { name: "Level end", sounds: [
+      ["Resource.dll|pe:WAVE:375", "Layout result", "The result dialog of a layout is shown"],
+      ["Resource.dll|pe:WAVE:373", "Ending fanfare", "The ending screen opens after the last level"]
+    ] },
+  ] },
   mummymaze: {
     presets: [
       { name: "Chamber Opens", when: "A chamber begins", steps: [["sounds/tombslide", 0], ["sounds/mummyhowl", 900]]},
@@ -860,6 +1514,25 @@ var ByopopSoundboards = {
       ["sounds/finishedlevel.ogg", "Level finished", "The explorer reaches the exit and walks out (not while a solution is shown, not in the tutorial)"],
       ["sounds/mummyhowl.ogg", "Mummy howl", "The explorer is lost; also about 165 updates after a level begins (not in the ending modes)"],
       ["sounds/opentreasure.ogg", "Open treasure", "The ending of an adventure or classic game begins its fade"]
+    ] },
+  ] },
+  ningpo: {
+    presets: [
+      { name: "You Win", when: "The last pair is taken", steps: [["ningpo.pyz|zip:nm_match.ogg", 0], ["ningpo.pyz|zip:nm_youwin.ogg", 500]]}
+    ],
+    groups: [
+    { name: "Menus", sounds: [
+      ["ningpo.pyz|zip:nm_guiclick.wav", "Screen click", "A button of a screen or dialog is pressed (also pause, new game, and the like)"]
+    ] },
+    { name: "Tiles", sounds: [
+      ["ningpo.pyz|zip:nm_click.wav", "Tile selected", "A free tile is selected; also an arrow of the title screen is clicked"],
+      ["ningpo.pyz|zip:nm_unclick.wav", "Tile deselected", "The selected tile is clicked again and deselected"],
+      ["ningpo.pyz|zip:nm_blocked.ogg", "Blocked tile", "A tile that is not free is clicked, or a free tile that does not match the selected one"],
+      ["ningpo.pyz|zip:nm_match.ogg", "Pair matched", "A pair is taken and the game goes on"],
+      ["ningpo.pyz|zip:nm_youwin.ogg", "You win", "The last pair is taken"]
+    ] },
+    { name: "Buttons", sounds: [
+      ["ningpo.pyz|zip:nm_hint.ogg", "Hint, shuffle, undo", "The hint button, the shuffle or the undo is used"]
     ] },
   ] },
   noahsark: {
@@ -1089,6 +1762,56 @@ var ByopopSoundboards = {
       ["sounds/bonusdig.ogg", "Dig", "A square is dug on the bonus screen, with nothing special under it (panned by column)"],
       ["sounds/bonusgraves.ogg", "Graves near", "A dug square has graves in the neighbouring squares"],
       ["sounds/bonuslose.ogg", "Ghost", "A square holding a ghost is dug"]
+    ] },
+  ] },
+  tiptop: { groups: [
+    { name: "Menus", sounds: [
+      ["TipTop.dat|tiptop:sounds/splash.ogg", "Splash", "The splash screen's loading bar shows"],
+      ["TipTop.dat|tiptop:sounds/MouseOver.ogg", "Mouse over", "The pointer comes onto a button, also on the level summary's button"],
+      ["TipTop.dat|tiptop:sounds/MouseClick.ogg", "Mouse click", "A button is pressed, or Enter on the level summary"],
+      ["TipTop.dat|tiptop:sounds/VolumeAdjust.ogg", "Volume test", "The sound volume slider is moved"]
+    ] },
+    { name: "Level start and end", sounds: [
+      ["TipTop.dat|tiptop:sounds/GameStart.ogg", "Game start", "The first level of a game begins"],
+      ["TipTop.dat|tiptop:sounds/LevelStart.ogg", "Level start", "A later level begins"],
+      ["TipTop.dat|tiptop:sounds/LevelWin.ogg", "Level won", "A level is completed"],
+      ["TipTop.dat|tiptop:sounds/GameLost.ogg", "Game lost", "The game ends in a loss"],
+      ["TipTop.dat|tiptop:sounds/EmptyRowCount.ogg", "Empty row", "A cleared row scores the empty-row bonus"]
+    ] },
+    { name: "Matches", sounds: [
+      ["TipTop.dat|tiptop:sounds/ColorMatch.ogg", "Match of 3", "A match of three blocks"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup4.ogg", "Match of 4", "A match of four blocks"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup5.ogg", "Match of 5", "A match of five blocks"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchGroup6.ogg", "Match of 6 or more", "A match of six or more blocks"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade1.ogg", "Cascade 2", "The second match of a chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade2.ogg", "Cascade 3", "The third match of a chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade3.ogg", "Cascade 4", "The fourth match of a chain"],
+      ["TipTop.dat|tiptop:sounds/ColorMatchCascade4.ogg", "Cascade 5", "The fifth match of a chain or beyond"]
+    ] },
+    { name: "Blocks", sounds: [
+      ["TipTop.dat|tiptop:sounds/BlockLaunch.ogg", "Block launched", "The player's block starts to move"],
+      ["TipTop.dat|tiptop:sounds/FloaterLaunched.ogg", "Floater launched", "A floating block starts to move"],
+      ["TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", "Launcher moves", "The launcher moves to another column"],
+      ["TipTop.dat|tiptop:sounds/BlocksFall.ogg", "Blocks fall", "The blocks drop after a row is cleared"]
+    ] },
+    { name: "Power pieces", sounds: [
+      ["TipTop.dat|tiptop:sounds/RocketLaunch.ogg", "Rocket launch", "A rocket starts to move"],
+      ["TipTop.dat|tiptop:sounds/RocketCollision.ogg", "Rocket hits", "A rocket lands and goes off"],
+      ["TipTop.dat|tiptop:sounds/HammerLaunch.ogg", "Hammer launch", "A hammer starts to move"],
+      ["TipTop.dat|tiptop:sounds/HammerCollision.ogg", "Hammer hits", "A hammer lands and goes off"],
+      ["TipTop.dat|tiptop:sounds/MagnetLaunch.ogg", "Magnet launch", "A magnet starts to move"],
+      ["TipTop.dat|tiptop:sounds/RainbowLaunch.ogg", "Rainbow launch", "A rainbow piece starts to move"],
+      ["TipTop.dat|tiptop:sounds/RainbowCollision.ogg", "Rainbow hits", "A rainbow piece lands and goes off"],
+      ["TipTop.dat|tiptop:sounds/ColorbombLaunch.ogg", "Color bomb launch", "A color bomb starts to move"],
+      ["TipTop.dat|tiptop:sounds/ColorBombCollision.ogg", "Color bomb hits", "A color bomb lands and goes off"],
+      ["TipTop.dat|tiptop:sounds/ColumnNukeLaunch.ogg", "Column nuke launch", "A column nuke starts to move"],
+      ["TipTop.dat|tiptop:sounds/ColumnNukeCollision.ogg", "Column nuke hits", "A column nuke lands and goes off"]
+    ] },
+    { name: "Warnings", sounds: [
+      ["TipTop.dat|tiptop:sounds/timewarning.ogg", "Time warning", "Loops while the level's meter is low during play"],
+      ["TipTop.dat|tiptop:sounds/shake0.ogg", "Shake 0", "Loops while the stack is near the top, when the game's table sets it for that nearness"],
+      ["TipTop.dat|tiptop:sounds/shake1.ogg", "Shake 1", "Loops while the stack is near the top, when the game's table sets it for that nearness"],
+      ["TipTop.dat|tiptop:sounds/shake2.ogg", "Shake 2", "Loops while the stack is near the top, when the game's table sets it for that nearness"]
     ] },
   ] },
   typershark: {

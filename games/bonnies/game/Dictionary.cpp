@@ -93,6 +93,26 @@ Dictionary::Dictionary()
 {
 }
 
+// port
+size_t Dictionary::memoryBytes() const
+{
+	size_t aBytes = (size_t)mCount * sizeof(uint8_t);
+	for (int aTable = 0; aTable < 2; aTable++)
+	{
+		const Str* aStrings = aTable == 0 ? mWords : mSpellings;
+		for (int i = 0; aStrings != nullptr && i < mCount; i++)
+		{
+			const Str& aString = aStrings[i];
+			aBytes += sizeof(Str);
+			// (a string too long for its own bytes keeps the rest on the heap)
+			const char* aData = aString.data();
+			if (aData < (const char*)&aString || aData >= (const char*)(&aString + 1))
+				aBytes += aString.capacity() + 1;
+		}
+	}
+	return aBytes;
+}
+
 // 0x404570
 Str expandWord(Str theWord, int theWild)
 {

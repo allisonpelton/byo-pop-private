@@ -1,0 +1,19 @@
+# Arrow presses while the explorer moves and right after he stops (2026-11-11, the key-press check): chamber 1 of a classic game
+# (seed 21), the explorer takes a turn of about 135 updates (his walk, then the mummy's). Left at 1411 starts the first turn; Right
+# at 1425 comes during his walk and is kept for the next turn; Left at 1617 and Right at 1682 follow the same way. The shots show
+# the first move (t1), the second turn in progress (t2, t3), the third and fourth (t4, t5) and the rest (t6): the port and the
+# original take every press the same way, every shot matches. Run: bash games/mummymaze/tools/identical/p2.sh <this file> keyq
+99 title
+1000 click 185 376
+1300 shot t0
+1411 key 37
+1425 key 39
+1500 shot t1
+1560 shot t2
+1617 key 37
+1650 shot t3
+1682 key 39
+1700 shot t4
+1760 shot t5
+1850 shot t6
+1900 quit
