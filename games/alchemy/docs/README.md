@@ -104,7 +104,7 @@ Checked after that, with the bot and a click script under rundesk and in the bro
   with `savegame.dat` inside) within a second of the first rune; reloading the page, which runs no shutdown, brings the
   "Continue?" question and "Yes" restores the board, score and piece positions; the backup is still there after a second
   reload and is gone within two seconds of the player's answer "No". The backup holds the file while the game runs because
-  `AlchemyApp::GetShutdownSaves` returns `Board::SerializeGame`, which touches no clock.
+  `WinAlchApp::GetShutdownSaves` returns `Board::SerializeGame`, which touches no clock.
 - **Full screen.** Natively the options' box switches the window (the box starts checked, since the game's `partner.xml`
   says `DefaultWindowed` false) and the setting is written (`ScreenMode`) and shown again the next time the dialog opens. In the
   browser the game always starts in the page; the options' box asks SDL for full screen, and the Browser pane has no document
@@ -113,7 +113,7 @@ Checked after that, with the bot and a click script under rundesk and in the bro
   is meant to set the box right again when the player leaves it (Esc), which was not run. The page's Fullscreen button is
   the usual way on the web.
 - **Sound.** All 15 samples and the two songs load with no error (a failed load would open the framework's popup). With
-  `AlchemyApp::PlaySample` logging for one run, every sample was played at the right place: thunk (a
+  `WinAlchApp::PlaySample` logging for one run, every sample was played at the right place: thunk (a
   placement), melt (a discard), skull, forge down, final vanish (twice in the table), end of game, final gong, warning, gem
   change, click, bad, welcome (the selector, a second in), level complete and game over. The bot clicks "next board" at once, before the
   wizard has faded in, so the level complete sound is not in its runs, as in the original (0x407130 plays it only

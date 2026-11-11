@@ -36,8 +36,8 @@ Any other folder in `build/` is a leftover of a past review or experiment and ca
 
 ## Running the oracle
 
-Moved here from CLAUDE.md on 2026-11-01; CLAUDE.md keeps the machine's rules for it (one oracle at a time, at most
-three game processes, no wait loop in the shell that starts it).
+CLAUDE.md has the machine's rules for it (one oracle at a time, at most three game processes, no wait loop in the
+shell that starts it).
 
 - The oracle's three runs per change (default, `-forcevariant`, the novariants build) are one command:
   `games/bejeweled/tools/oracle/compare.sh --variants default,forcevariant,novariants` (into build/oracle,

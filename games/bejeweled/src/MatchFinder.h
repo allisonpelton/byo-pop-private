@@ -1,7 +1,7 @@
 #ifndef __MATCHFINDER_H__
 #define __MATCHFINDER_H__
 
-// port(variant): the match rules' finder (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6, stage 9). Not part of the
+// port(variant): the match rules' finder (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6). Not part of the
 // original game. Framework-free (GameRules and BoardLayout only), so tools/rulestest runs its fixtures.
 //
 // FindGroups emits the groups of a grid of colours in this order: the vertical runs (columns left to right, each

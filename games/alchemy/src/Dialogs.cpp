@@ -1,7 +1,7 @@
 // The dialogs of Alchemy Deluxe that are classes of their own (see Dialogs.h).
 
 #include "Dialogs.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "HighScores.h"
 #include "Graphics.h"
 #include "Font.h"
@@ -23,10 +23,10 @@ static int kNameEditColors[5][4] =
 };
 
 // ---------------------------------------------------------------------------------------------------------
-// AllTimeDialog
+// HighScoreDialog
 
 // 0x4096c8
-AllTimeDialog::AllTimeDialog(AlchemyApp* theApp) :
+HighScoreDialog::HighScoreDialog(WinAlchApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_HIGH_SCORES, true,
 		theApp->GetString("HIGH_SCORES"), "", theApp->GetString("DONE"), BUTTONS_FOOTER),
 	mScores(new HighScoreWidget(theApp)),
@@ -39,19 +39,19 @@ AllTimeDialog::AllTimeDialog(AlchemyApp* theApp) :
 	SetColor(Dialog::COLOR_BUTTON_TEXT, Color(0xe0, 0xb7, 0x28));
 }
 
-AllTimeDialog::~AllTimeDialog()
+HighScoreDialog::~HighScoreDialog()
 {
 	delete mScores;
 }
 
 // 0x4096a4: the rows of the table are drawn below the header, so the height is fixed
-int AllTimeDialog::GetPreferredHeight(int theWidth)
+int HighScoreDialog::GetPreferredHeight(int theWidth)
 {
 	return 0x156;
 }
 
 // 0x409854: two columns (strategic, time trial) of the best of the day, then the five best of all time
-void AllTimeDialog::Draw(Graphics* g)
+void HighScoreDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
 	g->SetFont(mApp->mFont1);
@@ -110,7 +110,7 @@ void AllTimeDialog::Draw(Graphics* g)
 // OptionsDialog
 
 // 0x40d836
-OptionsDialog::OptionsDialog(AlchemyApp* theApp) :
+OptionsDialog::OptionsDialog(WinAlchApp* theApp) :
 	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_OPTIONS, true,
 		theApp->GetString("OPTIONS"), "", theApp->GetString("OPTDLG_DONE"), BUTTONS_FOOTER),
 	mApp(theApp)
@@ -133,7 +133,7 @@ OptionsDialog::OptionsDialog(AlchemyApp* theApp) :
 	mSfxSlider->SetValue(mApp->GetSfxVolume());
 
 	// both boxes have the id 0; the dialog is their listener because a Checkbox takes one (the original's CheckboxChecked, 0x40d7c2, only
-	// raised the colour-depth question, which is left out: GAME_NOTES section 5)
+	// raised the colour-depth question, which is left out: GAME_NOTES.md, "What the original has and the port leaves out")
 	mFullscreenBox = new Checkbox(mApp->mImages[IMAGE_UNCHECKED], mApp->mImages[IMAGE_CHECKED], 0, this);
 	mFullscreenBox->SetChecked(!mApp->mIsWindowed, true);
 	mCursorsBox = new Checkbox(mApp->mImages[IMAGE_UNCHECKED], mApp->mImages[IMAGE_CHECKED], 0, this);
@@ -243,10 +243,10 @@ void OptionsDialog::ButtonDepress(int theId)
 	switch (theId)
 	{
 	case 2:
-		mApp->ShowAllTimeScores();
+		mApp->DoHighScoreDialog();
 		break;
 	case 4:
-		mApp->ShowHelp();
+		mApp->DoHelp();
 		break;
 	}
 }
@@ -261,11 +261,11 @@ void OptionsDialog::SliderVal(int theId, double theVal)
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// NameEntryDialog
+// RecordScoreDialog
 
 // 0x40ed00
-NameEntryDialog::NameEntryDialog(AlchemyApp* theApp, const SexyString& theLines) :
-	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_NAME_ENTRY, true,
+RecordScoreDialog::RecordScoreDialog(WinAlchApp* theApp, const SexyString& theLines) :
+	Dialog2004(theApp->mImages[IMAGE_DIALOG], theApp->mImages[IMAGE_DBUTTON], DIALOG_RECORD_SCORE, true,
 		theApp->GetString("HIGH_SCORE"), theLines, "", BUTTONS_OK_CANCEL),
 	mApp(theApp)
 {
@@ -288,18 +288,19 @@ NameEntryDialog::NameEntryDialog(AlchemyApp* theApp, const SexyString& theLines)
 }
 
 // 0x40ea5d
-NameEntryDialog::~NameEntryDialog()
+RecordScoreDialog::~RecordScoreDialog()
 {
 	delete mEdit;
 }
 
-SexyString NameEntryDialog::GetName()
+// port: the name in the edit box
+SexyString RecordScoreDialog::GetName()
 {
 	return mEdit->mString;
 }
 
 // 0x40eac0
-void NameEntryDialog::AddedToManager(WidgetManager* theWidgetManager)
+void RecordScoreDialog::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mEdit);
@@ -307,51 +308,52 @@ void NameEntryDialog::AddedToManager(WidgetManager* theWidgetManager)
 }
 
 // 0x40eaeb
-void NameEntryDialog::RemovedFromManager(WidgetManager* theWidgetManager)
+void RecordScoreDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
 	theWidgetManager->RemoveWidget(mEdit);
 }
 
 // 0x40eb0a
-void NameEntryDialog::Resize(int theX, int theY, int theWidth, int theHeight)
+void RecordScoreDialog::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Dialog2004::Resize(theX, theY, theWidth, theHeight);
 	mEdit->Resize(mX + 0x30, mHeight + mY - 0x64, mWidth - 0x60, 0x18);
 }
 
 // 0x40eab1
-int NameEntryDialog::GetPreferredHeight(int theWidth)
+int RecordScoreDialog::GetPreferredHeight(int theWidth)
 {
 	return Dialog2004::GetPreferredHeight(theWidth) + 0x38;
 }
 
 // 0x40eb9f: the box of a name: the left end of the picture, a run of its middle and its right end
-static void DrawNameBox(Graphics* g, Image* theBox, const Rect& theRect)
+void RecordScoreDialog::DrawEditBox(Graphics* g, const Rect& theRect)
 {
-	g->DrawImage(theBox, theRect.mX, theRect.mY, Rect(0, 0, 0x20, 0x20));
-	g->DrawImage(theBox, theRect.mX + theRect.mWidth - 0x20, theRect.mY, Rect(0x40, 0, 0x20, 0x20));
+	Image* aBoxImage = mApp->mImages[IMAGE_EDITBOX];
+	g->DrawImage(aBoxImage, theRect.mX, theRect.mY, Rect(0, 0, 0x20, 0x20));
+	g->DrawImage(aBoxImage, theRect.mX + theRect.mWidth - 0x20, theRect.mY, Rect(0x40, 0, 0x20, 0x20));
 	Graphics aMiddle(*g);
 	aMiddle.ClipRect(theRect.mX + 0x20, theRect.mY, theRect.mWidth - 0x20, 0x20);
 	int aTiles = (theRect.mWidth - 0x21) / 0x20;
 	for (int i = 0; i < aTiles; i++)
-		aMiddle.DrawImage(theBox, theRect.mX + 0x20 + i * 0x20, theRect.mY, Rect(0x20, 0, 0x20, 0x20));
+		aMiddle.DrawImage(aBoxImage, theRect.mX + 0x20 + i * 0x20, theRect.mY, Rect(0x20, 0, 0x20, 0x20));
 }
 
 // 0x40eed1: the box of the name (4 pixels more on each side than the edit widget) and the prompt over it
 // (the original makes the box with Rect::Inflate, 0x40ecd8, and its result is copied by 0x40eb64)
-void NameEntryDialog::Draw(Graphics* g)
+void RecordScoreDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
 	Rect aBox(mEdit->mX - mX - 4, mEdit->mY - mY - 4, mEdit->mWidth + 8, mEdit->mHeight + 8);
-	DrawNameBox(g, mApp->mImages[IMAGE_EDITBOX], aBox);
+	DrawEditBox(g, aBox);
 	g->SetFont(mApp->mFont1);
 	g->SetColor(Color(0, 0, 0));
 	g->DrawString(mApp->GetString("ENTER_YOUR_NAME"), mEdit->mX - mX, (mEdit->mY - mY) - 8);
 }
 
 // 0x40eb4e: Enter in the box answers the dialog's OK button
-void NameEntryDialog::EditWidgetText(int theId, const SexyString& theString)
+void RecordScoreDialog::EditWidgetText(int theId, const SexyString& theString)
 {
 	(void) theId;
 	(void) theString;

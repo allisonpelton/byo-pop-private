@@ -402,3 +402,69 @@ Windows Sandbox (`SANDBOX=1 tools/run_original.sh`) before the clicks of the dia
 **Cost.** The original ran for about 20 minutes of machine time all together, and the wait for room (at most 3 game processes on the
 machine) took more than that. Sonnet agents sorted the first report's 79 rows (17 minutes, 338k tokens) and read the five port
 functions again (10 minutes, 217k tokens); the rest was this session's, with a few sandbox runs for the Options layout.
+
+## 12. Code the port does not need (2026-11-10)
+
+The step after the performance pass (`docs/COORDINATION.md`). Registration and the buttons that lead out were already out
+(section 9), and `Board::RefillPuzzle` with the puzzle branch of `EnsureMoves` went with the performance pass (section 10). This
+survey looked for what no path of the shipped game reaches or needs, by seven scans of the game's `src/`
+(`tools/unneeded/scan.py` runs the first four):
+
+1. **Functions.** The 19 object files of the native build, every function they define against every relocation in them
+   (`llvm-nm --defined-only`, `llvm-objdump -r`): 41 of 376 have no reference. Twenty-seven are the aliased forms of constructors
+   and destructors and one is `SDL_main`; the other thirteen were searched in the source and all are called, inlined by the
+   compiler (`RankOf`, `PlaceBlocks`, `PlaceCrates`, `AllClonesGone`, `TryRemoveClonePair`, `DrawTrailArrow`, `ExchangeContents`,
+   `RemoveIntro`, `PlayGameMusic`, `ShowNewGameDialog`, `RemoveHighScoreWidget` and the bot's `BotRand` and `BotQuiet`). Every
+   function a header declares is defined.
+2. **Compiler warnings.** Every source compiled with `-Wall -Wextra -Wunused -Wunused-member-function -Wunused-private-field
+   -Wunused-template -Wunused-macros -Wunreachable-code`: 245 warnings, all of them in the framework's headers (243 unused
+   parameters of its empty listener methods and two deprecated copies), none in the game's files.
+3. **Fields.** Every member `m...` of the game's headers (227) by how often code reads and writes it: eleven were written and
+   never read, or never touched at all. Each was then looked up in the original's disassembly (0x401000-0x420d10), so that a
+   field the port never reads is not a sign of something left untranslated: the original only writes them too.
+4. **Constants.** Every enumerator, `#define` and `const` (206) by use. The ones named once are members of a run that code reaches
+   by adding to its first (see 5), and `PIECE_ANIMAL_LAST` and `PIECE_UNUSED`, which the code tests as numbers; they stay for
+   the readability pass, which gives those numbers their names.
+5. **Pictures and sounds.** Every id of `Res.h`: all 82 pictures and all 34 sounds are named by code the game runs, or reached
+   from a named one: the second rain picture (`IMAGE_RAIN1 + (tick & 1)`), the ark's five ramps (`IMAGE_ARKRAMP_1 + stage`),
+   Noah's frames (his sprite's first picture plus the frame, and `IMAGE_NOAH_ASCEND1` plus the frame), the thirteen animals'
+   sounds (the kind plus one), the eight combo sounds (`SOUND_COMBO1 + n`) and the second thunder (`SOUND_THUNDER3 + (rand & 1)`).
+6. **Texts.** Every entry of `GameTextTable.inc` (the addresses, lengths and hashes of the texts the port reads from the player's
+   exe) against the addresses the sources name: 177 of 866 were named.
+7. **Windows leftovers, switched-off code, comments.** `_WIN32` appears once (the search for the retail install folder, which a
+   Windows player of the unpacked game needs), no `#if 0`, no commented-out code, no `TODO`.
+
+| What | Why it is not needed | Verdict |
+|---|---|---|
+| `Board::mFlag14` (+0xe14), `mPathStartX`, `mPathStartY` (+0xe18, +0xe1c), `mPathValid` (+0xe20) | the original only writes them (the constructor, the new level and `ClearLink` 0x403910); no instruction of the exe reads those offsets | removed |
+| `Board::mState31cUnused` | a field of the port with no offset in the original and no use | removed |
+| `PathNode`'s fields at +0x08 and +0x14 to +0x1c, with the working out of each trail node's kind of bend (0 to 3) or arrow direction in `BuildTrail` (0x402ec0, about 45 lines and five locals) | the trail's builder stores the kind at +0x18, the path search and the hints store 0 and -1 there and a path's copy carries it along, and nothing in 0x401000-0x410bf0 reads it: the drawing (0x40c8a0, 0x40c460) takes bends and the arrow from the neighbouring nodes | removed |
+| `Piece::mUnused60` (+0x60) | set to 0 by the constructors and carried by the copy (0x4060d0); the only reads of an offset 0x60 in the Board's code are of the picture table | removed |
+| `NoahApp::mFloodStart` (+0x47c) | written by the new level and at the end of a strategy level, never read (the app is the global object at 0x49c518 and no code addresses a field inside it directly) | removed |
+| `NoahApp::mGameStartTick` (+0x494) | set when a game starts (0x41858e), never read: the level's time comes from the Board's own `mStartTick` | removed, with its clock read |
+| `NextLevelWidget::mBonusScore` (+0x68) | set to the game mode after a bonus round (0x414f71), never read | removed |
+| the third parameter of `Board::AddFloatingText` (0x407bd0) | the original's callers pass the link's size less one, 0 or 1, and the function never reads it | removed from the function and its five calls |
+| 689 entries of `GameTextTable.inc` | strings of the original that no source names: the framework's own messages and registry names, the resource file names, the registration texts | removed: `make_gametext.py` now lists only the texts the sources name (866 to 177) |
+
+The exe is 3,055,616 bytes (3,064,320 before).
+
+**Looked at and kept.** `Board`'s fields at +0x314, +0x320, +0x324 and +0x330 are written to the saved game and read back and
+nothing else reads them, so the save's format keeps them (the readability pass names them for what they hold).
+`Board::AbandonPair` and `TriggerNoMoves` run only on a board with no pair left, which no run of the coverage check reached;
+both match the export (section 11). The overrides of the framework's hooks (`LoadingThreadProc`, `LoadingThreadCompleted`,
+`NewDialog`, `LostFocus`, `HandleCmdLineParam`, `HandleScriptCommand`, the registry pair, the two `PlaySample`) are called by
+the framework. `Mods.cpp` and `ModFeatures.cpp` are the code of the four mods and the fixes mod, and `SiteProfiles.cpp` the
+site's hook. The test hooks (`src/testhooks/`, about 1,100 lines: the test commands, `-autoplay`, the state log, the bot) are
+compiled into the one executable that players get and are reachable only from a test; taking them out of a shipped build is a
+question for every game, which Alchemy's notes raise (section 10 there). The texts in the player's exe that the port no longer
+lists are the game's own data and stay where they are.
+
+**Proof.** After the removals `tools/check.sh noahsark` passes with the frozen baseline identical (the bot's action, strategy and puzzle games, their rerun, the mods' 13 checks and the high scores' 3), and
+`tools/check.sh build` passes (the whole native build, tools included). The suite plays the game's logic and compares the bot games' screens with the
+baseline's; for the dialogs and their texts a screen tour was run with a control (`tools/unneeded/screens.sh` and `tour.txt`:
+the title, the menu with a hover line, the difficulty and tutorial boxes, an action game, the Options dialog with both sliders
+and the hint box, Help, High Scores, Credits, the quit question answered no and yes, Continue, the focus lost and regained,
+the new-game question, strategy and puzzle games, the menu's quit question; same script, seed 1, `-fast`). It ran on a build of
+the sources as they were before the removals and on the build after them, and all 26 screenshots are byte for byte the same (25
+different pictures; a contact sheet showed each dialog was reached). For the texts a script also checked that every line the
+new table keeps is a line of the old one, and that no address the sources name is missing from it.

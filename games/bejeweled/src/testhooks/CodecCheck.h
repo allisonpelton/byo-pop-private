@@ -9,7 +9,7 @@
 // orphan count) and the LOGIC hash must all be the same; and while no game is over, the save the board
 // would make (SaveGameSnapshot) must pass the check a replay's LDSV bytes get (Replay::CheckSave), so that
 // check never refuses a save the game makes. At the first settle it also round-trips a copy of the board
-// given what play reaches only rarely (CheckSynthetic). Stage 6: in STATE_PLAYING on a board with undo, the
+// given what play reaches only rarely (CheckSynthetic). In STATE_PLAYING on a board with undo, the
 // UNDO encoding restores into the copy and reads back the same (StateCodec::UndoRoundTrip). The file gets
 // one line per settle (the TRACE settles: a new board, the state entering STATE_PLAYING, an undo; none of a
 // watched replay's last board once it has ended), one per failure, and a summary when the app ends:

@@ -96,7 +96,6 @@ public:
 	int						mStartTick;         // +0x31c GetTickCount() when the level began (the animals start to fall 400 ms later)
 	int						mStartUpdate;       // port(mod fixes, steadyClock): the app's update count when the level began
 	int						mLastInputTick;     // +0x318 mUpdateCnt of the last mouse press or drag
-	int						mState31cUnused;
 	int						mState320;          // +0x320
 	int						mState324;          // +0x324
 	int						mLastMoveTick;      // +0x328 mUpdateCnt of the last pair joined or hint: idle hints after 500 ticks
@@ -152,11 +151,7 @@ public:
 	std::vector<Piece*>		mLink;              // +0xde4 the pair being joined (or the group, in the Stampede)
 	std::vector<PathNode*>	mTrail;             // +0xdf4 the path preview
 	std::vector<PathNode*>	mPixelPath;         // +0xe04
-	bool					mFlag14;            // +0xe14
-	bool					mArkLeaving;        // +0xe15
-	int						mPathStartX;        // +0xe18
-	int						mPathStartY;        // +0xe1c
-	bool					mPathValid;         // +0xe20
+	bool					mArkLeaving;        // +0xe15 (the original only ever writes +0xe14 and +0xe18 to +0xe20: the port has no such fields)
 	int						mPathCells[50][2];  // +0xe24 the cells of the path found
 	int						mCost[9][9];        // +0xfb4
 	int						mPathSegments;      // +0x10f8
@@ -227,7 +222,7 @@ public:
 	void					ShowHint();                     // 0x406d70
 	void					ShowHintLine(int theIndex);     // 0x407460
 	void					TriggerNoMoves();               // 0x4074c0
-	void					AddFloatingText(int thePoints, int theMultiplier, int theUnused, const Color& theColor, int theCellX, int theCellY); // 0x407bd0
+	void					AddFloatingText(int thePoints, int theMultiplier, const Color& theColor, int theCellX, int theCellY); // 0x407bd0
 	void					UpdateTexts();                  // 0x407f00
 	void					AddSparkle(int theX, int theY); // 0x408580
 	void					UpdateSparkles();               // 0x408770

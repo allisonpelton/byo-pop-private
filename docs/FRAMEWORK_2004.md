@@ -21,7 +21,6 @@ Contents:
 6. [Sound and music](#6-sound-and-music)
 7. [Support classes and library helpers](#7-support-classes-and-library-helpers)
 8. [Behaviour differences and how the port handles them](#8-behaviour-differences-and-how-the-port-handles-them)
-9. [Open questions](#9-open-questions)
 - [Reuse for Typer Shark and AstroPop](#reuse-for-typer-shark-and-astropop)
 
 Conventions: addresses are virtual addresses in BookWorm's carved game PE (`re/bookworm/bin/BookwormGame.exe`,
@@ -2337,14 +2336,14 @@ SetMusicAmplify, FadeOutAll or StopAllMusic.
    v*100, linear), the port's `SDLMusicInterface::SetVolume` uses v * mMaxMusicVolume / 100 = 0.4 v (the BASS 1.x
    rule). Port: game-side, set `mMaxMusicVolume = 100` on the SDLMusicInterface the BookWorm app creates (override
    CreateMusicInterface), then calibrate the libopenmpt render level against BASS 2.0 (default amplify 50, linear
-   interpolation) by ear or with a capture: the music/sfx balance depends on it (open question 1).
+   interpolation) by ear or with a capture: the music/sfx balance depends on it.
 3. **Double music Update** (004100f0): every fade runs at twice the nominal speed. Port: translate the override
    literally (base UpdateFrames, then `mMusicInterface->Update()`); do not "fix" it.
 4. **MO3 order offsets**: offsets 0, 27, 37, 51, 54, 59, 61, 65 are order numbers (row 0) passed to
    `BASS_MusicPlayEx(h, MAKELONG(order,row), flags, TRUE)`; the port maps them to `Mixer::PlaySong(order, row)` →
    `openmpt_module_set_position_order_row` (platform/openmpt, in progress). Five songs = five independent module
    instances of one file; the port's Mixer already creates one Song per LoadMusic. Nothing else, but check loop/stop
-   semantics (open question 2): BASS follows backward position jumps (Bxx) even without BASS_MUSIC_LOOP (no
+   semantics: BASS follows backward position jumps (Bxx) even without BASS_MUSIC_LOOP (no
    BASS_MUSIC_STOPBACK) and stops a non-looping song only at the end of the order list, while libopenmpt with
    repeat count 0 stops at its detected song end; song 3's one-shot jingles (orders 59/61, noLoop) are where this shows.
 5. **FadeIn/PlayMusic details** the port already matches: FadeIn starts from the song's current volume (0 if never
@@ -2376,17 +2375,6 @@ SetMusicAmplify, FadeOutAll or StopAllMusic.
 13. **32 channels**: PlaySample silently does nothing when 32 instances are busy (released ones are reclaimed every
     1000 ms or on demand). Port: same constants and rule; nothing.
 
-#### Open questions (section 6)
-
-1. Loudness: BASS 2.0 MO3 rendering (amplify 50, GVOL_MUSIC = v*100) vs libopenmpt's output level; needs a capture
-   comparison to pick the BookWorm music gain (mMaxMusicVolume or a render gain).
-2. Bookworm1.mo3's order list: what orders 27, 37, 0, 51, 54, 59, 61, 65 end with (Bxx loop jumps, `---`/end markers),
-   to confirm that libopenmpt loops/stops like BASS 2.0 for each song (especially song 3's one-shot jingles at 59/61).
-3. BASS 2.0 details taken from its documentation, not from bass.dll's code: BASS_MusicPlay = continue at the current
-   position with the current flags; MusicPlayEx flags replace the channel's flags (affects only ramping).
-4. Answered in section 4: the update rate is 100 Hz (mFrameTime = 10 ms, verified in the ctor and Process). app+0x1254
-   is beyond SexyApp (sizeof 0x618): a BookWormApp field, for the game group to name.
-
 ## 7. Support classes and library helpers
 
 ### 7.1 Support classes
@@ -2409,50 +2397,6 @@ Big picture:
 | InternetManager | app+0xd8; game uses it for "check for updates". Port: drop / stub |
 | BetaSupport, SEHCatcher, PerfTimer/SexyPerf, ModVal, DirectXErrorString, BigInt | droppable |
 | DDInterface / D3DInterface / D3DTester | replaced by the port's SDL `DDInterface`; the game only does `new DDImage(app->mDDInterface)` |
-
-##### 1. Functions the game calls directly (callees.md rows in this slice)
-
-| addr | identification | game call sites | port equivalent | difference / note |
-|---|---|---|---|---|
-| 00466970 | `Buffer::GetDataLen()` ((mDataBitSize+7)/8) | 00428520 (FameWidget ctor: `app+0x1160 (the Board, inferred) ->+0x160 game log .GetDataLen() > 0`) | `Buffer::GetDataLen` | none |
-| 00466eb0 | `std::_Tree<28-byte value>::_Max(node)` (isnil +0x29; set<std::string> shape) | 00412870 (a game `_Tree::erase(iterator)` instance) | std::set | STL, nothing to port |
-| 00466f50 | `std::_Tree<28-byte value>::_Min(node)` | 00412870 | std::set | STL |
-| 00467030 | `MTRand::MTRand(unsigned long seed)` (SRand(seed); returns this) | 0040ae90 (Board ctor, Board+0x6c), 0040fe80 (WinMain, global MTRand* 0x5347d0), 004201c0 (EffectMgr+8), 00421070 (EmberListMgr+8); always `new MTRand(Sexy::Rand())` | `MTRand(ulong)` | **seeding differs**, see 5.1 |
-| 00467060 | `MTRand::Next()` (a `jmp` to NextNoAssert 00466640; assert compiled out) | 00403d10 00404150 00408030 0040b540 0040ba80 0040bd40 0040ed70 00421150 (each on 0x5347d0, Board+0x6c or EffectMgr/EmberListMgr+8) | `MTRand::Next()` | identical (31-bit result); sites use `Next() % n` (div; one idiv at 00403d21, same values since result < 2^31) |
-| 00467070 | `Sexy::Rand()` = gMTRand(0056add8).Next() | 0040ae90 0040fe80 004201c0 00421070 (only to seed the `new MTRand`s) | `Sexy::Rand()` | same generator, seeding see 5.1 |
-| 004673d0 | `MTRand::SRand(const std::string&)` (624 words if size == 0x9c0 else SRand(4357); mti untouched) | 00408ab0 (load classic.dat/action.dat), 00420b70, 00420e70 (effect managers' load) | `MTRand::SRand(const std::string&)` | identical incl. "mti kept" |
-| 004679a0 | `std::_Tree<28-byte value>::_Buynode()` head node (0x2c bytes) | 0041a0f0 (BookWormApp ctor: two set-like members at +0x1260 / +0x127c) | std::set ctor | STL |
-| 00467fc0 | `HTTPTransfer::HTTPTransfer()` | 00428520 (FameWidget ctor, member at FameWidget+0xd8) | not in port | game-side stub, see 4.6 |
-| 00468070 | `HTTPTransfer::~HTTPTransfer()` (Abort, wait for thread) | 004270d0 (FameWidget dtor) | not in port | stub |
-| 00468620 | folded `return *(this+8)` (4 bytes) | 40 game functions (68 sites overall), e.g. 00402430 00403730 0041ecb0 00428520 00431e80 00436c40 | `Image::GetHeight()` at every game site | see 4.10 |
-| 00469b50 | `MTRand::Serialize()` (0x9c0-byte string of mt[], no mti) | 00406c40 (save classic.dat/action.dat), 0041faa0, 0041ff80 (effect managers' save; fwrite raw) | `MTRand::Serialize()` | identical |
-| 0046a2e0 | `Sexy::Upper(const std::string&)` (std::transform toupper) | 0042b160, 00431080 | `Sexy::Upper` | identical |
-| 0046a3d0 | `Buffer::~Buffer()` body (sets vftable 00503544, frees mData) | 004062e0 (Board dtor) | `Buffer::~Buffer` | none |
-| 0046a400 | `Buffer::ToWebString()` | 00406c40 (save game), 004241d0 (score submit "data=") | `Buffer::ToWebString` | identical format |
-| 0046a520 | `Buffer::Clear()` | 00408ab0 | `Buffer::Clear` | none |
-| 0046e5d0 | `Sexy::StrFormat(const char*, ...)` | 00405580 004056e0 00409970 0040abd0 0040bd40 00411cd0 00412ec0 0041a790 0041a8a0 0041d920 0041e020 00424c30 00425880 00427f30 0042c210 0042cdd0 0042dd20 0042fe90 00430e20 00432810 | `Sexy::StrFormat` | same output (see 5.4) |
-| 004714a0 | `Buffer::Buffer()` | 0040ae90 (Board ctor: Board+0x160 game log) | `Buffer::Buffer` | none |
-| 00472660 | `Buffer::WriteByte(uchar)` | 0040ae90 | `Buffer::WriteByte` | none |
-| 004726e0 | `Buffer::WriteNumBits(int theNum, int theBits)` | 004038c0 00407a50 0040ae90 0040f5b0 004241d0 | `Buffer::WriteNumBits` | none |
-| 004727f0 | `Buffer::WriteShort(short)` | 00407a50 0040ae90 | `Buffer::WriteShort` | none |
-| 00472820 | `Buffer::WriteLong(long)` | 004038c0 0040ae90 0040f5b0 | `Buffer::WriteLong` | none |
-| 00472860 | `Buffer::WriteString(const std::string&)` (WriteShort(len) + raw bytes) | 004241d0 | `Buffer::WriteString` | none (no UTF-8) |
-| 00474800 | `HTTPTransfer::GetResultCode()` (UpdateStatus; return mResult) | 00427f30 (FameWidget::Update states 1 and 4) | not in port | stub |
-| 00474810 | `HTTPTransfer::GetContent()` ("" while RESULT_NOT_COMPLETED, else mContent) | 00427f30 | not in port | stub |
-| 004748a0 | `Buffer::FromWebString(const std::string&)` | 00408ab0 (load game: restores the Board game log) | `Buffer::FromWebString` | identical incl. the 1.2 lowercase-hex bug (5.3) |
-| 00476ac0 | `HTTPTransfer::Get(const std::string& theURL)` | 004241d0 (two sites: GetScoresURL + "?clientver=") | not in port | stub |
-| 00476b10 | `HTTPTransfer::Post(const std::string& theURL, const std::string& theParams)` | 004241d0, 00426c10 (SubmitScoreURL) | not in port | stub |
-| 00479df0 | `InternetManager::DoUpdateCheck(const std::string& theURL)` (BM 00473120 exact; clears +0x4f4, Get on the +8 transfer) | 00415de0 (BookWormApp "check for updates": `http://www.popcap.com/win32updatecheck.php?prod=..&ver=..&referid=..` + UpdateCheckDialog) | not in port | drop the update check (partner.xml DontUpdate=True) |
-| 00496c00 | folded `return *(this+0xc)` | 00410090 (on a `Color&`: mAlpha), 00432c90 (on app+0x1178) | none needed | both game sites discard the result: dead calls, drop |
-| 00499030 | `std::fill<16-byte POD>` (Color) | 0041bc5f (catch handler of vector<Color>::_Insert_n 0041bab0) | std::vector<Color> | STL |
-| 004990b0 | `std::_Uninit_fill_n<16-byte POD>` | 0041b5a0 0041bab0 0041bde0 (vector<Color> code used by Widget::SetColors / ListWidget) | std::vector<Color> | STL |
-| 004990f0 | `std::_Uninit_copy<16-byte POD>` | 0041b570 0041bab0 | std::vector<Color> | STL |
-
-Also reached from game code but outside the ranges: `InternetManager::GetUpdateURL` 0047c7a0 (returns +0x4f8
-after processing the reply 0047c500) from 00417080 (dialog 10008 "update available": KillDialog x2, then
-`OpenURL(mInternetManager->GetUpdateURL(), true)`), `SexyApp::Is3DAccelerationSupported/Recommended`
-0047e380/0047e3a0 (D3DTester results) from OptionsDialog 0042fa50, and `new DDImage(app->mDDInterface)` at
-0040111f / 0040125d (DDImage ctor 0045aa00, app+0x334 = mDDInterface).
 
 ##### 2. MTRand, Sexy::Rand, SRand
 
@@ -2651,37 +2595,6 @@ accepted; keys/values/text go through XMLDecodeString. Errors: "Unexpected '<'",
 End", "End 'x' Doesn't Match Start 'y'", "Illegal Character" (a byte <= 32 that is not whitespace),
 "Unexpected End of File".
 
-###### 4.4 ResourceManager (linked, unused)
-sizeof 0xb4 (`operator new(0xb4)` in the SexyApp ctor 0048f810), vtable 00504b0c with **3 slots** (1.2 has
-many more; the port's 1.3 class has ~20 virtuals).
-
-| slot | address | method | 1.2 slot (BM) | port |
-|---|---|---|---|---|
-| 0 (+0) | 004728e0 | `bool DoLoadImage(ImageRes*)` ("Failed to load image: %s"; alpha / alpha-grid helpers 0046f160 / 0046ef40) | DoLoadImage | `DoLoadImage` |
-| 1 (+4) | 0046f2e0 | `bool DoLoadFont(FontRes*)` ("!ref:" fonts via 0046a6e0) | 3 | `DoLoadFont` |
-| 2 (+8) | 004755c0 | `~ResourceManager()` scalar deleting (body 00474cb0) | 4 | `~ResourceManager` |
-
-Fields (from the ctor 00475490, inferred names): +0x04/+0x10/+0x1c mImageMap/mSoundMap/mFontMap (map<string,
-BaseRes*>), +0x28/+0x2c/+0x30 iterators into those maps (older LoadNext* design), +0x34, +0x38 (mXMLParser?),
-+0x3c std::string (mError?), +0x58 bool mHasFailed, +0x5c SexyApp* mApp, +0x60/+0x7c/+0x98 strings
-(mCurResGroup / mDefaultPath / mDefaultIdPrefix?). No mLoadedGroups.
-
-Confirmed unused: app+0x60c is written by the SexyApp ctor (00490591) and read only by the SexyApp dtor
-(0048f298, delete through slot 2). No other code reads app+0x60c, DoLoadImage/DoLoadFont have no direct callers, and no
-manifest parser is linked (no "Resources"/"Image"/"Sound"/"Font" section strings, no resources.xml). Port:
-nothing to do (do not create one).
-
-###### 4.5 CritSect, SEHCatcher, PerfTimer, SexyPerf, SexyMatrix, ModVal (droppable)
-- SEHCatcher (crash.txt, StackWalk via dbghelp, crash report POST): 00466160 LoadImageHelp, 00466300
-  UnloadImageHelp, 00466320 GetLogicalAddress, 0046bda0 GetFilename, 0046be40 GetSysInfo, 00470190 IntelWalk,
-  00470390 ImageHelpWalk, 00471a50 WriteToFile, 004759b0 GetSymbolsFromMapFile, 00477bd0 SubmitReportThread,
-  00467360 hex helper. The handler itself (0047bdf0) and its windows (0047a400...) live in the SexyApp range.
-  Confirmed droppable: no game code reaches any of it.
-- PerfTimer 004664c0/00466510/00466520/00466540, CPU speed 004663d0/00466560; SexyPerf 00469070 BeginPerf,
-  00470890 EndPerf, 004699e0 GetResults, 004665b0 IsPerfOn: debug only (SexyApp vf64), droppable.
-- SexyMatrix3 / SexyTransform2D 00465f50-00466110: used by DDImage rotated blits (graphics group).
-- ModVal (0x498c70-0x4992e0 helpers, 0049a360 in SexyApp vf64): debug "reparse modifiable values", droppable.
-
 ###### 4.6 HTTPTransfer
 sizeof 0xfc, vtable 005034c4 (1 slot: 004690e0 scalar deleting dtor, body 00468070). Same layout as 1.2.
 Not in the port.
@@ -2724,38 +2637,7 @@ What the port must stub (game side, e.g. in a Compat header like Big Money's Com
 network; simplest is to leave `mResult = RESULT_NOT_STARTED` (or set RESULT_CONNECT_FAIL = 8) so Update takes the
 "server could not be reached" path immediately, and GetContent returns "". Alternatively remove the online
 branch entirely under NoInternetScores=true. SexyApp also owns one HTTPTransfer at app+0x32c (ctor 0048f810,
-Shutdown vf33 0047cbf0 aborts it and checks GetResultCode == 0 -> app+0x330); no Get/Post on it was found
-(section 4, open question 3).
-
-###### 4.7 InternetManager (droppable)
-sizeof 0x538, vtable 00505468 (1 slot: 0047c440 scalar deleting dtor, body 0047baf0); ctor 00479d10 (BM 00473040
-exact), created by the SexyApp ctor at app+0xd8. Fields (inferred from the ctor): +0x04 int (4 = ad transfer
-count), +0x08 HTTPTransfer (update check), +0x104 HTTPTransfer[4] (ads), +0x4f4 bool, +0x4f5 bool (= 1;
-"up to date" flag returned by 0047c780), +0x4f6 bool, +0x4f8 std::string (update URL), +0x514/+0x520 lists of
-ads (0x5c-byte nodes), +0x52c list. Functions: 00479df0 DoUpdateCheck (game 00415de0), 0047c500 process the
-update-check reply, 0047c780 IsUpToDate, 0047c7a0 GetUpdateURL (game 00417080), 0047c810 / 004753e0
-(UpdateCheckDialog 0043b730), ads: 0047b290 LoadAdList ("adlist.txt", from Init via thunk 0047bc30),
-0047b3d0 / 004709c0 SaveAdList, 0047a930 / 0047aed0 / 00479e10 ad parsing and download ("AdFile: %s"),
-00467ba0..00467d20 ad queries / ShowAd (from SexyApp vf36, uses Rand()).
-Port: drop. Game-side, stub `DoUpdateCheck` / `GetUpdateURL` or remove the "check for updates" path (DontUpdate
-is True in partner.xml).
-
-###### 4.8 BetaSupport (droppable)
-sizeof 0x18c, vtable 005056e0 (1 slot: 0047bdc0 scalar deleting dtor, body 0047b530), ctor 0047bc40. Always
-created in SexyApp::Init (app+0xdc), but it only acts when the beta flag app+0xe0 is set: then 00477930 shows the
-"PopCap Beta Login" window (0046ea00, wndproc 00466a90, 004669a0 / 00466a20 helpers), reads/writes
-`HKCU\Software\PopCap\Beta` Name/Password (0046e8f0 / 004674c0), checks the login over HTTP (00476c40:
-"&username=", "&pass=", "&version=", ":ERROR", ":COMMENTURL") and on failure Init shuts down and exits. Release
-BookWorm never sets app+0xe0. No game code touches it. Port: drop.
-
-###### 4.9 BigInt (registration codes, droppable)
-0x496ad0-0x498c70 is a big-integer class (vtable 00507558; +0x04 sign byte, +0x08 ushort* blocks, +0x0c
-length, +0x10 capacity; McCutchen-style NumberlikeArray<ushort>) used only by `SexyApp::Validate` (004830b0,
-slot 23) and 00486c90 (registration): 00498430 ctor from string, 00498a20 to a code string over the alphabet
-"234679ACDEFGHJKLMNPQRTUVWXYZ", the rest arithmetic. Droppable (partner.xml NoReg=True).
-The four game-called addresses in this range are not BigInt: 00496c00 is the linker-folded `return this+0xc`
-(Font::GetHeight / BigInt length / Color::mAlpha), and 00499030 / 004990b0 / 004990f0 are folded STL helpers for
-16-byte POD elements (vector<Color>; also ModVal's vector). 0x498c70-0x4992e0 is ModVal's map / parse helpers.
+Shutdown vf33 0047cbf0 aborts it and checks GetResultCode == 0 -> app+0x330); no Get/Post on it was found.
 
 ###### 4.10 The folded getters
 - 00468620 (`mov eax,[ecx+8]; ret`, 68 direct callers). Every direct caller is a non-virtual use: in game code it
@@ -2815,14 +2697,6 @@ Game: only `new DDImage(app->mDDInterface)` (0040111f, 0040125d) -> port `new DD
 Port: everything else is the SDL DDInterface; mIs3D / D3DTester have no equivalent (section 4 decides what
 Is3DAccelerated returns).
 
-###### 4.12 STL helpers in the slice (for recognising them)
-Tree helpers are named by node value size because identical instantiations are folded: v28 (isnil +0x29,
-set<std::string>), v32 (+0x2d, map<string,ptr/int>, ResourceManager maps), v36 / v40 (+0x31 / +0x35, SEHCatcher
-map-file maps keyed by pair<ulong,ulong>), v44 (+0x39, set<PerfInfo> and map<string, vector<string>> =
-mStringVectorProperties), v60 (+0x49, map<string, Buffer>, BetaSupport), v196 (+0xd1, ModVal). vector<uchar>
-helpers serve Buffer (0046f910 _Insert_n, 00471520 push_back, 0046b920 insert range); wstring helpers
-(00467700, 004677b0, 00468860, 00468b00, 00469500, 004695e0) serve the CRT iostreams.
-
 ##### 5. Behaviour differences that matter for the port
 
 1. **MTRand seeding (5.1).** BookWorm's `MTRand::SRand(ulong)` (004665f0) is SAF 1.2's Knuth initialiser
@@ -2866,37 +2740,12 @@ helpers serve Buffer (0046f910 _Insert_n, 00471520 push_back, 0046b920 insert ra
     The 2004 DDInterface has no mNextCursorX/Y, no mInRedraw and no NativeDisplay vtable base (irrelevant to game
     code).
 
-##### 6. Open questions (section 7.1)
-1. Whether the port needs 1.2 seeding for the global `Sexy::Rand` (only demo playback / deterministic test runs
-   depend on it). Recommendation: game-side `SeedMTRand12` for the game's own MTRands; leave the global alone
-   unless demo/replay parity with the original is a goal.
-2. Exact names of ResourceManager fields +0x34..+0x98 (unused class; not worth more time).
-3. Answered in section 4: SexyApp's own HTTPTransfer at app+0x32c is never started (no Get/Post anywhere in the binary;
-   only the ctor, the dtor and Shutdown touch app+0x32c); Shutdown's Abort/GetResultCode always sees "not started", so
-   registry ITSuccess stays false. Dead: drop.
-4. Answered in section 4: 0x56b8a8 = gSexyAppBase (stored first in the ctor, like 1.2's SexyAppBase ctor), 0x56ad30 =
-   gSexyApp (stored last, like 1.2's SexyApp ctor). Both point at the app.
-5. 00468620 has 68 callers; I checked the game sites by context (image slots, Resize(w, h) pairs) rather than
-   one by one; any site whose receiver is not an Image would be some other `this+8` field (none found).
-
 ### 7.2 std::string, STL, iostream and CRT helpers called by game code
 
 Scope: every library function the game code (0x401000-0x437800) calls directly, and every STL template
 instantiation that lives inside the game region. Toolchain: MSVC 7.0 (VS.NET 2002), Dinkumware STL of that
 release, static CRT (LIBCMT), plus the old pre-standard iostream library (LIBCI: `ifstream`, `ios`,
 `filebuf` without `std::`), which VC7.0 still shipped.
-
-Result: **368 functions identified** (270 of them inside the game region): std::string 44, std::list 24,
-set/multiset/map 77, std::vector 23, algorithms and uninitialized-memory helpers 25, iostream/locale 122
-(most are internals nobody in the game calls), CRT 38, EH/RTTI/exception classes 15. 252 were `FUN_`
-before, 42 get a better name (mostly the RTTI-scan names `std::length_error::ctor_or_dtor_*` /
-`std::out_of_range::ctor_or_dtor_*`, which are really container functions that contain a throw, and
-`_free` 004da392, which is really `operator delete`). Symbols: app_symbols.jsonl (one line per
-function in the tables below).
-
-Verified = read the decompilation (and, where Ghidra hides something, the disassembly) and matched it
-with the VC7 Dinkumware source pattern; "(inferred)" = identified from its role/callees only.
-
 ##### Conventions you need first
 
 - **No LTCG register conventions.** Every member is plain `__thiscall` (ECX = this, callee pops stack args;
@@ -2919,26 +2768,6 @@ with the VC7 Dinkumware source pattern; "(inferred)" = identified from its role/
 - Layouts (VC7): `std::string` 28 bytes = allocator byte +0, union {char buf[16]; char* ptr} +4, size +0x14,
   capacity +0x18 (heap when capacity > 15). `std::list`/`set`/`map` 12 bytes = allocator +0, head node
   pointer +4, size +8. `std::vector` 16 bytes = allocator +0, first +4, last +8, end-of-storage +0xc.
-
-##### Framework-region rows of callees.md checked for this slice
-
-address | callees.md name | verdict
----|---|---
-0047f470 | std_string_Tidy | STL: `std::string` destructor / `_Tidy(true)` (BM 0045d100 exact). 1416 callers, 17 game call sites. Listed under std::string.
-00496c00 | get_field_0c | not STL (ICF-folded `return this->field_0xc` accessor; Font::GetHeight-style)
-00499030, 004990b0, 004990f0 | FUN_ | STL: `std::fill` / `uninitialized_fill_n` / `uninitialized_copy` for 16-byte `Sexy::Color` (vector<Color> of ColorizedButton). Listed under algorithms.
-00467030 | FUN_ | not STL: `Sexy::MTRand::MTRand(unsigned long seed)` (seed 0 -> 4357)
-00467060 | thunk_FUN_00466640 | not STL: `Sexy::MTRand::Next()` (jmp to the MT19937 generator 00466640)
-00467070 | FUN_ | not STL: `Sexy::Rand()` = the global MTRand at 0056add8 `.Next()`
-00468620 | Sexy::Font::vf02 | not STL: ICF-folded 4-byte accessor `return this->field_8` (68 callers; Font::GetAscent and every other `+8` getter)
-00466970 | FUN_ | not STL: `Sexy::Buffer` bit size to bytes, `(mDataBitSize + 7) / 8` (GetDataLen)
-00466eb0, 00466f50 | FUN_ | STL: `std::set<std::string>::_Max` / `_Min` (framework copies used by the game's set<string>::erase 00412870)
-00472660, 004726e0, 004727f0, 00472820, 00472860 | FUN_ | not STL: `Sexy::Buffer::WriteByte`, `WriteNumBits(int value, int bits)`, `WriteShort`, `WriteLong`, `WriteString` (inferred names; another helper owns Buffer)
-00474800, 00474810 | FUN_ | not STL: HTTPTransfer result accessors (result code at +0xf4, content string at +0xd4)
-00476ac0, 00476b10 | FUN_ | not STL: HTTPTransfer Get(url) / Post(url, params) style starters
-0047ddc0, 0047de20, 0047de40, 0047de60, 0047dec0, 0047e3d0, 0047e9f0 | FUN_ (not in the request list) | STL: tree helpers of the int-keyed 8-byte-value map (framework `std::map<int,Dialog*>`, inferred from SexyApp vf57/vf58), ICF-shared with the game's `std::map<int,bool>`. Listed under map/set.
-00489140, 0048b330 | FUN_ (not in the request list) | STL: `std::list<std::string>::erase(first,last)` and `~list`, called by game 00419080. Listed under std::list.
-0047ddb0 | FUN_ | not STL: SexyApp accessor (byte at +0x334)
 
 ##### Containers the game uses (what to declare in the port)
 
@@ -2965,442 +2794,6 @@ address | callees.md name | verdict
 - Streams: `std::fstream` + `std::getline(stream, string, delim)` in FameWidget vf04_sub88 (00426c10);
   the old `ifstream` + `getline(char*, 4096)` in Definitionator::Load (0041d920); `operator<<` to a
   standard ostream (DAT_0056be74, cerr or cout) in the word-list loader's catch block (then `exit(1)`).
-
-##### Tables (one per family)
-
-Column "game callers" = distinct callers inside 0x401000-0x437800 (call-site count from callees.md in
-parentheses when it differs); the sample prefers callers that are not themselves STL helpers.
-"(STL-internal only)" = only other library helpers in the game region call it; "fw/unwind only" = no
-direct game caller (framework, EH unwind funclets or vtables).
-
-###### std::string (std::basic_string<char>) (44)
-
-address | name (proposed) | C++ it stands for | game callers (# distinct, sample) | Big Money | notes
----|---|---|---|---|---
-00401360 | `std::char_traits<char>::assign` | `static void char_traits<char>::assign(char& dst, const char& src)` | 2: 00416180 0041cf10 (STL-internal only) | 004010c0 std::char_traits<char>::assign (call) | dst = src (1 byte)
-00401580 | `std::string::compare_cstr` | `int compare(size_type pos, size_type n, const char* p, size_type len) const` | 13: 00405ea0 0040abd0 0041d920 0041e620 | 00419780 std::string::compare_cstr (call) | memcmp-style compare then length tie-break; throws _Xran if pos > size()
-00401750 | `std::string::find_first_not_of_ptr` | `size_type find_first_not_of(const char* set, size_type pos, size_type setlen) const` | 3: 004122e0 0041d920 | 0045bd40 (exact) | was `FUN_00401750`; memchr per char; returns npos (-1) if none
-004017e0 | `std::string::_Eos` | `void _Eos(size_type n)  // size = n, buf[n] = 0` | 0 (fw/unwind only) | 00402520 std::string::_Eos (call) | 
-00401810 | `std::string::_Tidy` | `void _Tidy(bool built)  // free heap buffer if built && cap>15, then empty (cap 15)` | 0 (fw/unwind only) | 00402540 std::string::_Tidy (call) | only 1 stack arg in this build
-00401850 | `std::string::max_size` | `size_type max_size() const  // 0xfffffffe` | 1: 00423b60 (STL-internal only) |  | was `FUN_00401850`; used by std::getline (00423b60)
-00401860 | `std::string::compare_cstr0` | `int compare(const char* p) const` | 2: 00427650 00427f30 |  | was `FUN_00401860`; strlen loop + compare_cstr(0,size,p,len); Ghidra shows it void (result in EAX)
-00401890 | `std::string::_Tidy0` | `_Tidy(false)  // reset to empty without freeing (cap=15,size=0,buf[0]=0)` | 0 (fw/unwind only) | 004025d0 std::string::_Tidy0 (exact) | also the inline default ctor body
-004018b0 | `std::string::find_first_not_of_cstr` | `size_type find_first_not_of(const char* set, size_type pos = 0) const` | 1: 00402190 |  | was `FUN_004018b0`
-004018e0 | `std::string::_Grow_alloc` | `_Copy(size_type newsize) part 1: new buffer of (newsize\|15)+1 bytes` | 5: 00401a40 00401b10 00401c10 00401cf0 (STL-internal only) | 00402670 std::string::_Grow_alloc (exact) | Ghidra splits _Copy at the EH try; continues in 0040195e; 1.5x growth branch exists in _Copy
-0040195e | `std::string::_Grow_copy` | `_Copy(size_type) part 2: copy old chars, free old heap buffer, install new` | 1: 004018e0 (STL-internal only) | 004026ee std::string::_Grow_copy (exact) | chunk of _Copy (not a real function)
-00401a00 | `std_string_equals_cstr` | `bool operator==(const string& s, const char* p)` | 2: 00402190 00417080 | 0041c200 std_string_equals_cstr (call) | 
-00401a40 | `std::string::_Grow` | `bool _Grow(size_type n, bool trim)` | 3: 00401dd0 00401e90 00423220 (STL-internal only) | 004030b0 std::string::_Grow (call) | throws _Xlen if n==npos
-00401b10 | `std_string_append_substr` | `string& append(const string& s, size_type pos, size_type n)  // += s with (s,0,npos)` | 8: 00411cd0 00412da0 00416090 004241d0 | 00412cb0 std_string_append_substr (call) | 
-00401c10 | `std::string::erase` | `string& erase(size_type pos = 0, size_type n = npos)` | 15: 00405fa0 00406180 00408ab0 004122e0 | 00403ba0 std::string::erase (call) | memmove tail down
-00401cf0 | `std::string::append_n_chars` | `string& append(size_type n, char c)` | 17: 00405fa0 00406180 00406a10 00406b00 | 00403180 std::string::append_n_chars (call) | also used by resize()
-00401dd0 | `std::string::assign_substr` | `string& assign(const string& s, size_type pos, size_type n)` | 71: 00402090 00402a50 00406560 004068a0 | 00403c60 std::string::assign_substr (call) | (s,0,npos) == operator=(const string&) / copy-ctor body; the most common string call (206 callers)
-00401e90 | `std::string::assign_ptr_len` | `string& assign(const char* p, size_type n)` | 91: 00402430 00406950 004069c0 00406b00 | 00403d70 std::string::assign_ptr_len (call) | preceded by an inline strlen loop it is s = "literal" / string(const char*)
-00401f40 | `std_string_append_chars` | `string& append(const char* p, size_type n)` | 8: 00406c40 004078b0 00408ab0 00412190 | 00412da0 std_string_append_chars (call) | with a preceding strlen loop = operator+=(const char*)
-00402060 | `std::string::string_copy` | `string(const string& s)` | 2: 00417080 00432720 | 00403e40 std::string::string_copy (call) | 
-004020d0 | `std::string::string_cstr` | `string(const char* p)` | 15: 00402190 00407c60 0040bd40 00417080 | 00404150 std::string::string_cstr (call) | 
-00402110 | `std::string::assign_str` | `string& operator=(const string& s)  // assign(s,0,npos)` | 1: 0040bd40 |  | was `FUN_00402110`; BM 00404190 assign_str is the same template
-00402130 | `std::string::assign_cstr` | `string& operator=(const char* p)` | 4: 00402a50 00426c10 00431080 00433e80 | 00403ea0 std::string::assign_cstr (call) | 
-00402160 | `std::string::append_cstr` | `string& operator+=(const char* p)  // append(p, strlen(p))` | 2: 00406c40 0042a170 |  | was `FUN_00402160`
-004029a0 | `std::string_plus_cstr` | `string operator+(const string& a, const char* b)` | 26: 00402a50 00406c40 004078b0 00408ab0 | 00419800 std::string_plus_cstr (call) | returns into hidden result (param_1)
-00404c50 | `std::string::operator_index` | `char& operator[](size_type pos)  // &_Myptr()[pos], unchecked` | 1: 00427650 | 004231d0 (exact) | was `FUN_00404c50`; also used by EditWidget::ProcessKey
-00404c70 | `std::string::_Myptr` | `const char* c_str() / data() / _Myptr()` | 2: 00416180 0041cf10 (STL-internal only) | 00402510 std::string::_Myptr (exact) | cap>15 ? heap ptr : inline buffer at +4
-00404dd0 | `std::string::compare_str` | `int compare(const string& s) const` | 1: 0041e620 |  | was `FUN_00404dd0`; Ghidra shows void; result in EAX
-00405e70 | `std::string::resize` | `void resize(size_type n)  // pads with '\0'` | 1: 00407c60 | 00403e70 std::string::resize (call) | 
-00405f10 | `std::string_plus_string` | `string operator+(const string& a, const string& b)` | 15: 00406c40 004078b0 00408ab0 00411ea0 | 004198b0 std::string_plus_string (call) | 
-00406800 | `std_string_concat_cstr_str` | `string operator+(const char* a, const string& b)` | 22: 0040f5b0 00412ec0 00413cb0 00414fa0 | 0041c6e0 std_string_concat_cstr_str (call) | 
-00411100 | `std::string::find_last_not_of_ptr` | `size_type find_last_not_of(const char* set, size_type pos, size_type setlen) const` | 2: 004122e0 0041d920 |  | was `FUN_00411100`; pos=npos means from the end
-00411c60 | `std::string::_Tidy_free` | `~string() body as used in EH unwind funclets (free heap buffer only)` | 2: 00412d66 00416996 | 00403e10 std::string::_Tidy_free (call) | callers are Catch/Unwind blocks
-00412360 | `std_string_substr` | `string substr(size_type pos = 0, size_type n = npos) const` | 3: 00412da0 0041d920 00427650 | 0041c5f0 std_string_substr (call) | result via hidden param_1
-0041cb80 | `std::string::find_first_of_ptr` | `size_type find_first_of(const char* set, size_type pos, size_type setlen) const` | 1: 0041d920 | 0043df30 (exact) | was `FUN_0041cb80`
-004224a0 | `std::string::begin` | `iterator begin()  // returned via hidden pointer` | 1: 004237d0 (STL-internal only) | 0043dbd0 (exact) | was `FUN_004224a0`; used by basic_filebuf and the framework
-004224c0 | `std::string::end` | `iterator end()` | 0 (fw/unwind only) | 0043dbf0 (exact) | was `FUN_004224c0`
-00423220 | `std::string::assign_n_chars` | `string& assign(size_type n, char c)` | 1: 00423390 (STL-internal only) | 0043fcf0 (exact) | was `FUN_00423220`
-00423390 | `std::string::string_n_chars` | `string(size_type n, char c)` | 0 (fw/unwind only) | 004403f0 (exact) | was `FUN_00423390`; Ghidra hides the cap/size init stores
-004233c0 | `std::string::erase_range` | `iterator erase(iterator first, iterator last)` | 5: 004262b0 004264f0 00437430 00437480 | 0045f030 (exact) | was `FUN_004233c0`; result iterator via hidden param_1
-00423550 | `std::string::erase_all` | `s.erase(s.begin(), s.end())  // == clear()` | 1: 00427650 |  | was `FUN_00423550`
-0047f470 | `std_string_Tidy` | `~string() == _Tidy(true): free heap buffer if cap>15, then cap=15,size=0,buf[0]=0` | 17: 00402190 00406c40 00407c60 0040bd40 | 0045d100 std_string_Tidy (exact) | framework region; 1416 callers (every std::string destructor that was not inlined)
-004cab34 | `std::_String_base::_Xran` | `[[noreturn]] void _Xran()  // throw out_of_range("invalid string position")` | 4: 00401580 00401b10 00401c10 00401dd0 (STL-internal only) | 004c8ce4 std::out_of_range::ctor_or_dtor_4c8ce4 (call) | old name std::out_of_range::ctor_or_dtor_4c8ce4; called from compare/erase/assign/append/substr when pos > size()
-004cab74 | `std::_String_base::_Xlen` | `[[noreturn]] void _Xlen()  // throw length_error("string too long")` | 6: 00401a40 00401b10 00401c10 00401cf0 (STL-internal only) | 004c8d24 std::length_error::ctor_or_dtor_4c8d24 (call) | old name std::length_error::ctor_or_dtor_4c8d24
-
-###### std::list (24)
-
-address | name (proposed) | C++ it stands for | game callers (# distinct, sample) | Big Money | notes
----|---|---|---|---|---
-00404da0 | `std::for_each_list_ptr` | `Fn for_each(list<T*>::iterator first, list<T*>::iterator last, Fn f)  // f is a plain function pointer` | 7: 00405cf0 004081d0 00408700 00409c60 |  | was `FUN_00404da0`; e.g. delete-all helpers (callers Board)
-00405090 | `std::list<T*>::begin` | `iterator begin()  // head->_Next (null-safe), via hidden pointer` | 3: 00408700 00409de0 0040bd40 |  | was `FUN_00405090`
-004050c0 | `std::list<T*>::front` | `T& front()  // &head->_Next->_Myval` | 1: 00409de0 |  | was `FUN_004050c0`
-004050e0 | `std::list<T*>::_Buynode` | `_Nodeptr _Buynode(_Nodeptr next, _Nodeptr prev, const T& val)  // new node(0xc)` | 18: 00408ab0 00409970 00409b70 00409c60 | 0045cbd0 (exact) | was `FUN_004050e0`; thiscall, `this` unused; ICF-shared by all 4-byte-value lists; callers inline the link + _Incsize(1) = push_back/insert
-00405da0 | `std::list<T*>::~list` | `~list()  // erase(begin,end) + free head` | 0 (fw/unwind only) | 0047b120 (call) | was `FUN_00405da0`; called from EH unwind funclets (31 callers)
-004066e0 | `std::list<T*>::_Incsize` | `void _Incsize(size_type n)  // throw length_error("list<T> too long") if > max_size (0x3fffffff), else size += n` | 11: 00408ab0 00409970 00409b70 00409c60 |  | old name std::length_error::ctor_or_dtor_4066e0; Board.obj copy (each .obj has its own literal, so copies are not folded)
-00408a70 | `std::list<T*>::push_back` | `void push_back(const T& val)` | 1: 0040a160 |  | was `FUN_00408a70`; copy instantiated in Board.obj (uses _Incsize 004066e0)
-00411440 | `std::list<std::string>::_Buyhead` | `_Nodeptr _Buyhead()  // node 0x24` | 1: 00419080 | 00479ab0 (exact) | was `FUN_00411440`; also used by the framework (InternetManager, SexyApp)
-004114c0 | `std::list<std::string>::_Destroyval` | `node->_Myval.~string()  // string at node+8` | 1: 00412820 (STL-internal only) | 0045df10 (exact) | was `FUN_004114c0`; used by erase/clear
-00412420 | `std::list<std::string>::_Buynode` | `_Nodeptr _Buynode(_Nodeptr next, _Nodeptr prev, const string& val)  // node 0x24 = next,prev,string` | 2: 00419080 | 00461230 (exact) | was `FUN_00412420`
-004124c0 | `std::list<std::string>::_Incsize` | `void _Incsize(size_type n)  // max_size 0x9249249` | 2: 00419080 | 004612d0 std::length_error::ctor_or_dtor_4612d0 (group) | old name std::length_error::ctor_or_dtor_4612d0
-00412780 | `std::list<T*>::_Incsize_2` | `void _Incsize(size_type n)  // list of 4-byte values` | 3: 0041a8a0 00435b50 |  | old name std::length_error::ctor_or_dtor_412780; BookWormApp.obj copy
-00412820 | `std::list<std::string>::erase` | `iterator erase(iterator where)` | 0 (fw/unwind only) | 00440580 (group) | was `FUN_00412820`; unlink/--size hidden by Ghidra
-00416a90 | `std::list<std::string>::push_back` | `void push_back(const string& val)` | 0 (fw/unwind only) |  | was `FUN_00416a90`
-00416bf0 | `std::list<T*>::push_back_2` | `void push_back(const T& val)` | 1: 00417080 |  | was `FUN_00416bf0`; copy in BookWormApp.obj (uses _Incsize 00412780)
-00420400 | `std::list<T*>::_Incsize_3` | `void _Incsize(size_type n)  // list of 4-byte values` | 3: 004207f0 00420830 00420b70 |  | old name std::length_error::ctor_or_dtor_420400; EffectMgr.obj copy
-00422c90 | `std::list<Item12>::_Buyhead` | `_Nodeptr _Buyhead()  // node 0x14: list of a 12-byte struct` | 1: 00428520 |  | was `FUN_00422c90`; FameWidget list at +0x294 (element type name unknown; "Item12" is a placeholder)
-00422dd0 | `std::list<Item12>::_Buynode` | `_Nodeptr _Buynode(next, prev, const Item12& val)  // copies 3 dwords` | 1: 00426ab0 |  | was `FUN_00422dd0`
-00423e50 | `std::list<Item12>::_Incsize` | `void _Incsize(size_type n)  // max_size 0x15555555` | 1: 00426ab0 |  | old name std::length_error::ctor_or_dtor_423e50; FameWidget.obj
-0042ee00 | `std::list<T*>::_Buyhead` | `_Nodeptr _Buyhead()  // new node(0xc), next = prev = self` | 10: 0040a160 0040ae90 0040bd40 0041a0f0 | 00479a90 (exact) | was `FUN_0042ee00`; ICF-shared by every list of 4-byte values (pointers/ints): Board, EffectMgr, FlyingPieceList, OptionsDialog, BookWormApp, WidgetManager
-0042f3b0 | `std::list<T*>::_Incsize_4` | `void _Incsize(size_type n)  // list of 4-byte values` | 1: 0042fe90 |  | old name std::length_error::ctor_or_dtor_42f3b0; OptionsDialog.obj copy
-004347b0 | `std::list<T*>::erase_range` | `iterator erase(iterator first, iterator last)  // (begin,end) == clear()` | 23: 004058d0 00405a80 00405b00 00405cf0 | 0043fca0 (exact) | was `FUN_004347b0`; Ghidra hides the unlink and --size; nodes freed one by one
-00489140 | `std::list<std::string>::erase_range` | `iterator erase(iterator first, iterator last)` | 1: 00419080 | 00461070 (call) | was `FUN_00489140`; framework region (BM 00461070); game caller 00419080
-0048b330 | `std::list<std::string>::~list` | `~list()` | 1: 00419080 | 004610d0 (call) | was `FUN_0048b330`; framework region (BM 004610d0); game caller 00419080
-
-###### std::set / std::multiset / std::map (_Tree) (77)
-
-address | name (proposed) | C++ it stands for | game callers (# distinct, sample) | Big Money | notes
----|---|---|---|---|---
-00404c80 | `std::set<std::string>::_Lrotate` | `void _Lrotate(_Nodeptr where)` | 2: 00408230 00412870 (STL-internal only) | 0045c180 (exact) | was `FUN_00404c80`; isnil byte +0x29
-00404ce0 | `std::set<std::string>::_Rrotate` | `void _Rrotate(_Nodeptr where)` | 2: 00408230 00412870 (STL-internal only) | 0045c1e0 (exact) | was `FUN_00404ce0`
-00404d40 | `std::set<std::string>::iterator::_Dec` | `void const_iterator::_Dec()  // operator--` | 1: 00408920 (STL-internal only) | 0045c240 (exact) | was `FUN_00404d40`
-004065c0 | `std::set<std::string>::_Buynode` | `_Nodeptr _Buynode(_Nodeptr left, _Nodeptr parent, _Nodeptr right, const string& val, char color)  // node 0x2c` | 1: 00408230 (STL-internal only) | 00461720 (exact) | was `FUN_004065c0`; node: left,parent,right, string +0xc, color +0x28, isnil +0x29
-00408230 | `std::set<std::string>::_Insert` | `iterator _Insert(bool addleft, _Nodeptr where, const string& val)  // + red-black rebalance` | 1: 00408920 (STL-internal only) |  | old name std::length_error::ctor_or_dtor_408230 (throws "map/set<T> too long")
-00408920 | `std::set<std::string>::insert` | `pair<iterator,bool> insert(const string& val)  // unique: no-op if present` | 2: 0040abd0 0041a5b0 |  | was `FUN_00408920`; the dictionary word set (0041a5b0) and Board 0040abd0
-00410b40 | `std::multiset<HighScoreEntry>::_Max` | `static _Nodeptr _Max(_Nodeptr)` | 1: 00416180 (STL-internal only) | 00478960 (exact) | was `FUN_00410b40`; isnil +0x4d
-00410b60 | `std::multiset<HighScoreEntry>::_Min` | `static _Nodeptr _Min(_Nodeptr)` | 1: 00416180 (STL-internal only) | 00478980 (exact) | was `FUN_00410b60`
-00410b80 | `std::multiset<HighScoreEntry>::_Rrotate` | `void _Rrotate(_Nodeptr)` | 2: 00416180 00416cf0 (STL-internal only) | 004789a0 (exact) | was `FUN_00410b80`
-00410be0 | `std::multiset<HighScoreEntry>::iterator::_Inc` | `void iterator::_Inc()  // operator++` | 8: 00412ec0 00419cd0 004249d0 00424c30 | 00478a00 (exact) | was `FUN_00410be0`; FameWidget and BookWormApp walk the score tables with it
-00410c40 | `std::set<std::string>::iterator::_Inc` | `void const_iterator::_Inc()  // operator++` | 1: 00412870 (STL-internal only) | 0045bb60 (exact) | was `FUN_00410c40`
-00411190 | `std::multiset<HighScoreEntry>::_Lrotate` | `void _Lrotate(_Nodeptr)` | 2: 00416180 00416cf0 (STL-internal only) | 00479360 (exact) | was `FUN_00411190`
-00411460 | `std::multiset<HighScoreEntry>::_Buyhead` | `_Nodeptr _Buyhead()  // node 0x50` | 2: 0041a0f0 | 00479b40 (exact) | was `FUN_00411460`; HighScoreEntry = 0x40 bytes {string name +0, string word +0x1c, int score +0x38, bool +0x3c} (struct name invented)
-004114f0 | `std::set<std::string>::_Destroyval` | `node->_Myval.~string()  // string at node+0xc` | 1: 00412c40 (STL-internal only) | 0045d040 (exact) | was `FUN_004114f0`; also used by framework set<string> code
-00411520 | `std::pair<const_std::string,std::string>::~pair` | `~pair()  // destroy strings at +0 and +0x1c` | 6: 00411570 004115d0 00419080 00427f30 | 0047b060 (exact) | was `FUN_00411520`; ICF-shared: also ~HighScoreEntry and any {string,string,...} struct (e.g. the user record freed in 00434880); 45 callers
-00412080 | `HighScoreEntry::HighScoreEntry_copy` | `HighScoreEntry(const HighScoreEntry&)  // implicit copy-ctor: 2 strings + int + bool` | 12: 00412ec0 004249d0 00424c30 00425880 |  | was `FUN_00412080`; compiler-generated; Ghidra hides the int/bool copy (+0x38,+0x3c); struct name invented
-00412560 | `std::multiset<HighScoreEntry,ByScore>::_Lbound` | `_Nodeptr _Lbound(const HighScoreEntry& key)  // lower_bound` | 1: 00416ad0 (STL-internal only) |  | was `FUN_00412560`; compares with ByScore (004115d0, entries passed BY VALUE)
-00412600 | `std::multiset<HighScoreEntry,ByWordLength>::_Lbound` | `_Nodeptr _Lbound(const HighScoreEntry& key)` | 1: 00416b60 (STL-internal only) |  | was `FUN_00412600`; compares with ByWordLength (00411570)
-00412870 | `std::set<std::string>::erase` | `iterator erase(iterator where)  // throws out_of_range("invalid map/set<T> iterator") on end()` | 1: 00416f70 (STL-internal only) |  | old name std::out_of_range::ctor_or_dtor_412870
-00412ba0 | `std::multiset<HighScoreEntry,ByScore>::_Erase` | `void _Erase(_Nodeptr root)` | 1: 00416c30 (STL-internal only) |  | was `FUN_00412ba0`; recursive (not folded with 00412bf0 because it calls itself)
-00412bf0 | `std::multiset<HighScoreEntry,ByWordLength>::_Erase` | `void _Erase(_Nodeptr root)` | 1: 00416eb0 (STL-internal only) |  | was `FUN_00412bf0`
-00412c40 | `std::set<std::string>::_Erase` | `void _Erase(_Nodeptr root)  // recursive subtree delete` | 1: 00416f70 (STL-internal only) |  | was `FUN_00412c40`
-00416180 | `std::multiset<HighScoreEntry>::erase` | `iterator erase(iterator where)` | 3: 00419cd0 |  | old name std::out_of_range::ctor_or_dtor_416180; shared by both predicates; game caller 00419cd0
-00416850 | `std::multiset<HighScoreEntry>::_Buynode` | `_Nodeptr _Buynode(left, parent, right, const HighScoreEntry& val, char color)  // node 0x50, isnil +0x4d` | 1: 00416cf0 (STL-internal only) | 00482d90 (call) | was `FUN_00416850`
-00416ad0 | `std::multiset<HighScoreEntry,ByScore>::find` | `iterator find(const HighScoreEntry& key)` | 2: 00418bd0 00419cd0 |  | was `FUN_00416ad0`
-00416b60 | `std::multiset<HighScoreEntry,ByWordLength>::find` | `iterator find(const HighScoreEntry& key)` | 2: 00418bd0 00419cd0 |  | was `FUN_00416b60`
-00416c30 | `std::multiset<HighScoreEntry,ByScore>::erase_range` | `iterator erase(iterator first, iterator last)` | 2: 004187b0 |  | was `FUN_00416c30`; BookWormApp tables at +0x117c,+0x1188,+0x1194
-00416cf0 | `std::multiset<HighScoreEntry>::_Insert` | `iterator _Insert(bool addleft, _Nodeptr where, const HighScoreEntry& val)` | 2: 00417ef0 00417fb0 (STL-internal only) | 00483b90 std::length_error::ctor_or_dtor_483b90 (exact) | old name std::length_error::ctor_or_dtor_483b90; shared by both predicates
-00416eb0 | `std::multiset<HighScoreEntry,ByWordLength>::erase_range` | `iterator erase(iterator first, iterator last)` | 2: 004187b0 |  | was `FUN_00416eb0`; BookWormApp table at +0x11a0
-00416f70 | `std::set<std::string>::erase_range` | `iterator erase(iterator first, iterator last)  // (begin,end) -> _Erase(root)` | 2: 004187b0 |  | was `FUN_00416f70`
-00417ef0 | `std::multiset<HighScoreEntry,ByScore>::insert` | `iterator insert(const HighScoreEntry& val)  // multiset: always inserts (upper position)` | 4: 00418bd0 00419080 00419cd0 00427550 |  | was `FUN_00417ef0`; callers 00418bd0 00419080 00419cd0 00427550
-00417fb0 | `std::multiset<HighScoreEntry,ByWordLength>::insert` | `iterator insert(const HighScoreEntry& val)` | 3: 00418bd0 00419080 00419cd0 |  | was `FUN_00417fb0`; predicate inlined here
-004186f0 | `std::multiset<HighScoreEntry,ByScore>::~multiset` | `~multiset()` | 0 (fw/unwind only) |  | was `FUN_004186f0`; EH unwind callers
-00418730 | `std::multiset<HighScoreEntry,ByWordLength>::~multiset` | `~multiset()` | 0 (fw/unwind only) |  | was `FUN_00418730`; EH unwind callers
-00418770 | `std::set<std::string>::~set` | `~set()  // erase(begin,end) + free head` | 0 (fw/unwind only) |  | was `FUN_00418770`; EH unwind callers; BookWormApp dtor inlines it (+0x1260, +0x127c)
-0041a0b0 | `std::multiset<HighScoreEntry>::multiset` | `multiset()  // _Buyhead + size 0` | 0 |  | was `FUN_0041a0b0`; no direct callers (inlined in BookWormApp ctor 0041a0f0)
-0041c9e0 | `std::map<std::string,std::string>::_Lrotate` | `void _Lrotate(_Nodeptr)` | 2: 0041cf10 0041d4b0 (STL-internal only) | 004182b0 (call) | was `FUN_0041c9e0`
-0041ca40 | `std::map<std::string,std::string>::_Rrotate` | `void _Rrotate(_Nodeptr)` | 2: 0041cf10 0041d4b0 (STL-internal only) | 00418310 (call) | was `FUN_0041ca40`
-0041caa0 | `std::map<std::string,std::string>::_Max` | `static _Nodeptr _Max(_Nodeptr)` | 1: 0041cf10 (STL-internal only) |  | was `FUN_0041caa0`
-0041cac0 | `std::map<std::string,std::string>::_Min` | `static _Nodeptr _Min(_Nodeptr)` | 1: 0041cf10 (STL-internal only) |  | was `FUN_0041cac0`
-0041cae0 | `std::map<std::string,std::string>::iterator::_Inc` | `void iterator::_Inc()  // operator++` | 1: 0041cf10 (STL-internal only) | 00418370 (exact) | was `FUN_0041cae0`
-0041cc10 | `std::map<std::string,std::string>::iterator::_Dec` | `void iterator::_Dec()  // operator--` | 1: 0041d670 (STL-internal only) | 0045b7c0 (exact) | was `FUN_0041cc10`
-0041cc70 | `std::map<std::string,std::string>::_Buyhead` | `_Nodeptr _Buyhead()  // node 0x48` | 3: 0041dd30 00432500 | 004183f0 (exact) | was `FUN_0041cc70`; node: left,parent,right, key string +0xc, value string +0x28, color +0x44, isnil +0x45; Definitionator (+8) and the framework DefinesMap
-0041ccb0 | `std::map<std::string,std::string>::_Destroyval` | `node->_Myval.~pair()  // strings at node+0xc and node+0x28` | 3: 00412ba0 00412bf0 0041d260 (STL-internal only) | 00418430 (exact) | was `FUN_0041ccb0`; ICF-shared with multiset<HighScoreEntry> (same two-string layout at +0xc)
-0041cd00 | `std::map<std::string,std::string>::_Lbound` | `_Nodeptr _Lbound(const string& key)  // lower_bound` | 1: 0041cdc0 (STL-internal only) | 0045e480 (exact) | was `FUN_0041cd00`
-0041cdc0 | `std::map<std::string,std::string>::find` | `iterator find(const string& key)` | 1: 0041d2b0 | 0045f930 (group) | was `FUN_0041cdc0`; game caller: Definitionator lookup 0041d2b0
-0041ce30 | `std::pair<const_std::string,std::string>::pair` | `pair(const string& key, const string& value)` | 1: 0041d7c0 (STL-internal only) | 0045f9a0 (call) | was `FUN_0041ce30`; used by operator[] (0041d7c0)
-0041cea0 | `std::pair<const_std::string,std::string>::pair_copy` | `pair(const pair&)  // value_type copy` | 1: 0041d350 (STL-internal only) | 00424c50 (exact) | was `FUN_0041cea0`
-0041cf10 | `std::map<std::string,std::string>::erase` | `iterator erase(iterator where)` | 1: 0041d3f0 (STL-internal only) |  | old name std::out_of_range::ctor_or_dtor_41cf10
-0041d260 | `std::map<std::string,std::string>::_Erase` | `void _Erase(_Nodeptr root)` | 2: 004323c5 |  | was `FUN_0041d260`
-0041d350 | `std::map<std::string,std::string>::_Buynode` | `_Nodeptr _Buynode(left, parent, right, const value_type& val, char color)` | 2: 0041d4b0 00432330 (STL-internal only) | 00418e00 (exact) | was `FUN_0041d350`
-0041d3f0 | `std::map<std::string,std::string>::erase_range` | `iterator erase(iterator first, iterator last)` | 3: 0041d8d0 00432500 | 00418ea0 (call) | was `FUN_0041d3f0`; also used by the framework (RegisterDialog/OpenRegisterPage)
-0041d4b0 | `std::map<std::string,std::string>::_Insert` | `iterator _Insert(bool addleft, _Nodeptr where, const value_type& val)` | 1: 0041d670 (STL-internal only) | 00468840 std::length_error::ctor_or_dtor_468840 (exact) | old name std::length_error::ctor_or_dtor_468840
-0041d670 | `std::map<std::string,std::string>::insert` | `pair<iterator,bool> insert(const value_type& val)` | 1: 0041d7c0 (STL-internal only) | 004692f0 (exact) | was `FUN_0041d670`; framework callers too (004718c0 0048a810 0048df70)
-0041d7c0 | `std::map<std::string,std::string>::operator_index` | `string& operator[](const string& key)  // insert(value_type(key, string())).first->second` | 1: 0041d920 | 0046b9f0 (exact) | was `FUN_0041d7c0`; Definitionator::Load 0041d920: defs[word] = def
-0041d890 | `std::map<std::string,std::string>::~map` | `~map()` | 1: 004324e5 | 00419130 (call) | was `FUN_0041d890`
-0042a9c0 | `std::map<int,bool>::_Buyhead` | `_Nodeptr _Buyhead()  // node 0x18` | 1: 0042b480 (STL-internal only) | 00479c90 (exact) | was `FUN_0042a9c0`; node: left,parent,right, int key +0xc, bool value +0x10, color +0x14, isnil +0x15; static map at DAT_00534c38 (HintDialog)
-0042aa00 | `std::map<int,bool>::_Erase` | `void _Erase(_Nodeptr root)` | 1: 0042b320 (STL-internal only) |  | was `FUN_0042aa00`
-0042aa40 | `std::map<int,bool>::find` | `iterator find(const int& key)` | 1: 0042b3e0 | 0047b0b0 (exact) | was `FUN_0042aa40`; game caller 0042b3e0
-0042aab0 | `std::map<int,bool>::_Insert` | `iterator _Insert(bool addleft, _Nodeptr where, const value_type& val)` | 1: 0042b260 (STL-internal only) |  | old name std::length_error::ctor_or_dtor_42aab0
-0042ac70 | `std::map<int,bool>::erase` | `iterator erase(iterator where)` | 1: 0042b320 (STL-internal only) |  | old name std::out_of_range::ctor_or_dtor_42ac70
-0042b260 | `std::map<int,bool>::insert` | `pair<iterator,bool> insert(const value_type& val)` | 1: 0042b3e0 |  | was `FUN_0042b260`; game caller 0042b3e0
-0042b320 | `std::map<int,bool>::erase_range` | `iterator erase(iterator first, iterator last)` | 1: 0042b440 (STL-internal only) |  | was `FUN_0042b320`
-0042b440 | `std::map<int,bool>::~map` | `~map()  // registered with atexit` | 0 |  | was `FUN_0042b440`
-0042b480 | `std::map<int,bool>::map` | `map()  // static-init of DAT_00534c38` | 0 |  | was `FUN_0042b480`; no direct callers (static initializer)
-00432330 | `std::map<std::string,std::string>::_Copy_node` | `_Nodeptr _Copy(_Nodeptr src, _Nodeptr parent)  // recursive` | 1: 004323e0 (STL-internal only) | 00418f60 (exact) | was `FUN_00432330`
-004323e0 | `std::map<std::string,std::string>::_Copy` | `void _Copy(const _Tree& right)  // root copy + leftmost/rightmost fix-up` | 1: 00432470 (STL-internal only) | 00419010 (call) | was `FUN_004323e0`
-00432470 | `std::map<std::string,std::string>::map_copy` | `map(const map& right)  // DefinesMap copy-ctor` | 1: 00432500 | 004190a0 (exact) | was `FUN_00432470`; callers RegisterDialog vf04_sub88 (00432500) and SexyApp::OpenRegisterPage
-00466eb0 | `std::set<std::string>::_Max` | `static _Nodeptr _Max(_Nodeptr)  // rightmost` | 1: 00412870 (STL-internal only) | 0045ba90 (exact) | was `FUN_00466eb0`; framework region; shared with the framework set<string> (0046b150)
-00466f50 | `std::set<std::string>::_Min` | `static _Nodeptr _Min(_Nodeptr)  // leftmost` | 1: 00412870 (STL-internal only) | 0045bab0 (exact) | was `FUN_00466f50`; framework region
-0047ddc0 | `std::map<int,Sexy::Dialog*>::_Rrotate` | `void _Rrotate(_Nodeptr)` | 2: 0042aab0 0042ac70 (STL-internal only) | 00478a60 (exact) | was `FUN_0047ddc0`; framework region; ICF-shared with std::map<int,bool> (0042aab0/0042ac70); framework type inferred (SexyApp dialog map: vf57/vf58)
-0047de20 | `std::map<int,Sexy::Dialog*>::_Max` | `static _Nodeptr _Max(_Nodeptr)` | 1: 0042ac70 (STL-internal only) | 00478920 (exact) | was `FUN_0047de20`; ICF-shared (int key, 4-byte value)
-0047de40 | `std::map<int,Sexy::Dialog*>::_Min` | `static _Nodeptr _Min(_Nodeptr)` | 1: 0042ac70 (STL-internal only) | 00478940 (exact) | was `FUN_0047de40`; ICF-shared
-0047de60 | `std::map<int,Sexy::Dialog*>::iterator::_Dec` | `void iterator::_Dec()` | 1: 0042b260 (STL-internal only) | 00478ac0 (exact) | was `FUN_0047de60`; ICF-shared; game caller 0042b260
-0047dec0 | `std::map<int,Sexy::Dialog*>::iterator::_Inc` | `void iterator::_Inc()` | 1: 0042ac70 (STL-internal only) | 00478b80 (exact) | was `FUN_0047dec0`; ICF-shared
-0047e3d0 | `std::map<int,Sexy::Dialog*>::_Lrotate` | `void _Lrotate(_Nodeptr)` | 2: 0042aab0 0042ac70 (STL-internal only) | 00479300 (exact) | was `FUN_0047e3d0`; ICF-shared
-0047e9f0 | `std::map<int,Sexy::Dialog*>::_Buynode` | `_Nodeptr _Buynode(left, parent, right, const value_type& val, char color)  // node 0x18, copies 8 bytes` | 1: 0042aab0 (STL-internal only) | 00479cd0 (exact) | was `FUN_0047e9f0`; ICF-shared
-
-###### std::vector (23)
-
-address | name (proposed) | C++ it stands for | game callers (# distinct, sample) | Big Money | notes
----|---|---|---|---|---
-00403ee0 | `std::vector<std::string>::size` | `size_type size() const  // (last-first)/28` | 1: 00418160 (STL-internal only) | 00401cd0 std::vector<std::string>::size (exact) | 
-00406780 | `std::vector<T>::_Xlen` | `[[noreturn]] void _Xlen()  // throw length_error("vector<T> too long")` | 1: 004083f0 (STL-internal only) |  | old name std::length_error::ctor_or_dtor_406780; Board.obj copy
-004083f0 | `std::vector<T*>::_Insert_n` | `void _Insert_n(iterator where, size_type n, const T& val)  // grows to max(cap + cap/2, size + n)` | 1: 0040ae20 (STL-internal only) |  | was `FUN_004083f0`; Board.obj copy (vector<Piece*>); uses _Xlen 00406780
-0040ae20 | `std::vector<T*>::push_back` | `void push_back(const T& val)` | 2: 0040b9e0 0040ed70 |  | was `FUN_0040ae20`; Board (vector<Piece*>; callers 0040b9e0 0040ed70)
-004123a0 | `std::vector<T>::_Xlen_2` | `[[noreturn]] void _Xlen()` | 4: 004164d0 00416530 00416590 00418160 (STL-internal only) |  | old name std::length_error::ctor_or_dtor_4123a0; BookWormApp.obj copy
-004164d0 | `std::vector<int>::_Buy` | `bool _Buy(size_type n)  // operator new(n*4), throws _Xlen if n > 0x3fffffff` | 0 (fw/unwind only) | 00406ec0 std::vector<int>::_Buy (call) | ICF-shared by all 4-byte vectors
-00416530 | `std::vector<std::string>::_Buy` | `bool _Buy(size_type n)  // operator new(n*28), max 0x9249249` | 1: 00417dc0 (STL-internal only) | 00406f20 std::vector<std::string>::_Buy (call) | 
-00416590 | `std::vector<int>::_Insert_n_2` | `void _Insert_n(iterator where, size_type n, const T& val)` | 1: 00417d50 (STL-internal only) |  | was `FUN_00416590`; BookWormApp.obj copy; uses _Xlen 004123a0
-00417d50 | `std::vector<int>::push_back_2` | `void push_back(const int& val)` | 1: 004184d0 |  | was `FUN_00417d50`; BookWormApp vector<int> at +0x12fc (004184d0)
-00417dc0 | `std::vector<std::string>::vector_copy` | `vector(const vector& right)` | 2: 00418590 00432f00 | 00429e00 (exact) | was `FUN_00417dc0`; callers 00418590 00432f00 (SelectUserDialog)
-00417e70 | `std::vector<std::string>::_Tidy` | `void _Tidy()  // destroy all + free  (== ~vector, clear+shrink)` | 2: 00417e50 00432f00 | 00406fa0 std::vector<std::string>::_Tidy (call) | 30 callers
-00418160 | `std::vector<std::string>::_Insert_n` | `void _Insert_n(iterator where, size_type n, const string& val)` | 1: 00418680 (STL-internal only) | 0042a7b0 (call) | was `FUN_00418160`
-00418680 | `std::vector<std::string>::insert` | `iterator insert(iterator where, const string& val)` | 1: 0041a020 (STL-internal only) | 0042af10 (exact) | was `FUN_00418680`
-0041a020 | `std::vector<std::string>::push_back` | `void push_back(const string& val)` | 3: 0041a5b0 0042fe90 00432f00 | 0042afc0 (exact) | was `FUN_0041a020`; callers 0041a5b0 0042fe90 00432f00
-0041b5d0 | `std::vector<T>::_Xlen_4` | `[[noreturn]] void _Xlen()` | 2: 0041ba50 0041bab0 (STL-internal only) | 004254a0 std::length_error::ctor_or_dtor_4254a0 (call) | old name std::length_error::ctor_or_dtor_4254a0; ColorizedButton.obj copy
-0041ba50 | `std::vector<Sexy::Color>::_Buy` | `bool _Buy(size_type n)  // n*16, max 0xfffffff` | 0 (fw/unwind only) |  | was `FUN_0041ba50`; ColorizedButton colour list at +0xe0
-0041bab0 | `std::vector<Sexy::Color>::_Insert_n` | `void _Insert_n(iterator where, size_type n, const Color& val)` | 1: 0041bd90 (STL-internal only) | 00428380 (group) | was `FUN_0041bab0`; BM 00428380 (group)
-0041bd90 | `std::vector<Sexy::Color>::insert` | `iterator insert(iterator where, const Color& val)` | 1: 0041bde0 (STL-internal only) |  | was `FUN_0041bd90`
-0041bde0 | `std::vector<Sexy::Color>::push_back` | `void push_back(const Color& val)` | 2: 0041be50 0041bed0 |  | was `FUN_0041bde0`; ColorizedButton vf49/vf50 (SetColors)
-0041e310 | `std::vector<std::string>::erase` | `iterator erase(iterator where)  // copy down, destroy last` | 0 (fw/unwind only) | 00428f70 (exact) | was `FUN_0041e310`; no direct callers recorded (DeleteUserDialog path)
-004204a0 | `std::vector<T>::_Xlen_3` | `[[noreturn]] void _Xlen()` | 1: 00420550 (STL-internal only) |  | old name std::length_error::ctor_or_dtor_4204a0; EffectMgr.obj copy
-00420550 | `std::vector<T*>::_Insert_n_3` | `void _Insert_n(iterator where, size_type n, const T& val)` | 1: 00420b00 (STL-internal only) |  | was `FUN_00420550`; EffectMgr.obj copy (vector<Effect*>); uses _Xlen 004204a0
-00420b00 | `std::vector<T*>::push_back_3` | `void push_back(const T& val)` | 4: 00420d60 00420e70 00420fd0 00421070 |  | was `FUN_00420b00`; EffectMgr/EmberListMgr effect pools (vector<Effect*>)
-
-###### Algorithms and uninitialized-memory helpers (25)
-
-address | name (proposed) | C++ it stands for | game callers (# distinct, sample) | Big Money | notes
----|---|---|---|---|---
-00405110 | `std::copy_backward_ptr` | `T* copy_backward(T* first, T* last, T* destEnd)  // 4-byte T` | 3: 0040858f 0041672f 004206ef | 0043f3d0 (exact) | was `FUN_00405110`; BM 0043f3d0; result via hidden param_1
-004111f0 | `std::_Uninit_copy_ptr` | `T* uninitialized_copy(T* first, T* last, T* dest)  // 4-byte T` | 4: 004083f0 00411c00 00416590 00420550 (STL-internal only) | 0043e8b0 (exact) | was `FUN_004111f0`; BM 0043e8b0; Ghidra hides the store
-004114a0 | `std::fill_ptr` | `void fill(T* first, T* last, const T& val)  // 4-byte T` | 3: 0040858f 0041672f 004206ef | 0043f3b0 (exact) | was `FUN_004114a0`; BM 0043f3b0; Ghidra hides the store
-00411c00 | `std::uninitialized_copy_ptr` | `wrapper of 004111f0 (vector::_Ucopy)` | 3: 0040858f 0041672f 004206ef |  | was `FUN_00411c00`; called from catch funclets
-00411c30 | `std::uninitialized_fill_n_ptr` | `T* _Ufill(T* dest, size_type n, const T& val)  // returns dest+n` | 3: 0040858f 0041672f 004206ef | 00440420 (exact) | was `FUN_00411c30`
-00411c90 | `std::_Destroy_strings` | `void _Destroy_range(string* first, string* last)  // ~string each` | 9: 00418590 0041e370 0041e620 0042fc90 | 00403ed0 std::_Destroy_strings (call) | 21 callers
-00412c90 | `std::fill_strings` | `void fill(string* first, string* last, const string& val)` | 1: 00418417 | 00425620 (exact) | was `FUN_00412c90`; BM 00425620
-00412cc0 | `std::_Copy_backward_strings` | `string* copy_backward(string* first, string* last, string* destEnd)` | 1: 004168f0 (STL-internal only) | 00425690 (exact) | was `FUN_00412cc0`; BM 00425690
-00412d00 | `std::_Uninit_copy_strings` | `string* uninitialized_copy(const string* first, const string* last, string* dest)` | 4: 00417030 00417050 00417dc0 00418160 (STL-internal only) | 00407530 std::_Uninit_copy_strings (call) | string ctor init hidden by Ghidra
-00416830 | `std::_Destroy_strings_wrap` | `wrapper of 00411c90` | 2: 00418358 00418417 |  | was `FUN_00416830`; catch funclets
-004168f0 | `std::copy_backward_strings` | `wrapper of 00412cc0 returning the iterator` | 1: 00418417 | 00423c10 (group) | was `FUN_004168f0`
-00416930 | `std::_Uninit_fill_n_strings` | `void uninitialized_fill_n(string* dest, size_type n, const string& val)` | 3: 00417ec0 00418160 0041a020 (STL-internal only) | 00428d20 (exact) | was `FUN_00416930`; BM 00428d20
-00417030 | `std::_Uninit_copy_strings_wrap` | `wrapper of 00412d00 (vector<string>::_Ucopy)` | 0 (fw/unwind only) |  | was `FUN_00417030`
-00417050 | `std::_Uninit_copy_strings_wrap_2` | `wrapper of 00412d00` | 2: 00418358 00418417 |  | was `FUN_00417050`; catch funclets
-00417ec0 | `std::_Ufill_strings` | `string* _Ufill(string* dest, size_type n, const string& val)  // returns dest+n` | 1: 00418358 | 00429eb0 (exact) | was `FUN_00417ec0`; BM 00429eb0
-0041b480 | `std::_Copy_backward_Color` | `Color* copy_backward(Color* first, Color* last, Color* destEnd)` | 1: 0041b4d0 (STL-internal only) | 0045c630 (exact) | was `FUN_0041b480`; BM 0045c630
-0041b4d0 | `std::copy_backward_Color` | `wrapper of 0041b480` | 1: 0041bc5f | 00428ce0 (group) | was `FUN_0041b4d0`
-0041b570 | `std::uninitialized_copy_Color` | `wrapper of 004990f0` | 1: 0041bc5f | 0045e9c0 (call) | was `FUN_0041b570`
-0041b5a0 | `std::_Ufill_Color` | `Color* _Ufill(Color* dest, size_type n, const Color& val)  // returns dest+n` | 1: 0041bc5f | 0045f770 (exact) | was `FUN_0041b5a0`
-0041dfe0 | `std::copy_strings` | `string* copy(string* first, string* last, string* dest)` | 2: 0041e620 | 00425650 (exact) | was `FUN_0041dfe0`; BM 00425650; used by vector<string>::erase
-0041f900 | `std::_Uninit_fill_n_ptr` | `void uninitialized_fill_n(T* dest, size_type n, const T& val)  // 4-byte T` | 7: 004083f0 0040ae20 00411c30 00416590 (STL-internal only) | 0043f4c0 (exact) | was `FUN_0041f900`; BM 0043f4c0; Ghidra hides the store
-00422e10 | `std::transform_chars` | `char* transform(const char* first, const char* last, char* dest, int (*f)(int))` | 1: 00422f20 | 0045c550 (exact) | was `FUN_00422e10`; only use: 00422f20 lowercases a string in place with CRT tolower
-00499030 | `std::fill_Color` | `void fill(Color* first, Color* last, const Color& val)` | 1: 0041bc5f | 0045c590 (exact) | was `FUN_00499030`; framework region; Ghidra drops the first dword store (disassembly copies all 4)
-004990b0 | `std::_Uninit_fill_n_Color` | `void uninitialized_fill_n(Color* dest, size_type n, const Color& val)` | 3: 0041b5a0 0041bab0 0041bde0 (STL-internal only) | 00423cb0 (exact) | was `FUN_004990b0`; framework region; Ghidra drops dword 0
-004990f0 | `std::_Uninit_copy_Color` | `Color* uninitialized_copy(const Color* first, const Color* last, Color* dest)` | 2: 0041b570 0041bab0 (STL-internal only) | 004233c0 (exact) | was `FUN_004990f0`; framework region; Ghidra drops dword 0
-
-###### iostreams and locale (Dinkumware std:: and the old LIBCI ifstream) (122)
-
-address | name (proposed) | C++ it stands for | game callers (# distinct, sample) | Big Money | notes
----|---|---|---|---|---
-00411350 | `std::basic_ostream<char>::flush` | `ostream& flush()  // badbit if pubsync()==-1` | 3: 004113b0 00411670 00422ad0 (STL-internal only) | 0043ece0 (exact) | was `FUN_00411350`
-004113b0 | `std::basic_ostream<char>::sentry::sentry` | `sentry(ostream& os)  // lock + flush tie()` | 2: 004116e0 00411970 (STL-internal only) | 0045ca20 (exact) | was `FUN_004113b0`
-00411670 | `std::basic_ostream<char>::sentry::~sentry` | `~sentry()  // if (!uncaught_exception()) _Osfx(); unlock` | 0 (fw/unwind only) | 0045df40 (exact) | was `FUN_00411670`
-004116e0 | `std::operator<<_cstr` | `ostream& operator<<(ostream& os, const char* s)  // with width padding` | 1: 0041a790 | 0045e730 (exact) | was `FUN_004116e0`; game caller: dictionary loader catch 0041a790 (std ostream global DAT_0056be74)
-004118ad | `std::operator<<_cstr_tail` | `chunk of 004116e0` | 1: 004116e0 (STL-internal only) | 0045e8fd (exact) | was `FUN_004118ad`
-00411970 | `std::operator<<_char` | `ostream& operator<<(ostream& os, char c)` | 1: 0041a790 |  | was `FUN_00411970`; game caller: 0041a790
-0041c9c0 | `ifstream::vbase_dtor` | ``vbase destructor' of old ifstream (~ifstream + ~ios)` | 0 (fw/unwind only) |  | was `FUN_0041c9c0`; EH unwind of 0041d920
-0041cb40 | `ios::lock` | `inline void ios::lock()  // if (LockFlg < 0) _mtlock(&x_lock)` | 0 (fw/unwind only) |  | was `FUN_0041cb40`; old iostream inline instantiated in game obj
-0041cb60 | `ios::unlock` | `inline void ios::unlock()` | 0 (fw/unwind only) |  | was `FUN_0041cb60`
-00421710 | `std::_Locinfo::_Getctype` | `_Ctypevec _Getctype() const` | 0 (fw/unwind only) | 0042b050 (exact) | was `FUN_00421710`
-00421750 | `std::locale::id::operator_unsigned_int` | `locale::id::operator size_t()  // lazily numbers facet ids` | 0 (fw/unwind only) | 0042b090 std::locale::id::operator_unsigned_int (exact) | BM name kept
-00421790 | `std::locale::facet::_Incref` | `void _Incref()  // under _Lockit` | 2: 004228c0 004232a0 (STL-internal only) | 0042b0d0 (exact) | was `FUN_00421790`
-004217c0 | `std::locale::facet::_Decref` | `facet* _Decref()  // returns this when the count hits 0` | 1: 00421800 (STL-internal only) | 0042b100 (exact) | was `FUN_004217c0`
-00421800 | `std::locale::~locale` | `~locale()  // delete _Ptr->_Decref()` | 0 (fw/unwind only) | 0042b140 (exact) | was `FUN_00421800`; 77 callers
-00421820 | `std::locale::facet::vf00` | `facet scalar deleting dtor` | 0 | 0042b160 std::locale::facet::vf00 (fuzzy:1.00) | BM name kept
-00421c70 | `std::_Locinfo::_Getctype_2` | `second copy of _Getctype (result discarded)` | 0 (fw/unwind only) | 0042b1b0 (exact) | (inferred) was `FUN_00421c70`
-00421e90 | `std::ios_base::getloc` | `locale getloc() const` | 1: 00422ad0 (STL-internal only) | 0042b1f0 (exact) | was `FUN_00421e90`
-00421ed0 | `std::ios_base::vf00` | `ios_base scalar deleting dtor` | 0 | 0042b230 std::ios_base::vf00 (fuzzy:1.00) | BM name kept
-004220d0 | `std::basic_ios<char>::~basic_ios` | `~basic_ios() -> ios_base::~ios_base()` | 6: 00422140 00422780 004227c0 00422830 (STL-internal only) | 00437650 (call) | was `FUN_004220d0`
-004220e0 | `std::basic_ostream<char>::~basic_ostream` | `dtor body (only resets the vftable at the virtual base)` | 0 (fw/unwind only) | 00437660 (exact) | (inferred) was `FUN_004220e0`; istream or ostream variant
-00422100 | `std::basic_iostream<char>::dtor_adjust` | `this-adjusting dtor helper` | 1: 00422830 (STL-internal only) | 0045b6a0 (exact) | (inferred) was `FUN_00422100`
-00422140 | `std::basic_ios<char>::scalar_deleting_dtor` | `vtable slot 0` | 0 |  | was `FUN_00422140`
-00422170 | `std::basic_streambuf<char,std::char_traits<char>_>::setg` | `void setg(char* first, char* next, char* last)` | 1: 00423a10 (STL-internal only) | 004377c0 std::basic_streambuf<char,std::char_traits<char>_>::setg (exact) | BM name kept
-004221a0 | `std::basic_streambuf<char>::getloc` | `locale getloc() const` | 1: 00426990 (STL-internal only) | 00437890 (exact) | was `FUN_004221a0`
-004221e0 | `std::ctype<char>::ctype` | `ctype(const _Locinfo&, size_t refs)  // copies the CRT ctype table` | 1: 004223c0 (STL-internal only) | 00437ba0 (exact) | (inferred) was `FUN_004221e0`
-004222a0 | `std::ctype<char>::do_tolower` | `virtual char do_tolower(char)` | 0 | 00437c60 (group) | was `FUN_004222a0`; BM 00437c60 group
-004222c0 | `std::ctype<char>::do_tolower_range` | `virtual const char* do_tolower(char*, const char*)` | 0 | 00437c80 (group) | was `FUN_004222c0`
-004222f0 | `std::ctype<char>::do_toupper` | `virtual char do_toupper(char)` | 0 | 00437cb0 (group) | was `FUN_004222f0`
-00422310 | `std::ctype<char>::do_toupper_range` | `virtual const char* do_toupper(char*, const char*)` | 0 | 00437cd0 (group) | was `FUN_00422310`
-00422340 | `std::ctype<char>::do_widen` | `virtual char do_widen(char)` | 0 | 00437d00 (exact) | was `FUN_00422340`
-00422350 | `std::ctype<char>::do_widen_range` | `virtual const char* do_widen(const char*, const char*, char*)` | 0 | 00437d10 (exact) | was `FUN_00422350`
-00422380 | `std::ctype<char>::do_narrow` | `virtual char do_narrow(char, char)` | 0 | 00437d40 (exact) | was `FUN_00422380`
-00422390 | `std::ctype<char>::do_narrow_range` | `virtual const char* do_narrow(const char*, const char*, char, char*)` | 0 | 00437d50 (exact) | was `FUN_00422390`
-004223c0 | `std::ctype<char>::_Getcat` | `static size_t _Getcat(const facet** pp)  // new ctype<char>(_Locinfo())` | 1: 004228c0 (STL-internal only) | 00437d80 (exact) | was `FUN_004223c0`
-00422430 | `std::ctype<char>::scalar_deleting_dtor` | `vtable slot 0` | 0 |  | was `FUN_00422430`
-00422460 | `std::ctype<char>::~ctype` | `~ctype()  // free table if owned` | 1: 00422430 (STL-internal only) | 00437e20 std::locale::facet::ctor_or_dtor_437e20 (exact) | was `std::locale::facet::ctor_or_dtor_437e20`; BM name std::locale::facet::ctor_or_dtor_437e20
-004224f0 | `std::basic_istream<char>::_Sentry_base::~_Sentry_base` | `~_Sentry_base()  // rdbuf()->_Unlock()` | 0 (fw/unwind only) | 0043dc20 (exact) | was `FUN_004224f0`; EH unwind callers
-00422510 | `std::basic_streambuf<char>::~basic_streambuf` | `~basic_streambuf()  // delete _Plocale, ~_Mutex` | 2: 00422800 00423d40 (STL-internal only) | 0043dc40 (exact) | was `FUN_00422510`
-004225a0 | `std::basic_streambuf<char>::uflow` | `virtual int_type uflow()  // default` | 0 | 0043dce0 (exact) | was `FUN_004225a0`
-004225d0 | `std::basic_streambuf<char>::xsgetn` | `virtual streamsize xsgetn(char*, streamsize)` | 0 | 0043dd10 (exact) | was `FUN_004225d0`
-00422670 | `std::basic_streambuf<char>::xsputn` | `virtual streamsize xsputn(const char*, streamsize)` | 0 | 0043ddb0 (exact) | was `FUN_00422670`
-00422720 | `std::basic_streambuf<char>::seekoff` | `virtual pos_type seekoff(...)  // returns -1` | 0 | 0043de60 (exact) | was `FUN_00422720`
-00422750 | `std::basic_streambuf<char>::seekpos` | `virtual pos_type seekpos(...)  // returns -1` | 0 | 0043de90 (exact) | was `FUN_00422750`
-00422780 | `std::basic_istream<char>::scalar_deleting_dtor` | `vtable slot 0 (vbase-adjusted)` | 0 | 0045bcd0 (exact) | (inferred) was `FUN_00422780`
-004227c0 | `std::basic_ostream<char>::scalar_deleting_dtor` | `vtable slot 0 (vbase-adjusted)` | 0 | 0043dec0 (exact) | (inferred) was `FUN_004227c0`
-00422800 | `std::basic_streambuf<char>::scalar_deleting_dtor` | `vtable slot 0` | 0 |  | was `FUN_00422800`
-00422830 | `std::basic_iostream<char>::scalar_deleting_dtor` | `vtable slot 0` | 0 | 0045bd10 (exact) | (inferred) was `FUN_00422830`
-00422860 | `std::basic_streambuf<char>::_Init` | `void _Init()  // point get/put pointers at the internal slots, all null` | 6: 00422d60 00423050 00423b00 004267f0 (STL-internal only) | 0043e080 (exact) | was `FUN_00422860`; Ghidra shows an empty body; read the disassembly
-004228c0 | `std::use_facet<std::ctype<char>>` | `const ctype<char>& use_facet<ctype<char>>(const locale&)  // throws bad_cast` | 1: 00422ad0 (STL-internal only) | 0043e1e0 (call) | was `FUN_004228c0`
-004229b0 | `std::codecvt<char,char,int>::codecvt` | `codecvt(const _Locinfo&, size_t refs)` | 1: 00422e50 (STL-internal only) | 0043e3b0 (exact) | (inferred) was `FUN_004229b0`
-00422a20 | `std::codecvt<char,char,int>::do_in_out` | `virtual result do_in/do_out(...)  // returns noconv (3)` | 0 | 0043e420 (exact) | (inferred) was `FUN_00422a20`; ICF-folded do_in/do_out/do_unshift
-00422a50 | `std::codecvt<char,char,int>::do_length` | `virtual int do_length(state&, const char* f, const char* l, size_t max)` | 0 | 0043e450 (exact) | (inferred) was `FUN_00422a50`
-00422a70 | `std::basic_streambuf<char>::snextc` | `int_type snextc()` | 2: 00422ad0 00423b60 (STL-internal only) | 0043ed40 (exact) | was `FUN_00422a70`
-00422ad0 | `std::basic_istream<char>::_Ipfx` | `bool _Ipfx(bool noskip)  // flush tie(), skip whitespace via ctype<char>` | 1: 00422eb0 (STL-internal only) | 0043eda0 (call) | was `FUN_00422ad0`
-00422c38 | `std::basic_istream<char>::_Ipfx_tail` | `chunk of 00422ad0` | 1: 00422ad0 (STL-internal only) | 0043ef08 (exact) | was `FUN_00422c38`
-00422cb0 | `std::basic_istream<char>::basic_istream` | `basic_istream(streambuf* sb, bool isstd)` | 0 |  | was `FUN_00422cb0`
-00422d60 | `std::basic_streambuf<char>::basic_streambuf` | `basic_streambuf()  // new _Mutex, new locale, _Init()` | 2: 00423050 00426b10 (STL-internal only) | 0043f000 (exact) | was `FUN_00422d60`
-00422e50 | `std::codecvt<char,char,int>::_Getcat` | `static size_t _Getcat(const facet**)` | 1: 004232a0 (STL-internal only) | 0043f460 (exact) | was `FUN_00422e50`
-00422eb0 | `std::basic_istream<char>::sentry::sentry` | `sentry(istream& in, bool noskip)  // lock rdbuf + _Ipfx` | 1: 00423b60 (STL-internal only) | 0043fa60 (exact) | was `FUN_00422eb0`
-00422f80 | `std::basic_iostream<char>::basic_iostream` | `basic_iostream(streambuf* sb)  // basic_ios::init: fill=" ", badbit if sb==0` | 1: 00426b10 (STL-internal only) | 0045e150 (exact) | was `FUN_00422f80`
-00423050 | `std::basic_filebuf<char>::basic_filebuf` | `basic_filebuf(FILE* f = 0)` | 0 |  | was `FUN_00423050`
-004230c0 | `std::basic_filebuf<char>::setbuf` | `virtual streambuf* setbuf(char*, streamsize)  // setvbuf` | 0 | 0043fb40 (exact) | (inferred) was `FUN_004230c0`
-00423110 | `std::basic_filebuf<char>::sync` | `virtual int sync()  // fflush` | 0 | 0043fb90 (exact) | (inferred) was `FUN_00423110`
-00423140 | `std::basic_filebuf<char>::pbackfail` | `virtual int_type pbackfail(int_type)` | 0 | 0043fbc0 (exact) | (inferred) was `FUN_00423140`; calls ungetc
-004231d0 | `std::basic_streambuf<char>::gptr` | `char* gptr() const` | 1: 00423140 (STL-internal only) | 0043fc50 (exact) | was `FUN_004231d0`
-004231e0 | `std::basic_filebuf<char>::underflow` | `virtual int_type underflow()  // uflow + pbackfail` | 0 | 0043fc60 (exact) | (inferred) was `FUN_004231e0`
-004232a0 | `std::use_facet<std::codecvt<char,char,int>>` | `const codecvt<char,char,int>& use_facet<...>(const locale&)` | 2: 00426940 00426990 (STL-internal only) | 00440040 (call) | was `FUN_004232a0`
-00423420 | `std::basic_filebuf<char>::_Endwrite` | `bool _Endwrite()  // flush + codecvt unshift + fwrite` | 3: 00423900 00423a10 00423b00 (STL-internal only) | 00440450 (call) | was `FUN_00423420`
-00423590 | `std::basic_filebuf<char>::overflow` | `virtual int_type overflow(int_type)` | 0 |  | (inferred) was `FUN_00423590`; from its fputc/fwrite use
-004237d0 | `std::basic_filebuf<char>::uflow` | `virtual int_type uflow()  // getc` | 0 | 004410a0 (exact) | (inferred) was `FUN_004237d0`
-00423900 | `std::basic_filebuf<char>::seekoff` | `virtual pos_type seekoff(off_type, seekdir, openmode)` | 0 | 004411d0 (exact) | (inferred) was `FUN_00423900`; calls fseek/fgetpos
-00423a10 | `std::basic_filebuf<char>::seekpos` | `virtual pos_type seekpos(pos_type, openmode)` | 0 | 004412e0 (exact) | (inferred) was `FUN_00423a10`; calls fsetpos
-00423b00 | `std::basic_filebuf<char>::close` | `basic_filebuf* close()  // _Endwrite + fclose` | 2: 00423d00 00423d40 (STL-internal only) | 00441430 (exact) | was `FUN_00423b00`
-00423b60 | `std::getline_string` | `istream& getline(istream& in, string& s, char delim)  // Dinkumware: clears s, stops at delim (extracted) or EOF, failbit if nothing read` | 1: 00426c10 |  | was `FUN_00423b60`; FameWidget vf04_sub88; continues in chunk 00423c8e
-00423c8e | `std::getline_string_tail` | `chunk of 00423b60 (setstate + sentry dtor)` | 1: 00423b60 (STL-internal only) |  | was `FUN_00423c8e`; not a real function
-00423d00 | `std::basic_fstream<char>::close` | `void close()  // setstate(failbit) if rdbuf()->close() fails` | 1: 00426c10 |  | was `FUN_00423d00`; FameWidget vf04_sub88
-00423d40 | `std::basic_filebuf<char>::~basic_filebuf` | `~basic_filebuf()  // close() if owned, delete _Str, ~streambuf` | 2: 00423e20 00426760 (STL-internal only) | 004423f0 (exact) | was `FUN_00423d40`
-00423e20 | `std::basic_filebuf<char>::scalar_deleting_dtor` | `vtable slot 0` | 0 |  | was `FUN_00423e20`
-00423ef0 | `std::locale::locale_facet` | `locale(const locale& loc, const Facet* fac)  // copy _Locimp + _Addfac` | 1: 004267f0 (STL-internal only) | 00444750 (exact) | was `FUN_00423ef0`
-00426760 | `std::basic_fstream<char>::~basic_fstream` | `~basic_fstream()  // this = ios_base subobject; destroys filebuf` | 3: 00426c10 | 004685c0 (exact) | was `FUN_00426760`
-004267f0 | `std::basic_filebuf<char>::_Initcvt` | `void _Initcvt(codecvt* cvt)` | 2: 00426940 00426990 (STL-internal only) | 00448bd0 (exact) | was `FUN_004267f0`
-00426920 | `std::basic_fstream<char>::vbase_dtor` | ``vbase destructor' (~basic_fstream + ~basic_ios)` | 0 (fw/unwind only) | 00469160 (exact) | was `FUN_00426920`; EH unwind callers
-00426940 | `std::basic_filebuf<char>::imbue` | `virtual void imbue(const locale&)` | 0 | 0044b610 (exact) | was `FUN_00426940`
-00426960 | `std::basic_fstream<char>::scalar_deleting_dtor` | `vtable slot 0` | 0 | 00469670 (exact) | was `FUN_00426960`
-00426990 | `std::basic_filebuf<char>::open` | `basic_filebuf* open(const char* name, ios_base::openmode mode)  // _Fiopen + _Init + _Initcvt` | 1: 00426b10 (STL-internal only) | 0044b8e0 (exact) | was `FUN_00426990`
-00426b10 | `std::basic_fstream<char>::basic_fstream` | `basic_fstream(const char* name, ios_base::openmode mode, [vbase flag])` | 1: 00426c10 | 004694a0 (exact) | was `FUN_00426b10`; filebuf at +0xc, ios_base at +0x6c; sets badbit\|failbit if open fails; FameWidget vf04_sub88 + framework (OpenHTMLTemplate...)
-004cabd6 | `std::ios_base::_Addstd` | `void _Addstd()  // register a standard stream (_Lockit 2)` | 1: 00422cb0 (STL-internal only) |  | was `FUN_004cabd6`
-004cac6d | `std::ios_base::~ios_base` | `~ios_base()  // _Tidy + ~locale` | 3: 00426c10 | 004c95c9 std::ios_base::ctor_or_dtor_4c95c9 (exact) | old name std::ios_base::ctor_or_dtor_4c95c9
-004cad55 | `std::ios_base::clear` | `void clear(iostate state, bool reraise)  // throws failure if state & exceptions()` | 14: 00411881 00411b0e 00422c0c 00423c62 | 004c96b1 std::ios_base::failure::ctor_or_dtor_4c96b1 (exact) | old name std::ios_base::failure::ctor_or_dtor_4c96b1; every setstate() call in the decompilation is this
-004cae94 | `std::ios_base::_Init` | `void _Init()` | 2: 00422cb0 00422f80 (STL-internal only) | 004c97f0 std::ios_base::_Init (exact) | BM name kept
-004caeda | `std::_Mutex::_Mutex` | `_Mutex()  // new CRITICAL_SECTION + InitializeCriticalSection` | 1: 00422d60 (STL-internal only) | 004c9836 (exact) | was `FUN_004caeda`
-004caef2 | `std::_Mutex::~_Mutex` | `~_Mutex()` | 1: 00422510 (STL-internal only) | 004c984e (exact) | was `FUN_004caef2`
-004caf07 | `std::_Mutex::_Lock` | `void _Lock()  // EnterCriticalSection` | 2: 004113b0 00422eb0 (STL-internal only) | 004c9863 (call) | was `FUN_004caf07`
-004caf10 | `std::_Mutex::_Unlock` | `void _Unlock()  // LeaveCriticalSection` | 5: 00411670 004118ad 00411970 004224f0 (STL-internal only) | 004c986c (call) | was `FUN_004caf10`
-004caf19 | `std::uncaught_exception` | `bool uncaught_exception()  // jmp 004dea4c` | 3: 00411670 004118ad 00411970 (STL-internal only) |  | was `thunk_FUN_004dea4c`; thunk
-004cb067 | `std::_Getctype` | `_Ctypevec _Getctype()  // CRT: copy of the 256-entry ctype table` | 3: 00421710 00421c70 004221e0 (STL-internal only) | 004c8e58 (exact) | was `FUN_004cb067`
-004cb119 | `std::_Tolower` | `int _Tolower(int c, const _Ctypevec*)` | 2: 004222a0 004222c0 (STL-internal only) | 004c8f0a (exact) | was `FUN_004cb119`
-004cb21b | `std::_Getcvt` | `_Cvtvec _Getcvt()` | 1: 004229b0 (STL-internal only) | 004c900c (exact) | was `FUN_004cb21b`
-004cb387 | `std::_Lockit::_Lockit` | `_Lockit(int kind)  // EnterCriticalSection(lock[kind&3])` | 13: 00421750 00421790 004217c0 00421e90 (STL-internal only) | 004c9178 (exact) | was `FUN_004cb387`; 75 callers (facet refcounts)
-004cb3aa | `std::_Lockit::~_Lockit` | `~_Lockit()` | 13: 00421750 00421790 004217c0 00421e90 (STL-internal only) | 004c919b (exact) | was `FUN_004cb3aa`
-004cb437 | `std::locale::_Getfacet` | `const facet* _Getfacet(size_t id) const` | 2: 004228c0 004232a0 (STL-internal only) | 004c9228 std::locale::_Getfacet (exact) | BM name kept
-004cb4af | `std::locale::facet::_Register` | `void _Register()` | 2: 004228c0 004232a0 (STL-internal only) | 004c92a0 std::locale::facet::_Register (exact) | BM name kept
-004cb56e | `std::_Locinfo::~_Locinfo` | `~_Locinfo()  // restore setlocale` | 2: 004221e0 004229b0 (STL-internal only) | 004c935f (exact) | was `FUN_004cb56e`
-004cb62b | `std::_Locinfo::_Locinfo` | `_Locinfo(const char* name = "C")` | 2: 004221e0 004229b0 (STL-internal only) | 004c941c (exact) | was `FUN_004cb62b`
-004cb75b | `std::locale::locale` | `locale()  // global locale copy` | 3: 00422d60 00423050 00426b10 (STL-internal only) | 004c954c std::locale::locale (exact) | BM name kept
-004cb85c | `std::_Toupper` | `int _Toupper(int c, const _Ctypevec*)` | 2: 004222f0 00422310 (STL-internal only) | 004c995d (exact) | was `FUN_004cb85c`
-004cb8e6 | `std::locale::_Locimp::_Addfac` | `void _Addfac(facet*, size_t id)` | 1: 00423ef0 (STL-internal only) | 004c99e7 std::locale::_Locimp::_Addfac (exact) | BM name kept
-004cbc61 | `std::locale::_Locimp::_Locimp_copy` | `_Locimp(const _Locimp&)` | 1: 00423ef0 (STL-internal only) | 004c9d62 std::locale::_Locimp::ctor_or_dtor_4c9d62 (exact) | (inferred) old name std::locale::_Locimp::ctor_or_dtor_4c9d62
-004cbd52 | `std::_Fiopen` | `FILE* _Fiopen(const char* name, ios_base::openmode mode)  // mode table -> fopen; ate -> fseek end` | 1: 00426990 (STL-internal only) | 004c9e9c (exact) | was `FUN_004cbd52`
-004ee070 | `ios::ios` | `ios::ios()  // old iostream` | 0 (fw/unwind only) |  | was `ios::ctor_or_dtor_4ee070`
-004ee0ce | `ios::~ios` | `ios::~ios()  // old iostream` | 2: 0041d920 |  | old name ios::ctor_or_dtor_4ee0ce; game callers 0041c9c0 0041d920
-004ee163 | `ifstream::ifstream` | `ifstream::ifstream(const char* name, int mode = ios::in, int prot = filebuf::openprot)  // old iostream` | 1: 0041d920 |  | was `FUN_004ee163`; game caller 0041d920
-004ee218 | `ifstream::~ifstream` | `ifstream::~ifstream()  // old iostream` | 2: 0041d920 |  | was `FUN_004ee218`
-004ee22b | `ios::clear` | `void ios::clear(int state = 0)  // old iostream (lock/unlock around it)` | 0 (fw/unwind only) |  | was `FUN_004ee22b`
-004ee247 | `ifstream::close` | `void ifstream::close()  // old iostream; failbit if filebuf::close fails` | 1: 0041d920 |  | was `FUN_004ee247`; game caller 0041d920
-004ee2a6 | `_mtlockinit` | `void _mtlockinit(CRITICAL_SECTION*)` | 0 (fw/unwind only) | 004c9fae (call) | was `FUN_004ee2a6`; old iostream lock helper
-004ee2b1 | `_mtlockterm` | `void _mtlockterm(CRITICAL_SECTION*)` | 0 (fw/unwind only) | 004c9fb9 (call) | was `FUN_004ee2b1`
-004ee2bc | `_mtlock` | `void _mtlock(CRITICAL_SECTION*)  // EnterCriticalSection` | 2: 0041d920 | 004c9fc4 (call) | was `FUN_004ee2bc`; inline ios::lock() in 0041d920
-004ee2c7 | `_mtunlock` | `void _mtunlock(CRITICAL_SECTION*)` | 2: 0041d920 | 004c9fcf (call) | was `FUN_004ee2c7`; inline ios::unlock()
-004ee2d2 | `istream::unlockbuf` | `void unlockbuf()  // old iostream` | 0 (fw/unwind only) |  | (inferred) was `FUN_004ee2d2`
-004ee2ea | `istream::isfx` | `void isfx()  // unlockbuf(); unlock()` | 0 (fw/unwind only) |  | (inferred) was `FUN_004ee2ea`
-004ee30b | `istream::get_str` | `istream& istream::get(char* buf, int len, char delim)  // with _fGline set by inline getline(): extracts the delimiter` | 1: 0041d920 |  | was `FUN_004ee30b`; game caller 0041d920: getline(buf, 4096, '\n')
-
-###### CRT (38)
-
-address | name (proposed) | C++ it stands for | game callers (# distinct, sample) | Big Money | notes
----|---|---|---|---|---
-00401540 | `operator_delete_thunk` | `void operator delete(void*) local wrapper -> free` | 0 (fw/unwind only) | 00401d00 operator_delete_thunk (call) | BM name kept
-004cab10 | `operator_new` | `void* operator new(size_t)  // malloc loop + new_handler, throws via _Nomemory` | 89: 004010c0 004011f0 00401600 00401935 | 004c8cc0 operator_new (exact) | 224 callers
-004caf1e | `operator_new_array` | `void* operator new[](size_t)  // jmp operator new` | 2: 00414a10 0041a5b0 |  | was `operator_new`; thunk; game callers 00414a10 0041a5b0
-004da392 | `operator_delete` | `void operator delete(void*)  // jmp free` | 234: 00401720 004019cd 00402190 00402a50 |  | was `_free`; 234 callers: every "_free(p)" in string/container code is allocator::deallocate == operator delete
-004da3a0 | `_memchr` | `void* memchr(const void*, int, size_t)` | 3: 00401750 00411100 0041cb80 (STL-internal only) | 004d9c20 _memchr (exact) | string find_* helpers
-004da450 | `_memmove` | `void* memmove(void*, const void*, size_t)` | 1: 00401c10 (STL-internal only) | 004d81d0 _memmove (call) | string::erase
-004da818 | `_ftol` | `int64 _ftol(long double st0)  // truncate toward zero; operand on the x87 stack, result EDX:EAX (game uses EAX)` | 40: 00402430 00402a50 00403c00 00404380 | 004d8798 _ftol (exact) | algorithm: fistp (round-nearest) then +-1 correction = C cast semantics
-004da96d | `_atexit` | `int atexit(void (*)(void))` | 3: 004144b0 004146d0 00414a10 | 004d970a _atexit (exact) | registers dtors of function-local statics (004144b0 004146d0 00414a10)
-004daa86 | `_fwrite` | `size_t fwrite(const void*, size_t, size_t, FILE*)` | 15: 00403050 00404e10 00404fe0 00406c40 | 004d8749 _fwrite (call) | save files: raw little-endian ints/bytes
-004dabbb | `_fread` | `size_t fread(void*, size_t, size_t, FILE*)` | 12: 00403370 00405fa0 00406180 00408ab0 | 004d85f6 _fread (call) | load files
-004dac07 | `_isalpha` | `int isalpha(int)  // CRT locale table, mask 0x103` | 4: 00403df0 00403e40 00427650 0042e5f0 |  | callers Board vf21/vf22 (virtual key codes), 00427650, 0042e5f0
-004dad33 | `_isspace` | `int isspace(int)` | 1: 00427650 | 004daf8f _isspace (call) | caller 00427650
-004daf70 | `_fclose` | `int fclose(FILE*)` | 5: 00406c40 00408ab0 0041a5b0 0041a790 | 004d810f _fclose (call) | 
-004db01d | `fopen` | `FILE* fopen(const char*, const char*)` | 3: 00406c40 00408ab0 0041a5b0 | 004d81bc fopen (exact) | game callers 00406c40 00408ab0 0041a5b0
-004db030 | `_errno` | `int* _errno()  // &_getptd()->_terrno` | 1: 00406c40 | 004dab4a (exact) | was `FUN_004db030`; game caller 00406c40 (after _mkdir)
-004db0b5 | `sprintf` | `int sprintf(char*, const char*, ...)` | 3: 00407c60 00411220 00433900 | 004d8f75 sprintf (call) | game formats only %d / %s / %02d (no floats)
-004db10d | `_time` | `time_t time(time_t*)  // 32-bit` | 1: 0040ae90 | 004d989c FID_conflict:__time32 (exact) | was `FID_conflict:__time32`; game caller 0040ae90
-004db5a7 | `_toupper` | `int toupper(int)  // CRT locale ("C" unless setlocale)` | 2: 004112f0 00425880 | 004d9d9f _toupper (call) | callers 004112f0 (uppercase dictionary words), 00425880
-004db5c9 | `_free` | `void free(void*)  // the real CRT free` | 4: 00412ec0 00419080 | 004d9e8d _free (call) | direct callers 00412ec0 00419080 (malloc/free pairs)
-004db6e1 | `_malloc` | `void* malloc(size_t)` | 2: 00412ec0 00419080 | 004dc4aa _malloc (exact) | game callers 00412ec0 00419080
-004db6f3 | `operator_delete_array` | `void operator delete[](void*)  // jmp operator delete` | 3: 004187b0 |  | was `_free`; callers 004187b0 004221e0 00422460
-004db6f8 | `_atol` | `long atol(const char*)` | 0 (fw/unwind only) | 004d9e00 _atol (call) | 
-004db780 | `_atoi` | `int atoi(const char*)  // jmp atol` | 2: 00419080 00427650 |  | was `_atol`; thunk; game callers 00419080 00427650
-004db8ff | `exit` | `void exit(int)  // doexit(code, 0, 0)` | 1: 0041a790 | 004dc038 (exact) | was `FUN_004db8ff`; caller: dictionary-load catch 0041a790 (exit(1))
-004db93f | `FID_conflict:_getc` | `int getc(FILE*)  // == fgetc` | 2: 0041a5b0 | 004da7fb FID_conflict:_getc (exact) | dictionary loader 0041a5b0 reads char by char
-004db990 | `__chkstk` | `_alloca_probe / __chkstk  // stack probe for frames > 4 KB` | 1: 0041d920 | 004da420 __chkstk (exact) | 0041d920 has a 4096-byte line buffer
-004dba95 | `_tolower` | `int tolower(int)` | 0 (fw/unwind only) | 004db1a3 _tolower (call) | address taken by 00422f20 (std::transform)
-004dbab7 | `_setvbuf` | `int setvbuf(FILE*, char*, int, size_t)` | 1: 004230c0 (STL-internal only) | 004da45d _setvbuf (exact) | filebuf only
-004dbcf3 | `_fflush` | `int fflush(FILE*)` | 1: 00423110 (STL-internal only) | 004da699 _fflush (exact) | filebuf only
-004dbdb8 | `_ungetc` | `int ungetc(int, FILE*)` | 1: 00423140 (STL-internal only) | 004da75e _ungetc (exact) | filebuf only
-004dbdfd | `FID_conflict:_fputc` | `int fputc(int, FILE*)` | 1: 00423590 (STL-internal only) | 004da7a3 FID_conflict:_fputc (exact) | filebuf only
-004dbe55 | `_fgetpos` | `int fgetpos(FILE*, fpos_t*)` | 2: 00423900 00423a10 (STL-internal only) | 004da84b _fgetpos (exact) | filebuf only
-004dbf06 | `_fseek` | `int fseek(FILE*, long, int)` | 2: 00423900 00423a10 (STL-internal only) | 004da8fc _fseek (exact) | filebuf only
-004dbf4f | `_fsetpos` | `int fsetpos(FILE*, const fpos_t*)` | 1: 00423a10 (STL-internal only) | 004da945 _fsetpos (exact) | filebuf only
-004dc087 | `_srand` | `void srand(unsigned seed)` | 0 (fw/unwind only) | 004d9365 (exact) | was `FUN_004dc087`; framework caller 0048aaf0 only
-004dc094 | `_rand` | `int rand()  // holdrand = holdrand*214013 + 2531011; return (holdrand>>16) & 0x7fff` | 1: 0042dd20 | 004d9372 _rand (exact) | per-thread; seeded once by SexyApp::Init 0048aaf0 with srand(GetTickCount()); game caller Lex::vf17 0042dd20
-004ed116 | `__stricmp` | `int _stricmp(const char*, const char*)  // ASCII fold to LOWER case in the "C" locale` | 5: 00408030 0040f5b0 00434800 004352e0 | 004eb2bc __stricmp (exact) | callers 00408030 0040f5b0 00434800 004352e0 004356d0
-004eef12 | `_mkdir` | `int _mkdir(const char*)  // CreateDirectoryA, errno via __dosmaperr` | 1: 00406c40 | 004ec394 (exact) | was `FUN_004eef12`; caller 00406c40
-
-###### EH / RTTI / exception classes (15)
-
-address | name (proposed) | C++ it stands for | game callers (# distinct, sample) | Big Money | notes
----|---|---|---|---|---
-00405200 | `std::logic_error::what` | `virtual const char* what() const` | 0 |  | was `std::logic_error::vf01`; vtable slot 1
-00405210 | `std::logic_error::scalar_deleting_dtor` | `vtable slot 0` | 0 | 00418480 std::logic_error::vf00 (fuzzy:0.55) | was `std::logic_error::vf00`
-00406240 | `std::logic_error::logic_error` | `logic_error(const string& what)  // exception() + string copy at +0xc` | 18: 004066e0 00406780 00408230 004123a0 (STL-internal only) | 004040f0 std::logic_error::ctor_or_dtor_4040f0 (call) | old name std::logic_error::ctor_or_dtor_4040f0; 63 callers (every throw helper)
-004062a0 | `std::logic_error::~logic_error` | `~logic_error()` | 1: 00405210 (STL-internal only) | 004028e0 std::logic_error::ctor_or_dtor_4028e0 (exact) | old name std::logic_error::ctor_or_dtor_4028e0
-00406670 | `std::logic_error::logic_error_copy` | `logic_error(const logic_error&)` | 2: 00407b70 00412b80 (STL-internal only) | 00447320 Sexy::D3DTester::TestException::ctor_or_dtor_447320 (group) | old name std::logic_error::ctor_or_dtor_406670
-00407b70 | `std::length_error::length_error_copy` | `length_error(const length_error&)` | 0 |  | old name std::length_error::ctor_or_dtor_407b70 (copy-ctor used by the throw info)
-00412b80 | `std::out_of_range::out_of_range_copy` | `out_of_range(const out_of_range&)` | 0 |  | old name std::out_of_range::ctor_or_dtor_412b80
-004da7dd | `__CxxThrowException@8` | `throw expr  // _CxxThrowException(obj, ThrowInfo*)` | 36: 004019cd 0040664b 0040858f 0041249c | 004d8932 __CxxThrowException@8 (exact) | 36 game-region call sites: all container/string throw helpers
-004dad6d | `exception::exception` | `exception()` | 1: 00406240 (STL-internal only) | 004d8dbe exception::ctor_or_dtor_4d8dbe (exact) | old name exception::ctor_or_dtor_4d8dbe
-004dadbb | `exception::exception_copy` | `exception(const exception&)  // strdup of what()` | 1: 00406670 (STL-internal only) | 004d8e0c exception::ctor_or_dtor_4d8e0c (exact) | old name exception::ctor_or_dtor_4d8e0c
-004dae05 | `exception::~exception` | `~exception()` | 1: 004062a0 (STL-internal only) | 004d8e56 exception::ctor_or_dtor_4d8e56 (exact) | old name exception::ctor_or_dtor_4d8e56
-004dae28 | `bad_cast::bad_cast` | `bad_cast(const char* what = "bad cast")` | 2: 004228c0 004232a0 (STL-internal only) | 004d8e79 bad_cast::ctor_or_dtor_4d8e79 (exact) | old name bad_cast::ctor_or_dtor_4d8e79
-004db3fe | `__RTDynamicCast` | `dynamic_cast<T*>(p)` | 1: 00411220 | 004d9285 __RTDynamicCast (exact) | game caller 00411220 (dynamic_cast to DDImage for the "32 Bit Only"/"PALLETIZED" debug dump)
-004dbfc5 | ``eh_vector_destructor_iterator'` | `delete[]/array member destruction helper` | 1: 004270d0 | 004d9933 `eh_vector_destructor_iterator' (exact) | caller FameWidget ctor 004270d0
-004dc025 | ``eh_vector_constructor_iterator'` | `array member construction helper` | 1: 00428520 | 004d9993 `eh_vector_constructor_iterator' (exact) | caller 00428520
-
-##### Game-region functions met in the sweep that are NOT library code (left to the game helpers)
-
-These wrap or inline STL but are game logic; they are not in the symbols file.
-
-address | what it is
----|---
-00402090 | returns a copy of the `std::string` member at +0x10 (a `GetName()`-style accessor, 17 callers)
-004122e0 | trim helper: `s.erase(s.find_last_not_of(chars) + 1); s.erase(0, s.find_first_not_of(chars))` (caller 00417080)
-004112f0 | in-place uppercase of a std::string with CRT `toupper` (dictionary words)
-00422f20 | in-place lowercase: `std::transform(s.begin(), s.end(), s.begin(), tolower)` (caller FameWidget vf48)
-0041d2b0 | Definitionator lookup: `map.find(word)`, returns the definition or "" (caller 0040f5b0)
-0041a5b0 | word-list loader (fopen "r", getc, prefix-count digits, `toupper`, `set<string>::insert` / `vector<string>::push_back`, words >= 3 letters)
-0041d920 | Definitionator::Load (old `ifstream`, `getline(buf, 4096)`, split at first space/tab, trim " \t\r\n", skip "*")
-00434800 | walks a `std::list<User*>` comparing the user name with `_stricmp` (11 callers)
-00434960 | ctor of a two-string record with both strings = the argument
-004207f0, 00420830, 00426ab0, 004184d0 | game methods that inline a list/vector push_back
-004115d0, 00411570 | the HighScoreEntry predicates (ByScore / ByWordLength, see above)
-0042b3e0 | HintDialog static map query
-00401570 (`ret 4`), 00403f10, 004220f0 (`ret 8`) | empty functions (ICF-folded no-ops), not library
-00437540..004377c0 | WidgetManager/Widget framework code that happens to sit below 0x437800 (no game callers)
 
 ##### How to read the decompilation (and what to write in the port)
 
@@ -3451,7 +2844,7 @@ The port uses the same std containers (`SexyString` = `std::string`), so in almo
     vector across a push_back (none seen).
 11. **Throw helpers**: the functions named `std::length_error::ctor_or_dtor_*` / `std::out_of_range::ctor_or_dtor_*`
     in the game region are container functions that *contain* a throw (`list::_Incsize`, `vector::_Xlen`,
-    `_Tree::_Insert`, `_Tree::erase(iterator)`), see the tables for the real names. The game never catches
+    `_Tree::_Insert`, `_Tree::erase(iterator)`); the symbols file has the real names. The game never catches
     these; translate the container operation and drop the check. `std::ios_base::failure::ctor_or_dtor_4c96b1`
     (004cad55) is `ios_base::clear(state, reraise)`, i.e. every `setstate(failbit|badbit)`.
 12. **EH noise**: `ExceptionList`, `puStack_c`, `local_8 = N` (EH state numbers) and the `Catch@`/`Unwind@`
@@ -3480,8 +2873,8 @@ The port uses the same std containers (`SexyString` = `std::string`), so in almo
   distribution (Emscripten's RAND_MAX is 2^31-1): give the port a `CrtRand()` with the LCG above.
   Do not route it through Sexy::Rand (MTRand), which other game code uses and whose sequence matters for
   replays/state (MTRand::Serialize is saved by 0041faa0).
-- **`_ftol` = truncation toward zero** (`(int)x`). Do not use `lround`/`floor` when translating. Caveat in
-  the open questions about x87 precision.
+- **`_ftol` = truncation toward zero** (`(int)x`). Do not use `lround`/`floor` when translating. Caveat about
+  x87 precision: section 4, "3D and the FPU".
 - **`_stricmp`**: ASCII, folds to *lower* case before comparing (the "C" locale is never changed). Use a
   portable ASCII `stricmp` (lowercase fold), e.g. the framework's own helper if present; `strcasecmp` in
   the C locale gives the same result. Affects user-name matching (00434800, 004352e0, 004356d0) and
@@ -3510,21 +2903,6 @@ The port uses the same std containers (`SexyString` = `std::string`), so in almo
   `std::multiset<HighScoreEntry, ByScore>` with the same predicate reproduces it exactly.
 - **`exit(1)`** after printing "Exception raised: ..." when the word list throws (0041a790): the port should
   report the error and quit the same way (or simply not throw).
-
-##### Open questions (section 7.2)
-
-- x87 precision: if the D3D7 device is created without FPU-preserve, the x87 control word is left at 24-bit
-  precision and all `double` math feeding `_ftol` runs at single precision. Worth checking DDInterface /
-  D3DInterface init (not in this slice) before chasing 1-unit differences in positions/scores.
-- DAT_0056be74 (the ostream written in 0041a790) is `std::cerr` or `std::cout`; not determined (irrelevant
-  for the port).
-- Names `HighScoreEntry`, `ByScore`, `ByWordLength` and `Item12` (the 12-byte element of FameWidget's list
-  at +0x294) are placeholders; the game-group helper should replace them with the real struct names.
-- 004cbc61 (`_Locimp` copy-ctor), 004220e0, 00422100, 00421c70 and the basic_filebuf virtuals marked
-  "(inferred)" were named from structure only; none is called by game logic.
-- Proposed renames that change many decompiled call sites: `_free` 004da392 -> `operator_delete`,
-  `_free` 004db6f3 -> `operator_delete_array`, `_atol` 004db780 -> `_atoi`. Apply only if the coordinator
-  agrees (other slices may refer to the old names).
 
 ## 8. Behaviour differences and how the port handles them
 
@@ -3560,51 +2938,6 @@ generation links: `Dialog2004`, `Slider2004`, `WriteString2004` / `WriteWordWrap
 | 20 | CursorWidget, transient widgets, UpdateCheckDialog, ResourceManager, FModMusicInterface | not needed | drop | 3, 6, 7 |
 | 21 | Direct3D texture addressing: a game sets the stage's address mode for u and v (`SetTextureStageState` 0xd and 0xe; 1 wrap, 3 clamp) round its `DrawTrianglesTex` calls (Bejeweled 2's Hyperspace tunnel wraps) | SDL's renderer and the GPU path have no address mode (clamp) | framework: `DDInterface::SetTextureAddress(u, v)` with `TEXTURE_ADDRESS_WRAP` or `_CLAMP` (the default, so no other game changes); with a wrap set, `DrawTrianglesTex` of both displays cuts the triangles at whole-number u and v (`framework/TriangleWrap.cpp`, tested by `tools/wraptest`) and draws the pieces clamped; a game calls it before and after the draws, as the original did | none |
 
-## 9. Open questions
-
-### Widgets
-
-1. Original names of Widget slot 9 / +0x1c ("SetTransient"/"mTransient"), WM +0x28/+0x2c
-   ("mCursorWidget"/"mShowCursorWidget") and WM +0x168 ("mLastMouseDownTick"): behaviour verified, names
-   inferred. Typer Shark and AstroPop may use the cursor widget (custom cursors); recheck there.
-2. WM +0x2c was not found being set anywhere in BookWorm (searched direct field stores through
-   `mWidgetManager`); an indirect write cannot be excluded.
-3. SysFont ctor argument meaning for the defaults (`(app, "SansSerif", 14, 1, 0, 0, 0)` header,
-   `(.., 12, 1, ..)` lines and DialogButton, `(.., 10, 0, ..)` others): which flag is bold is for the
-   graphics group.
-4. ListWidget: GetSortKey/Sort (slots 47/48) and mSortFromChild (+0xb4) identified from shape and the 1.2
-   analogue, not traced line by line; ScrollbarWidget slots 48/49 called on mScrollbar are assumed to be
-   SetMaxValue/SetPageSize (no scrollbar class is linked, so probably dead in BookWorm).
-5. EditWidget ProcessKey's mMaxPixels check is assumed to measure with mWidthCheckFont when set, else
-   mFont (1.2 behaviour); not traced in detail.
-6. UpdateCheckDialog ctor arguments not decoded (to be dropped).
-
-### Graphics
-
-- Graphics +0x30: a second Color, default (0,0,0,255), not copied by the copy ctor and read by no
-  linked code. Purpose unknown (a removed state field?). Harmless.
-- Graphics +0x4c..+0x57 are assumed to be the PolyFill fields (no PolyFill linked to confirm).
-- DDImage +0x50/+0x52 names (mNoLock / mFirstPixelTrans) are inferred from 1.2 code shape.
-- 0044c520 (BltRotatedClipHelper), 0044a990/0044a9f0 (FRect helpers), 00441800 (PurgeBits-like),
-  004911e0/004913c0 (image writers) are named from call shape only.
-- FontData::Popup on descriptor errors goes through app slot 21; confirm with the app group that slot
-  21 is `Popup(const std::string&)`.
-- Color::Black's address was not located (no reference in linked code).
-
-### Application, sound, music and support
-
-1. Music loudness: BASS 2.0 MO3 rendering (amplify 50, GVOL_MUSIC = v*100) vs libopenmpt; needs a capture to set the
-   BookWorm music gain (section 6, 4.2).
-2. Bookworm1.mo3 order list (orders 59/61 one-shot jingles): does libopenmpt stop/loop exactly like BASS 2.0 (section 6).
-3. SexyApp slots 37/38 (PreDisplayHook / PreDDInterfaceInitHook) and 11 (ReInitImages) are named from their call
-   positions; all three are empty or framework-only, no game impact.
-4. Whether the port should also seed the global Sexy::Rand the 1.2 way (only demo/replay parity depends on it) (section 7.1).
-5. x87 precision once Direct3D is on (mAutoEnable3D is set by BookWormApp; no DDSCL_FPUPRESERVE): only bit-exact
-   float reproduction is affected (section 4, 1.7).
-6. section 7.2 renames library functions other maps may reference by their old names (`_free` 0x4da392 -> operator delete,
-   0x4db6f3 -> operator delete[], `_atol` 0x4db780 -> atoi): confirm before applying them together with other groups'
-   symbol files.
-
 ## Reuse for Typer Shark and AstroPop
 
 Typer Shark! Deluxe (game PE linked 2004-04-20) and AstroPop Deluxe (2004-04-06) were built with the same
@@ -3613,12 +2946,3 @@ with `tools/funcmatch.py` against the survey's Typer Shark export pairs 1,018 of
 functions (802 byte-identical, about 38% of the framework's bytes). The slot tables and field offsets
 therefore carry over class by class, but each class should be checked against the new binary before its
 offsets are trusted: the larger functions differ, so some layouts may too.
-
-Steps for the next 2004 game:
-1. Carve and import as in [section 1](#1-how-the-map-was-made).
-2. Carry BookWorm's names over: `tools/funcmatch.py <game>.exe <game>/functions.jsonl re/bookworm/bin/BookwormGame.exe re/bookworm/gh/functions.jsonl ...`
-   (BookWorm's export is named from `games/bookworm/docs/symbols/`).
-3. Compare the vtable sizes with section 2 and the field stores in the constructors with the field tables
-   here; record the differences in that game's notes.
-4. Link `sexycompat2004` (`framework/compat2004`, section 8) and check each shim's addresses against the new
-   binary.

@@ -276,15 +276,11 @@ static const unsigned int gTipLines2[4] = {0x00494bf0, 0x00494bac, 0x00494b70, 0
 NextLevelWidget::NextLevelWidget(NoahApp* theApp) :
 	mApp(theApp),
 	mBackground(NULL),
-	mBonus(false),
-	mBonusScore(0)
+	mBonus(false)
 {
 	mHasTransparencies = true;
 	if (mApp->mBonusRound)
-	{
 		mBonus = true;
-		mBonusScore = mApp->mGameMode;
-	}
 	mSaved = mApp->mSavedThisLevel;
 	mApp->mSavedThisLevel = 0;
 	mApp->mGameScore += mSaved * 5;

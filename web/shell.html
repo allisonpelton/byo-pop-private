@@ -451,7 +451,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
   // the performance panel (web/perf.js), when the site setting is on; it waits for the page to be drawn
   try { document.addEventListener("DOMContentLoaded", function () { ByopopPerf.setGame(PAGE.id); }); } catch (e) {}
-  // the view settings (web/view.js): scanlines, a colour filter, the run timer
+  // the view settings (web/view.js): scanlines, a colour filter
   try { document.addEventListener("DOMContentLoaded", function () { ByopopView.setGame(PAGE.id); }); } catch (e) {}
   // the game's controls (web/controls.js): the Controls panel, remapped keys, the gamepad, touch keys, the input display
   try { document.addEventListener("DOMContentLoaded", function () { ByopopControls.setGame(PAGE.id); }); } catch (e) {}
@@ -746,7 +746,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       view.push({ label: T(c[1]), checked: filt === c[0], fn: function () { setView("colorFilter", c[0]); } });
     });
     view.push({ rule: true });
-    [["runTimer", "settings.runtimer.label"], ["inputDisplay", "settings.inputdisplay.label"]].forEach(function (c) {
+    [["inputDisplay", "settings.inputdisplay.label"]].forEach(function (c) {
       var onNow = setting(c[0]) === "on";
       view.push({ label: T(c[1]), ticked: onNow, fn: function () { setView(c[0], onNow ? "off" : "on"); } });
     });
@@ -851,12 +851,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       whenSaved(function () {
         if (then) { then(info); return; }
         if (restart) { session.restartPage(info); return; }
-        // the site setting "Go back to the games after quitting": the listing page, with ?silent=1 kept for the tests
-        if (setting("quitHome") === "on") {
-          $("exit-msg").textContent = ByopopStrings.t("game.exit.going_home");
-          location.href = "./" + (pageSilent() ? "?silent=1" : "");
-          return;
-        }
+        // in a window of the one page, a game that quits closes its window, as a program does (the user, 2026-11-10: "I'd expect
+        // the window to just close"); a page of its own keeps its card and Play again
+        var P = desktopApps();
+        if (P) { try { P.closed(window); return; } catch (e) {} }
         $("exit-msg").textContent = ByopopStrings.t(hasSave() ? "game.exit.closed_saved" : "game.exit.closed_settings");
         $("btn-play-again").disabled = false;
         $("btn-play-again").focus();
@@ -1707,9 +1705,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function closeProgram() {
     // in a window of the one page: the game's own close with its saves, then the window goes (web/deskapps.js)
     var P = desktopApps();
-    if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }); return; }
+    if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }, true); return; }
     try { sessionStorage.setItem("byopop-desk-open", "games"); } catch (e) {}
-    closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); });
+    closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); }, true);
   }
   function showMissingFiles() {
     $("files-missing").hidden = !missingFiles.length;
@@ -1723,7 +1721,15 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // settings are saved), and go on in a new page. then(info) runs once the save has reached browser storage; info
   // is Module.onGameExit's, or null when the game was not running.
   function gameRunning() { return gameState === "starting" || gameState === "running" || gameState === "closing"; }
-  function closeGameThen(then) {
+  // asQuit (the window's Close): the game quits as its own Quit does (byopop_quit: Twist says its goodbye first; the user,
+  // 2026-11-10: "it should wait for the Goodbye sound like quitting from the menu does") and shuts down by itself; a build
+  // without that export closes as before
+  function closeGameThen(then, asQuit) {
+    if (asQuit && gameState === "running" && window.Module && typeof Module._byopop_quit === "function") {
+      afterExit = then;
+      setGameState("closing");
+      try { Module._byopop_quit(); return; } catch (e) { afterExit = null; setGameState("running"); }
+    }
     if (gameRunning()) {
       var r = {};
       try { r = JSON.parse((panel && panel.call("byopop_restart", "string", ["number"], [1])) || "{}"); } catch (e) {}

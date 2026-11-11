@@ -34,7 +34,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
   waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
   2026-11-03), its GetKeyState so that scripted Shift and Ctrl presses register and its GetLastInputInfo so that it
-  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), and its MessageBox and MessageBeep calls
+  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), its registry calls so that what a copy writes under HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10), and its MessageBox and MessageBeep calls
   so that a message box is answered without showing or sounding ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
   private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
@@ -232,7 +232,7 @@ Every call re-reads the whole context, so what costs is context times calls, and
   the full standards for what constitutes readable and see that they actually make sense"); a second, more complex
   game (Bejeweled Twist) then takes them before every other game does ("Rules look good to start, but I'd want them
   tested on a more complex game before moving forward with them for EVERY game", 2026-11-08), and every other game
-  takes its pass once the user approves them after that. The pass leaves no unknown or unnamed variable, field, parameter, global or
+  takes its pass now that the user has approved them ("new standards approved", 2026-11-10, after the doc was cut to its rules and tools). The pass leaves no unknown or unnamed variable, field, parameter, global or
   constant ("NO unknown/unnamed variables"). The decomps in progress go on; the games still to port start after those
   passes, each taken all the way through, readability pass included: the easier ones side by side again and the harder
   ones from Chuzzle on two at a time after them (`docs/COORDINATION.md`, "Which games, in what order"). That morning

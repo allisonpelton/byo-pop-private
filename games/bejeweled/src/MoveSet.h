@@ -1,7 +1,7 @@
 #ifndef __MOVESET_H__
 #define __MOVESET_H__
 
-// port(variant): the moves of the move rules (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7, stage 10):
+// port(variant): the moves of the move rules (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7):
 // swaps, twists of a 2x2 block and slides of a line. Not part of the original game. Framework-free (GameRules,
 // BoardLayout and MatchFinder only), so tools/rulestest checks the search against a brute force.
 //
@@ -10,7 +10,7 @@
 // a group there, so each swap is found from both of its cells), then the twists (anchors row-major; clockwise, then
 // anticlockwise with moves.twist.direction "both"), then the slides (rows top to bottom, then columns left to
 // right, each line's segments in order, k = 1 .. length - 1). A twist or a slide counts once, at the first of its
-// moved gems (in MovedCells' order) that lands in a group. With the swaps alone it finds what stage 9's search found.
+// moved gems (in MovedCells' order) that lands in a group. With the swaps alone it finds what the match rules' own search finds.
 
 #include "BoardLayout.h"
 #include "GameRules.h"

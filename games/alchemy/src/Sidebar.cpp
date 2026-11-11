@@ -1,7 +1,7 @@
-// The side panel (see SidePanel.h).
+// The side panel (see Sidebar.h).
 
-#include "SidePanel.h"
-#include "AlchemyApp.h"
+#include "Sidebar.h"
+#include "WinAlchApp.h"
 #include "Board.h"
 #include "Graphics.h"
 #include "ImageFont.h"
@@ -12,7 +12,7 @@
 using namespace Sexy;
 
 // 0x40f987
-SidePanel::SidePanel(AlchemyApp* theApp)
+Sidebar::Sidebar(WinAlchApp* theApp)
 {
 	mApp = theApp;
 	mFill = 0;
@@ -27,7 +27,7 @@ SidePanel::SidePanel(AlchemyApp* theApp)
 }
 
 // 0x40f8bc
-void SidePanel::SetFlashing(bool isFlashing)
+void Sidebar::FlashLava(bool isFlashing)
 {
 	mFlashing = isFlashing;
 	if (!isFlashing)
@@ -35,15 +35,15 @@ void SidePanel::SetFlashing(bool isFlashing)
 }
 
 // 0x40f8d3: the gauge is a button for the forge
-void SidePanel::MouseDown(int x, int y, int theClickCount)
+void Sidebar::MouseDown(int x, int y, int theClickCount)
 {
 	Widget::MouseDown(x, y, theClickCount);
 	if ((mApp->mBoard != NULL) && (x > 0x26) && (x < 0x75) && (y > 0x142) && (y < 0x19b))
-		mApp->mBoard->UseForgeClicked();
+		mApp->mBoard->Discard();
 }
 
 // 0x40fa93
-void SidePanel::Draw(Graphics* g)
+void Sidebar::Draw(Graphics* g)
 {
 	g->SetColor(Color(0, 0, 0));
 	g->FillRect(0x25, 0x141, 0x48, 0x5b - mFill);
@@ -79,7 +79,7 @@ void SidePanel::Draw(Graphics* g)
 	}
 
 	// the backdrop's left part has the window for the tank
-	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0, 0, 0x96, 0x1e0));
+	g->DrawImage(mApp->mImages[IMAGE_BACKDROP], 0, 0, Rect(0, 0, WinAlchApp::BOARD_X, WinAlchApp::SCREEN_HEIGHT));
 
 	g->SetColor(Color(255, 255, 255));
 	g->SetFont(mApp->mScoreFont);
@@ -95,7 +95,7 @@ void SidePanel::Draw(Graphics* g)
 }
 
 // 0x40fead
-void SidePanel::Update()
+void Sidebar::Update()
 {
 	Widget::Update();
 

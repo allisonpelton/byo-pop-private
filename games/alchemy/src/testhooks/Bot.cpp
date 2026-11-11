@@ -1,7 +1,7 @@
-// Test hooks: the bot's choice of a cell (see Bot.h).
+// port: test hooks, the bot's choice of a cell (see Bot.h).
 
 #include "Bot.h"
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "Board.h"
 #include "Piece.h"
 
@@ -18,8 +18,8 @@ int Sexy::BotRand(unsigned int* theSeed, int theRange)
 
 void Sexy::BotCellToPointer(int theCol, int theRow, int* theX, int* theY)
 {
-	*theX = AlchemyApp::BOARD_X + Board::ColToX(theCol) + 0x30;
-	*theY = Board::RowToY(theRow) + 0x30;
+	*theX = WinAlchApp::BOARD_X + Board::GetColX(theCol) + 0x30;
+	*theY = Board::GetRowY(theRow) + 0x30;
 }
 
 BotChoice Sexy::ChooseBotMove(Board* theBoard, unsigned int* theSeed, int theMiss)
@@ -36,7 +36,7 @@ BotChoice Sexy::ChooseBotMove(Board* theBoard, unsigned int* theSeed, int theMis
 		for (int aCol = 0; aCol < Board::COLS; aCol++)
 		{
 			int aReason;
-			if ((theBoard->mGrid[aRow][aCol] != NULL && !aPiece->mBomb) || !theBoard->CanPlace(aPiece, aCol, aRow, &aReason))
+			if ((theBoard->mGrid[aRow][aCol] != NULL && !aPiece->mBomb) || !theBoard->ValidMove(aPiece, aCol, aRow, &aReason))
 				continue;
 			// a cell that completes a row or a column is best (the tutorial asks for it too); otherwise the more
 			// neighbours a cell has, the sooner a row or column fills
