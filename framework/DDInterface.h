@@ -110,6 +110,10 @@ public:
 	// mBitsChangedCount changes, so a source whose pixels change without BitsChanged keeps an old copy.
 	bool mSoftwareStretch;
 
+	// With mSoftwareStretch: a fast stretch steps its column before it samples (texel (srcX * 65536 + (i + 1) * step) >> 16),
+	// as 1.5's DDImage::StretchBlt does (AstroPop's 0x4c68c0; Bejeweled Twist's 0x41a3e0 samples first). Off by default.
+	bool mFastStretchPreAdd;
+
 	// The software transforms (off by default; set with mSoftwareStretch by a game whose original drew its screen in
 	// software, as Bejeweled Twist does in 2D). The second piece of the software 2D path: DDImage's BltRotated,
 	// BltMatrix and BltTrianglesTex on the screen draw with MemoryImage's software code (the bilinear rotation of

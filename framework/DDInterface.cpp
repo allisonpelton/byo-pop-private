@@ -146,6 +146,7 @@ DDInterface::DDInterface(SexyAppBase* theApp)
 	mPixelPerfect = true;
 	mFrameCount = 0;
 	mSoftwareStretch = false;
+	mFastStretchPreAdd = false;
 	mSoftwareTransforms = false;
 	mStretchUse = 0;
 
@@ -859,6 +860,17 @@ MemoryImage* DDInterface::GetStretchCopy(MemoryImage* theSource, const Rect& the
 				int aSrcX = theSrcRect.mX * 65536;
 				for (int x = 0; x < theWidth; x++)
 				{
+					if (mFastStretchPreAdd)
+					{
+						// (stepping first, the last column of a source rectangle at the image's right edge can come to
+						// the next row's first texel, as in the original, and at the last row to a texel past the image:
+						// that one is the image's last)
+						aSrcX += aStepX;
+						ulong* aSrc = aSrcRow + (aSrcX >> 16);
+						*aDestBits++ = (aSrc < aSrcBits + (size_t) theSource->mWidth * theSource->mHeight) ? *aSrc :
+							aSrcBits[(size_t) theSource->mWidth * theSource->mHeight - 1];
+						continue;
+					}
 					*aDestBits++ = aSrcRow[aSrcX >> 16];
 					aSrcX += aStepX;
 				}
