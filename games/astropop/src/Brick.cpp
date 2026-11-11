@@ -38,7 +38,6 @@ Brick::Brick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mBounceFire = true;
 	mBounceY = 0;
 	mFlag18B = false;
-	mNum1D8 = 0;
 	mFlag17C = false;
 	mBounceDelay = 0;
 	mSpecial = false;
@@ -49,7 +48,6 @@ Brick::Brick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mShakeX = 0;
 	mShakeY = 0;
 	mFlag18C = true;
-	mFlag17B = false;
 	mWobble = false;
 	mBounceState = 0;
 	mColor2 = Color(0, 0, 0);
@@ -57,7 +55,6 @@ Brick::Brick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mNum1B4 = 0;
 	mOffsetY = 0;
 	mWobbleSpeed = 0;
-	mFlag183 = false;
 	mFlag184 = true;
 	mFlag185 = false;
 	mFade = 0;
@@ -77,15 +74,8 @@ Brick::Brick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mTurbotAlpha = 0;
 	mTurbotLight = 0;
 	mTurbotCel = 0;
-	mNum1A0 = 0;
 	mType = 9999;
-	mFlag181 = false;
 	mNum1C0 = -1;
-	mFlag16C = mFlag16D = mFlag16E = mFlag16F = false;
-	mFlag172 = false;
-	mFlag175 = false;
-	mFlag176 = false;
-	mNum1B0 = 5;
 
 	mDeathAnim.mHoldLast = true;
 	mDeathAnim.SetNumFrames(IMAGE_BRICK_DEATH_RED->mNumCols);
@@ -293,14 +283,12 @@ void Brick::OnDie()
 	{
 		if (mMutated != 1)
 		{
-			mFlag17B = true;
 			SetState(3);
 			return;
 		}
 	}
 	else if (mMutated != 1)
 	{
-		mFlag17B = false;
 		if (mType >= 0 && mType < 6 && (!mSpecial || mMutated == 1))
 		{
 			int aType = 0xc;
@@ -426,7 +414,6 @@ void Brick::OnEvent20(int theArg)
 				Listen(0x25);
 			mFlag194 = false;
 			mNum1C0 = 0;
-			mFlag181 = true;
 			mGlowAnim.SetStopped(false);
 		}
 	}
@@ -819,7 +806,6 @@ bool Brick::IsJammed()
 // 0x401130
 void Brick::Retire()
 {
-	mFlag183 = true;
 	StopListeningToAll();
 }
 

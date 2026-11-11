@@ -134,6 +134,7 @@ void Board::Draw(Graphics* g)
 // The parts of Draw, in its order
 
 // the glow at the bottom of the screen that warns of the rows closing in
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawDangerZone(Graphics* g)
 {
 	if (!(!m910 && (13 < m970 || 0 < m1aac) && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0))
@@ -155,6 +156,7 @@ void Board::DrawDangerZone(Graphics* g)
 
 // the texts that the modes put on the field: the lines of the bonus of the first game type (+0x260) in a colour that
 // runs round the hues, or the texts of the other game types (+0x270) in another
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawModeTexts(Graphics* g)
 {
 	if (mFlag8E8)
@@ -186,6 +188,7 @@ void Board::DrawModeTexts(Graphics* g)
 
 // the bars over the field that say what to do (the first game type) and, in the classic game, how many bricks to pop and
 // whether the level is a checkpoint
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawGoalBanners(Graphics* g, int theCount)
 {
 	// the pulse of the text: up for a hundred updates, down for a hundred
@@ -279,6 +282,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 }
 
 // the mark that follows the pointer in the mode that picks single bricks, or the one on the brick the pointer is over
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawCrosshair(Graphics* g)
 {
 	if (mFlag8E8)
@@ -313,6 +317,7 @@ void Board::DrawCrosshair(Graphics* g)
 
 // the atomic explosion of the bonus (the eighth of the animations of the explosions), twice the size of its picture, and the
 // symbol that fades in over it
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawExplosions(Graphics* g)
 {
 	for (unsigned int i = 0; i < m1b0.size(); i++)
@@ -343,6 +348,7 @@ void Board::DrawExplosions(Graphics* g)
 }
 
 // the end of a game: the panels fade in over the field one after the other, and the sparks of the sun drift over them
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawEndSparks(Graphics* g)
 {
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -366,6 +372,7 @@ void Board::DrawEndSparks(Graphics* g)
 }
 
 // the snowflakes of the freeze (only a quarter of them without 3D); each is brightest in the middle of the screen
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawSnow(Graphics* g)
 {
 	if (!(0 < m19fc && m1ad4 == 0 && (m1a34 == 0 || mMode == 1 || mMode == 2)))
@@ -400,6 +407,7 @@ void Board::DrawSnow(Graphics* g)
 }
 
 // the arm and the head of the upgrade screen
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawUpgradeArm(Graphics* g)
 {
 	if (!((m1b2c == 2 || m1b2c == 4) && (m8ef || m8ed)))
@@ -414,6 +422,7 @@ void Board::DrawUpgradeArm(Graphics* g)
 }
 
 // the introduction of the second game type
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawSurvivalIntro(Graphics* g)
 {
 	if (!(m1a60 == 2 && !m8fc))
@@ -468,6 +477,7 @@ void Board::DrawSurvivalIntro(Graphics* g)
 }
 
 // the logo at the top (the classic game's or the second game type's), or while a combo runs the picture of the combo
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawLogo(Graphics* g)
 {
 	if (m1afc < 1 || mFlag8E8 || m910)
@@ -512,6 +522,7 @@ static const int kBonusTextWidths[11] = {40, 77, 117, 154, 194, 216, 256, 293, 3
 
 // the brackets that open over the top of the field when the SUPA weapon (or a bonus round) is ready, with its title and
 // the name of the weapon
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawSupaBrackets(Graphics* g)
 {
 	if (m1ad4 == 0 || mFlag8E8)
@@ -567,6 +578,7 @@ void Board::DrawSupaBrackets(Graphics* g)
 }
 
 // the frost over the screen while time is frozen
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawFreezeFx(Graphics* g)
 {
 	if (m19fc <= 0)
@@ -587,6 +599,7 @@ void Board::DrawFreezeFx(Graphics* g)
 }
 
 // the two sirens at the top of the screen, each in the picture and in its light (3D only)
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawSirens(Graphics* g)
 {
 	if (mSirenAnim.mStopped || mFlag8E8)
@@ -607,6 +620,7 @@ void Board::DrawSirens(Graphics* g)
 }
 
 // the bar across the top that tells which colour the second game type has supercharged
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawSurvivalBonus(Graphics* g)
 {
 	g->SetColor(Color(0, 0, 0, 0x80));
@@ -649,6 +663,7 @@ void Board::DrawSurvivalBonus(Graphics* g)
 }
 
 // the red box of a recording, and the flashing name of the demo
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawTestTexts(Graphics* g)
 {
 	if (m8db && mUpdateCnt % 0x28 < 0x14)

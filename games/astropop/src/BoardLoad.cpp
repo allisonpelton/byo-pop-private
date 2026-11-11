@@ -19,8 +19,6 @@ void Board::LoadLevel(bool theFromRules)
 	m8da = false;
 	mAnim460.SetStopped(true);
 	ClearField();
-	if (m1940 > 1 && m1a60 == 1)
-		mApp->mFlag65b = true;
 	m1930 = -1;
 	memset(&m984, 0, sizeof(m984));
 	ResetGame();

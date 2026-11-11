@@ -87,27 +87,17 @@ public:
 	FrameAnim				mDeathAnim;         // +0xe8
 	FrameAnim				mFxAnim;            // +0x128
 	Image*					mImage;             // +0x168
-	bool					mFlag16C;           // +0x16c
-	bool					mFlag16D;           // +0x16d
-	bool					mFlag16E;           // +0x16e
-	bool					mFlag16F;           // +0x16f
 	MemoryImage*			mGlowImage;         // +0x170 the glow image tinted with mColor
-	bool					mFlag172;           // +0x172
 	Brick*					mSupport;           // +0x174 the brick this one rests on while it rises (mFlag188)
-	bool					mFlag175;           // +0x175
-	bool					mFlag176;           // +0x176
 	bool					mVisible;           // +0x178
 	bool					mBouncing;          // +0x179 the bounce (UpdateIdle) runs
 	bool					mBounceFire;        // +0x17a fire event 0xb when the bounce is over
-	bool					mFlag17B;           // +0x17b
 	bool					mFlag17C;           // +0x17c
 	bool					mWobble;            // +0x17d
 	bool					mSpecial;           // +0x17e the killall brick
 	bool					mFlag17F;           // +0x17f
 	bool					mFlag180;           // +0x180
-	bool					mFlag181;           // +0x181
 	bool					mShake;             // +0x182
-	bool					mFlag183;           // +0x183
 	bool					mFlag184;           // +0x184
 	bool					mFlag185;           // +0x185
 	bool					mFlag186;           // +0x186
@@ -127,11 +117,9 @@ public:
 	bool					mFlag194;           // +0x194
 	int						mShakeX;            // +0x198
 	int						mShakeY;            // +0x19c
-	int						mNum1A0;            // +0x1a0
 	int						mState;             // +0x1a4
 	int						mType;              // +0x1a8 colour 0..4, 5 rainbow ... 6 radial, 7 stone, 9 steel ...
 	int						mTick;              // +0x1ac
-	int						mNum1B0;            // +0x1b0
 	int						mNum1B4;            // +0x1b4
 	int						mLight;             // +0x1b8
 	int						mColumn;            // +0x1bc
@@ -141,7 +129,6 @@ public:
 	int						mPulse;             // +0x1cc
 	int						mMutated;           // +0x1d0 1: the brick has become a mutator
 	int						mNumParticles;      // +0x1d4
-	int						mNum1D8;            // +0x1d8
 	int						mNumFrames;         // +0x1dc
 	int						mBounceState;       // +0x1e0
 	int						mBounceDelay;       // +0x1e4

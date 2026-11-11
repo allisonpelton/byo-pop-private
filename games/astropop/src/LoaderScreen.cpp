@@ -52,12 +52,12 @@ void LoaderScreen::MakeSlides()
 	mPlayButton->mButtonImage = IMAGE_LOADER_CLICK_TO_PLAY;
 	mPlayButton->mOverImage = IMAGE_LOADER_CLICK_TO_PLAY;
 
-	for (int n = 0; n < 4; n++)
+	for (int aSlideIndex = 0; aSlideIndex < 4; aSlideIndex++)
 	{
 		LoaderSlide* aSlide = new LoaderSlide();
-		aSlide->mPicture = GetImageById(0x9b + n);
-		aSlide->mSilhouette = GetImageById(0xa3 + n);
-		aSlide->mBigText = GetImageById(0x9f + n);
+		aSlide->mPicture = GetImageById(0x9b + aSlideIndex);
+		aSlide->mSilhouette = GetImageById(0xa3 + aSlideIndex);
+		aSlide->mBigText = GetImageById(0x9f + aSlideIndex);
 
 		// The strip at half size, tinted: the big text is scaled into a scratch image, then drawn colourized
 		aSlide->mTinted = new MemoryImage(mApp);
@@ -71,7 +71,7 @@ void LoaderScreen::MakeSlides()
 
 		Graphics aTintedGraphics(aSlide->mTinted);
 		aTintedGraphics.SetColorizeImages(true);
-		aTintedGraphics.SetColor(Color(kSlideTints[n][0], kSlideTints[n][1], kSlideTints[n][2], kSlideTints[n][3]));
+		aTintedGraphics.SetColor(Color(kSlideTints[aSlideIndex][0], kSlideTints[aSlideIndex][1], kSlideTints[aSlideIndex][2], kSlideTints[aSlideIndex][3]));
 		aTintedGraphics.DrawImage(aScratch, 0, 0);
 		aTintedGraphics.SetColorizeImages(false);
 

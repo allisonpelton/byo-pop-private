@@ -122,8 +122,8 @@ void Board::UpdateAlertFlash()
 	}
 }
 
-// 0x433610: the start banner (+0x1ad4 is its phase 0 to 6): the brackets slide in, the lines fade in one by one, hold,
-// and the lot slides out. Phase 6 of a game of the second kind lets the next part (+0x911) begin. The screen shake of a
+// 0x433610: the start banner (+0x1ad4 is its step, 0 to 6): the brackets slide in, the lines fade in one by one, hold,
+// and the lot slides out. Step 6 of a game of the second kind lets the next part (+0x911) begin. The screen shake of a
 // strong hit (+0x1aec updates, +0x1a80 the shift) runs beside it.
 void Board::UpdateStartBanner()
 {

@@ -150,6 +150,7 @@ void Board::AddScore(int thePoints, bool theForce)
 }
 
 // the best of a stat is kept in the profile (setting 0x5d)
+// port: split out of Board::SaveGameState (0x43a9a0)
 static void SaveBestStat(UserProfile* theUser, int theValue)
 {
 	int aBest = 0;

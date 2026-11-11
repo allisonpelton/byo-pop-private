@@ -208,20 +208,20 @@ void Board::OnBlast(Brick* theBrick, int theArg)
 			aFirstCol = 0;
 		if (aFirstRow > 0x12)
 			return;
-		for (int r = aFirstRow; r <= aRow + 1 && r < 0x13; r++)
+		for (int aNearRow = aFirstRow; aNearRow <= aRow + 1 && aNearRow < 0x13; aNearRow++)
 		{
-			for (int c = aFirstCol; c < 10 && c <= aCol + 1; c++)
+			for (int aNearCol = aFirstCol; aNearCol < 10 && aNearCol <= aCol + 1; aNearCol++)
 			{
 				Brick* aBrick;
-				if ((c != aCol || r != aRow) && PASSES(c, r) && (aBrick = m314[r][c]) != NULL)
+				if ((aNearCol != aCol || aNearRow != aRow) && PASSES(aNearCol, aNearRow) && (aBrick = m314[aNearRow][aNearCol]) != NULL)
 				{
 					if (aBrick->mMutated != 1 && aBrick->mType == 9 && ((SpecialBrick*) aBrick)->mStage == 2)
 						((SpecialBrick*) aBrick)->Crack(true);
-					if (aBrick->IsIdle() && !HasCell(c, r, mb8))
+					if (aBrick->IsIdle() && !HasCell(aNearCol, aNearRow, mb8))
 					{
 						CellRef aCell;
-						aCell.mCol = c;
-						aCell.mRow = r;
+						aCell.mCol = aNearCol;
+						aCell.mRow = aNearRow;
 						aCells.push_back(aCell);
 					}
 				}

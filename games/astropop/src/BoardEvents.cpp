@@ -47,6 +47,7 @@ void Board::OnEvent(int theEvent, EventListener* theSource, int theArg)
 
 // (inlined in the handlers of the original) the hint box of the cell under the pointer (the third of the Board's boxes)
 // goes when the brick that it points at is the one that has been hit
+// port: inlined in the original's event handlers
 void Board::HideCellHint(Brick* theBrick)
 {
 	int aCol = CellColumn(theBrick->mX);

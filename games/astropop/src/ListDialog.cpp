@@ -54,6 +54,7 @@ ListDialog::ListDialog(AstroPopApp* theApp, int theId, const std::string& theHea
 
 // the picture of the box and the one of the buttons, in the colours of set 1, and the three pictures' rectangles of the
 // buttons (the same as in the new player box)
+// port: a helper of the list box
 void ListDialog::MakeButtonImages()
 {
 	MemoryImage* anInsetImage = NULL;
@@ -256,6 +257,7 @@ UserSelectDialog::UserSelectDialog(AstroPopApp* theApp) :
 	StyleButton(mDeleteButton);
 }
 
+// port: a helper of the player list box
 void UserSelectDialog::StyleButton(DialogButton* theButton)
 {
 	theButton->mNormalRect = Rect(0, 0, 0x78, 0x21);

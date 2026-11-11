@@ -72,7 +72,6 @@ public:
 	bool						mFlag658;           // +0x658 ValidateUser: profile setting 0x11 (1 when missing) is not 0
 	bool						mOldSavesDeleted;   // +0x659 Init found a profile of an older version and deleted it
 	bool						mOldScoresDeleted;  // +0x65a Init found a high-score file of an older version
-	bool						mFlag65b = false;   // +0x65b set by the Board once a game has lasted 6000 updates
 	int							mTimer664;          // +0x664 counted down by UpdateFrames
 	int							mGameUpdates;       // +0x668 counted by the Board's Update while a game runs
 	Font*						mDialogFont;        // +0x66c FONT_DIALOG_BOX, set when the loading thread ends

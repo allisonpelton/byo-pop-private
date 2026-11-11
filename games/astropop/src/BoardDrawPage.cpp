@@ -16,6 +16,7 @@ using namespace Sexy;
 
 // a time in minutes and seconds with one of two formats: the first has a nought in front of the seconds and is used when they
 // are under ten
+// port: a helper of Board::DrawEndPage, which the original writes out twice
 static std::string MinutesSeconds(const std::string& theFormatWithNought, const std::string& theFormat, int theSeconds)
 {
 	int aRest = theSeconds % 60;
@@ -23,6 +24,7 @@ static std::string MinutesSeconds(const std::string& theFormatWithNought, const 
 }
 
 // the page itself
+// port: a layer of Board::Draw (0x461e50)
 void Board::DrawEndPage(Graphics* g)
 {
 	int aRowHeight = IMAGE_PERSONAL_VECTOR_GAUGE->mHeight + 2;

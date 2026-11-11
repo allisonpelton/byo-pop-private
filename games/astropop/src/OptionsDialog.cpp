@@ -52,6 +52,7 @@ void SetButtonRects(DialogButton* theButton)
 }
 
 // A button of the box's picture with its three pictures, its label and the font of the buttons
+// port: a helper of the options box
 DialogButton* OptionsDialog::MakeButton(int theId, const char* theLabel)
 {
 	DialogButton* aButton = new DialogButton(mYesButton->mComponentImage, theId, this);

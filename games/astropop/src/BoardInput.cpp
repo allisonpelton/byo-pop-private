@@ -37,6 +37,7 @@ static bool PointInRect(int x, int y, const int theRect[4])
 }
 
 // the kinds that are used up in one piece (they are never taken in a stack of bricks)
+// port: the original tests these kinds inline
 static bool IsToolKind(int theKind)
 {
 	return theKind == 6 || theKind == 8 || theKind == 10 || theKind == 0xe || theKind == 0xb || theKind == 0xd;
@@ -134,6 +135,7 @@ void Board::RemovedFromManager(WidgetManager* theManager)
 
 // (inlined in the Return key, the middle button and the click on the start button) the player's first move: it starts
 // the play when nothing is falling or flying, or tells the player that it cannot be done now
+// port: inlined in the original (the Return key, the middle button, the start button)
 void Board::StartByHand()
 {
 	if (!m910 && CountMovingBricks(false) == 0 && m94.empty() && m7c.empty() && m1990 == 0)
@@ -785,6 +787,7 @@ bool Board::MatchesHand(Brick* theBrick)
 }
 
 // (inlined three times) the brick in hand is born: a copy of the first brick that was taken, at the bottom of the field
+// port: inlined three times in the original
 void Board::MakeHand(int theType, float theX)
 {
 	m354 = new Brick(this, mBus, 0);
@@ -798,9 +801,9 @@ void Board::MakeHand(int theType, float theX)
 // (m94) in the column of the pointer are caught, the bricks of a group from the last to the first, until the hand is full or
 // a brick does not match the hand. theOk is false when the player tried to catch what cannot be caught. The groups of the
 // falling list are caught only below the lowest emptied cell of their column (theCheckEmptied).
-static bool CatchFromGroups(Board* b, std::list<std::list<Brick*> >& theGroups, bool theCheckEmptied, bool* theOk)
+static bool CatchFromGroups(Board* theBoard, std::list<std::list<Brick*> >& theGroups, bool theCheckEmptied, bool* theOk)
 {
-	int aCol = (b->m198c - 0xa6) / 0x2c;
+	int aCol = (theBoard->m198c - 0xa6) / 0x2c;
 	bool aCaught = false;
 	bool anOk = true;
 
@@ -820,39 +823,39 @@ static bool CatchFromGroups(Board* b, std::list<std::list<Brick*> >& theGroups, 
 				do
 				{
 					Brick* aBrick = *aNode;
-					if (b->m70.size() > 5)
+					if (theBoard->m70.size() > 5)
 					{
 						anOk = false;
 						break;
 					}
-					if (b->m354 != NULL && !b->MatchesHand(aBrick))
+					if (theBoard->m354 != NULL && !theBoard->MatchesHand(aBrick))
 					{
 						anOk = false;
 						break;
 					}
 					if (aBrick->mMutated == 1 || aBrick->mType == 7 || aBrick->mType == 0xc || aBrick->mType == 9)
 					{
-						if (!b->m90b)
-							b->mApp->PlaySample(SOUND_CANT_CLICK);
+						if (!theBoard->m90b)
+							theBoard->mApp->PlaySample(SOUND_CANT_CLICK);
 						anOk = false;
 						break;
 					}
 					if (theCheckEmptied)
 					{
-						CellRef anEmptied = b->LowestEmptiedCell(aCol);
+						CellRef anEmptied = theBoard->LowestEmptiedCell(aCol);
 						if (aBrick->mY < (float) (anEmptied.mRow * 0x19))
 							break;
 					}
-					if (b->m354 == NULL)
-						b->MakeHand(aBrick->GetEffectiveType(), (float) aCol);
+					if (theBoard->m354 == NULL)
+						theBoard->MakeHand(aBrick->GetEffectiveType(), (float) aCol);
 
-					b->m70.push_back(aBrick);
+					theBoard->m70.push_back(aBrick);
 					aCaught = true;
-					b->m1990++;
+					theBoard->m1990++;
 					aBrick->mFloorY = 423.0f;
 					if (aBrick->mY == aBrick->mTargetY && aBrick->mState == 1)
-						b->FireTo(aBrick, 0);
-					b->FireTo(aBrick, 2);
+						theBoard->FireTo(aBrick, 0);
+					theBoard->FireTo(aBrick, 2);
 
 					std::list<Brick*>::iterator anErase = aNode;
 					if (aNode == aBricks.begin())

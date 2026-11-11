@@ -9,7 +9,7 @@
 
 using namespace Sexy;
 
-// FUN_004092c0 on an id the game can have: 0x214 + type for the standard bricks
+// 0x4092c0 on an id the game can have: 0x214 + type for the standard bricks
 Image* Brick::TypeImage(int theType, bool theSpecial)
 {
 	int anId = (gApp->mFlag6fa ? 0x21a : 0x214) + (theSpecial ? 0xd : 0) + theType;
@@ -80,6 +80,7 @@ void Brick::Draw(Graphics* g, bool theGlow)
 }
 
 // the brick itself and what goes on it; the end of the standard Draw functions
+// port: split out of the standard Draw functions (Brick::Draw 0x404360)
 void Brick::DrawBody(Graphics* g, Image* theImage, int theShakeX, int theShakeY)
 {
 	if (theImage == NULL)
@@ -91,6 +92,7 @@ void Brick::DrawBody(Graphics* g, Image* theImage, int theShakeX, int theShakeY)
 }
 
 // biohazard, sprocket and turbot
+// port: split out of the standard Draw functions (Brick::Draw 0x404360)
 void Brick::DrawOverlays(Graphics* g, int theShakeX, int theShakeY)
 {
 	if (mMutated == 0)

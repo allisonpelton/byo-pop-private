@@ -99,6 +99,7 @@ AstroDialog::~AstroDialog()
 	}
 }
 
+// port: the width of the heading, which the original works out where the box is set up and resized
 int AstroDialog::HeaderWidth()
 {
 	if (mPicture == NULL)

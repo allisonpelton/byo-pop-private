@@ -111,6 +111,7 @@ struct PEImage
 
 }
 
+// port: the game's texts, loaded from the table that tools/make_gametext.py writes
 bool Sexy::LoadGameTexts()
 {
 	std::map<unsigned int, SexyString>& aTexts = Texts();
@@ -199,6 +200,7 @@ bool Sexy::LoadGameTexts()
 	return aMatched > 0;
 }
 
+// port: the game's text by its id
 const SexyString& Sexy::GameText(unsigned int theVA)
 {
 	static const SexyString sEmpty;

@@ -58,6 +58,7 @@ void AstroPopApp::ClosePowerDialog()
 }
 
 // The confirmation of the button that leaves a game (0xfa8): the words depend on the mode.
+// port: split out of AstroPopApp::ButtonDepress (0x431ac0)
 static void AskToEndGame(AstroPopApp* theApp)
 {
 	Board* aBoard = theApp->mBoard;
@@ -81,6 +82,7 @@ static void AskToEndGame(AstroPopApp* theApp)
 }
 
 // The OK of the message box (0x6c) returns the keyboard to the Board, or to the player-name box when that is open
+// port: split out of AstroPopApp::ButtonDepress (0x431ac0)
 static void FocusAfterMessage(AstroPopApp* theApp)
 {
 	if (theApp->mBoard == NULL || theApp->mOpenDialogs != 0)
@@ -95,6 +97,7 @@ static void FocusAfterMessage(AstroPopApp* theApp)
 
 // What follows a box that sent the player back to the selector: the selector comes up (but not in a game of type 0), and
 // the Board draws itself again
+// port: split out of AstroPopApp::ButtonDepress (0x431ac0)
 static void BackToSelector(AstroPopApp* theApp)
 {
 	if (theApp->mBoard == NULL)
@@ -105,6 +108,7 @@ static void BackToSelector(AstroPopApp* theApp)
 }
 
 // The score of the checkpoint is put into a new classic game that goes on from it (0x848 and 0xfa4)
+// port: split out of AstroPopApp::ButtonDepress (0x431ac0)
 static void RestoreCheckpointScore(AstroPopApp* theApp)
 {
 	int aScore = 0;
@@ -187,7 +191,6 @@ void AstroPopApp::ButtonDepress(int theId)
 				StartSurvivalGame(mSurvivalPilot);
 			break;
 		case 0x844:     // 116: continue the saved game
-			mFlag65b = true;
 			CloseDialog(0x74);
 			mFlag6fc = false;
 			StartGame(true);

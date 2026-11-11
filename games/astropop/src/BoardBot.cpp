@@ -153,6 +153,7 @@ std::string WaitMove()
 
 // The game takes no input now: bricks are in the air, a row comes, a stage is counted, a box or the pause is up (the
 // conditions that the pointer and the buttons of the field turn away themselves)
+// port: the bot (a test driver's view of the game); the original has none
 int Board::BotBusyReason()
 {
 	if (m8dc && !m8dd)
@@ -170,6 +171,7 @@ int Board::BotBusyReason()
 	return (!m7c.empty() || !m94.empty()) ? 7 : 0;
 }
 
+// port: the bot (a test driver's view of the game); the original has none
 bool Board::BotBusy()
 {
 	return BotBusyReason() != 0;
@@ -177,6 +179,7 @@ bool Board::BotBusy()
 
 // The move the bot makes next: a text (JSON) with what it is and `input`, the real input that makes it. "null" when there is
 // no move to make (the game is over, or no brick of the field makes a group), and a wait when the game takes none now.
+// port: the bot (a test driver's view of the game); the original has none
 std::string Board::BotMove()
 {
 	if (mFlag8E8)

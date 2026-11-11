@@ -16,6 +16,7 @@
 using namespace Sexy;
 
 // the bricks that flash as targets stop (shared by the placing of a power brick and the end of the arrival)
+// port: split out of Board::OnBrickArrived (0x473b20)
 static void StopTargetFlashes(std::vector<Brick*>& theTargeted)
 {
 	for (unsigned int i = 0; i < theTargeted.size(); i++)

@@ -8,6 +8,7 @@
 using namespace Sexy;
 
 // the brick flashes, once (it is put in the list of the flashing bricks)
+// port: a helper of the target flashes
 void Board::FlashOnce(Brick* theBrick)
 {
 	if (theBrick != NULL && !IsTargeted(theBrick))

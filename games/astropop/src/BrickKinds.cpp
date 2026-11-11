@@ -9,6 +9,7 @@
 
 using namespace Sexy;
 
+// port: a helper of the brick kinds
 Image* Brick::SafeImage(int theId)
 {
 	if (theId < 0 || theId >= RESOURCE_ID_MAX)
@@ -16,6 +17,7 @@ Image* Brick::SafeImage(int theId)
 	return GetImageById(theId);
 }
 
+// port: a helper of the brick kinds' Draw functions
 static bool IsDeathState(int theState)
 {
 	return theState == 3 || theState == 4 || theState == 6 || theState == 7;
@@ -32,7 +34,6 @@ KillAllBrick::KillAllBrick(Board* theBoard, EventBus* theBus, int theColumn) :
 	mSpecial = true;
 	mField234 = 0xff;
 	mDeathAnim.SetNumFrames(IMAGE_BRICK_KILLALL_RED_DEATH->mNumCols);
-	mNum1B0 = 7;
 	mField238 = false;
 }
 
@@ -192,7 +193,6 @@ void SpecialBrick::OnDie()
 	{
 		if (mMutated != 1)
 		{
-			mFlag17B = true;
 			return;
 		}
 	}
@@ -200,7 +200,6 @@ void SpecialBrick::OnDie()
 	{
 		if (mType == 0xb)
 			mFxAnim.SetStopped(false);
-		mFlag17B = false;
 		Fire(0x26, mBlastArg);
 		return;
 	}

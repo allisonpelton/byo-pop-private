@@ -123,6 +123,7 @@ FullScreenHelp::FullScreenHelp(AstroPopApp* theApp) :
 
 // The bricks of the right scene, four rows of seven, each with the picture of its kind (the ones that break up have the
 // picture of that too and a frame counter that waits). The constructor and the start of the scene's round make them alike.
+// port: a helper of the constructor and of the start of the scene's round
 void FullScreenHelp::FillRight()
 {
 	int aIndex = 0;
@@ -147,6 +148,7 @@ void FullScreenHelp::FillRight()
 	}
 }
 
+// port: a helper of the scene's round
 void FullScreenHelp::ClearRight()
 {
 	for (size_t aRow = 0; aRow < mRight.size(); aRow++)

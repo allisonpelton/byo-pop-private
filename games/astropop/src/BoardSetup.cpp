@@ -17,6 +17,7 @@
 using namespace Sexy;
 
 // A float from the bits the original loads (the decompiler prints them as integers)
+// port: reads a constant of the original as a float
 static float FloatBits(unsigned int theBits)
 {
 	float aFloat;
@@ -25,12 +26,14 @@ static float FloatBits(unsigned int theBits)
 }
 
 // A percentage of the data files, as a share (the original multiplies in extended precision before it stores a float)
+// port: a helper of the level setup
 static float Share(XcfFile* theFile, const std::string& thePath)
 {
 	return (float) ((double) theFile->GetFloat(thePath) * 0.01);
 }
 
 // A panel of the hint screens with the parts all of them set
+// port: a helper of Board::SetupHints (0x475f50)
 static StageBg* NewPanel(Image* thePic, Image* theIcon, int theX, int theY, bool theHasSecond, unsigned int theTitle,
 						 unsigned int theText, const Color& theColor1, const Color& theColor2)
 {
@@ -414,6 +417,7 @@ void Board::SetupLevel1Rules()
 }
 
 // The number after the five letters of the name of a section of the descriptor (LEVEL<n>)
+// port: a helper of Board::AdvanceLevel (0x441980)
 static long LevelNumberOf(const std::string& theName)
 {
 	if (theName.size() < 5)

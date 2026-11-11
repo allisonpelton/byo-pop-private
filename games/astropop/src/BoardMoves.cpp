@@ -472,18 +472,18 @@ bool Board::AnyMoveLeft(bool* theFlag)
 					aHistogram[aRuns[i].mCount]++;
 			}
 
-			for (unsigned int s = 0; s < aSpots.size(); s++)
+			for (unsigned int aSpotIndex = 0; aSpotIndex < aSpots.size(); aSpotIndex++)
 			{
-				MoveSpot aSpot = aSpots[s];
+				MoveSpot aSpot = aSpots[aSpotIndex];
 				if (aSpot.mColour == aColour)
 				{
 					if (aSpot.mLeft &&
 						AnalyseSpot(this, aSpot.mRow, aColour, std::max(aColTop[aSpot.mCol - 1], 0), aTotal, aHistogram[1],
-									aHistogram[2], aHistogram[3], aColourRuns, aSpots, s, aColTop, -1))
+									aHistogram[2], aHistogram[3], aColourRuns, aSpots, aSpotIndex, aColTop, -1))
 						return true;
 					if (aSpot.mRight &&
 						AnalyseSpot(this, aSpot.mRow, aColour, std::max(aColTop[aSpot.mCol + 1], 0), aTotal, aHistogram[1],
-									aHistogram[2], aHistogram[3], aColourRuns, aSpots, s, aColTop, 1))
+									aHistogram[2], aHistogram[3], aColourRuns, aSpots, aSpotIndex, aColTop, 1))
 						return true;
 				}
 			}

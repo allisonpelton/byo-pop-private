@@ -345,6 +345,7 @@ ScreenWipe::ScreenWipe()
 	mGoingDown = true;
 }
 
+// port: the wipe's destructor
 ScreenWipe::~ScreenWipe()
 {
 	if (mOwnsImage)

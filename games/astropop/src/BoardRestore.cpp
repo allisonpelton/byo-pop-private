@@ -23,7 +23,6 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 	m940 = theSetting52;
 	m923 = false;
 	ApplyWeaponLevels();
-	mApp->mFlag65b = true;
 	mApp->mEngineLoop->SetVolume(1.0);
 	mApp->mHyperspaceLoop->SetVolume(1.0);
 

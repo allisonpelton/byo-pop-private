@@ -237,6 +237,7 @@ int Board::PickSpawnDelay()
 }
 
 // one channel of FadeBackdrop: 8 steps towards the target
+// port: one channel of Board::FadeBackdrop (0x436b80)
 static void StepToward(int& theValue, int theTarget)
 {
 	if (theTarget < theValue)
@@ -301,8 +302,6 @@ void Board::UpdateRamp()
 		m1ac4 = (int) ((float) (aPrev.mV2 - aNext.mV2) * aFrac + (float) aPrev.mV2);
 	}
 
-	if (m19b4 >= 6000)
-		mApp->mFlag65b = true;
 	int aStage = m19b4 / 6000;
 	mField193C = aStage + 1;
 	m940 = (float) ((double) (aStage * 3) + 1.0);
