@@ -24,7 +24,6 @@ TitleScreen::TitleScreen(AtomicaApp* theApp) :
 	mApp(theApp),
 	mProgress(0.0),
 	mShown(0.0),
-	mHighest(0),
 	mLinkShown(false),
 	mClicked(false),
 	mSlide(-800.0f),

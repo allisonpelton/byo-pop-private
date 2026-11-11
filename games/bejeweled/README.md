@@ -229,9 +229,7 @@ See [docs/RE_NOTES.md](docs/RE_NOTES.md). In short:
 4. The game code was translated against that spec and checked function by function against the
    decompilation and disassembly.
 
-`re/bejeweled/` (decompiler output) is git-ignored; regenerate it with the tools above. The research
-behind the approach (comparable projects such as Zuma's CircleShootApp and PvZ-Portable) is summarized
-in [docs/RESEARCH_SYNTHESIS.md](../../docs/RESEARCH_SYNTHESIS.md).
+`re/bejeweled/` (decompiler output) is git-ignored; regenerate it with the tools above.
 
 ## Licenses and credits
 

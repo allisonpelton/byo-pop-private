@@ -641,7 +641,7 @@ void EffectOverlay::Draw(Graphics* g)
 
 		// the arrow over the pod of the puzzle that is next
 		aBoard = mApp->mBoard;
-		if (aBoard->mScreenState == 1 && aBoard->mPuzzleOverlay != NULL && aBoard->m1850 && aBoard->mState == 0x11 && !aBoard->m191d)
+		if (aBoard->mScreenState == 1 && aBoard->mPuzzleOverlay != NULL && aBoard->m1850 && aBoard->mState == 0x11 && !aBoard->mIsPlanetIntro)
 		{
 			Point aPos = aBoard->mPuzzleOverlay->mPods[mApp->mProfile->GetPuzzleNum() % 5].GetPos();
 			double aCos = cos(mApp->mBoard->m1858);

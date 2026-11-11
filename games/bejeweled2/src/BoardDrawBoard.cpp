@@ -322,7 +322,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 		Piece* aPiece = aPieces[i];
 		if (aPiece->mType < 7 && aPiece->m70 && a3D)
 		{
-			float aFlame = (float)(m15fd0 + m15fd0);
+			float aFlame = (float)(mStarPhase + mStarPhase);
 			aFlame = (float)((double)aFlame - 1.0);
 			aFlame = fabsf(aFlame);
 			float aLightY = (float)((double)aPiece->mY + 42.0);
@@ -438,7 +438,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 				if (aPiece->m70 && !aPiece->m9C && aPiece->mZ == 0.0f)
 				{
 					// a flaming gem lying still: it pulses between its picture and the lit one
-					float aPulse = (float)fabs(m15fd0 + m15fd0 - 1.0);
+					float aPulse = (float)fabs(mStarPhase + mStarPhase - 1.0);
 					if (!a3D && aSource == 0)
 					{
 						if (mApp->mBombifiedStillStrip == NULL)
@@ -546,16 +546,16 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 					g->SetDrawMode(1);
 					g->SetColorizeImages(true);
 					double aFull = (double)anAlpha * 255.0;
-					double aFlicker = fabs(m15fd0 + m15fd0 - 1.0);
-					g->SetColor(Color(0xff, 0xff, 0xff, FTol(aFlicker * ((double)m15fb0 * aFull))));
+					double aFlicker = fabs(mStarPhase + mStarPhase - 1.0);
+					g->SetColor(Color(0xff, 0xff, 0xff, FTol(aFlicker * ((double)mFadeIn * aFull))));
 					int aStarY = FTol((double)mApp->ScaleNum((float)((double)aPiece->mY - 20.0), 0.0f));
 					int aStarX = FTol((double)mApp->ScaleNum((float)((double)aPiece->mX - 20.0), 0.0f));
-					g->DrawImageRotated(IMAGE_BIGSTAR, aStarX, aStarY, m15fc0, NULL);
-					aFlicker = fabs(m15fd0 + m15fd0 - 1.0);
-					g->SetColor(Color(0xff, 0xff, 0xff, FTol((1.0 - aFlicker) * ((double)m15fb0 * aFull))));
+					g->DrawImageRotated(IMAGE_BIGSTAR, aStarX, aStarY, mStarRot, NULL);
+					aFlicker = fabs(mStarPhase + mStarPhase - 1.0);
+					g->SetColor(Color(0xff, 0xff, 0xff, FTol((1.0 - aFlicker) * ((double)mFadeIn * aFull))));
 					aStarY = FTol((double)mApp->ScaleNum((float)((double)aPiece->mY - 20.0), 0.0f));
 					aStarX = FTol((double)mApp->ScaleNum((float)((double)aPiece->mX - 20.0), 0.0f));
-					g->DrawImageRotated(IMAGE_BIGSTAR, aStarX, aStarY, m15fc8, NULL);
+					g->DrawImageRotated(IMAGE_BIGSTAR, aStarX, aStarY, mStarDrift, NULL);
 					g->SetColorizeImages(false);
 				}
 				else
@@ -577,12 +577,12 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 						aStarGraphics.SetDrawMode(1);
 						aStarGraphics.SetColorizeImages(true);
 						double aFull = (double)anAlpha * 255.0;
-						double aFlicker = fabs(m15fd0 + m15fd0 - 1.0);
-						aStarGraphics.SetColor(Color(0xff, 0xff, 0xff, FTol(aFlicker * ((double)m15fb0 * aFull))));
-						aStarGraphics.DrawImageRotated(IMAGE_BIGSTAR, 0, 0, m15fc0, NULL);
-						aFlicker = fabs(m15fd0 + m15fd0 - 1.0);
-						aStarGraphics.SetColor(Color(0xff, 0xff, 0xff, FTol((1.0 - aFlicker) * ((double)m15fb0 * aFull))));
-						aStarGraphics.DrawImageRotated(IMAGE_BIGSTAR, 0, 0, m15fc8, NULL);
+						double aFlicker = fabs(mStarPhase + mStarPhase - 1.0);
+						aStarGraphics.SetColor(Color(0xff, 0xff, 0xff, FTol(aFlicker * ((double)mFadeIn * aFull))));
+						aStarGraphics.DrawImageRotated(IMAGE_BIGSTAR, 0, 0, mStarRot, NULL);
+						aFlicker = fabs(mStarPhase + mStarPhase - 1.0);
+						aStarGraphics.SetColor(Color(0xff, 0xff, 0xff, FTol((1.0 - aFlicker) * ((double)mFadeIn * aFull))));
+						aStarGraphics.DrawImageRotated(IMAGE_BIGSTAR, 0, 0, mStarDrift, NULL);
 						aStarGraphics.SetColorizeImages(false);
 						aStarGraphics.SetDrawMode(0);
 						aStarDrawn = true;
@@ -627,7 +627,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 			int aFrame = (mUpdateCnt / 6) % 0x28;
 			if (aPiece->mZ == 0.0f || !a3D)
 			{
-				if (g->mDestImage == (Image*)mWidgetManager->mImage && 0.0f < m15fb0 && a3D)
+				if (g->mDestImage == (Image*)mWidgetManager->mImage && 0.0f < mFadeIn && a3D)
 				{
 					// the 3D game draws it as the 6 by 6 squares of the water mesh (two triangles each), so that it can
 					// ripple
@@ -750,7 +750,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 		}
 
 		// the glow over the gem: nine lights (the eight around it and its middle), each a frame of the lighting picture
-		if (!m165ac && 0.0f < m15fb0)
+		if (!m165ac && 0.0f < mFadeIn)
 		{
 			if (aPiece->mType <= 8)
 			{
@@ -762,7 +762,7 @@ void Board::DrawBoard(Graphics* g, bool theSkipStatic, bool theSkipDynamic)
 					{
 						if (0.01 < (double)*aGlowSlot)
 						{
-							double aLight = ((double)m15fb0 * (double)anAlpha) * (double)*aGlowSlot;
+							double aLight = ((double)mFadeIn * (double)anAlpha) * (double)*aGlowSlot;
 							double aScaled = aLight * 255.0;
 							int aGrey = FTol((255.0 <= aScaled) ? 255.0 : aScaled);
 							aGlowGraphics.SetColor(Color(aGrey, aGrey, aGrey));

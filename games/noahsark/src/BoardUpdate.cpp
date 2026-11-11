@@ -1,4 +1,4 @@
-// Board.cpp, part 4: the per-tick update (WinNoah.exe 0x403d60, Board::vf18). One tick is 10 ms of the
+// The Board, part 4 of 6: the per-tick update (WinNoah.exe 0x403d60, Board::Update). One tick is 10 ms of the
 // framework's update clock; mUpdateCnt (+0x40) counts them.
 
 #include "Board.h"
@@ -18,15 +18,15 @@ using namespace Sexy;
 namespace
 {
 
-// move v towards 0 by theStep; a value within theSnap of 0 becomes 0
-void Ease(int& v, int theStep, int theSnap)
+// part of 0x403d60: moves a value towards 0 by theStep; a value within theSnap of 0 becomes 0
+void Ease(int& theValue, int theStep, int theSnap)
 {
-	if (v > 0)
-		v -= theStep;
-	if (v < 0)
-		v += theStep;
-	if (abs(v) < theSnap)
-		v = 0;
+	if (theValue > 0)
+		theValue -= theStep;
+	if (theValue < 0)
+		theValue += theStep;
+	if (abs(theValue) < theSnap)
+		theValue = 0;
 }
 
 }
@@ -37,27 +37,27 @@ void Ease(int& v, int theStep, int theSnap)
 // A's own plus theOffsetXForB (B), so the animal stays where it is drawn. The original's two loops differ in y: the
 // left column takes B's offset (theSwapOffsetY), the right one keeps its own. The pixel position B receives is A's old
 // one cut to whole pixels.
-void Board::ExchangeContents(Piece* a, Piece* b, int theOffsetXForA, int theOffsetXForB, bool theSwapOffsetY)
+void Board::ExchangeContents(Piece* theFirst, Piece* theSecond, int theOffsetXForA, int theOffsetXForB, bool theSwapOffsetY)
 {
-	std::swap(a->mType, b->mType);
-	std::swap(a->mRemoved, b->mRemoved);
-	std::swap(a->mMoving, b->mMoving);
-	std::swap(a->mFading, b->mFading);
-	std::swap(a->mAlpha, b->mAlpha);
-	std::swap(a->mFallSpeed, b->mFallSpeed);
-	int aOffsetX = a->mOffsetX;
-	int aOffsetY = a->mOffsetY;
-	float aPixelX = (float) (int) a->mPixelX;
-	float aPixelY = (float) (int) a->mPixelY;
-	a->mOffsetX = b->mOffsetX + theOffsetXForA;
+	std::swap(theFirst->mType, theSecond->mType);
+	std::swap(theFirst->mRemoved, theSecond->mRemoved);
+	std::swap(theFirst->mMoving, theSecond->mMoving);
+	std::swap(theFirst->mFading, theSecond->mFading);
+	std::swap(theFirst->mAlpha, theSecond->mAlpha);
+	std::swap(theFirst->mFallSpeed, theSecond->mFallSpeed);
+	int aOffsetX = theFirst->mOffsetX;
+	int aOffsetY = theFirst->mOffsetY;
+	float aPixelX = (float) (int) theFirst->mPixelX;
+	float aPixelY = (float) (int) theFirst->mPixelY;
+	theFirst->mOffsetX = theSecond->mOffsetX + theOffsetXForA;
 	if (theSwapOffsetY)
-		a->mOffsetY = b->mOffsetY;
-	a->mPixelX = b->mPixelX;
-	a->mPixelY = b->mPixelY;
-	b->mOffsetX = aOffsetX + theOffsetXForB;
-	b->mOffsetY = aOffsetY;
-	b->mPixelX = aPixelX;
-	b->mPixelY = aPixelY;
+		theFirst->mOffsetY = theSecond->mOffsetY;
+	theFirst->mPixelX = theSecond->mPixelX;
+	theFirst->mPixelY = theSecond->mPixelY;
+	theSecond->mOffsetX = aOffsetX + theOffsetXForB;
+	theSecond->mOffsetY = aOffsetY;
+	theSecond->mPixelX = aPixelX;
+	theSecond->mPixelY = aPixelY;
 }
 
 // 0x403d60
@@ -92,7 +92,7 @@ void Board::Update()
 	if ((mUpdateCnt % 3000 == 0) && (anApp->mGameMode == GAMEMODE_PUZZLE))
 		mFloodSpeed++;
 	if (mUpdateCnt % 3000 == 0)
-		mSpawnRate++;
+		mNewRowKinds++;
 
 	if (mState == BOARD_ABANDON)
 	{
@@ -141,50 +141,50 @@ void Board::Update()
 	}
 
 	bool aSettled = true;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 8; y >= 0; y--)
+		for (int y = GRID_LAST; y >= 0; y--)
 		{
-			Piece* p = mGrid[x][y];
-			if (p == NULL)
+			Piece* aPiece = mGrid[x][y];
+			if (aPiece == NULL)
 				continue;
 
 			// stampede: the animals ease back after the columns close in
-			if ((p->mOffsetX != 0) && (mState == BOARD_PLAYING) && (anApp->mGameMode == GAMEMODE_STAMPEDE) && !p->mRemoved)
-				Ease(p->mOffsetX, 2, 2);
-			if ((p->mOffsetY > 0) && (mState == BOARD_PLAYING) && (anApp->mGameMode == GAMEMODE_STAMPEDE))
-				Ease(p->mOffsetY, 2, 2);
+			if ((aPiece->mOffsetX != 0) && (mState == BOARD_PLAYING) && (anApp->mGameMode == GAMEMODE_STAMPEDE) && !aPiece->mRemoved)
+				Ease(aPiece->mOffsetX, 2, 2);
+			if ((aPiece->mOffsetY > 0) && (mState == BOARD_PLAYING) && (anApp->mGameMode == GAMEMODE_STAMPEDE))
+				Ease(aPiece->mOffsetY, 2, 2);
 
 			// blinking
-			if ((p->mBlink >= 1) && (mUpdateCnt % 0x14 == 0))
+			if ((aPiece->mBlink >= 1) && (mUpdateCnt % 0x14 == 0))
 			{
-				p->mBlink++;
-				if (p->mBlink == 4)
-					p->mBlink = (CrtRand() % 5 != 0) ? 1 : 0;
+				aPiece->mBlink++;
+				if (aPiece->mBlink == 4)
+					aPiece->mBlink = (CrtRand() % 5 != 0) ? 1 : 0;
 			}
-			else if ((p->mBlink == 0) && (CrtRand() % 10000 == 0))
-				p->mBlink++;
+			else if ((aPiece->mBlink == 0) && (CrtRand() % 10000 == 0))
+				aPiece->mBlink++;
 
 			// puzzle: the two swapped animals slide into their places
 			if ((anApp->mGameMode == GAMEMODE_PUZZLE) && ((mState == BOARD_SWAP) || (mState == BOARD_SWAP_BACK)) &&
-				((p->mOffsetX != 0) || (p->mOffsetY != 0)))
+				((aPiece->mOffsetX != 0) || (aPiece->mOffsetY != 0)))
 			{
-				if (p->mOffsetX < 0)
-					p->mOffsetX += 2;
-				else if (p->mOffsetX > 0)
-					p->mOffsetX -= 2;
-				if (p->mOffsetY < 0)
-					p->mOffsetY += 2;
-				else if (p->mOffsetY > 0)
-					p->mOffsetY -= 2;
+				if (aPiece->mOffsetX < 0)
+					aPiece->mOffsetX += 2;
+				else if (aPiece->mOffsetX > 0)
+					aPiece->mOffsetX -= 2;
+				if (aPiece->mOffsetY < 0)
+					aPiece->mOffsetY += 2;
+				else if (aPiece->mOffsetY > 0)
+					aPiece->mOffsetY -= 2;
 				aSettled = false;
 			}
 
-			if (!p->mMoving)
+			if (!aPiece->mMoving)
 			{
 				// strategy and puzzle: an animal with room below falls
-				if (mGravity && ((p->mType < 0xd) || (p->mType == PIECE_BLOCK)) && !p->mRemoved && !p->mFading &&
-					((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) && (y < 8))
+				if (mGravity && ((aPiece->mType < NUM_ANIMALS) || (aPiece->mType == PIECE_CRATE)) && !aPiece->mRemoved && !aPiece->mFading &&
+					((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) && (y < GRID_LAST))
 				{
 					Piece* aBelow = mGrid[x][y + 1];
 					if ((aBelow->mType == PIECE_EMPTY) || aBelow->mRemoved || aBelow->mFading ||
@@ -235,84 +235,84 @@ void Board::Update()
 						if (aLower->mFallSpeed < -5)
 							aLower->mFallSpeed = -6;
 						aLower->mY++;                       // the new piece keeps the copied position: a walking animal's own cell is not the slot it is in
-						aLower->mPixelY += 50.0f;
-						aLower->mOffsetY -= 0x32;
+						aLower->mPixelY += (float) CELL_SIZE;
+						aLower->mOffsetY -= CELL_SIZE;
 						aSettled = false;
 					}
 				}
 			}
-			else if (p->mPartner != NULL)
+			else if (aPiece->mPartner != NULL)
 			{
-				Piece* aPartner = p->mPartner;
+				Piece* aPartner = aPiece->mPartner;
 				if (!aPartner->mRemoved)
 				{
-					int n = (int) p->mPath.size();
+					int aPathSize = (int) aPiece->mPath.size();
 					bool aArrived = true;
-					if ((n > 0) && ((unsigned) p->mPathIndex < (unsigned) ((n >> 1) + 1)))
+					if ((aPathSize > 0) && ((unsigned) aPiece->mPathIndex < (unsigned) ((aPathSize >> 1) + 1)))
 					{
-						int aDX = CellLeft(aPartner->mX) + aPartner->mOffsetX - p->mOffsetX - CellLeft(p->mX);
-						int aDY = CellTop(aPartner->mY) + aPartner->mOffsetY - p->mOffsetY - CellTop(p->mY);
+						int aDX = CellLeft(aPartner->mX) + aPartner->mOffsetX - aPiece->mOffsetX - CellLeft(aPiece->mX);
+						int aDY = CellTop(aPartner->mY) + aPartner->mOffsetY - aPiece->mOffsetY - CellTop(aPiece->mY);
 						if ((abs(aDX) >= 5) || (abs(aDY) >= 5))
 						{
 							aArrived = false;
-							if ((p->mOffsetX == 0) && (p->mOffsetY == 0))
+							if ((aPiece->mOffsetX == 0) && (aPiece->mOffsetY == 0))
 							{
-								if (p->mPathIndex < n)
+								if (aPiece->mPathIndex < aPathSize)
 								{
-									PathNode* aNode = p->mPath[p->mPathIndex];
-									if (aNode->mCellX < p->mX)
+									PathNode* aNode = aPiece->mPath[aPiece->mPathIndex];
+									if (aNode->mCellX < aPiece->mX)
 									{
-										p->mOffsetX = 0x32;
-										p->mX--;
+										aPiece->mOffsetX = CELL_SIZE;
+										aPiece->mX--;
 									}
-									else if (p->mX < aNode->mCellX)
+									else if (aPiece->mX < aNode->mCellX)
 									{
-										p->mOffsetX = -0x32;
-										p->mX++;
+										aPiece->mOffsetX = -CELL_SIZE;
+										aPiece->mX++;
 									}
-									else if (aNode->mCellY < p->mY)
+									else if (aNode->mCellY < aPiece->mY)
 									{
-										p->mOffsetY = 0x32;
-										p->mY--;
+										aPiece->mOffsetY = CELL_SIZE;
+										aPiece->mY--;
 									}
-									else if (p->mY < aNode->mCellY)
+									else if (aPiece->mY < aNode->mCellY)
 									{
-										p->mOffsetY = -0x32;
-										p->mY++;
+										aPiece->mOffsetY = -CELL_SIZE;
+										aPiece->mY++;
 									}
 									else
-										p->mPathIndex++;
+										aPiece->mPathIndex++;
 								}
 							}
 							else
 							{
-								if (p->mOffsetX > 0)
-									p->mOffsetX -= 6;
-								if (p->mOffsetX < 0)
-									p->mOffsetX += 6;
-								if (p->mOffsetY > 0)
-									p->mOffsetY -= 6;
-								if (p->mOffsetY < 0)
-									p->mOffsetY += 6;
-								if (abs(p->mOffsetX) < 6)
-									p->mOffsetX = 0;
-								if (abs(p->mOffsetY) < 6)
-									p->mOffsetY = 0;
-								if ((p->mOffsetX == 0) && (p->mOffsetY == 0))
-									p->mPathIndex++;
+								if (aPiece->mOffsetX > 0)
+									aPiece->mOffsetX -= 6;
+								if (aPiece->mOffsetX < 0)
+									aPiece->mOffsetX += 6;
+								if (aPiece->mOffsetY > 0)
+									aPiece->mOffsetY -= 6;
+								if (aPiece->mOffsetY < 0)
+									aPiece->mOffsetY += 6;
+								if (abs(aPiece->mOffsetX) < 6)
+									aPiece->mOffsetX = 0;
+								if (abs(aPiece->mOffsetY) < 6)
+									aPiece->mOffsetY = 0;
+								if ((aPiece->mOffsetX == 0) && (aPiece->mOffsetY == 0))
+									aPiece->mPathIndex++;
 							}
 						}
 					}
 					if (aArrived)
 					{
 						// the two met: both are taken in
-						p->mMoving = false;
-						p->mRemoved = true;
-						for (size_t i = 0; i < p->mPath.size(); i++)
-							delete p->mPath[i];
-						p->mPath.clear();
-						p->mPixelX = (float) CellLeft(p->mX);
-						p->mPixelY = (float) CellTop(p->mY);
+						aPiece->mMoving = false;
+						aPiece->mRemoved = true;
+						for (size_t i = 0; i < aPiece->mPath.size(); i++)
+							delete aPiece->mPath[i];
+						aPiece->mPath.clear();
+						aPiece->mPixelX = (float) CellLeft(aPiece->mX);
+						aPiece->mPixelY = (float) CellTop(aPiece->mY);
 						aPartner->mMoving = false;
 						aPartner->mRemoved = true;
 						for (size_t i = 0; i < aPartner->mPath.size(); i++)
@@ -322,52 +322,52 @@ void Board::Update()
 						aPartner->mPixelY = (float) CellTop(aPartner->mY);
 						for (int i = 0; i < 4; i++)
 						{
-							int ay = (CrtRand() % 0x14) + 5 + (int) aPartner->mPixelY;
-							int ax = (CrtRand() % 0x14) + 5 + (int) aPartner->mPixelX;
-							AddSparkle(ax, ay);
+							int aSparkleY = (CrtRand() % 0x14) + 5 + (int) aPartner->mPixelY;
+							int aSparkleX = (CrtRand() % 0x14) + 5 + (int) aPartner->mPixelX;
+							AddSparkle(aSparkleX, aSparkleY);
 						}
 						if (mState != BOARD_ABANDON)
-							anApp->PlaySample(p->mType + 1);
+							anApp->PlaySample(SOUND_WINPIG + aPiece->mType);
 					}
 				}
 				else
 				{
-					p->mMoving = false;
-					p->mRemoved = true;
-					for (size_t i = 0; i < p->mPath.size(); i++)
-						delete p->mPath[i];
-					p->mPath.clear();
-					p->mPixelX = (float) CellLeft(p->mX);
-					p->mPixelY = (float) CellTop(p->mY);
+					aPiece->mMoving = false;
+					aPiece->mRemoved = true;
+					for (size_t i = 0; i < aPiece->mPath.size(); i++)
+						delete aPiece->mPath[i];
+					aPiece->mPath.clear();
+					aPiece->mPixelX = (float) CellLeft(aPiece->mX);
+					aPiece->mPixelY = (float) CellTop(aPiece->mY);
 				}
 			}
 
 			// falling pieces in the modes with gravity
 			if (mGravity)
 			{
-				if ((p->mOffsetY < 0) && ((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) &&
-					!p->mMoving)
+				if ((aPiece->mOffsetY < 0) && ((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) &&
+					!aPiece->mMoving)
 				{
 					if (anApp->mGameMode == GAMEMODE_PUZZLE)
 						mState = BOARD_SETTLE;
-					int aFall = p->mFallSpeed;
-					p->mOffsetY += (aFall < 0) ? 0 : aFall;
+					int aFall = aPiece->mFallSpeed;
+					aPiece->mOffsetY += (aFall < 0) ? 0 : aFall;
 					if (mUpdateCnt % 4 == 0)
-						p->mFallSpeed = aFall + 1;
-					if (p->mOffsetY >= 0)
+						aPiece->mFallSpeed = aFall + 1;
+					if (aPiece->mOffsetY >= 0)
 					{
-						p->mOffsetY = 0;
-						if ((p->mY > 7) || (mGrid[p->mX][p->mY + 1]->mType != PIECE_EMPTY &&
-							!mGrid[p->mX][p->mY + 1]->mRemoved && !mGrid[p->mX][p->mY + 1]->mFading))
+						aPiece->mOffsetY = 0;
+						if ((aPiece->mY > 7) || (mGrid[aPiece->mX][aPiece->mY + 1]->mType != PIECE_EMPTY &&
+							!mGrid[aPiece->mX][aPiece->mY + 1]->mRemoved && !mGrid[aPiece->mX][aPiece->mY + 1]->mFading))
 						{
 							aPlayLanding = true;
-							p->mFallSpeed = 1;
+							aPiece->mFallSpeed = 1;
 						}
 					}
 					aSettled = false;
 				}
-				if ((p->mOffsetY < 0) && ((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) &&
-					!p->mMoving)
+				if ((aPiece->mOffsetY < 0) && ((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON) || (mState == BOARD_SETTLE)) &&
+					!aPiece->mMoving)
 					aSettled = false;
 			}
 		}
@@ -376,28 +376,28 @@ void Board::Update()
 	// puzzle: new animals drop into the holes at the top
 	if (anApp->mGameMode == GAMEMODE_PUZZLE)
 	{
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
-			Piece* p = mGrid[x][0];
-			if (p->mType == PIECE_EMPTY)
+			Piece* aPiece = mGrid[x][0];
+			if (aPiece->mType == PIECE_EMPTY)
 			{
 				int aKinds = anApp->mLevel + 3;
-				if (aKinds < 0xe)
+				if (aKinds < NUM_ANIMALS + 1)
 				{
 					if (aKinds < 7)
 						aKinds = 7;
 				}
 				else
-					aKinds = 0xd;
-				p->mType = CrtRand() % aKinds;
-				p->mFallSpeed = 1;
-				p->mY = 0;
-				p->mPixelY = (float) CellTop(0);
-				p->mOffsetY = -0x32;
+					aKinds = NUM_ANIMALS;
+				aPiece->mType = CrtRand() % aKinds;
+				aPiece->mFallSpeed = 1;
+				aPiece->mY = 0;
+				aPiece->mPixelY = (float) CellTop(0);
+				aPiece->mOffsetY = -CELL_SIZE;
 				if (mGrid[x][1]->mOffsetY < 0)
-					p->mOffsetY += mGrid[x][1]->mOffsetY;
+					aPiece->mOffsetY += mGrid[x][1]->mOffsetY;
 				aSettled = false;
-				p->mAlpha = 0xff;
+				aPiece->mAlpha = 0xff;
 			}
 		}
 	}
@@ -405,7 +405,7 @@ void Board::Update()
 	// stampede: the waiting row rises and the board is pushed up; empty columns close in on the middle
 	if ((anApp->mGameMode == GAMEMODE_STAMPEDE) && (mState == BOARD_PLAYING))
 	{
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
 			int aStep = 10 - (mRowCount / 4);
 			int aInterval = (aStep > 2) ? aStep : 3;
@@ -414,20 +414,20 @@ void Board::Update()
 		}
 		if (mNextRow[0]->mOffsetY < 1)
 			PushRow();
-		for (int x = 5; x < 9; x++)
+		for (int x = 5; x < GRID_SIZE; x++)
 		{
 			if (!ColumnEmpty(x) && ColumnEmpty(x - 1))
 			{
-				for (int y = 0; y < 9; y++)
-					ExchangeContents(mGrid[x - 1][y], mGrid[x][y], 0x32, -0x32, false);
+				for (int y = 0; y < GRID_SIZE; y++)
+					ExchangeContents(mGrid[x - 1][y], mGrid[x][y], CELL_SIZE, -CELL_SIZE, false);
 			}
 		}
 		for (int x = 3; x >= 0; x--)
 		{
 			if (!ColumnEmpty(x) && ColumnEmpty(x + 1))
 			{
-				for (int y = 0; y < 9; y++)
-					ExchangeContents(mGrid[x + 1][y], mGrid[x][y], -0x32, -0x32, true);
+				for (int y = 0; y < GRID_SIZE; y++)
+					ExchangeContents(mGrid[x + 1][y], mGrid[x][y], -CELL_SIZE, -CELL_SIZE, true);
 			}
 		}
 	}
@@ -454,15 +454,15 @@ void Board::Update()
 			mState = BOARD_SWAP_BACK;
 			Piece* aFirst = NULL;
 			Piece* aLast = NULL;
-			for (int x = 0; x < 9; x++)
-				for (int y = 0; y < 9; y++)
+			for (int x = 0; x < GRID_SIZE; x++)
+				for (int y = 0; y < GRID_SIZE; y++)
 				{
-					Piece* p = mGrid[x][y];
-					if (p->mMatchSwap)
+					Piece* aPiece = mGrid[x][y];
+					if (aPiece->mInSwap)
 					{
-						aLast = p;
+						aLast = aPiece;
 						if (aFirst == NULL)
-							aFirst = p;
+							aFirst = aPiece;
 					}
 				}
 			if ((aFirst == NULL) || (aLast == NULL))
@@ -474,26 +474,26 @@ void Board::Update()
 				aLast->mType = aType;
 				if (aFirst->mX < aLast->mX)
 				{
-					aFirst->mOffsetX += 0x32;
-					aLast->mOffsetX -= 0x32;
+					aFirst->mOffsetX += CELL_SIZE;
+					aLast->mOffsetX -= CELL_SIZE;
 				}
 				else if (aFirst->mX != aLast->mX)
 				{
-					aFirst->mOffsetX -= 0x32;
-					aLast->mOffsetX += 0x32;
+					aFirst->mOffsetX -= CELL_SIZE;
+					aLast->mOffsetX += CELL_SIZE;
 				}
 				if (aFirst->mY < aLast->mY)
 				{
 					aSettled = false;
-					aFirst->mOffsetY += 0x32;
-					aLast->mOffsetY -= 0x32;
+					aFirst->mOffsetY += CELL_SIZE;
+					aLast->mOffsetY -= CELL_SIZE;
 				}
 				else
 				{
 					if (aFirst->mY != aLast->mY)
 					{
-						aFirst->mOffsetY -= 0x32;
-						aLast->mOffsetY += 0x32;
+						aFirst->mOffsetY -= CELL_SIZE;
+						aLast->mOffsetY += CELL_SIZE;
 					}
 					aSettled = false;
 				}
@@ -505,9 +505,9 @@ void Board::Update()
 				mState = BOARD_SETTLE;
 			anApp->PlaySample(SOUND_POP);
 		}
-		for (int x = 0; x < 9; x++)
-			for (int y = 0; y < 9; y++)
-				mGrid[x][y]->mMatchSwap = false;
+		for (int x = 0; x < GRID_SIZE; x++)
+			for (int y = 0; y < GRID_SIZE; y++)
+				mGrid[x][y]->mInSwap = false;
 	}
 	if ((mState == BOARD_SWAP_BACK) && aSettled)
 		mState = BOARD_PLAYING;
@@ -538,41 +538,41 @@ void Board::Update()
 			mArkY = aArk;
 		}
 		mShowGetReady = true;
-		for (int x = 0; x < 9; x++)
+		for (int x = 0; x < GRID_SIZE; x++)
 		{
-			for (int y = 0; y < 9; y++)
+			for (int y = 0; y < GRID_SIZE; y++)
 			{
-				Piece* p = mGrid[x][y];
+				Piece* aPiece = mGrid[x][y];
 				if (CrtRand() % 100 == 0)
-					p->mSelected = !p->mSelected;
-				if ((CrtRand() % 0x6d6 == 0) && (p->mOffsetY < 0) && p->mPending && (p->mType < 0xd))
-					anApp->PlaySample(p->mType + 1);
-				if ((p->mOffsetY < 0) && p->mPending)
+					aPiece->mSelected = !aPiece->mSelected;
+				if ((CrtRand() % 0x6d6 == 0) && (aPiece->mOffsetY < 0) && aPiece->mPending && (aPiece->mType < NUM_ANIMALS))
+					anApp->PlaySample(SOUND_WINPIG + aPiece->mType);
+				if ((aPiece->mOffsetY < 0) && aPiece->mPending)
 				{
 					if ((mUpdateCnt & 1) == 0)
 					{
-						int aFall = p->mFallSpeed;
+						int aFall = aPiece->mFallSpeed;
 						int aStep = (aFall < 0) ? 0 : ((aFall < 0x24) ? aFall : 0x23);
-						p->mOffsetY += aStep;
-						p->mFallSpeed = aFall + 1;
-						if (p->mOffsetY > 0)
+						aPiece->mOffsetY += aStep;
+						aPiece->mFallSpeed = aFall + 1;
+						if (aPiece->mOffsetY > 0)
 						{
-							p->mOffsetY = 0;
-							p->mPending = false;
-							p->mFallSpeed = 0x8c;
+							aPiece->mOffsetY = 0;
+							aPiece->mPending = false;
+							aPiece->mFallSpeed = 0x8c;
 							if (mUpdateCnt % (CrtRand() % 6 + 1) == 0)
 								aPlayLanding = true;
 						}
 					}
 				}
-				else if ((p->mOffsetY == 0) && !p->mPending && (p->mFallSpeed > 1))
-					p->mFallSpeed--;
+				else if ((aPiece->mOffsetY == 0) && !aPiece->mPending && (aPiece->mFallSpeed > 1))
+					aPiece->mFallSpeed--;
 			}
 		}
 		if (!AnyFalling() && !anApp->ResyncHold())
 		{
-			for (int x = 0; x < 9; x++)
-				for (int y = 0; y < 9; y++)
+			for (int x = 0; x < GRID_SIZE; x++)
+				for (int y = 0; y < GRID_SIZE; y++)
 					mGrid[x][y]->mSelected = false;
 			if ((anApp->mGameMode == GAMEMODE_PUZZLE) && MarkRuns(true))
 			{
@@ -596,42 +596,42 @@ void Board::Update()
 	}
 
 	// animals that were taken in fly to the ark; the abandoned fade away
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
-			Piece* p = mGrid[x][y];
-			if (!p->mRemoved)
+			Piece* aPiece = mGrid[x][y];
+			if (!aPiece->mRemoved)
 			{
-				if (p->mFading)
+				if (aPiece->mFading)
 				{
 					// 0x405440: the distances are whole numbers (__ftol) and the length a double (x87 at 53 bits)
 					double aTargetX = mWidth + 0x32;
 					double aTargetY = mHeight + 0x32;
-					double dx = (double) abs((int) (aTargetX - p->mPixelX));
-					double dy = (double) abs((int) (aTargetY - p->mPixelY));
-					double aDist = sqrt(dx * dx + dy * dy);
-					if ((aTargetX <= p->mPixelX) || (aTargetY <= p->mPixelY))
+					double aDistX = (double) abs((int) (aTargetX - aPiece->mPixelX));
+					double aDistY = (double) abs((int) (aTargetY - aPiece->mPixelY));
+					double aDist = sqrt(aDistX * aDistX + aDistY * aDistY);
+					if ((aTargetX <= aPiece->mPixelX) || (aTargetY <= aPiece->mPixelY))
 					{
-						p->mFading = false;
-						p->mType = PIECE_EMPTY;
+						aPiece->mFading = false;
+						aPiece->mType = PIECE_EMPTY;
 					}
 					else
 					{
-						double sx = (dx / aDist) * 5.3;
-						if (sx < 1.0)
-							sx = 1.0;
-						p->mPixelX = (float) (p->mPixelX + sx);
-						double sy = (dy / aDist) * 5.3;
-						if (sy < 1.0)
-							sy = 1.0;
-						p->mPixelY = (float) (p->mPixelY + sy);
+						double aSpeedX = (aDistX / aDist) * 5.3;
+						if (aSpeedX < 1.0)
+							aSpeedX = 1.0;
+						aPiece->mPixelX = (float) (aPiece->mPixelX + aSpeedX);
+						double aSpeedY = (aDistY / aDist) * 5.3;
+						if (aSpeedY < 1.0)
+							aSpeedY = 1.0;
+						aPiece->mPixelY = (float) (aPiece->mPixelY + aSpeedY);
 					}
 					// the x87 tests of 0.0 also take a NaN (a distance under one pixel divides 0 by 0) for zero
-					if ((p->mPixelX == 0.0f) || (p->mPixelY == 0.0f) || (p->mPixelX != p->mPixelX) || (p->mPixelY != p->mPixelY))
+					if ((aPiece->mPixelX == 0.0f) || (aPiece->mPixelY == 0.0f) || (aPiece->mPixelX != aPiece->mPixelX) || (aPiece->mPixelY != aPiece->mPixelY))
 					{
-						p->mFading = false;
-						p->mType = PIECE_EMPTY;
+						aPiece->mFading = false;
+						aPiece->mType = PIECE_EMPTY;
 					}
 				}
 			}
@@ -640,64 +640,64 @@ void Board::Update()
 				// 0x405408: the same arithmetic as above, towards the ark
 				int aTargetX = mArkX + 0x42;
 				int aTargetY = mArkY + 0x42;
-				double dx = (double) abs((int) (aTargetX - (double) p->mPixelX));
-				double dy = (double) abs((int) (aTargetY - (double) p->mPixelY));
-				double aDist = sqrt(dx * dx + dy * dy);
-				double aScale = p->mScale - 0.2;
+				double aDistX = (double) abs((int) (aTargetX - (double) aPiece->mPixelX));
+				double aDistY = (double) abs((int) (aTargetY - (double) aPiece->mPixelY));
+				double aDist = sqrt(aDistX * aDistX + aDistY * aDistY);
+				double aScale = aPiece->mScale - 0.2;
 				if (aScale < 35.0)
 					aScale = 35.0;
-				p->mScale = aScale;
+				aPiece->mScale = aScale;
 				if (aDist < 100.0)
 				{
 					aScale = aScale - 0.2;
 					if (aScale < 35.0)
 						aScale = 35.0;
-					p->mScale = aScale;
+					aPiece->mScale = aScale;
 				}
 				if (aDist < 150.0)
-					p->mAlpha = (int) (aDist) * 2 + 0x69;
-				if (((double) aTargetX < p->mPixelX) || (p->mPixelY != (float) aTargetY))
+					aPiece->mAlpha = (int) (aDist) * 2 + 0x69;
+				if (((double) aTargetX < aPiece->mPixelX) || (aPiece->mPixelY != (float) aTargetY))
 				{
-					int sx = ((double) aTargetX < p->mPixelX) ? -1 : 1;
-					int sy = ((float) aTargetY < p->mPixelY) ? -1 : 1;
-					double nx = (dx / aDist) * sx * 5.3 + p->mPixelX;
-					if (!(nx > (double) aTargetX))          // x87: a NaN counts as not above
-						nx = (double) aTargetX;
-					p->mPixelX = (float) nx;
-					if ((float) aTargetY != p->mPixelY)
+					int aSignX = ((double) aTargetX < aPiece->mPixelX) ? -1 : 1;
+					int aSignY = ((float) aTargetY < aPiece->mPixelY) ? -1 : 1;
+					double aNewX = (aDistX / aDist) * aSignX * 5.3 + aPiece->mPixelX;
+					if (!(aNewX > (double) aTargetX))          // x87: a NaN counts as not above
+						aNewX = (double) aTargetX;
+					aPiece->mPixelX = (float) aNewX;
+					if ((float) aTargetY != aPiece->mPixelY)
 					{
-						double ny = (dy / aDist) * sy * 5.3 + p->mPixelY;
-						if (sy < 0)
+						double aNewY = (aDistY / aDist) * aSignY * 5.3 + aPiece->mPixelY;
+						if (aSignY < 0)
 						{
-							if (!(ny > (double) aTargetY))
-								ny = (double) aTargetY;
+							if (!(aNewY > (double) aTargetY))
+								aNewY = (double) aTargetY;
 						}
-						else if ((double) aTargetY <= ny)
-							ny = (double) aTargetY;
-						p->mPixelY = (float) ny;
+						else if ((double) aTargetY <= aNewY)
+							aNewY = (double) aTargetY;
+						aPiece->mPixelY = (float) aNewY;
 					}
-					if ((nx == 0.0) || (nx != nx) || (p->mPixelY == 0.0f) || (p->mPixelY != p->mPixelY))
+					if ((aNewX == 0.0) || (aNewX != aNewX) || (aPiece->mPixelY == 0.0f) || (aPiece->mPixelY != aPiece->mPixelY))
 					{
-						p->mRemoved = false;
-						p->mType = PIECE_EMPTY;
+						aPiece->mRemoved = false;
+						aPiece->mType = PIECE_EMPTY;
 					}
 				}
 				else
 				{
-					p->mRemoved = false;
-					p->mType = PIECE_EMPTY;
+					aPiece->mRemoved = false;
+					aPiece->mType = PIECE_EMPTY;
 				}
 			}
 
 			// at the end of a level the rest sink
-			if (((mUpdateCnt & 1) == 0) && (p->mAlpha < 0xff) && (p->mAlpha > 0) &&
+			if (((mUpdateCnt & 1) == 0) && (aPiece->mAlpha < 0xff) && (aPiece->mAlpha > 0) &&
 				((mState == BOARD_LEVEL_DONE) || (mState == BOARD_WON) || (mState == BOARD_LOST)))
 			{
-				p->mAlpha--;
-				p->mOffsetY++;
+				aPiece->mAlpha--;
+				aPiece->mOffsetY++;
 			}
-			else if ((p->mAlpha < 0xff) && ((mState == BOARD_LEVEL_DONE) || (mState == BOARD_WON) || (mState == BOARD_LOST)))
-				p->mOffsetY++;
+			else if ((aPiece->mAlpha < 0xff) && ((mState == BOARD_LEVEL_DONE) || (mState == BOARD_WON) || (mState == BOARD_LOST)))
+				aPiece->mOffsetY++;
 		}
 	}
 
@@ -740,7 +740,7 @@ void Board::Update()
 				{
 					mLightning = true;
 					anApp->PlaySample(SOUND_THUNDER3 + (CrtRand() & 1));
-					mState314 = mUpdateCnt;
+					mLastThunderUpdate = mUpdateCnt;
 				}
 			}
 		}
@@ -774,9 +774,9 @@ void Board::Update()
 	if ((mStormTimer > 0) && (mUpdateCnt % 6 == 0))
 		mStormTimer--;
 	if (mUpdateCnt % 4 == 0)
-		mWavePhaseB++;
+		mFrontWavePhase++;
 	if (mUpdateCnt % 8 == 0)
-		mWavePhaseA++;
+		mBackWavePhase++;
 	if (mUpdateCnt % 0xc == 0)
 		mBackdropTick++;
 	if ((mUpdateCnt % 6 == 0) && (mState == BOARD_ABANDON) && (AnimalCount() > 0) && HasMove() && (mArkLevelY < mWaterY))
@@ -856,12 +856,12 @@ void Board::Update()
 			mArkLeaving = true;
 			if (mUpdateCnt % 6 == 0)
 				mArkStage++;
-			if (!BoardCleared() && !mSetUp3ac)
+			if (!BoardCleared() && !mLeftBehindFading)
 			{
-				for (int x = 0; x < 9; x++)
-					for (int y = 0; y < 9; y++)
+				for (int x = 0; x < GRID_SIZE; x++)
+					for (int y = 0; y < GRID_SIZE; y++)
 						mGrid[x][y]->mAlpha = 0xfa;
-				mSetUp3ac = true;
+				mLeftBehindFading = true;
 			}
 			if (mWaterY % 0x1e == 0)
 				AddFish(1, true);
@@ -898,16 +898,16 @@ void Board::Update()
 	UpdateSparkles();
 	if (mState == BOARD_LOST)
 	{
-		mFade += 2;
-		if (mFade > 0xff)
-			mFade = 0xff;
+		mLostFade += 2;
+		if (mLostFade > 0xff)
+			mLostFade = 0xff;
 	}
 	if (mUpdateCnt % 0xc == 0)
 	{
 		if (mHintIndex > 0 || true)
 		{
-			if (mComboShown > 0)
-				mComboShown--;
+			if (mComboTextTimer > 0)
+				mComboTextTimer--;
 			if (mHintTimer > 0)
 				mHintTimer--;
 		}
@@ -920,19 +920,19 @@ void Board::Update()
 	if ((mWaterY <= mArkLevelY) && ((mState == BOARD_PLAYING) || (mState == BOARD_ABANDON)))
 		EndRound();
 
-	mPulseA += mPulseADir * 5;
-	if ((mPulseA < 0) || (mPulseA > 0xab))
+	mDangerPulse += mDangerPulseDir * 5;
+	if ((mDangerPulse < 0) || (mDangerPulse > 0xab))
 	{
-		mPulseADir = -mPulseADir;
-		mPulseA = std::max(0, mPulseA);
-		mPulseA = std::min(0xab, mPulseA);
+		mDangerPulseDir = -mDangerPulseDir;
+		mDangerPulse = std::max(0, mDangerPulse);
+		mDangerPulse = std::min(0xab, mDangerPulse);
 	}
-	mPulseB += mPulseBDir * 5;
-	if ((mPulseB < 100) || (mPulseB > 0xfa))
+	mFlashPulse += mFlashPulseDir * 5;
+	if ((mFlashPulse < 100) || (mFlashPulse > 0xfa))
 	{
-		mPulseBDir = -mPulseBDir;
-		mPulseB = std::max(100, mPulseB);
-		mPulseB = std::min(0xff, mPulseB);
+		mFlashPulseDir = -mFlashPulseDir;
+		mFlashPulse = std::max(100, mFlashPulse);
+		mFlashPulse = std::min(0xff, mFlashPulse);
 	}
 
 	if (BoardCleared() && (mState == BOARD_PLAYING) && (mArkLevelY < mWaterY) && (anApp->mGameMode < GAMEMODE_PUZZLE))

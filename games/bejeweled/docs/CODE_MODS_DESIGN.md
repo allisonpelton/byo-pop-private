@@ -558,7 +558,7 @@ dotted leaves. `rules` goes into the same map, with these additions:
    dirs stay byte-identical. Each enabled mod's entry also lists its settings' `values` when it has
    settings. The same errors, dropped mods and warnings are the mod menu's messages for each mod
    (`WinDMApp::GetModMessages`, as of the last new game), natively and on the web; the web page's
-   panel no longer reads this file (docs/MOD_MENU_DESIGN.md, As built M4).
+   panel no longer reads this file (docs/MOD_MENU_DESIGN.md 4.5).
 
 | Combination | Result |
 |---|---|

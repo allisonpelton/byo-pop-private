@@ -11,12 +11,12 @@ User gUser;
 // A player's checksum covers the folder of the exe (0x416100), so the original loads a player only from the install
 // that saved it. The port signs with the original's usual install folder, so players move between the original and
 // the port whatever folder the port runs from, and it loads a player signed with any of these (DEVIATIONS.md)
-static const char* const kSignFolders[] = {
+static const char* const SIGN_FOLDERS[] = {
 	"C:\\Program Files (x86)\\Popcap Game Collection\\Mahjong Escape Ancient Japan\\",
 	"C:\\Program Files\\Popcap Game Collection\\Mahjong Escape Ancient Japan\\",
 	nullptr,  // the port's own folder, which signed its players before
 };
-static const char* gSignFolder = kSignFolders[0];
+static const char* gSignFolder = SIGN_FOLDERS[0];
 
 // 0x415f40
 void User::Reset(int theId)
@@ -103,19 +103,19 @@ void User::Load(int theId, const char* theName)
 		Reset(theId);
 	else
 	{
-		bool isOk = false;
-		for (size_t i = 0; !isOk && i < sizeof(kSignFolders) / sizeof(kSignFolders[0]); i++)
+		bool aFound = false;
+		for (size_t i = 0; !aFound && i < sizeof(SIGN_FOLDERS) / sizeof(SIGN_FOLDERS[0]); i++)
 		{
-			gSignFolder = kSignFolders[i];
+			gSignFolder = SIGN_FOLDERS[i];
 			jb::Stream aTry;
 			if (aTry.OpenRead(aPath.c_str()))
 			{
 				aTry.Serialize(this);
-				isOk = mId == theId && mMagic == 0x4d45 && mVersion == 1 && aTry.ChecksumOk();
+				aFound = mId == theId && mMagic == 0x4d45 && mVersion == 1 && aTry.ChecksumOk();
 			}
 		}
-		gSignFolder = kSignFolders[0];
-		if (isOk)
+		gSignFolder = SIGN_FOLDERS[0];
+		if (aFound)
 			return;
 		Reset(theId);
 	}

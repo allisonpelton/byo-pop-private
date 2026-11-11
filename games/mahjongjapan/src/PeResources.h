@@ -27,7 +27,7 @@ public:
 
 		Key(uint32_t theId) : mIsName(false), mId(theId) {}
 		Key(const char* theName);
-		bool operator<(const Key& o) const;
+		bool operator<(const Key& theOther) const;
 	};
 
 	PeResources() {}

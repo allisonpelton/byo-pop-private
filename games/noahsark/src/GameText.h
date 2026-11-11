@@ -2,7 +2,7 @@
 #define __NOAH_GAMETEXT_H__
 
 // The texts Noah's Ark shows (dialogs, tutorial boxes, rank names, labels) are hard-coded in the original's
-// exe; there is no string file. port: by the user's decision (2026-10-19) no game text is in the repository:
+// exe; there is no string file. port: no game text is in the repository:
 // the port reads every text at start-up from the player's own executable, by address, and a mod or language
 // pack can replace any of them.
 //
@@ -22,6 +22,8 @@ namespace Sexy
 // Reads the texts from the game folder's executable and applies the string-property overrides. Returns
 // false when the executable is missing or no text matched (the texts are then empty or overrides only).
 bool				LoadGameTexts();
+// The original's empty string, where a dialog has no header, lines or footer: it is not in the table, so its text is ""
+const unsigned int GT_EMPTY = 0x0049c510;
 // The text the original keeps at theVA; "" for an address that is not in the table
 const SexyString&	GameText(unsigned int theVA);
 

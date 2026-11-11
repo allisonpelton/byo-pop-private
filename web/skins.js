@@ -46,6 +46,7 @@ var ByopopSkin = (function () {
     var q = new URLSearchParams();
     if (Q.get("silent") === "1") q.set("silent", "1");
     if (Q.get("assets") !== null) q.set("assets", Q.get("assets"));
+    if (Q.get("perf") === "1") q.set("perf", "1");
     return q.toString();
   }
   function onePage() {
@@ -143,12 +144,16 @@ var ByopopSkin = (function () {
     function pageKey() { return (EMBED ? "embed:" : "") + (pageGame || "index"); }
     function saved() { var o = store(), k = pageKey(); return (o[k] && typeof o[k] === "object") ? o[k] : {}; }
     function save() {
-      var o = store(), mine = {};
+      var o = store(), mine = {}, was = saved();
+      // a program's window (a game on the one page, kept under its page's name, o.keep) keeps its place while it is not open too,
+      // so the game opens where it was left (the user, 2026-11-10: "The positions of the game windows weren't remembered")
+      Object.keys(was).forEach(function (k) { if (k.indexOf("app:") === 0) mine[k] = was[k]; });
       wins.forEach(function (w) {
         // every window's open or closed state (a reload opens the listing's windows again as they were), its place once it has one
-        if (!w.placed && !w.min) { mine[w.id] = { closed: !!w.closed }; return; }
-        mine[w.id] = { x: w.x, y: w.y, closed: !!w.closed, min: !!w.min, placed: !!w.placed };
-        if (w.w && w.h) { mine[w.id].w = w.w; mine[w.id].h = w.h; }
+        // (a program's window not yet moved keeps no place: it opens where its turn puts it)
+        if (!w.placed && !w.min) { if (w.keep === w.id) mine[w.keep] = { closed: !!w.closed }; return; }
+        mine[w.keep] = { x: w.x, y: w.y, closed: !!w.closed, min: !!w.min, placed: !!w.placed };
+        if (w.w && w.h) { mine[w.keep].w = w.w; mine[w.keep].h = w.h; }
       });
       o[pageKey()] = mine;
       try { window.localStorage.setItem(DESK_KEY, JSON.stringify(o)); } catch (e) {}
@@ -393,7 +398,7 @@ var ByopopSkin = (function () {
     // click on the title bar does nothing: the chat's collapser) }
     function add(el, o) {
       if (!el || wins.some(function (w) { return w.el === el; })) return null;
-      var w = { focusIn: o.focusIn || null, el: el, id: o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
+      var w = { focusIn: o.focusIn || null, el: el, id: o.id, keep: o.keep || o.id, snap: o.snap || null, x: 0, y: 0, placed: false, closed: !!(o.closed && o.closable), at: o.at, open: o.open,
                 button: o.button, pic: o.pic || null, home: null, onClose: o.onClose || null, afterClose: o.afterClose || null, maximize: o.maximize || null, noIcon: !!o.noIcon, sizes: o.sizes || null,
                 minHeight: o.minHeight || null, minWidth: o.minWidth || null };
       if (o.lift) { w.home = document.createComment("desktop window " + o.id); el.parentNode.insertBefore(w.home, el); }
@@ -510,7 +515,7 @@ var ByopopSkin = (function () {
         grip.addEventListener("pointercancel", end);
       }
       el.addEventListener("pointerdown", function () { if (on) raise(w); }, true);
-      var s = saved()[o.id];
+      var s = saved()[w.keep];
       if (s && isFinite(s.x) && isFinite(s.y)) { w.x = s.x; w.y = s.y; w.placed = s.placed !== false; w.closed = !!s.closed && !!o.closable; w.min = !!s.min && !w.closed; }
       else if (s && typeof s.closed === "boolean" && o.closable) w.closed = s.closed;
       if (!o.sizes && s && s.w > 0 && s.h > 0) { w.w = Math.round(s.w); w.h = Math.round(s.h); if (on) sizeTo(w, w.w, w.h); }

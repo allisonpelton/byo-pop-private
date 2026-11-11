@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
-	static MummyApp* anApp = new MummyApp();
+	static MMApp* anApp = new MMApp();
 	anApp->SetCmdLine(argc, argv);
 	anApp->Init();
 	anApp->Start();

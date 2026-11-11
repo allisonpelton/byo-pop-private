@@ -129,14 +129,14 @@ Board::Board(WinDMApp* theApp)
 	mUndoIndex[1] = -1;
 	mFadeIn = 1.0f;
 	mSolutionNode = -1;
-	m18f0 = -1;
+	mSolutionFirstNode = -1;
 	m15fac = 1.0f;
 	m15fb4 = 1.0f;
 	m1764 = 300;
 	m1768 = 0;
 	m1850 = false;
 	m15fb8 = false;
-	m18fc = false;
+	mSolutionMove = 0;
 	mSolutionHash = 0;
 	mSolutionValid = false;
 	mSolutionMoves = 0;
@@ -255,20 +255,20 @@ Board::Board(WinDMApp* theApp)
 	m15fa0 = 0.0;
 	m1728 = NULL;
 	m15e4c = 0;
-	m15e50 = 0;
+	mCascadeCount = 0;
 	m16020 = false;
 	m1964 = 0;
 	m1968 = 1;
 	m196c = -1;
 	m1970 = -1;
 	m1974 = -1;
-	m15fc0 = 0.0;
-	m15fc8 = 0.0;
-	m15fd0 = 0.0;
+	mStarRot = 0.0;
+	mStarDrift = 0.0;
+	mStarPhase = 0.0;
 	m15fd8 = 0.0;
 	for (int i = 0; i < 8; i++)
 		mColumnExplodeTick[i] = 0;
-	m15e78 = false;
+	mExplodeHappened = false;
 	mCrazy = false;
 
 	if (!mIsPuzzle)
@@ -340,10 +340,10 @@ Board::Board(WinDMApp* theApp)
 	mSweepTimer = 0;
 	mHintCountdown = 0;
 	m15f68 = false;
-	m15e8c = 0;
+	mLastExplodeSoundTick = 0;
 	m1770 = true;
-	m17ac = 0;
-	m17a8 = 0;
+	mSecretRun = 0;
+	mSecretSolved = 0;
 	if (mApp->mGameMode < 4)
 		mSecretModeUnlocked = mApp->mProfile->IsModeUnlocked(mApp->mGameMode + 4);
 	else

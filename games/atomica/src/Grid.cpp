@@ -505,8 +505,7 @@ void Grid::Update()
 		{
 			mApp->mMusicInterface->PlayMusic(0, 0x42, false);
 			FlyAwayAll();
-			if (!mApp->mB3ea0)
-				aBoard->mAtomicus->Say(0xf);
+			aBoard->mAtomicus->Say(0xf);		// (not after a game given up, in the original: AppGame.cpp, ShowGameOver)
 		}
 		if (mOverTick == 600)
 			mApp->ShowGameOver();

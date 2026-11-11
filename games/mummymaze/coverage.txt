@@ -30,8 +30,8 @@ none 00412720 compiler-made: registers the destructor of a static object with at
 none 00412740 compiler-made: registers the destructor of a static object with atexit
 none 00412dd0 compiler-made: registers the destructor of a static object with atexit
 none 00412df0 compiler-made: registers the destructor of a static object with atexit
-none 00412e00 static initializer of the global MummyApp at 0x49c198: calls 00412e10 (constructor 0x419bb0 on the global) and 00412e20 (atexit); the port makes the app in main()
-none 00412e10 calls the MummyApp constructor (0x419bb0) on the global app object at 0x49c198; the port does new MummyApp() in main() (main.cpp)
+none 00412e00 static initializer of the global MMApp at 0x49c198: calls 00412e10 (constructor 0x419bb0 on the global) and 00412e20 (atexit); the port makes the app in main()
+none 00412e10 calls the MMApp constructor (0x419bb0) on the global app object at 0x49c198; the port does new MMApp() in main() (main.cpp)
 none 00412e20 compiler-made: registers the destructor of a static object with atexit
 none 00412e70 compiler-made: registers the destructor of a static object with atexit
 none 00412e90 compiler-made: registers the destructor of a static object with atexit
@@ -61,7 +61,7 @@ none 00421bc0 deleting dtor: calls the destructor 0x00421be0 then operator delet
 none 00421d80 compiler-made: registers the destructor of a static object with atexit
 none 00421da0 compiler-made: registers the destructor of a static object with atexit
 none 00422070 deleting dtor: calls the destructor 0x00422090 then operator delete when bit 0 is set
-none 00422430 NewAdventureDialog's ButtonDepress override (Dialog ButtonListener table 0x4828d0, slot 1): ignores id 0 and otherwise calls Dialog::ButtonDepress
+none 00422430 NameDialog's ButtonDepress override (Dialog ButtonListener table 0x4828d0, slot 1): ignores id 0 and otherwise calls Dialog::ButtonDepress
 none 00422450 compiler-made: registers the destructor of a static object with atexit
 none 00422470 compiler-made: registers the destructor of a static object with atexit
 none 00422990 deleting dtor: calls the destructor 0x004229b0 then operator delete when bit 0 is set

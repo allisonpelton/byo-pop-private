@@ -192,7 +192,7 @@ void Board::Draw3DWhirlpoolState(Graphics* g)
 	}
 	else
 	{
-		m15fb0 = 0.0f;
+		mFadeIn = 0.0f;
 		// (the original also asks for the height of the picture and does nothing with it)
 		int aBorderWidth = IMAGE_BOARD_BORDER->GetWidth();
 		float aAngle = (float)(m15de0 * 5.0);
@@ -243,7 +243,7 @@ void Board::Draw3DInterfaceRestoreState(Graphics* g)
 {
 	int aCenterX = mApp->ScaleNum(0x200, 0);
 	int aCenterY = mApp->ScaleNum(0x180, 0);
-	m15fb0 = 0.0f;
+	mFadeIn = 0.0f;
 	if (m165bc == NULL)
 		g->DrawImage(mBackdropImage, 0, 0);
 	else

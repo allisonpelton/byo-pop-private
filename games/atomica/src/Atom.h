@@ -69,7 +69,6 @@ public:
 	float		mFlySize;			// +0x98
 	float		mFlyTurn;			// +0x9c
 	float		mFlyGrow;			// +0xa0
-	float		mFlyPhase;			// +0xa4 (the bonus molecule's atoms: the frame of their shrinking)
 	int			mAlpha;				// +0xa8
 	bool		mFlag_ac;			// +0xac
 	bool		mHidden;			// +0xad hidden until the field's reveal wave reaches it

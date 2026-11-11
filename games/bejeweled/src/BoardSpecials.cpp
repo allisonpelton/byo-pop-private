@@ -1,4 +1,4 @@
-// port(variant): flame and lightning gems on a board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8, stage 11). Not
+// port(variant): flame and lightning gems on a board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8). Not
 // part of the original game. FindSetsVariant scores the groups MatchFinder found and marks their gems dying;
 // ResolveSpecials then keeps one gem of each group a special's createdBy names alive as that special and sets off
 // the specials the groups took (Specials.h decides which cells; this file scores and draws them). Everything
@@ -81,7 +81,7 @@ void Board::ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups)
 		Piece* aPiece = mBoard[c.mCell.second][c.mCell.first];
 		aPiece->mDying = false;
 		aPiece->mDyingFrame = 0;
-		ClearArrow(aPiece); // stage 18: an arrow that turns special is cleared (BoardArrows.cpp)
+		ClearArrow(aPiece); // an arrow that turns special is cleared (BoardArrows.cpp)
 		aPiece->mKind = c.mKind;
 		aPiece->mKindFrame = 0;
 		aGrid.mDying[c.mCell.second][c.mCell.first] = false;

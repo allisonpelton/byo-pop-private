@@ -56,6 +56,8 @@ var ByopopApps = (function () {
     var u = new URL(key, SITE);
     u.searchParams.set("embed", "1");
     if (SILENT) u.searchParams.set("silent", "1");
+    // the performance panel asked for in the address (?perf=1, web/perf.js): in every game window of this visit
+    if (Q.get("perf") === "1") u.searchParams.set("perf", "1");
     return u.href;
   }
   // the address in the bar, whatever window is open: the site's root, with the test parameters kept (a reload of a test run
@@ -158,7 +160,7 @@ var ByopopApps = (function () {
     // the title bar's icon, which opens the control menu: a game's cap, a document's page
     var icon = document.createElement("i");
     icon.className = kind === "game" ? "d95-sys-cap" : "d95-sys-doc"; icon.setAttribute("aria-hidden", "true");
-    desk.add(el, { id: id, title: title, closable: true, menu: true, menuIcon: icon, noIcon: true,
+    desk.add(el, { id: id, keep: "app:" + pathOf(key), title: title, closable: true, menu: true, menuIcon: icon, noIcon: true,
       onClose: function () { closeApp(app); },
       maximize: kind === "game" ? function () { maximize(app); } : null,
       // a game's window is never dragged smaller than its game (the user, 2026-11-09: "Don't allow a window to be dragged smaller
@@ -409,7 +411,39 @@ var ByopopApps = (function () {
     var w = inner(a);
     return w ? { win: w, title: a.title || "" } : null;
   }
-  return { open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
+  // ---- one window heard at a time (the user, 2026-11-10: "keep in mind the need to prevent multiple windows from playing audio at
+  // once") ----
+  // A game does with the focus what its original does: most mute themselves when another window is active, some keep sounding.
+  // Of those that would sound, only one is let through: the game in front; with no game in front, none while Music plays a tune of
+  // its own, else the game that was last in front. The others' output node is taken off their speakers (not their page's mute,
+  // which is the player's own switch) and put back when their turn comes; the game itself runs on and is told nothing.
+  function musicPlaying() { try { return !!(window.ByopopMusicPanel && ByopopMusicPanel.playing && ByopopMusicPanel.playing()); } catch (e) { return false; } }
+  function heardApp() {
+    var act = desk.active(), a = act && byId(act);
+    if (a && a.kind === "game") return a;
+    if (musicPlaying()) return null;
+    return lastGame && apps.indexOf(lastGame) >= 0 ? lastGame : null;
+  }
+  function hush() {
+    var one = heardApp();
+    apps.forEach(function (a) {
+      if (a.kind !== "game") return;
+      var want = a !== one;
+      try {
+        var w = inner(a), out = w && w.Module && w.Module.byopopAudio, node = out && out.node;
+        if (!node) return;
+        if (want && a.hushedNode !== node) { node.disconnect(node.context.destination); a.hushedNode = node; }
+        else if (!want && a.hushedNode) { if (a.hushedNode === node) node.connect(node.context.destination); a.hushedNode = null; }
+      } catch (e) {}
+    });
+  }
+  window.addEventListener("byopop-desk-active", function () { setTimeout(hush, 0); });
+  window.addEventListener("byopop-music-state", hush);
+  // (a game's output is made when it starts, some time after its window opens)
+  setInterval(function () { if (gameCount()) hush(); }, 1000);
+  function hushed(win) { var a = byWin(win); return !!(a && a.hushedNode); }
+
+  return { hushed: hushed, heard: function () { var a = heardApp(); return a ? a.key : null; }, open: open, activated: activated, f6: f6, closed: closed, title: title, fit: fit, room: room, frontGame: frontGame, frontFrame: frontFrame,
     menuKey: menuKey, fullScreen: function (win) { var a = byWin(win); if (a) fullScreen(a); },
     count: function () { return apps.length; },
     // the address back to the root (a link to #settings and the like, web/index.html)

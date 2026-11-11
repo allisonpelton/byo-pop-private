@@ -1241,6 +1241,63 @@ What it means: on an N100-class machine with any GPU, both modes should play smo
 is playable at around 40 frames a second. 3D drops to under 20 frames a second, though the game itself keeps nearly
 full speed. A browser without the graphics card already starts in 2D (the game's own choice, above in "3D mode").
 
+## The performance pass (2026-11-11)
+
+The pass of `docs/COORDINATION.md` ("A performance pass before the readability pass"), after the two "Performance" sections
+above, whose native half had only the main menu to compare (the original's autoplay crashed in that copy). The prepared copy
+runs its autoplay, so the original and the port were measured over the same game.
+
+**Measured in pairs.** `tools/profile/pairs.sh` runs the original and then the port, each one process sampled every 50 ms by
+`games/bejeweled/tools/profile/perfmin.py` from its creation to its exit: the same seeded Classic autoplay (seed 1234, which
+deals both the same game), 2D at the 768 art, windowed, on the real clock, silent, about 105 s a run. The original runs under
+origrun on the host with its seed patch, the port under rundesk. The processor figures are for 30 s to 90 s of the process's
+life, inside the game on both sides. 3D is not in it: the original runs in 3D only on the user's own desktop ("3D mode"
+above). Six pairs ran on 2026-11-11 between 00:57 and 01:20. The machine was never quiet: one to four other sessions' game
+processes ran beside every run (the counts are in the table), so no pair is clean, and the figures are for comparing the two
+here and now.
+
+| Pair | Other game processes (original, port) | Original: processor in the window, whole run | Port: processor in the window, whole run | Peak private bytes, original / port | Peak working set, original / port |
+|---|---|---|---|---|---|
+| 1 | 1, 2 | 55.3 %, 57.5 s | 39.4 %, 47.4 s | 186.0 / 395.4 MB | 212.0 / 396.3 MB |
+| 2 | 3, 2 | 46.3 %, 50.1 s | 38.3 %, 40.7 s | 185.7 / 405.9 MB | 204.3 / 406.8 MB |
+| 3 | 2, 3 | 54.4 %, 56.5 s | 34.6 %, 41.5 s | 185.4 / 383.1 MB | 204.3 / 388.1 MB |
+| 4 | 4, 3 | 35.3 %, 40.5 s | 33.9 %, 43.7 s | 185.5 / 391.6 MB | 204.2 / 398.7 MB |
+| 5 | 3, 2 | 39.7 %, 43.3 s | 34.6 %, 41.7 s | 185.4 / 388.3 MB | 204.4 / 396.7 MB |
+| 6 | 2, 2 | 51.6 %, 50.6 s | 37.7 %, 45.8 s | 188.0 / 392.1 MB | 213.3 / 399.2 MB |
+
+The processor figures are the percentage of one core in the window and the seconds over the whole run. In the window the port
+used less than the original in every pair: 34 to 39 % of a core (median 36) against 35 to 55 % (median 49). Both draw the 2D
+game in software, which is why either costs a third to a half of a core. Over the whole run the port used less in five pairs
+of six (its loading is shorter too). In memory the port holds about twice what the original does, 383 to 406 MB of private
+bytes at its peak against 185 to 188 MB.
+
+**Where the memory goes.** One run's private bytes over time (pair 4): the original is at 158 MB when its menu comes up and
+between 177 and 184 MB for the rest. The port is at 210 MB when the game starts and 228 to 230 MB while it plays, then 386 MB
+at the first level-up, 283 MB after it, and 379 MB at the second. So there are two parts. The steady 50 MB over the original is
+the framework's, as for Bejeweled and the Mahjongs (`docs/COORDINATION.md`: every image's pixels kept beside its texture, the
+sounds as 48 kHz float). The other part is a transient of about 165 MB at each level-up's jump (in a run under `memprof.py`:
+240 MB until 44 s, 305 MB from 44 s, 405 MB from 52 s, 283 MB from 62 s), which the original does not have. It is not the
+game's C++ heap: a temporary `operator new` that logged every block of 64 KB and more (never committed) counted 22 MB of them
+from the level-up on, most of it images getting their pixels back (`MemoryImage::GetBits`, 17 MB). `memprof.py` puts it in
+private memory that belongs to no module, so it is allocated beneath the game, by the C libraries or the graphics driver's
+side of the display, while the jump's frames are drawn in software and uploaded. That is shared code: the finding went to the
+coordinator, and nothing in the game was changed for it.
+
+**Where the time goes in a test run.** `games/bejeweled/tools/profile/cpuprof.py` on the port with `-fast` (seed 1234,
+30,000 updates of Classic autoplay in 24.7 s, 79 G cycles): the graphics driver 38 %, system calls (ntdll) 21 %, Direct3D and
+win32u 6 %, and the exe 28 %. The exe's share is the 2D game's software drawing and what follows from it:
+`MemoryImage::BltRotated` 5.5 %, the texture upload (`DDInterface::PrepareTexture`) 4.1 %, the software triangles 3.3 %,
+then the JPEG 2000 decoder of the backdrops (about 4 % in all), the effects (`EffectsManager::Update` and `DrawEffects`,
+1.7 %) and the Ogg decoder. No function of the board's own logic is above 0.2 %.
+
+**What the pass changed: nothing in the game.** The port already uses less processor time than the original, its `-fast`
+runs do 1,200 updates a second with two thirds of the time in the driver and the system, and its own share is the software
+drawing the original has too. Both memory costs are below the game. No source changed, so the frozen baseline needs no new
+run.
+
+**Not measured.** The 3D mode against the original (above). The web build was measured on 2026-11-03 ("Performance (web)")
+and not again. A quiet machine: the script waited and then measured with other sessions' games running.
+
 ## Coverage check (2026-11-09)
 
 The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, in nine runs
@@ -1292,8 +1349,8 @@ it (comment edits only). Five were missing from the port, and are translated now
   on under the quit question, Blitz's clock included.
 - `RankBadge::Update` (0x70cbfa): while the mouse is over the rank badge in the tube's head, the tube's tip shows "RANK n" and
   the rank's name, then how far the player is to the next rank, then nothing, each for 200 updates. +0x150 is a float timer and
-  +0x154 the page, which the port had as two unread ints. Checked in the port only: the original's sandbox has a new player,
-  whose first game is the tutorial's, with no tube.
+  +0x154 the page, which the port had as two unread ints. Checked in the port only (both pages show, once the game-text
+  table had its two texts: see the next section).
 - `Board::KeyChar` (0x6b3217): the last 24 letters typed while the mouse is off the grid; SNACKERS switches coal to its
   snackers look and back, NORMAL stops the rain effect and sets the game's speed back to 1. NORMAL's other branch, which asks
   the app for a change of screen mode, needs a flag (+0x1bf1) that only the constructor writes, and is left out.
@@ -1318,9 +1375,85 @@ them; nothing in the runs points at game logic among them that a run should have
 The bejeweledtwist suite passes after the changes (screens as frozen, baseline identical): its runs open no dialog over a game,
 change no focus in a game, type nothing and fire no fruit shockwave, so none of the fixes touches them.
 
+**What the coverage check proves, and what it does not (the user, 2026-11-10: "Not sure how you can claim which functions
+aren't reached when the functionality isn't 100%").** The check proves two things only: which of the original's functions ran
+in the runs it made, and that each of those has a counterpart in the port (a function, a place inside one, or a reason for
+leaving it out). It does not prove that a counterpart is right; only a comparison with the original shows that, and "never
+reached" there means "no run of mine reached it", not "the game works without it". Challenge mode shows the gap: its functions
+were reached and had counterparts, and it still had four faults (below), because none of its screens had ever been compared
+with the original by pictures. Neither phase of `IDENTICAL_PLAY.md` has a challenge-mode comparison in it. Compared since
+(2026-11-10, in 2D): the challenge menu at rest, and the load from the planet's click to the first "GO!". Still never compared:
+the win's message, the trophy and the planets' progress after it, a failed challenge, the timed and the night challenges, the
+in-game options' restart of a challenge, a saved challenge continued, and everything of challenge mode in 3D.
+
 **Open.** For the tool (sent to the coordinator): coverage inside Windows Sandbox, so that the 3D code, and runs that need
-shots, can be recorded. The rank badge's tip against the original, once a sandbox run can start with a player past the
-tutorial.
+shots, can be recorded. The rank badge's tip against the original: three sandbox runs with the user's player staged (2026-11-11) did not get a
+Classic board under the mouse (the mode select was not ready at update 2000, and a later click ended on the main menu), and
+it was left there: the tip's two texts and its timing are the original's code, seen working in the port.
 
 **Cost.** About 30 minutes of game processes (the nine runs, one at a time, beside the port's screen runs), three agents' sorting
 and reading (about a million tokens between them), and the session's own work.
+
+## The challenge's start and the unlock voice (the user's faults, 2026-11-10)
+
+The user: "The Twist challenge load doesn't look right", and "after winning, 'New Challenge Unlocked' played twice". Four
+faults came out of it, each the original's own logic that the port had wrong or lacked.
+
+**The 3D start was the 2D one.** `Hyperspace::StartChallenge` (0x71c18f) has two branches, and the port had only the one
+without Direct3D, run in 3D as well: the 2D fade's curves under a 3D flight, so the empty board stood over the ship and the
+gate while they flew in. The Direct3D branch is translated (`StartChallenge3D`, from the disassembly, since the export hides
+which curve each string goes to): the level 0, the jump's five curves reset (0x70e83c), the crystals', the engine's, the cone's
+and the orbit's curves on the jump's clock, the camera's path and the sidebar's turns at rest, the crystals' direction from the
+picked planet's place on the screen (in units of 380 art pixels from the middle, y up; `ChallengeMenu::Start` passes the
+planet's +0x5b4, which the port had left out), and the VizManager's picture drawn into the jump's picture, which space shows
+instead of the VizManager. The gate now opens at the planet with the challenge's backdrop in it, the camera flies in, and the
+tube and the board come after, as at Classic's start. Seen in the port only (strips of shots before and after): the original's
+3D frames need a run on the user's visible desktop, which needs the user's leave each time ("3D mode" above), and is not asked
+for yet.
+
+**The planets stood still in 2D.** The software planet reads its layer a little further along each update: the shift is the
+spin (the update count times 0.2) times 0.4, kept on the FPU's stack across the pixel loop, where the export shows only an
+unnamed value. The port had the planet's scale times 0.4, a constant. Found by shotdiff against the original in the sandbox
+(the user's player staged into its ProgramData, `build/bjt/sb.sh`): in the original 1,922 of the Spectrum planet's pixels
+changed in 50 updates, in the port none. With the fix the planets match at every frame compared.
+
+**The unlock voice played twice.** The voice plays when a planet's dimming curve passes 0.9 (`ChallengeButton::Update`). After
+a win the curve runs once (the voice), and when the win's message goes the menu sets the curve to the constant 0
+(`UpdateProgress(false)`). `CurvedVal::SetConstant` (0x6e97bd) zeroes the input and both ends of its range; the port set the
+range's end to 1. SetConstant leaves the step of the curve before it, so in the port the input ran from 0 to 1 again and passed
+0.9 a second time, 2.7 s later; in the original each step is clamped back to 0. Proved by a won challenge on the live channel
+with the sound log (`live.py ... challenge 495 95 after 2 flame f ...`, the bot's twist with its gems made flame gems): with the
+old range voice_newchallengeunlocked plays at updates 2583 and 3126, with the fix once. The fix is in every curve of the game;
+the suite's screens and baseline are unchanged by it.
+
+**Ending a challenge crashed in 2D** (found by that run, not by the user, who plays in 3D). Since the 3D milestone (d09fc960,
+2026-11-02) `Hyperspace::MakeOldPicture` prepared the jump's picture through the Direct3D object, which 2D does not have, and
+space's end in a challenge makes that picture in 2D too: an access violation as the trophy's sound started. The call is skipped
+without Direct3D. No test had finished a challenge in 2D since then.
+
+Also from the 2D comparison (45 pairs, `build/shotreview/bejeweledtwist/chal2d`): once the port ran on the original's update
+numbers, the load matched but for three things, masked or left. The original's captures hold its mouse pointer, the port's do
+not (a mask at the pointer's place). The sun's flames round the moon and the glints on a few gems as the board settles differ
+in shape and moment: both draw random numbers on their own, apart from the board's, which matched gem for gem (masks). And the
+picked planet's name flashes in over the five updates between the press and the release in the port, while the original's five
+captures there are identical and brighter; whether the original shows the name at once or the sandbox captured one frame five
+times was not settled, and it is left open here.
+
+The game-text table was stale: a curve or text whose address `gametext.py` has not listed reads as empty, so the 3D branch's
+twelve curves ran out at once until the table was made again, and the rank badge's two texts of the coverage check had been
+empty too (its tip showed only the rank's name). The table is regenerated; 18 addresses nothing uses any more went out of it.
+`live.py` has three new steps for this: `challenge <x> <y>`, `after <n>` and `wait <n>`.
+
+## The site's Close says goodbye (2026-11-11)
+
+The user: "When using the window close dialog, it should wait for the Goodbye sound like quitting from the menu does." The
+menu's Quit, Yes (`Menu::DialogButtonDepress`, dialog 2) plays SOUND_VOICE_GOODBYE and waits for it in place before
+`Shutdown()`; a web build cannot wait in place (the sound plays only once the call returns), so that wait was compiled out on
+the web, and the site's Close shut the game down at once through the restart hook. Now the framework has
+`SexyAppBase::QuitAsGame` (by default `Shutdown()`), which the page calls through the export `byopop_quit`, and Twist
+overrides it: the voice starts, and `UpdateFrames` shuts the game down once it has ended (a voice that never ends is given
+1,000 updates), a second call meanwhile doing nothing. On the web the menu's Quit goes the same way; natively it is unchanged,
+and nothing native calls the hook (the suite's screens and baseline are as frozen). Seen in the Browser pane with `?silent=1`,
+where nothing can be heard, by the game's own log: `byopop_quit` at update 1437 logged "the goodbye voice started", then "ended
+after 139 updates; shutting down" (the voice is 1.405 s long), and the page's game ended. The site's own line that calls
+`byopop_quit` is the site session's.

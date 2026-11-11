@@ -11,18 +11,18 @@
 namespace Sexy
 {
 
-class AlchemyApp;
+class WinAlchApp;
 class HyperlinkWidget;
 
 class TitleScreen : public Widget, public ButtonListener
 {
 public:
-	AlchemyApp*			mApp;               // +0x5c
+	WinAlchApp*			mApp;               // +0x5c
 	double				mProgress;          // +0x60 the bar (0..1)
 	bool				mDone;              // +0x70 the loading ended and the link is up
 	HyperlinkWidget*	mPlayLink;          // +0x84 id 1
 
-	TitleScreen(AlchemyApp* theApp);
+	TitleScreen(WinAlchApp* theApp);
 	virtual ~TitleScreen();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;     // 0x410286

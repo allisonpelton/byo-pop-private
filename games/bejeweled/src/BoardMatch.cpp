@@ -1,4 +1,4 @@
-// port(variant): the match rules on a board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7, stage 9): the
+// port(variant): the match rules on a board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7): the
 // variant paths of FindSets, HasSet and FindMove, on MatchFinder's groups. Not part of the original game.
 // -forcevariant runs them at default rules, where they must play exactly as the originals.
 
@@ -98,7 +98,7 @@ void Board::ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX)
 	int aScoreBefore = mScore;
 	mScore += aPoints;
 	// A negative match.bonus, as the hint penalty: never below 0. Without one the points add as the original adds them,
-	// so a score past the int's range wraps or turns INT_MIN as there (mods/stage4/overflow)
+	// so a score past the int's range wraps or turns INT_MIN as there (the oracle's overflow mod, mods/stage4/overflow)
 	if ((aBonus < 0) && (mScore < 0))
 		mScore = 0;
 	if (mStats != NULL) // the Stats page (GameStats.h): a shape counts with the runs of 5 or more
@@ -163,16 +163,16 @@ bool Board::FindSetsVariant()
 		anAvgXSum += anAvgX;
 		aMaxLength = std::max(aMaxLength, (int) aGroup.mCells.size());
 	}
-	// Stage 12: the groups' cells turn gold (BoardGold.cpp)
+	// The groups' cells turn gold (BoardGold.cpp)
 	if (mVariant.mGold && (mRules.mGold.mGild != GameRules::GILD_BLASTS))
 	{
 		for (const MatchFinder::Group& aGroup : aGroups)
 			GildCells(aGroup.mCells);
 	}
-	// Stage 11: the specials the groups make and set off (BoardSpecials.cpp)
+	// The specials the groups make and set off (BoardSpecials.cpp)
 	if (mVariant.mSpecials && !aGroups.empty())
 		ResolveSpecials(aGroups);
-	// Stage 18: the arrows the groups and blasts took are cleared (BoardArrows.cpp)
+	// The arrows the groups and blasts took are cleared (BoardArrows.cpp)
 	if (mVariant.mArrows && !aGroups.empty())
 		ClearMatchedArrows();
 

@@ -1,3 +1,5 @@
+// port: the level tables, read from the player's own WinMM.exe (GameLevels.h).
+
 #include "GameLevels.h"
 #include "PEImage.h"
 #include "platform/VFS.h"

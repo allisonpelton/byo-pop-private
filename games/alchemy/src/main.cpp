@@ -9,9 +9,9 @@
 //   -nomods          start without any mods
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the
 // framework's test hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h) and the game's own
-// -autoplay=<seed> (AlchemyApp.h).
+// -autoplay=<seed> (WinAlchApp.h).
 
-#include "AlchemyApp.h"
+#include "WinAlchApp.h"
 #include "platform/ModManager.h"
 #include "platform/SaveImport.h"
 #include "platform/VFS.h"
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.
-	static AlchemyApp* anApp = new AlchemyApp();
+	static WinAlchApp* anApp = new WinAlchApp();
 	anApp->SetCmdLine(argc, argv);
 	anApp->Init();
 	anApp->Start();

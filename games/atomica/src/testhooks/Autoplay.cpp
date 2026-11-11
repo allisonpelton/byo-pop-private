@@ -738,7 +738,7 @@ bool ChooseMove(Grid* g, unsigned int theSeed, Atom** theSource, int* theToCol, 
 std::string AtomicaApp::BotMoveJson()
 {
 	// the dialogs the bot does not open: no answer
-	if ((mOptionsDialog != NULL) || (mQuitDialog != NULL) || (mConfirmDialog != NULL) || (mHighScoresBox != NULL))
+	if ((mOptionsDialog != NULL) || (mQuitDialog != NULL) || (mHighScoresBox != NULL))
 		return "null";
 
 	// the high score entry: the name is typed and the button pressed
