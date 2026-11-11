@@ -262,13 +262,20 @@ has the menu behind it). The two others are timing of the harness and not of the
 **The faint shots.** After the fixes below, nothing in them is visible to a reviewer; the raw check finds three kinds of residue:
 
 - the 2D blits: `DDImage::NormalBlt` (0x4ac1d0, 0x4b0f50) and `AdditiveBlt` (0x4ae3f0) of 2004 round the blend of a halo, a particle
-  or a faded brick in another way than the framework's blit, by up to about 22 levels (the original in the sandbox runs without
-  Direct3D, as the port's tours do with `Is3D=0`). The functions are in `re/astropop/asm_fw/`; this is shared code, and a spec went to
-  the coordinator;
-- the ring of the atomic explosion, the Atomic Bomb weapon, drawn at twice the size of a cel with `DrawCelStretched`: the edges differ
-  in a few thousand pixels by up to 91 levels (w_spr g3700 91, g3800 47; ck13 g3650 49, g3800 47), since the original stretches
-  through `DDImage::StretchBlt` 0x4c68c0 / `SlowStretchBlt` 0x4b1bf0 and the port through the framework's `GetStretchCopy`. Shared code
-  again (the same message);
+  or a faded brick in another way than the framework's blit (the GPU's), by at most 11 levels (emerg1 g22200, where sparks and halos
+  pile up; at most 7 in every other shot) and in every shot that blends anything (the original in the sandbox runs without Direct3D,
+  as the port's tours do with `Is3D=0`). The port's 2D screen is the GPU's, whose blend rounds to nearest where the 2004 code truncates
+  (`dest * (256 - a) + src * a >> 8` on the packed channels), so the shared code would need a software screen and the 2004 arithmetic
+  of the two functions above, which have about 5,500 lines of x86 between them (16 and 32 bit, with and without a colour,
+  transparent or not). It is not done (GAME_NOTES section 8);
+- the ring of the atomic explosion, the Atomic Bomb weapon, drawn at twice the size of a cel with `DrawCelStretched`, differed at its
+  edges in a few thousand pixels by up to 91 levels (w_spr g3700 91, g3800 47; ck13 g3650 49, g3800 47). The cause was not the
+  stretch's arithmetic (the framework's `SlowStretchBlt` is the original's: the same 257 and 256 weights, the same factors) but the
+  fast flag: the framework's `WidgetManager` sets `SetFastStretch` on every widget's `Graphics` in a 2D run, so the ring was
+  stretched in 16.16 steps (each pixel twice over), while the 2004 `WidgetManager` sets no such flag (the only caller of
+  `Graphics::SetFastStretch` 0x4af630 is the level-up text's own draw, 0x40c8a0) and the ring is averaged. Fixed by the shared option
+  `gWidgetsDrawWithoutFastStretch` (framework/WidgetManager.h), off by default, which AstroPop turns on; the four shots now differ by
+  at most 7 levels, the residue of the blits above;
 - one or two single pixels (classic1 g4500 and classic6 g7048: two pixels at (563, 296) over 200 levels).
 
 **Web against native.** Seventeen of the eighteen tours differ by at most 9 levels in any pixel; the largest count of pixels over 6
@@ -341,6 +348,7 @@ pass, 0 fail and 1 information.
 | the siren, the lightning pair, the upgrade head and the arm were upside down | 0x4cfb50 is `MirrorImage` (left to right), the port called `FlipImage` | `MirrorImage` | 65795b0b |
 | the Fusion Warhead's atoms came from the wrong bricks, and a sprocket and a turbot overlay were never switched | the brick's event listener (vtable 0x55d500 slots 25 to 28) reads events 0x16, 0x17, 0x18, 0x19 as sprocket off, turbot off, sprocket on, turbot on | the four events do that | 65795b0b |
 | the weapon's box was 400 high and its OK button silent | vftable 0x56b8b8 slot 0xc8 is 0x483b90: twice the picture's height plus 0x96 (370); the button plays the sample at +0x118, which is 0 and, in the original's alphabetical numbering, the one-second timer's tick | 370; the tick, asked for by name (the port numbers by manifest order); a fix candidate for the mod | 65795b0b |
+| the atomic explosion's ring was stretched pixel by pixel (up to 91 levels at its edges) | the 2004 `WidgetManager` leaves the fast stretch off; only the level-up text asks for it | the option `gWidgetsDrawWithoutFastStretch` is on (shared commit) | c2219d33 |
 | every spark of a low brick flew from another place (emerg1 and ck29: tens of shots) | `Brick::UpdateSparks` 0x406e20 hands the particle's constructor its second draw first and its first draw second; the other seven call sites do not | the same order (all eight call sites read against the asm; the draws, and so the games, were always the same) | 65795b0b |
 
 The tools changed too: `gamerun.sh` plays a recorded game and takes its shots, `freeze.sh` copies the exe for a long tour,
