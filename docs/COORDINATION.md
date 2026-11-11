@@ -6,12 +6,16 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
 
 ## Usage
 
-- **Weekly cap (the user, 2026-10-26; 2026-11-03):** when the account's weekly usage (all models) reaches 97%, the
-  coordinator starts no new game session and sends no "Begin" ("I only need 3% usage in reserve for the week", the
-  user, 2026-11-03; it was 85%); it checks with `mcp__ccd_session_mgmt__get_usage` before each one.
-  The cap is for the identical-play sessions; site work goes ahead past it (the user, 2026-11-04). Game sessions already running carry on and do not watch the usage. The coordinator keeps merging their milestones
-  and keeps the local test site ready: `build/web` built from `main`, with every finished game importing and playable.
-  Site work runs alongside the game sessions (the user, 2026-11-01).
+- **Weekly cap, a hard limit (the user, 2026-10-26; 2026-11-03; 2026-11-10):** when the account's weekly usage reaches
+  97% (all models, or the window of the model the sessions run on), work stops there: "I only need 3% usage in reserve
+  for the week" (2026-11-03). The coordinator starts no session, sends no "Begin" and sends no session on to a further
+  phase or step; it tells every session at work to commit what it has and end its turn, stops the turn of any that goes
+  on, and merges nothing that needs a suite run. The README refresh the user asked for at 97% is the one thing it still
+  does. It checks `mcp__ccd_session_mgmt__get_usage` hourly while sessions work (a cron job), warns the sessions at
+  95% to reach a commit, and checks again before every message that sends a session on. On 2026-11-09 it refreshed the
+  README at 97% and then kept merging and sent six idle sessions on to their next phases, which used the reserve: "You
+  ran up the usage all the way to 100% despite my 97% limit" (the user, 2026-11-10). This replaces the earlier
+  allowances (running sessions carrying on past the cap, site work going ahead past it).
 - **Effort (the user, 2026-10-27, a trial):** game sessions run at medium effort to save usage; the coordinator sets
   it on every session it starts.
 
@@ -35,6 +39,13 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   test-then-increment loop does not become a for loop), checks what a comment claims about the original before
   writing it, and builds with AddressSanitizer at the first sign of a crash or memory corruption. If a Sonnet
   game's review finds many faults, or its port runs far over its estimate, games of its kind move to Opus.
+- **Fable only, an experiment (the user, 2026-11-10):** "An experiment this week: ONLY use the new Fable 5.2. Use it
+  for everything so I can explore its capabilities and make full use of the banked reset." Every session, the
+  coordinator included, and every agent a session starts runs on Fable 5.2 (`claude-fable-5-2`; `model: "fable"` or
+  no model for an Agent), and the model selection above is suspended until the user ends the experiment. The
+  coordinator switched every linked session on 2026-11-10 and starts new ones on it. The user wants to hear how
+  productive Fable was compared with Opus when its weekly window is close to running out: the baseline and the
+  measure are in the coordinator's memory (`fable-experiment`).
 
 - **Finished games' sessions are archived (the user, 2026-11-04):** to free the boot drive, the sessions of the games
   that are done and identical were archived and their worktrees removed (about 62 GB), with the three abandoned
