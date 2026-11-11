@@ -896,3 +896,57 @@ on an `int*`, which is byte 0x160, the wave strength `mWaveAmp`, not the board's
 `mSpareDialogFlag` (+0x260: `KeyChar` writes `this[0x98]` on a one-byte `TypingTutor` type, the byte at +0x98, a different field). The 11 it lists
 as read only are fields that the export reaches by another path (a pointer the port keeps in a member, a sub-object's `this`); none is
 a field that the original writes and the port never sets, which is what the check is for.
+
+## 15. The PopCap Game Collection version (2026-11-11)
+
+The port was made from the Steam copy (WinTS.exe, the launcher with the game appended), so it is checked against the game's version on
+the PopCap Game Collection disc (2009; `docs/COORDINATION.md`): the two versions compared, and the port run on the Collection's files. The
+procedure is Bejeweled's (its GAME_NOTES section 23); `tools/collection/` holds the tools.
+
+**Getting the files.** `unshield` (built for Bejeweled's check, `E:\retools\unshield-build`; the user allowed it on 2026-11-10) read the
+disc image's cabinet, which was mounted read-only and dismounted afterwards. The group `TyperSharkDeluxeComponent` came out: 617 files, 6.7 MB,
+in the main checkout's `re/_installers/TyperSharkDeluxeCollection` (git-ignored). The copy has no launcher: `TyperShark.exe` is the
+game itself, beside `bass.dll`, `license.txt`, `readme.html`, `register.tpl` and the folders `data`, `images`, `music`, `properties`, `sounds`
+and `users`.
+
+**The exe is the same build.** Set beside the game carved from Steam's WinTS.exe (`re/typershark/bin/TyperSharkGame.exe`;
+`tools/collection/cmpexe.py`), the Collection's `TyperShark.exe` has the same link time (20 April 2004, 20:00:28) and the same
+sections. `.text` and `.data` are byte for byte the same, `.rdata` differs in 8 bytes (an eight-digit stamp at 0x535f68), and the resources differ: the
+Collection's exe carries more icon sizes (`.rsrc` is 159,744 bytes against 28,672). The header's checksum and a few other header bytes differ, and a signature of
+5,432 bytes follows the last section. So everything the decompilation, the identical-play pass and the coverage check found holds for the
+Collection's game too, and no code was compared further.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the Steam copy's 619 files and the Collection's 617, 606 are the same byte for byte:
+every picture, sound, song and data file but the ones below. The differences:
+
+- `images/titlescreen.jpg`, `barandlogo.gif` and `_barandlogo.gif`, which `TitleScreen::Draw` draws (`tools/collection/cmpimages.py`).
+  The Steam copy's title picture has no logo and its bar picture carries the flat "PopCap Games" logo at the bottom right; the Collection's
+  title picture is another encoding with PopCap's round logo and a TM mark (at the top right and the bottom right), and its bar picture has no logo. The
+  port draws the files it is given.
+- `images/_statusbarfont.png`: the same 6,110 pixels, stored as RGBA where Steam's is a palette picture.
+- `properties/partner.xml`: the registry key is the same (`PopCap\TyperShark`), as are `NoReg`, the product name and `DefaultWindowed`, the only
+  settings the port reads (`SexyApp::InitPropertiesHook`). The Collection's `DontUpdate` is false and it has an `Offering` number; Steam's has a
+  Steam id, a buy link and `NumOptionsLinks`. The update check, the links and the buy link are not in the port.
+- The licence and readme, `register.tpl` and the launcher's own files (`WinTS.exe`, `Flash.ocx`, `drm.*`) differ or exist on one side only.
+- `users/user.idx`, which only the Collection ships: the default score table. It is the file the port writes at its first run in everything but
+  the random number after the version (the port's run: 101; the Collection's: 128; both are in the range 0x60 to 0x84 that
+  `SaveHighScores` draws from), so the tables the port makes (`LoadDefaultHighScores`) are the Collection's, name for name and score for score.
+  The staging tool does not copy `users`: the port keeps the players' data in its own folder.
+
+**The port on the Collection's files** (`tools/collection/run.sh`). `stage_typershark_assets.py` stages a Collection folder as it does a
+Steam one (597 files, no `wints.exe`: the texts come from `typershark.exe`, which `GameText.cpp` and `main.cpp` now accept beside `WinTS.exe`).
+- `tools/regress.py` with the Collection's staging: the 13 games' state-log hashes are `regress_expected.txt`'s, as on the Steam files.
+- The tours M (98 screenshots: the first start, the menu and its hovers, the dialogs, Options, the credits, the statistics, the Hall of Fame), H (24: an abyss game to its game over, the Hall of
+  Fame) and I (8: the idle adventure game to its game over, and the second game), each run once on each set of files from a fresh profile folder, compared by shotdiff:
+  all 130 pairs are equal, pixel for pixel. A `-fast` run's loading ends before its first update, so the title screen is never drawn in it; the
+  test command `goto title` shows it, and its three shots (`tools/collection/tour_title.py`) differ in the two places where the pictures differ: the
+  logo at the bottom right (a flat "PopCap Games" against the round logo) and the TM mark at the top right. Both are the files'.
+- The web build under Node on the Collection's files (the page's code, no canvas): the title and menu tours, 101 pictures, equal to the native
+  port's on the same files to within 3 levels of 255, the web build's usual difference (section 6). The page's importer
+  (`web/page.js`) takes the Collection's folder: `TyperShark.exe` or `WinTS.exe` at the top is copied, and neither is a marker any more, since a
+  marker cannot name two files; a folder with neither would import and show no texts (logged), where it used to be refused. A shared marker
+  with alternatives (`WinTS.exe|TyperShark.exe`) would restore the check; it is waiting for the coordinator.
+
+**Not done, and one thing to know.** The Collection's own exe was not run: its code is the Steam game's, and a run could only show the
+title pictures again. The port's executable is also called `typershark.exe`, the name of the Collection's game: the installer that puts a
+native port beside the original (`docs/STEAM_LAUNCH.md`) must not write it into a Collection folder under that name.

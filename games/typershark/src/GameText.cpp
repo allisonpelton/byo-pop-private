@@ -117,10 +117,11 @@ bool Sexy::LoadGameTexts()
 	std::map<unsigned int, SexyString>& aTexts = Texts();
 	aTexts.clear();
 
-	// The retail launcher (WinTS.exe) or a carved game image (as tools/extract_game_exe.py writes it)
+	// The Steam copy's launcher (WinTS.exe), a carved game image (as tools/extract_game_exe.py writes it) or the game of the
+	// PopCap Game Collection's copy (TyperShark.exe, the same program with no launcher around it)
 	std::vector<uint8_t> aData;
 	bool aRead = false;
-	const char* aNames[] = {"WinTS.exe", "TyperSharkGame.exe"};
+	const char* aNames[] = {"WinTS.exe", "TyperSharkGame.exe", "TyperShark.exe"};
 	for (const char* aName : aNames)
 	{
 		if (Platform::VFS::Get().ReadAll(aName, aData) && !aData.empty())

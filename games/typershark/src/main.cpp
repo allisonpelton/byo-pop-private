@@ -2,7 +2,7 @@
 //
 // Arguments (all optional):
 //   -gamedir=<dir>   folder containing the game's images/, data/, sounds/, music/, properties/ and
-//                    WinTS.exe (read for the game's texts, never run)
+//                    WinTS.exe, or TyperShark.exe of the PopCap Game Collection's copy (read for the game's texts, never run)
 //   -userdir=<dir>   writable folder for the players' data and registry.ini
 //   -modsdir=<dir>   folder containing data mods (one sub-folder per mod)
 //   -nomods          start without any mods
@@ -51,10 +51,12 @@ static bool HasFlag(int argc, char** argv, const char* theFlag)
 	return false;
 }
 
-// The game's texts are read from the original's WinTS.exe (GameText.h), so it is part of the game folder
+// The game's texts are read from the original's WinTS.exe or, in the Collection's copy, TyperShark.exe (GameText.h), so one of
+// them is part of the game folder
 static bool LooksLikeGameDir(const std::string& theDir)
 {
-	return !Platform::VFS::FindCaseInsensitive(theDir, "wints.exe").empty() &&
+	return (!Platform::VFS::FindCaseInsensitive(theDir, "wints.exe").empty() ||
+			!Platform::VFS::FindCaseInsensitive(theDir, "typershark.exe").empty()) &&
 		!Platform::VFS::FindCaseInsensitive(theDir, "data/twords.txt").empty() &&
 		!Platform::VFS::FindCaseInsensitive(theDir, "images/titlescreen.jpg").empty();
 }
@@ -135,7 +137,7 @@ int main(int argc, char** argv)
 	{
 		std::string msg = "Could not find the Typer Shark Deluxe game files.\n\n"
 			"Run with -gamedir=\"<your Typer Shark Deluxe folder>\" or copy the images, data, sounds, music "
-			"and properties folders and the original WinTS.exe (the game's texts are read from it) into an "
+			"and properties folders and the original WinTS.exe or TyperShark.exe (the game's texts are read from it) into an "
 			"assets/typershark folder next to the executable.";
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Typer Shark Deluxe", msg.c_str(), nullptr);
 		SDL_Log("%s", msg.c_str());
