@@ -121,6 +121,12 @@ typically like").
   halve them but may round a right edge differently at some window scales, so no fix is chosen yet; to test one,
   `games/atomica/tools/profile/pairs.sh` for the figures and a screenshot every 40 updates of its scenarios s2, a1 and
   g5 before and after for the pixels.
+- **A shared cost found by Twist's performance pass (2026-11-11):** in 2D each level-up's jump raises the port's
+  private memory by about 165 MB for about ten seconds (240 MB to 405 MB, the original flat at 185 MB). It is not the
+  game's heap (22 MB in blocks of 64 KB and more) and belongs to no module, so it is allocated beneath the game while
+  the jump's software-drawn frames are uploaded. To find it: hook malloc with a --wrap link, or count texture
+  creations in the display layer during a jump; `bejeweledtwist.exe -nod3d9 -fast -autoplay=classic -seed=1234` under
+  its perfmin.py reaches the jump at about update 4000 to 5700.
 - **Memory broken down, and a software path to test (the user, 2026-11-11):** "I'd want the more granular performance
   reports then": every game's memory split into libraries, sound, graphics and game state, for the port and where it can
   be read for the original, in the README's performance table. The framework answers a standard `memreport` test command
