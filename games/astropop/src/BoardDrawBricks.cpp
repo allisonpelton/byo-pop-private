@@ -52,7 +52,7 @@ void Board::DrawBricks(Graphics* g, bool theGlow)
 void Board::DrawBonusIntro(Graphics* g)
 {
 	int aPieceX = m198c - 5;
-	int aBaseY = (int) ((double) m1bf8 + 423.0);
+	int aBaseY = (int) (m1bf8 + 423.0f);
 
 	if (m916)
 	{
@@ -82,7 +82,7 @@ void Board::DrawBonusIntro(Graphics* g)
 		std::string aWorth = FormatNumber(m960);
 		WriteString(g, StrFormat(GTC(0x00564828), aWorth.c_str()), 0xa6, 0x104, 0x1b8, 0, true, 0, -1);
 		int aY = g->GetFont()->GetHeight() + 0x104;
-		std::string aPenalty = FormatNumber((int) ((double) m960 * 0.05000000074505806));
+		std::string aPenalty = FormatNumber((int) ((float) m960 * 0.05f));
 		WriteString(g, StrFormat(GTC(0x005647e8), aPenalty.c_str()), 0xa6, aY, 0x1b8, 0, true, 0, -1);
 		aY = aY + g->GetFont()->GetHeight() * 2;
 

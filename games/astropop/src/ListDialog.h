@@ -7,6 +7,7 @@
 // 0x486f20). The box's OK button (or a double click on a name) takes the name that is selected and tells the application.
 // Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "Dialog.h"
 #include "ListListener.h"
 #include <string>
@@ -19,7 +20,7 @@ class ListWidget;
 class ScrollbarWidget;
 class DialogButton;
 
-class ListDialog : public Dialog, public ListListener
+class ListDialog : public Text2004<Dialog>, public ListListener
 {
 public:
 	AstroPopApp*		mApp;           // +0x114

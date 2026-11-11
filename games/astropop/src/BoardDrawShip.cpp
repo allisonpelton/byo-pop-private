@@ -22,7 +22,7 @@ static const int kFlameCels = 8;        // the flame's cels (0x59d670)
 void Board::DrawShip(Graphics* g)
 {
 	int aX = m198c - 4;
-	int aY = (int) ((double) m1bf8 + 423.0);
+	int aY = (int) (m1bf8 + 423.0f);
 	Image* aShip = GetImageById(mMode + 0x173);
 	Image* aFlame = GetImageById(mMode + 0x177);
 	Image* aWarp = GetImageById(mMode + 0x17b);
@@ -56,7 +56,7 @@ void Board::DrawShip(Graphics* g)
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, m8ea ? m1b38 : 0xff));
 			Rect aSrc(aShip->mWidth / aShip->mNumCols * aCel + m6f0, m6f4, m6f8, m6fc);
-			g->DrawImage(aShip, m6f0 + anOffset + aX, (int) ((double) m6f4 + (double) aShipY), aSrc);
+			g->DrawImage(aShip, m6f0 + anOffset + aX, (int) ((float) m6f4 + (float) aShipY), aSrc);
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			g->SetColorizeImages(false);
 		}
@@ -69,7 +69,7 @@ void Board::DrawShip(Graphics* g)
 			g->SetColor(Color(0xff, 0xff, 0xff, m1b38));
 		}
 		float aFlameY = m8f0 ? m938 : (float) aY;
-		DrawCel(g, aFlame, aShipX + 3, (int) ((double) aFlameY + 36.0), kShipCels[kFlameCels + m1950]);
+		DrawCel(g, aFlame, aShipX + 3, (int) (aFlameY + 36.0f), kShipCels[kFlameCels + m1950]);
 		if (m8ea)
 			g->SetColorizeImages(false);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);

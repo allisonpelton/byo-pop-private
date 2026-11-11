@@ -1,7 +1,7 @@
 // Brick: drawing of the plain brick (the base class) and of the parts every brick class shares: the light, the
 // biohazard mark of the mutating brick, the sprocket and turbot overlays, the death strip, the particles and sparks.
-// The original works out its positions on the x87 stack, in extended precision; the sums here are done in double
-// before they are cut to a whole pixel, as _ftol does.
+// The original works out its positions on the x87 stack at 24 bits of precision (UpdateFrames sets it): every sum is a float
+// before it is cut to a whole pixel, as _ftol does.
 
 #include "Brick.h"
 #include "AstroPopApp.h"
@@ -66,7 +66,7 @@ void Brick::Draw(Graphics* g, bool theGlow)
 			DrawDeathStrip(g);
 			return;
 		}
-		g->DrawImageCel(GetImageById(mType + 0x230), (int) ((double) mX - 15.0), (int) ((double) mY - 40.0), CelOf(mDeathAnim));
+		g->DrawImageCel(GetImageById(mType + 0x230), (int) ((float) mX - 15.0f), (int) ((float) mY - 40.0f), CelOf(mDeathAnim));
 		return;
 	}
 
@@ -85,7 +85,7 @@ void Brick::DrawBody(Graphics* g, Image* theImage, int theShakeX, int theShakeY)
 	if (theImage == NULL)
 		return;
 	int aCel = mRainbow ? 0 : CelOf(mAnim);
-	g->DrawImageCel(theImage, (int) ((double) mX + theShakeX), (int) ((double) mY + mOffsetY + theShakeY), aCel);
+	g->DrawImageCel(theImage, (int) ((float) mX + theShakeX), (int) ((float) mY + mOffsetY + theShakeY), aCel);
 	DrawLightPass(g, theImage, aCel, theShakeX, theShakeY);
 	DrawOverlays(g, theShakeX, theShakeY);
 }
@@ -116,7 +116,7 @@ void Brick::DrawLightPass(Graphics* g, Image* theImage, int theCel, int theShake
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColor(Color(aLight, aLight, aLight));
 	g->SetColorizeImages(true);
-	g->DrawImageCel(theImage, (int) ((double) mX + theShakeX), (int) ((double) mY + mOffsetY + theShakeY), theCel);
+	g->DrawImageCel(theImage, (int) ((float) mX + theShakeX), (int) ((float) mY + mOffsetY + theShakeY), theCel);
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	g->SetColorizeImages(false);
 }
@@ -146,8 +146,8 @@ void Brick::DrawAt(Graphics* g, bool theGlow, float theX, float theY)
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColorizeImages(true);
 	g->SetColor(mColor);
-	int aX = (int) ((double) theX - 1.0);
-	g->DrawImage(IMAGE_BRICK_GLOW, aX, (int) ((double) theY - 1.0));
+	int aX = (int) ((float) theX - 1.0f);
+	g->DrawImage(IMAGE_BRICK_GLOW, aX, (int) ((float) theY - 1.0f));
 	g->SetColorizeImages(false);
 	if (!mGlowAnim.mStopped)
 	{
@@ -157,7 +157,7 @@ void Brick::DrawAt(Graphics* g, bool theGlow, float theX, float theY)
 			g->SetColor(Color(0xff, 0xff, 0xff, mGlowAlpha));
 		}
 		int aCel = (mGlowAnim.mNumFrames == 1) ? 0 : mGlowAnim.mFrame;
-		g->DrawImageCel(IMAGE_BRICK_BONUS_GLOW, aX, (int) ((double) theY + mOffsetY + 1.0), aCel);
+		g->DrawImageCel(IMAGE_BRICK_BONUS_GLOW, aX, (int) ((float) theY + mOffsetY + 1.0f), aCel);
 		g->SetColorizeImages(false);
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -170,7 +170,7 @@ void Brick::DrawGlow(Graphics* g)
 	int aShakeY = ShakeOffsetY();
 
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-	g->DrawImage(mGlowImage, (int) ((double) mX - 1.0 + aShakeX), (int) ((double) mY - 1.0 + mOffsetY + aShakeY));
+	g->DrawImage(mGlowImage, (int) ((float) mX - 1.0f + aShakeX), (int) ((float) mY - 1.0f + mOffsetY + aShakeY));
 	if (!mGlowAnim.mStopped)
 	{
 		if (mFlag194)
@@ -179,7 +179,7 @@ void Brick::DrawGlow(Graphics* g)
 			g->SetColor(Color(0xff, 0xff, 0xff, mGlowAlpha));
 		}
 		int aCel = (mGlowAnim.mNumFrames == 1) ? 0 : mGlowAnim.mFrame;
-		g->DrawImageCel(IMAGE_BRICK_BONUS_GLOW, (int) ((double) mX - 1.0 + aShakeX), (int) ((double) mOffsetY + mY + aShakeY + 1.0), aCel);
+		g->DrawImageCel(IMAGE_BRICK_BONUS_GLOW, (int) ((float) mX - 1.0f + aShakeX), (int) ((float) mOffsetY + mY + aShakeY + 1.0f), aCel);
 		g->SetColorizeImages(false);
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -196,8 +196,8 @@ void Brick::DrawBiohazard(Graphics* g, float theX, float theY)
 	int aMarkWidth = IMAGE_BIOHAZARD->GetWidth() / IMAGE_BIOHAZARD->mNumCols;
 	int aMarkHeight = IMAGE_BIOHAZARD->GetHeight();
 
-	double aX = (double) (aBrickWidth >> 1) + aShakeX + theX - (aMarkWidth >> 1);
-	double aY = (double) ((aBrickHeight >> 1) - (aMarkHeight >> 1)) + mOffsetY + aShakeY + theY;
+	float aX = (float) (aBrickWidth >> 1) + aShakeX + theX - (aMarkWidth >> 1);
+	float aY = (float) ((aBrickHeight >> 1) - (aMarkHeight >> 1)) + mOffsetY + aShakeY + theY;
 
 	g->SetColorizeImages(true);
 	g->SetColor(Color(0xff, 0xff, 0xff, mPulse));
@@ -215,8 +215,8 @@ static void DrawOverlay(Graphics* g, Image* theOverlay, const Brick* theBrick, i
 	int anOverlayWidth = theOverlay->GetWidth() / theOverlay->mNumCols;
 	int anOverlayHeight = theOverlay->GetHeight();
 
-	double aX = (double) (aBrickWidth >> 1) + theBrick->mX + theShakeX - (anOverlayWidth >> 1);
-	double aY = (double) ((aBrickHeight >> 1) - (anOverlayHeight >> 1)) + theBrick->mOffsetY + theBrick->mY + theShakeY;
+	float aX = (float) (aBrickWidth >> 1) + theBrick->mX + theShakeX - (anOverlayWidth >> 1);
+	float aY = (float) ((aBrickHeight >> 1) - (anOverlayHeight >> 1)) + theBrick->mOffsetY + theBrick->mY + theShakeY;
 
 	g->SetColorizeImages(true);
 	g->SetColor(Color(0xff, 0xff, 0xff, theAlpha));

@@ -1,0 +1,28 @@
+# Tour 1: the title, the new player box, the main menu with each button lit, the player list
+3000 shot a01_title
+3050 move 320 447
+3070 shot a02_title_hover
+3100 click 320 447
+3140 shot a03_newuser
+3150 type Test
+3170 shot a04_newuser_typed
+3180 key Return
+3260 shot a05_menu
+3270 move 110 190
+3290 shot a06_hover_classic
+3300 move 110 330
+3320 shot a07_hover_survival
+3330 move 535 160
+3350 shot a08_hover_halloffame
+3360 move 535 250
+3380 shot a09_hover_options
+3390 move 535 330
+3410 shot a10_hover_moregames
+3420 move 535 410
+3440 shot a11_hover_quit
+3450 move 326 93
+3470 shot a12_hover_user
+3480 click 326 93
+3540 shot a13_userlist
+3550 key Escape
+3620 shot a14_menu_again

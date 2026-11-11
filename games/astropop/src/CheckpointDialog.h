@@ -6,6 +6,7 @@
 // it: the left one starts at the first level (the box's second answer, 3000 + its id 0x78), the right one at the
 // checkpoint level (the first answer, 2000 + id). Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "Dialog.h"
 #include "FrameAnim.h"
 
@@ -14,7 +15,7 @@ namespace Sexy
 
 class AstroPopApp;
 
-class CheckpointDialog : public Dialog
+class CheckpointDialog : public Text2004<Dialog>
 {
 public:
 	AstroPopApp*	mApp;       // +0x110

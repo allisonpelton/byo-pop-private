@@ -261,15 +261,18 @@
 				int aDestAlpha = dest >> 24;
 				int aNewDestAlpha = aDestAlpha + ((255 - aDestAlpha) * a) / 255;
 
-				//a = 255 * a / (a + aDestAlpha);					
-				int oma = 256 - a;
+				// (the 1.4 framework has this line commented out)
+				int aBlend = a;
+				if (gSlowStretchRenormalizesAlpha)
+					aBlend = (int) ((unsigned long long) (a * 255) / (unsigned long long) (long long) (aDestAlpha + a));
+				int oma = 256 - aBlend;
 				
 				DBG_ASSERTE(aDestPixels < aDestEnd);
 
 				*(aDestPixels++) = (aNewDestAlpha << 24) |
-					(((((dest & 0x0000FF) * oma) >> 8) & 0x0000FF) + (((b * a) >> 8))) |
-					(((((dest & 0x00FF00) * oma) >> 8) & 0x00FF00) + (((g * a) >> 8) << 8)) |
-					(((((dest & 0xFF0000) * oma) >> 8) & 0xFF0000) + (((r * a) >> 8) << 16));				
+					(((((dest & 0x0000FF) * oma) >> 8) & 0x0000FF) + (((b * aBlend) >> 8))) |
+					(((((dest & 0x00FF00) * oma) >> 8) & 0x00FF00) + (((g * aBlend) >> 8) << 8)) |
+					(((((dest & 0xFF0000) * oma) >> 8) & 0xFF0000) + (((r * aBlend) >> 8) << 16));				
 			}
 			else
 				aDestPixels++;

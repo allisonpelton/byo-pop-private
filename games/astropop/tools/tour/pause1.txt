@@ -1,0 +1,36 @@
+# classic1 inputs to 3393, then pause with space, losing and regaining the focus, space again, the Escape key
+3001 click 320 447
+3062 type Test
+3067 key Return
+3128 click 100 190
+3189 click 80 418
+3250 click 320 440
+3272 click 391 345
+3327 move 188 440
+3328 click 188 440
+3334 move 276 440
+3335 rclick 276 440
+3356 move 540 440
+3357 click 540 440
+3363 move 364 440
+3364 rclick 364 440
+3385 move 540 440
+3386 click 540 440
+3392 move 320 440
+3393 rclick 320 440
+3450 key Space
+3470 shot p3470
+3500 shot p3500
+3520 focus lose
+3540 shot p3540
+3560 focus regain
+3580 shot p3580
+3600 key Space
+3620 shot p3620
+3640 focus lose
+3660 shot p3660
+3680 focus regain
+3700 shot p3700
+3720 key Escape
+3740 shot p3740
+3780 shot p3780

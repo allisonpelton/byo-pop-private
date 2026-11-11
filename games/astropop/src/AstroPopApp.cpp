@@ -1,5 +1,6 @@
 #include "AstroPopApp.h"
 #include "Compat2004.h"
+#include "DDInterface.h"
 #include "GameText.h"
 #include "Board.h"
 #include "HallOfFame.h"
@@ -69,12 +70,6 @@ AstroPopApp::AstroPopApp()
 	mMusicSlot = 0;
 	mMusicOrder = -1;
 
-	// The lines the quit dialog picks from (0x562900 ...)
-	static const unsigned int kGoodbyes[] = {0x562900, 0x5628b8, 0x562884, 0x562840, 0x5627fc, 0x5627e0, 0x5627c0,
-		0x562798, 0x562760, 0x562707};
-	for (size_t i = 0; i < sizeof(kGoodbyes) / sizeof(kGoodbyes[0]); i++)
-		mGoodbyeMessages.push_back(GT(kGoodbyes[i]));
-
 	// sin and cos of whole degrees: the original multiplies by a float constant (0x562704) in the x87 unit
 	for (int i = 0; i < 360; i++)
 	{
@@ -100,7 +95,7 @@ void AstroPopApp::ButtonPress(int theId)
 	PlaySample(SOUND_BUTTON_DOWN);
 }
 
-// 0x408b20 slot 7: the original also sets the x87 precision to 53 bits here (the port's float maths is SSE)
+// 0x408b20 slot 7: the original also sets the x87 precision to 24 bits here (_PC_24; the port's float maths is SSE)
 void AstroPopApp::UpdateFrames()
 {
 	SexyApp::UpdateFrames();
@@ -157,6 +152,14 @@ void AstroPopApp::InitPropertiesHook()
 	LoadProperties("properties/texts.xml", false, false);
 	if (!LoadGameTexts())
 		SDL_Log("AstroPop: no game texts read from WinAP.exe (texts without an override stay empty)");
+
+	// The ten lines the quit dialog picks from (the original's constructor stores them, 0x562900 ...): read here, since the
+	// texts are loaded only now
+	static const unsigned int kGoodbyes[] = {0x562900, 0x5628b8, 0x562884, 0x562840, 0x5627fc, 0x5627e0, 0x5627c0,
+		0x562798, 0x562760, 0x562708};
+	mGoodbyeMessages.clear();
+	for (size_t i = 0; i < sizeof(kGoodbyes) / sizeof(kGoodbyes[0]); i++)
+		mGoodbyeMessages.push_back(GT(kGoodbyes[i]));
 }
 
 // 0x4254b0: the names under the registry key Users
@@ -169,9 +172,38 @@ void AstroPopApp::ListUsers()
 // the game's own generator (Particle.h)
 MTRand Sexy::gGameRand;
 
+// The display of a 2D run draws a stretch as the original's software screen does (DDImage::StretchBlt, 0x4c68c0): a fast one
+// samples the source in 16.16 steps from the rectangle's corner, the column stepped before it is read, and a non-fast one
+// is averaged into an image of the destination's size that is then blitted (DDInterface::mSoftwareStretch). In 3D the
+// original's textured quads, and the port's GPU, sample at pixel centres. Is3D can differ from one run to the next, so
+// the choice is made at each stretch.
+class AstroPopDisplay : public DDInterface
+{
+public:
+	AstroPopDisplay(SexyAppBase* theApp) : DDInterface(theApp)
+	{
+		mFastStretchPreAdd = true;
+	}
+
+	virtual void StretchBlt(Image* theImage, const FRect& theDestRect, const Rect& theSrcRect, const Rect* theClipRect, const Color& theColor, int theDrawMode, bool fastStretch, bool mirror = false) override
+	{
+		mSoftwareStretch = !mIs3D;
+		DDInterface::StretchBlt(theImage, theDestRect, theSrcRect, theClipRect, theColor, theDrawMode, fastStretch, mirror);
+	}
+};
+
+DDInterface* AstroPopApp::CreateDDInterface()
+{
+	return new AstroPopDisplay(this);
+}
+
 // 0x42f170 slot 16
 void AstroPopApp::Init()
 {
+	// port: this game's MemoryImage::SlowStretchBlt (0x4b1bf0) divides the colour's weight by the alpha that is there, as the
+	// 1.4 framework's has commented out (a stretch onto transparent bits, as the loader's strips, keeps the colour at full strength)
+	gSlowStretchRenormalizesAlpha = true;
+
 	SexyApp::Init();
 	LoadResourceManifest();   // 0x4d93f0
 
@@ -376,7 +408,8 @@ void AstroPopApp::LoadingThreadProc()
 	for (int i = 0; i < NUM_LOOP_SOUNDS; i++)
 		mLoopSounds[i] = mSoundManager->GetSoundInstance(GetSoundById(0x16a + i));
 
-	// The lightning flash images: IMAGE_WARP_FX_LIGHTENING drawn into a copy, the second copy flipped
+	// The lightning flash images: IMAGE_WARP_FX_LIGHTENING drawn into two copies, the first mirrored (each row left to right, 0x4cfb50), the second flipped
+	// (top to bottom, SexyApp::FlipImage)
 	mLightningImage2 = new MemoryImage(this);
 	mLightningImage = new MemoryImage(this);
 	mLightningImage2->Create(IMAGE_WARP_FX_LIGHTENING->mWidth, IMAGE_WARP_FX_LIGHTENING->mHeight);
@@ -387,7 +420,8 @@ void AstroPopApp::LoadingThreadProc()
 		Graphics g1(mLightningImage);
 		g1.DrawImage(IMAGE_WARP_FX_LIGHTENING, 0, 0);
 	}
-	FlipImage(mLightningImage2);   // 0x4cfb50 on mLightningImage (see GAME_NOTES: which of the two is flipped)
+	MirrorImage(mLightningImage);
+	FlipImage(mLightningImage2);
 
 	// Three 1 x 480 ramps (alpha = row / 2) in white, light grey and grey
 	for (int i = 0; i < 3; i++)

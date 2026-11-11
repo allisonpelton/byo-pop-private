@@ -1,0 +1,48 @@
+# classic1 inputs to 3420, a shot every 6 updates from 3256 (the start of a game: the warp)
+3001 click 320 447
+3062 type Test
+3067 key Return
+3128 click 100 190
+3189 click 80 418
+3250 click 320 440
+3256 shot k3256
+3262 shot k3262
+3268 shot k3268
+3272 click 391 345
+3274 shot k3274
+3280 shot k3280
+3286 shot k3286
+3292 shot k3292
+3298 shot k3298
+3304 shot k3304
+3310 shot k3310
+3316 shot k3316
+3322 shot k3322
+3327 move 188 440
+3328 click 188 440
+3329 shot k3329
+3334 move 276 440
+3335 rclick 276 440
+3335 shot k3335
+3340 shot k3340
+3346 shot k3346
+3352 shot k3352
+3356 move 540 440
+3357 click 540 440
+3358 shot k3358
+3363 move 364 440
+3364 rclick 364 440
+3365 shot k3365
+3370 shot k3370
+3376 shot k3376
+3382 shot k3382
+3385 move 540 440
+3386 click 540 440
+3388 shot k3388
+3392 move 320 440
+3393 rclick 320 440
+3394 shot k3394
+3400 shot k3400
+3406 shot k3406
+3412 shot k3412
+3418 shot k3418

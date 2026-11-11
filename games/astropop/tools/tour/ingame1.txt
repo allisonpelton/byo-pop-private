@@ -1,0 +1,74 @@
+# classic1 inputs to 3393, then the in-game Options box (Escape): hover of each button, Reset Hints and its Warning box, Help (How to Play, More, Close), Credits, Main Menu and its End Game box (No, then Yes)
+3001 click 320 447
+3062 type Test
+3067 key Return
+3128 click 100 190
+3189 click 80 418
+3250 click 320 440
+3272 click 391 345
+3327 move 188 440
+3328 click 188 440
+3334 move 276 440
+3335 rclick 276 440
+3356 move 540 440
+3357 click 540 440
+3363 move 364 440
+3364 rclick 364 440
+3385 move 540 440
+3386 click 540 440
+3392 move 320 440
+3393 rclick 320 440
+3450 key Escape
+3480 shot e_open
+3490 move 230 298
+3520 shot h_reset
+3530 move 410 298
+3560 shot h_help
+3570 move 320 330
+3600 shot h_credits
+3610 move 230 388
+3640 shot h_main
+3650 move 410 388
+3680 shot h_resume
+3690 click 230 298
+3720 shot w_open
+3730 move 255 282
+3760 shot w_yes
+3770 move 385 282
+3800 shot w_no
+3810 click 385 282
+3840 shot w_closed
+3850 click 410 298
+3880 shot hp1
+3890 move 410 372
+3920 shot hp_more
+3930 key Escape
+3960 shot hp_esc
+3970 click 410 372
+4000 shot hp2
+4010 move 224 372
+4040 shot hp_close
+4050 click 224 372
+4080 shot hp_back
+4090 click 320 330
+4120 shot cr1
+4330 shot cr2
+4340 move 570 463
+4370 shot cr_back
+4380 click 570 463
+4410 shot cr_closed
+4420 click 230 388
+4450 shot em1
+4460 move 255 279
+4490 shot em_yes
+4500 move 385 279
+4530 shot em_no
+4540 click 385 279
+4570 shot em_cancel
+4580 click 230 388
+4610 shot em2
+4620 click 255 279
+4650 shot y1
+4810 shot y2
+5120 shot y3
+5730 shot y4

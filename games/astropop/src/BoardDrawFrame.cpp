@@ -238,10 +238,10 @@ void Board::DrawFrame(Graphics* g)
 
 		// the gauge of the supa weapon (its width is how far it has charged) and the button that fires it
 		Image* aGauge = IMAGE_POWERUP_GAUGE;
-		double aCharge = (double) m1bd8 / (double) m1bdc;
-		if (aCharge > 1.0)
-			aCharge = 1.0;
-		int aGaugeWidth = (int) ((double) aGauge->mWidth * aCharge);
+		float aCharge = m1bd8 / m1bdc;
+		if (aCharge > 1.0f)
+			aCharge = 1.0f;
+		int aGaugeWidth = (int) ((float) aGauge->mWidth * aCharge);
 		Image* aLights = IMAGE_SUPA_BUTTON_LIGHTS_OFF;
 		Image* aButton = NULL;
 		int aGlowAlpha = 0;

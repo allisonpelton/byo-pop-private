@@ -25,6 +25,12 @@ class MemoryImage;
 // image has none. Null otherwise.
 extern bool (*gMemoryImageRecoverBits)(MemoryImage* theImage);
 
+// port: off (the 1.4 framework's SlowStretchBlt, which has `a = 255 * a / (a + aDestAlpha)` commented out, so a stretch
+// onto transparent bits leaves the colour darkened by the alpha). On, SlowStretchBlt blends with that line, as the
+// frameworks of 2004's later games do (AstroPop's 0x4b1bf0: the colour's weight is 255 * a / (a + the destination's
+// alpha), so onto transparent bits it is full). A game sets it once, before it draws.
+extern bool gSlowStretchRenormalizesAlpha;
+
 class MemoryImage : public Image
 {
 public:

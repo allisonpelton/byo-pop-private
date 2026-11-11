@@ -1,0 +1,32 @@
+# classic1 inputs to 3345, a shot at every update from 3322 (the first bricks taken)
+3001 click 320 447
+3062 type Test
+3067 key Return
+3128 click 100 190
+3189 click 80 418
+3250 click 320 440
+3272 click 391 345
+3322 shot s3322
+3323 shot s3323
+3324 shot s3324
+3325 shot s3325
+3326 shot s3326
+3327 move 188 440
+3328 click 188 440
+3329 shot s3329
+3330 shot s3330
+3331 shot s3331
+3332 shot s3332
+3333 shot s3333
+3334 move 276 440
+3335 rclick 276 440
+3336 shot s3336
+3337 shot s3337
+3338 shot s3338
+3339 shot s3339
+3340 shot s3340
+3341 shot s3341
+3342 shot s3342
+3343 shot s3343
+3344 shot s3344
+3345 shot s3345

@@ -88,16 +88,17 @@ void LevelUpText::Update()
 	if (m08 == 0)
 		return;
 
+	// (x87 at 24 bits, every result a float: the expressions below are written in float, each operation rounding as the original's does)
 	if (m1c < 1.0f)
-		m1c = (float) ((double) m1c + (double) 0.04f);
+		m1c = m1c + 0.04f;
 
-	double aPull = (double) 0.975f - (double) m1c * (double) 0.12f;
-	double aSpring = (double) m1c * (double) 0.01f + (double) 0.002f;
-	double aVel = aPull * ((-(double) m20) * aSpring + (double) m24);
-	m24 = (float) aVel;
-	double aPos = aVel + (double) m20;
-	m20 = (float) aPos;
-	if (fabs(aPos) < 0.0010000000474974513 && fabs((double) m24) < 9.999999747378752e-05)
+	float aPull = 0.975f - m1c * 0.12f;
+	float aSpring = m1c * 0.01f + 0.002f;
+	float aVel = aPull * ((-m20) * aSpring + m24);
+	m24 = aVel;
+	float aPos = aVel + m20;
+	m20 = aPos;
+	if (fabs((double) aPos) < 0.0010000000474974513 && fabs((double) m24) < 9.999999747378752e-05)
 	{
 		m20 = 0.0f;
 		m24 = 0.0f;
@@ -109,27 +110,27 @@ void LevelUpText::Update()
 	{
 		m10--;
 		m14--;
-		double aForce;
+		float aForce;
 		if (m14 > 0)
-			aForce = ((double) 1.2f - (double) m28) * (double) 0.0015f;
+			aForce = (1.2f - m28) * 0.0015f;
 		else if (m10 > 0)
-			aForce = ((double) 1.75f - (double) m28) * (double) 0.0015f;
+			aForce = (1.75f - m28) * 0.0015f;
 		else
-			aForce = (-(double) m28) * (double) 0.002f;
-		m2c = (float) (aForce + (double) m2c);
-		m28 = (float) ((double) m28 + (double) m2c);
+			aForce = (-m28) * 0.002f;
+		m2c = aForce + m2c;
+		m28 = m28 + m2c;
 	}
 
 	if (m18 > 0)
 	{
-		double aFade = (double) m30 + (double) 0.02f;
+		float aFade = m30 + 0.02f;
 		m18--;
-		m30 = (float) aFade;
-		if (aFade > 1.0)
+		m30 = aFade;
+		if (aFade > 1.0f)
 			m30 = 1.0f;
 	}
 	else
-		m30 = (float) ((double) m30 - (double) 0.03f);
+		m30 = m30 - 0.03f;
 
 	if (m30 < 0.0f || m28 <= 0.0f)
 		m08 = 0;
@@ -145,12 +146,12 @@ void FloatText::Update()
 		return;
 
 	if (mSpeed == -1.0f && m40 == -1.0f && mTargetY == -1.0f)
-		mY = (float) ((double) mY - 1.0);
+		mY = mY - 1.0f;
 	else if (mY > mTargetY)
 	{
-		double aNew = (double) mY - (double) mSpeed;
-		mY = (float) aNew;
-		if (aNew <= (double) mTargetY)
+		float aNew = mY - mSpeed;
+		mY = aNew;
+		if (aNew <= mTargetY)
 		{
 			mY = mTargetY;
 			mHoldStart = mAge;
@@ -159,12 +160,12 @@ void FloatText::Update()
 	else if (mY == mTargetY)
 	{
 		if (mAge - mHoldStart >= mHold)
-			mY = (float) ((double) mY - (double) mSpeed);
+			mY = mY - mSpeed;
 	}
 	else
-		mY = (float) ((double) mY - (double) mSpeed);
+		mY = mY - mSpeed;
 
-	if ((double) -mFont->mHeight > (double) mY)
+	if ((float) -mFont->mHeight > mY)
 		mDone = true;
 
 	if (!mNoFade)
@@ -581,7 +582,7 @@ void FloatText::Draw(Graphics* g)
 		aColor = Color((int) (gApp->HSLToRGB(m10, 0xff, 0x80) & 0xffffff) | 0xff000000);
 	aColor.mAlpha = m50;
 	g->SetColor(aColor);
-	g->DrawString(mText, (int) mX, (int) ((double) mFont->GetAscent() + (double) mY));
+	g->DrawString(mText, (int) mX, (int) ((float) mFont->GetAscent() + mY));
 }
 
 // 0x40dab0
@@ -597,11 +598,10 @@ void LevelUpText::DrawAt(Graphics* g, int theX, int theY)
 		return;
 
 	bool is3D = gApp->Is3DAccelerated();
-	float aWidth = (float) ((((double) m20 * 4.0 + 1.0) * (double) mImage->mWidth) * (double) m34 * (double) m28);
-	double aHeightD = ((double) mImage->mHeight - (double) mImage->mHeight * (double) m20 * (double) 1.7999999523162842) *
-		(double) m34 * (double) m28;
-	float aHeight = (float) aHeightD;
-	if (!(aHeightD > 6.0))
+	// (x87 at 24 bits: every product and sum below is rounded to a float, in the order of the original's instructions)
+	float aWidth = ((m20 * 4.0f + 1.0f) * (float) mImage->mWidth) * m34 * m28;
+	float aHeight = (((float) mImage->mHeight - ((float) mImage->mHeight * m20) * 1.8f) * m34) * m28;
+	if (aHeight < 6.0f)
 		aHeight = 6.0f;
 
 	g->SetColorizeImages(true);
@@ -609,7 +609,7 @@ void LevelUpText::DrawAt(Graphics* g, int theX, int theY)
 	if (!is3D)
 		g->SetFastStretch(true);
 	Rect aSrc(0, 0, mImage->mWidth, mImage->mHeight);
-	Rect aDest(theX - (int) ((double) aWidth * 0.5), theY - (int) ((double) aHeight * 0.5), (int) aWidth, (int) aHeight);
+	Rect aDest(theX - (int) (aWidth * 0.5f), theY - (int) (aHeight * 0.5f), (int) aWidth, (int) aHeight);
 	g->DrawImage(mImage, aDest, aSrc);
 	if (!is3D)
 		g->SetFastStretch(false);

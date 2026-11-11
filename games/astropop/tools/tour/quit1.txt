@@ -1,0 +1,24 @@
+# the main menu's Quit Game box: hover Yes and No, No, then Yes (the goodbye line, then the game ends)
+3101 click 320 447
+3162 type Test
+3167 key Return
+3300 shot m3300
+3350 move 535 410
+3380 shot h_quit
+3390 click 535 410
+3420 shot q_open
+3430 move 254 279
+3460 shot q_yes
+3470 move 384 279
+3500 shot q_no
+3510 click 384 279
+3540 shot q_closed
+3550 click 535 410
+3580 shot q_open2
+3590 click 254 279
+3620 shot q_yes_click
+3640 shot z3640
+3670 shot z3670
+3730 shot z3730
+3830 shot z3830
+4030 shot z4030

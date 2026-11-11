@@ -6,10 +6,13 @@
 // image buttons that light up on a hover (Classic, Survival, Hall of Fame, Options, Quit) and the player's name
 // above them. In 3D mode glowing particles rise from the projector. A hidden sequence of hovers over the buttons
 // (see HoverStep) shows a screen of ships flying off.
-// Left out of the port: the "More Games" button (id 0xfad, index 4), a link out of the game (its rectangle and
-// highlight stay in the tables and are never used).
+// Left out of the port: the "More Games" button (id 0xfad, index 4 of the original's six), a link out of the game. The
+// three panels that remain in the right-hand column are stretched to fill its place (their picture, hover and press pictures
+// and hit masks, made when the menu is), and the hidden sequence of hovers loses its step at More Games (the original's runs
+// Hall of Fame, Hall of Fame, Classic, Hall of Fame, Survival, Survival, Hall of Fame, Options, More Games, Quit Game).
 // Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "Widget.h"
 #include "ButtonListener.h"
 #include "FrameAnim.h"
@@ -20,6 +23,7 @@ namespace Sexy
 
 class AstroPopApp;
 class AstroButton;
+class MemoryImage;
 
 // One rising particle (0x4c bytes: an animation of IMAGE_PARTICLE_RADIAL's cels and its position)
 struct MenuParticle
@@ -30,25 +34,27 @@ struct MenuParticle
 	int			mY;         // +0x48
 };
 
-class MainMenu : public Widget, public ButtonListener
+class MainMenu : public Text2004<Widget>, public ButtonListener
 {
 public:
 	enum
 	{
-		NUM_BUTTONS = 6,
-		BUTTON_ID_BASE = 0xfa9,         // buttons 0xfa9 .. 0xfae
+		NUM_BUTTONS = 5,
+		BUTTON_ID_BASE = 0xfa9,         // buttons 0xfa9 .. 0xfae (0xfad, More Games, is not in the port)
 		BUTTON_ID_CLASSIC = 0xfa9,
 		BUTTON_ID_SURVIVAL = 0xfaa,
 		BUTTON_ID_HALL_OF_FAME = 0xfab,
 		BUTTON_ID_OPTIONS = 0xfac,
-		BUTTON_ID_MORE_GAMES = 0xfad,
 		BUTTON_ID_QUIT = 0xfae,
 		BUTTON_ID_USER = 0xfaf,         // the player-name button above the projector
-		NUM_PANELS = 7                  // the centre piece and one highlight for each button
+		NUM_PANELS = 6                  // the centre piece and one highlight for each button
 	};
 
-	std::vector<AstroButton*>	mButtons;           // +0x60 (begin), six entries; index 4 (More Games) stays NULL in the port
+	std::vector<AstroButton*>	mButtons;           // +0x60 (begin), Classic, Survival, Hall of Fame, Options, Quit Game
 	std::vector<MenuParticle*>	mParticles;         // +0x70
+	MemoryImage*				mColumn;            // (port) the right-hand column of panels, stretched
+	std::vector<MemoryImage*>	mOwnedImages;       // (port) the stretched hover and press pictures of the panels in it
+	std::vector<int>			mOwnedMasks[NUM_BUTTONS];   // (port) their hit masks
 	AstroButton*				mUserButton;        // +0x7c id 0xfaf
 	AstroPopApp*				mApp;               // +0x80
 	int							mSpeed[NUM_PANELS]; // +0x84 how fast the panel's alpha moves (12 up, -8 down)

@@ -10,12 +10,15 @@
 
 using namespace Sexy;
 
+// a test's weapon charge for a new board and for ResetState (a test command, `set chargestart`; below 0: none, the charge starts at 0)
+float Sexy::gTestChargeAtReset = -1.0f;
+
 // 0x4346c0: the numbers a new game (or a new level) starts from
 void Board::ResetState()
 {
 	m8e0 = false;
 	m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
-	m1bd8 = 0;
+	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;
 	m92c = 0;
 	m928 = 0;
 	m1abc = 0;

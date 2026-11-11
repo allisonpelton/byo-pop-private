@@ -80,7 +80,7 @@ def main():
                          "reads from HKLM when it runs on the host)")
     ap.add_argument('--pilot', type=int, default=0, help='the pilot: 0 Vector, 1 Sprocket (2 Turbot and 3 Vixx must have been earned)')
     ap.add_argument('--charge', type=int, default=None,
-                    help="the weapon's charge at the start (of 18000): the port's `set charge N`; the original needs the patch list "
+                    help="the weapon's charge at the start (of 18000): the port's `set chargestart N`; the original needs the patch list "
                          "tools/origrun/patches/astropop-charge.txt for the same start (run_mode.sh CHARGE=N does both)")
     ap.add_argument('--profile', default=None,
                     help='a profile file (users/data1.usr) the player starts with, as the original does with the same file '
@@ -147,6 +147,9 @@ def main():
         r.u = st['appupdates']
         r.play(['wait %d' % (a.play_at - 1 - r.u)])
         r.play(['click game %d %d' % TITLE_PLAY, 'wait %d' % a.gap])
+        if a.charge is not None:
+            # as the original's patch list does: the charge of every new board and game is N (the test command `set chargestart`)
+            r.play(['set chargestart %d' % a.charge, 'wait 1'])
         if not a.profile:
             r.play(['type T', 'type e', 'type s', 'type t', 'wait 5', 'key Return', 'wait %d' % a.gap])
         if a.make_profile:
@@ -157,7 +160,6 @@ def main():
         if gates:
             # the box of the two gates: the second one goes on from the checkpoint
             r.play(['click game %d %d' % (gates[1], gates[2]), 'wait %d' % a.gap])
-        charged = a.charge is None      # the charge is set with the first move of the game itself (see below)
         r.play(['click game %d %d' % HELP_CONTINUE, 'wait 20'])
         # the bot, as tools/playbymove's loop plays it
         batch, nulls = [], 0
@@ -186,11 +188,6 @@ def main():
                 stop = 'update limit'
                 break
             batch = []
-            if not charged and m.get('kind') == 'shoot':
-                # the charge of the weapon is full from the start of the game in the original (the patch list astropop-charge.txt
-                # stores it at the end of the demo and in the constructor); nothing reads it before the first pickup
-                batch.append('set charge %d' % a.charge)
-                charged = True
             for line in lines:
                 if batch and not batch[-1].startswith('wait ') and not line.startswith('wait '):
                     batch.append('wait 1')

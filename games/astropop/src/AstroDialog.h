@@ -8,6 +8,7 @@
 // colours of the inset picture and of the buttons come from the colour set of the game mode it belongs to
 // (AstroPopApp::GetDialogColor, MakeDialogImages). Offsets in the comments are the original's.
 
+#include "Text2004.h"
 #include "Dialog.h"
 #include "Color.h"
 #include <string>
@@ -19,7 +20,7 @@ namespace Sexy
 class AstroPopApp;
 class MemoryImage;
 
-class AstroDialog : public Dialog
+class AstroDialog : public Text2004<Dialog>
 {
 public:
 	int					m110;           // +0x110 where the title ends up (y) when the box has come in
