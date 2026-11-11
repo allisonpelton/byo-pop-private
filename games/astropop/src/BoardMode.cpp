@@ -25,18 +25,18 @@ void Board::UpdateSpecialMode()
 	if (m1a34 == 1)
 	{
 		m1ad0 = (m1ad0 + 4) & 0xff;
-		for (unsigned int i = 0; i < m260.size(); i++)
+		for (unsigned int i = 0; i < mBonusBannerTexts.size(); i++)
 		{
-			m260[i].mX++;
-			if (m260[i].mX >= m260[i].mFont->StringWidth(m260[i].mText) + 0x29e)
+			mBonusBannerTexts[i].mX++;
+			if (mBonusBannerTexts[i].mX >= mBonusBannerTexts[i].mFont->StringWidth(mBonusBannerTexts[i].mText) + 0x29e)
 			{
 				int aMin = 500000000;
-				for (unsigned int j = 0; j < m260.size(); j++)
+				for (unsigned int j = 0; j < mBonusBannerTexts.size(); j++)
 				{
-					if (m260[j].mX < aMin)
-						aMin = m260[j].mX;
+					if (mBonusBannerTexts[j].mX < aMin)
+						aMin = mBonusBannerTexts[j].mX;
 				}
-				m260[i].mX = aMin - m260[i].mFont->StringWidth(m260[i].mText) - 0x1e;
+				mBonusBannerTexts[i].mX = aMin - mBonusBannerTexts[i].mFont->StringWidth(mBonusBannerTexts[i].mText) - 0x1e;
 			}
 		}
 	}
@@ -51,8 +51,8 @@ void Board::UpdateSpecialMode()
 			if (m1bd8 < m1bdc)
 				return;
 			m1bd8 = m1bdc;
-			mAnim3e0.Reset();
-			mAnim3e0.SetStopped(false);
+			mMeterFullAnim.Reset();
+			mMeterFullAnim.SetStopped(false);
 			mApp->PlaySample(SOUND_POWERUP);
 			return;
 		}
@@ -68,7 +68,7 @@ void Board::UpdateSpecialMode()
 			return;
 		m91b = false;
 		m91c = false;
-		mAnim3e0.Update();
+		mMeterFullAnim.Update();
 		return;
 	}
 
@@ -107,30 +107,30 @@ void Board::UpdateSpecialMode()
 		m1a80 = 0;
 		m1bd8 = 0;
 		m1a34 = 0;
-		mAnim3e0.SetStopped(true);
-		mAnim520.SetStopped(true);
+		mMeterFullAnim.SetStopped(true);
+		mTurbotPowerupAnim.SetStopped(true);
 		mApp->PlaySample(SOUND_POWERUP_WORN_OFF);
 		if (mMode == 3)
 		{
-			for (unsigned int i = 0; i < m324.size(); i++)
+			for (unsigned int i = 0; i < mHoverCells.size(); i++)
 			{
-				Brick* aBrick = m314[m324[i].mRow][m324[i].mCol];
+				Brick* aBrick = mFieldBricks[mHoverCells[i].mRow][mHoverCells[i].mCol];
 				if (aBrick != NULL)
 					aBrick->StopFlash();
 			}
-			std::vector<CellRef>().swap(m324);
+			std::vector<CellRef>().swap(mHoverCells);
 		}
-		if (mMode == 2 && !m907 && m1994 == 0 && m7c.empty() && CountMovingBricks(false) == 0)
+		if (mMode == 2 && !m907 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 			Fn4335e0();
 		if (!mSirenAnim.mStopped)
 			m1ab8 = 8;
 		m1ac0 = PickSpawnDelay();
 	}
 
-	if (mMode == 1 && !m1a0.empty())
+	if (mMode == 1 && !mAtomicMarkedBricks.empty())
 	{
 		// mode 1: the marked bricks blow up one after the other
-		int aNumAnims = (int) m1b0.size();
+		int aNumAnims = (int) mAtomicExplosions.size();
 		bool aMake = false;
 		bool aFinal = false;
 		if (aNumAnims < 3)
@@ -149,8 +149,8 @@ void Board::UpdateSpecialMode()
 		if (aMake)
 		{
 			ExplosionAnim* anAnim = new ExplosionAnim();
-			unsigned int aPick = (unsigned int) (((int) AstroRand() % 500000000)) % (unsigned int) m1a0.size();
-			const CellRef3& aCell = m1a0[aPick];
+			unsigned int aPick = (unsigned int) (((int) AstroRand() % 500000000)) % (unsigned int) mAtomicMarkedBricks.size();
+			const CellRef3& aCell = mAtomicMarkedBricks[aPick];
 			float aX = (float) (aCell.mCol * 0x2c + 0xa6);
 			anAnim->mX = aX;
 			if (480.0f < aX)
@@ -164,7 +164,7 @@ void Board::UpdateSpecialMode()
 			anAnim->mPingPong = false;
 			anAnim->mHoldLast = true;
 			anAnim->SetStopped(false);
-			m1b0.push_back(anAnim);
+			mAtomicExplosions.push_back(anAnim);
 			mApp->PlaySampleAt(SOUND_EXPLODE1, ((int) anAnim->mX - 0xa6) / 0x2c);
 		}
 		else if (aFinal)
@@ -183,7 +183,7 @@ void Board::UpdateSpecialMode()
 			m1a44 = 0;
 			mOverlay.SetFill(255, 255, 255, 0);
 			SetOverlayHidden(false);
-			m1b0.push_back(anAnim);
+			mAtomicExplosions.push_back(anAnim);
 			mApp->PlaySample(SOUND_SLOWDOWN);
 		}
 
@@ -206,11 +206,11 @@ void Board::UpdateSpecialMode()
 			// the meter has run out: the bricks that were marked go (the original also filled a list of their cells
 			// that nothing read)
 			m8f9 = false;
-			for (unsigned int i = 0; i < m1a0.size(); i++)
+			for (unsigned int i = 0; i < mAtomicMarkedBricks.size(); i++)
 			{
-				int aCol = m1a0[i].mCol;
-				int aRow = m1a0[i].mRow;
-				Brick* aBrick = m1a0[i].mBrick;
+				int aCol = mAtomicMarkedBricks[i].mCol;
+				int aRow = mAtomicMarkedBricks[i].mRow;
+				Brick* aBrick = mAtomicMarkedBricks[i].mBrick;
 				if (aBrick->IsIdle())
 				{
 					aBrick->StopFade();
@@ -221,16 +221,16 @@ void Board::UpdateSpecialMode()
 			m1a34 = 0;
 			m1a80 = 0;
 			m1bd8 = 0;
-			DropUnsupported(ma8);
+			DropUnsupported(mTakenCells);
 			m1a3c = -1;
-			std::vector<CellRef3>().swap(m1a0);
+			std::vector<CellRef3>().swap(mAtomicMarkedBricks);
 			if (!mSirenAnim.mStopped)
 				m1ab8 = 8;
-			for (unsigned int aRowIndex = 1; aRowIndex < m314.size(); aRowIndex++)
+			for (unsigned int aRowIndex = 1; aRowIndex < mFieldBricks.size(); aRowIndex++)
 			{
 				for (int aColIndex = 0; aColIndex < 10; aColIndex++)
 				{
-					Brick* aBrick = m314[aRowIndex][aColIndex];
+					Brick* aBrick = mFieldBricks[aRowIndex][aColIndex];
 					if (aBrick != NULL)
 						aBrick->mFlag190 = false;
 				}
@@ -246,8 +246,8 @@ void Board::UpdateSpecialMode()
 			if (m1a40 > 0x95)
 			{
 				m1a40 = -5;
-				if (!m1b0.empty())
-					m1b0[m1b0.size() - 1]->SetStopped(false);
+				if (!mAtomicExplosions.empty())
+					mAtomicExplosions[mAtomicExplosions.size() - 1]->SetStopped(false);
 				mApp->PlaySample(SOUND_EXPLOSION);
 			}
 		}
@@ -258,7 +258,7 @@ void Board::UpdateSpecialMode()
 		return;
 
 	// mode 2: beams and a wave sweep over the field
-	mAnim520.Update();
+	mTurbotPowerupAnim.Update();
 	if (m1a34 == 1)
 		m1a80 = ((int) AstroRand() % 500000000) % 0xb - 5;
 	{
@@ -284,7 +284,7 @@ void Board::UpdateSpecialMode()
 	if (m1b58 > 0 && mUpdateCnt % m1b58 == 0)
 	{
 		m1b58 = 0xf - m1a4c / 10;
-		if (m290.size() < 6)
+		if (mTurbotBeams.size() < 6)
 		{
 			LaserRec aBeam;
 			aBeam.mAngle = 0;
@@ -300,15 +300,15 @@ void Board::UpdateSpecialMode()
 			case 5: aBeam.mAngle = 150.0f; break;
 			case 6: aBeam.mAngle = 180.0f; break;
 			}
-			m290.push_back(aBeam);
+			mTurbotBeams.push_back(aBeam);
 		}
 	}
-	for (int i = 0; i < (int) m290.size(); i++)
+	for (int i = 0; i < (int) mTurbotBeams.size(); i++)
 	{
-		m290[i].mLife -= m290[i].mDecay;
-		if (m290[i].mLife < 1)
+		mTurbotBeams[i].mLife -= mTurbotBeams[i].mDecay;
+		if (mTurbotBeams[i].mLife < 1)
 		{
-			m290.erase(m290.begin() + i);
+			mTurbotBeams.erase(mTurbotBeams.begin() + i);
 			i--;
 		}
 	}
@@ -334,7 +334,7 @@ void Board::UpdateSpecialMode()
 			if (m1b54 >= 100)
 			{
 				m1a4c = 0xff;
-				mAnim520.SetStopped(true);
+				mTurbotPowerupAnim.SetStopped(true);
 			}
 			aDone = false;
 		}
@@ -347,13 +347,13 @@ void Board::UpdateSpecialMode()
 				if (m1a4c < 0)
 					m1a4c = 0;
 			}
-			if (!mc8.empty() && m1a48 <= 0xf0 - IMAGE_TURBOT_WAVE->mHeight / 2)
+			if (!mTurbotMarkedCells.empty() && m1a48 <= 0xf0 - IMAGE_TURBOT_WAVE->mHeight / 2)
 			{
 				// the wave reaches the marked bricks
 				unsigned int i = 0;
-				while (i < mc8.size())
+				while (i < mTurbotMarkedCells.size())
 				{
-					Brick* aBrick = m314[mc8[i].mRow][mc8[i].mCol];
+					Brick* aBrick = mFieldBricks[mTurbotMarkedCells[i].mRow][mTurbotMarkedCells[i].mCol];
 					if (aBrick == NULL)
 					{
 						i++;
@@ -363,17 +363,17 @@ void Board::UpdateSpecialMode()
 					aBrick->StopFade();
 					if (m1a8c != 2 || aBrick->mMutated == 1 || aBrick->mType != 9 || ((SpecialBrick*) aBrick)->mStage < 2)
 					{
-						RemoveBrick(aBrick, mc8[i].mCol, mc8[i].mRow, 2 < m1a8c);
+						RemoveBrick(aBrick, mTurbotMarkedCells[i].mCol, mTurbotMarkedCells[i].mRow, 2 < m1a8c);
 						i++;
 					}
 					else
 					{
 						((SpecialBrick*) aBrick)->Crack(true);
-						mc8.erase(mc8.begin() + i);
+						mTurbotMarkedCells.erase(mTurbotMarkedCells.begin() + i);
 					}
 				}
-				DropUnsupported(ma8);
-				std::vector<CellRef>().swap(mc8);
+				DropUnsupported(mTakenCells);
+				std::vector<CellRef>().swap(mTurbotMarkedCells);
 				Fire(0x28, 0);
 				Fire(0x2a, 0);
 				Fire(0x1e);
@@ -382,10 +382,10 @@ void Board::UpdateSpecialMode()
 				m19fc = 0x3c;
 		}
 	}
-	else if (!mc8.empty())
+	else if (!mTurbotMarkedCells.empty())
 		aDone = false;
 
-	if (aDone && m1a48 <= -IMAGE_TURBOT_WAVE->mHeight && mc8.empty())
+	if (aDone && m1a48 <= -IMAGE_TURBOT_WAVE->mHeight && mTurbotMarkedCells.empty())
 	{
 		m1a48 = -0x10000;
 		m1a4c = -1;

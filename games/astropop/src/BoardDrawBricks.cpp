@@ -18,7 +18,7 @@ using namespace Sexy;
 // last list. theGlow is the second pass, which draws the glow of the bricks that have one.
 void Board::DrawBricks(Graphics* g, bool theGlow)
 {
-	bool aDraw = m1924 < 1 || (!m230.empty() && m230[0]->m1c) || mApp->mFlag658;
+	bool aDraw = m1924 < 1 || (!mHintSpots.empty() && mHintSpots[0]->m1c) || mApp->mFlag658;
 	if (!aDraw)
 		return;
 
@@ -26,24 +26,24 @@ void Board::DrawBricks(Graphics* g, bool theGlow)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick != NULL)
 				aBrick->Draw(g, theGlow);
 		}
 	}
 
-	for (std::list<std::list<Brick*> >::iterator aGroup = m7c.begin(); aGroup != m7c.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFiredGroups.begin(); aGroup != mFiredGroups.end(); ++aGroup)
 		for (std::list<Brick*>::iterator aBrick = aGroup->begin(); aBrick != aGroup->end(); ++aBrick)
 			(*aBrick)->Draw(g, theGlow);
 
-	for (std::list<Brick*>::iterator aBrick = m88.begin(); aBrick != m88.end(); ++aBrick)
+	for (std::list<Brick*>::iterator aBrick = mGoneBricks.begin(); aBrick != mGoneBricks.end(); ++aBrick)
 		(*aBrick)->Draw(g, theGlow);
 
-	for (std::list<std::list<Brick*> >::iterator aGroup = m94.begin(); aGroup != m94.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFallingGroups.begin(); aGroup != mFallingGroups.end(); ++aGroup)
 		for (std::list<Brick*>::iterator aBrick = aGroup->begin(); aBrick != aGroup->end(); ++aBrick)
 			(*aBrick)->Draw(g, theGlow);
 
-	for (std::list<Brick*>::iterator aBrick = ma0.begin(); aBrick != ma0.end(); ++aBrick)
+	for (std::list<Brick*>::iterator aBrick = mTakenBricks.begin(); aBrick != mTakenBricks.end(); ++aBrick)
 		(*aBrick)->Draw(g, theGlow);
 }
 
@@ -59,7 +59,7 @@ void Board::DrawBonusIntro(Graphics* g)
 		for (int aPass = 0; aPass < 2; aPass++)
 		{
 			int aY = aBaseY;
-			for (std::list<Brick*>::iterator aBrick = m70.begin(); aBrick != m70.end(); ++aBrick)
+			for (std::list<Brick*>::iterator aBrick = mHeldBricks.begin(); aBrick != mHeldBricks.end(); ++aBrick)
 			{
 				aY -= 0x19;
 				if (!(*aBrick)->mVisible)

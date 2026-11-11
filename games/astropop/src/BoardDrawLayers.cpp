@@ -29,7 +29,7 @@ void Board::Draw(Graphics* g)
 
 	if (m901)
 	{
-		m310->Draw(g, 0, 0);
+		mScreenWipe->Draw(g, 0, 0);
 		return;
 	}
 
@@ -38,8 +38,8 @@ void Board::Draw(Graphics* g)
 	DrawModeTexts(g);
 	DrawBeam(g);
 
-	if (mMode == 0 && m1a34 == 1 && !m420.mStopped)
-		DrawCel(g, IMAGE_PLAYER1_LASER, m198c, 0, m420.GetCel());
+	if (mMode == 0 && m1a34 == 1 && !mLaserAnim.mStopped)
+		DrawCel(g, IMAGE_PLAYER1_LASER, m198c, 0, mLaserAnim.GetCel());
 
 	DrawBricks(g, false);
 	if (!m8ed)
@@ -75,10 +75,10 @@ void Board::Draw(Graphics* g)
 	if (m1a60 == 1)
 		DrawHud(g);
 
-	for (unsigned int i = 0; i < m108.size(); i++)
-		m108[i]->Draw(g, false);
-	for (unsigned int i = 0; i < m140.size(); i++)
-		m140[i]->Draw(g);
+	for (unsigned int i = 0; i < mFadedBricks.size(); i++)
+		mFadedBricks[i]->Draw(g, false);
+	for (unsigned int i = 0; i < mFloatTexts.size(); i++)
+		mFloatTexts[i]->Draw(g);
 
 	if (m1b64 != 0)
 	{
@@ -95,12 +95,12 @@ void Board::Draw(Graphics* g)
 	{
 		if (0 < m1b40 && m1a34 != 1)
 			DrawSurvivalBonus(g);
-		for (unsigned int i = 0; i < m2a0.size(); i++)
+		for (unsigned int i = 0; i < mEnergySparks.size(); i++)
 		{
 			bool is3D = mApp->Is3DAccelerated();
 			if (is3D)
 				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-			m2a0[i]->Draw(g);
+			mEnergySparks[i]->Draw(g);
 			if (mApp->Is3DAccelerated())
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		}
@@ -112,7 +112,7 @@ void Board::Draw(Graphics* g)
 	if (m910 && 0 < m1b7c)
 	{
 		AnimateBanner();
-		g->DrawImage(m308, 0x182 - m308->GetWidth() / 2, 0xf0 - m308->GetHeight() / 2);
+		g->DrawImage(mBannerWaveImage, 0x182 - mBannerWaveImage->GetWidth() / 2, 0xf0 - mBannerWaveImage->GetHeight() / 2);
 	}
 
 	if (m916)
@@ -123,8 +123,8 @@ void Board::Draw(Graphics* g)
 	if (mApp->mFlag6f9 && !m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && !m916 &&
 		(!m910 || m913))
 	{
-		for (unsigned int i = 0; i < m2b0.size(); i++)
-			m2b0[i]->Draw(g);
+		for (unsigned int i = 0; i < mHintBoxes.size(); i++)
+			mHintBoxes[i]->Draw(g);
 	}
 
 	DrawTestTexts(g);
@@ -166,22 +166,22 @@ void Board::DrawModeTexts(Graphics* g)
 	{
 		Color aColor((int) (mApp->HSLToRGB(m1ad0, 0xff, 0x80) | 0xff000000));
 		g->SetColor(aColor);
-		for (unsigned int i = 0; i < m260.size(); i++)
+		for (unsigned int i = 0; i < mBonusBannerTexts.size(); i++)
 		{
-			g->SetFont(m260[i].mFont);
+			g->SetFont(mBonusBannerTexts[i].mFont);
 			g->SetColor(aColor);
-			g->DrawString(m260[i].mText, m260[i].mX, m260[i].mY);
+			g->DrawString(mBonusBannerTexts[i].mText, mBonusBannerTexts[i].mX, mBonusBannerTexts[i].mY);
 		}
 	}
-	else if (!m916 && m1990 == 0 && !m270.empty())
+	else if (!m916 && m1990 == 0 && !mSpecialBannerTexts.empty())
 	{
 		Color aColor((int) (mApp->HSLToRGB(m1b04, 0xff, 0x80) | 0xff000000));
 		g->SetColor(aColor);
-		for (unsigned int i = 0; i < m270.size(); i++)
+		for (unsigned int i = 0; i < mSpecialBannerTexts.size(); i++)
 		{
-			g->SetFont(m270[i].mFont);
+			g->SetFont(mSpecialBannerTexts[i].mFont);
 			g->SetColor(aColor);
-			g->DrawString(m270[i].mText, m270[i].mX, m270[i].mY);
+			g->DrawString(mSpecialBannerTexts[i].mText, mSpecialBannerTexts[i].mX, mSpecialBannerTexts[i].mY);
 		}
 	}
 }
@@ -210,13 +210,13 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 			aText = GT(0x00565e28);
 		else if (mMode == 0)
 			aText = GT(0x00565e00);
-		if (mMode == 2 && mc8.empty())
+		if (mMode == 2 && mTurbotMarkedCells.empty())
 			aText = GT(0x00565dbc);
 		g->DrawString(aText, 0x182 - aFont->StringWidth(aText) / 2, 0xf5);
 	}
 
 	// the pop-up of a hint is open
-	bool aHintOpen = !m230.empty() && m230[0]->m1c && !(-m7ec < m7e8);
+	bool aHintOpen = !mHintSpots.empty() && mHintSpots[0]->m1c && !(-m7ec < m7e8);
 	if (!m922 || aHintOpen)
 	{
 		if (-1 < m1960 && m923 && (!m8eb || m8ec) && !m8ed && !m8ef && !m8f4 && !m8ec && !aHintOpen && m1a60 == 1 && 1 < m1940)
@@ -291,11 +291,11 @@ void Board::DrawCrosshair(Graphics* g)
 	int aCol;
 	int aRow;
 	int aCel;
-	if (!m324.empty())
+	if (!mHoverCells.empty())
 	{
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		aCol = m324[0].mCol;
-		aRow = m324[0].mRow;
+		aCol = mHoverCells[0].mCol;
+		aRow = mHoverCells[0].mRow;
 		aCel = 2;
 	}
 	else if (mMode == 3 && m1a34 == 1)
@@ -320,9 +320,9 @@ void Board::DrawCrosshair(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawExplosions(Graphics* g)
 {
-	for (unsigned int i = 0; i < m1b0.size(); i++)
+	for (unsigned int i = 0; i < mAtomicExplosions.size(); i++)
 	{
-		ExplosionAnim* anExplosion = m1b0[i];
+		ExplosionAnim* anExplosion = mAtomicExplosions[i];
 		if (anExplosion->mDone)
 			continue;
 		if (!(anExplosion->mMaxLoops < 1 || anExplosion->mLoopCount < anExplosion->mMaxLoops))
@@ -353,19 +353,19 @@ void Board::DrawEndSparks(Graphics* g)
 {
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColorizeImages(true);
-	for (unsigned int i = 0; i < m1e0.size(); i++)
+	for (unsigned int i = 0; i < mEndBlastFades.size(); i++)
 	{
-		if (0 < m1e0[i].mValue)
+		if (0 < mEndBlastFades[i].mValue)
 		{
-			g->SetColor(Color(0xff, 0xff, 0xff, m1e0[i].mValue));
+			g->SetColor(Color(0xff, 0xff, 0xff, mEndBlastFades[i].mValue));
 			g->DrawImage(GetImageById(IMAGE_BIG_BLAST1_ID + i), 0, 0);
 		}
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	g->SetColorizeImages(false);
-	for (unsigned int i = 0; i < me8.size(); i++)
+	for (unsigned int i = 0; i < mSunSparks.size(); i++)
 	{
-		SunParticle* aSpark = me8[i];
+		SunParticle* aSpark = mSunSparks[i];
 		if (!aSpark->mAnim.mStopped)
 			DrawCel(g, IMAGE_SUN_PARTICLE, (int) aSpark->mX, (int) aSpark->mY, aSpark->mAnim.GetCel());
 	}
@@ -381,12 +381,12 @@ void Board::DrawSnow(Graphics* g)
 	int aMaxAlpha = (m19fc < 0x3d) ? m19fc * 4 : 0xff;
 	g->SetColorizeImages(true);
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-	int aFlakes = (int) m240.size();
+	int aFlakes = (int) mFreezeFlakes.size();
 	if (!mApp->Is3DAccelerated())
 		aFlakes = aFlakes >> 2;
 	for (int i = 0; i < aFlakes; i++)
 	{
-		FreezeFlake& aFlake = m240[i];
+		FreezeFlake& aFlake = mFreezeFlakes[i];
 		int anAlpha;
 		if (aFlake.mVelX > 0.0f)
 			anAlpha = (int) (520.0f - aFlake.mX);
@@ -607,13 +607,13 @@ void Board::DrawSirens(Graphics* g)
 
 	int aCel = mSirenAnim.GetCel();
 	DrawCel(g, IMAGE_SIREN, m1a80, -0xe, aCel);
-	DrawCel(g, m2fc, m1a80 + 0x244, -0xe, mSirenAnim.GetCel());
+	DrawCel(g, mSirenImage, m1a80 + 0x244, -0xe, mSirenAnim.GetCel());
 	if (mApp->Is3DAccelerated())
 	{
 		if (mApp->Is3DAccelerated())
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		DrawCel(g, IMAGE_SIREN_FX, m1a80, -0x31, mSirenAnim.GetCel());
-		DrawCel(g, m300, m1a80 + 0x1bd, -0x31, mSirenAnim.GetCel());
+		DrawCel(g, mSirenFxImage, m1a80 + 0x1bd, -0x31, mSirenAnim.GetCel());
 		if (mApp->Is3DAccelerated())
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
@@ -630,11 +630,11 @@ void Board::DrawSurvivalBonus(Graphics* g)
 
 	// the first mark that is lit, the first of all when none is
 	unsigned int aKind = 0;
-	for (unsigned int i = 0; i < m200.size(); i++)
+	for (unsigned int i = 0; i < mSuperchargeMarks.size(); i++)
 	{
-		if (m200[i].mActive)
+		if (mSuperchargeMarks[i].mActive)
 		{
-			aKind = (unsigned int) m200[i].mType;
+			aKind = (unsigned int) mSuperchargeMarks[i].mType;
 			break;
 		}
 	}

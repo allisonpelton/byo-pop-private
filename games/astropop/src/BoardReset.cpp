@@ -74,7 +74,7 @@ void Board::ResetGame()
 	m90d = false;
 	m8e5 = false;
 	m8e6 = false;
-	m3c0 = Color(100, 100, 100);
+	mBackdropTint = Color(100, 100, 100);
 	m1a98 = -500000000;
 	m1a9c = -500000000;
 	m1bf8 = -1.0f;
@@ -103,7 +103,7 @@ void Board::ResetGame()
 	m1a4c = -1;
 	m8fd = false;
 	m8fc = false;
-	m2f8 = NULL;
+	mWarpLightningImage = NULL;
 	m19fc = 0;
 	m1a44 = -1;
 	m1a10 = 0;
@@ -120,20 +120,20 @@ void Board::ResetGame()
 	m8f3 = false;
 	m8f2 = false;
 	m8f1 = false;
-	m200.clear();
+	mSuperchargeMarks.clear();
 	m19d0 = 0;
 	m19dc = 0;
 	if (m1bbc < mField193C && 8 < m19d0)
 		m19d4 = 8;
 	m1a30 = 0;
 
-	m1f0.clear();
+	mSpecialCooldowns.clear();
 	for (int i = 5; i != 0; i--)
 	{
 		int aCount = 2000;
 		if (0x12 < mField193C || m1a60 == 2)
 			aCount = 0;
-		m1f0.push_back(aCount);
+		mSpecialCooldowns.push_back(aCount);
 	}
 	m1928 = 0;
 	m192c = 0;
@@ -146,9 +146,9 @@ void Board::ResetGame()
 	m1924 = 0;
 
 	// the pictures of the backdrop that are in use are dropped (so that they are loaded again)
-	for (unsigned int i = 0; i < m190.size(); i++)
+	for (unsigned int i = 0; i < mBackdropStars.size(); i++)
 	{
-		int anId = m190[i].mImageId;
+		int anId = mBackdropStars[i].mImageId;
 		if (anId != -1)
 			mApp->mResourceManager->DeleteImage(GetStringIdById(anId));
 	}
@@ -170,9 +170,9 @@ void Board::ResetGame()
 	aPictures.push_back(LoadImageById(mApp->mResourceManager, aFirst));
 	aPictures.push_back(LoadImageById(mApp->mResourceManager, aThird));
 
-	for (unsigned int i = 0; i < m190.size(); i++)
+	for (unsigned int i = 0; i < mBackdropStars.size(); i++)
 	{
-		StarRec* aStar = &m190[i];
+		StarRec* aStar = &mBackdropStars[i];
 		aStar->mImage = aPictures[i];
 		if (i == 0)
 			aStar->mImageId = aSecond;

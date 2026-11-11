@@ -24,14 +24,14 @@ using namespace Sexy;
 std::string Board::DescribeField()
 {
 	std::string aResult = "[";
-	for (size_t aRow = 0; aRow < m314.size(); aRow++)
+	for (size_t aRow = 0; aRow < mFieldBricks.size(); aRow++)
 	{
 		if (aRow > 0)
 			aResult += ",";
 		aResult += "\"";
-		for (size_t aCol = 0; aCol < m314[aRow].size(); aCol++)
+		for (size_t aCol = 0; aCol < mFieldBricks[aRow].size(); aCol++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick == NULL)
 				aResult += '.';
 			else if (!aBrick->IsIdle())
@@ -168,7 +168,7 @@ int Board::BotBusyReason()
 		return 5;
 	if (CountMovingBricks(false) > 0)
 		return 6;
-	return (!m7c.empty() || !m94.empty()) ? 7 : 0;
+	return (!mFiredGroups.empty() || !mFallingGroups.empty()) ? 7 : 0;
 }
 
 // port: the bot (a test driver's view of the game); the original has none
@@ -194,14 +194,14 @@ std::string Board::BotMove()
 	}
 
 	// a hint that waits to be read is put away with its button
-	if (m74c != NULL && m74c->mVisible && (m919 || (!m230.empty() && m230[0]->m1c)))
+	if (m74c != NULL && m74c->mVisible && (m919 || (!mHintSpots.empty() && mHintSpots[0]->m1c)))
 		return "{\"kind\":\"hint\"," +
 			   Steps(StrFormat("{\"click\":[%d,%d]}", m74c->mX + m74c->mWidth / 2, m74c->mY + m74c->mHeight / 2)) + "}";
 
 	// the tutorial's demo plays by itself; the link it shows (to start a game) ends it
-	if (m8dc && m2e0 != NULL && m2e0->mVisible)
+	if (m8dc && mDemoStartLink != NULL && mDemoStartLink->mVisible)
 		return "{\"kind\":\"demo\",\"updates\":10," +
-			   Steps(StrFormat("{\"click\":[%d,%d]}", m2e0->mX + m2e0->mWidth / 2, m2e0->mY + m2e0->mHeight / 2)) + "}";
+			   Steps(StrFormat("{\"click\":[%d,%d]}", mDemoStartLink->mX + mDemoStartLink->mWidth / 2, mDemoStartLink->mY + mDemoStartLink->mHeight / 2)) + "}";
 
 	// the story that comes before a level: a click brings all of it in, then its button takes it away
 	if (m754 != NULL)
@@ -250,7 +250,7 @@ std::string Board::BotMove()
 	{
 		for (int c = 0; c < kCols; c++)
 		{
-			Brick* aBrick = (r < (int) m314.size() && c < (int) m314[r].size()) ? m314[r][c] : NULL;
+			Brick* aBrick = (r < (int) mFieldBricks.size() && c < (int) mFieldBricks[r].size()) ? mFieldBricks[r][c] : NULL;
 			if (aBrick == NULL)
 				aGrid.mKind[r][c] = kNone;
 			else if (!aBrick->IsIdle())
@@ -292,13 +292,13 @@ std::string Board::BotMove()
 	}
 
 	// the bricks the ship holds (it shoots them), or the ones it will take
-	bool aHolding = !m70.empty();
+	bool aHolding = !mHeldBricks.empty();
 	int aHandKind = -1;
 	int aHandCount = 0;
 	if (aHolding)
 	{
-		aHandKind = (m354 != NULL) ? (m354->mMutated == 1 ? 0xc : m354->mType) : m70.front()->GetEffectiveType();
-		aHandCount = (int) m70.size();
+		aHandKind = (mHandKindBrick != NULL) ? (mHandKindBrick->mMutated == 1 ? 0xc : mHandKindBrick->mType) : mHeldBricks.front()->GetEffectiveType();
+		aHandCount = (int) mHeldBricks.size();
 		if (!IsColour(aHandKind))
 			return "null";
 	}

@@ -41,10 +41,10 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 	m1940 = theSavedLevel / 2 + 1;
 
 	// the picture of the stage and the hint on the screen start without a fade
-	unsigned int aStageCount = m220.empty() ? 0 : (unsigned int) m220.size();
+	unsigned int aStageCount = mStageHintPanels.empty() ? 0 : (unsigned int) mStageHintPanels.size();
 	if ((unsigned int) mField193C < aStageCount)
 	{
-		StageBg* aBg = m220[mField193C];
+		StageBg* aBg = mStageHintPanels[mField193C];
 		aBg->m118 = 0;
 		aBg->m114 = 0xff;
 		aBg->m110 = 0;
@@ -52,12 +52,12 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		aBg->m100 = 0xff;
 		aBg->m104 = 0;
 	}
-	if (!m230.empty() && m230[0]->m1c)
+	if (!mHintSpots.empty() && mHintSpots[0]->m1c)
 	{
-		StageBg* aBg = m230[0]->mBg;
+		StageBg* aBg = mHintSpots[0]->mBg;
 		aBg->m100 = 0xff;
 		aBg->m114 = 0xff;
-		aBg->m108 = 0;
+		aBg->mFadedBricks = 0;
 		aBg->m118 = 0;
 		aBg->m10c = 0;
 		aBg->m110 = 0;
@@ -66,8 +66,8 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 	}
 	if (m1bd8 == m1bdc)
 	{
-		mAnim3e0.Reset();
-		mAnim3e0.SetStopped(false);
+		mMeterFullAnim.Reset();
+		mMeterFullAnim.SetStopped(false);
 	}
 
 	m1b1c = theSetting55;
@@ -144,7 +144,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				int aStreakIndex = 0;
 				do
 				{
-					StreakRec* aStreak = &m170[aStreakIndex];
+					StreakRec* aStreak = &mStreaks[aStreakIndex];
 					aStreak->mFlag28 = false;
 					if (aStreak->mKind == 0)
 						aStreak->mColor = Color(0, 0, 0xfa);
@@ -162,7 +162,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			int aY = 4;
 			while (true)
 			{
-				if (m314.empty() || (unsigned int) m314.size() <= (unsigned int) aRow)
+				if (mFieldBricks.empty() || (unsigned int) mFieldBricks.size() <= (unsigned int) aRow)
 					break;
 				int aCol = 0;
 				int aX = 0xa6;
@@ -229,7 +229,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 						aBrick->SetParticleY((float) aBrickY);
 					}
 					aX += 0x2c;
-					m314[aRow][aCol] = aBrick;
+					mFieldBricks[aRow][aCol] = aBrick;
 					aCol++;
 				}
 				while (aX < 0x25e);
@@ -245,12 +245,12 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			if (aUser->GetInt(0x59, &aMark.mType) && aMark.mType > -1)
 			{
 				aUser->GetInt(0x5a, &aMark.mCount);
-				m200.push_back(aMark);
+				mSuperchargeMarks.push_back(aMark);
 			}
-			if (!m200.empty())
+			if (!mSuperchargeMarks.empty())
 			{
-				Fire(0x20, m200[0].mType);
-				int aMarkType = m200[0].mType;
+				Fire(0x20, mSuperchargeMarks[0].mType);
+				int aMarkType = mSuperchargeMarks[0].mType;
 				if (GetMarkCount(aMarkType) < 0xff)
 					Fire(0x25, GetMarkCount(aMarkType));
 			}
@@ -277,11 +277,11 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			unsigned int aDraw = AstroRand();
 			m938 = 423.0f; // 0x43d38000 at 0x4687f3
 			m19f4 = (((int) aDraw % 500000000) % 200) + 100;
-			m3c0 = Color(100, 100, 100);
+			mBackdropTint = Color(100, 100, 100);
 			m1ab8 = 10;
 			m1ac0 = PickSpawnDelay();
 			m1abc = 700;
-			mAnim460.SetStopped(false);
+			mWarpGateAnim.SetStopped(false);
 			m19ec = 0;
 			m19e8 = 0;
 			m19e4 = 0;
@@ -307,9 +307,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			else
 				m7cc.push_back(StrFormat(GTC(0x005656dc), m19b4 / 6000, aSeconds));
 			std::string aRankName = mApp->GetRankName(mScore, &m1bd4);
-			if (m30c != NULL)
-				delete m30c;
-			m30c = mApp->MakeRankImage(m1bd4, 0x50);
+			if (mRankImage != NULL)
+				delete mRankImage;
+			mRankImage = mApp->MakeRankImage(m1bd4, 0x50);
 			if (m1b2c == 1)
 			{
 				mScore = m7bc + m7b8 + m1978 + aBonus;
@@ -337,7 +337,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			int aStreakIndex = 0;
 			do
 			{
-				StreakRec* aStreak = &m170[aStreakIndex];
+				StreakRec* aStreak = &mStreaks[aStreakIndex];
 				aStreak->mMargin = 0x1e0;
 				aStreak->mSpeed = aStreak->mSpeed + 4.7999997f;
 				aStreakIndex++;
@@ -384,7 +384,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		int aStreakIndex = 0;
 		do
 		{
-			StreakRec* aStreak = &m170[aStreakIndex];
+			StreakRec* aStreak = &mStreaks[aStreakIndex];
 			aStreak->mFlag28 = false;
 			if (aStreak->mKind == 0)
 				aStreak->mColor = Color(0, 0, 0xfa);
@@ -411,12 +411,12 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		if (aUser->GetInt(0x59, &aMark.mType) && aMark.mType > -1)
 		{
 			aUser->GetInt(0x5a, &aMark.mCount);
-			m200.push_back(aMark);
+			mSuperchargeMarks.push_back(aMark);
 		}
-		if (!m200.empty())
+		if (!mSuperchargeMarks.empty())
 		{
-			Fire(0x20, m200[0].mType);
-			int aMarkType = m200[0].mType;
+			Fire(0x20, mSuperchargeMarks[0].mType);
+			int aMarkType = mSuperchargeMarks[0].mType;
 			if (GetMarkCount(aMarkType) < 0xff)
 				Fire(0x25, GetMarkCount(aMarkType));
 		}

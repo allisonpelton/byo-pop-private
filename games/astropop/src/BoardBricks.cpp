@@ -23,7 +23,7 @@ void Board::RemoveBrick(Brick* theBrick, int theCol, int theRow, bool theCrack)
 {
 	// (the original reads the brick from the cell again; the argument is not used)
 	(void) theBrick;
-	Brick* aBrick = m314[theRow][theCol];
+	Brick* aBrick = mFieldBricks[theRow][theCol];
 
 	for (unsigned int i = 0; i < mTargeted.size(); i++)
 	{
@@ -38,10 +38,10 @@ void Board::RemoveBrick(Brick* theBrick, int theCol, int theRow, bool theCrack)
 		((SpecialBrick*) aBrick)->Crack(true);
 
 	CellRef aCell = {theCol, theRow};
-	ma8.push_back(aCell);
-	ma0.push_back(aBrick);
+	mTakenCells.push_back(aCell);
+	mTakenBricks.push_back(aBrick);
 	m1994++;
-	m314[theRow][theCol] = NULL;
+	mFieldBricks[theRow][theCol] = NULL;
 	FireTo(aBrick, 3);
 }
 
@@ -51,18 +51,18 @@ void Board::RemoveBrick(Brick* theBrick, int theCol, int theRow, bool theCrack)
 bool Board::HitByNeighbour(int theCol, int theRow, int theKind)
 {
 	bool aHit = false;
-	if (theCol + 1 < 10 && m314[theRow][theCol + 1] != NULL && TypesMatch(m314[theRow][theCol + 1], theKind))
+	if (theCol + 1 < 10 && mFieldBricks[theRow][theCol + 1] != NULL && TypesMatch(mFieldBricks[theRow][theCol + 1], theKind))
 		aHit = true;
-	else if (theCol - 1 >= 0 && m314[theRow][theCol - 1] != NULL && TypesMatch(m314[theRow][theCol - 1], theKind))
+	else if (theCol - 1 >= 0 && mFieldBricks[theRow][theCol - 1] != NULL && TypesMatch(mFieldBricks[theRow][theCol - 1], theKind))
 		aHit = true;
-	else if (theRow - 1 >= 0 && m314[theRow - 1][theCol] != NULL && TypesMatch(m314[theRow - 1][theCol], theKind))
+	else if (theRow - 1 >= 0 && mFieldBricks[theRow - 1][theCol] != NULL && TypesMatch(mFieldBricks[theRow - 1][theCol], theKind))
 		aHit = true;
-	else if (theRow + 1 < 0x13 && m314[theRow + 1][theCol] != NULL && TypesMatch(m314[theRow + 1][theCol], theKind))
+	else if (theRow + 1 < 0x13 && mFieldBricks[theRow + 1][theCol] != NULL && TypesMatch(mFieldBricks[theRow + 1][theCol], theKind))
 		aHit = true;
 	if (!aHit)
 		return false;
 
-	Brick* aBrick = m314[theRow][theCol];
+	Brick* aBrick = mFieldBricks[theRow][theCol];
 	if (aBrick->mMutated != 1 && aBrick->mType == 9 && ((SpecialBrick*) aBrick)->mStage == 2)
 	{
 		((SpecialBrick*) aBrick)->Crack(true);
@@ -78,7 +78,7 @@ bool Board::HitByNeighbour(int theCol, int theRow, int theKind)
 // the second time it is removed. theCracked holds the steel bricks that have cracked in this pass.
 void Board::DamageNeighbour(int theCol, int theRow, std::vector<CellRef>& theCracked)
 {
-	Brick* aBrick = m314[theRow][theCol];
+	Brick* aBrick = mFieldBricks[theRow][theCol];
 	int aKind = (aBrick->mMutated != 1) ? aBrick->mType : 0xc;
 	if (!aBrick->IsIdle())
 		return;
@@ -115,40 +115,40 @@ void Board::DamageNeighbours(const std::vector<CellRef>& theKilled)
 		int aRow = theKilled[i].mRow;
 
 		int aUp = aRow - 1;
-		if (aUp > 0 && m314[aUp][aCol] != NULL)
+		if (aUp > 0 && mFieldBricks[aUp][aCol] != NULL)
 			DamageNeighbour(aCol, aUp, aCracked);
 
 		int aDown = aRow + 1;
-		if (aDown < 0x13 && m314[aDown][aCol] != NULL)
+		if (aDown < 0x13 && mFieldBricks[aDown][aCol] != NULL)
 			DamageNeighbour(aCol, aDown, aCracked);
 
 		int aLeft = aCol - 1;
-		if (aLeft >= 0 && m314[aRow][aLeft] != NULL)
+		if (aLeft >= 0 && mFieldBricks[aRow][aLeft] != NULL)
 			DamageNeighbour(aLeft, aRow, aCracked);
 
 		int aRight = aCol + 1;
-		if (aRight < 10 && m314[aRow][aRight] != NULL)
+		if (aRight < 10 && mFieldBricks[aRow][aRight] != NULL)
 			DamageNeighbour(aRight, aRow, aCracked);
 	}
 }
 
-// 0x433df0: the banner of a text ("No More Moves"): the text in the font on a new image (m304) and a second, blank image
-// of the same width and 0x30 pixels taller (m308); it stays for theTime updates (+0x1b80 counts it, +0x1b84 keeps the
+// 0x433df0: the banner of a text ("No More Moves"): the text in the font on a new image (mBannerTextImage) and a second, blank image
+// of the same width and 0x30 pixels taller (mBannerWaveImage); it stays for theTime updates (+0x1b80 counts it, +0x1b84 keeps the
 // start).
 void Board::BuildBanner(const std::string& theText, int theTime, Font* theFont)
 {
-	delete m304;
-	delete m308;
+	delete mBannerTextImage;
+	delete mBannerWaveImage;
 
-	m304 = new MemoryImage(mApp);
-	m304->Create(theFont->StringWidth(theText), theFont->GetHeight());
-	m304->SetImageMode(true, true);
+	mBannerTextImage = new MemoryImage(mApp);
+	mBannerTextImage->Create(theFont->StringWidth(theText), theFont->GetHeight());
+	mBannerTextImage->SetImageMode(true, true);
 
-	m308 = new MemoryImage(mApp);
-	m308->Create(m304->GetWidth(), m304->GetHeight() + 0x30);
-	m308->SetImageMode(true, true);
+	mBannerWaveImage = new MemoryImage(mApp);
+	mBannerWaveImage->Create(mBannerTextImage->GetWidth(), mBannerTextImage->GetHeight() + 0x30);
+	mBannerWaveImage->SetImageMode(true, true);
 
-	Graphics g(m304);
+	Graphics g(mBannerTextImage);
 	g.SetColor(Color(0xff, 0xff, 0xff));
 	g.SetFont(theFont);
 	g.DrawString(theText, 0, theFont->GetAscent());
@@ -172,7 +172,7 @@ void Board::ClearBonus()
 	m7c8++;
 	int aWidth = FONT_POINTS->StringWidth(aText);
 	FloatText* aFloat = new FloatText(aText, FONT_POINTS, (float) (0x182 - aWidth / 2), 250.0f, 300, 10.0f);
-	m140.push_back(aFloat);
+	mFloatTexts.push_back(aFloat);
 	AddScore(aBonus, false);
 	m1b60 = 0;
 	m1b68 = 0xaf;
@@ -188,25 +188,25 @@ void Board::StartClearCount()
 	m90f = false;
 	m1b88 = 0;
 	m1b8c = 0;
-	if (m354 != NULL)
+	if (mHandKindBrick != NULL)
 	{
-		m128.insert(m354);
-		m354 = NULL;
+		mDoomedBricks.insert(mHandKindBrick);
+		mHandKindBrick = NULL;
 	}
 	mTargeted.clear();
 	m19fc = 0;
 	Fire(0x28, 1);
-	m270.clear();
+	mSpecialBannerTexts.clear();
 
-	for (unsigned int aRow = 1; aRow < m314.size(); aRow++)
+	for (unsigned int aRow = 1; aRow < mFieldBricks.size(); aRow++)
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			if (m314[aRow][aCol] != NULL)
+			if (mFieldBricks[aRow][aCol] != NULL)
 				m1b94++;
 		}
 	}
-	m1b94 += (int) m70.size();
+	m1b94 += (int) mHeldBricks.size();
 
 	int aStep = (int) ((float) m960 * 0.05f);
 	m1b9c = m1b94 * aStep;
@@ -233,12 +233,12 @@ void Board::UpdateBricks()
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			if (m314[aRow][aCol] != NULL)
-				m314[aRow][aCol]->Update();
+			if (mFieldBricks[aRow][aCol] != NULL)
+				mFieldBricks[aRow][aCol]->Update();
 		}
 	}
 
-	if (!mf8.empty() && m7c.empty() && m94.empty() && ma0.empty())
+	if (!mKillAllTypes.empty() && mFiredGroups.empty() && mFallingGroups.empty() && mTakenBricks.empty())
 	{
 		bool aRemoved = false;
 		std::vector<CellRef> aCells;
@@ -246,13 +246,13 @@ void Board::UpdateBricks()
 		{
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
-				Brick* aBrick = m314[aRow][aCol];
+				Brick* aBrick = mFieldBricks[aRow][aCol];
 				if (aBrick == NULL || !aBrick->IsIdle())
 					continue;
 
-				for (unsigned int i = 0; i < mf8.size(); i++)
+				for (unsigned int i = 0; i < mKillAllTypes.size(); i++)
 				{
-					if (TypesMatch(aBrick, mf8[i]))
+					if (TypesMatch(aBrick, mKillAllTypes[i]))
 					{
 						CellRef aCell = {aCol, aRow};
 						aCells.push_back(aCell);
@@ -261,16 +261,16 @@ void Board::UpdateBricks()
 						break;
 					}
 					if (aBrick->mMutated != 1 && (aBrick->mType == 6 || aBrick->mType == 7 || aBrick->mType == 9 ||
-						aBrick->mType == 0xb) && HitByNeighbour(aCol, aRow, mf8[i]))
+						aBrick->mType == 0xb) && HitByNeighbour(aCol, aRow, mKillAllTypes[i]))
 						break;
 				}
 			}
 		}
 
 		DamageNeighbours(aCells);
-		DropUnsupported(ma8);
+		DropUnsupported(mTakenCells);
 
-		if (m1980 > 1 && ma8.empty() && m94.empty())
+		if (m1980 > 1 && mTakenCells.empty() && mFallingGroups.empty())
 		{
 			if (m1980 > 2 && (mField193C > 1 || m1a60 == 2))
 				m8ee = true;
@@ -283,15 +283,15 @@ void Board::UpdateBricks()
 			}
 		}
 
-		mf8.clear();
+		mKillAllTypes.clear();
 
 		if (!aRemoved)
 		{
 			bool aFlag = false;
 			if (m910)
 			{
-				if (!m912 && !m911 && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 && m7c.empty() &&
-					m94.empty() && !AnyMoveLeft(&aFlag))
+				if (!m912 && !m911 && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 && mFiredGroups.empty() &&
+					mFallingGroups.empty() && !AnyMoveLeft(&aFlag))
 				{
 					if (!aFlag)
 					{
@@ -302,13 +302,13 @@ void Board::UpdateBricks()
 					StartClearCount();
 				}
 			}
-			else if (m7c.empty() && m94.empty() && ma0.empty() && mf8.empty() && CountMovingBricks(false) == 0)
+			else if (mFiredGroups.empty() && mFallingGroups.empty() && mTakenBricks.empty() && mKillAllTypes.empty() && CountMovingBricks(false) == 0)
 			{
 				m8fb = true;
-				for (unsigned int aRow = 1; aRow < m314.size(); aRow++)
+				for (unsigned int aRow = 1; aRow < mFieldBricks.size(); aRow++)
 				{
 					int aCol = 0;
-					while (aCol < 10 && m314[aRow][aCol] == NULL)
+					while (aCol < 10 && mFieldBricks[aRow][aCol] == NULL)
 						aCol++;
 					if (aCol < 10)
 					{
@@ -322,24 +322,24 @@ void Board::UpdateBricks()
 		}
 	}
 
-	for (std::list<Brick*>::iterator i = m70.begin(); i != m70.end(); ++i)
+	for (std::list<Brick*>::iterator i = mHeldBricks.begin(); i != mHeldBricks.end(); ++i)
 		(*i)->Update();
 
-	unsigned int aGroups = (unsigned int) m7c.size();
-	for (std::list<std::list<Brick*> >::iterator aGroup = m7c.begin(); aGroup != m7c.end(); )
+	unsigned int aGroups = (unsigned int) mFiredGroups.size();
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFiredGroups.begin(); aGroup != mFiredGroups.end(); )
 	{
 		unsigned int aCount = (unsigned int) aGroup->size();
 		std::list<Brick*>::iterator aBrick = aGroup->begin();
 		while (aBrick != aGroup->end())
 		{
 			(*aBrick)->Update();
-			if (m7c.size() != aGroups)
+			if (mFiredGroups.size() != aGroups)
 				goto DoneGroups;
 			if (aGroup->size() != aCount)
 				break;
 			++aBrick;
 		}
-		if (m7c.size() != aGroups || aGroup->size() != aCount)
+		if (mFiredGroups.size() != aGroups || aGroup->size() != aCount)
 			break;
 		++aGroup;
 	}
@@ -347,17 +347,17 @@ DoneGroups:
 
 	{
 		bool aFirst = true;
-		std::list<Brick*>::iterator aPrev = m88.end();
-		std::list<Brick*>::iterator i = m88.begin();
-		while (i != m88.end())
+		std::list<Brick*>::iterator aPrev = mGoneBricks.end();
+		std::list<Brick*>::iterator i = mGoneBricks.begin();
+		while (i != mGoneBricks.end())
 		{
 			if ((*i)->Update())
 			{
 				// the brick has taken itself out of the list: go on from the one before it
 				if (aFirst)
 				{
-					i = m88.begin();
-					if (i == m88.end())
+					i = mGoneBricks.begin();
+					if (i == mGoneBricks.end())
 						break;
 				}
 				else
@@ -369,28 +369,28 @@ DoneGroups:
 		}
 	}
 
-	for (std::list<std::list<Brick*> >::iterator aGroup = m94.begin(); aGroup != m94.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFallingGroups.begin(); aGroup != mFallingGroups.end(); ++aGroup)
 	{
 		for (std::list<Brick*>::iterator aBrick = aGroup->begin(); aBrick != aGroup->end(); ++aBrick)
 			(*aBrick)->Update();
 	}
 
-	for (std::list<Brick*>::iterator i = ma0.begin(); i != ma0.end(); )
+	for (std::list<Brick*>::iterator i = mTakenBricks.begin(); i != mTakenBricks.end(); )
 	{
 		(*i)->Update();
-		if (ma0.empty())
+		if (mTakenBricks.empty())
 			break;
 		++i;
 	}
 
-	for (unsigned int i = 0; i < m108.size(); i++)
-		m108[i]->Update();
+	for (unsigned int i = 0; i < mFadedBricks.size(); i++)
+		mFadedBricks[i]->Update();
 }
 
 // 0x438a30: is the brick in one of the falling groups at +0x94?
 bool Board::IsInFallingGroup94(Brick* theBrick)
 {
-	for (std::list<std::list<Brick*> >::iterator aGroup = m94.begin(); aGroup != m94.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFallingGroups.begin(); aGroup != mFallingGroups.end(); ++aGroup)
 	{
 		for (std::list<Brick*>::iterator aBrick = aGroup->begin(); aBrick != aGroup->end(); ++aBrick)
 		{
@@ -437,7 +437,7 @@ void Board::DropUnsupported(std::vector<CellRef>& theCells)
 		bool aGo = true;
 		if (aRow != 0 && !(m910 && aRow == 1))
 		{
-			Brick* anAbove = m314[aRow - 1][aCol];
+			Brick* anAbove = mFieldBricks[aRow - 1][aCol];
 			aGo = (anAbove != NULL && anAbove->IsIdle());
 		}
 
@@ -446,7 +446,7 @@ void Board::DropUnsupported(std::vector<CellRef>& theCells)
 			int aY = aRow * 0x19 + 9;
 			for (int aBelow = aRow + 1; aBelow < 0x13; aBelow++)
 			{
-				Brick* aBrick = m314[aBelow][aCol];
+				Brick* aBrick = mFieldBricks[aBelow][aCol];
 				if (aBrick != NULL)
 				{
 					if (aBrick->IsIdle() && !IsInFallingGroup94(aBrick) && !IsInGroups(aBrick, aGroups))
@@ -456,7 +456,7 @@ void Board::DropUnsupported(std::vector<CellRef>& theCells)
 						aBrick->mTargetY = (float) aY;
 						aY += 0x19;
 						aList.push_back(aBrick);
-						m314[aBelow][aCol] = NULL;
+						mFieldBricks[aBelow][aCol] = NULL;
 					}
 				}
 				else if (!aList.empty())
@@ -475,11 +475,11 @@ void Board::DropUnsupported(std::vector<CellRef>& theCells)
 		int aGroupX = (int) aGroups[i].front()->mX;
 		int aGroupY = (int) aGroups[i].front()->mY;
 		std::list<std::list<Brick*> >::iterator aPos;
-		for (aPos = m94.begin(); aPos != m94.end(); ++aPos)
+		for (aPos = mFallingGroups.begin(); aPos != mFallingGroups.end(); ++aPos)
 		{
 			if ((int) aPos->front()->mX == aGroupX && aGroupY > (int) aPos->front()->mY)
 				break;
 		}
-		m94.insert(aPos, aGroups[i]);
+		mFallingGroups.insert(aPos, aGroups[i]);
 	}
 }

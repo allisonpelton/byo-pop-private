@@ -19,12 +19,12 @@ void Board::DrawStageBg(Graphics* g)
 	if (m8dc)
 		return;
 
-	unsigned int aCount = (unsigned int) m220.size();
+	unsigned int aCount = (unsigned int) mStageHintPanels.size();
 	if ((unsigned int) mField193C >= aCount && !m90a)
 		return;
 
 	unsigned int anIndex = m90a ? 1U : (unsigned int) mField193C;
-	StageBg* aBg = m220[anIndex];
+	StageBg* aBg = mStageHintPanels[anIndex];
 	if (aBg->mf0)
 		return;
 
@@ -39,7 +39,7 @@ void Board::DrawStageBg(Graphics* g)
 			anAlpha = aBg->m114;
 		int aHeight = aBg->mPic->mHeight;
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-		DrawCel(g, aBg->mPic, aBg->mX, 0x1a - aHeight / 2 + 0xb4, (aBg->m70.mNumFrames == 1) ? 0 : aBg->m70.mFrame);
+		DrawCel(g, aBg->mPic, aBg->mX, 0x1a - aHeight / 2 + 0xb4, (aBg->mHeldBricks.mNumFrames == 1) ? 0 : aBg->mHeldBricks.mFrame);
 	}
 
 	if (aBg->m5c != NULL && aBg->m104 > 0)
@@ -69,15 +69,15 @@ void Board::DrawStageBg(Graphics* g)
 	WriteWordWrapped(g, Rect(300, aTextY, 0xd2, 0x3c), aBg->mText, -1, 0);
 }
 
-// 0x433fa0: the picture of the banner (m304) goes into the taller one (m308) with each column moved down by a wave (it
+// 0x433fa0: the picture of the banner (mBannerTextImage) goes into the taller one (mBannerWaveImage) with each column moved down by a wave (it
 // runs with the banner's time, m944), each row in a colour of the rainbow, and the whole fading in and out.
 void Board::AnimateBanner()
 {
-	ulong* aSrcBits = m304->GetBits();
-	ulong* aDstBits = m308->GetBits();
-	int aWidth = m304->GetWidth();
-	int aSrcHeight = m304->GetHeight();
-	int aDstHeight = m308->GetHeight();
+	ulong* aSrcBits = mBannerTextImage->GetBits();
+	ulong* aDstBits = mBannerWaveImage->GetBits();
+	int aWidth = mBannerTextImage->GetWidth();
+	int aSrcHeight = mBannerTextImage->GetHeight();
+	int aDstHeight = mBannerWaveImage->GetHeight();
 	memset(aDstBits, 0, (size_t) aDstHeight * aWidth * 4);
 
 	// the fade at the two ends of the banner's time
@@ -111,5 +111,5 @@ void Board::AnimateBanner()
 		}
 	}
 	delete[] aRowColors;
-	m308->BitsChanged();
+	mBannerWaveImage->BitsChanged();
 }

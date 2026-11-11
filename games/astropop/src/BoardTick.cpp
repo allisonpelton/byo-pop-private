@@ -22,7 +22,7 @@ void Board::UpdateAlertFlash()
 {
 	if (m970 < 0xe || m910)
 	{
-		m404 = 1;
+		mAlertLevel = 1;
 		if (m1aac > 0 && !m910)
 		{
 			m1aac -= 6;
@@ -38,9 +38,9 @@ void Board::UpdateAlertFlash()
 	}
 	else
 	{
-		m404 = m970 - 0xc;
-		if (m404 > 5)
-			m404 = 5;
+		mAlertLevel = m970 - 0xc;
+		if (mAlertLevel > 5)
+			mAlertLevel = 5;
 
 		m1aa8 += m1aa4;
 		if (m1aa8 >= 0x100)
@@ -270,7 +270,7 @@ void Board::PayTimeBonus()
 	if (aBonus > 0)
 	{
 		FloatText* aText = new FloatText(StrFormat(GTC(0x5652b0), aBonus), FONT_POINTS, 300.0f, (float) (m1a30 * 40 + 0xe6), false);
-		m140.push_back(aText);
+		mFloatTexts.push_back(aText);
 		AddScore(aBonus, true);
 		aBonus = 0;
 	}
@@ -297,14 +297,14 @@ void Board::UpdateFreeze()
 
 	if (mUpdateCnt % 0x19 == 0)
 	{
-		if (m240.size() < 0x3c)
+		if (mFreezeFlakes.size() < 0x3c)
 		{
 			FreezeFlake aFlake;
 			aFlake.mAnim.SetNumFrames(IMAGE_PARTICLE_SNOWFLAKE->mNumCols);
 			aFlake.mAnim.SetDelay(((int) AstroRand() % 500000000) % 5 + 7);
 			aFlake.mAnim.SetStopped(false);
 			aFlake.mVelY = 0.0f;
-			if ((m240.size() & 1) == 0)
+			if ((mFreezeFlakes.size() & 1) == 0)
 			{
 				aFlake.mVelX = -1.0f;
 				aFlake.mX = 640.0f;
@@ -316,18 +316,18 @@ void Board::UpdateFreeze()
 				aFlake.mX = 105.0f;
 				aFlake.mY = (float) (((int) AstroRand() % 500000000) % 5 + 7);
 			}
-			m240.push_back(aFlake);
+			mFreezeFlakes.push_back(aFlake);
 		}
 	}
 
-	for (unsigned int i = 0; i < m240.size(); i++)
+	for (unsigned int i = 0; i < mFreezeFlakes.size(); i++)
 	{
-		m240[i].mX = m240[i].mVelX + m240[i].mX;
-		if (m240[i].mX > 640.0f)
-			m240[i].mX = 105.0f;
-		else if (m240[i].mX < 105.0f)
-			m240[i].mX = 640.0f;
-		m240[i].mAnim.Update();
+		mFreezeFlakes[i].mX = mFreezeFlakes[i].mVelX + mFreezeFlakes[i].mX;
+		if (mFreezeFlakes[i].mX > 640.0f)
+			mFreezeFlakes[i].mX = 105.0f;
+		else if (mFreezeFlakes[i].mX < 105.0f)
+			mFreezeFlakes[i].mX = 640.0f;
+		mFreezeFlakes[i].mAnim.Update();
 	}
 
 	if (m19fc == 0)
@@ -391,9 +391,9 @@ void Board::UpdateStates()
 			m978 += 6;
 			if (m978 > 0xfe)
 			{
-				for (unsigned int i = 0; i < m140.size(); i++)
-					delete m140[i];
-				m140.clear();
+				for (unsigned int i = 0; i < mFloatTexts.size(); i++)
+					delete mFloatTexts[i];
+				mFloatTexts.clear();
 				m978 = 0xff;
 				m8dc = false;
 				m8d8 = false;
@@ -587,29 +587,29 @@ void Board::UpdateStates()
 			m1ab4 = 100;
 	}
 
-	if (!m270.empty())
+	if (!mSpecialBannerTexts.empty())
 	{
 		m1b04 = (m1b04 + 4) & 0xff;
-		for (unsigned int i = 0; i < m270.size(); i++)
+		for (unsigned int i = 0; i < mSpecialBannerTexts.size(); i++)
 		{
-			m270[i].mX++;
-			if (m270[i].mX >= m270[i].mFont->StringWidth(m270[i].mText) + 0x29e)
+			mSpecialBannerTexts[i].mX++;
+			if (mSpecialBannerTexts[i].mX >= mSpecialBannerTexts[i].mFont->StringWidth(mSpecialBannerTexts[i].mText) + 0x29e)
 			{
 				int aMin = 500000000;
-				for (unsigned int j = 0; j < m270.size(); j++)
+				for (unsigned int j = 0; j < mSpecialBannerTexts.size(); j++)
 				{
-					if (m270[j].mX < aMin)
-						aMin = m270[j].mX;
+					if (mSpecialBannerTexts[j].mX < aMin)
+						aMin = mSpecialBannerTexts[j].mX;
 				}
-				m270[i].mX = aMin - m270[i].mFont->StringWidth(m270[i].mText) - 0x1e;
+				mSpecialBannerTexts[i].mX = aMin - mSpecialBannerTexts[i].mFont->StringWidth(mSpecialBannerTexts[i].mText) - 0x1e;
 			}
 		}
 	}
 
-	for (unsigned int i = 0; i < m1f0.size(); i++)
+	for (unsigned int i = 0; i < mSpecialCooldowns.size(); i++)
 	{
-		if (m1f0[i] > 0)
-			m1f0[i]--;
+		if (mSpecialCooldowns[i] > 0)
+			mSpecialCooldowns[i]--;
 	}
 
 	if (mApp->mFlag658)
@@ -631,27 +631,27 @@ Finish:
 
 	if (m8fc)
 	{
-		for (unsigned int i = 0; i < m200.size(); )
+		for (unsigned int i = 0; i < mSuperchargeMarks.size(); )
 		{
-			if (m200[i].mCount < 1)
+			if (mSuperchargeMarks[i].mCount < 1)
 			{
 				i++;
 				continue;
 			}
-			m200[i].mCount--;
-			if (m200[i].mCount > 0)
+			mSuperchargeMarks[i].mCount--;
+			if (mSuperchargeMarks[i].mCount > 0)
 			{
-				if (m200[i].mCount < 0xff)
-					Fire(0x25, m200[i].mCount);
+				if (mSuperchargeMarks[i].mCount < 0xff)
+					Fire(0x25, mSuperchargeMarks[i].mCount);
 				i++;
 			}
 			else
 			{
-				int aKind = -m200[i].mType;
+				int aKind = -mSuperchargeMarks[i].mType;
 				if (aKind == 0)
 					aKind = -500000000;
 				Fire(0x20, aKind);
-				m200.erase(m200.begin() + i);
+				mSuperchargeMarks.erase(mSuperchargeMarks.begin() + i);
 			}
 		}
 	}

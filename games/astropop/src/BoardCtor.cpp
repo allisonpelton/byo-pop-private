@@ -88,30 +88,30 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m8e0 = false;
 
 	// the hint boxes: the SUPA weapon, the meter, a third that the pause fills
-	m2b0.resize(3, (HintBox*) NULL);
-	m2b0[0] = new HintBox();
-	m2b0[0]->AddLine(GT(0x00569b80));
-	m2b0[0]->AddLine(GT(0x00569b60));
-	m2b0[0]->AddLine(GT(0x00569b40));
+	mHintBoxes.resize(3, (HintBox*) NULL);
+	mHintBoxes[0] = new HintBox();
+	mHintBoxes[0]->AddLine(GT(0x00569b80));
+	mHintBoxes[0]->AddLine(GT(0x00569b60));
+	mHintBoxes[0]->AddLine(GT(0x00569b40));
 	m978 = 0;
-	m2e0 = NULL;
+	mDemoStartLink = NULL;
 	m8da = false;
 	m968 = 0xa6;
 	m96c = 4;
-	m2b0[1] = new HintBox();
+	mHintBoxes[1] = new HintBox();
 	std::string aMeterLine;
 	if (m1a60 == 1)
 	{
-		m2b0[1]->AddLine(GT(0x00569b20));
+		mHintBoxes[1]->AddLine(GT(0x00569b20));
 		aMeterLine = GT(0x00569b0c);
 	}
 	else
 	{
-		m2b0[1]->AddLine(GT(0x00569af4));
+		mHintBoxes[1]->AddLine(GT(0x00569af4));
 		aMeterLine = GT(0x00569adc);
 	}
-	m2b0[1]->AddLine(aMeterLine);
-	m2b0[2] = new HintBox();
+	mHintBoxes[1]->AddLine(aMeterLine);
+	mHintBoxes[2] = new HintBox();
 	m8d9 = false;
 	m778 = NULL;
 	m8db = false;
@@ -124,14 +124,14 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m94c = 1;
 	m950 = 1;
 	m8e1 = mApp->mFlag6fb;
-	for (size_t i = 0; i < m2b0.size(); i++)
+	for (size_t i = 0; i < mHintBoxes.size(); i++)
 	{
-		m2b0[i]->SetShown(false);
-		m2b0[i]->SetFont(GetFontById(0xb0));
-		m2b0[i]->mShowTime = 100;
-		m2b0[i]->mHideTime = 800;
+		mHintBoxes[i]->SetShown(false);
+		mHintBoxes[i]->SetFont(GetFontById(0xb0));
+		mHintBoxes[i]->mShowTime = 100;
+		mHintBoxes[i]->mHideTime = 800;
 	}
-	m2b0[2]->mShowTime = 100;
+	mHintBoxes[2]->mShowTime = 100;
 	m922 = theFlag;
 	m960 = 0;
 	m8df = false;
@@ -145,8 +145,8 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mField193C = 1;
 	m1c09 = false;
 	m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
-	m2e4 = NULL;
-	m2e8 = NULL;
+	mContinueButton = NULL;
+	mMenuButton = NULL;
 	m1be4 = 0;
 	m913 = false;
 	m1b30 = -1;
@@ -180,8 +180,8 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1b28 = 0;
 	m1b2c = 0;
 	m8e2 = false;
-	m308 = NULL;
-	m304 = NULL;
+	mBannerWaveImage = NULL;
+	mBannerTextImage = NULL;
 	m928 = 0.0f;
 	m92c = 0.0f;
 	m912 = false;
@@ -247,7 +247,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1b0c = 500000000;
 	m1afc = 0;
 	m1af8 = 0;
-	m250.resize(14, (Image*) NULL);
+	mPhasePictures.resize(14, (Image*) NULL);
 	m1ac4 = 6;
 	mDropTicks = 1000;
 	m1af0 = 0;
@@ -260,15 +260,15 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aModeImage = 0x1b2;
 	else if (mMode == 3)
 		aModeImage = 0x1c0;
-	for (size_t i = 0; i < m250.size(); i++)
-		m250[i] = LoadImageById(mApp->mResourceManager, aModeImage + (int) i);
+	for (size_t i = 0; i < mPhasePictures.size(); i++)
+		mPhasePictures[i] = LoadImageById(mApp->mResourceManager, aModeImage + (int) i);
 	m90b = false;
 	m1aa0 = 0;
-	m160.resize(5);
-	m170.resize(100);
-	m180.resize(1);
-	m190.resize(3);
-	m1c0.assign(1, (Widget*) NULL);
+	mPlanets.resize(5);
+	mStreaks.resize(100);
+	mSpawnRules.resize(1);
+	mBackdropStars.resize(3);
+	mFieldButtons.assign(1, (Widget*) NULL);
 	m1b00 = 0;
 	m19b8 = 0;
 	m1b78 = 0;
@@ -278,18 +278,18 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1a24 = 0;
 	m90a = false;
 
-	mAnim3e0.SetNumFrames(0x3f);
-	mAnim3e0.SetDelay(1);
-	mAnim3e0.SetStopped(true);
-	mAnim3e0.mPingPong = true;
+	mMeterFullAnim.SetNumFrames(0x3f);
+	mMeterFullAnim.SetDelay(1);
+	mMeterFullAnim.SetStopped(true);
+	mMeterFullAnim.mPingPong = true;
 	m7ec = 0xce;
 	m7e8 = -206;
-	mAnim4e0.SetNumFrames(0x3f);
-	mAnim4e0.SetDelay(1);
-	mAnim4e0.mMaxLoops = 10;
-	mAnim4e0.mLoopCount = 0;
-	mAnim4e0.mPingPong = true;
-	mAnim4e0.SetStopped(true);
+	mStageMeterAnim.SetNumFrames(0x3f);
+	mStageMeterAnim.SetDelay(1);
+	mStageMeterAnim.mMaxLoops = 10;
+	mStageMeterAnim.mLoopCount = 0;
+	mStageMeterAnim.mPingPong = true;
+	mStageMeterAnim.SetStopped(true);
 	m1acc = 0;
 	m1adc = 0;
 	m1ad8 = 0;
@@ -313,26 +313,26 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mOverlay.mHasTransparencies = true;
 	mOverlay.mHasAlpha = true;
 	m19d4 = 8;
-	m314.resize(20);
-	for (size_t i = 0; i < m314.size(); i++)
-		m314[i].resize(10, (Brick*) NULL);
+	mFieldBricks.resize(20);
+	for (size_t i = 0; i < mFieldBricks.size(); i++)
+		mFieldBricks[i].resize(10, (Brick*) NULL);
 	m1a54 = 4;
 	m6e4 = NULL;
 	m900 = false;
-	mAnim460.SetNumFrames(1);
-	mAnim460.SetDelay(0xc);
-	mAnim460.mHoldLast = false;
-	mAnim460.mPingPong = false;
+	mWarpGateAnim.SetNumFrames(1);
+	mWarpGateAnim.SetDelay(0xc);
+	mWarpGateAnim.mHoldLast = false;
+	mWarpGateAnim.mPingPong = false;
 	if (mMode == 2)
 	{
-		mAnim520.SetNumFrames(IMAGE_TURBOT_POWERUP->mNumCols);
-		mAnim520.SetDelay(6);
-		mAnim520.mPingPong = false;
-		mAnim520.SetStopped(true);
-		mAnim520.mHoldLast = false;
+		mTurbotPowerupAnim.SetNumFrames(IMAGE_TURBOT_POWERUP->mNumCols);
+		mTurbotPowerupAnim.SetDelay(6);
+		mTurbotPowerupAnim.mPingPong = false;
+		mTurbotPowerupAnim.SetStopped(true);
+		mTurbotPowerupAnim.mHoldLast = false;
 	}
 	else
-		mAnim520.SetStopped(true);
+		mTurbotPowerupAnim.SetStopped(true);
 	m1a28 = 0;
 	m197c = 10000;
 	m1970 = 0;
@@ -344,9 +344,9 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		SetupLevel1Rules();
 	else if (m1a60 != 0)
 		SetupClassicRules();
-	m354 = NULL;
+	mHandKindBrick = NULL;
 	m198c = 0xa6;
-	m70.clear();
+	mHeldBricks.clear();
 
 	// the script rows are cleared and so are the first rows of the field
 	for (int aRow = 0; aRow < 100; aRow++)
@@ -355,14 +355,14 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		{
 			m984.mCode[aRow][aCol] = 0;
 			if (aRow < 20)
-				m314[aRow][aCol] = NULL;
+				mFieldBricks[aRow][aCol] = NULL;
 		}
 	}
 
 	// the 100 streaks of the backdrop: a kind, a speed, a place (the random numbers in this order)
 	for (size_t i = 0; i < 100; i++)
 	{
-		StreakRec& aStreak = m170[i];
+		StreakRec& aStreak = mStreaks[i];
 		int aKind = ((int) AstroRand() % 500000000) % 3;
 		if (aKind == 0)
 		{
@@ -452,15 +452,15 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m19f4 = 500000000;
 	m19f0 = 500000000;
 	m8f7 = true;
-	m1c0[0] = NULL;
-	m2ec = NULL;
+	mFieldButtons[0] = NULL;
+	mHelpButton = NULL;
 	m1a58 = 0;
 	m1a5c = 0;
 	m1a34 = 0;
 	m1bdc = 18000.0f;
 	ApplyWeaponLevels();
 	m1bd4 = 0;
-	m30c = mApp->MakeRankImage(0, 0x50);
+	mRankImage = mApp->MakeRankImage(0, 0x50);
 
 	// the text that scrolls along the top while the bonus of state 1 runs, repeated to fill the width
 	std::string aBannerText;
@@ -482,7 +482,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aText.mY = 0x1cc;
 		aText.mText = aBannerText;
 		aText.mFont = aBannerFont;
-		m260.push_back(aText);
+		mBonusBannerTexts.push_back(aText);
 		aBannerX = aBannerX + 0x1e + aBannerFont->StringWidth(aBannerText);
 	} while (!aBannerDone);
 	m1b04 = 0;
@@ -522,7 +522,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aBlink.mAnim.mHoldLast = false;
 		aBlink.mAnim.mPingPong = false;
 		aBlink.mAnim.SetStopped(false);
-		md8.push_back(aBlink);
+		mBeamSparks.push_back(aBlink);
 	}
 	mApp->PlaySong(9);
 	m903 = false;
@@ -532,18 +532,18 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 
 	// the picture of the field that the wipe at the end of a game takes away, and the wipe
 	DDImage* aFieldImage = new DDImage(mApp->mDDInterface);
-	m2f4 = aFieldImage;
+	mScreenImage = aFieldImage;
 	aFieldImage->Create(0x280, 0x1e0);
 	aFieldImage->SetVolatile(true);
-	m2f0 = new Graphics(m2f4);
-	m310 = new ScreenWipe();
+	mScreenGraphics = new Graphics(mScreenImage);
+	mScreenWipe = new ScreenWipe();
 	m980 = ((int) AstroRand() % 500000000) % 4;
 	if (m980 == 0)
 		m1a84 = 2000;
 	else
 		m1a84 = (m980 != 3) * 2 + 4;
-	m310->SetImage(m2f4, false);
-	m310->SetKind(m980);
+	mScreenWipe->SetImage(mScreenImage, false);
+	mScreenWipe->SetKind(m980);
 	m1a78 = 0;
 	m904 = true;
 	m1a7c = -1;
@@ -552,27 +552,27 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mSirenAnim.mHoldLast = false;
 
 	// the siren's two pictures, flipped copies that are drawn into memory images
-	m2fc = new MemoryImage(mApp);
-	m300 = new MemoryImage(mApp);
-	m2fc->Create(IMAGE_SIREN->mWidth, IMAGE_SIREN->mHeight);
-	m300->Create(IMAGE_SIREN_FX->mWidth, IMAGE_SIREN_FX->mHeight);
-	Graphics aSirenGraphics(m2fc);
+	mSirenImage = new MemoryImage(mApp);
+	mSirenFxImage = new MemoryImage(mApp);
+	mSirenImage->Create(IMAGE_SIREN->mWidth, IMAGE_SIREN->mHeight);
+	mSirenFxImage->Create(IMAGE_SIREN_FX->mWidth, IMAGE_SIREN_FX->mHeight);
+	Graphics aSirenGraphics(mSirenImage);
 	aSirenGraphics.DrawImage(IMAGE_SIREN, 0, 0);
-	Graphics aSirenFxGraphics(m300);
+	Graphics aSirenFxGraphics(mSirenFxImage);
 	aSirenFxGraphics.DrawImage(IMAGE_SIREN_FX, 0, 0);
-	m2fc->Palletize();
-	m300->Palletize();
-	mApp->MirrorImage(m2fc);
-	mApp->MirrorImage(m300);
-	m2fc->mNumCols = IMAGE_SIREN->mNumCols;
-	m300->mNumCols = IMAGE_SIREN_FX->mNumCols;
+	mSirenImage->Palletize();
+	mSirenFxImage->Palletize();
+	mApp->MirrorImage(mSirenImage);
+	mApp->MirrorImage(mSirenFxImage);
+	mSirenImage->mNumCols = IMAGE_SIREN->mNumCols;
+	mSirenFxImage->mNumCols = IMAGE_SIREN_FX->mNumCols;
 	for (int i = 0; i < 3; i++)
 	{
 		FadeRec aFade;
 		aFade.mValue = 0;
 		aFade.mStep = 8;
 		aFade.mRising = true;
-		m1e0.push_back(aFade);
+		mEndBlastFades.push_back(aFade);
 	}
 
 	// the 40 sparks of the sun, spread by whole steps of nine degrees
@@ -588,7 +588,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aSpark->mAnim.SetStopped(true);
 		aSpark->mVX = gCosTable[anAngle] * 4.0f;
 		aSpark->mVY = gSinTable[anAngle] * -4.0f;
-		me8.push_back(aSpark);
+		mSunSparks.push_back(aSpark);
 		anAngle = (int) ((double) anAngle + 9.0);
 	}
 	m8d8 = false;
@@ -609,9 +609,9 @@ Board::~Board()
 	if (m6e4 != NULL)
 		m6e4->Release();
 
-	for (size_t i = 0; i < m2a0.size(); i++)
-		delete m2a0[i];
-	m2a0.clear();
+	for (size_t i = 0; i < mEnergySparks.size(); i++)
+		delete mEnergySparks[i];
+	mEnergySparks.clear();
 
 	if (mApp->mLoopSounds.size() > 7)
 	{
@@ -620,13 +620,13 @@ Board::~Board()
 			aKlaxon->Stop();
 	}
 
-	for (size_t i = 0; i < m2c0.size(); i++)
+	for (size_t i = 0; i < mPilotStories.size(); i++)
 	{
-		delete m2c0[i]->mPageA;
-		delete m2c0[i]->mPageB;
-		delete m2c0[i];
+		delete mPilotStories[i]->mPageA;
+		delete mPilotStories[i]->mPageB;
+		delete mPilotStories[i];
 	}
-	m2c0.clear();
+	mPilotStories.clear();
 
 	if (m778 != NULL)
 	{
@@ -637,10 +637,10 @@ Board::~Board()
 		}
 		delete m778;
 	}
-	delete m2e0;
+	delete mDemoStartLink;
 	delete m748;
-	delete m308;
-	delete m304;
+	delete mBannerWaveImage;
+	delete mBannerTextImage;
 
 	if (m74c != NULL)
 	{
@@ -653,67 +653,67 @@ Board::~Board()
 	delete m74c;
 	delete m750;
 
-	for (size_t i = 0; i < m230.size(); i++)
-		delete m230[i];
-	for (size_t i = 0; i < m2b0.size(); i++)
-		delete m2b0[i];
+	for (size_t i = 0; i < mHintSpots.size(); i++)
+		delete mHintSpots[i];
+	for (size_t i = 0; i < mHintBoxes.size(); i++)
+		delete mHintBoxes[i];
 
 	// the two buttons of the end of a game keep their pictures
-	if (m2e8 != NULL)
+	if (mMenuButton != NULL)
 	{
-		ButtonWidget* aButton = static_cast<ButtonWidget*>(m2e8);
+		ButtonWidget* aButton = static_cast<ButtonWidget*>(mMenuButton);
 		delete aButton->mButtonImage;
 		delete aButton->mOverImage;
 		delete aButton->mDownImage;
 	}
-	if (m2e4 != NULL)
+	if (mContinueButton != NULL)
 	{
-		ButtonWidget* aButton = static_cast<ButtonWidget*>(m2e4);
+		ButtonWidget* aButton = static_cast<ButtonWidget*>(mContinueButton);
 		delete aButton->mButtonImage;
 		delete aButton->mOverImage;
 		delete aButton->mDownImage;
 	}
 	delete m754;
-	delete m2e8;
-	delete m2e4;
+	delete mMenuButton;
+	delete mContinueButton;
 
 	// the panels of the hints; the first one's chain of two more is deleted with it
-	for (size_t i = 0; i < m210.size(); i++)
+	for (size_t i = 0; i < mHintPanels.size(); i++)
 	{
-		if (i == 0 && m210[0]->mNext != NULL)
+		if (i == 0 && mHintPanels[0]->mNext != NULL)
 		{
-			delete m210[0]->mNext->mNext;
-			delete m210[0]->mNext;
+			delete mHintPanels[0]->mNext->mNext;
+			delete mHintPanels[0]->mNext;
 		}
-		delete m210[i];
+		delete mHintPanels[i];
 	}
 
 	ClearField();
 
-	if (!m1c0.empty() && m1c0[0] != NULL)
+	if (!mFieldButtons.empty() && mFieldButtons[0] != NULL)
 	{
-		AstroButton* aMainButton = static_cast<AstroButton*>(m1c0[0]);
+		AstroButton* aMainButton = static_cast<AstroButton*>(mFieldButtons[0]);
 		delete aMainButton->mButtonImage;
 		delete aMainButton;
 	}
-	delete m2ec;
+	delete mHelpButton;
 
-	for (size_t i = 0; i < m140.size(); i++)
-		delete m140[i];
-	for (size_t i = 0; i < m150.size(); i++)
-		delete m150[i];
+	for (size_t i = 0; i < mFloatTexts.size(); i++)
+		delete mFloatTexts[i];
+	for (size_t i = 0; i < mWarpStars.size(); i++)
+		delete mWarpStars[i];
 
 	StopListeningToAll();
 
-	delete m310;
-	delete m2f4;
-	delete m2f0;
+	delete mScreenWipe;
+	delete mScreenImage;
+	delete mScreenGraphics;
 
-	for (size_t i = 0; i < me8.size(); i++)
-		delete me8[i];
-	delete m2fc;
-	delete m300;
-	delete m354;
+	for (size_t i = 0; i < mSunSparks.size(); i++)
+		delete mSunSparks[i];
+	delete mSirenImage;
+	delete mSirenFxImage;
+	delete mHandKindBrick;
 
 	if (m88c)
 	{

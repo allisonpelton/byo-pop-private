@@ -122,12 +122,12 @@ void Board::DrawFrame(Graphics* g)
 		{
 			if (mMode == 0 || mMode == 3)
 			{
-				g->DrawImage(m250[6], m1a80, 0x131);
+				g->DrawImage(mPhasePictures[6], m1a80, 0x131);
 				if (m1ab8 == 7 && m1ac0 > 0)
 				{
 					g->SetColorizeImages(true);
 					g->SetColor(Color(0xff, 0xff, 0xff, m1ac0 << 2));
-					g->DrawImage(m250[7], m1a80, 0x131);
+					g->DrawImage(mPhasePictures[7], m1a80, 0x131);
 					g->SetColorizeImages(false);
 				}
 				if (m1ad4 == 0)
@@ -143,7 +143,7 @@ void Board::DrawFrame(Graphics* g)
 			}
 			else if (mMode == 1 || mMode == 2)
 			{
-				g->DrawImage(m250[6], m1a80, 0x131);
+				g->DrawImage(mPhasePictures[6], m1a80, 0x131);
 				int aFade = 0;
 				if (m1ab8 == 7 && m1ac0 > 0)
 				{
@@ -160,14 +160,14 @@ void Board::DrawFrame(Graphics* g)
 				if (!aSkipPhase)
 				{
 					g->SetColor(Color(0xff, 0xff, 0xff, aFade << 4));
-					g->DrawImage(m250[7], m1a80, 0x131);
+					g->DrawImage(mPhasePictures[7], m1a80, 0x131);
 					g->SetColorizeImages(false);
 				}
 			}
 		}
 		else
 		{
-			g->DrawImage(m250[m1ab8], m1a80, 0x131);
+			g->DrawImage(mPhasePictures[m1ab8], m1a80, 0x131);
 			if (mApp->Is3DAccelerated() && ((m1ab8 > 1 && m1ab8 < 6) || (m1ab8 > 7 && m1ab8 < 10)))
 			{
 				// the picture glows over itself
@@ -185,7 +185,7 @@ void Board::DrawFrame(Graphics* g)
 					if (aPhase < 0)
 						aPhase = 0;
 					g->SetColor(Color(0xff, 0xff, 0xff, aPhase * 4));
-					aGlow = m250[1];
+					aGlow = mPhasePictures[1];
 				}
 				else
 				{
@@ -195,7 +195,7 @@ void Board::DrawFrame(Graphics* g)
 					if (aPhase < 0)
 						aPhase = 0;
 					g->SetColor(Color(0xff, 0xff, 0xff, aPhase * 2));
-					aGlow = m250[0];
+					aGlow = mPhasePictures[0];
 				}
 				g->DrawImage(aGlow, m1a80, 0x131);
 				if (mApp->Is3DAccelerated())
@@ -245,7 +245,7 @@ void Board::DrawFrame(Graphics* g)
 		Image* aLights = IMAGE_SUPA_BUTTON_LIGHTS_OFF;
 		Image* aButton = NULL;
 		int aGlowAlpha = 0;
-		bool aPanelOut = !m230.empty() && m230[0]->m1c && m7e8 <= -m7ec;    // a hint panel is up over the field
+		bool aPanelOut = !mHintSpots.empty() && mHintSpots[0]->m1c && m7e8 <= -m7ec;    // a hint panel is up over the field
 		if (m1b48 > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
 		{
 			int aX = m1958;

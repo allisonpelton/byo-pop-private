@@ -16,12 +16,12 @@ using namespace Sexy;
 // 0x439650: the streaks of the warp charge-up grow and speed up (the 100 are stepped in groups of ten)
 void Board::UpdateStreaks()
 {
-	unsigned int aCount = (unsigned int) m170.size();
+	unsigned int aCount = (unsigned int) mStreaks.size();
 	if (aCount > 100)
 		aCount = 100;
 	for (unsigned int i = 0; i < aCount; i++)
 	{
-		StreakRec* aStreak = &m170[i];
+		StreakRec* aStreak = &mStreaks[i];
 		aStreak->mMargin += 3;
 		aStreak->mY += 3.0f;
 		if (aStreak->mMargin > 0x1e0)
@@ -33,7 +33,7 @@ void Board::UpdateStreaks()
 // 0x46a810: true ends the update
 bool Board::Fn46a810()
 {
-	mAnim460.Update();
+	mWarpGateAnim.Update();
 	mAnim5e0.Update();
 	if (mUpdateCnt % 5 == 0)
 	{
@@ -125,9 +125,9 @@ bool Board::Fn46a810()
 	}
 
 	// the warp stars fall
-	for (unsigned int i = 0; i < m150.size(); i++)
+	for (unsigned int i = 0; i < mWarpStars.size(); i++)
 	{
-		WarpStar* aStar = m150[i];
+		WarpStar* aStar = mWarpStars[i];
 		aStar->mAnim.Update();
 		aStar->mY += aStar->mSpeed;
 		if ((float) (mHeight + 0x32) < aStar->mY)
@@ -165,28 +165,28 @@ bool Board::Fn46a810()
 		if (!m8ef && !m8f4)
 		{
 			// the screen fades in white while the field flies away
-			if (mUpdateCnt % m1998 == 0 && m3d0.mAlpha >= 10 && m1954 < 7)
+			if (mUpdateCnt % m1998 == 0 && mOverlayFillColor.mAlpha >= 10 && m1954 < 7)
 			{
 				m1954++;
 				if (m1954 >= 5)
 				{
 					mOverlay.SetFill(255, 255, 255, 255);
-					for (unsigned int i = 0; i < m140.size(); i++)
-						delete m140[i];
-					m140.clear();
+					for (unsigned int i = 0; i < mFloatTexts.size(); i++)
+						delete mFloatTexts[i];
+					mFloatTexts.clear();
 				}
 			}
-			m3d0.mAlpha++;
-			if (m3d0.mAlpha > 0x28)
+			mOverlayFillColor.mAlpha++;
+			if (mOverlayFillColor.mAlpha > 0x28)
 			{
-				m3d0.mAlpha = 0xff;
+				mOverlayFillColor.mAlpha = 0xff;
 				m8de = false;
-				mOverlay.SetFill(m3d0.mRed, m3d0.mGreen, m3d0.mBlue, m3d0.mAlpha);
+				mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
 				m8ed = true;
 				m8f0 = true;
 				m1954 = 2;
-				for (unsigned int i = 0; i < 100 && i < m170.size(); i++)
-					m170[i].mFlag28 = false;
+				for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
+					mStreaks[i].mFlag28 = false;
 				m8fa = true;
 				mApp->PlaySample(SOUND_WARP_ENGAGED);
 				ClearField();
@@ -216,7 +216,7 @@ bool Board::Fn46a810()
 					aStar->mY = (float) (((int) AstroRand() % 500000000) % 0x32 - 100);
 					aStar->mField5C = 0;
 					aStar->mSpeed = (float) (((int) AstroRand() % 500000000) % 0x51) * 0.01f + 0.4f;
-					m150.push_back(aStar);
+					mWarpStars.push_back(aStar);
 				}
 				if (m1a0c < 4)
 					m198c = IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - 0x22 + m1a70;
@@ -239,16 +239,16 @@ bool Board::Fn46a810()
 			if (m8f4)
 			{
 				// the screen fades to white and the next stage begins
-				m3d0.mRed = 0xff;
-				m3d0.mGreen = 0xff;
-				m3d0.mBlue = 0xff;
-				m3d0.mAlpha += 6;
-				if (m3d0.mAlpha > 0xff)
+				mOverlayFillColor.mRed = 0xff;
+				mOverlayFillColor.mGreen = 0xff;
+				mOverlayFillColor.mBlue = 0xff;
+				mOverlayFillColor.mAlpha += 6;
+				if (mOverlayFillColor.mAlpha > 0xff)
 				{
-					m3d0.mAlpha = 0xff;
-					m3d0.mGreen = 0xff;
-					m3d0.mBlue = 0xff;
-					m3d0.mRed = 0xff;
+					mOverlayFillColor.mAlpha = 0xff;
+					mOverlayFillColor.mGreen = 0xff;
+					mOverlayFillColor.mBlue = 0xff;
+					mOverlayFillColor.mRed = 0xff;
 					m8eb = false;
 					m8f4 = false;
 					if (mApp->mHyperspaceLoop != NULL)
@@ -277,7 +277,7 @@ bool Board::Fn46a810()
 					LoadLevel(true);
 					m7e8 = -m7ec;
 				}
-				mOverlay.SetFill(m3d0.mRed, m3d0.mGreen, m3d0.mBlue, m3d0.mAlpha);
+				mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
 			}
 		}
 		else
@@ -360,14 +360,14 @@ bool Board::Fn46a810()
 		if (aNew > 423.0f)
 			m938 = 423.0f;
 		m199c = ((int) AstroRand() % 500000000) % 4 - 2;
-		if (m3d0.mAlpha > 0)
-			m3d0.mAlpha--;
-		if (m3d0.mBlue > 0)
-			m3d0.mBlue--;
-		if (m3d0.mGreen > 0)
-			m3d0.mGreen--;
-		mOverlay.SetFill(m3d0.mRed, m3d0.mGreen, m3d0.mBlue, m3d0.mAlpha);
-		if (m938 >= 423.0f && m3d0.mAlpha == 0 && m3d0.mGreen == 0 && m3d0.mBlue == 0)
+		if (mOverlayFillColor.mAlpha > 0)
+			mOverlayFillColor.mAlpha--;
+		if (mOverlayFillColor.mBlue > 0)
+			mOverlayFillColor.mBlue--;
+		if (mOverlayFillColor.mGreen > 0)
+			mOverlayFillColor.mGreen--;
+		mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
+		if (m938 >= 423.0f && mOverlayFillColor.mAlpha == 0 && mOverlayFillColor.mGreen == 0 && mOverlayFillColor.mBlue == 0)
 		{
 			m938 = 423.0f;
 			m8ef = true;

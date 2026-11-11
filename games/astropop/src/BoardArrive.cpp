@@ -1,5 +1,5 @@
 // Board: the handler of event 5 (0x473b20). A brick that was fired up the field has reached the place under the stack.
-// The bricks that the player fired in one go are the groups of m7c; when the first of them arrives all of them are put
+// The bricks that the player fired in one go are the groups of mFiredGroups; when the first of them arrives all of them are put
 // into the field, the sets that they make (the same kind, at least m1a54 together) are taken out, and the Board looks
 // at what the arrival did: the sound, the score's bonus, the stack's height, the hint boxes and a field that has no move
 // left.
@@ -48,7 +48,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 			aRow--;
 			while (aRow > 0)
 			{
-				if (m314[aRow][aCol] != NULL)
+				if (mFieldBricks[aRow][aCol] != NULL)
 				{
 					theBrick->mSupport = NULL;
 					break;
@@ -64,12 +64,12 @@ void Board::OnBrickArrived(Brick* theBrick)
 			return;
 
 		// -- 1: a power brick in a group is put into the field and goes off at once
-		std::list<std::list<Brick*> >::iterator aGroup = m7c.begin();
-		while (aGroup != m7c.end())
+		std::list<std::list<Brick*> >::iterator aGroup = mFiredGroups.begin();
+		while (aGroup != mFiredGroups.end())
 		{
 			if (aGroup->empty())
 			{
-				aGroup = m7c.erase(aGroup);
+				aGroup = mFiredGroups.erase(aGroup);
 				continue;
 			}
 			int anX = (int) aGroup->front()->mX;
@@ -82,7 +82,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 				if (aBrick->mMutated != 1 && (aType == 6 || aType == 8 || aType == 10 || aType == 0xe || aType == 0xb || aType == 0xd) &&
 					aBrick->mFlag18A)
 				{
-					m314[aBottom + 1][aCol] = aBrick;
+					mFieldBricks[aBottom + 1][aCol] = aBrick;
 					FireTo(aBrick, 0);
 					StopTargetFlashes(mTargeted);
 					HighlightTargets();
@@ -93,21 +93,21 @@ void Board::OnBrickArrived(Brick* theBrick)
 					m8fc = true;
 					m922 = false;
 					RemoveBrick(aBrick, aCol, aBottom + 1, false);
-					DropUnsupported(ma8);
+					DropUnsupported(mTakenCells);
 					aGroup->erase(aBrickIt);
 					if (aGroup->empty())
-						m7c.erase(aGroup);
+						mFiredGroups.erase(aGroup);
 					return;
 				}
 			}
 			if (aGroup->empty())
-				aGroup = m7c.erase(aGroup);
+				aGroup = mFiredGroups.erase(aGroup);
 			else
 				++aGroup;
 		}
 
 		// -- 2: the bricks of the groups are put in the field, each group on top of its column
-		for (aGroup = m7c.begin(); aGroup != m7c.end(); ++aGroup)
+		for (aGroup = mFiredGroups.begin(); aGroup != mFiredGroups.end(); ++aGroup)
 		{
 			if (aGroup->empty())
 				continue;
@@ -116,7 +116,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 			int aRow = FindBottomRow(anX, true) + 1;
 			for (std::list<Brick*>::iterator aBrickIt = aGroup->begin(); aBrickIt != aGroup->end(); ++aBrickIt)
 			{
-				m314[aRow][aCol] = *aBrickIt;
+				mFieldBricks[aRow][aCol] = *aBrickIt;
 				CellRef aCell;
 				aCell.mCol = aCol;
 				aCell.mRow = aRow;
@@ -126,41 +126,41 @@ void Board::OnBrickArrived(Brick* theBrick)
 			}
 			for (int aRowToWobble = 0x12; aRowToWobble > 0; aRowToWobble--)
 			{
-				if (m314[aRowToWobble][aCol] != NULL)
-					m314[aRowToWobble][aCol]->StartWobble();
+				if (mFieldBricks[aRowToWobble][aCol] != NULL)
+					mFieldBricks[aRowToWobble][aCol]->StartWobble();
 			}
 		}
 
 		// -- 3: the sets: from each brick that was put down, the bricks of its kind that touch it are gathered
 		aFlag = false;
 		unsigned int aPlacedIndex = 0;
-		for (aGroup = m7c.begin(); aGroup != m7c.end(); ++aGroup)
+		for (aGroup = mFiredGroups.begin(); aGroup != mFiredGroups.end(); ++aGroup)
 		{
 			for (std::list<Brick*>::iterator aBrickIt = aGroup->begin(); aBrickIt != aGroup->end(); ++aBrickIt)
 			{
 				int aKind = (*aBrickIt)->GetEffectiveType();
 				CellRef aCell = aPlaced[aPlacedIndex];
-				if (!HasCell(aCell.mCol, aCell.mRow, mb8))
+				if (!HasCell(aCell.mCol, aCell.mRow, mConnectedCells))
 				{
-					std::vector<CellRef> aBefore = mb8;
-					mb8.clear();
+					std::vector<CellRef> aBefore = mConnectedCells;
+					mConnectedCells.clear();
 					CollectConnected(aKind, aCell.mCol, aCell.mRow, 0xffffffff, false, NULL, -1, -1);
-					if ((int) mb8.size() < m1a54)
-						mb8 = aBefore;
+					if ((int) mConnectedCells.size() < m1a54)
+						mConnectedCells = aBefore;
 					else
 					{
 						AstroRand();
 						aFlag = true;
 						AdvanceChain();
-						for (unsigned int k = 0; k < mb8.size(); k++)
+						for (unsigned int k = 0; k < mConnectedCells.size(); k++)
 						{
-							Brick* aBrick = m314[mb8[k].mRow][mb8[k].mCol];
+							Brick* aBrick = mFieldBricks[mConnectedCells[k].mRow][mConnectedCells[k].mCol];
 							if (aBrick->mSpecial && aBrick->mMutated != 1)
 								static_cast<KillAllBrick*>(aBrick)->mField238 = true;
 						}
-						mApp->PlaySampleAt(SOUND_EXPLODE1, mb8[0].mCol);
+						mApp->PlaySampleAt(SOUND_EXPLODE1, mConnectedCells[0].mCol);
 						for (unsigned int k = 0; k < aBefore.size(); k++)
-							mb8.push_back(aBefore[k]);
+							mConnectedCells.push_back(aBefore[k]);
 					}
 				}
 				aPlacedIndex++;
@@ -170,30 +170,30 @@ void Board::OnBrickArrived(Brick* theBrick)
 		// the tutorial's first hint is dropped when it is the last but one
 		if ((mField193C == 1 || m90a) && !m8dc && !aFlag)
 		{
-			StageBg* aBg = m220[1];
+			StageBg* aBg = mStageHintPanels[1];
 			if (aBg->mNext != NULL && aBg->mNext->mNext == NULL)
 			{
 				StageBg* aNext = aBg->mNext;
 				delete aBg;
-				m220[1] = aNext;
-				m210[0] = aNext;
+				mStageHintPanels[1] = aNext;
+				mHintPanels[0] = aNext;
 			}
 		}
 
 		// -- 4: the bricks of the sets leave the field; they die (event 3), one after the other
 		std::vector<Brick*> aTaken;
-		for (unsigned int k = 0; k < mb8.size(); k++)
+		for (unsigned int k = 0; k < mConnectedCells.size(); k++)
 		{
-			aTaken.push_back(m314[mb8[k].mRow][mb8[k].mCol]);
-			m314[mb8[k].mRow][mb8[k].mCol] = NULL;
+			aTaken.push_back(mFieldBricks[mConnectedCells[k].mRow][mConnectedCells[k].mCol]);
+			mFieldBricks[mConnectedCells[k].mRow][mConnectedCells[k].mCol] = NULL;
 		}
 		int aLastKind = -1;
-		for (unsigned int k = 0; k < mb8.size(); k++)
+		for (unsigned int k = 0; k < mConnectedCells.size(); k++)
 		{
 			Brick* aBrick = aTaken[k];
 			int aKind = aBrick->GetEffectiveType();
-			ma0.push_back(aBrick);
-			ma8.push_back(mb8[k]);
+			mTakenBricks.push_back(aBrick);
+			mTakenCells.push_back(mConnectedCells[k]);
 			FireTo(aBrick, 3);
 			m1994++;
 			aLastKind = aKind;
@@ -201,15 +201,15 @@ void Board::OnBrickArrived(Brick* theBrick)
 
 		if ((mField193C == 1 || m90a) && !m8dc)
 		{
-			if (mb8.size() >= (unsigned int) m1a54)
+			if (mConnectedCells.size() >= (unsigned int) m1a54)
 			{
-				StageBg* aBg = m220[1];
+				StageBg* aBg = mStageHintPanels[1];
 				if (aBg->mNext != NULL)
 				{
 					delete aBg->mNext;
 					aBg->mNext = NULL;
 				}
-				aBg = m220[1];
+				aBg = mStageHintPanels[1];
 				aBg->m118 = -8;
 				aBg->m10c = -8;
 				if (!m8fc)
@@ -220,14 +220,14 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 
 		// -- 5: the sound of what happened (and the bonus of a field that is nearly empty after a failed set)
-		if (mb8.size() < 7)
+		if (mConnectedCells.size() < 7)
 		{
-			if (mb8.size() < (unsigned int) m1a54)
+			if (mConnectedCells.size() < (unsigned int) m1a54)
 			{
-				if (!m7c.empty())
+				if (!mFiredGroups.empty())
 				{
-					unsigned int aGroupIndex = (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) m7c.size();
-					std::list<std::list<Brick*> >::iterator aPick = m7c.begin();
+					unsigned int aGroupIndex = (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mFiredGroups.size();
+					std::list<std::list<Brick*> >::iterator aPick = mFiredGroups.begin();
 					while (aGroupIndex > 0)
 					{
 						aGroupIndex--;
@@ -243,9 +243,9 @@ void Board::OnBrickArrived(Brick* theBrick)
 					if (!m911)
 						mApp->PlaySampleAt(SOUND_BLOCK_HIT_BLOCK, ((int) (*aPickBrick)->mX - 0xa6) / 0x2c);
 				}
-				if (m1980 > 1 && mf8.empty() && m1980 > 2 && (mField193C > 1 || m1a60 == 2))
+				if (m1980 > 1 && mKillAllTypes.empty() && m1980 > 2 && (mField193C > 1 || m1a60 == 2))
 					m8ee = true;
-				if (mf8.empty() && !AnyMoveLeft(NULL))
+				if (mKillAllTypes.empty() && !AnyMoveLeft(NULL))
 				{
 					if (m19fc < 0x3d)
 						m19d8 = (int) ((float) m19cc + m930 * 20.0f);
@@ -256,41 +256,41 @@ void Board::OnBrickArrived(Brick* theBrick)
 			else
 			{
 				m8fe = true;
-				unsigned int anIndex = mb8.empty() ? 0 : (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mb8.size();
+				unsigned int anIndex = mConnectedCells.empty() ? 0 : (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mConnectedCells.size();
 				if (!HasMarkOfType(aLastKind))
-					mApp->PlaySampleAt(SOUND_MADE_SET, mb8[anIndex].mCol);
+					mApp->PlaySampleAt(SOUND_MADE_SET, mConnectedCells[anIndex].mCol);
 				else
-					mApp->PlaySampleAt(SOUND_BUBBLY, mb8[anIndex].mCol);
+					mApp->PlaySampleAt(SOUND_BUBBLY, mConnectedCells[anIndex].mCol);
 			}
 		}
 		else
 		{
 			m8fe = true;
-			unsigned int anIndex = (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mb8.size();
+			unsigned int anIndex = (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) mConnectedCells.size();
 			if (!HasMarkOfType(aLastKind))
-				mApp->PlaySampleAt(SOUND_MADE_BIG_SET, mb8[anIndex].mCol);
+				mApp->PlaySampleAt(SOUND_MADE_BIG_SET, mConnectedCells[anIndex].mCol);
 			else
-				mApp->PlaySampleAt(SOUND_BUBBLY, mb8[anIndex].mCol);
+				mApp->PlaySampleAt(SOUND_BUBBLY, mConnectedCells[anIndex].mCol);
 		}
 
 		// -- 6: the bricks next to the set are hit, what has lost its support falls, the groups are done
-		if (mb8.size() >= (unsigned int) m1a54)
-			DamageNeighbours(mb8);
-		DropUnsupported(ma8);
-		mb8.clear();
-		m7c.clear();
+		if (mConnectedCells.size() >= (unsigned int) m1a54)
+			DamageNeighbours(mConnectedCells);
+		DropUnsupported(mTakenCells);
+		mConnectedCells.clear();
+		mFiredGroups.clear();
 		StopTargetFlashes(mTargeted);
 		HighlightTargets();
 		CheckStackHeight();
 		CheckShipColumn();
 		if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
 			HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), false);
-		if (mMode == 2 && !m907 && m1a34 == 0 && m1994 == 0 && m7c.empty() && CountMovingBricks(false) == 0)
+		if (mMode == 2 && !m907 && m1a34 == 0 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 			Fn4335e0();
 		CheckSparseField();
 
 		// a field with no move left (the out flag of AnyMoveLeft is the byte that held "a set was made")
-		if (m910 && mf8.empty() && !m912 && !m911 && m1b7c == 0 && m1994 == 0 && m7c.empty() && m94.empty() &&
+		if (m910 && mKillAllTypes.empty() && !m912 && !m911 && m1b7c == 0 && m1994 == 0 && mFiredGroups.empty() && mFallingGroups.empty() &&
 			!AnyMoveLeft(&aFlag))
 		{
 			if (!aFlag)
@@ -307,12 +307,12 @@ void Board::OnBrickArrived(Brick* theBrick)
 		{
 			if (ColumnDepth(aCol) < 0x10)
 			{
-				Brick* aTop = m314[0][aCol];
+				Brick* aTop = mFieldBricks[0][aCol];
 				if (aTop != NULL && aTop->mShake)
 				{
 					for (int aRow = 0; aRow < 0x13; aRow++)
 					{
-						Brick* aBrick = m314[aRow][aCol];
+						Brick* aBrick = mFieldBricks[aRow][aCol];
 						if (aBrick == NULL)
 							break;
 						aBrick->StopShake();
@@ -323,7 +323,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 			{
 				for (int aRow = 0; aRow < 0x13; aRow++)
 				{
-					Brick* aBrick = m314[aRow][aCol];
+					Brick* aBrick = mFieldBricks[aRow][aCol];
 					if (aBrick == NULL)
 						break;
 					aBrick->StartShake();
@@ -331,7 +331,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 			}
 		}
 
-		if (mf8.empty() && !AnyMoveLeft(NULL))
+		if (mKillAllTypes.empty() && !AnyMoveLeft(NULL))
 		{
 			if (m19fc < 0x3d)
 				m19d8 = (int) ((float) m19cc + m930 * 20.0f);
@@ -340,6 +340,6 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 	}
 
-	if (m1980 > 1 && m1980 != m1984 && m7c.empty() && m94.empty())
+	if (m1980 > 1 && m1980 != m1984 && mFiredGroups.empty() && mFallingGroups.empty())
 		m1984 = m1980;
 }

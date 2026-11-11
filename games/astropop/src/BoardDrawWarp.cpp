@@ -30,7 +30,7 @@ void Board::DrawWarpScreen(Graphics* g)
 		g->SetColor(Color(0xff, 0xff, 0xff, m19e0));
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-	int aGateCel = (mAnim460.mNumFrames == 1) ? 0 : mAnim460.mFrame;
+	int aGateCel = (mWarpGateAnim.mNumFrames == 1) ? 0 : mWarpGateAnim.mFrame;
 	DrawCel(g, IMAGE_SLOW_WARP_GATE, m1a70, 0xe1, aGateCel);
 	if (m1a08 > 0)
 		DrawCel(g, IMAGE_FAST_WARP_GATE, m1a74, 0xe1, aGateCel);

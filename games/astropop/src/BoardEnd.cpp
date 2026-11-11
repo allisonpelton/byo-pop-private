@@ -41,9 +41,9 @@ void Board::UpdateGameOver()
 	// in aFront). A panel rising to 255 turns round at 255 and falls by 4; one that has reached 128 lets the next start.
 	int aDone = 0;
 	int aFront = 0;
-	for (unsigned int i = 0; i < m1e0.size(); i++)
+	for (unsigned int i = 0; i < mEndBlastFades.size(); i++)
 	{
-		FadeRec* aRec = &m1e0[i];
+		FadeRec* aRec = &mEndBlastFades[i];
 		if (aRec->mValue == 0 && !aRec->mRising)
 		{
 			aDone++;
@@ -74,11 +74,11 @@ void Board::UpdateGameOver()
 		aFront++;
 	}
 
-	for (unsigned int i = 0; i < me8.size(); i++)
-		me8[i]->mAnim.SetStopped(false);
-	for (unsigned int i = 0; i < me8.size(); i++)
+	for (unsigned int i = 0; i < mSunSparks.size(); i++)
+		mSunSparks[i]->mAnim.SetStopped(false);
+	for (unsigned int i = 0; i < mSunSparks.size(); i++)
 	{
-		SunParticle* aSpark = me8[i];
+		SunParticle* aSpark = mSunSparks[i];
 		if (!aSpark->mAnim.mStopped)
 		{
 			aSpark->mAnim.Update();
@@ -87,7 +87,7 @@ void Board::UpdateGameOver()
 		}
 	}
 
-	if (aDone != (int) m1e0.size())
+	if (aDone != (int) mEndBlastFades.size())
 		return;
 	if (m1948 != 0)
 		return;
@@ -109,7 +109,7 @@ void Board::CreateEndButtons()
 	mAnim5a0.SetStopped(false);
 
 	AstroButton* aContinue = new AstroButton(0xfa4, mApp);
-	m2e4 = aContinue;
+	mContinueButton = aContinue;
 
 	MemoryImage* anInset;
 	MemoryImage* aButtonImage;
@@ -125,7 +125,7 @@ void Board::CreateEndButtons()
 	aContinue->SetColor(1, Color(0xff, 0xff, 0xff));
 
 	AstroButton* aMenu = new AstroButton(0xfa5, mApp);
-	m2e8 = aMenu;
+	mMenuButton = aMenu;
 	aMenu->mButtonImage = mApp->CopyImage(aButtonImage, Rect(0, 0, 0x78, 0x21));
 	aMenu->mOverImage = mApp->CopyImage(aButtonImage, Rect(0x78, 0, 0x78, 0x21));
 	aMenu->mDownImage = mApp->CopyImage(aButtonImage, Rect(0xf0, 0, 0x78, 0x21));
@@ -211,12 +211,12 @@ void Board::GameOver()
 	mApp->PlaySample(SOUND_VGAMEOVER);
 	mApp->PlaySample(SOUND_MEGA_EXPLOSION);
 	mFlag8E8 = true;
-	for (unsigned int i = 0; i < m1c0.size(); i++)
-		m1c0[i]->SetDisabled(true);
-	m2ec->SetDisabled(true);
-	for (unsigned int i = 0; i < m1c0.size(); i++)
-		m1c0[i]->SetVisible(false);
-	m2ec->SetVisible(false);
+	for (unsigned int i = 0; i < mFieldButtons.size(); i++)
+		mFieldButtons[i]->SetDisabled(true);
+	mHelpButton->SetDisabled(true);
+	for (unsigned int i = 0; i < mFieldButtons.size(); i++)
+		mFieldButtons[i]->SetVisible(false);
+	mHelpButton->SetVisible(false);
 
 	if (m1a60 == 1)
 	{
@@ -261,5 +261,5 @@ void Board::GameOver()
 	mOverlay.SetFill(255, 255, 255, 255);
 	SetOverlayHidden(false);
 	ClearField();
-	m134.clear();
+	mPlayedBonusStages.clear();
 }

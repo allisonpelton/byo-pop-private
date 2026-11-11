@@ -26,7 +26,7 @@ void Board::PayComboBonus()
 		AddScore(aPoints, true);
 
 		FloatText* aText = new FloatText(StrFormat(GTC(0x5652d0), aPoints), FONT_POINTS, (float) m6e8, (float) (m6ec + 0x19), false);
-		m140.push_back(aText);
+		mFloatTexts.push_back(aText);
 
 		if (m1a14 < m1a18 && !m916)
 		{
@@ -68,24 +68,24 @@ void Board::LevelComplete()
 	}
 
 	m1b64 = 0;
-	for (std::list<Brick*>::iterator anItr = m70.begin(); anItr != m70.end(); ++anItr)
-		m128.insert(*anItr);
-	m70.clear();
+	for (std::list<Brick*>::iterator anItr = mHeldBricks.begin(); anItr != mHeldBricks.end(); ++anItr)
+		mDoomedBricks.insert(*anItr);
+	mHeldBricks.clear();
 	m923 = true;
-	std::vector<MarkRec>().swap(m200);
-	for (unsigned int i = 0; i < m108.size(); i++)
+	std::vector<MarkRec>().swap(mSuperchargeMarks);
+	for (unsigned int i = 0; i < mFadedBricks.size(); i++)
 	{
-		m108[i]->mGone = true;
-		m128.insert(m108[i]);
+		mFadedBricks[i]->mGone = true;
+		mDoomedBricks.insert(mFadedBricks[i]);
 	}
-	std::vector<Brick*>().swap(m108);
-	std::vector<DrawnText>().swap(m270);
-	if (m354 != NULL)
+	std::vector<Brick*>().swap(mFadedBricks);
+	std::vector<DrawnText>().swap(mSpecialBannerTexts);
+	if (mHandKindBrick != NULL)
 	{
-		m128.insert(m354);
-		m354 = NULL;
+		mDoomedBricks.insert(mHandKindBrick);
+		mHandKindBrick = NULL;
 	}
-	m3c0 = Color(100, 100, 100);
+	mBackdropTint = Color(100, 100, 100);
 	m1990 = 0;
 	m92c = 0.0f;
 	m8e5 = true;
@@ -139,12 +139,12 @@ void Board::LevelComplete()
 		mApp->mEngineLoop->Stop();
 		SetOverlayHidden(false);
 		mOverlay.SetFill(0xff, 0xff, 0xff, 0);
-		for (unsigned int aRow = 0; aRow < m314.size(); aRow++)
+		for (unsigned int aRow = 0; aRow < mFieldBricks.size(); aRow++)
 		{
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
-				if (m314[aRow][aCol] != NULL)
-					m314[aRow][aCol]->StartShake();
+				if (mFieldBricks[aRow][aCol] != NULL)
+					mFieldBricks[aRow][aCol]->StartShake();
 			}
 		}
 		aKlaxon = mApp->mLoopSounds[7];
@@ -325,10 +325,10 @@ void Board::ApplyWeaponLevels()
 	m1be4 = (float) (18000.0 / (18000.0 - ((double) m1a94 - 1.0) * 3000.0));
 	if (mMode == 0)
 	{
-		m420.SetNumFrames(IMAGE_PLAYER1_LASER->mNumCols);
-		m420.SetDelay(2);
-		m420.mHoldLast = true;
-		m420.SetStopped(true);
+		mLaserAnim.SetNumFrames(IMAGE_PLAYER1_LASER->mNumCols);
+		mLaserAnim.SetDelay(2);
+		mLaserAnim.mHoldLast = true;
+		mLaserAnim.SetStopped(true);
 	}
 	switch (m1a90)
 	{
@@ -359,7 +359,7 @@ void Board::SetupWarpLayers()
 	};
 	for (int i = 0; i < 5; i++)
 	{
-		PlanetRec& aLayer = m160[i];
+		PlanetRec& aLayer = mPlanets[i];
 		Image* anImage = aLayers[i].mImage;
 		aLayer.mImage = anImage;
 		aLayer.mPeriod = 1;
@@ -390,7 +390,7 @@ void Board::StartLevelUp()
 	m19a4 = 0;
 	m1954 = 0;
 	m8ef = false;
-	m3d0 = Color(0xff, 0xff, 0xff, 0);
+	mOverlayFillColor = Color(0xff, 0xff, 0xff, 0);
 	mOverlay.SetFill(0xff, 0xff, 0xff, 0);
 	SetOverlayHidden(false);
 	m1998 = 6;
@@ -402,7 +402,7 @@ void Board::StartLevelUp()
 	m19a0 = 0;
 	m938 = -52.0f;
 	m19f4 = (((int) aRand % 500000000) % 200) + 100;
-	m3c0 = Color(100, 100, 100);
+	mBackdropTint = Color(100, 100, 100);
 	m1b3c = 0;
 
 	int aBestLevel = 0;
@@ -455,7 +455,7 @@ void Board::StartLevelUp()
 	m1ab8 = 10;
 	m1ac0 = PickSpawnDelay();
 	m1abc = 700;
-	mAnim460.SetStopped(false);
+	mWarpGateAnim.SetStopped(false);
 
 	// the lines of the panel
 	m7e4 = 0;
@@ -471,8 +471,8 @@ void Board::StartLevelUp()
 		m7cc.push_back(StrFormat(GTC(0x5656dc), aMinutes, aSeconds));
 
 	mApp->GetRankName(mScore, &m1bd4);
-	delete m30c;
-	m30c = mApp->MakeRankImage(m1bd4, 0x50);
+	delete mRankImage;
+	mRankImage = mApp->MakeRankImage(m1bd4, 0x50);
 
 	if (m1b2c == 1)
 		m7cc.push_back(StrFormat(GTC(0x5656c8), FormatNumber(m1ba4 - m1b9c + m960).c_str()));
@@ -484,9 +484,9 @@ void Board::StartLevelUp()
 		m7cc.push_back(StrFormat(GTC(0x5656b4), FormatNumber(aPointsToNext + mScore).c_str()));
 
 	// the streaks of the backdrop take the colour of their kind
-	for (unsigned int i = 0; i < m170.size() && i < 100; i++)
+	for (unsigned int i = 0; i < mStreaks.size() && i < 100; i++)
 	{
-		StreakRec& aStreak = m170[i];
+		StreakRec& aStreak = mStreaks[i];
 		aStreak.mFlag28 = false;
 		if (aStreak.mKind == 0)
 			aStreak.mColor = Color(0x50, 0x50, 0x50);

@@ -17,14 +17,14 @@
 
 using namespace Sexy;
 
-// 0x46cfd0: the groups of falling bricks (m94) are put in the order of the height of the first brick of each, the
+// 0x46cfd0: the groups of falling bricks (mFallingGroups) are put in the order of the height of the first brick of each, the
 // highest first: a group goes in front of the first group of those sorted so far whose brick is lower than its own, so
 // groups of one height keep their order
 void Board::SortFallingGroups()
 {
 	std::vector<std::list<Brick*> > aSorted;
 
-	for (std::list<std::list<Brick*> >::iterator i = m94.begin(); i != m94.end(); ++i)
+	for (std::list<std::list<Brick*> >::iterator i = mFallingGroups.begin(); i != mFallingGroups.end(); ++i)
 	{
 		std::list<Brick*> aGroup = *i;
 		int aHeight = (int) aGroup.front()->mY;
@@ -39,9 +39,9 @@ void Board::SortFallingGroups()
 		aSorted.insert(aSorted.begin() + aPos, aGroup);
 	}
 
-	m94.clear();
+	mFallingGroups.clear();
 	for (size_t i = 0; i < aSorted.size(); i++)
-		m94.push_back(aSorted[i]);
+		mFallingGroups.push_back(aSorted[i]);
 }
 
 // 0x46d1e0 event 6: a brick has gone. It is paid (the value of its place times +0x940, in tens), counted for the stage's
@@ -121,8 +121,8 @@ void Board::OnBrickGone(Brick* theBrick)
 					m778 = new LevelUpText(anImage, 0);
 					m778->m04 = true;
 					mApp->PlaySample(SOUND_WORDSWOOSH);
-					mAnim4e0.Reset();
-					mAnim4e0.SetStopped(false);
+					mStageMeterAnim.Reset();
+					mStageMeterAnim.SetStopped(false);
 					mApp->PlaySample(SOUND_BRICK_MILESTONE);
 				}
 			}
@@ -151,17 +151,17 @@ void Board::OnBrickGone(Brick* theBrick)
 	}
 
 	// the falling groups fall to the cells that were emptied in their column, one on top of the other
-	if (m1994 == 0 && !m94.empty())
+	if (m1994 == 0 && !mFallingGroups.empty())
 	{
 		SortFallingGroups();
-		for (unsigned int i = 0; i < ma8.size(); i++)
+		for (unsigned int i = 0; i < mTakenCells.size(); i++)
 		{
-			if (ma8[i].mRow < aTop[ma8[i].mCol].mRow)
-				aTop[ma8[i].mCol] = ma8[i];
+			if (mTakenCells[i].mRow < aTop[mTakenCells[i].mCol].mRow)
+				aTop[mTakenCells[i].mCol] = mTakenCells[i];
 		}
 
 		std::vector<int> aCounts(10, 0);
-		for (std::list<std::list<Brick*> >::iterator g = m94.begin(); g != m94.end(); ++g)
+		for (std::list<std::list<Brick*> >::iterator g = mFallingGroups.begin(); g != mFallingGroups.end(); ++g)
 		{
 			for (std::list<Brick*>::iterator b = g->begin(); b != g->end(); ++b)
 			{
@@ -193,16 +193,16 @@ void Board::OnBrickGone(Brick* theBrick)
 
 		// the fired groups: each brick of a group falls to the place below the highest cell that was emptied in its
 		// column (or stays where it is, when nothing was emptied there), one on top of the other
-		if (!m7c.empty())
+		if (!mFiredGroups.empty())
 		{
-			for (std::list<std::list<Brick*> >::iterator g = m7c.begin(); g != m7c.end(); ++g)
+			for (std::list<std::list<Brick*> >::iterator g = mFiredGroups.begin(); g != mFiredGroups.end(); ++g)
 			{
 				int aX = 500000000;
 				int aY = 500000000;
-				for (unsigned int i = 0; i < ma8.size(); i++)
+				for (unsigned int i = 0; i < mTakenCells.size(); i++)
 				{
-					int aCellX = ma8[i].mCol * 0x2c + 0xa6;
-					int aCellY = ma8[i].mRow * 0x19 + 9;
+					int aCellX = mTakenCells[i].mCol * 0x2c + 0xa6;
+					int aCellY = mTakenCells[i].mRow * 0x19 + 9;
 					if (!g->empty() && aCellX == (int) g->front()->mX && aCellY < aY)
 					{
 						aX = aCellX;
@@ -242,14 +242,14 @@ void Board::OnBrickGone(Brick* theBrick)
 		}
 
 		// (the draw of the random number is not used; the original made it here)
-		if (!ma0.empty())
+		if (!mTakenBricks.empty())
 			AstroRand();
 
 		// the bricks that were taken go to the list that frees them
 		float aBonusX = 310.0f;   // (0x439b0000; the first brick overwrites both, so they are never used)
 		float aBonusY = 260.0f;
 		int anIndex = 0;
-		for (std::list<Brick*>::iterator i = ma0.begin(); i != ma0.end(); ++i, anIndex++)
+		for (std::list<Brick*>::iterator i = mTakenBricks.begin(); i != mTakenBricks.end(); ++i, anIndex++)
 		{
 			Brick* aBrick = *i;
 			if (anIndex == 0)
@@ -264,14 +264,14 @@ void Board::OnBrickGone(Brick* theBrick)
 				if (!m910)
 				{
 					FloatText* aFloat = new FloatText(StrFormat(GTC(0x566184)), FONT_POINTS, aBonusX, aBonusY + 50.0f, false);
-					m140.push_back(aFloat);
+					mFloatTexts.push_back(aFloat);
 				}
 
 				int aCol = CellColumn(aBrick->mX);
 				int aRow = CellRow(aBrick->mY);
 				Brick* anAbove = NULL;
 				if (aRow > 0)
-					anAbove = m314[aRow - 1][aCol];
+					anAbove = mFieldBricks[aRow - 1][aCol];
 
 				int aColour = -1;
 				if (((FuelCell*) aBrick)->GetFlag240() && aRow > 1 && anAbove != NULL)
@@ -282,23 +282,23 @@ void Board::OnBrickGone(Brick* theBrick)
 				UpdateSupercharge(false, aColour);
 			}
 
-			m88.push_back(aBrick);
+			mGoneBricks.push_back(aBrick);
 			FireTo(aBrick, 4);
 		}
-		ma0.clear();
-		std::vector<CellRef>().swap(ma8);
+		mTakenBricks.clear();
+		std::vector<CellRef>().swap(mTakenCells);
 
 		// the groups that fall are fired: they join the fired groups, in front of those that were there
-		std::list<std::list<Brick*> >::iterator aPos = m7c.begin();
-		for (std::list<std::list<Brick*> >::iterator g = m94.begin(); g != m94.end(); ++g)
+		std::list<std::list<Brick*> >::iterator aPos = mFiredGroups.begin();
+		for (std::list<std::list<Brick*> >::iterator g = mFallingGroups.begin(); g != mFallingGroups.end(); ++g)
 		{
 			for (std::list<Brick*>::iterator b = g->begin(); b != g->end(); ++b)
 				FireTo(*b, 1);
-			m7c.insert(aPos, *g);
+			mFiredGroups.insert(aPos, *g);
 		}
-		m94.clear();
+		mFallingGroups.clear();
 
-		if (m7c.empty() && ma0.empty() && mf8.empty())
+		if (mFiredGroups.empty() && mTakenBricks.empty() && mKillAllTypes.empty())
 		{
 			if (m1980 > 1 && m1980 > 2 && (mField193C > 1 || m1a60 == 2))
 				m8ee = true;
@@ -315,12 +315,12 @@ void Board::OnBrickGone(Brick* theBrick)
 			CheckStackHeight();
 
 		// a cleared field (nothing in the first row): the bonus
-		if (m7c.empty() && m94.empty() && ma0.empty() && mf8.empty() && CountMovingBricks(false) == 0)
+		if (mFiredGroups.empty() && mFallingGroups.empty() && mTakenBricks.empty() && mKillAllTypes.empty() && CountMovingBricks(false) == 0)
 		{
 			m8fb = true;
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
-				if (m314[1][aCol] != NULL)
+				if (mFieldBricks[1][aCol] != NULL)
 				{
 					m8fb = false;
 					break;
@@ -334,7 +334,7 @@ void Board::OnBrickGone(Brick* theBrick)
 		if (m19dc > 0 && !m910)
 		{
 			FloatText* aFloat = new FloatText(StrFormat(GTC(0x56617c), m19dc), FONT_POINTS, (float) m6e8, (float) m6ec, false);
-			m140.push_back(aFloat);
+			mFloatTexts.push_back(aFloat);
 			m6e8 = -1;
 			m6ec = -1;
 		}
@@ -345,12 +345,12 @@ void Board::OnBrickGone(Brick* theBrick)
 	if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
 		HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), false);
 
-	if (mMode == 2 && !m907 && m1994 == 0 && m7c.empty() && CountMovingBricks(false) == 0)
+	if (mMode == 2 && !m907 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 		Fn4335e0();
 
 	// a field with no move left (the out flag of AnyMoveLeft is a byte of the original's frame that nothing set before)
-	if (m910 && mf8.empty() && !m912 && !m911 && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 &&
-		m7c.empty() && m94.empty())
+	if (m910 && mKillAllTypes.empty() && !m912 && !m911 && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 &&
+		mFiredGroups.empty() && mFallingGroups.empty())
 	{
 		bool aFlag = false;
 		if (!AnyMoveLeft(&aFlag))

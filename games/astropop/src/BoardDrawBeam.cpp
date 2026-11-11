@@ -92,14 +92,14 @@ void Board::DrawBeam(Graphics* g)
 		aBeam = IMAGE_BEAM_WIDE;
 		aHasColor = true;
 	}
-	else if (m3c0 != Color(100, 100, 100))
+	else if (mBackdropTint != Color(100, 100, 100))
 	{
 		g->SetColorizeImages(true);
 		aBeam = IMAGE_BEAM_OPAQUE;
 	}
 
 	if (!aHasColor)
-		g->SetColor(m3c0);
+		g->SetColor(mBackdropTint);
 	else if (aIsFreeze)
 		g->SetColor(Color(0, 0xf0, 0xfa, 200));
 	else if (aIsFuel)
@@ -110,7 +110,7 @@ void Board::DrawBeam(Graphics* g)
 		g->SetColor(Color(0xff, aPhase, aPhase / 2, 200));
 	}
 	else
-		g->SetColor(m3c0);
+		g->SetColor(mBackdropTint);
 
 	// the wide beams stand on the ship; the others hang from the top (and are not drawn on the warp screens)
 	if (aIsFreeze || aIsFuel)
@@ -118,7 +118,7 @@ void Board::DrawBeam(Graphics* g)
 	else if (!m8f0)
 		g->DrawImage(aBeam, m198c, 0);
 
-	if (m3c0 != Color(100, 100, 100) || aIsFreeze || aIsFuel)
+	if (mBackdropTint != Color(100, 100, 100) || aIsFreeze || aIsFuel)
 		g->SetColorizeImages(false);
 
 	if (aParticle != NULL)
@@ -129,7 +129,7 @@ void Board::DrawBeam(Graphics* g)
 		int aStep = is3D ? 1 : 4;
 		for (int i = 0; i < 40; i++)
 		{
-			BlinkRec& aRec = md8[i];
+			BlinkRec& aRec = mBeamSparks[i];
 			int aX = aRec.m00;
 			int aY = aRec.mCounter;
 			int anAlpha = aY / 2;

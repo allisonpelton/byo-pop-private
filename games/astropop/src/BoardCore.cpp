@@ -258,19 +258,19 @@ static void StepToward(int& theValue, int theTarget)
 void Board::FadeBackdrop()
 {
 	int aRed = 100, aGreen = 100, aBlue = 100;
-	if (!m70.empty())
+	if (!mHeldBricks.empty())
 	{
-		Brick* aBrick = m70.front();
+		Brick* aBrick = mHeldBricks.front();
 		aRed = aBrick->mColor2.mRed;
 		aGreen = aBrick->mColor2.mGreen;
 		aBlue = aBrick->mColor2.mBlue;
 	}
 
-	StepToward(m3c0.mRed, aRed);
-	StepToward(m3c0.mGreen, aGreen);
-	StepToward(m3c0.mBlue, aBlue);
+	StepToward(mBackdropTint.mRed, aRed);
+	StepToward(mBackdropTint.mGreen, aGreen);
+	StepToward(mBackdropTint.mBlue, aBlue);
 
-	if (m3c0.mRed == aRed && m3c0.mGreen == aGreen && m3c0.mBlue == aBlue)
+	if (mBackdropTint.mRed == aRed && mBackdropTint.mGreen == aGreen && mBackdropTint.mBlue == aBlue)
 		m8e6 = false;
 }
 
@@ -279,20 +279,20 @@ void Board::FadeBackdrop()
 void Board::UpdateRamp()
 {
 	size_t aIndex = 0;
-	while (aIndex < m280.size())
+	while (aIndex < mSpeedRamp.size())
 	{
-		if (m19b4 < m280[aIndex].mTime)
+		if (m19b4 < mSpeedRamp[aIndex].mTime)
 			break;
 		aIndex++;
 	}
 
-	if (aIndex < m280.size())
+	if (aIndex < mSpeedRamp.size())
 	{
 		if (m19b4 >= 18000)
 			m1a28 = 1;
 
-		const RampRecord& aNext = m280[aIndex];
-		const RampRecord& aPrev = m280[aIndex > 0 ? aIndex - 1 : 0];
+		const RampRecord& aNext = mSpeedRamp[aIndex];
+		const RampRecord& aPrev = mSpeedRamp[aIndex > 0 ? aIndex - 1 : 0];
 		float aFrac = (float) m19b4 / (float) aNext.mTime;
 
 		m1be8 = aPrev.mF5 - (aPrev.mF5 - aNext.mF5) * aFrac;
@@ -326,7 +326,7 @@ int Board::FindBottomRow(int theColumn, bool theIsX)
 	int aRow = 0x12;
 	for (;;)
 	{
-		Brick* aBrick = m314[aRow][theColumn];
+		Brick* aBrick = mFieldBricks[aRow][theColumn];
 		if (aBrick != NULL && aBrick->IsIdle())
 			break;
 		aRow--;
@@ -340,7 +340,7 @@ int Board::FindBottomRow(int theColumn, bool theIsX)
 // count of full columns.)
 bool Board::NoRoomLeft()
 {
-	int aLimit = 0x1a7 - (int) m70.size() * 0x19;
+	int aLimit = 0x1a7 - (int) mHeldBricks.size() * 0x19;
 	int aThreshold;
 	if (FindBottomRow(m198c, true) + 2 > 0)
 		aThreshold = FindBottomRow(m198c, true) * 0x19 + 0x3b;
@@ -357,7 +357,7 @@ bool Board::NoRoomLeft()
 				if (aPieceColumn == aCol)
 					continue;
 				int aFilled = 0;
-				for (size_t aRow = 0; aRow < m314.size() && m314[aRow][aCol] != NULL; aRow++)
+				for (size_t aRow = 0; aRow < mFieldBricks.size() && mFieldBricks[aRow][aCol] != NULL; aRow++)
 					aFilled++;
 				if (aFilled + 1 >= 0x13)
 					return true;
@@ -373,7 +373,7 @@ bool Board::NoRoomLeft()
 int Board::CountMovingBricks(bool theStrict)
 {
 	int aCount = 0;
-	for (std::list<std::list<Brick*> >::iterator aGroup = m7c.begin(); aGroup != m7c.end(); ++aGroup)
+	for (std::list<std::list<Brick*> >::iterator aGroup = mFiredGroups.begin(); aGroup != mFiredGroups.end(); ++aGroup)
 	{
 		for (std::list<Brick*>::iterator aBrickIt = aGroup->begin(); aBrickIt != aGroup->end(); ++aBrickIt)
 		{
@@ -477,10 +477,10 @@ void Board::UpdateScenery()
 	{
 		StepScrollLayer(&m77c);
 
-		for (size_t i = 0; i < m190.size(); i++)
+		for (size_t i = 0; i < mBackdropStars.size(); i++)
 		{
 			bool aSpecial = m917 && (m1bc0 == 1 || m1bc0 == 2);
-			StarRec& aStar = m190[i];
+			StarRec& aStar = mBackdropStars[i];
 			if (m8eb || aSpecial)
 			{
 				aStar.mSpeed = (float) ((double) aStar.mSpeed + (double) 0.05f);
@@ -491,10 +491,10 @@ void Board::UpdateScenery()
 			if (aStar.mY > 640.0)
 			{
 				int aLeast = 0;
-				for (size_t j = 0; j < m190.size(); j++)
+				for (size_t j = 0; j < mBackdropStars.size(); j++)
 				{
-					if ((double) aLeast > (double) m190[j].mY)
-						aLeast = (int) m190[j].mY;
+					if ((double) aLeast > (double) mBackdropStars[j].mY)
+						aLeast = (int) mBackdropStars[j].mY;
 				}
 				aStar.mY = (float) (aLeast - 900);
 			}
@@ -503,7 +503,7 @@ void Board::UpdateScenery()
 	else
 	{
 		for (int i = 0; i < 5; i++)
-			StepScrollLayer(&m160[i]);
+			StepScrollLayer(&mPlanets[i]);
 
 		if (m19f0 == 0)
 		{
@@ -513,9 +513,9 @@ void Board::UpdateScenery()
 				m19f4 = ((int) AstroRand() % 500000000) % 200 + 100;
 				switch (((int) AstroRand() % 500000000) % 3)
 				{
-				case 0:		m2f8 = IMAGE_WARP_FX_LIGHTENING; break;
-				case 1:		m2f8 = mApp->mLightningImage; break;
-				default:	m2f8 = mApp->mLightningImage2; break;
+				case 0:		mWarpLightningImage = IMAGE_WARP_FX_LIGHTENING; break;
+				case 1:		mWarpLightningImage = mApp->mLightningImage; break;
+				default:	mWarpLightningImage = mApp->mLightningImage2; break;
 				}
 				m19f8 = ((int) AstroRand() % 500000000) % 0x15e + 0x32;
 				unsigned int aSoundRand = AstroRand();
@@ -534,9 +534,9 @@ void Board::UpdateScenery()
 		}
 	}
 
-	for (size_t i = 0; i < 100 && i < m170.size(); i++)
+	for (size_t i = 0; i < 100 && i < mStreaks.size(); i++)
 	{
-		StreakRec& aStreak = m170[i];
+		StreakRec& aStreak = mStreaks[i];
 		aStreak.mY = (float) ((double) aStreak.mSpeed + (double) aStreak.mY);
 		double aHeight = (double) mHeight;
 		if (aHeight < (double) aStreak.mY)
@@ -591,9 +591,9 @@ bool Board::IsSettled(bool theAssumeIdle)
 {
 	bool aIdle = theAssumeIdle ? true : (m1a34 == 0);
 	if (!m8eb && !m8ed && !m8ef && !m8f4 && !m8ec && !mFlag8E9 && !mFlag8E8 && m1924 == 0 && m1a60 != 2 && aIdle &&
-		!m910 && m928 == 1.0f && m1990 == 0 && m94.empty() && m7c.empty())
+		!m910 && m928 == 1.0f && m1990 == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 	{
-		if (CountMovingBricks(false) == 0 && m1a0.empty() && ma0.empty() && mf8.empty())
+		if (CountMovingBricks(false) == 0 && mAtomicMarkedBricks.empty() && mTakenBricks.empty() && mKillAllTypes.empty())
 			return true;
 	}
 	return false;
@@ -602,13 +602,13 @@ bool Board::IsSettled(bool theAssumeIdle)
 // 0x43d8b0: delete the bricks in the set and empty it
 void Board::DeleteDoomedBricks()
 {
-	std::vector<Brick*> aBricks(m128.begin(), m128.end());
+	std::vector<Brick*> aBricks(mDoomedBricks.begin(), mDoomedBricks.end());
 	for (size_t i = 0; i < aBricks.size(); i++)
 	{
 		aBricks[i]->mGone = true;
 		delete aBricks[i];
 	}
-	m128.clear();
+	mDoomedBricks.clear();
 }
 
 // 0x4332b0: a new plain brick of a type (the column 0x19 puts its sounds in the middle)
@@ -642,9 +642,9 @@ SpecialBrick* Board::CreateSpecialBrick(int theType)
 	SpecialBrick* aBrick = new SpecialBrick(this, mBus, ((theType != 6) ? 0 : -0x4b) + 0x7d);
 	aBrick->SetType(theType);
 	if (theType == 6)
-		m1f0[1] = 2000;
+		mSpecialCooldowns[1] = 2000;
 	else if (theType == 0xb)
-		m1f0[2] = 2000;
+		mSpecialCooldowns[2] = 2000;
 	return aBrick;
 }
 
@@ -654,7 +654,7 @@ Brick* Board::CreatePowerBrick(int theType)
 	Brick* aBrick = new PowerBrick(this, mBus, 0x4b);
 	aBrick->SetType(theType);
 	if (theType != 0xe)
-		m1f0[3 + (theType != 10 ? 1 : 0)] = 2000;
+		mSpecialCooldowns[3 + (theType != 10 ? 1 : 0)] = 2000;
 	return aBrick;
 }
 
@@ -662,19 +662,19 @@ Brick* Board::CreatePowerBrick(int theType)
 // PulsePair, a third one fading the picture away
 void Board::UpdateStageBackground()
 {
-	if (!((unsigned int) mField193C < m220.size() || m90a || (!m230.empty() && m230[0]->m1c != 0)))
+	if (!((unsigned int) mField193C < mStageHintPanels.size() || m90a || (!mHintSpots.empty() && mHintSpots[0]->m1c != 0)))
 		return;
 
 	StageBg* aBg;
-	if (m230.empty() || m230[0]->m1c == 0)
-		aBg = m220[m90a ? 1 : mField193C];
+	if (mHintSpots.empty() || mHintSpots[0]->m1c == 0)
+		aBg = mStageHintPanels[m90a ? 1 : mField193C];
 	else
-		aBg = m230[0]->mBg;
+		aBg = mHintSpots[0]->mBg;
 
 	if (aBg->mf0 != 0)
 		return;
 
-	aBg->m70.Update();
+	aBg->mHeldBricks.Update();
 	aBg->mb0.Update();
 
 	if (aBg->m10c != 0)
@@ -725,19 +725,19 @@ void Board::UpdateStageBackground()
 			}
 		}
 
-		int aWait = aBg->m108;
+		int aWait = aBg->mFadedBricks;
 		if (aWait < 1)
 		{
 			if ((aBg->m100 == 0 || aBg->m100 == 0xff) && (aBg->m104 == 0 || aBg->m104 == 0xff) &&
 				aBg->m10c == 0 && aBg->m110 == 0 && aWait == 0)
-				aBg->m108 = 200;
+				aBg->mFadedBricks = 200;
 		}
 		else
 		{
-			aBg->m108 = aWait - 1;
+			aBg->mFadedBricks = aWait - 1;
 			if (aWait - 1 < 1)
 			{
-				aBg->m108 = 0;
+				aBg->mFadedBricks = 0;
 				aBg->m10c = ((((aBg->m100 != 0xff) ? 1 : 0) - 1) & -16) + 8;
 				aBg->m110 = ((((aBg->m104 != 0xff) ? 1 : 0) - 1) & -16) + 8;
 			}

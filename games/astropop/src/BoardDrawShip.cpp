@@ -115,21 +115,21 @@ void Board::DrawShip(Graphics* g)
 		}
 	}
 
-	if (!mAnim520.mStopped)
+	if (!mTurbotPowerupAnim.mStopped)
 	{
 		// the turbot's power-up on the ship, and the lightning that jumps from it (3D only)
 		g->SetColor(Color(0xff, 0xff, 0xff, m1aa0));
 		g->SetColorizeImages(true);
-		DrawCel(g, IMAGE_TURBOT_POWERUP, m198c - 0x26, aY - 0x25, (mAnim520.mNumFrames == 1) ? 0 : mAnim520.mFrame);
+		DrawCel(g, IMAGE_TURBOT_POWERUP, m198c - 0x26, aY - 0x25, (mTurbotPowerupAnim.mNumFrames == 1) ? 0 : mTurbotPowerupAnim.mFrame);
 		g->SetColorizeImages(false);
 		if (mApp->Is3DAccelerated())
 		{
-			for (size_t i = 0; i < m290.size(); i++)
+			for (size_t i = 0; i < mTurbotBeams.size(); i++)
 			{
 				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 				g->SetColorizeImages(true);
-				g->SetColor(Color(0xff, 0xff, 0xff, m290[i].mLife));
-				g->DrawImageRotatedF(IMAGE_TURBOT_LIGHTNING, (float) (aX - 0x68), (float) (aY + 0xd), (double) m290[i].mAngle,
+				g->SetColor(Color(0xff, 0xff, 0xff, mTurbotBeams[i].mLife));
+				g->DrawImageRotatedF(IMAGE_TURBOT_LIGHTNING, (float) (aX - 0x68), (float) (aY + 0xd), (double) mTurbotBeams[i].mAngle,
 					(float) 0x81, (float) 0x1e);
 				g->SetColorizeImages(false);
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -144,15 +144,15 @@ void Board::DrawShip(Graphics* g)
 		for (int aPass = 0; aPass < 2; aPass++)
 		{
 			bool aToolsOnly = false;
-			if (!m70.empty())
+			if (!mHeldBricks.empty())
 			{
-				Brick* aFirst = m70.front();
+				Brick* aFirst = mHeldBricks.front();
 				int aKind = aFirst->mType;
 				aToolsOnly = aFirst->mMutated != 1 &&
 					(aKind == 6 || aKind == 8 || aKind == 10 || aKind == 0xe || aKind == 0xb || aKind == 0xd);
 			}
 			int aPieceY = aY;
-			for (std::list<Brick*>::iterator aNode = m70.begin(); aNode != m70.end(); ++aNode)
+			for (std::list<Brick*>::iterator aNode = mHeldBricks.begin(); aNode != mHeldBricks.end(); ++aNode)
 			{
 				aPieceY -= 0x19;
 				Brick* aBrick = *aNode;

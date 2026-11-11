@@ -134,13 +134,13 @@ void ExpandRuns(const std::vector<MoveRun>& theRuns, std::vector<CellRef>& theCe
 }
 
 // 0x4538d0: how many cells of the kind are joined to this one (up to theLimit), not counting the cells in theCells. The
-// gathering is done in the Board's own list (mb8, which keeps what was in it) and the list is put back as it was.
+// gathering is done in the Board's own list (mConnectedCells, which keeps what was in it) and the list is put back as it was.
 int CountConnected(Board* theBoard, int theKind, int theCol, int theRow, unsigned int theLimit, const std::vector<CellRef>& theCells)
 {
-	std::vector<CellRef> aSaved = theBoard->mb8;
+	std::vector<CellRef> aSaved = theBoard->mConnectedCells;
 	theBoard->CollectConnected(theKind, theCol, theRow, theLimit, false, &theCells, -1, -1);
-	int aCount = (int) theBoard->mb8.size();
-	theBoard->mb8 = aSaved;
+	int aCount = (int) theBoard->mConnectedCells.size();
+	theBoard->mConnectedCells = aSaved;
 	return aCount;
 }
 
@@ -313,29 +313,29 @@ bool Board::AnyMoveLeft(bool* theFlag)
 	std::vector<MoveRun> aRuns;
 	std::vector<MoveSpot> aSpots;
 
-	if ((unsigned int) m70.size() >= (unsigned int) m1a54)
+	if ((unsigned int) mHeldBricks.size() >= (unsigned int) m1a54)
 		return true;
 
-	if (!m70.empty())
+	if (!mHeldBricks.empty())
 	{
-		Brick* aHeld = m70.front();
+		Brick* aHeld = mHeldBricks.front();
 		if (aHeld->mMutated != 1 && IsToolKind(aHeld->mType))
 			return true;
 	}
 	if (theFlag != NULL)
 	{
 		*theFlag = true;
-		if (!m70.empty())
+		if (!mHeldBricks.empty())
 			*theFlag = false;
 	}
 
 	// the lowest obstacle of each column (rows 1 and up are looked at, from the foot of the field)
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
-		int aRows = (int) m314.size();
+		int aRows = (int) mFieldBricks.size();
 		for (int aRow = aRows - 1; aRow > 0; aRow--)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick != NULL && (aBrick->mMutated == 1 || aBrick->mType == 7 || aBrick->mType == 9))
 			{
 				aColTop[aCol] = aRow;
@@ -346,10 +346,10 @@ bool Board::AnyMoveLeft(bool* theFlag)
 
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
-		int aRows = (int) m314.size();
+		int aRows = (int) mFieldBricks.size();
 		for (int aRow = aRows - 1; aRow > 0; aRow--)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick == NULL)
 				continue;
 			if (theFlag != NULL)
@@ -377,10 +377,10 @@ bool Board::AnyMoveLeft(bool* theFlag)
 					return true;
 
 				// a brick on one of the same colour is counted with that stack
-				int aRowTotal = (int) m314.size();
-				if (aRow != aRowTotal - 1 && m314[aRow + 1][aCol] != NULL)
+				int aRowTotal = (int) mFieldBricks.size();
+				if (aRow != aRowTotal - 1 && mFieldBricks[aRow + 1][aCol] != NULL)
 				{
-					Brick* aBelow = m314[aRow + 1][aCol];
+					Brick* aBelow = mFieldBricks[aRow + 1][aCol];
 					int aBelowKey = (aBelow->mMutated == 1) ? 0xc : aBelow->mType;
 					if (aBelowKey == aKey)
 						continue;
@@ -390,7 +390,7 @@ bool Board::AnyMoveLeft(bool* theFlag)
 				int aRunLen = 1;
 				for (int r = aRow - 1; r > 0; r--)
 				{
-					Brick* aUp = m314[r][aCol];
+					Brick* aUp = mFieldBricks[r][aCol];
 					if (aUp == NULL)
 						break;
 					int aUpKey = (aUp->mMutated == 1) ? 0xc : aUp->mType;
@@ -426,15 +426,15 @@ bool Board::AnyMoveLeft(bool* theFlag)
 	}
 
 	// the bricks in the hand are one more stack
-	if (!m70.empty())
+	if (!mHeldBricks.empty())
 	{
-		Brick* aHeld = m70.front();
+		Brick* aHeld = mHeldBricks.front();
 		int aKey = (aHeld->mMutated == 1) ? 0xc : aHeld->mType;
-		aCount[aKey] += (int) m70.size();
-		aReach[aKey] += (int) m70.size();
+		aCount[aKey] += (int) mHeldBricks.size();
+		aReach[aKey] += (int) mHeldBricks.size();
 		MoveRun aRun;
 		aRun.mColour = aKey;
-		aRun.mCount = (int) m70.size();
+		aRun.mCount = (int) mHeldBricks.size();
 		aRun.mCol = -1;
 		aRun.mRow = -1;
 		aRuns.push_back(aRun);

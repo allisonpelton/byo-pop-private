@@ -64,18 +64,18 @@ void Board::AddedToManager(WidgetManager* theManager)
 		aButton->Resize(Rect(kFieldButtonRect[i][0], kFieldButtonRect[i][1], kFieldButtonRect[i][2], kFieldButtonRect[i][3]));
 		theManager->AddWidget(aButton);
 		theManager->BringToFront(aButton);
-		m1c0[i] = aButton;
+		mFieldButtons[i] = aButton;
 		i++;
 	} while (i < 1);
 
 	AstroButton* aHelp = new AstroButton(0xfa6, mApp);
-	m2ec = aHelp;
+	mHelpButton = aHelp;
 	aHelp->mButtonImage = NULL;
 	aHelp->mOverImage = IMAGE_UI_INGAME_HELP_OVER;
 	aHelp->mDownImage = IMAGE_UI_INGAME_HELP_DOWN;
 	aHelp->Resize(0, 0x1b5, 0x1d, 0x2b);
-	theManager->AddWidget(m2ec);
-	theManager->BringToFront(m2ec);
+	theManager->AddWidget(mHelpButton);
+	theManager->BringToFront(mHelpButton);
 
 	theManager->AddWidget(m74c);
 	m74c->SetVisible(false);
@@ -90,7 +90,7 @@ void Board::AddedToManager(WidgetManager* theManager)
 	{
 		// the demo invites the player to start a game
 		HyperlinkWidget* aLink = new HyperlinkWidget(0xfa7, mApp);
-		m2e0 = aLink;
+		mDemoStartLink = aLink;
 		aLink->mUnderlineSize = 1;
 		aLink->SetFont(GetFontById(0xb1));
 		aLink->mOverColor = Color(0xff, 0xff, 0xff);
@@ -113,16 +113,16 @@ void Board::RemovedFromManager(WidgetManager* theManager)
 
 	if (m754 != NULL)
 		theManager->RemoveWidget(m754);
-	if (!m1c0.empty() && m1c0[0] != NULL)
-		theManager->RemoveWidget(m1c0[0]);
-	if (m2e0 != NULL)
-		theManager->RemoveWidget(m2e0);
-	if (m2ec != NULL)
-		theManager->RemoveWidget(m2ec);
-	if (m2e8 != NULL)
-		theManager->RemoveWidget(m2e8);
-	if (m2e4 != NULL)
-		theManager->RemoveWidget(m2e4);
+	if (!mFieldButtons.empty() && mFieldButtons[0] != NULL)
+		theManager->RemoveWidget(mFieldButtons[0]);
+	if (mDemoStartLink != NULL)
+		theManager->RemoveWidget(mDemoStartLink);
+	if (mHelpButton != NULL)
+		theManager->RemoveWidget(mHelpButton);
+	if (mMenuButton != NULL)
+		theManager->RemoveWidget(mMenuButton);
+	if (mContinueButton != NULL)
+		theManager->RemoveWidget(mContinueButton);
 	if (m74c != NULL)
 		theManager->RemoveWidget(m74c);
 	if (m750 != NULL)
@@ -138,7 +138,7 @@ void Board::RemovedFromManager(WidgetManager* theManager)
 // port: inlined in the original (the Return key, the middle button, the start button)
 void Board::StartByHand()
 {
-	if (!m910 && CountMovingBricks(false) == 0 && m94.empty() && m7c.empty() && m1990 == 0)
+	if (!m910 && CountMovingBricks(false) == 0 && mFallingGroups.empty() && mFiredGroups.empty() && m1990 == 0)
 	{
 		if (m1c08 && !m917)
 			mApp->ShowPowerDialog();
@@ -161,7 +161,7 @@ void Board::KeyChar(SexyChar theChar)
 	if (theChar == ' ')
 	{
 		bool aFlag = false;
-		if (!m230.empty() && m230[0]->m1c && !m8ea && !(m7e8 > -m7ec))
+		if (!mHintSpots.empty() && mHintSpots[0]->m1c && !m8ea && !(m7e8 > -m7ec))
 		{
 			aFlag = true;
 			if (m1924 > 0 && !m919)
@@ -268,7 +268,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	if (mApp->mHelpScreen != NULL)
 		return;
 
-	if (m1924 == 1 && !m919 && (m230.empty() || !m230[0]->m1c))
+	if (m1924 == 1 && !m919 && (mHintSpots.empty() || !mHintSpots[0]->m1c))
 	{
 		// the game is paused: a click goes on with it
 		if (mOverlay.mFlag78)
@@ -376,11 +376,11 @@ void Board::MouseDown(int x, int y, int theClickCount)
 			} while (aCount != 0);
 		}
 		m1940 = mField193C / 2 + 1;
-		m3d0.mAlpha = 0;
-		m3d0.mRed = 0;
+		mOverlayFillColor.mAlpha = 0;
+		mOverlayFillColor.mRed = 0;
 		m8f4 = true;
 		m8ef = false;
-		mOverlay.SetFill(0, m3d0.mGreen, m3d0.mBlue, 0);
+		mOverlay.SetFill(0, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, 0);
 	}
 	else
 	{
@@ -404,11 +404,11 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		}
 		m1940 = mField193C / 2 + 1;
 		MarkHintsSeen(m1940);
-		m3d0.mAlpha = 0;
-		m3d0.mRed = 0;
+		mOverlayFillColor.mAlpha = 0;
+		mOverlayFillColor.mRed = 0;
 		m8f4 = true;
 		m8ef = false;
-		mOverlay.SetFill(0, m3d0.mGreen, m3d0.mBlue, 0);
+		mOverlay.SetFill(0, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, 0);
 	}
 
 	SetOverlayHidden(false);
@@ -523,11 +523,11 @@ void Board::MouseMove(int x, int y)
 				{
 					if (m1bdc <= m1bd8 && !m8e4)
 						mApp->SetCursor(1);
-					m2b0[0]->SetShown(true);
-					m2b0[0]->mX = m1958 + 10;
-					m2b0[0]->mY = m195c;
-					m2b0[1]->SetShown(false);
-					m2b0[2]->SetShown(false);
+					mHintBoxes[0]->SetShown(true);
+					mHintBoxes[0]->mX = m1958 + 10;
+					mHintBoxes[0]->mY = m195c;
+					mHintBoxes[1]->SetShown(false);
+					mHintBoxes[2]->SetShown(false);
 					return;
 				}
 				mApp->SetCursor(0);
@@ -536,12 +536,12 @@ void Board::MouseMove(int x, int y)
 
 			// a column that shakes (its stack reaches the top) stops when the pointer leaves it
 			int aCol = (m198c - 0xa6) / 0x2c;
-			Brick* aTop = m314[0][aCol];
+			Brick* aTop = mFieldBricks[0][aCol];
 			if (aTop != NULL && aTop->mShake && ColumnDepth(aCol) + 2 < 0x12 && !m917 && !m8ec)
 			{
 				for (int aRow = 0; aRow < 20; aRow++)
 				{
-					Brick* aBrick = m314[aRow][aCol];
+					Brick* aBrick = mFieldBricks[aRow][aCol];
 					if (aBrick == NULL)
 						break;
 					aBrick->StopShake();
@@ -563,8 +563,8 @@ void Board::MouseMove(int x, int y)
 				mTargeted.clear();
 				HighlightTargets();
 			}
-			if (m354 != NULL)
-				m354->SetParticleX((float) m198c);
+			if (mHandKindBrick != NULL)
+				mHandKindBrick->SetParticleX((float) m198c);
 			CheckShipColumn();
 		}
 	}
@@ -627,11 +627,11 @@ void Board::MouseMove(int x, int y)
 		{
 			if (m1bdc <= m1bd8 && !m8e4)
 				mApp->SetCursor(1);
-			m2b0[0]->SetShown(true);
-			m2b0[0]->mX = m1958 + 10;
-			m2b0[0]->mY = m195c;
-			m2b0[1]->SetShown(false);
-			m2b0[2]->SetShown(false);
+			mHintBoxes[0]->SetShown(true);
+			mHintBoxes[0]->mX = m1958 + 10;
+			mHintBoxes[0]->mY = m195c;
+			mHintBoxes[1]->SetShown(false);
+			mHintBoxes[2]->SetShown(false);
 			return;
 		}
 	}
@@ -644,22 +644,22 @@ void Board::MouseMove(int x, int y)
 		if (!m910)
 		{
 			// beyond the field: the box of the stats follows the pointer
-			m2b0[1]->SetShown(true);
-			m2b0[1]->mX = (m1958 - m2b0[1]->ComputeWidth()) - 4;
+			mHintBoxes[1]->SetShown(true);
+			mHintBoxes[1]->mX = (m1958 - mHintBoxes[1]->ComputeWidth()) - 4;
 			int aBoxY = m195c;
-			if (0x1dc < m2b0[1]->ComputeHeight() + aBoxY)
-				aBoxY = 0x1dc - m2b0[1]->ComputeHeight();
-			m2b0[1]->mY = aBoxY;
-			m2b0[0]->SetShown(false);
-			m2b0[2]->SetShown(false);
+			if (0x1dc < mHintBoxes[1]->ComputeHeight() + aBoxY)
+				aBoxY = 0x1dc - mHintBoxes[1]->ComputeHeight();
+			mHintBoxes[1]->mY = aBoxY;
+			mHintBoxes[0]->SetShown(false);
+			mHintBoxes[2]->SetShown(false);
 			return;
 		}
 		if (599 < m1958)
 			return;
 	}
 
-	m2b0[1]->SetShown(false);
-	m2b0[0]->SetShown(false);
+	mHintBoxes[1]->SetShown(false);
+	mHintBoxes[0]->SetShown(false);
 
 	// over the field: the box of the brick under the pointer
 	if (m1958 < 0xa6 || 0x25d < m1958)
@@ -671,13 +671,13 @@ void Board::MouseMove(int x, int y)
 
 	int aCol = (m1958 - 0xa6) / 0x2c;
 	unsigned int aRow = (m195c < 0x22) ? 0 : (m195c - 0x22) / 0x19 + 1;
-	if (m314.size() <= aRow)
+	if (mFieldBricks.size() <= aRow)
 		return;
 	if (9 < aCol)
 		return;
 
-	HintBox* aBox = m2b0[2];
-	Brick* aBrick = m314[aRow][aCol];
+	HintBox* aBox = mHintBoxes[2];
+	Brick* aBrick = mFieldBricks[aRow][aCol];
 	if (aBrick == NULL)
 	{
 		aBox->SetShown(false);
@@ -765,16 +765,16 @@ void Board::MouseMove(int x, int y)
 //////////////////////////////////////////////////////////////////////////
 // Taking and shooting bricks
 
-// 0x437640: the lowest cell of the column that has been emptied this update (RemoveBrick keeps them in ma8)
+// 0x437640: the lowest cell of the column that has been emptied this update (RemoveBrick keeps them in mTakenCells)
 CellRef Board::LowestEmptiedCell(int theCol)
 {
 	CellRef aResult = {-1, -1};
-	for (size_t i = 0; i < ma8.size(); i++)
+	for (size_t i = 0; i < mTakenCells.size(); i++)
 	{
-		if (ma8[i].mCol == theCol && ma8[i].mRow > aResult.mRow)
+		if (mTakenCells[i].mCol == theCol && mTakenCells[i].mRow > aResult.mRow)
 		{
 			aResult.mCol = theCol;
-			aResult.mRow = ma8[i].mRow;
+			aResult.mRow = mTakenCells[i].mRow;
 		}
 	}
 	return aResult;
@@ -783,22 +783,22 @@ CellRef Board::LowestEmptiedCell(int theCol)
 // 0x4361c0: does the brick match the kind of the brick in hand (a mutator counts as kind 12)
 bool Board::MatchesHand(Brick* theBrick)
 {
-	return TypesMatch(theBrick, m354->mMutated == 1 ? 0xc : m354->mType);
+	return TypesMatch(theBrick, mHandKindBrick->mMutated == 1 ? 0xc : mHandKindBrick->mType);
 }
 
 // (inlined three times) the brick in hand is born: a copy of the first brick that was taken, at the bottom of the field
 // port: inlined three times in the original
 void Board::MakeHand(int theType, float theX)
 {
-	m354 = new Brick(this, mBus, 0);
-	m354->Retire();
-	m354->SetType(theType);
-	m354->SetParticleX(theX);
-	m354->SetParticleY(398.0f);
+	mHandKindBrick = new Brick(this, mBus, 0);
+	mHandKindBrick->Retire();
+	mHandKindBrick->SetType(theType);
+	mHandKindBrick->SetParticleX(theX);
+	mHandKindBrick->SetParticleY(398.0f);
 }
 
-// 0x44d8b0 and 0x44dc30, which differ in the list of groups and in one test: the groups of bricks that fly (m7c) or fall
-// (m94) in the column of the pointer are caught, the bricks of a group from the last to the first, until the hand is full or
+// 0x44d8b0 and 0x44dc30, which differ in the list of groups and in one test: the groups of bricks that fly (mFiredGroups) or fall
+// (mFallingGroups) in the column of the pointer are caught, the bricks of a group from the last to the first, until the hand is full or
 // a brick does not match the hand. theOk is false when the player tried to catch what cannot be caught. The groups of the
 // falling list are caught only below the lowest emptied cell of their column (theCheckEmptied).
 static bool CatchFromGroups(Board* theBoard, std::list<std::list<Brick*> >& theGroups, bool theCheckEmptied, bool* theOk)
@@ -823,12 +823,12 @@ static bool CatchFromGroups(Board* theBoard, std::list<std::list<Brick*> >& theG
 				do
 				{
 					Brick* aBrick = *aNode;
-					if (theBoard->m70.size() > 5)
+					if (theBoard->mHeldBricks.size() > 5)
 					{
 						anOk = false;
 						break;
 					}
-					if (theBoard->m354 != NULL && !theBoard->MatchesHand(aBrick))
+					if (theBoard->mHandKindBrick != NULL && !theBoard->MatchesHand(aBrick))
 					{
 						anOk = false;
 						break;
@@ -846,10 +846,10 @@ static bool CatchFromGroups(Board* theBoard, std::list<std::list<Brick*> >& theG
 						if (aBrick->mY < (float) (anEmptied.mRow * 0x19))
 							break;
 					}
-					if (theBoard->m354 == NULL)
+					if (theBoard->mHandKindBrick == NULL)
 						theBoard->MakeHand(aBrick->GetEffectiveType(), (float) aCol);
 
-					theBoard->m70.push_back(aBrick);
+					theBoard->mHeldBricks.push_back(aBrick);
 					aCaught = true;
 					theBoard->m1990++;
 					aBrick->mFloorY = 423.0f;
@@ -887,13 +887,13 @@ static bool CatchFromGroups(Board* theBoard, std::list<std::list<Brick*> >& theG
 // 0x44d8b0: the bricks that were fired and fly up the column
 bool Board::CatchFrom7c(bool* theOk)
 {
-	return CatchFromGroups(this, m7c, false, theOk);
+	return CatchFromGroups(this, mFiredGroups, false, theOk);
 }
 
 // 0x44dc30: the bricks that fall in the column
 bool Board::CatchFrom94(bool* theOk)
 {
-	return CatchFromGroups(this, m94, true, theOk);
+	return CatchFromGroups(this, mFallingGroups, true, theOk);
 }
 
 // (the end of 0x472360, at 0x47324a) the sound of the click, and the checks that every pick up ends with
@@ -913,7 +913,7 @@ void Board::PickUpDone(bool theFail)
 // order of two assignments and in the list of the lit cells being emptied).
 void Board::PopPsychic(bool theHandEmpty)
 {
-	if (!m7c.empty() || m1994 > 0 || CountMovingBricks(false) > 0 || m8e4 || m324.empty())
+	if (!mFiredGroups.empty() || m1994 > 0 || CountMovingBricks(false) > 0 || m8e4 || mHoverCells.empty())
 	{
 		if (!m90b)
 			mApp->PlaySample(SOUND_CANT_CLICK);
@@ -927,12 +927,12 @@ void Board::PopPsychic(bool theHandEmpty)
 
 	// the lit cells that hold a brick that is at rest and is not in the cells that are already taken
 	std::vector<CellRef> aTargets;
-	for (unsigned int i = 0; i < m324.size(); i++)
+	for (unsigned int i = 0; i < mHoverCells.size(); i++)
 	{
-		int aCol = m324[i].mCol;
-		int aRow = m324[i].mRow;
-		Brick* aBrick = m314[aRow][aCol];
-		if (aBrick != NULL && aBrick->IsIdle() && !HasCell(aCol, aRow, mb8))
+		int aCol = mHoverCells[i].mCol;
+		int aRow = mHoverCells[i].mRow;
+		Brick* aBrick = mFieldBricks[aRow][aCol];
+		if (aBrick != NULL && aBrick->IsIdle() && !HasCell(aCol, aRow, mConnectedCells))
 		{
 			CellRef aCell = {aCol, aRow};
 			aTargets.push_back(aCell);
@@ -949,7 +949,7 @@ void Board::PopPsychic(bool theHandEmpty)
 		m1aec = 0x19;
 	for (size_t i = 0; i < aTargets.size(); i++)
 	{
-		Brick* aBrick = m314[aTargets[i].mRow][aTargets[i].mCol];
+		Brick* aBrick = mFieldBricks[aTargets[i].mRow][aTargets[i].mCol];
 		if (aBrick->GetEffectiveType() == 9 && ((SpecialBrick*) aBrick)->mStage > 1)
 			((SpecialBrick*) aBrick)->Crack(true);
 	}
@@ -960,16 +960,16 @@ void Board::PopPsychic(bool theHandEmpty)
 	{
 		int aCol = aTargets[i].mCol;
 		int aRow = aTargets[i].mRow;
-		Brick* aBrick = m314[aRow][aCol];
+		Brick* aBrick = mFieldBricks[aRow][aCol];
 		if (aBrick != NULL)
 		{
 			aBrick->SetParticleImages(IMAGE_MOON_PARTICLE);
 			RemoveBrick(NULL, aCol, aRow, false);
 		}
 	}
-	DropUnsupported(ma8);
+	DropUnsupported(mTakenCells);
 	if (theHandEmpty)
-		m324.clear();
+		mHoverCells.clear();
 	PickUpDone(false);
 }
 
@@ -980,7 +980,7 @@ void Board::PickUp()
 {
 	bool anOk = true;
 
-	if (!m8e5 || m8ea || m1990 > 0 || (m70.size() >= 6 && m1a34 == 0) ||
+	if (!m8e5 || m8ea || m1990 > 0 || (mHeldBricks.size() >= 6 && m1a34 == 0) ||
 		(m1a34 == 1 && (mMode == 1 || mMode == 2)))
 	{
 		if (!m90b)
@@ -988,7 +988,7 @@ void Board::PickUp()
 		return;
 	}
 
-	unsigned int aStartSize = (unsigned int) m70.size();
+	unsigned int aStartSize = (unsigned int) mHeldBricks.size();
 	bool aCaught = false;
 	if (m1a34 == 0)
 	{
@@ -1004,7 +1004,7 @@ void Board::PickUp()
 		if (m8db)
 		{
 			m948 = 2;
-			m94c = (m70.front()->GetEffectiveType() * 0x100 - (int) aStartSize) + (int) m70.size();
+			m94c = (mHeldBricks.front()->GetEffectiveType() * 0x100 - (int) aStartSize) + (int) mHeldBricks.size();
 			RecordStep(false);
 		}
 		CheckStackHeight();
@@ -1030,7 +1030,7 @@ void Board::PickUp()
 		aX = m1958;
 
 	int aRow = FindBottomRow(aX, true);
-	if (m354 == NULL)
+	if (mHandKindBrick == NULL)
 	{
 		// ---- nothing in hand
 		if (aRow < 1)
@@ -1041,11 +1041,11 @@ void Board::PickUp()
 			return;
 		}
 
-		Brick* aCell = m314[aRow][aCol];
+		Brick* aCell = mFieldBricks[aRow][aCol];
 		if (m1a34 == 1 && mMode == 0)
 		{
 			// the laser takes the brick at the bottom of the column out
-			if (!m7c.empty() || m1994 > 0)
+			if (!mFiredGroups.empty() || m1994 > 0)
 				return;
 			if (aCell->IsIdle())
 			{
@@ -1059,8 +1059,8 @@ void Board::PickUp()
 					aCell->AdvanceParticleCount();
 				}
 				RemoveBrick(aCell, aCol, aRow, true);
-				DropUnsupported(ma8);
-				m420.Reset();
+				DropUnsupported(mTakenCells);
+				mLaserAnim.Reset();
 				mApp->PlaySampleAt(SOUND_PLAYER1_LASER, aCol);
 				m1ab8 = 7;
 				m1ac0 = PickSpawnDelay();
@@ -1085,22 +1085,22 @@ void Board::PickUp()
 
 		// the hints of the first stages go on a step (a picture of the stage is shown once it has been taken)
 		unsigned int aStage = (unsigned int) mField193C;
-		if ((aStage < m220.size() && !m220[aStage]->mf0) || m90a)
+		if ((aStage < mStageHintPanels.size() && !mStageHintPanels[aStage]->mf0) || m90a)
 		{
-			if ((aStage == 1 || m90a) && m220.size() > 1)
+			if ((aStage == 1 || m90a) && mStageHintPanels.size() > 1)
 			{
-				StageBg* aBg = m220[1];
+				StageBg* aBg = mStageHintPanels[1];
 				StageBg* aNext = aBg->mNext;
 				if (aNext != NULL && aNext->mNext != NULL && !m8dc)
 				{
 					delete aBg;
-					m220[1] = aNext;
-					if (!m210.empty())
-						m210[0] = aNext;
+					mStageHintPanels[1] = aNext;
+					if (!mHintPanels.empty())
+						mHintPanels[0] = aNext;
 				}
 			}
 			else if (aStage != 1 && !m90a)
-				m220[aStage]->m118 = -8;
+				mStageHintPanels[aStage]->m118 = -8;
 		}
 		if (mField193C < 2 || m90a)
 		{
@@ -1125,31 +1125,31 @@ void Board::PickUp()
 		bool aStop = false;
 		for (;;)
 		{
-			Brick* aPicked = m314[aPickRow][aCol];
+			Brick* aPicked = mFieldBricks[aPickRow][aCol];
 			int aKind = aPicked->GetEffectiveType();
 			if (aKind == 7 || aKind == 0xc || aKind == 9)
 				break;
 			if (IsToolKind(aKind))
 				mApp->PlaySample(SOUND_ACTIVATED);
 			aPicked->mFloorY = 398.0f;
-			m70.push_back(aPicked);
-			m314[aPickRow][aCol] = NULL;
+			mHeldBricks.push_back(aPicked);
+			mFieldBricks[aPickRow][aCol] = NULL;
 			m1990++;
 			FireTo(aPicked, 2);
 			aPickRow--;
-			Brick* aNextCell = m314[aPickRow][aCol];
+			Brick* aNextCell = mFieldBricks[aPickRow][aCol];
 			aRemaining--;
 			if (aRemaining < 1 || aNextCell == NULL || !MatchesHand(aNextCell) || !aNextCell->IsIdle() ||
 				IsToolKind(aKind))
 				aStop = true;
-			if (m70.size() > 5 || aStop)
+			if (mHeldBricks.size() > 5 || aStop)
 				break;
 		}
 
 		if (m8db)
 		{
 			m948 = 2;
-			m94c = m70.front()->GetEffectiveType() * 0x100 + (int) m70.size();
+			m94c = mHeldBricks.front()->GetEffectiveType() * 0x100 + (int) mHeldBricks.size();
 			RecordStep(false);
 		}
 		PickUpDone(aFail);
@@ -1166,9 +1166,9 @@ void Board::PickUp()
 
 	if (m1a34 == 1 && mMode == 0)
 	{
-		if (!m7c.empty() || m1994 > 0)
+		if (!mFiredGroups.empty() || m1994 > 0)
 			return;
-		Brick* aCell = m314[aRow][aCol];
+		Brick* aCell = mFieldBricks[aRow][aCol];
 		if (aCell->IsIdle())
 		{
 			m91c = true;
@@ -1180,9 +1180,9 @@ void Board::PickUp()
 				aCell->AdvanceParticleCount();
 			}
 			RemoveBrick(aCell, aCol, aRow, true);
-			m420.Reset();
+			mLaserAnim.Reset();
 			mApp->PlaySampleAt(SOUND_PLAYER1_LASER, aCol);
-			DropUnsupported(ma8);
+			DropUnsupported(mTakenCells);
 			m1ab8 = 7;
 			m1ac0 = PickSpawnDelay();
 		}
@@ -1199,9 +1199,9 @@ void Board::PickUp()
 	int aPickRow = aRow;
 	do
 	{
-		if (m70.size() > 5)
+		if (mHeldBricks.size() > 5)
 			break;
-		Brick* aPicked = m314[aPickRow][aCol];
+		Brick* aPicked = mFieldBricks[aPickRow][aCol];
 		if (aPicked == NULL || !MatchesHand(aPicked) || !aPicked->IsIdle() || IsToolKind(aPicked->GetEffectiveType()))
 			break;
 		if (mApp->mFlag658)
@@ -1212,35 +1212,35 @@ void Board::PickUp()
 		}
 		m1990++;
 		aPicked->mFloorY = 423.0f;
-		m70.push_back(aPicked);
-		m314[aPickRow][aCol] = NULL;
+		mHeldBricks.push_back(aPicked);
+		mFieldBricks[aPickRow][aCol] = NULL;
 		FireTo(aPicked, 2);
-		if (m70.size() > 5)
+		if (mHeldBricks.size() > 5)
 			break;
 		aPickRow--;
 	} while (aPickRow > 0);
 
-	if (m8db && m70.size() != aStartSize)
+	if (m8db && mHeldBricks.size() != aStartSize)
 	{
 		m948 = 2;
-		m94c = (m70.front()->GetEffectiveType() * 0x100 - (int) aStartSize) + (int) m70.size();
+		m94c = (mHeldBricks.front()->GetEffectiveType() * 0x100 - (int) aStartSize) + (int) mHeldBricks.size();
 		RecordStep(false);
 	}
 	PickUpDone(false);
 }
 
-// 0x4732d0: the up key and the right button shoot the bricks in hand up the column. They fly as a group (m7c) from the
+// 0x4732d0: the up key and the right button shoot the bricks in hand up the column. They fly as a group (mFiredGroups) from the
 // bottom of the screen up to the top of the stack; a column nuke in hand is fired instead of shot.
 void Board::FirePiece()
 {
-	if (CountMovingBricks(false) >= 1 || m70.empty() || m916)
+	if (CountMovingBricks(false) >= 1 || mHeldBricks.empty() || m916)
 		return;
 
 	int aRow = FindBottomRow(m198c, true) + 1;
 	bool aFull = (aRow == 0x13);
 	unsigned int aCount = 0x13U - (unsigned int) aRow;
-	if ((unsigned int) m70.size() <= aCount)
-		aCount = (unsigned int) m70.size();
+	if ((unsigned int) mHeldBricks.size() <= aCount)
+		aCount = (unsigned int) mHeldBricks.size();
 
 	if (mApp->mFlag658)
 	{
@@ -1267,12 +1267,12 @@ void Board::FirePiece()
 		aY += 0x19;
 
 	std::list<Brick*> aGroup;
-	unsigned int aSize = (unsigned int) m70.size();
-	int aFrontKind = (m70.front()->mMutated == 1) ? 0xc : m70.front()->mType;
+	unsigned int aSize = (unsigned int) mHeldBricks.size();
+	int aFrontKind = (mHeldBricks.front()->mMutated == 1) ? 0xc : mHeldBricks.front()->mType;
 	int anIndex = (int) aSize - 1;
 	int aSpriteY = 0x18e - anIndex * 0x19;
 	int aFlyY = 0x1db;
-	std::list<Brick*>::iterator aNode = m70.end();
+	std::list<Brick*>::iterator aNode = mHeldBricks.end();
 	--aNode;
 	bool aDone = false;
 	while (!aDone)
@@ -1283,12 +1283,12 @@ void Board::FirePiece()
 		if (aKind == 0xd)
 		{
 			// the column nuke is fired where it stands: it takes every brick of the column out
-			if (CountMovingBricks(false) == 0 && m7c.empty() && m94.empty())
+			if (CountMovingBricks(false) == 0 && mFiredGroups.empty() && mFallingGroups.empty())
 			{
 				int aBottom = aRow - 1;
-				m108.push_back(aBrick);
+				mFadedBricks.push_back(aBrick);
 				((PowerBrick*) aBrick)->Activate();
-				m70.clear();
+				mHeldBricks.clear();
 				aBrick->SetParticleX((float) m198c);
 				if (!aBrick->mFlag18C)
 					m1990--;
@@ -1296,24 +1296,24 @@ void Board::FirePiece()
 				mApp->PlaySample(SOUND_COLUMN_KILLER);
 				for (int r = aBottom; r > 0; r--)
 				{
-					Brick* aTarget = m314[r][aNukeCol];
+					Brick* aTarget = mFieldBricks[r][aNukeCol];
 					if (aTarget != NULL)
 					{
 						aTarget->SetParticleImages(IMAGE_PARTICLE_FIREBALL);
 						RemoveBrick(aTarget, aNukeCol, r, true);
 					}
 				}
-				DropUnsupported(ma8);
-				if (m354 != NULL)
-					m128.insert(m354);
-				m354 = NULL;
+				DropUnsupported(mTakenCells);
+				if (mHandKindBrick != NULL)
+					mDoomedBricks.insert(mHandKindBrick);
+				mHandKindBrick = NULL;
 				m8e6 = true;
-				m270.clear();
+				mSpecialBannerTexts.clear();
 			}
 			return;
 		}
 
-		if (0x1a7 - (int) m70.size() * 0x19 < aY)
+		if (0x1a7 - (int) mHeldBricks.size() * 0x19 < aY)
 		{
 			if (!m90b)
 				mApp->PlaySample(SOUND_CANT_CLICK);
@@ -1321,7 +1321,7 @@ void Board::FirePiece()
 		}
 
 		aBrick->SetParticleY((float) aSpriteY);
-		if (anIndex < (int) m70.size() - 1)
+		if (anIndex < (int) mHeldBricks.size() - 1)
 			aBrick->mSupport = NULL;
 		aBrick->SetParticleX((float) m198c);
 		aBrick->mTargetY = (float) (aFull ? aFlyY : (aY + aFlyY - 0x1db));
@@ -1337,7 +1337,7 @@ void Board::FirePiece()
 		else
 			FireTo(aBrick, 1);
 
-		if (aNode == m70.begin())
+		if (aNode == mHeldBricks.begin())
 			aDone = true;
 		else
 			--aNode;
@@ -1346,7 +1346,7 @@ void Board::FirePiece()
 		anIndex--;
 	}
 
-	m7c.push_back(aGroup);
+	mFiredGroups.push_back(aGroup);
 	if (m8db)
 	{
 		m948 = 1;
@@ -1354,10 +1354,10 @@ void Board::FirePiece()
 		RecordStep(false);
 	}
 	// (the original puts the hand in the set even when it is NULL)
-	if (m354 != NULL)
-		m128.insert(m354);
-	m354 = NULL;
-	m70.clear();
+	if (mHandKindBrick != NULL)
+		mDoomedBricks.insert(mHandKindBrick);
+	mHandKindBrick = NULL;
+	mHeldBricks.clear();
 	m8e6 = true;
-	m270.clear();
+	mSpecialBannerTexts.clear();
 }

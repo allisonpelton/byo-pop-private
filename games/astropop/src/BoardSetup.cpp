@@ -54,18 +54,18 @@ static StageBg* NewPanel(Image* thePic, Image* theIcon, int theX, int theY, bool
 	return aPanel;
 }
 
-// 0x475f50: the panels of the tutorial hints (m210: the first of each; m220 the two of the grab and release hints'
-// chain) and the pop-ups that describe the bricks (m1d0). Every panel's title and text are written once into a picture
+// 0x475f50: the panels of the tutorial hints (mHintPanels: the first of each; mStageHintPanels the two of the grab and release hints'
+// chain) and the pop-ups that describe the bricks (mBrickTips). Every panel's title and text are written once into a picture
 // that is not kept, to learn their heights.
 void Board::SetupHints()
 {
 	// the grab hint, chained to the release hint and the match hint
 	StageBg* aGrab = new StageBg();
 	aGrab->mPic = IMAGE_TUT_MOUSE_LEFT;
-	aGrab->m70.SetNumFrames(IMAGE_TUT_MOUSE_LEFT->mNumCols);
-	aGrab->m70.SetDelay(0x32);
-	aGrab->m70.SetStopped(false);
-	aGrab->m70.mHoldLast = false;
+	aGrab->mHeldBricks.SetNumFrames(IMAGE_TUT_MOUSE_LEFT->mNumCols);
+	aGrab->mHeldBricks.SetDelay(0x32);
+	aGrab->mHeldBricks.SetStopped(false);
+	aGrab->mHeldBricks.mHoldLast = false;
 	aGrab->mX = 0x1fe;
 	aGrab->mY = 0x129;
 	aGrab->mText = GT(0x566964);
@@ -73,18 +73,18 @@ void Board::SetupHints()
 	aGrab->mfc = 300;
 	aGrab->mColor2 = Color(0, 0xff, 0xf);
 	aGrab->mColor1 = Color(0x1c, 0xf6, 0x4f);
-	m210.push_back(aGrab);
-	m220.push_back(aGrab);
-	m220.push_back(aGrab);
+	mHintPanels.push_back(aGrab);
+	mStageHintPanels.push_back(aGrab);
+	mStageHintPanels.push_back(aGrab);
 
 	StageBg* aRelease = new StageBg();
 	aRelease->mPic = IMAGE_TUT_MOUSE_RIGHT;
 	aRelease->m114 = 0xff;
 	aRelease->m100 = 0xff;
-	aRelease->m70.SetNumFrames(IMAGE_TUT_MOUSE_RIGHT->mNumCols);
-	aRelease->m70.SetDelay(0x32);
-	aRelease->m70.SetStopped(false);
-	aRelease->m70.mHoldLast = false;
+	aRelease->mHeldBricks.SetNumFrames(IMAGE_TUT_MOUSE_RIGHT->mNumCols);
+	aRelease->mHeldBricks.SetDelay(0x32);
+	aRelease->mHeldBricks.SetStopped(false);
+	aRelease->mHeldBricks.mHoldLast = false;
 	aRelease->mX = 0x1fe;
 	aRelease->mY = 0x129;
 	aRelease->mText = GT(0x566940);
@@ -92,7 +92,7 @@ void Board::SetupHints()
 	aRelease->mfc = 300;
 	aRelease->mColor2 = Color(5, 0x5e, 0xb0);
 	aRelease->mColor1 = Color(0x1c, 0x78, 0xf6);
-	m210[0]->mNext = aRelease;
+	mHintPanels[0]->mNext = aRelease;
 
 	StageBg* aMatch = new StageBg();
 	aMatch->mPic = IMAGE_TH_MATCH;
@@ -105,40 +105,40 @@ void Board::SetupHints()
 	aMatch->mfc = 300;
 	aMatch->mColor2 = Color(0xf0, 0, 0xff);
 	aMatch->mColor1 = Color(0xff, 0, 0xfa);
-	m210[0]->mNext->mNext = aMatch;
+	mHintPanels[0]->mNext->mNext = aMatch;
 
 	// the panels of the bricks (picture, small picture, the place; colour 1 then colour 2 as the original sets them)
 	StageBg* aPanel;
 
 	aPanel = NewPanel(IMAGE_TH_BONUS, IMAGE_FUELCELL, 0x118, 0x11c, true, 0x5668b0, 0x5668c0, Color(0, 0x87, 0xcd), Color(0, 0x34, 0xaa));
 	aPanel->mf4 = 0x8c;
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_RADIAL, IMAGE_BRICK_RADIAL, 0x118, 0x11c, true, 0x566868, 0x566874, Color(0xff, 0xd2, 0), Color(0xe2, 0xa0, 0));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_STONE, IMAGE_BRICK_STONE, 0x118, 0x11c, true, 0x56682c, 0x566838, Color(0xb9, 0xaa, 0x91), Color(0xc0, 0xbb, 0xa3));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_ROW, IMAGE_BRICK_ROW_NUKE, 0x118, 0x11c, true, 0x5667e4, 0x5667f0, Color(0xff, 0xff, 0), Color(0xff, 0xfa, 0));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_STEEL, IMAGE_BRICK_STEEL_1, 0x118, 0x11c, true, 0x5667a4, 0x5667b0, Color(0xb9, 0xdc, 0xdc), Color(0xc0, 0xd7, 0xd7));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_BRICK_FREEZE, NULL, 0x118, 0x11c, false, 0x566758, 0x566764, Color(0, 0xff, 0xf0), Color(5, 0xaf, 0xaf));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_TOXIC, IMAGE_BRICK_MUTATOR, 0x118, 0x11c, true, 0x5666f8, 0x566708, Color(0x1c, 0xf6, 0x9c), Color(5, 0xb0, 0x96));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_COLOR, IMAGE_BRICK_KILLALL_PINK, 0x118, 0x11c, true, 0x5666c0, 0x5666cc, Color(0xc9, 0, 0xc9), Color(0xaf, 0, 0xaa));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_COLUMN, IMAGE_BRICK_COL_NUKE, 0x118, 0x11c, true, 0x56667c, 0x566688, Color(0xff, 0, 0), Color(0xb4, 0, 0));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_BOOSTER, IMAGE_BRICK_BOOSTER, 0x118, 0x11c, true, 0x56661c, 0x566628, Color(0xff, 0x50, 0xff), Color(0xe1, 0x32, 0xe1));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 	aPanel = NewPanel(IMAGE_TH_SUPER, IMAGE_TH_SUPER_STILL, 0x118, 0x11c, true, 0x5665c0, 0x5665d8, Color(0xb9, 0xdc, 0xdc), Color(0xc0, 0xd7, 0xd7));
-	m210.push_back(aPanel);
+	mHintPanels.push_back(aPanel);
 
 	// the heights of the titles and the texts: they are written into nothing
-	for (unsigned int i = 0; i < m210.size(); i++)
+	for (unsigned int i = 0; i < mHintPanels.size(); i++)
 	{
 		Graphics g((Image*) NULL);
-		for (StageBg* aStage = m210[i]; aStage != NULL; aStage = aStage->mNext)
+		for (StageBg* aStage = mHintPanels[i]; aStage != NULL; aStage = aStage->mNext)
 		{
 			g.SetFont(GetFontById(0x121));
 			aStage->m120 = WriteWordWrapped(&g, Rect(0x8c, 0x11e, 0x96, 0x3c), aStage->mTitle, -1, 0);
@@ -154,49 +154,49 @@ void Board::SetupHints()
 	aTip.mLines.push_back(GT(0x5665b4));
 	aTip.mLines.push_back(GT(0x5665a4));
 	aTip.mLines.push_back(GT(0x566578));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	aTip.mImage = IMAGE_BRICK_BOOSTER;
 	aTip.mLines.clear();
 	aTip.mLines.push_back(GT(0x5665b4));
 	aTip.mLines.push_back(GT(0x56661c));
 	aTip.mLines.push_back(GT(0x56655c));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	aTip.mImage = IMAGE_BRICK_RADIAL;
 	aTip.mLines.clear();
 	aTip.mLines.push_back(GT(0x5665b4));
 	aTip.mLines.push_back(GT(0x566868));
 	aTip.mLines.push_back(GT(0x566530));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	aTip.mImage = IMAGE_BRICK_STONE;
 	aTip.mLines.clear();
 	aTip.mLines.push_back(GT(0x566524));
 	aTip.mLines.push_back(GT(0x56682c));
 	aTip.mLines.push_back(GT(0x566500));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	aTip.mImage = IMAGE_BRICK_ROW_NUKE;
 	aTip.mLines.clear();
 	aTip.mLines.push_back(GT(0x5665b4));
 	aTip.mLines.push_back(GT(0x5667e4));
 	aTip.mLines.push_back(GT(0x5664d4));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	aTip.mImage = IMAGE_BRICK_STEEL_1;
 	aTip.mLines.clear();
 	aTip.mLines.push_back(GT(0x566524));
 	aTip.mLines.push_back(GT(0x5667a4));
 	aTip.mLines.push_back(GT(0x5664b4));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	// (from here on the entry carries the 10 the original leaves in its second field)
 	aTip.mImage = IMAGE_BRICK_FREEZE;
@@ -205,32 +205,32 @@ void Board::SetupHints()
 	aTip.mLines.push_back(GT(0x5665b4));
 	aTip.mLines.push_back(GT(0x566758));
 	aTip.mLines.push_back(GT(0x566494));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	aTip.mImage = IMAGE_BRICK_MUTATOR;
 	aTip.mLines.clear();
 	aTip.mLines.push_back(GT(0x566524));
 	aTip.mLines.push_back(GT(0x5666f8));
 	aTip.mLines.push_back(GT(0x566470));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	aTip.mImage = IMAGE_BRICK_KILLALL_PINK;
 	aTip.mLines.clear();
 	aTip.mLines.push_back(GT(0x5665b4));
 	aTip.mLines.push_back(GT(0x5666c0));
 	aTip.mLines.push_back(GT(0x566444));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 
 	aTip.mImage = IMAGE_BRICK_COL_NUKE;
 	aTip.mLines.clear();
 	aTip.mLines.push_back(GT(0x5665b4));
 	aTip.mLines.push_back(GT(0x56667c));
 	aTip.mLines.push_back(GT(0x566418));
-	m1d0.push_back(aTip);
-	m1d0.push_back(aTip);
+	mBrickTips.push_back(aTip);
+	mBrickTips.push_back(aTip);
 }
 
 // 0x454410: a game that starts at a higher level has seen the hints of the levels before: their flags in the profile are
@@ -291,7 +291,7 @@ void Board::SetupClassicRules()
 	aRamp.mF5 = FloatBits(0x3f4ccccd);
 	m1be8 = FloatBits(0x3f4ccccd);
 	m1bec = 0;
-	m280.push_back(aRamp);
+	mSpeedRamp.push_back(aRamp);
 
 	aRamp.mTime = 17999;
 	aRamp.mV1 = 200;
@@ -299,7 +299,7 @@ void Board::SetupClassicRules()
 	aRamp.mV3 = 700;
 	aRamp.mF4 = FloatBits(0x3f000000);
 	aRamp.mF5 = FloatBits(0x3e99999a);
-	m280.push_back(aRamp);
+	mSpeedRamp.push_back(aRamp);
 
 	aRamp.mTime = 18000;
 	aRamp.mV1 = 300;
@@ -307,7 +307,7 @@ void Board::SetupClassicRules()
 	aRamp.mV3 = 0x28a;
 	aRamp.mF4 = FloatBits(0x3f266666);
 	aRamp.mF5 = FloatBits(0x3e99999a);
-	m280.push_back(aRamp);
+	mSpeedRamp.push_back(aRamp);
 
 	aRamp.mTime = 30000;
 	aRamp.mV1 = 200;
@@ -315,7 +315,7 @@ void Board::SetupClassicRules()
 	aRamp.mV3 = 600;
 	aRamp.mF4 = FloatBits(0x3f400000);
 	aRamp.mF5 = FloatBits(0x3e4ccccd);
-	m280.push_back(aRamp);
+	mSpeedRamp.push_back(aRamp);
 
 	aRamp.mTime = 60000;
 	aRamp.mV1 = 100;
@@ -323,7 +323,7 @@ void Board::SetupClassicRules()
 	aRamp.mV3 = 0x15e;
 	aRamp.mF4 = FloatBits(0x3f733333);
 	aRamp.mF5 = FloatBits(0x3c23d70a);
-	m280.push_back(aRamp);
+	mSpeedRamp.push_back(aRamp);
 
 	m1a20 = 500000000;
 	m1bf0 = 0;
@@ -338,7 +338,7 @@ void Board::SetupClassicRules()
 
 	for (int k = 0; k < 8; k++)
 	{
-		SpawnRule& aRule = m180[0].mRule[k];
+		SpawnRule& aRule = mSpawnRules[0].mRule[k];
 		aRule.mNearSame = kClassicNearSame[k];
 		aRule.mNearRow = kClassicNearRow[k];
 
@@ -395,7 +395,7 @@ void Board::SetupLevel1Rules()
 	for (int k = 0; k < 8; k++)
 	{
 		std::string aKey = std::string("\\LEVEL1\\") + kRuleKeys[k];
-		SpawnRule& aRule = m180[0].mRule[k];
+		SpawnRule& aRule = mSpawnRules[0].mRule[k];
 		aRule.mNearSame = (int) aFile->GetInt(aKey + "ColDist");
 		aRule.mNearRow = (int) aFile->GetInt(aKey + "RowDist");
 		aRule.mRates[0].mRate = Share(aFile, aKey + "FirstChance");
@@ -524,7 +524,7 @@ void Board::AdvanceLevel(bool theSave)
 		for (int k = 0; k < 8; k++)
 		{
 			std::string aKey = kRuleKeys[k];
-			SpawnRule& aRule = m180[0].mRule[k];
+			SpawnRule& aRule = mSpawnRules[0].mRule[k];
 			if (aFile->HasKey(aKey + "ColDist"))
 				aRule.mNearSame = (int) aFile->GetInt(aKey + "ColDist");
 			if (aFile->HasKey(aKey + "RowDist"))
@@ -564,7 +564,7 @@ void Board::AdvanceLevel(bool theSave)
 		m1bec = (float) ((double) m1bf4 + (double) m1bec);
 		for (int k = 0; k < 8; k++)
 		{
-			SpawnRule& aRule = m180[0].mRule[k];
+			SpawnRule& aRule = mSpawnRules[0].mRule[k];
 			for (int aPhase = 0; aPhase < 3; aPhase++)
 				aRule.mRates[aPhase].mRate = (float) ((double) aRule.mRates[aPhase].m4 + (double) aRule.mRates[aPhase].mRate);
 		}
@@ -621,8 +621,8 @@ void Board::AdvanceLevel(bool theSave)
 	}
 }
 
-// 0x470130: the script the title's demo plays, from data\demo.xcf: twenty rows of ten brick codes for the field (m334),
-// the rows that are added during the demo (m344) and its commands (m2d0: a wait of mArg updates or a click or move)
+// 0x470130: the script the title's demo plays, from data\demo.xcf: twenty rows of ten brick codes for the field (mDemoLayout),
+// the rows that are added during the demo (mDemoAddedRows) and its commands (mDemoSteps: a wait of mArg updates or a click or move)
 void Board::LoadDemo()
 {
 	XcfFile aFile;
@@ -641,10 +641,10 @@ void Board::LoadDemo()
 		return;
 	}
 
-	m334.resize(20);
-	for (unsigned int i = 0; i < m334.size(); i++)
-		m334[i].resize(10);
-	std::vector<std::vector<int> >().swap(m344);
+	mDemoLayout.resize(20);
+	for (unsigned int i = 0; i < mDemoLayout.size(); i++)
+		mDemoLayout[i].resize(10);
+	std::vector<std::vector<int> >().swap(mDemoAddedRows);
 
 	if (!aFile.EnterFirstChild())
 	{
@@ -656,7 +656,7 @@ void Board::LoadDemo()
 	for (int aRow = 0; aRow < 20; aRow++)
 	{
 		for (int i = 0; i < 10; i++)
-			m334[aRow][i] = (int) aFile.GetInt(StrFormat("Brick%d", i));
+			mDemoLayout[aRow][i] = (int) aFile.GetInt(StrFormat("Brick%d", i));
 		// (the last row does not look further: the cursor stays where it is)
 		if (aRow >= 19)
 			continue;
@@ -675,7 +675,7 @@ void Board::LoadDemo()
 		std::vector<int> aRow(10, 0);
 		for (int i = 0; i < 10; i++)
 			aRow[i] = (int) aFile.GetInt(StrFormat("\\ADDEDROWS\\ROW%d\\Brick%d", aRowNumber, i));
-		m344.push_back(aRow);
+		mDemoAddedRows.push_back(aRow);
 	}
 
 	int aFound = aFile.FindSection("COMMANDS");
@@ -687,7 +687,7 @@ void Board::LoadDemo()
 	}
 
 	int aNumCommands = (int) aFile.GetInt("NumCommands");
-	std::vector<DemoStep>().swap(m2d0);
+	std::vector<DemoStep>().swap(mDemoSteps);
 	for (int aNumber = 1; aNumber <= aNumCommands; aNumber++)
 	{
 		DemoStep aStep;
@@ -701,6 +701,6 @@ void Board::LoadDemo()
 			aStep.mAction = 0;
 			aStep.mArg = (int) aFile.GetInt(StrFormat("Idle%d", aNumber));
 		}
-		m2d0.push_back(aStep);
+		mDemoSteps.push_back(aStep);
 	}
 }

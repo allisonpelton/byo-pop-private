@@ -94,7 +94,7 @@ void Board::DrawHud(Graphics* g)
 	}
 
 	// the rank, with its picture
-	g->DrawImage(m30c, 0x1c9, 0xf);
+	g->DrawImage(mRankImage, 0x1c9, 0xf);
 	std::string aRank = mApp->GetRankName(mScore, NULL);
 	if (!mAnim5e0.mStopped)
 	{

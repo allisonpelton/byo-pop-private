@@ -46,15 +46,15 @@ void Board::UpdateIntroAndTally()
 			m1bc4++;
 			if (m1bc4 > 0x31)
 			{
-				for (unsigned int i = 0; i < m140.size(); i++)
-					delete m140[i];
-				std::vector<FloatText*>().swap(m140);
+				for (unsigned int i = 0; i < mFloatTexts.size(); i++)
+					delete mFloatTexts[i];
+				std::vector<FloatText*>().swap(mFloatTexts);
 				m1bc4 = 0;
 				m1bc0 = 3;
 				m199c = 0;
-				for (unsigned int i = 0; i < 100 && i < m170.size(); i++)
+				for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
 				{
-					StreakRec* aStreak = &m170[i];
+					StreakRec* aStreak = &mStreaks[i];
 					aStreak->mFlag28 = false;
 					if (aStreak->mKind == 0)
 						aStreak->mColor = Color(0, 0, 250);
@@ -81,9 +81,9 @@ void Board::UpdateIntroAndTally()
 				}
 				mOverlay.SetFill(255, 255, 255, m1bc8);
 			}
-			for (unsigned int i = 0; i < 100 && i < m170.size(); i++)
+			for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
 			{
-				StreakRec* aStreak = &m170[i];
+				StreakRec* aStreak = &mStreaks[i];
 				int aClamped = 0;
 				aStreak->mMargin -= 3;
 				if (aStreak->mMargin < 0)
@@ -101,12 +101,12 @@ void Board::UpdateIntroAndTally()
 					aStreaksDone++;
 			}
 			int aStarsDone = 0;
-			for (unsigned int i = 0; i < m190.size(); i++)
+			for (unsigned int i = 0; i < mBackdropStars.size(); i++)
 			{
-				m190[i].mSpeed -= 0.4f;
-				if (m190[i].mSpeed <= 0.1f)
+				mBackdropStars[i].mSpeed -= 0.4f;
+				if (mBackdropStars[i].mSpeed <= 0.1f)
 				{
-					m190[i].mSpeed = 0.1f;
+					mBackdropStars[i].mSpeed = 0.1f;
 					aStarsDone++;
 				}
 			}
@@ -115,7 +115,7 @@ void Board::UpdateIntroAndTally()
 			m1c00 = aTime;
 			if (aTime >= 9.0f && aStreaksDone == 100)
 			{
-				if (aStarsDone == (int) m190.size() && m1bc8 < 1)
+				if (aStarsDone == (int) mBackdropStars.size() && m1bc8 < 1)
 				{
 					m1bc0 = 0;
 					m917 = false;
@@ -156,7 +156,7 @@ void Board::UpdateIntroAndTally()
 				m1b70--;
 			if (m1b70 % 100 == 0 && m1b70 > 0)
 				gFlag5A5100 = false;
-			if (m1b70 < 1 && CountMovingBricks(false) == 0 && mf8.empty() && m1994 == 0 && m94.empty() && m7c.empty())
+			if (m1b70 < 1 && CountMovingBricks(false) == 0 && mKillAllTypes.empty() && m1994 == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 			{
 				m1b70 = 0;
 				m90f = true;
@@ -319,12 +319,12 @@ void Board::UpdateIntroAndTally()
 				m916 = false;
 				m910 = false;
 				m90f = false;
-				for (std::list<Brick*>::iterator anItr = m70.begin(); anItr != m70.end(); ++anItr)
+				for (std::list<Brick*>::iterator anItr = mHeldBricks.begin(); anItr != mHeldBricks.end(); ++anItr)
 				{
-					m128.insert(*anItr);
+					mDoomedBricks.insert(*anItr);
 					(*anItr)->mGone = true;
 				}
-				m70.clear();
+				mHeldBricks.clear();
 				StartLevelUp();
 			}
 		}

@@ -1,74 +1,74 @@
 # offset	type	name	comment  (written by tools/boardfields.py; keep it sorted by offset)
-70	std::list<Brick*>	m70	the bricks of the falling piece (the original's list head is at +0x70, its size at +0x74)
-7c	std::list<std::list<Brick*> >	m7c	groups of falling bricks
-88	std::list<Brick*>	m88	bricks (emptied by ClearField)
-94	std::list<std::list<Brick*> >	m94
-a0	std::list<Brick*>	ma0
-a8	std::vector<CellRef>	ma8	the cells that have been emptied this update (RemoveBrick), the bricks above them fall (DropUnsupported)
-b8	std::vector<CellRef>	mb8	the cells that CollectConnected has gathered
-c8	std::vector<CellRef>	mc8
-d8	std::vector<BlinkRec>	md8	the 40 blinking pictures of the backdrop
-e8	std::vector<SunParticle*>	me8	the sparks that drift over the end of a game
-f8	std::vector<int>	mf8
-108	std::vector<Brick*>	m108	bricks (emptied by ClearField)
+70	std::list<Brick*>	mHeldBricks	the bricks the ship holds (the piece in hand, 1 to 6, first picked first); FirePiece shoots them up the column as one group
+7c	std::list<std::list<Brick*> >	mFiredGroups	groups of bricks in flight to their places: the ones the ship fired and the falling groups OnBrickGone starts; OnBrickArrived puts them in the field
+88	std::list<Brick*>	mGoneBricks	bricks whose death is over (OnBrickGone fires them event 4); updated and drawn until each fires event 8 and moves to mFadedBricks
+94	std::list<std::list<Brick*> >	mFallingGroups	groups of bricks that lost their support (DropUnsupported), each with its target height; OnBrickGone starts them moving by handing them to mFiredGroups
+a0	std::list<Brick*>	mTakenBricks	bricks taken out of the field this update and not yet gone (RemoveBrick, RemoveCells), in step with mTakenCells; OnBrickGone hands them to mGoneBricks
+a8	std::vector<CellRef>	mTakenCells	the cell each taken brick was in, in step with mTakenBricks; DropUnsupported moves the bricks below those cells up the column, then the list is emptied
+b8	std::vector<CellRef>	mConnectedCells	the cells CollectConnected has gathered: joined cells holding a brick of one kind (the set a group makes); the blasts skip cells that are in it
+c8	std::vector<CellRef>	mTurbotMarkedCells	the cells of the bricks the mode 2 bonus's turbot wave will take (marked in BeginPlay, lit by SweepTurbots, taken as the wave reaches them)
+d8	std::vector<BlinkRec>	mBeamSparks	the 40 blinking sparks that drift along the beam under the pointer (DrawBeam): an x in the beam and a counter from 400 down to -20 that gives height and alpha
+e8	std::vector<SunParticle*>	mSunSparks	the 40 sparks of the sun that drift out over the end of a game, one every nine degrees (DrawEndSparks, stepped by UpdateGameOver)
+f8	std::vector<int>	mKillAllTypes	the brick kinds of the kill-all bricks that are done (OnKillAllDone); when the field is quiet every brick of those kinds is taken out, then the list is emptied
+108	std::vector<Brick*>	mFadedBricks	bricks that have faded out (event 8) and a column nuke fired in place; still updated and drawn over the ship until ClearField or the next level deletes them
 118	std::vector<Brick*>	mTargeted	the bricks that flash because the piece in hand would hit them (HighlightTargets)
-128	std::set<Brick*>	m128	the bricks to delete (DeleteDoomedBricks)
-134	std::set<int>	m134	a set that GameOver empties (element type not seen yet)
-140	std::vector<FloatText*>	m140	the texts that float up the screen
-150	std::vector<WarpStar*>	m150	the 15 warp stars that fall over the warp screen (Fn46a810)
-160	std::vector<PlanetRec>	m160	the planets (5 are stepped)
-170	std::vector<StreakRec>	m170	the streaks (100)
-180	std::vector<SpawnRules>	m180	the spawn rules of the field (only the first is read)
-190	std::vector<StarRec>	m190	the stars
-1a0	std::vector<CellRef3>	m1a0
-1b0	std::vector<ExplosionAnim*>	m1b0	the animations of the explosions (mode 1 bonus, and the end of a game; 8)
-1c0	std::vector<Widget*>	m1c0	the buttons of the field (the first one is the main button)
-1d0	std::vector<TipEntry>	m1d0	the pop-ups that describe the bricks (SetupHints)
-1e0	std::vector<FadeRec>	m1e0	the fading panels of the end of a game
-1f0	std::vector<int>	m1f0	counters that count down from 2000 (set when a special brick is made)
-200	std::vector<MarkRec>	m200	the marks: a kind of brick, how many of it are to drop, and whether the mark is the one shown (the supercharged kind)
-210	std::vector<StageBg*>	m210	the hints pictures (12)
-220	std::vector<StageBg*>	m220	the picture of each stage
-230	std::vector<HintSpot*>	m230
-240	std::vector<FreezeFlake>	m240	the snowflakes of the freeze effect
-250	std::vector<Image*>	m250	the 14 pictures of the mode (ids 0x196, 0x1a4, 0x1b2 or 0x1c0 on)
-260	std::vector<DrawnText>	m260	the texts that scroll along the top while the bonus of state 1 runs (Fn46f010)
-270	std::vector<DrawnText>	m270	texts drawn at a place in a font
-280	std::vector<RampRecord>	m280	the speed table (UpdateRamp)
-290	std::vector<LaserRec>	m290	the beams of the mode 2 bonus (at most 6)
-2a0	std::vector<Particle*>	m2a0	the falling sparks of the energy mode
-2b0	std::vector<HintBox*>	m2b0	the hint boxes
-2d0	std::vector<DemoStep>	m2d0	the demo's steps
-2e0	Widget*	m2e0
-2e4	Widget*	m2e4
-2e8	Widget*	m2e8
-2ec	Widget*	m2ec
-2f0	Graphics*	m2f0	draws into the picture at +0x2f4
-2f4	Image*	m2f4	the picture of the field that the wipe at the end of a game takes away (640 x 480)
-2f8	Image*	m2f8	the lightning image now on the screen
-2fc	MemoryImage*	m2fc	IMAGE_SIREN, flipped
-300	MemoryImage*	m300	IMAGE_SIREN_FX, flipped
-304	MemoryImage*	m304	the banner text (BuildBanner)
-308	MemoryImage*	m308	the banner's second image, 0x30 taller (BuildBanner)
-30c	MemoryImage*	m30c	the picture of the rank
-310	ScreenWipe*	m310	the wipe that ends a game (over the image at +0x2f4)
-314	std::vector<std::vector<Brick*> >	m314	the field: 19 rows of 10 bricks, row 0 on top
-324	std::vector<CellRef>	m324	the cells under the pointer that are lit (HoverCell)
-334	std::vector<std::vector<int> >	m334	the layout the field is built from: a brick type for each cell, -1 none (BuildField)
-344	std::vector<std::vector<int> >	m344	the rows of the demo (or of the game being recorded): one kind for each column
-354	Brick*	m354	a brick the Board holds (ClearField deletes it)
+128	std::set<Brick*>	mDoomedBricks	the bricks to delete: DeleteDoomedBricks frees them and empties the set (ClearField, a new level and a bonus round put the old bricks in it)
+134	std::set<int>	mPlayedBonusStages	the numbers of the bonus stages (bonus files) already played; StartBonusRound picks one not in it, and the set is emptied at 30 entries and by GameOver
+140	std::vector<FloatText*>	mFloatTexts	the texts that float up the screen (points and announcements); drawn over the ship and freed when they are done
+150	std::vector<WarpStar*>	mWarpStars	the 15 warp stars that fall over the warp screen (Fn46a810)
+160	std::vector<PlanetRec>	mPlanets	the 5 planet layers of the backdrop (the second and third drawn only with 3D, the last two add light); StepScrollLayer scrolls them
+170	std::vector<StreakRec>	mStreaks	the 100 streaks of the backdrop (a pixel with a tail of the picture behind it); 25 are drawn without 3D, 100 with
+180	std::vector<SpawnRules>	mSpawnRules	the rules that decide which kinds of brick spawn: rates of each kind by phase (a one-element vector, only the first is read)
+190	std::vector<StarRec>	mBackdropStars	the 3 stars: pictures (IMAGE_BG_OBJECT1 to 7) that drift down the backdrop and wrap to above the highest one
+1a0	std::vector<CellRef3>	mAtomicMarkedBricks	the bricks marked for the mode 1 bonus (cell and brick, thinned out at random by the power level); they blow up when the meter runs out
+1b0	std::vector<ExplosionAnim*>	mAtomicExplosions	the up to 8 atomic explosion animations of the mode 1 bonus: seven over the marked bricks, the last the big blast (UpdateExplosion frees them)
+1c0	std::vector<Widget*>	mFieldButtons	the buttons of the field: one, the main button (id 0xfa1)
+1d0	std::vector<TipEntry>	mBrickTips	the pop-ups that describe the bricks (SetupHints): the picture and three lines each, pushed once for each place that shows them; nothing reads it
+1e0	std::vector<FadeRec>	mEndBlastFades	the 3 fading big-blast pictures (IMAGE_BIG_BLAST1 to 3) of the end of a game: alpha rises by a step to 255, falls by 4, one panel after the other
+1f0	std::vector<int>	mSpecialCooldowns	5 counters that count down from 2000 after a special brick is made (kill-all, bomb, row nuke, freeze, column nuke); that kind is not drawn while it is above 0
+200	std::vector<MarkRec>	mSuperchargeMarks	the marks of the supercharged colours (at most two): the brick kind, how many of it are to drop, and whether the mark is the lit one
+210	std::vector<StageBg*>	mHintPanels	the 12 hint panels: the first is the grab hint with the release and match hints chained after it, the others explain the brick kinds (ShowHint)
+220	std::vector<StageBg*>	mStageHintPanels	the hint panel of each of the first two stages (both the grab hint, whose chain goes on to the release and match hints); DrawStageBg shows the stage's
+230	std::vector<HintSpot*>	mHintSpots	the tutorial hints on the screen (ShowHint): each a panel, an arrow, a ring round its brick and the four rectangles that darken the rest
+240	std::vector<FreezeFlake>	mFreezeFlakes	the snowflakes of the freeze effect, at most 60 (a quarter of them drawn without 3D); they drift along the top of the screen
+250	std::vector<Image*>	mPhasePictures	the 14 pictures under the field in the mode's set (ids from 0x196, 0x1a4, 0x1b2 or 0x1c0), one for each phase of the game; 6 and 7 are the weapon's
+260	std::vector<DrawnText>	mBonusBannerTexts	the banner text, repeated to fill the width, that scrolls along the bottom while the bonus runs (UpdateSpecialMode)
+270	std::vector<DrawnText>	mSpecialBannerTexts	the banner text, repeated to fill the width, that scrolls along the bottom after a special brick is used (OnBlast names the bomb, nuke, freeze or booster)
+280	std::vector<RampRecord>	mSpeedRamp	the speed table (UpdateRamp): rows of an end time and values; the time played picks the two rows that the game's speeds are mixed from
+290	std::vector<LaserRec>	mTurbotBeams	the lightning beams of the mode 2 bonus, at most 6 (angle, life counting down from 255 by 4 to 6 an update), drawn at the ship (IMAGE_TURBOT_LIGHTNING)
+2a0	std::vector<Particle*>	mEnergySparks	the falling white sparks of the energy mode: UpdateSparks starts a row every 10 updates while the spark timer runs; freed when done
+2b0	std::vector<HintBox*>	mHintBoxes	the 3 hint boxes: the SUPA weapon, the meter, and a third that the pause fills
+2c0	std::vector<StoryEntry*>	mPilotStories	the stories of the pilot (BuildStoryText): two pages each
+2d0	std::vector<DemoStep>	mDemoSteps	the demo's steps (LoadDemo): a wait of a number of updates, a click (right or left) or a move of the pointer to one of ten columns
+2e0	Widget*	mDemoStartLink	the hyperlink (id 0xfa7) that the demo shows to invite the player to start a game; CloseOverlay removes it
+2e4	Widget*	mContinueButton	the continue button of the end page (id 0xfa4, made by CreateEndButtons)
+2e8	Widget*	mMenuButton	the menu button of the end page (id 0xfa5, made by CreateEndButtons)
+2ec	Widget*	mHelpButton	the help button of the field (id 0xfa6, bottom left); disabled and hidden while the end buttons show
+2f0	Graphics*	mScreenGraphics	draws into mScreenImage (RedrawAfterDialog draws the widgets there)
+2f4	Image*	mScreenImage	the 640 x 480 picture of the screen that RedrawAfterDialog draws the widgets into and that the wipe at the end of a game takes away
+2f8	Image*	mWarpLightningImage	the lightning picture now flashing over the warp screens (one of three picked at random in UpdateScenery, drawn additively with 3D)
+2fc	MemoryImage*	mSirenImage	a mirrored copy of IMAGE_SIREN, drawn with the cel of mSirenAnim
+300	MemoryImage*	mSirenFxImage	a mirrored copy of IMAGE_SIREN_FX, drawn with the cel of mSirenAnim
+304	MemoryImage*	mBannerTextImage	the banner's text drawn in white in its font (BuildBanner)
+308	MemoryImage*	mBannerWaveImage	the banner picture that is drawn: the text with each column moved down by a wave, 48 pixels taller than mBannerTextImage (BuildBanner)
+30c	MemoryImage*	mRankImage	the picture of the player's rank (MakeRankImage, height 0x50), drawn in the HUD and made again when the rank changes
+310	ScreenWipe*	mScreenWipe	the wipe that ends a game (one of 4 kinds, picked at random); it takes mScreenImage away and the board closes when it is done
+314	std::vector<std::vector<Brick*> >	mFieldBricks	the field: 20 rows of 10 cells, row 0 on top (the stack scans run over rows 1 to 19); a brick, or NULL for an empty cell
+324	std::vector<CellRef>	mHoverCells	the cells lit around the pointer (HoverCell: the one under it and, by the power level, the cells round it); the first is the one under the pointer
+334	std::vector<std::vector<int> >	mDemoLayout	the layout of the demo's field (LoadDemo): 20 rows of 10 brick kinds, -1 for none; BuildField makes the field from it
+344	std::vector<std::vector<int> >	mDemoAddedRows	the rows added during the demo (the file's added rows, and the kinds of row 0 each time a game is recorded): one kind for each column
+354	Brick*	mHandKindBrick	the brick that stands for the kind in hand (MakeHand: a copy of the first brick taken, at the bottom of the field); MatchesHand compares with its kind
 358	AstroPopApp*	mApp	the application (the bricks play their sounds through it)
-35c	PointerTrail	m35c	the pointer's recent steps
-3c0	Color	m3c0	the colour of the backdrop tint (FadeBackdrop)
-3d0	Color	m3d0	the colour the overlay is filled with when it comes back (its alpha, at +0x3dc, counts down)
-3e0	FrameAnim	mAnim3e0
-404	int	m404	?
-420	FrameAnim	m420
-460	FrameAnim	mAnim460
+35c	PointerTrail	mPointerTrail	the pointer's recent steps (the original's draw feeds it); the port neither writes nor reads it
+3c0	Color	mBackdropTint	the tint of the backdrop (FadeBackdrop moves it 8 steps at a time towards the colour of the first held brick; grey 100, 100, 100 when none)
+3d0	Color	mOverlayFillColor	the colour the overlay is filled with: UpdateEffects counts its alpha down by 2 an update and hides the overlay at 0, the warp raises it to white
+3e0	FrameAnim	mMeterFullAnim	restarted when the weapon meter fills (SOUND_POWERUP), runs while it stays full and stops when the bonus ends; nothing draws it
+404	int	mAlertLevel	1 while the stack is low or the game is over, else the stack height minus 12 up to 5 (UpdateAlertFlash); nothing reads it
+420	FrameAnim	mLaserAnim	the ship's laser (IMAGE_PLAYER1_LASER, mode 0 only), drawn while the bonus runs; a shot restarts it
+460	FrameAnim	mWarpGateAnim	the warp gates' animation (IMAGE_SLOW_WARP_GATE, IMAGE_FAST_WARP_GATE), stepped by Fn46a810 while a warp runs
 4a0	FrameAnim	mSirenAnim	the siren (IMAGE_SIREN)
-4c8	bool	m4c8	?
-4e0	FrameAnim	mAnim4e0
-520	FrameAnim	mAnim520
+4e0	FrameAnim	mStageMeterAnim	reset when the stage's brick count reaches a quarter, a half or three quarters and when a booster adds to it; nothing updates or reads it
+520	FrameAnim	mTurbotPowerupAnim	the turbot power-up animation (IMAGE_TURBOT_POWERUP, mode 2 only), drawn at the ship while the bonus runs
 560	FrameAnim	mAnim560	?
 5a0	FrameAnim	mAnim5a0	the end buttons slide in with it (SetNumFrames 0x1f)
 5e0	FrameAnim	mAnim5e0	?
@@ -90,7 +90,7 @@ f8	std::vector<int>	mf8
 748	XcfFile*	m748	the file of the bonus round (bonus<n>.xcf)
 74c	AstroButton*	m74c	the theme button (id 0xfa2)
 750	Checkbox*	m750	the theme checkbox (id 0xfa3)
-754	int	m754	?
+754	StoryScreen*	m754	?
 758	Buffer	m758	the replay recording (RecordStep)
 778	LevelUpText*	m778	the level-up picture
 77c	ScrollLayer	m77c	the scenery layer

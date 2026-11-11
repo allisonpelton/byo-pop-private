@@ -144,7 +144,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			aLine += StrFormat(",\"mode\":%d,\"level\":%d,\"score\":%d,\"stage\":%d,\"updates\":%d",
 				mBoard->mMode, mBoard->m1940, mBoard->mScore, mBoard->mField193C, mBoard->mUpdateCnt);
 			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->m1924,
-				mBoard->mFlag8E8 ? 1 : 0, (int) mBoard->m70.size());
+				mBoard->mFlag8E8 ? 1 : 0, (int) mBoard->mHeldBricks.size());
 			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusyReason());
 			aLine += ",\"field\":" + mBoard->DescribeField();
 		}

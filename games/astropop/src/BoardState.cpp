@@ -33,7 +33,7 @@ void Board::ResetState()
 	m974 = 0;
 	mScore = 0;
 	m1970 = 0;
-	m354 = NULL;
+	mHandKindBrick = NULL;
 	m198c = 0xa6;
 	m920 = false;
 	m1954 = 2;
@@ -55,14 +55,14 @@ void Board::UpdateEffects()
 	if (m1b38 > 0xff)
 		m1b38 = 0xff;
 
-	m3d0.mAlpha -= 2;
-	if (m3d0.mAlpha < 0)
+	mOverlayFillColor.mAlpha -= 2;
+	if (mOverlayFillColor.mAlpha < 0)
 	{
-		if (m230.empty() || m230[0]->m1c == 0 || -m7ec < m7e8)
+		if (mHintSpots.empty() || mHintSpots[0]->m1c == 0 || -m7ec < m7e8)
 			SetOverlayHidden(true);
-		m3d0.mAlpha = 0;
+		mOverlayFillColor.mAlpha = 0;
 	}
-	mOverlay.SetFill(m3d0.mRed, m3d0.mGreen, m3d0.mBlue, m3d0.mAlpha);
+	mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
 
 	int anOld = m77c.mPeriod;
 	m77c.mPeriod = anOld + 1;
@@ -72,7 +72,7 @@ void Board::UpdateEffects()
 	int aNumDone = 0;
 	for (int i = 0; i < 100; i++)
 	{
-		StreakRec* aStreak = &m170[i];
+		StreakRec* aStreak = &mStreaks[i];
 		aStreak->mMargin -= 3;
 		if (aStreak->mMargin < 0)
 		{
@@ -168,23 +168,23 @@ void Board::SaveGameState()
 		return;
 	if (m1990 != 0)
 		return;
-	if (!m70.empty())
+	if (!mHeldBricks.empty())
 		return;
 	if (m8e4)
 		return;
-	if (!m94.empty())
+	if (!mFallingGroups.empty())
 		return;
-	if (!m7c.empty())
+	if (!mFiredGroups.empty())
 		return;
 	if (CountMovingBricks(false) != 0)
 		return;
-	if (!m1a0.empty())
+	if (!mAtomicMarkedBricks.empty())
 		return;
-	if (!ma0.empty())
+	if (!mTakenBricks.empty())
 		return;
-	if (!mc8.empty())
+	if (!mTurbotMarkedCells.empty())
 		return;
-	if (!mf8.empty())
+	if (!mKillAllTypes.empty())
 		return;
 
 	UserProfile* aUser = mApp->mUser;
@@ -192,13 +192,13 @@ void Board::SaveGameState()
 	bool aIdle = !m8eb && !m8ec && !m8ed && !m8ef && !m8f4;
 	if (!m916 && aIdle && !m917 && !m912)
 	{
-		if (!m314.empty())
+		if (!mFieldBricks.empty())
 		{
-			for (unsigned int aRow = 0; aRow < m314.size(); aRow++)
+			for (unsigned int aRow = 0; aRow < mFieldBricks.size(); aRow++)
 			{
 				for (int aCol = 0; aCol < 10; aCol++)
 				{
-					Brick* aBrick = m314[aRow][aCol];
+					Brick* aBrick = mFieldBricks[aRow][aCol];
 					int aType;
 					if (aBrick == NULL)
 						aType = -1;
@@ -236,12 +236,12 @@ void Board::SaveGameState()
 			aUser->SetInt(0x60, m19b4);
 			aUser->SetInt(0x5c, m7bc);
 			SaveBestStat(aUser, m7c4);
-			if (m200.empty())
+			if (mSuperchargeMarks.empty())
 				aUser->SetInt(0x59, -1);
 			else
 			{
-				aUser->SetInt(0x59, m200[0].mType);
-				aUser->SetInt(0x5a, m200[0].mCount);
+				aUser->SetInt(0x59, mSuperchargeMarks[0].mType);
+				aUser->SetInt(0x5a, mSuperchargeMarks[0].mCount);
 			}
 			aUser->SetInt(0x65, m19fc);
 			return;
@@ -257,15 +257,15 @@ void Board::SaveGameState()
 			aUser->SetInt(0x5c, m7bc);
 			aUser->SetInt(0x60, m19b4);
 			SaveBestStat(aUser, m7c4);
-			if (m200.empty())
+			if (mSuperchargeMarks.empty())
 			{
 				aUser->SetInt(0x59, -1);
 				aUser->SetInt(0x5a, 0);
 			}
 			else
 			{
-				aUser->SetInt(0x59, m200[0].mType);
-				aUser->SetInt(0x5a, m200[0].mCount);
+				aUser->SetInt(0x59, mSuperchargeMarks[0].mType);
+				aUser->SetInt(0x5a, mSuperchargeMarks[0].mCount);
 			}
 			aUser->SetInt(0x65, m19fc);
 			return;

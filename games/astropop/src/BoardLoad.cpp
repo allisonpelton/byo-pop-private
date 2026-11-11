@@ -17,7 +17,7 @@ void Board::LoadLevel(bool theFromRules)
 	XcfFile aFile;
 
 	m8da = false;
-	mAnim460.SetStopped(true);
+	mWarpGateAnim.SetStopped(true);
 	ClearField();
 	m1930 = -1;
 	memset(&m984, 0, sizeof(m984));
@@ -27,10 +27,10 @@ void Board::LoadLevel(bool theFromRules)
 	mApp->SetCursor(CURSOR_POINTER);
 	if (!theFromRules)
 	{
-		for (unsigned int aRow = 0; aRow < m314.size(); aRow++)
+		for (unsigned int aRow = 0; aRow < mFieldBricks.size(); aRow++)
 		{
 			for (int aCol = 0; aCol < 10; aCol++)
-				m314[aRow][aCol] = NULL;
+				mFieldBricks[aRow][aCol] = NULL;
 		}
 	}
 	else
@@ -74,7 +74,7 @@ void Board::LoadLevel(bool theFromRules)
 				for (int aCol = 0; aX < 0x25e; aCol++)
 				{
 					if (m1ac8 < aRow)
-						m314[aRow][aCol] = NULL;
+						mFieldBricks[aRow][aCol] = NULL;
 					else
 					{
 						int aScriptRow = 17 - aRow;
@@ -82,29 +82,29 @@ void Board::LoadLevel(bool theFromRules)
 						switch (aKind)
 						{
 						case 0:
-							m314[aRow][aCol] = NULL;
+							mFieldBricks[aRow][aCol] = NULL;
 							break;
 						case 1:
 						case 2:
 						case 3:
 						case 4:
-							m314[aRow][aCol] = CreateBrick(aKind - 1);
+							mFieldBricks[aRow][aCol] = CreateBrick(aKind - 1);
 							break;
 						case 5:
-							m314[aRow][aCol] = CreateSpecialBrick(7);
+							mFieldBricks[aRow][aCol] = CreateSpecialBrick(7);
 							break;
 						case 6:
 						case 7:
 						case 8:
 						case 9:
-							m314[aRow][aCol] = CreateKillAll(aKind - 6);
+							mFieldBricks[aRow][aCol] = CreateKillAll(aKind - 6);
 							break;
 						case 10:
-							m314[aRow][aCol] = CreateSpecialBrick(6);
+							mFieldBricks[aRow][aCol] = CreateSpecialBrick(6);
 							break;
 						}
 						// (the original calls through the cell, which is null for kind 0)
-						Brick* aBrick = m314[aRow][aCol];
+						Brick* aBrick = mFieldBricks[aRow][aCol];
 						if (aBrick != NULL)
 						{
 							aBrick->SetParticleX((float) aX);
@@ -134,7 +134,7 @@ void Board::LoadLevel(bool theFromRules)
 				if (aStageRows < aRow)
 				{
 					for (int aCol = 0; aCol < 10; aCol++)
-						m314[aRow][aCol] = NULL;
+						mFieldBricks[aRow][aCol] = NULL;
 				}
 				else
 					FillTopRow(aRow < aStageRows - 1, aRow == aStageRows, false, m1a60 == 2, aRow);
@@ -143,33 +143,33 @@ void Board::LoadLevel(bool theFromRules)
 	}
 
 	// the warp stars of the last warp go
-	for (unsigned int i = 0; i < m150.size(); i++)
-		delete m150[i];
-	std::vector<WarpStar*>().swap(m150);
+	for (unsigned int i = 0; i < mWarpStars.size(); i++)
+		delete mWarpStars[i];
+	std::vector<WarpStar*>().swap(mWarpStars);
 	m198c = 0x182;
 	m1998 = 8;
 	m19b0 = 0;
 	std::vector<Brick*>().swap(mTargeted);
 
 	// the stage's picture and the first hint start from the beginning
-	if ((unsigned int) mField193C < m220.size())
+	if ((unsigned int) mField193C < mStageHintPanels.size())
 	{
-		StageBg* aBg = m220[mField193C];
+		StageBg* aBg = mStageHintPanels[mField193C];
 		aBg->m100 = 0xff;
 		aBg->m114 = 0xff;
-		aBg->m108 = 0;
+		aBg->mFadedBricks = 0;
 		aBg->m118 = 0;
 		aBg->m10c = 0;
 		aBg->m110 = 0;
 		aBg->m104 = 0;
 		aBg->mf0 = 0;
 	}
-	if (!m230.empty() && m230[0]->m1c)
+	if (!mHintSpots.empty() && mHintSpots[0]->m1c)
 	{
-		StageBg* aBg = m230[0]->mBg;
+		StageBg* aBg = mHintSpots[0]->mBg;
 		aBg->m100 = 0xff;
 		aBg->m114 = 0xff;
-		aBg->m108 = 0;
+		aBg->mFadedBricks = 0;
 		aBg->m118 = 0;
 		aBg->m10c = 0;
 		aBg->m110 = 0;

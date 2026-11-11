@@ -53,8 +53,8 @@ void Board::Pause(bool theStart, bool theFlag)
 			m1924--;
 			if (m1924 == 0)
 			{
-				if (m2e0 != NULL)
-					m2e0->SetVisible(true);
+				if (mDemoStartLink != NULL)
+					mDemoStartLink->SetVisible(true);
 				SoundInstance* aKlaxon = mApp->mLoopSounds[7];
 				if (aKlaxon->IsPlaying())
 					aKlaxon->SetVolume(1.0);
@@ -68,20 +68,20 @@ void Board::Pause(bool theStart, bool theFlag)
 					SetOverlayHidden(true);
 				if (!mFlag8E8)
 				{
-					m1c0[0]->SetDisabled(false);
-					m1c0[0]->SetVisible(true);
-					m2ec->SetDisabled(false);
-					m2ec->SetVisible(true);
+					mFieldButtons[0]->SetDisabled(false);
+					mFieldButtons[0]->SetVisible(true);
+					mHelpButton->SetDisabled(false);
+					mHelpButton->SetVisible(true);
 				}
-				if (m2e4 != NULL)
+				if (mContinueButton != NULL)
 				{
-					m2e4->SetDisabled(false);
-					mApp->mWidgetManager->BringToFront(m2e4);
+					mContinueButton->SetDisabled(false);
+					mApp->mWidgetManager->BringToFront(mContinueButton);
 				}
-				if (m2e8 != NULL)
+				if (mMenuButton != NULL)
 				{
-					m2e8->SetDisabled(false);
-					mApp->mWidgetManager->BringToFront(m2e8);
+					mMenuButton->SetDisabled(false);
+					mApp->mWidgetManager->BringToFront(mMenuButton);
 				}
 				mApp->mWidgetManager->SetFocus(this);
 				if (m6e4 != NULL)
@@ -99,8 +99,8 @@ void Board::Pause(bool theStart, bool theFlag)
 	m1924++;
 	if (m1924 != 1)
 		return;
-	if (m2e0 != NULL)
-		m2e0->SetVisible(false);
+	if (mDemoStartLink != NULL)
+		mDemoStartLink->SetVisible(false);
 	// (the original writes "Start of pause" to its trace list here)
 	m1af0 = mUpdateCnt;
 	mApp->SetLoopSoundsMuted(true);
@@ -110,19 +110,19 @@ void Board::Pause(bool theStart, bool theFlag)
 	SoundInstance* aKlaxon = mApp->mLoopSounds[7];
 	if (aKlaxon->IsPlaying())
 		aKlaxon->SetVolume(0.0);
-	m1c0[0]->SetDisabled(true);
-	m1c0[0]->SetVisible(false);
-	m2ec->SetDisabled(true);
-	m2ec->SetVisible(false);
-	if (m2e4 != NULL)
+	mFieldButtons[0]->SetDisabled(true);
+	mFieldButtons[0]->SetVisible(false);
+	mHelpButton->SetDisabled(true);
+	mHelpButton->SetVisible(false);
+	if (mContinueButton != NULL)
 	{
-		m2e4->SetDisabled(true);
-		mApp->mWidgetManager->PutBehind(m2e4, &mOverlay);
+		mContinueButton->SetDisabled(true);
+		mApp->mWidgetManager->PutBehind(mContinueButton, &mOverlay);
 	}
-	if (m2e8 != NULL)
+	if (mMenuButton != NULL)
 	{
-		m2e8->SetDisabled(true);
-		mApp->mWidgetManager->PutBehind(m2e8, &mOverlay);
+		mMenuButton->SetDisabled(true);
+		mApp->mWidgetManager->PutBehind(mMenuButton, &mOverlay);
 	}
 }
 
@@ -134,7 +134,7 @@ void Board::RecolorThemeButtons()
 	delete m74c->mButtonImage;
 	delete m750->mUncheckedImage;
 
-	StageBg* aStage = m230[0]->mBg;
+	StageBg* aStage = mHintSpots[0]->mBg;
 	Color aColor(aStage->mColor1.mRed, aStage->mColor1.mGreen, aStage->mColor1.mBlue);
 	m74c->mDownImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_DOWN, aColor);
 	m74c->mOverImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_OVER, aColor);
@@ -152,7 +152,7 @@ void Board::RecolorThemeButtons()
 // 0x45ab90: once the warp has faded in, the theme buttons (to keep or change the stage's colour theme) appear
 void Board::ShowThemeButtons()
 {
-	if (!m230.empty() && m230[0]->m1c && m7e8 <= -m7ec)
+	if (!mHintSpots.empty() && mHintSpots[0]->m1c && m7e8 <= -m7ec)
 	{
 		Pause(true, false);
 		RecolorThemeButtons();
@@ -169,7 +169,7 @@ void Board::ShowThemeButtons()
 // steel ones, mode 3 lights the cell under the pointer. Nothing starts while the field is not at rest.
 void Board::BeginPlay()
 {
-	if (mf8.empty() && m1a34 != 1)
+	if (mKillAllTypes.empty() && m1a34 != 1)
 	{
 		int aValue = 0;
 		mApp->mUser->GetInt(mMode + 0x2a, &aValue);
@@ -190,7 +190,7 @@ void Board::BeginPlay()
 			{
 				for (unsigned int aRow = 1; aRow < 0x14; aRow++)
 				{
-					Brick* aBrick = m314[aRow][aCol];
+					Brick* aBrick = mFieldBricks[aRow][aCol];
 					if (aBrick == NULL)
 						break;
 					if (aBrick->IsIdle())
@@ -198,12 +198,12 @@ void Board::BeginPlay()
 						CellRef aCell;
 						aCell.mCol = aCol;
 						aCell.mRow = aRow;
-						unsigned int aNumRows = (unsigned int) m314.size();
-						if (aRow < aNumRows - 1 && m314[aRow + 1][aCol] == NULL)
+						unsigned int aNumRows = (unsigned int) mFieldBricks.size();
+						if (aRow < aNumRows - 1 && mFieldBricks[aRow + 1][aCol] == NULL)
 							anExposed.push_back(aCell);
 						else if (aRow == aNumRows - 1)
 							anExposed.push_back(aCell);
-						else if (aRow < aNumRows - 2 && m314[aRow + 2][aCol] == NULL && m314[aRow + 1][aCol] != NULL)
+						else if (aRow < aNumRows - 2 && mFieldBricks[aRow + 2][aCol] == NULL && mFieldBricks[aRow + 1][aCol] != NULL)
 							anExposed.push_back(aCell);
 						else
 							aBuried.push_back(aCell);
@@ -249,8 +249,8 @@ void Board::BeginPlay()
 					CellRef3 aMark;
 					aMark.mCol = aBuried[i].mCol;
 					aMark.mRow = aBuried[i].mRow;
-					aMark.mBrick = m314[aMark.mRow][aMark.mCol];
-					m1a0.push_back(aMark);
+					aMark.mBrick = mFieldBricks[aMark.mRow][aMark.mCol];
+					mAtomicMarkedBricks.push_back(aMark);
 				}
 			}
 			m1a3c = 0;
@@ -260,7 +260,7 @@ void Board::BeginPlay()
 			Fire(0x28, 1);
 			Fire(0x2a, 1);
 			m1b58 = 0xf;
-			m290.clear();
+			mTurbotBeams.clear();
 			m1b54 = 0;
 			m1b4c = 0;
 			m1b50 = 0;
@@ -268,14 +268,14 @@ void Board::BeginPlay()
 			mOverlay.SetFill(255, 255, 255, 0);
 			SetOverlayHidden(false);
 			m1a48 = mHeight;
-			mAnim520.SetStopped(false);
+			mTurbotPowerupAnim.SetStopped(false);
 			m1aa0 = 0;
 			m907 = false;
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
 				for (int aRow = 1; aRow < 0x14; aRow++)
 				{
-					Brick* aBrick = m314[aRow][aCol];
+					Brick* aBrick = mFieldBricks[aRow][aCol];
 					if (aBrick == NULL)
 						break;
 					int aMutated = aBrick->mMutated;
@@ -289,7 +289,7 @@ void Board::BeginPlay()
 							CellRef aCell;
 							aCell.mCol = aCol;
 							aCell.mRow = aRow;
-							mc8.push_back(aCell);
+							mTurbotMarkedCells.push_back(aCell);
 							if (4 < m1a8c)
 							{
 								aBrick->mFlag187 = true;
@@ -300,7 +300,7 @@ void Board::BeginPlay()
 				}
 			}
 			m1a34 = 1;
-			SortCells(mc8);
+			SortCells(mTurbotMarkedCells);
 			mApp->PlaySample(SOUND_EXPLOSION);
 		}
 		else if (mMode == 3)
@@ -380,24 +380,24 @@ void Board::DismissHint()
 	}
 
 	size_t i = 0;
-	while (!m230.empty() && i < m230.size())
+	while (!mHintSpots.empty() && i < mHintSpots.size())
 	{
-		if (m230[i]->m1c)
+		if (mHintSpots[i]->m1c)
 			break;
 		i++;
 	}
-	if (!m230.empty() && i < m230.size())
+	if (!mHintSpots.empty() && i < mHintSpots.size())
 	{
-		HintSpot* aSpot = m230[i];
+		HintSpot* aSpot = mHintSpots[i];
 		mApp->mUser->SetInt(aSpot->mId + 1, 1);
 		if (m750->mChecked)
 		{
 			mApp->mUser->SetInt(aSpot->mId, 0);
 			m750->mChecked = false;
-			while (m230.size() > 1)
+			while (mHintSpots.size() > 1)
 			{
-				delete m230[1];
-				m230.erase(m230.begin() + 1);
+				delete mHintSpots[1];
+				mHintSpots.erase(mHintSpots.begin() + 1);
 			}
 		}
 		mApp->mUser->Save();
@@ -405,14 +405,14 @@ void Board::DismissHint()
 		m750->SetVisible(false);
 		// (the original takes the panel by its index i, which the loop above may have emptied the vector below; the panel
 		// that is up is always the first, so both are the same)
-		m230.erase(std::find(m230.begin(), m230.end(), aSpot));
+		mHintSpots.erase(std::find(mHintSpots.begin(), mHintSpots.end(), aSpot));
 		delete aSpot;
 	}
 
-	if (!m230.empty())
+	if (!mHintSpots.empty())
 	{
 		RecolorThemeButtons();
-		m230[0]->m1c = true;
+		mHintSpots[0]->m1c = true;
 		m74c->SetVisible(true);
 		m750->SetVisible(true);
 		mApp->mWidgetManager->BringToFront(m750);
@@ -427,9 +427,9 @@ void Board::CloseOverlay()
 {
 	m8d8 = true;
 	m978 = 0;
-	mApp->mWidgetManager->RemoveWidget(m2e0);
-	mApp->SafeDeleteWidget(m2e0);
-	m2e0 = NULL;
+	mApp->mWidgetManager->RemoveWidget(mDemoStartLink);
+	mApp->SafeDeleteWidget(mDemoStartLink);
+	mDemoStartLink = NULL;
 	SetOverlayHidden(false);
 	mOverlay.SetFill(0xff, 0xff, 0xff, 0);
 }
@@ -449,9 +449,9 @@ void Board::RedrawAfterDialog()
 	if (mOverlay.mColor58 != mOverlay.mFill)
 		mOverlay.MarkDirty();
 	MarkDirty();
-	((MemoryImage*) m2f4)->SetImageMode(false, false);
-	mApp->mWidgetManager->DrawWidgetsTo(m2f0);
-	((MemoryImage*) m2f4)->SetImageMode(true, true);
+	((MemoryImage*) mScreenImage)->SetImageMode(false, false);
+	mApp->mWidgetManager->DrawWidgetsTo(mScreenGraphics);
+	((MemoryImage*) mScreenImage)->SetImageMode(true, true);
 	m903 = false;
 	m901 = true;
 	m90f = true;

@@ -33,7 +33,7 @@ void BoardOverlay::Draw(Graphics* g)
 	Board* aBoard = mBoard;
 
 	// a hint of the tutorial is showing: the first of the Board's hints is lit and the pause timer has run out
-	bool aHintShown = !aBoard->m230.empty() && aBoard->m230[0]->m1c && !(-aBoard->m7ec < aBoard->m7e8);
+	bool aHintShown = !aBoard->mHintSpots.empty() && aBoard->mHintSpots[0]->m1c && !(-aBoard->m7ec < aBoard->m7e8);
 
 	if (aBoard->m1924 < 1 && !aHintShown && !mFlag78)
 	{
@@ -105,7 +105,7 @@ void BoardOverlay::Draw(Graphics* g)
 void BoardOverlay::DrawHint(Graphics* g)
 {
 	Board* aBoard = mBoard;
-	HintSpot* aSpot = aBoard->m230[0];
+	HintSpot* aSpot = aBoard->mHintSpots[0];
 	StageBg* aBg = aSpot->mBg;
 
 	g->SetColor(Color(0, 0, 0, 0xc0));
@@ -134,7 +134,7 @@ void BoardOverlay::DrawHint(Graphics* g)
 			anAlpha = aBg->m114;
 		int aPicHeight = aBg->mPic->mHeight;
 		g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-		int aCel = (aBg->m70.mNumFrames == 1) ? 0 : aBg->m70.mFrame;
+		int aCel = (aBg->mHeldBricks.mNumFrames == 1) ? 0 : aBg->mHeldBricks.mFrame;
 		DrawCel(g, aBg->mPic, aBg->mX, 0xd8 - aPicHeight / 2, aCel);
 	}
 
@@ -158,7 +158,7 @@ void BoardOverlay::DrawHint(Graphics* g)
 	g->SetColor(Color(aBg->mColor1.mRed, aBg->mColor1.mGreen, aBg->mColor1.mBlue, aBg->m114));
 	int aTitleAscent = aTitleFont->GetAscent();
 	int aTitleHeight = aTitleFont->GetHeight();
-	WriteWordWrapped(g, Rect(aBg->mf8, (-(aBg->m120 / 2) - (aTitleHeight - aTitleAscent) / 2) + 0xe0, aBg->mf4, 0x3c), aBg->mTitle, -1, 0);
+	WriteWordWrapped(g, Rect(aBg->mKillAllTypes, (-(aBg->m120 / 2) - (aTitleHeight - aTitleAscent) / 2) + 0xe0, aBg->mf4, 0x3c), aBg->mTitle, -1, 0);
 
 	Font* aTextFont = GetFontById(0xb1);
 	g->SetFont(aTextFont);

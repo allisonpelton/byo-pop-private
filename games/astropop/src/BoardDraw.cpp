@@ -85,7 +85,7 @@ void Board::DrawBackdrop(Graphics* g)
 			{
 				if (anOffset > 0x78)
 					g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-				PlanetRec& aPlanet = m160[anOffset / 0x3c];
+				PlanetRec& aPlanet = mPlanets[anOffset / 0x3c];
 				g->DrawImage(aPlanet.mImage, (int) aPlanet.mRangeStart, (int) aPlanet.mF24, FloatRect(aPlanet.mCur));
 				if (aPlanet.mNext[3] > 0.0f)
 					g->DrawImage(aPlanet.mImage, (int) aPlanet.mRangeStart, (int) aPlanet.mF28, FloatRect(aPlanet.mNext));
@@ -96,20 +96,20 @@ void Board::DrawBackdrop(Graphics* g)
 		} while (anOffset < 300);
 	}
 
-	if (m19f0 > 0 && (m8ed || m8ef || m8f4) && m2f8 != NULL && is3D)
+	if (m19f0 > 0 && (m8ed || m8ef || m8f4) && mWarpLightningImage != NULL && is3D)
 	{
 		g->SetColorizeImages(true);
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		g->SetColor(Color(m19f0, m19f0, m19f0, m19f0));
-		g->DrawImage(m2f8, 100, m19f8);
+		g->DrawImage(mWarpLightningImage, 100, m19f8);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		g->SetColorizeImages(false);
 	}
 
 	// the warp stars (the original also steps a trail that nothing reads: PointerTrail::Step, 0x40b230)
-	for (int i = 0; i < (int) m150.size(); i++)
+	for (int i = 0; i < (int) mWarpStars.size(); i++)
 	{
-		WarpStar* aStar = m150[i];
+		WarpStar* aStar = mWarpStars[i];
 		int aCel = (aStar->mAnim.mNumFrames == 1) ? 0 : aStar->mAnim.mFrame;
 		DrawCel(g, aStar->mImage, (int) aStar->mX, (int) aStar->mY, aCel);
 	}
@@ -118,7 +118,7 @@ void Board::DrawBackdrop(Graphics* g)
 	int aStreaks = (is3D ? 0x4b : 0) + 0x19;
 	for (int i = 0; i < aStreaks; i++)
 	{
-		StreakRec& aStreak = m170[i];
+		StreakRec& aStreak = mStreaks[i];
 		float anX = aStreak.mX;
 		float aY = aStreak.mY;
 		int aMargin = aStreak.mMargin;
@@ -160,9 +160,9 @@ void Board::DrawBackdrop(Graphics* g)
 	// the stars
 	if (!m8ed && !m8ef && !m8f4 && !mFlag8E8 && is3D)
 	{
-		for (int i = 0; i < (int) m190.size(); i++)
+		for (int i = 0; i < (int) mBackdropStars.size(); i++)
 		{
-			StarRec& aStar = m190[i];
+			StarRec& aStar = mBackdropStars[i];
 			float aY = aStar.mY;
 			if ((float) -aStar.mImage->mHeight <= aY && aY <= (float) mHeight)
 				g->DrawImageF(aStar.mImage, aStar.mX, aY);
