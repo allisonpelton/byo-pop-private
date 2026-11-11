@@ -437,11 +437,12 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": "Soundboard presets wait on sound log"
+      "now": "unneeded-code",
+      "note": "Collection check to do (the Collection exe is another build)"
     },
     "bejeweled2": {
       "title": "Bejeweled 2 Deluxe",

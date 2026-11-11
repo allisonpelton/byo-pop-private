@@ -42,6 +42,8 @@ public:
 	int isWord(Str theWord, int theExpand);
 	// 0x404c50: the same for a word of letters and at most the wild tiles' first
 	int lookup(Str theWord);
+	// port (the memory report): the bytes of the three tables, the strings' own storage included
+	size_t memoryBytes() const;
 
 	int mCount;               // +0x00
 	Str* mWords;              // +0x04: upper case, accents removed, in order

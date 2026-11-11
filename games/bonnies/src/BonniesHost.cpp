@@ -10,6 +10,7 @@
 #include "WebSettings.h"
 #include "platform/Audio.h"
 #include "platform/ImageLoader.h"
+#include "platform/MemReport.h"
 #include "platform/MusicLevels.h"
 #include "platform/VFS.h"
 #include "SDLSoundManager.h"
@@ -245,7 +246,9 @@ public:
 		bool aSteady = gHostApp->mFastMode || gSteadyClock;
 		if ((!aSteady && (int)(gHostApp->GetClockTime() - gHostApp->mLastFrameworkRun) >= 100) ||
 			(aSteady && (gHostApp->mScriptNoFocus || (!gHostApp->mRealInputFileName.empty() && !gHostApp->mHasFocus))))
+		{
 			gHostApp->RunFramework(0);
+		}
 		else if (gSteadyClock && ++gSpin >= kSpin)
 		{
 			// (at most half a second of real time, for a framework that does not update, paused or minimized)
@@ -614,6 +617,9 @@ public:
 	// reused, so a file's name in the log stays unambiguous.
 	int mNextSfxID = 0;
 	int mNextLogNum = 0;
+	// port (the memory report): the samples alive and their decoded bytes
+	int mSampleCount = 0;
+	size_t mSampleBytes = 0;
 
 	static int LogVolume(float theGain)
 	{
@@ -630,6 +636,8 @@ public:
 		SampleHandle* aSample = new SampleHandle();
 		aSample->mData = aData;
 		aSample->mSfxID = mNextSfxID++;
+		mSampleCount++;
+		mSampleBytes += aData->Bytes();
 		SoundLog("load %d %s frames=%d rate=%d ch=%d", aSample->mSfxID, thePath.c_str(), (int)aData->mFrames, aData->mRate,
 			aData->mChannels);
 		return aSample;
@@ -649,6 +657,8 @@ public:
 				aChannel = Channel();
 			}
 		}
+		mSampleCount--;
+		mSampleBytes -= aSample->mData->Bytes();
 		delete aSample;
 	}
 
@@ -926,6 +936,12 @@ BonniesWidget::BonniesWidget()
 {
 	mScreenImage = new MemoryImage(gHostApp);
 	mScreenImage->Create(kScreenWidth, kScreenHeight);
+	// every pixel is drawn opaque (Draw below): the image is said to be opaque, so that the framework need not look through
+	// its 480,000 pixels for alpha after each change, and with every alpha byte 0xff the framework's premultiplying would
+	// change nothing, so that it uploads the image as it is, in one piece, instead of converting it in strips (the Mahjong
+	// ports' screen)
+	mScreenImage->SetImageMode(false, false);
+	mScreenImage->mUploadAsIs = true;
 	mScreenChanged = true;
 	mWantsFocus = true;
 }
@@ -959,11 +975,37 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* bonnies_test_command(const char* the
 }
 #endif
 
+// The game presents its screen about 30 times a second whether or not anything moved (a board waiting for the player is
+// presented as often as one in motion; two in three presents of the tutorial's board matched the one before), and the same
+// screen need not be copied, uploaded and shown again: the framework shows the picture it last drew until it is told
+// otherwise. The comparison is on the pixels, so what is on screen never differs from what the game drew. Compared in
+// blocks, so that the loop can use the processor's vector instructions.
+bool BonniesWidget::ScreenDiffers() const
+{
+	const int kBlock = 256;
+	static_assert(kScreenWidth * kScreenHeight % kBlock == 0, "the screen is a whole number of blocks");
+	const ulong* aBits = mScreenImage->GetBits();
+	const uint32_t* aScreen = gHost.mScreen.data();
+	for (int aStart = 0; aStart < kScreenWidth * kScreenHeight; aStart += kBlock)
+	{
+		uint32_t aDifference = 0;
+		for (int i = aStart; i < aStart + kBlock; i++)
+			aDifference |= (uint32_t)aBits[i] ^ (0xff000000 | (aScreen[i] & 0xffffff));
+		if (aDifference != 0)
+			return true;
+	}
+	return false;
+}
+
 void BonniesWidget::Update()
 {
 	Widget::Update();
 	if (mScreenChanged)
-		MarkDirty();
+	{
+		mScreenChanged = false;
+		if (ScreenDiffers())
+			MarkDirty();
+	}
 #ifndef __EMSCRIPTEN__
 	// port (test runs): the game's state for tools/realplay.py, which plays from it with real input (Start.h), written
 	// whole to a second file and renamed, so that a reader never sees half of it (it may miss the file for a moment)
@@ -1268,6 +1310,19 @@ bool BonniesHostApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	else
 		GotFocus();
 	return true;
+}
+
+// docs/TEST_COMMANDS.md, "memreport": what the game holds beside the framework's own pictures: its cache's images, which
+// the game draws with itself and never hands to the framework, the decoded samples FSOUND's stand-in keeps, the
+// dictionary and the 800x600 screen buffer the game draws into (the framework's copy of it is one of its pictures)
+void BonniesHostApp::AddMemReportHolders(Platform::MemReport* theReport)
+{
+	std::vector<std::pair<std::string, size_t>> aRows;
+	bonnies::memoryHolders(&aRows);
+	for (const std::pair<std::string, size_t>& aRow : aRows)
+		theReport->mOthers.push_back(aRow);
+	theReport->mOthers.push_back({"samples (" + std::to_string(gHost.mSampleCount) + ", decoded to 16 bits)", gHost.mSampleBytes});
+	theReport->mOthers.push_back({"screen buffer (32 bits)", gHost.mScreen.capacity() * sizeof(uint32_t)});
 }
 
 // Alt+Enter (and the web page's full screen button) change the mode as the game's own option does
