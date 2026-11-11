@@ -68,7 +68,7 @@ struct Enemy : Obj
 {
 	Animation* mLeftAnim;       // +0xb0
 	Animation* mRightAnim;      // +0xb4
-	Animation* mUpAnim;         // +0xb8  Enemy_Face shows it going down the screen (and downAnim going up)
+	Animation* mUpAnim;         // +0xb8  Enemy_Face shows it going down the screen (and mDownAnim going up)
 	Animation* mDownAnim;       // +0xbc
 	int mPhase;                 // +0xc0  a spin roller's, a frog's, a teleporter's
 	int mFirstParticle;         // +0xc4
@@ -131,7 +131,7 @@ struct Shooter : Obj
 	Animation* mVertAnim;       // +0x100
 	Animation* mHorizShootAnim; // +0x104
 	Animation* mVertShootAnim;  // +0x108
-	int mWingsPadding;          // +0x10c  the four bytes before wingsH: nothing reads them
+	int mWingsPadding;          // +0x10c  the four bytes before mWingsH: nothing reads them
 	Obj mWingsH;                // +0x110  drawn over the ship while no weapon orbits it
 	Obj mWingsV;                // +0x1c0
 	Obj mIdleObj;                // +0x320
@@ -181,7 +181,7 @@ static_assert(sizeof(MenuItem) == 0x1dc, "MenuItem");
 // A menu (0x1e4 bytes, 0x415ad0 constructs one, 0x415b20 destroys it; WBMenu.cpp)
 struct Menu : Obj
 {
-	Image* mLogo;               // +0xb0  logo_animation's first frame, drawn about (logoX, logoY)
+	Image* mLogo;               // +0xb0  logo_animation's first frame, drawn about (mLogoX, mLogoY)
 	int mLogoX;                 // +0xb4
 	int mLogoY;                 // +0xb8
 	int mItemsPadding;          // +0xbc  the four bytes before items: nothing reads them
@@ -237,9 +237,9 @@ struct Weapon : Obj
 {
 	int mDragPadding;           // +0xb0  the four bytes before drag: nothing reads them
 	float mDrag;                // +0xb4  the speed is multiplied by it each update once launched
-	int mLaunchSpeedPadding;    // +0xb8  the four bytes before launchSpeed: nothing reads them
+	int mLaunchSpeedPadding;    // +0xb8  the four bytes before mLaunchSpeed: nothing reads them
 	float mLaunchSpeed;         // +0xbc
-	int mAcross;                // +0xc0  the ship's beamAcross at the last update
+	int mAcross;                // +0xc0  the ship's mBeamAcross at the last update
 	int mParticle;              // +0xc4  particle_0's index in the art bank
 	int mTooClose;              // +0xc8  an enemy touches it: it cannot be launched
 	int mFuseSound;             // +0xcc

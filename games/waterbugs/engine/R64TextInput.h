@@ -50,7 +50,7 @@ struct TextInput
 	int mClickedIn;             // +0xc4  this update: a click focused it
 	int mMaxLength;             // +0xc8
 	int mLength;                // +0xcc
-	char* mText;                // +0xd0  maxLength + 1 bytes
+	char* mText;                // +0xd0  mMaxLength + 1 bytes
 	int mScroll;                // +0xd4  pixels of the text left of the box
 	int mPressed;               // +0xd8  the left button went down inside
 	Palette* mOutline;          // +0xdc

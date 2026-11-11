@@ -192,7 +192,7 @@ int Bank_LoadRaw(Bank* theBank, const char* thePath)
 	if (!Sys_ReadFile(thePath, aFile))
 		return 0;
 	if (Bank_Alloc(theBank, (uint32_t)aFile.size()) != 0 && theBank->mDataSize != 0 &&
-		theBank->mDataSize <= aFile.size()) // fread(data, dataSize, 1) == 1
+		theBank->mDataSize <= aFile.size()) // fread(data, mDataSize, 1) == 1
 	{
 		std::memcpy(theBank->mData, aFile.data(), theBank->mDataSize);
 		uint8_t* aCursor = theBank->mData;

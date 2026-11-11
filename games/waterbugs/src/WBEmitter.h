@@ -17,8 +17,8 @@ struct ParticleSystem;
 struct Emitter : Obj
 {
 	// kind +0x08: 0 angular (turns with the parent's animation), 1 scattered, 2 trailing (the game file makes 0
-	// and 2); oldX/oldY +0x1c: the offset from the parent's position; vx/vy: the particles' speed (per update);
-	// anim, frameCount, frameTime: the particles' animation
+	// and 2); mOldX/mOldY +0x1c: the offset from the parent's position; vx/vy: the particles' speed (per update);
+	// anim, mFrameCount, mFrameTime: the particles' animation
 	int mFrequency;             // +0xb0  updates between particles
 	int mRotation;              // +0xb4  angular: degrees over the parent's whole animation
 	Obj* mParent;               // +0xb8

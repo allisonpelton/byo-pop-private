@@ -21,7 +21,7 @@ void SetColour(uint8_t* theColour, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 	theColour[3] = a;
 }
 
-// 0x42c680: how wide the caret is where it stands (the character's advance; at the end, caretWidth)
+// 0x42c680: how wide the caret is where it stands (the character's advance; at the end, mCaretWidth)
 int CaretWidth(TextInput* theInput)
 {
 	if (theInput->mCaret == theInput->mLength)
@@ -330,7 +330,7 @@ void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char t
 	memset(theInput->mText, 0, theInput->mMaxLength + 1);
 	theInput->mScroll = 0;
 	theInput->mPressed = 0;
-	// The original clears 0x100 entries here, the last of them noFocus
+	// The original clears 0x100 entries here, the last of them mNoFocus
 	memset(theInput->mBlocked, 0, sizeof theInput->mBlocked);
 	theInput->mNoFocus = 0;
 	Key_Clear();

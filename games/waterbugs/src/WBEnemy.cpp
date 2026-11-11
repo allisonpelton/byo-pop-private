@@ -1128,7 +1128,7 @@ void Enemy_Kill(Enemy* theEnemy, int thePoints)
 	}
 }
 
-// Kind 0x12: shotDelay updates after its last shot fires a snake (kind 0x13) from 50 pixels out, at an angle its
+// Kind 0x12: mShotDelay updates after its last shot fires a snake (kind 0x13) from 50 pixels out, at an angle its
 // animation's frame and a random quarter turn give, when the cell there is open
 int SnakeShooter_Move(Enemy* theEnemy)
 {

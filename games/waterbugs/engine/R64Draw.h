@@ -40,12 +40,12 @@ void DrawList_Flush();
 void DrawList_Clear();
 
 // 0x34 bytes (gDirty at 0x472a7c): the 800x600 screen in cells, each with its changed rectangles (mode 1: one
-// bounding rectangle per cell; else up to maxRects, merged where that does not grow them)
+// bounding rectangle per cell; else up to mMaxRects, merged where that does not grow them)
 struct Dirty
 {
 	struct Cell
 	{
-		int* mRects;    // {l, t, r, b} inclusive, maxRects of them
+		int* mRects;    // {l, t, r, b} inclusive, mMaxRects of them
 		int mCount;
 	};
 

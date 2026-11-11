@@ -33,7 +33,7 @@ struct PixelFormat
 
 void PixelFormat_Init(PixelFormat* f, int theBpp, uint32_t r, uint32_t g, uint32_t b);
 
-// 0x808 bytes: an 8-bit image's colours {r, g, b, 0} and the same converted to the screen's format: p16 and p32
+// 0x808 bytes: an 8-bit image's colours {r, g, b, 0} and the same converted to the screen's format: mP16 and mP32
 // both point at conv (0x4013d0 sets them), whichever the screen's depth uses.
 struct Palette
 {
@@ -80,7 +80,7 @@ struct Image
 	char mName[0x34];        // +0x9c  "None"
 	char* mFileName;         // +0xd0
 	int mNotOwned;           // +0xd4  the bits belong to a bank
-	int mPaletteNumberPadding;  // +0xd8  the four bytes before paletteNumber: nothing reads them
+	int mPaletteNumberPadding;  // +0xd8  the four bytes before mPaletteNumber: nothing reads them
 	int mPaletteNumber;      // +0xdc
 	int mIsMask;             // +0xe0
 	int mMaskNamed;              // +0xe4
@@ -141,14 +141,14 @@ void Image_BlitSubRect(Image* theImg, uint8_t* theDst, int theDstPitch, const Pi
 void Image_BlitRotated(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x, int y, int theAngle,
 	const int* theClip);                                                        // 0x4252f0
 
-// 0x42bfb0: clips a w x h rectangle at (x, y) to {clipL, clipT, clipR, clipB} (inclusive); 1 when some of it is left
+// 0x42bfb0: clips a w x h rectangle at (x, y) to {theClipL, theClipT, theClipR, theClipB} (inclusive); 1 when some of it is left
 int ClipBlit(int theClipL, int theClipT, int theClipR, int theClipB, int x, int y, int theWidth, int theHeight, int* theOutX, int* theOutY,
 	int* theOutSx, int* theOutSy, int* theOutW, int* theOutH);
 // 0x42c0f0: a palette's colours theFrom to theTo (either way, both included) shade from one colour to the other
 void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t theR0, uint8_t theG0, uint8_t theB0, uint8_t theR1,
 	uint8_t theG1, uint8_t theB1);
 
-// 0x42e0a0: converts w x h pixels at (srcX, srcY) of src to dstFmt at (dstX, dstY) of dst; an 8-bit source reads its colours
+// 0x42e0a0: converts w x h pixels at (srcX, srcY) of src to theDstFmt at (dstX, dstY) of dst; an 8-bit source reads its colours
 // from rgb ({r, g, b, 0} per index). 0 for an 8-bit destination or an unknown depth.
 int ConvertPixels(const PixelFormat* theDstFmt, uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const PixelFormat* theSrcFmt,
 	const uint8_t* theRgb, const uint8_t* theSrc, int theSrcPitch, int theSrcX, int theSrcY, int w, int h);
