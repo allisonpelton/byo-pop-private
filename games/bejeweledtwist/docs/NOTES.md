@@ -1563,3 +1563,37 @@ for one field of the original declared as two members, found no split. Its findi
 lists nothing in the Dynamic and Viz groups that the manager extracts through them), and the accessors work on any id. Since no
 id was removed, no run of ids reached by arithmetic (`IMAGE_..._ID + n`) can have lost a member. The change adds no quoted
 string and changes none, so no name a file, a save or the properties look up was renamed.
+
+## The PopCap Game Collection version (2026-11-11)
+
+The port was made from the retail and Steam copies (`PORT_PLAN.md`, "Which copy's files"), so it is checked against the game's
+version on the PopCap Game Collection disc (`docs/COORDINATION.md`), as AstroPop's section 13 did. `unshield` read the group
+`BejeweledTwistComponent` out of the disc image's cabinet (mounted read-only, dismounted afterwards): 49 files, 48 MB, in
+`re/_installers/BejeweledTwistCollection` (git-ignored, deleted once the check was written up). The folder is laid out as the
+retail one: `BejeweledTwist.exe`, `main.pak`, the 17 `.p3d` meshes, `music/`, `properties/`, `bass.dll`, `j2k-codec.dll`,
+`compat.cfg`, a licence and a readme.
+
+**The exe is the same build.** The Collection's `BejeweledTwist.exe` is the game itself, not wrapped (the retail copy's is
+PopCap's CDProtect launcher with the game appended, Steam's the 2008 DRM wrapper), 4,990,256 bytes against the staged image's
+4,984,832. Both are version 1.0.3.7482 with the same link time; `.text` and `.data` are equal byte for byte. The rest differs
+only where a wrapper's build leaves its mark: the PE header's checksum and security directory, 5,424 bytes of Authenticode
+signature at the end, eight digits after the `POPCAPPACPOP...` marker in `.rdata` (an id each wrap writes: 0x80d2d0, which the
+port never reads) and the resource section (404 bytes smaller in the Collection's, its icons and version data otherwise the same version). Every text and table the port reads from the exe is in
+`.rdata` or `.data` at the same address, so `GameText.cpp` needed no change: a run on the Collection's exe matches every entry,
+as on the Steam image.
+
+**The files.** Against the retail install, 43 of the Collection's 49 files are the same byte for byte, `main.pak` among them.
+Its `resources.xml` is Steam's, not retail's (equal but for line ends), so the Zen visualizer drops resolve as in the Steam
+copy. `partner.xml` is the one real difference: it names the registry key `PopCap\BejeweledTwist` (Steam's `Steam\BejeweledTwist`)
+and has no `MarketingMode`, so on these files Blitz is earned by play as in the retail game (`WinTwistApp.cpp`, the
+`LevelLock` test), where the Steam properties open it at once; it also lacks Steam's `Width`, `Height` and Steam id. The rest:
+the readme, the licence, the `.sig` and the DLLs, which the port does not read. The staged set (the staging script with
+`--own-properties`, new for this check, which takes `properties/` from the folder given instead of a Steam copy) equals the
+Steam staging but for the exe and `partner.xml`.
+
+**The port on the Collection's files** (`tools/collection/run.sh`, under rundesk). The suite's four seeded games (the start's
+menu, Classic to update 5156, Blitz to its high scores, the 3D level-up take-off; 16 screens), with the test registry under the
+Collection's key, give the frozen screens of `tools/check.sh` (BT_MENU, BT_CLASSIC, BT_BLITZ, BT_TAKEOFF), and no text is
+reported missing. The web build was not run on them: its files are the native run's, and the page's importer already takes
+the folder (`web/page.js` marks a game folder by `main.pak` and `BejeweledTwist.exe`, the names the Collection uses). The
+Collection's own exe was not run: it is the same code as the copy origrun runs.
