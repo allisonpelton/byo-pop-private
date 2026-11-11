@@ -101,12 +101,6 @@ void HintDialog::KeyChar(SexyChar theChar)
 		mApp->ButtonDepress(mId + ID_YES_2004);
 }
 
-// 0x438170 slot 50: the preferred height is fixed (ShowHintDialog sizes the box itself and never asks)
-int HintDialog::GetPreferredHeight(int theWidth)
-{
-	return 400;
-}
-
 // 0x438280 (ButtonListener slot 3): the click goes to the app, then the sample in mField120 plays
 void HintDialog::ButtonPress(int theId)
 {

@@ -64,7 +64,7 @@ public:
 	virtual void			SetColor(int theIdx, const Color& theColor) override;			// 0x438660 slot 7 (index 3 goes to the extra buttons too)
 	virtual void			Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x438860 slot 13
 	virtual void			Draw(Graphics* g) override;										// 0x43c8f0 slot 16
-	virtual int				GetPreferredHeight(int theWidth) override;						// 0x438650 slot 50 (a constant, 438)
+	// slot 50, GetPreferredHeight (0x438650, a constant 438), is not translated: the box is sized when it is made and nothing asks
 
 	virtual void			ButtonPress(int theId) override;								// 0x438a80 ButtonListener (+0x58) slot 3
 	virtual void			ButtonDepress(int theId) override;								// 0x43cd90 ButtonListener (+0x58) slot 4

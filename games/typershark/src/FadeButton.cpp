@@ -57,10 +57,12 @@ void FadeButton::SetDisabled(bool isDisabled)
 	mTooltip->SetArmed(false);
 }
 
-// the end of 0x441c10 and 0x441ca0: the tooltip sits centred on the button's x, a font height and 10 pixels
-// above its top, sized to its text
-void FadeButton::PositionTooltip()
+// 0x441ca0 slot 13, and the end of 0x441c10, the Rect overload that no play of the original reaches (not translated: Widget's
+// forwards to this one): the tooltip sits centred on the button's x, a font height and 10 pixels above its top, sized to its text
+void FadeButton::Resize(int theX, int theY, int theWidth, int theHeight)
 {
+	Widget::Resize(theX, theY, theWidth, theHeight);
+
 	Font* aFont = mTooltip->mFont;
 	if (aFont != NULL)
 	{
@@ -74,20 +76,6 @@ void FadeButton::PositionTooltip()
 		aRect.mHeight = aHeight;
 		mTooltip->Resize(aRect);
 	}
-}
-
-// 0x441c10 slot 12
-void FadeButton::Resize(const Rect& theRect)
-{
-	Widget::Resize(theRect);
-	PositionTooltip();
-}
-
-// 0x441ca0 slot 13
-void FadeButton::Resize(int theX, int theY, int theWidth, int theHeight)
-{
-	Widget::Resize(theX, theY, theWidth, theHeight);
-	PositionTooltip();
 }
 
 // 0x446b10 slot 16: ButtonWidget::Draw's layout, with the fading image drawn over the one below it

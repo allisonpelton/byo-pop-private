@@ -61,6 +61,7 @@ public:
 	virtual int				GetPoints();											// slot 0 0x403130: what the word is worth, 1..4 a letter times 15
 	virtual double			GetSpeed();												// slot 1 0x4011f0: mVelX
 	virtual void			TypeLetter();											// slot 2 0x40a5b0: one more letter typed
+	virtual void			SetState(int theState) = 0;								// GameObject slot 7: every creature class overrides it
 
 	void					SetTarget(Enemy* theTarget) { mTarget = theTarget; }	// 0x401250
 	void					SetAttacker(Enemy* theAttacker) { mAttacker = theAttacker; }	// 0x401260

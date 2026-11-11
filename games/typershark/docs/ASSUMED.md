@@ -16,7 +16,8 @@ made when the stub members became the real ones: `mLevelConfig` is `mPlayer` (a 
 `Enemy*`, 0 when there is no boss). `mPaused` (bool, +0xe60) is read by every creature's Draw. `AddBubble(int x, int y)`
 (0x452f30) is confirmed x then y. The Board casts a `Shark*` or `Piranha*` obtained through a virtual base with
 `dynamic_cast` (ENTITIES.md). `WinWSApp::mBoard` is +0x634. `BlackShark::mWord2` and `RedShark::mWord3` are filled by the
-Board (`GetWord2` / `GetWord3` in its code); `WhitePiranha::SetWord2(std::string)`. The event codes the creatures push on
+Board and read by it as fields (the original has accessors, 0x407030 and 0x407170, that no play reaches: not translated);
+`WhitePiranha::SetWord2(std::string)`. The event codes the creatures push on
 `Enemy::mEvents` and what the Board does with each are in BOARD.md, part 5.
 
 ## LessonManager (job P2, done: LessonManager.h/.cpp, LessonManagerConfig.cpp, WinWSAppLoad.cpp)

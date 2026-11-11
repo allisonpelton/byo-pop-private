@@ -85,13 +85,6 @@ GameOverDialog::~GameOverDialog()
 {
 }
 
-// 0x4380a0 slot 3: the two buttons stay in front of the dialog
-void GameOverDialog::OrderInManagerChanged()
-{
-	mApp->mWidgetManager->PutInfront(mYesButton, this);
-	mApp->mWidgetManager->PutInfront(mNoButton, this);
-}
-
 // 0x43b250 slot 16: the lines are drawn one under the other from the top (the font of a header, the rest in the lines font);
 // every line is a text with colour codes, so the numbers are in their own colours. A normal game's score and rank lines are
 // centred; an abyss game's lines are right-justified (50 pixels in from the right) and followed by the note on saving. The

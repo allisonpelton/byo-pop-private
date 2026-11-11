@@ -39,7 +39,7 @@ public:
 	virtual void			Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x438220 slot 13
 	virtual void			Draw(Graphics* g) override;								// 0x43bbe0 slot 16
 	virtual void			KeyChar(SexyChar theChar) override;						// 0x438180 slot 20
-	virtual int				GetPreferredHeight(int theWidth) override;				// 0x438170 slot 50 (always 400)
+	// slot 50, GetPreferredHeight (0x438170, always 400), is not translated: ShowHintDialog sizes the box itself and nothing asks
 
 	virtual void			ButtonPress(int theId) override;						// 0x438280 ButtonListener (+0x58) slot 3
 

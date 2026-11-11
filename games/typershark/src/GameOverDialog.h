@@ -40,7 +40,8 @@ public:
 		int theScore);																		// 0x43adb0
 	virtual ~GameOverDialog() override;														// 0x43b200 (deleting 0x43b1d0), slot 0
 
-	virtual void			OrderInManagerChanged() override;								// 0x4380a0 slot 3
+	// slot 3, OrderInManagerChanged (0x4380a0, the two buttons stay in front), is not translated: nothing reorders the dialog,
+	// and Dialog's own does the same
 	virtual void			Draw(Graphics* g) override;										// 0x43b250 slot 16
 };
 

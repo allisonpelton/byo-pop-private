@@ -368,7 +368,7 @@ bool Board::AvoidWordOverlap(Enemy* theEnemy)
 			if (aRecordType == 1 || aRecordType == 10)
 			{
 				BlackShark* aBlackShark = dynamic_cast<BlackShark*>(anOther);
-				bool aHasWord2 = aBlackShark->GetWord2() != "";
+				bool aHasWord2 = aBlackShark->mWord2 != "";
 				if (aHasWord2)
 				{
 					std::string aWord = anOther->mWord;
@@ -381,14 +381,14 @@ bool Board::AvoidWordOverlap(Enemy* theEnemy)
 			{
 				RedShark* aRedShark = dynamic_cast<RedShark*>(anOther);
 				aRect.mWidth = anOther->GetFrameWidth();
-				if (aRedShark->GetWord2() != "")
+				if (aRedShark->mWord2 != "")
 				{
 					std::string aWord = anOther->mWord;
 					aRect.mWidth = aRect.mWidth + ((int)aWord.size() + 1) * aCharWidth;
 				}
-				if (aRedShark->GetWord3() != "")
+				if (aRedShark->mWord3 != "")
 				{
-					std::string aWord2 = aRedShark->GetWord2();
+					std::string aWord2 = aRedShark->mWord2;
 					aRect.mWidth = aRect.mWidth + ((int)aWord2.size() + 1) * aCharWidth;
 				}
 			}

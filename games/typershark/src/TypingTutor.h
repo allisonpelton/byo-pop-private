@@ -102,7 +102,7 @@ class TypingTutor : public Widget, public ButtonListener
 public:
 	enum
 	{
-		NEXT_BUTTON_ID = 0x58,				// the next lesson (also what the app sends to start the tutor: ActivateTypingTutor)
+		NEXT_BUTTON_ID = 0x58,				// the next lesson
 		PREV_BUTTON_ID = 0x59,				// the previous lesson
 		MENU_BUTTON_ID = 0x5a,				// back to the menu (asks first)
 		OPTIONS_BUTTON_ID = 0x5b			// the options dialog

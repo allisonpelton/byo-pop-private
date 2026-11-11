@@ -806,8 +806,8 @@ the port's `Rect` has (0x402020). Nothing in this group is game logic the port n
   no machine of ours does. Its body (the pause, the counter, the dialog 0x30b, the fonts, the spacing and the insets) agrees with the export.
 - *Compiler-made, kept.* The deleting destructors `ProjectileBoss` 0x4083c0, `Projectile` 0x4098e0 and `TabPanel` 0x444700: the objects
   they free are not freed through that slot in a run (the stats pages live until the exit).
-- *Candidates for taking out code the port does not need (13), no play of the original reaches them and the port has no caller; they stay
-  until the removal pass:* `GameObject::SetState` 0x4010e0 and `Projectile::HitsTarget` 0x4018c0 (bases that every class overrides),
+- *Candidates for taking out code the port does not need (13), no play of the original reaches them and the port has no caller; taken out
+  in the removal pass, section 13:* `GameObject::SetState` 0x4010e0 and `Projectile::HitsTarget` 0x4018c0 (bases that every class overrides),
   `BlackShark::GetWord2` 0x407030 and `RedShark::GetWord3` 0x407170 (the original reads the fields where the port calls the accessor: replace
   by the field), `ActivateTypingTutor` 0x412c90 and `FocusTypingTutor` 0x412d00 (their only caller was the register dialog), the
   `GetPreferredHeight` of `HintDialog` 0x438170 and `OptionsDialog` 0x438650 (no one asks them), `StatsScreen::ButtonPress` 0x441320
@@ -823,3 +823,28 @@ phase 2 as well (CLAUDE.md: 2D and 3D where both exist); it needs the original w
 **Cost.** The 23 runs took about 1 to 3 minutes of machine time each on the virtual clock. The five tours took the most work: their click
 positions come from the port's own pictures, and the host takes no shots. Every change to the sources was a comment; `tools/check.sh
 typershark` was run for them.
+
+## 13. Removal of code the port does not need (2026-11-11)
+
+The 13 functions that section 12 lists as candidates are out of the port: the original's own code for each of them ran in none of the
+23 coverage runs, and nothing in the port called it. Each has a `none` line in `coverage.txt` with its reason, and the report now
+lists 478 functions left out on purpose (306 and 159 as before, and these 13), none reached by the original without a counterpart,
+and 9 defined in the port and never reached (22 before): the deleting destructors, `UserProfile::CountKill`, `ShowNoWindowedModeMessage`,
+`Board::BuildWaterImage`, `ResetScroll` and `XWidget::MouseEnter` and `MouseLeave`, all of section 12's other lists.
+
+| Original | What the port did | Now |
+|---|---|---|
+| `GameObject::SetState` 0x4010e0 (`mState = theState`) | the base's body | no `SetState` in `GameObject`; `Enemy` declares it pure (every creature class overrides it) and `Player` declares its own. Bubbles, background fish and bonus texts are never given a state |
+| `Projectile::HitsTarget` 0x4018c0 | the base's box test | pure; `Torpedo` and the shots below it have their own |
+| `BlackShark::GetWord2` 0x407030, `RedShark::GetWord3` 0x407170 | accessors that return a copy | the four callers (`BoardUpdate.cpp`, `BoardWaves.cpp`) read `mWord2` and `mWord3`, as the original does |
+| `ActivateTypingTutor` 0x412c90, `FocusTypingTutor` 0x412d00 | `WinWSApp` members | gone (their only caller was the register dialog, removed in the registration phase) |
+| `HintDialog` 0x438170 and `OptionsDialog` 0x438650 `GetPreferredHeight` | constants 400 and 438 | gone: `SexyAppBase::AddDialog` asks only a dialog whose width is 0, and both boxes are sized when they are made |
+| `StatsScreen::ButtonPress` 0x441320 | the button-click sound | gone, and with it the class's `ButtonListener` base: nothing registers the screen as a listener, so the port's class is a `Widget` alone |
+| `FadeButton::Resize(const Rect&)` 0x441c10 | an override that placed the tooltip | gone: `Widget::Resize(const Rect&)` forwards to the four-argument one, which does it; `PositionTooltip`, now with one caller, went back into it |
+| `TabPanel::GetChild` 0x4446f0 and `AddChild` 0x4516a0 | two virtuals | gone (the panels fill `mChildren` themselves) |
+| `GameOverDialog::OrderInManagerChanged` 0x4380a0 | put the two buttons in front | gone: `Dialog`'s does the same |
+
+Every change keeps the draw order and every other behaviour: `tools/check.sh build typershark` passes (the whole native build, tools
+included, and the 13 games' state-log hashes equal to `regress_expected.txt` and to the frozen baseline's), and the web build compiles. The
+other games' builds are unaffected (nothing outside `games/typershark/` changed). A removed function that a later mod needs comes back from
+section 12's addresses.

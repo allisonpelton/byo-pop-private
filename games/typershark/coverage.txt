@@ -477,3 +477,18 @@ none 00451515 Catch@00451515: exception handler block of the compiler (a catch f
 none 004515cf Catch@004515cf: exception handler block of the compiler (a catch funclet): nothing to translate, the port reports errors its own way
 none 004516c0 FUN_004516c0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
 none 004530b0 FUN_004530b0: standard library code or a compiler helper for it (string, vector, map, stream, exception classes) for the game's types
+
+# Taken out in the removal pass of 2026-11-11 (GAME_NOTES section 12): no play of the original reaches them and nothing in the port called them.
+none 004010e0 Sexy::GameObject::vf07: the base SetState: every creature that is given a state overrides it (Enemy and Player declare it in the port)
+none 004018c0 Sexy::Projectile::vf01: the base HitsTarget: Torpedo and the shots below it each have their own (pure in the port)
+none 00407030 Sexy::BlackShark::vf00: the accessor of mWord2: the original reads the field, as the port does
+none 00407170 Sexy::RedShark::vf01: the accessor of mWord3: the original reads the field, as the port does
+none 00412c90 FUN_00412c90: ActivateTypingTutor: its only caller was the register dialog (removed)
+none 00412d00 FUN_00412d00: FocusTypingTutor: its only caller was the register dialog (removed)
+none 004380a0 Sexy::GameOverDialog::vf03: OrderInManagerChanged: nothing reorders the dialog, and Dialog's own keeps the buttons in front too
+none 00438170 Sexy::HintDialog::vf50: GetPreferredHeight: nothing asks, the hint box is sized by ShowHintDialog
+none 00438650 Sexy::OptionsDialog::vf50: GetPreferredHeight: nothing asks, the options box is sized when it is made
+none 00441320 Sexy::StatsScreen::vf03_sub88: ButtonPress of the stats screen: nothing registers it as a listener (the port's class has no listener part)
+none 00441c10 Sexy::FadeButton::vf12: Resize(const Rect&): nothing calls it, Widget's forwards to the four-argument one
+none 004446f0 Sexy::TabPanel::vf49: GetChild: nothing calls it
+none 004516a0 Sexy::TabPanel::vf48: AddChild: nothing calls it, the panels fill mChildren themselves
