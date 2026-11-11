@@ -51,8 +51,10 @@ var ByopopChat = (function () {
   // ---------- the rules ----------
   function storage() { try { return window.localStorage || null; } catch (e) { return null; } }
 
-  // What the viewer typed as a username, made ready to check: Discord ignores case and lowercases what is typed
-  function cleanUsername(raw) { return String(raw === undefined || raw === null ? "" : raw).trim().toLowerCase(); }
+  // What the viewer typed as a username, made ready to check: its ends trimmed and nothing else. A chat name is the person's
+  // Discord username exactly as Discord gives it, never lowercased or otherwise changed by us (the user, 2026-11-11;
+  // docs/CHAT_DESIGN.md), and never taken from a profile's name
+  function cleanUsername(raw) { return String(raw === undefined || raw === null ? "" : raw).trim(); }
   // "" when the name is a valid username, else the reason. Discord's current rules (support.discord.com, "New Usernames &
   // Display Names"): 2 to 32 characters; lowercase Latin letters, digits, underscore and period; no two periods in a row
   // (a period may start or end a name). Discord bars a few more names of its own; the real names will come from Discord.

@@ -37,8 +37,10 @@ from its table). Fields that are not well formed are dropped from a stored messa
 
 A username follows Discord's current rules: 2 to 32 characters, lowercase Latin letters, digits, underscore and period, and
 never two periods in a row (a period may begin or end a name), as Discord's help article "New Usernames & Display Names"
-has them. Discord lowercases what is typed, so the panel does too before it checks, and the real names will come from Discord,
-which also reserves a few more. There is no sign-in yet: the panel shows a "Sign in with Discord" button that is
+has them. A chat name is the person's Discord username exactly as Discord gives it: the site never lowercases or otherwise
+changes it, and a profile's name never feeds it (the user, 2026-11-11: "going forward let's just have chat names match people's
+Discord usernames exactly so we don't have to worry about that"). The test name typed in the panel is only trimmed, and one with
+capitals is refused by the rules above rather than lowered. The real names will come from Discord, which also reserves a few more. There is no sign-in yet: the panel shows a "Sign in with Discord" button that is
 `aria-disabled` and says "Not available yet". Meanwhile the sender is a test username (`test_player` until changed) that the
 viewer can change in the panel, kept in `byopop-chat-test-name`.
 
