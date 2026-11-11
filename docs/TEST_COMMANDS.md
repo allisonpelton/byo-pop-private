@@ -56,6 +56,13 @@ Mahjong Escapes, Ning Po, Cosmic Bugs and Water Bugs, Bonnie's, Word Harmony) us
 (`Platform::AddSongMemory` adds the mixer's songs; `mOthers` takes any other holder by name), and answers with
 `Platform::LogMemReport`, which adds the process's numbers and prints the line.
 
+`tools/memmap.py <pid>` is the same question asked from outside, of any running game (a port, or an original under origrun):
+it reads the process's address space and totals it by kind (the libraries by module, mapped files, stacks, private memory, the
+part of it in the heaps' first allocations) beside the process's own counters. It reads only, injects nothing and needs no test
+command in the game. It tells what the process holds in libraries and the driver against its own allocations, which `memreport`
+cannot see (`games/alchemy/docs/GAME_NOTES.md`, "The software path", has one on the default path, the software renderer and the
+original). `tools/scaletest` measures the cost and the picture of scaling a finished frame to the window.
+
 A move's `input` steps, played in order (Twist's and Alchemy's drivers set the form, 2026-11-07): `{"move":[x,y]}` moves
 the pointer there (a hover: a piece that hangs from the pointer needs one before its click), `{"click":[x,y]}` clicks
 there, with `"button":"right"` for the right button, `{"press":[x,y]}` and `{"release":[x,y]}` hold and let go for a
