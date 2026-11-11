@@ -774,7 +774,18 @@ libxmp-lite are in About.
 
 - **Storage:** `byopop-music-loop`, `byopop-music-mute`, `byopop-music-volume`, `byopop-music-vis` and
   `byopop-music-rows`.
-- **The view** is the display's lower half; a click cycles spectrum, tracker, nothing. The spectrum is 24 bars from
+- **The piano roll** (the user, 2026-11-09: "add the piano roll too") is the view after the tracker, for a module
+  only, as the tracker is. Its notes are bars on a pitch grid: time runs left to right in rows, 4 pixels a row, with
+  the heard row under a fixed playhead a third of the way in, and pitch runs up the display. The C of each octave
+  has a faint line, and each instrument has one colour of twelve from the 16-colour palette (blue left out, too dark
+  on black). A note lasts until the next note, key off, cut or fade in its channel, or to its pattern's end. The
+  roll reads the cells the tracker reads (`rowText`, `byopop_music_row`), each pattern once. For the player's own
+  tunes the decoder gives the pitch range at once (`bm_range`, the tune's lowest to highest note) and the order list
+  (`bm_order_pattern`, `bm_pattern_rows`; a "+++" order is passed over), so the display is filled with the orders
+  on either side. For a game's module, whose order list the page does not have, the range is that of the patterns
+  heard so far, so it can widen, and only the pattern heard before the current one is shown, at its left. The roll
+  takes the splitter's height and is drawn only when its row, range or size changes.
+- **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, nothing. The spectrum is 24 bars from
   40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
   ("ORD 07  PAT 06  ROW 16/64") and the rows around the one heard; it never scrolls past the pattern's ends. Only
   the channels that play a note somewhere are shown (`bm_used`); when they do not all fit, a scroll bar drawn by

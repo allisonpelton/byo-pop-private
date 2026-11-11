@@ -192,6 +192,64 @@ EMSCRIPTEN_KEEPALIVE int bm_used(bm_module* b, unsigned char* out, int max) {
   return mod->chn;
 }
 
+/* The lowest and highest note anywhere in the module (1 is C-0, 120 is B-9), in out[0] and out[1]; both 0 for a module with no
+   note. The piano roll's pitch range. Read once a tune, when that view is first drawn. */
+EMSCRIPTEN_KEEPALIVE void bm_range(bm_module* b, int* out) {
+  int lo = 0, hi = 0;
+  if (b->mpt) {
+    int channels = openmpt_module_get_num_channels(b->mpt), patterns = openmpt_module_get_num_patterns(b->mpt);
+    for (int p = 0; p < patterns; p++) {
+      int rows = openmpt_module_get_pattern_num_rows(b->mpt, p);
+      for (int r = 0; r < rows; r++)
+        for (int c = 0; c < channels; c++) {
+          int note = openmpt_module_get_pattern_row_channel_command(b->mpt, p, r, c, OPENMPT_MODULE_COMMAND_NOTE);
+          if (note < 1 || note > 120) continue;
+          if (!lo || note < lo) lo = note;
+          if (note > hi) hi = note;
+        }
+    }
+  } else {
+    struct xmp_module* mod = info(b).mod;
+    for (int p = 0; p < mod->pat; p++) {
+      if (!mod->xxp[p]) continue;
+      for (int c = 0; c < mod->chn; c++) {
+        const struct xmp_track* t = mod->xxt[mod->xxp[p]->index[c]];
+        if (!t) continue;
+        for (int r = 0; r < t->rows; r++) {
+          int note = t->event[r].note;
+          if (note < 1 || note > 120) continue;
+          if (!lo || note < lo) lo = note;
+          if (note > hi) hi = note;
+        }
+      }
+    }
+  }
+  out[0] = lo;
+  out[1] = hi;
+}
+
+/* The pattern an order plays; -2 for a marker that the player passes over (libopenmpt's "+++", 254), -1 past the order list or
+   for its end marker ("---", 255) */
+EMSCRIPTEN_KEEPALIVE int bm_order_pattern(bm_module* b, int order) {
+  if (b->mpt) {
+    if (order < 0 || order >= openmpt_module_get_num_orders(b->mpt)) return -1;
+    int p = openmpt_module_get_order_pattern(b->mpt, order);
+    if (p == 254) return -2;
+    return p >= 0 && p < openmpt_module_get_num_patterns(b->mpt) ? p : -1;
+  }
+  struct xmp_module* mod = info(b).mod;
+  if (order < 0 || order >= mod->len) return -1;
+  int p = mod->xxo[order];
+  return p < mod->pat && mod->xxp[p] ? p : -1;
+}
+
+/* A pattern's rows, 0 for none */
+EMSCRIPTEN_KEEPALIVE int bm_pattern_rows(bm_module* b, int pattern) {
+  if (b->mpt) return pattern >= 0 && pattern < openmpt_module_get_num_patterns(b->mpt) ? openmpt_module_get_pattern_num_rows(b->mpt, pattern) : 0;
+  struct xmp_module* mod = info(b).mod;
+  return pattern >= 0 && pattern < mod->pat && mod->xxp[pattern] ? mod->xxp[pattern]->rows : 0;
+}
+
 /* One row of a pattern as text, its channels' cells separated by '|' (libopenmpt's own notation for its modules; for libxmp-lite's
    the note, instrument, volume and effect as a tracker shows them, the effect as libxmp-lite's own type in hex). The text lives
    until the next call. */
