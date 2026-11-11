@@ -76,7 +76,6 @@ public:
 	int					mSeconds;               // +0x5c time the level took
 	int					mTip;                   // +0x60 which tip (0..3)
 	bool				mBonus;                 // +0x64 after the bonus round
-	int					mBonusScore;            // +0x68
 	int					mSaved;                 // +0x6c animals saved on the level
 
 public:

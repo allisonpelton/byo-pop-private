@@ -72,14 +72,12 @@ NoahApp::NoahApp() :
 	mPuzzleNoticeShown = false;
 	mGameScore = 0;
 	mShownScore = 0;
-	mFloodStart = 0;
 	mSavedThisLevel = 0;
 	mAnimalsSaved = 0;
 	mComboCount = 0;
 	mBestCombo = 0;
 	mShowHints = true;
 	mShowTutorial = true;
-	mGameStartTick = 0;
 	mQuitButtonImage = NULL;
 	mOptionsButtonImage = NULL;
 	mQuitButton = NULL;
@@ -457,7 +455,6 @@ void NoahApp::StartGame(bool theContinue)
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToBack(mBoard);
 	mWidgetManager->SetFocus(mBoard);
-	mGameStartTick = GameTickCount();
 	mOptionsButton->SetVisible(true);
 	mQuitButton->SetVisible(true);
 	PlayGameMusic();
