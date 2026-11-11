@@ -1068,6 +1068,24 @@ and the two skip settings are never applied on the player-only page.
 every second row of the game's own pixels, sized through a ResizeObserver. **Colour filter** (`colorFilter`: none,
 grey, sepia, warm, contrast, vivid) is a CSS filter on the canvas.
 
+Two more choices of the colour filter show the game as a 256-colour screen did (the user, 2026-11-09: "Is it possible to
+make a filter for the game windows to make them appear in 256 colors only?"): **256 colours** (`pal256`) makes each
+pixel the nearest colour (in plain RGB distance) of the palette Windows kept for programs that set none, its 20 static
+colours and the 6x6x6 cube of levels 0, 51, 102, 153, 204 and 255: 228 distinct colours, since eight static colours
+are on the cube. **256 colours, dithered** (`pal256d`) first moves each colour by an 8x8 ordered (Bayer) dither of up to
+half a step of the cube, in the game's own pixels at any scale. They are drawn by a WebGL canvas the size of the game
+canvas's own pixels, laid over it at its exact box (left, top, size and `image-rendering` copied; it follows the
+window's scales, maximize and full screen) and under the scanlines, taking no input. It is filled in the framework's
+frame hook (`Module.byopopTestFrame`) on each frame the game drew, while that frame's picture is still in the game's
+canvas, by a shader that rounds to the cube and compares with the twelve static colours the cube lacks. Until the
+game's next drawn frame the overlay stays unseen, since the game's canvas keeps no picture between frames. Another
+choice removes the canvas and loses its context; the hook stays installed and returns at once.
+Checked in the pane (2026-11-11) with Bejeweled and BookWorm: the overlay's box equals the canvas's at 1x, centred in a
+maximized window and at 2x. Every pixel read back from it is in the palette, and none is farther from the game's pixel
+than the nearest palette colour. At 2x every game pixel stays one colour. The game's hover and clicks pass through it.
+The copy and the draw take about 1 ms a drawn frame at 1280 x 960 (a GTX 1080, read back to force them to finish), and
+0.2 ms of the main thread.
+
 ### Controls
 
 The Controls panel (`web/controls.js`) lists the game's controls in our own short words, from
