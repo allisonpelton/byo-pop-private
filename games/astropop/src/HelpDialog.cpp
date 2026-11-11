@@ -13,12 +13,12 @@
 using namespace Sexy;
 
 // 0x48ab10: the box is of the colour set it is given (the game's mode + 2, or 1 from the selector). The lines of the first
-// page are those of the game that is on: none (from the selector: all the rules), the classic game (m1a60 is 1) or the other.
+// page are those of the game that is on: none (from the selector: all the rules), the classic game (mGameType is 1) or the other.
 HelpDialog::HelpDialog(int theColourSet, AstroPopApp* theApp) :
 	Text2004<Dialog>(IMAGE_DIALOG, IMAGE_DIALOG_BTN, 0x79, true, GT(0x0056b554), std::string(), std::string(), 1)
 {
 	mApp = theApp;
-	m134 = 0;
+	mLinesTopOffset = 0;
 	mTextIndent = IMAGE_FUELCELL->mWidth + 10;
 	mPage = 0;
 
@@ -34,7 +34,7 @@ HelpDialog::HelpDialog(int theColourSet, AstroPopApp* theApp) :
 		mLines.push_back(GT(0x56bd38));
 		mLines.push_back(GT(0x56bcc0));
 	}
-	else if (theApp->mBoard->m1a60 == 1)
+	else if (theApp->mBoard->mGameType == 1)
 	{
 		mLines.push_back(GT(0x56c19c));
 		mLines.push_back(GT(0x56c16c));
@@ -130,7 +130,7 @@ void HelpDialog::Draw(Graphics* g)
 		int aUsed = 0;
 		for (size_t i = 0; i < mLines.size(); i++)
 		{
-			int aTop = m134 + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed;
+			int aTop = mLinesTopOffset + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed;
 			g->SetColor(Color(0xff, 0xff, 0xff));
 			g->FillRect(mContentInsets.mLeft, aTop, 8, 8);
 			Rect aRect(mContentInsets.mLeft + 0x10, aTop - 4, ((mWidth - mContentInsets.mRight) - mContentInsets.mLeft) - 0x10,
@@ -141,7 +141,7 @@ void HelpDialog::Draw(Graphics* g)
 
 		std::string aMore = GT(0x56b50c);
 		Rect aRect(mContentInsets.mLeft,
-				   m134 - 10 + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed,
+				   mLinesTopOffset - 10 + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed,
 				   ((mWidth - mContentInsets.mRight) - mContentInsets.mLeft) - 0x10, mHeight);
 		WriteWordWrapped(g, aRect, aMore, -1, 0);
 	}
@@ -156,7 +156,7 @@ void HelpDialog::Draw(Graphics* g)
 		for (unsigned int i = aStart; i < anEnd; i++)
 		{
 			Image* anImage = mItems[i].mImage;
-			int aTop = m134 + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed;
+			int aTop = mLinesTopOffset + mLinesFont->GetHeight() * 2 + mSpaceAfterHeader + mContentInsets.mTop + aUsed;
 			g->DrawImageCel(anImage, mContentInsets.mLeft, aTop, 0);
 			Rect aRect(mTextIndent + mContentInsets.mLeft, aTop,
 					   ((mWidth - mTextIndent) - mContentInsets.mLeft) - mContentInsets.mRight, 0);

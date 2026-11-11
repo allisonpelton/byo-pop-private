@@ -56,7 +56,8 @@
 #                lighting, game shaders, buffers, precompiled programs, the null device), exact pixels (seconds)
 #   origrun      tools/origrun/build.sh into build/logs/check/origrun-bin (not into build/origrun-bin, whose origrun.exe
 #                may be running): that the host and its sound stand-in still compile, and --coverage on covtest.exe
-#                (tools/origrun/covtest.sh; seconds); not in `all`
+#                (tools/origrun/covtest.sh; seconds), and the network block and launch guard on nettest.exe (tools/origrun/nettest.sh; seconds);
+#                not in `all`
 #   verify      Bejeweled's headless verifier tests (games/bejeweled/tools/verify/run_tests.sh)
 #   modmenu      the mod menu's scripted runs, all games (tools/modmenutest/run_tests.sh all)
 #   livesplit    Bejeweled's, Big Money's and BookWorm's LiveSplit tests
@@ -180,6 +181,8 @@
 #   games/<g>/**   build, unit, the game's own suites (bejeweled: build-nov verify modmenu livesplit oracle; bigmoney:
 #                  bigmoney livesplit; bookworm: bookworm livesplit; any other game: the suite of its name, if there is one)
 #                  and the web build of that game only (build-web:<g>; Bejeweled's also rulestest and bejeweled_verify)
+#   engines/<e>/** a shared engine (docs/ENGINES.md): build, unit, the suites of every game whose CMakeLists.txt names the
+#                  engine (retro64: cosmicbugs and waterbugs), and the web build of those games only
 #   web/**, cmake/ByopopWeb.cmake, cmake/ByopopStores.cmake, platform/saveimport.json
 #                  build-web and unit-web (seconds when only the listing page changed, but a change to web/modpanel.js,
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
@@ -301,7 +304,7 @@ area_of() {  # <path>: sets AREA to the folder a path is listed under in the pla
 	top="${p%%/*}"; rest="${p#*/}"
 	if [ "$top" = "$p" ]; then AREA="$p"; return; fi
 	case "$top" in
-		games|tools) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$p"; fi ;;
+		games|tools|engines) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$p"; fi ;;
 		platform|third_party) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$top"; fi ;;
 		cmake) AREA="$p" ;;
 		*) AREA="$top" ;;
@@ -326,6 +329,15 @@ pick() {
 }
 
 web_add() { [ -n "${WEB_SEEN[$1]:-}" ] || { WEB_SEEN[$1]=1; WEB_T+=("$1"); }; }  # <target>: a web target to build (when the whole web build is not chosen)
+
+# engine_games <engine>: the games built on a shared engine (engines/<engine>), found by the engine's name in their
+# CMakeLists.txt
+engine_games() {
+	local f
+	for f in games/*/CMakeLists.txt; do
+		grep -q "\b$1\b" "$f" && { f="${f#games/}"; echo "${f%%/*}"; }
+	done
+}
 
 # game_suites <game>: sets GS to the suites that test the game, besides build and unit
 game_suites() {
@@ -357,6 +369,14 @@ classify() {  # <path>: chooses the suites a changed file needs
 				note build-web "$AREA" "$p"
 				if [ "$g" = bejeweled ]; then web_add bejeweled; web_add rulestest; web_add bejeweled_verify; else web_add "$g"; fi
 			fi ;;
+		engines/*/*)  # a shared engine (docs/ENGINES.md): the suites of every game that is built on it
+			x="${p#engines/}"; x="${x%%/*}"
+			pick build "$AREA" "$p"; pick unit "$AREA" "$p"
+			for g in $(engine_games "$x"); do
+				game_suites "$g"
+				for s in $GS; do pick "$s" "$AREA" "$p"; done
+				if [ -f "games/$g/CMakeLists.txt" ]; then note build-web "$AREA" "$p"; web_add "$g"; fi
+			done ;;
 		web/*|cmake/ByopopWeb.cmake|cmake/ByopopStores.cmake)
 			pick build-web "$AREA" "$p"; pick unit-web "$AREA" "$p"
 			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses,
@@ -534,7 +554,7 @@ done
 case "$JOBS" in
 	1|2|3) ;;
 	""|0|*[!0-9]*) echo "check.sh: --jobs takes 1, 2 or 3" >&2; exit 2 ;;
-	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes at a time CLAUDE.md allows; using 3" >&2; JOBS=3 ;;
+	*) echo "check.sh: --jobs $JOBS is more than the 3 game processes one check may take (CLAUDE.md); using 3" >&2; JOBS=3 ;;
 esac
 
 if [ -n "$CHANGED" ]; then
@@ -791,13 +811,16 @@ suite_gpu() {
 
 suite_origrun() {  # the host and its sound stand-in compile (into a folder of this run: origrun.exe may be running)
 	ORIGRUN_OUT="$W/$OUT/origrun-bin" tools/origrun/build.sh > "$1" 2>&1
-	local st=$? cov="the coverage test needs build/native/rundesk.exe"
+	local st=$? cov="the coverage test needs build/native/rundesk.exe" net=""
 	# --coverage from end to end on covtest.exe, a program with no window and no sound (not a game)
 	if [ $st -eq 0 ] && [ -x build/native/rundesk.exe ]; then
 		tools/origrun/covtest.sh "$W/$OUT/origrun-bin" "$W/$OUT/covtest" >> "$1" 2>&1 || st=1
 		cov="$(lastof "$1" 'coverage:')"
+		# the network block from end to end on nettest.exe (tools/origrun/nettest.sh): every hooked call fails at once and is logged
+		tools/origrun/nettest.sh "$W/$OUT/origrun-bin" "$W/$OUT/nettest" >> "$1" 2>&1 || st=1
+		net="; $(lastof "$1" 'network block and launch guard:')"
 	fi
-	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile; $cov"; else SUMMARY="$(grep -m 1 -E 'error|not found|FAIL' "$1" | cut -c1-160)"; fi
+	if [ $st -eq 0 ]; then SUMMARY="origrun.exe and dsound.dll compile; $cov$net"; else SUMMARY="$(grep -m 1 -E 'error|not found|FAIL' "$1" | cut -c1-160)"; fi
 	return $st
 }
 

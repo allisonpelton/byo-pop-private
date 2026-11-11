@@ -105,6 +105,7 @@ struct PEImage
 
 } // namespace
 
+// port: the port's own lookup of the game's texts
 bool ningpo::LoadGameTexts()
 {
 	std::map<uint32_t, std::string>& aTexts = Texts();
@@ -163,6 +164,7 @@ bool ningpo::LoadGameTexts()
 	return aMatched > 0;
 }
 
+// port: the port's own lookup of the game's texts
 const char* ningpo::GameText(uint32_t theVA)
 {
 	std::map<uint32_t, std::string>& aTexts = Texts();

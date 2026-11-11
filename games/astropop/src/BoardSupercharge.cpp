@@ -1,4 +1,4 @@
-// Board: the supercharged colours of the second game type (0x45ac80). The Board keeps up to two marks (m200): the
+// Board: the supercharged colours of the second game type (0x45ac80). The Board keeps up to two marks (mSuperchargeMarks): the
 // colours of brick that are charged. The collected fuel cells of the first type and the check that runs every 300 bricks
 // of the second type call UpdateSupercharge to keep a mark, change it to the colour of the brick above the cell, or pick
 // a new one; each change says so in a text that floats on the field (0x454730).
@@ -55,17 +55,17 @@ void Board::AnnounceText(const std::string& theText)
 	int aY = 0x15e;
 
 	float aLastY = 500000000.0f;
-	if (!m140.empty())
-		aLastY = m140.back()->mY;
+	if (!mFloatTexts.empty())
+		aLastY = mFloatTexts.back()->mY;
 
 	int aHeight = GetFontById(0xb1)->GetHeight();
 	if ((int) aLastY - 0x15e <= aHeight * 2)
 		aY = GetFontById(0xb1)->GetHeight() * 2 + 0x15e;
 
 	FloatText* aText = new FloatText(theText, GetFontById(0xb1), (float) aX, (float) aY, false);
-	m140.push_back(aText);
+	mFloatTexts.push_back(aText);
 	aText->mNoFade = true;
-	aText->m18 = 200;
+	aText->mAlphaDelay = 200;
 }
 
 // 0x45ac80 (the original returns the cell of the brick that was picked, which no caller reads). theCheck is the
@@ -77,15 +77,15 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 	bool aMarkedOnField = false;
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
-		for (unsigned int aRow = 1; aRow < m314.size(); aRow++)
+		for (unsigned int aRow = 1; aRow < mFieldBricks.size(); aRow++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick != NULL && aBrick->mMutated != 1 && aBrick->mType >= 0 && aBrick->mType < 6 && !aBrick->mSpecial &&
 				aBrick->mState != 3)
 			{
 				aNoColourBrick = false;
-				if ((!m200.empty() && m200[0].mType == aBrick->mType && !m200[0].mActive && m200[0].mCount > 0) ||
-					(m200.size() == 2 && m200[1].mType == aBrick->mType && !m200[1].mActive && m200[1].mCount > 0))
+				if ((!mSuperchargeMarks.empty() && mSuperchargeMarks[0].mType == aBrick->mType && !mSuperchargeMarks[0].mActive && mSuperchargeMarks[0].mCount > 0) ||
+					(mSuperchargeMarks.size() == 2 && mSuperchargeMarks[1].mType == aBrick->mType && !mSuperchargeMarks[1].mActive && mSuperchargeMarks[1].mCount > 0))
 					aMarkedOnField = true;
 			}
 		}
@@ -93,57 +93,57 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 
 	if (!theCheck)
 	{
-		if (m200.size() > 1)
+		if (mSuperchargeMarks.size() > 1)
 		{
 			// both marks stay charged; a colour from a cell replaces the marks that are not the check's
 			std::string aText;
-			for (unsigned int i = 0; i < m200.size(); i++)
+			for (unsigned int i = 0; i < mSuperchargeMarks.size(); i++)
 			{
-				m200[i].mCount = 0x5dc;
-				if (theColour != -1 && !m200[i].mActive && m200[i].mType != theColour)
+				mSuperchargeMarks[i].mCount = 0x5dc;
+				if (theColour != -1 && !mSuperchargeMarks[i].mActive && mSuperchargeMarks[i].mType != theColour)
 				{
-					int anOld = -m200[i].mType;
+					int anOld = -mSuperchargeMarks[i].mType;
 					if (anOld == 0)
 						anOld = -500000000;
 					Fire(0x20, anOld);
 					Fire(0x20, theColour);
-					m200[i].mType = theColour;
+					mSuperchargeMarks[i].mType = theColour;
 				}
 
 				if (aText.empty())
-					aText = ColourName(m200[i].mType, false);
+					aText = ColourName(mSuperchargeMarks[i].mType, false);
 				else
-					aText += GT(0x00565560) + ColourName(m200[i].mType, false);
+					aText += GT(0x00565560) + ColourName(mSuperchargeMarks[i].mType, false);
 			}
 
-			if (m200[0].mType == m200[1].mType)
+			if (mSuperchargeMarks[0].mType == mSuperchargeMarks[1].mType)
 			{
-				if (!m200[0].mActive)
-					m200.erase(m200.begin());
+				if (!mSuperchargeMarks[0].mActive)
+					mSuperchargeMarks.erase(mSuperchargeMarks.begin());
 				else
-					m200.erase(m200.begin() + 1);
-				aText = ColourName(m200[0].mType, false);
+					mSuperchargeMarks.erase(mSuperchargeMarks.begin() + 1);
+				aText = ColourName(mSuperchargeMarks[0].mType, false);
 			}
 
 			Fire(0x25, 0xff);
 			aText += GT(0x00565548);
 			aText = Capitals(aText);
-			if (!m910 || !aNoColourBrick)
+			if (!mBonusRoundOn || !aNoColourBrick)
 				AnnounceText(aText);
 			return;
 		}
 
-		if (m200.size() == 1 && (!m200[0].mActive || (theColour != -1 && theColour == m200[0].mType)))
+		if (mSuperchargeMarks.size() == 1 && (!mSuperchargeMarks[0].mActive || (theColour != -1 && theColour == mSuperchargeMarks[0].mType)))
 		{
-			m200[0].mCount = 0x5dc;
-			int anOld = m200[0].mType;
+			mSuperchargeMarks[0].mCount = 0x5dc;
+			int anOld = mSuperchargeMarks[0].mType;
 			bool aPickNew = false;
 			if (theColour == -1)
 			{
-				if (m910 && !aMarkedOnField)
+				if (mBonusRoundOn && !aMarkedOnField)
 				{
 					// nothing of the colour is left: the mark goes
-					std::vector<MarkRec>().swap(m200);
+					std::vector<MarkRec>().swap(mSuperchargeMarks);
 					aPickNew = true;
 				}
 				else
@@ -156,38 +156,38 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 					anOldArg = -500000000;
 				Fire(0x20, anOldArg);
 				Fire(0x20, theColour);
-				m200[0].mType = theColour;
+				mSuperchargeMarks[0].mType = theColour;
 			}
 			else
 				Fire(0x25, 0xff);
 
 			if (!aPickNew)
 			{
-				if ((!m910 || !aNoColourBrick) && m200[0].mType != anOld)
-					AnnounceText(ColourName(m200[0].mType, true) + GT(0x00565530));
+				if ((!mBonusRoundOn || !aNoColourBrick) && mSuperchargeMarks[0].mType != anOld)
+					AnnounceText(ColourName(mSuperchargeMarks[0].mType, true) + GT(0x00565530));
 				return;
 			}
 		}
 	}
-	else if (!m200.empty())
+	else if (!mSuperchargeMarks.empty())
 	{
 		// the check: the marks stay charged, and when one of them is the check's own it is announced again
 		std::string aText;
-		for (unsigned int i = 0; i < m200.size(); i++)
+		for (unsigned int i = 0; i < mSuperchargeMarks.size(); i++)
 		{
-			m200[i].mCount = 0x5dc;
+			mSuperchargeMarks[i].mCount = 0x5dc;
 			if (aText.empty())
-				aText = ColourName(m200[i].mType, true);
+				aText = ColourName(mSuperchargeMarks[i].mType, true);
 			else
-				aText += GT(0x00565528) + ColourName(m200[i].mType, true);
+				aText += GT(0x00565528) + ColourName(mSuperchargeMarks[i].mType, true);
 		}
 
 		Fire(0x25, 0xff);
-		for (unsigned int i = 0; i < m200.size(); i++)
+		for (unsigned int i = 0; i < mSuperchargeMarks.size(); i++)
 		{
-			if (m200[i].mActive)
+			if (mSuperchargeMarks[i].mActive)
 			{
-				if (!m910 || !aNoColourBrick)
+				if (!mBonusRoundOn || !aNoColourBrick)
 					AnnounceText(aText + GT(0x00565530));
 				return;
 			}
@@ -210,7 +210,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 		{
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
-				Brick* aBrick = m314[aRow][aCol];
+				Brick* aBrick = mFieldBricks[aRow][aCol];
 				if (aBrick != NULL && aBrick->mMutated != 1 && aBrick->mType >= 0 && aBrick->mType < 6 && !aBrick->mSpecial)
 				{
 					int aKind = (aBrick->mMutated == 1) ? 0xc : aBrick->mType;
@@ -227,7 +227,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 			unsigned int anIndex = (unsigned int) ((int) AstroRand() % 500000000) % (unsigned int) aCandidates.size();
 			aPickedCol = aCandidates[anIndex].first;
 			aPickedRow = aCandidates[anIndex].second;
-			Brick* aBrick = m314[aPickedRow][aPickedCol];
+			Brick* aBrick = mFieldBricks[aPickedRow][aPickedCol];
 			aMark.mType = (aBrick->mMutated == 1) ? 0xc : aBrick->mType;
 			aMark.mActive = theCheck;
 		}
@@ -235,9 +235,9 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 		{
 			// no colour brick in the top two rows: any colour that is not marked (the original also writes a note to the
 			// demo recording of the framework, which the port does not have)
-			int aColour = ((int) AstroRand() % 500000000) % (m1a28 + 4);
+			int aColour = ((int) AstroRand() % 500000000) % (mExtraColors + 4);
 			while (HasMarkOfType(aColour))
-				aColour = ((int) AstroRand() % 500000000) % (m1a28 + 4);
+				aColour = ((int) AstroRand() % 500000000) % (mExtraColors + 4);
 			aPickedCol = 0;
 			aPickedRow = 0;
 			aMark.mType = aColour;
@@ -250,9 +250,9 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 		// the first brick of that colour, column by column from the top
 		for (int aCol = 0; aCol < 10 && aPickedCol == -1; aCol++)
 		{
-			for (unsigned int aRow = 1; aRow < m314.size(); aRow++)
+			for (unsigned int aRow = 1; aRow < mFieldBricks.size(); aRow++)
 			{
-				Brick* aBrick = m314[aRow][aCol];
+				Brick* aBrick = mFieldBricks[aRow][aCol];
 				if (aBrick != NULL && (!aBrick->mSpecial || aBrick->mMutated == 1))
 				{
 					int aKind = (aBrick->mMutated == 1) ? 0xc : aBrick->mType;
@@ -272,30 +272,30 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 	}
 
 	aMark.mCount = 0x5dc;
-	m200.push_back(aMark);
+	mSuperchargeMarks.push_back(aMark);
 	Fire(0x20, aMark.mType);
 
 	if (theCheck)
 	{
-		mAnim620.Reset();
-		mAnim620.SetDelay(7);
-		mAnim620.SetNumFrames(IMAGE_FUELCELL_DEATH->mNumCols);
-		mAnim620.mHoldLast = true;
-		mAnim620.SetStopped(false);
-		m1b40 = 200;
+		mSuperchargeBlastAnim.Reset();
+		mSuperchargeBlastAnim.SetDelay(7);
+		mSuperchargeBlastAnim.SetNumFrames(IMAGE_FUELCELL_DEATH->mNumCols);
+		mSuperchargeBlastAnim.mHoldLast = true;
+		mSuperchargeBlastAnim.SetStopped(false);
+		mSurvivalBonusTimer = 200;
 	}
 
 	std::string aText;
-	for (unsigned int i = 0; i < m200.size(); i++)
+	for (unsigned int i = 0; i < mSuperchargeMarks.size(); i++)
 	{
-		m200[i].mCount = 0x5dc;
+		mSuperchargeMarks[i].mCount = 0x5dc;
 		if (aText.empty())
-			aText = ColourName(m200[i].mType, false);
+			aText = ColourName(mSuperchargeMarks[i].mType, false);
 		else
-			aText += GT(0x00565560) + ColourName(m200[i].mType, false);
+			aText += GT(0x00565560) + ColourName(mSuperchargeMarks[i].mType, false);
 	}
 	aText += GT(0x00565548);
 	aText = Capitals(aText);
-	if (!m910 || !aNoColourBrick)
+	if (!mBonusRoundOn || !aNoColourBrick)
 		AnnounceText(aText);
 }

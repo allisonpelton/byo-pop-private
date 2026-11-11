@@ -74,7 +74,7 @@ SevenSeasApp::SevenSeasApp()
 	mMusicSlot = 0;
 	mTutorial = true;
 	mDifficulty = 1;
-	mFlag4c4 = true;
+	mPirateWelcome = true;
 	mTalking = false;
 	mTalkWidget = NULL;
 	mBonusNag = true;
@@ -440,12 +440,13 @@ void SevenSeasApp::BuildArrows()
 	}
 }
 
+// port: the framework hook, passed on to the base class
 void SevenSeasApp::LoadingThreadCompleted()
 {
 	SexyApp::LoadingThreadCompleted();
 }
 
-// 0x41c4a0 / 0x41c630: the registry values of the game
+// 0x41c4a0: the registry values of the game (0x41c630 below reads them)
 void SevenSeasApp::WriteToRegistry()
 {
 	SexyApp::WriteToRegistry();
@@ -458,6 +459,7 @@ void SevenSeasApp::WriteToRegistry()
 	RegistryWriteBoolean("WarnWhirlNag", mWarnWhirl);
 }
 
+// 0x41c630
 void SevenSeasApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
@@ -509,14 +511,10 @@ void SevenSeasApp::UpdateFrames()
 		AutoplayUpdate();
 }
 
+// port: the framework hook, passed on to the base class
 void SevenSeasApp::LostFocus()
 {
 	SexyApp::LostFocus();
-}
-
-// 0x420350: the cursor of the game (the images that Init registered are shown by the framework)
-void SevenSeasApp::UpdateCursor()
-{
 }
 
 // 0x420550: music from an order of the game's module; the two slots take turns so that one can fade out as the
@@ -545,11 +543,6 @@ void SevenSeasApp::StartTalk()
 	mTalking = true;
 }
 
-void SevenSeasApp::StopTalk()
-{
-	mTalkWidget->mMode = -1;
-}
-
 // 0x41d750: a picture button; the copies of the pictures belong to the button
 ButtonWidget* SevenSeasApp::AddButton(int theId, const Rect& theRect, Image* theImage, Image* theOverImage, Image* theDownImage)
 {
@@ -566,6 +559,7 @@ ButtonWidget* SevenSeasApp::AddButton(int theId, const Rect& theRect, Image* the
 }
 
 // the menu's button (DialogButton with a picture)
+// port: a helper for the menu's picture buttons
 DialogButton* SevenSeasApp::AddDialogButton(int theId, const Rect& theRect, Image* theImage)
 {
 	DialogButton* aButton = new DialogButton2003(theImage, theId, this);
@@ -680,6 +674,7 @@ void SevenSeasApp::ShowIntro()
 	SetMusicOrder(0x19, true);
 }
 
+// port: a helper that takes the menu's widget away
 void SevenSeasApp::RemoveIntro()
 {
 	if (mIntroWidget != NULL)
@@ -722,7 +717,6 @@ void SevenSeasApp::EndTutorial()
 	KillDialog(DIALOG_QUIT);
 	KillDialog(DIALOG_OPTIONS);
 	KillDialog(DIALOG_HIGH_SCORES);
-	KillDialog(DIALOG_REGISTER);
 	if (HasSavedGame())
 	{
 		ShowContinueDialog();
@@ -935,7 +929,7 @@ void SevenSeasApp::ShowWarning(int theWhich)
 	AddDialog(DIALOG_WARNING, aDialog);
 }
 
-// 0x41f2b0 / 0x421980: the map between the chapters; the help
+// 0x41f2b0: the map between the chapters (0x421980 below is the help)
 void SevenSeasApp::ShowMap()
 {
 	MapWidget* aMap = new MapWidget(this);
@@ -947,6 +941,7 @@ void SevenSeasApp::ShowMap()
 	mWidgetManager->SetFocus(aMap);
 }
 
+// 0x421980
 void SevenSeasApp::ShowHelp()
 {
 	mHelpWidget = new HelpWidget(this);
@@ -972,6 +967,7 @@ bool SevenSeasApp::HasSavedGame()
 	return Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + Board::SavePath(), &aData);
 }
 
+// port: a helper that deletes the saved game's file
 void SevenSeasApp::DeleteSavedGame()
 {
 	Platform::RemoveUserFile(Board::SavePath());
@@ -1106,6 +1102,7 @@ void SevenSeasApp::ButtonDepress(int theId)
 }
 
 // the widgets forward their mouse position to the panel (the panel is not there before the first board)
+// port: a helper
 void SevenSeasApp::FollowMouse(int x, int y)
 {
 	if (mSidePanel != NULL)

@@ -49,7 +49,6 @@ none 0040ff60 a static initializer stub the compiler made (sets a guard flag and
 none 004103e0 a scalar deleting destructor the compiler made (calls the destructor, deletes on bit 0): the port deletes through its own destructors
 none 00410400 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
 none 00410420 a destructor of a dialog or widget (and the code only it runs): the port's members destroy themselves
-none 00412c80 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
 none 00412fc0 the score submission to the PopCap site (the "Submit to Internet High Score List" button, its dialog, the upload and its answer): taken out, no online feature (README.md)
 none 00413000 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string
 none 00413150 a std::string method instance of the original's library (grow, assign, compare, tidy): the port uses std::string

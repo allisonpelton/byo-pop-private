@@ -41,8 +41,8 @@ drawn centred on their places. `Resource.dll` holds 178 layouts: 52 for the adve
 
 ## The standard test commands, the fixes mod and the finishing pass (2026-11-08)
 
-China's finishing pass is Japan's, done once for both (the same code, so the same files: `src/Bot.cpp`, `src/Bot.h` and
-`src/TestCommands.cpp` are copied from Japan's by `games/mahjongjapan/tools/realplay/syncbot.sh`). `games/mahjongjapan/docs/GAME_NOTES.md`
+China's finishing pass is Japan's, done once for both (the same code, so the same files: `Bot.cpp`, `Bot.h` and
+`TestCommands.cpp` are one copy in `engines/mahjongescape/src`). `games/mahjongjapan/docs/GAME_NOTES.md`
 describes each of them; this section says what differs here.
 
 - **The standard test commands** (`docs/TEST_COMMANDS.md`) are Japan's: `state`, `goto`, `level`, `unlock all`, `set`, `win`,
@@ -72,8 +72,8 @@ describes each of them; this section says what differs here.
 ## Performance (2026-11-09)
 
 The performance pass, made once for both games (`games/mahjongjapan/docs/GAME_NOTES.md`, "Performance", describes the method, the
-profile and each change; the code is the same, so the changes are the same files: `engine/Blit.cpp`, `src/MahjongApp.cpp`,
-`src/TestCommands.cpp`, and the shared `MemoryImage::mUploadAsIs`, which this port sets on the screen image too). Measured as
+profile and each change; the code is the same, so the changes are the same files: `engines/jollybear/Blit.cpp`, `engines/mahjongescape/src/MahjongApp.cpp`,
+`engines/mahjongescape/src/TestCommands.cpp`, and the shared `MemoryImage::mUploadAsIs`, which this port sets on the screen image too). Measured as
 Japan's: the minute of play of `tools/check.sh mahjongchina` (the menu, a new player, Dynasty Adventure stage 1 won by the
 solver's clicks, back to the map), the processor time in the window 20 s to 50 s, runs made in turn, the original through
 origrun (3 runs), the port before and after the pass (5 runs each, alternating, the last batch of the pass).
@@ -155,9 +155,12 @@ box and new-player box), so the same coordinates serve.
 `games/mahjongchina/coverage.txt` sets the game's own code as two ranges, 0x401000-0x4171f0 and 0x41dea0-0x4374f0, 1274
 functions. The runs reached 1099 of them, the port defines 985, and 354 are listed as left out on purpose.
 
-**The port's comments carry Japan's addresses.** The port was made from Japan's, so the comment above a function says
-where Japan's exe has it, not China's. `tools/coverage.py` reads them through `re/mahjongchina/compare/addrmap.tsv`
-(`addrmap` in coverage.txt, columns 1 and 2). The map pairs the two exes' functions (4460 rows when this began); at
+**The port's comments carry both addresses.** The code is shared with Japan's (`engines/jollybear`,
+`engines/mahjongescape`), so the comment above a function gives China's address and Japan's, each with its game's name
+after it (`0x420860 (mahjongchina), 0x42a9f0 (mahjongjapan)`), and `tools/coverage.py` reads the addresses tagged
+`mahjongchina`. China's were set from `re/mahjongchina/compare/addrmap.tsv` when the two ports became one code: code
+that only Japan's exe has keeps Japan's address alone, and a range whose end the map could not pair ends at the next
+function in China's exe. The map pairs the two exes' functions (4460 rows when this began); at
 first the report showed 200 functions reached in the original with no counterpart and 103 neither reached nor
 defined, many of them simply missing from the map. `games/mahjongchina/tools/pairgaps.py` adds the pairs the map
 lacked: the two builds keep their functions in the same order, so the functions between two mapped neighbours of one
@@ -267,7 +270,7 @@ The pass is Ancient Japan's, made here the same way (its section of this name ha
 method): the same 206 renames by scope, the tile's `mBobsAsHint` and `mLiftStart`, the magic tiles' code in the game's own
 words (`TakeGold`, `TakeKeyAndLock`, `TakeJoker`, `TakeMagnet` and the names built on them), the tile kinds, the flight
 kinds and phases, the screen size and the cursor kinds, the port markers, the comments and the wrapped lines.
-`python tools/namecheck.py games/mahjongchina` has no finding (its `namecheck.txt` adds `engine/` to the check).
+`python tools/namecheck.py games/mahjongchina` has no finding (its `namecheck.txt` adds `engines/jollybear` and `engines/mahjongescape/src` to the check).
 
 The resource names are China's own where its resources are: `src/Res.h` names the 350 ids its code uses, in 602 places.
 An id that both games have means the same thing in both (the string tables match but for five strings Japan adds and

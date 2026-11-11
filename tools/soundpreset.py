@@ -1,6 +1,7 @@
 """tools/soundpreset.py: a soundboard preset (web/soundboards.js, "presets") from a stretch of a port's sound log.
 
-    python tools/soundpreset.py <sound.log> <first update> <last update> [--files <prefix>] [--name <name>] [--when <text>]
+    python tools/soundpreset.py <sound.log> <first update> <last update> [--files <prefix>] [--skip <a,b>] [--name <name>]
+        [--when <text>]
 
 A port writes the sound log when BYOPOP_SOUNDLOG names a file (framework/SDLSoundManager.h): each line is the update it
 happened on and the event. Every sound the game plays from <first update> to <last update> becomes a step, at its time
@@ -9,7 +10,8 @@ logged; the volume relative to the loudest play in the log, so the game's sound 
 whether it loops, when it is stopped (only when that is before it would end by itself) and every change of its volume
 or pan while it plays. Prints the preset as one line of JavaScript for the table. <prefix> is put before each file name
 (the folder as the import writes it, if the log names the files without it); the extension is the file's in the log, or
-none, and the table matches either (web/sounds.js tries the extensions the game ships).
+none, and the table matches either (web/sounds.js tries the extensions the game ships). --skip leaves out the sounds
+named (the file's name without folder or extension): those the player's own moves played, a bot's in a driven run.
 """
 import argparse
 import json
@@ -39,6 +41,7 @@ def main():
     ap.add_argument("first", type=int)
     ap.add_argument("last", type=int)
     ap.add_argument("--files", default="")
+    ap.add_argument("--skip", default="")
     ap.add_argument("--name", default="Preset")
     ap.add_argument("--when", default="")
     a = ap.parse_args()
@@ -46,7 +49,7 @@ def main():
     names, length = {}, {}
     events = []
     for line in open(a.log, encoding="utf-8", errors="replace"):
-        m = re.match(r"(\d+) load (\d+) (\S+) frames=(\d+) rate=(\d+)", line)
+        m = re.match(r"(\d+) load (\d+) (.+?) frames=(\d+) rate=(\d+)", line)
         if m:
             i = int(m.group(2))
             names[i] = m.group(3).replace("\\", "/")
@@ -54,19 +57,28 @@ def main():
             continue
         m = re.match(r"(\d+) (play|stop|volume|pan|pitch) (\d+) #(\d+)\s*(.*)", line)
         if m:
-            events.append((int(m.group(1)), m.group(2), int(m.group(3)), int(m.group(4)), m.group(5)))
+            # the name and length the id has now: a game may load another file into an id it used before (Bookworm
+            # Adventures' foes' sounds)
+            sid = int(m.group(3))
+            events.append((int(m.group(1)), m.group(2), sid, int(m.group(4)), m.group(5), names.get(sid, str(sid)), length.get(sid, 0)))
 
-    vols = [int(re.search(r"vol=(-?\d+)", e[4]).group(1)) for e in events if e[1] == "play"]
+    skip = set(x for x in a.skip.split(",") if x)
+
+    def short(name):
+        return re.sub(r"\.[^./]*$", "", name.rsplit("/", 1)[-1])
+
+    # a volume above full is logged as more than 0 dB, and plays at full (framework/SDLSoundManager.cpp, LogVolume)
+    vols = [min(0, int(re.search(r"vol=(-?\d+)", e[4]).group(1))) for e in events if e[1] == "play"]
     base = max(vols) if vols else 0
     steps, live = [], {}
     t0 = None
-    for (u, kind, sid, inst, rest) in events:
-        if kind == "play" and a.first <= u <= a.last:
+    for (u, kind, sid, inst, rest, name, secs) in events:
+        if kind == "play" and a.first <= u <= a.last and short(name) not in skip:
             m = re.search(r"vol=(-?\d+) pan=(-?\d+) pitch=([-\d.]+) loop=(\d)", rest)
             if t0 is None:
                 t0 = u
-            step = {"file": a.files + names.get(sid, str(sid)), "at": (u - t0) * 10, "sid": sid, "u": u}
-            v, p, r, loop = int(m.group(1)) - base, int(m.group(2)), float(m.group(3)), m.group(4) == "1"
+            step = {"file": a.files + name, "at": (u - t0) * 10, "sid": sid, "u": u, "len": secs}
+            v, p, r, loop = min(0, int(m.group(1))) - base, int(m.group(2)), float(m.group(3)), m.group(4) == "1"
             if v:
                 step["v"] = v
             if p:
@@ -84,12 +96,12 @@ def main():
                 continue
             at = (u - t0) * 10
             if kind == "stop":
-                natural = s["at"] + length.get(s["sid"], 0) * 1000 / s.get("r", 1)
+                natural = s["at"] + s["len"] * 1000 / s.get("r", 1)
                 if s.get("loop") or at < natural - 10:
                     s["end"] = at
                 del live[inst]
             elif kind == "volume":
-                v = int(rest.split()[0]) - base
+                v = min(0, int(rest.split()[0])) - base
                 if v != s["_v"]:
                     s.setdefault("ramp", []).append([at, v])
                     s["_v"] = v

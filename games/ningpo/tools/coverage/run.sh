@@ -10,7 +10,7 @@ H=build/coverage/ningpo/hits; mkdir -p "$H"
 export COVERAGE="$(win "$PWD/build/coverage/ningpo/functions.txt")"
 R="build/origrun/$(basename "$OG_STAGE")"
 rm -f "$R/coverage.txt"
-until python tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+until python tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 if [ -n "$SOUND" ]; then
 	bash "$(dirname "$0")/../sound/orig.sh" "$S" "$T" > /dev/null 2>&1
 	cp "$S/sound-orig.log" "$H/$NAME.log"

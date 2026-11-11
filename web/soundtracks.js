@@ -68,7 +68,8 @@ var ByopopSoundtracks = {
       "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Blitz 3 Minutes", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
       "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Challenge 1",
       "bejeweledtwist24#6": "Challenge 2", "bejeweledtwist24#7": "Bonus" },
-    unused: ["bejewel twist 06.10#10", "bejewel twist 06.10#13", "bejeweledtwist24#8"]
+    unused: ["bejewel twist 06.10#9", "bejewel twist 06.10#10", "bejewel twist 06.10#11", "bejewel twist 06.10#12",
+      "bejewel twist 06.10#13", "bejeweledtwist24#8"]
   },
   bigmoney: {
     files: ["music/*.it"],
@@ -91,18 +92,24 @@ var ByopopSoundtracks = {
     where: { "music#0": "Greek Battle", "music#1": "Greek Map", "music#2": "Greek Boss", "music#3": "Level Complete",
       "music#4": "Boss Defeated", "music#5": "Arabian Battle", "music#6": "Arabian Map", "music#7": "Arabian Boss",
       "music#8": "Credits", "music#9": "Monster Battle", "music#10": "Monster Map", "music#11": "Monster Boss",
-      "music#12": "Main Menu", "music#14": "Mini-Games", "music#15": "Game Over" }
+      "music#12": "Main Menu", "music#14": "Mini-Games", "music#15": "Game Over" },
+    unused: ["music#13"]
   },
-  // the game changes song by level (cosmo1 from the start)
+  // as Water Bugs (its session's reading of CBLevel.cpp, CBMain.cpp and bugs.xml, 2026-11-11): cosmo1 through the logos,
+  // title and menus; a board the song of its level set, 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again by
+  // hundreds from cosmo4 at 100; a new song only at a set's first level, and cosmo1 again on leaving a board
   cosmicbugs: {
     files: ["audio/*.mo3"],
-    where: { "cosmo1#0": "Level Theme 1", "cosmo3#0": "Level Theme 2", "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4",
-      "cosmo4#0": "Level Theme 5" }
+    where: { "cosmo1#0": "Main Menu", "cosmo4#0": "Level Theme 1", "cosmo3#0": "Level Theme 2",
+      "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4" }
   },
+  // the menus play cosmo1; each set of levels its own song, the sets' songs repeating (its session's reading, 2026-11-11):
+  // 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again from cosmo4 at 100 (Level_SetBackground's own song
+  // table is never played)
   waterbugs: {
     files: ["audio/*.mo3"],
-    where: { "cosmo1#0": "Level Theme 1", "cosmo3#0": "Level Theme 2", "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4",
-      "cosmo4#0": "Level Theme 5" }
+    where: { "cosmo1#0": "Main Menu", "cosmo4#0": "Level Theme 1", "cosmo3#0": "Level Theme 2",
+      "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4" }
   },
   dynomite: {
     files: ["music/*.it"],
@@ -124,23 +131,25 @@ var ByopopSoundtracks = {
     files: ["music/*.mo3"],
     cuts: { "wordshar#1": [20] },
     where: { "wordshar#0": "In-Game", "wordshar#1": "Main Menu", "wordshar#1@20": "Map", "wordshar#2": "Game Over", "wordshar#3": "Level Complete",
-      "wordshar#4": "Danger 1", "wordshar#6": "Danger 2" }
+      "wordshar#4": "Danger 1", "wordshar#6": "Danger 2", "wordshar#7": "Treasure", "wordshar#8": "Boss Fight" },
+    unused: ["wordshar#5"]
   },
   mummymaze: {
     files: ["music/*.it"],
     cuts: { "game#9": [67], "game#10": [77] },
     where: { "game#0": "Main Menu", "game#1": "Tutorial", "game#2": "In-Game", "game#3": "Stage Clear",
       "game#5": "Chamber End 1", "game#6": "Chamber End 2", "game#7": "Victory", "game#9@67": "Map", "game#10@77": "High Scores" },
-    unused: ["game#10"]
+    unused: ["game#9", "game#10"]
   },
   // tunes inside the games' own files: the Mahjong Escapes keep their MO3 modules among Resource.dll's resources (the game's
   // module, 339, starts at one of two orders by the player's progress and jumps to others while gold tiles are in play), Ning
-  // Po its one music stream in its Python archive
+  // Po its one music stream and three jingles in its Python archive; the layout select's tune turns with each visit (LayoutSelect's
+  // gMusicTurn): China 338, 336, 337, Japan 337, 336, 337, numbered as the game reaches them
   mahjongchina: {
     inside: [{ file: "resource.dll", magic: "MO3" }],
     chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
-    where: { "Resource 335#0": "Main Menu", "Resource 336#0": "Layout Select 1", "Resource 337#0": "Layout Select 2",
-      "Resource 338#0": "Layout Select 3", "Resource 339#0": "In-Game" }
+    where: { "Resource 335#0": "Main Menu", "Resource 338#0": "Layout Select 1", "Resource 336#0": "Layout Select 2",
+      "Resource 337#0": "Layout Select 3", "Resource 339#0": "In-Game" }
   },
   mahjongjapan: {
     inside: [{ file: "resource.dll", magic: "MO3" }],
@@ -151,16 +160,17 @@ var ByopopSoundtracks = {
   // Word Harmony's music is made as it plays, from WAV clips: the menu's loop, and in the rising-water mode one drum track
   // stepping through the intense pieces as the water rises, intense-between its bridge from each to the next (which piece goes
   // with which height is not known), here as one tune, each piece once; its other modes pick single instrument samples at
-  // random, which are not tunes and are left out, as is intense-levelend (a sound)
+  // random, which are not tunes and are left out, as is intense-levelend (a sound); intenseEnd is the game over's jingle (Game::gameOver)
   wordharmony: {
     files: ["res/music/menuMusic.wav", "res/music/intenseEnd.wav"],
     joined: [{ id: "intense", pieces: ["res/music/intense0.wav", "res/music/intense-between.wav", "res/music/intense1.wav",
       "res/music/intense-between.wav", "res/music/intense1b.wav", "res/music/intense-between.wav", "res/music/intense2.wav",
       "res/music/intense-between.wav", "res/music/intense3.wav", "res/music/intense-between.wav", "res/music/intense4.wav",
       "res/music/intense-between.wav", "res/music/intense5.wav", "res/music/intense-between.wav", "res/music/intense6.wav"] }],
-    where: { menuMusic: "Main Menu", intense: "Rising Water" }
+    where: { menuMusic: "Main Menu", intense: "Rising Water", intenseEnd: "Game Over" }
   },
-  ningpo: { inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg"] }], where: { theme_np: "In-Game" } },
+  ningpo: { inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg", "nm_splash.ogg", "nm_gameover.ogg", "nm_youwin.ogg"] }],
+    where: { theme_np: "In-Game", nm_splash: "Splash Screen", nm_gameover: "Game Over", nm_youwin: "Victory" } },
   // the Ogg games
   bookwormadv2: {
     files: ["music/*.ogg"],

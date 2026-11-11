@@ -331,12 +331,16 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
 .mu-tracker { display: flex; flex-direction: column; }
 .mu-tracker-rows { flex: 1 1 auto; min-height: 0; }
-.mu-tracker-head { flex: none; margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; opacity: .7; }
-/* a channel's number: a click mutes it (web/music.js); a muted one dimmed and struck through */
-.mu-ch { cursor: default; }
-.mu-ch:hover { text-decoration: underline; }
+.mu-tracker-head { flex: none; margin: 0; font: inherit; font-size: 10px; line-height: 16px; white-space: pre; overflow: hidden; opacity: .7; cursor: pointer; }
+/* a channel's column head (its number and instrument): a click mutes it (web/music.js), the whole head the target, lit
+   under the pointer and shown in reverse while pressed; a muted one dimmed and struck through */
+.mu-ch { display: inline-block; height: 16px; vertical-align: top; }
+.mu-ch:hover { background: rgba(255, 255, 255, .14); }
+.mu-ch:active { background: rgba(255, 255, 255, .3); box-shadow: inset 1px 1px 0 rgba(0, 0, 0, .7); }
 .mu-ch-off { opacity: .4; text-decoration: line-through; }
-.mu-ch-off:hover { text-decoration: line-through underline; }
+/* the effect column's button beside Repeat (web/music.js), its name in the button as the players of the time had */
+.mu-btn.mu-fx { font-size: 10px; font-weight: bold; padding: 0; }
+#music .mu-btn.mu-fx[hidden], .mu-btn.mu-fx[hidden] { display: none; }
 /* the tracker's scroll bar (web/music.js): an arrow at each end, a track and its thumb, in the display's colours */
 .mu-hbar { flex: none; display: flex; height: 12px; margin-top: 2px; }
 .mu-hbar[hidden] { display: none; }
@@ -348,8 +352,8 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-hb-track { flex: 1 1 auto; position: relative; margin: 0 2px; border-top: 1px dotted currentColor; border-bottom: 1px dotted currentColor; opacity: .7; }
 .mu-hb-thumb { position: absolute; top: 1px; bottom: 1px; background: currentColor; opacity: .6; }
 /* the display grows by the bar while the tracker has one, so the rows keep their room */
-.mu-vis:has(.mu-tracker:not([hidden])) { height: calc(24px + var(--mu-rows, 5) * 12px); }
-.mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(38px + var(--mu-rows, 5) * 12px); }
+.mu-vis:has(.mu-tracker:not([hidden])) { height: calc(28px + var(--mu-rows, 5) * 12px); }
+.mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(42px + var(--mu-rows, 5) * 12px); }
 /* the splitter between the player and the playlist (web/music.js): a band the height of a few pixels, its grip a pair of lines */
 .mu-split { height: 7px; margin: 0 0 4px; cursor: ns-resize; touch-action: none; position: relative; }
 .mu-split::before { content: ""; position: absolute; left: 50%; top: 2px; width: 24px; margin-left: -12px; height: 3px;
@@ -545,6 +549,7 @@ footer a { color: var(--accent); }
   <p>{{index.footer.about}}</p>
   <p>{{index.footer.trademarks}}</p>
   <p>{{index.footer.music_html}}</p>
+  <p>{{index.footer.tracker}}</p>
   <p>{{index.footer.credit_html}}</p>
 </footer>
 <script src="settingsicons.js"></script>
@@ -1344,5 +1349,33 @@ try {
 </script>
 <!-- Desktop 95 in one page: the pages of the site as windows on the desktop (web/deskapps.js) -->
 <script src="deskapps.js"></script>
+<!-- A test's check of this page, on a development host only (127.0.0.1, localhost and the like: web/terms.js, devHost):
+     ?driver=tools/web/<name>.js fetches that shared driver from tools/webtest/serve.py's /__repo/ (tools/web/deskcheck.js,
+     the desktop's accessibility as a screen reader meets it) and runs it once the page has loaded; its result is
+     window.byopopDeskCheck.result, and the title ends with its verdict. Nothing on any other host, or without the parameter -->
+<script>
+try {
+  (function () {
+    var path = new URLSearchParams(location.search).get("driver");
+    if (!path || !/^tools\/web\/[A-Za-z0-9._-]+\.js$/.test(path) || !(window.ByopopTerms && ByopopTerms.devHost(location))) return;
+    var run = window.byopopDeskCheck = { result: undefined };
+    window.addEventListener("load", function () {
+      fetch("/__repo/" + path, { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error("driver " + path + ": " + r.status);
+        return r.text();
+      }).then(function (code) {
+        var AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+        return new AsyncFunction("t", "args", code + "\n//# sourceURL=" + location.origin + "/__repo/" + path)(null, undefined);
+      }).then(function (v) {
+        run.result = v;
+        document.title += " | " + path.replace(/^.*\/|\.js$/g, "") + ": " + (v && !v.fail ? "PASS" : "FAIL");
+      }, function (e) {
+        run.result = { error: String(e && e.message || e) };
+        document.title += " | " + path.replace(/^.*\/|\.js$/g, "") + ": ERROR";
+      });
+    });
+  })();
+} catch (e) {}
+</script>
 </body>
 </html>

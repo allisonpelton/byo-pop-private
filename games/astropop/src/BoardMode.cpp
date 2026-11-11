@@ -12,125 +12,125 @@
 using namespace Sexy;
 
 // 0x4335e0: the field waits to be cleared
-void Board::Fn4335e0()
+void Board::BeginClearWait()
 {
-	m19fc = 1000;
+	mFreezeUpdatesLeft = 1000;
 	Fire(0x28, 1);
-	m907 = true;
+	mClearWaitStarted = true;
 }
 
 // 0x46f010 (4339 bytes)
 void Board::UpdateSpecialMode()
 {
-	if (m1a34 == 1)
+	if (mPowerupActive == 1)
 	{
-		m1ad0 = (m1ad0 + 4) & 0xff;
-		for (unsigned int i = 0; i < m260.size(); i++)
+		mBonusBannerHue = (mBonusBannerHue + 4) & 0xff;
+		for (unsigned int i = 0; i < mBonusBannerTexts.size(); i++)
 		{
-			m260[i].mX++;
-			if (m260[i].mX >= m260[i].mFont->StringWidth(m260[i].mText) + 0x29e)
+			mBonusBannerTexts[i].mX++;
+			if (mBonusBannerTexts[i].mX >= mBonusBannerTexts[i].mFont->StringWidth(mBonusBannerTexts[i].mText) + 0x29e)
 			{
 				int aMin = 500000000;
-				for (unsigned int j = 0; j < m260.size(); j++)
+				for (unsigned int j = 0; j < mBonusBannerTexts.size(); j++)
 				{
-					if (m260[j].mX < aMin)
-						aMin = m260[j].mX;
+					if (mBonusBannerTexts[j].mX < aMin)
+						aMin = mBonusBannerTexts[j].mX;
 				}
-				m260[i].mX = aMin - m260[i].mFont->StringWidth(m260[i].mText) - 0x1e;
+				mBonusBannerTexts[i].mX = aMin - mBonusBannerTexts[i].mFont->StringWidth(mBonusBannerTexts[i].mText) - 0x1e;
 			}
 		}
 	}
 
-	if (m1a34 == 0)
+	if (mPowerupActive == 0)
 	{
 		// no bonus runs: the meter fills while the field is quiet
-		if (!m910 && !m917 && m8fc && m1bd8 < m1bdc && !mApp->mFlag658)
+		if (!mBonusRoundOn && !mBonusWarpIn && mPlayStarted && mWeaponCharge < mWeaponChargeMax && !mApp->mTutorialOn)
 		{
-			if (m1bd8 < m1bdc)
-				m1bd8 = m1be4 + m1bd8;
-			if (m1bd8 < m1bdc)
+			if (mWeaponCharge < mWeaponChargeMax)
+				mWeaponCharge = mWeaponChargeStep + mWeaponCharge;
+			if (mWeaponCharge < mWeaponChargeMax)
 				return;
-			m1bd8 = m1bdc;
-			mAnim3e0.Reset();
-			mAnim3e0.SetStopped(false);
+			mWeaponCharge = mWeaponChargeMax;
+			mMeterFullAnim.Reset();
+			mMeterFullAnim.SetStopped(false);
 			mApp->PlaySample(SOUND_POWERUP);
 			return;
 		}
-		if (m910)
+		if (mBonusRoundOn)
 			return;
-		if (m1bd8 != m1bdc)
+		if (mWeaponCharge != mWeaponChargeMax)
 			return;
-		if (m1afc != 0)
+		if (mComboTimeLeft != 0)
 			return;
-		if (mApp->mFlag658)
+		if (mApp->mTutorialOn)
 			return;
-		if (!m8fc)
+		if (!mPlayStarted)
 			return;
-		m91b = false;
-		m91c = false;
-		mAnim3e0.Update();
+		mPsychicUsed = false;
+		mLaserUsed = false;
+		mMeterFullAnim.Update();
 		return;
 	}
 
 	// a bonus runs: the meter runs down
-	if (m906)
+	if (mMeterPaused)
 		return;
-	if (mMode == 0 && !m91c)
+	if (mMode == 0 && !mLaserUsed)
 		return;
-	if (mMode == 3 && !m91b)
+	if (mMode == 3 && !mPsychicUsed)
 		return;
-	m1bd8 = m1bd8 - m1be0;
-	if (m6f4 == 0)
+	mWeaponCharge = mWeaponCharge - mWeaponDrainStep;
+	if (mShipShimmerY == 0)
 	{
-		m6fc += 2;
-		if (m6fc > 0x34)
+		mShipShimmerHeight += 2;
+		if (mShipShimmerHeight > 0x34)
 		{
-			m6f4 = 1;
-			m6fc = 0x33;
+			mShipShimmerY = 1;
+			mShipShimmerHeight = 0x33;
 		}
 	}
 	else
 	{
-		m6f4 += 2;
-		if (m6f4 < 0x34)
-			m6fc = 0x34 - m6f4;
+		mShipShimmerY += 2;
+		if (mShipShimmerY < 0x34)
+			mShipShimmerHeight = 0x34 - mShipShimmerY;
 		else
 		{
-			m6f4 = 0;
-			m6fc = 0;
+			mShipShimmerY = 0;
+			mShipShimmerHeight = 0;
 		}
 	}
 
-	if (m1bd8 <= 0.0f && mMode != 1)
+	if (mWeaponCharge <= 0.0f && mMode != 1)
 	{
 		// the bonus is over
-		m1a80 = 0;
-		m1bd8 = 0;
-		m1a34 = 0;
-		mAnim3e0.SetStopped(true);
-		mAnim520.SetStopped(true);
+		mScreenShakeX = 0;
+		mWeaponCharge = 0;
+		mPowerupActive = 0;
+		mMeterFullAnim.SetStopped(true);
+		mTurbotPowerupAnim.SetStopped(true);
 		mApp->PlaySample(SOUND_POWERUP_WORN_OFF);
 		if (mMode == 3)
 		{
-			for (unsigned int i = 0; i < m324.size(); i++)
+			for (unsigned int i = 0; i < mHoverCells.size(); i++)
 			{
-				Brick* aBrick = m314[m324[i].mRow][m324[i].mCol];
+				Brick* aBrick = mFieldBricks[mHoverCells[i].mRow][mHoverCells[i].mCol];
 				if (aBrick != NULL)
 					aBrick->StopFlash();
 			}
-			std::vector<CellRef>().swap(m324);
+			std::vector<CellRef>().swap(mHoverCells);
 		}
-		if (mMode == 2 && !m907 && m1994 == 0 && m7c.empty() && CountMovingBricks(false) == 0)
-			Fn4335e0();
+		if (mMode == 2 && !mClearWaitStarted && mTakenBrickCount == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
+			BeginClearWait();
 		if (!mSirenAnim.mStopped)
-			m1ab8 = 8;
-		m1ac0 = PickSpawnDelay();
+			mPhase = 8;
+		mPhaseDelay = PickSpawnDelay();
 	}
 
-	if (mMode == 1 && !m1a0.empty())
+	if (mMode == 1 && !mAtomicMarkedBricks.empty())
 	{
 		// mode 1: the marked bricks blow up one after the other
-		int aNumAnims = (int) m1b0.size();
+		int aNumAnims = (int) mAtomicExplosions.size();
 		bool aMake = false;
 		bool aFinal = false;
 		if (aNumAnims < 3)
@@ -149,8 +149,8 @@ void Board::UpdateSpecialMode()
 		if (aMake)
 		{
 			ExplosionAnim* anAnim = new ExplosionAnim();
-			unsigned int aPick = (unsigned int) (((int) AstroRand() % 500000000)) % (unsigned int) m1a0.size();
-			const CellRef3& aCell = m1a0[aPick];
+			unsigned int aPick = (unsigned int) (((int) AstroRand() % 500000000)) % (unsigned int) mAtomicMarkedBricks.size();
+			const CellRef3& aCell = mAtomicMarkedBricks[aPick];
 			float aX = (float) (aCell.mCol * 0x2c + 0xa6);
 			anAnim->mX = aX;
 			if (480.0f < aX)
@@ -164,7 +164,7 @@ void Board::UpdateSpecialMode()
 			anAnim->mPingPong = false;
 			anAnim->mHoldLast = true;
 			anAnim->SetStopped(false);
-			m1b0.push_back(anAnim);
+			mAtomicExplosions.push_back(anAnim);
 			mApp->PlaySampleAt(SOUND_EXPLODE1, ((int) anAnim->mX - 0xa6) / 0x2c);
 		}
 		else if (aFinal)
@@ -180,37 +180,37 @@ void Board::UpdateSpecialMode()
 			anAnim->mPingPong = false;
 			anAnim->mHoldLast = true;
 			anAnim->SetStopped(false);
-			m1a44 = 0;
+			mAtomicFlashAlpha = 0;
 			mOverlay.SetFill(255, 255, 255, 0);
 			SetOverlayHidden(false);
-			m1b0.push_back(anAnim);
+			mAtomicExplosions.push_back(anAnim);
 			mApp->PlaySample(SOUND_SLOWDOWN);
 		}
 
 		// (x87 at 24 bits, every result a float: the share of the meter that is left, a quarter of the updates, at most 255)
-		float aRate = 1.0f / m1be0;
-		int aLeft = (int) ((aRate * m1bdc - aRate * m1bd8) * 0.25f);
+		float aRate = 1.0f / mWeaponDrainStep;
+		int aLeft = (int) ((aRate * mWeaponChargeMax - aRate * mWeaponCharge) * 0.25f);
 		if (aLeft > 0xff)
 			aLeft = 0xff;
 		Fire(0x21, aLeft);
 		if (mUpdateCnt % 10 == 0)
 		{
-			m1b24++;
-			if (m1b24 >= IMAGE_SPROCKET_SUPA_OVERLAY->mNumCols)
-				m1b24 = 0;
-			Fire(0x22, m1b24);
+			mSprocketOverlayCel++;
+			if (mSprocketOverlayCel >= IMAGE_SPROCKET_SUPA_OVERLAY->mNumCols)
+				mSprocketOverlayCel = 0;
+			Fire(0x22, mSprocketOverlayCel);
 		}
 
-		if (m8f9)
+		if (mAtomicBlastOver)
 		{
 			// the meter has run out: the bricks that were marked go (the original also filled a list of their cells
 			// that nothing read)
-			m8f9 = false;
-			for (unsigned int i = 0; i < m1a0.size(); i++)
+			mAtomicBlastOver = false;
+			for (unsigned int i = 0; i < mAtomicMarkedBricks.size(); i++)
 			{
-				int aCol = m1a0[i].mCol;
-				int aRow = m1a0[i].mRow;
-				Brick* aBrick = m1a0[i].mBrick;
+				int aCol = mAtomicMarkedBricks[i].mCol;
+				int aRow = mAtomicMarkedBricks[i].mRow;
+				Brick* aBrick = mAtomicMarkedBricks[i].mBrick;
 				if (aBrick->IsIdle())
 				{
 					aBrick->StopFade();
@@ -218,36 +218,35 @@ void Board::UpdateSpecialMode()
 					RemoveBrick(aBrick, aCol, aRow, true);
 				}
 			}
-			m1a34 = 0;
-			m1a80 = 0;
-			m1bd8 = 0;
-			DropUnsupported(ma8);
-			m1a3c = -1;
-			std::vector<CellRef3>().swap(m1a0);
+			mPowerupActive = 0;
+			mScreenShakeX = 0;
+			mWeaponCharge = 0;
+			DropUnsupported(mTakenCells);
+			std::vector<CellRef3>().swap(mAtomicMarkedBricks);
 			if (!mSirenAnim.mStopped)
-				m1ab8 = 8;
-			for (unsigned int aRowIndex = 1; aRowIndex < m314.size(); aRowIndex++)
+				mPhase = 8;
+			for (unsigned int aRowIndex = 1; aRowIndex < mFieldBricks.size(); aRowIndex++)
 			{
 				for (int aColIndex = 0; aColIndex < 10; aColIndex++)
 				{
-					Brick* aBrick = m314[aRowIndex][aColIndex];
+					Brick* aBrick = mFieldBricks[aRowIndex][aColIndex];
 					if (aBrick != NULL)
-						aBrick->mFlag190 = false;
+						aBrick->mSprocketFading = false;
 				}
 			}
-			m1ac0 = PickSpawnDelay();
+			mPhaseDelay = PickSpawnDelay();
 			Fire(0x28, 0);
 			Fire(0x2a, 0);
 		}
 
-		if (m1a40 >= 0)
+		if (mAtomicSymbolTimer >= 0)
 		{
-			m1a40++;
-			if (m1a40 > 0x95)
+			mAtomicSymbolTimer++;
+			if (mAtomicSymbolTimer > 0x95)
 			{
-				m1a40 = -5;
-				if (!m1b0.empty())
-					m1b0[m1b0.size() - 1]->SetStopped(false);
+				mAtomicSymbolTimer = -5;
+				if (!mAtomicExplosions.empty())
+					mAtomicExplosions[mAtomicExplosions.size() - 1]->SetStopped(false);
 				mApp->PlaySample(SOUND_EXPLOSION);
 			}
 		}
@@ -258,33 +257,33 @@ void Board::UpdateSpecialMode()
 		return;
 
 	// mode 2: beams and a wave sweep over the field
-	mAnim520.Update();
-	if (m1a34 == 1)
-		m1a80 = ((int) AstroRand() % 500000000) % 0xb - 5;
+	mTurbotPowerupAnim.Update();
+	if (mPowerupActive == 1)
+		mScreenShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
 	{
-		float aRate = 1.0f / m1be0;
-		int aLeft = (int) ((aRate * m1bdc - aRate * m1bd8) * 0.25f);
+		float aRate = 1.0f / mWeaponDrainStep;
+		int aLeft = (int) ((aRate * mWeaponChargeMax - aRate * mWeaponCharge) * 0.25f);
 		if (aLeft > 0xff)
 			aLeft = 0xff;
 		Fire(0x23, aLeft);
 	}
 	if (mUpdateCnt % 10 == 0)
 	{
-		m1b50++;
-		if (m1b50 >= IMAGE_TURBOT_SUPA_OVERLAY->mNumCols)
-			m1b50 = 0;
-		Fire(0x24, m1b50);
+		mTurbotOverlayCel++;
+		if (mTurbotOverlayCel >= IMAGE_TURBOT_SUPA_OVERLAY->mNumCols)
+			mTurbotOverlayCel = 0;
+		Fire(0x24, mTurbotOverlayCel);
 	}
-	if (m1aa0 < 0xff)
+	if (mTurbotPowerupAlpha < 0xff)
 	{
-		m1aa0 += 2;
-		if (m1aa0 > 0xfe)
-			m1aa0 = 0xff;
+		mTurbotPowerupAlpha += 2;
+		if (mTurbotPowerupAlpha > 0xfe)
+			mTurbotPowerupAlpha = 0xff;
 	}
-	if (m1b58 > 0 && mUpdateCnt % m1b58 == 0)
+	if (mTurbotBeamInterval > 0 && mUpdateCnt % mTurbotBeamInterval == 0)
 	{
-		m1b58 = 0xf - m1a4c / 10;
-		if (m290.size() < 6)
+		mTurbotBeamInterval = 0xf - mTurbotFlashAlpha / 10;
+		if (mTurbotBeams.size() < 6)
 		{
 			LaserRec aBeam;
 			aBeam.mAngle = 0;
@@ -300,60 +299,60 @@ void Board::UpdateSpecialMode()
 			case 5: aBeam.mAngle = 150.0f; break;
 			case 6: aBeam.mAngle = 180.0f; break;
 			}
-			m290.push_back(aBeam);
+			mTurbotBeams.push_back(aBeam);
 		}
 	}
-	for (int i = 0; i < (int) m290.size(); i++)
+	for (int i = 0; i < (int) mTurbotBeams.size(); i++)
 	{
-		m290[i].mLife -= m290[i].mDecay;
-		if (m290[i].mLife < 1)
+		mTurbotBeams[i].mLife -= mTurbotBeams[i].mDecay;
+		if (mTurbotBeams[i].mLife < 1)
 		{
-			m290.erase(m290.begin() + i);
+			mTurbotBeams.erase(mTurbotBeams.begin() + i);
 			i--;
 		}
 	}
-	if (m1a4c < 100 && m1b4c != 3)
+	if (mTurbotFlashAlpha < 100 && mTurbotPhase != 3)
 	{
-		int aOldPhase = m1b4c;
-		m1a4c++;
-		if (m1a4c >= 100)
+		int aOldPhase = mTurbotPhase;
+		mTurbotFlashAlpha++;
+		if (mTurbotFlashAlpha >= 100)
 		{
 			if (aOldPhase == 0)
-				m1b4c = 2;
+				mTurbotPhase = 2;
 			else if (aOldPhase == 1)
-				m1b4c = 3;
+				mTurbotPhase = 3;
 		}
 	}
 
 	bool aDone = true;      // false: leave through the end of the function
-	if (m1b4c == 3)
+	if (mTurbotPhase == 3)
 	{
-		if (m1b54 < 100)
+		if (mTurbotWindUpCounter < 100)
 		{
-			m1b54++;
-			if (m1b54 >= 100)
+			mTurbotWindUpCounter++;
+			if (mTurbotWindUpCounter >= 100)
 			{
-				m1a4c = 0xff;
-				mAnim520.SetStopped(true);
+				mTurbotFlashAlpha = 0xff;
+				mTurbotPowerupAnim.SetStopped(true);
 			}
 			aDone = false;
 		}
 		else
 		{
-			m1a48 -= 10;
-			if (m1a4c >= 0)
+			mTurbotWaveY -= 10;
+			if (mTurbotFlashAlpha >= 0)
 			{
-				m1a4c -= 2;
-				if (m1a4c < 0)
-					m1a4c = 0;
+				mTurbotFlashAlpha -= 2;
+				if (mTurbotFlashAlpha < 0)
+					mTurbotFlashAlpha = 0;
 			}
-			if (!mc8.empty() && m1a48 <= 0xf0 - IMAGE_TURBOT_WAVE->mHeight / 2)
+			if (!mTurbotMarkedCells.empty() && mTurbotWaveY <= 0xf0 - IMAGE_TURBOT_WAVE->mHeight / 2)
 			{
 				// the wave reaches the marked bricks
 				unsigned int i = 0;
-				while (i < mc8.size())
+				while (i < mTurbotMarkedCells.size())
 				{
-					Brick* aBrick = m314[mc8[i].mRow][mc8[i].mCol];
+					Brick* aBrick = mFieldBricks[mTurbotMarkedCells[i].mRow][mTurbotMarkedCells[i].mCol];
 					if (aBrick == NULL)
 					{
 						i++;
@@ -361,42 +360,42 @@ void Board::UpdateSpecialMode()
 					}
 					aBrick->StopShake();
 					aBrick->StopFade();
-					if (m1a8c != 2 || aBrick->mMutated == 1 || aBrick->mType != 9 || ((SpecialBrick*) aBrick)->mStage < 2)
+					if (mWeaponPower != 2 || aBrick->mMutated == 1 || aBrick->mType != 9 || ((SpecialBrick*) aBrick)->mStage < 2)
 					{
-						RemoveBrick(aBrick, mc8[i].mCol, mc8[i].mRow, 2 < m1a8c);
+						RemoveBrick(aBrick, mTurbotMarkedCells[i].mCol, mTurbotMarkedCells[i].mRow, 2 < mWeaponPower);
 						i++;
 					}
 					else
 					{
 						((SpecialBrick*) aBrick)->Crack(true);
-						mc8.erase(mc8.begin() + i);
+						mTurbotMarkedCells.erase(mTurbotMarkedCells.begin() + i);
 					}
 				}
-				DropUnsupported(ma8);
-				std::vector<CellRef>().swap(mc8);
+				DropUnsupported(mTakenCells);
+				std::vector<CellRef>().swap(mTurbotMarkedCells);
 				Fire(0x28, 0);
 				Fire(0x2a, 0);
 				Fire(0x1e);
 			}
-			if (!AnyMoveLeft(NULL) && m19fc > 0x3c)
-				m19fc = 0x3c;
+			if (!AnyMoveLeft(NULL) && mFreezeUpdatesLeft > 0x3c)
+				mFreezeUpdatesLeft = 0x3c;
 		}
 	}
-	else if (!mc8.empty())
+	else if (!mTurbotMarkedCells.empty())
 		aDone = false;
 
-	if (aDone && m1a48 <= -IMAGE_TURBOT_WAVE->mHeight && mc8.empty())
+	if (aDone && mTurbotWaveY <= -IMAGE_TURBOT_WAVE->mHeight && mTurbotMarkedCells.empty())
 	{
-		m1a48 = -0x10000;
-		m1a4c = -1;
-		if (1.0f < m1bd8)
-			m1bd8 = 1.0f;
+		mTurbotWaveY = -0x10000;
+		mTurbotFlashAlpha = -1;
+		if (1.0f < mWeaponCharge)
+			mWeaponCharge = 1.0f;
 		SetOverlayHidden(true);
 	}
-	if (m1a4c < 0)
+	if (mTurbotFlashAlpha < 0)
 	{
 		SetOverlayHidden(true);
 		return;
 	}
-	mOverlay.SetFill(255, 255, 255, m1a4c);
+	mOverlay.SetFill(255, 255, 255, mTurbotFlashAlpha);
 }

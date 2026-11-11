@@ -1,4 +1,4 @@
-// Test hooks: the standard script commands (docs/TEST_COMMANDS.md), reachable only from -script (and the later live
+// port: test hooks: the standard script commands (docs/TEST_COMMANDS.md), reachable only from -script (and the later live
 // channel). A command that is never given changes nothing: no draw, no state. Every command answers with one line on
 // stdout: OK <command>, ERROR <command>: <reason>, STATE {...} or MOVE {...}.
 //
@@ -76,13 +76,13 @@ const char* ScreenName(SevenSeasApp* theApp)
 }
 
 bool CenterOf(Widget* w, int* x, int* y);
-bool GameOver(Board* b);
-bool BotCanMove(Board* b);
+bool GameOver(Board* theBoard);
+bool BotCanMove(Board* theBoard);
 bool UiClick(SevenSeasApp* theApp, std::string* theWhat, int* x, int* y);
 
 std::string StateJson(SevenSeasApp* theApp)
 {
-	Board* b = theApp->mBoard;
+	Board* aBoard = theApp->mBoard;
 	std::string s = std::string("{\"screen\":\"") + ScreenName(theApp) + "\",\"update\":" + Num(theApp->mUpdateCount);
 	if (theApp->mTutorial)
 		s += ",\"mode\":\"tutorial\"";
@@ -122,19 +122,19 @@ std::string StateJson(SevenSeasApp* theApp)
 				s += std::string(i ? "," : "") + "[" + Num(x) + "," + Num(y) + "]";
 		s += "]}";
 	}
-	if (b != NULL)
+	if (aBoard != NULL)
 	{
-		s += std::string(",\"over\":") + (GameOver(b) ? "true" : "false");
+		s += std::string(",\"over\":") + (GameOver(aBoard) ? "true" : "false");
 		// busy: nothing to click yet (a ship sails, a level ends), the game goes on by itself
 		std::string aWhat;
 		int aUX, aUY;
-		s += std::string(",\"busy\":") + ((!GameOver(b) && !BotCanMove(b) && !UiClick(theApp, &aWhat, &aUX, &aUY)) ? "true" : "false");
-		s += ",\"level\":" + Num(b->mLevel) + ",\"score\":" + Num(b->mScore) + ",\"lives\":" + Num(b->mLives) +
-			",\"kills\":" + Num(b->mKillsTotal);
-		s += ",\"board\":{\"player\":[" + Num(b->mPlayerX) + "," + Num(b->mPlayerY) + "],\"heading\":" + Num(b->mHeading) +
-			",\"state\":" + Num(b->mState) + ",\"levelOver\":" + (b->mLevelOver ? "true" : "false") + ",\"ships\":[";
+		s += std::string(",\"busy\":") + ((!GameOver(aBoard) && !BotCanMove(aBoard) && !UiClick(theApp, &aWhat, &aUX, &aUY)) ? "true" : "false");
+		s += ",\"level\":" + Num(aBoard->mLevel) + ",\"score\":" + Num(aBoard->mScore) + ",\"lives\":" + Num(aBoard->mLives) +
+			",\"kills\":" + Num(aBoard->mKillsTotal);
+		s += ",\"board\":{\"player\":[" + Num(aBoard->mPlayerX) + "," + Num(aBoard->mPlayerY) + "],\"heading\":" + Num(aBoard->mHeading) +
+			",\"state\":" + Num(aBoard->mState) + ",\"levelOver\":" + (aBoard->mLevelOver ? "true" : "false") + ",\"ships\":[";
 		bool aFirst = true;
-		for (std::list<Ship*>::iterator anItr = b->mShips.begin(); anItr != b->mShips.end(); ++anItr)
+		for (std::list<Ship*>::iterator anItr = aBoard->mShips.begin(); anItr != aBoard->mShips.end(); ++anItr)
 		{
 			s += std::string(aFirst ? "" : ",") + "[" + Num((*anItr)->mType) + "," + Num((*anItr)->mX) + "," + Num((*anItr)->mY) + "]";
 			aFirst = false;
@@ -145,17 +145,17 @@ std::string StateJson(SevenSeasApp* theApp)
 		for (int x = 0; x < GRID; x++)
 			for (int y = 0; y < GRID; y++)
 			{
-				if (b->mTerrain[x][y] != 0)
+				if (aBoard->mTerrain[x][y] != 0)
 				{
-					s += std::string(aFirst ? "" : ",") + "[" + Num(x) + "," + Num(y) + "," + Num(b->mTerrain[x][y]) + "]";
+					s += std::string(aFirst ? "" : ",") + "[" + Num(x) + "," + Num(y) + "," + Num(aBoard->mTerrain[x][y]) + "]";
 					aFirst = false;
 				}
-				if (b->mVisited[x][y])
+				if (aBoard->mVisited[x][y])
 					aWrecks += std::string(aWrecks.empty() ? "" : ",") + "[" + Num(x) + "," + Num(y) + "]";
 			}
 		s += "],\"wrecks\":[" + aWrecks + "],\"whirlpools\":[";
 		aFirst = true;
-		for (std::list<Port*>::iterator anItr = b->mPorts.begin(); anItr != b->mPorts.end(); ++anItr)
+		for (std::list<Port*>::iterator anItr = aBoard->mPorts.begin(); anItr != aBoard->mPorts.end(); ++anItr)
 		{
 			s += std::string(aFirst ? "" : ",") + "[" + Num((*anItr)->mX) + "," + Num((*anItr)->mY) + "," + ((*anItr)->mActive ? "1" : "0") + "]";
 			aFirst = false;
@@ -166,10 +166,10 @@ std::string StateJson(SevenSeasApp* theApp)
 }
 
 // the bot may move only when the ship waits for a click
-bool BotCanMove(Board* b)
+bool BotCanMove(Board* theBoard)
 {
-	return (b != NULL) && !b->mBonus && ((b->mState == STATE_IDLE) || (b->mState == STATE_BLINK)) && !b->mLevelOver &&
-		(b->mPlayerX >= 0);
+	return (theBoard != NULL) && !theBoard->mBonus && ((theBoard->mState == STATE_IDLE) || (theBoard->mState == STATE_BLINK)) && !theBoard->mLevelOver &&
+		(theBoard->mPlayerX >= 0);
 }
 
 // the middle of a widget, in game coordinates (every widget of the game sits in the one widget manager)
@@ -220,21 +220,21 @@ bool UiClick(SevenSeasApp* theApp, std::string* theWhat, int* x, int* y)
 		*theWhat = "highscores";
 		return CenterOf(theApp->mHighScoreWidget->mNewGameButton, x, y);
 	}
-	Board* b = theApp->mBoard;
-	if (b != NULL && b->mBonus && b->mState != STATE_LEVEL_END && !b->mLevelOver)
+	Board* aBoard = theApp->mBoard;
+	if (aBoard != NULL && aBoard->mBonus && aBoard->mState != STATE_LEVEL_END && !aBoard->mLevelOver)
 	{
 		*theWhat = "bonus";
-		if (b->mBonusState != 0)
+		if (aBoard->mBonusState != 0)
 		{
-			*x = b->mX + Board::CellToPixel(5);
-			*y = b->mY + Board::CellToPixel(5) + 12;
+			*x = aBoard->mX + Board::CellToPixel(5);
+			*y = aBoard->mY + Board::CellToPixel(5) + 12;
 		}
 		else
 		{
 			// a square of the bonus screen that changes with every ask, so that a dug square is not asked for again
-			unsigned int aDice = (unsigned int) (theApp->mUpdateCount * 2654435761u + b->mScore);
-			*x = b->mX + Board::CellToPixel(1 + (aDice >> 8) % 9) + 5 + 21;
-			*y = b->mY + Board::CellToPixel(1 + (aDice >> 16) % 9) + 0x12 + 21;
+			unsigned int aDice = (unsigned int) (theApp->mUpdateCount * 2654435761u + aBoard->mScore);
+			*x = aBoard->mX + Board::CellToPixel(1 + (aDice >> 8) % 9) + 5 + 21;
+			*y = aBoard->mY + Board::CellToPixel(1 + (aDice >> 16) % 9) + 0x12 + 21;
 		}
 		return true;
 	}
@@ -242,9 +242,9 @@ bool UiClick(SevenSeasApp* theApp, std::string* theWhat, int* x, int* y)
 }
 
 // the game is over: the last life is gone
-bool GameOver(Board* b)
+bool GameOver(Board* theBoard)
 {
-	return b != NULL && b->mLives < 1;
+	return theBoard != NULL && theBoard->mLives < 1;
 }
 
 }

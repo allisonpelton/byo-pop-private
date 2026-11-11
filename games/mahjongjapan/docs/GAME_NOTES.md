@@ -15,7 +15,7 @@ the help pages, the tips and the yes/no questions.
 The game's resources are in two modules. `Resource.dll` holds the pictures, the sounds, the music, the 222 layouts
 (`LAYOUTS` resources: 60 for the escape, 162 for the classic game) and the longer texts (`TXT`). The exe holds the
 string tables of the menus and dialogs and two pictures named in its folder (`SplashLogo.bmp`, `MenuLogo.bmp`). The
-port reads both modules with its own PE parser (`src/PeResources.cpp`) and never runs either. The game's texts are
+port reads both modules with its own PE parser (`engines/mahjongescape/src/PeResources.cpp`) and never runs either. The game's texts are
 read from them when the game runs; the few the port needs from the exe's code are named by address in
 `src/GameTextTable.inc` (made by `tools/make_gametext.py`) and are never copied into the repository.
 
@@ -64,7 +64,7 @@ and no buy screen.
 
 The port answers the standard commands (`docs/TEST_COMMANDS.md`) from a test's `-script`, its live channel
 (`-commands=<file>`, `byopop_test_command` on the web) or `-realinput`, through `HandleScriptCommand` in
-`src/TestCommands.cpp`. A command that is never given changes nothing: no draw of the game's random numbers and no state.
+`engines/mahjongescape/src/TestCommands.cpp`. A command that is never given changes nothing: no draw of the game's random numbers and no state.
 
 | Command | What it does |
 |---|---|
@@ -76,8 +76,7 @@ The port answers the standard commands (`docs/TEST_COMMANDS.md`) from a test's `
 | `move` | `MOVE {json}`: the bot's next move and the real input that makes it (below); changes nothing. |
 | `lose`, `seed <n>` | `ERROR`: a game here is never lost (a board with no pair offers the shuffle), and every deal has its seed from the game's own clock (the fixes mod's `-gameseed` is the seed). |
 
-**The bot behind `move`** (`src/Bot.cpp`, one file for both games; `tools/realplay/syncbot.sh` copies it into China's
-folder) works on a copy of the board's layout with the game's own rules for a free tile and a pair. It searches depth
+**The bot behind `move`** (`engines/mahjongescape/src/Bot.cpp`, one file for both games) works on a copy of the board's layout with the game's own rules for a free tile and a pair. It searches depth
 first for a series of pairs that ends the game (the two Magic Gold Tiles of an escape stage, the empty board of a classic
 game), remembers the positions that proved dead, and starts again with another order of the pairs and a larger budget
 when one try fails, up to 60 tries. The key (0x2c) takes the lock (0x2d) it opens, and the wild tiles (0x2e, 0x2f) pair as
@@ -208,12 +207,12 @@ the game's code and were not changed.
 **What the pass changed**, each proved to leave every drawn byte and every random draw as it was (`tools/check.sh` against the
 frozen baseline passes with every picture and checksum the same):
 
-- **The engine's blits** (`engine/Blit.cpp`): the blend of one row went a pixel at a time through three per-channel sums
+- **The engine's blits** (`engines/jollybear/Blit.cpp`): the blend of one row went a pixel at a time through three per-channel sums
   (`Div255`), and a source pixel that is opaque or empty, nearly all of them in this game's art, now skips them: an opaque
   pixel (alpha 255) is stored as it is, which is what the sums give (`Div255(x * 255) == x`), an empty one (all four bytes
   0) leaves the pixel under it. `CopyRgb` and `SetRgb` take a pixel as one word instead of three bytes. 12000 random cases
   of `tools/profile/blittest.cpp` compare each function with the original loops byte for byte.
-- **The screen's way to the widget** (`src/MahjongApp.cpp`, `MahjongHost::Present`): the engine's buffer went into a vector
+- **The screen's way to the widget** (`engines/mahjongescape/src/MahjongApp.cpp`, `MahjongHost::Present`): the engine's buffer went into a vector
   first and from there into the widget's image with a pass over 480000 pixels for alpha; it now goes in one pass, the alpha
   byte set as it is written, and the vector is gone (1.92 MB less).
 - **`MemoryImage::mUploadAsIs`** (shared: commit de23422d, off by default, so no other game changes): `DDInterface::PrepareTexture`
@@ -221,7 +220,7 @@ frozen baseline passes with every picture and checksum the same):
   renderer the machine has; for the screen image, which is opaque, a premultiplied pixel is the same pixel, so both ports
   set the flag and the image goes up in one `SDL_UpdateTexture` call as it is. The widget's draw went from 2.3 to 3.2 G
   cycles per 60 s to 1.0 to 1.4.
-- **`memreport <file>`** (a test command of this port, `src/TestCommands.cpp`, only from a test): what the engine holds,
+- **`memreport <file>`** (a test command of this port, `engines/mahjongescape/src/TestCommands.cpp`, only from a test): what the engine holds,
   by image and by sound (decoded bits and 32-bit copies, sounds and their bytes), the process's working set and private bytes,
   and which music modules are loaded. It prints no number of the game's state and draws nothing.
 
@@ -439,7 +438,7 @@ to its end with a pinned seed.
 
 The last finishing item before the readability pass (`docs/COORDINATION.md`: "figure out what code does not need to be
 present in the decomps"), done as Alchemy's section 10 and Bejeweled's section 22 do it. Registration and the buttons
-that lead out were already out. The survey covers `engine/` and `src/` (the test hooks, `TestCommands.cpp` and `Bot.cpp`,
+that lead out were already out. The survey covers `engines/jollybear/`, `engines/mahjongescape/src/` and `src/` (the test hooks, `TestCommands.cpp` and `Bot.cpp`,
 which tests need, apart) by six scans:
 
 1. **Functions.** The 39 object files of the native build, every defined function against every relocation in all of them
@@ -514,7 +513,7 @@ the removals, find no further dead function, member or constant.
 ## The readability pass (2026-11-11)
 
 The rules are `docs/CODE_STANDARDS.md`. `python tools/namecheck.py games/mahjongjapan` has no finding; the game's
-`namecheck.txt` adds `engine/` to the check with a `folder` line. The two exceptions, `Div255` and `AppendCp1252`, are numbers that belong to their
+`namecheck.txt` adds `engines/jollybear` and `engines/mahjongescape/src` to the check with `folder` lines. The two exceptions, `Div255` and `AppendCp1252`, are numbers that belong to their
 names. The game has no Mac build, so every name comes from how the code uses the thing and from the game's own words.
 
 **Nothing the port does changed, proved by the object code.** The whole pass is renames, named constants, comments and
@@ -549,7 +548,7 @@ commands' answers keep their field names, which are a format.
 
 **Numbers (rule 7).**
 - *Resources.* The original passes its resource ids as numbers, and so did the port: `AddText(0x6a, ...)`,
-  `DrawImage(0, 0, 0x6d, ...)`. `src/Res.h` and `engine/EngineRes.h` now name the 336 ids the code uses (pictures, the
+  `DrawImage(0, 0, 0x6d, ...)`. `src/Res.h` and `engines/jollybear/EngineRes.h` now name the 336 ids the code uses (pictures, the
   fonts' pictures and character maps, sounds, music and strings; the engine's click, the exe's pictures and the splash
   font), in 598 places: `STRING_NO_LAYOUT_TEXT`, `IMAGE_MENU_BACKGROUND`, `FONT_HEADING` with `FONT_HEADING_MAP`,
   `SOUND_SHUFFLE`. A picture is named for what it shows (every picture of Resource.dll and the exe was looked at, on
@@ -559,7 +558,7 @@ commands' answers keep their field names, which are a format.
   (`Deal.cpp`), on about 170 lines of the board, the deal, the layout, the bot and the help pictures.
 - *The board's states.* The twelve flight kinds (`FLIGHT_TAKEN` to `FLIGHT_GOLD_TO_TRAY`, each with the step that follows
   its landing) and the three phases (`Board.h`).
-- *The screen and the cursor.* `SCREEN_WIDTH`, `SCREEN_HEIGHT` and the `CURSOR_KIND` values (`engine/JBBase.h`).
+- *The screen and the cursor.* `SCREEN_WIDTH`, `SCREEN_HEIGHT` and the `CURSOR_KIND` values (`engines/jollybear/JBBase.h`).
 - *Left as numbers.* Positions, sizes and frame counts, whose line says what they are; the scale in percent (100) and the
   alpha (0xff) that every draw call ends with; the resource ids inside tables (`STAGE_IMAGES`, `BACKGROUNDS`), whose
   comment names the table; and each dialog's and layer's command and timer ids, which are local to one class (the

@@ -109,6 +109,7 @@ struct PEImage
 
 }
 
+// port: reads each text out of the player's WinSS.exe by its address, and applies the overrides
 bool Sexy::LoadGameTexts()
 {
 	std::map<unsigned int, SexyString>& aTexts = Texts();
@@ -168,6 +169,7 @@ bool Sexy::LoadGameTexts()
 	return aMatched > 0;
 }
 
+// port: the text the original keeps at an address
 const SexyString& Sexy::GameText(unsigned int theVA)
 {
 	static const SexyString sEmpty;

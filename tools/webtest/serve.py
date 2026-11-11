@@ -8,7 +8,9 @@
   /__assets/<game>/__list       the staged files of assets/<game>/ (git-ignored), as a JSON list of paths
   /__assets/<game>/<path>       one of them
   /__repo/games/<game>/tools/<path>.js   a session's driver script (?driver=), from the repo
-  /__repo/tools/web/<name>.js           a shared driver (tools/web/pagecheck.js); nothing else of the repo
+  /__repo/tools/web/<name>.js           a shared driver (tools/web/pagecheck.js)
+  /__repo/tools/a11ycheck.js            the accessibility checker, which tools/web/deskcheck.js runs on the live page; nothing
+                                        else of the repo
   POST /__shot                  {"run": ..., "name": ..., "png": "data:image/png;base64,..."}: saved as
                                 build/webshots/<run>/<name>.png, for tools/shotdiff (--port build/webshots/<run>)
 
@@ -30,7 +32,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 DEFAULT_PORT = 18780
 NAME = re.compile(r"^[A-Za-z0-9._-]{1,100}$")
 MAX_BODY = 64 << 20
-DRIVER = re.compile(r"^(games/[a-z0-9]+/tools/[A-Za-z0-9._/-]+|tools/web/[A-Za-z0-9._-]+)\.js$")
+DRIVER = re.compile(r"^(games/[a-z0-9]+/tools/[A-Za-z0-9._/-]+|tools/web/[A-Za-z0-9._-]+|tools/a11ycheck)\.js$")
 PNG_PREFIX = "data:image/png;base64,"
 
 
@@ -102,7 +104,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 		if not DRIVER.match(rel) or ".." in rel.split("/"):
 			return self.reply(404, {"error": "only games/<game>/tools/<path>.js and tools/web/<name>.js"})
 		target = os.path.realpath(os.path.join(ROOT, rel))
-		tools = os.path.realpath(os.path.join(ROOT, *rel.split("/")[:3 if rel.startswith("games/") else 2]))
+		tools = os.path.realpath(os.path.join(ROOT, *rel.split("/")[:3 if rel.startswith("games/") else 2 if rel.startswith("tools/web/") else 1]))
 		if not target.startswith(tools + os.sep) or not os.path.isfile(target):
 			return self.reply(404, {"error": "no such driver"})
 		with open(target, "rb") as f:

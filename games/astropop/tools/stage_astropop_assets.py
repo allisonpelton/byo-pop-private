@@ -7,6 +7,8 @@ user's own copy into the git-ignored assets/astropop/ folder (the native exe fin
 levels up).
 
     python games/astropop/tools/stage_astropop_assets.py ["C:/Program Files/PopCap Games/AstroPop Deluxe"] [--out assets/astropop]
+
+The folder is the Steam copy's (with WinAP.exe) or the PopCap Game Collection's (AstroPopDeluxeComponent, with AstroPop.exe).
 """
 import argparse
 import os
@@ -23,31 +25,33 @@ DEFAULT_INSTALLS = [
     r"C:\Program Files (x86)\PopCap Games\AstroPop Deluxe",
 ]
 
-# Folders and files the game reads at runtime. WinAP.exe is read for the game's texts only, never run. Not copied:
+# Folders and files the game reads at runtime. WinAP.exe (Steam) or AstroPop.exe (the Collection) is read for the game's texts
+# only, never run. Not copied:
 # Flash.ocx, drm.swf and drmss.jpg (the launcher's screens),
 # bass.dll (the port plays music itself), the uninstaller, readme/licence, and the player's own data.
 DIRS = ["images", "data", "fonts", "sounds", "music", "properties"]
-FILES = ["WinAP.exe"]
-REQUIRED = ["winap.exe", "properties/resources.xml", "music/music.mo3"]
+FILES = ["WinAP.exe", "AstroPop.exe"]
+EXES = ["winap.exe", "astropop.exe"]
+REQUIRED = ["properties/resources.xml", "music/music.mo3"]
 
 
 def find_install(explicit):
     candidates = [explicit] if explicit else DEFAULT_INSTALLS
     for c in candidates:
-        if c and os.path.isfile(os.path.join(c, "WinAP.exe")) and os.path.isdir(os.path.join(c, "images")):
+        if c and any(os.path.isfile(os.path.join(c, f)) for f in FILES) and os.path.isdir(os.path.join(c, "images")):
             return c
     return None
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("install", nargs="?", help="AstroPop Deluxe install folder (contains WinAP.exe)")
+    ap.add_argument("install", nargs="?", help="AstroPop Deluxe install folder (contains WinAP.exe or AstroPop.exe)")
     ap.add_argument("--out", default=os.path.join(ROOT, "assets", "astropop"))
     args = ap.parse_args()
 
     src = find_install(args.install)
     if not src:
-        sys.exit("Could not find a AstroPop Deluxe install (WinAP.exe, images/). Pass its folder as an argument.")
+        sys.exit("Could not find a AstroPop Deluxe install (WinAP.exe or AstroPop.exe, images/). Pass its folder as an argument.")
     out = os.path.abspath(args.out)
     os.makedirs(out, exist_ok=True)
 
@@ -72,6 +76,8 @@ def main():
             count += 1
 
     missing = [r for r in REQUIRED if not os.path.isfile(os.path.join(out, r))]
+    if not any(os.path.isfile(os.path.join(out, e)) for e in EXES):
+        missing.append("winap.exe or astropop.exe")
     if missing:
         sys.exit(f"Staged {count} files but required files are missing: {missing}")
     print(f"Staged {count} files from {src} -> {out}")

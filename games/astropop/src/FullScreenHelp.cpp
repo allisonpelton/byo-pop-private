@@ -123,6 +123,7 @@ FullScreenHelp::FullScreenHelp(AstroPopApp* theApp) :
 
 // The bricks of the right scene, four rows of seven, each with the picture of its kind (the ones that break up have the
 // picture of that too and a frame counter that waits). The constructor and the start of the scene's round make them alike.
+// port: a helper of the constructor and of the start of the scene's round
 void FullScreenHelp::FillRight()
 {
 	int aIndex = 0;
@@ -147,6 +148,7 @@ void FullScreenHelp::FillRight()
 	}
 }
 
+// port: a helper of the scene's round
 void FullScreenHelp::ClearRight()
 {
 	for (size_t aRow = 0; aRow < mRight.size(); aRow++)
@@ -298,11 +300,11 @@ void FullScreenHelp::Draw(Graphics* g)
 
 	// the level-up of the game that is on, the frame, and in the other game its words
 	Image* aLevelUp = IMAGE_HELP_LEVELUP_CLASSIC;
-	if (mApp->mBoard->m1a60 != 1)
+	if (mApp->mBoard->mGameType != 1)
 		aLevelUp = IMAGE_HELP_LEVELUP_SURVIVAL;
 	g->DrawImage(aLevelUp, kLevelUpX, kLevelUpY);
 	g->DrawImage(IMAGE_HELP_BG, 0, 0);
-	if (mApp->mBoard->m1a60 == 2)
+	if (mApp->mBoard->mGameType == 2)
 	{
 		g->DrawImage(IMAGE_HELP_LEVELUP_SURVIVAL_TEXT, 0x154, 0x109);
 		g->DrawImage(IMAGE_HELP_SURVIVAL, 0x1a0, 0xf6);

@@ -338,13 +338,18 @@ option(BUILD_WORDHARMONY "Build the Word Harmony port" ON)
 if(BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt)
   add_subdirectory(games/wordharmony)
 endif()
-# Cosmic Bugs: Retro64's engine (games/cosmicbugs/engine) under the framework's app host; optional while it is new
+# Retro64's engine (engines/retro64), one copy for Cosmic Bugs and Water Bugs: built when either game is
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
+option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+if((BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt) OR
+   (BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt))
+  add_subdirectory(engines/retro64)
+endif()
+# Cosmic Bugs: Retro64's engine under the framework's app host; optional while it is new
 if(BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt)
   add_subdirectory(games/cosmicbugs)
 endif()
-# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine (games/waterbugs/engine); optional while it is new
-option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine; optional while it is new
 if(BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt)
   add_subdirectory(games/waterbugs)
 endif()
@@ -359,15 +364,19 @@ option(BUILD_BONNIES "Build the Bonnie's Bookstore Deluxe port" ON)
 if(BUILD_BONNIES AND EXISTS ${PROJECT_SOURCE_DIR}/games/bonnies/CMakeLists.txt)
   add_subdirectory(games/bonnies)
 endif()
-# Mahjong Escape: Ancient Japan: JollyBear's engine (games/mahjongjapan/engine) under the framework's app host;
-# optional while it is new
+# The two Mahjong Escape ports share JollyBear's engine (engines/jollybear) and their game code (engines/mahjongescape);
+# optional while they are new
 option(BUILD_MAHJONGJAPAN "Build the Mahjong Escape: Ancient Japan port" ON)
+option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+if((BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt) OR
+   (BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt))
+  add_subdirectory(engines/jollybear)
+endif()
+# Mahjong Escape: Ancient Japan, under the framework's app host
 if(BUILD_MAHJONGJAPAN AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongjapan/CMakeLists.txt)
   add_subdirectory(games/mahjongjapan)
 endif()
-# Mahjong Escape: Ancient China: Ancient Japan's port (games/mahjongchina/engine is a copy of its engine) with China's
-# differences; optional while it is new
-option(BUILD_MAHJONGCHINA "Build the Mahjong Escape: Ancient China port" ON)
+# Mahjong Escape: Ancient China: Ancient Japan's port with China's differences
 if(BUILD_MAHJONGCHINA AND EXISTS ${PROJECT_SOURCE_DIR}/games/mahjongchina/CMakeLists.txt)
   add_subdirectory(games/mahjongchina)
 endif()

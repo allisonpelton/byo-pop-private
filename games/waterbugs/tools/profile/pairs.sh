@@ -6,7 +6,7 @@ cd "$(dirname "$0")/../../../.."
 A="$1"; B="$2"; SCRIPT="$3"; N="$4"; OUT="${5:-/dev/stdout}"
 for i in $(seq 1 "$N"); do
   for E in "$A" "$B"; do
-    until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done
+    until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done
     build/native/rundesk.exe python -I games/waterbugs/tools/profile/cputime.py "$E" "$SCRIPT" >> "$OUT"
   done
 done

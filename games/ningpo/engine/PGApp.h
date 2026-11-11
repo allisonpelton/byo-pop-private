@@ -43,7 +43,6 @@ public:
 	// 0x4131d0 (slot 4)
 	void seed(uint32_t theSeed);
 	// 0x413220 (slot 8): 0..1
-	float nextFloat();
 	// 0x413250 (slot 0xc): 0..theMax, both included
 	uint32_t next(uint32_t theMax);
 };
@@ -163,7 +162,6 @@ public:
 	// 0x40e940 (slot 0x54)
 	void addControl(PGControl* theControl);
 	// 0x40ea00 (slot 0x58)
-	void removeControl(PGControl* theControl);
 
 	// 0x40d690 PGApp::getTime (slot 0xc8): the time spent paused, the pause going on included
 	PyTime getTime() const;

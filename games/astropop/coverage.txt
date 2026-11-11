@@ -257,3 +257,9 @@ none 0040dcc0 std::string comparison helper instantiated in the game's code (the
 none 00421ec0 std::copy_backward of strings (the port uses the standard library)
 none 004240e0 std::string range helper instantiated in the game's code (the port uses the standard library)
 none 004353a0 ScrollbarWidget::DrawThumb of the framework, which the linker placed among the game's code: the port's framework has it (framework/ScrollbarWidget.cpp), the same drawing
+
+none 004062a0 the brick's SetSpeedX (slot 23): no code of the game calls it (the port sets the field itself)
+none 004062b0 the brick's SetSpeedY (slot 24): no code of the game calls it
+none 00402a70 the fuel cell's GetColumn (slot 29): no code of the game calls it
+none 00402a80 the fuel cell's GetRow (slot 30): no code of the game calls it
+none 00408b70 the application's SetMusicVolumeFloat (a virtual of the game, slot 67): nothing calls it
