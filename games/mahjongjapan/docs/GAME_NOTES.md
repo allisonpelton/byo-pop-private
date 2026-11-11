@@ -513,9 +513,8 @@ the removals, find no further dead function, member or constant.
 
 ## The readability pass (2026-11-11)
 
-The rules are `docs/CODE_STANDARDS.md`. `python tools/namecheck.py games/mahjongjapan` has no finding, and neither has
-the engine, which the game folder's check does not reach: `python tools/namecheck.py games/mahjongjapan/engine --config
-games/mahjongjapan/namecheck.txt`. The two exceptions, `Div255` and `AppendCp1252`, are numbers that belong to their
+The rules are `docs/CODE_STANDARDS.md`. `python tools/namecheck.py games/mahjongjapan` has no finding; the game's
+`namecheck.txt` adds `engine/` to the check with a `folder` line. The two exceptions, `Div255` and `AppendCp1252`, are numbers that belong to their
 names. The game has no Mac build, so every name comes from how the code uses the thing and from the game's own words.
 
 **Nothing the port does changed, proved by the object code.** The whole pass is renames, named constants, comments and

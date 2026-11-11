@@ -44,7 +44,8 @@ Two things hold above every rule:
   comment with "stage", "phase" or "milestone" and a number; where that is the game's own word or a file's name, an
   `allow stage` line), and exits nonzero on any finding. `--list` also
   prints what the exceptions allow, and `--checks` picks checks. Exceptions go in `games/<game>/namecheck.txt`, one a
-  line, each with its reason after ` -- `.
+  line, each with its reason after ` -- `. A `folder <name>` line there adds another source folder of the game to the
+  check, for a port that has an engine of its own beside `src/` (Mahjong Escape's `engine/`).
 - `tools/macmatch.py` pairs a Mac build's names with the export's functions (`docs/MACMATCH.md`).
 - `tools/check.sh <game>` proves that play is unchanged: the game's suite against its frozen baseline.
 - A rename is proved by the object code: every unit compiles to the same instructions before and after

@@ -267,8 +267,7 @@ The pass is Ancient Japan's, made here the same way (its section of this name ha
 method): the same 206 renames by scope, the tile's `mBobsAsHint` and `mLiftStart`, the magic tiles' code in the game's own
 words (`TakeGold`, `TakeKeyAndLock`, `TakeJoker`, `TakeMagnet` and the names built on them), the tile kinds, the flight
 kinds and phases, the screen size and the cursor kinds, the port markers, the comments and the wrapped lines.
-`python tools/namecheck.py games/mahjongchina` has no finding, nor has the engine (`python tools/namecheck.py
-games/mahjongchina/engine --config games/mahjongchina/namecheck.txt`).
+`python tools/namecheck.py games/mahjongchina` has no finding (its `namecheck.txt` adds `engine/` to the check).
 
 The resource names are China's own where its resources are: `src/Res.h` names the 350 ids its code uses, in 602 places.
 An id that both games have means the same thing in both (the string tables match but for five strings Japan adds and
