@@ -225,15 +225,23 @@ void NingPoWidget::Draw(Graphics* g)
 	pg::HDisplay* aDisplay = gApp->mGame != nullptr ? gApp->mGame->mDisplay : nullptr;
 	if (aDisplay != nullptr && aDisplay->mScreen.size() >= 640 * 480 && aDisplay->mWidth == 640)
 	{
+		// one table lookup a pixel: the 5-5-5 value widened to 8 bits a channel, as the arithmetic did
+		static uint32_t sColor[32768];
+		static bool sColorReady = false;
+		if (!sColorReady)
+		{
+			for (uint32_t p = 0; p < 32768; p++)
+			{
+				uint32_t r = (p >> 10) & 0x1f;
+				uint32_t gr = (p >> 5) & 0x1f;
+				uint32_t b = p & 0x1f;
+				sColor[p] = 0xff000000 | (((r << 3) | (r >> 2)) << 16) | (((gr << 3) | (gr >> 2)) << 8) | ((b << 3) | (b >> 2));
+			}
+			sColorReady = true;
+		}
 		const uint16_t* aScreen = aDisplay->mScreen.data();
 		for (int i = 0; i < 640 * 480; i++)
-		{
-			uint32_t p = aScreen[i];
-			uint32_t r = (p >> 10) & 0x1f;
-			uint32_t gr = (p >> 5) & 0x1f;
-			uint32_t b = p & 0x1f;
-			aBits[i] = 0xff000000 | (((r << 3) | (r >> 2)) << 16) | (((gr << 3) | (gr >> 2)) << 8) | ((b << 3) | (b >> 2));
-		}
+			aBits[i] = sColor[aScreen[i] & 0x7fff];
 	}
 	else
 	{
