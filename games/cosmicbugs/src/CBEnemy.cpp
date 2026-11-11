@@ -1660,7 +1660,7 @@ int Enemy_Step(Enemy* theEnemy)
 	int aResult = 0;
 	int aPasses = 1;
 	if (theEnemy->image != nullptr &&
-		(theEnemy->x <= 0.0f || 800.0f <= theEnemy->x || theEnemy->y <= 0.0f || 592.0f < theEnemy->y))
+		(theEnemy->x <= 0.0f || 800.0f <= theEnemy->x || theEnemy->y <= 0.0f || 592.0f <= theEnemy->y))
 		return 0;
 	if (theEnemy->countdown != 0)
 	{

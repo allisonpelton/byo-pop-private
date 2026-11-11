@@ -1,0 +1,18 @@
+# Esc on the title: the quit question cancelled, then answered; Esc on the high scores, options and credits screens.
+at 2981 key 27 30
+at 4181 move 460 330
+at 4481 click 460 330 30
+at 5681 move 175 401
+at 5981 click 175 401 30
+at 7481 key 27 30
+at 8681 move 175 357
+at 8981 click 175 357 30
+at 10481 key 27 30
+at 11681 move 175 489
+at 11981 click 175 489 30
+at 13481 key 27 30
+at 14981 key 27 30
+at 16181 move 340 330
+at 16481 click 340 330 30
+at 20000 move 0 0
+quit

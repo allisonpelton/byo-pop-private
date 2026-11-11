@@ -91,6 +91,17 @@ carries the cookie; the Worker verifies it and the `Origin` header and passes th
 valid cookie a visitor can have a read-only socket, or none, and a plain request for the newest 50 messages instead keeps a lurker
 from holding a connection.
 
+**Discord's terms.** Registering the app in Discord's Developer Portal costs nothing, and an app that asks only for `identify`
+goes through no App Review, which is for bots and for apps that read a server's members, presence or messages. The Developer
+Terms and the Developer Policy (in force since 2024-07-08) have no rule against a chat room of the site's own. What they ask
+of this one is a privacy policy that says what is kept and why (the id, the username, the messages, and the account-age check
+made from the id); a way for players to report abuse, and someone who acts on the reports; updating or deleting a player's
+data when they ask, when it is no longer needed, or when the site stops using Discord (a renamed player's name is updated at
+their next sign-in, or sooner on request); nothing directed at children under 13, and content fit for players under 18; and
+no selling of the data, no advertising with it and no training of models on the messages. Their rule that paid features
+also be sold through Discord does not touch a non-commercial site. The app's registered name and icon leave out "PopCap"
+and EA's marks, so that no reviewer reads them as someone else's.
+
 The rate limits that count are in the object. It is single-threaded, so its counters are exact: one message a second and about
 twenty a minute for each user id, at most three sockets for each user, a text of at most 500 characters and a frame of at most a
 couple of kilobytes checked before it is parsed, the username checked against the rules above, the game id checked against the
@@ -149,3 +160,5 @@ Cloudflare, read on 2026-10-31: Durable Objects (what they are; pricing; limits;
 the SQLite storage API; alarms), Workers pricing, D1 pricing and limits, and the Workers Rate Limiting binding, all under
 developers.cloudflare.com. Discord: the OAuth2 topic and the User resource of the developer documentation (docs.discord.com),
 the blog post "Evolving Usernames on Discord", and the help article "New Usernames & Display Names" on support.discord.com.
+Discord, read on 2026-11-11: the Developer Terms of Service and the Developer Policy (support-dev.discord.com), and the blog
+post "Updated Requirements to How Apps Access Data in Servers" (discord.com).

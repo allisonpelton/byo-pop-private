@@ -67,7 +67,11 @@ holds the rules every session follows; this file does not repeat them.
   hard to test; phase one, plays identical; phase two, looks identical, with registration and every button that leads
   out of the game removed; its fixes mod; the coverage check; the performance pass; the other code it does not need
   taken out; the readability pass; for a game ported only from its Steam copy, the check against its PopCap Game
-  Collection version (the user's ISO in their Downloads folder), its build working with that version's files too; and
+  Collection version (the user's ISO in their Downloads folder), its build working with that version's files too (also
+  for a game ported from another copy when the Collection's is another build: BookWorm's and Word Harmony's Collection
+  exes differ from their retail ones, so players with the Collection need the check, 2026-11-11; where every file
+  matches, as Ning Po's and Water Bugs' exes do by size, the check is that comparison and one port run; the ISO's
+  file groups are `<Title>Component`, listed with `E:/retools/unshield-build/unshield.exe g data1.cab`); and
   its features on the site. The registered original is the reference for every comparison; each removal is listed in
   the game's notes and proved by its frozen baseline, and how a protection was taken apart stays in private blocks.
 - **What a phase two needs to merge (2026-11-03):** sound compared against the original (origrun's `--sound wav` log
@@ -146,6 +150,14 @@ holds the rules every session follows; this file does not repeat them.
 - **Building the web port in the browser (the user, 2026-11-04):** "Let's try it on the simplest possible game and
   see how long it takes to build in the browser and how much work it adds for each game", saving to localStorage or a
   connected Google Drive, to avoid any infringement. Not started; it belongs with the work before the website is ready.
+  Drive (read on 2026-11-11, developers.google.com): the `drive.appdata` scope gives a hidden folder that only the site
+  can read, which cannot be shared, and which Google deletes when the player removes the site from their Drive;
+  `drive.file` reaches only the files the site made or the player picked. Both are non-sensitive scopes: no security
+  assessment, no user cap, no fee. The page talks to Drive itself, so nothing passes through the site's servers. Showing
+  the site's name and logo on Google's consent screen takes brand verification (free, two or three business days): the
+  domain proved in Search Console, a homepage anyone can open, a privacy policy on that domain saying how Google data is
+  used. The broad `drive` and `drive.readonly` scopes are restricted and need a paid security assessment; never ask for
+  them. The files count against the player's own quota (15 GB free).
 <!-- /private -->
 
 ## The site

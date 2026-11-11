@@ -102,6 +102,7 @@ void Emitter_Append(List<Obj>* theList)
 	List_Append(theList, (Obj*)anEmitter);
 }
 
+// 0x40ae30
 void Emitter_Setup(Emitter* theEmitter, Obj* theParent, int theX, int theY, float theXSpeed, float theYSpeed,
 	int theFrequency, int theRotation, const char* theAnim, int theKind, float theStartAlpha, float theEndAlpha,
 	float theTime)
@@ -215,6 +216,7 @@ void ParticleSystem_New()
 		gSystemNext = 0;
 }
 
+// 0x40b1f0
 void ParticleSystem_Add(ParticleSystem* theSystem, float theX, float theY, float theVx, float theVy,
 	int theFirstImage, int theLastImage, int theFrameTime, int theStartR, int theStartG, int theStartB, int theEndR,
 	int theEndG, int theEndB, int theStartAlpha, int theEndAlpha, int theLifetime, float theDrag, float theGravity,

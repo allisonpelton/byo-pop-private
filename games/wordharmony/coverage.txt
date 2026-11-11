@@ -1,0 +1,469 @@
+# tools/coverage.py's settings for Word Harmony (docs/COVERAGE.md).
+export re/wordharmony/gh/functions.jsonl
+src games/wordharmony/engine
+src games/wordharmony/game
+src games/wordharmony/src
+# The game's own code, which the port translates (docs/README.md, "The binary"): the game (0x401000-0x424000) and Sprout's
+# engine to the sound system's end, then the engine's application and Windows layer (0x453f80-0x45ee00). The rest of the exe
+# is the C runtime (0x44676c-0x453f10) and the libraries: libpng, zlib and the JPEG decoder.
+game 00401000-00445f40
+game 00453f80-0045eda0
+# Found by the coverage check of 2026-11-11 (docs/README.md, "Coverage check"): the reached functions the port has no
+# counterpart for, each sorted by what it is.
+none 004016c0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004019b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00401a50 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00401ad0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00401b00 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00401b30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00401bcc the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00401ea0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004020b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004020e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004021d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004022e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004023b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004024a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004025c0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00402620 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00402830 the thrown exception's destructor (the message string and the std::exception base): the port's engine::Exception has its own
+none 004028b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004028f0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00402950 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00402b90 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00402bd0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00402e10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004031b0 the copy of an exception at its throw (the compiler's copy constructor): the port's engine::Exception is copied by the compiler too
+none 00404320 Game::openLink, the main menu's game link (it opens a web address): left out with the button, since no button leads out of a port (game/Game.cpp)
+none 004044a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004044e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00404530 the C++ library's vector insert, compiled once for each element type
+none 00404710 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00404730 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004055d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004065d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00406640 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00407300 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00408100 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00408a90 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00408ac0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00408e70 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00408ed0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00408f40 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00408f60 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00408f90 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004096b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00409d20 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00409d30 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00409d40 the compiler's thunk: this adjusted for a virtual base, then a call (the same as the thunks above, found by the TSUNAMI run)
+none 00409fd0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040b4e0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040b4f0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040b500 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040c270 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040c280 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040c290 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040c570 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040c580 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040c850 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 0040c8c0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040c8d0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040c9b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040ca80 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040cb10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040cb90 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040cc30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040cd10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040ce50 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040cee0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040cf70 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0040dca0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040e650 the compiler's scalar deleting destructor
+none 0040f070 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040f080 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040f310 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 0040f910 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040f920 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040f940 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040f950 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040f960 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040f970 the obstacle interface's copy of layout (0x40f880): the compiler's thunk with this adjusted through the virtual base
+none 0040f980 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040faa0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040fb21 the second half of a constructor that Ghidra split off: the port translates the constructor whole
+none 0040fd30 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0040fd40 the compiler's scalar deleting destructor
+none 004108f0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00410900 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00410920 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 004109c0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00410c50 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00410c60 the compiler's scalar deleting destructor
+none 00411130 the compiler's scalar deleting destructor
+none 00411150 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 00411d00 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00411d60 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00411e20 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00411f10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00411f50 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00411f90 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00411fd0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00412010 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00412870 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004128e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004129b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00412d10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00413060 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004130a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00413580 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00414460 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00414520 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00414630 the C++ library's vector insert, compiled once for each element type
+none 004148d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00414990 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00414a50 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00414ae0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00415150 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00415590 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00415720 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00415bf0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00415c00 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00415c10 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00416e20 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00417a60 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0041cda0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0041cdb0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0041cdd0 an empty function: a disabled debug call
+none 0041cde0 an empty function: a disabled debug call
+none 0041cf20 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0041e240 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0041e250 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0041ee00 the C++ library's vector insert, compiled once for each element type
+none 0041f050 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0041f960 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0041fa00 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0041fab0 the C++ library's vector insert, compiled once for each element type
+none 0041fe80 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0041fed0 the pool the word tree's nodes come from (pools of 1024, never freed): the port allocates them one by one (game/Dictionary.h)
+none 00420d70 the pool the word tree's nodes come from (pools of 1024, never freed): the port allocates them one by one (game/Dictionary.h)
+none 00421080 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00421400 the C++ library's vector insert, compiled once for each element type
+none 004219a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00421a20 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00421a70 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 00421c20 the registry helper: engine::Host's registry functions replace it (game/HighScores.h)
+none 00421c30 the registry helper: engine::Host's registry functions replace it (game/HighScores.h)
+none 00421c50 the registry helper: engine::Host's registry functions replace it (game/HighScores.h)
+none 00421e60 the registry helper: engine::Host's registry functions replace it (game/HighScores.h)
+none 00421f60 the registry helper: engine::Host's registry functions replace it (game/HighScores.h)
+none 00424010 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00424020 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00424410 the C++ library's vector insert, compiled once for each element type
+none 00424b30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00424f70 the C++ library's vector insert, compiled once for each element type
+none 00425250 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 00425e10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00425fc0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00426330 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00426370 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00426520 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004266a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00426a00 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00427010 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00427020 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00427040 the compiler's scalar deleting destructor
+none 004277a0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 004277b0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 004277c0 the compiler's thunk: this adjusted for a virtual base, then a call (the same as the thunks above, found by the TSUNAMI run)
+none 004278a0 the compiler's scalar deleting destructor
+none 00427fb0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00428040 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00428370 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00428520 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00428fe0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004290b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004294a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00429650 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00429860 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00429870 the compiler's thunk: this adjusted for a virtual base, then a call
+none 00429d60 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00429d70 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00429d80 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0042a090 the beta's play time upload: left out (game/Game.cpp)
+none 0042a240 the frame rate display, made and never shown: left out (game/Game.cpp)
+none 0042aa00 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0042aa10 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0042aa30 the compiler's scalar deleting destructor
+none 0042aa50 the beta's play time upload: left out (game/Game.cpp)
+none 0042ab10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0042b4a0 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0042b4e0 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0042bc50 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0042bc60 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0042bd50 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 0042bdc0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0042bdd0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0042c2c9 the second half of a constructor that Ghidra split off: the port translates the constructor whole
+none 0042c350 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0042c610 the C++ library's vector insert, compiled once for each element type
+none 00430ba0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00431ae0 the compiler's scalar deleting destructor
+none 00432420 the C++ library's vector insert, compiled once for each element type
+none 00432a80 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00432c30 the C++ library's vector insert, compiled once for each element type
+none 00433800 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 00435ba0 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 00435e70 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00435e80 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00435ea0 the compiler's scalar deleting destructor
+none 00435f70 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00435fd0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436070 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004360d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004361b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004361f0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436230 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436250 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436290 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436300 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436370 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004363d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436480 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004364b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436570 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436910 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436950 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436a10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436b20 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436e00 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436e40 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436e80 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00436f60 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004370f0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004371b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004372a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00437450 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004374b0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00437510 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00437540 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004375f0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00437650 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00437740 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00437800 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004378c0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00437a50 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004380d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00438140 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00438530 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00438540 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00438630 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 00438a20 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00438c40 the C++ library's vector insert, compiled once for each element type
+none 00438e20 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00439030 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00439780 the C++ library's vector insert, compiled once for each element type
+none 00439960 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043a1e0 the C++ library's vector insert, compiled once for each element type
+none 0043a4c0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043a570 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043a5d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043a640 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043a780 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043a8c0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043ab80 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043ac00 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043af30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043b0e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043c290 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043c2b0 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043c2d0 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043c2f0 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043c330 the release of a counted reference: the port's Ref does it
+none 0043c3a0 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043c470 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043c4f0 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043c540 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043cee0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043d030 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043d1d0 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043d720 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0043d730 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0043d820 the compiler's scalar deleting destructor
+none 0043e900 the C++ library's vector insert, compiled once for each element type
+none 0043eb60 the compiler's scalar deleting destructor
+none 0043eb80 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043ece8 the compiler's stack cookie check, which does nothing
+none 0043ed10 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0043ed70 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 0043ede0 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 0043ee50 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043f070 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 0043f160 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0043f170 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 0043f350 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 0043f430 the compiler's scalar deleting destructor
+none 0043f450 the release of a counted reference: the port's Ref does it
+none 0043f500 the cleanup of a stream pointer in the compiler's unwind code (a virtual call that deletes it): the port's streams are destroyed by their owners' destructors
+none 0043f850 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 0043fc90 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 0043fcc0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 0043fd30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043fd60 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043fd80 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043fdd0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043fe10 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 0043fee0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00440160 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00440200 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00440440 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00440640 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 004407d0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00440840 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00440900 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00440b60 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00440b90 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 00440c40 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00440fb0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 00441490 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 00441540 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 004417c0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 004418c0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 004418d0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 004418e0 the archive's reading code (the file and archive streams, the byte readers): the host reads whole files and the port's streams are in memory (engine/Stream.h)
+none 00441930 the archive's keyed MD5 digests, which the port does not check (engine/ResourceManager.h)
+none 00442240 the archive's keyed MD5 digests, which the port does not check (engine/ResourceManager.h)
+none 00442290 the archive's keyed MD5 digests, which the port does not check (engine/ResourceManager.h)
+none 00442390 the archive's keyed MD5 digests, which the port does not check (engine/ResourceManager.h)
+none 00442490 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004425f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004427a0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004427e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004428e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00442aa0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00442b00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00442eb0 the C++ library's vector insert, compiled once for each element type
+none 00443090 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00443260 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00443410 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00443710 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004438c0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00443d50 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444030 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004445b0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444810 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444970 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444b90 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444c20 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444d90 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444da0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444dc0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444dd0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444de0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00444e40 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445010 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445090 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004450a0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004450b0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004450c0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004450e0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445280 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004452f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445450 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004454a0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004454e0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445500 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445520 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445540 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445590 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004456f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445710 the compiler's scalar deleting destructor
+none 00445730 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445780 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 004457f0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445810 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445840 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445960 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445a30 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445a80 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445ae0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445b00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445ba0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445c70 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445cc0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445cd0 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445d00 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445e50 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00445ea0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00445f20 the Windows layer's DirectSound code (the buffers and their streaming, the wave and ACM readers): the port decodes a sound whole and mixes it on the platform (src/SoundHost.cpp)
+none 00445f40 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 004544e0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00454890 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00454b70 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00454c30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00454cb0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00454d30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00454e00 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00454fb0 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00455160 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00455170 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00455190 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00455600 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004556e0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004557de the compiler's stack cookie check, which does nothing
+none 00455800 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00455820 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455840 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455870 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455890 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004558a0 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 004558d0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455940 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00455960 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455b10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455b90 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455bd0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455d70 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455d80 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455e10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455e60 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455ee0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00455f90 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456170 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004561a0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456200 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456440 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004565b0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004566c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456730 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456990 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00456a30 the C++ library's templates (MSVC 7.1 string, vector, list, map, deque, hash_map): the port uses its own library's
+none 00456ad0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456c10 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456df0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456ef0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456f80 the compiler's scalar deleting destructor
+none 00456fa0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00456fc0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00457010 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004570c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004572c0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 004572e0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00457320 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00457480 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 00457490 the compiler's thunk: this adjusted for a virtual base, then a jump
+none 004574b0 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00457810 the compiler's scalar deleting destructor
+none 00457850 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
+none 004578a0 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
+none 00457970 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00457980 the Windows layer's window, message loop and DirectDraw display: the framework's window and the platform's display replace them (engine/Host.h)
+none 00458660 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
+none 0045bcb0 the blitters' stopwatch (QueryPerformanceCounter): it measures and changes nothing drawn
+none 0045dd10 the Windows layer's render context destructor: ScreenGraphics (src/Render.cpp) is the port's
+none 0045e580 a constructor or destructor of a class with virtual bases as the compiler wrote it (vtables set in order, this adjusted): the port's class has its own
+none 0045e640 a small helper of a value type (copy, set, add, subtract, a flag's getter): the port's structs do it with assignments and operators
+none 0045ebd0 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
+none 0045ebf0 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
+none 0045ec10 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
+none 0045ec40 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
+none 0045eca0 the PNG reader's libpng wrappers: the platform's decoder replaces them (src/Render.cpp, decodeImage)
