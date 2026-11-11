@@ -36,26 +36,26 @@ int OutCode(double x, double y, double theLeft, double theRight, double theTop, 
 }
 
 // 0x42d2b0: 0 when the line misses the clip; the ends move onto it, cut to whole pixels
-int ClipLine(int* x0, int* y0, int* x1, int* y1, const int* theClip)
+int ClipLine(int* theX0, int* theY0, int* theX1, int* theY1, const int* theClip)
 {
-	double ax0 = *x0;
-	double ay0 = *y0;
-	double ax1 = *x1;
-	double ay1 = *y1;
+	double anAx0 = *theX0;
+	double anAy0 = *theY0;
+	double anAx1 = *theX1;
+	double anAy1 = *theY1;
 	double aLeft = theClip[0];
 	double aRight = theClip[2];
 	double aTop = theClip[1];
 	double aBottom = theClip[3];
-	int aCode0 = OutCode(ax0, ay0, aLeft, aRight, aTop, aBottom);
-	int aCode1 = OutCode(ax1, ay1, aLeft, aRight, aTop, aBottom);
+	int aCode0 = OutCode(anAx0, anAy0, aLeft, aRight, aTop, aBottom);
+	int aCode1 = OutCode(anAx1, anAy1, aLeft, aRight, aTop, aBottom);
 	for (;;)
 	{
 		if (aCode0 == 0 && aCode1 == 0)
 		{
-			*x0 = (int)ax0;
-			*y0 = (int)ay0;
-			*x1 = (int)ax1;
-			*y1 = (int)ay1;
+			*theX0 = (int)anAx0;
+			*theY0 = (int)anAy0;
+			*theX1 = (int)anAx1;
+			*theY1 = (int)anAy1;
 			return 1;
 		}
 		if ((aCode0 & aCode1) != 0)
@@ -65,35 +65,35 @@ int ClipLine(int* x0, int* y0, int* x1, int* y1, const int* theClip)
 		double y;
 		if ((aCode & 1) != 0)
 		{
-			x = (ax1 - ax0) * (aBottom - ay0) / (ay1 - ay0) + ax0;
+			x = (anAx1 - anAx0) * (aBottom - anAy0) / (anAy1 - anAy0) + anAx0;
 			y = aBottom;
 		}
 		else if ((aCode & 2) != 0)
 		{
-			x = (ax1 - ax0) * (aTop - ay0) / (ay1 - ay0) + ax0;
+			x = (anAx1 - anAx0) * (aTop - anAy0) / (anAy1 - anAy0) + anAx0;
 			y = aTop;
 		}
 		else if ((aCode & 4) != 0)
 		{
-			y = (aRight - ax0) * (ay1 - ay0) / (ax1 - ax0) + ay0;
+			y = (aRight - anAx0) * (anAy1 - anAy0) / (anAx1 - anAx0) + anAy0;
 			x = aRight;
 		}
 		else
 		{
-			y = (aLeft - ax0) * (ay1 - ay0) / (ax1 - ax0) + ay0;
+			y = (aLeft - anAx0) * (anAy1 - anAy0) / (anAx1 - anAx0) + anAy0;
 			x = aLeft;
 		}
 		if (aCode == aCode0)
 		{
-			ax0 = x;
-			ay0 = y;
-			aCode0 = OutCode(ax0, ay0, aLeft, aRight, aTop, aBottom);
+			anAx0 = x;
+			anAy0 = y;
+			aCode0 = OutCode(anAx0, anAy0, aLeft, aRight, aTop, aBottom);
 		}
 		else
 		{
-			ax1 = x;
-			ay1 = y;
-			aCode1 = OutCode(ax1, ay1, aLeft, aRight, aTop, aBottom);
+			anAx1 = x;
+			anAy1 = y;
+			aCode1 = OutCode(anAx1, anAy1, aLeft, aRight, aTop, aBottom);
 		}
 	}
 }
@@ -108,8 +108,8 @@ inline uint32_t Blend(uint32_t thePixel, uint32_t theTo, uint32_t theMask, uint3
 void Fill16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theLeft, int theTop, int theRight, int theBottom, uint8_t theR,
 	uint8_t theG, uint8_t theB)
 {
-	uint16_t aColour = (uint16_t)((uint32_t)(theB >> theFmt->bLoss) << theFmt->bShift |
-		(uint32_t)(theG >> theFmt->gLoss) << theFmt->gShift | (uint32_t)(theR >> theFmt->rLoss) << theFmt->rShift);
+	uint16_t aColour = (uint16_t)((uint32_t)(theB >> theFmt->mBLoss) << theFmt->mBShift |
+		(uint32_t)(theG >> theFmt->mGLoss) << theFmt->mGShift | (uint32_t)(theR >> theFmt->mRLoss) << theFmt->mRShift);
 	uint32_t aWidth = (theRight - theLeft) + 1;
 	uint8_t* aRow = theBits + thePitch * theTop + theLeft * 2;
 	if (theR == 0 && theG == 0 && theB == 0)
@@ -157,10 +157,10 @@ void FillBlend16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int 
 	uint8_t theG, uint8_t theB, uint8_t theAlpha)
 {
 	uint16_t* aRow = (uint16_t*)(theBits + thePitch * t + l * 2);
-	uint32_t aR = (uint32_t)(theR >> theFmt->rLoss) << theFmt->rShift;
+	uint32_t aR = (uint32_t)(theR >> theFmt->mRLoss) << theFmt->mRShift;
 	int aWidth = (r - l) + 1;
 	int aCount = (b - t) + 1;
-	uint32_t aB = (uint32_t)(theB >> theFmt->bLoss) << theFmt->bShift;
+	uint32_t aB = (uint32_t)(theB >> theFmt->mBLoss) << theFmt->mBShift;
 	if (0 < aCount)
 	{
 		do
@@ -172,8 +172,8 @@ void FillBlend16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int 
 				do
 				{
 					uint32_t c = *p;
-					*p = (uint16_t)(Blend(c, (uint32_t)(theG >> theFmt->gLoss) << theFmt->gShift, theFmt->gMask, theAlpha) |
-						Blend(c, aR, theFmt->rMask, theAlpha) | Blend(c, aB, theFmt->bMask, theAlpha));
+					*p = (uint16_t)(Blend(c, (uint32_t)(theG >> theFmt->mGLoss) << theFmt->mGShift, theFmt->mGMask, theAlpha) |
+						Blend(c, aR, theFmt->mRMask, theAlpha) | Blend(c, aB, theFmt->mBMask, theAlpha));
 					n = n - 1;
 					p = p + 1;
 				} while (n != 0);
@@ -204,41 +204,41 @@ void FillBlend16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFm
 }
 
 // 0x442090: max(|dx|, |dy|) + 1 pixels, stepping along the longer axis
-void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int x0, int y0, int x1, int y1, uint8_t theRed,
+void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1, uint8_t theRed,
 	uint8_t theGreen, uint8_t theBlue, uint8_t theAlpha)
 {
 	int aRow = thePitch / 2;
-	uint32_t aR = (uint32_t)(theRed >> theFmt->rLoss) << theFmt->rShift;
-	uint32_t aG = (uint32_t)(theGreen >> theFmt->gLoss) << theFmt->gShift;
+	uint32_t aR = (uint32_t)(theRed >> theFmt->mRLoss) << theFmt->mRShift;
+	uint32_t aG = (uint32_t)(theGreen >> theFmt->mGLoss) << theFmt->mGShift;
 	int anErr = 0;
-	uint32_t aB = (uint32_t)(theBlue >> theFmt->bLoss) << theFmt->bShift;
-	uint16_t* aPixel = (uint16_t*)(theBits + thePitch * y0 + x0 * 2);
-	int dx = x1 - x0;
-	int dy = y1 - y0;
+	uint32_t aB = (uint32_t)(theBlue >> theFmt->mBLoss) << theFmt->mBShift;
+	uint16_t* aPixel = (uint16_t*)(theBits + thePitch * theY0 + theX0 * 2);
+	int aDx = theX1 - theX0;
+	int aDy = theY1 - theY0;
 	int aStep;
-	if (dx < 0)
+	if (aDx < 0)
 	{
-		dx = -dx;
+		aDx = -aDx;
 		aStep = -1;
 	}
 	else
 		aStep = 1;
-	if (dy < 0)
+	if (aDy < 0)
 	{
 		aRow = -aRow;
-		dy = -dy;
+		aDy = -aDy;
 	}
-	if (dy < dx)
+	if (aDy < aDx)
 	{
-		for (int i = 0; i <= dx; i++)
+		for (int i = 0; i <= aDx; i++)
 		{
 			uint32_t c = *aPixel;
-			anErr = anErr + dy;
-			*aPixel = (uint16_t)(Blend(c, aG, theFmt->gMask, theAlpha) | Blend(c, aR, theFmt->rMask, theAlpha) |
-				Blend(c, aB, theFmt->bMask, theAlpha));
-			if (dx < anErr)
+			anErr = anErr + aDy;
+			*aPixel = (uint16_t)(Blend(c, aG, theFmt->mGMask, theAlpha) | Blend(c, aR, theFmt->mRMask, theAlpha) |
+				Blend(c, aB, theFmt->mBMask, theAlpha));
+			if (aDx < anErr)
 			{
-				anErr = anErr - dx;
+				anErr = anErr - aDx;
 				aPixel = aPixel + aRow;
 			}
 			aPixel = aPixel + aStep;
@@ -246,15 +246,15 @@ void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int x0, i
 	}
 	else
 	{
-		for (int i = 0; i <= dy; i++)
+		for (int i = 0; i <= aDy; i++)
 		{
 			uint32_t c = *aPixel;
-			anErr = anErr + dx;
-			*aPixel = (uint16_t)(Blend(c, aG, theFmt->gMask, theAlpha) | Blend(c, aR, theFmt->rMask, theAlpha) |
-				Blend(c, aB, theFmt->bMask, theAlpha));
+			anErr = anErr + aDx;
+			*aPixel = (uint16_t)(Blend(c, aG, theFmt->mGMask, theAlpha) | Blend(c, aR, theFmt->mRMask, theAlpha) |
+				Blend(c, aB, theFmt->mBMask, theAlpha));
 			if (0 < anErr)
 			{
-				anErr = anErr - dy;
+				anErr = anErr - aDy;
 				aPixel = aPixel + aStep;
 			}
 			aPixel = aPixel + aRow;
@@ -263,11 +263,11 @@ void Line16(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int x0, i
 }
 
 // 0x4422e0
-void Line16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int x0, int y0,
-	int x1, int y1, int r, int g, int b, int theAlpha)
+void Line16Clipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int theX0, int theY0,
+	int theX1, int theY1, int r, int g, int b, int theAlpha)
 {
-	if (ClipLine(&x0, &y0, &x1, &y1, theClip) != 0)
-		Line16(theBits, thePitch, theFmt, x0, y0, x1, y1, (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)theAlpha);
+	if (ClipLine(&theX0, &theY0, &theX1, &theY1, theClip) != 0)
+		Line16(theBits, thePitch, theFmt, theX0, theY0, theX1, theY1, (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)theAlpha);
 }
 
 } // namespace
@@ -286,30 +286,30 @@ void Draw_SetTarget(uint8_t* theBits, int thePitch, int theW, int theH, const Pi
 		gTargetFmt = *theFmt;
 }
 
-void Draw_Line(int x0, int y0, int x1, int y1, int r, int g, int b, int theAlpha)
+void Draw_Line(int theX0, int theY0, int theX1, int theY1, int r, int g, int b, int theAlpha)
 {
-	if (gTargetFmt.bpp == 16)
-		Line16Clipped(gTargetBits, gTargetPitch, &gTargetFmt, gTargetClip, x0, y0, x1, y1, r, g, b, theAlpha);
+	if (gTargetFmt.mBpp == 16)
+		Line16Clipped(gTargetBits, gTargetPitch, &gTargetFmt, gTargetClip, theX0, theY0, theX1, theY1, r, g, b, theAlpha);
 }
 
 void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
 	int theG, int theB)
 {
-	if (theFmt->bpp == 0x10)
+	if (theFmt->mBpp == 0x10)
 		Fill16(theBits, thePitch, theFmt, l, t, r, b, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB);
 }
 
 void Draw_FillBlend(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int r, int b, int theR,
 	int theG, int theB, int theAlpha)
 {
-	if (theFmt->bpp == 0x10)
+	if (theFmt->mBpp == 0x10)
 		FillBlend16(theBits, thePitch, theFmt, l, t, r, b, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB,
 			(uint8_t)theAlpha);
 }
 
 void Draw_FillBlendTarget(int l, int t, int r, int b, int theR, int theG, int theB, int theAlpha)
 {
-	if (gTargetFmt.bpp == 0x10)
+	if (gTargetFmt.mBpp == 0x10)
 		FillBlend16(gTargetBits, gTargetPitch, &gTargetFmt, l, t, r, b, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB,
 			(uint8_t)theAlpha);
 }
@@ -317,16 +317,16 @@ void Draw_FillBlendTarget(int l, int t, int r, int b, int theR, int theG, int th
 void Draw_FillBlendClipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int t,
 	int theRight, int theBottom, int theR, int theG, int theB, int theAlpha)
 {
-	if (theFmt->bpp == 0x10)
+	if (theFmt->mBpp == 0x10)
 		FillBlend16Clipped(theBits, thePitch, theFmt, theClip, l, t, theRight, theBottom, (uint8_t)theR, (uint8_t)theG, (uint8_t)theB,
 			(uint8_t)theAlpha);
 }
 
-void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int x0, int y0, int x1, int y1, int r,
+void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1, int r,
 	int g, int b, int theAlpha)
 {
-	if (theFmt->bpp == 0x10)
-		Line16(theBits, thePitch, theFmt, x0, y0, x1, y1, (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)theAlpha);
+	if (theFmt->mBpp == 0x10)
+		Line16(theBits, thePitch, theFmt, theX0, theY0, theX1, theY1, (uint8_t)r, (uint8_t)g, (uint8_t)b, (uint8_t)theAlpha);
 }
 
 } // namespace r64

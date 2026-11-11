@@ -14,17 +14,17 @@ namespace r64
 // frame following; here the fields are kept apart and mem is that block (its first 0x14 bytes unused)
 struct Flic
 {
-	uint16_t frames;    // +0x00
-	uint16_t width;     // +0x02
-	uint16_t height;    // +0x04
-	uint16_t speed;     // +0x06  in 1/70 s
-	uint16_t frame;     // +0x08  frames decoded since the first (the ring frame included)
-	uint16_t offsetPadding;    // +0x0a  the two bytes before offset: nothing reads them
-	uint32_t offset;    // +0x0c  of the next frame's header, from the handle
-	uint16_t fd;        // +0x10  0: read from memory (the port only reads from memory)
-	uint16_t endPadding;       // +0x12  nothing reads it
-	uint8_t* mem;       // the port's
-	uint32_t memSize;
+	uint16_t mFrames;    // +0x00
+	uint16_t mWidth;     // +0x02
+	uint16_t mHeight;    // +0x04
+	uint16_t mSpeed;     // +0x06  in 1/70 s
+	uint16_t mFrame;     // +0x08  frames decoded since the first (the ring frame included)
+	uint16_t mOffsetPadding;    // +0x0a  the two bytes before offset: nothing reads them
+	uint32_t mOffset;    // +0x0c  of the next frame's header, from the handle
+	uint16_t mFd;        // +0x10  0: read from memory (the port only reads from memory)
+	uint16_t mEndPadding;       // +0x12  nothing reads it
+	uint8_t* mEm;       // the port's
+	uint32_t mEmSize;
 };
 
 extern uint8_t gFlicPalette[0x300]; // 0x6e57a0: r, g, b per index

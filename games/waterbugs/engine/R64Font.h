@@ -15,9 +15,9 @@ struct Bank;
 // {current, head, tail} of images linked through Image::prev and next
 struct ImageList
 {
-	Image* current;
-	Image* head;
-	Image* tail;
+	Image* mCurrent;
+	Image* mHead;
+	Image* mTail;
 };
 
 // 0x423140: a new image at the tail, made current
@@ -30,27 +30,27 @@ bool ImageList_RemoveCurrent(ImageList* theList);
 // them), so a member after +0x408 sits 4 bytes lower here and one after +0xd5f 20 bytes lower.
 struct Font
 {
-	Image* glyphs[256];        // +0x000  by character code
-	int spaceWidth;            // +0x400  what a space without a glyph advances, with the spacing
-	int spacing;               // +0x404  between characters
-	int clip[4];               // +0x40c  l, t, r, b
-	int height;                // +0x41c  the tallest glyph
-	Palette* colours[255];     // +0x420  the palettes "^c" picks, by c
-	int align;                 // +0x81c  Font_DrawBounded: 0 left, 1 right, 2 centred
-	int escapes;               // +0x820  1: '^' and the character after it pick a colour
-	char buf[0x400];           // +0x824  Font_Printf's text
-	int colourCode;            // +0xc24  the last "^c"
-	Palette* outline;          // +0xc28  Font_DrawOutlined draws this first, a pixel up, down, left and right
-	int outlining;             // +0xc2c  while it does, colour codes are ignored
-	int alpha;                 // +0xc30  of glyphs with a mask on a screen over 8 bits
-	uint8_t* dst;              // +0xc34
-	int dstPitch;                // +0xc38
-	int dstW;                  // +0xc3c
-	int dstH;                  // +0xc40
-	Palette* palette;          // +0xc44  the glyphs' palette (null: each glyph's own)
-	const PixelFormat* fmt;    // +0xc48  the target's
-	uint8_t ownedPadding[0x104]; // +0xc4c  the bytes before owned: nothing reads them
-	ImageList owned;           // +0xd60  the glyphs Font_StripCut made
+	Image* mGlyphs[256];        // +0x000  by character code
+	int mSpaceWidth;            // +0x400  what a space without a glyph advances, with the spacing
+	int mSpacing;               // +0x404  between characters
+	int mClip[4];               // +0x40c  l, t, r, b
+	int mHeight;                // +0x41c  the tallest glyph
+	Palette* mColours[255];     // +0x420  the palettes "^c" picks, by c
+	int mAlign;                 // +0x81c  Font_DrawBounded: 0 left, 1 right, 2 centred
+	int mEscapes;               // +0x820  1: '^' and the character after it pick a colour
+	char mBuf[0x400];           // +0x824  Font_Printf's text
+	int mColourCode;            // +0xc24  the last "^c"
+	Palette* mOutline;          // +0xc28  Font_DrawOutlined draws this first, a pixel up, down, left and right
+	int mOutlining;             // +0xc2c  while it does, colour codes are ignored
+	int mAlpha;                 // +0xc30  of glyphs with a mask on a screen over 8 bits
+	uint8_t* mDst;              // +0xc34
+	int mDstPitch;                // +0xc38
+	int mDstW;                  // +0xc3c
+	int mDstH;                  // +0xc40
+	Palette* mPalette;          // +0xc44  the glyphs' palette (null: each glyph's own)
+	const PixelFormat* mFmt;    // +0xc48  the target's
+	uint8_t mOwnedPadding[0x104]; // +0xc4c  the bytes before owned: nothing reads them
+	ImageList mOwned;           // +0xd60  the glyphs Font_StripCut made
 
 	Font();  // 0x423820
 	Font(const Font&) = delete;

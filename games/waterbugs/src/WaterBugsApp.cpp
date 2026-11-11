@@ -29,7 +29,7 @@ namespace
 {
 
 // BASS_SetVolume(60) at the start (0x42b250): the original plays everything at 60%
-const double kOutputVolume = 0.6;
+const double OUTPUT_VOLUME = 0.6;
 
 r64::PixelFormat gScreenFormat565;
 
@@ -134,10 +134,10 @@ public:
 
 	bool LoadMusic(const char* thePath) override
 	{
-		bool ok = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
-		if (!ok)
+		bool anOk = gApp->mMusicInterface != nullptr && gApp->mMusicInterface->LoadMusic(0, thePath);
+		if (!anOk)
 			SDL_Log("cannot load the music %s", thePath);
-		return ok;
+		return anOk;
 	}
 
 	void FreeMusic() override
@@ -165,7 +165,7 @@ public:
 	void SetMusicVolume(int theVolume) override
 	{
 		if (gApp->mMusicInterface != nullptr)
-			gApp->mMusicInterface->SetVolume(kOutputVolume * theVolume / 100.0);
+			gApp->mMusicInterface->SetVolume(OUTPUT_VOLUME * theVolume / 100.0);
 	}
 
 	const char* SavePath(const char* theName) override
@@ -362,7 +362,7 @@ void WaterBugsApp::Init()
 	r64::Sys_SetScreenFormat(&gScreenFormat565);
 	r64::Sys_SetHost(&gHost);
 	if (mSoundManager != nullptr)
-		mSoundManager->SetVolume(kOutputVolume);
+		mSoundManager->SetVolume(OUTPUT_VOLUME);
 	// the game draws its own pointer
 	SetCursor(CURSOR_NONE);
 
@@ -505,15 +505,15 @@ void WaterBugsApp::CloseRequestAsync()
 
 // Alt+Enter goes to the game like its F7 (0x42ac80); it then asks for the mode through SetScreenMode. (The web
 // page's Fullscreen button works on the page and never reaches the game.)
-void WaterBugsApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
+void WaterBugsApp::SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce)
 {
-	if (mApplyingGameMode || !mGameStarted || mGameEnded || force)
+	if (mApplyingGameMode || !mGameStarted || mGameEnded || theForce)
 	{
-		SexyAppBase::SwitchScreenMode(wantWindowed, is3d, force);
+		SexyAppBase::SwitchScreenMode(theWantWindowed, theIs3d, theForce);
 		return;
 	}
-	if (wantWindowed != mIsWindowed)
-		r64::Screen_SetFullscreen(wantWindowed ? 0 : 1);
+	if (theWantWindowed != mIsWindowed)
+		r64::Screen_SetFullscreen(theWantWindowed ? 0 : 1);
 }
 
 bool WaterBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
@@ -521,9 +521,9 @@ bool WaterBugsApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (theCommand.mCommand == "state")
 	{
 		// (the check suite reads this line)
-		wb::Level* aLevel = wb::gLevels.current;
+		wb::Level* aLevel = wb::gLevels.mCurrent;
 		SDL_Log("state: score %d, lives %d, board %d, filled %d of %d%%", wb::gScore, wb::gLives, wb::gLevelInSet,
-			aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+			aLevel != nullptr ? aLevel->mFilledCells : -1, aLevel != nullptr ? aLevel->mFillQuota : -1);
 	}
 	if (wb::HandleTestCommand(this, theCommand))
 		return true;

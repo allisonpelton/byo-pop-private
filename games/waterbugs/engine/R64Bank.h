@@ -16,14 +16,14 @@ namespace r64
 // The original's lists are MSVC std::lists, read by position (0x426430, 0x426480); vectors read the same.
 struct Bank
 {
-	int mode;                           // +0x00  Bank_Load's mode
-	std::vector<Image*> images;         // +0x04  (+0x10 is the same as an array, for Bank_ImageAt)
-	std::vector<uint8_t*> rawPalettes;  // +0x14  {r, g, b, unused} x 256 as the .bbk lists them
-	int palettesBuilt;                  // +0x20
-	std::vector<Palette*> palettes;     // +0x24  the raw palettes in the screen's format
-	uint8_t* data;                      // +0x30  every image's pixels
-	uint32_t dataSize;                  // +0x34
-	char dataPath[0x200];               // +0x38  the .dat: the .bbk's folder and its datafile
+	int mOde;                           // +0x00  Bank_Load's mode
+	std::vector<Image*> mImages;         // +0x04  (+0x10 is the same as an array, for Bank_ImageAt)
+	std::vector<uint8_t*> mRawPalettes;  // +0x14  {r, g, b, unused} x 256 as the .bbk lists them
+	int mPalettesBuilt;                  // +0x20
+	std::vector<Palette*> mPalettes;     // +0x24  the raw palettes in the screen's format
+	uint8_t* mData;                      // +0x30  every image's pixels
+	uint32_t mDataSize;                  // +0x34
+	char mDataPath[0x200];               // +0x38  the .dat: the .bbk's folder and its datafile
 
 	Bank();   // 0x427790
 	~Bank();  // 0x427560
@@ -51,8 +51,8 @@ int Bank_ParseXml(Bank* theBank, const char* thePath);               // 0x427df0
 int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat* theFmt); // 0x4284f0
 
 // 0x401a80, 0x401b10: n {r, g, b, unused} colours in theFmt, as 32- or 16-bit pixels
-int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* dst, const uint8_t* rgb, int n);
-int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* dst, const uint8_t* rgb, int n);
+int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* theDst, const uint8_t* theRgb, int n);
+int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* theDst, const uint8_t* theRgb, int n);
 
 } // namespace r64
 

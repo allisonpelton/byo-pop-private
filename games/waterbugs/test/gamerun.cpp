@@ -35,10 +35,10 @@ namespace
 
 struct Event
 {
-	int time;
-	std::string what;
-	int a, b;
-	std::string name;
+	int mTime;
+	std::string mWhat;
+	int mA, mB;
+	std::string mName;
 };
 
 class RunHost : public SysHost
@@ -65,9 +65,9 @@ public:
 		long n = std::ftell(f);
 		std::fseek(f, 0, SEEK_SET);
 		theData.resize((size_t)n);
-		bool ok = n == 0 || std::fread(theData.data(), (size_t)n, 1, f) == 1;
+		bool anOk = n == 0 || std::fread(theData.data(), (size_t)n, 1, f) == 1;
 		std::fclose(f);
-		return ok;
+		return anOk;
 	}
 
 	// WB_USER: the Windows user's name, which the game greets with (the original run in the sandbox reads "SYSTEM")
@@ -159,27 +159,27 @@ bool ReadScript(const char* thePath, std::vector<Event>& theEvents)
 		if (n < 2)
 			continue;
 		Event e;
-		e.time = aTime;
-		e.what = aWhat;
-		e.a = n >= 3 ? (int)std::strtol(anArg1, nullptr, 0) : 0;
-		e.b = n >= 4 ? (int)std::strtol(anArg2, nullptr, 0) : 0;
-		e.name = anArg1;
-		if (e.what == "click")
+		e.mTime = aTime;
+		e.mWhat = aWhat;
+		e.mA = n >= 3 ? (int)std::strtol(anArg1, nullptr, 0) : 0;
+		e.mB = n >= 4 ? (int)std::strtol(anArg2, nullptr, 0) : 0;
+		e.mName = anArg1;
+		if (e.mWhat == "click")
 		{
-			theEvents.push_back({aTime, "move", e.a, e.b, ""});
+			theEvents.push_back({aTime, "move", e.mA, e.mB, ""});
 			theEvents.push_back({aTime, "down", 1, 0, ""});
 			theEvents.push_back({aTime + 30, "up", 1, 0, ""});
 		}
-		else if (e.what == "key")
+		else if (e.mWhat == "key")
 		{
-			theEvents.push_back({aTime, "hold", e.a, 0, ""});
-			theEvents.push_back({aTime + 30, "release", e.a, 0, ""});
+			theEvents.push_back({aTime, "hold", e.mA, 0, ""});
+			theEvents.push_back({aTime + 30, "release", e.mA, 0, ""});
 		}
 		else
 			theEvents.push_back(e);
 	}
 	std::fclose(f);
-	std::stable_sort(theEvents.begin(), theEvents.end(), [](const Event& a, const Event& b) { return a.time < b.time; });
+	std::stable_sort(theEvents.begin(), theEvents.end(), [](const Event& a, const Event& b) { return a.mTime < b.mTime; });
 	return true;
 }
 
@@ -188,18 +188,18 @@ bool ReadScript(const char* thePath, std::vector<Event>& theEvents)
 // -same: whether two screenshots have the same pixels (this runner's and the windowed exe's -script screenshot)
 static int ComparePngs(const char* theFirst, const char* theSecond)
 {
-	int w1, h1, w2, h2, n;
-	unsigned char* a = stbi_load(theFirst, &w1, &h1, &n, 3);
-	unsigned char* b = stbi_load(theSecond, &w2, &h2, &n, 3);
+	int aW1, aH1, aW2, aH2, n;
+	unsigned char* a = stbi_load(theFirst, &aW1, &aH1, &n, 3);
+	unsigned char* b = stbi_load(theSecond, &aW2, &aH2, &n, 3);
 	int aResult = 2;
 	if (a == nullptr || b == nullptr)
 		std::printf("cannot read %s\n", a == nullptr ? theFirst : theSecond);
-	else if (w1 != w2 || h1 != h2)
-		std::printf("sizes differ: %dx%d and %dx%d\n", w1, h1, w2, h2);
+	else if (aW1 != aW2 || aH1 != aH2)
+		std::printf("sizes differ: %dx%d and %dx%d\n", aW1, aH1, aW2, aH2);
 	else
 	{
 		int aDiffer = 0;
-		for (int i = 0; i < w1 * h1; i++)
+		for (int i = 0; i < aW1 * aH1; i++)
 			if (std::memcmp(a + i * 3, b + i * 3, 3) != 0)
 				aDiffer++;
 		if (aDiffer == 0)
@@ -230,9 +230,9 @@ int main(int argc, char** argv)
 		std::fprintf(stderr, "cannot read %s\n", argv[3]);
 		return 2;
 	}
-	static PixelFormat aFormat;
-	PixelFormat_Init(&aFormat, 16, 0xf800, 0x7e0, 0x1f);
-	Sys_SetScreenFormat(&aFormat);
+	static PixelFormat sAFormat;
+	PixelFormat_Init(&sAFormat, 16, 0xf800, 0x7e0, 0x1f);
+	Sys_SetScreenFormat(&sAFormat);
 	Sys_SetHost(&gHost);
 	if (!wb::LoadGameTexts())
 		return 1;
@@ -258,43 +258,43 @@ int main(int argc, char** argv)
 		// (WB_BY_FRAME: the script's times are the game's update counter, not the clock: the original's captures are
 		// taken at a counter value)
 		int aNow = aByFrame ? wb::gFrame : (int)gHost.mTime;
-		while (aNext < anEvents.size() && anEvents[aNext].time <= aNow)
+		while (aNext < anEvents.size() && anEvents[aNext].mTime <= aNow)
 		{
 			const Event& e = anEvents[aNext++];
-			if (e.what == "move")
+			if (e.mWhat == "move")
 			{
-				gHost.mMouseX = e.a;
-				gHost.mMouseY = e.b;
+				gHost.mMouseX = e.mA;
+				gHost.mMouseY = e.mB;
 			}
-			else if (e.what == "down" || e.what == "up")
-				Sys_MouseButton(e.a != 0 ? e.a : 1, e.what == "down" ? 1 : 0);
-			else if (e.what == "hold" || e.what == "release")
-				Sys_KeyEvent(e.a, e.what == "hold" ? 1 : 0);
-			else if (e.what == "shot")
-				WritePng(gHost.mOut + "/" + e.name + ".png");
-			else if (e.what == "state")
+			else if (e.mWhat == "down" || e.mWhat == "up")
+				Sys_MouseButton(e.mA != 0 ? e.mA : 1, e.mWhat == "down" ? 1 : 0);
+			else if (e.mWhat == "hold" || e.mWhat == "release")
+				Sys_KeyEvent(e.mA, e.mWhat == "hold" ? 1 : 0);
+			else if (e.mWhat == "shot")
+				WritePng(gHost.mOut + "/" + e.mName + ".png");
+			else if (e.mWhat == "state")
 			{
-				wb::Level* aLevel = wb::gLevels.current;
+				wb::Level* aLevel = wb::gLevels.mCurrent;
 				std::printf("%u ms: score %d, lives %d, board %d, filled %d of %d%%\n", gHost.mTime, wb::gScore, wb::gLives,
-					wb::gLevelInSet, aLevel != nullptr ? aLevel->filledCells : -1, aLevel != nullptr ? aLevel->fillQuota : -1);
+					wb::gLevelInSet, aLevel != nullptr ? aLevel->mFilledCells : -1, aLevel != nullptr ? aLevel->mFillQuota : -1);
 				std::printf("frame %d, %d random draws, seed 0x%x\n", wb::gFrame, wb::gRandCalls, (unsigned)wb::RandValue());  // the update counter (0x460a1c), for lining up with the original
-					wb::Shooter* aShip = aLevel != nullptr ? aLevel->shooters.current : nullptr;
+					wb::Shooter* aShip = aLevel != nullptr ? aLevel->mShooters.mCurrent : nullptr;
 					if (aShip != nullptr)
-						std::printf("ship %d,%d state %d age %d mouse %d,%d\n", (int)aShip->x, (int)aShip->y, aShip->state, (int)aShip->age, wb::gMouseX, wb::gMouseY);
+						std::printf("ship %d,%d state %d age %d mouse %d,%d\n", (int)aShip->mX, (int)aShip->mY, aShip->mState, (int)aShip->mAge, wb::gMouseX, wb::gMouseY);
 			}
-			else if (e.what == "lives")
-				wb::gLives = e.a;  // a test shortcut: the lives left, to reach the game over
-			else if (e.what == "score")
-				wb::gScore = e.a;  // a test shortcut: a score for the high-score entry
-			else if (e.what == "reached")
-				wb::gProfiles[wb::gProfile].levelReached = e.a;  // a test shortcut: levels finished, so a game can be resumed
-			else if (e.what == "die" && wb::gLevels.current != nullptr && wb::gLevels.current->shooters.current != nullptr)
+			else if (e.mWhat == "lives")
+				wb::gLives = e.mA;  // a test shortcut: the lives left, to reach the game over
+			else if (e.mWhat == "score")
+				wb::gScore = e.mA;  // a test shortcut: a score for the high-score entry
+			else if (e.mWhat == "reached")
+				wb::gProfiles[wb::gProfile].mLevelReached = e.mA;  // a test shortcut: levels finished, so a game can be resumed
+			else if (e.mWhat == "die" && wb::gLevels.mCurrent != nullptr && wb::gLevels.mCurrent->mShooters.mCurrent != nullptr)
 			{
 				// a test shortcut: an enemy's hit on the ship (Beam_UpdateRider's), to reach the game over
-				wb::Shooter_Hit(wb::gLevels.current->shooters.current, 1.0f, 1.0f);
+				wb::Shooter_Hit(wb::gLevels.mCurrent->mShooters.mCurrent, 1.0f, 1.0f);
 				wb::gLives = wb::gLives - 1;
 			}
-			else if (e.what == "end")
+			else if (e.mWhat == "end")
 				aRunning = false;
 		}
 		if (!aRunning)
@@ -307,11 +307,11 @@ int main(int argc, char** argv)
 		aFrames++;
 		// (a frame is WB_FRAME_MS ms, 10 unless set: the original under origrun runs about a millisecond a frame. It is
 		// shortened to reach an event that falls inside it: the game steps a millisecond at a time)
-		static const uint32_t aFrameMs = std::getenv("WB_FRAME_MS") != nullptr ? (uint32_t)std::atoi(std::getenv("WB_FRAME_MS")) : 10;
-		uint32_t aStep = aFrameMs;
+		static const uint32_t FRAME_MS = std::getenv("WB_FRAME_MS") != nullptr ? (uint32_t)std::atoi(std::getenv("WB_FRAME_MS")) : 10;
+		uint32_t aStep = FRAME_MS;
 		int aAfter = aByFrame ? wb::gFrame : (int)gHost.mTime;   // (the frame just run has moved the counter on)
-		if (aNext < anEvents.size() && anEvents[aNext].time > aAfter && anEvents[aNext].time < aAfter + (int)aFrameMs)
-			aStep = (uint32_t)(anEvents[aNext].time - aAfter);
+		if (aNext < anEvents.size() && anEvents[aNext].mTime > aAfter && anEvents[aNext].mTime < aAfter + (int)FRAME_MS)
+			aStep = (uint32_t)(anEvents[aNext].mTime - aAfter);
 		gHost.mTime += aStep;
 	}
 	wb::GameEnd();

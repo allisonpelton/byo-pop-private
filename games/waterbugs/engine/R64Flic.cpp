@@ -49,9 +49,9 @@ void DecodeColour(const uint8_t* theData)
 					do
 					{
 						k = (int16_t)(k + 1);
-						int at = (int)anIndex * 3 + j;
-						if (at < 0x300)
-							gFlicPalette[at] = *aCursor;
+						int anAt = (int)anIndex * 3 + j;
+						if (anAt < 0x300)
+							gFlicPalette[anAt] = *aCursor;
 						j = k;
 						aCursor = aCursor + 1;
 					} while (j < (int16_t)aCount * 3);
@@ -271,31 +271,31 @@ Flic* Flic_Open(const uint8_t* theFile, size_t theFileSize)
 	if (aSize < 0x14)
 		return nullptr;
 	Flic* aFlic = new Flic();
-	aFlic->mem = (uint8_t*)std::calloc(aSize, 1);
-	aFlic->memSize = aSize;
-	aFlic->frames = U16(theFile + 6);
-	aFlic->width = U16(theFile + 8);
-	aFlic->height = U16(theFile + 0xa);
+	aFlic->mEm = (uint8_t*)std::calloc(aSize, 1);
+	aFlic->mEmSize = aSize;
+	aFlic->mFrames = U16(theFile + 6);
+	aFlic->mWidth = U16(theFile + 8);
+	aFlic->mHeight = U16(theFile + 0xa);
 	if (aMagic == 0xaf11)
-		aFlic->speed = U16(theFile + 0x10);
+		aFlic->mSpeed = U16(theFile + 0x10);
 	else
 	{
 		int16_t aSpeed = (int16_t)((U32(theFile + 0x10) * 7) / 100);
-		aFlic->speed = (uint16_t)aSpeed;
+		aFlic->mSpeed = (uint16_t)aSpeed;
 		if (aSpeed == 0)
-			aFlic->speed = 1;
+			aFlic->mSpeed = 1;
 	}
-	aFlic->frame = 0;
-	aFlic->offsetPadding = 0;
-	aFlic->offset = 0x14;
-	aFlic->fd = 0;
-	aFlic->endPadding = 0;
+	aFlic->mFrame = 0;
+	aFlic->mOffsetPadding = 0;
+	aFlic->mOffset = 0x14;
+	aFlic->mFd = 0;
+	aFlic->mEndPadding = 0;
 	if (aPos < theFileSize)
 	{
 		size_t n = theFileSize - aPos;
 		if (n > aSize - 0x14)
 			n = aSize - 0x14;
-		std::memcpy(aFlic->mem + 0x14, theFile + aPos, n);
+		std::memcpy(aFlic->mEm + 0x14, theFile + aPos, n);
 	}
 	return aFlic;
 }
@@ -303,12 +303,12 @@ Flic* Flic_Open(const uint8_t* theFile, size_t theFileSize)
 // A frame or chunk that would run past the block ends the frame here (the original reads on)
 void Flic_NextFrame(Flic* theFlic, uint8_t* theDst, int theDPitch)
 {
-	uint8_t* aMem = theFlic->mem;
-	uint32_t anEnd = theFlic->memSize;
-	if (theFlic->offset + 16 > anEnd)
+	uint8_t* aMem = theFlic->mEm;
+	uint32_t anEnd = theFlic->mEmSize;
+	if (theFlic->mOffset + 16 > anEnd)
 		return;
-	uint8_t* aFrame = aMem + theFlic->offset;
-	theFlic->frame = (uint16_t)(theFlic->frame + 1);
+	uint8_t* aFrame = aMem + theFlic->mOffset;
+	theFlic->mFrame = (uint16_t)(theFlic->mFrame + 1);
 	uint8_t* aChunk = aFrame + 16;
 	int16_t aPitch = (int16_t)theDPitch;
 	if (U16(aFrame + 4) == 0xf1fa && U16(aFrame + 6) != 0)
@@ -337,25 +337,25 @@ void Flic_NextFrame(Flic* theFlic, uint8_t* theDst, int theDPitch)
 				DecodeDeltaFli(aChunk + 6, theDst, aPitch, aChunk + U32(aChunk) + -1);
 				break;
 			case 0xf:
-				DecodeByteRun(aChunk + 6, theDst, aPitch, theFlic->height);
+				DecodeByteRun(aChunk + 6, theDst, aPitch, theFlic->mHeight);
 				break;
 			}
 			aChunk = aChunk + U32(aChunk);
 			i = (int16_t)(i + 1);
 		} while ((int)i < (int)(uint32_t)U16(aFrame + 6));
 	}
-	if (theFlic->frames < theFlic->frame)
+	if (theFlic->mFrames < theFlic->mFrame)
 	{
-		theFlic->frame = 1;
-		theFlic->offset = 0x14;
+		theFlic->mFrame = 1;
+		theFlic->mOffset = 0x14;
 		aFrame = aMem + 0x14;
 	}
-	theFlic->offset = theFlic->offset + U32(aFrame);
+	theFlic->mOffset = theFlic->mOffset + U32(aFrame);
 }
 
 void Flic_Close(Flic* theFlic)
 {
-	std::free(theFlic->mem);
+	std::free(theFlic->mEm);
 	delete theFlic;
 }
 

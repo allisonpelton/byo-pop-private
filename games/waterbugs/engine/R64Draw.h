@@ -15,20 +15,20 @@ namespace r64
 // 0x44 bytes, 2000 of them at 0x6e6540
 struct DrawItem
 {
-	Image* image;      // +0x00
-	int x;             // +0x04
-	int y;             // +0x08
-	int depth;         // +0x0c  drawn in increasing depth
-	int kind;          // +0x10  0 blit, 1 alpha, 2 blend, 3 fill, 4 alpha faded, 5 fill faded, 6 additive
-	uint8_t* dst;      // +0x14
-	int dstPitch;        // +0x18
-	int r;             // +0x1c  the fill colour (its low bytes)
-	int g;             // +0x20
-	int b;             // +0x24
-	int alpha;         // +0x28
-	Palette* palette;  // +0x2c  the image's palette while it is drawn
-	uint32_t seq;      // +0x30  orders equal depths before the final sort
-	int clip[4];       // +0x34
+	Image* mImage;      // +0x00
+	int mX;             // +0x04
+	int mY;             // +0x08
+	int mDepth;         // +0x0c  drawn in increasing depth
+	int mKind;          // +0x10  0 blit, 1 alpha, 2 blend, 3 fill, 4 alpha faded, 5 fill faded, 6 additive
+	uint8_t* mDst;      // +0x14
+	int mDstPitch;        // +0x18
+	int mR;             // +0x1c  the fill colour (its low bytes)
+	int mG;             // +0x20
+	int mB;             // +0x24
+	int mAlpha;         // +0x28
+	Palette* mPalette;  // +0x2c  the image's palette while it is drawn
+	uint32_t mSeq;      // +0x30  orders equal depths before the final sort
+	int mClip[4];       // +0x34
 };
 
 // 0x421550: queues a sprite (null clip: the whole screen); nothing past 2000
@@ -45,20 +45,20 @@ struct Dirty
 {
 	struct Cell
 	{
-		int* rects;    // {l, t, r, b} inclusive, maxRects of them
-		int count;
+		int* mRects;    // {l, t, r, b} inclusive, maxRects of them
+		int mCount;
 	};
 
-	Cell* cells;       // +0x00
-	int cellW;         // +0x04
-	int cellH;         // +0x08
-	int cols;          // +0x0c
-	int rows;          // +0x10
-	int mode;          // +0x14
-	int maxRects;      // +0x18
-	Image* source;     // +0x1c  the back buffer
-	int srcRect[4];    // +0x20
-	int bytesPerPixel; // +0x30
+	Cell* mCells;       // +0x00
+	int mCellW;         // +0x04
+	int mCellH;         // +0x08
+	int mCols;          // +0x0c
+	int mRows;          // +0x10
+	int mOde;          // +0x14
+	int mAxRects;      // +0x18
+	Image* mSource;     // +0x1c  the back buffer
+	int mSrcRect[4];    // +0x20
+	int mBytesPerPixel; // +0x30
 
 	Dirty();  // 0x422030
 	~Dirty(); // 0x421990
@@ -86,7 +86,7 @@ void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(c
 // R64Line.cpp. 0x42d1f0: the surface lines go to (clipped to all of it; a null format keeps the last one)
 void Draw_SetTarget(uint8_t* theBits, int thePitch, int theW, int theH, const PixelFormat* theFmt);
 // 0x42dd00: a line blended toward (r, g, b) by theAlpha/256, both ends drawn; 16-bit surfaces only
-void Draw_Line(int x0, int y0, int x1, int y1, int theRed, int theGreen, int theBlue, int theAlpha);
+void Draw_Line(int theX0, int theY0, int theX1, int theY1, int theRed, int theGreen, int theBlue, int theAlpha);
 // 0x42db10: a rectangle (inclusive) in a colour (black clears it)
 void Draw_Fill(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int l, int t, int theRight, int theBottom, int theR,
 	int theG, int theB);
@@ -99,7 +99,7 @@ void Draw_FillBlendTarget(int l, int t, int r, int b, int theR, int theG, int th
 void Draw_FillBlendClipped(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, const int* theClip, int l, int t,
 	int r, int b, int theR, int theG, int theB, int theAlpha);
 // 0x42dbd0: Draw_Line's drawing on a given surface, unclipped
-void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int x0, int y0, int x1, int y1, int r,
+void Draw_LineOn(uint8_t* theBits, int thePitch, const PixelFormat* theFmt, int theX0, int theY0, int theX1, int theY1, int r,
 	int g, int b, int theAlpha);
 
 } // namespace r64

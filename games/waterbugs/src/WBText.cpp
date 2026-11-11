@@ -25,7 +25,7 @@ namespace
 void SetScreenTarget(Font* theFont)
 {
 	Font_SetEscapes(theFont, 1);
-	Font_SetTarget(theFont, gScreenBits, gScreenPitch, &gBackBuffer.fmt, gBackBuffer.w, gBackBuffer.h);
+	Font_SetTarget(theFont, gScreenBits, gScreenPitch, &gBackBuffer.mFmt, gBackBuffer.mW, gBackBuffer.mH);
 	Font_SetPalette(theFont, nullptr);
 }
 
@@ -34,13 +34,13 @@ void SetScreenTarget(Font* theFont)
 Text* Text_Init(Text* theText)
 {
 	Obj_Init(theText);
-	new (&theText->input) TextInput();
+	new (&theText->mInput) TextInput();
 	return theText;
 }
 
 void Text_Destroy(Text* theText)
 {
-	theText->input.~TextInput();
+	theText->mInput.~TextInput();
 	Obj_Destroy(theText);
 }
 
@@ -55,90 +55,90 @@ void Text_Make(Text* theText, const char* theString, Font* theFont, int theX, in
 	int theIdle, int theFadeOut, int theLoopTime, int theBlink)
 {
 	if (theString == nullptr)
-		theText->text[0] = 0;
+		theText->mText[0] = 0;
 	else
 	{
-		strcpy(theText->text, theString);
+		strcpy(theText->mText, theString);
 	}
-	theText->x = (float)theX;
-	theText->font = theFont;
-	theText->fadeIn = theFadeIn;
-	theText->y = (float)theY;
-	theText->fadeOut = theFadeOut;
-	theText->idle = theIdle;
-	theText->dormant = theDormant;
-	theText->lifetime = (float)theDormant;
-	theText->alpha = 0;
-	theText->depth = 0xb;
-	theText->loopTime = theLoopTime;
-	theText->state = 4;
-	theText->align = 2;
-	theText->blink = theBlink;
-	theText->firstParticle = Bank_IndexOf(&gArtBank, "bubble02");
-	theText->lastParticle = Bank_IndexOf(&gArtBank, "bubble02");
-	theText->appearSound = 0;
+	theText->mX = (float)theX;
+	theText->mFont = theFont;
+	theText->mFadeIn = theFadeIn;
+	theText->mY = (float)theY;
+	theText->mFadeOut = theFadeOut;
+	theText->mIdle = theIdle;
+	theText->mDormant = theDormant;
+	theText->mLifetime = (float)theDormant;
+	theText->mAlpha = 0;
+	theText->mDepth = 0xb;
+	theText->mLoopTime = theLoopTime;
+	theText->mState = 4;
+	theText->mAlign = 2;
+	theText->mBlink = theBlink;
+	theText->mFirstParticle = Bank_IndexOf(&gArtBank, "bubble02");
+	theText->mLastParticle = Bank_IndexOf(&gArtBank, "bubble02");
+	theText->mAppearSound = 0;
 }
 
 int Text_Update(Text* theText)
 {
 	int aResult = 1;
-	if (theText->state == 3)
+	if (theText->mState == 3)
 	{
-		TextInput* anInput = &theText->input;
+		TextInput* anInput = &theText->mInput;
 		TextInput_Update(anInput, (double)0.001f);
 		HighScore* anEntry = &gHighScores[8];
-		anEntry->score = gScore;
+		anEntry->mScore = gScore;
 		if (TextInput_GetText(anInput)[0] == 0)
-			strcpy(anEntry->name, GT(0x459f50));
+			strcpy(anEntry->mName, GT(0x459f50));
 		else
 		{
-			strcpy(anEntry->name, TextInput_GetText(anInput));
-			if (0x1e0 < Font_StringWidth(theText->font, anEntry->name))
+			strcpy(anEntry->mName, TextInput_GetText(anInput));
+			if (0x1e0 < Font_StringWidth(theText->mFont, anEntry->mName))
 			{
 				do
 				{
-					anEntry->name[strlen(anEntry->name) - 1] = 0;
-					TextInput_SetText(anInput, anEntry->name);
-				} while (0x1e0 < Font_StringWidth(theText->font, anEntry->name));
+					anEntry->mName[strlen(anEntry->mName) - 1] = 0;
+					TextInput_SetText(anInput, anEntry->mName);
+				} while (0x1e0 < Font_StringWidth(theText->mFont, anEntry->mName));
 				return 1;
 			}
 		}
 		return 1;
 	}
-	int aKind = theText->kind;
+	int aKind = theText->mKind;
 	if (aKind == 1)
 	{
-		sprintf(theText->text, "^%d%s", theText->row + 2, gHighScores[theText->row].name);
-		if (gHighScores[theText->row].score == gScore)
-			theText->blink = 0x2ee;
+		sprintf(theText->mText, "^%d%s", theText->mRow + 2, gHighScores[theText->mRow].mName);
+		if (gHighScores[theText->mRow].mScore == gScore)
+			theText->mBlink = 0x2ee;
 	}
 	else if (aKind == 2)
-		sprintf(theText->text, "^%d%d", theText->row + 2, gHighScores[theText->row].score);
+		sprintf(theText->mText, "^%d%d", theText->mRow + 2, gHighScores[theText->mRow].mScore);
 	else if (aKind == 3)
-		sprintf(theText->text, "^4%d", gLevelInSet + 1);
+		sprintf(theText->mText, "^4%d", gLevelInSet + 1);
 	else
 	{
 		char* aMark;
 		int aValue;
 		if (aKind == 6)
 		{
-			aMark = strstr(theText->text, "LL");
-			aValue = gProfiles[gProfile].riderHits;
+			aMark = strstr(theText->mText, "LL");
+			aValue = gProfiles[gProfile].mRiderHits;
 		}
 		else if (aKind == 5)
 		{
-			aMark = strstr(theText->text, "SF");
-			aValue = gProfiles[gProfile].beamsFired;
+			aMark = strstr(theText->mText, "SF");
+			aValue = gProfiles[gProfile].mBeamsFired;
 		}
 		else if (aKind == 7)
 		{
-			aMark = strstr(theText->text, "BK");
-			aValue = gProfiles[gProfile].kills;
+			aMark = strstr(theText->mText, "BK");
+			aValue = gProfiles[gProfile].mKills;
 		}
 		else if (aKind == 8)
 		{
-			aMark = strstr(theText->text, "PC");
-			aValue = gProfiles[gProfile].powerupsCaught;
+			aMark = strstr(theText->mText, "PC");
+			aValue = gProfiles[gProfile].mPowerupsCaught;
 		}
 		else
 			aMark = nullptr;
@@ -146,57 +146,57 @@ int Text_Update(Text* theText)
 			sprintf(aMark, "%d", aValue);
 	}
 	Obj_Update(theText);
-	if (theText->lifetime < theText->age)
+	if (theText->mLifetime < theText->mAge)
 	{
-		theText->state = theText->state + 1;
-		int aState = theText->state;
-		theText->age = 0;
+		theText->mState = theText->mState + 1;
+		int aState = theText->mState;
+		theText->mAge = 0;
 		if (aState == 5)
 		{
-			theText->lifetime = (float)theText->fadeIn;
-			if (theText->appearSound != 0)
+			theText->mLifetime = (float)theText->mFadeIn;
+			if (theText->mAppearSound != 0)
 			{
-				Sound_Play(theText->appearSound);
-				const char* aString = theText->text;
+				Sound_Play(theText->mAppearSound);
+				const char* aString = theText->mText;
 				int aCount = 0x28;
 				do
 				{
 					ParticleSystem_New();
-					float aX = theText->x;
+					float aX = theText->mX;
 					int aLifetime = RandRange(400, 500);
-					int aFirst = theText->firstParticle;
-					int aLast = theText->lastParticle;
+					int aFirst = theText->mFirstParticle;
+					int aLast = theText->mLastParticle;
 					float aVy = (float)((double)RandRange(-0xa0, -0x32) / 1000.0);
 					float aVx = (float)((double)RandRange(-0x32, 0x32) / 600.0);
-					int aHeight = Font_StringHeight(theText->font, aString);
-					int aBottom = (int)((double)aHeight + (double)theText->y);
-					float y = (float)RandRange((int)theText->y, aBottom);
-					int aRight = (int)((double)theText->x + 1.0 + (double)(Font_StringWidth(theText->font, aString) / 2));
-					int aLeft = (int)(((double)aX - 1.0) - (double)(Font_StringWidth(theText->font, aString) / 2));
+					int aHeight = Font_StringHeight(theText->mFont, aString);
+					int aBottom = (int)((double)aHeight + (double)theText->mY);
+					float y = (float)RandRange((int)theText->mY, aBottom);
+					int aRight = (int)((double)theText->mX + 1.0 + (double)(Font_StringWidth(theText->mFont, aString) / 2));
+					int aLeft = (int)(((double)aX - 1.0) - (double)(Font_StringWidth(theText->mFont, aString) / 2));
 					float x = (float)RandRange(aLeft, aRight);
-					ParticleSystem_Add(gLevels.current->systems.current, x, y, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
+					ParticleSystem_Add(gLevels.mCurrent->mSystems.mCurrent, x, y, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff,
 						0xff, 0xff, 0xff, 0xff, 0x154, 10, aLifetime, 1.0f, 0.0004f, 5);
 					aCount = aCount - 1;
-					gLevels.current->systems.current->depth = 500;
-					gLevels.current->systems.current->particles.current->depth = 500;
+					gLevels.mCurrent->mSystems.mCurrent->mDepth = 500;
+					gLevels.mCurrent->mSystems.mCurrent->mParticles.mCurrent->mDepth = 500;
 				} while (aCount != 0);
 			}
 		}
 		else if (aState == 6)
-			theText->lifetime = (float)theText->idle;
+			theText->mLifetime = (float)theText->mIdle;
 		else if (aState == 7)
-			theText->lifetime = (float)theText->fadeOut;
+			theText->mLifetime = (float)theText->mFadeOut;
 		else if (aState == 8)
-			theText->lifetime = (float)theText->loopTime;
+			theText->mLifetime = (float)theText->mLoopTime;
 	}
-	if (8 < theText->state)
+	if (8 < theText->mState)
 	{
-		if (theText->loopTime != 0)
+		if (theText->mLoopTime != 0)
 		{
-			theText->state = 5;
-			theText->alpha = 0xff;
-			theText->lifetime = (float)theText->fadeIn;
-			theText->age = 0;
+			theText->mState = 5;
+			theText->mAlpha = 0xff;
+			theText->mLifetime = (float)theText->mFadeIn;
+			theText->mAge = 0;
 			return 1;
 		}
 		aResult = 0;
@@ -206,58 +206,58 @@ int Text_Update(Text* theText)
 
 void Text_Draw(Text* theText)
 {
-	int aState = theText->state;
-	float aLifeFraction = theText->age / theText->lifetime;
+	int aState = theText->mState;
+	float aLifeFraction = theText->mAge / theText->mLifetime;
 	if (aState == 3)
 	{
-		TextInput_Draw(&theText->input, gScreenBits, gScreenPitch, Sys_ScreenFormat(), &gDirty);
+		TextInput_Draw(&theText->mInput, gScreenBits, gScreenPitch, Sys_ScreenFormat(), &gDirty);
 		return;
 	}
 	if (aState == 6)
 	{
-		int aBlink = theText->blink;
+		int aBlink = theText->mBlink;
 		aLifeFraction = 1.0f;
-		if (aBlink != 0 && aBlink / 2 < (int)theText->age % aBlink)
+		if (aBlink != 0 && aBlink / 2 < (int)theText->mAge % aBlink)
 			return;
 	}
 	else if (aState == 7)
 		aLifeFraction = 1.0f - aLifeFraction;
 	if (aState == 4 || aState == 8)
 		return;
-	theText->alpha = (int)((double)aLifeFraction * 255.0);
-	if (theText->anim != nullptr)
+	theText->mAlpha = (int)((double)aLifeFraction * 255.0);
+	if (theText->mAnim != nullptr)
 	{
-		theText->shadow = 1;
-		theText->drawKind = 4;
+		theText->mShadow = 1;
+		theText->mDrawKind = 4;
 		Obj_Draw(theText);
 		return;
 	}
-	SetScreenTarget(theText->font);
-	theText->font->alpha = theText->alpha;
-	theText->font->align = theText->align;
-	const char* aString = theText->text;
+	SetScreenTarget(theText->mFont);
+	theText->mFont->mAlpha = theText->mAlpha;
+	theText->mFont->mAlign = theText->mAlign;
+	const char* aString = theText->mText;
 	int aRect[4];
-	Font_DrawOutlined(theText->font, aRect, (int)theText->x, (int)theText->y, aString);
+	Font_DrawOutlined(theText->mFont, aRect, (int)theText->mX, (int)theText->mY, aString);
 	int aLeft, aTop, aW, aH;
-	if (theText->align == 0)
+	if (theText->mAlign == 0)
 	{
-		aH = Font_StringHeight(theText->font, aString) + 2;
-		aW = Font_StringWidth(theText->font, aString) + 2;
-		aTop = (int)((double)theText->y - 1.0);
-		aLeft = (int)((double)theText->x - 1.0);
+		aH = Font_StringHeight(theText->mFont, aString) + 2;
+		aW = Font_StringWidth(theText->mFont, aString) + 2;
+		aTop = (int)((double)theText->mY - 1.0);
+		aLeft = (int)((double)theText->mX - 1.0);
 	}
 	else
 	{
-		double aX = (double)theText->x - 1.0;
-		aH = Font_StringHeight(theText->font, aString) + 2;
-		aW = Font_StringWidth(theText->font, aString) + 2;
-		aTop = (int)((double)theText->y - 1.0);
-		if (theText->align == 1)
-			aLeft = (int)(aX - (double)Font_StringWidth(theText->font, aString));
+		double aX = (double)theText->mX - 1.0;
+		aH = Font_StringHeight(theText->mFont, aString) + 2;
+		aW = Font_StringWidth(theText->mFont, aString) + 2;
+		aTop = (int)((double)theText->mY - 1.0);
+		if (theText->mAlign == 1)
+			aLeft = (int)(aX - (double)Font_StringWidth(theText->mFont, aString));
 		else
-			aLeft = (int)(aX - (double)(Font_StringWidth(theText->font, aString) / 2));
+			aLeft = (int)(aX - (double)(Font_StringWidth(theText->mFont, aString) / 2));
 	}
-	Dirty_AddClippedShown(&gDirty, aLeft, aTop, aW, aH, kScreenClip);
+	Dirty_AddClippedShown(&gDirty, aLeft, aTop, aW, aH, SCREEN_CLIP);
 }
 
 int Text_FromXml(Text* theText, const char* theXmlCursor, const XmlTag* theTag)
@@ -271,41 +271,41 @@ int Text_FromXml(Text* theText, const char* theXmlCursor, const XmlTag* theTag)
 			// a high score's row: its rank, then this text its name, then its score
 			strcpy(aBuf, Xml_GetString(theTag, "text"));
 			int aRow = atol(aBuf + 8);
-			theText->row = aRow;
+			theText->mRow = aRow;
 			sprintf(aBuf, "^%d%d.", aRow + 2, aRow + 1);
-			Text_Append(&gLevels.current->texts);
-			Text_Make(gLevels.current->texts.current, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x1e,
+			Text_Append(&gLevels.mCurrent->mTexts);
+			Text_Make(gLevels.mCurrent->mTexts.mCurrent, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x1e,
 				(Xml_GetInt(theTag, "y") * 600) / 600, Xml_GetInt(theTag, "dormant_time"),
 				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"),
 				0, 0);
-			gLevels.current->texts.current->align = 0;
-			gLevels.current->texts.current = theText;
-			sprintf(aBuf, "^%d%s", theText->row + 2, gHighScores[theText->row].name);
+			gLevels.mCurrent->mTexts.mCurrent->mAlign = 0;
+			gLevels.mCurrent->mTexts.mCurrent = theText;
+			sprintf(aBuf, "^%d%s", theText->mRow + 2, gHighScores[theText->mRow].mName);
 			Text_Make(theText, aBuf, Font_Find(Xml_GetString(theTag, "font")), 100, (Xml_GetInt(theTag, "y") * 600) / 600,
 				Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"),
 				Xml_GetInt(theTag, "fade_out_time"), 0, 0);
-			theText->align = 0;
-			theText->kind = 1;
-			sprintf(aBuf, "^%d%d", theText->row + 2, gHighScores[theText->row].score);
-			Text_Append(&gLevels.current->texts);
-			Text_Make(gLevels.current->texts.current, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x302,
+			theText->mAlign = 0;
+			theText->mKind = 1;
+			sprintf(aBuf, "^%d%d", theText->mRow + 2, gHighScores[theText->mRow].mScore);
+			Text_Append(&gLevels.mCurrent->mTexts);
+			Text_Make(gLevels.mCurrent->mTexts.mCurrent, aBuf, Font_Find(Xml_GetString(theTag, "font")), 0x302,
 				(Xml_GetInt(theTag, "y") * 600) / 600, Xml_GetInt(theTag, "dormant_time"),
 				Xml_GetInt(theTag, "fade_in_time"), Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"),
 				0, 0);
-			gLevels.current->texts.current->kind = 2;
-			gLevels.current->texts.current->row = theText->row;
-			gLevels.current->texts.current->align = 1;
-			gLevels.current->texts.current = theText;
+			gLevels.mCurrent->mTexts.mCurrent->mKind = 2;
+			gLevels.mCurrent->mTexts.mCurrent->mRow = theText->mRow;
+			gLevels.mCurrent->mTexts.mCurrent->mAlign = 1;
+			gLevels.mCurrent->mTexts.mCurrent = theText;
 			return 1;
 		}
 		if (strcmp(Xml_GetString(theTag, "type"), "hs_entry") == 0)
 		{
-			theText->font = Font_Find(Xml_GetString(theTag, "font"));
+			theText->mFont = Font_Find(Xml_GetString(theTag, "font"));
 			int aX = Xml_GetInt(theTag, "x");
 			int aWidth = Xml_GetInt(theTag, "width");
 			int aY = (Xml_GetInt(theTag, "y") * 600) / 600;
-			TextInput* anInput = &theText->input;
-			TextInput_Init(anInput, theText->font, 0x10, 4, (aX * 800) / 800 - aWidth / 2, aY,
+			TextInput* anInput = &theText->mInput;
+			TextInput_Init(anInput, theText->mFont, 0x10, 4, (aX * 800) / 800 - aWidth / 2, aY,
 				aWidth / 2 + (aX * 800) / 800, aY + 0x1e);
 			TextInput_SetFocus(anInput, 1);
 			TextInput_SetCaseMode(anInput, 1);
@@ -315,19 +315,19 @@ int Text_FromXml(Text* theText, const char* theXmlCursor, const XmlTag* theTag)
 			TextInput_SetFillColour(anInput, 100, 100, 100, 100);
 			TextInput_SetOutline(anInput, 0);
 			TextInput_SetOnEnter(anInput, HighScore_Entered);
-			theText->state = 3;
+			theText->mState = 3;
 			return 1;
 		}
 		if (strcmp(Xml_GetString(theTag, "type"), "level_select") == 0)
-			theText->kind = 3;
+			theText->mKind = 3;
 		else if (strcmp(Xml_GetString(theTag, "type"), "shots_fired") == 0)
-			theText->kind = 5;
+			theText->mKind = 5;
 		else if (strcmp(Xml_GetString(theTag, "type"), "lives_lost") == 0)
-			theText->kind = 6;
+			theText->mKind = 6;
 		else if (strcmp(Xml_GetString(theTag, "type"), "bugs_killed") == 0)
-			theText->kind = 7;
+			theText->mKind = 7;
 		else if (strcmp(Xml_GetString(theTag, "type"), "powerups_caught") == 0)
-			theText->kind = 8;
+			theText->mKind = 8;
 		else
 			return 1;
 		Text_Make(theText, Xml_GetString(theTag, "text"), Font_Find(Xml_GetString(theTag, "font")),
@@ -338,18 +338,18 @@ int Text_FromXml(Text* theText, const char* theXmlCursor, const XmlTag* theTag)
 	}
 	if (Obj_FromXml(theText, theXmlCursor, theTag) == 0)
 		return 0;
-	Text_Make(theText, Xml_GetString(theTag, "text"), Font_Find(Xml_GetString(theTag, "font")), (int)theText->x,
-		(int)theText->y, Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"),
+	Text_Make(theText, Xml_GetString(theTag, "text"), Font_Find(Xml_GetString(theTag, "font")), (int)theText->mX,
+		(int)theText->mY, Xml_GetInt(theTag, "dormant_time"), Xml_GetInt(theTag, "fade_in_time"),
 		Xml_GetInt(theTag, "idle_time"), Xml_GetInt(theTag, "fade_out_time"), Xml_GetInt(theTag, "loop_time"), 0);
 	if (Xml_GetString(theTag, "justify") != nullptr)
 	{
 		if (strcmp(Xml_GetString(theTag, "justify"), "left") == 0)
 		{
-			theText->align = 0;
+			theText->mAlign = 0;
 			return 1;
 		}
 		if (strcmp(Xml_GetString(theTag, "justify"), "right") == 0)
-			theText->align = 1;
+			theText->mAlign = 1;
 	}
 	return 1;
 }

@@ -18,32 +18,32 @@ inline bool IsSpace(char c)
 
 XmlTag::XmlTag()
 {
-	attrs = nullptr;
-	count = 0;
-	capacity = 0;
-	name[0] = '\0';
-	text = nullptr;
-	textLen = 0;
-	closing = 0;
-	empty = 0;
+	mAttrs = nullptr;
+	mCount = 0;
+	mCapacity = 0;
+	mName[0] = '\0';
+	mText = nullptr;
+	mTextLen = 0;
+	mClosing = 0;
+	mEmpty = 0;
 }
 
 // (0x41ee70 forgets the tag and frees its attributes: Xml_NextTag starts each tag afresh, and this frees them)
 XmlTag::~XmlTag()
 {
-	std::free(attrs);
+	std::free(mAttrs);
 }
 
 // 0x42d8a0. The names and values have no bound in the original; the port cuts them at 0xff characters and stops at
 // the buffer's end.
 const char* Xml_NextTag(const char* theCursor, XmlTag* theTag)
 {
-	theTag->count = 0;
-	theTag->name[0] = '\0';
-	theTag->text = nullptr;
-	theTag->textLen = 0;
-	theTag->closing = 0;
-	theTag->empty = 0;
+	theTag->mCount = 0;
+	theTag->mName[0] = '\0';
+	theTag->mText = nullptr;
+	theTag->mTextLen = 0;
+	theTag->mClosing = 0;
+	theTag->mEmpty = 0;
 	char aChar = *theCursor;
 	while (aChar != '<')
 	{
@@ -65,12 +65,12 @@ const char* Xml_NextTag(const char* theCursor, XmlTag* theTag)
 	{
 		theCursor++;
 		if (aNameLength < 0xff)
-			theTag->name[aNameLength++] = aChar;
+			theTag->mName[aNameLength++] = aChar;
 		aChar = *theCursor;
 	}
-	theTag->name[aNameLength] = '\0';
-	if (theTag->name[0] == '/')
-		theTag->closing = 1;
+	theTag->mName[aNameLength] = '\0';
+	if (theTag->mName[0] == '/')
+		theTag->mClosing = 1;
 	for (; IsSpace(*theCursor); theCursor++)
 	{
 	}
@@ -81,53 +81,53 @@ const char* Xml_NextTag(const char* theCursor, XmlTag* theTag)
 		{
 			if (aChar == '/')
 			{
-				theTag->empty = 1;
+				theTag->mEmpty = 1;
 				theCursor++;
 			}
 			if (*theCursor == '>')
 				theCursor++;
-			if (theTag->closing == 0 && theTag->empty == 0)
+			if (theTag->mClosing == 0 && theTag->mEmpty == 0)
 			{
-				theTag->text = theCursor;
-				theTag->textLen = 0;
+				theTag->mText = theCursor;
+				theTag->mTextLen = 0;
 				aChar = *theCursor;
 				while (aChar != '<' && aChar != '\0')
 				{
-					theTag->textLen = theTag->textLen + 1;
+					theTag->mTextLen = theTag->mTextLen + 1;
 					theCursor++;
 					aChar = *theCursor;
 				}
 			}
 			return theCursor;
 		}
-		theTag->count = theTag->count + 1;
-		int aCap = theTag->capacity;
-		if (aCap < theTag->count)
+		theTag->mCount = theTag->mCount + 1;
+		int aCap = theTag->mCapacity;
+		if (aCap < theTag->mCount)
 		{
 			if (aCap == 0)
-				theTag->capacity = 1;
+				theTag->mCapacity = 1;
 			else
-				theTag->capacity = aCap * 2;
-			XmlTag::Attr* aNew = (XmlTag::Attr*)std::malloc((size_t)theTag->capacity << 9);
-			std::memset(aNew, 0, (size_t)theTag->capacity << 9);
-			if (theTag->attrs != nullptr)
+				theTag->mCapacity = aCap * 2;
+			XmlTag::Attr* aNew = (XmlTag::Attr*)std::malloc((size_t)theTag->mCapacity << 9);
+			std::memset(aNew, 0, (size_t)theTag->mCapacity << 9);
+			if (theTag->mAttrs != nullptr)
 			{
-				std::memcpy(aNew, theTag->attrs, (size_t)(theTag->capacity / 2) << 9);
-				std::free(theTag->attrs);
+				std::memcpy(aNew, theTag->mAttrs, (size_t)(theTag->mCapacity / 2) << 9);
+				std::free(theTag->mAttrs);
 			}
-			theTag->attrs = aNew;
+			theTag->mAttrs = aNew;
 		}
-		XmlTag::Attr& anAttr = theTag->attrs[theTag->count - 1];
+		XmlTag::Attr& anAttr = theTag->mAttrs[theTag->mCount - 1];
 		aNameLength = 0;
 		aChar = *theCursor;
 		while (aChar != ' ' && aChar != '=' && aChar != '\n' && aChar != '\r' && aChar != '\t' && aChar != '\0')
 		{
 			theCursor++;
 			if (aNameLength < 0xff)
-				anAttr.name[aNameLength++] = aChar;
+				anAttr.mName[aNameLength++] = aChar;
 			aChar = *theCursor;
 		}
-		anAttr.name[aNameLength] = '\0';
+		anAttr.mName[aNameLength] = '\0';
 		for (; IsSpace(*theCursor); theCursor++)
 		{
 		}
@@ -147,10 +147,10 @@ const char* Xml_NextTag(const char* theCursor, XmlTag* theTag)
 		{
 			theCursor++;
 			if (aNameLength < 0xff)
-				anAttr.value[aNameLength++] = aChar;
+				anAttr.mValue[aNameLength++] = aChar;
 			aChar = *theCursor;
 		}
-		anAttr.value[aNameLength] = '\0';
+		anAttr.mValue[aNameLength] = '\0';
 		if (*theCursor == '"')
 			theCursor++;
 		aChar = *theCursor;
@@ -163,30 +163,30 @@ const char* Xml_NextTag(const char* theCursor, XmlTag* theTag)
 }
 
 // 0x42d7b0
-const char* Xml_ReadToken(const char* theCursor, char* out, int limit, int* count)
+const char* Xml_ReadToken(const char* theCursor, char* theOut, int theLimit, int* theCount)
 {
 	int i = 0;
 	int aLocal = 0;
-	if (count == nullptr)
-		count = &aLocal;
-	if (limit == 0)
-		limit = 9999;
+	if (theCount == nullptr)
+		theCount = &aLocal;
+	if (theLimit == 0)
+		theLimit = 9999;
 	char aChar;
 	while (aChar = *theCursor, (aChar == '\0' || aChar == '\n' || aChar == '\r' || (aChar == '/' && theCursor[1] == '/') || (aChar == '\\' && theCursor[1] == '\\') ||
 					   aChar == '\t' || aChar == ' ') &&
-			*count < limit)
+			*theCount < theLimit)
 	{
 		if ((aChar == '/' && theCursor[1] == '/') || (aChar == '\\' && theCursor[1] == '\\'))
 		{
 			while (aChar != '\n' && aChar != '\r')
 			{
-				*count = *count + 1;
+				*theCount = *theCount + 1;
 				theCursor++;
 				aChar = *theCursor;
 			}
 		}
 		theCursor++;
-		*count = *count + 1;
+		*theCount = *theCount + 1;
 	}
 	aChar = *theCursor;
 	if (aChar != '\0')
@@ -204,10 +204,10 @@ const char* Xml_ReadToken(const char* theCursor, char* out, int limit, int* coun
 					break;
 				aStop = aChar == ' ';
 			}
-			if (aStop || limit <= *count)
+			if (aStop || theLimit <= *theCount)
 				break;
-			out[i] = aChar;
-			*count = *count + 1;
+			theOut[i] = aChar;
+			*theCount = *theCount + 1;
 			aChar = theCursor[1];
 			theCursor++;
 			i++;
@@ -215,7 +215,7 @@ const char* Xml_ReadToken(const char* theCursor, char* out, int limit, int* coun
 				break;
 		}
 	}
-	out[i] = '\0';
+	theOut[i] = '\0';
 	return theCursor;
 }
 
@@ -223,14 +223,14 @@ const char* Xml_ReadToken(const char* theCursor, char* out, int limit, int* coun
 const char* Xml_GetString(const XmlTag* theTag, const char* theName)
 {
 	int i = 0;
-	if (0 < theTag->count)
+	if (0 < theTag->mCount)
 	{
 		do
 		{
-			if (std::strcmp(theName, theTag->attrs[i].name) == 0)
-				return theTag->attrs[i].value;
+			if (std::strcmp(theName, theTag->mAttrs[i].mName) == 0)
+				return theTag->mAttrs[i].mValue;
 			i++;
-		} while (i < theTag->count);
+		} while (i < theTag->mCount);
 	}
 	return nullptr;
 }
@@ -239,14 +239,14 @@ const char* Xml_GetString(const XmlTag* theTag, const char* theName)
 int Xml_GetInt(const XmlTag* theTag, const char* theName)
 {
 	int i = 0;
-	if (0 < theTag->count)
+	if (0 < theTag->mCount)
 	{
 		do
 		{
-			if (std::strcmp(theName, theTag->attrs[i].name) == 0)
-				return (int)std::atol(theTag->attrs[i].value);
+			if (std::strcmp(theName, theTag->mAttrs[i].mName) == 0)
+				return (int)std::atol(theTag->mAttrs[i].mValue);
 			i++;
-		} while (i < theTag->count);
+		} while (i < theTag->mCount);
 	}
 	return 0;
 }
@@ -254,14 +254,14 @@ int Xml_GetInt(const XmlTag* theTag, const char* theName)
 double Xml_GetFloat(const XmlTag* theTag, const char* theName)
 {
 	int i = 0;
-	if (0 < theTag->count)
+	if (0 < theTag->mCount)
 	{
 		do
 		{
-			if (std::strcmp(theName, theTag->attrs[i].name) == 0)
-				return std::atof(theTag->attrs[i].value);
+			if (std::strcmp(theName, theTag->mAttrs[i].mName) == 0)
+				return std::atof(theTag->mAttrs[i].mValue);
 			i++;
-		} while (i < theTag->count);
+		} while (i < theTag->mCount);
 	}
 	return 0.0;
 }
