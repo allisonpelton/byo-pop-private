@@ -41,7 +41,7 @@ Work notes while the translation is written (see Board.h for the final field nam
 - A 9x9 grid of `Piece*` at +0x5c, index `x*9 + y` (x column, y row, y 0 = top). `FUN_0040e280(x)` is the cell's left
   pixel, `FUN_0040e2a0(y)` its top; a cell is 50x50 (0x32).
 - Piece (0x68 bytes): +0 x, +4 y, +8/+c the cell it moves to, +0x10/+0x14 float pixel position, +0x18 type
-  (0..12 animals, 0xd, 0xe empty, 0xf crate, 0x10 block), +0x1c alpha, +0x20/+0x24 pixel offset to the cell (a new piece
+  (0..12 animals, 0xe empty, 0xf block, 0x10 crate), +0x1c alpha, +0x20/+0x24 pixel offset to the cell (a new piece
   starts at y offset -0x1db and falls), +0x28 fall state, +0x2c selected, +0x2d removed (animating out), +0x2e,
   +0x2f flash, +0x30 moving along a path (+0x3c its partner, +0x34 index into its path vector +0x48), +0x38,
   +0x59 match mark (puzzle), +0x5c blink frame.

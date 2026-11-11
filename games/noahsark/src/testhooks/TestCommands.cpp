@@ -216,7 +216,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 				((aBoard->mState != BOARD_PLAYING) || !BotBoardSettled(aBoard)) ? "true" : "false");
 			aLine += StrFormat(",\"water\":%d,\"waterTarget\":%d,\"ark\":%d,\"animals\":%d", aBoard->mWaterY, aBoard->mWaterTargetY, aBoard->mArkLevelY, aBoard->AnimalCount());
 			aLine += StrFormat(",\"paused\":%s", aBoard->mPaused ? "true" : "false");           // a dialog has paused the board
-			// the board: a row a string, a cell a letter (. empty, X block, Y crate, 0-9 and A-D the animals)
+			// the board: a row a string, a cell a letter (. empty, X crate, Y block, 0-9 and A-C the animals)
 			std::string aRows;
 			for (int y = 0; y < Board::GRID_SIZE; y++)
 			{

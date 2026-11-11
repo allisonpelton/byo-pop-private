@@ -18,15 +18,15 @@ using namespace Sexy;
 namespace
 {
 
-// move v towards 0 by theStep; a value within theSnap of 0 becomes 0
-void Ease(int& v, int theStep, int theSnap)
+// part of 0x403d60: moves a value towards 0 by theStep; a value within theSnap of 0 becomes 0
+void Ease(int& theValue, int theStep, int theSnap)
 {
-	if (v > 0)
-		v -= theStep;
-	if (v < 0)
-		v += theStep;
-	if (abs(v) < theSnap)
-		v = 0;
+	if (theValue > 0)
+		theValue -= theStep;
+	if (theValue < 0)
+		theValue += theStep;
+	if (abs(theValue) < theSnap)
+		theValue = 0;
 }
 
 }

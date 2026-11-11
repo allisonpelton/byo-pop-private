@@ -392,7 +392,7 @@ void NoahApp::AutoplayUpdate()
 
 // -statelog=<file>: a line for each update at which the board's state, the score, the level or the mode changed,
 // and the nine by nine field's animal types when the state changed ("grid" lines: a digit or letter per cell, columns
-// left to right within each row, '.' empty, 'X' block, 'Y' crate; animals 0-9, A-D), so a run can be compared with the original's
+// left to right within each row, '.' empty, 'X' crate, 'Y' block; animals 0-9, A-C), so a run can be compared with the original's
 // (origrun --watch of [[0x4d125c]+0x408]+0x310, +0x474, +0x43c, +0x444).
 namespace Sexy
 {
