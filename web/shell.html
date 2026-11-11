@@ -712,7 +712,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     return r ? { w: r.w, h: r.h - statusBarHeight() } : null;
   }
   // what stands at the right of the game inside its window (the performance panel, web/perf.js): the window is that much wider
-  function sideWidth() { var p = $("perf-panel"); return (EMBED && p && !p.hidden && p.classList.contains("perf-side")) ? p.offsetWidth : 0; }
+  // (on a narrow page it is under the game instead)
+  function sideWidth() {
+    var p = $("perf-panel");
+    if (!EMBED || !p || p.hidden || !p.classList.contains("perf-side")) return 0;
+    try { if (window.matchMedia("(max-width: 600px)").matches) return 0; } catch (e) {}
+    return p.offsetWidth;
+  }
   window.addEventListener("byopop-side", function () { embedFitted = ""; sizeStage(); });
   function embedWidth() {
     var dpr = window.devicePixelRatio || 1, pick = chosenScale();
@@ -1233,13 +1239,15 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       showReady();
     }
   }
+  // (?perf=1, web/perf.js: the panel is beside or under the game, which full screen would cover)
+  function perfAsked() { try { return new URLSearchParams(location.search).get("perf") === "1"; } catch (e) { return false; } }
   function runGame(isAutostart, noMods) {
     setGameState("starting");
     // The site setting "full screen at start": "Full screen" is asked for first, while the click that pressed Play still counts
     // (browsers allow it only from one; the restart of the game's own menu has no click, so it does not ask). "Windowed" is
     // told to the games (byopop_site_windowed, below), whose own full screen option then starts off.
     var screenAtStart = setting("fullscreen");
-    if (!isAutostart && (screenAtStart === "on" || (PHONE && screenAtStart !== "off" && !pageSilent()))) goFullscreen();
+    if (!isAutostart && (screenAtStart === "on" || (PHONE && screenAtStart !== "off" && !pageSilent() && !perfAsked()))) goFullscreen();
     holdForVolume();
     closePanels("quiet");
     $("start-overlay").hidden = true;
