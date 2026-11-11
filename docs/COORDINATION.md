@@ -38,12 +38,14 @@ typically like").
   test-then-increment loop does not become a for loop), checks what a comment claims about the original before
   writing it, and builds with AddressSanitizer at the first sign of a crash or memory corruption. If a Sonnet
   game's review finds many faults, or its port runs far over its estimate, games of its kind move to Opus.
-- **Fable only, an experiment (the user, 2026-11-10):** "An experiment this week: ONLY use the new Fable 5.2. Use it
-  for everything so I can explore its capabilities and make full use of the banked reset." Every session, the
-  coordinator included, and every agent a session starts runs on Fable 5.2 (`claude-fable-5-2`; `model: "fable"` or
-  no model for an Agent), and the model selection above is suspended until the user ends the experiment. The user
-  wants to hear how productive Fable was compared with Opus when its weekly window is close to running out: the
-  baseline and the measure are in the coordinator's memory (`fable-experiment`).
+- **The Fable experiment (the user, 2026-11-10 to 2026-11-11), ended:** every session ran on Fable 5.2 for an evening
+  ("ONLY use the new Fable 5.2. Use it for everything"). Its weekly window went from 0 to 92% in about two and a half
+  hours of eleven sessions, for 27 merges and $528 of work at API prices; the Opus and Sonnet week before took one whole
+  window over seven days for 142 merges and about $3,200. A phase cost about what it does on Sonnet in dollars, for
+  roughly a quarter of the tokens, and the passes found faults earlier ones had not; but a dollar of Fable work took
+  about three times the share of the all-models window. The user then switched the sessions back ("Yes, switch
+  back", 2026-11-11), so the model selection above is in force again. Fable is worth its window for judgement-heavy
+  work in short stretches, not for eleven sessions at once.
 - **Finished games' sessions are archived (the user, 2026-11-04):** to free the boot drive, the session of a game that
   is done and identical is archived and its worktree removed. Every branch stays, and what only the worktree held goes
   into the main checkout first: the game's Ghidra exports and analysis in `re/<game>/` (scratch folders left out) and
