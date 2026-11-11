@@ -99,10 +99,13 @@ var ByopopSoundtracks = {
     where: { "cosmo1#0": "Level Theme 1", "cosmo3#0": "Level Theme 2", "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4",
       "cosmo4#0": "Level Theme 5" }
   },
+  // the menus play cosmo1; each set of levels its own song, the sets' songs repeating (its session's reading, 2026-11-11):
+  // 0-9 cosmo4, 10-19 cosmo3, 20-49 cosmo2, 50-99 cosmo5, then again from cosmo4 at 100 (Level_SetBackground's own song
+  // table is never played)
   waterbugs: {
     files: ["audio/*.mo3"],
-    where: { "cosmo1#0": "Level Theme 1", "cosmo3#0": "Level Theme 2", "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4",
-      "cosmo4#0": "Level Theme 5" }
+    where: { "cosmo1#0": "Main Menu", "cosmo4#0": "Level Theme 1", "cosmo3#0": "Level Theme 2",
+      "cosmo2#0": "Level Theme 3", "cosmo5#0": "Level Theme 4" }
   },
   dynomite: {
     files: ["music/*.it"],

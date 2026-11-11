@@ -342,6 +342,10 @@ index.footer.music_html = The Music player plays the music from the game files y
   The desktop's text is set in
   <a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>,
   made from W95FA by Alina Sava.
+index.footer.tracker = Reading the Music tracker: each line is a row, one step of time; the speed (ticks a row) and the
+  tempo set how fast the rows go. Each column is a channel, and each cell holds a note, the instrument that plays it, a
+  volume and an effect. A note sounds until the next note, an off or a cut in its channel. FX adds a column that says
+  what each effect does.
 index.footer.credit_html = Project by <a href="https://technocra.cy/">technocra.cy</a>
 
 # The link to Jungle Juice, after the games (the user, 2026-11-04)
@@ -1291,6 +1295,75 @@ music.position = {elapsed} of {total}
 music.tracker_at = ORD {order}  PAT {pattern}  ROW {row}/{rows}
 # the channels shown of those with notes, when some are scrolled off
 music.tracker_ch = CH {first}-{last}/{count}
+# the tracker's effect column (web/music.js fxText): its button, the button's tooltip, its head, and what each command does,
+# rip-style, a few words each; {n} a number, {x} and {y} a command's two digits, {code} the command as written
+music.fx_button = FX
+music.fx_title = Effects column
+music.fx_head = Effects
+music.fx.noteoff = Note off
+music.fx.notecut = Note cut
+music.fx.notefade = Note fade
+music.fx.arp = Arpeggio +{x} +{y}
+music.fx.up = Pitch up {n}
+music.fx.down = Pitch down {n}
+music.fx.fineup = Fine pitch up {n}
+music.fx.finedown = Fine pitch down {n}
+music.fx.xfineup = Extra fine pitch up {n}
+music.fx.xfinedown = Extra fine pitch down {n}
+music.fx.porta = Slide to note {n}
+music.fx.portaon = Slide to note
+music.fx.vibrato = Vibrato {x}/{y}
+music.fx.vibratoon = Vibrato
+music.fx.vibspeed = Vibrato speed {n}
+music.fx.vibdepth = Vibrato depth {n}
+music.fx.finevibrato = Fine vibrato {x}/{y}
+music.fx.tremolo = Tremolo {x}/{y}
+music.fx.tremoloon = Tremolo
+music.fx.tremor = Tremor on {x} off {y}
+music.fx.plus = {a} + {b}
+music.fx.pan = Pan {n}
+music.fx.panleft = Pan slide left {n}
+music.fx.panright = Pan slide right {n}
+music.fx.panbrello = Panbrello {x}/{y}
+music.fx.surround = Surround
+music.fx.offset = Sample offset {n}
+music.fx.hioffset = Offset high {n}
+music.fx.volume = Volume {n}
+music.fx.volslide = Vol slide
+music.fx.volup = Vol slide up {n}
+music.fx.voldown = Vol slide down {n}
+music.fx.finevolup = Fine vol up {n}
+music.fx.finevoldown = Fine vol down {n}
+music.fx.chvolume = Channel vol {n}
+music.fx.chvolup = Channel vol up {n}
+music.fx.chvoldown = Channel vol down {n}
+music.fx.gvolume = Global vol {n}
+music.fx.gvolup = Global vol up {n}
+music.fx.gvoldown = Global vol down {n}
+music.fx.jump = Jump to order {n}
+music.fx.break = Next pattern, row {n}
+music.fx.loopstart = Loop start
+music.fx.loop = Loop {n} times
+music.fx.speed = Speed {n}
+music.fx.tempo = Tempo {n}
+music.fx.tempoup = Tempo up {n}
+music.fx.tempodown = Tempo down {n}
+music.fx.rowdelay = Row delay {n}
+music.fx.tickdelay = Row delay {n} ticks
+music.fx.cut = Note cut at tick {n}
+music.fx.delay = Note delay {n} ticks
+music.fx.keyoff = Note off at tick {n}
+music.fx.retrig = Retrigger every {n} ticks
+music.fx.gliss = Glissando
+music.fx.finetune = Finetune {n}
+music.fx.vibwave = Vibrato wave {n}
+music.fx.tremwave = Tremolo wave {n}
+music.fx.panwave = Panbrello wave {n}
+music.fx.envpos = Envelope at {n}
+music.fx.instctl = Instrument control {n}
+music.fx.macro = MIDI macro {n}
+music.fx.reverse = Play backwards
+music.fx.other = Effect {code}
 music.mute = Mute
 music.vis_spectrum = Spectrum (click for the tracker)
 music.vis_tracker = Tracker (click for the piano roll)

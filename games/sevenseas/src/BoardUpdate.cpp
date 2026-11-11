@@ -15,6 +15,7 @@ using namespace Sexy;
 
 // the heading (0 up, 4 right, 8 down, 0xc left, 16 steps) for a move of (dx, dy); 0 when there is none. The
 // original writes this out in each of the places that turn the ship.
+// port: a helper; the original writes it out inline where it is used
 static int HeadingFor(int theDX, int theDY)
 {
 	unsigned int aHeading = 0;
@@ -50,6 +51,7 @@ void Board::KeyDown(KeyCode theKey)
 		mKeyTap[theKey] = true;
 }
 
+// port: the keys that are down or were tapped since the last update
 void Board::GetKeys(bool* theKeys)
 {
 	for (int aKey = 0; aKey < 0xFF; aKey++)
@@ -123,22 +125,22 @@ void Board::Update()
 				if (aChoice == 0)
 				{
 					aTalk->SetMouth(1);
-					mApp->PlaySample(0xe);
+					mApp->PlaySample(SOUND_TALKDAVYJONESLOCKER);
 				}
 				else if (aChoice == 1)
 				{
 					aTalk->SetMouth(4);
-					mApp->PlaySample(0x10);
+					mApp->PlaySample(SOUND_TALKARRMATEY);
 				}
 				else if (aChoice == 2)
 				{
 					aTalk->SetMouth(3);
-					mApp->PlaySample(0x11);
+					mApp->PlaySample(SOUND_TALKWALKTHEPLANK);
 				}
 				else if (aChoice == 3)
 				{
 					aTalk->SetMouth(2);
-					mApp->PlaySample(0x12);
+					mApp->PlaySample(SOUND_TALKLANDLUBBER);
 				}
 			}
 			aTalk->mMode = 0;

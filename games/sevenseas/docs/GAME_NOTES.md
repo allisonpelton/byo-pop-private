@@ -333,18 +333,18 @@ dialog does not leave the game) and two with an access violation (below).
 `games/sevenseas/coverage.txt` sets the game's own code as one range, 0x401000 to 0x427870 (399 functions; the framework starts
 at the Widget at 0x427880). **The runs reached 362 of the 399. 0 are reached with no counterpart in the port**; at first 170 were.
 
-- **Placed: 12.** The addresses of functions the port translates inline or in another shape are now in the comment above the
+- **Placed: 13.** The addresses of functions the port translates inline or in another shape are now in the comment above the
   function that holds them: 0x40a410 (the board's StartTalk call), 0x40b0e5 (the second half of Undo, which Ghidra left outside
   the function), 0x419ab0 (the end of a talk), 0x426140 (the tail of the title's sparkle loop, likewise), 0x411190 and 0x4111c0
-  (the high-score screen's AddedToManager and RemovedFromManager: the original adds two buttons), 0x41f280 (HasSavedGame; the
+  (the high-score screen's AddedToManager and RemovedFromManager: the original adds two buttons), 0x412c80 (the high-score screen's button handler: its other branch, the score upload, is not ported), 0x41f280 (HasSavedGame; the
   comment said 0x41ac10), 0x418fc0 (the options dialog's SetColor, which the constructor's colours replace), and three the port
   had under the wrong address: the options dialog's slider handler is 0x4196f0 (the comment said 0x419730 / 0x419770), its
   buttons are 0x4197a0 (it said 0x4196f0), and the check box handler 0x419730 does nothing in the registered game.
-- **Left out on purpose: 195 `none` lines.** What the compiler made (40 static initializer stubs, 20 deleting destructors, 11
+- **Left out on purpose: 194 `none` lines.** What the compiler made (40 static initializer stubs, 20 deleting destructors, 11
   vtable thunks, 10 empty or constant functions), the original's std::string library (22), the support of the anims.txt parser
   0x41c960 (map and list instances, 46: the port parses into std containers), the destructors of dialogs and widgets (15),
   registration (the Register dialog and its page link, the number check, the windowed-mode nag of the unregistered game: 19) and
-  the online score submission (12: the "Submit to Internet High Score List" button, its dialog, the upload and the "High Score"
+  the online score submission (11: the "Submit to Internet High Score List" button, its dialog, the upload and the "High Score"
   answer; README.md lists it as not ported).
 - **A slip found: the click of the options and nag dialogs.** The original's OptionsDialog (0x419770) and NagDialog (0x40d280)
   override ButtonPress to play sample 0 after the base class. The base forwards only the footer button to the app, which clicks,
@@ -371,3 +371,93 @@ at the Widget at 0x427880). **The runs reached 362 of the 399. 0 are reached wit
 
 Cost: most of the session's time went to finding the original's click positions (two sandbox runs) and sorting the 170
 functions of the first report; the runs themselves took about 25 minutes of machine time.
+
+## 13. Performance pass (2026-11-11)
+
+The sampled profile of the port over the demo's 90 s (`games/bejeweled/tools/profile/cpuprof.py`, the port under rundesk in
+real time with `tools/profile/perf_port.txt`; 16.8 G cycles in 92 s): **88.0 % of the cycles are in ntdll.dll** (for a 32-bit
+process, system calls and waits: the frame's present and the timer), 5.1 % win32u.dll (window and message calls), 1.9 % the
+GPU driver, 0.8 % imagehlp.dll (the shared cost already listed in `docs/COORDINATION.md`), and **2.6 % the game's own code, all
+of it loading**: Ogg decoding (`_vorbis_lsp_to_curve` 0.4 %, the Huffman set-up and the inverse MDCT 0.5 % together), GIF
+decoding (0.4 %), JPEG decoding (0.2 %). No function of the game's logic or drawing (the board, the ships, the sea, the
+sprites) is in the profile at all; the largest game function of play is below 0.1 %. The processor time of the port was 4.8 to
+5.5 % of one core in the morning's measurement (section 11), as for Bejeweled, whose frames are the cost and not its code.
+
+So there is nothing in Seven Seas' own code to speed up that a player or a frozen baseline would see, and none was changed:
+the decoding at load is about 0.2 s of one core in a load of about a second, and a faster or lazier decoder would change when
+work happens, not what it does, for a saving a player cannot notice. What remains is shared and already listed by the
+coordinator (the per-frame present and Direct3D's 20 to 25 MB of private memory, the 20 MB of image pixels the framework keeps
+after their upload, the GIF quantizer, imagehlp.dll); this game adds no new one. The memory gap to the original (about 15 MB
+of private bytes, section 11) is those shared costs. The frozen baseline (`tools/check.sh sevenseas`) is unchanged, since the
+code is.
+
+A slip: this profile run was started while 3 other game processes were running, so the machine held 4 for 92 s; the
+count is checked before a run's start, and the run's exit code was not read before starting. Nothing else ran, and the run's
+files (`build/perf`) are small.
+
+## 14. Removal of code the port does not need (2026-11-11)
+
+What the coverage check (section 12) found: every function of the game that play can reach is in the port, and the original's
+code the port leaves out is listed there. The other way round, a scan of the port for what nothing calls or uses (every member
+function defined in `src/` whose name appears nowhere else but its declaration, and every id of `Res.h` named once) found:
+
+- **Taken out:** the dialog ids of the Register dialog, its invalid-code box, the high-score note, the online score submission
+  and the windowed-mode nag (`DIALOG_REGISTER`, `REG_INVALID`, `HIGH_SCORE_NOTE`, `SUBMIT_SCORE`, `NO_WINDOWED`) and a
+  `KillDialog(DIALOG_REGISTER)` of a dialog the port does not have (commit 74d0c0fb); `SevenSeasApp::UpdateCursor`, an empty
+  function nothing called, and `StopTalk`, which nothing called.
+- **Kept on purpose:** the resource table (`Res.cpp`, `Res.h`) holds every image and sound of the original's list in its order
+  and with its ids, since the names are looked up in that order; 10 images and 8 sounds of it nothing in the game's code names
+  (the online score's picture, a few fonts and sprites, and the pirate's mouths and talking sounds, which the code reaches by
+  their numbers, 0xe to 0x15: the readability pass names them). Dropping the picture of the removed online score button would renumber every id after it for 40 KB
+  of memory; not done.
+- **Left alone:** the Treasure Island and warning nags are the registered game's own dialogs (they stay), and the registry
+  values `BonusNag`, `Warn*Nag` are theirs. The registration and outbound-button removal was done earlier (section 8's list);
+  a search of `src/` for register, trial, unlock and URL finds only the framework's registry hooks and the test command
+  `unlock`, which answers that the game has nothing locked.
+
+`tools/check.sh build sevenseas` passes with the baseline identical.
+
+## 15. Readability pass (2026-11-11)
+
+`python tools/namecheck.py games/sevenseas` reported 70 findings and now reports none; `tools/objsnap.py` shows that all 18
+objects (471 functions) compile to the same instructions as before the pass, and `tools/check.sh sevenseas` is unchanged
+(baseline identical). `tools/splitfields.py` has no per-function export folder to read here (only `functions.jsonl`), and
+reported no member declared twice.
+
+- **Names (rule 2).** `mFlag4c4` is `mPirateWelcome` (the pirate's welcome at the first menu, until a game starts) and
+  `mUnused_95008` is `mCellFlashFloor`, with a comment on what reads it (the glow's reach and the hint arrows) and that only the
+  level's reset writes it. The one-letter names that ran over 10 lines are `aState`, `aBoard`, `aCand`, `theBoard`, `aWriter`,
+  `aReader` and `thePos`.
+- **Addresses (rule 6).** 50 functions got an address or a `port:` marker. Addresses: the dialogs' and widgets' destructors and
+  the second hook of each pair that one comment named twice (`0x4190c0`, `0x4172e0`, `0x4261b0`, `0x40cb60`, `0x426670` and the
+  like), `ReadFromRegistry` 0x41c630, `ShowHelp` 0x421980, the demo's destructor 0x413700 and the high-score screen's button
+  handler 0x412c80 (which the coverage list had as the score upload, a branch it also holds). `port:` markers: the helpers the
+  original writes inline (the demo's `InitShip`, `Sink`, `DrawShip` and `DrawBall`, the board's heading and step helpers),
+  the framework hooks the original leaves to its base class, and the game-text reader. The test hooks' files carry the marker in
+  their first comment.
+- **Numbers (rule 7).** The pirate's lines and the bonus screen's losing sound are named (`SOUND_TALK...`, `SOUND_BONUSLOSE`)
+  where the code gave `PlaySample` their numbers (0xe to 0x16).
+- **Left as they are.** The music orders (`SetMusicOrder(0x10...)`), which no list of the game names, and the original's
+  geometry in hexadecimal, which each line's comment explains. The three copies of the heading helper (`StepHeading`,
+  `StepHeadingOf`, `HeadingFor`) are separate on purpose: each stands for the original's inline code at its own place.
+
+## 16. The PopCap Game Collection version (2026-11-11)
+
+The Collection disc (the user's ISO) has Seven Seas Deluxe (the group `SevenSeasDeluxeComponent`, 176 files). `unshield` read it from
+the read-only mounted image, dismounted afterwards, into the main checkout's `re/_installers/SevenSeasDeluxeCollection` (git-ignored).
+Unlike Typer Shark's, the Collection's copy has no launcher: `WinSS.exe` is the game itself, under the same name, beside `fmod.dll`,
+`license.txt`, `readme.txt`, `scoreul.tpl` and the folders `data`, `images`, `music` and `sounds`.
+
+**The same game.** All 172 files the port stages (every picture, sound, song and data file) are byte for byte the Collection's. The
+four files only the Collection has are the licence, the readme, the score template and fmod.dll, which the port does not use. Of
+`WinSS.exe` (both 720,896 bytes, the same sections) 7 bytes differ, all in `.text`: one byte at 0x42ce4e (`mov [ebp+0x32c], bl` in the
+port's copy, `cl` in the Collection's) and six at 0x42ded0, where the port's copy has eight NOPs and the Collection's has
+`xor eax,eax; inc eax; ret 8`, a function that returns 1: both are in the framework's code, at addresses above the game's own code
+(0x401000 to 0x427870); the port's copy looks patched there (the NOPs), the Collection's is the unpatched code. `.rdata` and `.data`, where the texts are, are the
+same, so every text of `GameText.cpp` matches by address and hash.
+
+**The port on the Collection's files.** With the Collection's `WinSS.exe` in the staged folder, `tools/check.sh sevenseas` gives
+the same result as on the other copy (baseline identical; beginner 2 over at update 5868, score 380; bonus 1 over at 2746, 680; late 1
+over at 1958, 200), and the port needs no change: it reads `WinSS.exe` by that name from the game folder, as the Collection's has it.
+The staged copy was put back afterwards. The Collection's own exe was not run: its game code is the same, and a run could show nothing
+the identical-play pass did not.

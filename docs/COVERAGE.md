@@ -44,7 +44,8 @@ game 004c9a94-004d82d2
 none 004d2f3b-004d35b5 RegisterDialog: registration code, removed with the rest of it
 ```
 
-`export` names the export and `src` the port's sources (more than one `src` line may be given). `game` is the range of
+`export` names the export and `src` the port's sources (more than one `src` line may be given; a game built on a shared
+engine adds `src engines/retro64`). `game` is the range of
 the original's own game code, both ends being function entries; give several lines for a game whose code is not in one
 piece. The rest of the exe is the framework, the C runtime and the libraries the game links, which are ported once for
 every game, so they are only counted in the report. Wherever the linker put them, the C++ library's templates (`std::`)
@@ -71,6 +72,12 @@ other comment is a mention: code that cites the function without being it. An ad
 entry, counts for the function that holds it, as a mention. The report counts a function as ported only with a
 counterpart, so a function translated inline into another needs its address in the comment above the function that holds
 it.
+
+Code that two games share (`engines/<name>`, `docs/ENGINES.md`) names each game's address with the game's folder name after
+it: `// 0x40c2e0 (cosmicbugs), 0x40c4d0 (waterbugs)`, and a range as `0x40c1a0..0x40c890 (cosmicbugs)`. A game's report
+reads the addresses tagged with its own name and the ones with no tag, and leaves the other games' alone, so one function
+is a counterpart in each exe that has it, and a function only one game's exe has counts for that game alone. Only a game
+folder's name is a tag: `0x41ac20 (launched)` is a plain address with a word after it.
 
 ## Reading the report
 

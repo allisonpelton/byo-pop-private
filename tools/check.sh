@@ -180,6 +180,8 @@
 #   games/<g>/**   build, unit, the game's own suites (bejeweled: build-nov verify modmenu livesplit oracle; bigmoney:
 #                  bigmoney livesplit; bookworm: bookworm livesplit; any other game: the suite of its name, if there is one)
 #                  and the web build of that game only (build-web:<g>; Bejeweled's also rulestest and bejeweled_verify)
+#   engines/<e>/** a shared engine (docs/ENGINES.md): build, unit, the suites of every game whose CMakeLists.txt names the
+#                  engine (retro64: cosmicbugs and waterbugs), and the web build of those games only
 #   web/**, cmake/ByopopWeb.cmake, cmake/ByopopStores.cmake, platform/saveimport.json
 #                  build-web and unit-web (seconds when only the listing page changed, but a change to web/modpanel.js,
 #                  web/shell.html or a link option relinks every game's wasm: about 6 minutes)
@@ -301,7 +303,7 @@ area_of() {  # <path>: sets AREA to the folder a path is listed under in the pla
 	top="${p%%/*}"; rest="${p#*/}"
 	if [ "$top" = "$p" ]; then AREA="$p"; return; fi
 	case "$top" in
-		games|tools) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$p"; fi ;;
+		games|tools|engines) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$p"; fi ;;
 		platform|third_party) if [[ "$rest" == */* ]]; then AREA="$top/${rest%%/*}"; else AREA="$top"; fi ;;
 		cmake) AREA="$p" ;;
 		*) AREA="$top" ;;
@@ -326,6 +328,15 @@ pick() {
 }
 
 web_add() { [ -n "${WEB_SEEN[$1]:-}" ] || { WEB_SEEN[$1]=1; WEB_T+=("$1"); }; }  # <target>: a web target to build (when the whole web build is not chosen)
+
+# engine_games <engine>: the games built on a shared engine (engines/<engine>), found by the engine's name in their
+# CMakeLists.txt
+engine_games() {
+	local f
+	for f in games/*/CMakeLists.txt; do
+		grep -q "\b$1\b" "$f" && { f="${f#games/}"; echo "${f%%/*}"; }
+	done
+}
 
 # game_suites <game>: sets GS to the suites that test the game, besides build and unit
 game_suites() {
@@ -357,6 +368,14 @@ classify() {  # <path>: chooses the suites a changed file needs
 				note build-web "$AREA" "$p"
 				if [ "$g" = bejeweled ]; then web_add bejeweled; web_add rulestest; web_add bejeweled_verify; else web_add "$g"; fi
 			fi ;;
+		engines/*/*)  # a shared engine (docs/ENGINES.md): the suites of every game that is built on it
+			x="${p#engines/}"; x="${x%%/*}"
+			pick build "$AREA" "$p"; pick unit "$AREA" "$p"
+			for g in $(engine_games "$x"); do
+				game_suites "$g"
+				for s in $GS; do pick "$s" "$AREA" "$p"; done
+				if [ -f "games/$g/CMakeLists.txt" ]; then note build-web "$AREA" "$p"; web_add "$g"; fi
+			done ;;
 		web/*|cmake/ByopopWeb.cmake|cmake/ByopopStores.cmake)
 			pick build-web "$AREA" "$p"; pick unit-web "$AREA" "$p"
 			# what every game's page and link depend on (cmake/ByopopWeb.cmake: the shell, the post-js, the footer, the licenses,

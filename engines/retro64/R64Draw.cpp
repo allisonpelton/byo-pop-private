@@ -11,11 +11,11 @@ namespace r64
 namespace
 {
 
-DrawItem gDrawItems[2000];        // 0x6e6540
-int gDrawCount = 0;               // 0x707880
-const int SCREEN_CLIP[4] = {0, 0, 0x31f, 0x257}; // 0x460010
+DrawItem gDrawItems[2000];        // 0x6e6540 (cosmicbugs), 0x6e65c0 (waterbugs)
+int gDrawCount = 0;               // 0x707880 (cosmicbugs), 0x707900 (waterbugs)
+const int SCREEN_CLIP[4] = {0, 0, 0x31f, 0x257}; // 0x460010 (cosmicbugs), 0x460010 (waterbugs)
 
-// 0x421670: the comb sort's next gap
+// 0x421190 (cosmicbugs), 0x421670 (waterbugs): the comb sort's next gap
 int CombGap(int theGap)
 {
 	int aGap = (theGap * 10) / 0xd;
@@ -28,7 +28,7 @@ int CombGap(int theGap)
 	return 0xb;
 }
 
-// 0x421530
+// 0x421050 (cosmicbugs), 0x421530 (waterbugs)
 int CompareDepth(const void* a, const void* b)
 {
 	return ((const DrawItem*)a)->mDepth > ((const DrawItem*)b)->mDepth ? 1 : -1;
@@ -51,7 +51,7 @@ void SwapBytes(uint8_t* theFirst, uint8_t* theSecond, size_t theWidth)
 	}
 }
 
-// 0x445000
+// 0x444bc0 (cosmicbugs), 0x445000 (waterbugs)
 void ShortSort(uint8_t* theLo, uint8_t* theHi, size_t theWidth, int (*theCompare)(const void*, const void*))
 {
 	for (; theLo < theHi; theHi -= theWidth)
@@ -76,7 +76,7 @@ inline uint32_t PackColour(const PixelFormat* f, int r, int g, int b)
 
 } // namespace
 
-// 0x445090
+// 0x444c50 (cosmicbugs), 0x445090 (waterbugs)
 void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(const void*, const void*))
 {
 	if (theBase == nullptr || theNum < 2 || theWidth == 0 || theCompare == nullptr)
@@ -180,7 +180,7 @@ void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(c
 	}
 }
 
-// 0x421550
+// 0x421070 (cosmicbugs), 0x421550 (waterbugs)
 void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, int theKind, uint8_t* theDst,
 	int theDPitch, int theRed, int theGreen, int theBlue, int theAlpha, Palette* thePalette, const int* theClip)
 {
@@ -209,8 +209,8 @@ void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, 
 	}
 }
 
-// 0x4216b0: a comb sort by depth then sequence, then the CRT's qsort by depth alone, then each sprite drawn with
-// its palette swapped in
+// 0x4211d0 (cosmicbugs), 0x4216b0 (waterbugs): a comb sort by depth then sequence, then the CRT's qsort by depth alone,
+// then each sprite drawn with its palette swapped in
 void DrawList_Flush()
 {
 	int aGap = gDrawCount;
@@ -287,13 +287,19 @@ void DrawList_Flush()
 	gDrawCount = 0;
 }
 
-// 0x421980
+// 0x4214a0 (cosmicbugs), 0x421980 (waterbugs)
 void DrawList_Clear()
 {
 	gDrawCount = 0;
 }
 
-// 0x422030
+// port: how many items the list holds
+int DrawList_Count()
+{
+	return gDrawCount;
+}
+
+// 0x421b50 (cosmicbugs), 0x422030 (waterbugs)
 Dirty::Dirty()
 {
 	mCells = nullptr;
@@ -313,7 +319,7 @@ Dirty::~Dirty()
 	Dirty_Free(this);
 }
 
-// 0x421990
+// 0x4214b0 (cosmicbugs), 0x421990 (waterbugs)
 void Dirty_Free(Dirty* theDirty)
 {
 	if (theDirty->mCells != nullptr)
@@ -332,7 +338,7 @@ void Dirty_Free(Dirty* theDirty)
 	}
 }
 
-// 0x4219e0
+// 0x421500 (cosmicbugs), 0x4219e0 (waterbugs)
 void Dirty_Init(Dirty* theDirty, int theCellW, int theCellH, int theMaxRects, int theMode)
 {
 	theDirty->mMode = theMode;
@@ -343,8 +349,8 @@ void Dirty_Init(Dirty* theDirty, int theCellW, int theCellH, int theMaxRects, in
 	theDirty->mRows = 600 / theCellH;
 }
 
-// 0x421a20: the rectangle's part in each cell it touches. A cell full of rectangles becomes one rectangle of the
-// whole cell, and the rest of that row of cells is skipped, as in the original.
+// 0x421540 (cosmicbugs), 0x421a20 (waterbugs): the rectangle's part in each cell it touches. A cell full of rectangles
+// becomes one rectangle of the whole cell, and the rest of that row of cells is skipped, as in the original.
 void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int theHeight)
 {
 	int aRow = y / theDirty->mCellH;
@@ -466,7 +472,7 @@ void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int theHeight)
 	}
 }
 
-// 0x421e40
+// 0x421960 (cosmicbugs), 0x421e40 (waterbugs)
 void Dirty_Clear(Dirty* theDirty)
 {
 	int i = 0;
@@ -487,7 +493,7 @@ void Dirty_Clear(Dirty* theDirty)
 	}
 }
 
-// 0x421eb0
+// 0x4219d0 (cosmicbugs), 0x421eb0 (waterbugs)
 void Dirty_AddClipped(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip)
 {
 	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
@@ -496,7 +502,8 @@ void Dirty_AddClipped(Dirty* theDirty, int x, int y, int theWidth, int theHeight
 		Dirty_AddRect(theDirty, aDstX, aDstY, aBlitWidth, aBlitHeight);
 }
 
-// 0x421f40: copies each changed rectangle of the back buffer to theDst, tells the screen, and clears the grid
+// 0x421a60 (cosmicbugs), 0x421f40 (waterbugs): copies each changed rectangle of the back buffer to theDst, tells the
+// screen, and clears the grid
 void Dirty_CopyTo(Dirty* theDirty, uint8_t* theDst, int theDPitch)
 {
 	int i = 0;
@@ -525,7 +532,7 @@ void Dirty_CopyTo(Dirty* theDirty, uint8_t* theDst, int theDPitch)
 	Dirty_Clear(theDirty);
 }
 
-// 0x422060
+// 0x421b80 (cosmicbugs), 0x422060 (waterbugs)
 void Dirty_Alloc(Dirty* theDirty)
 {
 	if (theDirty->mCells != nullptr)
@@ -544,7 +551,7 @@ void Dirty_Alloc(Dirty* theDirty)
 	Dirty_Clear(theDirty);
 }
 
-// 0x4220d0
+// 0x421bf0 (cosmicbugs), 0x4220d0 (waterbugs)
 void Dirty_SetSource(Dirty* theDirty, Image* theSource)
 {
 	theDirty->mSource = theSource;
@@ -555,7 +562,7 @@ void Dirty_SetSource(Dirty* theDirty, Image* theSource)
 	Dirty_Alloc(theDirty);
 }
 
-// 0x422100: theRect is {l, t, r, b}
+// 0x421c20 (cosmicbugs), 0x422100 (waterbugs): theRect is {l, t, r, b}
 void Dirty_AddClippedRect(Dirty* theDirty, const int* theRect, const int* theClip)
 {
 	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
@@ -567,7 +574,7 @@ void Dirty_AddClippedRect(Dirty* theDirty, const int* theRect, const int* theCli
 	}
 }
 
-// 0x4221b0
+// 0x421cd0 (cosmicbugs), 0x4221b0 (waterbugs)
 void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip)
 {
 	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
@@ -579,7 +586,7 @@ void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int theWidth, int theH
 	}
 }
 
-// 0x422260: where theImage would be drawn at (x, y)
+// 0x421d80 (cosmicbugs), 0x422260 (waterbugs): where theImage would be drawn at (x, y)
 void Dirty_AddClippedImage(Dirty* theDirty, int x, int y, const Image* theImage, const int* theClip)
 {
 	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;

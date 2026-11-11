@@ -136,9 +136,9 @@ void ColourShift(uint32_t* thePixel, const PixelFormat* theFmt, char theRed, cha
 	uint8_t theMulR, uint8_t theMulG, uint8_t theMulB, int theSetR, int theSetG, int theSetB, int theShare)
 {
 	uint32_t v = *thePixel;
-	uint8_t r = (uint8_t)(((theFmt->rMask & v) >> (theFmt->rShift & 0x1f)) << (theFmt->rLoss & 0x1f));
-	uint8_t g = (uint8_t)(((theFmt->gMask & v) >> (theFmt->gShift & 0x1f)) << (theFmt->gLoss & 0x1f));
-	uint8_t b = (uint8_t)(((theFmt->bMask & v) >> (theFmt->bShift & 0x1f)) << (theFmt->bLoss & 0x1f));
+	uint8_t r = (uint8_t)(((theFmt->mRMask & v) >> (theFmt->mRShift & 0x1f)) << (theFmt->mRLoss & 0x1f));
+	uint8_t g = (uint8_t)(((theFmt->mGMask & v) >> (theFmt->mGShift & 0x1f)) << (theFmt->mGLoss & 0x1f));
+	uint8_t b = (uint8_t)(((theFmt->mBMask & v) >> (theFmt->mBShift & 0x1f)) << (theFmt->mBLoss & 0x1f));
 	bool aChanged = false;
 	bool aRedChanged = false;
 	uint32_t aB = b;
@@ -197,9 +197,9 @@ void ColourShift(uint32_t* thePixel, const PixelFormat* theFmt, char theRed, cha
 			aTop = t;
 		aB = aTop & 0xff;
 	}
-	*thePixel = (aB >> (theFmt->bLoss & 0x1f)) << (theFmt->bShift & 0x1f) |
-		(uint32_t)(aG >> (theFmt->gLoss & 0x1f)) << (theFmt->gShift & 0x1f) |
-		(uint32_t)(aR >> (theFmt->rLoss & 0x1f)) << (theFmt->rShift & 0x1f);
+	*thePixel = (aB >> (theFmt->mBLoss & 0x1f)) << (theFmt->mBShift & 0x1f) |
+		(uint32_t)(aG >> (theFmt->mGLoss & 0x1f)) << (theFmt->mGShift & 0x1f) |
+		(uint32_t)(aR >> (theFmt->mRLoss & 0x1f)) << (theFmt->mRShift & 0x1f);
 }
 
 // The original parses the swap's colours and reads every pixel of the image, then keeps nothing: it changes
@@ -237,43 +237,43 @@ void RotateImage(Image* theImage, int theAngle)
 {
 	Image* aCopy = new Image();
 	Image_Copy(aCopy, theImage);
-	if (theImage->hasMask != 0)
+	if (theImage->mHasMask != 0)
 	{
-		aCopy->hasMask = 1;
+		aCopy->mHasMask = 1;
 		Image* aMask = new Image();
-		aCopy->mask = aMask;
-		Image_Copy(aMask, theImage->mask);
+		aCopy->mMask = aMask;
+		Image_Copy(aMask, theImage->mMask);
 	}
-	Fill8(theImage->bits, theImage->pitch, 0, 0, theImage->w + -1, theImage->h + -1, 0);
-	Fill8(theImage->mask->bits, theImage->mask->pitch, 0, 0, theImage->w + -1, theImage->h + -1, 0);
-	int cx = theImage->w / 2;
-	int cy = theImage->h / 2;
+	Fill8(theImage->mBits, theImage->mPitch, 0, 0, theImage->mW + -1, theImage->mH + -1, 0);
+	Fill8(theImage->mMask->mBits, theImage->mMask->mPitch, 0, 0, theImage->mW + -1, theImage->mH + -1, 0);
+	int cx = theImage->mW / 2;
+	int cy = theImage->mH / 2;
 	bool aTurn = true;
 	if (theAngle == 0x5a)
-		Image_BlitRotated(aCopy, theImage->bits, theImage->pitch, &theImage->fmt, cx, cy, 0x5a, theImage->clip);
+		Image_BlitRotated(aCopy, theImage->mBits, theImage->mPitch, &theImage->mFmt, cx, cy, 0x5a, theImage->mClip);
 	else if (theAngle == 0xb4)
 	{
-		if ((theImage->h / 2) * 2 == theImage->h)
+		if ((theImage->mH / 2) * 2 == theImage->mH)
 			cy = cy + -1;
-		Image_BlitRotated(aCopy, theImage->bits, theImage->pitch, &theImage->fmt, cx, cy, 0xb4, theImage->clip);
+		Image_BlitRotated(aCopy, theImage->mBits, theImage->mPitch, &theImage->mFmt, cx, cy, 0xb4, theImage->mClip);
 	}
 	else if (theAngle == 0x10e)
 	{
-		if ((theImage->w / 2) * 2 == theImage->w)
+		if ((theImage->mW / 2) * 2 == theImage->mW)
 			cx = cx + -1;
-		Image_BlitRotated(aCopy, theImage->bits, theImage->pitch, &theImage->fmt, cx, cy, 0x10e, theImage->clip);
+		Image_BlitRotated(aCopy, theImage->mBits, theImage->mPitch, &theImage->mFmt, cx, cy, 0x10e, theImage->mClip);
 	}
 	else
 		aTurn = false;
 	if (aTurn)
 	{
-		Image* aMask = theImage->mask;
-		Image_BlitRotated(aCopy->mask, aMask->bits, aMask->pitch, &aMask->fmt, cx, cy, theAngle, aMask->clip);
+		Image* aMask = theImage->mMask;
+		Image_BlitRotated(aCopy->mMask, aMask->mBits, aMask->mPitch, &aMask->mFmt, cx, cy, theAngle, aMask->mClip);
 	}
-	if (aCopy->hasMask != 0 && aCopy->mask != nullptr)
+	if (aCopy->mHasMask != 0 && aCopy->mMask != nullptr)
 	{
-		Image_Destroy(aCopy->mask);
-		delete aCopy->mask;
+		Image_Destroy(aCopy->mMask);
+		delete aCopy->mMask;
 	}
 	Image_Destroy(aCopy);
 	delete aCopy;

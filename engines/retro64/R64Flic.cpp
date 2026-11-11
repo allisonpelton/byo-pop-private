@@ -22,8 +22,9 @@ inline uint32_t U32(const uint8_t* p)
 	return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
 }
 
-// 0x40c4d0: COLOR_256 and COLOR_64 alike, without scaling. The index moves only by each packet's skip, as in the
-// original; colours past the palette's end are dropped (the original writes on into the globals after it).
+// 0x40c2e0 (cosmicbugs), 0x40c4d0 (waterbugs): COLOR_256 and COLOR_64 alike, without scaling. The index moves only by
+// each packet's skip, as in the original; colours past the palette's end are dropped (the original writes on into the
+// globals after it).
 void DecodeColour(const uint8_t* theData)
 {
 	uint8_t aPackets = *theData;
@@ -62,7 +63,8 @@ void DecodeColour(const uint8_t* theData)
 	}
 }
 
-// 0x40c5a0: BYTE_RUN, each row as many packets as its count byte says (positive: a byte repeated, negative:
+// 0x40c3b0 (cosmicbugs), 0x40c5a0 (waterbugs): BYTE_RUN, each row as many packets as its count byte says (positive: a
+// byte repeated, negative:
 // bytes copied)
 void DecodeByteRun(const uint8_t* theCursor, uint8_t* theDst, int16_t thePitch, uint16_t theHeight)
 {
@@ -115,7 +117,8 @@ void DecodeByteRun(const uint8_t* theCursor, uint8_t* theDst, int16_t thePitch, 
 	}
 }
 
-// 0x40c670: DELTA_FLI. The original reads another skip and row count after the rows until it reaches theEnd.
+// 0x40c480 (cosmicbugs), 0x40c670 (waterbugs): DELTA_FLI. The original reads another skip and row count after the rows
+// until it reaches theEnd.
 void DecodeDeltaFli(const uint8_t* theData, uint8_t* theDst, int16_t thePitch, const uint8_t* theEnd)
 {
 	const uint8_t* aCursor = theData;
@@ -181,8 +184,8 @@ void DecodeDeltaFli(const uint8_t* theData, uint8_t* theDst, int16_t thePitch, c
 	} while (true);
 }
 
-// 0x40c770: DELTA_FLC, in words: 0xc000 words skip rows, a 0x8000 word puts its low byte where the row's packets
-// end, and the packets skip bytes then copy or repeat words
+// 0x40c580 (cosmicbugs), 0x40c770 (waterbugs): DELTA_FLC, in words: 0xc000 words skip rows, a 0x8000 word puts its low
+// byte where the row's packets end, and the packets skip bytes then copy or repeat words
 void DecodeDeltaFlc(const uint8_t* theData, uint8_t* theDst, int16_t thePitch)
 {
 	const uint8_t* aCursor = theData + 2;

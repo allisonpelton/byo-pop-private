@@ -338,13 +338,18 @@ option(BUILD_WORDHARMONY "Build the Word Harmony port" ON)
 if(BUILD_WORDHARMONY AND EXISTS ${PROJECT_SOURCE_DIR}/games/wordharmony/CMakeLists.txt)
   add_subdirectory(games/wordharmony)
 endif()
-# Cosmic Bugs: Retro64's engine (games/cosmicbugs/engine) under the framework's app host; optional while it is new
+# Retro64's engine (engines/retro64), one copy for Cosmic Bugs and Water Bugs: built when either game is
 option(BUILD_COSMICBUGS "Build the Cosmic Bugs port" ON)
+option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+if((BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt) OR
+   (BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt))
+  add_subdirectory(engines/retro64)
+endif()
+# Cosmic Bugs: Retro64's engine under the framework's app host; optional while it is new
 if(BUILD_COSMICBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/cosmicbugs/CMakeLists.txt)
   add_subdirectory(games/cosmicbugs)
 endif()
-# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine (games/waterbugs/engine); optional while it is new
-option(BUILD_WATERBUGS "Build the Water Bugs port" ON)
+# Water Bugs: Cosmic Bugs' sequel on the same Retro64 engine; optional while it is new
 if(BUILD_WATERBUGS AND EXISTS ${PROJECT_SOURCE_DIR}/games/waterbugs/CMakeLists.txt)
   add_subdirectory(games/waterbugs)
 endif()

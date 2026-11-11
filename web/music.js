@@ -15,7 +15,7 @@ var ByopopMusic = (function () {
   var MIN_TUNE = 2;          // seconds: a shorter subsong is a silence or a sting between tunes, not a tune
   var CHUNK = 4096;          // frames a message to the worklet carries
   var AHEAD = 12;            // chunks kept queued in the worklet: about a second
-  var VOLUME_KEY = "byopop-music-volume", LOOP_KEY = "byopop-music-loop";
+  var VOLUME_KEY = "byopop-music-volume", LOOP_KEY = "byopop-music-loop", FX_KEY = "byopop-music-fx";
   function T(key, vars) { return ByopopStrings.t(key, vars); }
   function silentPage() { try { return new URLSearchParams(location.search).get("silent") === "1"; } catch (e) { return false; } }
   function make(tag, cls, text) {
@@ -394,17 +394,20 @@ var ByopopMusic = (function () {
                   list.push({ kind: "module", keys: [prefix + rel], range: r, start: t0, entry: r[0], seq: seq, id: id + "#" + i, seconds: t1 - t0, level: entry.level });
                 });
               } else {
-                var one = M._malloc(16), fast = /\.(mo3|oxm)$/i.test(rel) || formats[rel] === "MO3";
+                var one = M._malloc(16), fast = /\.(mo3|oxm)$/i.test(rel) || formats[rel] === "MO3", subEntries = [];
                 for (var i = 0, n = M._bm_subsongs(m); i < n; i++) {
                   M._bm_select(m, i);
                   var secs = M._bm_duration(m);
                   M._bm_render(m, 48000, 1, one);   // libxmp-lite moves to the subsong's first order as it plays
                   var base = { kind: "module", keys: [prefix + rel], sub: i, entry: M._bm_order(m), seq: seq, id: id + "#" + i, seconds: secs, level: entry.level };
+                  subEntries[i] = base.entry;
                   var cuts = byId(entry.cuts, base.id);
                   if (cuts) cutTune(m, base, cuts, fast).forEach(function (k) { list.push(k); });
                   else list.push(base);
                 }
                 M._free(one);
+                // every subsong's first order, for the orders each tune plays (tuneOrders)
+                list.forEach(function (k) { k.subEntries = subEntries; });
                 chainTunes(list);
               }
               M._bm_free(m);
@@ -591,6 +594,16 @@ var ByopopMusic = (function () {
     row.appendChild(make("span", "mu-gap"));
     var loopBtn = control("repeat", T("music.loop"), "loop");
     loopBtn.setAttribute("aria-pressed", String(loop));
+    // the tracker's effect column on or off (fxText; the user, 2026-11-11: "add a brief English description of tracker commands
+    // ... as an optional column"), off by default, shown with the tracker view only
+    var fxOn = false;
+    try { fxOn = localStorage.getItem(FX_KEY) === "1"; } catch (e) {}
+    var fxBtn = make("button", "mu-btn mu-fx", T("music.fx_button"));
+    fxBtn.type = "button";
+    fxBtn.title = T("music.fx_title");
+    fxBtn.setAttribute("aria-pressed", String(fxOn));
+    fxBtn.hidden = true;
+    row.appendChild(fxBtn);
     row.appendChild(make("span", "mu-gap"));
     var muteBtn = control(muted ? "muted" : "speaker", T("music.mute"), "mute");
     muteBtn.setAttribute("aria-pressed", String(muted));
@@ -712,6 +725,7 @@ var ByopopMusic = (function () {
       scoreOn = vis === "score" && patterned;
       spectrumOn = vis === "spectrum" || ((vis === "tracker" || vis === "piano" || vis === "score") && !patterned);
       tracker.hidden = !trackerOn;
+      fxBtn.hidden = !trackerOn;
       piano.hidden = !pianoOn;
       score.hidden = !scoreOn;
       if (scoreOn) loadScore();
@@ -788,11 +802,20 @@ var ByopopMusic = (function () {
     }
 
     // ---------- the sound ----------
+    // A play chosen while the worklet is still being added waits for the same setup (audioReady): it once found the context
+    // made and the worklet's node not yet there, and failed ("not played: Cannot read properties of null (reading 'port')").
+    var audioReady = null;
     function audio() {
-      if (ctx) return Promise.resolve();
+      if (ctx && audioReady) return audioReady;
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC || !AC.prototype || !("audioWorklet" in AC.prototype)) return Promise.reject(new Error("unsupported"));
       ctx = new AC();
+      var made = ctx;
+      audioReady = makeGraph(made);
+      audioReady.catch(function () { if (ctx === made) { ctx = null; audioReady = null; } });
+      return audioReady;
+    }
+    function makeGraph(ctx) {
       gain = ctx.createGain();
       gain.gain.value = muted ? 0 : volume / 100;
       // at ?silent=1 the sound passes through a gain of 0 (CLAUDE.md: tests in a pane that may be hidden): the speakers get exact
@@ -1122,6 +1145,7 @@ var ByopopMusic = (function () {
         return ctx.resume().then(function () { setState("playing"); fill(); });
       }).catch(function (e) {
         if (play.ticket !== ticket) return;
+        try { console.warn("music: " + t.id + " not played:", e); } catch (x) {}
         unload();
         setState("idle");
         var why = e && e.message === "unsupported" ? "music.unsupported" : "music.failed";
@@ -1241,6 +1265,276 @@ var ByopopMusic = (function () {
     }
     function two(n) { return (n < 10 ? "0" : "") + n; }
     function rowNumber(n, rows) { var t = String(n); while (t.length < String(rows - 1).length) t = "0" + t; return t; }
+    // The channels a tune itself plays notes in (the user, 2026-11-11: "Some songs seem to have totally empty channels the whole
+    // way through. Possible to hide from tracker on a per-song basis?"): those with a note in a row of a pattern its own orders
+    // play, read once a tune; the tracker leaves the others out, the columns kept keeping their numbers. A channel with commands
+    // and no note counts as empty: its effects still show in the effect column (fxText). A tune's orders: a range's; a
+    // subsong's from its first order to the next subsong's first; a cut or joined tune's segments, each from its order (or its
+    // subsong's first) to the order it stops at (or its subsong's end). null where they are not known (a list read before
+    // subEntries): the tracker then keeps the module's own (bm_used).
+    function tuneOrders(t) {
+      if (!t || t.kind !== "module" || !t.seq) return null;
+      var n = t.seq.length, out = [];
+      function span(first, until) {   // first to the order before until (or the end of first's subsong)
+        if (first === null || first === undefined || first < 0) return false;
+        var last = n - 1;
+        if (until !== null && until !== undefined) last = until - 1;
+        else if (t.subEntries) t.subEntries.forEach(function (e) { if (e > first && e - 1 < last) last = e - 1; });
+        for (var o = first; o <= last && o < n; o++) if (out.indexOf(o) < 0) out.push(o);
+        return true;
+      }
+      if (t.range) { span(t.range[0], t.range[1] + 1); return out; }
+      if (!t.subEntries) return null;
+      if (t.segs) {
+        for (var i = 0; i < t.segs.length; i++) {
+          var sg = t.segs[i], from = sg.from !== null && sg.from !== undefined ? sg.from : t.subEntries[sg.sub];
+          if (!span(from, sg.until)) return null;
+        }
+        return out;
+      }
+      return span(t.entry, null) ? out : null;
+    }
+    // NOTE: a cell's note, as both decoders write it ("C-5", "C#5"); "===" (off), "^^^" (cut) and "~~~" (fade) are no note
+    var NOTE = /^[A-G][-#]\d/;
+    function tuneUsed(t, rowAt, rowsOf) {
+      var orders = tuneOrders(t);
+      if (!orders) return null;
+      var found = {}, list = [];
+      orders.forEach(function (o) {
+        var p = t.seq[o], rows = p >= 0 ? rowsOf(o, p) : 0;
+        for (var r = 0; r < rows; r++) rowAt(p, r).split("|").forEach(function (cell, c) { if (!found[c] && NOTE.test(cell)) found[c] = true; });
+      });
+      Object.keys(found).forEach(function (c) { list.push(+c); });
+      return list.sort(function (a, b) { return a - b; });
+    }
+    // The effect column (the user, 2026-11-11: "add a brief English description of tracker commands when they appear in the song
+    // as an optional column"): what a cell's effect, its volume column's command where it is not a plain volume, and a note off,
+    // cut or fade do, in a few words. libxmp-lite's cells (the player's S3M, IT, XM and MOD; a game's libxmp-lite songs) write
+    // its own effect numbers as four hex digits ("A306": its S3M speed, 6), the same whatever the file's format; libopenmpt's
+    // (MO3, and a game's libopenmpt songs) write the file's own letter and a hex value ("A06"), whose meaning depends on the
+    // format's family: digits and A to F are MOD and XM's, the rest of the alphabet S3M and IT's. fxStyle reads which from
+    // the tune's rows: "xm" where any effect is a digit, else "it"; "" for libxmp-lite's cells.
+    var FX_WIDE = 28, fxStyleKey = "", fxStyleWas = "";
+    function fxStyle(feed) {
+      var key = feed.id + ":" + (follow ? follow.track : current);
+      if (key === fxStyleKey) return fxStyleWas;
+      var rows = follow ? follow.rows : rowCache, digit = false, letter = false;
+      Object.keys(rows || {}).forEach(function (k) {
+        (rows[k] || "").split("|").forEach(function (cell) {
+          if (cell.length !== 13) return;
+          var e = cell.charAt(10);
+          if (/[0-9]/.test(e)) digit = true; else if (/[A-Z]/.test(e)) letter = true;
+        });
+      });
+      fxStyleKey = key;
+      fxStyleWas = digit ? "xm" : "it";
+      return fxStyleWas;
+    }
+    function fx(id, n) { return T("music.fx." + id, n === undefined ? {} : typeof n === "object" ? n : { n: n }); }
+    // a volume slide xy: up by x, down by y; in S3M and IT (fine true) xF is a fine slide up by x and Fy one down by y
+    function volSlide(p, fine) {
+      var x = p >> 4, y = p & 15;
+      if (fine && y === 15 && x) return fx("finevolup", x);
+      if (fine && x === 15 && y) return fx("finevoldown", y);
+      return x ? fx("volup", x) : y ? fx("voldown", y) : fx("volslide");
+    }
+    // a pitch slide in S3M and IT: Fx fine, Ex extra fine, else by the value
+    function pitchSlide(p, up, fine) {
+      var x = p >> 4, y = p & 15;
+      if (fine && x === 15) return fx(up ? "fineup" : "finedown", y);
+      if (fine && x === 14) return fx(up ? "xfineup" : "xfinedown", y);
+      return fx(up ? "up" : "down", p);
+    }
+    function xy(id, p) { return fx(id, { x: p >> 4, y: p & 15 }); }
+    // MOD and XM's E commands, libxmp-lite's extended (S3M and IT's S commands come through it as these too)
+    function extended(p) {
+      var x = p >> 4, y = p & 15;
+      switch (x) {
+        case 1: return fx("fineup", y);
+        case 2: return fx("finedown", y);
+        case 3: return fx("gliss");
+        case 4: return fx("vibwave", y);
+        case 5: return fx("finetune", y);
+        case 6: return y ? fx("loop", y) : fx("loopstart");
+        case 7: return fx("tremwave", y);
+        case 8: return fx("pan", y * 17);
+        case 9: return fx("retrig", y);
+        case 10: return fx("finevolup", y);
+        case 11: return fx("finevoldown", y);
+        case 12: return fx("cut", y);
+        case 13: return fx("delay", y);
+        case 14: return fx("rowdelay", y);
+        default: return fx("other", { code: "E" + x.toString(16).toUpperCase() + y.toString(16).toUpperCase() });
+      }
+    }
+    function xmpEffect(t, p) {
+      var x = p >> 4, y = p & 15;
+      switch (t) {
+        case 0x00: return p ? fx("arp", { x: x, y: y }) : "";
+        case 0x01: return pitchSlide(p, true, true);
+        case 0x02: return pitchSlide(p, false, true);
+        case 0x03: return p ? fx("porta", p) : fx("portaon");
+        case 0x04: case 0x92: return p ? xy("vibrato", p) : fx("vibratoon");
+        case 0x05: return fx("plus", { a: fx("portaon"), b: volSlide(p, true) });
+        case 0x06: return fx("plus", { a: fx("vibratoon"), b: volSlide(p, true) });
+        case 0x07: return p ? xy("tremolo", p) : fx("tremoloon");
+        case 0x08: return fx("pan", p);
+        case 0x09: return fx("offset", p * 256);
+        case 0x0a: case 0xa4: return volSlide(p, true);
+        case 0x0b: return fx("jump", p);
+        case 0x0c: return fx("volume", p);
+        case 0x0d: return fx("break", x * 10 + y);
+        case 0x8e: return fx("break", p);
+        case 0x0e: return extended(p);
+        case 0x0f: return p < 0x20 ? fx("speed", p) : fx("tempo", p);
+        case 0xa3: return fx("speed", p);
+        case 0xab: return fx("tempo", p);
+        case 0x87: return p < 0x10 ? fx("tempodown", p) : p < 0x20 ? fx("tempoup", y) : fx("tempo", p);
+        case 0x10: return fx("gvolume", p);
+        case 0x11: return x ? fx("gvolup", x) : fx("gvoldown", y);
+        case 0x14: return fx("keyoff", p);
+        case 0x15: return fx("envpos", p);
+        case 0x19: case 0x89: case 0xb5: return x ? fx("panright", x) : fx("panleft", y);
+        case 0x1b: case 0xbb: return fx("retrig", y);
+        case 0x1d: return xy("tremor", p);
+        case 0x21: return x === 1 ? fx("xfineup", y) : fx("xfinedown", y);
+        case 0x80: return fx("chvolume", p);
+        case 0x81: case 0x82: return x ? fx("chvolup", x) : fx("chvoldown", y);
+        case 0x83: return fx("instctl", p);
+        case 0x88: return fx("rowdelay", p);
+        case 0x8a: return xy("panbrello", p);
+        case 0x8b: return fx("panwave", p);
+        case 0x8c: return fx("hioffset", p);
+        case 0x8d: return fx("surround");
+        case 0x8f: return fx("reverse");
+        case 0xac: return xy("finevibrato", p);
+        case 0xb4: return fx("arp", { x: x, y: y });
+        case 0xbd: case 0xbe: case 0xbf: return fx("macro", p);
+        case 0xc0: return fx("volup", p);
+        case 0xc1: return fx("voldown", p);
+        case 0xc2: return fx("finevolup", p);
+        case 0xc3: return fx("finevoldown", p);
+        default: return fx("other", { code: (t < 16 ? "0" : "") + t.toString(16).toUpperCase() + (p < 16 ? "0" : "") + p.toString(16).toUpperCase() });
+      }
+    }
+    // libopenmpt's letters: S3M and IT's
+    function itEffect(e, p) {
+      var x = p >> 4, y = p & 15;
+      switch (e) {
+        case "A": return fx("speed", p);
+        case "B": return fx("jump", p);
+        case "C": return fx("break", p);
+        case "D": return volSlide(p, true);
+        case "E": return pitchSlide(p, false, true);
+        case "F": return pitchSlide(p, true, true);
+        case "G": return p ? fx("porta", p) : fx("portaon");
+        case "H": return p ? xy("vibrato", p) : fx("vibratoon");
+        case "I": return xy("tremor", p);
+        case "J": return fx("arp", { x: x, y: y });
+        case "K": return fx("plus", { a: fx("vibratoon"), b: volSlide(p, true) });
+        case "L": return fx("plus", { a: fx("portaon"), b: volSlide(p, true) });
+        case "M": return fx("chvolume", p);
+        case "N": return x ? fx("chvolup", x) : fx("chvoldown", y);
+        case "O": return fx("offset", p * 256);
+        case "P": return x ? fx("panright", x) : fx("panleft", y);
+        case "Q": return fx("retrig", y);
+        case "R": return p ? xy("tremolo", p) : fx("tremoloon");
+        case "S":
+          switch (x) {
+            case 1: return fx("gliss");
+            case 2: return fx("finetune", y);
+            case 3: return fx("vibwave", y);
+            case 4: return fx("tremwave", y);
+            case 5: return fx("panwave", y);
+            case 6: return fx("tickdelay", y);
+            case 7: return fx("instctl", y);
+            case 8: return fx("pan", y * 17);
+            case 9: return y === 1 ? fx("surround") : fx("other", { code: "S9" + y.toString(16).toUpperCase() });
+            case 10: return fx("hioffset", y);
+            case 11: return y ? fx("loop", y) : fx("loopstart");
+            case 12: return fx("cut", y);
+            case 13: return fx("delay", y);
+            case 14: return fx("rowdelay", y);
+            case 15: return fx("macro", y);
+          }
+          return fx("other", { code: "S" + x.toString(16).toUpperCase() + y.toString(16).toUpperCase() });
+        case "T": return p < 0x10 ? fx("tempodown", p) : p < 0x20 ? fx("tempoup", y) : fx("tempo", p);
+        case "U": return xy("finevibrato", p);
+        case "V": return fx("gvolume", p);
+        case "W": return x ? fx("gvolup", x) : fx("gvoldown", y);
+        case "X": return fx("pan", p);
+        case "Y": return xy("panbrello", p);
+        case "Z": case "\\": return fx("macro", p);
+      }
+      return fx("other", { code: e + (p < 16 ? "0" : "") + p.toString(16).toUpperCase() });
+    }
+    // libopenmpt's letters: MOD and XM's
+    function xmEffect(e, p) {
+      var x = p >> 4, y = p & 15;
+      switch (e) {
+        case "0": return p ? fx("arp", { x: x, y: y }) : "";
+        case "1": return fx("up", p);
+        case "2": return fx("down", p);
+        case "3": return p ? fx("porta", p) : fx("portaon");
+        case "4": return p ? xy("vibrato", p) : fx("vibratoon");
+        case "5": return fx("plus", { a: fx("portaon"), b: volSlide(p, false) });
+        case "6": return fx("plus", { a: fx("vibratoon"), b: volSlide(p, false) });
+        case "7": return p ? xy("tremolo", p) : fx("tremoloon");
+        case "8": return fx("pan", p);
+        case "9": return fx("offset", p * 256);
+        case "A": return volSlide(p, false);
+        case "B": return fx("jump", p);
+        case "C": return fx("volume", p);
+        case "D": return fx("break", p);
+        case "E": return extended(p);
+        case "F": return p < 0x20 ? fx("speed", p) : fx("tempo", p);
+        case "G": return fx("gvolume", p);
+        case "H": return x ? fx("gvolup", x) : fx("gvoldown", y);
+        case "K": return fx("keyoff", p);
+        case "L": return fx("envpos", p);
+        case "P": return x ? fx("panright", x) : fx("panleft", y);
+        case "R": return fx("retrig", y);
+        case "T": return xy("tremor", p);
+        case "X": return x === 1 ? fx("xfineup", y) : fx("xfinedown", y);
+      }
+      return fx("other", { code: e + (p < 16 ? "0" : "") + p.toString(16).toUpperCase() });
+    }
+    // libopenmpt's volume column, where it is not a plain volume ("v64")
+    function volColumn(v) {
+      var c = v.charAt(0), n = parseInt(v.slice(1), 10) || 0;
+      switch (c) {
+        case "p": return fx("pan", Math.min(255, n * 4));
+        case "c": return fx("volup", n);
+        case "d": return fx("voldown", n);
+        case "a": return fx("finevolup", n);
+        case "b": return fx("finevoldown", n);
+        case "u": return fx("vibspeed", n);
+        case "h": return fx("vibdepth", n);
+        case "l": return fx("panleft", n);
+        case "r": return fx("panright", n);
+        case "g": return n ? fx("porta", n) : fx("portaon");
+        case "f": return fx("up", n);
+        case "e": return fx("down", n);
+        case "o": return fx("offset", n * 256);
+      }
+      return "";
+    }
+    function fxText(cell, style) {
+      var out = [], note = cell.slice(0, 3);
+      if (note === "===") out.push(fx("noteoff"));
+      else if (note === "^^^") out.push(fx("notecut"));
+      else if (note === "~~~") out.push(fx("notefade"));
+      if (cell.length === 15) {   // libxmp-lite: "C-5 01 v64 A306"
+        var code = cell.slice(11, 15);
+        if (/^[0-9A-F]{4}$/.test(code)) { var d = xmpEffect(parseInt(code.slice(0, 2), 16), parseInt(code.slice(2), 16)); if (d) out.push(d); }
+      } else if (cell.length === 13) {   // libopenmpt: "C-5 01v64 A06"
+        var vol = cell.slice(6, 9);
+        if (/^[a-z]/.test(vol) && vol.charAt(0) !== "v") { var vd = volColumn(vol); if (vd) out.push(vd); }
+        var e = cell.charAt(10), p = parseInt(cell.slice(11, 13), 16);
+        if (e !== "." && e !== " " && !isNaN(p)) { var ed = style === "xm" ? xmEffect(e, p) : itEffect(e, p); if (ed) out.push(ed); }
+      }
+      return out;
+    }
     // What the tracker shows: the followed game's module where it plays one, else the player's own tune. mark is [frame, pattern,
     // row, rows, channels, order]; rowAt(pattern, row) a row's cells; used() the channels that play a note
     function trackerFeed() {
@@ -1254,7 +1548,13 @@ var ByopopMusic = (function () {
       var h = heard(), mark = null;
       if (h && h.head.marks) h.head.marks.forEach(function (m) { if (m[0] <= h.into) mark = m; });
       if (!mark) return null;
-      return { mark: mark, rowAt: rowOf, used: function () { if (!usedChannels) usedChannels = source.used ? source.used() : []; return usedChannels; },
+      return { mark: mark, rowAt: rowOf, used: function () {
+          if (!usedChannels) {
+            usedChannels = source.orderPattern ? tuneUsed(tunes[current], rowOf, function (o) { var op = source.orderPattern(o); return op && op !== "skip" ? op[1] : 0; }) : null;
+            if (!usedChannels) usedChannels = source.used ? source.used() : [];
+          }
+          return usedChannels;
+        },
         names: function () { if (!ownNames) ownNames = parseNames(source.names ? source.names() : ""); return ownNames; },
         mute: function (c, on) { return !!(source.mute && source.mute(c, on)); },
         meter: function (p) { return source.meter ? source.meter(p) : 0; }, tempo: function () { return source.tempo ? source.tempo() : null; }, id: "own" };
@@ -1271,11 +1571,14 @@ var ByopopMusic = (function () {
       var full = 0, small = 0;
       cells.forEach(function (c) { full = Math.max(full, c.length); small = Math.max(small, narrow(c).length); });
       var cw = charWidth(), room = Math.floor((trackerRows.clientWidth - 8) / cw), lead = String(mark[3] - 1).length + 1;
+      // the effect column at the right (fxText), FX_WIDE characters while the narrow cells leave a channel room beside it
+      var fxWidth = fxOn ? Math.max(0, Math.min(FX_WIDE, room - lead - 8)) : 0;
+      if (fxWidth) room -= fxWidth + 1;
       function fits(width) { return Math.max(0, Math.floor((room - lead + 1) / (width + 1))); }
       var wide = fits(full) >= used.length, width = wide ? full : small, shown = Math.max(1, Math.min(used.length, fits(width)));
       firstChannel = Math.max(0, Math.min(firstChannel, used.length - shown));
       shownChannels = shown; totalChannels = used.length;
-      var key = [feed.id, mark[1], mark[2], firstChannel, shown, width, room].join(":");
+      var key = [feed.id, mark[1], mark[2], firstChannel, shown, width, room, used.join(","), fxOn ? 1 : 0].join(":");
       if (key === shownRow) return;
       shownRow = key;
       var at = T("music.tracker_at", { order: two(mark[5]), pattern: two(mark[1]), row: two(mark[2]), rows: two(mark[3]) });
@@ -1301,6 +1604,8 @@ var ByopopMusic = (function () {
         span.setAttribute("data-ch", String(c));
         trackerHead.appendChild(span);
       });
+      if (fxWidth) trackerHead.appendChild(document.createTextNode("│" + pad(T("music.fx_head"), fxWidth)));
+      var style = fxWidth ? fxStyle(feed) : "";
       trackerRows.textContent = "";
       // the view stays inside the pattern (the user, 2026-11-09: "it should never scroll empty lines into the top or bottom"): the
       // heard row in the middle only while the view can scroll to it, so at the pattern's start the view sits at row 0 and the
@@ -1314,6 +1619,17 @@ var ByopopMusic = (function () {
         if (r >= 0 && r < mark[3]) {
           var row = rowOf(mark[1], r).split("|");
           line.textContent = rowNumber(r, mark[3]) + " " + showing.map(function (c) { return pad(wide ? (row[c] || "") : narrow(row[c] || ""), width); }).join("│");
+          if (fxWidth) {
+            // the channels shown first, then the others (scrolled off, or hidden for having no note: a speed or a jump there
+            // still shows), each with its number
+            var said = [];
+            showing.concat(row.map(function (x, c) { return c; }).filter(function (c) { return showing.indexOf(c) < 0; })).forEach(function (c) {
+              var d = fxText(row[c] || "", style);
+              if (d.length) said.push(two(c + 1) + " " + d.join(", "));
+            });
+            line.textContent += "│" + pad(said.join("  "), fxWidth);
+            if (said.length) line.title = said.join("\n");
+          }
         } else line.textContent = " ";
         trackerRows.appendChild(line);
       }
@@ -2073,6 +2389,13 @@ var ByopopMusic = (function () {
       return follow.meters[pattern];
     }
     function followedUsed() {
+      // the matched tune's own channels once its orders' rows are known (timesOf), else the song's
+      var track = follow.track, ot = track >= 0 ? timesOf(track) : null;
+      if (ot && ot.rows && follow.usedFor !== track) {
+        follow.usedFor = track;
+        follow.tuneUsed = tuneUsed(tunes[track], followedRow, function (o) { return ot.rows[o] || 0; });
+      }
+      if (follow.usedFor === track && follow.tuneUsed && follow.tuneUsed.length) return follow.tuneUsed;
       if (!follow.used) {
         try { follow.used = (follow.M.ccall("byopop_music_used", "string", ["number"], [follow.song]) || "").split(",").filter(Boolean).map(Number); }
         catch (e) { follow.used = []; }
@@ -2243,6 +2566,13 @@ var ByopopMusic = (function () {
       keep(LOOP_KEY, loop);
       if (source) source.repeat(loop);
     });
+    fxBtn.addEventListener("click", function () {
+      fxOn = !fxOn;
+      fxBtn.setAttribute("aria-pressed", String(fxOn));
+      keep(FX_KEY, fxOn);
+      shownRow = "";
+      drawTracker();
+    });
     function setGain() { if (gain) gain.gain.value = muted ? 0 : volume / 100; }
     muteBtn.addEventListener("click", function () {
       muted = !muted;
@@ -2271,12 +2601,34 @@ var ByopopMusic = (function () {
     window.addEventListener("resize", function () { if (!splitDrag) setRows(asked, false); });
     if (window.ResizeObserver) try { new ResizeObserver(function () { if (!splitDrag) setRows(asked, false); }).observe(root); } catch (e) {}
     visEl.addEventListener("click", function (ev) { if (!trackerScroll.contains(ev.target)) nextVis(); });
-    // a click on a channel's number in the tracker's header is the channel's, not the display's
-    trackerHead.addEventListener("click", function (ev) {
+    // a click on a channel's number in the tracker's header is the channel's, not the display's: a click mutes it or brings it
+    // back, Ctrl-click or a double-click plays it alone (again on the channel alone, every channel back; the user, 2026-11-11:
+    // "Add double clicking a tracker channel to isolate its sound"). A plain click waits out the double-click's time before
+    // it mutes, so the two clicks of a double-click neither leave the channel muted nor cut its sound for a moment.
+    // The whole header line is the target (the user, 2026-11-11: "It's too hard to click on the channel to toggle the mute"):
+    // a click between two columns, on the line between them, is the nearer column's.
+    function headSpan(ev) {
       var span = ev.target.closest ? ev.target.closest(".mu-ch") : null;
-      if (!span) return;
+      if (span) return span;
+      var best = null, far = Infinity;
+      Array.prototype.forEach.call(trackerHead.querySelectorAll(".mu-ch"), function (s) {
+        var r = s.getBoundingClientRect(), d = ev.clientX < r.left ? r.left - ev.clientX : Math.max(0, ev.clientX - r.right);
+        if (d < far) { far = d; best = s; }
+      });
+      return best;
+    }
+    var pendingClick = null, DOUBLE_MS = 300;
+    trackerHead.addEventListener("click", function (ev) {
       ev.stopPropagation();
-      clickChannel(+span.getAttribute("data-ch"), ev.ctrlKey || ev.metaKey);
+      var span = headSpan(ev);
+      if (!span) return;
+      var c = +span.getAttribute("data-ch");
+      if (pendingClick) { clearTimeout(pendingClick.timer); var was = pendingClick; pendingClick = null; if (ev.detail >= 2 && was.c === c) { clickChannel(c, true); return; } clickChannel(was.c, false); }
+      if (ev.ctrlKey || ev.metaKey) { clickChannel(c, true); return; }
+      if (ev.detail === 0) { clickChannel(c, false); return; }   // a key's click: at once
+      if (ev.detail === 2) { clickChannel(c, true); return; }   // a slow double-click, its first click already taken: still alone
+      if (ev.detail > 2) return;   // the third click of a triple: the double-click has been taken
+      pendingClick = { c: c, timer: setTimeout(function () { pendingClick = null; clickChannel(c, false); }, DOUBLE_MS) };
     });
     // the bar: the thumb's size is the share of the channels shown, its place the first one's
     function placeThumb() {

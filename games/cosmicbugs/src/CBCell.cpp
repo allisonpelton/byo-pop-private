@@ -53,9 +53,9 @@ void Cell_Redraw(Cell* theCell)
 		return;
 	Image* anImage = theCell->image;
 	int aX = (int)theCell->x;
-	int sx = aX % anImage->w;
+	int sx = aX % anImage->mW;
 	int aY = (int)theCell->y;
-	int sy = aY % anImage->h;
+	int sy = aY % anImage->mH;
 	int aState = theCell->state;
 	if (aState == 5)
 	{
@@ -66,8 +66,8 @@ void Cell_Redraw(Cell* theCell)
 		if (-1 < dx && -1 < dy && dx + 0x10 < 800 && dy + 0x10 < 600)
 		{
 			Image* img = theCell->image;
-			Alpha16MaskFade(gScreenBits, gScreenPitch, &gBackBuffer.fmt, dx, dy, img->bits, img->pitch, sx, sy,
-				img->mask->bits, img->mask->pitch, 0, 0, 0x10, 0x10, theCell->alpha);
+			Alpha16MaskFade(gScreenBits, gScreenPitch, &gBackBuffer.mFmt, dx, dy, img->mBits, img->mPitch, sx, sy,
+				img->mMask->mBits, img->mMask->mPitch, 0, 0, 0x10, 0x10, theCell->alpha);
 			Dirty_AddClippedShown(&gDirty, dx, dy, 0x10, 0x10, kScreenClip);
 			return;
 		}
@@ -89,8 +89,8 @@ void Cell_Redraw(Cell* theCell)
 				Image* img = theCell->image;
 				int dy = (int)fy;
 				int dx = (int)fx;
-				Alpha16MaskFade(gScreenBits, gScreenPitch, &gBackBuffer.fmt, dx, dy, img->bits, img->pitch, sx, sy,
-					img->mask->bits, img->mask->pitch, 0, 0, 0x10, 0x10, theCell->alpha);
+				Alpha16MaskFade(gScreenBits, gScreenPitch, &gBackBuffer.mFmt, dx, dy, img->mBits, img->mPitch, sx, sy,
+					img->mMask->mBits, img->mMask->mPitch, 0, 0, 0x10, 0x10, theCell->alpha);
 				Dirty_AddClippedShown(&gDirty, dx, dy, 0x10, 0x10, kScreenClip);
 				return;
 			}
@@ -99,56 +99,56 @@ void Cell_Redraw(Cell* theCell)
 	else if (aState != 6)
 	{
 		Image* aFill = gLevels.current->fillImage;
-		int fsx = aX % aFill->w;
-		int fsy = aY % aFill->h;
-		uint8_t* aBack = gBackBuffer.bits;
-		int aPitch = gBackBuffer.pitch;
-		const PixelFormat* aFmt = &gBackBuffer.fmt;
+		int fsx = aX % aFill->mW;
+		int fsy = aY % aFill->mH;
+		uint8_t* aBack = gBackBuffer.mBits;
+		int aPitch = gBackBuffer.mPitch;
+		const PixelFormat* aFmt = &gBackBuffer.mFmt;
 		int aCol = theCell->col;
 		int aRow = theCell->row;
 		if (theCell->kind == 3 || theCell->kind == 2)
 		{
 			// the filled neighbours' halves next to this cell
 			if (At(aCol - 1, aRow)->kind == 4)
-				Alpha16Mask(aBack, aPitch, aFmt, aX, aY, aFill->bits, aFill->pitch, fsx, fsy, aFill->mask->bits,
-					aFill->mask->pitch, 0, 0, 8, 0x10);
+				Alpha16Mask(aBack, aPitch, aFmt, aX, aY, aFill->mBits, aFill->mPitch, fsx, fsy, aFill->mMask->mBits,
+					aFill->mMask->mPitch, 0, 0, 8, 0x10);
 			if (At(aCol + 1, aRow)->kind == 4)
-				Alpha16Mask(aBack, aPitch, aFmt, (int)((double)theCell->x + 8.0), (int)theCell->y, aFill->bits,
-					aFill->pitch, fsx + 8, fsy, aFill->mask->bits, aFill->mask->pitch, 0, 0, 8, 0x10);
+				Alpha16Mask(aBack, aPitch, aFmt, (int)((double)theCell->x + 8.0), (int)theCell->y, aFill->mBits,
+					aFill->mPitch, fsx + 8, fsy, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 8, 0x10);
 			if (At(aCol, aRow + 1)->kind == 4)
-				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)((double)theCell->y + 8.0), aFill->bits,
-					aFill->pitch, fsx, fsy + 8, aFill->mask->bits, aFill->mask->pitch, 0, 0, 0x10, 8);
+				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)((double)theCell->y + 8.0), aFill->mBits,
+					aFill->mPitch, fsx, fsy + 8, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 0x10, 8);
 			if (At(aCol, aRow - 1)->kind == 4)
-				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, aFill->bits, aFill->pitch, fsx, fsy,
-					aFill->mask->bits, aFill->mask->pitch, 0, 0, 0x10, 8);
+				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, aFill->mBits, aFill->mPitch, fsx, fsy,
+					aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 0x10, 8);
 			// the beam neighbours' halves
 			Cell* aNext = At(aCol - 1, aRow);
 			if (aNext->kind == 2)
 			{
 				Image* img = aNext->image;
-				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, img->bits, img->pitch, 0, 0,
-					img->mask->bits, img->mask->pitch, 0, 0, 8, 0x10);
+				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, img->mBits, img->mPitch, 0, 0,
+					img->mMask->mBits, img->mMask->mPitch, 0, 0, 8, 0x10);
 			}
 			aNext = At(aCol + 1, aRow);
 			if (aNext->kind == 2)
 			{
 				Image* img = aNext->image;
-				Alpha16Mask(aBack, aPitch, aFmt, (int)((double)theCell->x + 8.0), (int)theCell->y, img->bits,
-					img->pitch, 8, 0, img->mask->bits, img->mask->pitch, 0, 0, 8, 0x10);
+				Alpha16Mask(aBack, aPitch, aFmt, (int)((double)theCell->x + 8.0), (int)theCell->y, img->mBits,
+					img->mPitch, 8, 0, img->mMask->mBits, img->mMask->mPitch, 0, 0, 8, 0x10);
 			}
 			aNext = At(aCol, aRow + 1);
 			if (aNext->kind == 2)
 			{
 				Image* img = aNext->image;
-				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)((double)theCell->y + 8.0), img->bits,
-					img->pitch, 0, 8, img->mask->bits, img->mask->pitch, 0, 0, 0x10, 8);
+				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)((double)theCell->y + 8.0), img->mBits,
+					img->mPitch, 0, 8, img->mMask->mBits, img->mMask->mPitch, 0, 0, 0x10, 8);
 			}
 			aNext = At(aCol, aRow - 1);
 			if (aNext->kind == 2)
 			{
 				Image* img = aNext->image;
-				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, img->bits, img->pitch, 0, 0,
-					img->mask->bits, img->mask->pitch, 0, 0, 0x10, 8);
+				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, img->mBits, img->mPitch, 0, 0,
+					img->mMask->mBits, img->mMask->mPitch, 0, 0, 0x10, 8);
 			}
 		}
 		if (theCell->kind == 2 || theCell->kind == 3)
@@ -157,23 +157,23 @@ void Cell_Redraw(Cell* theCell)
 			Cell* aRight = At(aCol + 1, aRow);
 			if (aRight->kind == 4 && aRight->shadowRight == 0)
 			{
-				Image* aMask = theCell->image->mask;
+				Image* aMask = theCell->image->mMask;
 				Fill16MaskAlpha(aBack, aPitch, aFmt, (int)((double)theCell->x + 5.0), (int)theCell->y, sx, sy,
-					aMask->bits, aMask->pitch, 0, 0, 0x10, 0x10, 0, 0x5a);
+					aMask->mBits, aMask->mPitch, 0, 0, 0x10, 0x10, 0, 0x5a);
 				At(aCol + 1, aRow)->shadowRight = 1;
 			}
 			Cell* aBelow = At(aCol, aRow + 1);
 			if (aBelow->kind == 4 && aBelow->shadowBelow == 0)
 			{
-				Image* aMask = theCell->image->mask;
+				Image* aMask = theCell->image->mMask;
 				Fill16MaskAlpha(aBack, aPitch, aFmt, (int)theCell->x, (int)((double)theCell->y + 5.0), sx, sy,
-					aMask->bits, aMask->pitch, 0, 0, 0x10, 0x10, 0, 0x5a);
+					aMask->mBits, aMask->mPitch, 0, 0, 0x10, 0x10, 0, 0x5a);
 				At(aCol, aRow + 1)->shadowBelow = 1;
 			}
 		}
 		Image* img = theCell->image;
-		Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, img->bits, img->pitch, sx, sy,
-			img->mask->bits, img->mask->pitch, 0, 0, 0x10, 0x10);
+		Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->x, (int)theCell->y, img->mBits, img->mPitch, sx, sy,
+			img->mMask->mBits, img->mMask->mPitch, 0, 0, 0x10, 0x10);
 		Dirty_AddClippedShown(&gDirty, (int)theCell->x, (int)theCell->y, 0x18, 0x18, kScreenClip);
 	}
 }
@@ -491,7 +491,7 @@ int Cell_UpdateFill(Cell* theCell)
 		int aY = (int)theCell->y;
 		int aX = (int)theCell->x;
 		Image* aBack = gLevels.current->background;
-		Copy16(gBackBuffer.bits, gBackBuffer.pitch, aX, aY, aBack->bits, aBack->pitch, aX, aY, 0x10, 0x10);
+		Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, 0x10, 0x10);
 	}
 	theCell->step = theCell->step + 1;
 	if (theCell->steps < theCell->step)
@@ -551,7 +551,7 @@ static void Cell_Uncover(Cell* theCell)
 	int aY = (int)theCell->y;
 	int aX = (int)theCell->x;
 	Image* aBack = gLevels.current->background;
-	Copy16(gBackBuffer.bits, gBackBuffer.pitch, aX, aY, aBack->bits, aBack->pitch, aX, aY, 0x10, 0x10);
+	Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, 0x10, 0x10);
 }
 
 static bool InBoard(int theCol, int theRow)
