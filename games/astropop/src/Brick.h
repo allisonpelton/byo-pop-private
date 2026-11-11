@@ -208,8 +208,6 @@ public:
 	virtual bool	IsIdle();                           // slot 20 0x406270
 	virtual void	SetParticleX(float theX);           // slot 21 0x404180
 	virtual void	SetParticleY(float theY);           // slot 22 0x4041f0
-	virtual void	SetSpeedX(float theSpeed);          // slot 23 0x4062a0
-	virtual void	SetSpeedY(float theSpeed);          // slot 24 0x4062b0
 	virtual void	SetVisible(bool theVisible);        // slot 25 0x4018f0
 	virtual void	StartMutatorCountdown();            // slot 26 0x401230
 

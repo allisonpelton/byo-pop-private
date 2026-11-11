@@ -553,16 +553,6 @@ void FuelCell::SetFlag240()
 	mFlag240 = true;
 }
 
-int FuelCell::GetColumn()
-{
-	return mColumn;
-}
-
-int FuelCell::GetRow()
-{
-	return mRow;
-}
-
 bool FuelCell::GetFlag240()
 {
 	return mFlag240;

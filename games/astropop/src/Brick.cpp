@@ -775,18 +775,6 @@ bool Brick::IsIdle()
 	return mVisible && (mState == 0 || mState == 1 || mState == 5);
 }
 
-// 0x4062a0 slot 23
-void Brick::SetSpeedX(float theSpeed)
-{
-	mSpeedX = theSpeed;
-}
-
-// 0x4062b0 slot 24
-void Brick::SetSpeedY(float theSpeed)
-{
-	mSpeedY = theSpeed;
-}
-
 // 0x404180 slot 21
 void Brick::SetParticleX(float theX)
 {

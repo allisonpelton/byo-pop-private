@@ -59,8 +59,6 @@ public:
 	virtual void	DrawAt(Graphics* g, bool theGlow, float theX, float theY) override;  // 0x402b30
 	virtual void	SetPlace(int theColumn, int theRow);                // 0x407ce0 slot 27
 	virtual void	SetFlag240();                                       // 0x407d00 slot 28
-	virtual int		GetColumn();                                        // 0x402a70 slot 29
-	virtual int		GetRow();                                           // 0x402a80 slot 30
 	virtual bool	GetFlag240();                                       // 0x407d10 slot 31
 };
 

@@ -107,20 +107,6 @@ void AstroPopApp::UpdateFrames()
 		TraceUpdate();
 }
 
-// 0x408b70 slot 67
-void AstroPopApp::SetMusicVolumeFloat(float theVolume)
-{
-	SetMusicVolume((double) theVolume);
-}
-
-// 0x40e060 slot 35: the only switch of its own is -mycrash (it makes the game crash: a test of the crash report)
-void AstroPopApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
-{
-	if (theParamName == "-mycrash")
-		return; // original: sets the flag at +0x6f8 (read by the crash handler's report; not ported)
-	SexyApp::HandleCmdLineParam(theParamName, theParamValue);
-}
-
 // 0x4090d0 slot 53: if the options box (id 0x66) is open, its full-screen check box follows the new mode (as a click on it
 // would, with the box's listener told)
 void AstroPopApp::SwitchScreenMode(bool wantWindowed)
@@ -129,13 +115,6 @@ void AstroPopApp::SwitchScreenMode(bool wantWindowed)
 	OptionsDialog* anOptions = (OptionsDialog*) GetDialog(0x66);
 	if (anOptions != NULL && anOptions->mFullscreenCheck != NULL)
 		anOptions->mFullscreenCheck->SetChecked(!wantWindowed);
-}
-
-// 0x412360 slot 55
-Dialog* AstroPopApp::DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
-	const SexyString& theDialogLines, const SexyString& theDialogFooter, int theButtonMode)
-{
-	return SexyApp::DoDialog(theDialogId, isModal, theDialogHeader, theDialogLines, theDialogFooter, theButtonMode);
 }
 
 // port: the 2004 SexyApp makes a BassMusicInterface itself (slot 15, 0x408e30); the port's music interface gets

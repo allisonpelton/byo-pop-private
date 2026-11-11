@@ -108,14 +108,9 @@ public:
 	virtual void	Init() override;                            // 0x42f170 slot 16
 	virtual void	LoadingThreadProc() override;               // 0x42cda0 slot 17
 	virtual void	Shutdown() override;                        // 0x4290d0 slot 33
-	virtual void	HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue) override; // 0x40e060 slot 35
 	virtual void	SwitchScreenMode(bool wantWindowed) override; // 0x4090d0 slot 53
-	virtual Dialog*	DoDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,
-						const SexyString& theDialogLines, const SexyString& theDialogFooter,
-						int theButtonMode) override;            // 0x412360 slot 55
 	virtual void	GotFocus() override;                        // 0x4253e0 slot 62
 	virtual void	LostFocus() override;                       // 0x425380 slot 63
-	virtual void	SetMusicVolumeFloat(float theVolume);       // 0x408b70 slot 67 (a new virtual of the game)
 
 	// port: the 2004 SexyApp makes a BassMusicInterface itself (slot 15, 0x408e30); here an SDLMusicInterface
 	// with BASS 2.0's music gain (docs/FRAMEWORK_2004.md section 6)
