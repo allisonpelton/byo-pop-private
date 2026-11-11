@@ -1430,9 +1430,9 @@ leaving it out). It does not prove that a counterpart is right; only a compariso
 reached" there means "no run of mine reached it", not "the game works without it". Challenge mode shows the gap: its functions
 were reached and had counterparts, and it still had four faults (below), because none of its screens had ever been compared
 with the original by pictures. Neither phase of `IDENTICAL_PLAY.md` has a challenge-mode comparison in it. Compared since
-(2026-11-10, in 2D): the challenge menu at rest, and the load from the planet's click to the first "GO!". Still never compared:
-the win's message, the trophy and the planets' progress after it, a failed challenge, the timed and the night challenges, the
-in-game options' restart of a challenge, a saved challenge continued, and everything of challenge mode in 3D.
+(2026-11-10, in 2D): the challenge menu at rest, and the load from the planet's click to the first "GO!". The rest (the win's
+message and what follows it, a failed challenge, the timed and the night challenges, restart and continue, and challenge mode
+in 3D) was compared on 2026-11-11: "Challenges against the original".
 
 **Open.** For the tool (sent to the coordinator): coverage inside Windows Sandbox, so that the 3D code, and runs that need
 shots, can be recorded. The rank badge's tip against the original: three sandbox runs with the user's player staged (2026-11-11) did not get a
@@ -1484,8 +1484,8 @@ numbers, the load matched but for three things, masked or left. The original's c
 not (a mask at the pointer's place). The sun's flames round the moon and the glints on a few gems as the board settles differ
 in shape and moment: both draw random numbers on their own, apart from the board's, which matched gem for gem (masks). And the
 picked planet's name flashes in over the five updates between the press and the release in the port, while the original's five
-captures there are identical and brighter; whether the original shows the name at once or the sandbox captured one frame five
-times was not settled, and it is left open here.
+captures there are identical and brighter; the original draws nothing for those updates, so its captures repeat
+one frame (settled 2026-11-11, "Challenges against the original").
 
 The game-text table was stale: a curve or text whose address `gametext.py` has not listed reads as empty, so the 3D branch's
 twelve curves ran out at once until the table was made again, and the rank badge's two texts of the coverage check had been
