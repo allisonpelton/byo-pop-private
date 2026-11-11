@@ -537,6 +537,8 @@ footer a { color: var(--accent); }
 <!-- the soundboard: Desktop 95's Sounds window (web/sounds.js) and its table of the games' sounds (web/soundboards.js) -->
 <script src="soundboards.js"></script>
 <script src="sounds.js"></script>
+<!-- the splits timer: Desktop 95's Splits window, a stand-in for LiveSplit (web/splits.js) -->
+<script src="splits.js"></script>
 <!-- Adding games (web/addgames.js): web/modpanel.js's zip and pak readers, without a game (it fills Module.byopop), the icon reader, the
      import rules and each listed game's page.js (import-games.js, written by the build) -->
 <script>var Module = {};</script>
@@ -1255,6 +1257,8 @@ try {
     });
     // the soundboard (web/sounds.js): the games' sound effects, Desktop 95 only, closed at first, its icon after Music's
     if (window.ByopopSounds) ByopopSounds.attach(d, function (left, vw) { return [Math.max(left, vw - 600) - 140, top() + 52]; });
+    // the splits timer (web/splits.js): Desktop 95 only, closed at first, its icon after the Sounds window's
+    if (window.ByopopSplits) ByopopSplits.attach(d, function (left, vw) { return [Math.max(left, vw - 330), top() + 24]; });
     // the Setup window (web/setup.js): closed at first, no icon; Add Games in the Pop menu and the Add games button open it
     if (window.ByopopSetup) ByopopSetup.attach(d, function (left, vw) { return [Math.max(left, Math.round((vw - 560) / 2)), top() + 40]; });
     // each of Settings' sections, a window of its own opened from the Settings folder's icons, the Pop menu or #settings-<section>

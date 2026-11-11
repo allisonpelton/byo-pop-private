@@ -856,6 +856,52 @@ decoder, stb_vorbis from `openmpt.wasm`, or our own reader for a Sun `.au` file)
 plays and drops the decoded sounds and the audio context. The grid is one tab stop. It is silent at `?silent=1` as
 the music player is, and is not shown under 760 pixels wide.
 
+### The splits timer
+
+The Splits window (`web/splits.js`) is a stand-in for LiveSplit, so that a speedrun can be timed on the site (the
+user: "a LiveSplit stand-in on the site so that people really could do speedruns on it"). It is in Desktop 95 only,
+under the Pop menu and as a desktop icon, closed at first. It holds one set of splits at a time: a game, a category,
+a start time (LiveSplit's offset), the attempt count and the segments, each with the personal best's split time and
+the best segment time, in Real Time and Game Time. Every set is kept in this browser's IndexedDB (`byopop-splits`,
+one record a game and category), the last one opened comes back with the page (`byopop-splits-last`), and the
+options are in `byopop-splits-options`.
+
+The window shows the game and category with the attempt count, a row for each segment (the one being run selected)
+with its delta and its time (the split's once it is done, the comparison's before), the big timer, the previous
+segment's delta against the comparison and the sum of best segments. Ahead is green, behind red, a segment faster
+than its best gold, and a finished run that is a new personal best blue; a paused timer is grey.
+
+- **File:** New (Edit Splits on a blank set), Open (a list box of the kept sets, with Delete), Save, Import Splits
+  and Export Splits. Import reads a LiveSplit `.lss` file: the game and category names, the offset, the attempt
+  count and each segment's name, its "Personal Best" split time and its best segment time, in both methods; the
+  rest of the file (icons, history, metadata, autosplitter settings) is not kept. Export hands the player a `.lss`
+  file with the same parts, indented as LiveSplit writes it; a round trip keeps every time to LiveSplit's 100 ns.
+- **Edit:** Edit Splits, a dialog with the names, the start time, the attempt count and a grid of the segments
+  (name, split time, best segment) in the method being timed, with Insert Above, Insert Below, Remove, Move Up and
+  Move Down. A time is read again only when its text was changed, so one left alone keeps its precision.
+- **Control:** Start or Split, Undo Split, Skip Split, Pause or Resume, Reset, each with its hotkey shown.
+- **Options:** Hotkeys (a dialog: a button for each action takes the next key pressed, Backspace clears it, and
+  "Global hotkeys" turns them all off), the comparison (Personal Best or Best Segments) and the timing method (Real
+  Time or Game Time).
+
+The attempt count goes up at each start. Reset with a finished run faster than the personal best (in the method
+being timed; a first finished run always is) makes it the personal best, as LiveSplit does at Reset, so an undone
+last split never leaves a wrong one. If the attempt beat any best segment, in either method, a Windows 95 message
+box asks whether to keep the new golds. File and Edit are off while a run is going.
+
+Real Time is `performance.now`. Game Time is the update count of the game window in front when the run starts
+(`byopop_update_count`) since that start, times the game's update step (10 ms; 5 ms in the Mahjong games); a game
+without the count, or a run started with no game window, has none, shown as a dash. Pausing the timer pauses Real
+Time only: the game's updates go on, as LiveSplit's Game Time follows the game.
+
+The hotkeys are Num 1 split, Num 3 reset, Num 8 undo and Num 2 skip at first, Pause has none. They are heard on the
+page and in every game window (same origin; a listener is added to each window's frame as it appears), and never
+taken from the game: the key still reaches it. They are ignored while a dialog of the window is open, while the
+focus is in a text field of the page, with Ctrl, Alt or Meta held, and while the Splits window is closed.
+
+No web build has the LiveSplit block that desktop builds have (Bejeweled's `features.livesplit` is desktop only), so
+there is no autosplitting here, and the run timer the site once had is gone (it was removed earlier).
+
 ### Music levels
 
 Each port's music was measured against its original's engine (BASS or FMOD 3) with `tools/musiclevel`:
