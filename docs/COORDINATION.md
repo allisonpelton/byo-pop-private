@@ -146,6 +146,14 @@ holds the rules every session follows; this file does not repeat them.
 - **Building the web port in the browser (the user, 2026-11-04):** "Let's try it on the simplest possible game and
   see how long it takes to build in the browser and how much work it adds for each game", saving to localStorage or a
   connected Google Drive, to avoid any infringement. Not started; it belongs with the work before the website is ready.
+  Drive (read on 2026-11-11, developers.google.com): the `drive.appdata` scope gives a hidden folder that only the site
+  can read, which cannot be shared, and which Google deletes when the player removes the site from their Drive;
+  `drive.file` reaches only the files the site made or the player picked. Both are non-sensitive scopes: no security
+  assessment, no user cap, no fee. The page talks to Drive itself, so nothing passes through the site's servers. Showing
+  the site's name and logo on Google's consent screen takes brand verification (free, two or three business days): the
+  domain proved in Search Console, a homepage anyone can open, a privacy policy on that domain saying how Google data is
+  used. The broad `drive` and `drive.readonly` scopes are restricted and need a paid security assessment; never ask for
+  them. The files count against the player's own quota (15 GB free).
 <!-- /private -->
 
 ## The site
