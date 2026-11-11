@@ -1,0 +1,10 @@
+# tools/coverage.py's settings for Dynomite Deluxe (docs/COVERAGE.md).
+export re/dynomite/gh/functions.jsonl
+src games/dynomite/src
+# The game's own code, which the port translates: the game classes in link order, from the board (0x401000) to the
+# whirley and the small effects after it (0x442690). The rest of the exe is the 2003 SexyApp framework (from the C++
+# library's locale code at 0x4426c0 and Sexy:: at 0x442800), its libraries and the C runtime.
+game 00401000-00442690
+# Game code the port leaves out on purpose (docs/README.md, "Registration and loading").
+none 00432640-004332e1 RegisterDialog (vtable 0x4fc890) and its dialog 14: registration code, removed
+none 00441020-00441680 UpsellDialog (vtable 0x4ff5e0) and its dialog 21: the unregistered copy's purchase pitch, removed

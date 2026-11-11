@@ -169,7 +169,16 @@ Natively the board of Stomped and the Fossil Challenge differs faintly in some s
 shake as in the web build: whether the grind sound counts as playing differs between the original's sound stand-in and
 the port's silent driver. shotdiff rates it below visible.
 
-One stick of dynamite in t2's Endless game is drawn a few pixels from the original's after the pause (Oddities).
+In t2's Endless game, from the shot after the pause on, one egg near the top (about x 380, y 30 to 120) and its stick of
+dynamite sit a few pixels from where the original draws them, by a different amount in each shot (5 and 4 pixels, then 1
+and 1, then 4 and 1, measured by the best shift of the box). The egg's cell holds a baby egg (bit 0x100), and
+`EggGrid::Draw` (0x417760) shakes such a cell, and the stick drawn with it, by `rand() % 9 - 4` in x and y on every draw.
+That shake is the only use of the C runtime's generator in the game (its one other caller, the framework's HTML template
+at 0x48bbe0, is never reached), so the two programs shake alike only while they draw the board equally often; across the
+pause and its resume the original's count of board draws, and so of `rand()` calls, comes out different from the port's,
+which draws once an update (`-drawevery`). The shake is drawn from nothing else and changes nothing in play (the
+twister's index runs the same through the pause, watched at 0x531490), so it counts as animation on its own clock and
+is masked in t2's resumed, e2 and e3 shots. Why the original's draws differ there was not looked into further.
 
 ## Phase 2: played with real input
 
@@ -265,13 +274,6 @@ already made fast in the port). So Dynomite has no fixes mod yet; `GAME_NOTES.md
   both programs set the flag and zero the count (`EggGrid::Update`), and from then on they blink alike. The warning is drawn
   only while the eggs are past the line, so nothing on screen differs. The port starts the count at 0, so its flag toggles
   unseen before then. To see it: watch `[[0x531ee4]+0x8c]+0x468c` and `+0x4688`.
-- **One stick of dynamite in t2 is drawn a few pixels off.** In t2's Endless game, after the pause, one stick near the
-  top (about x 378, y 30) and its fuse's spark sit about four pixels lower against their eggs in the port than in the
-  original; every other stick and egg matches, and the game plays the same. The stick's picture and slide come from the
-  app's twister when it is made, and the twister's index follows the same course in both programs through the pause
-  (watched at 0x531490), so the cause is not a draw of random numbers. It was not found within the hour. To see it: t2's
-  resumed, e2 and e3 shots (`tour.sh t2 port orig cmp`). It would take watching the grid's list of sticks (+0x466c) in
-  the original.
 
 ## Deviations left
 

@@ -12,7 +12,7 @@ N=$1; shift
 STEPS="${*:-port orig cmp}"
 D=build/ph2/$N
 [ -f "$D/script.txt" ] || { echo "run tour.sh $N port first"; exit 1; }
-SEED=$(grep "^$N " $S/tours.txt | cut -d' ' -f2)
+SEED=${SEED:-$(grep "^$N " $S/tours.txt | cut -d' ' -f2)}	# a recorded tour (tour.sh SCRIPT=) gives SEED=
 LAST=$(tail -1 "$D/script.txt" | cut -d' ' -f1)
 for step in $STEPS; do
 case $step in
@@ -36,7 +36,7 @@ orig)
 	reg delete 'HKCU\Software\PopCap\Dynomite' /f > /dev/null 2>&1
 	reg import "$(win "$TOOLS/settings.reg")" > /dev/null 2>&1
 	{ echo "at 200 focus regain"; python $TOOLS/toorig.py "$D/script.txt" -1; } > "$D/orig_host.txt"
-	"$RUNDESK" "$(win "$ORIGRUN")" --exe "$(win "$PWD/$RD/game/DynomiteGame.exe")" --run "$RUN" --script "$(win "$PWD/$D/orig_host.txt")" \
+	"$(win "$ORIGRUN")" --exe "$(win "$PWD/$RD/game/DynomiteGame.exe")" --run "$RUN" --script "$(win "$PWD/$D/orig_host.txt")" \
 		--clock virtual --cursor scripted --counter 0x530960 --update-ms 10 --seed $SEED --patches tools/origrun/patches/dynomite.txt \
 		--sound wav --timeout $((LAST / 1000 + 120)) > "$D/orig_sound_run.log" 2>&1
 	cp "$RD/logs/sound.log" "$D/orig_sound.log" 2>/dev/null; cp "$RD/game/basslog.txt" "$D/orig_bass.log" 2>/dev/null

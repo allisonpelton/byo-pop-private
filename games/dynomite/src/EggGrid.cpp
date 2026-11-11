@@ -303,9 +303,12 @@ void EggGrid::Place(int theCol, int theRow, int theColor, int theKind)
 	if ((aSame != 0) && (theColor < 0x12))
 	{
 		mLoneEgg = false;
-		// the old stick leaves the list but is not deleted
+		// the old stick leaves the list; the original never deletes it, a leak the port fixes (nothing else holds it)
 		if (mDynamite[theCol][theRow] != NULL)
+		{
 			mDynamites.Remove(mDynamite[theCol][theRow]);
+			delete mDynamite[theCol][theRow];
+		}
 		GridDynamite* aDynamite = new GridDynamite(this, aPoint.mX + 0x10, aPoint.mY);
 		mDynamites.Add(aDynamite);
 		mDynamite[theCol][theRow] = aDynamite;

@@ -144,7 +144,7 @@ std::string StateJson(FossilizedApp* theApp)
 		s += "menu";
 	else
 		s += "none";
-	s += "\"";
+	s += StrFormat("\",\"update\":%d", theApp->mUpdateCount);	// the update the line ran at, for a script that repeats a run
 	if (theApp->mTutor != NULL)
 		s += StrFormat(",\"tutorial\":%d", theApp->mTutor->mStep);
 	else if (theApp->mIntroScreen != NULL)
@@ -256,7 +256,10 @@ bool HandleStandardCommand(FossilizedApp* theApp, const std::string& theName, co
 			Reply(StrFormat("MOVE {\"kind\":\"button\",\"input\":[{\"move\":[%d,%d]},{\"click\":[%d,%d]}]}",
 				x, y, x, y));
 		}
-		else if (!BotChooseShot(b, &aShot, (theApp->mTutor != NULL) && ((theApp->mTutor->mStep == 0x2b) || (theApp->mTutor->mStep == 0x2d)),
+		// "move any": the shot a player would make at the tutorial's steps 43 and 45 too (the bot's own lands low there,
+		// without a match, so the tutorial goes on)
+		else if (!BotChooseShot(b, &aShot, (theArgs != "any") && (theApp->mTutor != NULL) &&
+			((theApp->mTutor->mStep == 0x2b) || (theApp->mTutor->mStep == 0x2d)),
 			(theApp->mTutor != NULL) && (theApp->mTutor->mStep == 0x3e)))
 			Reply("MOVE null");
 		else

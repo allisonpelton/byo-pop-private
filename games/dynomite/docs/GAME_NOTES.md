@@ -277,3 +277,35 @@ updates from there (the original's counter reached 8864 of them before origrun q
 The port uses well under half the original's processor time for the same minute of play, and holds about 28 MB more
 private memory; where that memory goes was not looked into, which is the performance pass's work. No speed-up of the
 port's own has been made yet.
+
+## 7. The PopCap Game Collection version (2026-11-11)
+
+The Collection disc (the user's ISO, 2009) has Dynomite Deluxe as the group `DynomiteDeluxeComponent`: 227 files, 4.1 MB.
+`unshield` (`E:\retools\unshield-build`, built for Bejeweled's check) read it from the image mounted read-only, dismounted
+afterwards, into the main checkout's `re/_installers/DynomiteDeluxeCollection` (git-ignored).
+
+**The same game.** The Collection's `Dynomite.exe` is the game itself, with no wrapper around it. Set beside the game
+image carved out of Steam's wrapper (`re/dynomite/bin/DynomiteGame.exe`; Bejeweled's `tools/collection/cmpexe.py`), it
+has the same link time (2003-07-08 21:48:08), the same entry point and the same sections. `.text` and `.data` are byte for
+byte the same; `.rdata` differs in 7 bytes, the digits of a partner stamp at 0x5039a1; `.rsrc` is larger (143,360 bytes
+against 28,672: more icons), a few header bytes differ and a signature of 5,424 bytes follows the last section. So
+everything the decompilation, the identical-play pass and the coverage check found holds for the Collection's game too.
+The port finds the game image in either file (`LoadGameTexts` takes the image whose texts match), and the texts are the
+same by address and hash.
+
+**The files** (Bejeweled's `tools/collection/cmpfiles.py`, against the Steam install). Of the Steam folder's 272 files
+and the Collection's 227, 218 are the same byte for byte: every sound, song, data file, the puzzle pack and every picture
+but these:
+
+- `images/title.jpg`, the loading screen: the Steam copy's carries the flat "PopCap Games" logo with the web address at the
+  bottom right; the Collection's is another encoding with PopCap's round logo and two TM marks. The port draws the file it
+  is given.
+- `images/whitefont.png`, `whitefont2.png` and `whitefontsmall.png`: palette pictures in Steam's copy, RGBA in the
+  Collection's, with the same alpha and the same colour wherever a pixel shows.
+- `properties/partner.xml`: the same product name, registry key (`PopCap\Dynomite`), `NoReg` and `DefaultWindowed`. The
+  Collection's sets `DontUpdate` false and links "Play More Great Games!" to PopCap's site, with an `Offering` number;
+  Steam's has its store id and buy link and one "More Games" link. The update check and the links are not in the port.
+- Only in the Steam folder: the wrapper's files (`drm.swf`, `drm.xml`, `drmss.jpg`, `Flash.ocx`), the user's high scores
+  (`fossil.hs`, `timetrial.hs`), `stomped/readme.txt`, and 38 `sounds/cached_*.wav`. Those are the original's own cache:
+  its sound manager (0x495db0) loads `cached_<name>.wav` when it exists, else the sound's own file, and passes a decoded
+  Ogg or MP3 to 0x4943e0 under the cached name, so a Collection install makes them on its first run. The port decodes the Ogg files and reads no cached file.
