@@ -18,6 +18,7 @@
                                                         ReturnToMap; the map's final scroll opens the dialog at <open> (the original's
                                                         update; 868 with these two profiles). Shots through the dialog, the two
                                                         buttons' hover, RETURN HOME, and the statistics screen with the medal
+    python tour_medal.py dialogkeep <name> [<open>]    the same up to the buttons, then KEEP GOING (the endless levels)
 
 Coordinates are the 640x480 client's (tour_menu.py's table).
 """
@@ -79,7 +80,7 @@ def build_win(name, opened, click=None):
     t.write(quit_at=u)
 
 
-def build_dialog(name, opened=868):
+def build_dialog(name, opened=868, keep=False):
     t = Tour(name)
     s = t.shot
     s(700, "menu_700")
@@ -97,6 +98,13 @@ def build_dialog(name, opened=868):
     u = opened + 120
     t.move(u, 237, 434); s(u + 4, "hover_home")
     t.move(u + 20, 417, 434); s(u + 24, "hover_keep")
+    if keep:
+        t.move(u + 40, 417, 434)
+        t.click(u + 50, 417, 434)               # KEEP GOING: the map's way on, to the endless levels (a level and a wave drawn at random)
+        for k in (1, 3, 8, 30, 100, 300, 600):
+            s(u + 50 + k, f"keep_{k}")
+        t.write(quit_at=u + 50 + 650)
+        return
     t.move(u + 40, 237, 434)
     t.click(u + 50, 237, 434)                   # RETURN HOME: the menu
     for k in (1, 3, 8, 30):
@@ -108,7 +116,7 @@ def build_dialog(name, opened=868):
 if __name__ == "__main__":
     if sys.argv[1] == "stats":
         build_stats(sys.argv[2])
-    elif sys.argv[1] == "dialog":
-        build_dialog(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 868)
+    elif sys.argv[1] in ("dialog", "dialogkeep"):
+        build_dialog(sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 868, sys.argv[1] == "dialogkeep")
     else:
         build_win(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]) if len(sys.argv) > 4 else None)

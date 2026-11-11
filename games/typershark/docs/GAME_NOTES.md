@@ -1036,7 +1036,62 @@ another size): the medal (97 by 133, drawn 66 by 90) on the statistics screen's 
 finished an adventure) and in the end-of-adventure dialog (`WinGameDialog::Draw` 0x439390, the same medal and the ten gem and treasure pictures
 squeezed into 30 by 30 squares). No tour shows either: the statistics tours play a new player with no finished adventure, and the whole-adventure
 tours' shots (a grid every 1000 updates, and at the named events) caught no end-of-adventure dialog. The flag changes only these two draws and
-no picture of any tour, so the 2D tours cannot tell whether the original's averaged stretch is the port's. Left for a check with a profile that has
-finished an adventure in both programs (the medal on the statistics screen, and the dialog at the end of the adventure; what the original's
-`MemoryImage::SlowStretchBlt` does with a picture's alpha is not read here, as AstroPop's `gSlowStretchRenormalizesAlpha` is for its own exe).
-The flag stays on: it is what the original does.
+no picture of any tour, so the 2D tours cannot tell whether the original's averaged stretch is the port's. That check was made with profiles that
+have finished an adventure, and it found that the port's stretch was not the original's (a soft edge on the medal); section 18 has the cause, the
+fix and the results. The flag stays on: it is what the original does.
+
+## 18. The medal screens: the original's software stretch (2026-11-11)
+
+Section 17 found that the game stretches a picture in two places only, and that no tour showed either. Both are drawn with a profile that has
+finished an adventure: the statistics screen's adventure panel (`AdventurePanel::Draw`, the medal) and the end-of-adventure dialog
+(`WinGameDialog::Draw` 0x439390: the medal and the ten gem and treasure pictures, each squeezed into 30 by 30). The medal is bronze for 1 or 2 finished
+adventures (`mGamesCompleted`, registry `NGC`), silver for 3 or 4, gold from 5.
+
+**Cause of the difference that was found.** In 2D the original's screen stretch (`DDImage::StretchBlt` 0x4a2fb0, the path taken when the fast stretch is
+off, as for every widget) does not stretch on the surface: it averages the source into a transparent temporary `MemoryImage` with
+`MemoryImage::SlowStretchBlt` (0x48d9b0: each destination pixel is the average of the source pixels it covers, and in the last loop a source pixel's
+weight is `255 * a / (destAlpha + a)`, so the alpha is renormalised as pixels are added) and blits that. The port drew the stretch with the framework's
+texture stretch (a linear filter), which put a soft edge on the medal: the first comparison of the statistics screen found 620 pixels that differed from the original by up to 24
+levels, and the dialog's medal and pictures differed by 8801 pixels and up to 39. In 3D the original draws textured quads, so its 3D picture needs the GPU's filter.
+So `TyperSharkDisplay` (the `DDInterface` subclass in `WinWSApp.cpp`) sets `mSoftwareStretch` for every stretch when 3D is off (the framework's
+`GetStretchCopy`/`StretchCopy`, 0x433ca0, the same averaging), as AstroPop's does, and `WinWSApp::Init` sets `gSlowStretchRenormalizesAlpha`
+(`framework/MemoryImage.h`, AstroPop's), which is the weight above. The flag alone changed no pixel; `mSoftwareStretch` is the fix, and the flag
+stays because it is what the original's code does. With 3D on nothing changes. `tools/check.sh typershark` (the 13 games' state logs against the
+frozen baseline) is unchanged.
+
+**The profiles.** A new player cannot show the medal, and playing a whole adventure to the dialog takes 154,000 updates in the port and 25 minutes
+of play in the original, which the sandbox runs at about a tenth of real time (an earlier try ran 21,884 updates in 40 minutes). So no adventure is
+played. `tools/phase2/mkprofile.py <ngc>` writes the values the game itself writes for a player (the registry preset the original imports and the
+port's `registry.ini`, with `NGC` set and every counter of the statistics screen a distinct number) and the two files of a users folder.
+`mkprofile.py <ngc> saved` adds a saved adventure at the last site, made by the port (the menu's Adventure, the difficulty, `level 34`, `win`: the
+port saves the game at site 35) with its totals set to distinct numbers (score 47250, typing time 305 s, 37 wrong and 412 right letters; the
+file is a list of numbers, each a two-byte length and its text, `UserProfile::WriteDataToDisk`) and `RNGC` (registry, "this game's finish is not
+counted yet") on, as a game in progress has it. The original reads the same two files and the same registry values.
+
+**The statistics screen** (`tour_medal.py stats`): the menu, the Statistics link, the adventure panel, the abyss and tutor views, the adventure
+view again and Close, 14 shots, for four players: `NGC` 1 (bronze), 3 (silver), 5 and 12 (gold). All four equal the original's pixel for pixel.
+
+**The dialog** (`tour_medal.py dialog`): the menu's Adventure offers the saved game, YES, and the board of site 35 comes. Winning that level needs it
+to be played, so the board is left the way a won level is left: the original's copy has one patched byte (`Board::KeyChar` 0x454e9b, `cmp eax, 7`
+to `cmp eax, 1`: the space bar's step back to the map, `ReturnToMap` 0x429450, which a won level (the diver's state 7) takes, is taken in the
+diver's first state, 1) and the script presses the space bar; the port has its test command `goto map`, which calls the same `ReturnToMap`. The map
+screen then runs its final scroll (the saved game of site 35 switched it on, `SetFinalLevel`), counts the game finished (`NGC` + 1, so a player with
+`NGC` 0, 2 or 4 gets the bronze, silver or gold medal) and opens the dialog at update 868. The tour shoots the board, the map every few updates
+through the scroll, the dialog at every update from 864 to 876 and four times later, the hover over RETURN HOME and KEEP GOING, then RETURN HOME (the
+menu, and the statistics screen of the player, whose medal is the new one): 49 shots. With `dialogkeep` it presses KEEP GOING instead (the endless
+levels: the board of an endless level, its sea and the diver's dive for 600 updates): 40 shots. Run for `NGC` 0, 2 and 4 on both programs (the
+original in the sandbox, `chain.sh` with `PATCHES=` the list plus the patch): the 49 shots of each equal the original's pixel for pixel, and so
+do the 40 shots of KEEP GOING (silver). The text of the dialog (the score, the adjusted speed, the accuracy), the ten pictures with their counts
+and the medal are therefore the original's.
+
+**The control.** The same dialog tour with the exe built without the two changes against the exe with them: 14 of the 49 shots differ (8801
+pixels, up to 39 levels, in the box x 130 to 479, y 156 to 334: the medal and the ten pictures), so the tour sees the stretch (the statistics screen of that silver player is the same with and without them).
+
+**Not compared.** The medal and the ten pictures with 3D on (the original's textured quads against the port's SDL renderer: needs the desktop route
+of section 16); the web build (the same code, no run of the dialog there); the board of site 35 itself (its boss and treasure are not played in the
+original: a saved game starts it and the space bar leaves it).
+
+Tools (`tools/phase2`): `mksaved.sh` makes the saved adventure, `mkprofile.py` the profiles, `tour_medal.py` the tours (`stats`, `dialog`, `dialogkeep`,
+and `win`, the first try: the whole-adventure route up to the dialog, which the original could not finish in the sandbox), `medal.sh <ngc: 0, 2 or 4>
+[dialog|dialogkeep]` runs a dialog tour on both programs with the patched byte (`runorig.sh` takes `PATCHES=<file under build/ts-p2>`: the list of
+`tools/origrun/patches/typershark.txt` plus the line `test TyperSharkGame.exe va:0x454e9b 83f807 83f801 <reason>`) and `shotdiff`.

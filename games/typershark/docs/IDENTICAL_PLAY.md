@@ -274,7 +274,20 @@ The 2004 widget manager never sets the fast stretch on a widget's Graphics (the 
 this game's export shows (`GAME_NOTES.md`, section 17); `WinWSApp::Init` sets the shared flag `gWidgetsDrawWithoutFastStretch`. The 2D tours were
 run with the exe before and after the change: 2779 shots in 17 tours, and none changed (five differ in the window's last column, as two runs of the
 same exe do). The game stretches a picture only for the medal on the statistics screen's adventure panel and in the end-of-adventure dialog, and
-no tour shows either, so the pictures of those two are not compared with the original (section 17 says how).
+no tour showed either at that time; the comparison of those two, with profiles that have finished an adventure, is the next subsection.
+
+### The medal screens
+
+The game stretches a picture for the medal on the statistics screen's adventure panel and in the end-of-adventure dialog (the medal and ten
+pictures in 30 by 30 squares). They were compared with the original for players that have finished 1, 3, 5 and 12 adventures (the statistics screen)
+and for a saved adventure at the last site, taken to the dialog (bronze, silver and gold; `GAME_NOTES.md`, section 18, has how: no adventure is played,
+the original's copy has one patched byte and the port its test command `goto map`). The port's stretch was not the original's: the original
+averages a picture into a transparent temporary with `MemoryImage::SlowStretchBlt` (0x48d9b0) and blits that (`DDImage::StretchBlt`, 0x4a2fb0, with the
+fast stretch off), where the port used a texture filter, which gave the medal a soft edge (the first comparison of the statistics screen: 620 pixels, up to 24
+levels; the dialog: 8801 pixels, up to 39). The port now does the same in 2D (`mSoftwareStretch` in its display, and `gSlowStretchRenormalizesAlpha`). Result: the
+four statistics tours (14 shots each) and the three dialog tours (49 shots each: the board, the map through the final scroll, the dialog at every
+update of its opening, the hover over both buttons, RETURN HOME and the statistics screen) equal the original's pixel for pixel, and so does KEEP GOING
+(40 shots, the first 600 updates of the endless level). Not compared: the two screens in 3D and in the web build. `tools/check.sh typershark` is unchanged.
 
 ### Oddities (not chased)
 
