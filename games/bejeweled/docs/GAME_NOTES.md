@@ -2005,7 +2005,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1 and 7.2, as built:
   cases out; it plays stage 1's and 2's rule cases as before stage 5, against their own facts in expect.txt
   (`<case>@novariants`: the v1 save and the RNG sidecar).
 
-### 12.8 The mod menu's hooks (M5 of docs/MOD_MENU_DESIGN.md)
+### 12.8 The mod menu's hooks (docs/MOD_MENU_DESIGN.md 8.2)
 
 None of these runs without an enabled mod that has settings, or a value held for the next game; the oracle has
 neither.
