@@ -23,6 +23,7 @@
 #include "Hyperspace.h"
 #include "Dialog.h"
 #include "DialogButton.h"
+#include "Checkbox.h"
 #include "WidgetManager.h"
 
 #include <cstdio>
@@ -292,6 +293,17 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 					aList[i]->mX + aList[i]->mWidth / 2, aList[i]->mY + aList[i]->mHeight / 2);
 			}
 			aLine += ",\"buttons\":{" + aButtons + "}";
+			// the options dialog's three display checkboxes: the middle of each and whether it is checked
+			if (anOptions != NULL)
+			{
+				Checkbox* aBoxes[3] = {anOptions->mFullscreenCheckbox, anOptions->m3DCheckbox, anOptions->mHighResCheckbox};
+				const char* aBoxNames[3] = {"fullscreen", "accel", "highres"};
+				std::string aChecks;
+				for (int i = 0; i < 3; i++)
+					aChecks += StrFormat("%s\"%s\":[%d,%d,%d]", i == 0 ? "" : ",", aBoxNames[i], aBoxes[i]->mX + aBoxes[i]->mWidth / 2,
+						aBoxes[i]->mY + aBoxes[i]->mHeight / 2, aBoxes[i]->IsChecked() ? 1 : 0);
+				aLine += ",\"checks\":{" + aChecks + "}";
+			}
 		}
 		// the widgets of the screen in front that a click reaches (not those of a dialog: "buttons" above): the title's play
 		// link, the menu's buttons, the board's buttons

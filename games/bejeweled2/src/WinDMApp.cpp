@@ -82,8 +82,24 @@ WinDMApp::WinDMApp()
 	mScreenWidth = 1920;
 	mScreenHeight = 1080;
 	if (SDL_InitSubSystem(SDL_INIT_VIDEO) == 0) {
-		SDL_Rect aBounds;
 		SDL_DisplayMode aMode;
+#ifdef __EMSCRIPTEN__
+		// port: in a browser SDL's usable bounds are the page's inner size (window.innerWidth and innerHeight: the frame the
+		// game is shown in, 640 by 480 as the site's Desktop 95 window starts), not a screen's, and the page scales the
+		// game's canvas to the room it has. So the screen is the display itself, and never less than a 1024 by 768 window
+		// needs: the Options dialog's and SwitchScreenMode's tests for a desktop too small for the windowed game, or for
+		// high resolution in a window, are about a window that cannot be scaled. With the page's 640 the game refused to
+		// leave full screen ("Your desktop resolution is not high enough...", the user, 2026-11-10)
+		if (SDL_GetDesktopDisplayMode(0, &aMode) == 0) {
+			mScreenWidth = aMode.w;
+			mScreenHeight = aMode.h;
+		}
+		if (mScreenWidth < 1280)
+			mScreenWidth = 1280;
+		if (mScreenHeight < 1024)
+			mScreenHeight = 1024;
+#else
+		SDL_Rect aBounds;
 		if (SDL_GetDisplayUsableBounds(0, &aBounds) == 0 && aBounds.w > 0 && aBounds.h > 0) {
 			mScreenWidth = aBounds.w;
 			mScreenHeight = aBounds.h;
@@ -91,6 +107,7 @@ WinDMApp::WinDMApp()
 			mScreenWidth = aMode.w;
 			mScreenHeight = aMode.h;
 		}
+#endif
 	}
 	mWidth = 1024;
 	mHeight = 768;
