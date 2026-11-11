@@ -405,11 +405,9 @@ void TempleScreen::BuildThumbs()
 			}
 		}
 		aThumb.mMystery = aMysteryLocked && (i + 1 == aLevel->mPuzzles.size());
+		// 0x40fb80 raises a solved picture's alpha 2 an update from the 255 it starts with: the puzzle just solved shows at once
 		if (aThumb.mSolved && aThumb.mUuid == mApp->mLastSolvedUuid)
-		{
-			aThumb.mFade = 1;
 			mApp->mLastSolvedUuid.clear();
-		}
 		mThumbs.push_back(aThumb);
 	}
 	delete aGrid;
@@ -572,10 +570,11 @@ void TempleScreen::DrawThumbs(Graphics* g)
 			}
 
 			// the medal, the chains of the mystery puzzle, the question mark of a tutorial puzzle that is not yet open
-			if (aThumb.mSolved && aThumb.mMedal > 0)
+			// 0x4127f6: the tutorial temple (index 0) has no medals
+			if (aThumb.mSolved && aThumb.mMedal > 0 && !aTutorial)
 			{
 				static const int aMedals[4] = { 0, IMAGE_MEDAL_BRONZE, IMAGE_MEDAL_SILVER, IMAGE_MEDAL };
-				g->DrawImage(mApp->mImages[aMedals[aThumb.mMedal]], aX + CELL - 44, aY + CELL - 44);
+				g->DrawImage(mApp->mImages[aMedals[aThumb.mMedal]], aX + 0x3e, aY + 0x4b);	// 0x412858
 			}
 			else if (aThumb.mMystery)
 				g->DrawImage(mApp->mImages[IMAGE_LOCKPUZZLEOVERLAY], aX - 3, aY - 3);
