@@ -630,9 +630,132 @@ dialogs and screens other than the options dialog were not read for waits or fau
 
 ## 11. Performance
 
-Not measured yet: the performance pass is this game's own, later in its order of work (the coordinator, 2026-11-09), after the identical-play
-pass. It will model on `games/alchemy/tools/profile/perf.py` and Alchemy's "Performance" section: loading seconds, original and port;
-peak working set and private bytes, CPU time and the number of game processes over a scripted minute.
+The performance pass (2026-11-11). The port and the original were measured turn about over the same scripted play, the port was
+profiled in real time and without waiting, its memory was split by `memreport` and `tools/memmap.py`, and the web build was measured under
+Node and in the Browser pane. **No change was made to the port**: the profile finds no cost in the game's own code (below), and what it
+does find is in shared code and in the graphics driver; those went to the coordinator as a spec (section "Shared costs"). The machine was
+never quiet: one to three games of other sessions ran during every measurement and 24 to 66% of it was in use (`machine_busy`), so the
+figures are for comparing the two side by side, run by run; each cell lists the three pairs.
+
+**How.** `tools/profile/perf.py` starts a game and samples its process (every 0.1 s in real time, every 0.02 s without waiting): working
+set, private bytes, processor time; `tools/profile/pairs.sh` runs everything turn about, one game process at a time, and
+`tools/profile/summary.py` prints a line a run. The scenario is `build/ts-p2/rec/rt2.in.txt` (the adventure recording that phase 2 made with
+`tools/phase2/rec.py`: a new player named Tester, the Adventure button, Easy, the hint box, then the port's own typist playing the first
+levels from update 1,269), cut at update 7,000 in real time (70 s, "the stretch" is its last 2,000 updates, 20 s) and at 30,000 without
+waiting (the stretch is its last 10,000). In real time the port runs without `-fast` and the original on origrun's real clock; without
+waiting the port runs with `-fast` (it draws every tenth update) and again with `-fast -drawevery` (every update, which is what the
+original does on origrun's virtual clock, so that is the comparison of like with like) and the original on the virtual clock. The port is
+started under rundesk, the original by origrun (host run, scripted cursor, `--reg-map popcap`, a fresh users folder and registry key each
+run). The original loads in a thread on the wall clock: its script waits for the app's loading-completed flag (the byte at +0x525; `waitfor`
+reads a dword, so the wait is on the dword at +0x522 being 0x1000000 or more), marks the counter there and counts every update from the
+mark, and the load time is the time from the process's creation to that flag, read out of the game's memory. Each original run logs the
+board's state at the stretch's start and end (the peeks of phase 2); every run that counts shows the same four values, and a run whose
+game never got into play (no sharks) says `NOT PLAYED`.
+
+Two pitfalls of the first attempt, kept so they are not repeated. On the virtual clock the counter runs on while the loading thread works,
+so the counter at the flag was 1,556 in one run, 2,279 in another and 48,415 in a third, and in the last two the game sat in a state in
+which the scripted name and clicks did nothing (no sharks; 0.05 ms an update, 20,000 updates a second): the no-waiting runs of the original
+use phase 2's loading patch (`build/ts-p2/patches.txt`: the copy loads on the main thread, so that the first typed letters meet a loaded
+game; the stretch is the same game, checked by the state values) and only the load times come from the unpatched copy. And one of the nine
+real-time runs of the port (in the first, discarded set of pairs) ran at 74.5 updates a second instead of 98 to 99.5, the whole run
+taking 89.7 s instead of 71 s and using less processor time, on an otherwise idle machine; it was not seen again in the nine runs of the
+final set and is not explained (Windows' timer resolution on the hidden desktop is the first suspect).
+
+**In real time** (three pairs, 04:15 to 04:45 on 2026-11-11; "software" is the port with `SDL_RENDER_DRIVER=software`, a test of the
+renderer's cost and not a setting of the game):
+
+| | Original | Port | Port, software renderer |
+| --- | --- | --- | --- |
+| Processor time in the stretch (20 s) | 1.48, 1.62 and 1.55 s | 3.33, 1.28 and 2.22 s | 17.6, 16.9 and 17.6 s |
+| Updates a second in the stretch | 99.8, 99.5 and 100.0 | 99.5, 97.3 and 99.4 | 99.7, 98.8 and 99.4 |
+| Processor time, whole run (71 s) | 5.5, 5.9 and 5.7 s | 9.9, 4.4 and 8.1 s | 53.3, 53.2 and 54.7 s |
+| Peak private bytes / working set | 49.4 to 51.4 / 64.5 to 73.6 MB | 86.2 to 89.0 / 93.6 to 96.6 MB | 64.2 to 67.6 / 84.3 to 87.5 MB |
+
+**Without waiting** (30,000 updates; the stretch is updates 20,000 to 30,000):
+
+| | Original (virtual clock, loading patch) | Port `-fast` | Port `-fast -drawevery` | Port `-fast -drawevery`, software |
+| --- | --- | --- | --- | --- |
+| Processor time in the stretch | 7.4, 8.0 and 14.8 s | 0.47, 0.45 and 0.86 s | 2.1, 2.6 and 2.9 s | 103, 115 and 134 s |
+| Updates a second | 1,092, 972 and 567 | 17,398, 19,841 and 7,965 | 5,912, 4,912 and 4,481 | 96, 86 and 73 |
+| Processor time, whole run | 22.7, 23.8 and 33.8 s | 2.3, 2.1 and 3.7 s | 7.3, 8.8 and 11.3 s | 293, 302 and 407 s |
+| Peak private bytes / working set | 54.5 to 55.1 / 76.7 to 77.7 MB | 95.5 to 101.8 / 103 to 109 MB | 97.9 to 109.8 / 105 to 117 MB | 76.7 to 77.0 / 96.8 to 96.9 MB |
+
+An update with its draw costs the original about 0.8 ms of processor time (0.74 to 1.48 ms; the third run was on a machine 49% busy), the
+port 0.26 ms with Direct3D 11 (3 times less) and 0.047 ms when only every tenth update is drawn (17 times less): the port's `-fast` runs,
+which are the test runs, are far faster than the original's. With SDL's software renderer the same draw costs 10 to 13 ms, 14 times the
+original's, and holds 100 frames a second in real time only by using 88% of a core of this machine (below, "Shared costs").
+
+**Loading** (the original: process creation to the loading-completed flag, six runs, the first three with the real-time pairs; the port:
+creation to the first update, whose screenshot's file time marks it):
+
+| | Original | Port | Port, software renderer |
+| --- | --- | --- | --- |
+| Launch to loaded | 0.76, 0.81, 0.87, 0.95, 1.00 and 1.28 s | 0.72, 0.82 and 0.78 s | 0.53, 0.58 and 0.57 s |
+| Processor time to there | 0.75 to 0.95 s | 0.75 to 0.83 s | 0.58 to 0.62 s |
+| Working set / private bytes there | 65 to 73 / 49.6 to 51.0 MB | 84 to 93 / 83.5 to 85.9 MB | 70 to 81 / 58 to 61 MB |
+
+Loading takes the two about as long (the port's own log says "Resource Loading Time: 714 ms"); creating the Direct3D 11 device costs the
+port about 0.2 s and 20 to 25 MB.
+
+**Where the port's time goes.** `games/bejeweled/tools/profile/cpuprof.py` (cycles per thread, a flat profile by module and function)
+on the whole adventure recording (215,005 updates in 13 s under `-fast`): ntdll 51%, the Nvidia Direct3D 11 driver 19%, SDL 5%, win32u 4%,
+the game's exe 12%. Of the exe's 12%, a share is the load's decoders (below) and the biggest function of play is the framework's
+`ImageFont::DrawStringEx` at 2.5% of all cycles; `Board::Update` is 0.4% and `Board::Draw` 0.4%. In real time (5,000 updates, 52 s sampled,
+12.5 G cycles, 240 million a second) the main thread has 71% of the cycles, 83% of them in ntdll (system calls: the
+presentation of the frame and the sleeps), the driver's own thread 17.5%, the mixer's thread 3.5% and the game's exe 5%. What the
+player's machine spends is the display path, and the original's DirectDraw path spends about as much (1.5 s a stretch against the
+port's median of 2.2 s). The load (1.1 s sampled, 1.49 G cycles) is 46% in the exe: `_stbi__out_gif_code` 13.3% and `Sexy::Quantize8Bit`
+11.8% (the images are GIFs that are decoded to 32 bits and quantized back to 8), the audio and JPEG decoders about 10%, `imagehlp.dll`
+7.6% (called from a place not looked for), ntdll 29% (file and memory system calls).
+
+**Where the port's memory goes.** The framework's `memreport` command (`tools/profile/memmaps.py memreport`) at update 12,000 (in play):
+the process holds 85.2 MB private (working set 93.3 MB), of which 32.8 MB are libraries and devices (`privateAtStart`, before a game file
+is read), 20.6 MB the pictures' pixels (307 of them: 7.6 MB of 32-bit pixels, 12.1 MB of 8-bit indices and palettes, no second copies),
+5.2 MB the samples of 40 sounds and 1.0 MB the two module files of the music (libopenmpt keeps its own decoded copy), and 25.6 MB the rest:
+the game's own state, and the graphics driver (the same play under SDL's software renderer peaks at 64 to 68 MB private, about 20 MB less,
+so the driver is most of it). The framework's heap holds 43.5 MB in 56,693 blocks (163 of 64 KB or more hold 30.1 MB), 40.2 MB at the title
+(update 300) and 41.2 MB at update 1,600, so play adds about 3 MB (the pictures that get a texture, 13 at the title and 36 in play, and
+small blocks). The graphics device holds about 9 MB of textures more, which no process can read. `tools/memmap.py` of the original in
+play: 49.2 to 49.9 MB private bytes, 65 to 66 MB working set; its address space holds 57.1 MB of images (75 modules, shared with other
+processes: windows.storage 7.2, shell32 6.5, ntdll 4.2 ...), 10.2 MB of mapped files, 0.8 MB of stacks and 45 to 46 MB of private memory.
+What the original's private memory is made of (its pictures and sounds) was not split: it needs a hook in the original. The port holds
+about 37 MB more private bytes than the original in play (86 to 89 against 49 to 51 MB; the web build's wasm heap is 47 MB): the Direct3D
+11 driver is about 21 of them, and the rest is SDL, the framework's libraries and the pictures that it keeps after they are uploaded as
+textures (shared, section "Shared costs").
+
+**On the web.** Under Node (`perf.py web-minute`; the web build as the browser runs it, with no canvas, sound or GPU, SDL on its software
+renderer, `-fast -drawevery`): 30,000 updates in 93 s (88 s of processor time, 3.1 ms an update), the wasm heap 47.2 MB at the title
+(update 300), 68.0 MB at update 20,000 (the textures of the pictures are kept in the heap with no GPU). In the Browser pane (Chrome 156,
+the page's own timers, `tools/profile/webperf.js`, one run): the first frame takes 1.33 s (the load) and then the menu costs next to nothing
+(6 of its 319 frames draw anything); the map 0.81 ms a frame (3.7% of the thread); a level played by the port's bot, which types
+the sharks' words as real key events, 1.10 ms a frame, 3.1 ms at most, 5.0% of the thread, 916 frames for 2,006 updates in 20 s; the wasm
+heap 47.2 MB (37.5 MB in use) in every phase, 20.6 MB of it pictures and 5.2 MB sounds, the JavaScript heap 12 MB, no errors. The web build
+runs Typer Shark at a twentieth of a thread.
+
+**Shared costs** (sent to the coordinator; none of them is in this game's code):
+1. *The load's decoders.* A quarter of the load's processor time is two functions of shared code: the GIF decoder's per-pixel output
+   (`_stbi__out_gif_code`, 13%, stb) and `Sexy::Quantize8Bit` (12%, a binary search for every pixel; a cache of the last colour would answer
+   most pixels with the same table), and the quantizing is needed only because the GIF was decoded to 32 bits first. About 0.15 to 0.2 s of
+   a 0.75 s load, for every game that ships GIFs.
+2. *The software renderer.* 10 to 13 ms of processor time a frame at 640 by 480 (88% of a core in real time) against 0.26 ms with
+   Direct3D 11. A player whose machine has no usable GPU driver (a virtual machine, some remote sessions) would have the port fall back to
+   it (`DDInterface::Init`) and a slower machine would not hold 100 frames a second. Where the time goes in it was not looked for.
+3. *The Direct3D 11 driver* costs the process 20 to 25 MB and 0.2 s of start (see the loading table); a driver choice, no default changes
+   without the user.
+4. *The pixels kept after upload* (the framework's, known: here 20.6 MB of the 85).
+5. *`imagehlp.dll`* takes 7.6% of the load's cycles; the call is not in the game's code that was looked at.
+
+**Open.** (1) The original's private memory is not split into pictures, sounds and the rest. (2) The browser's frame time was measured once,
+in a pane that may have been hidden (the page's timers; the frame hook counts the game's own milliseconds, so the figures hold). (3) The
+one slow real-time run of the port (above).
+
+**To repeat.** `bash games/typershark/tools/profile/pairs.sh <out dir> [pairs]` from the worktree root (about 11 minutes a pair; the
+software-renderer run without waiting takes 5 minutes; `WORK_END` and `WORK_STRETCH` change the no-waiting scenario), then
+`python -I games/typershark/tools/profile/summary.py <out dir>/runs.txt`; `memmaps.py memreport|port|orig <out dir>` for the memory,
+`perf.py web-minute <out dir>` for Node and `webperf.js` in the Browser pane (`python tools/webtest/serve.py --port <p>`, then
+`typershark.html?player=1&assets=1&silent=1&driver=games/typershark/tools/profile/webperf.js`). The original needs the copy under
+`build/origrun/typershark/game`, origrun's `typershark.cfg` and `patches/typershark.txt` (section 8) and phase 2's `build/ts-p2/patches.txt`.
+The raw samples were deleted once these figures were written.
 
 ## 12. Coverage check (2026-11-11)
 
