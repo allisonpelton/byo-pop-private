@@ -20,7 +20,7 @@
 // board pauses on any typed character). Mouse: click, wheel, drag a slider or the list.
 //
 // On the web the list page also has "Add or remove mods", which opens the page's Mods panel (web/modpanel.js) over
-// the menu; the page calls byopop_menu and byopop_restart (end of ModMenu.cpp) for its Mods button and Restart.
+// the menu; the page calls byopop_menu, byopop_restart and byopop_quit (end of ModMenu.cpp) for its Mods button, Restart and Close.
 
 #include "Widget.h"
 #include "../platform/Json.h"

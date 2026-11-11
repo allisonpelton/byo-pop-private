@@ -549,7 +549,7 @@ void Board::DoneClearing()
 
 	MarkDirtyFull();
 	mState = STATE_NEW;
-	mDoneClearingCount++;
+	mCascadeCount++;
 }
 
 // 0x5a7712: the particles, the explosion animations and the ripples move on by one update

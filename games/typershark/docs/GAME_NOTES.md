@@ -407,7 +407,7 @@ through the page and the window are all still to do.
 
 The original runs only through `tools/origrun` (`docs/ORIGRUN.md`), from a copy under `build/origrun/typershark/game` that
 origrun prepares from the player's install (`tools/origrun/games.tsv` has the row); an install folder is never run in place.
-`docs/ORIGRUN.md` has no status row for Typer Shark yet (to add).
+`docs/ORIGRUN.md`, "Per-game status", has its row.
 
 <!-- private: The program file in that copy comes from the install; tools/origrun prepares it. -->
 

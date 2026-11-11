@@ -25,6 +25,7 @@ import bisect, collections, json, os, re, sys
 ROOT = os.path.expanduser('~/.claude/projects')
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'build', 'costs')
 PRICES = {  # per million tokens: input, cache read, cache write 5 minutes, cache write 1 hour, output
+    'claude-fable-5-2': (8, .20, 10, 16, 40),  # cache writes at the usual 1.25 and 2 times the input price
     'claude-opus-5-5': (4, .20, 5, 8, 20),
     'claude-sonnet-5-5': (2, .20, 2.5, 4, 10),
     'claude-haiku-5-5': (1, .10, 1.25, 2, 5),

@@ -364,8 +364,8 @@ int Verifier::Difftest(uint32_t theFirst, uint32_t theLast, int theTicks, int th
 namespace
 {
 
-// The mirrortest's boards (stage 7c): direction down or up, Twilight's fallAccel (both boards then have the gravity
-// rows, so one's snapshot decodes into the other), on the full 8x8, on gMirrorMask or (stage 7b) on gMirrorDirtMask,
+// The mirrortest's boards: direction down or up, Twilight's fallAccel (both boards then have the gravity
+// rows, so one's snapshot decodes into the other), on the full 8x8, on gMirrorMask or on gMirrorDirtMask,
 // up on its mirror
 enum MirrorShape { MIRROR_FULL, MIRROR_MASKED, MIRROR_DIRT, MIRROR_SHAPES };
 const char* const gMirrorShapeNames[MIRROR_SHAPES] = {"8x8", "masked", "dirt"};
@@ -416,7 +416,7 @@ int MirrorLine(Board* theBoard)
 }
 
 // theUp takes theDown's state (StateCodec's SNAPSHOT, the RNG included) with the grid and every gem's y mirrored. Both
-// are new boards, so dirt (stage 7b) is each one's mask's, mirrored already: the snapshot leaves its rows out
+// are new boards, so dirt is each one's mask's, mirrored already: the snapshot leaves its rows out
 bool RestoreMirrored(Board* theDown, Board* theUp, std::string* theError)
 {
 	bool hasDirt = theDown->mDirtRules;
@@ -458,7 +458,7 @@ bool SameRngState(Board* a, Board* b)
 }
 
 // "" when theUp is theDown mirrored: every cell's colour, the gems' rows, and (withPositions) every gem's y; the dirt
-// layers and the side the next diagonal slide tries first (stage 7b)
+// layers and the side the next diagonal slide tries first
 std::string MirrorDifference(Board* theDown, Board* theUp, bool withPositions)
 {
 	int aRows = theDown->mRows;
@@ -492,7 +492,7 @@ std::string MirrorDifference(Board* theDown, Board* theUp, bool withPositions)
 }
 
 // Unit checks on a masked pair from one RNG state: the upward fill and refill are the mirrors of the downward ones,
-// in colours, rows, start positions and draws (on the dirt mask the refill with its diagonal slides, stage 7b)
+// in colours, rows, start positions and draws (on the dirt mask the refill with its diagonal slides)
 std::string MirrorFillRefill(uint32_t theSeed, MirrorShape theShape)
 {
 	MirrorSide aDown(theSeed, false, theShape);

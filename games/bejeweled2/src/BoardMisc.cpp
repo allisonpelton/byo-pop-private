@@ -180,7 +180,7 @@ void Board::DoWhirlpool()
 	}
 	else
 	{
-		m15fb0 = 1.0f;
+		mFadeIn = 1.0f;
 		for (int aRowPos = 0; aRowPos < 0x9000; aRowPos += 0x300)
 		{
 			int aRow = aRowPos / 0x300;

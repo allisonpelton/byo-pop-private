@@ -14,8 +14,8 @@ Display::Display()
 {
 	if (gScreen == nullptr)
 	{
-		gScreenPitch = 800 * 4;
-		gScreen = new uint8_t[(size_t)gScreenPitch * 600]();
+		gScreenPitch = SCREEN_WIDTH * 4;
+		gScreen = new uint8_t[(size_t)gScreenPitch * SCREEN_HEIGHT]();
 	}
 }
 
@@ -167,7 +167,7 @@ void Display::Untrack(Image* theImage)
 void Display::DrawById(int theX, int theY, int theId, const Rect* theSrc, int theScaleX, int theScaleY,
 	int theAlpha, Rect& theOut)
 {
-	Image* anImage = GetImage(theId, Module::Dll);
+	Image* anImage = GetImage(theId, Module::DLL);
 	Draw(theX, theY, anImage, nullptr, theSrc, theScaleX, theScaleY, theAlpha, theOut);
 }
 
@@ -221,7 +221,7 @@ void Display::Draw(int theX, int theY, Image* theImage, const uint32_t* theKey, 
 // 0x433aa0
 void Display::GetImageInfo(int theId, ImageInfo& theInfo)
 {
-	GetImage(theId, Module::Dll)->GetInfo(theInfo);
+	GetImage(theId, Module::DLL)->GetInfo(theInfo);
 }
 
 } // namespace jb

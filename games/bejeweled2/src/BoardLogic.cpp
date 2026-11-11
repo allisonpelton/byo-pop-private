@@ -322,8 +322,8 @@ void Board::UpdateFalling()
 		{
 			if (!m15ee0)
 			{
-				if (m15e6c < m15e50)
-					m15e6c = m15e50;
+				if (m15e6c < mCascadeCount)
+					m15e6c = mCascadeCount;
 				if (m15e70 < m15e94)
 					m15e70 = m15e94;
 			}

@@ -1292,8 +1292,8 @@ it (comment edits only). Five were missing from the port, and are translated now
   on under the quit question, Blitz's clock included.
 - `RankBadge::Update` (0x70cbfa): while the mouse is over the rank badge in the tube's head, the tube's tip shows "RANK n" and
   the rank's name, then how far the player is to the next rank, then nothing, each for 200 updates. +0x150 is a float timer and
-  +0x154 the page, which the port had as two unread ints. Checked in the port only: the original's sandbox has a new player,
-  whose first game is the tutorial's, with no tube.
+  +0x154 the page, which the port had as two unread ints. Checked in the port only (both pages show, once the game-text
+  table had its two texts: see the next section).
 - `Board::KeyChar` (0x6b3217): the last 24 letters typed while the mouse is off the grid; SNACKERS switches coal to its
   snackers look and back, NORMAL stops the rain effect and sets the game's speed back to 1. NORMAL's other branch, which asks
   the app for a change of screen mode, needs a flag (+0x1bf1) that only the constructor writes, and is left out.
@@ -1318,9 +1318,85 @@ them; nothing in the runs points at game logic among them that a run should have
 The bejeweledtwist suite passes after the changes (screens as frozen, baseline identical): its runs open no dialog over a game,
 change no focus in a game, type nothing and fire no fruit shockwave, so none of the fixes touches them.
 
+**What the coverage check proves, and what it does not (the user, 2026-11-10: "Not sure how you can claim which functions
+aren't reached when the functionality isn't 100%").** The check proves two things only: which of the original's functions ran
+in the runs it made, and that each of those has a counterpart in the port (a function, a place inside one, or a reason for
+leaving it out). It does not prove that a counterpart is right; only a comparison with the original shows that, and "never
+reached" there means "no run of mine reached it", not "the game works without it". Challenge mode shows the gap: its functions
+were reached and had counterparts, and it still had four faults (below), because none of its screens had ever been compared
+with the original by pictures. Neither phase of `IDENTICAL_PLAY.md` has a challenge-mode comparison in it. Compared since
+(2026-11-10, in 2D): the challenge menu at rest, and the load from the planet's click to the first "GO!". Still never compared:
+the win's message, the trophy and the planets' progress after it, a failed challenge, the timed and the night challenges, the
+in-game options' restart of a challenge, a saved challenge continued, and everything of challenge mode in 3D.
+
 **Open.** For the tool (sent to the coordinator): coverage inside Windows Sandbox, so that the 3D code, and runs that need
-shots, can be recorded. The rank badge's tip against the original, once a sandbox run can start with a player past the
-tutorial.
+shots, can be recorded. The rank badge's tip against the original: three sandbox runs with the user's player staged (2026-11-11) did not get a
+Classic board under the mouse (the mode select was not ready at update 2000, and a later click ended on the main menu), and
+it was left there: the tip's two texts and its timing are the original's code, seen working in the port.
 
 **Cost.** About 30 minutes of game processes (the nine runs, one at a time, beside the port's screen runs), three agents' sorting
 and reading (about a million tokens between them), and the session's own work.
+
+## The challenge's start and the unlock voice (the user's faults, 2026-11-10)
+
+The user: "The Twist challenge load doesn't look right", and "after winning, 'New Challenge Unlocked' played twice". Four
+faults came out of it, each the original's own logic that the port had wrong or lacked.
+
+**The 3D start was the 2D one.** `Hyperspace::StartChallenge` (0x71c18f) has two branches, and the port had only the one
+without Direct3D, run in 3D as well: the 2D fade's curves under a 3D flight, so the empty board stood over the ship and the
+gate while they flew in. The Direct3D branch is translated (`StartChallenge3D`, from the disassembly, since the export hides
+which curve each string goes to): the level 0, the jump's five curves reset (0x70e83c), the crystals', the engine's, the cone's
+and the orbit's curves on the jump's clock, the camera's path and the sidebar's turns at rest, the crystals' direction from the
+picked planet's place on the screen (in units of 380 art pixels from the middle, y up; `ChallengeMenu::Start` passes the
+planet's +0x5b4, which the port had left out), and the VizManager's picture drawn into the jump's picture, which space shows
+instead of the VizManager. The gate now opens at the planet with the challenge's backdrop in it, the camera flies in, and the
+tube and the board come after, as at Classic's start. Seen in the port only (strips of shots before and after): the original's
+3D frames need a run on the user's visible desktop, which needs the user's leave each time ("3D mode" above), and is not asked
+for yet.
+
+**The planets stood still in 2D.** The software planet reads its layer a little further along each update: the shift is the
+spin (the update count times 0.2) times 0.4, kept on the FPU's stack across the pixel loop, where the export shows only an
+unnamed value. The port had the planet's scale times 0.4, a constant. Found by shotdiff against the original in the sandbox
+(the user's player staged into its ProgramData, `build/bjt/sb.sh`): in the original 1,922 of the Spectrum planet's pixels
+changed in 50 updates, in the port none. With the fix the planets match at every frame compared.
+
+**The unlock voice played twice.** The voice plays when a planet's dimming curve passes 0.9 (`ChallengeButton::Update`). After
+a win the curve runs once (the voice), and when the win's message goes the menu sets the curve to the constant 0
+(`UpdateProgress(false)`). `CurvedVal::SetConstant` (0x6e97bd) zeroes the input and both ends of its range; the port set the
+range's end to 1. SetConstant leaves the step of the curve before it, so in the port the input ran from 0 to 1 again and passed
+0.9 a second time, 2.7 s later; in the original each step is clamped back to 0. Proved by a won challenge on the live channel
+with the sound log (`live.py ... challenge 495 95 after 2 flame f ...`, the bot's twist with its gems made flame gems): with the
+old range voice_newchallengeunlocked plays at updates 2583 and 3126, with the fix once. The fix is in every curve of the game;
+the suite's screens and baseline are unchanged by it.
+
+**Ending a challenge crashed in 2D** (found by that run, not by the user, who plays in 3D). Since the 3D milestone (d09fc960,
+2026-11-02) `Hyperspace::MakeOldPicture` prepared the jump's picture through the Direct3D object, which 2D does not have, and
+space's end in a challenge makes that picture in 2D too: an access violation as the trophy's sound started. The call is skipped
+without Direct3D. No test had finished a challenge in 2D since then.
+
+Also from the 2D comparison (45 pairs, `build/shotreview/bejeweledtwist/chal2d`): once the port ran on the original's update
+numbers, the load matched but for three things, masked or left. The original's captures hold its mouse pointer, the port's do
+not (a mask at the pointer's place). The sun's flames round the moon and the glints on a few gems as the board settles differ
+in shape and moment: both draw random numbers on their own, apart from the board's, which matched gem for gem (masks). And the
+picked planet's name flashes in over the five updates between the press and the release in the port, while the original's five
+captures there are identical and brighter; whether the original shows the name at once or the sandbox captured one frame five
+times was not settled, and it is left open here.
+
+The game-text table was stale: a curve or text whose address `gametext.py` has not listed reads as empty, so the 3D branch's
+twelve curves ran out at once until the table was made again, and the rank badge's two texts of the coverage check had been
+empty too (its tip showed only the rank's name). The table is regenerated; 18 addresses nothing uses any more went out of it.
+`live.py` has three new steps for this: `challenge <x> <y>`, `after <n>` and `wait <n>`.
+
+## The site's Close says goodbye (2026-11-11)
+
+The user: "When using the window close dialog, it should wait for the Goodbye sound like quitting from the menu does." The
+menu's Quit, Yes (`Menu::DialogButtonDepress`, dialog 2) plays SOUND_VOICE_GOODBYE and waits for it in place before
+`Shutdown()`; a web build cannot wait in place (the sound plays only once the call returns), so that wait was compiled out on
+the web, and the site's Close shut the game down at once through the restart hook. Now the framework has
+`SexyAppBase::QuitAsGame` (by default `Shutdown()`), which the page calls through the export `byopop_quit`, and Twist
+overrides it: the voice starts, and `UpdateFrames` shuts the game down once it has ended (a voice that never ends is given
+1,000 updates), a second call meanwhile doing nothing. On the web the menu's Quit goes the same way; natively it is unchanged,
+and nothing native calls the hook (the suite's screens and baseline are as frozen). Seen in the Browser pane with `?silent=1`,
+where nothing can be heard, by the game's own log: `byopop_quit` at update 1437 logged "the goodbye voice started", then "ended
+after 139 updates; shutting down" (the voice is 1.405 s long), and the page's game ended. The site's own line that calls
+`byopop_quit` is the site session's.

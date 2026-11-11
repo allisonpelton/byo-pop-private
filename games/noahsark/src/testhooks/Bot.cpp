@@ -1,5 +1,5 @@
-// Test hooks: the bot's choice of a move (Bot.h). The three branches are the ones -autoplay always had, moved here so
-// that the test command "move" gives a driver exactly the move -autoplay would click, from the same generator.
+// port: test hooks: the bot's choice of a move (Bot.h). Its three branches serve -autoplay and the
+// test command "move" alike, so a driver gets exactly the move -autoplay would click, from the same generator.
 
 #include "Bot.h"
 #include "NoahApp.h"
@@ -18,39 +18,39 @@ int BotRand(unsigned int& theSeed, int theRange)
 	return (int) ((theSeed >> 16) % (unsigned int) theRange);
 }
 
-bool BotQuiet(Piece* p)
+bool BotQuiet(Piece* thePiece)
 {
-	return (p->mType < 0xd) && !p->mRemoved && !p->mFading && !p->mMoving && (p->mOffsetX == 0) && (p->mOffsetY == 0);
+	return (thePiece->mType < NUM_ANIMALS) && !thePiece->mRemoved && !thePiece->mFading && !thePiece->mMoving && (thePiece->mOffsetX == 0) && (thePiece->mOffsetY == 0);
 }
 
-bool BotBoardSettled(Board* b)
+bool BotBoardSettled(Board* theBoard)
 {
-	if (!b->mLink.empty())
+	if (!theBoard->mLink.empty())
 		return false;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
-			if (b->mGrid[x][y]->mMoving || ((b->mGrid[x][y]->mOffsetY != 0) && (b->mGrid[x][y]->mType < 0xd)) || b->mGrid[x][y]->mRemoved)
+	for (int x = 0; x < Board::GRID_SIZE; x++)
+		for (int y = 0; y < Board::GRID_SIZE; y++)
+			if (theBoard->mGrid[x][y]->mMoving || ((theBoard->mGrid[x][y]->mOffsetY != 0) && (theBoard->mGrid[x][y]->mType < NUM_ANIMALS)) || theBoard->mGrid[x][y]->mRemoved)
 				return false;
 	return true;
 }
 
-bool BotChooseMove(Board* b, int theGameMode, unsigned int& theSeed, BotMove& theMove)
+bool BotChooseMove(Board* theBoard, int theGameMode, unsigned int& theSeed, BotMove& theMove)
 {
 	theMove = BotMove();
 	if (theGameMode == GAMEMODE_STAMPEDE)
 	{
 		// every group of three or more, one of them at random
 		std::vector<std::pair<int, int> > aGroups;
-		for (int x = 0; x < 9; x++)
-			for (int y = 0; y < 9; y++)
+		for (int x = 0; x < Board::GRID_SIZE; x++)
+			for (int y = 0; y < Board::GRID_SIZE; y++)
 			{
-				Piece* p = b->mGrid[x][y];
-				if (!BotQuiet(p))
+				Piece* aPiece = theBoard->mGrid[x][y];
+				if (!BotQuiet(aPiece))
 					continue;
-				b->HighlightGroup(x, y);
-				if (b->mLink.size() >= 3)
+				theBoard->HighlightGroup(x, y);
+				if (theBoard->mLink.size() >= 3)
 					aGroups.push_back(std::make_pair(x, y));
-				b->ClearLinkList();
+				theBoard->ClearLinkList();
 			}
 		if (aGroups.empty())
 			return false;
@@ -64,58 +64,58 @@ bool BotChooseMove(Board* b, int theGameMode, unsigned int& theSeed, BotMove& th
 	{
 		static const int aDirs[2][2] = {{1, 0}, {0, 1}};
 		std::vector<int> aSwaps;
-		for (int x = 0; x < 9; x++)
-			for (int y = 0; y < 9; y++)
-				for (int d = 0; d < 2; d++)
+		for (int x = 0; x < Board::GRID_SIZE; x++)
+			for (int y = 0; y < Board::GRID_SIZE; y++)
+				for (int aDir = 0; aDir < 2; aDir++)
 				{
-					int nx = x + aDirs[d][0], ny = y + aDirs[d][1];
-					if ((nx > 8) || (ny > 8) || !BotQuiet(b->mGrid[x][y]) || !BotQuiet(b->mGrid[nx][ny]))
+					int aNextX = x + aDirs[aDir][0], aNextY = y + aDirs[aDir][1];
+					if ((aNextX > Board::GRID_LAST) || (aNextY > Board::GRID_LAST) || !BotQuiet(theBoard->mGrid[x][y]) || !BotQuiet(theBoard->mGrid[aNextX][aNextY]))
 						continue;
-					std::swap(b->mGrid[x][y]->mType, b->mGrid[nx][ny]->mType);
+					std::swap(theBoard->mGrid[x][y]->mType, theBoard->mGrid[aNextX][aNextY]->mType);
 					bool aMatch = false;
-					for (int c = 0; c < 2; c++)
+					for (int aEnd = 0; aEnd < 2; aEnd++)
 					{
-						int cx = c ? nx : x, cy = c ? ny : y;
-						int aType = b->mGrid[cx][cy]->mType;
+						int aEndX = aEnd ? aNextX : x, aEndY = aEnd ? aNextY : y;
+						int aType = theBoard->mGrid[aEndX][aEndY]->mType;
 						int aRun = 1;
-						for (int i = cx - 1; i >= 0 && b->mGrid[i][cy]->mType == aType; i--) aRun++;
-						for (int i = cx + 1; i < 9 && b->mGrid[i][cy]->mType == aType; i++) aRun++;
+						for (int i = aEndX - 1; i >= 0 && theBoard->mGrid[i][aEndY]->mType == aType; i--) aRun++;
+						for (int i = aEndX + 1; i < Board::GRID_SIZE && theBoard->mGrid[i][aEndY]->mType == aType; i++) aRun++;
 						if (aRun >= 3) aMatch = true;
 						aRun = 1;
-						for (int i = cy - 1; i >= 0 && b->mGrid[cx][i]->mType == aType; i--) aRun++;
-						for (int i = cy + 1; i < 9 && b->mGrid[cx][i]->mType == aType; i++) aRun++;
+						for (int i = aEndY - 1; i >= 0 && theBoard->mGrid[aEndX][i]->mType == aType; i--) aRun++;
+						for (int i = aEndY + 1; i < Board::GRID_SIZE && theBoard->mGrid[aEndX][i]->mType == aType; i++) aRun++;
 						if (aRun >= 3) aMatch = true;
 					}
-					std::swap(b->mGrid[x][y]->mType, b->mGrid[nx][ny]->mType);
+					std::swap(theBoard->mGrid[x][y]->mType, theBoard->mGrid[aNextX][aNextY]->mType);
 					if (aMatch)
-						aSwaps.push_back(((x * 9 + y) << 8) | (nx * 9 + ny));
+						aSwaps.push_back(((x * Board::GRID_SIZE + y) << 8) | (aNextX * Board::GRID_SIZE + aNextY));
 				}
 		if (aSwaps.empty())
 			return false;
 		int aPick = aSwaps[BotRand(theSeed, (int) aSwaps.size())];
-		int a = aPick >> 8, c = aPick & 0xff;
+		int aFrom = aPick >> 8, aTo = aPick & 0xff;
 		theMove.mCount = 2;
-		theMove.mCellX[0] = a / 9;
-		theMove.mCellY[0] = a % 9;
-		theMove.mCellX[1] = c / 9;
-		theMove.mCellY[1] = c % 9;
+		theMove.mCellX[0] = aFrom / Board::GRID_SIZE;
+		theMove.mCellY[0] = aFrom % Board::GRID_SIZE;
+		theMove.mCellX[1] = aTo / Board::GRID_SIZE;
+		theMove.mCellY[1] = aTo % Board::GRID_SIZE;
 		return true;
 	}
 
 	// action and strategy: a random pair that can be joined
 	std::vector<std::pair<Piece*, Piece*> > aPairs;
-	for (int x = 0; x < 9; x++)
-		for (int y = 0; y < 9; y++)
+	for (int x = 0; x < Board::GRID_SIZE; x++)
+		for (int y = 0; y < Board::GRID_SIZE; y++)
 		{
-			Piece* p = b->mGrid[x][y];
-			if (!BotQuiet(p))
+			Piece* aPiece = theBoard->mGrid[x][y];
+			if (!BotQuiet(aPiece))
 				continue;
-			for (int x2 = x; x2 < 9; x2++)
-				for (int y2 = (x2 == x) ? y + 1 : 0; y2 < 9; y2++)
+			for (int aOtherX = x; aOtherX < Board::GRID_SIZE; aOtherX++)
+				for (int aOtherY = (aOtherX == x) ? y + 1 : 0; aOtherY < Board::GRID_SIZE; aOtherY++)
 				{
-					Piece* q = b->mGrid[x2][y2];
-					if (BotQuiet(q) && (q->mType == p->mType) && b->Reachable(p, q))
-						aPairs.push_back(std::make_pair(p, q));
+					Piece* aOther = theBoard->mGrid[aOtherX][aOtherY];
+					if (BotQuiet(aOther) && (aOther->mType == aPiece->mType) && theBoard->Reachable(aPiece, aOther))
+						aPairs.push_back(std::make_pair(aPiece, aOther));
 				}
 		}
 	if (aPairs.empty())

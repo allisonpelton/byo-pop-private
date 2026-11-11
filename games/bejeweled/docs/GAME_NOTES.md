@@ -2005,7 +2005,7 @@ games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1 and 7.2, as built:
   cases out; it plays stage 1's and 2's rule cases as before stage 5, against their own facts in expect.txt
   (`<case>@novariants`: the v1 save and the RNG sidecar).
 
-### 12.8 The mod menu's hooks (M5 of docs/MOD_MENU_DESIGN.md)
+### 12.8 The mod menu's hooks (docs/MOD_MENU_DESIGN.md 8.2)
 
 None of these runs without an enabled mod that has settings, or a value held for the next game; the oracle has
 neither.
@@ -2795,6 +2795,14 @@ of `LoadGame`, 0x4cca98; the high-score record helpers of `ReadFromFile` and `Wr
 stages as a story (`BoardVariant.cpp`'s header, `VariantFlags`, the build warnings in `GameConfigMods.cpp`) or had gone
 stale ("no TWIST or SLIDE yet", "nothing reads them yet in stage 1") describe the code as it is.
 
+**No development stages in comments (2026-11-11).** The user on the standards: "the references to stages don't make sense
+to anyone looking at the code" (`docs/CODE_STANDARDS.md`, rule 8). The pass had kept 238 lines that named a stage of the
+code mods' development ("stage 7b", "the stage-0 list"). Each comment now names the feature (dirt, the gold board, arrow
+gems, the frozen baseline) and its section of `CODE_MODS_DESIGN.md`. What files carry stays: the oracle's mod folders
+(`mods/stage4/overflow`), `build/baseline-stage0` and `stage_assets.py`. `tools/readability/destage.py` made the edits,
+with no line added or removed. Every unit compiles to the same object code as before (98 objects, their disassembly
+and data sections hashed before and after).
+
 ## 21. Coverage check (2026-11-09)
 
 The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, and
@@ -2912,3 +2920,65 @@ layout the save keeps.
 settings, real input, commands and the rest) and verify (54 checks). The code-drawn art, the only code touched, dumps
 byte for byte as main's exe does at scales 1, 2 and 4 (`-dumpcodeart`, 41, 77 and 77 files). The oracle needs no run: no
 code it reaches changed.
+
+## 23. The Collection version (2026-11-11)
+
+The port was made from the Steam copy, so it is checked against the game's version on the PopCap Game Collection disc
+(2009; `docs/COORDINATION.md`): the two versions compared, and the port run on the Collection's files.
+
+**Getting the files.** The disc image packs every game in InstallShield 15 cabinets. The user allowed unshield for it
+("unshield is fine", 2026-11-10): its 1.5.1 source (github.com/twogood/unshield, 67 KB), built with llvm-mingw in
+`E:\retools\unshield-build`. No zlib is on the machine, so a 20-line stand-in `zlib.h` serves unshield's three inflate
+calls from `third_party/stb`'s inflate, and no second download was needed. The image was mounted read-only, and only
+the group `BejeweledDeluxeComponent` came out: 93 files, 2.7 MB, in the main checkout's
+`re/_installers/BejeweledDeluxeCollection` (git-ignored). Two things to know when using it for another game: give the
+cabinet's path with forward slashes (`F:/data1.cab`), and create the output folders first and extract with `-d .` from
+inside them, since its own folder creation fails on a path with a drive letter.
+
+**The exe is the same build.** The Collection's `Bejeweled.exe` is the game itself, with no launcher around it. Set
+beside the game carved out of Steam's `WinBej.exe` (`tools/collection/cmpexe.py`), it has the same link time (13 April
+2007) and the same sections. `.text` and `.data` are byte for byte the same. `.rdata` differs in 7 bytes, the digits of
+a partner stamp at 0x51d340. The resources differ, and the Collection's exe carries a signature after its last section.
+So everything the decompilation, the identical-play pass and the coverage check found holds for the Collection's game
+too, and no code was compared further.
+
+**The files** (`tools/collection/cmpfiles.py`). Of the Collection's 93 files, 88 are the same as Steam's, byte for byte:
+every image, sound, music and data file it has, and `default.xml`. The differences:
+
+- `properties/partner.xml`: the settings' registry key is `PopCap\Bejeweled`, not `Steam\Bejeweled`; the Options link
+  goes to PopCap's site, not Steam's page; the update check is not turned off; there is no partner name or Steam id.
+  The port reads the registry key from it, so its settings file gets that section name. The link and the update
+  check are taken out of the port (section 18), so the rest changes nothing.
+- The readme, and the exe's name.
+- Steam's copy has files the Collection lacks: the launcher's own (`drm/`, `Flash.ocx`), an MP3 copy of every sound
+  beside its Ogg file, and five images (`_overfont2.png`, `overfont2.gif`, `afont1.png`, `mainfont1.png`,
+  `_real-back.png`).
+
+**One visible difference, and it is the files'.** The port ran the oracle's playtest script (a Normal game, the hint,
+Options, a Timed game to its end, the name entry, play again, quit; 28 screenshots and the trace) once on each set of
+files, staged fresh. The traces are the same line for line, and so are the saved game and the high scores. 24
+screenshots are the same, and four differ, all in the big banner text ("GO!", "TIME UP"): its edges are a little heavier
+on the Collection's files. The cause is Steam's extra `_overfont2.png`. The image loader takes a font's alpha from
+`_overfont2.png` when it is there, and the Collection has only `_overfont2.gif`. The Steam files with that one file
+removed give all 28 of the Collection run's screenshots. The original has the same loader, so each version of the
+original draws its own files the same way; the port follows the files it is given.
+
+**The web build** on the Collection's files (under Node, the same script) gives the same trace as the native build. The
+page finds a game folder by `images/gemsheet6.*`, which the Collection's folder has.
+
+**One change.** `tools/stage_assets.py` asked for `WinBej.exe` in the folder it stages from, and so refused the
+Collection's. It now takes a folder with `Bejeweled.exe` too. No game code changed.
+
+**Not done.** The Collection's own exe was not run. Its code is the Steam game's, and a run would only show the
+banner's edges again.
+
+**The staged assets were an earlier state of the Steam install (found 2026-11-11).** Until this check, `assets/bejeweled`
+held 27 images whose bytes differ from the Steam folder's as it is now. Nothing in the repository re-encoded them. They
+were staged on 2026-10-18 from the files Steam had downloaded (dated 2018), and on 2026-10-23 at 17:49, the minute the
+launcher `WinBej.exe` first ran and made its cache under `C:\ProgramData\Steam\Bejeweled`, 35 files of the install
+were rewritten: those 27 images, six of the launcher's own, the licence and the readme. The rewritten images are the
+Collection's, byte for byte. The two sets hold the same pictures. 21 decode to the same pixels, and the other six
+(`blackcover`, `dialogbox2`, `holemask`, `slider-thumb`, `slider-track`, `timerbar`) differ only in the colour stored
+under fully transparent pixels. The port draws both the same: the oracle's playtest and its level-up script give the
+same trace and the same 32 screenshots on either staging. The worktree is restaged from the install as it is now
+(`python -I games/bejeweled/tools/stage_assets.py`), and the unit and verify suites pass on it.

@@ -70,8 +70,16 @@ enum GameMode
 {
 	GAMEMODE_ACTION = 1,         // "Flood" in the web version: the water rises in real time
 	GAMEMODE_STRATEGY = 3,       // "Freefall": turn based, the animals fall
-	GAMEMODE_PUZZLE = 4,         // swap adjacent animals to make rows of three (a time limit in the trial)
+	GAMEMODE_PUZZLE = 4,         // swap adjacent animals to make rows of three
 	GAMEMODE_STAMPEDE = 5        // the bonus round after every third level (the mode is kept in mSavedGameMode)
+};
+
+// app+0x440: the difficulty chosen for a game (it adds to the level in the flood's pace and the board's obstacles)
+enum Difficulty
+{
+	DIFFICULTY_EASY = 0,
+	DIFFICULTY_MEDIUM = 4,
+	DIFFICULTY_HARD = 8
 };
 
 // Dialog ids (AddDialog / DoDialog / KillDialog)
@@ -87,6 +95,14 @@ enum DialogId
 	DIALOG_DIFFICULTY = 12
 };
 
+// A dialog's own buttons report to the app with the dialog's id added to one of these
+enum DialogButtonBase
+{
+	DIALOG_YES = 2000,           // the first button: Yes, OK, or the one button of a footer
+	DIALOG_NO = 3000,            // the second: No or Cancel
+	DIALOG_BUTTONS_END = 4000
+};
+
 // Button ids
 enum ButtonId
 {
@@ -97,7 +113,10 @@ enum ButtonId
 	BUTTON_QUIT = 9,             // the menu's quit button
 	BUTTON_SIDEBAR_QUIT = 10,    // the board's quit button
 	BUTTON_SIDEBAR_OPTIONS = 12,
-	BUTTON_QUIT_KEY = 14
+	BUTTON_QUIT_KEY = 14,
+	BUTTON_EASY = 60,            // the difficulty dialog's three
+	BUTTON_MEDIUM = 61,
+	BUTTON_HARD = 62
 };
 
 class NoahApp : public SexyApp
@@ -118,21 +137,19 @@ public:
 	TitleScreen*			mTitleScreen;       // +0x414 until the first click
 	HighScoreWidget*		mHighScoreWidget;   // +0x41c the game-over screen
 	int						mLevel;             // +0x43c level number of the current game
-	int						mDifficulty;        // +0x440 0 easy, 4 medium, 8 hard
+	int						mDifficulty;        // +0x440 Difficulty
 	int						mGameMode;          // +0x444 GameMode
 	int						mSavedGameMode;     // +0x448 the mode a bonus round returns to
 	bool					mBonusRound;        // +0x439 a Stampede round is on
 	bool					mPuzzleNoticeShown; // +0x4a9 the bonus round's how-to dialog has been shown
 	int						mGameScore;         // +0x474 score of the game in progress
 	int						mShownScore;        // +0x478 the score on the display, counting up to mGameScore
-	int						mFloodStart;        // +0x47c the water's level at the start of the level
 	int						mAnimalsSaved;      // +0x480
 	int						mComboCount;        // +0x484 pairs of a kind joined in a row at least twice
 	int						mBestCombo;         // +0x488
 	int						mSavedThisLevel;    // +0x48c animals saved on the level just ended (NextLevelWidget takes it)
 	bool					mShowHints;         // +0x490 registry ShowHints (the options dialog's check box)
 	bool					mShowTutorial;      // +0x491 registry ShowTutorial
-	DWORD					mGameStartTick;     // +0x494
 	SexyString				mLastScoreName;     // +0x498 registry LastScoreName
 	bool					mSoundTried[NUM_SOUNDS];   // port: the sound's file has been asked for (see LoadSoundOnce)
 	bool					mMainSongStarted;
@@ -157,7 +174,6 @@ public:
 	virtual void			PlaySample(int theSoundNum) override;
 	virtual void			PlaySample(int theSoundNum, int thePan) override;
 	virtual void			LoadingThreadProc() override;
-	virtual void			LoadingThreadCompleted() override;
 	virtual void			WriteToRegistry() override;
 	virtual void			ReadFromRegistry() override;
 	virtual Dialog*			NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader,

@@ -52,7 +52,7 @@ enum : uint32_t
 	LIVESPLIT_FLAG_VANILLA = 0x04,      // no score key (no gameplay mod) and no seed the player chose
 	LIVESPLIT_FLAG_CHOSEN_SEED = 0x08,  // a seed the player chose (-gameseed, ?seed=)
 	LIVESPLIT_FLAG_OWN_RNG = 0x10,      // the board owns an MTRand
-	LIVESPLIT_FLAG_REPLAY = 0x20,       // a replay is playing (stage 3: the board is a playback board, Board::mPlaybackOnly)
+	LIVESPLIT_FLAG_REPLAY = 0x20,       // a replay is playing (the board is a playback board, Board::mPlaybackOnly)
 	LIVESPLIT_FLAG_GAME_OVER = 0x40,    // the board had its game over (latched per board)
 	LIVESPLIT_FLAG_PAUSED = 0x80        // the board is paused (any pause: dialog, focus, the player)
 };

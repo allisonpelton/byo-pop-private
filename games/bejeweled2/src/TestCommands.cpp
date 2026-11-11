@@ -14,6 +14,7 @@
 #include "Profile.h"
 #include "UserDialogs.h"
 #include "HelpScreen.h"
+#include "OptionsDialog.h"
 #include "HyperlinkWidget.h"
 #include "GalaxyParser.h"
 #include "PuzzleStateOverlay.h"
@@ -22,6 +23,7 @@
 #include "Hyperspace.h"
 #include "Dialog.h"
 #include "DialogButton.h"
+#include "Checkbox.h"
 #include "WidgetManager.h"
 
 #include <cstdio>
@@ -279,9 +281,11 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 		{
 			Dialog* aDialog = mDialogMap.rbegin()->second;
 			std::string aButtons;
-			Widget* aList[2] = {aDialog->mYesButton, aDialog->mNoButton};
-			const char* aNames[2] = {"yes", "no"};
-			for (int i = 0; i < 2; i++)
+			// the options dialog's second button, which leaves a game for the menu
+			OptionsDialog* anOptions = dynamic_cast<OptionsDialog*>(aDialog);
+			Widget* aList[3] = {aDialog->mYesButton, aDialog->mNoButton, anOptions != NULL ? (Widget*)anOptions->mMainMenuButton : NULL};
+			const char* aNames[3] = {"yes", "no", "mainmenu"};
+			for (int i = 0; i < 3; i++)
 			{
 				if (aList[i] == NULL || !aList[i]->mVisible)
 					continue;
@@ -289,6 +293,17 @@ bool WinDMApp::HandleTestCommand(const ScriptCommand& theCommand)
 					aList[i]->mX + aList[i]->mWidth / 2, aList[i]->mY + aList[i]->mHeight / 2);
 			}
 			aLine += ",\"buttons\":{" + aButtons + "}";
+			// the options dialog's three display checkboxes: the middle of each and whether it is checked
+			if (anOptions != NULL)
+			{
+				Checkbox* aBoxes[3] = {anOptions->mFullscreenCheckbox, anOptions->m3DCheckbox, anOptions->mHighResCheckbox};
+				const char* aBoxNames[3] = {"fullscreen", "accel", "highres"};
+				std::string aChecks;
+				for (int i = 0; i < 3; i++)
+					aChecks += StrFormat("%s\"%s\":[%d,%d,%d]", i == 0 ? "" : ",", aBoxNames[i], aBoxes[i]->mX + aBoxes[i]->mWidth / 2,
+						aBoxes[i]->mY + aBoxes[i]->mHeight / 2, aBoxes[i]->IsChecked() ? 1 : 0);
+				aLine += ",\"checks\":{" + aChecks + "}";
+			}
 		}
 		// the widgets of the screen in front that a click reaches (not those of a dialog: "buttons" above): the title's play
 		// link, the menu's buttons, the board's buttons

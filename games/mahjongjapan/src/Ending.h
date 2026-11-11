@@ -22,7 +22,7 @@ class EndPicture : public jb::Object
 {
 public:
 	std::string mTitle;              // +0x90 (0x96 with the player's name)
-	std::string mLines[12];          // +0x98 (0x68, by tabs)
+	std::string mLines[12];          // +0x98 (STRING_SHOWCASE_NAMES, by tabs)
 	jb::Font* mTitleFont = nullptr;  // +0xf8
 	jb::Font* mFont = nullptr;       // +0xfc
 	int mLine = 0;                   // +0x100 the line fading in, 1-based; 0 the picture's frame

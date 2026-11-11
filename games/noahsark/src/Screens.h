@@ -29,7 +29,7 @@ public:
 	double				mFade;                  // +0x60
 	bool				mLinkShown;             // +0x68 the play link has appeared
 	HyperlinkWidget*	mPlayLink;              // +0x84 id 1, "click here to play"
-	bool				mClicked;               // +0x70-ish: the link was clicked before loading had finished
+	bool				mClicked;               // +0x70 the link was clicked before loading had finished
 
 public:
 	TitleScreen(NoahApp* theApp);
@@ -76,7 +76,6 @@ public:
 	int					mSeconds;               // +0x5c time the level took
 	int					mTip;                   // +0x60 which tip (0..3)
 	bool				mBonus;                 // +0x64 after the bonus round
-	int					mBonusScore;            // +0x68
 	int					mSaved;                 // +0x6c animals saved on the level
 
 public:

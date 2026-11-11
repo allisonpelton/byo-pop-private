@@ -93,8 +93,8 @@ public:
 class LevelDoneScroll : public jb::Object
 {
 public:
-	jb::Font* mTextFont = nullptr;     // +0x8c (0x12e)
-	std::string mNextLabel;            // +0x90 (0x22)
+	jb::Font* mTextFont = nullptr;     // +0x8c (FONT_RESULT)
+	std::string mNextLabel;            // +0x90 (STRING_WISDOM_UNLOCKED)
 	std::string mNextTitle;            // +0x98 the next level's text
 	int mDelay = 600;                  // +0xa0
 	int mAlpha = 0;                    // +0xa4
@@ -135,10 +135,10 @@ class TipPicture : public jb::Object
 public:
 	jb::Font* mFont = nullptr;  // +0x90
 	int mImage;                 // +0x94
-	std::string mLabel1;        // +0x98 (0x5e)
-	std::string mLabel2;        // +0xa0 (0x67)
-	std::string mNames1[4];     // +0xa8 (0x69, tab-separated)
-	std::string mNames2[4];     // +0xc8 (0x5d)
+	std::string mLabel1;        // +0x98 (STRING_PICTURE_FREE_TILE)
+	std::string mLabel2;        // +0xa0 (STRING_PICTURE_NOT_FREE)
+	std::string mNames1[4];     // +0xa8 (STRING_PICTURE_SEASON_NAME, tab-separated)
+	std::string mNames2[4];     // +0xc8 (STRING_PICTURE_FLOWER_NAME)
 	int mBob = 0;               // +0xe8
 
 	// 0x408ba0
