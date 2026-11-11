@@ -62,9 +62,8 @@ coordinates; give one only for an area that animates on its own and cannot be ma
 ## Visible and faint
 
 Many differing pixels are ones no one can see: the edges of sprites drawn through a transform, sampled a fraction of a pixel
-differently, or art decoded by another JPEG 2000 library, a few levels apart. On the first pilot (Bookworm Adventures,
-2026-11-01) they were spread over almost every screen and merged into boxes covering most of it, and the user found nothing
-to mark in them. So each box is visible or faint, and only visible boxes are for review.
+differently, or art decoded by another JPEG 2000 library, a few levels apart. They can spread over almost every screen
+and merge into boxes covering most of it. So each box is visible or faint, and only visible boxes are for review.
 
 A pixel is visibly different when, after a 3x3 box blur of both pictures, it still differs by 32 or more in some channel. A
 box is visible when it holds at least 32 such pixels; it is drawn around those pixels and grown over the differing pieces it
@@ -72,12 +71,9 @@ touches, so it outlines the whole change. Every other differing pixel goes into 
 "differ"; one with only faint boxes is "faint"; a clip frame that differs only faintly from its original frame counts as
 matching it (and is listed as a faint frame).
 
-The thresholds come from the pilot's 153 boxes. Under the blur, antialiased and sub-pixel-sampled edges (Lex's outline, the
-credits' pillars, the map's rotating rays) left 0 to 21 pixels a box, and a changed digit of thin text 158. Some boxes sit
-close to the line on purpose: a sprite's highlight sampled one pixel over (42 pixels) stays visible, because flipping between
-the pictures does show it. Allowing a one-pixel shift for each pixel as well (`VISIBLE_SHIFT`) was tried and dropped: it also
-forgave the changed digit (13 pixels left, against 10 or 11 for edge noise). The selftest holds the rule: a disc antialiased
-two ways is faint; a changed glyph and a missing sprite are visible.
+Under the blur, antialiased and sub-pixel-sampled edges leave 0 to 21 pixels a box, and a changed digit of thin text 158;
+a sprite's highlight sampled one pixel over (42 pixels) stays visible, because flipping between the pictures does show
+it. The selftest holds the rule: a disc antialiased two ways is faint; a changed glyph and a missing sprite are visible.
 
 A whole box moved by one pixel is another matter (the user, 2026-11-01): when moving the port by one pixel in a single
 direction (right, left, down or up, the same move for the whole box) leaves fewer than 32 visibly different pixels in the
@@ -91,7 +87,7 @@ wide (the hall of fame's time, 14:50 against 14:40), and a sharp striped sprite 
 ## Review items
 
 The same difference often shows in many shots: a locked book on every menu screen, the background behind every battle
-shot. Each would be a box of its own pair, and the first page of boxes was the same thing over and over. So the visible boxes
+shot. Each would be a box of its own pair. So the visible boxes
 of the stills are grouped into review items. Two boxes of different pairs are the same item when they meet, at least half
 (`SAME_OVERLAP`) of the visibly different pixels of the smaller differ visibly at the same place (or a pixel away) in the
 other's pair, and over the pixels that differ in both, the content agrees: the two originals agree visibly on at least

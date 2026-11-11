@@ -1,18 +1,12 @@
 # Mod menu: design
 
-Status (2026-10-19): the shared stages M0-M4 and M8 are built (branch `shared/modmenu`), and so is Big Money's M6
-(d4fe95b, 8.3). M5 (Bejeweled) and M7 (BookWorm) are the game sessions' (9). The guide for mod authors is
-[MOD_MENU.md](MOD_MENU.md).
-
-This document has four parts:
+The mod menu is built: `framework/ModMenu.*`, `platform/ModSettings.*`, `platform/ModManager.*` and `web/modpanel.js`.
+The guide for mod authors is [MOD_MENU.md](MOD_MENU.md). This document is the design the code was built from, and the
+code cites its section numbers. It has three parts:
 - **The user's decisions** (just below), taken after the design and its review. They win over the design.
-- **As built**: where the shared stages differ from the design.
-- **The design** (sections 1-11), as written before anything was built. Section numbers are cited in the code.
-- **Appendix A**, an adversarial review of the design against the code. The shared stages apply its corrections.
-  A9 (the startup board), A10 (Big Money) and A11.5 (a check of the saved game's rules) are for the game stages.
-  Two parts of A15 are not done: a native rescue before start, and a relaunch from a non-ASCII folder.
-
-Line references are to the commits named in the design's own introduction and are not kept up to date.
+- **As built**: where the shared code differs from the design.
+- **The design** (sections 1-8), as written before anything was built. Its line references (`file.cpp:NNN`) are to the
+  code of 2026-10-19 and are not kept up to date.
 
 ## The user's decisions (2026-10-19)
 
@@ -24,7 +18,7 @@ Line references are to the commits named in the design's own introduction and ar
    held back while a saved game exists. Art, enabling, disabling and the order still need a restart.
 4. **The web panel** only adds and removes mods: import, remove, and the rescue when a mod stops the game from
    starting. Turning mods on and off, the order and the settings are in the in-game menu. This replaces the
-   design's rebuilt full panel (4.5, 5.1, open question 4).
+   design's rebuilt full panel (4.5, 5.1).
 
 Taken from the design's recommendations:
 - the built-in font is written in the repo;
@@ -39,16 +33,16 @@ Taken from the design's recommendations:
 ### M0, M1: groundwork and the settings model
 - **Next-game filter.** `SetNextGameKeys(bool)` became `ModManager::SetNextGameFilter(path -> bool)`. It is asked
   for every data path a value can change; `$omit` changes none. A game declares which paths it re-reads at a
-  new game, so keys that need art made at load (review A5) stay restart-level.
-- **Other game hooks.** `SetGameplayFiles` (default `data/diff.txt`, review A11.4) and `SetDataCheck`, whose
+  new game, so keys that need art made at load stay restart-level.
+- **Other game hooks.** `SetGameplayFiles` (default `data/diff.txt`) and `SetDataCheck`, whose
   messages appear as warnings in the state JSON.
-- **`$omit`.** `{"$omit": true}` removes a member or element. `null` keeps its meaning in the data (review A6).
+- **`$omit`.** `{"$omit": true}` removes a member or element. `null` keeps its meaning in the data.
 - **`as: "string"`** gives the text the menu shows (a float with its decimals), not the canonical key text.
 - **Ranges.** Ints are limited to int32. The 100,000-step limit applies to floats only. Floats are snapped in
-  scaled integers, so a value equals its JSON literal (review A12).
+  scaled integers, so a value equals its JSON literal.
 - **Choice values** must be ids (`[A-Za-z0-9_.-]{1,32}`), int32 whole numbers or bools, unique by canonical text
-  (review A11.2). The canonical text of a text value also escapes `;` and non-printable bytes.
-- **Paths and strings** (review A7, A13):
+ . The canonical text of a text value also escapes `;` and non-printable bytes.
+- **Paths and strings**:
   - text and colour values cannot be placed directly in `files`, `images`, `imagePatches`, `imageOps` or a
     `strings` list of files; they need a mapped choice, bool or int;
   - a map entry in those places may not name a file outside the mod folder (`../`): an error. A mod's own
@@ -58,7 +52,7 @@ Taken from the design's recommendations:
     two rank texts): a mod text for one with other conversions is replaced by the game's text, with a log line.
     Texts the game only draws, and keys a mod adds, are taken as they are;
   - under `strings`, a number or bool from `as` or a map entry becomes its JSON text, and a map entry that is an
-    object or a list is an error (review A13).
+    object or a list is an error.
 - **Held values without a filter.** Entries of `"next"` whose setting is not next-game-level in this game (no
   filter, a level that changed, a hand edit) count as committed: the start applies them, so they never show as
   pending for ever. `SetNextGameFilter` belongs before `Refresh`; `SetGameplayFiles` after `Refresh` recomputes
@@ -72,16 +66,16 @@ Taken from the design's recommendations:
 - **Writes.** `SetEnabled`, `Move` and `SaveConfig` are gone. `EditEnable`, `EditMove`, `EditSetting` and
   `EditReset` re-read, change one thing and keep unknown keys. Broken files move to `mods.bad.json` and
   `mod-settings.bad.json`. Writes go through `Platform::WriteUserFileAtomic`. On the web, with no app running,
-  it backs up straight away (review A14).
+  it backs up straight away.
 - **The state JSON** adds `dir`, `hasSettings`, `settingsFile`, and per setting `enabled`, `pending` and
   `noPercent`.
 
 ### M2, M3: restart and the menu
 - **No skins** (decision 2): the look lives in `framework/ModMenu.cpp`.
 - **Keys and focus.** Esc, Enter, Tab, Backspace and Space act on the character they type, so a key that closes
-  the menu never reaches the board (review A1). While the key that closed it is held, its repeats (and the text
+  the menu never reaches the board. While the key that closed it is held, its repeats (and the text
   they type) are dropped in `HandleEvent`; its release goes on. The menu closes in `KillDialog`'s order and takes
-  the focus back if the game moves it (review A16).
+  the focus back if the game moves it.
 - **Focus model.** Tab steps through every focusable control. On a mod page each row has one keyboard control;
   its −/+ buttons, slider, arrows, text field and a bool's checkbox are mouse targets. Only a click on the
   checkbox switches a bool, or a mod on the list: a click on a setting's label or a mod's row only focuses
@@ -89,25 +83,24 @@ Taken from the design's recommendations:
   easily).
 - **Restart timing.** The menu's Restart takes effect at its next Update, outside its no-random scope.
 - **rundesk** runs its child in a job object and returns when the whole job has ended. It kills nothing
-  (review A15).
+ .
 - **Script commands.** `modmenu restart confirm` was added. `modmenu page` opens the menu. There are also
-  `keydown`/`keyup`, and `#` inside `"..."` is no longer a comment (review A17).
-- **The restart question** needs the game's `HasGameInProgress`. Big Money overrides it (M6, 8.3); Bejeweled
-  (M5) and BookWorm (M7) do not yet, so there Restart restarts at once. The game in progress is still saved as on
-  Quit.
+  `keydown`/`keyup`, and `#` inside `"..."` is no longer a comment.
+- **The restart question** needs the game's `HasGameInProgress`. Bejeweled and Big Money override it (8.2, 8.3); in a
+  game that does not, Restart restarts at once. The game in progress is still saved as on Quit.
 - **Not done.** A relaunch from a folder with non-ASCII characters: the file layer's ANSI calls fail there first
-  (review A15).
+ .
 
 ### M4: the web pages
 - **The C API** (4.5) is `byopop_userdata_restore`, `byopop_mods_open`, `byopop_mods_state`, `byopop_mods_edit`
   and `byopop_mods_rescan` in `platform/WebApi.cpp`. `byopop_menu` and `byopop_restart` are in
   `framework/ModMenu.cpp`, since they need the running game. All are listed in `-sEXPORTED_FUNCTIONS` by
-  `cmake/ByopopWeb.cmake` (review A3). Changes to the design's API:
+  `cmake/ByopopWeb.cmake`. Changes to the design's API:
   - `byopop_menu(on)` takes 1, 0 or −1 (toggle). It returns 1 or 0 (open or not), or −1 when no game runs.
   - `byopop_restart(confirmed)` returns `{"result": "started"|"confirm"|"blocked"|"none", "message"}`, so the
-    page can ask the game's question (review A2).
+    page can ask the game's question.
   - `Module.onModsChanged` is posted with `setTimeout`, never called inside an edit, and several changes make
-    one call (review A14).
+    one call.
 - **`web/modpanel.js`** is appended to every game's JS with `--post-js` and leaves `Module.byopop`. It contains:
   - the Mods panel;
   - `Session`, for restarts, autostart and the rescue;
@@ -130,12 +123,12 @@ Taken from the design's recommendations:
     (`byopop-pending-remove:<game>`). The page deletes and forgets it at the next boot. The panel offers
     **Keep** until then, and turning the mod on again in the in-game menu counts as Keep (the page drops a
     queued mod that the model shows on, at every change and again at boot).
-- **Adding over a mod in use** (review A14) stages the new version in `<persist>/mods-incoming/<folder>`. It
+- **Adding over a mod in use** stages the new version in `<persist>/mods-incoming/<folder>`. It
   replaces the folder at the next boot. Adding a mod also cancels a queued removal of its folder.
 - **Opening the menu and the panel.** The tool bar's **Mods** button opens the in-game menu while the game runs,
   and the panel before that. This replaces the design's "panel and menu together" (5.1). The menu's list page
   has **Add or remove mods** on the web, which opens the panel over it (`Module.onModPanel`).
-- **Input around the panel** (review A2):
+- **Input around the panel**:
   - Keys typed in a panel or on the tool bar stop there. F2 on the tool bar still reaches the game, and moves the
     focus to the game so the menu it opens gets the keys that follow. Fullscreen gives the focus back to the game.
   - Esc and F2 close a panel. Opening a panel leaves fullscreen (the panels are outside the stage).
@@ -152,19 +145,11 @@ Taken from the design's recommendations:
 - **Screen readers.** `Module.onModMenuFocus` fills a polite live region that the panel adds to the page.
 - **Big Money's page** has the same reduction. It differs only in its storage folder, lock, game files and
   colours.
-- **Not done.** Native has no rescue before start except `-nomods` (review A15).
+- **Not done.** Native has no rescue before start except `-nomods`.
 
 ---
 
 This design covers a shared in-game mod menu for every game, on Windows and on the web. Mods can offer settings, the player can turn mods off, and the menu can restart the game. It answers the user's request of 2026-10-19: "Add support for a mod menu to the web ports and Windows. Mods can offer configurable values to the menu and be disabled from there. The mod menu could also restart the game".
-
-The facts below were checked against these commits:
-- **`code-mods` at 0376759:** `platform/ModManager.*`, `platform/WebPersist.*`, `framework/SexyAppBase.*`, `Dialog.cpp`, `MTRand.h`, `WidgetManager.cpp`, `web/shell.html`, `games/bejeweled/src/*` and `games/bejeweled/docs/CODE_MODS_DESIGN.md`.
-- **Big Money, `claude/bigmoney-1912c8` at 7e57e76**, read with `git show`. This tip already contains `ModIndicators.*`.
-- **BookWorm, `claude/bookworm-eb36ec` at f1c2524.** No game code is committed there yet.
-
-Line references are to those commits. The proposed home of this document is `docs/MOD_MENU_DESIGN.md`, which is shared documentation owned by the coordinator.
-
 ---
 
 ## 1. Overview and principles
@@ -183,12 +168,6 @@ Line references are to those commits. The proposed home of this document is `doc
 - **Restart:**
   - Native: after the normal shutdown, the exe is started again.
   - Web: after the normal shutdown and the storage sync, the page reloads.
-- **Games:**
-  - Bejeweled: complete, with code mods.
-  - Big Money: complete, data-only mods.
-  - BookWorm: in progress.
-
-  The shared parts live in `framework/`, `platform/` and `web/`. Each game adds a skin and a few hooks.
 
 Not in scope:
 - Installing or removing mods natively. Mods stay folders the user manages.
@@ -234,21 +213,6 @@ Not in scope:
     - There is one menu for every game. Its default look is built from drawing primitives and a built-in font, so a new game has it before it has any art.
     - A game may skin it with its own dialog art and fonts.
     - The menu must work with a pointer alone: touch on the web, and the 3DS idea in `docs/MOD_ROADMAP.md`. That roadmap already plans for "the mod menu".
-
-### 1.3 Decisions
-
-| Topic | Decision | Why |
-|---|---|---|
-| Binding a value to data | `{"$setting": "<id>"}` placeholders anywhere in the data keys, with optional `map` and `as`. There are no JSON-pointer `targets`. | A placeholder is visible where it is used and works inside a `rules.json` file. It can add or remove a key (through `null`) and can map a choice to a whole sub-tree. Pointers into a separate file break silently when that file changes (array indices), and they need a value already present at the target. |
-| Where values are stored | `<user dir>/mod-settings.json`, a file separate from `mods.json` | The shell's writer drops unknown keys of `mods.json` (`web/shell.html:547-552`). `ModManager::SaveConfig` writes only `order` and `disabled` (`ModManager.cpp:138-158`). An old page or an old build would wipe values kept in `mods.json`. |
-| Menu class | A `Widget` that adds itself as a base modal and calls `ModalOpen()`/`ModalClose()` itself. It is not a `Dialog` and is not in the dialog map. | Building a `Dialog` with a NULL button image permanently recolours the button text of every later dialog (`Dialog.cpp:84-93`). Dialog-map entries also reach game code: `WinDMApp::KillDialog` gives the board focus when the map empties (`WinDMApp.cpp:569-580`), and YES/NO presses arrive in the game's `ButtonDepress` as 2000+id and 3000+id (`SexyAppBase.cpp:744-758`). |
-| Hotkey | F2, checked in `SexyAppBase::HandleEvent` after the scripted-input filter | Scripted runs never see real input (`SexyAppBase.cpp:1724-1746`). F-keys type no character, so no game reacts to them today; Bejeweled pauses on any typed character (`BoardRules.cpp:588-594`). F2 has no default action in the major browsers. |
-| Native restart | Start the exe again after `delete anApp` in `main` | A restart inside the process is blocked by process-wide state: the static app in `main` (`main.cpp:250`); the singletons `ModManager`, `VFS`, `Mixer` and `gGameConfig`; the image-scale and patch globals; function-static string caches (`TitleScreen.cpp:89, 108, 155`); `gDialogColors`; and the LiveSplit statics. |
-| Web restart | Normal shutdown, then wait for the IndexedDB sync, then reload | `callMain` runs only once per page, and the main loop never returns (`SexyAppBase.cpp:2380`). Statics and the GL context persist. |
-| Web panel | Kept, but rebuilt on an exported C API over the same `ModManager`. One shared `web/modpanel.js` serves every game. | This removes the JavaScript copies of ordering and gameplay tagging. The shell's ordering ignores `priority` (`shell.html:440-461`), while ModManager sorts by priority first (`ModManager.cpp:101-105`); its gameplay tagging is a second copy too (`shell.html:413-439`). The panel and the menu can no longer disagree, and Big Money's copy of the shell shrinks. |
-| Score key | The existing entry `id@version`, plus `?sid=value&...` for each score-affecting setting whose value differs from its default | `example-relaxed` keeps `savegame-58ebd9d7.dat`, and each gameplay combination gets its own tables. |
-| When values apply | Derived per setting (3.5): at the next game (Bejeweled `rules`, `tunables` and `features`), at restart (assets, the enabled set, the order, and every value in games without next-game support), or live (only values that game code reads itself) | This follows what each game actually re-reads (6.1). |
-| Font | A built-in Latin-1 bitmap font written in the repo (`framework/BuiltinFont.*`) | The framework has no font of its own: SysFont is rejected (`ResourceManager.cpp:867-870`). Writing our own font avoids a download and any licence question. |
 
 ---
 
@@ -918,7 +882,7 @@ if (restart) Platform::Relaunch(args);
 | `-seed=N`, `-renderscale=N` | yes | User choices for the session |
 | `-replaydir` (Bejeweled) | yes | |
 | `-gameseed=N` (Bejeweled) | Only while the seed is still pending (`gGameConfig.mPendingSeed != 0`) | A used seed would be played again |
-| `-nomods` | no (open question 8) | The restart is how the menu applies mods |
+| `-nomods` | no | The restart is how the menu applies mods |
 | `-script`, `-fast`, `-trace`, `-autoplay*`, `-tracehash`, `-replay`, `-replayquit`, `-livesplitlog`, `-codeccheck`, `-dumprules`, `-forcevariant`, anything else | no | Test hooks |
 
 - **The keep list:** the framework keeps its own keep list, and games add theirs in `GetRestartArgs`.
@@ -1052,15 +1016,6 @@ A shared `web/modpanel.js` is a step towards one web shell that every game share
 - **`HasGameInProgress`:** `mBoard && mBoard->IsGameInProgress()`.
 - **Main:** the relaunch lines and `-dumpmods`.
 - **Shell:** the JavaScript for tags, `diff.txt` detection and status goes, because the API provides them. Seeds and replays stay.
-- **Known gaps from the integration onto main (2026-10-19), for M5:**
-  - On the web, Bejeweled's rule errors, dropped mods and warnings (`mods-status.json`, including stage 5's
-    warnings) show nowhere until `GetModMessages` above: main's shell read that file, the shared panel reads only
-    the state JSON. CODE_MODS_DESIGN 3.5 rule 8 still describes the old shell.
-  - `bejeweled_verify rulesid` and `bv_rules_id` (`games/bejeweled/src/headless/Verifier.cpp`, `RulesIdJson`) merge a
-    mod.json's raw `tunables` and `rules`, so a mod with `$setting` placeholders gets a wrong RulesId with no error.
-    Resolve the placeholders at their defaults first (`ModSettings::Parse`, `Analyze`, `Resolve`; add
-    `platform/ModSettings.cpp` and `platform/Text.cpp` to the verifier's sources) and report setting errors in
-    its `errors`.
 - **As built (M5, 4facce2, merged at e679312):**
   - Options has the MODS button in the register slot (`mX+30+bw`, `mY+166`) while an enabled mod has settings. Extras
     (stage 13) is not built yet, so the EXTRAS case waits for it.
@@ -1068,10 +1023,9 @@ A shared `web/modpanel.js` is a step towards one web shell that every game share
     `tunables` and `features` except `features.livesplit`, because the LiveSplit observer's state outlives a board.
     Those values commit at `NewGame`, and an untouched board is made again with them (modmenutest's Bejeweled
     nextgame scripts).
-  - A mod's settings page shows the game's `GetModMessages`: the rules errors, dropped mods and warnings. That
-    closes the first known gap above.
+  - A mod's settings page shows the game's `GetModMessages`: the rules errors, dropped mods and warnings.
   - `bejeweled_verify` resolves `$setting` placeholders at their defaults (`ModSettings` `Analyze` and `Resolve` in
-    `Verifier.cpp`) and links `platform/ModSettings.cpp` and `platform/Text.cpp`. That closes the second.
+    `Verifier.cpp`) and links `platform/ModSettings.cpp` and `platform/Text.cpp`.
   - The four hooks say `override`: `HasGameInProgress`, `CanRestartNow`, `GetRestartArgs` and `GetModMessages`.
 
 ### 8.3 Big Money (Big Money session; built in M6, d4fe95b)
@@ -1116,284 +1070,3 @@ the shared look, on any screen. M7 adds:
   - Its save and high-score files are scoped with the key.
 - All values are restart-level.
 - The menu needs only `SexyAppBase`, `WidgetManager` and `Graphics`, which the 2004 compatibility layer shares.
-
----
-
-## 9. Implementation plan
-
-Sizes are new or changed lines.
-
-| # | Stage | Owner | Contents | Tests | Size |
-|---|---|---|---|---|---|
-| M0 | Groundwork | coordinator | `SaveConfig` re-reads, merges and keeps unknown keys; atomic user-file writes and the backup-dirty callback (also for `WriteStatus`); both shells' `saveModConfig` keep unknown keys; `byopop_userdata_restore` before the shell reads; `UTF8ToLatin1` moved to `Common` | Oracle; a `mods.json` with an unknown key survives a panel save; a status write reaches the backup | ~200 |
-| M1 | Settings model | coordinator | `ModSettings`; effective manifests in `Apply`; desired state, edits, `mod-settings.json`, pending changes, the next key; score-key entries; `-dumpmods` | `modsettingstest` (native and Node); oracle identical; the `example-relaxed` key | ~1,300 (≈450 of it tests) |
-| M2 | Restart | coordinator, plus 3 lines in each game's main | `RequestRestart` and its virtuals; `Relaunch`; web exit info; shell restart and autostart; rundesk job wait; `modmenu restart` | The restart rows of 7.3; oracle | ~450 |
-| M3 | Menu | coordinator | `BuiltinFont`, the one look (the default skin; no per-game skins, decision 2), `ModMenu`, F2, the `modmenu` commands, strings | screens, edit, keys and pause tests in both games; the fwtest hotkey test; RNG | ~2,100 |
-| M4 | Web views | coordinator, plus the Big Money session for its shell | The C API, `modpanel.js`, both shells, `cmake/ByopopWeb.cmake` | The web row of 7.3 | ~900 (the shells lose more JS than this adds) |
-| M5 | Bejeweled | Bejeweled session | The Options slot rule (MODS while an enabled mod has settings), messages, restart arguments, `CanRestartNow`, `HasGameInProgress`, next-game values with per-board names; the shared look | Oracle ×3 (the examples case's Options screens unchanged); the `modmenu_*` tests; `modmenu_nextgame`; replay verify | ~550 |
-| M6 | Big Money | Big Money session, after a trunk merge | **Built (d4fe95b):** Options MODS while an installed mod has settings, effective manifests in `ModRules`, `HasGameInProgress`, `CanRestartNow`, `GetRestartArgs`; the shared look. The scoped files (9538925), the main lines and the shell were already in | `modmenutest bigmoney`; its screenshot regression; autoplay | ~350 (built: ~80) |
-| M7 | BookWorm | BookWorm session (it runs since milestone 2) | The main lines (the web link through `byopop_web_game` and `modpanel.js` is done), the scores rule for word lists; the shared look | Its own tests; `modmenutest` once it covers BookWorm | ~200 |
-| M8 | Docs | coordinator and the games | `docs/MOD_MENU.md` for mod authors (settings, placeholders, levels, scores); README Mods sections (F2, `mod-settings.json`); the schema comment in `ModManager.h` | — | ~300 |
-
-**Total:** about 6,350 lines.
-
-**Order:**
-- M0, then M1.
-- Then M2 and M3, in either order.
-- Then M4.
-- Then M5 and M6, which can run in parallel.
-- Then M7.
-
-The next-game part of M5 can be split off if the user chooses restart-only (open question 6).
-
----
-
-## 10. Risks
-
-| Risk | Mitigation |
-|---|---|
-| A gated button or a new code path changes an oracle screen | Buttons appear only with an installed mod that has settings; every hook is inert without settings; the oracle runs in all three variants |
-| High-score tables multiply, one per combination of values | Intended for gameplay values. Defaults keep today's key, and the SCORES marker shows which settings split the tables. |
-| A saved game seems lost after a key change | Next-game values wait (6.2); the change-time note and the restart confirmation say where the game is; switching back brings it back |
-| The menu draws a random number or changes play | No `Rand` (static check and counter test); the menu's modality equals Options' (trace test, replay verify) |
-| Web: a waiting tab takes the lock on reload | Documented; the restarted page waits behind "Already open", as after a manual reload |
-| Web: edits made before start are lost to a stale backup | `byopop_userdata_restore` before any read (4.4) |
-| Two writers: panel and menu, hand edits, two native processes | One in-memory model on the web; re-read, merge and write per operation; atomic replace |
-| Relaunch fails (a non-ASCII path, antivirus) | Wide-character `GetModuleFileNameW` and `CreateProcessW`; a test from a non-ASCII folder; a message box; the game is saved first |
-| The built-in font is hard to read on large windows | Game skins use the games' fonts; the default font is crisp at integer render scales; open question 3 |
-| A skin draws art that has not loaded yet | Every skin part falls back to the default when its image is NULL |
-| Mod authors misjudge when a value applies | Derived levels are shown as badges; `docs/MOD_MENU.md`; a warning when `apply` is looser than the derived level |
-| An old build reads a mod that has placeholders | It reports the key as invalid and ignores it, and never crashes. All games ship from one trunk. |
-| Big Money's branch is behind the trunk | M6 starts with a trunk merge |
-| A test run relaunches and leaves processes behind | No relaunch in test runs unless `BYOPOP_RELAUNCH_TEST_ARGS` is set; rundesk waits for and ends its whole job |
-
----
-
-## 11. Open questions for the user
-
-Recommendations are in brackets.
-
-1. **Hotkey.** [F2 without modifiers, in every game and on every platform. On the web, the shell's Mods button also opens the menu; it covers Mac laptops, where F2 needs Fn, and touch. A MODS button in Options where a game has a free slot.]
-
-   Alternatives considered:
-   - F1 opens browser help in some browsers.
-   - F10 is the Windows menu key.
-   - Esc and letters: Bejeweled pauses on every typed character, and letters are typed into name fields.
-   - Browsers take several Ctrl and Alt chords; Firefox uses Ctrl+M to mute a tab.
-2. **Look.** [Per-game skins built from each game's own dialog art and fonts, for example Bejeweled's dialog box and Big Money's green-on-black dialogs. The shared default skin serves games without a skin and anything a skin lacks.] Alternative: the default skin everywhere, a single "port" look that is clearly separate from the original game and is less work.
-3. **Built-in font.** [Write our own 12 px Latin-1 bitmap font in the repo.] Alternative: a public-domain or OFL pixel font, which needs your OK to download.
-4. **Web shell panel.** [Keep it, rebuilt on the game's own model. It stays:
-   - the place to add and remove mods;
-   - the rescue when a mod stops the game from starting;
-   - the accessible and touch-friendly view.
-
-   While the game runs, it opens together with the in-game menu.] Alternative: reduce it to adding and removing mods.
-5. **What restarts by itself and what asks.**
-   - [Nothing restarts by itself.
-   - "Restart game" asks only when a game is in progress, and says whether that game continues after the restart or waits for its mods. With no game in progress it restarts at once.
-   - Closing the menu with changes pending does not ask: the changes are saved and apply at the next start.]
-6. **Next-game values in Bejeweled.** [Yes: gameplay and feature values apply at the next fresh game without a restart. They are held back while a saved game exists.] Alternative: a restart for everything, which is simpler and drops 6.2.
-7. **The Options button.** [Show it only when an installed mod has settings. This keeps every oracle screen identical.] Alternative: show it whenever a mod is enabled. The `seed_keyed` Options screenshot then changes, and the change is accepted as intended.
-8. **`-nomods` on restart.** [Drop it. The menu says "Mods are off for this run" at the top, and Restart applies the mods.]
-9. **Removing mods from the in-game menu.** [No. Natively, mods are folders you manage; on the web, the panel's Remove stays.]
-10. **Big Money high scores.** [Scope Big Money's save and high-score files with the score key now. Nothing changes until a Big Money mod changes play, and then its gameplay settings get their own tables.]
-
----
-
-## Appendix A. Adversarial check of MOD_MENU_DESIGN against the code
-
-I read the code only; nothing was built or run.
-- **Trunk:** `code-mods` at 0376759.
-- **Big Money:** `claude/bigmoney-1912c8` at **9538925**, which is newer than the 7e57e76 the design cites.
-- **SDL:** `E:/retools/emsdk/upstream/emscripten/cache/ports/sdl2/SDL-release-2.32.10`.
-
-### A. Corrections, most severe first
-
-#### A1. Closing the menu with Esc or Enter pauses the Bejeweled board
-- **What happens:** `HandleEvent` sends `KeyDown(ESCAPE)` to the widget manager. Right after it, it sends `KeyChar(0x1B)` (`SexyAppBase.cpp:1927-1929`). The same happens for Enter (`\r`), Backspace and Tab.
-- If the menu closes on the key-down, `RemoveBaseModal` has already given focus back to the board. The key-char then reaches `Board::KeyChar`, which toggles a user pause on any character (`BoardRules.cpp:588-594`). That pause is recorded as `PAUSE`.
-- The script command `key ESCAPE` does the same thing: key-down, key-char, key-up (`SexyAppBase.cpp:2955-2961`).
-- **Fix:** act on the key-char for Esc and Enter, the way `EditWidget` does, or defer the close to the menu's `Update`.
-- **Close order:** mirror `KillDialog`'s order: `RemoveWidget`, then `ModalClose`, then `RemoveBaseModal` (`SexyAppBase.cpp:675-682`).
-
-#### A2. Web: SDL takes keys from the whole window
-- No `SDL_HINT_EMSCRIPTEN_KEYBOARD_ELEMENT` is set, so keydown, keyup and keypress are registered on `window` (`SDL_emscriptenevents.c:984-991`).
-- SDL calls `preventDefault`:
-  - on every keypress, because text input is on (`SexyAppBase.cpp:2042`; handler at `:852-857`);
-  - on Backspace, Tab, arrows, F-keys and Ctrl chords at keydown (`:833-849`).
-- **Consequences while the game runs:**
-  - The HTML panel's text, number and colour fields cannot be typed into.
-  - Tab, Backspace and the arrows do not work in the panel.
-  - Every key typed in the panel also reaches the game. With both UIs open, Space toggles a mod and Delete resets a setting in the in-game menu.
-- **Fix:** the shell stops propagation of key events from the panel's root (a capture listener for keydown, keyup and keypress). The panel then handles F2 and Esc itself.
-- **"Canvas input is blocked"** has no mechanism yet; one has to be specified.
-- **Opening both UIs:** the slide-over panel (`width: min(440px,100%)`, `shell.html:84-85`) covers the right side of the in-game menu, where its footer and the Restart confirmation sit. Recommendations:
-  - while the panel is open, the game shows only a modal "paused – Mods panel open" state;
-  - `byopop_restart(confirmed)` returns any confirmation text to the panel.
-
-#### A3. The C API would not be linked
-- `platform/*.cpp` is globbed into the **STATIC** library `sexyframework` (`framework/CMakeLists.txt:6-11`).
-- `EMSCRIPTEN_KEEPALIVE` functions that only JavaScript references are never pulled out of the archive.
-- **Fix:** list them in `-sEXPORTED_FUNCTIONS`, which replaces the default, so `_main` must be added too. Alternatively, compile `WebApi.cpp` into each game target.
-
-#### A4. The resolution order in `Apply` is impossible as written
-- The `files` remaps are processed at `ModManager.cpp:186-213`, the `diff.txt` owner at `:215-218`, and images and patches at `:228-253`. All of that runs *before* the `tunables`/`rules` files are read at `:274-321`.
-- **Fix:** restructure `Apply` in this order:
-  1. read the referenced files;
-  2. resolve the placeholders;
-  3. then remaps, the `diff.txt` owner, patches and merges.
-- `LoadManifest` computes `mAffectsScores` from the *raw* manifest (`:63`), and `mHasRules`/`mHasFeatures` use `man.Has()` (`:299-300`).
-- Compute every flag from the **effective** manifest:
-  - `AffectsScores`, `HasRules`, `HasFeatures` and `HasRulesOrFeatures` (which decides whether `mods-status.json` is written);
-  - `IsLiveSplitOnly`, which today returns false for any extra key such as `settings` (`GameConfigMods.cpp:271-298`).
-- Otherwise a mod whose rules resolve to `null` at its defaults still splits the scores and writes the status file.
-
-#### A5. `nextGame` is wrong for rule keys that need art generated at load
-- `board.gemColors` (3..12, `GameRules.h:116-117`) needs gem-sheet rows and shrink images built in `LoadingThreadProc`:
-  - today there are 7 fixed rows (`WinDMApp.cpp:1001-1016`);
-  - stage 8 plans `max(7, gemColors)` rows and `EnsureGemSheetRows` (`CODE_MODS_DESIGN.md:352`).
-- A placeholder in `rules.board.gemColors` raised at the next game would draw past the generated art.
-- **Fix:** replace `SetNextGameKeys(bool)` with a game-supplied predicate per key, or a list of load-time keys. Alternatively, the commit checks the loaded capacity and otherwise holds the value for a restart.
-
-#### A6. `null` under `rules` is "reset to default, removing another mod's rule"
-- This is rule 4 of `CODE_MODS_DESIGN.md` 3.5.
-- In the design's own example, `"undo": {...map: {"false": null}}` and `"board": {...map: {"full": null}}` actively wipe any lower-priority mod's undo and board shape.
-- **Fix:** add an "omit" result for placeholders (for example a `"$omit"` sentinel) that removes the member, and keep `null` for an intentional reset.
-
-#### A7. A user's text can reach a printf format string
-- `Board.cpp:230` runs `StrFormat(mApp->GetString("LEVEL").c_str(), mLevel + 2)`.
-- A `text` setting placed under `strings` (charset `any` allows `%`), or any strings mod, can inject `%s` or `%n` and crash the game.
-- **Fix:** validate overrides of keys whose base value contains conversions: they must keep the same conversion sequence. Also forbid `%` in text values that land in `strings`.
-
-#### A8. Edits to the desired state must never touch `mMods`
-- `GameConfig::ResolveRules` re-reads `GetMods()` and `mEnabled` at **every** `NewGame` (`GameConfigMods.cpp:44-57`).
-- Today's `SetEnabled`/`Move` mutate `mMods` (`ModManager.cpp:118-136`). Wiring them up, or any edit that does the same, would merge a "restart-pending" mod's rules at the next game, while the VFS roots and the score key stay stale.
-- **Fix:** keep the desired state separate from `mMods`; retire or rename those two calls.
-- **The commit:**
-  - `CommitNextGameValues` must not call `Apply`, which clears the VFS roots, image patches and scale overrides (`:174-184`).
-  - It must rebuild the flat `mTunables` map as well as the per-mod JSON: Big Money reads `GetTunable` in each `Board` constructor (`Board.cpp:3629, 3691-3740` @9538925).
-
-#### A9. The board created at startup misses next-game values
-- `TitleScreenIsFinished` creates the board before the player does anything (`WinDMApp.cpp:931-939`).
-- "Continue? No" deletes the save, but the fresh board keeps the old rules (`:855-858`).
-- So a value set before the first move, or after declining Continue, applies one game late, while the menu says "applies to your next game".
-- **Fix:** when values are pending and the board is untouched (`mIsNewGame`) with no save, call `NewGame()` again. It draws `Rand()`, but only when something is pending, so the oracle is unaffected. Run it outside the menu's `MTAutoDisallowRand` scope.
-
-#### A10. The Big Money facts are out of date (tip 9538925, "gameplay tunables, separate high scores, set seed")
-- **Tunables:** Big Money already reads tunables (`ModRules.h/.cpp`, `Board::LoadTunables` per board) and ships `mods/small-change` and `mods/high-roller`.
-- **Scoped files:**
-  - It already has `ScopedUserFileName` for `savegame.dat` (`Board.cpp:215`) and for the high scores (`HighScoreWidget`'s `mFileName`).
-  - So open question 10 and the "adopts a shared `ScopedUserFileName`" part of 8.3 are moot; the work is now to move that helper into `platform/`.
-- **Seeds:** `-gameseed` and `?seed` exist in Big Money's `main.cpp` and its `shell.html`. So 8.3 needs:
-  - `GetRestartArgs` to keep `-gameseed` only while `mPendingSeed != 0`;
-  - the shell to drop `seed` from the URL once the seed is used.
-- **Next-game values** are now cheap for Big Money, because tunables are read per board. But `Board::GetSaveGameFileName` is static, so a per-board name snapshot would be needed first.
-- **Other details:**
-  - The mod sign is at `WinBMApp.cpp:630`.
-  - `RecordScoreDialog` (id 3) is **non-modal**.
-
-#### A11. Holes in the score key
-1. **A score-affecting value applied live.** `affectsScores: true` together with `GetLiveValue` would change the key mid-game:
-   - `HighScoreWidget`, LiveSplit `VANILLA` and the static save names all read the current key;
-   - replays do not carry live values.
-
-   Force such a setting to at least `nextGame` (or `restart`), and forbid gameplay use of live values.
-2. **Canonical text needs escaping and uniqueness.**
-   - Choice strings are used "as is", so `&`, `=`, `?` and `;` can forge entries. The entries are joined with `;` in the FNV hash (`ModManager.cpp:337`). Text escaping also omits `;`.
-   - The number `1` and the string `"1"`, or `true` and `"true"`, produce the same canonical text, which breaks both the key and `map` lookups.
-   - Require choice values to be unique by canonical text, and restrict them to ids, integers and bools (no floats, so no printf).
-3. **The "a mod with a score-affecting setting is score-affecting" rule.** It adds `id@version` at the defaults even for a mod that was not in the key before. Example: a mod whose only link is `files["data/diff.txt"]` mapped to `null` by default. This breaks principle 5.
-   - Derive it from the effective manifest instead: a score-affecting setting off its default, or today's rules.
-4. **Detecting the `diff.txt` remap.** It must use `Lower(Normalize(key))`, as `VFS::SetRemaps` does (`VFS.cpp:205`). Otherwise `"Data\\Diff.txt"` slips through.
-   - Better: make gameplay data paths game-registered, for example `ModManager::SetGameplayFiles({...})`. Today `"data/diff.txt"` is hard-coded in `platform/`, and BookWorm's word list needs the same rule.
-5. **No protection beyond a 32-bit FNV.**
-   - The save has no rules check: `LoadGame` loads whatever `savegame-<key>.dat` holds.
-   - A collision between value combinations, or an author changing a default without bumping `version`, resumes a save under different rules.
-   - Consider storing the RulesId or the key text in the sidecar or save trailer and checking it on Continue.
-6. **Integer ranges.**
-   - `as:"argb"` yields up to 4294967295, and int `min`/`max` are unbounded.
-   - `Json::AsInt` is `(int)mNumber`, which is undefined out of range and may trap in wasm (CODE_MODS_DESIGN 6.1).
-   - Limit ints to int32, make `argb` signed, and clamp before casts.
-
-#### A12. Float snapping does not match the JSON literal
-- `min + k*step` in double gives `0.30000000000000004` for 3 × 0.1, not 0.3.
-- So a float setting yields a different RulesId from a mod that writes `0.3`, which breaks principle 3. The "default on a step" check also rejects ordinary decimal defaults.
-- **Fix:** snap in scaled integers: `(round(min·10^d) + k·stepUnits) / 10^d`. A division of exact integers is correctly rounded, so it equals `strtod` of the decimal text. Use `k`, or that value, for the key.
-
-#### A13. Bounds and security of mod-provided values
-- **Range against the rule's own range.** A setting whose range exceeds the target field's range (for example `match.minRun` 2..5, `GameRules.cpp:107`) gets the mod's whole `rules` dropped at the next game (rule 7).
-  - Check setting ranges against `gFields` at load, with a warning, and validate the desired state through a game hook. `GetModMessages` covers only the applied state, so the user should learn before the next game.
-- **Text in path positions.** Text and colour values in `files`, `images` or `imagePatches.image` become paths. `VFS::Normalize` keeps a leading `..` (`VFS.cpp:47-52`), so the path can leave the mod folder.
-  - Allow only choice→`map` to author-listed paths in path positions, and reject paths that leave the mod root.
-- **Non-string values under `strings`.** These become `""` (`kv.second.AsString()`, `ModManager.cpp:258`). Require `as:"string"`, or convert scalars.
-
-#### A14. Web backup and IDBFS
-- **Edits made before `callMain`:**
-  - Nothing refreshes the localStorage backup (`SexyAppBase` is not running), so an edit is lost if the tab dies before the IndexedDB sync finishes.
-  - A user-dir file **deleted** before start is brought back by main's `RestoreUserDataBackup`: a missing file has mtime −1, so the backup's copy wins (`WebPersist.cpp` restore loop).
-  - **Fix:** `WriteUserFileAtomic` on the web calls `BackupUserData` itself when no app is running. The menu and panel never delete user files; they write empty objects instead.
-- **`importMod` over an applied mod.** It runs `rmTree` and rewrites an applied mod's folder in place while the game runs (`shell.html:553-576`). `ReadDiffValues` re-reads at every Load, and the VFS directory cache goes stale. Treat it as a queued remove plus add.
-- **The pending-removal queue** must clear an entry when a mod with the same folder name is re-imported. Otherwise the next boot deletes the new import.
-- **`Module.onModsChanged` re-entrancy.** It is called through `EM_JS` *inside* an edit. A handler that calls back into `byopop_mods_state` re-enters `ModManager` mid-operation. Post it asynchronously.
-- **Other notes:**
-  - A reload leaves fullscreen.
-  - The autostart key should be named per game.
-
-#### A15. Native relaunch
-- **Foreground focus.** `SexyAppBase::Shutdown` hides the window at once (`SexyAppBase.cpp:1372-1373`), so by the time `Relaunch` runs this process no longer owns the foreground. The new window may open behind other windows.
-  - Call `AllowSetForegroundWindow(ASFW_ANY)` in `RequestRestart` before `Shutdown`. This needs verifying on Windows.
-- **`-seed=N` is a framework test hook** (`SexyAppBase.cpp:2849-2853`). Keeping it replays the same boards after a restart; drop it.
-- **Test-run detection** should check `BEJ_TEST_DESKTOP` as well as `BYOPOP_TEST_RUN`, as `OpenURL` does (`:796`).
-- **Path encoding on Windows.**
-  - Windows file I/O is ANSI: `FindFirstFileA` (`VFS.cpp:84-85`) and `fopen` (`:275-280`) with UTF-8 paths from SDL. Non-ASCII user, exe or mods paths already fail today.
-  - So the planned "relaunch from a non-ASCII folder" test will fail for an unrelated reason.
-  - `WriteUserFileAtomic`'s `MoveFileExW` must use the same encoding as its own temporary-file write. Better: fix the platform layer to use wide APIs, or a UTF-8 activeCodePage manifest.
-- **No rescue before start.** Natively there is no UI before the game starts. Offer a safe mode: `mLastShutdownWasGraceful` from `InProgress` (`SexyAppBase.cpp:1171-1175`) could offer starting with `-nomods` after a crash.
-- **rundesk job wait.** rundesk also wraps whole bash scripts, so "end whatever is left in the job" must not kill helpers a script backgrounds on purpose.
-
-#### A16. Framework UI
-- **Built-in font filtering.** `DDInterface::PrepareTexture` forces linear filtering whenever `mRenderScale > 1` (unless pixel-perfect) or the image's `mScale > 1` (`DDInterface.cpp:592`). So "nearest filtering at render scale N" needs a nearest flag per image, or a glyph sheet generated at the render scale.
-- **Characters outside Latin-1.** `UTF8ToLatin1` silently drops them (`SexyAppBase.cpp:70-127`); it does not turn them into `?` as the design says.
-- **Focus theft.** `WinDMApp::KillDialog` gives the board focus when the dialog map empties (`WinDMApp.cpp:569-580`). For example, `URLOpenSucceeded` kills `DIALOG_OPENING_BROWSER`. The menu, which is not in the map, must take focus back in `Update`, not only its z-order.
-- **Text settings on touch.** SDL2 on the web shows no on-screen keyboard, so text settings cannot be edited in-game on touch devices. "Everything works from a pointer" holds only through the HTML panel.
-
-#### A17. Script commands and tests
-- `LoadScript` cuts everything after `#` (`SexyAppBase.cpp:2895`), so `modmenu set ... "#ff8800"` breaks. Use another colour syntax, or quote-aware comment handling.
-- `key` cannot hold a modifier: it sends key-down and key-up together. Shift+arrows, Alt+Up/Down and Shift+Tab are therefore untestable. Add `keydown`/`keyup <name>` commands.
-- Mod ids with spaces (folder names) cannot be addressed by whitespace-split arguments.
-- `games/bejeweled/tools/check_rng_use.py` is owned by the Bejeweled session. A check that covers `framework/` belongs in `tools/`.
-- The examples case runs with the real `games/bejeweled/mods`. Adding `settings` to any of those mods (the design suggests `example-relaxed` might get one) makes the MODS button appear in oracle screens.
-- The "MODS" gate should use the start-time `GetMods()`, which reads nothing from disk when Options opens. With `-nomods`, that list is empty.
-- If any LiveSplit global hotkey is bound to F2, it also opens the menu. A configurable hotkey would help.
-- Two mod folders with the same manifest `id` collide in `mods.json`, `mod-settings.json` and `SetEnabled`. Flag the duplicate as an error.
-
-### B. Confirmed against the code
-- **Mod management:**
-  - There is no in-game mod UI, and nothing calls `SetEnabled`, `Move` or `SaveConfig`.
-  - `SaveConfig` drops unknown keys, as does the shell's `saveModConfig` (`shell.html:547-552`).
-  - `WriteStatus` syncs but never sets `mBackupDirty` (`ModManager.cpp:388-415` versus `SexyAppBase::SyncUserData` `:1231-1235`).
-  - `Move` swaps across priorities, and the shell's ordering ignores `priority`.
-- **Dialogs and focus:**
-  - A `Dialog` with a NULL button image recolours the button text of every later dialog (`Dialog.cpp:84-92`); `EnsureFonts` is empty.
-  - `DialogButtonPress`/`Depress` turn YES and NO into ids 2000+ and 3000+; `AddDialog` calls `AddBaseModal` then `ModalOpen`.
-  - `AddBaseModal` takes focus from the board.
-  - `WatchController` holds playback while any base modal is open (`WatchController.cpp:269`).
-- **Input and scripts:**
-  - The scripted-input filter is at `SexyAppBase.cpp:1724-1746`, and F-keys type no character.
-  - Bejeweled pauses on any character; Big Money pauses on space only and counts pauses (`Board.cpp:618`, with a guard on `STATE_PLAYING`).
-  - Big Money's modal hooks pause only the Action type.
-  - The script `key` command goes only to the WidgetManager, so it cannot reach an F2 check placed in `HandleEvent`.
-- **Web lifecycle:**
-  - `callMain` runs once and the main loop never returns.
-  - On exit: `MainLoopFinished`, then a forced backup, then `onGameExit` (`:2400-2408`).
-  - The restore is idempotent through `FS.utime`, apart from the deletion case in A14.
-  - The Web Lock reload race exists as the design describes.
-- **Saves and scores:**
-  - `Board::GetSaveGameFileName` is static and reads the current key, while `HighScoreWidget` keeps its own `mFileName`.
-  - `NewGame` deletes the old board deferred, then calls `Load` (`WinDMApp.cpp:233-240`).
-  - Bejeweled saves in `WinDMApp::Shutdown`; Big Money saves in `~WinBMApp`, or in `ShutdownHook` on the web.
-- **Native and build:**
-  - Native has no single-instance check.
-  - `-msse2 -mfpmath=sse` is PUBLIC on `sexyframework`, so `platform/` code is covered.
-  - `MTAutoDisallowRand` is counted, so nested scopes are safe.
-- **Line references:** Big Money's refs should be re-pinned to 9538925.
