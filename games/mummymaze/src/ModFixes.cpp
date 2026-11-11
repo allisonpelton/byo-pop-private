@@ -1,3 +1,5 @@
+// port(mods): the fixes mod's settings (ModFixes.h).
+
 #include "ModFixes.h"
 #include "platform/ModManager.h"
 

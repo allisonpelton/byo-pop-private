@@ -467,12 +467,36 @@ to the control that last had the focus there. A window that takes the focus come
 the task bar the arrows move between items. Once the game's canvas has the focus it gets every key, Tab too; F6
 leaves it.
 
-**Its text.** W95FA by Alina Sava (SIL OFL 1.1; `web/fonts/w95fa.woff2`, 7,880 bytes, the Latin subset of
-`@fontsource/win95fa` 5.3.0, with `web/licenses/w95fa.txt`; the user's OK for the download, 2026-11-11). `web/skins.css`
-sets every text of the desktop at 11 pixels, unsmoothed, a few large texts at 22: the font is sharp only at 11 and its
+**Its text.** Byopop Sans, `web/fonts/byopop-sans.woff` (about 5 KB), which `tools/web/pixelfont.py` builds from W95FA
+by Alina Sava (SIL OFL 1.1; `tools/web/w95fa.woff2`, the Latin subset of `@fontsource/win95fa` 5.3.0, the user's OK for
+the download 2026-11-11) and which is under the same licence (`web/licenses/byopop-sans.txt`). W95FA's own grid is 12.5
+pixels to the em and its advances are not whole pixels, so no CSS size shows it sharp; the script sets its glyphs on
+a grid of 11 pixels to the em with whole-pixel advances (to the end of each glyph's ink; the digits one width) and
+adds the characters the site uses that it lacks, drawn in the script (the arrows, the multiplication sign, the
+ellipsis, the dashes, the middle dot, the fractions, the grave accent, the copyright and trademark signs). After a
+change to the script, run it and commit the file; `--check` says whether the file is the script's. `web/skins.css` sets
+every text of the desktop at 11 pixels, unsmoothed, a few large texts at 22: the font is sharp only at 11 and its
 multiples, so a new part does not set a size of its own. It has one weight; bold is the same glyphs struck twice a
-pixel apart. It lacks the arrows, the multiplication sign, the ellipsis, the dashes, the middle dot, the fractions and
-the copyright and trademark signs, which fall back to the next font in `--font-ui`.
+pixel apart and a pixel wider, which is exactly how Windows made the bold of its bitmap font.
+
+**Colour schemes.** The setting `scheme` (Appearance, site-wide) picks one of nine schemes of our own, named after soda
+flavours; "Standard" is the look the site always had (the user, 2026-11-11, of the proposal's schemes and patterns:
+"Yes, 1 then 2"). `web/schemes.js` holds the table: for each scheme the desktop, the face of windows and buttons, its
+shadow and its soft light, the title bar (one colour, or two as a gradient: each scheme decides) and the selection.
+It sets them as variables on `<html>` (`--bg`, `--panel`, `--sk-lo`, `--sk-mid`, `--accent`, `--sk-title`, `--sk-band`),
+which `web/skins.css` draws from: a new rule there uses the variables, never the standard greys or blues as literals. The
+pictures skins.css holds as SVG in data addresses cannot read a variable, so for a scheme other than Standard their
+rules are written again with the scheme's colours (`uriRules`). White highlights, black edges and text sizes are the
+same in every scheme. `tools/schemetest.js` (in `unit-web`) checks every scheme: whole, named in the site's text, black
+and muted text and links on its face, white on its selection, title bar and desktop.
+
+**Pattern and wallpaper.** Three more settings of Appearance, site-wide, also in `web/schemes.js`: `pattern` (seven
+patterns of our own, 8 by 8 pixels in two colours, as rows of bits), `wallpaper` (three tiles of our own, drawn in
+translucent white and black so they suit every scheme, or "My picture") and `wallpaperFit` (centre, tile, stretch, for
+the player's picture). The picture is chosen with Browse under the settings (`ByopopSchemes.chooser`), drawn into a
+canvas, scaled to 1600 pixels at most and kept as a JPEG in localStorage `byopop-wallpaper`; it is never uploaded. The
+layers go on `<body>` of the page that has the desktop (not a page in a window of the one page). `tools/schemetest.js`
+checks the patterns' shape and that every choice is named.
 
 ### Desktop 95 in one page
 

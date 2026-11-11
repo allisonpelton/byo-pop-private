@@ -1,8 +1,12 @@
-W95FA (the site's text in Desktop 95), by Alina Sava: SIL Open Font License 1.1
+Byopop Sans (the site's text in Desktop 95), from W95FA by Alina Sava: SIL Open Font License 1.1
 
-W95FA is by Alina Sava (https://fontsarena.com/w95fa-by-alina-sava/), who made it after the default font of Windows 95
-and released it under the SIL Open Font License. The file served here is the Latin subset from the package
-@fontsource/win95fa 5.3.0, unchanged; the licence text below is that package's.
+Byopop Sans is a modified version of W95FA by Alina Sava (https://fontsarena.com/w95fa-by-alina-sava/), who made W95FA
+after the default font of Windows 95 and released it under the SIL Open Font License. The byo-pop project's changes
+(tools/web/pixelfont.py): W95FA's glyphs set on a grid of 11 pixels to the em, their advances made whole pixels (seventeen capitals and marks given the advance widths
+of the 1995 system font, as numbers), and
+the characters the site uses that W95FA lacks added, drawn by the project (arrows, the multiplication sign, the
+ellipsis, the dashes, the middle dot, the fractions, the grave accent, the copyright and trademark signs). Byopop Sans
+is under the same licence, whose text follows as the package @fontsource/win95fa 5.3.0 gives it.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
