@@ -271,6 +271,12 @@ var ByopopMusic = (function () {
       // a tune's format (its file's extension: MO3, IT, S3M, XM, OXM or OGG), where in the game it plays and whether the game
       // never plays it, from the table
       var formats = {};   // a resource's format, by its key, from its first bytes
+      // a table field's value for a tune id, its case ignored (file names are stored as the game's copy has them)
+      function byId(obj, id) {
+        var low = id.toLowerCase(), hit;
+        Object.keys(obj || {}).forEach(function (k) { if (k.toLowerCase() === low) hit = obj[k]; });
+        return hit;
+      }
       function placeOf(k, rel) {
         k.format = formats[rel] || (rel.match(/\.([^.\/]+)$/) || ["", ""])[1].toUpperCase();
         var low = k.id.toLowerCase();
@@ -279,7 +285,7 @@ var ByopopMusic = (function () {
         k.unused = (entry.unused || []).some(function (u) { return u.toLowerCase() === low; });
       }
       function add(rel, list) {
-        var kept = list.filter(function (k) { return k.seconds >= MIN_TUNE && (entry.skip || []).indexOf(k.id) < 0; });
+        var kept = list.filter(function (k) { return k.seconds >= MIN_TUNE && !(entry.skip || []).some(function (x) { return x.toLowerCase() === k.id.toLowerCase(); }); });
         kept.forEach(function (k, j) {
           var named = entry.names && entry.names[k.id];
           k.game = game;
@@ -309,6 +315,67 @@ var ByopopMusic = (function () {
             });
           });
         });
+        // A subsong cut at the orders the game starts it at partway (the table's "cuts"): its pieces, each a tune of its own
+        // (segs: [{sub, from, until}], playing the subsong from order from, or its start, until it reaches order until, or its
+        // end). A cut the subsong reaches as it plays ends the piece before it; one it never reaches (an order the game starts
+        // that only a jump of the game's own leads to) is a piece played from there to where the music ends. Lengths are timed
+        // by rendering the subsong unheard (libopenmpt at 8000 Hz, libxmp-lite at its own 48000, as a rate change restarts it).
+        function cutTune(m, base, cuts, fast) {
+          var reached = timeOrders(m, base.sub, null, cuts, fast);
+          var inFlow = cuts.filter(function (c) { return c in reached.at; }).sort(function (a, b) { return reached.at[a] - reached.at[b]; });
+          var pieces = [], starts = [null].concat(inFlow);
+          starts.forEach(function (from, k) {
+            var t0 = from === null ? 0 : reached.at[from], until = k + 1 < starts.length ? starts[k + 1] : null;
+            var t1 = until === null ? reached.end : reached.at[until];
+            pieces.push(piece(base, from, until, t1 - t0));
+          });
+          cuts.filter(function (c) { return !(c in reached.at); }).forEach(function (c) {
+            pieces.push(piece(base, c, null, timeOrders(m, base.sub, c, [], fast).end));
+          });
+          return pieces;
+        }
+        function piece(base, from, until, seconds) {
+          var k = {};
+          Object.keys(base).forEach(function (f) { k[f] = base[f]; });
+          if (from !== null) { k.id = base.id + "@" + from; k.entry = from; }
+          k.segs = [{ sub: base.sub, from: from, until: until }];
+          k.seconds = seconds;
+          delete k.sub;
+          return k;
+        }
+        // Renders subsong sub (from order from, or its start) once through, unheard: when each of orders is first reached, in
+        // seconds, and where it ends ({at: {order: s}, end: s})
+        function timeOrders(m, sub, from, orders, fast) {
+          var rate = fast ? 8000 : 48000, buf = M._malloc(1024 * 8), at = {}, frames = 0, guard = 0;
+          M._bm_select(m, sub);
+          M._bm_loop(m, 0);
+          if (from !== null) M._bm_set_order(m, from);
+          try {
+            for (;;) {
+              var o = M._bm_order(m);
+              if (orders.indexOf(o) >= 0 && !(o in at) && frames > 0) at[o] = frames / rate;
+              var g = M._bm_render(m, rate, 1024, buf);
+              frames += g;
+              if (g < 1024 || ++guard > rate * 3600 / 1024) break;
+            }
+          } finally { M._free(buf); }
+          return { at: at, end: frames / rate };
+        }
+        // Subsongs the game only plays one after another (the table's "chains": {"<file>#<n>": ["<file>#<m>", ...]}): one tune
+        // of them all, in that order, the others no longer tunes of their own
+        function chainTunes(list) {
+          var same = function (a, b) { return a.toLowerCase() === b.toLowerCase(); };
+          Object.keys(entry.chains || {}).forEach(function (head) {
+            var first = list.filter(function (k) { return same(k.id, head); })[0];
+            if (!first) return;
+            var rest = entry.chains[head].map(function (id) { return list.filter(function (k) { return same(k.id, id); })[0]; });
+            if (rest.some(function (k) { return !k; })) return;
+            first.segs = [first].concat(rest).map(function (k) { return { sub: k.sub, from: null, until: null }; });
+            first.seconds = [first].concat(rest).reduce(function (n, k) { return n + k.seconds; }, 0);
+            delete first.sub;
+            rest.forEach(function (k) { list.splice(list.indexOf(k), 1); });
+          });
+        }
         function fileStep(rel) {
           return function () {
             return read(rel).then(function (bytes) {
@@ -327,14 +394,18 @@ var ByopopMusic = (function () {
                   list.push({ kind: "module", keys: [prefix + rel], range: r, start: t0, entry: r[0], seq: seq, id: id + "#" + i, seconds: t1 - t0, level: entry.level });
                 });
               } else {
-                var one = M._malloc(16);
+                var one = M._malloc(16), fast = /\.(mo3|oxm)$/i.test(rel) || formats[rel] === "MO3";
                 for (var i = 0, n = M._bm_subsongs(m); i < n; i++) {
                   M._bm_select(m, i);
                   var secs = M._bm_duration(m);
                   M._bm_render(m, 48000, 1, one);   // libxmp-lite moves to the subsong's first order as it plays
-                  list.push({ kind: "module", keys: [prefix + rel], sub: i, entry: M._bm_order(m), seq: seq, id: id + "#" + i, seconds: secs, level: entry.level });
+                  var base = { kind: "module", keys: [prefix + rel], sub: i, entry: M._bm_order(m), seq: seq, id: id + "#" + i, seconds: secs, level: entry.level };
+                  var cuts = byId(entry.cuts, base.id);
+                  if (cuts) cutTune(m, base, cuts, fast).forEach(function (k) { list.push(k); });
+                  else list.push(base);
                 }
                 M._free(one);
+                chainTunes(list);
               }
               M._bm_free(m);
               add(rel, list);
@@ -343,21 +414,23 @@ var ByopopMusic = (function () {
         }
         (entry.joined || []).forEach(function (j) {
           steps.push(function () {
-            var listRel = findRel(rels, j.playlist);
-            if (!listRel) return;
-            return read(listRel).then(function (bytes) {
-              if (!bytes) return;
-              var pieces = playlistPieces(new TextDecoder("latin1").decode(bytes)).map(function (w) { return findRel(rels, j.piece.replace("{}", w)); });
+            var listRel = j.playlist ? findRel(rels, j.playlist) : null;
+            if (j.playlist && !listRel) return;
+            return (listRel ? read(listRel) : Promise.resolve(null)).then(function (bytes) {
+              if (listRel && !bytes) return;
+              var pieces = listRel ? playlistPieces(new TextDecoder("latin1").decode(bytes)).map(function (w) { return findRel(rels, j.piece.replace("{}", w)); })
+                : j.pieces.map(function (r) { return findRel(rels, r); });
               if (!pieces.length || pieces.some(function (p) { return !p; })) return;
               var seconds = 0, seen = {};
               return pieces.reduce(function (p, rel) {
                 return p.then(function () {
                   if (seen[rel] !== undefined) { seconds += seen[rel]; return; }
-                  return read(rel).then(function (b) { seen[rel] = b ? oggSeconds(b) : 0; seconds += seen[rel]; });
+                  return read(rel).then(function (b) { seen[rel] = !b ? 0 : isOgg(rel) ? oggSeconds(b) : wavSeconds(b); seconds += seen[rel]; });
                 });
               }, Promise.resolve()).then(function () {
-                var id = baseName(listRel).replace(/ playlist$/i, ""), k = { game: game, kind: "joined", id: id,
-                  keys: pieces.map(function (r) { return prefix + r; }), seconds: seconds, name: (entry.names && entry.names[id]) || id };
+                var id = j.id || baseName(listRel).replace(/ playlist$/i, ""), k = { game: game, kind: "joined", id: id,
+                  keys: pieces.map(function (r) { return prefix + r; }), seconds: seconds, name: (entry.names && entry.names[id]) || id,
+                  loopFrom: j.loopFrom || 0 };
                 placeOf(k, pieces[0]);
                 tunes.push(k);
               });
@@ -827,15 +900,83 @@ var ByopopMusic = (function () {
         free: function () { M._bm_free(m); }
       };
     }
-    // Decoded sound: interleaved stereo at the context's rate
-    function pcmSource(data) {
+    // A module tune of segments (web/soundtracks.js's "cuts" and "chains"): each plays its subsong from order from (or its
+    // start) until it reaches order until (or its end), then the next; with repeat on the first again. The views and the rest
+    // are moduleSource's. Seeking renders unheard from the start (libopenmpt at 8000 Hz, which costs little; libxmp-lite at
+    // the context's rate, as a rate change restarts it).
+    function segSource(m, segs, gain, fast) {
+      var src = moduleSource(m, null, gain, 0), i = 0, done = 0, again = false;
+      function begin(k) {
+        i = k;
+        var sg = segs[k];
+        M._bm_select(m, sg.sub);
+        M._bm_loop(m, 0);
+        if (sg.from !== null) M._bm_set_order(m, sg.from);
+      }
+      // frames at rate into ptr (or a scratch buffer), the segments followed; returns those rendered
+      function render(rate, frames, ptr, marks) {
+        var got = 0, fresh = 0;
+        while (got < frames) {
+          var sg = segs[i];
+          if (sg.until !== null && M._bm_order(m) === sg.until) {
+            if (i + 1 < segs.length) { begin(i + 1); continue; }
+            if (!again || fresh++) break;
+            begin(0); continue;
+          }
+          if (marks) {
+            M._bm_view(m, viewBuf);
+            var w = viewBuf >> 2;
+            marks.push([got, M.HEAP32[w], M.HEAP32[w + 1], M.HEAP32[w + 2], M.HEAP32[w + 3], M.HEAP32[w + 4]]);
+          }
+          var n = Math.min(SLICE, frames - got), g = M._bm_render(m, rate, n, ptr + got * 8);
+          got += g;
+          if (g < n) {
+            if (g === 0 && fresh++ > 1) break;   // nothing more anywhere
+            if (i + 1 < segs.length) begin(i + 1);
+            else if (again) begin(0);
+            else break;
+          } else fresh = 0;
+        }
+        return got;
+      }
+      begin(0);
+      src.repeat = function (on) { again = on; };
+      src.stop = function () {};
+      src.next = function (frames, marks) {
+        if (!viewBuf) viewBuf = M._malloc(20);
+        var out = M._malloc(frames * 8), got = render(ctx.sampleRate, frames, out, marks);
+        var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
+        M._free(out);
+        if (c && gain !== 1) for (var j = 0; j < c.length; j++) c[j] *= gain;
+        if (c) done += got;
+        return c;
+      };
+      src.position = function () { return done / ctx.sampleRate; };
+      src.seek = function (sec) {
+        var rate = fast ? 8000 : ctx.sampleRate, buf = M._malloc(4096 * 8), left = Math.round(sec * rate), keep = again;
+        again = false;
+        begin(0);
+        while (left > 0) {
+          var g = render(rate, Math.min(4096, left), buf, null);
+          if (g <= 0) break;
+          left -= g;
+        }
+        M._free(buf);
+        again = keep;
+        done = Math.round(sec * ctx.sampleRate);
+      };
+      return src;
+    }
+    // Decoded sound: interleaved stereo at the context's rate; with repeat on it starts again at frame loopAt (an intro played
+    // once, then its loop: web/soundtracks.js's "loopFrom")
+    function pcmSource(data, loopAt) {
       var at = 0, again = false, total = data.length >> 1;
       return {
         repeat: function (on) { again = on; },
         next: function (frames) {
           if (at >= total) {
             if (!again || !total) return null;
-            at = 0;
+            at = Math.min(loopAt || 0, total - 1);
           }
           var n = Math.min(frames, total - at), c = data.slice(at * 2, (at + n) * 2);
           at += n;
@@ -898,6 +1039,7 @@ var ByopopMusic = (function () {
       if (t.kind === "module") {
         var m = files[0] ? loadModule(M, files[0]) : 0;
         if (!m) throw new Error("module");
+        if (t.segs) return Promise.resolve(segSource(m, t.segs, levelGain(M, t.level), /\.(mo3|oxm)$/i.test(t.keys[0]) || /\|pe:/.test(t.keys[0])));
         if (!t.range) M._bm_select(m, t.sub);
         var src = moduleSource(m, t.range, levelGain(M, t.level), t.start || 0), end = trimEnd(t, files[0]);
         if (end) src.stop(end);
@@ -912,9 +1054,9 @@ var ByopopMusic = (function () {
       }, Promise.resolve()).then(function () {
         var parts = t.keys.map(function (key) { return decoded[key]; });
         if (parts.some(function (d) { return !d; })) throw new Error("ogg");
-        var all = new Float32Array(parts.reduce(function (n, d) { return n + d.length; }, 0)), at = 0;
-        parts.forEach(function (d) { all.set(d, at); at += d.length; });
-        return pcmSource(all);
+        var all = new Float32Array(parts.reduce(function (n, d) { return n + d.length; }, 0)), at = 0, loopAt = 0;
+        parts.forEach(function (d, i) { if (i === t.loopFrom) loopAt = at >> 1; all.set(d, at); at += d.length; });
+        return pcmSource(all, loopAt);
       });
     }
     // the tracker view wants the decoder's rows: shown, on the screen, and the tune a module's
@@ -1950,7 +2092,7 @@ var ByopopMusic = (function () {
       var v = follow.view, best = -1, bestEntry = -1;
       if (v.kind !== "module" || !(v.orders > 0)) return -1;
       tunes.forEach(function (t, i) {
-        if (t.kind !== "module" || t.game.title !== follow.title || !t.seq || t.seq.length !== v.orders || t.seq[v.order] !== v.pattern) return;
+        if (t.kind !== "module" || t.segs || t.game.title !== follow.title || !t.seq || t.seq.length !== v.orders || t.seq[v.order] !== v.pattern) return;
         if (t.range) { if (v.order >= t.range[0] && v.order <= t.range[1]) { best = i; bestEntry = 1e9; } return; }
         if (t.entry <= v.order && t.entry > bestEntry) { best = i; bestEntry = t.entry; }
       });

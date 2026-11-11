@@ -182,6 +182,19 @@ function protracker() {
   check("places: Title Case", lower.length === 0, lower);
   const unusedPlaced = Object.keys(table).reduce((a, g) => a.concat((table[g].unused || []).filter((k) => (table[g].where || {})[k])), []);
   check("places: no unused tune placed", unusedPlaced.length === 0, unusedPlaced);
+  // every "<file>#<n>@<order>" named anywhere is a piece some cut makes, and no chained part is placed on its own
+  const orphans = [], chained = [];
+  for (const g of Object.keys(table)) {
+    const e = table[g], cuts = e.cuts || {};
+    const keys = Object.keys(e.where || {}).concat(e.unused || [], e.skip || [], Object.keys(e.names || {}));
+    for (const k of keys) {
+      const at = k.lastIndexOf("@");
+      if (at >= 0 && !(cuts[k.slice(0, at)] || []).includes(+k.slice(at + 1))) orphans.push(g + " " + k);
+    }
+    for (const head of Object.keys(e.chains || {})) for (const k of e.chains[head]) if ((e.where || {})[k]) chained.push(g + " " + k);
+  }
+  check("cuts: every piece named is cut", orphans.length === 0, orphans);
+  check("chains: no part placed on its own", chained.length === 0, chained);
   console.log("musictest: " + checks + " checks, " + failed + " failed" + (mo3 ? "" : " (no MO3 staged: libxmp-lite only)"));
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.log("musictest: " + (e && e.stack || e)); process.exit(1); });

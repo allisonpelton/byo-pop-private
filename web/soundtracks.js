@@ -4,7 +4,11 @@
 //   files   the files that are tunes: a module's subsongs are its tunes, an Ogg Vorbis or WAV file is one tune
 //   parts   for a module the game plays in ranges of its orders: {"<file name>": [[first order, last order], ...]}, its tunes
 //           instead of its subsongs
-//   joined  tunes the game joins from pieces by a playlist: [{playlist: "<path>", piece: "<path with {} for the playlist's word>"}]
+//   joined  tunes the game joins from pieces by a playlist: [{playlist: "<path>", piece: "<path with {} for the playlist's word>"}],
+//           or from files in order: [{id: "<name>", pieces: ["<path>", ...], loopFrom: <the piece its loop goes back to>}]
+//   cuts    {"<file name>#<n>": [order, ...]}: a subsong split where the game's code starts a different tune partway
+//           through; each later piece is "<file name>#<n>@<order>" (an order the subsong never reaches: from it to the end)
+//   chains  {"<file name>#<n>": ["<file name>#<m>", ...]}: parts the game only plays as jumps inside one tune, one track
 //   skip    ["<file name>#<n>", ...]: tunes that are not tunes (n counts from 0 in the file's subsongs or parts)
 //   names   {"<file name>#<n>" or "<playlist name>": "<name>"}: plain names, never invented titles and never the game's own text
 //           at length; without one a tune is named after its file
@@ -36,9 +40,9 @@ var ByopopSoundtracks = {
   },
   atomica: {
     files: ["music/*.it"],
-    where: { "atomica#2": "Title Screen", "atomica#3": "Level Theme 1", "atomica#5": "Level Theme 2", "atomica#6": "Main Menu",
+    where: { "atomica#2": "Title Screen", "atomica#3": "Level Theme 1", "atomica#5": "Level Theme 2", "atomica#7": "Main Menu", "atomica#9": "Level Theme 3",
       "atomica#8": "Game Over 1", "atomica#10": "Game Over 2" },
-    unused: ["atomica#1", "atomica#4", "atomica#7", "atomica#9"]
+    unused: ["atomica#1", "atomica#4", "atomica#6"]
   },
   bejeweled: {
     files: ["music/*.s3m"],
@@ -49,25 +53,29 @@ var ByopopSoundtracks = {
   // subsongs are the tunes
   bejeweled2: {
     files: ["music/*.mo3"],
-    where: { "BeyondNetwork#1": "In-Game", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen",
+    cuts: { "BeyondNetwork#1": [122] },
+    where: { "BeyondNetwork#1": "Classic Mode", "BeyondNetwork#1@122": "Action Mode", "BeyondNetwork#2": "Main Menu", "BeyondNetwork#5": "Title Screen",
       "BeyondNetwork#6": "Finale" },
     unused: ["BeyondNetwork#3", "BeyondNetwork#4", "BeyondNetwork#7"]
   },
   bejeweledtwist: {
     files: ["music/*.mo3"],
+    cuts: { "bejewel twist 06.10#3": [72], "bejewel twist 06.10#7": [73], "bejeweledtwist24#0": [24] },
+    skip: ["bejewel twist 06.10#3@72"],
     where: { "bejewel twist 06.10#0": "In-Game 1", "bejewel twist 06.10#1": "In-Game 2", "bejewel twist 06.10#2": "In-Game 3",
-      "bejewel twist 06.10#6": "In-Game 4", "bejewel twist 06.10#8": "In-Game 5", "bejewel twist 06.10#7": "Loading",
+      "bejewel twist 06.10#6": "In-Game 4", "bejewel twist 06.10#7@73": "In-Game 5", "bejewel twist 06.10#8": "In-Game 6", "bejewel twist 06.10#7": "Loading",
       "bejewel twist 06.10#3": "Game Over", "bejewel twist 06.10#4": "Victory", "bejewel twist 06.10#5": "Main Menu",
-      "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
+      "bejeweledtwist24#0": "Blitz", "bejeweledtwist24#0@24": "Blitz 3 Minutes", "bejeweledtwist24#1": "Blitz Results 1", "bejeweledtwist24#2": "Blitz Results 2",
       "bejeweledtwist24#3": "Blitz Results 3", "bejeweledtwist24#4": "Challenge Menu", "bejeweledtwist24#5": "Challenge 1",
       "bejeweledtwist24#6": "Challenge 2", "bejeweledtwist24#7": "Bonus" },
     unused: ["bejewel twist 06.10#10", "bejewel twist 06.10#13", "bejeweledtwist24#8"]
   },
   bigmoney: {
     files: ["music/*.it"],
-    where: { "QualityTime_BigMoney#0": "Puzzle Mode", "QualityTime_BigMoney#1": "Puzzle Level Up",
-      "QualityTime_BigMoney#2": "Action Mode", "QualityTime_BigMoney#3": "Action Level Up",
-      "QualityTime_BigMoney#4": "Strategy Mode", "QualityTime_BigMoney#5": "Strategy Level Up",
+    cuts: { "QualityTime_BigMoney#1": [24], "QualityTime_BigMoney#3": [41], "QualityTime_BigMoney#5": [64] },
+    where: { "QualityTime_BigMoney#0": "Puzzle Mode", "QualityTime_BigMoney#1": "Puzzle Level Up", "QualityTime_BigMoney#1@24": "Puzzle Pause",
+      "QualityTime_BigMoney#2": "Action Mode", "QualityTime_BigMoney#3": "Action Level Up", "QualityTime_BigMoney#3@41": "Action Pause",
+      "QualityTime_BigMoney#4": "Strategy Mode", "QualityTime_BigMoney#5": "Strategy Level Up", "QualityTime_BigMoney#5@64": "Strategy Pause",
       "QualityTime_BigMoney#6": "Game Over", "QualityTime_BigMoney#7": "Title Screen" }
   },
   bookworm: {
@@ -98,54 +106,59 @@ var ByopopSoundtracks = {
   },
   dynomite: {
     files: ["music/*.it"],
+    cuts: { "amazonas#2": [64] },
     where: { "amazonas#0": "Classic Mode", "amazonas#1": "Title Screen", "amazonas#2": "Game Over", "amazonas#4": "Stage Clear",
-      "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#7": "Panic", "amazonas#8": "Fossil Mode",
+      "amazonas#5": "Game Start", "amazonas#6": "Time Trial", "amazonas#2@64": "Fossil Ending", "amazonas#7": "Panic", "amazonas#8": "Fossil Mode",
       "omniphilia#0": "Stomped" },
     unused: ["amazonas#3"]
   },
   sevenseas: {
     files: ["music/*.it"],
     where: { "game#0": "In-Game", "game#1": "Level Complete", "game#2": "Game Over", "game#3": "Treasure Bonus",
-      "game#4": "Bonus End", "game#5": "Tutorial", "game#6": "Tutorial End", "game#7": "Intro", "game#8": "High Scores",
+      "game#4": "Bonus End", "game#5": "Tutorial", "game#6": "Title Screen", "game#7": "Intro", "game#8": "High Scores",
       "game#9": "Bonus Level" },
     unused: ["game#10"]
   },
   // Typer Shark's one module (wordshar.mo3) holds every tune, which the game starts at an order of it (ChangeMusic); its subsongs stand for them
   typershark: {
     files: ["music/*.mo3"],
-    where: { "wordshar#0": "In-Game", "wordshar#1": "Main Menu", "wordshar#2": "Game Over", "wordshar#3": "Level Complete",
+    cuts: { "wordshar#1": [20] },
+    where: { "wordshar#0": "In-Game", "wordshar#1": "Main Menu", "wordshar#1@20": "Map", "wordshar#2": "Game Over", "wordshar#3": "Level Complete",
       "wordshar#4": "Danger 1", "wordshar#6": "Danger 2" }
   },
   mummymaze: {
     files: ["music/*.it"],
+    cuts: { "game#9": [67], "game#10": [77] },
     where: { "game#0": "Main Menu", "game#1": "Tutorial", "game#2": "In-Game", "game#3": "Stage Clear",
-      "game#5": "Chamber End 1", "game#6": "Chamber End 2", "game#7": "Victory", "game#9": "Map", "game#10": "High Scores" }
+      "game#5": "Chamber End 1", "game#6": "Chamber End 2", "game#7": "Victory", "game#9@67": "Map", "game#10@77": "High Scores" },
+    unused: ["game#10"]
   },
   // tunes inside the games' own files: the Mahjong Escapes keep their MO3 modules among Resource.dll's resources (the game's
   // module, 339, starts at one of two orders by the player's progress and jumps to others while gold tiles are in play), Ning
   // Po its one music stream in its Python archive
   mahjongchina: {
     inside: [{ file: "resource.dll", magic: "MO3" }],
+    chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
     where: { "Resource 335#0": "Main Menu", "Resource 336#0": "Layout Select 1", "Resource 337#0": "Layout Select 2",
-      "Resource 338#0": "Layout Select 3", "Resource 339#0": "In-Game 1", "Resource 339#1": "Gold Tiles Free",
-      "Resource 339#2": "Gold Tiles Matched", "Resource 339#3": "In-Game 2" }
+      "Resource 338#0": "Layout Select 3", "Resource 339#0": "In-Game" }
   },
   mahjongjapan: {
     inside: [{ file: "resource.dll", magic: "MO3" }],
+    chains: { "Resource 339#0": ["Resource 339#1", "Resource 339#2", "Resource 339#3"] },
     where: { "Resource 335#0": "Main Menu", "Resource 337#0": "Layout Select 1", "Resource 336#0": "Layout Select 2",
-      "Resource 339#0": "In-Game 1", "Resource 339#1": "Gold Tiles Free", "Resource 339#2": "Gold Tiles Matched",
-      "Resource 339#3": "In-Game 2" }
+      "Resource 339#0": "In-Game" }
   },
   // Word Harmony's music is made as it plays, from WAV clips: the menu's loop, and in the rising-water mode one drum track
-  // stepping through the intense pieces as the water rises (which piece goes with which height is not known); its other modes
-  // pick single instrument samples at random, which are not tunes and are left out, as is intense-levelend (a sound)
+  // stepping through the intense pieces as the water rises, intense-between its bridge from each to the next (which piece goes
+  // with which height is not known), here as one tune, each piece once; its other modes pick single instrument samples at
+  // random, which are not tunes and are left out, as is intense-levelend (a sound)
   wordharmony: {
-    files: ["res/music/menuMusic.wav", "res/music/intense0.wav", "res/music/intense1.wav", "res/music/intense1b.wav",
-      "res/music/intense2.wav", "res/music/intense3.wav", "res/music/intense4.wav", "res/music/intense5.wav",
-      "res/music/intense6.wav", "res/music/intense-between.wav", "res/music/intenseEnd.wav"],
-    where: { menuMusic: "Main Menu", intense0: "Rising Water 1", intense1: "Rising Water 2", intense1b: "Rising Water 3",
-      intense2: "Rising Water 4", intense3: "Rising Water 5", intense4: "Rising Water 6", intense5: "Rising Water 7",
-      intense6: "Rising Water 8", "intense-between": "Rising Water Bridge" }
+    files: ["res/music/menuMusic.wav", "res/music/intenseEnd.wav"],
+    joined: [{ id: "intense", pieces: ["res/music/intense0.wav", "res/music/intense-between.wav", "res/music/intense1.wav",
+      "res/music/intense-between.wav", "res/music/intense1b.wav", "res/music/intense-between.wav", "res/music/intense2.wav",
+      "res/music/intense-between.wav", "res/music/intense3.wav", "res/music/intense-between.wav", "res/music/intense4.wav",
+      "res/music/intense-between.wav", "res/music/intense5.wav", "res/music/intense-between.wav", "res/music/intense6.wav"] }],
+    where: { menuMusic: "Main Menu", intense: "Rising Water" }
   },
   ningpo: { inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg"] }], where: { theme_np: "In-Game" } },
   // the Ogg games
@@ -155,10 +168,11 @@ var ByopopSoundtracks = {
       fairy_tale_map: "Fairy Tale Map", fairy_tale_level: "Fairy Tale Levels", fairy_tale_boss: "Fairy Tale Boss",
       scifi_map: "Sci-Fi Map", scifi_level: "Sci-Fi Levels", scifi_boss: "Sci-Fi Boss", dance_battle_level: "Dance Battle" }
   },
-  // Noah's Ark: mainintro plays once as play starts and runs on into mainloop
+  // Noah's Ark: mainintro plays once as play starts and runs on into mainloop, which loops: one tune, repeating from the loop
   noahsark: {
-    files: ["music/mainintro.ogg", "music/mainloop.ogg", "music/loading.ogg", "music/gameover.ogg"],
-    where: { mainintro: "In-Game Intro", mainloop: "In-Game", loading: "Title Screen", gameover: "Game Over" }
+    files: ["music/loading.ogg", "music/gameover.ogg"],
+    joined: [{ id: "mainloop", pieces: ["music/mainintro.ogg", "music/mainloop.ogg"], loopFrom: 1 }],
+    where: { mainloop: "In-Game", loading: "Title Screen", gameover: "Game Over" }
   },
   // Bonnie's Bookstore plays its one module as tracks, each a range of orders (its track table, games/bonnies/game/Music.cpp:
   // the first for the menu, the rest in a game), and a logo tune

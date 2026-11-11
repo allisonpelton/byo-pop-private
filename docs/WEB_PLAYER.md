@@ -766,11 +766,20 @@ stings), and an Ogg Vorbis or WAV file is one tune. An entry may also have:
   reaches them, else the file's; the user, 2026-11-11: "Rip style please!"). It comes from the game's session reading
   its code, or from the file names of an Ogg game whose files are named for their places.
 - `unused`: the tunes the game's code never plays.
+- `cuts` and `chains`: tracks split and grouped as the game really plays them (the user, 2026-11-11: "Group and
+  split"). `cuts: {"<file>#<n>": [order, ...]}` splits a subsong where the game's code starts a different tune
+  partway through it; the second piece is `"<file>#<n>@<order>"` (Big Money's level-up jingles and each mode's pause
+  music, Twist's loading tune and in-game tune 5). A cut order that the subsong never reaches becomes a tune from that
+  order to the end. `chains: {"<file>#<n>": ["<file>#<m>", ...]}` makes one track of parts that the game only ever
+  plays as jumps inside one tune (the Mahjong Escapes' game tune and its gold-tile jumps). Both play as segments of
+  orders, each timed by rendering it unheard.
+- `joined` with `pieces` (and an `id`) instead of a playlist: files played one after another as one track,
+  `loopFrom` the piece its loop goes back to (Noah's Ark's intro, then its loop).
 
 A WAV file is one tune too, decoded by the browser like an Ogg file and timed from its header. Word Harmony makes its
 music as it plays: the menu loops one WAV, and its rising-water mode steps a drum track through short pieces as the
-water rises. Those are its tunes, each placed only as far as its code says ("Rising Water 1" to 8 in the order the
-drum track steps through them, with no height). The single instrument samples its other modes pick at random are not
+water rises, with one bridge between each. That is one track, "Rising Water", made of its pieces in the order the drum
+track steps through them, with no height. The single instrument samples its other modes pick at random are not
 tunes and are not listed. `tools/musictest.js` checks that every place in `web/soundtracks.js` is at most 20
 characters.
 
