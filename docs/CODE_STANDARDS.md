@@ -57,6 +57,8 @@ Two things hold above every rule:
   nonzero when any object differs. For many renames at once, rename the declarations, compile with `-fsyntax-only`,
   and replace the old name exactly where the compiler reports it missing, so that classes sharing a name are never
   confused.
+- A whole-word rename also reaches quoted strings and log lines, which the object-code comparison does not show:
+  check separately that no string of the sources changed.
 - The coverage check reads rule 6's addresses (`docs/COVERAGE.md`).
 
 Each game's notes record what its pass changed.
