@@ -171,7 +171,7 @@ constructor does clear).
 - **galaxy.xml's case mismatch**: one file name is "26. green right.bpz" where the file is "26. Green right.bpz" (Windows
   does not care).
 - **PuzzleStateOverlay::DrawFront** draws the unlit pods picture on `g` (colorize off) while it sets the alpha on a copy of
-  the Graphics, so the alpha does not apply. The port repeats it (the fixes mod's `podFade` mends it).
+  the Graphics, so the alpha does not apply. The port repeats it (the fixes mod's `podFade` mends it, off by default).
 - **NewBoard reads freed gems** (0x597efd): it frees the 64 gems of the old board without clearing their pointers and
   then makes the new gems one square at a time, asking HasSet after every colour it draws, so HasSet looks at the
   freed gems of the squares that are not made yet. Their memory holds what the allocator left there. The port clears
@@ -257,22 +257,25 @@ constructor does clear).
 
 ## The fixes mod and the fix candidates
 
-`mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, on by default on the
-site, off when a test must play as the original does (`-nomods`, or no mods folder). The port reads a toggle with `FixEnabled("<id>")`
+`mods/fixes/mod.json` is the one mod `fixes` (`docs/MOD_ROADMAP.md`, "The fixes mod"): a toggle for each fix, at its default on the
+site, all off when a test must play as the original does (`-nomods`, or no mods folder). A fix starts on unless the original's
+behaviour looks intended and is not widely known as a bug (the user, 2026-11-11: "Off by default for functionality that seems
+intended but where the bug is not well known to be a bug"; `docs/MOD_ROADMAP.md`, "The fixes mod"): `tunnelEdge` starts on, `podFade` off. The port reads a toggle with `FixEnabled("<id>")`
 (`Fixes.h`, the mod manager's live value), so the original's behaviour stays in the code as it was and each fix is one branch.
 Before it the port loaded no mods at all: `main.cpp` now sets the mods folder (`-modsdir=<dir>`, by default `mods-bejeweled2` beside
 the exe, `/bej2persist/mods` on the web) and reads it unless `-nomods` is given; the framework's mod menu (F2) and the site's page
 (which installs the shipped `bejeweled2-fixes/` on) do the rest, as for every game that loads mods.
 
-| Toggle | The fault in the original | What the fix does |
+| Toggle (default) | The fault in the original | What the fix does |
 | --- | --- | --- |
-| `tunnelEdge` | The 3D hyperspace tunnel's triangles are drawn one pixel to the right of their points: the original's drawing routine takes the one that stands for "blend" for the distance to move the vertices in x (`Hyperspace::Draw3dPortal`, 0x5c620e). | The tunnel is drawn with no shift. Three quarters of a tunnel frame's pixels change (591 thousand of 786 thousand at update 1902), since the whole tunnel moves a pixel. |
-| `podFade` | `PuzzleStateOverlay::DrawFront` (0x5d2004) sets the alpha of an unlit pod's picture on a copy of the Graphics and draws that picture with the Graphics whose colorizing is off, so the picture never fades: the lit one fades in over an unlit one that stays fully drawn. | The unlit picture is drawn with the copy, so it fades out as the lit one fades in. Over the 250 updates of a pod lighting (puzzle solved) the pod dips darker, the dome's dark backdrop showing through, then ends as the original's does. |
+| `tunnelEdge` (on) | The 3D hyperspace tunnel's triangles are drawn one pixel to the right of their points: the original's drawing routine takes the one that stands for "blend" for the distance to move the vertices in x (`Hyperspace::Draw3dPortal`, 0x5c620e). | The tunnel is drawn with no shift. Three quarters of a tunnel frame's pixels change (591 thousand of 786 thousand at update 1902), since the whole tunnel moves a pixel. |
+| `podFade` (off) | `PuzzleStateOverlay::DrawFront` (0x5d2004) sets the alpha of an unlit pod's picture on a copy of the Graphics and draws that picture with the Graphics whose colorizing is off, so the picture never fades: the lit one fades in over an unlit one that stays fully drawn. | The unlit picture is drawn with the copy, so it fades out as the lit one fades in. Over the 250 updates of a pod lighting (puzzle solved) the pod dips darker, the dome's dark backdrop showing through, then ends as the original's does. |
 
 `tools/fixes_check.sh` plays a Hyper tour (the tunnel is on screen from the board's state 10 to the new board's, 310 updates here) and
-a Puzzle tour (a solved puzzle lights its pod) in 3D under `-fast -drawevery` with the same seed, with the mod absent (`-nomods`), on,
-all toggles off, and all on but one, and compares the shots and the board's trace: in all of them the trace is the original's (15,060
-lines in the Hyper tour, 2,583 in the Puzzle tour), the shots with every toggle off are the original's, `tunnelEdge` changes the six
+a Puzzle tour (a solved puzzle lights its pod) in 3D under `-fast -drawevery` with the same seed, with the mod absent (`-nomods`), at its
+defaults, all toggles on, all off, and all on but one, and compares the shots and the board's trace: in all of them the trace is the
+original's (15,060 lines in the Hyper tour, 2,583 in the Puzzle tour), the shots with every toggle off are the original's, the shots at
+the defaults are those of all on in the Hyper tour (`tunnelEdge` is on) and those of all off in the Puzzle tour (`podFade` is off), `tunnelEdge` changes the six
 shots along the tunnel (updates 1822 to 2022) and `podFade` the three shots of the pod's fade (1594 to 1674), by 4,000 pixels each, inside
 the pod's 83 by 69 box. With every toggle off the port is the original (`tools/check.sh bejeweled2`, with no mods folder, plays as before).
 
@@ -287,4 +290,5 @@ updates in the Hyper tour, each ending in a screen the player plays on), so no t
 runs a star's angle below zero, which is only drawn, so nothing shows; the star lines of Hyperspace's 2D jump depend on the
 screen's width, which is a difference between two sizes and not a fault of either; and the two above are the only ones with
 a picture to mend. `podFade` is the judgment call of the two: it mends what the code plainly meant, but it changes how a pod looks
-for a moment, so a user who prefers the original's look turns it off, or drops it.
+for a moment, and the original's look may be taken as intended, so it starts off (the rule above) and a user who wants the fade
+turns it on.
