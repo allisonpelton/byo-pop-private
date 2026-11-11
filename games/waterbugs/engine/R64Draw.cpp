@@ -13,7 +13,7 @@ namespace
 
 DrawItem gDrawItems[2000];        // 0x6e6540
 int gDrawCount = 0;               // 0x707880
-const int kScreenClip[4] = {0, 0, 0x31f, 0x257}; // 0x460010
+const int SCREEN_CLIP[4] = {0, 0, 0x31f, 0x257}; // 0x460010
 
 // 0x421670: the comb sort's next gap
 int CombGap(int theGap)
@@ -31,47 +31,47 @@ int CombGap(int theGap)
 // 0x421530
 int CompareDepth(const void* a, const void* b)
 {
-	return ((const DrawItem*)a)->depth > ((const DrawItem*)b)->depth ? 1 : -1;
+	return ((const DrawItem*)a)->mDepth > ((const DrawItem*)b)->mDepth ? 1 : -1;
 }
 
-void SwapBytes(uint8_t* a, uint8_t* b, size_t theWidth)
+void SwapBytes(uint8_t* theFirst, uint8_t* theSecond, size_t theWidth)
 {
-	if (a != b)
+	if (theFirst != theSecond)
 	{
 		size_t n = theWidth;
 		do
 		{
-			uint8_t t = *a;
-			*a = *b;
-			*b = t;
-			a++;
-			b++;
+			uint8_t t = *theFirst;
+			*theFirst = *theSecond;
+			*theSecond = t;
+			theFirst++;
+			theSecond++;
 			n--;
 		} while (n != 0);
 	}
 }
 
 // 0x445000
-void ShortSort(uint8_t* lo, uint8_t* hi, size_t theWidth, int (*theCompare)(const void*, const void*))
+void ShortSort(uint8_t* theLo, uint8_t* theHi, size_t theWidth, int (*theCompare)(const void*, const void*))
 {
-	for (; lo < hi; hi -= theWidth)
+	for (; theLo < theHi; theHi -= theWidth)
 	{
-		uint8_t* aMax = lo;
-		for (uint8_t* p = lo + theWidth; p <= hi; p += theWidth)
+		uint8_t* aMax = theLo;
+		for (uint8_t* p = theLo + theWidth; p <= theHi; p += theWidth)
 		{
 			if (theCompare(p, aMax) > 0)
 				aMax = p;
 		}
-		if (aMax != hi && theWidth != 0)
-			SwapBytes(aMax, hi, theWidth);
+		if (aMax != theHi && theWidth != 0)
+			SwapBytes(aMax, theHi, theWidth);
 	}
 }
 
 inline uint32_t PackColour(const PixelFormat* f, int r, int g, int b)
 {
-	return (uint32_t)((uint8_t)b >> (f->bLoss & 0x1f)) << (f->bShift & 0x1f) |
-		(uint32_t)((uint8_t)g >> (f->gLoss & 0x1f)) << (f->gShift & 0x1f) |
-		(uint32_t)((uint8_t)r >> (f->rLoss & 0x1f)) << (f->rShift & 0x1f);
+	return (uint32_t)((uint8_t)b >> (f->mBLoss & 0x1f)) << (f->mBShift & 0x1f) |
+		(uint32_t)((uint8_t)g >> (f->mGLoss & 0x1f)) << (f->mGShift & 0x1f) |
+		(uint32_t)((uint8_t)r >> (f->mRLoss & 0x1f)) << (f->mRShift & 0x1f);
 }
 
 } // namespace
@@ -84,90 +84,90 @@ void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(c
 	uint8_t* aLoStack[30];
 	uint8_t* aHiStack[30];
 	int aTop = 0;
-	uint8_t* lo = (uint8_t*)theBase;
-	uint8_t* hi = (uint8_t*)theBase + (theNum - 1) * theWidth;
+	uint8_t* aLo = (uint8_t*)theBase;
+	uint8_t* aHi = (uint8_t*)theBase + (theNum - 1) * theWidth;
 	while (true)
 	{
-		size_t aSize = (size_t)(hi - lo) / theWidth + 1;
+		size_t aSize = (size_t)(aHi - aLo) / theWidth + 1;
 		if (aSize <= 8)
-			ShortSort(lo, hi, theWidth, theCompare);
+			ShortSort(aLo, aHi, theWidth, theCompare);
 		else
 		{
-			uint8_t* mid = lo + (aSize / 2) * theWidth;
-			if (theCompare(lo, mid) > 0)
-				SwapBytes(lo, mid, theWidth);
-			if (theCompare(lo, hi) > 0)
-				SwapBytes(lo, hi, theWidth);
-			if (theCompare(mid, hi) > 0)
-				SwapBytes(mid, hi, theWidth);
-			uint8_t* aLoGuy = lo;
-			uint8_t* aHiGuy = hi;
+			uint8_t* aMid = aLo + (aSize / 2) * theWidth;
+			if (theCompare(aLo, aMid) > 0)
+				SwapBytes(aLo, aMid, theWidth);
+			if (theCompare(aLo, aHi) > 0)
+				SwapBytes(aLo, aHi, theWidth);
+			if (theCompare(aMid, aHi) > 0)
+				SwapBytes(aMid, aHi, theWidth);
+			uint8_t* aLoGuy = aLo;
+			uint8_t* aHiGuy = aHi;
 			while (true)
 			{
-				if (mid > aLoGuy)
+				if (aMid > aLoGuy)
 				{
 					do
 					{
 						aLoGuy += theWidth;
-					} while (aLoGuy < mid && theCompare(aLoGuy, mid) <= 0);
+					} while (aLoGuy < aMid && theCompare(aLoGuy, aMid) <= 0);
 				}
-				if (mid <= aLoGuy)
+				if (aMid <= aLoGuy)
 				{
 					do
 					{
 						aLoGuy += theWidth;
-					} while (aLoGuy <= hi && theCompare(aLoGuy, mid) <= 0);
+					} while (aLoGuy <= aHi && theCompare(aLoGuy, aMid) <= 0);
 				}
 				do
 				{
 					aHiGuy -= theWidth;
-				} while (aHiGuy > mid && theCompare(aHiGuy, mid) > 0);
+				} while (aHiGuy > aMid && theCompare(aHiGuy, aMid) > 0);
 				if (aHiGuy < aLoGuy)
 					break;
 				SwapBytes(aLoGuy, aHiGuy, theWidth);
-				if (mid == aHiGuy)
-					mid = aLoGuy;
+				if (aMid == aHiGuy)
+					aMid = aLoGuy;
 			}
 			aHiGuy += theWidth;
-			if (mid < aHiGuy)
+			if (aMid < aHiGuy)
 			{
 				do
 				{
 					aHiGuy -= theWidth;
-				} while (aHiGuy > mid && theCompare(aHiGuy, mid) == 0);
+				} while (aHiGuy > aMid && theCompare(aHiGuy, aMid) == 0);
 			}
-			if (mid >= aHiGuy)
+			if (aMid >= aHiGuy)
 			{
 				do
 				{
 					aHiGuy -= theWidth;
-				} while (aHiGuy > lo && theCompare(aHiGuy, mid) == 0);
+				} while (aHiGuy > aLo && theCompare(aHiGuy, aMid) == 0);
 			}
-			if (aHiGuy - lo >= hi - aLoGuy)
+			if (aHiGuy - aLo >= aHi - aLoGuy)
 			{
-				if (lo < aHiGuy)
+				if (aLo < aHiGuy)
 				{
-					aLoStack[aTop] = lo;
+					aLoStack[aTop] = aLo;
 					aHiStack[aTop] = aHiGuy;
 					aTop++;
 				}
-				if (aLoGuy < hi)
+				if (aLoGuy < aHi)
 				{
-					lo = aLoGuy;
+					aLo = aLoGuy;
 					continue;
 				}
 			}
 			else
 			{
-				if (aLoGuy < hi)
+				if (aLoGuy < aHi)
 				{
 					aLoStack[aTop] = aLoGuy;
-					aHiStack[aTop] = hi;
+					aHiStack[aTop] = aHi;
 					aTop++;
 				}
-				if (lo < aHiGuy)
+				if (aLo < aHiGuy)
 				{
-					hi = aHiGuy;
+					aHi = aHiGuy;
 					continue;
 				}
 			}
@@ -175,36 +175,36 @@ void CrtQsort(void* theBase, size_t theNum, size_t theWidth, int (*theCompare)(c
 		aTop--;
 		if (aTop < 0)
 			return;
-		lo = aLoStack[aTop];
-		hi = aHiStack[aTop];
+		aLo = aLoStack[aTop];
+		aHi = aHiStack[aTop];
 	}
 }
 
 // 0x421550
 void DrawList_Add(Image* theImage, uint32_t theSeq, int x, int y, int theDepth, int theKind, uint8_t* theDst,
-	int theDPitch, int r, int g, int b, int theAlpha, Palette* thePalette, const int* theClip)
+	int theDPitch, int theRed, int theGreen, int theBlue, int theAlpha, Palette* thePalette, const int* theClip)
 {
 	if (gDrawCount < 2000)
 	{
 		DrawItem& anItem = gDrawItems[gDrawCount];
-		anItem.image = theImage;
-		anItem.seq = theSeq;
-		anItem.x = x;
-		anItem.y = y;
-		anItem.depth = theDepth;
-		anItem.kind = theKind;
-		anItem.dst = theDst;
-		anItem.dpitch = theDPitch;
-		anItem.r = r;
-		anItem.g = g;
-		anItem.b = b;
-		anItem.alpha = theAlpha;
-		anItem.palette = thePalette;
-		const int* aClip = theClip != nullptr ? theClip : kScreenClip;
-		anItem.clip[0] = aClip[0];
-		anItem.clip[1] = aClip[1];
-		anItem.clip[2] = aClip[2];
-		anItem.clip[3] = aClip[3];
+		anItem.mImage = theImage;
+		anItem.mSeq = theSeq;
+		anItem.mX = x;
+		anItem.mY = y;
+		anItem.mDepth = theDepth;
+		anItem.mKind = theKind;
+		anItem.mDst = theDst;
+		anItem.mDstPitch = theDPitch;
+		anItem.mR = theRed;
+		anItem.mG = theGreen;
+		anItem.mB = theBlue;
+		anItem.mAlpha = theAlpha;
+		anItem.mPalette = thePalette;
+		const int* aClip = theClip != nullptr ? theClip : SCREEN_CLIP;
+		anItem.mClip[0] = aClip[0];
+		anItem.mClip[1] = aClip[1];
+		anItem.mClip[2] = aClip[2];
+		anItem.mClip[3] = aClip[3];
 		gDrawCount = gDrawCount + 1;
 	}
 }
@@ -223,19 +223,19 @@ void DrawList_Flush()
 		aSwapped = false;
 		if (0 < k)
 		{
-			DrawItem* a = &gDrawItems[0];
+			DrawItem* anItem = &gDrawItems[0];
 			DrawItem* b = &gDrawItems[aGap];
 			do
 			{
-				if (b->depth < a->depth || (a->depth == b->depth && b->seq < a->seq))
+				if (b->mDepth < anItem->mDepth || (anItem->mDepth == b->mDepth && b->mSeq < anItem->mSeq))
 				{
-					DrawItem t = *a;
-					*a = *b;
+					DrawItem t = *anItem;
+					*anItem = *b;
 					*b = t;
 					aSwapped = true;
 				}
 				b++;
-				a++;
+				anItem++;
 				k--;
 				aNum = gDrawCount;
 			} while (k != 0);
@@ -248,39 +248,41 @@ void DrawList_Flush()
 		gDrawCount = 0;
 		return;
 	}
-	const PixelFormat* f = Sys_ScreenFormat();
+	const PixelFormat* aFormat = Sys_ScreenFormat();
 	do
 	{
-		DrawItem& it = gDrawItems[i];
-		Palette* aSaved = it.image->palette;
-		it.image->palette = it.palette;
-		switch (it.kind)
+		DrawItem& anIt = gDrawItems[i];
+		Palette* aSaved = anIt.mImage->mPalette;
+		anIt.mImage->mPalette = anIt.mPalette;
+		switch (anIt.mKind)
 		{
 		case 0:
-			Image_Blit(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y);
+			Image_Blit(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY);
 			break;
 		case 1:
-			Image_BlitAlpha(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y);
+			Image_BlitAlpha(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY);
 			break;
 		case 2:
-			Image_BlitBlend(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y);
+			Image_BlitBlend(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY);
 			break;
 		case 3:
-			Image_BlitFill(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y, PackColour(f, it.r, it.g, it.b));
+			Image_BlitFill(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY,
+				PackColour(aFormat, anIt.mR, anIt.mG, anIt.mB));
 			break;
 		case 4:
-			Image_BlitAlphaFade(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y, (uint32_t)it.alpha);
+			Image_BlitAlphaFade(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY,
+				(uint32_t)anIt.mAlpha);
 			break;
 		case 5:
-			Image_BlitFillAlpha(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y, PackColour(f, it.r, it.g, it.b),
-				(uint32_t)(uint8_t)it.alpha);
+			Image_BlitFillAlpha(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY,
+				PackColour(aFormat, anIt.mR, anIt.mG, anIt.mB), (uint32_t)(uint8_t)anIt.mAlpha);
 			break;
 		case 6:
-			Image_BlitAdd(it.image, it.dst, it.dpitch, f, it.clip, it.x, it.y);
+			Image_BlitAdd(anIt.mImage, anIt.mDst, anIt.mDstPitch, aFormat, anIt.mClip, anIt.mX, anIt.mY);
 			break;
 		}
 		i++;
-		it.image->palette = aSaved;
+		anIt.mImage->mPalette = aSaved;
 	} while (i < gDrawCount);
 	gDrawCount = 0;
 }
@@ -294,16 +296,16 @@ void DrawList_Clear()
 // 0x422030
 Dirty::Dirty()
 {
-	cells = nullptr;
-	mode = 0;
-	maxRects = 400;
-	cellW = 800;
-	cellH = 600;
-	cols = 1;
-	rows = 1;
-	source = nullptr;
-	srcRect[0] = srcRect[1] = srcRect[2] = srcRect[3] = 0;
-	bytesPerPixel = 0;
+	mCells = nullptr;
+	mMode = 0;
+	mMaxRects = 400;
+	mCellW = SCREEN_WIDTH;
+	mCellH = SCREEN_HEIGHT;
+	mCols = 1;
+	mRows = 1;
+	mSource = nullptr;
+	mSrcRect[0] = mSrcRect[1] = mSrcRect[2] = mSrcRect[3] = 0;
+	mBytesPerPixel = 0;
 }
 
 Dirty::~Dirty()
@@ -314,152 +316,153 @@ Dirty::~Dirty()
 // 0x421990
 void Dirty_Free(Dirty* theDirty)
 {
-	if (theDirty->cells != nullptr)
+	if (theDirty->mCells != nullptr)
 	{
 		int i = 0;
-		if (0 < theDirty->rows * theDirty->cols)
+		if (0 < theDirty->mRows * theDirty->mCols)
 		{
 			do
 			{
-				std::free(theDirty->cells[i].rects);
+				std::free(theDirty->mCells[i].mRects);
 				i++;
-			} while (i < theDirty->rows * theDirty->cols);
+			} while (i < theDirty->mRows * theDirty->mCols);
 		}
-		std::free(theDirty->cells);
-		theDirty->cells = nullptr;
+		std::free(theDirty->mCells);
+		theDirty->mCells = nullptr;
 	}
 }
 
 // 0x4219e0
 void Dirty_Init(Dirty* theDirty, int theCellW, int theCellH, int theMaxRects, int theMode)
 {
-	theDirty->mode = theMode;
-	theDirty->maxRects = theMaxRects;
-	theDirty->cellH = theCellH;
-	theDirty->cellW = theCellW;
-	theDirty->cols = 800 / theCellW;
-	theDirty->rows = 600 / theCellH;
+	theDirty->mMode = theMode;
+	theDirty->mMaxRects = theMaxRects;
+	theDirty->mCellH = theCellH;
+	theDirty->mCellW = theCellW;
+	theDirty->mCols = SCREEN_WIDTH / theCellW;
+	theDirty->mRows = 600 / theCellH;
 }
 
 // 0x421a20: the rectangle's part in each cell it touches. A cell full of rectangles becomes one rectangle of the
 // whole cell, and the rest of that row of cells is skipped, as in the original.
-void Dirty_AddRect(Dirty* theDirty, int x, int y, int w, int h)
+void Dirty_AddRect(Dirty* theDirty, int x, int y, int theWidth, int theHeight)
 {
-	int aRow = y / theDirty->cellH;
-	int aBottomEdge = h + y;
-	if (aRow <= aBottomEdge / theDirty->cellH)
+	int aRow = y / theDirty->mCellH;
+	int aBottomEdge = theHeight + y;
+	if (aRow <= aBottomEdge / theDirty->mCellH)
 	{
 		do
 		{
-			if (theDirty->rows <= aRow)
+			if (theDirty->mRows <= aRow)
 				return;
-			int aCellW = theDirty->cellW;
+			int aCellW = theDirty->mCellW;
 			int aCol = x / aCellW;
-			int aRightEdge = w + x;
+			int aRightEdge = theWidth + x;
 			int aNextCol = aCol;
 			if (aCol <= aRightEdge / aCellW)
 			{
 				do
 				{
 					aNextCol = aNextCol + 1;
-					if (theDirty->cols <= aCol)
+					if (theDirty->mCols <= aCol)
 						break;
-					int l = x;
+					int aLeft = x;
 					if (x <= aCellW * aCol)
-						l = aCellW * aCol;
-					int t = y;
-					if (y <= theDirty->cellH * aRow)
-						t = theDirty->cellH * aRow;
-					int r = aRightEdge + -1;
-					if (theDirty->cellW * aNextCol + -1 <= r)
-						r = theDirty->cellW * aNextCol + -1;
-					int b = aBottomEdge + -1;
-					if (theDirty->cellH * (aRow + 1) + -1 <= b)
-						b = theDirty->cellH * (aRow + 1) + -1;
-					Dirty::Cell& aCell = theDirty->cells[theDirty->cols * aRow + aCol];
-					if (theDirty->mode == 1)
+						aLeft = aCellW * aCol;
+					int aTop = y;
+					if (y <= theDirty->mCellH * aRow)
+						aTop = theDirty->mCellH * aRow;
+					int aRight = aRightEdge + -1;
+					if (theDirty->mCellW * aNextCol + -1 <= aRight)
+						aRight = theDirty->mCellW * aNextCol + -1;
+					int aBottom = aBottomEdge + -1;
+					if (theDirty->mCellH * (aRow + 1) + -1 <= aBottom)
+						aBottom = theDirty->mCellH * (aRow + 1) + -1;
+					Dirty::Cell& aCell = theDirty->mCells[theDirty->mCols * aRow + aCol];
+					if (theDirty->mMode == 1)
 					{
-						int* q = aCell.rects;
-						if (l < q[0])
-							q[0] = l;
-						if (q[1] <= t)
-							t = q[1];
-						q[1] = t;
-						if (r <= q[2])
-							r = q[2];
-						q[2] = r;
-						if (b <= q[3])
-							b = q[3];
-						q[3] = b;
-						aCell.count = 1;
+						int* aRects = aCell.mRects;
+						if (aLeft < aRects[0])
+							aRects[0] = aLeft;
+						if (aRects[1] <= aTop)
+							aTop = aRects[1];
+						aRects[1] = aTop;
+						if (aRight <= aRects[2])
+							aRight = aRects[2];
+						aRects[2] = aRight;
+						if (aBottom <= aRects[3])
+							aBottom = aRects[3];
+						aRects[3] = aBottom;
+						aCell.mCount = 1;
 					}
 					else
 					{
-						int aCount = aCell.count;
-						if (theDirty->maxRects <= aCount)
+						int aCount = aCell.mCount;
+						if (theDirty->mMaxRects <= aCount)
 						{
-							aCell.count = 1;
-							aCell.rects[0] = theDirty->cellW * aCol;
-							aCell.rects[1] = theDirty->cellH * aRow;
-							aCell.rects[2] = (aCol + 1) * theDirty->cellW + -1;
-							aCell.rects[3] = (aRow + 1) * theDirty->cellH + -1;
+							aCell.mCount = 1;
+							aCell.mRects[0] = theDirty->mCellW * aCol;
+							aCell.mRects[1] = theDirty->mCellH * aRow;
+							aCell.mRects[2] = (aCol + 1) * theDirty->mCellW + -1;
+							aCell.mRects[3] = (aRow + 1) * theDirty->mCellH + -1;
 							break;
 						}
 						int i = 0;
 						int aFound = 0;
 						if (0 < aCount)
 						{
-							int* q = aCell.rects;
+							int* aRects = aCell.mRects;
 							do
 							{
 								aFound = i;
-								int qr = q[2];
-								if (l <= qr && q[0] <= r && t <= q[3] && q[1] <= b)
+								int aQr = aRects[2];
+								if (aLeft <= aQr && aRects[0] <= aRight && aTop <= aRects[3] && aRects[1] <= aBottom)
 								{
-									int ul = q[0];
-									if (l <= ul)
-										ul = l;
-									int ur = qr;
-									if (qr <= r)
-										ur = r;
-									int ut = q[1];
-									if (t <= ut)
-										ut = t;
-									int ub = q[3];
-									if (ub <= b)
-										ub = b;
-									int aSum = (q[3] - q[1]) * (qr - q[0]) + (b - t) * (r - l);
-									int aUnion = (ub - ut) * (ur - ul);
+									int anUl = aRects[0];
+									if (aLeft <= anUl)
+										anUl = aLeft;
+									int anUr = aQr;
+									if (aQr <= aRight)
+										anUr = aRight;
+									int anUt = aRects[1];
+									if (aTop <= anUt)
+										anUt = aTop;
+									int anUb = aRects[3];
+									if (anUb <= aBottom)
+										anUb = aBottom;
+									int aSum = (aRects[3] - aRects[1]) * (aQr - aRects[0]) + (aBottom - aTop) *
+										(aRight - aLeft);
+									int aUnion = (anUb - anUt) * (anUr - anUl);
 									if (aUnion - aSum == 0 || aUnion < aSum)
 									{
-										q[0] = ul;
-										q[2] = ur;
-										q[1] = ut;
-										q[3] = ub;
+										aRects[0] = anUl;
+										aRects[2] = anUr;
+										aRects[1] = anUt;
+										aRects[3] = anUb;
 										break;
 									}
 								}
 								i++;
 								aFound = i;
-								q += 4;
+								aRects += 4;
 							} while (i < aCount);
 						}
-						if (aFound == aCell.count)
+						if (aFound == aCell.mCount)
 						{
-							int* q = aCell.rects + aFound * 4;
-							q[0] = l;
-							q[2] = r;
-							q[1] = t;
-							q[3] = b;
-							aCell.count = aCell.count + 1;
+							int* q = aCell.mRects + aFound * 4;
+							q[0] = aLeft;
+							q[2] = aRight;
+							q[1] = aTop;
+							q[3] = aBottom;
+							aCell.mCount = aCell.mCount + 1;
 						}
 					}
-					aCellW = theDirty->cellW;
+					aCellW = theDirty->mCellW;
 					aCol = aCol + 1;
 				} while (aCol <= aRightEdge / aCellW);
 			}
 			aRow = aRow + 1;
-		} while (aRow <= aBottomEdge / theDirty->cellH);
+		} while (aRow <= aBottomEdge / theDirty->mCellH);
 	}
 }
 
@@ -467,56 +470,57 @@ void Dirty_AddRect(Dirty* theDirty, int x, int y, int w, int h)
 void Dirty_Clear(Dirty* theDirty)
 {
 	int i = 0;
-	if (0 < theDirty->cols * theDirty->rows)
+	if (0 < theDirty->mCols * theDirty->mRows)
 	{
 		do
 		{
-			theDirty->cells[i].count = 0;
-			if (theDirty->mode == 1)
+			theDirty->mCells[i].mCount = 0;
+			if (theDirty->mMode == 1)
 			{
-				theDirty->cells[i].rects[0] = 999999;
-				theDirty->cells[i].rects[1] = 999999;
-				theDirty->cells[i].rects[2] = -999999;
-				theDirty->cells[i].rects[3] = -999999;
+				theDirty->mCells[i].mRects[0] = 999999;
+				theDirty->mCells[i].mRects[1] = 999999;
+				theDirty->mCells[i].mRects[2] = -999999;
+				theDirty->mCells[i].mRects[3] = -999999;
 			}
 			i++;
-		} while (i < theDirty->cols * theDirty->rows);
+		} while (i < theDirty->mCols * theDirty->mRows);
 	}
 }
 
 // 0x421eb0
-void Dirty_AddClipped(Dirty* theDirty, int x, int y, int w, int h, const int* theClip)
+void Dirty_AddClipped(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip)
 {
-	int ox, oy, sx, sy, ow, oh;
-	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, w, h, &ox, &oy, &sx, &sy, &ow, &oh) == 1)
-		Dirty_AddRect(theDirty, ox, oy, ow, oh);
+	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, theWidth, theHeight, &aDstX, &aDstY, &aSrcX,
+		&aSrcY, &aBlitWidth, &aBlitHeight) == 1)
+		Dirty_AddRect(theDirty, aDstX, aDstY, aBlitWidth, aBlitHeight);
 }
 
 // 0x421f40: copies each changed rectangle of the back buffer to theDst, tells the screen, and clears the grid
 void Dirty_CopyTo(Dirty* theDirty, uint8_t* theDst, int theDPitch)
 {
 	int i = 0;
-	theDirty->bytesPerPixel = (int)((uint32_t)theDirty->source->fmt.bpp >> 3);
-	if (0 < theDirty->cols * theDirty->rows)
+	theDirty->mBytesPerPixel = (int)((uint32_t)theDirty->mSource->mFmt.mBpp >> 3);
+	if (0 < theDirty->mCols * theDirty->mRows)
 	{
 		do
 		{
 			int k = 0;
-			if (0 < theDirty->cells[i].count)
+			if (0 < theDirty->mCells[i].mCount)
 			{
 				do
 				{
-					const int* q = theDirty->cells[i].rects + k * 4;
-					int aX = q[0] * theDirty->bytesPerPixel;
-					Copy8(theDst, aX, q[1], theDPitch, 0, theDirty->source->bits, aX, q[1], theDirty->source->pitch, 0,
-						((q[2] - q[0]) + 1) * theDirty->bytesPerPixel, (q[3] - q[1]) + 1);
-					q = theDirty->cells[i].rects + k * 4;
+					const int* q = theDirty->mCells[i].mRects + k * 4;
+					int aX = q[0] * theDirty->mBytesPerPixel;
+					Copy8(theDst, aX, q[1], theDPitch, 0, theDirty->mSource->mBits, aX, q[1], theDirty->mSource->mPitch,
+						0, ((q[2] - q[0]) + 1) * theDirty->mBytesPerPixel, (q[3] - q[1]) + 1);
+					q = theDirty->mCells[i].mRects + k * 4;
 					Sys_AddUpdateRect(q[0], q[1], (q[2] - q[0]) + 1, (q[3] - q[1]) + 1);
 					k++;
-				} while (k < theDirty->cells[i].count);
+				} while (k < theDirty->mCells[i].mCount);
 			}
 			i++;
-		} while (i < theDirty->cols * theDirty->rows);
+		} while (i < theDirty->mCols * theDirty->mRows);
 	}
 	Dirty_Clear(theDirty);
 }
@@ -524,18 +528,18 @@ void Dirty_CopyTo(Dirty* theDirty, uint8_t* theDst, int theDPitch)
 // 0x422060
 void Dirty_Alloc(Dirty* theDirty)
 {
-	if (theDirty->cells != nullptr)
-		std::free(theDirty->cells);
-	theDirty->cells = nullptr;
-	theDirty->cells = (Dirty::Cell*)std::malloc((size_t)theDirty->rows * theDirty->cols * sizeof(Dirty::Cell));
-	if (0 < theDirty->rows * theDirty->cols)
+	if (theDirty->mCells != nullptr)
+		std::free(theDirty->mCells);
+	theDirty->mCells = nullptr;
+	theDirty->mCells = (Dirty::Cell*)std::malloc((size_t)theDirty->mRows * theDirty->mCols * sizeof(Dirty::Cell));
+	if (0 < theDirty->mRows * theDirty->mCols)
 	{
 		int i = 0;
 		do
 		{
-			theDirty->cells[i].rects = (int*)std::malloc((size_t)theDirty->maxRects << 4);
+			theDirty->mCells[i].mRects = (int*)std::malloc((size_t)theDirty->mMaxRects << 4);
 			i++;
-		} while (i < theDirty->rows * theDirty->cols);
+		} while (i < theDirty->mRows * theDirty->mCols);
 	}
 	Dirty_Clear(theDirty);
 }
@@ -543,46 +547,47 @@ void Dirty_Alloc(Dirty* theDirty)
 // 0x4220d0
 void Dirty_SetSource(Dirty* theDirty, Image* theSource)
 {
-	theDirty->source = theSource;
-	theDirty->srcRect[0] = 0;
-	theDirty->srcRect[1] = 0;
-	theDirty->srcRect[2] = theSource->w + -1;
-	theDirty->srcRect[3] = theSource->h + -1;
+	theDirty->mSource = theSource;
+	theDirty->mSrcRect[0] = 0;
+	theDirty->mSrcRect[1] = 0;
+	theDirty->mSrcRect[2] = theSource->mW + -1;
+	theDirty->mSrcRect[3] = theSource->mH + -1;
 	Dirty_Alloc(theDirty);
 }
 
 // 0x422100: theRect is {l, t, r, b}
 void Dirty_AddClippedRect(Dirty* theDirty, const int* theRect, const int* theClip)
 {
-	int ox, oy, sx, sy, ow, oh;
+	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
 	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], theRect[0], theRect[1], (theRect[2] - theRect[0]) + 1,
-			(theRect[3] - theRect[1]) + 1, &ox, &oy, &sx, &sy, &ow, &oh) == 1)
+			(theRect[3] - theRect[1]) + 1, &aDstX, &aDstY, &aSrcX, &aSrcY, &aBlitWidth, &aBlitHeight) == 1)
 	{
-		Sys_AddUpdateRect(ox, oy, ow, oh);
-		Dirty_AddRect(theDirty, ox, oy, ow, oh);
+		Sys_AddUpdateRect(aDstX, aDstY, aBlitWidth, aBlitHeight);
+		Dirty_AddRect(theDirty, aDstX, aDstY, aBlitWidth, aBlitHeight);
 	}
 }
 
 // 0x4221b0
-void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int w, int h, const int* theClip)
+void Dirty_AddClippedShown(Dirty* theDirty, int x, int y, int theWidth, int theHeight, const int* theClip)
 {
-	int ox, oy, sx, sy, ow, oh;
-	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, w, h, &ox, &oy, &sx, &sy, &ow, &oh) == 1)
+	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], x, y, theWidth, theHeight, &aDstX, &aDstY, &aSrcX,
+		&aSrcY, &aBlitWidth, &aBlitHeight) == 1)
 	{
-		Sys_AddUpdateRect(ox, oy, ow, oh);
-		Dirty_AddRect(theDirty, ox, oy, ow, oh);
+		Sys_AddUpdateRect(aDstX, aDstY, aBlitWidth, aBlitHeight);
+		Dirty_AddRect(theDirty, aDstX, aDstY, aBlitWidth, aBlitHeight);
 	}
 }
 
 // 0x422260: where theImage would be drawn at (x, y)
 void Dirty_AddClippedImage(Dirty* theDirty, int x, int y, const Image* theImage, const int* theClip)
 {
-	int ox, oy, sx, sy, ow, oh;
+	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
 	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], Image_DrawX(theImage) + x, Image_DrawY(theImage) + y,
-			theImage->w, theImage->h, &ox, &oy, &sx, &sy, &ow, &oh) == 1)
+			theImage->mW, theImage->mH, &aDstX, &aDstY, &aSrcX, &aSrcY, &aBlitWidth, &aBlitHeight) == 1)
 	{
-		Sys_AddUpdateRect(ox, oy, ow, oh);
-		Dirty_AddRect(theDirty, ox, oy, ow, oh);
+		Sys_AddUpdateRect(aDstX, aDstY, aBlitWidth, aBlitHeight);
+		Dirty_AddRect(theDirty, aDstX, aDstY, aBlitWidth, aBlitHeight);
 	}
 }
 

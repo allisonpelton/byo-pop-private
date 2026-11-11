@@ -12,9 +12,9 @@ namespace r64
 
 #if UINTPTR_MAX == 0xffffffff
 // (the original's offsets less what R64Font.h says the port leaves out: 4 bytes after +0x408, 20 after +0xd5f)
-static_assert(offsetof(Font, colours) == 0x420 - 4, "Font layout");
-static_assert(offsetof(Font, buf) == 0x824 - 4, "Font layout");
-static_assert(offsetof(Font, owned) == 0xd60 - 20, "Font layout");
+static_assert(offsetof(Font, mColours) == 0x420 - 4, "Font layout");
+static_assert(offsetof(Font, mBuf) == 0x824 - 4, "Font layout");
+static_assert(offsetof(Font, mOwned) == 0xd60 - 20, "Font layout");
 static_assert(sizeof(Font) == 0xd6c - 20, "Font layout");
 #endif
 
@@ -25,19 +25,19 @@ namespace
 // such a code has no glyph and no colour
 Image* GlyphOf(const Font* theFont, char c)
 {
-	return c < 0 ? nullptr : theFont->glyphs[(int)c];
+	return c < 0 ? nullptr : theFont->mGlyphs[(int)c];
 }
 
 Palette* ColourOf(const Font* theFont, char c)
 {
-	return c < 0 ? nullptr : theFont->colours[(int)c];
+	return c < 0 ? nullptr : theFont->mColours[(int)c];
 }
 
 inline uint32_t PackColour(const PixelFormat* f, uint8_t r, uint8_t g, uint8_t b)
 {
-	return (uint32_t)(b >> (f->bLoss & 0x1f)) << (f->bShift & 0x1f) |
-		(uint32_t)(g >> (f->gLoss & 0x1f)) << (f->gShift & 0x1f) |
-		(uint32_t)(r >> (f->rLoss & 0x1f)) << (f->rShift & 0x1f);
+	return (uint32_t)(b >> (f->mBLoss & 0x1f)) << (f->mBShift & 0x1f) |
+		(uint32_t)(g >> (f->mGLoss & 0x1f)) << (f->mGShift & 0x1f) |
+		(uint32_t)(r >> (f->mRLoss & 0x1f)) << (f->mRShift & 0x1f);
 }
 
 // Font_DrawBounded's rectangle of the glyphs drawn so far
@@ -46,31 +46,31 @@ void GrowRect(int* theRect, bool& theFirst, const Image* theGlyph, int x, int y)
 	if (theFirst)
 	{
 		theRect[0] = Image_DrawX(theGlyph) + x;
-		theRect[2] = theGlyph->w + -1 + theRect[0];
+		theRect[2] = theGlyph->mW + -1 + theRect[0];
 		theRect[1] = Image_DrawY(theGlyph) + y;
-		theRect[3] = theGlyph->h + -1 + Image_DrawY(theGlyph) + y;
+		theRect[3] = theGlyph->mH + -1 + Image_DrawY(theGlyph) + y;
 		theFirst = false;
 	}
 	else
 	{
-		int gx = Image_DrawX(theGlyph) + x;
-		int v = theRect[0];
-		if (gx <= theRect[0])
-			v = gx;
-		theRect[0] = v;
-		v = gx + -1 + theGlyph->w;
-		if (v < theRect[2])
-			v = theRect[2];
-		theRect[2] = v;
-		int gy = Image_DrawY(theGlyph) + y;
-		v = theRect[1];
-		if (gy <= theRect[1])
-			v = gy;
-		theRect[1] = v;
-		v = gy + -1 + theGlyph->h;
-		if (v < theRect[3])
-			v = theRect[3];
-		theRect[3] = v;
+		int aGx = Image_DrawX(theGlyph) + x;
+		int aMin = theRect[0];
+		if (aGx <= theRect[0])
+			aMin = aGx;
+		theRect[0] = aMin;
+		aMin = aGx + -1 + theGlyph->mW;
+		if (aMin < theRect[2])
+			aMin = theRect[2];
+		theRect[2] = aMin;
+		int aGy = Image_DrawY(theGlyph) + y;
+		aMin = theRect[1];
+		if (aGy <= theRect[1])
+			aMin = aGy;
+		theRect[1] = aMin;
+		aMin = aGy + -1 + theGlyph->mH;
+		if (aMin < theRect[3])
+			aMin = theRect[3];
+		theRect[3] = aMin;
 	}
 }
 
@@ -80,59 +80,59 @@ void GrowRect(int* theRect, bool& theFirst, const Image* theGlyph, int x, int y)
 void ImageList_Append(ImageList* theList)
 {
 	Image* anImage = new Image();
-	if (theList->current == nullptr)
+	if (theList->mCurrent == nullptr)
 	{
-		anImage->next = nullptr;
-		anImage->prev = nullptr;
-		theList->head = anImage;
+		anImage->mNext = nullptr;
+		anImage->mPrev = nullptr;
+		theList->mHead = anImage;
 	}
 	else
 	{
-		anImage->prev = theList->tail;
-		anImage->next = nullptr;
-		theList->tail->next = anImage;
+		anImage->mPrev = theList->mTail;
+		anImage->mNext = nullptr;
+		theList->mTail->mNext = anImage;
 	}
-	theList->current = anImage;
-	theList->tail = anImage;
+	theList->mCurrent = anImage;
+	theList->mTail = anImage;
 }
 
 // 0x40d0e0
 bool ImageList_RemoveCurrent(ImageList* theList)
 {
-	Image* anImage = theList->current;
+	Image* anImage = theList->mCurrent;
 	if (anImage == nullptr)
 		return false;
-	Image* aPrev = anImage->prev;
-	if (aPrev == nullptr || anImage->next == nullptr)
+	Image* aPrev = anImage->mPrev;
+	if (aPrev == nullptr || anImage->mNext == nullptr)
 	{
-		Image* aNext = anImage->next;
+		Image* aNext = anImage->mNext;
 		if (aNext == nullptr)
 		{
 			if (aPrev == nullptr)
 			{
-				theList->current = nullptr;
-				theList->head = nullptr;
-				theList->tail = nullptr;
+				theList->mCurrent = nullptr;
+				theList->mHead = nullptr;
+				theList->mTail = nullptr;
 			}
 			else
 			{
-				aPrev->next = nullptr;
-				theList->current = aPrev;
-				theList->tail = aPrev;
+				aPrev->mNext = nullptr;
+				theList->mCurrent = aPrev;
+				theList->mTail = aPrev;
 			}
 		}
 		else
 		{
-			aNext->prev = nullptr;
-			theList->current = aNext;
-			theList->head = aNext;
+			aNext->mPrev = nullptr;
+			theList->mCurrent = aNext;
+			theList->mHead = aNext;
 		}
 	}
 	else
 	{
-		aPrev->next = anImage->next;
-		anImage->next->prev = anImage->prev;
-		theList->current = anImage->next;
+		aPrev->mNext = anImage->mNext;
+		anImage->mNext->mPrev = anImage->mPrev;
+		theList->mCurrent = anImage->mNext;
 	}
 	Image_Destroy(anImage);
 	delete anImage;
@@ -142,93 +142,94 @@ bool ImageList_RemoveCurrent(ImageList* theList)
 // 0x423820
 Font::Font()
 {
-	owned.current = nullptr;
-	owned.head = nullptr;
-	owned.tail = nullptr;
-	std::memset(glyphs, 0, sizeof(glyphs));
-	spaceWidth = 4;
-	spacing = 1;
-	clip[0] = clip[1] = clip[2] = clip[3] = 0;
-	height = 0;
-	std::memset(colours, 0, sizeof(colours));
-	align = 0;
-	escapes = 0;
-	std::memset(buf, 0, sizeof(buf));
-	colourCode = 0;
-	outline = nullptr;
-	outlining = 0;
-	dst = nullptr;
-	dpitch = 0;
-	fmt = nullptr;
-	palette = nullptr;
-	dstW = 0;
-	dstH = 0;
-	std::memset(unkc4c, 0, sizeof(unkc4c));
-	alpha = 0xff;
+	mOwned.mCurrent = nullptr;
+	mOwned.mHead = nullptr;
+	mOwned.mTail = nullptr;
+	std::memset(mGlyphs, 0, sizeof(mGlyphs));
+	mSpaceWidth = 4;
+	mSpacing = 1;
+	mClip[0] = mClip[1] = mClip[2] = mClip[3] = 0;
+	mHeight = 0;
+	std::memset(mColours, 0, sizeof(mColours));
+	mAlign = 0;
+	mEscapes = 0;
+	std::memset(mBuf, 0, sizeof(mBuf));
+	mColourCode = 0;
+	mOutline = nullptr;
+	mOutlining = 0;
+	mDst = nullptr;
+	mDstPitch = 0;
+	mFmt = nullptr;
+	mPalette = nullptr;
+	mDstW = 0;
+	mDstH = 0;
+	std::memset(mOwnedPadding, 0, sizeof(mOwnedPadding));
+	mAlpha = 0xff;
 }
 
 void Font_SetSpacing(Font* theFont, int theSpacing)
 {
-	theFont->spacing = theSpacing;
+	theFont->mSpacing = theSpacing;
 }
 
 void Font_SetClip(Font* theFont, int l, int t, int r, int b)
 {
-	theFont->clip[0] = l;
-	theFont->clip[1] = t;
-	theFont->clip[2] = r;
-	theFont->clip[3] = b;
+	theFont->mClip[0] = l;
+	theFont->mClip[1] = t;
+	theFont->mClip[2] = r;
+	theFont->mClip[3] = b;
 }
 
-void Font_SetTarget(Font* theFont, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, int w, int h)
+void Font_SetTarget(Font* theFont, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, int theWidth,
+	int theHeight)
 {
-	theFont->dst = theDst;
-	theFont->dpitch = theDPitch;
-	theFont->fmt = theFmt;
-	theFont->dstW = w;
-	theFont->dstH = h;
-	theFont->clip[0] = 0;
-	theFont->clip[1] = 0;
-	theFont->clip[2] = w;
-	theFont->clip[3] = h;
+	theFont->mDst = theDst;
+	theFont->mDstPitch = theDPitch;
+	theFont->mFmt = theFmt;
+	theFont->mDstW = theWidth;
+	theFont->mDstH = theHeight;
+	theFont->mClip[0] = 0;
+	theFont->mClip[1] = 0;
+	theFont->mClip[2] = theWidth;
+	theFont->mClip[3] = theHeight;
 }
 
 void Font_SetPalette(Font* theFont, Palette* thePalette)
 {
-	theFont->palette = thePalette;
+	theFont->mPalette = thePalette;
 }
 
 void Font_SetOutline(Font* theFont, Palette* thePalette)
 {
-	theFont->outline = thePalette;
+	theFont->mOutline = thePalette;
 }
 
 void Font_SetColour(Font* theFont, char theCode, Palette* thePalette)
 {
 	if (theCode >= 0)
-		theFont->colours[(int)theCode] = thePalette;
+		theFont->mColours[(int)theCode] = thePalette;
 }
 
 void Font_UseColour(Font* theFont, char theCode)
 {
-	theFont->palette = ColourOf(theFont, theCode);
+	theFont->mPalette = ColourOf(theFont, theCode);
 }
 
 void Font_SetAlign(Font* theFont, int theAlign)
 {
-	theFont->align = theAlign;
+	theFont->mAlign = theAlign;
 }
 
 void Font_SetEscapes(Font* theFont, int theEscapes)
 {
-	theFont->escapes = theEscapes;
+	theFont->mEscapes = theEscapes;
 }
 
 void Font_ResetStyle(Font* theFont)
 {
-	theFont->palette = nullptr;
-	theFont->align = 0;
-	theFont->outline = nullptr;
+	theFont->mPalette = nullptr;
+	theFont->mAlign = 0;
+	theFont->mOutline = nullptr;
 }
 
 int Font_CharWidth(const Font* theFont, char c)
@@ -236,9 +237,9 @@ int Font_CharWidth(const Font* theFont, char c)
 	Image* aGlyph = GlyphOf(theFont, c);
 	int aWidth = 0;
 	if (aGlyph != nullptr)
-		return aGlyph->origW;
+		return aGlyph->mOrigW;
 	if (c == ' ')
-		aWidth = theFont->spaceWidth;
+		aWidth = theFont->mSpaceWidth;
 	return aWidth;
 }
 
@@ -247,110 +248,111 @@ int Font_CharAdvance(const Font* theFont, char c)
 	Image* aGlyph = GlyphOf(theFont, c);
 	int aWidth = 0;
 	if (aGlyph != nullptr)
-		return aGlyph->origW + theFont->spacing;
+		return aGlyph->mOrigW + theFont->mSpacing;
 	if (c == ' ')
-		aWidth = theFont->spacing + theFont->spaceWidth;
+		aWidth = theFont->mSpacing + theFont->mSpaceWidth;
 	return aWidth;
 }
 
 int Font_StringWidth(const Font* theFont, const char* theText)
 {
-	const uint8_t* p = (const uint8_t*)theText;
+	const uint8_t* aText = (const uint8_t*)theText;
 	int aWidth = 0;
-	if (*p != 0)
+	if (*aText != 0)
 	{
 		do
 		{
-			if (theFont->escapes == 1 && *p == '^')
+			if (theFont->mEscapes == 1 && *aText == '^')
 			{
-				p = p + 1;
-				if (*p == 0)
+				aText = aText + 1;
+				if (*aText == 0)
 					return aWidth;
 			}
 			else
 			{
-				uint8_t c = *p;
+				uint8_t c = *aText;
 				int anAdvance;
-				if (theFont->glyphs[c] == nullptr)
+				if (theFont->mGlyphs[c] == nullptr)
 				{
 					if (c != ' ')
 						goto next;
-					anAdvance = theFont->spacing + theFont->spaceWidth;
+					anAdvance = theFont->mSpacing + theFont->mSpaceWidth;
 				}
 				else
-					anAdvance = theFont->glyphs[c]->origW + theFont->spacing;
+					anAdvance = theFont->mGlyphs[c]->mOrigW + theFont->mSpacing;
 				aWidth = aWidth + anAdvance;
 			}
 		next:
-			p = p + 1;
-		} while (*p != 0);
+			aText = aText + 1;
+		} while (*aText != 0);
 	}
 	return aWidth;
 }
 
 int Font_StringHeight(const Font* theFont, const char* theText)
 {
-	const uint8_t* p = (const uint8_t*)theText;
+	const uint8_t* aText = (const uint8_t*)theText;
 	int aHeight = 0;
-	if (*p != 0)
+	if (*aText != 0)
 	{
 		do
 		{
-			if (theFont->escapes == 1 && *p == '^')
+			if (theFont->mEscapes == 1 && *aText == '^')
 			{
-				p = p + 1;
-				if (*p == 0)
+				aText = aText + 1;
+				if (*aText == 0)
 					return aHeight;
 			}
-			else if (theFont->glyphs[*p] != nullptr && aHeight < theFont->glyphs[*p]->origH)
-				aHeight = theFont->glyphs[*p]->origH;
-			p = p + 1;
-		} while (*p != 0);
+			else if (theFont->mGlyphs[*aText] != nullptr && aHeight < theFont->mGlyphs[*aText]->mOrigH)
+				aHeight = theFont->mGlyphs[*aText]->mOrigH;
+			aText = aText + 1;
+		} while (*aText != 0);
 	}
 	return aHeight;
 }
 
 int Font_Height(const Font* theFont)
 {
-	return theFont->height;
+	return theFont->mHeight;
 }
 
 int Font_Draw(Font* theFont, const char* theText, int x, int y, int theAlign)
 {
-	const uint8_t* p = (const uint8_t*)theText;
+	const uint8_t* aText = (const uint8_t*)theText;
 	int aWidth = Font_StringWidth(theFont, theText);
 	if (theAlign == 1)
 		x = x - aWidth;
 	else if (theAlign == 2)
 		x = x - aWidth / 2;
-	uint8_t c = *p;
-	if (c != 0)
+	uint8_t aChar = *aText;
+	if (aChar != 0)
 	{
 		do
 		{
-			if (theFont->glyphs[c] == nullptr)
+			if (theFont->mGlyphs[aChar] == nullptr)
 			{
-				if (c == ' ')
-					x = x + theFont->spacing + theFont->spaceWidth;
+				if (aChar == ' ')
+					x = x + theFont->mSpacing + theFont->mSpaceWidth;
 			}
 			else
 			{
-				Image_SetPalette(theFont->glyphs[c], theFont->palette);
-				Image_BlitMasked(theFont->glyphs[*p], theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y);
-				x = x + theFont->glyphs[*p]->origW + theFont->spacing;
+				Image_SetPalette(theFont->mGlyphs[aChar], theFont->mPalette);
+				Image_BlitMasked(theFont->mGlyphs[*aText], theFont->mDst, theFont->mDstPitch, theFont->mFmt,
+					theFont->mClip, x, y);
+				x = x + theFont->mGlyphs[*aText]->mOrigW + theFont->mSpacing;
 			}
-			c = p[1];
-			p = p + 1;
-		} while (c != 0);
+			aChar = aText[1];
+			aText = aText + 1;
+		} while (aChar != 0);
 		return aWidth;
 	}
 	return aWidth;
 }
 
-int Font_DrawFill(Font* theFont, const char* theText, int x, int y, int theAlign, uint8_t r, uint8_t g, uint8_t b,
-	uint32_t theAlpha)
+int Font_DrawFill(Font* theFont, const char* theText, int x, int y, int theAlign, uint8_t theRed, uint8_t theGreen,
+	uint8_t theBlue, uint32_t theAlpha)
 {
-	const uint8_t* p = (const uint8_t*)theText;
+	const uint8_t* aText = (const uint8_t*)theText;
 	int aWidth = Font_StringWidth(theFont, theText);
 	int aShift = aWidth;
 	if (theAlign != 1)
@@ -361,27 +363,27 @@ int Font_DrawFill(Font* theFont, const char* theText, int x, int y, int theAlign
 	}
 	x = x - aShift;
 aligned:
-	uint8_t c = *p;
-	if (c != 0)
+	uint8_t aChar = *aText;
+	if (aChar != 0)
 	{
 		do
 		{
-			if (theFont->glyphs[c] == nullptr)
+			if (theFont->mGlyphs[aChar] == nullptr)
 			{
-				if (c == ' ')
-					x = x + theFont->spacing + theFont->spaceWidth;
+				if (aChar == ' ')
+					x = x + theFont->mSpacing + theFont->mSpaceWidth;
 			}
 			else
 			{
-				Image_SetPalette(theFont->glyphs[c], theFont->palette);
-				const PixelFormat* f = theFont->fmt;
-				Image_BlitFillAlpha(theFont->glyphs[*p], theFont->dst, theFont->dpitch, f, theFont->clip, x, y,
-					PackColour(f, r, g, b), theAlpha);
-				x = x + theFont->glyphs[*p]->origW + theFont->spacing;
+				Image_SetPalette(theFont->mGlyphs[aChar], theFont->mPalette);
+				const PixelFormat* f = theFont->mFmt;
+				Image_BlitFillAlpha(theFont->mGlyphs[*aText], theFont->mDst, theFont->mDstPitch, f, theFont->mClip, x,
+					y, PackColour(f, theRed, theGreen, theBlue), theAlpha);
+				x = x + theFont->mGlyphs[*aText]->mOrigW + theFont->mSpacing;
 			}
-			c = p[1];
-			p = p + 1;
-		} while (c != 0);
+			aChar = aText[1];
+			aText = aText + 1;
+		} while (aChar != 0);
 		return aWidth;
 	}
 	return aWidth;
@@ -391,68 +393,69 @@ aligned:
 // faded at the font's alpha: the glyph itself, or on an outline pass its mask.
 int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* theText, int theOutlinePass)
 {
-	const uint8_t* p = (const uint8_t*)theText;
+	const uint8_t* aText = (const uint8_t*)theText;
 	theRect[0] = -1;
 	theRect[1] = -1;
 	theRect[2] = -1;
 	theRect[3] = -1;
 	bool aFirst = true;
 	int aWidth = Font_StringWidth(theFont, theText);
-	if (theFont->align == 1)
+	if (theFont->mAlign == 1)
 		x = x - aWidth;
-	else if (theFont->align == 2)
+	else if (theFont->mAlign == 2)
 		x = x - aWidth / 2;
-	uint8_t c = *p;
-	while (c != 0)
+	uint8_t aChar = *aText;
+	while (aChar != 0)
 	{
-		if (theFont->escapes == 1 && *p == '^')
+		if (theFont->mEscapes == 1 && *aText == '^')
 		{
-			c = p[1];
-			p = p + 1;
-			if (c == 0)
+			aChar = aText[1];
+			aText = aText + 1;
+			if (aChar == 0)
 				break;
-			if (theFont->outlining == 0)
+			if (theFont->mOutlining == 0)
 			{
-				theFont->colourCode = (int)c;
-				theFont->palette = ColourOf(theFont, (char)c);
+				theFont->mColourCode = (int)aChar;
+				theFont->mPalette = ColourOf(theFont, (char)aChar);
 			}
 		}
 		else
 		{
-			c = *p;
-			Image* aGlyph = theFont->glyphs[c];
+			aChar = *aText;
+			Image* aGlyph = theFont->mGlyphs[aChar];
 			if (aGlyph == nullptr)
 			{
-				if (c == ' ')
-					x = x + theFont->spacing + theFont->spaceWidth;
+				if (aChar == ' ')
+					x = x + theFont->mSpacing + theFont->mSpaceWidth;
 			}
 			else
 			{
 				GrowRect(theRect, aFirst, aGlyph, x, y);
-				Image_SetPalette(aGlyph, theFont->palette);
-				if (aGlyph->hasMask == 1 && 8 < theFont->fmt->bpp)
+				Image_SetPalette(aGlyph, theFont->mPalette);
+				if (aGlyph->mHasMask == 1 && 8 < theFont->mFmt->mBpp)
 				{
 					if (theOutlinePass == 0)
-						Image_BlitAlphaFade(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y,
-							(uint32_t)theFont->alpha);
+						Image_BlitAlphaFade(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x,
+							y, (uint32_t)theFont->mAlpha);
 					else
 					{
-						Image_SetPalette(aGlyph->mask, theFont->palette);
-						Image_BlitAlphaFade(aGlyph->mask, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x,
-							y, (uint32_t)theFont->alpha);
+						Image_SetPalette(aGlyph->mMask, theFont->mPalette);
+						Image_BlitAlphaFade(aGlyph->mMask, theFont->mDst, theFont->mDstPitch, theFont->mFmt,
+							theFont->mClip, x, y, (uint32_t)theFont->mAlpha);
 					}
 				}
 				else
-					Image_BlitMasked(aGlyph, theFont->dst, theFont->dpitch, theFont->fmt, theFont->clip, x, y);
-				x = x + theFont->glyphs[*p]->origW + theFont->spacing;
+					Image_BlitMasked(aGlyph, theFont->mDst, theFont->mDstPitch, theFont->mFmt, theFont->mClip, x, y);
+				x = x + theFont->mGlyphs[*aText]->mOrigW + theFont->mSpacing;
 			}
 		}
-		p = p + 1;
-		c = *p;
+		aText = aText + 1;
+		aChar = *aText;
 	}
-	int ox, oy, sx, sy, ow, oh;
-	if (ClipBlit(theFont->clip[0], theFont->clip[1], theFont->clip[2], theFont->clip[3], theRect[0], theRect[1],
-			(theRect[2] - theRect[0]) + 1, (theRect[3] - theRect[1]) + 1, &ox, &oy, &sx, &sy, &ow, &oh) != 1)
+	int aDstX, aDstY, aSrcX, aSrcY, aBlitWidth, aBlitHeight;
+	if (ClipBlit(theFont->mClip[0], theFont->mClip[1], theFont->mClip[2], theFont->mClip[3], theRect[0], theRect[1],
+			(theRect[2] - theRect[0]) + 1, (theRect[3] - theRect[1]) + 1, &aDstX, &aDstY, &aSrcX, &aSrcY, &aBlitWidth,
+				&aBlitHeight) != 1)
 	{
 		theRect[0] = -1;
 		theRect[1] = -1;
@@ -460,10 +463,10 @@ int* Font_DrawBounded(Font* theFont, int* theRect, int x, int y, const char* the
 		theRect[3] = -1;
 		return theRect;
 	}
-	theRect[0] = ox;
-	theRect[2] = ox + ow + -1;
-	theRect[3] = oy + -1 + oh;
-	theRect[1] = oy;
+	theRect[0] = aDstX;
+	theRect[2] = aDstX + aBlitWidth + -1;
+	theRect[3] = aDstY + -1 + aBlitHeight;
+	theRect[1] = aDstY;
 	return theRect;
 }
 
@@ -475,7 +478,7 @@ int Font_StripCut(Font* theFont, const Bank* theBank, const char* theName, const
 	Image* aStrip;
 	if (theBank == nullptr || (aStrip = Bank_FindImage2(theBank, theName)) == nullptr)
 		return 0;
-	theFont->height = aStrip->h;
+	theFont->mHeight = aStrip->mH;
 	int x = 0;
 	int aCount = (int)std::strlen(theChars);
 	int k = 0;
@@ -483,80 +486,80 @@ int Font_StripCut(Font* theFont, const Bank* theBank, const char* theName, const
 	{
 		do
 		{
-			int aSet = x < aStrip->w ? Image_MaskColumnSet(aStrip, x) : 0;
+			int aSet = x < aStrip->mW ? Image_MaskColumnSet(aStrip, x) : 0;
 			int aStart = x;
-			while (aSet == 0 && aStart < aStrip->w)
+			while (aSet == 0 && aStart < aStrip->mW)
 			{
 				aStart = aStart + 1;
 				aSet = Image_MaskColumnSet(aStrip, aStart);
 			}
-			int w = 0;
-			int aSet2 = aStart < aStrip->w ? Image_MaskColumnSet(aStrip, aStart) : 0;
+			int aWidth = 0;
+			int aSet2 = aStart < aStrip->mW ? Image_MaskColumnSet(aStrip, aStart) : 0;
 			x = aStart;
-			while (aSet2 != 0 && x < aStrip->w)
+			while (aSet2 != 0 && x < aStrip->mW)
 			{
 				x = x + 1;
-				w = w + 1;
-				aSet2 = x < aStrip->w ? Image_MaskColumnSet(aStrip, x) : 0;
+				aWidth = aWidth + 1;
+				aSet2 = x < aStrip->mW ? Image_MaskColumnSet(aStrip, x) : 0;
 			}
-			ImageList_Append(&theFont->owned);
-			Image* aGlyph = theFont->owned.current;
-			Image_Create(aGlyph, w, theFont->height, &aStrip->fmt);
-			Copy8(aGlyph->bits, 0, 0, aGlyph->pitch, 0, aStrip->bits, (int)(aStrip->fmt.bpp >> 3) * aStart, 0,
-				aStrip->pitch, 0, (int)(aStrip->fmt.bpp >> 3) * w, theFont->height);
+			ImageList_Append(&theFont->mOwned);
+			Image* aGlyph = theFont->mOwned.mCurrent;
+			Image_Create(aGlyph, aWidth, theFont->mHeight, &aStrip->mFmt);
+			Copy8(aGlyph->mBits, 0, 0, aGlyph->mPitch, 0, aStrip->mBits, (int)(aStrip->mFmt.mBpp >> 3) * aStart, 0,
+				aStrip->mPitch, 0, (int)(aStrip->mFmt.mBpp >> 3) * aWidth, theFont->mHeight);
 			Image* aMask = new Image();
-			aGlyph->mask = aMask;
-			aGlyph->hasMask = 1;
-			Image_Create(aMask, w, theFont->height, &aStrip->mask->fmt);
-			aGlyph->mask->palette = aStrip->mask->palette;
-			Image* aStripMask = aStrip->mask;
-			Copy8(aGlyph->mask->bits, 0, 0, aGlyph->mask->pitch, 0, aStripMask->bits, aStart, 0, aStripMask->pitch, 0,
-				(int)(aStripMask->fmt.bpp >> 3) * w, theFont->height);
-			Image* aMade = theFont->owned.current;
-			theFont->glyphs[(uint8_t)theChars[k]] = aMade;
-			int aBottom = aMade->yOff + aMade->h;
-			if (theFont->height < aBottom)
-				theFont->height = aBottom;
+			aGlyph->mMask = aMask;
+			aGlyph->mHasMask = 1;
+			Image_Create(aMask, aWidth, theFont->mHeight, &aStrip->mMask->mFmt);
+			aGlyph->mMask->mPalette = aStrip->mMask->mPalette;
+			Image* aStripMask = aStrip->mMask;
+			Copy8(aGlyph->mMask->mBits, 0, 0, aGlyph->mMask->mPitch, 0, aStripMask->mBits, aStart, 0,
+				aStripMask->mPitch, 0, (int)(aStripMask->mFmt.mBpp >> 3) * aWidth, theFont->mHeight);
+			Image* aMade = theFont->mOwned.mCurrent;
+			theFont->mGlyphs[(uint8_t)theChars[k]] = aMade;
+			int aBottom = aMade->mYOff + aMade->mH;
+			if (theFont->mHeight < aBottom)
+				theFont->mHeight = aBottom;
 			k = k + 1;
 		} while (k < aCount);
 	}
-	ImageList_Append(&theFont->owned);
-	Image* aSpace = theFont->owned.current;
-	Image_Create(aSpace, theFont->owned.head->w / 2, theFont->height, &aStrip->fmt);
+	ImageList_Append(&theFont->mOwned);
+	Image* aSpace = theFont->mOwned.mCurrent;
+	Image_Create(aSpace, theFont->mOwned.mHead->mW / 2, theFont->mHeight, &aStrip->mFmt);
 	Image* aMask = new Image();
-	aSpace->mask = aMask;
-	aSpace->hasMask = 1;
-	Image_Create(aMask, theFont->owned.head->w / 2, theFont->height, &aStrip->mask->fmt);
-	aSpace->mask->palette = aStrip->mask->palette;
-	Image* aMade = theFont->owned.current;
-	theFont->glyphs[' '] = aMade;
-	int aBottom = aMade->yOff + aMade->h;
-	if (theFont->height < aBottom)
-		theFont->height = aBottom;
+	aSpace->mMask = aMask;
+	aSpace->mHasMask = 1;
+	Image_Create(aMask, theFont->mOwned.mHead->mW / 2, theFont->mHeight, &aStrip->mMask->mFmt);
+	aSpace->mMask->mPalette = aStrip->mMask->mPalette;
+	Image* aMade = theFont->mOwned.mCurrent;
+	theFont->mGlyphs[' '] = aMade;
+	int aBottom = aMade->mYOff + aMade->mH;
+	if (theFont->mHeight < aBottom)
+		theFont->mHeight = aBottom;
 	return 1;
 }
 
 void Font_DrawOutlined(Font* theFont, int* theRect, int x, int y, const char* theText)
 {
 	int aRect[4];
-	if (theFont->outline != nullptr)
+	if (theFont->mOutline != nullptr)
 	{
-		Palette* aSaved = theFont->palette;
-		theFont->palette = theFont->outline;
-		theFont->outlining = 1;
+		Palette* aSaved = theFont->mPalette;
+		theFont->mPalette = theFont->mOutline;
+		theFont->mOutlining = 1;
 		Font_DrawBounded(theFont, aRect, x, y + -1, theText, 1);
 		Font_DrawBounded(theFont, aRect, x, y + 1, theText, 1);
 		Font_DrawBounded(theFont, aRect, x + -1, y, theText, 1);
 		Font_DrawBounded(theFont, aRect, x + 1, y, theText, 1);
-		theFont->outlining = 0;
-		theFont->palette = aSaved;
+		theFont->mOutlining = 0;
+		theFont->mPalette = aSaved;
 	}
 	int* aDrawn = Font_DrawBounded(theFont, aRect, x, y, theText, 0);
 	theRect[0] = aDrawn[0];
 	theRect[1] = aDrawn[1];
 	theRect[2] = aDrawn[2];
 	theRect[3] = aDrawn[3];
-	if (theFont->outline != nullptr)
+	if (theFont->mOutline != nullptr)
 	{
 		theRect[0] = theRect[0] + -1;
 		theRect[1] = theRect[1] + -1;
@@ -569,9 +572,9 @@ int* Font_Printf(Font* theFont, int* theRect, int x, int y, const char* theForma
 {
 	va_list anArgs;
 	va_start(anArgs, theFormat);
-	std::vsnprintf(theFont->buf, sizeof(theFont->buf), theFormat, anArgs);
+	std::vsnprintf(theFont->mBuf, sizeof(theFont->mBuf), theFormat, anArgs);
 	va_end(anArgs);
-	Font_DrawOutlined(theFont, theRect, x, y, theFont->buf);
+	Font_DrawOutlined(theFont, theRect, x, y, theFont->mBuf);
 	return theRect;
 }
 
@@ -581,29 +584,29 @@ void Font_LoadFromBank(Font* theFont, const Bank* theBank, const char* thePrefix
 	if (theBank == nullptr)
 		return;
 	size_t aSize = std::strlen(thePrefix);
-	int n = (int)theBank->images.size();
+	int aCount = (int)theBank->mImages.size();
 	int i = 0;
-	while (i != n)
+	while (i != aCount)
 	{
-		if ((uint8_t)theBank->images[i]->name[0] == (uint8_t)*thePrefix)
+		if ((uint8_t)theBank->mImages[i]->mName[0] == (uint8_t)*thePrefix)
 			break;
 		i = i + 1;
 	}
-	if (i != n)
+	if (i != aCount)
 	{
-		theFont->height = 0;
-		while (i != n)
+		theFont->mHeight = 0;
+		while (i != aCount)
 		{
-			const char* aName = theBank->images[i]->name;
+			const char* aName = theBank->mImages[i]->mName;
 			if (std::strncmp(aName, thePrefix, aSize) == 0)
 			{
 				long aCode = std::atol(aName + aSize);
 				Image* aGlyph = Bank_ImageAt(theBank, (uint32_t)i);
 				if (aCode >= 0 && aCode < 256)
-					theFont->glyphs[aCode] = aGlyph;
-				int aBottom = aGlyph->yOff + aGlyph->h;
-				if (theFont->height < aBottom)
-					theFont->height = aBottom;
+					theFont->mGlyphs[aCode] = aGlyph;
+				int aBottom = aGlyph->mYOff + aGlyph->mH;
+				if (theFont->mHeight < aBottom)
+					theFont->mHeight = aBottom;
 			}
 			i = i + 1;
 		}
@@ -612,17 +615,17 @@ void Font_LoadFromBank(Font* theFont, const Bank* theBank, const char* thePrefix
 
 void Font_Clear(Font* theFont)
 {
-	std::memset(theFont->glyphs, 0, sizeof(theFont->glyphs));
-	theFont->spaceWidth = 0;
-	theFont->spacing = 0;
-	theFont->clip[0] = 0;
-	theFont->clip[1] = 0;
-	theFont->clip[2] = 0;
-	theFont->clip[3] = 0;
-	ImageList* aList = &theFont->owned;
-	if (aList->current != nullptr)
+	std::memset(theFont->mGlyphs, 0, sizeof(theFont->mGlyphs));
+	theFont->mSpaceWidth = 0;
+	theFont->mSpacing = 0;
+	theFont->mClip[0] = 0;
+	theFont->mClip[1] = 0;
+	theFont->mClip[2] = 0;
+	theFont->mClip[3] = 0;
+	ImageList* aList = &theFont->mOwned;
+	if (aList->mCurrent != nullptr)
 	{
-		aList->current = aList->head;
+		aList->mCurrent = aList->mHead;
 		bool aMore;
 		do
 		{
