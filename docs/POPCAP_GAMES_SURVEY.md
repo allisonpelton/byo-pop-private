@@ -187,7 +187,7 @@ public source. Twist's is ported: its D3D9 interface became the framework's GPU 
 `GPUInterface.h`, `GPUDisplay.h`), and its 3D drawing is in `games/bejeweledtwist/src/`.
 
 Of the engines that are not SAF, Sprout's first generation is ported in Word Harmony (`games/wordharmony/engine/`,
-described in its `docs/ENGINE.md`), and Pizza Frenzy, Iggle Pop and Feeding Frenzy start from it. Sprout's second
+described in `games/wordharmony/docs/ENGINE.md`), and Pizza Frenzy, Iggle Pop and Feeding Frenzy start from it. Sprout's second
 generation (Feeding Frenzy 2, Talismania), Raptisoft's engine (Chuzzle) and Square Enix's (Gyromancer) have no
 port. The other engines ported so far (TipTop's, Ning Po's, Retro64's, Jolly Bear's, New Crayon's) serve no
 remaining game.
@@ -307,7 +307,7 @@ player; `*.dmo` demo recordings.
 
 **Sonnet, published, ~6x, EXTRA WORK.** The game inside the wrapper is 1,703,936 bytes, linked 2006-05-17 with
 VS2003, by Nuclide (working title "Cubby Catch"); its DRM IPC client must be stubbed. It is on the 1.2 layout
-plus FlashWidget and ListWidget: Big Money's port (`games/bigmoney/`, `docs/FRAMEWORK_12.md`) is the one to copy.
+plus FlashWidget and ListWidget: Big Money's port (`games/bigmoney/`, with `games/bigmoney/docs/FRAMEWORK_12.md`) is the one to copy.
 Whether it shares code with Nuclide's earlier Rocket Mania and Pixelus, both ported, has not been checked. Game
 code is ~418 KB / ~1,890 functions, of which ~80 KB is editor and property UI and ~26 KB generated resource code;
 RTTI names 120 game classes, with a full in-game level editor and property system. Data: `resources.xml` (363
@@ -321,7 +321,7 @@ property system and object factory must be reproduced; `boards/*.csv`; `gnomedat
 wrapper is 1,268,224 bytes (v5.8.30.1, Sprout Games), linked 2006-02-21 with VS2003: Sprout's first-generation
 engine (~265 KB) and ~455 KB of game code, with no RTTI (about 322 unnamed vtables). Data: `PizzaFrenzy.saf`
 (6.0 MB, FFAS format, 1,081 entries) and loose `splash/`. It starts from Word Harmony's port of an older build of
-the engine, `games/wordharmony/engine/` (`docs/ENGINE.md`), whose `ResourceManager` already reads `.saf` archives:
+the engine, `games/wordharmony/engine/` (`games/wordharmony/docs/ENGINE.md`), whose `ResourceManager` already reads `.saf` archives:
 170 of the 198 strings its engine code refers to appear in Pizza Frenzy and Iggle Pop too, but only about a
 fifth of its bytes are identical, the functions having been rebuilt and changed. Moving that engine to shared
 code, once this second Sprout game is on it, is a shared change for the coordinator. There is no Mac build of
