@@ -107,10 +107,10 @@ void Board::ClearField()
 void Board::BuildField()
 {
 	unsigned int aRow = 0;
-	m95c = 0;
-	m954 = 0;
+	mDemoWaitLeft = 0;
+	mDemoStepIndex = 0;
 	mDemoInputActive = false;
-	m958 = 0;
+	mDemoAddedRowIndex = 0;
 	mPlayStarted = true;
 	ClearField();
 	int aY = 4;

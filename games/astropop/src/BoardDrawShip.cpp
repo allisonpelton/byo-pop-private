@@ -21,31 +21,31 @@ static const int kFlameCels = 8;        // the flame's cels (0x59d670)
 // 0x438210
 void Board::DrawShip(Graphics* g)
 {
-	int aX = m198c - 4;
+	int aX = mShipX - 4;
 	int aY = (int) (m1bf8 + 423.0f);
 	Image* aShip = GetImageById(mMode + 0x173);
 	Image* aFlame = GetImageById(mMode + 0x177);
 	Image* aWarp = GetImageById(mMode + 0x17b);
 	Image* aWarpJet = GetImageById(mMode + 0x17f);
 
-	bool aShipVisible = (!mWarpActive && !mGameOver && !mWarpFlight && !mWarpCharging && !mStreaksFadingOut) || (mStreaksFadingOut && m1954 == 2) || mShipInWarp;
+	bool aShipVisible = (!mWarpActive && !mGameOver && !mWarpFlight && !mWarpCharging && !mStreaksFadingOut) || (mStreaksFadingOut && mShipFrame == 2) || mShipInWarp;
 	if (aShipVisible)
 	{
 		int anOffset = 0;
 		if (mShipInWarp || mBonusWarpIn)
-			anOffset = m199c;
+			anOffset = mWarpShakeX;
 		if (mShipInWarp)
 			anOffset += 0xd;
 
 		int aCel;
-		if (m194c == 0)
-			aCel = kShipCels[kShipCelsLeft + m1954];
+		if (mShipTilt == 0)
+			aCel = kShipCels[kShipCelsLeft + mShipFrame];
 		else
-			aCel = kShipCels[m1954];
-		if (m194c == 2)
+			aCel = kShipCels[mShipFrame];
+		if (mShipTilt == 2)
 			aCel = 2;
 
-		float aShipY = mShipInWarp ? m938 : (float) aY;
+		float aShipY = mShipInWarp ? mWarpShipY : (float) aY;
 		int aShipX = anOffset + aX;
 		DrawCel(g, aShip, aShipX, (int) aShipY, aCel);
 
@@ -68,8 +68,8 @@ void Board::DrawShip(Graphics* g)
 			g->SetColorizeImages(true);
 			g->SetColor(Color(0xff, 0xff, 0xff, m1b38));
 		}
-		float aFlameY = mShipInWarp ? m938 : (float) aY;
-		DrawCel(g, aFlame, aShipX + 3, (int) (aFlameY + 36.0f), kShipCels[kFlameCels + m1950]);
+		float aFlameY = mShipInWarp ? mWarpShipY : (float) aY;
+		DrawCel(g, aFlame, aShipX + 3, (int) (aFlameY + 36.0f), kShipCels[kFlameCels + mShipFlameFrame]);
 		if (mStreaksFadingOut)
 			g->SetColorizeImages(false);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -79,12 +79,12 @@ void Board::DrawShip(Graphics* g)
 		if (mWarpCharging && !mGameOver)
 		{
 			// the ship leaves through the warp: its jet and flame flash
-			DrawCel(g, aWarp, m199c + aX, aY - m19a0 - 0x15c, 0);
+			DrawCel(g, aWarp, mWarpShakeX + aX, aY - mWarpPictureLift - 0x15c, 0);
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColorizeImages(true);
-			g->SetColor(Color(0xff, 0xff, 0xff, m19a4));
-			DrawCel(g, aFlame, m199c + aX + 2, aY - m19a0 + 0x20, kShipCels[kFlameCels + m1950]);
-			DrawCel(g, aWarpJet, m199c + aX + 2, aY - m19a0 - 0x15c, 0);
+			g->SetColor(Color(0xff, 0xff, 0xff, mWarpChargeAlpha));
+			DrawCel(g, aFlame, mWarpShakeX + aX + 2, aY - mWarpPictureLift + 0x20, kShipCels[kFlameCels + mShipFlameFrame]);
+			DrawCel(g, aWarpJet, mWarpShakeX + aX + 2, aY - mWarpPictureLift - 0x15c, 0);
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 			g->SetColorizeImages(false);
 		}
@@ -93,22 +93,22 @@ void Board::DrawShip(Graphics* g)
 			bool aDraw = true;
 			if (!mStreaksFadingOut)
 			{
-				if (m1954 >= 8)
+				if (mShipFrame >= 8)
 					aDraw = false;
 			}
-			else if (m1954 >= 10 || m19b0 < 0)
+			else if (mShipFrame >= 10 || mEffectsUpdateCount < 0)
 				aDraw = false;
 			if (aDraw)
 			{
 				if (mStreaksFadingOut)
 					aY += 0x64;
-				DrawCel(g, aWarp, aX, aY - m19a0 - 0x15c, m1954);
+				DrawCel(g, aWarp, aX, aY - mWarpPictureLift - 0x15c, mShipFrame);
 				g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 				g->SetColorizeImages(true);
-				g->SetColor(Color(0xff, 0xff, 0xff, m19a8));
-				DrawCel(g, aWarp, aX, aY - m19a0 - 0x15c, m1954);
-				g->SetColor(Color(0xff, 0xff, 0xff, m19a4));
-				DrawCel(g, aWarpJet, aX, aY - m19a0 - 0x15c, m1954);
+				g->SetColor(Color(0xff, 0xff, 0xff, mWarpGlowAlpha));
+				DrawCel(g, aWarp, aX, aY - mWarpPictureLift - 0x15c, mShipFrame);
+				g->SetColor(Color(0xff, 0xff, 0xff, mWarpChargeAlpha));
+				DrawCel(g, aWarpJet, aX, aY - mWarpPictureLift - 0x15c, mShipFrame);
 				g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 				g->SetColorizeImages(false);
 			}
@@ -120,7 +120,7 @@ void Board::DrawShip(Graphics* g)
 		// the turbot's power-up on the ship, and the lightning that jumps from it (3D only)
 		g->SetColor(Color(0xff, 0xff, 0xff, m1aa0));
 		g->SetColorizeImages(true);
-		DrawCel(g, IMAGE_TURBOT_POWERUP, m198c - 0x26, aY - 0x25, (mTurbotPowerupAnim.mNumFrames == 1) ? 0 : mTurbotPowerupAnim.mFrame);
+		DrawCel(g, IMAGE_TURBOT_POWERUP, mShipX - 0x26, aY - 0x25, (mTurbotPowerupAnim.mNumFrames == 1) ? 0 : mTurbotPowerupAnim.mFrame);
 		g->SetColorizeImages(false);
 		if (mApp->Is3DAccelerated())
 		{

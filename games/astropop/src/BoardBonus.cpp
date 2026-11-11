@@ -20,9 +20,9 @@ void Board::StartBonusRound(int theStage)
 
 	if (theStage == -1)
 	{
-		if (m1940 < 0x1e)
+		if (mLevelNumber < 0x1e)
 		{
-			int aBase = m1940 - 5;
+			int aBase = mLevelNumber - 5;
 			theStage = ((int) AstroRand() % 500000000) % 6 + aBase;
 			while (mPlayedBonusStages.find(theStage) != mPlayedBonusStages.end())
 				theStage = ((int) AstroRand() % 500000000) % 6 + aBase;

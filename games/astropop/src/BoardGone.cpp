@@ -51,12 +51,12 @@ void Board::SortFallingGroups()
 // left).
 void Board::OnBrickGone(Brick* theBrick)
 {
-	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0)
+	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0)
 	{
-		int aPoints = (int) ((float) theBrick->mColumn * m940);
+		int aPoints = (int) ((float) theBrick->mColumn * mScoreMultiplier);
 		aPoints = aPoints - aPoints % 10;
-		m19dc += aPoints;
-		m196c += aPoints;
+		mRemovalPoints += aPoints;
+		mChainPoints += aPoints;
 		if (!mBonusRoundOn)
 			AddScore(aPoints, false);
 		if (mPointsTextX == -1 && mPointsTextY == -1)
@@ -69,7 +69,7 @@ void Board::OnBrickGone(Brick* theBrick)
 	mBricksGoneCount++;
 	if (theBrick->mMutated != 1 && theBrick->mType == 10)
 		BeginClearWait();
-	m1994--;
+	mTakenBrickCount--;
 
 	if (!mGameOver)
 	{
@@ -151,7 +151,7 @@ void Board::OnBrickGone(Brick* theBrick)
 	}
 
 	// the falling groups fall to the cells that were emptied in their column, one on top of the other
-	if (m1994 == 0 && !mFallingGroups.empty())
+	if (mTakenBrickCount == 0 && !mFallingGroups.empty())
 	{
 		SortFallingGroups();
 		for (unsigned int i = 0; i < mTakenCells.size(); i++)
@@ -184,10 +184,10 @@ void Board::OnBrickGone(Brick* theBrick)
 		}
 	}
 
-	if (m1994 == 0 && !mGameOver && !mLevelUpPhase)
+	if (mTakenBrickCount == 0 && !mGameOver && !mLevelUpPhase)
 	{
-		if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
-			HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), false);
+		if (mMode == 3 && m1a34 == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
+			HoverCell((mLastPointerX - 0xa6) / 0x2c, CellRow((float) mLastPointerY), false);
 
 		std::vector<int> aCounts(10, 0);
 
@@ -300,12 +300,12 @@ void Board::OnBrickGone(Brick* theBrick)
 
 		if (mFiredGroups.empty() && mTakenBricks.empty() && mKillAllTypes.empty())
 		{
-			if (m1980 > 1 && m1980 > 2 && (mField193C > 1 || m1a60 == 2))
+			if (mChainCount > 1 && mChainCount > 2 && (mStageNumber > 1 || m1a60 == 2))
 				mFuelCellDue = true;
 			if (m19fc > 0x3c && !AnyMoveLeft(NULL))
 			{
 				if (m19fc < 0x3d)
-					m19d8 = (int) ((float) m19cc + mStackDanger * 20.0f);
+					mRowTimer = (int) ((float) mRowInterval + mStackDanger * 20.0f);
 				else
 					m19fc = 0x3c;
 			}
@@ -331,25 +331,25 @@ void Board::OnBrickGone(Brick* theBrick)
 		}
 
 		// what the bricks of this removal were worth, where the first of them was
-		if (m19dc > 0 && !mBonusRoundOn)
+		if (mRemovalPoints > 0 && !mBonusRoundOn)
 		{
-			FloatText* aFloat = new FloatText(StrFormat(GTC(0x56617c), m19dc), FONT_POINTS, (float) mPointsTextX, (float) mPointsTextY, false);
+			FloatText* aFloat = new FloatText(StrFormat(GTC(0x56617c), mRemovalPoints), FONT_POINTS, (float) mPointsTextX, (float) mPointsTextY, false);
 			mFloatTexts.push_back(aFloat);
 			mPointsTextX = -1;
 			mPointsTextY = -1;
 		}
-		m19dc = 0;
+		mRemovalPoints = 0;
 		CheckSparseField();
 	}
 
-	if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
-		HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), false);
+	if (mMode == 3 && m1a34 == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
+		HoverCell((mLastPointerX - 0xa6) / 0x2c, CellRow((float) mLastPointerY), false);
 
-	if (mMode == 2 && !mClearWaitStarted && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
+	if (mMode == 2 && !mClearWaitStarted && mTakenBrickCount == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 		BeginClearWait();
 
 	// a field with no move left (the out flag of AnyMoveLeft is a byte of the original's frame that nothing set before)
-	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 &&
+	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && mTakenBrickCount == 0 && CountMovingBricks(false) == 0 &&
 		mFiredGroups.empty() && mFallingGroups.empty())
 	{
 		bool aFlag = false;

@@ -40,7 +40,7 @@ void Board::RemoveBrick(Brick* theBrick, int theCol, int theRow, bool theCrack)
 	CellRef aCell = {theCol, theRow};
 	mTakenCells.push_back(aCell);
 	mTakenBricks.push_back(aBrick);
-	m1994++;
+	mTakenBrickCount++;
 	mFieldBricks[theRow][theCol] = NULL;
 	FireTo(aBrick, 3);
 }
@@ -155,14 +155,14 @@ void Board::BuildBanner(const std::string& theText, int theTime, Font* theFont)
 
 	m1b80 = theTime;
 	m1b84 = theTime;
-	m944 = 0;
+	mBannerWavePhase = 0;
 }
 
 // 0x4545b0: the field has been cleared: a bonus of the fraction of the stage that is left (+0x940, up to 100000, in
 // steps of 50) is paid with a text that moves to the middle of the screen.
 void Board::ClearBonus()
 {
-	int aBonus = (int) (m940 * 10000.0f);
+	int aBonus = (int) (mScoreMultiplier * 10000.0f);
 	if (aBonus > 100000)
 		aBonus = 100000;
 	mApp->PlaySample(SOUND_PERFECT);
@@ -208,16 +208,16 @@ void Board::StartClearCount()
 	}
 	m1b94 += (int) mHeldBricks.size();
 
-	int aStep = (int) ((float) m960 * 0.05f);
+	int aStep = (int) ((float) mClearBonusWorth * 0.05f);
 	m1b9c = m1b94 * aStep;
-	if (m1b9c > m960)
-		m1b9c = m960;
+	if (m1b9c > mClearBonusWorth)
+		m1b9c = mClearBonusWorth;
 	m1ba0 = 0;
 	m1ba8 = 0;
 	m1bb0 = 0;
 	m1b90 = 0x80;
 	m1bb4 = aStep;
-	m1ba4 = (m1b94 == 0) ? m960 : 0;
+	m1ba4 = (m1b94 == 0) ? mClearBonusWorth : 0;
 	SaveGameState();
 	gStateSaved = false;
 }
@@ -270,16 +270,16 @@ void Board::UpdateBricks()
 		DamageNeighbours(aCells);
 		DropUnsupported(mTakenCells);
 
-		if (m1980 > 1 && mTakenCells.empty() && mFallingGroups.empty())
+		if (mChainCount > 1 && mTakenCells.empty() && mFallingGroups.empty())
 		{
-			if (m1980 > 2 && (mField193C > 1 || m1a60 == 2))
+			if (mChainCount > 2 && (mStageNumber > 1 || m1a60 == 2))
 				mFuelCellDue = true;
 			if (m19fc > 0x3c && !AnyMoveLeft(NULL))
 			{
 				if (m19fc > 0x3c)
 					m19fc = 0x3c;
 				else
-					m19d8 = (int) ((float) m19cc + mStackDanger * 20.0f);
+					mRowTimer = (int) ((float) mRowInterval + mStackDanger * 20.0f);
 			}
 		}
 
@@ -290,7 +290,7 @@ void Board::UpdateBricks()
 			bool aFlag = false;
 			if (mBonusRoundOn)
 			{
-				if (!mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && m1994 == 0 && CountMovingBricks(false) == 0 && mFiredGroups.empty() &&
+				if (!mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && mTakenBrickCount == 0 && CountMovingBricks(false) == 0 && mFiredGroups.empty() &&
 					mFallingGroups.empty() && !AnyMoveLeft(&aFlag))
 				{
 					if (!aFlag)

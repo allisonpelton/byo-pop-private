@@ -111,13 +111,13 @@ void Board::DrawEndPage(Graphics* g)
 	if (m1a60 == 1)
 	{
 		WriteString(g, GT(0x00565d24), 0xe8, aLineY, -1, -1, true, 0, -1);
-		WriteString(g, StrFormat(GTC(0x00565d18), m1940), 0x21f, aLineY, -1, 1, true, 0, -1);
+		WriteString(g, StrFormat(GTC(0x00565d18), mLevelNumber), 0x21f, aLineY, -1, 1, true, 0, -1);
 	}
 	else
 	{
 		aLineY = aHeaderFont->GetAscent() + 0x10d;
 		WriteString(g, GT(0x00565d04), 0xe8, aLineY, -1, -1, true, 0, -1);
-		WriteString(g, MinutesSeconds(GT(0x00565cf4), GT(0x00565ce4), m19b8 / 100), 0x21f, aLineY, -1, 1, true, 0, -1);
+		WriteString(g, MinutesSeconds(GT(0x00565cf4), GT(0x00565ce4), mPlayTime / 100), 0x21f, aLineY, -1, 1, true, 0, -1);
 	}
 
 	aLineY += aFont->GetAscent() * 2;
@@ -132,7 +132,7 @@ void Board::DrawEndPage(Graphics* g)
 	if (m1a60 == 1)
 	{
 		WriteString(g, GT(0x00565c84), 0xe8, aLineY, -1, -1, true, 0, -1);
-		WriteString(g, MinutesSeconds(GT(0x00565cf4), GT(0x00565ce4), m19b8 / 100), 0x21f, aLineY, -1, 1, true, 0, -1);
+		WriteString(g, MinutesSeconds(GT(0x00565cf4), GT(0x00565ce4), mPlayTime / 100), 0x21f, aLineY, -1, 1, true, 0, -1);
 		aLineY += aFont->GetAscent();
 
 		// the classic game goes on from its last checkpoint (the ones at levels four, eight and so on)

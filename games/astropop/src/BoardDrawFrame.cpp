@@ -15,7 +15,7 @@ using namespace Sexy;
 // 0x444520
 void Board::DrawFrame(Graphics* g)
 {
-	int aTick = (m1924 < 1) ? mUpdateCnt : m1af0;
+	int aTick = (mPauseCount < 1) ? mUpdateCnt : m1af0;
 	bool aDim = m1b3c > 0;                  // the screen fades out: the frame goes dark with it
 
 	if (mGameOver)
@@ -101,7 +101,7 @@ void Board::DrawFrame(Graphics* g)
 			g->SetFont(GetFontById(FONT_DIALOG_BOX_ID));
 			int aShade = aDim ? 0xff - m1b3c : 0xff;
 			g->SetColor(Color(aShade, aShade, aShade));
-			g->DrawString(StrFormat(GTC(0x00564634), m1940), m1a80 + 0x36, 0xbb);
+			g->DrawString(StrFormat(GTC(0x00564634), mLevelNumber), m1a80 + 0x36, 0xbb);
 		}
 		if (m1a60 == 2)
 		{
@@ -248,8 +248,8 @@ void Board::DrawFrame(Graphics* g)
 		bool aPanelOut = !mHintSpots.empty() && mHintSpots[0]->mActive && mLevelUpPanelY <= -mLevelUpPanelHeight;    // a hint panel is up over the field
 		if (m1b48 > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
 		{
-			int aX = m1958;
-			int aY = m195c;
+			int aX = mLastPointerX;
+			int aY = mLastPointerY;
 			bool aOverStart = aX >= 18 && aX <= 126 && aY >= 225 && aY <= 253 && m1a34 == 0;
 			bool aOverPause = mOverlay.mEmergencyPause && aX >= -4 && aX <= -4 + 152 && aY >= 194 && aY <= 194 + 102;
 			if (aOverStart || aOverPause)
@@ -351,8 +351,8 @@ void Board::DrawFrame(Graphics* g)
 	g->SetColor(Color(0xff, 0xff, 0, aDim ? 0xff - m1b3c : 0xff));
 	if (m1a60 == 2)
 	{
-		int aMinutes = m19b4 / 6000;
-		int aSeconds = (m19b4 / 100) % 60;
+		int aMinutes = mRampTime / 6000;
+		int aSeconds = (mRampTime / 100) % 60;
 		std::string aTime;
 		if (aSeconds < 10)
 			aTime = StrFormat("%d:0%d", aMinutes, aSeconds);
@@ -361,5 +361,5 @@ void Board::DrawFrame(Graphics* g)
 		WriteString(g, aTime, m1a80 + 10, 0x9a, 0x7d, 1, true, 0, -1);
 	}
 	else
-		WriteString(g, FormatNumber(m1970), m1a80 + 10, 0x9a, 0x78, 1, true, 0, -1);
+		WriteString(g, FormatNumber(mScoreShown), m1a80 + 10, 0x9a, 0x78, 1, true, 0, -1);
 }

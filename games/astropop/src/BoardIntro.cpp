@@ -21,7 +21,7 @@ void Board::UpdateIntroAndTally()
 		{
 			// the warp ends: the streaks run, the screen shakes and fades in
 			UpdateStreaks();
-			m199c = ((int) AstroRand() % 500000000) % 0xb - 5;
+			mWarpShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
 			if (m1bc8 == 0x3b && mUpdateCnt % 2 == 0)
 				mApp->PlaySample(SOUND_WARP);
 			if (mUpdateCnt % 2 == 0)
@@ -41,7 +41,7 @@ void Board::UpdateIntroAndTally()
 		{
 			// the white screen holds; then the texts go and the streaks take the colour of their kind
 			UpdateStreaks();
-			m199c = ((int) AstroRand() % 500000000) % 0xb - 5;
+			mWarpShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
 			mOverlay.SetFill(255, 255, 255, m1bc8);
 			m1bc4++;
 			if (m1bc4 > 0x31)
@@ -51,7 +51,7 @@ void Board::UpdateIntroAndTally()
 				std::vector<FloatText*>().swap(mFloatTexts);
 				m1bc4 = 0;
 				m1bc0 = 3;
-				m199c = 0;
+				mWarpShakeX = 0;
 				for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
 				{
 					StreakRec* aStreak = &mStreaks[i];
@@ -141,7 +141,7 @@ void Board::UpdateIntroAndTally()
 			int aTime = m1b7c;
 			m1b84 = aTime;
 			m1b7c = aTime - 1;
-			m944 = (float) ((double) m944 + 0.07);
+			mBannerWavePhase = (float) ((double) mBannerWavePhase + 0.07);
 			if (aTime - 1 < 1)
 				m1b7c = 0;
 		}
@@ -156,7 +156,7 @@ void Board::UpdateIntroAndTally()
 				m1b70--;
 			if (m1b70 % 100 == 0 && m1b70 > 0)
 				gStateSaved = false;
-			if (m1b70 < 1 && CountMovingBricks(false) == 0 && mKillAllTypes.empty() && m1994 == 0 && mFallingGroups.empty() && mFiredGroups.empty())
+			if (m1b70 < 1 && CountMovingBricks(false) == 0 && mKillAllTypes.empty() && mTakenBrickCount == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 			{
 				m1b70 = 0;
 				mClicksBlocked = true;
@@ -264,11 +264,11 @@ void Board::UpdateIntroAndTally()
 						m1b90 = 1;
 						return;
 					}
-					aTotal = (m960 - m1b9c) + m1ba4;
+					aTotal = (mClearBonusWorth - m1b9c) + m1ba4;
 					m1ba8 = m1ba4;
 				}
 				else
-					aTotal = (m1ba4 - m1b9c) + m960;
+					aTotal = (m1ba4 - m1b9c) + mClearBonusWorth;
 				m1bb0 = 6;
 				m1b90 = 0x14;
 				m1bac = 0;
@@ -287,7 +287,7 @@ void Board::UpdateIntroAndTally()
 			if (m1b90 < 1)
 			{
 				m1b90 = 1;
-				int aTotal = (m1ba4 - m1b9c) + m960;
+				int aTotal = (m1ba4 - m1b9c) + mClearBonusWorth;
 				int aPaid = m1bac;
 				if (aPaid < aTotal)
 				{

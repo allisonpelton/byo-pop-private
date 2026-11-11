@@ -57,7 +57,7 @@ void Board::DrawWarpScreen(Graphics* g)
 	Rect aSrc(0, 0, 0, 0);
 	if (aKind != 3 && aKind != 4)
 	{
-		int aNextLevel = m1940 + 1;
+		int aNextLevel = mLevelNumber + 1;
 		if (aNextLevel % 4 == 0 && aNextLevel <= 0x20)
 			aKind = 2;
 	}
@@ -83,9 +83,9 @@ void Board::DrawWarpScreen(Graphics* g)
 		}
 	}
 
-	if (UpgradeScreenKind(m1940 + 1) == 0)
+	if (UpgradeScreenKind(mLevelNumber + 1) == 0)
 		aText = kClickForNext;
-	if ((m1940 + 1) % 4 == 0 && m1b28 != 3 && m1b28 != 4)
+	if ((mLevelNumber + 1) % 4 == 0 && m1b28 != 3 && m1b28 != 4)
 		aSrc = Rect(aCelWidth * 2, 0, aCelWidth, aPlanetHeight);
 	g->DrawImage(IMAGE_WARP_PLANETS,
 		(IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - IMAGE_WARP_PLANETS->GetCelWidth() / 2) + m1a70,
@@ -120,7 +120,7 @@ void Board::DrawWarpScreen(Graphics* g)
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	Font* aFont = GetFontById((m1a08 > 0) ? FONT_DIALOG_BOX_BTN_ID : FONT_HIGH_SCORE_ID);
 	g->SetFont(aFont);
-	std::string aTitle = StrFormat(GTC(0x00564634), m1940 + 1);
+	std::string aTitle = StrFormat(GTC(0x00564634), mLevelNumber + 1);
 	if (aKind == 2)
 		aTitle += GT(0x00564624);
 	int aTitleY = 0xfa - g->GetFont()->mHeight;

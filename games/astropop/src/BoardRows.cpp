@@ -118,14 +118,14 @@ void Board::AddTopRow()
 {
 	if (mGameOver || mLevelUpPhase)
 		return;
-	if (!(m19c0 != 0 || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || m1924 != 0 || !mFallingGroups.empty() || !mFiredGroups.empty() ||
+	if (!(mRowsLeftToPass != 0 || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mPauseCount != 0 || !mFallingGroups.empty() || !mFiredGroups.empty() ||
 		!mTakenBricks.empty() || !mKillAllTypes.empty()))
 		return;
 
 	bool aNoRoom = NoRoomLeft();
 	if (m1a34 == 1 && IsSettled(true) && aNoRoom)
 		return;
-	if (mDemoPlaying && (unsigned int) m958 >= mDemoAddedRows.size())
+	if (mDemoPlaying && (unsigned int) mDemoAddedRowIndex >= mDemoAddedRows.size())
 		return;
 
 	for (int aRow = 18; aRow >= 0; aRow--)
@@ -149,7 +149,7 @@ void Board::AddTopRow()
 		for (int aCol = 0; aCol < 10; aCol++, anX += 0x2c)
 		{
 			Brick* aBrick = NULL;
-			int aType = mDemoAddedRows[m958][aCol];
+			int aType = mDemoAddedRows[mDemoAddedRowIndex][aCol];
 			switch (aType)
 			{
 			case 0: case 1: case 2: case 3: case 4: case 5:
@@ -191,11 +191,11 @@ void Board::AddTopRow()
 				aBrick->StartBounce();
 			}
 		}
-		m958++;
+		mDemoAddedRowIndex++;
 	}
 
 	mNewRowBouncing = true;
-	if (!ColumnReachesShip(m198c))
+	if (!ColumnReachesShip(mShipX))
 		HighlightTargets();
 	else
 		GameOver();

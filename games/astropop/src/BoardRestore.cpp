@@ -20,7 +20,7 @@ using namespace Sexy;
 void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float theSetting52, float theSetting50, int theSavedLevel)
 {
 	m1bdc = 25600.0f;
-	m940 = theSetting52;
+	mScoreMultiplier = theSetting52;
 	mStageTextEnabled = false;
 	ApplyWeaponLevels();
 	mApp->mEngineLoop->SetVolume(1.0);
@@ -32,19 +32,19 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		int aLeft = theSavedLevel - 1;
 		do
 		{
-			mField193C++;
+			mStageNumber++;
 			AdvanceLevel(false);
 			aLeft--;
 		}
 		while (aLeft != 0);
 	}
-	m1940 = theSavedLevel / 2 + 1;
+	mLevelNumber = theSavedLevel / 2 + 1;
 
 	// the picture of the stage and the hint on the screen start without a fade
 	unsigned int aStageCount = mStageHintPanels.empty() ? 0 : (unsigned int) mStageHintPanels.size();
-	if ((unsigned int) mField193C < aStageCount)
+	if ((unsigned int) mStageNumber < aStageCount)
 	{
-		StageBg* aBg = mStageHintPanels[mField193C];
+		StageBg* aBg = mStageHintPanels[mStageNumber];
 		aBg->mPanelAlphaStep = 0;
 		aBg->mPanelAlpha = 0xff;
 		aBg->mOverPicAlphaStep = 0;
@@ -74,13 +74,13 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 	ClearField();
 	LoadLevel(false);
 	mScore = theScore;
-	m1970 = theScore;
+	mScoreShown = theScore;
 	m1bd8 = theSetting50;
-	m19b8 = theSetting54;
+	mPlayTime = theSetting54;
 	UserProfile* aUser = mApp->mUser;
 	aUser->GetInt(0x5c, &mPlayPoints);
-	aUser->GetInt(0x60, &m19b4);
-	aUser->GetInt(0x61, &m1978);
+	aUser->GetInt(0x60, &mRampTime);
+	aUser->GetInt(0x61, &mScoreAtStageStart);
 	aUser->GetInt(0x62, &mBonusRoundPoints);
 	int aBonusLevel = 0;
 	aUser->GetInt(0x5b, &aBonusLevel);
@@ -101,14 +101,14 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			{
 				m1b2c = 0;
 				aUser->GetInt(99, &m1b2c);
-				m1b28 = UpgradeScreenKind(m1940 + 1);
+				m1b28 = UpgradeScreenKind(mLevelNumber + 1);
 			}
 			else
 			{
 				// ... or in a bonus round, with the bricks it has left
 				m1b2c = 0;
 				aUser->GetInt(99, &m1b2c);
-				m1b28 = UpgradeScreenKind(m1940 + 1);
+				m1b28 = UpgradeScreenKind(mLevelNumber + 1);
 				m1b70 = aBrokenBricks;
 				mBonusRoundOn = true;
 				mLevelUpPhase = false;
@@ -140,7 +140,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				m1bc4 = 0;
 				mApp->mHyperspaceLoop->Play(true, false);
 				mApp->mEngineLoop->Stop();
-				m199c = 0;
+				mWarpShakeX = 0;
 				int aStreakIndex = 0;
 				do
 				{
@@ -260,9 +260,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				BeginClearWait();
 				m19fc = aWaiting;
 			}
-			int aValue198c = m198c;
+			int aValue198c = mShipX;
 			aUser->GetInt(0x66, &aValue198c);
-			m198c = aValue198c;
+			mShipX = aValue198c;
 			m1a7c = -1;
 			CheckStackHeight();
 			CheckShipColumn();
@@ -275,7 +275,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			mAtWarpGate = true;
 			m19f0 = 0;
 			unsigned int aDraw = AstroRand();
-			m938 = 423.0f; // 0x43d38000 at 0x4687f3
+			mWarpShipY = 423.0f; // 0x43d38000 at 0x4687f3
 			m19f4 = (((int) aDraw % 500000000) % 200) + 100;
 			mBackdropTint = Color(100, 100, 100);
 			m1ab8 = 10;
@@ -287,11 +287,11 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			m19e4 = 0;
 			m1b2c = 0;
 			aUser->GetInt(99, &m1b2c);
-			m1b28 = UpgradeScreenKind(m1940 + 1);
+			m1b28 = UpgradeScreenKind(mLevelNumber + 1);
 			if (m1a0c < 4)
-				m198c = IMAGE_SLOW_WARP_GATE->mWidth / 2 - 0x1a + m1a70;
+				mShipX = IMAGE_SLOW_WARP_GATE->mWidth / 2 - 0x1a + m1a70;
 			else
-				m198c = 0x159;
+				mShipX = 0x159;
 			aUser->GetInt(0x5c, &mPlayPoints);
 			aUser->GetInt(0x5d, &mBestChain);
 			int aBonus = 0;
@@ -301,19 +301,19 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			std::vector<std::string>().swap(mLevelUpLines);
 			mLevelUpLines.push_back(GT(0x00565728) + FormatNumber(mPlayPoints));
 			mLevelUpLines.push_back(StrFormat(GTC(0x00565714), mBestChain));
-			int aSeconds = (m19b4 / 100) % 0x3c;
+			int aSeconds = (mRampTime / 100) % 0x3c;
 			if (aSeconds < 10)
-				mLevelUpLines.push_back(StrFormat(GTC(0x005656f8), m19b4 / 6000, aSeconds));
+				mLevelUpLines.push_back(StrFormat(GTC(0x005656f8), mRampTime / 6000, aSeconds));
 			else
-				mLevelUpLines.push_back(StrFormat(GTC(0x005656dc), m19b4 / 6000, aSeconds));
+				mLevelUpLines.push_back(StrFormat(GTC(0x005656dc), mRampTime / 6000, aSeconds));
 			std::string aRankName = mApp->GetRankName(mScore, &m1bd4);
 			if (mRankImage != NULL)
 				delete mRankImage;
 			mRankImage = mApp->MakeRankImage(m1bd4, 0x50);
 			if (m1b2c == 1)
 			{
-				mScore = mPlayPoints + mBonusRoundPoints + m1978 + aBonus;
-				m1970 = mScore;
+				mScore = mPlayPoints + mBonusRoundPoints + mScoreAtStageStart + aBonus;
+				mScoreShown = mScore;
 				mLevelUpLines.push_back(StrFormat(GTC(0x005660ac), FormatNumber(mScore).c_str()));
 			}
 			int aToNext = mApp->PointsToNextRank(mScore);
@@ -380,7 +380,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		m1bc4 = 0;
 		mApp->mHyperspaceLoop->Play(true, false);
 		mApp->mEngineLoop->Stop();
-		m199c = 0;
+		mWarpShakeX = 0;
 		int aStreakIndex = 0;
 		do
 		{
@@ -403,7 +403,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		StartBonusRound(aStage);
 		m1b2c = 0;
 		aUser->GetInt(99, &m1b2c);
-		m1b28 = UpgradeScreenKind(m1940 + 1);
+		m1b28 = UpgradeScreenKind(mLevelNumber + 1);
 		MarkRec aMark;
 		aMark.mType = -1;
 		aMark.mCount = -1;
@@ -426,9 +426,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			BeginClearWait();
 			m19fc = aWaiting;
 		}
-		int aValue198c = m198c;
+		int aValue198c = mShipX;
 		aUser->GetInt(0x66, &aValue198c);
-		m198c = aValue198c;
+		mShipX = aValue198c;
 	}
 	m1b98 = 0;
 	aUser->GetInt(100, &m1b98);

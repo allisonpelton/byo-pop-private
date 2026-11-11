@@ -120,7 +120,7 @@ void Board::UpdateSpecialMode()
 			}
 			std::vector<CellRef>().swap(mHoverCells);
 		}
-		if (mMode == 2 && !mClearWaitStarted && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
+		if (mMode == 2 && !mClearWaitStarted && mTakenBrickCount == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 			BeginClearWait();
 		if (!mSirenAnim.mStopped)
 			m1ab8 = 8;

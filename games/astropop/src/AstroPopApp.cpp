@@ -470,9 +470,9 @@ void AstroPopApp::GotFocus()
 		else if (mMainMenu != NULL)
 			mMainMenu->mInactive = false;
 	}
-	if (mEngineLoop != NULL && mBoard != NULL && !mBoard->HasWarpState() && mBoard->m1924 <= 0)
+	if (mEngineLoop != NULL && mBoard != NULL && !mBoard->HasWarpState() && mBoard->mPauseCount <= 0)
 		mEngineLoop->Play(true, false);
-	if (mHyperspaceLoop != NULL && mBoard != NULL && mBoard->HasWarpState() && mBoard->m1924 <= 0)
+	if (mHyperspaceLoop != NULL && mBoard != NULL && mBoard->HasWarpState() && mBoard->mPauseCount <= 0)
 		mHyperspaceLoop->Play(true, false);
 }
 

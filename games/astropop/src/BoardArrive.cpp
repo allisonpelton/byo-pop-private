@@ -60,7 +60,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 
 	if (!mNewRowBouncing && CountMovingBricks(true) == 0)
 	{
-		if (m1994 > 0)
+		if (mTakenBrickCount > 0)
 			return;
 
 		// -- 1: a power brick in a group is put into the field and goes off at once
@@ -168,7 +168,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 
 		// the tutorial's first hint is dropped when it is the last but one
-		if ((mField193C == 1 || mTutorialStageForced) && !mDemoPlaying && !aFlag)
+		if ((mStageNumber == 1 || mTutorialStageForced) && !mDemoPlaying && !aFlag)
 		{
 			StageBg* aBg = mStageHintPanels[1];
 			if (aBg->mNext != NULL && aBg->mNext->mNext == NULL)
@@ -195,11 +195,11 @@ void Board::OnBrickArrived(Brick* theBrick)
 			mTakenBricks.push_back(aBrick);
 			mTakenCells.push_back(mConnectedCells[k]);
 			FireTo(aBrick, 3);
-			m1994++;
+			mTakenBrickCount++;
 			aLastKind = aKind;
 		}
 
-		if ((mField193C == 1 || mTutorialStageForced) && !mDemoPlaying)
+		if ((mStageNumber == 1 || mTutorialStageForced) && !mDemoPlaying)
 		{
 			if (mConnectedCells.size() >= (unsigned int) m1a54)
 			{
@@ -243,12 +243,12 @@ void Board::OnBrickArrived(Brick* theBrick)
 					if (!mStartBannerDoneInBonus)
 						mApp->PlaySampleAt(SOUND_BLOCK_HIT_BLOCK, ((int) (*aPickBrick)->mX - 0xa6) / 0x2c);
 				}
-				if (m1980 > 1 && mKillAllTypes.empty() && m1980 > 2 && (mField193C > 1 || m1a60 == 2))
+				if (mChainCount > 1 && mKillAllTypes.empty() && mChainCount > 2 && (mStageNumber > 1 || m1a60 == 2))
 					mFuelCellDue = true;
 				if (mKillAllTypes.empty() && !AnyMoveLeft(NULL))
 				{
 					if (m19fc < 0x3d)
-						m19d8 = (int) ((float) m19cc + mStackDanger * 20.0f);
+						mRowTimer = (int) ((float) mRowInterval + mStackDanger * 20.0f);
 					else
 						m19fc = 0x3c;
 				}
@@ -283,14 +283,14 @@ void Board::OnBrickArrived(Brick* theBrick)
 		HighlightTargets();
 		CheckStackHeight();
 		CheckShipColumn();
-		if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
-			HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), false);
-		if (mMode == 2 && !mClearWaitStarted && m1a34 == 0 && m1994 == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
+		if (mMode == 3 && m1a34 == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
+			HoverCell((mLastPointerX - 0xa6) / 0x2c, CellRow((float) mLastPointerY), false);
+		if (mMode == 2 && !mClearWaitStarted && m1a34 == 0 && mTakenBrickCount == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 			BeginClearWait();
 		CheckSparseField();
 
 		// a field with no move left (the out flag of AnyMoveLeft is the byte that held "a set was made")
-		if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && m1994 == 0 && mFiredGroups.empty() && mFallingGroups.empty() &&
+		if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && mTakenBrickCount == 0 && mFiredGroups.empty() && mFallingGroups.empty() &&
 			!AnyMoveLeft(&aFlag))
 		{
 			if (!aFlag)
@@ -334,12 +334,12 @@ void Board::OnBrickArrived(Brick* theBrick)
 		if (mKillAllTypes.empty() && !AnyMoveLeft(NULL))
 		{
 			if (m19fc < 0x3d)
-				m19d8 = (int) ((float) m19cc + mStackDanger * 20.0f);
+				mRowTimer = (int) ((float) mRowInterval + mStackDanger * 20.0f);
 			else
 				m19fc = 0x3c;
 		}
 	}
 
-	if (m1980 > 1 && m1980 != m1984 && mFiredGroups.empty() && mFallingGroups.empty())
-		m1984 = m1980;
+	if (mChainCount > 1 && mChainCount != mLastChainCount && mFiredGroups.empty() && mFallingGroups.empty())
+		mLastChainCount = mChainCount;
 }

@@ -19,8 +19,8 @@ void Board::LoadLevel(bool theFromRules)
 	mBonusFieldLoaded = false;
 	mWarpGateAnim.SetStopped(true);
 	ClearField();
-	m1930 = -1;
-	memset(&m984, 0, sizeof(m984));
+	mScriptRowIndex = -1;
+	memset(&mScriptRows, 0, sizeof(mScriptRows));
 	ResetGame();
 	mStreaksFadingOut = true;
 	m1b38 = 0;
@@ -35,8 +35,8 @@ void Board::LoadLevel(bool theFromRules)
 	}
 	else
 	{
-		std::string aFileName = StrFormat("data\\level%d.xcf", mField193C);
-		if (mField193C == -100)
+		std::string aFileName = StrFormat("data\\level%d.xcf", mStageNumber);
+		if (mStageNumber == -100)
 		{
 			// a level from a file (no level file of the game is named like this; the original's path is kept)
 			aFile.AddKeyName("DropTime");
@@ -45,22 +45,22 @@ void Board::LoadLevel(bool theFromRules)
 				aFile.AddKeyName(StrFormat("Brick%d", i));
 			aFile.Parse(aFileName);
 			aFile.EnterFirstChild();
-			m197c = aFile.GetInt("\\LEVEL\\LevelUp");
-			m19cc = aFile.GetInt("\\LEVEL\\DropTime") * 100;
+			mLevelFileLevelUp = aFile.GetInt("\\LEVEL\\LevelUp");
+			mRowInterval = aFile.GetInt("\\LEVEL\\DropTime") * 100;
 			bool aDone = false;
-			m1930 = -1;
+			mScriptRowIndex = -1;
 			do
 			{
 				std::string aName = aFile.GetCurrentName();
 				std::string aNumber = aName.size() > 3 ? aName.substr(3) : std::string();
 				long aRowNumber = atol(aNumber.c_str());
-				if (m1930 == -1)
-					m1930 = (int) aRowNumber;
+				if (mScriptRowIndex == -1)
+					mScriptRowIndex = (int) aRowNumber;
 				for (int i = 0; i < 10; i++)
 				{
 					long aCode = aFile.GetInt(StrFormat("Brick%d", i));
 					if (aRowNumber >= 0 && aRowNumber < 100)
-						m984.mCode[aRowNumber][i] = (int) aCode;
+						mScriptRows.mCode[aRowNumber][i] = (int) aCode;
 				}
 				if (aFile.NextSibling() == XcfFile::CURSOR_END)
 					aDone = true;
@@ -78,7 +78,7 @@ void Board::LoadLevel(bool theFromRules)
 					else
 					{
 						int aScriptRow = 17 - aRow;
-						int aKind = (aScriptRow >= 0 && aScriptRow < 100) ? m984.mCode[aScriptRow][aCol] : 0;
+						int aKind = (aScriptRow >= 0 && aScriptRow < 100) ? mScriptRows.mCode[aScriptRow][aCol] : 0;
 						switch (aKind)
 						{
 						case 0:
@@ -115,20 +115,20 @@ void Board::LoadLevel(bool theFromRules)
 				}
 				aY += 0x19;
 			}
-			m1930 = m1930 + m1ac8 + 1;
+			mScriptRowIndex = mScriptRowIndex + m1ac8 + 1;
 			bool aAnyBrick = false;
 			for (int i = 0; i < 10; i++)
 			{
-				if (m1930 >= 0 && m1930 < 100 && m984.mCode[m1930][i] != 0)
+				if (mScriptRowIndex >= 0 && mScriptRowIndex < 100 && mScriptRows.mCode[mScriptRowIndex][i] != 0)
 					aAnyBrick = true;
 			}
 			if (!aAnyBrick)
-				m1930 = -1;
+				mScriptRowIndex = -1;
 		}
 		else
 		{
 			int aStageRows = m1ac8;
-			m1930 = -1;
+			mScriptRowIndex = -1;
 			for (int aRow = 0; aRow < 0x14; aRow++)
 			{
 				if (aStageRows < aRow)
@@ -146,15 +146,15 @@ void Board::LoadLevel(bool theFromRules)
 	for (unsigned int i = 0; i < mWarpStars.size(); i++)
 		delete mWarpStars[i];
 	std::vector<WarpStar*>().swap(mWarpStars);
-	m198c = 0x182;
-	m1998 = 8;
-	m19b0 = 0;
+	mShipX = 0x182;
+	mWarpFrameInterval = 8;
+	mEffectsUpdateCount = 0;
 	std::vector<Brick*>().swap(mTargeted);
 
 	// the stage's picture and the first hint start from the beginning
-	if ((unsigned int) mField193C < mStageHintPanels.size())
+	if ((unsigned int) mStageNumber < mStageHintPanels.size())
 	{
-		StageBg* aBg = mStageHintPanels[mField193C];
+		StageBg* aBg = mStageHintPanels[mStageNumber];
 		aBg->mPicAlpha = 0xff;
 		aBg->mPanelAlpha = 0xff;
 		aBg->mCrossfadeTimer = 0;
@@ -179,7 +179,7 @@ void Board::LoadLevel(bool theFromRules)
 	if (m1a60 == 1)
 	{
 		m1b2c = m1b28;
-		m1b28 = UpgradeScreenKind(m1940 + 1);
+		m1b28 = UpgradeScreenKind(mLevelNumber + 1);
 	}
 	Fire(0x2a, 1);
 }

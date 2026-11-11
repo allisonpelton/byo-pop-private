@@ -41,7 +41,7 @@ bool Board::HasWarpState() const
 }
 
 // 0x459040: the Board is paused while a dialog is open. Pause(true) starts a pause (unless the pause dialog, id 100, is
-// open already); Pause(false) ends it when that dialog is gone. The count of pauses is m1924; only the first pause
+// open already); Pause(false) ends it when that dialog is gone. The count of pauses is mPauseCount; only the first pause
 // stops the sounds and hides the buttons and only the last resumes them.
 void Board::Pause(bool theStart, bool theFlag)
 {
@@ -50,8 +50,8 @@ void Board::Pause(bool theStart, bool theFlag)
 	{
 		if (mApp->GetDialog(100) == NULL)
 		{
-			m1924--;
-			if (m1924 == 0)
+			mPauseCount--;
+			if (mPauseCount == 0)
 			{
 				if (mDemoStartLink != NULL)
 					mDemoStartLink->SetVisible(true);
@@ -63,7 +63,7 @@ void Board::Pause(bool theStart, bool theFlag)
 				if (!m1c09)
 					mApp->SetLoopSoundsMuted(false);
 				mApp->PauseMusicForFocus(false);
-				m1928 = 0;
+				mPauseDarkening = 0;
 				if (!mOverlay.mShownWhileRunning)
 					SetOverlayHidden(true);
 				if (!mGameOver)
@@ -96,8 +96,8 @@ void Board::Pause(bool theStart, bool theFlag)
 		return;
 	}
 
-	m1924++;
-	if (m1924 != 1)
+	mPauseCount++;
+	if (mPauseCount != 1)
 		return;
 	if (mDemoStartLink != NULL)
 		mDemoStartLink->SetVisible(false);
@@ -305,13 +305,13 @@ void Board::BeginPlay()
 		}
 		else if (mMode == 3)
 		{
-			int aX = m1958;
+			int aX = mLastPointerX;
 			m1a34 = 1;
 			if (aX > 0xa5 && aX < 0x25e)
 			{
 				unsigned int aRow = 0;
-				if (m195c >= 0x22)
-					aRow = (m195c - 0x22) / 0x19 + 1;
+				if (mLastPointerY >= 0x22)
+					aRow = (mLastPointerY - 0x22) / 0x19 + 1;
 				HoverCell((aX - 0xa6) / 0x2c, aRow, false);
 			}
 		}
@@ -329,7 +329,7 @@ void Board::BeginPlay()
 				Fire(0x28, 0);
 			}
 			if (!mPlayStarted)
-				m1960 = 0xff;
+				mStartTextAlpha = 0xff;
 		}
 		mPlayStarted = true;
 		mStartedFromCheckpoint = false;
@@ -426,7 +426,7 @@ void Board::DismissHint()
 void Board::CloseOverlay()
 {
 	mDemoEnding = true;
-	m978 = 0;
+	mWhiteFadeAlpha = 0;
 	mApp->mWidgetManager->RemoveWidget(mDemoStartLink);
 	mApp->SafeDeleteWidget(mDemoStartLink);
 	mDemoStartLink = NULL;

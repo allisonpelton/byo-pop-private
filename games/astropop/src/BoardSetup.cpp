@@ -278,7 +278,7 @@ static const int kClassicNearRow[8] = {2, 2, 6, 6, 8, 4, 10, 4};
 // played, and the share of each kind in the three phases of a game
 void Board::SetupClassicRules()
 {
-	m19cc = 400;
+	mRowInterval = 400;
 	m1ac4 = 6;
 	mDropTicks = 900;
 
@@ -332,9 +332,9 @@ void Board::SetupClassicRules()
 	m1a1c = 0;
 	m1ac8 = 4;
 	m1a28 = 0;
-	m19c0 = 500000000;
-	m19c4 = 500000000;
-	m19c8 = 0;
+	mRowsLeftToPass = 500000000;
+	mRowsToPass = 500000000;
+	mRowsToPassChange = 0;
 
 	for (int k = 0; k < 8; k++)
 	{
@@ -357,7 +357,7 @@ void Board::SetupClassicRules()
 	}
 
 	m1a88 = -1;
-	m940 = 1.0f;
+	mScoreMultiplier = 1.0f;
 }
 
 // the keys of the kinds in the data files, in the order of the rules
@@ -387,10 +387,10 @@ void Board::SetupLevel1Rules()
 	if (m1a28 > 1)
 		m1a28 = 2;
 	int aRows = aFile->HasKey("\\LEVEL1\\NumRowsToPass") ? (int) aFile->GetInt("\\LEVEL1\\NumRowsToPass") : 0x19;
-	m19c0 = aRows;
-	m19c4 = aRows;
-	m19c8 = aFile->HasKey("\\LEVEL1\\NumRowsToPassChangeBy") ? (int) aFile->GetInt("\\LEVEL1\\NumRowsToPassChangeBy") : 0;
-	m19cc = (int) aFile->GetInt("\\LEVEL1\\DropTime") * 100;
+	mRowsLeftToPass = aRows;
+	mRowsToPass = aRows;
+	mRowsToPassChange = aFile->HasKey("\\LEVEL1\\NumRowsToPassChangeBy") ? (int) aFile->GetInt("\\LEVEL1\\NumRowsToPassChangeBy") : 0;
+	mRowInterval = (int) aFile->GetInt("\\LEVEL1\\DropTime") * 100;
 
 	for (int k = 0; k < 8; k++)
 	{
@@ -408,11 +408,11 @@ void Board::SetupLevel1Rules()
 
 	m1a88 = -1;
 	// (computed in extended precision in the original: exact for these numbers)
-	m940 = (float) ((double) m1940 * 0.125 + 1.0);
-	if (m940 < 1.0f)
-		m940 = 1.0f;
-	if (6.0f < m940)
-		m940 = 6.0f;
+	mScoreMultiplier = (float) ((double) mLevelNumber * 0.125 + 1.0);
+	if (mScoreMultiplier < 1.0f)
+		mScoreMultiplier = 1.0f;
+	if (6.0f < mScoreMultiplier)
+		mScoreMultiplier = 6.0f;
 	BuildStoryText();
 }
 
@@ -437,8 +437,8 @@ void Board::AdvanceLevel(bool theSave)
 		{
 			int aValue = 0;
 			aUser->GetInt(mMode + 8, &aValue);
-			if (aValue < m1940)
-				aUser->SetInt(mMode + 8, m1940);
+			if (aValue < mLevelNumber)
+				aUser->SetInt(mMode + 8, mLevelNumber);
 
 			aValue = 0;
 			aUser->GetInt(mMode, &aValue);
@@ -446,7 +446,7 @@ void Board::AdvanceLevel(bool theSave)
 			{
 				// (the original stores the value it has just read back: a no-op, kept)
 				aUser->SetInt(mMode, aValue);
-				aUser->SetInt(mMode + 4, mField193C);
+				aUser->SetInt(mMode + 4, mStageNumber);
 			}
 
 			aValue = 0;
@@ -467,7 +467,7 @@ void Board::AdvanceLevel(bool theSave)
 	XcfFile* aFile = mApp->mDescriptor;
 	aFile->ResetCursor();
 	long aNumber = LevelNumberOf(aFile->GetCurrentName());
-	if (aNumber < mField193C)
+	if (aNumber < mStageNumber)
 	{
 		int aResult;
 		do
@@ -475,11 +475,11 @@ void Board::AdvanceLevel(bool theSave)
 			aResult = aFile->NextSibling();
 			aNumber = LevelNumberOf(aFile->GetCurrentName());
 		}
-		while (aResult != XcfFile::CURSOR_END && aNumber < mField193C);
+		while (aResult != XcfFile::CURSOR_END && aNumber < mStageNumber);
 	}
 
 	aNumber = LevelNumberOf(aFile->GetCurrentName());
-	if (aNumber == mField193C)
+	if (aNumber == mStageNumber)
 	{
 		// this level has a section of its own
 		if (aFile->HasKey("BASE_FREQUENCY\\BonusChanceChangeBy"))
@@ -502,12 +502,12 @@ void Board::AdvanceLevel(bool theSave)
 		if (aFile->HasKey("NumBricksToPassChangeBy"))
 			m1a1c = (int) aFile->GetInt("NumBricksToPassChangeBy");
 		if (aFile->HasKey("NumRowsToPassChangeBy"))
-			m19c8 = (int) aFile->GetInt("NumRowsToPassChangeBy");
+			mRowsToPassChange = (int) aFile->GetInt("NumRowsToPassChangeBy");
 		if (aFile->HasKey("NumRowsToPass"))
-			m19c4 = (int) aFile->GetInt("NumRowsToPass");
+			mRowsToPass = (int) aFile->GetInt("NumRowsToPass");
 		else
-			m19c4 = m19c4 + m19c8;
-		m19c0 = m19c4;
+			mRowsToPass = mRowsToPass + mRowsToPassChange;
+		mRowsLeftToPass = mRowsToPass;
 		if (aFile->HasKey("MaxMutators"))
 			m1ac4 = (int) aFile->GetInt("MaxMutators");
 		if (m1ac4 < 0)
@@ -517,9 +517,9 @@ void Board::AdvanceLevel(bool theSave)
 		if (m1a28 > 1)
 			m1a28 = 2;
 		if (aFile->HasKey("DropTime"))
-			m19cc = (int) aFile->GetInt("DropTime") * 100;
-		if (m19cc < 1)
-			m19cc = 1;
+			mRowInterval = (int) aFile->GetInt("DropTime") * 100;
+		if (mRowInterval < 1)
+			mRowInterval = 1;
 
 		for (int k = 0; k < 8; k++)
 		{
@@ -552,14 +552,14 @@ void Board::AdvanceLevel(bool theSave)
 	else
 	{
 		// no section: every fifth level the drop gets quicker, the rest steps up by the changes of the level before
-		if (mField193C % 5 == 0)
-			m19cc--;
-		if (m19cc < 1)
-			m19cc = 1;
-		int aRows = m19c4 + m19c8;
+		if (mStageNumber % 5 == 0)
+			mRowInterval--;
+		if (mRowInterval < 1)
+			mRowInterval = 1;
+		int aRows = mRowsToPass + mRowsToPassChange;
 		m1be8 = (float) ((double) m1bf0 + (double) m1be8);
-		m19c0 = aRows;
-		m19c4 = aRows;
+		mRowsLeftToPass = aRows;
+		mRowsToPass = aRows;
 		m1a18 = m1a18 + m1a1c;
 		m1bec = (float) ((double) m1bf4 + (double) m1bec);
 		for (int k = 0; k < 8; k++)
@@ -570,18 +570,18 @@ void Board::AdvanceLevel(bool theSave)
 		}
 	}
 
-	int aLevel = mField193C;
+	int aLevel = mStageNumber;
 	if (m1bbc <= aLevel)
 	{
 		// the pieces come quicker every second level
-		m19d4 -= (aLevel % 2 == 0) ? 1 : 0;
-		if (m19d4 < 5)
-			m19d4 = 5;
+		mRowReductionPeriod -= (aLevel % 2 == 0) ? 1 : 0;
+		if (mRowReductionPeriod < 5)
+			mRowReductionPeriod = 5;
 	}
-	if (m19c4 > 0x46)
+	if (mRowsToPass > 0x46)
 	{
-		m19c0 = 0x46;
-		m19c4 = 0x46;
+		mRowsLeftToPass = 0x46;
+		mRowsToPass = 0x46;
 	}
 	if (m1a20 < m1a18)
 		m1a18 = m1a20;
@@ -612,9 +612,9 @@ void Board::AdvanceLevel(bool theSave)
 		}
 	}
 
-	if (m1bbc <= mField193C)
+	if (m1bbc <= mStageNumber)
 	{
-		m1b0c = ((m1bbc - mField193C) + 0x3c) * 100;
+		m1b0c = ((m1bbc - mStageNumber) + 0x3c) * 100;
 		if (m1b0c < 0x1194)
 			m1b0c = 0x1194;
 		m1b08 = m1b0c;
@@ -627,7 +627,7 @@ void Board::LoadDemo()
 {
 	XcfFile aFile;
 
-	m954 = 0;
+	mDemoStepIndex = 0;
 	aFile.AddKeyName("Command");
 	aFile.AddKeyName("Idle");
 	aFile.AddKeyName("NumAdded");

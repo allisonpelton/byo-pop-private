@@ -22,19 +22,19 @@ void Board::UpdateGameOver()
 	if (mGameOverAnimDone)
 		return;
 
-	if (m1948 > 0)
+	if (mEndFlashAlpha > 0)
 	{
-		m1948 -= 2;
-		mOverlay.SetFill(0xff, 0xff, 0xff, m1948);
-		if (m1948 <= 0)
+		mEndFlashAlpha -= 2;
+		mOverlay.SetFill(0xff, 0xff, 0xff, mEndFlashAlpha);
+		if (mEndFlashAlpha <= 0)
 		{
-			m1948 = 0;
+			mEndFlashAlpha = 0;
 			SetOverlayHidden(true);
 		}
 	}
 
 	m1a80 = ((int) AstroRand() % 500000000) % 11 - 5;
-	if (m1948 > 0xf0)
+	if (mEndFlashAlpha > 0xf0)
 		return;
 
 	// The panels fade one after the other: a panel runs only when every panel before it has reached its turn (counted
@@ -89,7 +89,7 @@ void Board::UpdateGameOver()
 
 	if (aDone != (int) mEndBlastFades.size())
 		return;
-	if (m1948 != 0)
+	if (mEndFlashAlpha != 0)
 		return;
 	mGameOverAnimDone = true;
 	if (m1a60 == 1 || m1a60 == 2)
@@ -176,21 +176,21 @@ void Board::SaveFinalScore()
 	{
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);
-		mInHallOfFame = mApp->AddHallOfFame(aName, mScore, m1940, mMode, 1);
+		mInHallOfFame = mApp->AddHallOfFame(aName, mScore, mLevelNumber, mMode, 1);
 
 		int aBest = mScore;
 		mApp->mUser->GetInt(mMode, &aBest);
 		if (mScore > aBest)
 		{
 			mApp->mUser->SetInt(mMode, mScore);
-			mApp->mUser->SetInt(mMode + 4, m1940);
+			mApp->mUser->SetInt(mMode + 4, mLevelNumber);
 		}
 
 		ProfileRecord aRecord;
 		aRecord.mField[0] = 1;
 		aRecord.mField[1] = mMode;
 		aRecord.mField[2] = mScore;
-		aRecord.mField[3] = m1940;
+		aRecord.mField[3] = mLevelNumber;
 		aRecord.mField[4] = -1;
 		aRecord.mField[5] = WeaponLevelSum();
 		m1b30 = mApp->mUser->AddRecord(aRecord);
@@ -233,31 +233,31 @@ void Board::GameOver()
 	}
 	else if (m1a60 == 2)
 	{
-		m19b8 = m19b4;
+		mPlayTime = mRampTime;
 		ProfileRecord aRecord;
 		aRecord.mField[0] = 2;
 		aRecord.mField[1] = mMode;
 		aRecord.mField[2] = mScore;
 		aRecord.mField[3] = -1;
-		aRecord.mField[4] = m19b4 / 100;
+		aRecord.mField[4] = mRampTime / 100;
 		aRecord.mField[5] = WeaponLevelSum();
 		m1b30 = mApp->mUser->AddRecord(aRecord);
 
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);
-		mInHallOfFame = mApp->AddHallOfFame(aName, mScore, m19b8 / 100, mMode, 2);
+		mInHallOfFame = mApp->AddHallOfFame(aName, mScore, mPlayTime / 100, mMode, 2);
 
 		int aBestTime = 0;
 		mApp->mUser->GetInt(mMode + 0x67, &aBestTime);
-		if (aBestTime < m19b8 / 100)
+		if (aBestTime < mPlayTime / 100)
 		{
-			aBestTime = m19b8 / 100;
+			aBestTime = mPlayTime / 100;
 			mApp->mUser->SetInt(mMode + 0x67, aBestTime);
 		}
 	}
 
 	mApp->PlaySong(0x27);
-	m1948 = 0xff;
+	mEndFlashAlpha = 0xff;
 	mOverlay.SetFill(255, 255, 255, 255);
 	SetOverlayHidden(false);
 	ClearField();

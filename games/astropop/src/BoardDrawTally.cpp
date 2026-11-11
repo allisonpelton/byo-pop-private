@@ -33,7 +33,7 @@ void Board::DrawBonusStats(Graphics* g)
 		aFont = GetFontById(FONT_HIGH_SCORE_ID);
 		g->SetFont(aFont);
 		g->DrawString(GT(0x00564798), aLeft, aFont->GetHeight() + 0xda);
-		std::string aWorth = StrFormat("%s", FormatNumber(m960).c_str());
+		std::string aWorth = StrFormat("%s", FormatNumber(mClearBonusWorth).c_str());
 		g->DrawString(aWorth, aLeft - aFont->StringWidth(aWorth) + 0x183, aFont->GetHeight() + 0xda);
 	}
 
@@ -105,9 +105,9 @@ void Board::DrawBonusStats(Graphics* g)
 		int aRow4Y = aRow3Y + aFont->GetAscent() * 2;
 		g->SetFont(aFont);
 		g->SetColor(Color(0, 0xff, 0));
-		// (lined up by the width of another sum, m1ba4 - m1b9c + m960, as in the original)
+		// (lined up by the width of another sum, m1ba4 - m1b9c + mClearBonusWorth, as in the original)
 		std::string aTotal = GT(0x00564718) + FormatNumber(m1bac);
-		std::string aAligned = GT(0x00564718) + FormatNumber(m1ba4 - m1b9c + m960);
+		std::string aAligned = GT(0x00564718) + FormatNumber(m1ba4 - m1b9c + mClearBonusWorth);
 		g->DrawString(aTotal, aLeft - aFont->StringWidth(aAligned) + 0x183, aRow4Y);
 	}
 }

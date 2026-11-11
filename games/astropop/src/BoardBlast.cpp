@@ -18,7 +18,7 @@ using namespace Sexy;
 // bottom of the field
 void Board::OnBrickLanded(Brick* theBrick)
 {
-	m1990--;
+	mHeldBricksNotLanded--;
 
 	std::string aText;
 	int aKind = theBrick->GetEffectiveType();
@@ -62,10 +62,10 @@ void Board::OnBrickLanded(Brick* theBrick)
 		while (!aDone);
 	}
 
-	if (m1990 == 0)
+	if (mHeldBricksNotLanded == 0)
 	{
-		mApp->PlaySampleAt(SOUND_BLOCK_HIT_SHIP, (m198c - 0xa6) / 0x2c);
-		if (m1990 == 0)
+		mApp->PlaySampleAt(SOUND_BLOCK_HIT_SHIP, (mShipX - 0xa6) / 0x2c);
+		if (mHeldBricksNotLanded == 0)
 			m1bf8 = 0.0f;
 	}
 }
@@ -82,7 +82,7 @@ void Board::RemoveCells(const std::vector<CellRef>& theCells, Image* theImage)
 		mTakenCells.push_back(theCells[i]);
 		mTakenBricks.push_back(aBrick);
 		mFieldBricks[theCells[i].mRow][theCells[i].mCol] = NULL;
-		m1994++;
+		mTakenBrickCount++;
 	}
 	std::vector<Brick*> aNew;
 	size_t n = 0;
@@ -140,7 +140,7 @@ void Board::OnColumnNuke(Brick* theBrick)
 		mTakenCells.push_back(aCells[k]);
 		mTakenBricks.push_back(aBrick);
 		mFieldBricks[aCells[k].mRow][aCells[k].mCol] = NULL;
-		m1994++;
+		mTakenBrickCount++;
 	}
 	std::vector<Brick*> aNew;
 	size_t n = 0;

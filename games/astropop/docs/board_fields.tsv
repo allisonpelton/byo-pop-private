@@ -209,76 +209,76 @@ f8	std::vector<int>	mKillAllTypes	the brick kinds of the kill-all bricks that ar
 928	float	mBrickometerFill	how full the brickometer is, 0 to 1: bricks gone over the stage's goal (OnBrickGone); a warp pick starts it at 0.98 and it drains; 0 in a timed game
 92c	float	mBrickometerDrain	the level the brickometer drains from after a warp pick (0.98, falling 0.0076 an update in UpdateEffects; mBrickometerFill follows it); 0 when idle
 930	float	mStackDanger	the danger of the stack: mean column height plus half the distance of the highest column from it (CheckStackHeight); scales the wait for the next top row
-934	float	m934	?
-938	float	m938
-93c	float	m93c
-940	float	m940
-944	float	m944	the banner time (adds 0.07 per update)
-948	unsigned char	m948
-949	unsigned char	m949
-94c	int	m94c	?
-950	int	m950	?
-954	int	m954	?
-958	int	m958	?
-95c	int	m95c	?
-960	int	m960	?
-964	int	m964	?
-968	int	m968	?
-96c	int	m96c	?
-970	int	m970	the highest stack seen last
-974	int	m974	?
-978	int	m978	?
-97c	int	m97c	?
-980	int	m980	?
-984	ScriptRows	m984	the rows of a scripted game
-ade	int	made	?
-1924	int	m1924	?
-1928	int	m1928	?
-192c	int	m192c	?
-1930	int	m1930	the row of m984 to play next (-1 none)
-1934	int	m1934	?
-1938	int	m1938	?
-193c	int	mField193C	the stage: 1 + the time played / 6000
-1940	int	m1940	?
-1944	int	m1944	?
-1948	int	m1948	the white flash of the end: alpha, counts down by 2
-194c	int	m194c	?
-1950	int	m1950	?
-1954	int	m1954	?
-1958	int	m1958	the pointer's x
-195c	int	m195c	the pointer's y
-1960	int	m1960	?
-1964	int	m1964	?
-1968	int	m1968	?
-196c	int	m196c	?
-1970	int	m1970	?
-1974	int	mScore	the score (profile setting 0x51)
-1978	int	m1978	?
-197c	int	m197c	?
-1980	int	m1980	?
-1984	int	m1984	?
-1988	int	m1988	?
-198c	int	m198c	?
-1990	int	m1990	?
-1994	int	m1994	?
-1998	int	m1998	?
-199c	int	m199c	?
-19a0	int	m19a0	?
-19a4	int	m19a4	?
-19a8	int	m19a8	?
-19ac	int	m19ac	?
-19b0	int	m19b0	?
-19b4	int	m19b4	?
-19b8	int	m19b8	?
-19bc	int	m19bc	?
-19c0	int	m19c0	?
-19c4	int	m19c4	?
-19c8	int	m19c8	?
-19cc	int	m19cc	?
-19d0	int	m19d0	?
-19d4	int	m19d4	?
-19d8	int	m19d8	?
-19dc	int	m19dc	?
+934	float	mStackDangerPeak	the highest mStackDanger seen lately: CheckStackHeight raises it at once, Update lowers it by 0.2 per update toward mStackDanger; nothing reads it
+938	float	mWarpShipY	the ship's y in the warp: -312 above the screen when the flight starts, speeds up to 423 (UpdateWarp); it also sets the scenery's scroll speed
+93c	float	mUnusedFloatFromCtor	the constructor sets it to 500000000 beside mWarpShipY; nothing else writes or reads it
+940	float	mScoreMultiplier	multiplies the points of the bricks gone and the bonuses, 1 to 6: 1 + level / 8 at set-up, +0.125 or +0.5625 per stage skipped at a gate, +3 per minute in survival
+944	float	mBannerWavePhase	the phase of the wave that moves the banner's columns (AnimateBanner): 0 when the banner is made, +0.07 per update while its time runs
+948	unsigned char	mDemoRecordAction	the action of this update for the demo recording, in the codes of mDemoSteps: 0 none, 1 fire, 2 pick up, 0xc minus the column for a move; cleared every update
+949	unsigned char	mDemoRecordLastAction	the action RecordStep wrote last; a different action first closes the wait that came before it
+94c	int	mDemoRecordArg	the recorded action's argument: the updates waited while no action comes (counts up each update), or the brick kind * 256 + count for a pick up or a fire
+950	int	mDemoRecordLastArg	mDemoRecordArg as of the last RecordStep: the length of the wait that RecordStep writes (in runs of 255) when the next action comes
+954	int	mDemoStepIndex	the step of mDemoSteps that the demo plays now; past the last step the demo starts a new game
+958	int	mDemoAddedRowIndex	the next row of mDemoAddedRows that AddTopRow adds while the demo plays
+95c	int	mDemoWaitLeft	the updates left of the demo's current wait step (set from the step's argument, counts down, the demo goes on at 0)
+960	int	mClearBonusWorth	what clearing a stage is worth, 10000 to 500000 by the level (SetNextLevelScore); the clear count takes 5% of it for each brick left
+964	int	mHighScoreSoundDelay	updates (200, set by ResetGame) that the game over waits before the new-high-score sound; counts down while mHighScoreSoundDone is false
+968	int	mFieldPointerX	the pointer's last x while it stood in the field (166 to 605), seen by MouseMove; the crosshair of the psychic weapon (mode 3) is drawn there
+96c	int	mFieldPointerY	the pointer's last y that went with mFieldPointerX; the crosshair's row comes from it
+970	int	mHighestStack	the height in rows of the highest column stack at the last CheckStackHeight; 14 and over starts the siren, under 6 lets a sparse field start a bonus
+974	int	mButtonsHeld	the buttons held as the original counts them: a left press sets 1, a right press 0, a release takes 1 (left) or 2 (right), never below 0; nothing reads it
+978	int	mWhiteFadeAlpha	the alpha (0 to 255) of the white overlay at the end of the demo: rises 6 per update to white, then falls 6 per update (mFadingFromWhite)
+97c	int	mStackWarningTimer	the updates (400) that the ship column's stack warning (mStackWarningActive) holds the next row back; 0 when the column has room
+980	int	mScreenWipeKind	the kind (0 to 3, drawn at random by the constructor) of the wipe that takes the field away at the end of a game; -1 until it is drawn
+984	ScriptRows	mScriptRows	the rows of a scripted game (the demo, the tutorial and a level file): ten brick codes a row, 100 rows; LoadLevel clears them
+ade	int	made	stray; nothing uses it (remove with the dead fields)
+1924	int	mPauseCount	the number of pauses in force (Pause adds one, the end of a pause takes one); the game runs only at 0, and the animations draw from a frozen tick above 0
+1928	int	mPauseDarkening	how far the pause has darkened the field: +20 per update while paused up to the window height, -40 per update after; the shade's alpha is half of it, at most 230
+192c	int	mPausedUpdates	counts the updates that run while the game is paused; ResetGame clears it; nothing reads it
+1930	int	mScriptRowIndex	the row of mScriptRows that FillTopRow plays next (-1 none); it moves on after each row and becomes -1 when the next row is empty
+1934	int	mExtraRowsDue	extra top rows owed (set by CheckSparseField for a sparse field, +1 by a periodic timer in Tick): SpawnControl brings one after a 100-update wait and takes it off
+1938	int	mUnusedIntClearedInReset	ResetGame clears it beside mExtraRowsDue; nothing else writes or reads it
+193c	int	mStageNumber	the stage, from 1: minutes played + 1 in survival (UpdateRamp), raised at a warp gate one stage at a time (AdvanceLevel); picks hint panels, rules and speeds
+1940	int	mLevelNumber	the level shown as "Level N" and saved as the mode's level reached: starts as the constructor's level, becomes stage / 2 + 1 at a warp gate; every fourth has an upgrade
+1944	int	mUnusedIntClearedInLevelUp	LevelComplete and ResetGame clear it; nothing else writes or reads it
+1948	int	mEndFlashAlpha	the alpha of the white flash at the end of a game: 255 when the end page starts, falls 2 per update (the overlay's fill); the panels wait while it is above 240
+194c	int	mShipTilt	which way the ship leans: 0 after a move to the left, 1 to the right, 2 level (set when the tilt frames end); picks the ship's picture row
+1950	int	mShipFlameFrame	the frame (0 to 7) of the ship's flame; advances every 10 updates (UpdateAnimCounters)
+1954	int	mShipFrame	the frame of the ship's picture: 2 when level, 0 to 3 while it tilts (a step every 10 updates); the warp-out and the arrival run it up and down too
+1958	int	mLastPointerX	the pointer's x at its last mouse event (MouseMove, MouseDown, MouseUp); the demo's clicks and the hover of the field read it
+195c	int	mLastPointerY	the pointer's y at its last mouse event; the field's row is (y - 34) / 25 + 1
+1960	int	mStartTextAlpha	the alpha of the text bar at the start of play (bricks to pass, new starting point, survival intro): 0 before play (drawn full), 255 at the start, -4 per update, -1 gone
+1964	int	mUnusedIntFromReset	ResetGame clears it; nothing else writes or reads it
+1968	int	mLoadLevelFlag	the low byte of the constructor's flags (1 makes it load the level file, 0 for a restored game); the constructor tests its own parameter, so nothing reads it
+196c	int	mChainPoints	the points of the bricks gone in the current chain of sets (OnBrickGone adds them); PayComboBonus pays them times mChainCount and clears it
+1970	int	mScoreShown	the score on the display: catches up with mScore by a step that grows with the gap (Update), and jumps to it when a game is restored
+1974	int	mScore	the score (profile setting 0x51); AddScore adds to it and keeps the mode's best; mScoreShown counts up to it on the display
+1978	int	mScoreAtStageStart	mScore when the game began or when a classic game came out of a warp; profile setting 0x61; a restored score is this plus mPlayPoints and mBonusRoundPoints
+197c	int	mLevelFileLevelUp	the LevelUp value of a level file (10000 by default); nothing reads it
+1980	int	mChainCount	the sets made in a row (AdvanceChain adds one); a chain of 2 or more pays a bonus (PayComboBonus), 3 or more makes a fuel cell due; cleared when the chain ends
+1984	int	mLastChainCount	the chain count noted when no group was moving (OnBrickArrived); PayComboBonus and ResetGame clear it; nothing reads it
+1988	int	mUnusedIntClearedOnClick	cleared by ResetGame and by each left click that is not refused (MouseDown); nothing reads it
+198c	int	mShipX	the ship's x in pixels, the left of its column (166 + 44 * column); shots, pick ups and the beam read it; 0x182 after a level file is loaded
+1990	int	mHeldBricksNotLanded	the picked-up or caught bricks that have not yet landed in the hand (+1 when taken, -1 in OnBrickLanded); firing, pick up and the pause wait for 0
+1994	int	mTakenBrickCount	the bricks taken from the field that have not yet gone: +1 as each goes into mTakenBricks, -1 in OnBrickGone; 0 means no removal is running
+1998	int	mWarpFrameInterval	the updates between two steps of the ship's warp-out frame (mShipFrame) while the screen fades to white (6 after a level is complete, 8 after a level is loaded)
+199c	int	mWarpShakeX	the ship's sideways shake in pixels while the warp charges, flies and arrives (a random -5 to 5 or -2 to 1 each update); 0 otherwise
+19a0	int	mWarpPictureLift	the height that the warp pictures at the ship are lifted by; StartLevelUp sets it to 0 and nothing sets another value
+19a4	int	mWarpChargeAlpha	the alpha (0 to 255) of the jet and flame flash on the ship while the warp charges: +2 per update, the warp starts at 255 and its sound at 0x96
+19a8	int	mWarpGlowAlpha	the alpha (0 to 255) of the glow drawn over the warp picture of the ship; it rises by mWarpGlowStep per update while the field flies away
+19ac	int	mWarpGlowStep	how much mWarpGlowAlpha rises each update (12, set by StartLevelUp)
+19b0	int	mEffectsUpdateCount	counts the calls of UpdateEffects since the level was loaded; a negative value hides the arriving ship's picture
+19b4	int	mRampTime	the time played in updates (100 a second) that drives the speed table and, in survival, the stage (6000 a stage); not counted in bonus rounds; profile setting 0x60
+19b8	int	mPlayTime	the updates of play counted every update that play runs, bonus rounds included; the time on the end page; profile setting 0x54
+19bc	int	mUnusedIntSetTo500InReset	ResetGame sets it to 500; nothing else writes or reads it
+19c0	int	mRowsLeftToPass	copy of mRowsToPass made whenever a level's rules are set; AddTopRow runs while it is not 0 (the port never counts it down)
+19c4	int	mRowsToPass	the rows a stage takes to pass (NumRowsToPass: 25 by default, grows by mRowsToPassChange each stage, at most 70)
+19c8	int	mRowsToPassChange	how much mRowsToPass grows each stage (NumRowsToPassChangeBy of the level file, else 0)
+19cc	int	mRowInterval	the time in updates between top rows (DropTime * 100 of the level file); UpdateRamp sets it from the speed table
+19d0	int	mRowIntervalReduction	how much shorter the row interval has become: +1 every mRowReductionPeriod updates while play runs, never more than mRowInterval - 200
+19d4	int	mRowReductionPeriod	the updates between two steps of mRowIntervalReduction (8, one less on each even stage from the mode's start stage on, at least 5)
+19d8	int	mRowTimer	the updates since the last top row finished bouncing (0 in OnBrickBounced, -1 after a reset); the next row comes when it reaches the row time
+19dc	int	mRemovalPoints	the points of the bricks of the current removal; OnBrickGone adds them and the group's floating text shows them where the first brick was
 19e0	int	m19e0	?
 19e4	int	m19e4	?
 19e8	int	m19e8	?

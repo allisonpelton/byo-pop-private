@@ -137,11 +137,11 @@ bool Board::UpdateWarp()
 	if (mWarpCharging)
 	{
 		// the charge-up: the screen shakes, then the warp starts
-		m199c = ((int) AstroRand() % 500000000) % 0xb - 5;
-		m19a4 += 2;
-		if (m19a4 > 0xff)
+		mWarpShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
+		mWarpChargeAlpha += 2;
+		if (mWarpChargeAlpha > 0xff)
 		{
-			m19a4 = 0xff;
+			mWarpChargeAlpha = 0xff;
 			mWarpActive = true;
 			mWarpFlight = false;
 			mWarpCharging = false;
@@ -151,7 +151,7 @@ bool Board::UpdateWarp()
 				mApp->mEngineLoop->Stop();
 			Fire(9);
 		}
-		if (m19a4 == 0x96)
+		if (mWarpChargeAlpha == 0x96)
 			mApp->PlaySample(SOUND_WARP);
 		UpdateStreaks();
 		return false;
@@ -165,10 +165,10 @@ bool Board::UpdateWarp()
 		if (!mAtWarpGate && !mWarpGatePicked)
 		{
 			// the screen fades in white while the field flies away
-			if (mUpdateCnt % m1998 == 0 && mOverlayFillColor.mAlpha >= 10 && m1954 < 7)
+			if (mUpdateCnt % mWarpFrameInterval == 0 && mOverlayFillColor.mAlpha >= 10 && mShipFrame < 7)
 			{
-				m1954++;
-				if (m1954 >= 5)
+				mShipFrame++;
+				if (mShipFrame >= 5)
 				{
 					mOverlay.SetFill(255, 255, 255, 255);
 					for (unsigned int i = 0; i < mFloatTexts.size(); i++)
@@ -184,13 +184,13 @@ bool Board::UpdateWarp()
 				mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
 				mWarpFlight = true;
 				mShipInWarp = true;
-				m1954 = 2;
+				mShipFrame = 2;
 				for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
 					mStreaks[i].mFlag28 = false;
 				mWarpEngaged = true;
 				mApp->PlaySample(SOUND_WARP_ENGAGED);
 				ClearField();
-				m938 = -312.0f; // 0xc39c0000 (the asm at 0x46ae88)
+				mWarpShipY = -312.0f; // 0xc39c0000 (the asm at 0x46ae88)
 				for (int i = 0; i < 15; i++)
 				{
 					WarpStar* aStar = new WarpStar();
@@ -219,19 +219,19 @@ bool Board::UpdateWarp()
 					mWarpStars.push_back(aStar);
 				}
 				if (m1a0c < 4)
-					m198c = IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - 0x22 + m1a70;
+					mShipX = IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - 0x22 + m1a70;
 				else
-					m198c = 0x159;
+					mShipX = 0x159;
 				if (m1b2c == 2 || m1b2c == 4)
 				{
-					m938 = 423.0f;
+					mWarpShipY = 423.0f;
 					mApp->ShowUpgradeDialog();
 					mApp->mWidgetManager->BringToFront(&mOverlay);
 				}
 			}
-			m19a8 += m19ac;
-			if (m19a8 > 0xff)
-				m19a8 = 0xff;
+			mWarpGlowAlpha += mWarpGlowStep;
+			if (mWarpGlowAlpha > 0xff)
+				mWarpGlowAlpha = 0xff;
 			return false;
 		}
 		else if (!mAtWarpGate)
@@ -256,7 +256,7 @@ bool Board::UpdateWarp()
 					if (mApp->mEngineLoop != NULL)
 						mApp->mEngineLoop->Play(true, false);
 					AstroRand();
-					int aSceneryId = mField193C % 3 + 0x18b;
+					int aSceneryId = mStageNumber % 3 + 0x18b;
 					std::string aName = GetStringIdById(mSceneryLayer.mI30);
 					mApp->mResourceManager->DeleteImage(aName);
 					mSceneryLayer.mImage = LoadImageById(mApp->mResourceManager, aSceneryId);
@@ -283,7 +283,7 @@ bool Board::UpdateWarp()
 		else
 		{
 			// the warp has come out: the gate lights up
-			m199c = ((int) AstroRand() % 500000000) % 4 - 2;
+			mWarpShakeX = ((int) AstroRand() % 500000000) % 4 - 2;
 			m19e0 += 2;
 			if (m19e0 > 0xff)
 				m19e0 = 0xff;
@@ -354,12 +354,12 @@ bool Board::UpdateWarp()
 	{
 		// the flight through the warp: the screen darkens and shakes until the end of the tunnel
 		// (x87 at 24 bits: every result is rounded to a float, see GAME_NOTES section 4)
-		float aStep = (m938 < 0.0f) ? 0.0f : m938 * 0.001f;
-		float aNew = (1.5f - aStep) + m938;
-		m938 = aNew;
+		float aStep = (mWarpShipY < 0.0f) ? 0.0f : mWarpShipY * 0.001f;
+		float aNew = (1.5f - aStep) + mWarpShipY;
+		mWarpShipY = aNew;
 		if (aNew > 423.0f)
-			m938 = 423.0f;
-		m199c = ((int) AstroRand() % 500000000) % 4 - 2;
+			mWarpShipY = 423.0f;
+		mWarpShakeX = ((int) AstroRand() % 500000000) % 4 - 2;
 		if (mOverlayFillColor.mAlpha > 0)
 			mOverlayFillColor.mAlpha--;
 		if (mOverlayFillColor.mBlue > 0)
@@ -367,9 +367,9 @@ bool Board::UpdateWarp()
 		if (mOverlayFillColor.mGreen > 0)
 			mOverlayFillColor.mGreen--;
 		mOverlay.SetFill(mOverlayFillColor.mRed, mOverlayFillColor.mGreen, mOverlayFillColor.mBlue, mOverlayFillColor.mAlpha);
-		if (m938 >= 423.0f && mOverlayFillColor.mAlpha == 0 && mOverlayFillColor.mGreen == 0 && mOverlayFillColor.mBlue == 0)
+		if (mWarpShipY >= 423.0f && mOverlayFillColor.mAlpha == 0 && mOverlayFillColor.mGreen == 0 && mOverlayFillColor.mBlue == 0)
 		{
-			m938 = 423.0f;
+			mWarpShipY = 423.0f;
 			mAtWarpGate = true;
 			mWarpFlight = false;
 			m19e0 = 0;

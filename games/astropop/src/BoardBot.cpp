@@ -164,7 +164,7 @@ int Board::BotBusyReason()
 		return 3;
 	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && mLevelUpPanelHeight + mLevelUpPanelY > 0)
 		return 4;
-	if (m1924 != 0 || mLevelUpPhase || m1990 > 0)
+	if (mPauseCount != 0 || mLevelUpPhase || mHeldBricksNotLanded > 0)
 		return 5;
 	if (CountMovingBricks(false) > 0)
 		return 6;
@@ -279,7 +279,7 @@ std::string Board::BotMove()
 		if (aBest < 0)
 			return WaitMove();      // the weapon has emptied the field: the next row comes by itself
 		// the psychic takes the lit cells under the pointer: the pointer goes to the bottom brick of the tallest column. A
-		// move lights its cell only when the pointer's last position was in the field already (MouseMove tests m1958 before
+		// move lights its cell only when the pointer's last position was in the field already (MouseMove tests mLastPointerX before
 		// it stores the new one), so the pointer moves twice within the cell before the click
 		if (mMode == 3)
 		{

@@ -18,7 +18,7 @@ using namespace Sexy;
 // last list. theGlow is the second pass, which draws the glow of the bricks that have one.
 void Board::DrawBricks(Graphics* g, bool theGlow)
 {
-	bool aDraw = m1924 < 1 || (!mHintSpots.empty() && mHintSpots[0]->mActive) || mApp->mTutorialOn;
+	bool aDraw = mPauseCount < 1 || (!mHintSpots.empty() && mHintSpots[0]->mActive) || mApp->mTutorialOn;
 	if (!aDraw)
 		return;
 
@@ -51,7 +51,7 @@ void Board::DrawBricks(Graphics* g, bool theGlow)
 // the introduction of a bonus round (and of the second game type's stages) puts the rules over the field.
 void Board::DrawBonusIntro(Graphics* g)
 {
-	int aPieceX = m198c - 5;
+	int aPieceX = mShipX - 5;
 	int aBaseY = (int) (m1bf8 + 423.0f);
 
 	if (mClearCountRunning)
@@ -79,10 +79,10 @@ void Board::DrawBonusIntro(Graphics* g)
 		g->DrawImage(IMAGE_BONUS_TEXT_HEADER, 0x182 - IMAGE_BONUS_TEXT_HEADER->mWidth / 2, 0xb4);
 		g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
 
-		std::string aWorth = FormatNumber(m960);
+		std::string aWorth = FormatNumber(mClearBonusWorth);
 		WriteString(g, StrFormat(GTC(0x00564828), aWorth.c_str()), 0xa6, 0x104, 0x1b8, 0, true, 0, -1);
 		int aY = g->GetFont()->GetHeight() + 0x104;
-		std::string aPenalty = FormatNumber((int) ((float) m960 * 0.05f));
+		std::string aPenalty = FormatNumber((int) ((float) mClearBonusWorth * 0.05f));
 		WriteString(g, StrFormat(GTC(0x005647e8), aPenalty.c_str()), 0xa6, aY, 0x1b8, 0, true, 0, -1);
 		aY = aY + g->GetFont()->GetHeight() * 2;
 

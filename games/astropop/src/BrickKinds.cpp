@@ -791,7 +791,7 @@ void PowerBrick::SetType(int theType)
 			delete mParticles[i];
 		mParticles.clear();
 		mParticles.resize(mNumParticles + 0x23, NULL);
-		mBoosterTime0 = mBoosterTime0 + (mBoard->mField193C / 10) * 100;
+		mBoosterTime0 = mBoosterTime0 + (mBoard->mStageNumber / 10) * 100;
 		mBoosterTime = mBoosterTime0;
 		for (int i = 0; i < mNumParticles + 0x23; i++)
 		{

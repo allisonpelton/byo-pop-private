@@ -68,7 +68,7 @@ static void AskToEndGame(AstroPopApp* theApp)
 	if (aType == 1)
 	{
 		aLines = GT(0x5638e0);
-		if (aBoard->mField193C == 1)
+		if (aBoard->mStageNumber == 1)
 			aLines = GT(0x5638b0);
 	}
 	else if (aType != 0)
@@ -114,7 +114,7 @@ static void RestoreCheckpointScore(AstroPopApp* theApp)
 	int aScore = 0;
 	theApp->mUser->GetInt(theApp->mClassicPilot + 0x6b, &aScore);
 	theApp->mBoard->mScore = aScore;
-	theApp->mBoard->m1970 = aScore;
+	theApp->mBoard->mScoreShown = aScore;
 	theApp->mBoard->m1bd8 = theApp->mBoard->m1bdc;
 }
 

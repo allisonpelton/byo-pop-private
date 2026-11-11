@@ -20,9 +20,9 @@ using namespace Sexy;
 // sample (one for each length, up to 8) plays. (The original takes a parameter that it never reads.)
 void Board::PayComboBonus()
 {
-	if (m1980 > 1 && (!mBonusRoundOn || mBonusWarpIn))
+	if (mChainCount > 1 && (!mBonusRoundOn || mBonusWarpIn))
 	{
-		int aPoints = m196c * m1980;
+		int aPoints = mChainPoints * mChainCount;
 		AddScore(aPoints, true);
 
 		FloatText* aText = new FloatText(StrFormat(GTC(0x5652d0), aPoints), FONT_POINTS, (float) mPointsTextX, (float) (mPointsTextY + 0x19), false);
@@ -30,15 +30,15 @@ void Board::PayComboBonus()
 
 		if (m1a14 < m1a18 && !mClearCountRunning)
 		{
-			int aSound = m1980 - 2 + SOUND_VCOMBO1;
+			int aSound = mChainCount - 2 + SOUND_VCOMBO1;
 			if (aSound >= SOUND_VCOMBO1 + 8)
 				aSound = SOUND_VCOMBO1 + 7;
 			mApp->PlaySample(aSound);
 		}
 	}
-	m196c = 0;
-	m1980 = 0;
-	m1984 = 0;
+	mChainPoints = 0;
+	mChainCount = 0;
+	mLastChainCount = 0;
 }
 
 // 0x465290: the level is complete (the Board's Update calls it when the goal is reached). The best level of the mode is
@@ -54,11 +54,11 @@ void Board::LevelComplete()
 	if (aKlaxon->IsPlaying())
 		aKlaxon->Stop();
 
-	if (m1940 % 4 == 0 && m1940 > 1)
+	if (mLevelNumber % 4 == 0 && mLevelNumber > 1)
 	{
 		int aLevelStart = 0;
 		mApp->mUser->GetInt(mMode + 8, &aLevelStart);
-		if ((aLevelStart / 4) * 4 <= m1940)
+		if ((aLevelStart / 4) * 4 <= mLevelNumber)
 		{
 			int aBest = 0;
 			mApp->mUser->GetInt(mMode + 0x6b, &aBest);
@@ -86,14 +86,14 @@ void Board::LevelComplete()
 		mHandKindBrick = NULL;
 	}
 	mBackdropTint = Color(100, 100, 100);
-	m1990 = 0;
+	mHeldBricksNotLanded = 0;
 	mBrickometerDrain = 0.0f;
 	mPickUpButtonDown = true;
 	if (m1ad4 != 0)
 		m1ad4 = 6;
 	m1b1c++;
 	gStateSaved = false;
-	if (m1980 > 1)
+	if (mChainCount > 1)
 		PayComboBonus();
 
 	if (m1a60 == 1 && m1b2c == 1)
@@ -158,7 +158,7 @@ void Board::LevelComplete()
 	delete mLevelUpText;
 	mLevelUpText = new LevelUpText(IMAGE_LEVELUP_TEXT, 0);
 	mLevelUpPhase = true;
-	m1944 = 0;
+	mUnusedIntClearedInLevelUp = 0;
 	mApp->PlaySample(SOUND_LEVEL_COMPLETE);
 	mApp->PlaySample(SOUND_WORDSWOOSH);
 	mApp->PlaySong(0x29);
@@ -226,15 +226,15 @@ int Board::GetUpgradeSetting()
 {
 	if (mMode < 0 || mMode > 3)
 		return -1;
-	return kUpgrades[mMode][m1940 / 4].mSetting;
+	return kUpgrades[mMode][mLevelNumber / 4].mSetting;
 }
 
 // 0x441850: the words of that row that name the upgrade (empty with no table)
 std::string Board::GetUpgradeText()
 {
-	if (mMode < 0 || mMode > 3 || kUpgrades[mMode][m1940 / 4].mTextVA == 0)
+	if (mMode < 0 || mMode > 3 || kUpgrades[mMode][mLevelNumber / 4].mTextVA == 0)
 		return std::string();
-	return GT(kUpgrades[mMode][m1940 / 4].mTextVA);
+	return GT(kUpgrades[mMode][mLevelNumber / 4].mTextVA);
 }
 
 // 0x43e220: a number with a comma after each three digits (counted from the right)
@@ -387,28 +387,28 @@ void Board::StartLevelUp()
 	m1aa4 = 0;
 	mWarpCharging = true;
 	mWarpFlight = false;
-	m19a4 = 0;
-	m1954 = 0;
+	mWarpChargeAlpha = 0;
+	mShipFrame = 0;
 	mAtWarpGate = false;
 	mOverlayFillColor = Color(0xff, 0xff, 0xff, 0);
 	mOverlay.SetFill(0xff, 0xff, 0xff, 0);
 	SetOverlayHidden(false);
-	m1998 = 6;
-	m19ac = 0xc;
-	m19a8 = 0;
-	m199c = 0;
+	mWarpFrameInterval = 6;
+	mWarpGlowStep = 0xc;
+	mWarpGlowAlpha = 0;
+	mWarpShakeX = 0;
 	m19f0 = 0;
 	unsigned int aRand = AstroRand();
-	m19a0 = 0;
-	m938 = -52.0f;
+	mWarpPictureLift = 0;
+	mWarpShipY = -52.0f;
 	m19f4 = (((int) aRand % 500000000) % 200) + 100;
 	mBackdropTint = Color(100, 100, 100);
 	m1b3c = 0;
 
 	int aBestLevel = 0;
 	mApp->mUser->GetInt(mMode + 8, &aBestLevel);
-	if (aBestLevel < m1940)
-		mApp->mUser->SetInt(mMode + 8, m1940);
+	if (aBestLevel < mLevelNumber)
+		mApp->mUser->SetInt(mMode + 8, mLevelNumber);
 	SetupUpgradeAnims();
 
 	if (m1b2c == 2 || m1b2c == 4)
@@ -416,7 +416,7 @@ void Board::StartLevelUp()
 		int aCount = 0;
 		int aSetting = aBestLevel;
 		if (mMode >= 0 && mMode <= 3)
-			aSetting = kUpgrades[mMode][m1940 / 4].mSetting;
+			aSetting = kUpgrades[mMode][mLevelNumber / 4].mSetting;
 		mApp->mUser->GetInt(aSetting, &aCount);
 		aCount++;
 		mApp->mUser->SetInt(aSetting, aCount);
@@ -463,8 +463,8 @@ void Board::StartLevelUp()
 	std::vector<std::string>().swap(mLevelUpLines);
 	mLevelUpLines.push_back(GT(0x565728) + FormatNumber(mPlayPoints));
 	mLevelUpLines.push_back(StrFormat(GTC(0x565714), mBestChain));
-	int aSeconds = (m19b4 / 100) % 0x3c;
-	int aMinutes = m19b4 / 6000;
+	int aSeconds = (mRampTime / 100) % 0x3c;
+	int aMinutes = mRampTime / 6000;
 	if (aSeconds < 10)
 		mLevelUpLines.push_back(StrFormat(GTC(0x5656f8), aMinutes, aSeconds));
 	else
@@ -475,7 +475,7 @@ void Board::StartLevelUp()
 	mRankImage = mApp->MakeRankImage(m1bd4, 0x50);
 
 	if (m1b2c == 1)
-		mLevelUpLines.push_back(StrFormat(GTC(0x5656c8), FormatNumber(m1ba4 - m1b9c + m960).c_str()));
+		mLevelUpLines.push_back(StrFormat(GTC(0x5656c8), FormatNumber(m1ba4 - m1b9c + mClearBonusWorth).c_str()));
 
 	int aPointsToNext = mApp->PointsToNextRank(mScore);
 	if (aPointsToNext == -1)

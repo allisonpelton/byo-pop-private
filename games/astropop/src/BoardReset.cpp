@@ -14,7 +14,7 @@ using namespace Sexy;
 // pictures of the backdrop (IMAGE_BG_OBJECT1 .. 7) and where the pictures are across the screen.
 void Board::ResetGame()
 {
-	m1990 = 0;
+	mHeldBricksNotLanded = 0;
 	mGameWasReset = true;
 	m1aac = 0;
 	mWarpActive = false;
@@ -27,14 +27,14 @@ void Board::ResetGame()
 	mNewRankAnim.mMaxLoops = 6;
 	mNewRankAnim.mLoopCount = 0;
 	mNewRankAnim.SetStopped(true);
-	m1960 = 0;
-	m1980 = 0;
-	m196c = 0;
+	mStartTextAlpha = 0;
+	mChainCount = 0;
+	mChainPoints = 0;
 	mLevelUpTextShown = false;
 	mUpgradeDialogSeen = false;
 	mNewRankDelayOver = true;
 	m1b44 = 0;
-	m964 = 200;
+	mHighScoreSoundDelay = 200;
 	mHighScoreSoundDone = false;
 	m1b3c = 0;
 	mStartBannerDoneInBonus = false;
@@ -43,34 +43,34 @@ void Board::ResetGame()
 	gStateSaved = false;
 	m1b24 = 0;
 	mBonusWarpIn = false;
-	m1984 = 0;
+	mLastChainCount = 0;
 	m1b18 = 0;
 	m1b10 = 0;
 	m1aa8 = 0;
 	m1aa4 = 0;
-	m1978 = mScore;
+	mScoreAtStageStart = mScore;
 	mClearWaitStarted = true;
-	m1934 = 0;
-	m1938 = 0;
+	mExtraRowsDue = 0;
+	mUnusedIntClearedInReset = 0;
 	mStreaksFadingOut = false;
-	m1944 = 0;
+	mUnusedIntClearedInLevelUp = 0;
 	mLevelUpPhase = false;
 	mGameOver = false;
 	mComboTextVisible = true;
 	m1b54 = 0;
-	m1950 = 0;
+	mShipFlameFrame = 0;
 	m1b68 = 0;
 	m1b64 = 0;
 	m1b60 = 0;
-	m194c = 2;
-	m1994 = 0;
+	mShipTilt = 2;
+	mTakenBrickCount = 0;
 	m1a3c = 0;
 	mTopRowsAllowed = true;
 	m1b5c = 0;
 	mNewRowBouncing = false;
-	m1988 = 0;
+	mUnusedIntClearedOnClick = 0;
 	mBoosterDue = false;
-	m1964 = 0;
+	mUnusedIntFromReset = 0;
 	mUnusedFlagFromReset = false;
 	mPickUpButtonDown = false;
 	mBackdropTintChanging = false;
@@ -79,18 +79,18 @@ void Board::ResetGame()
 	m1a9c = -500000000;
 	m1bf8 = -1.0f;
 	m1bfc = 1.0f;
-	m1980 = 0;
-	m1934 = 0;
+	mChainCount = 0;
+	mExtraRowsDue = 0;
 	m1ab4 = 0;
 	m1a2c = 0;
 	mUpgradeDialogDone = false;
 	mTimeBonusRunning = false;
-	m198c = 0xa6;
+	mShipX = 0xa6;
 	mAtWarpGate = false;
 	mFieldCleared = false;
 	mShipInWarp = false;
 	mStackWarningActive = false;
-	m97c = 0;
+	mStackWarningTimer = 0;
 	mWarpGatePicked = false;
 	mWarpEngaged = false;
 	m1a48 = -65536;
@@ -121,29 +121,29 @@ void Board::ResetGame()
 	mPointerOverSlowGate = false;
 	mPointerOverEasyGate = false;
 	mSuperchargeMarks.clear();
-	m19d0 = 0;
-	m19dc = 0;
-	if (m1bbc < mField193C && 8 < m19d0)
-		m19d4 = 8;
+	mRowIntervalReduction = 0;
+	mRemovalPoints = 0;
+	if (m1bbc < mStageNumber && 8 < mRowIntervalReduction)
+		mRowReductionPeriod = 8;
 	m1a30 = 0;
 
 	mSpecialCooldowns.clear();
 	for (int i = 5; i != 0; i--)
 	{
 		int aCount = 2000;
-		if (0x12 < mField193C || m1a60 == 2)
+		if (0x12 < mStageNumber || m1a60 == 2)
 			aCount = 0;
 		mSpecialCooldowns.push_back(aCount);
 	}
-	m1928 = 0;
-	m192c = 0;
-	m19b4 = 0;
-	m19bc = 500;
+	mPauseDarkening = 0;
+	mPausedUpdates = 0;
+	mRampTime = 0;
+	mUnusedIntSetTo500InReset = 500;
 	mStackDanger = 0;
-	m934 = 0;
+	mStackDangerPeak = 0;
 	mFuelCellDue = false;
-	m19d8 = -1;
-	m1924 = 0;
+	mRowTimer = -1;
+	mPauseCount = 0;
 
 	// the pictures of the backdrop that are in use are dropped (so that they are loaded again)
 	for (unsigned int i = 0; i < mBackdropStars.size(); i++)

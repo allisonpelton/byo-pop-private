@@ -48,7 +48,8 @@ def main():
     known = {r[2].split("[")[0] for r in rows}
     offs = {int(r[0], 16) for r in rows}
     added = []
-    for f in sorted(glob.glob(os.path.join(SRC, "Board*.cpp"))):
+    # rows are added only on request: a word such as "made" in a comment looks like the field at +0xade
+    for f in (sorted(glob.glob(os.path.join(SRC, "Board*.cpp"))) if "--add" in sys.argv else []):
         txt = open(f, encoding="utf-8", errors="replace", newline="").read()
         for m in re.finditer(r"(?<![\w.>])m([0-9a-f]{2,4})\b", txt):
             off = int(m.group(1), 16)

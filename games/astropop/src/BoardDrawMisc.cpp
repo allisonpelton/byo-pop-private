@@ -20,10 +20,10 @@ void Board::DrawStageBg(Graphics* g)
 		return;
 
 	unsigned int aCount = (unsigned int) mStageHintPanels.size();
-	if ((unsigned int) mField193C >= aCount && !mTutorialStageForced)
+	if ((unsigned int) mStageNumber >= aCount && !mTutorialStageForced)
 		return;
 
-	unsigned int anIndex = mTutorialStageForced ? 1U : (unsigned int) mField193C;
+	unsigned int anIndex = mTutorialStageForced ? 1U : (unsigned int) mStageNumber;
 	StageBg* aBg = mStageHintPanels[anIndex];
 	if (aBg->mFadedOut)
 		return;
@@ -70,7 +70,7 @@ void Board::DrawStageBg(Graphics* g)
 }
 
 // 0x433fa0: the picture of the banner (mBannerTextImage) goes into the taller one (mBannerWaveImage) with each column moved down by a wave (it
-// runs with the banner's time, m944), each row in a colour of the rainbow, and the whole fading in and out.
+// runs with the banner's time, mBannerWavePhase), each row in a colour of the rainbow, and the whole fading in and out.
 void Board::AnimateBanner()
 {
 	ulong* aSrcBits = mBannerTextImage->GetBits();
@@ -96,7 +96,7 @@ void Board::AnimateBanner()
 	for (int aCol = 0; aCol < aWidth; aCol++)
 	{
 		// (x87 at 24 bits: the column's phase, the sum with the wave's offset, the sine plus one and the product are floats; FSIN's own result is not rounded)
-		float aPhase = (float) ((double) aCol * 0.024) + m944;
+		float aPhase = (float) ((double) aCol * 0.024) + mBannerWavePhase;
 		float aWave = (float) (sin((double) aPhase) + 1.0);
 		int aShift = (int) (aWave * 24.0f);
 		for (int aRow = 0; aRow < aSrcHeight; aRow++)

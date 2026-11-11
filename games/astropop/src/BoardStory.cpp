@@ -113,7 +113,7 @@ bool Board::OpenStoryScreen()
 	for (size_t i = 0; i < mPilotStories.size(); i++)
 	{
 		StoryEntry* anEntry = mPilotStories[i];
-		if (anEntry->mPageA->mLevel != m1940)
+		if (anEntry->mPageA->mLevel != mLevelNumber)
 			continue;
 
 		int aSeen = 0;
@@ -147,7 +147,7 @@ bool Board::OpenStoryScreen()
 // left out.
 void Board::LoadStoryPages()
 {
-	int aLevel = m1940;
+	int aLevel = mLevelNumber;
 	StoryEntry* anEntry = NULL;
 	int aStoryNumber = -1;
 	for (size_t i = 0; i < mPilotStories.size() && anEntry == NULL; i++)

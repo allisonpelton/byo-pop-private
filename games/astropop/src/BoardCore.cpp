@@ -101,18 +101,18 @@ void Board::UpdateAnimCounters()
 	int aPhase = mUpdateCnt % 10;
 	if (aPhase == 0)
 	{
-		m1950++;
-		if (m1950 > 7)
-			m1950 = 0;
+		mShipFlameFrame++;
+		if (mShipFlameFrame > 7)
+			mShipFlameFrame = 0;
 	}
 
-	if (m194c != 2 && aPhase == 0)
+	if (mShipTilt != 2 && aPhase == 0)
 	{
-		m1954++;
-		if (m1954 > 3)
+		mShipFrame++;
+		if (mShipFrame > 3)
 		{
-			m1954 = 2;
-			m194c = 2;
+			mShipFrame = 2;
+			mShipTilt = 2;
 		}
 	}
 
@@ -148,61 +148,61 @@ void Board::SetOverlayHidden(bool theHide)
 
 	mOverlay.SetVisible(true);
 	mOverlay.SetDisabled(false);
-	if (m1924 < 1)
+	if (mPauseCount < 1)
 		mOverlay.mShownWhileRunning = true;
 }
 
-// 0x434570: the replay recording. The input state (m948, with its second byte (m94c >> 8)) is written when it changes, with
+// 0x434570: the replay recording. The input state (mDemoRecordAction, with its second byte (mDemoRecordArg >> 8)) is written when it changes, with
 // the number of updates it lasted (a run of 255s and a remainder).
 void Board::RecordStep(bool theForce)
 {
-	if (theForce && m948 == 0)
+	if (theForce && mDemoRecordAction == 0)
 	{
-		m949 = 0;
-		m950 = m94c;
-		m948 = 0xff;
+		mDemoRecordLastAction = 0;
+		mDemoRecordLastArg = mDemoRecordArg;
+		mDemoRecordAction = 0xff;
 	}
 
-	if (m949 == m948)
-		m950 = m94c;
-	else if (m949 == 0)
+	if (mDemoRecordLastAction == mDemoRecordAction)
+		mDemoRecordLastArg = mDemoRecordArg;
+	else if (mDemoRecordLastAction == 0)
 	{
 		mDemoRecordBuffer.WriteByte(0);
-		unsigned int aRuns = m950 / 0xff;
+		unsigned int aRuns = mDemoRecordLastArg / 0xff;
 		char aCount = (char) aRuns;
 		uchar aLast;
-		if (aCount == 0 || m950 < 0x100)
+		if (aCount == 0 || mDemoRecordLastArg < 0x100)
 		{
 			mDemoRecordBuffer.WriteByte(1);
-			aLast = (uchar) m950;
+			aLast = (uchar) mDemoRecordLastArg;
 		}
 		else
 		{
 			mDemoRecordBuffer.WriteByte((uchar) (aCount + 1));
 			for (aRuns = aRuns & 0xff; aRuns != 0; aRuns--)
 				mDemoRecordBuffer.WriteByte(0xff);
-			aLast = (uchar) (m950 + aCount);
+			aLast = (uchar) (mDemoRecordLastArg + aCount);
 		}
 		mDemoRecordBuffer.WriteByte(aLast);
 	}
 
-	uchar aState = m948;
+	uchar aState = mDemoRecordAction;
 	if (aState == 2 || aState == 1)
 	{
 		mDemoRecordBuffer.WriteByte(aState);
-		aState = (uchar) (m94c >> 8);
-		mDemoRecordBuffer.WriteByte((uchar) (m94c & 7));
+		aState = (uchar) (mDemoRecordArg >> 8);
+		mDemoRecordBuffer.WriteByte((uchar) (mDemoRecordArg & 7));
 	}
 	else if (aState == 0)
 	{
-		m949 = m948;
-		m950 = m94c;
+		mDemoRecordLastAction = mDemoRecordAction;
+		mDemoRecordLastArg = mDemoRecordArg;
 		return;
 	}
 	mDemoRecordBuffer.WriteByte(aState);
 
-	m949 = m948;
-	m950 = m94c;
+	mDemoRecordLastAction = mDemoRecordAction;
+	mDemoRecordLastArg = mDemoRecordArg;
 }
 
 // 0x432a40: the number of updates until the next brick comes (-1: no delay). m1ab8 is the game's phase.
@@ -274,37 +274,37 @@ void Board::FadeBackdrop()
 		mBackdropTintChanging = false;
 }
 
-// 0x437a50: the speed table. The time played (m19b4) picks the row it lies in; the values of the game's speed are
+// 0x437a50: the speed table. The time played (mRampTime) picks the row it lies in; the values of the game's speed are
 // mixed from the row before and the row it lies in. Every 6000 updates the stage goes up by one.
 void Board::UpdateRamp()
 {
 	size_t aIndex = 0;
 	while (aIndex < mSpeedRamp.size())
 	{
-		if (m19b4 < mSpeedRamp[aIndex].mTime)
+		if (mRampTime < mSpeedRamp[aIndex].mTime)
 			break;
 		aIndex++;
 	}
 
 	if (aIndex < mSpeedRamp.size())
 	{
-		if (m19b4 >= 18000)
+		if (mRampTime >= 18000)
 			m1a28 = 1;
 
 		const RampRecord& aNext = mSpeedRamp[aIndex];
 		const RampRecord& aPrev = mSpeedRamp[aIndex > 0 ? aIndex - 1 : 0];
-		float aFrac = (float) m19b4 / (float) aNext.mTime;
+		float aFrac = (float) mRampTime / (float) aNext.mTime;
 
 		m1be8 = aPrev.mF5 - (aPrev.mF5 - aNext.mF5) * aFrac;
 		m1bec = (aNext.mF4 - aPrev.mF4) * aFrac + aPrev.mF4;
-		m19cc = (int) ((float) aPrev.mV1 - (float) (aPrev.mV1 - aNext.mV1) * aFrac);
+		mRowInterval = (int) ((float) aPrev.mV1 - (float) (aPrev.mV1 - aNext.mV1) * aFrac);
 		mDropTicks = (int) ((float) aPrev.mV3 - (float) (aPrev.mV3 - aNext.mV3) * aFrac);
 		m1ac4 = (int) ((float) (aPrev.mV2 - aNext.mV2) * aFrac + (float) aPrev.mV2);
 	}
 
-	int aStage = m19b4 / 6000;
-	mField193C = aStage + 1;
-	m940 = (float) ((double) (aStage * 3) + 1.0);
+	int aStage = mRampTime / 6000;
+	mStageNumber = aStage + 1;
+	mScoreMultiplier = (float) ((double) (aStage * 3) + 1.0);
 }
 
 // 0x437590: the row of the lowest idle brick in a column (18 is the bottom row), -1 when there is none. The column is
@@ -336,22 +336,22 @@ int Board::FindBottomRow(int theColumn, bool theIsX)
 	return aRow;
 }
 
-// 0x438b60: true when the field has no room for the next piece. (The column of the piece at m198c is left out of the
+// 0x438b60: true when the field has no room for the next piece. (The column of the piece at mShipX is left out of the
 // count of full columns.)
 bool Board::NoRoomLeft()
 {
 	int aLimit = 0x1a7 - (int) mHeldBricks.size() * 0x19;
 	int aThreshold;
-	if (FindBottomRow(m198c, true) + 2 > 0)
-		aThreshold = FindBottomRow(m198c, true) * 0x19 + 0x3b;
+	if (FindBottomRow(mShipX, true) + 2 > 0)
+		aThreshold = FindBottomRow(mShipX, true) * 0x19 + 0x3b;
 	else
 		aThreshold = 4;
 
 	if (aLimit > aThreshold)
 	{
-		if (FindBottomRow(m198c, true) < 0x13)
+		if (FindBottomRow(mShipX, true) < 0x13)
 		{
-			int aPieceColumn = (m198c - 0xa6) / 0x2c;
+			int aPieceColumn = (mShipX - 0xa6) / 0x2c;
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
 				if (aPieceColumn == aCol)
@@ -411,7 +411,7 @@ bool Board::HasCell3(int theCol, int theRow, const std::vector<CellRef3>& theCel
 }
 
 // 0x4333c0: one step of a scrolling layer of the scenery. The layer moves when the update count is a multiple of its
-// period, faster the more the stage has speed (m938 of the boost, m1c00 of the other mode). The picture it shows
+// period, faster the more the stage has speed (mWarpShipY of the boost, m1c00 of the other mode). The picture it shows
 // counts down in mCur[1]; the picture that follows slides in on mNext until it fills the screen. The arithmetic is the
 // x87's at 24 bits: every sum and product is a float, and the compares read the rounded values.
 void Board::StepScrollLayer(ScrollLayer* theLayer)
@@ -420,9 +420,9 @@ void Board::StepScrollLayer(ScrollLayer* theLayer)
 		return;
 
 	float aSpeed = 0.0f;
-	if (mWarpActive && m938 > 0.0f)
+	if (mWarpActive && mWarpShipY > 0.0f)
 	{
-		aSpeed = m938 * 0.02f;
+		aSpeed = mWarpShipY * 0.02f;
 		if (aSpeed > 9.0f)
 			aSpeed = 9.0f;
 	}
@@ -556,13 +556,13 @@ void Board::UpdateScenery()
 void Board::StoreProgress()
 {
 	UserProfile* aUser = mApp->mUser;
-	aUser->SetInt(0x66, m198c);
-	aUser->SetInt(0x4f, mField193C);
+	aUser->SetInt(0x66, mShipX);
+	aUser->SetInt(0x4f, mStageNumber);
 	aUser->SetInt(0x53, mMode);
-	aUser->SetFloat(0x52, m940);
+	aUser->SetFloat(0x52, mScoreMultiplier);
 	aUser->SetFloat(0x50, m1bd8);
 	aUser->SetInt(0x51, mScore);
-	aUser->SetInt(0x54, m19b8);
+	aUser->SetInt(0x54, mPlayTime);
 	aUser->SetInt(0x55, m1b1c);
 	aUser->SetInt(0x63, m1b2c);
 }
@@ -590,8 +590,8 @@ void Board::UpdateKlaxon()
 bool Board::IsSettled(bool theAssumeIdle)
 {
 	bool aIdle = theAssumeIdle ? true : (m1a34 == 0);
-	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0 && m1a60 != 2 && aIdle &&
-		!mBonusRoundOn && mBrickometerFill == 1.0f && m1990 == 0 && mFallingGroups.empty() && mFiredGroups.empty())
+	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && m1a60 != 2 && aIdle &&
+		!mBonusRoundOn && mBrickometerFill == 1.0f && mHeldBricksNotLanded == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 	{
 		if (CountMovingBricks(false) == 0 && mAtomicMarkedBricks.empty() && mTakenBricks.empty() && mKillAllTypes.empty())
 			return true;
@@ -662,12 +662,12 @@ Brick* Board::CreatePowerBrick(int theType)
 // PulsePair, a third one fading the picture away
 void Board::UpdateStageBackground()
 {
-	if (!((unsigned int) mField193C < mStageHintPanels.size() || mTutorialStageForced || (!mHintSpots.empty() && mHintSpots[0]->mActive != 0)))
+	if (!((unsigned int) mStageNumber < mStageHintPanels.size() || mTutorialStageForced || (!mHintSpots.empty() && mHintSpots[0]->mActive != 0)))
 		return;
 
 	StageBg* aBg;
 	if (mHintSpots.empty() || mHintSpots[0]->mActive == 0)
-		aBg = mStageHintPanels[mTutorialStageForced ? 1 : mField193C];
+		aBg = mStageHintPanels[mTutorialStageForced ? 1 : mStageNumber];
 	else
 		aBg = mHintSpots[0]->mBg;
 

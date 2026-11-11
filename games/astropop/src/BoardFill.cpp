@@ -220,7 +220,7 @@ void Board::CollectConnected(int theKind, int theCol, int theRow, unsigned int t
 }
 
 // 0x43d630: after a new row: the height of the stacks is looked at. The highest stack and the sum of all are kept for the
-// danger display (mStackDanger, m934); a stack of 14 or more starts the siren; bricks of columns with room again stop shaking.
+// danger display (mStackDanger, mStackDangerPeak); a stack of 14 or more starts the siren; bricks of columns with room again stop shaking.
 // Returns the height of the highest stack.
 int Board::CheckStackHeight()
 {
@@ -236,7 +236,7 @@ int Board::CheckStackHeight()
 	UpdateKlaxon();
 
 	int aHighest = (int) aMax;
-	if (aHighest >= 0xe && (double) m970 != (double) aMax && !mBonusRoundOn && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked &&
+	if (aHighest >= 0xe && (double) mHighestStack != (double) aMax && !mBonusRoundOn && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked &&
 		!mWarpCharging)
 	{
 		int aValue = 2 - ((int) (18.0 - (double) aMax - 4.0)) * 3;
@@ -258,13 +258,13 @@ int Board::CheckStackHeight()
 		if ((double) aMax == 14.0)
 			m1a7c = -1;
 	}
-	m970 = aHighest;
+	mHighestStack = aHighest;
 
 	float aTenth = (float) aSum * 0.1f;
 	float aDanger = aTenth + fabsf(aMax - aTenth) * 0.5f;
 	mStackDanger = aDanger;
-	if (aDanger > m934)
-		m934 = aDanger;
+	if (aDanger > mStackDangerPeak)
+		mStackDangerPeak = aDanger;
 
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
@@ -287,17 +287,17 @@ int Board::CheckStackHeight()
 }
 
 // 0x43d400: when the stack in the column of the ship is too high for the piece in hand (modes 0 and 3, or when no mode 1
-// or 2 play is on), the column shakes and the warning of mStackWarningActive starts (it counts down m97c); with room again both end.
+// or 2 play is on), the column shakes and the warning of mStackWarningActive starts (it counts down mStackWarningTimer); with room again both end.
 void Board::CheckShipColumn()
 {
 	if (mMode == 0 || mMode == 3 || m1a34 == 0)
 	{
-		int aCol = (m198c - 0xa6) / 0x2c;
+		int aCol = (mShipX - 0xa6) / 0x2c;
 		int aDepth = ColumnDepth(aCol);
 		if (aDepth * 0x19 + 0x1d < (int) mHeldBricks.size() * -0x19 + 0x1a7)
 		{
 			mStackWarningActive = false;
-			m97c = 0;
+			mStackWarningTimer = 0;
 		}
 		else
 		{
@@ -307,10 +307,10 @@ void Board::CheckShipColumn()
 				if (aBrick != NULL)
 					aBrick->StartShake();
 			}
-			if (m97c == 0)
+			if (mStackWarningTimer == 0)
 			{
 				mStackWarningActive = true;
-				m97c = 400;
+				mStackWarningTimer = 400;
 				return;
 			}
 		}
@@ -402,16 +402,16 @@ void Board::ShowHint(int theKind, int theCol, int theRow, bool theFlag)
 
 // 0x451720: makes a row of ten bricks, in row theRow of the field. theFromTop: the row is the new top row, its bricks start
 // above the screen and bounce in (else they stand in place at once, as when the field is built). A row comes from the
-// script (m984, row m1930) while there is one, else it is drawn: the share of each kind comes from the rates of the
+// script (mScriptRows, row mScriptRowIndex) while there is one, else it is drawn: the share of each kind comes from the rates of the
 // phase of the game (the third of the level reached) and from what is allowed (CanPlaceKind). theSpecials allows the
 // special kinds, thePowers lets the rows after a special brick draw at once from the rates of the special kinds, and
-// theTutorial plays the fixed order of the tutorial (the stage mField193C decides what the sixth brick is). Afterwards the
+// theTutorial plays the fixed order of the tutorial (the stage mStageNumber decides what the sixth brick is). Afterwards the
 // stacks are checked: a stack that reaches the ship ends the game.
 void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool thePowers, int theRow)
 {
 	int aCol = 0;
 	bool aTutorial = true;
-	if (!theTutorial || mField193C > 0x15 || m1a60 != 1)
+	if (!theTutorial || mStageNumber > 0x15 || m1a60 != 1)
 		aTutorial = false;
 
 	mFieldCleared = false;
@@ -426,7 +426,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			if (!(aRatio <= 0.6666666666666666))
 			{
 				aPhase = 2;
-				if (mField193C >= m1bbc)
+				if (mStageNumber >= m1bbc)
 				{
 					if (m1b10 < 2)
 						m1b10 = 2;
@@ -437,7 +437,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			else
 			{
 				aPhase = 1;
-				if (mField193C >= m1bbc)
+				if (mStageNumber >= m1bbc)
 					m1b10 = (m1b10 == 0) * 2 - 1;
 			}
 		}
@@ -448,13 +448,13 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 	if (theFromTop)
 		theRow = 0;
 
-	if (m1930 != -1)
+	if (mScriptRowIndex != -1)
 	{
 		// the script's row (a brick of code 0 stays empty; the original then moves the empty place and crashes)
 		int anX = 0xa6;
 		for (aCol = 0; anX < 0x25e; aCol++, anX += 0x2c)
 		{
-			int aCode = m984.mCode[m1930][aCol];
+			int aCode = mScriptRows.mCode[mScriptRowIndex][aCol];
 			std::vector<Brick*>& aRow = mFieldBricks[theRow];
 			switch (aCode)
 			{
@@ -503,13 +503,13 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			}
 		}
 
-		m1930++;
+		mScriptRowIndex++;
 		bool aMore = false;
-		if (m1930 < 100)
+		if (mScriptRowIndex < 100)
 		{
 			for (int i = 0; i < 10; i++)
 			{
-				if (m984.mCode[m1930][i] != 0)
+				if (mScriptRows.mCode[mScriptRowIndex][i] != 0)
 				{
 					aMore = true;
 					break;
@@ -517,7 +517,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			}
 		}
 		if (!aMore)
-			m1930 = -1;
+			mScriptRowIndex = -1;
 	}
 	else
 	{
@@ -637,28 +637,28 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			if (aTutorial && aCol == 5)
 			{
 				aTutorial = false;
-				if (mField193C == 2 || mField193C == 3)
+				if (mStageNumber == 2 || mStageNumber == 3)
 					aPlaceFuel = true;
-				else if (mField193C == 4 || mField193C == 5)
+				else if (mStageNumber == 4 || mStageNumber == 5)
 					aPower = true;
-				else if (mField193C == 6 || mField193C == 7)
+				else if (mStageNumber == 6 || mStageNumber == 7)
 					aCode = 5;
-				else if (mField193C == 8 || mField193C == 9)
+				else if (mStageNumber == 8 || mStageNumber == 9)
 					aCode = 2;
-				else if (mField193C == 10 || mField193C == 11)
+				else if (mStageNumber == 10 || mStageNumber == 11)
 					aCode = 6;
-				else if (mField193C == 12 || mField193C == 13)
+				else if (mStageNumber == 12 || mStageNumber == 13)
 					aCode = 3;
-				else if (mField193C == 14 || mField193C == 15)
+				else if (mStageNumber == 14 || mStageNumber == 15)
 					aCode = 4;
-				else if (mField193C == 16 || mField193C == 17)
+				else if (mStageNumber == 16 || mStageNumber == 17)
 					aCode = 7;
-				else if (mField193C == 18 || mField193C == 19)
+				else if (mStageNumber == 18 || mStageNumber == 19)
 				{
 					aCode = 1;
 					aKind = ((int) AstroRand() % 500000000) % (m1a28 + 4);
 				}
-				else if (mField193C == 20 || mField193C == 21)
+				else if (mStageNumber == 20 || mStageNumber == 21)
 					aCode = 8;
 			}
 
@@ -704,7 +704,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 						mFieldBricks[theRow][aCol] = CreateSpecialBrick(7);
 						aHintKind = 7;
 						aMadeLast = false;
-						if (aTutorial && (mField193C == 6 || mField193C == 7))
+						if (aTutorial && (mStageNumber == 6 || mStageNumber == 7))
 							aTutorial = false;
 					}
 					else if (aCode == 3)
@@ -712,7 +712,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 						mFieldBricks[theRow][aCol] = CreateSpecialBrick(9);
 						aHintKind = 9;
 						aMadeLast = false;
-						if (aTutorial && (mField193C == 10 || mField193C == 11))
+						if (aTutorial && (mStageNumber == 10 || mStageNumber == 11))
 							aTutorial = false;
 					}
 					else if (aCode == 4)
@@ -734,7 +734,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 						aMadeLast = false;
 						if (!mPlayStarted)
 							FireTo(mFieldBricks[theRow][aCol], 0x28, 1);
-						if (aTutorial && (mField193C == 0xe || mField193C == 0xf))
+						if (aTutorial && (mStageNumber == 0xe || mStageNumber == 0xf))
 							aTutorial = false;
 					}
 					else if (aCode == 8)

@@ -29,13 +29,13 @@ void Board::HighlightTargets()
 	int aType = -1;
 	if (mHandKindBrick != NULL)
 		aType = mHandKindBrick->GetEffectiveType();
-	int aRow = FindBottomRow(m198c, true);
+	int aRow = FindBottomRow(mShipX, true);
 
 	if (FirstPieceIsType(0xd))
 	{
 		if (aRow == -1)
 			return;
-		int aCol = (m198c - 0xa6) / 0x2c;
+		int aCol = (mShipX - 0xa6) / 0x2c;
 		for (int i = aRow; i > 0; i--)
 			FlashOnce(mFieldBricks[i][aCol]);
 		return;
@@ -53,7 +53,7 @@ void Board::HighlightTargets()
 
 	if (FirstPieceIsType(6))
 	{
-		int aCol = (m198c - 0xa6) / 0x2c;
+		int aCol = (mShipX - 0xa6) / 0x2c;
 		int aFirstCol = aCol - 1;
 		if (aFirstCol < 0)
 			aFirstCol = 0;
@@ -77,7 +77,7 @@ void Board::HighlightTargets()
 	if (aRow == -1)
 		return;
 	int aRoom = 5 - (int) mHeldBricks.size();
-	int aCol = (m198c - 0xa6) / 0x2c;
+	int aCol = (mShipX - 0xa6) / 0x2c;
 	for (int r = aRow; r > 0; r--)
 	{
 		if (aRoom < 0)

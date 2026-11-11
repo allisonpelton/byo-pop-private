@@ -57,23 +57,23 @@ void Board::HideCellHint(Brick* theBrick)
 		aBox->SetShown(false);
 }
 
-// 0x434320: one more set in a row. The chain count (m1980) goes up, the ping rises with it, and the best chain of the
+// 0x434320: one more set in a row. The chain count (mChainCount) goes up, the ping rises with it, and the best chain of the
 // game and of the profile are kept
 void Board::AdvanceChain()
 {
 	if (mBonusRoundOn)
 		return;
 
-	int anOld = m1980;
-	m1980 = anOld + 1;
-	if (m1980 > 1)
+	int anOld = mChainCount;
+	mChainCount = anOld + 1;
+	if (mChainCount > 1)
 	{
 		int aPitch = anOld - 1;
 		if (aPitch > 9)
 			aPitch = 10;
 		mApp->PlayComboPing(aPitch);
 	}
-	int aChain = m1980;
+	int aChain = mChainCount;
 	m1b18 = 100;
 	if (m1a24 < aChain && !mBonusRoundOn)
 		m1a24 = aChain;
@@ -85,14 +85,14 @@ void Board::AdvanceChain()
 		if (aBest < mBestChain)
 			mApp->mUser->SetInt(0x5d, mBestChain);
 	}
-	aChain = m1980;
-	if (aChain > 3 && m1bbc <= mField193C && m1a60 != 2)
+	aChain = mChainCount;
+	if (aChain > 3 && m1bbc <= mStageNumber && m1a60 != 2)
 		mBoosterDue = true;
 	if (aChain > 2)
 	{
 		m1ab8 = 10;
 		m1ac0 = PickSpawnDelay();
-		aChain = m1980;
+		aChain = mChainCount;
 		m1abc = aChain * 100;
 	}
 	if (aChain == 1)
@@ -124,7 +124,7 @@ void Board::AdvanceChain()
 // row down) starts a bonus
 void Board::CheckSparseField()
 {
-	if (!(m970 < 6 && m1934 < 1 && mFiredGroups.empty() && mFallingGroups.empty() && m19fc < 1))
+	if (!(mHighestStack < 6 && mExtraRowsDue < 1 && mFiredGroups.empty() && mFallingGroups.empty() && m19fc < 1))
 		return;
 
 	int aTotal = 0;
@@ -145,7 +145,7 @@ void Board::CheckSparseField()
 		}
 	}
 	m1ab4 = 100;
-	m1934 = (aTotal < 11 ? 1 : 0) + 1;
+	mExtraRowsDue = (aTotal < 11 ? 1 : 0) + 1;
 }
 
 // 0x4588d0: the brick at (theCol, theRow) has been hit; the idle bricks round it go with it (left, right, below, above;
@@ -405,10 +405,10 @@ void Board::OnPieceBrickHit(Brick* theBrick)
 			break;
 		}
 	}
-	m1990--;
+	mHeldBricksNotLanded--;
 	mTakenCells.push_back(aCell);
 	mTakenBricks.push_back(aFound);
-	m1994++;
+	mTakenBrickCount++;
 	FireTo(aFound, 3);
 }
 
@@ -416,7 +416,7 @@ void Board::OnPieceBrickHit(Brick* theBrick)
 // bounces is over (mNewRowBouncing), the bricks of the column no longer announce their bounce, and the tutorial's first hint wakes
 void Board::OnBrickBounced(Brick* theBrick)
 {
-	m19d8 = 0;
+	mRowTimer = 0;
 	bool aAllStill = true;
 	for (int aCol = 0; aCol < 10; aCol++)
 	{
@@ -437,15 +437,15 @@ void Board::OnBrickBounced(Brick* theBrick)
 		if (!mHintSpots.empty())
 			mHintSpots[0]->mActive = true;
 	}
-	if (mMode == 3 && m1a34 == 1 && m1958 > 0xa5 && m1958 < 0x25e)
-		HoverCell((m1958 - 0xa6) / 0x2c, CellRow((float) m195c), true);
+	if (mMode == 3 && m1a34 == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
+		HoverCell((mLastPointerX - 0xa6) / 0x2c, CellRow((float) mLastPointerY), true);
 }
 
 // 0x45e920 event 0xe: a power brick is done. When nothing moves and no move is left the level is counted out
 void Board::OnPowerBrickDone(Brick* theBrick)
 {
 	(void) theBrick;
-	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && m1994 == 0)
+	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && mTakenBrickCount == 0)
 	{
 		bool aFlag = false;
 		if (CountMovingBricks(false) == 0 && mFiredGroups.empty() && mFallingGroups.empty() && !AnyMoveLeft(&aFlag))
@@ -549,7 +549,7 @@ void Board::OnMutatorSpread(Brick* theBrick)
 		mFieldBricks[aRow][aCol]->StartMutatorCountdown();
 
 		// the field may be stuck now
-		if (!mBonusRoundOn || !mKillAllTypes.empty() || mBricksRevealing || mStartBannerDoneInBonus || m1b7c != 0 || m1994 != 0 || !mFiredGroups.empty() || !mFallingGroups.empty())
+		if (!mBonusRoundOn || !mKillAllTypes.empty() || mBricksRevealing || mStartBannerDoneInBonus || m1b7c != 0 || mTakenBrickCount != 0 || !mFiredGroups.empty() || !mFallingGroups.empty())
 			return;
 		bool aFlag = false;
 		if (AnyMoveLeft(&aFlag))

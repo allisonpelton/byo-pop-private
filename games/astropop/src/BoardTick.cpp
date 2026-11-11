@@ -20,7 +20,7 @@ using namespace Sexy;
 // ends the siren animation stops, the song goes back and the pace of the pieces is chosen again.
 void Board::UpdateAlertFlash()
 {
-	if (m970 < 0xe || mBonusRoundOn)
+	if (mHighestStack < 0xe || mBonusRoundOn)
 	{
 		mAlertLevel = 1;
 		if (m1aac > 0 && !mBonusRoundOn)
@@ -38,7 +38,7 @@ void Board::UpdateAlertFlash()
 	}
 	else
 	{
-		mAlertLevel = m970 - 0xc;
+		mAlertLevel = mHighestStack - 0xc;
 		if (mAlertLevel > 5)
 			mAlertLevel = 5;
 
@@ -61,7 +61,7 @@ void Board::UpdateAlertFlash()
 				m1aac = 0xff;
 		}
 
-		if (m1a34 == 1 || m1bd8 < m1bdc || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || m1924 != 0 ||
+		if (m1a34 == 1 || m1bd8 < m1bdc || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || mPauseCount != 0 ||
 			m1b3c > 0x7f)
 		{
 			if (m1b3c > 0)
@@ -226,42 +226,42 @@ void Board::PayTimeBonus()
 	if (aTime <= 0xc8 && m1a30 == 0 && m1a50 >= 3)
 	{
 		m1a30 = 1;
-		aBonus = (int) (m940 * 1000.0f);
+		aBonus = (int) (mScoreMultiplier * 1000.0f);
 		if (aBonus > 10000)
 			aBonus = 10000;
 	}
 	else if (aTime <= 0x12c && m1a30 <= 1 && m1a50 >= 4)
 	{
 		m1a30 = 2;
-		aBonus = (int) (m940 * 2000.0f);
+		aBonus = (int) (mScoreMultiplier * 2000.0f);
 		if (aBonus > 15000)
 			aBonus = 15000;
 	}
 	else if (aTime <= 0x190 && m1a30 <= 2 && m1a50 >= 5)
 	{
 		m1a30 = 3;
-		aBonus = (int) (m940 * 3000.0f);
+		aBonus = (int) (mScoreMultiplier * 3000.0f);
 		if (aBonus > 20000)
 			aBonus = 20000;
 	}
 	else if (aTime <= 0x1f4 && m1a30 <= 3 && m1a50 >= 6)
 	{
 		m1a30 = 4;
-		aBonus = (int) (m940 * 4000.0f);
+		aBonus = (int) (mScoreMultiplier * 4000.0f);
 		if (aBonus > 22000)
 			aBonus = 22000;
 	}
 	else if (aTime <= 0x258 && m1a30 <= 4 && m1a50 >= 7)
 	{
 		m1a30 = 5;
-		aBonus = (int) (m940 * 5000.0f);
+		aBonus = (int) (mScoreMultiplier * 5000.0f);
 		if (aBonus > 25000)
 			aBonus = 25000;
 	}
 	else if (aTime <= 0x2bc && m1a30 <= 5 && m1a50 >= 8)
 	{
 		m1a30 = 6;
-		aBonus = (int) (m940 * 6000.0f);
+		aBonus = (int) (mScoreMultiplier * 6000.0f);
 		if (aBonus > 30000)
 			aBonus = 30000;
 	}
@@ -340,7 +340,7 @@ void Board::UpdateFreeze()
 // banner, the stage, the clear count-down and the other state machines.
 void Board::UpdateStates()
 {
-	if (m1924 < 1)
+	if (mPauseCount < 1)
 	{
 		if (m1abc > 0)
 			m1abc--;
@@ -356,7 +356,7 @@ void Board::UpdateStates()
 
 		mBoosterAnim.Update();
 
-		if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0 && m19fc < 1)
+		if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && m19fc < 1)
 		{
 			if (m1b5c > 0)
 			{
@@ -366,35 +366,35 @@ void Board::UpdateStates()
 			}
 		}
 
-		if (m1960 > 0)
+		if (mStartTextAlpha > 0)
 		{
-			m1960 -= 4;
-			if (m1960 < 2)
-				m1960 = -1;
+			mStartTextAlpha -= 4;
+			if (mStartTextAlpha < 2)
+				mStartTextAlpha = -1;
 		}
 
 		if (!mDemoEnding || !mDemoPlaying)
 		{
 			if (mFadingFromWhite)
 			{
-				m978 -= 6;
-				if (m978 < 1)
+				mWhiteFadeAlpha -= 6;
+				if (mWhiteFadeAlpha < 1)
 				{
-					m978 = 0;
+					mWhiteFadeAlpha = 0;
 					mFadingFromWhite = false;
 				}
-				mOverlay.SetFill(0xff, 0xff, 0xff, m978);
+				mOverlay.SetFill(0xff, 0xff, 0xff, mWhiteFadeAlpha);
 			}
 		}
 		else
 		{
-			m978 += 6;
-			if (m978 > 0xfe)
+			mWhiteFadeAlpha += 6;
+			if (mWhiteFadeAlpha > 0xfe)
 			{
 				for (unsigned int i = 0; i < mFloatTexts.size(); i++)
 					delete mFloatTexts[i];
 				mFloatTexts.clear();
-				m978 = 0xff;
+				mWhiteFadeAlpha = 0xff;
 				mDemoPlaying = false;
 				mDemoEnding = false;
 				ClearField();
@@ -403,7 +403,7 @@ void Board::UpdateStates()
 				LoadLevel(true);
 				mFadingFromWhite = true;
 			}
-			mOverlay.SetFill(0xff, 0xff, 0xff, m978);
+			mOverlay.SetFill(0xff, 0xff, 0xff, mWhiteFadeAlpha);
 		}
 
 		if (m1a34 == 1)
@@ -500,27 +500,27 @@ void Board::UpdateStates()
 
 	UpdateAlertFlash();
 
-	bool aCalm = !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0;
+	bool aCalm = !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0;
 	if (aCalm)
 		UpdateFreeze();
 
-	if (mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || (!mLevelUpPhase && !mGameOver && m1924 == 0))
+	if (mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || (!mLevelUpPhase && !mGameOver && mPauseCount == 0))
 		UpdateStartBanner();
 
-	if (mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || m1924 != 0 || !mPlayStarted)
+	if (mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || mPauseCount != 0 || !mPlayStarted)
 		goto Finish;
 
 	if (!mBonusRoundOn && !mBonusWarpIn)
 	{
 		if (m1a60 == 1 || (mMode != 3 && mMode != 0) || m1a34 != 1 || mPsychicUsed || mLaserUsed)
 		{
-			m19b4++;
-			if (m19b4 > 0 && m19b4 % 6000 == 0 && m1a60 == 2)
+			mRampTime++;
+			if (mRampTime > 0 && mRampTime % 6000 == 0 && m1a60 == 2)
 			{
 				mLevelUpTextShown = true;
 				delete mLevelUpText;
 
-				int aMinutes = m19b4 / 6000;
+				int aMinutes = mRampTime / 6000;
 				std::string aText;
 				if (aMinutes > 1)
 					aText = StrFormat(GTC(0x56640c), aMinutes);
@@ -544,7 +544,7 @@ void Board::UpdateStates()
 		}
 	}
 
-	m19b8++;
+	mPlayTime++;
 	UpdateStageBackground();
 	UpdateSpecialMode();
 	UpdateIntroAndTally();
@@ -575,14 +575,14 @@ void Board::UpdateStates()
 		}
 	}
 
-	if (m1a34 == 0 && m1bbc <= mField193C && mPlayStarted && m19fc < 1 && (m1b08--, m1b08 < 1))
+	if (m1a34 == 0 && m1bbc <= mStageNumber && mPlayStarted && m19fc < 1 && (m1b08--, m1b08 < 1))
 	{
 		int aHalf = m1b0c / 2;
 		m1b0c = aHalf;
 		if (aHalf < 300)
 			m1b0c = 300;
 		m1b08 = m1b0c;
-		m1934++;
+		mExtraRowsDue++;
 		if (m1ab4 < 1)
 			m1ab4 = 100;
 	}
@@ -621,12 +621,12 @@ void Board::UpdateStates()
 	}
 
 Finish:
-	if (m1928 > 0)
+	if (mPauseDarkening > 0)
 	{
 		MarkDirty();
-		m1928 -= 0x28;
-		if (m1928 < 0)
-			m1928 = 0;
+		mPauseDarkening -= 0x28;
+		if (mPauseDarkening < 0)
+			mPauseDarkening = 0;
 	}
 
 	if (mPlayStarted)

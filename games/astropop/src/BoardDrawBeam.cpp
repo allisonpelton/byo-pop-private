@@ -16,7 +16,7 @@ using namespace Sexy;
 void Board::DrawBeam(Graphics* g)
 {
 	bool is3D = mApp->Is3DAccelerated();
-	int aTick = (m1924 > 0) ? m1af0 : mUpdateCnt;
+	int aTick = (mPauseCount > 0) ? m1af0 : mUpdateCnt;
 
 	Image* aParticle = NULL;        // the spark picture, if there are sparks
 	Image* aGhost = NULL;           // the brick drawn at the top of the stack
@@ -114,9 +114,9 @@ void Board::DrawBeam(Graphics* g)
 
 	// the wide beams stand on the ship; the others hang from the top (and are not drawn on the warp screens)
 	if (aIsFreeze || aIsFuel)
-		g->DrawImage(aBeam, m198c - aBeam->GetWidth() / 2 + 0x1a, 0x1ca - aBeam->mHeight);
+		g->DrawImage(aBeam, mShipX - aBeam->GetWidth() / 2 + 0x1a, 0x1ca - aBeam->mHeight);
 	else if (!mShipInWarp)
-		g->DrawImage(aBeam, m198c, 0);
+		g->DrawImage(aBeam, mShipX, 0);
 
 	if (mBackdropTint != Color(100, 100, 100) || aIsFreeze || aIsFuel)
 		g->SetColorizeImages(false);
@@ -140,7 +140,7 @@ void Board::DrawBeam(Graphics* g)
 			if (i % aStep == 0)
 			{
 				g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
-				DrawCel(g, aParticle, m198c + aX, aY, (aRec.mAnim.mNumFrames == 1) ? 0 : aRec.mAnim.mFrame);
+				DrawCel(g, aParticle, mShipX + aX, aY, (aRec.mAnim.mNumFrames == 1) ? 0 : aRec.mAnim.mFrame);
 			}
 		}
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -150,13 +150,13 @@ void Board::DrawBeam(Graphics* g)
 	if (aGhost != NULL)
 	{
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		int aRow = FindBottomRow(m198c, true);
+		int aRow = FindBottomRow(mShipX, true);
 		if (aRow == -1)
 			aRow = 1;
 		if (!aIsFreeze && !aIsFuel)
 		{
 			int aY = (aRow > 0) ? aRow * 0x19 + 9 : 4;
-			g->DrawImage(aGhost, m198c + aGhostDX, aY + aGhostDY);
+			g->DrawImage(aGhost, mShipX + aGhostDX, aY + aGhostDY);
 		}
 		else
 		{
@@ -168,7 +168,7 @@ void Board::DrawBeam(Graphics* g)
 				aPhase--;
 			if (aPhase < 0)
 				aPhase = 0;
-			g->DrawImage(aGhost, m198c + aGhostDX, 0x140 - aPhase);
+			g->DrawImage(aGhost, mShipX + aGhostDX, 0x140 - aPhase);
 		}
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}

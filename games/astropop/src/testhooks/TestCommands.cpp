@@ -108,7 +108,7 @@ void AstroPopApp::TraceUpdate()
 	if (mBoard != NULL)
 	{
 		aValue[0] = mBoard->mScore;
-		aValue[1] = mBoard->m1940;
+		aValue[1] = mBoard->mLevelNumber;
 	}
 	gGameRand.GetState(aState, &anIndex);
 	aValue[2] = anIndex;
@@ -142,8 +142,8 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (mBoard != NULL)
 		{
 			aLine += StrFormat(",\"mode\":%d,\"level\":%d,\"score\":%d,\"stage\":%d,\"updates\":%d",
-				mBoard->mMode, mBoard->m1940, mBoard->mScore, mBoard->mField193C, mBoard->mUpdateCnt);
-			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->m1924,
+				mBoard->mMode, mBoard->mLevelNumber, mBoard->mScore, mBoard->mStageNumber, mBoard->mUpdateCnt);
+			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->mPauseCount,
 				mBoard->mGameOver ? 1 : 0, (int) mBoard->mHeldBricks.size());
 			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusyReason());
 			aLine += ",\"field\":" + mBoard->DescribeField();
@@ -280,9 +280,9 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (aName == "score")
 			mBoard->mScore = aValue;
 		else if (aName == "level")
-			mBoard->m1940 = aValue;
+			mBoard->mLevelNumber = aValue;
 		else if (aName == "stage")
-			mBoard->mField193C = aValue;
+			mBoard->mStageNumber = aValue;
 		else if (aName == "charge")
 			mBoard->m1bd8 = aRest.empty() ? mBoard->m1bdc : (float) aValue;   // the weapon's charge: full without a number
 		else if (aName == "stories")

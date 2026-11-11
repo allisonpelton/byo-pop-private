@@ -25,7 +25,7 @@ using namespace Sexy;
 void Board::Draw(Graphics* g)
 {
 	// (the original asks the application if it has 3D here and does nothing with the answer)
-	int aCount = (m1924 < 1) ? mUpdateCnt : m1af0;
+	int aCount = (mPauseCount < 1) ? mUpdateCnt : m1af0;
 
 	if (mScreenWiping)
 	{
@@ -39,7 +39,7 @@ void Board::Draw(Graphics* g)
 	DrawBeam(g);
 
 	if (mMode == 0 && m1a34 == 1 && !mLaserAnim.mStopped)
-		DrawCel(g, IMAGE_PLAYER1_LASER, m198c, 0, mLaserAnim.GetCel());
+		DrawCel(g, IMAGE_PLAYER1_LASER, mShipX, 0, mLaserAnim.GetCel());
 
 	DrawBricks(g, false);
 	if (!mWarpFlight)
@@ -56,7 +56,7 @@ void Board::Draw(Graphics* g)
 	DrawSnow(g);
 
 	if ((m1a60 == 1 || mTutorialStageForced) &&
-		((!mWarpActive && (mWarpFlight || (!mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0))) || mWarpFlight))
+		((!mWarpActive && (mWarpFlight || (!mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0))) || mWarpFlight))
 		DrawStageBg(g);
 
 	DrawUpgradeArm(g);
@@ -120,7 +120,7 @@ void Board::Draw(Graphics* g)
 	if (mAtWarpGate && m1a60 == 1)
 		DrawWarpScreen(g);
 
-	if (mApp->mHintsOn && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0 && !mClearCountRunning &&
+	if (mApp->mHintsOn && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && !mClearCountRunning &&
 		(!mBonusRoundOn || mBonusRoundStarted))
 	{
 		for (unsigned int i = 0; i < mHintBoxes.size(); i++)
@@ -137,7 +137,7 @@ void Board::Draw(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawDangerZone(Graphics* g)
 {
-	if (!(!mBonusRoundOn && (13 < m970 || 0 < m1aac) && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && m1924 == 0))
+	if (!(!mBonusRoundOn && (13 < mHighestStack || 0 < m1aac) && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0))
 		return;
 
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -173,7 +173,7 @@ void Board::DrawModeTexts(Graphics* g)
 			g->DrawString(mBonusBannerTexts[i].mText, mBonusBannerTexts[i].mX, mBonusBannerTexts[i].mY);
 		}
 	}
-	else if (!mClearCountRunning && m1990 == 0 && !mSpecialBannerTexts.empty())
+	else if (!mClearCountRunning && mHeldBricksNotLanded == 0 && !mSpecialBannerTexts.empty())
 	{
 		Color aColor((int) (mApp->HSLToRGB(m1b04, 0xff, 0x80) | 0xff000000));
 		g->SetColor(aColor);
@@ -219,19 +219,19 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 	bool aHintOpen = !mHintSpots.empty() && mHintSpots[0]->mActive && !(-mLevelUpPanelHeight < mLevelUpPanelY);
 	if (!mStartedFromCheckpoint || aHintOpen)
 	{
-		if (-1 < m1960 && mStageTextEnabled && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !aHintOpen && m1a60 == 1 && 1 < m1940)
+		if (-1 < mStartTextAlpha && mStageTextEnabled && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !aHintOpen && m1a60 == 1 && 1 < mLevelNumber)
 		{
 			int aTextAlpha;
 			int aFillAlpha;
-			if (m1960 == 0)
+			if (mStartTextAlpha == 0)
 			{
 				aTextAlpha = 0xff;
 				aFillAlpha = 0x80;
 			}
 			else
 			{
-				aTextAlpha = m1960;
-				aFillAlpha = (0x80 < m1960) ? 0x80 : m1960;
+				aTextAlpha = mStartTextAlpha;
+				aFillAlpha = (0x80 < mStartTextAlpha) ? 0x80 : mStartTextAlpha;
 			}
 			g->SetColor(Color(0, 0, 0, aFillAlpha));
 			g->FillRect(Rect(0, 0x14a, mWidth, 0x14));
@@ -245,7 +245,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 			// a level that makes a new starting point: every fourth, once it is further than the best one so far
 			int aBest = 0;
 			mApp->mUser->GetInt(mMode + 8, &aBest);
-			if (m1940 % 4 == 0 && aBest < m1940)
+			if (mLevelNumber % 4 == 0 && aBest < mLevelNumber)
 			{
 				Font* aBig = GetFontById(FONT_HIGH_SCORE_ID);
 				g->SetColor(Color(0xff, 0xff, 0, aTextAlpha));
@@ -301,10 +301,10 @@ void Board::DrawCrosshair(Graphics* g)
 	else if (mMode == 3 && m1a34 == 1)
 	{
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		aRow = (m96c < 0x22) ? 1 : (m96c - 0x22) / 0x19 + 1;
+		aRow = (mFieldPointerY < 0x22) ? 1 : (mFieldPointerY - 0x22) / 0x19 + 1;
 		if (aRow == 0)
 			aRow = 1;
-		aCol = (m968 - 0xa6) / 0x2c;
+		aCol = (mFieldPointerX - 0xa6) / 0x2c;
 		aCel = 0;
 	}
 	else
@@ -428,7 +428,7 @@ void Board::DrawSurvivalIntro(Graphics* g)
 	if (!(m1a60 == 2 && !mPlayStarted))
 		return;
 
-	int anAlpha = m1960;
+	int anAlpha = mStartTextAlpha;
 	int aFillAlpha;
 	if (anAlpha == 0)
 	{

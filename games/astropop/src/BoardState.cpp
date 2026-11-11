@@ -27,16 +27,16 @@ void Board::ResetState()
 	m1af4 = 0;
 	m1af0 = 0;
 	mClickRepeating = false;
-	m19b8 = 0;
+	mPlayTime = 0;
 	m1b00 = 0;
 	m1afc = 0;
-	m974 = 0;
+	mButtonsHeld = 0;
 	mScore = 0;
-	m1970 = 0;
+	mScoreShown = 0;
 	mHandKindBrick = NULL;
-	m198c = 0xa6;
+	mShipX = 0xa6;
 	mSupaButtonLit = false;
-	m1954 = 2;
+	mShipFrame = 2;
 	mStreaksFadingOut = false;
 	m1a34 = 0;
 	mPlayStarted = false;
@@ -86,16 +86,16 @@ void Board::UpdateEffects()
 	if (aNumDone == 100)
 		mStreaksFadingOut = false;
 
-	int aPhase = m1954;
-	m19b0++;
+	int aPhase = mShipFrame;
+	mEffectsUpdateCount++;
 	if (aPhase != 2)
 	{
-		if (mUpdateCnt % 8 == 0 && -1 < m19b0)
+		if (mUpdateCnt % 8 == 0 && -1 < mEffectsUpdateCount)
 		{
 			if (aPhase < 3)
-				m1954 = 2;
+				mShipFrame = 2;
 			else
-				m1954 = aPhase - 1;
+				mShipFrame = aPhase - 1;
 		}
 	}
 
@@ -112,23 +112,23 @@ void Board::UpdateEffects()
 // 0x4344d0: the score the next level needs, by the level
 void Board::SetNextLevelScore()
 {
-	int aLevel = m1940;
+	int aLevel = mLevelNumber;
 	if (aLevel < 4)
-		m960 = 10000;
+		mClearBonusWorth = 10000;
 	else if (aLevel < 8)
-		m960 = 25000;
+		mClearBonusWorth = 25000;
 	else if (aLevel < 0xc)
-		m960 = 50000;
+		mClearBonusWorth = 50000;
 	else if (aLevel < 0x10)
-		m960 = 75000;
+		mClearBonusWorth = 75000;
 	else if (aLevel < 0x14)
-		m960 = 100000;
+		mClearBonusWorth = 100000;
 	else if (aLevel < 0x47)
-		m960 = (((aLevel - 0x13) / 4) + 2) * 50000;
+		mClearBonusWorth = (((aLevel - 0x13) / 4) + 2) * 50000;
 	else
-		m960 = 500000;
-	if (500000 < m960)
-		m960 = 500000;
+		mClearBonusWorth = 500000;
+	if (500000 < mClearBonusWorth)
+		mClearBonusWorth = 500000;
 }
 
 // 0x433b90: points are added to the score; the best score of the mode is kept in the profile, and the points are
@@ -166,7 +166,7 @@ void Board::SaveGameState()
 {
 	if (m1a34 != 0)
 		return;
-	if (m1990 != 0)
+	if (mHeldBricksNotLanded != 0)
 		return;
 	if (!mHeldBricks.empty())
 		return;
@@ -229,11 +229,11 @@ void Board::SaveGameState()
 			StoreProgress();
 			aUser->SetInt(0x56, m1a14);
 			aUser->SetInt(0x57, 0);
-			aUser->SetInt(0x61, m1978);
+			aUser->SetInt(0x61, mScoreAtStageStart);
 			aUser->SetInt(0x58, 0);
 			aUser->SetInt(0x62, 0);
 			aUser->SetInt(0x5b, 0);
-			aUser->SetInt(0x60, m19b4);
+			aUser->SetInt(0x60, mRampTime);
 			aUser->SetInt(0x5c, mPlayPoints);
 			SaveBestStat(aUser, mBestChain);
 			if (mSuperchargeMarks.empty())
@@ -253,9 +253,9 @@ void Board::SaveGameState()
 			aUser->SetInt(0x58, 0);
 			aUser->SetInt(0x5b, 0);
 			aUser->SetInt(0x62, mBonusRoundPoints);
-			aUser->SetInt(0x61, m1978);
+			aUser->SetInt(0x61, mScoreAtStageStart);
 			aUser->SetInt(0x5c, mPlayPoints);
-			aUser->SetInt(0x60, m19b4);
+			aUser->SetInt(0x60, mRampTime);
 			SaveBestStat(aUser, mBestChain);
 			if (mSuperchargeMarks.empty())
 			{
@@ -275,13 +275,13 @@ void Board::SaveGameState()
 		aUser->SetInt(0x5b, 0);
 		aUser->SetInt(0x57, 0);
 		aUser->SetInt(0x62, mBonusRoundPoints);
-		aUser->SetInt(0x61, m1978);
+		aUser->SetInt(0x61, mScoreAtStageStart);
 		aUser->SetInt(0x5c, mPlayPoints);
-		aUser->SetInt(0x60, m19b4);
+		aUser->SetInt(0x60, mRampTime);
 		SaveBestStat(aUser, mBestChain);
 		if (m1b2c != 1)
 			return;
-		aUser->SetInt(0x5f, (m1ba4 - m1b9c) + m960);
+		aUser->SetInt(0x5f, (m1ba4 - m1b9c) + mClearBonusWorth);
 		return;
 	}
 
@@ -289,9 +289,9 @@ void Board::SaveGameState()
 	aUser->SetInt(0x5b, 1);
 	aUser->SetInt(0x57, 0);
 	aUser->SetInt(0x62, 0);
-	aUser->SetInt(0x61, m1978);
+	aUser->SetInt(0x61, mScoreAtStageStart);
 	aUser->SetInt(0x5c, mPlayPoints);
-	aUser->SetInt(0x60, m19b4);
+	aUser->SetInt(0x60, mRampTime);
 	SaveBestStat(aUser, mBestChain);
 }
 

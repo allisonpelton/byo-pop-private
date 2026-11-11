@@ -93,11 +93,11 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mHintBoxes[0]->AddLine(GT(0x00569b80));
 	mHintBoxes[0]->AddLine(GT(0x00569b60));
 	mHintBoxes[0]->AddLine(GT(0x00569b40));
-	m978 = 0;
+	mWhiteFadeAlpha = 0;
 	mDemoStartLink = NULL;
 	mBonusFieldLoaded = false;
-	m968 = 0xa6;
-	m96c = 4;
+	mFieldPointerX = 0xa6;
+	mFieldPointerY = 4;
 	mHintBoxes[1] = new HintBox();
 	std::string aMeterLine;
 	if (m1a60 == 1)
@@ -117,12 +117,12 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mRecordingDemo = false;
 	mDemoInputActive = false;
 	mDemoPlaying = false;
-	m95c = 0;
-	m958 = 0;
-	m948 = 0;
-	m949 = 0;
-	m94c = 1;
-	m950 = 1;
+	mDemoWaitLeft = 0;
+	mDemoAddedRowIndex = 0;
+	mDemoRecordAction = 0;
+	mDemoRecordLastAction = 0;
+	mDemoRecordArg = 1;
+	mDemoRecordLastArg = 1;
 	mFirstHelpPending = mApp->mShowHelpAtStart;
 	for (size_t i = 0; i < mHintBoxes.size(); i++)
 	{
@@ -133,16 +133,16 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	}
 	mHintBoxes[2]->mShowTime = 100;
 	mStartedFromCheckpoint = theFlag;
-	m960 = 0;
+	mClearBonusWorth = 0;
 	mStartWeaponAfterPause = false;
 	m1b6c = 0;
 	if (m1a60 == 1)
 		m1bbc = 5;
 	else
 		m1bbc = (m1a60 != 0) ? 500000000 : 3;
-	m1968 = (int) (theFlags & 0xff);
-	m1940 = theLevel;
-	mField193C = 1;
+	mLoadLevelFlag = (int) (theFlags & 0xff);
+	mLevelNumber = theLevel;
+	mStageNumber = 1;
 	m1c09 = false;
 	m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
 	mContinueButton = NULL;
@@ -187,7 +187,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mBricksRevealing = false;
 	mBonusRoundFile = 0;
 	m1abc = 0;
-	m970 = 0;
+	mHighestStack = 0;
 	mUnusedFlagFromCtor = false;
 	m1ab8 = 4;
 	m1ac0 = PickSpawnDelay();
@@ -241,7 +241,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mEndPageShown = false;
 	m1b84 = 0;
 	m1b80 = 0;
-	m944 = 0.0f;
+	mBannerWavePhase = 0.0f;
 	mClearCountRunning = false;
 	m1b70 = -1;
 	m1b0c = 500000000;
@@ -270,7 +270,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mBackdropStars.resize(3);
 	mFieldButtons.assign(1, (Widget*) NULL);
 	m1b00 = 0;
-	m19b8 = 0;
+	mPlayTime = 0;
 	m1b78 = 0;
 	m1ab0 = 0;
 	mMeterPaused = false;
@@ -307,12 +307,12 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		mApp->mUser->GetInt(0x3a, &m1a90);
 	else
 		m1a90 = -1;
-	m974 = 0;
+	mButtonsHeld = 0;
 	mOverlay.Resize(0, 0, 0x280, 0x1e0);
 	mOverlay.mBoard = this;
 	mOverlay.mHasTransparencies = true;
 	mOverlay.mHasAlpha = true;
-	m19d4 = 8;
+	mRowReductionPeriod = 8;
 	mFieldBricks.resize(20);
 	for (size_t i = 0; i < mFieldBricks.size(); i++)
 		mFieldBricks[i].resize(10, (Brick*) NULL);
@@ -334,8 +334,8 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	else
 		mTurbotPowerupAnim.SetStopped(true);
 	m1a28 = 0;
-	m197c = 10000;
-	m1970 = 0;
+	mLevelFileLevelUp = 10000;
+	mScoreShown = 0;
 	mScore = 0;
 	mSlowMotion = false;
 	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;   // (a test's charge, BoardState.cpp)
@@ -345,7 +345,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	else if (m1a60 != 0)
 		SetupClassicRules();
 	mHandKindBrick = NULL;
-	m198c = 0xa6;
+	mShipX = 0xa6;
 	mHeldBricks.clear();
 
 	// the script rows are cleared and so are the first rows of the field
@@ -353,7 +353,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	{
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
-			m984.mCode[aRow][aCol] = 0;
+			mScriptRows.mCode[aRow][aCol] = 0;
 			if (aRow < 20)
 				mFieldBricks[aRow][aCol] = NULL;
 		}
@@ -397,14 +397,14 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	}
 
 	mSupaButtonLit = false;
-	m1930 = 0;
+	mScriptRowIndex = 0;
 	SetupHints();
 	if (1 < theLevel * 2 - 2)
 	{
 		int aCount = theLevel * 2 - 3;
 		do
 		{
-			mField193C = mField193C + 1;
+			mStageNumber = mStageNumber + 1;
 			AdvanceLevel(false);
 			aCount--;
 		} while (aCount != 0);
@@ -412,7 +412,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	MarkHintsSeen(theLevel);
 	if ((theFlags & 0xff) != 0 && !theDemo)
 		LoadLevel(true);
-	m1954 = 2;
+	mShipFrame = 2;
 	mStreaksFadingOut = false;
 
 	// the scenery layer; the pictures of the three ids around it are released (the layer's own stays)
@@ -435,15 +435,15 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mSceneryLayer.mNext[3] = 0.0f;
 	mSceneryLayer.mPeriod = 1;
 	mSceneryLayer.mSpeed = 0.02f;
-	m938 = 500000000.0f;
-	m93c = 500000000.0f;
-	m1948 = 0;
-	m19b0 = 500000000;
-	m19ac = 500000000;
-	m19a8 = 500000000;
-	m19a4 = 500000000;
-	m19a0 = 500000000;
-	m199c = 500000000;
+	mWarpShipY = 500000000.0f;
+	mUnusedFloatFromCtor = 500000000.0f;
+	mEndFlashAlpha = 0;
+	mEffectsUpdateCount = 500000000;
+	mWarpGlowStep = 500000000;
+	mWarpGlowAlpha = 500000000;
+	mWarpChargeAlpha = 500000000;
+	mWarpPictureLift = 500000000;
+	mWarpShakeX = 500000000;
 	m19ec = 500000000;
 	m19e8 = 500000000;
 	m19e4 = 500000000;
@@ -486,8 +486,8 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aBannerX = aBannerX + 0x1e + aBannerFont->StringWidth(aBannerText);
 	} while (!aBannerDone);
 	m1b04 = 0;
-	m1a00 = mField193C + 1;
-	m1a04 = mField193C + 2;
+	m1a00 = mStageNumber + 1;
+	m1a04 = mStageNumber + 2;
 	int aHalf = m1a04 / 2;
 	int aRemainder = (aHalf + 1) % 4;
 	if (aRemainder == 0)
@@ -528,7 +528,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mWipeImageUsed = false;
 	mWipeImageCaptured = false;
 	mScreenWiping = false;
-	m980 = -1;
+	mScreenWipeKind = -1;
 
 	// the picture of the field that the wipe at the end of a game takes away, and the wipe
 	DDImage* aFieldImage = new DDImage(mApp->mDDInterface);
@@ -537,13 +537,13 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	aFieldImage->SetVolatile(true);
 	mScreenGraphics = new Graphics(mScreenImage);
 	mScreenWipe = new ScreenWipe();
-	m980 = ((int) AstroRand() % 500000000) % 4;
-	if (m980 == 0)
+	mScreenWipeKind = ((int) AstroRand() % 500000000) % 4;
+	if (mScreenWipeKind == 0)
 		m1a84 = 2000;
 	else
-		m1a84 = (m980 != 3) * 2 + 4;
+		m1a84 = (mScreenWipeKind != 3) * 2 + 4;
 	mScreenWipe->SetImage(mScreenImage, false);
-	mScreenWipe->SetKind(m980);
+	mScreenWipe->SetKind(mScreenWipeKind);
 	m1a78 = 0;
 	mWipeCreated = true;
 	m1a7c = -1;
