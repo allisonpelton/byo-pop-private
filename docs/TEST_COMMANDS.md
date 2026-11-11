@@ -35,7 +35,26 @@ test hooks of their own keep them and add these names beside them, sharing the c
 | `win`, `lose` | ends the current level or game now, as a win or a loss, through the game's own ending |
 | `seed <n>` | seeds the game's random numbers, where the game draws them from one generator |
 | `move` | prints the move the game's bot would make next, `MOVE {...}`: what it is (the swap, the word, the tile, the shot) and `input`, the real input that makes it, as an ordered list of steps in game coordinates (below); or `MOVE null` when there is none; it changes nothing |
-| `memreport <file>` | optional, for the performance pass: writes what the game holds in memory by owner (images, sounds, music, the process's working set and private bytes) to the file (Alchemy, the Mahjong Escapes) |
+| `memreport [file]` | prints what the game holds in memory as one JSON line, `MEMREPORT {...}` (below); with a file it also writes the detail there (a SexyAppFramework port: every picture with its copies, and the heaps). It changes nothing |
+
+`memreport` answers with the same line in every game, so that a game's memory splits the same way everywhere:
+`{"images":{"count","pixels","copies","textures"},"sounds":{"count","bytes"},"music":{"count","tracks","moduleFiles"},`
+`"others":{...},"process":{"workingSet","private","privateAtStart"}}`, every size in bytes. `pixels` is the pictures' own
+pixels and palettes, `copies` the second copies made from them (the blitters' alpha caches, high-resolution pixels), and
+`textures` an estimate of what the graphics device holds for them, which no process can read. `tracks` is what the mixer
+keeps for audio tracks and `moduleFiles` the size of the module files loaded (a module's player keeps its own copy, about
+that size or more). `privateAtStart` is the process's private bytes when its libraries were loaded and its window,
+graphics device and sound device were up, before it loaded a picture, a sound or a song. From these a reader gets four
+parts: libraries and devices (`privateAtStart`), graphics (`pixels` + `copies`), sound (`sounds.bytes` + the music), and the
+game's own state (`private` less the other three; `others` names what an engine can account for in it).
+
+A SexyAppFramework port answers it in the framework (`SexyAppBase::DoMemReport`, here and in `-script`), with nothing to
+write in the game; a game with large holders of its own adds them in `AddMemReportHolders`. An engine of its own (the
+Mahjong Escapes, Ning Po, Cosmic Bugs and Water Bugs, Bonnie's, Word Harmony) uses `platform/MemReport.h`: it calls
+`Platform::NoteStartMemory()` once its window and devices are up and before it reads a game file, fills a
+`Platform::MemReport` in its own `memreport` command with what its pictures and sounds hold
+(`Platform::AddSongMemory` adds the mixer's songs; `mOthers` takes any other holder by name), and answers with
+`Platform::LogMemReport`, which adds the process's numbers and prints the line.
 
 A move's `input` steps, played in order (Twist's and Alchemy's drivers set the form, 2026-11-07): `{"move":[x,y]}` moves
 the pointer there (a hover: a piece that hangs from the pointer needs one before its click), `{"click":[x,y]}` clicks

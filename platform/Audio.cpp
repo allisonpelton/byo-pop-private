@@ -295,6 +295,7 @@ struct Mixer::Song
 	std::unique_ptr<ModulePlayer> mModule;   // a registered module format (e.g. MO3 via libopenmpt)
 
 	std::vector<uint8_t> mFile;              // Ogg bytes, kept alive for the decoder
+	size_t mModuleFileBytes = 0;             // a module's file size, for the memory report (its player holds the module)
 	stb_vorbis* mVorbis = nullptr;
 	std::shared_ptr<SoundData> mPcm;         // decoded WAV track (at its own rate, resampled as below)
 	int mSourceRate = 0;
@@ -1121,6 +1122,7 @@ int Mixer::LoadSong(const std::string& theGamePath)
 	}
 	else
 	{
+		song->mModuleFileBytes = file.size();
 		for (const ModuleFormat& fmt : ModuleFormats())
 		{
 			if (fmt.mDetect(file))
@@ -1166,6 +1168,23 @@ int Mixer::AddSong(std::unique_ptr<ModulePlayer> thePlayer)
 	int handle = (int)mSongs.size();
 	Unlock();
 	return handle;
+}
+
+void Mixer::GetSongMemory(int* theCount, size_t* theTrackBytes, size_t* theModuleFileBytes)
+{
+	*theCount = 0;
+	*theTrackBytes = 0;
+	*theModuleFileBytes = 0;
+	Lock();
+	for (auto& s : mSongs)
+	{
+		if (!s || !s->mLoaded)
+			continue;
+		(*theCount)++;
+		*theTrackBytes += s->mFile.capacity() + s->mDecoded.capacity() * sizeof(float) + (s->mPcm ? s->mPcm->Bytes() : 0);
+		*theModuleFileBytes += s->mModuleFileBytes;
+	}
+	Unlock();
 }
 
 void Mixer::UnloadSong(int theSong)

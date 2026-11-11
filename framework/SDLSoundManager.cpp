@@ -426,3 +426,17 @@ int SDLSoundManager::GetNumSounds()
 			n++;
 	return n;
 }
+
+size_t SDLSoundManager::GetSoundBytes(int* theCount) const
+{
+	size_t aBytes = 0;
+	*theCount = 0;
+	for (int i = 0; i < MAX_SOURCE_SOUNDS; i++)
+	{
+		if (mSounds[i] == NULL)
+			continue;
+		aBytes += mSounds[i]->Bytes();
+		(*theCount)++;
+	}
+	return aBytes;
+}
