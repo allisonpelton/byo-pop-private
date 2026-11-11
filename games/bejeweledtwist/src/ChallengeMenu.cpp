@@ -589,8 +589,8 @@ void ChallengeButton::Draw(Graphics* g)
 			int aDestY = Ftol((double)aScreenY - (double)(aHeight / 2));
 			Rect aDest(aDestX, aDestY, aWidth, aHeight);
 			if (aDest.Intersects(g->mClipRect)) {
-				// the clouds drift with the size: 0.4 of the planet's scale, in columns
-				double aShift = (double)aScale * 0.4000000059604645;
+				// the planet turns: its layer is read 0.4 of the spin further along (0.08 of a column an update)
+				double aShift = (double)aSpin * 0.4000000059604645;
 				float aRowAt = 0;
 				for (int aRow = 0; aRow < aHeight; aRow++) {
 					uint32_t* aOut = aBufferBits + (size_t)aBufferWidth * (size_t)aRow;
@@ -1943,8 +1943,8 @@ void ChallengeMenu::Start(bool theNewGame)
 	mMainMenuButton->mMouseVisible = false;
 	mPlayMenuButton->mMouseVisible = false;
 	mMouseVisible = false;
-	// (the planet's place in the 3D world, at +0x5b4, aims the 3D camera: unused in 2D)
-	gApp->mBoard->mHyperspace->StartChallenge();
+	const float* aPlace = mButtons[mCategory]->mScreenPos;
+	gApp->mBoard->mHyperspace->StartChallenge(aPlace[0], aPlace[1], aPlace[2]);
 	gApp->mBoard->SetBoardFade(0.0f);
 	gApp->mBoard->ApplyBoardFade();
 	Close(3);

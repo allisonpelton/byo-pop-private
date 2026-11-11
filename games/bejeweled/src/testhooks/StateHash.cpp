@@ -13,16 +13,16 @@
 // (draw count and state words), and the app fields below. Same platform only (raw doubles from libm).
 // Left out: images, fonts and sounds (only whether a banner image exists),
 // mWhirlpoolSound, which depends on the audio device, and the LiveSplit observer's bookkeeping
-// (mBoardSerial, mResumed; stage 2b), so FULL hashes stay equal to the stage-0 baselines. Nothing the hash reads is written by Draw (the
+// (mBoardSerial, mResumed), so FULL hashes stay equal to the frozen baselines. Nothing the hash reads is written by Draw (the
 // banner's ColorizeText only writes image bits), so the draw schedule (-fast, -renderscale) does not
 // change it; with script or -autoplay input the mouse fields are as deterministic as the clicks.
 //
 // LOGIC: the hand-written list below, the state later play can depend on; a narrower hash that a
-// cosmetic change (glow, sparkle, vortex spiral) leaves alone. It stays the stage-0 list, since the oracle
-// compares this column with the frozen stage-0 build; the replays' CHECK and END take StateCodec's LOGIC
+// cosmetic change (glow, sparkle, vortex spiral) leaves alone. It stays the frozen baseline's list, since the oracle
+// compares this column with the frozen baseline (build/baseline-stage0); the replays' CHECK and END take StateCodec's LOGIC
 // hash (games/bejeweled/src/StateCodec.h), which is portable and leaves out the libm-set positions and
-// mHoleRadius this one keeps. The board part of FULL is StateCodec's FULL encoding (port(variant), stage 3:
-// the same bytes the stage-0 field list hashed). Rule: a field is in the list if a later decision
+// mHoleRadius this one keeps. The board part of FULL is StateCodec's FULL encoding (port(variant):
+// the same bytes the frozen baseline's field list hashed). Rule: a field is in the list if a later decision
 // of the game (a state change, a score, a Rand() draw, the handling of an input, what a save or load
 // writes) can depend on it, or if it is a Board field that savegame.dat stores. Left out on purpose:
 //   - Piece: mGlowing, mGlowAlpha, mGlowFrame (hover glow), mSpinFrame, mSparkleCount, mSparkleFrame
@@ -47,11 +47,11 @@
 // port(variant), set seed (both hashes, after the rest): a pending seed the player chose, and a board's own
 // RNG (seed, the player's or not, whether it still holds the pending seed, Board::Rand count, MTRand state
 // words and index). They are hashed only when present, so an original game, which has neither, hashes as
-// in the stage-0 build.
+// in the frozen baseline.
 //
 // Portability: no pointer, padding or map-order dependence in LOGIC (its only libm-derived values are
 // swap positions, (int)-truncated). web/shell.html passes no test switches; the Node runner
-// (games/bejeweled/tools/verify/wasmrun.js, stage 4) runs the web build with them, and the oracle's ".wasm"
+// (games/bejeweled/tools/verify/wasmrun.js) runs the web build with them, and the oracle's ".wasm"
 // cases compare its LOGIC column with the native game's.
 
 #include "StateHash.h"
@@ -174,7 +174,7 @@ void HashCells(StateHasher& h, Board* b, bool full)
 	}
 }
 
-// port(variant): a board's own RNG (stage 2); nothing for a board on the global stream
+// port(variant): a board's own RNG; nothing for a board on the global stream
 void HashOwnRng(StateHasher& theHasher, Board* b)
 {
 	if (b->mOwnRng == NULL)
@@ -253,7 +253,7 @@ void HashBoardLogic(StateHasher& theHasher, Board* theBoard)
 }
 
 // Every Board field in declaration order (Board.h), pieces as raw bytes. port(variant): StateCodec's FULL
-// encoding, the same bytes this function hashed field by field in stage 0 (the field table is the one list)
+// encoding, the same bytes this function hashed field by field in the frozen baseline (the field table is the one list)
 void HashBoardFull(StateHasher& h, Board* b)
 {
 	std::string aFull = StateCodec::Encode(b, StateCodec::PROFILE_FULL);

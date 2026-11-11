@@ -2,7 +2,7 @@
 #define __WATCHCONTROLLER_H__
 
 // port(variant): plays a replay in the game (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.11, 6.8). Not part
-// of the original game. Stage 3b: started with -replay=<file> (WinDMApp::HandleCmdLineParam). Stage 13: also from
+// of the original game. Started with -replay=<file> (WinDMApp::HandleCmdLineParam). Also from
 // the game (WinDMApp::WatchReplay: the replay browser, the game-over screen's WATCH REPLAY), with the speeds, pause
 // and step of ReplayOverlay and the REPLAY END dialog.
 //
@@ -70,7 +70,7 @@ public:
 	const std::string& GetFileName() const { return mFileName; }
 	void			Stop();             // back to the game: the player's mode (WinDMApp::EndWatch then makes its board)
 
-	// Stage 13: the overlay's controls (ReplayOverlay.h). The speeds 0..3 are 1x, 2x, 4x and 8x: 1 << speed board
+	// The overlay's controls (ReplayOverlay.h). The speeds 0..3 are 1x, 2x, 4x and 8x: 1 << speed board
 	// updates a frame. StepToMove plays on at 8x until the next move is due (a swap's target, a twist, a slide or
 	// an undo, not yet applied: the swap's gem shows selected), then pauses; a speed or a pause ends it.
 	enum { NUM_SPEEDS = 4 };

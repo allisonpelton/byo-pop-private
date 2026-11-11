@@ -46,8 +46,7 @@ lets through only what the file pushes), so the run is the same whatever happens
 It does not go with `-script` (the run stops with an error), nor with a game's `-autoplay`, which sets `mScriptedInput`
 and so drops real input (the run logs it). `HandleEvent` drops real input only in those two kinds of run: a run with a
 script file, and one whose bot sets `mScriptedInput`. A game's test command that waits for its moment by queuing itself
-again through `AddScriptCommand` leaves real input alone; until 2026-11-08 any line in the script dropped it, so one
-waiting `goto` on the live channel kept every real click out of Bookworm Adventures.
+again through `AddScriptCommand` leaves real input alone.
 
 A driver that decides as it goes (a solver that reads the board before each move) gives `-commands=<file>` as well,
 with an empty `-realinput` file: the lines it appends to the commands file, with no update count, are played the same
@@ -70,12 +69,7 @@ files. The file moves, presses, drags, double-clicks and scrolls in a window res
 letterboxed one, clicks fwtest's button in game pixels, types with Shift, repeats a held key, sends text alone, types
 control characters, opens and closes the mod menu with F2, loses the focus with a key held and regains it, leaves and
 re-enters the window, minimizes and restores it, and goes full screen and back with Alt+Enter. fwtest's own `expect`
-lines check what reached its board and the app (41 checks). A run that posted 443 real key, character, mouse and focus
-messages to the window during a `-realinput` run found none of them at the board; with the filter taken out, the same
-posts reached it.
-
-Dynomite, Big Money and TipTop were driven to their next screens with it natively under rundesk, with `-fast` and in
-real time, through a focus loss, Alt+Enter both ways and a real minimize and restore, watched from outside the process.
+lines check what reached its board and the app (41 checks).
 
 ## Games it cannot fully reach
 

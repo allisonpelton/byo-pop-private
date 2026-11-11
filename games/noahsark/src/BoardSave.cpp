@@ -1,4 +1,4 @@
-// Board.cpp, part 6: the saved game (WinNoah.exe 0x40d3c0 loads it, 0x40dbe0 writes it to data//savegame.dat)
+// The Board, part 6 of 6: the saved game (WinNoah.exe 0x40d3c0 loads it, 0x40dbe0 writes it to data/savegame.dat)
 // and the small text helpers.
 //
 // The original's file is version 2: the generator state as a string, then the board's fields one by one and
@@ -41,15 +41,15 @@ public:
 	Reader() : mPos(0), mOk(true) {}
 	int Int()
 	{
-		int v = 0;
+		int aValue = 0;
 		if (mPos + 4 > mData.size())
 			mOk = false;
 		else
 		{
-			memcpy(&v, mData.data() + mPos, 4);
+			memcpy(&aValue, mData.data() + mPos, 4);
 			mPos += 4;
 		}
-		return v;
+		return aValue;
 	}
 	bool Byte()
 	{
@@ -62,32 +62,33 @@ public:
 	}
 	float Float()
 	{
-		float v = 0;
+		float aValue = 0;
 		if (mPos + 4 > mData.size())
 			mOk = false;
 		else
 		{
-			memcpy(&v, mData.data() + mPos, 4);
+			memcpy(&aValue, mData.data() + mPos, 4);
 			mPos += 4;
 		}
-		return v;
+		return aValue;
 	}
 	double Double()
 	{
-		double v = 0;
+		double aValue = 0;
 		if (mPos + 8 > mData.size())
 			mOk = false;
 		else
 		{
-			memcpy(&v, mData.data() + mPos, 8);
+			memcpy(&aValue, mData.data() + mPos, 8);
 			mPos += 8;
 		}
-		return v;
+		return aValue;
 	}
 };
 
 }
 
+// port: a text with its %d filled in (the original prints into a buffer with the C library's sprintf)
 SexyString Sexy::FormatText(const SexyString& theFormat, int theValue)
 {
 	// the original passes the text to sprintf; a text with "%d" gets the number, any other text stays as it is
@@ -109,16 +110,11 @@ const SexyString& Board::HintLine(int theIndex, int theLine)
 		{0x0049428c, 0x00494278, 0x00494268}
 	};
 	if ((theIndex < 0) || (theIndex > 3) || (theLine < 0) || (theLine > 2))
-		return GT(0);
+		return GT(GT_EMPTY);
 	return GT(aLines[theIndex][theLine]);
 }
 
-// the saved game numbers the two obstacles the other way round: the port's 0xf (PlaceCrates) is the original's 0x10 there
-static int FileType(int theType)
-{
-	return (theType == 0xf) ? 0x10 : ((theType == 0x10) ? 0xf : theType);
-}
-
+// port: the saved game's name in the user folder (data/savegame.dat in the original)
 std::string Board::SavePath()
 {
 	// port(mod): games played with mods that change play have their own saved game
@@ -140,94 +136,94 @@ bool Board::SaveGame()
 // the board's state as the saved game holds it (port(mod): also the undo mod's snapshots)
 std::string Board::SaveState()
 {
-	Writer w;
-	w.Int(2);
+	Writer aWriter;
+	aWriter.Int(2);
 	uint32_t aState[MTRAND_N];
 	int aIndex = 0;
 	mRand.GetState(aState, &aIndex);
-	w.Int(MTRAND_N * 4);                // the saved game holds the generator's 624 words as a string of 2496 bytes (0x423400), no index
+	aWriter.Int(MTRAND_N * 4);                // the saved game holds the generator's 624 words as a string of 2496 bytes (0x423400), no index
 	for (int i = 0; i < MTRAND_N; i++)
-		w.Int((int) aState[i]);
-	w.Byte(mGravity);
-	w.Int(mApp->mGameMode);
-	w.Int(mWaterY);
-	w.Int(mState);
-	w.Int(mUpdateCnt);
-	w.Int(mState314);
-	w.Int(mLastInputTick);
-	w.Int(mStartTick);
-	w.Int(mState320);
-	w.Int(mState324);
-	w.Int(mLastMoveTick);
-	w.Byte(mShowGetReady);
-	w.Int(mState330);
-	w.Byte(mLightning);
-	w.Byte(mThunderCue);
-	w.Int(mStormTimer);
-	w.Int(mArkX);
-	w.Int(mArkY);
-	w.Int(mFade);
-	w.Int(mWaterTargetY);
-	w.Int(mWavePhaseB);
-	w.Int(mWavePhaseA);
-	w.Int(mArkLevelY);
-	w.Int(mBackdropTick);
-	w.Int(mBonusPoints);
-	w.Int(mLastType);
-	w.Int(mCombo);
-	w.Int(mComboPairs);
-	w.Int(mBestCombo);
-	w.Int(mHintIndex);
-	w.Int(mHintTimer);
-	w.Int(mComboShownAt);
-	w.Int(mComboShown);
-	w.Int(mPulseA);
-	w.Int(mPulseADir);
-	w.Int(mPulseB);
-	w.Int(mPulseBDir);
-	w.Int(mAbandonAlpha);
-	w.Int(mAbandonIndex);
-	w.Int(mAbandonCount);
-	w.Int(mNoahFrame);
-	w.Byte(mNoahWorried);
-	w.Int(mNoahSprite + 1);                 // the original numbers its images with the registration picture (id 47) in them
-	w.Int(mArkStage);
-	w.Int(mSpawnRate);
-	w.Int(mRowCount);
-	w.Byte(mApp->mBonusRound);
-	w.Byte(mSetUp3ac);
-	w.Byte(mNoMoves);
-	w.Int(mApp->mLevel);
-	w.Int(mApp->mDifficulty);
-	w.Int(mFloodSpeed);
-	for (int x = 0; x < 9; x++)
+		aWriter.Int((int) aState[i]);
+	aWriter.Byte(mGravity);
+	aWriter.Int(mApp->mGameMode);
+	aWriter.Int(mWaterY);
+	aWriter.Int(mState);
+	aWriter.Int(mUpdateCnt);
+	aWriter.Int(mLastThunderUpdate);
+	aWriter.Int(mLastInputTick);
+	aWriter.Int(mStartTick);
+	aWriter.Int(mUnsetAfterStartTick);
+	aWriter.Int(mUnsetBeforeLastMoveTick);
+	aWriter.Int(mLastMoveTick);
+	aWriter.Byte(mShowGetReady);
+	aWriter.Int(mUnsetAfterShowGetReady);
+	aWriter.Byte(mLightning);
+	aWriter.Byte(mThunderCue);
+	aWriter.Int(mStormTimer);
+	aWriter.Int(mArkX);
+	aWriter.Int(mArkY);
+	aWriter.Int(mLostFade);
+	aWriter.Int(mWaterTargetY);
+	aWriter.Int(mFrontWavePhase);
+	aWriter.Int(mBackWavePhase);
+	aWriter.Int(mArkLevelY);
+	aWriter.Int(mBackdropTick);
+	aWriter.Int(mBonusPoints);
+	aWriter.Int(mLastType);
+	aWriter.Int(mCombo);
+	aWriter.Int(mComboPairs);
+	aWriter.Int(mBestCombo);
+	aWriter.Int(mHintIndex);
+	aWriter.Int(mHintTimer);
+	aWriter.Int(mShownCombo);
+	aWriter.Int(mComboTextTimer);
+	aWriter.Int(mDangerPulse);
+	aWriter.Int(mDangerPulseDir);
+	aWriter.Int(mFlashPulse);
+	aWriter.Int(mFlashPulseDir);
+	aWriter.Int(mAbandonAlpha);
+	aWriter.Int(mAbandonIndex);
+	aWriter.Int(mAbandonCount);
+	aWriter.Int(mNoahFrame);
+	aWriter.Byte(mNoahWorried);
+	aWriter.Int(mNoahSprite + 1);                 // the original numbers its images with the registration picture (id 47) in them
+	aWriter.Int(mArkStage);
+	aWriter.Int(mNewRowKinds);
+	aWriter.Int(mRowCount);
+	aWriter.Byte(mApp->mBonusRound);
+	aWriter.Byte(mLeftBehindFading);
+	aWriter.Byte(mNoMoves);
+	aWriter.Int(mApp->mLevel);
+	aWriter.Int(mApp->mDifficulty);
+	aWriter.Int(mFloodSpeed);
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
-			Piece* p = mGrid[x][y];
-			w.Byte(p->mMatchSwap);
-			w.Byte(p->mFlash);
-			w.Int(p->mX);
-			w.Int(p->mAlpha);
-			w.Byte(p->mPending);
-			w.Int(FileType(p->mType));
-			w.Byte(p->mSelected);
-			w.Int(p->mDestX);
-			w.Int(p->mDestY);
-			w.Byte(p->mMatch);
-			w.Int(p->mY);
-			w.Double(p->mScale);
-			w.Int(p->mFallSpeed);
-			w.Int(p->mPathIndex);
-			w.Float(p->mPixelX);
-			w.Int(p->mOffsetX);
-			w.Float(p->mPixelY);
-			w.Int(p->mOffsetY);
+			Piece* aPiece = mGrid[x][y];
+			aWriter.Byte(aPiece->mInSwap);
+			aWriter.Byte(aPiece->mFlash);
+			aWriter.Int(aPiece->mX);
+			aWriter.Int(aPiece->mAlpha);
+			aWriter.Byte(aPiece->mPending);
+			aWriter.Int(aPiece->mType);
+			aWriter.Byte(aPiece->mSelected);
+			aWriter.Int(aPiece->mDestX);
+			aWriter.Int(aPiece->mDestY);
+			aWriter.Byte(aPiece->mMatch);
+			aWriter.Int(aPiece->mY);
+			aWriter.Double(aPiece->mScale);
+			aWriter.Int(aPiece->mFallSpeed);
+			aWriter.Int(aPiece->mPathIndex);
+			aWriter.Float(aPiece->mPixelX);
+			aWriter.Int(aPiece->mOffsetX);
+			aWriter.Float(aPiece->mPixelY);
+			aWriter.Int(aPiece->mOffsetY);
 		}
 	}
-	w.Int(mApp->mGameScore);
-	w.Int(mApp->mShownScore);
-	return w.mData;
+	aWriter.Int(mApp->mGameScore);
+	aWriter.Int(mApp->mShownScore);
+	return aWriter.mData;
 }
 
 // 0x40d3c0
@@ -240,101 +236,103 @@ bool Board::LoadGame()
 	return LoadState(aData);
 }
 
+// part of 0x40d3c0: the board from a saved game's content (port(mod): also from the undo mod's snapshots)
 bool Board::LoadState(const std::string& theData)
 {
-	Reader r;
-	r.mData = theData;
-	if (r.Int() != 2)
+	Reader aReader;
+	aReader.mData = theData;
+	if (aReader.Int() != 2)
 		return false;
-	if (r.Int() != MTRAND_N * 4)
+	if (aReader.Int() != MTRAND_N * 4)
 		return false;
 	uint32_t aState[MTRAND_N];
 	for (int i = 0; i < MTRAND_N; i++)
-		aState[i] = (uint32_t) r.Int();
-	if (r.mOk)
+		aState[i] = (uint32_t) aReader.Int();
+	if (aReader.mOk)
 		mRand.SetState(aState, MTRAND_N);   // the index is not saved: the next draw makes new words (the generator is not drawn from after the seeding)
-	mGravity = r.Byte();
-	mApp->mGameMode = r.Int();
-	mWaterY = r.Int();
-	mState = r.Int();
-	mUpdateCnt = r.Int();
-	mState314 = r.Int();
-	mLastInputTick = r.Int();
-	mStartTick = r.Int();
-	mState320 = r.Int();
-	mState324 = r.Int();
-	mLastMoveTick = r.Int();
-	mShowGetReady = r.Byte();
-	mState330 = r.Int();
-	mLightning = r.Byte();
-	mThunderCue = r.Byte();
-	mStormTimer = r.Int();
-	mArkX = r.Int();
-	mArkY = r.Int();
-	mFade = r.Int();
-	mWaterTargetY = r.Int();
-	mWavePhaseB = r.Int();
-	mWavePhaseA = r.Int();
-	mArkLevelY = r.Int();
-	mBackdropTick = r.Int();
-	mBonusPoints = r.Int();
-	mLastType = r.Int();
-	mCombo = r.Int();
-	mComboPairs = r.Int();
-	mBestCombo = r.Int();
-	mHintIndex = r.Int();
-	mHintTimer = r.Int();
-	mComboShownAt = r.Int();
-	mComboShown = r.Int();
-	mPulseA = r.Int();
-	mPulseADir = r.Int();
-	mPulseB = r.Int();
-	mPulseBDir = r.Int();
-	mAbandonAlpha = r.Int();
-	mAbandonIndex = r.Int();
-	mAbandonCount = r.Int();
-	mNoahFrame = r.Int();
-	mNoahWorried = r.Byte();
-	mNoahSprite = r.Int() - 1;
-	mArkStage = r.Int();
-	mSpawnRate = r.Int();
-	mRowCount = r.Int();
-	mApp->mBonusRound = r.Byte();
-	mSetUp3ac = r.Byte();
-	mNoMoves = r.Byte();
-	mApp->mLevel = r.Int();
-	mApp->mDifficulty = r.Int();
-	mFloodSpeed = r.Int();
-	for (int x = 0; x < 9; x++)
+	mGravity = aReader.Byte();
+	mApp->mGameMode = aReader.Int();
+	mWaterY = aReader.Int();
+	mState = aReader.Int();
+	mUpdateCnt = aReader.Int();
+	mLastThunderUpdate = aReader.Int();
+	mLastInputTick = aReader.Int();
+	mStartTick = aReader.Int();
+	mUnsetAfterStartTick = aReader.Int();
+	mUnsetBeforeLastMoveTick = aReader.Int();
+	mLastMoveTick = aReader.Int();
+	mShowGetReady = aReader.Byte();
+	mUnsetAfterShowGetReady = aReader.Int();
+	mLightning = aReader.Byte();
+	mThunderCue = aReader.Byte();
+	mStormTimer = aReader.Int();
+	mArkX = aReader.Int();
+	mArkY = aReader.Int();
+	mLostFade = aReader.Int();
+	mWaterTargetY = aReader.Int();
+	mFrontWavePhase = aReader.Int();
+	mBackWavePhase = aReader.Int();
+	mArkLevelY = aReader.Int();
+	mBackdropTick = aReader.Int();
+	mBonusPoints = aReader.Int();
+	mLastType = aReader.Int();
+	mCombo = aReader.Int();
+	mComboPairs = aReader.Int();
+	mBestCombo = aReader.Int();
+	mHintIndex = aReader.Int();
+	mHintTimer = aReader.Int();
+	mShownCombo = aReader.Int();
+	mComboTextTimer = aReader.Int();
+	mDangerPulse = aReader.Int();
+	mDangerPulseDir = aReader.Int();
+	mFlashPulse = aReader.Int();
+	mFlashPulseDir = aReader.Int();
+	mAbandonAlpha = aReader.Int();
+	mAbandonIndex = aReader.Int();
+	mAbandonCount = aReader.Int();
+	mNoahFrame = aReader.Int();
+	mNoahWorried = aReader.Byte();
+	mNoahSprite = aReader.Int() - 1;
+	mArkStage = aReader.Int();
+	mNewRowKinds = aReader.Int();
+	mRowCount = aReader.Int();
+	mApp->mBonusRound = aReader.Byte();
+	mLeftBehindFading = aReader.Byte();
+	mNoMoves = aReader.Byte();
+	mApp->mLevel = aReader.Int();
+	mApp->mDifficulty = aReader.Int();
+	mFloodSpeed = aReader.Int();
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
-			Piece* p = mGrid[x][y];
-			p->mMatchSwap = r.Byte();
-			p->mFlash = r.Byte();
-			p->mX = r.Int();
-			p->mAlpha = r.Int();
-			p->mPending = r.Byte();
-			p->mType = FileType(r.Int());
-			p->mSelected = r.Byte();
-			p->mDestX = r.Int();
-			p->mDestY = r.Int();
-			p->mMatch = r.Byte();
-			p->mY = r.Int();
-			p->mScale = r.Double();
-			p->mFallSpeed = r.Int();
-			p->mPathIndex = r.Int();
-			p->mPixelX = r.Float();
-			p->mOffsetX = r.Int();
-			p->mPixelY = r.Float();
-			p->mOffsetY = r.Int();
+			Piece* aPiece = mGrid[x][y];
+			aPiece->mInSwap = aReader.Byte();
+			aPiece->mFlash = aReader.Byte();
+			aPiece->mX = aReader.Int();
+			aPiece->mAlpha = aReader.Int();
+			aPiece->mPending = aReader.Byte();
+			aPiece->mType = aReader.Int();
+			aPiece->mSelected = aReader.Byte();
+			aPiece->mDestX = aReader.Int();
+			aPiece->mDestY = aReader.Int();
+			aPiece->mMatch = aReader.Byte();
+			aPiece->mY = aReader.Int();
+			aPiece->mScale = aReader.Double();
+			aPiece->mFallSpeed = aReader.Int();
+			aPiece->mPathIndex = aReader.Int();
+			aPiece->mPixelX = aReader.Float();
+			aPiece->mOffsetX = aReader.Int();
+			aPiece->mPixelY = aReader.Float();
+			aPiece->mOffsetY = aReader.Int();
 		}
 	}
-	mApp->mGameScore = r.Int();
-	mApp->mShownScore = r.Int();
-	return r.mOk;
+	mApp->mGameScore = aReader.Int();
+	mApp->mShownScore = aReader.Int();
+	return aReader.mOk;
 }
 
+// port: a text with its two %d filled in
 SexyString Sexy::FormatText2(const SexyString& theFormat, int theFirst, int theSecond)
 {
 	// "%d:%d" style texts (the level-up panel's time)

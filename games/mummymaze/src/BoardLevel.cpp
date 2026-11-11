@@ -89,7 +89,6 @@ Board::Board(MummyApp* theApp) :
 	m270 = 0;
 	m274 = 0;
 	mUnsolvable = false;
-	mMouseX = mMouseY = 0;
 	for (int i = 0; i < 2; i++)
 		mTrapX[i] = mTrapY[i] = 99;
 	mDeathTimer = mDeathTimer2 = -1;
@@ -112,14 +111,12 @@ Board::Board(MummyApp* theApp) :
 	mFade2 = 0.0;
 	mDark = false;
 	mTutorialStep = 0;
-	mTutorialPart = 0;
 	mExitStyle = 0;
 	mSolvable = true;
 	mEndAlpha = 0;
 	mEndFade = 0.0;
 	mFlagEc0 = false;
 	mFlagEc1 = false;
-	mWalkTick = 0;
 
 	// the dust: four pairs of random positions inside the cell
 	for (int i = 0; i < 4; i++)

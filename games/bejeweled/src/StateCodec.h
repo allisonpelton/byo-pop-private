@@ -6,9 +6,9 @@
 // declaration order, with flags saying which encodings take it:
 //
 //   FULL      everything, the raw 0x78-byte Piece records included, for -tracehash and the oracle. Same
-//             platform only (raw doubles from libm). Its bytes are exactly the board part of the stage-0
+//             platform only (raw doubles from libm). Its bytes are exactly the board part of the frozen baseline's
 //             -tracehash FULL hash (testhooks/StateHash.cpp hashes this encoding), so the oracle's hash.txt
-//             comparison with the frozen stage-0 build proves the table holds every field of that list.
+//             comparison with the frozen baseline (build/baseline-stage0) proves the table holds every field of that list.
 //   LOGIC     the state later play depends on, portable across native and wasm: the board tick, the state,
 //             level, score and stat fields, the multiplier and drain doubles as bits, bar width and colour,
 //             the timers play reads, pause counts, input delay, play seconds, the selection and swap
@@ -58,8 +58,8 @@ public:
 		F_FULL = 1,
 		F_LOGIC = 2,
 		F_SNAP = 4,
-		F_V2 = 8,       // stage 5: the v2 save
-		F_UNDO = 16,    // stage 6: undo snapshots
+		F_V2 = 8,       // the v2 save
+		F_UNDO = 16,    // undo snapshots
 		F_DERIVED = 32  // FULL only, cannot be restored (whether an image exists, a container size)
 	};
 
@@ -82,7 +82,7 @@ public:
 	// derived rows and the LOGIC hash must all match. "" when they do, else what differs.
 	static std::string	RoundTrip(Board* theBoard, Board* theScratch);
 
-	// Stage 6: theBoard's UNDO encoding decoded into theScratch (a copy of it: RoundTrip just passed) and written
+	// TheBoard's UNDO encoding decoded into theScratch (a copy of it: RoundTrip just passed) and written
 	// again: the same bytes. "" when they are, else what differs.
 	static std::string	UndoRoundTrip(Board* theBoard, Board* theScratch);
 };

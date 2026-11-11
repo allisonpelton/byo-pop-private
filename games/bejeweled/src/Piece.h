@@ -44,7 +44,7 @@ struct Piece
 	// port(variant): not part of the raw save record
 	int		mKind;           // +0x78 special gem: 0 normal, 1 flame, 2 lightning (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8)
 	int		mKindFrame;      // +0x7c special gem overlay animation frame (cosmetic)
-	int		mArrow;          // +0x80 arrow gem: GameRules::ArrowDirection + 1, 0 for none (4.20, stage 18)
+	int		mArrow;          // +0x80 arrow gem: GameRules::ArrowDirection + 1, 0 for none (CODE_MODS_DESIGN.md 4.20)
 
 	Piece();                 // 0x4c9aec
 };

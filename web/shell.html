@@ -96,6 +96,27 @@ button[disabled] { opacity: 0.5; cursor: default; }
 }
 /* Pixel-perfect (the site's setting, sizeStage below): the stage takes the width it works out, the game's own size */
 .pixel-perfect .stage:not(:fullscreen) { width: var(--pp-w); }
+/* A narrow page (a phone) before its game is made: the cards (the terms, the files, Ready) have the whole page, not the small
+   box the game will have, and scroll in it; the wizard's art column is left out (the user, 2026-11-10: "The terms took up almost
+   none of the game window on mobile") */
+@media (max-width: 600px) {
+  html.game-unmade .stage:not(#\#) { width: 100% !important; height: 100% !important; max-width: none; aspect-ratio: auto; }
+  html.game-unmade .stage-area:not(#\#) { place-items: stretch; }
+  html.game-unmade .overlay > .card:not(#\#) { display: block; width: 100%; max-width: none; min-width: 0; box-sizing: border-box; overflow: visible; padding: 10px 12px 14px; }
+  html.game-unmade .overlay > .card:not(#\#) > .wiz-art { display: none; }
+  html.game-unmade .overlay > .card:not(#\#) > .wiz-head { margin: -10px -12px 10px; }
+  html.game-unmade .overlay > .card > * + * { margin-top: 10px; }
+  html.game-unmade .overlay:not(#\#) { place-items: start stretch; overflow: auto; }
+}
+/* The touch keys beside the game (web/controls.js, touch-side): a column at the right of the game's window */
+html.touch-side .bc-touch { flex-direction: column; flex-wrap: wrap; align-content: center; padding: 8px; max-height: 100%; box-sizing: border-box; }
+html.touch-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto; }
+html.touch-side .stage-wrap > .bc-touch { grid-column: 2; grid-row: 1 / span 9; align-self: stretch; }
+/* and in full screen, over the black beside or under the game (the stage keeps clear of it: --touch-w, --touch-h, fitFullscreen) */
+html.fs-frame.touch-keys .bc-touch { position: fixed; z-index: 2147483647; right: 0; bottom: 0; background: #000; }
+html.fs-frame.touch-keys.touch-side .bc-touch { top: 0; }
+html.fs-frame.touch-keys:not(.touch-side) .bc-touch { left: 0; }
+html.fs-frame.touch-keys .stage:not(#\#) { width: calc(100vw - var(--touch-w, 0px)) !important; height: calc(100vh - var(--touch-h, 0px)) !important; right: auto !important; bottom: auto !important; }
 /* The chat next to the game (the site's "Chat position"): the stage's box is as wide as the stage, and the two are centred
    together; chat.js's layout gives the stage's width (--stage-px). Only while the chat is shown: it starts with the game, and
    "Show chat" may be off */
@@ -432,6 +453,16 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // the page in a game's window on Desktop 95's one page (web/deskapps.js, ?embed=1): the game and its own windows, the
   // desktop's window frame around them
   var EMBED = !!(window.ByopopSkin && ByopopSkin.EMBED);
+  // A phone (a touch screen whose short side is under 600 CSS pixels; ?phone=1 on a development host, for tests): the game as
+  // large as fits, not at a whole multiple, and full screen from Play unless the player set otherwise (the user, 2026-11-10: "For
+  // the sake of playability on mobile, the games should all default to full screen with pixel perfect mode off")
+  var PHONE = (function () {
+    try {
+      if (new URLSearchParams(location.search).get("phone") === "1" && ByopopTerms.devHost(location)) return true;
+      return window.matchMedia("(pointer: coarse)").matches && Math.min(screen.width, screen.height) < 600;
+    } catch (e) { return false; }
+  })();
+  if (PHONE) document.documentElement.classList.add("phone");
   // its client area: the stage in a box of its own, which centres it on black and scrolls when the game is larger (web/skins.css)
   if (EMBED) (function () {
     var s = document.getElementById("stage");
@@ -451,7 +482,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   try { ByopopSkin.setGame(PAGE.id); } catch (e) {}
   // the performance panel (web/perf.js), when the site setting is on; it waits for the page to be drawn
   try { document.addEventListener("DOMContentLoaded", function () { ByopopPerf.setGame(PAGE.id); }); } catch (e) {}
-  // the view settings (web/view.js): scanlines, a colour filter, the run timer
+  // the view settings (web/view.js): scanlines, a colour filter
   try { document.addEventListener("DOMContentLoaded", function () { ByopopView.setGame(PAGE.id); }); } catch (e) {}
   // the game's controls (web/controls.js): the Controls panel, remapped keys, the gamepad, touch keys, the input display
   try { document.addEventListener("DOMContentLoaded", function () { ByopopControls.setGame(PAGE.id); }); } catch (e) {}
@@ -545,7 +576,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     document.documentElement.classList.toggle("game-loading", !!on);
     // Desktop 95 shows the game's window only once the game has drawn in it, or has ended or stopped: until then the setup
     // wizard's cards stand on the desktop by themselves (web/skins.css, game-unmade)
-    if (!on && gameState !== "waiting" && gameState !== "boot") document.documentElement.classList.remove("game-unmade");
+    if (!on && gameState !== "waiting" && gameState !== "boot" && document.documentElement.classList.contains("game-unmade")) {
+      document.documentElement.classList.remove("game-unmade");
+      // on a narrow page the cards had the whole page (the style above): the stage has the game's shape again, and SDL measures
+      // the canvas only on a resize
+      Promise.resolve().then(function () { sizeStage(); window.dispatchEvent(new Event("resize")); });
+    }
     try { if (window.ByopopCursors) ByopopCursors.busy("game-window", !!on); } catch (e) {}
     // a hidden canvas takes no focus: once it is shown, the game gets the focus the start gave it, unless the player has put it
     // somewhere since
@@ -679,6 +715,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     var dpr = window.devicePixelRatio || 1, pick = chosenScale();
     if (pick) return gameScreen.w * pick / dpr;
     var area = $("stage").parentNode, aw = area.clientWidth, ah = area.clientHeight;
+    if (PHONE && aw && ah) return Math.max(160, Math.floor(Math.min(aw, ah * gameScreen.w / gameScreen.h)));
     // the first time, the room the desktop has: the window takes that size (embedFit)
     if (embedFitted !== gameScreen.w + "x" + gameScreen.h || !aw || !ah) { var r = embedRoom(); if (r) { aw = r.w; ah = r.h; } }
     for (var n = 16; n >= 1; n--) if (gameScreen.w * n / dpr <= aw && gameScreen.h * n / dpr <= ah) return gameScreen.w * n / dpr;
@@ -746,7 +783,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       view.push({ label: T(c[1]), checked: filt === c[0], fn: function () { setView("colorFilter", c[0]); } });
     });
     view.push({ rule: true });
-    [["runTimer", "settings.runtimer.label"], ["inputDisplay", "settings.inputdisplay.label"]].forEach(function (c) {
+    [["inputDisplay", "settings.inputdisplay.label"]].forEach(function (c) {
       var onNow = setting(c[0]) === "on";
       view.push({ label: T(c[1]), ticked: onNow, fn: function () { setView(c[0], onNow ? "off" : "on"); } });
     });
@@ -851,12 +888,10 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       whenSaved(function () {
         if (then) { then(info); return; }
         if (restart) { session.restartPage(info); return; }
-        // the site setting "Go back to the games after quitting": the listing page, with ?silent=1 kept for the tests
-        if (setting("quitHome") === "on") {
-          $("exit-msg").textContent = ByopopStrings.t("game.exit.going_home");
-          location.href = "./" + (pageSilent() ? "?silent=1" : "");
-          return;
-        }
+        // in a window of the one page, a game that quits closes its window, as a program does (the user, 2026-11-10: "I'd expect
+        // the window to just close"); a page of its own keeps its card and Play again
+        var P = desktopApps();
+        if (P) { try { P.closed(window); return; } catch (e) {} }
         $("exit-msg").textContent = ByopopStrings.t(hasSave() ? "game.exit.closed_saved" : "game.exit.closed_settings");
         $("btn-play-again").disabled = false;
         $("btn-play-again").focus();
@@ -1201,7 +1236,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     // (browsers allow it only from one; the restart of the game's own menu has no click, so it does not ask). "Windowed" is
     // told to the games (byopop_site_windowed, below), whose own full screen option then starts off.
     var screenAtStart = setting("fullscreen");
-    if (!isAutostart && screenAtStart === "on") goFullscreen();
+    if (!isAutostart && (screenAtStart === "on" || (PHONE && screenAtStart !== "off" && !pageSilent()))) goFullscreen();
     holdForVolume();
     closePanels("quiet");
     $("start-overlay").hidden = true;
@@ -1707,9 +1742,9 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function closeProgram() {
     // in a window of the one page: the game's own close with its saves, then the window goes (web/deskapps.js)
     var P = desktopApps();
-    if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }); return; }
+    if (P) { closeGameThen(function () { try { P.closed(window); } catch (e) {} }, true); return; }
     try { sessionStorage.setItem("byopop-desk-open", "games"); } catch (e) {}
-    closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); });
+    closeGameThen(function () { location.href = "./" + (pageSilent() ? "?silent=1" : ""); }, true);
   }
   function showMissingFiles() {
     $("files-missing").hidden = !missingFiles.length;
@@ -1723,7 +1758,15 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // settings are saved), and go on in a new page. then(info) runs once the save has reached browser storage; info
   // is Module.onGameExit's, or null when the game was not running.
   function gameRunning() { return gameState === "starting" || gameState === "running" || gameState === "closing"; }
-  function closeGameThen(then) {
+  // asQuit (the window's Close): the game quits as its own Quit does (byopop_quit: Twist says its goodbye first; the user,
+  // 2026-11-10: "it should wait for the Goodbye sound like quitting from the menu does") and shuts down by itself; a build
+  // without that export closes as before
+  function closeGameThen(then, asQuit) {
+    if (asQuit && gameState === "running" && window.Module && typeof Module._byopop_quit === "function") {
+      afterExit = then;
+      setGameState("closing");
+      try { Module._byopop_quit(); return; } catch (e) { afterExit = null; setGameState("running"); }
+    }
     if (gameRunning()) {
       var r = {};
       try { r = JSON.parse((panel && panel.call("byopop_restart", "string", ["number"], [1])) || "{}"); } catch (e) {}
@@ -1804,7 +1847,13 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     document.documentElement.classList.toggle("fs-frame", frameFull());
     if (!deskOn() || !stageFull()) { s.style.removeProperty("--fs-w"); s.style.removeProperty("--fs-h"); return; }
     var dpr = window.devicePixelRatio || 1, aw = window.innerWidth, ah = window.innerHeight, w = 0, h = 0;
-    for (var n = 16; n >= 1 && !w; n--) {
+    // the touch keys keep their room in full screen: a column at the side or a row under the game (web/controls.js, touch-side)
+    var bar = document.querySelector(".bc-touch"), root = document.documentElement, tw = 0, th = 0;
+    if (bar && frameFull()) { if (root.classList.contains("touch-side")) tw = bar.offsetWidth; else th = bar.offsetHeight; }
+    s.style.setProperty("--touch-w", tw + "px");
+    s.style.setProperty("--touch-h", th + "px");
+    aw -= tw; ah -= th;
+    for (var n = PHONE ? 0 : 16; n >= 1 && !w; n--) {
       if (gameScreen.w * n / dpr <= aw && gameScreen.h * n / dpr <= ah) { w = gameScreen.w * n / dpr; h = gameScreen.h * n / dpr; }
     }
     if (!w) { var k = Math.min(aw / gameScreen.w, ah / gameScreen.h); w = Math.floor(gameScreen.w * k); h = Math.floor(gameScreen.h * k); }
@@ -1822,6 +1871,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     Promise.resolve().then(function () { window.dispatchEvent(new Event("resize")); });
   }
   document.addEventListener("fullscreenchange", onFullscreenChange);
+  window.addEventListener("byopop-touch-keys", function () { fitFullscreen(); sizeStage(); });
   // the frame's full screen is the desktop page's: its change is told there
   if (EMBED) try { window.parent.document.addEventListener("fullscreenchange", onFullscreenChange); } catch (e) {}
   window.addEventListener("resize", function () { if (stageFull() || document.documentElement.classList.contains("fs-frame")) fitFullscreen(); });

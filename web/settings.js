@@ -42,7 +42,6 @@ var ByopopSettings = (function () {
     wakeLock: { values: SWITCH, def: "off" },       // on: the screen stays awake while a game runs
     confirmLeave: { values: SWITCH, def: "off" },   // on: ask before leaving the page while a game runs
     pauseHidden: { values: SWITCH, def: "off" },    // on: a hidden tab pauses the game
-    quitHome: { values: SWITCH, def: "off" },       // on: a game that quits goes back to the listing page, not its "Thanks for playing"
     autoStart: { values: SWITCH, def: "on" },       // on: a game starts when its page opens, if the browser allows sound
     showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
     chatPlace: { values: ["edge", "game"], def: "edge" },  // game: the chat beside the game, the two centred; edge: at the page's right edge
@@ -55,10 +54,10 @@ var ByopopSettings = (function () {
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
     colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid"], def: "none" },
-    runTimer: { values: SWITCH, def: "off" },
     // the input settings (web/controls.js): what the page adds to the game's input
     inputDisplay: { values: SWITCH, def: "off" },
     touchKeys: { values: ["auto", "on", "off"], def: "auto" },
+    touchPlace: { values: ["auto", "under", "side"], def: "auto" },   // the touch keys under the game or at its side (auto: by the screen's shape)
     gamepad: { values: SWITCH, def: "on" },
     clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
@@ -248,12 +247,13 @@ var ByopopSettings = (function () {
       hint: T("settings.colorfilter.hint") },
     { section: "overlays" },
     { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
-    { name: "runTimer", label: T("settings.runtimer.label"), hint: T("settings.runtimer.hint") },
     { name: "inputDisplay", label: T("settings.inputdisplay.label"), hint: T("settings.inputdisplay.hint") },
     { name: "clips", label: T("settings.clips.label"), hint: T("settings.clips.hint") },
     { section: "input" },
     { name: "touchKeys", label: T("settings.touchkeys.label"), options: [["auto", T("settings.touchkeys.auto")], ["on", T("settings.on")], ["off", T("settings.off")]],
       hint: T("settings.touchkeys.hint") },
+    { name: "touchPlace", label: T("settings.touchplace.label"), options: [["auto", T("settings.touchkeys.auto")], ["under", T("settings.touchplace.under")], ["side", T("settings.touchplace.side")]],
+      hint: T("settings.touchplace.hint") },
     { name: "gamepad", label: T("settings.gamepad.label"), hint: T("settings.gamepad.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],
       hint: T("settings.cursors.hint") },
@@ -278,8 +278,6 @@ var ByopopSettings = (function () {
       hint: T("settings.confirmleave.hint") },
     { name: "pauseHidden", label: T("settings.pausehidden.label"),
       hint: T("settings.pausehidden.hint") },
-    { name: "quitHome", label: T("settings.quithome.label"),
-      hint: T("settings.quithome.hint") },
     { section: "chat" },
     { name: "showChat", label: T("settings.showchat.label"),
       hint: T("settings.showchat.hint") },

@@ -184,16 +184,12 @@ public:
 	SoundInstance*	m1728;              // +0x1728 never set
 	bool			mNoMoveYet;         // +0x172c
 	int				mDropDelay;         // +0x1730 updates to wait before gems fall into the board
-	bool			mIsPlanetIntro;
 	int				mLevel;
 	int				mNextLevel;
 	int				mScore;             // +0x15e20
 	double			mLevelValue;        // +0x15e28 the points of a cleared gem
 	int				mBackdropNum;       // +0x15f74
 	bool			mCheated;           // +0x165b0
-	bool			mExplodeHappened;
-	int				mDoneClearingCount;
-	int				mLastExplodeSoundTick;
 	int				mPauseCount;        // +0x15ec0
 	int				mInterfacePauseCount; // +0x15ec4
 	int				mPlayStartTick;     // +0x15e0c the update count at which the running stretch started
@@ -213,7 +209,6 @@ public:
 	std::vector<TutorialMove>	mTutorialMoves;
 	std::vector<std::string>	mTutorialText;
 	int				mTutorialStep;
-	bool			mHintTutorialShown;
 	int				mHoverPod;          // +0x1904 the puzzle pod under the mouse, -1
 	int				mPendingPod;
 	int				mMouseX;            // +0x15f28
@@ -236,10 +231,6 @@ public:
 	// the slides and the sways
 	CurvedVal		mGalaxySlide;       // +0x17e8 the board slides away when the galaxy map shows
 	CurvedVal		mSlide;             // +0x1818 0 shown, 2000 off screen
-	double			mStarRot;
-	double			mStarPhase;
-	double			mStarDrift;
-	float			mFadeIn;
 	float			mSwapFade;
 	float			mShakeSize;         // +0x15e5c
 	float			mShakeTime;         // +0x15e60
@@ -253,7 +244,6 @@ public:
 	int				mSwapTime;
 	int				mSwapCenterX;
 	int				mSwapCenterY;
-	unsigned char	mSolutionMove;
 	bool			mCrazy;             // +0x18e8 MakePuzzleCrazy mirrored the board
 
 	// the undo lists and the solution of a puzzle
@@ -265,15 +255,11 @@ public:
 	bool			mSolutionValid;     // +0x18f4
 	int				mSolutionMoves;     // +0x18f8
 	int				mSolutionHintIndex; // +0x1900
-	int				mSolutionFirstNode;
 	std::string		mSolutionFile;
 	std::string		mPuzzleFile;
 	std::vector<SolutionNode>	mSolutionNodes;
 	std::vector<unsigned int>	mSolutionMoveList;
 	std::vector<std::string>	mSecretPuzzles;
-	int				mSecretPuzzleCount;
-	int				mSecretSolved;
-	int				mSecretRun;
 
 	// the cheats
 	std::string		mCheatBuffer;       // +0x165a0 the last 24 letters typed
@@ -290,7 +276,10 @@ public:
 	bool			m1750, m1751;
 	int				m1764, m1768, m176c;
 	bool			m1770;
-	int				m1774, m17a4, m17a8, m17ac;
+	int				m1774;
+	int				mSecretPuzzleCount; // +0x17a4 the puzzles queued for the secret galaxy (Cognito)
+	int				mSecretSolved;      // +0x17a8 the puzzles solved without a hint
+	int				mSecretRun;         // +0x17ac the puzzles solved without a hint in this run of four (the bar)
 	int				m17d4, m17d8, m17dc;
 	bool			m17d0;
 	float			m17e0;
@@ -298,11 +287,11 @@ public:
 	float			m184c;
 	bool			m1850;
 	double			m1858, m1860;
-	int				m18f0;
-	bool			m18fc;
+	int				mSolutionFirstNode; // +0x18f0 the first node of the solution file (-1 without one)
+	unsigned char	mSolutionMove;      // +0x18fc the move just made, as the solution file writes one
 	int				m190c, m1910, m1914, m1918;
-	bool			m191c;
-	bool			m191d = false;      // +0x191d read by EffectOverlay::Draw and DrawBoard (never set by the original's constructor; the port zeroes it)
+	bool			m191c;              // +0x191c
+	bool			mIsPlanetIntro;     // +0x191d the planet's intro puzzle is on the board (SelectPuzzlePod with -1)
 	float			m1944, m1948;
 	bool			m194c, m194d, m194e;
 	float			m1954;          // +0x1954 the phase of the arrow over the hint gem (EffectOverlay::Draw takes its cosine)
@@ -322,11 +311,15 @@ public:
 	int				m15e14, m15e18;
 	int				mHintCountdown;     // +0x15e1c
 	double			m15e30, m15e38;
-	int				m15e40, m15e44, m15e48, m15e4c, m15e50, m15e54, m15e58;
+	int				m15e40, m15e44, m15e48, m15e4c;
+	int				mCascadeCount;      // +0x15e50 the clears that followed the move so far (DoneClearing counts, a swap clears it): the combo sound's step
+	int				m15e54, m15e58;
 	int				m15e6c, m15e70;
 	int				mChainCount;        // +0x15e74 the flame and bomb gems that exploded in this chain (reset by CheckMatches)
-	bool			m15e78;
-	int				m15e7c, m15e80, m15e84, m15e88, m15e8c, m15e90, m15e94, m15e98;
+	bool			mExplodeHappened;   // +0x15e78 a gem exploded in this update: Update plays the sound once
+	int				m15e7c, m15e80, m15e84, m15e88;
+	int				mLastExplodeSoundTick; // +0x15e8c the update at which a hyper cube in a blast last sounded
+	int				m15e90, m15e94, m15e98;
 	double			m15ea0;
 	bool			m15ea8, m15ea9;
 	int				m15eac, m15eb0, m15eb4, m15eb8;
@@ -352,9 +345,14 @@ public:
 	int				m15f88;
 	double			m15f90, m15f98, m15fa0;
 	bool			m15fa8;
-	float			m15fac, m15fb0, m15fb4;
+	float			m15fac;
+	float			mFadeIn;            // +0x15fb0 how far the board's lights are in, 0 to 1 (down during the whirlpool, up after it)
+	float			m15fb4;
 	bool			m15fb8;
-	double			m15fc0, m15fc8, m15fd0, m15fd8;
+	double			mStarRot;           // +0x15fc0 the turn of the first star on the selected gem
+	double			mStarDrift;         // +0x15fc8 the turn of the second star, the other way
+	double			mStarPhase;         // +0x15fd0 0 to 1: the flicker between the two stars and of the flames
+	double			m15fd8;
 	bool			m16020;
 	int				m16024, m16028, m1602c, m16030;
 

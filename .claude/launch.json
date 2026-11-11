@@ -192,6 +192,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["tools/webtest/serve.py", "--port", "18780"],
       "port": 18780
+    },
+    {
+      "name": "bejeweled2-webtest",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["tools/webtest/serve.py", "--port", "18808"],
+      "port": 18808
     }
   ]
 }

@@ -22,6 +22,10 @@ The checks (each one a rule of docs/CODE_STANDARDS.md):
             with a hex letter; 2D and 3D, lower-case tails and short numbers such as mSwapPiece1 or aCos36 are not)
   comment   a comment that puts "unknown" in place of a name: "purpose unknown", "unknown field", "??", "no idea",
             "TODO: name"
+  stage     a comment that names a development stage, milestone or phase by its number ("stage 7b", "phase 2",
+            "milestone 3"): a reader of the code cannot follow it, so the comment names the feature instead. A game
+            whose own word it is (a game's stage 3, a boss's phase 2), or a file or folder name that carries it
+            (mods/stage4), takes an allow rule on the matched text, with "." for its space: allow stage stage.?4
   short     a one-letter variable or parameter still used more than 10 lines after it is declared (short-span), outside
             the letters the config allows (by default i, j, k for indices, x, y, z for coordinates and g for a
             Graphics*, the framework's own convention): a one-letter name is fine where its type is on the same
@@ -57,6 +61,9 @@ STANDIN = re.compile(r"^(?:m|g|s|k|a|an|the)?_?(?:%s)_?(?:0x)?[0-9A-Fa-f]*[0-9][
 STANDIN_BARE = re.compile(r"^(?:m|g|s|a|an|the)(?:Temp|Tmp|Dummy|Foo|Blah|Stuff|Thing|Misc|Unused(?:[A-Z]\w*)?)$")
 # a word, then an offset or an address of upper-case hex in place of the rest of the name (not "2D" or "3D")
 OFFSET = re.compile(r"^(?:(?:m|g|s|k|a|an|the)[A-Z]|[A-Z])\w*?[a-z_]((?:0x)?[0-9A-F]{2,8})$")
+
+
+STAGE = re.compile(r"\b(?:stage|phase|milestone)[ -]?\d+[a-z]?\b", re.I)
 
 
 def is_offset_name(name):
@@ -230,6 +237,8 @@ def check_file(path, rel, cfg, findings, skipped):
         m = COMMENT.search(body)
         if m:
             report("comment", number, m.group(0).strip(), "a comment that puts 'unknown' in place of a name")
+        for m in STAGE.finditer(body):
+            report("stage", number, m.group(0), "a comment that names a development stage, not the feature")
 
     letters = cfg.short_letters(rel)
     for number, codeline in enumerate(lines, 1):
@@ -408,6 +417,9 @@ SELFTEST = [
     ("bool mIs3D; Viz2D* mViz; float aCos36; int Clamp01(); int mPiece2; TwistD3D* mD3D;\n", []),
     ('const char* aText = "unknown field id mUnused218 local_1c";\n', []),
     ("int mFlags; // +0x218 purpose unknown\nint mCount; // the number of unknown keys\n", ["comment purpose unknown"]),
+    ("int mDirt; // stage 7b: the dirt layers\n// Phase-2 of the Milestone 3 work\nint mGold; // the gold board\n",
+     ["stage stage 7b", "stage Phase-2", "stage Milestone 3"]),
+    ("// the stages of a rocket, the next phase, stage one\nconst char* aText = \"stage 2\";\n", []),
     ("// 0x401000\nvoid F()\n{\n\tint q = 0;\n" + "\tq++;\n" * 12 + "}\n", ["short q"]),
     ("// 0x401000\nvoid F()\n{\n\tint q = 0;\n\tq++;\n}\n", []),
     ("// 0x401000\nvoid F(Graphics* g)\n{\n" + "\tg->Draw();\n" * 20 + "\tfor (int i = 0; i < 3; i++) x(i);\n}\n", []),

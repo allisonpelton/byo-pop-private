@@ -557,7 +557,7 @@ void Board::Draw(Graphics* g)
 				{
 					g->SetColor(Color(0xff, 0xff, 0xff, FTol((double)aFade * 255.0)));
 					DrawHintLine(mApp, g, "Cognito Mode Complete", aTextX, 0x96);
-					DrawHintLine(mApp, g, StrFormat("%d out of %d puzzles solved without hints.", m17a8, m17a4), aTextX, 200);
+					DrawHintLine(mApp, g, StrFormat("%d out of %d puzzles solved without hints.", mSecretSolved, mSecretPuzzleCount), aTextX, 200);
 				}
 			}
 			else if (mState != STATE_POST_WARP)
