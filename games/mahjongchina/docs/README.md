@@ -18,9 +18,9 @@ says what differs from Japan and how the differences were found, `ENGINE.md` wha
 ## The binary
 
 `MahjongEscapeAC.exe` was linked on 2006-08-21 by MSVC 6. It has no copy-protection wrapper, no RTTI and no trial code.
-The code was ported from Japan's, so the comments in it give **Japan's** code addresses (the data and text
-addresses are China's own); `re/mahjongchina/compare/addrmap.tsv` pairs the two exes' functions, and the comments
-change to China's addresses in the readability pass. `symbols/` holds China's engine names for the Ghidra pass.
+The code is Japan's, shared (`engines/jollybear`, `engines/mahjongescape`), so each comment gives both exes' addresses
+with the game's name after each (`0x420860 (mahjongchina), 0x42a9f0 (mahjongjapan)`); `re/mahjongchina/compare/addrmap.tsv`
+pairs the two exes' functions. `symbols/` holds China's engine names for the Ghidra pass.
 
 ## Reproducing the analysis
 

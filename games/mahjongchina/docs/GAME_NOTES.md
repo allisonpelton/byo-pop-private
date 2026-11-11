@@ -155,9 +155,12 @@ box and new-player box), so the same coordinates serve.
 `games/mahjongchina/coverage.txt` sets the game's own code as two ranges, 0x401000-0x4171f0 and 0x41dea0-0x4374f0, 1274
 functions. The runs reached 1099 of them, the port defines 985, and 354 are listed as left out on purpose.
 
-**The port's comments carry Japan's addresses.** The port was made from Japan's, so the comment above a function says
-where Japan's exe has it, not China's. `tools/coverage.py` reads them through `re/mahjongchina/compare/addrmap.tsv`
-(`addrmap` in coverage.txt, columns 1 and 2). The map pairs the two exes' functions (4460 rows when this began); at
+**The port's comments carry both addresses.** The code is shared with Japan's (`engines/jollybear`,
+`engines/mahjongescape`), so the comment above a function gives China's address and Japan's, each with its game's name
+after it (`0x420860 (mahjongchina), 0x42a9f0 (mahjongjapan)`), and `tools/coverage.py` reads the addresses tagged
+`mahjongchina`. China's were set from `re/mahjongchina/compare/addrmap.tsv` when the two ports became one code: code
+that only Japan's exe has keeps Japan's address alone, and a range whose end the map could not pair ends at the next
+function in China's exe. The map pairs the two exes' functions (4460 rows when this began); at
 first the report showed 200 functions reached in the original with no counterpart and 103 neither reached nor
 defined, many of them simply missing from the map. `games/mahjongchina/tools/pairgaps.py` adds the pairs the map
 lacked: the two builds keep their functions in the same order, so the functions between two mapped neighbours of one

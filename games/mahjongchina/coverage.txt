@@ -1,11 +1,11 @@
 # tools/coverage.py's settings for Mahjong Escape: Ancient China (docs/COVERAGE.md). China is Ancient Japan's program with
 # other resources, so these are the ranges of games/mahjongjapan/coverage.txt at China's addresses (the pairs of
-# re/mahjongchina/compare/addrmap.tsv), and the port's sources are the same files as Japan's.
+# re/mahjongchina/compare/addrmap.tsv), and the port's sources are the same files as Japan's: the engines' comments give
+# each exe's address with its game's name, and this check reads those tagged (mahjongchina).
 export re/mahjongchina/gh/functions.jsonl
 src games/mahjongchina/src
 src engines/mahjongescape/src
 src engines/jollybear
-addrmap re/mahjongchina/compare/addrmap.tsv 1 2
 # The game's own code (the game, 0x401000..0x4171f0, and Jolly Bear's engine, 0x41dea0..0x4374f0); the rest of the exe is the
 # C runtime, the device, libjpeg and the PNG decoder, the software blitters and more runtime and STL.
 game 00401000-004171f0

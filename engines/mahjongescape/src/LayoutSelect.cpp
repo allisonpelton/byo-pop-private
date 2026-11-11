@@ -20,7 +20,8 @@
 namespace mahjong
 {
 
-// The layout ids of the list (0x51c4c4; China 0x51b4ec): the first of them from 437 on, then Japan's others from 600 on
+// The layout ids of the list (0x51b4ec (mahjongchina), 0x51c4c4 (mahjongjapan)): the first of them from 437 on, then
+// Japan's others from 600 on
 static int ListLayoutId(int theIndex)
 {
 	return theIndex < edition::LIST_FIRST_RANGE ? 437 + theIndex : 600 + (theIndex - edition::LIST_FIRST_RANGE);

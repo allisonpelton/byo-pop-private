@@ -9,7 +9,7 @@
 //   each string's address in the game image, its length and a hash: no text.
 // - LoadGameTexts() reads the exe from the game folder, takes each string at its address and checks length and hash.
 //   A string that does not match (another version of the exe) stays empty and is logged.
-// - Code names a string by its address in the original: GT(0x00525160); a table of addresses marks each with GTA().
+// - Code names a string by its address in the original: GT(<address>); a table of addresses marks each with GTA().
 
 #include <cstdint>
 #include <string>
