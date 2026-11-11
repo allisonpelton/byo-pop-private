@@ -7,6 +7,7 @@
     key <Return|Escape|Space|Tab|Backspace>                    one key
     type <text>                                                one character after another
     focus lose | focus regain
+    portcmd <test command>                                      only the port's script gets it (the original has the same state by a patch)
     shot <name>                                                a screenshot named <name>.png
     quit
 
@@ -66,6 +67,8 @@ def main():
         elif cmd == 'focus':
             port.append('%d focus %s' % (pu + a.focus_delta_port, 'lost' if arg == 'lose' else 'gained'))
             orig.append('at %d focus %s' % (ou, arg))
+        elif cmd == 'portcmd':
+            port.append('%d %s' % (pu, arg))    # a test command of the port's, no input (the original has no counterpart)
         elif cmd == 'quit':
             pass
         else:

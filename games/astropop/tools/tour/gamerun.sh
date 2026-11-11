@@ -20,7 +20,7 @@ if [ -z "${SKIP_REC:-}" ]; then
   tail -1 "$R/$N.log"
 fi
 LAST=$(python -I -c "import json,sys; print(json.load(open(sys.argv[1]))['last'])" "$R/$N/events.json")
-python -I $T/tour/gametour.py "$R/$N/events.json" "$R/$N.tour.txt" --every "${EVERY:-150}" --first "${FIRST:-3200}" --last "$LAST" --at "${AT:-}" || exit 2
+python -I $T/tour/gametour.py "$R/$N/events.json" "$R/$N.tour.txt" --every "${EVERY:-150}" --first "${FIRST:-3200}" --last "$LAST" --at "${AT:-}" ${CHARGE:+--charge "$CHARGE"} || exit 2
 if [ -n "${PROFILE:-}" ]; then
   python -I $T/origcmp/ini_to_reg.py "$R/$N/registry-start.ini" "$R/$N/profile.reg" || exit 2
   export ORIGRUN_ARGS="${ORIGRUN_ARGS:-} --reg $PWD/$R/$N/profile.reg"

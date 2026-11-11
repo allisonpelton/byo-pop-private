@@ -18,6 +18,7 @@ def main():
     ap.add_argument('--first', type=int, default=None, help="default: the first input's update")
     ap.add_argument('--last', type=int, default=None, help="default: the last input's update")
     ap.add_argument('--at', default='', help='more shots at these updates')
+    ap.add_argument('--charge', type=int, default=None, help="the port's weapon charge, set (a port-only test command) 2 updates before the bot's first move; the original's is full from its start by a patch list")
     a = ap.parse_args()
     ev = json.load(open(a.events))
     events = ev['events']
@@ -43,6 +44,10 @@ def main():
             lines.append((u, '%s %s %s' % (w[0], w[2], w[3])))
         else:
             raise SystemExit('cannot give a tour ' + cmd)
+    if a.charge is not None:
+        # the recording sets it with the bot's first move of the game: the demo before it resets the charge when it ends
+        first_move = [u for u, c in lines if c.startswith('move ') and c.endswith(' 440')]
+        lines.append((first_move[0] - 2, 'portcmd set charge %d' % a.charge))
     first = a.first if a.first is not None else events[0][0]
     last = a.last if a.last is not None else min(ev['last'], events[-1][0] + 60)
     shots = set(range(first, last + 1, a.every))
