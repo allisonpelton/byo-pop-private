@@ -58,10 +58,10 @@ public:
 	void			OnSelect(Piece* thePiece);
 	void			OnDeselect();
 	void			OnTarget(Piece* thePiece);
-	void			OnTwist(int theCol, int theRow, int theDir);   // stage 10: TWIST (Board::MouseDownVariant, MouseUpVariant)
-	void			OnSlide(int theAxis, int theLine, int theStart, int theK, int theOffset); // stage 10: SLIDE (Board::MouseUpVariant)
+	void			OnTwist(int theCol, int theRow, int theDir);   // TWIST (Board::MouseDownVariant, MouseUpVariant)
+	void			OnSlide(int theAxis, int theLine, int theStart, int theK, int theOffset); // SLIDE (Board::MouseUpVariant)
 	void			OnHint();
-	void			OnUndo();                       // stage 6: UNDO (Board::RequestUndo)
+	void			OnUndo();                       // UNDO (Board::RequestUndo)
 	void			OnPause(bool theUserPause);
 	void			OnUnpause(bool theUserPause);
 	void			OnNewGame();
@@ -95,7 +95,7 @@ public:
 	static bool		WriteFinished(const Replay::File& theFile, bool isTimed, bool isPinned, std::string* thePath = NULL);
 	static void		Prune(const std::string& theDir, int theKeep);
 	static bool		IsReplayName(const std::string& theName, bool* isPinned, int* theCopy = NULL);
-	// Stage 13: the replay theBoard's game ended in, while the file is there (the game-over screen's WATCH REPLAY);
+	// The replay theBoard's game ended in, while the file is there (the game-over screen's WATCH REPLAY);
 	// "" for a board whose game was not kept (no move) or for another board
 	static std::string FinishedReplay(const Board* theBoard);
 	static void		Renamed(const std::string& theOld, const std::string& theNew); // the browser's Keep and Unkeep

@@ -26,21 +26,22 @@ REQUIRED = ["images/gemsheet6.png", "images/_gemsheet6.gif", "data/diff.txt", "p
 def find_install(explicit):
     candidates = [explicit] if explicit else DEFAULT_INSTALLS
     for c in candidates:
-        if c and os.path.isfile(os.path.join(c, "WinBej.exe")):
+        # WinBej.exe is the Steam copy's launcher; the PopCap Game Collection's copy has the game as Bejeweled.exe
+        if c and any(os.path.isfile(os.path.join(c, exe)) for exe in ("WinBej.exe", "Bejeweled.exe")):
             return c
     return None
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("install", nargs="?", help="Bejeweled Deluxe install folder (contains WinBej.exe)")
+    ap.add_argument("install", nargs="?", help="Bejeweled Deluxe install folder (contains WinBej.exe, or Bejeweled.exe in the PopCap Game Collection's copy)")
     repo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
     ap.add_argument("--out", default=os.path.normpath(os.path.join(repo, "assets", "bejeweled")))
     args = ap.parse_args()
 
     src = find_install(args.install)
     if not src:
-        sys.exit("Could not find a Bejeweled Deluxe install (WinBej.exe). Pass its folder as an argument.")
+        sys.exit("Could not find a Bejeweled Deluxe install (WinBej.exe or Bejeweled.exe). Pass its folder as an argument.")
     out = os.path.abspath(args.out)
     os.makedirs(out, exist_ok=True)
 

@@ -1,4 +1,4 @@
-// port(variant): the moves of the move rules (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7, stage 10);
+// port(variant): the moves of the move rules (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7);
 // see MoveSet.h. Not part of the original game.
 
 #include "MoveSet.h"
@@ -72,7 +72,7 @@ bool Scan(const MatchFinder::ColorGrid& theGrid, const BoardLayout& theLayout, c
 		return theLayout.IsPlayable(theCol, theRow) && (aGrid.At(theCol, theRow) != MatchFinder::NO_GEM);
 	};
 
-	// The swaps: stage 9's FindMoveVariant, the original's order and test
+	// The swaps: the match rules' FindMoveVariant, the original's order and test
 	if (theOptions.mTypes & GameRules::MOVE_SWAP)
 	{
 		for (int aRow = 0; aRow < aGrid.mRows; aRow++)

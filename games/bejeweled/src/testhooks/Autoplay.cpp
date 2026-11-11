@@ -144,7 +144,7 @@ bool AutoplayBot::InputBlocked()
 	return false;
 }
 
-// A board position (Board::GetColX, Piece::mX) in the window: on a scaled board (stage 7) scaled about the board
+// A board position (Board::GetColX, Piece::mX) in the window: on a scaled board scaled about the board
 // window's corner, as BoardTrace prints its clicks; else itself
 int AutoplayBot::ToScreenX(WinDMApp* theApp, int theX)
 {
@@ -234,7 +234,7 @@ void AutoplayBot::AddTargetSteps(int theCol, int theRow, int theCol2, int theRow
 	}
 }
 
-// Arrow gems (stage 18): whether the swap of (theCol, theRow) and (theCol2, theRow2) puts the arrow at (theArrowCol,
+// Arrow gems: whether the swap of (theCol, theRow) and (theCol2, theRow2) puts the arrow at (theArrowCol,
 // theArrowRow) in a line of three of its colour
 static bool SwapMatchesArrow(Board* theBoard, int theCol, int theRow, int theCol2, int theRow2, int theArrowCol, int theArrowRow)
 {
@@ -332,7 +332,7 @@ void AutoplayBot::PlanMove()
 	}
 
 	// Only moves whose two gems take a click (the first game's instructions cover the top rows). A move is packed
-	// 4 bits a coordinate; the board's own size and its playable cells (stage 7: on the original 8x8 the same list)
+	// 4 bits a coordinate; the board's own size and its playable cells (on the original 8x8 the same list)
 	std::vector<int> aMoves;
 	const char* aKindName;
 	if (aKind < 12)
@@ -401,7 +401,7 @@ bool AutoplayBot::VariantMoveOnBoard(const MoveSet::Move& theMove)
 		OnBoard(aBoard->GetColX(isRow ? aTo : m.mB) + 24, aBoard->GetRowY(isRow ? m.mB : aTo) + 24);
 }
 
-// PlanMove on a board with twists or slides (stage 10): a valid move of any type (MoveSet's search), or a random one
+// PlanMove on a board with twists or slides: a valid move of any type (MoveSet's search), or a random one
 // of a random type the rules have (usually without a group). A swap as AddTargetSteps makes it (not as a drag where a
 // drag slides); a twist as a click within 8 px of the point where its gems meet (13 px take it), a right click for
 // one anticlockwise; a slide as a press within 8 px of a cell's centre and a drag of 1 to 3 moves along the line to
