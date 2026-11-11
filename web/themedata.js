@@ -42,16 +42,16 @@ var ByopopThemeData = {
   dynomite: { wallpaper: "images/title.jpg",
     sounds: { open: "sounds/click.ogg", close: "sounds/egglands.wav", minimize: "sounds/breakegg.wav", restore: "sounds/popbonus.ogg", maximize: "sounds/rubbershot.ogg", menu: "sounds/click.ogg", ding: "sounds/warning.ogg" } },
   // Mahjong Escape: Ancient China
-  mahjongchina: {
+  mahjongchina: { wallpaper: "Resource.dll|pe:JPG:109",
     sounds: { open: "Resource.dll|pe:WAVE:105", close: "Resource.dll|pe:WAVE:351", minimize: "Resource.dll|pe:WAVE:349", restore: "Resource.dll|pe:WAVE:350", maximize: "Resource.dll|pe:WAVE:352", menu: "Resource.dll|pe:WAVE:175", ding: "Resource.dll|pe:WAVE:174" } },
   // Mahjong Escape: Ancient Japan
-  mahjongjapan: {
+  mahjongjapan: { wallpaper: "Resource.dll|pe:JPG:109",
     sounds: { open: "Resource.dll|pe:WAVE:105", close: "Resource.dll|pe:WAVE:351", minimize: "Resource.dll|pe:WAVE:349", restore: "Resource.dll|pe:WAVE:350", maximize: "Resource.dll|pe:WAVE:352", menu: "Resource.dll|pe:WAVE:175", ding: "Resource.dll|pe:WAVE:174" } },
   // Mummy Maze
   mummymaze: { wallpaper: "images/menuback.jpg",
     sounds: { open: "sounds/click.ogg", close: "sounds/tombslide.ogg", minimize: "sounds/gate.ogg", restore: "sounds/expwalk30a.ogg", maximize: "sounds/finishedlevel.ogg", menu: "sounds/click.ogg", ding: "sounds/badankh.ogg" } },
   // Ning Po
-  ningpo: {
+  ningpo: { wallpaper: "ningpo.pyz|zip:loading_np.jpg",
     sounds: { open: "ningpo.pyz|zip:nm_guiclick.wav", close: "ningpo.pyz|zip:nm_unclick.wav", minimize: "ningpo.pyz|zip:nm_hint.ogg", restore: "ningpo.pyz|zip:nm_click.wav", maximize: "ningpo.pyz|zip:nm_match.ogg", menu: "ningpo.pyz|zip:nm_guiclick.wav", ding: "ningpo.pyz|zip:nm_blocked.ogg" } },
   // Noah's Ark
   noahsark: { wallpaper: "images/title.jpg",
@@ -66,7 +66,7 @@ var ByopopThemeData = {
   sevenseas: { wallpaper: "images/title.jpg",
     sounds: { open: "sounds/click.ogg", close: "sounds/whirlout.ogg", minimize: "sounds/whirlin.ogg", restore: "sounds/reappear.ogg", maximize: "sounds/moveevil.ogg", menu: "sounds/click.ogg", ding: "sounds/explode.ogg" } },
   // Tip Top
-  tiptop: {
+  tiptop: { wallpaper: "TipTop.dat|tiptop:art/MenuBkgd.JPG",
     sounds: { open: "TipTop.dat|tiptop:sounds/MouseClick.ogg", close: "TipTop.dat|tiptop:sounds/BlocksFall.ogg", minimize: "TipTop.dat|tiptop:sounds/LaunchBlockMoves.ogg", restore: "TipTop.dat|tiptop:sounds/BlockLaunch.ogg", maximize: "TipTop.dat|tiptop:sounds/GameStart.ogg", menu: "TipTop.dat|tiptop:sounds/MouseOver.ogg", ding: "TipTop.dat|tiptop:sounds/VolumeAdjust.ogg" } },
   // Typer Shark
   typershark: { wallpaper: "images/titlescreen.jpg",
