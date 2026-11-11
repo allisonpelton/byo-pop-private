@@ -245,13 +245,9 @@ that hold logic against the export.
   factors and `framesPerSecond`'s average. The disassembly would settle them; `playStream` and `framesPerSecond` were
   never reached (the music player streams only a track that is not a module, and the frame counter draws only while
   `mShowFPS` is set), and `sparkleTile`'s branch only for a super-wild tile.
-- **Code only an error reaches, which stays.** `systemMessageBox` and the application's `messageBox`.
-- **Candidates for taking out unneeded code: 17.** No play of the original reaches these, and they were not removed
-  now: the platform base class's defaults that the application overrides, as the only platform object
-  (`getWindowPos`, the four `messageBox` layouts, `Platform::messageBox`, `isRunning`, `getSoundVolume`, `windowMoved`,
-  `menuCommand`); `App::isModal`, a slot nothing calls; `BonniesApp::menuCommand`, the window menu's commands (SDL's
-  window has no menu); `openURL`, whose only callers were the registration panel's links; `Widget::setImage`, a slot
-  nothing calls; and the `Picture` widget's destructor, `init` and `draw`, a widget the game never makes.
+- **Code only an error reaches, which stays.** The application's `messageBox`, the slot the original's error paths
+  reach (the port has no caller of it).
+- **The candidates for taking out unneeded code: 17, taken out on 2026-11-11** (see "Unneeded code taken out" below).
 
 **Never reached and not defined in the port: 12, besides those left out.** The application's four message box layouts
 (overridden slots), the registration panel's code, the stream-music branch of the music player and the original's wait
@@ -259,3 +255,18 @@ loop, which the host replaces.
 
 **What it cost.** The nine runs took about 25 minutes of machine time, one game process at a time, and the port's three
 saves and its probe screenshots a few more. The agent took 3.4 minutes and 135,000 tokens.
+
+## Unneeded code taken out (2026-11-11)
+
+The 17 candidates of the coverage check, none of which any play of the original reaches, are out, and the frozen baseline
+is identical (`tools/check.sh bonnies`). The platform base class's defaults that the application overrides, the game's
+app being the only platform object, are now pure virtuals with no body: `messageBox` (0x42a580), `isRunning`
+(0x4217d0), `getSoundVolume` and `getMusicVolume` (0x4217e0), `windowMoved` (0x4217f0), `getWindowPos` and
+`getWindowPos2` (0x401050) and `menuCommand` (0x421800); each declaration's comment says what the default was. With
+`Platform::messageBox`, the only caller of `systemMessageBox` (0x41f9d0) went, and with that `Host::messageBox` and its
+host side (an SDL message box, answered with the first button in a test run). `isModal` is gone from `Platform` and
+`App` (0x421240, a slot nothing calls); `BonniesApp::menuCommand` (0x401e00, the debug menu's commands, which SDL's
+window has no menu to give) went with the event type that carried it, which the host never sends; `openURL` is gone from
+the engine and the host (its only callers were the registration panel's links); and so are `Widget::setImage` (0x42c410,
+a slot nothing calls) and the `Picture` widget (type 2, 0x42f530 to 0x42f560, which the game never makes). The
+application's own `messageBox`, which only an error path of the original reaches, stays.

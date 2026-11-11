@@ -47,8 +47,6 @@ public:
 	void getWindowPos2(int* theX, int* theY) override;
 	// slot 17, 0x401d00: paused and inactive for more than a frame
 	int isIdle() override;
-	// slot 18, 0x401e00: the debug menu's commands
-	void menuCommand(int theCommand) override;
 
 	// 0x401630: the shared images (the table 0x4662c0), once
 	void loadImages();

@@ -540,56 +540,6 @@ public:
 #endif
 	}
 
-	// the framework opens nothing in a test run (it logs "OpenURL in a test run")
-	void openURL(const std::string& theURL) override
-	{
-		gHostApp->SexyAppBase::OpenURL(theURL);
-	}
-
-	// MessageBoxA's buttons (MB_OK 0, MB_OKCANCEL 1, MB_YESNOCANCEL 3, MB_YESNO 4) and results (IDOK 1, IDCANCEL 2,
-	// IDYES 6, IDNO 7); a test run never blocks on one and takes the first button
-	int messageBox(const std::string& theText, const std::string& theCaption, unsigned int theFlags) override
-	{
-		SDL_Log("%s: %s", theCaption.c_str(), theText.c_str());
-		int aKind = theFlags & 0xf;
-		SDL_MessageBoxButtonData aButtons[3];
-		int aCount = 0;
-		auto add = [&](int theId, const char* theText, uint32_t theButtonFlags)
-		{
-			aButtons[aCount].flags = theButtonFlags;
-			aButtons[aCount].buttonid = theId;
-			aButtons[aCount].text = theText;
-			aCount++;
-		};
-		if (aKind == 4 || aKind == 3)
-		{
-			add(6, "Yes", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT);
-			add(7, "No", aKind == 4 ? SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT : 0);
-			if (aKind == 3)
-				add(2, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-		}
-		else
-		{
-			add(1, "OK", SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT | (aKind == 0 ? SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT : 0));
-			if (aKind == 1)
-				add(2, "Cancel", SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT);
-		}
-		if (gHostApp->mFastMode || gHostApp->IsTestRun())
-			return aButtons[0].buttonid;
-		SDL_MessageBoxData aBox = {};
-		aBox.flags = (theFlags & 0x10) != 0 ? SDL_MESSAGEBOX_ERROR : (theFlags & 0x30) == 0x30 ?
-			SDL_MESSAGEBOX_WARNING : SDL_MESSAGEBOX_INFORMATION;
-		aBox.window = gHostApp->mHWnd;
-		aBox.title = theCaption.c_str();
-		aBox.message = theText.c_str();
-		aBox.numbuttons = aCount;
-		aBox.buttons = aButtons;
-		int aResult = aButtons[0].buttonid;
-		if (SDL_ShowMessageBox(&aBox, &aResult) != 0 || aResult < 0)
-			aResult = aKind == 0 ? 1 : 2;
-		return aResult;
-	}
-
 	std::string getClipboard() override
 	{
 		return SexyStringToStringFast(gHostApp->GetClipboard());
