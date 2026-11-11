@@ -52,6 +52,44 @@ The logos draw no random numbers, and the timers and flags they set (`gLogoSkip`
 the logo screen only, so the menu starts as it does after the logos. With the setting off nothing changes: the frozen
 baseline runs without it.
 
+## The sound log (2026-11-11)
+
+`BYOPOP_SOUNDLOG` names a file, as in every port, and the FMOD 3 stand-in (`src/BonniesHost.cpp`, "FMOD 3 on the
+platform's mixer") writes the lines the framework's sounds write (`framework/SDLSoundManager.h`; its soundboard presets
+are made from them by `tools/soundpreset.py`): `<update> load <id> <file> frames= rate= ch=` when a sample is loaded,
+`instance <id> #<n>` when a channel takes it (`FSOUND_PlaySoundEx`), `play <id> #<n> vol= pan= pitch= loop=` when
+`FSOUND_SetPaused` starts it, then `pitch`, `volume` and `stop <id> #<n>` for that channel. FMOD 3's volume (0 to 255) is
+a straight gain, logged as the hundredths of a decibel DirectSound takes, as the framework's sounds are, so a full-volume
+play is `vol=0`; FMOD 3 has no pan (always `pan=0`) and the game plays no loop (`loop=0`). The sample's number is never
+reused after a free, so a file's name in the log is unambiguous. The songs (`FMUSIC`) are not logged: the site's Music
+places come from the code. The log is read only, and it changes nothing else: `tools/check.sh bonnies` gives the same
+screens and saves, and matches the frozen baseline, with `BYOPOP_SOUNDLOG` set and without it. A classic game played to
+level 34 by `tools/realplay.py --live` wrote 12,879 plays of 29 sounds.
+
+## The real-input driver (`tools/realplay.py`, 2026-11-11)
+
+`realplay_classic.txt`'s `play` stopped on the tutorial's first word: its log said "the tutorial asks for FROG, 0 of 44"
+every 2.4 s and never got further. The driver found the word and clicked its tiles, but it clicked as posted window
+messages, which the board never takes: each click is a move, press and release in one burst (a press held longer is
+dragged to the real cursor, `IDENTICAL_PLAY.md`, "Real input natively"), and the board follows a held press from frame to
+frame, so no tile was ever picked (the old driver reproduced the same log on 2026-11-11, under `-fast`). The
+driver now has a second input, `--live`: the game is started with `-realinput` (an empty file) and `-commands`, and every
+step, click, key, typed text and focus change, goes into SDL's own event queue through the live channel, which holds a
+press to the next frame as a hand does. `play` takes its moves from the port's own bot through the test command `move`
+(`GameScreen::testMove`: a balloon's Continue button, the word the tutorial's balloon names over the tiles it marks, else
+the best word, else the game's hint) instead of working the tutorial's word out itself from the state file, so that a
+later bot mod reuses the bot, and it scrambles by the rule `tools/realmove.py` has (three words with three cells or
+fewer left, eight otherwise, or the same word refused twice). Without `--live` the driver still posts window messages
+(`realplay_tour.txt`, `realplay_window.txt`), and `play` there refuses to run, naming the reason.
+
+    build/native/rundesk.exe <python.exe> games/bonnies/tools/realplay.py games/bonnies/tools/realplay_classic.txt <out> --live --         build/native/bonnies.exe -gamedir=assets/bonnies -userdir=<dir> -fast -seed=1
+
+On 2026-11-11 `realplay_classic.txt` with `play 900` went from the menu through the name, Normal, the story, the tutorial
+(FROG, then CAKE) and levels 1 to 34 (791 words, 62 scrambles, a screenshot at each level) in 15 minutes, `-fast`. The
+whole story takes about 36 minutes (`IDENTICAL_PLAY.md`); the file's own `play 7200` allows for it. The game's log is
+`<out>/game.log`, the driver's `<out>/play.log`, and `BYOPOP_SOUNDLOG=<file>` in the environment writes the sound log of
+the game it played.
+
 ## Performance
 
 Measured 2026-11-08 with `tools/perf.py` (its docstring has the commands), the original and the port back to back:
