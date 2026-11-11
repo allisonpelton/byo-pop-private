@@ -424,11 +424,12 @@ The engine moved from `games/waterbugs/engine` to `engines/retro64`, the one cop
 (`docs/ENGINES.md`; the user, 2026-11-11: "Share engines"). Its files are this game's readable version, with Cosmic Bugs'
 copy folded in, and each function's comment gives its address in both exes, tagged with the game's folder name
 (`0x40c2e0 (cosmicbugs), 0x40c4d0 (waterbugs)`). The two exes hold the same library, so nothing needed a switch between
-the games: what only Cosmic Bugs' code reaches is there for both and costs this game nothing, and what the game's own code
+the games: what only Cosmic Bugs' copy had is there for both and costs this game nothing, and what the game's own code
 chooses it still chooses.
 
 **What came back.** The unneeded-code pass above took out what no Water Bugs input reaches; that is in the shared engine
-again, because the other game reaches it, and every function of it is one of this exe's own: the fonts' unclipped
+again, because Cosmic Bugs' copy had it (`docs/ENGINES.md` lists which of it any game's code calls: only `Sys_Sleep` and
+`gPumpMessages`, both Cosmic Bugs'), and every function of it is one of this exe's own: the fonts' unclipped
 drawing and the flag that chooses it (`Font_SetClipped`, 0x422330), a font's texture and mask target (+0xd50 to +0xd5f),
 `Image_BlitUnclipped`, `Image_BlitAlphaFadeUnclipped`, `Image_SetMask`, `Rect_Overlap`, `Rect_Intersect`,
 `Image_AddMaskUnclipped`, `Image_AddMask`, `AddMask8` and `Image_FillAlphaRect`; the text input's own surface and

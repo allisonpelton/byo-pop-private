@@ -39,21 +39,41 @@ Which address belongs to which game's exe comes from the two exes' function matc
 The two exes hold the same engine library (a game's own code starts at 0x401000 and ends at 0x4428b0 in Cosmic Bugs and
 0x442cf0 in Water Bugs, the library in between), so the copy is the union of what each port translated: Water Bugs'
 readable version (its readability pass, `games/waterbugs/docs/GAME_NOTES.md`) with what Cosmic Bugs' copy had and Water
-Bugs' had left out. What only Cosmic Bugs' game code calls is now in every build and costs Water Bugs nothing: the
-mask-offset blitters and `Image_SetMask`, `Rect_Overlap` and `Rect_Intersect`, `Image_FillAlphaRect` and the other
-unclipped blits, `Bank_Reconvert`, `Xml_Reset`, `Sys_Sleep` and `SetScreenLostCallback`.
+Bugs' had left out (Water Bugs' unneeded-code pass had taken it out of its copy). That code is now in every build and
+costs Water Bugs nothing at run time: its frozen baseline is unchanged. The list below says which of it any game's code
+reaches.
 
 Where a function does something different for a game, a switch the game's own code sets chooses:
 
 | Difference | Switch | Who sets it |
 |---|---|---|
 | A font draws its glyphs clipped (through `mClip`) or unclipped | `Font_SetClipped` (`Font::mClipped`, +0x408) | the game's font loader, its screen redraw and `TextInput_Draw`, in the original (Water Bugs sets 1 where the original does; Cosmic Bugs' code sets it too) |
-| A text input draws on the screen or on a surface of its own over a background | the surface and background given to `TextInput_Init` | the game; Water Bugs gives none |
+| A text input draws on the screen or on a surface of its own over a background | the surface and background given to `TextInput_Init` | the game; neither game gives one |
 | `PumpMessages` goes on while the window is not the active one | `gPumpMessages` (0 by default) | Cosmic Bugs' demo code |
 | The fixes mod's hooks | `Sys_FixOn` (`SysHost::FixOn`, false by default) | the host, for the games that have the mod |
 
 `SysHost` has one more virtual than Cosmic Bugs' copy did (`FixOn`, for the fixes mod), which moves the vtable of that
 game's host.
+
+### What only Cosmic Bugs' copy had, for its removal pass
+
+The union keeps every function either port had translated, so Cosmic Bugs' later unneeded-code pass finds here what it
+may take out. Checked against both games' `src`, `test` and `mods` (2026-11-11):
+
+- Called by Cosmic Bugs' game code and by no Water Bugs code: `Sys_Sleep` (`CBStart.cpp`) and `gPumpMessages` (set in its
+  demo code, `CBPowerup.cpp`). These stay for as long as that code does. `Sys_FixOn` is the other way round: only Water
+  Bugs' host calls it.
+- Called by no game's code in either port, so the shared copy holds them only because Cosmic Bugs' translation did:
+  - the fonts' unclipped drawing, the branches taken when a font's `mClipped` is 0 (both games set 1 on every font they
+    draw), and a font's texture and mask target (`mTexture`, `mTextureX`, `mTextureY`, `mMaskTarget`, which nothing sets),
+    with what only those branches call: `Image_BlitUnclipped`, `Image_BlitAlphaFadeUnclipped`, `Image_AddMaskUnclipped`,
+    `Image_AddMask`, `Image_SetMask`, `Image_FillAlphaRect`, `AddMask8`, `Rect_Overlap` and `Rect_Intersect`;
+  - the text input's own surface and background (`DrawOwn`, `mSurface`, `mBackground`, the two parameters of
+    `TextInput_Init`): both games pass `nullptr` for both;
+  - `Bank_Reconvert`, `Xml_Reset`, `SetScreenLostCallback`, and the port's `Sys_Host` and `DrawList_Count`.
+
+Cosmic Bugs' pass takes one of these out only after checking that none of its tests or its mods call it, and a function
+that no game reaches comes out of the shared copy for both games at once (a shared change, `tools/check.sh --changed`).
 
 ## Adding another
 
