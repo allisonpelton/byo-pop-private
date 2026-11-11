@@ -2795,6 +2795,14 @@ of `LoadGame`, 0x4cca98; the high-score record helpers of `ReadFromFile` and `Wr
 stages as a story (`BoardVariant.cpp`'s header, `VariantFlags`, the build warnings in `GameConfigMods.cpp`) or had gone
 stale ("no TWIST or SLIDE yet", "nothing reads them yet in stage 1") describe the code as it is.
 
+**No development stages in comments (2026-11-11).** The user on the standards: "the references to stages don't make sense
+to anyone looking at the code" (`docs/CODE_STANDARDS.md`, rule 8). The pass had kept 238 lines that named a stage of the
+code mods' development ("stage 7b", "the stage-0 list"). Each comment now names the feature (dirt, the gold board, arrow
+gems, the frozen baseline) and its section of `CODE_MODS_DESIGN.md`. What files carry stays: the oracle's mod folders
+(`mods/stage4/overflow`), `build/baseline-stage0` and `stage_assets.py`. `tools/readability/destage.py` made the edits,
+with no line added or removed. Every unit compiles to the same object code as before (98 objects, their disassembly
+and data sections hashed before and after).
+
 ## 21. Coverage check (2026-11-09)
 
 The coverage check of `docs/COVERAGE.md`: origrun's `--coverage` recorded which of the original's functions ran, and

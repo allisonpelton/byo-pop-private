@@ -1,7 +1,7 @@
 #ifndef __SPECIALS_H__
 #define __SPECIALS_H__
 
-// port(variant): flame and lightning gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8, stage 11). Not part of the
+// port(variant): flame and lightning gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8). Not part of the
 // original game. Framework-free (GameRules, BoardLayout and MatchFinder only), so tools/rulestest runs its fixtures.
 //
 // One resolve (Board::FindSetsVariant) in two steps, on the groups MatchFinder found:

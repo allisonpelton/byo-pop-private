@@ -46,12 +46,12 @@ enum BoardState
 	STATE_BLACK_HOLE = 7,       // level complete: gems spiral into the vortex (UpdateWhirlpool)
 	STATE_LEVEL_WIPE = 8,       // new background wiped in 3 px/tick, then NewBoard (UpdateLevelTransition)
 	STATE_FALL_OUT = 9,         // timed mode, no moves: the board falls out and is refilled (UpdateBoardDropping)
-	// port(variant): the move rules' twists and slides (stage 10, BoardMoves.cpp), never under the original rules
+	// port(variant): the move rules' twists and slides (BoardMoves.cpp), never under the original rules
 	STATE_TWISTING = 10,        // a 2x2 block turns (UpdateTwist)
 	STATE_TWISTING_BACK = 11,   // a twist that made no group turns back
 	STATE_SLIDING = 12,         // a line's gems slide along it (UpdateSlide)
 	STATE_SLIDING_BACK = 13,    // a slide that made no group slides back
-	// port(variant): the arrow gems (stage 18, BoardArrows.cpp), never under the original rules
+	// port(variant): the arrow gems (BoardArrows.cpp), never under the original rules
 	STATE_ARROW_STEPPING = 14   // at a move's settle the arrows step a cell and trade places (UpdateArrowSteps)
 };
 
@@ -244,7 +244,7 @@ public:
 #endif
 	MatchFinder::Spec mMatchSpec;           // the match rules as MatchFinder reads them (InitVariant)
 	int				mGroupCounts[MatchFinder::GROUP_SHAPE + 1] = {}; // the groups this board scored, by kind (-trace's variant line)
-	int				mSpecialsMade[3] = {};  // stage 11: the flame (1) and lightning (2) gems this board made (-trace's variant line)
+	int				mSpecialsMade[3] = {};  // the flame (1) and lightning (2) gems this board made (-trace's variant line)
 	int				mBlastCount = 0;        // ... and the blasts that went off
 	struct BlastEffect
 	{
@@ -254,7 +254,7 @@ public:
 		int			mTick;                  // ticks since it went off
 	};
 	std::vector<BlastEffect> mBlastEffects;  // cosmetic, not saved: the blasts of late (DrawSpecials)
-	// The gold board (stage 12, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9; BoardGold.cpp), on a board with gold rules
+	// The gold board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9; BoardGold.cpp), on a board with gold rules
 	// (mVariant.mGold): the layer is per cell and stays when the gems move; the level ends when every cell that counts
 	// is gold (GoldLeft), or the game when the level's time runs out. Hashed, saved (GOLD, GTIM) and undone
 	uint8_t			mGold[MAX_ROWS][MAX_COLS] = {}; // 1: the cell is gold
@@ -272,7 +272,7 @@ public:
 	BoardLayout		mLayout;                // current level's layout (8x8: origin 203/16, D 406, bottom 480)
 	int				mCols;                  // == mLayout.mCols; 8
 	int				mRows;                  // == mLayout.mRows; 8
-	// Stage 7 (games/bejeweled/docs/CODE_MODS_DESIGN.md 5.3): the layout of the level SetupLevelData set up, which
+	// Board shapes (games/bejeweled/docs/CODE_MODS_DESIGN.md 5.3): the layout of the level SetupLevelData set up, which
 	// UpdateWhirlpool applies after its deletion loop (ApplyPendingLayout); equal to mLayout between ticks
 	BoardLayout		mPendingLayout;
 	int				mLevelShape;            // index into the rules' board.levels: mLevel % their count (0 without levels)
@@ -285,8 +285,8 @@ public:
 	MTRand*			mOwnRng;                // NULL: Sexy::Rand, the original global stream; owned, freed in ~Board
 	uint32_t		mGameSeed;              // mOwnRng's seed; 0 without one
 	bool			mUserSeeded;            // a seed the player chose (-gameseed, ?seed=): the "-seeded" high-score table
-	bool			mRanked;                // a ranked online game (stage 14); always false for now
-	uint32_t		mBoardDraws;            // Board::Rand() calls (for spotting outside draws, stage 3)
+	bool			mRanked;                // a ranked online game; always false for now
+	uint32_t		mBoardDraws;            // Board::Rand() calls (for spotting outside draws)
 	bool			mTakesPendingSeed;      // seeded with GameConfig::mPendingSeed, unplayed: a matching swap or a game over uses it up (4.10)
 	// Replays (games/bejeweled/docs/CODE_MODS_DESIGN.md 6.3-6.5): observers of play, so like the RNG source
 	// they are no code path and BEJ_NO_VARIANTS keeps them
@@ -304,19 +304,19 @@ public:
 	bool			mResumed;               // the board resumed a saved game (GameLoadedVariant): its GO is not a run start
 	// port(mods): the save's name under the score key at the constructor (ScopedSaveGameFileName), not game state
 	std::string		mSaveGameFileName;
-	// Moves (stage 5, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1): counted on every board, saved (the v2 save's
+	// Moves (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.1): counted on every board, saved (the v2 save's
 	// MOVE chunk), hashed (LOGIC) and traced only on a variant board
 	int				mMoveCount;             // moves that stood: swaps that made a match, kept invalid moves that count as moves (OnMoveMade)
 	int				mInvalidMoves;          // kept invalid moves (moves.allowInvalid, KeepInvalidMove)
-	int				mUndosUsed;             // undos taken (Undo, stage 6)
-	// Undo (stage 6, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7): StateCodec's UNDO encodings of the board
+	int				mUndosUsed;             // undos taken (Undo)
+	// Undo (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7): StateCodec's UNDO encodings of the board
 	// before each move, newest last, at most undo.depth of them; not saved, so a resumed game has none
 	std::vector<std::string> mUndoStack;
-	// Gravity (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16): saved (GRAV), hashed and traced only when
+	// Gravity (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16): saved (GRAV), hashed and traced only when
 	// the rules set a gravity rule (GameRules::HasGravityRule)
 	int				mGravityFlips;          // settles that flipped board.gravity.direction "alternate" (OnGravitySettle)
 	bool			mGravityNoFlip;         // a kept invalid move: its settle does not flip
-	// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14): the layers are mLayout's (a dirt cell becomes a
+	// Dirt (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14): the layers are mLayout's (a dirt cell becomes a
 	// gem cell when its last layer goes); saved (DIRT), hashed and traced only when the rules have dirt (mDirtRules)
 	bool			mDirtRules;             // GameRules::HasDirtRule (false in a BEJ_NO_VARIANTS build, which plays 8x8)
 	bool			mDiagonalLeftFirst;     // RefillDiagonal: the side a slide takes when both have a gem; flips at each slide
@@ -329,7 +329,7 @@ public:
 	std::vector<DirtDust> mDirtDust;        // cosmetic, not saved: the dust of the cells cleared lately
 	Image*			mDirtTiles[2];          // the level's checker tiles A and B darkened and tinted brown (DrawDirt)
 	int				mDirtTilesLevel;        // the level mDirtTiles were made for, -1 for none
-	// Twists and slides (stage 10, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4 and 4.5; BoardMoves.cpp): the move of
+	// Twists and slides (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4 and 4.5; BoardMoves.cpp): the move of
 	// states 10..13, hashed and snapshotted only on a board with those moves (mVariant.mMoves). The grid holds the
 	// board before the move in all four states (a move that goes back is undone in the grid when it turns back), so a
 	// save during one is that board in STATE_PLAYING
@@ -345,7 +345,7 @@ public:
 	int				mDragOffset;            // the drag along that axis (px, logical): drawn only
 	int				mDragStart;             // the dragged segment's first cell and length
 	int				mDragLength;
-	// Arrow gems (stage 18, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20; BoardArrows.cpp), on a board with arrow rules
+	// Arrow gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20; BoardArrows.cpp), on a board with arrow rules
 	// (mVariant.mArrows): the arrows are the pieces' mArrow. Saved (ARRW), hashed, traced and undone with these counts
 	struct ArrowStep
 	{
@@ -422,7 +422,7 @@ public:
 	bool			NoHintVariant();                                // a board playing without a move (noMoves "continue"): no hint, no hint glow
 	SexyString		InstructionsText();                             // DoInstructionDialogette's text: the rules' own (2.6; gravity, 4.16)
 	SexyString		FullInstructionsText(const SexyString& theText); // DoFullInstructions: Help's text under the rules (gravity, 4.16)
-	// Undo (stage 6, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7; BoardVariant.cpp)
+	// Undo (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7; BoardVariant.cpp)
 	void			TakeUndoSnapshot();                             // SwapPieces: the board before the move (in STATE_PLAYING)
 	void			PopUndoSnapshot();                              // UpdateSwapping: the swap went back, so does its snapshot
 	bool			CanUndo() const;                                // the UNDO gate, which playback checks again (WatchController)
@@ -454,7 +454,7 @@ public:
 	void			GetRngState(Replay::RngState* theRng);         // the RNG Board::Rand draws from, as RNGS stores it
 	bool			SetPlaybackRng(const Replay::RngState& theRng); // a playback LOAD: the RNG the recorded board went on with (RNGS)
 	Replay::EndInfo	GetEndInfo(int theReason, const MTRand* theRng = NULL); // the END record of the game as it is now
-	// Shapes (stage 7, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3, section 5; BoardShape.cpp)
+	// Shapes (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.3, section 5; BoardShape.cpp)
 	void			NewBoardVariant();                             // NewBoard on a shape board: holes skipped, rerolls capped
 	void			RefillMasked();                                 // UpdateClearing's refill over each column's cells
 	void			NewBoardWithMove();                            // the constructor's fill when the tutorial move cannot apply
@@ -463,35 +463,35 @@ public:
 	void			SetLoadedLayout(const BoardLayout& theLayout, int theLevelShape); // ReadVariantHeader: the save's shape
 	void			RebuildLoadedBackground();                      // GameLoadedVariant: the background of the loaded level and shape
 	void			DrawVariant(Graphics* g);                       // Draw for mDraw boards (BoardDrawVariant.cpp)
-	// Gravity (stage 7c, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16; BoardShape.cpp)
+	// Gravity (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.16; BoardShape.cpp)
 	bool			GravityUp() const;                              // gems rise now: "up", or "alternate" after an even number of flips
 	void			FallPiecesVariant(int* theLandedCount, int* theLandedXSum, bool* isSettled); // UpdateFalling's loop: direction, fallAccel
 	void			OnGravitySettle();                              // UpdateFalling: a settle without a match; "alternate" flips if it reached PLAYING
 	void			UpdateBoardDroppingVariant();                         // UpdateBoardDropping's fall in the gravity direction
 	bool			GameOverFallVariant();                          // UpdateGameOverAnim's fall in the gravity direction: true when every gem is gone
-	// Dirt (stage 7b, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14; BoardShape.cpp, BoardDrawVariant.cpp)
+	// Dirt (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.14; BoardShape.cpp, BoardDrawVariant.cpp)
 	void			RefillDiagonal();                               // UpdateClearing's refill with dirt: segments, then diagonal slides
 	bool			RefillSegmentsPass();                           // RefillDiagonal: one pass over every column's segments; true if a gem moved or spawned
 	bool			SlideDiagonal();                                // RefillDiagonal: one gem into an unreachable cell; false when none can go
 	void			ClearDirtNextToRun(int theStartCol, int theStartRow, int theEndCol, int theEndRow, int theColor); // FindSets: one layer off each dirt cell next to the run
 	void			ClearDirtNextToCells(const std::vector<std::pair<int, int> >& theCells); // ... next to any group's cells
-	void			ClearDirtCells(const std::vector<std::pair<int, int> >& theCells); // stage 11: ... in a blast's reach
+	void			ClearDirtCells(const std::vector<std::pair<int, int> >& theCells); // ... in a blast's reach
 	void			ClearDirtLayers(const bool (*theCells)[BoardLayout::MAX_COLS]); // ... a layer off each marked cell (row-major)
-	// Match rules (stage 9, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7; BoardMatch.cpp)
+	// Match rules (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.6 and 4.7; BoardMatch.cpp)
 	void			FillColorGrid(MatchFinder::ColorGrid* theGrid) const; // each cell's colour, NO_GEM for none
 	bool			HasSetVariant();                              // HasSet under the match rules
 	bool			FindMoveVariant(int* theMove, int theMoveNum, bool horizontal, bool vertical); // FindMove under the match and move rules: {to col, to row, from col, from row}
 	bool			FindSetsVariant();                        // FindSets under the match rules
 	void			ScoreGroup(const MatchFinder::Group& theGroup, int* theAvgX); // FindSetsVariant: one group's points
 	void			AddMoveScore(int thePoints);                     // ScoreGroup and ScoreBlast: the move's score, EXCELLENT, the score timer
-	// Flame and lightning gems (stage 11, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8; BoardSpecials.cpp)
+	// Flame and lightning gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.8; BoardSpecials.cpp)
 	void			ResolveSpecials(const std::vector<MatchFinder::Group>& theGroups); // FindSetsVariant: the specials made, the blasts
 	void			MovedCells(std::vector<MatchFinder::Cell>* theCells); // the cells the move in its own resolve put gems into
 	void			ScoreBlast(const Specials::Blast& theBlast);     // ResolveSpecials: one blast's gems, points, dirt and effect
 	void			PlaySpecialSound(int theKind, int thePan);      // sounds/flame or sounds/lightning, else the original's explode or firecrackle
 	void			UpdateSpecials();                               // Update: the overlays' frames and the blast effects (cosmetic)
 	void			DrawSpecials(Graphics* g, bool isOver);         // DrawVariant: the specials' overlays (under), the blasts (over)
-	// The gold board (stage 12, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9; BoardGold.cpp)
+	// The gold board (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.9; BoardGold.cpp)
 	bool			CountsForGold(int theCol, int theRow) const;    // a cell of the goal: a gem cell, or dirt with gold.countDirt
 	int				GoldGoal() const;                               // the cells of the goal
 	int				GoldLeft() const;                               // ... not gold yet
@@ -504,7 +504,7 @@ public:
 	void			UpdateGold();                                   // Update: the shines (cosmetic)
 	void			DrawGold(Graphics* g, bool isOver);             // DrawVariant: the gold cells (under the gems), the shines (over)
 	void			DrawGoldHud(Graphics* g);                       // DrawVariant: GOLD n/m over the bar
-	// Arrow gems (stage 18, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20; BoardArrows.cpp)
+	// Arrow gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20; BoardArrows.cpp)
 	void			OnArrowMove();                                  // OnMoveMade, KeepInvalidMove: a move stood
 	bool			ArrowSettle();                                  // UpdateFalling's settle: steps the arrows (true: they step now), a new arrow
 	bool			NextArrowCell(int theCol, int theRow, int theDir, int* theNextCol, int* theNextRow) const; // the next gem cell the way theDir points
@@ -523,7 +523,7 @@ public:
 	void			DrawDirtDust(Graphics* g);                      // DrawVariant: the dust of cleared cells, over the gems
 	void			DrawStretched(Graphics* g, Image* theImage, const Rect& theDest, const Rect& theSrc); // on the board layer, through its scale
 	void			RollScoreFast();                                // Update, before the score roll: a large gap closes fast (mFastScoreRoll)
-	// Twists and slides (stage 10, games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7; BoardMoves.cpp)
+	// Twists and slides (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.4, 4.5 and 4.7; BoardMoves.cpp)
 	MoveSet::Options MoveOptions(bool horizontal, bool vertical) const; // the rules' move types for MoveSet's search
 	bool			FindVariantMove(MoveSet::Found* theFound, int theMoveNum); // the theMoveNum-th move of every type (MoveSet's order)
 	void			FindVariantMoves(std::vector<MoveSet::Found>* theMoves); // ... all of them

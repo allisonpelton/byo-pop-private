@@ -15,7 +15,7 @@
 // GameLoadedVariant then gives the board the chunks' RNG and counts (ReadVariantChunks). As with v1, a resume
 // does not restore mUpdateCnt, mTimeDrainDelay, the timers or the popups (6.5): it is a new segment.
 //
-// Stage 7: the save's level shape is one of the rules' (board.levels, or the one board.cols/rows/mask give), the
+// The save's level shape is one of the rules' (board.levels, or the one board.cols/rows/mask give), the
 // one of its level (mLevel % their count), and its size and mask are that shape's; ReadVariantHeader then gives the
 // board that layout (SetLoadedLayout, BoardShape.cpp) before LoadGame reads the cells.
 
@@ -45,11 +45,11 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 	aSave.mMoves = mMoveCount;
 	aSave.mInvalidMoves = mInvalidMoves;
 	aSave.mUndosUsed = mUndosUsed;
-	// GRAV (stage 7c) when the rules set a gravity rule, as in StateCodec
+	// GRAV when the rules set a gravity rule, as in StateCodec
 	aSave.mHasGravity = mRules.HasGravityRule();
 	aSave.mGravityFlips = mGravityFlips;
 	aSave.mGravityNoFlip = mGravityNoFlip;
-	// DIRT (stage 7b) when the rules have dirt, as in StateCodec
+	// DIRT when the rules have dirt, as in StateCodec
 	aSave.mHasDirt = mDirtRules;
 	aSave.mDiagonalLeftFirst = mDiagonalLeftFirst;
 	if (aSave.mHasDirt)
@@ -60,7 +60,7 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 				aSave.mDirtLayers.push_back(mLayout.IsDirt(aCol, aRow) ? mLayout.mDirt[aRow][aCol] : 0);
 		}
 	}
-	// KIND (stage 11) when the rules have specials: each gem's kind
+	// KIND when the rules have specials: each gem's kind
 	aSave.mHasKinds = mVariant.mSpecials;
 	if (aSave.mHasKinds)
 	{
@@ -70,7 +70,7 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 				aSave.mKinds.push_back((mBoard[aRow][aCol] != NULL) ? (uint8_t) mBoard[aRow][aCol]->mKind : 0);
 		}
 	}
-	// GOLD and GTIM (stage 12) when the rules have gold: the gold cells, the level's time
+	// GOLD and GTIM when the rules have gold: the gold cells, the level's time
 	aSave.mHasGold = mVariant.mGold;
 	aSave.mHasGoldTime = mVariant.mGold;
 	if (aSave.mHasGold)
@@ -83,7 +83,7 @@ void Board::GetVariantSave(Replay::VariantSave* theSave)
 		aSave.mGoldTicksLeft = mGoldTicksLeft;
 		aSave.mGoldTickLimit = mGoldTickLimit;
 	}
-	// ARRW (stage 18) when the rules have arrows. A save in STATE_ARROW_STEPPING holds the steps done (WriteSaveGame's
+	// ARRW when the rules have arrows. A save in STATE_ARROW_STEPPING holds the steps done (WriteSaveGame's
 	// STATE_FALLING); an escape traded nothing, so it holds the settle before it, the step due again
 	aSave.mHasArrows = mVariant.mArrows;
 	if (aSave.mHasArrows)
@@ -149,7 +149,7 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 			int32_t aLevel = 0;
 			if (aSave.mBodyStart + 5 <= aBytes.size())
 				memcpy(&aLevel, aBytes.data() + aSave.mBodyStart + 1, 4);
-			// a dirt cell may have lost its last layer (stage 7b)
+			// a dirt cell may have lost its last layer
 			if (!aLayout.FitsSaveMask(aSave.mCols, aSave.mRows, aSave.mPlayable, aSave.mHasDirt ? &aSave.mDirtLayers : NULL))
 				aWhy = "a save of another board shape (" + std::to_string(aSave.mCols) + "x" + std::to_string(aSave.mRows) + ", level shape " +
 					std::to_string(aSave.mLevelShape) + ")";
@@ -165,11 +165,11 @@ bool Board::ReadVariantHeader(const Buffer& theBuffer, int theVersion)
 		return false;
 	}
 
-	// The board takes the shape of the save's level (stage 7); LoadGame then reads the cells within it
+	// The board takes the shape of the save's level; LoadGame then reads the cells within it
 	SetLoadedLayout(aLayout, aSave.mLevelShape);
 	if (aLayout.HasDirt())
 	{
-		// and the save's dirt layers (stage 7b); without a DIRT chunk, as its mask says: all of a cell's or none
+		// and the save's dirt layers; without a DIRT chunk, as its mask says: all of a cell's or none
 		std::vector<uint8_t> aLayers = aSave.mDirtLayers;
 		if (!aSave.mHasDirt)
 		{
@@ -221,7 +221,7 @@ void Board::ReadVariantChunks(const Buffer& theBuffer)
 	mGravityFlips = aSave.mGravityFlips;
 	mGravityNoFlip = aSave.mGravityNoFlip;
 	mDiagonalLeftFirst = aSave.mDiagonalLeftFirst;
-	// the gems' kinds (stage 11); ReadVariantSave let a kind through only where the save has a gem
+	// the gems' kinds; ReadVariantSave let a kind through only where the save has a gem
 	if (aSave.mHasKinds && (aSave.mKinds.size() == (size_t)(mCols * mRows)))
 	{
 		for (int aRow = 0; aRow < mRows; aRow++)
@@ -233,7 +233,7 @@ void Board::ReadVariantChunks(const Buffer& theBuffer)
 			}
 		}
 	}
-	// the gold (stage 12): LoadGame calls no SetupLevelData (and RebuildLoadedBackground keeps it through its own), so it
+	// the gold: LoadGame calls no SetupLevelData (and RebuildLoadedBackground keeps it through its own), so it
 	// comes only from here; without GTIM the level's whole time
 	if (mVariant.mGold)
 	{
@@ -250,7 +250,7 @@ void Board::ReadVariantChunks(const Buffer& theBuffer)
 		mGoldTickLimit = aSave.mHasGoldTime ? aSave.mGoldTickLimit : GoldLimitTicks();
 		mGoldTicksLeft = aSave.mHasGoldTime ? aSave.mGoldTicksLeft : mGoldTickLimit;
 	}
-	// the arrows (stage 18); ReadVariantSave let an arrow through only where the save has a gem
+	// the arrows; ReadVariantSave let an arrow through only where the save has a gem
 	if (mVariant.mArrows)
 	{
 		bool hasCells = aSave.mHasArrows && (aSave.mArrows.size() == (size_t)(mCols * mRows));
