@@ -749,7 +749,7 @@ says their files are here.
 
 **Which files** hold a game's music is in `web/soundtracks.js`, by the game's id: path patterns in the game's folder,
 matched without regard to case. A module gives its subsongs as tunes (those under two seconds are left out as
-stings), and an Ogg Vorbis file is one tune. An entry may also have:
+stings), and an Ogg Vorbis or WAV file is one tune. An entry may also have:
 
 - `parts`: ranges of orders played as separate tracks (Bonnie's Bookstore's one module is nine tracks, from the
   track table in `games/bonnies/game/Music.cpp`).
@@ -760,8 +760,12 @@ stings), and an Ogg Vorbis file is one tune. An entry may also have:
   come either from a Windows module's resources that start with given bytes, which also name their format (the Mahjong
   Escapes' MO3 modules in `Resource.dll`, named "Resource 335" by their ids), or from named entries of a zip archive (Ning
   Po's music stream in its Python archive, stored or deflated, the latter through `DecompressionStream`). `tools/musictest.js`
-  checks both readers on files it makes. Tip Top's MIDI music and Word Harmony's WAV pieces are not listed: the player has
-  no MIDI synthesiser, and how Word Harmony layers its pieces waits on its code.
+  checks both readers on files it makes. Tip Top's one MIDI piece is not listed: the player has no MIDI synthesiser.
+
+A WAV file is one tune too, decoded by the browser like an Ogg file and timed from its header. Word Harmony makes its
+music as it plays: the menu loops one WAV, and its rising-water mode steps a drum track through short pieces as the water
+rises. Those are its tunes, each placed only as far as its code says ("Rising water", with no height). The single
+instrument samples its other modes pick at random are not tunes and are not listed.
 - `where`: where in the game its code plays a tune, as a short value ("Main menu", "Levels 1-5"). It comes from the
   game's session reading its code, or from the file names of an Ogg game whose files are named for their places.
 - `unused`: the tunes the game's code never plays.

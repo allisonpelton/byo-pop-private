@@ -180,6 +180,19 @@ var ByopopMusic = (function () {
     return m;
   }
   function isOgg(rel) { return /\.ogg$/i.test(rel); }
+  // a recorded tune (Ogg Vorbis, or a WAV file: Word Harmony's), decoded whole by the browser rather than rendered
+  function isStream(rel) { return /\.(ogg|wav)$/i.test(rel); }
+  // A WAV file's length in seconds, from its data chunk's size and its format's bytes a second
+  function wavSeconds(bytes) {
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), rate = 0;
+    for (var at = 12; at + 8 <= bytes.length;) {
+      var id = String.fromCharCode(bytes[at], bytes[at + 1], bytes[at + 2], bytes[at + 3]), size = dv.getUint32(at + 4, true);
+      if (id === "fmt " && size >= 16) rate = dv.getUint32(at + 16, true);
+      if (id === "data") return rate ? Math.min(size, bytes.length - at - 8) / rate : 0;
+      at += 8 + size + (size & 1);
+    }
+    return 0;
+  }
   // An Ogg Vorbis file's length in seconds, from its last page's position and the rate in its first header, without decoding it
   function oggSeconds(bytes) {
     var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), rate = 0, i;
@@ -247,7 +260,7 @@ var ByopopMusic = (function () {
     for (var i = 0; i < rels.length; i++) if (rels[i].toLowerCase() === low) return rels[i];
     return null;
   }
-  // A game's tunes: [{game, kind, keys, sub, range, name, seconds}] (kind: module, ogg or joined). A module's tunes are its
+  // A game's tunes: [{game, kind, keys, sub, range, name, seconds}] (kind: module, stream or joined). A module's tunes are its
   // subsongs, or the ranges of orders its parts list; an Ogg file is one tune; a joined tune is the pieces its playlist names, one
   // after the other. Tunes under MIN_TUNE seconds and those in skip are left out; names names a tune, else its file does.
   function tunesOf(M, game, entry) {
@@ -301,7 +314,7 @@ var ByopopMusic = (function () {
             return read(rel).then(function (bytes) {
               if (!bytes) return;
               var id = baseName(rel);
-              if (isOgg(rel)) { add(rel, [{ kind: "ogg", keys: [prefix + rel], id: id, seconds: oggSeconds(bytes) }]); return; }
+              if (isStream(rel)) { add(rel, [{ kind: "stream", keys: [prefix + rel], id: id, seconds: isOgg(rel) ? oggSeconds(bytes) : wavSeconds(bytes) }]); return; }
               var m = loadModule(M, bytes), list = [];
               if (!m) return;
               // the pattern each order plays (a marker below 0), which a game's song is known by (Music's "Following a game")

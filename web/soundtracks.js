@@ -1,7 +1,7 @@
 // The music of each game, for the listing page's music player (web/music.js; docs/WEB_PLAYER.md, "The music player"), by the
 // game's id. Paths are in the game's folder as the import writes it, matched without regard to case, where * stands for any part
 // of a file name.
-//   files   the files that are tunes: a module's subsongs are its tunes, an Ogg Vorbis file is one tune
+//   files   the files that are tunes: a module's subsongs are its tunes, an Ogg Vorbis or WAV file is one tune
 //   parts   for a module the game plays in ranges of its orders: {"<file name>": [[first order, last order], ...]}, its tunes
 //           instead of its subsongs
 //   joined  tunes the game joins from pieces by a playlist: [{playlist: "<path>", piece: "<path with {} for the playlist's word>"}]
@@ -11,7 +11,7 @@
 //   inside  tunes kept inside a game's file: [{file: "<path>", magic: "<first bytes>"}] its resources (a Windows module's)
 //           that start with those bytes, the magic naming their format, or [{file: "<path>", zip: ["<entry>", ...]}] those
 //           entries of a zip archive; each is then a file as above
-//   where   {"<file name>#<n>", "<file name>" (an Ogg file) or "<playlist name>": "<place>"}: where in the game its code plays
+//   where   {"<file name>#<n>", "<file name>" (an Ogg or WAV file) or "<playlist name>": "<place>"}: where in the game its code plays
 //           the tune, as a short value ("Main menu", "Levels 1-5"), from the game's code (its session's answer) or, for an Ogg
 //           game, its file's name; shown beside the tune and in the display
 //   unused  ["<file name>#<n>", ...]: tunes the game's code never plays (left in its files), shown as such
@@ -121,17 +121,31 @@ var ByopopSoundtracks = {
     where: { "game#0": "Intro, menu, adventure start", "game#1": "Tutorial", "game#2": "Chambers", "game#3": "Chamber complete",
       "game#5": "Chamber ending", "game#6": "Chamber ending", "game#7": "Victory", "game#9": "Adventure map", "game#10": "High scores" }
   },
-  // tunes inside the games' own files: the Mahjong Escapes keep their MO3 modules among Resource.dll's resources, Ning Po its
-  // one music stream in its Python archive
+  // tunes inside the games' own files: the Mahjong Escapes keep their MO3 modules among Resource.dll's resources (the game's
+  // module, 339, starts at one of two orders by the player's progress and jumps to others while gold tiles are in play), Ning
+  // Po its one music stream in its Python archive
   mahjongchina: {
     inside: [{ file: "resource.dll", magic: "MO3" }],
     where: { "Resource 335#0": "Main menu", "Resource 336#0": "Layout select", "Resource 337#0": "Layout select",
-      "Resource 338#0": "Layout select", "Resource 339#0": "In a game" }
+      "Resource 338#0": "Layout select", "Resource 339#0": "In a game", "Resource 339#1": "Gold tile pair free",
+      "Resource 339#2": "Gold tiles matched", "Resource 339#3": "In a game" }
   },
   mahjongjapan: {
     inside: [{ file: "resource.dll", magic: "MO3" }],
     where: { "Resource 335#0": "Main menu", "Resource 336#0": "Layout select", "Resource 337#0": "Layout select",
-      "Resource 339#0": "In a game" }
+      "Resource 339#0": "In a game", "Resource 339#1": "Gold tile pair free", "Resource 339#2": "Gold tiles matched",
+      "Resource 339#3": "In a game" }
+  },
+  // Word Harmony's music is made as it plays, from WAV clips: the menu's loop, and in the rising-water mode one drum track
+  // stepping through the intense pieces as the water rises (which piece goes with which height is not known); its other modes
+  // pick single instrument samples at random, which are not tunes and are left out, as is intense-levelend (a sound)
+  wordharmony: {
+    files: ["res/music/menuMusic.wav", "res/music/intense0.wav", "res/music/intense1.wav", "res/music/intense1b.wav",
+      "res/music/intense2.wav", "res/music/intense3.wav", "res/music/intense4.wav", "res/music/intense5.wav",
+      "res/music/intense6.wav", "res/music/intense-between.wav", "res/music/intenseEnd.wav"],
+    where: { menuMusic: "Main menu", intense0: "Rising water", intense1: "Rising water", intense1b: "Rising water",
+      intense2: "Rising water", intense3: "Rising water", intense4: "Rising water", intense5: "Rising water",
+      intense6: "Rising water", "intense-between": "Rising water, between steps" }
   },
   ningpo: { inside: [{ file: "ningpo.pyz", zip: ["theme_np.ogg"] }], where: { theme_np: "In play" } },
   // the Ogg games
