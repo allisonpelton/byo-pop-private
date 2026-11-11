@@ -313,7 +313,10 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-score { width: 100%; height: 100%; overflow-x: hidden; overflow-y: auto; }
 .mu-score-sheet { position: relative; }
 .mu-score-svg svg { display: block; }
-.mu-score-head { position: absolute; top: 0; width: 6px; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
+.mu-score-sheet { overflow: hidden; }
+.mu-score-head { position: absolute; top: 0; width: 3px; z-index: 1; background: rgba(255, 255, 255, 0.3); pointer-events: none; }
+.mu-score-clefs { position: absolute; left: 0; top: 0; z-index: 2; background: #000; }
+.mu-meter { position: absolute; left: 2px; top: 0; z-index: 3; font-size: 10px; line-height: 12px; opacity: .7; white-space: nowrap; pointer-events: none; }
 .mu-score-head[hidden] { display: none; }
 .mu-spectrum[hidden], .mu-tracker[hidden], .mu-piano[hidden], .mu-score[hidden] { display: none; }
 .mu-tracker-at { font-size: 10px; line-height: 12px; opacity: .7; white-space: pre; }
@@ -326,6 +329,12 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-tracker-rows { margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; }
 .mu-tracker { display: flex; flex-direction: column; }
 .mu-tracker-rows { flex: 1 1 auto; min-height: 0; }
+.mu-tracker-head { flex: none; margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; opacity: .7; }
+/* a channel's number: a click mutes it (web/music.js); a muted one dimmed and struck through */
+.mu-ch { cursor: default; }
+.mu-ch:hover { text-decoration: underline; }
+.mu-ch-off { opacity: .4; text-decoration: line-through; }
+.mu-ch-off:hover { text-decoration: line-through underline; }
 /* the tracker's scroll bar (web/music.js): an arrow at each end, a track and its thumb, in the display's colours */
 .mu-hbar { flex: none; display: flex; height: 12px; margin-top: 2px; }
 .mu-hbar[hidden] { display: none; }
@@ -337,7 +346,8 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-hb-track { flex: 1 1 auto; position: relative; margin: 0 2px; border-top: 1px dotted currentColor; border-bottom: 1px dotted currentColor; opacity: .7; }
 .mu-hb-thumb { position: absolute; top: 1px; bottom: 1px; background: currentColor; opacity: .6; }
 /* the display grows by the bar while the tracker has one, so the rows keep their room */
-.mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(26px + var(--mu-rows, 5) * 12px); }
+.mu-vis:has(.mu-tracker:not([hidden])) { height: calc(24px + var(--mu-rows, 5) * 12px); }
+.mu-vis:has(.mu-tracker:not([hidden]) .mu-hbar:not([hidden])) { height: calc(38px + var(--mu-rows, 5) * 12px); }
 /* the splitter between the player and the playlist (web/music.js): a band the height of a few pixels, its grip a pair of lines */
 .mu-split { height: 7px; margin: 0 0 4px; cursor: ns-resize; touch-action: none; position: relative; }
 .mu-split::before { content: ""; position: absolute; left: 50%; top: 2px; width: 24px; margin-left: -12px; height: 3px;

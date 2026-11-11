@@ -84,6 +84,13 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   for the web tour" sat idle for a day (2026-11-03). Stop only processes you started, identified by a command line inside your own folder or worktree;
   several sessions share this machine, so never stop a game exe by its name alone.
 - Never run `-script`/`-autoplay` runs on the user's desktop. `ORACLE_VISIBLE=1` exists only for the user.
+- **Overnight, desktop and sound allowed (the user, 2026-11-11):** "from 10 PM to 8 AM you have my permission to run
+  any of the games on my desktop or sandbox with sound to test play". Between 22:00 and 08:00 local time a session may
+  run any game, port or original, on the visible desktop or in Windows Sandbox (`--sandbox-vgpu` and
+  `--sandbox-connect` included), with real sound, scripted and driven runs too; a run started in that window ends by
+  08:00. Everything else above still holds: at most 3 game processes, no link, "Buy" or "More Games" click, the
+  user's cursor and keyboard never touched (input posted to the game's own window), the window, registry and saves
+  put back as `docs/ORIGRUN.md` says, nothing left running. Outside those hours the rules above apply unchanged.
 
 ## Token economy (the user's rules, 2026-10-24)
 
@@ -123,10 +130,10 @@ Every call re-reads the whole context, so what costs is context times calls, and
   `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook breaks the build instead of
   silently never being called.
 - **Commits:** game sessions may commit on their own branch at verified milestones without asking the user each time.
-  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with the trailer
-  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; a session that runs on Fable 5.2 writes
-  `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>` instead. Use the user's email only for authorship, never anywhere
-  else.
+  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with a trailer naming the model
+  that wrote the commit, the one the session runs on when it commits: `Co-Authored-By: Claude Opus 5.5
+  <noreply@anthropic.com>`, `Claude Sonnet 5.5`, `Claude Fable 5.2` and so on (the user, 2026-11-11: "let's accurately
+  report which model authored a commit"). Use the user's email only for authorship, never anywhere else.
 - **Never push.** Only the coordinator publishes, and only as snapshots (the user, 2026-10-25):
   `python tools/publish.py --push` pushes one commit holding the trunk's tree without the paths in `.publishignore`
   and the `<!-- private -->` blocks of text files (`docs/PUBLISHING.md`). How to take a game's protection apart

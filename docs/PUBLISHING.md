@@ -34,15 +34,15 @@ markers would show, so close the block before the private lines and open a new o
 ## Making a snapshot
 
 ```bash
-python tools/publish.py
+python tools/publish.py --model "Opus 5.5"
 ```
 
-This builds the snapshot into `refs/publish/next` and checks it: no `.publishignore` path, no marker line, nothing
+`--model` names the model making the snapshot, for the commit's `Co-Authored-By` trailer. This builds the snapshot into `refs/publish/next` and checks it: no `.publishignore` path, no marker line, nothing
 under `assets/`, `re/` or `build/`. It prints what it left out and which files lost private blocks. Look at the
 result with `git show --stat refs/publish/next` or `git show refs/publish/next:<path>`, then publish it:
 
 ```bash
-python tools/publish.py --push
+python tools/publish.py --push --model "Opus 5.5"
 ```
 
 This builds the snapshot again and pushes it to origin's `main`. `refs/publish/main` then marks the last published
