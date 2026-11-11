@@ -1,5 +1,6 @@
 #include "OpenMPTPlayer.h"
 #include "platform/Audio.h"
+#include "platform/ModuleText.h"
 #include "platform/MusicLevels.h"
 
 #include <libopenmpt/libopenmpt.h>
@@ -158,6 +159,28 @@ public:
 			}
 		}
 		return aText;
+	}
+
+	bool SetChannelMute(int theChannel, bool theMute) override
+	{
+		if (!mHasInteractive || theChannel < 0 || theChannel >= openmpt_module_get_num_channels(mModule))
+			return false;
+		return mInteractive.set_channel_mute_status(mModuleExt, theChannel, theMute ? 1 : 0) != 0;
+	}
+
+	std::string GetInstrumentNames() override
+	{
+		char aNames[256 * 40 + 1] = {};
+		int at = 0, aInstruments = openmpt_module_get_num_instruments(mModule);
+		int aCount = aInstruments > 0 ? aInstruments : openmpt_module_get_num_samples(mModule);
+		for (int i = 0; i < aCount; i++)
+		{
+			const char* aName = aInstruments > 0 ? openmpt_module_get_instrument_name(mModule, i) : openmpt_module_get_sample_name(mModule, i);
+			at = byopop_name_line(aNames, at, (int)sizeof(aNames), i + 1, aName);
+			if (aName)
+				openmpt_free_string(aName);
+		}
+		return aNames;
 	}
 
 	int GetUsedChannels(unsigned char* theOut, int theMax) override

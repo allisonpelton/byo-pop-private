@@ -782,9 +782,13 @@ libxmp-lite are in About.
   octave has a faint line, and the black keys' rows are a shade lighter where a semitone is 4 pixels or more. Each
   pattern has a line every beat and a brighter one every bar, four rows a beat and sixteen a bar as in the score, and
   a brighter one still at its first row. Each instrument has one colour of twelve from the 16-colour palette (blue
-  left out, too dark on black), and a bar carries its instrument's number as the cell writes it where there is room
-  (10 pixels high, 15 wide); where the semitones are thinner, a key at the bottom right gives each colour drawn its
-  instruments' numbers. A note lasts until the next note, key off, cut or fade in its channel, or to its pattern's end. The
+  left out, too dark on black), and a bar carries its instrument's number as the cell writes it and its name, cut to
+  the bar's length, where there is room (10 pixels high, 15 wide); where the semitones are thinner, a key at the bottom
+  right gives each colour drawn its instruments' numbers and names, on one line or two, the names cut to 12 characters
+  at most and 6 at least, or left out where even that would not fit. The names (the user, 2026-11-11: "If there is any way to get instrument names, let's do
+  it") come from the decoder (`bm_names`) or the followed game (`byopop_music_names`): a module's instruments' names,
+  or its samples' where it has no instruments; only the instruments that play are ever shown, so a composer's message
+  written over unused sample slots stays out of sight, though not the lines of it on slots that play. A note lasts until the next note, key off, cut or fade in its channel, or to its pattern's end. The
   roll reads the cells the tracker reads (`rowText`, `byopop_music_row`), each pattern once. For the player's own
   tunes the decoder gives the pitch range at once (`bm_range`, the tune's lowest to highest note) and the order list
   (`bm_order_pattern`, `bm_pattern_rows`; a "+++" order is passed over), so the display is filled with the orders
@@ -813,9 +817,18 @@ libxmp-lite are in About.
   the player's own tunes.
 - **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, score, nothing. The spectrum is 24 bars from
   40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
-  ("ORD 07  PAT 06  ROW 16/64"), each column's channel number over it (the user, 2026-11-11: labels on the
-  columns; XM, MOD and S3M have no field for a channel's name and libxmp-lite keeps none from an IT, so a number is
-  all most tunes could show) and the rows around the one heard; it never scrolls past the pattern's ends. Only
+  ("ORD 07  PAT 06  ROW 16/64"), a line over the columns (the user, 2026-11-11: labels on the columns) with each
+  channel's number and the name of the instrument it played last up to the heard row, cut to the column's width, or
+  the number alone where the column leaves fewer than 6 characters for the name, as the narrow cells do (XM,
+  MOD and S3M have no field for a channel's own name and libxmp-lite keeps none from an IT, so the instrument's name
+  stands in for it), and the rows around the one heard. A click on a channel's number mutes it and another brings it
+  back; a Ctrl-click (Cmd on a Mac) leaves that channel alone, and a Ctrl-click on the channel already alone brings
+  every channel back (the user's notes, 2026-11-10: "tracker labels and mute"). A muted channel's number is dimmed and
+  struck through; a new tune starts with none muted. The player's own tunes mute through the decoder (`bm_mute`:
+  libxmp-lite's `xmp_channel_mute`, libopenmpt's interactive interface's `set_channel_mute_status`), heard once the
+  second it has rendered ahead has played; a followed game's through its mixer (`byopop_music_mute`), at once. A game
+  built before that call, or a decoder cached from before `bm_mute`, does not mute, and the number stays as it was.
+  The tracker never scrolls past the pattern's ends. Only
   the channels that play a note somewhere are shown (`bm_used`); when they do not all fit, a scroll bar drawn by
   the player moves through them. An Ogg tune shows the spectrum instead. While the tracker shows, the decoder
   renders in 512-frame slices and notes its row before each; a closed view costs nothing.
@@ -859,6 +872,11 @@ The game's side is a site hook in the platform layer: no game's code changes, an
   pattern's rows, channels, order and title.
 - `byopop_music_row(song, pattern, row)`: a row's cells separated by `|`.
 - `byopop_music_used(song)`: the channels that play a note anywhere.
+- `byopop_music_mute(song, channel, mute)`: a channel muted (1) or brought back (0), the tracker's header's click; 1
+  when done. It is the window's own, apart from anything the game sets.
+- `byopop_music_names(song)`: its instruments' names (its samples' where it has no instruments), a line each, "1A Bass"
+  (`platform/ModuleText.h`'s `byopop_name_line`, empty names left out); a game built before the call has none, and
+  the page then shows numbers only.
 
 A libxmp-lite module is read from its `xmp_module`, a libopenmpt one through `ModulePlayer`'s web-only `GetView`,
 `GetRowText`, `GetUsedChannels` and `GetTitle` (`platform/openmpt/OpenMPTPlayer.cpp`). Cells are written as Music's

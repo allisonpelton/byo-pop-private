@@ -1673,6 +1673,43 @@ std::string Mixer::WebSongRow(int theSong, int thePattern, int theRow)
 	return aText;
 }
 
+std::string Mixer::WebSongNames(int theSong)
+{
+	std::string aText;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mCtx)
+	{
+		xmp_module_info aModuleInfo;
+		xmp_get_module_info(s->mCtx, &aModuleInfo);
+		static char aNames[256 * 40 + 1];
+		byopop_xmp_names(aModuleInfo.mod, aNames, (int)sizeof(aNames));
+		aText = aNames;
+	}
+	else if (s && s->mModule)
+		aText = s->mModule->GetInstrumentNames();
+	Unlock();
+	return aText;
+}
+
+bool Mixer::WebSongMute(int theSong, int theChannel, bool theMute)
+{
+	bool aDone = false;
+	Lock();
+	SONG_FOR_HANDLE(theSong);
+	if (s && s->mCtx)
+	{
+		xmp_module_info aModuleInfo;
+		xmp_get_module_info(s->mCtx, &aModuleInfo);
+		if (theChannel >= 0 && theChannel < aModuleInfo.mod->chn)
+			aDone = xmp_channel_mute(s->mCtx, theChannel, theMute ? 1 : 0) >= 0;
+	}
+	else if (s && s->mModule)
+		aDone = s->mModule->SetChannelMute(theChannel, theMute);
+	Unlock();
+	return aDone;
+}
+
 std::string Mixer::WebSongUsed(int theSong)
 {
 	unsigned char aUsed[256] = {};
@@ -1748,6 +1785,17 @@ EMSCRIPTEN_KEEPALIVE const char* byopop_music_row(int theSong, int thePattern, i
 EMSCRIPTEN_KEEPALIVE const char* byopop_music_used(int theSong)
 {
 	gMusicResult = Platform::Mixer::Get().WebSongUsed(theSong);
+	return gMusicResult.c_str();
+}
+// A channel of it muted (1) or brought back (0) from the window's tracker; 1 done, 0 not.
+EMSCRIPTEN_KEEPALIVE int byopop_music_mute(int theSong, int theChannel, int theMute)
+{
+	return Platform::Mixer::Get().WebSongMute(theSong, theChannel, theMute != 0) ? 1 : 0;
+}
+// Its instruments' names, a line each ("1A Bass"; ModuleText.h's byopop_name_line).
+EMSCRIPTEN_KEEPALIVE const char* byopop_music_names(int theSong)
+{
+	gMusicResult = Platform::Mixer::Get().WebSongNames(theSong);
 	return gMusicResult.c_str();
 }
 }

@@ -327,6 +327,11 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-tracker { display: flex; flex-direction: column; }
 .mu-tracker-rows { flex: 1 1 auto; min-height: 0; }
 .mu-tracker-head { flex: none; margin: 0; font: inherit; font-size: 10px; line-height: 12px; white-space: pre; overflow: hidden; opacity: .7; }
+/* a channel's number: a click mutes it (web/music.js); a muted one dimmed and struck through */
+.mu-ch { cursor: default; }
+.mu-ch:hover { text-decoration: underline; }
+.mu-ch-off { opacity: .4; text-decoration: line-through; }
+.mu-ch-off:hover { text-decoration: line-through underline; }
 /* the tracker's scroll bar (web/music.js): an arrow at each end, a track and its thumb, in the display's colours */
 .mu-hbar { flex: none; display: flex; height: 12px; margin-top: 2px; }
 .mu-hbar[hidden] { display: none; }
