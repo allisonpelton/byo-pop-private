@@ -62,7 +62,7 @@ void AstroPopApp::ClosePowerDialog()
 static void AskToEndGame(AstroPopApp* theApp)
 {
 	Board* aBoard = theApp->mBoard;
-	int aType = (aBoard != NULL) ? aBoard->m1a60 : 0;
+	int aType = (aBoard != NULL) ? aBoard->mGameType : 0;
 	std::string aHeader = GT(0x005638a4);
 	std::string aLines;
 	if (aType == 1)
@@ -102,7 +102,7 @@ static void BackToSelector(AstroPopApp* theApp)
 {
 	if (theApp->mBoard == NULL)
 		return;     // (the original reads the Board here: a box that goes to the selector has one)
-	if (theApp->mBoard->m1a60 != 0)
+	if (theApp->mBoard->mGameType != 0)
 		theApp->ShowMainMenu();
 	theApp->mBoard->RedrawAfterDialog();
 }
@@ -138,12 +138,12 @@ void AstroPopApp::ButtonDepress(int theId)
 		{
 		case 0x834:     // 100: restart the level (type 1) or the demonstration (type 0)
 			CloseDialog(theId - 2000);
-			if (mBoard != NULL && mBoard->m1a60 == 1)
+			if (mBoard != NULL && mBoard->mGameType == 1)
 			{
 				mBoard->LoadLevel(true);
 				mWidgetManager->SetFocus(mBoard);
 			}
-			else if (mBoard != NULL && mBoard->m1a60 == 0)
+			else if (mBoard != NULL && mBoard->mGameType == 0)
 			{
 				mWidgetManager->RemoveWidget(mBoard);
 				SafeDeleteWidget(mBoard);
@@ -185,7 +185,7 @@ void AstroPopApp::ButtonDepress(int theId)
 		case 0x840:     // 112: go on from the checkpoint / play the second mode again
 			KillDialog(0x70);
 			mOpenDialogs--;
-			if (mBoard != NULL && mBoard->m1a60 == 1)
+			if (mBoard != NULL && mBoard->mGameType == 1)
 				StartClassic(true, false);
 			else
 				StartSurvivalGame(mSurvivalPilot);
@@ -319,7 +319,7 @@ void AstroPopApp::ButtonDepress(int theId)
 	case 0xfa4:     // play again
 		if (mBoard == NULL)
 			break;
-		if (mBoard->m1a60 != 1)
+		if (mBoard->mGameType != 1)
 		{
 			StartSurvivalGame(mSurvivalPilot);
 			mHelpShown = true;

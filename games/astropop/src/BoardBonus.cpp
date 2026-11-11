@@ -93,7 +93,7 @@ void Board::StartBonusRound(int theStage)
 	std::vector<MarkRec>().swap(mSuperchargeMarks);
 
 	mApp->mUser->SetInt(0x3f, theStage);
-	m1a80 = 0;
+	mScreenShakeX = 0;
 	mBonusRoundLoaded = true;
 	m1b74 = 0xff;
 

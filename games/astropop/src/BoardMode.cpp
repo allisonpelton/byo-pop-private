@@ -14,7 +14,7 @@ using namespace Sexy;
 // 0x4335e0: the field waits to be cleared
 void Board::BeginClearWait()
 {
-	m19fc = 1000;
+	mFreezeUpdatesLeft = 1000;
 	Fire(0x28, 1);
 	mClearWaitStarted = true;
 }
@@ -22,9 +22,9 @@ void Board::BeginClearWait()
 // 0x46f010 (4339 bytes)
 void Board::UpdateSpecialMode()
 {
-	if (m1a34 == 1)
+	if (mPowerupActive == 1)
 	{
-		m1ad0 = (m1ad0 + 4) & 0xff;
+		mBonusBannerHue = (mBonusBannerHue + 4) & 0xff;
 		for (unsigned int i = 0; i < mBonusBannerTexts.size(); i++)
 		{
 			mBonusBannerTexts[i].mX++;
@@ -41,7 +41,7 @@ void Board::UpdateSpecialMode()
 		}
 	}
 
-	if (m1a34 == 0)
+	if (mPowerupActive == 0)
 	{
 		// no bonus runs: the meter fills while the field is quiet
 		if (!mBonusRoundOn && !mBonusWarpIn && mPlayStarted && m1bd8 < m1bdc && !mApp->mTutorialOn)
@@ -60,7 +60,7 @@ void Board::UpdateSpecialMode()
 			return;
 		if (m1bd8 != m1bdc)
 			return;
-		if (m1afc != 0)
+		if (mComboTimeLeft != 0)
 			return;
 		if (mApp->mTutorialOn)
 			return;
@@ -104,9 +104,9 @@ void Board::UpdateSpecialMode()
 	if (m1bd8 <= 0.0f && mMode != 1)
 	{
 		// the bonus is over
-		m1a80 = 0;
+		mScreenShakeX = 0;
 		m1bd8 = 0;
-		m1a34 = 0;
+		mPowerupActive = 0;
 		mMeterFullAnim.SetStopped(true);
 		mTurbotPowerupAnim.SetStopped(true);
 		mApp->PlaySample(SOUND_POWERUP_WORN_OFF);
@@ -123,8 +123,8 @@ void Board::UpdateSpecialMode()
 		if (mMode == 2 && !mClearWaitStarted && mTakenBrickCount == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 			BeginClearWait();
 		if (!mSirenAnim.mStopped)
-			m1ab8 = 8;
-		m1ac0 = PickSpawnDelay();
+			mPhase = 8;
+		mPhaseDelay = PickSpawnDelay();
 	}
 
 	if (mMode == 1 && !mAtomicMarkedBricks.empty())
@@ -180,7 +180,7 @@ void Board::UpdateSpecialMode()
 			anAnim->mPingPong = false;
 			anAnim->mHoldLast = true;
 			anAnim->SetStopped(false);
-			m1a44 = 0;
+			mAtomicFlashAlpha = 0;
 			mOverlay.SetFill(255, 255, 255, 0);
 			SetOverlayHidden(false);
 			mAtomicExplosions.push_back(anAnim);
@@ -218,14 +218,14 @@ void Board::UpdateSpecialMode()
 					RemoveBrick(aBrick, aCol, aRow, true);
 				}
 			}
-			m1a34 = 0;
-			m1a80 = 0;
+			mPowerupActive = 0;
+			mScreenShakeX = 0;
 			m1bd8 = 0;
 			DropUnsupported(mTakenCells);
-			m1a3c = -1;
+			mAtomicWeaponState = -1;
 			std::vector<CellRef3>().swap(mAtomicMarkedBricks);
 			if (!mSirenAnim.mStopped)
-				m1ab8 = 8;
+				mPhase = 8;
 			for (unsigned int aRowIndex = 1; aRowIndex < mFieldBricks.size(); aRowIndex++)
 			{
 				for (int aColIndex = 0; aColIndex < 10; aColIndex++)
@@ -235,17 +235,17 @@ void Board::UpdateSpecialMode()
 						aBrick->mSprocketFading = false;
 				}
 			}
-			m1ac0 = PickSpawnDelay();
+			mPhaseDelay = PickSpawnDelay();
 			Fire(0x28, 0);
 			Fire(0x2a, 0);
 		}
 
-		if (m1a40 >= 0)
+		if (mAtomicSymbolTimer >= 0)
 		{
-			m1a40++;
-			if (m1a40 > 0x95)
+			mAtomicSymbolTimer++;
+			if (mAtomicSymbolTimer > 0x95)
 			{
-				m1a40 = -5;
+				mAtomicSymbolTimer = -5;
 				if (!mAtomicExplosions.empty())
 					mAtomicExplosions[mAtomicExplosions.size() - 1]->SetStopped(false);
 				mApp->PlaySample(SOUND_EXPLOSION);
@@ -259,8 +259,8 @@ void Board::UpdateSpecialMode()
 
 	// mode 2: beams and a wave sweep over the field
 	mTurbotPowerupAnim.Update();
-	if (m1a34 == 1)
-		m1a80 = ((int) AstroRand() % 500000000) % 0xb - 5;
+	if (mPowerupActive == 1)
+		mScreenShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
 	{
 		float aRate = 1.0f / m1be0;
 		int aLeft = (int) ((aRate * m1bdc - aRate * m1bd8) * 0.25f);
@@ -275,15 +275,15 @@ void Board::UpdateSpecialMode()
 			m1b50 = 0;
 		Fire(0x24, m1b50);
 	}
-	if (m1aa0 < 0xff)
+	if (mTurbotPowerupAlpha < 0xff)
 	{
-		m1aa0 += 2;
-		if (m1aa0 > 0xfe)
-			m1aa0 = 0xff;
+		mTurbotPowerupAlpha += 2;
+		if (mTurbotPowerupAlpha > 0xfe)
+			mTurbotPowerupAlpha = 0xff;
 	}
 	if (m1b58 > 0 && mUpdateCnt % m1b58 == 0)
 	{
-		m1b58 = 0xf - m1a4c / 10;
+		m1b58 = 0xf - mTurbotFlashAlpha / 10;
 		if (mTurbotBeams.size() < 6)
 		{
 			LaserRec aBeam;
@@ -312,11 +312,11 @@ void Board::UpdateSpecialMode()
 			i--;
 		}
 	}
-	if (m1a4c < 100 && m1b4c != 3)
+	if (mTurbotFlashAlpha < 100 && m1b4c != 3)
 	{
 		int aOldPhase = m1b4c;
-		m1a4c++;
-		if (m1a4c >= 100)
+		mTurbotFlashAlpha++;
+		if (mTurbotFlashAlpha >= 100)
 		{
 			if (aOldPhase == 0)
 				m1b4c = 2;
@@ -333,21 +333,21 @@ void Board::UpdateSpecialMode()
 			m1b54++;
 			if (m1b54 >= 100)
 			{
-				m1a4c = 0xff;
+				mTurbotFlashAlpha = 0xff;
 				mTurbotPowerupAnim.SetStopped(true);
 			}
 			aDone = false;
 		}
 		else
 		{
-			m1a48 -= 10;
-			if (m1a4c >= 0)
+			mTurbotWaveY -= 10;
+			if (mTurbotFlashAlpha >= 0)
 			{
-				m1a4c -= 2;
-				if (m1a4c < 0)
-					m1a4c = 0;
+				mTurbotFlashAlpha -= 2;
+				if (mTurbotFlashAlpha < 0)
+					mTurbotFlashAlpha = 0;
 			}
-			if (!mTurbotMarkedCells.empty() && m1a48 <= 0xf0 - IMAGE_TURBOT_WAVE->mHeight / 2)
+			if (!mTurbotMarkedCells.empty() && mTurbotWaveY <= 0xf0 - IMAGE_TURBOT_WAVE->mHeight / 2)
 			{
 				// the wave reaches the marked bricks
 				unsigned int i = 0;
@@ -361,9 +361,9 @@ void Board::UpdateSpecialMode()
 					}
 					aBrick->StopShake();
 					aBrick->StopFade();
-					if (m1a8c != 2 || aBrick->mMutated == 1 || aBrick->mType != 9 || ((SpecialBrick*) aBrick)->mStage < 2)
+					if (mWeaponPower != 2 || aBrick->mMutated == 1 || aBrick->mType != 9 || ((SpecialBrick*) aBrick)->mStage < 2)
 					{
-						RemoveBrick(aBrick, mTurbotMarkedCells[i].mCol, mTurbotMarkedCells[i].mRow, 2 < m1a8c);
+						RemoveBrick(aBrick, mTurbotMarkedCells[i].mCol, mTurbotMarkedCells[i].mRow, 2 < mWeaponPower);
 						i++;
 					}
 					else
@@ -378,25 +378,25 @@ void Board::UpdateSpecialMode()
 				Fire(0x2a, 0);
 				Fire(0x1e);
 			}
-			if (!AnyMoveLeft(NULL) && m19fc > 0x3c)
-				m19fc = 0x3c;
+			if (!AnyMoveLeft(NULL) && mFreezeUpdatesLeft > 0x3c)
+				mFreezeUpdatesLeft = 0x3c;
 		}
 	}
 	else if (!mTurbotMarkedCells.empty())
 		aDone = false;
 
-	if (aDone && m1a48 <= -IMAGE_TURBOT_WAVE->mHeight && mTurbotMarkedCells.empty())
+	if (aDone && mTurbotWaveY <= -IMAGE_TURBOT_WAVE->mHeight && mTurbotMarkedCells.empty())
 	{
-		m1a48 = -0x10000;
-		m1a4c = -1;
+		mTurbotWaveY = -0x10000;
+		mTurbotFlashAlpha = -1;
 		if (1.0f < m1bd8)
 			m1bd8 = 1.0f;
 		SetOverlayHidden(true);
 	}
-	if (m1a4c < 0)
+	if (mTurbotFlashAlpha < 0)
 	{
 		SetOverlayHidden(true);
 		return;
 	}
-	mOverlay.SetFill(255, 255, 255, m1a4c);
+	mOverlay.SetFill(255, 255, 255, mTurbotFlashAlpha);
 }

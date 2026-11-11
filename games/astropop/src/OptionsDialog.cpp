@@ -109,7 +109,7 @@ OptionsDialog::OptionsDialog(bool theHints, int theColourSet, bool theFromGame) 
 	mLeaveButton = new DialogButton(aButtonImage, 0xfa8, this);
 	SetButtonRects(mLeaveButton);
 	mLeaveButton->mLabel = GT(0x0056b0b4);
-	if (gApp->mBoard != NULL && gApp->mBoard->m1a60 == 0)
+	if (gApp->mBoard != NULL && gApp->mBoard->mGameType == 0)
 		mLeaveButton->mLabel = GT(0x0056b0a4);
 	mLeaveButton->SetColor(ButtonWidget::COLOR_LABEL, Color(0xff, 0xff, 0));
 	mLeaveButton->SetColor(ButtonWidget::COLOR_LABEL_HILITE, Color(0xff, 0xff, 0xff));

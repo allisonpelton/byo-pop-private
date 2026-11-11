@@ -21,15 +21,15 @@ void Board::ResetState()
 	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;
 	mBrickometerDrain = 0;
 	mBrickometerFill = 0;
-	m1abc = 0;
-	m1ab8 = 4;
-	m1ac0 = PickSpawnDelay();
-	m1af4 = 0;
-	m1af0 = 0;
+	mFlurryTimer = 0;
+	mPhase = 4;
+	mPhaseDelay = PickSpawnDelay();
+	mResumeUpdate = 0;
+	mPauseStartUpdate = 0;
 	mClickRepeating = false;
 	mPlayTime = 0;
 	m1b00 = 0;
-	m1afc = 0;
+	mComboTimeLeft = 0;
 	mButtonsHeld = 0;
 	mScore = 0;
 	mScoreShown = 0;
@@ -38,9 +38,9 @@ void Board::ResetState()
 	mSupaButtonLit = false;
 	mShipFrame = 2;
 	mStreaksFadingOut = false;
-	m1a34 = 0;
+	mPowerupActive = 0;
 	mPlayStarted = false;
-	m1a7c = -1;
+	mSirenOffDelay = -1;
 	mSirenAnim.SetNumFrames(IMAGE_SIREN->mNumCols);
 	mSirenAnim.SetDelay(8);
 	mSirenAnim.mHoldLast = false;
@@ -164,7 +164,7 @@ static void SaveBestStat(UserProfile* theUser, int theValue)
 // rest in its settings 0x56 .. 0x65. Which settings are written depends on the mode the game is in.
 void Board::SaveGameState()
 {
-	if (m1a34 != 0)
+	if (mPowerupActive != 0)
 		return;
 	if (mHeldBricksNotLanded != 0)
 		return;
@@ -227,7 +227,7 @@ void Board::SaveGameState()
 		if (!mBonusRoundOn && !mClearCountRunning && aIdle)
 		{
 			StoreProgress();
-			aUser->SetInt(0x56, m1a14);
+			aUser->SetInt(0x56, mStageBricksCleared);
 			aUser->SetInt(0x57, 0);
 			aUser->SetInt(0x61, mScoreAtStageStart);
 			aUser->SetInt(0x58, 0);
@@ -243,7 +243,7 @@ void Board::SaveGameState()
 				aUser->SetInt(0x59, mSuperchargeMarks[0].mType);
 				aUser->SetInt(0x5a, mSuperchargeMarks[0].mCount);
 			}
-			aUser->SetInt(0x65, m19fc);
+			aUser->SetInt(0x65, mFreezeUpdatesLeft);
 			return;
 		}
 		if (mBonusRoundOn && !mClearCountRunning && aIdle)
@@ -267,7 +267,7 @@ void Board::SaveGameState()
 				aUser->SetInt(0x59, mSuperchargeMarks[0].mType);
 				aUser->SetInt(0x5a, mSuperchargeMarks[0].mCount);
 			}
-			aUser->SetInt(0x65, m19fc);
+			aUser->SetInt(0x65, mFreezeUpdatesLeft);
 			return;
 		}
 		StoreProgress();

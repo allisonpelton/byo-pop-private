@@ -92,10 +92,10 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		if (aBetweenLevels == 0)
 		{
 			// a game saved in the middle of a level
-			m1a14 = 0;
-			aUser->GetInt(0x56, &m1a14);
+			mStageBricksCleared = 0;
+			aUser->GetInt(0x56, &mStageBricksCleared);
 			int aBrokenBricks = 0;
-			mBrickometerFill = (float) m1a14 / (float) m1a18;
+			mBrickometerFill = (float) mStageBricksCleared / (float) mBricksToPass;
 			aUser->GetInt(0x57, &aBrokenBricks);
 			if (aBrokenBricks < 1)
 			{
@@ -258,12 +258,12 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			if (aUser->GetInt(0x65, &aWaiting))
 			{
 				BeginClearWait();
-				m19fc = aWaiting;
+				mFreezeUpdatesLeft = aWaiting;
 			}
 			int aValue198c = mShipX;
 			aUser->GetInt(0x66, &aValue198c);
 			mShipX = aValue198c;
-			m1a7c = -1;
+			mSirenOffDelay = -1;
 			CheckStackHeight();
 			CheckShipColumn();
 		}
@@ -273,23 +273,23 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			mStreaksFadingOut = false;
 			mWarpActive = true;
 			mAtWarpGate = true;
-			m19f0 = 0;
+			mWarpLightningAlpha = 0;
 			unsigned int aDraw = AstroRand();
 			mWarpShipY = 423.0f; // 0x43d38000 at 0x4687f3
-			m19f4 = (((int) aDraw % 500000000) % 200) + 100;
+			mWarpLightningPeriod = (((int) aDraw % 500000000) % 200) + 100;
 			mBackdropTint = Color(100, 100, 100);
-			m1ab8 = 10;
-			m1ac0 = PickSpawnDelay();
-			m1abc = 700;
+			mPhase = 10;
+			mPhaseDelay = PickSpawnDelay();
+			mFlurryTimer = 700;
 			mWarpGateAnim.SetStopped(false);
-			m19ec = 0;
-			m19e8 = 0;
-			m19e4 = 0;
+			mFastGateGlow = 0;
+			mSlowGateGlow = 0;
+			mEasyGateGlow = 0;
 			m1b2c = 0;
 			aUser->GetInt(99, &m1b2c);
 			m1b28 = UpgradeScreenKind(mLevelNumber + 1);
-			if (m1a0c < 4)
-				mShipX = IMAGE_SLOW_WARP_GATE->mWidth / 2 - 0x1a + m1a70;
+			if (mBestLevelReached < 4)
+				mShipX = IMAGE_SLOW_WARP_GATE->mWidth / 2 - 0x1a + mSlowGateX;
 			else
 				mShipX = 0x159;
 			aUser->GetInt(0x5c, &mPlayPoints);
@@ -424,7 +424,7 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		if (aUser->GetInt(0x65, &aWaiting))
 		{
 			BeginClearWait();
-			m19fc = aWaiting;
+			mFreezeUpdatesLeft = aWaiting;
 		}
 		int aValue198c = mShipX;
 		aUser->GetInt(0x66, &aValue198c);

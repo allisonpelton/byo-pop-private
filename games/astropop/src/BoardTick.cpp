@@ -23,11 +23,11 @@ void Board::UpdateAlertFlash()
 	if (mHighestStack < 0xe || mBonusRoundOn)
 	{
 		mAlertLevel = 1;
-		if (m1aac > 0 && !mBonusRoundOn)
+		if (mDangerZoneAlpha > 0 && !mBonusRoundOn)
 		{
-			m1aac -= 6;
-			if (m1aac < 0)
-				m1aac = 0;
+			mDangerZoneAlpha -= 6;
+			if (mDangerZoneAlpha < 0)
+				mDangerZoneAlpha = 0;
 		}
 		if (m1b3c > 0)
 		{
@@ -42,26 +42,26 @@ void Board::UpdateAlertFlash()
 		if (mAlertLevel > 5)
 			mAlertLevel = 5;
 
-		m1aa8 += m1aa4;
-		if (m1aa8 >= 0x100)
+		mDangerPulseAlpha += mDangerPulseStep;
+		if (mDangerPulseAlpha >= 0x100)
 		{
-			m1aa8 = 0xff;
-			m1aa4 = -m1aa4;
+			mDangerPulseAlpha = 0xff;
+			mDangerPulseStep = -mDangerPulseStep;
 		}
-		else if (m1aa8 < 0)
+		else if (mDangerPulseAlpha < 0)
 		{
-			m1aa8 = 0;
-			m1aa4 = -m1aa4;
-		}
-
-		if (m1aac < 0xff)
-		{
-			m1aac += 4;
-			if (m1aac > 0xff)
-				m1aac = 0xff;
+			mDangerPulseAlpha = 0;
+			mDangerPulseStep = -mDangerPulseStep;
 		}
 
-		if (m1a34 == 1 || m1bd8 < m1bdc || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || mPauseCount != 0 ||
+		if (mDangerZoneAlpha < 0xff)
+		{
+			mDangerZoneAlpha += 4;
+			if (mDangerZoneAlpha > 0xff)
+				mDangerZoneAlpha = 0xff;
+		}
+
+		if (mPowerupActive == 1 || m1bd8 < m1bdc || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || mPauseCount != 0 ||
 			m1b3c > 0x7f)
 		{
 			if (m1b3c > 0)
@@ -78,46 +78,46 @@ void Board::UpdateAlertFlash()
 			mSupaButtonLit = !mSupaButtonLit;
 	}
 
-	if (m1a98 > -500000000)
+	if (mGameOverDangerY > -500000000)
 	{
-		if (m1a98 > -0x14 - IMAGE_GAMEOVER_DANGER->mHeight)
+		if (mGameOverDangerY > -0x14 - IMAGE_GAMEOVER_DANGER->mHeight)
 		{
-			int aOther = m1a9c;
+			int aOther = mGameOverDangerHold;
 			if (aOther < 1)
 			{
-				int aBefore = m1a98;
-				m1a98 = aBefore - 0xc;
+				int aBefore = mGameOverDangerY;
+				mGameOverDangerY = aBefore - 0xc;
 				if (aBefore - 0xc < 0x15 && aOther == -500000000)
-					m1a9c = 1;
+					mGameOverDangerHold = 1;
 			}
 			else
 			{
-				m1a9c = aOther + 1;
+				mGameOverDangerHold = aOther + 1;
 				if (aOther + 1 > 0x95)
-					m1a9c = -250000000;
+					mGameOverDangerHold = -250000000;
 			}
 		}
 		else
 		{
-			m1a98 = -500000000;
-			m1a9c = -500000000;
+			mGameOverDangerY = -500000000;
+			mGameOverDangerHold = -500000000;
 		}
 	}
 
-	if (m1a7c > 0)
+	if (mSirenOffDelay > 0)
 	{
-		m1a7c--;
-		if (m1a7c < 1)
+		mSirenOffDelay--;
+		if (mSirenOffDelay < 1)
 		{
-			m1a7c = -1;
+			mSirenOffDelay = -1;
 			mSirenAnim.SetStopped(true);
 			mApp->PlaySong(9);
-			if (m1ab8 < 10 || m1ab8 > 0xd)
+			if (mPhase < 10 || mPhase > 0xd)
 			{
-				m1ab8 = 4;
-				m1abc = 0;
+				mPhase = 4;
+				mFlurryTimer = 0;
 			}
-			m1ac0 = PickSpawnDelay();
+			mPhaseDelay = PickSpawnDelay();
 		}
 	}
 }
@@ -127,88 +127,88 @@ void Board::UpdateAlertFlash()
 // strong hit (+0x1aec updates, +0x1a80 the shift) runs beside it.
 void Board::UpdateStartBanner()
 {
-	if (m1aec > 0 && m1a34 == 1)
+	if (mScreenShakeUpdates > 0 && mPowerupActive == 1)
 	{
-		m1a80 = ((int) AstroRand() % 500000000) % 5 - 2;
-		m1aec--;
-		if (m1aec < 1)
-			m1a80 = 0;
+		mScreenShakeX = ((int) AstroRand() % 500000000) % 5 - 2;
+		mScreenShakeUpdates--;
+		if (mScreenShakeUpdates < 1)
+			mScreenShakeX = 0;
 	}
 
-	if (m1ad4 == 1)
+	if (mSupaBannerStep == 1)
 	{
-		m1ad8 += 4;
-		if (m1ad8 >= 0)
+		mSupaBannerY += 4;
+		if (mSupaBannerY >= 0)
 		{
-			m1ad8 = 0;
-			m1adc = 0;
-			m1ad4 = 2;
+			mSupaBannerY = 0;
+			mSupaBracketSpread = 0;
+			mSupaBannerStep = 2;
 		}
 	}
-	else if (m1ad4 == 2)
+	else if (mSupaBannerStep == 2)
 	{
-		m1adc += 0xc;
-		if (m1adc > 0xe6)
+		mSupaBracketSpread += 0xc;
+		if (mSupaBracketSpread > 0xe6)
 		{
-			m1ae8 = 0;
-			m1acc = 0;
-			m1adc = 0xe7;
-			m1ad4 = 3;
+			mSupaBannerTimer = 0;
+			mSupaTitleStep = 0;
+			mSupaBracketSpread = 0xe7;
+			mSupaBannerStep = 3;
 		}
 	}
-	else if (m1ad4 == 3)
+	else if (mSupaBannerStep == 3)
 	{
-		m1ae0 -= 3;
-		if (m1ae0 < 1)
-			m1ae0 = 0;
-		m1ae8++;
-		if (m1ae8 > 3)
+		mSupaBracketFlash -= 3;
+		if (mSupaBracketFlash < 1)
+			mSupaBracketFlash = 0;
+		mSupaBannerTimer++;
+		if (mSupaBannerTimer > 3)
 		{
-			m1ae8 = 0;
-			m1acc++;
-			if (m1acc > 10)
+			mSupaBannerTimer = 0;
+			mSupaTitleStep++;
+			if (mSupaTitleStep > 10)
 			{
-				m1ae4 = 0;
-				m1acc = 10;
-				m1ad4 = 4;
+				mSupaNameAlpha = 0;
+				mSupaTitleStep = 10;
+				mSupaBannerStep = 4;
 			}
 		}
 	}
-	else if (m1ad4 == 4)
+	else if (mSupaBannerStep == 4)
 	{
-		m1ae0 -= 3;
-		if (m1ae0 < 1)
-			m1ae0 = 0;
-		m1ae4 += 10;
-		if (m1ae4 > 0xfe)
+		mSupaBracketFlash -= 3;
+		if (mSupaBracketFlash < 1)
+			mSupaBracketFlash = 0;
+		mSupaNameAlpha += 10;
+		if (mSupaNameAlpha > 0xfe)
 		{
-			m1ae8 = 0;
-			m1ae4 = 0xff;
-			m1ad4 = 5;
+			mSupaBannerTimer = 0;
+			mSupaNameAlpha = 0xff;
+			mSupaBannerStep = 5;
 		}
 	}
-	else if (m1ad4 == 5)
+	else if (mSupaBannerStep == 5)
 	{
-		m1ae8++;
-		if (m1ae8 > 0x95)
+		mSupaBannerTimer++;
+		if (mSupaBannerTimer > 0x95)
 		{
-			m1ae0 -= 3;
-			if (m1ae0 < 1)
-				m1ae0 = 0;
-			m1ae8 = 0;
-			m1ad4 = 6;
+			mSupaBracketFlash -= 3;
+			if (mSupaBracketFlash < 1)
+				mSupaBracketFlash = 0;
+			mSupaBannerTimer = 0;
+			mSupaBannerStep = 6;
 			if (mBonusRoundOn)
 				mStartBannerDoneInBonus = true;
 		}
 	}
-	else if (m1ad4 == 6)
+	else if (mSupaBannerStep == 6)
 	{
-		m1ae0 -= 3;
-		if (m1ae0 < 1)
-			m1ae0 = 0;
-		m1ad8 -= 4;
-		if (m1ad8 <= -IMAGE_SUPA_BRACKET_LEFT->mHeight)
-			m1ad4 = 0;
+		mSupaBracketFlash -= 3;
+		if (mSupaBracketFlash < 1)
+			mSupaBracketFlash = 0;
+		mSupaBannerY -= 4;
+		if (mSupaBannerY <= -IMAGE_SUPA_BRACKET_LEFT->mHeight)
+			mSupaBannerStep = 0;
 	}
 }
 
@@ -222,45 +222,45 @@ void Board::PayTimeBonus()
 	if (mBonusRoundOn)
 		return;
 
-	int aTime = m1a2c;
-	if (aTime <= 0xc8 && m1a30 == 0 && m1a50 >= 3)
+	int aTime = mTimeBonusUpdates;
+	if (aTime <= 0xc8 && mTimeBonusStepsPaid == 0 && mTimeBonusSets >= 3)
 	{
-		m1a30 = 1;
+		mTimeBonusStepsPaid = 1;
 		aBonus = (int) (mScoreMultiplier * 1000.0f);
 		if (aBonus > 10000)
 			aBonus = 10000;
 	}
-	else if (aTime <= 0x12c && m1a30 <= 1 && m1a50 >= 4)
+	else if (aTime <= 0x12c && mTimeBonusStepsPaid <= 1 && mTimeBonusSets >= 4)
 	{
-		m1a30 = 2;
+		mTimeBonusStepsPaid = 2;
 		aBonus = (int) (mScoreMultiplier * 2000.0f);
 		if (aBonus > 15000)
 			aBonus = 15000;
 	}
-	else if (aTime <= 0x190 && m1a30 <= 2 && m1a50 >= 5)
+	else if (aTime <= 0x190 && mTimeBonusStepsPaid <= 2 && mTimeBonusSets >= 5)
 	{
-		m1a30 = 3;
+		mTimeBonusStepsPaid = 3;
 		aBonus = (int) (mScoreMultiplier * 3000.0f);
 		if (aBonus > 20000)
 			aBonus = 20000;
 	}
-	else if (aTime <= 0x1f4 && m1a30 <= 3 && m1a50 >= 6)
+	else if (aTime <= 0x1f4 && mTimeBonusStepsPaid <= 3 && mTimeBonusSets >= 6)
 	{
-		m1a30 = 4;
+		mTimeBonusStepsPaid = 4;
 		aBonus = (int) (mScoreMultiplier * 4000.0f);
 		if (aBonus > 22000)
 			aBonus = 22000;
 	}
-	else if (aTime <= 0x258 && m1a30 <= 4 && m1a50 >= 7)
+	else if (aTime <= 0x258 && mTimeBonusStepsPaid <= 4 && mTimeBonusSets >= 7)
 	{
-		m1a30 = 5;
+		mTimeBonusStepsPaid = 5;
 		aBonus = (int) (mScoreMultiplier * 5000.0f);
 		if (aBonus > 25000)
 			aBonus = 25000;
 	}
-	else if (aTime <= 0x2bc && m1a30 <= 5 && m1a50 >= 8)
+	else if (aTime <= 0x2bc && mTimeBonusStepsPaid <= 5 && mTimeBonusSets >= 8)
 	{
-		m1a30 = 6;
+		mTimeBonusStepsPaid = 6;
 		aBonus = (int) (mScoreMultiplier * 6000.0f);
 		if (aBonus > 30000)
 			aBonus = 30000;
@@ -269,18 +269,18 @@ void Board::PayTimeBonus()
 	aBonus = aBonus - aBonus % 50;
 	if (aBonus > 0)
 	{
-		FloatText* aText = new FloatText(StrFormat(GTC(0x5652b0), aBonus), FONT_POINTS, 300.0f, (float) (m1a30 * 40 + 0xe6), false);
+		FloatText* aText = new FloatText(StrFormat(GTC(0x5652b0), aBonus), FONT_POINTS, 300.0f, (float) (mTimeBonusStepsPaid * 40 + 0xe6), false);
 		mFloatTexts.push_back(aText);
 		AddScore(aBonus, true);
 		aBonus = 0;
 	}
 
-	if (m1a2c > 0x2bc)
+	if (mTimeBonusUpdates > 0x2bc)
 	{
 		mTimeBonusRunning = false;
-		m1a30 = 0;
-		m1a2c = 0;
-		m1a50 = 0;
+		mTimeBonusStepsPaid = 0;
+		mTimeBonusUpdates = 0;
+		mTimeBonusSets = 0;
 	}
 }
 
@@ -289,11 +289,11 @@ void Board::PayTimeBonus()
 // effect ends with event 0x28 (0).
 void Board::UpdateFreeze()
 {
-	if (m19fc <= 0)
+	if (mFreezeUpdatesLeft <= 0)
 		return;
 
 	if (mPlayStarted)
-		m19fc--;
+		mFreezeUpdatesLeft--;
 
 	if (mUpdateCnt % 0x19 == 0)
 	{
@@ -330,7 +330,7 @@ void Board::UpdateFreeze()
 		mFreezeFlakes[i].mAnim.Update();
 	}
 
-	if (m19fc == 0)
+	if (mFreezeUpdatesLeft == 0)
 		Fire(0x28, 0);
 }
 
@@ -342,10 +342,10 @@ void Board::UpdateStates()
 {
 	if (mPauseCount < 1)
 	{
-		if (m1abc > 0)
-			m1abc--;
-		if (m1ac0 > 0)
-			m1ac0--;
+		if (mFlurryTimer > 0)
+			mFlurryTimer--;
+		if (mPhaseDelay > 0)
+			mPhaseDelay--;
 
 		if (mLevelUpTextShown)
 		{
@@ -356,7 +356,7 @@ void Board::UpdateStates()
 
 		mBoosterAnim.Update();
 
-		if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && m19fc < 1)
+		if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && mFreezeUpdatesLeft < 1)
 		{
 			if (m1b5c > 0)
 			{
@@ -406,28 +406,28 @@ void Board::UpdateStates()
 			mOverlay.SetFill(0xff, 0xff, 0xff, mWhiteFadeAlpha);
 		}
 
-		if (m1a34 == 1)
+		if (mPowerupActive == 1)
 		{
-			if (m1ac0 < 1 && m1ab8 == 7 && (mMode == 0 || mMode == 3))
+			if (mPhaseDelay < 1 && mPhase == 7 && (mMode == 0 || mMode == 3))
 			{
-				m1ac0 = 0;
-				m1ab8 = 6;
+				mPhaseDelay = 0;
+				mPhase = 6;
 			}
-			else if (m1a34 == 1 && m1ac0 < 1 && (mMode == 1 || mMode == 2))
+			else if (mPowerupActive == 1 && mPhaseDelay < 1 && (mMode == 1 || mMode == 2))
 			{
-				m1ab8++;
-				if (m1ab8 > 7)
-					m1ab8 = 6;
-				m1ac0 = PickSpawnDelay();
+				mPhase++;
+				if (mPhase > 7)
+					mPhase = 6;
+				mPhaseDelay = PickSpawnDelay();
 			}
 		}
-		else if (m1ac0 < 1)
+		else if (mPhaseDelay < 1)
 		{
-			int aPace = m1ab8;
+			int aPace = mPhase;
 			if (aPace < 2 || aPace > 5)
 			{
 				if (aPace >= 8 && aPace <= 9)
-					m1ab8 = (aPace == 8) + 8;
+					mPhase = (aPace == 8) + 8;
 				else
 				{
 					if (aPace >= 10 && aPace <= 0xd)
@@ -435,13 +435,13 @@ void Board::UpdateStates()
 						aPace++;
 						if (aPace > 0xd)
 							aPace = 10;
-						if (m1abc < 1)
+						if (mFlurryTimer < 1)
 						{
-							m1abc = 0;
+							mFlurryTimer = 0;
 							aPace = mSirenAnim.mStopped ? 4 : 8;
 						}
 					}
-					m1ab8 = aPace;
+					mPhase = aPace;
 				}
 			}
 			else
@@ -456,34 +456,34 @@ void Board::UpdateStates()
 						aNext = 3;
 					else
 						aNext = (aDraw != 3) + 4;
-				} while (aNext == m1ab8);
-				m1ab8 = aNext;
+				} while (aNext == mPhase);
+				mPhase = aNext;
 			}
-			m1ac0 = PickSpawnDelay();
+			mPhaseDelay = PickSpawnDelay();
 		}
 
-		if (m1bd8 == m1bdc && m1a34 == 0 && m1b48 < 0)
+		if (m1bd8 == m1bdc && mPowerupActive == 0 && m1b48 < 0)
 		{
 			m1b48 += 2;
 			if (m1b48 >= 0)
 				m1b48 = 0;
 		}
-		else if (m1a34 == 1 && m1b48 > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
+		else if (mPowerupActive == 1 && m1b48 > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
 		{
 			m1b48 -= 3;
 			if (m1b48 <= -IMAGE_SUPA_BUTTON_ALERT->mWidth)
 				m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
 		}
 
-		if (m1afc > 0)
+		if (mComboTimeLeft > 0)
 		{
-			m1afc--;
-			if (m1afc <= 0)
+			mComboTimeLeft--;
+			if (mComboTimeLeft <= 0)
 			{
 				m1b00 = 0;
-				m1afc = 0;
+				mComboTimeLeft = 0;
 			}
-			else if (m1afc % 0x14 == 0)
+			else if (mComboTimeLeft % 0x14 == 0)
 				mComboTextVisible = !mComboTextVisible;
 		}
 
@@ -512,10 +512,10 @@ void Board::UpdateStates()
 
 	if (!mBonusRoundOn && !mBonusWarpIn)
 	{
-		if (m1a60 == 1 || (mMode != 3 && mMode != 0) || m1a34 != 1 || mPsychicUsed || mLaserUsed)
+		if (mGameType == 1 || (mMode != 3 && mMode != 0) || mPowerupActive != 1 || mPsychicUsed || mLaserUsed)
 		{
 			mRampTime++;
-			if (mRampTime > 0 && mRampTime % 6000 == 0 && m1a60 == 2)
+			if (mRampTime > 0 && mRampTime % 6000 == 0 && mGameType == 2)
 			{
 				mLevelUpTextShown = true;
 				delete mLevelUpText;
@@ -575,7 +575,7 @@ void Board::UpdateStates()
 		}
 	}
 
-	if (m1a34 == 0 && m1bbc <= mStageNumber && mPlayStarted && m19fc < 1 && (m1b08--, m1b08 < 1))
+	if (mPowerupActive == 0 && m1bbc <= mStageNumber && mPlayStarted && mFreezeUpdatesLeft < 1 && (m1b08--, m1b08 < 1))
 	{
 		int aHalf = m1b0c / 2;
 		m1b0c = aHalf;
@@ -583,8 +583,8 @@ void Board::UpdateStates()
 			m1b0c = 300;
 		m1b08 = m1b0c;
 		mExtraRowsDue++;
-		if (m1ab4 < 1)
-			m1ab4 = 100;
+		if (mExtraRowDelay < 1)
+			mExtraRowDelay = 100;
 	}
 
 	if (!mSpecialBannerTexts.empty())
@@ -614,9 +614,9 @@ void Board::UpdateStates()
 
 	if (mApp->mTutorialOn)
 	{
-		if (m1a5c > 0)
-			m1a58++;
-		if (m1a58 == 1000)
+		if (mTutorialPickCount > 0)
+			mTutorialPickTimer++;
+		if (mTutorialPickTimer == 1000)
 			mApp->MakeDialog(mMode + 2, false, 0x6c, -1, -1, 3, GT(0x56633c), GT(0x566348), GT(0x562024), std::string(), true);
 	}
 
@@ -658,7 +658,7 @@ Finish:
 
 	if (mTimeBonusRunning)
 	{
-		m1a2c++;
+		mTimeBonusUpdates++;
 		PayTimeBonus();
 	}
 }

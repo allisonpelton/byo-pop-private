@@ -25,7 +25,7 @@ using namespace Sexy;
 void Board::Draw(Graphics* g)
 {
 	// (the original asks the application if it has 3D here and does nothing with the answer)
-	int aCount = (mPauseCount < 1) ? mUpdateCnt : m1af0;
+	int aCount = (mPauseCount < 1) ? mUpdateCnt : mPauseStartUpdate;
 
 	if (mScreenWiping)
 	{
@@ -38,7 +38,7 @@ void Board::Draw(Graphics* g)
 	DrawModeTexts(g);
 	DrawBeam(g);
 
-	if (mMode == 0 && m1a34 == 1 && !mLaserAnim.mStopped)
+	if (mMode == 0 && mPowerupActive == 1 && !mLaserAnim.mStopped)
 		DrawCel(g, IMAGE_PLAYER1_LASER, mShipX, 0, mLaserAnim.GetCel());
 
 	DrawBricks(g, false);
@@ -55,7 +55,7 @@ void Board::Draw(Graphics* g)
 		DrawEndPage(g);
 	DrawSnow(g);
 
-	if ((m1a60 == 1 || mTutorialStageForced) &&
+	if ((mGameType == 1 || mTutorialStageForced) &&
 		((!mWarpActive && (mWarpFlight || (!mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0))) || mWarpFlight))
 		DrawStageBg(g);
 
@@ -72,7 +72,7 @@ void Board::Draw(Graphics* g)
 
 	if (!mBonusWarpIn || m1bc8 == 0 || 0 < m1bc8)
 		DrawShip(g);
-	if (m1a60 == 1)
+	if (mGameType == 1)
 		DrawHud(g);
 
 	for (unsigned int i = 0; i < mFadedBricks.size(); i++)
@@ -91,9 +91,9 @@ void Board::Draw(Graphics* g)
 		g->SetColorizeImages(false);
 	}
 
-	if (m1a60 == 2)
+	if (mGameType == 2)
 	{
-		if (0 < m1b40 && m1a34 != 1)
+		if (0 < m1b40 && mPowerupActive != 1)
 			DrawSurvivalBonus(g);
 		for (unsigned int i = 0; i < mEnergySparks.size(); i++)
 		{
@@ -106,8 +106,8 @@ void Board::Draw(Graphics* g)
 		}
 	}
 
-	if (mMode == 2 && -IMAGE_TURBOT_WAVE->mHeight < m1a48)
-		g->DrawImage(IMAGE_TURBOT_WAVE, 0x8a, m1a48);
+	if (mMode == 2 && -IMAGE_TURBOT_WAVE->mHeight < mTurbotWaveY)
+		g->DrawImage(IMAGE_TURBOT_WAVE, 0x8a, mTurbotWaveY);
 
 	if (mBonusRoundOn && 0 < m1b7c)
 	{
@@ -117,7 +117,7 @@ void Board::Draw(Graphics* g)
 
 	if (mClearCountRunning)
 		DrawBonusStats(g);
-	if (mAtWarpGate && m1a60 == 1)
+	if (mAtWarpGate && mGameType == 1)
 		DrawWarpScreen(g);
 
 	if (mApp->mHintsOn && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && !mClearCountRunning &&
@@ -137,14 +137,14 @@ void Board::Draw(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawDangerZone(Graphics* g)
 {
-	if (!(!mBonusRoundOn && (13 < mHighestStack || 0 < m1aac) && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0))
+	if (!(!mBonusRoundOn && (13 < mHighestStack || 0 < mDangerZoneAlpha) && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0))
 		return;
 
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	g->SetColorizeImages(true);
-	g->SetColor(Color(0xff, 0xff, 0xff, m1aac));
+	g->SetColor(Color(0xff, 0xff, 0xff, mDangerZoneAlpha));
 	g->DrawImage(IMAGE_UI_DANGERZONE, 0, mHeight - IMAGE_UI_DANGERZONE->mHeight);
-	int aSecond = (m1aac < m1aa8) ? m1aac : m1aa8;
+	int aSecond = (mDangerZoneAlpha < mDangerPulseAlpha) ? mDangerZoneAlpha : mDangerPulseAlpha;
 	if (0 < aSecond && mApp->Is3DAccelerated())
 	{
 		g->SetColor(Color(0xff, 0xff, 0xff, aSecond));
@@ -162,9 +162,9 @@ void Board::DrawModeTexts(Graphics* g)
 	if (mGameOver)
 		return;
 
-	if (m1a34 == 1)
+	if (mPowerupActive == 1)
 	{
-		Color aColor((int) (mApp->HSLToRGB(m1ad0, 0xff, 0x80) | 0xff000000));
+		Color aColor((int) (mApp->HSLToRGB(mBonusBannerHue, 0xff, 0x80) | 0xff000000));
 		g->SetColor(aColor);
 		for (unsigned int i = 0; i < mBonusBannerTexts.size(); i++)
 		{
@@ -196,7 +196,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 	if (99 < aPulse)
 		aPulse = 200 - aPulse;
 
-	if (m1a34 == 1 && !mPsychicUsed && !mLaserUsed && !mGameOver)
+	if (mPowerupActive == 1 && !mPsychicUsed && !mLaserUsed && !mGameOver)
 	{
 		g->SetColor(Color(0, 0, 0, 0x80));
 		g->FillRect(Rect(0, 0xe6, mWidth, 0x14));
@@ -219,7 +219,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 	bool aHintOpen = !mHintSpots.empty() && mHintSpots[0]->mActive && !(-mLevelUpPanelHeight < mLevelUpPanelY);
 	if (!mStartedFromCheckpoint || aHintOpen)
 	{
-		if (-1 < mStartTextAlpha && mStageTextEnabled && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !aHintOpen && m1a60 == 1 && 1 < mLevelNumber)
+		if (-1 < mStartTextAlpha && mStageTextEnabled && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !aHintOpen && mGameType == 1 && 1 < mLevelNumber)
 		{
 			int aTextAlpha;
 			int aFillAlpha;
@@ -239,7 +239,7 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 			g->SetColor(Color(0xff, 0xff, 0xff, aPulseAlpha));
 			Font* aSmall = GetFontById(FONT_DIALOG_BOX_BTN_ID);
 			g->SetFont(aSmall);
-			std::string aBricks = StrFormat(GTC(0x00565d84), m1a18);
+			std::string aBricks = StrFormat(GTC(0x00565d84), mBricksToPass);
 			g->DrawString(aBricks, 0x182 - aSmall->StringWidth(aBricks) / 2, 0x159);
 
 			// a level that makes a new starting point: every fourth, once it is further than the best one so far
@@ -270,9 +270,9 @@ void Board::DrawGoalBanners(Graphics* g, int theCount)
 		g->SetFont(aFont);
 		std::string aText = GT(0x00565d9c);
 		g->DrawString(aText, 0x182 - aFont->StringWidth(aText) / 2, 0x159);
-		if (m1a60 == 1)
+		if (mGameType == 1)
 		{
-			std::string aBricks = StrFormat(GTC(0x00565d84), m1a18);
+			std::string aBricks = StrFormat(GTC(0x00565d84), mBricksToPass);
 			g->SetColor(Color(0, 0, 0, 0x80));
 			g->FillRect(Rect(0, 0x15e, mWidth, 0x14));
 			g->SetColor(Color(0xff, 0xff, 0xff, aPulse + 0x96));
@@ -298,7 +298,7 @@ void Board::DrawCrosshair(Graphics* g)
 		aRow = mHoverCells[0].mRow;
 		aCel = 2;
 	}
-	else if (mMode == 3 && m1a34 == 1)
+	else if (mMode == 3 && mPowerupActive == 1)
 	{
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 		aRow = (mFieldPointerY < 0x22) ? 1 : (mFieldPointerY - 0x22) / 0x19 + 1;
@@ -334,9 +334,9 @@ void Board::DrawExplosions(Graphics* g)
 		int aX = 0x182 - aWidth / 2;
 		Rect aDest(aX, (int) anExplosion->mY, aWidth, IMAGE_ATOMIC_EXPLOSION->mHeight * 2);
 		DrawCelStretched(g, IMAGE_ATOMIC_EXPLOSION, aDest, anExplosion->GetCel());
-		if (0 < m1a40)
+		if (0 < mAtomicSymbolTimer)
 		{
-			int anAlpha = m1a40 * 2;
+			int anAlpha = mAtomicSymbolTimer * 2;
 			if (0xff < anAlpha)
 				anAlpha = 0xff;
 			g->SetColor(Color(0xff, 0xff, 0xff, anAlpha));
@@ -375,10 +375,10 @@ void Board::DrawEndSparks(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawSnow(Graphics* g)
 {
-	if (!(0 < m19fc && m1ad4 == 0 && (m1a34 == 0 || mMode == 1 || mMode == 2)))
+	if (!(0 < mFreezeUpdatesLeft && mSupaBannerStep == 0 && (mPowerupActive == 0 || mMode == 1 || mMode == 2)))
 		return;
 
-	int aMaxAlpha = (m19fc < 0x3d) ? m19fc * 4 : 0xff;
+	int aMaxAlpha = (mFreezeUpdatesLeft < 0x3d) ? mFreezeUpdatesLeft * 4 : 0xff;
 	g->SetColorizeImages(true);
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	int aFlakes = (int) mFreezeFlakes.size();
@@ -425,7 +425,7 @@ void Board::DrawUpgradeArm(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawSurvivalIntro(Graphics* g)
 {
-	if (!(m1a60 == 2 && !mPlayStarted))
+	if (!(mGameType == 2 && !mPlayStarted))
 		return;
 
 	int anAlpha = mStartTextAlpha;
@@ -480,10 +480,10 @@ void Board::DrawSurvivalIntro(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawLogo(Graphics* g)
 {
-	if (m1afc < 1 || mGameOver || mBonusRoundOn)
+	if (mComboTimeLeft < 1 || mGameOver || mBonusRoundOn)
 	{
-		Image* aLogo = (m1a60 != 2) ? IMAGE_UI_LOGO_CLASSIC : IMAGE_UI_LOGO_SURVIVAL;
-		g->DrawImage(aLogo, m1a80, 0x1d);
+		Image* aLogo = (mGameType != 2) ? IMAGE_UI_LOGO_CLASSIC : IMAGE_UI_LOGO_SURVIVAL;
+		g->DrawImage(aLogo, mScreenShakeX, 0x1d);
 		return;
 	}
 
@@ -493,12 +493,12 @@ void Board::DrawLogo(Graphics* g)
 	int aCelHeight = IMAGE_COMBO_LIST->GetCelHeight();
 	Rect aSrc(0, aCelHeight * aRow, IMAGE_COMBO_LIST->mWidth, aCelHeight);
 	Font* aFont = (0x13 < m1b00) ? FONT_LARGE_COMBO_BLUE : FONT_COMBO_BLUE;
-	if (m1af8 == 1)
+	if (mComboColor == 1)
 	{
 		g->DrawImage(IMAGE_UI_SCREEN_RED, 0, 0);
 		aFont = (m1b00 < 0x14) ? FONT_COMBO_RED : FONT_LARGE_COMBO_RED;
 	}
-	else if (m1af8 == 2)
+	else if (mComboColor == 2)
 	{
 		g->DrawImage(IMAGE_UI_SCREEN_YELLOW, 0, 0);
 		aFont = (0x13 < m1b00) ? FONT_LARGE_COMBO_YELLOW : FONT_COMBO_YELLOW;
@@ -525,42 +525,42 @@ static const int kBonusTextWidths[11] = {40, 77, 117, 154, 194, 216, 256, 293, 3
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawSupaBrackets(Graphics* g)
 {
-	if (m1ad4 == 0 || mGameOver)
+	if (mSupaBannerStep == 0 || mGameOver)
 		return;
 
-	int aShift = -m1adc;
+	int aShift = -mSupaBracketSpread;
 	int aLeftX = aShift + 0x167;
-	int aRightX = IMAGE_SUPA_BRACKET_LEFT->mWidth + 0x167 + m1adc;
+	int aRightX = IMAGE_SUPA_BRACKET_LEFT->mWidth + 0x167 + mSupaBracketSpread;
 	if (0x24c < aRightX)
 		aRightX = 0x24d;
-	int aGreen = m1ae0;
+	int aGreen = mSupaBracketFlash;
 	int anAlpha = (0x7f < aGreen) ? aGreen : 0x80;
 	g->SetColor(Color(0xff, aGreen, aGreen, anAlpha));
-	if (0 < m1adc)
-		g->FillRect(aShift + 0x179, m1ad8 + 5, aRightX + (6 - aLeftX), 0x50);
-	g->DrawImage(IMAGE_SUPA_BRACKET_LEFT, aLeftX, m1ad8);
-	g->DrawImage(IMAGE_SUPA_BRACKET_RIGHT, aRightX, m1ad8);
+	if (0 < mSupaBracketSpread)
+		g->FillRect(aShift + 0x179, mSupaBannerY + 5, aRightX + (6 - aLeftX), 0x50);
+	g->DrawImage(IMAGE_SUPA_BRACKET_LEFT, aLeftX, mSupaBannerY);
+	g->DrawImage(IMAGE_SUPA_BRACKET_RIGHT, aRightX, mSupaBannerY);
 
-	if (2 < m1ad4)
+	if (2 < mSupaBannerStep)
 	{
 		Image* aTitle;
 		int aWidth;
 		if (!mBonusRoundOn)
 		{
-			aWidth = kSupaTextWidths[m1acc];
+			aWidth = kSupaTextWidths[mSupaTitleStep];
 			aTitle = IMAGE_SUPA_WEAPON_TEXT;
 		}
 		else
 		{
-			aWidth = kBonusTextWidths[m1acc];
+			aWidth = kBonusTextWidths[mSupaTitleStep];
 			aTitle = IMAGE_BONUSROUND_TEXT;
 		}
-		g->DrawImage(aTitle, 0xb4, m1ad8 + 0xc, Rect(0, 0, aWidth, aTitle->mHeight));
+		g->DrawImage(aTitle, 0xb4, mSupaBannerY + 0xc, Rect(0, 0, aWidth, aTitle->mHeight));
 	}
 
-	if (3 < m1ad4)
+	if (3 < mSupaBannerStep)
 	{
-		g->SetColor(Color(0xff, 0xff, 0, m1ae4));
+		g->SetColor(Color(0xff, 0xff, 0, mSupaNameAlpha));
 		std::string aName = GT(0x00565b1c);
 		if (mMode == 1)
 			aName = GT(0x00565b0c);
@@ -573,7 +573,7 @@ void Board::DrawSupaBrackets(Graphics* g)
 		Font* aFont = GetFontById(FONT_NEURO30_ID);
 		g->SetFont(aFont);
 		g->DrawString(aName, ((IMAGE_SUPA_BRACKET_RIGHT->mWidth + 0x1cd) / 2 - aFont->StringWidth(aName) / 2) + 0x80,
-			m1ad8 + 0x3f);
+			mSupaBannerY + 0x3f);
 	}
 }
 
@@ -581,20 +581,20 @@ void Board::DrawSupaBrackets(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawFreezeFx(Graphics* g)
 {
-	if (m19fc <= 0)
+	if (mFreezeUpdatesLeft <= 0)
 		return;
 
-	if (m19fc < 0x3d)
+	if (mFreezeUpdatesLeft < 0x3d)
 	{
 		g->SetColorizeImages(true);
-		g->SetColor(Color(0xff, 0xff, 0xff, m19fc << 2));
+		g->SetColor(Color(0xff, 0xff, 0xff, mFreezeUpdatesLeft << 2));
 	}
-	if ((m1a34 == 0 || mMode == 1 || mMode == 2) && ((mMode != 2 && mMode != 1) || m1ad4 == 0))
+	if ((mPowerupActive == 0 || mMode == 1 || mMode == 2) && ((mMode != 2 && mMode != 1) || mSupaBannerStep == 0))
 		g->DrawImage(IMAGE_UI_FREEZE_OVERLAY, 0x95, 0);
-	g->DrawImage(IMAGE_UI_FREEZE_FX, m1a80 + 0x3c, 0x6c);
-	g->DrawImage(IMAGE_UI_FREEZE_FX, m1a80 + 0x52, 0x9e);
-	g->DrawImage(IMAGE_UI_FREEZE_FX, m1a80, 0xfe);
-	if (m19fc < 0x3d)
+	g->DrawImage(IMAGE_UI_FREEZE_FX, mScreenShakeX + 0x3c, 0x6c);
+	g->DrawImage(IMAGE_UI_FREEZE_FX, mScreenShakeX + 0x52, 0x9e);
+	g->DrawImage(IMAGE_UI_FREEZE_FX, mScreenShakeX, 0xfe);
+	if (mFreezeUpdatesLeft < 0x3d)
 		g->SetColorizeImages(false);
 }
 
@@ -606,14 +606,14 @@ void Board::DrawSirens(Graphics* g)
 		return;
 
 	int aCel = mSirenAnim.GetCel();
-	DrawCel(g, IMAGE_SIREN, m1a80, -0xe, aCel);
-	DrawCel(g, mSirenImage, m1a80 + 0x244, -0xe, mSirenAnim.GetCel());
+	DrawCel(g, IMAGE_SIREN, mScreenShakeX, -0xe, aCel);
+	DrawCel(g, mSirenImage, mScreenShakeX + 0x244, -0xe, mSirenAnim.GetCel());
 	if (mApp->Is3DAccelerated())
 	{
 		if (mApp->Is3DAccelerated())
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		DrawCel(g, IMAGE_SIREN_FX, m1a80, -0x31, mSirenAnim.GetCel());
-		DrawCel(g, mSirenFxImage, m1a80 + 0x1bd, -0x31, mSirenAnim.GetCel());
+		DrawCel(g, IMAGE_SIREN_FX, mScreenShakeX, -0x31, mSirenAnim.GetCel());
+		DrawCel(g, mSirenFxImage, mScreenShakeX + 0x1bd, -0x31, mSirenAnim.GetCel());
 		if (mApp->Is3DAccelerated())
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}

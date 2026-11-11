@@ -58,7 +58,7 @@ void Board::Pause(bool theStart, bool theFlag)
 				SoundInstance* aKlaxon = mApp->mLoopSounds[7];
 				if (aKlaxon->IsPlaying())
 					aKlaxon->SetVolume(1.0);
-				m1af4 = mUpdateCnt;
+				mResumeUpdate = mUpdateCnt;
 				// (the original writes "End of pause" to its trace list here)
 				if (!m1c09)
 					mApp->SetLoopSoundsMuted(false);
@@ -102,7 +102,7 @@ void Board::Pause(bool theStart, bool theFlag)
 	if (mDemoStartLink != NULL)
 		mDemoStartLink->SetVisible(false);
 	// (the original writes "Start of pause" to its trace list here)
-	m1af0 = mUpdateCnt;
+	mPauseStartUpdate = mUpdateCnt;
 	mApp->SetLoopSoundsMuted(true);
 	SetOverlayHidden(false);
 	if (mPauseMutedSound != NULL)
@@ -169,14 +169,14 @@ void Board::ShowThemeButtons()
 // steel ones, mode 3 lights the cell under the pointer. Nothing starts while the field is not at rest.
 void Board::BeginPlay()
 {
-	if (mKillAllTypes.empty() && m1a34 != 1)
+	if (mKillAllTypes.empty() && mPowerupActive != 1)
 	{
 		int aValue = 0;
 		mApp->mUser->GetInt(mMode + 0x2a, &aValue);
 		m1c08 = aValue == 1;
 
 		if (mMode == 0)
-			m1a34 = 1;
+			mPowerupActive = 1;
 		else if (mMode == 1)
 		{
 			Fire(0x28, 1);
@@ -217,11 +217,11 @@ void Board::BeginPlay()
 				return;
 			}
 
-			m1a34 = 1;
+			mPowerupActive = 1;
 
 			// the buried ones are thinned out at random: only the share that the power level asks for is kept
 			float aKeepShare = 0.0f;
-			switch (m1a8c)
+			switch (mWeaponPower)
 			{
 			case 1:		aKeepShare = 0.05f;	break;
 			case 2:		aKeepShare = 0.1f;	break;
@@ -253,7 +253,7 @@ void Board::BeginPlay()
 					mAtomicMarkedBricks.push_back(aMark);
 				}
 			}
-			m1a3c = 0;
+			mAtomicWeaponState = 0;
 		}
 		else if (mMode == 2)
 		{
@@ -264,12 +264,12 @@ void Board::BeginPlay()
 			m1b54 = 0;
 			m1b4c = 0;
 			m1b50 = 0;
-			m1a4c = 0;
+			mTurbotFlashAlpha = 0;
 			mOverlay.SetFill(255, 255, 255, 0);
 			SetOverlayHidden(false);
-			m1a48 = mHeight;
+			mTurbotWaveY = mHeight;
 			mTurbotPowerupAnim.SetStopped(false);
-			m1aa0 = 0;
+			mTurbotPowerupAlpha = 0;
 			mClearWaitStarted = false;
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
@@ -284,13 +284,13 @@ void Board::BeginPlay()
 						int aType = 0xc;
 						if (aMutated != 1)
 							aType = aBrick->mType;
-						if ((1 < m1a8c && (aType == 7 || aType == 9)) || (3 < m1a8c && (aMutated == 0 || aMutated == 1)))
+						if ((1 < mWeaponPower && (aType == 7 || aType == 9)) || (3 < mWeaponPower && (aMutated == 0 || aMutated == 1)))
 						{
 							CellRef aCell;
 							aCell.mCol = aCol;
 							aCell.mRow = aRow;
 							mTurbotMarkedCells.push_back(aCell);
-							if (4 < m1a8c)
+							if (4 < mWeaponPower)
 							{
 								aBrick->mBlastsOnPop = true;
 								aBrick->AdvanceParticleCount();
@@ -299,14 +299,14 @@ void Board::BeginPlay()
 					}
 				}
 			}
-			m1a34 = 1;
+			mPowerupActive = 1;
 			SortCells(mTurbotMarkedCells);
 			mApp->PlaySample(SOUND_EXPLOSION);
 		}
 		else if (mMode == 3)
 		{
 			int aX = mLastPointerX;
-			m1a34 = 1;
+			mPowerupActive = 1;
 			if (aX > 0xa5 && aX < 0x25e)
 			{
 				unsigned int aRow = 0;
@@ -334,14 +334,14 @@ void Board::BeginPlay()
 		mPlayStarted = true;
 		mStartedFromCheckpoint = false;
 		m1b24 = 0;
-		m1ab8 = 6;
-		m1ac0 = PickSpawnDelay();
-		m1ad0 = 0;
-		m1aec = 0;
-		m1ae0 = 0xff;
-		m1adc = 0;
-		m1ad8 = -IMAGE_SUPA_BRACKET_LEFT->mHeight;
-		m1ad4 = 1;
+		mPhase = 6;
+		mPhaseDelay = PickSpawnDelay();
+		mBonusBannerHue = 0;
+		mScreenShakeUpdates = 0;
+		mSupaBracketFlash = 0xff;
+		mSupaBracketSpread = 0;
+		mSupaBannerY = -IMAGE_SUPA_BRACKET_LEFT->mHeight;
+		mSupaBannerStep = 1;
 		aValue = 0;
 		mApp->mUser->GetInt(0x2e, &aValue);
 		if (aValue == 1)

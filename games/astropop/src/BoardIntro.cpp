@@ -127,7 +127,7 @@ void Board::UpdateIntroAndTally()
 	bool aTimeUp = mBonusRoundOn;
 	if (aTimeUp)
 	{
-		if (m1ad4 == 0 && mBonusFadingOut)
+		if (mSupaBannerStep == 0 && mBonusFadingOut)
 		{
 			m1b74 -= 2;
 			if (m1b74 < 1)
@@ -136,7 +136,7 @@ void Board::UpdateIntroAndTally()
 				mBonusFadingOut = false;
 			}
 		}
-		if (m1ad4 == 0 && m1b7c > 0)
+		if (mSupaBannerStep == 0 && m1b7c > 0)
 		{
 			int aTime = m1b7c;
 			m1b84 = aTime;
@@ -147,7 +147,7 @@ void Board::UpdateIntroAndTally()
 		}
 	}
 
-	if (!mBonusWarpIn && m1ad4 == 0 && mBonusRoundStarted && !mClearCountRunning)
+	if (!mBonusWarpIn && mSupaBannerStep == 0 && mBonusRoundStarted && !mClearCountRunning)
 	{
 		// the time runs out: when everything has settled the clear count starts
 		if (aTimeUp && !mStartBannerDoneInBonus && !mBricksRevealing)
@@ -171,7 +171,7 @@ void Board::UpdateIntroAndTally()
 		return;
 
 	// the tally
-	if (m1ad4 == 0 && m1b7c < 1)
+	if (mSupaBannerStep == 0 && m1b7c < 1)
 	{
 		int aState = m1bb0;
 		if (aState == 0)

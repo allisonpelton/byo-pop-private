@@ -31,8 +31,8 @@ void Board::OnEvent(int theEvent, EventListener* theSource, int theArg)
 	case 0xd:	OnColumnNuke(aBrick); break;
 	case 0xe:	OnPowerBrickDone(aBrick); break;
 	case 0xf:	OnMutatorSpread(aBrick); break;
-	case 0x10:	m1a68++; break;                         // 0x433cc0 (INC [ECX+0x1a04]: ECX is the listener part, Board+0x64)
-	case 0x11:	m1a68--; break;                         // 0x433cd0
+	case 0x10:	mSupportedBrickCount++; break;                         // 0x433cc0 (INC [ECX+0x1a04]: ECX is the listener part, Board+0x64)
+	case 0x11:	mSupportedBrickCount--; break;                         // 0x433cd0
 	case 0x12:	OnHyperBrick(aBrick); break;
 	case 0x13:	OnBoosterEnd(aBrick); break;
 	case 0x1a:	OnBrickPopped(aBrick); break;
@@ -75,8 +75,8 @@ void Board::AdvanceChain()
 	}
 	int aChain = mChainCount;
 	m1b18 = 100;
-	if (m1a24 < aChain && !mBonusRoundOn)
-		m1a24 = aChain;
+	if (mLongestChain < aChain && !mBonusRoundOn)
+		mLongestChain = aChain;
 	if (mBestChain < aChain && !mBonusRoundOn && !mBonusWarpIn)
 	{
 		mBestChain = aChain;
@@ -86,37 +86,37 @@ void Board::AdvanceChain()
 			mApp->mUser->SetInt(0x5d, mBestChain);
 	}
 	aChain = mChainCount;
-	if (aChain > 3 && m1bbc <= mStageNumber && m1a60 != 2)
+	if (aChain > 3 && m1bbc <= mStageNumber && mGameType != 2)
 		mBoosterDue = true;
 	if (aChain > 2)
 	{
-		m1ab8 = 10;
-		m1ac0 = PickSpawnDelay();
+		mPhase = 10;
+		mPhaseDelay = PickSpawnDelay();
 		aChain = mChainCount;
-		m1abc = aChain * 100;
+		mFlurryTimer = aChain * 100;
 	}
 	if (aChain == 1)
-		m1a50++;
+		mTimeBonusSets++;
 	else if (aChain == 2)
 	{
-		m1af8++;
-		if (m1af8 > 2)
-			m1af8 = 0;
+		mComboColor++;
+		if (mComboColor > 2)
+			mComboColor = 0;
 	}
-	if (aChain > 1 && (m1b00 <= aChain || m1afc < 1))
+	if (aChain > 1 && (m1b00 <= aChain || mComboTimeLeft < 1))
 	{
 		m1b00 = aChain;
-		m1afc = 300;
+		mComboTimeLeft = 300;
 		if (aChain > 5)
 		{
 			mComboTextVisible = true;
-			m1afc = 600;
+			mComboTimeLeft = 600;
 		}
 	}
-	if (m1a50 == 1)
+	if (mTimeBonusSets == 1)
 	{
 		mTimeBonusRunning = true;
-		m1a2c = 0;
+		mTimeBonusUpdates = 0;
 	}
 }
 
@@ -124,7 +124,7 @@ void Board::AdvanceChain()
 // row down) starts a bonus
 void Board::CheckSparseField()
 {
-	if (!(mHighestStack < 6 && mExtraRowsDue < 1 && mFiredGroups.empty() && mFallingGroups.empty() && m19fc < 1))
+	if (!(mHighestStack < 6 && mExtraRowsDue < 1 && mFiredGroups.empty() && mFallingGroups.empty() && mFreezeUpdatesLeft < 1))
 		return;
 
 	int aTotal = 0;
@@ -144,7 +144,7 @@ void Board::CheckSparseField()
 			}
 		}
 	}
-	m1ab4 = 100;
+	mExtraRowDelay = 100;
 	mExtraRowsDue = (aTotal < 11 ? 1 : 0) + 1;
 }
 
@@ -155,9 +155,9 @@ std::vector<CellRef> Board::BlastNeighbours(int theCol, int theRow, Brick* theBr
 {
 	std::vector<CellRef> aNeighbours;
 
-	bool aMode0 = mMode == 0 && m1a34 == 1;
-	bool aMode1 = mMode == 1 && m1a34 == 1;
-	bool aMode2 = mMode == 2 && m1a34 == 1 && m1a8c >= 5;
+	bool aMode0 = mMode == 0 && mPowerupActive == 1;
+	bool aMode1 = mMode == 1 && mPowerupActive == 1;
+	bool aMode2 = mMode == 2 && mPowerupActive == 1 && mWeaponPower >= 5;
 
 	int aKind = theBrick->GetEffectiveType();
 	bool aMarked = HasMarkOfType(aKind) && theBrick->mMutated != 1 && !theBrick->mSpecial;
@@ -189,7 +189,7 @@ std::vector<CellRef> Board::BlastNeighbours(int theCol, int theRow, Brick* theBr
 		aCell.mRow = theRow + 1;
 		aNeighbours.push_back(aCell);
 	}
-	if (((aMode0 && m1a8c > 1) || aMarked || aMode2) && theRow != 1 && theRow - 1 >= 0 &&
+	if (((aMode0 && mWeaponPower > 1) || aMarked || aMode2) && theRow != 1 && theRow - 1 >= 0 &&
 		(aOther = mFieldBricks[theRow - 1][theCol]) != NULL && aOther->IsIdle() && PASSES(theCol, theRow - 1))
 	{
 		aCell.mCol = theCol;
@@ -198,21 +198,21 @@ std::vector<CellRef> Board::BlastNeighbours(int theCol, int theRow, Brick* theBr
 	}
 	if (aMode0)
 	{
-		if (m1a8c > 2 && theCol - 1 >= 0 && theRow - 1 > 0 && (aOther = mFieldBricks[theRow - 1][theCol - 1]) != NULL &&
+		if (mWeaponPower > 2 && theCol - 1 >= 0 && theRow - 1 > 0 && (aOther = mFieldBricks[theRow - 1][theCol - 1]) != NULL &&
 			aOther->IsIdle() && !HasCell(theCol - 1, theRow - 1, mConnectedCells))
 		{
 			aCell.mCol = theCol - 1;
 			aCell.mRow = theRow - 1;
 			aNeighbours.push_back(aCell);
 		}
-		if (m1a8c > 3 && theCol + 1 >= 0 && theCol + 1 < 10 && theRow - 1 > 0 &&
+		if (mWeaponPower > 3 && theCol + 1 >= 0 && theCol + 1 < 10 && theRow - 1 > 0 &&
 			(aOther = mFieldBricks[theRow - 1][theCol + 1]) != NULL && aOther->IsIdle() && !HasCell(theCol + 1, theRow - 1, mConnectedCells))
 		{
 			aCell.mCol = theCol + 1;
 			aCell.mRow = theRow - 1;
 			aNeighbours.push_back(aCell);
 		}
-		if (m1a8c > 4 && theRow - 2 > 0 && (aOther = mFieldBricks[theRow - 2][theCol]) != NULL && aOther->IsIdle() &&
+		if (mWeaponPower > 4 && theRow - 2 > 0 && (aOther = mFieldBricks[theRow - 2][theCol]) != NULL && aOther->IsIdle() &&
 			!HasCell(theCol, theRow - 2, mConnectedCells))
 		{
 			aCell.mCol = theCol;
@@ -227,7 +227,7 @@ std::vector<CellRef> Board::BlastNeighbours(int theCol, int theRow, Brick* theBr
 		return aGone;
 
 	std::vector<CellRef> aKept;
-	if (mMode == 1 && m1a34 == 1)
+	if (mMode == 1 && mPowerupActive == 1)
 	{
 		for (unsigned int i = 0; i < mAtomicMarkedBricks.size(); i++)
 		{
@@ -437,7 +437,7 @@ void Board::OnBrickBounced(Brick* theBrick)
 		if (!mHintSpots.empty())
 			mHintSpots[0]->mActive = true;
 	}
-	if (mMode == 3 && m1a34 == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
+	if (mMode == 3 && mPowerupActive == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
 		HoverCell((mLastPointerX - 0xa6) / 0x2c, CellRow((float) mLastPointerY), true);
 }
 
@@ -491,7 +491,7 @@ void Board::OnMutatorSpread(Brick* theBrick)
 				if (aMaxCol < aCol)
 					aMaxCol = aCol;
 			}
-			if (m1ac4 <= aCount)
+			if (mMaxMutators <= aCount)
 				return;
 		}
 	}
@@ -570,7 +570,7 @@ void Board::OnMutatorSpread(Brick* theBrick)
 void Board::OnBoosterEnd(Brick* theBrick)
 {
 	bool aKeep = theBrick->mState != 0 || theBrick->mBouncing || theBrick->mBounceY != 0.0f ||
-		((mMode == 1 || mMode == 2) && m1a34 == 1);
+		((mMode == 1 || mMode == 2) && mPowerupActive == 1);
 
 	bool aFound = false;
 	int aKind = theBrick->GetEffectiveType();
@@ -600,7 +600,7 @@ void Board::OnBoosterEnd(Brick* theBrick)
 	theBrick->mGone = true;
 	int aRow = CellRow(theBrick->mY);
 	int aCol = CellColumn(theBrick->mX);
-	Brick* aNew = CreateBrick(((int) AstroRand() % 500000000) % (m1a28 + 4));
+	Brick* aNew = CreateBrick(((int) AstroRand() % 500000000) % (mExtraColors + 4));
 	mFieldBricks[aRow][aCol] = aNew;
 	aNew->SetParticleX(theBrick->mX);
 	aNew->SetParticleY(theBrick->mY);
@@ -623,10 +623,10 @@ void Board::OnHyperBrick(Brick* theBrick)
 
 	if (!mBonusRoundOn)
 	{
-		int aMax = m1a18;
-		m1a14 += (int) ((float) aMax * 0.15f);
-		if (aMax < m1a14)
-			m1a14 = aMax;
+		int aMax = mBricksToPass;
+		mStageBricksCleared += (int) ((float) aMax * 0.15f);
+		if (aMax < mStageBricksCleared)
+			mStageBricksCleared = aMax;
 		mStageMeterAnim.Reset();
 		mStageMeterAnim.SetStopped(false);
 		mApp->PlaySample(SOUND_BRICK_MILESTONE);
@@ -640,7 +640,7 @@ void Board::OnHyperBrick(Brick* theBrick)
 		aFloat->mNoFade = true;
 		aFloat->mAlphaDelay = 200;
 
-		mBrickometerFill = (float) m1a14 / (float) m1a18;
+		mBrickometerFill = (float) mStageBricksCleared / (float) mBricksToPass;
 		if (!(mBrickometerFill <= 1.0f))
 			mBrickometerFill = 1.0f;
 		float aFill = mBrickometerFill * 444.0f;

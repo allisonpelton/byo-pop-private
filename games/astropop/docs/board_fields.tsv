@@ -279,76 +279,76 @@ ade	int	made	stray; nothing uses it (remove with the dead fields)
 19d4	int	mRowReductionPeriod	the updates between two steps of mRowIntervalReduction (8, one less on each even stage from the mode's start stage on, at least 5)
 19d8	int	mRowTimer	the updates since the last top row finished bouncing (0 in OnBrickBounced, -1 after a reset); the next row comes when it reaches the row time
 19dc	int	mRemovalPoints	the points of the bricks of the current removal; OnBrickGone adds them and the group's floating text shows them where the first brick was
-19e0	int	m19e0	?
-19e4	int	m19e4	?
-19e8	int	m19e8	?
-19ec	int	m19ec	?
-19f0	int	m19f0	?
-19f4	int	m19f4	?
-19f8	int	m19f8	?
-19fc	int	m19fc	?
-1a00	int	m1a00	?
-1a04	int	m1a04	?
-1a08	int	m1a08	?
-1a0c	int	m1a0c	?
-1a10	int	m1a10	?
-1a14	int	m1a14	?
-1a18	int	m1a18	?
-1a1c	int	m1a1c	?
-1a20	int	m1a20	?
-1a24	int	m1a24	?
-1a28	int	m1a28	?
-1a2c	int	m1a2c	?
-1a30	int	m1a30	?
-1a34	int	m1a34	?
-1a38	int	mMode	the game mode (profile setting 0x53); also the key of the best score
-1a3c	int	m1a3c	?
-1a40	int	m1a40	?
-1a44	int	m1a44	?
-1a48	int	m1a48	?
-1a4c	int	m1a4c	?
-1a50	int	m1a50	?
-1a54	int	m1a54	the size of a group of same-coloured bricks that is broken up in a new row
-1a58	int	m1a58	?
-1a5c	int	m1a5c	?
-1a60	int	m1a60	?
-1a68	int	m1a68	?
-1a70	int	m1a70	?
-1a74	int	m1a74	?
-1a78	int	m1a78	?
-1a7c	int	m1a7c	?
-1a80	int	m1a80	?
-1a84	int	m1a84
-1a88	int	m1a88	?
-1a8c	int	m1a8c	?
-1a90	int	m1a90	?
-1a94	int	m1a94	?
-1a98	int	m1a98	a time (in updates); -500000000: none
-1a9c	int	m1a9c	the same
-1aa0	int	m1aa0
-1aa4	int	m1aa4	?
-1aa8	int	m1aa8	?
-1aac	int	m1aac	?
-1ab0	int	m1ab0	?
-1ab4	int	m1ab4	?
-1ab8	int	m1ab8	?
-1abc	int	m1abc	?
-1ac0	int	m1ac0	?
-1ac4	int	m1ac4	?
-1ac8	int	m1ac8	?
-1acc	int	m1acc	?
-1ad0	int	m1ad0
-1ad4	int	m1ad4
-1ad8	int	m1ad8
-1adc	int	m1adc
-1ae0	int	m1ae0
-1ae4	int	m1ae4	?
-1ae8	int	m1ae8	?
-1aec	int	m1aec
-1af0	int	m1af0	?
-1af4	int	m1af4	?
-1af8	int	m1af8	?
-1afc	int	m1afc	?
+19e0	int	mWarpGateAlpha	alpha 0-255 of the warp screen's gates: 0 on reaching the gates, +2 an update up to 255 (UpdateWarp); DrawWarpScreen fades the gates in with it
+19e4	int	mEasyGateGlow	glow alpha 0-255 of the easy gate: +8 an update while the pointer is over it, -8 otherwise (UpdateWarp); the pointer is never over it and nothing reads it
+19e8	int	mSlowGateGlow	glow alpha 0-255 of the slow gate: +8 an update while the pointer is over it, -8 otherwise (UpdateWarp); DrawWarpScreen draws the gate again with it
+19ec	int	mFastGateGlow	glow alpha 0-255 of the fast gate, moved like mSlowGateGlow by the pointer; drawn only when the fast gate is offered
+19f0	int	mWarpLightningAlpha	alpha of the lightning flash on the warp backdrop: 0xff when a flash starts, -3 an update to 0 (UpdateScenery); drawn in 3D while the warp runs
+19f4	int	mWarpLightningPeriod	the updates between two lightning flashes of the warp (100-299, drawn again after each flash); a flash starts when mUpdateCnt is a multiple of it
+19f8	int	mWarpLightningY	the y (50-399) at which the lightning picture is drawn, drawn again at each flash
+19fc	int	mFreezeUpdatesLeft	the updates the freeze effect has left (1000 from BeginClearWait, counts down once the game runs); the freeze ends and event 0x28 (0) fires at 0
+1a00	int	mNextStageNumber	the stage after the one the game began on (mStageNumber + 1 in the constructor, aLevel + 1 for a classic game); nothing reads it
+1a04	int	mSlowGateStage	the stage the slow gate of the warp screen leads to (the current stage + 2); a click on the gate advances mStageNumber up to it
+1a08	int	mFastGateStage	the stage the fast gate leads to (a jump of up to 8 stages ahead); -1 when no fast gate is offered; its level is this / 2 + 1
+1a0c	int	mBestLevelReached	the furthest level the player has reached with this pilot (profile record mMode + 8); the fast gate needs it above 3 and stages up to twice it minus 2
+1a10	int	mUnusedIntClearedWithBrickCount	cleared in ResetGame beside the stage's brick count; nothing else reads or writes it
+1a14	int	mStageBricksCleared	the bricks cleared toward the stage's quota mBricksToPass (OnBrickGone counts each; a booster adds 15%); saved in profile record 0x56; the brickometer fill
+1a18	int	mBricksToPass	the stage's quota of bricks (NumBricksToPass of the level file: 200 for level 1, then plus mBricksToPassChange, at most mBricksToPassMax)
+1a1c	int	mBricksToPassChange	how much the quota mBricksToPass grows for each level (NumBricksToPassChangeBy of the level file, 20 for level 1)
+1a20	int	mBricksToPassMax	the highest the quota mBricksToPass may grow (MaxBricksToPass of the global rules, 1000)
+1a24	int	mLongestChain	the longest chain of the game outside bonus rounds (AdvanceChain); saving the game raises it to mBestChain; nothing else reads it
+1a28	int	mExtraColors	the colours in play beyond the first four (0-2): the level file's AddNewColor adds one, survival adds one at ramp time 18000; bricks are made from 4 + this kinds
+1a2c	int	mTimeBonusUpdates	the updates since the first set of the stage while the time bonus runs (PayTimeBonus pays at 200..700); 0 when it stops
+1a30	int	mTimeBonusStepsPaid	the steps of the time bonus paid so far (0-6, at 200, 300, 400, 500, 600 and 700 updates); sets the height of the bonus's floating text
+1a34	int	mPowerupActive	1 while the pilot's power-up is running (the gauge full and the weapon in use), 0 while it charges; set in BeginPlay, cleared when the gauge is empty
+1a38	int	mMode	the pilot of the game (0 laser, 1 atomic, 2 turbot, 3 psychic) and the base of its profile records: best score at mMode, stage at +4, level at +8
+1a3c	int	mAtomicWeaponState	0 when the atomic weapon (mode 1) is fired in BeginPlay, -1 once its blast has gone; nothing reads it
+1a40	int	mAtomicSymbolTimer	updates since the eighth atomic explosion reached frame 7 (the atomic symbol fades in with twice it as alpha); past 149 it becomes -5 and the blast sounds; -1 none
+1a44	int	mAtomicFlashAlpha	alpha of the white flash over the screen while the atomic blast grows (0 at its start, +1 an update, +10 later up to 255); -1 when no blast runs
+1a48	int	mTurbotWaveY	the y of the turbot's wave picture: starts at the screen's height and falls 10 an update while the wave sweeps; -65536 when none
+1a4c	int	mTurbotFlashAlpha	the white flash of the turbot mode: counts up to 100 while it charges (it also sets the beams' rate), 255 when the wave starts, then -2 an update; -1 none
+1a50	int	mTimeBonusSets	the chains begun since the time bonus clock started (AdvanceChain); the first starts the clock, and PayTimeBonus needs 3 to 8 of them for each step
+1a54	int	mSetSize	the number of bricks of one kind together that make a set and are taken out (4); the bot and the move search use it too
+1a58	int	mTutorialPickTimer	the tutorial's updates since the first brick was picked up; at 1000 the tutorial's hint dialog opens; restarted by the second pick-up
+1a5c	int	mTutorialPickCount	the bricks picked up so far while the tutorial is on (counted in the pick-up loop of the hand); the first one starts mTutorialPickTimer
+1a60	int	mGameType	the kind of game this Board plays: 0 the demonstration, 1 the classic game, 2 survival (constructor argument); also the table of its Hall of Fame records
+1a68	int	mSupportedBrickCount	the bricks that rise on a support brick (event 0x10 from Brick::SetTargetY counts up, 0x11 from FireLanded down); the next row waits for 0
+1a70	int	mSlowGateX	the x of the slow gate on the warp screen: 182 when two gates are shown, else centred; its click area is 120 wide
+1a74	int	mFastGateX	the x of the fast gate on the warp screen (402); -1 when none is offered
+1a78	int	mUnusedIntFromCtor	set to 0 in the constructor beside the screen wipe; nothing reads it
+1a7c	int	mSirenOffDelay	the updates until the siren and its song stop after the stack has dropped below 13 rows (300 / (15 - height), CheckStackHeight); -1 none
+1a80	int	mScreenShakeX	the x shift of the frame, the panels and the logo: random -2..2 while a strong hit shakes (UpdateStartBanner), -5..5 in turbot mode and at the game's end; else 0
+1a84	int	mScreenWipeSteps	the steps the screen wipe runs each update: 2000 for the kind that ends at once, 4 for kind 3, else 6
+1a88	int	mCountedBrickType	the brick type that counts toward the quota (OnBrickGone); -1 counts every brick, the only value ever set
+1a8c	int	mWeaponPower	the power level of the pilot's weapon (profile record mMode + 0x33): the reach of the pointer's marking, and the share of buried bricks the atomic weapon takes
+1a90	int	mWeaponDurationLevel	the level of the weapon's duration for the laser (profile record 0x37) or the psychic (0x3a), -1 for the others; ApplyWeaponLevels picks how long it lasts from it
+1a94	int	mWeaponChargeLevel	the level of the weapon's charging speed (profile record mMode + 0x3b): ApplyWeaponLevels turns it into the gauge's charge factor
+1a98	int	mGameOverDangerY	the y of the game-over danger picture: mUpdateCnt + 20 when the siren starts, -12 an update (UpdateAlertFlash); -500000000 none; nothing draws it
+1a9c	int	mGameOverDangerHold	counts the 149 updates the danger picture waits once it passes y 21; -500000000 before, -250000000 after
+1aa0	int	mTurbotPowerupAlpha	alpha 0-255 of the turbot's power-up drawn on the ship: 0 at BeginPlay, +2 an update
+1aa4	int	mDangerPulseStep	the step of mDangerPulseAlpha each update; its size comes from the stack height (CheckStackHeight) and its sign flips at either end
+1aa8	int	mDangerPulseAlpha	the pulsing alpha 0-255 of the danger zone's second layer while the stack is high (UpdateAlertFlash)
+1aac	int	mDangerZoneAlpha	alpha 0-255 of the glow at the bottom of the screen: +4 an update while the stack is 14 rows or more, -6 otherwise
+1ab0	int	mHoveredGate	which warp gate the pointer is over (2 the slow gate, 3 the fast gate, 0 none); nothing reads it
+1ab4	int	mExtraRowDelay	a countdown from 100 held between extra rows: set when extra rows become due, counts down while no power-up runs; an extra row waits until it is 0
+1ab8	int	mPhase	the game's phase: index of the picture under the field (mPhasePictures) and key of PickSpawnDelay; 2-5 calm, 6-7 power-up, 8-9 siren, 10-13 chain flurry
+1abc	int	mFlurryTimer	the updates left of the chain flurry (chain length x 100 after a chain over 2, 400 at a bonus round, 700 at the level-up screen); at 0 the phase goes back
+1ac0	int	mPhaseDelay	the updates until the phase steps on again (PickSpawnDelay of the current phase); the power-up picture fades with it
+1ac4	int	mMaxMutators	the most mutators that may be in the field at once (MaxMutators of the level file, 6 by default; the speed ramp changes it)
+1ac8	int	mRowsAtStart	the rows the field is filled with at the start of a level (NumRowsAtStart of the level file, 4 by default)
+1acc	int	mSupaTitleStep	how much of the SUPA banner's title is shown, 0-10 (the index of its width table); +1 every 4 updates while the banner opens
+1ad0	int	mBonusBannerHue	the hue 0-255 of the running banner text while the power-up runs: +4 an update; 0 at BeginPlay
+1ad4	int	mSupaBannerStep	the step of the SUPA banner: 0 none, 1 brackets slide in, 2 spread, 3 title, 4 name, 5 hold, 6 slide out (UpdateStartBanner)
+1ad8	int	mSupaBannerY	the y of the SUPA banner's brackets: slides in from above the screen to 0 and back out
+1adc	int	mSupaBracketSpread	how far apart the banner's two brackets have slid, 0 to 231 (+12 an update in step 2)
+1ae0	int	mSupaBracketFlash	how white the banner's brackets are, 255 at the start and -3 an update to 0 (their green and blue); drawn red at 0
+1ae4	int	mSupaNameAlpha	alpha 0-255 of the weapon's name in the banner: +10 an update in step 4
+1ae8	int	mSupaBannerTimer	counts updates inside a banner step: 4 for each step of the title, 149 for the hold
+1aec	int	mScreenShakeUpdates	the updates of screen shake left (25 when the laser takes a brick or the psychic pops its bricks); each update sets mScreenShakeX at random
+1af0	int	mPauseStartUpdate	mUpdateCnt when the game was paused (Pause); the drawing uses it as its tick while the pause lasts so the animations stand still
+1af4	int	mResumeUpdate	mUpdateCnt when the game was resumed from a pause; clicks in that same update are ignored
+1af8	int	mComboColor	the colour of the combo display: 0 blue, 1 red, 2 yellow; moves on each time a chain reaches 2
+1afc	int	mComboTimeLeft	the updates the combo display stays up (300, or 600 for a chain over 5); the combo count is cleared when it runs out
 1b00	int	m1b00	?
 1b04	int	m1b04	?
 1b08	int	m1b08	?

@@ -44,9 +44,9 @@ void BoardOverlay::Draw(Graphics* g)
 	}
 
 	// the flash of lightning of the freeze (3D only)
-	if (gApp->Is3DAccelerated() && aBoard->m19f0 / 4 > 0 && (aBoard->mWarpFlight || aBoard->mAtWarpGate || aBoard->mWarpGatePicked))
+	if (gApp->Is3DAccelerated() && aBoard->mWarpLightningAlpha / 4 > 0 && (aBoard->mWarpFlight || aBoard->mAtWarpGate || aBoard->mWarpGatePicked))
 	{
-		g->SetColor(Color(200, 200, 200, aBoard->m19f0 / 4));
+		g->SetColor(Color(200, 200, 200, aBoard->mWarpLightningAlpha / 4));
 		g->FillRect(0, 0, mWidth, mHeight);
 	}
 

@@ -49,7 +49,7 @@ void Board::DrawShip(Graphics* g)
 		int aShipX = anOffset + aX;
 		DrawCel(g, aShip, aShipX, (int) aShipY, aCel);
 
-		if (m1a34 == 1 && mShipShimmerHeight > 0)
+		if (mPowerupActive == 1 && mShipShimmerHeight > 0)
 		{
 			// the charge of the weapon, over the ship
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
@@ -118,7 +118,7 @@ void Board::DrawShip(Graphics* g)
 	if (!mTurbotPowerupAnim.mStopped)
 	{
 		// the turbot's power-up on the ship, and the lightning that jumps from it (3D only)
-		g->SetColor(Color(0xff, 0xff, 0xff, m1aa0));
+		g->SetColor(Color(0xff, 0xff, 0xff, mTurbotPowerupAlpha));
 		g->SetColorizeImages(true);
 		DrawCel(g, IMAGE_TURBOT_POWERUP, mShipX - 0x26, aY - 0x25, (mTurbotPowerupAnim.mNumFrames == 1) ? 0 : mTurbotPowerupAnim.mFrame);
 		g->SetColorizeImages(false);

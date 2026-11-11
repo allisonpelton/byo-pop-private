@@ -1,6 +1,6 @@
 // Board: what the test commands read of the game (the field) and the bot behind `move` (docs/TEST_COMMANDS.md). The bot
 // takes a brick or more from the bottom of a column and shoots them up the column where they join the biggest group of their
-// kind: a group is broken up when it reaches m1a54 bricks. It reads the field and the hand and changes nothing, and it draws
+// kind: a group is broken up when it reaches mSetSize bricks. It reads the field and the hand and changes nothing, and it draws
 // no random number. port: nothing here is in the original; none of it changes the game.
 
 #include "Board.h"
@@ -225,9 +225,9 @@ std::string Board::BotMove()
 	}
 
 	// the warp screen between two levels waits for a click on its first panel (the next level) once the screen is up
-	if (mAtWarpGate && m1a60 == 1 && mLevelUpPanelY >= 0 && !mWarpGatePicked)
+	if (mAtWarpGate && mGameType == 1 && mLevelUpPanelY >= 0 && !mWarpGatePicked)
 		return "{\"kind\":\"gate\",\"updates\":10," +
-			   Steps(StrFormat("{\"click\":[%d,%d]}", m1a70 + 0x3c, 0xe1 + 0x14)) + "}";
+			   Steps(StrFormat("{\"click\":[%d,%d]}", mSlowGateX + 0x3c, 0xe1 + 0x14)) + "}";
 
 	// the box that explains the weapon, before it starts: its button closes it and the weapon goes on
 	Dialog* aPowerBox = mApp->GetDialog(0x7b);
@@ -242,7 +242,7 @@ std::string Board::BotMove()
 		return WaitMove();
 
 	// the weapon of the pilot, charged: the Return key starts it (the middle button and the start button do the same)
-	if (m1a34 == 0 && m1bd8 == m1bdc && !mNewRowBouncing && !mBonusRoundOn && !mDemoPlaying)
+	if (mPowerupActive == 0 && m1bd8 == m1bdc && !mNewRowBouncing && !mBonusRoundOn && !mDemoPlaying)
 		return "{\"kind\":\"weapon\",\"updates\":10," + Steps("{\"key\":\"Return\"}") + "}";
 
 	FieldGrid aGrid;
@@ -261,7 +261,7 @@ std::string Board::BotMove()
 	}
 
 	// the supa weapon's laser takes the bottom brick of a column away: the tallest column loses it
-	if (m1a34 == 1)
+	if (mPowerupActive == 1)
 	{
 		if (mMode != 0 && mMode != 3)
 			return WaitMove();
@@ -347,7 +347,7 @@ std::string Board::BotMove()
 			int aGroup = GroupSize(aShot, aKind, aDrop, aBottom + 1);
 
 			int aScore;
-			if (aGroup >= m1a54)
+			if (aGroup >= mSetSize)
 				aScore = 1000 + aGroup * 10 - (aBottom + aCount);
 			else if (aGroup > aCount)
 				aScore = aGroup * 10 - (aBottom + aCount);

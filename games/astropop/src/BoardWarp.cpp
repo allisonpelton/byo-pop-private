@@ -45,7 +45,7 @@ bool Board::UpdateWarp()
 	// the level-up panel types its lines and the arms of the upgrade screen slide in
 	if ((mWarpFlight || mAtWarpGate) && ((m1b2c != 2 && m1b2c != 4) || mUpgradeDialogDone))
 	{
-		if (!mWarpGatePicked && m1a60 == 1 && mLevelUpPanelY < 0)
+		if (!mWarpGatePicked && mGameType == 1 && mLevelUpPanelY < 0)
 		{
 			mLevelUpPanelY += 2;
 			if (mLevelUpPanelY >= 0)
@@ -63,7 +63,7 @@ bool Board::UpdateWarp()
 				}
 			}
 		}
-		if (mLevelUpPanelY >= 0 && m1a60 == 1)
+		if (mLevelUpPanelY >= 0 && mGameType == 1)
 		{
 			mLevelUpPanelY = 0;
 			mClicksBlocked = false;
@@ -218,8 +218,8 @@ bool Board::UpdateWarp()
 					aStar->mSpeed = (float) (((int) AstroRand() % 500000000) % 0x51) * 0.01f + 0.4f;
 					mWarpStars.push_back(aStar);
 				}
-				if (m1a0c < 4)
-					mShipX = IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - 0x22 + m1a70;
+				if (mBestLevelReached < 4)
+					mShipX = IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - 0x22 + mSlowGateX;
 				else
 					mShipX = 0x159;
 				if (m1b2c == 2 || m1b2c == 4)
@@ -284,44 +284,44 @@ bool Board::UpdateWarp()
 		{
 			// the warp has come out: the gate lights up
 			mWarpShakeX = ((int) AstroRand() % 500000000) % 4 - 2;
-			m19e0 += 2;
-			if (m19e0 > 0xff)
-				m19e0 = 0xff;
+			mWarpGateAlpha += 2;
+			if (mWarpGateAlpha > 0xff)
+				mWarpGateAlpha = 0xff;
 			if (!mPointerOverEasyGate)
 			{
-				m19e4 -= 8;
-				if (m19e4 < 0)
-					m19e4 = 0;
+				mEasyGateGlow -= 8;
+				if (mEasyGateGlow < 0)
+					mEasyGateGlow = 0;
 			}
 			else
 			{
-				m19e4 += 8;
-				if (m19e4 > 0xff)
-					m19e4 = 0xff;
+				mEasyGateGlow += 8;
+				if (mEasyGateGlow > 0xff)
+					mEasyGateGlow = 0xff;
 			}
 			if (!mPointerOverSlowGate)
 			{
-				m19e8 -= 8;
-				if (m19e8 < 0)
-					m19e8 = 0;
+				mSlowGateGlow -= 8;
+				if (mSlowGateGlow < 0)
+					mSlowGateGlow = 0;
 			}
 			else
 			{
-				m19e8 += 8;
-				if (m19e8 > 0xff)
-					m19e8 = 0xff;
+				mSlowGateGlow += 8;
+				if (mSlowGateGlow > 0xff)
+					mSlowGateGlow = 0xff;
 			}
 			if (!mPointerOverFastGate)
 			{
-				m19ec -= 8;
-				if (m19ec < 0)
-					m19ec = 0;
+				mFastGateGlow -= 8;
+				if (mFastGateGlow < 0)
+					mFastGateGlow = 0;
 			}
 			else
 			{
-				m19ec += 8;
-				if (m19ec > 0xff)
-					m19ec = 0xff;
+				mFastGateGlow += 8;
+				if (mFastGateGlow > 0xff)
+					mFastGateGlow = 0xff;
 			}
 			if (m1b2c == 2 || m1b2c == 4)
 			{
@@ -372,10 +372,10 @@ bool Board::UpdateWarp()
 			mWarpShipY = 423.0f;
 			mAtWarpGate = true;
 			mWarpFlight = false;
-			m19e0 = 0;
-			m19ec = 0;
-			m19e8 = 0;
-			m19e4 = 0;
+			mWarpGateAlpha = 0;
+			mFastGateGlow = 0;
+			mSlowGateGlow = 0;
+			mEasyGateGlow = 0;
 			return false;
 		}
 	}

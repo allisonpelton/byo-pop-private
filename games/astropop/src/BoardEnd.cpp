@@ -33,7 +33,7 @@ void Board::UpdateGameOver()
 		}
 	}
 
-	m1a80 = ((int) AstroRand() % 500000000) % 11 - 5;
+	mScreenShakeX = ((int) AstroRand() % 500000000) % 11 - 5;
 	if (mEndFlashAlpha > 0xf0)
 		return;
 
@@ -92,7 +92,7 @@ void Board::UpdateGameOver()
 	if (mEndFlashAlpha != 0)
 		return;
 	mGameOverAnimDone = true;
-	if (m1a60 == 1 || m1a60 == 2)
+	if (mGameType == 1 || mGameType == 2)
 		CreateEndButtons();
 }
 
@@ -119,7 +119,7 @@ void Board::CreateEndButtons()
 	aContinue->mButtonImage = mApp->CopyImage(aButtonImage, Rect(0, 0, 0x78, 0x21));
 	aContinue->mOverImage = mApp->CopyImage(aButtonImage, Rect(0x78, 0, 0x78, 0x21));
 	aContinue->mDownImage = mApp->CopyImage(aButtonImage, Rect(0xf0, 0, 0x78, 0x21));
-	aContinue->mLabel = (m1a60 == 1) ? GT(0x564b30) : GT(0x5654e4);
+	aContinue->mLabel = (mGameType == 1) ? GT(0x564b30) : GT(0x5654e4);
 	aContinue->SetFont(FONT_DIALOG_BOX_BTN);
 	aContinue->SetColor(0, Color(0xff, 0xff, 0));
 	aContinue->SetColor(1, Color(0xff, 0xff, 0xff));
@@ -218,7 +218,7 @@ void Board::GameOver()
 		mFieldButtons[i]->SetVisible(false);
 	mHelpButton->SetVisible(false);
 
-	if (m1a60 == 1)
+	if (mGameType == 1)
 	{
 		int aBestLevel = 0;
 		mApp->mUser->GetInt(mMode + 8, &aBestLevel);
@@ -231,7 +231,7 @@ void Board::GameOver()
 		mApp->mUser->ResetHintsShown();
 		SaveFinalScore();
 	}
-	else if (m1a60 == 2)
+	else if (mGameType == 2)
 	{
 		mPlayTime = mRampTime;
 		ProfileRecord aRecord;

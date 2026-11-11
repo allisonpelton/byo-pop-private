@@ -235,9 +235,9 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 		{
 			// no colour brick in the top two rows: any colour that is not marked (the original also writes a note to the
 			// demo recording of the framework, which the port does not have)
-			int aColour = ((int) AstroRand() % 500000000) % (m1a28 + 4);
+			int aColour = ((int) AstroRand() % 500000000) % (mExtraColors + 4);
 			while (HasMarkOfType(aColour))
-				aColour = ((int) AstroRand() % 500000000) % (m1a28 + 4);
+				aColour = ((int) AstroRand() % 500000000) % (mExtraColors + 4);
 			aPickedCol = 0;
 			aPickedRow = 0;
 			aMark.mType = aColour;

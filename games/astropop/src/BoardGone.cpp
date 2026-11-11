@@ -76,32 +76,32 @@ void Board::OnBrickGone(Brick* theBrick)
 		if (!mBonusRoundOn)
 		{
 			bool aMatches = true;
-			if (m1a88 != -1)
-				aMatches = (m1a88 == theBrick->GetEffectiveType());
+			if (mCountedBrickType != -1)
+				aMatches = (mCountedBrickType == theBrick->GetEffectiveType());
 
 			if (aMatches)
 			{
-				m1a14++;
-				if (m1a60 == 2 && m1a14 % 300 == 0)
+				mStageBricksCleared++;
+				if (mGameType == 2 && mStageBricksCleared % 300 == 0)
 					UpdateSupercharge(true, -1);
 
-				float aFraction = (float) m1a14 / (float) m1a18;
+				float aFraction = (float) mStageBricksCleared / (float) mBricksToPass;
 				mBrickometerFill = aFraction;
 				if (aFraction > 1.0f)
 					mBrickometerFill = 1.0f;
-				if (m1a60 == 2)
+				if (mGameType == 2)
 					mBrickometerFill = 0.0f;
 
 				// at a quarter, a half and three quarters of the stage the meter says so
 				std::string aText;
-				if (m1a14 == m1a18 / 4)
+				if (mStageBricksCleared == mBricksToPass / 4)
 					aText = GT(0x5661a4);
-				else if (m1a14 == m1a18 / 2)
+				else if (mStageBricksCleared == mBricksToPass / 2)
 					aText = GT(0x5661a0);
-				else if (m1a14 == (m1a18 * 3) / 4)
+				else if (mStageBricksCleared == (mBricksToPass * 3) / 4)
 					aText = GT(0x56619c);
 
-				if (!aText.empty() && m1a60 != 2 && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging)
+				if (!aText.empty() && mGameType != 2 && (!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging)
 				{
 					delete mLevelUpText;
 
@@ -129,13 +129,13 @@ void Board::OnBrickGone(Brick* theBrick)
 		}
 
 		// the sounds for the last fifty and the last hundred bricks of the stage
-		int aLeft = m1a18 - m1a14;
-		if (aLeft <= 0x32 && !mFiftyLeftSoundPlayed && m1a60 != 2)
+		int aLeft = mBricksToPass - mStageBricksCleared;
+		if (aLeft <= 0x32 && !mFiftyLeftSoundPlayed && mGameType != 2)
 		{
 			mFiftyLeftSoundPlayed = true;
 			mApp->PlaySample(SOUND_LEVEL_UP2);
 		}
-		else if (!(aLeft > 100 || mHundredLeftSoundPlayed || m1a60 == 2))
+		else if (!(aLeft > 100 || mHundredLeftSoundPlayed || mGameType == 2))
 		{
 			mHundredLeftSoundPlayed = true;
 			mApp->PlaySample(SOUND_LEVEL_UP1);
@@ -186,7 +186,7 @@ void Board::OnBrickGone(Brick* theBrick)
 
 	if (mTakenBrickCount == 0 && !mGameOver && !mLevelUpPhase)
 	{
-		if (mMode == 3 && m1a34 == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
+		if (mMode == 3 && mPowerupActive == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
 			HoverCell((mLastPointerX - 0xa6) / 0x2c, CellRow((float) mLastPointerY), false);
 
 		std::vector<int> aCounts(10, 0);
@@ -300,14 +300,14 @@ void Board::OnBrickGone(Brick* theBrick)
 
 		if (mFiredGroups.empty() && mTakenBricks.empty() && mKillAllTypes.empty())
 		{
-			if (mChainCount > 1 && mChainCount > 2 && (mStageNumber > 1 || m1a60 == 2))
+			if (mChainCount > 1 && mChainCount > 2 && (mStageNumber > 1 || mGameType == 2))
 				mFuelCellDue = true;
-			if (m19fc > 0x3c && !AnyMoveLeft(NULL))
+			if (mFreezeUpdatesLeft > 0x3c && !AnyMoveLeft(NULL))
 			{
-				if (m19fc < 0x3d)
+				if (mFreezeUpdatesLeft < 0x3d)
 					mRowTimer = (int) ((float) mRowInterval + mStackDanger * 20.0f);
 				else
-					m19fc = 0x3c;
+					mFreezeUpdatesLeft = 0x3c;
 			}
 		}
 
@@ -342,7 +342,7 @@ void Board::OnBrickGone(Brick* theBrick)
 		CheckSparseField();
 	}
 
-	if (mMode == 3 && m1a34 == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
+	if (mMode == 3 && mPowerupActive == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
 		HoverCell((mLastPointerX - 0xa6) / 0x2c, CellRow((float) mLastPointerY), false);
 
 	if (mMode == 2 && !mClearWaitStarted && mTakenBrickCount == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)

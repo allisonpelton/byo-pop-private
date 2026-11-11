@@ -194,7 +194,7 @@ void Board::StartClearCount()
 		mHandKindBrick = NULL;
 	}
 	mTargeted.clear();
-	m19fc = 0;
+	mFreezeUpdatesLeft = 0;
 	Fire(0x28, 1);
 	mSpecialBannerTexts.clear();
 
@@ -272,12 +272,12 @@ void Board::UpdateBricks()
 
 		if (mChainCount > 1 && mTakenCells.empty() && mFallingGroups.empty())
 		{
-			if (mChainCount > 2 && (mStageNumber > 1 || m1a60 == 2))
+			if (mChainCount > 2 && (mStageNumber > 1 || mGameType == 2))
 				mFuelCellDue = true;
-			if (m19fc > 0x3c && !AnyMoveLeft(NULL))
+			if (mFreezeUpdatesLeft > 0x3c && !AnyMoveLeft(NULL))
 			{
-				if (m19fc > 0x3c)
-					m19fc = 0x3c;
+				if (mFreezeUpdatesLeft > 0x3c)
+					mFreezeUpdatesLeft = 0x3c;
 				else
 					mRowTimer = (int) ((float) mRowInterval + mStackDanger * 20.0f);
 			}

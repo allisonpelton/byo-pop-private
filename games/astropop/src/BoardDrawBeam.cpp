@@ -16,7 +16,7 @@ using namespace Sexy;
 void Board::DrawBeam(Graphics* g)
 {
 	bool is3D = mApp->Is3DAccelerated();
-	int aTick = (mPauseCount > 0) ? m1af0 : mUpdateCnt;
+	int aTick = (mPauseCount > 0) ? mPauseStartUpdate : mUpdateCnt;
 
 	Image* aParticle = NULL;        // the spark picture, if there are sparks
 	Image* aGhost = NULL;           // the brick drawn at the top of the stack
@@ -34,10 +34,10 @@ void Board::DrawBeam(Graphics* g)
 			return;
 		if (mGameOver)
 			return;
-		if (m1a60 != 1)
+		if (mGameType != 1)
 			return;
 	}
-	if (m1a34 == 1)
+	if (mPowerupActive == 1)
 	{
 		if (mMode == 3)
 			return;
@@ -47,7 +47,7 @@ void Board::DrawBeam(Graphics* g)
 
 	Color aColor;
 	bool aHasColor = false;         // the beam is drawn in its own colour (else in the backdrop's tint)
-	if (mMode == 0 && m1a34 == 1)
+	if (mMode == 0 && mPowerupActive == 1)
 	{
 		aBeam = IMAGE_BEAM_SUPA;
 		aHasColor = true;

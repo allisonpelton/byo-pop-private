@@ -23,7 +23,7 @@ void Board::FlashOnce(Brick* theBrick)
 // bomb (6) the 3 x 3 cells round it, else the bricks of the same colour that the piece would join
 void Board::HighlightTargets()
 {
-	if (mMode == 3 && m1a34 == 1)
+	if (mMode == 3 && mPowerupActive == 1)
 		return;
 
 	int aType = -1;
@@ -103,12 +103,12 @@ void Board::HighlightTargets()
 	}
 }
 
-// 0x453630: the cell under the pointer (and the cells round it, as far as the power of the pointer goes: m1a8c 2 adds
+// 0x453630: the cell under the pointer (and the cells round it, as far as the power of the pointer goes: mWeaponPower 2 adds
 // the cells above and below, 3 those on the sides) lights up; the cells that were lit before go dark. theForce lights
 // the cell again even if it is the one that was lit.
 void Board::HoverCell(int theCol, unsigned int theRow, bool theForce)
 {
-	if (mFieldBricks.empty() || theRow >= mFieldBricks.size() || theCol >= 10 || m1a34 != 1)
+	if (mFieldBricks.empty() || theRow >= mFieldBricks.size() || theCol >= 10 || mPowerupActive != 1)
 		return;
 
 	if (theRow == 0)
@@ -143,7 +143,7 @@ void Board::HoverCell(int theCol, unsigned int theRow, bool theForce)
 		mHoverCells.push_back(aCell);
 		aBrick->StartFlash();
 	}
-	if (m1a8c > 1)
+	if (mWeaponPower > 1)
 	{
 		if (aRow - 1 > 0)
 		{
@@ -168,7 +168,7 @@ void Board::HoverCell(int theCol, unsigned int theRow, bool theForce)
 			}
 		}
 	}
-	if (m1a8c > 2)
+	if (mWeaponPower > 2)
 	{
 		if (theCol - 1 >= 0)
 		{

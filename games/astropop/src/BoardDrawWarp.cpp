@@ -24,27 +24,27 @@ void Board::DrawWarpScreen(Graphics* g)
 	if ((m1b2c == 2 || m1b2c == 4 || m1b2c == 3) && !mUpgradeDialogDone)
 		return;
 
-	if (m19e0 < 0xff)
+	if (mWarpGateAlpha < 0xff)
 	{
 		g->SetColorizeImages(true);
-		g->SetColor(Color(0xff, 0xff, 0xff, m19e0));
+		g->SetColor(Color(0xff, 0xff, 0xff, mWarpGateAlpha));
 	}
 	g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 	int aGateCel = (mWarpGateAnim.mNumFrames == 1) ? 0 : mWarpGateAnim.mFrame;
-	DrawCel(g, IMAGE_SLOW_WARP_GATE, m1a70, 0xe1, aGateCel);
-	if (m1a08 > 0)
-		DrawCel(g, IMAGE_FAST_WARP_GATE, m1a74, 0xe1, aGateCel);
-	if (m19e0 == 0xff)
+	DrawCel(g, IMAGE_SLOW_WARP_GATE, mSlowGateX, 0xe1, aGateCel);
+	if (mFastGateStage > 0)
+		DrawCel(g, IMAGE_FAST_WARP_GATE, mFastGateX, 0xe1, aGateCel);
+	if (mWarpGateAlpha == 0xff)
 		g->SetColorizeImages(true);
-	if (m19e8 > 0)
+	if (mSlowGateGlow > 0)
 	{
-		g->SetColor(Color(m19e8, m19e8, m19e8, m19e8));
-		DrawCel(g, IMAGE_SLOW_WARP_GATE, m1a70, 0xe1, aGateCel);
+		g->SetColor(Color(mSlowGateGlow, mSlowGateGlow, mSlowGateGlow, mSlowGateGlow));
+		DrawCel(g, IMAGE_SLOW_WARP_GATE, mSlowGateX, 0xe1, aGateCel);
 	}
-	if (m1a08 > 0 && m19ec > 0)
+	if (mFastGateStage > 0 && mFastGateGlow > 0)
 	{
-		g->SetColor(Color(m19ec, m19ec, m19ec, m19ec));
-		DrawCel(g, IMAGE_FAST_WARP_GATE, m1a74, 0xe1, aGateCel);
+		g->SetColor(Color(mFastGateGlow, mFastGateGlow, mFastGateGlow, mFastGateGlow));
+		DrawCel(g, IMAGE_FAST_WARP_GATE, mFastGateX, 0xe1, aGateCel);
 	}
 	g->SetColorizeImages(false);
 	g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -88,14 +88,14 @@ void Board::DrawWarpScreen(Graphics* g)
 	if ((mLevelNumber + 1) % 4 == 0 && m1b28 != 3 && m1b28 != 4)
 		aSrc = Rect(aCelWidth * 2, 0, aCelWidth, aPlanetHeight);
 	g->DrawImage(IMAGE_WARP_PLANETS,
-		(IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - IMAGE_WARP_PLANETS->GetCelWidth() / 2) + m1a70,
+		(IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - IMAGE_WARP_PLANETS->GetCelWidth() / 2) + mSlowGateX,
 		(IMAGE_SLOW_WARP_GATE->mHeight / 2 - IMAGE_WARP_PLANETS->mHeight / 2) + 0xe1, aSrc);
 
 	// the fast gate: its mission, always with the third planet
 	std::string aFastText = kClickForNext;
-	if (m1a08 > 0)
+	if (mFastGateStage > 0)
 	{
-		switch (UpgradeScreenKind(m1a08 / 2 + 1))
+		switch (UpgradeScreenKind(mFastGateStage / 2 + 1))
 		{
 		case 1:
 			aFastText = kForBonusRound;
@@ -112,32 +112,32 @@ void Board::DrawWarpScreen(Graphics* g)
 		}
 		Rect aFastSrc(aCelWidth * 2, 0, aCelWidth, aPlanetHeight);
 		g->DrawImage(IMAGE_WARP_PLANETS,
-			(IMAGE_FAST_WARP_GATE->GetCelWidth() / 2 + m1a74) - IMAGE_WARP_PLANETS->GetCelWidth() / 2,
+			(IMAGE_FAST_WARP_GATE->GetCelWidth() / 2 + mFastGateX) - IMAGE_WARP_PLANETS->GetCelWidth() / 2,
 			(IMAGE_FAST_WARP_GATE->mHeight / 2 - IMAGE_WARP_PLANETS->mHeight / 2) + 0xe1, aFastSrc);
 	}
 
 	// the titles over the gates
 	g->SetColor(Color(0xff, 0xff, 0xff));
-	Font* aFont = GetFontById((m1a08 > 0) ? FONT_DIALOG_BOX_BTN_ID : FONT_HIGH_SCORE_ID);
+	Font* aFont = GetFontById((mFastGateStage > 0) ? FONT_DIALOG_BOX_BTN_ID : FONT_HIGH_SCORE_ID);
 	g->SetFont(aFont);
 	std::string aTitle = StrFormat(GTC(0x00564634), mLevelNumber + 1);
 	if (aKind == 2)
 		aTitle += GT(0x00564624);
 	int aTitleY = 0xfa - g->GetFont()->mHeight;
-	g->DrawString(aTitle, (IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - aFont->StringWidth(aTitle) / 2) + m1a70, aTitleY);
+	g->DrawString(aTitle, (IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - aFont->StringWidth(aTitle) / 2) + mSlowGateX, aTitleY);
 
 	if (!aText.empty())
 	{
 		g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
-		WriteWordWrapped(g, Rect(m1a70, 0x168, IMAGE_SLOW_WARP_GATE->GetCelWidth(), 200), aText, -1, 0);
+		WriteWordWrapped(g, Rect(mSlowGateX, 0x168, IMAGE_SLOW_WARP_GATE->GetCelWidth(), 200), aText, -1, 0);
 	}
 
-	if (m1a08 > 0)
+	if (mFastGateStage > 0)
 	{
-		std::string aFastTitle = StrFormat(GTC(0x0056460c), m1a08 / 2 + 1);
+		std::string aFastTitle = StrFormat(GTC(0x0056460c), mFastGateStage / 2 + 1);
 		int aFastTitleY = 0xfa - g->GetFont()->mHeight;
 		g->DrawString(aFastTitle,
-			(IMAGE_FAST_WARP_GATE->GetCelWidth() / 2 + m1a74) - aFont->StringWidth(aFastTitle) / 2, aFastTitleY);
-		WriteWordWrapped(g, Rect(m1a74, 0x168, IMAGE_SLOW_WARP_GATE->GetCelWidth(), 200), aFastText, -1, 0);
+			(IMAGE_FAST_WARP_GATE->GetCelWidth() / 2 + mFastGateX) - aFont->StringWidth(aFastTitle) / 2, aFastTitleY);
+		WriteWordWrapped(g, Rect(mFastGateX, 0x168, IMAGE_SLOW_WARP_GATE->GetCelWidth(), 200), aFastText, -1, 0);
 	}
 }

@@ -300,11 +300,11 @@ void FullScreenHelp::Draw(Graphics* g)
 
 	// the level-up of the game that is on, the frame, and in the other game its words
 	Image* aLevelUp = IMAGE_HELP_LEVELUP_CLASSIC;
-	if (mApp->mBoard->m1a60 != 1)
+	if (mApp->mBoard->mGameType != 1)
 		aLevelUp = IMAGE_HELP_LEVELUP_SURVIVAL;
 	g->DrawImage(aLevelUp, kLevelUpX, kLevelUpY);
 	g->DrawImage(IMAGE_HELP_BG, 0, 0);
-	if (mApp->mBoard->m1a60 == 2)
+	if (mApp->mBoard->mGameType == 2)
 	{
 		g->DrawImage(IMAGE_HELP_LEVELUP_SURVIVAL_TEXT, 0x154, 0x109);
 		g->DrawImage(IMAGE_HELP_SURVIVAL, 0x1a0, 0xf6);

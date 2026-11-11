@@ -143,7 +143,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		{
 			aLine += StrFormat(",\"mode\":%d,\"level\":%d,\"score\":%d,\"stage\":%d,\"updates\":%d",
 				mBoard->mMode, mBoard->mLevelNumber, mBoard->mScore, mBoard->mStageNumber, mBoard->mUpdateCnt);
-			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->mPauseCount,
+			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->mGameType, mBoard->mPauseCount,
 				mBoard->mGameOver ? 1 : 0, (int) mBoard->mHeldBricks.size());
 			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusyReason());
 			aLine += ",\"field\":" + mBoard->DescribeField();
@@ -209,7 +209,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		int aLevel = 0;
 		ReadInts(theCommand.mArgs, &aLevel, 1);
-		if (mBoard == NULL || mBoard->m1a60 != 1)
+		if (mBoard == NULL || mBoard->mGameType != 1)
 			ReplyError(theCommand, "needs a classic game");
 		else if (aLevel < 1)
 			ReplyError(theCommand, "level needs a number from 1");
@@ -310,7 +310,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		// the level is complete (a classic game); the second type of game has no win: it ends
 		if (mBoard == NULL)
 			ReplyError(theCommand, "needs a game");
-		else if (mBoard->m1a60 == 1)
+		else if (mBoard->mGameType == 1)
 		{
 			mBoard->LevelComplete();
 			ReplyOK(theCommand);

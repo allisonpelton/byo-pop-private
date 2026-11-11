@@ -43,7 +43,7 @@ void Board::Update()
 
 	if (mScreenWiping)
 	{
-		if (mScreenWipe->Check(m1a84))
+		if (mScreenWipe->Check(mScreenWipeSteps))
 			mApp->CloseBoard();
 		MarkDirty();
 		return;
@@ -165,10 +165,10 @@ void Board::Update()
 		}
 
 		UpdateStates();
-		if (!gStateSaved && m1a60 != 2 && !mGameOver && mLevelNumber > 1)
+		if (!gStateSaved && mGameType != 2 && !mGameOver && mLevelNumber > 1)
 			SaveGameState();
 		ShowThemeButtons();
-		if (m1a44 < 0)
+		if (mAtomicFlashAlpha < 0)
 			UpdateScenery();
 		if (mGameOver)
 			UpdateGameOver();
@@ -190,10 +190,10 @@ void Board::Update()
 		if (mBackdropTintChanging)
 			FadeBackdrop();
 		UpdateBricks();
-		if (m1a60 == 2)
+		if (mGameType == 2)
 			UpdateRamp();
 
-		if ((mUpdateCnt % mRowReductionPeriod) == 0 && !mApp->mTutorialOn && m1bbc <= mStageNumber && mPlayStarted && mRowIntervalReduction < mRowInterval - 200 && m19fc == 0)
+		if ((mUpdateCnt % mRowReductionPeriod) == 0 && !mApp->mTutorialOn && m1bbc <= mStageNumber && mPlayStarted && mRowIntervalReduction < mRowInterval - 200 && mFreezeUpdatesLeft == 0)
 			mRowIntervalReduction++;
 
 		if (mStackDanger < mStackDangerPeak)
@@ -257,7 +257,7 @@ void Board::Update()
 		}
 
 		mLaserAnim.Update();
-		if (m19fc == 0 && mPlayStarted)
+		if (mFreezeUpdatesLeft == 0 && mPlayStarted)
 			mRowTimer++;
 
 		UpdateExplosion();
@@ -271,7 +271,7 @@ void Board::Update()
 			mBeamSparks[i].mAnim.Update();
 		}
 
-		if (m1a60 == 2)
+		if (mGameType == 2)
 			UpdateSparks();
 
 		if (mGameOver && !mHighScoreSoundDone)
@@ -292,7 +292,7 @@ void Board::Update()
 		}
 
 		// with the left button held in the field of a classic game the click is repeated every update
-		if (mMode == 0 && mLastPointerX > 0xa5 && mLastPointerX < 0x25f && m1a34 == 1 && mApp->IsLeftButtonDown())
+		if (mMode == 0 && mLastPointerX > 0xa5 && mLastPointerX < 0x25f && mPowerupActive == 1 && mApp->IsLeftButtonDown())
 		{
 			bool aFlag = mClickRepeating;
 			mClickRepeating = true;
@@ -303,7 +303,7 @@ void Board::Update()
 		for (unsigned int i = 0; i < mHintBoxes.size(); i++)
 			mHintBoxes[i]->Update();
 
-		if ((mUpdateCnt % 300) == 0 && m1a60 == 2)
+		if ((mUpdateCnt % 300) == 0 && mGameType == 2)
 			DeleteDoomedBricks();
 		MarkDirty();
 	}
@@ -349,7 +349,7 @@ void Board::RevealBricks()
 // cell (event 0x18) or not (0x16)
 void Board::SweepSprockets()
 {
-	if (m1a34 != 1)
+	if (mPowerupActive != 1)
 		return;
 	if ((mUpdateCnt % 2) != 0 || mMode != 1 || mAtomicMarkedBricks.empty())
 		return;
@@ -372,7 +372,7 @@ void Board::SweepSprockets()
 // marked cells is empty (or was)
 void Board::SweepTurbots()
 {
-	if (m1a34 != 1 || m1b4c == 1 || m1b4c == 3)
+	if (mPowerupActive != 1 || m1b4c == 1 || m1b4c == 3)
 		return;
 	if ((mUpdateCnt % 2) != 0 || mMode != 2)
 		return;
@@ -409,7 +409,7 @@ bool Board::SpawnControl()
 		return false;
 
 	int aTime;
-	if (m1a60 == 2)
+	if (mGameType == 2)
 		aTime = mRowInterval;
 	else
 	{
@@ -417,21 +417,21 @@ bool Board::SpawnControl()
 		aTime = (int) ((float) (mRowInterval - mRowIntervalReduction) + (aStage + aStage + 20.0f) * mStackDanger);
 	}
 
-	int aPhase = m1a34;
+	int aPhase = mPowerupActive;
 	if (aPhase == 0)
-		m1ab4--;
+		mExtraRowDelay--;
 
-	if (m1a68 == 0 && CountMovingBricks(false) == 0 && mTakenBrickCount == 0 && !mStreaksFadingOut && (aPhase != 1 || mFieldCleared) &&
+	if (mSupportedBrickCount == 0 && CountMovingBricks(false) == 0 && mTakenBrickCount == 0 && !mStreaksFadingOut && (aPhase != 1 || mFieldCleared) &&
 		((mMode == 0 && (aPhase != 1 || mLaserUsed)) || (mMode == 3 && (aPhase != 1 || mPsychicUsed)) || aPhase == 0 || mFieldCleared) &&
-		!mApp->mTutorialOn && mPlayStarted && mKillAllTypes.empty() && m19fc < 1 && (aTime <= mRowTimer || mExtraRowsDue > 0))
+		!mApp->mTutorialOn && mPlayStarted && mKillAllTypes.empty() && mFreezeUpdatesLeft < 1 && (aTime <= mRowTimer || mExtraRowsDue > 0))
 	{
 		int aWaited = mRowTimer;
 		int aSpare = mExtraRowsDue;
-		if (aSpare >= 1 && !mFieldCleared && m1ab4 > 0 && aWaited < aTime)
+		if (aSpare >= 1 && !mFieldCleared && mExtraRowDelay > 0 && aWaited < aTime)
 			return false;
 
-		if (m1ab4 < 0)
-			m1ab4 = 0;
+		if (mExtraRowDelay < 0)
+			mExtraRowDelay = 0;
 
 		if (mStackWarningActive)
 		{
@@ -445,11 +445,11 @@ bool Board::SpawnControl()
 		mSetMadeSinceTopRow = false;
 		if (aWaited < aTime)
 		{
-			if (m1ab4 < 1)
+			if (mExtraRowDelay < 1)
 			{
 				mExtraRowsDue = aSpare - 1;
 				if (mExtraRowsDue >= 0)
-					m1ab4 = 100;
+					mExtraRowDelay = 100;
 				else
 					mExtraRowsDue = 0;
 			}
@@ -460,7 +460,7 @@ bool Board::SpawnControl()
 			if (aSpare > 0)
 			{
 				mExtraRowsDue = aSpare - 1;
-				m1ab4 = 100;
+				mExtraRowDelay = 100;
 			}
 		}
 
@@ -493,9 +493,9 @@ void Board::UpdateExplosion()
 		anAnim->Update();
 		if (anAnim->mDone || (0 < anAnim->mMaxLoops && anAnim->mMaxLoops <= anAnim->mLoopCount))
 			aNumDone++;
-		if (i == 7 && anAnim->mNumFrames != 1 && anAnim->mFrame == 7 && !anAnim->mStopped && m1a40 == -1)
+		if (i == 7 && anAnim->mNumFrames != 1 && anAnim->mFrame == 7 && !anAnim->mStopped && mAtomicSymbolTimer == -1)
 		{
-			m1a40 = 0;
+			mAtomicSymbolTimer = 0;
 			anAnim->SetStopped(true);
 			anAnim->SetDelay(3);
 		}
@@ -504,8 +504,8 @@ void Board::UpdateExplosion()
 	if (aNumDone == 8)
 	{
 		mAtomicBlastOver = true;
-		m1a40 = -1;
-		m1a44 = -1;
+		mAtomicSymbolTimer = -1;
+		mAtomicFlashAlpha = -1;
 		SetOverlayHidden(true);
 		for (unsigned int i = 0; i < mAtomicExplosions.size(); i++)
 			delete mAtomicExplosions[i];
@@ -513,7 +513,7 @@ void Board::UpdateExplosion()
 	}
 
 	int aCount = (int) mAtomicExplosions.size();
-	int aFade = m1a44;
+	int aFade = mAtomicFlashAlpha;
 	if (aFade >= 0)
 	{
 		bool aSetFill = true;
@@ -524,10 +524,10 @@ void Board::UpdateExplosion()
 			if (aCel > IMAGE_ATOMIC_EXPLOSION->mNumCols / 2)
 			{
 				aFade += 10;
-				m1a44 = aFade;
+				mAtomicFlashAlpha = aFade;
 				if (aFade > 0xfe)
 				{
-					m1a44 = -1;
+					mAtomicFlashAlpha = -1;
 					SetOverlayHidden(true);
 				}
 				mOverlay.SetFill(255, 255, 255, aFade);
@@ -538,7 +538,7 @@ void Board::UpdateExplosion()
 			aSetFill = false;
 		if (aSetFill)
 		{
-			m1a44 = aFade + 1;
+			mAtomicFlashAlpha = aFade + 1;
 			mOverlay.SetFill(255, 255, 255, aFade + 1);
 		}
 	}

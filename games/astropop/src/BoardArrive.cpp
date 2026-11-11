@@ -1,6 +1,6 @@
 // Board: the handler of event 5 (0x473b20). A brick that was fired up the field has reached the place under the stack.
 // The bricks that the player fired in one go are the groups of mFiredGroups; when the first of them arrives all of them are put
-// into the field, the sets that they make (the same kind, at least m1a54 together) are taken out, and the Board looks
+// into the field, the sets that they make (the same kind, at least mSetSize together) are taken out, and the Board looks
 // at what the arrival did: the sound, the score's bonus, the stack's height, the hint boxes and a field that has no move
 // left.
 
@@ -145,7 +145,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 					std::vector<CellRef> aBefore = mConnectedCells;
 					mConnectedCells.clear();
 					CollectConnected(aKind, aCell.mCol, aCell.mRow, 0xffffffff, false, NULL, -1, -1);
-					if ((int) mConnectedCells.size() < m1a54)
+					if ((int) mConnectedCells.size() < mSetSize)
 						mConnectedCells = aBefore;
 					else
 					{
@@ -201,7 +201,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 
 		if ((mStageNumber == 1 || mTutorialStageForced) && !mDemoPlaying)
 		{
-			if (mConnectedCells.size() >= (unsigned int) m1a54)
+			if (mConnectedCells.size() >= (unsigned int) mSetSize)
 			{
 				StageBg* aBg = mStageHintPanels[1];
 				if (aBg->mNext != NULL)
@@ -222,7 +222,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		// -- 5: the sound of what happened (and the bonus of a field that is nearly empty after a failed set)
 		if (mConnectedCells.size() < 7)
 		{
-			if (mConnectedCells.size() < (unsigned int) m1a54)
+			if (mConnectedCells.size() < (unsigned int) mSetSize)
 			{
 				if (!mFiredGroups.empty())
 				{
@@ -243,14 +243,14 @@ void Board::OnBrickArrived(Brick* theBrick)
 					if (!mStartBannerDoneInBonus)
 						mApp->PlaySampleAt(SOUND_BLOCK_HIT_BLOCK, ((int) (*aPickBrick)->mX - 0xa6) / 0x2c);
 				}
-				if (mChainCount > 1 && mKillAllTypes.empty() && mChainCount > 2 && (mStageNumber > 1 || m1a60 == 2))
+				if (mChainCount > 1 && mKillAllTypes.empty() && mChainCount > 2 && (mStageNumber > 1 || mGameType == 2))
 					mFuelCellDue = true;
 				if (mKillAllTypes.empty() && !AnyMoveLeft(NULL))
 				{
-					if (m19fc < 0x3d)
+					if (mFreezeUpdatesLeft < 0x3d)
 						mRowTimer = (int) ((float) mRowInterval + mStackDanger * 20.0f);
 					else
-						m19fc = 0x3c;
+						mFreezeUpdatesLeft = 0x3c;
 				}
 			}
 			else
@@ -274,7 +274,7 @@ void Board::OnBrickArrived(Brick* theBrick)
 		}
 
 		// -- 6: the bricks next to the set are hit, what has lost its support falls, the groups are done
-		if (mConnectedCells.size() >= (unsigned int) m1a54)
+		if (mConnectedCells.size() >= (unsigned int) mSetSize)
 			DamageNeighbours(mConnectedCells);
 		DropUnsupported(mTakenCells);
 		mConnectedCells.clear();
@@ -283,9 +283,9 @@ void Board::OnBrickArrived(Brick* theBrick)
 		HighlightTargets();
 		CheckStackHeight();
 		CheckShipColumn();
-		if (mMode == 3 && m1a34 == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
+		if (mMode == 3 && mPowerupActive == 1 && mLastPointerX > 0xa5 && mLastPointerX < 0x25e)
 			HoverCell((mLastPointerX - 0xa6) / 0x2c, CellRow((float) mLastPointerY), false);
-		if (mMode == 2 && !mClearWaitStarted && m1a34 == 0 && mTakenBrickCount == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
+		if (mMode == 2 && !mClearWaitStarted && mPowerupActive == 0 && mTakenBrickCount == 0 && mFiredGroups.empty() && CountMovingBricks(false) == 0)
 			BeginClearWait();
 		CheckSparseField();
 
@@ -333,10 +333,10 @@ void Board::OnBrickArrived(Brick* theBrick)
 
 		if (mKillAllTypes.empty() && !AnyMoveLeft(NULL))
 		{
-			if (m19fc < 0x3d)
+			if (mFreezeUpdatesLeft < 0x3d)
 				mRowTimer = (int) ((float) mRowInterval + mStackDanger * 20.0f);
 			else
-				m19fc = 0x3c;
+				mFreezeUpdatesLeft = 0x3c;
 		}
 	}
 

@@ -104,8 +104,8 @@ void Board::OnColumnNuke(Brick* theBrick)
 	AdvanceChain();
 	HideCellHint(theBrick);
 
-	bool aMode2 = mMode == 2 && m1a34 == 1;
-	bool aMode1 = mMode == 1 && m1a34 == 1;
+	bool aMode2 = mMode == 2 && mPowerupActive == 1;
+	bool aMode1 = mMode == 1 && mPowerupActive == 1;
 
 	unsigned int anIndex = 0;
 	std::list<Brick*>::iterator i = mTakenBricks.begin();
@@ -160,8 +160,8 @@ void Board::OnBlast(Brick* theBrick, int theArg)
 {
 	std::vector<CellRef> aCells;
 
-	bool aMode2 = mMode == 2 && m1a34 == 1;
-	bool aMode1 = mMode == 1 && m1a34 == 1;
+	bool aMode2 = mMode == 2 && mPowerupActive == 1;
+	bool aMode1 = mMode == 1 && mPowerupActive == 1;
 
 	HideCellHint(theBrick);
 

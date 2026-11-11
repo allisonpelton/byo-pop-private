@@ -119,7 +119,7 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
   expressions and written in `float` too (positions of the ship, bricks, streaks and texts, the gauge and the bars, the scenery layers, the banner's wave). A weapon case showed one more: `BeginPlay`'s count of the buried bricks a weapon removes,
   `(int) ((1.0f - share) * count)`, was 19 in double and is 18 in the original (classic, seed 7, Sprocket, update 6369: one draw
   fewer). Read for the same kind of expression after it, and changed without a run having shown a difference: the meter's fill
-  ratio `m1a14 / m1a18`, compared with a third and two thirds (`BoardFill`) and with 1 (`BoardGone`), the positions on the meter
+  ratio `mStageBricksCleared / mBricksToPass`, compared with a third and two thirds (`BoardFill`) and with 1 (`BoardGone`), the positions on the meter
   that a milestone truncates to whole pixels (`BoardEvents`), and the speed of a warp star (`BoardWarp`).
 - A relative path of `XcfFile` (`HasKey`, `GetInt`: 0x412d00 and its neighbours) starts at the section under the cursor, and
   its first part may be the name of that section itself: a bonus level file is read with the paths `LEVEL\ROWn\Brickn` right
@@ -130,7 +130,7 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
   a flag of its own: the siren's `FrameAnim` sits at +0x4a0 and +0x4c8 is its `mStopped` (field +0x28, true from the
   constructor). The first translation had an unset `m4c8` there, so the pace after a spurt was always 8 and the extra
   `PickSpawnDelay` draw of the stopped-siren case (pace 4) never came (found by classic, seed 2, update 7495, where the
-  original drew one number the port did not). The siren drawing and the two `m1ab8 = 8` sites of BoardMode read the same field.
+  original drew one number the port did not). The siren drawing and the two `mPhase = 8` sites of BoardMode read the same field.
 - `Brick::UpdateRainbow` (0x4062d0) first erases the colour that was shown from the list (`vector::erase`, 0x405f70) and
   only then draws, when the list is not empty; with none left the brick stops being a rainbow. The first translation drew
   without erasing.
@@ -175,8 +175,8 @@ table, 143 slots) is two subobjects: +0 a state-machine part (vtable 0x55d5a8: s
 updates ...) and +0xc the listener part. Methods reached through the +0xc vtable get `this` = object+0xc, so their field
 offsets are relative to it (add 0xc for the object's own offsets).
 The small handlers of events 0x10 and 0x11 (0x433cc0, 0x433cd0) are such methods: `INC [ECX + 0x1a04]` is the Board's own +0x1a68
-(`m1a68`, the number of fired bricks that sit at their place with their flag +0x188 set), which the spawn of the next row waits
-to see at zero (`Board::SpawnControl`). The first translation counted in the Board's +0x1a04 (`m1a04`, a value set from the level)
+(`mSupportedBrickCount`, the number of fired bricks that sit at their place with their flag +0x188 set), which the spawn of the next row waits
+to see at zero (`Board::SpawnControl`). The first translation counted in the Board's +0x1a04 (`mSlowGateStage`, a value set from the level)
 instead, so a row came one update early after a retarget (found by the first different update of the identical-play pass).
 The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a only for a mutated brick: a brick that is shown and not mutated and is not a plain colour goes to state 3 at once (a plain colour fires event 0x27, a stone, steel or bomb fires its own events in its own handler), and the Board answers 0x1a (0x45d7a0) and 0x1b by setting its mutator hold (`m1b5c`, 2000 updates) when no mutating brick is left. The first translation fired 0x1a for every such brick, so the hold was set and a mutator was refused for 2000 updates where the original made one (found by the first different row of survival, seed 1, update 8496).
 

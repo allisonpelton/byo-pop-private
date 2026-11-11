@@ -123,7 +123,7 @@ void Board::AddTopRow()
 		return;
 
 	bool aNoRoom = NoRoomLeft();
-	if (m1a34 == 1 && IsSettled(true) && aNoRoom)
+	if (mPowerupActive == 1 && IsSettled(true) && aNoRoom)
 		return;
 	if (mDemoPlaying && (unsigned int) mDemoAddedRowIndex >= mDemoAddedRows.size())
 		return;

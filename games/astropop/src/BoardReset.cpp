@@ -16,7 +16,7 @@ void Board::ResetGame()
 {
 	mHeldBricksNotLanded = 0;
 	mGameWasReset = true;
-	m1aac = 0;
+	mDangerZoneAlpha = 0;
 	mWarpActive = false;
 	mWarpCharging = false;
 	mWarpFlight = false;
@@ -46,8 +46,8 @@ void Board::ResetGame()
 	mLastChainCount = 0;
 	m1b18 = 0;
 	m1b10 = 0;
-	m1aa8 = 0;
-	m1aa4 = 0;
+	mDangerPulseAlpha = 0;
+	mDangerPulseStep = 0;
 	mScoreAtStageStart = mScore;
 	mClearWaitStarted = true;
 	mExtraRowsDue = 0;
@@ -64,7 +64,7 @@ void Board::ResetGame()
 	m1b60 = 0;
 	mShipTilt = 2;
 	mTakenBrickCount = 0;
-	m1a3c = 0;
+	mAtomicWeaponState = 0;
 	mTopRowsAllowed = true;
 	m1b5c = 0;
 	mNewRowBouncing = false;
@@ -75,14 +75,14 @@ void Board::ResetGame()
 	mPickUpButtonDown = false;
 	mBackdropTintChanging = false;
 	mBackdropTint = Color(100, 100, 100);
-	m1a98 = -500000000;
-	m1a9c = -500000000;
+	mGameOverDangerY = -500000000;
+	mGameOverDangerHold = -500000000;
 	m1bf8 = -1.0f;
 	m1bfc = 1.0f;
 	mChainCount = 0;
 	mExtraRowsDue = 0;
-	m1ab4 = 0;
-	m1a2c = 0;
+	mExtraRowDelay = 0;
+	mTimeBonusUpdates = 0;
 	mUpgradeDialogDone = false;
 	mTimeBonusRunning = false;
 	mShipX = 0xa6;
@@ -93,24 +93,24 @@ void Board::ResetGame()
 	mStackWarningTimer = 0;
 	mWarpGatePicked = false;
 	mWarpEngaged = false;
-	m1a48 = -65536;
+	mTurbotWaveY = -65536;
 	mPointsTextY = -1;
 	mPointsTextX = -1;
-	m1a68 = 0;
-	m1a50 = 0;
+	mSupportedBrickCount = 0;
+	mTimeBonusSets = 0;
 	mSetMadeSinceTopRow = false;
 	mGameOverAnimDone = false;
-	m1a4c = -1;
+	mTurbotFlashAlpha = -1;
 	mUnusedClearedInReset = false;
 	mPlayStarted = false;
 	mWarpLightningImage = NULL;
-	m19fc = 0;
-	m1a44 = -1;
-	m1a10 = 0;
-	m1a40 = -1;
+	mFreezeUpdatesLeft = 0;
+	mAtomicFlashAlpha = -1;
+	mUnusedIntClearedWithBrickCount = 0;
+	mAtomicSymbolTimer = -1;
 	mFiftyLeftSoundPlayed = false;
 	mHundredLeftSoundPlayed = false;
-	m1a14 = 0;
+	mStageBricksCleared = 0;
 	mAtomicBlastOver = false;
 	mFieldsCleared = 0;
 	mBestChain = 0;
@@ -125,13 +125,13 @@ void Board::ResetGame()
 	mRemovalPoints = 0;
 	if (m1bbc < mStageNumber && 8 < mRowIntervalReduction)
 		mRowReductionPeriod = 8;
-	m1a30 = 0;
+	mTimeBonusStepsPaid = 0;
 
 	mSpecialCooldowns.clear();
 	for (int i = 5; i != 0; i--)
 	{
 		int aCount = 2000;
-		if (0x12 < mStageNumber || m1a60 == 2)
+		if (0x12 < mStageNumber || mGameType == 2)
 			aCount = 0;
 		mSpecialCooldowns.push_back(aCount);
 	}
@@ -185,5 +185,5 @@ void Board::ResetGame()
 		aStar->m60 = 0;
 		aStar->mSpeed = 0.1f;
 	}
-	m1a80 = 0;
+	mScreenShakeX = 0;
 }

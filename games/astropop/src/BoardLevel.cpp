@@ -28,7 +28,7 @@ void Board::PayComboBonus()
 		FloatText* aText = new FloatText(StrFormat(GTC(0x5652d0), aPoints), FONT_POINTS, (float) mPointsTextX, (float) (mPointsTextY + 0x19), false);
 		mFloatTexts.push_back(aText);
 
-		if (m1a14 < m1a18 && !mClearCountRunning)
+		if (mStageBricksCleared < mBricksToPass && !mClearCountRunning)
 		{
 			int aSound = mChainCount - 2 + SOUND_VCOMBO1;
 			if (aSound >= SOUND_VCOMBO1 + 8)
@@ -89,14 +89,14 @@ void Board::LevelComplete()
 	mHeldBricksNotLanded = 0;
 	mBrickometerDrain = 0.0f;
 	mPickUpButtonDown = true;
-	if (m1ad4 != 0)
-		m1ad4 = 6;
+	if (mSupaBannerStep != 0)
+		mSupaBannerStep = 6;
 	m1b1c++;
 	gStateSaved = false;
 	if (mChainCount > 1)
 		PayComboBonus();
 
-	if (m1a60 == 1 && m1b2c == 1)
+	if (mGameType == 1 && m1b2c == 1)
 	{
 		mApp->PlaySample(SOUND_BONUS_ROUND);
 		mClicksBlocked = true;
@@ -104,12 +104,12 @@ void Board::LevelComplete()
 		SetNextLevelScore();
 		Fire(0x28, 1);
 		mLevelUpPhase = false;
-		m19fc = 0;
-		m1aa8 = 0;
-		m1aa4 = 0;
-		m1ab8 = 10;
-		m1ac0 = PickSpawnDelay();
-		m1abc = 400;
+		mFreezeUpdatesLeft = 0;
+		mDangerPulseAlpha = 0;
+		mDangerPulseStep = 0;
+		mPhase = 10;
+		mPhaseDelay = PickSpawnDelay();
+		mFlurryTimer = 400;
 		mSirenAnim.SetStopped(true);
 		mApp->PlaySong(0x29);
 		m1b88 = 0;
@@ -285,30 +285,30 @@ void Board::SetupUpgradeAnims()
 // original computes the factor in x87 arithmetic.)
 void Board::ApplyWeaponLevels()
 {
-	mApp->mUser->GetInt(mMode + 0x33, &m1a8c);
-	mApp->mUser->GetInt(mMode + 0x3b, &m1a94);
+	mApp->mUser->GetInt(mMode + 0x33, &mWeaponPower);
+	mApp->mUser->GetInt(mMode + 0x3b, &mWeaponChargeLevel);
 	if (mMode == 0)
-		mApp->mUser->GetInt(0x37, &m1a90);
+		mApp->mUser->GetInt(0x37, &mWeaponDurationLevel);
 	else if (mMode == 3)
-		mApp->mUser->GetInt(0x3a, &m1a90);
+		mApp->mUser->GetInt(0x3a, &mWeaponDurationLevel);
 	else
-		m1a90 = -1;
+		mWeaponDurationLevel = -1;
 
 	m1bdc = 18000.0f;
 	if (mMode == 1)
 	{
-		if (m1a94 == 1)
+		if (mWeaponChargeLevel == 1)
 			m1be4 = 1.2f;
-		else if (m1a94 == 2)
+		else if (mWeaponChargeLevel == 2)
 			m1be4 = 1.7142857f;
-		else if (m1a94 == 3)
+		else if (mWeaponChargeLevel == 3)
 			m1be4 = 3.0f;
 		m1be0 = (float) ((double) 18000.0f * (double) 0.002f);
 		return;
 	}
 	if (mMode == 2)
 	{
-		switch (m1a94)
+		switch (mWeaponChargeLevel)
 		{
 		case 1:		m1be4 = 1.2f;		break;
 		case 2:		m1be4 = 1.3333334f;	break;
@@ -322,7 +322,7 @@ void Board::ApplyWeaponLevels()
 	if (mMode != 0 && mMode != 3)
 		return;
 
-	m1be4 = (float) (18000.0 / (18000.0 - ((double) m1a94 - 1.0) * 3000.0));
+	m1be4 = (float) (18000.0 / (18000.0 - ((double) mWeaponChargeLevel - 1.0) * 3000.0));
 	if (mMode == 0)
 	{
 		mLaserAnim.SetNumFrames(IMAGE_PLAYER1_LASER->mNumCols);
@@ -330,7 +330,7 @@ void Board::ApplyWeaponLevels()
 		mLaserAnim.mHoldLast = true;
 		mLaserAnim.SetStopped(true);
 	}
-	switch (m1a90)
+	switch (mWeaponDurationLevel)
 	{
 	case 1:		m1be0 = 22.5f;			break;
 	case 2:		m1be0 = 20.0f;			break;
@@ -383,8 +383,8 @@ void Board::SetupWarpLayers()
 // are read, and the panel of text (points, biggest combo, time, bonus, next rank) is made.
 void Board::StartLevelUp()
 {
-	m1aa8 = 0;
-	m1aa4 = 0;
+	mDangerPulseAlpha = 0;
+	mDangerPulseStep = 0;
 	mWarpCharging = true;
 	mWarpFlight = false;
 	mWarpChargeAlpha = 0;
@@ -397,11 +397,11 @@ void Board::StartLevelUp()
 	mWarpGlowStep = 0xc;
 	mWarpGlowAlpha = 0;
 	mWarpShakeX = 0;
-	m19f0 = 0;
+	mWarpLightningAlpha = 0;
 	unsigned int aRand = AstroRand();
 	mWarpPictureLift = 0;
 	mWarpShipY = -52.0f;
-	m19f4 = (((int) aRand % 500000000) % 200) + 100;
+	mWarpLightningPeriod = (((int) aRand % 500000000) % 200) + 100;
 	mBackdropTint = Color(100, 100, 100);
 	m1b3c = 0;
 
@@ -448,13 +448,13 @@ void Board::StartLevelUp()
 		}
 	}
 
-	m19fc = 0;
+	mFreezeUpdatesLeft = 0;
 	mSirenAnim.SetStopped(true);
-	m1a98 = -500000000;
-	m1a9c = -500000000;
-	m1ab8 = 10;
-	m1ac0 = PickSpawnDelay();
-	m1abc = 700;
+	mGameOverDangerY = -500000000;
+	mGameOverDangerHold = -500000000;
+	mPhase = 10;
+	mPhaseDelay = PickSpawnDelay();
+	mFlurryTimer = 700;
 	mWarpGateAnim.SetStopped(false);
 
 	// the lines of the panel

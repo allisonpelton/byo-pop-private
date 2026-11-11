@@ -73,7 +73,7 @@ void Board::LoadLevel(bool theFromRules)
 				int aX = 0xa6;
 				for (int aCol = 0; aX < 0x25e; aCol++)
 				{
-					if (m1ac8 < aRow)
+					if (mRowsAtStart < aRow)
 						mFieldBricks[aRow][aCol] = NULL;
 					else
 					{
@@ -115,7 +115,7 @@ void Board::LoadLevel(bool theFromRules)
 				}
 				aY += 0x19;
 			}
-			mScriptRowIndex = mScriptRowIndex + m1ac8 + 1;
+			mScriptRowIndex = mScriptRowIndex + mRowsAtStart + 1;
 			bool aAnyBrick = false;
 			for (int i = 0; i < 10; i++)
 			{
@@ -127,7 +127,7 @@ void Board::LoadLevel(bool theFromRules)
 		}
 		else
 		{
-			int aStageRows = m1ac8;
+			int aStageRows = mRowsAtStart;
 			mScriptRowIndex = -1;
 			for (int aRow = 0; aRow < 0x14; aRow++)
 			{
@@ -137,7 +137,7 @@ void Board::LoadLevel(bool theFromRules)
 						mFieldBricks[aRow][aCol] = NULL;
 				}
 				else
-					FillTopRow(aRow < aStageRows - 1, aRow == aStageRows, false, m1a60 == 2, aRow);
+					FillTopRow(aRow < aStageRows - 1, aRow == aStageRows, false, mGameType == 2, aRow);
 			}
 		}
 	}
@@ -176,7 +176,7 @@ void Board::LoadLevel(bool theFromRules)
 		aBg->mOverPicAlpha = 0;
 		aBg->mFadedOut = 0;
 	}
-	if (m1a60 == 1)
+	if (mGameType == 1)
 	{
 		m1b2c = m1b28;
 		m1b28 = UpgradeScreenKind(mLevelNumber + 1);

@@ -96,12 +96,12 @@ void Board::DrawBackdrop(Graphics* g)
 		} while (anOffset < 300);
 	}
 
-	if (m19f0 > 0 && (mWarpFlight || mAtWarpGate || mWarpGatePicked) && mWarpLightningImage != NULL && is3D)
+	if (mWarpLightningAlpha > 0 && (mWarpFlight || mAtWarpGate || mWarpGatePicked) && mWarpLightningImage != NULL && is3D)
 	{
 		g->SetColorizeImages(true);
 		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		g->SetColor(Color(m19f0, m19f0, m19f0, m19f0));
-		g->DrawImage(mWarpLightningImage, 100, m19f8);
+		g->SetColor(Color(mWarpLightningAlpha, mWarpLightningAlpha, mWarpLightningAlpha, mWarpLightningAlpha));
+		g->DrawImage(mWarpLightningImage, 100, mWarpLightningY);
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		g->SetColorizeImages(false);
 	}

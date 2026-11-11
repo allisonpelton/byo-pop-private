@@ -279,7 +279,7 @@ static const int kClassicNearRow[8] = {2, 2, 6, 6, 8, 4, 10, 4};
 void Board::SetupClassicRules()
 {
 	mRowInterval = 400;
-	m1ac4 = 6;
+	mMaxMutators = 6;
 	mDropTicks = 900;
 
 	RampRecord aRamp;
@@ -325,13 +325,13 @@ void Board::SetupClassicRules()
 	aRamp.mF5 = FloatBits(0x3c23d70a);
 	mSpeedRamp.push_back(aRamp);
 
-	m1a20 = 500000000;
+	mBricksToPassMax = 500000000;
 	m1bf0 = 0;
 	m1bf4 = 0;
-	m1a18 = 500000000;
-	m1a1c = 0;
-	m1ac8 = 4;
-	m1a28 = 0;
+	mBricksToPass = 500000000;
+	mBricksToPassChange = 0;
+	mRowsAtStart = 4;
+	mExtraColors = 0;
 	mRowsLeftToPass = 500000000;
 	mRowsToPass = 500000000;
 	mRowsToPassChange = 0;
@@ -356,7 +356,7 @@ void Board::SetupClassicRules()
 		}
 	}
 
-	m1a88 = -1;
+	mCountedBrickType = -1;
 	mScoreMultiplier = 1.0f;
 }
 
@@ -368,24 +368,24 @@ void Board::SetupLevel1Rules()
 {
 	XcfFile* aFile = mApp->mDescriptor;
 
-	m1a20 = aFile->HasKey("\\GLOBAL\\MaxBricksToPass") ? (int) aFile->GetInt("\\GLOBAL\\MaxBricksToPass") : 1000;
+	mBricksToPassMax = aFile->HasKey("\\GLOBAL\\MaxBricksToPass") ? (int) aFile->GetInt("\\GLOBAL\\MaxBricksToPass") : 1000;
 	m1bf0 = aFile->HasKey("\\LEVEL1\\BASE_FREQUENCY\\BonusChanceChangeBy") ? Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\BonusChanceChangeBy") : 0.0f;
 	m1bf4 = aFile->HasKey("\\LEVEL1\\BASE_FREQUENCY\\PenaltyChanceChangeBy") ? Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\PenaltyChanceChangeBy") : 0.0f;
 	m1be8 = Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\BonusChance");
 	m1bec = Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\PenaltyChance");
-	m1a18 = aFile->HasKey("\\LEVEL1\\NumBricksToPass") ? (int) aFile->GetInt("\\LEVEL1\\NumBricksToPass") : 200;
+	mBricksToPass = aFile->HasKey("\\LEVEL1\\NumBricksToPass") ? (int) aFile->GetInt("\\LEVEL1\\NumBricksToPass") : 200;
 	if (aFile->HasKey("\\LEVEL1\\MutationDelay"))
 		mDropTicks = (int) aFile->GetInt("\\LEVEL1\\MutationDelay");
-	m1a1c = aFile->HasKey("\\LEVEL1\\NumBricksToPassChangeBy") ? (int) aFile->GetInt("\\LEVEL1\\NumBricksToPassChangeBy") : 0x14;
-	m1ac8 = aFile->HasKey("\\LEVEL1\\NumRowsAtStart") ? (int) aFile->GetInt("\\LEVEL1\\NumRowsAtStart") : 4;
+	mBricksToPassChange = aFile->HasKey("\\LEVEL1\\NumBricksToPassChangeBy") ? (int) aFile->GetInt("\\LEVEL1\\NumBricksToPassChangeBy") : 0x14;
+	mRowsAtStart = aFile->HasKey("\\LEVEL1\\NumRowsAtStart") ? (int) aFile->GetInt("\\LEVEL1\\NumRowsAtStart") : 4;
 	if (aFile->HasKey("\\LEVEL1\\MaxMutators"))
-		m1ac4 = (int) aFile->GetInt("\\LEVEL1\\MaxMutators");
-	if (m1ac4 < 0)
-		m1ac4 = 500000000;
+		mMaxMutators = (int) aFile->GetInt("\\LEVEL1\\MaxMutators");
+	if (mMaxMutators < 0)
+		mMaxMutators = 500000000;
 	if (aFile->HasKey("\\LEVEL1\\AddNewColor"))
-		m1a28++;
-	if (m1a28 > 1)
-		m1a28 = 2;
+		mExtraColors++;
+	if (mExtraColors > 1)
+		mExtraColors = 2;
 	int aRows = aFile->HasKey("\\LEVEL1\\NumRowsToPass") ? (int) aFile->GetInt("\\LEVEL1\\NumRowsToPass") : 0x19;
 	mRowsLeftToPass = aRows;
 	mRowsToPass = aRows;
@@ -406,7 +406,7 @@ void Board::SetupLevel1Rules()
 		aRule.mRates[2].m4 = aFile->HasKey(aKey + "ThirdChanceChangeBy") ? Share(aFile, aKey + "ThirdChanceChangeBy") : 0.0f;
 	}
 
-	m1a88 = -1;
+	mCountedBrickType = -1;
 	// (computed in extended precision in the original: exact for these numbers)
 	mScoreMultiplier = (float) ((double) mLevelNumber * 0.125 + 1.0);
 	if (mScoreMultiplier < 1.0f)
@@ -433,7 +433,7 @@ void Board::AdvanceLevel(bool theSave)
 	UserProfile* aUser = mApp->mUser;
 	if (theSave)
 	{
-		if (m1a60 == 1)
+		if (mGameType == 1)
 		{
 			int aValue = 0;
 			aUser->GetInt(mMode + 8, &aValue);
@@ -450,8 +450,8 @@ void Board::AdvanceLevel(bool theSave)
 			}
 
 			aValue = 0;
-			if (m1a24 < mBestChain)
-				m1a24 = mBestChain;
+			if (mLongestChain < mBestChain)
+				mLongestChain = mBestChain;
 			aUser->GetInt(0xc, &aValue);
 			if (aValue < mBestChain)
 				aUser->SetInt(0xc, aValue);     // (no-op as well)
@@ -495,12 +495,12 @@ void Board::AdvanceLevel(bool theSave)
 		else
 			m1bec = (float) ((double) m1bf4 + (double) m1bec);
 
-		m1ac8 = aFile->HasKey("NumRowsAtStart") ? (int) aFile->GetInt("NumRowsAtStart") : 4;
+		mRowsAtStart = aFile->HasKey("NumRowsAtStart") ? (int) aFile->GetInt("NumRowsAtStart") : 4;
 		if (aFile->HasKey("MutationDelay"))
 			mDropTicks = (int) aFile->GetInt("MutationDelay");
-		m1a18 = aFile->HasKey("NumBricksToPass") ? (int) aFile->GetInt("NumBricksToPass") : m1a18 + m1a1c;
+		mBricksToPass = aFile->HasKey("NumBricksToPass") ? (int) aFile->GetInt("NumBricksToPass") : mBricksToPass + mBricksToPassChange;
 		if (aFile->HasKey("NumBricksToPassChangeBy"))
-			m1a1c = (int) aFile->GetInt("NumBricksToPassChangeBy");
+			mBricksToPassChange = (int) aFile->GetInt("NumBricksToPassChangeBy");
 		if (aFile->HasKey("NumRowsToPassChangeBy"))
 			mRowsToPassChange = (int) aFile->GetInt("NumRowsToPassChangeBy");
 		if (aFile->HasKey("NumRowsToPass"))
@@ -509,13 +509,13 @@ void Board::AdvanceLevel(bool theSave)
 			mRowsToPass = mRowsToPass + mRowsToPassChange;
 		mRowsLeftToPass = mRowsToPass;
 		if (aFile->HasKey("MaxMutators"))
-			m1ac4 = (int) aFile->GetInt("MaxMutators");
-		if (m1ac4 < 0)
-			m1ac4 = 500000000;
+			mMaxMutators = (int) aFile->GetInt("MaxMutators");
+		if (mMaxMutators < 0)
+			mMaxMutators = 500000000;
 		if (aFile->HasKey("AddNewColor"))
-			m1a28++;
-		if (m1a28 > 1)
-			m1a28 = 2;
+			mExtraColors++;
+		if (mExtraColors > 1)
+			mExtraColors = 2;
 		if (aFile->HasKey("DropTime"))
 			mRowInterval = (int) aFile->GetInt("DropTime") * 100;
 		if (mRowInterval < 1)
@@ -560,7 +560,7 @@ void Board::AdvanceLevel(bool theSave)
 		m1be8 = (float) ((double) m1bf0 + (double) m1be8);
 		mRowsLeftToPass = aRows;
 		mRowsToPass = aRows;
-		m1a18 = m1a18 + m1a1c;
+		mBricksToPass = mBricksToPass + mBricksToPassChange;
 		m1bec = (float) ((double) m1bf4 + (double) m1bec);
 		for (int k = 0; k < 8; k++)
 		{
@@ -583,32 +583,32 @@ void Board::AdvanceLevel(bool theSave)
 		mRowsLeftToPass = 0x46;
 		mRowsToPass = 0x46;
 	}
-	if (m1a20 < m1a18)
-		m1a18 = m1a20;
-	m1a14 = 0;
+	if (mBricksToPassMax < mBricksToPass)
+		mBricksToPass = mBricksToPassMax;
+	mStageBricksCleared = 0;
 
-	if (m1a60 == 1)
+	if (mGameType == 1)
 	{
-		m1a04 = aLevel + 2;
-		m1a00 = aLevel + 1;
+		mSlowGateStage = aLevel + 2;
+		mNextStageNumber = aLevel + 1;
 		int aHalf = (aLevel + 2) / 2;
 		int aRest = (aHalf + 1) % 4;
-		m1a08 = (aRest == 0) ? -1 : (aHalf - aRest) * 2 + 8;
-		if (m1a0c * 2 - 2 < m1a08 || m1a08 == -1)
+		mFastGateStage = (aRest == 0) ? -1 : (aHalf - aRest) * 2 + 8;
+		if (mBestLevelReached * 2 - 2 < mFastGateStage || mFastGateStage == -1)
 		{
-			m1a08 = -1;
-			m1a70 = 0x17d - IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2;
-			m1a74 = -1;
+			mFastGateStage = -1;
+			mSlowGateX = 0x17d - IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2;
+			mFastGateX = -1;
 		}
-		if (m1a08 < 1)
+		if (mFastGateStage < 1)
 		{
-			m1a70 = 0x17d - IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2;
-			m1a74 = -1;
+			mSlowGateX = 0x17d - IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2;
+			mFastGateX = -1;
 		}
 		else
 		{
-			m1a70 = 0xb6;
-			m1a74 = 0x192;
+			mSlowGateX = 0xb6;
+			mFastGateX = 0x192;
 		}
 	}
 

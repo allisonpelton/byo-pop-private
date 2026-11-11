@@ -205,10 +205,10 @@ void Board::RecordStep(bool theForce)
 	mDemoRecordLastArg = mDemoRecordArg;
 }
 
-// 0x432a40: the number of updates until the next brick comes (-1: no delay). m1ab8 is the game's phase.
+// 0x432a40: the number of updates until the next brick comes (-1: no delay). mPhase is the game's phase.
 int Board::PickSpawnDelay()
 {
-	switch (m1ab8)
+	switch (mPhase)
 	{
 	case 2:
 		return ((int) AstroRand() % 500000000) % 0x19 + 0x19;
@@ -289,7 +289,7 @@ void Board::UpdateRamp()
 	if (aIndex < mSpeedRamp.size())
 	{
 		if (mRampTime >= 18000)
-			m1a28 = 1;
+			mExtraColors = 1;
 
 		const RampRecord& aNext = mSpeedRamp[aIndex];
 		const RampRecord& aPrev = mSpeedRamp[aIndex > 0 ? aIndex - 1 : 0];
@@ -299,7 +299,7 @@ void Board::UpdateRamp()
 		m1bec = (aNext.mF4 - aPrev.mF4) * aFrac + aPrev.mF4;
 		mRowInterval = (int) ((float) aPrev.mV1 - (float) (aPrev.mV1 - aNext.mV1) * aFrac);
 		mDropTicks = (int) ((float) aPrev.mV3 - (float) (aPrev.mV3 - aNext.mV3) * aFrac);
-		m1ac4 = (int) ((float) (aPrev.mV2 - aNext.mV2) * aFrac + (float) aPrev.mV2);
+		mMaxMutators = (int) ((float) (aPrev.mV2 - aNext.mV2) * aFrac + (float) aPrev.mV2);
 	}
 
 	int aStage = mRampTime / 6000;
@@ -505,19 +505,19 @@ void Board::UpdateScenery()
 		for (int i = 0; i < 5; i++)
 			StepScrollLayer(&mPlanets[i]);
 
-		if (m19f0 == 0)
+		if (mWarpLightningAlpha == 0)
 		{
-			if (mUpdateCnt % m19f4 == 0)
+			if (mUpdateCnt % mWarpLightningPeriod == 0)
 			{
-				m19f0 = 0xff;
-				m19f4 = ((int) AstroRand() % 500000000) % 200 + 100;
+				mWarpLightningAlpha = 0xff;
+				mWarpLightningPeriod = ((int) AstroRand() % 500000000) % 200 + 100;
 				switch (((int) AstroRand() % 500000000) % 3)
 				{
 				case 0:		mWarpLightningImage = IMAGE_WARP_FX_LIGHTENING; break;
 				case 1:		mWarpLightningImage = mApp->mLightningImage; break;
 				default:	mWarpLightningImage = mApp->mLightningImage2; break;
 				}
-				m19f8 = ((int) AstroRand() % 500000000) % 0x15e + 0x32;
+				mWarpLightningY = ((int) AstroRand() % 500000000) % 0x15e + 0x32;
 				unsigned int aSoundRand = AstroRand();
 				unsigned int aColumnRand = AstroRand();
 				int aColumn = ((int) aColumnRand % 500000000) % 10;
@@ -525,11 +525,11 @@ void Board::UpdateScenery()
 				mApp->PlaySampleAt(SOUND_THUNDER1 + aSound, aColumn);
 			}
 		}
-		else if (m19f0 > 0)
+		else if (mWarpLightningAlpha > 0)
 		{
-			m19f0 = m19f0 - 3;
-			if (m19f0 < 0)
-				m19f0 = 0;
+			mWarpLightningAlpha = mWarpLightningAlpha - 3;
+			if (mWarpLightningAlpha < 0)
+				mWarpLightningAlpha = 0;
 			mOverlay.MarkDirty();
 		}
 	}
@@ -589,8 +589,8 @@ void Board::UpdateKlaxon()
 // 0x43d2f0: nothing moves or waits: no falling bricks, no groups, no cells marked, no mode that runs on its own
 bool Board::IsSettled(bool theAssumeIdle)
 {
-	bool aIdle = theAssumeIdle ? true : (m1a34 == 0);
-	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && m1a60 != 2 && aIdle &&
+	bool aIdle = theAssumeIdle ? true : (mPowerupActive == 0);
+	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && mGameType != 2 && aIdle &&
 		!mBonusRoundOn && mBrickometerFill == 1.0f && mHeldBricksNotLanded == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 	{
 		if (CountMovingBricks(false) == 0 && mAtomicMarkedBricks.empty() && mTakenBricks.empty() && mKillAllTypes.empty())

@@ -58,7 +58,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mWeaponHintPulse.mWaitReset = -1;
 
 	mApp = theApp;
-	m1a60 = theGameType;
+	mGameType = theGameType;
 	if (theGameType == 1)
 		mMode = theApp->mClassicPilot;
 	else
@@ -100,7 +100,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mFieldPointerY = 4;
 	mHintBoxes[1] = new HintBox();
 	std::string aMeterLine;
-	if (m1a60 == 1)
+	if (mGameType == 1)
 	{
 		mHintBoxes[1]->AddLine(GT(0x00569b20));
 		aMeterLine = GT(0x00569b0c);
@@ -136,10 +136,10 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mClearBonusWorth = 0;
 	mStartWeaponAfterPause = false;
 	m1b6c = 0;
-	if (m1a60 == 1)
+	if (mGameType == 1)
 		m1bbc = 5;
 	else
-		m1bbc = (m1a60 != 0) ? 500000000 : 3;
+		m1bbc = (mGameType != 0) ? 500000000 : 3;
 	mLoadLevelFlag = (int) (theFlags & 0xff);
 	mLevelNumber = theLevel;
 	mStageNumber = 1;
@@ -157,7 +157,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1b1c = 0;
 	m1b0c = 0;
 	m1b08 = 0;
-	m1af4 = 0;
+	mResumeUpdate = 0;
 	m1b14 = 0;
 	if (theLevel == 1 && theNewGame)
 	{
@@ -186,11 +186,11 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mBrickometerDrain = 0.0f;
 	mBricksRevealing = false;
 	mBonusRoundFile = 0;
-	m1abc = 0;
+	mFlurryTimer = 0;
 	mHighestStack = 0;
 	mUnusedFlagFromCtor = false;
-	m1ab8 = 4;
-	m1ac0 = PickSpawnDelay();
+	mPhase = 4;
+	mPhaseDelay = PickSpawnDelay();
 	mBonusRoundLoaded = false;
 	mBonusFadingOut = false;
 	m1b74 = 0;
@@ -245,13 +245,13 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mClearCountRunning = false;
 	m1b70 = -1;
 	m1b0c = 500000000;
-	m1afc = 0;
-	m1af8 = 0;
+	mComboTimeLeft = 0;
+	mComboColor = 0;
 	mPhasePictures.resize(14, (Image*) NULL);
-	m1ac4 = 6;
+	mMaxMutators = 6;
 	mDropTicks = 1000;
-	m1af0 = 0;
-	m1af4 = 0;
+	mPauseStartUpdate = 0;
+	mResumeUpdate = 0;
 	mWeaponHintText = GT(0x00569a90);
 	int aModeImage = 0x196;
 	if (mMode == 1)
@@ -263,7 +263,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	for (size_t i = 0; i < mPhasePictures.size(); i++)
 		mPhasePictures[i] = LoadImageById(mApp->mResourceManager, aModeImage + (int) i);
 	mClickRepeating = false;
-	m1aa0 = 0;
+	mTurbotPowerupAlpha = 0;
 	mPlanets.resize(5);
 	mStreaks.resize(100);
 	mSpawnRules.resize(1);
@@ -272,10 +272,10 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	m1b00 = 0;
 	mPlayTime = 0;
 	m1b78 = 0;
-	m1ab0 = 0;
+	mHoveredGate = 0;
 	mMeterPaused = false;
 	mInHallOfFame = false;
-	m1a24 = 0;
+	mLongestChain = 0;
 	mTutorialStageForced = false;
 
 	mMeterFullAnim.SetNumFrames(0x3f);
@@ -290,23 +290,23 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mStageMeterAnim.mLoopCount = 0;
 	mStageMeterAnim.mPingPong = true;
 	mStageMeterAnim.SetStopped(true);
-	m1acc = 0;
-	m1adc = 0;
-	m1ad8 = 0;
-	m1ae8 = 0;
-	m1ae4 = 0;
-	m1ae0 = 0;
-	m1ad4 = 0;
-	m1ad0 = 0;
-	m1aec = 0;
-	mApp->mUser->GetInt(mMode + 0x33, &m1a8c);
-	mApp->mUser->GetInt(mMode + 0x3b, &m1a94);
+	mSupaTitleStep = 0;
+	mSupaBracketSpread = 0;
+	mSupaBannerY = 0;
+	mSupaBannerTimer = 0;
+	mSupaNameAlpha = 0;
+	mSupaBracketFlash = 0;
+	mSupaBannerStep = 0;
+	mBonusBannerHue = 0;
+	mScreenShakeUpdates = 0;
+	mApp->mUser->GetInt(mMode + 0x33, &mWeaponPower);
+	mApp->mUser->GetInt(mMode + 0x3b, &mWeaponChargeLevel);
 	if (mMode == 0)
-		mApp->mUser->GetInt(0x37, &m1a90);
+		mApp->mUser->GetInt(0x37, &mWeaponDurationLevel);
 	else if (mMode == 3)
-		mApp->mUser->GetInt(0x3a, &m1a90);
+		mApp->mUser->GetInt(0x3a, &mWeaponDurationLevel);
 	else
-		m1a90 = -1;
+		mWeaponDurationLevel = -1;
 	mButtonsHeld = 0;
 	mOverlay.Resize(0, 0, 0x280, 0x1e0);
 	mOverlay.mBoard = this;
@@ -316,7 +316,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mFieldBricks.resize(20);
 	for (size_t i = 0; i < mFieldBricks.size(); i++)
 		mFieldBricks[i].resize(10, (Brick*) NULL);
-	m1a54 = 4;
+	mSetSize = 4;
 	mPauseMutedSound = NULL;
 	mLevelCompleteBlocked = false;
 	mWarpGateAnim.SetNumFrames(1);
@@ -333,16 +333,16 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	}
 	else
 		mTurbotPowerupAnim.SetStopped(true);
-	m1a28 = 0;
+	mExtraColors = 0;
 	mLevelFileLevelUp = 10000;
 	mScoreShown = 0;
 	mScore = 0;
 	mSlowMotion = false;
 	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;   // (a test's charge, BoardState.cpp)
 	ResetGame();
-	if (m1a60 == 1)
+	if (mGameType == 1)
 		SetupLevel1Rules();
-	else if (m1a60 != 0)
+	else if (mGameType != 0)
 		SetupClassicRules();
 	mHandKindBrick = NULL;
 	mShipX = 0xa6;
@@ -444,19 +444,19 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mWarpChargeAlpha = 500000000;
 	mWarpPictureLift = 500000000;
 	mWarpShakeX = 500000000;
-	m19ec = 500000000;
-	m19e8 = 500000000;
-	m19e4 = 500000000;
-	m19e0 = 500000000;
-	m19f8 = 500000000;
-	m19f4 = 500000000;
-	m19f0 = 500000000;
+	mFastGateGlow = 500000000;
+	mSlowGateGlow = 500000000;
+	mEasyGateGlow = 500000000;
+	mWarpGateAlpha = 500000000;
+	mWarpLightningY = 500000000;
+	mWarpLightningPeriod = 500000000;
+	mWarpLightningAlpha = 500000000;
 	mPauseTextWanted = true;
 	mFieldButtons[0] = NULL;
 	mHelpButton = NULL;
-	m1a58 = 0;
-	m1a5c = 0;
-	m1a34 = 0;
+	mTutorialPickTimer = 0;
+	mTutorialPickCount = 0;
+	mPowerupActive = 0;
 	m1bdc = 18000.0f;
 	ApplyWeaponLevels();
 	m1bd4 = 0;
@@ -486,27 +486,27 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		aBannerX = aBannerX + 0x1e + aBannerFont->StringWidth(aBannerText);
 	} while (!aBannerDone);
 	m1b04 = 0;
-	m1a00 = mStageNumber + 1;
-	m1a04 = mStageNumber + 2;
-	int aHalf = m1a04 / 2;
+	mNextStageNumber = mStageNumber + 1;
+	mSlowGateStage = mStageNumber + 2;
+	int aHalf = mSlowGateStage / 2;
 	int aRemainder = (aHalf + 1) % 4;
 	if (aRemainder == 0)
-		m1a08 = -1;
+		mFastGateStage = -1;
 	else
-		m1a08 = (aHalf - aRemainder) * 2 + 8;
-	m1a0c = -1;
-	mApp->mUser->GetInt(mMode + 8, &m1a0c);
-	if (m1a0c * 2 - 2 < m1a08)
-		m1a08 = -1;
-	if (m1a08 < 1)
+		mFastGateStage = (aHalf - aRemainder) * 2 + 8;
+	mBestLevelReached = -1;
+	mApp->mUser->GetInt(mMode + 8, &mBestLevelReached);
+	if (mBestLevelReached * 2 - 2 < mFastGateStage)
+		mFastGateStage = -1;
+	if (mFastGateStage < 1)
 	{
-		m1a70 = 0x17d - IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2;
-		m1a74 = -1;
+		mSlowGateX = 0x17d - IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2;
+		mFastGateX = -1;
 	}
 	else
 	{
-		m1a70 = 0xb6;
-		m1a74 = 0x192;
+		mSlowGateX = 0xb6;
+		mFastGateX = 0x192;
 	}
 
 	// the 40 blinking pictures of the backdrop
@@ -539,14 +539,14 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mScreenWipe = new ScreenWipe();
 	mScreenWipeKind = ((int) AstroRand() % 500000000) % 4;
 	if (mScreenWipeKind == 0)
-		m1a84 = 2000;
+		mScreenWipeSteps = 2000;
 	else
-		m1a84 = (mScreenWipeKind != 3) * 2 + 4;
+		mScreenWipeSteps = (mScreenWipeKind != 3) * 2 + 4;
 	mScreenWipe->SetImage(mScreenImage, false);
 	mScreenWipe->SetKind(mScreenWipeKind);
-	m1a78 = 0;
+	mUnusedIntFromCtor = 0;
 	mWipeCreated = true;
-	m1a7c = -1;
+	mSirenOffDelay = -1;
 	mSirenAnim.SetNumFrames(IMAGE_SIREN->mNumCols);
 	mSirenAnim.SetDelay(8);
 	mSirenAnim.mHoldLast = false;
@@ -630,7 +630,7 @@ Board::~Board()
 
 	if (mLevelUpText != NULL)
 	{
-		if (m1a60 == 2)
+		if (mGameType == 2)
 		{
 			delete mLevelUpText->mImage;
 			mLevelUpText->mImage = NULL;

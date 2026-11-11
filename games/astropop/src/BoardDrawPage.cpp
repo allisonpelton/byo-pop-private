@@ -42,7 +42,7 @@ void Board::DrawEndPage(Graphics* g)
 	int aY = 0x37;
 	for (int aRow = 0; aRow < 5; aRow++)
 	{
-		if (mApp->mUser->GetRecord(m1a60, aRow, &aRecord))
+		if (mApp->mUser->GetRecord(mGameType, aRow, &aRecord))
 		{
 			int aPilot = aRecord.mField[1];
 			int aScore = aRecord.mField[2];
@@ -88,7 +88,7 @@ void Board::DrawEndPage(Graphics* g)
 				g->SetColorizeImages(false);
 
 			g->SetColor(Color(0xff, 0xff, 0, 0xff));
-			if (m1a60 == 1)
+			if (mGameType == 1)
 				WriteString(g, CommaSeperate(aScore), 0x1b2, aY + 0x18, 0x99, 1, true, 0, -1);
 			else
 			{
@@ -108,7 +108,7 @@ void Board::DrawEndPage(Graphics* g)
 	Font* aFont = GetFontById(FONT_DIALOG_BOX_BTN_ID);
 	g->SetFont(aFont);
 
-	if (m1a60 == 1)
+	if (mGameType == 1)
 	{
 		WriteString(g, GT(0x00565d24), 0xe8, aLineY, -1, -1, true, 0, -1);
 		WriteString(g, StrFormat(GTC(0x00565d18), mLevelNumber), 0x21f, aLineY, -1, 1, true, 0, -1);
@@ -129,7 +129,7 @@ void Board::DrawEndPage(Graphics* g)
 	WriteString(g, StrFormat(GTC(0x00565d18), mBestChain), 0x21f, aLineY, -1, 1, true, 0, -1);
 
 	aLineY += aFont->GetAscent() * 2;
-	if (m1a60 == 1)
+	if (mGameType == 1)
 	{
 		WriteString(g, GT(0x00565c84), 0xe8, aLineY, -1, -1, true, 0, -1);
 		WriteString(g, MinutesSeconds(GT(0x00565cf4), GT(0x00565ce4), mPlayTime / 100), 0x21f, aLineY, -1, 1, true, 0, -1);

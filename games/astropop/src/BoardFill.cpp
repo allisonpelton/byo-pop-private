@@ -69,7 +69,7 @@ bool Board::RowAllows(int theKind, int theRow, int theRefRow, int theCol, bool t
 		aGapPlain = 0x10000;
 	}
 
-	bool aColoured = theKind <= m1a28 + 3;
+	bool aColoured = theKind <= mExtraColors + 3;
 	int aDistance = theCol;
 	for (int aCol = 0; aCol < 10; aCol++, aDistance--)
 	{
@@ -125,7 +125,7 @@ bool Board::RowAllows(int theKind, int theRow, int theRefRow, int theCol, bool t
 		}
 	}
 
-	if (theKind == 0xc && aMutators >= m1ac4)
+	if (theKind == 0xc && aMutators >= mMaxMutators)
 		return false;
 	return true;
 }
@@ -138,7 +138,7 @@ bool Board::CanPlaceKind(int theKind, int theRow, int theCol)
 	if (theKind == 0xc && m1b5c > 0)
 		return false;
 
-	if (theKind <= m1a28 + 3)
+	if (theKind <= mExtraColors + 3)
 	{
 		for (unsigned int aRow = 0; aRow < mFieldBricks.size(); aRow++)
 		{
@@ -240,23 +240,23 @@ int Board::CheckStackHeight()
 		!mWarpCharging)
 	{
 		int aValue = 2 - ((int) (18.0 - (double) aMax - 4.0)) * 3;
-		if (m1aa4 < 0)
+		if (mDangerPulseStep < 0)
 			aValue = -aValue;
-		m1aa4 = aValue;
+		mDangerPulseStep = aValue;
 		if (mSirenAnim.mStopped)
 		{
 			mApp->PlaySample(SOUND_BRICK_WARNING1);
 			mSirenAnim.Reset();
 			mSirenAnim.SetStopped(false);
-			m1ab8 = 8;
-			m1abc = 0;
-			m1ac0 = PickSpawnDelay();
+			mPhase = 8;
+			mFlurryTimer = 0;
+			mPhaseDelay = PickSpawnDelay();
 			mApp->PlaySong(0x23);
-			m1aa8 = 0;
-			m1a98 = mUpdateCnt + 0x14;
+			mDangerPulseAlpha = 0;
+			mGameOverDangerY = mUpdateCnt + 0x14;
 		}
 		if ((double) aMax == 14.0)
-			m1a7c = -1;
+			mSirenOffDelay = -1;
 	}
 	mHighestStack = aHighest;
 
@@ -281,8 +281,8 @@ int Board::CheckStackHeight()
 		}
 	}
 
-	if (aMax < 13.0f && m1a7c == -1)
-		m1a7c = 300 / abs((int) (15.0 - (double) aMax));
+	if (aMax < 13.0f && mSirenOffDelay == -1)
+		mSirenOffDelay = 300 / abs((int) (15.0 - (double) aMax));
 	return aHighest;
 }
 
@@ -290,7 +290,7 @@ int Board::CheckStackHeight()
 // or 2 play is on), the column shakes and the warning of mStackWarningActive starts (it counts down mStackWarningTimer); with room again both end.
 void Board::CheckShipColumn()
 {
-	if (mMode == 0 || mMode == 3 || m1a34 == 0)
+	if (mMode == 0 || mMode == 3 || mPowerupActive == 0)
 	{
 		int aCol = (mShipX - 0xa6) / 0x2c;
 		int aDepth = ColumnDepth(aCol);
@@ -324,7 +324,7 @@ void Board::CheckShipColumn()
 // rectangles that darken the rest of the screen.
 void Board::ShowHint(int theKind, int theCol, int theRow, bool theFlag)
 {
-	if (mBonusRoundOn || mBonusWarpIn || m1a60 != 1)
+	if (mBonusRoundOn || mBonusWarpIn || mGameType != 1)
 		return;
 
 	HintSpot* aHint = new HintSpot();
@@ -411,16 +411,16 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 {
 	int aCol = 0;
 	bool aTutorial = true;
-	if (!theTutorial || mStageNumber > 0x15 || m1a60 != 1)
+	if (!theTutorial || mStageNumber > 0x15 || mGameType != 1)
 		aTutorial = false;
 
 	mFieldCleared = false;
 	int aPhase = 2;
-	if (m1a60 == 2)
+	if (mGameType == 2)
 		aPhase = 0;
 	else
 	{
-		float aRatio = (float) m1a14 / (float) m1a18;
+		float aRatio = (float) mStageBricksCleared / (float) mBricksToPass;
 		if (!(aRatio <= 0.3333333333333333))
 		{
 			if (!(aRatio <= 0.6666666666666666))
@@ -626,7 +626,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			if (aKind != -1)
 			{
 				if (aCode == 1)
-					aKind = ((int) AstroRand() % 500000000) % (m1a28 + 4);
+					aKind = ((int) AstroRand() % 500000000) % (mExtraColors + 4);
 				if (!CanPlaceKind(aKind, theRow, aCol))
 					aCode = 0;
 			}
@@ -656,7 +656,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 				else if (mStageNumber == 18 || mStageNumber == 19)
 				{
 					aCode = 1;
-					aKind = ((int) AstroRand() % 500000000) % (m1a28 + 4);
+					aKind = ((int) AstroRand() % 500000000) % (mExtraColors + 4);
 				}
 				else if (mStageNumber == 20 || mStageNumber == 21)
 					aCode = 8;
@@ -746,7 +746,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 					else
 					{
 						if (aCode == 0)
-							mFieldBricks[theRow][aCol] = CreateBrick(((int) AstroRand() % 500000000) % (m1a28 + 4));
+							mFieldBricks[theRow][aCol] = CreateBrick(((int) AstroRand() % 500000000) % (mExtraColors + 4));
 						aMade = false;
 					}
 					if (aMade && aShowHint)
@@ -772,13 +772,13 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 				int aType = (aBrick->mMutated == 1) ? 0xc : aBrick->mType;
 				for (;;)
 				{
-					CollectConnected(aType, aCol, theRow, (unsigned int) m1a54, true, NULL, -1, -1);
-					if ((unsigned int) mConnectedCells.size() < (unsigned int) m1a54)
+					CollectConnected(aType, aCol, theRow, (unsigned int) mSetSize, true, NULL, -1, -1);
+					if ((unsigned int) mConnectedCells.size() < (unsigned int) mSetSize)
 						break;
 					aBrick = mFieldBricks[theRow][aCol];
 					aType = (aBrick->mMutated == 1) ? 0xc : aBrick->mType;
 					aType++;
-					if (aType > m1a28 + 3)
+					if (aType > mExtraColors + 3)
 						aType = 0;
 					aBrick->SetType(aType);
 					std::vector<CellRef>().swap(mConnectedCells);
@@ -823,7 +823,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 		}
 		CheckShipColumn();
 	}
-	else if (m1a60 != 0)
+	else if (mGameType != 0)
 	{
 		GameOver();
 		return;
