@@ -1,0 +1,4 @@
+# tools/namecheck.py's exceptions for Water Bugs (docs/CODE_STANDARDS.md). One rule a line, each with its reason.
+
+folder engine -- Retro64, the port's translation of the original's own engine, beside src and part of the game's code
+allow offset gScreenFormat565 -- the pixel format's name: red 5 bits, green 6, blue 5, not an offset or address

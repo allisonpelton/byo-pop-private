@@ -81,7 +81,7 @@ AstroPopApp::AstroPopApp()
 	mMusicOrder = -1;
 }
 
-// 0x42dc30 slot 14
+// 0x42dc30 slot 14 (body 0x42d820)
 AstroPopApp::~AstroPopApp()
 {
 	delete mUser;
@@ -89,7 +89,7 @@ AstroPopApp::~AstroPopApp()
 		gApp = NULL;
 }
 
-// 0x408e90 slot 3
+// 0x408e90 slot 3 (and 0x4285c0, its entry through the ButtonListener part)
 void AstroPopApp::ButtonPress(int theId)
 {
 	PlaySample(SOUND_BUTTON_DOWN);

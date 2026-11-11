@@ -137,7 +137,8 @@ void SpecialBrick::StartMutatorCountdown()
 	mStage = 1;
 }
 
-// 0x403420 (listener): a bomb that has landed starts its activated strip
+// 0x403420 (listener): a bomb that has landed starts its activated strip. The original takes the frame count from the row
+// bomb's strip for both bombs (the two strips have the same number of columns)
 void SpecialBrick::OnSettle()
 {
 	Brick::OnSettle();
@@ -146,7 +147,7 @@ void SpecialBrick::OnSettle()
 	{
 		mImage = anImage;
 		mAnim.Reset();
-		mAnim.SetNumFrames(mImage->mNumCols);
+		mAnim.SetNumFrames(IMAGE_BRICK_ROW_NUKE_ACTIVATED->mNumCols);
 		mAnim.SetDelay(0xb);
 		mAnim.SetStopped(false);
 		mAnim.mHoldLast = false;

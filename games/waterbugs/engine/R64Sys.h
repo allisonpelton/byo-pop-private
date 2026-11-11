@@ -19,7 +19,7 @@ public:
 	// A whole file of the game's; thePath is relative to the game's folder, with either separator
 	virtual bool ReadFile(const char* thePath, std::vector<uint8_t>& theData) = 0;
 	// 0x42ebc0 (through 0x429430): a rectangle of the screen that changed, for the next present
-	virtual void AddUpdateRect(int x, int y, int w, int h) {}
+	virtual void AddUpdateRect(int x, int y, int theWidth, int theHeight) {}
 	// 0x428d70: puts the mouse pointer at (x, y) of the game's screen (the original moves the system's)
 	virtual void SetMousePos(int x, int y) {}
 	// 0x42a320: where the mouse pointer is on the game's screen (the original reads the system's and takes off the
@@ -65,7 +65,6 @@ public:
 };
 
 void Sys_SetHost(SysHost* theHost);
-SysHost* Sys_Host();
 
 // fopen/fseek/ftell/fread on the whole file, as the loaders do: false when it cannot be read
 bool Sys_ReadFile(const char* thePath, std::vector<uint8_t>& theData);
@@ -76,13 +75,9 @@ const char* Sys_SavePath(const char* theName);
 void Sys_SaveDone();
 void Sys_UserName(char* theName, int theSize);
 // 0x429430
-void Sys_AddUpdateRect(int x, int y, int w, int h);
+void Sys_AddUpdateRect(int x, int y, int theWidth, int theHeight);
 // 0x428d70
 void Sys_SetMousePos(int x, int y);
-// 0x70819c: while it is 1, PumpMessages does not wait for the window to be active (and the original picks which
-// focus messages pause the sound by it); only the demo's power-ups set it
-extern int gPumpMessages;
-
 // The input (0x428eb0..0x429000), which the window's messages fill: the mouse buttons held, the keys held (by
 // virtual-key code) and a ring of the last 100 keys pressed. The host feeds them its events with Sys_KeyEvent and
 // Sys_MouseButton.
@@ -103,18 +98,16 @@ void Sys_SetScreenFormat(const PixelFormat* theFmt);
 // The screen (0x429350..0x4294d0) and the window's messages
 struct ScreenLock
 {
-	int unk00;
-	int w;                     // +0x04
-	int h;                     // +0x08
-	int pitch;                 // +0x0c
-	uint8_t* bits;             // +0x10
+	int mWidthPadding;          // +0x00  nothing reads it
+	int mW;                     // +0x04
+	int mH;                     // +0x08
+	int mPitch;                 // +0x0c
+	uint8_t* mBits;             // +0x10
 };
 uint32_t TimeMs();                       // 0x429350
 bool Sys_FixOn(const char* theFix);      // port(mod): a fix of the fixes mod is on
 bool Sys_SkipLogos();                    // port(site): the start-up logos are skipped, as Esc on the first one does
-void Sys_Sleep(int theMs);               // 0x428d00
-// 0x4293a0 and 0x4293b0: called after PumpMessages opened the screen again, the first with the screen's format
-void SetScreenLostCallback(void (*theCallback)(const PixelFormat*));
+// 0x4293b0: called after PumpMessages opened the screen again
 void SetScreenChangeCallback(void (*theCallback)());
 int Screen_Fullscreen();                 // 0x4293e0
 void Screen_SetFullscreen(int theOn);    // 0x4293c0: at the next PumpMessages
@@ -124,7 +117,7 @@ void Present(int theWait);               // 0x429450
 int LockScreen(ScreenLock* theLock);     // 0x429480: 0 when it cannot be drawn
 void UnlockScreen();                     // 0x4294c0
 // 0x42a550: the window's messages are the host's, between frames; this is what follows them: 0 while the window is
-// inactive, when the original waited for it (unless gPumpMessages), else 1 after the screen mode asked for (F7, F8
+// inactive, when the original waited for it, else 1 after the screen mode asked for (F7, F8
 // and the options) is applied
 int PumpMessages();
 // 0x42a820: cp.cfg's settings (the mode, the sound and the music), written with the defaults when it is missing
@@ -136,19 +129,19 @@ void Sys_Activate(int theActive);
 // The sound (BASS): the samples by id and the one music. A sound list (0x18 bytes) keeps them by file name.
 struct SoundEntry
 {
-	SoundEntry* next;          // +0x000
-	SoundEntry* prev;          // +0x004
-	char name[0x100];          // +0x008
-	int sound;                 // +0x108
+	SoundEntry* mNext;          // +0x000
+	SoundEntry* mPrev;          // +0x004
+	char mName[0x100];          // +0x008
+	int mSound;                 // +0x108
 };
 struct SoundList
 {
-	SoundEntry* current;       // +0x00
-	SoundEntry* head;          // +0x04
-	SoundEntry* tail;          // +0x08
-	void* unk0c;
-	int count;                 // +0x10
-	int unk14;
+	SoundEntry* mCurrent;       // +0x00
+	SoundEntry* mHead;          // +0x04
+	SoundEntry* mTail;          // +0x08
+	void* mCountPadding;        // the four bytes before count: nothing reads them
+	int mCount;                 // +0x10
+	int mEndPadding;            // nothing reads it
 };
 int Sample_Load(const char* thePath);    // 0x42b850: its id, -1 when it cannot be loaded
 int Sound_Play(int theSound);            // 0x42a490

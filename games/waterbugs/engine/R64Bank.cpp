@@ -29,16 +29,16 @@ void CopyName(char* theDst, size_t theSize, const char* theSrc)
 	theDst[n] = '\0';
 }
 
-// Each 8-bit image is its own mask (Bank_Load and Bank_Reconvert)
+// Each 8-bit image is its own mask (Bank_Load)
 void SelfMask8(Bank* theBank)
 {
-	for (Image* anImage : theBank->images)
+	for (Image* anImage : theBank->mImages)
 	{
-		if (anImage->fmt.bpp == 8)
+		if (anImage->mFmt.mBpp == 8)
 		{
-			anImage->hasMask = 1;
-			anImage->defMask = anImage;
-			anImage->mask = anImage->defMask;
+			anImage->mHasMask = 1;
+			anImage->mDefMask = anImage;
+			anImage->mMask = anImage->mDefMask;
 		}
 	}
 }
@@ -46,22 +46,22 @@ void SelfMask8(Bank* theBank)
 } // namespace
 
 // 0x401a80
-int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* dst, const uint8_t* rgb, int n)
+int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* theDst, const uint8_t* theRgb, int theCount)
 {
-	if (dst != nullptr && rgb != nullptr && -1 < n)
+	if (theDst != nullptr && theRgb != nullptr && -1 < theCount)
 	{
 		int i = 0;
-		if (0 < n)
+		if (0 < theCount)
 		{
-			const uint8_t* p = rgb + 1;
+			const uint8_t* p = theRgb + 1;
 			do
 			{
 				i++;
-				dst[i - 1] = (uint32_t)(p[-1] >> (theFmt->rLoss & 0x1f)) << (theFmt->rShift & 0x1f) |
-					(uint32_t)(p[1] >> (theFmt->bLoss & 0x1f)) << (theFmt->bShift & 0x1f) |
-					(uint32_t)(*p >> (theFmt->gLoss & 0x1f)) << (theFmt->gShift & 0x1f);
+				theDst[i - 1] = (uint32_t)(p[-1] >> (theFmt->mRLoss & 0x1f)) << (theFmt->mRShift & 0x1f) |
+					(uint32_t)(p[1] >> (theFmt->mBLoss & 0x1f)) << (theFmt->mBShift & 0x1f) |
+					(uint32_t)(*p >> (theFmt->mGLoss & 0x1f)) << (theFmt->mGShift & 0x1f);
 				p += 4;
-			} while (i < n);
+			} while (i < theCount);
 		}
 		return 1;
 	}
@@ -69,22 +69,22 @@ int PixelFormat_PackPalette32(const PixelFormat* theFmt, uint32_t* dst, const ui
 }
 
 // 0x401b10
-int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* dst, const uint8_t* rgb, int n)
+int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* theDst, const uint8_t* theRgb, int theCount)
 {
-	if (dst != nullptr && rgb != nullptr && -1 < n)
+	if (theDst != nullptr && theRgb != nullptr && -1 < theCount)
 	{
 		int i = 0;
-		if (0 < n)
+		if (0 < theCount)
 		{
-			const uint8_t* p = rgb + 1;
+			const uint8_t* p = theRgb + 1;
 			do
 			{
 				i++;
-				dst[i - 1] = (uint16_t)((uint32_t)(p[-1] >> (theFmt->rLoss & 0x1f)) << (theFmt->rShift & 0x1f) |
-					(uint32_t)(p[1] >> (theFmt->bLoss & 0x1f)) << (theFmt->bShift & 0x1f) |
-					(uint32_t)(*p >> (theFmt->gLoss & 0x1f)) << (theFmt->gShift & 0x1f));
+				theDst[i - 1] = (uint16_t)((uint32_t)(p[-1] >> (theFmt->mRLoss & 0x1f)) << (theFmt->mRShift & 0x1f) |
+					(uint32_t)(p[1] >> (theFmt->mBLoss & 0x1f)) << (theFmt->mBShift & 0x1f) |
+					(uint32_t)(*p >> (theFmt->mGLoss & 0x1f)) << (theFmt->mGShift & 0x1f));
 				p += 4;
-			} while (i < n);
+			} while (i < theCount);
 		}
 		return 1;
 	}
@@ -94,7 +94,7 @@ int PixelFormat_PackPalette16(const PixelFormat* theFmt, uint16_t* dst, const ui
 // 0x427790
 Bank::Bank()
 {
-	std::memset(dataPath, 0, sizeof(dataPath));
+	std::memset(mDataPath, 0, sizeof(mDataPath));
 	Bank_Reset(this);
 }
 
@@ -107,19 +107,19 @@ Bank::~Bank()
 // 0x4261b0: forgets everything without freeing it
 void Bank_Reset(Bank* theBank)
 {
-	theBank->mode = 0;
-	theBank->images.clear();
-	theBank->rawPalettes.clear();
-	theBank->palettesBuilt = 0;
-	theBank->palettes.clear();
-	theBank->dataSize = 0;
-	theBank->data = nullptr;
+	theBank->mMode = 0;
+	theBank->mImages.clear();
+	theBank->mRawPalettes.clear();
+	theBank->mPalettesBuilt = 0;
+	theBank->mPalettes.clear();
+	theBank->mDataSize = 0;
+	theBank->mData = nullptr;
 }
 
 // 0x426250
 void Bank_Clear(Bank* theBank)
 {
-	for (Image* anImage : theBank->images)
+	for (Image* anImage : theBank->mImages)
 	{
 		if (anImage != nullptr)
 		{
@@ -127,62 +127,62 @@ void Bank_Clear(Bank* theBank)
 			delete anImage;
 		}
 	}
-	theBank->images.clear();
-	for (uint8_t* aPalette : theBank->rawPalettes)
+	theBank->mImages.clear();
+	for (uint8_t* aPalette : theBank->mRawPalettes)
 		std::free(aPalette);
-	theBank->rawPalettes.clear();
-	for (Palette* aPalette : theBank->palettes)
+	theBank->mRawPalettes.clear();
+	for (Palette* aPalette : theBank->mPalettes)
 		delete aPalette;
-	theBank->palettes.clear();
-	if (theBank->data != nullptr)
-		std::free(theBank->data);
+	theBank->mPalettes.clear();
+	if (theBank->mData != nullptr)
+		std::free(theBank->mData);
 	Bank_Reset(theBank);
 }
 
 // 0x425de0: grows the data to theSize and clears it (1 even when malloc fails, as in the original)
 int Bank_Alloc(Bank* theBank, uint32_t theSize)
 {
-	if (theBank->dataSize < theSize)
+	if (theBank->mDataSize < theSize)
 	{
-		if (theBank->data != nullptr)
-			std::free(theBank->data);
-		theBank->data = (uint8_t*)std::malloc(theSize);
-		if (theBank->data == nullptr)
+		if (theBank->mData != nullptr)
+			std::free(theBank->mData);
+		theBank->mData = (uint8_t*)std::malloc(theSize);
+		if (theBank->mData == nullptr)
 			return 1;
-		theBank->dataSize = theSize;
+		theBank->mDataSize = theSize;
 	}
-	std::memset(theBank->data, 0, theBank->dataSize);
+	std::memset(theBank->mData, 0, theBank->mDataSize);
 	return 1;
 }
 
 // 0x425eb0
 Image* Bank_ImageAt(const Bank* theBank, uint32_t theIndex)
 {
-	if (theIndex < theBank->images.size())
-		return theBank->images[theIndex];
+	if (theIndex < theBank->mImages.size())
+		return theBank->mImages[theIndex];
 	return nullptr;
 }
 
 // 0x425ed0
 int Bank_Count(const Bank* theBank)
 {
-	return (int)theBank->images.size();
+	return (int)theBank->mImages.size();
 }
 
 // 0x426430 (a negative index finds nothing)
 uint8_t* Bank_RawPaletteAt(const Bank* theBank, uint32_t theIndex)
 {
-	if ((int)theIndex < 0 || theBank->rawPalettes.size() <= theIndex)
+	if ((int)theIndex < 0 || theBank->mRawPalettes.size() <= theIndex)
 		return nullptr;
-	return theBank->rawPalettes[theIndex];
+	return theBank->mRawPalettes[theIndex];
 }
 
 // 0x426480
 Palette* Bank_PaletteAt(const Bank* theBank, uint32_t theIndex)
 {
-	if ((int)theIndex < 0 || theBank->palettes.size() <= theIndex)
+	if ((int)theIndex < 0 || theBank->mPalettes.size() <= theIndex)
 		return nullptr;
-	return theBank->palettes[theIndex];
+	return theBank->mPalettes[theIndex];
 }
 
 // 0x4264d0: the file as it is; each image's bits follow the last one's (pitch x height)
@@ -191,15 +191,15 @@ int Bank_LoadRaw(Bank* theBank, const char* thePath)
 	std::vector<uint8_t> aFile;
 	if (!Sys_ReadFile(thePath, aFile))
 		return 0;
-	if (Bank_Alloc(theBank, (uint32_t)aFile.size()) != 0 && theBank->dataSize != 0 &&
-		theBank->dataSize <= aFile.size()) // fread(data, dataSize, 1) == 1
+	if (Bank_Alloc(theBank, (uint32_t)aFile.size()) != 0 && theBank->mDataSize != 0 &&
+		theBank->mDataSize <= aFile.size()) // fread(data, mDataSize, 1) == 1
 	{
-		std::memcpy(theBank->data, aFile.data(), theBank->dataSize);
-		uint8_t* aCursor = theBank->data;
-		for (Image* anImage : theBank->images)
+		std::memcpy(theBank->mData, aFile.data(), theBank->mDataSize);
+		uint8_t* aCursor = theBank->mData;
+		for (Image* anImage : theBank->mImages)
 		{
-			anImage->bits = aCursor;
-			aCursor = aCursor + anImage->pitch * anImage->h;
+			anImage->mBits = aCursor;
+			aCursor = aCursor + anImage->mPitch * anImage->mH;
 		}
 		return 1;
 	}
@@ -211,84 +211,84 @@ int Bank_LoadRaw(Bank* theBank, const char* thePath)
 // file one image at a time; a size of 0 fails there (fread returns 0), and does here.
 int Bank_LoadConverted(Bank* theBank, const char* thePath, const PixelFormat* theFmt)
 {
-	uint32_t aBpp = (uint32_t)theFmt->bpp;
+	uint32_t aBpp = (uint32_t)theFmt->mBpp;
 	uint32_t aTotal = 0;
-	for (Image* anImage : theBank->images)
+	for (Image* anImage : theBank->mImages)
 	{
 		uint32_t aPitch;
-		if (anImage->isMask == 1)
-			aPitch = (uint32_t)anImage->bankPitch;
+		if (anImage->mIsMask == 1)
+			aPitch = (uint32_t)anImage->mBankPitch;
 		else
 		{
-			aPitch = (uint32_t)anImage->w * (aBpp >> 3);
-			if (8 < (uint32_t)theFmt->bpp)
+			aPitch = (uint32_t)anImage->mW * (aBpp >> 3);
+			if (8 < (uint32_t)theFmt->mBpp)
 			{
-				if (anImage->bankFmt.bpp == 8)
-					aTotal = aTotal + (uint32_t)anImage->bankDataSize;
-				if (8 < (uint32_t)theFmt->bpp && anImage->bankFmt.bpp == 0x20)
-					aTotal = aTotal + (uint32_t)anImage->h * Align4((uint32_t)anImage->w);
+				if (anImage->mBankFmt.mBpp == 8)
+					aTotal = aTotal + (uint32_t)anImage->mBankDataSize;
+				if (8 < (uint32_t)theFmt->mBpp && anImage->mBankFmt.mBpp == 0x20)
+					aTotal = aTotal + (uint32_t)anImage->mH * Align4((uint32_t)anImage->mW);
 			}
 		}
 		aPitch = Align4(aPitch);
-		aTotal = aTotal + (uint32_t)anImage->h * aPitch;
+		aTotal = aTotal + (uint32_t)anImage->mH * aPitch;
 	}
-	if (theBank->dataSize < aTotal)
+	if (theBank->mDataSize < aTotal)
 	{
-		if (theBank->data != nullptr)
-			std::free(theBank->data);
-		theBank->data = (uint8_t*)std::malloc(aTotal);
-		if (theBank->data == nullptr)
+		if (theBank->mData != nullptr)
+			std::free(theBank->mData);
+		theBank->mData = (uint8_t*)std::malloc(aTotal);
+		if (theBank->mData == nullptr)
 			return 0; // the original goes on into a null buffer
-		theBank->dataSize = aTotal;
+		theBank->mDataSize = aTotal;
 	}
-	std::memset(theBank->data, 0, theBank->dataSize);
+	std::memset(theBank->mData, 0, theBank->mDataSize);
 
 	std::vector<uint8_t> aFile;
 	if (!Sys_ReadFile(thePath, aFile))
 		return 0;
-	uint8_t* aCursor = theBank->data;
+	uint8_t* aCursor = theBank->mData;
 	size_t aRead = 0;
-	for (Image* anImage : theBank->images)
+	for (Image* anImage : theBank->mImages)
 	{
-		uint32_t aChunk = (uint32_t)anImage->bankDataSize;
+		uint32_t aChunk = (uint32_t)anImage->mBankDataSize;
 		if (aChunk == 0 || aFile.size() - aRead < aChunk)
 			return 0;
 		const uint8_t* aSrc = aFile.data() + aRead;
 		aRead += aChunk;
 		uint32_t aSize;
-		if (anImage->isMask == 1)
+		if (anImage->mIsMask == 1)
 		{
 			aSize = aChunk;
 			std::memcpy(aCursor, aSrc, aSize);
-			anImage->bits = aCursor;
+			anImage->mBits = aCursor;
 		}
 		else
 		{
-			uint32_t aPitch = Align4((uint32_t)anImage->w * (aBpp >> 3));
-			aSize = (uint32_t)anImage->h * aPitch;
+			uint32_t aPitch = Align4((uint32_t)anImage->mW * (aBpp >> 3));
+			aSize = (uint32_t)anImage->mH * aPitch;
 			const uint8_t* aRgb = nullptr;
-			if (anImage->bankFmt.bpp == 8)
-				aRgb = Bank_RawPaletteAt(theBank, (uint32_t)anImage->paletteNumber);
-			if (ConvertPixels(theFmt, aCursor, (int)aPitch, 0, 0, &anImage->bankFmt, aRgb, aSrc, anImage->bankPitch,
-					0, 0, anImage->w, anImage->h) == 0)
+			if (anImage->mBankFmt.mBpp == 8)
+				aRgb = Bank_RawPaletteAt(theBank, (uint32_t)anImage->mPaletteNumber);
+			if (ConvertPixels(theFmt, aCursor, (int)aPitch, 0, 0, &anImage->mBankFmt, aRgb, aSrc, anImage->mBankPitch,
+					0, 0, anImage->mW, anImage->mH) == 0)
 				return 0;
-			anImage->bits = aCursor;
-			anImage->pitch = (int)aPitch;
-			anImage->dataSize = (int)aSize;
-			PixelFormat_Init(&anImage->fmt, theFmt->bpp, theFmt->rMask, theFmt->gMask, theFmt->bMask);
+			anImage->mBits = aCursor;
+			anImage->mPitch = (int)aPitch;
+			anImage->mDataSize = (int)aSize;
+			PixelFormat_Init(&anImage->mFmt, theFmt->mBpp, theFmt->mRMask, theFmt->mGMask, theFmt->mBMask);
 		}
 		aCursor = aCursor + aSize;
-		if (anImage->isMask == 0 && 8 < (uint32_t)theFmt->bpp &&
-			(anImage->bankFmt.bpp == 8 || anImage->bankFmt.bpp == 0x20))
+		if (anImage->mIsMask == 0 && 8 < (uint32_t)theFmt->mBpp &&
+			(anImage->mBankFmt.mBpp == 8 || anImage->mBankFmt.mBpp == 0x20))
 		{
 			PixelFormat aMaskFmt;
 			uint32_t aMaskPitch;
 			uint32_t aMaskSize;
-			if (anImage->bankFmt.bpp == 8)
+			if (anImage->mBankFmt.mBpp == 8)
 			{
-				aMaskPitch = (uint32_t)anImage->bankPitch;
-				aMaskSize = (uint32_t)anImage->bankDataSize;
-				aMaskFmt = anImage->bankFmt;
+				aMaskPitch = (uint32_t)anImage->mBankPitch;
+				aMaskSize = (uint32_t)anImage->mBankDataSize;
+				aMaskFmt = anImage->mBankFmt;
 				std::memcpy(aCursor, aSrc, aMaskSize);
 				uint8_t* p = aCursor;
 				uint32_t n = aMaskSize;
@@ -305,36 +305,36 @@ int Bank_LoadConverted(Bank* theBank, const char* thePath, const PixelFormat* th
 			}
 			else
 			{
-				aMaskPitch = Align4((uint32_t)anImage->w);
-				aMaskSize = (uint32_t)anImage->h * aMaskPitch;
+				aMaskPitch = Align4((uint32_t)anImage->mW);
+				aMaskSize = (uint32_t)anImage->mH * aMaskPitch;
 				PixelFormat_Init(&aMaskFmt, 8, 0, 0, 0);
-				ExtractAlpha(aCursor, (int)aMaskPitch, 0, 0, aSrc, anImage->bankPitch, 0, 0, anImage->w, anImage->h);
+				ExtractAlpha(aCursor, (int)aMaskPitch, 0, 0, aSrc, anImage->mBankPitch, 0, 0, anImage->mW, anImage->mH);
 			}
-			if (anImage->autoMask == nullptr)
-				anImage->autoMask = new Image();
-			Image* aMask = anImage->autoMask;
-			aMask->notOwned = 1;
-			aMask->bits = aCursor;
-			aMask->w = anImage->w;
-			aMask->h = anImage->h;
-			aMask->pitch = (int)aMaskPitch;
-			aMask->origW = anImage->origW;
-			aMask->origH = anImage->origH;
-			aMask->xOff = anImage->xOff;
-			aMask->yOff = anImage->yOff;
-			aMask->dataSize = (int)aMaskSize;
-			aMask->paletteNumber = anImage->paletteNumber;
-			aMask->fmt = aMaskFmt;
-			aMask->autoMask = nullptr;
-			std::strcpy(aMask->name, "autoMaskImage-");
-			std::strncat(aMask->name, anImage->name, sizeof(aMask->name) - 1 - std::strlen(aMask->name));
-			aMask->defMask = aMask;
-			aMask->hasMask = 1;
-			aMask->mask = aMask;
-			anImage->defMask = anImage->autoMask;
-			anImage->mask = anImage->defMask;
+			if (anImage->mAutoMask == nullptr)
+				anImage->mAutoMask = new Image();
+			Image* aMask = anImage->mAutoMask;
+			aMask->mNotOwned = 1;
+			aMask->mBits = aCursor;
+			aMask->mW = anImage->mW;
+			aMask->mH = anImage->mH;
+			aMask->mPitch = (int)aMaskPitch;
+			aMask->mOrigW = anImage->mOrigW;
+			aMask->mOrigH = anImage->mOrigH;
+			aMask->mXOff = anImage->mXOff;
+			aMask->mYOff = anImage->mYOff;
+			aMask->mDataSize = (int)aMaskSize;
+			aMask->mPaletteNumber = anImage->mPaletteNumber;
+			aMask->mFmt = aMaskFmt;
+			aMask->mAutoMask = nullptr;
+			std::strcpy(aMask->mName, "autoMaskImage-");
+			std::strncat(aMask->mName, anImage->mName, sizeof(aMask->mName) - 1 - std::strlen(aMask->mName));
+			aMask->mDefMask = aMask;
+			aMask->mHasMask = 1;
+			aMask->mMask = aMask;
+			anImage->mDefMask = anImage->mAutoMask;
+			anImage->mMask = anImage->mDefMask;
 			aCursor = aCursor + aMaskSize;
-			anImage->hasMask = 1;
+			anImage->mHasMask = 1;
 		}
 	}
 	return 1;
@@ -343,20 +343,20 @@ int Bank_LoadConverted(Bank* theBank, const char* thePath, const PixelFormat* th
 // 0x427050: an image named mask_<name> becomes the mask of each image named <name>
 int Bank_LinkMasks(Bank* theBank)
 {
-	for (Image* aMaskImage : theBank->images)
+	for (Image* aMaskImage : theBank->mImages)
 	{
-		if (aMaskImage->unke4 == 1 && 5 < std::strlen(aMaskImage->name) &&
-			std::strncmp(aMaskImage->name, "mask_", 5) == 0)
+		if (aMaskImage->mMaskNamed == 1 && 5 < std::strlen(aMaskImage->mName) &&
+			std::strncmp(aMaskImage->mName, "mask_", 5) == 0)
 		{
 			char aTarget[0x400];
-			CopyName(aTarget, sizeof(aTarget), aMaskImage->name + 5);
-			for (Image* anImage : theBank->images)
+			CopyName(aTarget, sizeof(aTarget), aMaskImage->mName + 5);
+			for (Image* anImage : theBank->mImages)
 			{
-				if (std::strcmp(aTarget, anImage->name) == 0)
+				if (std::strcmp(aTarget, anImage->mName) == 0)
 				{
-					anImage->hasMask = 1;
-					anImage->defMask = aMaskImage;
-					anImage->mask = anImage->defMask;
+					anImage->mHasMask = 1;
+					anImage->mDefMask = aMaskImage;
+					anImage->mMask = anImage->mDefMask;
 				}
 			}
 		}
@@ -367,13 +367,13 @@ int Bank_LinkMasks(Bank* theBank)
 // 0x427270
 int Bank_AssignPalettes(Bank* theBank)
 {
-	for (Image* anImage : theBank->images)
+	for (Image* anImage : theBank->mImages)
 	{
-		if (anImage->fmt.bpp == 8)
+		if (anImage->mFmt.mBpp == 8)
 		{
-			anImage->defPalette = Bank_PaletteAt(theBank, (uint32_t)anImage->paletteNumber);
-			if (anImage->palette == nullptr)
-				anImage->palette = anImage->defPalette;
+			anImage->mDefPalette = Bank_PaletteAt(theBank, (uint32_t)anImage->mPaletteNumber);
+			if (anImage->mPalette == nullptr)
+				anImage->mPalette = anImage->mDefPalette;
 		}
 	}
 	return 1;
@@ -382,10 +382,10 @@ int Bank_AssignPalettes(Bank* theBank)
 // 0x427340
 int Bank_AssignRawPalettes(Bank* theBank)
 {
-	for (Image* anImage : theBank->images)
+	for (Image* anImage : theBank->mImages)
 	{
-		if (anImage->fmt.bpp == 8)
-			anImage->rawPalette = Bank_RawPaletteAt(theBank, (uint32_t)anImage->paletteNumber);
+		if (anImage->mFmt.mBpp == 8)
+			anImage->mRawPalette = Bank_RawPaletteAt(theBank, (uint32_t)anImage->mPaletteNumber);
 	}
 	return 1;
 }
@@ -397,26 +397,26 @@ Image* Bank_FindImage(const Bank* theBank, const char* theName, int* theIndex)
 		return nullptr;
 	size_t i = 0;
 	int anIndex = 0;
-	while (i < theBank->images.size())
+	while (i < theBank->mImages.size())
 	{
-		if (theName[0] == theBank->images[i]->name[0])
+		if (theName[0] == theBank->mImages[i]->mName[0])
 			break;
 		i++;
 		anIndex++;
 	}
-	if (i != theBank->images.size())
+	if (i != theBank->mImages.size())
 	{
-		while (i < theBank->images.size())
+		while (i < theBank->mImages.size())
 		{
-			if (std::strcmp(theName, theBank->images[i]->name) == 0)
+			if (std::strcmp(theName, theBank->mImages[i]->mName) == 0)
 				break;
 			i++;
 			anIndex++;
 		}
-		if (i != theBank->images.size())
+		if (i != theBank->mImages.size())
 		{
 			*theIndex = anIndex;
-			return theBank->images[i];
+			return theBank->mImages[i];
 		}
 	}
 	return nullptr;
@@ -436,8 +436,8 @@ Image* Bank_FindImage2(const Bank* theBank, const char* theName)
 {
 	int anIndex;
 	if (Bank_FindImage(theBank, theName, &anIndex) != nullptr && anIndex != -1 &&
-		(uint32_t)anIndex < theBank->images.size())
-		return theBank->images[(uint32_t)anIndex];
+		(uint32_t)anIndex < theBank->mImages.size())
+		return theBank->mImages[(uint32_t)anIndex];
 	return nullptr;
 }
 
@@ -445,23 +445,23 @@ Image* Bank_FindImage2(const Bank* theBank, const char* theName)
 // raw colours to theFmt (16-bit, else 32-bit)
 int Bank_BuildPalettes(Bank* theBank, const PixelFormat* theFmt)
 {
-	if (theBank->palettesBuilt == 0)
+	if (theBank->mPalettesBuilt == 0)
 	{
-		theBank->palettes.clear(); // 0x425ee0: the list's nodes, not the palettes
-		for (size_t i = 0; i < theBank->rawPalettes.size(); i++)
-			theBank->palettes.push_back(new Palette());
+		theBank->mPalettes.clear(); // 0x425ee0: the list's nodes, not the palettes
+		for (size_t i = 0; i < theBank->mRawPalettes.size(); i++)
+			theBank->mPalettes.push_back(new Palette());
 		Bank_AssignPalettes(theBank);
-		theBank->palettesBuilt = 1;
+		theBank->mPalettesBuilt = 1;
 	}
 	size_t j = 0;
-	for (size_t i = 0; i < theBank->rawPalettes.size(); i++)
+	for (size_t i = 0; i < theBank->mRawPalettes.size(); i++)
 	{
-		Palette* aPalette = theBank->palettes[j];
-		std::memcpy(aPalette->rgb, theBank->rawPalettes[i], 0x400);
-		if (theFmt->bpp == 0x10)
-			PixelFormat_PackPalette16(theFmt, aPalette->p16, aPalette->rgb, 0x100);
+		Palette* aPalette = theBank->mPalettes[j];
+		std::memcpy(aPalette->mRgb, theBank->mRawPalettes[i], 0x400);
+		if (theFmt->mBpp == 0x10)
+			PixelFormat_PackPalette16(theFmt, aPalette->mP16, aPalette->mRgb, 0x100);
 		else
-			PixelFormat_PackPalette32(theFmt, aPalette->p32, aPalette->rgb, 0x100);
+			PixelFormat_PackPalette32(theFmt, aPalette->mP32, aPalette->mRgb, 0x100);
 		j++;
 	}
 	return 1;
@@ -477,8 +477,8 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 	if (!Sys_ReadFile(thePath, aFile))
 		return 0;
 	aFile.push_back(0);
-	const char* p = (const char*)aFile.data();
-	p = Xml_NextTag(p, &aTag);
+	const char* aCursor = (const char*)aFile.data();
+	aCursor = Xml_NextTag(aCursor, &aTag);
 	const char* aDataFile = Xml_GetString(&aTag, "datafile");
 	if (aDataFile == nullptr)
 		return 0;
@@ -496,75 +496,75 @@ int Bank_ParseXml(Bank* theBank, const char* thePath)
 		anEnd = aCut + -1;
 	} while (c != ':');
 	aDir[aCut] = '\0';
-	CopyName(theBank->dataPath, sizeof(theBank->dataPath), aDir);
-	std::strncat(theBank->dataPath, aDataFile, sizeof(theBank->dataPath) - 1 - std::strlen(theBank->dataPath));
+	CopyName(theBank->mDataPath, sizeof(theBank->mDataPath), aDir);
+	std::strncat(theBank->mDataPath, aDataFile, sizeof(theBank->mDataPath) - 1 - std::strlen(theBank->mDataPath));
 
-	p = Xml_NextTag(p, &aTag); // IMAGELIST
-	p = Xml_NextTag(p, &aTag);
-	while (std::strcmp(aTag.name, "IMAGE") == 0)
+	aCursor = Xml_NextTag(aCursor, &aTag); // IMAGELIST
+	aCursor = Xml_NextTag(aCursor, &aTag);
+	while (std::strcmp(aTag.mName, "IMAGE") == 0)
 	{
 		Image* anImage = new Image();
-		anImage->notOwned = 1;
-		anImage->w = Xml_GetInt(&aTag, "width");
-		anImage->h = Xml_GetInt(&aTag, "height");
-		anImage->pitch = Xml_GetInt(&aTag, "pitch");
-		anImage->origW = Xml_GetInt(&aTag, "originalWidth");
-		anImage->origH = Xml_GetInt(&aTag, "originalHeight");
-		anImage->xOff = Xml_GetInt(&aTag, "xOffset");
-		anImage->yOff = Xml_GetInt(&aTag, "yOffset");
-		anImage->dataSize = Xml_GetInt(&aTag, "dataSize");
-		anImage->paletteNumber = Xml_GetInt(&aTag, "paletteNumber");
+		anImage->mNotOwned = 1;
+		anImage->mW = Xml_GetInt(&aTag, "width");
+		anImage->mH = Xml_GetInt(&aTag, "height");
+		anImage->mPitch = Xml_GetInt(&aTag, "pitch");
+		anImage->mOrigW = Xml_GetInt(&aTag, "originalWidth");
+		anImage->mOrigH = Xml_GetInt(&aTag, "originalHeight");
+		anImage->mXOff = Xml_GetInt(&aTag, "xOffset");
+		anImage->mYOff = Xml_GetInt(&aTag, "yOffset");
+		anImage->mDataSize = Xml_GetInt(&aTag, "dataSize");
+		anImage->mPaletteNumber = Xml_GetInt(&aTag, "paletteNumber");
 		uint32_t aBlue = (uint32_t)Xml_GetInt(&aTag, "blueMask");
 		uint32_t aGreen = (uint32_t)Xml_GetInt(&aTag, "greenMask");
 		uint32_t aRed = (uint32_t)Xml_GetInt(&aTag, "redMask");
 		int aBpp = Xml_GetInt(&aTag, "bpp");
-		PixelFormat_Init(&anImage->fmt, aBpp, aRed, aGreen, aBlue);
+		PixelFormat_Init(&anImage->mFmt, aBpp, aRed, aGreen, aBlue);
 		const char* aName = Xml_GetString(&aTag, "name");
-		CopyName(anImage->name, sizeof(anImage->name), aName != nullptr ? aName : "");
-		if (5 < std::strlen(anImage->name) && std::strncmp(anImage->name, "mask_", 5) == 0)
+		CopyName(anImage->mName, sizeof(anImage->mName), aName != nullptr ? aName : "");
+		if (5 < std::strlen(anImage->mName) && std::strncmp(anImage->mName, "mask_", 5) == 0)
 		{
-			anImage->isMask = 1;
-			anImage->unke4 = 1;
+			anImage->mIsMask = 1;
+			anImage->mMaskNamed = 1;
 		}
-		anImage->bankDataSize = anImage->dataSize;
-		anImage->bankPitch = anImage->pitch;
-		anImage->bankFmt = anImage->fmt;
-		anImage->clip[0] = 0;
-		anImage->clip[1] = 0;
-		anImage->clip[2] = anImage->w + -1;
-		anImage->clip[3] = anImage->h + -1;
-		theBank->images.push_back(anImage);
-		p = Xml_NextTag(p, &aTag);
+		anImage->mBankDataSize = anImage->mDataSize;
+		anImage->mBankPitch = anImage->mPitch;
+		anImage->mBankFmt = anImage->mFmt;
+		anImage->mClip[0] = 0;
+		anImage->mClip[1] = 0;
+		anImage->mClip[2] = anImage->mW + -1;
+		anImage->mClip[3] = anImage->mH + -1;
+		theBank->mImages.push_back(anImage);
+		aCursor = Xml_NextTag(aCursor, &aTag);
 	}
-	const char* aNext = Xml_NextTag(p, &aTag);
-	if (std::strcmp(aTag.name, "PALETTELIST") == 0)
+	const char* aNext = Xml_NextTag(aCursor, &aTag);
+	if (std::strcmp(aTag.mName, "PALETTELIST") == 0)
 	{
-		p = Xml_NextTag(aNext, &aTag);
-		while (std::strcmp(aTag.name, "PALETTE") == 0)
+		aCursor = Xml_NextTag(aNext, &aTag);
+		while (std::strcmp(aTag.mName, "PALETTE") == 0)
 		{
 			int aCount = 0;
 			uint8_t* aPalette = (uint8_t*)std::calloc(1, 0x400);
-			int n = Xml_GetInt(&aTag, "colorsUsed");
-			if (0 < n)
+			int aColourCount = Xml_GetInt(&aTag, "colorsUsed");
+			if (0 < aColourCount)
 			{
 				uint8_t* aColour = aPalette + 2;
-				const char* aText = aTag.text;
+				const char* aText = aTag.mText;
 				char aToken[51];
 				do
 				{
-					aText = Xml_ReadToken(aText, aToken, aTag.textLen, &aCount);
+					aText = Xml_ReadToken(aText, aToken, aTag.mTextLen, &aCount);
 					aColour[-2] = (uint8_t)std::atol(aToken);
-					aText = Xml_ReadToken(aText, aToken, aTag.textLen, &aCount);
+					aText = Xml_ReadToken(aText, aToken, aTag.mTextLen, &aCount);
 					aColour[-1] = (uint8_t)std::atol(aToken);
-					aText = Xml_ReadToken(aText, aToken, aTag.textLen, &aCount);
+					aText = Xml_ReadToken(aText, aToken, aTag.mTextLen, &aCount);
 					*aColour = (uint8_t)std::atol(aToken);
 					aColour += 4;
-					n--;
-				} while (n != 0);
+					aColourCount--;
+				} while (aColourCount != 0);
 			}
-			theBank->rawPalettes.push_back(aPalette);
-			aNext = Xml_NextTag(p, &aTag); // /PALETTE
-			p = Xml_NextTag(aNext, &aTag);
+			theBank->mRawPalettes.push_back(aPalette);
+			aNext = Xml_NextTag(aCursor, &aTag); // /PALETTE
+			aCursor = Xml_NextTag(aNext, &aTag);
 		}
 	}
 	return 1;
@@ -577,7 +577,7 @@ int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat
 		return 0;
 	if (theMode == 0)
 	{
-		if (Bank_LoadRaw(theBank, theBank->dataPath) == 0)
+		if (Bank_LoadRaw(theBank, theBank->mDataPath) == 0)
 			return 0;
 		if (Bank_AssignRawPalettes(theBank) == 0)
 			return 0;
@@ -588,28 +588,13 @@ int Bank_Load(Bank* theBank, const char* thePath, int theMode, const PixelFormat
 	{
 		if (theFmt == nullptr)
 			return 0;
-		if (Bank_LoadConverted(theBank, theBank->dataPath, theFmt) == 0)
+		if (Bank_LoadConverted(theBank, theBank->mDataPath, theFmt) == 0)
 			return 0;
 	}
 	SelfMask8(theBank);
 	if (Bank_LinkMasks(theBank) == 0)
 		return 0;
-	theBank->mode = theMode;
-	return 1;
-}
-
-// 0x428640: after the screen's format changed
-int Bank_Reconvert(Bank* theBank, const PixelFormat* theFmt)
-{
-	if (theBank->palettesBuilt == 1 && Bank_BuildPalettes(theBank, theFmt) == 0)
-		return 0;
-	if (theBank->mode != 1)
-		return 1;
-	if (Bank_LoadConverted(theBank, theBank->dataPath, theFmt) == 0)
-		return 0;
-	SelfMask8(theBank);
-	if (Bank_LinkMasks(theBank) == 0)
-		return 0;
+	theBank->mMode = theMode;
 	return 1;
 }
 

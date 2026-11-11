@@ -21,12 +21,12 @@ void SetColour(uint8_t* theColour, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 	theColour[3] = a;
 }
 
-// 0x42c680: how wide the caret is where it stands (the character's advance; at the end, caretWidth)
+// 0x42c680: how wide the caret is where it stands (the character's advance; at the end, mCaretWidth)
 int CaretWidth(TextInput* theInput)
 {
-	if (theInput->caret == theInput->length)
-		return theInput->caretWidth;
-	return Font_CharAdvance(theInput->font, theInput->text[theInput->caret]);
+	if (theInput->mCaret == theInput->mLength)
+		return theInput->mCaretWidth;
+	return Font_CharAdvance(theInput->mFont, theInput->mText[theInput->mCaret]);
 }
 
 // 0x42c6b0: how far the caret is from the text's start
@@ -34,14 +34,14 @@ int CaretX(TextInput* theInput)
 {
 	int aX = 0;
 	int i = 0;
-	if (0 < theInput->caret)
+	if (0 < theInput->mCaret)
 	{
 		do
 		{
-			int anAdvance = Font_CharAdvance(theInput->font, theInput->text[i]);
+			int anAdvance = Font_CharAdvance(theInput->mFont, theInput->mText[i]);
 			i = i + 1;
 			aX = aX + anAdvance;
-		} while (i < theInput->caret);
+		} while (i < theInput->mCaret);
 	}
 	return aX;
 }
@@ -81,60 +81,60 @@ uint8_t VkToChar(uint8_t theKey)
 }
 
 // 0x42c780: the character shift makes of one (on a US keyboard)
-uint8_t Shifted(uint8_t c)
+uint8_t Shifted(uint8_t theChar)
 {
-	if ((uint8_t)(c - 0x30) < 10)
+	if ((uint8_t)(theChar - 0x30) < 10)
 	{
-		if (c == '0')
+		if (theChar == '0')
 			return ')';
-		if (c == '1')
+		if (theChar == '1')
 			return '!';
-		if (c == '2')
+		if (theChar == '2')
 			return '@';
-		if (c == '3')
+		if (theChar == '3')
 			return '#';
-		if (c == '4')
+		if (theChar == '4')
 			return '$';
-		if (c == '5')
+		if (theChar == '5')
 			return '%';
-		if (c == '6')
+		if (theChar == '6')
 			return '^';
-		if (c == '7')
+		if (theChar == '7')
 			return '&';
-		if (c == '8')
+		if (theChar == '8')
 			return '*';
-		if (c == '9')
+		if (theChar == '9')
 			return '(';
 	}
 	else
 	{
-		if ((uint8_t)(c - 0x61) < 0x1a)
-			return c - 0x20;
-		if (c == ' ')
+		if ((uint8_t)(theChar - 0x61) < 0x1a)
+			return theChar - 0x20;
+		if (theChar == ' ')
 			return ' ';
-		if (c == ',')
+		if (theChar == ',')
 			return '<';
-		if (c == '.')
+		if (theChar == '.')
 			return '>';
-		if (c == '-')
+		if (theChar == '-')
 			return '_';
-		if (c == '=')
+		if (theChar == '=')
 			return '+';
-		if (c == '[')
+		if (theChar == '[')
 			return '{';
-		if (c == ']')
+		if (theChar == ']')
 			return '}';
-		if (c == '\\')
+		if (theChar == '\\')
 			return '|';
-		if (c == ';')
+		if (theChar == ';')
 			return ':';
-		if (c == '\'')
+		if (theChar == '\'')
 			return '"';
-		if (c == '/')
+		if (theChar == '/')
 			return '?';
-		c = c == '`' ? '~' : 0;
+		theChar = theChar == '`' ? '~' : 0;
 	}
-	return c;
+	return theChar;
 }
 
 // 0x42c870: 1 for the keys that type a character
@@ -150,345 +150,301 @@ int IsTypable(uint8_t theKey)
 // 0x42c8d0: the fill, the frame and the text
 void DrawText(TextInput* theInput, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt)
 {
-	if (theInput->active == 0)
+	if (theInput->mActive == 0)
 		return;
-	if (theInput->fillColour[3] != 0)
-		Draw_FillBlend(theDst, theDPitch, theFmt, theInput->box[0], theInput->box[1], theInput->box[2], theInput->box[3],
-			theInput->fillColour[0], theInput->fillColour[1], theInput->fillColour[2], theInput->fillColour[3]);
-	if (theInput->frameColour[3] != 0)
+	if (theInput->mFillColour[3] != 0)
+		Draw_FillBlend(theDst, theDPitch, theFmt, theInput->mBox[0], theInput->mBox[1], theInput->mBox[2],
+			theInput->mBox[3], theInput->mFillColour[0], theInput->mFillColour[1], theInput->mFillColour[2],
+			theInput->mFillColour[3]);
+	if (theInput->mFrameColour[3] != 0)
 	{
-		const uint8_t* c = theInput->frameColour;
-		const int* f = theInput->frame;
+		const uint8_t* c = theInput->mFrameColour;
+		const int* f = theInput->mFrame;
 		Draw_LineOn(theDst, theDPitch, theFmt, f[0], f[1], f[2] - 1, f[1], c[0], c[1], c[2], c[3]);
 		Draw_LineOn(theDst, theDPitch, theFmt, f[2], f[1], f[2], f[3] - 1, c[0], c[1], c[2], c[3]);
 		Draw_LineOn(theDst, theDPitch, theFmt, f[2], f[3], f[0] + 1, f[3], c[0], c[1], c[2], c[3]);
 		Draw_LineOn(theDst, theDPitch, theFmt, f[0], f[3], f[0], f[1] + 1, c[0], c[1], c[2], c[3]);
 	}
-	int aLeft = theInput->textRect[0];
-	int aScroll = theInput->scroll;
-	int aHeight = Font_Height(theInput->font);
-	int aBottom = theInput->textRect[3];
-	Font_SetTarget(theInput->font, theDst, theDPitch, theFmt, 0, 0);
-	Font_ResetStyle(theInput->font);
-	Font_SetEscapes(theInput->font, 0);
-	Font_SetOutline(theInput->font, theInput->outline);
-	Font_SetClipped(theInput->font, 1);
-	Font_SetClip(theInput->font, theInput->inner[0], theInput->inner[1], theInput->inner[2], theInput->inner[3]);
-	Font_UseColour(theInput->font, theInput->colourCode);
+	int aLeft = theInput->mTextRect[0];
+	int aScroll = theInput->mScroll;
+	int aHeight = Font_Height(theInput->mFont);
+	int aBottom = theInput->mTextRect[3];
+	Font_SetTarget(theInput->mFont, theDst, theDPitch, theFmt, 0, 0);
+	Font_ResetStyle(theInput->mFont);
+	Font_SetEscapes(theInput->mFont, 0);
+	Font_SetOutline(theInput->mFont, theInput->mOutline);
+	Font_SetClip(theInput->mFont, theInput->mInner[0], theInput->mInner[1], theInput->mInner[2], theInput->mInner[3]);
+	Font_UseColour(theInput->mFont, theInput->mColourCode);
 	int aRect[4];
-	Font_DrawOutlined(theInput->font, aRect, aLeft - aScroll, aBottom - aHeight, theInput->text);
-}
-
-// 0x42cad0: onto its own surface, over the background (or black)
-void DrawOwn(TextInput* theInput)
-{
-	if ((theInput->active != 0 || theInput->wasActive != 0) && theInput->surface != nullptr)
-	{
-		Image* aSurface = theInput->surface;
-		if (theInput->background == nullptr)
-			Draw_Fill(aSurface->bits, aSurface->pitch, &aSurface->fmt, theInput->box[0], theInput->box[1],
-				theInput->box[2], theInput->box[3], 0, 0, 0);
-		else
-			Image_Blit(theInput->background, aSurface->bits, aSurface->pitch, &aSurface->fmt, theInput->box, 0, 0);
-		aSurface = theInput->surface;
-		DrawText(theInput, aSurface->bits, aSurface->pitch, &aSurface->fmt);
-	}
+	Font_DrawOutlined(theInput->mFont, aRect, aLeft - aScroll, aBottom - aHeight, theInput->mText);
 }
 
 // 0x42cd70: scrolls the text so the caret shows
 void KeepCaretInView(TextInput* theInput)
 {
 	int aWidth;
-	if (theInput->caret == theInput->length)
-		aWidth = theInput->caretWidth;
+	if (theInput->mCaret == theInput->mLength)
+		aWidth = theInput->mCaretWidth;
 	else
-		aWidth = Font_CharAdvance(theInput->font, theInput->text[theInput->caret]);
+		aWidth = Font_CharAdvance(theInput->mFont, theInput->mText[theInput->mCaret]);
 	int aX = CaretX(theInput);
-	int aShown = (theInput->textRect[2] - theInput->textRect[0]) + 1;
-	if (aX < theInput->scroll)
-		theInput->scroll = aX;
-	if (theInput->scroll + aShown < aWidth + aX)
-		theInput->scroll = (aWidth - aShown) + aX;
+	int aShown = (theInput->mTextRect[2] - theInput->mTextRect[0]) + 1;
+	if (aX < theInput->mScroll)
+		theInput->mScroll = aX;
+	if (theInput->mScroll + aShown < aWidth + aX)
+		theInput->mScroll = (aWidth - aShown) + aX;
 }
 
 } // namespace
 
 TextInput::TextInput()
 {
-	text = nullptr;
+	mText = nullptr;
 	TextInput_Clear(this);
 }
 
 TextInput::~TextInput()
 {
-	if (text != nullptr)
+	if (mText != nullptr)
 	{
-		free(text);
-		text = nullptr;
+		free(mText);
+		mText = nullptr;
 	}
 	TextInput_Clear(this);
 }
 
 void TextInput_Clear(TextInput* theInput)
 {
-	theInput->surface = nullptr;
-	theInput->background = nullptr;
-	theInput->font = nullptr;
-	theInput->x = 0;
-	theInput->y = 0;
-	theInput->w = 0;
-	theInput->h = 0;
-	theInput->box[0] = 0;
-	theInput->box[1] = 0;
-	theInput->box[2] = 0;
-	theInput->box[3] = 0;
-	theInput->active = 0;
-	theInput->wasActive = 0;
-	theInput->frame[0] = 0;
-	theInput->frame[1] = 0;
-	theInput->frame[2] = 0;
-	theInput->frame[3] = 0;
-	theInput->inner[0] = 0;
-	theInput->inner[1] = 0;
-	theInput->inner[2] = 0;
-	theInput->inner[3] = 0;
-	theInput->padX = 0;
-	theInput->padY = 0;
-	theInput->textRect[0] = 0;
-	theInput->textRect[1] = 0;
-	theInput->textRect[2] = 0;
-	theInput->textRect[3] = 0;
-	SetColour(theInput->frameColour, 0, 0, 0, 0);
-	SetColour(theInput->fillColour, 0, 0, 0, 0);
-	theInput->colourCode = 0;
-	theInput->redraw = 0;
-	theInput->focused = 0;
-	SetColour(theInput->caretColour, 0, 0, 0, 0);
-	theInput->blinkTime = 0;
-	theInput->blinkClock = 0;
-	theInput->caretOn = 0;
-	theInput->caret = 0;
-	theInput->caretWidth = 0;
-	theInput->caretHeight = 0;
-	theInput->caretDrop = 0;
-	theInput->onEnter = nullptr;
-	theInput->onKey = nullptr;
-	theInput->onFocus = nullptr;
-	theInput->entered = 0;
-	theInput->typed = 0;
-	theInput->clickedIn = 0;
-	theInput->maxLength = 0;
-	theInput->length = 0;
-	theInput->text = nullptr;
-	theInput->scroll = 0;
-	theInput->pressed = 0;
-	theInput->outline = nullptr;
-	memset(theInput->blocked, 0, sizeof theInput->blocked);
-	theInput->noFocus = 0;
-	theInput->caseMode = 0;
+	theInput->mFont = nullptr;
+	theInput->mX = 0;
+	theInput->mY = 0;
+	theInput->mW = 0;
+	theInput->mH = 0;
+	theInput->mBox[0] = 0;
+	theInput->mBox[1] = 0;
+	theInput->mBox[2] = 0;
+	theInput->mBox[3] = 0;
+	theInput->mActive = 0;
+	theInput->mFrame[0] = 0;
+	theInput->mFrame[1] = 0;
+	theInput->mFrame[2] = 0;
+	theInput->mFrame[3] = 0;
+	theInput->mInner[0] = 0;
+	theInput->mInner[1] = 0;
+	theInput->mInner[2] = 0;
+	theInput->mInner[3] = 0;
+	theInput->mPadX = 0;
+	theInput->mPadY = 0;
+	theInput->mTextRect[0] = 0;
+	theInput->mTextRect[1] = 0;
+	theInput->mTextRect[2] = 0;
+	theInput->mTextRect[3] = 0;
+	SetColour(theInput->mFrameColour, 0, 0, 0, 0);
+	SetColour(theInput->mFillColour, 0, 0, 0, 0);
+	theInput->mColourCode = 0;
+	theInput->mFocused = 0;
+	SetColour(theInput->mCaretColour, 0, 0, 0, 0);
+	theInput->mBlinkTime = 0;
+	theInput->mBlinkClock = 0;
+	theInput->mCaretOn = 0;
+	theInput->mCaret = 0;
+	theInput->mCaretWidth = 0;
+	theInput->mCaretHeight = 0;
+	theInput->mCaretDrop = 0;
+	theInput->mOnEnter = nullptr;
+	theInput->mOnKey = nullptr;
+	theInput->mOnFocus = nullptr;
+	theInput->mEntered = 0;
+	theInput->mTyped = 0;
+	theInput->mClickedIn = 0;
+	theInput->mMaxLength = 0;
+	theInput->mLength = 0;
+	theInput->mText = nullptr;
+	theInput->mScroll = 0;
+	theInput->mPressed = 0;
+	theInput->mOutline = nullptr;
+	memset(theInput->mBlocked, 0, sizeof theInput->mBlocked);
+	theInput->mNoFocus = 0;
+	theInput->mCaseMode = 0;
 }
 
 // 0x42c3b0
-void TextInput_Init(TextInput* theInput, Image* theSurface, Image* theBackground, Font* theFont, int theMaxLength,
-	char theColourCode, int l, int t, int r, int b)
+void TextInput_Init(TextInput* theInput, Font* theFont, int theMaxLength, char theColourCode, int theLeft, int theTop,
+	int theRight, int theBottom)
 {
-	if (theInput->text != nullptr)
+	if (theInput->mText != nullptr)
 	{
-		free(theInput->text);
-		theInput->text = nullptr;
+		free(theInput->mText);
+		theInput->mText = nullptr;
 	}
 	TextInput_Clear(theInput);
-	theInput->surface = theSurface;
-	theInput->font = theFont;
-	theInput->colourCode = theColourCode;
-	theInput->w = (r - l) + 1;
-	theInput->background = theBackground;
-	theInput->box[0] = l;
-	theInput->box[2] = r;
-	theInput->x = l;
-	theInput->box[1] = t;
-	theInput->box[3] = b;
-	theInput->y = t;
-	theInput->frame[0] = theInput->box[0];
-	theInput->frame[1] = theInput->box[1];
-	theInput->active = 1;
-	theInput->wasActive = 1;
-	theInput->frame[2] = theInput->box[2];
-	theInput->frame[3] = b;
-	theInput->inner[0] = theInput->frame[0] + 1;
-	theInput->inner[1] = theInput->frame[1] + 1;
-	theInput->inner[2] = theInput->frame[2] - 1;
-	theInput->h = (b - t) + 1;
-	theInput->inner[3] = theInput->frame[3] - 1;
-	theInput->textRect[0] = theInput->frame[0] + 4;
-	theInput->padX = 4;
-	theInput->padY = 4;
-	theInput->textRect[1] = theInput->frame[1] + 4;
-	theInput->textRect[2] = theInput->frame[2] - 4;
-	theInput->textRect[3] = theInput->frame[3] - 4;
-	SetColour(theInput->frameColour, 0xff, 0xff, 0xff, 0xff);
-	SetColour(theInput->fillColour, 0, 0, 0, 0xff);
-	theInput->redraw = 1;
-	theInput->focused = 1;
-	SetColour(theInput->caretColour, 0xff, 0xff, 0, 200);
-	theInput->blinkTime = 0.4;
-	theInput->blinkClock = 0;
-	theInput->caretOn = 0;
-	theInput->caret = 0;
-	theInput->caretHeight = 2;
-	theInput->caretDrop = 0;
+	theInput->mFont = theFont;
+	theInput->mColourCode = theColourCode;
+	theInput->mW = (theRight - theLeft) + 1;
+	theInput->mBox[0] = theLeft;
+	theInput->mBox[2] = theRight;
+	theInput->mX = theLeft;
+	theInput->mBox[1] = theTop;
+	theInput->mBox[3] = theBottom;
+	theInput->mY = theTop;
+	theInput->mFrame[0] = theInput->mBox[0];
+	theInput->mFrame[1] = theInput->mBox[1];
+	theInput->mActive = 1;
+	theInput->mFrame[2] = theInput->mBox[2];
+	theInput->mFrame[3] = theBottom;
+	theInput->mInner[0] = theInput->mFrame[0] + 1;
+	theInput->mInner[1] = theInput->mFrame[1] + 1;
+	theInput->mInner[2] = theInput->mFrame[2] - 1;
+	theInput->mH = (theBottom - theTop) + 1;
+	theInput->mInner[3] = theInput->mFrame[3] - 1;
+	theInput->mTextRect[0] = theInput->mFrame[0] + 4;
+	theInput->mPadX = 4;
+	theInput->mPadY = 4;
+	theInput->mTextRect[1] = theInput->mFrame[1] + 4;
+	theInput->mTextRect[2] = theInput->mFrame[2] - 4;
+	theInput->mTextRect[3] = theInput->mFrame[3] - 4;
+	SetColour(theInput->mFrameColour, 0xff, 0xff, 0xff, 0xff);
+	SetColour(theInput->mFillColour, 0, 0, 0, 0xff);
+	theInput->mFocused = 1;
+	SetColour(theInput->mCaretColour, 0xff, 0xff, 0, 200);
+	theInput->mBlinkTime = 0.4;
+	theInput->mBlinkClock = 0;
+	theInput->mCaretOn = 0;
+	theInput->mCaret = 0;
+	theInput->mCaretHeight = 2;
+	theInput->mCaretDrop = 0;
 	char aChar;
-	if (Font_CharAdvance(theInput->font, 'A') < 1)
-		aChar = Font_CharAdvance(theInput->font, 'a') < 1 ? ' ' : 'a';
+	if (Font_CharAdvance(theInput->mFont, 'A') < 1)
+		aChar = Font_CharAdvance(theInput->mFont, 'a') < 1 ? ' ' : 'a';
 	else
 		aChar = 'A';
-	theInput->caretWidth = Font_CharAdvance(theInput->font, aChar);
-	theInput->maxLength = theMaxLength;
-	theInput->onEnter = nullptr;
-	theInput->onKey = nullptr;
-	theInput->onFocus = nullptr;
-	theInput->entered = 0;
-	theInput->typed = 0;
-	theInput->clickedIn = 0;
-	theInput->length = 0;
-	theInput->text = (char*)malloc(theMaxLength + 1);
-	memset(theInput->text, 0, theInput->maxLength + 1);
-	theInput->scroll = 0;
-	theInput->pressed = 0;
-	// The original clears 0x100 entries here, the last of them noFocus
-	memset(theInput->blocked, 0, sizeof theInput->blocked);
-	theInput->noFocus = 0;
+	theInput->mCaretWidth = Font_CharAdvance(theInput->mFont, aChar);
+	theInput->mMaxLength = theMaxLength;
+	theInput->mOnEnter = nullptr;
+	theInput->mOnKey = nullptr;
+	theInput->mOnFocus = nullptr;
+	theInput->mEntered = 0;
+	theInput->mTyped = 0;
+	theInput->mClickedIn = 0;
+	theInput->mLength = 0;
+	theInput->mText = (char*)malloc(theMaxLength + 1);
+	memset(theInput->mText, 0, theInput->mMaxLength + 1);
+	theInput->mScroll = 0;
+	theInput->mPressed = 0;
+	// The original clears 0x100 entries here, the last of them mNoFocus
+	memset(theInput->mBlocked, 0, sizeof theInput->mBlocked);
+	theInput->mNoFocus = 0;
 	Key_Clear();
 }
 
 void TextInput_SetFillColour(TextInput* theInput, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-	theInput->fillColour[0] = r;
-	theInput->fillColour[1] = g;
-	theInput->fillColour[2] = b;
-	theInput->fillColour[3] = a;
-	theInput->redraw = 1;
+	theInput->mFillColour[0] = r;
+	theInput->mFillColour[1] = g;
+	theInput->mFillColour[2] = b;
+	theInput->mFillColour[3] = a;
 }
 
 void TextInput_SetOutline(TextInput* theInput, char theCode)
 {
-	theInput->outline = theInput->font->colours[(int)theCode];
+	theInput->mOutline = theInput->mFont->mColours[(int)theCode];
 }
 
 void TextInput_SetOnEnter(TextInput* theInput, void (*theFunc)(const char*))
 {
-	theInput->onEnter = theFunc;
+	theInput->mOnEnter = theFunc;
 }
 
 void TextInput_SetFocus(TextInput* theInput, int theFocused)
 {
-	theInput->focused = theFocused;
-	if (theInput->onFocus != nullptr)
-		theInput->onFocus(theFocused);
+	theInput->mFocused = theFocused;
+	if (theInput->mOnFocus != nullptr)
+		theInput->mOnFocus(theFocused);
 }
 
 char* TextInput_GetText(TextInput* theInput)
 {
-	return theInput->text;
+	return theInput->mText;
 }
 
 void TextInput_SetCaseMode(TextInput* theInput, int theMode)
 {
-	theInput->caseMode = theMode;
+	theInput->mCaseMode = theMode;
 }
 
 void TextInput_Draw(TextInput* theInput, uint8_t* theDst, int theDPitch, const PixelFormat* theFmt, Dirty* theDirty)
 {
-	if (theInput->active == 0)
-	{
-		if (theInput->surface != nullptr && theInput->wasActive != 0)
-		{
-			DrawOwn(theInput);
-			Dirty_AddClippedShown(theDirty, theInput->x, theInput->y, theInput->w, theInput->h, theDirty->srcRect);
-			theInput->wasActive = theInput->active;
-		}
+	if (theInput->mActive == 0)
 		return;
-	}
-	if (theInput->surface == nullptr)
-	{
-		DrawText(theInput, theDst, theDPitch, theFmt);
-		Dirty_AddClippedShown(theDirty, theInput->x, theInput->y, theInput->w, theInput->h, theDirty->srcRect);
-	}
-	if (theInput->surface != nullptr && (theInput->redraw == 1 || theInput->active != theInput->wasActive))
-	{
-		DrawOwn(theInput);
-		theInput->wasActive = theInput->active;
-		theInput->redraw = 0;
-		Dirty_AddClippedShown(theDirty, theInput->x, theInput->y, theInput->w, theInput->h, theDirty->srcRect);
-	}
-	if (theInput->focused == 1 && theInput->caretOn == 1)
+	DrawText(theInput, theDst, theDPitch, theFmt);
+	Dirty_AddClippedShown(theDirty, theInput->mX, theInput->mY, theInput->mW, theInput->mH, theDirty->mSrcRect);
+	if (theInput->mFocused == 1 && theInput->mCaretOn == 1)
 	{
 		int aWidth = CaretWidth(theInput);
 		int aX = CaretX(theInput);
-		int aLeft = theInput->textRect[0];
-		int aScroll = theInput->scroll;
-		int aBottom = theInput->textRect[3] - theInput->caretDrop;
-		int aTop = aBottom - theInput->caretHeight;
-		const uint8_t* c = theInput->caretColour;
-		Draw_FillBlendClipped(theDst, theDPitch, theFmt, theInput->inner, (aLeft - aScroll) + aX, aTop,
+		int aLeft = theInput->mTextRect[0];
+		int aScroll = theInput->mScroll;
+		int aBottom = theInput->mTextRect[3] - theInput->mCaretDrop;
+		int aTop = aBottom - theInput->mCaretHeight;
+		const uint8_t* c = theInput->mCaretColour;
+		Draw_FillBlendClipped(theDst, theDPitch, theFmt, theInput->mInner, (aLeft - aScroll) + aX, aTop,
 			(aLeft - aScroll) + aX + aWidth - 1, aBottom, c[0], c[1], c[2], c[3]);
-		Dirty_AddClippedShown(theDirty, (aLeft - aScroll) + aX, aTop, aWidth, (aBottom - aTop) + 1, theDirty->srcRect);
+		Dirty_AddClippedShown(theDirty, (aLeft - aScroll) + aX, aTop, aWidth, (aBottom - aTop) + 1, theDirty->mSrcRect);
 	}
 }
 
 void TextInput_SetText(TextInput* theInput, const char* theText)
 {
-	memset(theInput->text, 0, theInput->maxLength + 1);
-	theInput->length = 0;
-	theInput->caret = 0;
-	theInput->redraw = 1;
-	strcpy(theInput->text, theText);
-	int aLength = (int)strlen(theInput->text);
-	theInput->length = aLength;
-	theInput->caret = aLength;
+	memset(theInput->mText, 0, theInput->mMaxLength + 1);
+	theInput->mLength = 0;
+	theInput->mCaret = 0;
+	strcpy(theInput->mText, theText);
+	int aLength = (int)strlen(theInput->mText);
+	theInput->mLength = aLength;
+	theInput->mCaret = aLength;
 }
 
 void TextInput_Update(TextInput* theInput, double theSeconds)
 {
-	if (theInput->active == 0)
+	if (theInput->mActive == 0)
 		return;
 	int aMouseX, aMouseY;
 	Mouse_Update(&aMouseX, &aMouseY);
-	theInput->entered = 0;
-	theInput->typed = 0;
-	theInput->clickedIn = 0;
-	if (theInput->noFocus == 0 && theInput->box[0] <= aMouseX && aMouseX <= theInput->box[2] &&
-		theInput->box[1] <= aMouseY && aMouseY <= theInput->box[3])
+	theInput->mEntered = 0;
+	theInput->mTyped = 0;
+	theInput->mClickedIn = 0;
+	if (theInput->mNoFocus == 0 && theInput->mBox[0] <= aMouseX && aMouseX <= theInput->mBox[2] &&
+		theInput->mBox[1] <= aMouseY && aMouseY <= theInput->mBox[3])
 	{
-		if (theInput->focused != 1)
+		if (theInput->mFocused != 1)
 		{
 			if (Mouse_State(1) == 1)
-				theInput->pressed = 1;
+				theInput->mPressed = 1;
 			else
 			{
-				if (theInput->pressed == 1)
+				if (theInput->mPressed == 1)
 				{
-					theInput->focused = 1;
-					if (theInput->onFocus != nullptr)
-						theInput->onFocus(1);
-					theInput->clickedIn = 1;
+					theInput->mFocused = 1;
+					if (theInput->mOnFocus != nullptr)
+						theInput->mOnFocus(1);
+					theInput->mClickedIn = 1;
 					Key_Clear();
-					theInput->blinkClock = 0;
-					theInput->caretOn = 1;
+					theInput->mBlinkClock = 0;
+					theInput->mCaretOn = 1;
 				}
-				theInput->pressed = 0;
+				theInput->mPressed = 0;
 			}
-			if (theInput->focused != 1)
+			if (theInput->mFocused != 1)
 				goto blink;
 		}
 	}
 	else
 	{
-		theInput->pressed = 0;
+		theInput->mPressed = 0;
 		Mouse_State(1);
-		if (theInput->noFocus == 1)
-			theInput->focused = 0;
-		if (theInput->focused != 1)
+		if (theInput->mNoFocus == 1)
+			theInput->mFocused = 0;
+		if (theInput->mFocused != 1)
 			goto blink;
 	}
 	{
@@ -497,120 +453,120 @@ void TextInput_Update(TextInput* theInput, double theSeconds)
 		aKey = aKey & 0xff;
 		if (aCode == 0)
 			goto blink;
-		if (theInput->onKey != nullptr)
-			theInput->onKey(aKey);
-		theInput->blinkClock = 0;
-		theInput->typed = 1;
-		theInput->caretOn = 1;
+		if (theInput->mOnKey != nullptr)
+			theInput->mOnKey(aKey);
+		theInput->mBlinkClock = 0;
+		theInput->mTyped = 1;
+		theInput->mCaretOn = 1;
 		if (IsTypable(aCode) == 1)
 		{
-			uint8_t c = VkToChar(aCode);
-			int aMode = theInput->caseMode;
+			uint8_t aChar = VkToChar(aCode);
+			int aMode = theInput->mCaseMode;
 			if (aMode == 0)
 			{
 				if (Key_Down(0x10) != 0)
-					c = Shifted(c);
+					aChar = Shifted(aChar);
 			}
 			else if (aMode == 1)
 			{
-				if ((uint8_t)(c - 0x61) <= 0x19 || Key_Down(0x10) != 0)
-					c = Shifted(c);
+				if ((uint8_t)(aChar - 0x61) <= 0x19 || Key_Down(0x10) != 0)
+					aChar = Shifted(aChar);
 			}
-			else if (aMode == 2 && (c < 0x61 || 0x7a < c))
+			else if (aMode == 2 && (aChar < 0x61 || 0x7a < aChar))
 			{
 				if (Key_Down(0x10) != 0)
-					c = Shifted(c);
+					aChar = Shifted(aChar);
 			}
-			if (theInput->blocked[c] == 0 && 0 < Font_CharWidth(theInput->font, (char)c) &&
-				theInput->length < theInput->maxLength)
+			if (theInput->mBlocked[aChar] == 0 && 0 < Font_CharWidth(theInput->mFont, (char)aChar) &&
+				theInput->mLength < theInput->mMaxLength)
 			{
-				int aCaret = theInput->caret;
-				if (aCaret == theInput->length)
+				int aCaret = theInput->mCaret;
+				if (aCaret == theInput->mLength)
 				{
-					theInput->text[aCaret] = (char)c;
-					theInput->length = theInput->length + 1;
-					theInput->caret = theInput->caret + 1;
+					theInput->mText[aCaret] = (char)aChar;
+					theInput->mLength = theInput->mLength + 1;
+					theInput->mCaret = theInput->mCaret + 1;
 				}
 				else
 				{
-					int i = theInput->maxLength - 1;
+					int i = theInput->mMaxLength - 1;
 					if (aCaret < i)
 					{
 						do
 						{
-							theInput->text[i] = theInput->text[i - 1];
+							theInput->mText[i] = theInput->mText[i - 1];
 							i = i - 1;
-						} while (theInput->caret < i);
+						} while (theInput->mCaret < i);
 					}
-					theInput->text[theInput->caret] = (char)c;
-					theInput->length = theInput->length + 1;
-					theInput->caret = theInput->caret + 1;
+					theInput->mText[theInput->mCaret] = (char)aChar;
+					theInput->mLength = theInput->mLength + 1;
+					theInput->mCaret = theInput->mCaret + 1;
 				}
 			}
 		}
 		else if (aCode == 0x0d)
 		{
-			if (theInput->onEnter != nullptr)
-				theInput->onEnter(theInput->text);
-			theInput->entered = 1;
+			if (theInput->mOnEnter != nullptr)
+				theInput->mOnEnter(theInput->mText);
+			theInput->mEntered = 1;
 		}
 		else if (aCode == 0x08)
 		{
-			if (0 < theInput->caret && 0 < theInput->length)
+			if (0 < theInput->mCaret && 0 < theInput->mLength)
 			{
 				int aScroll;
-				if (theInput->scroll - Font_CharAdvance(theInput->font, theInput->text[theInput->caret - 1]) < 0)
+				if (theInput->mScroll - Font_CharAdvance(theInput->mFont, theInput->mText[theInput->mCaret - 1]) < 0)
 					aScroll = 0;
 				else
-					aScroll = theInput->scroll - Font_CharAdvance(theInput->font, theInput->text[theInput->caret - 1]);
-				int i = theInput->caret - 1;
-				theInput->scroll = aScroll;
-				if (i < theInput->length)
+					aScroll = theInput->mScroll - Font_CharAdvance(theInput->mFont,
+						theInput->mText[theInput->mCaret - 1]);
+				int i = theInput->mCaret - 1;
+				theInput->mScroll = aScroll;
+				if (i < theInput->mLength)
 				{
 					do
 					{
-						theInput->text[i] = theInput->text[i + 1];
+						theInput->mText[i] = theInput->mText[i + 1];
 						i = i + 1;
-					} while (i < theInput->length);
+					} while (i < theInput->mLength);
 				}
-				theInput->text[theInput->length] = 0;
-				theInput->caret = theInput->caret - 1;
-				theInput->length = theInput->length - 1;
+				theInput->mText[theInput->mLength] = 0;
+				theInput->mCaret = theInput->mCaret - 1;
+				theInput->mLength = theInput->mLength - 1;
 			}
 		}
 		else if (aCode == 0x2e)
 		{
-			int i = theInput->caret;
-			if (i < theInput->length && 0 < theInput->length)
+			int i = theInput->mCaret;
+			if (i < theInput->mLength && 0 < theInput->mLength)
 			{
 				do
 				{
-					theInput->text[i] = theInput->text[i + 1];
+					theInput->mText[i] = theInput->mText[i + 1];
 					i = i + 1;
-				} while (i < theInput->length);
-				theInput->text[theInput->length] = 0;
-				theInput->length = theInput->length - 1;
+				} while (i < theInput->mLength);
+				theInput->mText[theInput->mLength] = 0;
+				theInput->mLength = theInput->mLength - 1;
 			}
 		}
 		else if (aCode == 0x25)
 		{
-			if (0 < theInput->caret)
-				theInput->caret = theInput->caret - 1;
+			if (0 < theInput->mCaret)
+				theInput->mCaret = theInput->mCaret - 1;
 		}
-		else if (aCode == 0x27 && theInput->caret < theInput->length)
-			theInput->caret = theInput->caret + 1;
+		else if (aCode == 0x27 && theInput->mCaret < theInput->mLength)
+			theInput->mCaret = theInput->mCaret + 1;
 		KeepCaretInView(theInput);
-		theInput->redraw = 1;
 	}
 blink:
-	theInput->blinkClock = theInput->blinkClock + theSeconds;
-	if (theInput->blinkTime < theInput->blinkClock)
+	theInput->mBlinkClock = theInput->mBlinkClock + theSeconds;
+	if (theInput->mBlinkTime < theInput->mBlinkClock)
 	{
 		do
 		{
-			theInput->blinkClock = theInput->blinkClock - theInput->blinkTime;
-			theInput->caretOn = theInput->caretOn != 1 ? 1 : 0;
-		} while (theInput->blinkTime < theInput->blinkClock);
+			theInput->mBlinkClock = theInput->mBlinkClock - theInput->mBlinkTime;
+			theInput->mCaretOn = theInput->mCaretOn != 1 ? 1 : 0;
+		} while (theInput->mBlinkTime < theInput->mBlinkClock);
 	}
 }
 

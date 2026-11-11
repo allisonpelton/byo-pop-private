@@ -59,6 +59,12 @@ Two things hold above every rule:
   confused.
 - A whole-word rename also reaches quoted strings and log lines, which the object-code comparison does not show:
   check separately that no string of the sources changed.
+- The native build compiles none of a game's web-only code (`__EMSCRIPTEN__` blocks, files only the web build lists),
+  so neither the compiler-driven renames nor objsnap reach it: run `tools/check.sh build-web:<game>` after the renames
+  (Water Bugs' found old names there). Its notes ("The readability pass") have a clang-tidy recipe for renaming every
+  member, parameter, local and global at once.
+- splitfields' export check pairs only `Class::method` definitions with their addresses, so it finds little in a port
+  written as free functions (Water Bugs, Cosmic Bugs).
 - The coverage check reads rule 6's addresses (`docs/COVERAGE.md`).
 
 Each game's notes record what its pass changed.

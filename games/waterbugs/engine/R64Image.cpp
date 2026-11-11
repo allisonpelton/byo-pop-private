@@ -23,27 +23,27 @@ void InitComponent(uint32_t theMask, uint32_t& theMaskOut, int& theBits, int& th
 	theMaskOut = theMask;
 	theBits = 0;
 	theShift = 0;
-	uint32_t v = theMask;
+	uint32_t aBits = theMask;
 	if ((theMask & 1) == 0)
 	{
 		do
 		{
-			v = 0;
+			aBits = 0;
 			if (theMask == 0)
 				break;
 			theShift++;
 			theMask >>= 1;
-			v = theMask;
+			aBits = theMask;
 		} while ((theMask & 1) == 0);
 	}
-	if ((v & 1) != 0)
+	if ((aBits & 1) != 0)
 	{
 		int n = 0;
 		do
 		{
-			v >>= 1;
+			aBits >>= 1;
 			n++;
-		} while ((v & 1) != 0);
+		} while ((aBits & 1) != 0);
 		theBits = n;
 	}
 	theLoss = 8 - theBits;
@@ -51,7 +51,7 @@ void InitComponent(uint32_t theMask, uint32_t& theMaskOut, int& theBits, int& th
 
 inline bool Is16(const PixelFormat* theFmt)
 {
-	return theFmt->bpp == 16;
+	return theFmt->mBpp == 16;
 }
 
 inline int DegIndex(int theAngle)
@@ -64,27 +64,27 @@ inline int DegIndex(int theAngle)
 } // namespace
 
 // 0x4012d0 (and 0x42e790). An 8-bit format gets the masks 0xff0000, 0xff00 and 0xff.
-void PixelFormat_Init(PixelFormat* f, int bpp, uint32_t r, uint32_t g, uint32_t b)
+void PixelFormat_Init(PixelFormat* theFmt, int theBpp, uint32_t theRedMask, uint32_t theGreenMask, uint32_t theBlueMask)
 {
-	if (bpp == 8)
+	if (theBpp == 8)
 	{
-		r = 0xff0000;
-		g = 0xff00;
-		b = 0xff;
+		theRedMask = 0xff0000;
+		theGreenMask = 0xff00;
+		theBlueMask = 0xff;
 	}
-	f->bpp = bpp;
-	InitComponent(r, f->rMask, f->rBits, f->rShift, f->rLoss);
-	InitComponent(g, f->gMask, f->gBits, f->gShift, f->gLoss);
-	InitComponent(b, f->bMask, f->bBits, f->bShift, f->bLoss);
+	theFmt->mBpp = theBpp;
+	InitComponent(theRedMask, theFmt->mRMask, theFmt->mRBits, theFmt->mRShift, theFmt->mRLoss);
+	InitComponent(theGreenMask, theFmt->mGMask, theFmt->mGBits, theFmt->mGShift, theFmt->mGLoss);
+	InitComponent(theBlueMask, theFmt->mBMask, theFmt->mBBits, theFmt->mBShift, theFmt->mBLoss);
 }
 
 // 0x4013d0
 Palette::Palette()
 {
-	std::memset(rgb, 0, sizeof(rgb));
-	p16 = (uint16_t*)conv;
-	p32 = (uint32_t*)conv;
-	std::memset(conv, 0, sizeof(conv));
+	std::memset(mRgb, 0, sizeof(mRgb));
+	mP16 = (uint16_t*)mConv;
+	mP32 = (uint32_t*)mConv;
+	std::memset(mConv, 0, sizeof(mConv));
 }
 
 // 0x42be80
@@ -113,211 +113,155 @@ float CosDeg(int theAngle)
 }
 
 // 0x42bfb0
-int ClipBlit(int clipL, int clipT, int clipR, int clipB, int x, int y, int w, int h, int* outX, int* outY,
-	int* outSx, int* outSy, int* outW, int* outH)
+int ClipBlit(int theClipL, int theClipT, int theClipR, int theClipB, int x, int y, int theWidth, int theHeight,
+	int* theOutX, int* theOutY, int* theOutSx, int* theOutSy, int* theOutW, int* theOutH)
 {
-	int aRight = x + -1 + w;
-	int aBottom = y + -1 + h;
-	if (x <= clipR && clipL <= aRight && y <= clipB && clipT <= aBottom)
+	int aRight = x + -1 + theWidth;
+	int aBottom = y + -1 + theHeight;
+	if (x <= theClipR && theClipL <= aRight && y <= theClipB && theClipT <= aBottom)
 	{
-		*outSx = 0;
-		*outSy = 0;
-		*outW = w;
-		*outH = h;
-		if (x < clipL)
+		*theOutSx = 0;
+		*theOutSy = 0;
+		*theOutW = theWidth;
+		*theOutH = theHeight;
+		if (x < theClipL)
 		{
-			*outSx = *outSx + (clipL - x);
-			*outW = *outW - *outSx;
-			x = clipL;
+			*theOutSx = *theOutSx + (theClipL - x);
+			*theOutW = *theOutW - *theOutSx;
+			x = theClipL;
 		}
-		if (y < clipT)
+		if (y < theClipT)
 		{
-			*outSy = *outSy + (clipT - y);
-			*outH = *outH - *outSy;
-			y = clipT;
+			*theOutSy = *theOutSy + (theClipT - y);
+			*theOutH = *theOutH - *theOutSy;
+			y = theClipT;
 		}
-		if (clipR < aRight)
-			*outW = *outW + (clipR - aRight);
-		if (clipB < aBottom)
-			*outH = *outH + (clipB - aBottom);
-		*outX = x;
-		*outY = y;
-		if (0 < *outW && 0 < *outH)
+		if (theClipR < aRight)
+			*theOutW = *theOutW + (theClipR - aRight);
+		if (theClipB < aBottom)
+			*theOutH = *theOutH + (theClipB - aBottom);
+		*theOutX = x;
+		*theOutY = y;
+		if (0 < *theOutW && 0 < *theOutH)
 			return 1;
 	}
 	return 0;
 }
 
-// 0x42bdb0: whether two rectangles {l, t, r, b} (inclusive) overlap, by the distance of their centres as the
-// original works it out (halves rounded toward 0)
-int Rect_Overlap(int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2)
-{
-	int w1 = (r1 - l1) + 1;
-	int w2 = (r2 - l2) + 1;
-	int aHalfW1 = w1 / 2;
-	int dx = std::abs(((aHalfW1 - w2 / 2) - l2) + l1);
-	int h1 = (b1 - t1) + 1;
-	int h2 = (b2 - t2) + 1;
-	if (((w2 + w1) / 2 < dx || (h2 + h1) / 2 < std::abs(((h1 / 2 - h2 / 2) - t2) + t1)) &&
-		(aHalfW1 <= dx || h1 / 2 <= std::abs(((h1 / 2 - h2 / 2) - t2) + t1)))
-		return 0;
-	return 1;
-}
-
-// 0x42c0a0
-void Rect_Intersect(int* theOut, int l1, int t1, int r1, int b1, int l2, int t2, int r2, int b2)
-{
-	if (l1 <= l2)
-		l1 = l2;
-	if (t1 <= t2)
-		t1 = t2;
-	if (r2 <= r1)
-		r1 = r2;
-	if (b2 <= b1)
-		b1 = b2;
-	theOut[0] = l1;
-	theOut[1] = t1;
-	theOut[2] = r1;
-	theOut[3] = b1;
-}
-
 // 0x42c0f0 (each colour is truncated: the original's fistp runs with the rounding control set to chop, or 0xc00)
-void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t r0, uint8_t g0, uint8_t b0, uint8_t r1,
-	uint8_t g1, uint8_t b1)
+void Palette_Gradient(Palette* thePalette, int theFrom, int theTo, uint8_t theR0, uint8_t theG0, uint8_t theB0,
+	uint8_t theR1, uint8_t theG1, uint8_t theB1)
 {
 	double aSteps = (double)std::abs(theTo - theFrom) + 1.0;
-	double r = r0;
-	double aDr = (double)r1 - r;
-	double g = g0;
-	double aDg = (double)g1 - g;
+	double aRed = theR0;
+	double aDr = (double)theR1 - aRed;
+	double aGreen = theG0;
+	double aDg = (double)theG1 - aGreen;
 	bool anUp = theFrom < theTo;
-	double b = b0;
-	double aDb = (double)b1 - b;
+	double aBlue = theB0;
+	double aDb = (double)theB1 - aBlue;
 	for (int i = 0; i < aSteps; i++)
 	{
-		thePalette->rgb[theFrom * 4] = (uint8_t)(int)r;
-		thePalette->rgb[theFrom * 4 + 1] = (uint8_t)(int)g;
-		thePalette->rgb[theFrom * 4 + 2] = (uint8_t)(int)b;
+		thePalette->mRgb[theFrom * 4] = (uint8_t)(int)aRed;
+		thePalette->mRgb[theFrom * 4 + 1] = (uint8_t)(int)aGreen;
+		thePalette->mRgb[theFrom * 4 + 2] = (uint8_t)(int)aBlue;
 		theFrom = theFrom + (anUp ? 1 : -1);
-		r = r + aDr / aSteps;
-		g = g + aDg / aSteps;
-		b = b + aDb / aSteps;
+		aRed = aRed + aDr / aSteps;
+		aGreen = aGreen + aDg / aSteps;
+		aBlue = aBlue + aDb / aSteps;
 	}
 }
 
 // 0x423980. The original leaves +0x3c and +0x40 alone; the port's are 0.
-void Image_Init(Image* img)
+void Image_Init(Image* theImg)
 {
-	img->bits = nullptr;
-	img->w = 0;
-	img->h = 0;
-	img->clip[0] = 0;
-	img->clip[1] = 0;
-	img->clip[2] = 0;
-	img->clip[3] = 0;
-	img->pitch = 0;
-	img->origW = 0;
-	img->origH = 0;
-	img->xOff = 0;
-	img->yOff = 0;
-	img->dataSize = 0;
-	img->handleX = 0;
-	img->handleY = 0;
-	img->prev = nullptr;
-	img->next = nullptr;
-	PixelFormat_Init(&img->fmt, 8, 0, 0, 0);
-	img->palette = nullptr;
-	img->rawPalette = nullptr;
-	img->defPalette = nullptr;
-	std::memset(img->name, 0, sizeof(img->name));
-	std::memcpy(img->name, "None", 4);
-	img->hasMask = 0;
-	img->mask = nullptr;
-	img->maskX = 0;
-	img->maskY = 0;
-	img->defMask = nullptr;
-	img->rle = nullptr;
-	img->fileName = nullptr;
-	img->notOwned = 0;
-	img->unkd8 = 0;
-	img->paletteNumber = 0;
-	img->isMask = 0;
-	img->unke4 = 0;
-	img->autoMask = nullptr;
-	img->bankDataSize = 0;
-	img->bankPitch = 0;
-	PixelFormat_Init(&img->bankFmt, 8, 0, 0, 0);
+	theImg->mBits = nullptr;
+	theImg->mW = 0;
+	theImg->mH = 0;
+	theImg->mClip[0] = 0;
+	theImg->mClip[1] = 0;
+	theImg->mClip[2] = 0;
+	theImg->mClip[3] = 0;
+	theImg->mPitch = 0;
+	theImg->mOrigW = 0;
+	theImg->mOrigH = 0;
+	theImg->mXOff = 0;
+	theImg->mYOff = 0;
+	theImg->mDataSize = 0;
+	theImg->mHandleX = 0;
+	theImg->mHandleY = 0;
+	theImg->mPrev = nullptr;
+	theImg->mNext = nullptr;
+	PixelFormat_Init(&theImg->mFmt, 8, 0, 0, 0);
+	theImg->mPalette = nullptr;
+	theImg->mRawPalette = nullptr;
+	theImg->mDefPalette = nullptr;
+	std::memset(theImg->mName, 0, sizeof(theImg->mName));
+	std::memcpy(theImg->mName, "None", 4);
+	theImg->mHasMask = 0;
+	theImg->mMask = nullptr;
+	theImg->mMaskX = 0;
+	theImg->mMaskY = 0;
+	theImg->mDefMask = nullptr;
+	theImg->mRle = nullptr;
+	theImg->mFileName = nullptr;
+	theImg->mNotOwned = 0;
+	theImg->mPaletteNumberPadding = 0;
+	theImg->mPaletteNumber = 0;
+	theImg->mIsMask = 0;
+	theImg->mMaskNamed = 0;
+	theImg->mAutoMask = nullptr;
+	theImg->mBankDataSize = 0;
+	theImg->mBankPitch = 0;
+	PixelFormat_Init(&theImg->mBankFmt, 8, 0, 0, 0);
 }
 
 // 0x423a50
-void Image_SetMidHandle(Image* img)
+void Image_SetMidHandle(Image* theImg)
 {
-	img->handleX = img->origW / 2;
-	img->handleY = img->origH / 2;
+	theImg->mHandleX = theImg->mOrigW / 2;
+	theImg->mHandleY = theImg->mOrigH / 2;
 }
 
 // 0x423a70
-int Image_DrawX(const Image* img)
+int Image_DrawX(const Image* theImg)
 {
-	return img->xOff - img->handleX;
+	return theImg->mXOff - theImg->mHandleX;
 }
 
 // 0x423a80
-int Image_DrawY(const Image* img)
+int Image_DrawY(const Image* theImg)
 {
-	return img->yOff - img->handleY;
-}
-
-// 0x423a90: no mask falls back to the image's default one
-void Image_SetMask(Image* img, Image* mask, int mx, int my)
-{
-	if (mask != nullptr)
-	{
-		img->mask = mask;
-		img->maskX = mx;
-		img->maskY = my;
-		img->hasMask = 1;
-		return;
-	}
-	img->maskX = 0;
-	img->maskY = 0;
-	if (img->defMask != nullptr)
-	{
-		img->mask = img->defMask;
-		img->hasMask = 1;
-		return;
-	}
-	img->hasMask = 0;
-	img->mask = nullptr;
+	return theImg->mYOff - theImg->mHandleY;
 }
 
 // 0x423b00
-void Image_SetPalette(Image* img, Palette* pal)
+void Image_SetPalette(Image* theImg, Palette* thePal)
 {
-	if (pal == nullptr)
-		pal = img->defPalette;
-	img->palette = pal;
+	if (thePal == nullptr)
+		thePal = theImg->mDefPalette;
+	theImg->mPalette = thePal;
 }
 
 // 0x423b20. The old bits are freed whoever owns them, as in the original.
-int Image_ConvertTo(Image* img, const PixelFormat* fmt, const uint8_t* rgb)
+int Image_ConvertTo(Image* theImg, const PixelFormat* theFmt, const uint8_t* theRgb)
 {
-	PixelFormat aFmt = *fmt;
-	int aPitch = (aFmt.bpp >> 3) * img->w;
+	PixelFormat aFmt = *theFmt;
+	int aPitch = (aFmt.mBpp >> 3) * theImg->mW;
 	int aRem = aPitch % 4;
 	if (aRem != 0)
 		aPitch = aPitch + (4 - aRem);
-	uint8_t* aBits = (uint8_t*)std::malloc((size_t)img->h * aPitch);
+	uint8_t* aBits = (uint8_t*)std::malloc((size_t)theImg->mH * aPitch);
 	if (aBits != nullptr)
 	{
-		if (ConvertPixels(&aFmt, aBits, aPitch, 0, 0, &img->fmt, rgb, img->bits, img->pitch, 0, 0, img->w, img->h) !=
-			0)
+		if (ConvertPixels(&aFmt, aBits, aPitch, 0, 0, &theImg->mFmt, theRgb, theImg->mBits, theImg->mPitch, 0, 0,
+			theImg->mW, theImg->mH) != 0)
 		{
-			std::free(img->bits);
-			img->pitch = aPitch;
-			img->dataSize = img->h * aPitch;
-			img->fmt = aFmt;
-			img->bits = aBits;
+			std::free(theImg->mBits);
+			theImg->mPitch = aPitch;
+			theImg->mDataSize = theImg->mH * aPitch;
+			theImg->mFmt = aFmt;
+			theImg->mBits = aBits;
 			return 1;
 		}
 		std::free(aBits);
@@ -326,363 +270,310 @@ int Image_ConvertTo(Image* img, const PixelFormat* fmt, const uint8_t* rgb)
 }
 
 // 0x423bf0
-void Image_FreeRle(Image* img)
+void Image_FreeRle(Image* theImg)
 {
-	if (img->rle != nullptr)
+	if (theImg->mRle != nullptr)
 	{
-		std::free(img->rle);
-		img->rle = nullptr;
+		std::free(theImg->mRle);
+		theImg->mRle = nullptr;
 	}
 }
 
 // 0x425470: whether column x of the mask has a pixel that is not 0
-int Image_MaskColumnSet(const Image* img, int x)
+int Image_MaskColumnSet(const Image* theImg, int x)
 {
-	const Image* aMask = img->mask;
+	const Image* aMask = theImg->mMask;
 	if (aMask == nullptr)
 		return 0;
 	int i = 0;
-	if (0 < aMask->h)
+	if (0 < aMask->mH)
 	{
-		const uint8_t* p = aMask->bits + x;
+		const uint8_t* p = aMask->mBits + x;
 		do
 		{
 			if (*p != 0)
 				return 1;
 			i++;
-			p += aMask->pitch;
-		} while (i < aMask->h);
+			p += aMask->mPitch;
+		} while (i < aMask->mH);
 	}
 	return 0;
 }
 
 // 0x4254c0: an image whose bits belong to a bank keeps everything
-void Image_Free(Image* img)
+void Image_Free(Image* theImg)
 {
-	if (img->notOwned == 0)
+	if (theImg->mNotOwned == 0)
 	{
-		if (img->rle != nullptr)
+		if (theImg->mRle != nullptr)
 		{
-			std::free(img->rle);
-			img->rle = nullptr;
+			std::free(theImg->mRle);
+			theImg->mRle = nullptr;
 		}
-		if (img->bits != nullptr)
-			std::free(img->bits);
-		if (img->fileName != nullptr)
-			std::free(img->fileName);
-		Image_Init(img);
+		if (theImg->mBits != nullptr)
+			std::free(theImg->mBits);
+		if (theImg->mFileName != nullptr)
+			std::free(theImg->mFileName);
+		Image_Init(theImg);
 	}
 }
 
 // 0x425520. Image_Free resets the format to 8-bit first, so a null fmt makes an 8-bit image.
-void Image_Create(Image* img, int w, int h, const PixelFormat* fmt)
+void Image_Create(Image* theImg, int theWidth, int theHeight, const PixelFormat* theFmt)
 {
-	if (img->notOwned == 0)
+	if (theImg->mNotOwned == 0)
 	{
-		Image_Free(img);
-		if (fmt != nullptr)
-			img->fmt = *fmt;
-		img->clip[2] = w + -1;
-		int aPitch = (img->fmt.bpp >> 3) * w;
-		img->clip[3] = h + -1;
+		Image_Free(theImg);
+		if (theFmt != nullptr)
+			theImg->mFmt = *theFmt;
+		theImg->mClip[2] = theWidth + -1;
+		int aPitch = (theImg->mFmt.mBpp >> 3) * theWidth;
+		theImg->mClip[3] = theHeight + -1;
 		int aRem = aPitch % 4;
-		img->bits = nullptr;
-		img->w = w;
-		img->h = h;
-		img->clip[0] = 0;
-		img->clip[1] = 0;
-		img->pitch = aPitch;
+		theImg->mBits = nullptr;
+		theImg->mW = theWidth;
+		theImg->mH = theHeight;
+		theImg->mClip[0] = 0;
+		theImg->mClip[1] = 0;
+		theImg->mPitch = aPitch;
 		if (aRem != 0)
-			img->pitch = (aPitch - aRem) + 4;
-		img->origW = w;
-		img->origH = h;
-		img->xOff = 0;
-		img->yOff = 0;
-		img->bits = (uint8_t*)std::malloc((size_t)img->pitch * h);
-		std::memset(img->bits, 0, (size_t)img->pitch * img->h);
-		img->dataSize = img->pitch * img->h;
+			theImg->mPitch = (aPitch - aRem) + 4;
+		theImg->mOrigW = theWidth;
+		theImg->mOrigH = theHeight;
+		theImg->mXOff = 0;
+		theImg->mYOff = 0;
+		theImg->mBits = (uint8_t*)std::malloc((size_t)theImg->mPitch * theHeight);
+		std::memset(theImg->mBits, 0, (size_t)theImg->mPitch * theImg->mH);
+		theImg->mDataSize = theImg->mPitch * theImg->mH;
 	}
 }
 
 // 0x4255d0
-void Image_CreateCopy(Image* img, const uint8_t* src, int spitch, int w, int h, const PixelFormat* fmt)
+void Image_CreateCopy(Image* theImg, const uint8_t* theSrc, int theSrcPitch, int theWidth, int theHeight,
+	const PixelFormat* theFmt)
 {
-	if (img->notOwned == 0)
+	if (theImg->mNotOwned == 0)
 	{
-		Image_Create(img, w, h, fmt);
-		Copy8(img->bits, 0, 0, img->pitch, 0, src, 0, 0, spitch, 0, (img->fmt.bpp >> 3) * w, h);
+		Image_Create(theImg, theWidth, theHeight, theFmt);
+		Copy8(theImg->mBits, 0, 0, theImg->mPitch, 0, theSrc, 0, 0, theSrcPitch, 0, (theImg->mFmt.mBpp >> 3) * theWidth,
+			theHeight);
 	}
 }
 
 // 0x425630
-void Image_BuildRle(Image* img)
+void Image_BuildRle(Image* theImg)
 {
-	if (img->rle != nullptr)
+	if (theImg->mRle != nullptr)
 	{
-		std::free(img->rle);
-		img->rle = nullptr;
+		std::free(theImg->mRle);
+		theImg->mRle = nullptr;
 	}
-	if (img->fmt.bpp == 8)
-		img->rle = Rle_Build(img->bits, img->pitch, img->h);
+	if (theImg->mFmt.mBpp == 8)
+		theImg->mRle = Rle_Build(theImg->mBits, theImg->mPitch, theImg->mH);
 }
 
 // 0x425d00
-void Image_Destroy(Image* img)
+void Image_Destroy(Image* theImg)
 {
-	Image* anAutoMask = img->autoMask;
+	Image* anAutoMask = theImg->mAutoMask;
 	if (anAutoMask != nullptr)
 	{
 		Image_Destroy(anAutoMask);
 		delete anAutoMask;
-		img->autoMask = nullptr;
+		theImg->mAutoMask = nullptr;
 	}
-	if (img->rle != nullptr)
+	if (theImg->mRle != nullptr)
 	{
-		std::free(img->rle);
-		img->rle = nullptr;
+		std::free(theImg->mRle);
+		theImg->mRle = nullptr;
 	}
-	if (img->notOwned == 0)
-		Image_Free(img);
+	if (theImg->mNotOwned == 0)
+		Image_Free(theImg);
 }
 
 // 0x425d60
-void Image_Copy(Image* img, const Image* src)
+void Image_Copy(Image* theImg, const Image* theSrc)
 {
-	if (img->notOwned == 0)
-		Image_CreateCopy(img, src->bits, src->pitch, src->w, src->h, &src->fmt);
+	if (theImg->mNotOwned == 0)
+		Image_CreateCopy(theImg, theSrc->mBits, theSrc->mPitch, theSrc->mW, theSrc->mH, &theSrc->mFmt);
 }
 
 // 0x423c20
-void Image_Blit(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_Blit(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip, int x,
+	int y)
 {
-	int ox, oy, sx, sy, w, h;
-	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+	int aDstX, aDstY, aSrcX, aSrcY, w, h;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], (theImg->mXOff - theImg->mHandleX) + x,
+		(theImg->mYOff - theImg->mHandleY) + y, theImg->mW, theImg->mH, &aDstX, &aDstY, &aSrcX, &aSrcY, &w, &h) == 0)
 		return;
-	if (fmt == nullptr)
-		fmt = &img->fmt;
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
 	if (0 < w && 0 < h)
 	{
-		if (fmt->bpp == 8)
+		if (theFmt->mBpp == 8)
 		{
-			if (img->fmt.bpp == 8)
-				Copy8(dst, ox, oy, dpitch, 0, img->bits, sx, sy, img->pitch, 0, w, h); // 0x4295f0
+			if (theImg->mFmt.mBpp == 8)
+				// 0x4295f0
+				Copy8(theDst, aDstX, aDstY, theDstPitch, 0, theImg->mBits, aSrcX, aSrcY, theImg->mPitch, 0, w, h);
 		}
-		else if (img->fmt.bpp == 8)
+		else if (theImg->mFmt.mBpp == 8)
 		{
-			if (img->palette != nullptr && Is16(fmt)) // 0x429cb0
-				Pal16(dst, dpitch, ox, oy, img->bits, img->pitch, img->palette, sx, sy, w, h);
+			if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429cb0
+				Pal16(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY,
+					w, h);
 		}
-		else if (Is16(fmt)) // 0x429680
-			Copy16(dst, dpitch, ox, oy, img->bits, img->pitch, sx, sy, w, h);
+		else if (Is16(theFmt)) // 0x429680
+			Copy16(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY, w, h);
 	}
-}
-
-// 0x423d80. A 16-bit image without a mask draws nothing; an 8-bit one is its own mask.
-void Image_BlitUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y)
-{
-	int ax = x + (img->xOff - img->handleX);
-	int ay = y + (img->yOff - img->handleY);
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (fmt->bpp == 8)
-	{
-		if (img->fmt.bpp != 8)
-			return;
-		Copy8Key(dst, ax, ay, dpitch, 0, img->bits, 0, 0, img->pitch, 0, img->w, img->h); // 0x429630
-		return;
-	}
-	const uint8_t* aMask;
-	int aMaskPitch, aMaskX, aMaskY;
-	if (img->hasMask == 1)
-	{
-		const uint8_t* aRle = img->mask->rle;
-		if (aRle != nullptr && img->maskX == 0 && img->maskY == 0)
-		{
-			if (img->fmt.bpp != 8)
-			{
-				if (Is16(fmt)) // 0x429af0
-					Rle16Copy(dst, dpitch, fmt, ax, ay, img->bits, img->pitch, aRle);
-				return;
-			}
-			if (img->palette == nullptr)
-				return;
-			if (Is16(fmt)) // 0x42a0d0
-				RlePal16Copy(dst, dpitch, fmt, ax, ay, img->bits, img->pitch, img->palette, aRle);
-			return;
-		}
-		if (img->fmt.bpp != 8)
-		{
-			if (Is16(fmt)) // 0x429750
-				Copy16Mask(dst, dpitch, ax, ay, img->bits, img->pitch, 0, 0, img->mask->bits, img->mask->pitch,
-					img->maskX, img->maskY, img->w, img->h);
-			return;
-		}
-		if (img->palette == nullptr)
-			return;
-		aMask = img->mask->bits;
-		aMaskPitch = img->mask->pitch;
-		aMaskX = img->maskX;
-		aMaskY = img->maskY;
-	}
-	else
-	{
-		if (img->fmt.bpp != 8)
-			return;
-		if (img->palette == nullptr)
-			return;
-		aMask = img->bits;
-		aMaskPitch = img->pitch;
-		aMaskX = 0;
-		aMaskY = 0;
-	}
-	if (Is16(fmt)) // 0x429d90
-		Pal16Mask(dst, dpitch, ax, ay, img->bits, img->pitch, img->palette, 0, 0, aMask, aMaskPitch, aMaskX, aMaskY,
-			img->w, img->h);
 }
 
 // 0x423f50. The runs are used only when the whole image is drawn.
-void Image_BlitMasked(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_BlitMasked(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
+	int x, int y)
 {
-	int ox, oy, sx, sy, w, h;
-	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+	int aDstX, aDstY, aSrcX, aSrcY, w, h;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], (theImg->mXOff - theImg->mHandleX) + x,
+		(theImg->mYOff - theImg->mHandleY) + y, theImg->mW, theImg->mH, &aDstX, &aDstY, &aSrcX, &aSrcY, &w, &h) == 0)
 		return;
-	if (fmt == nullptr)
-		fmt = &img->fmt;
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
 	if (!(0 < w && 0 < h))
 		return;
-	if (fmt->bpp == 8)
+	if (theFmt->mBpp == 8)
 	{
-		if (img->fmt.bpp == 8)
-			Copy8Key(dst, ox, oy, dpitch, 0, img->bits, sx, sy, img->pitch, 0, w, h); // 0x429630
+		if (theImg->mFmt.mBpp == 8)
+			// 0x429630
+			Copy8Key(theDst, aDstX, aDstY, theDstPitch, 0, theImg->mBits, aSrcX, aSrcY, theImg->mPitch, 0, w, h);
 	}
-	else if (img->hasMask == 1)
+	else if (theImg->mHasMask == 1)
 	{
-		const uint8_t* aRle = img->mask->rle;
-		if (aRle == nullptr || img->maskX != 0 || img->maskY != 0 || w != img->w || h != img->h)
+		const uint8_t* aRle = theImg->mMask->mRle;
+		if (aRle == nullptr || theImg->mMaskX != 0 || theImg->mMaskY != 0 || w != theImg->mW || h != theImg->mH)
 		{
-			if (img->fmt.bpp != 8)
+			if (theImg->mFmt.mBpp != 8)
 			{
-				if (Is16(fmt)) // 0x429750
-					Copy16Mask(dst, dpitch, ox, oy, img->bits, img->pitch, sx, sy, img->mask->bits, img->mask->pitch,
-						img->maskX, img->maskY, w, h);
+				if (Is16(theFmt)) // 0x429750
+					Copy16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY,
+						theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, w, h);
 				return;
 			}
-			if (img->palette != nullptr)
+			if (theImg->mPalette != nullptr)
 			{
-				if (Is16(fmt)) // 0x429d90
-					Pal16Mask(dst, dpitch, ox, oy, img->bits, img->pitch, img->palette, sx, sy, img->mask->bits,
-						img->mask->pitch, img->maskX, img->maskY, w, h);
+				if (Is16(theFmt)) // 0x429d90
+					Pal16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX,
+						aSrcY, theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, w, h);
 				return;
 			}
 		}
 		else
 		{
-			if (img->fmt.bpp != 8)
+			if (theImg->mFmt.mBpp != 8)
 			{
-				if (Is16(fmt)) // 0x429af0
-					Rle16Copy(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
+				if (Is16(theFmt)) // 0x429af0
+					Rle16Copy(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
 				return;
 			}
-			if (img->palette != nullptr)
+			if (theImg->mPalette != nullptr)
 			{
-				if (Is16(fmt)) // 0x42a0d0
-					RlePal16Copy(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
+				if (Is16(theFmt)) // 0x42a0d0
+					RlePal16Copy(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
+						theImg->mPalette, aRle);
 				return;
 			}
 		}
 	}
-	else if (img->fmt.bpp == 8 && img->palette != nullptr)
+	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr)
 	{
-		if (Is16(fmt)) // 0x429d90
-			Pal16Mask(dst, dpitch, ox, oy, img->bits, img->pitch, img->palette, sx, sy, img->bits, img->pitch, 0, 0,
-				w, h);
+		if (Is16(theFmt)) // 0x429d90
+			Pal16Mask(theDst, theDstPitch, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, aSrcX, aSrcY,
+				theImg->mBits, theImg->mPitch, 0, 0, w, h);
 	}
 }
 
 // 0x4241f0: the colour through the image's mask (an 8-bit image without one is its own)
-void Image_BlitFill(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
-	uint32_t colour)
+void Image_BlitFill(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
+	int x, int y, uint32_t theColour)
 {
-	int ox, oy, sx, sy, w, h;
-	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+	int aDstX, aDstY, aSrcX, aSrcY, w, h;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], (theImg->mXOff - theImg->mHandleX) + x,
+		(theImg->mYOff - theImg->mHandleY) + y, theImg->mW, theImg->mH, &aDstX, &aDstY, &aSrcX, &aSrcY, &w, &h) == 0)
 		return;
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (0 < w && 0 < h && fmt->bpp != 8)
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (0 < w && 0 < h && theFmt->mBpp != 8)
 	{
 		const uint8_t* aMask;
 		int aMaskPitch, aMaskX, aMaskY;
-		if (img->hasMask == 1)
+		if (theImg->mHasMask == 1)
 		{
-			const uint8_t* aRle = img->mask->rle;
-			if (aRle != nullptr && img->maskX == 0 && img->maskY == 0 && w == img->w && h == img->h)
+			const uint8_t* aRle = theImg->mMask->mRle;
+			if (aRle != nullptr && theImg->mMaskX == 0 && theImg->mMaskY == 0 && w == theImg->mW && h == theImg->mH)
 			{
-				if (Is16(fmt)) // 0x429b30
-					Rle16Fill(dst, dpitch, fmt, ox, oy, aRle, (uint16_t)colour);
+				if (Is16(theFmt)) // 0x429b30
+					Rle16Fill(theDst, theDstPitch, theFmt, aDstX, aDstY, aRle, (uint16_t)theColour);
 				return;
 			}
-			aMaskY = img->maskY;
-			aMaskX = img->maskX;
-			aMaskPitch = img->mask->pitch;
-			aMask = img->mask->bits;
+			aMaskY = theImg->mMaskY;
+			aMaskX = theImg->mMaskX;
+			aMaskPitch = theImg->mMask->mPitch;
+			aMask = theImg->mMask->mBits;
 		}
 		else
 		{
-			if (img->fmt.bpp != 8)
+			if (theImg->mFmt.mBpp != 8)
 				return;
-			aMask = img->bits;
-			aMaskPitch = img->pitch;
+			aMask = theImg->mBits;
+			aMaskPitch = theImg->mPitch;
 			aMaskY = 0;
 			aMaskX = 0;
 		}
-		if (Is16(fmt)) // 0x429860
-			Fill16Mask(dst, dpitch, fmt, ox, oy, sx, sy, aMask, aMaskPitch, aMaskX, aMaskY, w, h, (uint16_t)colour);
+		if (Is16(theFmt)) // 0x429860
+			Fill16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, aSrcX, aSrcY, aMask, aMaskPitch, aMaskX, aMaskY, w, h,
+				(uint16_t)theColour);
 	}
 }
 
 // 0x424360
-void Image_BlitFillAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
-	uint32_t colour, uint32_t alpha)
+void Image_BlitFillAlpha(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
+	int x, int y, uint32_t theColour, uint32_t theAlpha)
 {
-	int ox, oy, sx, sy, w, h;
-	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+	int aDstX, aDstY, aSrcX, aSrcY, w, h;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], (theImg->mXOff - theImg->mHandleX) + x,
+		(theImg->mYOff - theImg->mHandleY) + y, theImg->mW, theImg->mH, &aDstX, &aDstY, &aSrcX, &aSrcY, &w, &h) == 0)
 		return;
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (0 < w && 0 < h && fmt->bpp != 8)
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (0 < w && 0 < h && theFmt->mBpp != 8)
 	{
 		const uint8_t* aMask;
 		int aMaskPitch, aMaskX, aMaskY;
-		if (img->hasMask == 1)
+		if (theImg->mHasMask == 1)
 		{
-			const uint8_t* aRle = img->mask->rle;
-			if (aRle != nullptr && img->maskX == 0 && img->maskY == 0 && w == img->w && h == img->h)
+			const uint8_t* aRle = theImg->mMask->mRle;
+			if (aRle != nullptr && theImg->mMaskX == 0 && theImg->mMaskY == 0 && w == theImg->mW && h == theImg->mH)
 			{
-				if (Is16(fmt)) // 0x429b70
-					Rle16FillAlpha(dst, dpitch, fmt, ox, oy, aRle, (uint16_t)colour, alpha & 0xff);
+				if (Is16(theFmt)) // 0x429b70
+					Rle16FillAlpha(theDst, theDstPitch, theFmt, aDstX, aDstY, aRle, (uint16_t)theColour,
+						theAlpha & 0xff);
 				return;
 			}
-			aMaskY = img->maskY;
-			aMaskX = img->maskX;
-			aMaskPitch = img->mask->pitch;
-			aMask = img->mask->bits;
+			aMaskY = theImg->mMaskY;
+			aMaskX = theImg->mMaskX;
+			aMaskPitch = theImg->mMask->mPitch;
+			aMask = theImg->mMask->mBits;
 		}
 		else
 		{
-			if (img->fmt.bpp != 8)
+			if (theImg->mFmt.mBpp != 8)
 				return;
-			aMask = img->bits;
-			aMaskPitch = img->pitch;
+			aMask = theImg->mBits;
+			aMaskPitch = theImg->mPitch;
 			aMaskY = 0;
 			aMaskX = 0;
 		}
-		if (Is16(fmt)) // 0x4298a0
-			Fill16MaskAlpha(dst, dpitch, fmt, ox, oy, sx, sy, aMask, aMaskPitch, aMaskX, aMaskY, w, h, (uint16_t)colour,
-				(uint8_t)alpha);
+		if (Is16(theFmt)) // 0x4298a0
+			Fill16MaskAlpha(theDst, theDstPitch, theFmt, aDstX, aDstY, aSrcX, aSrcY, aMask, aMaskPitch, aMaskX, aMaskY,
+				w, h, (uint16_t)theColour, (uint8_t)theAlpha);
 	}
 }
 
@@ -692,408 +583,351 @@ namespace
 
 enum MaskedKind
 {
-	kBlend,  // 0x4244f0
-	kAlpha,  // 0x424700
-	kAdd     // 0x424cc0
+	BLEND,  // 0x4244f0
+	ALPHA,  // 0x424700
+	ADD     // 0x424cc0
 };
 
-void BlitMaskedKind(MaskedKind theKind, Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip,
-	int x, int y)
+void BlitMaskedKind(MaskedKind theKind, Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt,
+	const int* theClip, int x, int y)
 {
-	int ox, oy, sx, sy, w, h;
-	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+	int aDstX, aDstY, aSrcX, aSrcY, w, h;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], (theImg->mXOff - theImg->mHandleX) + x,
+		(theImg->mYOff - theImg->mHandleY) + y, theImg->mW, theImg->mH, &aDstX, &aDstY, &aSrcX, &aSrcY, &w, &h) == 0)
 		return;
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (!(0 < w && 0 < h && fmt->bpp != 8 && img->hasMask == 1))
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (!(0 < w && 0 < h && theFmt->mBpp != 8 && theImg->mHasMask == 1))
 		return;
-	const uint8_t* aRle = img->mask->rle;
-	const uint8_t* m = img->mask->bits;
-	int mp = img->mask->pitch;
-	if (aRle == nullptr || img->maskX != 0 || img->maskY != 0 || w != img->w || h != img->h)
+	const uint8_t* aRle = theImg->mMask->mRle;
+	const uint8_t* aMaskPixel = theImg->mMask->mBits;
+	int aMp = theImg->mMask->mPitch;
+	if (aRle == nullptr || theImg->mMaskX != 0 || theImg->mMaskY != 0 || w != theImg->mW || h != theImg->mH)
 	{
-		if (img->fmt.bpp == 8)
+		if (theImg->mFmt.mBpp == 8)
 		{
-			if (img->palette != nullptr && Is16(fmt))
+			if (theImg->mPalette != nullptr && Is16(theFmt))
 			{
-				if (theKind == kBlend) // 0x429eb0
-					PalBlend16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, m, mp,
-						img->maskX, img->maskY, w, h);
-				else if (theKind == kAlpha) // 0x429ef0
-					PalAlpha16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, m, mp,
-						img->maskX, img->maskY, w, h);
+				if (theKind == BLEND) // 0x429eb0
+					PalBlend16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
+						theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
+				else if (theKind == ALPHA) // 0x429ef0
+					PalAlpha16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
+						theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
 				else // 0x429f70
-					PalAdd16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, m, mp,
-						img->maskX, img->maskY, w, h);
+					PalAdd16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch,
+						theImg->mPalette, aSrcX, aSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
 			}
 		}
-		else if (Is16(fmt))
+		else if (Is16(theFmt))
 		{
-			if (theKind == kBlend) // 0x4298e0
-				Blend16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, m, mp, img->maskX, img->maskY, w,
-					h);
-			else if (theKind == kAlpha) // 0x429920
-				Alpha16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, m, mp, img->maskX, img->maskY, w,
-					h);
+			if (theKind == BLEND) // 0x4298e0
+				Blend16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY,
+					aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
+			else if (theKind == ALPHA) // 0x429920
+				Alpha16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY,
+					aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
 			else // 0x4299a0
-				Add16Mask(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, m, mp, img->maskX, img->maskY, w, h);
+				Add16Mask(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aSrcX, aSrcY,
+					aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, w, h);
 		}
 	}
-	else if (img->fmt.bpp != 8)
+	else if (theImg->mFmt.mBpp != 8)
 	{
-		if (Is16(fmt))
+		if (Is16(theFmt))
 		{
-			if (theKind == kBlend) // 0x429bb0
-				Rle16Blend(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
-			else if (theKind == kAlpha) // 0x429bf0
-				Rle16Alpha(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
+			if (theKind == BLEND) // 0x429bb0
+				Rle16Blend(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
+			else if (theKind == ALPHA) // 0x429bf0
+				Rle16Alpha(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
 			else // 0x429c70
-				Rle16Add(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle);
+				Rle16Add(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, aRle);
 		}
 	}
-	else if (img->palette != nullptr && Is16(fmt))
+	else if (theImg->mPalette != nullptr && Is16(theFmt))
 	{
-		if (theKind == kBlend) // 0x42a110
-			RlePal16Blend(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
-		else if (theKind == kAlpha) // 0x42a150
-			RlePal16Alpha(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
+		if (theKind == BLEND) // 0x42a110
+			RlePal16Blend(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette,
+				aRle);
+		else if (theKind == ALPHA) // 0x42a150
+			RlePal16Alpha(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette,
+				aRle);
 		else // 0x42a1d0
-			RlePal16Add(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle);
+			RlePal16Add(theDst, theDstPitch, theFmt, aDstX, aDstY, theImg->mBits, theImg->mPitch, theImg->mPalette,
+				aRle);
 	}
 }
 
-// 0x424910 and 0x424a90: the faded alpha blend, unclipped (whole image) or clipped
-void BlitAlphaFadeAt(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int ox, int oy, int sx, int sy,
-	int w, int h, bool theWhole, uint32_t alpha)
+// 0x424a90's faded alpha blend, with the runs when the whole image is drawn (theWhole)
+void BlitAlphaFadeAt(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
+	int theDstY, int theSrcX, int theSrcY, int theWidth, int theHeight, bool theWhole, uint32_t theAlpha)
 {
-	const uint8_t* aRle = img->mask->rle;
-	const uint8_t* m = img->mask->bits;
-	int mp = img->mask->pitch;
-	if (aRle == nullptr || img->maskX != 0 || img->maskY != 0 || !theWhole)
+	const uint8_t* aRle = theImg->mMask->mRle;
+	const uint8_t* aMaskPixel = theImg->mMask->mBits;
+	int aMp = theImg->mMask->mPitch;
+	if (aRle == nullptr || theImg->mMaskX != 0 || theImg->mMaskY != 0 || !theWhole)
 	{
-		if (img->fmt.bpp == 8)
+		if (theImg->mFmt.mBpp == 8)
 		{
-			if (img->palette != nullptr && Is16(fmt)) // 0x429f30
-				PalAlpha16MaskFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, sx, sy, m, mp,
-					img->maskX, img->maskY, w, h, (int)alpha);
+			if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429f30
+				PalAlpha16MaskFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch,
+					theImg->mPalette, theSrcX, theSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, theWidth,
+					theHeight, (int)theAlpha);
 		}
-		else if (Is16(fmt)) // 0x429960
-			Alpha16MaskFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, sx, sy, m, mp, img->maskX, img->maskY, w,
-				h, (int)alpha);
+		else if (Is16(theFmt)) // 0x429960
+			Alpha16MaskFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX,
+				theSrcY, aMaskPixel, aMp, theImg->mMaskX, theImg->mMaskY, theWidth, theHeight, (int)theAlpha);
 	}
-	else if (img->fmt.bpp != 8)
+	else if (theImg->mFmt.mBpp != 8)
 	{
-		if (Is16(fmt)) // 0x429c30
-			Rle16AlphaFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, aRle, alpha);
+		if (Is16(theFmt)) // 0x429c30
+			Rle16AlphaFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch, aRle,
+				theAlpha);
 	}
-	else if (img->palette != nullptr && Is16(fmt)) // 0x42a190
-		RlePal16AlphaFade(dst, dpitch, fmt, ox, oy, img->bits, img->pitch, img->palette, aRle, alpha);
+	else if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x42a190
+		RlePal16AlphaFade(theDst, theDstPitch, theFmt, theDstX, theDstY, theImg->mBits, theImg->mPitch,
+			theImg->mPalette, aRle, theAlpha);
 }
 
 } // namespace
 
-void Image_BlitBlend(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_BlitBlend(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
+	int x, int y)
 {
-	BlitMaskedKind(kBlend, img, dst, dpitch, fmt, clip, x, y);
+	BlitMaskedKind(BLEND, theImg, theDst, theDstPitch, theFmt, theClip, x, y);
 }
 
-void Image_BlitAlpha(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_BlitAlpha(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
+	int x, int y)
 {
-	BlitMaskedKind(kAlpha, img, dst, dpitch, fmt, clip, x, y);
+	BlitMaskedKind(ALPHA, theImg, theDst, theDstPitch, theFmt, theClip, x, y);
 }
 
-void Image_BlitAdd(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
+void Image_BlitAdd(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
+	int x, int y)
 {
-	BlitMaskedKind(kAdd, img, dst, dpitch, fmt, clip, x, y);
-}
-
-// 0x424910: the runs whenever the mask has them and no offset
-void Image_BlitAlphaFadeUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y,
-	uint32_t alpha)
-{
-	int ax = x + (img->xOff - img->handleX);
-	int ay = y + (img->yOff - img->handleY);
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (fmt->bpp != 8 && img->hasMask == 1)
-		BlitAlphaFadeAt(img, dst, dpitch, fmt, ax, ay, 0, 0, img->w, img->h, true, alpha);
+	BlitMaskedKind(ADD, theImg, theDst, theDstPitch, theFmt, theClip, x, y);
 }
 
 // 0x424a90
-void Image_BlitAlphaFade(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y,
-	uint32_t alpha)
+void Image_BlitAlphaFade(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, const int* theClip,
+	int x, int y, uint32_t theAlpha)
 {
-	int ox, oy, sx, sy, w, h;
-	if (ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y,
-			img->w, img->h, &ox, &oy, &sx, &sy, &w, &h) == 0)
+	int aDstX, aDstY, aSrcX, aSrcY, w, h;
+	if (ClipBlit(theClip[0], theClip[1], theClip[2], theClip[3], (theImg->mXOff - theImg->mHandleX) + x,
+		(theImg->mYOff - theImg->mHandleY) + y, theImg->mW, theImg->mH, &aDstX, &aDstY, &aSrcX, &aSrcY, &w, &h) == 0)
 		return;
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (0 < w && 0 < h && fmt->bpp != 8 && img->hasMask == 1)
-		BlitAlphaFadeAt(img, dst, dpitch, fmt, ox, oy, sx, sy, w, h, w == img->w && h == img->h, alpha);
-}
-
-// 0x424ed0: adds the mask onto an 8-bit destination (fmt is not checked for null here)
-void Image_AddMaskUnclipped(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y)
-{
-	if (fmt->bpp == 8 && img->hasMask == 1)
-		AddMask8(dst, dpitch, (img->xOff - img->handleX) + x, (img->yOff - img->handleY) + y, img->mask->bits,
-			img->mask->pitch, img->maskX, img->maskY, img->w, img->h);
-}
-
-// 0x424f30. Unlike 0x424ed0 this adds the image's own bits, at the mask's offset.
-void Image_AddMask(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, const int* clip, int x, int y)
-{
-	if (fmt->bpp == 8)
-	{
-		int ox, oy, sx, sy, w, h;
-		int aClipped = ClipBlit(clip[0], clip[1], clip[2], clip[3], (img->xOff - img->handleX) + x,
-			(img->yOff - img->handleY) + y, img->w, img->h, &ox, &oy, &sx, &sy, &w, &h);
-		if (aClipped != 0 && 0 < w && 0 < h && img->hasMask == 1)
-			AddMask8(dst, dpitch, ox, oy, img->bits, img->pitch, img->maskX + sx, img->maskY + sy, w, h);
-	}
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (0 < w && 0 < h && theFmt->mBpp != 8 && theImg->mHasMask == 1)
+		BlitAlphaFadeAt(theImg, theDst, theDstPitch, theFmt, aDstX, aDstY, aSrcX, aSrcY, w, h,
+			w == theImg->mW && h == theImg->mH, theAlpha);
 }
 
 // 0x425010: a part of the image, opaque and unclipped
-void Image_BlitRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	int w, int h)
+void Image_BlitRect(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
+	int theDstY, int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (fmt->bpp == 8)
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (theFmt->mBpp == 8)
 	{
-		if (img->fmt.bpp == 8)
-			Copy8(dst, dx, dy, dpitch, 0, img->bits, sx, sy, img->pitch, 0, w, h); // 0x4295f0
+		if (theImg->mFmt.mBpp == 8)
+			// 0x4295f0
+			Copy8(theDst, theDstX, theDstY, theDstPitch, 0, theImg->mBits, theSrcX, theSrcY, theImg->mPitch, 0,
+				theWidth, theHeight);
 	}
-	else if (img->fmt.bpp == 8)
+	else if (theImg->mFmt.mBpp == 8)
 	{
-		if (img->palette != nullptr && Is16(fmt)) // 0x429cb0
-			Pal16(dst, dpitch, dx, dy, img->bits, img->pitch, img->palette, sx, sy, w, h);
+		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429cb0
+			Pal16(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX,
+				theSrcY, theWidth, theHeight);
 	}
-	else if (Is16(fmt)) // 0x429680
-		Copy16(dst, dpitch, dx, dy, img->bits, img->pitch, sx, sy, w, h);
+	else if (Is16(theFmt)) // 0x429680
+		Copy16(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX, theSrcY, theWidth,
+			theHeight);
 }
 
 // 0x4250f0: a part of the image through its mask, unclipped
-void Image_BlitSubRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	int w, int h)
+void Image_BlitSubRect(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int theDstX,
+	int theDstY, int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (fmt->bpp == 8)
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (theFmt->mBpp == 8)
 	{
-		if (img->fmt.bpp == 8)
-			Copy8Key(dst, dx, dy, dpitch, 0, img->bits, sx, sy, img->pitch, 0, w, h); // 0x429630
+		if (theImg->mFmt.mBpp == 8)
+			// 0x429630
+			Copy8Key(theDst, theDstX, theDstY, theDstPitch, 0, theImg->mBits, theSrcX, theSrcY, theImg->mPitch, 0,
+				theWidth, theHeight);
 	}
-	else if (img->hasMask == 1)
+	else if (theImg->mHasMask == 1)
 	{
-		if (img->fmt.bpp != 8)
+		if (theImg->mFmt.mBpp != 8)
 		{
-			if (Is16(fmt)) // 0x429750
-				Copy16Mask(dst, dpitch, dx, dy, img->bits, img->pitch, sx, sy, img->mask->bits, img->mask->pitch,
-					img->maskX, img->maskY, w, h);
+			if (Is16(theFmt)) // 0x429750
+				Copy16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theSrcX, theSrcY,
+					theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, theWidth, theHeight);
 			return;
 		}
-		if (img->palette != nullptr && Is16(fmt)) // 0x429d90
-			Pal16Mask(dst, dpitch, dx, dy, img->bits, img->pitch, img->palette, sx, sy, img->mask->bits,
-				img->mask->pitch, img->maskX, img->maskY, w, h);
+		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429d90
+			Pal16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX,
+				theSrcY, theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, theWidth,
+				theHeight);
 	}
-	else if (img->fmt.bpp == 8 && img->palette != nullptr && Is16(fmt)) // 0x429d90
-		Pal16Mask(dst, dpitch, dx, dy, img->bits, img->pitch, img->palette, sx, sy, img->bits, img->pitch, 0, 0, w, h);
-}
-
-// 0x425270: the colour through a part of the mask, unclipped. The mask's offset gets sx and sy added, and the
-// blitter adds them again, as in the original. fmt is not checked for null.
-void Image_FillAlphaRect(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int dx, int dy, int sx, int sy,
-	int w, int h, uint32_t colour, uint32_t alpha)
-{
-	if (fmt->bpp != 8 && img->hasMask == 1 && Is16(fmt)) // 0x4298a0
-		Fill16MaskAlpha(dst, dpitch, fmt, dx, dy, sx, sy, img->mask->bits, img->mask->pitch, img->maskX + sx,
-			img->maskY + sy, w, h, (uint16_t)colour, (uint8_t)alpha);
+	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr && Is16(theFmt)) // 0x429d90
+		Pal16Mask(theDst, theDstPitch, theDstX, theDstY, theImg->mBits, theImg->mPitch, theImg->mPalette, theSrcX,
+			theSrcY, theImg->mBits, theImg->mPitch, 0, 0, theWidth, theHeight);
 }
 
 // 0x4252f0: rotated by angle degrees about (x, y), the image's middle
-void Image_BlitRotated(Image* img, uint8_t* dst, int dpitch, const PixelFormat* fmt, int x, int y, int angle,
-	const int* clip)
+void Image_BlitRotated(Image* theImg, uint8_t* theDst, int theDstPitch, const PixelFormat* theFmt, int x, int y,
+	int theAngle, const int* theClip)
 {
-	if (fmt == nullptr)
-		fmt = &img->fmt;
-	if (fmt->bpp == 8)
+	if (theFmt == nullptr)
+		theFmt = &theImg->mFmt;
+	if (theFmt->mBpp == 8)
 	{
-		if (img->fmt.bpp == 8)
-			Rotate8(dst, dpitch, img->bits, img->pitch, img->w, img->h, x, y, angle, clip);
+		if (theImg->mFmt.mBpp == 8)
+			Rotate8(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mW, theImg->mH, x, y, theAngle,
+				theClip);
 	}
-	else if (img->hasMask == 1)
+	else if (theImg->mHasMask == 1)
 	{
-		if (img->fmt.bpp != 8)
+		if (theImg->mFmt.mBpp != 8)
 		{
-			if (Is16(fmt)) // 0x4299e0
-				Rotate16(dst, dpitch, img->bits, img->pitch, img->w, img->h, img->mask->bits, img->mask->pitch,
-					img->maskX, img->maskY, x, y, angle, clip);
+			if (Is16(theFmt)) // 0x4299e0
+				Rotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mW, theImg->mH,
+					theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, x, y, theAngle,
+					theClip);
 			return;
 		}
-		if (img->palette != nullptr && Is16(fmt)) // 0x429fb0
-			PalRotate16(dst, dpitch, img->bits, img->pitch, img->palette, img->w, img->h, img->mask->bits,
-				img->mask->pitch, img->maskX, img->maskY, x, y, angle, clip);
+		if (theImg->mPalette != nullptr && Is16(theFmt)) // 0x429fb0
+			PalRotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mPalette, theImg->mW, theImg->mH,
+				theImg->mMask->mBits, theImg->mMask->mPitch, theImg->mMaskX, theImg->mMaskY, x, y, theAngle, theClip);
 	}
-	else if (img->fmt.bpp == 8 && img->palette != nullptr && Is16(fmt)) // 0x429fb0
-		PalRotate16(dst, dpitch, img->bits, img->pitch, img->palette, img->w, img->h, img->bits, img->pitch, 0, 0, x, y,
-			angle, clip);
+	else if (theImg->mFmt.mBpp == 8 && theImg->mPalette != nullptr && Is16(theFmt)) // 0x429fb0
+		PalRotate16(theDst, theDstPitch, theImg->mBits, theImg->mPitch, theImg->mPalette, theImg->mW, theImg->mH,
+			theImg->mBits, theImg->mPitch, 0, 0, x, y, theAngle, theClip);
 }
 
 // 0x42d540
-void Fill8(uint8_t* dst, int dpitch, int l, int t, int r, int b, int value)
+void Fill8(uint8_t* theDst, int theDstPitch, int l, int t, int r, int b, int theValue)
 {
-	uint8_t* d = dst + dpitch * t + l;
+	uint8_t* d = theDst + theDstPitch * t + l;
 	if (t <= b)
 	{
 		int n = (b - t) + 1;
 		do
 		{
-			std::memset(d, value, (size_t)((r - l) + 1));
-			d += dpitch;
+			std::memset(d, theValue, (size_t)((r - l) + 1));
+			d += theDstPitch;
 			n--;
 		} while (n != 0);
 	}
 }
 
 // 0x42e020
-void ExtractAlpha(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w,
-	int h)
+void ExtractAlpha(uint8_t* theDst, int theDstPitch, int theDstX, int theDstY, const uint8_t* theSrc, int theSrcPitch,
+	int theSrcX, int theSrcY, int theWidth, int theHeight)
 {
-	const uint8_t* s = src + spitch * sy + sx * 4;
-	uint8_t* d = dst + dpitch * dy + dx;
-	if (0 < h)
+	const uint8_t* aSrcPixel = theSrc + theSrcPitch * theSrcY + theSrcX * 4;
+	uint8_t* aDstPixel = theDst + theDstPitch * theDstY + theDstX;
+	if (0 < theHeight)
 	{
-		int aRows = h;
+		int aRows = theHeight;
 		do
 		{
-			const uint8_t* ps = s;
-			uint8_t* pd = d;
-			int n = w;
-			if (0 < w)
+			const uint8_t* aPs = aSrcPixel;
+			uint8_t* aPd = aDstPixel;
+			int n = theWidth;
+			if (0 < theWidth)
 			{
 				do
 				{
-					*pd = ps[3];
+					*aPd = aPs[3];
 					n--;
-					ps += 4;
-					pd++;
+					aPs += 4;
+					aPd++;
 				} while (n != 0);
 			}
-			s += spitch;
-			d += dpitch;
+			aSrcPixel += theSrcPitch;
+			aDstPixel += theDstPitch;
 			aRows--;
 		} while (aRows != 0);
 	}
 }
 
-// 0x42e240. The original adds four pixels at a time between aligned edges, skipping words that are all 0; per pixel
-// that is the same as this.
-void AddMask8(uint8_t* dst, int dpitch, int dx, int dy, const uint8_t* src, int spitch, int sx, int sy, int w, int h)
-{
-	uint8_t* d = dst + dpitch * dy + dx;
-	const uint8_t* s = src + spitch * sy + sx;
-	if (0 < h)
-	{
-		do
-		{
-			uint8_t* pd = d;
-			const uint8_t* ps = s;
-			int n = w;
-			if (0 < w)
-			{
-				do
-				{
-					if (*ps != 0)
-					{
-						uint32_t v = (uint32_t)*ps + (uint32_t)*pd;
-						if (0xff < v)
-							v = 0xff;
-						*pd = (uint8_t)v;
-					}
-					n--;
-					pd++;
-					ps++;
-				} while (n != 0);
-			}
-			s += spitch;
-			d += dpitch;
-			h--;
-		} while (h != 0);
-	}
-}
-
 // 0x42e0a0. The original passes the pixel through globals between a reader per source depth (0x42de00 8-bit,
 // 0x42de40 16-bit, 0x42dea0 24/32-bit) and a writer per destination depth (0x42def0, 0x42df50, 0x42dfd0).
-int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dpitch, int dx, int dy, const PixelFormat* srcFmt,
-	const uint8_t* rgb, const uint8_t* src, int spitch, int sx, int sy, int w, int h)
+int ConvertPixels(const PixelFormat* theDstFmt, uint8_t* theDst, int theDstPitch, int theDstX, int theDstY,
+	const PixelFormat* theSrcFmt, const uint8_t* theRgb, const uint8_t* theSrc, int theSrcPitch, int theSrcX,
+	int theSrcY, int theWidth, int theHeight)
 {
-	uint32_t aSrcBpp = (uint32_t)srcFmt->bpp;
-	uint32_t aDstBpp = (uint32_t)dstFmt->bpp;
+	uint32_t aSrcBpp = (uint32_t)theSrcFmt->mBpp;
+	uint32_t aDstBpp = (uint32_t)theDstFmt->mBpp;
 	if (aSrcBpp != 8 && aSrcBpp != 0x10 && aSrcBpp != 0x18 && aSrcBpp != 0x20)
 		return 0;
 	if (aDstBpp != 0x10 && aDstBpp != 0x18 && aDstBpp != 0x20)
 		return 0;
-	uint8_t r = 0, g = 0, b = 0;
-	auto aRead = [&](const uint8_t* p)
+	uint8_t aRed = 0, aGreen = 0, aBlue = 0;
+	auto aRead = [&](const uint8_t* thePixel)
 	{
 		if (aSrcBpp == 8)
 		{
-			r = rgb[*p * 4];
-			g = rgb[*p * 4 + 1];
-			b = rgb[*p * 4 + 2];
+			aRed = theRgb[*thePixel * 4];
+			aGreen = theRgb[*thePixel * 4 + 1];
+			aBlue = theRgb[*thePixel * 4 + 2];
 			return;
 		}
 		uint32_t v;
 		if (aSrcBpp == 0x10)
-			v = *(const uint16_t*)p;
+			v = *(const uint16_t*)thePixel;
 		else
-			std::memcpy(&v, p, 4); // 24-bit reads a whole word too
-		r = (uint8_t)(((srcFmt->rMask & v) >> (srcFmt->rShift & 0x1f)) << (srcFmt->rLoss & 0x1f));
-		g = (uint8_t)(((srcFmt->gMask & v) >> (srcFmt->gShift & 0x1f)) << (srcFmt->gLoss & 0x1f));
-		b = (uint8_t)(((srcFmt->bMask & v) >> (srcFmt->bShift & 0x1f)) << (srcFmt->bLoss & 0x1f));
+			std::memcpy(&v, thePixel, 4); // 24-bit reads a whole word too
+		aRed = (uint8_t)(((theSrcFmt->mRMask & v) >> (theSrcFmt->mRShift & 0x1f)) << (theSrcFmt->mRLoss & 0x1f));
+		aGreen = (uint8_t)(((theSrcFmt->mGMask & v) >> (theSrcFmt->mGShift & 0x1f)) << (theSrcFmt->mGLoss & 0x1f));
+		aBlue = (uint8_t)(((theSrcFmt->mBMask & v) >> (theSrcFmt->mBShift & 0x1f)) << (theSrcFmt->mBLoss & 0x1f));
 	};
-	auto aWrite = [&](uint8_t* p)
+	auto aWrite = [&](uint8_t* thePixel)
 	{
-		uint32_t v = (((uint32_t)b >> (dstFmt->bLoss & 0x1f)) << (dstFmt->bShift & 0x1f)) |
-			(((uint32_t)g >> (dstFmt->gLoss & 0x1f)) << (dstFmt->gShift & 0x1f)) |
-			(((uint32_t)r >> (dstFmt->rLoss & 0x1f)) << (dstFmt->rShift & 0x1f));
+		uint32_t aValue = (((uint32_t)aBlue >> (theDstFmt->mBLoss & 0x1f)) << (theDstFmt->mBShift & 0x1f)) |
+			(((uint32_t)aGreen >> (theDstFmt->mGLoss & 0x1f)) << (theDstFmt->mGShift & 0x1f)) |
+			(((uint32_t)aRed >> (theDstFmt->mRLoss & 0x1f)) << (theDstFmt->mRShift & 0x1f));
 		if (aDstBpp == 0x10)
-			*(uint16_t*)p = (uint16_t)v;
+			*(uint16_t*)thePixel = (uint16_t)aValue;
 		else if (aDstBpp == 0x18)
 		{
-			p[0] = (uint8_t)v;
-			p[1] = (uint8_t)(v >> 8);
-			p[2] = (uint8_t)(v >> 0x10);
+			thePixel[0] = (uint8_t)aValue;
+			thePixel[1] = (uint8_t)(aValue >> 8);
+			thePixel[2] = (uint8_t)(aValue >> 0x10);
 		}
 		else
-			std::memcpy(p, &v, 4);
+			std::memcpy(thePixel, &aValue, 4);
 	};
-	uint8_t* d = dst + dpitch * dy + (aDstBpp >> 3) * dx;
-	const uint8_t* s = src + spitch * sy + (aSrcBpp >> 3) * sx;
-	if (0 < h)
+	uint8_t* aDstPixel = theDst + theDstPitch * theDstY + (aDstBpp >> 3) * theDstX;
+	const uint8_t* aSrcPixel = theSrc + theSrcPitch * theSrcY + (aSrcBpp >> 3) * theSrcX;
+	if (0 < theHeight)
 	{
-		int aRows = h;
+		int aRows = theHeight;
 		do
 		{
-			const uint8_t* ps = s;
-			uint8_t* pd = d;
-			if (0 < w)
+			const uint8_t* aPs = aSrcPixel;
+			uint8_t* aPd = aDstPixel;
+			if (0 < theWidth)
 			{
-				int n = w;
+				int n = theWidth;
 				do
 				{
-					aRead(ps);
-					ps += aSrcBpp >> 3;
-					aWrite(pd);
-					pd += aDstBpp >> 3;
+					aRead(aPs);
+					aPs += aSrcBpp >> 3;
+					aWrite(aPd);
+					aPd += aDstBpp >> 3;
 					n--;
 				} while (n != 0);
 			}
-			s += spitch;
-			d += dpitch;
+			aSrcPixel += theSrcPitch;
+			aDstPixel += theDstPitch;
 			aRows--;
 		} while (aRows != 0);
 	}
@@ -1104,21 +938,21 @@ int ConvertPixels(const PixelFormat* dstFmt, uint8_t* dst, int dpitch, int dx, i
 // counts skipped (0) pixels, 1 blended ones (stored), 2 solid (0xff) ones, and every change of state starts a new
 // word-aligned count. A row ends with its runs completed by zero counts. Word alignment is by address in the
 // original; malloc's buffers are aligned, so the port aligns by offset.
-uint8_t* Rle_Build(const uint8_t* bits, int width, int height)
+uint8_t* Rle_Build(const uint8_t* theBits, int theWidth, int theHeight)
 {
-	const uint8_t* aRow = bits;
+	const uint8_t* aRow = theBits;
 	uint32_t aSize = 0xc;
-	if (0 < height)
+	if (0 < theHeight)
 	{
-		int aRows = height;
+		int aRows = theHeight;
 		do
 		{
 			uint32_t aState = 0;
 			aSize = aSize + 4;
 			int i = 0;
-			const uint8_t* p = aRow;
+			const uint8_t* aPixel = aRow;
 			uint32_t aPrev = 0;
-			if (width < 1)
+			if (theWidth < 1)
 				aSize = aSize + (2 - aState) * 4;
 			else
 			{
@@ -1128,19 +962,19 @@ uint8_t* Rle_Build(const uint8_t* bits, int width, int height)
 					{
 						if (aState == 0)
 						{
-							if (*p != 0)
+							if (*aPixel != 0)
 								aState = 1;
 						}
 						else if (aState == 1)
 						{
-							if (*p == 0 || *p == 0xff)
+							if (*aPixel == 0 || *aPixel == 0xff)
 								aState = 2;
 							else
 								aSize = aSize + 1;
 						}
-						else if (aState == 2 && *p != 0xff)
+						else if (aState == 2 && *aPixel != 0xff)
 							aState = 0;
-						if (width <= i || aState == aPrev)
+						if (theWidth <= i || aState == aPrev)
 							break;
 						if ((aSize & 3) != 0)
 							aSize = aSize + (4 - (aSize & 3));
@@ -1148,12 +982,12 @@ uint8_t* Rle_Build(const uint8_t* bits, int width, int height)
 						aPrev = aState;
 					}
 					i++;
-					p++;
-				} while (i < width);
+					aPixel++;
+				} while (i < theWidth);
 				if (aState < 2)
 					aSize = aSize + (2 - aState) * 4;
 			}
-			aRow = aRow + width;
+			aRow = aRow + theWidth;
 			aRows--;
 		} while (aRows != 0);
 	}
@@ -1163,32 +997,32 @@ uint8_t* Rle_Build(const uint8_t* bits, int width, int height)
 		return nullptr;
 	std::memset(aBuf, 0, aBufSize);
 	RleHeader* aHeader = (RleHeader*)aBuf;
-	aHeader->size = aBufSize;
-	aHeader->width = (uint32_t)width;
-	aHeader->height = (uint32_t)height;
-	auto Align = [&](uint32_t theAt) { return (theAt & 3) != 0 ? theAt + (4 - (theAt & 3)) : theAt; };
-	auto Word = [&](uint32_t theAt) -> uint32_t& { return *(uint32_t*)(aBuf + theAt); };
+	aHeader->mSize = aBufSize;
+	aHeader->mWidth = (uint32_t)theWidth;
+	aHeader->mHeight = (uint32_t)theHeight;
+	auto anAlign = [&](uint32_t theAt) { return (theAt & 3) != 0 ? theAt + (4 - (theAt & 3)) : theAt; };
+	auto aWord = [&](uint32_t theAt) -> uint32_t& { return *(uint32_t*)(aBuf + theAt); };
 	uint32_t anAt = 0xc;
-	aRow = bits;
-	if (0 < height)
+	aRow = theBits;
+	if (0 < theHeight)
 	{
-		int aRows = height;
+		int aRows = theHeight;
 		do
 		{
-			uint32_t aCount = Align(anAt);
-			Word(aCount) = 0;
+			uint32_t aCount = anAlign(anAt);
+			aWord(aCount) = 0;
 			anAt = aCount + 4;
 			uint32_t aState = 0;
 			int i = 0;
 			uint32_t aPrev = 0;
-			const uint8_t* p = aRow;
-			if (width < 1)
+			const uint8_t* aPixel = aRow;
+			if (theWidth < 1)
 			{
 				int n = 2 - (int)aState;
 				do
 				{
-					anAt = Align(anAt);
-					Word(anAt) = 0;
+					anAt = anAlign(anAt);
+					aWord(anAt) = 0;
 					anAt += 4;
 					n--;
 				} while (n != 0);
@@ -1201,52 +1035,52 @@ uint8_t* Rle_Build(const uint8_t* bits, int width, int height)
 					{
 						if (aState == 0)
 						{
-							if (*p == 0)
-								Word(aCount) = Word(aCount) + 1;
+							if (*aPixel == 0)
+								aWord(aCount) = aWord(aCount) + 1;
 							else
 								aState = 1;
 						}
 						else if (aState == 1)
 						{
-							if (*p == 0 || *p == 0xff)
+							if (*aPixel == 0 || *aPixel == 0xff)
 								aState = 2;
 							else
 							{
-								Word(aCount) = Word(aCount) + 1;
-								aBuf[anAt] = *p;
+								aWord(aCount) = aWord(aCount) + 1;
+								aBuf[anAt] = *aPixel;
 								anAt++;
 							}
 						}
 						else if (aState == 2)
 						{
-							if (*p == 0xff)
-								Word(aCount) = Word(aCount) + 1;
+							if (*aPixel == 0xff)
+								aWord(aCount) = aWord(aCount) + 1;
 							else
 								aState = 0;
 						}
-						if (width <= i || aState == aPrev)
+						if (theWidth <= i || aState == aPrev)
 							break;
-						aCount = Align(anAt);
-						Word(aCount) = 0;
+						aCount = anAlign(anAt);
+						aWord(aCount) = 0;
 						anAt = aCount + 4;
 						aPrev = aState;
 					}
 					i++;
-					p++;
-				} while (i < width);
+					aPixel++;
+				} while (i < theWidth);
 				if (aState < 2)
 				{
 					int n = 2 - (int)aState;
 					do
 					{
-						anAt = Align(anAt);
-						Word(anAt) = 0;
+						anAt = anAlign(anAt);
+						aWord(anAt) = 0;
 						anAt += 4;
 						n--;
 					} while (n != 0);
 				}
 			}
-			aRow = aRow + width;
+			aRow = aRow + theWidth;
 			aRows--;
 		} while (aRows != 0);
 	}
