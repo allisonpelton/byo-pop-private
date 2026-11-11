@@ -171,6 +171,8 @@ html.d95-desk .find-games { display: inline-flex; align-items: center; gap: 4px;
 html.d95-desk .find-games svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; }
 html.d95-desk .find-games input { width: 11em; min-width: 0; }
 html.d95-desk .games > li.find-miss { display: none; }
+/* a game's phase (development hosts only, web/phase.js): a line of the card, its steps in the tooltip */
+.games > li > .phase { margin: 2px 0 0; font-size: 12px; color: var(--muted); cursor: help; }
 .sortby legend { float: left; margin: 0 14px 0 0; padding: 0; font-weight: 600; line-height: 32px; }
 .sortby-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 32px; }
 .sortby label { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 4px; cursor: pointer; }
@@ -588,6 +590,7 @@ footer a { color: var(--accent); }
 <script src="addgames.js"></script>
 <!-- the Setup window: Desktop 95's wizard for adding many games at once, a new face on addgames.js's import -->
 <script src="setup.js"></script>
+<script src="phase.js"></script>
 <script src="library.js"></script>
 <script src="chat-games.js"></script>
 <script src="chat.js"></script>

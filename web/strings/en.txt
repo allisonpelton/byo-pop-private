@@ -34,6 +34,7 @@ library.col.status = Status
 library.col.time = Play time
 library.col.last = Last played
 library.col.year = Year
+library.col.phase = Phase
 library.status.ready = Ready
 library.status.files = Needs your files
 library.status.soon = Coming soon
@@ -274,6 +275,12 @@ index.sort.said_plays = Sorted by plays
 index.sort.said_popular = Sorted by most popular
 index.unsold = Show games no longer sold
 index.find.label = Find
+# A game's phase on the listing, development hosts only (web/phase.js): "Done" when no step is left; the tooltip's lines
+# ({steps}: the step names, joined by commas)
+phase.done = Done
+phase.tip.done = Done: {steps}
+phase.tip.left = Left: {steps}
+phase.tip.na = Not needed: {steps}
 index.add.button = Add games
 index.bin.label = Forget a game's files
 index.bin.tooltip = Recycle bin: drop a game's cap here to forget its files
