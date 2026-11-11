@@ -1,6 +1,6 @@
 // Board: what the test commands read of the game (the field) and the bot behind `move` (docs/TEST_COMMANDS.md). The bot
 // takes a brick or more from the bottom of a column and shoots them up the column where they join the biggest group of their
-// kind: a group is broken up when it reaches m1a54 bricks. It reads the field and the hand and changes nothing, and it draws
+// kind: a group is broken up when it reaches mSetSize bricks. It reads the field and the hand and changes nothing, and it draws
 // no random number. port: nothing here is in the original; none of it changes the game.
 
 #include "Board.h"
@@ -24,14 +24,14 @@ using namespace Sexy;
 std::string Board::DescribeField()
 {
 	std::string aResult = "[";
-	for (size_t aRow = 0; aRow < m314.size(); aRow++)
+	for (size_t aRow = 0; aRow < mFieldBricks.size(); aRow++)
 	{
 		if (aRow > 0)
 			aResult += ",";
 		aResult += "\"";
-		for (size_t aCol = 0; aCol < m314[aRow].size(); aCol++)
+		for (size_t aCol = 0; aCol < mFieldBricks[aRow].size(); aCol++)
 		{
-			Brick* aBrick = m314[aRow][aCol];
+			Brick* aBrick = mFieldBricks[aRow][aCol];
 			if (aBrick == NULL)
 				aResult += '.';
 			else if (!aBrick->IsIdle())
@@ -153,23 +153,25 @@ std::string WaitMove()
 
 // The game takes no input now: bricks are in the air, a row comes, a stage is counted, a box or the pause is up (the
 // conditions that the pointer and the buttons of the field turn away themselves)
+// port: the bot (a test driver's view of the game); the original has none
 int Board::BotBusyReason()
 {
-	if (m8dc && !m8dd)
+	if (mDemoPlaying && !mDemoInputActive)
 		return 1;
-	if (m901 || m8ec || m916 || m8f4 || m8ea)
+	if (mScreenWiping || mWarpCharging || mClearCountRunning || mWarpGatePicked || mStreaksFadingOut)
 		return 2;
-	if (m8eb && !m8ef)
+	if (mWarpActive && !mAtWarpGate)
 		return 3;
-	if (!m8eb && !m8ed && !m8ef && m7ec + m7e8 > 0)
+	if (!mWarpActive && !mWarpFlight && !mAtWarpGate && mLevelUpPanelHeight + mLevelUpPanelY > 0)
 		return 4;
-	if (m1924 != 0 || mFlag8E9 || m1990 > 0)
+	if (mPauseCount != 0 || mLevelUpPhase || mHeldBricksNotLanded > 0)
 		return 5;
 	if (CountMovingBricks(false) > 0)
 		return 6;
-	return (!m7c.empty() || !m94.empty()) ? 7 : 0;
+	return (!mFiredGroups.empty() || !mFallingGroups.empty()) ? 7 : 0;
 }
 
+// port: the bot (a test driver's view of the game); the original has none
 bool Board::BotBusy()
 {
 	return BotBusyReason() != 0;
@@ -177,9 +179,10 @@ bool Board::BotBusy()
 
 // The move the bot makes next: a text (JSON) with what it is and `input`, the real input that makes it. "null" when there is
 // no move to make (the game is over, or no brick of the field makes a group), and a wait when the game takes none now.
+// port: the bot (a test driver's view of the game); the original has none
 std::string Board::BotMove()
 {
-	if (mFlag8E8)
+	if (mGameOver)
 		return "null";
 
 	// the picture of how to play that a game opens with is closed with its button
@@ -191,19 +194,19 @@ std::string Board::BotMove()
 	}
 
 	// a hint that waits to be read is put away with its button
-	if (m74c != NULL && m74c->mVisible && (m919 || (!m230.empty() && m230[0]->m1c)))
+	if (mHintOkButton != NULL && mHintOkButton->mVisible && (mWeaponHintShown || (!mHintSpots.empty() && mHintSpots[0]->mActive)))
 		return "{\"kind\":\"hint\"," +
-			   Steps(StrFormat("{\"click\":[%d,%d]}", m74c->mX + m74c->mWidth / 2, m74c->mY + m74c->mHeight / 2)) + "}";
+			   Steps(StrFormat("{\"click\":[%d,%d]}", mHintOkButton->mX + mHintOkButton->mWidth / 2, mHintOkButton->mY + mHintOkButton->mHeight / 2)) + "}";
 
 	// the tutorial's demo plays by itself; the link it shows (to start a game) ends it
-	if (m8dc && m2e0 != NULL && m2e0->mVisible)
+	if (mDemoPlaying && mDemoStartLink != NULL && mDemoStartLink->mVisible)
 		return "{\"kind\":\"demo\",\"updates\":10," +
-			   Steps(StrFormat("{\"click\":[%d,%d]}", m2e0->mX + m2e0->mWidth / 2, m2e0->mY + m2e0->mHeight / 2)) + "}";
+			   Steps(StrFormat("{\"click\":[%d,%d]}", mDemoStartLink->mX + mDemoStartLink->mWidth / 2, mDemoStartLink->mY + mDemoStartLink->mHeight / 2)) + "}";
 
 	// the story that comes before a level: a click brings all of it in, then its button takes it away
-	if (m754 != NULL)
+	if (mStoryScreen != NULL)
 	{
-		AstroButton* aStoryButton = m754->mButton;
+		AstroButton* aStoryButton = mStoryScreen->mButton;
 		if (aStoryButton == NULL)
 			return WaitMove();
 		if (!aStoryButton->mVisible)
@@ -222,9 +225,9 @@ std::string Board::BotMove()
 	}
 
 	// the warp screen between two levels waits for a click on its first panel (the next level) once the screen is up
-	if (m8ef && m1a60 == 1 && m7e8 >= 0 && !m8f4)
+	if (mAtWarpGate && mGameType == 1 && mLevelUpPanelY >= 0 && !mWarpGatePicked)
 		return "{\"kind\":\"gate\",\"updates\":10," +
-			   Steps(StrFormat("{\"click\":[%d,%d]}", m1a70 + 0x3c, 0xe1 + 0x14)) + "}";
+			   Steps(StrFormat("{\"click\":[%d,%d]}", mSlowGateX + 0x3c, 0xe1 + 0x14)) + "}";
 
 	// the box that explains the weapon, before it starts: its button closes it and the weapon goes on
 	Dialog* aPowerBox = mApp->GetDialog(0x7b);
@@ -239,7 +242,7 @@ std::string Board::BotMove()
 		return WaitMove();
 
 	// the weapon of the pilot, charged: the Return key starts it (the middle button and the start button do the same)
-	if (m1a34 == 0 && m1bd8 == m1bdc && !m8e4 && !m910 && !m8dc)
+	if (mPowerupActive == 0 && mWeaponCharge == mWeaponChargeMax && !mNewRowBouncing && !mBonusRoundOn && !mDemoPlaying)
 		return "{\"kind\":\"weapon\",\"updates\":10," + Steps("{\"key\":\"Return\"}") + "}";
 
 	FieldGrid aGrid;
@@ -247,7 +250,7 @@ std::string Board::BotMove()
 	{
 		for (int c = 0; c < kCols; c++)
 		{
-			Brick* aBrick = (r < (int) m314.size() && c < (int) m314[r].size()) ? m314[r][c] : NULL;
+			Brick* aBrick = (r < (int) mFieldBricks.size() && c < (int) mFieldBricks[r].size()) ? mFieldBricks[r][c] : NULL;
 			if (aBrick == NULL)
 				aGrid.mKind[r][c] = kNone;
 			else if (!aBrick->IsIdle())
@@ -258,7 +261,7 @@ std::string Board::BotMove()
 	}
 
 	// the supa weapon's laser takes the bottom brick of a column away: the tallest column loses it
-	if (m1a34 == 1)
+	if (mPowerupActive == 1)
 	{
 		if (mMode != 0 && mMode != 3)
 			return WaitMove();
@@ -276,7 +279,7 @@ std::string Board::BotMove()
 		if (aBest < 0)
 			return WaitMove();      // the weapon has emptied the field: the next row comes by itself
 		// the psychic takes the lit cells under the pointer: the pointer goes to the bottom brick of the tallest column. A
-		// move lights its cell only when the pointer's last position was in the field already (MouseMove tests m1958 before
+		// move lights its cell only when the pointer's last position was in the field already (MouseMove tests mLastPointerX before
 		// it stores the new one), so the pointer moves twice within the cell before the click
 		if (mMode == 3)
 		{
@@ -289,13 +292,13 @@ std::string Board::BotMove()
 	}
 
 	// the bricks the ship holds (it shoots them), or the ones it will take
-	bool aHolding = !m70.empty();
+	bool aHolding = !mHeldBricks.empty();
 	int aHandKind = -1;
 	int aHandCount = 0;
 	if (aHolding)
 	{
-		aHandKind = (m354 != NULL) ? (m354->mMutated == 1 ? 0xc : m354->mType) : m70.front()->GetEffectiveType();
-		aHandCount = (int) m70.size();
+		aHandKind = (mHandKindBrick != NULL) ? (mHandKindBrick->mMutated == 1 ? 0xc : mHandKindBrick->mType) : mHeldBricks.front()->GetEffectiveType();
+		aHandCount = (int) mHeldBricks.size();
 		if (!IsColour(aHandKind))
 			return "null";
 	}
@@ -344,7 +347,7 @@ std::string Board::BotMove()
 			int aGroup = GroupSize(aShot, aKind, aDrop, aBottom + 1);
 
 			int aScore;
-			if (aGroup >= m1a54)
+			if (aGroup >= mSetSize)
 				aScore = 1000 + aGroup * 10 - (aBottom + aCount);
 			else if (aGroup > aCount)
 				aScore = aGroup * 10 - (aBottom + aCount);

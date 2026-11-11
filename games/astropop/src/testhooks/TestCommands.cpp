@@ -45,7 +45,7 @@ const char* ScreenName(AstroPopApp* theApp)
 {
 	if (theApp->mBoard != NULL)
 		return "game";
-	if (theApp->mScreen650 != NULL)
+	if (theApp->mCharSelector != NULL)
 		return "screen";
 	if (theApp->mMainMenu != NULL && theApp->mMainMenu->mWidgetManager != NULL)
 		return "menu";
@@ -108,7 +108,7 @@ void AstroPopApp::TraceUpdate()
 	if (mBoard != NULL)
 	{
 		aValue[0] = mBoard->mScore;
-		aValue[1] = mBoard->m1940;
+		aValue[1] = mBoard->mLevelNumber;
 	}
 	gGameRand.GetState(aState, &anIndex);
 	aValue[2] = anIndex;
@@ -142,9 +142,9 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (mBoard != NULL)
 		{
 			aLine += StrFormat(",\"mode\":%d,\"level\":%d,\"score\":%d,\"stage\":%d,\"updates\":%d",
-				mBoard->mMode, mBoard->m1940, mBoard->mScore, mBoard->mField193C, mBoard->mUpdateCnt);
-			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->m1a60, mBoard->m1924,
-				mBoard->mFlag8E8 ? 1 : 0, (int) mBoard->m70.size());
+				mBoard->mMode, mBoard->mLevelNumber, mBoard->mScore, mBoard->mStageNumber, mBoard->mUpdateCnt);
+			aLine += StrFormat(",\"type\":%d,\"paused\":%d,\"over\":%d,\"hand\":%d", mBoard->mGameType, mBoard->mPauseCount,
+				mBoard->mGameOver ? 1 : 0, (int) mBoard->mHeldBricks.size());
 			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusyReason());
 			aLine += ",\"field\":" + mBoard->DescribeField();
 		}
@@ -209,7 +209,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	{
 		int aLevel = 0;
 		ReadInts(theCommand.mArgs, &aLevel, 1);
-		if (mBoard == NULL || mBoard->m1a60 != 1)
+		if (mBoard == NULL || mBoard->mGameType != 1)
 			ReplyError(theCommand, "needs a classic game");
 		else if (aLevel < 1)
 			ReplyError(theCommand, "level needs a number from 1");
@@ -280,11 +280,11 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		if (aName == "score")
 			mBoard->mScore = aValue;
 		else if (aName == "level")
-			mBoard->m1940 = aValue;
+			mBoard->mLevelNumber = aValue;
 		else if (aName == "stage")
-			mBoard->mField193C = aValue;
+			mBoard->mStageNumber = aValue;
 		else if (aName == "charge")
-			mBoard->m1bd8 = aRest.empty() ? mBoard->m1bdc : (float) aValue;   // the weapon's charge: full without a number
+			mBoard->mWeaponCharge = aRest.empty() ? mBoard->mWeaponChargeMax : (float) aValue;   // the weapon's charge: full without a number
 		else if (aName == "stories")
 		{
 			// the player has seen all the stories of the four pilots (the profile's counts, 0x4b .. 0x4e: the last story of
@@ -310,7 +310,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		// the level is complete (a classic game); the second type of game has no win: it ends
 		if (mBoard == NULL)
 			ReplyError(theCommand, "needs a game");
-		else if (mBoard->m1a60 == 1)
+		else if (mBoard->mGameType == 1)
 		{
 			mBoard->LevelComplete();
 			ReplyOK(theCommand);

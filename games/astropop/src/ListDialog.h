@@ -25,7 +25,7 @@ class ListDialog : public Text2004<Dialog>, public ListListener
 public:
 	AstroPopApp*		mApp;           // +0x114
 	ScrollbarWidget*	mScrollbar;     // +0x118
-	int					m11c;           // +0x11c where the list starts under the heading (15, the delete box: seven lines)
+	int					mListTopOffset; // +0x11c where the list starts under the heading (15; the delete box: seven lines)
 	ListWidget*			mList;          // +0x120 the names
 	std::string			mSelectedName;  // +0x124 the name chosen (the entries "create" and "delete" for the two buttons; empty: none)
 

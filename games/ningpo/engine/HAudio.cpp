@@ -4,6 +4,7 @@
 #include "HFileSystem.h"
 #include "Pg.h"
 
+#include "framework/SDLSoundManager.h"
 #include "platform/Audio.h"
 
 #include <cstring>
@@ -69,7 +70,11 @@ void HMixer::stopAll()
 	for (Voice& aVoice : mVoices)
 	{
 		if (aVoice.mVoice >= 0)
+		{
+			if (Sexy::SoundLogOn())
+				Sexy::SoundLog("stop %d #%d", aVoice.mLogId, aVoice.mLogNum);
 			Platform::Mixer::Get().StopVoice(aVoice.mVoice);
+		}
 		aVoice.mVoice = -1;
 		aVoice.mSound = nullptr;
 	}
@@ -166,6 +171,9 @@ bool PGSoundManager::add(const char* theName, const std::shared_ptr<Platform::So
 		{
 			HStrncpy(aSound.mName, theName, 0x80);
 			aSound.mData = theData;
+			// port: the sound log (BYOPOP_SOUNDLOG, the framework's lines)
+			Sexy::SoundLog("load %d %s frames=%d rate=%d ch=%d", (int)(&aSound - mSounds), theName, (int)theData->mFrames,
+				theData->mRate, theData->mChannels);
 			return true;
 		}
 	}
@@ -219,6 +227,20 @@ bool PGSoundManager::play(int* theVoiceOut, const char* theName, int theLoops, u
 	{
 		int aVoice = -1;
 		mMixer->play(&aVoice, aData, theVolume, thePan, theLoops);
+		if (Sexy::SoundLogOn())
+		{
+			// port: the sound log; the voice's slot keeps the sound's id and the play's number for the stop line
+			static int sLogNum = 0;
+			int anId = (int)(find(theName) - mSounds);
+			Sexy::SoundLog("instance %d #%d", anId, ++sLogNum);
+			Sexy::SoundLog("play %d #%d vol=%d pan=%d pitch=1.0000 loop=%d", anId, sLogNum, theVolume, thePan,
+				theLoops == -1 ? 1 : 0);
+			if (aVoice >= 0)
+			{
+				mMixer->mVoices[aVoice].mLogId = anId;
+				mMixer->mVoices[aVoice].mLogNum = sLogNum;
+			}
+		}
 		if (theVoiceOut != nullptr && aVoice >= 0)
 			*theVoiceOut = aVoice;
 		GetHost()->SoundStarted(theName, aVoice);

@@ -371,6 +371,9 @@ void PuzzleCompletedScreen::DrawPicture(Graphics* g)
 	if (mPicture != NULL)
 	{
 		Rect aDest((int) mX, (int) mY, mSize, mSize);
+		// 0x41b13c: without 3D acceleration the picture is stretched with the fast (nearest) filter
+		if (!mApp->Is3DAccelerated())
+			g->SetFastStretch(true);
 		g->DrawImage(mPicture, aDest, Rect(0, 0, mPicture->GetWidth(), mPicture->GetHeight()));
 		if (aArrived)
 		{
@@ -403,7 +406,12 @@ void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 		Color aColor(255, (int) (190 + 52 * t), 0);
 		std::string aTitle = mTitle.empty() ? GT(0x50e8b0) : "<" + mTitle + ">";
 		g->SetFont(mApp->mFonts[FONT_GARAMOND12BOLD]);
-		DrawOutlined(g, aTitle, CENTER, 240, aColor, aBrown);
+		// 0x442370: centred in the widget's width, a shadow one pixel right and down, then the text
+		int aTitleX = (mWidth - g->GetFont()->StringWidth(aTitle)) / 2;
+		g->SetColor(aBrown);
+		g->DrawString(aTitle, aTitleX + 1, 241);
+		g->SetColor(aColor);
+		g->DrawString(aTitle, aTitleX, 240);
 	}
 	if (aArrived)
 	{
@@ -450,23 +458,26 @@ void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 	}
 
-	// the moves
-	char aNumber[16];
-	snprintf(aNumber, sizeof(aNumber), "%d", mMoves);
-	g->SetFont(mApp->mFonts[FONT_GARAMOND24GOLD]);
-	DrawOutlined(g, aNumber, CENTER, 278, aWhite, Color(0, 0, 0, 64));
-	if (aArrived)
+	// the moves (0x41a66a: the tutorial's tablet has only its own lines, drawn below)
+	if (!mTutorial)
 	{
-		int anAlpha = 0x80 + (int) ((sin(((aSincePulse + 0xe1) % 300) * (1.0 / 299.0) * 2.0 * PI) + 1.0) * 32.0);
-		g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-		g->SetColor(Color(255, 255, 255, std::min(255, anAlpha)));
-		DrawCentered(g, aNumber, CENTER, 278);
+		char aNumber[16];
+		snprintf(aNumber, sizeof(aNumber), "%d", mMoves);
+		g->SetFont(mApp->mFonts[FONT_GARAMOND24GOLD]);
+		DrawOutlined(g, aNumber, CENTER, 278, aWhite, Color(0, 0, 0, 64));
+		if (aArrived)
+		{
+			int anAlpha = 0x80 + (int) ((sin(((aSincePulse + 0xe1) % 300) * (1.0 / 299.0) * 2.0 * PI) + 1.0) * 32.0);
+			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
+			g->SetColor(Color(255, 255, 255, std::min(255, anAlpha)));
+			DrawCentered(g, aNumber, CENTER, 278);
+			g->SetColor(aWhite);
+			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		}
+		g->SetFont(mApp->mFonts[FONT_GARAMOND14]);
 		g->SetColor(aWhite);
-		g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
+		DrawCentered(g, GT(0x50e7f8), CENTER, 298);
 	}
-	g->SetFont(mApp->mFonts[FONT_GARAMOND14]);
-	g->SetColor(aWhite);
-	DrawCentered(g, GT(0x50e7f8), CENTER, 298);
 
 	// the notes under the tablet's number; the tutorial has encouragement instead
 	g->SetFont(mApp->mFonts[FONT_GARAMOND12]);
@@ -476,14 +487,14 @@ void PuzzleCompletedScreen::DrawContent(Graphics* g, bool thePicture)
 		g->SetFont(mApp->mFonts[FONT_GARAMOND14]);
 		if (mTutorialDone)
 		{
-			DrawCentered(g, GT(0x50e858), CENTER, 324);
-			DrawCentered(g, GT(0x50e844), CENTER, 341);
+			DrawCentered(g, GT(0x50e858), CENTER, 283);
+			DrawCentered(g, GT(0x50e844), CENTER, 308);
 		}
 		else
 		{
-			DrawCentered(g, GT(0x50e830), CENTER, 318);
-			DrawCentered(g, GT(0x50e818), CENTER, 334);
-			DrawCentered(g, GT(0x50e800), CENTER, 350);
+			DrawCentered(g, GT(0x50e830), CENTER, 268);
+			DrawCentered(g, GT(0x50e818), CENTER, 293);
+			DrawCentered(g, GT(0x50e800), CENTER, 318);
 		}
 	}
 	else if (!mWasMaxed)

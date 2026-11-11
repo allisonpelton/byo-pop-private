@@ -28,6 +28,12 @@ class Dialog;
 class Character;
 
 // 0x42e110 / 0x42e1f0: the temple's god, a body with a head and arms that sway
+
+// the figure of Claudius, after the ten gods (0x42ebce)
+enum { CLAUDIUS_FIGURE = 10 };
+// 0x42e1f0: a character drawn in the way the temple, the story and the tutorial show it
+void DrawCharacter(PixelusApp* theApp, Character* theCharacter, Graphics* g);
+
 class GodFigure
 {
 public:

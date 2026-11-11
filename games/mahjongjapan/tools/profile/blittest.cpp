@@ -2,8 +2,8 @@
 // holds (opaque, empty, all alpha values), for Blend (not in place and in place), CopyRgb and SetRgb. The reference is the
 // engine's Blit.cpp as it was before the performance pass (2026-11-09), built under another namespace:
 //   git show 37b2cf77^:games/mahjongjapan/engine/Blit.cpp > BlitOld.cpp
-//   clang++ -O3 -Djb=jbold -I games/mahjongjapan/engine -c BlitOld.cpp -o BlitOld.o
-//   clang++ -O3 -I games/mahjongjapan/engine -c games/mahjongjapan/engine/Blit.cpp -o BlitNew.o
+//   clang++ -O3 -Djb=jbold -I engines/jollybear -c BlitOld.cpp -o BlitOld.o
+//   clang++ -O3 -I engines/jollybear -c engines/jollybear/Blit.cpp -o BlitNew.o
 //   clang++ -O3 -c games/mahjongjapan/tools/profile/blittest.cpp -o blittest.o
 //   clang++ -static blittest.o BlitOld.o BlitNew.o -o blittest.exe && ./blittest.exe        (12000 cases, 0 differ)
 // (the i686 llvm-mingw clang++ of the native build; no window, no sound)
@@ -13,7 +13,7 @@
 #include <vector>
 #include <cstdint>
 
-#include "../../engine/Blit.h"
+#include "../../../../engines/jollybear/Blit.h"
 namespace jbold { namespace blit {
 int Blend(const uint8_t* theSrc, int theSrcPitch, const uint8_t* theUnder, int theUnderPitch, uint8_t* theDst, int theDstPitch, int theWidth, int theHeight, int theMode);
 int CopyRgb(const uint8_t* theSrc, int theSrcPitch, uint8_t* theDst, int theDstPitch, int theWidth, int theHeight);
