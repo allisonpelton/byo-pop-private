@@ -35,60 +35,60 @@ void Board::SortCells(std::vector<CellRef>& theCells)
 // and of the hyperspace go by it)
 bool Board::HasWarpState() const
 {
-	if ((!m8eb || m8ec) && !m8ed && !m8ef && !m8f4)
+	if ((!mWarpActive || mWarpCharging) && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked)
 		return false;
 	return true;
 }
 
 // 0x459040: the Board is paused while a dialog is open. Pause(true) starts a pause (unless the pause dialog, id 100, is
-// open already); Pause(false) ends it when that dialog is gone. The count of pauses is m1924; only the first pause
+// open already); Pause(false) ends it when that dialog is gone. The count of pauses is mPauseCount; only the first pause
 // stops the sounds and hides the buttons and only the last resumes them.
 void Board::Pause(bool theStart, bool theFlag)
 {
-	m8f7 = theFlag;
+	mPauseTextWanted = theFlag;
 	if (!theStart || mApp->GetDialog(100) != NULL)
 	{
 		if (mApp->GetDialog(100) == NULL)
 		{
-			m1924--;
-			if (m1924 == 0)
+			mPauseCount--;
+			if (mPauseCount == 0)
 			{
-				if (m2e0 != NULL)
-					m2e0->SetVisible(true);
+				if (mDemoStartLink != NULL)
+					mDemoStartLink->SetVisible(true);
 				SoundInstance* aKlaxon = mApp->mLoopSounds[7];
 				if (aKlaxon->IsPlaying())
 					aKlaxon->SetVolume(1.0);
-				m1af4 = mUpdateCnt;
+				mResumeUpdate = mUpdateCnt;
 				// (the original writes "End of pause" to its trace list here)
-				if (!m1c09)
+				if (!mKeepLoopSoundsMuted)
 					mApp->SetLoopSoundsMuted(false);
 				mApp->PauseMusicForFocus(false);
-				m1928 = 0;
-				if (!mOverlay.mFlag80)
+				mPauseDarkening = 0;
+				if (!mOverlay.mShownWhileRunning)
 					SetOverlayHidden(true);
-				if (!mFlag8E8)
+				if (!mGameOver)
 				{
-					m1c0[0]->SetDisabled(false);
-					m1c0[0]->SetVisible(true);
-					m2ec->SetDisabled(false);
-					m2ec->SetVisible(true);
+					mFieldButtons[0]->SetDisabled(false);
+					mFieldButtons[0]->SetVisible(true);
+					mHelpButton->SetDisabled(false);
+					mHelpButton->SetVisible(true);
 				}
-				if (m2e4 != NULL)
+				if (mContinueButton != NULL)
 				{
-					m2e4->SetDisabled(false);
-					mApp->mWidgetManager->BringToFront(m2e4);
+					mContinueButton->SetDisabled(false);
+					mApp->mWidgetManager->BringToFront(mContinueButton);
 				}
-				if (m2e8 != NULL)
+				if (mMenuButton != NULL)
 				{
-					m2e8->SetDisabled(false);
-					mApp->mWidgetManager->BringToFront(m2e8);
+					mMenuButton->SetDisabled(false);
+					mApp->mWidgetManager->BringToFront(mMenuButton);
 				}
 				mApp->mWidgetManager->SetFocus(this);
-				if (m6e4 != NULL)
-					m6e4->SetVolume(1.0);
-				if (m8df)
+				if (mPauseMutedSound != NULL)
+					mPauseMutedSound->SetVolume(1.0);
+				if (mStartWeaponAfterPause)
 				{
-					m8df = false;
+					mStartWeaponAfterPause = false;
 					BeginPlay();
 				}
 			}
@@ -96,71 +96,71 @@ void Board::Pause(bool theStart, bool theFlag)
 		return;
 	}
 
-	m1924++;
-	if (m1924 != 1)
+	mPauseCount++;
+	if (mPauseCount != 1)
 		return;
-	if (m2e0 != NULL)
-		m2e0->SetVisible(false);
+	if (mDemoStartLink != NULL)
+		mDemoStartLink->SetVisible(false);
 	// (the original writes "Start of pause" to its trace list here)
-	m1af0 = mUpdateCnt;
+	mPauseStartUpdate = mUpdateCnt;
 	mApp->SetLoopSoundsMuted(true);
 	SetOverlayHidden(false);
-	if (m6e4 != NULL)
-		m6e4->SetVolume(0.0);
+	if (mPauseMutedSound != NULL)
+		mPauseMutedSound->SetVolume(0.0);
 	SoundInstance* aKlaxon = mApp->mLoopSounds[7];
 	if (aKlaxon->IsPlaying())
 		aKlaxon->SetVolume(0.0);
-	m1c0[0]->SetDisabled(true);
-	m1c0[0]->SetVisible(false);
-	m2ec->SetDisabled(true);
-	m2ec->SetVisible(false);
-	if (m2e4 != NULL)
+	mFieldButtons[0]->SetDisabled(true);
+	mFieldButtons[0]->SetVisible(false);
+	mHelpButton->SetDisabled(true);
+	mHelpButton->SetVisible(false);
+	if (mContinueButton != NULL)
 	{
-		m2e4->SetDisabled(true);
-		mApp->mWidgetManager->PutBehind(m2e4, &mOverlay);
+		mContinueButton->SetDisabled(true);
+		mApp->mWidgetManager->PutBehind(mContinueButton, &mOverlay);
 	}
-	if (m2e8 != NULL)
+	if (mMenuButton != NULL)
 	{
-		m2e8->SetDisabled(true);
-		mApp->mWidgetManager->PutBehind(m2e8, &mOverlay);
+		mMenuButton->SetDisabled(true);
+		mApp->mWidgetManager->PutBehind(mMenuButton, &mOverlay);
 	}
 }
 
 // 0x437910: the pictures of the theme button and the checkbox are made again in the colour of the stage
 void Board::RecolorThemeButtons()
 {
-	delete m74c->mOverImage;
-	delete m74c->mDownImage;
-	delete m74c->mButtonImage;
-	delete m750->mUncheckedImage;
+	delete mHintOkButton->mOverImage;
+	delete mHintOkButton->mDownImage;
+	delete mHintOkButton->mButtonImage;
+	delete mHintOffCheckbox->mUncheckedImage;
 
-	StageBg* aStage = m230[0]->mBg;
+	StageBg* aStage = mHintSpots[0]->mBg;
 	Color aColor(aStage->mColor1.mRed, aStage->mColor1.mGreen, aStage->mColor1.mBlue);
-	m74c->mDownImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_DOWN, aColor);
-	m74c->mOverImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_OVER, aColor);
-	m74c->mButtonImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_UP, aColor);
+	mHintOkButton->mDownImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_DOWN, aColor);
+	mHintOkButton->mOverImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_OVER, aColor);
+	mHintOkButton->mButtonImage = mApp->CreateColorizedImage(IMAGE_TH_BTN_UP, aColor);
 	if (aColor.mRed != 0)
 		aColor.mRed = 0xff;
 	if (aColor.mGreen != 0)
 		aColor.mGreen = 0xff;
 	if (aColor.mBlue != 0)
 		aColor.mBlue = 0xff;
-	m750->mUncheckedImage = mApp->CreateColorizedImage(IMAGE_TH_CHECKBOX, aColor);
-	m750->mCheckedImage = m750->mUncheckedImage;
+	mHintOffCheckbox->mUncheckedImage = mApp->CreateColorizedImage(IMAGE_TH_CHECKBOX, aColor);
+	mHintOffCheckbox->mCheckedImage = mHintOffCheckbox->mUncheckedImage;
 }
 
 // 0x45ab90: once the warp has faded in, the theme buttons (to keep or change the stage's colour theme) appear
 void Board::ShowThemeButtons()
 {
-	if (!m230.empty() && m230[0]->m1c && m7e8 <= -m7ec)
+	if (!mHintSpots.empty() && mHintSpots[0]->mActive && mLevelUpPanelY <= -mLevelUpPanelHeight)
 	{
 		Pause(true, false);
 		RecolorThemeButtons();
-		m74c->Resize(0x1c2, (IMAGE_TH_STRIP->mHeight - IMAGE_TH_CHECKBOX->mHeight) + 0xa9, IMAGE_TH_BTN_OVER->mWidth, IMAGE_TH_BTN_OVER->mHeight);
-		m750->SetVisible(true);
-		m74c->SetVisible(true);
-		mApp->mWidgetManager->BringToFront(m74c);
-		mApp->mWidgetManager->BringToFront(m750);
+		mHintOkButton->Resize(0x1c2, (IMAGE_TH_STRIP->mHeight - IMAGE_TH_CHECKBOX->mHeight) + 0xa9, IMAGE_TH_BTN_OVER->mWidth, IMAGE_TH_BTN_OVER->mHeight);
+		mHintOffCheckbox->SetVisible(true);
+		mHintOkButton->SetVisible(true);
+		mApp->mWidgetManager->BringToFront(mHintOkButton);
+		mApp->mWidgetManager->BringToFront(mHintOffCheckbox);
 	}
 }
 
@@ -169,19 +169,19 @@ void Board::ShowThemeButtons()
 // steel ones, mode 3 lights the cell under the pointer. Nothing starts while the field is not at rest.
 void Board::BeginPlay()
 {
-	if (mf8.empty() && m1a34 != 1)
+	if (mKillAllTypes.empty() && mPowerupActive != 1)
 	{
 		int aValue = 0;
 		mApp->mUser->GetInt(mMode + 0x2a, &aValue);
-		m1c08 = aValue == 1;
+		mWeaponDialogDue = aValue == 1;
 
 		if (mMode == 0)
-			m1a34 = 1;
+			mPowerupActive = 1;
 		else if (mMode == 1)
 		{
 			Fire(0x28, 1);
 			Fire(0x2a, 1);
-			m8f9 = false;
+			mAtomicBlastOver = false;
 
 			// the idle bricks with free space under them (or on the bottom row) and those that are buried
 			std::vector<CellRef> anExposed;
@@ -190,7 +190,7 @@ void Board::BeginPlay()
 			{
 				for (unsigned int aRow = 1; aRow < 0x14; aRow++)
 				{
-					Brick* aBrick = m314[aRow][aCol];
+					Brick* aBrick = mFieldBricks[aRow][aCol];
 					if (aBrick == NULL)
 						break;
 					if (aBrick->IsIdle())
@@ -198,12 +198,12 @@ void Board::BeginPlay()
 						CellRef aCell;
 						aCell.mCol = aCol;
 						aCell.mRow = aRow;
-						unsigned int aNumRows = (unsigned int) m314.size();
-						if (aRow < aNumRows - 1 && m314[aRow + 1][aCol] == NULL)
+						unsigned int aNumRows = (unsigned int) mFieldBricks.size();
+						if (aRow < aNumRows - 1 && mFieldBricks[aRow + 1][aCol] == NULL)
 							anExposed.push_back(aCell);
 						else if (aRow == aNumRows - 1)
 							anExposed.push_back(aCell);
-						else if (aRow < aNumRows - 2 && m314[aRow + 2][aCol] == NULL && m314[aRow + 1][aCol] != NULL)
+						else if (aRow < aNumRows - 2 && mFieldBricks[aRow + 2][aCol] == NULL && mFieldBricks[aRow + 1][aCol] != NULL)
 							anExposed.push_back(aCell);
 						else
 							aBuried.push_back(aCell);
@@ -217,11 +217,11 @@ void Board::BeginPlay()
 				return;
 			}
 
-			m1a34 = 1;
+			mPowerupActive = 1;
 
 			// the buried ones are thinned out at random: only the share that the power level asks for is kept
 			float aKeepShare = 0.0f;
-			switch (m1a8c)
+			switch (mWeaponPower)
 			{
 			case 1:		aKeepShare = 0.05f;	break;
 			case 2:		aKeepShare = 0.1f;	break;
@@ -249,33 +249,32 @@ void Board::BeginPlay()
 					CellRef3 aMark;
 					aMark.mCol = aBuried[i].mCol;
 					aMark.mRow = aBuried[i].mRow;
-					aMark.mBrick = m314[aMark.mRow][aMark.mCol];
-					m1a0.push_back(aMark);
+					aMark.mBrick = mFieldBricks[aMark.mRow][aMark.mCol];
+					mAtomicMarkedBricks.push_back(aMark);
 				}
 			}
-			m1a3c = 0;
 		}
 		else if (mMode == 2)
 		{
 			Fire(0x28, 1);
 			Fire(0x2a, 1);
-			m1b58 = 0xf;
-			m290.clear();
-			m1b54 = 0;
-			m1b4c = 0;
-			m1b50 = 0;
-			m1a4c = 0;
+			mTurbotBeamInterval = 0xf;
+			mTurbotBeams.clear();
+			mTurbotWindUpCounter = 0;
+			mTurbotPhase = 0;
+			mTurbotOverlayCel = 0;
+			mTurbotFlashAlpha = 0;
 			mOverlay.SetFill(255, 255, 255, 0);
 			SetOverlayHidden(false);
-			m1a48 = mHeight;
-			mAnim520.SetStopped(false);
-			m1aa0 = 0;
-			m907 = false;
+			mTurbotWaveY = mHeight;
+			mTurbotPowerupAnim.SetStopped(false);
+			mTurbotPowerupAlpha = 0;
+			mClearWaitStarted = false;
 			for (int aCol = 0; aCol < 10; aCol++)
 			{
 				for (int aRow = 1; aRow < 0x14; aRow++)
 				{
-					Brick* aBrick = m314[aRow][aCol];
+					Brick* aBrick = mFieldBricks[aRow][aCol];
 					if (aBrick == NULL)
 						break;
 					int aMutated = aBrick->mMutated;
@@ -284,64 +283,64 @@ void Board::BeginPlay()
 						int aType = 0xc;
 						if (aMutated != 1)
 							aType = aBrick->mType;
-						if ((1 < m1a8c && (aType == 7 || aType == 9)) || (3 < m1a8c && (aMutated == 0 || aMutated == 1)))
+						if ((1 < mWeaponPower && (aType == 7 || aType == 9)) || (3 < mWeaponPower && (aMutated == 0 || aMutated == 1)))
 						{
 							CellRef aCell;
 							aCell.mCol = aCol;
 							aCell.mRow = aRow;
-							mc8.push_back(aCell);
-							if (4 < m1a8c)
+							mTurbotMarkedCells.push_back(aCell);
+							if (4 < mWeaponPower)
 							{
-								aBrick->mFlag187 = true;
+								aBrick->mBlastsOnPop = true;
 								aBrick->AdvanceParticleCount();
 							}
 						}
 					}
 				}
 			}
-			m1a34 = 1;
-			SortCells(mc8);
+			mPowerupActive = 1;
+			SortCells(mTurbotMarkedCells);
 			mApp->PlaySample(SOUND_EXPLOSION);
 		}
 		else if (mMode == 3)
 		{
-			int aX = m1958;
-			m1a34 = 1;
+			int aX = mLastPointerX;
+			mPowerupActive = 1;
 			if (aX > 0xa5 && aX < 0x25e)
 			{
 				unsigned int aRow = 0;
-				if (m195c >= 0x22)
-					aRow = (m195c - 0x22) / 0x19 + 1;
+				if (mLastPointerY >= 0x22)
+					aRow = (mLastPointerY - 0x22) / 0x19 + 1;
 				HoverCell((aX - 0xa6) / 0x2c, aRow, false);
 			}
 		}
 
 		mApp->PlaySample(SOUND_POWER_ACTIVATED);
-		m6fc = 0;
-		m6f4 = 0;
-		m6f0 = 0;
-		m6f8 = 0x35;
-		if (!m8fc)
+		mShipShimmerHeight = 0;
+		mShipShimmerY = 0;
+		mShipShimmerX = 0;
+		mShipShimmerWidth = 0x35;
+		if (!mPlayStarted)
 		{
 			if (mMode != 1 && mMode != 2)
 			{
 				Fire(0x2a, 0);
 				Fire(0x28, 0);
 			}
-			if (!m8fc)
-				m1960 = 0xff;
+			if (!mPlayStarted)
+				mStartTextAlpha = 0xff;
 		}
-		m8fc = true;
-		m922 = false;
-		m1b24 = 0;
-		m1ab8 = 6;
-		m1ac0 = PickSpawnDelay();
-		m1ad0 = 0;
-		m1aec = 0;
-		m1ae0 = 0xff;
-		m1adc = 0;
-		m1ad8 = -IMAGE_SUPA_BRACKET_LEFT->mHeight;
-		m1ad4 = 1;
+		mPlayStarted = true;
+		mStartedFromCheckpoint = false;
+		mSprocketOverlayCel = 0;
+		mPhase = 6;
+		mPhaseDelay = PickSpawnDelay();
+		mBonusBannerHue = 0;
+		mScreenShakeUpdates = 0;
+		mSupaBracketFlash = 0xff;
+		mSupaBracketSpread = 0;
+		mSupaBannerY = -IMAGE_SUPA_BRACKET_LEFT->mHeight;
+		mSupaBannerStep = 1;
 		aValue = 0;
 		mApp->mUser->GetInt(0x2e, &aValue);
 		if (aValue == 1)
@@ -351,72 +350,72 @@ void Board::BeginPlay()
 			return;
 		}
 	}
-	else if (!m90b)
+	else if (!mClickRepeating)
 		mApp->PlaySample(SOUND_CANT_CLICK);
 }
 
 // 0x4342f0: a box is gone and the Board takes the keyboard back
 void Board::TakeFocus()
 {
-	m91a = true;
-	m90f = true;
+	mUpgradeDialogDone = true;
+	mClicksBlocked = true;
 	mApp->mWidgetManager->SetFocus(this);
-	m921 = true;
+	mUpgradeDialogSeen = true;
 }
 
-// 0x45a930: the OK of a hint panel (or of the theme's own panel, m919). The hint is marked as seen in the profile; when its
+// 0x45a930: the OK of a hint panel (or of the theme's own panel, mWeaponHintShown). The hint is marked as seen in the profile; when its
 // checkbox is ticked the hint is also switched off (and the panels after it go, as they are about the same thing). The next
 // panel, if there is one, takes its place; with none the game goes on.
 void Board::DismissHint()
 {
-	if (m919)
+	if (mWeaponHintShown)
 	{
-		m74c->SetVisible(false);
+		mHintOkButton->SetVisible(false);
 		mApp->mUser->SetInt(mMode + 0x2a, 0);
 		mApp->mUser->Save();
-		m919 = false;
+		mWeaponHintShown = false;
 		Pause(false, true);
 		return;
 	}
 
 	size_t i = 0;
-	while (!m230.empty() && i < m230.size())
+	while (!mHintSpots.empty() && i < mHintSpots.size())
 	{
-		if (m230[i]->m1c)
+		if (mHintSpots[i]->mActive)
 			break;
 		i++;
 	}
-	if (!m230.empty() && i < m230.size())
+	if (!mHintSpots.empty() && i < mHintSpots.size())
 	{
-		HintSpot* aSpot = m230[i];
+		HintSpot* aSpot = mHintSpots[i];
 		mApp->mUser->SetInt(aSpot->mId + 1, 1);
-		if (m750->mChecked)
+		if (mHintOffCheckbox->mChecked)
 		{
 			mApp->mUser->SetInt(aSpot->mId, 0);
-			m750->mChecked = false;
-			while (m230.size() > 1)
+			mHintOffCheckbox->mChecked = false;
+			while (mHintSpots.size() > 1)
 			{
-				delete m230[1];
-				m230.erase(m230.begin() + 1);
+				delete mHintSpots[1];
+				mHintSpots.erase(mHintSpots.begin() + 1);
 			}
 		}
 		mApp->mUser->Save();
-		m74c->SetVisible(false);
-		m750->SetVisible(false);
+		mHintOkButton->SetVisible(false);
+		mHintOffCheckbox->SetVisible(false);
 		// (the original takes the panel by its index i, which the loop above may have emptied the vector below; the panel
 		// that is up is always the first, so both are the same)
-		m230.erase(std::find(m230.begin(), m230.end(), aSpot));
+		mHintSpots.erase(std::find(mHintSpots.begin(), mHintSpots.end(), aSpot));
 		delete aSpot;
 	}
 
-	if (!m230.empty())
+	if (!mHintSpots.empty())
 	{
 		RecolorThemeButtons();
-		m230[0]->m1c = true;
-		m74c->SetVisible(true);
-		m750->SetVisible(true);
-		mApp->mWidgetManager->BringToFront(m750);
-		mApp->mWidgetManager->BringToFront(m74c);
+		mHintSpots[0]->mActive = true;
+		mHintOkButton->SetVisible(true);
+		mHintOffCheckbox->SetVisible(true);
+		mApp->mWidgetManager->BringToFront(mHintOffCheckbox);
+		mApp->mWidgetManager->BringToFront(mHintOkButton);
 		return;
 	}
 	Pause(false, true);
@@ -425,11 +424,11 @@ void Board::DismissHint()
 // 0x4347c0: the overlay's button (0xfa7) closes the picture over the field and the field is clear again
 void Board::CloseOverlay()
 {
-	m8d8 = true;
-	m978 = 0;
-	mApp->mWidgetManager->RemoveWidget(m2e0);
-	mApp->SafeDeleteWidget(m2e0);
-	m2e0 = NULL;
+	mDemoEnding = true;
+	mWhiteFadeAlpha = 0;
+	mApp->mWidgetManager->RemoveWidget(mDemoStartLink);
+	mApp->SafeDeleteWidget(mDemoStartLink);
+	mDemoStartLink = NULL;
 	SetOverlayHidden(false);
 	mOverlay.SetFill(0xff, 0xff, 0xff, 0);
 }
@@ -444,15 +443,13 @@ void Board::RedrawAfterDialog()
 		aLoop->Stop();
 	if (!mApp->Is3DAccelerated())
 		mApp->CloseBoard();
-	m902 = false;
-	m901 = false;
+	mScreenWiping = false;
 	if (mOverlay.mColor58 != mOverlay.mFill)
 		mOverlay.MarkDirty();
 	MarkDirty();
-	((MemoryImage*) m2f4)->SetImageMode(false, false);
-	mApp->mWidgetManager->DrawWidgetsTo(m2f0);
-	((MemoryImage*) m2f4)->SetImageMode(true, true);
-	m903 = false;
-	m901 = true;
-	m90f = true;
+	((MemoryImage*) mScreenImage)->SetImageMode(false, false);
+	mApp->mWidgetManager->DrawWidgetsTo(mScreenGraphics);
+	((MemoryImage*) mScreenImage)->SetImageMode(true, true);
+	mScreenWiping = true;
+	mClicksBlocked = true;
 }

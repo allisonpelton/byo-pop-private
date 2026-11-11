@@ -109,8 +109,8 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
   control word with `__control87` and, when the precision is not `_PC_24` (0x20000 in MSVC's own constants; the port's comment
   once read it as 53 bits), sets it before every batch of updates. Every update and every draw therefore runs at 24 bits; only the
   start of the program, before the first UpdateFrames, runs at 53 bits, as the sine table of the app's constructor does). Seen in a run of the original (classic, seed 7, update 8186): the
-  wait before the next row is `m19d8 = (int) (m19cc + m930 * 20.0f)` (0x46ec55: `FILD; FLD float; FMUL float; FADDP; _ftol`),
-  with `m930` = 2.3f (2.29999995): in a full-precision x87 or in double the product is 45.999999 and the row waits 1045, in
+  wait before the next row is `mRowTimer = (int) (mRowInterval + mStackDanger * 20.0f)` (0x46ec55: `FILD; FLD float; FMUL float; FADDP; _ftol`),
+  with `mStackDanger` = 2.3f (2.29999995): in a full-precision x87 or in double the product is 45.999999 and the row waits 1045, in
   the original it is rounded to 46.0 and the row waits 1046, so a row came one update earlier. The port computes the
   expressions that the game truncates, compares or chains in `float` (an SSE float operation rounds like the 24-bit x87):
   the wait formula, the danger display (`CheckStackHeight`), the spawn thresholds (`FillTopRow`), the ramp interpolation
@@ -119,7 +119,7 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
   expressions and written in `float` too (positions of the ship, bricks, streaks and texts, the gauge and the bars, the scenery layers, the banner's wave). A weapon case showed one more: `BeginPlay`'s count of the buried bricks a weapon removes,
   `(int) ((1.0f - share) * count)`, was 19 in double and is 18 in the original (classic, seed 7, Sprocket, update 6369: one draw
   fewer). Read for the same kind of expression after it, and changed without a run having shown a difference: the meter's fill
-  ratio `m1a14 / m1a18`, compared with a third and two thirds (`BoardFill`) and with 1 (`BoardGone`), the positions on the meter
+  ratio `mStageBricksCleared / mBricksToPass`, compared with a third and two thirds (`BoardFill`) and with 1 (`BoardGone`), the positions on the meter
   that a milestone truncates to whole pixels (`BoardEvents`), and the speed of a warp star (`BoardWarp`).
 - A relative path of `XcfFile` (`HasKey`, `GetInt`: 0x412d00 and its neighbours) starts at the section under the cursor, and
   its first part may be the name of that section itself: a bonus level file is read with the paths `LEVEL\ROWn\Brickn` right
@@ -130,7 +130,7 @@ every player and file when the registry's `SGFVersion` is missing or below 15, s
   a flag of its own: the siren's `FrameAnim` sits at +0x4a0 and +0x4c8 is its `mStopped` (field +0x28, true from the
   constructor). The first translation had an unset `m4c8` there, so the pace after a spurt was always 8 and the extra
   `PickSpawnDelay` draw of the stopped-siren case (pace 4) never came (found by classic, seed 2, update 7495, where the
-  original drew one number the port did not). The siren drawing and the two `m1ab8 = 8` sites of BoardMode read the same field.
+  original drew one number the port did not). The siren drawing and the two `mPhase = 8` sites of BoardMode read the same field.
 - `Brick::UpdateRainbow` (0x4062d0) first erases the colour that was shown from the list (`vector::erase`, 0x405f70) and
   only then draws, when the list is not empty; with none left the brick stops being a rainbow. The first translation drew
   without erasing.
@@ -175,10 +175,10 @@ table, 143 slots) is two subobjects: +0 a state-machine part (vtable 0x55d5a8: s
 updates ...) and +0xc the listener part. Methods reached through the +0xc vtable get `this` = object+0xc, so their field
 offsets are relative to it (add 0xc for the object's own offsets).
 The small handlers of events 0x10 and 0x11 (0x433cc0, 0x433cd0) are such methods: `INC [ECX + 0x1a04]` is the Board's own +0x1a68
-(`m1a68`, the number of fired bricks that sit at their place with their flag +0x188 set), which the spawn of the next row waits
-to see at zero (`Board::SpawnControl`). The first translation counted in the Board's +0x1a04 (`m1a04`, a value set from the level)
+(`mSupportedBrickCount`, the number of fired bricks that sit at their place with their flag +0x188 set), which the spawn of the next row waits
+to see at zero (`Board::SpawnControl`). The first translation counted in the Board's +0x1a04 (`mSlowGateStage`, a value set from the level)
 instead, so a row came one update early after a retarget (found by the first different update of the identical-play pass).
-The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a only for a mutated brick: a brick that is shown and not mutated and is not a plain colour goes to state 3 at once (a plain colour fires event 0x27, a stone, steel or bomb fires its own events in its own handler), and the Board answers 0x1a (0x45d7a0) and 0x1b by setting its mutator hold (`m1b5c`, 2000 updates) when no mutating brick is left. The first translation fired 0x1a for every such brick, so the hold was set and a mutator was refused for 2000 updates where the original made one (found by the first different row of survival, seed 1, update 8496).
+The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a only for a mutated brick: a brick that is shown and not mutated and is not a plain colour goes to state 3 at once (a plain colour fires event 0x27, a stone, steel or bomb fires its own events in its own handler), and the Board answers 0x1a (0x45d7a0) and 0x1b by setting its mutator hold (`mMutatorCooldown`, 2000 updates) when no mutating brick is left. The first translation fired 0x1a for every such brick, so the hold was set and a mutator was refused for 2000 updates where the original made one (found by the first different row of survival, seed 1, update 8496).
 
 ## 5. Left out of the port (registration, links, statistics)
 
@@ -288,9 +288,9 @@ The handler of event 3 (0x403fd0, `Brick::OnDie`) fires the "popped" event 0x1a 
    The music (a module stream) was not compared with the original's in phase two: its start, stop and focus handling remain to be
    checked, if origrun can see them.
 3. The frozen baseline `build/baseline-astropop` is made (`tools/check.sh astropop`). The fixes mod: one candidate (section 7); the mod
-   waits for `docs/MOD_ROADMAP.md`'s turn. The coverage check is done (section 10). Still to do for the game to be done: the performance
-   numbers and pass, taking out code the game does not need, the readability pass (`docs/CODE_STANDARDS.md`), the check against the
-   PopCap Game Collection's copy, and a night run of the original in 3D for the screen wipe (section 10).
+   waits for `docs/MOD_ROADMAP.md`'s turn. Done since: the coverage check and the removal of code the game does not need (section 10), the
+   performance pass (section 11) and the readability pass (section 12). Still to do for the game to be done: the check against the PopCap Game
+   Collection's copy, the music's state against the original's, and a night run of the original in 3D for the screen wipe (section 10).
 4. (Done: the gap of the removed More Games button is closed, section 6.) The app's destructor does not delete its screens (as the original's).
 5. (Done in phase two, the sites it lists and the other drawing and screen functions read against the asm; the float rounding of the drawing
    code follows section 4.) Phase two of the pass: the x87 compares of the drawing and screen code that were not checked in phase one against the asm for the `<` / `<=` idiom of section 4 (0x40c8a0, 0x433500, 0x433920, 0x439c20, 0x444520, 0x461010, 0x461e50, 0x467af0, 0x487f00, 0x48a110 and the other `TEST AH` sites listed by `grep -l 'TEST AH' re/astropop/asm/*.asm`); the gameplay ones (every Brick method, the group and fall code, CheckStackHeight, OnBrickGone) were read in phase one.
@@ -338,12 +338,135 @@ Turbot's power-up (0x4022f0), the brick kinds' settle, draw and activate functio
 the board's `RecordStep` (0x434570), `PulsePair::Update` (0x433850), the mutation counter's event (0x438e10), the piece-brick event
 (0x451430), the power brick's done event (0x45e920), the search for a move that is left (`AnalyseSecond` 0x453a50 and `RunTotal` 0x43a960 of `AnyMoveLeft`),
 the pause that a full field makes at its start (0x4329c0), the weapon box's key and height (0x483a20, 0x483b90), the dialog's line setters
-(0x4840c0, 0x487970, 0x4879d0, 0x4897b0), `SetMusicVolumeFloat` (0x408b70) and the four steps of the 3D screen wipe with its draw and its
+(0x4840c0, 0x487970, 0x4879d0, 0x4897b0) and the four steps of the 3D screen wipe with its draw and its
 check (0x40b340, 0x40b430, 0x40b540, 0x40b5e0, 0x426370, 0x4264a0). The screen wipe plays only in 3D (`RedrawAfterDialog` closes the
 board first when the screen is not accelerated) and the original in Windows Sandbox has no Direct3D, so a run that reaches it is a
 night run on the visible desktop; it is listed under the next steps.
 
-**Candidates for taking out** (no play of the original reaches them and the port's own code never calls them; they go in the pass that
-takes out what the game does not need): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x4062b0), the fuel cell's `GetColumn` and `GetRow`
-(0x402a70, 0x402a80: slots of the brick's table that nothing calls), the application's `HandleCmdLineParam` (its one switch, `-mycrash`,
-sets a flag that only the crash report reads) and `DoDialog` overrides (0x40e060, 0x412360, which no code of the game or framework calls).
+**Taken out** (2026-11-11, in the pass that removes what the game does not need; no play of the original reaches them and the port's
+own code never called them): `Brick::SetSpeedX` and `SetSpeedY` (0x4062a0, 0x4062b0), the fuel cell's `GetColumn` and `GetRow` (0x402a70,
+0x402a80: slots of the brick's table that nothing calls), the application's `SetMusicVolumeFloat` (0x408b70, a virtual of the game
+that nothing calls), its `HandleCmdLineParam` (0x40e060: its one switch, `-mycrash`, sets a flag that only the crash report reads, so the
+port now passes `-mycrash` on like any other argument) and `DoDialog` (0x412360, which no code of the game or framework calls). Each has
+a `none` line in `coverage.txt`. Left in: the fuel cell's `SetFiredFromShip`, which `BoardInput.cpp` calls.
+
+## 11. Performance (2026-11-11; `docs/COORDINATION.md`, "Performance pass")
+
+**Method.** `games/astropop/tools/profile/perf.py` and `pairs.sh` (as Atomica's and Typer Shark's): the port and the original play the
+same game turn about, one process at a time. The game is `scenario/classic11.json`, the inputs of a recorded classic game (seed 11: the
+title's link, the name, the mode, the pilot, then 60 moves, 5,636 updates), replayed by the port as `-realinput` lines and by origrun
+as script lines; the run was checked to play the recorded game (the same score watch). "The stretch" is the 2,000 updates before the last
+input (20 s of play). Every run samples the game's process every 0.1 s (working set, private bytes, processor time) and records how many
+game processes of other sessions ran at its start and end: the machine was never quiet (0.4 to 0.65 of it busy, 1 to 6 other game
+processes), so a figure is a median of three, with its range. Real time is `PERF_CLOCK=real` (the port without `-fast`, origrun on its
+real clock: what a player's machine does); without it neither waits (the port's `-fast`, origrun's virtual clock: the work a test run
+does). The load is the time from the creation of the process to the title taking input (the port asks `state`; the original's
+loading-thread flag is read out of its memory). Memory is private bytes in MiB.
+
+| Three pairs, 2026-11-11 | Original | Port |
+|---|---|---|
+| Load to the title | 0.94 to 1.33 s (median 1.22) | 0.93 to 1.07 s (median 1.02) |
+| Private bytes at the title | 68.6 to 73.3 | 93.5 to 98 |
+| Real time, the stretch's processor time (20 s) | 3.70 to 4.31 s (median 3.72) | 1.83 to 2.23 s (median 1.84) |
+| Real time, the whole run (58 s) | 6.33 to 7.09 s | 4.05 to 4.48 s |
+| Updates a second in the stretch (real time) | 100 | 99.4 to 100.0 |
+| Peak private bytes of the run | 81.7 to 84.4 | 147.9 to 150.6 |
+| No waiting, the whole run's processor time | 5.03 to 5.83 s | 1.47 to 1.56 s |
+| No waiting, the stretch (2,030 updates) | 2.84 to 3.48 s | 0.11 to 0.12 s (7,500 to 8,000 updates a second) |
+| Peak private bytes of the run without waiting | 82.3 to 85.7 | 161 to 165 |
+
+The port loads about as fast as the original and plays on about half of its processor time (a tenth of a core in real time); the one
+cost it has more of is memory, 65 MiB more at the peak.
+
+**Where the port's processor time goes** (`games/bejeweled/tools/profile/cpuprof.py`, cycles by module and function). The run without
+waiting (4.31 G cycles, the load and 2,030 updates) is almost all load: ntdll 41% (file and memory system calls), the exe 28%, win32u 9%,
+`imagehlp.dll` 5%, the C library 4.8%, the Nvidia driver 4.4%, `Windows.Storage.dll` 3.4%. Of the exe's 28%: the JPEG decoder (`_ycc_rgb_convert`
+5.0%, `_jpeg_idct_islow` 2.5%, the Huffman steps another 3%), `Sexy::Quantize8Bit` 4.7% and the GIF decoder `_stbi__out_gif_code`
+1.8% (the GIFs are decoded to 32 bits and quantized back to 8), the Vorbis decoder of the sounds (`_inverse_mdct`, `_vorbis_decode_packet`,
+`_decode_residue`: about 2.5% together), `Platform::DecodeImage` 1.5%. The game's own code (`Brick::Retire`, `Board`, the drawing)
+shows at 0.1% each: two thousand updates cost 0.12 s.
+In real time (one run over the scenario, 17.0 G cycles in 59.6 s sampled, 285 million a second over every thread) the exe is 6.1% of the
+cycles, ntdll 78% (system calls and waits: the frame's presentation and the sleeps), win32u 5.6%, the Nvidia Direct3D 11 driver 4.9%,
+`imagehlp.dll` 1.7%. The main thread has 53% of the cycles (69% of them in ntdll, 11% in the exe) and the driver's own thread 16%; nine more
+threads of 2 to 3% each are all waits. Inside the exe the biggest functions are still the load's decoders (`Quantize8Bit`, `_stbi__out_gif_code`,
+the JPEG and Vorbis decoders, 0.2 to 0.6% each); what play costs is `Board::DrawFrame` and `ImageFont::DrawStringEx`, 0.1% each. What a
+player's machine spends on this game is the display path, not the game's code, and the original's DirectDraw path spends more of it.
+
+**Where the port's memory goes.** The framework's `memreport` command (a game command in a `-realinput` script) at the title, the main
+menu, a game just begun and the game over (`build/logs/ap/perf/mem`, scratch): 352 pictures at the title (38.1 MB of 32-bit pixels, 4.2 MB
+of palettes, 20 of them with a texture, 3.3 MB), 570 at the end (49 MB of pixels, 209 textures, 16.7 MB); the sounds are 73 (11.6 MB of
+samples, all at the title); the framework's heap is 60.1 MB at the title, 71.1 MB in a game and 75.2 MB at its end (private bytes
+96.6 at the title, 126.8 MB at the end of the game). What the game itself loads when a game starts: the background `nebula2` (640x960),
+`help_bg` twice, about 25 pictures its code makes (mirrors, the laser, the galaxy) and the textures of the ones the board draws. The
+original's private bytes are 71 MB at the title and 82 to 86 MB at the peak, so the port holds about 22 MB more at the title and
+65 MB more at the peak. The title's difference is what Typer Shark found (its section 11): the Direct3D 11 device, 20 to 25 MB.
+The rest of the peak is the start of a game, where private bytes rise from 98 MB to a peak of 158 MB within three seconds (about 38 s
+into the run) and fall back to 132 MB: the heap grows by 9 MB and the textures' estimate by 10 MB, so most of the rise is below the game's
+heap, in the display path, the same as Bejeweled Twist's jump at a level-up (`docs/COORDINATION.md`).
+
+**Shared costs** (none of them is in this game's code; sent to the coordinator in one message):
+1. *The load's decoders*, as in Typer Shark: `Quantize8Bit` and the GIF decoder together 6.5% of a run's cycles, 0.15 to 0.2 s of the load.
+2. *`imagehlp.dll`*, 5% of the cycles of a run without waiting, from a call site not yet found (Typer Shark 7.6%).
+3. *The Direct3D 11 device and the pixels the framework keeps after upload* (the 22 MB the port holds more at the title).
+4. *The start of a game raises private memory by 60 MB for a few seconds* (AstroPop, in 2D, 2026-11-11): the same shape as Twist's
+   level-up jump, below the heap. To find it: count texture creations in the display layer during the first second of a game
+   (`astropop.exe -realinput=<script> -seed=11` with `memreport` before and after the first board).
+
+**Nothing was changed in the game's code for speed.** The port already does less than the original on every figure but memory; the only
+AstroPop-side memory it could save is by loading fewer pictures at the start of a game or freeing the ones that were drawn once (the
+`nebula` backgrounds), which the original does not do and which would change what a game loads, so it was left as it is. The frozen
+baseline (`tools/check.sh astropop`) is unchanged by this pass: it added only the profile tools and notes.
+
+**To repeat.** `bash games/astropop/tools/profile/pairs.sh <out dir> [pairs]` from the worktree root (about 3 minutes a pair when the
+machine has a free slot; it waits for one), `BEFORE_EXE=<name>` adds a run of an exe kept in `build/native` from before a change; the
+memory split is the standard `memreport <file>` test command (`docs/TEST_COMMANDS.md`) put into a `-realinput` script at the points
+wanted. The raw samples were deleted once these figures were written.
+
+## 12. The readability pass (2026-11-11; `docs/CODE_STANDARDS.md`)
+
+**Result.** `tools/namecheck.py games/astropop` reports no finding in 114 files, and no identifier of the game's sources is a prefix and an
+offset (`m1a34`, `aFloat50`, `mFlag8E8`): every member, local, parameter and global says what it holds, and every function says which
+original function it is or that it is the port's (a `// port:` line). What the pass did, in order:
+
+1. *Helpers.* Every helper names its original function (an address) or carries a `// port: ...` line saying why it exists. Fields that
+   nothing reads were taken out (the brick's flags and numbers, the application's `mFlag65b`, `UserProfile`'s `mUnknown62`), in the
+   removal commit (`afe6e702`) and after it.
+2. *The Board's 418 fields.* `docs/board_fields.tsv` is the table (offset, type, name, comment; `tools/boardfields.py` writes the block
+   of `Board.h` from it). Six batches of about 70 rows were named by reading every use of the field, one agent at a time, each batch
+   applied by a script (`whole-word` replacement in the sources and these notes) and proved before the next: the build's object code
+   is the same as before the batch (`tools/objsnap.py cmp`: 84 objects, 1,632 functions, 0 differ) and the string literals of every
+   changed file are the same (a small lexer over `git show HEAD:` against the working copy). Where the original's code gave no
+   meaning, a name says what the code does (`mPowerBrickRowState`, `mTurbotWindUpCounter`); the table's comment says what was seen.
+3. *The small classes.* `StageBg`, `HintBox`, `HintSpot`, `FloatText`, `LevelUpText`, `BlinkRec`, `AstroDialog`, `ListDialog`,
+   `HelpDialog` and the speed table's `RampRecord` had members called by offset too, and the same hex names exist in several classes
+   (`m10c` of the Board is not `m10c` of `StageBg`), so a whole-word replacement over the sources renamed another class's member (the
+   first batch did that to three `StageBg` members and one of `HelpDialog`; found before any commit, repaired at once). Those names
+   were changed with the compiler: rename in the class's declaration, build with `-k 0`, and fix each "no member named" error at its
+   position, until none is left. That is also the way to rename a member of one class whose name another class uses.
+4. *The stand-ins.* `aFloat50`/`aFloat52`, `aValue198c`, `theSetting5x`, `mFlag78`/`mFlag80` of the overlay (now `mEmergencyPause`,
+   `mShownWhileRunning`), `gFlag5A5100` (`gStateSaved`) and the rest were named from the fields they carry.
+5. *Dead members.* After naming, every Board field with no read was found by a script (a use that is not the left side of a plain
+   one-line assignment counts as a read) and taken out with its stores: 36 fields, among them the original's pointer trail
+   (`PointerTrail`, the whole class), the brickometer's rise (four numbers the original computes and the port never draws), the
+   weapon hint text, the Hall of Fame flag (the call stays, its result goes), the bonus warp's text position, the wipe flags and
+   twelve fields that only a constructor or `ResetGame` touched. In the small classes: `StreakRec::mFlag28`, `WarpStar::mField5C`,
+   `Particle::mField2C`, `KillAllBrick::mField234`, `StageBg::m11c`, `CheckpointDialog::m114`, the update counter of `HintBox`, the
+   done flag of `LevelUpText`, the padding of `StarRec`, and `MakeDialog`'s last parameter (the original passes a flag it does not read;
+   all 14 callers passed `true`). The two numbers of `HintBox` that looked dead are read (`HideCellHint`) and are `mCellColumn` and
+   `mCellRow`. A stray row `made` (a word of a comment that the generator took for the field at +0xade) went too, and the generator no
+   longer adds rows unless asked (`--add`).
+
+**The removals were proved differently**, since taking out a member moves the offset of every member after it and so changes the object
+code: the build (native and web) and `tools/check.sh astropop` (the frozen baseline: a classic game of 120 moves with real input, its
+state compared with the baseline exe's). Every removed store was a statement of its own whose value nothing reads; a store with a
+call in it (an `AddHallOfFame`) kept the call.
+
+**Names given for what the code does, worth a second look when a screen is read against the original again:** `mStartBannerDoneInBonus`
+(set when the start banner ends in a bonus round, yet it holds back the round's end checks), `mClicksBlocked`, `mUpgradeDialogDone` and
+`mUpgradeDialogSeen` (both set by `TakeFocus`), `mStartedFromCheckpoint`, `mStageTextEnabled`, `mPointerOverEasyGate` (the easy gate is
+inferred from the picture's name), `mNextLevelScreenKind` / `mLevelEndScreenKind` (the 0 to 4 codes of the upgrade screen: which
+level's break each belongs to is not settled), `mPowerBrickRowState`, `mFrameDimming`, `mTurbotWindUpCounter`, `mHardStage`,
+`mKeepLoopSoundsMuted`, `mRowsLeftToPass`, `mRampTime`, `mPauseCount`.
+
+**To repeat or go on.** `python -I tools/namecheck.py games/astropop` lists what is left; `tools/objsnap.py snap|cmp astropop <json>`
+proves a rename by object code; a class's members are renamed by building with `-k 0` and fixing the errors at their positions.

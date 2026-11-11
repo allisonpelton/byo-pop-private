@@ -16,7 +16,7 @@ EXE='C:\byo-og\cov-bej-rd\game\BejeweledGame.exe'
 H=build/coverage/bejeweled/hits; mkdir -p "$H"
 USERDATA=/c/ProgramData/Steam/Bejeweled/userdata
 win() { cygpath -w "$1"; }
-while ! python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 20; done
+while ! python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 20; done
 rm -f "$USERDATA/savegame.dat"
 [ "$SAVE" != - ] && cp "$SAVE" "$USERDATA/savegame.dat"
 CLOCK=virtual; [ -n "${REAL:-}" ] && CLOCK=real

@@ -58,16 +58,17 @@ void AstroPopApp::ClosePowerDialog()
 }
 
 // The confirmation of the button that leaves a game (0xfa8): the words depend on the mode.
+// port: split out of AstroPopApp::ButtonDepress (0x431ac0)
 static void AskToEndGame(AstroPopApp* theApp)
 {
 	Board* aBoard = theApp->mBoard;
-	int aType = (aBoard != NULL) ? aBoard->m1a60 : 0;
+	int aType = (aBoard != NULL) ? aBoard->mGameType : 0;
 	std::string aHeader = GT(0x005638a4);
 	std::string aLines;
 	if (aType == 1)
 	{
 		aLines = GT(0x5638e0);
-		if (aBoard->mField193C == 1)
+		if (aBoard->mStageNumber == 1)
 			aLines = GT(0x5638b0);
 	}
 	else if (aType != 0)
@@ -77,10 +78,11 @@ static void AskToEndGame(AstroPopApp* theApp)
 		aLines = GT(0x563870);
 		aHeader = GT(0x00563860);
 	}
-	theApp->MakeDialog(theApp->GetDialogSet(), false, 0x6a, -1, -1, 1, aHeader, aLines, "Yes", "No", true);
+	theApp->MakeDialog(theApp->GetDialogSet(), false, 0x6a, -1, -1, 1, aHeader, aLines, "Yes", "No");
 }
 
 // The OK of the message box (0x6c) returns the keyboard to the Board, or to the player-name box when that is open
+// port: split out of AstroPopApp::ButtonDepress (0x431ac0)
 static void FocusAfterMessage(AstroPopApp* theApp)
 {
 	if (theApp->mBoard == NULL || theApp->mOpenDialogs != 0)
@@ -95,23 +97,25 @@ static void FocusAfterMessage(AstroPopApp* theApp)
 
 // What follows a box that sent the player back to the selector: the selector comes up (but not in a game of type 0), and
 // the Board draws itself again
+// port: split out of AstroPopApp::ButtonDepress (0x431ac0)
 static void BackToSelector(AstroPopApp* theApp)
 {
 	if (theApp->mBoard == NULL)
 		return;     // (the original reads the Board here: a box that goes to the selector has one)
-	if (theApp->mBoard->m1a60 != 0)
+	if (theApp->mBoard->mGameType != 0)
 		theApp->ShowMainMenu();
 	theApp->mBoard->RedrawAfterDialog();
 }
 
 // The score of the checkpoint is put into a new classic game that goes on from it (0x848 and 0xfa4)
+// port: split out of AstroPopApp::ButtonDepress (0x431ac0)
 static void RestoreCheckpointScore(AstroPopApp* theApp)
 {
 	int aScore = 0;
 	theApp->mUser->GetInt(theApp->mClassicPilot + 0x6b, &aScore);
 	theApp->mBoard->mScore = aScore;
-	theApp->mBoard->m1970 = aScore;
-	theApp->mBoard->m1bd8 = theApp->mBoard->m1bdc;
+	theApp->mBoard->mScoreShown = aScore;
+	theApp->mBoard->mWeaponCharge = theApp->mBoard->mWeaponChargeMax;
 }
 
 // 0x431ac0 (and 0x432730, its entry through the ButtonListener part)
@@ -134,12 +138,12 @@ void AstroPopApp::ButtonDepress(int theId)
 		{
 		case 0x834:     // 100: restart the level (type 1) or the demonstration (type 0)
 			CloseDialog(theId - 2000);
-			if (mBoard != NULL && mBoard->m1a60 == 1)
+			if (mBoard != NULL && mBoard->mGameType == 1)
 			{
 				mBoard->LoadLevel(true);
 				mWidgetManager->SetFocus(mBoard);
 			}
-			else if (mBoard != NULL && mBoard->m1a60 == 0)
+			else if (mBoard != NULL && mBoard->mGameType == 0)
 			{
 				mWidgetManager->RemoveWidget(mBoard);
 				SafeDeleteWidget(mBoard);
@@ -181,15 +185,14 @@ void AstroPopApp::ButtonDepress(int theId)
 		case 0x840:     // 112: go on from the checkpoint / play the second mode again
 			KillDialog(0x70);
 			mOpenDialogs--;
-			if (mBoard != NULL && mBoard->m1a60 == 1)
+			if (mBoard != NULL && mBoard->mGameType == 1)
 				StartClassic(true, false);
 			else
 				StartSurvivalGame(mSurvivalPilot);
 			break;
 		case 0x844:     // 116: continue the saved game
-			mFlag65b = true;
 			CloseDialog(0x74);
-			mFlag6fc = false;
+			mHelpShown = false;
 			StartGame(true);
 			break;
 		case 0x845:     // 117: the hints are on again (and then the box goes like 103 .. 105)
@@ -201,12 +204,12 @@ void AstroPopApp::ButtonDepress(int theId)
 			mUser->SetInt(0x2d, 1);
 			mUser->SetInt(0x73, 1);
 			if (mBoard != NULL)
-				mBoard->m1c08 = true;
+				mBoard->mWeaponDialogDue = true;
 			mUser->EnableHints();
 			mUser->Save();
 			int aValue = 1;
 			mUser->GetInt(0x73, &aValue);
-			mFlag6fb = (aValue == 1);
+			mShowHelpAtStart = (aValue == 1);
 			CloseDialog(theId - 2000);
 			break;
 		}
@@ -286,7 +289,7 @@ void AstroPopApp::ButtonDepress(int theId)
 			mUser->ResetHintsShown();
 			mUser->ResetGame();
 			mUser->Save();
-			mFlag6fc = false;
+			mHelpShown = false;
 			StartGame(false);
 			break;
 		case 0x78:
@@ -316,10 +319,10 @@ void AstroPopApp::ButtonDepress(int theId)
 	case 0xfa4:     // play again
 		if (mBoard == NULL)
 			break;
-		if (mBoard->m1a60 != 1)
+		if (mBoard->mGameType != 1)
 		{
 			StartSurvivalGame(mSurvivalPilot);
-			mFlag6fc = true;
+			mHelpShown = true;
 			break;
 		}
 		mUser->SetInt(0x71, 0);
@@ -330,7 +333,7 @@ void AstroPopApp::ButtonDepress(int theId)
 			if (((aBest + ((aBest >> 31) & 3)) >> 2) * 4 > 3)
 				RestoreCheckpointScore(this);
 		}
-		mFlag6fc = true;
+		mHelpShown = true;
 		break;
 	case 0xfa5:     // back to the selector
 		BackToSelector(this);
@@ -346,9 +349,9 @@ void AstroPopApp::ButtonDepress(int theId)
 		CloseFullScreenHelp();
 		break;
 	case 0xfb6:     // the story screen is closed
-		SafeDeleteWidget(mScreen654);
-		mWidgetManager->RemoveWidget(mScreen654);
-		mScreen654 = NULL;
+		SafeDeleteWidget(mCreditsScreen);
+		mWidgetManager->RemoveWidget(mCreditsScreen);
+		mCreditsScreen = NULL;
 		if (mBoard == NULL)
 			ShowMainMenu();
 		break;

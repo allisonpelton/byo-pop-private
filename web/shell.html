@@ -706,7 +706,11 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // The window takes its game's size the first time and when the game changes its size: the chosen multiple, or the largest
   // that the desktop has room for (embedFit).
   var embedFitted = "";
-  function statusBarHeight() { return statusBar && statusBar.offsetHeight ? statusBar.offsetHeight : 22; }
+  // its height as laid out, rounded up: offsetHeight rounds a bar of 20.3 px down to 20, which left the game's area a fraction
+  // of a pixel short of the game, so that its scroll bars came and went and a press on the game, focusing the canvas, scrolled
+  // the game up by that fraction (the user, 2026-11-11: "Right clicking Twist is causing a scrollbar to appear briefly and
+  // the game to jump up slightly")
+  function statusBarHeight() { var h = statusBar ? statusBar.getBoundingClientRect().height : 0; return h ? Math.ceil(h) : 22; }
   function embedRoom() {
     var P = desktopApps(), r = null;
     try { r = P && P.room(window); } catch (e) {}
@@ -1303,7 +1307,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     acquireWake();
     syncPause();
     syncCanvas();
-    $("canvas").focus();
+    $("canvas").focus({ preventScroll: true });
   }
   // ---------- the game's cursor on the page ----------
   // A SexyAppFramework game hides the browser's cursor over the canvas and draws its image cursor into the frame. The
@@ -1696,7 +1700,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // that, the panel
   $("btn-mods").addEventListener("click", function (e) {
     if (!$("panel-mods").hidden) { closePanels(closeHow(e), "panel-mods"); return; }
-    if (gameState !== "waiting" && panel && (panel.menu(-1) >= 0)) { closePanels("quiet"); $("canvas").focus(); return; }
+    if (gameState !== "waiting" && panel && (panel.menu(-1) >= 0)) { closePanels("quiet"); $("canvas").focus({ preventScroll: true }); return; }
     openPanel("panel-mods");
   });
   $("btn-files").addEventListener("click", function (e) {
@@ -1861,7 +1865,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     try { if (el.requestFullscreen) { stageFsAsked = true; el.requestFullscreen().then(answered, answered); } } catch (e) { stageFsAsked = false; }
     // The keys go to the game again, while it runs: before a start and after an exit the canvas is out of the tab order and
     // hidden, and the focus stays where it is (the Ready card's Play, an exit card)
-    if (gameRunning()) $("canvas").focus();
+    if (gameRunning()) $("canvas").focus({ preventScroll: true });
   }
   $("btn-full").addEventListener("click", goFullscreen);
   // Desktop 95's full screen (its maximize button, its control menu's and the Pop menu's Full screen, the game's own): the game
@@ -1890,7 +1894,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   function onFullscreenChange() {
     var full = stageFull();
     // the panels are outside the stage, and the keys go to the game, however the full screen was asked for (goFullscreen)
-    if (full && !wasFull) { closePanels("quiet"); if (gameRunning()) $("canvas").focus(); }
+    if (full && !wasFull) { closePanels("quiet"); if (gameRunning()) $("canvas").focus({ preventScroll: true }); }
     wasFull = full;
     fitFullscreen();
     // SDL sizes the canvas on the window's resize: the new box first, then the resize that makes it measure it (as onGameScreen)
@@ -1942,7 +1946,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       syncPanelButtons();
     }
   }
-  function focusGame() { if (gameRunning()) $("canvas").focus(); }
+  function focusGame() { if (gameRunning()) $("canvas").focus({ preventScroll: true }); }
   // The two cards that are aria-modal (the terms, and "Already open": nothing can be played in this page until they are done) make
   // the rest of the page inert while they are up, so that the focus stays in the card and a screen reader reads only it. The
   // other cards leave the bar usable, and are not modal.
@@ -1965,7 +1969,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // that is up (the Ready card, the import card...), else to the main region
   $("skip-game").addEventListener("click", function (ev) {
     ev.preventDefault();
-    if (gameRunning()) { $("canvas").focus(); return; }
+    if (gameRunning()) { $("canvas").focus({ preventScroll: true }); return; }
     var card = Array.prototype.filter.call(document.querySelectorAll("#stage .overlay"), function (o) { return !o.hidden; })[0];
     if (card) {
       var primary = card.querySelector("button.primary:not([disabled]):not([hidden])");
@@ -2030,7 +2034,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     // shown while the keyboard has put the focus there (the ring is :focus-visible); a click needs no hint
     try { if ($("canvas").matches(":focus-visible")) $("key-hint").classList.add("show"); } catch (e) {}
   });
-  $("canvas").addEventListener("mousedown", function () { $("canvas").focus(); });
+  $("canvas").addEventListener("mousedown", function () { $("canvas").focus({ preventScroll: true }); });
   // nothing in the stage is dragged as page content (the style above keeps it from being selected)
   $("stage").addEventListener("dragstart", function (e) { e.preventDefault(); });
   $("canvas").setAttribute("draggable", "false");
@@ -2055,7 +2059,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
       if (inPanel) { e.preventDefault(); closePanels("pointer", t.closest(".panel").id); return; }
       if (gameRunning() && (t === document.body || t === document.documentElement || (t.closest && t.closest(".bar")))) {
         e.preventDefault();
-        $("canvas").focus();
+        $("canvas").focus({ preventScroll: true });
         sendKey("keydown", "F2", "F2", 113, 0);
       }
     }
