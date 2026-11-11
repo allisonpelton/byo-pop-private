@@ -1,3 +1,5 @@
+// port(mods): the mods' features and settings as the game asks for them (ModFeatures.h)
+
 #include "ModFeatures.h"
 #include "platform/ModManager.h"
 

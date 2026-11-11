@@ -1,5 +1,6 @@
 #include "App.h"
 
+#include "EngineRes.h"
 #include "Host.h"
 #include "Object.h"
 
@@ -184,7 +185,7 @@ bool App::Init()
 		return false;
 	mManager.SetMusicVolume(gMusicVolume);
 	mManager.SetSoundVolume(gSoundsVolume);
-	mManager.LoadSound(0x69, false);
+	mManager.LoadSound(SOUND_CLICK, false);
 	mManager.SwitchTo(CreateFirstLayer());
 	return true;
 }

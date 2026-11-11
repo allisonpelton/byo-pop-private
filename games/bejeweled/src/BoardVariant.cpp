@@ -41,7 +41,7 @@ void Board::InitVariant(WinDMApp* theApp)
 	// The LiveSplit observer's bookkeeping, in every build (BEJ_NO_VARIANTS too)
 	mBoardSerial = ++sBoardSerial;
 	mResumed = false;
-	// The board shape rules (board.cols/rows/mask/levels, stage 7): level 0's shape, which SetupLevelData then draws.
+	// The board shape rules (board.cols/rows/mask/levels): level 0's shape, which SetupLevelData then draws.
 	// BEJ_NO_VARIANTS plays every rule set on the original 8x8
 #ifndef BEJ_NO_VARIANTS
 	mLayout = mRules.LayoutForLevel(0);
@@ -61,11 +61,11 @@ void Board::InitVariant(WinDMApp* theApp)
 	{
 		// -forcevariant: every generalised path at default rules; the RNG source, the save format and the
 		// tutorial stay original (mAny, mOwnRng and mNoTutorial are left alone). The noMoves rule's path too
-		// (stage 5): its default "gameOver" and "fallOut" are the original branches. Not mInvalid: keeping a
-		// swap is no default rule. The gravity paths too (stage 7c): the rules still say "down", so GravityUp()
-		// is false and the flip and the GetPieceAt guard stay off. The dirt paths too (stage 7b): without dirt
+		//: its default "gameOver" and "fallOut" are the original branches. Not mInvalid: keeping a
+		// swap is no default rule. The gravity paths too: the rules still say "down", so GravityUp()
+		// is false and the flip and the GetPieceAt guard stay off. The dirt paths too: without dirt
 		// cells RefillDiagonal is RefillMasked's passes, draw for draw, and no slide or layer applies. The input layer
-		// of twists and slides too (stage 10): with swaps alone it leaves every press, drag and release to the original.
+		// of twists and slides too: with swaps alone it leaves every press, drag and release to the original.
 		mVariant.mShape = true;
 		mVariant.mMatch = true;
 		mVariant.mSearch = true;
@@ -124,7 +124,7 @@ void Board::InitVariant(WinDMApp* theApp)
 	if (mGameSeed != 0)
 		mOwnRng = new MTRand(mGameSeed);
 
-	// A replay's board (WatchController, stage 3b): it always owns an MTRand, started from its segment's RNG
+	// A replay's board (WatchController): it always owns an MTRand, started from its segment's RNG
 	// start (6.2): the seed, or the global stream's state the recording began with. It never draws from the
 	// global stream, and never takes the pending seed. The player has checked the start (MTRand::SetState).
 	const Replay::Segment* aPlayback = gGameConfig.mNextBoardPlayback;
@@ -300,7 +300,7 @@ void Board::OnMoveMade()
 	mMoveCount++;
 	if (mStats != NULL) mStats->OnMove(this);
 	UsePendingSeed();
-	OnArrowMove(); // stage 18: its settle steps the arrows (BoardArrows.cpp)
+	OnArrowMove(); // its settle steps the arrows (BoardArrows.cpp)
 }
 
 // UpdateSwapping (0x4cd84f) with moves.allowInvalid: the swap made no match and stays (4.1). The two gems are in
@@ -390,7 +390,7 @@ bool Board::NoHintVariant()
 	return mVariant.mInvalid && (mState == STATE_PLAYING) && !FindMove(NULL, 0, true, true);
 }
 
-// Stage 10: a board with twists or slides names its move types in the instructions (InstructionsText,
+// A board with twists or slides names its move types in the instructions (InstructionsText,
 // FullInstructionsText): the string id's suffix ("TWIST", "SWAP_SLIDE", ...), and the English default of how to make
 // each, joined into one phrase ("swap neighbouring gems, click where four gems meet to turn them or drag ...")
 static void MoveTypesText(const GameRules& theRules, std::string* theSuffix, SexyString* thePhrase)
@@ -415,8 +415,8 @@ static void MoveTypesText(const GameRules& theRules, std::string* theSuffix, Sex
 		*thePhrase += ((i == 0) ? _S("") : (i + 1 == aParts.size()) ? _S(" or ") : _S(", ")) + aParts[i];
 }
 
-// The quick instructions (WinDMApp::DoInstructionDialogette, 2.6): INSTRUCTIONDIALOG; with twists or slides (stage
-// 10) INSTRUCTIONDIALOG_ and the move types (MoveTypesText); else with a gravity rule (4.16)
+// The quick instructions (WinDMApp::DoInstructionDialogette, 2.6): INSTRUCTIONDIALOG; with twists or slides (moves.type:
+// CODE_MODS_DESIGN.md 4.4 and 4.5) INSTRUCTIONDIALOG_ and the move types (MoveTypesText); else with a gravity rule (4.16)
 // INSTRUCTIONDIALOG_TWILIGHT ("alternate") or _GRAVITY_UP. The engine's English defaults; a mod's strings override
 // them.
 SexyString Board::InstructionsText()
@@ -439,7 +439,7 @@ SexyString Board::InstructionsText()
 // Help (WinDMApp::DoFullInstructions) with a gravity rule (4.16): the first paragraph of theText (the
 // game's FULL_INSTRUCTIONS2, whose first paragraph has new gems drop in from above) gives way to
 // FULL_INSTRUCTIONS_TWILIGHT or _GRAVITY_UP, of about its length, so the dialog keeps its size; the other
-// paragraphs stay. With twists or slides (stage 10) it is FULL_INSTRUCTIONS_ and the move types (MoveTypesText),
+// paragraphs stay. With twists or slides it is FULL_INSTRUCTIONS_ and the move types (MoveTypesText),
 // with the gravity's new gems. English defaults; a mod's strings override them.
 SexyString Board::FullInstructionsText(const SexyString& theText)
 {
@@ -474,13 +474,13 @@ SexyString Board::FullInstructionsText(const SexyString& theText)
 
 // The end of a LoadGame (0x4cca98) that succeeded. The resumed game is not the one the board's seed would
 // make: it goes on with the RNG it was saved with. The v1 save holds none, so the sidecar does
-// (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.3; stage 5's v2 save keeps it in its RNGS chunk): a sidecar
+// (games/bejeweled/docs/CODE_MODS_DESIGN.md 7.3; a variant board's v2 save keeps it in its RNGS chunk): a sidecar
 // that goes with this save and holds an RNGS record gives the board that MTRand state with its seed, so a
 // seeded game keeps its stream, its SEED line and (a seed the player chose) the -seeded table, and a quit
-// and resume cannot reroll it. Without one (a game on the global stream, or a save from before stage 3)
+// and resume cannot reroll it. Without one (a game on the global stream, or a save without a sidecar)
 // the game goes on on the global stream. Either way the pending seed stays for the next game. A recording
-// then records LOAD and goes on with the sidecar's replay. Stage 2b: the board is marked resumed for the
-// LiveSplit observer (no run starts on it), a replay's board too. Stage 5: a variant board's v2 save holds its
+// then records LOAD and goes on with the sidecar's replay. The board is marked resumed for the
+// LiveSplit observer (no run starts on it), a replay's board too. A variant board's v2 save holds its
 // RNG and its MOVE counts (ReadVariantChunks); its sidecar, if any, only continues the recording.
 void Board::GameLoadedVariant(const Buffer& theSave)
 {
@@ -491,11 +491,11 @@ void Board::GameLoadedVariant(const Buffer& theSave)
 	mStatsUndo.clear();
 	if (mVariant.mAny)
 		ReadVariantChunks(theSave);
-	// Stage 7: the loaded level's background, in its shape (BoardShape.cpp); not under -forcevariant, which keeps
+	// The loaded level's background, in its shape (BoardShape.cpp); not under -forcevariant, which keeps
 	// the original's level-0 background
 	if (mVariant.mAny && mVariant.mShape)
 		RebuildLoadedBackground();
-	// A replay's LOAD (stage 3b): no file of the user dir is read; the player gives the board the RNG the
+	// A replay's LOAD: no file of the user dir is read; the player gives the board the RNG the
 	// recorded one went on with, the segment's RNGS (SetPlaybackRng)
 	if (mPlaybackOnly)
 		return;
@@ -541,7 +541,7 @@ void Board::GameLoadedVariant(const Buffer& theSave)
 }
 
 // LoadGame (0x4cca98) reads the save from the file, or a replay's board the bytes the replay's last SAVE
-// produced (playback LOAD, 6.5; mPlaybackLoad, stage 3b)
+// produced (playback LOAD, 6.5; mPlaybackLoad)
 bool Board::ReadSaveFile(Buffer* theBuffer)
 {
 	if (mPlaybackLoad == NULL)
@@ -597,7 +597,7 @@ void Board::GetRngState(Replay::RngState* theRng)
 		GetRandMTState(theRng->mMt, &theRng->mMti);
 }
 
-// A playback LOAD (WatchController, stage 3b), right after LoadGame: the board goes on with the RNG of the
+// A playback LOAD (WatchController), right after LoadGame: the board goes on with the RNG of the
 // segment's RNGS record, always as an own MTRand (a seed of 0 is the global stream's state at the recorded
 // LOAD), with the seed, userSeeded and ranked the LOGIC hash takes. False, the board unchanged, for a state
 // MTRand refuses.
@@ -678,7 +678,7 @@ void Board::AddStatsToSidecar(std::string* theSidecar, const std::string& theSav
 
 // SaveGame (0x4ccdfe), just before the save is written: a recording records SAVE and leaves the game so far
 // next to the save; a board with its own RNG leaves that RNG, unless it is a variant board, whose v2 save holds
-// it (stage 5). Any other save has no sidecar, so an old one (which could not match it anyway) goes. A game on
+// it. Any other save has no sidecar, so an old one (which could not match it anyway) goes. A game on
 // the global stream without replays never had one: the erase finds nothing and changes nothing. The first save
 // of a recording board replaces another board's save (a mode switch saved one game, the next is saved too):
 // that game's recording is kept first.
@@ -726,7 +726,7 @@ void Board::DeleteSaveSidecar()
 	mApp->EraseFile(GetSidecarFileName());
 }
 
-// Undo (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7; stage 6). A board whose rules enable undo keeps
+// Undo (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.12, 6.7). A board whose rules enable undo keeps
 // StateCodec's UNDO encoding of itself from before each move, newest last, at most undo.depth of them: SwapPieces
 // (0x4c9ff8) takes one after its adjacency check, in STATE_PLAYING, where every gem is at rest; a swap that goes
 // back takes its own back (UpdateSwapping, 0x4cd84f), a kept invalid move keeps it; the vortex empties the stack
@@ -904,8 +904,8 @@ VariantFlags Board::ComputeVariantFlags(const GameRules& theRules, const GameFea
 		aFlags.mScaled = aFlags.mScaled || (theRules.LayoutForLevel(aLevel).mExtent > BoardLayout::VIEW_SIZE);
 
 	// The tutorial looks for a horizontal 3-run swap to the right in rows 4..6, columns 1..6, and its text is about
-	// rows of three: it is off on a board without such cells, with runs of another length or with diagonals (stage 9),
-	// and on a board with moves other than swaps (stage 10): its arrows show a swap, and NewBoardWithMove's board
+	// rows of three: it is off on a board without such cells, with runs of another length or with diagonals,
+	// and on a board with moves other than swaps: its arrows show a swap, and NewBoardWithMove's board
 	// has a move of the rules' types
 	bool canTutorial = (aFirst.mCols >= 8) && (aFirst.mRows >= 7);
 	for (int aRow = 4; (aRow <= 6) && canTutorial; aRow++)

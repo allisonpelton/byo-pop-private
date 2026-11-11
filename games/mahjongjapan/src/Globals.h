@@ -21,7 +21,7 @@ extern int gMusicTurn;          // 0x532e2c the list's music, in turn (0x150 at 
 extern int gFlyIn;              // 0x5250c0 where the next game's tiles fly in from (1-6 in turn)
 
 // 0x51c90c: the backgrounds of the list's games (21) and the escape's (from [9])
-extern const int gBackgrounds[21];
+extern const int BACKGROUNDS[21];
 
 } // namespace mahjongjapan
 

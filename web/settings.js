@@ -42,7 +42,6 @@ var ByopopSettings = (function () {
     wakeLock: { values: SWITCH, def: "off" },       // on: the screen stays awake while a game runs
     confirmLeave: { values: SWITCH, def: "off" },   // on: ask before leaving the page while a game runs
     pauseHidden: { values: SWITCH, def: "off" },    // on: a hidden tab pauses the game
-    quitHome: { values: SWITCH, def: "off" },       // on: a game that quits goes back to the listing page, not its "Thanks for playing"
     autoStart: { values: SWITCH, def: "on" },       // on: a game starts when its page opens, if the browser allows sound
     showChat: { values: SWITCH, def: "on" },        // off: the chat beside the game is not drawn (web/chat.js)
     chatPlace: { values: ["edge", "game"], def: "edge" },  // game: the chat beside the game, the two centred; edge: at the page's right edge
@@ -51,19 +50,27 @@ var ByopopSettings = (function () {
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     gamesOpen: { values: ["games", "library"], def: "games" },  // Desktop 95: the window the games' entries open (web/skins.js)
     win95Only: { values: SWITCH, def: "off" },
+    // Desktop 95's colour scheme (web/schemes.js), site-wide
+    scheme: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]), def: "standard" },
+    // the desktop's pattern and wallpaper (web/schemes.js), site-wide
+    pattern: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]), def: "none" },
+    wallpaper: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]), def: "none" },
+    wallpaperFit: { values: ["centre", "tile", "stretch"], def: "centre" },
     gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
     colorFilter: { values: ["none", "grey", "sepia", "warm", "contrast", "vivid"], def: "none" },
-    runTimer: { values: SWITCH, def: "off" },
     // the input settings (web/controls.js): what the page adds to the game's input
     inputDisplay: { values: SWITCH, def: "off" },
     touchKeys: { values: ["auto", "on", "off"], def: "auto" },
+    touchPlace: { values: ["auto", "under", "side"], def: "auto" },   // the touch keys under the game or at its side (auto: by the screen's shape)
     gamepad: { values: SWITCH, def: "on" },
     clips: { values: SWITCH, def: "off" },           // on: a Record button on a game page's bar (web/clips.js)
     skipLogos: { values: SWITCH, def: "off" },       // on: the games skip their start-up logos (byopop_site_skiplogos, before the start)
     skipTutorials: { values: SWITCH, def: "off" },   // on: the game's own tutorial switch is turned off at each start (web/shell.html, byopop_site_tutorials)
-    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], def: "1" }   // the game's update rate, times this (web/controls.js)
+    // the game's update rate, times this (web/controls.js): any value the framework takes, 0.25 to 4 (the user, 2026-11-10: "Allow
+    // game speed to be set to any arbitrary value instead of the limited options in the dropdown")
+    speed: { values: ["0.5", "0.75", "1", "1.25", "1.5", "2"], number: [0.25, 4], def: "1" }
   };
 
   function store() { try { return window.localStorage || null; } catch (e) { return null; } }
@@ -124,7 +131,14 @@ var ByopopSettings = (function () {
   function valid(name, value) {
     var d = DEFS.hasOwnProperty(name) ? DEFS[name] : null;
     if (!d) return null;
-    if (d.values) return d.values.indexOf(value) >= 0 ? value : null;
+    if (d.values && d.values.indexOf(value) >= 0) return value;
+    if (d.number) {
+      // a number in the setting's range, to two places, as its text ("1.3"); one of the listed values when it is one
+      var n = (typeof value === "string" && value.trim() !== "") ? Number(value) : value;
+      if (typeof n !== "number" || !isFinite(n) || n < d.number[0] || n > d.number[1]) return null;
+      return String(Math.round(n * 100) / 100);
+    }
+    if (d.values) return null;
     return level(value);
   }
   function validId(gameId) { return typeof gameId === "string" && /^[a-z0-9_-]{1,40}$/.test(gameId); }
@@ -236,6 +250,14 @@ var ByopopSettings = (function () {
       hint: T("settings.startvolume.hint"),
       help: T("settings.startvolume.help") },
     { section: "look" },
+    { name: "scheme", label: T("settings.scheme.label"), hint: T("settings.scheme.hint"),
+      options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]).map(function (id) { return [id, T("settings.scheme." + id)]; }) },
+    { name: "pattern", label: T("settings.pattern.label"), hint: T("settings.pattern.hint"),
+      options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.patternIds : ["none"]).map(function (id) { return [id, T("settings.pattern." + id)]; }) },
+    { name: "wallpaper", label: T("settings.wallpaper.label"), hint: T("settings.wallpaper.hint"),
+      options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.wallpaperIds : ["none"]).map(function (id) { return [id, T("settings.wallpaper." + id)]; }) },
+    { name: "wallpaperFit", label: T("settings.wallpaperfit.label"), hint: T("settings.wallpaperfit.hint"),
+      options: [["centre", T("settings.wallpaperfit.centre")], ["tile", T("settings.wallpaperfit.tile")], ["stretch", T("settings.wallpaperfit.stretch")]] },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
     { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
       hint: T("settings.gamesopen.hint") },
@@ -248,12 +270,13 @@ var ByopopSettings = (function () {
       hint: T("settings.colorfilter.hint") },
     { section: "overlays" },
     { name: "perf", label: T("settings.perf.label"), hint: T("settings.perf.hint") },
-    { name: "runTimer", label: T("settings.runtimer.label"), hint: T("settings.runtimer.hint") },
     { name: "inputDisplay", label: T("settings.inputdisplay.label"), hint: T("settings.inputdisplay.hint") },
     { name: "clips", label: T("settings.clips.label"), hint: T("settings.clips.hint") },
     { section: "input" },
     { name: "touchKeys", label: T("settings.touchkeys.label"), options: [["auto", T("settings.touchkeys.auto")], ["on", T("settings.on")], ["off", T("settings.off")]],
       hint: T("settings.touchkeys.hint") },
+    { name: "touchPlace", label: T("settings.touchplace.label"), options: [["auto", T("settings.touchkeys.auto")], ["under", T("settings.touchplace.under")], ["side", T("settings.touchplace.side")]],
+      hint: T("settings.touchplace.hint") },
     { name: "gamepad", label: T("settings.gamepad.label"), hint: T("settings.gamepad.hint") },
     { name: "cursors", label: T("settings.cursors.label"), options: [["game", GAME_DEFAULT], ["on", T("settings.cursors.on")], ["off", T("settings.cursors.off")]],
       hint: T("settings.cursors.hint") },
@@ -278,8 +301,6 @@ var ByopopSettings = (function () {
       hint: T("settings.confirmleave.hint") },
     { name: "pauseHidden", label: T("settings.pausehidden.label"),
       hint: T("settings.pausehidden.hint") },
-    { name: "quitHome", label: T("settings.quithome.label"),
-      hint: T("settings.quithome.hint") },
     { section: "chat" },
     { name: "showChat", label: T("settings.showchat.label"),
       hint: T("settings.showchat.hint") },
@@ -319,6 +340,7 @@ var ByopopSettings = (function () {
     ".bps-ctl select, .bps-level input[type=number] { font: inherit; color: var(--fg);\n" +
     "  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; min-width: 0; max-width: 100%; }\n" +
     ".bps-ctl select { max-width: min(14em, 100%); }\n" +
+    ".bps-ctl .bps-number { width: 4.5em; font: inherit; color: var(--fg); }" +
     ".bps-ctl input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); margin: 0; }\n" +
     ".bps-ctl select:focus-visible, .bps-ctl input:focus-visible, .bps-scope input:focus-visible, .bps-level input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }\n" +
     ".bps-row [disabled] { opacity: 0.5; }\n" +
@@ -609,6 +631,17 @@ var ByopopSettings = (function () {
         c.checkbox.hidden = false;
         c.checkbox.checked = inherited === "on";
       }
+      // a setting that also takes a number (the game speed): the number in its field, and in the list as an entry of its own
+      // while it is none of the listed ones
+      if (c.number) {
+        var now = (scope === "game" && own !== null) ? own : inherited;
+        var listed = f.options.some(function (o) { return o[0] === now; });
+        c.custom.value = listed ? "custom" : now;
+        c.custom.textContent = listed ? "" : now + "×";
+        c.custom.hidden = c.custom.disabled = listed;
+        if (!listed && !(scope === "game" && own === null)) c.select.value = now;
+        if (document.activeElement !== c.number) c.number.value = now;
+      }
       // in the all-games view, say that this game has a value of its own
       if (c.own) c.own.textContent = (scope === "all" && own !== null) ? T("settings.own", { value: words(f, own) }) : "";
     }
@@ -773,6 +806,26 @@ var ByopopSettings = (function () {
       }
       c.select.setAttribute("data-setting", f.name);
       ctl.appendChild(c.select);
+      var num = DEFS[f.name] && DEFS[f.name].number;
+      if (num && f.options) {
+        c.custom = make("option"); c.custom.hidden = c.custom.disabled = true;
+        c.select.appendChild(c.custom);
+        c.number = make("input", "bps-number");
+        c.number.type = "number"; c.number.min = String(num[0]); c.number.max = String(num[1]); c.number.step = "0.05";
+        c.number.inputMode = "decimal";
+        c.number.setAttribute("aria-label", f.label);
+        c.number.setAttribute("data-setting", f.name);
+        ctl.appendChild(c.number);
+        var unit = make("span", "bps-unit", "×");
+        unit.setAttribute("aria-hidden", "true");
+        ctl.appendChild(unit);
+        c.number.addEventListener("change", function () {
+          var v = valid(f.name, c.number.value);
+          // out of range or no number: the field shows the value in use again
+          if (v === null) { show(f.name); c.number.value = (scope === "game" && override(f.name, gameId) !== null) ? override(f.name, gameId) : globalValue(f.name); return; }
+          applyChange(f.name, v, c.number);
+        });
+      }
       if (!f.options) {
         c.checkbox = make("input");
         c.checkbox.type = "checkbox";

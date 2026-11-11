@@ -388,7 +388,7 @@ lower_bound + equivalence.
   return false.
 - **Sounds** (Init): `static gSoundPath = GetString("SoundPath", "sounds\\")` (0x534868, guard 0x534884);
   `mSoundManager->LoadSound(i, gSoundPath + gSoundNames[i])` for i = 0..46 (DSoundManager tries
-  `cached_<name>.wav`, `.wav`, `.ogg`, `.au`, docs/FRAMEWORK_2004.md B.1.3). False, or mShutdown set: Shutdown(), return.
+  `cached_<name>.wav`, `.wav`, `.ogg`, `.au`, docs/FRAMEWORK_2004.md section 6, 1.3). False, or mShutdown set: Shutdown(), return.
 - **OptimizeImage(img, name) 0x411220** (EDI = image, EAX = &name; after every image and tile set):
   `if (img->Palletize()) OutputDebugString("<name> - PALLETIZED!\r\n") else { "<name> - 32 Bit Only\r\n";
   if (DDImage* d = dynamic_cast<DDImage*>(img)) { if (gSexyAppBase->Is3DAccelerated()) d->mWantDDSurface
@@ -1199,7 +1199,7 @@ Index of the game functions (behaviour in the section named):
 | 0x42e330 / 0x42e390 / 0x42e3a0 | `Math()` / `~Math` body / scalar deleting dtor | 0 | 1.2 |
 | 0x402090, 0x434800-0x435b50 | UserManager / User | | 1.3 |
 
-The rest of the range is library code. Library instantiations in the range (names from docs/FRAMEWORK_2004.md Part D, kept):
+The rest of the range is library code. Library instantiations in the range (names as in docs/FRAMEWORK_2004.md section 7.2, kept):
 multiset<HighScoreEntry> helpers 0x410b40 _Max, 0x410b60 _Min, 0x410b80 _Rrotate, 0x410be0 iterator++,
 0x411190 _Lrotate, 0x411460 _Buyhead, 0x416180 erase(it), 0x416850 _Buynode, 0x416cf0 _Insert, 0x41a0b0
 ctor; ByScore: 0x412560 _Lbound, 0x412ba0 _Erase, 0x416ad0 find, 0x416c30 erase(first,last), 0x417ef0
@@ -5162,14 +5162,14 @@ image, except OptionsDialog whose buttons use `dialogbutton_plain.gif` (90x26, I
 - Sounds: `app->PlaySample(0)` = `buttonclick`, `PlaySample(23)` = `goldtile` (gSoundNames 0x52e668).
   BookWormApp::ButtonPress (0x410b30, app slot 3) is `PlaySample(0)`, so every dialog yes/no/footer button
   press clicks once through the app.
-- Dialog 2004 behaviour this group relies on (docs/FRAMEWORK_2004.md section 6): yes/footer button id `mId+2000`,
+- Dialog 2004 behaviour this group relies on (docs/FRAMEWORK_2004.md section 3, 6): yes/footer button id `mId+2000`,
   no `mId+3000`, labels "YES"/"NO" (mode 1), `GT_DIALOG_OK`/"CANCEL" (mode 2), footer text (mode 3); Dialog's
   +0x58 ButtonPress(id)/ButtonDepress(id)/DownTick(id) forward only those two ids to the app's slots 3/4/5;
   button height = `mYesButton->mComponentImage->GetHeight()` (31 for dialogbutton, 26 for
   dialogbutton_plain); default mContentInsets (24,24,24,24), mSpaceAfterHeader 10, mButtonHorzSpacing 8;
   `Dialog::SetColor(3, c)` / `(4, c)` set colour 0 / 1 of both buttons; default colours header white,
   lines yellow, footer white, buttons white/white. Dialog::Resize and GetPreferredHeight are the 1.2
-  formulas (docs/FRAMEWORK_2004.md 6.3). DialogButtons draw their label colourised with mColors[1] when hovered,
+  formulas (docs/FRAMEWORK_2004.md section 3, 6.3). DialogButtons draw their label colourised with mColors[1] when hovered,
   else mColors[0].
 - Folded (identical-COMDAT) bodies shared across classes: 0x429290 (`jmp Dialog::Update`) is slot 17 of
   MoneyDialog, Select/Delete/NewUser (inherited), GetStringDialog, HintDialog and RegisterDialog: an

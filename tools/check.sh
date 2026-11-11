@@ -47,7 +47,8 @@
 #                opens in a new tab) and musictest (tools/musictest.js: the music player's decoder, its tracker view's rows and
 #                its seek, on a module the test makes and a staged MO3 when there is one) and setuptest (tools/setuptest.js:
 #                the Setup window's pages for the games found and Finish's summary, web/setup.js) and localsoontest
-#                (tools/localsoontest.js: the coming-soon tiles of built ports open on a development host only, web/localsoon.js).
+#                (tools/localsoontest.js: the coming-soon tiles of built ports open on a development host only, web/localsoon.js)
+#                and schemetest (tools/schemetest.js: Desktop 95's colour schemes whole, named and readable, web/schemes.js).
 #                The build folder is build/web;
 #                BYOPOP_WEB_DIR=build/web-test names another
 #   gpu          the GL GPUInterface's Direct3D 9 conventions on the real GPU (tools/gputest: clears, pixel centres,
@@ -251,8 +252,10 @@ BT_MENU="640866e0b565 da8353fcb954"  # the start's screens at 60 (the loader han
 # refrozen 2026-11-09: `state` gained keys (updates, is3d, flames), which changes every transcript, and ExplodeAt's accumulators and the
 # shock wave now test >= 1.0 as the original does, which moved the draws of the global generator after a flame burst: the states of
 # action, puzzle, endless, twilight, cognito and hidden are those of the old baseline, classic differs from level 3 on, hyper from level 4
-# and finity from level 3, all three identical to the original now, games/bejeweled2/docs/IDENTICAL_PLAY.md)
-declare -A BJ2_PLAYS=([classic]="db5f86896a6a:c7b95271c2bd" [action]="8c4464b2a214:950c77b82a20" [puzzle]="3eb1e831c2a2:e1f8b6960a69" [endless]="2baed41a71fa:6c7b27839583" [twilight]="fa068aa268d7:8059d707c87c" [hyper]="76f290fad630:7c808bde4f7b" [cognito]="423e83b40efb:db4f92024a35" [finity]="c46056c77bc5:2a61e9e4c56f" [hidden]="bbed92c6cb71:7afbbb32f140")
+# and finity from level 3, all three identical to the original now, games/bejeweled2/docs/IDENTICAL_PLAY.md;
+# the end screens of classic, puzzle, cognito and finity refrozen 2026-11-11: thirteen fields of the board that the port had declared
+# twice are one member each now, so a flame gem's stars turn and flicker and the intro puzzle marks its gems; no transcript changed)
+declare -A BJ2_PLAYS=([classic]="db5f86896a6a:7ccfdd5b8faf" [action]="8c4464b2a214:950c77b82a20" [puzzle]="3eb1e831c2a2:a8b0773b7f3f" [endless]="2baed41a71fa:6c7b27839583" [twilight]="fa068aa268d7:8059d707c87c" [hyper]="76f290fad630:7c808bde4f7b" [cognito]="423e83b40efb:b8dd13b43d05" [finity]="c46056c77bc5:b8d3b6f9cc57" [hidden]="bbed92c6cb71:7afbbb32f140")
 declare -A BJ2_STEPS=([classic]=1200 [action]=400 [puzzle]=500 [endless]=400 [twilight]=400 [hyper]=400 [cognito]=300 [finity]=300 [hidden]=300)
 BJ2_MODES="classic action puzzle endless twilight hyper cognito finity hidden"
 
@@ -758,12 +761,16 @@ suite_unit-web() {
 	local v
 	"$NODE" tools/localsoontest.js > "$1.ls" 2>&1 || st=1
 	v="$(lastof "$1.ls" 'localsoontest:')"
+	# Desktop 95's colour schemes: whole, named and readable (tools/schemetest.js)
+	local w
+	"$NODE" tools/schemetest.js > "$1.sc" 2>&1 || st=1
+	w="$(lastof "$1.sc" 'schemetest:')"
 	# the JPEG decoder under wasm: the same checks as native, with the error paths through Emscripten's setjmp/longjmp
 	(cd "$web" && "$NODE" jpegtest.js) > "$1.jpg" 2>&1 || st=1
 	o="$(lastof "$1.jpg" 'jpeg: [0-9]+ checks, [0-9]+ failed')"
-	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.jpg" >> "$1"
-	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.jpg"
-	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $u; $v; $o"
+	cat "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.sc" "$1.jpg" >> "$1"
+	rm -f "$1.mst" "$1.pak" "$1.pt" "$1.sv" "$1.si" "$1.ch" "$1.gi" "$1.a11y" "$1.str" "$1.pc" "$1.pcp" "$1.tt" "$1.cur" "$1.lk" "$1.mu" "$1.su" "$1.ls" "$1.sc" "$1.jpg"
+	SUMMARY="$a; $b; $c; $d; $e; $g; $h; $i; $f; $j; $k; $l; $m; $n; $q; $r; $u; $v; $w; $o"
 	return $st
 }
 

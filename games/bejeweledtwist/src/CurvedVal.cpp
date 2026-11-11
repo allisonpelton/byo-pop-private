@@ -246,7 +246,9 @@ void CurvedVal::SetConstant(double theValue)
 	mLinkedVal = nullptr;
 	mInVal = 0.0;
 	mTriggered = false;
-	mInMax = 1.0;
+	// the input's range is 0 to 0 (0x6e97bd zeroes +0x48, +0x50 and +0x68), so a step left over from an earlier curve
+	// moves nothing: the input is clamped back to 0 each time
+	mInMax = 0.0;
 	mRamp = RAMP_LINEAR;
 	mInMin = 0.0;
 	mOutMax = theValue;

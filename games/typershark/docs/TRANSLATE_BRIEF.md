@@ -69,7 +69,7 @@ comment on each field (`// +0x8e8 ...`); nothing depends on the offsets, the nam
 - Framework headers: `framework/*.h` (included as `"Widget.h"`), platform layer `platform/` (`"platform/VFS.h"`).
   `SexyString` is `std::string`. Read a header before using a call: signatures differ from 2004 in places
   (`KeyChar(SexyChar)`; `CreateMusicInterface()` takes no HWND). The decompilation's virtual calls are by 2004 slot
-  number: translate them to the port's methods by name (`docs/FRAMEWORK_2004.md` section 2 has the slot tables).
+  number: translate them to the port's methods by name (`docs/FRAMEWORK_2004.md` sections 3 to 6 have the slot tables).
 - Game dialogs derive from `Dialog2004` (`framework/compat2004/Compat2004.h`), sliders from `Slider2004`; text with
   `WriteString2004`/`WriteWordWrapped2004`/`GetWordWrappedHeight2004`; `GameTickCount()` for `GetTickCount()`;
   `CrtRand()`/`CrtSRand()` for the C library's `rand()`/`srand()`; `Sexy::Rand()` only where the original calls the

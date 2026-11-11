@@ -187,15 +187,6 @@ Sprite* SpriteMgr::Load(const std::string& theName)
 	return aSprite;
 }
 
-// 0x429bc0
-Sprite* SpriteMgr::Wrap(Image* theImage)
-{
-	Sprite* aSprite = new Sprite();
-	mSprites.push_back(aSprite);
-	aSprite->SetImage(theImage);
-	return aSprite;
-}
-
 // 0x429970 (and 0x429910, the add to the manager's list that each of the sprite makers does: mSprites.push_back)
 Sprite* SpriteMgr::SubSprite(Sprite* theSheet, int theX, int theY, int theWidth, int theHeight)
 {

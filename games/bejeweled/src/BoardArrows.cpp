@@ -1,4 +1,4 @@
-// port(variant): arrow gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20, stage 18). Not part of the original
+// port(variant): arrow gems (games/bejeweled/docs/CODE_MODS_DESIGN.md 4.20). Not part of the original
 // game; the idea is Bejeweled 3's Butterflies, turned four ways (eight with the diagonals), with none of that mode's
 // art or texts. Some gems are arrows (Piece::mArrow), each pointing up, right, down or left, or along a diagonal
 // (for a diamond board, whose edges are diagonal). A move that stands (OnMoveMade, or a kept

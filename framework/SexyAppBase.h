@@ -776,6 +776,10 @@ public:
 	// RESTART_BLOCKED when CanRestartNow says no, RESTART_CONFIRM when a game is in progress and isConfirmed is
 	// false (theMessage: the question), else RESTART_STARTED.
 	int RequestRestart(bool isConfirmed, SexyString* theMessage);
+	// port: quits as the game's own Quit does (the page's Close on a game's window: byopop_quit). The default shuts
+	// down at once; a game whose Quit says goodbye first overrides it to do the same and shut down after. It must
+	// not block: on the web the sound plays only once this returns, so such a game defers its Shutdown() to an update.
+	virtual void QuitAsGame();
 	// main(), after Shutdown() and before deleting the app: true when the app should start again with theArgs
 	// (logs "restart: <args>"). A test run (rundesk's BYOPOP_TEST_RUN, the oracle's BEJ_TEST_DESKTOP, -script or a
 	// test bot) does not start again unless BYOPOP_RELAUNCH_TEST_ARGS is set: then its arguments are added.

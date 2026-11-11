@@ -25,6 +25,11 @@ Steps, run in order in one game process (a failed goal ends the run with code 1)
     minimize                "focus lost", minimize, 100 updates, restore, "focus gained"
     altenter                Alt+Enter: the screen mode changes (windowed <-> full screen)
     shot <name>             the game's own screenshot into <out dir>/<name>.png
+    challenge <x> <y>       from the main menu by clicks: Play, the mode select's Challenge, then the planet at <x> <y>
+                            (game pixels; --2d's 800x600: Detonator is at 495 95), whose challenge starts at once
+    after <n>               after a challenge is won or lost: <n> times, what the bot's `move` says to click (the
+                            message's and the rank bar's Continue), 100 updates apart
+    wait <n>                <n> updates of doing nothing
     flame <name>            the bot's next twist with its four gems made flame gems first (the test command `gem`), so
                             the twist sets them off; shots <name>-0 to <name>-6 follow the blast
     close                   the window's close button; the game must exit by itself with code 0
@@ -264,6 +269,27 @@ class Live:
         st = self.get_state()
         self.say('after the flames:', json.dumps(st)[:300])
 
+    def s_challenge(self, x, y):
+        self.click(400, 300)
+        self.sleep_updates(300)
+        self.click(180, 420)
+        self.sleep_updates(700)
+        self.shot('challenge-menu')
+        self.click(x, y)
+        st = self.wait_state(lambda s: s['screen'] == 'game', 120, 'the board of the challenge')
+        self.say('board:', json.dumps(st)[:300])
+        self.sleep_updates(400)
+        self.shot('challenge-start')
+
+    def s_after(self, n):
+        for k in range(n):
+            st = self.get_state()
+            mv = self.get_move() if st['screen'] == 'game' else None
+            self.say('after %d:' % k, json.dumps(st)[:160], json.dumps(mv)[:120])
+            if mv is not None and mv['kind'] != 'twist':
+                self.act(mv)
+            self.sleep_updates(100)
+
     def s_finish(self):
         st = self.play(None)
         self.say('game over:', json.dumps(st)[:400])
@@ -431,6 +457,15 @@ def main():
                 g.s_launch()
             elif s == 'goto':
                 g.s_goto(steps[i])
+                i += 1
+            elif s == 'challenge':
+                g.s_challenge(int(steps[i]), int(steps[i + 1]))
+                i += 2
+            elif s == 'after':
+                g.s_after(int(steps[i]))
+                i += 1
+            elif s == 'wait':
+                g.sleep_updates(int(steps[i]))
                 i += 1
             elif s == 'unlock':
                 g.do('unlock all')

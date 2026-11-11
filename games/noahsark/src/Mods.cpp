@@ -20,28 +20,28 @@ namespace
 {
 
 // days since 1970-01-01 of a calendar date (proleptic Gregorian), and the date of a day number
-long DaysFromCivil(int y, int m, int d)
+long DaysFromCivil(int theYear, int theMonth, int theDay)
 {
-	y -= (m <= 2);
-	long era = (y >= 0 ? y : y - 399) / 400;
-	unsigned yoe = (unsigned) (y - era * 400);
-	unsigned doy = (153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + d - 1;
-	unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-	return era * 146097 + (long) doe - 719468;
+	theYear -= (theMonth <= 2);
+	long anEra = (theYear >= 0 ? theYear : theYear - 399) / 400;
+	unsigned aYearOfEra = (unsigned) (theYear - anEra * 400);
+	unsigned aDayOfYear = (153 * (theMonth + (theMonth > 2 ? -3 : 9)) + 2) / 5 + theDay - 1;
+	unsigned aDayOfEra = aYearOfEra * 365 + aYearOfEra / 4 - aYearOfEra / 100 + aDayOfYear;
+	return anEra * 146097 + (long) aDayOfEra - 719468;
 }
 
-void CivilFromDays(long z, int& y, int& m, int& d)
+void CivilFromDays(long theDays, int& theYear, int& theMonth, int& theDay)
 {
-	z += 719468;
-	long era = (z >= 0 ? z : z - 146096) / 146097;
-	unsigned doe = (unsigned) (z - era * 146097);
-	unsigned yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-	y = (int) yoe + (int) era * 400;
-	unsigned doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-	unsigned mp = (5 * doy + 2) / 153;
-	d = (int) (doy - (153 * mp + 2) / 5 + 1);
-	m = (int) mp + (mp < 10 ? 3 : -9);
-	y += (m <= 2);
+	theDays += 719468;
+	long anEra = (theDays >= 0 ? theDays : theDays - 146096) / 146097;
+	unsigned aDayOfEra = (unsigned) (theDays - anEra * 146097);
+	unsigned aYearOfEra = (aDayOfEra - aDayOfEra / 1460 + aDayOfEra / 36524 - aDayOfEra / 146096) / 365;
+	theYear = (int) aYearOfEra + (int) anEra * 400;
+	unsigned aDayOfYear = aDayOfEra - (365 * aYearOfEra + aYearOfEra / 4 - aYearOfEra / 100);
+	unsigned aMonthFromMarch = (5 * aDayOfYear + 2) / 153;
+	theDay = (int) (aDayOfYear - (153 * aMonthFromMarch + 2) / 5 + 1);
+	theMonth = (int) aMonthFromMarch + (aMonthFromMarch < 10 ? 3 : -9);
+	theYear += (theMonth <= 2);
 }
 
 }
@@ -74,16 +74,16 @@ bool Board::ModBoardSettled()
 {
 	if (!mLink.empty())
 		return false;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
-			Piece* p = mGrid[x][y];
-			if (p == NULL)
+			Piece* aPiece = mGrid[x][y];
+			if (aPiece == NULL)
 				continue;
-			if (p->mMoving || p->mRemoved || p->mFading)
+			if (aPiece->mMoving || aPiece->mRemoved || aPiece->mFading)
 				return false;
-			if ((p->mType < 0xd) && ((p->mOffsetX != 0) || (p->mOffsetY != 0)))
+			if ((aPiece->mType < NUM_ANIMALS) && ((aPiece->mOffsetX != 0) || (aPiece->mOffsetY != 0)))
 				return false;
 		}
 	}
@@ -126,16 +126,16 @@ bool Board::ModUndo()
 	ClearLinkList();
 	ClearLink();
 	mSelected = NULL;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
-			Piece* p = mGrid[x][y];
-			for (size_t i = 0; i < p->mPath.size(); i++)
-				delete p->mPath[i];
-			p->mPath.clear();
-			p->mPartner = NULL;
-			p->mMoving = p->mRemoved = p->mFading = p->mFlash = p->mSelected = false;
+			Piece* aPiece = mGrid[x][y];
+			for (size_t i = 0; i < aPiece->mPath.size(); i++)
+				delete aPiece->mPath[i];
+			aPiece->mPath.clear();
+			aPiece->mPartner = NULL;
+			aPiece->mMoving = aPiece->mRemoved = aPiece->mFading = aPiece->mFlash = aPiece->mSelected = false;
 		}
 	}
 	if (!LoadState(aSnapshot))
@@ -162,9 +162,9 @@ void Board::ModShowMove()
 		return;
 	Piece* aFirst = NULL;
 	Piece* aSecond = NULL;
-	for (int x = 0; x < 9; x++)
+	for (int x = 0; x < GRID_SIZE; x++)
 	{
-		for (int y = 0; y < 9; y++)
+		for (int y = 0; y < GRID_SIZE; y++)
 		{
 			if (mGrid[x][y]->mFlash)
 			{

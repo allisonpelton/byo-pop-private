@@ -14,6 +14,23 @@
 namespace mahjongjapan
 {
 
+// A tile's kind (Tile::mKind). 1 to 0x22 are the plain tiles, which match their own kind; any season matches any
+// season and any flower any flower; the last five are the adventure's magic tiles.
+enum
+{
+	KIND_LAST_PLAIN = 0x22,
+	KIND_FIRST_SEASON = 0x23,
+	KIND_LAST_SEASON = 0x26,
+	KIND_FIRST_FLOWER = 0x27,
+	KIND_LAST_FLOWER = 0x2a,
+	KIND_GOLD = 0x2b,    // the Magic Gold tile: its pair ends an escape stage
+	KIND_KEY = 0x2c,     // takes a lock that can be seen
+	KIND_LOCK = 0x2d,
+	KIND_JOKER = 0x2e,   // takes every free tile of the kind of a tile that can be seen
+	KIND_MAGNET = 0x2f,  // takes a tile that can be seen and becomes its kind
+	NUM_COUNTED_KINDS = 0x2c,  // the kinds a layout counts free pairs of: up to the gold tile
+};
+
 // 0x413260, 0x4132d0
 class Tile : public jb::Streamable
 {
@@ -24,13 +41,13 @@ public:
 	int mKind = 0;         // +0x10 1-based; 0 until the deal gives it one
 	bool mPreset = false;  // +0x14 the layout gave the kind
 	int mTaken = 0;        // +0x18 0 on the board, else the move it went at
-	Tile* mWildLink = nullptr;  // +0x1c the tile that turns wild (0x2f) when this one has gone (0x414fd0)
+	Tile* mMagnetLink = nullptr;  // +0x1c the tile that turns into a magnet when this one has gone (0x414fd0)
 	jb::Rect mRect = {-1, -1, -1, -1};  // +0x20 where it is drawn (a shuffle moves left and top off the board)
 	int mFromX = 0;        // +0x30 where it flies in from (0x40b780); the original leaves it unset until then
 	int mFromY = 0;        // +0x34
 	bool mFree = false;    // +0x38 it can be taken (0x414c20); the original leaves it unset until the first test
-	bool mFlag39 = false;  // +0x39
-	int m3c = 0;           // +0x3c
+	bool mBobsAsHint = false;  // +0x39 the lift is a hint's bob, not an undo's settle
+	int mLiftStart = 0;    // +0x3c when its lift began (a hint's bob, an undo's settle); 0 for none
 	int mGroup = 0;        // +0x40 the deal's pairing: the tiles of a pair or a four share it, -1 for a kind given
 	bool mQuad = false;    // +0x44 the deal's pair is half of a four
 
@@ -65,7 +82,7 @@ public:
 	// 0x414510, 0x414530
 	virtual ~Layout();
 
-	// 0x415490: a saved game's kinds, moves and wild links
+	// 0x415490: a saved game's kinds, moves and magnet links
 	void Serialize(jb::Stream& theStream) override;
 	// 0x415670: the layout itself
 	virtual void SerializeLayout(jb::Stream& theStream);
@@ -88,11 +105,11 @@ public:
 	// 0x414840: the free tiles on the board; how many (the array holds at most theMax)
 	int GetFree(Tile** theTiles, int theMax);
 	// 0x414880, 0x4148a0: the tiles on the board that match a kind
-	int GetHalves(Tile** theTiles, int theMax);
+	int GetLocks(Tile** theTiles, int theMax);
 	int GetMatching(int theKind, Tile** theTiles, int theMax);
 	// 0x414900: the tiles on the board with a kind
 	int CountKinded();
-	// 0x414930: the free tiles of kinds 0x2c, 0x2e and 0x2f, in a layout with kinds of its own
+	// 0x414930: the free keys, jokers and magnets, in a layout with kinds of its own
 	int GetFreeSpecials(Tile** theTiles, int theMax);
 	// 0x414990: the tiles without a kind, gone or not
 	int CountBlank();
@@ -106,7 +123,7 @@ public:
 	void CountMoves(int* thePairs, int* theLeft, int* theKinds);
 	// 0x414df0
 	int CountLeft();
-	// 0x414e10: the free tiles of kind 0x2b
+	// 0x414e10: the free gold tiles
 	int CountFree2b();
 	// 0x414e40: two free flowers
 	bool HasFreeFlowers();
@@ -115,7 +132,7 @@ public:
 	// 0x414ec0: the free tiles of the theIndex-th kind that has a free pair
 	int GetPairsOf(int theIndex, Tile** theTiles, int theMax);
 	// 0x414fd0
-	void ApplyWildLinks();
+	void ApplyMagnetLinks();
 	// 0x415010
 	void ClearGroups();
 	// 0x415030: the tiles of a deal's group
@@ -129,7 +146,7 @@ public:
 	bool Load(jb::Stream& theStream);
 	// 0x415260: a tile of the lowest kind on the board and the last other one of it
 	void GetLowest(Tile** theTile, Tile** theOther);
-	// 0x4152d0, 0x415300: the tiles of kinds below 0x2b, or the others, taken (move 1); how many
+	// 0x4152d0, 0x415300: the plain tiles, seasons and flowers, or the magic tiles, taken (move 1); how many
 	int TakeKinds();
 	int TakeSpecials();
 	// 0x415330: some of it shows from under the tiles drawn after it

@@ -74,12 +74,12 @@ public:
 	bool Render(float* theOut, int theFrames, bool theLoop) override
 	{
 		// small pieces, so that a row change is seen within about a millisecond of it
-		const int kPiece = 64;
+		const int PIECE_FRAMES = 64;
 		bool aPlaying = true;
 		int aDone = 0;
 		while (aDone < theFrames)
 		{
-			int aCount = std::min(kPiece, theFrames - aDone);
+			int aCount = std::min(PIECE_FRAMES, theFrames - aDone);
 			float* anOut = theOut + aDone * 2;
 			if (!mInner->Render(anOut, aCount, theLoop))
 				aPlaying = false;
@@ -129,24 +129,24 @@ static float Gain(int theVolume)
 // when the environment's MJ_SOUNDLOG names a file
 static void SoundLog(const char* theFormat, ...)
 {
-	static FILE* aFile = nullptr;
-	static bool isOpen = false;
-	if (!isOpen)
+	static FILE* sFile = nullptr;
+	static bool sOpened = false;
+	if (!sOpened)
 	{
-		isOpen = true;
+		sOpened = true;
 		const char* aPath = getenv("MJ_SOUNDLOG");
 		if (aPath != nullptr && aPath[0] != 0)
-			aFile = fopen(aPath, "w");
+			sFile = fopen(aPath, "w");
 	}
-	if (aFile == nullptr)
+	if (sFile == nullptr)
 		return;
-	fprintf(aFile, "%u ", GetHost()->TickCount());
+	fprintf(sFile, "%u ", GetHost()->TickCount());
 	va_list anArgs;
 	va_start(anArgs, theFormat);
-	vfprintf(aFile, theFormat, anArgs);
+	vfprintf(sFile, theFormat, anArgs);
 	va_end(anArgs);
-	fputc('\n', aFile);
-	fflush(aFile);
+	fputc('\n', sFile);
+	fflush(sFile);
 }
 
 static uint32_t Crc32(const uint8_t* theData, uint32_t theSize)
@@ -212,7 +212,7 @@ void Sound::Load(int theId, bool theLoop)
 	if (!mInitialized || mSamples.find(theId) != mSamples.end())
 		return;
 	uint32_t aSize = 0;
-	const uint8_t* aData = FindResourceData(Module::Dll, "WAVE", theId & 0xffff, &aSize);
+	const uint8_t* aData = FindResourceData(Module::DLL, "WAVE", theId & 0xffff, &aSize);
 	if (aData == nullptr)
 		return;
 	std::vector<uint8_t> aFile(aData, aData + aSize);
@@ -393,7 +393,7 @@ void Sound::LoadMusic(int theId)
 	if (!mInitialized || mMusics.find(theId) != mMusics.end())
 		return;
 	uint32_t aSize = 0;
-	const uint8_t* aData = FindResourceData(Module::Dll, "WAVE", theId & 0xffff, &aSize);
+	const uint8_t* aData = FindResourceData(Module::DLL, "WAVE", theId & 0xffff, &aSize);
 	if (aData == nullptr)
 		return;
 	Platform::Mixer& aMixer = Platform::Mixer::Get();

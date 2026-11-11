@@ -73,11 +73,11 @@ public:
 	std::string mStat2;           // +0xc4
 	std::string mBestTime;        // +0xcc
 	std::string mBestScore;       // +0xd4
-	std::string mLabelBest;       // +0xdc (0x98)
-	std::string mLabelTime;       // +0xe4 (0xa1)
-	std::string mLabelScore;      // +0xec (0x9e)
-	std::string mLabelPairs;      // +0xf4 (0x9a)
-	std::string mLabelLeft;       // +0xfc (0xa0)
+	std::string mLabelBest;       // +0xdc (STRING_PANEL_BEST)
+	std::string mLabelTime;       // +0xe4 (STRING_PANEL_TIME)
+	std::string mLabelScore;      // +0xec (STRING_PANEL_SCORE)
+	std::string mLabelPairs;      // +0xf4 (STRING_PANEL_MATCHES)
+	std::string mLabelLeft;       // +0xfc (STRING_PANEL_TILES)
 	jb::Font* mClockFont = nullptr;   // +0x104
 	jb::Font* mSmallFont = nullptr;   // +0x108
 	jb::Font* mTitleFont = nullptr;   // +0x10c

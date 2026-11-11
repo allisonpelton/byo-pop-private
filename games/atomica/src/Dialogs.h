@@ -38,7 +38,6 @@ public:
 	int				mBoxY;				// +0x94 how far it has slid down (starts at minus its height)
 	int				mBoxEndY;			// +0x98 where it ends going up (minus its height)
 	bool			mClosing;			// +0x9c slides up and is deleted
-	bool			mCentered;			// +0xa8
 
 	GameDialog(AtomicaApp* theApp, bool theCentered);	// 0x416ac0
 	virtual ~GameDialog();								// 0x4167a0
@@ -72,20 +71,6 @@ public:
 	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x4201f0
 	virtual void	Draw(Graphics* g) override;			// 0x4202b0
 	virtual void	ButtonDepress(int theId) override;	// 0x420240
-};
-
-// 0x421f90: "confirm new game": give up the game in progress?
-class ConfirmDialog : public GameDialog
-{
-public:
-	ButtonWidget*	mYes;				// +0xac
-	ButtonWidget*	mNo;				// +0xb0
-
-	ConfirmDialog(AtomicaApp* theApp);					// 0x421f90
-	virtual ~ConfirmDialog();							// 0x4220b0
-	virtual void	Resize(int theX, int theY, int theWidth, int theHeight) override;	// 0x422100
-	virtual void	Draw(Graphics* g) override;			// 0x4221d0
-	virtual void	ButtonDepress(int theId) override;	// 0x422170
 };
 
 // 0x41cc00: a score in the high score table: the player types a name

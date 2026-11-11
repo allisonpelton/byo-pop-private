@@ -5,7 +5,7 @@
 // ray-cast from faceted solids as games/bejeweled/tools/gemsheet.py does. Three styles:
 //   cel     the port's own cuts (one per colour, twelve), flat tones from a fixed light, a glint and a dark outline;
 //   glossy  the same cuts as glass: facets lit and reflecting a sky, a hard highlight, no outline;
-//   su      the Steven Universe gems of tools/make_su_gems_mod.py (stage 15), their cel look ported.
+//   su      the Steven Universe gems of tools/make_su_gems_mod.py, their cel look ported.
 // Each colour c fills row 2c (frame 0 the rest pose, frames 1..14 turned 12 degrees each about the vertical axis) and
 // row 2c + 1 (the rest pose under a light circling it, 24 degrees a frame), cells of 52 px at the scale.
 

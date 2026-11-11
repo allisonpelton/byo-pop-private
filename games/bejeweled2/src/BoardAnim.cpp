@@ -17,10 +17,10 @@ void Board::UpdateGameOverAnim()
 {
 	MarkDirty();
 	bool a3D = mApp->Is3DAccelerated();
-	float aFade = (float)((double)m15fb0 - (double)0.02f);
-	m15fb0 = aFade;
+	float aFade = (float)((double)mFadeIn - (double)0.02f);
+	mFadeIn = aFade;
 	if (aFade < 0.0f)
-		m15fb0 = 0.0f;
+		mFadeIn = 0.0f;
 
 	if (m15e58 < 1)
 	{
@@ -135,7 +135,7 @@ void Board::UpdateHyperWarpPoints()
 			double aSin3 = sin((double)mUpdateCnt * 0.12);
 			float aScale = (float)(aSin3 * (double)aCos * 0.15 + aBase);
 			aPoint->mScale = aScale;
-			aScale = (float)((double)m15fb0 * (double)aScale + (1.0 - (double)m15fb0));
+			aScale = (float)((double)mFadeIn * (double)aScale + (1.0 - (double)mFadeIn));
 			aPoint->mScale = aScale;
 
 			int anIndex = (int)((double)aPoint->mAngle * 4096.0 / 6.28318);

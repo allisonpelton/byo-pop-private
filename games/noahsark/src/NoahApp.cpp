@@ -64,7 +64,7 @@ NoahApp::NoahApp() :
 	mIntroWidget = NULL;
 	mTitleScreen = NULL;
 	mHighScoreWidget = NULL;
-	mDifficulty = 0;
+	mDifficulty = DIFFICULTY_EASY;
 	mLevel = 0;
 	mGameMode = GAMEMODE_ACTION;
 	mSavedGameMode = GAMEMODE_ACTION;
@@ -72,14 +72,12 @@ NoahApp::NoahApp() :
 	mPuzzleNoticeShown = false;
 	mGameScore = 0;
 	mShownScore = 0;
-	mFloodStart = 0;
 	mSavedThisLevel = 0;
 	mAnimalsSaved = 0;
 	mComboCount = 0;
 	mBestCombo = 0;
 	mShowHints = true;
 	mShowTutorial = true;
-	mGameStartTick = 0;
 	mQuitButtonImage = NULL;
 	mOptionsButtonImage = NULL;
 	mQuitButton = NULL;
@@ -115,14 +113,22 @@ NoahApp::~NoahApp()
 		mWidgetManager->RemoveWidget(mBoard);
 		delete mBoard;
 	}
-	delete mNextLevelWidget;
-	delete mIntroWidget;
-	delete mTitleScreen;
-	delete mHighScoreWidget;
+	// port: each screen leaves the widget manager before it is deleted. A dialog still open over one (the name entry over the
+	// game-over screen) hands the focus back to it when the framework removes the dialog, after this destructor.
+	Widget* aScreens[4] = {mNextLevelWidget, mIntroWidget, mTitleScreen, mHighScoreWidget};
+	for (int i = 0; i < 4; i++)
+	{
+		if (aScreens[i] != NULL)
+		{
+			mWidgetManager->RemoveWidget(aScreens[i]);
+			delete aScreens[i];
+		}
+	}
 	delete mQuitButtonImage;
 	delete mOptionsButtonImage;
 }
 
+// port: the pictures by id, each decoded when it is first asked for (NoahApp.h)
 ImageTable::ImageTable(NoahApp* theApp) :
 	mApp(theApp)
 {
@@ -130,6 +136,7 @@ ImageTable::ImageTable(NoahApp* theApp) :
 		mImages[i] = NULL;
 }
 
+// port: a picture's first use
 Image* ImageTable::Load(int theId)
 {
 	Image* anImage = mApp->LoadImage(theId);
@@ -201,12 +208,14 @@ void NoahApp::LoadSoundOnce(int theSoundNum)
 	mSoundManager->LoadSound(theSoundNum, std::string("sounds\\") + gSoundNames[theSoundNum]);
 }
 
+// port: a sound is loaded at its first play
 void NoahApp::PlaySample(int theSoundNum)
 {
 	LoadSoundOnce(theSoundNum);
 	SexyApp::PlaySample(theSoundNum);
 }
 
+// port: as above, for a sound with a pan
 void NoahApp::PlaySample(int theSoundNum, int thePan)
 {
 	LoadSoundOnce(theSoundNum);
@@ -221,12 +230,7 @@ void NoahApp::LoadingThreadProc()
 	mCompletedLoadingThreadTasks++;
 }
 
-void NoahApp::LoadingThreadCompleted()
-{
-	SexyApp::LoadingThreadCompleted();
-}
-
-// 0x41af10 / 0x41b010: the registry values of the game
+// 0x41af10: the registry values of the game
 void NoahApp::WriteToRegistry()
 {
 	SexyApp::WriteToRegistry();
@@ -236,6 +240,7 @@ void NoahApp::WriteToRegistry()
 	RegistryWriteBoolean("ShowTutorial", mShowTutorial);
 }
 
+// 0x41b010
 void NoahApp::ReadFromRegistry()
 {
 	SexyApp::ReadFromRegistry();
@@ -292,6 +297,7 @@ void NoahApp::UpdateFrames()
 	}
 }
 
+// part of 0x418460: the game's music from its intro (UpdateFrames goes on to the loop when the intro has ended)
 void NoahApp::PlayGameMusic()
 {
 	mMusicInterface->StopMusic(SONG_MENU);
@@ -457,7 +463,6 @@ void NoahApp::StartGame(bool theContinue)
 	mWidgetManager->AddWidget(mBoard);
 	mWidgetManager->BringToBack(mBoard);
 	mWidgetManager->SetFocus(mBoard);
-	mGameStartTick = GameTickCount();
 	mOptionsButton->SetVisible(true);
 	mQuitButton->SetVisible(true);
 	PlayGameMusic();
@@ -500,6 +505,7 @@ void NoahApp::ShowHighScoreWidget()
 	}
 }
 
+// part of 0x4185c0: the game-over screen goes
 void NoahApp::RemoveHighScoreWidget()
 {
 	if (mHighScoreWidget != NULL)
@@ -547,12 +553,12 @@ void NoahApp::ShowQuitDialog()
 {
 	if (mBoard != NULL)
 	{
-		Dialog* aDialog = DoDialog(DIALOG_QUIT, true, GT(0x004956ec), GT(0x004956fc), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
+		Dialog* aDialog = DoDialog(DIALOG_QUIT, true, GT(0x004956ec), GT(0x004956fc), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);
 		aDialog->Resize(0xbb, 0x57, 0x1a0, 300);
 	}
 	else
 	{
-		DoDialog(DIALOG_QUIT, true, GT(0x00494a20), GT(0x00495760), GT(0x0049c510), Dialog::BUTTONS_YES_NO);   // no resize: the dialog keeps NewDialog's size
+		DoDialog(DIALOG_QUIT, true, GT(0x00494a20), GT(0x00495760), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);   // no resize: the dialog keeps NewDialog's size
 	}
 }
 
@@ -562,7 +568,7 @@ void NoahApp::ShowNewGameDialog(int theGameMode)
 	mGameMode = theGameMode;
 	if (HasSavedGame())
 	{
-		Dialog* aDialog = DoDialog(DIALOG_NEW_GAME, true, GT(0x00495e94), GT(0x00495ea4), GT(0x0049c510), Dialog::BUTTONS_YES_NO);
+		Dialog* aDialog = DoDialog(DIALOG_NEW_GAME, true, GT(0x00495e94), GT(0x00495ea4), GT(GT_EMPTY), Dialog::BUTTONS_YES_NO);
 		int aY = (theGameMode == GAMEMODE_ACTION) ? 0x73 : ((theGameMode == GAMEMODE_STRATEGY) ? 100 : 100);
 		int aHeight = (theGameMode == GAMEMODE_ACTION) ? 0xfa : 0x118;
 		aDialog->Resize(0x6e, aY, 0x1a4, aHeight);
@@ -658,13 +664,14 @@ void NoahApp::ShowRecordScore(const SexyString& thePlace)
 	AddDialog(DIALOG_RECORD_SCORE, aDialog);
 }
 
-// 0x41ac10 / 0x41ac40: the saved game is data/savegame.dat in the original, savegame.dat in the user folder here
+// 0x41ac10: the saved game is data/savegame.dat in the original, savegame.dat in the user folder here
 bool NoahApp::HasSavedGame()
 {
 	std::string aData;
 	return Platform::ReadHostFile(Platform::VFS::Get().GetUserDir() + "/" + Board::SavePath(), &aData);
 }
 
+// 0x41ac40
 void NoahApp::DeleteSavedGame()
 {
 	Platform::RemoveUserFile(Board::SavePath());
@@ -673,9 +680,9 @@ void NoahApp::DeleteSavedGame()
 // 0x41a0b0: every button of the game
 void NoahApp::ButtonDepress(int theId)
 {
-	if ((theId >= 2000) && (theId < 3000))
+	if ((theId >= DIALOG_YES) && (theId < DIALOG_NO))
 	{
-		switch (theId - 2000)
+		switch (theId - DIALOG_YES)
 		{
 		case DIALOG_NEW_GAME:
 			KillDialog(DIALOG_NEW_GAME);
@@ -740,18 +747,18 @@ void NoahApp::ButtonDepress(int theId)
 			break;
 		}
 		default:
-			KillDialog(theId - 2000);
+			KillDialog(theId - DIALOG_YES);
 			break;
 		}
 	}
-	else if ((theId >= 3000) && (theId < 4000))
+	else if ((theId >= DIALOG_NO) && (theId < DIALOG_BUTTONS_END))
 	{
-		if (theId == 3000 + DIALOG_QUIT)
+		if (theId == DIALOG_NO + DIALOG_QUIT)
 		{
 			if (mBoard != NULL)
 				mBoard->mPaused = false;
 		}
-		KillDialog(theId - 3000);
+		KillDialog(theId - DIALOG_NO);
 	}
 
 	switch (theId)

@@ -57,11 +57,11 @@ void CodecCheck::AfterUpdate()
 	mLastUndos = aBoard->mUndosUsed;
 	mChecked++;
 	std::string aDiff = StateCodec::RoundTrip(aBoard, mScratch);
-	// Stage 6: in play, the undo snapshot a move would take now restores into the copy and reads back the same
+	// In play, the undo snapshot a move would take now restores into the copy and reads back the same
 	if (aDiff.empty() && aBoard->mVariant.mUndo && (aBoard->mState == STATE_PLAYING))
 		aDiff = StateCodec::UndoRoundTrip(aBoard, mScratch);
 	// The save the board would make now passes the check a replay's LDSV gets (Replay::CheckSave), unless the
-	// game is over (no save then); a variant board's v2 save (stage 5) with its rules' RulesId, and its
+	// game is over (no save then); a variant board's v2 save with its rules' RulesId, and its
 	// header, field sequence and chunks read back as written (Replay::ReadVariantSave)
 	if (aDiff.empty() && (aBoard->mState != STATE_GAME_OVER) && (aBoard->mState != STATE_GAME_OVER_DONE))
 	{
@@ -139,7 +139,7 @@ void CodecCheck::CheckSynthetic(Board* theBoard)
 		aBoard->mUserSeeded = true;
 		aBoard->mTakesPendingSeed = true;
 		aBoard->mBoardDraws = 700;
-		// A variant board's move counts (stage 5; a board of the original rules has no rows for them)
+		// A variant board's move counts (a board of the original rules has no rows for them)
 		aBoard->mMoveCount = 17;
 		aBoard->mInvalidMoves = 5;
 		aBoard->mUndosUsed = 2;
