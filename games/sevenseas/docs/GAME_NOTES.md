@@ -440,3 +440,24 @@ reported no member declared twice.
 - **Left as they are.** The music orders (`SetMusicOrder(0x10...)`), which no list of the game names, and the original's
   geometry in hexadecimal, which each line's comment explains. The three copies of the heading helper (`StepHeading`,
   `StepHeadingOf`, `HeadingFor`) are separate on purpose: each stands for the original's inline code at its own place.
+
+## 16. The PopCap Game Collection version (2026-11-11)
+
+The Collection disc (the user's ISO) has Seven Seas Deluxe (the group `SevenSeasDeluxeComponent`, 176 files). `unshield` read it from
+the read-only mounted image, dismounted afterwards, into the main checkout's `re/_installers/SevenSeasDeluxeCollection` (git-ignored).
+Unlike Typer Shark's, the Collection's copy has no launcher: `WinSS.exe` is the game itself, under the same name, beside `fmod.dll`,
+`license.txt`, `readme.txt`, `scoreul.tpl` and the folders `data`, `images`, `music` and `sounds`.
+
+**The same game.** All 172 files the port stages (every picture, sound, song and data file) are byte for byte the Collection's. The
+four files only the Collection has are the licence, the readme, the score template and fmod.dll, which the port does not use. Of
+`WinSS.exe` (both 720,896 bytes, the same sections) 7 bytes differ, all in `.text`: one byte at 0x42ce4e (`mov [ebp+0x32c], bl` in the
+port's copy, `cl` in the Collection's) and six at 0x42ded0, where the port's copy has eight NOPs and the Collection's has
+`xor eax,eax; inc eax; ret 8`, a function that returns 1: both are in the framework's code, at addresses above the game's own code
+(0x401000 to 0x427870), and the port's copy is the one origrun's patch list had touched. `.rdata` and `.data`, where the texts are, are the
+same, so every text of `GameText.cpp` matches by address and hash.
+
+**The port on the Collection's files.** With the Collection's `WinSS.exe` in the staged folder, `tools/check.sh sevenseas` gives
+the same result as on the other copy (baseline identical; beginner 2 over at update 5868, score 380; bonus 1 over at 2746, 680; late 1
+over at 1958, 200), and the port needs no change: it reads `WinSS.exe` by that name from the game folder, as the Collection's has it.
+The staged copy was put back afterwards. The Collection's own exe was not run: its game code is the same, and a run could show nothing
+the identical-play pass did not.
