@@ -788,7 +788,8 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     view.push({ rule: true });
     var filt = setting("colorFilter") || "none";
     [["none", "skin.apps.filter_none"], ["grey", "settings.colorfilter.grey"], ["sepia", "settings.colorfilter.sepia"],
-     ["warm", "settings.colorfilter.warm"], ["contrast", "settings.colorfilter.contrast"], ["vivid", "settings.colorfilter.vivid"]].forEach(function (c) {
+     ["warm", "settings.colorfilter.warm"], ["contrast", "settings.colorfilter.contrast"], ["vivid", "settings.colorfilter.vivid"],
+     ["pal256", "settings.colorfilter.pal256"], ["pal256d", "settings.colorfilter.pal256d"]].forEach(function (c) {
       view.push({ label: T(c[1]), checked: filt === c[0], fn: function () { setView("colorFilter", c[0]); } });
     });
     view.push({ rule: true });
