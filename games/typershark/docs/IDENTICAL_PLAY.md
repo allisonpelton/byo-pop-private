@@ -268,6 +268,14 @@ original's single-precision rounding of x87 code in 3D (Twist found it in its ow
 paused boards, the menus, the dialogs and the statistics screen cover every 3D-specific piece of drawing the port has (the sea's strips and the
 lines).
 
+### Widgets drawn without the fast stretch
+
+The 2004 widget manager never sets the fast stretch on a widget's Graphics (the shared 1.3 one sets it on every widget), as AstroPop found and as
+this game's export shows (`GAME_NOTES.md`, section 17); `WinWSApp::Init` sets the shared flag `gWidgetsDrawWithoutFastStretch`. The 2D tours were
+run with the exe before and after the change: 2779 shots in 17 tours, and none changed (five differ in the window's last column, as two runs of the
+same exe do). The game stretches a picture only for the medal on the statistics screen's adventure panel and in the end-of-adventure dialog, and
+no tour shows either, so the pictures of those two are not compared with the original (section 17 says how).
+
 ### Oddities (not chased)
 
 - *The window's last column.* Where a creature crosses the right edge, up to 10 pixels of column 639 differ between the original

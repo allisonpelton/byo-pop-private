@@ -365,6 +365,11 @@ bool WinWSApp::LoadFont(ImageFont*& theFont, const char* thePath)
 // 0x428500 slot 16
 void WinWSApp::Init()
 {
+	// port: the 2004 WidgetManager::DrawScreen (0x47d790) copies the screen's Graphics, clips and translates it and draws the widget;
+	// it never sets the fast stretch (the 2004 Graphics keeps it in the byte at +0x49, the constructor clears it, and nothing in the
+	// game's code sets it), so a widget's stretched picture averages. The shared 1.3 WidgetManager sets it on every widget
+	gWidgetsDrawWithoutFastStretch = true;
+
 	SexyApp::Init();
 
 	// port: the 2004 SexyApp::Init seeds the C library generator with srand(GetTickCount()); -seed=N test runs seed it
