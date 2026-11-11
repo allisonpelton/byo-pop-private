@@ -16,6 +16,7 @@
 #include "MainMenu.h"
 #include "MemoryImage.h"
 #include "ReloadDisplay.h"
+#include "DDImage.h"
 #include "SDLMusicInterface.h"
 #include "SoundInstance.h"
 #include "SoundManager.h"
@@ -62,6 +63,8 @@ WinDMApp::WinDMApp()
 	mWasInGame = false;
 	mReloadDisplay = nullptr;
 	mReloading = false;
+	mShrinkLoads = 0;
+	mShrinkFill = 0;
 	m3dImagesLoaded = false;
 	mNormBonus = mEndlessBonus = mTimedBonus = 0;
 	mNormBonusMult = mNormPMBase = mNormPMMult = 0.0;
@@ -655,6 +658,18 @@ void WinDMApp::SwitchScreenMode(bool wantWindowed)
 		}
 	}
 	SexyApp::SwitchScreenMode(wantWindowed);
+}
+
+// port: a picture that CustomResourceManager loads for the 640 by 480 game comes at five eighths of its size, as the copy
+// that the original keeps of it in the user's folder is (CustomResourceManager::DoLoadImage, 0x5b4a69)
+DDImage* WinDMApp::GetImage(const std::string& theFileName, bool commitBits)
+{
+	if (mShrinkLoads == 0)
+		return SexyApp::GetImage(theFileName, commitBits);
+	DDImage* anImage = SexyApp::GetImage(theFileName, false);
+	if (anImage != nullptr)
+		CustomResourceManager::ShrinkImage(anImage, mShrinkFill, commitBits);
+	return anImage;
 }
 
 // 0x5e0b6f

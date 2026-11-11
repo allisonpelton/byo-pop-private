@@ -27,8 +27,15 @@ Each of these has no visible effect on play unless the entry says so.
 - **No game-state recorder** (GameStateEngine's recording), no write-only app byte (+0xf24), no `OutputDebugString` in
   UpdateBonusPenalty.
 - **Dead functions are left out**: 0x59bb4f, 0x59bbc1, 0x59c390, 0x59dd3c, 0x594c71 and 0x5963ba are never called.
-- **The 640 by 480 scaled-image cache is not ported.** The port always draws at 1024 by 768 and the framework scales the
-  window (`ScaleNum` is kept, with the 1024 case only taken).
+- **The 640 by 480 game shrinks its pictures as they load, and keeps no copies.** At 640 by 480 (High Resolution off, or no
+  3D acceleration in the original) the original loads every picture that has no small art of its own (`sm_path`) and no
+  `nr_` in its name at five eighths of its size: it shrinks the picture once (0x5afda3, every 8 by 8 pixels to 5 by 5, each
+  new pixel the sum of the old ones by the part it covers, in 256ths), writes the result as `sm_<path>.tga` into the user's
+  folder, and loads that file from then on while it is newer than the picture. The port shrinks at each load with the same
+  arithmetic (`CustomResourceManager::ShrinkImage`, through `WinDMApp::GetImage`) and writes no file: loading stays as fast as
+  the machine allows. The backdrops, planets and the galaxy's map (`GetCachedImage`) go the same way. Until phase two the port
+  loaded the full pictures at 640 by 480, so everything laid out from a picture's size stood wrong there (a dialog's
+  buttons most of all) and `AddAlphaSparkle`'s pixel test read other pixels than the original's.
 - **Memory leaks of the original are fixed**: Lightning's bolt array, `mPoints` when CheckForHints clears them, the old
   backdrop that the XMAS cheat replaces, and PuzzleStateOverlay's dome image (`mDomeImage`) are freed.
 - **Uninitialised state is zeroed**: the ranges of a `Piece` that the original never sets, a ShockWave's grow flag (set
@@ -164,13 +171,11 @@ constructor does clear).
   freed gems of the squares that are not made yet. Their memory holds what the allocator left there. The port clears
   the pointers (those squares read as empty); whether the original's HasSet ever counted a stale gem, and so drew one
   more colour, is for the identical-play comparison of a level change to show.
-- **AddAlphaSparkle's pixel test reads the original's 640 by 480 scaled images** (0x5a7bfb): in the 2D game it looks for a solid
-  pixel of the picture it is given (up to 100 tries, each a `Rand()`), and the picture it reads is the 640 by 480 copy that
-  the original makes of every gem image when it starts at that size. The port keeps one set of 1024 by 768 images and scales
-  on the screen, so the pixels it finds are not the original's and the global generator then draws a different number of
-  numbers. The comparison with the original's 2D game therefore runs with `nosparkle` (a test command; the original's copy is
-  patched the same way, `build/origrun/bej2_nosparkle.txt` holds the seed patch and the AddAlphaSparkle patch) and compares
-  everything else. In the 3D game both sides read the same 1024 by 768 images and need no such step.
+- **AddAlphaSparkle's pixel test reads the 640 by 480 game's shrunk pictures** (0x5a7bfb): in the 2D game it looks for a solid
+  pixel of the picture it is given (up to 100 tries, each a `Rand()`). Solved in phase two: the port shrinks its pictures as
+  the original does (the deviations, above), the test finds the same pixels, and the 640 by 480 Endless run that had needed
+  `nosparkle` is identical without it (40 moves, 27 levels). The `nosparkle` test command and `NOSPARKLE=1` are left for a
+  comparison that wants the sweep out of the way; nothing needs them now.
 - **Hyperspace::Update2d's star lines depend on the screen's width** (0x5c7532): each new line takes `Rand() % mWidth`, so a jump
   at 640 by 480 (the original without 3D) draws different numbers than the port's 2D at 1024 by 768 scaled down. No 2D run
   has shown a difference from it so far; the 3D game (both at 1024 by 768) needs no such care.
@@ -199,10 +204,10 @@ constructor does clear).
 - **`UpdateStarRots` wraps the wrong angle** (0x596747): after it turns the second star back by 0.004 it tests the first
   star's angle for being negative, which it never is, so the second angle runs on below zero for ever (harmless: the angle is
   only drawn). The port repeats it.
-- **The port's 640 by 480 dialogs are the 1024 layout scaled.** The original lays a dialog out with the sizes of its 640 by 480
-  pictures, so its buttons stand elsewhere: the yes of "Load Game?" is at (257,203) in the original and at (257,222) in the
-  port, which is the original's Cancel row. For phase two (the 2D game's screens); the comparison gives the original its own
-  place for that click.
+- **The 640 by 480 dialogs** stood wrong until phase two: the port loaded the full pictures there, and a dialog is laid out
+  with its pictures' sizes (the yes of "Load Game?" was at (257,222), on the original's Cancel row). With the pictures shrunk
+  as the original shrinks them the button is at (257,213), inside the original's, and the resumed game is identical with no
+  click moved; whether every dialog matches to the pixel is the screen comparison's to say.
 
 ## Fix candidates (for the fixes mod)
 

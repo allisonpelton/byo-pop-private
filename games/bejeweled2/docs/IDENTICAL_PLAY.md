@@ -37,7 +37,7 @@ play in the browser).
 | Classic | 40 moves, 2 levels, identical | 40 moves, 2 levels (score 1020), identical |
 | Action | 40 moves, 3 levels, identical; then idle through the end of the time (20 moves, 9000 idle updates) identical | 40 moves, 3 levels (score 19950), identical |
 | Puzzle | 40 moves of the first puzzle, identical | 40 moves of the first puzzle, identical |
-| Endless | 40 moves, 25 levels (score 56350), identical | 40 moves, 27 levels, identical (with `nosparkle`, below) |
+| Endless | 40 moves, 25 levels (score 56350), identical | 40 moves, 27 levels, identical (with `nosparkle` in phase one, without it since the port shrinks its pictures: phase two, below) |
 | Twilight | 40 moves, 2 levels, identical; idle for 9000 updates identical | 38 moves, 2 levels (score 972), through game over, identical |
 | Hyper | 40 moves, 7 levels (score 254700), identical; 20 moves and then idle through game over and 700 updates more, identical | 40 moves, 9 levels (score 395750), identical |
 | Cognito | 40 moves, 2 levels, identical | 40 moves, 2 levels (score 1805), identical |
@@ -109,6 +109,17 @@ The hidden mode at 640 by 480 had never started in the original in the first run
 round the four mode buttons takes long enough for the new player's welcome message to open, the driver clicked its button where
 the port's 640 by 480 layout has it, the original's button is elsewhere, and the original's message stayed up over its menu.
 `record.py` closes that message with the Escape key now, and the mode starts on both sides at the same update.
+
+## Phase two (looks identical), begun 2026-11-11
+
+The first fault was the one phase one pointed at: at 640 by 480 the port loaded its pictures at full size, where the original
+loads each at five eighths (a copy it makes once and keeps in the user's folder). Everything that is laid out from a
+picture's size stood wrong there, a dialog's buttons most of all, and `AddAlphaSparkle` read other pixels. The port now
+shrinks a picture as it loads, with the original's arithmetic (`CustomResourceManager::ShrinkImage`, the original's
+`0x5afda3`; GAME_NOTES.md, the deviations, says what is not kept: the copies on disk). Two runs of phase one were made
+again at 640 by 480 and say that the shrunk pixels are the original's where the game reads them: Endless (40 moves, 27
+levels) is identical without `nosparkle`, which it had needed, and the resumed game is identical with the "Load Game?" click
+at the port's own button, which had needed moving. The screens themselves have not been compared yet.
 
 ## Not yet covered
 
