@@ -198,6 +198,10 @@ DDInterface* AstroPopApp::CreateDDInterface()
 // 0x42f170 slot 16
 void AstroPopApp::Init()
 {
+	// port: this game's MemoryImage::SlowStretchBlt (0x4b1bf0) divides the colour's weight by the alpha that is there, as the
+	// 1.4 framework's has commented out (a stretch onto transparent bits, as the loader's strips, keeps the colour at full strength)
+	gSlowStretchRenormalizesAlpha = true;
+
 	SexyApp::Init();
 	LoadResourceManifest();   // 0x4d93f0
 
