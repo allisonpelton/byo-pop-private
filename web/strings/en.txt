@@ -336,7 +336,9 @@ index.footer.trademarks = PopCap, Bejeweled, Bejeweled Twist, BookWorm, Big Mone
   registered trademarks of Electronic Arts Inc. in the United States.
 index.footer.music_html = The Music player plays the music from the game files you added, in this browser, with
   <a href="licenses/libopenmpt.txt" target="_blank" rel="noopener">libopenmpt<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and
-  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>.
+  <a href="licenses/libxmp-lite.txt" target="_blank" rel="noopener">libxmp-lite<span class="visually-hidden newtab"> (opens in a new tab)</span></a>; its score view draws with
+  <a href="licenses/vexflow.txt" target="_blank" rel="noopener">VexFlow<span class="visually-hidden newtab"> (opens in a new tab)</span></a> and its fonts
+  <a href="licenses/bravura.txt" target="_blank" rel="noopener">Bravura and Academico<span class="visually-hidden newtab"> (opens in a new tab)</span></a> by Steinberg.
   The desktop's text is set in
   <a href="licenses/byopop-sans.txt" target="_blank" rel="noopener">Byopop Sans<span class="visually-hidden newtab"> (opens in a new tab)</span></a>,
   made from W95FA by Alina Sava.
@@ -1292,7 +1294,8 @@ music.tracker_ch = CH {first}-{last}/{count}
 music.mute = Mute
 music.vis_spectrum = Spectrum (click for the tracker)
 music.vis_tracker = Tracker (click for the piano roll)
-music.vis_piano = Piano roll (click to turn off)
+music.vis_piano = Piano roll (click for the score)
+music.vis_score = Score (click to turn off)
 music.vis_off = No view (click for the spectrum)
 music.lcd_reading = Reading…
 music.lcd_none = No music
