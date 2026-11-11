@@ -101,8 +101,9 @@ typically like").
 - **Twelve at work, flat out, and three early ports (the user, 2026-11-07):** "No limit on concurrent sessions while
   getting all current games to their finished state", run flat out to the 97% cap ("Flat out to the cap"). After 21
   sessions at work filled the machine and two crashed: "Too many sessions, some crashed. Set a comfortable limit to
-  avoid this happening again." The limit is 6 sessions at work besides the coordinator (the user, 2026-11-11, after
-  12 had been set: "Resuming so many will probably cause more crashes. ... I'll tentatively say six"), where at work means in a turn
+  avoid this happening again." The limit is 8 sessions at work besides the coordinator (the user, 2026-11-11, after
+  12 had been set: "Resuming so many will probably cause more crashes. ... I'll tentatively say six"; later that day:
+  "Based on CPU and RAM usage it might be ok to run an extra session or two"), where at work means in a turn
   or waiting on a run of its own. Each session's own process holds about 0.6 GB even while idle, and its builds,
   decompiles, games and sandboxes come on top in bursts. Before waking one, the coordinator also checks the machine:
   under 6 GB free, or over 80% of the commit limit, means waiting even below 6. A session past the limit waits idle

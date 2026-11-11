@@ -6,6 +6,7 @@
 
 using namespace Sexy;
 
+// 0x426d10: a section frees its child sections
 XcfFile::Section::~Section()
 {
 	for (size_t i = 0; i < mChildren.size(); i++)

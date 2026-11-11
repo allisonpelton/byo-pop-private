@@ -10,8 +10,9 @@ Water Bugs is the sequel to Cosmic Bugs and runs on the same engine, Retro64's o
 no classes, software blitters into a 16-bit back buffer, its own bank, font, FLIC and XML code, and DirectDraw and
 BASS underneath. The two executables differ in addresses (the same function sits 0x30 to 0x4e0 bytes further on, by
 region) and in what the game does, not in how the engine works, so this port is the Cosmic Bugs port with Water
-Bugs' code: `engine/` is the engine (`R64*.cpp`) and `src/` the game on top of it (`WB*.cpp`, namespace `wb`).
-Everything the engine needs from the machine goes through one interface, `r64::SysHost` in `engine/R64Sys.h`: the
+Bugs' code: `engines/retro64/` is the engine (`R64*.cpp`, one copy that both games build on, `docs/ENGINES.md`) and `src/`
+the game on top of it (`WB*.cpp`, namespace `wb`). Everything the engine needs from the machine goes through one
+interface, `r64::SysHost` in `engines/retro64/R64Sys.h`: the
 files, the screen, the clock, the pointer, the sounds, the music, links, the save folder and the player's name.
 `src/WaterBugsApp.cpp` implements it over the platform, with the SexyAppFramework hosting the window, the clock, the
 input and the sound device, and presenting the 800x600 screen the game draws into; `test/gamerun.cpp` implements it

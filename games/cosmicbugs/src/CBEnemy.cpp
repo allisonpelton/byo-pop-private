@@ -177,14 +177,14 @@ int Enemy_Bounce(Enemy* theEnemy)
 	if (gLevels.current->columns[aCol][aRow].kind == 0)
 	{
 		Image* anImage = theEnemy->image;
-		int anAhead = (int)((double)((anImage->w * Sign(theEnemy->vx)) / 3) + (double)theEnemy->x);
+		int anAhead = (int)((double)((anImage->mW * Sign(theEnemy->vx)) / 3) + (double)theEnemy->x);
 		Cell* aCell = &gLevels.current->columns[anAhead / 16][aRow];
 		if (aCell->kind != 0)
 		{
 			theEnemy->hitCell = aCell;
 			theEnemy->vx = -theEnemy->vx;
 		}
-		anAhead = (int)((double)((anImage->h * Sign(theEnemy->vy)) / 3) + (double)theEnemy->y);
+		anAhead = (int)((double)((anImage->mH * Sign(theEnemy->vy)) / 3) + (double)theEnemy->y);
 		aCell = &gLevels.current->columns[aCol][anAhead / 16];
 		if (aCell->kind != 0)
 		{
@@ -295,7 +295,7 @@ static void BumpRoller_Push(Cell* theHit, int theD, bool theInX)
 		int aY = (int)aCell->y;
 		int aX = (int)aCell->x;
 		Image* aBack = gLevels.current->background;
-		Copy16(gBackBuffer.bits, gBackBuffer.pitch, aX, aY, aBack->bits, aBack->pitch, aX, aY, 0x10, 0x10);
+		Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, 0x10, 0x10);
 		Cell_Redraw(C(anAlong, 0));
 		C(anAlong, theD)->kind = 2;
 		ParticleSystem_New();
@@ -1499,8 +1499,8 @@ void LaserWalker_Move(Enemy* theEnemy)
 			aShot->kind = 0xd;
 			aShot->midHandle = 1;
 			aShot->depth = theEnemy->depth + 1;
-			aShot->x = (float)((double)aDx * (double)theEnemy->image->w * 0.5 + (double)theEnemy->x);
-			aShot->y = (float)((double)aDy * (double)theEnemy->image->h * 0.5 + (double)theEnemy->y);
+			aShot->x = (float)((double)aDx * (double)theEnemy->image->mW * 0.5 + (double)theEnemy->x);
+			aShot->y = (float)((double)aDy * (double)theEnemy->image->mH * 0.5 + (double)theEnemy->y);
 			aShot->vx = (float)((double)aDx * 0.2);
 			aShot->vy = (float)((double)aDy * 0.2);
 			const char* aName;
@@ -1616,8 +1616,8 @@ static void Turtle_Puff(Enemy* theEnemy, int theEndR, int theEndG, int theEndB)
 	int aFirst = theEnemy->firstParticle;
 	float aVy = (float)((double)RandRange(-100, 100) / 20000.0 + (double)theEnemy->vy * 0.25);
 	float aVx = (float)((double)RandRange(-100, 100) / 10000.0 + (double)theEnemy->vx * 0.25);
-	float aPy = (float)(aY - (double)RandRange(-0x1e, 0x1e) / 20.0 - (double)((theEnemy->image->h * aSy) / 3));
-	float aPx = (float)(aX - (double)RandRange(-0x1e, 0x1e) / 20.0 - (double)((theEnemy->image->w * aSx) / 3));
+	float aPy = (float)(aY - (double)RandRange(-0x1e, 0x1e) / 20.0 - (double)((theEnemy->image->mH * aSy) / 3));
+	float aPx = (float)(aX - (double)RandRange(-0x1e, 0x1e) / 20.0 - (double)((theEnemy->image->mW * aSx) / 3));
 	ParticleSystem_Add(gLevels.current->systems.current, aPx, aPy, aVx, aVy, aFirst, aLast, 0, 0xff, 0xff, 0xff,
 		theEndR, theEndG, theEndB, 0x154, 10, aLifetime, 1.0f, 0.0f, 5);
 }

@@ -1,0 +1,28 @@
+# Tour: the secret order of the main menu (the coverage check: ShipsScreen, 0x434ac0). The buttons are touched with the mouse in the
+# order Hall of Fame, Hall of Fame, Classic, Hall of Fame, Survival, Survival, Hall of Fame, Options and Quit; the original's
+# sequence has More Games between the last two, which the port has taken out (origcmd).
+3100 click 320 447
+3150 type Test
+3180 key Return
+3300 move 535 160
+3320 move 320 300
+3340 move 535 160
+3360 move 110 190
+3380 move 535 160
+3400 move 110 330
+3420 move 320 300
+3440 move 110 330
+3460 move 535 160
+3480 move 535 250
+3500 origcmd move 535 330
+3520 move 535 410
+3545 shot e01_pending
+3580 shot e02_ships1
+3620 shot e03_ships2
+3680 shot e04_ships3
+3760 shot e05_ships4
+3860 shot e06_ships5
+3960 shot e07_ships6
+4100 shot e08_ships7
+4300 shot e09_ships8
+4500 shot e10_after

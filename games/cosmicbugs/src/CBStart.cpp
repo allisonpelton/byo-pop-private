@@ -93,8 +93,8 @@ int Screen_Lock()
 {
 	if (LockScreen(&gScreenLock) == 0)
 		return 0;
-	gScreenPitch = gScreenLock.pitch;
-	gScreenBits = gScreenLock.bits;
+	gScreenPitch = gScreenLock.mPitch;
+	gScreenBits = gScreenLock.mBits;
 	return 1;
 }
 
@@ -142,9 +142,9 @@ void DrawLoadingScreen()
 	if (Screen_Lock() != 0)
 	{
 		std::memset(gScreenBits, 0, gScreenPitch * 600);
-		Draw_FillBlend(gScreenBits, gScreenPitch, &gBackBuffer.fmt, 0, 0, 0x31f, 0x257, 0, 0, 0, 0xb4);
-		Image_BlitSubRect(anImage, gScreenBits, gScreenPitch, Sys_ScreenFormat(), 400 - anImage->w / 2,
-			300 - anImage->h / 2, 0, 0, anImage->w, anImage->h);
+		Draw_FillBlend(gScreenBits, gScreenPitch, &gBackBuffer.mFmt, 0, 0, 0x31f, 0x257, 0, 0, 0, 0xb4);
+		Image_BlitSubRect(anImage, gScreenBits, gScreenPitch, Sys_ScreenFormat(), 400 - anImage->mW / 2,
+			300 - anImage->mH / 2, 0, 0, anImage->mW, anImage->mH);
 		UnlockScreen();
 	}
 	Present(0);
@@ -162,17 +162,17 @@ void LoadGameFile()
 		std::memcpy(anEco, ".xml", 4);
 	const char* aData = (const char*)ReadWholeFile(gGameFile, &aSize);
 	const char* p = Xml_NextTag(aData, &aTag);
-	while (std::strcmp(aTag.name, "/game") != 0)
+	while (std::strcmp(aTag.mName, "/game") != 0)
 	{
-		if (std::strcmp(aTag.name, "animation") == 0)
+		if (std::strcmp(aTag.mName, "animation") == 0)
 		{
 			Animation_Append(&gAnims);
 			if (Animation_FromXml(gAnims.current, &aTag) == 0)
 				List_RemoveCurrent(&gAnims);
 		}
-		if (std::strcmp(aTag.name, "sound") == 0)
+		if (std::strcmp(aTag.mName, "sound") == 0)
 			Sound_Load(Xml_GetString(&aTag, "file"));
-		if (std::strcmp(aTag.name, "random_levels") == 0)
+		if (std::strcmp(aTag.mName, "random_levels") == 0)
 		{
 			if (Xml_GetInt(&aTag, "start_seed") != 0)
 				CrtSrand(Xml_GetInt(&aTag, "start_seed"));
@@ -189,7 +189,7 @@ void LoadGameFile()
 				} while (aCount != 0);
 			}
 		}
-		if (std::strcmp(aTag.name, "level") == 0)
+		if (std::strcmp(aTag.mName, "level") == 0)
 		{
 			Level_Append(&gLevels);
 			if (Xml_GetInt(&aTag, "skip") == 0)
@@ -199,32 +199,32 @@ void LoadGameFile()
 			gLevels.current->number = aNumber;
 			Level_Load(gLevels.current, p, &aTag);
 		}
-		else if (std::strcmp(aTag.name, "enemy") == 0)
+		else if (std::strcmp(aTag.mName, "enemy") == 0)
 		{
 			Enemy_Append(&gEnemyDefs);
 			Enemy_FromXml(gEnemyDefs.current, p, &aTag);
 		}
-		else if (std::strcmp(aTag.name, "emitter") == 0)
+		else if (std::strcmp(aTag.mName, "emitter") == 0)
 		{
 			Emitter_Append(&gEnemyDefs.current->emitters);
 			Emitter_FromXml((Emitter*)gEnemyDefs.current->emitters.current, &aTag);
 		}
-		else if (std::strcmp(aTag.name, "font") == 0)
+		else if (std::strcmp(aTag.mName, "font") == 0)
 			Font_LoadXml(p, &aTag);
-		else if (std::strcmp(aTag.name, "song") == 0)
+		else if (std::strcmp(aTag.mName, "song") == 0)
 		{
 			Music_Load(Xml_GetString(&aTag, "name"));
 			Music_SetVolume(0xff);
 			Music_Play();
 		}
-		else if (std::strcmp(aTag.name, "next_file") == 0)
+		else if (std::strcmp(aTag.mName, "next_file") == 0)
 		{
 			// (the original's next file after main is bugs, whatever main names)
 			std::strcpy(gGameFile, Xml_GetString(&aTag, "name"));
 			if (std::strcmp(gGameFile, "animations\\main.eco") == 0)
 				std::strcpy(gGameFile, "animations\\bugs.eco");
 		}
-		else if (std::strcmp(aTag.name, "level_set") == 0)
+		else if (std::strcmp(aTag.mName, "level_set") == 0)
 		{
 			LevelSet_Append(&gLevelSets);
 			gLevelSets.current->start = Xml_GetInt(&aTag, "start_range");
@@ -368,9 +368,9 @@ const char* Localize(const char* theText)
 		size_t aSize;
 		const char* p = (const char*)ReadWholeFile("animations\\local.xml", &aSize);
 		p = Xml_NextTag(p, &aTag);
-		while (std::strcmp(aTag.name, "/localization") != 0)
+		while (std::strcmp(aTag.mName, "/localization") != 0)
 		{
-			if (std::strcmp(aTag.name, "string") == 0)
+			if (std::strcmp(aTag.mName, "string") == 0)
 			{
 				List_Append(&gLocalStrings, new LocalString());
 				std::strcpy(gLocalStrings.current->index, Xml_GetString(&aTag, "index"));

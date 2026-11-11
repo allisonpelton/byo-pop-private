@@ -8,6 +8,7 @@
 #include "GalaxyParser.h"
 #include "PodDialog.h"
 #include "Res.h"
+#include "Fixes.h"
 #include "Graphics.h"
 #include "Font.h"
 #include "MemoryImage.h"
@@ -412,7 +413,8 @@ int PuzzleStateOverlay::GetPodAt(int theX, int theY)
 
 // 0x5d2004: the vapor behind the dome, the warp button or the dome's halves, and the five pods. The pods' unlit
 // picture is drawn with g, which has the colorizing off, so its alpha does not apply (the original sets the alpha on
-// a copy of g that it draws the lit picture with)
+// a copy of g that it draws the lit picture with); the fixes mod's "podFade" draws it with the copy, so it fades out as
+// the lit one fades in
 void PuzzleStateOverlay::DrawFront(Graphics* g)
 {
 	Graphics g1(*g);
@@ -511,7 +513,8 @@ void PuzzleStateOverlay::DrawFront(Graphics* g)
 			int aSize1 = mApp->ScaleNum(0x6e, 0);
 			int aSize2 = mApp->ScaleNum(0x6e, 0);
 			Rect aSrc(mApp->ScaleNum(aSrcX, 0), 0, aSize2, aSize1);
-			g->DrawImage(IMAGE_PUZZLE_PODS, mApp->ScaleNum(aPos.mX, 0), mApp->ScaleNum(aPos.mY, 0), aSrc);
+			Graphics* aUnlitGraphics = FixEnabled("podFade") ? &g1 : g;
+			aUnlitGraphics->DrawImage(IMAGE_PUZZLE_PODS, mApp->ScaleNum(aPos.mX, 0), mApp->ScaleNum(aPos.mY, 0), aSrc);
 		}
 		if (0.0f < aPod.mLit)
 		{

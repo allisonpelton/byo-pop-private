@@ -83,7 +83,7 @@ bool UiClick(SevenSeasApp* theApp, std::string* theWhat, int* x, int* y);
 std::string StateJson(SevenSeasApp* theApp)
 {
 	Board* b = theApp->mBoard;
-	std::string s = std::string("{\"screen\":\"") + ScreenName(theApp) + "\"";
+	std::string s = std::string("{\"screen\":\"") + ScreenName(theApp) + "\",\"update\":" + Num(theApp->mUpdateCount);
 	if (theApp->mTutorial)
 		s += ",\"mode\":\"tutorial\"";
 	else

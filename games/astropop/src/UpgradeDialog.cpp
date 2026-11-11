@@ -106,7 +106,7 @@ UpgradeDialog::UpgradeDialog(AstroPopApp* theApp, int theMode, int theSetting, c
 	}
 }
 
-// 0x48a670
+// 0x48a670 (body 0x48a510)
 UpgradeDialog::~UpgradeDialog()
 {
 }

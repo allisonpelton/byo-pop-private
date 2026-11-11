@@ -246,7 +246,7 @@ int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag)
 		if (strcmp(Xml_GetString(theTag, "x"), "left") == 0 && theObj->image != nullptr)
 			theObj->x = 0.0f;
 		else if (strcmp(Xml_GetString(theTag, "x"), "right") == 0 && theObj->image != nullptr)
-			theObj->x = (float)(800 - theObj->image->w);
+			theObj->x = (float)(800 - theObj->image->mW);
 		else
 			theObj->x = (float)(Xml_GetFloat(theTag, "x") * 800.0 / 800.0);
 	}
@@ -255,7 +255,7 @@ int Obj_FromXml(Obj* theObj, const char* p, const XmlTag* theTag)
 		if (strcmp(Xml_GetString(theTag, "y"), "top") == 0 && theObj->image != nullptr)
 			theObj->y = 0.0f;
 		else if (strcmp(Xml_GetString(theTag, "y"), "bottom") == 0 && theObj->image != nullptr)
-			theObj->y = (float)(600 - theObj->image->h);
+			theObj->y = (float)(600 - theObj->image->mH);
 		else
 			theObj->y = (float)(Xml_GetFloat(theTag, "y") * 600.0 / 600.0);
 	}

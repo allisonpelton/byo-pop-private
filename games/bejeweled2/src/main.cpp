@@ -4,10 +4,13 @@
 //   -gamedir=<dir>   folder with the game's images/, data/, edata/, sounds/, music/, properties/ and puzzles/: the
 //                    staged copy that games/bejeweled2/tools/stage_assets.py makes (assets/bejeweled2)
 //   -userdir=<dir>   writable folder for the players' profiles, the saved game and registry.ini
+//   -modsdir=<dir>   folder containing data mods (one sub-folder per mod); native default: mods-bejeweled2 next to the exe
+//   -nomods          start without any mods
 // Remaining "-key=value" arguments are passed to the app (SexyAppBase::HandleCmdLineParam), e.g. the framework's test
 // hooks -seed=N, -script=<file>, -fast and -trace (see SexyAppBase.h).
 
 #include "WinDMApp.h"
+#include "platform/ModManager.h"
 #include "platform/Relaunch.h"
 #include "platform/VFS.h"
 #include "platform/WebPersist.h"
@@ -31,6 +34,18 @@ static std::string ArgValue(int argc, char** argv, const char* theKey)
 			return a + n + 1;
 	}
 	return "";
+}
+
+static bool HasFlag(int argc, char** argv, const char* theFlag)
+{
+	for (int i = 1; i < argc; i++) {
+		const char* a = argv[i];
+		while (*a == '-')
+			a++;
+		if (!strcmp(a, theFlag))
+			return true;
+	}
+	return false;
 }
 
 static bool LooksLikeGameDir(const std::string& theDir)
@@ -67,12 +82,15 @@ int main(int argc, char** argv)
 {
 	std::string gameDir = ArgValue(argc, argv, "gamedir");
 	std::string userDir = ArgValue(argc, argv, "userdir");
+	std::string modsDir = ArgValue(argc, argv, "modsdir");
 
 #ifdef __EMSCRIPTEN__
 	if (gameDir.empty())
 		gameDir = "/bej2persist/game";
 	if (userDir.empty())
 		userDir = "/bej2persist/userdata";
+	if (modsDir.empty())
+		modsDir = "/bej2persist/mods";
 #else
 	if (gameDir.empty())
 		gameDir = FindGameDir();
@@ -83,6 +101,8 @@ int main(int argc, char** argv)
 		while (!userDir.empty() && (userDir.back() == '/' || userDir.back() == '\\'))
 			userDir.pop_back();
 	}
+	if (modsDir.empty())
+		modsDir = ExeDir() + "/mods-bejeweled2";
 #endif
 
 	if (gameDir.empty() || !LooksLikeGameDir(gameDir)) {
@@ -101,7 +121,11 @@ int main(int argc, char** argv)
 	Platform::RestoreUserDataBackup(userDir);
 	Platform::VFS::Get().SetBaseDir(gameDir);
 	Platform::VFS::Get().SetUserDir(userDir);
-	SDL_Log("game: %s | user: %s", gameDir.c_str(), userDir.c_str());
+	Platform::MakeDirs(modsDir);
+	Platform::ModManager::Get().SetModsDir(modsDir);
+	if (!HasFlag(argc, argv, "nomods"))
+		Platform::ModManager::Get().Refresh();
+	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	// The music is one MO3 module (music/BeyondNetwork.mo3), which libopenmpt plays
 	Platform::RegisterOpenMPTModules();

@@ -56,7 +56,7 @@ public:
 	void Init() override;
 	void Shutdown() override;
 	void CloseRequestAsync() override;
-	void SwitchScreenMode(bool wantWindowed, bool is3d, bool force = false) override;
+	void SwitchScreenMode(bool theWantWindowed, bool theIs3d, bool theForce = false) override;
 	using SexyAppBase::SwitchScreenMode;
 	// -script's "state": logs the score, the lives, the board in its set and the board's filled cells, as the headless
 	// runner (test/gamerun.cpp) prints them
@@ -67,7 +67,7 @@ public:
 	// One pass of the original's main loop
 	void RunFrame();
 	// The engine's requests (WaterBugsApp.cpp's SysHost)
-	void AddUpdateRect(int x, int y, int w, int h);
+	void AddUpdateRect(int x, int y, int theWidth, int theHeight);
 	void Present();
 	void SetGameScreenMode(bool theFullscreen);
 	void WarpMouse(int x, int y);

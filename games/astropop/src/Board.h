@@ -315,7 +315,8 @@ public:
 	void			SetFill(int theRed, int theGreen, int theBlue, int theAlpha);   // 0x432990
 	void			SetFlag78(bool theFlag) { mFlag78 = theFlag; }                  // 0x4329c0
 
-	// (the original also has MouseMove, 0x4329d0, and IsPointVisible, 0x436140; the widget is not mouse-visible, so neither is called)
+	// (the original's widget class also has two overrides that the port leaves to Widget: a mouse-move one and an
+	// is-point-visible one; the widget is not mouse-visible, so neither is ever called)
 	void			Update() override;                                              // 0x432930
 	void			Draw(Graphics* g) override;                                     // 0x43fc10 (BoardOverlay.cpp)
 
