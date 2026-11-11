@@ -833,7 +833,9 @@ libxmp-lite are in About.
   3, 6 and 12 are compound time, a beat a dotted quarter (6/8, 12/8). The bars run on: a pattern whose length is not a
   whole number of bars ends on a short one.
 - **The view** is the display's lower half; a click cycles spectrum, tracker, piano roll, score, nothing. The spectrum is 24 bars from
-  40 Hz to 16 kHz from an AnalyserNode connected only while it shows. The tracker, for a module, has a terse header
+  40 Hz to 16 kHz from an AnalyserNode connected only while it shows. It is steadied (the user, 2026-11-10: "a little too jittery"):
+  the analyser's smoothing is 0.8, a bar is the mean of its bins with their highest, rises over a couple of frames and
+  falls by time, about its whole height a second, and a peak holds half a second before it falls. The tracker, for a module, has a terse header
   ("ORD 07  PAT 06  ROW 16/64"), a line over the columns (the user, 2026-11-11: labels on the columns) with each
   channel's number and the name of the instrument it played last up to the heard row, cut to the column's width, or
   the number alone where the column leaves fewer than 6 characters for the name, as the narrow cells do (XM,

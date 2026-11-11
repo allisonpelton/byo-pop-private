@@ -609,7 +609,7 @@ var ByopopMusic = (function () {
       try { node.disconnect(); } catch (e) {}
       if (analyser) { try { analyser.disconnect(); } catch (e) {} }
       if (spectrumOn) {
-        if (!analyser) { analyser = ctx.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.5; analyser.minDecibels = -85; analyser.maxDecibels = -15; }
+        if (!analyser) { analyser = ctx.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = SMOOTHING; analyser.minDecibels = -85; analyser.maxDecibels = -15; }
         node.connect(analyser);
         analyser.connect(gain);
       } else node.connect(gain);
@@ -1592,8 +1592,13 @@ var ByopopMusic = (function () {
       scoreHead.style.height = height + "px";
       scoreMeter.textContent = sig.label;
     }
-    // The spectrum: BARS bars over 40 Hz to 16 kHz spaced as the ear hears them, each with a peak that falls back
-    var bins = null, peaks = [], levels = [];
+    // The spectrum: BARS bars over 40 Hz to 16 kHz spaced as the ear hears them, each with a peak that falls back. Steadied (the
+    // user, 2026-11-10: "a little too jittery. Something to do with dropoff speed, maybe?"): the analyser averages over more of
+    // its past frames (SMOOTHING), a bar takes the mean of its bins with their highest (the lowest bars cover a bin or two, so
+    // their highest alone jumps), rises over a couple of frames, and falls by time (FALL a second, the whole height in about a
+    // second whatever the frame rate) instead of by frame; a peak holds PEAK_HOLD seconds, then falls at PEAK_FALL
+    var SMOOTHING = 0.8, RISE = 0.6, FALL = 1.1, PEAK_HOLD = 0.5, PEAK_FALL = 0.5;
+    var bins = null, peaks = [], levels = [], held = [], lastSpectrum = 0;
     function drawSpectrum() {
       // the followed game's own output where it is tapped, else the player's own analyser
       var tap = follow && follow.tap, an = tap ? tap.an : analyser, live = tap ? true : state === "playing", rate = tap ? tap.rate : ctx && ctx.sampleRate;
@@ -1607,13 +1612,16 @@ var ByopopMusic = (function () {
       var barColour = cs.getPropertyValue("--mu-bar").trim() || cs.color, peakColour = cs.getPropertyValue("--mu-peak").trim() || barColour;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, w, hgt);
+      var now = performance.now(), dt = lastSpectrum ? Math.min(0.1, (now - lastSpectrum) / 1000) : 0;
+      lastSpectrum = now;
       var hz = rate / an.fftSize, gap = 2, bw = (w - gap * (BARS + 1)) / BARS;
       for (var i = 0; i < BARS; i++) {
-        var lo = 40 * Math.pow(400, i / BARS), hi = 40 * Math.pow(400, (i + 1) / BARS), v = 0;
-        for (var b = Math.floor(lo / hz); b <= Math.min(bins.length - 1, Math.ceil(hi / hz)); b++) v = Math.max(v, bins[b]);
-        var level = v / 255;
-        levels[i] = Math.max(level, (levels[i] || 0) - 0.04);
-        peaks[i] = Math.max(levels[i], (peaks[i] || 0) - 0.01);
+        var lo = 40 * Math.pow(400, i / BARS), hi = 40 * Math.pow(400, (i + 1) / BARS), v = 0, sum = 0, n = 0;
+        for (var b = Math.floor(lo / hz); b <= Math.min(bins.length - 1, Math.ceil(hi / hz)); b++) { v = Math.max(v, bins[b]); sum += bins[b]; n++; }
+        var level = n ? (v + sum / n) / 2 / 255 : 0, was = levels[i] || 0;
+        levels[i] = level > was ? was + (level - was) * RISE : Math.max(level, was - FALL * dt);
+        if (levels[i] >= (peaks[i] || 0)) { peaks[i] = levels[i]; held[i] = PEAK_HOLD; }
+        else if ((held[i] -= dt) <= 0) peaks[i] = Math.max(levels[i], peaks[i] - PEAK_FALL * dt);
         var x = gap + i * (bw + gap), bh = Math.round(levels[i] * (hgt - 4));
         g.fillStyle = barColour;
         g.fillRect(x, hgt - bh, bw, bh);
@@ -1679,7 +1687,7 @@ var ByopopMusic = (function () {
         untap();
         if (!out || !out.node || !gctx || gctx.state === "closed") return;
         var an = gctx.createAnalyser();
-        an.fftSize = 2048; an.smoothingTimeConstant = 0.5; an.minDecibels = -85; an.maxDecibels = -15;
+        an.fftSize = 2048; an.smoothingTimeConstant = SMOOTHING; an.minDecibels = -85; an.maxDecibels = -15;
         out.node.connect(an);
         follow.tap = { an: an, node: out.node, rate: gctx.sampleRate };
       } catch (e) {}
