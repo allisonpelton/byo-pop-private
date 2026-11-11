@@ -305,7 +305,9 @@ that game's, exactly as its own page's import card takes it. "Add games", the lo
 desktop go to the Setup window, which sorts and copies through the same queue.
 
 **Sorting** (`ByopopImport.sort` in `web/gameimport.js`) goes by the files first and the name second. A folder is a
-game's when it holds every one of the game's markers. A folder of several games ("PopCap Games") is looked into,
+game's when it holds every one of the game's markers. A marker may name alternatives, any one of which will do
+("WinTS.exe|TyperShark.exe": Typer Shark's exe in its Steam copy and in the PopCap Game Collection's), and the error for
+a folder without either names them as "WinTS.exe or TyperShark.exe". A folder of several games ("PopCap Games") is looked into,
 three levels deep at most. Where two games' markers are at the same place, the folder's name picks the one whose
 title, short name or target it matches, ignoring case, punctuation and "Deluxe", "PopCap" and "Games"; when the name
 cannot tell, the player is asked. On a phone, where no folder can be picked, .zip files are picked.
@@ -747,15 +749,44 @@ says their files are here.
 
 **Which files** hold a game's music is in `web/soundtracks.js`, by the game's id: path patterns in the game's folder,
 matched without regard to case. A module gives its subsongs as tunes (those under two seconds are left out as
-stings), and an Ogg Vorbis file is one tune. An entry may also have:
+stings), and an Ogg Vorbis or WAV file is one tune. An entry may also have:
 
 - `parts`: ranges of orders played as separate tracks (Bonnie's Bookstore's one module is nine tracks, from the
   track table in `games/bonnies/game/Music.cpp`).
 - `joined`: a playlist file and the path of its short Ogg pieces, decoded and played one after another (Pixelus and
   Rocket Mania; `AssembleMusic` in `games/rocketmania/src/AppMusic.cpp`).
 - `skip` (`"<file>#<n>"`), `names` (a plain name for a tune) and `level` ("Music levels").
+- `inside`: tunes kept inside a game's own files, read from the stored file each time they are listed or played. They
+  come either from a Windows module's resources that start with given bytes, which also name their format (the Mahjong
+  Escapes' MO3 modules in `Resource.dll`, named "Resource 335" by their ids), or from named entries of a zip archive (Ning
+  Po's music stream in its Python archive, stored or deflated, the latter through `DecompressionStream`). `tools/musictest.js`
+  checks both readers on files it makes. Tip Top's one MIDI piece is not listed: the player has no MIDI synthesiser.
+- `where`: where in the game its code plays a tune, named as a game music rip names it ("Main Menu", "Level Theme 1",
+  "Danger 2": Title Case, one place, at most 20 characters, several tunes of one place numbered in the order the game
+  reaches them, else the file's; the user, 2026-11-11: "Rip style please!"). It comes from the game's session reading
+  its code, or from the file names of an Ogg game whose files are named for their places.
+- `unused`: the tunes the game's code never plays.
+- `cuts` and `chains`: tracks split and grouped as the game really plays them (the user, 2026-11-11: "Group and
+  split"). `cuts: {"<file>#<n>": [order, ...]}` splits a subsong where the game's code starts a different tune
+  partway through it; the second piece is `"<file>#<n>@<order>"` (Big Money's level-up jingles and each mode's pause
+  music, Twist's loading tune and in-game tune 5). A cut order that the subsong never reaches becomes a tune from that
+  order to the end. `chains: {"<file>#<n>": ["<file>#<m>", ...]}` makes one track of parts that the game only ever
+  plays as jumps inside one tune (the Mahjong Escapes' game tune and its gold-tile jumps). Both play as segments of
+  orders, each timed by rendering it unheard.
+- `joined` with `pieces` (and an `id`) instead of a playlist: files played one after another as one track,
+  `loopFrom` the piece its loop goes back to (Noah's Ark's intro, then its loop).
 
-Tunes are named plainly, by file name and "part n". No invented titles.
+A WAV file is one tune too, decoded by the browser like an Ogg file and timed from its header. Word Harmony makes its
+music as it plays: the menu loops one WAV, and its rising-water mode steps a drum track through short pieces as the
+water rises, with one bridge between each. That is one track, "Rising Water", made of its pieces in the order the drum
+track steps through them, with no height. The single instrument samples its other modes pick at random are not
+tunes and are not listed. `tools/musictest.js` checks that every place in `web/soundtracks.js` is at most 20
+characters.
+
+Tunes are named plainly, by file name and "part n". No invented titles. Each line of the list shows the tune's place,
+or "Unused" struck through, and its format, the file's extension (MO3, IT, S3M, XM, OXM or OGG). The display's second
+line shows the same after the game's name, so a recorded Ogg track, which has no tracker, piano roll or score, is told
+apart from a module.
 
 **The decoder** is the games' own two module renderers, built for the web as `openmpt.js` and `openmpt.wasm`
 (target `byopop_openmpt`, from `web/music/openmpt_web.c`). As `Platform::Mixer` picks them, an MO3 or OXM plays
@@ -951,6 +982,15 @@ on a click, Enter or Space; different sounds overlap. Each file is decoded once,
 decoder, stb_vorbis from `openmpt.wasm`, or our own reader for a Sun `.au` file). Closing the window stops what
 plays and drops the decoded sounds and the audio context. The grid is one tab stop. It is silent at `?silent=1` as
 the music player is, and is not shown under 760 pixels wide.
+
+A board may also have presets, in a group box of their own ("Sequences") before the others: sequences that sound in
+the game, played as the game plays them (the user, 2026-11-11: "preset sequences of sound effects for the soundboards
+based on sequences that sound off in game"), such as a cascade of each depth, a level up and the game over. Each is
+taken from a game the port's own bot played (`tools/playbymove`, the `move` command) with the sound log on
+(`BYOPOP_SOUNDLOG`): `tools/soundpreset.py <log> <first update> <last update>` turns that stretch of the log into a
+preset, every sound at its time (10 ms an update) with its volume, pan, pitch, loop, stop and its fades. The window
+schedules the steps on the audio clock; a preset pressed again starts again, and Stop stops it. A preset whose files
+are not all in the game's folder is left out. The names are rip style, as Music's places are.
 
 ### The splits timer
 

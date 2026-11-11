@@ -1307,6 +1307,7 @@ music.volume = Volume
 music.split = Display height
 music.split_rows = {n} rows
 music.tune_part = {file}, part {n}
+music.unused = Unused
 music.duration = {min}:{sec}
 music.album = Games on this site
 
@@ -1324,6 +1325,7 @@ sounds.none = None of the games you added has sounds the board can play yet.
 sounds.st_error = Error
 sounds.failed = The sounds could not be read.
 sounds.bad_file = This file could not be played.
+sounds.presets = Sequences
 splits.title = Splits
 splits.segment1 = Level 1
 splits.prev = Previous Segment
