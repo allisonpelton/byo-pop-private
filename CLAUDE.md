@@ -39,8 +39,10 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
   private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
   and its MessageBeep calls with no sound, unless `--msgbox show` (a box then rings, as do boxes called through
-  GetProcAddress, `--sound real` runs and games that never load the stand-in; `docs/ORIGRUN.md`). It has no guard
-  against URL or program launches, so a script never clicks a link, "Buy" or "More Games" button. When a run really
+  GetProcAddress, `--sound real` runs and games that never load the stand-in; `docs/ORIGRUN.md`). Its network block
+  and launch guard fail a copy's connections and its ShellExecute, WinExec and CreateProcess launches, but not a COM
+  launch or a game that never loads the stand-in, so a script still never clicks a link, "Buy" or "More Games"
+  button. When a run really
   needs real sound, the user turns the speakers off for a short stretch or overnight. An original counts as a game
   process.
 - Open web builds in the Browser pane only with `?silent=1`, e.g. `http://127.0.0.1:18766/bejeweled.html?silent=1`

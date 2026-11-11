@@ -587,9 +587,14 @@ regression check on the port's own play (it was uncommitted when these notes wer
 ## 10. The fixes mod and the fix candidates (2026-11-09)
 
 `games/typershark/mods/fixes/mod.json` is the game's fixes mod (`docs/MOD_ROADMAP.md`, "The fixes mod"): one mod, each setting a
-toggle for one bug of the original that the port keeps, every toggle on by default. The site serves the game with it on
-(`typershark-fixes/` beside the page); a native build finds it when the folder is copied into the mods folder (`-modsdir=<dir>`
-with `fixes/mod.json` inside). The port without the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every
+toggle for one bug of the original that the port keeps. A toggle starts on, except where the fix changes something that may be meant
+(the user's rule for every fixes mod, 2026-11-11: "Off by default for functionality that seems intended but where the bug is not well
+known to be a bug"): `schools` starts off, since a lone background fish reads as the intended look and the missing followers are not a
+known bug (`"default": false` in mod.json; the player turns it on in the mod menu); `tutorKeyboard` starts on, since a key lighting
+the wrong picture is a plain error. The site serves the game with the mod on (`typershark-fixes/` beside the page); a native build
+finds it when the folder is copied into the mods folder (`-modsdir=<dir>` with `fixes/mod.json` inside). The tools that need every
+fix on (`tools/fixshots.py` and the phase-1 comparison's `TSMODSDIR`, `tools/phase1/cmp.py`) write a `mod-settings.json` into the
+run's user folder that turns every toggle of the mod on. The port without the mod is the original: `FixEnabled` (`src/Fixes.cpp`) is false for every
 toggle unless the mod is enabled, and each toggle is read where its fix matters, as a live value. With the mod on the game
 plays as it does without it: `tools/regress.py` with `TSMODSDIR=<dir>` (tools/phase1/cmp.py gives it as `-modsdir`) hashes the
 same state logs as without it, so no fix changes what a game draws from the generator. `tools/fixshots.py schools|tutor` takes
