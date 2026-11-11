@@ -548,7 +548,7 @@ void WinAlchApp::LoadingCompleted()
 	mMusicInterface->FadeOut(SONG_INTRO, true, 0.004);
 	mMusicInterface->FadeIn(SONG_PLAY, -1, 0.002, false);
 
-	if (HasSavedGame())
+	if (Board::HasSavedGame())
 		TryConfirmLoad();
 }
 

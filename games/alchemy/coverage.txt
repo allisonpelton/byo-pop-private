@@ -59,8 +59,8 @@ none 004062c8 std::vector<string> uninitialized copy wrapper: C++ library code
 none 00406ee4 std::vector<pair<int,int>>::push_back (Board::Update's list of the cells left): C++ library code
 none 00407dc4 std::vector<string>::operator= (the Board constructor's copy of the rank names into a global; the port reads the names where ComputeRank needs them): C++ library code
 none 004083c1-00408424 std::list erase, head node allocations and node allocation (sparks, popups, sparkles): C++ library code
-none 0040857b std::list constructor (EffectsWidget's sparkle list): C++ library code
-none 004085e5-00408601 EffectsWidget deleting destructor and destructor (they only clear the two std::list members, which the port's members do themselves): compiler-made
+none 0040857b std::list constructor (BoardOverlay's sparkle list): C++ library code
+none 004085e5-00408601 BoardOverlay deleting destructor and destructor (they only clear the two std::list members, which the port's members do themselves): compiler-made
 none 004088da-00408909 std::list insert (push_back of score popups and sparkles): C++ library code
 none 004096ac scalar deleting destructor of the all-time dialog (the destructor proper is 0x40965a): compiler-made
 none 00409fcc-0040a0f1 std::string append (substring, chars, C string): C++ library code
@@ -70,7 +70,7 @@ none 0040e4b7 Piece destructor (only the base Widget's work; the port's implicit
 none 0040e757 Piece scalar deleting destructor: compiler-made
 none 0040eb83 scalar deleting destructor of the name entry dialog (the destructor proper is 0x40ea5d): compiler-made
 none 0040f91c-0040f974 std::list erase of a range, node allocation and constructor (side panel bubbles): C++ library code
-none 0040f9f6-0040fa12 SidePanel destructor and scalar deleting destructor (they only clear the std::list of bubbles, which the port's member does itself): compiler-made
+none 0040f9f6-0040fa12 Sidebar destructor and scalar deleting destructor (they only clear the std::list of bubbles, which the port's member does itself): compiler-made
 none 0040fe7e std::list insert (push_back of a side panel bubble): C++ library code
 none 00410376 scalar deleting destructor of the title screen (the destructor proper is 0x41022c): compiler-made
 none 0041145b-00411470 ios::lock and ios::unlock (the stream locks of the MSVC C++ runtime): library code

@@ -24,7 +24,7 @@ using namespace Sexy;
 static const char* kScoreFileName = "userdata\\hiscores.dat";
 
 // 0x409e60: the day, for the best score of the day
-static int GetDayNum()
+int HighScoreWidget::GetDayNum()
 {
 	time_t aNow = time(NULL);
 	struct tm* aTime = localtime(&aNow);
@@ -297,7 +297,7 @@ void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 }
 
 // a line of the statistics: the label on the left and the value on the right (0x409f01; the baseline is the line's y)
-static void DrawColumn(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel, const SexyString& theValue)
+void HighScoreWidget::DrawColumn(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel, const SexyString& theValue)
 {
 	g->DrawString(theLabel, theRect.mX + 0x10 + theDX, theRect.mY + theDY);
 	int aWidth = g->GetFont()->StringWidth(theValue);

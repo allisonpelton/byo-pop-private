@@ -83,6 +83,18 @@ bool Board::SaveGame()
 	return mApp->WriteBytesToFile(GetSaveGameFileName(), aData.data(), (unsigned long) aData.size());
 }
 
+// 0x4010fc: only tests that the file opens
+bool Board::HasSavedGame()
+{
+	return gApp->FileExists(GetSaveGameFileName());
+}
+
+// 0x40111e
+bool Board::DeleteSavedGame()
+{
+	return gApp->EraseFile(GetSaveGameFileName());
+}
+
 // Part of Board::SaveGame (0x402a44): the bytes it writes (also the web build's backup, WinAlchApp::GetShutdownSaves: it
 // does not touch the clock)
 std::string Board::SerializeGame()

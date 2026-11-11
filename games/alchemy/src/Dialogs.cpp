@@ -328,15 +328,16 @@ int RecordScoreDialog::GetPreferredHeight(int theWidth)
 }
 
 // 0x40eb9f: the box of a name: the left end of the picture, a run of its middle and its right end
-static void DrawEditBox(Graphics* g, Image* theBox, const Rect& theRect)
+void RecordScoreDialog::DrawEditBox(Graphics* g, const Rect& theRect)
 {
-	g->DrawImage(theBox, theRect.mX, theRect.mY, Rect(0, 0, 0x20, 0x20));
-	g->DrawImage(theBox, theRect.mX + theRect.mWidth - 0x20, theRect.mY, Rect(0x40, 0, 0x20, 0x20));
+	Image* aBoxImage = mApp->mImages[IMAGE_EDITBOX];
+	g->DrawImage(aBoxImage, theRect.mX, theRect.mY, Rect(0, 0, 0x20, 0x20));
+	g->DrawImage(aBoxImage, theRect.mX + theRect.mWidth - 0x20, theRect.mY, Rect(0x40, 0, 0x20, 0x20));
 	Graphics aMiddle(*g);
 	aMiddle.ClipRect(theRect.mX + 0x20, theRect.mY, theRect.mWidth - 0x20, 0x20);
 	int aTiles = (theRect.mWidth - 0x21) / 0x20;
 	for (int i = 0; i < aTiles; i++)
-		aMiddle.DrawImage(theBox, theRect.mX + 0x20 + i * 0x20, theRect.mY, Rect(0x20, 0, 0x20, 0x20));
+		aMiddle.DrawImage(aBoxImage, theRect.mX + 0x20 + i * 0x20, theRect.mY, Rect(0x20, 0, 0x20, 0x20));
 }
 
 // 0x40eed1: the box of the name (4 pixels more on each side than the edit widget) and the prompt over it
@@ -345,7 +346,7 @@ void RecordScoreDialog::Draw(Graphics* g)
 {
 	Dialog2004::Draw(g);
 	Rect aBox(mEdit->mX - mX - 4, mEdit->mY - mY - 4, mEdit->mWidth + 8, mEdit->mHeight + 8);
-	DrawEditBox(g, mApp->mImages[IMAGE_EDITBOX], aBox);
+	DrawEditBox(g, aBox);
 	g->SetFont(mApp->mFont1);
 	g->SetColor(Color(0, 0, 0));
 	g->DrawString(mApp->GetString("ENTER_YOUR_NAME"), mEdit->mX - mX, (mEdit->mY - mY) - 8);

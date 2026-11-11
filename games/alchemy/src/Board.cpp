@@ -550,15 +550,15 @@ void Board::EncodeMove(int theCol, int theRow)
 		}
 }
 
-// 0x4114ff: the wizard's message of three lines (header, text, footer) as a dialog
-void Board::ShowMessage(const char* thePrefix, int theFirst)
+// port: the wizard's message whose three texts (header, text, footer) are thePrefix + "1".."3", or from theFirst on
+void Board::GiveHelp(const char* thePrefix, int theFirst)
 {
 	std::string aPrefix = thePrefix;
 	char aNum[3][2] = {{(char) ('0' + theFirst), 0}, {(char) ('1' + theFirst), 0}, {(char) ('2' + theFirst), 0}};
 	SexyString aHeader = mApp->GetString(aPrefix + aNum[0]);
 	SexyString aLines = mApp->GetString(aPrefix + aNum[1]);
 	SexyString aFooter = mApp->GetString(aPrefix + aNum[2]);
-	mApp->DoDialog(DIALOG_HINT, true, aHeader, aLines, aFooter, Dialog::BUTTONS_FOOTER);
+	mApp->GiveHelp(aHeader, aLines, aFooter);
 }
 
 // 0x40187c: a line of the statistics, the label on the left and the value on the right
@@ -702,7 +702,7 @@ void Board::MakeMove()
 	// the tutorial's row has to be finished in the one place
 	if (mTutorial && mTutorialStep == 4 && (aRow != 5 || aCol != 8))
 	{
-		ShowMessage("TUTORIAL_CLEAR_ROW", 2);
+		GiveHelp("TUTORIAL_CLEAR_ROW", 2);
 		return;
 	}
 
@@ -886,7 +886,7 @@ void Board::SkipMove()
 
 	if (mTutorial && mTutorialStep != 6)
 	{
-		ShowMessage("TUTORIAL_NO_DISCARD");
+		GiveHelp("TUTORIAL_NO_DISCARD");
 		return;
 	}
 
@@ -989,9 +989,9 @@ void Board::ShowPossibleMoves()
 		mScore = 0;
 
 	if (mCurPiece->mBomb)
-		ShowMessage("SKULL_BOMB");
+		GiveHelp("SKULL_BOMB");
 	else if (mCurPiece->mSkull)
-		ShowMessage("FOURWAY");
+		GiveHelp("FOURWAY");
 	else if (GetNumPossibleMoves() != 0)
 	{
 		mHintOn = true;
@@ -999,7 +999,7 @@ void Board::ShowPossibleMoves()
 		MarkDirty();
 	}
 	else
-		ShowMessage("NOMOVES");
+		GiveHelp("NOMOVES");
 }
 
 // 0x403ee5: the rank for the score, and the score of the next one
@@ -1197,27 +1197,27 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	if (!mTutorial)
 	{
 		if (aReason == 3 && mMultiMoves < 2)
-			ShowMessage("INVALID_MOVE_SOME_MISMATCH");
+			GiveHelp("INVALID_MOVE_SOME_MISMATCH");
 		else if (mNumValid == 0 && mDiscards == 0)
-			ShowMessage("INVALID_MOVE_MUST_DISCARD");
+			GiveHelp("INVALID_MOVE_MUST_DISCARD");
 		else if (mMoves != 0)
 		{
 			if (mMoves <= 5)
-				ShowMessage("INVALID_MOVE_NOTHING_NEARBY");
+				GiveHelp("INVALID_MOVE_NOTHING_NEARBY");
 		}
 		else
-			ShowMessage("INVALID_MOVE_MUST_START_BY_CENTER");
+			GiveHelp("INVALID_MOVE_MUST_START_BY_CENTER");
 	}
 	else
 	{
 		if (aReason == 2 || aReason == 3)
-			ShowMessage("INVALID_MOVE_NON_ADJACENT_COLOR");
+			GiveHelp("INVALID_MOVE_NON_ADJACENT_COLOR");
 		else if (aReason == 1)
-			ShowMessage("INVALID_MOVE_NO_ADJACENT_SYMBOL");
+			GiveHelp("INVALID_MOVE_NO_ADJACENT_SYMBOL");
 		else if (aReason == 4)
-			ShowMessage("INVALID_MOVE_NON_EMPTY_SPOT");
+			GiveHelp("INVALID_MOVE_NON_EMPTY_SPOT");
 		else if (aReason == 5)
-			ShowMessage("INVALID_MOVE_BOMB");
+			GiveHelp("INVALID_MOVE_BOMB");
 		// any other reason (0, off the grid) says nothing, but the click still sounds (0x406ec7 is the common end)
 	}
 	mApp->PlaySample(SOUND_BAD);

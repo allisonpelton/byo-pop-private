@@ -78,6 +78,7 @@ public:
 	RecordScoreDialog(WinAlchApp* theApp, const SexyString& theLines);
 	virtual ~RecordScoreDialog();                 // 0x40ea5d
 
+	void				DrawEditBox(Graphics* g, const Rect& theRect);                  // 0x40eb9f
 	SexyString			GetName();
 
 	virtual void		AddedToManager(WidgetManager* theWidgetManager) override;       // 0x40eac0

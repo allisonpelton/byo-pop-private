@@ -176,11 +176,10 @@ public:
 	void					ConfirmNewGame();                         // 0x411e2a
 	void					ConfirmTutorial();                        // 0x411f27
 	void					ConfirmQuit();                            // 0x412017
+	void					GiveHelp(const SexyString& theHeader, const SexyString& theLines, const SexyString& theFooter); // 0x4114ff: the wizard's message as a dialog
 	void					TryConfirmLoad();                            // 0x411d4f
 
 	void					AutoplayShot(const std::string& theFileName) { SaveScreenshot(theFileName); } // port: the bot's screenshots
-	bool					HasSavedGame();                           // 0x4010fc: savegame.dat opens
-	bool					DeleteSavedGame();                         // 0x40111e
 };
 
 extern WinAlchApp* gApp;

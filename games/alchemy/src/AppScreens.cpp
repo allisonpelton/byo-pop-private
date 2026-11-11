@@ -24,16 +24,10 @@
 
 using namespace Sexy;
 
-// 0x4010fc: only tests that the file opens
-bool WinAlchApp::HasSavedGame()
+// 0x4114ff: the wizard's message of three lines (header, text, footer) as a dialog
+void WinAlchApp::GiveHelp(const SexyString& theHeader, const SexyString& theLines, const SexyString& theFooter)
 {
-	return FileExists(Board::GetSaveGameFileName());
-}
-
-// 0x40111e
-bool WinAlchApp::DeleteSavedGame()
-{
-	return EraseFile(Board::GetSaveGameFileName());
+	DoDialog(DIALOG_HINT, true, theHeader, theLines, theFooter, Dialog::BUTTONS_FOOTER);
 }
 
 // 0x410d2a (slot 71): mutes or unmutes (when the count says it must), then the sound button follows the mute count
@@ -206,7 +200,7 @@ void WinAlchApp::ShowIntroScreen()
 // 0x411d4f
 void WinAlchApp::TryConfirmLoad()
 {
-	if (HasSavedGame())
+	if (Board::HasSavedGame())
 		DoDialog(DIALOG_LOAD_GAME, true, GetString("CONFIRM_LOAD1"), GetString("CONFIRM_LOAD2"), "", Dialog::BUTTONS_YES_NO);
 }
 
@@ -300,7 +294,7 @@ void WinAlchApp::ButtonDepress(int theId)
 			KillDialog(DIALOG_LOAD_GAME);
 			NewGame();
 			mBoard->LoadGame();
-			DeleteSavedGame();
+			Board::DeleteSavedGame();
 			break;
 		default:
 			KillDialog(aDialogId);
@@ -313,7 +307,7 @@ void WinAlchApp::ButtonDepress(int theId)
 		if (aDialogId == DIALOG_LOAD_GAME)
 		{
 			KillDialog(DIALOG_LOAD_GAME);
-			DeleteSavedGame();
+			Board::DeleteSavedGame();
 		}
 		else
 			KillDialog(aDialogId);

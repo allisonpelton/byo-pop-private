@@ -47,7 +47,6 @@ public:
 
 	void					FloatPoints(int theX, int theY, int theValue);        // 0x408938
 	void					AddSparkle(int theX, int theY, bool isFalling, bool isBig); // 0x408970
-	void					Clear();
 
 	virtual void			Draw(Graphics* g) override;     // 0x4086e6
 	virtual void			Update() override;              // 0x40844f

@@ -191,12 +191,14 @@ public:
 	void			RedrawBackground();                                                // 0x40204a
 	void			DrawAliasedPiece(Graphics* g, Piece* thePiece, int theX, int theY); // 0x4019d1
 	void			DrawColumn(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel, const SexyString& theValue); // 0x40187c
-	void			ShowMessage(const char* thePrefix, int theFirst = 1);            // 0x4114ff with the three strings thePrefix + "1".."3" (or from theFirst on)
+	void			GiveHelp(const char* thePrefix, int theFirst = 1);               // port: WinAlchApp::GiveHelp with the texts thePrefix + "1".."3" (or from theFirst on), which each of the original's calls spells out
 
 	// the saved game
 	bool			SaveGame();                                                      // 0x402a44
 	bool			LoadGame();                                                      // 0x40589a
 	std::string		SerializeGame();
+	static bool		HasSavedGame();                                                  // 0x4010fc: savegame.dat opens
+	static bool		DeleteSavedGame();                                               // 0x40111e
 	static std::string	GetSaveGameFileName();                                       // "userdata\savegame.dat"
 
 	virtual void	AddedToManager(WidgetManager* theWidgetManager) override;       // 0x401014

@@ -18,12 +18,6 @@ BoardOverlay::BoardOverlay(WinAlchApp* theApp)
 	mMouseVisible = false;   // port: the overlay never takes the mouse (the original's hit test finds nothing to do)
 }
 
-void BoardOverlay::Clear()
-{
-	mPopups.clear();
-	mSparkles.clear();
-}
-
 // 0x408938
 void BoardOverlay::FloatPoints(int theX, int theY, int theValue)
 {

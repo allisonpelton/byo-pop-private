@@ -42,6 +42,8 @@ public:
 	HighScoreWidget(WinAlchApp* theApp);                    // 0x40bad1
 	virtual ~HighScoreWidget();                             // 0x40be02: writes the file
 
+	static int			GetDayNum();                                // 0x409e60: the day, for the best score of the day
+	void				DrawColumn(Graphics* g, const Rect& theRect, int theDX, int theDY, const SexyString& theLabel, const SexyString& theValue); // 0x409f01
 	void				ReadFromFile();                             // 0x40a15a
 	void				WriteToFile();                             // 0x40a341
 	int					GetScorePlace(int theMode, int theScore);  // 0x409e88: 1 to 5, or 0 for a score that is not in the table
