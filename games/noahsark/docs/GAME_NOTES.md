@@ -531,7 +531,10 @@ had been taken out, or who decided it, now say what the code does.
   the coverage report could not show it, since the port's function had no address to pair. The port's now does the same. A
   script that sets a score, loses, types ABC and presses Enter ends on the high-score list, with ABC and its score in
   `hiscores.dat` and in the registry's last name; before, it stayed on the name entry. The original's function was read in the
-  disassembly (eight instructions); it was not run.
+  disassembly (eight instructions); it was not run. A run of the original with Enter in place of the click on OK was tried
+  (the coverage check's ranked-score replay) and did not get as far: with origrun rebuilt from the trunk of 2026-11-11, and
+  after the machine's restart, the copy takes the script's clicks and stays on its title, with the unchanged replay of
+  2026-11-08 as with the new one. That is reported to the coordinator as a fault of the tool or of the machine's state.
 - *A crash on closing the game with the name entry open.* The same script without the Enter, quitting at the name entry, ended
   in a segmentation fault: `NoahApp`'s destructor deleted its screens while they were still in the widget manager, and the
   framework, removing the dialog afterwards, gave the focus back to the game-over screen that was gone. The destructor now takes
