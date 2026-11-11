@@ -2271,12 +2271,22 @@ var ByopopMusic = (function () {
     window.addEventListener("resize", function () { if (!splitDrag) setRows(asked, false); });
     if (window.ResizeObserver) try { new ResizeObserver(function () { if (!splitDrag) setRows(asked, false); }).observe(root); } catch (e) {}
     visEl.addEventListener("click", function (ev) { if (!trackerScroll.contains(ev.target)) nextVis(); });
-    // a click on a channel's number in the tracker's header is the channel's, not the display's
+    // a click on a channel's number in the tracker's header is the channel's, not the display's: a click mutes it or brings it
+    // back, Ctrl-click or a double-click plays it alone (again on the channel alone, every channel back; the user, 2026-11-11:
+    // "Add double clicking a tracker channel to isolate its sound"). A plain click waits out the double-click's time before
+    // it mutes, so the two clicks of a double-click neither leave the channel muted nor cut its sound for a moment.
+    var pendingClick = null, DOUBLE_MS = 300;
     trackerHead.addEventListener("click", function (ev) {
       var span = ev.target.closest ? ev.target.closest(".mu-ch") : null;
       if (!span) return;
       ev.stopPropagation();
-      clickChannel(+span.getAttribute("data-ch"), ev.ctrlKey || ev.metaKey);
+      var c = +span.getAttribute("data-ch");
+      if (pendingClick) { clearTimeout(pendingClick.timer); var was = pendingClick; pendingClick = null; if (ev.detail >= 2 && was.c === c) { clickChannel(c, true); return; } clickChannel(was.c, false); }
+      if (ev.ctrlKey || ev.metaKey) { clickChannel(c, true); return; }
+      if (ev.detail === 0) { clickChannel(c, false); return; }   // a key's click: at once
+      if (ev.detail === 2) { clickChannel(c, true); return; }   // a slow double-click, its first click already taken: still alone
+      if (ev.detail > 2) return;   // the third click of a triple: the double-click has been taken
+      pendingClick = { c: c, timer: setTimeout(function () { pendingClick = null; clickChannel(c, false); }, DOUBLE_MS) };
     });
     // the bar: the thumb's size is the share of the channels shown, its place the first one's
     function placeThumb() {

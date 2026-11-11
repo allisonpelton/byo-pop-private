@@ -500,6 +500,13 @@ canvas, scaled to 1600 pixels at most and kept as a JPEG in localStorage `byopop
 layers go on `<body>` of the page that has the desktop (not a page in a window of the one page). `tools/schemetest.js`
 checks the patterns' shape and that every choice is named.
 
+A pattern's pixel is a whole number of the screen's own pixels, `devicePixelRatio` rounded (at least 1), drawn into a
+canvas at that size and laid on 1:1, so that it is crisp at every scaling (the user, 2026-11-11: "The background patterns
+don't work well with high DPI. I can hardly see any of them on my 4K, 27" display"). At 150% a CSS pixel is 1.5 of the
+screen's: a pattern pixel is 2 of them there, crisp, rather than one CSS pixel blurred. The same size is the root's
+`--d95-dot`, which the skin's checkerboard fills (scroll bar tracks, Music's track) use for their 2-by-2 checks; it is
+kept as the ratio changes (a zoom, a window moved to another screen).
+
 ### Desktop 95 in one page
 
 The whole site is one page, the listing's desktop (`web/deskapps.js`, `ByopopApps`). A game, its copyright page and
@@ -883,7 +890,10 @@ libxmp-lite are in About.
   MOD and S3M have no field for a channel's own name and libxmp-lite keeps none from an IT, so the instrument's name
   stands in for it), and the rows around the one heard. A click on a channel's number mutes it and another brings it
   back; a Ctrl-click (Cmd on a Mac) leaves that channel alone, and a Ctrl-click on the channel already alone brings
-  every channel back (the user's notes, 2026-11-10: "tracker labels and mute"). A muted channel's number is dimmed and
+  every channel back (the user's notes, 2026-11-10: "tracker labels and mute"). A double-click does what a Ctrl-click does
+  (the user, 2026-11-11: "Add double clicking a tracker channel to isolate its sound"): a plain click waits out a
+  double-click's time (300 ms) before it mutes, so the two clicks of a double-click leave nothing muted and cut no sound;
+  a key's click mutes at once. A muted channel's number is dimmed and
   struck through; a new tune starts with none muted. The player's own tunes mute through the decoder (`bm_mute`:
   libxmp-lite's `xmp_channel_mute`, libopenmpt's interactive interface's `set_channel_mute_status`), heard once the
   second it has rendered ahead has played; a followed game's through its mixer (`byopop_music_mute`), at once. A game
