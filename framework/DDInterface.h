@@ -128,6 +128,12 @@ public:
 	// do). The images are kept by size (GetTransformCopy); with them a frame of Twist costs about 2 ms more.
 	bool mSoftwareTransforms;
 
+	// Whether the screen keeps what the last frame drew (off by default: every frame starts from black). The original's software
+	// screen is one surface that persists from frame to frame, so a widget that draws nothing in a frame leaves what was there
+	// before (Bejeweled 2's 2D whirlpool opens over the main menu's last picture, which neither the menu nor the board draws any
+	// more). A game that draws its whole screen every frame gains nothing from it.
+	bool mKeepScreen;
+
 	// An image of at least theWidth x theHeight for the software transforms, its size rounded up to 16 pixels; the
 	// caller fills and draws only its top-left theWidth x theHeight. At most kTransformCacheSize are kept, the least
 	// recently used going first, so a texture is not made for every draw.

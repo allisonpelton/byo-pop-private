@@ -194,11 +194,12 @@ void OptionsDialog::Draw(Graphics* g)
 	aY = mApp->ScaleNum(0x1e, 0) + (mSfxSlider->mY - mY);
 	g->DrawString("Sound Effects", mApp->ScaleNum(0x18, 0) + mContentInsets.mLeft, aY);
 
-	DrawCheckbox(g, mFullscreenCheckbox, "Screen", "Full");
-	DrawCheckbox(g, m3DCheckbox, "Accelerate", "Hardware");
-	DrawCheckbox(g, mCursorsCheckbox, "Cursors", "Custom");
-	DrawCheckbox(g, mHighResCheckbox, "Resolution", "High");
-	DrawCheckbox(g, mBackdropsCheckbox, "Backdrops", "Random");
+	// the original builds each pair of strings in the order below and passes the later one first: it is the top line
+	DrawCheckbox(g, mFullscreenCheckbox, "Full", "Screen");
+	DrawCheckbox(g, m3DCheckbox, "Hardware", "Accelerate");
+	DrawCheckbox(g, mCursorsCheckbox, "Custom", "Cursors");
+	DrawCheckbox(g, mHighResCheckbox, "High", "Resolution");
+	DrawCheckbox(g, mBackdropsCheckbox, "Random", "Backdrops");
 }
 
 // 0x5cbbd0: high resolution on a screen of 1024 pixels or less needs full screen
@@ -404,7 +405,7 @@ void OptionsDialog::ButtonDepress(int theId)
 			mApp->mMainMenu->Show();
 			mApp->mMainMenu->mBackdropClear = true;
 		}
-		mApp->mMusicInterface->FadeIn(mApp->mCurrentSong, 1, 0.006);
+		mApp->mMusicInterface->FadeOut(mApp->mCurrentSong, true, 0.006);  // slot 0x30 of the music interface
 		mApp->mPendingMusicOffset = mApp->GetInteger("MUSICOFFSET_MAIN_MENU");
 	}
 	// ids 11 (Register), 13 and 100 to 199 (PopCap's pages) and 14 (Update Check) are not ported

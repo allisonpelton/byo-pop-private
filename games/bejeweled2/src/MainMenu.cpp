@@ -159,22 +159,22 @@ MainMenu::~MainMenu()
 	delete mSmallFont;
 }
 
-// 0x5c8aa9
+// 0x5c8aa9: the menu slides in from 1000 (of 1024) pixels below its place (the constructor's 700 is only its first value)
 void MainMenu::Show()
 {
 	mSlideDelay = 13;
 	mSlide.SetInVal(0);
-	mSlide.SetOutRange(700.0, 0);
+	mSlide.SetOutRange(1000.0, 0);
 	mSlide.SetRamp(2);
 	mState = STATE_SLIDING_IN;
 	ResizeComponents();
 }
 
-// 0x5c80e1
+// 0x5c80e1: and out to 1000, so that all of it has left the screen
 void MainMenu::Hide()
 {
 	mSlide.SetInVal(0);
-	mSlide.SetOutRange(0, 700.0);
+	mSlide.SetOutRange(0, 1000.0);
 	mSlide.SetRamp(2);
 	mState = STATE_SLIDING_OUT;
 }
@@ -492,13 +492,13 @@ void MainMenu::Update()
 		{
 			aDialog = mApp->DoDialog(DIALOG_WELCOME, true, "Welcome to Bejeweled 2!",
 				"If you have never played Bejeweled 2 you may want to start off playing Classic mode before trying the other game modes.", "OK", 3);
-			aHeaderWidth = 0x1a4;
+			aHeaderWidth = 0x17c;
 		}
 		else
 		{
 			aDialog = mApp->DoDialog(DIALOG_WELCOME, true, "Welcome to Diamond Mine 2!",
 				"If you have never played Diamond Mine 2 you may want to start off playing Classic mode before trying the other game modes.", "OK", 3);
-			aHeaderWidth = 0x17c;
+			aHeaderWidth = 0x1a4;
 		}
 		static_cast<PodDialog*>(aDialog)->mHeaderWidth = mApp->ScaleNum(aHeaderWidth, 0);
 		int aWidth = mApp->ScaleNum(0x20, 0) + aDialog->mWidth;

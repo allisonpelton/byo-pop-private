@@ -19,6 +19,7 @@ public:
 	explicit CustomResourceManager(SexyAppBase* theApp) : ResourceManager(theApp) {}   // 0x5afd7a
 
 	Image*			GetCachedImage(const std::string& thePath);     // 0x5b4852
+	static void		ShrinkImage(MemoryImage* theImage, unsigned long theFill, bool commitBits);    // 0x5afda3
 
 protected:
 	virtual bool	DoLoadImage(ImageRes* theRes) override;         // 0x5b4a69

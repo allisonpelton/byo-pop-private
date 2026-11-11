@@ -140,6 +140,10 @@ public:
 	bool			mWasInGame;                 // +0xf28 a game was in progress when the display reloaded
 	ReloadDisplay*	mReloadDisplay;             // +0xf2c
 	bool			mReloading;                 // +0xf30 the reload runs (the original's thread handle)
+	// port: the 640 by 480 game's pictures. The original keeps a five-eighths copy of every picture in the user's folder and
+	// loads that; the port shrinks a picture as it is loaded (GetImage, CustomResourceManager::ShrinkImage)
+	int				mShrinkLoads;               // above 0 while CustomResourceManager loads a picture that the small game shrinks
+	unsigned long	mShrinkFill;                // the colour past the picture's right and bottom edge for those loads
 	int				mPendingMusicOffset;        // +0xf34 the main menu music starts at this offset, -1 for none
 	int				mPendingMusicDelay;         // +0xf38 updates to wait before it starts
 
@@ -160,6 +164,7 @@ public:
 	virtual void	UpdateFrames() override;                        // 0x5e13f3
 	virtual void	WriteToRegistry() override;                     // 0x5de7bb
 	virtual void	ReadFromRegistry() override;                    // 0x5de9ba
+	virtual void	ButtonPress(int theId) override;                // 0x5dc1cf: the click sound
 	virtual void	ButtonDepress(int theId) override;              // 0x5e1ed9
 	virtual Dialog*	NewDialog(int theDialogId, bool isModal, const SexyString& theDialogHeader, const SexyString& theDialogLines,
 						const SexyString& theDialogFooter, int theButtonMode) override; // 0x5dce51
@@ -169,6 +174,7 @@ public:
 	virtual void	LostFocus() override;                           // 0x5dc0a3
 	virtual void	AddDialog(int theDialogId, Dialog* theDialog) override; // 0x5dc03b
 	virtual void	SwitchScreenMode(bool wantWindowed) override;   // 0x5e0b03
+	virtual DDImage* GetImage(const std::string& theFileName, bool commitBits = true) override;   // port: see mShrinkLoads
 	virtual void	Done3dTesting() override;                       // 0x5dbe1f
 	virtual void	PlaySample(int theSoundNum) override;           // 0x5dbe86
 	virtual void	PlaySample(int theSoundNum, int thePan) override; // 0x5dbe9a
