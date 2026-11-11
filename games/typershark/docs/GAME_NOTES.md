@@ -1007,3 +1007,31 @@ A virtual-clock origrun with a window of its own would make all of them equal; n
 
 **Not compared in 3D:** the abyss and bonus levels, an idle game, the boards after a pause and a resume (the real clock again), and the
 original's single-precision rounding of x87 code in 3D (Twist found it in its own comparison; nothing here depends on it).
+
+## 17. Widgets drawn without the fast stretch (2026-11-11)
+
+AstroPop found that the 2004 `WidgetManager` never sets the fast stretch on a widget's Graphics, where the shared 1.3 one sets it on every
+widget (three places in `framework/WidgetManager.cpp`), so a stretch drawn by a widget came out nearest-neighbour. Typer Shark is on the same
+2004 framework, and its export shows the same: `WidgetManager::DrawScreen` (0x47d790) copies the screen's Graphics (`Graphics_copy` 0x48ff00),
+clips and translates it and calls the widget's DrawAll, and no function of the export sets the 2004 Graphics' fast-stretch byte (+0x49: the constructor
+0x48ffb0 clears it; `DrawImage_destsrc` 0x490570 hands it to the image's StretchBlt as the last argument). The only two writes of a byte at
++0x49 in the export are in `SexyAppBase`'s constructor and a `std::map` head node. So `WinWSApp::Init` sets
+`gWidgetsDrawWithoutFastStretch` (framework/WidgetManager.h, off by default; AstroPop's) before `SexyApp::Init`.
+
+*Result of the 2D tours.* Run with the exe before and the exe after (`tools/phase2/stretchcheck.sh`, pixel for pixel by `pngdiff.py`; the
+frozen exe with the flag off against the one with it on), 17 tours, 2779 shots: M 98, S 33, U 70, P 32, T 17, T2 23, Q 6, I 8, idle 78,
+H 24, the abyss 81, tutor lessons 17 and 18 (120 and 163), Expert 210, the bonus levels 364 and the two whole-adventure runs (680 and 772); the two-run tours R and D were not run again (their screens are tour M's).
+**No shot changed in any picture.** Five shots differ in a column or two at the window's right edge (639 or 638: the abyss' `012348_hint_25` and
+`016800_grid`, one Expert shot, one bonus and one adventure shot); the same shots differ between two runs of the same exe (the oddity "the
+window's last column" in `IDENTICAL_PLAY.md`: two runs of the old exe against each other gave 4 of those 5, and not the same ones in
+each run), so they are that, not the stretch. Nothing matches the original better or worse.
+
+*Why nothing changed, and what the tours do not show.* The game stretches a picture in two places only (a picture drawn into a rectangle of
+another size): the medal (97 by 133, drawn 66 by 90) on the statistics screen's adventure panel (`AdventurePanel::Draw`, a player who has
+finished an adventure) and in the end-of-adventure dialog (`WinGameDialog::Draw` 0x439390, the same medal and the ten gem and treasure pictures
+squeezed into 30 by 30 squares). No tour shows either: the statistics tours play a new player with no finished adventure, and the whole-adventure
+tours' shots (a grid every 1000 updates, and at the named events) caught no end-of-adventure dialog. The flag changes only these two draws and
+no picture of any tour, so the 2D tours cannot tell whether the original's averaged stretch is the port's. Left for a check with a profile that has
+finished an adventure in both programs (the medal on the statistics screen, and the dialog at the end of the adventure; what the original's
+`MemoryImage::SlowStretchBlt` does with a picture's alpha is not read here, as AstroPop's `gSlowStretchRenormalizesAlpha` is for its own exe).
+The flag stays on: it is what the original does.
