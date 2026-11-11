@@ -58,8 +58,6 @@ public:
 	// slots 11, 12, 0x42c830, 0x42c890: the focus, and the tooltip on the status line
 	virtual void focus();
 	virtual void unfocus();
-	// slot 13, 0x42c410
-	virtual void setImage(const Str& theName);
 	// slot 14, 0x42c3e0
 	virtual void setFont(FontDesc* theDesc);
 
@@ -184,22 +182,6 @@ public:
 	float mTextHeight;        // +0xd0
 	int mKeyPressed;          // +0xd4
 	int mMousePressed;        // +0xd8
-};
-
-// Type 2 (the vtable 0x459ad8): a frame of mImage
-class Picture : public Widget
-{
-public:
-	Picture();
-	// 0x42f530
-	~Picture() override;
-
-	// slot 0, 0x42f540
-	void init() override;
-	// slot 8, 0x42f560
-	void draw() override;
-
-	int mFrame;               // +0x8c
 };
 
 // Type 3 (0x42d6c0, the vtable 0x4599b8)

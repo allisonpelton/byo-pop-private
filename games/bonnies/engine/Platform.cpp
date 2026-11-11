@@ -33,30 +33,6 @@ Unused* gUnused = nullptr;
 bool gPrintScreenDown = false;  // 0x4809cc
 }
 
-// 0x41f9d0
-int systemMessageBox(const Str& theText, const Str& theCaption, unsigned int theFlags)
-{
-	unsigned int aType;
-	if ((theFlags & 1) == 0)
-	{
-		aType = theFlags;
-		if ((theFlags & 4) != 0)
-			aType = 4 - ((theFlags & 2) != 0);
-	}
-	else
-		aType = theFlags >> 1 & 1;
-	int aResult = host()->messageBox(theText, theCaption, aType);
-	if (aResult == 1)
-		return 1;
-	if (aResult == 2)
-		return 2;
-	if (aResult == 6)
-		return 4;
-	if (aResult == 7)
-		return 8;
-	return 0;
-}
-
 // 0x41fb20. The menu handle 0x4809c4 is never set, so the window never has a menu; windowed, the original then
 // refreshes the window's frame (SetWindowPos with SWP_NOMOVE | SWP_NOSIZE), which changes nothing here.
 void updateWindowMenu()
@@ -242,13 +218,6 @@ int isLowColour()
 	if (gPlatform != nullptr && gPlatform->mDesktopBits < 9)
 		return 1;
 	return 0;
-}
-
-// 0x4205c0
-void openURL(const Str& theURL)
-{
-	if (!theURL.empty())
-		host()->openURL(theURL);
 }
 
 // 0x420760
@@ -549,80 +518,14 @@ int Platform::handleEvent(Event* theEvent)
 	return 1;
 }
 
-// 0x42a580
-int Platform::messageBox(int theFlags, const Str& theText1, const Str& theText2, const Str& theText3,
-	const Str& theText4, const Str& theText5)
-{
-	(void)theFlags;
-	(void)theText2;
-	(void)theText3;
-	(void)theText4;
-	(void)theText5;
-	systemMessageBox(theText1, "", 1);
-	return 1;
-}
-
 // 0x42a4d0
 int Platform::isPaused()
 {
 	return 0;
 }
 
-// 0x4217d0
-bool Platform::isRunning()
-{
-	return isPaused() == 0;
-}
-
-// 0x4217e0
-float Platform::getSoundVolume()
-{
-	return 1.0f;
-}
-
-// 0x4217e0
-float Platform::getMusicVolume()
-{
-	return 1.0f;
-}
-
-// 0x4217f0
-void Platform::windowMoved(int theX, int theY, int theClientX, int theClientY)
-{
-	(void)theX;
-	(void)theY;
-	(void)theClientX;
-	(void)theClientY;
-}
-
-// 0x401050
-void Platform::getWindowPos(int* theX, int* theY)
-{
-	*theX = 0x1e;
-	*theY = 0x32;
-}
-
-// 0x401050
-void Platform::getWindowPos2(int* theX, int* theY)
-{
-	*theX = 0x1e;
-	*theY = 0x32;
-}
-
 // 0x42a4d0
 int Platform::isIdle()
-{
-	return 0;
-}
-
-// 0x421800
-void Platform::menuCommand(int theCommand)
-{
-	(void)theCommand;
-}
-
-// 0x42a4d0
-int Platform::isModal()
 {
 	return 0;
 }
