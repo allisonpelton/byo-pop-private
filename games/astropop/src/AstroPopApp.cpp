@@ -6,6 +6,7 @@
 #include "HallOfFame.h"
 #include "LoaderScreen.h"
 #include "MainMenu.h"
+#include "OptionsDialog.h"
 #include "Particle.h"
 #include "SDLMusicInterface.h"
 #include "ResourceManager.h"
@@ -18,6 +19,7 @@
 #include "SoundInstance.h"
 #include "SoundManager.h"
 #include "Dialog.h"
+#include "Checkbox.h"
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -119,11 +121,14 @@ void AstroPopApp::HandleCmdLineParam(const std::string& theParamName, const std:
 	SexyApp::HandleCmdLineParam(theParamName, theParamValue);
 }
 
-// 0x4090d0 slot 53
+// 0x4090d0 slot 53: if the options box (id 0x66) is open, its full-screen check box follows the new mode (as a click on it
+// would, with the box's listener told)
 void AstroPopApp::SwitchScreenMode(bool wantWindowed)
 {
 	SexyApp::SwitchScreenMode(wantWindowed);
-	// original: if the options dialog (id 0x66) is open, its full-screen check box follows the new mode (v[47](!windowed))
+	OptionsDialog* anOptions = (OptionsDialog*) GetDialog(0x66);
+	if (anOptions != NULL && anOptions->mFullscreenCheck != NULL)
+		anOptions->mFullscreenCheck->SetChecked(!wantWindowed);
 }
 
 // 0x412360 slot 55
