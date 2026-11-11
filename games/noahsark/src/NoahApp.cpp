@@ -64,7 +64,7 @@ NoahApp::NoahApp() :
 	mIntroWidget = NULL;
 	mTitleScreen = NULL;
 	mHighScoreWidget = NULL;
-	mDifficulty = 0;
+	mDifficulty = DIFFICULTY_EASY;
 	mLevel = 0;
 	mGameMode = GAMEMODE_ACTION;
 	mSavedGameMode = GAMEMODE_ACTION;

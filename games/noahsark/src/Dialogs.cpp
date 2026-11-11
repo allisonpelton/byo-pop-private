@@ -35,13 +35,13 @@ DifficultyDialog::DifficultyDialog(NoahApp* theApp) :
 	SetHeaderFont(mApp->mFonts[FONT_MEDIUM]);
 	SetLinesFont(mApp->mFonts[FONT_SMALL]);
 
-	mEasyButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3c, this);
+	mEasyButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], BUTTON_EASY, this);
 	mEasyButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mEasyButton->mLabel = GT(0x00494408);
-	mMediumButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3d, this);
+	mMediumButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], BUTTON_MEDIUM, this);
 	mMediumButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mMediumButton->mLabel = GT(0x00494400);
-	mHardButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], 0x3e, this);
+	mHardButton = new DialogButton2003(mApp->mImages[IMAGE_DBUTTON], BUTTON_HARD, this);
 	mHardButton->SetFont(mApp->mFonts[FONT_SMALL]);
 	mHardButton->mLabel = GT(0x004943f8);
 }
@@ -100,9 +100,9 @@ void DifficultyDialog::ButtonPress(int theId)
 // 0x4112b0: the three buttons set the difficulty and start the game over
 void DifficultyDialog::ButtonDepress(int theId)
 {
-	if ((theId >= 0x3c) && (theId <= 0x3e))
+	if ((theId >= BUTTON_EASY) && (theId <= BUTTON_HARD))
 	{
-		mApp->mDifficulty = (theId == 0x3c) ? 0 : ((theId == 0x3d) ? 4 : 8);
+		mApp->mDifficulty = (theId == BUTTON_EASY) ? DIFFICULTY_EASY : ((theId == BUTTON_MEDIUM) ? DIFFICULTY_MEDIUM : DIFFICULTY_HARD);
 		mApp->DeleteSavedGame();
 		mApp->StartGame(false);
 	}

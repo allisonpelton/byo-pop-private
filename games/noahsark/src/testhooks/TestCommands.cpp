@@ -83,17 +83,17 @@ int ModeByName(const std::string& theName)
 
 const char* DifficultyName(int theDifficulty)
 {
-	return (theDifficulty == 0) ? "easy" : ((theDifficulty == 4) ? "medium" : "hard");
+	return (theDifficulty == DIFFICULTY_EASY) ? "easy" : ((theDifficulty == DIFFICULTY_MEDIUM) ? "medium" : "hard");
 }
 
 int DifficultyByName(const std::string& theName)
 {
 	if (theName == "easy")
-		return 0;
+		return DIFFICULTY_EASY;
 	if (theName == "medium")
-		return 4;
+		return DIFFICULTY_MEDIUM;
 	if (theName == "hard")
-		return 8;
+		return DIFFICULTY_HARD;
 	return -1;
 }
 
@@ -191,7 +191,7 @@ void NoahApp::UpdateTestGoto()
 	else if (aScreen == "difficulty")
 	{
 		DifficultyDialog* aDialog = (DifficultyDialog*) GetDialog(DIALOG_DIFFICULTY);
-		aDialog->ButtonDepress((mTestGotoDiff == 0) ? 0x3c : ((mTestGotoDiff == 4) ? 0x3d : 0x3e));
+		aDialog->ButtonDepress((mTestGotoDiff == DIFFICULTY_EASY) ? BUTTON_EASY : ((mTestGotoDiff == DIFFICULTY_MEDIUM) ? BUTTON_MEDIUM : BUTTON_HARD));
 		mTestGotoMode = 0;
 	}
 	else if (aScreen != "menu")
@@ -272,7 +272,7 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 			ShowHighScores();
 		else if (aMode != 0)
 		{
-			int aDiff = aRest.empty() ? 0 : DifficultyByName(aRest);
+			int aDiff = aRest.empty() ? DIFFICULTY_EASY : DifficultyByName(aRest);
 			if (aDiff < 0)
 			{
 				ReplyError(theCommand, "difficulty is easy, medium or hard");
@@ -419,8 +419,8 @@ bool NoahApp::HandleTestCommand(const ScriptCommand& theCommand)
 		else if (aScreen == "difficulty")
 		{
 			DifficultyDialog* aDialog = (DifficultyDialog*) GetDialog(DIALOG_DIFFICULTY);
-			Widget* aButton = (mTestWantDiff == 0) ? (Widget*) aDialog->mEasyButton
-				: ((mTestWantDiff == 4) ? (Widget*) aDialog->mMediumButton : (Widget*) aDialog->mHardButton);
+			Widget* aButton = (mTestWantDiff == DIFFICULTY_EASY) ? (Widget*) aDialog->mEasyButton
+				: ((mTestWantDiff == DIFFICULTY_MEDIUM) ? (Widget*) aDialog->mMediumButton : (Widget*) aDialog->mHardButton);
 			Reply(MoveClicks("difficulty", ClickOn(aButton), 10));
 		}
 		else if (aScreen == "tutorial")

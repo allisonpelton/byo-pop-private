@@ -27,9 +27,9 @@ class DifficultyDialog : public Dialog2004
 {
 public:
 	NoahApp*			mApp;                   // +0xc8
-	DialogButton*		mEasyButton;            // +0xcc id 0x3c
-	DialogButton*		mMediumButton;          // +0xd0 id 0x3d
-	DialogButton*		mHardButton;            // +0xd4 id 0x3e
+	DialogButton*		mEasyButton;            // +0xcc BUTTON_EASY
+	DialogButton*		mMediumButton;          // +0xd0 BUTTON_MEDIUM
+	DialogButton*		mHardButton;            // +0xd4 BUTTON_HARD
 
 public:
 	DifficultyDialog(NoahApp* theApp);

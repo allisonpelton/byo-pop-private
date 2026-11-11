@@ -74,6 +74,14 @@ enum GameMode
 	GAMEMODE_STAMPEDE = 5        // the bonus round after every third level (the mode is kept in mSavedGameMode)
 };
 
+// app+0x440: the difficulty chosen for a game (it adds to the level in the flood's pace and the board's obstacles)
+enum Difficulty
+{
+	DIFFICULTY_EASY = 0,
+	DIFFICULTY_MEDIUM = 4,
+	DIFFICULTY_HARD = 8
+};
+
 // Dialog ids (AddDialog / DoDialog / KillDialog)
 enum DialogId
 {
@@ -105,7 +113,10 @@ enum ButtonId
 	BUTTON_QUIT = 9,             // the menu's quit button
 	BUTTON_SIDEBAR_QUIT = 10,    // the board's quit button
 	BUTTON_SIDEBAR_OPTIONS = 12,
-	BUTTON_QUIT_KEY = 14
+	BUTTON_QUIT_KEY = 14,
+	BUTTON_EASY = 60,            // the difficulty dialog's three
+	BUTTON_MEDIUM = 61,
+	BUTTON_HARD = 62
 };
 
 class NoahApp : public SexyApp
@@ -126,7 +137,7 @@ public:
 	TitleScreen*			mTitleScreen;       // +0x414 until the first click
 	HighScoreWidget*		mHighScoreWidget;   // +0x41c the game-over screen
 	int						mLevel;             // +0x43c level number of the current game
-	int						mDifficulty;        // +0x440 0 easy, 4 medium, 8 hard
+	int						mDifficulty;        // +0x440 Difficulty
 	int						mGameMode;          // +0x444 GameMode
 	int						mSavedGameMode;     // +0x448 the mode a bonus round returns to
 	bool					mBonusRound;        // +0x439 a Stampede round is on
