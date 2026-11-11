@@ -22,12 +22,14 @@ using namespace Sexy;
 #include "GameLevels.h"
 #include "Tables.inc"
 
-// the keys the board reads from the widget manager's key table (the original's +0x84, +0x89, +0x8a, +0x8b, +0x8c)
-#define KEY_WAIT(m)		((m)->mKeyDown[KEYCODE_SPACE])
-#define KEY_WEST(m)		((m)->mKeyDown[KEYCODE_LEFT])
-#define KEY_EAST(m)		((m)->mKeyDown[KEYCODE_RIGHT])
-#define KEY_NORTH(m)	((m)->mKeyDown[KEYCODE_UP])
-#define KEY_SOUTH(m)	((m)->mKeyDown[KEYCODE_DOWN])
+// the keys the board reads from the widget manager's key table (the original's +0x84, +0x89, +0x8a, +0x8b, +0x8c). With the
+// fixes mod's keyTaps a key that was pressed and let go since the last update counts as well (mTapKeysNow, Board::KeyDown);
+// without it mTapKeysNow stays 0 and the table alone decides, as in the original
+#define KEY_WAIT(m)		((m)->mKeyDown[KEYCODE_SPACE] || (mTapKeysNow & TAP_WAIT) != 0)
+#define KEY_WEST(m)		((m)->mKeyDown[KEYCODE_LEFT] || (mTapKeysNow & TAP_WEST) != 0)
+#define KEY_EAST(m)		((m)->mKeyDown[KEYCODE_RIGHT] || (mTapKeysNow & TAP_EAST) != 0)
+#define KEY_NORTH(m)	((m)->mKeyDown[KEYCODE_UP] || (mTapKeysNow & TAP_NORTH) != 0)
+#define KEY_SOUTH(m)	((m)->mKeyDown[KEYCODE_DOWN] || (mTapKeysNow & TAP_SOUTH) != 0)
 
 // 0x4064b0: the three buttons come and go with the board
 void Board::AddedToManager(WidgetManager* theWidgetManager)
