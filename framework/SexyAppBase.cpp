@@ -4661,16 +4661,16 @@ bool SexyAppBase::TakeRelaunch(std::vector<std::string>* theArgs)
 // increment) is not drawn one update ahead of the rest. A game's own shots call SaveScreenshot, which keeps the count.
 bool SexyAppBase::SaveScreenshotMidUpdate(const std::string& theFileName, bool fullResolution)
 {
-	mUpdateCount--;
-	bool aResult = SaveScreenshot(theFileName, fullResolution);
-	mUpdateCount++;
-	return aResult;
+	return SaveScreenshot(theFileName, fullResolution, -1);
 }
 
-bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolution)
+bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolution, int theDrawCountOffset)
 {
 	MTAutoDisallowRand aDisallowRand;
 
+	// Only the draw sees the count moved by theDrawCountOffset (SaveScreenshotMidUpdate: one lower); the log lines
+	// below name the update the shot was asked at, which tests compare
+	mUpdateCount += theDrawCountOffset;
 	mIsDrawing = true;
 	mDrawingLogicalShot = !fullResolution;
 	mDDInterface->BeginFrame();
@@ -4678,6 +4678,7 @@ bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolu
 	mWidgetManager->DrawScreen();
 	mDrawingLogicalShot = false;
 	mIsDrawing = false;
+	mUpdateCount -= theDrawCountOffset;
 
 	if (fullResolution)
 	{

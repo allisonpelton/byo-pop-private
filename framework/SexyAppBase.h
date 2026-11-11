@@ -542,7 +542,8 @@ protected:
 	bool DoMemReport(const std::string& theFileName);
 	// A game's own holders for that report: it adds a name and its bytes to theReport->mOthers (the default adds none)
 	virtual void AddMemReportHolders(Platform::MemReport* theReport);
-	bool SaveScreenshot(const std::string& theFileName, bool fullResolution = false);
+	// theDrawCountOffset: what the draw adds to mUpdateCount while it runs (0 for a game's own shots)
+	bool SaveScreenshot(const std::string& theFileName, bool fullResolution = false, int theDrawCountOffset = 0);
 	// SaveScreenshot for the framework's shots taken mid-update (after the count moved, before the widgets updated),
 	// drawn with the count one lower
 	bool SaveScreenshotMidUpdate(const std::string& theFileName, bool fullResolution = false);
