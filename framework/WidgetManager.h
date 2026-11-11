@@ -39,6 +39,13 @@ typedef std::list<PreModalInfo> PreModalInfoList;
 
 typedef std::vector<std::pair<Widget*, int> > DeferredOverlayVector;
 
+// port: off (the 1.x framework's WidgetManager draws each widget with a Graphics whose fast stretch is on in a 2D run, so
+// every stretch a widget draws samples the source in 16.16 steps). On, the widgets' Graphics keep their default (fast stretch
+// off), as the 2004 frameworks' WidgetManager has it (no SetFastStretch anywhere in its drawing: AstroPop's only caller of
+// Graphics::SetFastStretch 0x4af630 is the level-up text's own draw), so a stretch averages unless the game asks for the fast
+// one. A game sets it once, before it draws.
+extern bool gWidgetsDrawWithoutFastStretch;
+
 class WidgetManager : public WidgetContainer
 {
 public:	
