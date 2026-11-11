@@ -42,11 +42,11 @@ void AstroPopApp::ShowMainMenu()
 		mEngineLoop->Stop();
 		mHyperspaceLoop->Stop();
 	}
-	if (mScreen650 != NULL)
+	if (mCharSelector != NULL)
 	{
-		mWidgetManager->RemoveWidget(mScreen650);
-		SafeDeleteWidget(mScreen650);
-		mScreen650 = NULL;
+		mWidgetManager->RemoveWidget(mCharSelector);
+		SafeDeleteWidget(mCharSelector);
+		mCharSelector = NULL;
 		// The original also tells the resource manager's page counter (0x48f860, "MoreGames") that the page is gone;
 		// that is PopCap's ad statistics and is left out.
 	}
@@ -134,12 +134,12 @@ void AstroPopApp::ValidateUser()
 	int aValue = 0;
 	if (!mUser->GetInt(0x11, &aValue))
 		aValue = 1;
-	mFlag658 = aValue != 0;
+	mTutorialOn = aValue != 0;
 
 	aValue = 1;
 	if (!mUser->GetInt(0x13, &aValue))
 		aValue = 1;
-	mFlag6f9 = aValue != 0;
+	mHintsOn = aValue != 0;
 
 	// the unlock flags must be one of four known values and agree with their check value
 	int anUnlock = -1;
@@ -165,13 +165,13 @@ void AstroPopApp::ValidateUser()
 		mUser->Save();
 	}
 
-	mFlag658 = false;
+	mTutorialOn = false;
 	aValue = 0;
 	mUser->GetInt(0x72, &aValue);
-	mFlag6fa = aValue == 1;
+	mColorblind = aValue == 1;
 	aValue = 1;
 	mUser->GetInt(0x73, &aValue);
-	mFlag6fb = aValue == 1;
+	mShowHelpAtStart = aValue == 1;
 }
 
 // 0x4300c0: the profile of the last player is loaded and the selector shown; with no players the selector shows and
@@ -273,10 +273,10 @@ void AstroPopApp::ShowCharSelector(int theMode)
 	if (mMainMenu != NULL)
 		CloseMainMenu();
 
-	mScreen650 = new CharSelector(this, theMode);
-	mScreen650->Resize(0, 0, 0x280, 0x1e0);
-	mWidgetManager->AddWidget(mScreen650);
-	mWidgetManager->SetFocus(mScreen650);
+	mCharSelector = new CharSelector(this, theMode);
+	mCharSelector->Resize(0, 0, 0x280, 0x1e0);
+	mWidgetManager->AddWidget(mCharSelector);
+	mWidgetManager->SetFocus(mCharSelector);
 	if (mBoard != NULL)
 	{
 		mBoard->mHasAlpha = true;
@@ -351,7 +351,7 @@ void AstroPopApp::ShowQuitDialog()
 	int aDraw = (int) AstroRand();
 	if (!mGoodbyeMessages.empty())
 		aLines = mGoodbyeMessages[((unsigned int) (aDraw % 500000000)) % mGoodbyeMessages.size()];
-	AstroDialog* aDialog = MakeDialog(1, false, 0x7c, -1, -1, 1, GT(0x005622b8), aLines, "Yes", "No", true);
+	AstroDialog* aDialog = MakeDialog(1, false, 0x7c, -1, -1, 1, GT(0x005622b8), aLines, "Yes", "No");
 	int aWidth = aDialog->mWidth;
 	int aHeight = aDialog->mHeight;
 	aDialog->Resize(0x140 - aWidth / 2, 0xf0 - aHeight / 2, aWidth, aHeight);
@@ -362,7 +362,7 @@ void AstroPopApp::ShowOptions(bool theFromGame)
 {
 	mOpenDialogs++;
 	int aSet = (mBoard == NULL) ? 1 : mBoard->mMode + 2;
-	OptionsDialog* aDialog = new OptionsDialog(mFlag6f9, aSet, theFromGame);
+	OptionsDialog* aDialog = new OptionsDialog(mHintsOn, aSet, theFromGame);
 	StyleDialog(aDialog);
 	aDialog->mHasAlpha = true;
 	aDialog->mHasTransparencies = true;
@@ -378,7 +378,7 @@ void AstroPopApp::ShowOptions(bool theFromGame)
 void AstroPopApp::ShowContinueDialog(const std::string& thePilot, int theLevel)
 {
 	MakeDialog(1, false, 0x74, 0x177, 0xe6, 1, GT(0x005649f0), StrFormat(GTC(0x564a00), thePilot.c_str(), theLevel), "Continue",
-			   GT(0x00564b3c), true);
+			   GT(0x00564b3c));
 }
 
 // 0x40bc00: the box where a new player types a name, centred a little low
@@ -404,9 +404,6 @@ void AstroPopApp::ShowCheckpointDialog(int theLevel)
 	AddDialog(0x78, aDialog);
 }
 
-// Not translated yet: each logs once so a test run shows that the button was reached
-#define APP_NOT_TRANSLATED(name, addr) 	do { static bool aLogged = false; if (!aLogged) { aLogged = true; SDL_Log("AstroPop: " name " not translated yet (" addr ")"); } } while (0)
-
 // 0x40bea0 (and the tail 0x40be20): the "how to play" box, in the colour set of the game's mode (+ 2) or, over the selector, 1. A game on pauses.
 void AstroPopApp::ShowHelp()
 {
@@ -426,34 +423,34 @@ void AstroPopApp::ShowHelp()
 void AstroPopApp::CloseFullScreenHelp()
 {
 	FullScreenHelp* aHelp = (FullScreenHelp*) mHelpScreen;
-	mFlag6fb = !aHelp->mNoMoreCheck->IsChecked();
+	mShowHelpAtStart = !aHelp->mNoMoreCheck->IsChecked();
 	mWidgetManager->RemoveWidget(mHelpScreen);
 	SafeDeleteWidget(mHelpScreen);
 	mHelpScreen = NULL;
-	mUser->SetInt(0x73, mFlag6fb ? 1 : 0);
+	mUser->SetInt(0x73, mShowHelpAtStart ? 1 : 0);
 	mUser->Save();
 	if (mBoard != NULL)
 		mBoard->Pause(false, false);
 }
 
 // 0x428a10: the box's settings take effect and are saved with the player; the box goes. In a game the game goes on (theClose:
-// the box was closed with its own button, which the game notes in m1c09).
+// the box was closed with its own button, which the game notes in mKeepLoopSoundsMuted).
 void AstroPopApp::ApplyOptions(bool theClose)
 {
 	mOpenDialogs--;
 	OptionsDialog* aDialog = (OptionsDialog*) GetDialog(0x66);
 	SwitchScreenMode(!aDialog->mFullscreenCheck->IsChecked(), aDialog->mAccelCheck->IsChecked());
 	EnableCustomCursors(aDialog->mCursorCheck->IsChecked());
-	mFlag6f9 = aDialog->mHintsCheck->IsChecked();
-	mUser->SetInt(0x13, mFlag6f9 ? 1 : 0);
-	mFlag6fa = aDialog->mColorblindCheck->IsChecked();
-	mUser->SetInt(0x72, mFlag6fa ? 1 : 0);
+	mHintsOn = aDialog->mHintsCheck->IsChecked();
+	mUser->SetInt(0x13, mHintsOn ? 1 : 0);
+	mColorblind = aDialog->mColorblindCheck->IsChecked();
+	mUser->SetInt(0x72, mColorblind ? 1 : 0);
 	mUser->Save();
 	KillDialog(0x66);
 	if (mBoard != NULL)
 	{
 		if (theClose)
-			mBoard->m1c09 = true;
+			mBoard->mKeepLoopSoundsMuted = true;
 		mBoard->Pause(false, true);
 		mWidgetManager->SetFocus(mBoard);
 	}
@@ -466,8 +463,8 @@ void AstroPopApp::ShowCredits()
 	CloseMainMenu();
 	if (mBoard == NULL)
 		ApplyOptions(false);
-	mScreen654 = new CreditsScreen(this);
-	mScreen654->Resize(0, 0, 0x280, 0x1e0);
-	mWidgetManager->AddWidget(mScreen654);
+	mCreditsScreen = new CreditsScreen(this);
+	mCreditsScreen->Resize(0, 0, 0x280, 0x1e0);
+	mWidgetManager->AddWidget(mCreditsScreen);
 }
 

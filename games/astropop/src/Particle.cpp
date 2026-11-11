@@ -14,7 +14,6 @@ Particle::Particle(float theSpeed, float theVX, float theVY, int theAngle, float
 	mSin = theSin;
 	mCos = theCos;
 	mVX = theVX;
-	mField2C = 0;
 	mAge = 0;
 	mY = 0;
 	mX = 0;

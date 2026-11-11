@@ -204,6 +204,7 @@ void CharSelector::ButtonDepress(int theId)
 
 // the best level, the percent or the best time under a pilot, white in the small font. The places of the time and of
 // "N/A" in the second mode are a little left of the number's.
+// port: split out of CharSelector::Draw (0x43e300)
 void CharSelector::DrawPilotLabel(Graphics* g, int thePilot, int theX)
 {
 	static const int kTimeX[4] = { 0x5f, 0x1a0, 0x23f, 0xff };
@@ -237,6 +238,7 @@ void CharSelector::DrawPilotLabel(Graphics* g, int thePilot, int theX)
 }
 
 // the bar under a pilot: an eighth of the picture for each upgrade level, from the picture's second half when all eight are there
+// port: split out of CharSelector::Draw (0x43e300)
 void CharSelector::DrawStatBar(Graphics* g, int thePilot, Image* theFill)
 {
 	int aLevel = mStats[thePilot];
