@@ -16,7 +16,8 @@ Two things hold above every rule:
    carry (a save's field names, a script command) is a format and keeps its spelling.
 2. **Every name says what it holds** (checked). No decompiler names (`local_1c`, `param_2`, `DAT_00506560`,
    `FUN_004cb182`), no `mUnknown` or `mUnk`, no generic word with a number (`mPad04`, `aInt3`, `aDummy`), no word
-   followed by an offset or address (`mScale288`, `Rand85B970`), and no comment that says "unknown" in place of a name.
+   followed by an offset or address (`mScale288`, `Rand85B970`), no prefix followed by nothing but one (`m70`, `m1a34`),
+   and no comment that says "unknown" in place of a name.
    A number that carries meaning is fine (`mSwapPiece1`).
 3. **A field nobody reads** is named for what it holds, and its comment says that nothing reads it. It comes out only
    where nothing depends on it: a save's layout, a struct written raw, a state hash and the order of random draws all
@@ -42,7 +43,7 @@ Two things hold above every rule:
 
 ## Tools
 
-- `python tools/namecheck.py games/<game>` checks rules 2, 5 and 6, and rule 8's stage labels (its `stage` check: a
+- `python tools/namecheck.py games/<game>` checks rules 2 (its `hexname` check finds the bare offset names), 5 and 6, and rule 8's stage labels (its `stage` check: a
   comment with "stage", "phase" or "milestone" and a number; where that is the game's own word or a file's name, an
   `allow stage` line), and exits nonzero on any finding. `--list` also
   prints what the exceptions allow, and `--checks` picks checks. Exceptions go in `games/<game>/namecheck.txt`, one a
