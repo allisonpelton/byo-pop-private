@@ -50,6 +50,8 @@ var ByopopSettings = (function () {
     perf: { values: SWITCH, def: "off" },             // on: a game page shows its performance panel (web/perf.js), which only reads
     gamesOpen: { values: ["games", "library"], def: "games" },  // Desktop 95: the window the games' entries open (web/skins.js)
     win95Only: { values: SWITCH, def: "off" },
+    // Desktop 95's colour scheme (web/schemes.js), site-wide
+    scheme: { values: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]), def: "standard" },
     gameSize: { values: ["one", "fit"], def: "one" },  // Desktop 95: a game window's size with none chosen in its View menu (web/shell.html)       // on: Desktop 95 lists only the games whose original ran on Windows 95 (web/skins.js)
     // the view settings (web/view.js): drawn over the game's picture or done to it, never to the game
     scanlines: { values: ["off", "light", "strong"], def: "off" },
@@ -244,6 +246,8 @@ var ByopopSettings = (function () {
       hint: T("settings.startvolume.hint"),
       help: T("settings.startvolume.help") },
     { section: "look" },
+    { name: "scheme", label: T("settings.scheme.label"), hint: T("settings.scheme.hint"),
+      options: (typeof ByopopSchemes !== "undefined" ? ByopopSchemes.ids : ["standard"]).map(function (id) { return [id, T("settings.scheme." + id)]; }) },
     { name: "win95Only", label: T("settings.win95only.label"), hint: T("settings.win95only.hint") },
     { name: "gamesOpen", label: T("settings.gamesopen.label"), options: [["games", T("skin.desk.games")], ["library", T("library.title")]],
       hint: T("settings.gamesopen.hint") },
