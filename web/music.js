@@ -62,7 +62,9 @@ var ByopopMusic = (function () {
     });
     return found;
   }
-  // A stored file's bytes, or null. A key "<file>|pe:<type>:<id>" is that resource of that Windows module, and "<file>|zip:<name>" that entry of that zip archive: tunes a game keeps inside its own files
+  // A stored file's bytes, or null. A key "<file>|pe:<type>:<id>" is that resource of that Windows module, "<file>|zip:<name>"
+  // that entry of that zip archive, and "<file>|tiptop:<name>" that entry of Tip Top's archive: tunes and sounds a game keeps
+  // inside its own files (the Sounds window reads them so too, web/sounds.js)
   function readFile(db, key) {
     var bar = key.indexOf("|");
     if (bar >= 0) {
@@ -74,6 +76,7 @@ var ByopopMusic = (function () {
           return r ? r.bytes : null;
         }
         if (pick.indexOf("zip:") === 0) return zipEntry(bytes, pick.slice(4));
+        if (pick.indexOf("tiptop:") === 0) return tipTopEntry(bytes, pick.slice(7));
         return null;
       });
     }
@@ -126,6 +129,39 @@ var ByopopMusic = (function () {
       walk(0, []);
     } catch (e) {}
     return out;
+  }
+  // An entry of Tip Top's archive (TipTop.dat; games/tiptop/tools/tiptopdat.py) by name, ignoring case, "\" or "/" between
+  // folders, or null. Every byte of the file is stored with its bits permuted, the same way: bit i of a stored byte holds bit
+  // SRC[i] of the real one. Decoded, it is a u32 table size, the table (a NUL-terminated name, u32 offset from the file's
+  // start and u32 size, until an empty name) and the files
+  var TIPTOP_SRC = [2, 6, 0, 7, 5, 4, 1, 3], tipTopDecode = null;
+  function tipTopEntry(bytes, name) {
+    if (!tipTopDecode) {
+      tipTopDecode = new Uint8Array(256);
+      for (var c = 0; c < 256; c++) {
+        var enc = 0;
+        for (var b = 0; b < 8; b++) enc |= ((c >> TIPTOP_SRC[b]) & 1) << b;
+        tipTopDecode[enc] = c;
+      }
+    }
+    var d = tipTopDecode, want = name.replace(/\//g, "\\").toLowerCase();
+    function u32(o) { return (d[bytes[o]] | (d[bytes[o + 1]] << 8) | (d[bytes[o + 2]] << 16) | (d[bytes[o + 3]] << 24)) >>> 0; }
+    if (bytes.length < 4) return null;
+    var tableEnd = 4 + u32(0), p = 4;
+    while (p < tableEnd && p < bytes.length) {
+      var e = p, n = "";
+      while (e < bytes.length && d[bytes[e]] !== 0) n += String.fromCharCode(d[bytes[e++]]);
+      if (!n) break;
+      var off = u32(e + 1), size = u32(e + 5);
+      if (n.toLowerCase() === want) {
+        if (off + size > bytes.length) return null;
+        var out = new Uint8Array(size);
+        for (var k = 0; k < size; k++) out[k] = d[bytes[off + k]];
+        return out;
+      }
+      p = e + 9;
+    }
+    return null;
   }
   // A zip archive's entry by name (stored or deflated), or null
   function zipEntry(bytes, name) {

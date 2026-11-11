@@ -1,8 +1,8 @@
-# Bonnie's with real input (tools/realplay.py): a whole classic story game, from the first menu to the story's end.
+# Bonnie's with real input (tools/realplay.py --live): a whole classic story game, from the first menu to the story's end.
 # The menu, the name and the difficulty are the tour's (realplay_tour.txt); then realplay.py's play goes through the
-# story's pages, the tutorial (the word its balloon names) and every level, as a player who takes the game's own
-# hints. Run it on the port's virtual clock (-fast), so the game's hint comes without the real wait; the input is
-# posted window messages all the same.
+# story's pages, the tutorial (the word its balloon names) and every level, as a player who takes the port's own bot's
+# moves (the test command "move"). Run it with --live (the board takes no posted click) and on the port's virtual clock
+# (-fast), so the game's hint comes without the real wait; the input is real SDL events all the same.
 wait 8000
 shot menu
 click 180 306

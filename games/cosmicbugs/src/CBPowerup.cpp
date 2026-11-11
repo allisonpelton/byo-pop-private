@@ -154,7 +154,8 @@ void Powerup_Invincibubble()
 	aShip->flags = aShip->flags | 0x10;
 }
 
-// 0x418630: a new weapon at the tail, made current
+// 0x418630: a new weapon at the tail, made current; 0x40abe0 (a weapon's constructor, which only calls Obj_Init) is
+// inlined here
 void Weapon_Append(List<Weapon>* theList)
 {
 	Weapon* aWeapon = (Weapon*)::operator new(sizeof(Weapon));

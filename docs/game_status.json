@@ -215,11 +215,12 @@
         "performance",
         "unneeded-code",
         "readability",
-        "site-features"
+        "site-features",
+        "collection"
       ],
       "na": [],
-      "now": "collection",
-      "note": "Whether the Collection check applies is unconfirmed"
+      "now": null,
+      "note": ""
     },
     "typershark": {
       "title": "Typer Shark! Deluxe",
@@ -268,11 +269,12 @@
         "coverage",
         "performance",
         "unneeded-code",
-        "readability"
+        "readability",
+        "collection"
       ],
       "na": [],
       "now": "site-features",
-      "note": "No soundboard yet; Collection check unconfirmed"
+      "note": "Presets wait on the site"
     },
     "pixelus": {
       "title": "Pixelus Deluxe",
@@ -344,10 +346,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "performance",
       "note": ""
     },
     "bigmoney": {
@@ -386,10 +389,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "performance",
       "note": ""
     },
     "cosmicbugs": {
@@ -400,10 +404,11 @@
         "registration-out",
         "identical-look",
         "fixes-mod",
-        "site-features"
+        "site-features",
+        "coverage"
       ],
       "na": [],
-      "now": "coverage",
+      "now": "performance",
       "note": ""
     },
     "waterbugs": {
@@ -422,7 +427,7 @@
       ],
       "na": [],
       "now": "collection",
-      "note": "Whether the Collection check applies is unconfirmed"
+      "note": "Collection check under way (the game is in the Collection)"
     },
     "bonnies": {
       "title": "Bonnie's Bookstore Deluxe",

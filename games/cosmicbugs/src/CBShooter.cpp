@@ -898,6 +898,30 @@ void Shooter_Draw(Shooter* theShooter)
 	}
 }
 
+// 0x411d70: the five Objs it holds are destroyed, the beams still in the air are deleted (the list steps from its head),
+// then the base
+void Shooter_Destroy(Shooter* theShooter)
+{
+	Obj_Destroy(&theShooter->bubble);
+	Obj_Destroy(&theShooter->unk320);
+	Obj_Destroy(&theShooter->sweeper);
+	Obj_Destroy(&theShooter->wingsV);
+	Obj_Destroy(&theShooter->wingsH);
+	if (theShooter->beams.current != nullptr)
+	{
+		theShooter->beams.current = theShooter->beams.head;
+		Beams_RemoveAll(&theShooter->beams);
+	}
+	Obj_Destroy(theShooter);
+}
+
+// 0x411f50's delete
+void List_DeleteNode(Shooter* theShooter)
+{
+	Shooter_Destroy(theShooter);
+	::operator delete(theShooter);
+}
+
 Shooter* Shooter_Init(Shooter* theShooter)
 {
 	Obj_Init(theShooter);

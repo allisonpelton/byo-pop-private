@@ -269,8 +269,12 @@ var ByopopPerf = (function () {
       dt.textContent = r[0]; dd.textContent = r[1];
       dl.appendChild(dt); dl.appendChild(dd);
     });
+    var was = body.offsetHeight;
     body.textContent = "";
     body.appendChild(dl);
+    // beside the game, a panel that grew (its readings come after "waiting") asks the window to fit it again (web/shell.html,
+    // sideHeight)
+    if (panel.classList.contains("perf-side") && body.offsetHeight > was) try { window.dispatchEvent(new CustomEvent("byopop-side")); } catch (e) {}
   }
   var STYLE =
     ".perf-panel { position: fixed; right: 12px; top: 60px; z-index: 9; width: 290px; max-height: calc(100vh - 80px); overflow: auto; box-sizing: border-box;\n" +
@@ -285,6 +289,13 @@ var ByopopPerf = (function () {
     ".perf-panel.perf-side { position: static; width: 250px; max-height: none; border-radius: 0; box-shadow: none; border-width: 0 0 0 1px;\n" +
     "  grid-column: 2; grid-row: 1 / 3; align-self: stretch; overflow: auto; }\n" +
     "html.perf-side .stage-wrap { grid-template-columns: minmax(0, 1fr) auto; }\n" +
+    // a game's own page with Desktop 95's desktop: the game's window (#main) keeps its title bar over both and its status bar
+    // under both, as a 1995 window's
+    "html.d95-desk:not(.d95-embed).perf-side #main { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto 1fr auto; }\n" +
+    "html.d95-desk:not(.d95-embed).perf-side #main > .d95-tb, html.d95-desk:not(.d95-embed).perf-side #main > .d95-statusbar { grid-column: 1 / -1; }\n" +
+    "html.d95-desk:not(.d95-embed).perf-side #main > .stage { grid-column: 1; grid-row: 2; }\n" +
+    "html.d95-desk:not(.d95-embed).perf-side #main > .d95-statusbar { grid-row: 4; }\n" +
+    "html.d95-desk:not(.d95-embed).perf-side #main > .perf-panel { grid-column: 2; grid-row: 2 / 4; }\n" +
     // a narrow page (a phone held upright): under the game, as wide as the page, scrolling in itself
     "@media (max-width: 600px) {\n" +
     "  .perf-panel.perf-side { grid-column: 1; grid-row: auto; width: auto; max-height: 40vh; border-width: 1px 0 0; }\n" +
@@ -310,9 +321,11 @@ var ByopopPerf = (function () {
     panel.appendChild(h); panel.appendChild(note); panel.appendChild(body);
     // In a game's window on the one page the panel is part of the window, at the right of the game, which it never covers; the
     // window grows by its width (the user, 2026-11-10: "The performance panel should expand the game window and be static to the
-    // right"; web/shell.html, sideWidth)
-    var main = document.getElementById("main");
-    if (document.documentElement.classList.contains("d95-embed") && main) {
+    // right"; web/shell.html, sideWidth). On a game's own page with Desktop 95's desktop the game's window is #main, which
+    // takes its size from what it holds, and the panel goes into it in the same way (a play-test, 2026-11-11, found it a window
+    // of its own at the desktop's right, there from the setup screen on, apart from the game's)
+    var main = document.getElementById("main"), cls = document.documentElement.classList;
+    if ((cls.contains("d95-embed") || cls.contains("d95-desk")) && main) {
       panel.classList.add("perf-side");
       main.appendChild(panel);
       return;
