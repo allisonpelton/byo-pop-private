@@ -16,8 +16,8 @@ class Failed(Exception):
 
 def wait_for_slot(limit=None, timeout=3 * 3600):
     """tools/gamecount.py counts every session's game processes: start one only when there is room (CLAUDE.md). The limit is
-    3, or 8 on the nights the user allows it (GAME_LIMIT=8)"""
-    limit = limit or int(os.environ.get('GAME_LIMIT', '3'))
+    6 (GAME_LIMIT sets another)"""
+    limit = limit or int(os.environ.get('GAME_LIMIT', '6'))
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
     end = time.time() + timeout
     while subprocess.call(['python', os.path.join(root, 'tools', 'gamecount.py'), '--limit', str(limit)],

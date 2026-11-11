@@ -19,7 +19,7 @@ items.sort(key=lambda t: t[0])
 open('build/perf/port-mem.txt', 'w').write('\n'.join(l for _, l in items) + '\n' + quit_line[0] + '\n')
 PYEOF
 for i in $(seq 1 360); do
-	python -I tools/gamecount.py --limit 3 > /dev/null && break
+	python -I tools/gamecount.py --limit 6 > /dev/null && break
 	sleep 10
 done
 rm -rf build/perf/memrun

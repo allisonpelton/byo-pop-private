@@ -34,7 +34,7 @@ SBX=--sandbox; [ -n "$ORIG_HOST" ] && SBX=
 st=0
 for try in $(seq 1 "$tries"); do
   for i in $(seq 1 120); do
-    python tools/gamecount.py --limit 3 > /dev/null && break
+    python tools/gamecount.py --limit 6 > /dev/null && break
     sleep 15
   done
   [ -z "$KEEP_STATE" ] && rm -f build/origrun/$run/game/users/*

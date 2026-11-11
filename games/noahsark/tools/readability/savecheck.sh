@@ -8,7 +8,7 @@ cd "$(dirname "$0")/../../../.."
 D="build/readab/$1"
 rm -rf "$D"; mkdir -p "$D"
 W="$(pwd -W)"
-until python -I tools/gamecount.py --limit 3 > /dev/null; do sleep 15; done
+until python -I tools/gamecount.py --limit 6 > /dev/null; do sleep 15; done
 timeout 300 build/native/rundesk.exe "$W/build/native/noahsark.exe" -gamedir="$W/assets/noahsark" -userdir="$W/$D/user" -fast -seed=1 \
 	-autoplay=1 -autoplaymode=strategy -autoplaydiff=8 -autoplaycap=2500 -autoplaylog="$W/$D/bot.txt" -statelog="$W/$D/state.txt" \
 	> "$D/run.log" 2>&1

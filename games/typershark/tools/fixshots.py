@@ -32,7 +32,7 @@ def make_mods():
 
 def wait_room():
     import time
-    while subprocess.run([sys.executable, os.path.join(ROOT, "tools", "gamecount.py"), "--limit", "3"],
+    while subprocess.run([sys.executable, os.path.join(ROOT, "tools", "gamecount.py"), "--limit", "6"],
                          stdout=subprocess.DEVNULL).returncode != 0:
         time.sleep(15)
 

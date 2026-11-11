@@ -7,9 +7,9 @@ mine() {
 }
 n=0
 while true; do
-	if python "$ROOT/tools/gamecount.py" --limit 3 > /dev/null; then
+	if python "$ROOT/tools/gamecount.py" --limit 6 > /dev/null; then
 		sleep $((RANDOM % 7)); m="$(mine)"
-		if [ "${m:-0}" -lt 2 ] && python "$ROOT/tools/gamecount.py" --limit 3 > /dev/null; then exit 0; fi
+		if [ "${m:-0}" -lt 2 ] && python "$ROOT/tools/gamecount.py" --limit 6 > /dev/null; then exit 0; fi
 	fi
 	n=$((n+1)); [ $n -gt 270 ] && { echo "waitroom: no room for a game process after 90 minutes" >&2; exit 3; }
 	sleep 20
