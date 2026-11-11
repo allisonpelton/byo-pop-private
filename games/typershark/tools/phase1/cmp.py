@@ -181,6 +181,13 @@ def run_orig(script_text, tag, seed, fixture, timeout=240):
     return lg
 
 
+def mods_args():
+    """TSMODSDIR=<abs folder holding fixes/> runs the port with its fixes mod on (games/typershark/mods/fixes): a fix that leaves the
+    game's draws as they were leaves the state log's hash as it was."""
+    d = os.environ.get('TSMODSDIR')
+    return ['-modsdir=' + os.path.abspath(d)] if d else []
+
+
 def run_port(script_text, tag, seed, userfix=None, extra_args=()):
     sp = os.path.join(OUT, tag + '.port.txt')
     sl = os.path.join(OUT, tag + '.port.sl')
@@ -192,7 +199,7 @@ def run_port(script_text, tag, seed, userfix=None, extra_args=()):
     gamecount_wait()
     exe = PORT_EXE
     subprocess.call([os.path.join(ROOT, 'build', 'native', 'rundesk.exe'), exe, '-fast', f'-seed={seed}', f'-userdir={ud}',
-                     f'-script={sp}', f'-statelog={sl}'] + list(extra_args), stdout=open(os.path.join(OUT, tag + '.port.out'), 'w'),
+                     f'-script={sp}', f'-statelog={sl}'] + mods_args() + list(extra_args), stdout=open(os.path.join(OUT, tag + '.port.out'), 'w'),
                     stderr=subprocess.STDOUT)
     return sl
 
@@ -209,7 +216,7 @@ def record_typist(steps, tag, seed, opts, hi, userfix=None):
     open(sp, 'w', newline='\n').write(port_script(steps, [f'{hi + 5} quit']))
     gamecount_wait()
     subprocess.call([os.path.join(ROOT, 'build', 'native', 'rundesk.exe'), PORT_EXE,
-                     '-fast', f'-seed={seed}', f'-userdir={ud}', f'-script={sp}', f'-typist={rec};{opts}', f'-statelog={os.path.join(OUT, tag + ".rec.sl")}'],
+                     '-fast', f'-seed={seed}', f'-userdir={ud}', f'-script={sp}', f'-typist={rec};{opts}', f'-statelog={os.path.join(OUT, tag + ".rec.sl")}'] + mods_args(),
                     stdout=open(os.path.join(OUT, tag + '.rec.out'), 'w'), stderr=subprocess.STDOUT)
     out = list(steps)
     for line in open(rec):

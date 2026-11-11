@@ -14,16 +14,6 @@ static const Platform::ModInfo* FindFeatureMod(const char* theName)
 	return nullptr;
 }
 
-// port(mods): whether an enabled mod has the feature
-bool Sexy::ModFeatureEnabled(const char* theName)
-{
-	const Platform::ModInfo* aMod = FindFeatureMod(theName);
-	if (aMod == nullptr)
-		return false;
-	const Platform::JsonValue& aValue = aMod->mFeaturesJson[theName];
-	return aValue.IsObject() || aValue.AsBool(false);
-}
-
 // port(mods): a mod feature's setting
 bool Sexy::ModFeatureBool(const char* theFeature, const char* theSetting, bool theDefault)
 {

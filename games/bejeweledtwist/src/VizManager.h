@@ -34,8 +34,6 @@ public:
 	virtual void Init() {}                     // 1 (0x67a1c9)
 	virtual void Update() {}                   // 2 (0x67a1ca)
 	virtual void Draw(Graphics* g) { (void)g; }  // 3 (0x67fab8)
-	// 4 (0x670126, ret 4): a key pressed (the VizManager's 0x758034, not ported, asks the visualizer); true when handled
-	virtual bool Slot4(char theChar) { (void)theChar; return false; }
 	virtual void NextLook() {}                 // 5 (0x67012b): a cascade (VizManager 0x757ff5)
 	virtual void NewLevel() {}                 // 6 (0x67012c): the board's next level (VizManager 0x75800a)
 	virtual void Slot7() {}                    // 7 (0x67012d): (VizManager 0x75801f)

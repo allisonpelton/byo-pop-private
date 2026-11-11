@@ -166,7 +166,7 @@ public:
 						Spark* aSpark = new Spark(mApp);
 						aSpark->mX = (float) (mApp->mRand.Get(8, true) + aPiece.mX);
 						aSpark->mY = (float) (mApp->mRand.Get(8, true) + aPiece.mY);
-						int aDir = mApp->mRand.Get(0x168, false);
+						int aDir = mApp->mRand.Get(FULL_TURN, false);
 						aSpark->mVX = SinDeg(aDir) * 0.25f;
 						aSpark->mVY = NegCosDeg(aDir) * 0.25f;
 						Color aColor = aPiece.mAtom->mColor;
@@ -335,7 +335,7 @@ void BonusMolecules::Check(Grid* theGrid)
 					{
 						int aType;
 						Atom* anAtom = NULL;
-						if ((aCol < 0) || (aRow < 0) || (aCol > 8) || (aRow > 7))
+						if ((aCol < 0) || (aRow < 0) || (aCol >= Grid::COLS) || (aRow >= Grid::ROWS))
 							aType = -1;
 						else
 						{
@@ -431,28 +431,28 @@ void BonusMolecules::Draw(Graphics* g)
 }
 
 // 0x4146d0
-void BonusMolecules::Save(FILE* f)
+void BonusMolecules::Save(FILE* theFile)
 {
-	fwrite(&mX, 4, 1, f);
-	fwrite(&mRound, 4, 1, f);
-	fwrite(&mElement, 4, 1, f);
-	fwrite(&mTimer, 4, 1, f);
-	fwrite(mCurrent, 100, 1, f);
+	fwrite(&mX, 4, 1, theFile);
+	fwrite(&mRound, 4, 1, theFile);
+	fwrite(&mElement, 4, 1, theFile);
+	fwrite(&mTimer, 4, 1, theFile);
+	fwrite(mCurrent, 100, 1, theFile);
 	unsigned char aHasShape = (mPattern != NULL) ? 1 : 0;
-	fwrite(&aHasShape, 1, 1, f);
+	fwrite(&aHasShape, 1, 1, theFile);
 }
 
 // 0x414750: the shape asked for is found again by its index (0 to 29, the order the original makes the thirty patterns in, which
 // is the order of the table; the file holds the index, as the original's does: 0x415aa0 numbers them, 0x414640 copies it)
-void BonusMolecules::Load(FILE* f)
+void BonusMolecules::Load(FILE* theFile)
 {
-	fread(&mX, 4, 1, f);
-	fread(&mRound, 4, 1, f);
-	fread(&mElement, 4, 1, f);
-	fread(&mTimer, 4, 1, f);
-	fread(mCurrent, 100, 1, f);
+	fread(&mX, 4, 1, theFile);
+	fread(&mRound, 4, 1, theFile);
+	fread(&mElement, 4, 1, theFile);
+	fread(&mTimer, 4, 1, theFile);
+	fread(mCurrent, 100, 1, theFile);
 	unsigned char aHasShape = 0;
-	fread(&aHasShape, 1, 1, f);
+	fread(&aHasShape, 1, 1, theFile);
 	if (aHasShape == 0)
 	{
 		mPattern = NULL;

@@ -13,6 +13,7 @@
 //   win, lose              the level is won (the diver's level-won state) / the last life is lost (Board::PlayerEaten)
 //   seed <n>               the game's generator and the C library's (the piranhas')
 //   move                   MOVE {...} the bot's next move, or MOVE null
+//   shot <file.png>        the screen as the last draw left it, saved without drawing again (needs -drawevery; see the command)
 
 #include "WinWSApp.h"
 #include "TestHooks.h"
@@ -37,10 +38,14 @@
 #include "Common.h"
 #include "Compat2004.h"
 #include "MTRand.h"
+#include "DDInterface.h"
+
+#include <stb_image_write.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 using namespace Sexy;
 
@@ -216,6 +221,40 @@ bool WinWSApp::HandleScriptCommand(const ScriptCommand& theCommand)
 	if (aCommand == "move")
 	{
 		Reply(BotMoveToJson(ChooseMove(TestTakeSnapshot(app))));
+		return true;
+	}
+
+	// shot <file.png>: the screen as the last draw left it, read back and saved without drawing again. The framework's
+	// `screenshot` draws every widget once more before it reads the screen, and in this game a draw is a step: Board::Draw
+	// eases the two strips of sea and the rating popup once a draw, MapScreen::Draw the final scroll, and a widget that is
+	// painted over itself blends its half-transparent pixels again (the status bar while the board is paused). So every
+	// `screenshot` puts the port one step ahead of the original, whose shots origrun takes from the window. With -drawevery
+	// every update is drawn before the next line of the script runs, so the screen holds the frame of the update before.
+	if (aCommand == "shot")
+	{
+		if (anArgs.empty() || !mDrawEvery)
+		{
+			ReplyError(theCommand, anArgs.empty() ? "shot <file.png>" : "needs -drawevery (the screen must hold the last update's frame)");
+			return true;
+		}
+		std::vector<ulong> aBits((size_t) mWidth * mHeight);
+		if (!mDDInterface->ReadScreen(&aBits[0]))
+		{
+			ReplyError(theCommand, "cannot read the screen");
+			return true;
+		}
+		std::vector<uchar> aRGBA((size_t) mWidth * mHeight * 4);
+		for (int i = 0; i < mWidth * mHeight; i++)
+		{
+			aRGBA[i * 4 + 0] = (uchar) (aBits[i] >> 16);
+			aRGBA[i * 4 + 1] = (uchar) (aBits[i] >> 8);
+			aRGBA[i * 4 + 2] = (uchar) aBits[i];
+			aRGBA[i * 4 + 3] = 255;
+		}
+		if (!stbi_write_png(anArgs.c_str(), mWidth, mHeight, 4, &aRGBA[0], mWidth * 4))
+			ReplyError(theCommand, "cannot write the file");
+		else
+			Reply(StrFormat("OK shot %s (update %d)", anArgs.c_str(), mUpdateCount));
 		return true;
 	}
 

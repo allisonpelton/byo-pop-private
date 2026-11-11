@@ -85,9 +85,9 @@ void Board::OnBrickGone(Brick* theBrick)
 				if (m1a60 == 2 && m1a14 % 300 == 0)
 					UpdateSupercharge(true, -1);
 
-				double aFraction = (double) m1a14 / (double) m1a18;
-				m928 = (float) aFraction;
-				if (aFraction > 1.0)
+				float aFraction = (float) m1a14 / (float) m1a18;
+				m928 = aFraction;
+				if (aFraction > 1.0f)
 					m928 = 1.0f;
 				if (m1a60 == 2)
 					m928 = 0.0f;

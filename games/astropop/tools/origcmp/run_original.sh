@@ -6,6 +6,7 @@
 # reads from HKLM and origrun cannot change (on the host the game starts as the user "Allison"'s machine leaves it, and the
 # comparison has no clean state to start from). ORIG_HOST=1 runs on the host instead. The sandbox's watch lines are copied from the
 # run's inside log into <log>.
+# PROFILE=file starts the original with that profile (users/data1.usr: the port's record.py --make-profile makes one).
 # RUN=name uses another staged copy. ORIGRUN_ARGS adds origrun options. KEEP_STATE=1 keeps the copy's players (a run starts with
 # none, as the port's does: the title then leads to the new player box).
 # Watches (the port's -trace prints the same four, at the same updates):
@@ -37,11 +38,24 @@ for try in $(seq 1 "$tries"); do
     sleep 15
   done
   [ -z "$KEEP_STATE" ] && rm -f build/origrun/$run/game/users/*
+  [ -n "$PROFILE" ] && cp "$PROFILE" build/origrun/$run/game/users/data1.usr
+  # the inside log of the run before (a run that never got its sandbox would otherwise be read as that one)
+  rm -f build/origrun/$run/logs/origrun-sandbox.log
+  # the registry preset of the run before: origrun imports whatever file is there, and stages this run's own (--reg) over it,
+  # so a run without one would start with the last profile case's player and no file for them
+  rm -f build/origrun/$run/sandbox-files/registry.reg
+  # other sessions use the one Windows Sandbox in turn: the run waits in origrun's queue for up to an hour
   build/origrun-bin/origrun.exe --game astropop --run "$run" --exe "$PWD/build/origrun/$run/game/AstroPopGame.exe" \
-    --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" --watch-max "${WATCH_MAX:-400000}" $SBX $ORIGRUN_ARGS \
-    "${W[@]}" --script "$script" > "$log" 2>&1
+    --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" --watch-max "${WATCH_MAX:-400000}" $SBX \
+    ${SBX:+--sandbox-wait 3600} $ORIGRUN_ARGS "${W[@]}" --script "$script" > "$log" 2>&1
   st=$?
-  [ -n "$SBX" ] && cat build/origrun/$run/logs/origrun-sandbox.log >> "$log"
+  if [ -n "$SBX" ]; then
+    if [ ! -f build/origrun/$run/logs/origrun-sandbox.log ]; then
+      echo "run_original.sh: try $try of $tries: the run got no sandbox (origrun exit $st: $(tail -1 "$log" | cut -c1-120)); again" >&2
+      continue
+    fi
+    cat build/origrun/$run/logs/origrun-sandbox.log >> "$log"
+  fi
   # a step the original did not reach within 30 s of real time (the machine was busy) was done at an earlier counter: the run is no
   # comparison of the script, so it is made again (SLOW_OK=1 keeps it)
   # (the last step of the script, the mark that ends it, may be out of reach for the same reason: the port's bot waited a long

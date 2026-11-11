@@ -29,7 +29,9 @@ public:
 	{
 		COLS = 9,
 		ROWS = 8,
-		CELL = 50
+		CELL = 50,
+		CELL_REVEALED = 0xff,		// mCellState of a cell the reveal has shown in full
+		CELL_ATOM_SHOWN = 0x96		// from this state on, the cell's atom is drawn (below it the atom is hidden)
 	};
 
 	AtomicaApp*		mApp;				// +0x58
@@ -45,65 +47,65 @@ public:
 	int				mCursorX;			// +0x2f4
 	int				mCursorY;			// +0x2f8
 	Color			mCursorColor;		// +0x2fc the colour of the held atom
-	int				mM30c;				// +0x30c
-	int				mM310;				// +0x310
+	int				mPickedCol;			// +0x30c the cell the held atom was picked up from (nothing reads it)
+	int				mPickedRow;			// +0x310
 	int				mHoverCol;			// +0x314
 	int				mHoverRow;			// +0x318
-	int				mM31c;				// +0x31c
-	int				mM320;				// +0x320
+	int				mMouseX;			// +0x31c where the mouse was last, in the field
+	int				mMouseY;			// +0x320
 	PathFinder*		mPathFinder;		// +0x324
 	int				mNumColors;			// +0x328
-	bool			mB32c;				// +0x32c
+	bool			mCheckMolecules;	// +0x32c an atom has formed: the field is searched for molecules at the next update
 	int				mCombo;				// +0x330 the molecules of the move, doubled by size
-	bool			mB334;				// +0x334
-	bool			mB335;				// +0x335 a whoosh is due
+	bool			mAppearSoundDue;	// +0x334 an atom begins to form: its sound is due
+	bool			mWhooshDue;			// +0x335 a whoosh is due
 	bool			mNoMoveLeft;		// +0x336
-	bool			mLevelOver;			// +0x337
-	int				mOverTick;			// +0x338
-	bool			mB33c;				// +0x33c
-	bool			mB33d;				// +0x33d
+	bool			mGameOver;			// +0x337 the field is full: the game is over
+	int				mGameOverTick;		// +0x338 updates since then (the atoms fly away at 300, the end page comes at 600)
+	bool			mFieldRevealed;		// +0x33c every cell is shown: the reveal wave has passed
+	bool			mRevealSaid;		// +0x33d Dr. Atomicus has greeted the revealed field
 	int				mGroupX;			// +0x340 where the molecule made last was (average of its atoms)
 	int				mGroupY;			// +0x344
 	Color			mGroupColor;		// +0x348 the sum, then the average of the colours of its atoms
-	bool			mB358;				// +0x358
+	bool			mComboEnded;		// +0x358 the last move made no molecule: the combo starts again
 	float			mGeiger1;			// +0x35c the volume of the geiger counters
 	float			mGeiger2;			// +0x360
-	int				mI364;				// +0x364 how many bonus atoms are on the field
-	int				mI368;				// +0x368
+	int				mBiohazards;		// +0x364 how many biohazard atoms are on the field
+	int				mHoverTick;			// +0x368 updates the mouse has rested (a tooltip comes at 50)
 	Atom*			mTooltipAtom;		// +0x36c
 	int				mTooltipAlpha;		// +0x370
-	int				mStat374;			// +0x374 totals the board takes (FlushStats)
-	int				mStat378;			// +0x378
-	int				mStat37c;			// +0x37c
-	int				mStat380;			// +0x380
-	int				mStat384;			// +0x384
-	int				mStat388;			// +0x388
-	int				mStat38c;			// +0x38c
-	float			mF390;				// +0x390
-	float			mF394;				// +0x394
-	int				mI398;				// +0x398
+	int				mLevelUpdates;		// +0x374 the level's totals, which the board takes (FlushStats): updates
+	int				mLevelSeconds;		// +0x378 its seconds when the meter filled (the level box shows them)
+	int				mLevelAtoms;		// +0x37c atoms in molecules
+	int				mLevelMolecules;	// +0x380 molecules
+	int				mLevelBestCombo;	// +0x384 the biggest combo
+	int				mLevelBonusMolecules;	// +0x388 bonus molecules made
+	int				mLevelBonusUpgrades;	// +0x38c bonus molecules of a higher level made
+	float			mRoundTimer;		// +0x390 action mode: what is left until the next atoms come
+	float			mRoundTime;			// +0x394 action mode: what the timer starts from (300)
+	int				mCountDownTick;		// +0x398 action mode: updates to the meter's next count down (300)
 	float			mChromiumChance;	// +0x39c in percent: an atom made while none is chosen is chromium by this chance
 	float			mBiohazardChance;	// +0x3a0
 	int				mAtomsPerRound;		// +0x3a4
-	bool			mB3a8;				// +0x3a8
-	float			mF3ac;				// +0x3ac
+	bool			mLevelSetUp;		// +0x3a8 a strategy level has been set up (saved; nothing reads it)
+	float			mMeterFillStep;		// +0x3ac action mode: what the meter fills by itself each update
 	int				mRounds;			// +0x3b0
 	bool			mHintShown[0xff];	// +0x3b4 a hint box has been shown (indexed by hint)
-	bool			mB4b3;				// +0x4b3
-	unsigned char	mB4b4;				// +0x4b4 the element (plus one) of an element atom that wants to act
-	int				mI4b8;				// +0x4b8
-	int				mI4bc;				// +0x4bc
-	bool			mB4c0;				// +0x4c0
+	bool			mElementReady;		// +0x4b3 an element atom is ready to act (nothing reads it)
+	unsigned char	mReadyElement;		// +0x4b4 the element (plus one) of an element atom that wants to act
+	int				mReadyElementX;		// +0x4b8 where that atom is on the screen (its hint box points at it)
+	int				mReadyElementY;		// +0x4bc
+	bool			mBonusLevel;		// +0x4c0 a bonus level (every fifth): a molecule fills the meter by its atoms, a burst atom by one
 	bool			mUnsolvable;	// +0x4c1 the radiation round can no longer be solved
 	int				mBonusTick;			// +0x4c4
 	int				mArrowX;			// +0x4c8 a field's edge arrows: -1, 0 or 1
 	int				mArrowY;			// +0x4cc
-	int				mI4d0;				// +0x4d0
+	int				mMagnetTick;		// +0x4d0 updates to the magnet's next pull (every sixth)
 	bool			mRadiation[COLS][ROWS];	// +0x4d4 the radiation round's marked cells
 	bool			mRadiationRound;	// +0x51c
-	int				mI520;				// +0x520
-	bool			mB524;				// +0x524
-	bool			mB525;				// +0x525
+	int				mRadiationBlinkTimer;	// +0x520 updates to the marked cells' next blink (100)
+	bool			mRadiationBlink;	// +0x524 the marked cells are lit
+	bool			mAllRadiated;		// +0x525 the molecule just collected lies wholly on marked cells
 	bool			mPausedByKey;		// +0x526
 
 public:
@@ -134,16 +136,16 @@ public:
 	bool			FindMolecules();								// 0x412280
 	void			AfterMove(bool theTimerTick);					// 0x4127c0
 	void			Magnetise();									// 0x412a80
-	void			Save(FILE* f);									// 0x40c9a0
-	void			Load(FILE* f);									// 0x40cd10
+	void			Save(FILE* theFile);							// 0x40c9a0
+	void			Load(FILE* theFile);							// 0x40cd10
 
 	// the widget
 	virtual void	Update() override;								// 0x412cd0
-	virtual void	Draw(Graphics* g) override;						// 0x413880 (the board draws it: DrawField)
-	void			DrawField(Graphics* g);
+	virtual void	Draw(Graphics* g) override;						// 0x405cf0 (empty: the board draws the field, DrawField)
+	void			DrawField(Graphics* g);							// 0x413880
 	virtual void	MouseDown(int x, int y, int theBtnNum, int theClickCount) override;	// 0x40e7f0
 	virtual void	MouseMove(int x, int y) override;				// 0x40e710
-	virtual void	MouseDrag(int x, int y) override;
+	virtual void	MouseDrag(int x, int y) override;				// 0x40c530
 	virtual void	MouseUp(int x, int y, int theBtnNum) override;	// 0x40e7c0
 	virtual void	KeyDown(KeyCode theKey) override;				// 0x40c880
 	using Widget::MouseDown;

@@ -23,6 +23,7 @@ class BackgroundFish : public GameObject
 public:
 	WinWSApp*				mApp;					// +0xf0 constructor argument 1
 	Image*					mImage;					// +0xf4 the colourised picture (chosen by the speed, or the template's)
+	bool					mFollower;				// port: made by the copy constructor (the fixes mod's schools count only the leaders)
 
 public:
 	BackgroundFish(WinWSApp* theApp);										// 0x405fc0

@@ -629,7 +629,7 @@ void Board::OnHyperBrick(Brick* theBrick)
 		mAnim4e0.SetStopped(false);
 		mApp->PlaySample(SOUND_BRICK_MILESTONE);
 
-		int aY = (int) (444.0 - (double) m928 * 444.0);
+		int aY = (int) (444.0f - m928 * 444.0f);
 		std::string aText = GT(0x5652e4);
 		int aWidth = FONT_DIALOG_BOX_BTN->StringWidth(aText);
 		FloatText* aFloat = new FloatText(aText, FONT_DIALOG_BOX_BTN, (float) (600 - aWidth), (float) aY, true);
@@ -638,31 +638,31 @@ void Board::OnHyperBrick(Brick* theBrick)
 		aFloat->mNoFade = true;
 		aFloat->m18 = 200;
 
-		m928 = (float) ((double) m1a14 / (double) m1a18);
+		m928 = (float) m1a14 / (float) m1a18;
 		if (!(m928 <= 1.0f))
 			m928 = 1.0f;
-		double aFill = (double) m928 * 444.0;
-		double aTop = 444.0 - aFill;
-		m70c = (int) ((double) aY - aTop);
+		float aFill = m928 * 444.0f;
+		float aTop = 444.0f - aFill;
+		m70c = (int) ((float) aY - aTop);
 		m708 = 0x17;
 		m700 = 0;
 		m704 = (int) aTop;
-		m1b20 = (int) (492.0 - aFill);
+		m1b20 = (int) (492.0f - aFill);
 	}
 	else
 	{
 		int anOld = m1b70;
-		int aWas = (int) (444.0 - (double) anOld * (double) 0.00016666666488163173f * 444.0);
+		int aWas = (int) (444.0f - (float) anOld * 0.00016666666488163173f * 444.0f);
 		m1b70 = anOld + 300;
 		if (m1b70 >= 6000)
 			m1b70 = 6000;
-		int aNow = (int) (444.0 - (double) m1b70 * (double) 0.00016666666488163173f * 444.0);
-		double aFill = (double) m928 * 444.0;
+		int aNow = (int) (444.0f - (float) m1b70 * 0.00016666666488163173f * 444.0f);
+		float aFill = m928 * 444.0f;
 		m70c = aWas - aNow;
 		m708 = 0x17;
 		m700 = 0;
 		m704 = aNow;
-		m1b20 = (int) (492.0 - aFill);
+		m1b20 = (int) (492.0f - aFill);
 	}
 
 	mAnim560.SetDelay(1);

@@ -6,9 +6,11 @@
 #include "AstroPopApp.h"
 #include "Board.h"
 #include "Compat2004.h"
+#include "Dialog.h"
 #include "LoaderScreen.h"
 #include "MainMenu.h"
 #include "Particle.h"
+#include "Res.h"
 #include "UserProfile.h"
 #include "WidgetManager.h"
 
@@ -146,6 +148,16 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusyReason());
 			aLine += ",\"field\":" + mBoard->DescribeField();
 		}
+		// the box that asks where a classic game starts (a pilot who has passed a checkpoint): the middle of its two gates,
+		// the first level's and the checkpoint's, and of their row
+		Dialog* aGates = GetDialog(0x78);
+		if (aGates != NULL)
+		{
+			int aGateWidth = IMAGE_SLOW_WARP_GATE->GetCelWidth();
+			aLine += StrFormat(",\"checkpoint\":[%d,%d,%d]", aGates->mX + aGateWidth / 2,
+				aGates->mX + aGateWidth + 0x19 + (aGateWidth - 0x19) / 2,
+				aGates->mY + aGates->mHeight - 0x28 - IMAGE_SLOW_WARP_GATE->mHeight / 2);
+		}
 		Reply(aLine + "}");
 		return true;
 	}
@@ -234,8 +246,9 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		EnsureUser(this);
-		// the two pilots that have to be earned (the unlock flags of the profile: bits 2 and 6, with their check value)
-		int aFlags = 0x13 | 4 | 0x40;
+		// the two pilots that have to be earned (the unlock flags of the profile: bits 2 and 6 and their check value; of the
+		// four values a profile may hold on loading, 0x44 is the one with both)
+		int aFlags = 0x44;
 		mUser->SetInt(PROFILE_UNLOCK_A, aFlags);
 		mUser->SetInt(PROFILE_UNLOCK_B, aFlags + 0x193);
 		mUser->Save();
@@ -261,7 +274,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else if (aName == "stage")
 			mBoard->mField193C = aValue;
 		else if (aName == "charge")
-			mBoard->m1bd8 = mBoard->m1bdc;      // the weapon of the pilot is charged (the value is not read)
+			mBoard->m1bd8 = aRest.empty() ? mBoard->m1bdc : (float) aValue;   // the weapon's charge: full without a number
 		else if (aName == "stories")
 		{
 			// the player has seen all the stories of the four pilots (the profile's counts, 0x4b .. 0x4e: the last story of
@@ -275,7 +288,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		else
 		{
-			ReplyError(theCommand, "set takes score, level, stage, charge or stories");
+			ReplyError(theCommand, "set takes score, level, stage, charge [N] or stories");
 			return true;
 		}
 		ReplyOK(theCommand);

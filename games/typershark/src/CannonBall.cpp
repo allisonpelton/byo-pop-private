@@ -52,7 +52,7 @@ bool CannonBall::HitsTarget()
 }
 
 // 0x407a90: like Torpedo::Draw, with the ball's pictures: a flying ball (0, 4) is the frame mFrame of 74x44 pixels of
-// the first picture (frames 44 pixels apart) at the last position, with the launch flash while it lasts; the same frame
+// the first picture (the frames lie one below the other, 44 pixels apart) at the last position, with the launch flash while it lasts; the same frame
 // of the mirrored picture (1) and of the turn picture (6); an exploding ball (3) as the torpedo's explosion. The word
 // of a flying ball (0) is drawn in the projectile font, left aligned 18 to the right of the position and 8 below the
 // middle, the typed part green, the rest black after it and 5 below the middle
@@ -62,7 +62,7 @@ void CannonBall::Draw(Graphics* g)
 
 	if (mState == 0 || mState == 4)
 	{
-		Rect aSrc(mFrame * 44, 0, 74, 44);
+		Rect aSrc(0, mFrame * 44, 74, 44);
 		g->DrawImage(mImages[0], (int)mLastX, (int)mLastY, aSrc);
 		if (mLaunchStep < 8)
 		{
@@ -72,12 +72,12 @@ void CannonBall::Draw(Graphics* g)
 	}
 	else if (mState == 1)
 	{
-		Rect aSrc(mFrame * 44, 0, 74, 44);
+		Rect aSrc(0, mFrame * 44, 74, 44);
 		g->DrawImage(mImages[3], (int)mLastX, (int)mLastY, aSrc);
 	}
 	else if (mState == 6)
 	{
-		Rect aSrc(mFrame * 44, 0, 74, 44);
+		Rect aSrc(0, mFrame * 44, 74, 44);
 		g->DrawImage(mImages[6], (int)mLastX, (int)mLastY, aSrc);
 	}
 	else if (mState == 3)

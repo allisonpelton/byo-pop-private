@@ -4,9 +4,10 @@ the game generator's position (3) and Rand()'s position (4).
 
     python games/astropop/tools/origcmp/compare.py <origrun.log> <port game.log> [--delta N] [--last U] [--show N]
 
-Both sides' changes of a watch are listed in order and compared by value; the update at which a change happened is compared
-after the delta (original update = port update + delta). It prints the first difference of each watch and a count of how many
-changes agree, and exits 1 on any difference. The first reading of a watch ("?" -> value) and the values of no board (the "-")
+Both sides' changes of a watch are listed in order and compared by value and by the update at which each happened (after the
+delta: original update = port update + delta). It prints the first difference of each watch and a count of how many
+changes agree, and exits 1 on any difference. A log in which origrun cut a watch at its cap ("N changes logged; no more") is
+not compared at all (exit 2): the rest of that game was never recorded. The first reading of a watch ("?" -> value) and the values of no board (the "-")
 are skipped. --last ignores the changes after that update (the end of the port's recording: the original's script runs on a
 little longer).
 """
@@ -16,16 +17,23 @@ import re
 import sys
 
 LINE = re.compile(r'watch (\d): (\S+) -> (\S+) at update (\d+)')
+CAPPED = re.compile(r'watch (\d): (\d+) changes logged; no more')
+UNREACHED = re.compile(r'counter (\d+) not reached within \d+ ?ms on the virtual clock \(last (\d+)\)')
 
 
 def read(path):
     out = collections.defaultdict(list)
+    capped = {}
     with open(path, 'r', errors='replace') as f:
         for l in f:
             m = LINE.search(l)
             if m:
                 out[int(m.group(1))].append((int(m.group(4)), m.group(2), m.group(3)))
-    return out
+                continue
+            m = CAPPED.search(l)
+            if m:
+                capped[int(m.group(1))] = int(m.group(2))
+    return out, capped
 
 
 def norm(v):
@@ -66,7 +74,26 @@ def main():
     ap.add_argument('--last', type=int, default=None, help='ignore the changes after this update (the end of the port recording: the original script runs on a little longer)')
     ap.add_argument('--pair', default='', help="w=p: the original's watch w is the port's watch p (2=5: the global generator's index, W2=0x67d910)")
     a = ap.parse_args()
-    o, p = read(a.original), read(a.port)
+    (o, capped), (p, _) = read(a.original), read(a.port)
+    if capped:
+        # origrun stops logging a watch at its cap (--watch-max): the rest of the game was not recorded, which is no
+        # difference and no agreement (it was read as "the generator stops" once: classic, seed 13)
+        for w in sorted(capped):
+            print("the original's watch %d was cut at origrun's cap of %d changes: nothing to compare after it" % (w, capped[w]))
+        print('NO COMPARISON (raise --watch-max)')
+        return 2
+    # the script ends with a mark at the port's last update; when the port's bot stood on a screen for a long time, the
+    # original does not get there within origrun's 30 s for a step and is stopped at the update it had reached: the
+    # two are compared up to that update, and the verdict says so
+    short = None
+    with open(a.original, 'r', errors='replace') as f:
+        for l in f:
+            m = UNREACHED.search(l)
+            if m and a.last is not None and int(m.group(1)) == a.last and int(m.group(2)) < a.last:
+                short = int(m.group(2))
+    if short is not None:
+        print("the original was stopped at update %d of %d (the script's end mark was out of reach): compared up to there" % (short, a.last))
+        full, a.last = a.last, short
     pair = {1: 1, 2: 2, 3: 3, 4: 4}
     if a.pair:
         pair[int(a.pair.split('=')[0])] = int(a.pair.split('=')[1])
@@ -89,7 +116,12 @@ def main():
         print('watch %d: original %d changes, port %d, %d agree in value; update offsets (original - port - delta) %s' % (
             w, len(po), len(pp), same, dict(offs.most_common(6))))
         if first is None and len(po) == len(pp):
-            continue
+            # the same values: every change must also come at the same update
+            late = [i for i in range(n) if po[i][0] != pp[i][0]]
+            if not late:
+                continue
+            first = late[0]
+            print('  the values agree, but %d changes come at another update' % len(late))
         bad += 1
         i = first if first is not None else n
         lo = max(0, i - a.show)
@@ -98,7 +130,12 @@ def main():
             so = 'original %s' % (po[j],) if j < len(po) else 'original -'
             sp = 'port %s' % (pp[j],) if j < len(pp) else 'port -'
             print('   %s%d: %-44s %s' % ('>' if j == i else ' ', j, so, sp))
-    print('IDENTICAL' if not bad else 'DIFFERENT (%d watches)' % bad)
+    if bad:
+        print('DIFFERENT (%d watches)' % bad)
+    elif short is not None:
+        print('IDENTICAL to update %d of %d' % (short, full))
+    else:
+        print('IDENTICAL')
     return 1 if bad else 0
 
 

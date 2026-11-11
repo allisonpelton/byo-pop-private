@@ -420,7 +420,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 		aPhase = 0;
 	else
 	{
-		double aRatio = (double) m1a14 / (double) m1a18;
+		float aRatio = (float) m1a14 / (float) m1a18;
 		if (!(aRatio <= 0.3333333333333333))
 		{
 			if (!(aRatio <= 0.6666666666666666))

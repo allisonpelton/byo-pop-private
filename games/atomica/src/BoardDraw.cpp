@@ -48,15 +48,15 @@ void Board::Draw(Graphics* g)
 	}
 
 	// the field (a copy of the graphics moved to the field's place; the bomb shakes it)
-	if (mF8c == 0.0f)
+	if (mStartCountdown == 0.0f)
 	{
 		Graphics aFieldG(*g);
 		aFieldG.Translate(mGrid->mX, mGrid->mY);
-		if (mBombOn && mB164)
+		if (mBombOn && mBombShake)
 			aFieldG.Translate(anApp->mRand.Get(5, true), anApp->mRand.Get(5, true));
 		mGrid->DrawField(&aFieldG);
 	}
-	if (mBombOn && mB164)
+	if (mBombOn && mBombShake)
 		g->Translate(anApp->mRand.Get(5, true), anApp->mRand.Get(5, true));
 
 	Graphics* aPlain = g;
@@ -175,10 +175,10 @@ void Board::Draw(Graphics* g)
 	// combo (-52 to +67 degrees)
 	{
 		int aAngle = (int) mNeedle - 0x34;
-		if (0x167 < aAngle)
-			aAngle -= 0x168;
+		if (FULL_TURN - 1 < aAngle)
+			aAngle -= FULL_TURN;
 		if (aAngle < 0)
-			aAngle += 0x168;
+			aAngle += FULL_TURN;
 		float aSin = SinDeg(aAngle);
 		float aCos = NegCosDeg(aAngle);
 		int aX1 = (int) (aSin * 18.0f + 389.0f);
@@ -193,10 +193,10 @@ void Board::Draw(Graphics* g)
 		g->DrawLine(aX1, aY1, aX2 - 1, aY2);
 	}
 
-	if (0 < mI180)
+	if (0 < mFreezeProgress)
 	{
 		g->SetColorizeImages(true);
-		g->SetColor(Color(255, 255, 255, mI180));
+		g->SetColor(Color(255, 255, 255, mFreezeProgress));
 		anApp->mFreeze->Draw(g, 0, 0);
 		g->SetColorizeImages(false);
 	}
@@ -205,9 +205,9 @@ void Board::Draw(Graphics* g)
 	// the signs over the field
 	int aCenterX = mGrid->mX + mGrid->mWidth / 2;
 	int aCenterY = mGrid->mY + mGrid->mHeight / 2;
-	if (0 < mI16c)
+	if (0 < mGetReadyAlpha)
 	{
-		int anAlpha = mI16c > 254 ? 255 : mI16c;
+		int anAlpha = mGetReadyAlpha > 254 ? 255 : mGetReadyAlpha;
 		g->SetColorizeImages(true);
 		g->SetColor(Color(200, 255, 200, anAlpha));
 		Sprite* aSign = anApp->mBigWords[2];
@@ -230,33 +230,33 @@ void Board::Draw(Graphics* g)
 		}
 		g->SetColorizeImages(false);
 	}
-	if (0 < mI174)
+	if (0 < mLevelUpAlpha)
 	{
 		g->SetColorizeImages(true);
-		g->SetColor(Color(200, 255, 200, mI174));
+		g->SetColor(Color(200, 255, 200, mLevelUpAlpha));
 		Sprite* aSign = anApp->mBigWords[0];
 		aSign->Draw(g, aCenterX - aSign->mWidth / 2, aCenterY - aSign->mHeight / 2);
 		g->SetColorizeImages(false);
 	}
-	if (mGrid->mLevelOver && (300 < mGrid->mOverTick))
+	if (mGrid->mGameOver && (300 < mGrid->mGameOverTick))
 	{
 		g->SetColorizeImages(true);
-		g->SetColor(Color(200, 255, 200, mI170));
+		g->SetColor(Color(200, 255, 200, mGameOverAlpha));
 		anApp->mBigWords[1]->DrawCentered(g, aCenterX, aCenterY);
 		g->SetColorizeImages(false);
 	}
-	if (mI1c0 != 0)
+	if (mBombSignAlpha != 0)
 	{
 		g->SetColorizeImages(true);
-		g->SetColor(Color(255, 255, 255, mI1c0));
+		g->SetColor(Color(255, 255, 255, mBombSignAlpha));
 		Sprite* aSymbol = anApp->mBombSymbol;
 		aSymbol->Draw(g, aCenterX - aSymbol->mWidth / 2, aCenterY - aSymbol->mHeight / 2);
-		g->SetColor(Color(255, 175, 64, mI1c0));
+		g->SetColor(Color(255, 175, 64, mBombSignAlpha));
 		g->SetFont(anApp->mAnnounceFont);
-		std::string aWord1 = "ATOMIC";
-		std::string aWord2 = "BOMB";
-		g->DrawString(aWord1, aCenterX - anApp->mAnnounceFont->StringWidth(aWord1) / 2, 0x78);
-		g->DrawString(aWord2, aCenterX - anApp->mAnnounceFont->StringWidth(aWord2) / 2, 0x168);
+		std::string aAtomicWord = "ATOMIC";
+		std::string aBombWord = "BOMB";
+		g->DrawString(aAtomicWord, aCenterX - anApp->mAnnounceFont->StringWidth(aAtomicWord) / 2, 0x78);
+		g->DrawString(aBombWord, aCenterX - anApp->mAnnounceFont->StringWidth(aBombWord) / 2, 0x168);
 		g->SetColorizeImages(false);
 	}
 

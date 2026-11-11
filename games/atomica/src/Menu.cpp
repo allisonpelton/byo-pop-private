@@ -61,7 +61,7 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	mDoorLeft = mApp->mSprites->SubSprite(mDoorSheet, 0, 0, 0x12f, 0x1e0);
 	mDoorRight = mApp->mSprites->SubSprite(mDoorSheet, 0x12f, 0, 0x151, 0x1e0);
 	mPanel = mApp->mSprites->Load("menupanel");
-	mApp->mB3eac = false;
+	mApp->mMenuDoorsOpen = false;
 	mPanelY = mPanel->mHeight + 10;
 	mHasSave = mApp->HasSavedGame();
 
@@ -82,12 +82,12 @@ MainMenu::MainMenu(AtomicaApp* theApp, bool theGameOver) :
 	{
 		mScore = aBoard->mScore;
 		mLevelReached = aBoard->mMeter.mMoleculesMade;
-		mTime = aBoard->mStat1c4;
-		mAtoms = aBoard->mStat1cc;
-		mMolecules = aBoard->mStat1d0;
-		mCombo = aBoard->mStat1d4;
-		mBonusMolecules = aBoard->mStat1d8;
-		mBonusUpgrades = aBoard->mStat1dc;
+		mTime = aBoard->mStatUpdates;
+		mAtoms = aBoard->mStatAtoms;
+		mMolecules = aBoard->mStatMolecules;
+		mCombo = aBoard->mStatBestCombo;
+		mBonusMolecules = aBoard->mStatBonusMolecules;
+		mBonusUpgrades = aBoard->mStatBonusUpgrades;
 	}
 	mRank = RankOfScore(mScore);
 	mApp->mMusicInterface->PlayMusic(1, theGameOver ? 0x29 : 0x1f, false);
@@ -133,7 +133,7 @@ MainMenu::~MainMenu()
 	mButtons.Clear();
 }
 
-// the buttons of the main page or those of the end of a game
+// port: the buttons of the main page or those of the end of a game
 void MainMenu::ShowPage(bool theGameOver)
 {
 	mGameOver = theGameOver;
@@ -270,7 +270,7 @@ void MainMenu::Update()
 			if (mDoor >= 0x14a)
 			{
 				mDoor = 0x14a;
-				mApp->mB3eac = true;
+				mApp->mMenuDoorsOpen = true;
 			}
 		}
 	}
@@ -283,12 +283,13 @@ bool MainMenu::PanelShown() const
 	return mSlammed && !mClosing && !mLeaving && (mAlpha >= 0xff);
 }
 
+// port: whether the mouse is over a button of the menu
 bool MainMenu::Over(int theId) const
 {
 	return (mBtn[theId] != NULL) && mBtn[theId]->mIsOver;
 }
 
-// a button's field, brighter when the mouse is over it
+// port: a button's field, brighter when the mouse is over it
 void MainMenu::FillButton(Graphics* g, int theId)
 {
 	ButtonWidget* aButton = mBtn[theId];

@@ -106,7 +106,8 @@ void AtomicaApp::WriteHighScores()
 	WriteBufferToFile("HS.CFG", &aBuffer);
 }
 
-// port: the saved game is a file in the user's folder
+// port: the saved game is a file in the user's folder. The original's menu asks only whether the file is there (0x4198e0); a file
+// too short to hold a game counts as none here (builds of the port before 2026-11-11 emptied the file when a game was continued).
 bool AtomicaApp::HasSavedGame()
 {
 	Buffer aBuffer;
@@ -135,13 +136,8 @@ void AtomicaApp::SaveGame()
 	WriteBufferToFile("SAVEGAME.DAT", &aBuffer);
 }
 
-void AtomicaApp::DeleteSavedGame()
-{
-	Buffer aBuffer;
-	WriteBufferToFile("SAVEGAME.DAT", &aBuffer);
-}
-
-// 0x406060 / 0x406020: the saved game goes on (the menu closes itself when its doors are open)
+// 0x406060 / 0x406020: the saved game goes on (the menu closes itself when its doors are open). The file stays as it is, as in
+// the original, which never removes it: the menu offers the same saved game again until another is saved over it.
 void AtomicaApp::ResumeGame()
 {
 	Buffer aBuffer;
@@ -163,7 +159,6 @@ void AtomicaApp::ResumeGame()
 		mBoard->Load(aFile);
 	}
 	fclose(aFile);
-	DeleteSavedGame();
 }
 
 // 0x405d70: the main menu (theGameOver: after a game). The title screen or the board stays under it until its doors have shut
@@ -201,7 +196,6 @@ void AtomicaApp::CloseBoard()
 // "confirm new game" box sets it, which nothing opens: GAME_NOTES.md, "Code the port does not need")
 void AtomicaApp::ShowGameOver()
 {
-	DeleteSavedGame();
 	ShowMainMenu(true);
 }
 

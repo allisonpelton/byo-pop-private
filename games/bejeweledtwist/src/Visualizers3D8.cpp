@@ -782,32 +782,6 @@ void VizZenWheels::Draw(Graphics* g)
 	g->PopState();  // 0x41fe00
 }
 
-// 0x690af4: b brings in the next look, c the next pair at once, e a new level, g toggles the scene, r new pictures
-bool VizZenWheels::Slot4(char theChar)
-{
-	if (theChar == 'b') {
-		NextLook();
-		return true;
-	}
-	if (theChar == 'c') {
-		PickImages(true, true);
-		return true;
-	}
-	if (theChar == 'e') {
-		NewLevel();
-		return true;
-	}
-	if (theChar == 'g') {
-		mShowScene = !mShowScene;
-		return true;
-	}
-	if (theChar == 'r') {
-		PickImages(true, false);
-		return true;
-	}
-	return false;
-}
-
 // 0x690ad3: a cascade: while held it is kept for the end of the hold, else the wheels go out at once and the pictures swap
 void VizZenWheels::NextLook()
 {
