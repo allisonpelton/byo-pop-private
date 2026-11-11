@@ -349,11 +349,12 @@
         "identical-look",
         "fixes-mod",
         "site-features",
-        "coverage"
+        "coverage",
+        "performance"
       ],
       "na": [],
-      "now": "performance",
-      "note": ""
+      "now": "unneeded-code",
+      "note": "Collection check to do (the Collection exe is another build)"
     },
     "bigmoney": {
       "title": "Big Money Deluxe",

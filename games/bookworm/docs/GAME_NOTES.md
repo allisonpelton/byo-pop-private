@@ -7049,8 +7049,11 @@ off): BookWorm has no scrolled list box. Its only lists are the select-player an
 lines by `GetOptimalHeight` (the line count times the line height, plus 8), so the page size is an exact integer, no
 scrollbar shows and `mPosition` stays 0.
 
-**The Collection check.** BookWorm Deluxe was made from the retail 1.03 install (`C:\Program Files\PopCap Games\BookWorm
-Deluxe`), not from a Steam copy, so the check against the PopCap Game Collection's version does not apply.
+**The Collection check.** The port was made from the retail 1.03 install (`C:\Program Files\PopCap Games\BookWorm Deluxe`:
+`Bookworm.exe` 1,425,425 bytes, the game carved out of it 1,318,912), and the user's PopCap Game Collection holds the game as
+the group `BookwormDeluxeComponent` with a `Bookworm.exe` of 1,770,800 bytes: another build. The port reads its texts from the
+exe, so the check against that version applies after every other step and before the site features (coordinator's correction,
+2026-11-11; AstroPop's GAME_NOTES section 13 is the model). It is not done yet.
 
 **Not covered, and why.** The options dialog's fullscreen and 3D boxes (applying either switches the display mode), every
 link, "buy" and "more games" button (a script never clicks one), the Hall of Fame's internet tab (needs the network, which
@@ -7059,3 +7062,70 @@ origrun makes fail at once), and the original's 3D mode as such.
 **What it cost.** The runs took about an hour of machine time, 2 or 3 game processes at a time. No agent was used: this
 session wrote the tools (`run.sh`, `all.sh`, `port.sh`, `extra.py`, `effects.sh`), read the reports and placed the `none`
 lines.
+
+## Performance pass (2026-11-11; `docs/COORDINATION.md`, "A performance pass before the readability pass")
+
+**Method.** `games/bookworm/tools/profile/` holds the tools: `perf.py` (samples the game's process every 0.1 s: working set, private
+bytes, processor time; the load is the time from the creation of the process to the title's play link, the port's through its `move`
+command, the original's from the title's `mLoadDone` flag read out of its memory), `pairs.sh` (the port and the original turn about,
+one process at a time, each waiting for a free game slot), `summary.py` (a median with its range), `variants.sh` (the port with SDL's
+renderer settings changed), `memrun.sh` (the port's `memreport` at four points) and `cpuprof.py` (Bejeweled's sampler, with the system
+DLLs named by their export tables). The game played is a Classic game of the port's bot (seed 1, 7,060 updates: the title's link, the
+new player's name, a Classic game to its end, back to the selector), the same script for both: the port as `-script` lines, the
+original through origrun (`identical/toorig.py`) on its real clock. "The stretch" is the 2,000 updates before the last input, 20 s
+of play. The machine was never quiet (0.54 to 0.90 of it busy, 3 to 5 other game processes), so a figure is three pairs, with its range.
+
+| Three pairs, real time | Original | Port |
+|---|---|---|
+| Load to the title | 2.71 to 3.69 s (median 3.02) | 1.21 to 1.81 s (median 1.51) |
+| Processor time to the title | 1.08 to 1.42 s | 1.11 to 1.38 s |
+| Private bytes at the title | 38.9 to 41.0 MB | 77.7 to 79.9 MB |
+| Processor time of the stretch (20 s) | 3.73 to 4.59 s (18.6 to 22.9 % of one core) | 1.91 to 2.39 s (9.5 to 11.9 % of one core) |
+| Updates a second in the stretch | 99.9 to 100.0 | 97.8 to 99.3 |
+| Peak private bytes of the run | 41.0 to 41.2 MB | 95.8 to 97.9 MB |
+
+Without waiting (the port's `-fast`, origrun's virtual clock: the work a test run does) the whole run took 1.73 s of processor time in the
+port (one run) against 3.75 and 5.08 s in the original (two), and the stretch 0.23 s against 0.39 and 0.62 s. A first real-time run of the
+original that read 0.84 s for the stretch (its load took 40 s on a busy machine) was dropped; the three pairs agree with each other.
+
+The port loads in half the original's time on the same processor time (it loads in one go, as the framework does for every
+SexyAppFramework game) and plays on about half of its processor time. The one figure it loses is memory: 39 MB more at the title and
+55 MB more at the peak.
+
+**Where the port's processor time goes** (`cpuprof.py`, 21.5 G cycles in 77.8 s of the real-time run, every thread). ntdll 85.7 %, the exe
+4.9 %, the Direct3D 11 driver 2.7 %, the C library 2.4 %, win32u 1.9 %, `imagehlp.dll` 0.7 %. The sampler charges the cycles a thread used since
+the last look to where the thread stands, so a thread that works for a moment and then waits is charged to its wait: `ZwWaitForSingleObject`
+60.9 %, `ZwDelayExecution` 11.0 % (the main loop's `SDL_Delay`), `ZwWaitForWorkViaWorkerFactory` 8.2 % (idle pool threads). What it does show
+is whose cycles they are: the main thread 40.6 % (72 % of it in ntdll, 11 % in the exe), the graphics driver's own thread 26.0 %, one more
+thread 9.5 % and fifteen others of 0.1 to 2.9 %. In the exe nothing of the game's own code reaches 0.2 %: its largest entries are the load's
+decoders (`Sexy::Quantize8Bit` 0.5 %, `_inverse_mdct` 0.3 %, `_stbi__out_gif_code` 0.3 %, the module reader `ReadMO3` 0.2 %). What a
+player's machine spends on this game is the display path, not BookWorm's code.
+
+**Renderer settings** (`variants.sh`, two runs of the stretch each, real time): the share of one core was 8.3 to 15.8 % with the default
+(Direct3D 11, vsync), 12.8 to 15.5 % with vsync off, 9.7 to 13.4 % on Direct3D 9, 6.5 to 9.7 % on OpenGL and 82 % on SDL's software renderer.
+OpenGL's lower figure came with one run at 56.8 updates a second and a peak of 143 MB, so no setting beats the default clearly and nothing
+is sent to the coordinator about the renderer.
+
+**Where the port's memory goes** (`memrun.sh`: the framework's `memreport` at updates 400, 1,500, 3,500 and 6,800 of the scenario). Private bytes
+were 86.3, 91.7, 95.2 and 104.3 MB. The libraries and devices before the first picture (`privateAtStart`) are 32.3 MB; the pictures are 176 to 184
+(10.6 MB of pixels, 0.8 MB of copies; the graphics device's textures an estimate of 2.5 MB at the title, 8.5 MB in the first game and 16.5 MB at its
+end); 47 sounds are 4.5 MB and the 5 module files 1.1 MB. The original's whole process is 39 MB at the title and 41 MB at its peak, so the
+port holds about 32 MB of devices and libraries that the original does not (the Direct3D 11 device is 20 to 25 MB of it) and about 10 MB of
+pixels kept beside their textures. Both are the shared costs of `docs/COORDINATION.md`.
+
+**The web build** under Node (`-fast`, the same scenario): the wasm memory was 56.6 MB at the first report, 68.0 MB in the first game and
+81.6 MB at its end (it only grows), and 7,060 updates with 627 draws took 3.76 s, about 0.5 ms an update without a display. The load and
+the frame time in a browser were not measured: the Browser pane is hidden and its timers are throttled, so `requestAnimationFrame` does
+not run (as Bejeweled's notes say).
+
+**Shared costs** (none of them in BookWorm's code, and the coordinator's list holds each): the GIF decoder and `Quantize8Bit` lead the
+exe's load costs (276 GIFs); `imagehlp.dll` 0.7 % of the real-time run; the Direct3D 11 device and the pixels kept after upload in memory.
+
+**Nothing was changed in the game's code for speed.** The port is already ahead of the original on load and on processor time, and the
+profile shows no function of the game's own above 0.2 %; the memory it holds more is the display layer's. The frozen baseline is
+unchanged by this pass, which added only the profile tools and these notes.
+
+**To repeat.** `OG_STAGE=C:/byo-og/bwpp games/bookworm/tools/identical/setup.sh` makes the original's stage; copy `games/bookworm/tools/profile/scenario.txt` (the
+port's `-autoplaylog` of the bot game, shifted as `identical/case.sh` does) to `<out>/scenario.txt` and run
+`OG_STAGE=C:/byo-og/bwpp bash games/bookworm/tools/profile/pairs.sh <out> 3` (about 4 minutes a pair), then
+`python -I games/bookworm/tools/profile/summary.py <out>`; `variants.sh <out> 2` and `summary.py <out> v` for the renderer settings.
