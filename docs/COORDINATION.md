@@ -303,7 +303,7 @@ CLAUDE.md was "larger than I typically like"). CLAUDE.md keeps the rules every s
   ready by the end of December. I'm in no hurry to get games out in a less-than-stellar state." A game is done only once
   it has had every step: the user's faults fixed; both phases of identical play, with the real-input play of CLAUDE.md
   ("Done means identical"); registration and the buttons that lead out of the game removed; its fixes mod; the
-  readability pass, once the user approves the standards after Twist's pilot; the coverage check; the performance pass;
+  readability pass (the standards were approved on 2026-11-10: "new standards approved"); the coverage check; the performance pass;
   the other code it does not need taken out; and, for a game ported from its Steam copy, the check against its PopCap
   Game Collection version. The coverage check and the performance pass, planned for after every game was done, become
   steps of each game's own finishing, in the order above where a game has not begun its readability pass (coverage,
