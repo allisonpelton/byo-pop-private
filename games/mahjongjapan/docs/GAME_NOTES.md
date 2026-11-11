@@ -68,12 +68,14 @@ The port answers the standard commands (`docs/TEST_COMMANDS.md`) from a test's `
 
 | Command | What it does |
 |---|---|
-| `state` | `STATE {json}`: `screen` and `dialog` (the top layer and the dialog on it, null for none), `busy` (a transition or a flight is running), `player`, `progress` and `levels` (the adventure), `updates`, `layers`, and on a board `mode`, `level`, `layout`, `score`, `timer`, `moves` (the free pairs), `tiles` (left) and `board` (`started`, `over`, `escaping`, `blocked`, `selected`, `move`), and `buttons`, each `{cmd, x, y, w, h}` in game pixels, of the top layer. |
+| `state` | `STATE {json}`: `screen` and `dialog` (the top layer and the dialog on it, null for none), `busy` (a transition or a flight is running), `player`, `progress` and `levels` (the adventure), `updates`, `layers`, and on a board `mode`, `level`, `layout`, `score`, `timer`, `moves` (the free pairs), `tiles` (left) and `board` (`started`, `over`, `escaping`, `blocked`, `selected`, `move`), `over` (a board has been played and the screen waits again: the classic list, the map with Continue ready, or the ending, not busy), and `buttons`, each `{cmd, x, y, w, h}` in game pixels, of the top layer. |
 | `goto <screen>` | `menu`, `options`, `help` (from the main menu), `classic [n]` (the list, or layout n at once), `escape` or `map`. Answers once the screen has settled. |
 | `level <n>` | The adventure's level n, started as the map's Continue starts it. |
 | `unlock all`, `set score` or `set progress` with a number | The adventure's progress to its last level; a score or the progress. |
 | `win` | The game's own moves, from the bot's way to the end of the game, until it ends. |
 | `move` | `MOVE {json}`: the bot's next move and the real input that makes it (below); changes nothing. |
+| `set player <name>` | The first player, made as the name box's Accept makes it and loaded as the game loads a player, so a driver need not type a name. |
+| `set pace <n>` | Updates between the two clicks of a pair (`move`'s input then has a `{"wait":n}` step and its `"updates"` is n); 0, the default, plays the pair's clicks one update apart. A pair played at a human's pace gives the sound log's select and match their gap. |
 | `lose`, `seed <n>` | `ERROR`: a game here is never lost (a board with no pair offers the shuffle), and every deal has its seed from the game's own clock (the fixes mod's `-gameseed` is the seed). |
 
 **The bot behind `move`** (`engines/mahjongescape/src/Bot.cpp`, one file for both games) works on a copy of the board's layout with the game's own rules for a free tile and a pair. It searches depth
@@ -155,6 +157,13 @@ input in 23.6 minutes of real time and reached the ending. `--fullscreen` plays 
 from 3200x2400 to 1600x1200 pixels of the private desktop and back (`screenshotfull`). The web driver
 `tools/web/realplay.js` plays the same through the DOM's events on the page (`?driver=`), `modtest.py` checks the three
 fixes, `perfload.py` times the launch.
+The sound effects also go, in the framework's sound log form (`framework/SDLSoundManager.h`: a line a `load`, `play`,
+`stop` or `volume` with the update it happened in, 5 ms an update here), to the file named by `BYOPOP_SOUNDLOG`, for the
+site's soundboard presets (`tools/soundpreset.py --ms 5`): a sample is named `Resource <id>`, its WAVE resource in
+Resource.dll, and plays at 0 dB with no pan and no pitch, as BASS plays it. The tour run under it
+(`BYOPOP_SOUNDLOG=<file> build/native/rundesk.exe python games/mahjongjapan/tools/realplay/drive.py <out> --game
+japan`) stamps each line of its `drive.log` with the update, so a stretch of the sound log is found by the step that
+made it.
 
 ## Performance (2026-11-09)
 
