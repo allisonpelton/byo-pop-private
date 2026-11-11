@@ -96,36 +96,14 @@ same function, such as BookWorm's `ShowHelp` for the Mac's `DoHelp`; the wrong o
 share of the Mac's functions that found a PC partner. Its denominators include the Mac's platform layer, framework
 functions the PC version does not have, and functions one compiler inlined, so it understates what is left to find.
 
-Alchemy (PowerPC) gives 472 pairs: 62 by strings, 94 by vtables, 304 by calls, 10 by order and 2 imports. Of the 253 the
-ports can check, 200 have the same name and 5 are wrong: the vtable pass put the Mac's `CommitBits` on the PC function
-the export calls `BitsChanged` in `MemoryImage` and in `DDImage`, and the call pass paired the Mac's `GetTickCount`
-wrapper with `WidgetManager::DoMouseUps`, the `Insets` constructor with `Color`'s four-int one (MSVC folds the two), and
-`Board::ClearBoard` with `GameWon`. 126 of the 309 game functions (41%) and 246 of the 616 framework functions (40%)
-have a partner, 40% of both together.
-
-Bejeweled (PowerPC) gives 388 pairs: 58 by strings, 127 by vtables, 185 by calls, 16 by order and 2 imports. Of 269
-checkable pairs 252 have the same name. Seven are wrong, five of them framework slots where the two framework versions
-differ most (`CommitBits` twice, `SexyApp::ReadFromRegistry` and its `WinDMApp` override, `LoadingThreadCompleted`), and
-the call pass put `DDInterface::AddDDImage` on `DDImage::Init` and the `Color` constructor on the folded `Insets` one.
-Three more are near misses: `AddedToManager`, `RemovedFromManager` and `Update` are `Widget`'s in the Mac build and
-`WidgetContainer`'s in the PC one. 129 of 226 game functions (57%) and 167 of 581 framework functions (29%) are covered,
-37% together.
-
-BookWorm (Intel) gives 942 pairs: 142 by strings, 319 by vtables, 458 by calls, 20 by order and 3 imports. Its port
-renamed nearly every game function, so only 636 of the 772 checkable pairs have the same name, but of the rest only a
-handful look wrong: `MoneyDialog::Draw` on `HintDialog::Draw`, a `Color` getter on a folded `Font` one, `Quantize8Bit`
-on `Quantize32Bit`, and a few of the advertising functions of `InternetManager` that could go either way. 372 of 800
-game functions (46%) and 391 of 1045 framework functions (37%) are covered, 41% together.
-
-Seven Seas (PowerPC) gives 538 pairs, covering 178 of 339 game functions (53%) and 255 of 609 framework functions (42%).
-Its port renamed most functions and no alias file was written, so it was not measured, though its pairs read as the same
-functions under other names (the Mac's `DoExplode` on the port's `SpawnExplosion`).
-
-Bejeweled 2 (PowerPC, with the framework in the `SexyApp` library) gives 1029 pairs: 221 by strings, 247 by vtables, 497
-by calls, 57 by order and 7 imports. 449 of the game's 624 functions (72%) and 370 of `SexyApp`'s 1395 framework
-functions (27%) have a partner; most of the library's remaining functions are its Mac platform layer, STL and code this
-game does not use. It has no port yet to measure against; a sample of the pairs whose PC function uses strings agreed
-with the strings each time. The match and names files are in `re/bejeweled2/macmatch/`.
+Measured on Alchemy, Bejeweled and Seven Seas (PowerPC), BookWorm (Intel) and Bejeweled 2 (PowerPC, with the framework
+in the `SexyApp` library), a run gives about 390 to 1030 pairs, and 37% to 46% of a Mac build's functions find a PC
+partner (72% of Bejeweled 2's game functions). The wrong pairs are a handful in each game, of the same kinds:
+framework slots where the two framework versions differ most (`CommitBits` on the PC's `BitsChanged`,
+`ReadFromRegistry`, `LoadingThreadCompleted`; `AddedToManager`, `RemovedFromManager` and `Update` are `Widget`'s in the
+Mac build and `WidgetContainer`'s in the PC one), functions MSVC folded (the `Insets` constructor and `Color`'s
+four-int one, a `Color` getter and a `Font` one), and neighbours the call pass confused (`DDInterface::AddDDImage` on
+`DDImage::Init`, `Quantize8Bit` on `Quantize32Bit`, `Board::ClearBoard` on `GameWon`).
 
 Across the measured games the string, vtable and order passes are right nearly every time once the renames are set
 aside, and the call pass is wrong for under 2% of its checkable pairs.
@@ -144,8 +122,3 @@ Functions with neither strings nor calls nor a vtable slot are found only by the
 plain C code stay mostly unpaired, and the C and C++ libraries are used only as anchors. The PowerPC decoder knows what
 GCC 3.3, GCC 4 and CodeWarrior emitted for these games, not every instruction; the Intel path has been tried on BookWorm
 only, and a 64-bit Mac binary is not read at all.
-
-Ghidra's Version Tracking would not do better here. Its correlators that work across two instruction sets are the ones
-by symbol name, by data references and by function references, which the string and call passes already cover, and it
-knows nothing of the Itanium and MSVC vtable layouts that give a quarter to a third of the pairs; it would also need
-every Mac binary imported and analysed in Ghidra first, which this tool does not need.
