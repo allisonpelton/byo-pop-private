@@ -97,17 +97,10 @@ void TitleScreen::Update()
 void TitleScreen::Draw(Graphics* g)
 {
 	g->DrawImage(mApp->mImages[IMAGE_TITLE], 0, 0);
-	g->DrawImage(mApp->mImages[IMAGE_TRIALCIRCLE], 0, 0x17f);
+	// (the original draws its registration state here: the "registered version" medallion at 0, 0x17f and one line over the
+	// bar, the thanks of a registered copy or the play count of a trial. The port has no registration, so neither is here.)
 	int aBar = (int) (mProgress * 340.0);
 	g->DrawImage(mApp->mImages[IMAGE_TITLEBAR], 0x93, 0x183, Rect(0, 0, aBar, 0x18));
-	g->SetFont(mApp->mHeaderFont);
-	SexyString aMessage = GT(0x00495540);
-	g->SetColor(Color(0, 0, 0));
-	for (int dx = -1; dx < 1; dx++)
-		for (int dy = -1; dy < 1; dy++)
-			g->DrawString(aMessage, (mWidth - g->GetFont()->StringWidth(aMessage)) / 2 + dx, 0x177 + dy);
-	g->SetColor(Color(0xff, 0xff, 0));
-	g->DrawString(aMessage, (mWidth - g->GetFont()->StringWidth(aMessage)) / 2, 0x177);
 	g->SetFont(mApp->mFont1);
 	g->SetColor(Color(0xff, 0xff, 0xff));
 	g->DrawString(GT(0x00495534) + mApp->mProductVersion, 0x16, 0x7e);

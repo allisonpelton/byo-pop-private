@@ -221,8 +221,16 @@ removal leaves the baseline's logs and screenshots alone except where it is said
   true), which is the coordinator's to take out of `SexyApp`.
 - The pictures `register` and `registerrunes`, which only the registration screen used (`make_res.py` leaves them out, so the image
   ids after them moved up by two; `NUM_IMAGES` is 163).
-- Kept because the registered game has them: the `trialcircle` picture on the title, the "Internet scores" data buffer the classic
-  link starts, the tips.
+- Kept because the registered game has them: the "Internet scores" data buffer the classic link starts, the tips.
+- **What a registered copy shows on the title (taken out 2026-11-10; the user: "Mummy Maze still thanks you for registering").**
+  The original's title draws its registration state (0x42aaf0): the `trialcircle` picture, a medallion that reads "registered
+  version", at 0, 0x17f when registered, and one line over the loading bar, the thanks of a registered copy or the play count of a
+  trial. The first pass had kept both as the registered game's. Both are gone: `TitleScreen::Draw` draws neither, `make_res.py`
+  leaves the picture out (`NUM_IMAGES` is 162, the ids after it moved up by one), and the text table no longer lists the line.
+- **The text table lists only the texts the port names (2026-11-10).** `GameTextTable.inc` listed every string of the exe's text
+  region, 1208 of them, the registration screen's, the nags' and the Internet scores' among them. `make_gametext.py` now keeps
+  the addresses the port's sources name (`GT(0x...)` and the tables of addresses in the `.cpp` and `.inc` files): 238. A scan of
+  those 238 texts for registration, buying and web wording finds none.
 
 Loading was already as fast as the machine allows: the loading thread runs in one go after the first frame (the framework), it loads
 the 25 sounds and the fonts without waiting, and the title polls its progress every fourth update. There is no minimum time.

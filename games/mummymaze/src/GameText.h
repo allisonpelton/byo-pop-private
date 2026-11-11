@@ -10,8 +10,8 @@
 //   the 1.1 game image, its length and a hash: no text.
 // - LoadGameTexts() finds WinMM.exe in the game folder, reads each text at its address and checks length
 //   and hash. A text that does not match (another version of the exe) stays empty and is logged.
-// - Code names a text by its address in the original: GT(0x00495524). Overrides: any string property named
-//   GT_<8 hex digits> (e.g. <String id="GT_00495998">...</String> in properties/texts.xml, from the game folder
+// - Code names a text by its address in the original: GT(0x00495510). Overrides: any string property named
+//   GT_<8 hex digits> (e.g. <String id="GT_00495510">...</String> in properties/texts.xml, from the game folder
 //   or a mod) replaces the text read from the exe.
 
 #include "Common.h"
