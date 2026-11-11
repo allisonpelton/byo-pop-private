@@ -230,18 +230,11 @@ None found yet.
   palette handling, then the unpack of a 2-bit palette row, then the exception filter). The port decodes the same files without
   trouble. Not chased further (the user's copies on older Windows may be fine).
 
-- Classic, seed 13, 600 moves (`tools/origcmp/run_mode.sh classic 600 13`): the original's game generator stops moving at update
-  20512, and the port's does not. From update 15579 the bot only repeats a take on column 6 or 8 and a fire on the other
-  (18 bricks stay, no row comes, in both games); every take builds the hand brick (`Board::MakeHand`, the 0x234-byte object of
-  0x4067b0, 246 draws with the sparks of the two `SetParticleX/Y` calls), and the position of the generator
-  (`[0x5a4e28]+0x9c0`) agrees update by update through about 170 such rounds, wraps of its 624 words included (the last at 20490).
-  At 20512 the original builds the hand brick again (watched: the hand pointer at board +0x354 is set, its field at +0x1d4 is 10 and
-  its particle list at +0x58 is allocated, as in the rounds before) and the position stays at 11 with the generator pointer and the
-  first word unchanged, for the remaining 5000 updates and some 170 more rounds. The port draws 246 numbers for each of them as
-  before. Not explained: no code path of the export builds the object without drawing, and the generator's own code
-  (0x48c5d0) is the framework's. What it would take: a hook inside a copy to see which generator the constructor draws from at that
-  update (needs the user's OK, CLAUDE.md), or the original's own state before 15579 (the bot's loop is where a human would never
-  be). Every other game of the pass (eleven, classic and survival, to level 3, a bonus round and game over) is identical.
+- (Withdrawn, 2026-11-11.) Classic, seed 13, 600 moves was listed here as "the original's game generator stops moving at
+  update 20512". It does not: origrun logs at most 4000 changes of a watch unless `--watch-max` says more, the option did not
+  reach a run in Windows Sandbox, and the generator's position had changed 4000 times by that update. With the option
+  forwarded (ea95b965) the game is identical to its last update (25323; 5118 changes of the position), and `compare.py` now
+  refuses a log that was cut.
 
 ## 9. Next steps
 

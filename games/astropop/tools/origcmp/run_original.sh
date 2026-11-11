@@ -41,6 +41,9 @@ for try in $(seq 1 "$tries"); do
   [ -n "$PROFILE" ] && cp "$PROFILE" build/origrun/$run/game/users/data1.usr
   # the inside log of the run before (a run that never got its sandbox would otherwise be read as that one)
   rm -f build/origrun/$run/logs/origrun-sandbox.log
+  # the registry preset of the run before: origrun imports whatever file is there, and stages this run's own (--reg) over it,
+  # so a run without one would start with the last profile case's player and no file for them
+  rm -f build/origrun/$run/sandbox-files/registry.reg
   # other sessions use the one Windows Sandbox in turn: the run waits in origrun's queue for up to an hour
   build/origrun-bin/origrun.exe --game astropop --run "$run" --exe "$PWD/build/origrun/$run/game/AstroPopGame.exe" \
     --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" --watch-max "${WATCH_MAX:-400000}" $SBX \

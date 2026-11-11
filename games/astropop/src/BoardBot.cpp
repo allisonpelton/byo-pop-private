@@ -212,6 +212,15 @@ std::string Board::BotMove()
 			   Steps(StrFormat("{\"click\":[%d,%d]}", aStoryButton->mX + aStoryButton->mWidth / 2, aStoryButton->mY + aStoryButton->mHeight / 2)) + "}";
 	}
 
+	// the box of the warp screen after every fourth level (the weapon has been upgraded): its button closes it
+	Dialog* anUpgradeBox = mApp->GetDialog(0x76);
+	if (anUpgradeBox != NULL)
+	{
+		DialogButton* aButton = anUpgradeBox->mYesButton;
+		return "{\"kind\":\"upgrade\",\"updates\":10," +
+			   Steps(StrFormat("{\"click\":[%d,%d]}", aButton->mX + aButton->mWidth / 2, aButton->mY + aButton->mHeight / 2)) + "}";
+	}
+
 	// the warp screen between two levels waits for a click on its first panel (the next level) once the screen is up
 	if (m8ef && m1a60 == 1 && m7e8 >= 0 && !m8f4)
 		return "{\"kind\":\"gate\",\"updates\":10," +

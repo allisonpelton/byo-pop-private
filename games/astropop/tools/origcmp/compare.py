@@ -18,6 +18,7 @@ import sys
 
 LINE = re.compile(r'watch (\d): (\S+) -> (\S+) at update (\d+)')
 CAPPED = re.compile(r'watch (\d): (\d+) changes logged; no more')
+UNREACHED = re.compile(r'counter (\d+) not reached within \d+ ?ms on the virtual clock \(last (\d+)\)')
 
 
 def read(path):
@@ -81,6 +82,18 @@ def main():
             print("the original's watch %d was cut at origrun's cap of %d changes: nothing to compare after it" % (w, capped[w]))
         print('NO COMPARISON (raise --watch-max)')
         return 2
+    # the script ends with a mark at the port's last update; when the port's bot stood on a screen for a long time, the
+    # original does not get there within origrun's 30 s for a step and is stopped at the update it had reached: the
+    # two are compared up to that update, and the verdict says so
+    short = None
+    with open(a.original, 'r', errors='replace') as f:
+        for l in f:
+            m = UNREACHED.search(l)
+            if m and a.last is not None and int(m.group(1)) == a.last and int(m.group(2)) < a.last:
+                short = int(m.group(2))
+    if short is not None:
+        print("the original was stopped at update %d of %d (the script's end mark was out of reach): compared up to there" % (short, a.last))
+        full, a.last = a.last, short
     pair = {1: 1, 2: 2, 3: 3, 4: 4}
     if a.pair:
         pair[int(a.pair.split('=')[0])] = int(a.pair.split('=')[1])
@@ -117,7 +130,12 @@ def main():
             so = 'original %s' % (po[j],) if j < len(po) else 'original -'
             sp = 'port %s' % (pp[j],) if j < len(pp) else 'port -'
             print('   %s%d: %-44s %s' % ('>' if j == i else ' ', j, so, sp))
-    print('IDENTICAL' if not bad else 'DIFFERENT (%d watches)' % bad)
+    if bad:
+        print('DIFFERENT (%d watches)' % bad)
+    elif short is not None:
+        print('IDENTICAL to update %d of %d' % (short, full))
+    else:
+        print('IDENTICAL')
     return 1 if bad else 0
 
 
