@@ -74,7 +74,7 @@ void TitleScreen::Resize(int theX, int theY, int theWidth, int theHeight)
 	mPlayLink->Resize((mWidth - aWidth) / 2, 0x177, aWidth, 0x18);
 }
 
-// 0x425fb0
+// 0x425fb0 (0x426140, the sparkle's new place, is the tail of its loop, which Ghidra left outside the function)
 void TitleScreen::Update()
 {
 	Widget::Update();
@@ -604,7 +604,7 @@ void TalkWidget::SetMouth(int theSet)
 	mStepTime = kMouthSteps[theSet][0][1];
 }
 
-// 0x419ce0
+// 0x419ce0 (0x419ab0, the end of a talk: the flag off and a redraw, is inline in it)
 void TalkWidget::Update()
 {
 	Widget::Update();
@@ -755,12 +755,14 @@ HighScoreWidget::~HighScoreWidget()
 	delete mNewGameButton;
 }
 
+// 0x411190: the original adds two buttons, the New Game button and the one that submits the score online (not ported)
 void HighScoreWidget::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
 	theWidgetManager->AddWidget(mNewGameButton);
 }
 
+// 0x4111c0
 void HighScoreWidget::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

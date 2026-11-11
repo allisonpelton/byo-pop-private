@@ -263,7 +263,7 @@ Script commands of the port (`-script`, later the live channel), answered on std
 
 `move` also answers the screens between moves, so that a driver needs nothing else: a dialog's button, the title's Play link, the
 menu's Play, the demo's and the map's buttons, the high-score screen's, and a dig of the bonus level, as `{"kind":"ui","what":"dialog 14",
-"input":[...]}`; they come before the ship's own move. `state` adds `over` (the last life is gone), `busy` (nothing to click yet), `dialogs`
+"input":[...]}`; they come before the ship's own move. `state` starts with the screen and `update` (the app's update count, so that a driver's transcript can be laid on the original's counter) and adds `over` (the last life is gone), `busy` (nothing to click yet), `dialogs`
 (id, whether it sits in the widget manager, box, button) and, on the menu, `menu` (the Play and Tutorial buttons and the three wheels, in
 game coordinates; the difficulty wheel is a real click, then Play). `tools/web/hard.js` plays a whole Hard game that way.
 
@@ -307,3 +307,67 @@ under rundesk), `loadtime.py` (the port's load time through the live channel).
 **What could not be measured.** The web build's load time: the Browser pane is hidden, its timers are throttled and
 `requestAnimationFrame` does not run, and a load in a player's browser is dominated by the network and the wasm compile. The
 original's load to better than a second (no state command; origrun's clock is in whole seconds). The GPU's own load, and full screen.
+
+## 12. Coverage check (2026-11-11)
+
+The whole check of `docs/COVERAGE.md`. origrun's `--coverage` recorded which of the original's functions ran in 16 runs on the
+host, on the virtual clock (about 26 times real time). `tools/coverage/run.sh <name> <script> <seed> [timeout]` runs one (it
+waits for room among the 3 game processes, and with `SAVE=<savegame.dat>` stages a saved game into the copy first),
+`tools/coverage/mkscript.py` writes the scripts (the title, the menu and then clicks over the board's cells in a seeded random
+order, the panel's buttons and every dialog, or a run from a saved game: the Continue dialog, the Treasure Island nag, the digs)
+and `tools/coverage/mksaves.py` makes the four saved games by the port's own test commands (the port writes the original's file
+format, and the original read them). The screens' click positions come from the port's own shots and from two sandbox shots of
+the original (its Options dialog is taller than the port's: the Register button and the "Visit PopCap.com" button are in it). A
+click that comes before the original has loaded is ignored without a word, so the title's Play link is clicked six times, by a
+spot of it that is empty in the menu (360, 385).
+
+The runs: `perf` (the demo), `e1`, `e2`, `e3` (a new Easy, Average and Hard game and 150 to 700 clicks), `t` (the tutorial), `u2`
+(the panel's buttons, the options with its sliders and check boxes, Help, High Scores, New Game and Quit, answered both ways),
+`fs` (the Fullscreen and Custom Cursors boxes), `p1` (the port's own bot's first Easy game replayed by update number: it falls out
+of step with the original on the first board, so it added nothing) and, from saved games, `vbonus` (Treasure Island), `vlose`
+and `vno` (one life, Continue answered Yes and No: the loss, the high scores and the name box), `vl9` (Average level 9: the
+crimson pirates fire), `vl9empty` (the level is won at once: the next level is the bonus level, then the map), `vlvl4` and
+`vlvl4b` (a Hard level 4 save). Nine ended by themselves, five at origrun's timeout (the last click of a script that ends in a
+dialog does not leave the game) and two with an access violation (below).
+
+`games/sevenseas/coverage.txt` sets the game's own code as one range, 0x401000 to 0x427870 (399 functions; the framework starts
+at the Widget at 0x427880). **The runs reached 362 of the 399. 0 are reached with no counterpart in the port**; at first 170 were.
+
+- **Placed: 12.** The addresses of functions the port translates inline or in another shape are now in the comment above the
+  function that holds them: 0x40a410 (the board's StartTalk call), 0x40b0e5 (the second half of Undo, which Ghidra left outside
+  the function), 0x419ab0 (the end of a talk), 0x426140 (the tail of the title's sparkle loop, likewise), 0x411190 and 0x4111c0
+  (the high-score screen's AddedToManager and RemovedFromManager: the original adds two buttons), 0x41f280 (HasSavedGame; the
+  comment said 0x41ac10), 0x418fc0 (the options dialog's SetColor, which the constructor's colours replace), and three the port
+  had under the wrong address: the options dialog's slider handler is 0x4196f0 (the comment said 0x419730 / 0x419770), its
+  buttons are 0x4197a0 (it said 0x4196f0), and the check box handler 0x419730 does nothing in the registered game.
+- **Left out on purpose: 195 `none` lines.** What the compiler made (40 static initializer stubs, 20 deleting destructors, 11
+  vtable thunks, 10 empty or constant functions), the original's std::string library (22), the support of the anims.txt parser
+  0x41c960 (map and list instances, 46: the port parses into std containers), the destructors of dialogs and widgets (15),
+  registration (the Register dialog and its page link, the number check, the windowed-mode nag of the unregistered game: 19) and
+  the online score submission (12: the "Submit to Internet High Score List" button, its dialog, the upload and the "High Score"
+  answer; README.md lists it as not ported).
+- **A slip found: the click of the options and nag dialogs.** The original's OptionsDialog (0x419770) and NagDialog (0x40d280)
+  override ButtonPress to play sample 0 after the base class. The base forwards only the footer button to the app, which clicks,
+  so Help and High Scores clicked in the original and not in the port, and the footer button clicked twice in the original. Both
+  overrides are in the port now (`OptionsDialog::ButtonPress`, `NagDialog::ButtonPress`). No state changes; sound is not in the
+  baseline.
+- **Defined in the port and never reached: 6, each read again against the export.** `Board::SpawnSparkle` (0x4030f0: the two
+  draws in the original's order, y then x) and `Board::EnemyFire` (0x404890: the headings, the scan of three cells each side, the
+  shot's fields, the trail flash and the sound; both match line by line, and EnemyFire ran in the identical-play pass's lost
+  game), `Board::MouseUp` (0x40ae70, a call of the base class), `Board::ButtonDepress` (0x40ae90, "Click here to start playing!"
+  at the end of the tutorial, which needs the whole tutorial: it ended the tutorial in the identical-play pass), the options
+  dialog's `SliderVal` (0x4196f0: origrun cannot hold the thumb to drag it, and a click on the track does not call it; two lines
+  that match the export) and the warnings' variant of `NagDialog::Draw` (0x4266f0: the port's one function is the counterpart of
+  both copies, and the bonus nag's copy 0x40cbe0 ran).
+- **Candidates for taking out: none.** Nothing in the game's code is unreachable by play except what is `none` above.
+- **Found on the way.** (1) Two of the runs (`e3`, `vlose`) reached 0x41f340, the original's score upload: random clicks hit its
+  "Submit to Internet High Score List" button on the high-score screen (y 356 to 386). The function wrote its temporary files and
+  may have opened a connection to the PopCap site; no browser or program was started. The scripts now keep their clicks off that
+  row. (2) The original dies with an access violation (0xC0000005) when it loads the Hard level 4 save the port wrote (`vlvl4`
+  and `vlvl4b`, the same place both times): the save has whirlpools and a warning up, and the port's writer has been compared with
+  the original's file only for the levels of the identical-play pass. An oddity of a file the original did not write; not chased.
+  (3) The Fullscreen check box does nothing in the original's registered game but tick (its handler 0x419730 acts only for the
+  unregistered game, after the nag): `fs` reached no mode switch, and the port's box does the same.
+
+Cost: most of the session's time went to finding the original's click positions (two sandbox runs) and sorting the 170
+functions of the first report; the runs themselves took about 25 minutes of machine time.
