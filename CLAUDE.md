@@ -34,7 +34,7 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   may hook a copy's time reads and timed waits to run it faster than real time ("Yes, hook them", 2026-11-02; "Yes,
   waits too", 2026-11-03), its GetCursorPos so that it returns origrun's scripted mouse position ("Yes, hook it",
   2026-11-03), its GetKeyState so that scripted Shift and Ctrl presses register and its GetLastInputInfo so that it
-  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), its registry calls so that what a copy writes under HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10), and its MessageBox and MessageBeep calls
+  keeps drawing while the machine is idle (both "Yes, hook it", 2026-11-09), its registry calls so that what a copy writes under HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10), its network calls so that a connection or download fails at once without leaving the machine, after a coverage run's random clicks reached Seven Seas' "Submit to Internet High Score List" ("Yes, block them", 2026-11-11), and its MessageBox and MessageBeep calls
   so that a message box is answered without showing or sounding ("Yes, hook them", 2026-11-03); any other hook of a Windows function inside a copy needs the user's OK first
   (`docs/ORIGRUN.md`). Patch a copy as needed (many are not activated): how a protection is taken apart goes only in
   private blocks, and the patching tools in `.publishignore`. origrun answers a copy's message boxes with no window
