@@ -15,6 +15,7 @@ own limits have no published formula):
 
 | | Uncached input | Cache read | Cache write, 5-minute entry | Cache write, 1-hour entry | Output |
 |---|---|---|---|---|---|
+| Fable 5.2 | $8 | $0.20 | $10 | $16 | $40 |
 | Opus 5.5 | $4 | $0.20 | $5 | $8 | $20 |
 | Sonnet 5.5 | $2 | $0.20 | $2.50 | $4 | $10 |
 

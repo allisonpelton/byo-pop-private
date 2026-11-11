@@ -70,6 +70,11 @@ the same machine. A plain run opens a window, raises it over whatever the user i
   same shell command that later starts compare.sh: that shell's own command line contains "compare.sh", so it waits
   on itself forever and blocks every other agent. How to run the oracle (its variants, cache and partial runs):
   `docs/BUILDS.md`, "Running the oracle".
+- **Disk (the user, 2026-11-10: "You need to make some free space in the repo!!"):** every worktree is on the small C:
+  drive (11 GB were free; one worktree held 22 GB, 18 of them one game's comparison outputs). A session deletes a run's
+  outputs (shots, logs, traces, staged copies of an original it no longer runs) once their result is judged and written
+  into the game's notes, keeps its worktree's `build/` under about 3 GB, and checks its size before each merge request.
+  What is worth keeping is the summary in the notes, never the raw files.
 - Leave nothing running: loops started in the background end before you finish. Stopping a task can leave its loop's
   shells alive and still starting runs (Ning Po, 2026-11-03), so afterwards look for processes whose command line is
   inside your folder and stop them by id.
@@ -85,6 +90,9 @@ the same machine. A plain run opens a window, raises it over whatever the user i
 Every call re-reads the whole context, so what costs is context times calls, and a cache that expires while waiting
 (`docs/TOKEN_ECONOMY.md` has the measurements).
 - No workflows or parallel agents unless the user asks for them; mechanical work goes to one Sonnet agent.
+- **Fable only (the user, 2026-11-10, an experiment for the week):** "ONLY use the new Fable 5.2. Use it for
+  everything": every session and every agent it starts runs on Fable 5.2 (an Agent with `model: "fable"` or no model,
+  never Sonnet, Opus or Haiku) until the user ends the experiment (`docs/COORDINATION.md`, "Fable only").
 - A subagent never runs anything longer than about 4 minutes (the oracle, whole test suites, full builds,
   wait loops): its 5-minute cache expires and its whole context is written again. The owning session runs
   those, in the background, and waits for the notification instead of polling.
@@ -118,8 +126,9 @@ Every call re-reads the whole context, so what costs is context times calls, and
   `HandleScriptCommand`, `OpenURL`) must say `override`, so a renamed or changed hook breaks the build instead of
   silently never being called.
 - **Commits:** game sessions may commit on their own branch at verified milestones without asking the user each time.
-  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with the trailer
-  `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Use the user's email only for authorship, never anywhere
+  Only the coordinator commits on the trunk. Nobody merges into `master`. Commits end with a trailer
+  naming the model that did the work: `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>` during the Fable-only
+  experiment, `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` before it. Use the user's email only for authorship, never anywhere
   else.
 - **Never push.** Only the coordinator publishes, and only as snapshots (the user, 2026-10-25):
   `python tools/publish.py --push` pushes one commit holding the trunk's tree without the paths in `.publishignore`

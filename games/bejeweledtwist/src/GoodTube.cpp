@@ -14,6 +14,7 @@
 #include "MemoryImage.h"
 #include "Profile.h"
 #include "RankBonusWidget.h"
+#include "Ranks.h"
 #include "Res.h"
 #include "SexyMatrix.h"
 #include "Traveller.h"
@@ -233,9 +234,9 @@ GoodTube::GoodTube(Board* theBoard)
 RankBadge::RankBadge(GoodTube* theTube)
 {
 	// 0x701efb
-	mClickToggle = 0;
+	mTipPage = 0;
 	mOver = false;
-	mClickTimer = 0;
+	mTipTimer = 0;
 	mClip = false;
 	mTube = theTube;
 }
@@ -246,6 +247,7 @@ int RankBadge::GetSize()
 	return Ftol((double)gApp->mScale * 90.0);
 }
 
+// 0x733901: the profile rank getter, inline here
 void RankBadge::Draw(Graphics* g)
 {
 	// 0x701f3a
@@ -264,13 +266,48 @@ static bool BadgeIgnoresMouse()
 		aBoard->mPauseCount != 0);
 }
 
+// 0x70cbfa: while the mouse is over the badge, the tube's tip shows the player's rank and name, then how much of the
+// way to the next rank they are (none past the last rank), then nothing, each page for 2 (200 updates)
+void RankBadge::Update()
+{
+	if (BadgeIgnoresMouse())
+		return;
+	TwistWidget::Update();
+	if (!mOver || (gBoard != nullptr && gBoard->mIsReplay))
+		return;
+	SexyString aText;
+	mTipTimer += 0.01f;
+	if (mTipTimer > 2.0f) {
+		mTipPage++;
+		if (2 < mTipPage)
+			mTipPage = 0;
+		mTipTimer = 0;
+	}
+	Profile* aProfile = gApp->mProfile;
+	Ranks* aRanks = gApp->mRanks;
+	if (mTipPage == 0) {
+		aText = StrFormat(gApp->GetString(GTS(0x7e4188), GT(0x7e4174)).c_str(), aProfile->mRank + 1) +
+			aRanks->GetName(aProfile->mRank);
+	} else if (mTipPage == 1) {
+		if (aProfile->mRank < (int)aRanks->mRanks.size() - 1) {
+			float aDone = (float)(aProfile->mRankPoints - aRanks->GetPoints(aProfile->mRank));
+			float aStep = (float)(aRanks->GetPoints(aProfile->mRank + 1) - aRanks->GetPoints(aProfile->mRank));
+			aText = StrFormat(gApp->GetString(GTS(0x7e41c4), GT(0x7e4194)).c_str(), Ftol(aDone / aStep * 100.0));
+		} else {
+			mTipPage = 2;
+		}
+	}
+	if (!aText.empty())
+		mTube->SetTip(aText, Color::White, 0.1f, Ftol((double)gApp->mScale * 200.0));
+}
+
 void RankBadge::MouseEnter()
 {
 	// 0x701fbb
 	if (BadgeIgnoresMouse())
 		return;
-	mClickToggle = 0;
-	mClickTimer = 0;
+	mTipPage = 0;
+	mTipTimer = 0;
 	mOver = true;
 }
 
@@ -285,12 +322,13 @@ void RankBadge::MouseDown(int x, int y, int theClickCount)
 	// 0x70200f
 	if (BadgeIgnoresMouse())
 		return;
-	mClickToggle++;
-	mClickTimer = 0;
-	if (1 < mClickToggle)
-		mClickToggle = 0;
+	mTipPage++;
+	mTipTimer = 0;
+	if (1 < mTipPage)
+		mTipPage = 0;
 }
 
+// 0x703b92: the three string members, inline here
 GoodTube::~GoodTube()
 {
 	// 0x707941, 0x704bfd
@@ -770,6 +808,8 @@ void GoodTube::Update()
 	}
 }
 
+// 0x6bc3cd: a thunk to a helper, inline here
+// 0x701ea4: a speck's constructor, inline here
 void GoodTube::UpdateTick()
 {
 	// 0x70a9bb
@@ -1561,6 +1601,7 @@ void GoodTube::DrawAll(ModalFlags* theFlags, Graphics* g)
 	DrawTime(g, mTimeShown, aX, anY, aColorA, aColorB, aScale, mDrawTime);
 }
 
+// 0x704dde: blitz clock text (inline here)
 void GoodTube::DrawTime(Graphics* g, int theTime, int theX, int theY, const Color& theColor, const Color& theColorTop,
 	float theScale, bool theHundredths)
 {
@@ -2285,6 +2326,7 @@ void GoodTube::DrawLight(Graphics* g, int theLight, float theAlpha)
 	g->DrawImage(aLightImage, aLightX, aLightY);
 }
 
+// 0x703bba: a draw call on the tube head, inline here
 void GoodTube::DrawBody(Graphics* g)
 {
 	// 0x7081c9: the top, the lit lights, the score under it (or the challenge's), the tip and the multiplier's bulbs

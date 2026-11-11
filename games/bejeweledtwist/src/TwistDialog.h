@@ -69,9 +69,10 @@ public:
 	float mPopScale = 1.0f;       // +0x210: the size it pops up from and shrinks away to (only Direct3D draws it)
 	bool mClosing = false;        // +0x214
 
+	// 0x75528d
 	TwistDialog(Image* theComponentImage, Image* theButtonComponentImage, int theId, bool isModal,
 		const SexyString& theDialogHeader, const SexyString& theDialogLines, const SexyString& theDialogFooter,
-		int theButtonMode);   // 0x75528d
+		int theButtonMode);
 	~TwistDialog() override;  // 0x755133
 
 	void AddedToManager(WidgetManager* theWidgetManager) override;      // 0x7558fe

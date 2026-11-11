@@ -48,6 +48,7 @@ float ShardSide(float theAngle)
 }
 
 // 0x6f6451's type 16: a shard tumbling about two axes, its outline glinting as it faces the screen, with a sparkle
+// 0x70e227: the draw call's overload with a zero offset, inline here
 void DrawShard(Graphics* g, Effect* theEffect, int theUpdateCnt)
 {
 	float aFade = theEffect->mAlpha;
@@ -652,6 +653,8 @@ void EffectsManager::Update()
 	}
 }
 
+// 0x670a26: powf, inline here
+// 0x70e26a: its overload with a zero last argument, inline here
 void EffectsManager::DrawEffects(Graphics* g, bool theOverlay)
 {
 	// With the manager's +0xa1 set and Direct3D, the depth test goes off first
@@ -1128,6 +1131,7 @@ void EffectsManager::DrawDistortion(Graphics* g)
 	gD3DInterface->SetPixelShader(nullptr);
 }
 
+// 0x6f5a46: an effect record reset, inline here
 HeatWave* EffectsManager::AddHeatWave(float theX, float theY, float theStrength)
 {
 	// 0x6f5a46 makes it; the end size is the app's scale times 400

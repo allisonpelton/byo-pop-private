@@ -157,6 +157,7 @@ void LoaderScreen::Update()
 	aButton->mAlpha.SetConstant(mButtonAlpha.GetOutVal());
 }
 
+// 0x699cfa: the centre x scaled by the app scale, inline here
 void LoaderScreen::Draw(Graphics* g)
 {
 	DeferOverlay(0);

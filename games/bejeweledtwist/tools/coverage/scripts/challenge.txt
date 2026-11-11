@@ -1,0 +1,60 @@
+# Challenge mode in the original, blind: Play, Challenge in the mode select, the first planet (Detonator), whose first
+# challenge starts at once, then twists at random corners of the board (the selector follows the scripted cursor once
+# the window has the focus), then the board's Menu button. 800x600 client positions, from the port's screens.
+at 1600 click 400 300 5
+at 2000 click 180 420 5
+at 2700 click 495 95 5
+at 3500 focus regain
+at 3600 move 447 168
+at 3605 click 447 168 5
+at 3750 move 511 424
+at 3755 click 511 424 5
+at 3900 move 319 104
+at 3905 click 319 104 5
+at 4050 move 703 360
+at 4055 click 703 360 5
+at 4200 move 319 232
+at 4205 click 319 232 5
+at 4350 move 575 104
+at 4355 click 575 104 5
+at 4500 move 575 168
+at 4505 click 575 168 5
+at 4650 move 319 104
+at 4655 click 319 104 5
+at 4800 move 511 296
+at 4805 click 511 296 5
+at 4950 move 319 168
+at 4955 click 319 168 5
+at 5100 move 319 360
+at 5105 click 319 360 5
+at 5250 move 511 104
+at 5255 click 511 104 5
+at 5400 move 703 360
+at 5405 click 703 360 5
+at 5550 move 319 168
+at 5555 click 319 168 5
+at 5700 move 639 424
+at 5705 click 639 424 5
+at 5850 move 575 104
+at 5855 click 575 104 5
+at 6000 move 575 360
+at 6005 click 575 360 5
+at 6150 move 511 104
+at 6155 click 511 104 5
+at 6300 move 383 104
+at 6305 click 383 104 5
+at 6450 move 575 488
+at 6455 click 575 488 5
+at 6600 move 383 232
+at 6605 click 383 232 5
+at 6750 move 511 168
+at 6755 click 511 168 5
+at 6900 move 575 104
+at 6905 click 575 104 5
+at 7050 move 575 232
+at 7055 click 575 232 5
+at 7200 move 575 488
+at 7205 click 575 488 5
+at 7550 click 80 525 5
+wait 3000
+quit

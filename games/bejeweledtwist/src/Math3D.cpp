@@ -265,6 +265,7 @@ Vec3 Sexy::TimesMat3(const Vec3& theVector, const Mat3& theMatrix)
 		(float)(((double)m[2] * (double)theVector.x + (double)m[5] * (double)theVector.y) + (double)m[8] * (double)theVector.z)};
 }
 
+// 0x68b31c: component-wise vector multiply, inline here
 Vec3 Sexy::TransformPoint(const Transform3D& theTransform, const Vec3& thePoint)
 {
 	// 0x68b31c: scaled, each axis by its own
@@ -276,6 +277,9 @@ Vec3 Sexy::TransformPoint(const Transform3D& theTransform, const Vec3& thePoint)
 		(float)((double)theTransform.mPos.z + (double)aTurned.z)};
 }
 
+// 0x6dd0bd: component-wise vector divide, inline here
+// 0x6dd107: a vector read from a transform, inline here
+// 0x6dda14: a vector built from three transform columns, inline here
 Vec3 Sexy::WorldToCamera(const Transform3D& theCamera, const Vec3& thePoint)
 {
 	Vec3 aDelta{(float)((double)thePoint.x - (double)theCamera.mPos.x), (float)((double)thePoint.y - (double)theCamera.mPos.y),

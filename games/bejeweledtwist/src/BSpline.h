@@ -26,7 +26,7 @@ public:
 private:
 	float GetPoint(float t, const std::vector<float>& theCoef) const;  // 0x6d75fc
 	void CalculateArcLengths();                                       // 0x6d80b3
-	static void CalculateSplinePrv(const std::vector<float>& thePoints, std::vector<float>& theCoef);        // 0x6d81a0
+	static void CalculateSplinePrv(const std::vector<float>& thePoints, std::vector<float>& theCoef);        // 0x6d81a0, 0x6d814b: the spline's constructor, inline here
 	static void CalculateSplinePrvLinear(const std::vector<float>& thePoints, std::vector<float>& theCoef);  // 0x6d85d4
 };
 

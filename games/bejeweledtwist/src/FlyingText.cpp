@@ -13,6 +13,7 @@
 
 using namespace Sexy;
 
+// 0x6fc3a9: the field defaults of the constructor, inline here
 FlyingText::FlyingText(int theKind, Image* theImage, int theX, int theY, int theSoundId, float theDelay)
 {
 	mKind = theKind;

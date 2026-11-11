@@ -317,6 +317,7 @@ void GemSoul::Update()
 	}
 }
 
+// 0x7008ea: the test of a bit of mType (+0x650), inline here
 void GemSoul::Draw(Graphics* g)
 {
 	if (!mIsVisible)

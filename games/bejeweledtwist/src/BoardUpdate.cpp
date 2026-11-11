@@ -569,6 +569,7 @@ void Board::UpdateGeodes()
 	}
 }
 
+// 0x6aa1ef: copies +0x1fb8 to +0x1fc4, inline here
 void Board::UpdateGame()
 {
 	mHintsReady = false;
@@ -2349,6 +2350,7 @@ void Board::ClearShockwaves()
 	mShockwaves.clear();
 }
 
+// 0x733774: sets a bit in the flag word at +0x164, inline here
 void Board::EndJump()
 {
 	if (mReplayPlaying) {
@@ -3189,6 +3191,7 @@ void Board::ShowHint()
 // 0x6d5279 to 0x6d6695 of UpdateGame: the tooltips. While the mouse is over one of the tube's parts or a special gem the
 // text for it is worked out here; once the mouse has stayed over the same text for aWait updates the tooltip comes up
 // (+0x6cc) with its place, and fades in and out with the curves at +0x718 and +0x788. DrawOverlay draws it.
+// 0x67647d: a size scaled by the app scale, inline here
 void Board::UpdateToolTips()
 {
 	// the scaled sizes (0x67647d)

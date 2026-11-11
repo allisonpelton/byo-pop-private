@@ -54,7 +54,7 @@ void Logo::Init()
 		mY = (600 - anInfo.mHeight) / 3;
 	}
 	RegUpdate(true);
-	mFont = GetExeFont(0x3a, 0x39, -1);
+	mFont = GetExeFont(0x3a, 0x39);
 }
 
 // 0x42f8c0: two seconds, then Jolly Bear's logo after the SplashLogo, or the game

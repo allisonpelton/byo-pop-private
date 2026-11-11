@@ -217,12 +217,6 @@ const Glyph* GlyphFor(int theChar, const TextStyle& theStyle)
 
 }
 
-bool HasGlyph(int theChar)
-{
-	std::call_once(gGlyphsOnce, BuildGlyphs);
-	return gGlyphs.count(theChar & 0xFF) != 0;
-}
-
 double CharAdvance(int theChar, const TextStyle& theStyle)
 {
 	const Glyph* aGlyph = GlyphFor(theChar, theStyle);
@@ -235,17 +229,6 @@ double TextWidth(const std::string& theText, const TextStyle& theStyle)
 	for (size_t i = 0; i < theText.size(); i++)
 		w += CharAdvance((unsigned char) theText[i], theStyle);
 	return w;
-}
-
-void CharInk(int theChar, const TextStyle& theStyle, double* theX0, double* theY0, double* theX1, double* theY1)
-{
-	const Glyph* aGlyph = GlyphFor(theChar, theStyle);
-	double u = theStyle.Unit(), h = theStyle.mWeight / 2;
-	double aLeft = (theStyle.mTracking / 2 + h) * u;
-	*theX0 = aLeft + (aGlyph->mX0 * theStyle.mWiden - h + std::min(aGlyph->mY0, 0.0) * theStyle.mSlant) * u;
-	*theX1 = aLeft + (aGlyph->mX1 * theStyle.mWiden + h + std::max(aGlyph->mY1, 0.0) * theStyle.mSlant) * u;
-	*theY0 = -(aGlyph->mY1 + h) * u;
-	*theY1 = -(aGlyph->mY0 - h) * u;
 }
 
 void DrawChar(Mask& theMask, int theChar, double x, double y, const TextStyle& theStyle)

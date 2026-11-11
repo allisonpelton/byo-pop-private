@@ -39,12 +39,6 @@ bool Layer::AppActive()
 	return mManager->GetActive();
 }
 
-// 0x420a50
-void Layer::PreloadImage(int theImageId)
-{
-	mManager->PreloadDllImage(theImageId);
-}
-
 // 0x420a90
 void Layer::SetManager(Manager* theManager)
 {

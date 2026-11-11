@@ -18,7 +18,7 @@ namespace mahjongchina
 // 0x411420
 void MenuButton::OnInit()
 {
-	mFont = jb::GetDllFont(0xa5, 0xa4, -1);
+	mFont = jb::GetDllFont(0xa5, 0xa4);
 	RegUpdate(true);
 }
 
@@ -58,9 +58,8 @@ void MenuButton::Draw()
 void PlayerButton::OnInit()
 {
 	mText = jb::LoadDllString(0xd);
-	mFont = jb::GetDllFont(0x11c, 0x11b, -1);
-	mHoverFont = jb::GetDllFont(0x16e, 0x16d, -1);
-	mTextWidth = mHoverFont->GetWidth(mText.c_str(), 100);
+	mFont = jb::GetDllFont(0x11c, 0x11b);
+	mHoverFont = jb::GetDllFont(0x16e, 0x16d);
 }
 
 // 0x411700
@@ -94,7 +93,7 @@ void MenuBackdrop::Init()
 	aLeft->Setup(100, 10, 4, 4, 100, -1, 0, true);
 	aRight->SetImage(0x274, 0x146, 0x95, 0x22);
 	aRight->Setup(100, 10, 4, 4, 100, -1, 0, true);
-	mFont = jb::GetDllFont(0x11e, 0x11d, -1);
+	mFont = jb::GetDllFont(0x11e, 0x11d);
 	RegUpdate(true);
 }
 

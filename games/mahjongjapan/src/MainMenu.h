@@ -44,7 +44,6 @@ public:
 	std::string mText;               // +0xe4 (0xd)
 	jb::Font* mFont = nullptr;       // +0xec
 	jb::Font* mHoverFont = nullptr;  // +0xf0
-	int mTextWidth = 0;              // +0xf4 (unused)
 
 	// 0x4115b0
 	PlayerButton() : Button(1, 2, true) {}

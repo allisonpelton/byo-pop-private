@@ -244,6 +244,7 @@ void WinTwistApp::SetGemSize()
 	}
 }
 
+// 0x7627ea: the VOLUME_RAMP properties, inline here
 void WinTwistApp::Init()
 {
 	SexyApp::Init();
@@ -638,6 +639,7 @@ void WinTwistApp::PostDDInterfaceInitHook()
 	gCurveSinglePrecision = true;
 }
 
+// 0x75ef1b: a call made unless a flag is set, inline here
 void WinTwistApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 {
 	SexyApp::SwitchScreenMode(wantWindowed, is3d, false);
@@ -958,6 +960,27 @@ void WinTwistApp::LostFocus()
 		mBoard->Pause(mBoard->IsTimed());
 	if (mLoadingThreadDone)
 		mPausedByFocusLoss = true;
+}
+
+void WinTwistApp::ModalOpen()
+{
+	if (mBoard == nullptr)
+		return;
+	// In Blitz the pause shows when any dialog open has an id below 0x28 (the game's own questions)
+	bool aShow = false;
+	if (mBoard->mIsBlitzGame) {
+		for (DialogMap::iterator anItr = mDialogMap.begin(); anItr != mDialogMap.end(); ++anItr) {
+			if (anItr->second->mId < 0x28)
+				aShow = true;
+		}
+	}
+	mBoard->Pause(aShow);
+}
+
+void WinTwistApp::ModalClose()
+{
+	if (mBoard != nullptr)
+		mBoard->Unpause(mBoard->mIsBlitzGame);
 }
 
 void WinTwistApp::UpdateFrames()

@@ -378,15 +378,6 @@ void Enable(const Settings& theSettings)
 	gEnabled = true;
 }
 
-void Disable()
-{
-	Platform::SetImageGenerator(Platform::ImageGenerator());
-	for (int i = 0; i < NUM_FONTS; i++)
-		Platform::VFS::Get().SetGeneratedFile(kFonts[i].mDescriptor, "");
-	gModFonts.clear();
-	gEnabled = false;
-}
-
 bool IsEnabled()
 {
 	return gEnabled;

@@ -1,0 +1,27 @@
+# The main menu's screens, in the original, blind (no shots on the host): the gate buttons work once the gates have
+# shut. Positions are the 800x600 client's, from the port's screens; each click's release comes 5 updates after its press.
+at 1600 click 128 440 5
+at 1950 click 668 440 5
+at 2250 click 160 540 5
+at 2400 click 640 540 5
+at 2650 click 128 440 5
+at 3000 click 668 440 5
+at 3350 click 370 316 5
+at 3400 click 370 372 5
+at 3450 click 370 400 5
+at 3550 click 370 316 5
+at 3600 click 370 372 5
+at 3650 click 370 400 5
+at 3700 click 668 440 5
+at 4100 click 160 540 5
+at 4500 click 668 440 5
+at 4600 click 668 440 5
+at 4750 click 128 440 5
+at 4800 click 160 540 5
+at 5200 click 400 575 5
+at 5600 click 400 578 5
+at 6000 focus lose
+at 6300 focus regain
+at 6500 click 640 540 5
+wait 1000
+quit
