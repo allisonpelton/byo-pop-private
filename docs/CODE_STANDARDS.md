@@ -46,6 +46,9 @@ Two things hold above every rule:
   prints what the exceptions allow, and `--checks` picks checks. Exceptions go in `games/<game>/namecheck.txt`, one a
   line, each with its reason after ` -- `. A `folder <name>` line there adds another source folder of the game to the
   check, for a port that has an engine of its own beside `src/` (Mahjong Escape's `engine/`).
+- `python tools/splitfields.py <game> --export <the export's per-function folder>` lists members that may be one
+  field declared twice (the same offset under two names), read but never assigned, or touched by the original's
+  function and never named in its translation. Each finding is a place to read, not a fault; a pass judges them all.
 - `tools/macmatch.py` pairs a Mac build's names with the export's functions (`docs/MACMATCH.md`).
 - `tools/check.sh <game>` proves that play is unchanged: the game's suite against its frozen baseline.
 - A rename is proved by the object code: every unit compiles to the same instructions before and after.
