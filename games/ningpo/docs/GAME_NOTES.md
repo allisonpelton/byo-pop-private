@@ -235,3 +235,12 @@ carry a `port:` comment, eight one-letter names in `HDisplay.cpp`, `PGApp.cpp` a
 gaps of `PGEvent` are named for where they sit. Now 0 findings. `splitfields` finds no member declared twice. A rename
 changes no layout; `tools/check.sh ningpo build-web:ningpo` pass with the baseline identical. A fixes mod is not needed:
 no fix candidate was found in any pass.
+
+
+### The sound log (2026-11-11)
+
+`BYOPOP_SOUNDLOG=<file>` makes `PGSoundManager` and `HMixer` (`engine/HAudio.cpp`) write the framework's lines: `load`
+(with the sound's slot), `instance` and `play` (volume byte, pan byte, pitch 1.0000, loop), and `stop` (from
+`stopAll`; a sound that ends by itself writes none). The music writes no lines. With the log on and off
+`tools/check.sh ningpo` stays baseline identical. A recording: `BYOPOP_SOUNDLOG=<file> build/native/rundesk.exe python
+games/ningpo/tools/realplay/drive.py <dir> --games 2` (two bot-played games, 259 lines, 119 plays of the 9 sounds).
