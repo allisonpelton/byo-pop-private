@@ -531,6 +531,9 @@ protected:
 	// A script command the framework does not know; return true if handled (the default handles none)
 	virtual bool HandleScriptCommand(const ScriptCommand& theCommand);
 	bool SaveScreenshot(const std::string& theFileName, bool fullResolution = false);
+	// SaveScreenshot for the framework's shots taken mid-update (after the count moved, before the widgets updated),
+	// drawn with the count one lower
+	bool SaveScreenshotMidUpdate(const std::string& theFileName, bool fullResolution = false);
 
 	// Registry emulation helpers
 	void LoadRegistry();

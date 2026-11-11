@@ -1655,7 +1655,7 @@ void SexyAppBase::UpdateFrames()
 				aPath[--aLength] = 0;
 			remove(aShotRequest.c_str());
 			if (aLength > 0)
-				SaveScreenshot(aPath);
+				SaveScreenshotMidUpdate(aPath);
 		}
 	}
 
@@ -3693,9 +3693,9 @@ int SexyAppBase::RunScriptCommand(const ScriptCommand& theCommand, std::string* 
 			mWidgetManager->KeyChar((SexyChar) aCommand.mArgs[0]);
 	}
 	else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
-		SaveScreenshot(aCommand.mArgs);
+		SaveScreenshotMidUpdate(aCommand.mArgs);
 	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
-		SaveScreenshot(aCommand.mArgs, true);
+		SaveScreenshotMidUpdate(aCommand.mArgs, true);
 	else if ((aName == "focus") && ((aCommand.mArgs == "lose") || (aCommand.mArgs == "regain")))
 	{
 		// as the window's focus event does (WM_ACTIVATEAPP), like origrun's "focus lose" and "focus regain"
@@ -4430,9 +4430,9 @@ int SexyAppBase::RunRealInputCommand(const ScriptCommand& theCommand, std::strin
 		PushRealEvent(&anEvent);
 	}
 	else if ((aName == "screenshot") && (!aCommand.mArgs.empty()))
-		SaveScreenshot(aCommand.mArgs);
+		SaveScreenshotMidUpdate(aCommand.mArgs);
 	else if ((aName == "screenshotfull") && (!aCommand.mArgs.empty()))
-		SaveScreenshot(aCommand.mArgs, true);
+		SaveScreenshotMidUpdate(aCommand.mArgs, true);
 	else if (aName == "quit")
 		Shutdown();
 	else if ((aName == "pointer") && (mWidgetManager != NULL))
@@ -4640,14 +4640,22 @@ bool SexyAppBase::TakeRelaunch(std::vector<std::string>* theArgs)
 
 // Draws the whole screen now and saves it as a PNG, at the logical size or (fullResolution) at the
 // render target's size, which shows HD art (see -renderscale).
+// The shots the framework takes between mUpdateCount's increment and the widgets' update (UpdateFrames' shot
+// request, RunScriptCommand's and RunRealInputCommand's screenshot lines): the picture is drawn with the count of the
+// update it shows, as the draw after that update had it, so a curve that counts the app's updates (a CurvedVal's auto
+// increment) is not drawn one update ahead of the rest. A game's own shots call SaveScreenshot, which keeps the count.
+bool SexyAppBase::SaveScreenshotMidUpdate(const std::string& theFileName, bool fullResolution)
+{
+	mUpdateCount--;
+	bool aResult = SaveScreenshot(theFileName, fullResolution);
+	mUpdateCount++;
+	return aResult;
+}
+
 bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolution)
 {
 	MTAutoDisallowRand aDisallowRand;
 
-	// A script's screenshot runs at the start of an update, after mUpdateCount has moved on and before the widgets have
-	// updated: the picture is drawn with the count of the update it shows, as the draw after that update had it, so a
-	// curve that counts the app's updates (a CurvedVal's auto increment) is not drawn one update ahead of the rest
-	mUpdateCount--;
 	mIsDrawing = true;
 	mDrawingLogicalShot = !fullResolution;
 	mDDInterface->BeginFrame();
@@ -4655,7 +4663,6 @@ bool SexyAppBase::SaveScreenshot(const std::string& theFileName, bool fullResolu
 	mWidgetManager->DrawScreen();
 	mDrawingLogicalShot = false;
 	mIsDrawing = false;
-	mUpdateCount++;
 
 	if (fullResolution)
 	{
