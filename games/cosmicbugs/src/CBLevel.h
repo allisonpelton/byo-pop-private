@@ -393,6 +393,8 @@ void Panel_Draw(Panel* thePanel, int theAll);                    // 0x418080
 void Panel_Update(Panel* thePanel);                              // 0x418010
 void Shooter_Insert(List<Shooter>* theList);                     // 0x4107e0
 Shooter* Shooter_Init(Shooter* theShooter);                      // 0x41d540
+void Shooter_Destroy(Shooter* theShooter);                       // 0x411d70
+void List_DeleteNode(Shooter* theShooter);                       // 0x411f50's delete
 void Shooter_Setup(Shooter* theShooter);                         // 0x41b0f0
 void Shooter_FromXml(Shooter* theShooter, const char* p, const XmlTag* theTag); // 0x41aec0
 int Shooter_Update(Shooter* theShooter);                         // 0x41e200

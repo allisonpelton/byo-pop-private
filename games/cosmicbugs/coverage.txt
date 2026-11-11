@@ -7,3 +7,62 @@ src engines/retro64
 # the blitters of every pixel format. The rest of the exe is the C runtime and the libraries the engine links (from
 # 0x442920 on). The same span as Water Bugs' 0x401000..0x442cf0 by the two exes' function match.
 game 00401000-004428b0
+# Game code the port leaves out on purpose (the coverage check of 2026-11-11, games/cosmicbugs/docs/README.md): the engine is the one
+# Water Bugs' port shares, so each function of it that Water Bugs' coverage.txt leaves out is left out here, found through the two
+# exes' function match; the reasons are Water Bugs', with this exe's addresses and the port's names.
+none 0040c0f0 ParticleSystem's destructor (run through 0x4113c0): unlinks its pooled particles, then the Obj destructor; the port's ParticleSystems are entries of the static pool gSystems that Level_UnlinkAll unlinks and nothing deletes
+none 0040fe10 an empty function (returns at once), called from the level's draw and the main loop; the port leaves the calls out (CBPowerup.cpp says so)
+none 00410340 the trial's "Free Trial Remaining" clock text (drawn only while unregistered); the port is the registered game, with no trial code
+none 00424fd0 a one-call wrapper of the Image constructor 0x4234a0; the port makes an Image with Image() (new Image, Image_Free's reset) directly
+none 004258f0 returns this+4, the address of the bank's image list for Font_LoadFromBank; the port reads Bank::images (a std::vector) directly
+none 00425a00 std::list::clear instance (frees the palette list's nodes, not the palettes); the port's Bank_BuildPalettes calls std::vector::clear on Bank::palettes
+none 00425a40 std::list constructor instance (allocates the sentinel node); the port's Bank members are std::vectors
+none 00425a60 std::list destructor instance (clears the nodes, frees the sentinel); the port's Bank::~Bank leaves it to its std::vector members
+none 00425b40 std::list node-insert instance (allocates a node and fills it); the port pushes onto the std::vector members of Bank
+none 004274c0 std::list<T>::_Incsize instance (length check, "list<T> too long") for the image list; the port's Bank_ParseXml does Bank::images.push_back
+none 00427600 std::list<T>::_Incsize instance for the raw palette list; the port's Bank_ParseXml does Bank::rawPalettes.push_back
+none 004276a0 std::list<T>::_Incsize instance for the palette list; the port's Bank_BuildPalettes does Bank::palettes.push_back
+none 004283e0 destructor of a global holder of image nodes and a std::list of palette pointers (no caller in the export: the exit table runs it) whose own methods 0x428270 and 0x428310 no run reached; the port has no such object (images live in Bank)
+none 00428550 constructor of that same global image-node and palette-list holder as 0x4283e0 (no caller in the export: the start-up table runs it); the port has no such object
+none 004287b0 constructor of a global that holds a list of nodes and an array pointer (cleared, nothing added); the port has no such object
+none 004287e0 destructor of that same list-and-array global (empties the list, frees the array); the port has no such object
+none 00428830 WinMain zeroes the input globals (mouse latches, key queue, keys held) before GameMain; the port's gInput and gMouse* in R64Sys.cpp are zero-initialised statics and the game starts once per process
+none 00428c40 FixPath: turns the / or : of a path into \ in a global buffer for fopen; the port reads through Sys_ReadFile and SysHost::ReadFile (the VFS takes either separator) and Sys_SavePath for cp.cfg
+none 00428ff0 clears the flag WndProc reads to show the system arrow, so that the window shows the game's cursor; the port draws its own pointer and hides the framework's (CosmicBugsApp::Init, SetCursor(CURSOR_NONE))
+none 00429110 wrapper that passes Image_Blit's 8-bit copy on to the 8-bit blitter 0x42f970; the port's Image_Blit calls Copy8 (R64Blit.cpp) directly
+none 004291a0 wrapper that picks the 16-, 24- or 32-bit copy blitter by the destination's format; the port is 16-bit only, so Image_Blit tests Is16(fmt) and calls Copy16
+none 004293c0 wrapper that picks the 16-, 24- or 32-bit masked fill-with-alpha blitter by the destination's format; the port's Image_BlitFillAlpha and Image_FillAlphaRect test Is16(fmt) and call Fill16MaskAlpha
+none 00429400 wrapper that picks the 16-, 24- or 32-bit masked blend blitter by the destination's format; the port's BlitMaskedKind (R64Image.cpp) tests Is16(fmt) and calls Blend16Mask
+none 00429440 wrapper that picks the 16-, 24- or 32-bit masked alpha blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls Alpha16Mask
+none 00429480 wrapper that picks the 16-, 24- or 32-bit masked faded-alpha blitter by the destination's format; the port's BlitAlphaFadeAt tests Is16(fmt) and calls Alpha16MaskFade
+none 00429690 wrapper that picks the 16-, 24- or 32-bit run-length fill-with-alpha blitter by the destination's format; the port's Image_BlitFillAlpha tests Is16(fmt) and calls Rle16FillAlpha
+none 004296d0 wrapper that picks the 16-, 24- or 32-bit run-length blend blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls Rle16Blend
+none 00429710 wrapper that picks the 16-, 24- or 32-bit run-length alpha blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls Rle16Alpha
+none 00429750 wrapper that picks the 16-, 24- or 32-bit run-length faded-alpha blitter by the destination's format; the port's BlitAlphaFadeAt tests Is16(fmt) and calls Rle16AlphaFade
+none 004297d0 wrapper that picks the 16-, 24- or 32-bit palette-to-screen blitter by the destination's format; the port's Image_Blit tests Is16(fmt) and calls Pal16
+none 004298b0 wrapper that picks the 16-, 24- or 32-bit palette-with-mask blitter by the destination's format; the port's Image_BlitMasked and Image_BlitSubRect test Is16(fmt) and call Pal16Mask
+none 004299d0 wrapper that picks the 16-, 24- or 32-bit palette masked-blend blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls PalBlend16Mask
+none 00429a10 wrapper that picks the 16-, 24- or 32-bit palette masked-alpha blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls PalAlpha16Mask
+none 00429a50 wrapper that picks the 16-, 24- or 32-bit palette masked faded-alpha blitter by the destination's format; the port's BlitAlphaFadeAt tests Is16(fmt) and calls PalAlpha16MaskFade
+none 00429c30 wrapper that picks the 16-, 24- or 32-bit palette run-length blend blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls RlePal16Blend
+none 00429c70 wrapper that picks the 16-, 24- or 32-bit palette run-length alpha blitter by the destination's format; the port's BlitMaskedKind tests Is16(fmt) and calls RlePal16Alpha
+none 00429cb0 wrapper that picks the 16-, 24- or 32-bit palette run-length faded-alpha blitter by the destination's format; the port's BlitAlphaFadeAt tests Is16(fmt) and calls RlePal16AlphaFade
+none 0042a640 std::vector::erase instance (memmove_s) that Sound_Start (0x42ad70) uses to empty the sample list; the port's gSamples is an empty std::vector at the start and Sound_Shutdown clears it
+none 0042e1c0 a stub that returns 1, called after Bank_ParseXml has read the .bbk (nothing is checked); the port goes on to parse the file
+none 0042e1d0 the timer object behind TimeMs (constructor: QueryPerformanceFrequency; start; Timer_Now: counter difference in ms, timeGetTime without a counter); the port's TimeMs() asks SysHost::TimeMs (CosmicBugsHost in CosmicBugsApp.cpp: the framework's clock, or the steady clock of the fixes mod)
+none 0042e1f0 the timer object behind TimeMs (constructor: QueryPerformanceFrequency; start; Timer_Now: counter difference in ms, timeGetTime without a counter); the port's TimeMs() asks SysHost::TimeMs (CosmicBugsHost in CosmicBugsApp.cpp: the framework's clock, or the steady clock of the fixes mod)
+none 0042e220 the timer object behind TimeMs (constructor: QueryPerformanceFrequency; start; Timer_Now: counter difference in ms, timeGetTime without a counter); the port's TimeMs() asks SysHost::TimeMs (CosmicBugsHost in CosmicBugsApp.cpp: the framework's clock, or the steady clock of the fixes mod)
+none 0042e380 constructor of the display object (window, DirectDraw surfaces, update-rect grid, mode fields; no caller in the export: the start-up table runs it); the port has no such object: the window is the framework's, the screen the host's mScreen
+none 0042e490 sets the display's "centre the window" flag that WM_SIZE clears and sets around its resizing; the window's size and place are the framework's (SDL window) in the port
+none 0042e4b0 shows and moves the window (ShowWindow, MoveWindow) to a place on the desktop; the window's place is the framework's in the port
+none 0042e530 sizes the window to a client area (AdjustWindowRectEx) and centres it on the desktop; the framework's window and CosmicBugsApp::SwitchScreenMode do that in the port
+none 0042e6c0 realizes the window's palette (only when the display is an 8-bit palette mode, from PumpMessages and the window's palette messages); the port's screen is a 16-bit host buffer
+none 0042e710 scales an update rectangle from the 800x600 back buffer to the window's or the DirectDraw surface's size; the port's CosmicBugsWidget::Draw copies the dirty box into the framework image, which the framework scales
+none 0042e7b0 locks the DIB section (windowed) or the DirectDraw back buffer, nested by a count; the port's LockScreen (R64Sys.cpp) asks SysHost::LockScreen, which returns the host's mScreen with no nesting
+none 0042e930 releases that lock when the count drops to 0 (DirectDraw Unlock); the port's UnlockScreen calls SysHost::UnlockScreen, which does nothing
+none 0042e980 windowed-mode set-up: window style, DIB section, the 16-bit screen format as 5-5-5 masks; the port's screen is a host buffer in the fixed 5-6-5 format (CosmicBugsApp::Init, gScreenFormat565) and the window is the framework's
+none 0042eb40 releases the three DirectDraw surfaces; the port has none (the host's mScreen and the framework image)
+none 0042ed50 Display_Present: copies the update rectangles from the back buffer to the window or the DirectDraw surfaces (stretched or centred), waits for the refresh, clears the update grid; the port's Present (R64Sys.cpp) calls SysHost::Present, which marks the frame (CosmicBugsApp::Present), and CosmicBugsWidget::Draw copies the dirty box
+none 0042f4d0 destructor of the display object (releases DirectDraw, restores the cursor, frees the update grid; no caller in the export: the exit table runs it); the port's window and screen belong to the framework
+none 0042f5a0 registers the window class and creates the window and the DirectDraw object; the port's window is the framework's (CosmicBugsApp, SexyAppBase::Init)
+none 0042f6f0 opens the screen in a mode (window or full screen, stretched or centred, with its update grid and pixel format) at the start and whenever PumpMessages finds the mode changed; the port's PumpMessages calls SysHost::SetScreenMode (CosmicBugsApp::SetGameScreenMode, SwitchScreenMode) and the host's dirty box replaces the update grid

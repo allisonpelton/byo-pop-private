@@ -1,0 +1,31 @@
+# The focus lost and regained (the game stands still while its window is not the active one, so the waits are game time on the
+# virtual clock, which a paused game's loop still moves): on the title, on a board, on the pause and while a game is over's
+# window... a game started with Start Game and the instructions' Play, then Esc to pause and Esc again.
+at 2681 move 175 313
+at 2981 click 175 313 30
+at 3200 focus lose
+wait 1500
+focus regain
+at 4181 move 400 563
+at 4481 click 400 563 30
+at 8000 move 400 300
+at 12000 focus lose
+wait 1500
+focus regain
+at 13700 move 300 250
+at 14000 click 300 250 30
+at 16700 move 500 350
+at 17000 click 500 350 30
+at 20000 focus lose
+wait 800
+focus regain
+at 23000 key 27 30
+at 24000 focus lose
+wait 1200
+focus regain
+at 26000 key 27 30
+at 28000 focus lose
+wait 600
+focus regain
+at 30000 move 0 0
+quit
