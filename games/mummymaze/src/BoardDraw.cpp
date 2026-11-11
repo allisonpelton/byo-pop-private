@@ -87,20 +87,20 @@ void DrawNinePatch(Graphics* g, Image* theImage, int theW, int theH)
 }
 
 // 0x408780: the "Solving Puzzle" box
-void Board::DrawWaitDialog(int x, int y, int w, int h, Graphics* g)
+void Board::DrawWaitDialog(int x, int y, int theWidth, int theHeight, Graphics* g)
 {
 	g->Translate(x, y);
-	DrawNinePatch(g, IMG(IMAGE_DIALOG), w, h);
+	DrawNinePatch(g, IMG(IMAGE_DIALOG), theWidth, theHeight);
 	Insets aInsets(0x18, 0x1e, 0x18, 0x18);
 	int aTop = aInsets.mTop;
 	g->SetFont(mApp->mHeaderFont);
 	g->SetColor(Color(0x66, 0x5c, 0x38));
-	Rect aRect(aInsets.mLeft + 2, aTop, w - aInsets.mRight - aInsets.mLeft - 4, 0);
+	Rect aRect(aInsets.mLeft + 2, aTop, theWidth - aInsets.mRight - aInsets.mLeft - 4, 0);
 	WriteWordWrapped(g, aRect, GT(0x00491e1c), -1, 0);
 	aTop = aTop + 10 + mApp->mHeaderFont->GetHeight();
 	g->SetFont(mApp->mFont1);
 	g->SetColor(Color(0x2e, 0x14, 0));
-	Rect aRect2(aInsets.mLeft + 2, aTop, w - aInsets.mRight - aInsets.mLeft - 4, 0);
+	Rect aRect2(aInsets.mLeft + 2, aTop, theWidth - aInsets.mRight - aInsets.mLeft - 4, 0);
 	WriteWordWrapped(g, aRect2, GT(0x00491e08), -1, 0);
 	g->Translate(-x, -y);
 }
@@ -111,14 +111,14 @@ void Board::DrawWaitDialog(int x, int y, int w, int h, Graphics* g)
 // tests (under 0x35c, under 200) measure the step's text.
 // 0x403450: the texts of the 67 steps, which the original copies into a std::string array at start-up; here they are
 // kTutorialText (TutorialMazes.inc), the addresses of the same strings in the exe
-void Board::DrawTutorialDialog(int x, int y, int w, int h, Graphics* g)
+void Board::DrawTutorialDialog(int x, int y, int theWidth, int theHeight, Graphics* g)
 {
 	if (mState != STATE_READY)
 		return;
 	if (mUpdateCnt - mTimeBase < 0xa5)
 		return;
 	g->Translate(x, y);
-	DrawNinePatch(g, IMG(IMAGE_DIALOG), w, h);
+	DrawNinePatch(g, IMG(IMAGE_DIALOG), theWidth, theHeight);
 	Insets aInsets(0x1a, 0x18, 0x18, 0x18);
 	int aTop = aInsets.mTop;
 	const SexyString& aText = GT(kTutorialText[mTutorialStep]);
@@ -129,7 +129,7 @@ void Board::DrawTutorialDialog(int x, int y, int w, int h, Graphics* g)
 		aTop += 10;
 	if (mApp->mFont1->StringWidth(aText) < 200)
 		aTop += 10;
-	Rect aRect(aInsets.mLeft + 2, aTop, w - aInsets.mRight - aInsets.mLeft - 4, 0);
+	Rect aRect(aInsets.mLeft + 2, aTop, theWidth - aInsets.mRight - aInsets.mLeft - 4, 0);
 	WriteWordWrapped(g, aRect, aText, -1, (aMove == 5 || aMove == 6) ? -1 : 0);
 	g->Translate(-x, -y);
 }
@@ -146,7 +146,7 @@ void Board::DrawArrow(int x1, int y1, int x2, int y2, Graphics* g)
 		return;
 	if (aMode > 3)
 		return;
-	if (mFade2 < 1.0)
+	if (mRiseFade < 1.0)
 		return;
 	Graphics gc(*g);
 	gc.ClipRect(GetXAt(x2), GetYAt(y2), mCellSize, mCellSize);
@@ -233,48 +233,48 @@ void Board::DrawTutorialArrow(int x, int y, Graphics* g)
 // 0x40d130: a mummy (theFull: with the floor tile that is revealed under it while it drops in)
 void Board::DrawMummies(Graphics* g, int theIndex, bool theFull)
 {
-	Mummy* m = mMummies[theIndex];
-	if (m == NULL || !m->mAlive)
+	Mummy* aMummy = mMummies[theIndex];
+	if (aMummy == NULL || !aMummy->mAlive)
 		return;
 	int aSize = SizeIndex();
 	int aCell = mCellSize;
-	if (mFade2 < 1.0 && theFull)
-		g->DrawImage(IMG(IMAGE_BACKWALL6 + aSize), GetXAt(m->mX), GetYAt(m->mY));
-	int aPX = (int) ((double) GetXAt(m->mX) + (double) (m->mTargetX - m->mX) * m->mProgress);
-	int aPY = (int) ((double) GetYAt(m->mY) + (double) (m->mTargetY - m->mY) * m->mProgress + (1.0 - mFade2) * (double) aCell);
+	if (mRiseFade < 1.0 && theFull)
+		g->DrawImage(IMG(IMAGE_BACKWALL6 + aSize), GetXAt(aMummy->mX), GetYAt(aMummy->mY));
+	int aPX = (int) ((double) GetXAt(aMummy->mX) + (double) (aMummy->mTargetX - aMummy->mX) * aMummy->mProgress);
+	int aPY = (int) ((double) GetYAt(aMummy->mY) + (double) (aMummy->mTargetY - aMummy->mY) * aMummy->mProgress + (1.0 - mRiseFade) * (double) aCell);
 	Graphics gc(*g);
-	int aDrop = (int) ((1.0 - mFade2) * (double) aCell);
+	int aDrop = (int) ((1.0 - mRiseFade) * (double) aCell);
 	int aClipX = aPX;
 	int aClipY = aPY;
 	int aClipH = aCell;
-	if (mFade2 != 1.0)
+	if (mRiseFade != 1.0)
 	{
 		aClipH = aCell - aDrop;
-		aClipY = GetYAt(m->mY) + aDrop;
-		aClipX = GetXAt(m->mX);
+		aClipY = GetYAt(aMummy->mY) + aDrop;
+		aClipX = GetXAt(aMummy->mX);
 	}
 	gc.ClipRect(aClipX, aClipY, aCell, aClipH);
-	if (mFade2 < 1.0 && theFull)
+	if (mRiseFade < 1.0 && theFull)
 	{
-		Rect aSrc(aCell * m->mX, aCell * m->mY, aCell, aCell - aDrop);
-		g->DrawImage(IMG(IMAGE_FLOOR6 + aSize), GetXAt(m->mX), GetYAt(m->mY) + aDrop, aSrc);
-		bool aTrap = (m->mX == mTrapX[0] && m->mY == mTrapY[0]) || (m->mX == mTrapX[1] && m->mY == mTrapY[1]);
+		Rect aSrc(aCell * aMummy->mX, aCell * aMummy->mY, aCell, aCell - aDrop);
+		g->DrawImage(IMG(IMAGE_FLOOR6 + aSize), GetXAt(aMummy->mX), GetYAt(aMummy->mY) + aDrop, aSrc);
+		bool aTrap = (aMummy->mX == mTrapX[0] && aMummy->mY == mTrapY[0]) || (aMummy->mX == mTrapX[1] && aMummy->mY == mTrapY[1]);
 		if (aTrap)
 		{
 			Rect aSrc2(0, 0, aCell, aCell - aDrop);
-			g->DrawImage(IMG(IMAGE_TRAP6 + aSize), GetXAt(m->mX), GetYAt(m->mY) + aDrop, aSrc2);
+			g->DrawImage(IMG(IMAGE_TRAP6 + aSize), GetXAt(aMummy->mX), GetYAt(aMummy->mY) + aDrop, aSrc2);
 		}
 		if (mState != STATE_ENDING_FADE)
 		{
 			g->SetColorizeImages(true);
-			g->SetColor(Color(0, 0, 0, (int) ((1.0 - mFade2) * 255.0)));
+			g->SetColor(Color(0, 0, 0, (int) ((1.0 - mRiseFade) * 255.0)));
 		}
-		Rect aSrc3(aCell * m->mX, aCell * m->mY, aCell, aCell - aDrop);
-		g->DrawImage(IMG(IMAGE_FLOOR6 + aSize), GetXAt(m->mX), GetYAt(m->mY) + aDrop, aSrc3);
+		Rect aSrc3(aCell * aMummy->mX, aCell * aMummy->mY, aCell, aCell - aDrop);
+		g->DrawImage(IMG(IMAGE_FLOOR6 + aSize), GetXAt(aMummy->mX), GetYAt(aMummy->mY) + aDrop, aSrc3);
 		if (aTrap)
 		{
 			Rect aSrc4(0, 0, aCell, aCell - aDrop);
-			g->DrawImage(IMG(IMAGE_TRAP6 + aSize), GetXAt(m->mX), GetYAt(m->mY) + aDrop, aSrc4);
+			g->DrawImage(IMG(IMAGE_TRAP6 + aSize), GetXAt(aMummy->mX), GetYAt(aMummy->mY) + aDrop, aSrc4);
 		}
 		if (mState != STATE_ENDING_FADE)
 			g->SetColorizeImages(false);
@@ -282,23 +282,23 @@ void Board::DrawMummies(Graphics* g, int theIndex, bool theFull)
 	int aKind = aSize;
 	if (mRed)
 		aKind += 3;
-	if (!m->mFighting || m->mX != mExplorer->mX || m->mY != mExplorer->mY)
+	if (!aMummy->mFighting || aMummy->mX != mExplorer->mX || aMummy->mY != mExplorer->mY)
 	{
 		Image* anImage;
 		int aXOff, aY;
-		if (!m->mIdle || mState != STATE_READY)
+		if (!aMummy->mIdle || mState != STATE_READY)
 		{
-			int aDir = m->mDir;
-			int aWant = m->mWantDir;
+			int aDir = aMummy->mDir;
+			int aWant = aMummy->mWantDir;
 			if (aDir == aWant)
 			{
 				aY = aPY - aDir * aCell;
-				int aFrame = (int) (m->mProgress * (1.0 / 6.0));
+				int aFrame = (int) (aMummy->mProgress * (1.0 / 6.0));
 				aXOff = (aFrame % 5) * aCell;
 			}
 			else
 			{
-				int aTurn = m->mTurn;
+				int aTurn = aMummy->mTurn;
 				if (aTurn < 0)
 				{
 					aDir--;
@@ -320,39 +320,39 @@ void Board::DrawMummies(Graphics* g, int theIndex, bool theFull)
 		}
 		else
 		{
-			aXOff = kMummyFightX[m->mIdleFrame / 5 + m->mIdleKind * 0xff] * aCell;
+			aXOff = kMummyFightX[aMummy->mIdleFrame / 5 + aMummy->mIdleKind * 0xff] * aCell;
 			aY = aPY;
-			anImage = IMG(IMAGE_WHITEDANCE6 + aKind + m->mIdleKind * 6);
+			anImage = IMG(IMAGE_WHITEDANCE6 + aKind + aMummy->mIdleKind * 6);
 		}
 		gc.DrawImage(anImage, aPX - aXOff, aY);
 	}
-	if (mFade2 < 1.0)
+	if (mRiseFade < 1.0)
 	{
 		if (mState != STATE_ENDING_FADE)
 		{
 			gc.SetColorizeImages(true);
-			gc.SetColor(Color(0, 0, 0, (int) ((1.0 - mFade2) * 255.0)));
+			gc.SetColor(Color(0, 0, 0, (int) ((1.0 - mRiseFade) * 255.0)));
 		}
-		int aY = aPY - m->mDir * aCell;
-		int aFrame = (int) (m->mProgress * (1.0 / 6.0));
+		int aY = aPY - aMummy->mDir * aCell;
+		int aFrame = (int) (aMummy->mProgress * (1.0 / 6.0));
 		gc.DrawImage(IMG(IMAGE_MUMMY6 + aKind), aPX - (aFrame % 5) * aCell, aY);
 		if (mState != STATE_ENDING_FADE)
 			gc.SetColorizeImages(false);
 	}
-	if (m->mFighting)
+	if (aMummy->mFighting)
 	{
-		int aX = GetXAt(m->mX);
-		int aY = GetYAt(m->mY);
+		int aX = GetXAt(aMummy->mX);
+		int aY = GetYAt(aMummy->mY);
 		Graphics gf(*g);
 		int aH = aCell;
-		if ((mCells[m->mX][m->mY] & WALL_SOUTH) != 0 && m->mY != mSize - 1)
+		if ((mCells[aMummy->mX][aMummy->mY] & WALL_SOUTH) != 0 && aMummy->mY != mSize - 1)
 			aH = aCell - 10;
 		gf.ClipRect(aX, aY, aCell, aH);
-		if (m->mFighting && m->mX == mExplorer->mX && m->mY == mExplorer->mY)
+		if (aMummy->mFighting && aMummy->mX == mExplorer->mX && aMummy->mY == mExplorer->mY)
 			gf.DrawImage(IMG(IMAGE_WHITEFIGHT6 + aKind), aX, aY);
-		int aFrame = m->mFightFrame;
+		int aFrame = aMummy->mFightFrame;
 		gf.DrawImage(IMG(IMAGE_DUST6 + aSize), aX - ((aFrame + ((aFrame >> 31) & 3)) >> 2) * aCell, aY);
-		if (m->mFightFrame < 0x76)
+		if (aMummy->mFightFrame < 0x76)
 		{
 			for (int i = 0; i < 4; i++)
 				gf.DrawImage(IMG(IMAGE_STAR), mDust[0][i] + aX, mDust[1][i] + aY);
@@ -365,41 +365,41 @@ void Board::DrawExplorer(Graphics* g)
 {
 	if (mState == STATE_DONE)
 		return;
-	if (mDeathTimer > 0x117)
+	if (mTrapDeathTimer > 0x117)
 		return;
-	Player* e = mExplorer;
-	if (e == NULL)
+	Player* anExplorer = mExplorer;
+	if (anExplorer == NULL)
 		return;
 	if (mState != STATE_ENTER)
 	{
 		for (int i = 0; i < 2; i++)
 		{
 			Mummy* m = mMummies[i];
-			if (m != NULL && m->mAlive && m->mX == e->mX && m->mY == e->mY)
+			if (m != NULL && m->mAlive && m->mX == anExplorer->mX && m->mY == anExplorer->mY)
 				return;
 		}
 	}
 	int aSize = SizeIndex();
 	int aCell = mCellSize;
-	int aPX = (int) ((double) GetXAt(e->mX) + (double) (e->mTargetX - e->mX) * e->mProgress);
-	int aPY = (int) ((double) GetYAt(e->mY) + (double) (e->mTargetY - e->mY) * e->mProgress);
+	int aPX = (int) ((double) GetXAt(anExplorer->mX) + (double) (anExplorer->mTargetX - anExplorer->mX) * anExplorer->mProgress);
+	int aPY = (int) ((double) GetYAt(anExplorer->mY) + (double) (anExplorer->mTargetY - anExplorer->mY) * anExplorer->mProgress);
 	int aMode = mApp->mGameMode;
 	if (aMode == 2 || aMode == 3)
 		aPX -= 0x1e;
 	if (mState == STATE_ENTER)
 	{
-		if (e->mTargetX < e->mX)
-			aPX = (int) ((double) GetXAt(e->mX) - e->mProgress);
-		else if (e->mX < e->mTargetX)
-			aPX = (int) ((double) GetXAt(e->mX) + e->mProgress);
-		if (e->mTargetY < e->mY)
-			aPY = (int) ((double) GetYAt(e->mY) - e->mProgress);
-		else if (e->mY < e->mTargetY)
-			aPY = (int) ((double) GetYAt(e->mY) + e->mProgress);
+		if (anExplorer->mTargetX < anExplorer->mX)
+			aPX = (int) ((double) GetXAt(anExplorer->mX) - anExplorer->mProgress);
+		else if (anExplorer->mX < anExplorer->mTargetX)
+			aPX = (int) ((double) GetXAt(anExplorer->mX) + anExplorer->mProgress);
+		if (anExplorer->mTargetY < anExplorer->mY)
+			aPY = (int) ((double) GetYAt(anExplorer->mY) - anExplorer->mProgress);
+		else if (anExplorer->mY < anExplorer->mTargetY)
+			aPY = (int) ((double) GetYAt(anExplorer->mY) + anExplorer->mProgress);
 	}
 	Graphics gc(*g);
 	int aClipH = aCell;
-	if (!((mCells[e->mX][e->mY] & WALL_SOUTH) == 0 || e->mTargetY == mSize - 1 || mState != STATE_LEAVE || mExitStyle != 1))
+	if (!((mCells[anExplorer->mX][anExplorer->mY] & WALL_SOUTH) == 0 || anExplorer->mTargetY == mSize - 1 || mState != STATE_LEAVE || mExitStyle != 1))
 		aClipH = aCell - 10;
 	gc.ClipRect(aPX, aPY, aCell, aClipH);
 	Image* anImage = NULL;
@@ -410,7 +410,7 @@ void Board::DrawExplorer(Graphics* g)
 	{
 		if (mExitStyle == 0)
 		{
-			int aFrame = (mDeathTimer - 0x28);
+			int aFrame = (mTrapDeathTimer - 0x28);
 			aFrame = (aFrame + ((aFrame >> 31) & 3)) >> 2;
 			if (aFrame < 0)
 				aFrame = 0;
@@ -421,8 +421,8 @@ void Board::DrawExplorer(Graphics* g)
 		}
 		else if (mExitStyle == 1)
 		{
-			int aFall = mDeathTimer - 0x1e;
-			int aStep = mDeathTimer / 10;
+			int aFall = mTrapDeathTimer - 0x1e;
+			int aStep = mTrapDeathTimer / 10;
 			if (aStep > 3)
 				aStep = 3;
 			gc.DrawImage(IMG(IMAGE_EXPFALL6 + aSize), aPX - aStep * aCell, ((aFall < 0) ? 0 : aFall) + aPY);
@@ -440,24 +440,24 @@ void Board::DrawExplorer(Graphics* g)
 	else
 	{
 	L_normal:
-		if (mDeathTimer2 < 0)
+		if (mStungTimer < 0)
 		{
-			if (!e->mIdle || mState != STATE_READY)
+			if (!anExplorer->mIdle || mState != STATE_READY)
 			{
-				aDrawY = aPY - e->mDir * aCell;
-				int aFrame = (int) (e->mProgress * (1.0 / 6.0));
+				aDrawY = aPY - anExplorer->mDir * aCell;
+				int aFrame = (int) (anExplorer->mProgress * (1.0 / 6.0));
 				aDrawX = aPX - (aFrame % 5) * aCell;
 				anImage = IMG(IMAGE_EXPLORER6 + aSize);
 			}
 			else
 			{
-				aDrawX = aPX - kExplorerIdleX[e->mIdleFrame / 5 + e->mIdleKind * 0xff] * aCell;
-				anImage = IMG(IMAGE_READMAP6 + aSize + e->mIdleKind * 3);
+				aDrawX = aPX - kExplorerIdleX[anExplorer->mIdleFrame / 5 + anExplorer->mIdleKind * 0xff] * aCell;
+				anImage = IMG(IMAGE_READMAP6 + aSize + anExplorer->mIdleKind * 3);
 			}
 		}
 		else
 		{
-			int aFrame = mDeathTimer2 / 5;
+			int aFrame = mStungTimer / 5;
 			if (aFrame > 0x11)
 				aFrame = 0x11;
 			aDrawX = aPX - aFrame * aCell;
@@ -473,29 +473,29 @@ void Board::DrawScorp(Graphics* g)
 {
 	int aSize = SizeIndex();
 	int aCell = mCellSize;
-	Scorp* s = mScorpion;
-	if (s->mStinging)
+	Scorp* aScorpion = mScorpion;
+	if (aScorpion->mStinging)
 	{
-		int aX = GetXAt(s->mX);
-		int aY = GetYAt(s->mY);
+		int aX = GetXAt(aScorpion->mX);
+		int aY = GetYAt(aScorpion->mY);
 		Graphics gc(*g);
 		int aH = aCell;
-		if (!((mCells[s->mX][s->mY] & WALL_SOUTH) == 0 || s->mY == mSize - 1))
+		if (!((mCells[aScorpion->mX][aScorpion->mY] & WALL_SOUTH) == 0 || aScorpion->mY == mSize - 1))
 			aH = aCell - 10;
 		gc.ClipRect(aX, aY, aCell, aH);
-		int aFrame = s->mStingFrame;
+		int aFrame = aScorpion->mStingFrame;
 		gc.DrawImage(IMG(IMAGE_DUST6 + aSize), aX - ((aFrame + ((aFrame >> 31) & 3)) >> 2) * aCell, aY);
-		if (s->mStingFrame < 0x76)
+		if (aScorpion->mStingFrame < 0x76)
 		{
 			for (int i = 0; i < 4; i++)
 				gc.DrawImage(IMG(IMAGE_STAR), mDust[0][i] + aX, mDust[1][i] + aY);
 		}
 		return;
 	}
-	if (!s->mAlive)
+	if (!aScorpion->mAlive)
 		return;
-	int aX = GetXAt(s->mX) + (s->mToX - s->mX) * s->mProgress;
-	int aY = GetYAt(s->mY) - 1 + (s->mToY - s->mY) * s->mProgress;
+	int aX = GetXAt(aScorpion->mX) + (aScorpion->mToX - aScorpion->mX) * aScorpion->mProgress;
+	int aY = GetYAt(aScorpion->mY) - 1 + (aScorpion->mToY - aScorpion->mY) * aScorpion->mProgress;
 	Graphics gc(*g);
 	gc.ClipRect(aX, aY, aCell, aCell);
 	if (!mRed)
@@ -514,7 +514,7 @@ void Board::DrawScorp(Graphics* g)
 		else
 			gc.SetColor(Color(0xff, 0x32, 0x28, 0x96));
 	}
-	gc.DrawImage(IMG(IMAGE_SCORPION6 + aSize), aX - ((s->mProgress / 6) % 5) * aCell, aY - s->mDir * aCell);
+	gc.DrawImage(IMG(IMAGE_SCORPION6 + aSize), aX - ((aScorpion->mProgress / 6) % 5) * aCell, aY - aScorpion->mDir * aCell);
 	if (mRed || mDark)
 		gc.SetColorizeImages(false);
 }
@@ -648,7 +648,7 @@ void Board::DrawTreasure(Graphics* g)
 void Board::DrawBoardStuff(Graphics* g, bool theWithExplorer)
 {
 	g->DrawImage(IMG(IMAGE_BACKDROP), -0x96, 0);
-	int aT = mDeathTimer;
+	int aT = mTrapDeathTimer;
 	if (!((aT < 0x78) || (0x9a < aT) || (mExitStyle != 0)))
 	{
 		int aShake = aT % 10 - 5;
@@ -732,8 +732,8 @@ void Board::DrawBoardStuff(Graphics* g, bool theWithExplorer)
 		for (int x = 0; x < mSize; x++)
 		{
 			int aShift = 0;
-			if (mExitStyle == 1 && mDeathTimer > 0 && x == mExplorer->mX && y == mExplorer->mY)
-				aShift = mDeathTimer * 3;
+			if (mExitStyle == 1 && mTrapDeathTimer > 0 && x == mExplorer->mX && y == mExplorer->mY)
+				aShift = mTrapDeathTimer * 3;
 			Graphics gc(*g);
 			gc.ClipRect(GetXAt(x), GetYAt(y) + 1, aCell, aCell);
 			bool aIsTrap0 = (x == mTrapX[0] && y == mTrapY[0]);
@@ -913,7 +913,7 @@ void Board::DrawBoardStuff(Graphics* g, bool theWithExplorer)
 				DrawScorp(g);
 		}
 		// while he falls into a pit the walls east of the row cover him again
-		if (mDeathTimer > 0 && mExitStyle == 1 && mSize > 0)
+		if (mTrapDeathTimer > 0 && mExitStyle == 1 && mSize > 0)
 		{
 			for (int x = 1; x <= mSize; x++)
 			{
@@ -967,7 +967,7 @@ void Board::DrawBoardStuff(Graphics* g, bool theWithExplorer)
 // pixels higher for every unit before that, so it comes in from above the window (0x40abdc).
 void Board::DrawTrapBlock(Graphics* g, int x, int y)
 {
-	if (mDeathTimer < 0 || mExitStyle != 0)
+	if (mTrapDeathTimer < 0 || mExitStyle != 0)
 		return;
 	bool aOnTrap0 = x == mTrapX[0] && y == mTrapY[0] && mExplorer->mX == mTrapX[0] && mExplorer->mY == mTrapY[0];
 	bool aOnTrap1 = x == mTrapX[1] && y == mTrapY[1] && mExplorer->mX == mTrapX[1] && mExplorer->mY == mTrapY[1];
@@ -984,22 +984,22 @@ void Board::DrawTrapBlock(Graphics* g, int x, int y)
 		aW = 0x20;
 		aH = 0x35;
 	}
-	double aFall = (double) mDeathTimer * (double) mDeathTimer * 0.011764705882352941;
+	double aFall = (double) mTrapDeathTimer * (double) mTrapDeathTimer * 0.011764705882352941;
 	if (152.0 < aFall)
 		aFall = 152.0;
 	int aPY = (int) ((double) (GetYAt(y) + mCellSize - aH) - (152.0 - aFall) * 3.0);
 	Graphics gc(*g);
 	gc.ClipRect(GetXAt(x) + (mCellSize - aW) / 2, aPY, aW, aH);
 	int aX;
-	if (mDeathTimer < 0x82)
+	if (mTrapDeathTimer < 0x82)
 	{
-		if (mDeathTimer <= 0x28)
+		if (mTrapDeathTimer <= 0x28)
 			return;
 		aX = GetXAt(x) + (mCellSize - aW) / 2;
 	}
 	else
 	{
-		int aStep = mDeathTimer - 0x81;
+		int aStep = mTrapDeathTimer - 0x81;
 		if (aStep > 0x3f)
 			aStep = 0x3f;
 		aX = GetXAt(x) + (mCellSize - aW) / 2 - ((aStep + ((aStep >> 31) & 3)) >> 2) * aW;
@@ -1204,7 +1204,7 @@ void Board::Draw(Graphics* g)
 			g->SetColorizeImages(true);
 		}
 		DrawBoardStuff(g, true);
-		if (mFade2 < 1.0 && mState != STATE_ENDING_FADE)
+		if (mRiseFade < 1.0 && mState != STATE_ENDING_FADE)
 			DrawMinimalBoardStuff(g);
 		if (mState == STATE_ENDING_FADE || mState == STATE_ENDING)
 			g->SetColorizeImages(false);

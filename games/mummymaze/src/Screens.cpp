@@ -505,7 +505,7 @@ void GameOverWidget::ButtonDepress(int theId)
 		{
 			aBoard->mShowingSolution = false;
 			aBoard->ResetMaze();
-			aBoard->m270 = aBoard->mUpdateCnt;
+			aBoard->mSolveTick = aBoard->mUpdateCnt;
 			aBoard->mState = STATE_SOLVING;
 		}
 		break;
@@ -645,10 +645,10 @@ void Sidebar::Draw(Graphics* g)
 		aHigh = 0xeb;
 	}
 	int aShake = 0;
-	bool aShaking = (aBoard != NULL) && (aBoard->mDeathTimer >= aLow) && (aBoard->mDeathTimer < aHigh);
+	bool aShaking = (aBoard != NULL) && (aBoard->mTrapDeathTimer >= aLow) && (aBoard->mTrapDeathTimer < aHigh);
 	if (aShaking)
 	{
-		aShake = (aBoard->mDeathTimer % 8) - 4;
+		aShake = (aBoard->mTrapDeathTimer % 8) - 4;
 		g->Translate(aShake, aShake);
 	}
 	g->DrawImage(mApp->mImages[IMAGE_MUMLOGO], 0xd, mMumY);

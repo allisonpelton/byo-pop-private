@@ -296,7 +296,7 @@ void MMApp::DoWarning(int theWhich)
 	if (theWhich < 0 || theWhich > 6 || !*aFlags[theWhich])
 		return;
 	if (mBoard != NULL)
-		mBoard->mFlagEc0 = true;
+		mBoard->mTipShown = true;
 	WarningDialog* aDialog = (WarningDialog*) NewDialogOf(new WarningDialog(this, theWhich));
 	aDialog->Resize(0xb4, 0x46, 0x1ae, aDialog->GetPreferredHeight(0x17c));
 	AddDialog(DIALOG_TIP, aDialog);

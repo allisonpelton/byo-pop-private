@@ -33,7 +33,7 @@ using namespace Sexy;
 void Board::AddedToManager(WidgetManager* theWidgetManager)
 {
 	Widget::AddedToManager(theWidgetManager);
-	theWidgetManager->AddWidget(mPlayNowButton0);
+	theWidgetManager->AddWidget(mTutorialStepButton);
 	theWidgetManager->AddWidget(mPlayNowButton);
 	theWidgetManager->AddWidget(mContinueLink);
 }
@@ -41,7 +41,7 @@ void Board::AddedToManager(WidgetManager* theWidgetManager)
 void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);
-	theWidgetManager->RemoveWidget(mPlayNowButton0);
+	theWidgetManager->RemoveWidget(mTutorialStepButton);
 	theWidgetManager->RemoveWidget(mPlayNowButton);
 	theWidgetManager->RemoveWidget(mContinueLink);
 }
@@ -49,7 +49,7 @@ void Board::RemovedFromManager(WidgetManager* theWidgetManager)
 void Board::Resize(int theX, int theY, int theWidth, int theHeight)
 {
 	Widget::Resize(theX, theY, theWidth, theHeight);
-	mPlayNowButton0->Resize(500, 0x1b2, 0x82, 0x28);
+	mTutorialStepButton->Resize(500, 0x1b2, 0x82, 0x28);
 	mPlayNowButton->Resize(0xaa, 0x1b2, 0x82, 0x28);
 	mContinueLink->Resize(mWidth / 2 - 0xe1 + mX, 0x1b1, 0x1c2, 0x1e);
 }
@@ -230,13 +230,13 @@ void Board::MouseMove(int x, int y)
 // 0x4065b0: a click made while the explorer was moving is carried out now
 void Board::DoProcessQueue()
 {
-	Player* e = mExplorer;
-	if ((mCells[e->mX][e->mY] & EXIT_ANY) == 0)
+	Player* anExplorer = mExplorer;
+	if ((mCells[anExplorer->mX][anExplorer->mY] & EXIT_ANY) == 0)
 	{
 		if (!mShowingSolution && mApp->mGameMode < 4)
 		{
 			mState = STATE_EXPLORER;
-			if (mClickX == e->mX && mClickY == e->mY)
+			if (mClickX == anExplorer->mX && mClickY == anExplorer->mY)
 			{
 				DoNewTurn();
 				SetScorpInMotion();
@@ -244,8 +244,8 @@ void Board::DoProcessQueue()
 			}
 			else
 			{
-				int aX = e->mX - 1;
-				if (mClickX == aX && mClickY == e->mY && CanMove(aX, e->mY, true))
+				int aX = anExplorer->mX - 1;
+				if (mClickX == aX && mClickY == anExplorer->mY && CanMove(aX, anExplorer->mY, true))
 				{
 					DoNewTurn();
 					mExplorer->mDir = 3;
@@ -288,9 +288,9 @@ void Board::DoProcessQueue()
 					}
 				}
 			}
-			e = mExplorer;
-			if (e->mTargetX != e->mX || e->mTargetY != e->mY)
-				MoveSound(e->mTargetX);
+			anExplorer = mExplorer;
+			if (anExplorer->mTargetX != anExplorer->mX || anExplorer->mTargetY != anExplorer->mY)
+				MoveSound(anExplorer->mTargetX);
 		}
 		mClickX = 99;
 		mClickY = 99;
@@ -305,14 +305,14 @@ void Board::UpdateExplorer()
 		if (mMummies[i] != NULL && mMummies[i]->mFighting)
 			aFighting = true;
 	int aMode = mApp->mGameMode;
-	Player* e = mExplorer;
+	Player* anExplorer = mExplorer;
 	WidgetManager* aMgr = mWidgetManager;
 
-	if (mState == STATE_READY && mDeathTimer2 < 0)
+	if (mState == STATE_READY && mStungTimer < 0)
 	{
-		if ((mCells[e->mX][e->mY] & EXIT_ANY) == 0)
+		if ((mCells[anExplorer->mX][anExplorer->mY] & EXIT_ANY) == 0)
 		{
-			if (!aFighting && mFade2 >= 1.0)
+			if (!aFighting && mRiseFade >= 1.0)
 			{
 				if (aMode != 2 && aMode != 3)
 					mState = STATE_EXPLORER;
@@ -325,7 +325,7 @@ void Board::UpdateExplorer()
 						bool aDone = false;
 						if (KEY_WEST(aMgr))
 						{
-							if (CanMove(e->mX - 1, e->mY, true))
+							if (CanMove(anExplorer->mX - 1, anExplorer->mY, true))
 							{
 								if (aMode < 4 || kTutorialMove[mTutorialStep] == 1)
 								{
@@ -411,31 +411,31 @@ void Board::UpdateExplorer()
 
 					if (aMoved || mState != STATE_READY)
 					{
-						e = mExplorer;
-						if (e->mTargetX != e->mX || e->mTargetY != e->mY)
-							MoveSound(e->mTargetX);
+						anExplorer = mExplorer;
+						if (anExplorer->mTargetX != anExplorer->mX || anExplorer->mTargetY != anExplorer->mY)
+							MoveSound(anExplorer->mTargetX);
 					}
 				}
 				else if (!mSolution.empty())
 				{
 					// the solution plays: the next position of the explorer
-					const ChaseState& s = mSolution.front();
-					e = mExplorer;
-					if (s.mExplorerX < e->mX)
-						e->mDir = 3;
-					else if (e->mX < s.mExplorerX)
-						e->mDir = 1;
-					else if (s.mExplorerY < e->mY)
-						e->mDir = 0;
-					else if (e->mY < s.mExplorerY)
-						e->mDir = 2;
+					const ChaseState& aState = mSolution.front();
+					anExplorer = mExplorer;
+					if (aState.mExplorerX < anExplorer->mX)
+						anExplorer->mDir = 3;
+					else if (anExplorer->mX < aState.mExplorerX)
+						anExplorer->mDir = 1;
+					else if (aState.mExplorerY < anExplorer->mY)
+						anExplorer->mDir = 0;
+					else if (anExplorer->mY < aState.mExplorerY)
+						anExplorer->mDir = 2;
 					else
 						SetScorpInMotion();
-					mExplorer->mTargetX = s.mExplorerX;
-					mExplorer->mTargetY = s.mExplorerY;
-					e = mExplorer;
-					if (e->mTargetX != e->mX || e->mTargetY != e->mY)
-						MoveSound(e->mTargetX);
+					mExplorer->mTargetX = aState.mExplorerX;
+					mExplorer->mTargetY = aState.mExplorerY;
+					anExplorer = mExplorer;
+					if (anExplorer->mTargetX != anExplorer->mX || anExplorer->mTargetY != anExplorer->mY)
+						MoveSound(anExplorer->mTargetX);
 					mSolution.erase(mSolution.begin());
 				}
 			}
@@ -452,25 +452,25 @@ void Board::UpdateExplorer()
 				mExplorer->mDir = 0;
 				mExplorer->mTargetY = mExplorer->mTargetY - 1;
 				if (mTutorialStep < 0x22 || mTutorialStep > 0x24)
-					mPlayNowButton0->SetVisible(false);
+					mTutorialStepButton->SetVisible(false);
 			}
 			else if (aFlags & EXIT_SOUTH)
 			{
 				mExplorer->mDir = 2;
 				mExplorer->mTargetY = mExplorer->mTargetY + 1;
-				mPlayNowButton0->SetVisible(false);
+				mTutorialStepButton->SetVisible(false);
 			}
 			else if (aFlags & EXIT_WEST)
 			{
 				mExplorer->mDir = 3;
 				mExplorer->mTargetX = mExplorer->mTargetX - 1;
-				mPlayNowButton0->SetVisible(false);
+				mTutorialStepButton->SetVisible(false);
 			}
 			else if (aFlags & EXIT_EAST)
 			{
 				mExplorer->mDir = 1;
 				mExplorer->mTargetX = mExplorer->mTargetX + 1;
-				mPlayNowButton0->SetVisible(false);
+				mTutorialStepButton->SetVisible(false);
 			}
 		}
 	}
@@ -540,25 +540,25 @@ void Board::UpdateExplorer()
 			mExplorer->mProgress = mExplorer->mProgress + 1.0;
 		else
 			mExplorer->mProgress = (double) mCellSize / (60.0 / (double) mApp->mSpeed) + mExplorer->mProgress;
-		e = mExplorer;
-		if ((double) mCellSize <= e->mProgress)
+		anExplorer = mExplorer;
+		if ((double) mCellSize <= anExplorer->mProgress)
 		{
-			e->mX = e->mTargetX;
+			anExplorer->mX = anExplorer->mTargetX;
 			mExplorer->mY = mExplorer->mTargetY;
-			e = mExplorer;
-			e->mProgress = 0.0;
+			anExplorer = mExplorer;
+			anExplorer->mProgress = 0.0;
 			KeyStep(mExplorer->mX, mExplorer->mY);
-			e = mExplorer;
-			if ((e->mX == mTrapX[0] && e->mY == mTrapY[0]) || (e->mX == mTrapX[1] && e->mY == mTrapY[1]))
+			anExplorer = mExplorer;
+			if ((anExplorer->mX == mTrapX[0] && anExplorer->mY == mTrapY[0]) || (anExplorer->mX == mTrapX[1] && anExplorer->mY == mTrapY[1]))
 			{
 				// a skull trap
 				mState = STATE_LEAVE;
-				e->mDir = 2;
+				anExplorer->mDir = 2;
 				mExitStyle = abs(CrtRand() % 2);
 				if (mExitStyle == 0)
-					mDeathTimer = 0x1e;
+					mTrapDeathTimer = 0x1e;
 				else
-					mDeathTimer = 0;
+					mTrapDeathTimer = 0;
 				if (aMode == MODE_ADVENTURE)
 				{
 					mApp->AdventureCaught();
@@ -578,39 +578,39 @@ void Board::UpdateExplorer()
 	// STATE_ENTER: the explorer walks in from outside
 	{
 		int aExtra = mApp->mSpeed > 1 ? mApp->mSpeed : 0;
-		e = mExplorer;
-		if (e->mProgress == 0.0 && (e->mTargetX != e->mX || e->mTargetY != e->mY))
+		anExplorer = mExplorer;
+		if (anExplorer->mProgress == 0.0 && (anExplorer->mTargetX != anExplorer->mX || anExplorer->mTargetY != anExplorer->mY))
 		{
-			mApp->PlaySample(abs(CrtRand() % 2) + 7 + aExtra, GetPanAt(e->mTargetX));
+			mApp->PlaySample(abs(CrtRand() % 2) + 7 + aExtra, GetPanAt(anExplorer->mTargetX));
 		}
 		mExplorer->mProgress = (double) mCellSize / (60.0 / (double) mApp->mSpeed) + mExplorer->mProgress;
-		e = mExplorer;
-		if (e->mX < e->mTargetX)
-			e->mDir = 1;
-		else if (e->mTargetX < e->mX)
-			e->mDir = 3;
-		e = mExplorer;
-		if (e->mY < e->mTargetY)
-			e->mDir = 2;
-		else if (e->mTargetY < e->mY)
-			e->mDir = 0;
-		e = mExplorer;
-		if ((double) mCellSize <= e->mProgress)
+		anExplorer = mExplorer;
+		if (anExplorer->mX < anExplorer->mTargetX)
+			anExplorer->mDir = 1;
+		else if (anExplorer->mTargetX < anExplorer->mX)
+			anExplorer->mDir = 3;
+		anExplorer = mExplorer;
+		if (anExplorer->mY < anExplorer->mTargetY)
+			anExplorer->mDir = 2;
+		else if (anExplorer->mTargetY < anExplorer->mY)
+			anExplorer->mDir = 0;
+		anExplorer = mExplorer;
+		if ((double) mCellSize <= anExplorer->mProgress)
 		{
-			e->mProgress = 0.0;
-			e = mExplorer;
-			if (e->mX < e->mTargetX)
-				e->mX = e->mX + 1;
-			else if (e->mTargetX < e->mX)
-				e->mX = e->mX - 1;
-			e = mExplorer;
-			if (e->mY < e->mTargetY)
-				e->mY = e->mY + 1;
-			else if (e->mTargetY < e->mY)
-				e->mY = e->mY - 1;
+			anExplorer->mProgress = 0.0;
+			anExplorer = mExplorer;
+			if (anExplorer->mX < anExplorer->mTargetX)
+				anExplorer->mX = anExplorer->mX + 1;
+			else if (anExplorer->mTargetX < anExplorer->mX)
+				anExplorer->mX = anExplorer->mX - 1;
+			anExplorer = mExplorer;
+			if (anExplorer->mY < anExplorer->mTargetY)
+				anExplorer->mY = anExplorer->mY + 1;
+			else if (anExplorer->mTargetY < anExplorer->mY)
+				anExplorer->mY = anExplorer->mY - 1;
 		}
-		e = mExplorer;
-		if (e->mX == e->mTargetX && e->mY == e->mTargetY)
+		anExplorer = mExplorer;
+		if (anExplorer->mX == anExplorer->mTargetX && anExplorer->mY == anExplorer->mTargetY)
 		{
 			mState = STATE_READY;
 			mTimeBase = mUpdateCnt;
@@ -621,9 +621,9 @@ void Board::UpdateExplorer()
 	}
 
 L_finish:
-	e = mExplorer;
-	if (((e->mX < 0 || mSize <= e->mX || e->mY < 0) || (mSize <= e->mY && mApp->mLevelComplete == NULL)) &&
-		(mState != STATE_ENTER && mState != STATE_SCORPION_LAST && mDeathTimer2 < 0))
+	anExplorer = mExplorer;
+	if (((anExplorer->mX < 0 || mSize <= anExplorer->mX || anExplorer->mY < 0) || (mSize <= anExplorer->mY && mApp->mLevelComplete == NULL)) &&
+		(mState != STATE_ENTER && mState != STATE_SCORPION_LAST && mStungTimer < 0))
 	{
 		// the explorer has left the maze
 		mState = STATE_READY;

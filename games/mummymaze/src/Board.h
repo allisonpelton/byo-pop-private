@@ -164,17 +164,17 @@ public:
 	Scorp*			mScorpion;              // +0x6c
 	MemoryImage*		mDarkImage;             // +0x70 the dark pyramid's light-masked picture
 	bool				mDarkImageValid;        // +0x74
-	DialogButton*		mPlayNowButton0;        // +0x78 id 0 (hidden)
+	DialogButton*		mTutorialStepButton;    // +0x78 id 0: the tutorial's own button (shown once the board has opened)
 	DialogButton*		mPlayNowButton;         // +0x7c id 2 ("PLAY NOW")
 	HyperlinkWidget*	mContinueLink;          // +0x80 id 3 (after a level)
 	int					mHover[NUM_HOVER][NUM_HOVER]; // +0x84 fade counters of the highlighted cells
 	DWORD				mStartTick;             // +0x26c
-	int					m270;                   // +0x270
-	int					m274;                   // +0x274
+	int					mSolveTick;             // +0x270 the update the solution was asked for (it starts 0x32 updates later)
+	int					mUnsolvableTick;        // +0x274 the update the "can no longer be solved" notice counts from
 	bool				mUnsolvable;            // +0x278 "MAZE CAN NO LONGER BE SOLVED"
 	int					mTrapX[2], mTrapY[2];   // +0x284 .. +0x290 skull traps (99 = none)
-	int					mDeathTimer;            // +0x294 -1 = off
-	int					mDeathTimer2;           // +0x298
+	int					mTrapDeathTimer;        // +0x294 the death on a skull trap (-1 = off)
+	int					mStungTimer;            // +0x298 the death by the scorpion's sting (-1 = off)
 	int					mGateX, mGateY;         // +0x2a0 the gate is the barrier below this cell
 	int					mKeyX, mKeyY;           // +0x2a8
 	int					mMaze;                  // +0x2b0 the maze number in its file (1 .. 100)
@@ -196,7 +196,7 @@ public:
 	int					mTorchFrame;            // +0x4c4
 	int					mKeyFrame;              // +0x4c8
 	double				mFade;                  // +0x4d0 the board fades in (1 = all in)
-	double				mFade2;                 // +0x4d8
+	double				mRiseFade;              // +0x4d8 the figures rise out of the floor once the board is in (1 = up)
 	bool				mDark;                  // +0x4e0 dark pyramid
 	int					mTutorialStep;          // +0x4e4 index into kTutorialMove
 	int					mExitStyle;             // +0x4e8
@@ -204,8 +204,8 @@ public:
 	int					mEndAlpha;              // +0x4f0
 	double				mEndFade;               // +0x4f8
 	MTRand				mRand;                  // +0x500
-	bool				mFlagEc0;               // +0xec0
-	bool				mFlagEc1;               // +0xec1
+	bool				mTipShown;              // +0xec0 a tip has come up for this board (or it is the tutorial's): no further tip
+	bool				mIntroPlaying;          // +0xec1 the board's opening (the tomb slides, the howl at update 0xa5) has not ended
 
 public:
 	Board(MMApp* theApp);
@@ -280,8 +280,8 @@ public:
 	void				DrawTreasure(Graphics* g);        // 0x40c950
 	void				DrawArrow(int x1, int y1, int x2, int y2, Graphics* g);   // 0x410660
 	void				DrawTutorialArrow(int x, int y, Graphics* g);                // 0x410860
-	void				DrawWaitDialog(int x, int y, int w, int h, Graphics* g);        // 0x408780
-	void				DrawTutorialDialog(int x, int y, int w, int h, Graphics* g);   // 0x408e50
+	void				DrawWaitDialog(int x, int y, int theWidth, int theHeight, Graphics* g);        // 0x408780
+	void				DrawTutorialDialog(int x, int y, int theWidth, int theHeight, Graphics* g);   // 0x408e50
 	void				DrawClipped(Graphics* g, Image* theImage, int theX, int theY, int theClipX, int theClipY, int theClipW, int theClipH);
 	int					SizeIndex() { return mSize == 8 ? 1 : (mSize == 10 ? 2 : 0); }
 };
