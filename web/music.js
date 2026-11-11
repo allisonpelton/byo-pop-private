@@ -62,7 +62,21 @@ var ByopopMusic = (function () {
     });
     return found;
   }
+  // A stored file's bytes, or null. A key "<file>|pe:<type>:<id>" is that resource of that Windows module, and "<file>|zip:<name>" that entry of that zip archive: tunes a game keeps inside its own files
   function readFile(db, key) {
+    var bar = key.indexOf("|");
+    if (bar >= 0) {
+      var pick = key.slice(bar + 1);
+      return readFile(db, key.slice(0, bar)).then(function (bytes) {
+        if (!bytes) return null;
+        if (pick.indexOf("pe:") === 0) {
+          var r = peResources(bytes).filter(function (x) { return "pe:" + x.type + ":" + x.id === pick; })[0];
+          return r ? r.bytes : null;
+        }
+        if (pick.indexOf("zip:") === 0) return zipEntry(bytes, pick.slice(4));
+        return null;
+      });
+    }
     return new Promise(function (resolve, reject) {
       var r = db.transaction(DB_STORE, "readonly").objectStore(DB_STORE).get(key);
       r.onerror = function () { reject(r.error); };
@@ -71,6 +85,68 @@ var ByopopMusic = (function () {
         resolve(c ? (c instanceof Uint8Array ? c : new Uint8Array(c)) : null);
       };
     });
+  }
+  // A Windows module's resources, in the order its resource directory lists them: [{ type, id, bytes }] (type and id the
+  // numbers, or the names, of its first two levels); [] where it has none or is not one
+  function peResources(bytes) {
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), out = [];
+    try {
+      if (dv.getUint16(0, true) !== 0x5a4d) return out;
+      var pe = dv.getUint32(0x3c, true);
+      if (dv.getUint32(pe, true) !== 0x4550) return out;
+      var sections = dv.getUint16(pe + 6, true), opt = pe + 24, optSize = dv.getUint16(pe + 20, true);
+      var dirs = opt + (dv.getUint16(opt, true) === 0x20b ? 112 : 96), rsrc = dv.getUint32(dirs + 16, true);
+      if (!rsrc) return out;
+      var table = [];
+      for (var s = 0; s < sections; s++) {
+        var h = opt + optSize + s * 40;
+        table.push({ va: dv.getUint32(h + 12, true), size: Math.max(dv.getUint32(h + 8, true), dv.getUint32(h + 16, true)), raw: dv.getUint32(h + 20, true) });
+      }
+      var at = function (rva) {
+        for (var i = 0; i < table.length; i++) if (rva >= table[i].va && rva < table[i].va + table[i].size) return rva - table[i].va + table[i].raw;
+        return -1;
+      };
+      var base = at(rsrc);
+      if (base < 0) return out;
+      var nameOf = function (v) {
+        if (!(v & 0x80000000)) return v;
+        var o = base + (v & 0x7fffffff), n = dv.getUint16(o, true), s2 = "";
+        for (var i = 0; i < n; i++) s2 += String.fromCharCode(dv.getUint16(o + 2 + i * 2, true));
+        return s2;
+      };
+      var walk = function (dir, path) {
+        var n = dv.getUint16(base + dir + 12, true) + dv.getUint16(base + dir + 14, true);
+        for (var i = 0; i < n; i++) {
+          var e = base + dir + 16 + i * 8, name = nameOf(dv.getUint32(e, true)), to = dv.getUint32(e + 4, true);
+          if (to & 0x80000000) { if (path.length < 2) walk(to & 0x7fffffff, path.concat([name])); continue; }
+          var off = at(dv.getUint32(base + to, true)), size = dv.getUint32(base + to + 4, true);
+          if (off >= 0 && off + size <= bytes.length) out.push({ type: path[0], id: path[1], bytes: bytes.subarray(off, off + size) });
+        }
+      };
+      walk(0, []);
+    } catch (e) {}
+    return out;
+  }
+  // A zip archive's entry by name (stored or deflated), or null
+  function zipEntry(bytes, name) {
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), end = -1;
+    for (var i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { end = i; break; }
+    if (end < 0) return Promise.resolve(null);
+    var n = dv.getUint16(end + 10, true), c = dv.getUint32(end + 16, true), low = name.toLowerCase();
+    for (var k = 0; k < n && c + 46 <= bytes.length; k++) {
+      var method = dv.getUint16(c + 10, true), size = dv.getUint32(c + 20, true), nl = dv.getUint16(c + 28, true);
+      var extra = dv.getUint16(c + 30, true), note = dv.getUint16(c + 32, true), local = dv.getUint32(c + 42, true);
+      var entry = new TextDecoder("latin1").decode(bytes.subarray(c + 46, c + 46 + nl));
+      if (entry.toLowerCase() === low) {
+        var from = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true), data = bytes.subarray(from, from + size);
+        if (method === 0) return Promise.resolve(data);
+        if (method !== 8 || typeof DecompressionStream === "undefined") return Promise.resolve(null);
+        return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer()
+          .then(function (b) { return new Uint8Array(b); }, function () { return null; });
+      }
+      c += 46 + nl + extra + note;
+    }
+    return Promise.resolve(null);
   }
   // The pieces a playlist joins, in order (Rocket Mania and Pixelus; games/rocketmania/src/AppMusic.cpp): three header lines,
   // then the first word of each line names a piece; blank lines do not count
@@ -104,6 +180,19 @@ var ByopopMusic = (function () {
     return m;
   }
   function isOgg(rel) { return /\.ogg$/i.test(rel); }
+  // a recorded tune (Ogg Vorbis, or a WAV file: Word Harmony's), decoded whole by the browser rather than rendered
+  function isStream(rel) { return /\.(ogg|wav)$/i.test(rel); }
+  // A WAV file's length in seconds, from its data chunk's size and its format's bytes a second
+  function wavSeconds(bytes) {
+    var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), rate = 0;
+    for (var at = 12; at + 8 <= bytes.length;) {
+      var id = String.fromCharCode(bytes[at], bytes[at + 1], bytes[at + 2], bytes[at + 3]), size = dv.getUint32(at + 4, true);
+      if (id === "fmt " && size >= 16) rate = dv.getUint32(at + 16, true);
+      if (id === "data") return rate ? Math.min(size, bytes.length - at - 8) / rate : 0;
+      at += 8 + size + (size & 1);
+    }
+    return 0;
+  }
   // An Ogg Vorbis file's length in seconds, from its last page's position and the rate in its first header, without decoding it
   function oggSeconds(bytes) {
     var dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength), rate = 0, i;
@@ -148,7 +237,19 @@ var ByopopMusic = (function () {
 
   // ---------- the tunes ----------
   // A file's name without its folder and extension
-  function baseName(rel) { return rel.split("/").pop().replace(/\.[^.]+$/, ""); }
+  function baseName(rel) {
+    var bar = rel.indexOf("|");
+    if (bar >= 0) {
+      // a file inside a file: a zip entry's own name, or a resource's module and id ("resource 335")
+      var pick = rel.slice(bar + 1);
+      return pick.indexOf("zip:") === 0 ? baseName(pick.slice(4)) : baseName(rel.slice(0, bar)) + " " + pick.split(":").pop();
+    }
+    return rel.split("/").pop().replace(/\.[^.]+$/, "");
+  }
+  // the display's second line for a tune: its game, where the game plays it (or that it never does) and its format
+  function subLine(t) {
+    return [t.game.title, t.unused ? T("music.unused") : t.where, t.format].filter(function (s) { return s; }).join(" · ");
+  }
   function clock(seconds) {
     var s = Math.round(seconds), m = Math.floor(s / 60);
     return T("music.duration", { min: m, sec: (s % 60 < 10 ? "0" : "") + (s % 60) });
@@ -159,7 +260,7 @@ var ByopopMusic = (function () {
     for (var i = 0; i < rels.length; i++) if (rels[i].toLowerCase() === low) return rels[i];
     return null;
   }
-  // A game's tunes: [{game, kind, keys, sub, range, name, seconds}] (kind: module, ogg or joined). A module's tunes are its
+  // A game's tunes: [{game, kind, keys, sub, range, name, seconds}] (kind: module, stream or joined). A module's tunes are its
   // subsongs, or the ranges of orders its parts list; an Ogg file is one tune; a joined tune is the pieces its playlist names, one
   // after the other. Tunes under MIN_TUNE seconds and those in skip are left out; names names a tune, else its file does.
   function tunesOf(M, game, entry) {
@@ -167,22 +268,120 @@ var ByopopMusic = (function () {
       if (!db) return [];
       var prefix = game.persist + "/game/", tunes = [];
       function read(rel) { return readFile(db, prefix + rel); }
+      // a tune's format (its file's extension: MO3, IT, S3M, XM, OXM or OGG), where in the game it plays and whether the game
+      // never plays it, from the table
+      var formats = {};   // a resource's format, by its key, from its first bytes
+      // a table field's value for a tune id, its case ignored (file names are stored as the game's copy has them)
+      function byId(obj, id) {
+        var low = id.toLowerCase(), hit;
+        Object.keys(obj || {}).forEach(function (k) { if (k.toLowerCase() === low) hit = obj[k]; });
+        return hit;
+      }
+      function placeOf(k, rel) {
+        k.format = formats[rel] || (rel.match(/\.([^.\/]+)$/) || ["", ""])[1].toUpperCase();
+        var low = k.id.toLowerCase();
+        k.where = "";
+        Object.keys(entry.where || {}).forEach(function (w) { if (w.toLowerCase() === low) k.where = entry.where[w]; });
+        k.unused = (entry.unused || []).some(function (u) { return u.toLowerCase() === low; });
+      }
       function add(rel, list) {
-        var kept = list.filter(function (k) { return k.seconds >= MIN_TUNE && (entry.skip || []).indexOf(k.id) < 0; });
+        var kept = list.filter(function (k) { return k.seconds >= MIN_TUNE && !(entry.skip || []).some(function (x) { return x.toLowerCase() === k.id.toLowerCase(); }); });
         kept.forEach(function (k, j) {
           var named = entry.names && entry.names[k.id];
           k.game = game;
           k.name = named || (kept.length > 1 ? T("music.tune_part", { file: baseName(rel), n: j + 1 }) : baseName(rel));
+          placeOf(k, rel);
           tunes.push(k);
         });
       }
       return gameFiles(db, game.persist).then(function (rels) {
-        var steps = matching(rels, entry.files).map(function (rel) {
+        var steps = matching(rels, entry.files).map(fileStep);
+        // tunes inside a game's files: a Windows module's resources that start with the magic given (their format), and a zip
+        // archive's entries
+        (entry.inside || []).forEach(function (n) {
+          var rel = findRel(rels, n.file);
+          if (!rel) return;
+          if (n.zip) { n.zip.forEach(function (name) { steps.push(fileStep(rel + "|zip:" + name)); }); return; }
+          steps.push(function () {
+            return read(rel).then(function (bytes) {
+              if (!bytes) return;
+              return peResources(bytes).filter(function (r) {
+                return new TextDecoder("latin1").decode(r.bytes.subarray(0, n.magic.length)) === n.magic;
+              }).reduce(function (p, r) {
+                var key = rel + "|pe:" + r.type + ":" + r.id;
+                formats[key] = n.magic.toUpperCase();
+                return p.then(fileStep(key));
+              }, Promise.resolve());
+            });
+          });
+        });
+        // A subsong cut at the orders the game starts it at partway (the table's "cuts"): its pieces, each a tune of its own
+        // (segs: [{sub, from, until}], playing the subsong from order from, or its start, until it reaches order until, or its
+        // end). A cut the subsong reaches as it plays ends the piece before it; one it never reaches (an order the game starts
+        // that only a jump of the game's own leads to) is a piece played from there to where the music ends. Lengths are timed
+        // by rendering the subsong unheard (libopenmpt at 8000 Hz, libxmp-lite at its own 48000, as a rate change restarts it).
+        function cutTune(m, base, cuts, fast) {
+          var reached = timeOrders(m, base.sub, null, cuts, fast);
+          var inFlow = cuts.filter(function (c) { return c in reached.at; }).sort(function (a, b) { return reached.at[a] - reached.at[b]; });
+          var pieces = [], starts = [null].concat(inFlow);
+          starts.forEach(function (from, k) {
+            var t0 = from === null ? 0 : reached.at[from], until = k + 1 < starts.length ? starts[k + 1] : null;
+            var t1 = until === null ? reached.end : reached.at[until];
+            pieces.push(piece(base, from, until, t1 - t0));
+          });
+          cuts.filter(function (c) { return !(c in reached.at); }).forEach(function (c) {
+            pieces.push(piece(base, c, null, timeOrders(m, base.sub, c, [], fast).end));
+          });
+          return pieces;
+        }
+        function piece(base, from, until, seconds) {
+          var k = {};
+          Object.keys(base).forEach(function (f) { k[f] = base[f]; });
+          if (from !== null) { k.id = base.id + "@" + from; k.entry = from; }
+          k.segs = [{ sub: base.sub, from: from, until: until }];
+          k.seconds = seconds;
+          delete k.sub;
+          return k;
+        }
+        // Renders subsong sub (from order from, or its start) once through, unheard: when each of orders is first reached, in
+        // seconds, and where it ends ({at: {order: s}, end: s})
+        function timeOrders(m, sub, from, orders, fast) {
+          var rate = fast ? 8000 : 48000, buf = M._malloc(1024 * 8), at = {}, frames = 0, guard = 0;
+          M._bm_select(m, sub);
+          M._bm_loop(m, 0);
+          if (from !== null) M._bm_set_order(m, from);
+          try {
+            for (;;) {
+              var o = M._bm_order(m);
+              if (orders.indexOf(o) >= 0 && !(o in at) && frames > 0) at[o] = frames / rate;
+              var g = M._bm_render(m, rate, 1024, buf);
+              frames += g;
+              if (g < 1024 || ++guard > rate * 3600 / 1024) break;
+            }
+          } finally { M._free(buf); }
+          return { at: at, end: frames / rate };
+        }
+        // Subsongs the game only plays one after another (the table's "chains": {"<file>#<n>": ["<file>#<m>", ...]}): one tune
+        // of them all, in that order, the others no longer tunes of their own
+        function chainTunes(list) {
+          var same = function (a, b) { return a.toLowerCase() === b.toLowerCase(); };
+          Object.keys(entry.chains || {}).forEach(function (head) {
+            var first = list.filter(function (k) { return same(k.id, head); })[0];
+            if (!first) return;
+            var rest = entry.chains[head].map(function (id) { return list.filter(function (k) { return same(k.id, id); })[0]; });
+            if (rest.some(function (k) { return !k; })) return;
+            first.segs = [first].concat(rest).map(function (k) { return { sub: k.sub, from: null, until: null }; });
+            first.seconds = [first].concat(rest).reduce(function (n, k) { return n + k.seconds; }, 0);
+            delete first.sub;
+            rest.forEach(function (k) { list.splice(list.indexOf(k), 1); });
+          });
+        }
+        function fileStep(rel) {
           return function () {
             return read(rel).then(function (bytes) {
               if (!bytes) return;
               var id = baseName(rel);
-              if (isOgg(rel)) { add(rel, [{ kind: "ogg", keys: [prefix + rel], id: id, seconds: oggSeconds(bytes) }]); return; }
+              if (isStream(rel)) { add(rel, [{ kind: "stream", keys: [prefix + rel], id: id, seconds: isOgg(rel) ? oggSeconds(bytes) : wavSeconds(bytes) }]); return; }
               var m = loadModule(M, bytes), list = [];
               if (!m) return;
               // the pattern each order plays (a marker below 0), which a game's song is known by (Music's "Following a game")
@@ -195,38 +394,45 @@ var ByopopMusic = (function () {
                   list.push({ kind: "module", keys: [prefix + rel], range: r, start: t0, entry: r[0], seq: seq, id: id + "#" + i, seconds: t1 - t0, level: entry.level });
                 });
               } else {
-                var one = M._malloc(16);
+                var one = M._malloc(16), fast = /\.(mo3|oxm)$/i.test(rel) || formats[rel] === "MO3";
                 for (var i = 0, n = M._bm_subsongs(m); i < n; i++) {
                   M._bm_select(m, i);
                   var secs = M._bm_duration(m);
                   M._bm_render(m, 48000, 1, one);   // libxmp-lite moves to the subsong's first order as it plays
-                  list.push({ kind: "module", keys: [prefix + rel], sub: i, entry: M._bm_order(m), seq: seq, id: id + "#" + i, seconds: secs, level: entry.level });
+                  var base = { kind: "module", keys: [prefix + rel], sub: i, entry: M._bm_order(m), seq: seq, id: id + "#" + i, seconds: secs, level: entry.level };
+                  var cuts = byId(entry.cuts, base.id);
+                  if (cuts) cutTune(m, base, cuts, fast).forEach(function (k) { list.push(k); });
+                  else list.push(base);
                 }
                 M._free(one);
+                chainTunes(list);
               }
               M._bm_free(m);
               add(rel, list);
             });
           };
-        });
+        }
         (entry.joined || []).forEach(function (j) {
           steps.push(function () {
-            var listRel = findRel(rels, j.playlist);
-            if (!listRel) return;
-            return read(listRel).then(function (bytes) {
-              if (!bytes) return;
-              var pieces = playlistPieces(new TextDecoder("latin1").decode(bytes)).map(function (w) { return findRel(rels, j.piece.replace("{}", w)); });
+            var listRel = j.playlist ? findRel(rels, j.playlist) : null;
+            if (j.playlist && !listRel) return;
+            return (listRel ? read(listRel) : Promise.resolve(null)).then(function (bytes) {
+              if (listRel && !bytes) return;
+              var pieces = listRel ? playlistPieces(new TextDecoder("latin1").decode(bytes)).map(function (w) { return findRel(rels, j.piece.replace("{}", w)); })
+                : j.pieces.map(function (r) { return findRel(rels, r); });
               if (!pieces.length || pieces.some(function (p) { return !p; })) return;
               var seconds = 0, seen = {};
               return pieces.reduce(function (p, rel) {
                 return p.then(function () {
                   if (seen[rel] !== undefined) { seconds += seen[rel]; return; }
-                  return read(rel).then(function (b) { seen[rel] = b ? oggSeconds(b) : 0; seconds += seen[rel]; });
+                  return read(rel).then(function (b) { seen[rel] = !b ? 0 : isOgg(rel) ? oggSeconds(b) : wavSeconds(b); seconds += seen[rel]; });
                 });
               }, Promise.resolve()).then(function () {
-                var id = baseName(listRel).replace(/ playlist$/i, "");
-                tunes.push({ game: game, kind: "joined", keys: pieces.map(function (r) { return prefix + r; }), seconds: seconds,
-                  name: (entry.names && entry.names[id]) || id });
+                var id = j.id || baseName(listRel).replace(/ playlist$/i, ""), k = { game: game, kind: "joined", id: id,
+                  keys: pieces.map(function (r) { return prefix + r; }), seconds: seconds, name: (entry.names && entry.names[id]) || id,
+                  loopFrom: j.loopFrom || 0 };
+                placeOf(k, pieces[0]);
+                tunes.push(k);
               });
             });
           });
@@ -538,7 +744,7 @@ var ByopopMusic = (function () {
       var t = tunes[current];
       if (t && state !== "idle") {
         tuneEl.textContent = t.name;
-        gameEl.textContent = t.game.title;
+        gameEl.textContent = subLine(t);
         names.title = t.name + " — " + t.game.title;
       } else say("", "");
       shownTrack = null;
@@ -694,15 +900,83 @@ var ByopopMusic = (function () {
         free: function () { M._bm_free(m); }
       };
     }
-    // Decoded sound: interleaved stereo at the context's rate
-    function pcmSource(data) {
+    // A module tune of segments (web/soundtracks.js's "cuts" and "chains"): each plays its subsong from order from (or its
+    // start) until it reaches order until (or its end), then the next; with repeat on the first again. The views and the rest
+    // are moduleSource's. Seeking renders unheard from the start (libopenmpt at 8000 Hz, which costs little; libxmp-lite at
+    // the context's rate, as a rate change restarts it).
+    function segSource(m, segs, gain, fast) {
+      var src = moduleSource(m, null, gain, 0), i = 0, done = 0, again = false;
+      function begin(k) {
+        i = k;
+        var sg = segs[k];
+        M._bm_select(m, sg.sub);
+        M._bm_loop(m, 0);
+        if (sg.from !== null) M._bm_set_order(m, sg.from);
+      }
+      // frames at rate into ptr (or a scratch buffer), the segments followed; returns those rendered
+      function render(rate, frames, ptr, marks) {
+        var got = 0, fresh = 0;
+        while (got < frames) {
+          var sg = segs[i];
+          if (sg.until !== null && M._bm_order(m) === sg.until) {
+            if (i + 1 < segs.length) { begin(i + 1); continue; }
+            if (!again || fresh++) break;
+            begin(0); continue;
+          }
+          if (marks) {
+            M._bm_view(m, viewBuf);
+            var w = viewBuf >> 2;
+            marks.push([got, M.HEAP32[w], M.HEAP32[w + 1], M.HEAP32[w + 2], M.HEAP32[w + 3], M.HEAP32[w + 4]]);
+          }
+          var n = Math.min(SLICE, frames - got), g = M._bm_render(m, rate, n, ptr + got * 8);
+          got += g;
+          if (g < n) {
+            if (g === 0 && fresh++ > 1) break;   // nothing more anywhere
+            if (i + 1 < segs.length) begin(i + 1);
+            else if (again) begin(0);
+            else break;
+          } else fresh = 0;
+        }
+        return got;
+      }
+      begin(0);
+      src.repeat = function (on) { again = on; };
+      src.stop = function () {};
+      src.next = function (frames, marks) {
+        if (!viewBuf) viewBuf = M._malloc(20);
+        var out = M._malloc(frames * 8), got = render(ctx.sampleRate, frames, out, marks);
+        var c = got > 0 ? M.HEAPF32.slice(out >> 2, (out >> 2) + got * 2) : null;
+        M._free(out);
+        if (c && gain !== 1) for (var j = 0; j < c.length; j++) c[j] *= gain;
+        if (c) done += got;
+        return c;
+      };
+      src.position = function () { return done / ctx.sampleRate; };
+      src.seek = function (sec) {
+        var rate = fast ? 8000 : ctx.sampleRate, buf = M._malloc(4096 * 8), left = Math.round(sec * rate), keep = again;
+        again = false;
+        begin(0);
+        while (left > 0) {
+          var g = render(rate, Math.min(4096, left), buf, null);
+          if (g <= 0) break;
+          left -= g;
+        }
+        M._free(buf);
+        again = keep;
+        done = Math.round(sec * ctx.sampleRate);
+      };
+      return src;
+    }
+    // Decoded sound: interleaved stereo at the context's rate; with repeat on it starts again at frame loopAt (an intro played
+    // once, then its loop: web/soundtracks.js's "loopFrom")
+    function pcmSource(data, loopAt) {
       var at = 0, again = false, total = data.length >> 1;
       return {
         repeat: function (on) { again = on; },
         next: function (frames) {
           if (at >= total) {
             if (!again || !total) return null;
-            at = 0;
+            at = Math.min(loopAt || 0, total - 1);
           }
           var n = Math.min(frames, total - at), c = data.slice(at * 2, (at + n) * 2);
           at += n;
@@ -765,6 +1039,7 @@ var ByopopMusic = (function () {
       if (t.kind === "module") {
         var m = files[0] ? loadModule(M, files[0]) : 0;
         if (!m) throw new Error("module");
+        if (t.segs) return Promise.resolve(segSource(m, t.segs, levelGain(M, t.level), /\.(mo3|oxm)$/i.test(t.keys[0]) || /\|pe:/.test(t.keys[0])));
         if (!t.range) M._bm_select(m, t.sub);
         var src = moduleSource(m, t.range, levelGain(M, t.level), t.start || 0), end = trimEnd(t, files[0]);
         if (end) src.stop(end);
@@ -779,9 +1054,9 @@ var ByopopMusic = (function () {
       }, Promise.resolve()).then(function () {
         var parts = t.keys.map(function (key) { return decoded[key]; });
         if (parts.some(function (d) { return !d; })) throw new Error("ogg");
-        var all = new Float32Array(parts.reduce(function (n, d) { return n + d.length; }, 0)), at = 0;
-        parts.forEach(function (d) { all.set(d, at); at += d.length; });
-        return pcmSource(all);
+        var all = new Float32Array(parts.reduce(function (n, d) { return n + d.length; }, 0)), at = 0, loopAt = 0;
+        parts.forEach(function (d, i) { if (i === t.loopFrom) loopAt = at >> 1; all.set(d, at); at += d.length; });
+        return pcmSource(all, loopAt);
       });
     }
     // the tracker view wants the decoder's rows: shown, on the screen, and the tune a module's
@@ -1817,7 +2092,7 @@ var ByopopMusic = (function () {
       var v = follow.view, best = -1, bestEntry = -1;
       if (v.kind !== "module" || !(v.orders > 0)) return -1;
       tunes.forEach(function (t, i) {
-        if (t.kind !== "module" || t.game.title !== follow.title || !t.seq || t.seq.length !== v.orders || t.seq[v.order] !== v.pattern) return;
+        if (t.kind !== "module" || t.segs || t.game.title !== follow.title || !t.seq || t.seq.length !== v.orders || t.seq[v.order] !== v.pattern) return;
         if (t.range) { if (v.order >= t.range[0] && v.order <= t.range[1]) { best = i; bestEntry = 1e9; } return; }
         if (t.entry <= v.order && t.entry > bestEntry) { best = i; bestEntry = t.entry; }
       });
@@ -1906,7 +2181,7 @@ var ByopopMusic = (function () {
       var t = tunes[i];
       if (t) {
         tuneEl.textContent = t.name;
-        gameEl.textContent = t.game.title;
+        gameEl.textContent = subLine(t);
         names.title = t.name + " \u2014 " + t.game.title;
         var icon = null;
         // the game's icon from its files, as the Library shows it, else its two letters on its colour
@@ -2069,10 +2344,16 @@ var ByopopMusic = (function () {
           b.type = "button";
           b.setAttribute("data-tune", String(i));
           b.appendChild(make("span", "mu-num", String(g.items.indexOf(i) + 1)));
-          var name = make("span", "mu-name", tunes[i].name);
-          name.title = tunes[i].name;
+          var t = tunes[i], name = make("span", "mu-name", t.name);
+          name.title = t.name;
           b.appendChild(name);
-          b.appendChild(make("span", "mu-time", clock(tunes[i].seconds)));
+          // where the game plays it (or that it never does), and its format
+          var where = make("span", "mu-where", t.unused ? T("music.unused") : t.where);
+          where.title = where.textContent;
+          if (t.unused) where.classList.add("mu-unused");
+          b.appendChild(where);
+          b.appendChild(make("span", "mu-format", t.format || ""));
+          b.appendChild(make("span", "mu-time", clock(t.seconds)));
           b.addEventListener("click", function () { play(i); });
           li.appendChild(b);
           ol.appendChild(li);

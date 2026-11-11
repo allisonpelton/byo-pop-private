@@ -376,7 +376,12 @@ html:not(.d95-desk) #chat { display: none !important; }
 .mu-num { flex: none; width: 2em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
 #music .mu-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mu-time { flex: none; color: var(--muted); font-variant-numeric: tabular-nums; }
-#music .mu-tune[aria-current] .mu-num, #music .mu-tune[aria-current] .mu-time { color: inherit; }
+/* where the game plays a tune (struck through where it never does) and its format, as values */
+#music .mu-where { flex: 0 1 auto; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--muted); }
+#music .mu-where.mu-unused { text-decoration: line-through; }
+.mu-format { flex: none; width: 3em; font-size: 10px; color: var(--muted); text-align: center; }
+#music .mu-tune[aria-current] .mu-num, #music .mu-tune[aria-current] .mu-time, #music .mu-tune[aria-current] .mu-where,
+#music .mu-tune[aria-current] .mu-format { color: inherit; }
 /* The import from an installed game (web/saveimport.js) */
 #saves-body select { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; max-width: 100%; }
 /* the import's wizard (web/saveimport.js): its picture (drawn only by Desktop 95, web/skins.css), one page at a time, and

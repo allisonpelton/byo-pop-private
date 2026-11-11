@@ -9,9 +9,14 @@
 var ByopopImport = (function () {
   "use strict";
 
-  // A marker ("images/gemsheet6.*") as a pattern for a path relative to the game folder, in any case
+  // A marker ("images/gemsheet6.*") as a pattern for a path relative to the game folder, in any case. A marker may name
+  // alternatives split by "|" ("WinTS.exe|TyperShark.exe": a game whose copies name a file differently), any one of which
+  // will do; the pattern then groups them, so every pattern made from a marker takes either
   function markerPattern(marker) {
-    return marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\.\\\*$/, "\\.[a-z0-9]+");
+    var alts = marker.split("|").map(function (m) {
+      return m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\\\.\\\*$/, "\\.[a-z0-9]+");
+    });
+    return alts.length > 1 ? "(?:" + alts.join("|") + ")" : alts[0];
   }
   function under(e, root) { return e.path.substring(0, root.length) === root; }
 
@@ -118,6 +123,12 @@ var ByopopImport = (function () {
     });
   }
   function markerName(spec, m) {
+    if (m.indexOf("|") >= 0) {
+      // alternatives: each named, joined as "a or b" in the page's language
+      var each = m.split("|").map(function (one) { return markerName(spec, one); });
+      try { return new Intl.ListFormat(ByopopStrings.lang, { style: "long", type: "disjunction" }).format(each); }
+      catch (e) { return each.join(" / "); }
+    }
     var text = spec.markerText || "", low = text.toLowerCase();
     var names = [m, m.replace(/\.\*$/, "")];
     for (var i = 0; i < names.length; i++) {

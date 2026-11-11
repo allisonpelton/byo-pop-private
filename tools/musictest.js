@@ -125,6 +125,76 @@ function protracker() {
     check("mo3: seeks", Math.abs(at - half) < 0.5 && Math.abs(M._bm_position(t) - half) < 0.5, [at, half]);
     M._bm_free(t);
   }
+
+  // ---------- music.js's readers of tunes inside a game's files: a Windows module's resources, a zip archive's entries ----------
+  const src = fs.readFileSync(path.join(__dirname, "../web/music.js"), "utf8");
+  function grab(name) {
+    const a = src.indexOf("function " + name + "(");
+    let d = 0, i = src.indexOf("{", a);
+    for (; i < src.length; i++) { if (src[i] === "{") d++; else if (src[i] === "}" && --d === 0) break; }
+    return src.slice(a, i + 1);
+  }
+  const R = new Function(grab("peResources") + grab("zipEntry") + grab("baseName") + "return { peResources, zipEntry, baseName };")();
+  // a PE32 module with one section (.rsrc at RVA 0x1000, file offset 0x200) holding type 10 > id 335 > language 0, 8 bytes
+  const pe = Buffer.alloc(0x200 + 0x100);
+  pe.write("MZ", 0, "latin1"); pe.writeUInt32LE(0x40, 0x3c); pe.write("PE\0\0", 0x40, "latin1");
+  pe.writeUInt16LE(1, 0x46); pe.writeUInt16LE(224, 0x54); pe.writeUInt16LE(0x10b, 0x58);
+  pe.writeUInt32LE(0x1000, 0x58 + 96 + 16); pe.writeUInt32LE(0x100, 0x58 + 96 + 20);
+  const sec = 0x58 + 224;
+  pe.writeUInt32LE(0x100, sec + 8); pe.writeUInt32LE(0x1000, sec + 12); pe.writeUInt32LE(0x100, sec + 16); pe.writeUInt32LE(0x200, sec + 20);
+  function dir(at, id, to) { pe.writeUInt16LE(1, 0x200 + at + 14); pe.writeUInt32LE(id, 0x200 + at + 16); pe.writeUInt32LE(to, 0x200 + at + 20); }
+  dir(0x00, 10, 0x80000018); dir(0x18, 335, 0x80000030); dir(0x30, 0, 0x48);
+  pe.writeUInt32LE(0x1060, 0x248); pe.writeUInt32LE(8, 0x24c);
+  pe.write("MO3 data", 0x260, "latin1");
+  const res = R.peResources(new Uint8Array(pe));
+  check("pe: one resource", res.length === 1 && res[0].type === 10 && res[0].id === 335, res.map((r) => [r.type, r.id]));
+  check("pe: its bytes", res.length === 1 && Buffer.from(res[0].bytes).toString("latin1") === "MO3 data");
+  check("pe: not a module", R.peResources(new Uint8Array(Buffer.from("not a module at all, really"))).length === 0);
+  check("pe: a resource's name", R.baseName("Resource.dll|pe:10:335") === "Resource 335", R.baseName("Resource.dll|pe:10:335"));
+  // a zip with a stored and a deflated entry
+  const zlib = require("zlib"), body = Buffer.from("OggS ".repeat(40), "latin1"), entries = [["a.txt", body, 0], ["sub/Theme.ogg", zlib.deflateRawSync(body), 8]];
+  const locals = [], centrals = [];
+  let off = 0;
+  for (const [name, data, method] of entries) {
+    const l = Buffer.alloc(30); l.writeUInt32LE(0x04034b50, 0); l.writeUInt16LE(method, 8); l.writeUInt32LE(data.length, 18); l.writeUInt32LE(body.length, 22); l.writeUInt16LE(name.length, 26);
+    const c = Buffer.alloc(46); c.writeUInt32LE(0x02014b50, 0); c.writeUInt16LE(method, 10); c.writeUInt32LE(data.length, 20); c.writeUInt32LE(body.length, 24); c.writeUInt16LE(name.length, 28); c.writeUInt32LE(off, 42);
+    locals.push(l, Buffer.from(name, "latin1"), data); centrals.push(c, Buffer.from(name, "latin1"));
+    off += 30 + name.length + data.length;
+  }
+  const cd = Buffer.concat(centrals), eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(2, 10); eocd.writeUInt32LE(cd.length, 12); eocd.writeUInt32LE(off, 16);
+  const zip = new Uint8Array(Buffer.concat(locals.concat([cd, eocd])));
+  const stored = await R.zipEntry(zip, "a.txt"), deflated = await R.zipEntry(zip, "SUB/theme.ogg"), none = await R.zipEntry(zip, "b.txt");
+  check("zip: a stored entry", stored && Buffer.from(stored).equals(body));
+  check("zip: a deflated entry, its name in any case", deflated && Buffer.from(deflated).equals(body));
+  check("zip: no such entry", none === null);
+  check("zip: an entry's name", R.baseName("ningpo.pyz|zip:theme_np.ogg") === "theme_np", R.baseName("ningpo.pyz|zip:theme_np.ogg"));
+
+  // ---------- the places in web/soundtracks.js: rip style (the user, 2026-11-11: "Rip style please!") ----------
+  const table = new Function(fs.readFileSync(path.join(__dirname, "../web/soundtracks.js"), "utf8") + "\nreturn ByopopSoundtracks;")();
+  const places = [];
+  Object.keys(table).forEach((g) => Object.keys(table[g].where || {}).forEach((k) => places.push([g, k, table[g].where[k]])));
+  check("places: some", places.length > 100, places.length);
+  const long = places.filter((p) => p[2].length > 20);
+  check("places: at most 20 characters", long.length === 0, long);
+  // Title Case: every word starts with a capital or a digit, but for "of" (Hall of Fame)
+  const lower = places.filter((p) => p[2].split(/[\s-]+/).some((w) => w !== "of" && !/^[A-Z0-9]/.test(w)));
+  check("places: Title Case", lower.length === 0, lower);
+  const unusedPlaced = Object.keys(table).reduce((a, g) => a.concat((table[g].unused || []).filter((k) => (table[g].where || {})[k])), []);
+  check("places: no unused tune placed", unusedPlaced.length === 0, unusedPlaced);
+  // every "<file>#<n>@<order>" named anywhere is a piece some cut makes, and no chained part is placed on its own
+  const orphans = [], chained = [];
+  for (const g of Object.keys(table)) {
+    const e = table[g], cuts = e.cuts || {};
+    const keys = Object.keys(e.where || {}).concat(e.unused || [], e.skip || [], Object.keys(e.names || {}));
+    for (const k of keys) {
+      const at = k.lastIndexOf("@");
+      if (at >= 0 && !(cuts[k.slice(0, at)] || []).includes(+k.slice(at + 1))) orphans.push(g + " " + k);
+    }
+    for (const head of Object.keys(e.chains || {})) for (const k of e.chains[head]) if ((e.where || {})[k]) chained.push(g + " " + k);
+  }
+  check("cuts: every piece named is cut", orphans.length === 0, orphans);
+  check("chains: no part placed on its own", chained.length === 0, chained);
   console.log("musictest: " + checks + " checks, " + failed + " failed" + (mo3 ? "" : " (no MO3 staged: libxmp-lite only)"));
   process.exit(failed ? 1 : 0);
 })().catch((e) => { console.log("musictest: " + (e && e.stack || e)); process.exit(1); });
