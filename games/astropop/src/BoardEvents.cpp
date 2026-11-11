@@ -74,7 +74,7 @@ void Board::AdvanceChain()
 		mApp->PlayComboPing(aPitch);
 	}
 	int aChain = mChainCount;
-	m1b18 = 100;
+	mComboPayDelay = 100;
 	if (mLongestChain < aChain && !mBonusRoundOn)
 		mLongestChain = aChain;
 	if (mBestChain < aChain && !mBonusRoundOn && !mBonusWarpIn)
@@ -86,7 +86,7 @@ void Board::AdvanceChain()
 			mApp->mUser->SetInt(0x5d, mBestChain);
 	}
 	aChain = mChainCount;
-	if (aChain > 3 && m1bbc <= mStageNumber && mGameType != 2)
+	if (aChain > 3 && mHardStage <= mStageNumber && mGameType != 2)
 		mBoosterDue = true;
 	if (aChain > 2)
 	{
@@ -103,9 +103,9 @@ void Board::AdvanceChain()
 		if (mComboColor > 2)
 			mComboColor = 0;
 	}
-	if (aChain > 1 && (m1b00 <= aChain || mComboTimeLeft < 1))
+	if (aChain > 1 && (mComboChain <= aChain || mComboTimeLeft < 1))
 	{
-		m1b00 = aChain;
+		mComboChain = aChain;
 		mComboTimeLeft = 300;
 		if (aChain > 5)
 		{
@@ -324,7 +324,7 @@ void Board::OnBrickSettled(Brick* theBrick)
 {
 	(void) theBrick;
 	if (NoMutatingBrick(mFieldBricks))
-		m1b5c = 2000;
+		mMutatorCooldown = 2000;
 }
 
 // 0x43b910 event 0x1c: the freeze bomb and the super-charger count as a set
@@ -352,7 +352,7 @@ void Board::OnBrickPopped(Brick* theBrick)
 		}
 	}
 	if (NoMutatingBrick(mFieldBricks))
-		m1b5c = 2000;
+		mMutatorCooldown = 2000;
 }
 
 // 0x45d6f0 event 0x27: a plain colour brick dies; a brick that blasts, or one of a colour that has a mark, blasts its
@@ -445,15 +445,15 @@ void Board::OnBrickBounced(Brick* theBrick)
 void Board::OnPowerBrickDone(Brick* theBrick)
 {
 	(void) theBrick;
-	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && mTakenBrickCount == 0)
+	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && mBannerTimeLeft == 0 && mTakenBrickCount == 0)
 	{
 		bool aFlag = false;
 		if (CountMovingBricks(false) == 0 && mFiredGroups.empty() && mFallingGroups.empty() && !AnyMoveLeft(&aFlag))
 		{
 			if (!aFlag)
 			{
-				m1b7c = 400;
-				BuildBanner(GT(0x56568c), m1b7c, FONT_NEURO30);
+				mBannerTimeLeft = 400;
+				BuildBanner(GT(0x56568c), mBannerTimeLeft, FONT_NEURO30);
 				mApp->PlaySample(SOUND_NO_MORE_MOVES);
 			}
 			StartClearCount();
@@ -549,15 +549,15 @@ void Board::OnMutatorSpread(Brick* theBrick)
 		mFieldBricks[aRow][aCol]->StartMutatorCountdown();
 
 		// the field may be stuck now
-		if (!mBonusRoundOn || !mKillAllTypes.empty() || mBricksRevealing || mStartBannerDoneInBonus || m1b7c != 0 || mTakenBrickCount != 0 || !mFiredGroups.empty() || !mFallingGroups.empty())
+		if (!mBonusRoundOn || !mKillAllTypes.empty() || mBricksRevealing || mStartBannerDoneInBonus || mBannerTimeLeft != 0 || mTakenBrickCount != 0 || !mFiredGroups.empty() || !mFallingGroups.empty())
 			return;
 		bool aFlag = false;
 		if (AnyMoveLeft(&aFlag))
 			return;
 		if (!aFlag)
 		{
-			m1b7c = 400;
-			BuildBanner(GT(0x56568c), m1b7c, FONT_NEURO30);
+			mBannerTimeLeft = 400;
+			BuildBanner(GT(0x56568c), mBannerTimeLeft, FONT_NEURO30);
 			mApp->PlaySample(SOUND_NO_MORE_MOVES);
 		}
 		StartClearCount();
@@ -649,22 +649,22 @@ void Board::OnHyperBrick(Brick* theBrick)
 		mBrickometerRiseSteps = 0x17;
 		mBrickometerRiseStep = 0;
 		mBrickometerRiseTop = (int) aTop;
-		m1b20 = (int) (492.0f - aFill);
+		mBoosterFlameY = (int) (492.0f - aFill);
 	}
 	else
 	{
-		int anOld = m1b70;
+		int anOld = mBonusTimeLeft;
 		int aWas = (int) (444.0f - (float) anOld * 0.00016666666488163173f * 444.0f);
-		m1b70 = anOld + 300;
-		if (m1b70 >= 6000)
-			m1b70 = 6000;
-		int aNow = (int) (444.0f - (float) m1b70 * 0.00016666666488163173f * 444.0f);
+		mBonusTimeLeft = anOld + 300;
+		if (mBonusTimeLeft >= 6000)
+			mBonusTimeLeft = 6000;
+		int aNow = (int) (444.0f - (float) mBonusTimeLeft * 0.00016666666488163173f * 444.0f);
 		float aFill = mBrickometerFill * 444.0f;
 		mBrickometerRiseDistance = aWas - aNow;
 		mBrickometerRiseSteps = 0x17;
 		mBrickometerRiseStep = 0;
 		mBrickometerRiseTop = aNow;
-		m1b20 = (int) (492.0f - aFill);
+		mBoosterFlameY = (int) (492.0f - aFill);
 	}
 
 	mBoosterAnim.SetDelay(1);
@@ -674,5 +674,5 @@ void Board::OnHyperBrick(Brick* theBrick)
 	mBoosterAnim.SetStopped(false);
 	mBoosterAnim.mMaxLoops = 0x14;
 	mBoosterAnim.mLoopCount = 0;
-	static_cast<PowerBrick*>(theBrick)->mBoosterY = m1b20;
+	static_cast<PowerBrick*>(theBrick)->mBoosterY = mBoosterFlameY;
 }

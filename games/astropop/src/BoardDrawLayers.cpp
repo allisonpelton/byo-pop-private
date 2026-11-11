@@ -70,7 +70,7 @@ void Board::Draw(Graphics* g)
 	DrawFreezeFx(g);
 	DrawSirens(g);
 
-	if (!mBonusWarpIn || m1bc8 == 0 || 0 < m1bc8)
+	if (!mBonusWarpIn || mBonusWarpWhiteAlpha == 0 || 0 < mBonusWarpWhiteAlpha)
 		DrawShip(g);
 	if (mGameType == 1)
 		DrawHud(g);
@@ -80,12 +80,12 @@ void Board::Draw(Graphics* g)
 	for (unsigned int i = 0; i < mFloatTexts.size(); i++)
 		mFloatTexts[i]->Draw(g);
 
-	if (m1b64 != 0)
+	if (mPerfectBannerState != 0)
 	{
-		if (m1b60 < 0xff)
+		if (mPerfectBannerAlpha < 0xff)
 		{
 			g->SetColorizeImages(true);
-			g->SetColor(Color(0xff, 0xff, 0xff, m1b60));
+			g->SetColor(Color(0xff, 0xff, 0xff, mPerfectBannerAlpha));
 		}
 		g->DrawImage(IMAGE_PERFECT, 0x182 - IMAGE_PERFECT->mWidth / 2, 0x96);
 		g->SetColorizeImages(false);
@@ -93,7 +93,7 @@ void Board::Draw(Graphics* g)
 
 	if (mGameType == 2)
 	{
-		if (0 < m1b40 && mPowerupActive != 1)
+		if (0 < mSurvivalBonusTimer && mPowerupActive != 1)
 			DrawSurvivalBonus(g);
 		for (unsigned int i = 0; i < mEnergySparks.size(); i++)
 		{
@@ -109,7 +109,7 @@ void Board::Draw(Graphics* g)
 	if (mMode == 2 && -IMAGE_TURBOT_WAVE->mHeight < mTurbotWaveY)
 		g->DrawImage(IMAGE_TURBOT_WAVE, 0x8a, mTurbotWaveY);
 
-	if (mBonusRoundOn && 0 < m1b7c)
+	if (mBonusRoundOn && 0 < mBannerTimeLeft)
 	{
 		AnimateBanner();
 		g->DrawImage(mBannerWaveImage, 0x182 - mBannerWaveImage->GetWidth() / 2, 0xf0 - mBannerWaveImage->GetHeight() / 2);
@@ -175,7 +175,7 @@ void Board::DrawModeTexts(Graphics* g)
 	}
 	else if (!mClearCountRunning && mHeldBricksNotLanded == 0 && !mSpecialBannerTexts.empty())
 	{
-		Color aColor((int) (mApp->HSLToRGB(m1b04, 0xff, 0x80) | 0xff000000));
+		Color aColor((int) (mApp->HSLToRGB(mSpecialBannerHue, 0xff, 0x80) | 0xff000000));
 		g->SetColor(aColor);
 		for (unsigned int i = 0; i < mSpecialBannerTexts.size(); i++)
 		{
@@ -410,7 +410,7 @@ void Board::DrawSnow(Graphics* g)
 // port: a layer of Board::Draw (0x461e50)
 void Board::DrawUpgradeArm(Graphics* g)
 {
-	if (!((m1b2c == 2 || m1b2c == 4) && (mAtWarpGate || mWarpFlight)))
+	if (!((mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4) && (mAtWarpGate || mWarpFlight)))
 		return;
 
 	g->DrawImage(mLeftArmImage, mLeftArmX, mLeftArmY);
@@ -487,30 +487,30 @@ void Board::DrawLogo(Graphics* g)
 		return;
 	}
 
-	int aRow = m1b00 - 2;
+	int aRow = mComboChain - 2;
 	if (IMAGE_COMBO_LIST->mNumRows <= aRow)
 		aRow = IMAGE_COMBO_LIST->mNumRows - 1;
 	int aCelHeight = IMAGE_COMBO_LIST->GetCelHeight();
 	Rect aSrc(0, aCelHeight * aRow, IMAGE_COMBO_LIST->mWidth, aCelHeight);
-	Font* aFont = (0x13 < m1b00) ? FONT_LARGE_COMBO_BLUE : FONT_COMBO_BLUE;
+	Font* aFont = (0x13 < mComboChain) ? FONT_LARGE_COMBO_BLUE : FONT_COMBO_BLUE;
 	if (mComboColor == 1)
 	{
 		g->DrawImage(IMAGE_UI_SCREEN_RED, 0, 0);
-		aFont = (m1b00 < 0x14) ? FONT_COMBO_RED : FONT_LARGE_COMBO_RED;
+		aFont = (mComboChain < 0x14) ? FONT_COMBO_RED : FONT_LARGE_COMBO_RED;
 	}
 	else if (mComboColor == 2)
 	{
 		g->DrawImage(IMAGE_UI_SCREEN_YELLOW, 0, 0);
-		aFont = (0x13 < m1b00) ? FONT_LARGE_COMBO_YELLOW : FONT_COMBO_YELLOW;
+		aFont = (0x13 < mComboChain) ? FONT_LARGE_COMBO_YELLOW : FONT_COMBO_YELLOW;
 	}
-	if (m1b00 < 6 || mComboTextVisible)
+	if (mComboChain < 6 || mComboTextVisible)
 	{
 		g->DrawImage(IMAGE_COMBO_LIST, 0xd, 0x10, aSrc);
-		std::string aText = StrFormat("x%d", m1b00);
+		std::string aText = StrFormat("x%d", mComboChain);
 		int aTextWidth = aFont->StringWidth(aText);
 		g->SetFont(aFont);
 		g->SetColor(Color(0xff, 0xff, 0xff));
-		Rect aRect = (m1b00 < 0x14) ? Rect(8, 0x39, 0x85, 0x2f) : Rect(8, 0x39, aTextWidth, 0x2f);
+		Rect aRect = (mComboChain < 0x14) ? Rect(8, 0x39, 0x85, 0x2f) : Rect(8, 0x39, aTextWidth, 0x2f);
 		WriteWordWrapped(g, aRect, aText, -1, 0);
 	}
 }

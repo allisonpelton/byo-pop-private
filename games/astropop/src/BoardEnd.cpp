@@ -18,7 +18,7 @@ using namespace Sexy;
 void Board::UpdateGameOver()
 {
 	mResultPulseAnim.Update();
-	m1b34 = (m1b34 + 4) & 0xff;
+	mGameOverCounter = (mGameOverCounter + 4) & 0xff;
 	if (mGameOverAnimDone)
 		return;
 
@@ -193,7 +193,7 @@ void Board::SaveFinalScore()
 		aRecord.mField[3] = mLevelNumber;
 		aRecord.mField[4] = -1;
 		aRecord.mField[5] = WeaponLevelSum();
-		m1b30 = mApp->mUser->AddRecord(aRecord);
+		mNewRecordRow = mApp->mUser->AddRecord(aRecord);
 		mApp->mUser->ResetGame();
 	}
 	else
@@ -223,9 +223,9 @@ void Board::GameOver()
 		int aBestLevel = 0;
 		mApp->mUser->GetInt(mMode + 8, &aBestLevel);
 		if (aBestLevel < 4)
-			m1b6c = -1;
+			mCheckpointLevel = -1;
 		else
-			m1b6c = (aBestLevel / 4) * 4;
+			mCheckpointLevel = (aBestLevel / 4) * 4;
 		mApp->mUser->GetInt(0x5d, &mBestChain);
 		mApp->mUser->SetInt(0x5d, 0);
 		mApp->mUser->ResetHintsShown();
@@ -241,7 +241,7 @@ void Board::GameOver()
 		aRecord.mField[3] = -1;
 		aRecord.mField[4] = mRampTime / 100;
 		aRecord.mField[5] = WeaponLevelSum();
-		m1b30 = mApp->mUser->AddRecord(aRecord);
+		mNewRecordRow = mApp->mUser->AddRecord(aRecord);
 
 		std::string aName;
 		mApp->mUser->GetString(PROFILE_NAME, &aName);

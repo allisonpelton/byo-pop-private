@@ -153,8 +153,8 @@ void Board::BuildBanner(const std::string& theText, int theTime, Font* theFont)
 	g.SetFont(theFont);
 	g.DrawString(theText, 0, theFont->GetAscent());
 
-	m1b80 = theTime;
-	m1b84 = theTime;
+	mBannerDuration = theTime;
+	mBannerTimeShown = theTime;
 	mBannerWavePhase = 0;
 }
 
@@ -174,9 +174,9 @@ void Board::ClearBonus()
 	FloatText* aFloat = new FloatText(aText, FONT_POINTS, (float) (0x182 - aWidth / 2), 250.0f, 300, 10.0f);
 	mFloatTexts.push_back(aFloat);
 	AddScore(aBonus, false);
-	m1b60 = 0;
-	m1b68 = 0xaf;
-	m1b64 = 1;
+	mPerfectBannerAlpha = 0;
+	mPerfectBannerHold = 0xaf;
+	mPerfectBannerState = 1;
 }
 
 // 0x45a750: nothing more can be done in a cleared or stuck field: the bricks left are counted (rows 1 down, and the
@@ -186,8 +186,8 @@ void Board::StartClearCount()
 {
 	mClearCountRunning = true;
 	mClicksBlocked = false;
-	m1b88 = 0;
-	m1b8c = 0;
+	mTallyBarWidth = 0;
+	mTallyTitleAlpha = 0;
 	if (mHandKindBrick != NULL)
 	{
 		mDoomedBricks.insert(mHandKindBrick);
@@ -203,21 +203,21 @@ void Board::StartClearCount()
 		for (int aCol = 0; aCol < 10; aCol++)
 		{
 			if (mFieldBricks[aRow][aCol] != NULL)
-				m1b94++;
+				mTallyBricksLeft++;
 		}
 	}
-	m1b94 += (int) mHeldBricks.size();
+	mTallyBricksLeft += (int) mHeldBricks.size();
 
 	int aStep = (int) ((float) mClearBonusWorth * 0.05f);
-	m1b9c = m1b94 * aStep;
-	if (m1b9c > mClearBonusWorth)
-		m1b9c = mClearBonusWorth;
-	m1ba0 = 0;
-	m1ba8 = 0;
-	m1bb0 = 0;
-	m1b90 = 0x80;
-	m1bb4 = aStep;
-	m1ba4 = (m1b94 == 0) ? mClearBonusWorth : 0;
+	mTallyPenalty = mTallyBricksLeft * aStep;
+	if (mTallyPenalty > mClearBonusWorth)
+		mTallyPenalty = mClearBonusWorth;
+	mTallyPenaltyShown = 0;
+	mTallyCleanBonusShown = 0;
+	mTallyState = 0;
+	mTallyDelay = 0x80;
+	mTallyAmountStep = aStep;
+	mTallyCleanBonus = (mTallyBricksLeft == 0) ? mClearBonusWorth : 0;
 	SaveGameState();
 	gStateSaved = false;
 }
@@ -290,13 +290,13 @@ void Board::UpdateBricks()
 			bool aFlag = false;
 			if (mBonusRoundOn)
 			{
-				if (!mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && mTakenBrickCount == 0 && CountMovingBricks(false) == 0 && mFiredGroups.empty() &&
+				if (!mBricksRevealing && !mStartBannerDoneInBonus && mBannerTimeLeft == 0 && mTakenBrickCount == 0 && CountMovingBricks(false) == 0 && mFiredGroups.empty() &&
 					mFallingGroups.empty() && !AnyMoveLeft(&aFlag))
 				{
 					if (!aFlag)
 					{
-						m1b7c = 400;
-						BuildBanner(GT(0x56568c), m1b7c, FONT_NEURO30);
+						mBannerTimeLeft = 400;
+						BuildBanner(GT(0x56568c), mBannerTimeLeft, FONT_NEURO30);
 						mApp->PlaySample(SOUND_NO_MORE_MOVES);
 					}
 					StartClearCount();

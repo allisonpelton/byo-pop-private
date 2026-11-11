@@ -290,13 +290,13 @@ void Board::OnBrickArrived(Brick* theBrick)
 		CheckSparseField();
 
 		// a field with no move left (the out flag of AnyMoveLeft is the byte that held "a set was made")
-		if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && mTakenBrickCount == 0 && mFiredGroups.empty() && mFallingGroups.empty() &&
+		if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && mBannerTimeLeft == 0 && mTakenBrickCount == 0 && mFiredGroups.empty() && mFallingGroups.empty() &&
 			!AnyMoveLeft(&aFlag))
 		{
 			if (!aFlag)
 			{
-				m1b7c = 400;
-				BuildBanner(GT(0x56568c), m1b7c, FONT_NEURO30);
+				mBannerTimeLeft = 400;
+				BuildBanner(GT(0x56568c), mBannerTimeLeft, FONT_NEURO30);
 				mApp->PlaySample(SOUND_NO_MORE_MOVES);
 			}
 			StartClearCount();

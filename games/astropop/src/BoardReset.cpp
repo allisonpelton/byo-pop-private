@@ -33,19 +33,19 @@ void Board::ResetGame()
 	mLevelUpTextShown = false;
 	mUpgradeDialogSeen = false;
 	mNewRankDelayOver = true;
-	m1b44 = 0;
+	mNewRankDelay = 0;
 	mHighScoreSoundDelay = 200;
 	mHighScoreSoundDone = false;
-	m1b3c = 0;
+	mFrameDimming = 0;
 	mStartBannerDoneInBonus = false;
 	mPsychicUsed = false;
 	mLaserUsed = false;
 	gStateSaved = false;
-	m1b24 = 0;
+	mSprocketOverlayCel = 0;
 	mBonusWarpIn = false;
 	mLastChainCount = 0;
-	m1b18 = 0;
-	m1b10 = 0;
+	mComboPayDelay = 0;
+	mPowerBrickRowState = 0;
 	mDangerPulseAlpha = 0;
 	mDangerPulseStep = 0;
 	mScoreAtStageStart = mScore;
@@ -57,16 +57,16 @@ void Board::ResetGame()
 	mLevelUpPhase = false;
 	mGameOver = false;
 	mComboTextVisible = true;
-	m1b54 = 0;
+	mTurbotWindUpCounter = 0;
 	mShipFlameFrame = 0;
-	m1b68 = 0;
-	m1b64 = 0;
-	m1b60 = 0;
+	mPerfectBannerHold = 0;
+	mPerfectBannerState = 0;
+	mPerfectBannerAlpha = 0;
 	mShipTilt = 2;
 	mTakenBrickCount = 0;
 	mAtomicWeaponState = 0;
 	mTopRowsAllowed = true;
-	m1b5c = 0;
+	mMutatorCooldown = 0;
 	mNewRowBouncing = false;
 	mUnusedIntClearedOnClick = 0;
 	mBoosterDue = false;
@@ -77,8 +77,8 @@ void Board::ResetGame()
 	mBackdropTint = Color(100, 100, 100);
 	mGameOverDangerY = -500000000;
 	mGameOverDangerHold = -500000000;
-	m1bf8 = -1.0f;
-	m1bfc = 1.0f;
+	mShipBounceY = -1.0f;
+	mShipBounceStep = 1.0f;
 	mChainCount = 0;
 	mExtraRowsDue = 0;
 	mExtraRowDelay = 0;
@@ -123,7 +123,7 @@ void Board::ResetGame()
 	mSuperchargeMarks.clear();
 	mRowIntervalReduction = 0;
 	mRemovalPoints = 0;
-	if (m1bbc < mStageNumber && 8 < mRowIntervalReduction)
+	if (mHardStage < mStageNumber && 8 < mRowIntervalReduction)
 		mRowReductionPeriod = 8;
 	mTimeBonusStepsPaid = 0;
 

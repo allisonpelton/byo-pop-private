@@ -284,7 +284,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else if (aName == "stage")
 			mBoard->mStageNumber = aValue;
 		else if (aName == "charge")
-			mBoard->m1bd8 = aRest.empty() ? mBoard->m1bdc : (float) aValue;   // the weapon's charge: full without a number
+			mBoard->mWeaponCharge = aRest.empty() ? mBoard->mWeaponChargeMax : (float) aValue;   // the weapon's charge: full without a number
 		else if (aName == "stories")
 		{
 			// the player has seen all the stories of the four pilots (the profile's counts, 0x4b .. 0x4e: the last story of

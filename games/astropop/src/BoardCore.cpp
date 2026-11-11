@@ -116,20 +116,20 @@ void Board::UpdateAnimCounters()
 		}
 	}
 
-	if (0.0f <= m1bf8)
+	if (0.0f <= mShipBounceY)
 	{
-		float aSum = m1bfc + m1bf8;
-		m1bf8 = aSum;
+		float aSum = mShipBounceStep + mShipBounceY;
+		mShipBounceY = aSum;
 		if (5.0f <= aSum)
 		{
-			m1bf8 = 5.0f;
-			m1bfc = -m1bfc;
+			mShipBounceY = 5.0f;
+			mShipBounceStep = -mShipBounceStep;
 			return;
 		}
 		if (aSum < 0.0)
 		{
-			m1bf8 = -1.0f;
-			m1bfc = -m1bfc;
+			mShipBounceY = -1.0f;
+			mShipBounceStep = -mShipBounceStep;
 		}
 	}
 }
@@ -295,11 +295,11 @@ void Board::UpdateRamp()
 		const RampRecord& aPrev = mSpeedRamp[aIndex > 0 ? aIndex - 1 : 0];
 		float aFrac = (float) mRampTime / (float) aNext.mTime;
 
-		m1be8 = aPrev.mF5 - (aPrev.mF5 - aNext.mF5) * aFrac;
-		m1bec = (aNext.mF4 - aPrev.mF4) * aFrac + aPrev.mF4;
-		mRowInterval = (int) ((float) aPrev.mV1 - (float) (aPrev.mV1 - aNext.mV1) * aFrac);
-		mDropTicks = (int) ((float) aPrev.mV3 - (float) (aPrev.mV3 - aNext.mV3) * aFrac);
-		mMaxMutators = (int) ((float) (aPrev.mV2 - aNext.mV2) * aFrac + (float) aPrev.mV2);
+		mBonusChance = aPrev.mBonusChance - (aPrev.mBonusChance - aNext.mBonusChance) * aFrac;
+		mPenaltyChance = (aNext.mPenaltyChance - aPrev.mPenaltyChance) * aFrac + aPrev.mPenaltyChance;
+		mRowInterval = (int) ((float) aPrev.mRowInterval - (float) (aPrev.mRowInterval - aNext.mRowInterval) * aFrac);
+		mDropTicks = (int) ((float) aPrev.mDropTicks - (float) (aPrev.mDropTicks - aNext.mDropTicks) * aFrac);
+		mMaxMutators = (int) ((float) (aPrev.mMaxMutators - aNext.mMaxMutators) * aFrac + (float) aPrev.mMaxMutators);
 	}
 
 	int aStage = mRampTime / 6000;
@@ -411,7 +411,7 @@ bool Board::HasCell3(int theCol, int theRow, const std::vector<CellRef3>& theCel
 }
 
 // 0x4333c0: one step of a scrolling layer of the scenery. The layer moves when the update count is a multiple of its
-// period, faster the more the stage has speed (mWarpShipY of the boost, m1c00 of the other mode). The picture it shows
+// period, faster the more the stage has speed (mWarpShipY of the boost, mBonusWarpSlowdown of the other mode). The picture it shows
 // counts down in mCur[1]; the picture that follows slides in on mNext until it fills the screen. The arithmetic is the
 // x87's at 24 bits: every sum and product is a float, and the compares read the rounded values.
 void Board::StepScrollLayer(ScrollLayer* theLayer)
@@ -428,7 +428,7 @@ void Board::StepScrollLayer(ScrollLayer* theLayer)
 	}
 	else if (mBonusWarpIn)
 	{
-		aSpeed = m1c00;
+		aSpeed = mBonusWarpSlowdown;
 		if (aSpeed > 9.0f)
 			aSpeed = 9.0f;
 	}
@@ -479,7 +479,7 @@ void Board::UpdateScenery()
 
 		for (size_t i = 0; i < mBackdropStars.size(); i++)
 		{
-			bool aSpecial = mBonusWarpIn && (m1bc0 == 1 || m1bc0 == 2);
+			bool aSpecial = mBonusWarpIn && (mBonusWarpPhase == 1 || mBonusWarpPhase == 2);
 			StarRec& aStar = mBackdropStars[i];
 			if (mWarpActive || aSpecial)
 			{
@@ -560,11 +560,11 @@ void Board::StoreProgress()
 	aUser->SetInt(0x4f, mStageNumber);
 	aUser->SetInt(0x53, mMode);
 	aUser->SetFloat(0x52, mScoreMultiplier);
-	aUser->SetFloat(0x50, m1bd8);
+	aUser->SetFloat(0x50, mWeaponCharge);
 	aUser->SetInt(0x51, mScore);
 	aUser->SetInt(0x54, mPlayTime);
-	aUser->SetInt(0x55, m1b1c);
-	aUser->SetInt(0x63, m1b2c);
+	aUser->SetInt(0x55, mLevelsCompleted);
+	aUser->SetInt(0x63, mLevelEndScreenKind);
 }
 
 // 0x43b9c0: the klaxon plays while the field has no room left for the next piece

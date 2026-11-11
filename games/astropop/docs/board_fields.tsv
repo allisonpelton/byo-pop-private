@@ -349,71 +349,71 @@ ade	int	made	stray; nothing uses it (remove with the dead fields)
 1af4	int	mResumeUpdate	mUpdateCnt when the game was resumed from a pause; clicks in that same update are ignored
 1af8	int	mComboColor	the colour of the combo display: 0 blue, 1 red, 2 yellow; moves on each time a chain reaches 2
 1afc	int	mComboTimeLeft	the updates the combo display stays up (300, or 600 for a chain over 5); the combo count is cleared when it runs out
-1b00	int	m1b00	?
-1b04	int	m1b04	?
-1b08	int	m1b08	?
-1b0c	int	m1b0c	?
-1b10	int	m1b10	?
-1b14	int	m1b14	?
-1b18	int	m1b18	?
-1b1c	int	m1b1c	?
-1b20	int	m1b20	?
-1b24	int	m1b24	?
-1b28	int	m1b28	?
-1b2c	int	m1b2c	?
-1b30	int	m1b30
-1b34	int	m1b34	counts up by 4 (mod 256) while the game ends
-1b38	int	m1b38	?
-1b3c	int	m1b3c	?
-1b40	int	m1b40
-1b44	int	m1b44	?
-1b48	int	m1b48	?
-1b4c	int	m1b4c
-1b50	int	m1b50
-1b54	int	m1b54	?
-1b58	int	m1b58
-1b5c	int	m1b5c	?
-1b60	int	m1b60	?
-1b64	int	m1b64	?
-1b68	int	m1b68	?
-1b6c	int	m1b6c	the best level of the mode rounded down to a multiple of four, -1 none
-1b70	int	m1b70	?
-1b74	int	m1b74	?
-1b78	int	m1b78
-1b7c	int	m1b7c	?
-1b80	int	m1b80	?
-1b84	int	m1b84	?
-1b88	int	m1b88	?
-1b8c	int	m1b8c	?
-1b90	int	m1b90	?
-1b94	int	m1b94	?
-1b98	int	m1b98	?
-1b9c	int	m1b9c	?
-1ba0	int	m1ba0	?
-1ba4	int	m1ba4	?
-1ba8	int	m1ba8	?
-1bac	int	m1bac	?
-1bb0	int	m1bb0	?
-1bb4	int	m1bb4	?
-1bb8	int	m1bb8	?
-1bbc	int	m1bbc	?
-1bc0	int	m1bc0	?
-1bc4	int	m1bc4	?
-1bc8	int	m1bc8	?
-1bcc	int	m1bcc	?
-1bd0	int	m1bd0	?
-1bd4	int	m1bd4	?
-1bd8	float	m1bd8
-1bdc	float	m1bdc
-1be0	float	m1be0
-1be4	float	m1be4
-1be8	float	m1be8
-1bec	float	m1bec
-1bf0	float	m1bf0	how much the bonus chance changes by each level
-1bf4	float	m1bf4	how much the penalty chance changes by each level
-1bf8	float	m1bf8
-1bfc	float	m1bfc
-1c00	float	m1c00
-1c04	int	mDropTicks	updates a mutated brick waits before it drops
-1c08	bool	m1c08	profile setting 0x2a + mode is 1
-1c09	bool	m1c09
+1b00	int	mComboChain	chain length shown as the combo text 'x<n>' (picks the combo list row and font, DrawLogo); AdvanceChain sets it for chains of 2+, cleared when mComboTimeLeft ends
+1b04	int	mSpecialBannerHue	hue 0-255 of the special banner texts: +4 (mod 256) an update while mSpecialBannerTexts is not empty (UpdateStates), drawn through HSLToRGB
+1b08	int	mExtraRowTimer	updates until the next extra top row falls due (mExtraRowsDue +1, then reloaded from mExtraRowInterval); counts from mHardStage on while play runs unfrozen (UpdateStates)
+1b0c	int	mExtraRowInterval	updates between extra top rows: (mHardStage - stage + 60) * 100, at least 4500, set when a stage is set up; halved at each extra row down to 300; 500000000 at start
+1b10	int	mPowerBrickRowState	power brick rows from mHardStage on (FillTopRow): 0 start, -1 none due, 1 or 2 a new row of that third of the stage gets a power brick, 3 given; ResetGame clears it
+1b14	int	mWarpOverlayCel	cel of IMAGE_CP_WARP_OVERLAY drawn over the field while the warp runs: +1 every 5 updates, wrapping at the cel count (UpdateWarp)
+1b18	int	mComboPayDelay	updates until the combo bonus is paid (PayComboBonus): 100 at every chain step (AdvanceChain), counted down by UpdateStates
+1b1c	int	mLevelsCompleted	levels completed in this game: the first level minus 1 (0 for a new game), +1 in LevelComplete; saved as profile setting 0x55 and restored; nothing else reads it
+1b20	int	mBoosterFlameY	y the flames of a booster brick fly to, the top of the brickometer fill plus 48 (OnHyperBrick); handed to the PowerBrick as mBoosterY
+1b24	int	mSprocketOverlayCel	cel of the sprocket overlay on the bricks while the atomic weapon (mode 1) runs: +1 every 10 updates, wrapping at the cel count, sent to the bricks as event 0x22
+1b28	int	mNextLevelScreenKind	kind of the screen the next level begins with (UpgradeScreenKind: 0 plain, 1 bonus round, 2 upgrade, 3 mode unlock, 4 both); drawn on the slow gate
+1b2c	int	mLevelEndScreenKind	kind (same codes) of the screen that ends the level being played: copied from mNextLevelScreenKind in LoadLevel, saved as setting 99; picks bonus round, upgrade, unlock
+1b30	int	mNewRecordRow	row in the profile's top-5 records of the game that has ended (AddRecord's result, -1 none): 0 plays the new high score sound, DrawEndPage lights the row
+1b34	int	mGameOverCounter	counts up by 4 (mod 256) every update while the game ends (UpdateGameOver); nothing reads it
+1b38	int	mShipFadeAlpha	alpha 0-255 of the ship's flame and charge shimmer while mStreaksFadingOut: 0 in LoadLevel, +2 an update up to 255 (UpdateEffects)
+1b3c	int	mFrameDimming	darkening of the frame, 0-128 (drawn shade is 255 minus it): +1 an update while the stack is high and the weapon meter full and idle, -2 otherwise (UpdateAlertFlash)
+1b40	int	mSurvivalBonusTimer	updates left of the survival bonus display after a supercharge blast: 200 at the start, counted down by UpdateSparks; DrawSurvivalBonus shows it, sparks fall meanwhile
+1b44	int	mNewRankDelay	updates before a new rank is announced: 100 (1 if the upgrade dialog was seen) when the warp panel finds a rank above the best (UpdateWarp); 0 sets mNewRankDelayOver
+1b48	int	mSupaButtonX	x of the supa weapon's button on the frame: slides in (+2) from minus the width of IMAGE_SUPA_BUTTON_ALERT to 0 when the meter is full, out (-3) while the weapon runs
+1b4c	int	mTurbotPhase	phase of the turbot weapon (mode 2): 0 start, 1 field swept, 2 flash done, 3 both done and the wave rises; SweepTurbots and UpdateSpecialMode step it, BeginPlay clears it
+1b50	int	mTurbotOverlayCel	cel of the turbot overlay on the bricks while the turbot weapon (mode 2) runs: +1 every 10 updates, wrapping at the cel count, sent to the bricks as event 0x24
+1b54	int	mTurbotWindUpCounter	counts 0 to 100 once mTurbotPhase is 3; at 100 the flash goes full and the weapon's animation stops, then the wave rises (UpdateSpecialMode); BeginPlay clears it
+1b58	int	mTurbotBeamInterval	updates between new turbot beams: 15 at the start, then 15 minus a tenth of mTurbotFlashAlpha at each beam (UpdateSpecialMode); a beam starts at a multiple of it
+1b5c	int	mMutatorCooldown	updates left before a mutator brick (kind 0xc) may be made again: 2000 whenever no brick is mutating, counted down while play runs (UpdateStates); CanPlaceKind refuses it
+1b60	int	mPerfectBannerAlpha	alpha 0-255 of the PERFECT picture shown after ClearBonus: +8 an update up to 255, held, then -3 down to 0 (UpdateStates)
+1b64	int	mPerfectBannerState	state of the PERFECT picture: 0 none, 1 fading in, 2 held (mPerfectBannerHold), 3 fading out; ClearBonus sets 1, LevelComplete and ResetGame clear it
+1b68	int	mPerfectBannerHold	updates the PERFECT picture is held at full alpha: 175 set by ClearBonus, counted down in state 2 of mPerfectBannerState
+1b6c	int	mCheckpointLevel	the level a classic game continues from: the mode's best level rounded down to a multiple of four, -1 if below four; set when the game ends, shown on the end page +1
+1b70	int	mBonusTimeLeft	updates left of the bonus round: 6000 (60 s at 100 an update) once its bricks are shown, -1 before; at 0 the clear count starts; OnHyperBrick adds 300; saved as 0x57
+1b74	int	mBonusFadeAlpha	alpha 0-255 of the bonus round's fade-out: 0xff when the round is loaded, -2 an update while mBonusFadingOut (UpdateIntroAndTally)
+1b78	int	mBonusRevealDelay	200 when a bonus round warp starts or is restored, 300 when its bricks have all been revealed; nothing reads it
+1b7c	int	mBannerTimeLeft	updates left of the banner made by BuildBanner (400); counted down in a bonus round while no supa banner runs; clicks and the tally wait until it is 0
+1b80	int	mBannerDuration	the whole time of the banner in updates, as BuildBanner was given it; AnimateBanner fades the banner in over its first 75 updates with it
+1b84	int	mBannerTimeShown	time left of the banner as of the last update (mBannerTimeLeft before its decrement); AnimateBanner fades the banner out over its last 75 updates with it
+1b88	int	mTallyBarWidth	width in pixels of the dark bars that close in from the two sides of the field at the start of the clear count: +8 an update up to 320
+1b8c	int	mTallyTitleAlpha	alpha 0-255 of the tally's title text (DrawBonusStats): +8 an update in state 1 of mTallyState
+1b90	int	mTallyDelay	updates the clear count tally waits before its next step (UpdateIntroAndTally), counted down; the next value depends on the state (128 at the start, 25, 3, 10, 20, 400)
+1b94	int	mTallyBricksLeft	bricks left when the clear count started (rows 1 down plus the held bricks, StartClearCount); 0 means a clean field and its bonus
+1b98	int	mTallyBricksCounted	bricks counted so far by the tally, up to mTallyBricksLeft; also saved as profile setting 100 when a bonus round is built
+1b9c	int	mTallyPenalty	the penalty of the bricks left: mTallyBricksLeft times a twentieth of mClearBonusWorth, at most mClearBonusWorth
+1ba0	int	mTallyPenaltyShown	the penalty counted up so far on the tally, rising by mTallyAmountStep per brick to mTallyPenalty
+1ba4	int	mTallyCleanBonus	the bonus for a clean field: mClearBonusWorth when no brick was left, else 0; the stage total is mClearBonusWorth minus mTallyPenalty plus this
+1ba8	int	mTallyCleanBonusShown	the clean-field bonus counted up so far on the tally, rising by mTallyAmountStep to mTallyCleanBonus
+1bac	int	mTallyPaid	what has been paid into the score so far from the tally's total, at mTallyAmountStep an update (state 6 of mTallyState)
+1bb0	int	mTallyState	step of the clear count tally 0-8: 0 bars close, 1 title, 2 and 3 bricks and penalty counted, 4 and 5 clean bonus, 6 total paid, 8 the end; a click jumps to 6
+1bb4	int	mTallyAmountStep	the amount the tally adds per count: the penalty of one brick, then (by the size of the total) 500, 1000, 2000 or 4000 for paying it into the score
+1bb8	int	mTallySoundCounter	counts the tally's steps so that the count sound plays on every second, fourth or eighth one (UpdateIntroAndTally)
+1bbc	int	mHardStage	the stage from which the game turns harder: 3 in the demonstration, 5 in the classic game, 500000000 (never) in survival; boosters, power rows, extra rows, quicker pieces
+1bc0	int	mBonusWarpPhase	part of the warp into a bonus round while mBonusWarpIn: 1 the streaks run and the screen goes white, 2 white holds, 3 the streaks slow and the white fades; 0 not running
+1bc4	int	mBonusWarpHold	counts the updates the white screen holds in part 2 of the bonus warp, up to 50 (UpdateIntroAndTally)
+1bc8	int	mBonusWarpWhiteAlpha	alpha 0-255 of the white overlay in the bonus warp: +1 every second update in part 1 (to 80), 255 in part 2, -2 an update in part 3
+1bcc	int	mUnusedIntBesideBonusWarp	the constructor clears it among the bonus warp fields; nothing else writes or reads it
+1bd0	int	mBonusWarpTextX	x that centres a text of the bonus warp on 386 (UpdateIntroAndTally and RestoreGame set it from the width of the font); nothing reads it
+1bd4	int	mRankNumber	the number of the rank of mScore (AstroPopApp::GetRankName), taken when the level-up text is made; its picture is mRankImage; above profile setting 0x71 it is a new rank
+1bd8	float	mWeaponCharge	the weapon's charge, 0 to mWeaponChargeMax: rises by mWeaponChargeStep an update while idle, falls by mWeaponDrainStep while the weapon runs; saved as setting 0x50
+1bdc	float	mWeaponChargeMax	the charge at which the weapon is ready: 18000 (set by the constructor and ApplyWeaponLevels); the meter is full when mWeaponCharge reaches it
+1be0	float	mWeaponDrainStep	how much mWeaponCharge falls an update while the weapon runs, set by ApplyWeaponLevels from the pilot's duration level; the seconds shown are the charge over it over 100
+1be4	float	mWeaponChargeStep	how much mWeaponCharge rises an update while the field is quiet (a factor, 1.2 and up), set by ApplyWeaponLevels from mWeaponChargeLevel
+1be8	float	mBonusChance	chance (0-1) of a power brick in a new row: BonusChance of the level file, moved by mBonusChanceChange each level and interpolated along mSpeedRamp (FillTopRow)
+1bec	float	mPenaltyChance	chance (0-1) of a penalty brick (stone, steel, mutator) in a new row: PenaltyChance of the level file, moved by mPenaltyChanceChange each level, along mSpeedRamp too
+1bf0	float	mBonusChanceChange	how much mBonusChance changes by each level (BonusChanceChangeBy of the level file, 0 if absent)
+1bf4	float	mPenaltyChanceChange	how much mPenaltyChance changes by each level (PenaltyChanceChangeBy of the level file, 0 if absent)
+1bf8	float	mShipBounceY	how far the ship is pushed down from its resting row when a brick lands on it: 0 to 5 pixels, -1 while at rest; ResetGame sets -1, the landing sets 0
+1bfc	float	mShipBounceStep	the step of mShipBounceY an update: 1.0 down, its sign turns at 5 and again on reaching the rest (ResetGame sets 1.0)
+1c00	float	mBonusWarpSlowdown	how much the backdrop scroll is slowed (at most 9) in part 3 of the bonus warp: +0.09 an update from 0, the part ends at 9 (UpdateIntroAndTally, StepScrollLayer)
+1c04	int	mDropTicks	updates a mutating brick waits before it drops (Brick::Update against mMutateTimer): 1000 at start, 900 at setup, MutationDelay of the level file, along mSpeedRamp too
+1c08	bool	mWeaponDialogDue	the pilot's weapon box is still to be shown at the first move: profile setting 0x2a plus mode is 1 (read in BeginPlay); StartByHand opens it, hints turned on again set it
+1c09	bool	mKeepLoopSoundsMuted	set when the options box is closed with its own button (ApplyOptions) and during CloseStory: Pause's resume then leaves the loop sounds muted

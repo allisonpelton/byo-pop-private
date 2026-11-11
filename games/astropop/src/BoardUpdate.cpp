@@ -193,7 +193,7 @@ void Board::Update()
 		if (mGameType == 2)
 			UpdateRamp();
 
-		if ((mUpdateCnt % mRowReductionPeriod) == 0 && !mApp->mTutorialOn && m1bbc <= mStageNumber && mPlayStarted && mRowIntervalReduction < mRowInterval - 200 && mFreezeUpdatesLeft == 0)
+		if ((mUpdateCnt % mRowReductionPeriod) == 0 && !mApp->mTutorialOn && mHardStage <= mStageNumber && mPlayStarted && mRowIntervalReduction < mRowInterval - 200 && mFreezeUpdatesLeft == 0)
 			mRowIntervalReduction++;
 
 		if (mStackDanger < mStackDangerPeak)
@@ -280,14 +280,14 @@ void Board::Update()
 			if (mHighScoreSoundDelay < 1)
 			{
 				mHighScoreSoundDone = true;
-				if (m1b30 == 0)
+				if (mNewRecordRow == 0)
 					mApp->PlaySample(SOUND_NEW_HIGH_SCORE);
 			}
 		}
-		if (!mNewRankDelayOver && m1b44 > 0)
+		if (!mNewRankDelayOver && mNewRankDelay > 0)
 		{
-			m1b44--;
-			if (m1b44 < 1)
+			mNewRankDelay--;
+			if (mNewRankDelay < 1)
 				mNewRankDelayOver = true;
 		}
 
@@ -336,12 +336,12 @@ void Board::RevealBricks()
 	if (!mBonusRevealDone)
 	{
 		mBonusRevealDone = true;
-		m1b78 = 300;
+		mBonusRevealDelay = 300;
 	}
 	mTargeted.clear();
 	mBricksRevealing = false;
 	mClicksBlocked = false;
-	m1b70 = 6000;
+	mBonusTimeLeft = 6000;
 	HighlightTargets();
 }
 
@@ -368,11 +368,11 @@ void Board::SweepSprockets()
 	}
 }
 
-// the same in mode 2 with the turbot bricks (events 0x19 and 0x17); the phase of m1b4c moves on once the list of the
+// the same in mode 2 with the turbot bricks (events 0x19 and 0x17); the phase of mTurbotPhase moves on once the list of the
 // marked cells is empty (or was)
 void Board::SweepTurbots()
 {
-	if (mPowerupActive != 1 || m1b4c == 1 || m1b4c == 3)
+	if (mPowerupActive != 1 || mTurbotPhase == 1 || mTurbotPhase == 3)
 		return;
 	if ((mUpdateCnt % 2) != 0 || mMode != 2)
 		return;
@@ -395,10 +395,10 @@ void Board::SweepTurbots()
 		}
 	}
 Phase:
-	if (m1b4c == 0)
-		m1b4c = 1;
-	else if (m1b4c == 2)
-		m1b4c = 3;
+	if (mTurbotPhase == 0)
+		mTurbotPhase = 1;
+	else if (mTurbotPhase == 2)
+		mTurbotPhase = 3;
 }
 
 // when the field is quiet and the time has come, the next piece drops; when there is no room left the game ends (if the
@@ -468,7 +468,7 @@ bool Board::SpawnControl()
 		{
 			int aValue = 1;
 			mApp->mUser->GetInt(0x2e, &aValue);
-			if (aValue == 1 && m1bdc <= m1bd8)
+			if (aValue == 1 && mWeaponChargeMax <= mWeaponCharge)
 			{
 				Pause(true, false);
 				mOverlay.SetEmergencyPause(true);
@@ -548,9 +548,9 @@ void Board::UpdateExplosion()
 // freed when done
 void Board::UpdateSparks()
 {
-	if (m1b40 > 0)
-		m1b40--;
-	if (m1b40 > 0 && (mUpdateCnt % 10) == 0)
+	if (mSurvivalBonusTimer > 0)
+		mSurvivalBonusTimer--;
+	if (mSurvivalBonusTimer > 0 && (mUpdateCnt % 10) == 0)
 	{
 		int aCol = 0;
 		int aSparkWidth = IMAGE_PARTICLE_WHITE->GetCelWidth();

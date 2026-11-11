@@ -19,7 +19,7 @@ using namespace Sexy;
 // 0x467af0
 void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float theSetting52, float theSetting50, int theSavedLevel)
 {
-	m1bdc = 25600.0f;
+	mWeaponChargeMax = 25600.0f;
 	mScoreMultiplier = theSetting52;
 	mStageTextEnabled = false;
 	ApplyWeaponLevels();
@@ -64,18 +64,18 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		aBg->mOverPicAlpha = 0;
 		aBg->mFadedOut = false;
 	}
-	if (m1bd8 == m1bdc)
+	if (mWeaponCharge == mWeaponChargeMax)
 	{
 		mMeterFullAnim.Reset();
 		mMeterFullAnim.SetStopped(false);
 	}
 
-	m1b1c = theSetting55;
+	mLevelsCompleted = theSetting55;
 	ClearField();
 	LoadLevel(false);
 	mScore = theScore;
 	mScoreShown = theScore;
-	m1bd8 = theSetting50;
+	mWeaponCharge = theSetting50;
 	mPlayTime = theSetting54;
 	UserProfile* aUser = mApp->mUser;
 	aUser->GetInt(0x5c, &mPlayPoints);
@@ -99,45 +99,45 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			aUser->GetInt(0x57, &aBrokenBricks);
 			if (aBrokenBricks < 1)
 			{
-				m1b2c = 0;
-				aUser->GetInt(99, &m1b2c);
-				m1b28 = UpgradeScreenKind(mLevelNumber + 1);
+				mLevelEndScreenKind = 0;
+				aUser->GetInt(99, &mLevelEndScreenKind);
+				mNextLevelScreenKind = UpgradeScreenKind(mLevelNumber + 1);
 			}
 			else
 			{
 				// ... or in a bonus round, with the bricks it has left
-				m1b2c = 0;
-				aUser->GetInt(99, &m1b2c);
-				m1b28 = UpgradeScreenKind(mLevelNumber + 1);
-				m1b70 = aBrokenBricks;
+				mLevelEndScreenKind = 0;
+				aUser->GetInt(99, &mLevelEndScreenKind);
+				mNextLevelScreenKind = UpgradeScreenKind(mLevelNumber + 1);
+				mBonusTimeLeft = aBrokenBricks;
 				mBonusRoundOn = true;
 				mLevelUpPhase = false;
 				aUser->GetInt(0x5d, &mBestChain);
 				SetNextLevelScore();
-				m1b88 = 0;
-				m1b8c = 0;
-				m1b94 = 0;
-				m1b98 = 0;
-				m1b9c = 0;
-				m1ba0 = 0;
-				m1ba8 = 0;
-				m1ba4 = 0;
-				m1bb0 = 0;
-				m1bac = 0;
+				mTallyBarWidth = 0;
+				mTallyTitleAlpha = 0;
+				mTallyBricksLeft = 0;
+				mTallyBricksCounted = 0;
+				mTallyPenalty = 0;
+				mTallyPenaltyShown = 0;
+				mTallyCleanBonusShown = 0;
+				mTallyCleanBonus = 0;
+				mTallyState = 0;
+				mTallyPaid = 0;
 				mClearCountRunning = false;
 				mBonusFadingOut = false;
 				mBonusRoundLoaded = true;
 				mBonusRevealDone = false;
-				m1b74 = 0;
-				m1b7c = 0;
-				m1b78 = 200;
+				mBonusFadeAlpha = 0;
+				mBannerTimeLeft = 0;
+				mBonusRevealDelay = 200;
 				std::string aBanner = GT(0x005647cc);
-				m1bd0 = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
+				mBonusWarpTextX = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
 				mPlayStarted = true;
 				mStartedFromCheckpoint = false;
 				mBonusWarpIn = false;
-				m1bc0 = 0;
-				m1bc4 = 0;
+				mBonusWarpPhase = 0;
+				mBonusWarpHold = 0;
 				mApp->mHyperspaceLoop->Play(true, false);
 				mApp->mEngineLoop->Stop();
 				mWarpShakeX = 0;
@@ -285,9 +285,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 			mFastGateGlow = 0;
 			mSlowGateGlow = 0;
 			mEasyGateGlow = 0;
-			m1b2c = 0;
-			aUser->GetInt(99, &m1b2c);
-			m1b28 = UpgradeScreenKind(mLevelNumber + 1);
+			mLevelEndScreenKind = 0;
+			aUser->GetInt(99, &mLevelEndScreenKind);
+			mNextLevelScreenKind = UpgradeScreenKind(mLevelNumber + 1);
 			if (mBestLevelReached < 4)
 				mShipX = IMAGE_SLOW_WARP_GATE->mWidth / 2 - 0x1a + mSlowGateX;
 			else
@@ -306,11 +306,11 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 				mLevelUpLines.push_back(StrFormat(GTC(0x005656f8), mRampTime / 6000, aSeconds));
 			else
 				mLevelUpLines.push_back(StrFormat(GTC(0x005656dc), mRampTime / 6000, aSeconds));
-			std::string aRankName = mApp->GetRankName(mScore, &m1bd4);
+			std::string aRankName = mApp->GetRankName(mScore, &mRankNumber);
 			if (mRankImage != NULL)
 				delete mRankImage;
-			mRankImage = mApp->MakeRankImage(m1bd4, 0x50);
-			if (m1b2c == 1)
+			mRankImage = mApp->MakeRankImage(mRankNumber, 0x50);
+			if (mLevelEndScreenKind == 1)
 			{
 				mScore = mPlayPoints + mBonusRoundPoints + mScoreAtStageStart + aBonus;
 				mScoreShown = mScore;
@@ -351,33 +351,33 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		// a game saved in the bonus round of a level
 		mBonusRoundOn = true;
 		mLevelUpPhase = false;
-		m1b88 = 0;
-		m1b8c = 0;
-		m1b94 = 0;
-		m1b98 = 0;
-		m1b9c = 0;
-		m1ba0 = 0;
-		m1ba8 = 0;
-		m1ba4 = 0;
-		m1bb0 = 0;
-		m1bac = 0;
+		mTallyBarWidth = 0;
+		mTallyTitleAlpha = 0;
+		mTallyBricksLeft = 0;
+		mTallyBricksCounted = 0;
+		mTallyPenalty = 0;
+		mTallyPenaltyShown = 0;
+		mTallyCleanBonusShown = 0;
+		mTallyCleanBonus = 0;
+		mTallyState = 0;
+		mTallyPaid = 0;
 		mClicksBlocked = true;
 		mClearCountRunning = false;
 		mBonusRoundLoaded = false;
 		mBonusFadingOut = false;
-		m1b74 = 0;
-		m1b7c = 0;
-		m1b78 = 200;
+		mBonusFadeAlpha = 0;
+		mBannerTimeLeft = 0;
+		mBonusRevealDelay = 200;
 		SetNextLevelScore();
-		m1b70 = -1;
+		mBonusTimeLeft = -1;
 		mBonusRevealDone = false;
 		std::string aBanner = GT(0x005647cc);
-		m1bd0 = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
+		mBonusWarpTextX = 0x182 - GetFontById(FONT_DIALOG_BOX_BTN_ID)->StringWidth(aBanner) / 2;
 		mPlayStarted = true;
 		mStartedFromCheckpoint = false;
 		mBonusWarpIn = false;
-		m1bc0 = 0;
-		m1bc4 = 0;
+		mBonusWarpPhase = 0;
+		mBonusWarpHold = 0;
 		mApp->mHyperspaceLoop->Play(true, false);
 		mApp->mEngineLoop->Stop();
 		mWarpShakeX = 0;
@@ -401,9 +401,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		if (aStage < 1)
 			aStage = -1;
 		StartBonusRound(aStage);
-		m1b2c = 0;
-		aUser->GetInt(99, &m1b2c);
-		m1b28 = UpgradeScreenKind(mLevelNumber + 1);
+		mLevelEndScreenKind = 0;
+		aUser->GetInt(99, &mLevelEndScreenKind);
+		mNextLevelScreenKind = UpgradeScreenKind(mLevelNumber + 1);
 		MarkRec aMark;
 		aMark.mType = -1;
 		aMark.mCount = -1;
@@ -430,9 +430,9 @@ void Board::RestoreGame(int theScore, int theSetting54, int theSetting55, float 
 		aUser->GetInt(0x66, &aValue198c);
 		mShipX = aValue198c;
 	}
-	m1b98 = 0;
-	aUser->GetInt(100, &m1b98);
+	mTallyBricksCounted = 0;
+	aUser->GetInt(100, &mTallyBricksCounted);
 	mUpgradeDialogDone = true;
-	if (m1bdc <= m1bd8)
-		m1b48 = 0;
+	if (mWeaponChargeMax <= mWeaponCharge)
+		mSupaButtonX = 0;
 }

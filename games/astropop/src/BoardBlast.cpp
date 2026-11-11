@@ -66,7 +66,7 @@ void Board::OnBrickLanded(Brick* theBrick)
 	{
 		mApp->PlaySampleAt(SOUND_BLOCK_HIT_SHIP, (mShipX - 0xa6) / 0x2c);
 		if (mHeldBricksNotLanded == 0)
-			m1bf8 = 0.0f;
+			mShipBounceY = 0.0f;
 	}
 }
 

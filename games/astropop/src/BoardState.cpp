@@ -17,8 +17,8 @@ float Sexy::gTestChargeAtReset = -1.0f;
 void Board::ResetState()
 {
 	mWelcomePlayed = false;
-	m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
-	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;
+	mSupaButtonX = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
+	mWeaponCharge = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;
 	mBrickometerDrain = 0;
 	mBrickometerFill = 0;
 	mFlurryTimer = 0;
@@ -28,7 +28,7 @@ void Board::ResetState()
 	mPauseStartUpdate = 0;
 	mClickRepeating = false;
 	mPlayTime = 0;
-	m1b00 = 0;
+	mComboChain = 0;
 	mComboTimeLeft = 0;
 	mButtonsHeld = 0;
 	mScore = 0;
@@ -51,9 +51,9 @@ void Board::ResetState()
 // (and the overlay goes when the colour is gone and nothing stops it), the streaks slow down, and so on
 void Board::UpdateEffects()
 {
-	m1b38 += 2;
-	if (m1b38 > 0xff)
-		m1b38 = 0xff;
+	mShipFadeAlpha += 2;
+	if (mShipFadeAlpha > 0xff)
+		mShipFadeAlpha = 0xff;
 
 	mOverlayFillColor.mAlpha -= 2;
 	if (mOverlayFillColor.mAlpha < 0)
@@ -249,7 +249,7 @@ void Board::SaveGameState()
 		if (mBonusRoundOn && !mClearCountRunning && aIdle)
 		{
 			StoreProgress();
-			aUser->SetInt(0x57, m1b70);
+			aUser->SetInt(0x57, mBonusTimeLeft);
 			aUser->SetInt(0x58, 0);
 			aUser->SetInt(0x5b, 0);
 			aUser->SetInt(0x62, mBonusRoundPoints);
@@ -279,9 +279,9 @@ void Board::SaveGameState()
 		aUser->SetInt(0x5c, mPlayPoints);
 		aUser->SetInt(0x60, mRampTime);
 		SaveBestStat(aUser, mBestChain);
-		if (m1b2c != 1)
+		if (mLevelEndScreenKind != 1)
 			return;
-		aUser->SetInt(0x5f, (m1ba4 - m1b9c) + mClearBonusWorth);
+		aUser->SetInt(0x5f, (mTallyCleanBonus - mTallyPenalty) + mClearBonusWorth);
 		return;
 	}
 

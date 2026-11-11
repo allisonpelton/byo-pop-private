@@ -22,7 +22,7 @@ static const int kFlameCels = 8;        // the flame's cels (0x59d670)
 void Board::DrawShip(Graphics* g)
 {
 	int aX = mShipX - 4;
-	int aY = (int) (m1bf8 + 423.0f);
+	int aY = (int) (mShipBounceY + 423.0f);
 	Image* aShip = GetImageById(mMode + 0x173);
 	Image* aFlame = GetImageById(mMode + 0x177);
 	Image* aWarp = GetImageById(mMode + 0x17b);
@@ -54,7 +54,7 @@ void Board::DrawShip(Graphics* g)
 			// the charge of the weapon, over the ship
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
 			g->SetColorizeImages(true);
-			g->SetColor(Color(0xff, 0xff, 0xff, mStreaksFadingOut ? m1b38 : 0xff));
+			g->SetColor(Color(0xff, 0xff, 0xff, mStreaksFadingOut ? mShipFadeAlpha : 0xff));
 			Rect aSrc(aShip->mWidth / aShip->mNumCols * aCel + mShipShimmerX, mShipShimmerY, mShipShimmerWidth, mShipShimmerHeight);
 			g->DrawImage(aShip, mShipShimmerX + anOffset + aX, (int) ((float) mShipShimmerY + (float) aShipY), aSrc);
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
@@ -66,7 +66,7 @@ void Board::DrawShip(Graphics* g)
 		if (mStreaksFadingOut)
 		{
 			g->SetColorizeImages(true);
-			g->SetColor(Color(0xff, 0xff, 0xff, m1b38));
+			g->SetColor(Color(0xff, 0xff, 0xff, mShipFadeAlpha));
 		}
 		float aFlameY = mShipInWarp ? mWarpShipY : (float) aY;
 		DrawCel(g, aFlame, aShipX + 3, (int) (aFlameY + 36.0f), kShipCels[kFlameCels + mShipFlameFrame]);

@@ -50,7 +50,7 @@ void Board::DrawEndPage(Graphics* g)
 			int aLevel = aRecord.mField[5];
 
 			// the result of the game that has ended is lit up
-			if (aRow == m1b30)
+			if (aRow == mNewRecordRow)
 			{
 				g->SetColor(Color(0xff, 0xff, 0xff, mResultPulseAnim.GetCel() + 0x28));
 				g->FillRect(0xb0, aY, 0x1a4, IMAGE_PERSONAL_VECTOR_GAUGE->mHeight);
@@ -84,7 +84,7 @@ void Board::DrawEndPage(Graphics* g)
 			g->DrawImage(GetImageById(IMAGE_PERSONAL_VECTOR_GAUGE_ID + aPilot), 0xe7, aY);
 			g->DrawImage(GetImageById(IMAGE_CS_VECTOR_STATFILL_ID + aPilot), aBarX + 0xe7, aY + 2,
 				Rect(0, (aFull ? 1 : 0) * aBarHeight, aFilled, aBarHeight));
-			if (aRow == m1b30)
+			if (aRow == mNewRecordRow)
 				g->SetColorizeImages(false);
 
 			g->SetColor(Color(0xff, 0xff, 0, 0xff));
@@ -137,10 +137,10 @@ void Board::DrawEndPage(Graphics* g)
 
 		// the classic game goes on from its last checkpoint (the ones at levels four, eight and so on)
 		Rect aRect(0xb0, aLineY + 0x18, 0x1a4, 100);
-		if (m1b6c < 4)
+		if (mCheckpointLevel < 4)
 			WriteWordWrapped(g, aRect, GT(0x00565c3c), -1, 0);
 		else
-			WriteWordWrapped(g, aRect, StrFormat(GTC(0x00565c64), m1b6c + 1), -1, 0);
+			WriteWordWrapped(g, aRect, StrFormat(GTC(0x00565c64), mCheckpointLevel + 1), -1, 0);
 	}
 	else
 	{

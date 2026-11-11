@@ -21,7 +21,7 @@ using namespace Sexy;
 // 0x442c70
 void Board::DrawWarpScreen(Graphics* g)
 {
-	if ((m1b2c == 2 || m1b2c == 4 || m1b2c == 3) && !mUpgradeDialogDone)
+	if ((mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4 || mLevelEndScreenKind == 3) && !mUpgradeDialogDone)
 		return;
 
 	if (mWarpGateAlpha < 0xff)
@@ -51,7 +51,7 @@ void Board::DrawWarpScreen(Graphics* g)
 
 	// what the mission of the slow gate is for, and which planet it shows
 	std::string aText = kClickForNext;
-	int aKind = m1b28;
+	int aKind = mNextLevelScreenKind;
 	int aCelWidth = IMAGE_WARP_PLANETS->GetCelWidth();
 	int aPlanetHeight = IMAGE_WARP_PLANETS->mHeight;
 	Rect aSrc(0, 0, 0, 0);
@@ -85,7 +85,7 @@ void Board::DrawWarpScreen(Graphics* g)
 
 	if (UpgradeScreenKind(mLevelNumber + 1) == 0)
 		aText = kClickForNext;
-	if ((mLevelNumber + 1) % 4 == 0 && m1b28 != 3 && m1b28 != 4)
+	if ((mLevelNumber + 1) % 4 == 0 && mNextLevelScreenKind != 3 && mNextLevelScreenKind != 4)
 		aSrc = Rect(aCelWidth * 2, 0, aCelWidth, aPlanetHeight);
 	g->DrawImage(IMAGE_WARP_PLANETS,
 		(IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - IMAGE_WARP_PLANETS->GetCelWidth() / 2) + mSlowGateX,

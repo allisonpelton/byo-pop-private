@@ -37,13 +37,13 @@ bool Board::UpdateWarp()
 	mNewRankAnim.Update();
 	if (mUpdateCnt % 5 == 0)
 	{
-		m1b14++;
-		if (m1b14 >= IMAGE_CP_WARP_OVERLAY->mNumCols)
-			m1b14 = 0;
+		mWarpOverlayCel++;
+		if (mWarpOverlayCel >= IMAGE_CP_WARP_OVERLAY->mNumCols)
+			mWarpOverlayCel = 0;
 	}
 
 	// the level-up panel types its lines and the arms of the upgrade screen slide in
-	if ((mWarpFlight || mAtWarpGate) && ((m1b2c != 2 && m1b2c != 4) || mUpgradeDialogDone))
+	if ((mWarpFlight || mAtWarpGate) && ((mLevelEndScreenKind != 2 && mLevelEndScreenKind != 4) || mUpgradeDialogDone))
 	{
 		if (!mWarpGatePicked && mGameType == 1 && mLevelUpPanelY < 0)
 		{
@@ -53,12 +53,12 @@ bool Board::UpdateWarp()
 				mLevelUpPanelY = 2;
 				int aBest = 0;
 				mApp->mUser->GetInt(0x71, &aBest);
-				if (aBest < m1bd4)
+				if (aBest < mRankNumber)
 				{
 					mNewRankDelayOver = false;
-					m1b44 = mUpgradeDialogSeen ? 1 : 100;
+					mNewRankDelay = mUpgradeDialogSeen ? 1 : 100;
 					mNewRankAnim.SetStopped(false);
-					mApp->mUser->SetInt(0x71, m1bd4);
+					mApp->mUser->SetInt(0x71, mRankNumber);
 					mApp->mUser->Save();
 				}
 			}
@@ -102,7 +102,7 @@ bool Board::UpdateWarp()
 				}
 			}
 		}
-		if (m1b2c == 2 || m1b2c == 4)
+		if (mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4)
 		{
 			mLeftArmX -= 4;
 			if (mLeftArmX < -IMAGE_UPGRADE_ARM->mWidth)
@@ -222,7 +222,7 @@ bool Board::UpdateWarp()
 					mShipX = IMAGE_SLOW_WARP_GATE->GetCelWidth() / 2 - 0x22 + mSlowGateX;
 				else
 					mShipX = 0x159;
-				if (m1b2c == 2 || m1b2c == 4)
+				if (mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4)
 				{
 					mWarpShipY = 423.0f;
 					mApp->ShowUpgradeDialog();
@@ -323,7 +323,7 @@ bool Board::UpdateWarp()
 				if (mFastGateGlow > 0xff)
 					mFastGateGlow = 0xff;
 			}
-			if (m1b2c == 2 || m1b2c == 4)
+			if (mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4)
 			{
 				if (!mUpgradeDialogDone && !mWarpGatePicked)
 				{

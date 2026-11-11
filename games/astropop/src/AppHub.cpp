@@ -115,7 +115,7 @@ static void RestoreCheckpointScore(AstroPopApp* theApp)
 	theApp->mUser->GetInt(theApp->mClassicPilot + 0x6b, &aScore);
 	theApp->mBoard->mScore = aScore;
 	theApp->mBoard->mScoreShown = aScore;
-	theApp->mBoard->m1bd8 = theApp->mBoard->m1bdc;
+	theApp->mBoard->mWeaponCharge = theApp->mBoard->mWeaponChargeMax;
 }
 
 // 0x431ac0 (and 0x432730, its entry through the ButtonListener part)
@@ -204,7 +204,7 @@ void AstroPopApp::ButtonDepress(int theId)
 			mUser->SetInt(0x2d, 1);
 			mUser->SetInt(0x73, 1);
 			if (mBoard != NULL)
-				mBoard->m1c08 = true;
+				mBoard->mWeaponDialogDue = true;
 			mUser->EnableHints();
 			mUser->Save();
 			int aValue = 1;

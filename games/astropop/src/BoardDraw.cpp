@@ -126,8 +126,8 @@ void Board::DrawBackdrop(Graphics* g)
 		int aPixelX = (int) anX;
 		g->FillRect(aPixelX, (int) aY, 1, 1);
 
-		bool aTailDown = mWarpCharging || mWarpActive || (mBonusWarpIn && (m1bc0 == 1 || m1bc0 == 2));
-		bool aTailUp = mWarpFlight || mStreaksFadingOut || (mBonusWarpIn && m1bc0 == 3);
+		bool aTailDown = mWarpCharging || mWarpActive || (mBonusWarpIn && (mBonusWarpPhase == 1 || mBonusWarpPhase == 2));
+		bool aTailUp = mWarpFlight || mStreaksFadingOut || (mBonusWarpIn && mBonusWarpPhase == 3);
 		if (aTailDown)
 		{
 			if (!mWarpFlight)
@@ -141,7 +141,7 @@ void Board::DrawBackdrop(Graphics* g)
 					g->DrawImage(aStreak.mImage, aPixelX, (int) (aY - (float) aStreak.mMargin), Rect(0, 0, 1, aLength));
 					continue;
 				}
-				aTailUp = mWarpFlight || mStreaksFadingOut || (mBonusWarpIn && m1bc0 == 3);
+				aTailUp = mWarpFlight || mStreaksFadingOut || (mBonusWarpIn && mBonusWarpPhase == 3);
 			}
 			else
 				aTailUp = true;

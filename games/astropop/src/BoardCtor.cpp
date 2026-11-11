@@ -135,30 +135,30 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mStartedFromCheckpoint = theFlag;
 	mClearBonusWorth = 0;
 	mStartWeaponAfterPause = false;
-	m1b6c = 0;
+	mCheckpointLevel = 0;
 	if (mGameType == 1)
-		m1bbc = 5;
+		mHardStage = 5;
 	else
-		m1bbc = (mGameType != 0) ? 500000000 : 3;
+		mHardStage = (mGameType != 0) ? 500000000 : 3;
 	mLoadLevelFlag = (int) (theFlags & 0xff);
 	mLevelNumber = theLevel;
 	mStageNumber = 1;
-	m1c09 = false;
-	m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
+	mKeepLoopSoundsMuted = false;
+	mSupaButtonX = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
 	mContinueButton = NULL;
 	mMenuButton = NULL;
-	m1be4 = 0;
+	mWeaponChargeStep = 0;
 	mBonusRoundStarted = false;
-	m1b30 = -1;
-	m1bb8 = 0;
+	mNewRecordRow = -1;
+	mTallySoundCounter = 0;
 	mStartBannerDoneInBonus = false;
 	mBonusRoundOn = false;
 	mClicksBlocked = false;
-	m1b1c = 0;
-	m1b0c = 0;
-	m1b08 = 0;
+	mLevelsCompleted = 0;
+	mExtraRowInterval = 0;
+	mExtraRowTimer = 0;
 	mResumeUpdate = 0;
-	m1b14 = 0;
+	mWarpOverlayCel = 0;
 	if (theLevel == 1 && theNewGame)
 	{
 		mStageTextEnabled = false;
@@ -167,7 +167,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	else
 	{
 		mStageTextEnabled = true;
-		m1b1c = theLevel - 1;
+		mLevelsCompleted = theLevel - 1;
 	}
 	mStoryScreen = 0;
 	mRightHeadImage = IMAGE_UPGRADE_HEAD;
@@ -177,8 +177,8 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mLeftArmImage = mApp->CopyImage(IMAGE_UPGRADE_ARM);
 	mApp->MirrorImage(mLeftArmImage);
 	SetupUpgradeAnims();
-	m1b28 = 0;
-	m1b2c = 0;
+	mNextLevelScreenKind = 0;
+	mLevelEndScreenKind = 0;
 	mUnusedClearedInCtor = false;
 	mBannerWaveImage = NULL;
 	mBannerTextImage = NULL;
@@ -193,30 +193,30 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mPhaseDelay = PickSpawnDelay();
 	mBonusRoundLoaded = false;
 	mBonusFadingOut = false;
-	m1b74 = 0;
-	m1b7c = 0;
-	m1b40 = 0;
-	m1b50 = 0;
+	mBonusFadeAlpha = 0;
+	mBannerTimeLeft = 0;
+	mSurvivalBonusTimer = 0;
+	mTurbotOverlayCel = 0;
 	mWeaponHintShown = false;
 	int aHalfBoost = 1;
 	mApp->mUser->GetInt(mMode + 0x2a, &aHalfBoost);
-	m1c08 = (aHalfBoost == 1);
-	m1b88 = 0;
-	m1b8c = 0;
-	m1b94 = 0;
-	m1b98 = 0;
-	m1b9c = 0;
-	m1ba0 = 0;
-	m1ba4 = 0;
-	m1ba8 = 0;
-	m1bb0 = 0;
-	m1bac = 0;
-	m1c00 = 0.0f;
-	m1bc0 = 0;
-	m1bc4 = 0;
-	m1bc8 = 0;
-	m1bd0 = 0;
-	m1bcc = 0;
+	mWeaponDialogDue = (aHalfBoost == 1);
+	mTallyBarWidth = 0;
+	mTallyTitleAlpha = 0;
+	mTallyBricksLeft = 0;
+	mTallyBricksCounted = 0;
+	mTallyPenalty = 0;
+	mTallyPenaltyShown = 0;
+	mTallyCleanBonus = 0;
+	mTallyCleanBonusShown = 0;
+	mTallyState = 0;
+	mTallyPaid = 0;
+	mBonusWarpSlowdown = 0.0f;
+	mBonusWarpPhase = 0;
+	mBonusWarpHold = 0;
+	mBonusWarpWhiteAlpha = 0;
+	mBonusWarpTextX = 0;
+	mUnusedIntBesideBonusWarp = 0;
 	mBonusRevealDone = false;
 
 	// the theme checkbox and button of the warp screen (their pictures are made when the stage's colour is known)
@@ -234,17 +234,17 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mHintOkButton->SetColor(0, Color(0xff, 0xff, 0xff));
 	mHintOkButton->SetColor(1, Color(0xff, 0xff, 0xff));
 	mHintOkButton->Resize(0x208, aThemeY - 5, IMAGE_TH_BTN_OVER->mWidth, IMAGE_TH_BTN_OVER->mHeight);
-	m1b58 = 0xf;
-	m1b4c = 0;
-	m1b34 = 0;
-	m1b20 = 0;
+	mTurbotBeamInterval = 0xf;
+	mTurbotPhase = 0;
+	mGameOverCounter = 0;
+	mBoosterFlameY = 0;
 	mEndPageShown = false;
-	m1b84 = 0;
-	m1b80 = 0;
+	mBannerTimeShown = 0;
+	mBannerDuration = 0;
 	mBannerWavePhase = 0.0f;
 	mClearCountRunning = false;
-	m1b70 = -1;
-	m1b0c = 500000000;
+	mBonusTimeLeft = -1;
+	mExtraRowInterval = 500000000;
 	mComboTimeLeft = 0;
 	mComboColor = 0;
 	mPhasePictures.resize(14, (Image*) NULL);
@@ -269,9 +269,9 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mSpawnRules.resize(1);
 	mBackdropStars.resize(3);
 	mFieldButtons.assign(1, (Widget*) NULL);
-	m1b00 = 0;
+	mComboChain = 0;
 	mPlayTime = 0;
-	m1b78 = 0;
+	mBonusRevealDelay = 0;
 	mHoveredGate = 0;
 	mMeterPaused = false;
 	mInHallOfFame = false;
@@ -338,7 +338,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mScoreShown = 0;
 	mScore = 0;
 	mSlowMotion = false;
-	m1bd8 = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;   // (a test's charge, BoardState.cpp)
+	mWeaponCharge = gTestChargeAtReset < 0.0f ? 0.0f : gTestChargeAtReset;   // (a test's charge, BoardState.cpp)
 	ResetGame();
 	if (mGameType == 1)
 		SetupLevel1Rules();
@@ -457,9 +457,9 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 	mTutorialPickTimer = 0;
 	mTutorialPickCount = 0;
 	mPowerupActive = 0;
-	m1bdc = 18000.0f;
+	mWeaponChargeMax = 18000.0f;
 	ApplyWeaponLevels();
-	m1bd4 = 0;
+	mRankNumber = 0;
 	mRankImage = mApp->MakeRankImage(0, 0x50);
 
 	// the text that scrolls along the top while the bonus of state 1 runs, repeated to fill the width
@@ -485,7 +485,7 @@ Board::Board(AstroPopApp* theApp, EventBus* theBus, int theGameType, unsigned in
 		mBonusBannerTexts.push_back(aText);
 		aBannerX = aBannerX + 0x1e + aBannerFont->StringWidth(aBannerText);
 	} while (!aBannerDone);
-	m1b04 = 0;
+	mSpecialBannerHue = 0;
 	mNextStageNumber = mStageNumber + 1;
 	mSlowGateStage = mStageNumber + 2;
 	int aHalf = mSlowGateStage / 2;

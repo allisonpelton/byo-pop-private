@@ -95,7 +95,7 @@ void Board::StartBonusRound(int theStage)
 	mApp->mUser->SetInt(0x3f, theStage);
 	mScreenShakeX = 0;
 	mBonusRoundLoaded = true;
-	m1b74 = 0xff;
+	mBonusFadeAlpha = 0xff;
 
 	// the top row is a wall of stones
 	for (int aCol = 0; aCol < 10; aCol++)
@@ -116,7 +116,7 @@ void Board::StartBonusRound(int theStage)
 			std::string aPath = StrFormat("LEVEL\\ROW%d\\Brick%d", aRow, aCol);
 			if (!mBonusRoundFile->HasKey(aPath))
 			{
-				mApp->mUser->SetInt(100, m1b98);
+				mApp->mUser->SetInt(100, mTallyBricksCounted);
 				return;
 			}
 
@@ -181,5 +181,5 @@ void Board::StartBonusRound(int theStage)
 		}
 		aY += 0x19;
 	}
-	mApp->mUser->SetInt(100, m1b98);
+	mApp->mUser->SetInt(100, mTallyBricksCounted);
 }

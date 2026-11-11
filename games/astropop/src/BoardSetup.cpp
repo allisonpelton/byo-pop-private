@@ -284,50 +284,50 @@ void Board::SetupClassicRules()
 
 	RampRecord aRamp;
 	aRamp.mTime = 0;
-	aRamp.mV1 = 400;
-	aRamp.mV2 = 6;
-	aRamp.mV3 = 900;
-	aRamp.mF4 = 0;
-	aRamp.mF5 = FloatBits(0x3f4ccccd);
-	m1be8 = FloatBits(0x3f4ccccd);
-	m1bec = 0;
+	aRamp.mRowInterval = 400;
+	aRamp.mMaxMutators = 6;
+	aRamp.mDropTicks = 900;
+	aRamp.mPenaltyChance = 0;
+	aRamp.mBonusChance = FloatBits(0x3f4ccccd);
+	mBonusChance = FloatBits(0x3f4ccccd);
+	mPenaltyChance = 0;
 	mSpeedRamp.push_back(aRamp);
 
 	aRamp.mTime = 17999;
-	aRamp.mV1 = 200;
-	aRamp.mV2 = 7;
-	aRamp.mV3 = 700;
-	aRamp.mF4 = FloatBits(0x3f000000);
-	aRamp.mF5 = FloatBits(0x3e99999a);
+	aRamp.mRowInterval = 200;
+	aRamp.mMaxMutators = 7;
+	aRamp.mDropTicks = 700;
+	aRamp.mPenaltyChance = FloatBits(0x3f000000);
+	aRamp.mBonusChance = FloatBits(0x3e99999a);
 	mSpeedRamp.push_back(aRamp);
 
 	aRamp.mTime = 18000;
-	aRamp.mV1 = 300;
-	aRamp.mV2 = 8;
-	aRamp.mV3 = 0x28a;
-	aRamp.mF4 = FloatBits(0x3f266666);
-	aRamp.mF5 = FloatBits(0x3e99999a);
+	aRamp.mRowInterval = 300;
+	aRamp.mMaxMutators = 8;
+	aRamp.mDropTicks = 0x28a;
+	aRamp.mPenaltyChance = FloatBits(0x3f266666);
+	aRamp.mBonusChance = FloatBits(0x3e99999a);
 	mSpeedRamp.push_back(aRamp);
 
 	aRamp.mTime = 30000;
-	aRamp.mV1 = 200;
-	aRamp.mV2 = 10;
-	aRamp.mV3 = 600;
-	aRamp.mF4 = FloatBits(0x3f400000);
-	aRamp.mF5 = FloatBits(0x3e4ccccd);
+	aRamp.mRowInterval = 200;
+	aRamp.mMaxMutators = 10;
+	aRamp.mDropTicks = 600;
+	aRamp.mPenaltyChance = FloatBits(0x3f400000);
+	aRamp.mBonusChance = FloatBits(0x3e4ccccd);
 	mSpeedRamp.push_back(aRamp);
 
 	aRamp.mTime = 60000;
-	aRamp.mV1 = 100;
-	aRamp.mV2 = 0x10;
-	aRamp.mV3 = 0x15e;
-	aRamp.mF4 = FloatBits(0x3f733333);
-	aRamp.mF5 = FloatBits(0x3c23d70a);
+	aRamp.mRowInterval = 100;
+	aRamp.mMaxMutators = 0x10;
+	aRamp.mDropTicks = 0x15e;
+	aRamp.mPenaltyChance = FloatBits(0x3f733333);
+	aRamp.mBonusChance = FloatBits(0x3c23d70a);
 	mSpeedRamp.push_back(aRamp);
 
 	mBricksToPassMax = 500000000;
-	m1bf0 = 0;
-	m1bf4 = 0;
+	mBonusChanceChange = 0;
+	mPenaltyChanceChange = 0;
 	mBricksToPass = 500000000;
 	mBricksToPassChange = 0;
 	mRowsAtStart = 4;
@@ -369,10 +369,10 @@ void Board::SetupLevel1Rules()
 	XcfFile* aFile = mApp->mDescriptor;
 
 	mBricksToPassMax = aFile->HasKey("\\GLOBAL\\MaxBricksToPass") ? (int) aFile->GetInt("\\GLOBAL\\MaxBricksToPass") : 1000;
-	m1bf0 = aFile->HasKey("\\LEVEL1\\BASE_FREQUENCY\\BonusChanceChangeBy") ? Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\BonusChanceChangeBy") : 0.0f;
-	m1bf4 = aFile->HasKey("\\LEVEL1\\BASE_FREQUENCY\\PenaltyChanceChangeBy") ? Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\PenaltyChanceChangeBy") : 0.0f;
-	m1be8 = Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\BonusChance");
-	m1bec = Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\PenaltyChance");
+	mBonusChanceChange = aFile->HasKey("\\LEVEL1\\BASE_FREQUENCY\\BonusChanceChangeBy") ? Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\BonusChanceChangeBy") : 0.0f;
+	mPenaltyChanceChange = aFile->HasKey("\\LEVEL1\\BASE_FREQUENCY\\PenaltyChanceChangeBy") ? Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\PenaltyChanceChangeBy") : 0.0f;
+	mBonusChance = Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\BonusChance");
+	mPenaltyChance = Share(aFile, "\\LEVEL1\\BASE_FREQUENCY\\PenaltyChance");
 	mBricksToPass = aFile->HasKey("\\LEVEL1\\NumBricksToPass") ? (int) aFile->GetInt("\\LEVEL1\\NumBricksToPass") : 200;
 	if (aFile->HasKey("\\LEVEL1\\MutationDelay"))
 		mDropTicks = (int) aFile->GetInt("\\LEVEL1\\MutationDelay");
@@ -483,17 +483,17 @@ void Board::AdvanceLevel(bool theSave)
 	{
 		// this level has a section of its own
 		if (aFile->HasKey("BASE_FREQUENCY\\BonusChanceChangeBy"))
-			m1bf0 = Share(aFile, "BASE_FREQUENCY\\BonusChanceChangeBy");
+			mBonusChanceChange = Share(aFile, "BASE_FREQUENCY\\BonusChanceChangeBy");
 		if (aFile->HasKey("BASE_FREQUENCY\\PenaltyChanceChangeBy"))
-			m1bf4 = Share(aFile, "BASE_FREQUENCY\\PenaltyChanceChangeBy");
+			mPenaltyChanceChange = Share(aFile, "BASE_FREQUENCY\\PenaltyChanceChangeBy");
 		if (aFile->HasKey("BASE_FREQUENCY\\BonusChance"))
-			m1be8 = Share(aFile, "BASE_FREQUENCY\\BonusChance");
+			mBonusChance = Share(aFile, "BASE_FREQUENCY\\BonusChance");
 		else
-			m1be8 = (float) ((double) m1bf0 + (double) m1be8);
+			mBonusChance = (float) ((double) mBonusChanceChange + (double) mBonusChance);
 		if (aFile->HasKey("BASE_FREQUENCY\\PenaltyChance"))
-			m1bec = Share(aFile, "BASE_FREQUENCY\\PenaltyChance");
+			mPenaltyChance = Share(aFile, "BASE_FREQUENCY\\PenaltyChance");
 		else
-			m1bec = (float) ((double) m1bf4 + (double) m1bec);
+			mPenaltyChance = (float) ((double) mPenaltyChanceChange + (double) mPenaltyChance);
 
 		mRowsAtStart = aFile->HasKey("NumRowsAtStart") ? (int) aFile->GetInt("NumRowsAtStart") : 4;
 		if (aFile->HasKey("MutationDelay"))
@@ -557,11 +557,11 @@ void Board::AdvanceLevel(bool theSave)
 		if (mRowInterval < 1)
 			mRowInterval = 1;
 		int aRows = mRowsToPass + mRowsToPassChange;
-		m1be8 = (float) ((double) m1bf0 + (double) m1be8);
+		mBonusChance = (float) ((double) mBonusChanceChange + (double) mBonusChance);
 		mRowsLeftToPass = aRows;
 		mRowsToPass = aRows;
 		mBricksToPass = mBricksToPass + mBricksToPassChange;
-		m1bec = (float) ((double) m1bf4 + (double) m1bec);
+		mPenaltyChance = (float) ((double) mPenaltyChanceChange + (double) mPenaltyChance);
 		for (int k = 0; k < 8; k++)
 		{
 			SpawnRule& aRule = mSpawnRules[0].mRule[k];
@@ -571,7 +571,7 @@ void Board::AdvanceLevel(bool theSave)
 	}
 
 	int aLevel = mStageNumber;
-	if (m1bbc <= aLevel)
+	if (mHardStage <= aLevel)
 	{
 		// the pieces come quicker every second level
 		mRowReductionPeriod -= (aLevel % 2 == 0) ? 1 : 0;
@@ -612,12 +612,12 @@ void Board::AdvanceLevel(bool theSave)
 		}
 	}
 
-	if (m1bbc <= mStageNumber)
+	if (mHardStage <= mStageNumber)
 	{
-		m1b0c = ((m1bbc - mStageNumber) + 0x3c) * 100;
-		if (m1b0c < 0x1194)
-			m1b0c = 0x1194;
-		m1b08 = m1b0c;
+		mExtraRowInterval = ((mHardStage - mStageNumber) + 0x3c) * 100;
+		if (mExtraRowInterval < 0x1194)
+			mExtraRowInterval = 0x1194;
+		mExtraRowTimer = mExtraRowInterval;
 	}
 }
 

@@ -29,11 +29,11 @@ void Board::UpdateAlertFlash()
 			if (mDangerZoneAlpha < 0)
 				mDangerZoneAlpha = 0;
 		}
-		if (m1b3c > 0)
+		if (mFrameDimming > 0)
 		{
-			m1b3c -= 2;
-			if (m1b3c < 0)
-				m1b3c = 0;
+			mFrameDimming -= 2;
+			if (mFrameDimming < 0)
+				mFrameDimming = 0;
 		}
 	}
 	else
@@ -61,20 +61,20 @@ void Board::UpdateAlertFlash()
 				mDangerZoneAlpha = 0xff;
 		}
 
-		if (mPowerupActive == 1 || m1bd8 < m1bdc || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || mPauseCount != 0 ||
-			m1b3c > 0x7f)
+		if (mPowerupActive == 1 || mWeaponCharge < mWeaponChargeMax || mWarpActive || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mLevelUpPhase || mGameOver || mPauseCount != 0 ||
+			mFrameDimming > 0x7f)
 		{
-			if (m1b3c > 0)
+			if (mFrameDimming > 0)
 			{
-				m1b3c -= 2;
-				if (m1b3c < 0)
-					m1b3c = 0;
+				mFrameDimming -= 2;
+				if (mFrameDimming < 0)
+					mFrameDimming = 0;
 			}
 		}
 		else
-			m1b3c++;
+			mFrameDimming++;
 
-		if (m1b3c > 0 && mUpdateCnt % 0x32 == 0)
+		if (mFrameDimming > 0 && mUpdateCnt % 0x32 == 0)
 			mSupaButtonLit = !mSupaButtonLit;
 	}
 
@@ -358,11 +358,11 @@ void Board::UpdateStates()
 
 		if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 && mFreezeUpdatesLeft < 1)
 		{
-			if (m1b5c > 0)
+			if (mMutatorCooldown > 0)
 			{
-				m1b5c--;
-				if (m1b5c < 1)
-					m1b5c = 0;
+				mMutatorCooldown--;
+				if (mMutatorCooldown < 1)
+					mMutatorCooldown = 0;
 			}
 		}
 
@@ -462,17 +462,17 @@ void Board::UpdateStates()
 			mPhaseDelay = PickSpawnDelay();
 		}
 
-		if (m1bd8 == m1bdc && mPowerupActive == 0 && m1b48 < 0)
+		if (mWeaponCharge == mWeaponChargeMax && mPowerupActive == 0 && mSupaButtonX < 0)
 		{
-			m1b48 += 2;
-			if (m1b48 >= 0)
-				m1b48 = 0;
+			mSupaButtonX += 2;
+			if (mSupaButtonX >= 0)
+				mSupaButtonX = 0;
 		}
-		else if (mPowerupActive == 1 && m1b48 > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
+		else if (mPowerupActive == 1 && mSupaButtonX > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
 		{
-			m1b48 -= 3;
-			if (m1b48 <= -IMAGE_SUPA_BUTTON_ALERT->mWidth)
-				m1b48 = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
+			mSupaButtonX -= 3;
+			if (mSupaButtonX <= -IMAGE_SUPA_BUTTON_ALERT->mWidth)
+				mSupaButtonX = -IMAGE_SUPA_BUTTON_ALERT->mWidth;
 		}
 
 		if (mComboTimeLeft > 0)
@@ -480,19 +480,19 @@ void Board::UpdateStates()
 			mComboTimeLeft--;
 			if (mComboTimeLeft <= 0)
 			{
-				m1b00 = 0;
+				mComboChain = 0;
 				mComboTimeLeft = 0;
 			}
 			else if (mComboTimeLeft % 0x14 == 0)
 				mComboTextVisible = !mComboTextVisible;
 		}
 
-		if (m1b18 > 0)
+		if (mComboPayDelay > 0)
 		{
-			m1b18--;
-			if (m1b18 <= 0)
+			mComboPayDelay--;
+			if (mComboPayDelay <= 0)
 			{
-				m1b18 = 0;
+				mComboPayDelay = 0;
 				PayComboBonus();
 			}
 		}
@@ -549,39 +549,39 @@ void Board::UpdateStates()
 	UpdateSpecialMode();
 	UpdateIntroAndTally();
 
-	if (m1b64 == 1)
+	if (mPerfectBannerState == 1)
 	{
-		int aBefore = m1b60;
-		m1b60 = aBefore + 8;
+		int aBefore = mPerfectBannerAlpha;
+		mPerfectBannerAlpha = aBefore + 8;
 		if (aBefore + 8 > 0xfe)
 		{
-			m1b64 = 2;
-			m1b60 = 0xff;
+			mPerfectBannerState = 2;
+			mPerfectBannerAlpha = 0xff;
 		}
 	}
-	else if (m1b64 == 2 && (m1b68--, m1b68 < 1))
+	else if (mPerfectBannerState == 2 && (mPerfectBannerHold--, mPerfectBannerHold < 1))
 	{
-		m1b68 = 0;
-		m1b64 = 3;
+		mPerfectBannerHold = 0;
+		mPerfectBannerState = 3;
 	}
-	else if (m1b64 == 3)
+	else if (mPerfectBannerState == 3)
 	{
-		int aBefore = m1b60;
-		m1b60 = aBefore - 3;
+		int aBefore = mPerfectBannerAlpha;
+		mPerfectBannerAlpha = aBefore - 3;
 		if (aBefore - 3 < 1)
 		{
-			m1b64 = 0;
-			m1b60 = 0;
+			mPerfectBannerState = 0;
+			mPerfectBannerAlpha = 0;
 		}
 	}
 
-	if (mPowerupActive == 0 && m1bbc <= mStageNumber && mPlayStarted && mFreezeUpdatesLeft < 1 && (m1b08--, m1b08 < 1))
+	if (mPowerupActive == 0 && mHardStage <= mStageNumber && mPlayStarted && mFreezeUpdatesLeft < 1 && (mExtraRowTimer--, mExtraRowTimer < 1))
 	{
-		int aHalf = m1b0c / 2;
-		m1b0c = aHalf;
+		int aHalf = mExtraRowInterval / 2;
+		mExtraRowInterval = aHalf;
 		if (aHalf < 300)
-			m1b0c = 300;
-		m1b08 = m1b0c;
+			mExtraRowInterval = 300;
+		mExtraRowTimer = mExtraRowInterval;
 		mExtraRowsDue++;
 		if (mExtraRowDelay < 1)
 			mExtraRowDelay = 100;
@@ -589,7 +589,7 @@ void Board::UpdateStates()
 
 	if (!mSpecialBannerTexts.empty())
 	{
-		m1b04 = (m1b04 + 4) & 0xff;
+		mSpecialBannerHue = (mSpecialBannerHue + 4) & 0xff;
 		for (unsigned int i = 0; i < mSpecialBannerTexts.size(); i++)
 		{
 			mSpecialBannerTexts[i].mX++;

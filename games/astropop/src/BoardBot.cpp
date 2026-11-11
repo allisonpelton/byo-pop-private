@@ -242,7 +242,7 @@ std::string Board::BotMove()
 		return WaitMove();
 
 	// the weapon of the pilot, charged: the Return key starts it (the middle button and the start button do the same)
-	if (mPowerupActive == 0 && m1bd8 == m1bdc && !mNewRowBouncing && !mBonusRoundOn && !mDemoPlaying)
+	if (mPowerupActive == 0 && mWeaponCharge == mWeaponChargeMax && !mNewRowBouncing && !mBonusRoundOn && !mDemoPlaying)
 		return "{\"kind\":\"weapon\",\"updates\":10," + Steps("{\"key\":\"Return\"}") + "}";
 
 	FieldGrid aGrid;

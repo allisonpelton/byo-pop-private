@@ -434,7 +434,7 @@ void AstroPopApp::CloseFullScreenHelp()
 }
 
 // 0x428a10: the box's settings take effect and are saved with the player; the box goes. In a game the game goes on (theClose:
-// the box was closed with its own button, which the game notes in m1c09).
+// the box was closed with its own button, which the game notes in mKeepLoopSoundsMuted).
 void AstroPopApp::ApplyOptions(bool theClose)
 {
 	mOpenDialogs--;
@@ -450,7 +450,7 @@ void AstroPopApp::ApplyOptions(bool theClose)
 	if (mBoard != NULL)
 	{
 		if (theClose)
-			mBoard->m1c09 = true;
+			mBoard->mKeepLoopSoundsMuted = true;
 		mBoard->Pause(false, true);
 		mWidgetManager->SetFocus(mBoard);
 	}

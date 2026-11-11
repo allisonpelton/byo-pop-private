@@ -43,7 +43,7 @@ void Board::PayComboBonus()
 
 // 0x465290: the level is complete (the Board's Update calls it when the goal is reached). The best level of the mode is
 // kept in the profile every fourth level. Everything the player had in hand or on the field goes to the bricks to
-// delete. In the survival mode's bonus rounds (m1b2c is 1) the bonus round starts at once; otherwise the level-up text
+// delete. In the survival mode's bonus rounds (mLevelEndScreenKind is 1) the bonus round starts at once; otherwise the level-up text
 // comes and the level-up phase is set up.
 void Board::LevelComplete()
 {
@@ -67,7 +67,7 @@ void Board::LevelComplete()
 		}
 	}
 
-	m1b64 = 0;
+	mPerfectBannerState = 0;
 	for (std::list<Brick*>::iterator anItr = mHeldBricks.begin(); anItr != mHeldBricks.end(); ++anItr)
 		mDoomedBricks.insert(*anItr);
 	mHeldBricks.clear();
@@ -91,12 +91,12 @@ void Board::LevelComplete()
 	mPickUpButtonDown = true;
 	if (mSupaBannerStep != 0)
 		mSupaBannerStep = 6;
-	m1b1c++;
+	mLevelsCompleted++;
 	gStateSaved = false;
 	if (mChainCount > 1)
 		PayComboBonus();
 
-	if (mGameType == 1 && m1b2c == 1)
+	if (mGameType == 1 && mLevelEndScreenKind == 1)
 	{
 		mApp->PlaySample(SOUND_BONUS_ROUND);
 		mClicksBlocked = true;
@@ -112,28 +112,28 @@ void Board::LevelComplete()
 		mFlurryTimer = 400;
 		mSirenAnim.SetStopped(true);
 		mApp->PlaySong(0x29);
-		m1b88 = 0;
-		m1b8c = 0;
-		m1b94 = 0;
-		m1b98 = 0;
-		m1b9c = 0;
-		m1ba0 = 0;
-		m1ba4 = 0;
-		m1ba8 = 0;
-		m1bb0 = 0;
-		m1bac = 0;
+		mTallyBarWidth = 0;
+		mTallyTitleAlpha = 0;
+		mTallyBricksLeft = 0;
+		mTallyBricksCounted = 0;
+		mTallyPenalty = 0;
+		mTallyPenaltyShown = 0;
+		mTallyCleanBonus = 0;
+		mTallyCleanBonusShown = 0;
+		mTallyState = 0;
+		mTallyPaid = 0;
 		mClearCountRunning = false;
 		mBricksRevealing = false;
 		mBonusRoundLoaded = false;
 		mBonusFadingOut = false;
-		m1b74 = 0;
-		m1b7c = 0;
-		m1b78 = 200;
-		m1b70 = -1;
+		mBonusFadeAlpha = 0;
+		mBannerTimeLeft = 0;
+		mBonusRevealDelay = 200;
+		mBonusTimeLeft = -1;
 		mBonusRevealDone = false;
 		mBonusWarpIn = true;
-		m1bc0 = 1;
-		m1bc4 = 0;
+		mBonusWarpPhase = 1;
+		mBonusWarpHold = 0;
 		// (the original also reads the volume of the hyperspace loop and drops the number)
 		mApp->mHyperspaceLoop->Play(true, false);
 		mApp->mEngineLoop->Stop();
@@ -216,7 +216,7 @@ int Board::UpgradeScreenKind(int theLevel)
 	if (aUnlock == 3)
 		return 3;
 	if ((theLevel - 3) % 4 == 0 || theLevel == 3)
-		return m1b2c == 1 ? 0 : 1;
+		return mLevelEndScreenKind == 1 ? 0 : 1;
 	return 0;
 }
 
@@ -281,7 +281,7 @@ void Board::SetupUpgradeAnims()
 }
 
 // 0x432b50: the weapon levels of the player (profile settings 0x33 + mode, 0x3b + mode, and 0x37 or 0x3a) set how fast
-// the weapon charges (m1be4, a factor) and how long it lasts (m1be0); the laser of mode 0 gets its animation. (The
+// the weapon charges (mWeaponChargeStep, a factor) and how long it lasts (mWeaponDrainStep); the laser of mode 0 gets its animation. (The
 // original computes the factor in x87 arithmetic.)
 void Board::ApplyWeaponLevels()
 {
@@ -294,35 +294,35 @@ void Board::ApplyWeaponLevels()
 	else
 		mWeaponDurationLevel = -1;
 
-	m1bdc = 18000.0f;
+	mWeaponChargeMax = 18000.0f;
 	if (mMode == 1)
 	{
 		if (mWeaponChargeLevel == 1)
-			m1be4 = 1.2f;
+			mWeaponChargeStep = 1.2f;
 		else if (mWeaponChargeLevel == 2)
-			m1be4 = 1.7142857f;
+			mWeaponChargeStep = 1.7142857f;
 		else if (mWeaponChargeLevel == 3)
-			m1be4 = 3.0f;
-		m1be0 = (float) ((double) 18000.0f * (double) 0.002f);
+			mWeaponChargeStep = 3.0f;
+		mWeaponDrainStep = (float) ((double) 18000.0f * (double) 0.002f);
 		return;
 	}
 	if (mMode == 2)
 	{
 		switch (mWeaponChargeLevel)
 		{
-		case 1:		m1be4 = 1.2f;		break;
-		case 2:		m1be4 = 1.3333334f;	break;
-		case 3:		m1be4 = 1.5f;		break;
-		case 4:		m1be4 = 1.7142857f;	break;
-		case 5:		m1be4 = 2.0f;		break;
+		case 1:		mWeaponChargeStep = 1.2f;		break;
+		case 2:		mWeaponChargeStep = 1.3333334f;	break;
+		case 3:		mWeaponChargeStep = 1.5f;		break;
+		case 4:		mWeaponChargeStep = 1.7142857f;	break;
+		case 5:		mWeaponChargeStep = 2.0f;		break;
 		}
-		m1be0 = (float) ((double) 18000.0f * (double) 0.002f);
+		mWeaponDrainStep = (float) ((double) 18000.0f * (double) 0.002f);
 		return;
 	}
 	if (mMode != 0 && mMode != 3)
 		return;
 
-	m1be4 = (float) (18000.0 / (18000.0 - ((double) mWeaponChargeLevel - 1.0) * 3000.0));
+	mWeaponChargeStep = (float) (18000.0 / (18000.0 - ((double) mWeaponChargeLevel - 1.0) * 3000.0));
 	if (mMode == 0)
 	{
 		mLaserAnim.SetNumFrames(IMAGE_PLAYER1_LASER->mNumCols);
@@ -332,10 +332,10 @@ void Board::ApplyWeaponLevels()
 	}
 	switch (mWeaponDurationLevel)
 	{
-	case 1:		m1be0 = 22.5f;			break;
-	case 2:		m1be0 = 20.0f;			break;
-	case 3:		m1be0 = 18.0f;			break;
-	case 4:		m1be0 = 16.363636f;		break;
+	case 1:		mWeaponDrainStep = 22.5f;			break;
+	case 2:		mWeaponDrainStep = 20.0f;			break;
+	case 3:		mWeaponDrainStep = 18.0f;			break;
+	case 4:		mWeaponDrainStep = 16.363636f;		break;
 	}
 }
 
@@ -403,7 +403,7 @@ void Board::StartLevelUp()
 	mWarpShipY = -52.0f;
 	mWarpLightningPeriod = (((int) aRand % 500000000) % 200) + 100;
 	mBackdropTint = Color(100, 100, 100);
-	m1b3c = 0;
+	mFrameDimming = 0;
 
 	int aBestLevel = 0;
 	mApp->mUser->GetInt(mMode + 8, &aBestLevel);
@@ -411,7 +411,7 @@ void Board::StartLevelUp()
 		mApp->mUser->SetInt(mMode + 8, mLevelNumber);
 	SetupUpgradeAnims();
 
-	if (m1b2c == 2 || m1b2c == 4)
+	if (mLevelEndScreenKind == 2 || mLevelEndScreenKind == 4)
 	{
 		int aCount = 0;
 		int aSetting = aBestLevel;
@@ -423,7 +423,7 @@ void Board::StartLevelUp()
 		ApplyWeaponLevels();
 	}
 
-	if (m1b2c == 3 || m1b2c == 4)
+	if (mLevelEndScreenKind == 3 || mLevelEndScreenKind == 4)
 	{
 		int aValue = 0x13;
 		bool aKnown = true;
@@ -470,12 +470,12 @@ void Board::StartLevelUp()
 	else
 		mLevelUpLines.push_back(StrFormat(GTC(0x5656dc), aMinutes, aSeconds));
 
-	mApp->GetRankName(mScore, &m1bd4);
+	mApp->GetRankName(mScore, &mRankNumber);
 	delete mRankImage;
-	mRankImage = mApp->MakeRankImage(m1bd4, 0x50);
+	mRankImage = mApp->MakeRankImage(mRankNumber, 0x50);
 
-	if (m1b2c == 1)
-		mLevelUpLines.push_back(StrFormat(GTC(0x5656c8), FormatNumber(m1ba4 - m1b9c + mClearBonusWorth).c_str()));
+	if (mLevelEndScreenKind == 1)
+		mLevelUpLines.push_back(StrFormat(GTC(0x5656c8), FormatNumber(mTallyCleanBonus - mTallyPenalty + mClearBonusWorth).c_str()));
 
 	int aPointsToNext = mApp->PointsToNextRank(mScore);
 	if (aPointsToNext == -1)

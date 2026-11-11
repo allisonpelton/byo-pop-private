@@ -135,7 +135,7 @@ bool Board::RowAllows(int theKind, int theRow, int theRefRow, int theCol, bool t
 // the rows above and below, say it stands too near another of its kind.
 bool Board::CanPlaceKind(int theKind, int theRow, int theCol)
 {
-	if (theKind == 0xc && m1b5c > 0)
+	if (theKind == 0xc && mMutatorCooldown > 0)
 		return false;
 
 	if (theKind <= mExtraColors + 3)
@@ -426,19 +426,19 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			if (!(aRatio <= 0.6666666666666666))
 			{
 				aPhase = 2;
-				if (mStageNumber >= m1bbc)
+				if (mStageNumber >= mHardStage)
 				{
-					if (m1b10 < 2)
-						m1b10 = 2;
-					else if (m1b10 == 2)
-						m1b10 = 3;
+					if (mPowerBrickRowState < 2)
+						mPowerBrickRowState = 2;
+					else if (mPowerBrickRowState == 2)
+						mPowerBrickRowState = 3;
 				}
 			}
 			else
 			{
 				aPhase = 1;
-				if (mStageNumber >= m1bbc)
-					m1b10 = (m1b10 == 0) * 2 - 1;
+				if (mStageNumber >= mHardStage)
+					mPowerBrickRowState = (mPowerBrickRowState == 0) * 2 - 1;
 			}
 		}
 		else
@@ -528,7 +528,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			aFuelCol = ((int) AstroRand() % 500000000) % 10;
 		else
 		{
-			if (m1b10 == aPhase && m1b10 > 0)
+			if (mPowerBrickRowState == aPhase && mPowerBrickRowState > 0)
 				aPowerCol = ((int) AstroRand() % 500000000) % 10;
 			else if (mBoosterDue)
 			{
@@ -550,7 +550,7 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 				if (theSpecials)
 				{
 					double aDraw1 = (double) ((int) AstroRand() % 500000000);
-					if (!(m1bec * 5e8f < aDraw1))
+					if (!(mPenaltyChance * 5e8f < aDraw1))
 					{
 						double aDraw2 = (double) ((int) AstroRand() % 500000000);
 						float aStone = aRules.mRule[RULE_STONE].mRates[aPhase].mRate * 5e8f;
@@ -568,10 +568,10 @@ void Board::FillTopRow(bool theSpecials, bool theTutorial, bool theFromTop, bool
 			else
 			{
 				double aDraw1 = (double) ((int) AstroRand() % 500000000);
-				float aPlainShare = m1be8 * 5e8f;
+				float aPlainShare = mBonusChance * 5e8f;
 				if (aDraw1 > aPlainShare)
 				{
-					if (theSpecials && !(aDraw1 > (m1bec + m1be8) * 5e8f))
+					if (theSpecials && !(aDraw1 > (mPenaltyChance + mBonusChance) * 5e8f))
 					{
 						double aDraw2 = (double) ((int) AstroRand() % 500000000);
 						float aStone = aRules.mRule[RULE_STONE].mRates[aPhase].mRate * 5e8f;

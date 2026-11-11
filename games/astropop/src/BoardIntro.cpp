@@ -16,41 +16,41 @@ void Board::UpdateIntroAndTally()
 {
 	if (mBonusWarpIn)
 	{
-		int aPhase = m1bc0;
+		int aPhase = mBonusWarpPhase;
 		if (aPhase == 1)
 		{
 			// the warp ends: the streaks run, the screen shakes and fades in
 			UpdateStreaks();
 			mWarpShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
-			if (m1bc8 == 0x3b && mUpdateCnt % 2 == 0)
+			if (mBonusWarpWhiteAlpha == 0x3b && mUpdateCnt % 2 == 0)
 				mApp->PlaySample(SOUND_WARP);
 			if (mUpdateCnt % 2 == 0)
 			{
-				m1bc8++;
-				if (m1bc8 > 0x4f)
+				mBonusWarpWhiteAlpha++;
+				if (mBonusWarpWhiteAlpha > 0x4f)
 				{
-					m1bc0 = 2;
-					m1bc4 = 0;
-					m1bc8 = 0xff;
-					m1bd0 = 0x182 - GetFontById(0xb1)->StringWidth(GT(0x566074)) / 2;
+					mBonusWarpPhase = 2;
+					mBonusWarpHold = 0;
+					mBonusWarpWhiteAlpha = 0xff;
+					mBonusWarpTextX = 0x182 - GetFontById(0xb1)->StringWidth(GT(0x566074)) / 2;
 				}
 			}
-			mOverlay.SetFill(255, 255, 255, m1bc8);
+			mOverlay.SetFill(255, 255, 255, mBonusWarpWhiteAlpha);
 		}
 		else if (aPhase == 2)
 		{
 			// the white screen holds; then the texts go and the streaks take the colour of their kind
 			UpdateStreaks();
 			mWarpShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
-			mOverlay.SetFill(255, 255, 255, m1bc8);
-			m1bc4++;
-			if (m1bc4 > 0x31)
+			mOverlay.SetFill(255, 255, 255, mBonusWarpWhiteAlpha);
+			mBonusWarpHold++;
+			if (mBonusWarpHold > 0x31)
 			{
 				for (unsigned int i = 0; i < mFloatTexts.size(); i++)
 					delete mFloatTexts[i];
 				std::vector<FloatText*>().swap(mFloatTexts);
-				m1bc4 = 0;
-				m1bc0 = 3;
+				mBonusWarpHold = 0;
+				mBonusWarpPhase = 3;
 				mWarpShakeX = 0;
 				for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
 				{
@@ -71,15 +71,15 @@ void Board::UpdateIntroAndTally()
 		{
 			// the streaks and the stars slow down and the white fades away
 			int aStreaksDone = 0;
-			if (m1bc8 > 0)
+			if (mBonusWarpWhiteAlpha > 0)
 			{
-				m1bc8 -= 2;
-				if (m1bc8 < 1)
+				mBonusWarpWhiteAlpha -= 2;
+				if (mBonusWarpWhiteAlpha < 1)
 				{
-					m1bc8 = 0;
+					mBonusWarpWhiteAlpha = 0;
 					SetOverlayHidden(true);
 				}
-				mOverlay.SetFill(255, 255, 255, m1bc8);
+				mOverlay.SetFill(255, 255, 255, mBonusWarpWhiteAlpha);
 			}
 			for (unsigned int i = 0; i < 100 && i < mStreaks.size(); i++)
 			{
@@ -111,13 +111,13 @@ void Board::UpdateIntroAndTally()
 				}
 			}
 			// (x87 at 24 bits: the sum is a float when it is compared)
-			float aTime = m1c00 + 0.09f;
-			m1c00 = aTime;
+			float aTime = mBonusWarpSlowdown + 0.09f;
+			mBonusWarpSlowdown = aTime;
 			if (aTime >= 9.0f && aStreaksDone == 100)
 			{
-				if (aStarsDone == (int) mBackdropStars.size() && m1bc8 < 1)
+				if (aStarsDone == (int) mBackdropStars.size() && mBonusWarpWhiteAlpha < 1)
 				{
-					m1bc0 = 0;
+					mBonusWarpPhase = 0;
 					mBonusWarpIn = false;
 				}
 			}
@@ -129,21 +129,21 @@ void Board::UpdateIntroAndTally()
 	{
 		if (mSupaBannerStep == 0 && mBonusFadingOut)
 		{
-			m1b74 -= 2;
-			if (m1b74 < 1)
+			mBonusFadeAlpha -= 2;
+			if (mBonusFadeAlpha < 1)
 			{
-				m1b74 = 0;
+				mBonusFadeAlpha = 0;
 				mBonusFadingOut = false;
 			}
 		}
-		if (mSupaBannerStep == 0 && m1b7c > 0)
+		if (mSupaBannerStep == 0 && mBannerTimeLeft > 0)
 		{
-			int aTime = m1b7c;
-			m1b84 = aTime;
-			m1b7c = aTime - 1;
+			int aTime = mBannerTimeLeft;
+			mBannerTimeShown = aTime;
+			mBannerTimeLeft = aTime - 1;
 			mBannerWavePhase = (float) ((double) mBannerWavePhase + 0.07);
 			if (aTime - 1 < 1)
-				m1b7c = 0;
+				mBannerTimeLeft = 0;
 		}
 	}
 
@@ -152,16 +152,16 @@ void Board::UpdateIntroAndTally()
 		// the time runs out: when everything has settled the clear count starts
 		if (aTimeUp && !mStartBannerDoneInBonus && !mBricksRevealing)
 		{
-			if (m1b70 > 0)
-				m1b70--;
-			if (m1b70 % 100 == 0 && m1b70 > 0)
+			if (mBonusTimeLeft > 0)
+				mBonusTimeLeft--;
+			if (mBonusTimeLeft % 100 == 0 && mBonusTimeLeft > 0)
 				gStateSaved = false;
-			if (m1b70 < 1 && CountMovingBricks(false) == 0 && mKillAllTypes.empty() && mTakenBrickCount == 0 && mFallingGroups.empty() && mFiredGroups.empty())
+			if (mBonusTimeLeft < 1 && CountMovingBricks(false) == 0 && mKillAllTypes.empty() && mTakenBrickCount == 0 && mFallingGroups.empty() && mFiredGroups.empty())
 			{
-				m1b70 = 0;
+				mBonusTimeLeft = 0;
 				mClicksBlocked = true;
-				m1b7c = 400;
-				BuildBanner(GT(0x566054), m1b7c, FONT_NEURO30);
+				mBannerTimeLeft = 400;
+				BuildBanner(GT(0x566054), mBannerTimeLeft, FONT_NEURO30);
 				StartClearCount();
 			}
 		}
@@ -171,149 +171,149 @@ void Board::UpdateIntroAndTally()
 		return;
 
 	// the tally
-	if (mSupaBannerStep == 0 && m1b7c < 1)
+	if (mSupaBannerStep == 0 && mBannerTimeLeft < 1)
 	{
-		int aState = m1bb0;
+		int aState = mTallyState;
 		if (aState == 0)
 		{
-			m1b88 += 8;
-			if (m1b88 > 0x13f)
+			mTallyBarWidth += 8;
+			if (mTallyBarWidth > 0x13f)
 			{
-				m1b88 = 0x140;
-				m1bb0 = 1;
-				if (m1b94 == 0)
+				mTallyBarWidth = 0x140;
+				mTallyState = 1;
+				if (mTallyBricksLeft == 0)
 					mApp->PlaySample(SOUND_PERFECT);
 			}
 		}
 		else if (aState == 1)
 		{
-			m1b90--;
-			m1b8c += 8;
-			if (m1b8c > 0xff)
-				m1b8c = 0xff;
-			if (m1b90 < 1)
+			mTallyDelay--;
+			mTallyTitleAlpha += 8;
+			if (mTallyTitleAlpha > 0xff)
+				mTallyTitleAlpha = 0xff;
+			if (mTallyDelay < 1)
 			{
-				m1bb0 = 2;
-				m1b90 = 0x19;
+				mTallyState = 2;
+				mTallyDelay = 0x19;
 			}
 		}
 		else if (aState == 2)
 		{
-			m1b90--;
-			if (m1b90 < 1)
+			mTallyDelay--;
+			if (mTallyDelay < 1)
 			{
-				m1b90 = 0x19;
-				m1bb0 = 3;
+				mTallyDelay = 0x19;
+				mTallyState = 3;
 			}
 		}
 		else if (aState == 3)
 		{
-			m1b90--;
-			if (m1b90 < 1)
+			mTallyDelay--;
+			if (mTallyDelay < 1)
 			{
-				m1ba0 += m1bb4;
-				m1b98++;
-				if (m1b9c <= m1ba0)
-					m1ba0 = m1b9c;
-				if (m1bb8 == 0)
+				mTallyPenaltyShown += mTallyAmountStep;
+				mTallyBricksCounted++;
+				if (mTallyPenalty <= mTallyPenaltyShown)
+					mTallyPenaltyShown = mTallyPenalty;
+				if (mTallySoundCounter == 0)
 					mApp->PlaySample(SOUND_COUNT);
-				m1bb8++;
-				if (m1bb8 > 1)
-					m1bb8 = 0;
-				if (m1b98 < m1b94)
-					m1b90 = 3;
+				mTallySoundCounter++;
+				if (mTallySoundCounter > 1)
+					mTallySoundCounter = 0;
+				if (mTallyBricksCounted < mTallyBricksLeft)
+					mTallyDelay = 3;
 				else
 				{
-					m1b98 = m1b94;
-					m1bb0 = 4;
-					m1b90 = 10;
-					m1ba0 = m1b9c;
-					if (m1b94 > 0)
+					mTallyBricksCounted = mTallyBricksLeft;
+					mTallyState = 4;
+					mTallyDelay = 10;
+					mTallyPenaltyShown = mTallyPenalty;
+					if (mTallyBricksLeft > 0)
 					{
-						m1bb4 = 0;
-						m1ba8 = 0;
+						mTallyAmountStep = 0;
+						mTallyCleanBonusShown = 0;
 					}
 				}
 			}
 		}
 		else if (aState == 4)
 		{
-			m1b90--;
-			if (m1b90 < 1)
+			mTallyDelay--;
+			if (mTallyDelay < 1)
 			{
-				m1b90 = (m1b94 != 0 ? 0x7d : 0) + 0x19;
-				m1bb0 = 5;
+				mTallyDelay = (mTallyBricksLeft != 0 ? 0x7d : 0) + 0x19;
+				mTallyState = 5;
 			}
 		}
 		else if (aState == 5)
 		{
-			m1b90--;
-			if (m1b90 < 1)
+			mTallyDelay--;
+			if (mTallyDelay < 1)
 			{
 				int aTotal;
-				if (m1b94 == 0)
+				if (mTallyBricksLeft == 0)
 				{
-					m1ba8 += m1bb4;
-					if (m1bb8 == 0)
+					mTallyCleanBonusShown += mTallyAmountStep;
+					if (mTallySoundCounter == 0)
 						mApp->PlaySample(SOUND_COUNT);
-					m1bb8++;
-					if (m1bb8 > 3)
-						m1bb8 = 0;
-					if (m1ba8 < m1ba4)
+					mTallySoundCounter++;
+					if (mTallySoundCounter > 3)
+						mTallySoundCounter = 0;
+					if (mTallyCleanBonusShown < mTallyCleanBonus)
 					{
-						m1b90 = 1;
+						mTallyDelay = 1;
 						return;
 					}
-					aTotal = (mClearBonusWorth - m1b9c) + m1ba4;
-					m1ba8 = m1ba4;
+					aTotal = (mClearBonusWorth - mTallyPenalty) + mTallyCleanBonus;
+					mTallyCleanBonusShown = mTallyCleanBonus;
 				}
 				else
-					aTotal = (m1ba4 - m1b9c) + mClearBonusWorth;
-				m1bb0 = 6;
-				m1b90 = 0x14;
-				m1bac = 0;
+					aTotal = (mTallyCleanBonus - mTallyPenalty) + mClearBonusWorth;
+				mTallyState = 6;
+				mTallyDelay = 0x14;
+				mTallyPaid = 0;
 				// the tally counts up faster for a bigger total
 				if (aTotal < 50000)
-					m1bb4 = 500;
+					mTallyAmountStep = 500;
 				else if (aTotal > 99999)
-					m1bb4 = (aTotal > 199999) ? 4000 : 2000;
+					mTallyAmountStep = (aTotal > 199999) ? 4000 : 2000;
 				else
-					m1bb4 = 1000;
+					mTallyAmountStep = 1000;
 			}
 		}
 		else if (aState == 6)
 		{
-			m1b90--;
-			if (m1b90 < 1)
+			mTallyDelay--;
+			if (mTallyDelay < 1)
 			{
-				m1b90 = 1;
-				int aTotal = (m1ba4 - m1b9c) + mClearBonusWorth;
-				int aPaid = m1bac;
+				mTallyDelay = 1;
+				int aTotal = (mTallyCleanBonus - mTallyPenalty) + mClearBonusWorth;
+				int aPaid = mTallyPaid;
 				if (aPaid < aTotal)
 				{
-					int aStep = m1bb4;
+					int aStep = mTallyAmountStep;
 					if (aTotal < aPaid + aStep)
 						aStep = aTotal - aPaid;
-					m1bac = aPaid + aStep;
+					mTallyPaid = aPaid + aStep;
 					AddScore(aStep, false);
 				}
-				if (m1bb8 == 0)
+				if (mTallySoundCounter == 0)
 					mApp->PlaySample(SOUND_COUNT);
-				m1bb8++;
-				if (m1bb8 > 7)
-					m1bb8 = 0;
-				if (aTotal <= m1bac)
+				mTallySoundCounter++;
+				if (mTallySoundCounter > 7)
+					mTallySoundCounter = 0;
+				if (aTotal <= mTallyPaid)
 				{
-					m1bac = aTotal;
-					m1bb0 = 8;
-					m1b90 = 400;
+					mTallyPaid = aTotal;
+					mTallyState = 8;
+					mTallyDelay = 400;
 				}
 			}
 		}
 		else if (aState == 8)
 		{
-			m1b90--;
-			if (m1b90 < 1)
+			mTallyDelay--;
+			if (mTallyDelay < 1)
 			{
 				// the tally is over: the bricks left on the field are given up and the next stage begins
 				mClearCountRunning = false;

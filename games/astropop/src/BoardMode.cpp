@@ -44,13 +44,13 @@ void Board::UpdateSpecialMode()
 	if (mPowerupActive == 0)
 	{
 		// no bonus runs: the meter fills while the field is quiet
-		if (!mBonusRoundOn && !mBonusWarpIn && mPlayStarted && m1bd8 < m1bdc && !mApp->mTutorialOn)
+		if (!mBonusRoundOn && !mBonusWarpIn && mPlayStarted && mWeaponCharge < mWeaponChargeMax && !mApp->mTutorialOn)
 		{
-			if (m1bd8 < m1bdc)
-				m1bd8 = m1be4 + m1bd8;
-			if (m1bd8 < m1bdc)
+			if (mWeaponCharge < mWeaponChargeMax)
+				mWeaponCharge = mWeaponChargeStep + mWeaponCharge;
+			if (mWeaponCharge < mWeaponChargeMax)
 				return;
-			m1bd8 = m1bdc;
+			mWeaponCharge = mWeaponChargeMax;
 			mMeterFullAnim.Reset();
 			mMeterFullAnim.SetStopped(false);
 			mApp->PlaySample(SOUND_POWERUP);
@@ -58,7 +58,7 @@ void Board::UpdateSpecialMode()
 		}
 		if (mBonusRoundOn)
 			return;
-		if (m1bd8 != m1bdc)
+		if (mWeaponCharge != mWeaponChargeMax)
 			return;
 		if (mComboTimeLeft != 0)
 			return;
@@ -79,7 +79,7 @@ void Board::UpdateSpecialMode()
 		return;
 	if (mMode == 3 && !mPsychicUsed)
 		return;
-	m1bd8 = m1bd8 - m1be0;
+	mWeaponCharge = mWeaponCharge - mWeaponDrainStep;
 	if (mShipShimmerY == 0)
 	{
 		mShipShimmerHeight += 2;
@@ -101,11 +101,11 @@ void Board::UpdateSpecialMode()
 		}
 	}
 
-	if (m1bd8 <= 0.0f && mMode != 1)
+	if (mWeaponCharge <= 0.0f && mMode != 1)
 	{
 		// the bonus is over
 		mScreenShakeX = 0;
-		m1bd8 = 0;
+		mWeaponCharge = 0;
 		mPowerupActive = 0;
 		mMeterFullAnim.SetStopped(true);
 		mTurbotPowerupAnim.SetStopped(true);
@@ -188,17 +188,17 @@ void Board::UpdateSpecialMode()
 		}
 
 		// (x87 at 24 bits, every result a float: the share of the meter that is left, a quarter of the updates, at most 255)
-		float aRate = 1.0f / m1be0;
-		int aLeft = (int) ((aRate * m1bdc - aRate * m1bd8) * 0.25f);
+		float aRate = 1.0f / mWeaponDrainStep;
+		int aLeft = (int) ((aRate * mWeaponChargeMax - aRate * mWeaponCharge) * 0.25f);
 		if (aLeft > 0xff)
 			aLeft = 0xff;
 		Fire(0x21, aLeft);
 		if (mUpdateCnt % 10 == 0)
 		{
-			m1b24++;
-			if (m1b24 >= IMAGE_SPROCKET_SUPA_OVERLAY->mNumCols)
-				m1b24 = 0;
-			Fire(0x22, m1b24);
+			mSprocketOverlayCel++;
+			if (mSprocketOverlayCel >= IMAGE_SPROCKET_SUPA_OVERLAY->mNumCols)
+				mSprocketOverlayCel = 0;
+			Fire(0x22, mSprocketOverlayCel);
 		}
 
 		if (mAtomicBlastOver)
@@ -220,7 +220,7 @@ void Board::UpdateSpecialMode()
 			}
 			mPowerupActive = 0;
 			mScreenShakeX = 0;
-			m1bd8 = 0;
+			mWeaponCharge = 0;
 			DropUnsupported(mTakenCells);
 			mAtomicWeaponState = -1;
 			std::vector<CellRef3>().swap(mAtomicMarkedBricks);
@@ -262,18 +262,18 @@ void Board::UpdateSpecialMode()
 	if (mPowerupActive == 1)
 		mScreenShakeX = ((int) AstroRand() % 500000000) % 0xb - 5;
 	{
-		float aRate = 1.0f / m1be0;
-		int aLeft = (int) ((aRate * m1bdc - aRate * m1bd8) * 0.25f);
+		float aRate = 1.0f / mWeaponDrainStep;
+		int aLeft = (int) ((aRate * mWeaponChargeMax - aRate * mWeaponCharge) * 0.25f);
 		if (aLeft > 0xff)
 			aLeft = 0xff;
 		Fire(0x23, aLeft);
 	}
 	if (mUpdateCnt % 10 == 0)
 	{
-		m1b50++;
-		if (m1b50 >= IMAGE_TURBOT_SUPA_OVERLAY->mNumCols)
-			m1b50 = 0;
-		Fire(0x24, m1b50);
+		mTurbotOverlayCel++;
+		if (mTurbotOverlayCel >= IMAGE_TURBOT_SUPA_OVERLAY->mNumCols)
+			mTurbotOverlayCel = 0;
+		Fire(0x24, mTurbotOverlayCel);
 	}
 	if (mTurbotPowerupAlpha < 0xff)
 	{
@@ -281,9 +281,9 @@ void Board::UpdateSpecialMode()
 		if (mTurbotPowerupAlpha > 0xfe)
 			mTurbotPowerupAlpha = 0xff;
 	}
-	if (m1b58 > 0 && mUpdateCnt % m1b58 == 0)
+	if (mTurbotBeamInterval > 0 && mUpdateCnt % mTurbotBeamInterval == 0)
 	{
-		m1b58 = 0xf - mTurbotFlashAlpha / 10;
+		mTurbotBeamInterval = 0xf - mTurbotFlashAlpha / 10;
 		if (mTurbotBeams.size() < 6)
 		{
 			LaserRec aBeam;
@@ -312,26 +312,26 @@ void Board::UpdateSpecialMode()
 			i--;
 		}
 	}
-	if (mTurbotFlashAlpha < 100 && m1b4c != 3)
+	if (mTurbotFlashAlpha < 100 && mTurbotPhase != 3)
 	{
-		int aOldPhase = m1b4c;
+		int aOldPhase = mTurbotPhase;
 		mTurbotFlashAlpha++;
 		if (mTurbotFlashAlpha >= 100)
 		{
 			if (aOldPhase == 0)
-				m1b4c = 2;
+				mTurbotPhase = 2;
 			else if (aOldPhase == 1)
-				m1b4c = 3;
+				mTurbotPhase = 3;
 		}
 	}
 
 	bool aDone = true;      // false: leave through the end of the function
-	if (m1b4c == 3)
+	if (mTurbotPhase == 3)
 	{
-		if (m1b54 < 100)
+		if (mTurbotWindUpCounter < 100)
 		{
-			m1b54++;
-			if (m1b54 >= 100)
+			mTurbotWindUpCounter++;
+			if (mTurbotWindUpCounter >= 100)
 			{
 				mTurbotFlashAlpha = 0xff;
 				mTurbotPowerupAnim.SetStopped(true);
@@ -389,8 +389,8 @@ void Board::UpdateSpecialMode()
 	{
 		mTurbotWaveY = -0x10000;
 		mTurbotFlashAlpha = -1;
-		if (1.0f < m1bd8)
-			m1bd8 = 1.0f;
+		if (1.0f < mWeaponCharge)
+			mWeaponCharge = 1.0f;
 		SetOverlayHidden(true);
 	}
 	if (mTurbotFlashAlpha < 0)

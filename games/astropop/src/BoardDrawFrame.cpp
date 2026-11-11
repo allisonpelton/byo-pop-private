@@ -16,7 +16,7 @@ using namespace Sexy;
 void Board::DrawFrame(Graphics* g)
 {
 	int aTick = (mPauseCount < 1) ? mUpdateCnt : mPauseStartUpdate;
-	bool aDim = m1b3c > 0;                  // the screen fades out: the frame goes dark with it
+	bool aDim = mFrameDimming > 0;                  // the screen fades out: the frame goes dark with it
 
 	if (mGameOver)
 	{
@@ -32,7 +32,7 @@ void Board::DrawFrame(Graphics* g)
 		if (aDim)
 		{
 			g->SetColorizeImages(true);
-			int aShade = 0xff - m1b3c;
+			int aShade = 0xff - mFrameDimming;
 			g->SetColor(Color(aShade, aShade, aShade));
 		}
 		if (mDemoPlaying)
@@ -84,7 +84,7 @@ void Board::DrawFrame(Graphics* g)
 
 		if ((mWarpActive && !mWarpCharging) || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging || mBonusRoundOn || mBonusWarpIn || mClearCountRunning)
 			aGaugeColor = Color(0x7f, 0x7f, 0x7f);
-		if ((mWarpCharging || (mBonusWarpIn && m1bc0 < 3)) && mUpdateCnt % 0x1e < 0xf && (m1b2c != 1 || mBonusWarpIn))
+		if ((mWarpCharging || (mBonusWarpIn && mBonusWarpPhase < 3)) && mUpdateCnt % 0x1e < 0xf && (mLevelEndScreenKind != 1 || mBonusWarpIn))
 			aGaugeColor = Color(0xff, 0xff, 0xff);
 
 		g->SetColor(Color(0, 0, 0));
@@ -99,7 +99,7 @@ void Board::DrawFrame(Graphics* g)
 		if (mGameType == 1)
 		{
 			g->SetFont(GetFontById(FONT_DIALOG_BOX_ID));
-			int aShade = aDim ? 0xff - m1b3c : 0xff;
+			int aShade = aDim ? 0xff - mFrameDimming : 0xff;
 			g->SetColor(Color(aShade, aShade, aShade));
 			g->DrawString(StrFormat(GTC(0x00564634), mLevelNumber), mScreenShakeX + 0x36, 0xbb);
 		}
@@ -108,7 +108,7 @@ void Board::DrawFrame(Graphics* g)
 			if (aDim)
 			{
 				g->SetColorizeImages(true);
-				int aShade = 0xff - m1b3c;
+				int aShade = 0xff - mFrameDimming;
 				g->SetColor(Color(aShade, aShade, aShade));
 			}
 			g->DrawImage(IMAGE_UI_SURVIVAL_TIME, 0x84, 0x7d);
@@ -136,7 +136,7 @@ void Board::DrawFrame(Graphics* g)
 					g->FillRect(0xa9, 3, 0x1b4, 0x18);
 					g->SetColor(Color(0xff, 0xff, 0xff, 0xff));
 					g->SetFont(GetFontById(FONT_DIALOG_BOX_BTN_ID));
-					int aSeconds = (int) (m1bd8 / m1be0 * 0.01f + 1.0f);
+					int aSeconds = (int) (mWeaponCharge / mWeaponDrainStep * 0.01f + 1.0f);
 					WriteString(g, StrFormat(GTC(0x00564884), aSeconds), 0xa6, 0x14, 0x1b8, 0,
 						true, 0, -1);
 				}
@@ -207,7 +207,7 @@ void Board::DrawFrame(Graphics* g)
 		}
 
 		// the time left of a bonus round, across the top of the field
-		if (mBonusRoundOn && mFreezeUpdatesLeft < 0x3d && (m1bc0 == 0 || m1bc0 > 1))
+		if (mBonusRoundOn && mFreezeUpdatesLeft < 0x3d && (mBonusWarpPhase == 0 || mBonusWarpPhase > 1))
 		{
 			g->SetColor(Color(0, 0, 0, 0xff));
 			g->FillRect(0xa7, 4, 0x1b7, 0x17);
@@ -225,20 +225,20 @@ void Board::DrawFrame(Graphics* g)
 			std::string aLabel = GT(0x00564864);
 			g->DrawString(aLabel, 0xf0, 0x14);
 			g->SetColor(Color(0xff, 0xff, 0xff));
-			int aSeconds = (m1b70 < 0) ? 0x3c : m1b70 / 100;
+			int aSeconds = (mBonusTimeLeft < 0) ? 0x3c : mBonusTimeLeft / 100;
 			g->DrawString(StrFormat("%d", aSeconds), aFont->StringWidth(aLabel) + 0xf0, 0x14);
 		}
 
 		if ((mWarpActive && !mWarpCharging) || mWarpFlight || mAtWarpGate || mWarpGatePicked || mWarpCharging)
 		{
 			g->SetDrawMode(Graphics::DRAWMODE_ADDITIVE);
-			DrawCel(g, IMAGE_CP_WARP_OVERLAY, mScreenShakeX, 0x131, m1b14);
+			DrawCel(g, IMAGE_CP_WARP_OVERLAY, mScreenShakeX, 0x131, mWarpOverlayCel);
 			g->SetDrawMode(Graphics::DRAWMODE_NORMAL);
 		}
 
 		// the gauge of the supa weapon (its width is how far it has charged) and the button that fires it
 		Image* aGauge = IMAGE_POWERUP_GAUGE;
-		float aCharge = m1bd8 / m1bdc;
+		float aCharge = mWeaponCharge / mWeaponChargeMax;
 		if (aCharge > 1.0f)
 			aCharge = 1.0f;
 		int aGaugeWidth = (int) ((float) aGauge->mWidth * aCharge);
@@ -246,7 +246,7 @@ void Board::DrawFrame(Graphics* g)
 		Image* aButton = NULL;
 		int aGlowAlpha = 0;
 		bool aPanelOut = !mHintSpots.empty() && mHintSpots[0]->mActive && mLevelUpPanelY <= -mLevelUpPanelHeight;    // a hint panel is up over the field
-		if (m1b48 > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
+		if (mSupaButtonX > -IMAGE_SUPA_BUTTON_ALERT->mWidth)
 		{
 			int aX = mLastPointerX;
 			int aY = mLastPointerY;
@@ -294,19 +294,19 @@ void Board::DrawFrame(Graphics* g)
 		if (!aLocked)
 		{
 			g->DrawImage(aGauge, mScreenShakeX + 3, 0xde, Rect(0, 0, aGaugeWidth, aGauge->mHeight));
-			if (mPowerupActive == 0 && m1bd8 < m1bdc)
+			if (mPowerupActive == 0 && mWeaponCharge < mWeaponChargeMax)
 				g->DrawImage(IMAGE_POWERUP_CHARGING, mScreenShakeX + 3, 0xde);
 			else if (mPowerupActive == 1)
 				g->DrawImage(IMAGE_POWERUP_ACTIVE, mScreenShakeX + 3, 0xde);
 			if (aButton != NULL)
 			{
-				g->DrawImage(aButton, m1b48 + mScreenShakeX, 0xd7);
-				g->DrawImage(aLights, m1b48 + mScreenShakeX, 0xd7);
+				g->DrawImage(aButton, mSupaButtonX + mScreenShakeX, 0xd7);
+				g->DrawImage(aLights, mSupaButtonX + mScreenShakeX, 0xd7);
 				if (aGlowAlpha > 0)
 				{
 					g->SetColorizeImages(true);
 					g->SetColor(Color(0xff, 0xff, 0xff, aGlowAlpha * 2));
-					g->DrawImage(IMAGE_SUPA_BUTTON_LIGHTS_ON, m1b48 + mScreenShakeX, 0xd7);
+					g->DrawImage(IMAGE_SUPA_BUTTON_LIGHTS_ON, mSupaButtonX + mScreenShakeX, 0xd7);
 					g->SetColorizeImages(false);
 				}
 			}
@@ -317,7 +317,7 @@ void Board::DrawFrame(Graphics* g)
 			g->SetColor(Color(0xff, 0xff, 0xff, 0x80));
 			g->DrawImage(aGauge, mScreenShakeX + 3, 0xde, Rect(0, 0, aGaugeWidth, aGauge->mHeight));
 			g->SetColorizeImages(false);
-			if (mPowerupActive == 0 && m1bd8 < m1bdc)
+			if (mPowerupActive == 0 && mWeaponCharge < mWeaponChargeMax)
 				g->DrawImage(IMAGE_POWERUP_CHARGING, mScreenShakeX + 3, 0xde);
 			else if (mPowerupActive == 1)
 				g->DrawImage(IMAGE_POWERUP_ACTIVE, mScreenShakeX + 3, 0xde);
@@ -325,8 +325,8 @@ void Board::DrawFrame(Graphics* g)
 			{
 				g->SetColorizeImages(true);
 				g->SetColor(Color(0x80, 0x80, 0x80));
-				g->DrawImage(aButton, m1b48 + mScreenShakeX, 0xd7);
-				g->DrawImage(aLights, m1b48 + mScreenShakeX, 0xd7);
+				g->DrawImage(aButton, mSupaButtonX + mScreenShakeX, 0xd7);
+				g->DrawImage(aLights, mSupaButtonX + mScreenShakeX, 0xd7);
 				g->SetColorizeImages(false);
 			}
 		}
@@ -340,7 +340,7 @@ void Board::DrawFrame(Graphics* g)
 		if (aDim)
 		{
 			g->SetColorizeImages(true);
-			int aShade = 0xff - m1b3c;
+			int aShade = 0xff - mFrameDimming;
 			g->SetColor(Color(aShade, aShade, aShade));
 			g->SetColorizeImages(false);
 		}
@@ -348,7 +348,7 @@ void Board::DrawFrame(Graphics* g)
 
 	// the score (the time of a survival game)
 	g->SetFont(FONT_PLAYER_SCORE);
-	g->SetColor(Color(0xff, 0xff, 0, aDim ? 0xff - m1b3c : 0xff));
+	g->SetColor(Color(0xff, 0xff, 0, aDim ? 0xff - mFrameDimming : 0xff));
 	if (mGameType == 2)
 	{
 		int aMinutes = mRampTime / 6000;

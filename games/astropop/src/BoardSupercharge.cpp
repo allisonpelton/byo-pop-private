@@ -282,7 +282,7 @@ void Board::UpdateSupercharge(bool theCheck, int theColour)
 		mSuperchargeBlastAnim.SetNumFrames(IMAGE_FUELCELL_DEATH->mNumCols);
 		mSuperchargeBlastAnim.mHoldLast = true;
 		mSuperchargeBlastAnim.SetStopped(false);
-		m1b40 = 200;
+		mSurvivalBonusTimer = 200;
 	}
 
 	std::string aText;

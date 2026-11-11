@@ -52,7 +52,7 @@ void Board::DrawBricks(Graphics* g, bool theGlow)
 void Board::DrawBonusIntro(Graphics* g)
 {
 	int aPieceX = mShipX - 5;
-	int aBaseY = (int) (m1bf8 + 423.0f);
+	int aBaseY = (int) (mShipBounceY + 423.0f);
 
 	if (mClearCountRunning)
 	{
@@ -68,11 +68,11 @@ void Board::DrawBonusIntro(Graphics* g)
 		}
 
 		g->SetColor(Color(0, 0, 0, 0xaa));
-		g->FillRect(0, 0xa0, m1b88, 0xe1);
-		g->FillRect(mWidth - m1b88, 0xa0, m1b88, 0xe1);
+		g->FillRect(0, 0xa0, mTallyBarWidth, 0xe1);
+		g->FillRect(mWidth - mTallyBarWidth, 0xa0, mTallyBarWidth, 0xe1);
 	}
 
-	if (((m1bc0 == 2 && m1bc8 == 0xff) || m1bc0 == 3) && !mBonusRoundStarted || (mBonusRoundOn && !mBonusWarpIn && !mBonusRoundStarted))
+	if (((mBonusWarpPhase == 2 && mBonusWarpWhiteAlpha == 0xff) || mBonusWarpPhase == 3) && !mBonusRoundStarted || (mBonusRoundOn && !mBonusWarpIn && !mBonusRoundStarted))
 	{
 		g->SetColor(Color(0, 0, 0, 0xdc));
 		g->FillRect(0, 0xa0, mWidth, 0xc3);

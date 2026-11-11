@@ -23,7 +23,7 @@ void Board::LoadLevel(bool theFromRules)
 	memset(&mScriptRows, 0, sizeof(mScriptRows));
 	ResetGame();
 	mStreaksFadingOut = true;
-	m1b38 = 0;
+	mShipFadeAlpha = 0;
 	mApp->SetCursor(CURSOR_POINTER);
 	if (!theFromRules)
 	{
@@ -178,8 +178,8 @@ void Board::LoadLevel(bool theFromRules)
 	}
 	if (mGameType == 1)
 	{
-		m1b2c = m1b28;
-		m1b28 = UpgradeScreenKind(mLevelNumber + 1);
+		mLevelEndScreenKind = mNextLevelScreenKind;
+		mNextLevelScreenKind = UpgradeScreenKind(mLevelNumber + 1);
 	}
 	Fire(0x2a, 1);
 }

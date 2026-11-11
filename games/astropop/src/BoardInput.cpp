@@ -140,7 +140,7 @@ void Board::StartByHand()
 {
 	if (!mBonusRoundOn && CountMovingBricks(false) == 0 && mFallingGroups.empty() && mFiredGroups.empty() && mHeldBricksNotLanded == 0)
 	{
-		if (m1c08 && !mBonusWarpIn)
+		if (mWeaponDialogDue && !mBonusWarpIn)
 			mApp->ShowPowerDialog();
 		else
 			BeginPlay();
@@ -217,7 +217,7 @@ void Board::KeyDown(KeyCode theKey)
 		FirePiece();
 	else if (theKey == 0x1b)
 		mApp->ButtonDepress(0xfa1);
-	else if (theKey == 0xd && !mApp->mWidgetManager->mKeyDown[0x12] && !mNewRowBouncing && m1bd8 == m1bdc && mPowerupActive == 0)
+	else if (theKey == 0xd && !mApp->mWidgetManager->mKeyDown[0x12] && !mNewRowBouncing && mWeaponCharge == mWeaponChargeMax && mPowerupActive == 0)
 		StartByHand();
 }
 
@@ -257,7 +257,7 @@ void Board::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 	(void) y;
 	(void) theClickCount;
 	if (mApp->mHelpScreen == NULL && theBtnNum == 2 && (!mDemoPlaying || mDemoInputActive) && !mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging &&
-		!mLevelUpPhase && !mGameOver && mPauseCount == 0 && !mNewRowBouncing && m1bd8 == m1bdc && mPowerupActive == 0)
+		!mLevelUpPhase && !mGameOver && mPauseCount == 0 && !mNewRowBouncing && mWeaponCharge == mWeaponChargeMax && mPowerupActive == 0)
 		StartByHand();
 }
 
@@ -316,7 +316,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 		{
 			if (!mClearCountRunning)
 			{
-				if (!mWarpActive && !mWarpFlight && !mLevelUpPhase && !mNewRowBouncing && m1bd8 == m1bdc && PointInRect(x, y, kStartRect) && mPowerupActive == 0)
+				if (!mWarpActive && !mWarpFlight && !mLevelUpPhase && !mNewRowBouncing && mWeaponCharge == mWeaponChargeMax && PointInRect(x, y, kStartRect) && mPowerupActive == 0)
 				{
 					StartByHand();
 					return;
@@ -327,22 +327,22 @@ void Board::MouseDown(int x, int y, int theClickCount)
 			}
 
 			// a click while the stage is counted speeds the count up
-			if (m1b7c < 1 && m1bb0 < 6)
+			if (mBannerTimeLeft < 1 && mTallyState < 6)
 			{
-				m1bb0 = 6;
-				m1b98 = m1b94;
-				int aLeft = (mClearBonusWorth - m1b9c) + m1ba4;
-				m1b88 = 0x140;
-				m1b8c = 0xff;
-				m1ba0 = m1b9c;
-				m1ba8 = m1ba4;
-				m1b90 = 0x14;
+				mTallyState = 6;
+				mTallyBricksCounted = mTallyBricksLeft;
+				int aLeft = (mClearBonusWorth - mTallyPenalty) + mTallyCleanBonus;
+				mTallyBarWidth = 0x140;
+				mTallyTitleAlpha = 0xff;
+				mTallyPenaltyShown = mTallyPenalty;
+				mTallyCleanBonusShown = mTallyCleanBonus;
+				mTallyDelay = 0x14;
 				if (aLeft < 50000)
-					m1bb4 = 500;
+					mTallyAmountStep = 500;
 				else if (aLeft < 100000)
-					m1bb4 = 1000;
+					mTallyAmountStep = 1000;
 				else
-					m1bb4 = (aLeft >= 200000) ? 4000 : 2000;
+					mTallyAmountStep = (aLeft >= 200000) ? 4000 : 2000;
 			}
 		}
 		else if (theClickCount == -1 && !mClearCountRunning)
@@ -386,7 +386,7 @@ void Board::MouseDown(int x, int y, int theClickCount)
 	{
 		if (mFastGateStage < 1 || x < mFastGateX || mFastGateX + 0x78 < x || mLastPointerY < 0xe1 || aGateHeight + 0xf5 < mLastPointerY)
 			return;
-		m1b28 = UpgradeScreenKind(mFastGateStage / 2 + 1);
+		mNextLevelScreenKind = UpgradeScreenKind(mFastGateStage / 2 + 1);
 		mApp->PlaySample(SOUND_BUTTON_DOWN);
 		if (mStageNumber < mFastGateStage)
 		{
@@ -521,7 +521,7 @@ void Board::MouseMove(int x, int y)
 				if (!mWarpActive && !mWarpFlight && !mAtWarpGate && !mWarpGatePicked && !mWarpCharging && !mLevelUpPhase && !mGameOver && mPauseCount == 0 &&
 					PointInRect(mLastPointerX, mLastPointerY, kStartRect) && mPowerupActive == 0 && !mBonusRoundOn)
 				{
-					if (m1bdc <= m1bd8 && !mNewRowBouncing)
+					if (mWeaponChargeMax <= mWeaponCharge && !mNewRowBouncing)
 						mApp->SetCursor(1);
 					mHintBoxes[0]->SetShown(true);
 					mHintBoxes[0]->mX = mLastPointerX + 10;
@@ -625,7 +625,7 @@ void Board::MouseMove(int x, int y)
 	{
 		if (PointInRect(mLastPointerX, mLastPointerY, kStartRect) && mPowerupActive == 0 && !mBonusRoundOn)
 		{
-			if (m1bdc <= m1bd8 && !mNewRowBouncing)
+			if (mWeaponChargeMax <= mWeaponCharge && !mNewRowBouncing)
 				mApp->SetCursor(1);
 			mHintBoxes[0]->SetShown(true);
 			mHintBoxes[0]->mX = mLastPointerX + 10;

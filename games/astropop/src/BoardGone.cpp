@@ -349,7 +349,7 @@ void Board::OnBrickGone(Brick* theBrick)
 		BeginClearWait();
 
 	// a field with no move left (the out flag of AnyMoveLeft is a byte of the original's frame that nothing set before)
-	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && m1b7c == 0 && mTakenBrickCount == 0 && CountMovingBricks(false) == 0 &&
+	if (mBonusRoundOn && mKillAllTypes.empty() && !mBricksRevealing && !mStartBannerDoneInBonus && mBannerTimeLeft == 0 && mTakenBrickCount == 0 && CountMovingBricks(false) == 0 &&
 		mFiredGroups.empty() && mFallingGroups.empty())
 	{
 		bool aFlag = false;
@@ -357,8 +357,8 @@ void Board::OnBrickGone(Brick* theBrick)
 		{
 			if (!aFlag)
 			{
-				m1b7c = 400;
-				BuildBanner(GT(0x56568c), m1b7c, FONT_NEURO30);
+				mBannerTimeLeft = 400;
+				BuildBanner(GT(0x56568c), mBannerTimeLeft, FONT_NEURO30);
 				mApp->PlaySample(SOUND_NO_MORE_MOVES);
 			}
 			StartClearCount();

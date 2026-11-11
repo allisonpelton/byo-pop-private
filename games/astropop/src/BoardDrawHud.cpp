@@ -36,7 +36,7 @@ void Board::DrawHud(Graphics* g)
 	int aY = 0x5a;
 	Font* aFont = GetFontById(FONT_DIALOG_BOX_BTN_ID);
 	g->SetFont(aFont);
-	bool aLastIsOrange = m1b2c == 1;                // the last line of the results is in another colour
+	bool aLastIsOrange = mLevelEndScreenKind == 1;                // the last line of the results is in another colour
 	int aSpacing = aLastIsOrange ? 0 : 8;
 	unsigned int aLineCount = (unsigned int) mLevelUpLines.size();
 

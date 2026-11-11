@@ -81,12 +81,12 @@ void Board::AnimateBanner()
 	memset(aDstBits, 0, (size_t) aDstHeight * aWidth * 4);
 
 	// the fade at the two ends of the banner's time
-	int aLeft = m1b80 - m1b84;
+	int aLeft = mBannerDuration - mBannerTimeShown;
 	int anAlpha = 0xff;
 	if (aLeft < 0x4b)
 		anAlpha = (aLeft * 0xff) / 0x4b;
-	else if (m1b84 < 0x4b)
-		anAlpha = (m1b84 * 0xff) / 0x4b;
+	else if (mBannerTimeShown < 0x4b)
+		anAlpha = (mBannerTimeShown * 0xff) / 0x4b;
 
 	// a colour for every row of the taller picture, going round the colour wheel every 64 rows
 	unsigned int* aRowColors = new unsigned int[aDstHeight];

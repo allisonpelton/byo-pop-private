@@ -245,12 +245,12 @@ void Board::CloseStory()
 {
 	mApp->mWidgetManager->RemoveWidget(mStoryScreen);
 	mApp->SafeDeleteWidget(mStoryScreen);
-	bool aSaved = m1c09;
+	bool aSaved = mKeepLoopSoundsMuted;
 	mStoryScreen = NULL;
-	m1c09 = true;
+	mKeepLoopSoundsMuted = true;
 	Pause(false, false);
 	mApp->PlaySong(9);
-	m1c09 = aSaved;
+	mKeepLoopSoundsMuted = aSaved;
 	mApp->PlaySample(SOUND_GET_READY);
 	mApp->mEngineLoop->SetVolume(1.0);
 	mApp->mHyperspaceLoop->SetVolume(1.0);

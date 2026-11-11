@@ -60,7 +60,7 @@ void Board::Pause(bool theStart, bool theFlag)
 					aKlaxon->SetVolume(1.0);
 				mResumeUpdate = mUpdateCnt;
 				// (the original writes "End of pause" to its trace list here)
-				if (!m1c09)
+				if (!mKeepLoopSoundsMuted)
 					mApp->SetLoopSoundsMuted(false);
 				mApp->PauseMusicForFocus(false);
 				mPauseDarkening = 0;
@@ -173,7 +173,7 @@ void Board::BeginPlay()
 	{
 		int aValue = 0;
 		mApp->mUser->GetInt(mMode + 0x2a, &aValue);
-		m1c08 = aValue == 1;
+		mWeaponDialogDue = aValue == 1;
 
 		if (mMode == 0)
 			mPowerupActive = 1;
@@ -259,11 +259,11 @@ void Board::BeginPlay()
 		{
 			Fire(0x28, 1);
 			Fire(0x2a, 1);
-			m1b58 = 0xf;
+			mTurbotBeamInterval = 0xf;
 			mTurbotBeams.clear();
-			m1b54 = 0;
-			m1b4c = 0;
-			m1b50 = 0;
+			mTurbotWindUpCounter = 0;
+			mTurbotPhase = 0;
+			mTurbotOverlayCel = 0;
 			mTurbotFlashAlpha = 0;
 			mOverlay.SetFill(255, 255, 255, 0);
 			SetOverlayHidden(false);
@@ -333,7 +333,7 @@ void Board::BeginPlay()
 		}
 		mPlayStarted = true;
 		mStartedFromCheckpoint = false;
-		m1b24 = 0;
+		mSprocketOverlayCel = 0;
 		mPhase = 6;
 		mPhaseDelay = PickSpawnDelay();
 		mBonusBannerHue = 0;
