@@ -530,11 +530,18 @@ had been taken out, or who decided it, now say what the code does.
   No run of the identical-play passes or of the coverage check had pressed Enter there (the bot and the replays click OK), and
   the coverage report could not show it, since the port's function had no address to pair. The port's now does the same. A
   script that sets a score, loses, types ABC and presses Enter ends on the high-score list, with ABC and its score in
-  `hiscores.dat` and in the registry's last name; before, it stayed on the name entry. The original's function was read in the
-  disassembly (eight instructions); it was not run. A run of the original with Enter in place of the click on OK was tried
-  (the coverage check's ranked-score replay) and did not get as far: with origrun rebuilt from the trunk of 2026-11-11, and
-  after the machine's restart, the copy takes the script's clicks and stays on its title, with the unchanged replay of
-  2026-11-08 as with the new one. That is reported to the coordinator as a fault of the tool or of the machine's state.
+  `hiscores.dat` and in the registry's last name; before, it stayed on the name entry. The original's side was read, not run: its edit widget's `KeyDown`
+  (0x4491a0) hands every key but the letters to its key function (0x447ee0), which calls the listener's `EditWidgetText` for
+  key 13, and the name dialog's `EditWidgetText` (0x41de20, eight instructions) calls the app's `ButtonDepress`; PopCap's
+  released framework source has the same chain. Runs of the original with Enter in place of the click on OK decided
+  nothing: on the host no scripted key or character reaches the original at all (none of the edit widget's key functions is
+  ever hit, in the ranked-score run of 2026-11-08 either, whose typed name never arrived), and in two runs in Windows Sandbox
+  the name was recorded neither after Enter nor after a click on OK that followed it, so the typed name had not arrived
+  there either. Those runs also showed why a replay of the original can stay on its title: the link appears at a different
+  update each run (104 on 2026-11-08; 124 to 364 on 2026-11-11, later under the coverage recorder, a cold file cache or a
+  loaded machine), because the loading thread works in real time while the updates run ahead on the virtual clock, and a
+  script that clicks the link at update 301 misses it when it comes later. A script for this game waits for the link first
+  (`waitfor [[0x4d125c]+0x414]+0x68 != 0`, then `mark` and `at +N`).
 - *A crash on closing the game with the name entry open.* The same script without the Enter, quitting at the name entry, ended
   in a segmentation fault: `NoahApp`'s destructor deleted its screens while they were still in the widget manager, and the
   framework, removing the dialog afterwards, gave the focus back to the game-over screen that was gone. The destructor now takes
