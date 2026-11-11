@@ -55,7 +55,7 @@ public:
 	int			mAimAngle;			// +0x30 degrees to the cursor
 	bool		mPlaced;			// +0x34 sits in a cell
 	bool		mFollowing;			// +0x35 follows the path in mPath
-	int*		mPathNode;			// +0x38 the node it came from (col, row)
+	int*		mPathNode;			// +0x38 the last node of the path it was given (nothing reads it; cleared when the atom reaches a node)
 	int*		mNextNode;			// +0x3c the node it goes to
 	int			mSpeed;				// +0x40 steps a path takes per update (1..3)
 	Color		mColor;				// +0x44 the colour of the atom's type (alpha at +0x50)
@@ -134,6 +134,9 @@ public:
 	void			Air(int theLevel);					// 0x4052a0
 	void			Ether(int theLevel);				// 0x405480
 };
+
+// the degrees of a turn: an angle is kept in 0 to FULL_TURN - 1, and the tables below have FULL_TURN entries
+enum { FULL_TURN = 360 };
 
 // 0x421b00: the compass angle in whole degrees from the first point to the second (0 up, 90 right)
 int			CompassAngle(int theX1, int theY1, int theX2, int theY2);

@@ -147,15 +147,15 @@ Grid::~Grid()
 // 0x40c4c0: the middle of a cell
 void Grid::CellToPixel(int theCol, int theRow, int* thePixel)
 {
-	thePixel[0] = theCol * 0x32 + 0x19;
-	thePixel[1] = theRow * 0x32 + 0x19;
+	thePixel[0] = theCol * CELL + CELL / 2;
+	thePixel[1] = theRow * CELL + CELL / 2;
 }
 
 // 0x40c4f0
 void Grid::PixelToCell(int theX, int theY, int* theCell)
 {
-	theCell[0] = theX / 0x32;
-	theCell[1] = theY / 0x32;
+	theCell[0] = theX / CELL;
+	theCell[1] = theY / CELL;
 }
 
 // 0x40e670
@@ -278,13 +278,13 @@ int Grid::TypesInRect(int theCol1, int theRow1, int theCol2, int theRow2)
 	{
 		if (aRow < 0)
 			continue;
-		if (aRow > 7)
+		if (aRow >= ROWS)
 			break;
 		for (int aCol = theCol1; aCol <= theCol2; aCol++)
 		{
 			if (aCol < 0)
 				continue;
-			if (aCol > 8)
+			if (aCol >= COLS)
 				break;
 			Atom* anAtom = mCells[aCol][aRow];
 			if ((anAtom == NULL) || anAtom->mPre)
@@ -341,6 +341,7 @@ void Grid::MouseMove(int x, int y)
 	}
 }
 
+// 0x40c530: a jump to MouseMove
 void Grid::MouseDrag(int x, int y)
 {
 	MouseMove(x, y);
@@ -481,7 +482,7 @@ void Grid::Update()
 	int aCountdown = mHoverTick;
 	mLevelUpdates++;
 	mHoverTick = aCountdown + 1;
-	if ((aCountdown + 1 == 0x32) && (mHoverCol > -1) && (mHoverCol < 9) && (mHoverRow > -1) && (mHoverRow < 8) &&
+	if ((aCountdown + 1 == 0x32) && (mHoverCol > -1) && (mHoverCol < COLS) && (mHoverRow > -1) && (mHoverRow < ROWS) &&
 		(mCells[mHoverCol][mHoverRow] != NULL) &&
 		(mCells[mHoverCol][mHoverRow]->IsElement() || (mCells[mHoverCol][mHoverRow]->mKind != 0)) &&
 		!mCells[mHoverCol][mHoverRow]->mPre)
@@ -661,17 +662,17 @@ void Grid::Update()
 				aStep = true;
 			}
 			else if (*aState < 0x100)
-				aStep = *aState < 0xff;
+				aStep = *aState < CELL_REVEALED;
 			else
-				*aState = 0xff;
+				*aState = CELL_REVEALED;
 			if (aStep)
 			{
-				if (!mGameOver && ((*aState = *aState + 1) > 0xff))
-					*aState = 0xff;
-				else if (*aState < 0x96)
+				if (!mGameOver && ((*aState = *aState + 1) > CELL_REVEALED))
+					*aState = CELL_REVEALED;
+				else if (*aState < CELL_ATOM_SHOWN)
 					mFieldRevealed = false;
 			}
-			else if (*aState < 0x96)
+			else if (*aState < CELL_ATOM_SHOWN)
 				mFieldRevealed = false;
 		}
 	}
@@ -682,7 +683,7 @@ void Grid::Update()
 	}
 
 	// the molecules just made: their atoms shake, then fly away
-	bool anyFlown = false;
+	bool aAnyFlown = false;
 	mGroups.Reset();
 	PtrList<Atom>* aGroup = mGroups.Next();
 	while (aGroup != NULL)
@@ -701,7 +702,7 @@ void Grid::Update()
 					Obliterate(aMember);
 				else
 					aMember->FlyAway(aBoard->LastTarget());
-				anyFlown = true;
+				aAnyFlown = true;
 			}
 			aMember = aGroup->Next();
 		}
@@ -712,7 +713,7 @@ void Grid::Update()
 		}
 		aGroup = mGroups.Next();
 	}
-	if (anyFlown)
+	if (aAnyFlown)
 		CheckUnsolvable();
 
 	if ((mApp->mMode == 1) && (aBoard->mGetReadyAlpha < 6) && (aBoard->mGameOverAlpha < 6))
@@ -786,13 +787,14 @@ void Grid::Update()
 // ---------------------------------------------------------------------------------------------------------
 // Draw
 
-// 0x413880: the board draws the field in the middle of its own picture (DrawField); as a widget it draws nothing
+// 0x405cf0: the widget draws nothing (the original's empty function); the board draws the field in the middle of its own
+// picture (DrawField)
 void Grid::Draw(Graphics* g)
 {
 	(void) g;
 }
 
-// 0x425ce0: the loop over the bonds sets the group's cursor (aGroup->mCursor = i + 1)
+// 0x413880, which the board's draw (0x433f10) calls; 0x425ce0: the loop over the bonds sets the group's cursor (aGroup->mCursor = i + 1)
 void Grid::DrawField(Graphics* g)
 {
 	bool aToggle = true;
@@ -841,14 +843,14 @@ void Grid::DrawField(Graphics* g)
 			if (aFill)
 			{
 				g->SetColor(aColor);
-				g->FillRect(aX, aY, 0x32, 0x32);
+				g->FillRect(aX, aY, CELL, CELL);
 			}
 			g->SetColor(Color(0, 0, 0, aState));
-			g->DrawLine(aX, aY - 1, aX + 0x32, aY - 1);
-			g->DrawLine(aX, aY, aX + 0x32, aY);
-			g->DrawLine(aX, aY, aX, aY + 0x32);
-			g->DrawLine(aX, aY + 0x32, aX + 0x32, aY + 0x32);
-			g->DrawLine(aX + 0x32, aY, aX + 0x32, aY + 0x32);
+			g->DrawLine(aX, aY - 1, aX + CELL, aY - 1);
+			g->DrawLine(aX, aY, aX + CELL, aY);
+			g->DrawLine(aX, aY, aX, aY + CELL);
+			g->DrawLine(aX, aY + CELL, aX + CELL, aY + CELL);
+			g->DrawLine(aX + CELL, aY, aX + CELL, aY + CELL);
 			aRowToggle = !aRowToggle;
 		}
 		aToggle = !aToggle;

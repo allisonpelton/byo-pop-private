@@ -28,8 +28,8 @@ namespace
 {
 	struct TrigTables
 	{
-		float	mSin[360];
-		float	mNegCos[360];
+		float	mSin[FULL_TURN];
+		float	mNegCos[FULL_TURN];
 
 		// 0x421a90
 		TrigTables()
@@ -37,7 +37,7 @@ namespace
 			unsigned int aPiBits = 0x40490fda;
 			float aPi;
 			memcpy(&aPi, &aPiBits, sizeof(aPi));
-			for (int i = 0; i < 360; i++)
+			for (int i = 0; i < FULL_TURN; i++)
 			{
 				double aArg = (double) aPi * (double) i * 0.005555555555555556;
 				mSin[i] = (float) sin(aArg);
@@ -54,16 +54,18 @@ namespace
 
 	int WrapAngle(int theAngle)	// the original indexes the table with the angle as it is; the callers keep it in 0 to 359
 	{
-		theAngle %= 360;
-		return (theAngle < 0) ? theAngle + 360 : theAngle;
+		theAngle %= FULL_TURN;
+		return (theAngle < 0) ? theAngle + FULL_TURN : theAngle;
 	}
 }
 
+// port: the sine table's entry for an angle (the original indexes the table in line)
 float Sexy::SinDeg(int theAngle)
 {
 	return Trig().mSin[WrapAngle(theAngle)];
 }
 
+// port: the minus cosine table's entry for an angle (the original indexes the table in line)
 float Sexy::NegCosDeg(int theAngle)
 {
 	return Trig().mNegCos[WrapAngle(theAngle)];
@@ -86,7 +88,7 @@ int Sexy::CompassAngle(int theX1, int theY1, int theX2, int theY2)
 	return (int) (anAngle + 180.0f);
 }
 
-// the pictures the original reads from its tables by index: 0 is the picture itself, the others its shrunk copies
+// port: the pictures the original reads from its tables by index: 0 is the picture itself, the others its shrunk copies
 static Sprite* PreAtomFrame(AtomicaApp* theApp, int theFrame)
 {
 	return theFrame == 0 ? theApp->mPreAtom : theApp->mPreAtomShrink[theFrame - 1];
@@ -103,6 +105,7 @@ static const unsigned int gSymbolText[12] =
 	0x4ae3b8, 0x4ae3b4, 0x4ae3b0, 0x4ae3ac, 0x4ae3a8, 0x4ae3a4, 0x4ae3a0, 0x4ae39c, 0x4ae398, 0x4ae394, 0x4ae390, 0x4ae38c
 };
 
+// port: the text of a type's symbol, which the original's draw reads from the game texts by address
 const std::string& Sexy::AtomSymbolText(int theType)
 {
 	return GT(gSymbolText[theType]);
@@ -440,7 +443,7 @@ void Atom::Update()
 		mAlpha += 2;
 		if (mAlpha > 0xff)
 			mAlpha = 0xff;
-		int anAngle = mApp->mRand.Get(0x168, false);
+		int anAngle = mApp->mRand.Get(FULL_TURN, false);
 		Particle* aParticle = new Particle(mApp, mApp->mSpark);
 		aParticle->mAlpha = 0x78;
 		aParticle->mFade = 8;
@@ -478,7 +481,7 @@ void Atom::Update()
 
 	if (mPre)
 	{
-		if ((aGrid->mCellState[mCol][mRow] != 0xff) && mHidden)
+		if ((aGrid->mCellState[mCol][mRow] != Grid::CELL_REVEALED) && mHidden)
 			return;
 		if (!mPreStarted)
 		{
@@ -687,7 +690,7 @@ void Atom::DrawOverlay(Graphics* g, int theFrame, int theX, int theY)
 				g->SetColor(Color(aNeighbor->mColor.mRed, aNeighbor->mColor.mGreen, aNeighbor->mColor.mBlue, 0xe1));
 				mApp->mAdjacent[3]->DrawCentered(g, theX, theY);
 			}
-			if ((mCol < 8) && ((aNeighbor = mGrid->mCells[mCol + 1][mRow]) != NULL) && !aNeighbor->mPre)
+			if ((mCol < Grid::COLS - 1) && ((aNeighbor = mGrid->mCells[mCol + 1][mRow]) != NULL) && !aNeighbor->mPre)
 			{
 				g->SetColor(Color(aNeighbor->mColor.mRed, aNeighbor->mColor.mGreen, aNeighbor->mColor.mBlue, 0xe1));
 				mApp->mAdjacent[1]->DrawCentered(g, theX, theY);
@@ -741,7 +744,7 @@ void Atom::Infect()
 		{
 			int aCol = mCol + aDeltas[i][0];
 			int aRow = mRow + aDeltas[i][1];
-			if ((aCol >= 0) && (aCol <= 8) && (aRow >= 0) && (aRow <= 7) && (mGrid->mCells[aCol][aRow] == NULL))
+			if ((aCol >= 0) && (aCol < Grid::COLS) && (aRow >= 0) && (aRow < Grid::ROWS) && (mGrid->mCells[aCol][aRow] == NULL))
 			{
 				int* aCell = new int[2];
 				aCell[0] = aCol;
@@ -775,7 +778,7 @@ void Atom::Infect()
 // 0x4037f0
 void Atom::Draw(Graphics* g)
 {
-	if (mPlaced && mHidden && (mGrid->mCellState[mCol][mRow] < 0x96))
+	if (mPlaced && mHidden && (mGrid->mCellState[mCol][mRow] < Grid::CELL_ATOM_SHOWN))
 		return;
 
 	if (mPre)

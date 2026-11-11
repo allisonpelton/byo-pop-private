@@ -1,4 +1,4 @@
-// Test hooks: the standard script commands (docs/TEST_COMMANDS.md), reachable only from a test (-script, -commands, and the
+// port: test hooks, the standard script commands (docs/TEST_COMMANDS.md), reachable only from a test (-script, -commands, and the
 // web test page's command call). A command that is never given changes nothing: no draw, no state. Every command answers
 // with one line on stdout: OK <command>, ERROR <command>: <reason>, STATE {...} or MOVE {...} | MOVE null.
 //
@@ -98,28 +98,28 @@ bool GameIsOver(AtomicaApp* theApp)
 
 std::string StateJson(AtomicaApp* theApp)
 {
-	std::string s = std::string("{\"screen\":\"") + ScreenName(theApp) + "\"";
-	s += std::string(",\"mode\":\"") + (theApp->mMode == 1 ? "action" : "strategy") + "\",\"expert\":" + Num(theApp->mExpertMode != 0 ? 1 : 0);
-	Board* b = theApp->mBoard;
-	if ((b != NULL) && (b->mGrid != NULL))
+	std::string aJson = std::string("{\"screen\":\"") + ScreenName(theApp) + "\"";
+	aJson += std::string(",\"mode\":\"") + (theApp->mMode == 1 ? "action" : "strategy") + "\",\"expert\":" + Num(theApp->mExpertMode != 0 ? 1 : 0);
+	Board* aBoard = theApp->mBoard;
+	if ((aBoard != NULL) && (aBoard->mGrid != NULL))
 	{
-		Grid* g = b->mGrid;
-		s += ",\"level\":" + Num(b->mMeter.mLevel) + ",\"score\":" + Num(b->mScore) + ",\"molecules\":" + Num(b->mStatMolecules) +
-			",\"atoms\":" + Num(g->CountAtoms(false)) + ",\"combo\":" + Num(g->mCombo) + ",\"meter\":" + Num((int) b->mMeter.mValue) +
-			",\"meterMax\":" + Num((int) b->mMeter.mMax) + ",\"levelOver\":" + (g->mGameOver ? "true" : "false") +
-			",\"held\":" + (g->mSelected != NULL ? "true" : "false") + ",\"hints\":" + Num((int) theApp->mHintBoxes.size());
+		Grid* aGrid = aBoard->mGrid;
+		aJson += ",\"level\":" + Num(aBoard->mMeter.mLevel) + ",\"score\":" + Num(aBoard->mScore) + ",\"molecules\":" + Num(aBoard->mStatMolecules) +
+			",\"atoms\":" + Num(aGrid->CountAtoms(false)) + ",\"combo\":" + Num(aGrid->mCombo) + ",\"meter\":" + Num((int) aBoard->mMeter.mValue) +
+			",\"meterMax\":" + Num((int) aBoard->mMeter.mMax) + ",\"levelOver\":" + (aGrid->mGameOver ? "true" : "false") +
+			",\"held\":" + (aGrid->mSelected != NULL ? "true" : "false") + ",\"hints\":" + Num((int) theApp->mHintBoxes.size());
 	}
 	else if (theApp->mMenu != NULL)
 	{
 		// the page after a game shows what the game came to
 		MainMenu* aMenu = (MainMenu*) theApp->mMenu;
 		if (aMenu->mGameOver)
-			s += ",\"level\":" + Num(aMenu->mLevelReached) + ",\"score\":" + Num(aMenu->mScore) + ",\"molecules\":" + Num(aMenu->mMolecules);
+			aJson += ",\"level\":" + Num(aMenu->mLevelReached) + ",\"score\":" + Num(aMenu->mScore) + ",\"molecules\":" + Num(aMenu->mMolecules);
 	}
-	s += ",\"paused\":" + Num(theApp->mPauseCount) + ",\"windowed\":" + (theApp->mIsWindowed ? "true" : "false") +
+	aJson += ",\"paused\":" + Num(theApp->mPauseCount) + ",\"windowed\":" + (theApp->mIsWindowed ? "true" : "false") +
 		",\"update\":" + Num(theApp->mUpdateCount);
-	s += std::string(",\"over\":") + (GameIsOver(theApp) ? "true" : "false") + "}";
-	return s;
+	aJson += std::string(",\"over\":") + (GameIsOver(theApp) ? "true" : "false") + "}";
+	return aJson;
 }
 
 // the menu's start button ids: the strategy mode 0, expert 1, the action mode 2, expert 3

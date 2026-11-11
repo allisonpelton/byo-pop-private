@@ -449,3 +449,74 @@ and action games, the rerun). The pictures were checked with a control: three sc
 traces. The coverage report on the 31 runs of section 12 now has no function reached without a counterpart and none defined and
 never reached; the port defines 323 of the game's 453 functions, and 44 are neither reached nor defined (the 36 of section 12 and
 these eight).
+
+
+## 14. Readability pass (2026-11-11)
+
+The pass to `docs/CODE_STANDARDS.md`, after the code the port does not need was out (section 13). No Mac build of Atomica exists
+(`re/atomica` has none), so every name comes from how the code uses the thing, and the Mac-name step has nothing to give.
+
+**Names.** The board, the grid, the atoms and the app had 84 members that carried a letter and an offset (`mI148`, `mF8c`,
+`mStat374`, `mB4b3`, `mM30c`); each now says what it holds, with a comment on its line: `mBombTimer`, `mFreezeSwirlTimer`,
+`mLevelUpdates` (the level's totals, which the board takes at the end of the level), `mCheckMolecules`, `mReadyElementX`. The
+fields the original writes and nothing reads (`mSavedZero`, `mStatSavedZero` and `mElementSavedZero`, three zeros the saved
+game keeps; `mPickedCol` and `mPickedRow`; `mElementReady`; `mLevelSetUp`) keep a name and say in their comment that nothing reads
+them, since the save's layout depends on some of them. The tails that several levels of `Grid::StartLevel` jump to were
+`LAB_00410bd9` and the like and are `chancesThree`, `chromiumSixArrow`, `radiationCells`, `arrowLeft`, `arrowDown` and
+`biohazardFour`. `Wrap360` is `WrapDegrees`, the `FILE*` of the Save and Load functions is `theFile`, and three locals without the
+framework's prefix (`a`, `b`, `h`, `anyFlown`) have one. The one-letter names that `namecheck.py` flagged (the autoplay's, the
+state trace's and `GameText.cpp`'s loops) and the grid pointers called `g`, which is the graphics, are `aState`, `aTable`,
+`aBoard`, `aGrid`, `theGrid`, `aLipEntry` and `aTextEntry`. Text that files and logs carry keeps its spelling: the state trace's
+keys (`f8c`, `i90`, `m31c` and the others, which `tools/identical/compare.py` reads) and the `state` command's field names.
+
+**Addresses.** Thirty-five functions had neither an address nor the port marker. Where the original has the function it now
+names it: `LoadingThreadCompleted` (0x4061e0, a jump to the base's), `ReadFromRegistry` (0x406dc0), `HighScoreDialog::EditWidgetText`
+(0x41cbd0, the name line's listener: a jump to the box's `ButtonDepress` with 2, which is why Enter does what "okay" does),
+`Grid::MouseDrag` (0x40c530, a jump to `MouseMove`), `TitleScreen::RemovedFromManager` (0x42fb70), `Vortex::~Vortex` (0x431270),
+`SpriteMgr::~SpriteMgr` (0x429890) and `EarthBolt::Draw` (0x405cf0, the empty function that every empty slot of the original
+points to). `Grid::Draw` is the same empty function, and the address that stood on it, 0x413880, is the field's draw that the
+board's draw calls: it is `Grid::DrawField` now. The helpers the original has in line say `port:`, and the test hooks, the fixes
+mod and the game texts carry the marker in their first comment. `namecheck.py` reports no finding in the 51 files.
+
+**Code found on the way.** `ScoreTable::Place` and `GameDialog::Close` had no caller (the survey of section 13 had looked at
+members, constants and warnings, and a function the compiler does not warn about slipped through), and the path finder's search
+counter (+0x300) is counted at every step of the search and reset at its start, in the original as in the port, and read nowhere:
+the three are out. `Atom::mPathNode` (+0x38) is the same kind of field, but the loop that sets it also walks the path's
+cursor to its end, so it stays, with a comment that nothing reads it.
+
+**The coverage report after the addresses.** The functions that now carry an address count as the port's, so the report on the 31
+runs of section 12 lists the port's definitions of five that no run of the original reached: `Grid::MouseDrag` (0x40c530), the
+sprite manager's destructors (0x429890 and the deleting one, 0x429c30) and the vortex's (0x431270, 0x4314e0). None was compared
+by a run (the runs never drag a held atom's way across the field with a button down, and neither the manager nor a vortex is
+destroyed before the game exits), so each was read again against the export: `MouseDrag` is a jump to the `MouseMove` slot with the
+same arguments, as the port's is; the manager's destructor deletes each of its sprites through their own destructors and then
+frees its list, and the vortex's frees each particle and its list, as the port's do. The report has no function reached without a
+counterpart; the port defines 329 of the game's 453 functions, 86 are left out on purpose and 39 are neither reached nor defined
+(the 44 of section 13, less these five).
+
+**Numbers.** The field's size was written as 9, 8, 7, 0x32 and 0x19 in a score of places; they are `Grid::COLS`, `ROWS` and `CELL`
+(the middle of a cell is `CELL / 2`). A cell's reveal state is `CELL_REVEALED` (0xff, shown in full) and `CELL_ATOM_SHOWN` (0x96,
+from which its atom is drawn), and the 0x120 bytes of it that the saved game holds are `sizeof(mCellState)`. The 360 degrees of
+an angle are `FULL_TURN`, in the angle tables, the wraps and the random angles. A number that stands once with a plain meaning (a
+draw offset, a colour, an alpha) stays as it is.
+
+**The fields `tools/splitfields.py` finds.** No member is declared twice under two names, none is read and never assigned, and none
+is assigned and read nowhere without an offset. Its 22 export findings are all reads the translation makes another way:
+- the app's title screen (+0x49c) is read by the loading thread's progress updates, which the port makes in `PumpLoading`; the
+  atoms' shrunk copies (+0x5a8) are made in `LoadAtoms`, the part of the loader (0x406f90) that the port keeps apart;
+- the board's +0xc0, read by its draw, is the detail setting: the constructor sets it to 1 and nothing else writes it, the draw
+  clears the screen first when it is not 1 (the comment in `Board::Draw` says so), and the swirls read it as their step;
+- the seven counters of the end page (+0x1c4 to +0x1dc) are saved and loaded as one block, which the translation writes as one;
+- `GameDialog::mApp` (+0x90) is read at the end of `AddedToManager` and of `RemovedFromManager` for a call of the app's virtual
+  functions 51 and 52, which are the empty function (0x405b00) in this app, so the port leaves the calls out;
+- the grid's 17 reads in 0x413880 were the field's draw under the wrong address (above); and the one read of the main menu's +0x84
+  in 0x41a010 is a virtual call at that offset, not the field.
+Its seven write-only members with an offset are fields the original writes and nothing reads (`mLevelFont` and `mTopLights`, loaded
+and unused in the original too: section 13; `mPickedCol` and `mPickedRow`; the atom's path node; the path finder's searches,
+now out; and Dr. Atomicus's blink counter, which is read only by its own decrement and test).
+
+**Proof.** After each step every object of the native build was compared with the one before it (`tools/objsnap.py`, with the
+build's names taken out): the 84 renames, the addresses and comments, the named numbers and the `FILE*` renames leave the 36 objects,
+716 functions in all, as they were, with their data. Only the removals above differ: the two functions without a caller and the
+search counter (its stores, and the offsets of the path finder's later members). `tools/check.sh atomica` matches the frozen
+baseline ("baseline identical").

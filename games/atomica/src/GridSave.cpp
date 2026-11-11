@@ -265,7 +265,7 @@ void Grid::Save(FILE* theFile)
 		anAtom->Save(theFile);
 		anAtom = mAtoms.Next();
 	}
-	fwrite(mCellState, 0x120, 1, theFile);
+	fwrite(mCellState, sizeof(mCellState), 1, theFile);
 	fwrite(&mCursorX, 4, 1, theFile);
 	fwrite(&mCursorY, 4, 1, theFile);
 	fwrite(&mCursorColor, 0x10, 1, theFile);
@@ -332,7 +332,7 @@ void Grid::Load(FILE* theFile)
 			anAtom = new ElementAtom(this, 0, true);
 		anAtom->Load(theFile);
 	}
-	fread(mCellState, 0x120, 1, theFile);
+	fread(mCellState, sizeof(mCellState), 1, theFile);
 	for (int aCol = 0; aCol < COLS; aCol++)
 		for (int aRow = 0; aRow < ROWS; aRow++)
 			if (mCellState[aCol][aRow] < 0)

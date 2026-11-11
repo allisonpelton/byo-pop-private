@@ -29,7 +29,9 @@ public:
 	{
 		COLS = 9,
 		ROWS = 8,
-		CELL = 50
+		CELL = 50,
+		CELL_REVEALED = 0xff,		// mCellState of a cell the reveal has shown in full
+		CELL_ATOM_SHOWN = 0x96		// from this state on, the cell's atom is drawn (below it the atom is hidden)
 	};
 
 	AtomicaApp*		mApp;				// +0x58
@@ -139,11 +141,11 @@ public:
 
 	// the widget
 	virtual void	Update() override;								// 0x412cd0
-	virtual void	Draw(Graphics* g) override;						// 0x413880 (the board draws it: DrawField)
-	void			DrawField(Graphics* g);
+	virtual void	Draw(Graphics* g) override;						// 0x405cf0 (empty: the board draws the field, DrawField)
+	void			DrawField(Graphics* g);							// 0x413880
 	virtual void	MouseDown(int x, int y, int theBtnNum, int theClickCount) override;	// 0x40e7f0
 	virtual void	MouseMove(int x, int y) override;				// 0x40e710
-	virtual void	MouseDrag(int x, int y) override;
+	virtual void	MouseDrag(int x, int y) override;				// 0x40c530
 	virtual void	MouseUp(int x, int y, int theBtnNum) override;	// 0x40e7c0
 	virtual void	KeyDown(KeyCode theKey) override;				// 0x40c880
 	using Widget::MouseDown;

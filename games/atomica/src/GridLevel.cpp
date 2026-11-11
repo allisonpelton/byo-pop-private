@@ -52,9 +52,9 @@ void Grid::Reset(int theNumColors)
 			}
 			mCellState[aCol][aRow] = -100000;
 			aRow++;
-		} while (aRow < 8);
+		} while (aRow < ROWS);
 		aCol++;
-	} while (aCol < 9);
+	} while (aCol < COLS);
 	mFieldRevealed = false;
 	mChromiumChance = 0;
 	mBiohazardChance = 0;

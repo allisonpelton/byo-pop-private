@@ -133,7 +133,7 @@ MainMenu::~MainMenu()
 	mButtons.Clear();
 }
 
-// the buttons of the main page or those of the end of a game
+// port: the buttons of the main page or those of the end of a game
 void MainMenu::ShowPage(bool theGameOver)
 {
 	mGameOver = theGameOver;
@@ -283,12 +283,13 @@ bool MainMenu::PanelShown() const
 	return mSlammed && !mClosing && !mLeaving && (mAlpha >= 0xff);
 }
 
+// port: whether the mouse is over a button of the menu
 bool MainMenu::Over(int theId) const
 {
 	return (mBtn[theId] != NULL) && mBtn[theId]->mIsOver;
 }
 
-// a button's field, brighter when the mouse is over it
+// port: a button's field, brighter when the mouse is over it
 void MainMenu::FillButton(Graphics* g, int theId)
 {
 	ButtonWidget* aButton = mBtn[theId];

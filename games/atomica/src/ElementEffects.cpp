@@ -77,7 +77,7 @@ bool EarthBolt::Update()
 	Particle* aSpark = new Particle(mApp, mApp->mMiniSpark);
 	aSpark->mX = mX;
 	aSpark->mY = mY;
-	int anAngle = mApp->mRand.Get(0x168, false);
+	int anAngle = mApp->mRand.Get(FULL_TURN, false);
 	float aSpeed = (float) (mApp->mRand.Get(10, false) + 1) * 0.05f;
 	aSpark->mVX = aSpeed * SinDeg(anAngle);
 	aSpark->mVY = aSpeed * NegCosDeg(anAngle);
@@ -85,6 +85,7 @@ bool EarthBolt::Update()
 	return true;
 }
 
+// 0x405cf0: the original's empty function, which stands in this slot as in every empty one
 void EarthBolt::Draw(Graphics* g)
 {
 	(void) g;
@@ -111,7 +112,7 @@ Vortex::Vortex(AtomicaApp* theApp, int theX, int theY) :
 			Mote* aParticle = new Mote();
 			aParticle->mRadius = aRadius;
 			aParticle->mAge = (float) i;
-			aParticle->mAngle = (float) mApp->mRand.Get(0x168, false);
+			aParticle->mAngle = (float) mApp->mRand.Get(FULL_TURN, false);
 			aParticle->mSpeed = (float) (mApp->mRand.Get(5, false) + 5);
 			mParticles.Add(aParticle);
 			if ((i == 0) && (j == 0))
@@ -133,6 +134,7 @@ Vortex::Vortex(AtomicaApp* theApp, int theX, int theY) :
 	mY = (float) mCenterY + NegCosDeg((int) mAngle) * mDistance;
 }
 
+// 0x431270 (the deleting destructor, 0x4314e0, frees the vortex after it)
 Vortex::~Vortex()
 {
 	mParticles.Reset();
@@ -161,10 +163,10 @@ bool Vortex::Update()
 	while (aParticle != NULL)
 	{
 		int anAngle = (int) (aParticle->mAngle + aParticle->mSpeed);
-		if (anAngle > 0x167)
-			anAngle -= 0x168;
+		if (anAngle > FULL_TURN - 1)
+			anAngle -= FULL_TURN;
 		if (anAngle < 0)
-			anAngle += 0x168;
+			anAngle += FULL_TURN;
 		aParticle->mAngle = (float) anAngle;
 		aParticle->mAge += 0.25f;
 		aParticle->mRadius *= 1.0085f;
@@ -179,7 +181,7 @@ bool Vortex::Update()
 			{
 				aParticle->mRadius = 10.0f;
 				aParticle->mAge = 0;
-				aParticle->mAngle = (float) mApp->mRand.Get(0x168, false);
+				aParticle->mAngle = (float) mApp->mRand.Get(FULL_TURN, false);
 				aParticle->mSpeed = (float) (mApp->mRand.Get(2, false) + 1);
 				if (aParticle == mFirst)
 					mMoving = true;
@@ -214,7 +216,7 @@ bool Vortex::Update()
 		Grid* aGrid = mApp->mBoard->mGrid;
 		int aCell[2] = {0, 0};
 		Grid::PixelToCell((int) (mX - (float) aGrid->mX), (int) (mY - (float) aGrid->mY), aCell);
-		if ((aCell[0] > -1) && (aCell[1] > -1) && (aCell[0] < 9) && (aCell[1] < 8))
+		if ((aCell[0] > -1) && (aCell[1] > -1) && (aCell[0] < Grid::COLS) && (aCell[1] < Grid::ROWS))
 		{
 			Atom* anAtom = aGrid->mCells[aCell[0]][aCell[1]];
 			if ((anAtom != NULL) && !anAtom->mPre)

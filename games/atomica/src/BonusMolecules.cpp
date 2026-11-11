@@ -166,7 +166,7 @@ public:
 						Spark* aSpark = new Spark(mApp);
 						aSpark->mX = (float) (mApp->mRand.Get(8, true) + aPiece.mX);
 						aSpark->mY = (float) (mApp->mRand.Get(8, true) + aPiece.mY);
-						int aDir = mApp->mRand.Get(0x168, false);
+						int aDir = mApp->mRand.Get(FULL_TURN, false);
 						aSpark->mVX = SinDeg(aDir) * 0.25f;
 						aSpark->mVY = NegCosDeg(aDir) * 0.25f;
 						Color aColor = aPiece.mAtom->mColor;
@@ -335,7 +335,7 @@ void BonusMolecules::Check(Grid* theGrid)
 					{
 						int aType;
 						Atom* anAtom = NULL;
-						if ((aCol < 0) || (aRow < 0) || (aCol > 8) || (aRow > 7))
+						if ((aCol < 0) || (aRow < 0) || (aCol >= Grid::COLS) || (aRow >= Grid::ROWS))
 							aType = -1;
 						else
 						{

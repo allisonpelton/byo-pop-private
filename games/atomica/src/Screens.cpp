@@ -62,6 +62,7 @@ void TitleScreen::AddedToManager(WidgetManager* theWidgetManager)
 	theWidgetManager->AddWidget(mPlayLink);
 }
 
+// 0x42fb70
 void TitleScreen::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Widget::RemovedFromManager(theWidgetManager);

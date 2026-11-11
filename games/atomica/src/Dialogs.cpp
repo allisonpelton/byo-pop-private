@@ -206,7 +206,7 @@ void GameDialog::DrawButton(Graphics* g, Widget* theButton, const std::string& t
 		aY + theButton->mHeight / 2 + 6);
 }
 
-// the invisible button of a box: the box draws it
+// port: the invisible button of a box: the box draws it (the original makes it in line in each box's constructor)
 ButtonWidget* GameDialog::AddButton(int theId)
 {
 	ButtonWidget* aButton = new ButtonWidget(theId, this);
@@ -214,11 +214,6 @@ ButtonWidget* GameDialog::AddButton(int theId)
 	aButton->mDoFinger = true;
 	mButtons.Add(aButton);
 	return aButton;
-}
-
-void GameDialog::Close()
-{
-	mClosing = true;
 }
 
 // ---------------------------------------------------------------------------------------------------------

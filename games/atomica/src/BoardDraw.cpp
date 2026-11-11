@@ -175,10 +175,10 @@ void Board::Draw(Graphics* g)
 	// combo (-52 to +67 degrees)
 	{
 		int aAngle = (int) mNeedle - 0x34;
-		if (0x167 < aAngle)
-			aAngle -= 0x168;
+		if (FULL_TURN - 1 < aAngle)
+			aAngle -= FULL_TURN;
 		if (aAngle < 0)
-			aAngle += 0x168;
+			aAngle += FULL_TURN;
 		float aSin = SinDeg(aAngle);
 		float aCos = NegCosDeg(aAngle);
 		int aX1 = (int) (aSin * 18.0f + 389.0f);

@@ -154,7 +154,7 @@ void ElementAtom::ShatterIn()
 	FlyAway(mApp->mBoard->LastTarget());
 }
 
-// the banner with the element's word, in the element's colour made brighter, at the atom
+// port: the banner with the element's word, in the element's colour made brighter, at the atom
 static void AddBanner(ElementAtom* theAtom, int theWord)
 {
 	AtomicaApp* anApp = theAtom->mApp;
