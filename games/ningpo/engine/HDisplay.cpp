@@ -232,29 +232,29 @@ HSurface* HDisplay::createSurface(const HImage& theImage)
 				for (int x = 0; x < aWidth; x++)
 				{
 					// 0x427fd0: red, green, blue, alpha
-					const uint8_t* p = theImage.mBits.data() + theImage.pitch() * y + x * 4;
-					uint8_t r = p[2], g = p[1], b = p[0], a = p[3];
-					aAlphaRow[x] = a;
-					if (a != 0xff)
+					const uint8_t* aPixel = theImage.mBits.data() + theImage.pitch() * y + x * 4;
+					uint8_t aRed = aPixel[2], aGreen = aPixel[1], aBlue = aPixel[0], aAlpha = aPixel[3];
+					aAlphaRow[x] = aAlpha;
+					if (aAlpha != 0xff)
 					{
 						aHasAlpha = true;
-						aAlphaRow[x] = a;
+						aAlphaRow[x] = aAlpha;
 					}
-					if (r == 0xff && g == 0 && b == 0xff)
+					if (aRed == 0xff && aGreen == 0 && aBlue == 0xff)
 					{
 						aHasAlpha = true;
 						aAlphaRow[x] = 0;
 					}
-					short d = kDither[(x & 1) + aDitherRow];
-					unsigned short aR = (unsigned short)((r >> 1) + d);
+					short aDither = kDither[(x & 1) + aDitherRow];
+					unsigned short aR = (unsigned short)((aRed >> 1) + aDither);
 					if (aR > 0x7f)
 						aR = 0x7f;
 					aR >>= 2;
-					unsigned short aG = (unsigned short)((g >> 1) + d);
+					unsigned short aG = (unsigned short)((aGreen >> 1) + aDither);
 					if (aG > 0x7f)
 						aG = 0x7f;
 					aG >>= 2;
-					unsigned short aB = (unsigned short)((b >> 1) + d);
+					unsigned short aB = (unsigned short)((aBlue >> 1) + aDither);
 					if (aB > 0x7f)
 						aB = 0x7f;
 					*(uint16_t*)((uint8_t*)aSurface->mPixels + aSurface->mPitch * y + x * 2) =
@@ -424,46 +424,46 @@ static unsigned int BlendPixel(uint16_t theSrc, uint16_t theDest, unsigned int t
 	dR = (kd * dR) / 0xfe01;
 	dG = (kd * dG) / 0xfe01;
 	dB = (kd * dB) / 0xfe01;
-	int r, g, b;
+	int aRed, aGreen, aBlue;
 	switch (gOp)
 	{
 	case 0:
-		r = (int)(sR + dR);
-		g = (int)(sG + dG);
-		b = (int)(dB + sB);
+		aRed = (int)(sR + dR);
+		aGreen = (int)(sG + dG);
+		aBlue = (int)(dB + sB);
 		break;
 	case 1:
-		r = (int)((dR * sR) / 0xff);
-		g = (int)((dG * sG) / 0xff);
-		b = (int)((dB * sB) / 0xff);
+		aRed = (int)((dR * sR) / 0xff);
+		aGreen = (int)((dG * sG) / 0xff);
+		aBlue = (int)((dB * sB) / 0xff);
 		break;
 	case 2:
-		r = (int)(sR - dR);
-		g = (int)(sG - dG);
-		b = (int)(sB - dB);
+		aRed = (int)(sR - dR);
+		aGreen = (int)(sG - dG);
+		aBlue = (int)(sB - dB);
 		break;
 	case 3:
-		r = (int)(dR - sR);
-		g = (int)(dG - sG);
-		b = (int)(dB - sB);
+		aRed = (int)(dR - sR);
+		aGreen = (int)(dG - sG);
+		aBlue = (int)(dB - sB);
 		break;
 	default:
-		r = g = b = (int)kd;
+		aRed = aGreen = aBlue = (int)kd;
 		break;
 	}
-	if (r < 0)
-		r = 0;
-	else if (gMaskR < r)
-		r = gMaskR;
-	if (g < 0)
-		g = 0;
-	else if (gMaskG < g)
-		g = gMaskG;
-	if (b < 0)
-		b = 0;
-	else if (gMaskB < b)
-		b = gMaskB;
-	return (unsigned int)(b << gShiftB | g << gShiftG | r << gShiftR);
+	if (aRed < 0)
+		aRed = 0;
+	else if (gMaskR < aRed)
+		aRed = gMaskR;
+	if (aGreen < 0)
+		aGreen = 0;
+	else if (gMaskG < aGreen)
+		aGreen = gMaskG;
+	if (aBlue < 0)
+		aBlue = 0;
+	else if (gMaskB < aBlue)
+		aBlue = gMaskB;
+	return (unsigned int)(aBlue << gShiftB | aGreen << gShiftG | aRed << gShiftR);
 }
 
 // 0x422dc0
@@ -491,20 +491,20 @@ bool HDisplay::blend(const PGRect* theDest, const PGRect* theSrc, HSurface* theS
 	int y = aTop;
 	for (int aRows = aBottom - aTop; aRows > 0; aRows--, y++)
 	{
-		uint16_t* d = (uint16_t*)((uint8_t*)mScreen.data() + (aDestY - aTop + y) * mScreenPitch + aDestX * 2);
-		const uint16_t* s = (const uint16_t*)((const uint8_t*)theSurface->mPixels + theSurface->mPitch * y + aLeft * 2);
+		uint16_t* aDestPixel = (uint16_t*)((uint8_t*)mScreen.data() + (aDestY - aTop + y) * mScreenPitch + aDestX * 2);
+		const uint16_t* aSrcPixel = (const uint16_t*)((const uint8_t*)theSurface->mPixels + theSurface->mPitch * y + aLeft * 2);
 		if (theSurface->mAlpha == nullptr)
 		{
-			for (int n = aWidth; n > 0; n--, d++, s++)
-				*d = (uint16_t)BlendPixel(*s, *d, 0xff);
+			for (int n = aWidth; n > 0; n--, aDestPixel++, aSrcPixel++)
+				*aDestPixel = (uint16_t)BlendPixel(*aSrcPixel, *aDestPixel, 0xff);
 		}
 		else
 		{
-			const uint8_t* a = theSurface->mAlpha + aLeft + theSurface->mWidth * y;
-			for (int n = aWidth; n > 0; n--, d++, s++, a++)
+			const uint8_t* aAlphaPixel = theSurface->mAlpha + aLeft + theSurface->mWidth * y;
+			for (int n = aWidth; n > 0; n--, aDestPixel++, aSrcPixel++, aAlphaPixel++)
 			{
-				if (*a != 0)
-					*d = (uint16_t)BlendPixel(*s, *d, *a);
+				if (*aAlphaPixel != 0)
+					*aDestPixel = (uint16_t)BlendPixel(*aSrcPixel, *aDestPixel, *aAlphaPixel);
 			}
 		}
 	}
@@ -589,46 +589,46 @@ bool HDisplay::draw(const PGPoint* theAt, HSurface* theSurface)
 static bool ClipToScreen(int theWidth, int theHeight, const PGRect* theDest, const PGRect* theSrc, PGRect* theOutDest,
 	PGRect* theOutSrc)
 {
-	int l = theDest->left, t = theDest->top, r = theDest->right, b = theDest->bottom;
-	PGRect s = *theSrc;
-	PGRect d;
-	if (theWidth < l || r < 0 || theHeight < t || b < 0)
+	int aLeft = theDest->left, aTop = theDest->top, aRight = theDest->right, aBottom = theDest->bottom;
+	PGRect aClippedSrc = *theSrc;
+	PGRect aClippedDest;
+	if (theWidth < aLeft || aRight < 0 || theHeight < aTop || aBottom < 0)
 		return false;
-	if (l < 0 || theWidth < r || t < 0 || theHeight < b)
+	if (aLeft < 0 || theWidth < aRight || aTop < 0 || theHeight < aBottom)
 	{
-		d.left = l;
-		if (l < 0)
+		aClippedDest.left = aLeft;
+		if (aLeft < 0)
 		{
-			d.left = 0;
-			s.left = s.left - l;
+			aClippedDest.left = 0;
+			aClippedSrc.left = aClippedSrc.left - aLeft;
 		}
-		d.top = t;
-		if (t < 0)
+		aClippedDest.top = aTop;
+		if (aTop < 0)
 		{
-			d.top = 0;
-			s.top = s.top - t;
+			aClippedDest.top = 0;
+			aClippedSrc.top = aClippedSrc.top - aTop;
 		}
-		d.right = r;
-		if (theWidth < r)
+		aClippedDest.right = aRight;
+		if (theWidth < aRight)
 		{
-			s.right = s.right + (theWidth - r);
-			d.right = theWidth;
+			aClippedSrc.right = aClippedSrc.right + (theWidth - aRight);
+			aClippedDest.right = theWidth;
 		}
-		d.bottom = b;
-		if (theHeight < b)
+		aClippedDest.bottom = aBottom;
+		if (theHeight < aBottom)
 		{
-			s.bottom = s.bottom + (theHeight - b);
-			d.bottom = theHeight;
+			aClippedSrc.bottom = aClippedSrc.bottom + (theHeight - aBottom);
+			aClippedDest.bottom = theHeight;
 		}
 	}
 	else
-		d = *theDest;
-	if (s.right == s.left)
+		aClippedDest = *theDest;
+	if (aClippedSrc.right == aClippedSrc.left)
 		return false;
-	if (s.top == s.bottom)
+	if (aClippedSrc.top == aClippedSrc.bottom)
 		return false;
-	*theOutDest = d;
-	*theOutSrc = s;
+	*theOutDest = aClippedDest;
+	*theOutSrc = aClippedSrc;
 	return true;
 }
 

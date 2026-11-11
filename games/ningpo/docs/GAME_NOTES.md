@@ -225,3 +225,13 @@ items' `getUserData` and `setUserData`. Each had no caller. `tools/check.sh ning
 `build-web:ningpo` pass. Kept: `PGSprite::create` from an image (the options dialog's background uses it), the dialog
 items' other default virtuals (they fill vtable slots the original's items fill; no code is behind them but a
 return), the PNG loader (one branch of the shared image loader, a few lines), `NingPo::~NingPo` and `PGAlert`.
+
+
+### Readability pass (2026-11-11)
+
+`python tools/namecheck.py games/ningpo` (with `folder engine` in `namecheck.txt`, since the Pyrogon engine sits beside
+`src/`) found 39 names and missing markers: 26 port-only functions (the widget, the application, the text lookup) now
+carry a `port:` comment, eight one-letter names in `HDisplay.cpp`, `PGApp.cpp` and `Board.cpp` are named, and the four
+gaps of `PGEvent` are named for where they sit. Now 0 findings. `splitfields` finds no member declared twice. A rename
+changes no layout; `tools/check.sh ningpo build-web:ningpo` pass with the baseline identical. A fixes mod is not needed:
+no fix candidate was found in any pass.

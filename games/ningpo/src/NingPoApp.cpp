@@ -194,6 +194,7 @@ int KeyEventChar(int theKey)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The widget: the window procedure (0x433290) and the screen
 
+// port: the framework widget that shows the game's screen and passes its input on
 NingPoWidget::NingPoWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
@@ -202,12 +203,14 @@ NingPoWidget::NingPoWidget()
 	mWantsFocus = true;
 }
 
+// port: the framework widget that shows the game's screen and passes its input on
 NingPoWidget::~NingPoWidget()
 {
 	delete mScreenImage;
 }
 
 // the original's 10 ms timer (WM_TIMER) posts the game's tick
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::Update()
 {
 	Widget::Update();
@@ -218,6 +221,7 @@ void NingPoWidget::Update()
 }
 
 // The game's back buffer is 15-bit (5-5-5); the original blitted the changed rectangles to the window
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::Draw(Graphics* g)
 {
 	mScreenChanged = false;
@@ -253,6 +257,7 @@ void NingPoWidget::Draw(Graphics* g)
 }
 
 // WM_CHAR
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::KeyChar(SexyChar theChar)
 {
 	uint8_t aChar = (uint8_t)theChar;
@@ -261,6 +266,7 @@ void NingPoWidget::KeyChar(SexyChar theChar)
 }
 
 // WM_KEYDOWN: Ctrl+V pastes; a key with a character comes as WM_CHAR, the others go down with their virtual key
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::KeyDown(KeyCode theKey)
 {
 	if (theKey == KEYCODE_SHIFT || theKey == KEYCODE_CONTROL || theKey == KEYCODE_MENU)
@@ -276,6 +282,7 @@ void NingPoWidget::KeyDown(KeyCode theKey)
 }
 
 // WM_KEYUP: the key's character, or its virtual key
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::KeyUp(KeyCode theKey)
 {
 	if (theKey == KEYCODE_SHIFT || theKey == KEYCODE_CONTROL)
@@ -284,29 +291,34 @@ void NingPoWidget::KeyUp(KeyCode theKey)
 	gApp->PostEvent(pg::EV_UP, aChar == 0 ? theKey : 0, aChar, 0, 0, 0);
 }
 
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::MouseMove(int x, int y)
 {
 	gApp->PostEvent(pg::EV_MOUSE_MOVE, 0, 0, x, y, 0);
 }
 
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::MouseDrag(int x, int y)
 {
 	gApp->PostEvent(pg::EV_MOUSE_MOVE, 0, 0, x, y, 0);
 }
 
 // The framework's buttons: 0 left, 1 right, 2 middle (the original took no middle button)
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::MouseDown(int x, int y, int theBtnNum, int theClickCount)
 {
 	if (theBtnNum == 0 || theBtnNum == 1)
 		gApp->PostEvent(pg::EV_DOWN, theBtnNum == 0 ? pg::BUTTON_LEFT : pg::BUTTON_RIGHT, 0, x, y, 0);
 }
 
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::MouseUp(int x, int y, int theBtnNum, int theClickCount)
 {
 	if (theBtnNum == 0 || theBtnNum == 1)
 		gApp->PostEvent(pg::EV_UP, theBtnNum == 0 ? pg::BUTTON_LEFT : pg::BUTTON_RIGHT, 0, x, y, 0);
 }
 
+// port: the framework widget that shows the game's screen and passes its input on
 void NingPoWidget::MouseWheel(int theDelta)
 {
 	if (theDelta != 0)
@@ -316,6 +328,7 @@ void NingPoWidget::MouseWheel(int theDelta)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The app
 
+// port: the framework application that hosts the game
 NingPoApp::NingPoApp()
 {
 	gApp = this;
@@ -332,6 +345,7 @@ NingPoApp::NingPoApp()
 	mStateLog = nullptr;
 }
 
+// port: the framework application that hosts the game
 NingPoApp::~NingPoApp()
 {
 	if (mStateLog != nullptr)
@@ -343,6 +357,7 @@ NingPoApp::~NingPoApp()
 	}
 }
 
+// port: the framework application that hosts the game
 void NingPoApp::Init()
 {
 	SexyAppBase::Init();
@@ -380,6 +395,7 @@ void NingPoApp::DoMainLoop()
 	SexyAppBase::DoMainLoop();
 }
 
+// port: the framework application that hosts the game
 void NingPoApp::RunFramework(int theMs)
 {
 	DWORD anEnd = GetClockTime() + (DWORD)theMs;
@@ -412,6 +428,7 @@ void NingPoApp::RunFramework(int theMs)
 	} while ((int)(GetClockTime() - anEnd) < 0);
 }
 
+// port: the framework application that hosts the game
 void NingPoApp::PostEvent(int theType, int theCode, int theChar, int theX, int theY, int theValue)
 {
 	pg::HInput* anInput = pg::GetInput();
@@ -431,6 +448,7 @@ void NingPoApp::PostEvent(int theType, int theCode, int theChar, int theX, int t
 }
 
 // WM_CLOSE goes to the game, which quits (or ends the dialog that is up)
+// port: the framework application that hosts the game
 void NingPoApp::CloseRequestAsync()
 {
 	if (mGameRunning)
@@ -440,12 +458,14 @@ void NingPoApp::CloseRequestAsync()
 }
 
 // WM_ACTIVATE
+// port: the framework application that hosts the game
 void NingPoApp::GotFocus()
 {
 	SexyAppBase::GotFocus();
 	PostEvent(pg::EV_ACTIVATE, 0, 0, 0, 0, 1);
 }
 
+// port: the framework application that hosts the game
 void NingPoApp::LostFocus()
 {
 	SexyAppBase::LostFocus();
@@ -454,6 +474,7 @@ void NingPoApp::LostFocus()
 
 // Alt+Enter (and the web page's full screen button) go to the game like the original's Alt+Enter, which asks
 // for the mode itself (SetGameFullscreen)
+// port: the framework application that hosts the game
 void NingPoApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 {
 	if (mApplyingGameMode || !mGameRunning || force)
@@ -465,6 +486,7 @@ void NingPoApp::SwitchScreenMode(bool wantWindowed, bool is3d, bool force)
 		PostEvent(pg::EV_TOGGLE_SCREEN, 0, 0, 0, 0, 0);
 }
 
+// port: the framework application that hosts the game
 void NingPoApp::SetGameFullscreen(bool theFullscreen)
 {
 	if (theFullscreen != mIsWindowed)
@@ -474,6 +496,7 @@ void NingPoApp::SetGameFullscreen(bool theFullscreen)
 	mApplyingGameMode = false;
 }
 
+// port: the framework application that hosts the game
 void NingPoApp::HandleCmdLineParam(const std::string& theParamName, const std::string& theParamValue)
 {
 	if (theParamName == "-statelog")
@@ -518,6 +541,7 @@ const StateValue STATE_VALUES[] =
 const int NUM_STATE_VALUES = sizeof(STATE_VALUES) / sizeof(STATE_VALUES[0]);
 }
 
+// port: the framework application that hosts the game
 void NingPoApp::UpdateStateLog()
 {
 	if (mStateLogFileName.empty() || mGame == nullptr)
