@@ -864,8 +864,8 @@ void Menu_FromXml(Menu* theMenu, const char* theXmlCursor, const XmlTag* theTag)
 		int aFrameTime;
 		theMenu->mLogo = Animation_Frame(Animation_Find(Xml_GetString(theTag, "logo_animation"), &aCount, &aFrameTime),
 			0);
-		theMenu->mLogoX = (Xml_GetInt(theTag, "logo_x") * 800) / 800;
-		theMenu->mLogoY = (Xml_GetInt(theTag, "logo_y") * 600) / 600;
+		theMenu->mLogoX = (Xml_GetInt(theTag, "logo_x") * SCREEN_WIDTH) / SCREEN_WIDTH;
+		theMenu->mLogoY = (Xml_GetInt(theTag, "logo_y") * SCREEN_HEIGHT) / SCREEN_HEIGHT;
 	}
 	Menu_DrawToBackground(theMenu);
 	XmlTag* aTag = const_cast<XmlTag*>(theTag);

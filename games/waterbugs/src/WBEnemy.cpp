@@ -166,20 +166,20 @@ static int Sign(float theValue)
 // back on that axis; inside one it turns back on both
 int Enemy_Bounce(Enemy* theEnemy)
 {
-	int aCol = (int)theEnemy->mX / 16;
-	int aRow = (int)theEnemy->mY / 16;
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
 	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind == 0)
 	{
 		Image* anImage = theEnemy->mImage;
 		int anAhead = (int)((double)((anImage->mW * Sign(theEnemy->mVx)) / 3) + (double)theEnemy->mX);
-		Cell* aCell = &gLevels.mCurrent->mColumns[anAhead / 16][aRow];
+		Cell* aCell = &gLevels.mCurrent->mColumns[anAhead / CELL_SIZE][aRow];
 		if (aCell->mKind != 0)
 		{
 			theEnemy->mHitCell = aCell;
 			theEnemy->mVx = -theEnemy->mVx;
 		}
 		anAhead = (int)((double)((anImage->mH * Sign(theEnemy->mVy)) / 3) + (double)theEnemy->mY);
-		aCell = &gLevels.mCurrent->mColumns[aCol][anAhead / 16];
+		aCell = &gLevels.mCurrent->mColumns[aCol][anAhead / CELL_SIZE];
 		if (aCell->mKind != 0)
 		{
 			theEnemy->mHitCell = aCell;
@@ -420,8 +420,8 @@ int Frog_Move(Enemy* theEnemy)
 		theEnemy->mVx = theEnemy->mSpeed;
 	int aSx = Sign(theEnemy->mVx);
 	int aSy = Sign(theEnemy->mVy);
-	int aRow = (int)theEnemy->mY / 16;
-	int aCol = (int)theEnemy->mX / 16;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
 	if (gLevels.mCurrent->mColumns[aCol + aSx * 2][aRow + aSy * 2].mKind == 0)
 		return 1;
 	if (theEnemy->mVx < 0.0f)
@@ -447,8 +447,8 @@ int Frog_Move(Enemy* theEnemy)
 // Kind 0xe, a laser walker's shot: bursts in a ring inside a cell that is not open (0: done)
 int LaserShot_Move(Enemy* theEnemy)
 {
-	int aCol = (int)theEnemy->mX / 16;
-	int aRow = (int)theEnemy->mY / 16;
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
 	if (gLevels.mCurrent->mColumns[aCol][aRow].mKind != 0)
 	{
 		for (int n = 0x12; n != 0; n--)
@@ -469,13 +469,13 @@ int LaserShot_Move(Enemy* theEnemy)
 // A cell around it is being captured
 int Enemy_NearCapture(Enemy* theEnemy)
 {
-	int aCol = (int)theEnemy->mX / 16;
-	int aRow = (int)theEnemy->mY / 16;
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
 	for (int r = aRow - 1; r <= aRow + 1; r++)
 	{
 		for (int k = aCol - 1; k <= aCol + 1; k++)
 		{
-			if ((uint32_t)k < 0x32 && (uint32_t)r < 0x25 && gLevels.mCurrent->mColumns[k][r].mState == 5)
+			if ((uint32_t)k < GRID_COLUMNS && (uint32_t)r < GRID_ROWS && gLevels.mCurrent->mColumns[k][r].mState == 5)
 				return 1;
 		}
 	}
@@ -617,8 +617,8 @@ int Enemy_Place(Enemy* theEnemy)
 			}
 			if (!aBlocked)
 			{
-				theEnemy->mX = (float)(aCol * 0x10 + 8);
-				theEnemy->mY = (float)(aRow * 0x10 + 8);
+				theEnemy->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
+				theEnemy->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
 				if (Enemy_ClearOfRollers(theEnemy) != 0)
 				{
 					int anAngle = RandRange(0, 0x167);
@@ -714,8 +714,8 @@ void Walker_Turn(Enemy* theEnemy)
 	}
 	theEnemy->mVx = 0.0f;
 	theEnemy->mVy = 0.0f;
-	int aCol = (int)theEnemy->mX / 16;
-	int aRow = (int)theEnemy->mY / 16;
+	int aCol = (int)theEnemy->mX / CELL_SIZE;
+	int aRow = (int)theEnemy->mY / CELL_SIZE;
 	int aWay = RandRange(0, 0x27) / 10;
 	int aTry = 0;
 	do
@@ -816,8 +816,8 @@ int Enemy_PlaceFirst(Enemy* theEnemy)
 				break;
 			if (gLevels.mCurrent->mColumns[aCol][aRow].mKind == 3)
 			{
-				theEnemy->mX = (float)(aCol * 0x10 + 8);
-				theEnemy->mY = (float)(aRow * 0x10 + 8);
+				theEnemy->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
+				theEnemy->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
 				if (Enemy_ClearOfWalkers(theEnemy) != 0)
 					return 1;
 			}
@@ -931,10 +931,10 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 {
 	if ((float)(theEnemy->mLastTurn + 5000) <= theEnemy->mAge)
 	{
-		int aCol = (int)theEnemy->mX / 16;
-		float aMidX = (float)(aCol * 0x10 + 8);
-		int aRow = (int)theEnemy->mY / 16;
-		float aMidY = (float)(aRow * 0x10 + 8);
+		int aCol = (int)theEnemy->mX / CELL_SIZE;
+		float aMidX = (float)(aCol * CELL_SIZE + CELL_HALF);
+		int aRow = (int)theEnemy->mY / CELL_SIZE;
+		float aMidY = (float)(aRow * CELL_SIZE + CELL_HALF);
 		if (theEnemy->mVx == 0.0f)
 		{
 			if (((aMidY < theEnemy->mY && theEnemy->mOldY < aMidY) ||
@@ -945,8 +945,8 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 				int aLeft = gLevels.mCurrent->mColumns[aCol - 1][aRow].mKind;
 				if (aRight == 3 || aRight == theKind || aLeft == 3 || aLeft == theKind)
 				{
-					theEnemy->mX = (float)(((int)theEnemy->mX / 16) * 0x10 + 8);
-					theEnemy->mY = (float)(((int)theEnemy->mY / 16) * 0x10 + 8);
+					theEnemy->mX = (float)(((int)theEnemy->mX / CELL_SIZE) * CELL_SIZE + CELL_HALF);
+					theEnemy->mY = (float)(((int)theEnemy->mY / CELL_SIZE) * CELL_SIZE + CELL_HALF);
 					while (theEnemy->mVx == 0.0f)
 					{
 						theEnemy->mVx = 0.0f;
@@ -964,8 +964,8 @@ void Walker_TurnAtJunction(Enemy* theEnemy, int theKind)
 			int anAbove = gLevels.mCurrent->mColumns[aCol][aRow - 1].mKind;
 			if (aBelow == 3 || aBelow == theKind || anAbove == 3 || anAbove == theKind)
 			{
-				theEnemy->mX = (float)(((int)theEnemy->mX / 16) * 0x10 + 8);
-				theEnemy->mY = (float)(((int)theEnemy->mY / 16) * 0x10 + 8);
+				theEnemy->mX = (float)(((int)theEnemy->mX / CELL_SIZE) * CELL_SIZE + CELL_HALF);
+				theEnemy->mY = (float)(((int)theEnemy->mY / CELL_SIZE) * CELL_SIZE + CELL_HALF);
 				while (theEnemy->mVy == 0.0f)
 				{
 					theEnemy->mVx = 0.0f;
@@ -984,9 +984,9 @@ void Walker_Follow(Enemy* theEnemy, int theKind)
 {
 	if (theEnemy->mVx == 0.0f)
 	{
-		int aCol = (int)theEnemy->mX / 16;
+		int aCol = (int)theEnemy->mX / CELL_SIZE;
 		int aSy = Sign(theEnemy->mVy);
-		int aRow = (int)((double)theEnemy->mVy + (double)theEnemy->mY + (double)((aSy * 0x10) / 2)) / 16;
+		int aRow = (int)((double)theEnemy->mVy + (double)theEnemy->mY + (double)((aSy * 0x10) / 2)) / CELL_SIZE;
 		bool aBlocked = 0x22 < (uint32_t)(aRow - 1);
 		if (!aBlocked)
 		{
@@ -995,8 +995,8 @@ void Walker_Follow(Enemy* theEnemy, int theKind)
 		}
 		if (aBlocked)
 		{
-			theEnemy->mX = (float)(aCol * 0x10 + 8);
-			theEnemy->mY = (float)(((int)theEnemy->mY / 16) * 0x10 + 8);
+			theEnemy->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
+			theEnemy->mY = (float)(((int)theEnemy->mY / CELL_SIZE) * CELL_SIZE + CELL_HALF);
 			Walker_Turn(theEnemy);
 			int aTry = 0;
 			do
@@ -1011,8 +1011,8 @@ void Walker_Follow(Enemy* theEnemy, int theKind)
 	else
 	{
 		int aSx = Sign(theEnemy->mVx);
-		int aCol = (int)((double)theEnemy->mX + (double)theEnemy->mVx + (double)((aSx * 0x10) / 2)) / 16;
-		int aRow = (int)theEnemy->mY / 16;
+		int aCol = (int)((double)theEnemy->mX + (double)theEnemy->mVx + (double)((aSx * 0x10) / 2)) / CELL_SIZE;
+		int aRow = (int)theEnemy->mY / CELL_SIZE;
 		bool aBlocked = 0x2f < (uint32_t)(aCol - 1);
 		if (!aBlocked)
 		{
@@ -1021,8 +1021,8 @@ void Walker_Follow(Enemy* theEnemy, int theKind)
 		}
 		if (aBlocked)
 		{
-			theEnemy->mX = (float)(((int)theEnemy->mX / 16) * 0x10 + 8);
-			theEnemy->mY = (float)(aRow * 0x10 + 8);
+			theEnemy->mX = (float)(((int)theEnemy->mX / CELL_SIZE) * CELL_SIZE + CELL_HALF);
+			theEnemy->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
 			Walker_Turn(theEnemy);
 			int aTry = 0;
 			while (theEnemy->mVy == 0.0f)
@@ -1144,7 +1144,7 @@ int SnakeShooter_Move(Enemy* theEnemy)
 			anAngle = anAngle + -0x168;
 		int aX = (int)((double)CosDeg(anAngle) * 50.0 + (double)theEnemy->mX);
 		int aY = (int)((double)SinDeg(anAngle) * 50.0 + (double)theEnemy->mY);
-		if (gLevels.mCurrent->mColumns[aX / 16][aY / 16].mKind == 0)
+		if (gLevels.mCurrent->mColumns[aX / CELL_SIZE][aY / CELL_SIZE].mKind == 0)
 		{
 			Sound_Play(Sound_Find("audio\\canon.wav"));
 			theEnemy->mLastShot = theEnemy->mAge;
@@ -1196,9 +1196,9 @@ int Snake_Move(Enemy* theEnemy)
 	if (theEnemy->mHitCell != nullptr)
 	{
 		Enemy_Kill(theEnemy, 0);
-		Level_Blast((int)theEnemy->mX / 16, (int)theEnemy->mY / 16, 3);
+		Level_Blast((int)theEnemy->mX / CELL_SIZE, (int)theEnemy->mY / CELL_SIZE, 3);
 	}
-	if (gLevels.mCurrent->mColumns[(int)theEnemy->mX / 16][(int)theEnemy->mY / 16].mKind != 0)
+	if (gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind != 0)
 		Enemy_Kill(theEnemy, 0);
 	return 1;
 }
@@ -1219,7 +1219,7 @@ int CannonBall_Move(Enemy* theEnemy)
 		return 1;
 	}
 	Enemy_Kill(theEnemy, 0);
-	Level_Blast((int)theEnemy->mX / 16, (int)theEnemy->mY / 16, 3);
+	Level_Blast((int)theEnemy->mX / CELL_SIZE, (int)theEnemy->mY / CELL_SIZE, 3);
 	return 0;
 }
 
@@ -1228,7 +1228,7 @@ int CannonBall_Move(Enemy* theEnemy)
 int Walker_Move(Enemy* theEnemy, int theKind)
 {
 	if (2000.0f < theEnemy->mAge &&
-		gLevels.mCurrent->mColumns[(int)theEnemy->mX / 16][(int)theEnemy->mY / 16].mKind == 0)
+		gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind == 0)
 	{
 		Enemy_Kill(theEnemy, 0);
 		return 1;
@@ -1324,8 +1324,8 @@ void CannonWalker_Move(Enemy* theEnemy)
 	if ((double)theEnemy->mLastShot + 4000.0 < (double)theEnemy->mAge)
 	{
 		int aCount = 1;
-		int aCol = (int)theEnemy->mX / 16 + Sign(theEnemy->mVx) * 0x10;
-		int aRow = (int)theEnemy->mY / 16 + Sign(theEnemy->mVy) * 0x10;
+		int aCol = (int)theEnemy->mX / CELL_SIZE + Sign(theEnemy->mVx) * 0x10;
+		int aRow = (int)theEnemy->mY / CELL_SIZE + Sign(theEnemy->mVy) * 0x10;
 		Level* aLevel = gLevels.mCurrent;
 		for (int r = aRow - 4; r <= aRow + 4; r++)
 		{
@@ -1511,8 +1511,8 @@ int CrabWalker_Move(Enemy* theEnemy)
 	int aResult = Walker_Move(theEnemy, 3);
 	if (theEnemy->mFrameTimer == 0 && theEnemy->mFrame == 0xc)
 	{
-		int aCol = (int)theEnemy->mX / 16 + aDx * 2;
-		int aRow = (int)theEnemy->mY / 16 + aDy * 2;
+		int aCol = (int)theEnemy->mX / CELL_SIZE + aDx * 2;
+		int aRow = (int)theEnemy->mY / CELL_SIZE + aDy * 2;
 		if (0x2d < (uint32_t)(aCol - 2) || 0x20 < (uint32_t)(aRow - 2))
 			return aResult;
 		int aKind = gLevels.mCurrent->mColumns[aCol][aRow].mKind;
@@ -1611,7 +1611,8 @@ int Enemy_Step(Enemy* theEnemy)
 	int aResult = 0;
 	int aPasses = 1;
 	if (theEnemy->mImage != nullptr &&
-		(theEnemy->mX <= 0.0f || 800.0f <= theEnemy->mX || theEnemy->mY <= 0.0f || 592.0f < theEnemy->mY))
+		(theEnemy->mX <= 0.0f || (float)BOARD_WIDTH <= theEnemy->mX || theEnemy->mY <= 0.0f || (float)BOARD_HEIGHT <
+			theEnemy->mY))
 		return 0;
 	if (theEnemy->mCountdown != 0)
 	{
@@ -1736,7 +1737,7 @@ int Enemy_Step(Enemy* theEnemy)
 		bool aDies = false;
 		if (aKind != 0xd)
 		{
-			int aCell = gLevels.mCurrent->mColumns[(int)theEnemy->mX / 16][(int)theEnemy->mY / 16].mKind;
+			int aCell = gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mKind;
 			aDies = aCell == 4 || (-1 < aKind && aKind < 7 && aCell == 2);
 		}
 		if (!aDies)
@@ -1761,7 +1762,7 @@ int Enemy_UpdateAppearing(Enemy* theEnemy)
 	if (theEnemy->mDrawKind != 0)
 	{
 		theEnemy->mDrawKind = 4;
-		int anAlpha = gLevels.mCurrent->mColumns[(int)theEnemy->mX / 16][(int)theEnemy->mY / 16].mAlpha;
+		int anAlpha = gLevels.mCurrent->mColumns[(int)theEnemy->mX / CELL_SIZE][(int)theEnemy->mY / CELL_SIZE].mAlpha;
 		theEnemy->mAlpha = anAlpha;
 		if (0xfe < anAlpha && Enemy_NearCapture(theEnemy) == 0)
 		{

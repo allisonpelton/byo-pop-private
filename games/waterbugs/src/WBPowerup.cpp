@@ -252,7 +252,7 @@ int Powerup_Fall(Powerup* thePowerup)
 	float y = thePowerup->mY;
 	int h = thePowerup->mImage->mH;
 	Obj_UpdateEmitters(thePowerup);
-	return y <= (float)(h + 600);
+	return y <= (float)(h + SCREEN_HEIGHT);
 }
 
 // The weapons. 0x419e40: a missile's animation by the way it points
@@ -291,20 +291,20 @@ int Sign(float x)
 // 0x419ee0 (the magnet): off cells that are not open, a third of its size ahead; it slows only over open cells
 int Weapon_Bounce(Weapon* theWeapon)
 {
-	int aCol = (int)theWeapon->mX / 16;
-	int aRow = (int)theWeapon->mY / 16;
+	int aCol = (int)theWeapon->mX / CELL_SIZE;
+	int aRow = (int)theWeapon->mY / CELL_SIZE;
 	Level* aLevel = gLevels.mCurrent;
 	if (aLevel->mColumns[aCol][aRow].mKind == 0)
 	{
 		Image* anImage = theWeapon->mImage;
 		int x = (int)((double)(anImage->mW * Sign(theWeapon->mVx) / 3) + (double)theWeapon->mX);
-		if (aLevel->mColumns[x / 16][aRow].mKind != 0)
+		if (aLevel->mColumns[x / CELL_SIZE][aRow].mKind != 0)
 		{
 			theWeapon->mVx = -theWeapon->mVx;
 			aLevel = gLevels.mCurrent;
 		}
 		int y = (int)((double)(anImage->mH * Sign(theWeapon->mVy) / 3) + (double)theWeapon->mY);
-		if (aLevel->mColumns[aCol][y / 16].mKind != 0)
+		if (aLevel->mColumns[aCol][y / CELL_SIZE].mKind != 0)
 			theWeapon->mVy = -theWeapon->mVy;
 		theWeapon->mDrag = 0.996f;
 		// (its own cell was open above, so this never holds)
@@ -323,10 +323,10 @@ int Weapon_Bounce(Weapon* theWeapon)
 // 0x41a060 (the anchor): settles in the middle of its cell and makes that cell and the four beside it edges
 int Anchor_Drop(Weapon* theWeapon)
 {
-	int aCol = (int)theWeapon->mX / 16;
-	int aRow = (int)theWeapon->mY / 16;
-	theWeapon->mX = (float)(aCol * 0x10 + 8);
-	theWeapon->mY = (float)(aRow * 0x10 + 8);
+	int aCol = (int)theWeapon->mX / CELL_SIZE;
+	int aRow = (int)theWeapon->mY / CELL_SIZE;
+	theWeapon->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
+	theWeapon->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
 	for (int aDc = -1; aDc < 2; aDc++)
 	{
 		for (int aDr = -1; aDr < 2; aDr++)
@@ -1009,11 +1009,11 @@ int Weapon_Update(Weapon* theWeapon)
 	}
 	else if (theWeapon->mState == 4)
 	{
-		int aCol = (int)theWeapon->mX / 16;
+		int aCol = (int)theWeapon->mX / CELL_SIZE;
 		if (-1 < aCol && aCol < 0x32)
 		{
-			int aRow = (int)theWeapon->mY / 16;
-			if (-1 < aRow && aRow < 0x25)
+			int aRow = (int)theWeapon->mY / CELL_SIZE;
+			if (-1 < aRow && aRow < GRID_ROWS)
 				return aResult & Weapon_Move(theWeapon);
 		}
 		return 0;

@@ -65,7 +65,7 @@ public:
 	bool LockScreen(uint8_t** theBits, int* thePitch) override
 	{
 		*theBits = (uint8_t*)gApp->mScreen.data();
-		*thePitch = 800 * 2;
+		*thePitch = r64::SCREEN_WIDTH * 2;
 		return true;
 	}
 
@@ -233,7 +233,7 @@ void BuildPixelsFromScreen16()
 WaterBugsWidget::WaterBugsWidget()
 {
 	mScreenImage = new MemoryImage(gApp);
-	mScreenImage->Create(800, 600);
+	mScreenImage->Create(r64::SCREEN_WIDTH, r64::SCREEN_HEIGHT);
 	// opaque, so that the framework need not look through the 480000 pixels for alpha after each change, and with every
 	// alpha byte 0xff (Draw), so that it need not premultiply them pixel by pixel to upload them (the Mahjong ports'
 	// screen)
@@ -261,7 +261,7 @@ void WaterBugsWidget::Draw(Graphics* g)
 	WaterBugsApp* anApp = gApp;
 	if (anApp->mPresented)
 	{
-		int aLeft = 0, t = 0, r = 800, b = 600;
+		int aLeft = 0, t = 0, r = r64::SCREEN_WIDTH, b = r64::SCREEN_HEIGHT;
 		if (!anApp->mWholeScreen && anApp->mDirtyRight > anApp->mDirtyLeft)
 		{
 			aLeft = anApp->mDirtyLeft;
@@ -272,15 +272,15 @@ void WaterBugsWidget::Draw(Graphics* g)
 		ulong* aBits = mScreenImage->GetBits();
 		for (int y = t; y < b; y++)
 		{
-			const uint16_t* aSrc = &anApp->mScreen[y * 800];
-			ulong* aDst = &aBits[y * 800];
+			const uint16_t* aSrc = &anApp->mScreen[y * r64::SCREEN_WIDTH];
+			ulong* aDst = &aBits[y * r64::SCREEN_WIDTH];
 			for (int x = aLeft; x < r; x++)
 				aDst[x] = gPixelsFromScreen16[aSrc[x]];
 		}
 		mScreenImage->BitsChanged();
 		anApp->mPresented = false;
 		anApp->mWholeScreen = false;
-		anApp->mDirtyLeft = anApp->mDirtyTop = 800;
+		anApp->mDirtyLeft = anApp->mDirtyTop = r64::SCREEN_WIDTH;
 		anApp->mDirtyRight = anApp->mDirtyBottom = 0;
 	}
 	g->DrawImage(mScreenImage, 0, 0);
@@ -330,16 +330,16 @@ WaterBugsApp::WaterBugsApp()
 	mProdName = "WaterBugs";
 	mTitle = "Water Bugs";
 	mRegKey = "PopCap\\WaterBugs";
-	mWidth = 800;
-	mHeight = 600;
+	mWidth = r64::SCREEN_WIDTH;
+	mHeight = r64::SCREEN_HEIGHT;
 	mWidget = nullptr;
 	mGameStarted = false;
 	mGameEnded = false;
 	mApplyingGameMode = false;
-	mScreen.assign(800 * 600, 0);
+	mScreen.assign(r64::SCREEN_WIDTH * r64::SCREEN_HEIGHT, 0);
 	mPresented = false;
 	mWholeScreen = false;
-	mDirtyLeft = mDirtyTop = 800;
+	mDirtyLeft = mDirtyTop = r64::SCREEN_WIDTH;
 	mDirtyRight = mDirtyBottom = 0;
 	mMouseX = 400;
 	mMouseY = 300;
@@ -425,9 +425,9 @@ void WaterBugsApp::AddUpdateRect(int x, int y, int theWidth, int theHeight)
 	if (y < mDirtyTop)
 		mDirtyTop = y < 0 ? 0 : y;
 	if (x + theWidth > mDirtyRight)
-		mDirtyRight = x + theWidth > 800 ? 800 : x + theWidth;
+		mDirtyRight = x + theWidth > r64::SCREEN_WIDTH ? r64::SCREEN_WIDTH : x + theWidth;
 	if (y + theHeight > mDirtyBottom)
-		mDirtyBottom = y + theHeight > 600 ? 600 : y + theHeight;
+		mDirtyBottom = y + theHeight > r64::SCREEN_HEIGHT ? r64::SCREEN_HEIGHT : y + theHeight;
 }
 
 void WaterBugsApp::Present()

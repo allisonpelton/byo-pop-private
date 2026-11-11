@@ -140,8 +140,8 @@ struct Shooter : Obj
 	float mAppearTime;          // +0x484  updates the ship takes to come in
 	float mBeamSpeed;           // +0x488
 	int mFlags;                 // +0x48c  8: it turns by itself, 0x10: invincible
-	int mSlowMotionTime;                // +0x490
-	int mHyperMotionTime;                // +0x494
+	int mSlowMotionTime;        // +0x490  5000 once the slow-motion power-up is taken; nothing reads it
+	int mHyperMotionTime;       // +0x494  5000 once the hyper-motion power-up is taken; nothing reads it
 	int mDrillSound;            // +0x498
 	int mFireAge;               // +0x49c  its age when it last fired
 	int mHitSound;              // +0x4a0  clank_sound: a beam meets a wall
@@ -206,7 +206,7 @@ struct Text : Obj
 	int mFadeIn;                // +0x1b4  ms
 	int mFadeOut;               // +0x1b8  ms (also how long it takes once clicked away)
 	int mIdle;                  // +0x1bc  ms shown
-	int mDormant;               // +0x1c0  ms before it fades in
+	int mDormant;               // +0x1c0  ms before it fades in; nothing reads it (mLifetime starts from it)
 	int mLoopTime;              // +0x1c4 ms gone before it fades in again (0: it is removed; WBLevel: clicked away with
 								// its neighbours)
 	int mAlign;                 // +0x1c8  0 left, 1 right, 2 centred on x
@@ -266,7 +266,7 @@ struct Level : Obj
 	// kind +0x08: 0 a board, 1 main_menu, 2 high_score_entry, 3 high_scores, 4 credits, 5 select_level,
 	// 6 select_level2, 7 options, 8 opening_nag, 9 closing_nag, 10 expiring_nag, 0xb mission_complete, 0xc help,
 	// 0xd help2, 0xe logo, 0x10 change_user; state +0x0c: 1 playing, 2 paused, 3 won
-	Cell* mColumns[50];               // +0x0b0
+	Cell* mColumns[GRID_COLUMNS];               // +0x0b0
 	char mTitle[0x40];                // +0x178
 	int mNumber;                      // +0x1b8
 	char mBackImage[0x40];            // +0x1bc
@@ -280,9 +280,9 @@ struct Level : Obj
 	int mVTileCount;                  // +0x218
 	Animation* mCornerTiles;          // +0x21c
 	int mCornerTileCount;             // +0x220
-	int mHPattern[50];                // +0x224
+	int mHPattern[GRID_COLUMNS];                // +0x224
 	int mHPatternCount;               // +0x2ec
-	int mVPattern[37];                // +0x2f0
+	int mVPattern[GRID_ROWS];                // +0x2f0
 	int mVPatternCount;               // +0x384
 	int mNumWalkers;                  // +0x388
 	int mNumRollers;                  // +0x38c

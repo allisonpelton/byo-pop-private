@@ -299,8 +299,8 @@ Dirty::Dirty()
 	mCells = nullptr;
 	mMode = 0;
 	mMaxRects = 400;
-	mCellW = 800;
-	mCellH = 600;
+	mCellW = SCREEN_WIDTH;
+	mCellH = SCREEN_HEIGHT;
 	mCols = 1;
 	mRows = 1;
 	mSource = nullptr;
@@ -339,7 +339,7 @@ void Dirty_Init(Dirty* theDirty, int theCellW, int theCellH, int theMaxRects, in
 	theDirty->mMaxRects = theMaxRects;
 	theDirty->mCellH = theCellH;
 	theDirty->mCellW = theCellW;
-	theDirty->mCols = 800 / theCellW;
+	theDirty->mCols = SCREEN_WIDTH / theCellW;
 	theDirty->mRows = 600 / theCellH;
 }
 

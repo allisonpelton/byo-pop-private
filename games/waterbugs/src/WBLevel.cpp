@@ -146,9 +146,9 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 			}
 		}
 	}
-	for (int y = 0; y < 0x25; y++)
+	for (int y = 0; y < GRID_ROWS; y++)
 	{
-		for (int x = 0; x < 50; x++)
+		for (int x = 0; x < GRID_COLUMNS; x++)
 		{
 			Cell* aCell = CellAt(x, y);
 			aCell->mCol = x;
@@ -161,9 +161,9 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 	do
 	{
 		aChanged = false;
-		for (int y = 0; y < 0x25; y++)
+		for (int y = 0; y < GRID_ROWS; y++)
 		{
-			for (int x = 0; x < 50; x++)
+			for (int x = 0; x < GRID_COLUMNS; x++)
 			{
 				Cell* aCell = &theLevel->mColumns[x][y];
 				if (aCell->mKind == 3)
@@ -171,11 +171,11 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 					unsigned int aSolid = 0;
 					if (0 < x && theLevel->mColumns[x - 1][y].mKind == 5)
 						aSolid = 1;
-					if (x + 1 < 50 && theLevel->mColumns[x + 1][y].mKind == 5)
+					if (x + 1 < GRID_COLUMNS && theLevel->mColumns[x + 1][y].mKind == 5)
 						aSolid = aSolid + 1;
 					if (0 < y && aCell[-1].mKind == 5)
 						aSolid = aSolid + 1;
-					if (y + 1 < 0x25 && aCell[1].mKind == 5)
+					if (y + 1 < GRID_ROWS && aCell[1].mKind == 5)
 						aSolid = aSolid + 1;
 					if (2 < aSolid)
 					{
@@ -188,9 +188,9 @@ void Level_MakeRandom(Level* theLevel, int theSeed)
 		}
 	} while (aChanged);
 	theLevel->mTotalCells = 0;
-	for (int y = 0; y < 0x25; y++)
+	for (int y = 0; y < GRID_ROWS; y++)
 	{
-		for (int x = 0; x < 50; x++)
+		for (int x = 0; x < GRID_COLUMNS; x++)
 		{
 			Cell* aCell = CellAt(x, y);
 			int aKind = aCell->mKind;
@@ -582,7 +582,7 @@ Level* Level_Init(Level* theLevel)
 	theLevel->mLines = 0;
 	gSongName[0] = 0;
 	theLevel->mChain = 1;
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < GRID_COLUMNS; i++)
 		theLevel->mColumns[i] = nullptr;
 	theLevel->mBonus = 0;
 	theLevel->mMusicPending = 0;
@@ -597,7 +597,7 @@ void Level_Destroy(Level* theLevel)
 		Image_Destroy(theLevel->mBackground);
 		::operator delete(theLevel->mBackground);
 	}
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < GRID_COLUMNS; i++)
 	{
 		if (theLevel->mColumns[i] != nullptr)
 			Cells_Delete(theLevel->mColumns[i]);
@@ -630,7 +630,7 @@ void Level_Load(Level* theLevel, const char* theXmlCursor, XmlTag* theTag)
 	int aRow = 0;
 	if (theXmlCursor != nullptr)
 	{
-		for (int i = 0; i < 50; i++)
+		for (int i = 0; i < GRID_COLUMNS; i++)
 			theLevel->mColumns[i] = Cells_New();
 	}
 	if (Xml_GetString(theTag, "back_image") != nullptr)
@@ -683,8 +683,8 @@ void Level_Load(Level* theLevel, const char* theXmlCursor, XmlTag* theTag)
 		theLevel->mRows = 0x20;
 	}
 	else
-		theLevel->mRows = 0x25;
-	theLevel->mCols = 0x32;
+		theLevel->mRows = GRID_ROWS;
+	theLevel->mCols = GRID_COLUMNS;
 	theLevel->mFillQuota = Xml_GetInt(theTag, "fill_quota");
 	theLevel->mFillSound = Sound_Load("audio\\fill.wav");
 	theLevel->mFillEndSound = Sound_Load("audio\\fill_end.wav");
@@ -713,7 +713,7 @@ void Level_Load(Level* theLevel, const char* theXmlCursor, XmlTag* theTag)
 			if (aRow == 0)
 				theLevel->mTotalCells = 0;
 			const char* aCells = Xml_GetString(theTag, "cells");
-			for (int x = 0; x < 50; x++)
+			for (int x = 0; x < GRID_COLUMNS; x++)
 				Cell_Set(&theLevel->mColumns[x][aRow], aCells[x], x, aRow);
 			aRow = aRow + 1;
 		}
@@ -772,7 +772,7 @@ void Level_Load(Level* theLevel, const char* theXmlCursor, XmlTag* theTag)
 				{
 					Star_Append(&theLevel->mStars);
 					Obj_FromXml(theLevel->mStars.mCurrent, theXmlCursor, theTag);
-					theLevel->mStars.mCurrent->mX = (float)RandRange(0, 800);
+					theLevel->mStars.mCurrent->mX = (float)RandRange(0, SCREEN_WIDTH);
 					theLevel->mStars.mCurrent->mY = (float)RandRange(0, 0x250);
 					Obj* aStar = theLevel->mStars.mCurrent;
 					aStar->mVx = (float)((double)RandRange(0x14, 0x32) / 25.0 * (double)aStar->mVx);
@@ -1111,7 +1111,7 @@ void Level_AddStars(Level* theLevel)
 	do
 	{
 		Star_Append(aList);
-		aList->mCurrent->mX = (float)RandRange(0, 800);
+		aList->mCurrent->mX = (float)RandRange(0, SCREEN_WIDTH);
 		aList->mCurrent->mY = (float)RandRange(0, 0x250);
 		aList->mCurrent->mVy = (float)((double)RandRange(0x14, 0x32) / 25.0 * 0.035);
 		aList->mCurrent->mVy = -aList->mCurrent->mVy;
@@ -1172,7 +1172,7 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 				if (aSymmetry == 0)
 				{
 					int r = RandRange(0, 99);
-					anEnemies->mCurrent->mX = 800.0f - Node_Prev(anEnemies->mCurrent)->mX;
+					anEnemies->mCurrent->mX = (float)SCREEN_WIDTH - Node_Prev(anEnemies->mCurrent)->mX;
 					if (r < 0x33)
 						anEnemies->mCurrent->mY = Node_Prev(anEnemies->mCurrent)->mY;
 					else
@@ -1180,12 +1180,12 @@ void Level_AddRandomEnemies(Level* theLevel, int theFirst, int theSecond)
 				}
 				else if (aSymmetry == 1)
 				{
-					anEnemies->mCurrent->mX = 800.0f - Node_Prev(anEnemies->mCurrent)->mX;
+					anEnemies->mCurrent->mX = (float)SCREEN_WIDTH - Node_Prev(anEnemies->mCurrent)->mX;
 					anEnemies->mCurrent->mY = Node_Prev(anEnemies->mCurrent)->mY;
 				}
 				else if (aSymmetry == 2)
 				{
-					anEnemies->mCurrent->mX = 800.0f - Node_Prev(anEnemies->mCurrent)->mX;
+					anEnemies->mCurrent->mX = (float)SCREEN_WIDTH - Node_Prev(anEnemies->mCurrent)->mX;
 					anEnemies->mCurrent->mY = 528.0f - Node_Prev(anEnemies->mCurrent)->mY;
 				}
 				if (aFirstTint == 0)
@@ -1249,7 +1249,7 @@ void Beams_RemoveAll(List<Beam>* theList)
 
 void Level_StartRandom(Level* theLevel)
 {
-	for (int i = 0; i < 50; i++)
+	for (int i = 0; i < GRID_COLUMNS; i++)
 		theLevel->mColumns[i] = Cells_New();
 	Level_StartSong(theLevel, 0);
 	Image* aBack = Bank_FindImage2(&gArtBank, theLevel->mBackImage);
@@ -1260,7 +1260,7 @@ void Level_StartRandom(Level* theLevel)
 	Level_MakeEdges(theLevel);
 	Screen_Redraw();
 	Level_AddPointer(theLevel);
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, SCREEN_CLIP);
+	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 	if (theLevel->mNext != nullptr && Node_Next(theLevel)->mKind == 0xb)
 		gGoTo = 0xb;
 	// inside the frame the cells start as state 6 (not yet reached by the fill); the fill starts in the corner
@@ -1481,15 +1481,15 @@ int Pointer_Update(Obj* thePointer)
 		thePointer->mShadow = 1;
 		thePointer->mAlpha = 0xff;
 		int v;
-		if (gMouseX < 0x321)
+		if (gMouseX < SCREEN_WIDTH + 1)
 			v = gMouseX < 0 ? 0 : gMouseX;
 		else
-			v = 800;
+			v = SCREEN_WIDTH;
 		thePointer->mX = (float)v;
-		if (gMouseY < 0x259)
+		if (gMouseY < SCREEN_HEIGHT + 1)
 			v = gMouseY < 0 ? 0 : gMouseY;
 		else
-			v = 600;
+			v = SCREEN_HEIGHT;
 		thePointer->mY = (float)v;
 		Obj_Update(thePointer);
 	}

@@ -212,8 +212,8 @@ public:
 				mOpen[c][r] = theLevel->mColumns[c][r].mKind == 0;
 		for (Enemy* e = theLevel->mEnemies.mHead; e != nullptr; e = Node_Next(e))
 		{
-			int c = (int)e->mX / 16;
-			int r = (int)e->mY / 16;
+			int c = (int)e->mX / CELL_SIZE;
+			int r = (int)e->mY / CELL_SIZE;
 			if (0 <= c && c < mCols && 0 <= r && r < mRows)
 				mEnemyAt[c][r]++;
 		}
@@ -536,7 +536,7 @@ std::string BoardMove(Level* theLevel, bool& theBusy)
 		theBusy = true;
 		return "";
 	}
-	int aShipCol = aShipX / 16, aShipRow = aShipY / 16;
+	int aShipCol = aShipX / CELL_SIZE, aShipRow = aShipY / CELL_SIZE;
 	Shot aHere = aBot.Evaluate(aShipCol, aShipRow, aShip->mBeamAcross);
 	Shot aKept;
 	if (gAim.mSet && gBan[gAim.mAcross][gAim.mAcross != 0 ? gAim.mRow : gAim.mCol] == 0)
@@ -828,8 +828,9 @@ bool HandleTestCommand(SexyAppBase* theApp, const ScriptCommand& theCommand)
 			for (int c = 0; c < aLevel->mCols && c < 50; c++)
 				aRow += aLevel->mColumns[c][r].mKind != 0 ? '#' : (aLevel->mColumns[c][r].mUnmarked == 0 ? '+' : '.');
 			for (Enemy* e = aLevel->mEnemies.mHead; e != nullptr; e = Node_Next(e))
-				if ((int)e->mY / 16 == r && 0 <= (int)e->mX / 16 && (int)e->mX / 16 < (int)aRow.size())
-					aRow[(int)e->mX / 16] = 'e';
+				if ((int)e->mY / CELL_SIZE == r && 0 <= (int)e->mX / CELL_SIZE && (int)e->mX / CELL_SIZE <
+					(int)aRow.size())
+					aRow[(int)e->mX / CELL_SIZE] = 'e';
 			g += aRow + (r + 1 < aLevel->mRows ? "|" : "");
 		}
 		Reply("GRID " + g);

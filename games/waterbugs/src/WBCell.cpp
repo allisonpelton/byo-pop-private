@@ -63,12 +63,12 @@ void Cell_Redraw(Cell* theCell)
 		int aSteps = theCell->mSteps;
 		int aDx = (int)(((double)theCell->mOffX + (double)theCell->mX) - (double)((theCell->mOffX * aStep) / aSteps));
 		int aDy = (int)(((double)theCell->mOffY + (double)theCell->mY) - (double)((theCell->mOffY * aStep) / aSteps));
-		if (-1 < aDx && -1 < aDy && aDx + 0x10 < 800 && aDy + 0x10 < 600)
+		if (-1 < aDx && -1 < aDy && aDx + CELL_SIZE < SCREEN_WIDTH && aDy + CELL_SIZE < SCREEN_HEIGHT)
 		{
 			Image* anImg = theCell->mImage;
 			Alpha16MaskFade(gScreenBits, gScreenPitch, &gBackBuffer.mFmt, aDx, aDy, anImg->mBits, anImg->mPitch, aSx,
-				aSy, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 0x10, 0x10, theCell->mAlpha);
-			Dirty_AddClippedShown(&gDirty, aDx, aDy, 0x10, 0x10, SCREEN_CLIP);
+				aSy, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, CELL_SIZE, CELL_SIZE, theCell->mAlpha);
+			Dirty_AddClippedShown(&gDirty, aDx, aDy, CELL_SIZE, CELL_SIZE, SCREEN_CLIP);
 			return;
 		}
 	}
@@ -84,14 +84,15 @@ void Cell_Redraw(Cell* theCell)
 			float aFx = (float)(anOffX + (double)theCell->mX);
 			double anOffY = (double)t * (double)theCell->mOffY;
 			float aFy = (float)(anOffY + (double)theCell->mY);
-			if (0.0f <= aFx && 0.0f <= aFy && (double)aFx + 16.0 < 800.0 && 16.0 + (double)aFy < 600.0)
+			if (0.0f <= aFx && 0.0f <= aFy && (double)aFx + CELL_SIZE < SCREEN_WIDTH && CELL_SIZE + (double)aFy <
+				SCREEN_HEIGHT)
 			{
 				Image* anImg = theCell->mImage;
 				int aDy = (int)aFy;
 				int aDx = (int)aFx;
 				Alpha16MaskFade(gScreenBits, gScreenPitch, &gBackBuffer.mFmt, aDx, aDy, anImg->mBits, anImg->mPitch,
-					aSx, aSy, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 0x10, 0x10, theCell->mAlpha);
-				Dirty_AddClippedShown(&gDirty, aDx, aDy, 0x10, 0x10, SCREEN_CLIP);
+					aSx, aSy, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, CELL_SIZE, CELL_SIZE, theCell->mAlpha);
+				Dirty_AddClippedShown(&gDirty, aDx, aDy, CELL_SIZE, CELL_SIZE, SCREEN_CLIP);
 				return;
 			}
 		}
@@ -111,44 +112,46 @@ void Cell_Redraw(Cell* theCell)
 			// the filled neighbours' halves next to this cell
 			if (At(aCol - 1, aRow)->mKind == 4)
 				Alpha16Mask(aBack, aPitch, aFmt, aX, aY, aFill->mBits, aFill->mPitch, aFsx, aFsy, aFill->mMask->mBits,
-					aFill->mMask->mPitch, 0, 0, 8, 0x10);
+					aFill->mMask->mPitch, 0, 0, CELL_HALF, CELL_SIZE);
 			if (At(aCol + 1, aRow)->mKind == 4)
 				Alpha16Mask(aBack, aPitch, aFmt, (int)((double)theCell->mX + 8.0), (int)theCell->mY, aFill->mBits,
-					aFill->mPitch, aFsx + 8, aFsy, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 8, 0x10);
+					aFill->mPitch, aFsx + CELL_HALF, aFsy, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, CELL_HALF,
+						CELL_SIZE);
 			if (At(aCol, aRow + 1)->mKind == 4)
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)((double)theCell->mY + 8.0), aFill->mBits,
-					aFill->mPitch, aFsx, aFsy + 8, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 0x10, 8);
+					aFill->mPitch, aFsx, aFsy + CELL_HALF, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, CELL_SIZE,
+						CELL_HALF);
 			if (At(aCol, aRow - 1)->mKind == 4)
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)theCell->mY, aFill->mBits, aFill->mPitch, aFsx,
-					aFsy, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, 0x10, 8);
+					aFsy, aFill->mMask->mBits, aFill->mMask->mPitch, 0, 0, CELL_SIZE, CELL_HALF);
 			// the beam neighbours' halves
 			Cell* aNext = At(aCol - 1, aRow);
 			if (aNext->mKind == 2)
 			{
 				Image* anImg = aNext->mImage;
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)theCell->mY, anImg->mBits, anImg->mPitch, 0, 0,
-					anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 8, 0x10);
+					anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, CELL_HALF, CELL_SIZE);
 			}
 			aNext = At(aCol + 1, aRow);
 			if (aNext->mKind == 2)
 			{
 				Image* anImg = aNext->mImage;
 				Alpha16Mask(aBack, aPitch, aFmt, (int)((double)theCell->mX + 8.0), (int)theCell->mY, anImg->mBits,
-					anImg->mPitch, 8, 0, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 8, 0x10);
+					anImg->mPitch, CELL_HALF, 0, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, CELL_HALF, CELL_SIZE);
 			}
 			aNext = At(aCol, aRow + 1);
 			if (aNext->mKind == 2)
 			{
 				Image* anImg = aNext->mImage;
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)((double)theCell->mY + 8.0), anImg->mBits,
-					anImg->mPitch, 0, 8, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 0x10, 8);
+					anImg->mPitch, 0, CELL_HALF, anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, CELL_SIZE, CELL_HALF);
 			}
 			aNext = At(aCol, aRow - 1);
 			if (aNext->mKind == 2)
 			{
 				Image* anImg = aNext->mImage;
 				Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)theCell->mY, anImg->mBits, anImg->mPitch, 0, 0,
-					anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 0x10, 8);
+					anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, CELL_SIZE, CELL_HALF);
 			}
 		}
 		if (theCell->mKind == 2 || theCell->mKind == 3)
@@ -159,7 +162,7 @@ void Cell_Redraw(Cell* theCell)
 			{
 				Image* aMask = theCell->mImage->mMask;
 				Fill16MaskAlpha(aBack, aPitch, aFmt, (int)((double)theCell->mX + 5.0), (int)theCell->mY, aSx, aSy,
-					aMask->mBits, aMask->mPitch, 0, 0, 0x10, 0x10, 0, 0x5a);
+					aMask->mBits, aMask->mPitch, 0, 0, CELL_SIZE, CELL_SIZE, 0, 0x5a);
 				At(aCol + 1, aRow)->mShadowRight = 1;
 			}
 			Cell* aBelow = At(aCol, aRow + 1);
@@ -167,13 +170,13 @@ void Cell_Redraw(Cell* theCell)
 			{
 				Image* aMask = theCell->mImage->mMask;
 				Fill16MaskAlpha(aBack, aPitch, aFmt, (int)theCell->mX, (int)((double)theCell->mY + 5.0), aSx, aSy,
-					aMask->mBits, aMask->mPitch, 0, 0, 0x10, 0x10, 0, 0x5a);
+					aMask->mBits, aMask->mPitch, 0, 0, CELL_SIZE, CELL_SIZE, 0, 0x5a);
 				At(aCol, aRow + 1)->mShadowBelow = 1;
 			}
 		}
 		Image* anImg = theCell->mImage;
 		Alpha16Mask(aBack, aPitch, aFmt, (int)theCell->mX, (int)theCell->mY, anImg->mBits, anImg->mPitch, aSx, aSy,
-			anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, 0x10, 0x10);
+			anImg->mMask->mBits, anImg->mMask->mPitch, 0, 0, CELL_SIZE, CELL_SIZE);
 		Dirty_AddClippedShown(&gDirty, (int)theCell->mX, (int)theCell->mY, 0x18, 0x18, SCREEN_CLIP);
 	}
 }
@@ -495,7 +498,8 @@ int Cell_UpdateFill(Cell* theCell)
 		int aY = (int)theCell->mY;
 		int aX = (int)theCell->mX;
 		Image* aBack = gLevels.mCurrent->mBackground;
-		Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, 0x10, 0x10);
+		Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, CELL_SIZE,
+			CELL_SIZE);
 	}
 	theCell->mStep = theCell->mStep + 1;
 	if (theCell->mSteps < theCell->mStep)
@@ -528,9 +532,9 @@ int Cell_UpdateFill(Cell* theCell)
 		int aDx = (int)(((double)theCell->mX + (double)anOffX) - (double)anOffX);
 		float anOffY = (float)theCell->mOffY;
 		int aDy = (int)(((double)theCell->mY + (double)anOffY) - (double)anOffY);
-		if (-1 < aDx && -1 < aDy && aDx + 0x10 < 800 && aDy + 0x10 < 600)
+		if (-1 < aDx && -1 < aDy && aDx + CELL_SIZE < SCREEN_WIDTH && aDy + CELL_SIZE < SCREEN_HEIGHT)
 		{
-			Dirty_AddClippedShown(&gDirty, aDx, aDy, 0x10, 0x10, SCREEN_CLIP);
+			Dirty_AddClippedShown(&gDirty, aDx, aDy, CELL_SIZE, CELL_SIZE, SCREEN_CLIP);
 			return 0;
 		}
 	}
@@ -555,7 +559,7 @@ static void Cell_Uncover(Cell* theCell)
 	int aY = (int)theCell->mY;
 	int aX = (int)theCell->mX;
 	Image* aBack = gLevels.mCurrent->mBackground;
-	Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, 0x10, 0x10);
+	Copy16(gBackBuffer.mBits, gBackBuffer.mPitch, aX, aY, aBack->mBits, aBack->mPitch, aX, aY, CELL_SIZE, CELL_SIZE);
 }
 
 static bool InBoard(int theCol, int theRow)
@@ -603,7 +607,7 @@ void Level_Blast(int theCol, int theRow, int theRadius)
 					Cell_PickImage(aCell);
 					Cell_Redraw(aCell);
 				}
-				Dirty_AddClippedShown(&gDirty, (int)aCell->mX, (int)aCell->mY, 0x10, 0x10, SCREEN_CLIP);
+				Dirty_AddClippedShown(&gDirty, (int)aCell->mX, (int)aCell->mY, CELL_SIZE, CELL_SIZE, SCREEN_CLIP);
 				for (int i = 1; i < theRadius; i++)
 				{
 					if (theRadius < 3)

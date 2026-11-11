@@ -44,7 +44,7 @@ void GameExit()
 // 0x41ecd0: after the screen was opened again
 void ScreenChanged()
 {
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, SCREEN_CLIP);
+	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 }
 
 // 0x41ecf0
@@ -143,7 +143,7 @@ void DrawLoadingScreen()
 	Image* anImage = Bank_ImageAt(&gArt8Bank, Bank_IndexOf(&gArt8Bank, "loading"));
 	if (Screen_Lock() != 0)
 	{
-		std::memset(gScreenBits, 0, gScreenPitch * 600);
+		std::memset(gScreenBits, 0, gScreenPitch * SCREEN_HEIGHT);
 		Draw_FillBlend(gScreenBits, gScreenPitch, &gBackBuffer.mFmt, 0, 0, 0x31f, 0x257, 0, 0, 0, 0xb4);
 		Image_BlitSubRect(anImage, gScreenBits, gScreenPitch, Sys_ScreenFormat(), 400 - anImage->mW / 2,
 			300 - anImage->mH / 2, 0, 0, anImage->mW, anImage->mH);
@@ -252,10 +252,10 @@ void GameStart()
 	InitSinCos();
 	SeedCrtRand();
 	SetScreenChangeCallback(ScreenChanged);
-	Image_Create(&gBackBuffer, 800, 600, Sys_ScreenFormat());
+	Image_Create(&gBackBuffer, SCREEN_WIDTH, SCREEN_HEIGHT, Sys_ScreenFormat());
 	Dirty_Init(&gDirty, 0x28, 0x28, 1, 1);
 	Dirty_SetSource(&gDirty, &gBackBuffer);
-	Dirty_AddClipped(&gDirty, 0, 0, 800, 600, SCREEN_CLIP);
+	Dirty_AddClipped(&gDirty, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_CLIP);
 	LoadArt8();
 	DrawLoadingScreen();
 	LoadArtAndFonts();

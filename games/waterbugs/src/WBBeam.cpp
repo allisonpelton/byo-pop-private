@@ -79,11 +79,12 @@ int Rider_Update(Rider* theRider)
 {
 	int aResult = 1;
 	Obj_Update(theRider);
-	if (0.0f <= theRider->mX && theRider->mX < 800.0f && 0.0f <= theRider->mY && theRider->mY <= 592.0f)
+	if (0.0f <= theRider->mX && theRider->mX < (float)BOARD_WIDTH && 0.0f <= theRider->mY &&
+		theRider->mY <= (float)BOARD_HEIGHT)
 	{
 		int aCol = (int)theRider->mX;
 		int aRow = (int)theRider->mY;
-		if (gLevels.mCurrent->mColumns[aCol / 16][aRow / 16].mKind != 5)
+		if (gLevels.mCurrent->mColumns[aCol / CELL_SIZE][aRow / CELL_SIZE].mKind != 5)
 		{
 			if (RandRange(1, 10) == 1)
 			{
@@ -242,7 +243,7 @@ int Beam_Update(Beam* theBeam)
 	theBeam->mY = aY;
 	int aCol = (int)((double)theBeam->mVx + (double)aX);
 	int aRow = (int)((double)aY + (double)theBeam->mVy);
-	if (gLevels.mCurrent->mColumns[aCol / 16][aRow / 16].mKind == 0)
+	if (gLevels.mCurrent->mColumns[aCol / CELL_SIZE][aRow / CELL_SIZE].mKind == 0)
 	{
 		theBeam->mX = aX + theBeam->mVx;
 		theBeam->mY = aY + theBeam->mVy;

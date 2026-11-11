@@ -15,7 +15,7 @@ namespace wb
 namespace
 {
 
-uint8_t gVisited[50][37];          // 0x6e5e60  the open cells Region_Count has been to
+uint8_t gVisited[GRID_COLUMNS][GRID_ROWS];          // 0x6e5e60  the open cells Region_Count has been to
 
 // 0x41c440: the level's weapons orbiting the ship
 int Weapons_Orbiting()
@@ -143,8 +143,8 @@ void Shooter_Fill(Shooter* theShooter, Cell* theCell)
 	// RandMod(1) is always 0 (the level's one fill image), but it takes a number from the generator
 	if (theShooter->mBeamAcross == 0)
 	{
-		int aTail = (int)theShooter->mBeams.mTail->mY / 16;
-		int aHead = (int)theShooter->mBeams.mHead->mY / 16;
+		int aTail = (int)theShooter->mBeams.mTail->mY / CELL_SIZE;
+		int aHead = (int)theShooter->mBeams.mHead->mY / CELL_SIZE;
 		int aLo = aHead < aTail ? aHead : aTail;
 		int aHi = aHead > aTail ? aHead : aTail;
 		for (int i = theCell->mRow; i <= aHi; i++)
@@ -169,8 +169,8 @@ void Shooter_Fill(Shooter* theShooter, Cell* theCell)
 		}
 		return;
 	}
-	int aTail = (int)theShooter->mBeams.mTail->mX / 16;
-	int aHead = (int)theShooter->mBeams.mHead->mX / 16;
+	int aTail = (int)theShooter->mBeams.mTail->mX / CELL_SIZE;
+	int aHead = (int)theShooter->mBeams.mHead->mX / CELL_SIZE;
 	int aLo = aHead < aTail ? aHead : aTail;
 	int aHi = aHead > aTail ? aHead : aTail;
 	for (int i = theCell->mCol; i <= aHi; i++)
@@ -201,7 +201,8 @@ void Shooter_Fill(Shooter* theShooter, Cell* theCell)
 // guard checks the left end's column and the top end's row, as the original's do.
 void Shooter_Extents(Shooter* theShooter, float* theLeft, float* theTop, float* theRight, float* theBottom)
 {
-	if (16.0f < theShooter->mX && theShooter->mX < 784.0f && 16.0f < theShooter->mY && theShooter->mY < 584.0f)
+	if ((float)CELL_SIZE < theShooter->mX && theShooter->mX < (float)(SCREEN_WIDTH - CELL_SIZE) &&
+		(float)CELL_SIZE < theShooter->mY && theShooter->mY < (float)(SCREEN_HEIGHT - CELL_SIZE))
 	{
 		float aLeft = 0.0f <= theShooter->mX ? theShooter->mX : 0.0f;
 		float aRight = theShooter->mX < 799.0f ? theShooter->mX : 799.0f;
@@ -209,42 +210,44 @@ void Shooter_Extents(Shooter* theShooter, float* theLeft, float* theTop, float* 
 		float aBottom = theShooter->mY <= 599.0 ? theShooter->mY : 599.0f;
 		Cell** aColumns = gLevels.mCurrent->mColumns;
 		int aMoved = 0;
-		while ((int)aLeft / 16 < 50 && (int)aTop / 16 < 37 && aColumns[(int)aLeft / 16][(int)aTop / 16].mKind == 0)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS &&
+			aColumns[(int)aLeft / CELL_SIZE][(int)aTop / CELL_SIZE].mKind == 0)
 		{
-			aLeft = aLeft - 16.0f;
+			aLeft = aLeft - (float)CELL_SIZE;
 			aMoved = 1;
 		}
-		while ((int)aLeft / 16 < 50 && (int)aTop / 16 < 37 && aMoved != 0 &&
-			aColumns[(int)aLeft / 16][(int)aTop / 16].mKind != 0)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS && aMoved != 0 &&
+			aColumns[(int)aLeft / CELL_SIZE][(int)aTop / CELL_SIZE].mKind != 0)
 			aLeft = aLeft + 1.0f;
 		aMoved = 0;
-		while ((int)aLeft / 16 < 50 && (int)aTop / 16 < 37 && aColumns[(int)aRight / 16][(int)aTop / 16].mKind == 0)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS &&
+			aColumns[(int)aRight / CELL_SIZE][(int)aTop / CELL_SIZE].mKind == 0)
 		{
-			aRight = aRight + 16.0f;
+			aRight = aRight + (float)CELL_SIZE;
 			aMoved = 1;
 		}
-		while ((int)aLeft / 16 < 50 && (int)aTop / 16 < 37 && aMoved != 0 &&
-			aColumns[(int)aRight / 16][(int)aTop / 16].mKind != 0)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS && aMoved != 0 &&
+			aColumns[(int)aRight / CELL_SIZE][(int)aTop / CELL_SIZE].mKind != 0)
 			aRight = aRight - 1.0f;
 		aMoved = 0;
-		while ((int)aLeft / 16 < 50 && (int)aTop / 16 < 37 &&
-			aColumns[(int)theShooter->mX / 16][(int)aTop / 16].mKind == 0)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS &&
+			aColumns[(int)theShooter->mX / CELL_SIZE][(int)aTop / CELL_SIZE].mKind == 0)
 		{
-			aTop = aTop - 16.0f;
+			aTop = aTop - (float)CELL_SIZE;
 			aMoved = 1;
 		}
-		while ((int)aLeft / 16 < 50 && (int)aTop / 16 < 37 && aMoved != 0 &&
-			aColumns[(int)theShooter->mX / 16][(int)aTop / 16].mKind != 0)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS && aMoved != 0 &&
+			aColumns[(int)theShooter->mX / CELL_SIZE][(int)aTop / CELL_SIZE].mKind != 0)
 			aTop = aTop + 1.0f;
 		aMoved = 0;
-		while ((int)aLeft / 16 < 50 && (int)aTop / 16 < 37 &&
-			aColumns[(int)theShooter->mX / 16][(int)aBottom / 16].mKind == 0)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS &&
+			aColumns[(int)theShooter->mX / CELL_SIZE][(int)aBottom / CELL_SIZE].mKind == 0)
 		{
-			aBottom = aBottom + 16.0f;
+			aBottom = aBottom + (float)CELL_SIZE;
 			aMoved = 1;
 		}
-		while ((int)aLeft / 16 < 50 && (int)aTop / 16 < 37 && aMoved != 0 &&
-			aColumns[(int)theShooter->mX / 16][(int)aBottom / 16].mKind != 0)
+		while ((int)aLeft / CELL_SIZE < GRID_COLUMNS && (int)aTop / CELL_SIZE < GRID_ROWS && aMoved != 0 &&
+			aColumns[(int)theShooter->mX / CELL_SIZE][(int)aBottom / CELL_SIZE].mKind != 0)
 			aBottom = aBottom - 1.0f;
 		*theLeft = aLeft;
 		*theTop = aTop;
@@ -277,7 +280,7 @@ int Region_Count(int theCol, int theRow, int* theCells, int* theEnemies, int* th
 	if (gLevels.mCurrent->mColumns[theCol][theRow].mKind != 0 || gVisited[theCol][theRow] != 0)
 		return 0;
 	List_Each(&gLevels.mCurrent->mEnemies, [&](Enemy* theAnEnemy) {
-		if (theCol == (int)theAnEnemy->mX / 16 && theRow == (int)theAnEnemy->mY / 16)
+		if (theCol == (int)theAnEnemy->mX / CELL_SIZE && theRow == (int)theAnEnemy->mY / CELL_SIZE)
 		{
 			*theEnemies = *theEnemies + 1;
 			*theSumX = *theSumX + (int)theAnEnemy->mX;
@@ -307,8 +310,8 @@ int Shooter_Measure(Shooter* theShooter, Cell* theCell, int* theEnemies, int* th
 	*theSumX = 0;
 	if (theShooter->mBeamAcross == 0)
 	{
-		int aTail = (int)theShooter->mBeams.mTail->mY / 16;
-		int aHead = (int)theShooter->mBeams.mHead->mY / 16;
+		int aTail = (int)theShooter->mBeams.mTail->mY / CELL_SIZE;
+		int aHead = (int)theShooter->mBeams.mHead->mY / CELL_SIZE;
 		int aLo = aHead < aTail ? aHead : aTail;
 		int aHi = aHead > aTail ? aHead : aTail;
 		for (int i = theCell->mRow; i <= aHi; i++)
@@ -323,8 +326,8 @@ int Shooter_Measure(Shooter* theShooter, Cell* theCell, int* theEnemies, int* th
 		}
 		return aCells;
 	}
-	int aTail = (int)theShooter->mBeams.mTail->mX / 16;
-	int aHead = (int)theShooter->mBeams.mHead->mX / 16;
+	int aTail = (int)theShooter->mBeams.mTail->mX / CELL_SIZE;
+	int aHead = (int)theShooter->mBeams.mHead->mX / CELL_SIZE;
 	int aLo = aHead < aTail ? aHead : aTail;
 	int aHi = aHead > aTail ? aHead : aTail;
 	for (int i = theCell->mCol; i <= aHi; i++)
@@ -462,36 +465,40 @@ void Shooter_Firing(Shooter* theShooter)
 	Cell* aSide2;
 	if (theShooter->mBeams.mCurrent->mVx == 0.0f)
 	{
-		int aCol = (int)theShooter->mX / 16;
-		int aRow = (int)theShooter->mY / 16;
+		int aCol = (int)theShooter->mX / CELL_SIZE;
+		int aRow = (int)theShooter->mY / CELL_SIZE;
 		aSide1 = &aLevel->mColumns[aCol - 1][aRow];
 		aSide2 = &aLevel->mColumns[aCol + 1][aRow];
-		for (int i = (int)theShooter->mBeams.mTail->mY / 16 - 1; i <= (int)theShooter->mBeams.mHead->mY / 16 + 1; i++)
+		for (int i = (int)theShooter->mBeams.mTail->mY / CELL_SIZE -
+			1; i <= (int)theShooter->mBeams.mHead->mY / CELL_SIZE + 1; i++)
 		{
-			Cell* aCell = &aLevel->mColumns[(int)theShooter->mX / 16][i];
+			Cell* aCell = &aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][i];
 			if (aCell->mKind != 3)
 			{
 				aCell->mKind = 1;
 				aCell->mUnmarked = 0;
 			}
 		}
-		Cell_StartCapture(&aLevel->mColumns[(int)theShooter->mX / 16][(int)theShooter->mY / 16], aLevel->mBeamV, 1, 2);
+		Cell_StartCapture(&aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][(int)theShooter->mY / CELL_SIZE],
+			aLevel->mBeamV, 1, 2);
 	}
 	else
 	{
-		Cell* aCell = &aLevel->mColumns[(int)theShooter->mX / 16][(int)theShooter->mY / 16];
+		Cell* aCell = &aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][(int)theShooter->mY / CELL_SIZE];
 		aSide1 = aCell - 1;
 		aSide2 = aCell + 1;
-		for (int i = (int)theShooter->mBeams.mTail->mX / 16 - 1; i <= (int)theShooter->mBeams.mHead->mX / 16 + 1; i++)
+		for (int i = (int)theShooter->mBeams.mTail->mX / CELL_SIZE -
+			1; i <= (int)theShooter->mBeams.mHead->mX / CELL_SIZE + 1; i++)
 		{
-			Cell* aBeamCell = &aLevel->mColumns[i][(int)theShooter->mY / 16];
+			Cell* aBeamCell = &aLevel->mColumns[i][(int)theShooter->mY / CELL_SIZE];
 			if (aBeamCell->mKind != 3)
 			{
 				aBeamCell->mKind = 1;
 				aBeamCell->mUnmarked = 0;
 			}
 		}
-		Cell_StartCapture(&aLevel->mColumns[(int)theShooter->mX / 16][(int)theShooter->mY / 16], aLevel->mBeamH, 1, 2);
+		Cell_StartCapture(&aLevel->mColumns[(int)theShooter->mX / CELL_SIZE][(int)theShooter->mY / CELL_SIZE],
+			aLevel->mBeamH, 1, 2);
 	}
 	int anEnemies1 = 0;
 	int anEnemies2 = 0;
@@ -549,16 +556,16 @@ void Shooter_Fire(Shooter* theShooter)
 		return;
 	}
 	{
-		int aRow = (int)theShooter->mY / 16;
+		int aRow = (int)theShooter->mY / CELL_SIZE;
 		if (aRow < gLevels.mCurrent->mRows)
 		{
-			int aCol = (int)theShooter->mX / 16;
+			int aCol = (int)theShooter->mX / CELL_SIZE;
 			Cell* aCell = &gLevels.mCurrent->mColumns[aCol][aRow];
 			if (aCell->mKind == 0 && aCell->mUnmarked != 0)
 			{
-				theShooter->mX = (float)(aCol * 0x10 + 8);
+				theShooter->mX = (float)(aCol * CELL_SIZE + CELL_HALF);
 				List<Beam>* aBeams = &theShooter->mBeams;
-				theShooter->mY = (float)(aRow * 0x10 + 8);
+				theShooter->mY = (float)(aRow * CELL_SIZE + CELL_HALF);
 				gLevels.mCurrent->mShots = gLevels.mCurrent->mShots + 1;
 				theShooter->mState = 5;
 				gProfiles[gProfile].mBeamsFired = gProfiles[gProfile].mBeamsFired + 1;
@@ -637,8 +644,8 @@ void Shooter_Control(Shooter* theShooter)
 		2.0 < (double)theShooter->mExtBottom - (double)theShooter->mExtTop &&
 		2.0 < (double)theShooter->mExtRight - (double)theShooter->mExtLeft)
 	{
-		int aDown = (int)theShooter->mExtBottom / 16 - (int)theShooter->mExtTop / 16;
-		int anAcross = (int)theShooter->mExtRight / 16 - (int)theShooter->mExtLeft / 16;
+		int aDown = (int)theShooter->mExtBottom / CELL_SIZE - (int)theShooter->mExtTop / CELL_SIZE;
+		int anAcross = (int)theShooter->mExtRight / CELL_SIZE - (int)theShooter->mExtLeft / CELL_SIZE;
 		if (theShooter->mBeamAcross == 1 && aDown < anAcross)
 			Shooter_Turn(theShooter);
 		else if (theShooter->mBeamAcross == 0 && anAcross < aDown)
@@ -883,8 +890,8 @@ void Star_Draw(Obj* theStar)
 	int aClip[4];
 	aClip[1] = 0;
 	aClip[0] = 0;
-	aClip[2] = aLevel->mCols * 0x10 + -1;
-	aClip[3] = aLevel->mRows * 0x10 + -1;
+	aClip[2] = aLevel->mCols * CELL_SIZE + -1;
+	aClip[3] = aLevel->mRows * CELL_SIZE + -1;
 	int aSway = (int)((double)theStar->mY * 5.0);
 	float aSwayX = (float)((double)SinDeg(aSway % 0x168) * 10.0);
 	const int* aDirtyClip;

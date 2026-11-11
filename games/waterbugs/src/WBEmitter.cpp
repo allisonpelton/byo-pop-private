@@ -195,10 +195,10 @@ void Emitter_FromXml(Emitter* theEmitter, const XmlTag* theTag)
 	const char* anAnim = Xml_GetString(theTag, "animation");
 	int aRotation = Xml_GetInt(theTag, "rotation");
 	int aFrequency = Xml_GetInt(theTag, "frequency");
-	float aYSpeed = (float)((Xml_GetInt(theTag, "y_speed") * 600) / 600);
-	float aXSpeed = (float)((Xml_GetInt(theTag, "x_speed") * 800) / 800);
-	int aY = (Xml_GetInt(theTag, "y") * 600) / 600;
-	int aX = (Xml_GetInt(theTag, "x") * 800) / 800;
+	float aYSpeed = (float)((Xml_GetInt(theTag, "y_speed") * SCREEN_HEIGHT) / SCREEN_HEIGHT);
+	float aXSpeed = (float)((Xml_GetInt(theTag, "x_speed") * SCREEN_WIDTH) / SCREEN_WIDTH);
+	int aY = (Xml_GetInt(theTag, "y") * SCREEN_HEIGHT) / SCREEN_HEIGHT;
+	int aX = (Xml_GetInt(theTag, "x") * SCREEN_WIDTH) / SCREEN_WIDTH;
 	Emitter_Setup(theEmitter, aParent, aX, aY, aXSpeed, aYSpeed, aFrequency, aRotation, anAnim, aKind, aStartAlpha,
 		anEndAlpha, aTime);
 }
