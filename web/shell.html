@@ -642,7 +642,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     // restored to take it, as a Windows program's View sizes did; "Fit window" (0) leaves the window as it is
     if (EMBED && n > 0) {
       var P = desktopApps(), s = $("stage");
-      if (P && s) try { P.fit(window, s.offsetWidth, s.offsetHeight + statusBarHeight(), true, true); } catch (e) {}
+      if (P && s) try { P.fit(window, s.offsetWidth + sideWidth(), s.offsetHeight + statusBarHeight(), true, true); } catch (e) {}
     }
     // SDL sizes the canvas's pixels only on the window's resize event (as onGameScreen): without one the game stayed 640 x 480
     // pixels stretched to the new size until the page was reloaded
@@ -711,13 +711,16 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     try { r = P && P.room(window); } catch (e) {}
     return r ? { w: r.w, h: r.h - statusBarHeight() } : null;
   }
+  // what stands at the right of the game inside its window (the performance panel, web/perf.js): the window is that much wider
+  function sideWidth() { var p = $("perf-panel"); return (EMBED && p && !p.hidden && p.classList.contains("perf-side")) ? p.offsetWidth : 0; }
+  window.addEventListener("byopop-side", function () { embedFitted = ""; sizeStage(); });
   function embedWidth() {
     var dpr = window.devicePixelRatio || 1, pick = chosenScale();
     if (pick) return gameScreen.w * pick / dpr;
     var area = $("stage").parentNode, aw = area.clientWidth, ah = area.clientHeight;
     if (PHONE && aw && ah) return Math.max(160, Math.floor(Math.min(aw, ah * gameScreen.w / gameScreen.h)));
     // the first time, the room the desktop has: the window takes that size (embedFit)
-    if (embedFitted !== gameScreen.w + "x" + gameScreen.h || !aw || !ah) { var r = embedRoom(); if (r) { aw = r.w; ah = r.h; } }
+    if (embedFitted !== gameScreen.w + "x" + gameScreen.h || !aw || !ah) { var r = embedRoom(); if (r) { aw = r.w - sideWidth(); ah = r.h; } }
     for (var n = 16; n >= 1; n--) if (gameScreen.w * n / dpr <= aw && gameScreen.h * n / dpr <= ah) return gameScreen.w * n / dpr;
     return gameScreen.w / dpr;
   }
@@ -726,7 +729,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     if (embedFitted !== key) {
       embedFitted = key;
       var P = desktopApps();
-      if (P) try { P.fit(window, Math.ceil(w), Math.ceil(h) + statusBarHeight(), true); } catch (e) {}
+      if (P) try { P.fit(window, Math.ceil(w) + sideWidth(), Math.ceil(h) + statusBarHeight(), true); } catch (e) {}
     }
     // the scale in the status bar, as a value
     if (statusBar) {
@@ -1258,7 +1261,12 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
     audioCall("byopop_site_accel3d", [accel === "on" ? 1 : accel === "off" ? 0 : -1]);
     // "Always skip start-up logos" (framework/WebSettings.h, SiteSkipLogos): read by the games where their logos are, which come
     // before anything the page could call once the game runs. Never on the player-only test page, whose runs keep the logos
-    audioCall("byopop_site_skiplogos", [(setting("skipLogos") === "on" && !PLAYER_ONLY) ? 1 : 0]);
+    // not at a game's first launch in this browser, which shows its logos once (the user, 2026-11-10: "games still should show the
+    // logos when launching a game for the first time"): the games launched are kept in "byopop-logos-seen"
+    var logosSeen = {};
+    try { logosSeen = JSON.parse(localStorage.getItem("byopop-logos-seen") || "{}") || {}; } catch (e) { logosSeen = {}; }
+    audioCall("byopop_site_skiplogos", [(setting("skipLogos") === "on" && !PLAYER_ONLY && logosSeen[PAGE.id]) ? 1 : 0]);
+    if (!logosSeen[PAGE.id] && !PLAYER_ONLY) { logosSeen[PAGE.id] = 1; try { localStorage.setItem("byopop-logos-seen", JSON.stringify(logosSeen)); } catch (e) {} }
     setStatus(modsText + seedText + run.status + (pagePlaceholders() ? " · " + ByopopStrings.t("game.status.placeholders") : "") +
       (Module.silentAudio ? " · " + ByopopStrings.t("game.status.silent") : (isAutostart === true ? " · " + ByopopStrings.t("game.status.sound_after") : "")));
     // Only a start with mods can be one a mod stops: without any, nothing is noted (no write)
@@ -2328,7 +2336,7 @@ html.player-only .stage { box-shadow: none !important; border-radius: 0; }
   // status bar, in CSS pixels (web/deskapps.js keeps the window's resizing to it)
   function embedLeast() {
     var dpr = window.devicePixelRatio || 1, n = chosenScale() || 1;
-    return { w: gameScreen.w * n / dpr, h: gameScreen.h * n / dpr + statusBarHeight() };
+    return { w: gameScreen.w * n / dpr + sideWidth(), h: gameScreen.h * n / dpr + statusBarHeight() };
   }
   if (EMBED) window.ByopopEmbed = { close: closeProgram, menus: embedMenus, about: embedAbout, least: embedLeast };
   // what web/testkit.js reads and calls on the player-only page; nothing on any other page

@@ -996,7 +996,10 @@ are the game's to handle.
 ## The performance panel
 
 A game page shows the panel while the setting `perf` is on (`web/perf.js`; off by default). It only reads, so the
-game plays the same with it on, and with it off nothing of it runs. Each second it shows:
+game plays the same with it on, and with it off nothing of it runs. In a game's window on the one page it is part of
+the window, at the right of the game, and the window is that much wider (`sideWidth` in `web/shell.html`); nothing but
+the game and its mod menu is drawn over the game (the user, 2026-11-10), so the input display is in the window's
+status bar too. Each second it shows:
 
 - **Frames:** frames per second and frame time, and the game's own time per frame, which the framework's frame hook
   passes (`sexyapp_test_frame`, `Module.byopopTestFrame`).
@@ -1063,7 +1066,8 @@ perfect mode off"):
 
 ### Game speed
 
-`speed` (0.5, 0.75, 1, 1.25, 1.5, 2) sets `SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed`
+`speed` (the listed 0.5 to 2, or any number from 0.25 to 4 typed in the field beside the list; the user, 2026-11-10:
+"Allow game speed to be set to any arbitrary value") sets `SexyAppBase::mUpdateMultiplier` through the web-only `byopop_set_speed`
 (`framework/SexyAppBase.cpp`), from the frame hook once the application exists. At 1 nothing is called, so unmodded
 play is unchanged. It does not reach games whose own host runs their loop (Bonnie's Bookstore, Ning Po), nor a
 timer a game reads from the wall clock. Music and sounds keep their own speed.
@@ -1087,7 +1091,9 @@ Mahjongs) are left as they are.
 
 ### Always skip start-up logos
 
-`skipLogos` has the games go straight past their start-up logos (the PopCap logo, a publisher's or developer's
+`skipLogos` ("Skip start-up logos after the first launch") never applies to a game's first launch in this browser,
+which shows its logos once (the user, 2026-11-10); the page keeps the games launched in `byopop-logos-seen`. After
+that it has the games go straight past their start-up logos (the PopCap logo, a publisher's or developer's
 logo, a "presents" splash; not the loading bar or the title's own animation), each as a click or key on it would,
 so play afterwards is the same. The page tells the game before it starts: `byopop_site_skiplogos(1)` before
 `callMain` (`framework/WebSettings.cpp`). A game reads `Byopop::SiteSkipLogos()` (`framework/WebSettings.h`), which
