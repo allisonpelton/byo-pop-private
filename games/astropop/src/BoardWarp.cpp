@@ -190,7 +190,7 @@ bool Board::Fn46a810()
 				m8fa = true;
 				mApp->PlaySample(SOUND_WARP_ENGAGED);
 				ClearField();
-				m938 = -313.0f;
+				m938 = -312.0f; // 0xc39c0000 (the asm at 0x46ae88)
 				for (int i = 0; i < 15; i++)
 				{
 					WarpStar* aStar = new WarpStar();

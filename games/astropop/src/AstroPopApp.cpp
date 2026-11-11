@@ -71,7 +71,7 @@ AstroPopApp::AstroPopApp()
 
 	// The lines the quit dialog picks from (0x562900 ...)
 	static const unsigned int kGoodbyes[] = {0x562900, 0x5628b8, 0x562884, 0x562840, 0x5627fc, 0x5627e0, 0x5627c0,
-		0x562798, 0x562760, 0x562707};
+		0x562798, 0x562760, 0x562708};
 	for (size_t i = 0; i < sizeof(kGoodbyes) / sizeof(kGoodbyes[0]); i++)
 		mGoodbyeMessages.push_back(GT(kGoodbyes[i]));
 

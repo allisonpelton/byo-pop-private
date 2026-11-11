@@ -96,9 +96,10 @@ MemoryImage* AstroPopApp::MakeRankImage(int theRank, int thePercent)
 	if (thePercent <= 0)
 		return anImage;
 
-	double aScale = (double) thePercent * (double) 0.01f;     // (x87 arithmetic in the original)
+	// x87 at 24 bits (0x40c2cb): the scale and each size are rounded to a float, then truncated
+	float aScale = (float) thePercent * 0.01f;
 	MemoryImage* aScaled = new MemoryImage(this);
-	aScaled->Create((int) ((double) anImage->mWidth * aScale), (int) ((double) anImage->mHeight * aScale));
+	aScaled->Create((int) ((float) anImage->mWidth * aScale), (int) ((float) anImage->mHeight * aScale));
 	{
 		Graphics aScaledGraphics(aScaled);
 		Rect aSrc(0, 0, anImage->mWidth, anImage->mHeight);
