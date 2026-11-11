@@ -215,7 +215,7 @@ bool Board::Fn46a810()
 						aStar->mX = (float) (((int) AstroRand() % 500000000) % 0xdc);
 					aStar->mY = (float) (((int) AstroRand() % 500000000) % 0x32 - 100);
 					aStar->mField5C = 0;
-					aStar->mSpeed = (float) ((double) (((int) AstroRand() % 500000000) % 0x51) * (double) 0.01f + (double) 0.4f);
+					aStar->mSpeed = (float) (((int) AstroRand() % 500000000) % 0x51) * 0.01f + 0.4f;
 					m150.push_back(aStar);
 				}
 				if (m1a0c < 4)

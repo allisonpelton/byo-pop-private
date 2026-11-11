@@ -6,6 +6,7 @@
 # reads from HKLM and origrun cannot change (on the host the game starts as the user "Allison"'s machine leaves it, and the
 # comparison has no clean state to start from). ORIG_HOST=1 runs on the host instead. The sandbox's watch lines are copied from the
 # run's inside log into <log>.
+# PROFILE=file starts the original with that profile (users/data1.usr: the port's record.py --make-profile makes one).
 # RUN=name uses another staged copy. ORIGRUN_ARGS adds origrun options. KEEP_STATE=1 keeps the copy's players (a run starts with
 # none, as the port's does: the title then leads to the new player box).
 # Watches (the port's -trace prints the same four, at the same updates):
@@ -37,6 +38,7 @@ for try in $(seq 1 "$tries"); do
     sleep 15
   done
   [ -z "$KEEP_STATE" ] && rm -f build/origrun/$run/game/users/*
+  [ -n "$PROFILE" ] && cp "$PROFILE" build/origrun/$run/game/users/data1.usr
   build/origrun-bin/origrun.exe --game astropop --run "$run" --exe "$PWD/build/origrun/$run/game/AstroPopGame.exe" \
     --seed "$seed" --clock virtual --cursor scripted --timeout "$timeout" --watch-max "${WATCH_MAX:-400000}" $SBX $ORIGRUN_ARGS \
     "${W[@]}" --script "$script" > "$log" 2>&1

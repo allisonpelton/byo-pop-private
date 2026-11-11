@@ -231,7 +231,7 @@ void Board::BeginPlay()
 			case 6:		aKeepShare = 0.31f;	break;
 			case 7:		aKeepShare = 0.35f;	break;
 			}
-			int aRemove = (int) ((1.0 - (double) aKeepShare) * (double) aBuried.size());
+			int aRemove = (int) ((1.0f - aKeepShare) * (float) aBuried.size());
 			while (aRemove > 0 && !aBuried.empty())
 			{
 				unsigned int anIndex = ((unsigned int) ((int) AstroRand() % 500000000)) % (unsigned int) aBuried.size();

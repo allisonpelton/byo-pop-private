@@ -234,8 +234,9 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 			return true;
 		}
 		EnsureUser(this);
-		// the two pilots that have to be earned (the unlock flags of the profile: bits 2 and 6, with their check value)
-		int aFlags = 0x13 | 4 | 0x40;
+		// the two pilots that have to be earned (the unlock flags of the profile: bits 2 and 6 and their check value; of the
+		// four values a profile may hold on loading, 0x44 is the one with both)
+		int aFlags = 0x44;
 		mUser->SetInt(PROFILE_UNLOCK_A, aFlags);
 		mUser->SetInt(PROFILE_UNLOCK_B, aFlags + 0x193);
 		mUser->Save();
@@ -261,7 +262,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		else if (aName == "stage")
 			mBoard->mField193C = aValue;
 		else if (aName == "charge")
-			mBoard->m1bd8 = mBoard->m1bdc;      // the weapon of the pilot is charged (the value is not read)
+			mBoard->m1bd8 = aRest.empty() ? mBoard->m1bdc : (float) aValue;   // the weapon's charge: full without a number
 		else if (aName == "stories")
 		{
 			// the player has seen all the stories of the four pilots (the profile's counts, 0x4b .. 0x4e: the last story of
@@ -275,7 +276,7 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 		}
 		else
 		{
-			ReplyError(theCommand, "set takes score, level, stage, charge or stories");
+			ReplyError(theCommand, "set takes score, level, stage, charge [N] or stories");
 			return true;
 		}
 		ReplyOK(theCommand);

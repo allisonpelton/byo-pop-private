@@ -4,6 +4,8 @@
 // no random number. port: nothing here is in the original; none of it changes the game.
 
 #include "Board.h"
+#include "Dialog.h"
+#include "DialogButton.h"
 #include "AstroButton.h"
 #include "AstroPopApp.h"
 #include "Brick.h"
@@ -215,8 +217,21 @@ std::string Board::BotMove()
 		return "{\"kind\":\"gate\",\"updates\":10," +
 			   Steps(StrFormat("{\"click\":[%d,%d]}", m1a70 + 0x3c, 0xe1 + 0x14)) + "}";
 
+	// the box that explains the weapon, before it starts: its button closes it and the weapon goes on
+	Dialog* aPowerBox = mApp->GetDialog(0x7b);
+	if (aPowerBox != NULL)
+	{
+		DialogButton* aButton = aPowerBox->mYesButton;
+		return "{\"kind\":\"power\",\"updates\":10," +
+			   Steps(StrFormat("{\"click\":[%d,%d]}", aButton->mX + aButton->mWidth / 2, aButton->mY + aButton->mHeight / 2)) + "}";
+	}
+
 	if (BotBusy())
 		return WaitMove();
+
+	// the weapon of the pilot, charged: the Return key starts it (the middle button and the start button do the same)
+	if (m1a34 == 0 && m1bd8 == m1bdc && !m8e4 && !m910 && !m8dc)
+		return "{\"kind\":\"weapon\",\"updates\":10," + Steps("{\"key\":\"Return\"}") + "}";
 
 	FieldGrid aGrid;
 	for (int r = 0; r < kRows; r++)
@@ -236,7 +251,7 @@ std::string Board::BotMove()
 	// the supa weapon's laser takes the bottom brick of a column away: the tallest column loses it
 	if (m1a34 == 1)
 	{
-		if (mMode != 0)
+		if (mMode != 0 && mMode != 3)
 			return WaitMove();
 		int aBest = -1;
 		int aBestRow = 0;
@@ -251,6 +266,16 @@ std::string Board::BotMove()
 		}
 		if (aBest < 0)
 			return "null";
+		// the psychic takes the lit cells under the pointer: the pointer goes to the bottom brick of the tallest column. A
+		// move lights its cell only when the pointer's last position was in the field already (MouseMove tests m1958 before
+		// it stores the new one), so the pointer moves twice within the cell before the click
+		if (mMode == 3)
+		{
+			int aCellY = 0x22 + (aBestRow - 1) * 0x19 + 12;
+			return StrFormat("{\"kind\":\"psychic\",\"column\":%d,", aBest) +
+				   Steps(StrFormat("{\"move\":[%d,%d]},{\"wait\":2},{\"move\":[%d,%d]},{\"wait\":2},{\"click\":[%d,%d]}",
+								   ColumnX(aBest), aCellY, ColumnX(aBest), aCellY + 1, ColumnX(aBest), aCellY + 1)) + "}";
+		}
 		return StrFormat("{\"kind\":\"laser\",\"column\":%d,", aBest) + Steps(MoveStep(aBest) + "," + ClickStep(aBest, false)) + "}";
 	}
 
