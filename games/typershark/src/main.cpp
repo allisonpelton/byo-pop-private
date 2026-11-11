@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 	SDL_Log("game: %s | user: %s | mods: %s", gameDir.c_str(), userDir.c_str(), modsDir.c_str());
 
 	// The music is one MO3 module played by order position (BASS in the original): libopenmpt. Without this the module
-	// did not load and the game played no music (found by phase 2's sound comparison)
+	// did not load and the game played no music
 	Platform::RegisterOpenMPTModules();
 
 	// The original keeps the app as a global object and calls Init, Start and Shutdown on it.

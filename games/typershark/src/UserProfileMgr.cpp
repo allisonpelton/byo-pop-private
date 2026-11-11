@@ -37,31 +37,34 @@ static std::string UpperAscii(const std::string& theString)
 	return aResult;
 }
 
+// port: a number of the high score file, which holds each as text
 static int ReadFileInt(Buffer& theBuffer)
 {
 	return (int)atol(theBuffer.ReadString().c_str());
 }
 
+// port: the same, written
 static void WriteFileInt(Buffer& theBuffer, int theValue)
 {
 	theBuffer.WriteString(StrFormat("%d", theValue));
 }
 
-// the high score file holds each entry as the score, the mode, the name and the fourth value
+// port: the high score file holds each entry as the score, the mode, the name and the fourth value
 static void ReadHighScoreEntry(Buffer& theBuffer, HighScoreEntry& theEntry)
 {
 	theEntry.mScore = ReadFileInt(theBuffer);
 	theEntry.mMode = ReadFileInt(theBuffer);
 	theEntry.mName = theBuffer.ReadString();
-	theEntry.mField24 = ReadFileInt(theBuffer);
+	theEntry.mLevelReached = ReadFileInt(theBuffer);
 }
 
+// port: the same, written
 static void WriteHighScoreEntry(Buffer& theBuffer, const HighScoreEntry& theEntry)
 {
 	WriteFileInt(theBuffer, theEntry.mScore);
 	WriteFileInt(theBuffer, theEntry.mMode);
 	theBuffer.WriteString(theEntry.mName);
-	WriteFileInt(theBuffer, theEntry.mField24);
+	WriteFileInt(theBuffer, theEntry.mLevelReached);
 }
 
 // 0x427440: the players of the registry key Users (one profile for each subkey), the current player's name, and the high
@@ -186,9 +189,9 @@ void UserProfileMgr::LoadDefaultHighScores()
 	do
 	{
 		int aMode;
-		int aField24 = 6;
+		int aLevelReached = 6;
 		if (aCountDown >= 6)
-			aField24 = aCountDown;
+			aLevelReached = aCountDown;
 		if (aScore > 410000)
 			aMode = 4;
 		else if (aScore > 320000)
@@ -200,7 +203,7 @@ void UserProfileMgr::LoadDefaultHighScores()
 		mScores[i].mName = GT(gDefaultScoreNames[i]);     // 0x55f988 + 0x1c * i
 		mScores[i].mScore = aScore;
 		mScores[i].mMode = aMode;
-		mScores[i].mField24 = aField24;
+		mScores[i].mLevelReached = aLevelReached;
 		aScore -= 30000;
 		aCountDown--;
 		i++;
@@ -213,7 +216,7 @@ void UserProfileMgr::LoadDefaultHighScores()
 		mAbyssScores[i].mName = GT(gDefaultAbyssNames[i]);  // 0x55faa0 + 0x1c * i
 		mAbyssScores[i].mMode = -1;
 		mAbyssScores[i].mScore = aScore;
-		mAbyssScores[i].mField24 = -1;
+		mAbyssScores[i].mLevelReached = -1;
 		aScore -= 150;
 		i++;
 	} while (aScore > 500);
@@ -427,45 +430,45 @@ UserProfile* UserProfileMgr::LoadUserProfileFromRegistry(const std::string& theN
 	// 0x4ad5f0 not ported: the trace "UserProfileMgr::WriteUserProfileToRegistry:new profile made " (the original's text)
 	UserProfile* aProfile = new UserProfile(mApp, theName, aUserNumber, aBestDepth, (unsigned int)aSeed, aSharksKilled,
 		aPiranhasKilled, aAbyssSharksKilled, aAbyssPiranhasKilled);
-	aProfile->SetField1e4(aAbyssBoss);
+	aProfile->SetAbyssBossIndex(aAbyssBoss);
 	aProfile->mLastLesson = aLastLesson;
-	aProfile->SetField1e8(aNBTL);
+	aProfile->SetEndlessLevelsPlayed(aNBTL);
 	aProfile->SetSpacePauses(aSpacePauses);
-	aProfile->SetField1f4(aSKTR);
-	aProfile->SetField1f8(aPKTR);
+	aProfile->SetGameSharksKilled(aSKTR);
+	aProfile->SetGamePiranhasKilled(aPKTR);
 	aProfile->mGamesCompleted = aNGC;
-	aProfile->mFlag230 = aRNGC;
+	aProfile->mCompletionPending = aRNGC;
 
 	if (mApp->RegistryReadBoolean(StrFormat("%ssvm", aPrefix.c_str()), &aBool))
-		aProfile->mFlag284 = aBool;
+		aProfile->mOpenChestHintSeen = aBool;
 
 	for (i = 0; i < 6; i++)
 	{
 		if (ReadIntString(StrFormat("%sGTT%d", aPrefix.c_str(), i), &aValue))
-			aProfile->mField234[i] = aValue;
+			aProfile->mGameGemsFound[i] = aValue;
 	}
 	for (i = 0; i < 4; i++)
 	{
 		if (ReadIntString(StrFormat("%sSGTT%d", aPrefix.c_str(), i), &aValue))
-			aProfile->mField24c[i] = aValue;
+			aProfile->mGameSecretsFound[i] = aValue;
 	}
 	for (i = 0; i < 0x24; i++)
 	{
 		aBool = false;
 		if (mApp->RegistryReadBoolean(StrFormat("%svl%d", aPrefix.c_str(), i), &aBool))
-			aProfile->mField25c[i] = aBool;
+			aProfile->mVisitedLevels[i] = aBool;
 		else
-			aProfile->mField25c[i] = 0;
+			aProfile->mVisitedLevels[i] = 0;
 	}
 
 	if (aBossesKilled > 0)
 		aProfile->mBossesKilled = aProfile->mBossesKilled + aBossesKilled;
 
 	if (ReadIntString(StrFormat("%svd", aPrefix.c_str()), &aValue))
-		aProfile->mField280 = aValue;
+		aProfile->mVisitedDifficulty = aValue;
 
 	if (aSeenTutorial)
-		aProfile->mFlag1dc = true;
+		aProfile->mSeenTutorial = true;
 
 	for (i = 0; i < 10; i++)
 	{
@@ -473,7 +476,7 @@ UserProfile* UserProfileMgr::LoadUserProfileFromRegistry(const std::string& theN
 			aProfile->mWPM[i] = aValue;
 	}
 	if (ReadIntString(aPrefix + "LastWPMIndex", &aValue))
-		aProfile->mField228 = aValue;
+		aProfile->mNextWPMIndex = aValue;
 
 	return aProfile;
 }
@@ -483,7 +486,7 @@ UserProfile* UserProfileMgr::LoadUserProfileFromRegistry(const std::string& theN
 //   theRegistryOnly: nothing but the registry (the file and the tables are left alone).
 //   theRecordScore: the last game's result goes into the score table (the abyss table when the last mode is -1) at the
 //   first entry it is not below, replacing that entry (nothing below it moves), and the tables are saved; the data file is
-//   written first with mField1ec taken from mField1b4 when theRecordScore is false.
+//   written first with mSavedScoreBackup taken from mSavedScore when theRecordScore is false.
 void UserProfileMgr::WriteUserProfileToRegistry(UserProfile* theProfile, bool theRecordScore, bool theRegistryOnly)
 {
 	// 0x4ad5f0 not ported: the demo recording trace "UserProfileMgr::WriteUserProfileToRegistry: %d, %d"
@@ -509,26 +512,26 @@ void UserProfileMgr::WriteUserProfileToRegistry(UserProfile* theProfile, bool th
 	mApp->RegistryWriteString(aPrefix + "NBTL", StrFormat("%d", aNBTL));
 
 	mApp->RegistryWriteBoolean(aPrefix + "SpacePauses", theProfile->mSpacePauses);
-	mApp->RegistryWriteString(aPrefix + "PKTR", StrFormat("%d", theProfile->mField1f8));
-	mApp->RegistryWriteString(aPrefix + "SKTR", StrFormat("%d", theProfile->mField1f4));
+	mApp->RegistryWriteString(aPrefix + "PKTR", StrFormat("%d", theProfile->mGamePiranhasKilled));
+	mApp->RegistryWriteString(aPrefix + "SKTR", StrFormat("%d", theProfile->mGameSharksKilled));
 
 	for (i = 0; i < 10; i++)
 		mApp->RegistryWriteString(StrFormat("%sWPM%d", aPrefix.c_str(), i), StrFormat("%d", theProfile->mWPM[i]));
-	mApp->RegistryWriteString(aPrefix + "LastWPMIndex", StrFormat("%d", theProfile->mField228));
+	mApp->RegistryWriteString(aPrefix + "LastWPMIndex", StrFormat("%d", theProfile->mNextWPMIndex));
 
-	mApp->RegistryWriteString(aPrefix + "SeenTutorial", StrFormat("%d", theProfile->mFlag1dc ? 1 : 0));
-	mApp->RegistryWriteString(aPrefix + "AbyssBoss", StrFormat("%d", theProfile->GetField1e4()));
+	mApp->RegistryWriteString(aPrefix + "SeenTutorial", StrFormat("%d", theProfile->mSeenTutorial ? 1 : 0));
+	mApp->RegistryWriteString(aPrefix + "AbyssBoss", StrFormat("%d", theProfile->GetAbyssBossIndex()));
 	mApp->RegistryWriteString(aPrefix + "NGC", StrFormat("%d", theProfile->mGamesCompleted));
-	mApp->RegistryWriteBoolean(aPrefix + "RNGC", theProfile->mFlag230);
+	mApp->RegistryWriteBoolean(aPrefix + "RNGC", theProfile->mCompletionPending);
 
 	for (i = 0; i < 6; i++)
-		mApp->RegistryWriteString(StrFormat("%sGTT%d", aPrefix.c_str(), i), StrFormat("%d", theProfile->mField234[i]));
+		mApp->RegistryWriteString(StrFormat("%sGTT%d", aPrefix.c_str(), i), StrFormat("%d", theProfile->mGameGemsFound[i]));
 	for (i = 0; i < 4; i++)
-		mApp->RegistryWriteString(StrFormat("%sSGTT%d", aPrefix.c_str(), i), StrFormat("%d", theProfile->mField24c[i]));
+		mApp->RegistryWriteString(StrFormat("%sSGTT%d", aPrefix.c_str(), i), StrFormat("%d", theProfile->mGameSecretsFound[i]));
 	for (i = 0; i < 0x24; i++)
-		mApp->RegistryWriteBoolean(StrFormat("%svl%d", aPrefix.c_str(), i), theProfile->mField25c[i] != 0);
-	mApp->RegistryWriteString(StrFormat("%svd", aPrefix.c_str()), StrFormat("%d", theProfile->mField280));
-	mApp->RegistryWriteBoolean(StrFormat("%ssvm", aPrefix.c_str()), theProfile->mFlag284);
+		mApp->RegistryWriteBoolean(StrFormat("%svl%d", aPrefix.c_str(), i), theProfile->mVisitedLevels[i] != 0);
+	mApp->RegistryWriteString(StrFormat("%svd", aPrefix.c_str()), StrFormat("%d", theProfile->mVisitedDifficulty));
+	mApp->RegistryWriteBoolean(StrFormat("%ssvm", aPrefix.c_str()), theProfile->mOpenChestHintSeen);
 
 	if (!theRegistryOnly)
 	{
@@ -546,7 +549,7 @@ void UserProfileMgr::WriteUserProfileToRegistry(UserProfile* theProfile, bool th
 						mAbyssScores[i].mScore = aDepth;
 						mAbyssScores[i].mMode = -1;
 						mAbyssScores[i].mName = theProfile->GetName();
-						mAbyssScores[i].mField24 = -1;
+						mAbyssScores[i].mLevelReached = -1;
 						SaveHighScores();
 						break;
 					}
@@ -562,7 +565,7 @@ void UserProfileMgr::WriteUserProfileToRegistry(UserProfile* theProfile, bool th
 						mScores[i].mScore = aScore;
 						mScores[i].mMode = theProfile->mLastMode;
 						mScores[i].mName = theProfile->GetName();
-						mScores[i].mField24 = theProfile->mField0c;
+						mScores[i].mLevelReached = theProfile->mLastLevelReached;
 						SaveHighScores();
 						break;
 					}

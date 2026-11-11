@@ -21,11 +21,11 @@ GameOverDialog::GameOverDialog(WinWSApp* theApp, Player* thePlayer, bool isAbyss
 	mPlayer(thePlayer),
 	mApp(theApp),
 	mAbyss(isAbyss),
-	mField11c(0),		// port: the original leaves it unset until the board fills it in
+	mGameTime(0),		// port: the original leaves it unset until the board fills it in
 	mWPM(0),
 	mAccuracy(0),
 	mRankTitle(),
-	mField144(theScore),
+	mDepth(theScore),
 	mCharsTyped(theCharsTyped),
 	mMistakes(theMistakes),
 	mTime(theTime)
@@ -43,7 +43,7 @@ GameOverDialog::GameOverDialog(WinWSApp* theApp, Player* thePlayer, bool isAbyss
 	SetHeaderFont(mApp->mFontRockwell13Bold);
 	SetLinesFont(mApp->mFontRockwell13);
 
-	if (((mPlayer->mField114 == 0) && (!mAbyss)) || ((mAbyss) && ((mField144 < 400) || (mTime < 25000))))
+	if (((mPlayer->mLevelNumber == 0) && (!mAbyss)) || ((mAbyss) && ((mDepth < 400) || (mTime < 25000))))
 	{
 		mWPM = -1;
 		mAccuracy = -1;
@@ -123,15 +123,15 @@ void GameOverDialog::Draw(Graphics* g)
 		WriteWordWrapped2004(g, Rect(0, aY, aWidth, mApp->mFontRockwell13Bold->GetHeight()), aString, -1, 1);
 		aY = (aY + g->GetFont()->GetHeight()) + 10;
 
-		aString = StrFormat(GTC(0x0052e7ec), mField144);
+		aString = StrFormat(GTC(0x0052e7ec), mDepth);
 		WriteWordWrapped2004(g, Rect(0, aY, aWidth, mApp->mFontRockwell13Bold->GetHeight()), aString, -1, 1);
 		aY = aY + g->GetFont()->GetHeight();
 
 		// the best depth shown is the greater of the user's and this game's
 		int aBestDepth = mApp->GetUserBestDepth();
 		g->SetColor(Color(100, 100, 100));
-		int aShownDepth = mField144;
-		if (aBestDepth >= mField144)
+		int aShownDepth = mDepth;
+		if (aBestDepth >= mDepth)
 			aShownDepth = aBestDepth;
 		aString = StrFormat(GTC(0x0052e7d4), aShownDepth);
 		WriteWordWrapped2004(g, Rect(0, aY, aWidth, mApp->mFontRockwell13Bold->GetHeight()), aString, -1, 1);
@@ -152,7 +152,7 @@ void GameOverDialog::Draw(Graphics* g)
 	if (mAbyss)
 		aString = StrFormat(GTC(0x0052e7a8));
 	else
-		aString = StrFormat(GTC(0x0052e79c), mPlayer->mField114 + 1);
+		aString = StrFormat(GTC(0x0052e79c), mPlayer->mLevelNumber + 1);
 	WriteWordWrapped2004(g, Rect(0xd2, aY, 0x80, 0x14), StrFormat(GTC(0x0052e788), aString.c_str()), -1, -1);
 	aY = aY + g->GetFont()->GetHeight();
 
@@ -164,10 +164,10 @@ void GameOverDialog::Draw(Graphics* g)
 		-1, 1);
 
 	// the time of the game as minutes:seconds (a 0 before a single digit of seconds)
-	if ((mField11c / 1000) % 0x3c < 10)
-		aString = StrFormat(GTC(0x0052e744), (mField11c / 1000) / 0x3c, (mField11c / 1000) % 0x3c);
+	if ((mGameTime / 1000) % 0x3c < 10)
+		aString = StrFormat(GTC(0x0052e744), (mGameTime / 1000) / 0x3c, (mGameTime / 1000) % 0x3c);
 	else
-		aString = StrFormat(GTC(0x0052e73c), (mField11c / 1000) / 0x3c, (mField11c / 1000) % 0x3c);
+		aString = StrFormat(GTC(0x0052e73c), (mGameTime / 1000) / 0x3c, (mGameTime / 1000) % 0x3c);
 	WriteWordWrapped2004(g, Rect(0xd2, aY, 0x80, 0x14), StrFormat(GTC(0x0052e720), aString.c_str()), -1, -1);
 
 	if (mAbyss)

@@ -16,8 +16,8 @@ using namespace Sexy;
 Piranha::Piranha(WinWSApp* theApp, int theType) :
 	Enemy(theApp),
 	mPlayedSound(false),
-	mFlag11(false),
-	mFlag12(false),
+	mAlwaysFalseA(false),
+	mAlwaysFalseB(false),
 	mType(0),
 	mSavedVelX(-1.0),
 	mEntered(false),
@@ -28,12 +28,12 @@ Piranha::Piranha(WinWSApp* theApp, int theType) :
 	mState = 0;
 	mNumFrames = 20;
 	mPlayedSound = false;
-	mFlag12 = false;
+	mAlwaysFalseB = false;
 	mSavedVelX = -1.0;
-	mFlag11 = false;
+	mAlwaysFalseA = false;
 	mFrame = rand() % mNumFrames;			// the C library's generator, not the game's MTRand
 	mType = theType;
-	mFlagD0 = false;
+	mBiteEventSent = false;
 	mEntered = false;
 	mFrameWidth = mApp->mImages[IMAGE_PIRANHA_BASIC_SWIM]->GetWidth() / 20;
 	mFrameHeight = mApp->mImages[IMAGE_PIRANHA_BASIC_SWIM]->GetHeight();
@@ -71,9 +71,9 @@ void Piranha::Update()
 			if (mState == 3)
 			{
 				mFrame = 9;
-				if (!mFlag18)
+				if (!mDeathFinished)
 				{
-					mFlag18 = true;
+					mDeathFinished = true;
 					mEvents.push_back(6);
 				}
 			}
@@ -132,7 +132,7 @@ void Piranha::Update()
 	else if (mState == 1 && !mEntered)
 	{
 		mX += mVelX;
-		if (!(mX < 0.0) && !mFlagD0)
+		if (!(mX < 0.0) && !mBiteEventSent)
 		{
 			if (!mPlayedSound)
 			{
@@ -142,7 +142,7 @@ void Piranha::Update()
 			if (!(mX < 20.0))
 			{
 				mEvents.push_back(2);
-				mFlagD0 = true;
+				mBiteEventSent = true;
 				mEntered = true;
 			}
 		}
@@ -157,14 +157,14 @@ void Piranha::Update()
 	}
 	else if (mState == 5)
 	{
-		if (mField2c > 0)
+		if (mShockTogglesLeft > 0)
 		{
-			if (mTick % mField28 == 0)
+			if (mTick % mShockPeriod == 0)
 			{
-				mFlag30 = !mFlag30;
-				mField2c--;
+				mShockShowing = !mShockShowing;
+				mShockTogglesLeft--;
 			}
-			if (mFlag30)
+			if (mShockShowing)
 			{
 				mFrame = 0;
 				mFrameHeight = mApp->mImages[IMAGE_PIRANHASHOCK]->GetHeight();
@@ -236,10 +236,10 @@ void Piranha::SetState(int theState)
 	{
 		mImage = mApp->mImages[IMAGE_PIRANHASHOCK];
 		mFrame = 0;
-		mFlag30 = true;
-		mField28 = 7;
-		mField2c = 6;
-		if (!mFlag50)
+		mShockShowing = true;
+		mShockPeriod = 7;
+		mShockTogglesLeft = 6;
+		if (!mKilledByEmp)
 			mApp->PlaySample(SOUND_PIRANHADIES1);
 		mFrameHeight = mImage->GetHeight();
 		mFrameWidth = mImage->GetWidth();

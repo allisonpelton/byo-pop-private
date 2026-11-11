@@ -9,7 +9,7 @@
 //  - The site with number 35 has the link -1. Update (0x45af60) and SetVisible (0x450ec0) would look up site -1 (making
 //    a null entry in the map and dereferencing it) if they ran for it; both are skipped by the final-level flag, which
 //    the app sets (SetFinalLevel) when site 35 is chosen.
-//  - OnLevelChosen (0x4538e0) reads mVector1d4[size - 2], which is the site before the chosen one; it needs two entries.
+//  - OnLevelChosen (0x4538e0) reads mRouteNodes[size - 2], which is the site before the chosen one; it needs two entries.
 //  - A dead end (OnEnter, 0x4533b0) takes the link out of the site before it and moves that site behind the dead end,
 //    so the ship sails back.
 
@@ -90,9 +90,9 @@ MapScreen::MapScreen(WinWSApp* theApp)
 	mGumboPeriod = 0;
 	mHintPending = false;
 	mShipArrived = false;
-	mFlag1e4 = false;
+	mOnEnterRan = false;
 	mDotIndex = 0;
-	mFlag1ec = false;
+	mChoicePending = false;
 	mArrivals = 0;
 	mHeadingOn = false;
 	mTipX = 0;
@@ -104,7 +104,7 @@ MapScreen::MapScreen(WinWSApp* theApp)
 	mDotsDone = 0;
 
 	mApp = theApp;
-	mFlag234 = false;
+	mFinalScrollStarted = false;
 	mPromptX = theApp->mWidth;
 	mPromptEndX = theApp->mFontRockwell13->StringWidth(GT(0x0052f988)) / 2 - 0x78;
 	mFinal = false;
@@ -113,121 +113,121 @@ MapScreen::MapScreen(WinWSApp* theApp)
 	mScrollX = 0;
 	mScrollY = 0;
 	mScrolling = false;
-	mField1f8 = 0;
+	mLevelNumberShown = 0;
 	mTimer->SetDisabled(true);
-	mFlag224 = true;
+	mLevelChosen = true;
 
 	// the 36 sites: the number, the visited and dead-end flags, the position, the text; then the links; then the map entry
 	MapNode* aNode;
 	aNode = MakeNode(0, true, false, 115, 42, 0x005313a0);
 	aNode->mLinks.push_back(1);
-	mVector1d4.push_back(aNode);
-	mMap1a8[0] = aNode;
+	mRouteNodes.push_back(aNode);
+	mNodesById[0] = aNode;
 	aNode = MakeNode(1, false, false, 178, 82, 0x00531384);
 	aNode->mLinks.push_back(2); aNode->mLinks.push_back(6); aNode->mLinks.push_back(7);
-	mMap1a8[1] = aNode;
+	mNodesById[1] = aNode;
 	aNode = MakeNode(2, false, false, 277, 81, 0x00531360);
 	aNode->mLinks.push_back(3);
-	mMap1a8[2] = aNode;
+	mNodesById[2] = aNode;
 	aNode = MakeNode(3, false, false, 336, 86, 0x00531334);
 	aNode->mLinks.push_back(8); aNode->mLinks.push_back(4);
-	mMap1a8[3] = aNode;
+	mNodesById[3] = aNode;
 	aNode = MakeNode(4, false, false, 464, 64, 0x00531300);
 	aNode->mLinks.push_back(5); aNode->mLinks.push_back(14);
-	mMap1a8[4] = aNode;
+	mNodesById[4] = aNode;
 	aNode = MakeNode(5, false, true, 574, 81, 0x005312dc);
 	aNode->mLinks.push_back(4);
-	mMap1a8[5] = aNode;
+	mNodesById[5] = aNode;
 	aNode = MakeNode(6, false, false, 91, 158, 0x005312b8);
 	aNode->mLinks.push_back(9); aNode->mLinks.push_back(10);
-	mMap1a8[6] = aNode;
+	mNodesById[6] = aNode;
 	aNode = MakeNode(7, false, false, 259, 164, 0x00531294);
 	aNode->mLinks.push_back(12);
-	mMap1a8[7] = aNode;
+	mNodesById[7] = aNode;
 	aNode = MakeNode(8, false, false, 401, 139, 0x00531334);
 	aNode->mLinks.push_back(14); aNode->mLinks.push_back(13);
-	mMap1a8[8] = aNode;
+	mNodesById[8] = aNode;
 	aNode = MakeNode(9, false, false, 67, 246, 0x00531260);
 	aNode->mLinks.push_back(21);
-	mMap1a8[9] = aNode;
+	mNodesById[9] = aNode;
 	aNode = MakeNode(10, false, false, 168, 215, 0x00531238);
 	aNode->mLinks.push_back(21); aNode->mLinks.push_back(11);
-	mMap1a8[10] = aNode;
+	mNodesById[10] = aNode;
 	aNode = MakeNode(11, false, false, 248, 227, 0x00531214);
 	aNode->mLinks.push_back(15); aNode->mLinks.push_back(16);
-	mMap1a8[11] = aNode;
+	mNodesById[11] = aNode;
 	aNode = MakeNode(12, false, false, 297, 209, 0x005311ec);
 	aNode->mLinks.push_back(13); aNode->mLinks.push_back(11);
-	mMap1a8[12] = aNode;
+	mNodesById[12] = aNode;
 	aNode = MakeNode(13, false, false, 383, 180, 0x005311c8);
 	aNode->mLinks.push_back(17);
-	mMap1a8[13] = aNode;
+	mNodesById[13] = aNode;
 	aNode = MakeNode(14, false, false, 471, 180, 0x00531198);
 	aNode->mLinks.push_back(19);
-	mMap1a8[14] = aNode;
+	mNodesById[14] = aNode;
 	aNode = MakeNode(15, false, false, 230, 263, 0x0053116c);
 	aNode->mLinks.push_back(23);
-	mMap1a8[15] = aNode;
+	mNodesById[15] = aNode;
 	aNode = MakeNode(16, false, false, 286, 278, 0x00531148);
 	aNode->mLinks.push_back(23);
-	mMap1a8[16] = aNode;
+	mNodesById[16] = aNode;
 	aNode = MakeNode(17, false, false, 399, 244, 0x0053111c);
 	aNode->mLinks.push_back(24); aNode->mLinks.push_back(18);
-	mMap1a8[17] = aNode;
+	mNodesById[17] = aNode;
 	aNode = MakeNode(18, false, true, 444, 252, 0x005310f8);
 	aNode->mLinks.push_back(17);
-	mMap1a8[18] = aNode;
+	mNodesById[18] = aNode;
 	aNode = MakeNode(19, false, false, 529, 238, 0x005310d0);
 	aNode->mLinks.push_back(25);
-	mMap1a8[19] = aNode;
+	mNodesById[19] = aNode;
 	aNode = MakeNode(20, false, true, 46, 365, 0x005310b4);
 	aNode->mLinks.push_back(21);
-	mMap1a8[20] = aNode;
+	mNodesById[20] = aNode;
 	aNode = MakeNode(21, false, false, 86, 340, 0x00531238);
 	aNode->mLinks.push_back(26); aNode->mLinks.push_back(20);
-	mMap1a8[21] = aNode;
+	mNodesById[21] = aNode;
 	aNode = MakeNode(22, false, true, 196, 328, 0x00531090);
 	aNode->mLinks.push_back(23);
-	mMap1a8[22] = aNode;
+	mNodesById[22] = aNode;
 	aNode = MakeNode(23, false, false, 249, 320, 0x00531068);
 	aNode->mLinks.push_back(22); aNode->mLinks.push_back(28);
-	mMap1a8[23] = aNode;
+	mNodesById[23] = aNode;
 	aNode = MakeNode(24, false, false, 363, 308, 0x00531040);
 	aNode->mLinks.push_back(28);
-	mMap1a8[24] = aNode;
+	mNodesById[24] = aNode;
 	aNode = MakeNode(25, false, false, 542, 284, 0x00531018);
 	aNode->mLinks.push_back(30);
-	mMap1a8[25] = aNode;
+	mNodesById[25] = aNode;
 	aNode = MakeNode(26, false, false, 168, 381, 0x00530ffc);
 	aNode->mLinks.push_back(27);
-	mMap1a8[26] = aNode;
+	mNodesById[26] = aNode;
 	aNode = MakeNode(27, false, false, 236, 406, 0x00530fd4);
 	aNode->mLinks.push_back(31); aNode->mLinks.push_back(32);
-	mMap1a8[27] = aNode;
+	mNodesById[27] = aNode;
 	aNode = MakeNode(28, false, false, 294, 342, 0x00530fbc);
 	aNode->mLinks.push_back(29);
-	mMap1a8[28] = aNode;
+	mNodesById[28] = aNode;
 	aNode = MakeNode(29, false, false, 387, 347, 0x00530fa4);
 	aNode->mLinks.push_back(34);
-	mMap1a8[29] = aNode;
+	mNodesById[29] = aNode;
 	aNode = MakeNode(30, false, false, 526, 338, 0x00530f7c);
 	aNode->mLinks.push_back(34);
-	mMap1a8[30] = aNode;
+	mNodesById[30] = aNode;
 	aNode = MakeNode(31, false, false, 303, 375, 0x00530f58);
 	aNode->mLinks.push_back(33);
-	mMap1a8[31] = aNode;
+	mNodesById[31] = aNode;
 	aNode = MakeNode(32, false, false, 292, 425, 0x00530f30);
 	aNode->mLinks.push_back(33);
-	mMap1a8[32] = aNode;
+	mNodesById[32] = aNode;
 	aNode = MakeNode(33, false, false, 350, 420, 0x00530f20);
 	aNode->mLinks.push_back(34);
-	mMap1a8[33] = aNode;
+	mNodesById[33] = aNode;
 	aNode = MakeNode(34, false, false, 448, 372, 0x00530f10);
 	aNode->mLinks.push_back(35);
-	mMap1a8[34] = aNode;
+	mNodesById[34] = aNode;
 	aNode = MakeNode(35, false, false, 496, 425, 0x00530ee8);
 	aNode->mLinks.push_back(-1);
-	mMap1a8[35] = aNode;
+	mNodesById[35] = aNode;
 
 	OnEnter();	// 0x4533b0
 }
@@ -240,32 +240,32 @@ MapScreen::~MapScreen()
 	int aNodeId = 0;
 	do
 	{
-		MapNode* aNode = mMap1a8[aNodeId];
+		MapNode* aNode = mNodesById[aNodeId];
 		if (aNode != NULL)
 			delete aNode;
 		aNodeId++;
 	} while (aNodeId < 0x24);
 
 	unsigned int i = 0;
-	while (i < mVector1c4.size())
+	while (i < mRouteDots.size())
 	{
-		delete mVector1c4[i];
-		mVector1c4[i] = NULL;
+		delete mRouteDots[i];
+		mRouteDots[i] = NULL;
 		i++;
 	}
 
 	i = 0;
-	while (i < mVector198.size())
+	while (i < mForkRouteDots.size())
 	{
-		delete mVector198[i];
+		delete mForkRouteDots[i];
 		i++;
 	}
 
 	i = 0;
-	while (i < mVector1b4.size())
+	while (i < mChests.size())
 	{
-		mApp->mWidgetManager->RemoveWidget(mVector1b4[i]);
-		mApp->SafeDeleteWidget(mVector1b4[i]);
+		mApp->mWidgetManager->RemoveWidget(mChests[i]);
+		mApp->SafeDeleteWidget(mChests[i]);
 		i++;
 	}
 
@@ -274,7 +274,7 @@ MapScreen::~MapScreen()
 	if (mTimer != NULL)
 		delete mTimer;
 
-	mMap1a8.clear();	// 0x44cfd0 (erase of the whole map; the vectors and strings free themselves)
+	mNodesById.clear();	// 0x44cfd0 (erase of the whole map; the vectors and strings free themselves)
 }
 
 // 0x4480d0 slot 1: the "Press space bar to continue" link (id 0x1cf3, the app is its listener) is made hidden, with an
@@ -326,24 +326,24 @@ void MapScreen::SetVisible(bool isVisible)
 	}
 
 	unsigned int i = 0;
-	while (i < mVector1b4.size())
+	while (i < mChests.size())
 	{
-		mVector1b4[i]->SetVisible(isVisible);
+		mChests[i]->SetVisible(isVisible);
 		i++;
 	}
 
-	if (isVisible == false || mApp->mUser->mFlag284 != false || mFinal != false)
+	if (isVisible == false || mApp->mUser->mOpenChestHintSeen != false || mFinal != false)
 		return;
 
 	unsigned int aLink = 0;
 	while (true)
 	{
-		MapNode* aLast = mVector1d4.back();
+		MapNode* aLast = mRouteNodes.back();
 		if (aLink >= aLast->mLinks.size())
 			return;
-		if (mMap1a8[aLast->mLinks[aLink]]->mVisited == false)
+		if (mNodesById[aLast->mLinks[aLink]]->mVisited == false)
 		{
-			if (mApp->mUser->mField25c[mVector1d4.back()->mLinks[aLink]] != 0)
+			if (mApp->mUser->mVisitedLevels[mRouteNodes.back()->mLinks[aLink]] != 0)
 			{
 				mHintPending = true;
 				return;
@@ -366,18 +366,18 @@ void MapScreen::KeyChar(SexyChar theChar)
 	if (aChar == ' ' || aChar == mChosenLetter)
 		mApp->ButtonDepress(0x1cf3);
 
-	if (mFlag234 == false && mFlag224 == false)
+	if (mFinalScrollStarted == false && mLevelChosen == false)
 	{
 		unsigned int i = 0;
 		while (true)
 		{
-			if (i >= mVector1b4.size())
+			if (i >= mChests.size())
 				return;
-			if (aChar == mVector1b4[i]->mLetter)
+			if (aChar == mChests[i]->mLetter)
 				break;
 			i++;
 		}
-		mVector1b4[i]->MouseDown(0, 0, 1);
+		mChests[i]->MouseDown(0, 0, 1);
 	}
 }
 
@@ -389,32 +389,32 @@ void MapScreen::KeyChar(SexyChar theChar)
 void MapScreen::OnEnter()
 {
 	mPromptX = mApp->mWidth;
-	mField1f8 = mField1f8 + 1;
-	mDotIndex = mVector1c4.size();
+	mLevelNumberShown = mLevelNumberShown + 1;
+	mDotIndex = mRouteDots.size();
 	mArrivals = 0;
 	mLevel = -1;
-	mFlag1e4 = true;
+	mOnEnterRan = true;
 	mTimer->SetDisabled(true);
-	mFlag1ec = true;
+	mChoicePending = true;
 	mGumboFrame = 0;
 	mHintPending = false;
 	mChosenLetter = 0x20;
-	mFlag234 = false;
+	mFinalScrollStarted = false;
 	mApp->SetCursor(0);
 
 	unsigned int i = 0;
-	while (i < mVector198.size())
+	while (i < mForkRouteDots.size())
 	{
-		delete mVector198[i];		// port: the original frees it with free(), as the pair came from malloc
+		delete mForkRouteDots[i];		// port: the original frees it with free(), as the pair came from malloc
 		i++;
 	}
-	mVector198.clear();
+	mForkRouteDots.clear();
 
-	mVector1d4.back()->mVisited = true;
-	if (mVector1d4.back()->mDeadEnd != false)
+	mRouteNodes.back()->mVisited = true;
+	if (mRouteNodes.back()->mDeadEnd != false)
 	{
-		MapNode* aPrevious = mVector1d4[mVector1d4.size() - 2];
-		MapNode* aCurrent = mVector1d4[mVector1d4.size() - 1];
+		MapNode* aPrevious = mRouteNodes[mRouteNodes.size() - 2];
+		MapNode* aCurrent = mRouteNodes[mRouteNodes.size() - 1];
 		unsigned int aLink = 0;
 		while (true)
 		{
@@ -427,8 +427,8 @@ void MapScreen::OnEnter()
 			}
 			aLink++;
 		}
-		mVector1d4.erase(mVector1d4.begin() + (mVector1d4.size() - 2));
-		mVector1d4.push_back(aPrevious);
+		mRouteNodes.erase(mRouteNodes.begin() + (mRouteNodes.size() - 2));
+		mRouteNodes.push_back(aPrevious);
 	}
 
 	int aLevelNumber = 0;
@@ -475,33 +475,33 @@ void MapScreen::OnEnter()
 void MapScreen::OnLevelChosen()
 {
 	unsigned int i = 0;
-	while (i < mVector1b4.size())
+	while (i < mChests.size())
 	{
-		if (mVector1b4[i]->mLevel != mLevel)
+		if (mChests[i]->mLevel != mLevel)
 		{
-			mApp->mWidgetManager->RemoveWidget(mVector1b4[i]);
-			mApp->SafeDeleteWidget(mVector1b4[i]);
-			mVector1b4.erase(mVector1b4.begin() + i);
+			mApp->mWidgetManager->RemoveWidget(mChests[i]);
+			mApp->SafeDeleteWidget(mChests[i]);
+			mChests.erase(mChests.begin() + i);
 			i = i - 1;
 		}
 		i++;
 	}
 
 	i = 0;
-	while (i < mVector198.size())
+	while (i < mForkRouteDots.size())
 	{
-		delete mVector198[i];		// port: free() in the original
+		delete mForkRouteDots[i];		// port: free() in the original
 		i++;
 	}
-	mVector198.clear();
+	mForkRouteDots.clear();
 
-	MapNode* aNode = mMap1a8[mLevel];
-	mVector1d4.push_back(aNode);
-	MapAddRoutePoints(mVector1d4[mVector1d4.size() - 2], aNode, mVector1c4);		// 0x4537b0
+	MapNode* aNode = mNodesById[mLevel];
+	mRouteNodes.push_back(aNode);
+	MapAddRoutePoints(mRouteNodes[mRouteNodes.size() - 2], aNode, mRouteDots);		// 0x4537b0
 	mTimer->SetDisabled(false);
 	mTimer->Reset();
 	mHeadingOn = true;
-	mFlag1ec = false;
+	mChoicePending = false;
 }
 
 // 0x441030: the scroll targets are the width of the window minus the width of the map picture (the original does the same
@@ -526,11 +526,11 @@ void MapScreen::SetFinalLevel(bool theFinal)
 void MapScreen::ClearNodeWidgets()
 {
 	unsigned int i = 0;
-	while (i < mVector1b4.size())
+	while (i < mChests.size())
 	{
-		mApp->mWidgetManager->RemoveWidget(mVector1b4[i]);
-		mApp->SafeDeleteWidget(mVector1b4[i]);
+		mApp->mWidgetManager->RemoveWidget(mChests[i]);
+		mApp->SafeDeleteWidget(mChests[i]);
 		i++;
 	}
-	mVector1b4.clear();
+	mChests.clear();
 }

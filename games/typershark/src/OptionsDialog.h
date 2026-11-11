@@ -43,12 +43,12 @@ public:
 	WinWSApp*				mApp;					// +0x118 constructor argument
 	Slider2004*				mMusicSlider;			// +0x11c id 0, value app->GetMusicVolume()
 	SoundSlider*			mSfxSlider;				// +0x120 id 1, value app->GetSfxVolume(); releasing it plays sample 8
-	DialogButton*			mField124;				// +0x124 never assigned by the original (a button its code still adds, removes and recolours: probably a removed help button)
+	DialogButton*			mSpareButton;				// +0x124 never assigned by the original (a button slot its code still recolours in SetColor and removes in RemovedFromManager: probably a removed help button); always NULL
 	// +0x128 the Register button and +0x12c the partner link button: removed (see above)
 	DialogButton*			mCreditsButton;			// +0x130 id 4, label text 0x52e890
 	MemoryImage*			mCheckedImage;			// +0x134 24 x 25: the right half of IMAGE_CHECKED
 	MemoryImage*			mUncheckedImage;		// +0x138 24 x 25: the left half of IMAGE_CHECKED
-	bool					mFlag13c;				// +0x13c set to true by the constructor; nothing reads it
+	bool					mCheckboxImagesReady;				// +0x13c constructor false, set to true once the constructor has made the two check box pictures; nothing reads it
 	Checkbox*				mFullScreenCheckbox;	// +0x140 id 0, checked = !app->mIsWindowed ("Fullscreen")
 	Checkbox*				mEffectsCheckbox;		// +0x144 id 0, checked = app->mFastCPU ("Enable Fx (may slow down game)")
 	Checkbox*				mSpacePausesCheckbox;	// +0x148 id 0, checked = the user's mSpacePauses; disabled while the typing tutor exists ("Space bar pauses game")

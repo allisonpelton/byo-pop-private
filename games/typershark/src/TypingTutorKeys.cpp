@@ -179,8 +179,8 @@ void TypingTutor::SetupHighlight()
 	{
 		mFingers[aFinger].mImage = mApp->mImages[IMAGE_FINGER0X + aFinger];
 		// the ring is put at the finger's place, 8 to the right for finger 6 (the keys , < i k 8 *) and 5 to the right for finger 7
-		// (the keys . > l o 9 (), as the original does it in its finger switch (0x45e810: x + 8 at 0x1b4, x + 5 at 0x1dc); the phase 2
-		// typing tutor tour found the rings of those keys a few pixels left of the original's
+		// (the keys . > l o 9 (), as the original does it in its finger switch (0x45e810: x + 8 at 0x1b4, x + 5 at 0x1dc); without it
+		// the rings of those keys sit a few pixels left of the original's
 		int aRingX = mFingers[aFinger].mX;
 		if (aFinger == 6)
 			aRingX += 8;

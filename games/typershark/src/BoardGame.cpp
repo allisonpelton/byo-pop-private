@@ -41,14 +41,14 @@ AppStats Board::GetStats()
 {
 	mStats.mPointsSoFar = mPlayer->mScore;
 	memcpy(&mStats.mReserved[1], &mPlayer->mEmpCharge, sizeof(double));
-	mStats.mReserved[0] = mPlayer->mField114;
-	mStats.mReserved[3] = mPlayer->mField110;
+	mStats.mReserved[0] = mPlayer->mLevelNumber;
+	mStats.mReserved[3] = mPlayer->mLives;
 	mStats.mReserved[4] = mRating->mStreak;
-	mStats.mReserved[5] = mField0e8c;
+	mStats.mReserved[5] = mAccurateLevels;
 	mStats.mReserved[6] = mPausedTime;
 	mStats.mReserved[7] = mGameTimer->Elapsed();
-	mStats.mReserved[8] = mField0f68;
-	mStats.mReserved[9] = mField0f6c;
+	mStats.mReserved[8] = mLettersRight;
+	mStats.mReserved[9] = mLettersWrong;
 	AppStats aStats = mStats;
 	return aStats;
 }
@@ -58,13 +58,13 @@ AppStats Board::GetStats()
 void Board::StartGame(const AppStats& theStats)
 {
 	memcpy(&mPlayer->mEmpCharge, &theStats.mReserved[1], sizeof(double));
-	mPlayer->mField114 = theStats.mReserved[0];
-	mPlayer->mField110 = theStats.mReserved[3];
+	mPlayer->mLevelNumber = theStats.mReserved[0];
+	mPlayer->mLives = theStats.mReserved[3];
 	mRating->mStreak = theStats.mReserved[4];
 	mPausedTime = theStats.mReserved[6];
-	mField0e8c = theStats.mReserved[5];
+	mAccurateLevels = theStats.mReserved[5];
 	mPlayer->SetScore(theStats.mPointsSoFar);
-	mField0e90 = mPlayer->mScore;
+	mStartScore = mPlayer->mScore;
 }
 
 // 0x440570
@@ -106,15 +106,15 @@ static void AddRecordValue8(UserProfile* theUser, int theGroup, int theRecord, i
 	aField[11]++;
 }
 
-// 0x440580: puts the game into the user's profile and writes the profile out. The level is the diver's mField114. A game
-// that is still at its first level with the diver's mField110 below zero (and not the abyss mode) takes the short way: the
+// 0x440580: puts the game into the user's profile and writes the profile out. The level is the diver's mLevelNumber. A game
+// that is still at its first level with the diver's mLives below zero (and not the abyss mode) takes the short way: the
 // last game and the best bonus words. Otherwise a normal game records the typing speed and the accuracy of the game as
 // well, and an abyss game does so only once it reached a score of 400 and 25 (seconds) in mStats (what GetStats saw last);
 // a shorter abyss game only moves the depths. theFlag says whether the typing speed goes into the profile's list too.
 void Board::SaveProgress(bool theFlag, bool theWithDouble)
 {
-	int aLevel = mPlayer->mField114;
-	if (aLevel != 0 || mPlayer->mField110 >= 0 || mLessonManager->mAbyssMode)
+	int aLevel = mPlayer->mLevelNumber;
+	if (aLevel != 0 || mPlayer->mLives >= 0 || mLessonManager->mAbyssMode)
 	{
 		bool anAbyss = mLessonManager->mAbyssMode;
 		if (!anAbyss || (mScore >= 400 && mStats.mReserved[7] >= 25))
@@ -122,18 +122,18 @@ void Board::SaveProgress(bool theFlag, bool theWithDouble)
 			int aSpeed = GetTypingSpeed();
 			if (aSpeed < 0)
 				aSpeed = 0;
-			int anAccuracy = Ftol((double)mField0f68 / (double)(mField0f6c + mField0f68) * 100.0);
+			int anAccuracy = Ftol((double)mLettersRight / (double)(mLettersWrong + mLettersRight) * 100.0);
 
 			if (!anAbyss)
 			{
 				// the normal modes: the group is the difficulty
 				int aDifficulty = mApp->mDifficulty;
 				mApp->mUser->SetLastGame(aDifficulty, mPlayer->mScore, aLevel + 1);
-				mApp->mUser->SetGroupField8(mApp->mDifficulty, mPlayer->mField114);
-				AddRecordValue8(mApp->mUser, mApp->mDifficulty, mPlayer->mField114, aSpeed);
-				AddRecordValue4(mApp->mUser, mApp->mDifficulty, mPlayer->mField114, anAccuracy);
-				if (mField0f30 > 0)
-					AddRecordValue0(mApp->mUser, mApp->mDifficulty, mPlayer->mField114, mField0f30);
+				mApp->mUser->RecordGroupLevel(mApp->mDifficulty, mPlayer->mLevelNumber);
+				AddRecordValue8(mApp->mUser, mApp->mDifficulty, mPlayer->mLevelNumber, aSpeed);
+				AddRecordValue4(mApp->mUser, mApp->mDifficulty, mPlayer->mLevelNumber, anAccuracy);
+				if (mBonusWordCount > 0)
+					AddRecordValue0(mApp->mUser, mApp->mDifficulty, mPlayer->mLevelNumber, mBonusWordCount);
 			}
 			else
 			{
@@ -143,11 +143,11 @@ void Board::SaveProgress(bool theFlag, bool theWithDouble)
 					aUser->mBestDepth = mScore;
 				aUser->mLastDepth = mScore;
 				mApp->mUser->SetLastGame(5, mPlayer->mScore, aLevel + 1);
-				mApp->mUser->SetGroupField8(5, mScore);
+				mApp->mUser->RecordGroupLevel(5, mScore);
 				AddRecordValue8(mApp->mUser, 5, 0, aSpeed);
 				AddRecordValue4(mApp->mUser, 5, 0, anAccuracy);
 			}
-			if (mPlayer->mField110 >= 0 && theFlag)
+			if (mPlayer->mLives >= 0 && theFlag)
 				mApp->mUser->AddWPM(aSpeed);
 		}
 		else
@@ -158,16 +158,16 @@ void Board::SaveProgress(bool theFlag, bool theWithDouble)
 				aUser->mBestDepth = mScore;
 			aUser->mLastDepth = mScore;
 			mApp->mUser->SetLastGame(5, mPlayer->mScore, aLevel + 1);
-			mApp->mUser->SetGroupField8(5, mScore);
+			mApp->mUser->RecordGroupLevel(5, mScore);
 		}
 	}
 	else
 	{
 		// the short way
 		mApp->mUser->SetLastGame(mApp->mDifficulty, mPlayer->mScore, aLevel + 1);
-		mApp->mUser->SetGroupField8(mApp->mDifficulty, mPlayer->mField114);
-		if (mField0f30 > 0)
-			AddRecordValue0(mApp->mUser, mApp->mDifficulty, mPlayer->mField114, mField0f30);
+		mApp->mUser->RecordGroupLevel(mApp->mDifficulty, mPlayer->mLevelNumber);
+		if (mBonusWordCount > 0)
+			AddRecordValue0(mApp->mUser, mApp->mDifficulty, mPlayer->mLevelNumber, mBonusWordCount);
 	}
 
 	mApp->mProfileMgr->WriteUserProfileToRegistry(mApp->mUser, theWithDouble, false);
@@ -220,9 +220,9 @@ void Board::SetPaused(bool thePaused)
 			mPaused = false;
 			int aPauseTime = mPauseTimer->Elapsed();
 			mPausedTime += aPauseTime;
-			mTimer0f00->mPausedTotal += aPauseTime;
+			mTreasureTimer->mPausedTotal += aPauseTime;
 			mBannerTimer->mPausedTotal += aPauseTime;
-			mTimer0e50->mPausedTotal += aPauseTime;
+			mLevelTitleTimer->mPausedTotal += aPauseTime;
 			mTypeTimer->mPausedTotal += aPauseTime;
 			mRatingTimer->mPausedTotal += aPauseTime;
 			mGameTimer->mPausedTotal += aPauseTime;
@@ -241,8 +241,8 @@ void Board::SetPaused(bool thePaused)
 
 // 0x451cb0: takes the lesson that now runs: the diver's speed and the ocean depth of its level, and builds the depth ruler
 // down the left edge: a tick every 10 pixels (a label with the depth every 20 ticks, a short tick every 4) for 600 pixels.
-// An abyss game starts the diver's mField110 at 0 and freezes his score-driven growth (mFlag13c). The y of the ruler's
-// last mark (mField0e10) and of the three scrolling pictures of the sea (mField0d20, mField0d18, mField0d10) follow from
+// An abyss game starts the diver's mLives at 0 and freezes his score-driven growth (mExtraLivesOff). The y of the ruler's
+// last mark (mOceanFloorY) and of the three scrolling pictures of the sea (mFarMountainsY, mMidMountainsY, mNearMountainsY) follow from
 // the ocean depth; an endless game (-1) has none.
 void Board::SetLessonManager(LessonManager* theLessonManager)
 {
@@ -250,8 +250,8 @@ void Board::SetLessonManager(LessonManager* theLessonManager)
 	mDiverSpeed = theLessonManager->GetLevelSettings()->mDiverSpeed;
 	if (mLessonManager->mAbyssMode)
 	{
-		mPlayer->mField110 = 0;
-		mPlayer->mFlag13c = true;
+		mPlayer->mLives = 0;
+		mPlayer->mExtraLivesOff = true;
 	}
 	mPlayer->SetVelY(1.0);
 	mOceanDepth = mLessonManager->GetLevelSettings()->mOceanDepth;
@@ -297,28 +297,28 @@ void Board::SetLessonManager(LessonManager* theLessonManager)
 
 	if (mOceanDepth == -1)
 	{
-		mField0e10 = -1.0;
-		mField0d20 = -1.0;
-		mField0d18 = -1.0;
-		mField0d10 = -1.0;
+		mOceanFloorY = -1.0;
+		mFarMountainsY = -1.0;
+		mMidMountainsY = -1.0;
+		mNearMountainsY = -1.0;
 	}
 	else
 	{
-		mField0e10 = (double)(aFont->GetHeight() + (mOceanDepth * 10 - mApp->mImages[IMAGE_OCEANFLOOR]->mHeight) + mSurfaceHeight);
-		mField0d20 = mField0e10 - 30.0;
-		mField0d18 = mField0d20 + 150.0;
-		mField0d10 = mField0d18 + 150.0;
+		mOceanFloorY = (double)(aFont->GetHeight() + (mOceanDepth * 10 - mApp->mImages[IMAGE_OCEANFLOOR]->mHeight) + mSurfaceHeight);
+		mFarMountainsY = mOceanFloorY - 30.0;
+		mMidMountainsY = mFarMountainsY + 150.0;
+		mNearMountainsY = mMidMountainsY + 150.0;
 	}
 }
 
 // 0x452cf0: starts an abyss game at a depth (WinWSApp passes the multiple of 400 the player chose): the score is the depth,
 // the diver's EMP charge is what the profile's ad value gives for it, the ruler is rebuilt around the depth (32 ticks
 // above it, 16 below), the lesson is taken forward one level for every 200 units of the depth, and the diver is put just
-// below the surface. A depth that is a multiple of 1000 sets mFlag0d28, which makes SpawnWave build an abyss boss.
+// below the surface. A depth that is a multiple of 1000 sets mAbyssBossDue, which makes SpawnWave build an abyss boss.
 void Board::SetDepth(int theDepth)
 {
 	mScore = theDepth;
-	mField1c0 = theDepth;
+	mLessonStepDepth = theDepth;
 	mPlayer->mEmpCharge = mApp->mUser->GetAdValue(theDepth);
 
 	// port: the original forgets the old markers without deleting them (a leak)
@@ -374,11 +374,11 @@ void Board::SetDepth(int theDepth)
 	int aThousands = mScore / 1000;
 	if (aThousands > 0)
 	{
-		mField0d2c += aThousands;
+		mAbyssBossIndex += aThousands;
 		if (mScore % 1000 == 0)
-			mFlag0d28 = true;
+			mAbyssBossDue = true;
 	}
-	mApp->mUser->SetField1e4(mField0d2c);
+	mApp->mUser->SetAbyssBossIndex(mAbyssBossIndex);
 }
 
 // 0x452f30: a bubble at the given place

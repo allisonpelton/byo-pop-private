@@ -59,15 +59,15 @@ public:
 	SexyString				mAverageLabel;		// +0xb8 under the first bar ("Average")
 	SexyString				mBestLabel;			// +0xd4 under the second bar ("Best")
 	SexyString				mRecentLabel;		// +0xf0 under the third bar ("Most Recent Attempt")
-	int						mBar1;				// +0x10c the height of the average bar being drawn (grows to mBar1Target)
+	int						mAverageBarHeight;				// +0x10c the height of the average bar being drawn (Update grows it 20 pixels a step to mBar1Target; SetGraph restarts it at 0)
 	int						mBar1Target;		// +0x110 its final height in pixels
-	int						mValue1;			// +0x114 the average, written above the bar
-	int						mBar2;				// +0x118 the best bar
+	int						mAverageValue;			// +0x114 the lesson's average of the measure, written above the average bar
+	int						mBestBarHeight;				// +0x118 the height of the best bar being drawn (grows to mBar2Target; SetGraph restarts it at 0)
 	int						mBar2Target;		// +0x11c
-	int						mValue2;			// +0x120
-	int						mBar3;				// +0x124 the most recent attempt's bar
+	int						mBestValue;			// +0x120 the lesson's best value of the measure, written above the best bar
+	int						mRecentBarHeight;				// +0x124 the height of the most recent attempt's bar being drawn (grows to mBar3Target; SetGraph restarts it at 0)
 	int						mBar3Target;		// +0x128
-	int						mValue3;			// +0x12c
+	int						mRecentValue;			// +0x12c the most recent attempt's value of the measure, written above the most recent bar
 	int						mLesson;			// +0x130 ctor -1 (AdvanceToLesson moves it to the profile's last lesson); 0 is the typing test
 	int						mGraphType;			// +0x134 GRAPH_WPM, GRAPH_ADJUSTED or GRAPH_ACCURACY (ctor 0)
 	SexyString				mHeader;			// +0x138 "LESSON n: <measure>" or "TYPING TEST: <measure>" above the graph

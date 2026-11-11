@@ -24,13 +24,13 @@
 
 using namespace Sexy;
 
-// whether theElement is a tag of the given kind (START, END) with the name that is the game text at theTextVA
+// port: whether theElement is a tag of the given kind (START, END) with the name that is the game text at theTextVA
 static bool IsTag(const XMLElement* theElement, int theType, unsigned int theTextVA)
 {
 	return (theElement->mType == theType) && (theElement->mValue == GT(theTextVA));
 }
 
-// the value of the element that follows a start tag (the original makes a new XMLElement for each, reads the next
+// port: the value of the element that follows a start tag (the original makes a new XMLElement for each, reads the next
 // element into it and takes atol / atof of its text)
 static long ReadLong(XMLParser& theParser)
 {
@@ -39,6 +39,7 @@ static long ReadLong(XMLParser& theParser)
 	return atol(aValue.mValue.c_str());
 }
 
+// port: the same for a number with a fraction
 static double ReadDouble(XMLParser& theParser)
 {
 	XMLElement aValue;
@@ -46,7 +47,7 @@ static double ReadDouble(XMLParser& theParser)
 	return atof(aValue.mValue.c_str());
 }
 
-// <MinSpeed> of an enemy: the file's number, changed by the kind of wave, the kind of enemy and the difficulty (4: Xtreme)
+// port: <MinSpeed> of an enemy: the file's number, changed by the kind of wave, the kind of enemy and the difficulty (4: Xtreme)
 static double EnemyMinSpeed(double theValue, int theDifficulty, int theWaveType, int theEnemyType)
 {
 	if ((theEnemyType == ENEMY_BLACK) && (theDifficulty == 4))
@@ -75,7 +76,7 @@ static double EnemyMinSpeed(double theValue, int theDifficulty, int theWaveType,
 	}
 }
 
-// <MaxSpeed> of an enemy, the same way
+// port: <MaxSpeed> of an enemy, the same way
 static double EnemyMaxSpeed(double theValue, int theDifficulty, int theWaveType, int theEnemyType)
 {
 	if ((theEnemyType == ENEMY_BLACK) && (theDifficulty == 4))
@@ -654,7 +655,7 @@ int LessonManager::LoadConfig(int theDifficulty)
 			// the original copies the settings dword by dword (all but the unused field at +0x1c) and not the level's own
 			// bonus flag and first wave, which stay uninitialised in its copy (the heap block is not cleared); the port's are 0
 			aCopy->mSettings = aSource->mSettings;
-			aCopy->mSettings.mField1c = 0;
+			aCopy->mSettings.mAlignmentGap = 0;
 
 			for (size_t aWaveIndex = 0; aWaveIndex < aSource->mWaves.size(); aWaveIndex++)
 			{

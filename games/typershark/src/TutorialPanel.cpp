@@ -66,15 +66,15 @@ TutorialPanel::TutorialPanel(WinWSApp* theApp) :
 	mStep = 0;
 	mTickCount = 0;
 	mUnitHeight = 0;
-	mBar1 = 0;	// port: the original leaves the bars and values (+0x10c to +0x12c) unset until SetGraph
+	mAverageBarHeight = 0;	// port: the original leaves the bars and values (+0x10c to +0x12c) unset until SetGraph
 	mBar1Target = 0;
-	mValue1 = 0;
-	mBar2 = 0;
+	mAverageValue = 0;
+	mBestBarHeight = 0;
 	mBar2Target = 0;
-	mValue2 = 0;
-	mBar3 = 0;
+	mBestValue = 0;
+	mRecentBarHeight = 0;
 	mBar3Target = 0;
-	mValue3 = 0;
+	mRecentValue = 0;
 
 	mTimer = new WSTimer();
 	mTimer->SetDisabled(true);
@@ -171,7 +171,7 @@ void TutorialPanel::SetShown(bool theShow)
 		else
 			mPrevButton->SetVisible(true);
 
-		int aLessonCount = (int)mApp->mUser->mRecordsE0.size();
+		int aLessonCount = (int)mApp->mUser->mLessonRecords.size();
 		if (aLessonCount <= mLesson + 1)
 		{
 			mNextButton->SetVisible(false);
@@ -198,19 +198,19 @@ void TutorialPanel::Update()
 		int anElapsed = mTimer->Elapsed();
 		if (4 < anElapsed)
 		{
-			if (mBar1 < mBar1Target || mBar2 < mBar2Target || mBar3 < mBar3Target)
+			if (mAverageBarHeight < mBar1Target || mBestBarHeight < mBar2Target || mRecentBarHeight < mBar3Target)
 			{
-				mBar1 = mBar1 + 0x14;
-				if (mBar1Target <= mBar1)
-					mBar1 = mBar1Target;
-				int aBar = mBar2;
-				mBar2 = aBar + 0x14;
+				mAverageBarHeight = mAverageBarHeight + 0x14;
+				if (mBar1Target <= mAverageBarHeight)
+					mAverageBarHeight = mBar1Target;
+				int aBar = mBestBarHeight;
+				mBestBarHeight = aBar + 0x14;
 				if (mBar2Target <= aBar + 0x14)
-					mBar2 = mBar2Target;
-				aBar = mBar3;
-				mBar3 = aBar + 0x14;
+					mBestBarHeight = mBar2Target;
+				aBar = mRecentBarHeight;
+				mRecentBarHeight = aBar + 0x14;
 				if (mBar3Target <= aBar + 0x14)
-					mBar3 = mBar3Target;
+					mRecentBarHeight = mBar3Target;
 				MarkDirtyFull();
 				mTimer->Reset();
 				return;
@@ -265,26 +265,26 @@ void TutorialPanel::Draw(Graphics* g)
 			} while (i < mTickCount);
 		}
 
-		if (0 < mBar1)
+		if (0 < mAverageBarHeight)
 		{
 			g->SetColor(Color(0x14, 0x14, 0x14, 0x80));
-			g->FillRect(0x12c, 0x159 - mBar1, 0x3c, mBar1 - 5);
+			g->FillRect(0x12c, 0x159 - mAverageBarHeight, 0x3c, mAverageBarHeight - 5);
 			g->SetColor(Color(0, 0, 0xff, 0x80));
-			g->FillRect(0x127, 0x154 - mBar1, 0x3c, mBar1);
+			g->FillRect(0x127, 0x154 - mAverageBarHeight, 0x3c, mAverageBarHeight);
 		}
-		if (0 < mBar2)
+		if (0 < mBestBarHeight)
 		{
 			g->SetColor(Color(0x14, 0x14, 0x14, 0x80));
-			g->FillRect(0x19a, 0x159 - mBar2, 0x3c, mBar2 - 5);
+			g->FillRect(0x19a, 0x159 - mBestBarHeight, 0x3c, mBestBarHeight - 5);
 			g->SetColor(Color(0xff, 0, 0, 0x80));
-			g->FillRect(0x195, 0x154 - mBar2, 0x3c, mBar2);
+			g->FillRect(0x195, 0x154 - mBestBarHeight, 0x3c, mBestBarHeight);
 		}
-		if (0 < mBar3)
+		if (0 < mRecentBarHeight)
 		{
 			g->SetColor(Color(0x14, 0x14, 0x14, 0x80));
-			g->FillRect(0x208, 0x159 - mBar3, 0x3c, mBar3 - 5);
+			g->FillRect(0x208, 0x159 - mRecentBarHeight, 0x3c, mRecentBarHeight - 5);
 			g->SetColor(Color(0, 0xff, 0, 0x80));
-			g->FillRect(0x203, 0x154 - mBar3, 0x3c, mBar3);
+			g->FillRect(0x203, 0x154 - mRecentBarHeight, 0x3c, mRecentBarHeight);
 		}
 
 		g->SetColor(Color(0, 0, 0));
@@ -298,26 +298,26 @@ void TutorialPanel::Draw(Graphics* g)
 
 		SexyString aValueText;
 		if (mGraphType == GRAPH_ACCURACY)
-			aValueText = StrFormat(GTC(0x0052fee8), mValue1);
+			aValueText = StrFormat(GTC(0x0052fee8), mAverageValue);
 		else
-			aValueText = StrFormat(GTC(0x0052b19c), mValue1);
-		int aValueY = aHalfAscent + 0x154 - (mBar1 >> 1);
+			aValueText = StrFormat(GTC(0x0052b19c), mAverageValue);
+		int aValueY = aHalfAscent + 0x154 - (mAverageBarHeight >> 1);
 		if (0 < aValueY)
 			WriteString2004(g, aValueText, 0x127, aValueY, 0x3c, 0, true, 0, -1);
 
 		if (mGraphType == GRAPH_ACCURACY)
-			aValueText = StrFormat(GTC(0x0052fee8), mValue2);
+			aValueText = StrFormat(GTC(0x0052fee8), mBestValue);
 		else
-			aValueText = StrFormat(GTC(0x0052b19c), mValue2);
-		aValueY = aHalfAscent + 0x154 - (mBar2 >> 1);
+			aValueText = StrFormat(GTC(0x0052b19c), mBestValue);
+		aValueY = aHalfAscent + 0x154 - (mBestBarHeight >> 1);
 		if (0 < aValueY)
 			WriteString2004(g, aValueText, 0x195, aValueY, 0x3c, 0, true, 0, -1);
 
 		if (mGraphType == GRAPH_ACCURACY)
-			aValueText = StrFormat(GTC(0x0052fee8), mValue3);
+			aValueText = StrFormat(GTC(0x0052fee8), mRecentValue);
 		else
-			aValueText = StrFormat(GTC(0x0052b19c), mValue3);
-		aValueY = aHalfAscent - (mBar3 >> 1) + 0x154;
+			aValueText = StrFormat(GTC(0x0052b19c), mRecentValue);
+		aValueY = aHalfAscent - (mRecentBarHeight >> 1) + 0x154;
 		if (0 < aValueY)
 			WriteString2004(g, aValueText, 0x203, aValueY, 0x3c, 0, true, 0, -1);
 	}
@@ -383,18 +383,18 @@ void TutorialPanel::SetGraph(int theGraph)
 {
 	if (theGraph == 0)
 	{
-		mAxisMax = mUser->mRecordsE0[mLesson].mField[0];
+		mAxisMax = mUser->mLessonRecords[mLesson].mField[0];
 		mStep = (9 < mAxisMax) ? 10 : 1;
 		mTickCount = mAxisMax / mStep + 2;
 		mUnitHeight = 0xd4 / mTickCount;
 		int aValue = mUser->GetAverageWPM(mLesson);
-		mValue1 = aValue;
+		mAverageValue = aValue;
 		mBar1Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
-		aValue = mUser->mRecordsE0[mLesson].mField[0];
-		mValue2 = aValue;
+		aValue = mUser->mLessonRecords[mLesson].mField[0];
+		mBestValue = aValue;
 		mBar2Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
-		aValue = mUser->mRecordsE0[mLesson].mField[1];
-		mValue3 = aValue;
+		aValue = mUser->mLessonRecords[mLesson].mField[1];
+		mRecentValue = aValue;
 		mBar3Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
 
 		mAverageLabel = GT(0x005301dc);
@@ -412,18 +412,18 @@ void TutorialPanel::SetGraph(int theGraph)
 	}
 	else if (theGraph == 1)
 	{
-		mAxisMax = mUser->mRecordsE0[mLesson].mField[4];
+		mAxisMax = mUser->mLessonRecords[mLesson].mField[4];
 		mStep = (9 < mAxisMax) ? 10 : 1;
 		mTickCount = mAxisMax / mStep + 2;
 		mUnitHeight = 0xd4 / mTickCount;
 		int aValue = mUser->GetAverageAdjustedWPM(mLesson);
-		mValue1 = aValue;
+		mAverageValue = aValue;
 		mBar1Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
-		aValue = mUser->mRecordsE0[mLesson].mField[4];
-		mValue2 = aValue;
+		aValue = mUser->mLessonRecords[mLesson].mField[4];
+		mBestValue = aValue;
 		mBar2Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
-		aValue = mUser->mRecordsE0[mLesson].mField[5];
-		mValue3 = aValue;
+		aValue = mUser->mLessonRecords[mLesson].mField[5];
+		mRecentValue = aValue;
 		mBar3Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
 
 		mAverageLabel = GT(0x005301dc);
@@ -446,13 +446,13 @@ void TutorialPanel::SetGraph(int theGraph)
 		mTickCount = 0xb;
 		mUnitHeight = 0x13;
 		int aValue = mUser->GetAverageAccuracy(mLesson);
-		mValue1 = aValue;
+		mAverageValue = aValue;
 		mBar1Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
-		aValue = mUser->mRecordsE0[mLesson].mField[8];
-		mValue2 = aValue;
+		aValue = mUser->mLessonRecords[mLesson].mField[8];
+		mBestValue = aValue;
 		mBar2Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
-		aValue = mUser->mRecordsE0[mLesson].mField[9];
-		mValue3 = aValue;
+		aValue = mUser->mLessonRecords[mLesson].mField[9];
+		mRecentValue = aValue;
 		mBar3Target = mUnitHeight * (aValue / mStep) + aValue % mStep;
 
 		mAverageLabel = GT(0x005301dc);
@@ -470,12 +470,12 @@ void TutorialPanel::SetGraph(int theGraph)
 	}
 
 	// the app's current profile (the same one StatsScreen::SetUser gave this page)
-	if (mApp->mUser->mField94[mLesson] == -1)
+	if (mApp->mUser->mLessonOutcome[mLesson] == -1)
 		mCaption = GT(0x0052fef0);
 
-	mBar1 = 0;
-	mBar2 = 0;
-	mBar3 = 0;
+	mAverageBarHeight = 0;
+	mBestBarHeight = 0;
+	mRecentBarHeight = 0;
 	MarkDirtyFull();
 }
 
@@ -484,7 +484,7 @@ void TutorialPanel::SetGraph(int theGraph)
 // header is rebuilt in any case: "TYPING TEST: " for the lesson 0, else "LESSON n: ", and the name of the measure
 void TutorialPanel::NextLesson()
 {
-	int aLessonCount = (int)mUser->mRecordsE0.size();
+	int aLessonCount = (int)mUser->mLessonRecords.size();
 	if (mLesson + 1 < aLessonCount)
 	{
 		mPrevButton->SetDisabled(false);
@@ -493,7 +493,7 @@ void TutorialPanel::NextLesson()
 			mPrevButton->SetVisible(true);
 		int aLesson = mLesson;
 		mLesson = aLesson + 1;
-		aLessonCount = (int)mUser->mRecordsE0.size();
+		aLessonCount = (int)mUser->mLessonRecords.size();
 		if (aLessonCount <= aLesson + 2)
 		{
 			mNextButton->SetDisabled(true);

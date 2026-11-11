@@ -22,9 +22,9 @@ Projectile::Projectile(WinWSApp* theApp, GameObject* theHitTarget, GameObject* t
 	mNumFrames = 1;
 	mFrameDelay = 11;
 	mState = 0;
-	mFlag1b = true;
-	mFlag1c = true;
-	mFlag1d = true;
+	mAlwaysTrueA = true;
+	mAlwaysTrueB = true;
+	mAlwaysTrueC = true;
 }
 
 Projectile::~Projectile()

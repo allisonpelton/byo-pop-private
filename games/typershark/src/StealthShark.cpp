@@ -19,7 +19,7 @@ StealthShark::StealthShark(WinWSApp* theApp) :
 	mEventSent(false),
 	mAlpha(50)
 {
-	mFlag19 = true;
+	mStealthy = true;
 	mTypedColor = Color(255, 255, 100);
 	mTextColor = Color(0, 0, 0);
 	mStealthImages.resize(6);
@@ -40,7 +40,7 @@ StealthShark::~StealthShark()
 // 0x404f60 (the same code as StealthPiranha's): switching it off shows the normal picture
 void StealthShark::SetStealth(bool theStealth)
 {
-	mFlag19 = theStealth;
+	mStealthy = theStealth;
 	if (!theStealth)
 		mImage = mImages[0];
 }
@@ -56,7 +56,7 @@ void StealthShark::ResetSpeed()
 void StealthShark::Update()
 {
 	Shark::Update();
-	bool aStealth = mFlag19;
+	bool aStealth = mStealthy;
 	if (aStealth)
 	{
 		if (mX <= 400.0)
@@ -100,7 +100,7 @@ void StealthShark::Draw(Graphics* g)
 	if (mNumTyped > 0)
 	{
 		g->SetFont(mTypedFont);
-		if (mFlag19)
+		if (mStealthy)
 			g->SetColor(Color(mTypedColor.GetRed(), mTypedColor.GetGreen(), mTypedColor.GetBlue(), mAlpha));
 		else
 			g->SetColor(mTypedColor);
@@ -110,7 +110,7 @@ void StealthShark::Draw(Graphics* g)
 		g->DrawString(mTyped, aTypedX, aY);
 
 		g->SetFont(mFont);
-		if (mFlag19)
+		if (mStealthy)
 			g->SetColor(Color(mTextColor.GetRed(), mTextColor.GetGreen(), mTextColor.GetBlue(), mAlpha));
 		else
 			g->SetColor(mTextColor);
@@ -122,7 +122,7 @@ void StealthShark::Draw(Graphics* g)
 	else
 	{
 		g->SetFont(mFont);
-		if (mFlag19)
+		if (mStealthy)
 			g->SetColor(Color(mTextColor.GetRed(), mTextColor.GetGreen(), mTextColor.GetBlue(), mAlpha));
 		else
 			g->SetColor(mTextColor);
@@ -150,14 +150,14 @@ void StealthShark::SetState(int theState)
 	Shark::SetState(theState);
 	if (theState == 0)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[0];
 		else
 			mImage = mImages[0];
 	}
 	else if (theState == 3)
 	{
-		if (mFlag19)
+		if (mStealthy)
 			mImage = mStealthImages[2];
 		else
 			mImage = mImages[2];
@@ -169,7 +169,7 @@ void StealthShark::SetState(int theState)
 void StealthShark::SetVelX(double v)
 {
 	mBaseSpeed = v;
-	if (!mFlag19)
+	if (!mStealthy)
 		mVelX = v;
 }
 

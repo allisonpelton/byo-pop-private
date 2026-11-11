@@ -110,7 +110,7 @@ void ToxicShark::DrawGlow(Graphics* g, Image* theGlow)
 }
 
 // 0x4055f0: by state: 0 and 4 the glow and the swim picture, 1 (mirrored) the app's mirrored copies, 3 the death
-// pictures, 5 only the shock picture while mFlag30 is set (otherwise glow and swim picture), 6 the red picture while
+// pictures, 5 only the shock picture while mShockShowing is set (otherwise glow and swim picture), 6 the red picture while
 // mFlashed (otherwise glow and swim picture), 2 nothing. Then the word as in Shark::Draw (states 0, 4 and 6, not
 // while the board is paused)
 void ToxicShark::Draw(Graphics* g)
@@ -136,7 +136,7 @@ void ToxicShark::Draw(Graphics* g)
 		g->DrawImage(mApp->mImages[IMAGE_TOXIC_BASIC_DEATH], (int)mLastX, (int)mLastY, aSrc);
 		break;
 	case 5:
-		if (mFlag30)
+		if (mShockShowing)
 		{
 			g->DrawImage(mApp->mImages[IMAGE_TOXIC_BASIC_SHOCK], (int)mLastX, (int)mLastY);
 			break;

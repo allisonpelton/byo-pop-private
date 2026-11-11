@@ -26,8 +26,8 @@ public:
 	WinWSApp*				mApp;					// +0x114 constructor argument
 	MemoryImage*			mCheckedImage;			// +0x118 the right half of the check box picture (the checked box)
 	MemoryImage*			mUncheckedImage;		// +0x11c the left half
-	int						mField120;				// +0x120 the sample every button press plays (WinWSApp::ShowHintDialog sets 5, the button click)
-	Checkbox*				mField124;				// +0x124 the "disable hints" check box
+	int						mButtonSample;				// +0x120 the sample every button press plays (WinWSApp::ShowHintDialog sets 5, the button click)
+	Checkbox*				mDisableHintsCheckbox;				// +0x124 the "disable hints" check box
 
 public:
 	HintDialog(WinWSApp* theApp, int theId, const SexyString& theDialogHeader, const SexyString& theDialogLines,

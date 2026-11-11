@@ -28,7 +28,7 @@ Easy adventure by a second route through every boss, the last level, the end-of-
 
 | Difference | Cause in the original | The port now | Commit |
 | --- | --- | --- | --- |
-| A black or red shark took its second word again once it was typed and never died, so a level with one never ended | `BlackShark::TypeLetter` 0x409fb0 and `RedShark::TypeLetter` 0x40b600 empty the word they take; Ghidra's export left that statement out | empties it (`mWord2 = ""`, `mWord3 = ""`) | be952da8 |
+| A black or red shark took its second word again once it was typed and never died, so a level with one never ended | `BlackShark::TypeLetter` 0x409fb0 and `RedShark::TypeLetter` 0x40b600 empty the word they take; Ghidra's export left that statement out | empties it (`mSecondWord = ""`, `mThirdWord = ""`) | be952da8 |
 | The abyss went to the next level every 100 feet | `Board::Update` 0x45c140 compares depth / 200 | `/ 200` | be952da8 |
 | The end-of-level word picker hung once every word of the list was used (found as an oddity, then fixed: it is a soft lock) | `GetLongWord` loops until it finds an unused word | stops when none is left | ce5f631b |
 

@@ -1,7 +1,7 @@
 #ifndef __TYPERSHARK_BLACKSHARK_H__
 #define __TYPERSHARK_BLACKSHARK_H__
 
-// BlackShark.cpp: a shark with a second word. When its first word is typed it takes the second one (mWord2) and
+// BlackShark.cpp: a shark with a second word. When its first word is typed it takes the second one (mSecondWord) and
 // swims on, so it has to be typed twice. RedShark derives from it (a third word), StealthBlackShark takes it
 // together with StealthShark.
 // Original: class Sexy::BlackShark : Shark (virtual base; so are Enemy and GameObject), vftable 0x52979c (own part,
@@ -21,7 +21,7 @@ namespace Sexy
 class BlackShark : public virtual Shark
 {
 public:
-	std::string				mWord2;					// +0x08 the word taken on when mWord is finished; the Board fills it (nothing here does). The original has an accessor (own slot 0, 0x407030, a copy) that no play reaches: it reads the field, as the port does
+	std::string				mSecondWord;					// +0x08 the word taken on when mWord is finished; the Board fills it (nothing here does). The original has an accessor (own slot 0, 0x407030, a copy) that no play reaches: it reads the field, as the port does
 
 public:
 	BlackShark(WinWSApp* theApp);													// 0x410f50

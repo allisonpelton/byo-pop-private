@@ -32,7 +32,7 @@ GameObject slots, the three Enemy slots, the states and the x87 compare rules; `
 | GameObject | 0x529394 (12 virtuals) | 0x4611b0 | the object part is 0xf0 bytes: position, velocity, state, frame counter for the 20-frame sprite sheets, the last six positions |
 | Enemy | 0x5298fc (3 virtuals: GetPoints, GetSpeed, TypeLetter) | 0x40a3f0 | dtor 0x4078b0; the word, its colours and fonts, the event queue `mEvents`; Enemy part 0xf0 bytes |
 | Shark | own part 1 virtual (0x401200) | 0x4101d0 | sizeof 0x210; GameObject part at +0x30, Enemy at +0x120; states 0 swim, 1 back, 2 dead, 3 dying, 4 chased off, 5 shocked, 6 hit |
-| BlackShark | 0x52979c | 0x410f50 | sizeof 0x240; a second word (`mWord2`); dtor 0x409d70 |
+| BlackShark | 0x52979c | 0x410f50 | sizeof 0x240; a second word (`mSecondWord`); dtor 0x409d70 |
 | RedShark | 0x529838 | 0x411400 | sizeof 0x260; a third word; dtor 0x409970 |
 | ToxicShark | 0x5296e8 | 0x4109e0 | sizeof 0x238; plain Shark base; the word scrambles; dtor 0x409bc0 |
 | GhostShark | vbtable 0x529fec | 0x4111b0 | Shark, Enemy and GameObject all virtual; only Draw is its own; dtor thunk 0x411350 |
@@ -155,7 +155,7 @@ boss's hit points and shot numbers). The adventure has 36 sites (0 to 35) on the
 cursor is `NextWave` 0x41eb40 and `NextLevel`. A bonus (treasure) level is a level with a `BonusLevel` tag. `SpawnWave`
 (0x455bf0) builds the creatures of the wave: it makes the class for each record, draws the word from the word lists by length
 and theme (`GetWord` 0x428d80, `GetThemeWord`), places them (`PlaceEnemies` 0x452050, `PlaceBonusCreatures` 0x442540) and builds
-the boss by its type. Black and red sharks get further words from the lists (`mWord2`, `mWord3`), a white piranha one more
+the boss by its type. Black and red sharks get further words from the lists (`mSecondWord`, `mThirdWord`), a white piranha one more
 letter.
 
 **Creatures.** Sharks swim in from the right, speed up near the left edge and bite the diver when they reach him (a life
@@ -181,13 +181,13 @@ export for 7, 0xb and 0xc).
 creature shows up (30 bubbles), 0xa a boss exists, 0xc a boss is beaten, 0x13 a shot hit the diver, 0x15 a shot is gone.
 Codes 9, 0xb, 0xd and 0x14 have no handler. `BOARD.md`, part 5, has the table.
 
-**Scoring.** A finished word scores the creature's points (`Enemy::mField54`), times `max(2, score / 600)` in an abyss game,
+**Scoring.** A finished word scores the creature's points (`Enemy::mWordPoints`), times `max(2, score / 600)` in an abyss game,
 and the Board adds them to the diver, the rating and a floating text; the EMP charge grows by 0.01. The diver gets a life
 each time the score reaches the next threshold (the first is 450000, 525000, 650000, 700000 or 900000 by difficulty, then
 larger steps; `Player::AddScore`). A group of words ends when every creature of the lists has finished dying; the Board shows
-a rating popup, counts a ramp (`mField0f38`) up to 240, and the diver enters the streak game: long words (`GetLongWord`,
+a rating popup, counts a ramp (`mAirGauge`) up to 240, and the diver enters the streak game: long words (`GetLongWord`,
 lengths from the level's `MinEndDiff` to `MaxEndDiff`) come one after another, each finished word bringing the next, against
-a countdown (`mField0f38` again, 0.1 an update, 0.12 in a treasure level, shortened by typing) and earn a streak bonus; then
+a countdown (`mAirGauge` again, 0.1 an update, 0.12 in a treasure level, shortened by typing) and earn a streak bonus; then
 come the level bonus, the treasure picture and the space bar. Typing speed and accuracy go into the profile's records at the end (`SaveProgress` 0x440580).
 
 **Bonus (treasure) level.** The floor holds 22 clams in four rows, each with a letter and a kind (0 empty, 1 and 2 pearls
@@ -197,7 +197,7 @@ open clam with it; after two pairs the next pearl that opens shows the treasure 
 pairing itself; the clam handler's event 3 only repeats it and never fires on its own (section 7, to check).
 
 **The abyss.** No map: the dive goes down in feet (`mScore` of the Board is the depth), the level changes every 200 feet
-(`SetDepth` 0x452cf0, `Update` 0x45c140), `SetDepth` makes the depth ruler's labels, a boss comes by `mField0d2c % 4`, the
+(`SetDepth` 0x452cf0, `Update` 0x45c140), `SetDepth` makes the depth ruler's labels, a boss comes by `mAbyssBossIndex % 4`, the
 diver has no lives (0), and the deepest depth is kept in the profile (`AnnoDomini`). The unregistered copy stopped an abyss
 game at a depth limit; that code is gone.
 
@@ -237,7 +237,7 @@ that the shared `SexyAppBase` never frees (no `SDL_Quit`; a spec for the coordin
 two statics.
 
 **Fields the original leaves unset, which the port zeroes.** `Player`'s constructor leaves `mHoseFrameUp`, `mHoseY` and
-`mAlpha` unset (0x461320; the one place where play could differ), the rating popup's `mBonus` and `mField34`, `Projectile`'s
+`mAlpha` unset (0x461320; the one place where play could differ), the rating popup's `mBonus` and `mNeverWritten`, `Projectile`'s
 `+0x14` and `+0x18`, `GameOverDialog`'s `+0x11c` until the Board fills it, `FadeButton`'s `+0xe4`, members of `MapScreen`,
 `StatusBar` (+0x64), `TitleScreen` (+0x58 to +0x70), `TabbedWidget`, `TutorialPanel` and `StatsScreen` until their later
 functions set them, the typing tutor's fields until `ResetLesson`, `OptionsDialog`'s `+0x124` (its `RemovedFromManager` hands it
@@ -273,7 +273,7 @@ for it, and changes nothing while an unused word is left; the state log is byte-
 **Translation errors found and fixed by phase 1** (the port had differed from the original; now it matches). `BlackShark` and
 `RedShark` `TypeLetter` (0x409fb0, 0x40b600): the original assigns the empty string to the further word it just took, which
 Ghidra's export leaves out, so the port's shark kept loading its second word for ever and the level never ended; fixed with
-`mWord2 = ""` and `mWord3 = ""`. `Board::Update` (0x45c140): the abyss goes to the next level every 200 feet, the port did it
+`mSecondWord = ""` and `mThirdWord = ""`. `Board::Update` (0x45c140): the abyss goes to the next level every 200 feet, the port did it
 every 100; fixed (`/ 200` in the two tests).
 
 **Quirks of the original that the port keeps** (address, what it does, how to see it):
@@ -289,8 +289,8 @@ every 100; fixed (`/ 200` in the two tests).
 - `Player::Update` (0x461740) state 1 has a branch for `y < 235` that the preceding test makes unreachable; the BlackShark
   state-5 branch in `SetState` is unreachable the same way.
 - `UserProfile::LoadDataFromDisk` (0x422630) appends the records it reads after the 35 the constructor made, so a loaded
-  profile holds 70 per group and `WriteDataToDisk` (0x4172f0) writes only the first 35; `WriteDataToDisk` stores `mField1ec`
-  where the loader reads `mField1b4`; `RegisterDefaultUserName` (0x419da0) always returns false. See a profile reloaded
+  profile holds 70 per group and `WriteDataToDisk` (0x4172f0) writes only the first 35; `WriteDataToDisk` stores `mSavedScoreBackup`
+  where the loader reads `mSavedScore`; `RegisterDefaultUserName` (0x419da0) always returns false. See a profile reloaded
   and saved again (section 10: a record fix would be invisible, so no toggle).
 - Map (`MapScreen.cpp`): `ResetScroll` 0x441030 sets both scroll targets from the width difference where the final panel's
   draw test (0x447cd3) compares with the height difference; site 35 has the link -1 and is kept away from `Update` 0x45af60 and
@@ -524,9 +524,9 @@ nothing and draws no random number; a comparison with the original never uses on
 | `goto <screen>` | `title`, `menu`, `options`, `credits`, `highscores`, `stats`, `tutor`, `map`, `adventure [0..4]` (the difficulty; default 2, Hard) and `abyss` (from the surface), through the game's own buttons; a player named Tester is made (or loaded) when there is none |
 | `level <n>` | in the adventure site 0 to 35 (the map is sailed as `OnLevelChosen` and the start button do; a fresh profile is given the tutorial mark first), in the abyss a depth in feet (`SetDepth`), in the tutor a lesson 0 to 18 (the next and previous buttons) |
 | `unlock all` | the 19 tutor-lesson marks, the tutorial mark, and a deepest abyss depth of at least 2400 |
-| `set score\|lives\|timer\|depth\|emp <n>` | the diver's score, lives (`mField110`), the game timer (milliseconds), the depth, the EMP charge (0 to 1); `set hints 0\|1` and `set tutorial 0\|1` need a player. `enemy` is read-only |
+| `set score\|lives\|timer\|depth\|emp <n>` | the diver's score, lives (`mLives`), the game timer (milliseconds), the depth, the EMP charge (0 to 1); `set hints 0\|1` and `set tutorial 0\|1` need a player. `enemy` is read-only |
 | `win` | the level is won now: the diver goes to the level-won state (0xc) as `Update` does at the bottom, with the level bonus; ERROR in the abyss, in a won or lost game |
-| `lose` | the last life goes now: `mField110` is set to 0 and `PlayerEaten` runs, which subtracts one and opens the game-over dialog |
+| `lose` | the last life goes now: `mLives` is set to 0 and `PlayerEaten` runs, which subtracts one and opens the game-over dialog |
 | `shot <file.png>` | the screen as the last draw left it, read back and saved without drawing again (needs `-drawevery`). The framework's `screenshot` draws every widget once more, and here a draw is a step: `Board::Draw` eases the two strips of sea and the rating popup once a draw, `MapScreen::Draw` the final scroll, and a widget painted over itself blends its half-transparent pixels again. The phase 2 tours take their shots with it |
 
 *The state.* `screen` (the topmost dialog's name, else `title`, `stats`, `highscores`, `tutor`, `board`, `map`, `menu`, `none`)
@@ -605,7 +605,7 @@ shots at the same updates with the mod off and on and lists the rectangles that 
   place among the four shown): reachable only in a task of six lines or more, since `mFirstLine` is set at every fourth line and the lines
   drawn run from it. The longest task of the 19 lessons has five lines, so the original never shows it. Not a toggle.
 - *The start of a level* (the black fade-in that `Update` counts down from 255 by 2 every other update, about 2.5 s, and the diver's
-  climb down in state 1, 1.2 to 2.4 s, while `KeyChar` ignores every key) and *the end of a group* (`mField0f38` ramps 0.96 an update
+  climb down in state 1, 1.2 to 2.4 s, while `KeyChar` ignores every key) and *the end of a group* (`mAirGauge` ramps 0.96 an update
   to 240 before the diver enters the streak game or the treasure, 2.5 s): the game's own animations and rhythm, part of its pace, as
   in Alchemy's notes. They also move every later update of a level, so the draws of the background bubbles and fish and the wave
   starts would move with them. They stay.
@@ -836,7 +836,7 @@ and 9 defined in the port and never reached (22 before): the deleting destructor
 |---|---|---|
 | `GameObject::SetState` 0x4010e0 (`mState = theState`) | the base's body | no `SetState` in `GameObject`; `Enemy` declares it pure (every creature class overrides it) and `Player` declares its own. Bubbles, background fish and bonus texts are never given a state |
 | `Projectile::HitsTarget` 0x4018c0 | the base's box test | pure; `Torpedo` and the shots below it have their own |
-| `BlackShark::GetWord2` 0x407030, `RedShark::GetWord3` 0x407170 | accessors that return a copy | the four callers (`BoardUpdate.cpp`, `BoardWaves.cpp`) read `mWord2` and `mWord3`, as the original does |
+| `BlackShark::GetWord2` 0x407030, `RedShark::GetWord3` 0x407170 | accessors that return a copy | the four callers (`BoardUpdate.cpp`, `BoardWaves.cpp`) read `mSecondWord` and `mThirdWord`, as the original does |
 | `ActivateTypingTutor` 0x412c90, `FocusTypingTutor` 0x412d00 | `WinWSApp` members | gone (their only caller was the register dialog, removed in the registration phase) |
 | `HintDialog` 0x438170 and `OptionsDialog` 0x438650 `GetPreferredHeight` | constants 400 and 438 | gone: `SexyAppBase::AddDialog` asks only a dialog whose width is 0, and both boxes are sized when they are made |
 | `StatsScreen::ButtonPress` 0x441320 | the button-click sound | gone, and with it the class's `ButtonListener` base: nothing registers the screen as a listener, so the port's class is a `Widget` alone |
@@ -848,3 +848,51 @@ Every change keeps the draw order and every other behaviour: `tools/check.sh bui
 included, and the 13 games' state-log hashes equal to `regress_expected.txt` and to the frozen baseline's), and the web build compiles. The
 other games' builds are unaffected (nothing outside `games/typershark/` changed). A removed function that a later mod needs comes back from
 section 12's addresses.
+
+## 14. Readability pass (2026-11-11)
+
+The port's names now come from the original or from what the code does with them (`docs/CODE_STANDARDS.md`); nothing the port does
+changed. `tools/namecheck.py games/typershark` found 1,362 faults before the pass (1,265 stand-in names such as `mField1c0`, `mFlag13c`,
+`mVector1b4` and `theField1b0`; 47 names ending in an offset; 20 functions with no address or `port:` marker; 14 one-letter names
+kept over more than 10 lines; 10 comments that name a development stage; 6 that say "unknown") and finds none now; the three
+lines it still allows are the names `PHASE1.md` and `tools/phase1` (`namecheck.txt`).
+
+What changed, by kind:
+
+| Kind | What |
+|---|---|
+| Members | 177 renamed (declarations and about 1,300 uses), among them every stand-in and offset-named member of `Board`, `Player`, `Enemy` and its subclasses, `LessonManager`, `MapScreen`, `HudBar`, `OptionsDialog`, `HintDialog`, `TypingTutor`, `TutorialPanel`, `UserProfile` and `WinWSApp`. A name says what the member holds (`mLevelTitleTimer`, `mSonarTopRightImage`, `mRouteDots`, `mSavedScoreBackup`); the offset stays in the comment on its line, where every field already carried it. |
+| Functions | `UserProfile`'s `SetField1e4`, `ClearFields1cc`, `SetGroupField8` and the other six that were named for an offset are now `SetAbyssBossIndex`, `ClearSavedGameTotals`, `RecordGroupLevel`, `SetEndlessLevelsPlayed`, `SetGameSharksKilled`, `SetGamePiranhasKilled`, `GetAbyssBossIndex`, and two getters that return `mLessonOutcome[2]` and `mSecretsFound[2]` (below). |
+| Parameters and locals | the `UserProfile` parameters named for fields (`theField1b0`, `theDouble1b8`, ...) are the field they store; `aUnusedWord`, `aField24` and `aWord2` in `BoardUpdate.cpp` and `UserProfileMgr.cpp`; the one-letter names in `testhooks/*` and `GameObject.cpp` that ran over 10 lines. |
+| Addresses | every function now names its address or carries a `port:` marker; `GameObject::Draw`'s `// 0x461270` comment is on `RecordHistory`, where the export puts that body, and `Draw` says so. |
+| Comments | the stage numbers ("phase 1", "milestone 2") and the word "unknown" are out of the comments; the old names in comments and in `docs/*.md` (over 200 places) follow the renames, except in `ASSUMED.md` lines 15 and 28, which say which export name each role replaced. The headers of `WinWSAppButtons.cpp` and `WinWSAppGame.cpp` no longer say the other classes' fields are named for their offsets. |
+
+The renames were made by the compiler, not by search and replace: `tools/readability/rename.py` renames a member at its declaration, compiles
+all 90 units with `-fsyntax-only` and replaces the old name exactly where the compiler reports it missing, with the class taken from the
+error (two classes that share a member name never mix); `scoped.py` renames a local or a parameter inside its scope and skips comments and
+strings; `comments.py` gives the new names to the comments and docs that still carry the old ones and lists the names two classes
+declared differently, which were edited by hand (`mField1c0`, `mFlag13c`, `mField124`, `mField1f8`). Names came from subagents (one at a time, reading only) that
+worked from each field's uses, its comment and the screen text it feeds; their maps were reviewed before they were applied.
+
+**Proof.** `python tools/objsnap.py cmp typershark` against a snapshot taken before the pass: 90 objects, 1,689 functions, 0 objects
+differ (code, `.rdata` and `.data` are identical byte for byte). `tools/check.sh build typershark`: the native build and the 13 games'
+state-log hashes match `regress_expected.txt` and the frozen baseline. `build-web:typershark` builds. No string literal of the sources
+changed (the changed lines' literals were compared one against the other: the differences are quotes inside comments).
+
+**Names that are guesses**, each marked in its comment: `mAlwaysTrueA`, `mAlwaysTrueB`, `mAlwaysTrueC`, `mAlwaysFalseA`, `mAlwaysFalseB`
+and `mAlwaysZero` (members that the original sets once and never reads; named for the value the constructor gives them), `mAlpha` in `BonusCreature`,
+`mSpareButton`, `mSpareDialogFlag` (`TypingTutor`'s `+0x260`, see below), `mLevelNumber` and `mEnemyType` (the spawn's kind, also the boss kind in the
+abyss), `mAlignmentGap`, `mCloseCallSeen`, `mUnreadTimer`, `mTreasureTimer` and `mBonusWord` (the air-tank round's word, named from the
+neighbours `mBonusWordPos` and `mBonusWordCount` and from the screen text "Bonus words"), `mNodesById`, `mRouteDots` and `mRouteNodes`
+(the code calls a map site a node and a site alike). `UserProfile::GetLessonTwoOutcome` and `GetNecklacesFound` stand where the port once had
+`GetField9c` and `GetField8c` at 0x412340 and 0x412350: the original's functions at those addresses are `LessonManager`'s `GetCurrentWaveType` and `GetLevel`
+(the port has them there already), and nothing calls the `UserProfile` copies, which read two unrelated fields. They are kept, named for what they return,
+until a removal pass takes them out.
+
+**`tools/splitfields.py`** (the check for two members of a class at one offset, never written and written without being read) reports
+three members as written in the export and none as a fault: `Board`'s `mUnreadTimer` +0x58 (the function at 0x45c140 writes `param_1 + 0x58`
+on an `int*`, which is byte 0x160, the wave strength `mWaveAmp`, not the board's timer), `TutorialPanel`'s `mAxisMax` +0xa8 (written in
+`ButtonDepress`, which the export places on the listener sub-object at +0x140, so its `this + 0xa8` is +0x1e8) and `TypingTutor`'s
+`mSpareDialogFlag` (+0x260: `KeyChar` writes `this[0x98]` on a one-byte `TypingTutor` type, the byte at +0x98, a different field). The 11 it lists
+as read only are fields that the export reaches by another path (a pointer the port keeps in a member, a sub-object's `this`); none is
+a field that the original writes and the port never sets, which is what the check is for.

@@ -46,7 +46,7 @@ void GhostShark::DrawGlowed(Graphics* g, Image* theGlow, Image* theBody)
 // 0 to 6; any other state draws nothing but the word): 0 swimming and 4 chased off, the ghost with its glow
 // (IMAGE_SHARK_GHOST_SWIM and the glow IMAGE_SHARK_GHOST_GLOW_SWIM); 1 swimming back mirrored, with the app's mirrored
 // pictures; 2 dead, nothing; 3 dying, the death pictures with the glow; 5 shocked, the shock picture while the
-// Enemy flag mFlag30 is set, the ghost with its glow otherwise; 6 hit, the red picture (mImages[4]) while Shark's
+// Enemy flag mShockShowing is set, the ghost with its glow otherwise; 6 hit, the red picture (mImages[4]) while Shark's
 // mFlashed is set, the ghost with its glow otherwise. Then the word, as Shark::Draw does but from the position mX, mY
 void GhostShark::Draw(Graphics* g)
 {
@@ -68,7 +68,7 @@ void GhostShark::Draw(Graphics* g)
 		DrawGlowed(g, mApp->mImages[IMAGE_SHARK_GHOST_GLOW_DEATH], mApp->mImages[IMAGE_SHARK_GHOST_DEATH]);
 		break;
 	case 5:
-		if (mFlag30)
+		if (mShockShowing)
 			g->DrawImage(mApp->mImages[IMAGE_SHARKSHOCK], (int)mX, (int)mY);
 		else
 			DrawGlowed(g, mApp->mImages[IMAGE_SHARK_GHOST_GLOW_SWIM], mApp->mImages[IMAGE_SHARK_GHOST_SWIM]);

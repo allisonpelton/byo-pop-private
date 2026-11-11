@@ -34,13 +34,14 @@ GameObject::~GameObject()
 {
 }
 
-// 0x461270 slot 2 (takes the Graphics* and ignores it): the position history. x and y are stored one after the other
+// port: slot 2 (takes the Graphics* and ignores it) is the position history of RecordHistory below
 void GameObject::Draw(Graphics* g)
 {
 	(void)g;
 	RecordHistory();
 }
 
+// 0x461270 slot 2, the body of GameObject::Draw: the position history. x and y are stored one after the other
 void GameObject::RecordHistory()
 {
 	double aPrevX = mPrevX;

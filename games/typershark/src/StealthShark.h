@@ -1,7 +1,7 @@
 #ifndef __TYPERSHARK_STEALTHSHARK_H__
 #define __TYPERSHARK_STEALTHSHARK_H__
 
-// StealthShark.cpp: a shark that swims in from the right half transparent (mFlag19 of Enemy is "stealth on") and
+// StealthShark.cpp: a shark that swims in from the right half transparent (mStealthy of Enemy is "stealth on") and
 // turns solid for good when it passes x = 400 or is hit. While stealthy it is faster than mBaseSpeed and the word is
 // drawn with alpha mAlpha. StealthBlackShark and StealthRedShark take it together with BlackShark or RedShark.
 // Original: class Sexy::StealthShark : Shark (virtual base; so are Enemy and GameObject), vftable 0x5299d0 (own part,

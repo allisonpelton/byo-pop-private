@@ -70,7 +70,7 @@ TypingTutor::TypingTutor(WinWSApp* theApp)
 	// the nine finger sprites run their constructor (0x4433c0, destructor 0x4433e0); the three vectors start empty
 	mApp = theApp;
 	mPauseCount = 0;
-	mFlag261 = false;
+	mViewStatsAsked = false;
 
 	mNextButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], NEXT_BUTTON_ID, this);
 	mPrevButton = new DialogButton(mApp->mImages[IMAGE_DBUTTON], PREV_BUTTON_ID, this);
@@ -97,15 +97,15 @@ TypingTutor::TypingTutor(WinWSApp* theApp)
 	mBlinkTimer->SetDisabled(false);
 	mCursorOn = true;
 	mState = 0;
-	mFlag262 = false;
-	mFlag260 = false;
+	mLeaveAsked = false;
+	mSpareDialogFlag = false;
 	mCorrectKeys = 0;
 	mFlashOn = true;
 	mErrorTimer = new WSTimer();
 	mErrorTimer->SetDisabled(true);
 
 	int aLesson = mApp->mUser->mLastLesson;
-	if ((aLesson == 0) && (mApp->mUser->mField94[0] == 1))
+	if ((aLesson == 0) && (mApp->mUser->mLessonOutcome[0] == 1))
 		aLesson = 1;
 	if (-1 < aLesson)
 	{
@@ -303,11 +303,11 @@ void TypingTutor::AddCreature()
 		break;
 	}
 
-	aCreature->mFlagD0 = true;
-	aCreature->mFlag1a = true;
-	aCreature->mFlag1d = true;
-	aCreature->mFlag1c = true;
-	aCreature->mFlag1b = true;
+	aCreature->mBiteEventSent = true;
+	aCreature->mPlayerDiesSoundPlayed = true;
+	aCreature->mAlwaysTrueC = true;
+	aCreature->mAlwaysTrueB = true;
+	aCreature->mAlwaysTrueA = true;
 
 	unsigned int aSpeedRand = (unsigned int) gGameRand->NextNoAssert();
 	if (aType % 7 != 1)
@@ -681,15 +681,15 @@ void TypingTutor::Finish()
 
 	if ((aMaxErrors < mErrors) || (mAdjustedWPM < aMinWPM) || (mTask < aMinTasks) || (mAccuracy < aMinAccuracy))
 	{
-		if (mApp->mUser->mField94[mLessons->mCurrent] == -1)
+		if (mApp->mUser->mLessonOutcome[mLessons->mCurrent] == -1)
 		{
-			mApp->mUser->mField94[mLessons->mCurrent] = 0;
+			mApp->mUser->mLessonOutcome[mLessons->mCurrent] = 0;
 			mLesson->mUserState = 0;
 		}
 	}
 	else
 	{
-		mApp->mUser->mField94[mLessons->mCurrent] = 1;
+		mApp->mUser->mLessonOutcome[mLessons->mCurrent] = 1;
 		mLesson->mUserState = 1;
 	}
 
@@ -705,7 +705,7 @@ void TypingTutor::Finish()
 
 	if (mLessons->mCurrent < 1)
 	{
-		mFlag262 = true;
+		mLeaveAsked = true;
 		// the typing level by speed: 80, 60, 40 and 30 words per minute are the limits
 		std::string aLevel;
 		if (mAdjustedWPM < 0x50)
@@ -739,7 +739,7 @@ void TypingTutor::Finish()
 	}
 	else
 	{
-		mFlag261 = true;
+		mViewStatsAsked = true;
 		mApp->ShowConfirmDialog(GT(0x005318b0), GT(0x005318bc), "", true, GT(0x0052d1f8), GT(0x0052d1fc));		// 0x41c4f0: "VIEW STATS?", "YES", "NO"
 	}
 }
@@ -771,6 +771,6 @@ void TypingTutor::ButtonDepress(int theId)
 	}
 
 	MarkDirty();
-	mFlag262 = true;
+	mLeaveAsked = true;
 	mApp->ShowConfirmDialog(GT(0x005318e8), GT(0x005318f0), "", true, GT(0x0052d1f8), GT(0x0052d1fc));		// 0x41c4f0: "QUIT?", the question, "YES", "NO"
 }

@@ -9,7 +9,7 @@
 // The app makes it in Init: new TitleScreen(this), Resize to the window, AddControls(), AddWidget (WinWSApp.cpp), and keeps
 // it at WinWSApp::mTitleScreen.
 // Original: class Sexy::TitleScreen : public Widget, vftable 0x52f2cc, sizeof 0x7c, constructor 0x448e10, destructor body
-// 0x4414c0 (deleting 0x441ff0, slot 0); the image loading that follows the constructor is the unnamed function 0x448f40.
+// 0x4414c0 (deleting 0x441ff0, slot 0); the image loading that follows the constructor is the function 0x448f40, which the export lists by address only.
 // The original's screen also had a register button, the registered / trial stamps and a "continue" button that a registered
 // copy never shows: removed (registration).
 

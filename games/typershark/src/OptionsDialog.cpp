@@ -24,11 +24,11 @@ OptionsDialog::OptionsDialog(WinWSApp* theApp) :
 	mApp(theApp),
 	mMusicSlider(NULL),
 	mSfxSlider(NULL),
-	mField124(NULL),
+	mSpareButton(NULL),
 	mCreditsButton(NULL),
 	mCheckedImage(NULL),
 	mUncheckedImage(NULL),
-	mFlag13c(false),
+	mCheckboxImagesReady(false),
 	mFullScreenCheckbox(NULL),
 	mEffectsCheckbox(NULL),
 	mSpacePausesCheckbox(NULL),
@@ -66,7 +66,7 @@ OptionsDialog::OptionsDialog(WinWSApp* theApp) :
 	Graphics anUncheckedGraphics(mUncheckedImage);
 	anUncheckedGraphics.DrawImage(mApp->mImages[IMAGE_CHECKED], 0, 0);
 
-	mFlag13c = true;
+	mCheckboxImagesReady = true;
 
 	// SetChecked tells the listener (this dialog), which only reacts to the hardware check box's id
 	mFullScreenCheckbox = new Checkbox(mUncheckedImage, mCheckedImage, 0, this);
@@ -124,8 +124,8 @@ void OptionsDialog::SetColor(int theIdx, const Color& theColor)
 	Dialog2004::SetColor(theIdx, theColor);
 	if (theIdx == 3)
 	{
-		if (mField124 != NULL)
-			mField124->SetColor(3, theColor);
+		if (mSpareButton != NULL)
+			mSpareButton->SetColor(3, theColor);
 		if (mCreditsButton != NULL)
 			mCreditsButton->SetColor(3, theColor);
 	}
@@ -149,7 +149,7 @@ void OptionsDialog::AddedToManager(WidgetManager* theWidgetManager)
 void OptionsDialog::RemovedFromManager(WidgetManager* theWidgetManager)
 {
 	Dialog2004::RemovedFromManager(theWidgetManager);
-	theWidgetManager->RemoveWidget(mField124);		// port: NULL (nothing is removed), see the header
+	theWidgetManager->RemoveWidget(mSpareButton);		// port: NULL (nothing is removed), see the header
 	theWidgetManager->RemoveWidget(mMusicSlider);
 	theWidgetManager->RemoveWidget(mSfxSlider);
 	theWidgetManager->RemoveWidget(mFullScreenCheckbox);

@@ -55,7 +55,7 @@ TorpedoBoss::TorpedoBoss(WinWSApp* theApp, GameObject* thePlayer, LessonManager*
 
 	if (mConfig->mAbyssMode == 0)
 	{
-		mField130 = mConfig->GetEnemyRecord(0)->mMinMissiles;
+		mMinShots = mConfig->GetEnemyRecord(0)->mMinMissiles;
 		mMaxShots = mConfig->GetEnemyRecord(0)->mMaxMissiles;
 		mShotSpeedMin = mConfig->GetEnemyRecord(0)->mShotSpeedMin;
 		mShotSpeedMax = mConfig->GetEnemyRecord(0)->mShotSpeedMax;
@@ -69,7 +69,7 @@ TorpedoBoss::TorpedoBoss(WinWSApp* theApp, GameObject* thePlayer, LessonManager*
 		if (aScore >= 13000)
 		{
 			aMore = 1.7;
-			mField10c = 400;
+			mMaxHitPoints = 400;
 			mHitPoints = 400;
 			mMinWordLength = 7;
 			mMaxWordLength = 7;
@@ -77,7 +77,7 @@ TorpedoBoss::TorpedoBoss(WinWSApp* theApp, GameObject* thePlayer, LessonManager*
 		else if (aScore >= 10000)
 		{
 			aMore = 1.3;
-			mField10c = 300;
+			mMaxHitPoints = 300;
 			mHitPoints = 300;
 			mMinWordLength = 7;
 			mMaxWordLength = 7;
@@ -86,7 +86,7 @@ TorpedoBoss::TorpedoBoss(WinWSApp* theApp, GameObject* thePlayer, LessonManager*
 		{
 			aMore = 0.9;
 			mMaxWordLength = 7;
-			mField10c = 300;
+			mMaxHitPoints = 300;
 			mHitPoints = 300;
 			mMinWordLength = 5;
 		}
@@ -94,11 +94,11 @@ TorpedoBoss::TorpedoBoss(WinWSApp* theApp, GameObject* thePlayer, LessonManager*
 		{
 			aMore = 0.5;
 			mMaxWordLength = 6;
-			mField10c = 200;
+			mMaxHitPoints = 200;
 			mHitPoints = 200;
 			mMinWordLength = 5;
 		}
-		mField130 = 2;
+		mMinShots = 2;
 		mMaxShots = 3;
 		mShotSpeedMin = 0.4 + aMore;
 		mShotSpeedMax = aMore + 0.5;
