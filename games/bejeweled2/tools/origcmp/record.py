@@ -208,6 +208,85 @@ def tourload(d, a):
     return dict(loaded=True)
 
 
+def tourmode(d, a):
+    """One game mode's screens (`--mode tour:<mode>`, the player of make_profile.py with every mode unlocked): the menu (the secret
+    menu for a secret mode), every message and screen in front of the board, the board, the board after --moves moves with five
+    shots along each level change, and, for a timed mode, the end screen. One shot each once the screen stands still. The original
+    gets the same inputs at the same updates, one mode a run: it crashes in the sandbox when its options dialog closes."""
+    mode = a.mode.split(':', 1)[1]
+    seen = set()
+
+    def settle(pred, screens=False):
+        for _ in range(4000):
+            s = d.state()
+            if s['dialogs']:
+                top = max(s['dialogs'])
+                if top not in seen:
+                    seen.add(top)
+                    d.ok('wait 60')
+                    d.shot('dialog%d' % top)
+                    continue
+                if top == 36:
+                    d.key('Escape')
+                    d.ok('wait 3')
+                else:
+                    full.handle_dialog(d, s)
+            elif pred(s):
+                return s
+            else:
+                if screens and s['screen'] not in ('game', 'menu') and s['screen'] not in seen:
+                    seen.add(s['screen'])
+                    d.ok('wait 60')
+                    d.shot('screen-' + s['screen'])
+                    continue
+                d.idle()
+        raise SystemExit('the screen did not settle: ' + full.describe(d.state()))
+
+    s = settle(full.menu_ready)
+    d.ok('wait 120')
+    s = settle(full.menu_ready)
+    d.shot('menu')
+    if mode in full.SECRET:
+        d.click(s['widgets']['secret'])
+        d.ok('wait 80')
+        d.shot('menu-secret')
+        s = d.state()
+    d.click(s['widgets'][full.SECRET.get(mode, mode)])
+    for k in range(int(os.environ.get('TOUR_FINE', '0'))):  # the start of the game along its way, a shot every 6 updates
+        d.ok('wait 6')
+        d.shot('f%02d' % k)
+    settle(lambda s: s['screen'] == 'game' and s.get('mode') == mode and s.get('phase') == 'idle', screens=True)
+    d.ok('wait 60')
+    d.shot('board')
+    made, level, r = 0, d.state().get('level'), {}
+    while made < a.moves:
+        r = full.play(d, mode, 1, a.out)
+        made += r['moves']
+        s = d.state()
+        if s['screen'] != 'game' or s.get('over'):
+            break
+        if s.get('level') != level:
+            level = s.get('level')
+            for k in range(5):
+                d.ok('wait 40')
+                d.shot('level%s-%d' % (level, k))
+    if not d.state().get('over'):
+        settle(lambda s: s['screen'] == 'game' and s.get('phase') == 'idle')
+        d.shot('board-played')
+        for _ in range(400 if mode in ('action', 'hyper') else 0):  # the timed modes end by themselves
+            if d.state().get('over'):
+                break
+            d.ok('wait 100')
+    if d.state().get('over'):  # the end of a game: its screens, then the high scores (a name first when it is one)
+        for k in range(4):
+            d.ok('wait 100')
+            d.shot('over%d' % k)
+        settle(lambda s: s['screen'] == 'highscores', screens=True)
+        d.ok('wait 100')
+        d.shot('scores-after')
+    return dict(r, moves=made)
+
+
 def swap_hyper(d):
     """Swaps the first hyper cube on the board with a neighbour, as two clicks (the bot's own move tells where the squares are
     on the screen). Returns False when the board has none."""
@@ -258,10 +337,11 @@ def main():
     ap.add_argument('--nosparkle', action='store_true', help="send the test command nosparkle (Board::AddAlphaSparkle returns at once, as the original's patched copy does): the port has no 640 by 480 scaled images for its pixel test")
     ap.add_argument('--idle-end', type=int, default=0, help='after the moves, send no more input for up to this many updates, until the game is over (the timed modes end when the bar runs out) and 700 updates more, so that the original is compared through its ending')
     ap.add_argument('--hyper', action='store_true', help='--mode load: the first hyper cube of the loaded board is swapped with its neighbour before the moves')
+    ap.add_argument('--drawevery', action='store_true', help='draw after every update (-drawevery), as the original does on its virtual clock: where the screen keeps the last frame, an effect that adds to it (the 2D whirlpool) then adds once per update, not once per -fast draw')
     ap.add_argument('--play-at', type=int, default=345, help='the update of the title play click: the first at which the original takes one (its title has loaded at 319)')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
-    d = Recorder(a.exe, a.gamedir, a.userdir, a.out, True, ['-seed=%d' % a.seed, '-trace'], windowed=True, is3d=False if a.lowres else None, hold=True)
+    d = Recorder(a.exe, a.gamedir, a.userdir, a.out, True, ['-seed=%d' % a.seed, '-trace'] + (['-drawevery'] if a.drawevery else []), windowed=True, is3d=False if a.lowres else None, hold=True)
     rc = 1
     try:
         full.until(d, lambda s: s['screen'] in ('title', 'dialog', 'menu'), 'the title', 180)
@@ -270,7 +350,7 @@ def main():
         s = d.state()
         if s['updates'] < a.play_at - 1:
             d.ok('wait %d' % (a.play_at - 1 - s['updates']))  # the original and the port then get every input at the same update
-        if a.mode == 'tourload':
+        if a.mode == 'tourload' or a.mode.startswith('tour:'):
             d.ok('wait 60')
             d.shot('title')
         if a.mode == 'tour':
@@ -289,6 +369,8 @@ def main():
             toured = tour(d, a)
         elif a.mode == 'tourload':
             toured = tourload(d, a)
+        elif a.mode.startswith('tour:'):
+            toured = tourmode(d, a)
         elif a.mode == 'load':
             loaded, load_start = load(d, a)
         elif a.mode == 'resume':
@@ -301,7 +383,7 @@ def main():
         if a.mode == 'load':
             r = loaded
             start = load_start
-        elif a.mode in ('tour', 'tourload'):
+        elif a.mode in ('tour', 'tourload') or a.mode.startswith('tour:'):
             r = toured
         elif a.mode == 'resume':
             r = resume(d, a)

@@ -778,11 +778,13 @@ void WinDMApp::UpdateFrames()
 	// port: the original's 640 by 480 game (no 3D) draws into a software screen, where a fast stretch steps its source
 	// position before it reads and a rotation is the game's own bilinear code; the framework's software paths do the same
 	// (as in Twist's 2D game), where the GPU's would sample at other places and show the big text half a pixel off. The 3D game
-	// keeps the GPU's, as the original's Direct3D does.
+	// keeps the GPU's, as the original's Direct3D does. The software screen is also one surface that keeps the last frame: the
+	// 2D whirlpool opens over the menu's last picture, which neither the menu nor the board draws once it has started.
 	if (mDDInterface != NULL)
 	{
 		mDDInterface->mSoftwareStretch = !Is3DAccelerated();
 		mDDInterface->mSoftwareTransforms = !Is3DAccelerated();
+		mDDInterface->mKeepScreen = !Is3DAccelerated();
 	}
 	SexyApp::UpdateFrames();
 	if (mTraceMode)
