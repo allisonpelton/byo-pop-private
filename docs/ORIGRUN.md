@@ -11,8 +11,10 @@ The rules a session follows:
 - **Captures come only from inside Windows Sandbox** (`--sandbox`). On the host origrun takes no shot of any kind
   ("The host-capture ban").
 - **A script never clicks a link button**: "Buy", "Buy Now", "Register", "More Games", a store or web address.
-  They open a browser or bring up the user's Steam client, and origrun has no guard against URL or program
-  launches. Click only Play and the game's own controls; a trial dialog puts the link buttons next to Play.
+  They open a browser or bring up the user's Steam client. The stand-in's launch guard fails the launches it
+  knows ("The launch guard"), but a script does not lean on it: a link opened some other way (a COM call, a game
+  that never loads the stand-in) is not caught. Click only Play and the game's own controls; a trial dialog
+  puts the link buttons next to Play.
 - Start `origrun.exe` directly, never under rundesk: it puts the game there itself, and wrapped it fails with
   "cannot start the command".
 - A run is one game process for the machine's limit, a sandbox run too, also while it waits in the queue. A run
@@ -25,8 +27,10 @@ The rules a session follows:
   it", 2026-11-03); `MessageBox` and `MessageBeep` ("Yes, hook them", 2026-11-03); `GetKeyState` and
   `GetLastInputInfo` (both "Yes, hook it", 2026-11-09); its registry calls, so that what a copy writes under
   HKLM\SOFTWARE\PopCap lands under HKCU and a restarted copy finds it ("Yes hook registry calls", 2026-11-10; not
-  built yet); and its network calls, so that a connection or download fails at once and nothing leaves the machine
-  ("Yes, block them", 2026-11-11: "The network block"). Any other hook needs the user's OK first.
+  built yet); its network calls, so that a connection or download fails at once and nothing leaves the machine
+  ("Yes, block them", 2026-11-11: "The network block"); and its program, file and link launches (`ShellExecute`,
+  `WinExec`, `CreateProcess`), which fail at once ("allow blocking programs, files and links", 2026-11-11:
+  "The launch guard"). Any other hook needs the user's OK first.
 - **No keygens.** Patch the check in the copy, or set the registry values the game itself writes when registered;
   never generate a registration code. How a copy's protection is handled is written only in the private notes
   under "Per-game status", which a published snapshot strips (`docs/PUBLISHING.md`).
@@ -57,7 +61,7 @@ placed yourself, such as a real exe carved out of a wrapper. Shots land in
 | `--sound stub` | The default: the silent stand-in, which accepts and logs every call. |
 | `--sound nodriver` | The stand-in reports no sound device (`DSERR_NODRIVER`): for a game's very first run. BASS is then never started either, so the game plays nothing. |
 | `--sound wav` | The silent stand-in also records what the game plays ("Recording sound"). |
-| `--sound real` | No stand-in: the real audio device (speakers off first). The audio watch still mutes each of the game's sessions as it appears and reports a `SOUND LEAK`. Without the stand-in there is no virtual clock, scripted cursor or keys, coverage, last-input hook, message-box hook or network block (the RESULT line says so: "The network block"). |
+| `--sound real` | No stand-in: the real audio device (speakers off first). The audio watch still mutes each of the game's sessions as it appears and reports a `SOUND LEAK`. Without the stand-in there is no virtual clock, scripted cursor or keys, coverage, last-input hook, message-box hook, network block or launch guard (the RESULT lines say so: "The network block", "The launch guard"). |
 | `--timeout <sec>` | Wall-clock cap from the game's launch (default 120, at most 3600). |
 | `--fresh` | Only a note to re-copy: delete `build/origrun/<run>` first to force a clean copy. |
 | `--copy-only` | Stage the copy and print its folder and exe without launching, to prepare it by hand before `--exe`. |
@@ -166,6 +170,12 @@ without a sign: gate the first click on the game's own state (`at`, `waitfor`), 
    `NET` entry: the count of calls blocked, "no network call from the game", or that the block was not in the game.
    Checked by `tools/origrun/nettest.sh` (part of `tools/check.sh origrun`): a test exe calls every hooked function
    and each one fails and is logged. Not covered: the gaps listed under "The network block".
+8. **Nothing the copy launches starts.** The same stand-in makes the copy's `ShellExecute`, `ShellExecuteEx`,
+   `WinExec` and `CreateProcess` calls fail at once with `ERROR_ACCESS_DENIED`, in every run that loads it
+   ("The launch guard"): no browser, no Steam client, no second copy of the game, no file opened by its
+   association. Every blocked launch is a `LAUNCH BLOCKED` line in the run's log, and the RESULT line has a
+   `LAUNCH` entry. Checked by the same `nettest.sh`: the test exe's canary command (`cmd.exe /c echo ...`), called
+   through each of the seven functions, never runs. Not covered: the gaps listed under "The launch guard".
 
 The registry and saves are **not** redirected on the host: a host run writes the game's settings and trial state
 to the real registry and save folders, which the user permitted. A `--sandbox` run keeps all of it inside the
@@ -577,13 +587,12 @@ block: a script for it clicks nothing that could connect.
 
 **Gaps.** Not blocked: `ConnectEx`, `WSAConnectByList`, `GetAddrInfoEx` and `getnameinfo`; `bind`, `listen` and `accept`
 (an inbound socket opens a port on the machine, though nothing in the games does); WinINet's FTP and Gopher calls and
-`InternetCheckConnection` / `InternetGetConnectedState`, which only read state; `ShellExecute`, `WinExec`,
-`CreateProcess` and URL protocol launches, which start a browser or the Steam client ("Gaps / next steps"); named
-pipes, RPC and every other transport. A game that never loads the stand-in, and `--sound real` runs, get no block.
+`InternetCheckConnection` / `InternetGetConnectedState`, which only read state; named pipes, RPC and every other
+transport. A program, file or link the copy launches is the launch guard's ("The launch guard"), not this block's. A game that never loads the stand-in, and `--sound real` runs, get no block.
 A blocked call fails at once, so a game that asks again until it gets an answer asks at full speed: a script should
 not wait for a network answer.
 
-**Seven Seas' "Submit to Internet High Score List" is not a network call of the game, so the block does not stop it.**
+**Seven Seas' "Submit to Internet High Score List" is not a network call of the game, so this block does not stop it; the launch guard does.**
 The button (on the high-score screen at y 356 to 386, above the New Game button and presumably as wide: x 135 to 505) opens a dialog (the dialog's SUBMIT button is at
 x 387 to 557, y 355 to 386); the dialog's SUBMIT runs the upload (0x41f340), which fills the template `scoreul.tpl` into a file
 `score<N>.html` in the game's folder and ends by calling `SexyApp::vf19` (0x42e370, `OpenURL`), whose only action is
@@ -591,8 +600,65 @@ x 387 to 557, y 355 to 386); the dialog's SUBMIT runs the upload (0x41f340), whi
 there. The game imports no connection function (its one `wsock32` import is `shutdown`). Under origrun the stand-in's
 network block therefore logs nothing for it: replays of the Seven Seas coverage run `vlose` (seed 7, the one-life saved game
 from its coverage tools) reached the button and the dialog (`NET: no network call`; 9 of the 12 submission functions) but not
-the upload. A script keeps its clicks off that row and off the dialog (the rule at the top), and stopping the launch needs a
-hook of `ShellExecute` and the process-creating functions, which the user has not allowed ("Gaps / next steps").
+the upload. A script keeps its clicks off that row and off the dialog (the rule at the top); the launch itself is stopped
+by the launch guard that follows.
+
+## The launch guard (always on)
+
+The user allowed it on 2026-11-11 ("allow blocking programs, files and links"), after the network block's test showed
+that Seven Seas' submit button starts the user's browser and no network call of the game is involved. Every run that
+loads the stand-in blocks the copy's program, file and link launches, with no option to turn it off: the call returns
+failure at once and nothing starts. It is the network block's machinery (`tools/origrun/net.c`: the same jump written
+over the first five bytes of each function, the same patching of libraries mapped at load or loaded later, the same
+log file).
+
+| Library | Functions | Returns |
+|---|---|---|
+| shell32 | `ShellExecuteA/W` | `(HINSTANCE)5` (`SE_ERR_ACCESSDENIED`, a value of 32 or below is a failure), last error `ERROR_ACCESS_DENIED` (5) |
+| | `ShellExecuteExA/W` | `FALSE`, last error 5, `hInstApp` 5, `hProcess` `NULL` |
+| kernel32 and kernelbase | `WinExec` | 5 (below 32 is a failure), last error 5 |
+| | `CreateProcessA/W` | `FALSE`, last error 5, `PROCESS_INFORMATION` zeroed |
+
+kernel32's `CreateProcess` and `WinExec` are in front of kernelbase's on current Windows, and on older versions the one
+is a stub or a forwarder of the other: the jump goes into both, and a function that forwards is left alone. `system`,
+`_spawn*`, `_exec*` and `rundll32 url.dll,FileProtocolHandler` end in `CreateProcess`, so they are caught there; a link
+(`http:`, `steam:`, `mailto:`), a file opened by its association and a folder opened in Explorer end in `ShellExecute`.
+
+**What a run shows.** One line in `logs/net.log` for each blocked launch, with the verb, file and parameters, or the
+command line:
+
+    pid 31164: LAUNCH BLOCKED ShellExecuteA open C:\...\game\score3.html
+
+origrun copies the lines of this run into its own log, ahead of the RESULT lines, and adds an entry of its own:
+
+    RESULT: LAUNCH: 1 launch of the game blocked and logged (above, and logs/net.log); each failed at once and nothing was started through it
+    RESULT: LAUNCH: no program, file or link launch from the game; the guard was in place in 1 process
+    RESULT: LAUNCH: the stand-in's launch guard was not in the game (it loads no DirectSound from its folder, or --sound real): its program, file and link launches were not blocked
+
+The line with `launch guard installed` in `net.log` tells which processes had the hooks in.
+
+**Tested** by `tools/origrun/nettest.sh` (part of `tools/check.sh origrun`, with the network block): the test exe asks
+`ShellExecuteA`, `ShellExecuteW`, `ShellExecuteExA`, `ShellExecuteExW`, `WinExec`, `CreateProcessA` and `CreateProcessW`
+(the wide ones and `ShellExecuteExW` found with `GetProcAddress`) to start `cmd.exe /c echo ... > nettest-launched.txt`;
+each must fail with the code above, return no process handle and leave a `LAUNCH BLOCKED` line, and the file must not exist
+a second and a half later. The second run of the script must count only its own launches.
+
+**Gaps.** Not blocked: `CreateProcessAsUser`, `CreateProcessWithLogonW`, `CreateProcessWithTokenW` and
+`CreateProcessInternalW`, which nothing in the games calls; COM launches (`IShellDispatch::ShellExecute`, `IWebBrowser2`,
+`HlinkNavigate`, `CoCreateInstance` of a browser) and DDE; a direct system call; and the same cases as the network
+block's (a game that never loads the stand-in, `--sound real` runs). A copy that starts a second process of itself or a
+helper program (a restart after a setting changes, a wrapper that starts the real exe) now fails at that call and runs
+on without it, so a game that needs the helper to go on may stop at that point; the RESULT line shows it.
+
+**Seven Seas.** Its submit button's upload (0x41f340) ends in `ShellExecuteA(open, score<N>.html)`: under the guard it
+fails and logs `LAUNCH BLOCKED ShellExecuteA` with that file name, and the game goes on as if the browser had not started.
+That launch itself has not been seen from the real button. Three scripted replays on the host (the coverage run's one-life saved
+game, then clicks along the Submit row and at the dialog's SUBMIT, the right-hand button, x 387 to 557, y 355 to 386) opened and
+closed the dialog (9 of the 12 submission functions) but never pressed SUBMIT, and the host takes no shot to show why. The last
+one ran under the guard: the stand-in patched all seven functions in the game's process, the game ran as it did before, and its
+log says `RESULT: LAUNCH: no program, file or link launch from the game; the guard was in place in 1 process`. The call that
+Seven Seas makes (`ShellExecuteA` with an `open` verb and a file path) is the test exe's first launch. A later try takes shots
+inside Windows Sandbox to see the dialog before it clicks.
 
 ## The registry map (`--reg-map popcap`)
 
@@ -766,7 +832,7 @@ game's registry key and 3D-flag address to games.tsv.
 | noahsark | local install | virtual clock | none | update counter `[0x4d125c]+0x368` |
 | pixelus | local install | virtual clock, scripted cursor, seed patch | has one | BASS through COM. games.tsv's Pixelus.exe (about 256 KB) is a smaller build than the port's decompiled exe, and its counter offsets do not apply to it |
 | rocketmania | Steam copy | host, virtual clock, scripted cursor, short `--stage-root` | has one | BASS through COM (the same `bass.dll` as Pixelus); `Steam.dll` is copied in |
-| sevenseas | local install | sandbox | none | update counter `[0x4e21bc]+0x378` (`+0x368` is its frame time, so an `at` past 10 never fires); its unregistered copy fills a delay bar and takes a click from about update 1000 |
+| sevenseas | local install | sandbox | none | update counter `[0x4e21bc]+0x378` (`+0x368` is its frame time, so an `at` past 10 never fires); its unregistered copy fills a delay bar and takes a click from about update 1000; its "Submit to Internet High Score List" starts the browser (`ShellExecuteA`), which the launch guard fails and logs ("The launch guard") |
 | tiptop | local install | host, virtual clock, `--cursor scripted` (it reads the pointer with `GetCursorPos`), short `--stage-root` | none | trial |
 | typershark | local install | from a copy under `build/origrun/typershark/game` (`games/typershark/docs/GAME_NOTES.md`, section 8) | | its loading thread runs on the wall clock: gate the first input with `waitfor` |
 | waterbugs | local install | sandbox, a fresh profile each run; shots by `--surface-screen` with `--surface-eip`; update counter 0x460a1c | none | full-screen DirectDraw, as Cosmic Bugs; `--input-eip` and a `mouse` patch for its input |
@@ -792,9 +858,10 @@ Preparing a wrapped or Steam copy to run under origrun:
 
 ## Gaps / next steps
 
-- **No guard against URL or program launches.** Nothing blocks an original that calls `ShellExecute`, `WinExec`
-  or `CreateProcess` (a "More Games" `steam://` link, say). The only safeguard is the rule at the top; "The network
-  block" stops a copy's own connections and downloads, not a launched browser or program.
+- **The launch guard has gaps.** It fails `ShellExecute`, `ShellExecuteEx`, `WinExec` and `CreateProcess` (a "More Games"
+  `steam://` link, a browser), not a COM launch, a launch through `CreateProcessAsUser` and its kin or a direct system call
+  ("The launch guard"), and a game that never loads the stand-in has none. The rule at the top, that a script never
+  clicks a link button, still stands.
 - **A shown box's own sound still plays**, in a run with `--msgbox show` or `--sound real`, in a game that never
   loads the stand-in, and for boxes called through `GetProcAddress`.
 - **`PlaySound`** is not hooked. From the game's process it plays in the default audio session, which is muted;

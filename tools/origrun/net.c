@@ -14,6 +14,10 @@
 // call INET_E_DOWNLOAD_FAILURE or INET_E_CANNOT_CONNECT), never calls Windows', and logs one line to <run>\logs\net.log with
 // the function and the host, address or URL ("NET BLOCKED"); origrun reads those lines for the run's RESULT.
 //
+// The same machinery carries the launch guard (the user allowed it on 2026-11-11, "allow blocking programs, files and links"): the
+// program, file and link launches ShellExecuteA/W, ShellExecuteExA/W, WinExec and CreateProcessA/W (shell32, kernel32, kernelbase)
+// fail at once with ERROR_ACCESS_DENIED and a "LAUNCH BLOCKED <function> <target>" line in the same log; see the "launches" section.
+//
 // How the calls are caught. Not by the import table (the games import wsock32 by ordinal, and a library loaded later or a
 // GetProcAddress lookup would be missed): the first five bytes of each function in the DLL itself become a jump to the hook,
 // the way the last-input hook does it (vclock.c, lastinput_detour), so every caller in the process reaches it. A forwarded
@@ -333,9 +337,91 @@ static BOOL WINAPI net_WinHttpSendRequest(void* req, LPCWSTR headers, DWORD hlen
 	return FALSE;
 }
 
+// ---------------------------------------------------------------------------------------------------------- launches
+// The launch guard (docs/ORIGRUN.md, "The launch guard"): a program, file or link the copy starts. Seven Seas' "Submit to Internet
+// High Score List" writes score<N>.html and opens it with ShellExecuteA, so the browser, not the game, goes to the network; "More
+// Games" and "Buy" are links of the same kind. Each call fails at once with ERROR_ACCESS_DENIED (ShellExecute's SE_ERR_ACCESSDENIED,
+// WinExec's value below 32) and one "LAUNCH BLOCKED" line in the same log.
+
+#define LAUNCH_DENIED 5L                     // ERROR_ACCESS_DENIED = SE_ERR_ACCESSDENIED
+
+static LONG gLaunches;                       // launches blocked in this process
+
+static void launched(const char* fn, const char* what)
+{
+	InterlockedIncrement(&gLaunches);
+	net_line("pid %lu: LAUNCH BLOCKED %s %s", GetCurrentProcessId(), fn, what ? what : "");
+}
+
+// "<verb> <file> <parameters>" of a ShellExecute call
+static void fmt_shell(const char* verb, const char* file, const char* params, char* out, int cap)
+{
+	_snprintf(out, cap, "%s %s%s%s", verb ? verb : "(default verb)", file ? file : "(null)", params && params[0] ? " " : "", params ? params : "");
+	out[cap - 1] = 0;
+}
+
+static void* WINAPI net_ShellExecuteA(HWND hwnd, LPCSTR verb, LPCSTR file, LPCSTR params, LPCSTR dir, INT show)
+{
+	char a[700]; fmt_shell(verb, file, params, a, sizeof(a));
+	launched("ShellExecuteA", a);
+	SetLastError(ERROR_ACCESS_DENIED);
+	return (void*)(INT_PTR)LAUNCH_DENIED;
+}
+static void* WINAPI net_ShellExecuteW(HWND hwnd, LPCWSTR verb, LPCWSTR file, LPCWSTR params, LPCWSTR dir, INT show)
+{
+	char v[100], f[400], p[400], a[700];
+	fmt_shell(verb ? wide(verb, v, sizeof(v)) : NULL, file ? wide(file, f, sizeof(f)) : NULL, params ? wide(params, p, sizeof(p)) : NULL, a, sizeof(a));
+	launched("ShellExecuteW", a);
+	SetLastError(ERROR_ACCESS_DENIED);
+	return (void*)(INT_PTR)LAUNCH_DENIED;
+}
+static BOOL WINAPI net_ShellExecuteExA(SHELLEXECUTEINFOA* info)
+{
+	char a[700];
+	if (info) fmt_shell(info->lpVerb, info->lpFile, info->lpParameters, a, sizeof(a)); else lstrcpynA(a, "(null)", sizeof(a));
+	launched("ShellExecuteExA", a);
+	if (info) { info->hInstApp = (HINSTANCE)(INT_PTR)LAUNCH_DENIED; info->hProcess = NULL; }
+	SetLastError(ERROR_ACCESS_DENIED);
+	return FALSE;
+}
+static BOOL WINAPI net_ShellExecuteExW(SHELLEXECUTEINFOW* info)
+{
+	char v[100], f[400], p[400], a[700];
+	if (info) fmt_shell(info->lpVerb ? wide(info->lpVerb, v, sizeof(v)) : NULL, info->lpFile ? wide(info->lpFile, f, sizeof(f)) : NULL,
+		info->lpParameters ? wide(info->lpParameters, p, sizeof(p)) : NULL, a, sizeof(a));
+	else lstrcpynA(a, "(null)", sizeof(a));
+	launched("ShellExecuteExW", a);
+	if (info) { info->hInstApp = (HINSTANCE)(INT_PTR)LAUNCH_DENIED; info->hProcess = NULL; }
+	SetLastError(ERROR_ACCESS_DENIED);
+	return FALSE;
+}
+static UINT WINAPI net_WinExec(LPCSTR cmd, UINT show)
+{
+	launched("WinExec", cmd ? cmd : "(null)");
+	SetLastError(ERROR_ACCESS_DENIED);
+	return (UINT)LAUNCH_DENIED;
+}
+static BOOL WINAPI net_CreateProcessA(LPCSTR app, LPSTR cmd, void* procAttr, void* threadAttr, BOOL inherit, DWORD flags, void* env, LPCSTR dir, void* startup, PROCESS_INFORMATION* info)
+{
+	char a[700]; _snprintf(a, sizeof(a), "%s | %s", app ? app : "(no application)", cmd ? cmd : "(no command line)"); a[sizeof(a) - 1] = 0;
+	launched("CreateProcessA", a);
+	if (info) memset(info, 0, sizeof(*info));
+	SetLastError(ERROR_ACCESS_DENIED);
+	return FALSE;
+}
+static BOOL WINAPI net_CreateProcessW(LPCWSTR app, LPWSTR cmd, void* procAttr, void* threadAttr, BOOL inherit, DWORD flags, void* env, LPCWSTR dir, void* startup, PROCESS_INFORMATION* info)
+{
+	char p[300], c[400], a[700];
+	_snprintf(a, sizeof(a), "%s | %s", app ? wide(app, p, sizeof(p)) : "(no application)", cmd ? wide(cmd, c, sizeof(c)) : "(no command line)"); a[sizeof(a) - 1] = 0;
+	launched("CreateProcessW", a);
+	if (info) memset(info, 0, sizeof(*info));
+	SetLastError(ERROR_ACCESS_DENIED);
+	return FALSE;
+}
+
 // ---------------------------------------------------------------------------------------------------------- the patches
 
-typedef struct { const char* dll; const char* name; void* hook; HMODULE at; } NetDef;
+typedef struct { const char* dll; const char* name; void* hook; HMODULE at; int guard; } NetDef;   // guard: 1 for a launch
 static NetDef gNet[] = {
 	{ "ws2_32.dll",  "connect",                  (void*)net_connect },
 	{ "wsock32.dll", "connect",                  (void*)net_connect },
@@ -375,6 +461,17 @@ static NetDef gNet[] = {
 	{ "winhttp.dll", "WinHttpOpen",              (void*)net_WinHttpOpen },
 	{ "winhttp.dll", "WinHttpConnect",           (void*)net_WinHttpConnect },
 	{ "winhttp.dll", "WinHttpSendRequest",       (void*)net_WinHttpSendRequest },
+	// the launch guard (kernel32's two are a stub in front of kernelbase's on some Windows versions, or a forwarder: both are listed)
+	{ "shell32.dll",    "ShellExecuteA",         (void*)net_ShellExecuteA,   NULL, 1 },
+	{ "shell32.dll",    "ShellExecuteW",         (void*)net_ShellExecuteW,   NULL, 1 },
+	{ "shell32.dll",    "ShellExecuteExA",       (void*)net_ShellExecuteExA, NULL, 1 },
+	{ "shell32.dll",    "ShellExecuteExW",       (void*)net_ShellExecuteExW, NULL, 1 },
+	{ "kernel32.dll",   "WinExec",               (void*)net_WinExec,         NULL, 1 },
+	{ "kernelbase.dll", "WinExec",               (void*)net_WinExec,         NULL, 1 },
+	{ "kernel32.dll",   "CreateProcessA",        (void*)net_CreateProcessA,  NULL, 1 },
+	{ "kernel32.dll",   "CreateProcessW",        (void*)net_CreateProcessW,  NULL, 1 },
+	{ "kernelbase.dll", "CreateProcessA",        (void*)net_CreateProcessA,  NULL, 1 },
+	{ "kernelbase.dll", "CreateProcessW",        (void*)net_CreateProcessW,  NULL, 1 },
 };
 #define NNET ((int)(sizeof(gNet) / sizeof(gNet[0])))
 
@@ -425,8 +522,9 @@ static void net_scan(void)
 		gNet[i].at = m;
 		BYTE* f = find_export(m, gNet[i].name);
 		if (!f) continue;   // forwarded: the DLL it forwards to is patched on its own
-		if (detour(f, gNet[i].hook)) net_line("pid %lu: network block: %s!%s patched", GetCurrentProcessId(), gNet[i].dll, gNet[i].name);
-		else net_line("pid %lu: network block: %s!%s could not be patched (err %lu)", GetCurrentProcessId(), gNet[i].dll, gNet[i].name, GetLastError());
+		const char* what = gNet[i].guard ? "launch guard" : "network block";
+		if (detour(f, gNet[i].hook)) net_line("pid %lu: %s: %s!%s patched", GetCurrentProcessId(), what, gNet[i].dll, gNet[i].name);
+		else net_line("pid %lu: %s: %s!%s could not be patched (err %lu)", GetCurrentProcessId(), what, gNet[i].dll, gNet[i].name, GetLastError());
 	}
 	InterlockedExchange(&gScanBusy, 0);
 }
@@ -455,7 +553,7 @@ void net_install(HMODULE self)
 	net_open_log();
 	gInstalled = 1;
 	char exe[MAX_PATH]; GetModuleFileNameA(NULL, exe, MAX_PATH);
-	net_line("pid %lu %s: network block installed: WinSock, WinINet, URLMon and WinHTTP calls fail at once; a DLL mapped later is patched when it loads", GetCurrentProcessId(), exe);
+	net_line("pid %lu %s: network block installed: WinSock, WinINet, URLMon and WinHTTP calls fail at once; launch guard installed: ShellExecute, WinExec and CreateProcess calls fail at once; a DLL mapped later is patched when it loads", GetCurrentProcessId(), exe);
 	net_scan();
 	HMODULE nt = GetModuleHandleA("ntdll.dll");
 	NetLdrRegister reg = nt ? (NetLdrRegister)(void*)GetProcAddress(nt, "LdrRegisterDllNotification") : NULL;
@@ -469,5 +567,6 @@ LONG net_blocked_count(void) { return gBlocked; }
 void net_detach(void)
 {
 	if (!gInstalled) return;
-	net_line("pid %lu exits: network block: %ld call%s blocked", GetCurrentProcessId(), (long)gBlocked, gBlocked == 1 ? "" : "s");
+	net_line("pid %lu exits: network block: %ld call%s blocked; launch guard: %ld launch%s blocked", GetCurrentProcessId(), (long)gBlocked, gBlocked == 1 ? "" : "s",
+		(long)gLaunches, gLaunches == 1 ? "" : "es");
 }

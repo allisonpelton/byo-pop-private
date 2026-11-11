@@ -4,7 +4,9 @@
 # some through GetProcAddress, urlmon and winhttp after the stand-in loaded). Every call must fail as the block makes it fail
 # (nettest.out, "NETTEST n of n as expected"), nothing may reach the listener, net.log must hold one "NET BLOCKED" line for
 # each call, and origrun's RESULT must say how many were blocked. A second run of the same run folder must count only its own
-# lines. nettest has no window and no sound.
+# lines. The launch guard has the same test: nettest starts cmd.exe through ShellExecute, WinExec and CreateProcess (it would
+# write nettest-launched.txt if one ran), each must fail with ERROR_ACCESS_DENIED, net.log must hold a "LAUNCH BLOCKED" line for
+# each and origrun's RESULT: LAUNCH must count them. nettest has no window and no sound.
 #   tools/origrun/nettest.sh <folder with origrun.exe, dsound.dll and nettest.exe> <work folder>
 # origrun finds the repository (and rundesk) two folders above itself, so it runs from a copy in build/.
 set -uo pipefail
@@ -32,14 +34,23 @@ for pass in 1 2; do
 		URLDownloadToFileW URLOpenStreamA URLOpenBlockingStreamA WinHttpOpen WinHttpConnect WinHttpSendRequest; do
 		grep -q "NET BLOCKED $fn " "$rd/logs/net.log" 2>/dev/null || { echo "FAIL (run $pass): net.log has no NET BLOCKED line for $fn"; st=1; }
 	done
-	n=$(grep -c 'NET BLOCKED' "$rd/logs/net.log" 2>/dev/null || echo 0)
+	n=$(grep -c 'NET BLOCKED' "$rd/logs/net.log" 2>/dev/null) || true   # grep -c prints 0 and exits 1 on an empty file
+	n=${n:-0}
 	want=$((n))   # after the second run the file holds both runs' lines
 	grep -q "RESULT: NET: [0-9]* network call" "$rd/logs/origrun.log" || { echo "FAIL (run $pass): origrun's log has no RESULT: NET line with a count"; grep 'NET' "$rd/logs/origrun.log" | head -5; st=1; }
 	cnt=$(grep -o 'RESULT: NET: [0-9]*' "$rd/logs/origrun.log" | grep -o '[0-9]*$' | head -1)
 	if [ "$pass" = 1 ]; then first=$cnt; [ "${cnt:-0}" -ge 20 ] || { echo "FAIL (run 1): RESULT counts ${cnt:-none} blocked calls, expected at least 20"; st=1; }
 	else [ "$cnt" = "$first" ] || { echo "FAIL (run 2): RESULT counts $cnt blocked calls, the first run counted $first (the second must count only its own lines)"; st=1; }; fi
+	for fn in ShellExecuteA ShellExecuteW ShellExecuteExA ShellExecuteExW WinExec CreateProcessA CreateProcessW; do
+		grep -q "LAUNCH BLOCKED $fn " "$rd/logs/net.log" 2>/dev/null || { echo "FAIL (run $pass): net.log has no LAUNCH BLOCKED line for $fn"; st=1; }
+	done
+	grep -q "RESULT: LAUNCH: [0-9]* launch" "$rd/logs/origrun.log" || { echo "FAIL (run $pass): origrun's log has no RESULT: LAUNCH line with a count"; grep 'LAUNCH' "$rd/logs/origrun.log" | head -5; st=1; }
+	lcnt=$(grep -o 'RESULT: LAUNCH: [0-9]*' "$rd/logs/origrun.log" | grep -o '[0-9]*$' | head -1)
+	if [ "$pass" = 1 ]; then lfirst=$lcnt; [ "${lcnt:-0}" -ge 7 ] || { echo "FAIL (run 1): RESULT counts ${lcnt:-none} blocked launches, expected at least 7"; st=1; }
+	else [ "$lcnt" = "$lfirst" ] || { echo "FAIL (run 2): RESULT counts $lcnt blocked launches, the first run counted $lfirst"; st=1; }; fi
+	[ ! -e "$work/game/nettest-launched.txt" ] || { echo "FAIL (run $pass): a launch got through: nettest-launched.txt exists"; st=1; }
 	grep -q 'NET BLOCKED connect 127.0.0.1:' "$rd/logs/origrun.log" || { echo "FAIL (run $pass): origrun's log lacks the connect line with its address"; st=1; }
 done
 rm -rf "$rd" "$bin"
-[ $st -eq 0 ] && echo "network block: every hooked call failed at once and was logged ($first blocked in a run; $total checks), nothing reached the listener, the second run counted only its own lines"
+[ $st -eq 0 ] && echo "network block and launch guard: every hooked call failed at once and was logged ($first network calls and $lfirst launches blocked in a run; $total checks), nothing reached the listener or started, the second run counted only its own lines"
 exit $st

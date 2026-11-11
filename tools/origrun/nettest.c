@@ -9,6 +9,7 @@
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <wininet.h>
+#include <shellapi.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -150,6 +151,65 @@ int main(void)
 	PWinHttpSendRequest pWs = wh ? (PWinHttpSendRequest)(void*)GetProcAddress(wh, "WinHttpSendRequest") : NULL;
 	if (pWs) { b = pWs((HANDLE)fake, NULL, 0, NULL, 0, 0, 0); e = (int)GetLastError();
 		_snprintf(detail, sizeof(detail), "returned %d, error %d", b, e); check("WinHttpSendRequest fails", !b && e == 12029, detail); }
+
+	// The launch guard. Every target below would write nettest-launched.txt beside the exe if it ran (cmd.exe /c echo), so a launch
+	// that was not blocked shows as that file; Windows' own answer to each call is success, the guard's is ERROR_ACCESS_DENIED (5).
+	{
+		char canary[MAX_PATH], cmdline[2 * MAX_PATH], params[2 * MAX_PATH];
+		lstrcpyA(canary, path); lstrcatA(canary, "nettest-launched.txt"); DeleteFileA(canary);
+		_snprintf(params, sizeof(params), "/c echo launched> \"%s\"", canary); params[sizeof(params) - 1] = 0;
+		_snprintf(cmdline, sizeof(cmdline), "cmd.exe %s", params); cmdline[sizeof(cmdline) - 1] = 0;
+		WCHAR wparams[2 * MAX_PATH], wcmd[2 * MAX_PATH];
+		MultiByteToWideChar(CP_ACP, 0, params, -1, wparams, 2 * MAX_PATH); MultiByteToWideChar(CP_ACP, 0, cmdline, -1, wcmd, 2 * MAX_PATH);
+
+		SetLastError(0);
+		HINSTANCE si = ShellExecuteA(NULL, "open", "cmd.exe", params, NULL, SW_HIDE); e = (int)GetLastError();
+		_snprintf(detail, sizeof(detail), "returned %p, error %d", (void*)si, e);
+		check("ShellExecuteA fails with SE_ERR_ACCESSDENIED and ERROR_ACCESS_DENIED", (INT_PTR)si == 5 && e == ERROR_ACCESS_DENIED, detail);
+		SetLastError(0);
+		si = ShellExecuteW(NULL, L"open", L"cmd.exe", wparams, NULL, SW_HIDE); e = (int)GetLastError();
+		_snprintf(detail, sizeof(detail), "returned %p, error %d", (void*)si, e);
+		check("ShellExecuteW fails with SE_ERR_ACCESSDENIED and ERROR_ACCESS_DENIED", (INT_PTR)si == 5 && e == ERROR_ACCESS_DENIED, detail);
+		SHELLEXECUTEINFOA sei; memset(&sei, 0, sizeof(sei)); sei.cbSize = sizeof(sei); sei.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
+		sei.lpVerb = "open"; sei.lpFile = "cmd.exe"; sei.lpParameters = params; sei.nShow = SW_HIDE;
+		SetLastError(0); b = ShellExecuteExA(&sei); e = (int)GetLastError();
+		_snprintf(detail, sizeof(detail), "returned %d, error %d, hInstApp %p, hProcess %p", b, e, (void*)sei.hInstApp, (void*)sei.hProcess);
+		check("ShellExecuteExA fails with ERROR_ACCESS_DENIED and starts no process", !b && e == ERROR_ACCESS_DENIED && (INT_PTR)sei.hInstApp == 5 && !sei.hProcess, detail);
+		HMODULE sh = GetModuleHandleA("shell32.dll");
+		typedef BOOL (WINAPI *PShellExecuteExW)(SHELLEXECUTEINFOW*);
+		PShellExecuteExW pSeW = sh ? (PShellExecuteExW)(void*)GetProcAddress(sh, "ShellExecuteExW") : NULL;
+		if (pSeW) {
+			SHELLEXECUTEINFOW sew; memset(&sew, 0, sizeof(sew)); sew.cbSize = sizeof(sew); sew.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI;
+			sew.lpVerb = L"open"; sew.lpFile = L"cmd.exe"; sew.lpParameters = wparams; sew.nShow = SW_HIDE;
+			SetLastError(0); b = pSeW(&sew); e = (int)GetLastError();
+			_snprintf(detail, sizeof(detail), "returned %d, error %d, hProcess %p", b, e, (void*)sew.hProcess);
+			check("ShellExecuteExW found with GetProcAddress fails with ERROR_ACCESS_DENIED", !b && e == ERROR_ACCESS_DENIED && !sew.hProcess, detail);
+		}
+		SetLastError(0);
+		UINT we = WinExec(cmdline, SW_HIDE); e = (int)GetLastError();
+		_snprintf(detail, sizeof(detail), "returned %u, error %d", we, e);
+		check("WinExec returns 5 (below 32: failed) with ERROR_ACCESS_DENIED", we == 5 && e == ERROR_ACCESS_DENIED, detail);
+		STARTUPINFOA stA; memset(&stA, 0, sizeof(stA)); stA.cb = sizeof(stA);
+		PROCESS_INFORMATION pi; memset(&pi, 0xAB, sizeof(pi));
+		char cmdbuf[2 * MAX_PATH]; lstrcpyA(cmdbuf, cmdline);
+		SetLastError(0); b = CreateProcessA(NULL, cmdbuf, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &stA, &pi); e = (int)GetLastError();
+		_snprintf(detail, sizeof(detail), "returned %d, error %d, hProcess %p", b, e, (void*)pi.hProcess);
+		check("CreateProcessA fails with ERROR_ACCESS_DENIED and returns no handles", !b && e == ERROR_ACCESS_DENIED && !pi.hProcess && !pi.hThread, detail);
+		HMODULE k32 = GetModuleHandleA("kernel32.dll");
+		typedef BOOL (WINAPI *PCreateProcessW)(LPCWSTR, LPWSTR, LPSECURITY_ATTRIBUTES, LPSECURITY_ATTRIBUTES, BOOL, DWORD, LPVOID, LPCWSTR, LPSTARTUPINFOW, LPPROCESS_INFORMATION);
+		PCreateProcessW pCpW = (PCreateProcessW)(void*)GetProcAddress(k32, "CreateProcessW");
+		if (pCpW) {
+			STARTUPINFOW stW; memset(&stW, 0, sizeof(stW)); stW.cb = sizeof(stW);
+			WCHAR wbuf[2 * MAX_PATH]; lstrcpyW(wbuf, wcmd);
+			memset(&pi, 0xAB, sizeof(pi));
+			SetLastError(0); b = pCpW(NULL, wbuf, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &stW, &pi); e = (int)GetLastError();
+			_snprintf(detail, sizeof(detail), "returned %d, error %d, hProcess %p", b, e, (void*)pi.hProcess);
+			check("CreateProcessW found with GetProcAddress fails with ERROR_ACCESS_DENIED", !b && e == ERROR_ACCESS_DENIED && !pi.hProcess, detail);
+		}
+		Sleep(1500);   // a launch that got through would have written its file by now
+		check("nothing was started: no nettest-launched.txt", GetFileAttributesA(canary) == INVALID_FILE_ATTRIBUTES, "");
+		DeleteFileA(canary);
+	}
 
 	// nothing reached the listener or the datagram socket
 	fd_set rs; struct timeval tv; tv.tv_sec = 0; tv.tv_usec = 300000;

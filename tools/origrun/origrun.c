@@ -584,13 +584,15 @@ static void net_summary(void)
 {
 	char p[MAX_PATH]; net_log_path(p);
 	size_t n=0; unsigned char* b=read_file(p,&n);
-	int blocked=0, installed=0;
+	int blocked=0, launched=0, installed=0;
 	if (b) {
 		size_t from = (size_t)gNetBase<=n ? (size_t)gNetBase : 0;
 		b[n]=0;
 		for (char* ln=strtok((char*)b+from,"\r\n"); ln; ln=strtok(NULL,"\r\n")) {
 			char* at=strstr(ln,"NET BLOCKED ");
+			char* la=strstr(ln,"LAUNCH BLOCKED ");
 			if (at) { blocked++; logline("NET BLOCKED %s (%.*s)", at+12, (int)(at-ln>2 ? at-ln-2 : 0), ln); }
+			else if (la) { launched++; logline("LAUNCH BLOCKED %s (%.*s)", la+15, (int)(la-ln>2 ? la-ln-2 : 0), ln); }
 			else if (strstr(ln,"network block installed")) installed++;
 		}
 		free(b);
@@ -598,6 +600,9 @@ static void net_summary(void)
 	if (!installed) logline("RESULT: NET: the stand-in's network block was not in the game (it loads no DirectSound from its folder, or --sound real): its network calls were not blocked");
 	else if (blocked) logline("RESULT: NET: %d network call%s of the game blocked and logged (above, and logs/net.log); each failed at once and nothing left the machine through it", blocked, blocked==1?"":"s");
 	else logline("RESULT: NET: no network call from the game; the block was in place in %d process%s", installed, installed==1?"":"es");
+	if (!installed) logline("RESULT: LAUNCH: the stand-in's launch guard was not in the game (it loads no DirectSound from its folder, or --sound real): its program, file and link launches were not blocked");
+	else if (launched) logline("RESULT: LAUNCH: %d launch%s of the game blocked and logged (above, and logs/net.log); each failed at once and nothing was started through it", launched, launched==1?"":"es");
+	else logline("RESULT: LAUNCH: no program, file or link launch from the game; the guard was in place in %d process%s", installed, installed==1?"":"es");
 }
 
 // ------------------------------------------------------------------------------------- the copy's patch list

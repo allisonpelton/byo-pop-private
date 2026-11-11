@@ -22,7 +22,7 @@ echo "toolchain: $tc"
 
 CFLAGS="-O2 -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function"
 
-echo "building dsound.dll (the sound stand-in, which also carries the virtual clock, the scripted cursor, the message-box hook, the registry map, the network block and the coverage recorder) ..."
+echo "building dsound.dll (the sound stand-in, which also carries the virtual clock, the scripted cursor, the message-box hook, the registry map, the network block, the launch guard and the coverage recorder) ..."
 "$CC" $CFLAGS -shared -o "$out/dsound.dll" "$here/dsound_proxy.c" "$here/vclock.c" "$here/cursor.c" "$here/msgbox.c" "$here/regmap.c" "$here/net.c" "$here/coverage.c" "$here/dsound_proxy.def" \
   -Wl,--enable-stdcall-fixup -lole32 -lwinmm -luser32 -ladvapi32
 
@@ -30,8 +30,8 @@ echo "building origrun.exe ..."
 "$CC" $CFLAGS -o "$out/origrun.exe" "$here/origrun.c" \
   -lole32 -loleaut32 -luuid -lwinmm -lgdi32 -luser32 -ladvapi32 -lshell32 -lbcrypt -lnetapi32 -lwtsapi32 -luserenv -liphlpapi
 
-echo "building nettest.exe (check.sh's test of the network block) ..."
-"$CC" $CFLAGS -o "$out/nettest.exe" "$here/nettest.c" -lws2_32 -lwininet -lurlmon
+echo "building nettest.exe (check.sh's test of the network block and the launch guard) ..."
+"$CC" $CFLAGS -o "$out/nettest.exe" "$here/nettest.c" -lws2_32 -lwininet -lurlmon -lshell32
 
 echo "building covtest.exe (check.sh's test of --coverage) ..."
 "$CC" $CFLAGS -o "$out/covtest.exe" "$here/covtest.c" -Wl,--dynamicbase
