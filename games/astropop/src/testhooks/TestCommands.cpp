@@ -6,9 +6,11 @@
 #include "AstroPopApp.h"
 #include "Board.h"
 #include "Compat2004.h"
+#include "Dialog.h"
 #include "LoaderScreen.h"
 #include "MainMenu.h"
 #include "Particle.h"
+#include "Res.h"
 #include "UserProfile.h"
 #include "WidgetManager.h"
 
@@ -145,6 +147,16 @@ bool AstroPopApp::HandleScriptCommand(const ScriptCommand& theCommand)
 				mBoard->mFlag8E8 ? 1 : 0, (int) mBoard->m70.size());
 			aLine += StrFormat(",\"busy\":%d", mBoard->BotBusyReason());
 			aLine += ",\"field\":" + mBoard->DescribeField();
+		}
+		// the box that asks where a classic game starts (a pilot who has passed a checkpoint): the middle of its two gates,
+		// the first level's and the checkpoint's, and of their row
+		Dialog* aGates = GetDialog(0x78);
+		if (aGates != NULL)
+		{
+			int aGateWidth = IMAGE_SLOW_WARP_GATE->GetCelWidth();
+			aLine += StrFormat(",\"checkpoint\":[%d,%d,%d]", aGates->mX + aGateWidth / 2,
+				aGates->mX + aGateWidth + 0x19 + (aGateWidth - 0x19) / 2,
+				aGates->mY + aGates->mHeight - 0x28 - IMAGE_SLOW_WARP_GATE->mHeight / 2);
 		}
 		Reply(aLine + "}");
 		return true;

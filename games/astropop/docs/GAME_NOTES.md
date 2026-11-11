@@ -67,10 +67,25 @@ hold the vectors of every kind of object, so most of the code is Board methods.
 ### 3b. Test commands
 
 `state`, `goto menu|classic [level [pilot]]|survival [pilot]`, `level`, `seed`, `unlock all`, `win`, `lose`, `move` (the
-port's bot, `BoardBot.cpp`) and `set score|level|stage|charge|stories`. `set charge` charges the pilot's weapon and
-`set stories` makes the profile hold every story as seen (the finale then follows story 9 of any pilot); both exist only
-in the test hooks (docs/TEST_COMMANDS.md lists the standard ones). A game starts with the full-screen help up: a script
-clicks Continue (320,440) first.
+port's bot, `BoardBot.cpp`) and `set score|level|stage|charge [N]|stories`. `set charge` charges the pilot's weapon (to N
+of its 18000, full without N) and `set stories` makes the profile hold every story as seen (the finale then follows story
+9 of any pilot); both exist only in the test hooks (docs/TEST_COMMANDS.md lists the standard ones). A game starts with the
+full-screen help up: a script clicks Continue (320,440) first.
+
+`unlock all` opens the two pilots that have to be earned (Turbot and Vixx: bits 2 and 6 of the profile's value 0x30, with
+its check value 0x32 = that plus 0x193). It writes 0x44: a profile is accepted on loading only with 0x13, 0x16, 0x41 or
+0x44 there (`AstroPopApp::ValidateUser`), and any other value brings the "invalid setting" box and the reset to 0x13.
+The command wrote 0x57 until 2026-11-09, which worked in the run that set it and failed in the next one.
+
+The bot (`move`) plays the weapons too: it clicks the button of the box that explains a weapon (dialog 0x7b), starts a
+charged weapon with Return, fires the laser (Vector) at the bottom brick of the tallest column, puts the pointer on that
+brick and clicks for the psychic (Vixx; two moves inside the cell, because a move lights its cell only when the pointer's
+last position was in the field already) and waits while Sprocket's and Turbot's weapons run by themselves.
+
+A player is two things, and a test that starts with one needs both: the file `users\data<n>.usr` and the registry key
+`Users\<name>` with `Users\LastUser` (the original keeps them under HKLM, the port in its `registry.ini`). `Init` deletes
+every player and file when the registry's `SGFVersion` is missing or below 15, so a preset carries that value as well
+(`tools/origcmp/ini_to_reg.py` writes the three for origrun's `--reg`).
 
 ## 4. Reading notes
 
@@ -96,7 +111,11 @@ clicks Continue (320,440) first.
   the wait formula, the danger display (`CheckStackHeight`), the spawn thresholds (`FillTopRow`), the ramp interpolation
   (`UpdateRamp`), the stage bonuses and the speeds of the streaks and particles. What a single operation followed by a store into
   a float field computes is the same either way and was left as it was. The expressions of the drawing and screen code were
-  not looked at (phase two).
+  not looked at (phase two). The weapon cases found more of the same kind: `BeginPlay`'s count of the buried bricks a weapon
+  removes, `(int) ((1.0f - share) * count)`, was 19 in double and is 18 in the original (classic, seed 7, Sprocket, update
+  6369: one draw fewer); the meter's fill ratio `m1a14 / m1a18`, which is compared with a third and two thirds (`BoardFill`)
+  and with 1 (`BoardGone`), and the positions on the meter that a milestone truncates to whole pixels (`BoardEvents`); and the
+  speed of a warp star.
 - A relative path of `XcfFile` (`HasKey`, `GetInt`: 0x412d00 and its neighbours) starts at the section under the cursor, and
   its first part may be the name of that section itself: a bonus level file is read with the paths `LEVEL\ROWn\Brickn` right
   after `Parse`, whose cursor stands on `LEVEL`. The first translation looked for the first part among the children only, found no

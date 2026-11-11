@@ -85,6 +85,9 @@ def main():
     ap.add_argument('--profile', default=None,
                     help='a profile file (users/data1.usr) the player starts with, as the original does with the same file '
                          '(run_original.sh PROFILE=...): the title then leads to the main menu, no name is typed')
+    ap.add_argument('--best', type=int, default=None,
+                    help='with --profile: the best level of every pilot, so that a classic game starts at the checkpoint '
+                         'after it (4 starts at level 5, 8 at 9 and so on)')
     ap.add_argument('--make-profile', default=None,
                     help='plays the title and the name, opens every pilot (`unlock all`), copies the profile file to this path '
                          'and its registry file (same name, .ini) and stops (no game is played)')
@@ -111,6 +114,20 @@ def main():
         # 2D, as the original runs in Windows Sandbox (no Direct3D there): the port's registry says Is3D=0
         with open(os.path.join(userdir, 'registry.ini'), 'w') as f:
             f.write('[SOFTWARE\\PopCap\\AstroPop]\nIs3D=dword:0\n')
+    if a.best:
+        # the best level of every pilot (the profile's values 8 to 11, kept in the registry): a classic game then asks
+        # where to start, and the run takes the checkpoint (the level after the last multiple of four)
+        reg = os.path.join(userdir, 'registry.ini')
+        lines = open(reg).read().splitlines()
+        users = False
+        for i, l in enumerate(lines):
+            if l.startswith('['):
+                users = 'Users' in l.strip('[]').split(chr(92))[:-1]
+            elif users and l.split('=')[0] in ('8', '9', '10', '11'):
+                lines[i] = '%s=dword:%d' % (l.split('=')[0], a.best)
+        with open(reg, 'w') as f:
+            f.write(''.join(x + chr(10) for x in lines))
+    shutil.copy(os.path.join(userdir, 'registry.ini'), os.path.join(out, 'registry-start.ini'))
     ns = argparse.Namespace(dir=out, timeout=120, exe=a.exe, realtime=False,
                             game_args=['-seed=%d' % a.seed, '-trace', '-userdir=' + userdir])
     wait_room()
@@ -132,7 +149,11 @@ def main():
         if a.make_profile:
             r.play(['unlock all', 'wait 5'])
         r.play(['click game %d %d' % (MENU_CLASSIC if a.mode == 'classic' else MENU_SURVIVAL), 'wait %d' % a.gap])
-        r.play(['click game %d 418' % PILOT_GO_X[a.pilot], 'wait %d' % a.gap])
+        ans = r.play(['click game %d 418' % PILOT_GO_X[a.pilot], 'wait %d' % a.gap])
+        gates = json.loads(ans[0][len('STATE '):]).get('checkpoint')
+        if gates:
+            # the box of the two gates: the second one goes on from the checkpoint
+            r.play(['click game %d %d' % (gates[1], gates[2]), 'wait %d' % a.gap])
         charged = a.charge is None      # the charge is set with the first move of the game itself (see below)
         r.play(['click game %d %d' % HELP_CONTINUE, 'wait 20'])
         # the bot, as tools/playbymove's loop plays it

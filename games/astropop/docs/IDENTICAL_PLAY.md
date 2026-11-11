@@ -29,6 +29,17 @@ draws from it after the start, so it never changes). A game is identical when ev
 update with the same value. The generator's position is the strong one: every draw anywhere moves it, so two games that agree on
 it have drawn the same numbers in the same updates.
 
+**The pilots and their weapons.** A game of a few hundred moves never fills the weapon's charge (18000, and it only grows in
+some states), so the weapon cases start with it full in both games: the port by the test command `set charge 18000`, sent with
+the first move of the game, the original by four patches of the staged copy that store 18000.0 where the board's constructor and
+`ResetState` store 0 (the patch list is git-ignored, like the seed patch). The bot then meets the box that explains the weapon
+and clicks its button, starts the weapon with Return whenever it is charged, and plays it: the laser of Vector takes the bottom
+brick of the tallest column, the psychic of Vixx takes the bricks lit under the pointer, and the weapons of Sprocket and Turbot
+run by themselves while the bot waits. The pilot is the start button the script clicks on the pilot screen (`PILOT=n`).
+Turbot and Vixx have to be earned, so their cases start both games with one player who has them: the port makes the profile
+(`record.py --make-profile`: the file `users/data1.usr` and the player's registry keys), and the original gets the same file in
+its staged copy and the keys as a registry preset of the sandbox (`PROFILE=file`, `ini_to_reg.py`, origrun's `--reg`).
+
 A comparison counts only when the original has really been at every step of the script: when origrun reports "counter N not
 reached within 30000 ms" (the machine was busy and the original ran slowly) the step was done at an earlier counter, and
 `run_original.sh` makes the run again (the last step, the mark that ends the script, is allowed to be out of reach). The
